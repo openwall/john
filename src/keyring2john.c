@@ -28,10 +28,16 @@ static int count;
  * in big-endian byte order */
 static uint32_t fget32_(FILE * fp)
 {
-	uint32_t v = fgetc(fp) << 24;
-	v |= fgetc(fp) << 16;
-	v |= fgetc(fp) << 8;
-	v |= fgetc(fp);
+	unsigned char buf[4];
+	int count;
+	uint32_t v;
+	count = fread(buf, 4, 1, fp);
+	assert(count == 1);
+
+	v = buf[0] << 24;
+	v |= buf[1] << 16;
+	v |= buf[2] << 8;
+	v |= buf[3];
 	return v;
 }
 
@@ -51,19 +57,29 @@ static void print_hex(unsigned char *str, int len)
 static int get_utf8_string(FILE * fp, int *next_offset)
 {
 	uint32_t len;
-	unsigned char buf[1024];
+	unsigned char *buf;
 	get_uint32(fp, next_offset, &len);
 
+	buf = (unsigned char*)malloc(len);
+	assert(buf);
 	if (len == 0xffffffff) {
-		return 1;
+		goto ok;
 	} else if (len >= 0x7fffffff) {
 		// bad
-		return 0;
+		goto bad;
 	}
 	/* read len bytes */
 	count = fread(buf, len, 1, fp);
-	assert(count == 1);
+	if (count != 1)
+		goto bad;
 	*next_offset = *next_offset + len;
+	goto ok;
+
+bad:
+	free(buf);
+	return 0;
+ok:
+	free(buf);
 	return 1;
 }
 
@@ -74,10 +90,13 @@ static void buffer_get_attributes(FILE * fp, int *next_offset)
 	guint type;
 	guint val;
 	int i;
+	int ret;
 
 	get_uint32(fp, next_offset, &list_size);
 	for (i = 0; i < list_size; i++) {
-		get_utf8_string(fp, next_offset);
+		ret = get_utf8_string(fp, next_offset);
+		assert(ret == 1);
+
 		get_uint32(fp, next_offset, &type);
 		switch (type) {
 		case 0:	/* A string */
@@ -148,11 +167,13 @@ static void process_file(const char *fname)
 		goto bail;
 	// ctime
 	count = fread(buf, 8, 1, fp);
-	assert(count == 1);
+	if (count != 1)
+		goto bail;
 	offset += 8;
 	// mtime
 	count = fread(buf, 8, 1, fp);
-	assert(count == 1);
+	if (count != 1)
+		goto bail;
 	offset += 8;
 	// flags
 	get_uint32(fp, &offset, &flags);
@@ -162,7 +183,8 @@ static void process_file(const char *fname)
 	get_uint32(fp, &offset, &hash_iterations);
 	// salt
 	count = fread(salt, 8, 1, fp);
-	assert(count == 1);
+	if (count != 1)
+		goto bail;
 	offset += 8;
 	// reserved
 	for (i = 0; i < 4; i++) {
@@ -194,7 +216,7 @@ static void process_file(const char *fname)
 	return;
 
 bail:
-	fprintf(stderr, "%s: Possible bug found, please report on john-users mailing list!\n", fname);
+	fprintf(stderr, "%s: parsing failed, please report this on john-users if input was a valid keyring!\n", fname);
 	return;
 
 }
