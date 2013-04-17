@@ -6,11 +6,12 @@
  * based on rawMD4_fmt.c code, with trivial changes by groszek.
  */
 
+#include <string.h>
+
 #include "arch.h"
 #include "params.h"
 #include "common.h"
 #include "formats.h"
-#include <string.h>
 #include "options.h"
 #include "KeccakF-1600-interface.h"
 #include "KeccakNISTInterface.h"
