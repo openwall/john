@@ -12,7 +12,7 @@
 #ifdef _OPENMP
 #include <omp.h>
 #if defined __XOP__
-#define OMP_SCALE                 1024 /* AMD */
+#define OMP_SCALE                 768 /* AMD */
 #else
 #define OMP_SCALE                 2048 /* Intel */
 #endif
@@ -48,21 +48,18 @@
 #define FORMAT_TAG                "$SHA512$"
 #define TAG_LENGTH                8
 
-#define VWIDTH                    2
-#define NUMKEYS                   VWIDTH
-
 #define BENCHMARK_COMMENT         ""
 #define BENCHMARK_LENGTH          -1
 
-#define MAXLEN                    55
+#define MAXLEN                    119
 #define CIPHERTEXT_LENGTH         128
-#define DIGEST_SIZE               64
-#define BINARY_SIZE               64
+#define FULL_BINARY_SIZE          64
+#define BINARY_SIZE               8
 #define BINARY_ALIGN              8
 #define SALT_SIZE                 0
 #define SALT_ALIGN                1
-#define MIN_KEYS_PER_CRYPT        1
-#define MAX_KEYS_PER_CRYPT        NUMKEYS
+#define MIN_KEYS_PER_CRYPT        2
+#define MAX_KEYS_PER_CRYPT        2
 
 
 #ifndef __XOP__
@@ -102,7 +99,6 @@
 
 #define GATHER(x,y,z)                                                     \
 {                                                                         \
-    x = _mm_setzero_si128 ();                                             \
     x = _mm_set_epi64x (y[index + 1][z], y[index][z]);                    \
 }
 
@@ -156,17 +152,17 @@
 
 #define R(t)                                                              \
 {                                                                         \
-    w[t] = _mm_add_epi64 (s1(w[t -  2]), w[t - 7]);                       \
-    w[t] = _mm_add_epi64 (s0(w[t - 15]), w[t    ]);                       \
-    w[t] = _mm_add_epi64 (   w[t - 16],  w[t    ]);                       \
+    tmp1 = _mm_add_epi64 (s1(w[t -  2]), w[t - 7]);                       \
+    tmp2 = _mm_add_epi64 (s0(w[t - 15]), w[t - 16]);                      \
+    w[t] = _mm_add_epi64 (tmp1, tmp2);                                    \
 }
 
 #define SHA512_STEP(a,b,c,d,e,f,g,h,x,K)                                  \
 {                                                                         \
-    tmp1 = _mm_add_epi64 (h,    S1(e));                                   \
+    tmp1 = _mm_add_epi64 (h,    w[x]);                                    \
+    tmp2 = _mm_add_epi64 (S1(e),_mm_set1_epi64x(K));                      \
     tmp1 = _mm_add_epi64 (tmp1, Ch(e,f,g));                               \
-    tmp1 = _mm_add_epi64 (tmp1, _mm_set1_epi64x(K));                      \
-    tmp1 = _mm_add_epi64 (tmp1, w[x]);                                    \
+    tmp1 = _mm_add_epi64 (tmp1, tmp2);                                    \
     tmp2 = _mm_add_epi64 (S0(a),Maj(a,b,c));                              \
     d    = _mm_add_epi64 (tmp1, d);                                       \
     h    = _mm_add_epi64 (tmp1, tmp2);                                    \
@@ -184,7 +180,7 @@ static struct fmt_tests tests[] = {
     {NULL}
 };
 
-static uint64_t (*saved_key)[80];
+static uint64_t (*saved_key)[16];
 static uint64_t *crypt_key[ 8];
 
 
@@ -199,15 +195,14 @@ static void init(struct fmt_main *self)
     omp_t *= OMP_SCALE;
     self->params.max_keys_per_crypt *= omp_t;
 #endif
-    saved_key = mem_calloc_tiny(sizeof(*saved_key) * self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
+    saved_key = mem_calloc_tiny(sizeof(*saved_key) * self->params.max_keys_per_crypt, MEM_ALIGN_CACHE);
     for (i = 0; i < 8; i++)
-	    crypt_key[i] = mem_calloc_tiny(sizeof(uint64_t) * self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
+	    crypt_key[i] = mem_calloc_tiny(sizeof(uint64_t) * self->params.max_keys_per_crypt, MEM_ALIGN_CACHE);
 }
 
 
-static inline void alter_endianity_64 (void *_x, unsigned int size)
+static inline void alter_endianity_64 (uint64_t *x, unsigned int size)
 {
-    uint64_t *x = (uint64_t *) _x;
     int i;
 
     for (i=0; i < (size / sizeof(*x)); i++)
@@ -252,19 +247,31 @@ static char *split (char *ciphertext, int index)
 
 static void *get_binary (char *ciphertext)
 {
-    static unsigned char *out;
+    static union {
+        unsigned char c[FULL_BINARY_SIZE];
+        uint64_t w[FULL_BINARY_SIZE / sizeof(uint64_t)];
+    } *out;
     int i;
 
     if (!out)
-        out = mem_alloc_tiny (DIGEST_SIZE, MEM_ALIGN_WORD);
+        out = mem_alloc_tiny (FULL_BINARY_SIZE, BINARY_ALIGN);
 
     ciphertext += TAG_LENGTH;
 
-    for (i=0; i < BINARY_SIZE; i++)
-        out[i] = atoi16[ARCH_INDEX(ciphertext[i*2])] * 16 +
-                 atoi16[ARCH_INDEX(ciphertext[i*2 + 1])];
+    for (i=0; i < FULL_BINARY_SIZE; i++)
+        out->c[i] = atoi16[ARCH_INDEX(ciphertext[i*2])] * 16 +
+                    atoi16[ARCH_INDEX(ciphertext[i*2 + 1])];
 
-    alter_endianity_64 (out, DIGEST_SIZE);
+    alter_endianity_64 (out->w, FULL_BINARY_SIZE);
+
+    out->w[0] -= 0x6a09e667f3bcc908ULL;
+    out->w[1] -= 0xbb67ae8584caa73bULL;
+    out->w[2] -= 0x3c6ef372fe94f82bULL;
+    out->w[3] -= 0xa54ff53a5f1d36f1ULL;
+    out->w[4] -= 0x510e527fade682d1ULL;
+    out->w[5] -= 0x9b05688c2b3e6c1fULL;
+    out->w[6] -= 0x1f83d9abfb41bd6bULL;
+    out->w[7] -= 0x5be0cd19137e2179ULL;
 
     return (void *) out;
 }
@@ -293,11 +300,11 @@ static void set_key (char *key, int index)
     uint8_t  *buf8  = (uint8_t * ) buf64;
     int len = 0;
 
-    while (*key)
-	    buf8[len++] = *key++;
+    while (*key && len < MAXLEN)
+        buf8[len++] = *key++;
     buf64[15] = len << 3;
     buf8[len++] = 0x80;
-    while (buf8[len] && len <= MAXLEN)
+    while (buf8[len] && len < MAXLEN)
         buf8[len++] = 0;
 }
 
@@ -341,9 +348,19 @@ static void crypt_all (int count)
         __m128i w[80], tmp1, tmp2;
 
 
-        for (i=0; i < 16; i++) GATHER (w[i], saved_key, i);
-        for (i=0; i < 15; i++) SWAP_ENDIAN (w[i]);
-        for (i++; i < 80; i++) R(i);
+        for (i = 0; i < 14; i++) {
+            GATHER (tmp1, saved_key, i);
+            GATHER (tmp2, saved_key, i + 1);
+            SWAP_ENDIAN (tmp1);
+            SWAP_ENDIAN (tmp2);
+            w[i] = tmp1;
+            w[i + 1] = tmp2;
+        }
+        GATHER (tmp1, saved_key, 14);
+        SWAP_ENDIAN (tmp1);
+        w[14] = tmp1;
+        GATHER (w[15], saved_key, 15);
+        for (i = 16; i < 80; i++) R(i);
 
         a = _mm_set1_epi64x (0x6a09e667f3bcc908);
         b = _mm_set1_epi64x (0xbb67ae8584caa73b);
@@ -438,15 +455,6 @@ static void crypt_all (int count)
         SHA512_STEP(d, e, f, g, h, a, b, c, 77, 0x597f299cfc657e2a);
         SHA512_STEP(c, d, e, f, g, h, a, b, 78, 0x5fcb6fab3ad6faec);
         SHA512_STEP(b, c, d, e, f, g, h, a, 79, 0x6c44198c4a475817);
-
-        a = _mm_add_epi64 (a, _mm_set1_epi64x (0x6a09e667f3bcc908));
-        b = _mm_add_epi64 (b, _mm_set1_epi64x (0xbb67ae8584caa73b));
-        c = _mm_add_epi64 (c, _mm_set1_epi64x (0x3c6ef372fe94f82b));
-        d = _mm_add_epi64 (d, _mm_set1_epi64x (0xa54ff53a5f1d36f1));
-        e = _mm_add_epi64 (e, _mm_set1_epi64x (0x510e527fade682d1));
-        f = _mm_add_epi64 (f, _mm_set1_epi64x (0x9b05688c2b3e6c1f));
-        g = _mm_add_epi64 (g, _mm_set1_epi64x (0x1f83d9abfb41bd6b));
-        h = _mm_add_epi64 (h, _mm_set1_epi64x (0x5be0cd19137e2179));
 
         _mm_store_si128 ((__m128i *) &crypt_key[0][index], a);
         _mm_store_si128 ((__m128i *) &crypt_key[1][index], b);
