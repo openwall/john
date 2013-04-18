@@ -23,7 +23,7 @@
 #include "options.h"
 #ifdef _OPENMP
 #include <omp.h>
-#define OMP_SCALE               8
+#define OMP_SCALE               1
 static int omp_t = 1;
 #endif
 
