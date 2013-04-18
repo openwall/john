@@ -104,7 +104,7 @@ char *GetSalt(char *s) {
 		while (*cp) {
 			// NOTE, some of these chars will never be seen in this app, due to strtok taking them out, or
 			// due to the C language not allowing them (i.e. null).  But they are listed here for documenation
-			if (*cp == ':' || *cp == '\\' || *cp == '\n' || *cp == '\r' || *cp == '\x0') { tohex=1; break; }
+			if (*cp == ':' || *cp == '\\' || *cp == '\n' || *cp == '\r' || *cp == '\x0' || *cp == '$') { tohex=1; break; }
 			++cp;
 		}
 	}

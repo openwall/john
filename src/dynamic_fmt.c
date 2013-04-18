@@ -76,6 +76,11 @@ ahead of time.
 #include "johnswap.h"
 #include "pkzip.h"
 
+#ifdef _OPENMP
+#include <omp.h>
+static int m_ompt;
+#endif
+
 #if OPENSSL_VERSION_NUMBER >= 0x10000000
 #include "openssl/whrlpool.h"
 #endif
@@ -105,7 +110,7 @@ static int force_md5_ctx;
 //#define DEEP_TIME_TEST
 
 typedef enum { eUNK=0, eBase16=1, eBase16u=2, eBase64=3, eBase64_nte=4, eBaseRaw=5} eLargeOut_t;
-static	eLargeOut_t eLargeOut = eBase16;
+static eLargeOut_t *eLargeOut;
 
 typedef ARCH_WORD_32 MD5_word;
 
@@ -135,7 +140,10 @@ typedef union {
 #if ARCH_LITTLE_ENDIAN
 // MD5_go is SUPER slow on big endian. In the case of bigendian, we simply
 // fall back, and use OpenSSL MD5 calls, which are usually MUCH faster.
+#ifndef _OPENMP
+// NOTE, MD5_go is NOT thread safe.
 #define USE_MD5_Go
+#endif
 #define MD5_swap(x, y, count)
 #define MD5_swap2(a,b,c,d,e)
 #ifdef SHA1_SSE_PARA
@@ -181,29 +189,59 @@ static void __SSE_gen_BenchLowLevelFunctions();
 # define GETPOS(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3) )*MMX_COEF + ((i)&3) )
 # define SHAGETPOS(i, index)	( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3) )*MMX_COEF + (3-((i)&3)) ) //for endianity conversion
 # define MIN_KEYS_PER_CRYPT	1
-# if (MMX_COEF == 2)
-#  define BLOCK_LOOPS			64
-#  define ALGORITHM_NAME		"64/64 " MD5_SSE_type  " 64x2"
-#  define ALGORITHM_NAME_S		"64/64 " SHA1_SSE_type " 64x2"
-#  define ALGORITHM_NAME_4		"64/64 " MD4_SSE_type  " 64x2"
-#  define MAX_KEYS_PER_CRYPT	MMX_COEF*BLOCK_LOOPS
-#  define BSD_BLKS 1
-# elif MMX_COEF == 4
-#  define BLOCK_LOOPS			32
-#  if !defined MD5_SSE_PARA || MD5_SSE_PARA==1
-#   define BY_X			32
-#  elif MD5_SSE_PARA==2
-#   define BY_X			16
-#  elif MD5_SSE_PARA==3
-#   define BY_X			10
-#  elif MD5_SSE_PARA==4
-#   define BY_X			8
-#  elif MD5_SSE_PARA==5
-#   define BY_X			6
-#  elif MD5_SSE_PARA==6
-#   define BY_X			5
+# ifdef _OPENMP
+// in openMP mode, we multiply everything by 24
+// in openMP mode, we multiply everything by 48
+#  if (MMX_COEF == 2)
+#   define BLOCK_LOOPS			3072
+#   define ALGORITHM_NAME		"64/64 " MD5_SSE_type  " 3072x2"
+#   define ALGORITHM_NAME_S		"64/64 " SHA1_SSE_type " 3072x2"
+#   define ALGORITHM_NAME_4		"64/64 " MD4_SSE_type  " 3072x2"
+#   define MAX_KEYS_PER_CRYPT	MMX_COEF*BLOCK_LOOPS
+#   define BSD_BLKS 1
+#  elif MMX_COEF == 4
+#   define BLOCK_LOOPS		1536
+#   if !defined MD5_SSE_PARA || MD5_SSE_PARA==1
+#    define BY_X			1536
+#   elif MD5_SSE_PARA==2
+#    define BY_X			768
+#   elif MD5_SSE_PARA==3
+#    define BY_X			480
+#   elif MD5_SSE_PARA==4
+#    define BY_X			384
+#   elif MD5_SSE_PARA==5
+#    define BY_X			288
+#   elif MD5_SSE_PARA==6
+#    define BY_X			240
+#   endif
 #  endif
-#define LOOP_STR
+# else
+#  if (MMX_COEF == 2)
+#   define BLOCK_LOOPS			64
+#   define ALGORITHM_NAME		"64/64 " MD5_SSE_type  " 64x2"
+#   define ALGORITHM_NAME_S		"64/64 " SHA1_SSE_type " 64x2"
+#   define ALGORITHM_NAME_4		"64/64 " MD4_SSE_type  " 64x2"
+#   define MAX_KEYS_PER_CRYPT	MMX_COEF*BLOCK_LOOPS
+#   define BSD_BLKS 1
+#  elif MMX_COEF == 4
+#   define BLOCK_LOOPS		32
+#   if !defined MD5_SSE_PARA || MD5_SSE_PARA==1
+#    define BY_X			32
+#   elif MD5_SSE_PARA==2
+#    define BY_X			16
+#   elif MD5_SSE_PARA==3
+#    define BY_X			10
+#   elif MD5_SSE_PARA==4
+#    define BY_X			8
+#   elif MD5_SSE_PARA==5
+#    define BY_X			6
+#   elif MD5_SSE_PARA==6
+#    define BY_X			5
+#   endif
+# endif
+# endif
+# define LOOP_STR
+# if MMX_COEF == 4
 #  ifdef MD5_SSE_PARA
 #   define ALGORITHM_NAME		"128/128 " MD5_SSE_type  " " STRINGIZE(BY_X) "x4x" STRINGIZE(MD5_SSE_PARA)
 #   define BSD_BLKS (MD5_SSE_PARA)
@@ -232,25 +270,48 @@ static void __SSE_gen_BenchLowLevelFunctions();
 #  error "Invalid MMX_COEF  Only valid is 2 or 4"
 # endif
 #else // !MMX_COEF
-# define BLOCK_LOOPS			128
-# define ALGORITHM_NAME			"32/" ARCH_BITS_STR " 128x1"
-# define ALGORITHM_NAME_S		"32/" ARCH_BITS_STR " 128x1"
-# define ALGORITHM_NAME_4		"32/" ARCH_BITS_STR " 128x1"
+# ifdef _OPENMP
+#  define BLOCK_LOOPS			6144
+# else
+#  define BLOCK_LOOPS			128
+# endif
+# define ALGORITHM_NAME			"32/" ARCH_BITS_STR " " STRINGIZE(BLOCK_LOOPS) "x1"
+# define ALGORITHM_NAME_S		"32/" ARCH_BITS_STR " " STRINGIZE(BLOCK_LOOPS) "x1"
+# define ALGORITHM_NAME_4		"32/" ARCH_BITS_STR " " STRINGIZE(BLOCK_LOOPS) "x1"
 #endif
 
-#define ALGORITHM_NAME_X86_S	"32/" ARCH_BITS_STR " 128x1"
-#define ALGORITHM_NAME_X86_4	"32/" ARCH_BITS_STR " 128x1"
+#ifdef _OPENMP
+# define X86_BLOCK_LOOPS			6144
+# define X86_BLOCK_LOOPSx2			3072
+#else
+# define X86_BLOCK_LOOPS			128
+# define X86_BLOCK_LOOPSx2			64
+#endif
+
+#define ALGORITHM_NAME_X86_S	ARCH_BITS_STR"/"ARCH_BITS_STR" "STRINGIZE(X86_BLOCK_LOOPS) "x1"
+#define ALGORITHM_NAME_X86_4	ARCH_BITS_STR"/"ARCH_BITS_STR" "STRINGIZE(X86_BLOCK_LOOPS) "x1"
 
 // No SSE2 'yet' for sha2.  Waiting patiently for a kind super hacker to do these formats ;)
 #if defined (COMMON_DIGEST_FOR_OPENSSL)
-#define ALGORITHM_NAME_S2		"32/" ARCH_BITS_STR " 128x1 CommonCrypto"
-#define ALGORITHM_NAME_X86_S2	"32/" ARCH_BITS_STR " 128x1 CommonCrypto"
+#define ALGORITHM_NAME_S2		ARCH_BITS_STR"/"ARCH_BITS_STR" "STRINGIZE(X86_BLOCK_LOOPS) "x1 CommonCrypto"
+#define ALGORITHM_NAME_X86_S2	ARCH_BITS_STR"/"ARCH_BITS_STR" "STRINGIZE(X86_BLOCK_LOOPS) "x1 CommonCrypto"
 #elif defined (GENERIC_SHA2)
-#define ALGORITHM_NAME_S2		"32/" ARCH_BITS_STR " 128x1 sha2-generic"
-#define ALGORITHM_NAME_X86_S2	"32/" ARCH_BITS_STR " 128x1 sha2-generic"
+#define ALGORITHM_NAME_S2		ARCH_BITS_STR"/"ARCH_BITS_STR" "STRINGIZE(X86_BLOCK_LOOPS) "x1 sha2-generic"
+#define ALGORITHM_NAME_X86_S2	ARCH_BITS_STR"/"ARCH_BITS_STR" "STRINGIZE(X86_BLOCK_LOOPS) "x1 sha2-generic"
 #else
-#define ALGORITHM_NAME_S2		"32/" ARCH_BITS_STR " 128x1 sha2-OpenSSL"
-#define ALGORITHM_NAME_X86_S2	"32/" ARCH_BITS_STR " 128x1 sha2-OpenSSL"
+#define ALGORITHM_NAME_S2		ARCH_BITS_STR"/"ARCH_BITS_STR" "STRINGIZE(X86_BLOCK_LOOPS) "x1 sha2-OpenSSL"
+#define ALGORITHM_NAME_X86_S2	ARCH_BITS_STR"/"ARCH_BITS_STR" "STRINGIZE(X86_BLOCK_LOOPS) "x1 sha2-OpenSSL"
+#endif
+
+#define ALGORITHM_NAME_WP2      ARCH_BITS_STR"/"ARCH_BITS_STR" "STRINGIZE(X86_BLOCK_LOOPS) "x1 OpenSSL"
+#define ALGORITHM_NAME_X86_WP2  ARCH_BITS_STR"/"ARCH_BITS_STR" "STRINGIZE(X86_BLOCK_LOOPS) "x1 OpenSSL"
+
+#if !defined(USE_GCC_ASM_IA32) && defined(USE_GCC_ASM_X64)
+#define ALGORITHM_NAME_GST2     "64/64 "STRINGIZE(X86_BLOCK_LOOPS) "x1"
+#define ALGORITHM_NAME_X86_GST2 "64/64 "STRINGIZE(X86_BLOCK_LOOPS) "x1"
+#else
+#define ALGORITHM_NAME_GST2     "32/"ARCH_BITS_STR" "STRINGIZE(X86_BLOCK_LOOPS) "x1"
+#define ALGORITHM_NAME_X86_GST2 "32/"ARCH_BITS_STR" "STRINGIZE(X86_BLOCK_LOOPS) "x1"
 #endif
 
 // NOTE, we will HAVE to increase this at some time.  sha512 has 128 byte hash all in itself. So you try
@@ -262,9 +323,10 @@ static void __SSE_gen_BenchLowLevelFunctions();
 
 #ifdef USE_MD5_Go
 #define MIN_KEYS_PER_CRYPT_X86	1
-#define MAX_KEYS_PER_CRYPT_X86	128
+#define MAX_KEYS_PER_CRYPT_X86	X86_BLOCK_LOOPS
 extern void MD5_Go2 (unsigned char *data, unsigned int len, unsigned char *result);
 #if MD5_X2 && (!MD5_ASM)
+static MD5_OUT tmpOut;
 #if defined(_OPENMP)
 #define MD5_body(x0, x1, out0, out1) \
 	MD5_body_for_thread(0, x0, x1, out0, out1)
@@ -272,7 +334,7 @@ extern void MD5_body_for_thread(int t, MD5_word x[15], MD5_word x2[15], MD5_word
 #else
 extern void MD5_body(MD5_word x[15], MD5_word x2[15], MD5_word out[4], MD5_word out2[4]);
 #endif
-#define ALGORITHM_NAME_X86		"32/" ARCH_BITS_STR " 64x2 (MD5_Body)"
+#define ALGORITHM_NAME_X86		"32/" ARCH_BITS_STR " " STRINGIZE(X86_BLOCK_LOOPSx2) "x2 (MD5_Body)"
 #define DoMD5(A,L,C) do{if(!force_md5_ctx&&(L[0])<55&&(L[1])<55) {A.x1.b[L[0]]=0x80;A.x2.b2[L[1]]=0x80;A.x1.w[14]=(L[0]<<3);A.x2.w2[14]=(L[1]<<3);MD5_swap(A.x1.w,A.x1.w,(L[0]+4)>>2);MD5_swap(A.x2.w2,A.x2.w2,(L[1]+4)>>2);MD5_body(A.x1.w,A.x2.w2,C.x1.w,C.x2.w2);MD5_swap2(C.x1.w,C.x2.w2,C.x1.w,C.x2.w2,4);} else {MD5_Go2(A.x1.B,L[0],C.x1.B); MD5_Go2(A.x2.B2,L[1],C.x2.B2);} }while(0)
 #define DoMD5o(A,L,C) do{if((L[0])<55&&(L[1])<55) {MD5_body(A.x1.w,A.x2.w2,C.x1.w,C.x2.w2);} else {MD5_Go2(A.x1.B,L[0],C.x1.B); MD5_Go2(A.x2.B2,L[1],C.x2.B2);} }while(0)
 #if ARCH_LITTLE_ENDIAN
@@ -290,7 +352,7 @@ extern void MD5_body_for_thread(int t, ARCH_WORD_32 x[15], ARCH_WORD_32 out[4]);
 #else
 extern void MD5_body(ARCH_WORD_32 x[15], ARCH_WORD_32 out[4]);
 #endif
-#define ALGORITHM_NAME_X86		"32/" ARCH_BITS_STR " 128x1 (MD5_Body)"
+#define ALGORITHM_NAME_X86		"32/" ARCH_BITS_STR " " STRINGIZE(X86_BLOCK_LOOPS) "x1 (MD5_Body)"
 #define DoMD5(A,L,C) do{if(!force_md5_ctx&&(L)<55) {A.x1.b[L]=0x80;A.x1.w[14]=(L<<3);MD5_swap(A.x1.w,A.x1.w,((L+4)>>2));MD5_body(A.x1.w,C.x1.w);MD5_swap(C.x1.w,C.x1.w,4);} else MD5_Go2(A.x1.B,L,C.x1.B); }while(0)
 #define DoMD5o(A,L,C) do{if((L)<55) {MD5_body(A.x1.w,C.x1.w);} else MD5_Go2(A.x1.B,L,C.x1.B); }while(0)
 #if ARCH_LITTLE_ENDIAN
@@ -303,9 +365,11 @@ static MD5_OUT tmpOut;
 #endif
 #endif
 #else // !USE_MD5_Go
+#ifndef MMX_COEF
 static MD5_OUT tmpOut;
+#endif
 #define MIN_KEYS_PER_CRYPT_X86	1
-#define MAX_KEYS_PER_CRYPT_X86	128
+#define MAX_KEYS_PER_CRYPT_X86	X86_BLOCK_LOOPS
 #if MD5_X2 && (!MD5_ASM)
 #if defined(_OPENMP)
 #define MD5_body(x0, x1, out0, out1) \
@@ -314,7 +378,7 @@ extern void MD5_body_for_thread(int t, ARCH_WORD_32 x1[15], ARCH_WORD_32 x2[15],
 #else
 extern void MD5_body(ARCH_WORD_32 x1[15], ARCH_WORD_32 x2[15], ARCH_WORD_32 out1[4], ARCH_WORD_32 out2[4]);
 #endif
-#define ALGORITHM_NAME_X86		"32/" ARCH_BITS_STR " 64x2 (MD5_body)"
+#define ALGORITHM_NAME_X86		"32/" ARCH_BITS_STR " " STRINGIZE(X86_BLOCK_LOOPSx2) "x2 (MD5_body)"
 #define DoMD5(A,L,C) do{if(!force_md5_ctx&&(L[0])<55&&(L[1])<55) {A.x1.b[L[0]]=0x80;A.x2.b2[L[1]]=0x80;A.x1.w[14]=(L[0]<<3);A.x2.w2[14]=(L[1]<<3);MD5_swap(A.x1.w,A.x1.w,(L[0]+4)>>2);MD5_swap(A.x2.w2,A.x2.w2,(L[1]+4)>>2);MD5_body(A.x1.w,A.x2.w2,C.x1.w,C.x2.w2);MD5_swap2(C.x1.w,C.x2.w2,C.x1.w,C.x2.w2,4);} else {MD5_CTX ctx; MD5_Init(&ctx); MD5_Update(&ctx,A.x1.b,L[0]); MD5_Final((unsigned char *)(C.x1.b),&ctx); MD5_Init(&ctx); MD5_Update(&ctx,A.x2.b2,L[1]); MD5_Final((unsigned char *)(C.x2.b2),&ctx);} }while(0)
 #define DoMD5o(A,L,C) do{if((L[0])<55&&(L[1])<55) {MD5_body(A.x1.w,A.x2.w2,C.x1.w,C.x2.w2);} else {MD5_CTX ctx; MD5_Init(&ctx); MD5_Update(&ctx,A.x1.b,L[0]); MD5_Final((unsigned char *)(C.x1.b),&ctx); MD5_Init(&ctx); MD5_Update(&ctx,A.x2.b2,L[1]); MD5_Final((unsigned char *)(C.x2.b2),&ctx);} }while(0)
 #define DoMD5a(A,L,C) do{MD5_body(A->x1.w,A->x2.w2,C->x1.w,C->x2.w2);}while(0)
@@ -327,14 +391,13 @@ extern void MD5_body_for_thread(int t, MD5_word x[15],MD5_word out[4]);
 #else
 extern void MD5_body(MD5_word x[15],MD5_word out[4]);
 #endif
-#define ALGORITHM_NAME_X86		"32/" ARCH_BITS_STR " 128x1 (MD5_body)"
+#define ALGORITHM_NAME_X86		"32/" ARCH_BITS_STR " " STRINGIZE(X86_BLOCK_LOOPS) "x1 (MD5_body)"
 #define DoMD5(A,L,C) do{if(!force_md5_ctx&&(L)<55) {A.x1.b[L]=0x80;A.x1.w[14]=(L<<3);MD5_swap(A.x1.w,A.x1.w,((L+4)>>2));MD5_body(A.x1.w,C.x1.w);MD5_swap(C.x1.w,C.x1.w,4);} else {MD5_CTX ctx; MD5_Init(&ctx); MD5_Update(&ctx,A.x1.b,L); MD5_Final((unsigned char *)(C.x1.b),&ctx); } }while(0)
 #define DoMD5o(A,L,C) do{if((L)<55) {MD5_body(A.x1.w,C.x1.w);} else {MD5_CTX ctx; MD5_Init(&ctx); MD5_Update(&ctx,A.x1.b,L); MD5_Final((unsigned char *)(C.x1.b),&ctx); } }while(0)
 #define DoMD5a(A,L,C) do{MD5_body(A->x1.w,C->x1.w);}while(0)
 #define DoMD5a2(A,L,C,D)  do{MD5_body(A->x1.w,tmpOut.x1.w); MD5_swap(C->x1.w,C->x1.w,(D[0]+21)>>2);memcpy(&(C->x1.b[D[0]]),tmpOut.x1.b,16); MD5_swap(C->x1.w,C->x1.w,(D[0]+21)>>2);}while(0)
 #endif
 #endif
-SHA_CTX sha_ctx;
 
 // simple macro for now.  We can and will improve upon this later.
 #if MD5_X2
@@ -346,8 +409,8 @@ SHA_CTX sha_ctx;
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1
 #define CIPHERTEXT_LENGTH		32
-#define BINARY_SIZE			16
-#define BINARY_SIZE_SHA         	20
+#define BINARY_SIZE				16
+#define BINARY_SIZE_SHA         20
 #define BINARY_ALIGN			MEM_ALIGN_WORD
 
 // Computation for 'salt_size'  The salt (and salt2) is appended to the end of the hash entry.
@@ -518,7 +581,7 @@ static int m_allow_rawhash_fixup = 0;
 static int dynamic_use_sse;
 
 // If set to 1, then do unicode conversion is many string setting functions.
-static int md5_unicode_convert;
+static int *md5_unicode_convert;
 
 typedef struct private_subformat_data
 {
@@ -766,7 +829,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 		if ( (pPriv->FldMask & (MGF_FLDx_BIT<<i)) == (MGF_FLDx_BIT<<i) && !strstr(&ciphertext[pPriv->dynamic_SALT_OFFSET-1], Fld))
 			return 0;
 	}
-	if ((pPriv->pSetup->flags & MGF_HDAA_SALT) == MGF_HDAA_SALT) {
+	if ( (pPriv->pSetup->flags & MGF_HDAA_SALT) == MGF_HDAA_SALT) {
 		char *cp = strchr(&ciphertext[12], '$'), *cp2;
 		if (!cp) return 0;
 		cp2 = strchr(&cp[1], '$');
@@ -791,6 +854,220 @@ static char *FixupIfNeeded(char *ciphertext, private_subformat_data *pPriv);
 static struct fmt_main *dynamic_Get_fmt_main(int which);
 static char *HandleCase(char *cp, int caseType);
 
+// 'wrapper' functions. These are here, so we can call these functions to work on ALL data (not simply within the
+// thead, which ONLY wants to work on a subset of the data.  These functions should NOT be called by threading
+// code, EVER.  But this functions KNOW what to do.  Some actually have threads, others do not need them.
+#ifdef _OPENMP
+#ifndef MMX_COEF
+//const int OMP_INC = (MD5_X2+1);
+//const int OMP_MD5_INC = (MD5_X2+1);
+//const int OMP_SHA1_INC = (MD5_X2+1);
+//const int OMP_MD4_INC = (MD5_X2+1);
+// These 'block sizes', seem to work much faster than 1 or 2, for 'MANY' formats.  Some are same speed, but many are much faster.
+const int OMP_INC = 12;
+const int OMP_MD5_INC = 12;
+const int OMP_SHA1_INC = 12;
+const int OMP_MD4_INC = 12;
+#else
+//const int OMP_INC = (MD5_X2+1);
+const int OMP_INC = 12;
+#ifdef MD5_SSE_PARA
+//const int OMP_MD5_INC = (MD5_SSE_PARA*MMX_COEF);
+const int OMP_MD5_INC = (MD5_SSE_PARA*MMX_COEF*4);
+#else
+//const int OMP_MD5_INC = MMX_COEF;
+const int OMP_MD5_INC = MMX_COEF*4;
+#endif // MD5_SSE_PARA
+#ifdef SHA1_SSE_PARA
+//const int OMP_SHA1_INC = (SHA1_SSE_PARA*MMX_COEF);
+const int OMP_SHA1_INC = (SHA1_SSE_PARA*MMX_COEF*4);
+#else
+//const int OMP_SHA1_INC = MMX_COEF;
+const int OMP_SHA1_INC = MMX_COEF*4;
+#endif // SHA1_SSE_PARA
+#ifdef MD4_SSE_PARA
+//const int OMP_MD4_INC = (MD4_SSE_PARA*MMX_COEF);
+const int OMP_MD4_INC = (MD4_SSE_PARA*MMX_COEF*4);
+#else
+//const int OMP_MD4_INC = MMX_COEF;
+const int OMP_MD4_INC = MMX_COEF*4;
+#endif // MD4_SSE_PARA
+#endif // MMX_COEF
+#endif // _OPENMP
+
+static inline void __nonMP_DynamicFunc__SSEtoX86_switch_output2() {
+#ifdef _OPENMP
+	DynamicFunc__SSEtoX86_switch_output2(0,m_count);
+#else
+	DynamicFunc__SSEtoX86_switch_output2();
+#endif
+}
+static inline void __nonMP_DynamicFunc__append_from_last_output2_to_input1_as_base16() {
+#ifdef _OPENMP
+	DynamicFunc__append_from_last_output2_to_input1_as_base16(0,m_count);
+#else
+	DynamicFunc__append_from_last_output2_to_input1_as_base16();
+#endif
+}
+static inline void __nonMP_DynamicFunc__set_input_len_32() {
+#ifdef _OPENMP
+	DynamicFunc__set_input_len_32(0,m_count);
+#else
+	DynamicFunc__set_input_len_32();
+#endif
+}
+
+static inline void eLargeOut_set(eLargeOut_t what) {
+#ifdef _OPENMP
+	eLargeOut[omp_get_thread_num()] = what;
+#else
+	eLargeOut[0] = what;
+#endif
+}
+static inline int eLargeOut_get() {
+#ifdef _OPENMP
+	return eLargeOut[omp_get_thread_num()];
+#else
+	return eLargeOut[0];
+#endif
+}
+void __nonMP_eLargeOut(eLargeOut_t what) {
+#ifdef _OPENMP
+	int i;
+	for (i = 1; i < m_ompt; ++i)
+		eLargeOut[i] = what;
+#endif
+	eLargeOut[0] = what;
+}
+static inline void md5_unicode_convert_set(int what) {
+#ifdef _OPENMP
+	md5_unicode_convert[omp_get_thread_num()] = what;
+#else
+	md5_unicode_convert[0] = what;
+#endif
+}
+static inline int md5_unicode_convert_get() {
+#ifdef _OPENMP
+	return md5_unicode_convert[omp_get_thread_num()];
+#else
+	return md5_unicode_convert[0];
+#endif
+}
+void __nonMP_md5_unicode_convert(int what) {
+#ifdef _OPENMP
+	int i;
+	for (i = 1; i < m_ompt; ++i)
+		md5_unicode_convert[i] = what;
+#endif
+	md5_unicode_convert[0] = what;
+}
+static inline void __nonMP_DynamicFunc__append_keys2() {
+#ifdef _OPENMP
+	DynamicFunc__append_keys2(0,m_count);
+#else
+	DynamicFunc__append_keys2();
+#endif
+}
+static void __possMP_DynamicFunc__crypt2_md5() {
+#ifdef _OPENMP
+	int i;
+	int inc = OMP_MD5_INC;
+//	if (dynamic_use_sse!=1)
+//		inc = OMP_INC;
+#pragma omp parallel for
+	for (i = 0; i < m_count; i += inc)
+		DynamicFunc__crypt2_md5(i,i+inc);
+#else
+	DynamicFunc__crypt2_md5();
+#endif
+}
+static void __nonMP_DynamicFunc__clean_input() {
+	unsigned i=0;
+#ifdef MMX_COEF
+	if (dynamic_use_sse==1) {
+		memset(input_buf, 0, sizeof(input_buf));
+		memset(total_len, 0, sizeof(total_len));
+		return;
+	}
+#endif
+	for (; i < MAX_KEYS_PER_CRYPT_X86; ++i) {
+		//if (total_len_X86[i]) {
+#if MD5_X2
+			if (i&1)
+				memset(input_buf_X86[i>>MD5_X2].x2.b2, 0, total_len_X86[i]+5);
+			else
+#endif
+			memset(input_buf_X86[i>>MD5_X2].x1.b, 0, total_len_X86[i]+5);
+			total_len_X86[i] = 0;
+		//}
+	}
+	return;
+}
+static void __nonMP_DynamicFunc__clean_input2() {
+	unsigned i=0;
+#ifdef MMX_COEF
+	if (dynamic_use_sse==1) {
+		memset(input_buf2, 0, sizeof(input_buf2));
+		memset(total_len2, 0, sizeof(total_len2));
+		return;
+	}
+#endif
+	for (; i < MAX_KEYS_PER_CRYPT_X86; ++i) {
+		//if (total_len2_X86[i]) {
+#if MD5_X2
+			if (i&1)
+				memset(input_buf2_X86[i>>MD5_X2].x2.b2, 0, total_len2_X86[i]+5);
+			else
+#endif
+			memset(input_buf2_X86[i>>MD5_X2].x1.b, 0, total_len2_X86[i]+5);
+			total_len2_X86[i] = 0;
+		//}
+	}
+	return;
+}
+static void __nonMP_DynamicFunc__clean_input_full() {
+#ifdef MMX_COEF
+	memset(input_buf, 0, sizeof(input_buf));
+	memset(total_len, 0, sizeof(total_len));
+#endif
+	memset(input_buf_X86, 0, sizeof(input_buf_X86));
+	memset(total_len_X86, 0, sizeof(total_len_X86));
+}
+static void __nonMP_DynamicFunc__clean_input2_full() {
+#ifdef MMX_COEF
+	memset(input_buf2, 0, sizeof(input_buf));
+	memset(total_len2, 0, sizeof(total_len));
+#endif
+	memset(input_buf2_X86, 0, sizeof(input_buf2_X86));
+	memset(total_len2_X86, 0, sizeof(total_len2_X86));
+}
+static void __nonMP_DynamicFunc__clean_input_kwik() {
+#ifdef MMX_COEF
+	if (dynamic_use_sse==1) {
+		memset(total_len, 0, sizeof(total_len));
+		return;
+	}
+#endif
+	memset(total_len_X86, 0, sizeof(total_len_X86));
+#if !ARCH_LITTLE_ENDIAN
+	memset(input_buf_X86, 0, sizeof(input_buf_X86));
+#endif
+}
+#ifndef _OPENMP
+static void __nonMP_DynamicFunc__clean_input2_kwik() {
+#ifdef MMX_COEF
+	if (dynamic_use_sse==1) {
+		memset(total_len2, 0, sizeof(total_len2));
+		return;
+	}
+#endif
+	memset(total_len2_X86, 0, sizeof(total_len2_X86));
+#if !ARCH_LITTLE_ENDIAN
+	memset(input_buf2_X86, 0, sizeof(input_buf2_X86));
+#endif
+}
+#endif
+
 /*********************************************************************************
  * init() here does nothing. NOTE many formats LINKING into us will have a valid
  * that DOES do something, but ours does nothing.
@@ -800,12 +1077,30 @@ static void init(struct fmt_main *pFmt)
 	private_subformat_data *pPriv = pFmt->private.data;
 	int i;
 
+#ifdef _OPENMP
+	m_ompt = omp_get_max_threads();
+	mem_calloc_tiny(1, MEM_ALIGN_WORD); // throw this one away, to get our allocations memory aligned
+	md5_unicode_convert = (int*)mem_calloc_tiny(sizeof(int)*m_ompt, MEM_ALIGN_NONE);
+	eLargeOut = (eLargeOut_t*)mem_calloc_tiny(sizeof(eLargeOut_t)*m_ompt, MEM_ALIGN_NONE);
+	for (i = 0; i < m_ompt; ++i)
+		eLargeOut[i] = eBase16;
+#else
+	md5_unicode_convert = (int*)mem_calloc_tiny(sizeof(int), MEM_ALIGN_NONE);
+	eLargeOut = (eLargeOut_t*)mem_calloc_tiny(sizeof(eLargeOut_t), MEM_ALIGN_NONE);
+	eLargeOut[0] = eBase16;
+#endif
+
+
 	gost_init_table();
 	if (!pPriv || (pPriv->init == 1 && !strcmp(curdat.dynamic_WHICH_TYPE_SIG, pPriv->dynamic_WHICH_TYPE_SIG)))
 		return;
 
-	DynamicFunc__clean_input_full();
-	DynamicFunc__clean_input2_full();
+	__nonMP_DynamicFunc__clean_input_full();
+	__nonMP_DynamicFunc__clean_input2_full();
+
+	// Some builds (omp vs non omp, etc) do not call these functions, so to avoid 'unused' warnings, we simply
+	// call them here.
+	__nonMP_DynamicFunc__clean_input_kwik();
 
 	dynamic_RESET(pFmt);
 	if (!pPriv)
@@ -819,6 +1114,7 @@ static void init(struct fmt_main *pFmt)
 
 	fmt_Dynamic.params.max_keys_per_crypt = pFmt->params.max_keys_per_crypt;
 	fmt_Dynamic.params.min_keys_per_crypt = pFmt->params.min_keys_per_crypt;
+	fmt_Dynamic.params.flags              = pFmt->params.flags;
 	fmt_Dynamic.params.format_name        = pFmt->params.format_name;
 	fmt_Dynamic.params.algorithm_name     = pFmt->params.algorithm_name;
 	fmt_Dynamic.params.benchmark_comment  = pFmt->params.benchmark_comment;
@@ -1270,20 +1566,20 @@ key_cleaning2:
 static void clear_keys(void) {
 #ifdef MMX_COEF
 	if (curdat.pSetup->flags & MGF_FULL_CLEAN_REQUIRED) {
-		DynamicFunc__clean_input_full();
+		__nonMP_DynamicFunc__clean_input_full();
 		return;
 	}
 	if (curdat.store_keys_in_input==1 || curdat.store_keys_in_input==3)
 		return;
 	if (curdat.md5_startup_in_x86)
-		DynamicFunc__clean_input_full();
+		__nonMP_DynamicFunc__clean_input_full();
 	else
-		DynamicFunc__clean_input_kwik();
+		__nonMP_DynamicFunc__clean_input_kwik();
 #ifndef SHA1_SSE_PARA
 	memset(total_len, 0, sizeof(total_len));
 #endif
 #else
-	DynamicFunc__clean_input_full();
+	__nonMP_DynamicFunc__clean_input_full();
 #endif
 
 }
@@ -1510,9 +1806,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 static void crypt_all(int count)
 #endif
 {
-	int i;
-	DYNAMIC_primitive_funcp *pFuncs;
-
 	// set m_count.  This is our GLOBAL value, used by ALL of the script functions to know how
 	// many keys are loaded, and how much work we do.
 #if FMT_MAIN_VERSION > 10
@@ -1520,7 +1813,7 @@ static void crypt_all(int count)
 #else
 	m_count = count;
 #endif
-	eLargeOut = eBase16;
+	__nonMP_eLargeOut(eBase16);
 
 #ifdef MMX_COEF
 	// If this format is MMX built, but is supposed to start in X86 (but be switchable), then we
@@ -1533,7 +1826,7 @@ static void crypt_all(int count)
 		dynamic_use_sse = 1;
 #endif
 
-	md5_unicode_convert = 0;
+	__nonMP_md5_unicode_convert(0);
 
 	if (curdat.dynamic_base16_upcase) {
 		dynamic_itoa16 = itoa16u;
@@ -1555,51 +1848,78 @@ static void crypt_all(int count)
 		if (curdat.store_keys_normal_but_precompute_md5_to_output2)
 		{
 			keys_dirty = 0;
-			DynamicFunc__clean_input2();
+			__nonMP_DynamicFunc__clean_input2();
 			if (curdat.store_keys_in_input_unicode_convert)
-				md5_unicode_convert = 1;
-			DynamicFunc__append_keys2();
-			md5_unicode_convert = 0;
-			DynamicFunc__crypt2_md5();
+				__nonMP_md5_unicode_convert(1);
+			__nonMP_DynamicFunc__append_keys2();
+			__nonMP_md5_unicode_convert(0);
+			__possMP_DynamicFunc__crypt2_md5();
 
 			if (curdat.store_keys_normal_but_precompute_md5_to_output2_base16_to_input1)
 			{
 				if (curdat.store_keys_normal_but_precompute_md5_to_output2_base16_to_input1==2)
-					DynamicFunc__SSEtoX86_switch_output2();
-				DynamicFunc__clean_input();
-				DynamicFunc__append_from_last_output2_to_input1_as_base16();
+					__nonMP_DynamicFunc__SSEtoX86_switch_output2();
+				__nonMP_DynamicFunc__clean_input();
+				__nonMP_DynamicFunc__append_from_last_output2_to_input1_as_base16();
 			}
 			if (curdat.store_keys_normal_but_precompute_md5_to_output2_base16_to_input1_offset32)
 			{
 #ifndef MMX_COEF
 				if (curdat.store_keys_normal_but_precompute_md5_to_output2_base16_to_input1_offset32==2)
 #endif
-					DynamicFunc__SSEtoX86_switch_output2();
-				DynamicFunc__clean_input();
-				DynamicFunc__set_input_len_32();
-				DynamicFunc__append_from_last_output2_to_input1_as_base16();
+					__nonMP_DynamicFunc__SSEtoX86_switch_output2();
+				__nonMP_DynamicFunc__clean_input();
+				__nonMP_DynamicFunc__set_input_len_32();
+				__nonMP_DynamicFunc__append_from_last_output2_to_input1_as_base16();
 			}
 		}
 	}
 
 	// Ok, now we 'run' the script. We simply call 1 function right after the other.
 	// ALL functions are void f(void).  They use the globals:
-	//   input_buf1[] input_buf2[]
-	//   total_len1[] total_len2[]
-	//   crypt1[] crypt2[]
-	//   saved_key[]
-	//   saved_key_len[]
-	//   cursalt, cursalt2
-	//   saltlen, saltlen2
-	//   m_count
-	//   nConsts
-	//   Consts[], ConstsLen[]
+	//   input_buf1[] input_buf2[] (requires thread safety)
+	//   total_len1[] total_len2[]   (requires thread safety)
+	//   crypt1[] crypt2[]           (requires thread safety)
+	//   md5_unicode_convert         (requires thread safety, had to change to array)
+	//   saved_key[]                 (const?)
+	//   saved_key_len[]             (const)
+	//   cursalt, cursalt2           (const)
+	//   saltlen, saltlen2           (const)
+	//   m_count                     (const)
+	//   nConsts                     (const)
+	//   Consts[], ConstsLen[]       (const)
 
 	// Since this array is in a structure, we assign a simple pointer to it
 	// before walking.  Trivial improvement, but every cycle counts :)
-	pFuncs = curdat.dynamic_FUNCTIONS;
-	for (i = 0; pFuncs[i]; ++i)
-		(*(pFuncs[i]))();
+	{
+#ifdef _OPENMP
+	int j;
+	int inc = OMP_MD5_INC;
+#ifdef MMX_COEF
+	// this code actually makes slower code.  Since we 'correct' the top value in the
+	// para loop, we do not need this here any more, and can use a larger 'chunk' value.
+//	if ((curdat.pSetup->flags& MGF_NOTSSE2Safe) == MGF_NOTSSE2Safe)
+//		inc = OMP_INC;
+#endif
+#pragma omp parallel for shared(curdat, inc, m_count)
+	for (j = 0; j < m_count; j += inc) {
+		int i;
+		int top=j+inc;
+		if (top > m_count)
+			top = m_count;
+		// we now run a full script in this thread, using only a subset of
+		// the data, from [j,top)  The next thread will run from [top,top+inc)
+		// each thread will take the next inc values, until we get to m_count
+		for (i = 0; curdat.dynamic_FUNCTIONS[i]; ++i)
+			(*(curdat.dynamic_FUNCTIONS[i]))(j,top);
+	}
+#else
+	int i;
+	for (i = 0; curdat.dynamic_FUNCTIONS[i]; ++i)
+		(*(curdat.dynamic_FUNCTIONS[i]))();
+#endif
+	}
+
 #if FMT_MAIN_VERSION > 10
 	return m_count;
 #endif
@@ -2523,7 +2843,7 @@ struct fmt_main fmt_Dynamic =
 		MIN_KEYS_PER_CRYPT_X86,
 		MAX_KEYS_PER_CRYPT_X86,
 #endif
-		FMT_CASE | FMT_8_BIT,
+		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		dynamic_tests
 	}, {
 		init,
@@ -3455,13 +3775,21 @@ static void __SSE_gen_BenchLowLevelFunctions()
 #endif  // #ifdef MMX_COEF from way above.
 
 
-static inline void __append_string(unsigned char *Str, unsigned len)
+static inline void __append_string(DYNA_OMP_PARAMSm unsigned char *Str, unsigned len)
 {
 	unsigned j;
+	unsigned til;
+#ifdef _OPENMP
+	til = last;
+	j = first;
+#else
+	j = 0;
+	til = m_count;
+#endif
 #ifdef MMX_COEF
 	if (dynamic_use_sse==1) {
-		if (!md5_unicode_convert) {
-			for (j = 0; j < m_count; ++j) {
+		if (!md5_unicode_convert_get()) {
+			for (; j < til; ++j) {
 				unsigned idx = (j>>(MMX_COEF>>1));
 				unsigned idx_mod = j&(MMX_COEF-1);
 				unsigned bf_ptr = (total_len[idx] >> ((32/MMX_COEF)*idx_mod)) & 0xFF;
@@ -3476,7 +3804,7 @@ static inline void __append_string(unsigned char *Str, unsigned len)
 				outlen = enc_to_utf16(utf16Str, 27, Str, len) * sizeof(UTF16);
 				if (outlen < 0)
 					outlen = strlen16(utf16Str) * sizeof(UTF16);
-				for (j = 0; j < m_count; ++j) {
+				for (; j < til; ++j) {
 					unsigned idx = (j>>(MMX_COEF>>1));
 					unsigned idx_mod = j&(MMX_COEF-1);
 					unsigned bf_ptr = (total_len[idx] >> ((32/MMX_COEF)*idx_mod)) & 0xFF;
@@ -3485,7 +3813,7 @@ static inline void __append_string(unsigned char *Str, unsigned len)
 					__SSE_append_string_to_input(input_buf[idx].c,idx_mod,(unsigned char*)utf16Str,outlen,bf_ptr,1);
 				}
 			} else {
-				for (j = 0; j < m_count; ++j) {
+				for (; j < til; ++j) {
 					unsigned idx = (j>>(MMX_COEF>>1));
 					unsigned idx_mod = j&(MMX_COEF-1);
 					unsigned bf_ptr = (total_len[idx] >> ((32/MMX_COEF)*idx_mod)) & 0xFF;
@@ -3497,14 +3825,14 @@ static inline void __append_string(unsigned char *Str, unsigned len)
 		return;
 	}
 #endif
-	if (md5_unicode_convert) {
+	if (md5_unicode_convert_get()) {
 		if (!options.ascii && !options.iso8859_1) {
 			UTF16 utf16Str[EFFECTIVE_MAX_LENGTH / 3 + 1];
 			int outlen;
 			outlen = enc_to_utf16(utf16Str, EFFECTIVE_MAX_LENGTH / 3, Str, len) * sizeof(UTF16);
 			if (outlen < 0)
 				outlen = strlen16(utf16Str) * sizeof(UTF16);
-			for (j = 0; j < m_count; ++j) {
+			for (; j < til; ++j) {
 				int z;
 				unsigned char *cp;
 				unsigned char *cpi = (unsigned char*)utf16Str;
@@ -3520,7 +3848,7 @@ static inline void __append_string(unsigned char *Str, unsigned len)
 				total_len_X86[j] += outlen;
 			}
 		} else {
-			for (j = 0; j < m_count; ++j) {
+			for (; j < til; ++j) {
 				int z;
 				unsigned char *cp;
 				unsigned char *cpi = Str;
@@ -3538,7 +3866,7 @@ static inline void __append_string(unsigned char *Str, unsigned len)
 			}
 		}
 	} else {
-		for (j = 0; j < m_count; ++j) {
+		for (; j < til; ++j) {
 #if MD5_X2
 			if (j&1)
 				memcpy(&(input_buf_X86[j>>MD5_X2].x2.b2[total_len_X86[j]]), Str, len);
@@ -3550,13 +3878,21 @@ static inline void __append_string(unsigned char *Str, unsigned len)
 	}
 }
 
-static inline void __append2_string(unsigned char *Str, unsigned len)
+static inline void __append2_string(DYNA_OMP_PARAMSm unsigned char *Str, unsigned len)
 {
 	unsigned j;
+	unsigned til;
+#ifdef _OPENMP
+	til = last;
+	j = first;
+#else
+	j = 0;
+	til = m_count;
+#endif
 #ifdef MMX_COEF
 	if (dynamic_use_sse==1) {
-		if (!md5_unicode_convert) {
-			for (j = 0; j < m_count; ++j) {
+		if (!md5_unicode_convert_get()) {
+			for (; j < til; ++j) {
 				unsigned idx = (j>>(MMX_COEF>>1));
 				unsigned idx_mod = j&(MMX_COEF-1);
 				unsigned bf_ptr = (total_len2[idx] >> ((32/MMX_COEF)*idx_mod)) & 0xFF;
@@ -3571,7 +3907,7 @@ static inline void __append2_string(unsigned char *Str, unsigned len)
 				outlen = enc_to_utf16(utf16Str, 27, Str, len) * sizeof(UTF16);
 				if (outlen < 0)
 					outlen = strlen16(utf16Str) * sizeof(UTF16);
-				for (j = 0; j < m_count; ++j) {
+				for (; j < til; ++j) {
 					unsigned idx = (j>>(MMX_COEF>>1));
 					unsigned idx_mod = j&(MMX_COEF-1);
 					unsigned bf_ptr = (total_len2[idx] >> ((32/MMX_COEF)*idx_mod)) & 0xFF;
@@ -3580,7 +3916,7 @@ static inline void __append2_string(unsigned char *Str, unsigned len)
 					__SSE_append_string_to_input(input_buf2[idx].c,idx_mod,(unsigned char*)utf16Str,outlen,bf_ptr,1);
 				}
 			} else {
-				for (j = 0; j < m_count; ++j) {
+				for (; j < til; ++j) {
 					unsigned idx = (j>>(MMX_COEF>>1));
 					unsigned idx_mod = j&(MMX_COEF-1);
 					unsigned bf_ptr = (total_len2[idx] >> ((32/MMX_COEF)*idx_mod)) & 0xFF;
@@ -3592,14 +3928,14 @@ static inline void __append2_string(unsigned char *Str, unsigned len)
 		return;
 	}
 #endif
-	if (md5_unicode_convert) {
+	if (md5_unicode_convert_get()) {
 		if (!options.ascii && !options.iso8859_1) {
 			UTF16 utf16Str[EFFECTIVE_MAX_LENGTH / 3 + 1];
 			int outlen;
 			outlen = enc_to_utf16(utf16Str, EFFECTIVE_MAX_LENGTH / 3, Str, len) * sizeof(UTF16);
 			if (outlen < 0)
 				outlen = strlen16(utf16Str) * sizeof(UTF16);
-			for (j = 0; j < m_count; ++j) {
+			for (; j < til; ++j) {
 				int z;
 				unsigned char *cp;
 				unsigned char *cpi = (unsigned char*)utf16Str;
@@ -3615,7 +3951,7 @@ static inline void __append2_string(unsigned char *Str, unsigned len)
 				total_len2_X86[j] += outlen;
 			}
 		} else {
-			for (j = 0; j < m_count; ++j) {
+			for (; j < til; ++j) {
 				int z;
 				unsigned char *cp;
 				unsigned char *cpi = Str;
@@ -3633,7 +3969,7 @@ static inline void __append2_string(unsigned char *Str, unsigned len)
 			}
 		}
 	} else {
-		for (j = 0; j < m_count; ++j) {
+		for (; j < til; ++j) {
 #if MD5_X2
 			if (j&1)
 				memcpy(&(input_buf2_X86[j>>MD5_X2].x2.b2[total_len2_X86[j]]), Str, len);
@@ -3645,31 +3981,38 @@ static inline void __append2_string(unsigned char *Str, unsigned len)
 	}
 }
 
-void DynamicFunc__setmode_unicode()
+void DynamicFunc__setmode_unicode(DYNA_OMP_PARAMS) // DYNA_OMP_PARAMS not used. We use omp_thread_num() instead.
 {
-	md5_unicode_convert = 1;
+	md5_unicode_convert_set(1);
 }
-void DynamicFunc__setmode_normal ()
+void DynamicFunc__setmode_normal (DYNA_OMP_PARAMS) // DYNA_OMP_PARAMS not used. We use omp_thread_num() instead.
 {
-	md5_unicode_convert = 0;
+	md5_unicode_convert_set(0);
 }
 
 /**************************************************************
  * DYNAMIC primitive helper function
  * Clears the input variable, and input 'lengths'
  *************************************************************/
-void DynamicFunc__clean_input()
+void DynamicFunc__clean_input(DYNA_OMP_PARAMS)
 {
+#ifndef _OPENMP
+	__nonMP_DynamicFunc__clean_input();
+#else
 	unsigned i=0;
 #ifdef MMX_COEF
 	if (dynamic_use_sse==1) {
-		memset(input_buf, 0, sizeof(input_buf));
-		memset(total_len, 0, sizeof(total_len));
+		int x = first / MMX_COEF;
+		int y = (last+MMX_COEF-1) / MMX_COEF;
+		while (x < y) {
+			memset(input_buf[x].c, 0, sizeof(input_buf[0]));
+			total_len[x] = 0;
+			++x;
+		}
 		return;
 	}
 #endif
-	for (; i < MAX_KEYS_PER_CRYPT_X86; ++i) {
-		//if (total_len_X86[i]) {
+	for (i = first; i < last; ++i) {
 #if MD5_X2
 			if (i&1)
 				memset(input_buf_X86[i>>MD5_X2].x2.b2, 0, total_len_X86[i]+5);
@@ -3677,22 +4020,28 @@ void DynamicFunc__clean_input()
 #endif
 			memset(input_buf_X86[i>>MD5_X2].x1.b, 0, total_len_X86[i]+5);
 			total_len_X86[i] = 0;
-		//}
 	}
-	return;
+#endif
 }
-void DynamicFunc__clean_input2()
+void DynamicFunc__clean_input2(DYNA_OMP_PARAMS)
 {
+#ifndef _OPENMP
+	__nonMP_DynamicFunc__clean_input2();
+#else
 	unsigned i=0;
 #ifdef MMX_COEF
 	if (dynamic_use_sse==1) {
-		memset(input_buf2, 0, sizeof(input_buf2));
-		memset(total_len2, 0, sizeof(total_len2));
+		int x = first / MMX_COEF;
+		int y = (last+MMX_COEF-1) / MMX_COEF;
+		while (x < y) {
+			memset(input_buf2[x].c, 0, sizeof(input_buf2[0]));
+			total_len2[x] = 0;
+			++x;
+		}
 		return;
 	}
 #endif
-	for (; i < MAX_KEYS_PER_CRYPT_X86; ++i) {
-		//if (total_len2_X86[i]) {
+	for (i = first; i < last; ++i) {
 #if MD5_X2
 			if (i&1)
 				memset(input_buf2_X86[i>>MD5_X2].x2.b2, 0, total_len2_X86[i]+5);
@@ -3700,52 +4049,120 @@ void DynamicFunc__clean_input2()
 #endif
 			memset(input_buf2_X86[i>>MD5_X2].x1.b, 0, total_len2_X86[i]+5);
 			total_len2_X86[i] = 0;
-		//}
 	}
-	return;
-}
-void DynamicFunc__clean_input_full()
-{
-#ifdef MMX_COEF
-	memset(input_buf, 0, sizeof(input_buf));
-	memset(total_len, 0, sizeof(total_len));
 #endif
-	memset(input_buf_X86, 0, sizeof(input_buf_X86));
-	memset(total_len_X86, 0, sizeof(total_len_X86));
 }
-void DynamicFunc__clean_input2_full()
+
+void DynamicFunc__clean_input_full(DYNA_OMP_PARAMS)
 {
+#ifndef _OPENMP
+	__nonMP_DynamicFunc__clean_input_full();
+#else
+	int i;
 #ifdef MMX_COEF
-	memset(input_buf2, 0, sizeof(input_buf));
-	memset(total_len2, 0, sizeof(total_len));
+	int x = first / MMX_COEF;
+	int y = (last+MMX_COEF-1) / MMX_COEF;
+	while (x < y) {
+		memset(input_buf[x].c, 0, sizeof(input_buf[0]));
+		total_len[x] = 0;
+		++x;
+	}
 #endif
-	memset(input_buf2_X86, 0, sizeof(input_buf2_X86));
-	memset(total_len2_X86, 0, sizeof(total_len2_X86));
+	for (i = first; i < last; ++i) {
+#if MD5_X2
+			if (i&1)
+				memset(input_buf_X86[i>>MD5_X2].x2.b2, 0, total_len_X86[i]+5);
+			else
+#endif
+			memset(input_buf_X86[i>>MD5_X2].x1.b, 0, total_len_X86[i]+5);
+			total_len_X86[i] = 0;
+	}
+#endif
 }
-void DynamicFunc__clean_input_kwik()
+void DynamicFunc__clean_input2_full(DYNA_OMP_PARAMS)
 {
+#ifndef _OPENMP
+	__nonMP_DynamicFunc__clean_input2_full();
+#else
+	int i;
 #ifdef MMX_COEF
+	int x = first / MMX_COEF;
+	int y = (last+MMX_COEF-1) / MMX_COEF;
+	while (x < y) {
+		memset(input_buf2[x].c, 0, sizeof(input_buf2[0]));
+		total_len2[x] = 0;
+		++x;
+	}
+#endif
+	for (i = first; i < last; ++i) {
+#if MD5_X2
+			if (i&1)
+				memset(input_buf2_X86[i>>MD5_X2].x2.b2, 0, total_len2_X86[i]+5);
+			else
+#endif
+			memset(input_buf2_X86[i>>MD5_X2].x1.b, 0, total_len2_X86[i]+5);
+			total_len2_X86[i] = 0;
+	}
+#endif
+}
+void DynamicFunc__clean_input_kwik(DYNA_OMP_PARAMS)
+{
+#ifndef _OPENMP
+	__nonMP_DynamicFunc__clean_input_kwik();
+#else
+#ifdef MMX_COEF
+	int i;
 	if (dynamic_use_sse==1) {
-		memset(total_len, 0, sizeof(total_len));
+		int x = first / MMX_COEF;
+		int y = (last+MMX_COEF-1) / MMX_COEF;
+		while (x < y)
+			total_len[x++] = 0;
 		return;
 	}
+#else
+	int i;
 #endif
-	memset(total_len_X86, 0, sizeof(total_len_X86));
+	for (i = first; i < last; ++i) {
 #if !ARCH_LITTLE_ENDIAN
-	memset(input_buf_X86, 0, sizeof(input_buf_X86));
+#if MD5_X2
+			if (i&1)
+				memset(input_buf_X86[i>>MD5_X2].x2.b2, 0, total_len_X86[i]+5);
+			else
 #endif
-}
-void DynamicFunc__clean_input2_kwik()
-{
-#ifdef MMX_COEF
-	if (dynamic_use_sse==1) {
-		memset(total_len2, 0, sizeof(total_len2));
-		return;
+			memset(input_buf_X86[i>>MD5_X2].x1.b, 0, total_len_X86[i]+5);
+#endif
+			total_len_X86[i] = 0;
 	}
 #endif
-	memset(total_len2_X86, 0, sizeof(total_len2_X86));
+}
+void DynamicFunc__clean_input2_kwik(DYNA_OMP_PARAMS)
+{
+#ifndef _OPENMP
+	__nonMP_DynamicFunc__clean_input2_kwik();
+#else
+#ifdef MMX_COEF
+	int i;
+	if (dynamic_use_sse==1) {
+		int x = first / MMX_COEF;
+		int y = (last+MMX_COEF-1) / MMX_COEF;
+		while (x < y)
+			total_len2[x++] = 0;
+		return;
+	}
+#else
+	int i;
+#endif
+	for (i = first; i < last; ++i) {
 #if !ARCH_LITTLE_ENDIAN
-	memset(input_buf2_X86, 0, sizeof(input_buf2_X86));
+#if MD5_X2
+			if (i&1)
+				memset(input_buf2_X86[i>>MD5_X2].x2.b2, 0, total_len2_X86[i]+5);
+			else
+#endif
+			memset(input_buf2_X86[i>>MD5_X2].x1.b, 0, total_len2_X86[i]+5);
+#endif
+			total_len2_X86[i] = 0;
+	}
 #endif
 }
 
@@ -3754,16 +4171,24 @@ void DynamicFunc__clean_input2_kwik()
  * Appends all keys to the end of the input variables, and
  * updates lengths
  *************************************************************/
-void DynamicFunc__append_keys()
+void DynamicFunc__append_keys(DYNA_OMP_PARAMS)
 {
 	unsigned j;
+	unsigned til;
+#ifdef _OPENMP
+	til = last;
+	j = first;
+#else
+	j = 0;
+	til = m_count;
+#endif
 #ifdef MMX_COEF
 	if (dynamic_use_sse==1) {
-		for (j = 0; j < m_count; ++j) {
+		for (; j < til; ++j) {
 			unsigned idx = (j>>(MMX_COEF>>1));
 			unsigned idx_mod = j&(MMX_COEF-1);
 			unsigned bf_ptr = (total_len[idx] >> ((32/MMX_COEF)*idx_mod)) & 0xFF;
-			if (md5_unicode_convert) {
+			if (md5_unicode_convert_get()) {
 				if (!options.ascii && !options.iso8859_1) {
 					UTF16 utf16Str[27+1]; // 27 chars is 'max' that fits in SSE without overflow, so that is where we limit it at now
 					int outlen;
@@ -3790,9 +4215,9 @@ void DynamicFunc__append_keys()
 		return;
 	}
 #endif
-	if (md5_unicode_convert) {
+	if (md5_unicode_convert_get()) {
 		if (!options.ascii && !options.iso8859_1) {
-			for (j = 0; j < m_count; ++j) {
+			for (; j < til; ++j) {
 				int z;
 				unsigned char *cp, *cpi;
 				UTF16 utf16Str[EFFECTIVE_MAX_LENGTH / 3 + 1];
@@ -3814,7 +4239,7 @@ void DynamicFunc__append_keys()
 				total_len_X86[j] += outlen;
 			}
 		} else {
-			for (j = 0; j < m_count; ++j) {
+			for (; j < til; ++j) {
 				int z;
 				unsigned char *cp, *cpi = (unsigned char*)saved_key[j];
 #if MD5_X2
@@ -3831,7 +4256,7 @@ void DynamicFunc__append_keys()
 			}
 		}
 	} else {
-		for (j = 0; j < m_count; ++j) {
+		for (; j < til; ++j) {
 #if MD5_X2
 			if (j&1)
 				memcpy(&(input_buf_X86[j>>MD5_X2].x2.b2[total_len_X86[j]]), saved_key[j], saved_key_len[j]);
@@ -3848,16 +4273,23 @@ void DynamicFunc__append_keys()
  * Appends all keys to the end of the 2nd input variables, and
  * updates lengths
  *************************************************************/
-void DynamicFunc__append_keys2()
+void DynamicFunc__append_keys2(DYNA_OMP_PARAMS)
 {
-	unsigned j;
+	unsigned j, til;
+#ifdef _OPENMP
+	til = last;
+	j = first;
+#else
+	j = 0;
+	til = m_count;
+#endif
 #ifdef MMX_COEF
 	if (dynamic_use_sse==1) {
-		for (j = 0; j < m_count; ++j) {
+		for (; j < til; ++j) {
 			unsigned idx = (j>>(MMX_COEF>>1));
 			unsigned idx_mod = j&(MMX_COEF-1);
 			unsigned bf_ptr = (total_len2[idx] >> ((32/MMX_COEF)*idx_mod)) & 0xFF;
-			if (md5_unicode_convert) {
+			if (md5_unicode_convert_get()) {
 				if (!options.ascii && !options.iso8859_1) {
 					UTF16 utf16Str[27+1]; // 27 chars is 'max' that fits in SSE without overflow, so that is where we limit it at now
 					int outlen;
@@ -3884,9 +4316,9 @@ void DynamicFunc__append_keys2()
 		return;
 	}
 #endif
-	if (md5_unicode_convert) {
+	if (md5_unicode_convert_get()) {
 		if (!options.ascii && !options.iso8859_1) {
-			for (j = 0; j < m_count; ++j) {
+			for (; j < til; ++j) {
 				int z;
 				unsigned char *cp, *cpi;
 				UTF16 utf16Str[EFFECTIVE_MAX_LENGTH / 3 + 1];
@@ -3908,7 +4340,7 @@ void DynamicFunc__append_keys2()
 				total_len2_X86[j] += outlen;
 			}
 		} else {
-			for (j = 0; j < m_count; ++j) {
+			for (; j < til; ++j) {
 				int z;
 				unsigned char *cp, *cpi = (unsigned char*)saved_key[j];
 #if MD5_X2
@@ -3925,7 +4357,7 @@ void DynamicFunc__append_keys2()
 			}
 		}
 	} else {
-		for (j = 0; j < m_count; ++j) {
+		for (; j < til; ++j) {
 #if MD5_X2
 			if (j&1)
 				memcpy(&(input_buf2_X86[j>>MD5_X2].x2.b2[total_len2_X86[j]]), saved_key[j], saved_key_len[j]);
@@ -3937,14 +4369,22 @@ void DynamicFunc__append_keys2()
 	}
 }
 
-void DynamicFunc__set_input_len_16()
+void DynamicFunc__set_input_len_16(DYNA_OMP_PARAMS)
 {
-	unsigned j;
+	unsigned j, til;
+#ifdef _OPENMP
+	til = last;
+	j = first;
+#else
+	j = 0;
+	til = m_count;
+#endif
 #ifdef MMX_COEF
 	if (dynamic_use_sse==1) {
-		unsigned cnt, k;
-		cnt = ( ((unsigned)m_count+MMX_COEF-1)>>(MMX_COEF>>1));
-		for (j = 0; j < cnt; ++j)
+		unsigned k;
+		j /= MMX_COEF;
+		til = (til+MMX_COEF-1)/MMX_COEF;
+		for (; j < til; ++j)
 		{
 			// If length is < 16, then remove existing end of buffer marker, and then set
 			// one at offset 16
@@ -3969,7 +4409,7 @@ void DynamicFunc__set_input_len_16()
 		return;
 	}
 #endif
-	for (j = 0; j < m_count; ++j)
+	for (; j < til; ++j)
 	{
 #if MD5_X2
 		if (j&1) {
@@ -3984,14 +4424,22 @@ void DynamicFunc__set_input_len_16()
 	}
 }
 
-void DynamicFunc__set_input2_len_16()
+void DynamicFunc__set_input2_len_16(DYNA_OMP_PARAMS)
 {
-	unsigned j;
+	unsigned j, til;
+#ifdef _OPENMP
+	til = last;
+	j = first;
+#else
+	j = 0;
+	til = m_count;
+#endif
 #ifdef MMX_COEF
 	if (dynamic_use_sse==1) {
-		unsigned cnt, k;
-		cnt = ( ((unsigned)m_count+MMX_COEF-1)>>(MMX_COEF>>1));
-		for (j = 0; j < cnt; ++j)
+		unsigned k;
+		j /= MMX_COEF;
+		til = (til+MMX_COEF-1)/MMX_COEF;
+		for (; j < til; ++j)
 		{
 			// If length is < 16, then remove existing end of buffer marker, and then set
 			// one at offset 16
@@ -4016,7 +4464,7 @@ void DynamicFunc__set_input2_len_16()
 		return;
 	}
 #endif
-	for (j = 0; j < m_count; ++j)
+	for (; j < til; ++j)
 	{
 #if MD5_X2
 		if (j&1) {
@@ -4031,103 +4479,127 @@ void DynamicFunc__set_input2_len_16()
 	}
 }
 
-void DynamicFunc__set_input_len_32()
+void DynamicFunc__set_input_len_32(DYNA_OMP_PARAMS)
 {
-	unsigned i;
+	unsigned j, til;
+#ifdef _OPENMP
+	til = last;
+	j = first;
+#else
+	j = 0;
+	til = m_count;
+#endif
 #ifdef MMX_COEF
 	if (dynamic_use_sse==1) {
-		unsigned cnt;
-		cnt = ( ((unsigned)m_count+MMX_COEF-1)>>(MMX_COEF>>1));
-		for (i = 0; i < cnt; ++i)
+		j /= MMX_COEF;
+		til = (til+MMX_COEF-1)/MMX_COEF;
+		for (; j < til; ++j)
 		{
 #if (MMX_COEF==4)
-			total_len[i] = 0x20202020;
+			total_len[j] = 0x20202020;
 #else
-			total_len[i] = 0x200020;
+			total_len[j] = 0x200020;
 #endif
 		}
 		return;
 	}
 #endif
-	for (i = 0; i < m_count; ++i)
+	for (; j < til; ++j)
 	{
-		total_len_X86[i] = 32;
+		total_len_X86[j] = 32;
 #if !ARCH_LITTLE_ENDIAN
 #if MD5_X2
-		if (i&1) {
-			//MD5_swap(input_buf_X86[i>>MD5_X2].x2.w2, input_buf_X86[i>>MD5_X2].x2.w2, 8);
-			memset(&(input_buf_X86[i>>MD5_X2].x2.B2[32]), 0, 24);
+		if (j&1) {
+			//MD5_swap(input_buf_X86[j>>MD5_X2].x2.w2, input_buf_X86[j>>MD5_X2].x2.w2, 8);
+			memset(&(input_buf_X86[j>>MD5_X2].x2.B2[32]), 0, 24);
 		}
 		else
 #endif
 		{
-			//MD5_swap(input_buf_X86[i>>MD5_X2].x1.w, input_buf_X86[i>>MD5_X2].x1.w, 8);
-			memset(&(input_buf_X86[i>>MD5_X2].x1.B[32]), 0, 24);
+			//MD5_swap(input_buf_X86[j>>MD5_X2].x1.w, input_buf_X86[j>>MD5_X2].x1.w, 8);
+			memset(&(input_buf_X86[j>>MD5_X2].x1.B[32]), 0, 24);
 		}
 #endif
 	}
 }
 
-void DynamicFunc__set_input2_len_32()
+void DynamicFunc__set_input2_len_32(DYNA_OMP_PARAMS)
 {
-	unsigned i;
+	unsigned j, til;
+#ifdef _OPENMP
+	til = last;
+	j = first;
+#else
+	j = 0;
+	til = m_count;
+#endif
 #ifdef MMX_COEF
 	if (dynamic_use_sse==1) {
-		unsigned cnt;
-		cnt = ( ((unsigned)m_count+MMX_COEF-1)>>(MMX_COEF>>1));
-		for (i = 0; i < cnt; ++i)
+		j /= MMX_COEF;
+		til = (til+MMX_COEF-1)/MMX_COEF;
+		for (; j < til; ++j)
 		{
 #if (MMX_COEF==4)
-			total_len2[i] = 0x20202020;
+			total_len2[j] = 0x20202020;
 #else
-			total_len2[i] = 0x200020;
+			total_len2[j] = 0x200020;
 #endif
 		}
 		return;
 	}
 #endif
-	for (i = 0; i < m_count; ++i)
+	for (; j < til; ++j)
 	{
-		total_len2_X86[i] = 32;
+		total_len2_X86[j] = 32;
 #if !ARCH_LITTLE_ENDIAN
 #if MD5_X2
-		if (i&1) {
-			//MD5_swap(input_buf2_X86[i>>MD5_X2].x2.w2, input_buf2_X86[i>>MD5_X2].x2.w2, 8);
-			memset(&(input_buf2_X86[i>>MD5_X2].x2.B2[32]), 0, 24);
+		if (j&1) {
+			//MD5_swap(input_buf2_X86[j>>MD5_X2].x2.w2, input_buf2_X86[j>>MD5_X2].x2.w2, 8);
+			memset(&(input_buf2_X86[j>>MD5_X2].x2.B2[32]), 0, 24);
 		}
 		else
 #endif
 		{
-			//MD5_swap(input_buf2_X86[i>>MD5_X2].x1.w, input_buf2_X86[i>>MD5_X2].x1.w, 8);
-			memset(&(input_buf2_X86[i>>MD5_X2].x1.B[32]), 0, 24);
+			//MD5_swap(input_buf2_X86[j>>MD5_X2].x1.w, input_buf2_X86[j>>MD5_X2].x1.w, 8);
+			memset(&(input_buf2_X86[j>>MD5_X2].x1.B[32]), 0, 24);
 		}
 #endif
 	}
 }
 
-void DynamicFunc__set_input_len_64()
+void DynamicFunc__set_input_len_64(DYNA_OMP_PARAMS)
 {
-	unsigned j;
+	unsigned j, til;
+#ifdef _OPENMP
+	til = last;
+	j = first;
+#else
+	j = 0;
+	til = m_count;
+#endif
 #ifdef MMX_COEF
-	if (dynamic_use_sse==1) {
+	if (dynamic_use_sse==1)
 		exit(!!fprintf(stderr, "Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input_len_64 in SSE2/MMX mode\n"));
-	}
 #endif
-	for (j = 0; j < m_count; ++j)
-	{
+	for (; j < til; ++j)
 		total_len_X86[j] = 64;
-	}
 }
-void DynamicFunc__set_input_len_100()
+void DynamicFunc__set_input_len_100(DYNA_OMP_PARAMS)
 {
-	unsigned j;
+	unsigned j, til;
+#ifdef _OPENMP
+	til = last;
+	j = first;
+#else
+	j = 0;
+	til = m_count;
+#endif
 #ifdef MMX_COEF
 	if (dynamic_use_sse==1) {
 		exit(!!fprintf(stderr, "Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input_len_100 in SSE2/MMX mode\n"));
 	}
 #endif
-	for (j = 0; j < m_count; ++j)
-	{
+	for (; j < til; ++j) {
 		unsigned char *cp;
 #if MD5_X2
 		if (j&1)
@@ -4140,18 +4612,22 @@ void DynamicFunc__set_input_len_100()
 		total_len_X86[j] = 100;
 	}
 }
-void DynamicFunc__set_input2_len_64()
+void DynamicFunc__set_input2_len_64(DYNA_OMP_PARAMS)
 {
-	unsigned j;
-#ifdef MMX_COEF
-	if (dynamic_use_sse==1) {
-		exit(!!fprintf(stderr, "Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input2_len_64 in SSE2/MMX mode\n"));
-	}
+	unsigned j, til;
+#ifdef _OPENMP
+	til = last;
+	j = first;
+#else
+	j = 0;
+	til = m_count;
 #endif
-	for (j = 0; j < m_count; ++j)
-	{
+#ifdef MMX_COEF
+	if (dynamic_use_sse==1)
+		exit(!!fprintf(stderr, "Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input2_len_64 in SSE2/MMX mode\n"));
+#endif
+	for (; j < til; ++j)
 		total_len2_X86[j] = 64;
-	}
 }
 
 /**************************************************************
@@ -4159,9 +4635,9 @@ void DynamicFunc__set_input2_len_64()
  * Appends the salt to the end of the input variables, and
  * updates lengths
  *************************************************************/
-void DynamicFunc__append_salt()
+void DynamicFunc__append_salt(DYNA_OMP_PARAMS)
 {
-	__append_string(cursalt, saltlen);
+	__append_string(DYNA_OMP_PARAMSdm cursalt, saltlen);
 }
 
 /**************************************************************
@@ -4169,19 +4645,27 @@ void DynamicFunc__append_salt()
  * Appends the salt to the end of the 2nd input variables, and
  * updates lengths
  *************************************************************/
-void DynamicFunc__append_salt2()
+void DynamicFunc__append_salt2(DYNA_OMP_PARAMS)
 {
-	__append2_string(cursalt, saltlen);
+	__append2_string(DYNA_OMP_PARAMSdm cursalt, saltlen);
 }
 
-void DynamicFunc__append_input_from_input2()
+void DynamicFunc__append_input_from_input2(DYNA_OMP_PARAMS)
 {
-	unsigned j;
+unsigned i, til;
+#ifdef _OPENMP
+	til = last;
+	i = first;
+#else
+	i = 0;
+	til = m_count;
+#endif
 #ifdef MMX_COEF
 	if (dynamic_use_sse==1) {
-		unsigned i, k, cnt;
-		cnt = ( ((unsigned)m_count+MMX_COEF-1)>>(MMX_COEF>>1));
-		for (i = 0; i < cnt; ++i)
+		unsigned j, k;
+		til = (til+MMX_COEF-1)/MMX_COEF;
+		i /= MMX_COEF;
+		for (; i < til; ++i)
 		{
 			for (j = 0; j < MMX_COEF; ++j)
 			{
@@ -4196,26 +4680,34 @@ void DynamicFunc__append_input_from_input2()
 		return;
 	}
 #endif
-	for (j = 0; j < m_count; ++j)
+	for (; i < til; ++i)
 	{
 #if MD5_X2
-		if (j&1)
-			memcpy(&(input_buf_X86[j>>MD5_X2].x2.b2[total_len_X86[j]]), input_buf2_X86[j>>MD5_X2].x2.b2, total_len2_X86[j]);
+		if (i&1)
+			memcpy(&(input_buf_X86[i>>MD5_X2].x2.b2[total_len_X86[i]]), input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i]);
 		else
 #endif
-		memcpy(&(input_buf_X86[j>>MD5_X2].x1.b[total_len_X86[j]]), input_buf2_X86[j>>MD5_X2].x1.b, total_len2_X86[j]);
-		total_len_X86[j] += total_len2_X86[j];
+		memcpy(&(input_buf_X86[i>>MD5_X2].x1.b[total_len_X86[i]]), input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i]);
+		total_len_X86[i] += total_len2_X86[i];
 	}
 }
 
-void DynamicFunc__append_input2_from_input()
+void DynamicFunc__append_input2_from_input(DYNA_OMP_PARAMS)
 {
-	unsigned j;
+unsigned i, til;
+#ifdef _OPENMP
+	til = last;
+	i = first;
+#else
+	i = 0;
+	til = m_count;
+#endif
 #ifdef MMX_COEF
 	if (dynamic_use_sse==1) {
-		unsigned i, k, cnt;
-		cnt = ( ((unsigned)m_count+MMX_COEF-1)>>(MMX_COEF>>1));
-		for (i = 0; i < cnt; ++i)
+		unsigned j, k;
+		til = (til+MMX_COEF-1)/MMX_COEF;
+		i /= MMX_COEF;
+		for (; i < til; ++i)
 		{
 			for (j = 0; j < MMX_COEF; ++j)
 			{
@@ -4230,15 +4722,15 @@ void DynamicFunc__append_input2_from_input()
 		return;
 	}
 #endif
-	for (j = 0; j < m_count; ++j)
+	for (; i < til; ++i)
 	{
 #if MD5_X2
-		if (j&1)
-			memcpy(&(input_buf2_X86[j>>MD5_X2].x2.b2[total_len2_X86[j]]), input_buf_X86[j>>MD5_X2].x2.b2, total_len_X86[j]);
+		if (i&1)
+			memcpy(&(input_buf2_X86[i>>MD5_X2].x2.b2[total_len2_X86[i]]), input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i]);
 		else
 #endif
-		memcpy(&(input_buf2_X86[j>>MD5_X2].x1.b[total_len2_X86[j]]), input_buf_X86[j>>MD5_X2].x1.b, total_len_X86[j]);
-		total_len2_X86[j] += total_len_X86[j];
+		memcpy(&(input_buf2_X86[i>>MD5_X2].x1.b[total_len2_X86[i]]), input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i]);
+		total_len2_X86[i] += total_len_X86[i];
 	}
 }
 
@@ -4286,90 +4778,104 @@ void SSE_Intrinsics_LoadLens(int side, int i)
  * something like phpass, we would NOT want the conversion
  * to happen at all
  *************************************************************/
-void DynamicFunc__crypt_md5()
+void DynamicFunc__crypt_md5(DYNA_OMP_PARAMS)
 {
-	unsigned i;
+	unsigned i, til;
+#ifdef _OPENMP
+	til = last;
+	i = first;
+#else
+	i = 0;
+	til = m_count;
+#endif
 #ifdef MMX_COEF
-#ifdef MD5_SSE_PARA
 	if (dynamic_use_sse==1) {
-		unsigned cnt = ( ((unsigned)m_count+MMX_COEF-1)>>(MMX_COEF>>1));
+		til = (til+MMX_COEF-1)>>(MMX_COEF>>1);
+		i >>= (MMX_COEF>>1);
+#ifdef MD5_SSE_PARA
 		if (curdat.store_keys_in_input) {
-			for (i = 0; i < cnt; i += MD5_SSE_PARA) {
+			for (; i < til; i += MD5_SSE_PARA) {
 				SSEmd5body(input_buf[i].c, crypt_key[i].w, 1);
 			}
 		} else {
-			for (i = 0; i < cnt; i += MD5_SSE_PARA) {
+			for (; i < til; i += MD5_SSE_PARA) {
 				SSE_Intrinsics_LoadLens(0, i);
 				SSEmd5body(input_buf[i].c, crypt_key[i].w, 1);
 			}
 		}
-		return;
-	}
 #else
-	if (dynamic_use_sse==1) {
-		unsigned cnt = ( ((unsigned)m_count+MMX_COEF-1)>>(MMX_COEF>>1));
 		if (curdat.store_keys_in_input) {
-			for (i = 0; i < cnt; ++i)
+			for (; i < til; ++i)
 				mdfivemmx_nosizeupdate(crypt_key[i].c, input_buf[i].c, 1);
 		} else {
-			for (i = 0; i < cnt; ++i)
+			for (; i < til; ++i)
 				mdfivemmx(crypt_key[i].c, input_buf[i].c, total_len[i]);
 		}
+#endif
 		return;
 	}
 #endif
-#endif
-	for (i = 0; i < m_count; ++i) {
+	for (; i < til; ++i) {
 #if MD5_X2
 		unsigned len[2];
 		len[0] = total_len_X86[i++];
-		len[1] = total_len_X86[i];
+		if (i == m_count)
+			len[1] = 0;
+		else
+			len[1] = total_len_X86[i];
 #else
 		unsigned len = total_len_X86[i];
 #endif
 		DoMD5(input_buf_X86[i>>MD5_X2], len, crypt_key_X86[i>>MD5_X2]);
 	}
 }
-void DynamicFunc__crypt_md4()
+void DynamicFunc__crypt_md4(DYNA_OMP_PARAMS)
 {
-	unsigned i;
+unsigned i, til;
+#ifdef _OPENMP
+	til = last;
+	i = first;
+#else
+	i = 0;
+	til = m_count;
+#endif
 #ifdef MMX_COEF
-#ifdef MD4_SSE_PARA
 	if (dynamic_use_sse==1) {
-		unsigned cnt = ( ((unsigned)m_count+MMX_COEF-1)>>(MMX_COEF>>1));
+		til = (til+MMX_COEF-1)>>(MMX_COEF>>1);
+		i >>= (MMX_COEF>>1);
+#ifdef MD4_SSE_PARA
 		if (curdat.store_keys_in_input) {
-			for (i = 0; i < cnt; i += MD4_SSE_PARA) {
+			for (; i < til; i += MD4_SSE_PARA) {
 				SSEmd4body(input_buf[i].c, crypt_key[i].w, 1);
 			}
 		} else {
-			for (i = 0; i < cnt; i += MD4_SSE_PARA) {
+			for (; i < til; i += MD4_SSE_PARA) {
 				SSE_Intrinsics_LoadLens(0, i);
 				SSEmd4body(input_buf[i].c, crypt_key[i].w, 1);
 			}
 		}
-		return;
-	}
 #else
-	if (dynamic_use_sse==1) {
-		unsigned cnt = ( ((unsigned)m_count+MMX_COEF-1)>>(MMX_COEF>>1));
 		if (curdat.store_keys_in_input) {
-			for (i = 0; i < cnt; ++i)
+			for (; i < til; ++i)
 				mdfourmmx_nosizeupdate(crypt_key[i].c, input_buf[i].c, 1);
 		} else {
-			for (i = 0; i < cnt; ++i)
+			for (; i < til; ++i)
 				mdfourmmx(crypt_key[i].c, input_buf[i].c, total_len[i]);
 		}
+#endif
 		return;
 	}
 #endif
-#endif
-	for (i = 0; i < m_count; ++i) {
+	for (; i < til; ++i) {
 		// MD5_X2 sets our input buffers and crypt keys up in 'double' format. Thus, we HAVE
 		// to treat them just like we do in MD5.  The macro hides the details.
 #if MD5_X2
 		unsigned len[2];
 		len[0] = total_len_X86[i++];
-		len[1] = total_len_X86[i];
+		if (i == m_count)
+			len[1] = 0;
+		else
+			len[1] = total_len_X86[i];
 #else
 		unsigned len = total_len_X86[i];
 #endif
@@ -4401,7 +4907,12 @@ struct md5_item {
 	MD5_A *in1, *in2, *out2;
 #if ARCH_LITTLE_ENDIAN
 #if MD5_X2
-	unsigned char *off[2];
+// NOT sure what I busted here (OMP code), but I had to change
+// this or things would NOT compile.  NOTE, the entire MD5a stuff
+// really needs a re-write.  It is VERY ugly, and now with OMP, it
+// is busted.
+//	unsigned char *off[2];
+	unsigned off[2];
 #else
 	unsigned char *off;
 #endif
@@ -4618,7 +5129,8 @@ static void FreeBSDMD5Crypt_setup_nonMMX() {
 #endif
 }
 
-static void DynamicFunc__FreeBSDMD5Crypt_ANY()
+// NOTE, this function MUST be redone, to make work in OMP.
+static void DynamicFunc__FreeBSDMD5Crypt_ANY(DYNA_OMP_PARAMS)
 {
 	unsigned char *cp, *cp1;
 	int i, I, len[2];
@@ -4940,7 +5452,8 @@ void CopyCryptToFlat(unsigned char *cp, int plen, int idx, int idx_mod) {
 	}
 }
 
-void DynamicFunc__FreeBSDMD5Crypt_MMX()
+// NOTE, this function MUST be redone, to make work in OMP.
+void DynamicFunc__FreeBSDMD5Crypt_MMX(DYNA_OMP_PARAMS)
 {
 	unsigned char tmp[64], *cp;
 	int i, x, len;
@@ -5063,12 +5576,14 @@ void DynamicFunc__FreeBSDMD5Crypt_MMX()
 }
 
 #endif
-void DynamicFunc__FreeBSDMD5Crypt()
+void DynamicFunc__FreeBSDMD5Crypt(DYNA_OMP_PARAMS)
 {
+#ifndef _OPENMP
 #ifdef MMX_COEF
-	DynamicFunc__FreeBSDMD5Crypt_MMX();
+	DynamicFunc__FreeBSDMD5Crypt_MMX(DYNA_OMP_PARAMSd);
 #else
-	DynamicFunc__FreeBSDMD5Crypt_ANY();
+	DynamicFunc__FreeBSDMD5Crypt_ANY(DYNA_OMP_PARAMSd);
+#endif
 #endif
 }
 
@@ -5076,7 +5591,7 @@ void DynamicFunc__FreeBSDMD5Crypt()
  * DYNAMIC primitive helper function
  * Special crypt to handle the 'looping' needed for phpass
  *************************************************************/
-void DynamicFunc__PHPassCrypt()
+void DynamicFunc__PHPassCrypt(DYNA_OMP_PARAMS)
 {
 	unsigned Lcount;
 
@@ -5085,11 +5600,11 @@ void DynamicFunc__PHPassCrypt()
 		exit(!!fprintf(stderr, "Error, invalid loop byte in a php salt %s\n",cursalt));
 	Lcount = (1<<Lcount);
 
-	DynamicFunc__clean_input();
+	DynamicFunc__clean_input(DYNA_OMP_PARAMSd);
 
 	// First 'round' is md5 of ($s.$p)
-	DynamicFunc__append_salt();
-	DynamicFunc__append_keys();
+	DynamicFunc__append_salt(DYNA_OMP_PARAMSd);
+	DynamicFunc__append_keys(DYNA_OMP_PARAMSd);
 
 	// The later rounds (variable number, based upon the salt's first byte)
 	//   are ALL done as 16 byte md5 result of prior hash, with the password appeneded
@@ -5098,13 +5613,13 @@ void DynamicFunc__PHPassCrypt()
 	// input buffer.  We will then append the keys to that, and never
 	// have to append the keys again (we just make sure we do NOT adjust
 	// the amount of bytes to md5 from this point no
-	DynamicFunc__crypt_md5_to_input_raw();
+	DynamicFunc__crypt_md5_to_input_raw(DYNA_OMP_PARAMSd);
 
 	// Now append the pass
-	DynamicFunc__append_keys();
+	DynamicFunc__append_keys(DYNA_OMP_PARAMSd);
 
 	// NOTE last we do 1 less than the required number of crypts in our loop
-	DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen_but_setlen_in_SSE();
+	DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen_but_setlen_in_SSE(DYNA_OMP_PARAMSd);
 
 #if !ARCH_LITTLE_ENDIAN
 	// from this point on, we want to have the binary blobs in 'native' big endian
@@ -5121,7 +5636,7 @@ void DynamicFunc__PHPassCrypt()
 
 	--Lcount;
 	while(--Lcount)
-		DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen();
+		DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen(DYNA_OMP_PARAMSd);
 
 	// final crypt is to the normal 'output' buffer, since john uses that to find 'hits'.
 #if !ARCH_LITTLE_ENDIAN
@@ -5139,11 +5654,25 @@ void DynamicFunc__PHPassCrypt()
 	//dump_stuff_msg("crypt1", crypt_key_X86[0].x2.w2, 16);
 #else
 	// little endian can use 'original' crypt function.
-	DynamicFunc__crypt_md5();
+	DynamicFunc__crypt_md5(DYNA_OMP_PARAMSd);
 #endif
 }
-void DynamicFunc__POCrypt()
+void DynamicFunc__POCrypt(DYNA_OMP_PARAMS)
 {
+	unsigned i, j;
+	unsigned til, len;
+	unsigned char *pBuf;
+#if MD5_X2
+	unsigned char *pBuf2;
+	unsigned lens[2];
+#endif
+#ifdef _OPENMP
+	til = last;
+	i = first;
+#else
+	i = 0;
+	til = m_count;
+#endif
 	//DynamicFunc__clean_input_kwik();
 	//DynamicFunc__append_salt,
 	//DynamicFunc__append_input1_from_CONST1,
@@ -5151,36 +5680,37 @@ void DynamicFunc__POCrypt()
 	//DynamicFunc__append_input1_from_CONST2,
 	//DynamicFunc__append_salt,
 	//DynamicFunc__crypt_md5,
-
-	unsigned i, len;
-	unsigned char *pBuf = input_buf_X86[0].x1.B;
+	pBuf = input_buf_X86[i>>MD5_X2].x1.B;
 #if MD5_X2
-	unsigned lens[2];
-	unsigned char *pBuf2 = input_buf_X86[0].x2.B2;
-	memset(pBuf2, 0, sizeof(input_buf_X86[0].x2.B2));
+	pBuf2 = input_buf_X86[i>>MD5_X2].x2.B2;
+	memset(pBuf2, 0, sizeof(input_buf_X86[i>>MD5_X2].x2.B2));
 	memcpy(pBuf2, cursalt, 32);
 	pBuf2[32] = 'Y';
 #endif
-	memset(pBuf, 0, sizeof(input_buf_X86[0].x1.b));
+	memset(pBuf, 0, sizeof(input_buf_X86[i>>MD5_X2].x1.b));
 	memcpy(pBuf, cursalt, 32);
 	pBuf[32] = 'Y';
-	for (i = 0; i < m_count; ++i) {
-		len = saved_key_len[i];
-		memcpy(&pBuf[33], saved_key[i], len);
+	for (j = i; j < til; ++j) {
+		len = saved_key_len[j];
+		memcpy(&pBuf[33], saved_key[j], len);
 		pBuf[33+len] = 0xf7;
 		memcpy(&pBuf[34+len], cursalt, 32);
 
 #if MD5_X2
 		lens[0] = len+66;  // len from the 'first'
-		++i;
-		len = saved_key_len[i];
-		memcpy(&pBuf2[33], saved_key[i], len);
-		pBuf2[33+len] = 0xf7;
-		memcpy(&pBuf2[34+len], cursalt, 32);
-		lens[1] = len+66;
-		DoMD5(input_buf_X86[0], lens, crypt_key_X86[i>>MD5_X2]);
+		++j;
+		if (j < m_count) {
+			len = saved_key_len[j];
+			memcpy(&pBuf2[33], saved_key[j], len);
+			pBuf2[33+len] = 0xf7;
+			memcpy(&pBuf2[34+len], cursalt, 32);
+			lens[1] = len+66;
+		} else {
+			lens[1] = 0;
+		}
+		DoMD5(input_buf_X86[i>>MD5_X2], lens, crypt_key_X86[j>>MD5_X2]);
 #else
-		DoMD5(input_buf_X86[0], (len+66), crypt_key_X86[i]);
+		DoMD5(input_buf_X86[i>>MD5_X2], (len+66), crypt_key_X86[j]);
 #endif
 	}
 }
@@ -5189,68 +5719,82 @@ void DynamicFunc__POCrypt()
  * DYNAMIC primitive helper function
  * Encrypts the data in the 2nd input field into crypt_keys2.
  *************************************************************/
-void DynamicFunc__crypt2_md5()
+void DynamicFunc__crypt2_md5(DYNA_OMP_PARAMS)
 {
-	unsigned i;
+	int i, til;
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
 #ifdef MMX_COEF
-#ifdef MD5_SSE_PARA
 	if (dynamic_use_sse==1) {
-		unsigned cnt = ( ((unsigned)m_count+MMX_COEF-1)>>(MMX_COEF>>1));
-		for (i = 0; i < cnt; i += MD5_SSE_PARA) {
+		til = (til+MMX_COEF-1)>>(MMX_COEF>>1);
+		i >>= (MMX_COEF>>1);
+#ifdef MD5_SSE_PARA
+		for (; i < til; i += MD5_SSE_PARA) {
 			SSE_Intrinsics_LoadLens(1, i);
 			SSEmd5body(input_buf2[i].c, crypt_key2[i].w, 1);
 		}
-		return;
-	}
 #else
-	if (dynamic_use_sse==1) {
-		unsigned cnt = ( ((unsigned)m_count+MMX_COEF-1)>>(MMX_COEF>>1));
-		for (i = 0; i < cnt; ++i)
+		for (; i < til; ++i)
 			mdfivemmx(crypt_key2[i].c, input_buf2[i].c, total_len2[i]);
+#endif
 		return;
 	}
 #endif
-#endif
-	for (i = 0; i < m_count; ++i) {
+	for (; i < til; ++i) {
 #if MD5_X2
 		unsigned len[2];
 		len[0] = total_len2_X86[i++];
-		len[1] = total_len2_X86[i];
+		if (i < m_count)
+			len[1] = total_len2_X86[i];
+		else
+			len[1] = 0;
 #else
 		unsigned len = total_len2_X86[i];
 #endif
 		DoMD5(input_buf2_X86[i>>MD5_X2], len, crypt_key2_X86[i>>MD5_X2]);
 	}
 }
-void DynamicFunc__crypt2_md4()
+void DynamicFunc__crypt2_md4(DYNA_OMP_PARAMS)
 {
-	unsigned i;
+	int i, til;
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
 #ifdef MMX_COEF
-#ifdef MD4_SSE_PARA
 	if (dynamic_use_sse==1) {
-		unsigned cnt = ( ((unsigned)m_count+MMX_COEF-1)>>(MMX_COEF>>1));
-		for (i = 0; i < cnt; i += MD4_SSE_PARA) {
+		til = (til+MMX_COEF-1)>>(MMX_COEF>>1);
+		i >>= (MMX_COEF>>1);
+#ifdef MD4_SSE_PARA
+		for (; i < til; i += MD4_SSE_PARA) {
 			SSE_Intrinsics_LoadLens(1, i);
 			SSEmd4body(input_buf2[i].c, crypt_key2[i].w, 1);
 		}
-		return;
-	}
 #else
-	if (dynamic_use_sse==1) {
-		unsigned cnt = ( ((unsigned)m_count+MMX_COEF-1)>>(MMX_COEF>>1));
-		for (i = 0; i < cnt; ++i)
+		for (; i < til; ++i)
 			mdfourmmx(crypt_key2[i].c, input_buf2[i].c, total_len2[i]);
+#endif
 		return;
 	}
 #endif
-#endif
-	for (i = 0; i < m_count; ++i) {
+	for (; i < til; ++i) {
 		// MD5_X2 sets our input buffers and crypt keys up in 'double' format. Thus, we HAVE
 		// to treat them just like we do in MD5.  The macro hides the details.
 #if MD5_X2
 		unsigned len[2];
 		len[0] = total_len2_X86[i++];
-		len[1] = total_len2_X86[i];
+		if (i == m_count)
+			len[1] = 0;
+		else
+			len[1] = total_len2_X86[i];
 #else
 		unsigned len = total_len2_X86[i];
 #endif
@@ -5262,90 +5806,105 @@ void DynamicFunc__crypt2_md4()
  * DYNAMIC primitive helper function
  * Encrypts the data in the 1st input field      crypt_keys2.
  *************************************************************/
-void DynamicFunc__crypt_md5_in1_to_out2()
+void DynamicFunc__crypt_md5_in1_to_out2(DYNA_OMP_PARAMS)
 {
-	unsigned i;
+	int i, til;
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
 #ifdef MMX_COEF
-#ifdef MD5_SSE_PARA
 	if (dynamic_use_sse==1) {
-		unsigned cnt = ( ((unsigned)m_count+MMX_COEF-1)>>(MMX_COEF>>1));
+		til = (til+MMX_COEF-1)>>(MMX_COEF>>1);
+		i >>= (MMX_COEF>>1);
+#ifdef MD5_SSE_PARA
 		if (curdat.store_keys_in_input) {
-			for (i = 0; i < cnt; i += MD5_SSE_PARA) {
+			for (; i < til; i += MD5_SSE_PARA) {
 				SSEmd5body(input_buf[i].c, crypt_key2[i].w, 1);
 			}
 		} else {
-			for (i = 0; i < cnt; i += MD5_SSE_PARA) {
+			for (; i < til; i += MD5_SSE_PARA) {
 				SSE_Intrinsics_LoadLens(0, i);
 				SSEmd5body(input_buf[i].c, crypt_key2[i].w, 1);
 			}
 		}
-		return;
-	}
 #else
-	if (dynamic_use_sse==1) {
-		unsigned cnt = ( ((unsigned)m_count+MMX_COEF-1)>>(MMX_COEF>>1));
 		if (curdat.store_keys_in_input) {
-			for (i = 0; i < cnt; ++i)
+			for (; i < til; ++i)
 				mdfivemmx_nosizeupdate(crypt_key2[i].c, input_buf[i].c, 1);
 		} else {
-			for (i = 0; i < cnt; ++i)
+			for (; i < til; ++i)
 				mdfivemmx(crypt_key2[i].c, input_buf[i].c, total_len[i]);
 		}
+#endif
 		return;
 	}
 #endif
-#endif
-	for (i = 0; i < m_count; ++i) {
+	for (; i < til; ++i) {
 #if MD5_X2
 		unsigned len[2];
 		len[0] = total_len_X86[i++];
-		len[1] = total_len_X86[i];
+		if (i == m_count)
+			len[1] = 0;
+		else
+			len[1] = total_len_X86[i];
 #else
 		unsigned len = total_len_X86[i];
 #endif
 		DoMD5(input_buf_X86[i>>MD5_X2], len, crypt_key2_X86[i>>MD5_X2]);
 	}
 }
-void DynamicFunc__crypt_md4_in1_to_out2()
+void DynamicFunc__crypt_md4_in1_to_out2(DYNA_OMP_PARAMS)
 {
-	unsigned i;
+	int i, til;
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
 #ifdef MMX_COEF
-#ifdef MD4_SSE_PARA
 	if (dynamic_use_sse==1) {
-		unsigned cnt = ( ((unsigned)m_count+MMX_COEF-1)>>(MMX_COEF>>1));
+		til = (til+MMX_COEF-1)>>(MMX_COEF>>1);
+		i >>= (MMX_COEF>>1);
+#ifdef MD4_SSE_PARA
 		if (curdat.store_keys_in_input) {
-			for (i = 0; i < cnt; i += MD4_SSE_PARA) {
+			for (; i < til; i += MD4_SSE_PARA) {
 				SSEmd4body(input_buf[i].c, crypt_key2[i].w, 1);
 			}
 		} else {
-			for (i = 0; i < cnt; i += MD4_SSE_PARA) {
+			for (; i < til; i += MD4_SSE_PARA) {
 				SSE_Intrinsics_LoadLens(0, i);
 				SSEmd4body(input_buf[i].c, crypt_key2[i].w, 1);
 			}
 		}
-		return;
-	}
 #else
 	if (dynamic_use_sse==1) {
-		unsigned cnt = ( ((unsigned)m_count+MMX_COEF-1)>>(MMX_COEF>>1));
 		if (curdat.store_keys_in_input) {
-			for (i = 0; i < cnt; ++i)
+			for (; i < til; ++i)
 				mdfourmmx_nosizeupdate(crypt_key2[i].c, input_buf[i].c, 1);
 		} else {
-			for (i = 0; i < cnt; ++i)
+			for (; i < til; ++i)
 				mdfourmmx(crypt_key2[i].c, input_buf[i].c, total_len[i]);
 		}
+#endif
 		return;
 	}
 #endif
-#endif
-	for (i = 0; i < m_count; ++i) {
+	for (; i < til; ++i) {
 		// MD5_X2 sets our input buffers and crypt keys up in 'double' format. Thus, we HAVE
 		// to treat them just like we do in MD5.  The macro hides the details.
 #if MD5_X2
 		unsigned len[2];
 		len[0] = total_len_X86[i++];
-		len[1] = total_len_X86[i];
+		if (i == m_count)
+			len[1] = 0;
+		else
+			len[1] = total_len_X86[i];
 #else
 		unsigned len = total_len_X86[i];
 #endif
@@ -5357,70 +5916,87 @@ void DynamicFunc__crypt_md4_in1_to_out2()
  * DYNAMIC primitive helper function
  * Encrypts the data in the 2nd input field into crypt_keys.
  *************************************************************/
-void DynamicFunc__crypt_md5_in2_to_out1()
+void DynamicFunc__crypt_md5_in2_to_out1(DYNA_OMP_PARAMS)
 {
-	unsigned i;
+	int i, til;
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
 #ifdef MMX_COEF
-#ifdef MD5_SSE_PARA
 	if (dynamic_use_sse==1) {
-		unsigned cnt = ( ((unsigned)m_count+MMX_COEF-1)>>(MMX_COEF>>1));;
-		for (i = 0; i < cnt; i += MD5_SSE_PARA)
+		til = (til+MMX_COEF-1)>>(MMX_COEF>>1);
+		i >>= (MMX_COEF>>1);
+#ifdef MD5_SSE_PARA
+		for (; i < til; i += MD5_SSE_PARA)
 		{
 			SSE_Intrinsics_LoadLens(1, i);
 			SSEmd5body(input_buf2[i].c, crypt_key[i].w, 1);
+			//dump_stuff_mmx_msg("DynamicFunc__crypt_md5_in2_to_out1", input_buf2[i].c,64,m_count-1);
 		}
-		return;
-	}
 #else
 	if (dynamic_use_sse==1) {
-		unsigned cnt = ( ((unsigned)m_count+MMX_COEF-1)>>(MMX_COEF>>1));;
-		for (i = 0; i < cnt; ++i)
+		for (; i < til; ++i)
 			mdfivemmx(crypt_key[i].c, input_buf2[i].c, total_len2[i]);
+#endif
 		return;
 	}
 #endif
-#endif
-	for (i = 0; i < m_count; ++i) {
+	for (; i < til; ++i) {
 #if MD5_X2
 		unsigned len[2];
 		len[0] = total_len2_X86[i++];
-		len[1] = total_len2_X86[i];
+		if (i == m_count)
+			len[1] = 0;
+		else
+			len[1] = total_len2_X86[i];
 #else
 		unsigned len = total_len2_X86[i];
 #endif
 		DoMD5(input_buf2_X86[i>>MD5_X2], len, crypt_key_X86[i>>MD5_X2]);
 	}
 }
-void DynamicFunc__crypt_md4_in2_to_out1()
+void DynamicFunc__crypt_md4_in2_to_out1(DYNA_OMP_PARAMS)
 {
-	unsigned i;
+	int i, til;
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
 #ifdef MMX_COEF
-#ifdef MD4_SSE_PARA
 	if (dynamic_use_sse==1) {
-		unsigned cnt = ( ((unsigned)m_count+MMX_COEF-1)>>(MMX_COEF>>1));;
-		for (i = 0; i < cnt; i += MD4_SSE_PARA)
+		til = (til+MMX_COEF-1)>>(MMX_COEF>>1);
+		i >>= (MMX_COEF>>1);
+#ifdef MD4_SSE_PARA
+		for (; i < til; i += MD4_SSE_PARA)
 		{
 			SSE_Intrinsics_LoadLens(1, i);
 			SSEmd4body(input_buf2[i].c, crypt_key[i].w, 1);
 		}
-		return;
-	}
 #else
 	if (dynamic_use_sse==1) {
-		unsigned cnt = ( ((unsigned)m_count+MMX_COEF-1)>>(MMX_COEF>>1));;
-		for (i = 0; i < cnt; ++i)
+		for (; i < til; ++i)
 			mdfourmmx(crypt_key[i].c, input_buf2[i].c, total_len2[i]);
+#endif
 		return;
 	}
 #endif
-#endif
-	for (i = 0; i < m_count; ++i) {
+	for (; i < til; ++i) {
 		// MD5_X2 sets our input buffers and crypt keys up in 'double' format. Thus, we HAVE
 		// to treat them just like we do in MD5.  The macro hides the details.
 #if MD5_X2
 		unsigned len[2];
 		len[0] = total_len2_X86[i++];
-		len[1] = total_len2_X86[i];
+		if (i == m_count)
+			len[1] = 0;
+		else
+			len[1] = total_len2_X86[i];
 #else
 		unsigned len = total_len2_X86[i];
 #endif
@@ -5428,14 +6004,22 @@ void DynamicFunc__crypt_md4_in2_to_out1()
 	}
 }
 
-void DynamicFunc__crypt_md5_to_input_raw()
+void DynamicFunc__crypt_md5_to_input_raw(DYNA_OMP_PARAMS)
 {
-	unsigned i;
+	int i, til;
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
 #ifdef MMX_COEF
-#ifdef MD5_SSE_PARA
 	if (dynamic_use_sse==1) {
-		unsigned cnt = ( ((unsigned)m_count+MMX_COEF-1)>>(MMX_COEF>>1));
-		for (i = 0; i < cnt; i += MD5_SSE_PARA)
+		til = (til+MMX_COEF-1)>>(MMX_COEF>>1);
+		i >>= (MMX_COEF>>1);
+#ifdef MD5_SSE_PARA
+		for (; i < til; i += MD5_SSE_PARA)
 		{
 			unsigned j;
 			SSE_Intrinsics_LoadLens(0, i);
@@ -5450,12 +6034,8 @@ void DynamicFunc__crypt_md5_to_input_raw()
 				total_len[i+j] = 0x10101010;
 			}
 		}
-		return;
-	}
 #else
-	if (dynamic_use_sse==1) {
-		unsigned cnt = ( ((unsigned)m_count+MMX_COEF-1)>>(MMX_COEF>>1));
-		for (i = 0; i < cnt; ++i)
+		for (; i < til; ++i)
 		{
 			mdfivemmx(crypt_key[i].c, input_buf[i].c, total_len[i]);
 			memset(input_buf[i].c, 0, sizeof(input_buf[0]));
@@ -5466,31 +6046,43 @@ void DynamicFunc__crypt_md5_to_input_raw()
 			total_len[i] = 0x100010;
 #endif
 		}
+#endif
 		return;
 	}
 #endif
-#endif
-	for (i = 0; i < m_count; ++i) {
+	for (; i < til; ++i) {
 #if MD5_X2
 		unsigned len[2];
 		len[0] = total_len_X86[i];
 		total_len_X86[i++] = 0x10;
-		len[1] = total_len_X86[i];
+		if (i == m_count)
+			len[1] = 0;
+		else
+			len[1] = total_len_X86[i];
 #else
 		unsigned len = total_len_X86[i];
 #endif
 		DoMD5(input_buf_X86[i>>MD5_X2], len, input_buf_X86[i>>MD5_X2]);
-		total_len_X86[i] = 0x10;
+		if (i < m_count)
+			total_len_X86[i] = 0x10;
 	}
 }
-void DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen_but_setlen_in_SSE()
+void DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen_but_setlen_in_SSE(DYNA_OMP_PARAMS)
 {
-	unsigned i;
+	int i, til;
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
 #ifdef MMX_COEF
-#ifdef MD5_SSE_PARA
 	if (dynamic_use_sse==1) {
-		unsigned cnt = ( ((unsigned)m_count+MMX_COEF-1)>>(MMX_COEF>>1));
-		for (i = 0; i < cnt; i += MD5_SSE_PARA)
+		til = (til+MMX_COEF-1)>>(MMX_COEF>>1);
+		i >>=(MMX_COEF>>1);
+#ifdef MD5_SSE_PARA
+		for (; i < til; i += MD5_SSE_PARA)
 		{
 			unsigned j;
 			SSE_Intrinsics_LoadLens(0, i);
@@ -5501,22 +6093,21 @@ void DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen_but_setlen_in_SSE()
 			for (j = 0; j < MD5_SSE_PARA; ++j)
 				memcpy(input_buf[i+j].c, crypt_key[i+j].c, 16*4);
 		}
-		return;
-	}
 #else
-	if (dynamic_use_sse==1) {
-		unsigned cnt = ( ((unsigned)m_count+MMX_COEF-1)>>(MMX_COEF>>1));
-		for (i = 0; i < cnt; ++i)
+		for (; i < til; ++i)
 			mdfivemmx(input_buf[i].c, input_buf[i].c, total_len[i]);
+#endif
 		return;
 	}
 #endif
-#endif
-	for (i = 0; i < m_count; ++i) {
+	for (; i < til; ++i) {
 #if MD5_X2
 		unsigned len[2];
 		len[0] = total_len_X86[i++];
-		len[1] = total_len_X86[i];
+		if (i == m_count)
+			len[1] = 0;
+		else
+			len[1] = total_len_X86[i];
 #else
 		unsigned len = total_len_X86[i];
 #endif
@@ -5524,14 +6115,22 @@ void DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen_but_setlen_in_SSE()
 	}
 }
 
-void DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen()
+void DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen(DYNA_OMP_PARAMS)
 {
-	unsigned i;
+	int i, til;
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
 #ifdef MMX_COEF
-#ifdef MD5_SSE_PARA
 	if (dynamic_use_sse==1) {
-		unsigned cnt = ( ((unsigned)m_count+MMX_COEF-1)>>(MMX_COEF>>1));
-		for (i = 0; i < cnt; i += MD5_SSE_PARA)
+		til = (til+MMX_COEF-1)>>(MMX_COEF>>1);
+		i >>= (MMX_COEF>>1);
+#ifdef MD5_SSE_PARA
+		for (; i < til; i += MD5_SSE_PARA)
 		{
 			unsigned j;
 			// NOTE, since crypt_key array is 16 bytes each, and input_buf is 64 bytes
@@ -5541,22 +6140,21 @@ void DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen()
 			for (j = 0; j < MD5_SSE_PARA; ++j)
 				memcpy(input_buf[i+j].c, crypt_key[i+j].c, 16*4);
 		}
-		return;
-	}
 #else
-	if (dynamic_use_sse==1) {
-		unsigned cnt = ( ((unsigned)m_count+MMX_COEF-1)>>(MMX_COEF>>1));
-		for (i = 0; i < cnt; ++i)
+		for (; i < til; ++i)
 			mdfivemmx_nosizeupdate(input_buf[i].c, input_buf[i].c, 0);
+#endif
 		return;
 	}
 #endif
-#endif
-	for (i = 0; i < m_count; ++i) {
+	for (; i < til; ++i) {
 #if MD5_X2
 		unsigned len[2];
 		len[0] = total_len_X86[i++];
-		len[1] = total_len_X86[i];
+		if (i == m_count)
+			len[1] = 0;
+		else
+			len[1] = total_len_X86[i];
 #else
 		unsigned len = total_len_X86[i];
 #endif
@@ -5565,33 +6163,40 @@ void DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen()
 	}
 }
 
-void DynamicFunc__overwrite_salt_to_input1_no_size_fix()
+void DynamicFunc__overwrite_salt_to_input1_no_size_fix(DYNA_OMP_PARAMS)
 {
-	unsigned j;
+	int j, til;
+#ifdef _OPENMP
+	j = first;
+	til = last;
+#else
+	j = 0;
+	til = m_count;
+#endif
 #ifdef MMX_COEF
 	if (dynamic_use_sse==1) {
-		if (md5_unicode_convert) {
+		if (md5_unicode_convert_get()) {
 			if (!options.ascii && !options.iso8859_1) {
 				UTF16 utf16Str[27+1]; // 27 chars is 'max' that fits in SSE without overflow, so that is where we limit it at now
 				int outlen;
 				outlen = enc_to_utf16(utf16Str, 27, (unsigned char*)cursalt, saltlen) * sizeof(UTF16);
 				if (outlen < 0)
 					outlen = strlen16(utf16Str) * sizeof(UTF16);
-				for (j = 0; j < m_count; ++j) {
+				for (; j < til; ++j) {
 					__SSE_append_string_to_input(input_buf[j>>(MMX_COEF>>1)].c,j&(MMX_COEF-1),(unsigned char*)utf16Str,outlen,0,0);
 				}
 			} else {
-				for (j = 0; j < m_count; ++j)
+				for (; j < til; ++j)
 					__SSE_append_string_to_input_unicode(input_buf[j>>(MMX_COEF>>1)].c,j&(MMX_COEF-1),(unsigned char*)cursalt,saltlen,0,0);
 			}
 			return;
 		}
-		for (j = 0; j < m_count; ++j)
+		for (; j < til; ++j)
 			__SSE_append_string_to_input(input_buf[j>>(MMX_COEF>>1)].c,j&(MMX_COEF-1),cursalt,saltlen,0,0);
 		return;
 	}
 #endif
-	if (md5_unicode_convert) {
+	if (md5_unicode_convert_get()) {
 		if (!options.ascii && !options.iso8859_1) {
 			UTF16 utf16Str[EFFECTIVE_MAX_LENGTH / 3 + 1];
 			int outlen;
@@ -5599,7 +6204,7 @@ void DynamicFunc__overwrite_salt_to_input1_no_size_fix()
 			if (outlen < 0)
 				outlen = strlen16(utf16Str) * sizeof(UTF16);
 
-			for (j = 0; j < m_count; ++j) {
+			for (; j < til; ++j) {
 				int z;
 				unsigned char *cp, *cpi = (unsigned char*)utf16Str;
 #if MD5_X2
@@ -5612,7 +6217,7 @@ void DynamicFunc__overwrite_salt_to_input1_no_size_fix()
 					*cp++ = *cpi++;
 			}
 		} else {
-			for (j = 0; j < m_count; ++j) {
+			for (; j < til; ++j) {
 				int z;
 				unsigned char *cp, *cpi = (unsigned char*)cursalt;
 #if MD5_X2
@@ -5629,7 +6234,7 @@ void DynamicFunc__overwrite_salt_to_input1_no_size_fix()
 		}
 		return;
 	}
-	for (j = 0; j < m_count; ++j) {
+	for (; j < til; ++j) {
 #if MD5_X2
 		if (j&1)
 			memcpy(input_buf_X86[j>>MD5_X2].x2.b2, cursalt, saltlen);
@@ -5638,33 +6243,40 @@ void DynamicFunc__overwrite_salt_to_input1_no_size_fix()
 		memcpy(input_buf_X86[j>>MD5_X2].x1.b, cursalt, saltlen);
 	}
 }
-void DynamicFunc__overwrite_salt_to_input2_no_size_fix()
+void DynamicFunc__overwrite_salt_to_input2_no_size_fix(DYNA_OMP_PARAMS)
 {
-	unsigned j;
+	int j, til;
+#ifdef _OPENMP
+	j = first;
+	til = last;
+#else
+	j = 0;
+	til = m_count;
+#endif
 #ifdef MMX_COEF
 	if (dynamic_use_sse==1) {
-		if (md5_unicode_convert) {
+		if (md5_unicode_convert_get()) {
 			if (!options.ascii && !options.iso8859_1) {
 				UTF16 utf16Str[27+1]; // 27 chars is 'max' that fits in SSE without overflow, so that is where we limit it at now
 				int outlen;
 				outlen = enc_to_utf16(utf16Str, 27, (unsigned char*)cursalt, saltlen) * sizeof(UTF16);
 				if (outlen < 0)
 					outlen = strlen16(utf16Str) * sizeof(UTF16);
-				for (j = 0; j < m_count; ++j) {
+				for (; j < til; ++j) {
 					__SSE_append_string_to_input(input_buf2[j>>(MMX_COEF>>1)].c,j&(MMX_COEF-1),(unsigned char*)utf16Str,outlen,0,0);
 				}
 			} else {
-				for (j = 0; j < m_count; ++j)
+				for (; j < til; ++j)
 					__SSE_append_string_to_input_unicode(input_buf2[j>>(MMX_COEF>>1)].c,j&(MMX_COEF-1),(unsigned char*)cursalt,saltlen,0,0);
 			}
 			return;
 		}
-		for (j = 0; j < m_count; ++j)
+		for (; j < til; ++j)
 			__SSE_append_string_to_input(input_buf2[j>>(MMX_COEF>>1)].c,j&(MMX_COEF-1),cursalt,saltlen,0,0);
 		return;
 	}
 #endif
-	if (md5_unicode_convert) {
+	if (md5_unicode_convert_get()) {
 		if (!options.ascii && !options.iso8859_1) {
 			UTF16 utf16Str[EFFECTIVE_MAX_LENGTH / 3 + 1];
 			int outlen;
@@ -5672,7 +6284,7 @@ void DynamicFunc__overwrite_salt_to_input2_no_size_fix()
 			if (outlen < 0)
 				outlen = strlen16(utf16Str) * sizeof(UTF16);
 
-			for (j = 0; j < m_count; ++j) {
+			for (; j < til; ++j) {
 				int z;
 				unsigned char *cp, *cpi = (unsigned char*)utf16Str;
 #if MD5_X2
@@ -5685,7 +6297,7 @@ void DynamicFunc__overwrite_salt_to_input2_no_size_fix()
 					*cp++ = *cpi++;
 			}
 		} else {
-			for (j = 0; j < m_count; ++j) {
+			for (; j < til; ++j) {
 				int z;
 				unsigned char *cp, *cpi = (unsigned char*)cursalt;
 #if MD5_X2
@@ -5703,7 +6315,7 @@ void DynamicFunc__overwrite_salt_to_input2_no_size_fix()
 		}
 		return;
 	}
-	for (j = 0; j < m_count; ++j) {
+	for (; j < til; ++j) {
 #if MD5_X2
 		if (j&1)
 			memcpy(input_buf2_X86[j>>MD5_X2].x2.b2, cursalt, saltlen);
@@ -5717,23 +6329,31 @@ void DynamicFunc__overwrite_salt_to_input2_no_size_fix()
  * DYNAMIC primitive helper function
  * overwrites start of input1 from the output2 data using base-16
  *************************************************************/
-void DynamicFunc__overwrite_from_last_output2_to_input1_as_base16_no_size_fix()
+void DynamicFunc__overwrite_from_last_output2_to_input1_as_base16_no_size_fix(DYNA_OMP_PARAMS)
 {
-	unsigned i, j;
+	int j, til;
+#ifdef _OPENMP
+	j = first;
+	til = last;
+#else
+	j = 0;
+	til = m_count;
+#endif
 #ifdef MMX_COEF
 	if (dynamic_use_sse==1) {
 		unsigned idx;
-		for (i = 0; i < m_count; ++i)
+		for (; j < til; ++j)
 		{
-			idx = ( ((unsigned)i)>>(MMX_COEF>>1));
-			__SSE_overwrite_output_base16_to_input(input_buf[idx].w, crypt_key2[idx].c, i&(MMX_COEF-1));
+			idx = ( ((unsigned)j)>>(MMX_COEF>>1));
+			__SSE_overwrite_output_base16_to_input(input_buf[idx].w, crypt_key2[idx].c, j&(MMX_COEF-1));
 		}
 		return;
 	}
 #endif
-	for (j = 0; j < m_count; ++j)
+	for (; j < til; ++j)
 	{
 		unsigned char *cpo, *cpi;
+		unsigned i;
 		/* MD5_word *w; */
 #if MD5_X2
 		if (j&1)
@@ -5755,23 +6375,31 @@ void DynamicFunc__overwrite_from_last_output2_to_input1_as_base16_no_size_fix()
  * DYNAMIC primitive helper function
  * overwrites start of input1 from the output1 data using base-16
  *************************************************************/
-void DynamicFunc__overwrite_from_last_output_as_base16_no_size_fix()
+void DynamicFunc__overwrite_from_last_output_as_base16_no_size_fix(DYNA_OMP_PARAMS)
 {
-	unsigned i, j;
+	int j, til;
+#ifdef _OPENMP
+	j = first;
+	til = last;
+#else
+	j = 0;
+	til = m_count;
+#endif
 #ifdef MMX_COEF
 	if (dynamic_use_sse==1) {
 		unsigned idx;
-		for (i = 0; i < m_count; ++i)
+		for (; j < til; ++j)
 		{
-			idx = ( ((unsigned)i)>>(MMX_COEF>>1));
-			__SSE_overwrite_output_base16_to_input(input_buf[idx].w, crypt_key[idx].c, i&(MMX_COEF-1));
+			idx = ( ((unsigned)j)>>(MMX_COEF>>1));
+			__SSE_overwrite_output_base16_to_input(input_buf[idx].w, crypt_key[idx].c, j&(MMX_COEF-1));
 		}
 		return;
 	}
 #endif
-	for (j = 0; j < m_count; ++j)
+	for (; j < til; ++j)
 	{
 		unsigned char *cpo, *cpi;
+		unsigned i;
 		/* MD5_word *w; */
 #if MD5_X2
 		if (j&1)
@@ -5796,42 +6424,50 @@ void DynamicFunc__overwrite_from_last_output_as_base16_no_size_fix()
  * 'first' key variable), and use a base-16 text formatting, and
  * append this to the first input buffer (adjusting the lengths)
  *************************************************************/
-void DynamicFunc__append_from_last_output_as_base16()
+void DynamicFunc__append_from_last_output_as_base16(DYNA_OMP_PARAMS)
 {
-	unsigned j;
+	int j, til;
+#ifdef _OPENMP
+	j = first;
+	til = last;
+#else
+	j = 0;
+	til = m_count;
+#endif
 #ifdef MMX_COEF
 	if (dynamic_use_sse==1) {
-		unsigned index, idx;
-		for (index = 0; index < m_count; ++index)
+		unsigned idx;
+		for (; j < til; ++j)
 		{
 			unsigned ip;
-			idx = ( ((unsigned)index)>>(MMX_COEF>>1));
+			idx = ( ((unsigned)j)>>(MMX_COEF>>1));
 			// This is the 'actual' work.
-			ip = (total_len[idx] >> ((32/MMX_COEF)*(index&(MMX_COEF-1)))) & 0xFF;
-			total_len[idx] += (32<<((32/MMX_COEF)*(index&(MMX_COEF-1))));
+			ip = (total_len[idx] >> ((32/MMX_COEF)*(j&(MMX_COEF-1)))) & 0xFF;
+			total_len[idx] += (32<<((32/MMX_COEF)*(j&(MMX_COEF-1))));
 			if (!ip)
-				__SSE_append_output_base16_to_input(input_buf[idx].w, crypt_key[idx].c, index&(MMX_COEF-1));
+				__SSE_append_output_base16_to_input(input_buf[idx].w, crypt_key[idx].c, j&(MMX_COEF-1));
 			else if (ip&1)
 			{
 				// Note we are 100% unaligned, and it seems fastest to handle byte/byte (at this time).
-				for (j = 0; j < 16; ++j)
+				unsigned k;
+				for (k = 0; k < 16; ++k)
 				{
-					unsigned char v = crypt_key[idx].c[GETPOS(j, index&(MMX_COEF-1))];
-					input_buf[idx].c[GETPOS(ip+(j<<1), index&(MMX_COEF-1))] = dynamic_itoa16[v>>4];
-					input_buf[idx].c[GETPOS(ip+(j<<1)+1, index&(MMX_COEF-1))] = dynamic_itoa16[v&0xF];
+					unsigned char v = crypt_key[idx].c[GETPOS(k, j&(MMX_COEF-1))];
+					input_buf[idx].c[GETPOS(ip+(k<<1), j&(MMX_COEF-1))] = dynamic_itoa16[v>>4];
+					input_buf[idx].c[GETPOS(ip+(k<<1)+1, j&(MMX_COEF-1))] = dynamic_itoa16[v&0xF];
 				}
-				input_buf[idx].c[GETPOS(ip+32, index&(MMX_COEF-1))] = 0x80;
+				input_buf[idx].c[GETPOS(ip+32, j&(MMX_COEF-1))] = 0x80;
 			}
 			else if ((ip&3)==0)
-				__SSE_append_output_base16_to_input_semi_aligned_0(ip, input_buf[idx].w, crypt_key[idx].c, index&(MMX_COEF-1));
+				__SSE_append_output_base16_to_input_semi_aligned_0(ip, input_buf[idx].w, crypt_key[idx].c, j&(MMX_COEF-1));
 			else
-				__SSE_append_output_base16_to_input_semi_aligned_2(ip, input_buf[idx].w, crypt_key[idx].c, index&(MMX_COEF-1));
+				__SSE_append_output_base16_to_input_semi_aligned_2(ip, input_buf[idx].w, crypt_key[idx].c, j&(MMX_COEF-1));
 
 		}
 		return;
 	}
 #endif
-	for (j = 0; j < m_count; ++j)
+	for (; j < til; ++j)
 	{
 		unsigned char *cp, *cpi;
 		unsigned i;
@@ -5857,41 +6493,48 @@ void DynamicFunc__append_from_last_output_as_base16()
  * This will take the data stored in the crypt_keys2 (the encrypted
  * 'second' key variable), and base-16 appends to the 2nd input
  *************************************************************/
-void DynamicFunc__append_from_last_output2_as_base16()
+void DynamicFunc__append_from_last_output2_as_base16(DYNA_OMP_PARAMS)
 {
-	unsigned i;
+	int i, til;
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
 #ifdef MMX_COEF
 	if (dynamic_use_sse==1) {
-		unsigned index, idx;
-		for (index = 0; index < m_count; ++index)
+		unsigned idx;
+		for (; i < til; ++i)
 		{
-			unsigned ip;
-			idx = ( ((unsigned)index)>>(MMX_COEF>>1));
+			unsigned ip, j;
+			idx = ( ((unsigned)i)>>(MMX_COEF>>1));
 			// This is the 'actual' work.
-			ip = (total_len2[idx] >> ((32/MMX_COEF)*(index&(MMX_COEF-1)))) & 0xFF;
-			total_len2[idx] += (32<<((32/MMX_COEF)*(index&(MMX_COEF-1))));
+			ip = (total_len2[idx] >> ((32/MMX_COEF)*(i&(MMX_COEF-1)))) & 0xFF;
+			total_len2[idx] += (32<<((32/MMX_COEF)*(i&(MMX_COEF-1))));
 			if (!ip)
-				__SSE_append_output_base16_to_input(input_buf2[idx].w, crypt_key2[idx].c, index&(MMX_COEF-1));
+				__SSE_append_output_base16_to_input(input_buf2[idx].w, crypt_key2[idx].c, i&(MMX_COEF-1));
 			else if (ip&1)
 			{
 				// Note we are 100% unaligned, and it seems fastest to handle byte/byte (at this time).
-				for (i = 0; i < 16; ++i)
+				for (j = 0; j < 16; ++j)
 				{
-					unsigned char v = crypt_key2[idx].c[GETPOS(i, index&(MMX_COEF-1))];
-					input_buf2[idx].c[GETPOS(ip+(i<<1), index&(MMX_COEF-1))] = dynamic_itoa16[v>>4];
-					input_buf2[idx].c[GETPOS(ip+(i<<1)+1, index&(MMX_COEF-1))] = dynamic_itoa16[v&0xF];
+					unsigned char v = crypt_key2[idx].c[GETPOS(j, i&(MMX_COEF-1))];
+					input_buf2[idx].c[GETPOS(ip+(j<<1), i&(MMX_COEF-1))] = dynamic_itoa16[v>>4];
+					input_buf2[idx].c[GETPOS(ip+(j<<1)+1, i&(MMX_COEF-1))] = dynamic_itoa16[v&0xF];
 				}
-				input_buf2[idx].c[GETPOS(ip+32, index&(MMX_COEF-1))] = 0x80;
+				input_buf2[idx].c[GETPOS(ip+32, i&(MMX_COEF-1))] = 0x80;
 			}
 			else if ((ip&3)==0)
-				__SSE_append_output_base16_to_input_semi_aligned_0(ip, input_buf2[idx].w, crypt_key2[idx].c, index&(MMX_COEF-1));
+				__SSE_append_output_base16_to_input_semi_aligned_0(ip, input_buf2[idx].w, crypt_key2[idx].c, i&(MMX_COEF-1));
 			else
-				__SSE_append_output_base16_to_input_semi_aligned_2(ip, input_buf2[idx].w, crypt_key2[idx].c, index&(MMX_COEF-1));
+				__SSE_append_output_base16_to_input_semi_aligned_2(ip, input_buf2[idx].w, crypt_key2[idx].c, i&(MMX_COEF-1));
 		}
 		return;
 	}
 #endif
-	for (i = 0; i < m_count; ++i)
+	for (; i < til; ++i)
 	{
 		unsigned j;
 		unsigned char *cp, *cpi;
@@ -5919,13 +6562,20 @@ void DynamicFunc__append_from_last_output2_as_base16()
  * again, such as md5(md5(md5(md5($p))))  There, we would only
  * call the copy and set length once, then simply call copy.
  *************************************************************/
-void DynamicFunc__overwrite_from_last_output_to_input2_as_base16_no_size_fix()
+void DynamicFunc__overwrite_from_last_output_to_input2_as_base16_no_size_fix(DYNA_OMP_PARAMS)
 {
-	unsigned i, j;
+	int i, til,j;
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
 #ifdef MMX_COEF
 	if (dynamic_use_sse==1) {
 		unsigned idx;
-		for (i = 0; i < m_count; ++i)
+		for (; i < til; ++i)
 		{
 			idx = ( ((unsigned)i)>>(MMX_COEF>>1));
 			__SSE_overwrite_output_base16_to_input(input_buf2[idx].w, crypt_key[idx].c, i&(MMX_COEF-1));
@@ -5933,7 +6583,8 @@ void DynamicFunc__overwrite_from_last_output_to_input2_as_base16_no_size_fix()
 		return;
 	}
 #endif
-	for (j = 0; j < m_count; ++j)
+	j = i;
+	for (; j < til; ++j)
 	{
 		unsigned char *cpo, *cpi;
 		/* MD5_word *w; */
@@ -5956,13 +6607,20 @@ void DynamicFunc__overwrite_from_last_output_to_input2_as_base16_no_size_fix()
  * DYNAMIC primitive helper function
  * overwrites start of input2 from the output2 data using base-16
  *************************************************************/
-void DynamicFunc__overwrite_from_last_output2_as_base16_no_size_fix()
+void DynamicFunc__overwrite_from_last_output2_as_base16_no_size_fix(DYNA_OMP_PARAMS)
 {
-	unsigned i, j;
+	int i, til,j;
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
 #ifdef MMX_COEF
 	if (dynamic_use_sse==1) {
 		unsigned idx;
-		for (i = 0; i < m_count; ++i)
+		for (; i < til; ++i)
 		{
 			idx = ( ((unsigned)i)>>(MMX_COEF>>1));
 			__SSE_overwrite_output_base16_to_input(input_buf2[idx].w, crypt_key2[idx].c, i&(MMX_COEF-1));
@@ -5970,7 +6628,8 @@ void DynamicFunc__overwrite_from_last_output2_as_base16_no_size_fix()
 		return;
 	}
 #endif
-	for (j = 0; j < m_count; ++j)
+	j=i;
+	for (; j < til; ++j)
 	{
 		unsigned char *cpo, *cpi;
 		/* MD5_word *w; */
@@ -5996,13 +6655,20 @@ void DynamicFunc__overwrite_from_last_output2_as_base16_no_size_fix()
  * This will take the data stored in the crypt_keys1 (the encrypted
  * 'first' key variable), and base-16 appends to the 2nd input
  *************************************************************/
-void DynamicFunc__append_from_last_output_to_input2_as_base16()
+void DynamicFunc__append_from_last_output_to_input2_as_base16(DYNA_OMP_PARAMS)
 {
-	unsigned i;
+	int i, til;
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
 #ifdef MMX_COEF
 	if (dynamic_use_sse==1) {
-		unsigned index, idx;
-		for (index = 0; index < m_count; ++index)
+		unsigned index=i, idx;
+		for (; index < til; ++index)
 		{
 			unsigned ip;
 			idx = ( ((unsigned)index)>>(MMX_COEF>>1));
@@ -6030,7 +6696,7 @@ void DynamicFunc__append_from_last_output_to_input2_as_base16()
 		return;
 	}
 #endif
-	for (i = 0; i < m_count; ++i)
+	for (; i < til; ++i)
 	{
 		unsigned j;
 		unsigned char *cp, *cpi;
@@ -6056,13 +6722,20 @@ void DynamicFunc__append_from_last_output_to_input2_as_base16()
  * This will take the data stored in the crypt_keys2 (the encrypted
  * 'second' key variable), and base-16 appends to the 1st input
  *************************************************************/
-void DynamicFunc__append_from_last_output2_to_input1_as_base16()
+void DynamicFunc__append_from_last_output2_to_input1_as_base16(DYNA_OMP_PARAMS)
 {
-	unsigned i;
+	int i, til;
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
 #ifdef MMX_COEF
 	if (dynamic_use_sse==1) {
-		unsigned index, idx;
-		for (index = 0; index < m_count; ++index)
+		unsigned index=i, idx;
+		for (; index < til; ++index)
 		{
 			unsigned ip;
 			idx = ( ((unsigned)index)>>(MMX_COEF>>1));
@@ -6090,7 +6763,7 @@ void DynamicFunc__append_from_last_output2_to_input1_as_base16()
 		return;
 	}
 #endif
-	for (i = 0; i < m_count; ++i)
+	for (; i < til; ++i)
 	{
 		unsigned j;
 		unsigned char *cp, *cpi;
@@ -6111,13 +6784,20 @@ void DynamicFunc__append_from_last_output2_to_input1_as_base16()
 	}
 }
 
-void DynamicFunc__append_from_last_output2_as_raw()
+void DynamicFunc__append_from_last_output2_as_raw(DYNA_OMP_PARAMS)
 {
-	unsigned i;
+	int i, til;
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
 #ifdef MMX_COEF
 	if (dynamic_use_sse==1) {
-		unsigned index, idx;
-		for (index = 0; index < m_count; ++index)
+		unsigned index=i, idx;
+		for (; index < til; ++index)
 		{
 			unsigned ip;
 			idx = ( ((unsigned)index)>>(MMX_COEF>>1));
@@ -6146,7 +6826,7 @@ void DynamicFunc__append_from_last_output2_as_raw()
 		return;
 	}
 #endif
-	for (i = 0; i < m_count; ++i)
+	for (; i < til; ++i)
 	{
 		unsigned j;
 		unsigned char *cp, *cpi;
@@ -6165,13 +6845,20 @@ void DynamicFunc__append_from_last_output2_as_raw()
 	}
 }
 
-void DynamicFunc__append2_from_last_output2_as_raw()
+void DynamicFunc__append2_from_last_output2_as_raw(DYNA_OMP_PARAMS)
 {
-	unsigned i;
+	int i, til;
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
 #ifdef MMX_COEF
 	if (dynamic_use_sse==1) {
-		unsigned index, idx;
-		for (index = 0; index < m_count; ++index)
+		unsigned index=i, idx;
+		for (; index < til; ++index)
 		{
 			unsigned ip;
 			idx = ( ((unsigned)index)>>(MMX_COEF>>1));
@@ -6200,7 +6887,7 @@ void DynamicFunc__append2_from_last_output2_as_raw()
 		return;
 	}
 #endif
-	for (i = 0; i < m_count; ++i)
+	for (; i < til; ++i)
 	{
 		unsigned j;
 		unsigned char *cp, *cpi;
@@ -6218,13 +6905,20 @@ void DynamicFunc__append2_from_last_output2_as_raw()
 		total_len2_X86[i] += 16;
 	}
 }
-void DynamicFunc__append_from_last_output1_as_raw()
+void DynamicFunc__append_from_last_output1_as_raw(DYNA_OMP_PARAMS)
 {
-	unsigned i;
+	int i, til;
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
 #ifdef MMX_COEF
 	if (dynamic_use_sse==1) {
 		unsigned index, idx;
-		for (index = 0; index < m_count; ++index)
+		for (index = i; index < til; ++index)
 		{
 			unsigned ip;
 			idx = ( ((unsigned)index)>>(MMX_COEF>>1));
@@ -6253,7 +6947,7 @@ void DynamicFunc__append_from_last_output1_as_raw()
 		return;
 	}
 #endif
-	for (i = 0; i < m_count; ++i)
+	for (; i < til; ++i)
 	{
 		unsigned j;
 		unsigned char *cp, *cpi;
@@ -6271,13 +6965,20 @@ void DynamicFunc__append_from_last_output1_as_raw()
 		total_len_X86[i] += 16;
 	}
 }
-void DynamicFunc__append2_from_last_output1_as_raw()
+void DynamicFunc__append2_from_last_output1_as_raw(DYNA_OMP_PARAMS)
 {
-	unsigned i;
+	int i, til;
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
 #ifdef MMX_COEF
 	if (dynamic_use_sse==1) {
 		unsigned index, idx;
-		for (index = 0; index < m_count; ++index)
+		for (index = i; index < til; ++index)
 		{
 			unsigned ip;
 			idx = ( ((unsigned)index)>>(MMX_COEF>>1));
@@ -6306,7 +7007,7 @@ void DynamicFunc__append2_from_last_output1_as_raw()
 		return;
 	}
 #endif
-	for (i = 0; i < m_count; ++i)
+	for (; i < til; ++i)
 	{
 		unsigned j;
 		unsigned char *cp, *cpi;
@@ -6329,186 +7030,190 @@ void DynamicFunc__append2_from_last_output1_as_raw()
  * DYNAMIC primitive helper function
  * Append salt #2 into input 1
  *************************************************************/
-void DynamicFunc__append_2nd_salt()
+void DynamicFunc__append_2nd_salt(DYNA_OMP_PARAMS)
 {
-	__append_string(cursalt2, saltlen2);
+	__append_string(DYNA_OMP_PARAMSdm cursalt2, saltlen2);
 }
 /**************************************************************
  * DYNAMIC primitive helper function
  * Append salt #2 into input 2
  *************************************************************/
-void DynamicFunc__append_2nd_salt2()
+void DynamicFunc__append_2nd_salt2(DYNA_OMP_PARAMS)
 {
-	__append2_string(cursalt2, saltlen2);
+	__append2_string(DYNA_OMP_PARAMSdm cursalt2, saltlen2);
 }
 
 /**************************************************************
  * DYNAMIC primitive helper function
  * Append UserID into input 1
  *************************************************************/
-void DynamicFunc__append_userid()
+void DynamicFunc__append_userid(DYNA_OMP_PARAMS)
 {
-	__append_string(username, usernamelen);
+	__append_string(DYNA_OMP_PARAMSdm username, usernamelen);
 }
 /**************************************************************
  * DYNAMIC primitive helper function
  * Append UserID into input 2
  *************************************************************/
-void DynamicFunc__append_userid2()
+void DynamicFunc__append_userid2(DYNA_OMP_PARAMS)
 {
-	__append2_string(username, usernamelen);
+	__append2_string(DYNA_OMP_PARAMSdm username, usernamelen);
 }
 
-void DynamicFunc__append_input1_from_CONST1()
+void DynamicFunc__append_input1_from_CONST1(DYNA_OMP_PARAMS)
 {
-	__append_string(curdat.Consts[0], curdat.ConstsLen[0]);
+	__append_string(DYNA_OMP_PARAMSdm curdat.Consts[0], curdat.ConstsLen[0]);
 }
-void DynamicFunc__append_input1_from_CONST2()
+void DynamicFunc__append_input1_from_CONST2(DYNA_OMP_PARAMS)
 {
-	__append_string(curdat.Consts[1], curdat.ConstsLen[1]);
+	__append_string(DYNA_OMP_PARAMSdm curdat.Consts[1], curdat.ConstsLen[1]);
 }
-void DynamicFunc__append_input1_from_CONST3()
+void DynamicFunc__append_input1_from_CONST3(DYNA_OMP_PARAMS)
 {
-	__append_string(curdat.Consts[2], curdat.ConstsLen[2]);
+	__append_string(DYNA_OMP_PARAMSdm curdat.Consts[2], curdat.ConstsLen[2]);
 }
-void DynamicFunc__append_input1_from_CONST4()
+void DynamicFunc__append_input1_from_CONST4(DYNA_OMP_PARAMS)
 {
-	__append_string(curdat.Consts[3], curdat.ConstsLen[3]);
+	__append_string(DYNA_OMP_PARAMSdm curdat.Consts[3], curdat.ConstsLen[3]);
 }
-void DynamicFunc__append_input1_from_CONST5()
+void DynamicFunc__append_input1_from_CONST5(DYNA_OMP_PARAMS)
 {
-	__append_string(curdat.Consts[4], curdat.ConstsLen[4]);
+	__append_string(DYNA_OMP_PARAMSdm curdat.Consts[4], curdat.ConstsLen[4]);
 }
-void DynamicFunc__append_input1_from_CONST6()
+void DynamicFunc__append_input1_from_CONST6(DYNA_OMP_PARAMS)
 {
-	__append_string(curdat.Consts[5], curdat.ConstsLen[5]);
+	__append_string(DYNA_OMP_PARAMSdm curdat.Consts[5], curdat.ConstsLen[5]);
 }
-void DynamicFunc__append_input1_from_CONST7()
+void DynamicFunc__append_input1_from_CONST7(DYNA_OMP_PARAMS)
 {
-	__append_string(curdat.Consts[6], curdat.ConstsLen[6]);
+	__append_string(DYNA_OMP_PARAMSdm curdat.Consts[6], curdat.ConstsLen[6]);
 }
-void DynamicFunc__append_input1_from_CONST8()
+void DynamicFunc__append_input1_from_CONST8(DYNA_OMP_PARAMS)
 {
-	__append_string(curdat.Consts[7], curdat.ConstsLen[7]);
-}
-
-void DynamicFunc__append_input2_from_CONST1()
-{
-	__append2_string(curdat.Consts[0], curdat.ConstsLen[0]);
-}
-void DynamicFunc__append_input2_from_CONST2()
-{
-	__append2_string(curdat.Consts[1], curdat.ConstsLen[1]);
-}
-void DynamicFunc__append_input2_from_CONST3()
-{
-	__append2_string(curdat.Consts[2], curdat.ConstsLen[2]);
-}
-void DynamicFunc__append_input2_from_CONST4()
-{
-	__append2_string(curdat.Consts[3], curdat.ConstsLen[3]);
-}
-void DynamicFunc__append_input2_from_CONST5()
-{
-	__append2_string(curdat.Consts[4], curdat.ConstsLen[4]);
-}
-void DynamicFunc__append_input2_from_CONST6()
-{
-	__append2_string(curdat.Consts[5], curdat.ConstsLen[5]);
-}
-void DynamicFunc__append_input2_from_CONST7()
-{
-	__append2_string(curdat.Consts[6], curdat.ConstsLen[6]);
-}
-void DynamicFunc__append_input2_from_CONST8()
-{
-	__append2_string(curdat.Consts[7], curdat.ConstsLen[7]);
+	__append_string(DYNA_OMP_PARAMSdm curdat.Consts[7], curdat.ConstsLen[7]);
 }
 
-void DynamicFunc__append_fld0()
+void DynamicFunc__append_input2_from_CONST1(DYNA_OMP_PARAMS)
 {
-	__append_string(flds[0], fld_lens[0]);
+	__append2_string(DYNA_OMP_PARAMSdm curdat.Consts[0], curdat.ConstsLen[0]);
 }
-void DynamicFunc__append_fld1()
+void DynamicFunc__append_input2_from_CONST2(DYNA_OMP_PARAMS)
 {
-	__append_string(flds[1], fld_lens[1]);
+	__append2_string(DYNA_OMP_PARAMSdm curdat.Consts[1], curdat.ConstsLen[1]);
 }
-void DynamicFunc__append_fld2()
+void DynamicFunc__append_input2_from_CONST3(DYNA_OMP_PARAMS)
 {
-	__append_string(flds[2], fld_lens[2]);
+	__append2_string(DYNA_OMP_PARAMSdm curdat.Consts[2], curdat.ConstsLen[2]);
 }
-void DynamicFunc__append_fld3()
+void DynamicFunc__append_input2_from_CONST4(DYNA_OMP_PARAMS)
 {
-	__append_string(flds[3], fld_lens[3]);
+	__append2_string(DYNA_OMP_PARAMSdm curdat.Consts[3], curdat.ConstsLen[3]);
 }
-void DynamicFunc__append_fld4()
+void DynamicFunc__append_input2_from_CONST5(DYNA_OMP_PARAMS)
 {
-	__append_string(flds[4], fld_lens[4]);
+	__append2_string(DYNA_OMP_PARAMSdm curdat.Consts[4], curdat.ConstsLen[4]);
 }
-void DynamicFunc__append_fld5()
+void DynamicFunc__append_input2_from_CONST6(DYNA_OMP_PARAMS)
 {
-	__append_string(flds[5], fld_lens[5]);
+	__append2_string(DYNA_OMP_PARAMSdm curdat.Consts[5], curdat.ConstsLen[5]);
 }
-void DynamicFunc__append_fld6()
+void DynamicFunc__append_input2_from_CONST7(DYNA_OMP_PARAMS)
 {
-	__append_string(flds[6], fld_lens[6]);
+	__append2_string(DYNA_OMP_PARAMSdm curdat.Consts[6], curdat.ConstsLen[6]);
 }
-void DynamicFunc__append_fld7()
+void DynamicFunc__append_input2_from_CONST8(DYNA_OMP_PARAMS)
 {
-	__append_string(flds[7], fld_lens[7]);
-}
-void DynamicFunc__append_fld8()
-{
-	__append_string(flds[8], fld_lens[8]);
-}
-void DynamicFunc__append_fld9()
-{
-	__append_string(flds[9], fld_lens[9]);
+	__append2_string(DYNA_OMP_PARAMSdm curdat.Consts[7], curdat.ConstsLen[7]);
 }
 
-void DynamicFunc__append2_fld0()
+void DynamicFunc__append_fld0(DYNA_OMP_PARAMS)
 {
-	__append2_string(flds[0], fld_lens[0]);
+	__append_string(DYNA_OMP_PARAMSdm flds[0], fld_lens[0]);
 }
-void DynamicFunc__append2_fld1()
+void DynamicFunc__append_fld1(DYNA_OMP_PARAMS)
 {
-	__append2_string(flds[1], fld_lens[1]);
+	__append_string(DYNA_OMP_PARAMSdm flds[1], fld_lens[1]);
 }
-void DynamicFunc__append2_fld2()
+void DynamicFunc__append_fld2(DYNA_OMP_PARAMS)
 {
-	__append2_string(flds[2], fld_lens[2]);
+	__append_string(DYNA_OMP_PARAMSdm flds[2], fld_lens[2]);
 }
-void DynamicFunc__append2_fld3()
+void DynamicFunc__append_fld3(DYNA_OMP_PARAMS)
 {
-	__append2_string(flds[3], fld_lens[3]);
+	__append_string(DYNA_OMP_PARAMSdm flds[3], fld_lens[3]);
 }
-void DynamicFunc__append2_fld4()
+void DynamicFunc__append_fld4(DYNA_OMP_PARAMS)
 {
-	__append2_string(flds[4], fld_lens[4]);
+	__append_string(DYNA_OMP_PARAMSdm flds[4], fld_lens[4]);
 }
-void DynamicFunc__append2_fld5()
+void DynamicFunc__append_fld5(DYNA_OMP_PARAMS)
 {
-	__append2_string(flds[5], fld_lens[5]);
+	__append_string(DYNA_OMP_PARAMSdm flds[5], fld_lens[5]);
 }
-void DynamicFunc__append2_fld6()
+void DynamicFunc__append_fld6(DYNA_OMP_PARAMS)
 {
-	__append2_string(flds[6], fld_lens[6]);
+	__append_string(DYNA_OMP_PARAMSdm flds[6], fld_lens[6]);
 }
-void DynamicFunc__append2_fld7()
+void DynamicFunc__append_fld7(DYNA_OMP_PARAMS)
 {
-	__append2_string(flds[7], fld_lens[7]);
+	__append_string(DYNA_OMP_PARAMSdm flds[7], fld_lens[7]);
 }
-void DynamicFunc__append2_fld8()
+void DynamicFunc__append_fld8(DYNA_OMP_PARAMS)
 {
-	__append2_string(flds[8], fld_lens[8]);
+	__append_string(DYNA_OMP_PARAMSdm flds[8], fld_lens[8]);
 }
-void DynamicFunc__append2_fld9()
+void DynamicFunc__append_fld9(DYNA_OMP_PARAMS)
 {
-	__append2_string(flds[9], fld_lens[9]);
+	__append_string(DYNA_OMP_PARAMSdm flds[9], fld_lens[9]);
 }
 
+void DynamicFunc__append2_fld0(DYNA_OMP_PARAMS)
+{
+	__append2_string(DYNA_OMP_PARAMSdm flds[0], fld_lens[0]);
+}
+void DynamicFunc__append2_fld1(DYNA_OMP_PARAMS)
+{
+	__append2_string(DYNA_OMP_PARAMSdm flds[1], fld_lens[1]);
+}
+void DynamicFunc__append2_fld2(DYNA_OMP_PARAMS)
+{
+	__append2_string(DYNA_OMP_PARAMSdm flds[2], fld_lens[2]);
+}
+void DynamicFunc__append2_fld3(DYNA_OMP_PARAMS)
+{
+	__append2_string(DYNA_OMP_PARAMSdm flds[3], fld_lens[3]);
+}
+void DynamicFunc__append2_fld4(DYNA_OMP_PARAMS)
+{
+	__append2_string(DYNA_OMP_PARAMSdm flds[4], fld_lens[4]);
+}
+void DynamicFunc__append2_fld5(DYNA_OMP_PARAMS)
+{
+	__append2_string(DYNA_OMP_PARAMSdm flds[5], fld_lens[5]);
+}
+void DynamicFunc__append2_fld6(DYNA_OMP_PARAMS)
+{
+	__append2_string(DYNA_OMP_PARAMSdm flds[6], fld_lens[6]);
+}
+void DynamicFunc__append2_fld7(DYNA_OMP_PARAMS)
+{
+	__append2_string(DYNA_OMP_PARAMSdm flds[7], fld_lens[7]);
+}
+void DynamicFunc__append2_fld8(DYNA_OMP_PARAMS)
+{
+	__append2_string(DYNA_OMP_PARAMSdm flds[8], fld_lens[8]);
+}
+void DynamicFunc__append2_fld9(DYNA_OMP_PARAMS)
+{
+	__append2_string(DYNA_OMP_PARAMSdm flds[9], fld_lens[9]);
+}
 
-void DynamicFunc__SSEtoX86_switch_input1() {
+// NOTE this function is NOT valid at all in OMP mode, but we DO have to use DYNA_OMP_PARAMS parameter to get things to build correctly.
+void DynamicFunc__SSEtoX86_switch_input1(DYNA_OMP_PARAMS) {
+#ifdef _OPENMP
+	fprintf(stderr, "DynamicFunc__SSEtoX86_switch_input1() is NOT valid in OMP mode, this format will NOT work\n");
+	exit(1);
+#else
 #ifdef MMX_COEF
 	int j, k, idx, max;
 	if (dynamic_use_sse == 0)
@@ -6570,8 +7275,14 @@ void DynamicFunc__SSEtoX86_switch_input1() {
 #endif
 	}
 #endif
+#endif
 }
-void DynamicFunc__SSEtoX86_switch_input2() {
+// NOTE this function is NOT valid at all in OMP mode, but we DO have to use DYNA_OMP_PARAMS parameter to get things to build correctly.
+void DynamicFunc__SSEtoX86_switch_input2(DYNA_OMP_PARAMS) {
+#ifdef _OPENMP
+	fprintf(stderr, "DynamicFunc__SSEtoX86_switch_input2() is NOT valid in OMP mode, this format will NOT work\n");
+	exit(1);
+#else
 #ifdef MMX_COEF
 	int j, k, idx, max;
 
@@ -6635,8 +7346,14 @@ void DynamicFunc__SSEtoX86_switch_input2() {
 #endif
 	}
 #endif
+#endif
 }
-void DynamicFunc__SSEtoX86_switch_output1() {
+// NOTE this function is NOT valid at all in OMP mode, but we DO have to use DYNA_OMP_PARAMS parameter to get things to build correctly.
+void DynamicFunc__SSEtoX86_switch_output1(DYNA_OMP_PARAMS) {
+#ifdef _OPENMP
+	fprintf(stderr, "DynamicFunc__SSEtoX86_switch_output1() is NOT valid in OMP mode, this format will NOT work\n");
+	exit(1);
+#else
 #ifdef MMX_COEF
 	int j, k, idx;
 
@@ -6672,8 +7389,14 @@ void DynamicFunc__SSEtoX86_switch_output1() {
 		}
 	}
 #endif
+#endif
 }
-void DynamicFunc__SSEtoX86_switch_output2() {
+// NOTE this function is NOT valid at all in OMP mode, but we DO have to use DYNA_OMP_PARAMS parameter to get things to build correctly.
+void DynamicFunc__SSEtoX86_switch_output2(DYNA_OMP_PARAMS) {
+#ifdef _OPENMP
+	fprintf(stderr, "DynamicFunc__SSEtoX86_switch_output2() is NOT valid in OMP mode, this format will NOT work\n");
+	exit(1);
+#else
 #ifdef MMX_COEF
 	int j, k, idx;
 
@@ -6709,8 +7432,14 @@ void DynamicFunc__SSEtoX86_switch_output2() {
 		}
 	}
 #endif
+#endif
 }
-void DynamicFunc__X86toSSE_switch_input1() {
+// NOTE this function is NOT valid at all in OMP mode, but we DO have to use DYNA_OMP_PARAMS parameter to get things to build correctly.
+void DynamicFunc__X86toSSE_switch_input1(DYNA_OMP_PARAMS) {
+#ifdef _OPENMP
+	fprintf(stderr, "DynamicFunc__X86toSSE_switch_input1() is NOT valid in OMP mode, this format will NOT work\n");
+	exit(1);
+#else
 #ifdef MMX_COEF
 	unsigned j, idx, idx_mod;
 	if (dynamic_use_sse == 0)
@@ -6729,8 +7458,14 @@ void DynamicFunc__X86toSSE_switch_input1() {
 		__SSE_append_string_to_input(input_buf[idx].c,idx_mod,input_buf_X86[j>>MD5_X2].x1.B,total_len_X86[j],0,1);
 	}
 #endif
+#endif
 }
-void DynamicFunc__X86toSSE_switch_input2() {
+// NOTE this function is NOT valid at all in OMP mode, but we DO have to use DYNA_OMP_PARAMS parameter to get things to build correctly.
+void DynamicFunc__X86toSSE_switch_input2(DYNA_OMP_PARAMS) {
+#ifdef _OPENMP
+	fprintf(stderr, "DynamicFunc__X86toSSE_switch_input2() is NOT valid in OMP mode, this format will NOT work\n");
+	exit(1);
+#else
 #ifdef MMX_COEF
 	unsigned j, idx, idx_mod;
 	if (dynamic_use_sse == 0)
@@ -6749,8 +7484,14 @@ void DynamicFunc__X86toSSE_switch_input2() {
 		__SSE_append_string_to_input(input_buf2[idx].c,idx_mod,input_buf2_X86[j>>MD5_X2].x1.B,total_len2_X86[j],0,1);
 	}
 #endif
+#endif
 }
-void DynamicFunc__X86toSSE_switch_output1() {
+// NOTE this function is NOT valid at all in OMP mode, but we DO have to use DYNA_OMP_PARAMS parameter to get things to build correctly.
+void DynamicFunc__X86toSSE_switch_output1(DYNA_OMP_PARAMS) {
+#ifdef _OPENMP
+	fprintf(stderr, "DynamicFunc__X86toSSE_switch_output1() is NOT valid in OMP mode, this format will NOT work\n");
+	exit(1);
+#else
 #ifdef MMX_COEF
 	int j, k, idx;
 
@@ -6786,8 +7527,14 @@ void DynamicFunc__X86toSSE_switch_output1() {
 		}
 	}
 #endif
+#endif
 }
-void DynamicFunc__X86toSSE_switch_output2() {
+// NOTE this function is NOT valid at all in OMP mode, but we DO have to use DYNA_OMP_PARAMS parameter to get things to build correctly.
+void DynamicFunc__X86toSSE_switch_output2(DYNA_OMP_PARAMS) {
+#ifdef _OPENMP
+	fprintf(stderr, "DynamicFunc__X86toSSE_switch_output2() is NOT valid in OMP mode, this format will NOT work\n");
+	exit(1);
+#else
 #ifdef MMX_COEF
 	int j, k, idx;
 
@@ -6823,93 +7570,111 @@ void DynamicFunc__X86toSSE_switch_output2() {
 		}
 	}
 #endif
+#endif
 }
 // This function, simply 'switches' back to SSE  It does NOT copy any data from X86 to SSE
-void DynamicFunc__ToSSE() {
+void DynamicFunc__ToSSE(DYNA_OMP_PARAMS) {
+#ifdef _OPENMP
+	fprintf(stderr, "DynamicFunc__ToSSE() is NOT valid in OMP mode, this format will NOT work\n");
+	exit(1);
+#endif
 	if (dynamic_use_sse == 0)
 		return;
 	dynamic_use_sse = 1;
 }
 // This function, simply 'switches' to X86  It does NOT copy any data from SSE to X86
-void DynamicFunc__ToX86() {
+void DynamicFunc__ToX86(DYNA_OMP_PARAMS) {
+#ifdef _OPENMP
+	fprintf(stderr, "DynamicFunc__ToX86() is NOT valid in OMP mode, this format will NOT work\n");
+	exit(1);
+#endif
 	if (dynamic_use_sse == 0)
 		return;
 	dynamic_use_sse = 2;
 }
 
-void DynamicFunc__base16_convert_locase() {
+void DynamicFunc__base16_convert_locase(DYNA_OMP_PARAMS) {
+#ifdef _OPENMP
+	fprintf(stderr, "DynamicFunc__base16_convert_locaseDYNA_OMP_PARAMS() is NOT valid in OMP mode, this format will NOT work\n");
+	exit(1);
+#endif
 	dynamic_itoa16 = itoa16;
 	itoa16_w2=itoa16_w2_l;
 }
-void DynamicFunc__base16_convert_upcase() {
+void DynamicFunc__base16_convert_upcase(DYNA_OMP_PARAMS) {
+#ifdef _OPENMP
+	fprintf(stderr, "DynamicFunc__base16_convert_upcase() is NOT valid in OMP mode, this format will NOT work\n");
+	exit(1);
+#endif
 	dynamic_itoa16 = itoa16u;
 	itoa16_w2=itoa16_w2_u;
 }
 
 /* These are the 'older' singular functions. These SHOULD be viewed as depricated.  They still work, but should not be used */
 /* NOTE, any new larger hash crypts, will NOT have this *_base16() functions.                                               */
-void DynamicFunc__SHA1_crypt_input1_append_input2_base16()		{ DynamicFunc__LargeHash_OUTMode_base16(); DynamicFunc__SHA1_crypt_input1_append_input2(); }
-void DynamicFunc__SHA1_crypt_input2_append_input1_base16()		{ DynamicFunc__LargeHash_OUTMode_base16(); DynamicFunc__SHA1_crypt_input2_append_input1(); }
-void DynamicFunc__SHA1_crypt_input1_overwrite_input1_base16()	{ DynamicFunc__LargeHash_OUTMode_base16(); DynamicFunc__SHA1_crypt_input1_overwrite_input1(); }
-void DynamicFunc__SHA1_crypt_input2_overwrite_input2_base16()	{ DynamicFunc__LargeHash_OUTMode_base16(); DynamicFunc__SHA1_crypt_input2_overwrite_input2(); }
-void DynamicFunc__SHA1_crypt_input1_overwrite_input2_base16()	{ DynamicFunc__LargeHash_OUTMode_base16(); DynamicFunc__SHA1_crypt_input1_overwrite_input2(); }
-void DynamicFunc__SHA1_crypt_input2_overwrite_input1_base16()	{ DynamicFunc__LargeHash_OUTMode_base16(); DynamicFunc__SHA1_crypt_input2_overwrite_input1(); }
-void DynamicFunc__SHA224_crypt_input1_append_input2_base16()	{ DynamicFunc__LargeHash_OUTMode_base16(); DynamicFunc__SHA224_crypt_input1_append_input2(); }
-void DynamicFunc__SHA224_crypt_input2_append_input1_base16()	{ DynamicFunc__LargeHash_OUTMode_base16(); DynamicFunc__SHA224_crypt_input2_append_input1(); }
-void DynamicFunc__SHA224_crypt_input1_overwrite_input1_base16()	{ DynamicFunc__LargeHash_OUTMode_base16(); DynamicFunc__SHA224_crypt_input1_overwrite_input1(); }
-void DynamicFunc__SHA224_crypt_input2_overwrite_input2_base16()	{ DynamicFunc__LargeHash_OUTMode_base16(); DynamicFunc__SHA224_crypt_input2_overwrite_input2(); }
-void DynamicFunc__SHA224_crypt_input1_overwrite_input2_base16()	{ DynamicFunc__LargeHash_OUTMode_base16(); DynamicFunc__SHA224_crypt_input1_overwrite_input2(); }
-void DynamicFunc__SHA224_crypt_input2_overwrite_input1_base16()	{ DynamicFunc__LargeHash_OUTMode_base16(); DynamicFunc__SHA224_crypt_input2_overwrite_input1(); }
-void DynamicFunc__SHA256_crypt_input1_append_input2_base16()	{ DynamicFunc__LargeHash_OUTMode_base16(); DynamicFunc__SHA256_crypt_input1_append_input2(); }
-void DynamicFunc__SHA256_crypt_input2_append_input1_base16()	{ DynamicFunc__LargeHash_OUTMode_base16(); DynamicFunc__SHA256_crypt_input2_append_input1(); }
-void DynamicFunc__SHA256_crypt_input1_overwrite_input1_base16()	{ DynamicFunc__LargeHash_OUTMode_base16(); DynamicFunc__SHA256_crypt_input1_overwrite_input1(); }
-void DynamicFunc__SHA256_crypt_input2_overwrite_input2_base16()	{ DynamicFunc__LargeHash_OUTMode_base16(); DynamicFunc__SHA256_crypt_input2_overwrite_input2(); }
-void DynamicFunc__SHA256_crypt_input1_overwrite_input2_base16()	{ DynamicFunc__LargeHash_OUTMode_base16(); DynamicFunc__SHA256_crypt_input1_overwrite_input2(); }
-void DynamicFunc__SHA256_crypt_input2_overwrite_input1_base16()	{ DynamicFunc__LargeHash_OUTMode_base16(); DynamicFunc__SHA256_crypt_input2_overwrite_input1(); }
-void DynamicFunc__SHA384_crypt_input1_append_input2_base16()	{ DynamicFunc__LargeHash_OUTMode_base16(); DynamicFunc__SHA384_crypt_input1_append_input2(); }
-void DynamicFunc__SHA384_crypt_input2_append_input1_base16()	{ DynamicFunc__LargeHash_OUTMode_base16(); DynamicFunc__SHA384_crypt_input2_append_input1(); }
-void DynamicFunc__SHA384_crypt_input1_overwrite_input1_base16()	{ DynamicFunc__LargeHash_OUTMode_base16(); DynamicFunc__SHA384_crypt_input1_overwrite_input1(); }
-void DynamicFunc__SHA384_crypt_input2_overwrite_input2_base16()	{ DynamicFunc__LargeHash_OUTMode_base16(); DynamicFunc__SHA384_crypt_input2_overwrite_input2(); }
-void DynamicFunc__SHA384_crypt_input1_overwrite_input2_base16()	{ DynamicFunc__LargeHash_OUTMode_base16(); DynamicFunc__SHA384_crypt_input1_overwrite_input2(); }
-void DynamicFunc__SHA384_crypt_input2_overwrite_input1_base16()	{ DynamicFunc__LargeHash_OUTMode_base16(); DynamicFunc__SHA384_crypt_input2_overwrite_input1(); }
-void DynamicFunc__SHA512_crypt_input1_append_input2_base16()	{ DynamicFunc__LargeHash_OUTMode_base16(); DynamicFunc__SHA512_crypt_input1_append_input2(); }
-void DynamicFunc__SHA512_crypt_input2_append_input1_base16()	{ DynamicFunc__LargeHash_OUTMode_base16(); DynamicFunc__SHA512_crypt_input2_append_input1(); }
-void DynamicFunc__SHA512_crypt_input1_overwrite_input1_base16()	{ DynamicFunc__LargeHash_OUTMode_base16(); DynamicFunc__SHA512_crypt_input1_overwrite_input1(); }
-void DynamicFunc__SHA512_crypt_input2_overwrite_input2_base16()	{ DynamicFunc__LargeHash_OUTMode_base16(); DynamicFunc__SHA512_crypt_input2_overwrite_input2(); }
-void DynamicFunc__SHA512_crypt_input1_overwrite_input2_base16()	{ DynamicFunc__LargeHash_OUTMode_base16(); DynamicFunc__SHA512_crypt_input1_overwrite_input2(); }
-void DynamicFunc__SHA512_crypt_input2_overwrite_input1_base16()	{ DynamicFunc__LargeHash_OUTMode_base16(); DynamicFunc__SHA512_crypt_input2_overwrite_input1(); }
-void DynamicFunc__GOST_crypt_input1_append_input2_base16()		{ DynamicFunc__LargeHash_OUTMode_base16(); DynamicFunc__GOST_crypt_input1_append_input2(); }
-void DynamicFunc__GOST_crypt_input2_append_input1_base16()		{ DynamicFunc__LargeHash_OUTMode_base16(); DynamicFunc__GOST_crypt_input2_append_input1(); }
-void DynamicFunc__GOST_crypt_input1_overwrite_input1_base16()	{ DynamicFunc__LargeHash_OUTMode_base16(); DynamicFunc__GOST_crypt_input1_overwrite_input1(); }
-void DynamicFunc__GOST_crypt_input2_overwrite_input2_base16()	{ DynamicFunc__LargeHash_OUTMode_base16(); DynamicFunc__GOST_crypt_input2_overwrite_input2(); }
-void DynamicFunc__GOST_crypt_input1_overwrite_input2_base16()	{ DynamicFunc__LargeHash_OUTMode_base16(); DynamicFunc__GOST_crypt_input1_overwrite_input2(); }
-void DynamicFunc__GOST_crypt_input2_overwrite_input1_base16()	{ DynamicFunc__LargeHash_OUTMode_base16(); DynamicFunc__GOST_crypt_input2_overwrite_input1(); }
+void DynamicFunc__SHA1_crypt_input1_append_input2_base16(DYNA_OMP_PARAMS)		{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__SHA1_crypt_input1_append_input2(DYNA_OMP_PARAMSd); }
+void DynamicFunc__SHA1_crypt_input2_append_input1_base16(DYNA_OMP_PARAMS)		{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__SHA1_crypt_input2_append_input1(DYNA_OMP_PARAMSd); }
+void DynamicFunc__SHA1_crypt_input1_overwrite_input1_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__SHA1_crypt_input1_overwrite_input1(DYNA_OMP_PARAMSd); }
+void DynamicFunc__SHA1_crypt_input2_overwrite_input2_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__SHA1_crypt_input2_overwrite_input2(DYNA_OMP_PARAMSd); }
+void DynamicFunc__SHA1_crypt_input1_overwrite_input2_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__SHA1_crypt_input1_overwrite_input2(DYNA_OMP_PARAMSd); }
+void DynamicFunc__SHA1_crypt_input2_overwrite_input1_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__SHA1_crypt_input2_overwrite_input1(DYNA_OMP_PARAMSd); }
+void DynamicFunc__SHA224_crypt_input1_append_input2_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__SHA224_crypt_input1_append_input2(DYNA_OMP_PARAMSd); }
+void DynamicFunc__SHA224_crypt_input2_append_input1_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__SHA224_crypt_input2_append_input1(DYNA_OMP_PARAMSd); }
+void DynamicFunc__SHA224_crypt_input1_overwrite_input1_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__SHA224_crypt_input1_overwrite_input1(DYNA_OMP_PARAMSd); }
+void DynamicFunc__SHA224_crypt_input2_overwrite_input2_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__SHA224_crypt_input2_overwrite_input2(DYNA_OMP_PARAMSd); }
+void DynamicFunc__SHA224_crypt_input1_overwrite_input2_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__SHA224_crypt_input1_overwrite_input2(DYNA_OMP_PARAMSd); }
+void DynamicFunc__SHA224_crypt_input2_overwrite_input1_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__SHA224_crypt_input2_overwrite_input1(DYNA_OMP_PARAMSd); }
+void DynamicFunc__SHA256_crypt_input1_append_input2_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__SHA256_crypt_input1_append_input2(DYNA_OMP_PARAMSd); }
+void DynamicFunc__SHA256_crypt_input2_append_input1_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__SHA256_crypt_input2_append_input1(DYNA_OMP_PARAMSd); }
+void DynamicFunc__SHA256_crypt_input1_overwrite_input1_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__SHA256_crypt_input1_overwrite_input1(DYNA_OMP_PARAMSd); }
+void DynamicFunc__SHA256_crypt_input2_overwrite_input2_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__SHA256_crypt_input2_overwrite_input2(DYNA_OMP_PARAMSd); }
+void DynamicFunc__SHA256_crypt_input1_overwrite_input2_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__SHA256_crypt_input1_overwrite_input2(DYNA_OMP_PARAMSd); }
+void DynamicFunc__SHA256_crypt_input2_overwrite_input1_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__SHA256_crypt_input2_overwrite_input1(DYNA_OMP_PARAMSd); }
+void DynamicFunc__SHA384_crypt_input1_append_input2_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__SHA384_crypt_input1_append_input2(DYNA_OMP_PARAMSd); }
+void DynamicFunc__SHA384_crypt_input2_append_input1_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__SHA384_crypt_input2_append_input1(DYNA_OMP_PARAMSd); }
+void DynamicFunc__SHA384_crypt_input1_overwrite_input1_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__SHA384_crypt_input1_overwrite_input1(DYNA_OMP_PARAMSd); }
+void DynamicFunc__SHA384_crypt_input2_overwrite_input2_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__SHA384_crypt_input2_overwrite_input2(DYNA_OMP_PARAMSd); }
+void DynamicFunc__SHA384_crypt_input1_overwrite_input2_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__SHA384_crypt_input1_overwrite_input2(DYNA_OMP_PARAMSd); }
+void DynamicFunc__SHA384_crypt_input2_overwrite_input1_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__SHA384_crypt_input2_overwrite_input1(DYNA_OMP_PARAMSd); }
+void DynamicFunc__SHA512_crypt_input1_append_input2_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__SHA512_crypt_input1_append_input2(DYNA_OMP_PARAMSd); }
+void DynamicFunc__SHA512_crypt_input2_append_input1_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__SHA512_crypt_input2_append_input1(DYNA_OMP_PARAMSd); }
+void DynamicFunc__SHA512_crypt_input1_overwrite_input1_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__SHA512_crypt_input1_overwrite_input1(DYNA_OMP_PARAMSd); }
+void DynamicFunc__SHA512_crypt_input2_overwrite_input2_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__SHA512_crypt_input2_overwrite_input2(DYNA_OMP_PARAMSd); }
+void DynamicFunc__SHA512_crypt_input1_overwrite_input2_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__SHA512_crypt_input1_overwrite_input2(DYNA_OMP_PARAMSd); }
+void DynamicFunc__SHA512_crypt_input2_overwrite_input1_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__SHA512_crypt_input2_overwrite_input1(DYNA_OMP_PARAMSd); }
+void DynamicFunc__GOST_crypt_input1_append_input2_base16(DYNA_OMP_PARAMS)		{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__GOST_crypt_input1_append_input2(DYNA_OMP_PARAMSd); }
+void DynamicFunc__GOST_crypt_input2_append_input1_base16(DYNA_OMP_PARAMS)		{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__GOST_crypt_input2_append_input1(DYNA_OMP_PARAMSd); }
+void DynamicFunc__GOST_crypt_input1_overwrite_input1_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__GOST_crypt_input1_overwrite_input1(DYNA_OMP_PARAMSd); }
+void DynamicFunc__GOST_crypt_input2_overwrite_input2_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__GOST_crypt_input2_overwrite_input2(DYNA_OMP_PARAMSd); }
+void DynamicFunc__GOST_crypt_input1_overwrite_input2_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__GOST_crypt_input1_overwrite_input2(DYNA_OMP_PARAMSd); }
+void DynamicFunc__GOST_crypt_input2_overwrite_input1_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__GOST_crypt_input2_overwrite_input1(DYNA_OMP_PARAMSd); }
 #if OPENSSL_VERSION_NUMBER >= 0x10000000
-void DynamicFunc__WHIRLPOOL_crypt_input1_append_input2_base16()	{ DynamicFunc__LargeHash_OUTMode_base16(); DynamicFunc__WHIRLPOOL_crypt_input1_append_input2(); }
-void DynamicFunc__WHIRLPOOL_crypt_input2_append_input1_base16()	{ DynamicFunc__LargeHash_OUTMode_base16(); DynamicFunc__WHIRLPOOL_crypt_input2_append_input1(); }
-void DynamicFunc__WHIRLPOOL_crypt_input1_overwrite_input1_base16(){ DynamicFunc__LargeHash_OUTMode_base16(); DynamicFunc__WHIRLPOOL_crypt_input1_overwrite_input1(); }
-void DynamicFunc__WHIRLPOOL_crypt_input2_overwrite_input2_base16(){ DynamicFunc__LargeHash_OUTMode_base16(); DynamicFunc__WHIRLPOOL_crypt_input2_overwrite_input2(); }
-void DynamicFunc__WHIRLPOOL_crypt_input1_overwrite_input2_base16(){ DynamicFunc__LargeHash_OUTMode_base16(); DynamicFunc__WHIRLPOOL_crypt_input1_overwrite_input2(); }
-void DynamicFunc__WHIRLPOOL_crypt_input2_overwrite_input1_base16(){ DynamicFunc__LargeHash_OUTMode_base16(); DynamicFunc__WHIRLPOOL_crypt_input2_overwrite_input1(); }
+void DynamicFunc__WHIRLPOOL_crypt_input1_append_input2_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__WHIRLPOOL_crypt_input1_append_input2(DYNA_OMP_PARAMSd); }
+void DynamicFunc__WHIRLPOOL_crypt_input2_append_input1_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__WHIRLPOOL_crypt_input2_append_input1(DYNA_OMP_PARAMSd); }
+void DynamicFunc__WHIRLPOOL_crypt_input1_overwrite_input1_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__WHIRLPOOL_crypt_input1_overwrite_input1(DYNA_OMP_PARAMSd); }
+void DynamicFunc__WHIRLPOOL_crypt_input2_overwrite_input2_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__WHIRLPOOL_crypt_input2_overwrite_input2(DYNA_OMP_PARAMSd); }
+void DynamicFunc__WHIRLPOOL_crypt_input1_overwrite_input2_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__WHIRLPOOL_crypt_input1_overwrite_input2(DYNA_OMP_PARAMSd); }
+void DynamicFunc__WHIRLPOOL_crypt_input2_overwrite_input1_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__WHIRLPOOL_crypt_input2_overwrite_input1(DYNA_OMP_PARAMSd); }
 #endif
 
 /* These SIMPLE setter functions, change how the large hash output format is performed   */
 /* Once set, it stays that way, until set a different way.  By DEFAULT (i.e. it is reset */
 /* this way each time), when crypt_all is called, the large output is in eBase16 mode    */
-void DynamicFunc__LargeHash_OUTMode_base16() {
-	eLargeOut = eBase16;
+// These MIGHT have problems in _OPENMP builds!!
+void DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMS) {
+	eLargeOut_set(eBase16);
 }
-void DynamicFunc__LargeHash_OUTMode_base16u() {
-	eLargeOut = eBase16u;
+void DynamicFunc__LargeHash_OUTMode_base16u(DYNA_OMP_PARAMS) {
+	eLargeOut_set(eBase16u);
 }
-void DynamicFunc__LargeHash_OUTMode_base64() {
-	eLargeOut = eBase64;
+void DynamicFunc__LargeHash_OUTMode_base64(DYNA_OMP_PARAMS) {
+	eLargeOut_set(eBase64);
 }
-void DynamicFunc__LargeHash_OUTMode_base64_nte() {
-	eLargeOut = eBase64_nte;
+void DynamicFunc__LargeHash_OUTMode_base64_nte(DYNA_OMP_PARAMS) {
+	eLargeOut_set(eBase64_nte);
 }
-void DynamicFunc__LargeHash_OUTMode_raw() {
-	eLargeOut = eBaseRaw;
+void DynamicFunc__LargeHash_OUTMode_raw(DYNA_OMP_PARAMS) {
+	eLargeOut_set(eBaseRaw);
 }
 
 
@@ -7054,7 +7819,7 @@ void TEST_MIME_crap() {
 
 static inline int large_hash_output(unsigned char *cpi, unsigned char *cpo, int in_byte_cnt) {
 	unsigned char *cpo2=cpo;
-	switch(eLargeOut) {
+	switch(eLargeOut_get()) {
 		case eBase16:
 			cpo2 = hex_out_buf(cpi, cpo, in_byte_cnt);
 			break;
@@ -7078,7 +7843,7 @@ static inline int large_hash_output(unsigned char *cpi, unsigned char *cpo, int 
 }
 static inline int large_hash_output_no_null(unsigned char *cpi, unsigned char *cpo, int in_byte_cnt) {
 	unsigned char *cpo2=cpo;
-	switch(eLargeOut) {
+	switch(eLargeOut_get()) {
 		case eBase16:
 			cpo2 = hex_out_buf_no_null(cpi, cpo, in_byte_cnt);
 			break;
@@ -7109,7 +7874,8 @@ static inline int large_hash_output_no_null(unsigned char *cpi, unsigned char *c
  **************************************************************/
 
 #ifdef MMX_COEF
-void SHA1_SSE_Crypt(MD5_IN input[MAX_KEYS_PER_CRYPT_X86], unsigned int ilen[MAX_KEYS_PER_CRYPT_X86],
+// NOTE SSE SHA1 as implemented is NOT valid in _OPENMP build mode.  It is not valid, because it switches into and out of SSE/x86 modes.
+void SHA1_SSE_Crypt(DYNA_OMP_PARAMSm MD5_IN input[MAX_KEYS_PER_CRYPT_X86], unsigned int ilen[MAX_KEYS_PER_CRYPT_X86],
 					MD5_IN out[MAX_KEYS_PER_CRYPT_X86]  , unsigned int olen[MAX_KEYS_PER_CRYPT_X86], int append)
 {
 	unsigned i, j, tot=0, tot2=0, z, k;
@@ -7177,8 +7943,8 @@ void SHA1_SSE_Crypt(MD5_IN input[MAX_KEYS_PER_CRYPT_X86], unsigned int ilen[MAX_
 		}
 	}
 }
-
-void SHA1_SSE_Crypt_final(MD5_IN input[MAX_KEYS_PER_CRYPT_X86], unsigned int ilen[MAX_KEYS_PER_CRYPT_X86])
+// NOTE SSE SHA1 as implemented is NOT valid in _OPENMP build mode.  It is not valid, because it switches into and out of SSE/x86 modes.
+void SHA1_SSE_Crypt_final(DYNA_OMP_PARAMSm MD5_IN input[MAX_KEYS_PER_CRYPT_X86], unsigned int ilen[MAX_KEYS_PER_CRYPT_X86])
 {
 #if !SHA1_SSE_PARA
 	if (dynamic_use_sse==3)
@@ -7230,23 +7996,32 @@ void SHA1_SSE_Crypt_final(MD5_IN input[MAX_KEYS_PER_CRYPT_X86], unsigned int ile
 }
 #endif
 
-void DynamicFunc__SHA1_crypt_input1_append_input2()
+// These need to be 'fixed' for SSE _OPENMP builds
+void DynamicFunc__SHA1_crypt_input1_append_input2(DYNA_OMP_PARAMS)
 {
 	union xx { unsigned char u[20]; ARCH_WORD a[20/sizeof(ARCH_WORD)]; } u;
 	unsigned char *crypt_out=u.u, *cpo;
 	int switchback=dynamic_use_sse;
-	int i;
+	int i, til;
+	SHA_CTX sha_ctx;
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
 
 	if (dynamic_use_sse == 1) {
-		DynamicFunc__SSEtoX86_switch_input1();
-		DynamicFunc__SSEtoX86_switch_input2();
+		DynamicFunc__SSEtoX86_switch_input1(DYNA_OMP_PARAMSd);
+		DynamicFunc__SSEtoX86_switch_input2(DYNA_OMP_PARAMSd);
 	}
 #ifdef MMX_COEF
 	if (switchback)
-		SHA1_SSE_Crypt(input_buf_X86, total_len_X86, input_buf2_X86, total_len2_X86, 1);
+		SHA1_SSE_Crypt(DYNA_OMP_PARAMSdm input_buf_X86, total_len_X86, input_buf2_X86, total_len2_X86, 1);
 	else
 #endif
-	for (i = 0; i < m_count; ++i) {
+	for (; i < til; ++i) {
 		SHA1_Init(&sha_ctx);
 #if (MD5_X2)
 		if (i & 1) {
@@ -7263,26 +8038,35 @@ void DynamicFunc__SHA1_crypt_input1_append_input2()
 		total_len2_X86[i] += large_hash_output(crypt_out, cpo, 20);
 	}
 	if (switchback==1) {
-		DynamicFunc__X86toSSE_switch_input2();
+		DynamicFunc__X86toSSE_switch_input2(DYNA_OMP_PARAMSd);
 	}
 }
-void DynamicFunc__SHA1_crypt_input2_append_input1()
+// These need to be 'fixed' for SSE _OPENMP builds
+void DynamicFunc__SHA1_crypt_input2_append_input1(DYNA_OMP_PARAMS)
 {
 	union xx { unsigned char u[20]; ARCH_WORD a[20/sizeof(ARCH_WORD)]; } u;
 	unsigned char *crypt_out=u.u, *cpo;
 	int switchback=dynamic_use_sse;
-	int i;
+	int i, til;
+	SHA_CTX sha_ctx;
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
 
 	if (dynamic_use_sse == 1) {
-		DynamicFunc__SSEtoX86_switch_input1();
-		DynamicFunc__SSEtoX86_switch_input2();
+		DynamicFunc__SSEtoX86_switch_input1(DYNA_OMP_PARAMSd);
+		DynamicFunc__SSEtoX86_switch_input2(DYNA_OMP_PARAMSd);
 	}
 #ifdef MMX_COEF
 	if (switchback)
-		SHA1_SSE_Crypt(input_buf2_X86, total_len2_X86, input_buf_X86, total_len_X86, 1);
+		SHA1_SSE_Crypt(DYNA_OMP_PARAMSdm input_buf2_X86, total_len2_X86, input_buf_X86, total_len_X86, 1);
 	else
 #endif
-	for (i = 0; i < m_count; ++i) {
+	for (; i < til; ++i) {
 		SHA1_Init(&sha_ctx);
 #if (MD5_X2)
 		if (i & 1) {
@@ -7299,25 +8083,34 @@ void DynamicFunc__SHA1_crypt_input2_append_input1()
 		total_len_X86[i] += large_hash_output(crypt_out, cpo, 20);
 	}
 	if (switchback==1) {
-		DynamicFunc__X86toSSE_switch_input1();
+		DynamicFunc__X86toSSE_switch_input1(DYNA_OMP_PARAMSd);
 	}
 }
-void DynamicFunc__SHA1_crypt_input1_overwrite_input1()
+// These need to be 'fixed' for SSE _OPENMP builds
+void DynamicFunc__SHA1_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS)
 {
 	union xx { unsigned char u[20]; ARCH_WORD a[20/sizeof(ARCH_WORD)]; } u;
 	unsigned char *crypt_out=u.u, *cpo;
 	int switchback=dynamic_use_sse;
-	int i;
+	int i, til;
+	SHA_CTX sha_ctx;
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
 
 	if (dynamic_use_sse == 1) {
-		DynamicFunc__SSEtoX86_switch_input1();
+		DynamicFunc__SSEtoX86_switch_input1(DYNA_OMP_PARAMSd);
 	}
 #ifdef MMX_COEF
 	if (switchback)
-		SHA1_SSE_Crypt(input_buf_X86, total_len_X86, input_buf_X86, total_len_X86, 0);
+		SHA1_SSE_Crypt(DYNA_OMP_PARAMSdm input_buf_X86, total_len_X86, input_buf_X86, total_len_X86, 0);
 	else
 #endif
-	for (i = 0; i < m_count; ++i) {
+	for (; i < til; ++i) {
 		SHA1_Init(&sha_ctx);
 #if (MD5_X2)
 		if (i & 1) {
@@ -7334,25 +8127,34 @@ void DynamicFunc__SHA1_crypt_input1_overwrite_input1()
 		total_len_X86[i] += large_hash_output_no_null(crypt_out, cpo, 20);
 	}
 	if (switchback==1) {
-		DynamicFunc__X86toSSE_switch_input1();
+		DynamicFunc__X86toSSE_switch_input1(DYNA_OMP_PARAMSd);
 	}
 }
-void DynamicFunc__SHA1_crypt_input1_overwrite_input2()
+// These need to be 'fixed' for SSE _OPENMP builds
+void DynamicFunc__SHA1_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS)
 {
 	union xx { unsigned char u[20]; ARCH_WORD a[20/sizeof(ARCH_WORD)]; } u;
 	unsigned char *crypt_out=u.u, *cpo;
 	int switchback=dynamic_use_sse;
-	int i;
+	int i, til;
+	SHA_CTX sha_ctx;
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
 
 	if (dynamic_use_sse == 1) {
-		DynamicFunc__SSEtoX86_switch_input1();
+		DynamicFunc__SSEtoX86_switch_input1(DYNA_OMP_PARAMSd);
 	}
 #ifdef MMX_COEF
 	if (switchback)
-		SHA1_SSE_Crypt(input_buf_X86, total_len_X86, input_buf2_X86, total_len2_X86, 0);
+		SHA1_SSE_Crypt(DYNA_OMP_PARAMSdm input_buf_X86, total_len_X86, input_buf2_X86, total_len2_X86, 0);
 	else
 #endif
-	for (i = 0; i < m_count; ++i) {
+	for (; i < til; ++i) {
 		SHA1_Init(&sha_ctx);
 #if (MD5_X2)
 		if (i & 1) {
@@ -7369,25 +8171,34 @@ void DynamicFunc__SHA1_crypt_input1_overwrite_input2()
 		total_len2_X86[i] += large_hash_output_no_null(crypt_out, cpo, 20);
 	}
 	if (switchback==1) {
-		DynamicFunc__X86toSSE_switch_input2();
+		DynamicFunc__X86toSSE_switch_input2(DYNA_OMP_PARAMSd);
 	}
 }
-void DynamicFunc__SHA1_crypt_input2_overwrite_input1()
+// These need to be 'fixed' for SSE _OPENMP builds
+void DynamicFunc__SHA1_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS)
 {
 	union xx { unsigned char u[20]; ARCH_WORD a[20/sizeof(ARCH_WORD)]; } u;
 	unsigned char *crypt_out=u.u, *cpo;
 	int switchback=dynamic_use_sse;
-	int i;
+	int i, til;
+	SHA_CTX sha_ctx;
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
 
 	if (dynamic_use_sse == 1) {
-		DynamicFunc__SSEtoX86_switch_input2();
+		DynamicFunc__SSEtoX86_switch_input2(DYNA_OMP_PARAMSd);
 	}
 #ifdef MMX_COEF
 	if (switchback)
-		SHA1_SSE_Crypt(input_buf2_X86, total_len2_X86, input_buf_X86, total_len_X86, 0);
+		SHA1_SSE_Crypt(DYNA_OMP_PARAMSdm input_buf2_X86, total_len2_X86, input_buf_X86, total_len_X86, 0);
 	else
 #endif
-	for (i = 0; i < m_count; ++i) {
+	for (; i < til; ++i) {
 		SHA1_Init(&sha_ctx);
 #if (MD5_X2)
 		if (i & 1) {
@@ -7404,25 +8215,34 @@ void DynamicFunc__SHA1_crypt_input2_overwrite_input1()
 		total_len_X86[i] += large_hash_output_no_null(crypt_out, cpo, 20);
 	}
 	if (switchback==1) {
-		DynamicFunc__X86toSSE_switch_input1();
+		DynamicFunc__X86toSSE_switch_input1(DYNA_OMP_PARAMSd);
 	}
 }
-void DynamicFunc__SHA1_crypt_input2_overwrite_input2()
+// These need to be 'fixed' for SSE _OPENMP builds
+void DynamicFunc__SHA1_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS)
 {
 	union xx { unsigned char u[20]; ARCH_WORD a[20/sizeof(ARCH_WORD)]; } u;
 	unsigned char *crypt_out=u.u, *cpo;
 	int switchback=dynamic_use_sse;
-	int i;
+	int i, til;
+	SHA_CTX sha_ctx;
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
 
 	if (dynamic_use_sse == 1) {
-		DynamicFunc__SSEtoX86_switch_input2();
+		DynamicFunc__SSEtoX86_switch_input2(DYNA_OMP_PARAMSd);
 	}
 #ifdef MMX_COEF
 	if (switchback)
-		SHA1_SSE_Crypt(input_buf2_X86, total_len2_X86, input_buf2_X86, total_len2_X86, 0);
+		SHA1_SSE_Crypt(DYNA_OMP_PARAMSdm input_buf2_X86, total_len2_X86, input_buf2_X86, total_len2_X86, 0);
 	else
 #endif
-	for (i = 0; i < m_count; ++i) {
+	for (; i < til; ++i) {
 		SHA1_Init(&sha_ctx);
 #if (MD5_X2)
 		if (i & 1) {
@@ -7439,29 +8259,38 @@ void DynamicFunc__SHA1_crypt_input2_overwrite_input2()
 		total_len2_X86[i] += large_hash_output_no_null(crypt_out, cpo, 20);
 	}
 	if (switchback==1) {
-		DynamicFunc__X86toSSE_switch_input2();
+		DynamicFunc__X86toSSE_switch_input2(DYNA_OMP_PARAMSd);
 	}
 }
-void DynamicFunc__SHA1_crypt_input1_to_output1_FINAL()
+// These need to be 'fixed' for SSE _OPENMP builds
+void DynamicFunc__SHA1_crypt_input1_to_output1_FINAL(DYNA_OMP_PARAMS)
 {
 	union xx { unsigned char u[20]; ARCH_WORD a[20/sizeof(ARCH_WORD)]; } u;
 	unsigned char *crypt_out=u.u;
 	int switchback=dynamic_use_sse;
-	int i;
+	int i, til;
+	SHA_CTX sha_ctx;
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
 
 	if (switchback == 1) {
-		DynamicFunc__SSEtoX86_switch_input1();
+		DynamicFunc__SSEtoX86_switch_input1(DYNA_OMP_PARAMSd);
 	}
 #ifdef MMX_COEF
 	if (switchback) {
-		SHA1_SSE_Crypt_final(input_buf_X86, total_len_X86);
+		SHA1_SSE_Crypt_final(DYNA_OMP_PARAMSdm input_buf_X86, total_len_X86);
 		dynamic_use_sse=switchback;
 		if (dynamic_use_sse==2)
 			dynamic_use_sse=1;
 	}
 	else
 #endif
-	for (i = 0; i < m_count; ++i) {
+	for (; i < til; ++i) {
 		SHA1_Init(&sha_ctx);
 #if (MD5_X2)
 		if (i & 1)
@@ -7487,26 +8316,35 @@ void DynamicFunc__SHA1_crypt_input1_to_output1_FINAL()
 			memcpy(crypt_key_X86[i>>MD5_X2].x1.b, crypt_out, 16);
 	}
 }
-void DynamicFunc__SHA1_crypt_input2_to_output1_FINAL()
+// These need to be 'fixed' for SSE _OPENMP builds
+void DynamicFunc__SHA1_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS)
 {
 	union xx { unsigned char u[20]; ARCH_WORD a[20/sizeof(ARCH_WORD)]; } u;
 	unsigned char *crypt_out=u.u;
 	int switchback=dynamic_use_sse;
-	int i;
+	int i, til;
+	SHA_CTX sha_ctx;
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
 
 	if (switchback == 1) {
-		DynamicFunc__SSEtoX86_switch_input2();
+		DynamicFunc__SSEtoX86_switch_input2(DYNA_OMP_PARAMSd);
 	}
 #ifdef MMX_COEF
 	if (switchback) {
-		SHA1_SSE_Crypt_final(input_buf2_X86, total_len2_X86);
+		SHA1_SSE_Crypt_final(DYNA_OMP_PARAMSdm input_buf2_X86, total_len2_X86);
 		dynamic_use_sse = switchback;
 		if (dynamic_use_sse==2)
 			dynamic_use_sse=1;
 	}
 	else
 #endif
-	for (i = 0; i < m_count; ++i) {
+	for (; i < til; ++i) {
 		SHA1_Init(&sha_ctx);
 #if (MD5_X2)
 		if (i & 1)
@@ -7536,13 +8374,20 @@ void DynamicFunc__SHA1_crypt_input2_to_output1_FINAL()
 /********************************************************************
  ****  Here are the SHA224 and SHA256 functions!!!
  *******************************************************************/
-void DynamicFunc__SHA224_crypt_input1_append_input2() {
+void DynamicFunc__SHA224_crypt_input1_append_input2(DYNA_OMP_PARAMS) {
 	union xx { unsigned char u[32]; ARCH_WORD a[32/sizeof(ARCH_WORD)]; } u;
 	unsigned char *crypt_out=u.u, *cpo;
-	int i;
+	int i, til;
 	SHA256_CTX ctx;
 
-	for (i = 0; i < m_count; ++i) {
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; ++i) {
 		SHA224_Init(&ctx);
 #if (MD5_X2)
 		if (i & 1) {
@@ -7559,13 +8404,20 @@ void DynamicFunc__SHA224_crypt_input1_append_input2() {
 		total_len2_X86[i] += large_hash_output(crypt_out, cpo, 28);
 	}
 }
-void DynamicFunc__SHA256_crypt_input1_append_input2() {
+void DynamicFunc__SHA256_crypt_input1_append_input2(DYNA_OMP_PARAMS) {
 	union xx { unsigned char u[32]; ARCH_WORD a[32/sizeof(ARCH_WORD)]; } u;
 	unsigned char *crypt_out=u.u, *cpo;
-	int i;
+	int i, til;
 	SHA256_CTX ctx;
 
-	for (i = 0; i < m_count; ++i) {
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; ++i) {
 		SHA256_Init(&ctx);
 #if (MD5_X2)
 		if (i & 1) {
@@ -7582,13 +8434,20 @@ void DynamicFunc__SHA256_crypt_input1_append_input2() {
 		total_len2_X86[i] += large_hash_output(crypt_out, cpo, 32);
 	}
 }
-void DynamicFunc__SHA224_crypt_input2_append_input1() {
+void DynamicFunc__SHA224_crypt_input2_append_input1(DYNA_OMP_PARAMS) {
 	union xx { unsigned char u[32]; ARCH_WORD a[32/sizeof(ARCH_WORD)]; } u;
 	unsigned char *crypt_out=u.u, *cpo;
-	int i;
+	int i, til;
 	SHA256_CTX ctx;
 
-	for (i = 0; i < m_count; ++i) {
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; ++i) {
 		SHA224_Init(&ctx);
 #if (MD5_X2)
 		if (i & 1) {
@@ -7605,13 +8464,20 @@ void DynamicFunc__SHA224_crypt_input2_append_input1() {
 		total_len_X86[i] += large_hash_output(crypt_out, cpo, 28);
 	}
 }
-void DynamicFunc__SHA256_crypt_input2_append_input1() {
+void DynamicFunc__SHA256_crypt_input2_append_input1(DYNA_OMP_PARAMS) {
 	union xx { unsigned char u[32]; ARCH_WORD a[32/sizeof(ARCH_WORD)]; } u;
 	unsigned char *crypt_out=u.u, *cpo;
-	int i;
+	int i, til;
 	SHA256_CTX ctx;
 
-	for (i = 0; i < m_count; ++i) {
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; ++i) {
 		SHA256_Init(&ctx);
 #if (MD5_X2)
 		if (i & 1) {
@@ -7628,13 +8494,20 @@ void DynamicFunc__SHA256_crypt_input2_append_input1() {
 		total_len_X86[i] += large_hash_output(crypt_out, cpo, 32);
 	}
 }
-void DynamicFunc__SHA224_crypt_input1_overwrite_input1(){
+void DynamicFunc__SHA224_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS){
 	union xx { unsigned char u[32]; ARCH_WORD a[32/sizeof(ARCH_WORD)]; } u;
 	unsigned char *crypt_out=u.u, *cpo;
-	int i;
+	int i, til;
 	SHA256_CTX ctx;
 
-	for (i = 0; i < m_count; ++i) {
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; ++i) {
 		SHA224_Init(&ctx);
 #if (MD5_X2)
 		if (i & 1) {
@@ -7651,13 +8524,20 @@ void DynamicFunc__SHA224_crypt_input1_overwrite_input1(){
 		total_len_X86[i] += large_hash_output_no_null(crypt_out, cpo, 28);
 	}
 }
-void DynamicFunc__SHA256_crypt_input1_overwrite_input1(){
+void DynamicFunc__SHA256_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS){
 	union xx { unsigned char u[32]; ARCH_WORD a[32/sizeof(ARCH_WORD)]; } u;
 	unsigned char *crypt_out=u.u, *cpo;
-	int i;
+	int i, til;
 	SHA256_CTX ctx;
 
-	for (i = 0; i < m_count; ++i) {
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; ++i) {
 		SHA256_Init(&ctx);
 #if (MD5_X2)
 		if (i & 1) {
@@ -7674,13 +8554,20 @@ void DynamicFunc__SHA256_crypt_input1_overwrite_input1(){
 		total_len_X86[i] += large_hash_output_no_null(crypt_out, cpo, 32);
 	}
 }
-void DynamicFunc__SHA224_crypt_input1_overwrite_input2(){
+void DynamicFunc__SHA224_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS){
 	union xx { unsigned char u[32]; ARCH_WORD a[32/sizeof(ARCH_WORD)]; } u;
 	unsigned char *crypt_out=u.u, *cpo;
-	int i;
+	int i, til;
 	SHA256_CTX ctx;
 
-	for (i = 0; i < m_count; ++i) {
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; ++i) {
 		SHA224_Init(&ctx);
 #if (MD5_X2)
 		if (i & 1) {
@@ -7697,13 +8584,20 @@ void DynamicFunc__SHA224_crypt_input1_overwrite_input2(){
 		total_len2_X86[i] += large_hash_output_no_null(crypt_out, cpo, 28);
 	}
 }
-void DynamicFunc__SHA256_crypt_input1_overwrite_input2(){
+void DynamicFunc__SHA256_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS){
 	union xx { unsigned char u[32]; ARCH_WORD a[32/sizeof(ARCH_WORD)]; } u;
 	unsigned char *crypt_out=u.u, *cpo;
-	int i;
+	int i, til;
 	SHA256_CTX ctx;
 
-	for (i = 0; i < m_count; ++i) {
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; ++i) {
 		SHA256_Init(&ctx);
 #if (MD5_X2)
 		if (i & 1) {
@@ -7720,13 +8614,20 @@ void DynamicFunc__SHA256_crypt_input1_overwrite_input2(){
 		total_len2_X86[i] += large_hash_output_no_null(crypt_out, cpo, 32);
 	}
 }
-void DynamicFunc__SHA224_crypt_input2_overwrite_input1(){
+void DynamicFunc__SHA224_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS){
 	union xx { unsigned char u[32]; ARCH_WORD a[32/sizeof(ARCH_WORD)]; } u;
 	unsigned char *crypt_out=u.u, *cpo;
-	int i;
+	int i, til;
 	SHA256_CTX ctx;
 
-	for (i = 0; i < m_count; ++i) {
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; ++i) {
 		SHA224_Init(&ctx);
 #if (MD5_X2)
 		if (i & 1) {
@@ -7743,13 +8644,20 @@ void DynamicFunc__SHA224_crypt_input2_overwrite_input1(){
 		total_len_X86[i] += large_hash_output_no_null(crypt_out, cpo, 28);
 	}
 }
-void DynamicFunc__SHA256_crypt_input2_overwrite_input1(){
+void DynamicFunc__SHA256_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS){
 	union xx { unsigned char u[32]; ARCH_WORD a[32/sizeof(ARCH_WORD)]; } u;
 	unsigned char *crypt_out=u.u, *cpo;
-	int i;
+	int i, til;
 	SHA256_CTX ctx;
 
-	for (i = 0; i < m_count; ++i) {
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; ++i) {
 		SHA256_Init(&ctx);
 #if (MD5_X2)
 		if (i & 1) {
@@ -7766,13 +8674,20 @@ void DynamicFunc__SHA256_crypt_input2_overwrite_input1(){
 		total_len_X86[i] += large_hash_output_no_null(crypt_out, cpo, 32);
 	}
 }
-void DynamicFunc__SHA224_crypt_input2_overwrite_input2(){
+void DynamicFunc__SHA224_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS){
 	union xx { unsigned char u[32]; ARCH_WORD a[32/sizeof(ARCH_WORD)]; } u;
 	unsigned char *crypt_out=u.u, *cpo;
-	int i;
+	int i, til;
 	SHA256_CTX ctx;
 
-	for (i = 0; i < m_count; ++i) {
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; ++i) {
 		SHA224_Init(&ctx);
 #if (MD5_X2)
 		if (i & 1) {
@@ -7789,13 +8704,20 @@ void DynamicFunc__SHA224_crypt_input2_overwrite_input2(){
 		total_len2_X86[i] += large_hash_output_no_null(crypt_out, cpo, 28);
 	}
 }
-void DynamicFunc__SHA256_crypt_input2_overwrite_input2(){
+void DynamicFunc__SHA256_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS){
 	union xx { unsigned char u[32]; ARCH_WORD a[32/sizeof(ARCH_WORD)]; } u;
 	unsigned char *crypt_out=u.u, *cpo;
-	int i;
+	int i, til;
 	SHA256_CTX ctx;
 
-	for (i = 0; i < m_count; ++i) {
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; ++i) {
 		SHA256_Init(&ctx);
 #if (MD5_X2)
 		if (i & 1) {
@@ -7812,13 +8734,20 @@ void DynamicFunc__SHA256_crypt_input2_overwrite_input2(){
 		total_len2_X86[i] += large_hash_output_no_null(crypt_out, cpo, 32);
 	}
 }
-void DynamicFunc__SHA224_crypt_input1_to_output1_FINAL(){
+void DynamicFunc__SHA224_crypt_input1_to_output1_FINAL(DYNA_OMP_PARAMS){
 	union xx { unsigned char u[32]; ARCH_WORD a[32/sizeof(ARCH_WORD)]; } u;
 	unsigned char *crypt_out=u.u;
-	int i;
+	int i, til;
 	SHA256_CTX ctx;
 
-	for (i = 0; i < m_count; ++i) {
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; ++i) {
 		SHA224_Init(&ctx);
 #if (MD5_X2)
 		if (i & 1)
@@ -7844,13 +8773,20 @@ void DynamicFunc__SHA224_crypt_input1_to_output1_FINAL(){
 			memcpy(crypt_key_X86[i>>MD5_X2].x1.b, crypt_out, 16);
 	}
 }
-void DynamicFunc__SHA256_crypt_input1_to_output1_FINAL(){
+void DynamicFunc__SHA256_crypt_input1_to_output1_FINAL(DYNA_OMP_PARAMS){
 	union xx { unsigned char u[32]; ARCH_WORD a[32/sizeof(ARCH_WORD)]; } u;
 	unsigned char *crypt_out=u.u;
-	int i;
+	int i, til;
 	SHA256_CTX ctx;
 
-	for (i = 0; i < m_count; ++i) {
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; ++i) {
 		SHA256_Init(&ctx);
 #if (MD5_X2)
 		if (i & 1)
@@ -7876,13 +8812,20 @@ void DynamicFunc__SHA256_crypt_input1_to_output1_FINAL(){
 			memcpy(crypt_key_X86[i>>MD5_X2].x1.b, crypt_out, 16);
 	}
 }
-void DynamicFunc__SHA224_crypt_input2_to_output1_FINAL(){
+void DynamicFunc__SHA224_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS){
 	union xx { unsigned char u[32]; ARCH_WORD a[32/sizeof(ARCH_WORD)]; } u;
 	unsigned char *crypt_out=u.u;
-	int i;
+	int i, til;
 	SHA256_CTX ctx;
 
-	for (i = 0; i < m_count; ++i) {
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; ++i) {
 		SHA224_Init(&ctx);
 #if (MD5_X2)
 		if (i & 1)
@@ -7908,13 +8851,20 @@ void DynamicFunc__SHA224_crypt_input2_to_output1_FINAL(){
 			memcpy(crypt_key_X86[i>>MD5_X2].x1.b, crypt_out, 16);
 	}
 }
-void DynamicFunc__SHA256_crypt_input2_to_output1_FINAL(){
+void DynamicFunc__SHA256_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS){
 	union xx { unsigned char u[32]; ARCH_WORD a[32/sizeof(ARCH_WORD)]; } u;
 	unsigned char *crypt_out=u.u;
-	int i;
+	int i, til;
 	SHA256_CTX ctx;
 
-	for (i = 0; i < m_count; ++i) {
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; ++i) {
 		SHA256_Init(&ctx);
 #if (MD5_X2)
 		if (i & 1)
@@ -7944,13 +8894,20 @@ void DynamicFunc__SHA256_crypt_input2_to_output1_FINAL(){
 /********************************************************************
  ****  Here are the SHA384 and SHA512 functions!!!
  *******************************************************************/
-void DynamicFunc__SHA384_crypt_input1_append_input2() {
+void DynamicFunc__SHA384_crypt_input1_append_input2(DYNA_OMP_PARAMS) {
 	union xx { unsigned char u[64]; ARCH_WORD a[64/sizeof(ARCH_WORD)]; } u;
 	unsigned char *crypt_out=u.u, *cpo;
-	int i;
+	int i, til;
 	SHA512_CTX ctx;
 
-	for (i = 0; i < m_count; ++i) {
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; ++i) {
 		SHA384_Init(&ctx);
 #if (MD5_X2)
 		if (i & 1) {
@@ -7967,13 +8924,20 @@ void DynamicFunc__SHA384_crypt_input1_append_input2() {
 		total_len2_X86[i] += large_hash_output(crypt_out, cpo, 48);
 	}
 }
-void DynamicFunc__SHA512_crypt_input1_append_input2() {
+void DynamicFunc__SHA512_crypt_input1_append_input2(DYNA_OMP_PARAMS) {
 	union xx { unsigned char u[64]; ARCH_WORD a[64/sizeof(ARCH_WORD)]; } u;
 	unsigned char *crypt_out=u.u, *cpo;
-	int i;
+	int i, til;
 	SHA512_CTX ctx;
 
-	for (i = 0; i < m_count; ++i) {
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; ++i) {
 		SHA512_Init(&ctx);
 #if (MD5_X2)
 		if (i & 1) {
@@ -7990,13 +8954,20 @@ void DynamicFunc__SHA512_crypt_input1_append_input2() {
 		total_len2_X86[i] += large_hash_output(crypt_out, cpo, 64);
 	}
 }
-void DynamicFunc__SHA384_crypt_input2_append_input1() {
+void DynamicFunc__SHA384_crypt_input2_append_input1(DYNA_OMP_PARAMS) {
 	union xx { unsigned char u[64]; ARCH_WORD a[64/sizeof(ARCH_WORD)]; } u;
 	unsigned char *crypt_out=u.u, *cpo;
-	int i;
+	int i, til;
 	SHA512_CTX ctx;
 
-	for (i = 0; i < m_count; ++i) {
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; ++i) {
 		SHA384_Init(&ctx);
 #if (MD5_X2)
 		if (i & 1) {
@@ -8013,13 +8984,20 @@ void DynamicFunc__SHA384_crypt_input2_append_input1() {
 		total_len_X86[i] += large_hash_output(crypt_out, cpo, 48);
 	}
 }
-void DynamicFunc__SHA512_crypt_input2_append_input1() {
+void DynamicFunc__SHA512_crypt_input2_append_input1(DYNA_OMP_PARAMS) {
 	union xx { unsigned char u[64]; ARCH_WORD a[64/sizeof(ARCH_WORD)]; } u;
 	unsigned char *crypt_out=u.u, *cpo;
-	int i;
+	int i, til;
 	SHA512_CTX ctx;
 
-	for (i = 0; i < m_count; ++i) {
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; ++i) {
 		SHA512_Init(&ctx);
 #if (MD5_X2)
 		if (i & 1) {
@@ -8036,13 +9014,20 @@ void DynamicFunc__SHA512_crypt_input2_append_input1() {
 		total_len_X86[i] += large_hash_output(crypt_out, cpo, 64);
 	}
 }
-void DynamicFunc__SHA384_crypt_input1_overwrite_input1(){
+void DynamicFunc__SHA384_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS){
 	union xx { unsigned char u[64]; ARCH_WORD a[64/sizeof(ARCH_WORD)]; } u;
 	unsigned char *crypt_out=u.u, *cpo;
-	int i;
+	int i, til;
 	SHA512_CTX ctx;
 
-	for (i = 0; i < m_count; ++i) {
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; ++i) {
 		SHA384_Init(&ctx);
 #if (MD5_X2)
 		if (i & 1) {
@@ -8059,13 +9044,20 @@ void DynamicFunc__SHA384_crypt_input1_overwrite_input1(){
 		total_len_X86[i] += large_hash_output_no_null(crypt_out, cpo, 48);
 	}
 }
-void DynamicFunc__SHA512_crypt_input1_overwrite_input1(){
+void DynamicFunc__SHA512_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS){
 	union xx { unsigned char u[64]; ARCH_WORD a[64/sizeof(ARCH_WORD)]; } u;
 	unsigned char *crypt_out=u.u, *cpo;
-	int i;
+	int i, til;
 	SHA512_CTX ctx;
 
-	for (i = 0; i < m_count; ++i) {
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; ++i) {
 		SHA512_Init(&ctx);
 #if (MD5_X2)
 		if (i & 1) {
@@ -8082,13 +9074,20 @@ void DynamicFunc__SHA512_crypt_input1_overwrite_input1(){
 		total_len_X86[i] += large_hash_output_no_null(crypt_out, cpo, 64);
 	}
 }
-void DynamicFunc__SHA384_crypt_input1_overwrite_input2(){
+void DynamicFunc__SHA384_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS){
 	union xx { unsigned char u[64]; ARCH_WORD a[64/sizeof(ARCH_WORD)]; } u;
 	unsigned char *crypt_out=u.u, *cpo;
-	int i;
+	int i, til;
 	SHA512_CTX ctx;
 
-	for (i = 0; i < m_count; ++i) {
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; ++i) {
 		SHA384_Init(&ctx);
 #if (MD5_X2)
 		if (i & 1) {
@@ -8105,13 +9104,20 @@ void DynamicFunc__SHA384_crypt_input1_overwrite_input2(){
 		total_len2_X86[i] += large_hash_output_no_null(crypt_out, cpo, 48);
 	}
 }
-void DynamicFunc__SHA512_crypt_input1_overwrite_input2(){
+void DynamicFunc__SHA512_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS){
 	union xx { unsigned char u[64]; ARCH_WORD a[64/sizeof(ARCH_WORD)]; } u;
 	unsigned char *crypt_out=u.u, *cpo;
-	int i;
+	int i, til;
 	SHA512_CTX ctx;
 
-	for (i = 0; i < m_count; ++i) {
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; ++i) {
 		SHA512_Init(&ctx);
 #if (MD5_X2)
 		if (i & 1) {
@@ -8128,13 +9134,20 @@ void DynamicFunc__SHA512_crypt_input1_overwrite_input2(){
 		total_len2_X86[i] += large_hash_output_no_null(crypt_out, cpo, 64);
 	}
 }
-void DynamicFunc__SHA384_crypt_input2_overwrite_input1(){
+void DynamicFunc__SHA384_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS){
 	union xx { unsigned char u[64]; ARCH_WORD a[64/sizeof(ARCH_WORD)]; } u;
 	unsigned char *crypt_out=u.u, *cpo;
-	int i;
+	int i, til;
 	SHA512_CTX ctx;
 
-	for (i = 0; i < m_count; ++i) {
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; ++i) {
 		SHA384_Init(&ctx);
 #if (MD5_X2)
 		if (i & 1) {
@@ -8151,13 +9164,20 @@ void DynamicFunc__SHA384_crypt_input2_overwrite_input1(){
 		total_len_X86[i] += large_hash_output_no_null(crypt_out, cpo, 48);
 	}
 }
-void DynamicFunc__SHA512_crypt_input2_overwrite_input1(){
+void DynamicFunc__SHA512_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS){
 	union xx { unsigned char u[64]; ARCH_WORD a[64/sizeof(ARCH_WORD)]; } u;
 	unsigned char *crypt_out=u.u, *cpo;
-	int i;
+	int i, til;
 	SHA512_CTX ctx;
 
-	for (i = 0; i < m_count; ++i) {
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; ++i) {
 		SHA512_Init(&ctx);
 #if (MD5_X2)
 		if (i & 1) {
@@ -8174,13 +9194,20 @@ void DynamicFunc__SHA512_crypt_input2_overwrite_input1(){
 		total_len_X86[i] += large_hash_output_no_null(crypt_out, cpo, 64);
 	}
 }
-void DynamicFunc__SHA384_crypt_input2_overwrite_input2(){
+void DynamicFunc__SHA384_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS){
 	union xx { unsigned char u[56]; ARCH_WORD a[64/sizeof(ARCH_WORD)]; } u;
 	unsigned char *crypt_out=u.u, *cpo;
-	int i;
+	int i, til;
 	SHA512_CTX ctx;
 
-	for (i = 0; i < m_count; ++i) {
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; ++i) {
 		SHA384_Init(&ctx);
 #if (MD5_X2)
 		if (i & 1) {
@@ -8197,13 +9224,20 @@ void DynamicFunc__SHA384_crypt_input2_overwrite_input2(){
 		total_len2_X86[i] += large_hash_output_no_null(crypt_out, cpo, 48);
 	}
 }
-void DynamicFunc__SHA512_crypt_input2_overwrite_input2(){
+void DynamicFunc__SHA512_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS){
 	union xx { unsigned char u[64]; ARCH_WORD a[64/sizeof(ARCH_WORD)]; } u;
 	unsigned char *crypt_out=u.u, *cpo;
-	int i;
+	int i, til;
 	SHA512_CTX ctx;
 
-	for (i = 0; i < m_count; ++i) {
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; ++i) {
 		SHA512_Init(&ctx);
 #if (MD5_X2)
 		if (i & 1) {
@@ -8220,13 +9254,20 @@ void DynamicFunc__SHA512_crypt_input2_overwrite_input2(){
 		total_len2_X86[i] += large_hash_output_no_null(crypt_out, cpo, 64);
 	}
 }
-void DynamicFunc__SHA384_crypt_input1_to_output1_FINAL(){
+void DynamicFunc__SHA384_crypt_input1_to_output1_FINAL(DYNA_OMP_PARAMS){
 	union xx { unsigned char u[64]; ARCH_WORD a[64/sizeof(ARCH_WORD)]; } u;
 	unsigned char *crypt_out=u.u;
-	int i;
+	int i, til;
 	SHA512_CTX ctx;
 
-	for (i = 0; i < m_count; ++i) {
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; ++i) {
 		SHA384_Init(&ctx);
 #if (MD5_X2)
 		if (i & 1)
@@ -8252,13 +9293,20 @@ void DynamicFunc__SHA384_crypt_input1_to_output1_FINAL(){
 			memcpy(crypt_key_X86[i>>MD5_X2].x1.b, crypt_out, 16);
 	}
 }
-void DynamicFunc__SHA512_crypt_input1_to_output1_FINAL(){
+void DynamicFunc__SHA512_crypt_input1_to_output1_FINAL(DYNA_OMP_PARAMS){
 	union xx { unsigned char u[64]; ARCH_WORD a[64/sizeof(ARCH_WORD)]; } u;
 	unsigned char *crypt_out=u.u;
-	int i;
+	int i, til;
 	SHA512_CTX ctx;
 
-	for (i = 0; i < m_count; ++i) {
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; ++i) {
 		SHA512_Init(&ctx);
 #if (MD5_X2)
 		if (i & 1)
@@ -8284,13 +9332,20 @@ void DynamicFunc__SHA512_crypt_input1_to_output1_FINAL(){
 			memcpy(crypt_key_X86[i>>MD5_X2].x1.b, crypt_out, 16);
 	}
 }
-void DynamicFunc__SHA384_crypt_input2_to_output1_FINAL(){
+void DynamicFunc__SHA384_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS){
 	union xx { unsigned char u[64]; ARCH_WORD a[64/sizeof(ARCH_WORD)]; } u;
 	unsigned char *crypt_out=u.u;
-	int i;
+	int i, til;
 	SHA512_CTX ctx;
 
-	for (i = 0; i < m_count; ++i) {
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; ++i) {
 		SHA384_Init(&ctx);
 #if (MD5_X2)
 		if (i & 1)
@@ -8316,13 +9371,20 @@ void DynamicFunc__SHA384_crypt_input2_to_output1_FINAL(){
 			memcpy(crypt_key_X86[i>>MD5_X2].x1.b, crypt_out, 16);
 	}
 }
-void DynamicFunc__SHA512_crypt_input2_to_output1_FINAL(){
+void DynamicFunc__SHA512_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS){
 	union xx { unsigned char u[64]; ARCH_WORD a[64/sizeof(ARCH_WORD)]; } u;
 	unsigned char *crypt_out=u.u;
-	int i;
+	int i, til;
 	SHA512_CTX ctx;
 
-	for (i = 0; i < m_count; ++i) {
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; ++i) {
 		SHA512_Init(&ctx);
 #if (MD5_X2)
 		if (i & 1)
@@ -8353,13 +9415,20 @@ void DynamicFunc__SHA512_crypt_input2_to_output1_FINAL(){
  ** GOST functions for dynamic
  *************************************************************/
 
-void DynamicFunc__GOST_crypt_input1_append_input2() {
+void DynamicFunc__GOST_crypt_input1_append_input2(DYNA_OMP_PARAMS) {
 	union xx { unsigned char u[32]; ARCH_WORD a[32/sizeof(ARCH_WORD)]; } u;
 	unsigned char *crypt_out=u.u, *cpo;
-	int i;
+	int i, til;
 	gost_ctx ctx;
 
-	for (i = 0; i < m_count; ++i) {
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; ++i) {
 		john_gost_init(&ctx);
 #if (MD5_X2)
 		if (i & 1) {
@@ -8376,13 +9445,20 @@ void DynamicFunc__GOST_crypt_input1_append_input2() {
 		total_len2_X86[i] += large_hash_output(crypt_out, cpo, 32);
 	}
 }
-void DynamicFunc__GOST_crypt_input2_append_input1() {
+void DynamicFunc__GOST_crypt_input2_append_input1(DYNA_OMP_PARAMS) {
 	union xx { unsigned char u[32]; ARCH_WORD a[32/sizeof(ARCH_WORD)]; } u;
 	unsigned char *crypt_out=u.u, *cpo;
-	int i;
+	int i, til;
 	gost_ctx ctx;
 
-	for (i = 0; i < m_count; ++i) {
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; ++i) {
 		john_gost_init(&ctx);
 #if (MD5_X2)
 		if (i & 1) {
@@ -8399,13 +9475,20 @@ void DynamicFunc__GOST_crypt_input2_append_input1() {
 		total_len_X86[i] += large_hash_output(crypt_out, cpo, 32);
 	}
 }
-void DynamicFunc__GOST_crypt_input1_overwrite_input1() {
+void DynamicFunc__GOST_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS) {
 	union xx { unsigned char u[32]; ARCH_WORD a[32/sizeof(ARCH_WORD)]; } u;
 	unsigned char *crypt_out=u.u, *cpo;
-	int i;
+	int i, til;
 	gost_ctx ctx;
 
-	for (i = 0; i < m_count; ++i) {
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; ++i) {
 		john_gost_init(&ctx);
 #if (MD5_X2)
 		if (i & 1) {
@@ -8422,13 +9505,20 @@ void DynamicFunc__GOST_crypt_input1_overwrite_input1() {
 		total_len_X86[i] += large_hash_output_no_null(crypt_out, cpo, 32);
 	}
 }
-void DynamicFunc__GOST_crypt_input2_overwrite_input2() {
+void DynamicFunc__GOST_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS) {
 	union xx { unsigned char u[32]; ARCH_WORD a[32/sizeof(ARCH_WORD)]; } u;
 	unsigned char *crypt_out=u.u, *cpo;
-	int i;
+	int i, til;
 	gost_ctx ctx;
 
-	for (i = 0; i < m_count; ++i) {
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; ++i) {
 		john_gost_init(&ctx);
 #if (MD5_X2)
 		if (i & 1) {
@@ -8445,13 +9535,20 @@ void DynamicFunc__GOST_crypt_input2_overwrite_input2() {
 		total_len2_X86[i] += large_hash_output_no_null(crypt_out, cpo, 32);
 	}
 }
-void DynamicFunc__GOST_crypt_input1_overwrite_input2() {
+void DynamicFunc__GOST_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS) {
 	union xx { unsigned char u[32]; ARCH_WORD a[32/sizeof(ARCH_WORD)]; } u;
 	unsigned char *crypt_out=u.u, *cpo;
-	int i;
+	int i, til;
 	gost_ctx ctx;
 
-	for (i = 0; i < m_count; ++i) {
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; ++i) {
 		john_gost_init(&ctx);
 #if (MD5_X2)
 		if (i & 1) {
@@ -8468,13 +9565,20 @@ void DynamicFunc__GOST_crypt_input1_overwrite_input2() {
 		total_len2_X86[i] += large_hash_output_no_null(crypt_out, cpo, 32);
 	}
 }
-void DynamicFunc__GOST_crypt_input2_overwrite_input1() {
+void DynamicFunc__GOST_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS) {
 	union xx { unsigned char u[32]; ARCH_WORD a[32/sizeof(ARCH_WORD)]; } u;
 	unsigned char *crypt_out=u.u, *cpo;
-	int i;
+	int i, til;
 	gost_ctx ctx;
 
-	for (i = 0; i < m_count; ++i) {
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; ++i) {
 		john_gost_init(&ctx);
 #if (MD5_X2)
 		if (i & 1) {
@@ -8491,13 +9595,20 @@ void DynamicFunc__GOST_crypt_input2_overwrite_input1() {
 		total_len_X86[i] += large_hash_output_no_null(crypt_out, cpo, 32);
 	}
 }
-void DynamicFunc__GOST_crypt_input1_to_output1_FINAL() {
+void DynamicFunc__GOST_crypt_input1_to_output1_FINAL(DYNA_OMP_PARAMS) {
 	union xx { unsigned char u[32]; ARCH_WORD a[32/sizeof(ARCH_WORD)]; } u;
 	unsigned char *crypt_out=u.u;
-	int i;
+	int i, til;
 	gost_ctx ctx;
 
-	for (i = 0; i < m_count; ++i) {
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; ++i) {
 		john_gost_init(&ctx);
 #if (MD5_X2)
 		if (i & 1)
@@ -8523,13 +9634,20 @@ void DynamicFunc__GOST_crypt_input1_to_output1_FINAL() {
 			memcpy(crypt_key_X86[i>>MD5_X2].x1.B, crypt_out, 16);
 	}
 }
-void DynamicFunc__GOST_crypt_input2_to_output1_FINAL() {
+void DynamicFunc__GOST_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS) {
 	union xx { unsigned char u[32]; ARCH_WORD a[32/sizeof(ARCH_WORD)]; } u;
 	unsigned char *crypt_out=u.u;
-	int i;
+	int i, til;
 	gost_ctx ctx;
 
-	for (i = 0; i < m_count; ++i) {
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; ++i) {
 		john_gost_init(&ctx);
 #if (MD5_X2)
 		if (i & 1)
@@ -8560,13 +9678,20 @@ void DynamicFunc__GOST_crypt_input2_to_output1_FINAL() {
  ** WHIRLPOOL functions for dynamic
  *************************************************************/
 #if OPENSSL_VERSION_NUMBER >= 0x10000000
-void DynamicFunc__WHIRLPOOL_crypt_input1_append_input2() {
+void DynamicFunc__WHIRLPOOL_crypt_input1_append_input2(DYNA_OMP_PARAMS) {
 	union xx { unsigned char u[64]; ARCH_WORD a[64/sizeof(ARCH_WORD)]; } u;
 	unsigned char *crypt_out=u.u, *cpo;
-	int i;
+	int i, til;
 	WHIRLPOOL_CTX ctx;
 
-	for (i = 0; i < m_count; ++i) {
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; ++i) {
 		WHIRLPOOL_Init(&ctx);
 #if (MD5_X2)
 		if (i & 1) {
@@ -8583,13 +9708,20 @@ void DynamicFunc__WHIRLPOOL_crypt_input1_append_input2() {
 		total_len2_X86[i] += large_hash_output(crypt_out, cpo, 64);
 	}
 }
-void DynamicFunc__WHIRLPOOL_crypt_input2_append_input1() {
+void DynamicFunc__WHIRLPOOL_crypt_input2_append_input1(DYNA_OMP_PARAMS) {
 	union xx { unsigned char u[64]; ARCH_WORD a[64/sizeof(ARCH_WORD)]; } u;
 	unsigned char *crypt_out=u.u, *cpo;
-	int i;
+	int i, til;
 	WHIRLPOOL_CTX ctx;
 
-	for (i = 0; i < m_count; ++i) {
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; ++i) {
 		WHIRLPOOL_Init(&ctx);
 #if (MD5_X2)
 		if (i & 1) {
@@ -8606,13 +9738,20 @@ void DynamicFunc__WHIRLPOOL_crypt_input2_append_input1() {
 		total_len_X86[i] += large_hash_output(crypt_out, cpo, 64);
 	}
 }
-void DynamicFunc__WHIRLPOOL_crypt_input1_overwrite_input1() {
+void DynamicFunc__WHIRLPOOL_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS) {
 	union xx { unsigned char u[64]; ARCH_WORD a[64/sizeof(ARCH_WORD)]; } u;
 	unsigned char *crypt_out=u.u, *cpo;
-	int i;
+	int i, til;
 	WHIRLPOOL_CTX ctx;
 
-	for (i = 0; i < m_count; ++i) {
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; ++i) {
 		WHIRLPOOL_Init(&ctx);
 #if (MD5_X2)
 		if (i & 1) {
@@ -8629,13 +9768,20 @@ void DynamicFunc__WHIRLPOOL_crypt_input1_overwrite_input1() {
 		total_len_X86[i] += large_hash_output_no_null(crypt_out, cpo, 64);
 	}
 }
-void DynamicFunc__WHIRLPOOL_crypt_input2_overwrite_input2() {
+void DynamicFunc__WHIRLPOOL_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS) {
 	union xx { unsigned char u[64]; ARCH_WORD a[64/sizeof(ARCH_WORD)]; } u;
 	unsigned char *crypt_out=u.u, *cpo;
-	int i;
+	int i, til;
 	WHIRLPOOL_CTX ctx;
 
-	for (i = 0; i < m_count; ++i) {
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; ++i) {
 		WHIRLPOOL_Init(&ctx);
 #if (MD5_X2)
 		if (i & 1) {
@@ -8652,13 +9798,20 @@ void DynamicFunc__WHIRLPOOL_crypt_input2_overwrite_input2() {
 		total_len2_X86[i] += large_hash_output_no_null(crypt_out, cpo, 64);
 	}
 }
-void DynamicFunc__WHIRLPOOL_crypt_input1_overwrite_input2() {
+void DynamicFunc__WHIRLPOOL_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS) {
 	union xx { unsigned char u[64]; ARCH_WORD a[64/sizeof(ARCH_WORD)]; } u;
 	unsigned char *crypt_out=u.u, *cpo;
-	int i;
+	int i, til;
 	WHIRLPOOL_CTX ctx;
 
-	for (i = 0; i < m_count; ++i) {
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; ++i) {
 		WHIRLPOOL_Init(&ctx);
 #if (MD5_X2)
 		if (i & 1) {
@@ -8675,13 +9828,20 @@ void DynamicFunc__WHIRLPOOL_crypt_input1_overwrite_input2() {
 		total_len2_X86[i] += large_hash_output_no_null(crypt_out, cpo, 64);
 	}
 }
-void DynamicFunc__WHIRLPOOL_crypt_input2_overwrite_input1() {
+void DynamicFunc__WHIRLPOOL_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS) {
 	union xx { unsigned char u[64]; ARCH_WORD a[64/sizeof(ARCH_WORD)]; } u;
 	unsigned char *crypt_out=u.u, *cpo;
-	int i;
+	int i, til;
 	WHIRLPOOL_CTX ctx;
 
-	for (i = 0; i < m_count; ++i) {
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; ++i) {
 		WHIRLPOOL_Init(&ctx);
 #if (MD5_X2)
 		if (i & 1) {
@@ -8698,13 +9858,20 @@ void DynamicFunc__WHIRLPOOL_crypt_input2_overwrite_input1() {
 		total_len_X86[i] += large_hash_output_no_null(crypt_out, cpo, 64);
 	}
 }
-void DynamicFunc__WHIRLPOOL_crypt_input1_to_output1_FINAL() {
+void DynamicFunc__WHIRLPOOL_crypt_input1_to_output1_FINAL(DYNA_OMP_PARAMS) {
 	union xx { unsigned char u[64]; ARCH_WORD a[64/sizeof(ARCH_WORD)]; } u;
 	unsigned char *crypt_out=u.u;
-	int i;
+	int i, til;
 	WHIRLPOOL_CTX ctx;
 
-	for (i = 0; i < m_count; ++i) {
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; ++i) {
 		WHIRLPOOL_Init(&ctx);
 #if (MD5_X2)
 		if (i & 1)
@@ -8730,13 +9897,20 @@ void DynamicFunc__WHIRLPOOL_crypt_input1_to_output1_FINAL() {
 			memcpy(crypt_key_X86[i>>MD5_X2].x1.B, crypt_out, 16);
 	}
 }
-void DynamicFunc__WHIRLPOOL_crypt_input2_to_output1_FINAL() {
+void DynamicFunc__WHIRLPOOL_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS) {
 	union xx { unsigned char u[64]; ARCH_WORD a[64/sizeof(ARCH_WORD)]; } u;
 	unsigned char *crypt_out=u.u;
-	int i;
+	int i, til;
 	WHIRLPOOL_CTX ctx;
 
-	for (i = 0; i < m_count; ++i) {
+#ifdef _OPENMP
+	til = last;
+	i = first;
+#else
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; ++i) {
 		WHIRLPOOL_Init(&ctx);
 #if (MD5_X2)
 		if (i & 1)
@@ -8770,11 +9944,11 @@ void DynamicFunc__WHIRLPOOL_crypt_input2_to_output1_FINAL() {
  * add the proper flags, even if the user is running an older
  * script.
  *************************************************************/
-void DynamicFunc__PHPassSetup() {}
-void DynamicFunc__InitialLoadKeysToInput() {}
-void DynamicFunc__InitialLoadKeys_md5crypt_ToOutput2() {}
-void DynamicFunc__InitialLoadKeys_md5crypt_ToOutput2_Base16_to_Input1() {}
-void DynamicFunc__InitialLoadKeys_md5crypt_ToOutput2_Base16_to_Input1_offset32() {}
+void DynamicFunc__PHPassSetup(DYNA_OMP_PARAMS) {}
+void DynamicFunc__InitialLoadKeysToInput(DYNA_OMP_PARAMS) {}
+void DynamicFunc__InitialLoadKeys_md5crypt_ToOutput2(DYNA_OMP_PARAMS) {}
+void DynamicFunc__InitialLoadKeys_md5crypt_ToOutput2_Base16_to_Input1(DYNA_OMP_PARAMS) {}
+void DynamicFunc__InitialLoadKeys_md5crypt_ToOutput2_Base16_to_Input1_offset32(DYNA_OMP_PARAMS) {}
 
 
 /**************************************************************
@@ -9219,9 +10393,30 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 	if (Setup->startFlags&MGF_PHPassSetup)
 	{
 		pFmt->methods.salt = salt_phpass;
+#ifdef _OPENMP
 #ifdef MMX_COEF
 		// no reason to do 128 crypts, causes slow validity checking.  But we do get some gains
 		// by doing more than simple 1 set of MMX_COEF
+#if (MMX_COEF==2)
+		pFmt->params.algorithm_name = "64/64 " SHA1_SSE_type " 96x2";
+		pFmt->params.max_keys_per_crypt = 96*2;
+#elif defined (MD5_SSE_PARA)
+		pFmt->params.algorithm_name = "128/128 " SHA1_SSE_type " 96x4x" STRINGIZE(MD5_SSE_PARA);
+		pFmt->params.max_keys_per_crypt = 96*MD5_SSE_PARA;
+#else
+		pFmt->params.algorithm_name = "128/128 " SHA1_SSE_type " 96x4";
+		pFmt->params.max_keys_per_crypt = 96*4;
+#endif
+#else
+		pFmt->params.max_keys_per_crypt = 96;
+#if MD5_X2
+		pFmt->params.algorithm_name = "32/" ARCH_BITS_STR " 48x2  (MD5_body)";
+#else
+		pFmt->params.algorithm_name = "32/" ARCH_BITS_STR " 96x1 (MD5_body)";
+#endif
+#endif
+#else
+#ifdef MMX_COEF
 #if (MMX_COEF==2)
 		pFmt->params.algorithm_name = "64/64 " SHA1_SSE_type " 8x2";
 		pFmt->params.max_keys_per_crypt = 16;
@@ -9238,9 +10433,10 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 		pFmt->params.max_keys_per_crypt = 1;
 #if MD5_X2
 		pFmt->params.max_keys_per_crypt = 2;
-		pFmt->params.algorithm_name = "32/" ARCH_BITS_STR " X2  (MD5_body)";
+		pFmt->params.algorithm_name = "32/" ARCH_BITS_STR " 1x2  (MD5_body)";
 #else
 		pFmt->params.algorithm_name = "32/" ARCH_BITS_STR " (MD5_body)";
+#endif
 #endif
 #endif
 		pFmt->params.min_keys_per_crypt = 1;
@@ -9392,18 +10588,16 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 						pFmt->params.algorithm_name = ALGORITHM_NAME_X86_4;
 				}
 				if (isWHIRLFunc(pFuncs[x])) {
-					// STILL TODO
-					//if (!strcmp(pFmt->params.algorithm_name, ALGORITHM_NAME))
-					//	pFmt->params.algorithm_name = ALGORITHM_NAME_S2;
-					//else if (!strcmp(pFmt->params.algorithm_name, ALGORITHM_NAME_X86))
-					//	pFmt->params.algorithm_name = ALGORITHM_NAME_X86_S2;
+					if (!strcmp(pFmt->params.algorithm_name, ALGORITHM_NAME))
+						pFmt->params.algorithm_name = ALGORITHM_NAME_WP2;
+					else if (!strcmp(pFmt->params.algorithm_name, ALGORITHM_NAME_X86))
+						pFmt->params.algorithm_name = ALGORITHM_NAME_X86_WP2;
 				}
 				if (isGOSTFunc(pFuncs[x])) {
-					// STILL TODO
-					//if (!strcmp(pFmt->params.algorithm_name, ALGORITHM_NAME))
-					//	pFmt->params.algorithm_name = ALGORITHM_NAME_S2;
-					//else if (!strcmp(pFmt->params.algorithm_name, ALGORITHM_NAME_X86))
-					//	pFmt->params.algorithm_name = ALGORITHM_NAME_X86_S2;
+					if (!strcmp(pFmt->params.algorithm_name, ALGORITHM_NAME))
+						pFmt->params.algorithm_name = ALGORITHM_NAME_GST2;
+					else if (!strcmp(pFmt->params.algorithm_name, ALGORITHM_NAME_X86))
+						pFmt->params.algorithm_name = ALGORITHM_NAME_X86_GST2;
 				}
 			}
 
@@ -9618,8 +10812,8 @@ void dynamic_RESET(struct fmt_main *fmt)
 	saltlen=saltlen2=usernamelen=0;
 	// make 'sure' we startout with blank inputs.
 	m_count = 0;
-	DynamicFunc__clean_input_full();
-	DynamicFunc__clean_input2_full();
+	__nonMP_DynamicFunc__clean_input_full();
+	__nonMP_DynamicFunc__clean_input2_full();
 }
 
 /*
@@ -9661,6 +10855,7 @@ struct fmt_main *dynamic_THIN_FORMAT_LINK(struct fmt_main *pFmt, char *ciphertex
 
 	pFmt->params.max_keys_per_crypt = pFmtLocal->params.max_keys_per_crypt;
 	pFmt->params.min_keys_per_crypt = pFmtLocal->params.min_keys_per_crypt;
+	pFmt->params.flags = pFmtLocal->params.flags;
 	if (pFmtLocal->params.salt_size)
 		pFmt->params.salt_size = sizeof(void*);
 	else

@@ -240,6 +240,7 @@ static struct fmt_tests _Preloads_6[] =
 	{"$dynamic_6$3a9ae23758f05da1fe539e55a096b03b$S111XB","test1"},
 	{"$dynamic_6$9694d706d1992abf04344c1e7da1c5d3$T &222","thatsworking"},
 	{"$dynamic_6$b7a7f0c374d73fac422bb01f07f5a9d4$lxxxl","test3"},
+	{"$dynamic_6$9164fe53be481f811f15efd769aaf0f7$aReallyLongSaltHere","test3"},
 	{NULL}
 };
 
@@ -322,7 +323,7 @@ static DYNAMIC_primitive_funcp _Funcs_10[] =
 	DynamicFunc__append_salt,
 	DynamicFunc__append_keys,
 	DynamicFunc__crypt_md5,
-	DynamicFunc__clean_input2_kwik,
+	DynamicFunc__clean_input2,
 	DynamicFunc__append_salt2,
 	DynamicFunc__append_from_last_output_to_input2_as_base16,
 	DynamicFunc__crypt_md5_in2_to_out1,
@@ -343,7 +344,7 @@ static DYNAMIC_primitive_funcp _Funcs_11[] =
 	DynamicFunc__append_keys,
 	DynamicFunc__append_salt,
 	DynamicFunc__crypt_md5,
-	DynamicFunc__clean_input2_kwik,
+	DynamicFunc__clean_input2,
 	DynamicFunc__append_salt2,
 	DynamicFunc__append_from_last_output_to_input2_as_base16,
 	DynamicFunc__crypt_md5_in2_to_out1,
@@ -1510,6 +1511,34 @@ int dynamic_RESERVED_PRELOAD_SETUP(int cnt, struct fmt_main *pFmt)
 	return dynamic_SETUP(&Setups[cnt], pFmt);
 }
 
+// Certain functions are NOT compatible with OMP, because they require a
+// global modification to the state.  Things like into and out of SSE/nonSSE
+// are examples. Same code as in dynamic_IS_PARSER_VALID() in dynamic_parser.c
+int IsOMP_Valid(int j) {
+#ifdef _OPENMP
+	int i;
+	for (i = 0; Setups[j].pFuncs[i]; ++i) {
+		if (Setups[j].pFuncs[i] == DynamicFunc__SSEtoX86_switch_input1) return 0;
+		if (Setups[j].pFuncs[i] == DynamicFunc__SSEtoX86_switch_input2) return 0;
+		if (Setups[j].pFuncs[i] == DynamicFunc__SSEtoX86_switch_output1) return 0;
+		if (Setups[j].pFuncs[i] == DynamicFunc__SSEtoX86_switch_output2) return 0;
+		if (Setups[j].pFuncs[i] == DynamicFunc__X86toSSE_switch_input1) return 0;
+		if (Setups[j].pFuncs[i] == DynamicFunc__X86toSSE_switch_input2) return 0;
+		if (Setups[j].pFuncs[i] == DynamicFunc__X86toSSE_switch_output1) return 0;
+		if (Setups[j].pFuncs[i] == DynamicFunc__X86toSSE_switch_output2) return 0;
+		if (Setups[j].pFuncs[i] == DynamicFunc__ToSSE) return 0;
+		if (Setups[j].pFuncs[i] == DynamicFunc__ToX86) return 0;
+		if (Setups[j].pFuncs[i] == DynamicFunc__base16_convert_locase) return 0;
+		if (Setups[j].pFuncs[i] == DynamicFunc__base16_convert_upcase) return 0;
+#ifdef MMX_COEF
+		//if (Setups[j].pFuncs[i] == DynamicFunc__SHA1_crypt_input2_to_output1_FINAL) return 0;
+		if (Setups[j].pFuncs[i] == DynamicFunc__SHA1_crypt_input1_to_output1_FINAL) return 0;
+#endif
+	}
+#endif
+	return 1;
+}
+
 // -1 is NOT valid  ( num > 5000 is 'hidden' values )
 // 0 is valid, but NOT usable by this build (i.e. no SSE2)
 // 1 is valid.
@@ -1524,7 +1553,7 @@ int dynamic_IS_VALID(int i)
 		len=strlen(Type);
 		for (j = 0; j < ARRAY_COUNT(Setups); ++j) {
 			if (!strncmp(Type, Setups[j].szFORMAT_NAME, len))
-				return 1;
+				return IsOMP_Valid(j);
 		}
 		return -1;
 	}

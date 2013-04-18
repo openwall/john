@@ -77,7 +77,7 @@
 typedef struct Dynamic_Predicate_t
 {
 	char *name;
-	void(*func)();
+	DYNAMIC_primitive_funcp func;
 } Dynamic_Predicate_t;
 
 typedef struct Dynamic_Str_Flag_t
@@ -756,6 +756,23 @@ int dynamic_IS_PARSER_VALID(int which)
 		}
 		if (strstr(gen_line->data, "MGF_ColonNOTValid"))
 			return 0;  // same as above, ColonChar.
+#ifdef _OPENMP
+		// Certain functions are NOT compatible with OMP, because they require a
+		// global modification to the state.  Things like into and out of SSE/nonSSE
+		// are examples.  SAME code as in IsOMP_Valid() function in dynamic_preloads.c
+		if (strstr(gen_line->data, "DynamicFunc__SSEtoX86_switch_input1")) return 0;
+		if (strstr(gen_line->data, "DynamicFunc__SSEtoX86_switch_input2")) return 0;
+		if (strstr(gen_line->data, "DynamicFunc__SSEtoX86_switch_output1")) return 0;
+		if (strstr(gen_line->data, "DynamicFunc__SSEtoX86_switch_output2")) return 0;
+		if (strstr(gen_line->data, "DynamicFunc__X86toSSE_switch_input1")) return 0;
+		if (strstr(gen_line->data, "DynamicFunc__X86toSSE_switch_input2")) return 0;
+		if (strstr(gen_line->data, "DynamicFunc__X86toSSE_switch_output1")) return 0;
+		if (strstr(gen_line->data, "DynamicFunc__X86toSSE_switch_output2")) return 0;
+		if (strstr(gen_line->data, "DynamicFunc__ToSSE")) return 0;
+		if (strstr(gen_line->data, "DynamicFunc__ToX86")) return 0;
+		if (strstr(gen_line->data, "DynamicFunc__base16_convert_locase")) return 0;
+		if (strstr(gen_line->data, "DynamicFunc__base16_convert_upcase")) return 0;
+#endif
 		gen_line = gen_line->next;
 	}
 	return 1;

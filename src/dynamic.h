@@ -26,7 +26,19 @@
 
 #include <openssl/opensslv.h>
 
-typedef void(*DYNAMIC_primitive_funcp)();
+#ifdef _OPENMP
+#define DYNA_OMP_PARAMS int first, int last
+#define DYNA_OMP_PARAMSm int first, int last,
+#define DYNA_OMP_PARAMSd first, last
+#define DYNA_OMP_PARAMSdm first, last,
+#else
+#define DYNA_OMP_PARAMS
+#define DYNA_OMP_PARAMSm
+#define DYNA_OMP_PARAMSd
+#define DYNA_OMP_PARAMSdm
+#endif
+
+typedef void(*DYNAMIC_primitive_funcp)(DYNA_OMP_PARAMS);
 
 typedef struct DYNAMIC_Constants_t
 {
@@ -154,269 +166,269 @@ char *dynamic_Demangle(char *Line, int *Len);
 #define ARRAY_COUNT(a) (sizeof(a)/sizeof(a[0]))
 
 //
-// These functions MUST be of type:   void function()
+// These functions MUST be of type:   void function() (or void function(int,int) for OMP builds)
 // these are the 'base' predicate functions used in
 // building a generic MD5 attack algorithm.
 //
 
-extern void DynamicFunc__clean_input();
-extern void DynamicFunc__clean_input_kwik();
-extern void DynamicFunc__clean_input_full();
-extern void DynamicFunc__append_keys();
-extern void DynamicFunc__crypt_md5();
-extern void DynamicFunc__crypt_md4();
-extern void DynamicFunc__append_from_last_output_as_base16();
-extern void DynamicFunc__overwrite_from_last_output_as_base16_no_size_fix();
-extern void DynamicFunc__append_salt();
-extern void DynamicFunc__set_input_len_16();
-extern void DynamicFunc__set_input_len_32();
-extern void DynamicFunc__set_input_len_64();
-extern void DynamicFunc__set_input_len_100();
+extern void DynamicFunc__clean_input(DYNA_OMP_PARAMS);
+extern void DynamicFunc__clean_input_kwik(DYNA_OMP_PARAMS);
+extern void DynamicFunc__clean_input_full(DYNA_OMP_PARAMS);
+extern void DynamicFunc__append_keys(DYNA_OMP_PARAMS);
+extern void DynamicFunc__crypt_md5(DYNA_OMP_PARAMS);
+extern void DynamicFunc__crypt_md4(DYNA_OMP_PARAMS);
+extern void DynamicFunc__append_from_last_output_as_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__overwrite_from_last_output_as_base16_no_size_fix(DYNA_OMP_PARAMS);
+extern void DynamicFunc__append_salt(DYNA_OMP_PARAMS);
+extern void DynamicFunc__set_input_len_16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__set_input_len_32(DYNA_OMP_PARAMS);
+extern void DynamicFunc__set_input_len_64(DYNA_OMP_PARAMS);
+extern void DynamicFunc__set_input_len_100(DYNA_OMP_PARAMS);
 
-extern void DynamicFunc__clean_input2();
-extern void DynamicFunc__clean_input2_kwik();
-extern void DynamicFunc__clean_input2_full();
-extern void DynamicFunc__append_keys2();
-extern void DynamicFunc__crypt2_md5();
-extern void DynamicFunc__crypt2_md4();
-extern void DynamicFunc__append_from_last_output2_as_base16();
-extern void DynamicFunc__overwrite_from_last_output2_as_base16_no_size_fix();
-extern void DynamicFunc__append_from_last_output_to_input2_as_base16();
-extern void DynamicFunc__overwrite_from_last_output_to_input2_as_base16_no_size_fix();
-extern void DynamicFunc__append_from_last_output2_to_input1_as_base16();
-extern void DynamicFunc__overwrite_from_last_output2_to_input1_as_base16_no_size_fix();
-extern void DynamicFunc__append_salt2();
-extern void DynamicFunc__set_input2_len_16();
-extern void DynamicFunc__set_input2_len_32();
-extern void DynamicFunc__set_input2_len_64();
+extern void DynamicFunc__clean_input2(DYNA_OMP_PARAMS);
+extern void DynamicFunc__clean_input2_kwik(DYNA_OMP_PARAMS);
+extern void DynamicFunc__clean_input2_full(DYNA_OMP_PARAMS);
+extern void DynamicFunc__append_keys2(DYNA_OMP_PARAMS);
+extern void DynamicFunc__crypt2_md5(DYNA_OMP_PARAMS);
+extern void DynamicFunc__crypt2_md4(DYNA_OMP_PARAMS);
+extern void DynamicFunc__append_from_last_output2_as_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__overwrite_from_last_output2_as_base16_no_size_fix(DYNA_OMP_PARAMS);
+extern void DynamicFunc__append_from_last_output_to_input2_as_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__overwrite_from_last_output_to_input2_as_base16_no_size_fix(DYNA_OMP_PARAMS);
+extern void DynamicFunc__append_from_last_output2_to_input1_as_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__overwrite_from_last_output2_to_input1_as_base16_no_size_fix(DYNA_OMP_PARAMS);
+extern void DynamicFunc__append_salt2(DYNA_OMP_PARAMS);
+extern void DynamicFunc__set_input2_len_16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__set_input2_len_32(DYNA_OMP_PARAMS);
+extern void DynamicFunc__set_input2_len_64(DYNA_OMP_PARAMS);
 
-extern void DynamicFunc__append_from_last_output2_as_raw();
-extern void DynamicFunc__append2_from_last_output2_as_raw();
-extern void DynamicFunc__append_from_last_output1_as_raw();
-extern void DynamicFunc__append2_from_last_output1_as_raw();
+extern void DynamicFunc__append_from_last_output2_as_raw(DYNA_OMP_PARAMS);
+extern void DynamicFunc__append2_from_last_output2_as_raw(DYNA_OMP_PARAMS);
+extern void DynamicFunc__append_from_last_output1_as_raw(DYNA_OMP_PARAMS);
+extern void DynamicFunc__append2_from_last_output1_as_raw(DYNA_OMP_PARAMS);
 
-extern void DynamicFunc__overwrite_salt_to_input1_no_size_fix();
-extern void DynamicFunc__overwrite_salt_to_input2_no_size_fix();
+extern void DynamicFunc__overwrite_salt_to_input1_no_size_fix(DYNA_OMP_PARAMS);
+extern void DynamicFunc__overwrite_salt_to_input2_no_size_fix(DYNA_OMP_PARAMS);
 
-extern void DynamicFunc__append_input_from_input2();
-extern void DynamicFunc__append_input2_from_input();
+extern void DynamicFunc__append_input_from_input2(DYNA_OMP_PARAMS);
+extern void DynamicFunc__append_input2_from_input(DYNA_OMP_PARAMS);
 
-extern void DynamicFunc__append_2nd_salt();
-extern void DynamicFunc__append_2nd_salt2();
-extern void DynamicFunc__append_userid();
-extern void DynamicFunc__append_userid2();
+extern void DynamicFunc__append_2nd_salt(DYNA_OMP_PARAMS);
+extern void DynamicFunc__append_2nd_salt2(DYNA_OMP_PARAMS);
+extern void DynamicFunc__append_userid(DYNA_OMP_PARAMS);
+extern void DynamicFunc__append_userid2(DYNA_OMP_PARAMS);
 
-extern void DynamicFunc__crypt_md5_in1_to_out2();
-extern void DynamicFunc__crypt_md5_in2_to_out1();
-extern void DynamicFunc__crypt_md4_in1_to_out2();
-extern void DynamicFunc__crypt_md4_in2_to_out1();
+extern void DynamicFunc__crypt_md5_in1_to_out2(DYNA_OMP_PARAMS);
+extern void DynamicFunc__crypt_md5_in2_to_out1(DYNA_OMP_PARAMS);
+extern void DynamicFunc__crypt_md4_in1_to_out2(DYNA_OMP_PARAMS);
+extern void DynamicFunc__crypt_md4_in2_to_out1(DYNA_OMP_PARAMS);
 
-extern void DynamicFunc__append_input1_from_CONST1();
-extern void DynamicFunc__append_input1_from_CONST2();
-extern void DynamicFunc__append_input1_from_CONST3();
-extern void DynamicFunc__append_input1_from_CONST4();
-extern void DynamicFunc__append_input1_from_CONST5();
-extern void DynamicFunc__append_input1_from_CONST6();
-extern void DynamicFunc__append_input1_from_CONST7();
-extern void DynamicFunc__append_input1_from_CONST8();
+extern void DynamicFunc__append_input1_from_CONST1(DYNA_OMP_PARAMS);
+extern void DynamicFunc__append_input1_from_CONST2(DYNA_OMP_PARAMS);
+extern void DynamicFunc__append_input1_from_CONST3(DYNA_OMP_PARAMS);
+extern void DynamicFunc__append_input1_from_CONST4(DYNA_OMP_PARAMS);
+extern void DynamicFunc__append_input1_from_CONST5(DYNA_OMP_PARAMS);
+extern void DynamicFunc__append_input1_from_CONST6(DYNA_OMP_PARAMS);
+extern void DynamicFunc__append_input1_from_CONST7(DYNA_OMP_PARAMS);
+extern void DynamicFunc__append_input1_from_CONST8(DYNA_OMP_PARAMS);
 
-extern void DynamicFunc__append_input2_from_CONST1();
-extern void DynamicFunc__append_input2_from_CONST2();
-extern void DynamicFunc__append_input2_from_CONST3();
-extern void DynamicFunc__append_input2_from_CONST4();
-extern void DynamicFunc__append_input2_from_CONST5();
-extern void DynamicFunc__append_input2_from_CONST6();
-extern void DynamicFunc__append_input2_from_CONST7();
-extern void DynamicFunc__append_input2_from_CONST8();
+extern void DynamicFunc__append_input2_from_CONST1(DYNA_OMP_PARAMS);
+extern void DynamicFunc__append_input2_from_CONST2(DYNA_OMP_PARAMS);
+extern void DynamicFunc__append_input2_from_CONST3(DYNA_OMP_PARAMS);
+extern void DynamicFunc__append_input2_from_CONST4(DYNA_OMP_PARAMS);
+extern void DynamicFunc__append_input2_from_CONST5(DYNA_OMP_PARAMS);
+extern void DynamicFunc__append_input2_from_CONST6(DYNA_OMP_PARAMS);
+extern void DynamicFunc__append_input2_from_CONST7(DYNA_OMP_PARAMS);
+extern void DynamicFunc__append_input2_from_CONST8(DYNA_OMP_PARAMS);
 
-extern void DynamicFunc__append_fld0();
-extern void DynamicFunc__append_fld1();
-extern void DynamicFunc__append_fld2();
-extern void DynamicFunc__append_fld3();
-extern void DynamicFunc__append_fld4();
-extern void DynamicFunc__append_fld5();
-extern void DynamicFunc__append_fld6();
-extern void DynamicFunc__append_fld7();
-extern void DynamicFunc__append_fld8();
-extern void DynamicFunc__append_fld9();
-extern void DynamicFunc__append2_fld0();
-extern void DynamicFunc__append2_fld1();
-extern void DynamicFunc__append2_fld2();
-extern void DynamicFunc__append2_fld3();
-extern void DynamicFunc__append2_fld4();
-extern void DynamicFunc__append2_fld5();
-extern void DynamicFunc__append2_fld6();
-extern void DynamicFunc__append2_fld7();
-extern void DynamicFunc__append2_fld8();
-extern void DynamicFunc__append2_fld9();
+extern void DynamicFunc__append_fld0(DYNA_OMP_PARAMS);
+extern void DynamicFunc__append_fld1(DYNA_OMP_PARAMS);
+extern void DynamicFunc__append_fld2(DYNA_OMP_PARAMS);
+extern void DynamicFunc__append_fld3(DYNA_OMP_PARAMS);
+extern void DynamicFunc__append_fld4(DYNA_OMP_PARAMS);
+extern void DynamicFunc__append_fld5(DYNA_OMP_PARAMS);
+extern void DynamicFunc__append_fld6(DYNA_OMP_PARAMS);
+extern void DynamicFunc__append_fld7(DYNA_OMP_PARAMS);
+extern void DynamicFunc__append_fld8(DYNA_OMP_PARAMS);
+extern void DynamicFunc__append_fld9(DYNA_OMP_PARAMS);
+extern void DynamicFunc__append2_fld0(DYNA_OMP_PARAMS);
+extern void DynamicFunc__append2_fld1(DYNA_OMP_PARAMS);
+extern void DynamicFunc__append2_fld2(DYNA_OMP_PARAMS);
+extern void DynamicFunc__append2_fld3(DYNA_OMP_PARAMS);
+extern void DynamicFunc__append2_fld4(DYNA_OMP_PARAMS);
+extern void DynamicFunc__append2_fld5(DYNA_OMP_PARAMS);
+extern void DynamicFunc__append2_fld6(DYNA_OMP_PARAMS);
+extern void DynamicFunc__append2_fld7(DYNA_OMP_PARAMS);
+extern void DynamicFunc__append2_fld8(DYNA_OMP_PARAMS);
+extern void DynamicFunc__append2_fld9(DYNA_OMP_PARAMS);
 
 // These are no-ops if built in x86 mode.  But in SSE2 builds, they do
 // allow us to switch back and forth from SSE to X86 mode (and back again)
 // they also convert data (only convert the NEEDED) stored data.  Additional
 // fields will cost time, and are not needed.
-extern void DynamicFunc__SSEtoX86_switch_input1();
-extern void DynamicFunc__SSEtoX86_switch_input2();
-extern void DynamicFunc__SSEtoX86_switch_output1();
-extern void DynamicFunc__SSEtoX86_switch_output2();
-extern void DynamicFunc__X86toSSE_switch_input1();
-extern void DynamicFunc__X86toSSE_switch_input2();
-extern void DynamicFunc__X86toSSE_switch_output1();
-extern void DynamicFunc__X86toSSE_switch_output2();
-extern void DynamicFunc__ToSSE();
-extern void DynamicFunc__ToX86();
+extern void DynamicFunc__SSEtoX86_switch_input1(DYNA_OMP_PARAMS);
+extern void DynamicFunc__SSEtoX86_switch_input2(DYNA_OMP_PARAMS);
+extern void DynamicFunc__SSEtoX86_switch_output1(DYNA_OMP_PARAMS);
+extern void DynamicFunc__SSEtoX86_switch_output2(DYNA_OMP_PARAMS);
+extern void DynamicFunc__X86toSSE_switch_input1(DYNA_OMP_PARAMS);
+extern void DynamicFunc__X86toSSE_switch_input2(DYNA_OMP_PARAMS);
+extern void DynamicFunc__X86toSSE_switch_output1(DYNA_OMP_PARAMS);
+extern void DynamicFunc__X86toSSE_switch_output2(DYNA_OMP_PARAMS);
+extern void DynamicFunc__ToSSE(DYNA_OMP_PARAMS);
+extern void DynamicFunc__ToX86(DYNA_OMP_PARAMS);
 // set unicode mode.
-extern void DynamicFunc__setmode_unicode();
-extern void DynamicFunc__setmode_normal();
+extern void DynamicFunc__setmode_unicode(DYNA_OMP_PARAMS);
+extern void DynamicFunc__setmode_normal(DYNA_OMP_PARAMS);
 // Changing upper case and lower case base-16 conversion routines
-extern void DynamicFunc__base16_convert_locase();
-extern void DynamicFunc__base16_convert_upcase();
+extern void DynamicFunc__base16_convert_locase(DYNA_OMP_PARAMS);
+extern void DynamicFunc__base16_convert_upcase(DYNA_OMP_PARAMS);
 
-extern void DynamicFunc__LargeHash_OUTMode_base16();
-extern void DynamicFunc__LargeHash_OUTMode_base16u();
-extern void DynamicFunc__LargeHash_OUTMode_base64();
-extern void DynamicFunc__LargeHash_OUTMode_base64_nte(); // no trailing = chars, for non length%3 !=0
-extern void DynamicFunc__LargeHash_OUTMode_raw();
+extern void DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__LargeHash_OUTMode_base16u(DYNA_OMP_PARAMS);
+extern void DynamicFunc__LargeHash_OUTMode_base64(DYNA_OMP_PARAMS);
+extern void DynamicFunc__LargeHash_OUTMode_base64_nte(DYNA_OMP_PARAMS); // no trailing = chars, for non length%3 !=0
+extern void DynamicFunc__LargeHash_OUTMode_raw(DYNA_OMP_PARAMS);
 
-extern void DynamicFunc__SHA1_crypt_input1_append_input2();
-extern void DynamicFunc__SHA1_crypt_input2_append_input1();
-extern void DynamicFunc__SHA1_crypt_input1_overwrite_input1();
-extern void DynamicFunc__SHA1_crypt_input2_overwrite_input2();
-extern void DynamicFunc__SHA1_crypt_input1_overwrite_input2();
-extern void DynamicFunc__SHA1_crypt_input2_overwrite_input1();
-extern void DynamicFunc__SHA1_crypt_input1_to_output1_FINAL();
-extern void DynamicFunc__SHA1_crypt_input2_to_output1_FINAL();
+extern void DynamicFunc__SHA1_crypt_input1_append_input2(DYNA_OMP_PARAMS);
+extern void DynamicFunc__SHA1_crypt_input2_append_input1(DYNA_OMP_PARAMS);
+extern void DynamicFunc__SHA1_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS);
+extern void DynamicFunc__SHA1_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS);
+extern void DynamicFunc__SHA1_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS);
+extern void DynamicFunc__SHA1_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS);
+extern void DynamicFunc__SHA1_crypt_input1_to_output1_FINAL(DYNA_OMP_PARAMS);
+extern void DynamicFunc__SHA1_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS);
 
-extern void DynamicFunc__SHA224_crypt_input1_append_input2();
-extern void DynamicFunc__SHA224_crypt_input2_append_input1();
-extern void DynamicFunc__SHA224_crypt_input1_overwrite_input1();
-extern void DynamicFunc__SHA224_crypt_input2_overwrite_input2();
-extern void DynamicFunc__SHA224_crypt_input1_overwrite_input2();
-extern void DynamicFunc__SHA224_crypt_input2_overwrite_input1();
-extern void DynamicFunc__SHA224_crypt_input1_to_output1_FINAL();
-extern void DynamicFunc__SHA224_crypt_input2_to_output1_FINAL();
+extern void DynamicFunc__SHA224_crypt_input1_append_input2(DYNA_OMP_PARAMS);
+extern void DynamicFunc__SHA224_crypt_input2_append_input1(DYNA_OMP_PARAMS);
+extern void DynamicFunc__SHA224_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS);
+extern void DynamicFunc__SHA224_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS);
+extern void DynamicFunc__SHA224_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS);
+extern void DynamicFunc__SHA224_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS);
+extern void DynamicFunc__SHA224_crypt_input1_to_output1_FINAL(DYNA_OMP_PARAMS);
+extern void DynamicFunc__SHA224_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS);
 
-extern void DynamicFunc__SHA256_crypt_input1_append_input2();
-extern void DynamicFunc__SHA256_crypt_input2_append_input1();
-extern void DynamicFunc__SHA256_crypt_input1_overwrite_input1();
-extern void DynamicFunc__SHA256_crypt_input2_overwrite_input2();
-extern void DynamicFunc__SHA256_crypt_input1_overwrite_input2();
-extern void DynamicFunc__SHA256_crypt_input2_overwrite_input1();
-extern void DynamicFunc__SHA256_crypt_input1_to_output1_FINAL();
-extern void DynamicFunc__SHA256_crypt_input2_to_output1_FINAL();
+extern void DynamicFunc__SHA256_crypt_input1_append_input2(DYNA_OMP_PARAMS);
+extern void DynamicFunc__SHA256_crypt_input2_append_input1(DYNA_OMP_PARAMS);
+extern void DynamicFunc__SHA256_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS);
+extern void DynamicFunc__SHA256_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS);
+extern void DynamicFunc__SHA256_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS);
+extern void DynamicFunc__SHA256_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS);
+extern void DynamicFunc__SHA256_crypt_input1_to_output1_FINAL(DYNA_OMP_PARAMS);
+extern void DynamicFunc__SHA256_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS);
 
-extern void DynamicFunc__SHA384_crypt_input1_append_input2();
-extern void DynamicFunc__SHA384_crypt_input2_append_input1();
-extern void DynamicFunc__SHA384_crypt_input1_overwrite_input1();
-extern void DynamicFunc__SHA384_crypt_input2_overwrite_input2();
-extern void DynamicFunc__SHA384_crypt_input1_overwrite_input2();
-extern void DynamicFunc__SHA384_crypt_input2_overwrite_input1();
-extern void DynamicFunc__SHA384_crypt_input1_to_output1_FINAL();
-extern void DynamicFunc__SHA384_crypt_input2_to_output1_FINAL();
+extern void DynamicFunc__SHA384_crypt_input1_append_input2(DYNA_OMP_PARAMS);
+extern void DynamicFunc__SHA384_crypt_input2_append_input1(DYNA_OMP_PARAMS);
+extern void DynamicFunc__SHA384_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS);
+extern void DynamicFunc__SHA384_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS);
+extern void DynamicFunc__SHA384_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS);
+extern void DynamicFunc__SHA384_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS);
+extern void DynamicFunc__SHA384_crypt_input1_to_output1_FINAL(DYNA_OMP_PARAMS);
+extern void DynamicFunc__SHA384_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS);
 
-extern void DynamicFunc__SHA512_crypt_input1_append_input2();
-extern void DynamicFunc__SHA512_crypt_input2_append_input1();
-extern void DynamicFunc__SHA512_crypt_input1_overwrite_input1();
-extern void DynamicFunc__SHA512_crypt_input2_overwrite_input2();
-extern void DynamicFunc__SHA512_crypt_input1_overwrite_input2();
-extern void DynamicFunc__SHA512_crypt_input2_overwrite_input1();
-extern void DynamicFunc__SHA512_crypt_input1_to_output1_FINAL();
-extern void DynamicFunc__SHA512_crypt_input2_to_output1_FINAL();
+extern void DynamicFunc__SHA512_crypt_input1_append_input2(DYNA_OMP_PARAMS);
+extern void DynamicFunc__SHA512_crypt_input2_append_input1(DYNA_OMP_PARAMS);
+extern void DynamicFunc__SHA512_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS);
+extern void DynamicFunc__SHA512_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS);
+extern void DynamicFunc__SHA512_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS);
+extern void DynamicFunc__SHA512_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS);
+extern void DynamicFunc__SHA512_crypt_input1_to_output1_FINAL(DYNA_OMP_PARAMS);
+extern void DynamicFunc__SHA512_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS);
 
-extern void DynamicFunc__GOST_crypt_input1_append_input2();
-extern void DynamicFunc__GOST_crypt_input2_append_input1();
-extern void DynamicFunc__GOST_crypt_input1_overwrite_input1();
-extern void DynamicFunc__GOST_crypt_input2_overwrite_input2();
-extern void DynamicFunc__GOST_crypt_input1_overwrite_input2();
-extern void DynamicFunc__GOST_crypt_input2_overwrite_input1();
-extern void DynamicFunc__GOST_crypt_input1_to_output1_FINAL();
-extern void DynamicFunc__GOST_crypt_input2_to_output1_FINAL();
+extern void DynamicFunc__GOST_crypt_input1_append_input2(DYNA_OMP_PARAMS);
+extern void DynamicFunc__GOST_crypt_input2_append_input1(DYNA_OMP_PARAMS);
+extern void DynamicFunc__GOST_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS);
+extern void DynamicFunc__GOST_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS);
+extern void DynamicFunc__GOST_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS);
+extern void DynamicFunc__GOST_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS);
+extern void DynamicFunc__GOST_crypt_input1_to_output1_FINAL(DYNA_OMP_PARAMS);
+extern void DynamicFunc__GOST_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS);
 
 #if OPENSSL_VERSION_NUMBER >= 0x10000000
-extern void DynamicFunc__WHIRLPOOL_crypt_input1_append_input2();
-extern void DynamicFunc__WHIRLPOOL_crypt_input2_append_input1();
-extern void DynamicFunc__WHIRLPOOL_crypt_input1_overwrite_input1();
-extern void DynamicFunc__WHIRLPOOL_crypt_input2_overwrite_input2();
-extern void DynamicFunc__WHIRLPOOL_crypt_input1_overwrite_input2();
-extern void DynamicFunc__WHIRLPOOL_crypt_input2_overwrite_input1();
-extern void DynamicFunc__WHIRLPOOL_crypt_input1_to_output1_FINAL();
-extern void DynamicFunc__WHIRLPOOL_crypt_input2_to_output1_FINAL();
+extern void DynamicFunc__WHIRLPOOL_crypt_input1_append_input2(DYNA_OMP_PARAMS);
+extern void DynamicFunc__WHIRLPOOL_crypt_input2_append_input1(DYNA_OMP_PARAMS);
+extern void DynamicFunc__WHIRLPOOL_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS);
+extern void DynamicFunc__WHIRLPOOL_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS);
+extern void DynamicFunc__WHIRLPOOL_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS);
+extern void DynamicFunc__WHIRLPOOL_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS);
+extern void DynamicFunc__WHIRLPOOL_crypt_input1_to_output1_FINAL(DYNA_OMP_PARAMS);
+extern void DynamicFunc__WHIRLPOOL_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS);
 #endif
 
 // These 3 dump the raw crypt back into input (only at the head of it).
 // they are for phpass, wordpress, etc.
-extern void DynamicFunc__crypt_md5_to_input_raw();
-extern void DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen();
+extern void DynamicFunc__crypt_md5_to_input_raw(DYNA_OMP_PARAMS);
+extern void DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen(DYNA_OMP_PARAMS);
 // NOTE, the below line is called 'one' time.  It calls the 'normal' crypt mdfivemmx (and intrinsic loading)
 // for the lengths.  The lengths are not modified, but are need to be set ONCE.  From that point on,
 // we simply call the DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen and it calls mdfivemmx_nosizeupdate
 // which is a faster call (and the intrincs do NOT call SSE_Intrinsics_LoadLens within the
 // DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen function)   Splitting this up into 2, gives
 // us a 1 or 2% speed increase.
-extern void DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen_but_setlen_in_SSE();
+extern void DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen_but_setlen_in_SSE(DYNA_OMP_PARAMS);
 
 // special for phpass
-extern void DynamicFunc__PHPassCrypt();
+extern void DynamicFunc__PHPassCrypt(DYNA_OMP_PARAMS);
 // special for PO
-extern void DynamicFunc__POCrypt();
+extern void DynamicFunc__POCrypt(DYNA_OMP_PARAMS);
 // special for OpenBSD MD5 and Apache MD5
-extern void DynamicFunc__FreeBSDMD5Crypt();
+extern void DynamicFunc__FreeBSDMD5Crypt(DYNA_OMP_PARAMS);
 
 // End of generic md5 'types' and helpers
 
 // Depricated 'functions'  These are now 'flags'. We handle them by 'adding' the proper flags, but allow the script
 // to run IF the user has these fake functions as the first function.
-extern void DynamicFunc__PHPassSetup();
-extern void DynamicFunc__InitialLoadKeysToInput();
-extern void DynamicFunc__InitialLoadKeys_md5crypt_ToOutput2();
-extern void DynamicFunc__InitialLoadKeys_md5crypt_ToOutput2_Base16_to_Input1();
-extern void DynamicFunc__InitialLoadKeys_md5crypt_ToOutput2_Base16_to_Input1_offset32();
+extern void DynamicFunc__PHPassSetup(DYNA_OMP_PARAMS);
+extern void DynamicFunc__InitialLoadKeysToInput(DYNA_OMP_PARAMS);
+extern void DynamicFunc__InitialLoadKeys_md5crypt_ToOutput2(DYNA_OMP_PARAMS);
+extern void DynamicFunc__InitialLoadKeys_md5crypt_ToOutput2_Base16_to_Input1(DYNA_OMP_PARAMS);
+extern void DynamicFunc__InitialLoadKeys_md5crypt_ToOutput2_Base16_to_Input1_offset32(DYNA_OMP_PARAMS);
 
 
 // These are actually NOW depricated.  We have left 'thin' version in dynamic_fmt.c
 // that call the 2 'thick' functions needed. However, These should NOT be used any more.
-extern void DynamicFunc__SHA1_crypt_input1_append_input2_base16();
-extern void DynamicFunc__SHA1_crypt_input2_append_input1_base16();
-extern void DynamicFunc__SHA1_crypt_input1_overwrite_input1_base16();
-extern void DynamicFunc__SHA1_crypt_input2_overwrite_input2_base16();
-extern void DynamicFunc__SHA1_crypt_input1_overwrite_input2_base16();
-extern void DynamicFunc__SHA1_crypt_input2_overwrite_input1_base16();
-extern void DynamicFunc__SHA224_crypt_input1_append_input2_base16();
-extern void DynamicFunc__SHA224_crypt_input2_append_input1_base16();
-extern void DynamicFunc__SHA224_crypt_input1_overwrite_input1_base16();
-extern void DynamicFunc__SHA224_crypt_input2_overwrite_input2_base16();
-extern void DynamicFunc__SHA224_crypt_input1_overwrite_input2_base16();
-extern void DynamicFunc__SHA224_crypt_input2_overwrite_input1_base16();
-extern void DynamicFunc__SHA256_crypt_input1_append_input2_base16();
-extern void DynamicFunc__SHA256_crypt_input2_append_input1_base16();
-extern void DynamicFunc__SHA256_crypt_input1_overwrite_input1_base16();
-extern void DynamicFunc__SHA256_crypt_input2_overwrite_input2_base16();
-extern void DynamicFunc__SHA256_crypt_input1_overwrite_input2_base16();
-extern void DynamicFunc__SHA256_crypt_input2_overwrite_input1_base16();
-extern void DynamicFunc__SHA384_crypt_input1_append_input2_base16();
-extern void DynamicFunc__SHA384_crypt_input2_append_input1_base16();
-extern void DynamicFunc__SHA384_crypt_input1_overwrite_input1_base16();
-extern void DynamicFunc__SHA384_crypt_input2_overwrite_input2_base16();
-extern void DynamicFunc__SHA384_crypt_input1_overwrite_input2_base16();
-extern void DynamicFunc__SHA384_crypt_input2_overwrite_input1_base16();
-extern void DynamicFunc__SHA512_crypt_input1_append_input2_base16();
-extern void DynamicFunc__SHA512_crypt_input2_append_input1_base16();
-extern void DynamicFunc__SHA512_crypt_input1_overwrite_input1_base16();
-extern void DynamicFunc__SHA512_crypt_input2_overwrite_input2_base16();
-extern void DynamicFunc__SHA512_crypt_input1_overwrite_input2_base16();
-extern void DynamicFunc__SHA512_crypt_input2_overwrite_input1_base16();
-extern void DynamicFunc__GOST_crypt_input1_append_input2_base16();
-extern void DynamicFunc__GOST_crypt_input2_append_input1_base16();
-extern void DynamicFunc__GOST_crypt_input1_overwrite_input1_base16();
-extern void DynamicFunc__GOST_crypt_input2_overwrite_input2_base16();
-extern void DynamicFunc__GOST_crypt_input1_overwrite_input2_base16();
-extern void DynamicFunc__GOST_crypt_input2_overwrite_input1_base16();
+extern void DynamicFunc__SHA1_crypt_input1_append_input2_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__SHA1_crypt_input2_append_input1_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__SHA1_crypt_input1_overwrite_input1_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__SHA1_crypt_input2_overwrite_input2_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__SHA1_crypt_input1_overwrite_input2_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__SHA1_crypt_input2_overwrite_input1_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__SHA224_crypt_input1_append_input2_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__SHA224_crypt_input2_append_input1_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__SHA224_crypt_input1_overwrite_input1_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__SHA224_crypt_input2_overwrite_input2_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__SHA224_crypt_input1_overwrite_input2_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__SHA224_crypt_input2_overwrite_input1_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__SHA256_crypt_input1_append_input2_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__SHA256_crypt_input2_append_input1_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__SHA256_crypt_input1_overwrite_input1_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__SHA256_crypt_input2_overwrite_input2_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__SHA256_crypt_input1_overwrite_input2_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__SHA256_crypt_input2_overwrite_input1_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__SHA384_crypt_input1_append_input2_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__SHA384_crypt_input2_append_input1_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__SHA384_crypt_input1_overwrite_input1_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__SHA384_crypt_input2_overwrite_input2_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__SHA384_crypt_input1_overwrite_input2_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__SHA384_crypt_input2_overwrite_input1_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__SHA512_crypt_input1_append_input2_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__SHA512_crypt_input2_append_input1_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__SHA512_crypt_input1_overwrite_input1_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__SHA512_crypt_input2_overwrite_input2_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__SHA512_crypt_input1_overwrite_input2_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__SHA512_crypt_input2_overwrite_input1_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__GOST_crypt_input1_append_input2_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__GOST_crypt_input2_append_input1_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__GOST_crypt_input1_overwrite_input1_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__GOST_crypt_input2_overwrite_input2_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__GOST_crypt_input1_overwrite_input2_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__GOST_crypt_input2_overwrite_input1_base16(DYNA_OMP_PARAMS);
 #if OPENSSL_VERSION_NUMBER >= 0x10000000
-extern void DynamicFunc__WHIRLPOOL_crypt_input1_append_input2_base16();
-extern void DynamicFunc__WHIRLPOOL_crypt_input2_append_input1_base16();
-extern void DynamicFunc__WHIRLPOOL_crypt_input1_overwrite_input1_base16();
-extern void DynamicFunc__WHIRLPOOL_crypt_input2_overwrite_input2_base16();
-extern void DynamicFunc__WHIRLPOOL_crypt_input1_overwrite_input2_base16();
-extern void DynamicFunc__WHIRLPOOL_crypt_input2_overwrite_input1_base16();
+extern void DynamicFunc__WHIRLPOOL_crypt_input1_append_input2_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__WHIRLPOOL_crypt_input2_append_input1_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__WHIRLPOOL_crypt_input1_overwrite_input1_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__WHIRLPOOL_crypt_input2_overwrite_input2_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__WHIRLPOOL_crypt_input1_overwrite_input2_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__WHIRLPOOL_crypt_input2_overwrite_input1_base16(DYNA_OMP_PARAMS);
 #endif
 
 

@@ -1,4 +1,11 @@
 /*
+ *
+ * NOTE, this code is NOT thread safe.  Do not use this with any OpenMP
+ * build.  There is a global variable MD5_out, that keeps this from being
+ * able to be used with threads.  For threaded apps, use a CTX variant
+ * of MD5, where all data is kept in the CTX, and thus can be used safely
+ * with threading.  (JimF 2013)
+ *
  * This is an OpenSSL-compatible implementation of the RSA Data Security,
  * Inc. MD5 Message-Digest Algorithm (RFC 1321).
  *
