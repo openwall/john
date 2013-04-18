@@ -304,7 +304,7 @@ static void set_key (char *key, int index)
         buf8[len++] = *key++;
     buf64[15] = len << 3;
     buf8[len++] = 0x80;
-    while (buf8[len] && len < MAXLEN)
+    while (buf8[len] && len <= MAXLEN)
         buf8[len++] = 0;
 }
 
