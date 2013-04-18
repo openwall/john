@@ -823,13 +823,18 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 		return 0;
 	if (pPriv->nUserName && !strstr(&ciphertext[pPriv->dynamic_SALT_OFFSET-1], "$$U"))
 		return 0;
-	for (i = 0; i < 10; ++i) {
-		char Fld[5];
-		sprintf(Fld, "$$F%d", i);
-		if ( (pPriv->FldMask & (MGF_FLDx_BIT<<i)) == (MGF_FLDx_BIT<<i) && !strstr(&ciphertext[pPriv->dynamic_SALT_OFFSET-1], Fld))
-			return 0;
+	if (pPriv->FldMask) {
+		for (i = 0; i < 10; ++i) {
+			if ((pPriv->FldMask & (MGF_FLDx_BIT<<i)) == (MGF_FLDx_BIT<<i)) {
+				char Fld[5];
+				sprintf(Fld, "$$F%d", i);
+				if (!strstr(&ciphertext[pPriv->dynamic_SALT_OFFSET-1], Fld))
+					return 0;
+			}
+		}
 	}
 	if ( (pPriv->pSetup->flags & MGF_HDAA_SALT) == MGF_HDAA_SALT) {
+		// has a very complex salt function.  Requires certain fields, AND for these to be in proper order!!!
 		char *cp = strchr(&ciphertext[12], '$'), *cp2;
 		if (!cp) return 0;
 		cp2 = strchr(&cp[1], '$');
@@ -10901,13 +10906,24 @@ static char *FixupIfNeeded(char *ciphertext, private_subformat_data *pPriv)
 			if (!strchr(ciphertext, '$'))
 				return ciphertext;
 		}
-		if (pPriv->pSetup->flags & MGF_SALTED2) {
+		if ( (pPriv->pSetup->flags & MGF_SALTED2) == MGF_SALTED2) {
 			if (!strstr(ciphertext, "$$2"))
 				return ciphertext;
 		}
-		if (pPriv->pSetup->flags & MGF_HDAA_SALT) {
-			if (!strstr(ciphertext, "$$F2")||!strstr(ciphertext, "$$F3"))
+		if ( (pPriv->pSetup->flags & MGF_USERNAME) == MGF_USERNAME) {
+			if (!strstr(ciphertext, "$$U"))
 				return ciphertext;
+		}
+		if (pPriv->FldMask) {
+			int i;
+			for (i = 0; i < 10; ++i) {
+				if ((pPriv->FldMask & (MGF_FLDx_BIT<<i)) == (MGF_FLDx_BIT<<i)) {
+					char Fld[5];
+					sprintf(Fld, "$$F%d", i);
+					if (!strstr(&ciphertext[pPriv->dynamic_SALT_OFFSET-1], Fld))
+						return 0;
+				}
+			}
 		}
 		strcpy(__ciphertext, pPriv->dynamic_WHICH_TYPE_SIG);
 		strnzcpy(&__ciphertext[strlen(__ciphertext)], ciphertext, 512);
