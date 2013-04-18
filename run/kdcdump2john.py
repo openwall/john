@@ -12,10 +12,7 @@ import sys
 
 
 def usage():
-    print """
-    Usage :
-    %s\t[dump]
-    """ % sys.argv[0]
+    sys.stdout.write("""Usage: %s [dump]\n""" % sys.argv[0])
 
 if (len(sys.argv) < 2):
     usage()
@@ -29,9 +26,9 @@ for l in dump_f.readlines():
         if (l.strip()):
             name = l.strip()
     if (i[0] == "23"):
-        print "%s:$krb23$%s" % (name, i[1].strip())
+        sys.stdout.write("%s:$krb23$%s\n" % (name, i[1].strip()))
     elif (i[0] == "18"):
         salt = name.split("@")[1] + name.split("@")[0].replace("/", "")
-        print "%s:$krb18$%s$%s" % (name, salt, i[1].strip())
+        sys.stdout.write("%s:$krb18$%s$%s\n" % (name, salt, i[1].strip()))
 
 dump_f.close()
