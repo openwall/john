@@ -110,16 +110,16 @@ static int is_aligned(void *p, size_t align)
 		format->methods.set_key(buf_key, index); \
 	}
 
-#define MAXLABEL        "max-length test: "
+#define MAXLABEL        "MAXLENGTH" /* must be upper-case chars only */
 static char *longcand(int index, int ml)
 {
-	static char longcand[PLAINTEXT_BUFFER_SIZE];
+	static char out[PLAINTEXT_BUFFER_SIZE];
 
-	memset(longcand, 'A' + (index % 23), ml);
-	memcpy(longcand, MAXLABEL, strlen(MAXLABEL));
-	longcand[ml] = 0;
+	memset(out, 'A' + (index % 23), ml);
+	memcpy(out, MAXLABEL, strlen(MAXLABEL));
+	out[ml] = 0;
 
-	return longcand;
+	return out;
 }
 
 static char *fmt_self_test_body(struct fmt_main *format,
@@ -225,18 +225,18 @@ static char *fmt_self_test_body(struct fmt_main *format,
 	advance_cursor();
 #endif
 	/* 2. Perform a crypt (just in case it matters) */
-	{
-		int count = max;
-		if (format->methods.crypt_all(&count, NULL) != count)
-			return "crypt_all";
-	}
+	if (format->methods.crypt_all(&max, NULL) != max)
+		return "crypt_all";
+
 #if defined(HAVE_OPENCL) || defined(HAVE_CUDA)
 	advance_cursor();
 #endif
 	/* 3. Now read them back and verify they are intact */
 	for (i = 0; i < max; i++) {
 		char *getkey = format->methods.get_key(i);
-		if (strncmp(getkey, longcand(i, ml), ml + 1)) {
+		char *key = longcand(i, ml);
+
+		if (strncmp(getkey, key, ml + 1)) {
 			if (fmt_strnlen(getkey, ml + 1) > ml)
 				sprintf(s_size, "max. length in index %d: wrote"
 				        " %d, got longer back", i, ml);
