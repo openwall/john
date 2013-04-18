@@ -33,7 +33,7 @@
 #include "sha2.h"
 #ifdef _OPENMP
 #include <omp.h>
-#define OMP_SCALE               64
+#define OMP_SCALE               1
 #endif
 
 #define FORMAT_LABEL		"cloudkeychain"

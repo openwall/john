@@ -46,9 +46,6 @@ static struct fmt_tests agile_keychain_tests[] = {
 	{NULL}
 };
 
-#if defined (_OPENMP)
-static int omp_t = 1;
-#endif
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static int *cracked;
 
@@ -63,8 +60,9 @@ static struct custom_salt {
 
 static void init(struct fmt_main *self)
 {
-
 #if defined (_OPENMP)
+	int omp_t = 1;
+
 	omp_t = omp_get_max_threads();
 	self->params.min_keys_per_crypt *= omp_t;
 	omp_t *= OMP_SCALE;
@@ -82,6 +80,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	int ctlen;
 	int saltlen;
 	char *p;
+
 	if (strncmp(ciphertext,  "$agilekeychain$", 15) != 0)
 		return 0;
 	ctcopy = strdup(ciphertext);
@@ -125,6 +124,7 @@ static void *get_salt(char *ciphertext)
 	int i;
 	char *p;
 	static struct custom_salt cs;
+
 	ctcopy += 15;	/* skip over "$agilekeychain$" */
 	p = strtok(ctcopy, "*");
 	cs.nkeys = atoi(p);
@@ -159,10 +159,6 @@ static int akcdecrypt(unsigned char *derived_key, unsigned char *data)
 	int pad, n, i, key_size;
 	AES_KEY akey;
 
-	// memcpy(key, derived_key, 16);
-	// memset(out, 0, sizeof(out));
-	// memset(&akey, 0, sizeof(AES_KEY));
-
 	if(AES_set_decrypt_key(derived_key, 128, &akey) < 0) {
 		fprintf(stderr, "AES_set_derypt_key failed in crypt!\n");
 	}
@@ -189,6 +185,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
 	int index = 0;
+
 #ifdef _OPENMP
 #pragma omp parallel for
 	for (index = 0; index < count; index++)
@@ -229,6 +226,7 @@ static int cmp_exact(char *source, int index)
 static void agile_keychain_set_key(char *key, int index)
 {
 	int saved_key_length = strlen(key);
+
 	if (saved_key_length > PLAINTEXT_LENGTH)
 		saved_key_length = PLAINTEXT_LENGTH;
 	memcpy(saved_key[index], key, saved_key_length);
