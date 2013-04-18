@@ -42,6 +42,8 @@ void dynamic_DISPLAY_ALL_FORMATS()
 		char Type[14], *cp;
 		if (!sz)
 			break;
+		if (!IsOMP_Valid(i))
+			continue;
 		strncpy(Type, sz, sizeof(Type));
 		Type[13] = 0;
 		cp = strchr(Type, ':');
@@ -61,7 +63,7 @@ void dynamic_DISPLAY_ALL_FORMATS()
 	for (i = 1000; i < 10000; ++i)
 	{
 		char *sz = dynamic_LOAD_PARSER_SIGNATURE(i);
-		if (sz)
+		if (sz && dynamic_IS_PARSER_VALID(i))
 			printf ("UserFormat = dynamic_%d  type = %s\n", i, sz);
 	}
 }

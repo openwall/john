@@ -361,6 +361,15 @@ static struct fmt_tests _Preloads_11[] =
 //dynamic_12 --> md5(md5($s).md5($p))
 static DYNAMIC_primitive_funcp _Funcs_12[] =
 {
+#if defined (MMX_COEF) && defined (_OPENMP)
+	//MGF_NOTSSE2Safe
+	//MGF_KEYS_BASE16_IN1_Offset32
+	//MGF_SALT_AS_HEX
+	DynamicFunc__overwrite_salt_to_input1_no_size_fix,
+	DynamicFunc__set_input_len_64,
+	DynamicFunc__crypt_md5,
+	NULL
+#else
 	//MGF_KEYS_BASE16_X86_IN1_Offset32
 	//MGF_SALT_AS_HEX
 	DynamicFunc__ToX86,
@@ -368,6 +377,7 @@ static DYNAMIC_primitive_funcp _Funcs_12[] =
 	DynamicFunc__set_input_len_64,
 	DynamicFunc__crypt_md5,
 	NULL
+#endif
 };
 static struct fmt_tests _Preloads_12[] =
 {
@@ -380,6 +390,15 @@ static struct fmt_tests _Preloads_12[] =
 //dynamic_13 --> md5(md5($p).md5($s))
 static DYNAMIC_primitive_funcp _Funcs_13[] =
 {
+#if defined (MMX_COEF) && defined (_OPENMP)
+	//MGF_NOTSSE2Safe
+	//MGF_KEYS_BASE16_IN1
+	//MGF_SALT_AS_HEX
+	DynamicFunc__set_input_len_32,
+	DynamicFunc__append_salt,
+	DynamicFunc__crypt_md5,
+	NULL
+#else
 	//MGF_KEYS_BASE16_X86_IN1
 	//MGF_SALT_AS_HEX
 	DynamicFunc__ToX86,
@@ -387,7 +406,7 @@ static DYNAMIC_primitive_funcp _Funcs_13[] =
 	DynamicFunc__append_salt,
 	DynamicFunc__crypt_md5,
 	NULL
-
+#endif
 };
 static struct fmt_tests _Preloads_13[] =
 {
@@ -720,6 +739,7 @@ static struct fmt_tests _Preloads_26[] =
 	{NULL}
 };
 
+#if !defined (_OPENMP)
 #if ARCH_LITTLE_ENDIAN
 //dynamic_27 --> FreeBSD MD5
 static DYNAMIC_primitive_funcp _Funcs_27[] =
@@ -769,6 +789,7 @@ static DYNAMIC_Constants _Const_28[] =
 	{6, "$apr1$"},
 	{0, NULL}
 };
+#endif
 #endif
 
 //dynamic_29 --> raw-md5-unicode  md5(unicode($p))
@@ -1415,8 +1436,13 @@ static DYNAMIC_Setup Setups[] =
 	{ "dynamic_9: md5($s.md5($p))",             _Funcs_9, _Preloads_9, _ConstDefault, MGF_SALTED, MGF_KEYS_BASE16_IN1, -23, 55, 80 },
 	{ "dynamic_10: md5($s.md5($s.$p))",         _Funcs_10,_Preloads_10,_ConstDefault, MGF_SALTED, MGF_NO_FLAG, -23 },
 	{ "dynamic_11: md5($s.md5($p.$s))",         _Funcs_11,_Preloads_11,_ConstDefault, MGF_SALTED, MGF_NO_FLAG, -23 },
+#if defined (MMX_COEF) && defined (_OPENMP)
+	{ "dynamic_12: md5(md5($s).md5($p)) (IPB)", _Funcs_12,_Preloads_12,_ConstDefault, MGF_SALTED|MGF_SALT_AS_HEX|MGF_NOTSSE2Safe, MGF_KEYS_BASE16_IN1_Offset32, -32, 55, 80 },
+	{ "dynamic_13: md5(md5($p).md5($s))",       _Funcs_13,_Preloads_13,_ConstDefault, MGF_SALTED|MGF_SALT_AS_HEX|MGF_NOTSSE2Safe, MGF_KEYS_BASE16_IN1, -32, 55, 80 },
+#else
 	{ "dynamic_12: md5(md5($s).md5($p)) (IPB)", _Funcs_12,_Preloads_12,_ConstDefault, MGF_SALTED|MGF_SALT_AS_HEX, MGF_KEYS_BASE16_X86_IN1_Offset32, -32, 55, 80 },
 	{ "dynamic_13: md5(md5($p).md5($s))",       _Funcs_13,_Preloads_13,_ConstDefault, MGF_SALTED|MGF_SALT_AS_HEX, MGF_KEYS_BASE16_X86_IN1, -32, 55, 80 },
+#endif
 #if defined (MMX_COEF)
 	{ "dynamic_14: md5($s.md5($p).$s)",         _Funcs_14,_Preloads_14,_ConstDefault, MGF_SALTED,MGF_KEYS_CRYPT_IN2, -11, 55, 80, -24 },
 #else
@@ -1438,9 +1464,11 @@ static DYNAMIC_Setup Setups[] =
 	{ "dynamic_24: sha1($p.$s)",                _Funcs_24,_Preloads_24,_ConstDefault, MGF_SALTED, MGF_NO_FLAG|MGF_SHA1_40_BYTE_FINISH, -24 },
 	{ "dynamic_25: sha1($s.$p)",                _Funcs_25,_Preloads_25,_ConstDefault, MGF_SALTED, MGF_NO_FLAG|MGF_SHA1_40_BYTE_FINISH, -24 },
 	{ "dynamic_26: sha1($p) raw-sha1",          _Funcs_26,_Preloads_26,_ConstDefault, MGF_NO_FLAG, MGF_RAW_SHA1_INPUT|MGF_SHA1_40_BYTE_FINISH },
+#if !defined (_OPENMP)
 #if ARCH_LITTLE_ENDIAN
 	{ "dynamic_27: FreeBSD MD5",                _Funcs_27,_Preloads_27,_Const_27,     MGF_SALTED|MGF_INPBASE64a|MGF_StartInX86Mode, MGF_FreeBSDMD5Setup, -8, 15, 15 },
 	{ "dynamic_28: Apache MD5",                 _Funcs_28,_Preloads_28,_Const_28,     MGF_SALTED|MGF_INPBASE64a|MGF_StartInX86Mode, MGF_FreeBSDMD5Setup, -8, 15, 15 },
+#endif
 #endif
 	{ "dynamic_29: md5(unicode($p))",           _Funcs_29,_Preloads_29,_ConstDefault, MGF_UTF8, MGF_NO_FLAG, 0, 27, 40 }, // if we are in utf8 mode, we triple this in the init() call
 	{ "dynamic_30: md4($p) (raw-md4)",          _Funcs_30,_Preloads_30,_ConstDefault, MGF_NO_FLAG, MGF_KEYS_INPUT },
@@ -1531,7 +1559,7 @@ int IsOMP_Valid(int j) {
 		if (Setups[j].pFuncs[i] == DynamicFunc__base16_convert_locase) return 0;
 		if (Setups[j].pFuncs[i] == DynamicFunc__base16_convert_upcase) return 0;
 #ifdef MMX_COEF
-		//if (Setups[j].pFuncs[i] == DynamicFunc__SHA1_crypt_input2_to_output1_FINAL) return 0;
+		if (Setups[j].pFuncs[i] == DynamicFunc__SHA1_crypt_input2_to_output1_FINAL) return 0;
 		if (Setups[j].pFuncs[i] == DynamicFunc__SHA1_crypt_input1_to_output1_FINAL) return 0;
 #endif
 	}

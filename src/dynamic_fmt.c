@@ -1871,6 +1871,8 @@ static void crypt_all(int count)
 			{
 #ifndef MMX_COEF
 				if (curdat.store_keys_normal_but_precompute_md5_to_output2_base16_to_input1_offset32==2)
+#else
+				if (dynamic_use_sse == 1)
 #endif
 					__nonMP_DynamicFunc__SSEtoX86_switch_output2();
 				__nonMP_DynamicFunc__clean_input();

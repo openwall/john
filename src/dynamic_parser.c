@@ -772,6 +772,10 @@ int dynamic_IS_PARSER_VALID(int which)
 		if (strstr(gen_line->data, "DynamicFunc__ToX86")) return 0;
 		if (strstr(gen_line->data, "DynamicFunc__base16_convert_locase")) return 0;
 		if (strstr(gen_line->data, "DynamicFunc__base16_convert_upcase")) return 0;
+#ifdef MMX_COEF
+		if (strstr(gen_line->data, "DynamicFunc__SHA1_crypt_input2_to_output1_FINAL")) return 0;
+		if (strstr(gen_line->data, "DynamicFunc__SHA1_crypt_input1_to_output1_FINAL")) return 0;
+#endif
 #endif
 		gen_line = gen_line->next;
 	}
