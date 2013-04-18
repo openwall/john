@@ -23,8 +23,9 @@ from binascii import hexlify
 try:
     from scapy.all import rdpcap
 except ImportError:
-    print "please install scapy: http://www.secdev.org/projects/scapy/ "
-    sys.exit()
+    sys.stderr.write("Please install scapy, "
+            "http://www.secdev.org/projects/scapy/\n")
+    sys.exit(-1)
 
 
 def get_challenge_response(cfg_pcap_file):
@@ -36,7 +37,8 @@ def get_challenge_response(cfg_pcap_file):
     # try to find challenge packet
     pckt_108 = 0  # challenge packet (from server)
     for (pckt_indx, pckt_len) in pckt_lens.items():
-        if pckt_len + 14 == 108 and hexlify(r[pckt_indx].load)[14:24] == '7202002732':
+        if (pckt_len + 14 == 108 and
+                hexlify(r[pckt_indx].load)[14:24] == '7202002732'):
             pckt_108 = pckt_indx
             break
 
@@ -45,7 +47,8 @@ def get_challenge_response(cfg_pcap_file):
     _t1 = dict([(i, lens[i]) for i in pckt_lens.keys()[pckt_108:]])
     for pckt_indx in sorted(_t1.keys()):
         pckt_len = _t1[pckt_indx]
-        if pckt_len + 14 == 141 and hexlify(r[pckt_indx].load)[14:24] == '7202004831':
+        if (pckt_len + 14 == 141 and
+                hexlify(r[pckt_indx].load)[14:24] == '7202004831'):
             pckt_141 = pckt_indx
             break
 
@@ -54,16 +57,18 @@ def get_challenge_response(cfg_pcap_file):
     pckt_92 = 0  # auth answer from plc: pckt_len==92 -> auth bad
     for pckt_indx in sorted(_t1.keys()):
         pckt_len = _t1[pckt_indx]
-        if pckt_len + 14 == 84 and hexlify(r[pckt_indx].load)[14:24] == '7202000f32':
+        if (pckt_len + 14 == 84 and
+                hexlify(r[pckt_indx].load)[14:24] == '7202000f32'):
             pckt_84 = pckt_indx
             assert(pckt_84)
             break
-        if pckt_len + 14 == 92 and hexlify(r[pckt_indx].load)[14:24] == '7202001732':
+        if (pckt_len + 14 == 92 and
+                hexlify(r[pckt_indx].load)[14:24] == '7202001732'):
             pckt_92 = pckt_indx
             assert(pckt_92)
             break
 
-    # print "found packets indeces: pckt_108=%d, pckt_141=%d, pckt_84=%d, pckt_92=%d" % (pckt_108, pckt_141, pckt_84, pckt_92)
+    # print "found packets indices: pckt_108=%d, pckt_141=%d, pckt_84=%d, pckt_92=%d" % (pckt_108, pckt_141, pckt_84, pckt_92)
     # if pckt_84:
     #    print "auth ok"
     # else:
@@ -73,33 +78,40 @@ def get_challenge_response(cfg_pcap_file):
     challenge = None
     response = None
 
-    raw_challenge = hexlify(r[pckt_108].load)
+    try:
+        raw_challenge = hexlify(r[pckt_108].load)
+    except (AttributeError):
+        sys.stderr.write("%s : expected data not found!\n" % cfg_pcap_file)
+        return
     if raw_challenge[46:52] == '100214' and raw_challenge[92:94] == '00':
         challenge = raw_challenge[52:92]
-        # print "found challenge: %s" % challenge
+        # sys.stdout.write("found challenge: %s\n" % challenge)
     else:
-        print >> sys.stderr, "cannot find challenge for %s. exiting..." % cfg_pcap_file
+        sys.stderr.write("cannot find challenge for %s. exiting...\n"
+                % cfg_pcap_file)
         return
 
     raw_response = hexlify(r[pckt_141].load)
     if raw_response[64:70] == '100214' and raw_response[110:112] == '00':
         response = raw_response[70:110]
-        # print "found  response: %s" % response
+        # sys.stdout.write("found  response: %s\n" % response)
     else:
-        print >> sys.stderr, "cannot find response for %s. exiting..." % cfg_pcap_file
+        sys.stderr.write("cannot find response for %s. exiting...\n"
+                % cfg_pcap_file)
         return
 
     if pckt_84:
         outcome = 1
     else:
         outcome = 0
-    print "%s:$siemens-s7$%s$%s$%s" % (cfg_pcap_file, outcome, challenge, response)
+    sys.stdout.write("%s:$siemens-s7$%s$%s$%s\n" % (cfg_pcap_file,
+        outcome, challenge, response))
 
 
 if __name__ == '__main__':
 
     if len(sys.argv) < 2:
-        print >> sys.stderr, "Usage: %s <.pcap files>" % sys.argv[0]
+        sys.stderr.write("Usage: %s <.pcap files>\n" % sys.argv[0])
         sys.exit(-1)
 
     for j in range(1, len(sys.argv)):
