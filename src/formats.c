@@ -134,15 +134,10 @@ static char *fmt_self_test_body(struct fmt_main *format,
 #ifdef DEBUG
 	int validkiller = 0;
 #endif
-	int ml = format->params.plaintext_length;
-
 #ifndef BENCH_BUILD
-	/* UTF-8 bodge in reverse. Otherwise we will get truncated keys back
-	   from the max-length self-test */
-	if ((options.utf8) && (format->params.flags & FMT_UTF8) &&
-	    (format->params.flags & FMT_UNICODE))
-		ml /= 3;
+	int maxlength = 0;
 #endif
+	int ml;
 
 	// validate that there are no NULL function pointers
 	if (format->methods.init == NULL)       return "method init NULL";
@@ -189,6 +184,15 @@ static char *fmt_self_test_body(struct fmt_main *format,
 
 	fmt_init(format);
 
+	ml = format->params.plaintext_length;
+#ifndef BENCH_BUILD
+	/* UTF-8 bodge in reverse. Otherwise we will get truncated keys back
+	   from the max-length self-test */
+	if ((options.utf8) && (format->params.flags & FMT_UTF8) &&
+	    (format->params.flags & FMT_UNICODE))
+		ml /= 3;
+#endif
+
 	format->methods.reset(NULL);
 
 	if ((format->methods.split == fmt_default_split) &&
@@ -213,41 +217,6 @@ static char *fmt_self_test_body(struct fmt_main *format,
 
 	done = 0;
 	index = 0; max = format->params.max_keys_per_crypt;
-
-#ifndef BENCH_BUILD
-	/* Check that claimed max. length is actually supported:
-	   1. Fill the buffer with maximum length keys */
-	format->methods.clear_keys();
-	for (i = 0; i < max; i++) {
-		format->methods.set_key(longcand(i, ml), i);
-	}
-#if defined(HAVE_OPENCL) || defined(HAVE_CUDA)
-	advance_cursor();
-#endif
-	/* 2. Perform a crypt (just in case it matters) */
-	if (format->methods.crypt_all(&max, NULL) != max)
-		return "crypt_all";
-
-#if defined(HAVE_OPENCL) || defined(HAVE_CUDA)
-	advance_cursor();
-#endif
-	/* 3. Now read them back and verify they are intact */
-	for (i = 0; i < max; i++) {
-		char *getkey = format->methods.get_key(i);
-		char *key = longcand(i, ml);
-
-		if (strncmp(getkey, key, ml + 1)) {
-			if (fmt_strnlen(getkey, ml + 1) > ml)
-				sprintf(s_size, "max. length in index %d: wrote"
-				        " %d, got longer back", i, ml);
-			else
-				sprintf(s_size, "max. length in index %d: wrote"
-				        " %d, got %d back", i, ml,
-				        (int)strlen(getkey));
-			return s_size;
-		}
-	}
-#endif
 
 	do {
 		if (!current->fields[1])
@@ -321,6 +290,45 @@ static char *fmt_self_test_body(struct fmt_main *format,
 
 		format->methods.set_salt(salt);
 
+#ifndef BENCH_BUILD
+		if (maxlength == 0) {
+			maxlength = 1;
+
+			/* Check that claimed max. length is actually supported:
+			   1. Fill the buffer with maximum length keys */
+			format->methods.clear_keys();
+			for (i = 0; i < max; i++)
+				format->methods.set_key(longcand(i, ml), i);
+
+#if defined(HAVE_OPENCL) || defined(HAVE_CUDA)
+			advance_cursor();
+#endif
+			/* 2. Perform a crypt (just in case it matters) */
+			if (format->methods.crypt_all(&max, NULL) != max)
+				return "crypt_all";
+
+#if defined(HAVE_OPENCL) || defined(HAVE_CUDA)
+			advance_cursor();
+#endif
+			/* 3. Now read them back and verify they are intact */
+			for (i = 0; i < max; i++) {
+				char *getkey = format->methods.get_key(i);
+				char *setkey = longcand(i, ml);
+
+				if (strncmp(getkey, setkey, ml + 1)) {
+					if (fmt_strnlen(getkey, ml + 1) > ml)
+						sprintf(s_size, "max. length in index %d: wrote"
+						        " %d, got longer back", i, ml);
+					else
+						sprintf(s_size, "max. length in index %d: wrote"
+						        " %d, got %d back", i, ml,
+						        (int)strlen(getkey));
+					return s_size;
+				}
+			}
+		}
+#endif
+
 		if (index == 0)
 			format->methods.clear_keys();
 		fmt_set_key(current->plaintext, index);
@@ -369,9 +377,8 @@ static char *fmt_self_test_body(struct fmt_main *format,
 			/* Always call set_key() even if skipping. Some
 			   formats depend on it. */
 			for (i = index + 1;
-			     i < max && i < (index + (index >> 1)); i++) {
+			     i < max && i < (index + (index >> 1)); i++)
 				format->methods.set_key(longcand(i, ml), i);
-			}
 			index = i;
 		} else
 			index++;
