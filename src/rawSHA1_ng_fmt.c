@@ -16,6 +16,10 @@
 # include <x86intrin.h>
 #endif
 
+#ifdef _OPENMP
+# include <omp.h>
+#endif
+
 #include "stdint.h"
 #include "params.h"
 #include "formats.h"
@@ -398,14 +402,22 @@ static char * sha1_fmt_get_key(int index)
 
 static int sha1_fmt_crypt_all(int *pcount, struct db_salt *salt)
 {
-    __m128i W[SHA1_BLOCK_WORDS];
-    __m128i A, B, C, D, E;
-    __m128i K;
     int32_t i, count;
+
+    // Fetch crypt count from john.
+    count = *pcount;
+
+#ifdef _OPENMP
+# pragma omp parallel for
+#endif
 
     // To reduce the overhead of multiple function calls, we buffer lots of
     // passwords, and then hash them in multiples of 4 all at once.
-    for (count = *pcount, i = 0; i < count; i += 4) {
+    for (i = 0; i < count; i += 4) {
+        __m128i W[SHA1_BLOCK_WORDS];
+        __m128i A, B, C, D, E;
+        __m128i K;
+
         // Fetch the message, then use a 4x4 matrix transpose to shuffle them
         // into place.
         W[0]  = _mm_load_si128(&M[i + 0]);
@@ -692,7 +704,7 @@ struct fmt_main fmt_sha1_ng = {
         .salt_align         = 1,
         .min_keys_per_crypt = 4,
         .max_keys_per_crypt = SHA1_PARALLEL_HASH,
-        .flags              = FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
+        .flags              = FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP,
         .tests              = sha1_fmt_tests,
     },
     .methods                = {
