@@ -100,6 +100,9 @@ struct fmt_methods {
  * shared underlying resource is used). */
 	void (*init)(struct fmt_main *self);
 
+/* De-initializes this format, which must have been previously initialized */
+	void (*done)(void);
+
 /* Extracts the ciphertext string out of the input file fields.  Normally, this
  * will simply return field[1], but in some special cases it may use another
  * field (e.g., when the hash type is commonly used with PWDUMP rather than
@@ -208,6 +211,11 @@ extern void fmt_register(struct fmt_main *format);
 extern void fmt_init(struct fmt_main *format);
 
 /*
+ * De-initializes this format if it was previously initialized.
+ */
+extern void fmt_done(struct fmt_main *format);
+
+/*
  * Tests the format's methods for correct operation. Returns NULL on
  * success, method name on error.
  */
@@ -217,6 +225,7 @@ extern char *fmt_self_test(struct fmt_main *format);
  * Default methods.
  */
 extern void fmt_default_init(struct fmt_main *self);
+extern void fmt_default_done(void);
 extern char *fmt_default_prepare(char *fields[10], struct fmt_main *self);
 extern int fmt_default_valid(char *ciphertext, struct fmt_main *self);
 extern char *fmt_default_split(char *ciphertext, int index,

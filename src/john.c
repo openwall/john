@@ -374,16 +374,18 @@ static void john_run(void)
 
 static void john_done(void)
 {
-	path_done();
-
-	if ((options.flags & FLG_CRACKING_CHK) &&
-	    !(options.flags & FLG_STDOUT)) {
+	if ((options.flags & (FLG_CRACKING_CHK | FLG_STDOUT)) ==
+	    FLG_CRACKING_CHK) {
 		if (event_abort)
 			log_event("Session aborted");
 		else
 			log_event("Session completed");
+		fmt_done(database.format);
 	}
 	log_done();
+
+	path_done();
+
 	check_abort(0);
 }
 

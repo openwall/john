@@ -210,6 +210,7 @@ struct fmt_main fmt_LM = {
 		tests
 	}, {
 		init,
+		fmt_default_done,
 		prepare,
 		valid,
 		split,
