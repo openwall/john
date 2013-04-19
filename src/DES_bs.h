@@ -13,6 +13,9 @@
 #include "arch.h"
 #include "common.h"
 
+/* For struct db_salt */
+#include "loader.h"
+
 #ifndef DES_BS_ALGORITHM_NAME
 #define DES_BS_ALGORITHM_NAME		ARCH_BITS_STR "/" ARCH_BITS_STR " BS"
 #endif
@@ -146,7 +149,7 @@ extern void DES_bs_crypt_25(int keys_count);
 /*
  * Another special-case version: a non-zero IV, no salts, no iterations.
  */
-extern void DES_bs_crypt_LM(int keys_count);
+extern int DES_bs_crypt_LM(int keys_count, struct db_salt *salt);
 
 /*
  * Converts an ASCII ciphertext to binary to be used with one of the

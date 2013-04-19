@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2008,2010,2011 by Solar Designer
+ * Copyright (c) 1996-2001,2008,2010-2012 by Solar Designer
  */
 
 #include <stdlib.h>
@@ -225,7 +225,7 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-static void crypt_all(int count)
+static int crypt_all(int count, struct db_salt *salt)
 {
 	if (keys_mode != saved_salt.subtype) {
 		int i;
@@ -237,6 +237,8 @@ static void crypt_all(int count)
 	}
 
 	BF_std_crypt(&saved_salt, count);
+
+	return count;
 }
 
 static int cmp_all(void *binary, int count)

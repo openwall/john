@@ -315,9 +315,10 @@ static char *get_key(int index)
 
 #if DES_BS
 
-static void crypt_all(int count)
+static int crypt_all(int count, struct db_salt *salt)
 {
 	DES_bs_crypt(saved_count, count);
+	return count;
 }
 
 static int cmp_one(void *binary, int index)
@@ -332,7 +333,7 @@ static int cmp_exact(char *source, int index)
 
 #else
 
-static void crypt_all(int count)
+static int crypt_all(int count, struct db_salt *salt)
 {
 	int index;
 
@@ -344,6 +345,8 @@ static void crypt_all(int count)
 
 	for (index = 0; index < count; index++)
 		DES_std_crypt(buffer[index].KS, buffer[index].binary);
+
+	return count;
 }
 
 static int cmp_all(void *binary, int count)

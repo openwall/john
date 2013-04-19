@@ -233,7 +233,7 @@ static int crk_process_event(void)
 static int crk_password_loop(struct db_salt *salt)
 {
 	struct db_password *pw;
-	int index;
+	int match, index;
 
 #if !OS_TIMER
 	sig_timer_emu_tick();
@@ -244,7 +244,7 @@ static int crk_password_loop(struct db_salt *salt)
 	if (event_pending)
 	if (crk_process_event()) return 1;
 
-	crk_methods.crypt_all(crk_key_index);
+	match = crk_methods.crypt_all(crk_key_index, salt);
 
 	{
 		int64 effective_count;
@@ -252,11 +252,14 @@ static int crk_password_loop(struct db_salt *salt)
 		status_update_crypts(&effective_count);
 	}
 
+	if (!match)
+		return 0;
+
 	if (!salt->bitmap) {
 		pw = salt->list;
 		do {
-			if (crk_methods.cmp_all(pw->binary, crk_key_index))
-			for (index = 0; index < crk_key_index; index++)
+			if (crk_methods.cmp_all(pw->binary, match))
+			for (index = 0; index < match; index++)
 			if (crk_methods.cmp_one(pw->binary, index))
 			if (crk_methods.cmp_exact(crk_methods.source(
 			    pw->source, pw->binary), index)) {
@@ -267,7 +270,7 @@ static int crk_password_loop(struct db_salt *salt)
 			}
 		} while ((pw = pw->next));
 	} else
-	for (index = 0; index < crk_key_index; index++) {
+	for (index = 0; index < match; index++) {
 		int hash = salt->index(index);
 		if (salt->bitmap[hash / (sizeof(*salt->bitmap) * 8)] &
 		    (1U << (hash % (sizeof(*salt->bitmap) * 8)))) {
