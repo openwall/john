@@ -156,11 +156,11 @@ static void set_salt(void *salt)
 
 static int akcdecrypt(unsigned char *derived_key, unsigned char *data)
 {
-	unsigned char *iv = data + CTLEN - 32;
 	unsigned char out[CTLEN];
 	int pad, n, i, key_size;
 	AES_KEY akey;
-
+	unsigned char iv[16];
+	memcpy(iv, data + CTLEN - 32, 16);
 	// memcpy(key, derived_key, 16);
 	// memset(out, 0, sizeof(out));
 	// memset(&akey, 0, sizeof(AES_KEY));
