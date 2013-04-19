@@ -1177,7 +1177,7 @@ DES_bs_finalize_keys_expand_loop:
 DO_ALIGN(6)
 .globl DES_bs_crypt_LM
 DES_bs_crypt_LM:
-	pushq %rdi
+	movl (%rdi),%r8d
 	movdqa mask01,%xmm7
 	movdqa mask02,%xmm8
 	leaq DES_bs_all_xkeys(%rip),v_ptr
@@ -1332,7 +1332,7 @@ DES_bs_crypt_LM_loop:
 	S8(B(4), B(26), B(14), B(20))
 	subl $1,rounds
 	jnz DES_bs_crypt_LM_loop
-	popq %rax
+	xchgq %r8,%rax
 	ret
 
 #endif

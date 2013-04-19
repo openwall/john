@@ -281,8 +281,9 @@ static char *get_key(int index)
 	return buffer[index].key;
 }
 
-static int crypt_all(int count, struct db_salt *salt)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int index, pos, length;
 	char xor[8];
 	ARCH_WORD_32 space[(PLAINTEXT_LENGTH + SALT_SIZE + 8) / 4 + 1];

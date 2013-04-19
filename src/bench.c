@@ -97,7 +97,7 @@ char *benchmark_format(struct fmt_main *format, int salts,
 #endif
 	struct tms buf;
 	clock_t start_real, start_virtual, end_real, end_virtual;
-	int64 count;
+	int64 crypts;
 	char *ciphertext;
 	void *salt, *two_salts[2];
 	int index, max;
@@ -166,11 +166,13 @@ char *benchmark_format(struct fmt_main *format, int salts,
 	start_real = times(&buf);
 	start_virtual = buf.tms_utime + buf.tms_stime;
 	start_virtual += buf.tms_cutime + buf.tms_cstime;
-	count.lo = count.hi = 0;
+	crypts.lo = crypts.hi = 0;
 
 	index = salts;
 	max = format->params.max_keys_per_crypt;
 	do {
+		int count = max;
+
 		if (!--index) {
 			index = salts;
 			if (!(++current)->ciphertext)
@@ -179,10 +181,10 @@ char *benchmark_format(struct fmt_main *format, int salts,
 		}
 
 		if (salts > 1) format->methods.set_salt(two_salts[index & 1]);
-		(void)format->methods.crypt_all(max, NULL);
-		format->methods.cmp_all(binary, max);
+		format->methods.cmp_all(binary,
+		    format->methods.crypt_all(&count, NULL));
 
-		add32to64(&count, max);
+		add32to64(&crypts, count);
 #if !OS_TIMER
 		sig_timer_emu_tick();
 #endif
@@ -197,7 +199,7 @@ char *benchmark_format(struct fmt_main *format, int salts,
 
 	results->real = end_real - start_real;
 	results->virtual = end_virtual - start_virtual;
-	results->count = count;
+	results->crypts = crypts;
 
 	for (index = 0; index < 2; index++)
 		MEM_FREE(two_salts[index]);
@@ -205,12 +207,12 @@ char *benchmark_format(struct fmt_main *format, int salts,
 	return event_abort ? "" : NULL;
 }
 
-void benchmark_cps(int64 *count, clock_t time, char *buffer)
+void benchmark_cps(int64 *crypts, clock_t time, char *buffer)
 {
 	unsigned int cps_hi, cps_lo;
 	int64 tmp;
 
-	tmp = *count;
+	tmp = *crypts;
 	mul64by32(&tmp, clk_tck);
 	cps_hi = div64by32lo(&tmp, time);
 
@@ -282,8 +284,8 @@ int benchmark_all(void)
 
 		puts("DONE");
 
-		benchmark_cps(&results_m.count, results_m.real, s_real);
-		benchmark_cps(&results_m.count, results_m.virtual, s_virtual);
+		benchmark_cps(&results_m.crypts, results_m.real, s_real);
+		benchmark_cps(&results_m.crypts, results_m.virtual, s_virtual);
 #if !defined(__DJGPP__) && !defined(__BEOS__)
 		printf("%s:\t%s c/s real, %s c/s virtual\n",
 			msg_m, s_real, s_virtual);
@@ -297,8 +299,8 @@ int benchmark_all(void)
 			goto next;
 		}
 
-		benchmark_cps(&results_1.count, results_1.real, s_real);
-		benchmark_cps(&results_1.count, results_1.virtual, s_virtual);
+		benchmark_cps(&results_1.crypts, results_1.real, s_real);
+		benchmark_cps(&results_1.crypts, results_1.virtual, s_virtual);
 #if !defined(__DJGPP__) && !defined(__BEOS__)
 		printf("%s:\t%s c/s real, %s c/s virtual\n\n",
 			msg_1, s_real, s_virtual);

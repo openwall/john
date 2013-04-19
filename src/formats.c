@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2006,2008,2010-2012 by Solar Designer
+ * Copyright (c) 1996-2001,2006,2008,2010-2013 by Solar Designer
  */
 
 #include <stdio.h>
@@ -135,8 +135,14 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		format->methods.set_salt(salt);
 		format->methods.set_key(current->plaintext, index);
 
-		if (format->methods.crypt_all(index + 1, NULL) != index + 1)
-			return "crypt_all";
+		{
+			int count = index + 1;
+			int match = format->methods.crypt_all(&count, NULL);
+/* If salt is NULL, the return value must always match *count the way it is
+ * after the crypt_all() call. */
+			if (match != count)
+				return "crypt_all";
+		}
 
 		for (size = 0; size < PASSWORD_HASH_SIZES; size++)
 		if (format->methods.binary_hash[size] &&
