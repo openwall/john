@@ -54,6 +54,7 @@
 #define SHA1_DIGEST_SIZE        20
 #define SHA1_DIGEST_WORDS        5
 #define SHA1_PARALLEL_HASH     512 // This must be a multiple of 4.
+#define OMP_SCALE               32 // Multiplier to hide OMP overhead
 
 #define __aligned_16 __attribute__((aligned(16)))
 
@@ -153,12 +154,12 @@
 // M and N contain the first and last 128bits of a 512bit SHA-1 message block
 // respectively. The remaining 256bits are always zero, and so are not stored
 // here to avoid the load overhead.
-static uint32_t __aligned_16 M[SHA1_PARALLEL_HASH][4];
-static uint32_t __aligned_16 N[SHA1_PARALLEL_HASH];
+static uint32_t (*M)[4];
+static uint32_t *N;
 
 // MD contains the state of the SHA-1 A register at R75 for each of the input
 // messages.
-static uint32_t __aligned_16 MD[SHA1_PARALLEL_HASH];
+static uint32_t *MD;
 
 static const char kFormatTag[] = "$dynamic_26$";
 
@@ -225,6 +226,22 @@ static inline uint32_t __attribute__((const)) bswap32(uint32_t value)
     return result;
 }
 #endif
+
+
+static void init(struct fmt_main *self)
+{
+#ifdef _OPENMP
+    int omp_t;
+
+    omp_t = omp_get_max_threads();
+    self->params.min_keys_per_crypt *= omp_t;
+    omp_t *= OMP_SCALE;
+    self->params.max_keys_per_crypt *= omp_t;
+#endif
+    M = mem_calloc_tiny(sizeof(*M) * self->params.max_keys_per_crypt, MEM_ALIGN_CACHE);
+    N = mem_calloc_tiny(sizeof(*N) * self->params.max_keys_per_crypt, MEM_ALIGN_CACHE);
+    MD = mem_calloc_tiny(sizeof(*MD) * self->params.max_keys_per_crypt, MEM_ALIGN_CACHE);
+}
 
 
 static int sha1_fmt_valid(char *ciphertext, struct fmt_main *self)
@@ -708,7 +725,7 @@ struct fmt_main fmt_sha1_ng = {
         .tests              = sha1_fmt_tests,
     },
     .methods                = {
-        .init               = fmt_default_init,
+        .init               = init,
         .done               = fmt_default_done,
         .reset              = fmt_default_reset,
         .prepare            = fmt_default_prepare,
