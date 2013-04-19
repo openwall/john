@@ -150,11 +150,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	{
 		unsigned char key[24];
 		unsigned char pt[48];
-		unsigned char *iv = cur_salt->ct + 16;
+		unsigned char iv[16];
 		AES_KEY akey;
 		SHA_CTX ctx;
 
 		memset(&key[20], 0, 4);
+		memcpy(iv, cur_salt->ct + 16, 16);
+
 		SHA1_Init(&ctx);
 		SHA1_Update(&ctx, saved_key[index], strlen(saved_key[index]));
 		SHA1_Update(&ctx, cur_salt->salt, 10);

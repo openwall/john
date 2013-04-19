@@ -156,10 +156,11 @@ static void set_salt(void *salt)
 
 static int akcdecrypt(unsigned char *derived_key, unsigned char *data)
 {
-	unsigned char *iv = data + CTLEN - 32;
 	unsigned char out[CTLEN];
 	int pad, n, i, key_size;
 	AES_KEY akey;
+	unsigned char iv[16];
+	memcpy(iv, data + CTLEN - 32, 16);
 
 	if(AES_set_decrypt_key(derived_key, 128, &akey) < 0) {
 		fprintf(stderr, "AES_set_derypt_key failed in crypt!\n");
