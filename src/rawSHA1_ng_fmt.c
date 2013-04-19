@@ -346,7 +346,7 @@ static void sha1_fmt_set_key(char *key, int index)
     };
 
     // First, find the length of the key by scanning for a zero byte.
-    len = __builtin_ctz(len);
+    N[index] = len = __builtin_ctz(len);
 
     // Zero out the rest of the DQWORD in X by making a suitable mask.
     Z = _mm_load_si128(kUsedBytesTable[len]);
@@ -378,8 +378,6 @@ static void sha1_fmt_set_key(char *key, int index)
     // message block (or only message block, in this case). The << 3 is to find
     // the length in bits (multiply by 8).
     _mm_store_si128(&M[index], X);
-
-    N[index] = len << 3;
 
     return;
 }
@@ -443,8 +441,8 @@ static int sha1_fmt_crypt_all(int *pcount, struct db_salt *salt)
         R1(W[13], C, D, E, A, B); W[14] = _mm_setzero_si128();
         R1(W[14], B, C, D, E, A);
 
-        // Fetch the message lengths.
-        W[15] = _mm_load_si128(&N[i]);
+        // Fetch the message lengths, multiply 8 (to get the length in bits).
+        W[15] = _mm_slli_epi32(_mm_load_si128(&N[i]), 3);
 
         R1(W[15], A, B, C, D, E);                                   // 15
 
