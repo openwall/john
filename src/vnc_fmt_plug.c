@@ -35,7 +35,7 @@
 #ifdef _OPENMP
 static int omp_t = 1;
 #include <omp.h>
-#define OMP_SCALE               64
+#define OMP_SCALE               1024 // tuned on core i7
 #endif
 
 #define FORMAT_LABEL		"vnc"

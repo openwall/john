@@ -24,7 +24,7 @@
 #include <openssl/aes.h>
 #ifdef _OPENMP
 #include <omp.h>
-#define OMP_SCALE               64
+#define OMP_SCALE               1 // tuned on core i7
 #endif
 
 #define FORMAT_LABEL		"agilekeychain"

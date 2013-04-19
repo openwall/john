@@ -42,7 +42,7 @@
 #include "pbkdf2_hmac_sha256.h"
 #ifdef _OPENMP
 #include <omp.h>
-#define OMP_SCALE               32
+#define OMP_SCALE               4 // tuned on core i7
 static int omp_t = 1;
 #endif
 
