@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2008,2010,2011 by Solar Designer
+ * Copyright (c) 1996-2001,2008,2010-2012 by Solar Designer
  */
 
 #include <string.h>
@@ -195,6 +195,12 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
+static int crypt_all(int count, struct db_salt *salt)
+{
+	MD5_std_crypt(count);
+	return count;
+}
+
 static int cmp_all(void *binary, int count)
 {
 #if MD5_std_mt
@@ -269,7 +275,7 @@ struct fmt_main fmt_MD5 = {
 		set_key,
 		get_key,
 		fmt_default_clear_keys,
-		MD5_std_crypt,
+		crypt_all,
 		{
 			get_hash_0,
 			get_hash_1,

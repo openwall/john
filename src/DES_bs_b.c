@@ -1452,7 +1452,7 @@ static MAYBE_INLINE void DES_bs_finalize_keys_LM(void)
 #define kd				[0]
 #endif
 
-void DES_bs_crypt_LM(int keys_count)
+int DES_bs_crypt_LM(int keys_count, struct db_salt *salt)
 {
 #if DES_bs_mt
 	int t, n = (keys_count + (DES_BS_DEPTH - 1)) / DES_BS_DEPTH;
@@ -1559,5 +1559,7 @@ void DES_bs_crypt_LM(int keys_count)
 			k += 96;
 		} while (--rounds);
 	}
+
+	return keys_count;
 }
 #endif
