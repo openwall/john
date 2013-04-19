@@ -1,0 +1,23 @@
+474 files were reviewed for their licensing terms.
+
+324 may be reusable in non-GPL'ed software (either are copyrighted by
+Solar, so can be relicensed by Solar, or are released to the general
+public under sufficiently relaxed terms).  This includes 5 files under
+MPL 1.1 and 1 under LGPL 2.1 - these 6 are only reusable if conditions
+of the respective licenses are met.
+
+Shell command to list the reusable files above:
+
+egrep  '; Solar; |   (N/A|public domain(| \+ cut-down BSD fallback)|(cut-down|3-clause) BSD(| with slight language change| combined with another freeish license| or GPL| or GPLv2)|cut-down MIT|Unicode license|unRAR license|MPL 1\.1 or GPLv2\+|LGPL 2\.1)(|\?);' john-1.7.9-jumbo-7-licensing.txt | less
+
+With directory names and empty lines between directories:
+
+egrep  '; Solar; |   (N/A|public domain(| \+ cut-down BSD fallback)|(cut-down|3-clause) BSD(| with slight language change| combined with another freeish license| or GPL| or GPLv2)|cut-down MIT|Unicode license|unRAR license|MPL 1\.1 or GPLv2\+|LGPL 2\.1)(|\?);|^$|john-.*:$' john-1.7.9-jumbo-7-licensing.txt | less
+
+What remains, with directory names and empty lines between directories:
+
+egrep -v '; Solar; |   (N/A|public domain(| \+ cut-down BSD fallback)|(cut-down|3-clause) BSD(| with slight language change| combined with another freeish license| or GPL| or GPLv2)|cut-down MIT|Unicode license|unRAR license|MPL 1\.1 or GPLv2\+|LGPL 2\.1)(|\?);' john-1.7.9-jumbo-7-licensing.txt | less
+
+Many of the non-reusable files have their reusable counterparts in the
+core tree (clean 1.7.9, non-jumbo), from where they can be relicensed by
+Solar (versions without GPL'ed changes by others).
