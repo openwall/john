@@ -301,7 +301,6 @@ static void body_eq(void *data, int index)
 
 }
 
-
 void MD5_Go_eq(unsigned char *data, unsigned int len, int index)
 {
 	data[len] = 0x80;

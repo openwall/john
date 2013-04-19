@@ -59,6 +59,10 @@ office2john:
  *
  * http://msdn.microsoft.com/en-us/library/cc313071.aspx */
 
+/*
+office2john:
+	$(CC) `xml2-config --cflags` `pkg-config --cflags libgsf-1` office2john.c common.o base64.o `pkg-config --libs libgsf-1` `xml2-config --libs` -o ../run/office2john */
+
 #include <gsf/gsf-utils.h>
 #include <gsf/gsf-input-stdio.h>
 #include <gsf/gsf-infile.h>
