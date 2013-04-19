@@ -373,10 +373,7 @@ static void sha1_fmt_set_key(char *key, int index)
     X = _mm_roti_epi32(X, 16);
     X = _mm_roti_epi16(X, 8);
 
-    // Store the result and it's length into the message buffer, we need the
-    // length in bits because SHA-1 requires the length be part of the final
-    // message block (or only message block, in this case). The << 3 is to find
-    // the length in bits (multiply by 8).
+    // Store the result into the message buffer.
     _mm_store_si128(&M[index], X);
 
     return;
