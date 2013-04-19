@@ -5,6 +5,7 @@ self-test on big-endian CPUs):
 * mssql05
 * office
 * rar
+* mozilla
 (x86 and x86-64 are little-endian, so they are not affected.)
 
 Not working on HD 4000 series and older ATI GPUs (these formats need
