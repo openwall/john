@@ -38,7 +38,7 @@
 #include "base64.h"
 #ifdef _OPENMP
 #include <omp.h>
-#define OMP_SCALE               1
+#define OMP_SCALE               8 // tuned on core i7
 #endif
 
 #define FORMAT_LABEL		"wbb3"

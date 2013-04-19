@@ -24,7 +24,7 @@
 #include <openssl/aes.h>
 #ifdef _OPENMP
 #include <omp.h>
-#define OMP_SCALE               64
+#define OMP_SCALE               1 // tuned on core i7
 #endif
 
 #define FORMAT_LABEL		"agilekeychain"
@@ -188,6 +188,7 @@ static int akcdecrypt(unsigned char *derived_key, unsigned char *data)
 static void crypt_all(int count)
 {
 	int index = 0;
+
 #ifdef _OPENMP
 #pragma omp parallel for
 	for (index = 0; index < count; index++)
@@ -227,6 +228,7 @@ static int cmp_exact(char *source, int index)
 static void agile_keychain_set_key(char *key, int index)
 {
 	int saved_key_length = strlen(key);
+
 	if (saved_key_length > PLAINTEXT_LENGTH)
 		saved_key_length = PLAINTEXT_LENGTH;
 	memcpy(saved_key[index], key, saved_key_length);

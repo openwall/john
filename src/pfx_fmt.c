@@ -24,7 +24,7 @@
 #include "options.h"
 #ifdef _OPENMP
 #include <omp.h>
-#define OMP_SCALE               64
+#define OMP_SCALE               2 // tuned on core i7
 #endif
 #include <string.h>
 #include "arch.h"
