@@ -6,7 +6,6 @@
 
 #include <string.h>
 #include <stdbool.h>
-#include "stdint.h"
 #include <emmintrin.h>
 
 #ifdef __SSE4_1__
@@ -17,6 +16,7 @@
 # include <x86intrin.h>
 #endif
 
+#include "stdint.h"
 #include "params.h"
 #include "formats.h"
 #include "memory.h"
@@ -150,7 +150,7 @@
 // respectively. The remaining 256bits are always zero, and so are not stored
 // here to avoid the load overhead.
 static uint32_t __aligned_16 M[SHA1_PARALLEL_HASH][4];
-static uint32_t __aligned_16 N[SHA1_PARALLEL_HASH][4];
+static uint32_t __aligned_16 N[SHA1_PARALLEL_HASH];
 
 // MD contains the state of the SHA-1 A register at R75 for each of the input
 // messages.
@@ -378,7 +378,8 @@ static void sha1_fmt_set_key(char *key, int index)
     // message block (or only message block, in this case). The << 3 is to find
     // the length in bits (multiply by 8).
     _mm_store_si128(&M[index], X);
-    _mm_store_si128(&N[index], _mm_set_epi32(len << 3, 0, 0, 0));
+
+    N[index] = len << 3;
 
     return;
 }
@@ -402,15 +403,14 @@ static char * sha1_fmt_get_key(int index)
 
 static int sha1_fmt_crypt_all(int *pcount, struct db_salt *salt)
 {
-	int count = *pcount;
     __m128i W[SHA1_BLOCK_WORDS];
     __m128i A, B, C, D, E;
     __m128i K;
-    int32_t i;
+    int32_t i, count;
 
     // To reduce the overhead of multiple function calls, we buffer lots of
     // passwords, and then hash them in multiples of 4 all at once.
-    for (i = 0; i < count; i += 4) {
+    for (count = *pcount, i = 0; i < count; i += 4) {
         // Fetch the message, then use a 4x4 matrix transpose to shuffle them
         // into place.
         W[0]  = _mm_load_si128(&M[i + 0]);
@@ -438,20 +438,14 @@ static int sha1_fmt_crypt_all(int *pcount, struct db_salt *salt)
         R1(W[8],  C, D, E, A, B); W[9]  = _mm_setzero_si128();
         R1(W[9],  B, C, D, E, A); W[10] = _mm_setzero_si128();
         R1(W[10], A, B, C, D, E); W[11] = _mm_setzero_si128();      // 10
-
-        // Fetch the message lengths, we can use a 4x4 matrix transpose to
-        // shuffle the words into the correct position.
-        W[12] = _mm_load_si128(&N[i + 0]);
-        W[13] = _mm_load_si128(&N[i + 1]);
-        W[14] = _mm_load_si128(&N[i + 2]);
-        W[15] = _mm_load_si128(&N[i + 3]);
-
-        _MM_TRANSPOSE4_EPI32(W[12], W[13], W[14], W[15]);
-
-        R1(W[11], E, A, B, C, D);
-        R1(W[12], D, E, A, B, C);
-        R1(W[13], C, D, E, A, B);
+        R1(W[11], E, A, B, C, D); W[12] = _mm_setzero_si128();
+        R1(W[12], D, E, A, B, C); W[13] = _mm_setzero_si128();
+        R1(W[13], C, D, E, A, B); W[14] = _mm_setzero_si128();
         R1(W[14], B, C, D, E, A);
+
+        // Fetch the message lengths.
+        W[15] = _mm_load_si128(&N[i]);
+
         R1(W[15], A, B, C, D, E);                                   // 15
 
         X(W[0],  W[2],  W[8],  W[13]);  R1(W[0],  E, A, B, C, D);
