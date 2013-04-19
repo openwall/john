@@ -1383,8 +1383,9 @@ DES_bs_crypt_LM_loop:
 	S8(B(4), B(26), B(14), B(20), a6_p)
 	decl rounds
 	jnz DES_bs_crypt_LM_loop
+	movl 8(%esp),%eax
 	popl %esi
-	movl 4(%esp),%eax
+	movl (%eax),%eax
 	ret
 
 #endif

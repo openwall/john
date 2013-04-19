@@ -195,8 +195,9 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-static int crypt_all(int count, struct db_salt *salt)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	MD5_std_crypt(count);
 	return count;
 }

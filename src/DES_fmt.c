@@ -195,8 +195,9 @@ static void set_salt(void *salt)
 	DES_bs_set_salt(*(ARCH_WORD *)salt);
 }
 
-static int crypt_all(int count, struct db_salt *salt)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	DES_bs_crypt_25(count);
 	return count;
 }
@@ -269,8 +270,9 @@ static void set_salt(void *salt)
 	DES_std_set_salt(*(ARCH_WORD *)salt);
 }
 
-static int crypt_all(int count, struct db_salt *salt)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int index;
 
 	for (index = 0; index < count; index++)
