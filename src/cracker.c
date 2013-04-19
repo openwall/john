@@ -56,7 +56,15 @@ void crk_init(struct db_main *db, void (*fix_state)(void),
 	char *where;
 	size_t size;
 
-	if (db->loaded)
+/*
+ * We should have already called fmt_self_test() from john.c.  This redundant
+ * self-test is only to catch some more obscure bugs in debugging builds (it
+ * is a no-op in normal builds).  Additionally, we skip it even in debugging
+ * builds if we're running in --stdout mode (there's no format involved then)
+ * or if the format has a custom reset() method (we've already called reset(db)
+ * from john.c, and we don't want to mess with the format's state).
+ */
+	if (db->loaded && db->format->methods.reset == fmt_default_reset)
 	if ((where = fmt_self_test(db->format))) {
 		log_event("! Self test failed (%s)", where);
 		fprintf(stderr, "Self test failed (%s)\n", where);

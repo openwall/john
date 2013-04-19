@@ -211,6 +211,7 @@ struct fmt_main fmt_LM = {
 	}, {
 		init,
 		fmt_default_done,
+		fmt_default_reset,
 		prepare,
 		valid,
 		split,

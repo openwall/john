@@ -450,6 +450,7 @@ struct fmt_main fmt_AFS = {
 	}, {
 		init,
 		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
