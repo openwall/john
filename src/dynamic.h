@@ -27,10 +27,10 @@
 #include <openssl/opensslv.h>
 
 #ifdef _OPENMP
-#define DYNA_OMP_PARAMS int first, int last
-#define DYNA_OMP_PARAMSm int first, int last,
-#define DYNA_OMP_PARAMSd first, last
-#define DYNA_OMP_PARAMSdm first, last,
+#define DYNA_OMP_PARAMS int first, int last, int tid
+#define DYNA_OMP_PARAMSm int first, int last, int tid,
+#define DYNA_OMP_PARAMSd first, last, tid
+#define DYNA_OMP_PARAMSdm first, last, tid,
 #else
 #define DYNA_OMP_PARAMS
 #define DYNA_OMP_PARAMSm
@@ -139,6 +139,7 @@ int dynamic_real_salt_length(struct fmt_main *pFmt);
 void dynamic_RESET(struct fmt_main *);
 void dynamic_DISPLAY_ALL_FORMATS();
 char *RemoveHEX(char *output, char *input);
+int IsOMP_Valid(int);
 
 // Function used to 'link' a thin format into dynamic.  See PHPS_fmt.c for an example.
 struct fmt_main *dynamic_THIN_FORMAT_LINK(struct fmt_main *pFmt, char *ciphertext, char *orig_sig, int bInitAlso);
