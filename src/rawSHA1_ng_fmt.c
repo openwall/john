@@ -228,19 +228,16 @@ static inline uint32_t __attribute__((const)) bswap32(uint32_t value)
 #endif
 
 
-static void init(struct fmt_main *self)
+static void sha1_fmt_init(struct fmt_main *self)
 {
 #ifdef _OPENMP
-    int omp_t;
-
-    omp_t = omp_get_max_threads();
-    self->params.min_keys_per_crypt *= omp_t;
-    omp_t *= OMP_SCALE;
-    self->params.max_keys_per_crypt *= omp_t;
+    self->params.min_keys_per_crypt *= omp_get_max_threads();
+    self->params.max_keys_per_crypt *= omp_get_max_threads() * OMP_SCALE;
 #endif
-    M = mem_calloc_tiny(sizeof(*M) * self->params.max_keys_per_crypt, MEM_ALIGN_CACHE);
-    N = mem_calloc_tiny(sizeof(*N) * self->params.max_keys_per_crypt, MEM_ALIGN_CACHE);
-    MD = mem_calloc_tiny(sizeof(*MD) * self->params.max_keys_per_crypt, MEM_ALIGN_CACHE);
+
+    M   = mem_calloc_tiny(sizeof(*M)  * self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
+    N   = mem_calloc_tiny(sizeof(*N)  * self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
+    MD  = mem_calloc_tiny(sizeof(*MD) * self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
 }
 
 
@@ -725,7 +722,7 @@ struct fmt_main fmt_sha1_ng = {
         .tests              = sha1_fmt_tests,
     },
     .methods                = {
-        .init               = init,
+        .init               = sha1_fmt_init,
         .done               = fmt_default_done,
         .reset              = fmt_default_reset,
         .prepare            = fmt_default_prepare,
