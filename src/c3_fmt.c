@@ -149,7 +149,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	}
 
 	if (id != 10 && !ldr_in_pot)
-		fprintf(stderr, "Generic crypt(3) module: "
+		fprintf(stderr, "Warning: "
 		    "hash encoding string length %d, type id %c%c\n"
 		    "appears to be unsupported on this system; "
 		    "will not load such hashes.\n",
@@ -348,7 +348,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	int index;
 
 #if defined(_OPENMP) && defined(__GLIBC__)
-#pragma omp parallel for default(none) private(index) shared(count, crypt_out, saved_key, saved_salt, crypt_data)
+#pragma omp parallel for default(none) private(index) shared(count, crypt_out, saved_key, saved_salt, crypt_data, stderr)
 	for (index = 0; index < count; index++) {
 		char *hash;
 		int t = omp_get_thread_num();
@@ -378,6 +378,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		}
 		if (!hash) {
 			static int warned = 0;
+#pragma omp critical
 			if (!warned) {
 				fprintf(stderr,
 				    "Warning: crypt_r() returned NULL\n");
@@ -398,12 +399,15 @@ static int crypt_all(int *pcount, struct db_salt *salt)
  * reasonable).  Overall, this code is reasonable to use for SHA-crypt and
  * SunMD5 hashes, which are not yet supported by non-jumbo John natively.
  */
-#pragma omp parallel for default(none) private(index) shared(count, crypt_out, saved_key, saved_salt)
+#pragma omp parallel for default(none) private(index) shared(count, crypt_out, saved_key, saved_salt, stderr)
 #endif
 	for (index = 0; index < count; index++) {
 		char *hash = crypt(saved_key[index], saved_salt);
 		if (!hash) {
 			static int warned = 0;
+#if defined(_OPENMP) && defined(__sun)
+#pragma omp critical
+#endif
 			if (!warned) {
 				fprintf(stderr,
 				    "Warning: crypt() returned NULL\n");
