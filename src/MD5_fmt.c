@@ -62,6 +62,8 @@ static struct fmt_tests tests[] = {
 	{"$1$boire$gf.YM2y3InYEu9.NbVr.v0", "manger"},
 	{"$1$bas$qvkmmWnVHRCSv/6LQ1doH/", "haut"},
 	{"$1$gauche$EPvd6LZlrgb0MMFPxUrJN1", "droite"},
+	/* following hash is AIX standard smd5 hash (with corrected tag) */
+	{"$1$JVDbGx8K$T9h8HK4LZxeLPMTAxCfpc1", "password"},
 	{NULL}
 };
 

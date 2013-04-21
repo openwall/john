@@ -1,6 +1,9 @@
 /* AIX ssha cracker patch for JtR. Hacked together during April of 2013 by Dhiru
  * Kholia <dhiru at openwall.com>.
  *
+ * Thanks to atom (of hashcat project) and philsmd for discovering and
+ * publishing the details of various AIX hashing algorithms.
+ *
  * This software is Copyright (c) 2013 Dhiru Kholia <dhiru at openwall.com> and
  * it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
@@ -28,7 +31,7 @@ static int omp_t = 1;
 #define ALGORITHM_NAME		"32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
-#define PLAINTEXT_LENGTH	32
+#define PLAINTEXT_LENGTH	125
 #define BINARY_SIZE		20
 #define CMP_SIZE 		BINARY_SIZE - 2
 #define LARGEST_BINARY_SIZE	64
@@ -185,13 +188,6 @@ static void set_salt(void *salt)
 	cur_salt = (struct custom_salt *)salt;
 }
 
-// the encryption algorithm used in crypt_all in under following license
-// License: belongs to the PUBLIC DOMAIN, donated to hashcat, credits MUST go to hashcat
-//          and philsmd for their hard work. Thx
-// Disclaimer: WE PROVIDE THE PROGRAM “AS IS” WITHOUT WARRANTY OF ANY KIND, EITHER
-//         EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
-//         OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-//         Furthermore, NO GUARANTEES THAT IT WORKS FOR YOU AND WORKS CORRECTLY
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;

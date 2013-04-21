@@ -37,14 +37,13 @@ def process_file(filename, is_standard):
             h = line.split("=")[1].lstrip().rstrip()
             if len(h) != 37:
                 continue
-            salt, h = h[6:].split('$')
-            h = h64.decode_transposed_bytes(h, _transpose_map)
             if is_standard:
-                val = 1
+                sys.stdout.write("%s:$1$%s\n" % (username, h[6:]))
             else:
-                val = 0
-            sys.stdout.write("%s:{smd5}%s$%s$%s\n" % (username,
-                    salt, binascii.hexlify(h), val))
+                salt, hp = h[6:].split('$')
+                dh = h64.decode_transposed_bytes(hp, _transpose_map)
+                sys.stdout.write("%s:{smd5}%s$%s$0\n" % (username,
+                    salt, binascii.hexlify(dh)))
 
         elif "password = " in line and "ssha" in line:
             h = line.split("=")[1].lstrip().rstrip()
