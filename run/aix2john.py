@@ -40,10 +40,8 @@ def process_file(filename, is_standard):
             if is_standard:
                 sys.stdout.write("%s:$1$%s\n" % (username, h[6:]))
             else:
-                salt, hp = h[6:].split('$')
-                dh = h64.decode_transposed_bytes(hp, _transpose_map)
-                sys.stdout.write("%s:{smd5}%s$%s$0\n" % (username,
-                    salt, binascii.hexlify(dh)))
+                sys.stdout.write("%s:%s\n" % (username,
+                    h))
 
         elif "password = " in line and "ssha" in line:
             h = line.split("=")[1].lstrip().rstrip()
