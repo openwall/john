@@ -447,10 +447,11 @@ void md5cryptsse(unsigned char pwd[MD5_SSE_NUM_KEYS][16], unsigned char * salt, 
 
 		MD5_Init(&ctx);
 		MD5_Update(&ctx, pwd[i], length_i);
-		if(md5_type == MD5_TYPE_APACHE)
-			MD5_Update(&ctx, "$apr1$", 6);
-		else
+		if (md5_type == MD5_TYPE_STD)
 			MD5_Update(&ctx, "$1$", 3);
+		else if (md5_type == MD5_TYPE_APACHE)
+			MD5_Update(&ctx, "$apr1$", 6);
+		// else it's AIX and no prefix included
 		MD5_Update(&ctx, salt, saltlen);
 		MD5_Init(&tctx);
 		MD5_Update(&tctx, pwd[i], length_i);

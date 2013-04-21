@@ -62,6 +62,8 @@ static struct fmt_tests tests[] = {
 	{"$1$boire$gf.YM2y3InYEu9.NbVr.v0", "manger"},
 	{"$1$bas$qvkmmWnVHRCSv/6LQ1doH/", "haut"},
 	{"$1$gauche$EPvd6LZlrgb0MMFPxUrJN1", "droite"},
+	/* following hash is AIX non-standard smd5 */
+	{"{smd5}s8/xSJ/v$uGam4GB8hOjTLQqvBfxJ2/", "password"},
 	/* following hash is AIX standard smd5 hash (with corrected tag) */
 	{"$1$JVDbGx8K$T9h8HK4LZxeLPMTAxCfpc1", "password"},
 	{NULL}
@@ -105,7 +107,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *pos, *start;
 
 	if (strncmp(ciphertext, "$1$", 3)) {
-		if (strncmp(ciphertext, "$apr1$", 6))
+		if (strncmp(ciphertext, "$apr1$", 6) &&
+		    strncmp(ciphertext, "{smd5}", 6))
 			return 0;
 		ciphertext += 3;
 	}
@@ -368,12 +371,8 @@ static void set_salt(void *salt)
 {
 #ifdef MD5_SSE_PARA
 	memcpy(cursalt, salt, SALT_SIZE);
-	if (cursalt[8]) {
-		CryptType = MD5_TYPE_APACHE;
-		cursalt[8] = 0;
-	}
-	else
-		CryptType = MD5_TYPE_STD;
+	CryptType = cursalt[8];
+	cursalt[8] = 0;
 #endif
 	MD5_std_set_salt(salt);
 }

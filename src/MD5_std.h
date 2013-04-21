@@ -135,6 +135,7 @@ extern MD5_std_combined MD5_std_all;
 // these 2 are still used by the 'para' function
 #define MD5_TYPE_APACHE 1
 #define MD5_TYPE_STD	2
+#define MD5_TYPE_AIX	3
 
 /*
  * Initializes the internal structures.

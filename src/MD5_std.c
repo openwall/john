@@ -404,12 +404,15 @@ void MD5_std_set_salt(char *salt)
 	memcpy(pool[1].s, salt, pool[1].l.s = length);
 #endif
 
-	if (salt[8]) {
-		prefix = "$apr1$";
-		prelen = 6;
-	} else {
+	if (salt[8] == MD5_TYPE_STD) {
 		prefix = "$1$";
 		prelen = 3;
+	} else if (salt[8] == MD5_TYPE_APACHE) {
+		prefix = "$apr1$";
+		prelen = 6;
+	} else if (salt[8] == MD5_TYPE_AIX) {
+		prefix = "";
+		prelen = 0;
 	}
 }
 
@@ -977,10 +980,17 @@ char *MD5_std_get_salt(char *ciphertext)
 	char *p, *q;
 	int i;
 
-	p = ciphertext + 3;
-	if ((out[8] = !strncmp(ciphertext, "$apr1$", 6)))
+	if (!strncmp(ciphertext, "$apr1$", 6)) {
+		out[8] = MD5_TYPE_APACHE;
 		p = ciphertext + 6;
-
+	} else
+	if (!strncmp(ciphertext, "{smd5}", 6)) {
+		out[8] = MD5_TYPE_AIX;
+		p = ciphertext + 6;
+	} else {
+		out[8] = MD5_TYPE_STD;
+		p = ciphertext + 3;
+	}
 	q = out;
 	for (i = 0; *p != '$' && i < 8; i++)
 		*q++ = *p++;
@@ -1011,7 +1021,8 @@ MD5_word *MD5_std_get_binary(char *ciphertext)
 	MD5_word value;
 
 	pos = ciphertext + 3;
-	if (!strncmp(ciphertext, "$apr1$", 6))
+	if (!strncmp(ciphertext, "$apr1$", 6) ||
+	    !strncmp(ciphertext, "{smd5}", 6))
 		pos = ciphertext + 6;
 
 	while (*pos++ != '$');
