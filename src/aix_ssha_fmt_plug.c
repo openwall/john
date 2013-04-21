@@ -42,6 +42,11 @@ static struct fmt_tests aixssha_tests[] = {
 	{"{ssha256}06$HrJ3Q4Acc.rs/ubt$c3196c151fe21cc130817d5d7ed5f3d42be8a5bd1aa60f421e33ca96eade0022", "p2"},
 	{"{ssha256}06$qUnFEflZmUNcApOj$7dedb8e2430f9800992c9be22a22b580d51dac17631b95fc17e30fb7951e00ef", "password"},
 	{"{ssha512}06$5.qWdPxllf2Vf0YO$032fb7dbb0665b66c417a3687b5d130d4428eb1b6f03b751af372d458c8eda49fd5686b59e863332d30cbd3656e25524e5fd63b51c1e89fee31e748b05d81600", "password"},
+	/* hash posted on john-users, {ssha512}06$aXayEJGxA02Bl4d2$TWfWx34oD.UjrS/Qtco6Ij2XPY1CPYJfdk3CcxEjnMZvQw2p5obHYH7SI2wxcJgaS9.S9Hz948R.GdGwsvR... */
+	{"{ssha512}06$aXayEJGxA02Bl4d2$8ab89fd0617dbe000f7017b7234a398c4bd438391bad591b385c29bd0f68ee5633d44f1c4e7d077894e4f7c1149ac5687802de2ff4cb01d286f12a52f8def800", "test"},
+	/* http://www.ibmsystemsmag.com/aix/administrator/security/password_hash/?page=2 <== partially corrupted hash?
+	 * {ssha512}06$otYx2eSXx.OkEY4F$No5ZvSfhYuB1MSkBhhcKJIjS0.q//awdkcZwF9/TXi3EnL6QeronmS0jCc3P2aEV9WLi5arzN1YjVwkx8bng.. */
+	{"{ssha512}06$otYx2eSXx.OkEY4F$947d19b6b7bb0cdea43707985a8b6d7af515076002a7c981f25a307c12d1405ba37085f3cf4deabc27b26c5a0e850984b9788bff7987be40d9f70f21b339ca00", "colorado"},
 	{NULL}
 };
 
