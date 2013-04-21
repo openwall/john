@@ -38,33 +38,19 @@ static int omp_t = 1;
 #define SALT_SIZE		sizeof(struct custom_salt)
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
+#define BASE64_ALPHABET	  \
+	"./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 
 static struct fmt_tests aixssha_tests[] = {
-	{"{ssha1}06$f8/112P9rDk0G4OF$e9db6f17690eeb24617d290f72ce62efa955006f", "password"},
-	{"{ssha256}06$KKJD4I3tvTbZumve$49db2072d59cd2933f7bd6e5a6cbb212d71e12091d3923a79a9799f077590069", "p1"},
-	{"{ssha256}06$HrJ3Q4Acc.rs/ubt$c3196c151fe21cc130817d5d7ed5f3d42be8a5bd1aa60f421e33ca96eade0022", "p2"},
-	{"{ssha256}06$qUnFEflZmUNcApOj$7dedb8e2430f9800992c9be22a22b580d51dac17631b95fc17e30fb7951e00ef", "password"},
-	{"{ssha512}06$5.qWdPxllf2Vf0YO$032fb7dbb0665b66c417a3687b5d130d4428eb1b6f03b751af372d458c8eda49fd5686b59e863332d30cbd3656e25524e5fd63b51c1e89fee31e748b05d81600", "password"},
-	/* hash posted on john-users, {ssha512}06$aXayEJGxA02Bl4d2$TWfWx34oD.UjrS/Qtco6Ij2XPY1CPYJfdk3CcxEjnMZvQw2p5obHYH7SI2wxcJgaS9.S9Hz948R.GdGwsvR... */
-	{"{ssha512}06$aXayEJGxA02Bl4d2$8ab89fd0617dbe000f7017b7234a398c4bd438391bad591b385c29bd0f68ee5633d44f1c4e7d077894e4f7c1149ac5687802de2ff4cb01d286f12a52f8def800", "test"},
-	/* http://www.ibmsystemsmag.com/aix/administrator/security/password_hash/?page=2 <== partially corrupted hash?
-	 * {ssha512}06$otYx2eSXx.OkEY4F$No5ZvSfhYuB1MSkBhhcKJIjS0.q//awdkcZwF9/TXi3EnL6QeronmS0jCc3P2aEV9WLi5arzN1YjVwkx8bng.. */
-	{"{ssha512}06$otYx2eSXx.OkEY4F$947d19b6b7bb0cdea43707985a8b6d7af515076002a7c981f25a307c12d1405ba37085f3cf4deabc27b26c5a0e850984b9788bff7987be40d9f70f21b339ca00", "colorado"},
+	/* hash posted on john-users */
+	{"{ssha512}06$aXayEJGxA02Bl4d2$TWfWx34oD.UjrS/Qtco6Ij2XPY1CPYJfdk3CcxEjnMZvQw2p5obHYH7SI2wxcJgaS9.S9Hz948R.GdGwsvR...", "test"},
+	/* http://www.ibmsystemsmag.com/aix/administrator/security/password_hash/?page=2 <== partially corrupted hash? */
+	{"{ssha512}06$otYx2eSXx.OkEY4F$No5ZvSfhYuB1MSkBhhcKJIjS0.q//awdkcZwF9/TXi3EnL6QeronmS0jCc3P2aEV9WLi5arzN1YjVwkx8bng..", "colorado"},
 	{NULL}
 };
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
-
-#ifdef AIX_DEBUG
-static void print_hex(unsigned char *str, int len)
-{
-	int i;
-	for (i = 0; i < len; ++i)
-		printf("%02x", str[i]);
-	printf("\n");
-}
-#endif
 
 static struct custom_salt {
 	int iterations;
@@ -90,6 +76,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *p;
 	char *ctcopy;
 	char *keeptr;
+	int len;
+
 	if ((strncmp(ciphertext, "{ssha1}", 7) != 0) && \
 			(strncmp(ciphertext, "{ssha256}", 9) != 0) && \
 			(strncmp(ciphertext, "{ssha512}", 9) != 0))
@@ -105,11 +93,13 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtok(NULL, "$")) == NULL)	/* salt */
 		goto err;
-	if (strlen(p) < 8 || strlen(p) > 16)
+	len = strspn(p, BASE64_ALPHABET);
+	if (len < 8 || len > 16)
 		goto err;
 	if ((p = strtok(NULL, "$")) == NULL)	/* hash */
 		goto err;
-	if (strlen(p) < 32)
+	len = strspn(p, BASE64_ALPHABET);
+	if (len != 44 && len != 28 && len != 86)
 		goto err;
 	MEM_FREE(keeptr);
 	return 1;
@@ -147,24 +137,43 @@ static void *get_salt(char *ciphertext)
 	return (void *)&cs;
 }
 
+#define TO_BINARY(b1, b2, b3) {	  \
+	value = (ARCH_WORD_32)atoi64[ARCH_INDEX(pos[0])] | \
+		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[1])] << 6) | \
+		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[2])] << 12) | \
+		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[3])] << 18); \
+	pos += 4; \
+	out.c[b1] = value >> 16; \
+	out.c[b2] = value >> 8; \
+	out.c[b3] = value; }
+
 static void *get_binary(char *ciphertext)
 {
 	static union {
-		unsigned char c[BINARY_SIZE];
-		ARCH_WORD dummy;
-	} buf;
-	unsigned char *out = buf.c;
-	char *p;
+		ARCH_WORD_32 w[LARGEST_BINARY_SIZE/4];
+		unsigned char c[LARGEST_BINARY_SIZE];
+	} out;
+	ARCH_WORD_32 value;
+	char *pos = strrchr(ciphertext, '$') + 1;
+	int len = strlen(pos);
 	int i;
-	p = strrchr(ciphertext, '$') + 1;
-	for (i = 0; i < BINARY_SIZE; i++) {
-		out[i] =
-		    (atoi16[ARCH_INDEX(*p)] << 4) |
-		    atoi16[ARCH_INDEX(p[1])];
-		p += 2;
+
+	for (i = 0; i < len/3*4; i += 3)
+		TO_BINARY(i, i + 1, i + 2);
+
+	if (len % 3 == 1) {
+		value = (ARCH_WORD_32)atoi64[ARCH_INDEX(pos[0])] |
+			((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[1])] << 6);
+		out.c[i] = value;
+	} else if (len % 3 == 2) { /* sha-1, sha-256 */
+		value = (ARCH_WORD_32)atoi64[ARCH_INDEX(pos[0])] |
+			((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[1])] << 6) |
+			((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[2])] << 12);
+		out.c[i++] = value >> 8;
+		out.c[i++] = value;
 	}
 
-	return out;
+	return (void *)out.c;
 }
 
 static int binary_hash_0(void *binary) { return *(ARCH_WORD_32 *)binary & 0xf; }

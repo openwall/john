@@ -47,17 +47,9 @@ def process_file(filename, is_standard):
             h = line.split("=")[1].lstrip().rstrip()
 
             tc, salt, h = h.split('$')
-            h = h64.decode_bytes(h)
-
-            # FIXME wtf encoding
-            x = bytearray(h)
-            for i in range(0, len(x) - 3, 3):
-                tmp = x[i]
-                x[i] = x[i + 2]
-                x[i + 2] = tmp
 
             sys.stdout.write("%s:%s$%s$%s\n" % (username,
-                    tc, salt, binascii.hexlify(x)))
+                    tc, salt, h))
 
         elif "password = " in line:  # DES
             h = line.split("=")[1].lstrip().rstrip()
