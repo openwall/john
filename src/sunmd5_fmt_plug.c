@@ -70,8 +70,22 @@
  * 576 divides evenly by 4, 8, 12, 16 (para = 1, 2, 3, 4) Each of these
  * will get an even number of para buckets, so hopefully we get the best
  * average fill we possibly can get. 960 would also allow us to pick up 20 (para 5)
+ *
+ * NOTE, made 'smaller' fit. 240 would get all 4,8,12,16,20, but now it is multiple
+ * defines. this allows self tests to run much faster, BUT the speed of the format
+ * is still about the same.
  */
-#define MAX_KEYS_PER_CRYPT		576
+//#define MAX_KEYS_PER_CRYPT		576
+//#define MAX_KEYS_PER_CRYPT		240
+#if !defined(MD5_SSE_PARA) || MD5_SSE_PARA==1
+#define MAX_KEYS_PER_CRYPT 48
+#elif MD5_SSE_PARA==2
+#define MAX_KEYS_PER_CRYPT 64
+#elif MD5_SSE_PARA==3 || MD5_SSE_PARA==4
+#define MAX_KEYS_PER_CRYPT 96
+#elif MD5_SSE_PARA==5
+#define MAX_KEYS_PER_CRYPT 100
+#endif
 #else
 #define MAX_KEYS_PER_CRYPT		1
 #endif
