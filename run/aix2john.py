@@ -33,24 +33,33 @@ def process_file(filename, is_standard):
         line = line.rstrip('\n')
         if line.endswith(':'):
             username = line.split(':')[0]
+
         if "password = " in line and "smd5" in line:
             h = line.split("=")[1].lstrip().rstrip()
-            output = True
-            # FIXME add support for more LPA(s)
             if len(h) != 37:
                 continue
             salt, h = h[6:].split('$')
-        if output:
-            try:
-                h = h64.decode_transposed_bytes(h, _transpose_map)
-            except:
-                pass
+            h = h64.decode_transposed_bytes(h, _transpose_map)
             if is_standard:
                 val = 1
             else:
                 val = 0
             sys.stdout.write("%s:{smd5}%s$%s$%s\n" % (username,
                     salt, binascii.hexlify(h), val))
+
+        elif "password = " in line and "ssha" in line:
+            h = line.split("=")[1].lstrip().rstrip()
+
+            tc, salt, h = h.split('$')
+            h = h64.decode_bytes(h)
+            sys.stdout.write("%s:%s%s$%s\n" % (username,
+                    tc, salt, binascii.hexlify(h)))
+
+        elif "password = " in line:  # DES
+            h = line.split("=")[1].lstrip().rstrip()
+            if h != "*":
+                sys.stdout.write("%s:%s\n" % (username, h))
+
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
