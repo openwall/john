@@ -595,7 +595,7 @@ static int sha1_fmt_cmp_all(void *binary, int count)
     M = 0;
 
 #ifdef _OPENMP
-# pragma omp parallel for
+# pragma omp parallel for reduction(|:M)
 #endif
 
     // We can test for matches 4 at a time. As the common case will be that
@@ -639,9 +639,6 @@ static int sha1_fmt_cmp_all(void *binary, int count)
         R |= _mm_testz_epi32(_mm_andnot_si128(A, _mm_cmpeq_epi32(A, A)));
         A  = _mm_cmpeq_epi32(B, _mm_load_si128(&MD[i + 60]));
         R |= _mm_testz_epi32(_mm_andnot_si128(A, _mm_cmpeq_epi32(A, A)));
-#ifdef _OPENMP
-# pragma omp atomic
-#endif
         M |= R;
     }
 
