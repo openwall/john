@@ -1,10 +1,11 @@
 /* AIX ssha cracker patch for JtR. Hacked together during April of 2013 by Dhiru
- * Kholia <dhiru at openwall.com>.
+ * Kholia <dhiru at openwall.com> and magnum.
  *
  * Thanks to atom (of hashcat project) and philsmd for discovering and
  * publishing the details of various AIX hashing algorithms.
  *
  * This software is Copyright (c) 2013 Dhiru Kholia <dhiru at openwall.com> and
+ * magnum, and
  * it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -27,7 +28,7 @@ static int omp_t = 1;
 #endif
 
 #define FORMAT_LABEL		"aix-ssha"
-#define FORMAT_NAME		"AIX ssha - [1 / 256 / 512]"
+#define FORMAT_NAME		"AIX LPA PBKDF2-HMAC-SHA-1 / SHA-2"
 #define ALGORITHM_NAME		"32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
@@ -43,6 +44,7 @@ static int omp_t = 1;
 
 static struct fmt_tests aixssha_tests[] = {
 	/* hash posted on john-users */
+	{"{ssha512}06$................$0egLaF88SUk6GAFIMN/vTwa/IYB.KlubYmjiaWvmQ975vHvgC3rf0I6ZYzgyUiQftS8qs7ULLQpRLrA3LA....", "44"},
 	{"{ssha512}06$aXayEJGxA02Bl4d2$TWfWx34oD.UjrS/Qtco6Ij2XPY1CPYJfdk3CcxEjnMZvQw2p5obHYH7SI2wxcJgaS9.S9Hz948R.GdGwsvR...", "test"},
 	/* http://www.ibmsystemsmag.com/aix/administrator/security/password_hash/?page=2 <== partially corrupted hash? */
 	{"{ssha512}06$otYx2eSXx.OkEY4F$No5ZvSfhYuB1MSkBhhcKJIjS0.q//awdkcZwF9/TXi3EnL6QeronmS0jCc3P2aEV9WLi5arzN1YjVwkx8bng..", "colorado"},
