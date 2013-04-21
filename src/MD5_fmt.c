@@ -2,7 +2,7 @@
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1996-2001,2008,2010-2012 by Solar Designer
  *
- * ...with changes in the jumbo patch, by bartavelle
+ * ...with changes in the jumbo patch, by bartavelle and magnum.
  */
 
 #include <string.h>
@@ -21,7 +21,7 @@
 #endif
 
 #define FORMAT_LABEL			"md5"
-#define FORMAT_NAME			"FreeBSD MD5"
+#define FORMAT_NAME			"crypt-MD5"
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1

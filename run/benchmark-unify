@@ -97,6 +97,7 @@ while (<>) {
 #
 # For readability, please keep this list sorted by old format name
 __DATA__
+FreeBSD MD5	crypt-MD5
 DIGEST-MD5	DIGEST-MD5 C/R
 EPiServer SID Hashes	EPiServer SID salted SHA-1
 Eggdrop	Eggdrop Blowfish
