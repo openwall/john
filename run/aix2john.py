@@ -29,7 +29,6 @@ def process_file(filename, is_standard):
     username = "?"
 
     for line in fd.readlines():
-        output = False
         line = line.rstrip('\n')
         if line.endswith(':'):
             username = line.split(':')[0]
@@ -52,8 +51,16 @@ def process_file(filename, is_standard):
 
             tc, salt, h = h.split('$')
             h = h64.decode_bytes(h)
-            sys.stdout.write("%s:%s%s$%s\n" % (username,
-                    tc, salt, binascii.hexlify(h)))
+
+            # FIXME wtf encoding
+            x = bytearray(h)
+            for i in range(0, len(x) - 3, 3):
+                tmp = x[i]
+                x[i] = x[i + 2]
+                x[i + 2] = tmp
+
+            sys.stdout.write("%s:%s$%s$%s\n" % (username,
+                    tc, salt, binascii.hexlify(x)))
 
         elif "password = " in line:  # DES
             h = line.split("=")[1].lstrip().rstrip()
