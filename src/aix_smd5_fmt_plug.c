@@ -39,6 +39,8 @@ static struct fmt_tests smd5_tests[] = {
 	{"{smd5}JVDbGx8K$184fdfd9a6ee848d568bcd72879e8527$0", "password"},
 	/* standard hash */
 	{"{smd5}JVDbGx8K$2a5c5e31d6bdd265aff6b3e8df93651b$1", "password"},
+	/* hash posted on john-users, {smd5}s8/xSJ/v$uGam4GB8hOjTLQqvBfxJ2/ */
+	{"{smd5}s8/xSJ/v$ca287eef57cd64d4f667da44ba86ad17$0", "password"},
 	{NULL}
 };
 
