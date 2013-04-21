@@ -583,7 +583,7 @@ static inline int _mm_testz_epi32 (__m128i __X)
 
 static int sha1_fmt_cmp_all(void *binary, int count)
 {
-    int32_t  M;
+    int32_t  R;
     int32_t  i;
     __m128i  B;
     __m128i  A;
@@ -592,11 +592,6 @@ static int sha1_fmt_cmp_all(void *binary, int count)
     // out if any of the dwords in A75 matched E in the input hash.
     // First, Load the target hash into an XMM register
     B = _mm_loadu_si128(binary);
-    M = 0;
-
-#ifdef _OPENMP
-# pragma omp parallel for
-#endif
 
     // We can test for matches 4 at a time. As the common case will be that
     // there is no match, we can avoid testing it after every compare, reducing
@@ -604,9 +599,7 @@ static int sha1_fmt_cmp_all(void *binary, int count)
     //
     // It's hard to convince GCC that it's safe to unroll this loop, so I've
     // manually unrolled it a little bit.
-    for (i = 0; i < count; i += 64) {
-        int32_t R = 0;
-
+    for (R = i = 0; i < count; i += 64) {
         A  = _mm_cmpeq_epi32(B, _mm_load_si128(&MD[i +  0]));
         R |= _mm_testz_epi32(_mm_andnot_si128(A, _mm_cmpeq_epi32(A, A)));
         A  = _mm_cmpeq_epi32(B, _mm_load_si128(&MD[i +  4]));
@@ -639,13 +632,9 @@ static int sha1_fmt_cmp_all(void *binary, int count)
         R |= _mm_testz_epi32(_mm_andnot_si128(A, _mm_cmpeq_epi32(A, A)));
         A  = _mm_cmpeq_epi32(B, _mm_load_si128(&MD[i + 60]));
         R |= _mm_testz_epi32(_mm_andnot_si128(A, _mm_cmpeq_epi32(A, A)));
-#ifdef _OPENMP
-# pragma omp atomic
-#endif
-        M |= R;
     }
 
-    return M;
+    return R;
 }
 
 static inline int sha1_fmt_get_hash(int index)
