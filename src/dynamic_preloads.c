@@ -26,6 +26,9 @@
 #include <string.h>
 
 #include "arch.h"
+#if defined (MMX_COEF) && MMX_COEF==2 && defined (_OPENMP)
+#undef _OPENMP
+#endif
 #include "misc.h"
 #include "common.h"
 #include "formats.h"

@@ -60,6 +60,10 @@ ahead of time.
 #include <time.h>
 
 #include "arch.h"
+#if defined (MMX_COEF) && MMX_COEF==2 && defined (_OPENMP)
+#undef _OPENMP
+#define WAS_MMX_OPENMP
+#endif
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
@@ -228,6 +232,7 @@ static void __SSE_gen_BenchLowLevelFunctions();
 #   define ALGORITHM_NAME_S		"64/64 " SHA1_SSE_type " 64x2"
 #   define ALGORITHM_NAME_4		"64/64 " MD4_SSE_type  " 64x2"
 #   define MAX_KEYS_PER_CRYPT	MMX_COEF*BLOCK_LOOPS
+#   define PLAINTEXT_LENGTH     (27*3+1) // for worst-case UTF-8
 #   define BSD_BLKS 1
 #  elif MMX_COEF == 4
 #   define BLOCK_LOOPS		32
@@ -272,8 +277,6 @@ static void __SSE_gen_BenchLowLevelFunctions();
 #  else
 #   define MAX_KEYS_PER_CRYPT	MMX_COEF*BLOCK_LOOPS
 #  endif
-# else
-#  error "Invalid MMX_COEF  Only valid is 2 or 4"
 # endif
 #else // !MMX_COEF
 # ifdef _OPENMP
@@ -333,7 +336,7 @@ static void __SSE_gen_BenchLowLevelFunctions();
 extern void MD5_Go2 (unsigned char *data, unsigned int len, unsigned char *result);
 #if MD5_X2 && (!MD5_ASM)
 static MD5_OUT tmpOut;
-#if defined(_OPENMP)
+#if (defined(_OPENMP)||defined(WAS_MMX_OPENMP))
 #define MD5_body(x0, x1, out0, out1) \
 	MD5_body_for_thread(0, x0, x1, out0, out1)
 extern void MD5_body_for_thread(int t, MD5_word x[15], MD5_word x2[15], MD5_word out[4], MD5_word out2[4]);
@@ -351,7 +354,7 @@ extern void MD5_body(MD5_word x[15], MD5_word x2[15], MD5_word out[4], MD5_word 
 #define DoMD5a2(A,L,C,D) do{MD5_body(A->x1.w,A->x2.w2,tmpOut.x1.w,tmpOut.x2.w2);MD5_swap2(tmpOut.x1.w,tmpOut.x2.w2,tmpOut.x1.w,tmpOut.x2.w2,4);memcpy(&(C->x1.b[D[0]]),tmpOut.x1.b,16);memcpy(&(C->x2.b2[D[1]]),tmpOut.x2.b2,16);}while(0)
 #endif
 #else
-#if defined(_OPENMP) && !MD5_ASM
+#if (defined(_OPENMP)||defined(WAS_MMX_OPENMP)) && !MD5_ASM
 #define MD5_body(x, out) \
 	MD5_body_for_thread(0, x, out)
 extern void MD5_body_for_thread(int t, ARCH_WORD_32 x[15], ARCH_WORD_32 out[4]);
@@ -377,7 +380,7 @@ static MD5_OUT tmpOut;
 #define MIN_KEYS_PER_CRYPT_X86	1
 #define MAX_KEYS_PER_CRYPT_X86	X86_BLOCK_LOOPS
 #if MD5_X2 && (!MD5_ASM)
-#if defined(_OPENMP)
+#if (defined(_OPENMP)||defined(WAS_MMX_OPENMP))
 #define MD5_body(x0, x1, out0, out1) \
 	MD5_body_for_thread(0, x0, x1, out0, out1)
 extern void MD5_body_for_thread(int t, ARCH_WORD_32 x1[15], ARCH_WORD_32 x2[15], ARCH_WORD_32 out1[4], ARCH_WORD_32 out2[4]);
@@ -390,7 +393,7 @@ extern void MD5_body(ARCH_WORD_32 x1[15], ARCH_WORD_32 x2[15], ARCH_WORD_32 out1
 #define DoMD5a(A,L,C) do{MD5_body(A->x1.w,A->x2.w2,C->x1.w,C->x2.w2);}while(0)
 #define DoMD5a2(A,L,C,D) do{MD5_body(A->x1.w,A->x2.w2,tmpOut.x1.w,tmpOut.x2.w2);MD5_swap(C->x1.w,C->x1.w,(D[0]+21)>>2);MD5_swap(C->x2.w2,C->x2.w2,(D[1]+21)>>2);MD5_swap(tmpOut.x1.w,tmpOut.x1.w,4);MD5_swap(tmpOut.x2.w2,tmpOut.x2.w2,4);memcpy(&(C->x1.b[D[0]]),tmpOut.x1.b,16);memcpy(&(C->x2.b2[D[1]]),tmpOut.x2.b2,16);MD5_swap(C->x1.w,C->x1.w,(D[0]+21)>>2);MD5_swap(C->x2.w2,C->x2.w2,(D[1]+21)>>2);}while(0)
 #else
-#if defined(_OPENMP) && !MD5_ASM
+#if (defined(_OPENMP)||defined(WAS_MMX_OPENMP)) && !MD5_ASM
 #define MD5_body(x, out) \
 	MD5_body_for_thread(0, x, out)
 extern void MD5_body_for_thread(int t, MD5_word x[15],MD5_word out[4]);
@@ -5882,7 +5885,6 @@ void DynamicFunc__crypt_md4_in1_to_out2(DYNA_OMP_PARAMS)
 			}
 		}
 #else
-	if (dynamic_use_sse==1) {
 		if (curdat.store_keys_in_input) {
 			for (; i < til; ++i)
 				mdfourmmx_nosizeupdate(crypt_key2[i].c, input_buf[i].c, 1);
@@ -5937,7 +5939,6 @@ void DynamicFunc__crypt_md5_in2_to_out1(DYNA_OMP_PARAMS)
 			//dump_stuff_mmx_msg("DynamicFunc__crypt_md5_in2_to_out1", input_buf2[i].c,64,m_count-1);
 		}
 #else
-	if (dynamic_use_sse==1) {
 		for (; i < til; ++i)
 			mdfivemmx(crypt_key[i].c, input_buf2[i].c, total_len2[i]);
 #endif
@@ -5979,7 +5980,6 @@ void DynamicFunc__crypt_md4_in2_to_out1(DYNA_OMP_PARAMS)
 			SSEmd4body(input_buf2[i].c, crypt_key[i].w, 1);
 		}
 #else
-	if (dynamic_use_sse==1) {
 		for (; i < til; ++i)
 			mdfourmmx(crypt_key[i].c, input_buf2[i].c, total_len2[i]);
 #endif
