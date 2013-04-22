@@ -46,10 +46,10 @@ NSS_LDFLAGS = `pkg-config 2>/dev/null --libs nss`
 # Try to auto-detect GMP and KRB5 libs. The grep is needed in case some of the
 # paths does not exist, because find will return false even though finding a
 # file. If these hacks do not work, comment them out and see next sections.
-HAVE_GMP = `find 2>&1 /usr/include /usr/local/include /opt/local/include -name "gmp.h" | grep -q "gmp.h" && echo -DHAVE_GMP`
-GMP_LDFLAGS = `find 2>&1 /usr/include /usr/local/include /opt/local/include -name "gmp.h" | grep -q "gmp.h" && echo -lgmp`
-HAVE_KRB5 = `find 2>&1 /usr/include/ /usr/local/include/ /opt/local/include -name "krb5.h" | grep -q "krb5.h" && echo -DHAVE_KRB5`
-KRB5_LDFLAGS = `find 2>&1 /usr/include/ /usr/local/include/ /opt/local/include -name "krb5.h" | grep -q "krb5.h" && echo -lk5crypto -lkrb5`
+HAVE_GMP = `find 2>&1 /usr/include /usr/local/include -name "gmp.h" | grep -q "gmp.h" && echo -DHAVE_GMP`
+GMP_LDFLAGS = `find 2>&1 /usr/include /usr/local/include -name "gmp.h" | grep -q "gmp.h" && echo -lgmp`
+HAVE_KRB5 = `find 2>&1 /usr/include/ /usr/local/include/ -name "krb5.h" | grep -q "krb5.h" && echo -DHAVE_KRB5`
+KRB5_LDFLAGS = `find 2>&1 /usr/include/ /usr/local/include/ -name "krb5.h" | grep -q "krb5.h" && echo -lk5crypto -lkrb5`
 
 # Uncomment the below if you have GMP library installed (faster wowsrp format)
 # in case the auto-detection does not work.
