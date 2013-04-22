@@ -98,10 +98,7 @@ static void charset_write_header(FILE *file, struct charset_header *header)
 
 int charset_read_header(FILE *file, struct charset_header *header)
 {
-	if (fread(header->version, sizeof(header->version), 1, file) != 1)
-		return -1;
-	memset(header->check, 0, sizeof(header->check));
-	if (memcmp(header->version, CHARSET_V1, sizeof(header->version)) &&
+	if (fread(header->version, sizeof(header->version), 1, file) != 1 ||
 	    fread(header->check, sizeof(header->check), 1, file) != 1)
 		return -1;
 	{

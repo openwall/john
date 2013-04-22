@@ -29,7 +29,6 @@ typedef char (*char2_table)
 typedef char (*chars_table)
 	[CHARSET_SIZE + 1][CHARSET_SIZE + 1][CHARSET_SIZE + 1];
 
-static int rec_compat;
 static int rec_entry;
 static int rec_numbers[CHARSET_LENGTH];
 static int rec_counts[CHARSET_LENGTH][CHARSET_LENGTH];
@@ -42,7 +41,7 @@ static void save_state(FILE *file)
 {
 	int length, pos;
 
-	fprintf(file, "%d\n%d\n%d\n", rec_entry, rec_compat, CHARSET_LENGTH);
+	fprintf(file, "%d\n2\n%d\n", rec_entry, CHARSET_LENGTH);
 	for (pos = 0; pos < CHARSET_LENGTH; pos++)
 		fprintf(file, "%d\n", rec_numbers[pos]);
 	for (length = 0; length < CHARSET_LENGTH; length++)
@@ -52,21 +51,22 @@ static void save_state(FILE *file)
 
 static int restore_state(FILE *file)
 {
+	int compat;
 	int length;
 	int pos;
 
-	if (fscanf(file, "%d\n", &rec_entry) != 1) return 1;
-	rec_compat = 1;
-	length = CHARSET_LENGTH;
-	if (rec_version >= 2) {
-		if (fscanf(file, "%d\n%d\n", &rec_compat, &length) != 2)
-			return 1;
-		if ((unsigned int)rec_compat > 1) return 1;
-		if ((unsigned int)length > CHARSET_LENGTH) return 1;
-	}
+	if (rec_version < 2)
+		return 1;
+
+	if (fscanf(file, "%d\n%d\n%d\n", &rec_entry, &compat, &length) != 3)
+		return 1;
+	if (compat != 2 || (unsigned int)length > CHARSET_LENGTH)
+		return 1;
 	for (pos = 0; pos < length; pos++) {
-		if (fscanf(file, "%d\n", &rec_numbers[pos]) != 1) return 1;
-		if ((unsigned int)rec_numbers[pos] >= CHARSET_SIZE) return 1;
+		if (fscanf(file, "%d\n", &rec_numbers[pos]) != 1)
+			return 1;
+		if ((unsigned int)rec_numbers[pos] >= CHARSET_SIZE)
+			return 1;
 	}
 	for (length = 0; length < CHARSET_LENGTH; length++)
 	for (pos = 0; pos <= length; pos++) {
@@ -302,7 +302,6 @@ static int inc_key_loop(int length, int fixed, int count,
 	counts_length = counts[length];
 	counts_cache = counts_length[length];
 
-update_all:
 	pos = 0;
 update_ending:
 	if (pos < 2) {
@@ -333,8 +332,6 @@ update_last:
 		if (crk_process_key(key))
 			return 1;
 
-	if (rec_compat) goto compat;
-
 	pos = length;
 	if (fixed < length) {
 		if (++numbers_cache <= counts_cache) {
@@ -352,25 +349,6 @@ update_last:
 	while (pos-- > 0) {
 		if (++numbers[pos] <= counts_length[pos])
 			goto update_ending;
-		numbers[pos] = 0;
-	}
-
-	return 0;
-
-compat:
-	pos = 0;
-	if (fixed) {
-		if (++numbers[0] < count) goto update_all;
-		if (!length && numbers[0] <= count) goto update_all;
-		numbers[0] = 0;
-		pos = 1;
-		while (pos < fixed) {
-			if (++numbers[pos] < count) goto update_all;
-			numbers[pos++] = 0;
-		}
-	}
-	while (++pos <= length) {
-		if (++numbers[pos] <= count) goto update_all;
 		numbers[pos] = 0;
 	}
 
@@ -556,7 +534,6 @@ void do_incremental_crack(struct db_main *db, char *mode)
 	for (pos = 0; pos < (int)header->length - 2; pos++)
 		chars[pos] = (chars_table)mem_alloc(sizeof(*chars[0]));
 
-	rec_compat = 0;
 	rec_entry = 0;
 	memset(rec_numbers, 0, sizeof(rec_numbers));
 	memset(rec_counts, 0, sizeof(rec_counts));
