@@ -105,7 +105,8 @@
  */
 #define CHARSET_V1			"CHR1"
 #define CHARSET_V2			"CHR2"
-#define CHARSET_V			CHARSET_V2
+#define CHARSET_V3			"CHR3"
+#define CHARSET_V			CHARSET_V3
 
 /*
  * Timer interval in seconds.

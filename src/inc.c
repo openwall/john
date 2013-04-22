@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2006 by Solar Designer
+ * Copyright (c) 1996-2006,2010-2013 by Solar Designer
  */
 
 #include <stdio.h>
@@ -32,17 +32,22 @@ typedef char (*chars_table)
 static int rec_compat;
 static int rec_entry;
 static int rec_numbers[CHARSET_LENGTH];
+static int rec_counts[CHARSET_LENGTH][CHARSET_LENGTH];
 
 static int entry;
 static int numbers[CHARSET_LENGTH];
+static int counts[CHARSET_LENGTH][CHARSET_LENGTH];
 
 static void save_state(FILE *file)
 {
-	int pos;
+	int length, pos;
 
 	fprintf(file, "%d\n%d\n%d\n", rec_entry, rec_compat, CHARSET_LENGTH);
 	for (pos = 0; pos < CHARSET_LENGTH; pos++)
 		fprintf(file, "%d\n", rec_numbers[pos]);
+	for (length = 0; length < CHARSET_LENGTH; length++)
+	for (pos = 0; pos <= length; pos++)
+		fprintf(file, "%d\n", rec_counts[length][pos]);
 }
 
 static int restore_state(FILE *file)
@@ -63,6 +68,13 @@ static int restore_state(FILE *file)
 		if (fscanf(file, "%d\n", &rec_numbers[pos]) != 1) return 1;
 		if ((unsigned int)rec_numbers[pos] >= CHARSET_SIZE) return 1;
 	}
+	for (length = 0; length < CHARSET_LENGTH; length++)
+	for (pos = 0; pos <= length; pos++) {
+		if (fscanf(file, "%d\n", &rec_counts[length][pos]) != 1)
+			return 1;
+		if ((unsigned int)rec_counts[length][pos] >= CHARSET_SIZE)
+			return 1;
+	}
 
 	return 0;
 }
@@ -71,6 +83,7 @@ static void fix_state(void)
 {
 	rec_entry = entry;
 	memcpy(rec_numbers, numbers, sizeof(rec_numbers));
+	memcpy(rec_counts, counts, sizeof(rec_counts));
 }
 
 static void inc_format_error(char *charset)
@@ -276,6 +289,8 @@ static int inc_key_loop(int length, int fixed, int count,
 	char key_e[PLAINTEXT_BUFFER_SIZE];
 	char *key;
 	char *chars_cache;
+	int *counts_length;
+	int counts_cache;
 	int numbers_cache;
 	int pos;
 
@@ -283,6 +298,9 @@ static int inc_key_loop(int length, int fixed, int count,
 	numbers[fixed] = count;
 
 	chars_cache = NULL;
+
+	counts_length = counts[length];
+	counts_cache = counts_length[length];
 
 update_all:
 	pos = 0;
@@ -319,19 +337,21 @@ update_last:
 
 	pos = length;
 	if (fixed < length) {
-		if (++numbers_cache <= count) {
+		if (++numbers_cache <= counts_cache) {
 			if (length >= 2) goto update_last;
 			numbers[length] = numbers_cache;
 			goto update_ending;
 		}
 		numbers[pos--] = 0;
 		while (pos > fixed) {
-			if (++numbers[pos] <= count) goto update_ending;
+			if (++numbers[pos] <= counts_length[pos])
+				goto update_ending;
 			numbers[pos--] = 0;
 		}
 	}
 	while (pos-- > 0) {
-		if (++numbers[pos] < count) goto update_ending;
+		if (++numbers[pos] <= counts_length[pos])
+			goto update_ending;
 		numbers[pos] = 0;
 	}
 
@@ -454,8 +474,7 @@ void do_incremental_crack(struct db_main *db, char *mode)
 	if (ferror(file)) pexit("fread");
 
 	if (feof(file) ||
-	    (memcmp(header->version, CHARSET_V1, sizeof(header->version)) &&
-	    memcmp(header->version, CHARSET_V2, sizeof(header->version))) ||
+	    memcmp(header->version, CHARSET_V, sizeof(header->version)) ||
 	    !header->count)
 		inc_format_error(charset);
 
@@ -540,6 +559,7 @@ void do_incremental_crack(struct db_main *db, char *mode)
 	rec_compat = 0;
 	rec_entry = 0;
 	memset(rec_numbers, 0, sizeof(rec_numbers));
+	memset(rec_counts, 0, sizeof(rec_counts));
 
 	status_init(NULL, 0);
 
@@ -548,6 +568,7 @@ void do_incremental_crack(struct db_main *db, char *mode)
 
 	ptr = header->order + (entry = rec_entry) * 3;
 	memcpy(numbers, rec_numbers, sizeof(numbers));
+	memcpy(counts, rec_counts, sizeof(counts));
 
 	crk_init(db, fix_state, NULL);
 
@@ -576,6 +597,21 @@ void do_incremental_crack(struct db_main *db, char *mode)
 				header, file, charset, char1, char2, chars);
 			last_count = -1;
 		}
+
+		{
+			int i, max_count = 0;
+			for (i = 0; i <= length; i++)
+				if (counts[length][i] > max_count)
+					max_count = counts[length][i];
+			if (count > max_count)
+				max_count = count;
+			if (max_count > last_count) {
+				last_count = max_count;
+				inc_new_count(length, max_count, charset,
+					allchars, char1, char2, chars);
+			}
+		}
+
 		if ((int)count > last_count)
 			inc_new_count(length, last_count = count, charset,
 				allchars, char1, char2, chars);
@@ -585,8 +621,19 @@ void do_incremental_crack(struct db_main *db, char *mode)
 			if (crk_process_key("")) break;
 		}
 
+		if (count && entry != rec_entry)
+			counts[length][fixed]++;
+
+		if (counts[length][fixed] != count) {
+			fprintf(stderr, "Unexpected count: %d != %d\n",
+				counts[length][fixed] + 1, count + 1);
+			log_event("! Unexpected count: %d != %d",
+				counts[length][fixed] + 1, count + 1);
+			error();
+		}
+
 		log_event("- Trying length %d, fixed @%d, character count %d",
-			length + 1, fixed + 1, count + 1);
+			length + 1, fixed + 1, counts[length][fixed] + 1);
 
 		if (inc_key_loop(length, fixed, count, char1, char2, chars))
 			break;
