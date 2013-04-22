@@ -4,19 +4,10 @@ import binascii
 import sys
 
 try:
-    # FIXME don't depend on passlib
-    from passlib.utils import h64
-except ImportError:
-    sys.stderr.write("Please install passlib python module!\n")
-
-try:
     import optparse
 except ImportError:
     sys.stderr.write("Stop living in the past. Upgrade your python!\n")
 
-
-# NOTE: this map is taken from passlib itself!
-_transpose_map = [12, 6, 0, 13, 7, 1, 14, 8, 2, 15, 9, 3, 5, 10, 4, 11]
 
 def process_file(filename, is_standard):
     try:
