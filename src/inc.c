@@ -143,7 +143,8 @@ static void inc_new_length(unsigned int length,
 		((long)header->offsets[length][1] << 8) |
 		((long)header->offsets[length][2] << 16) |
 		((long)header->offsets[length][3] << 24);
-	if (fseek(file, offset, SEEK_SET)) pexit("fseek");
+	if (fseek(file, offset, SEEK_SET))
+		pexit("fseek");
 
 	i = j = pos = -1;
 	if ((value = getc(file)) != EOF)
@@ -172,7 +173,8 @@ static void inc_new_length(unsigned int length,
 			buffer[count = 0] = value;
 			while ((value = getc(file)) != EOF) {
 				buffer[++count] = value;
-				if (value == CHARSET_ESC) break;
+				if (value == CHARSET_ESC)
+					break;
 				if (count >= CHARSET_SIZE)
 					inc_format_error(charset);
 			}
@@ -181,10 +183,14 @@ static void inc_new_length(unsigned int length,
 			continue;
 		}
 
-		if ((value = getc(file)) == EOF) break; else
+		if ((value = getc(file)) == EOF)
+			break;
+		else
 		if (value == CHARSET_NEW) {
-			if ((value = getc(file)) != (int)length) break;
-			if ((value = getc(file)) == EOF) break;
+			if ((value = getc(file)) != (int)length)
+				break;
+			if ((value = getc(file)) == EOF)
+				break;
 			if (value < 0 || value > (int)length)
 				inc_format_error(charset);
 			pos = value;
@@ -192,11 +198,13 @@ static void inc_new_length(unsigned int length,
 		if (value == CHARSET_LINE) {
 			if (pos < 0)
 				inc_format_error(charset);
-			if ((value = getc(file)) == EOF) break;
+			if ((value = getc(file)) == EOF)
+				break;
 			i = value;
 			if (i < 0 || i > CHARSET_SIZE)
 				inc_format_error(charset);
-			if ((value = getc(file)) == EOF) break;
+			if ((value = getc(file)) == EOF)
+				break;
 			j = value;
 			if (j < 0 || j > CHARSET_SIZE)
 				inc_format_error(charset);
@@ -237,7 +245,8 @@ static int expand(char *dst, char *src, int size)
 			return -1;
 		if (!present[i]) {
 			*dptr++ = *sptr++;
-			if (--count <= 1) break;
+			if (--count <= 1)
+				break;
 		} else
 			sptr++;
 	}
@@ -263,18 +272,19 @@ static void inc_new_count(unsigned int length, int count, char *charset,
 		error |= expand((*char2)[CHARSET_SIZE], allchars, size);
 	for (pos = 0; pos <= (int)length - 2; pos++)
 		error |= expand((*chars[pos])[CHARSET_SIZE][CHARSET_SIZE],
-			allchars, size);
+		    allchars, size);
 
 	for (i = 0; i < CHARSET_SIZE; i++) {
-		if (length) error |=
-			expand((*char2)[i], (*char2)[CHARSET_SIZE], size);
+		if (length)
+			error |=
+			    expand((*char2)[i], (*char2)[CHARSET_SIZE], size);
 
 		for (j = 0; j < CHARSET_SIZE; j++)
 		for (pos = 0; pos <= (int)length - 2; pos++) {
-			error |= expand((*chars[pos])[i][j], (*chars[pos])
-				[CHARSET_SIZE][j], size);
-			error |= expand((*chars[pos])[i][j], (*chars[pos])
-				[CHARSET_SIZE][CHARSET_SIZE], size);
+			error |= expand((*chars[pos])[i][j],
+			    (*chars[pos])[CHARSET_SIZE][j], size);
+			error |= expand((*chars[pos])[i][j],
+			    (*chars[pos])[CHARSET_SIZE][CHARSET_SIZE], size);
 		}
 	}
 
@@ -307,22 +317,23 @@ update_ending:
 	if (pos < 2) {
 		if (pos == 0)
 			key_i[0] = char1[numbers[0]];
-		if (length) key_i[1] = (*char2)
-			[ARCH_INDEX(key_i[0]) - CHARSET_MIN][numbers[1]];
+		if (length)
+			key_i[1] = (*char2)[ARCH_INDEX(key_i[0]) - CHARSET_MIN]
+			    [numbers[1]];
 		pos = 2;
 	}
 	while (pos < length) {
 		key_i[pos] = (*chars[pos - 2])
-			[ARCH_INDEX(key_i[pos - 2]) - CHARSET_MIN]
-			[ARCH_INDEX(key_i[pos - 1]) - CHARSET_MIN]
-			[numbers[pos]];
+		    [ARCH_INDEX(key_i[pos - 2]) - CHARSET_MIN]
+		    [ARCH_INDEX(key_i[pos - 1]) - CHARSET_MIN]
+		    [numbers[pos]];
 		pos++;
 	}
 	numbers_cache = numbers[length];
 	if (pos == length) {
 		chars_cache = (*chars[pos - 2])
-			[ARCH_INDEX(key_i[pos - 2]) - CHARSET_MIN]
-			[ARCH_INDEX(key_i[pos - 1]) - CHARSET_MIN];
+		    [ARCH_INDEX(key_i[pos - 2]) - CHARSET_MIN]
+		    [ARCH_INDEX(key_i[pos - 1]) - CHARSET_MIN];
 update_last:
 		key_i[length] = chars_cache[numbers_cache];
 	}
@@ -335,7 +346,8 @@ update_last:
 	pos = length;
 	if (fixed < length) {
 		if (++numbers_cache <= counts_cache) {
-			if (length >= 2) goto update_last;
+			if (length >= 2)
+				goto update_last;
 			numbers[length] = numbers_cache;
 			goto update_ending;
 		}
@@ -449,7 +461,8 @@ void do_incremental_crack(struct db_main *db, char *mode)
 
 	if (charset_read_header(file, header) && !ferror(file))
 		inc_format_error(charset);
-	if (ferror(file)) pexit("fread");
+	if (ferror(file))
+		pexit("fread");
 
 	if (feof(file) ||
 	    memcmp(header->version, CHARSET_V, sizeof(header->version)) ||
@@ -480,7 +493,8 @@ void do_incremental_crack(struct db_main *db, char *mode)
 	}
 
 	if (fread(allchars, header->count, 1, file) != 1) {
-		if (ferror(file)) pexit("fread");
+		if (ferror(file))
+			pexit("fread");
 		inc_format_error(charset);
 	}
 
@@ -498,7 +512,8 @@ void do_incremental_crack(struct db_main *db, char *mode)
 	}
 	real_count = strlen(allchars);
 
-	if (max_count < 0) max_count = CHARSET_SIZE;
+	if (max_count < 0)
+		max_count = CHARSET_SIZE;
 
 	if (min_length != max_length)
 		log_event("- Lengths %d to %d, up to %d different characters",
@@ -557,21 +572,24 @@ void do_incremental_crack(struct db_main *db, char *mode)
 		length = *ptr++; fixed = *ptr++; count = *ptr++;
 
 		if (length >= CHARSET_LENGTH ||
-			fixed > length ||
-			count >= CHARSET_SIZE) inc_format_error(charset);
+		    fixed > length ||
+		    count >= CHARSET_SIZE)
+			inc_format_error(charset);
 
 		if (entry != rec_entry)
 			memset(numbers, 0, sizeof(numbers));
 
-		if (count >= real_count || (fixed && !count)) continue;
+		if (count >= real_count || (fixed && !count))
+			continue;
 
 		if ((int)length + 1 < min_length ||
-			(int)length >= max_length ||
-			(int)count >= max_count) continue;
+		    (int)length >= max_length ||
+		    (int)count >= max_count)
+			continue;
 
 		if ((int)length != last_length) {
 			inc_new_length(last_length = length,
-				header, file, charset, char1, char2, chars);
+			    header, file, charset, char1, char2, chars);
 			last_count = -1;
 		}
 
@@ -585,17 +603,18 @@ void do_incremental_crack(struct db_main *db, char *mode)
 			if (max_count > last_count) {
 				last_count = max_count;
 				inc_new_count(length, max_count, charset,
-					allchars, char1, char2, chars);
+				    allchars, char1, char2, chars);
 			}
 		}
 
 		if ((int)count > last_count)
 			inc_new_count(length, last_count = count, charset,
-				allchars, char1, char2, chars);
+			    allchars, char1, char2, chars);
 
 		if (!length && !min_length) {
 			min_length = 1;
-			if (crk_process_key("")) break;
+			if (crk_process_key(""))
+				break;
 		}
 
 		if (count && entry != rec_entry)
