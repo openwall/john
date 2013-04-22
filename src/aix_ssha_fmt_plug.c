@@ -70,7 +70,8 @@ static void init(struct fmt_main *self)
 #endif
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) *
+	                self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -152,15 +153,15 @@ static void *get_salt(char *ciphertext)
 static void *get_binary(char *ciphertext)
 {
 	static union {
-		ARCH_WORD_32 w[LARGEST_BINARY_SIZE/4];
 		unsigned char c[LARGEST_BINARY_SIZE];
+		ARCH_WORD_32 dummy;
 	} out;
 	ARCH_WORD_32 value;
 	char *pos = strrchr(ciphertext, '$') + 1;
 	int len = strlen(pos);
 	int i;
 
-	for (i = 0; i < len/3*4; i += 3)
+	for (i = 0; i < len/4*3; i += 3)
 		TO_BINARY(i, i + 1, i + 2);
 
 	if (len % 3 == 1) {
