@@ -32,10 +32,11 @@ static int omp_t = 1;
 #define ALGORITHM_NAME		"32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
-#define PLAINTEXT_LENGTH	125
+#define PLAINTEXT_LENGTH	125 /* actual max in AIX is 255 */
 #define BINARY_SIZE		20
 #define CMP_SIZE 		BINARY_SIZE - 2
 #define LARGEST_BINARY_SIZE	64
+#define MAX_SALT_SIZE		24
 #define SALT_SIZE		sizeof(struct custom_salt)
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
@@ -63,7 +64,7 @@ static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
 static struct custom_salt {
 	int iterations;
 	int type;
-	char unsigned salt[17];
+	char unsigned salt[MAX_SALT_SIZE + 1];
 } *cur_salt;
 
 static void init(struct fmt_main *self)
@@ -82,40 +83,41 @@ static void init(struct fmt_main *self)
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	char *p;
-	char *ctcopy;
-	char *keeptr;
-	int len;
+	char *p = ciphertext;
+	int len, b64len;
 
-	if ((strncmp(ciphertext, "{ssha1}", 7) != 0) && \
-			(strncmp(ciphertext, "{ssha256}", 9) != 0) && \
-			(strncmp(ciphertext, "{ssha512}", 9) != 0))
+	if (!strncmp(p, "{ssha1}", 7)) {
+		p += 7;
+		b64len = 27;
+	} else if (!strncmp(p, "{ssha256}", 9)) {
+		p += 9;
+		b64len = 43;
+	} else if (!strncmp(p, "{ssha512}", 9)) {
+		p += 9;
+		b64len = 86;
+	} else
 		return 0;
 
-	ctcopy = strdup(ciphertext);
-	keeptr = ctcopy;
-	if ((strncmp(ciphertext, "{ssha1}", 7) ==0))
-		ctcopy += 7;
-	else
-		ctcopy += 9;
-	if ((p = strtok(ctcopy, "$")) == NULL)	/* iterations */
-		goto err;
-	if ((p = strtok(NULL, "$")) == NULL)	/* salt */
-		goto err;
-	len = strspn(p, BASE64_ALPHABET);
-	if (len < 8 || len > 16)
-		goto err;
-	if ((p = strtok(NULL, "$")) == NULL)	/* hash */
-		goto err;
-	len = strspn(p, BASE64_ALPHABET);
-	/* do we need to be so strict? */
-	if (len != 43 && len != 27 && len != 86)
-		goto err;
-	MEM_FREE(keeptr);
+	len = strspn(p, "0123456789"); /* iterations, exactly two digits */
+	if (len != 2 || atoi(p) > 31)  /* actual range is 4..31 */
+		return 0;
+	p += 2;
+	if (*p++ != '$')
+		return 0;
+
+	len = strspn(p, BASE64_ALPHABET); /* salt, 8..24 base64 chars */
+	if (len < 8 || len > MAX_SALT_SIZE)
+		return 0;
+	p += len;
+	if (*p++ != '$')
+		return 0;
+	len = strspn(p, BASE64_ALPHABET); /* hash */
+	if (len != b64len)
+		return 0;
+	if (p[len] != 0) /* nothing more allowed */
+		return 0;
+
 	return 1;
-err:
-	MEM_FREE(keeptr);
-	return 0;
 }
 
 static void *get_salt(char *ciphertext)
@@ -126,9 +128,9 @@ static void *get_salt(char *ciphertext)
 	static struct custom_salt cs;
 	keeptr = ctcopy;
 
-	if ((strncmp(ciphertext, "{ssha1}", 7) ==0))
+	if ((strncmp(ciphertext, "{ssha1}", 7) == 0))
 		cs.type = 1;
-	else if ((strncmp(ciphertext, "{ssha256}", 9) ==0))
+	else if ((strncmp(ciphertext, "{ssha256}", 9) == 0))
 		cs.type = 256;
 	else
 		cs.type = 512;
