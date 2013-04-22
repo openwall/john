@@ -43,6 +43,12 @@ static int omp_t = 1;
 	"./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 
 static struct fmt_tests aixssha_tests[] = {
+	{"{ssha1}06$T6numGi8BRLzTYnF$AdXq1t6baevg9/cu5QBBk8Xg.se", "whatdoyouwantfornothing$$$$$$"},
+	{"{ssha1}06$6cZ2YrFYwVQPAVNb$1agAljwERjlin9RxFxzKl.E0.sJ", "gentoo=>meh"},
+	{"{ssha256}06$YPhynOx/iJQaJOeV$EXQbOSYZftEo3k01uoanAbA7jEKZRUU9LCCs/tyU.wG", "verylongbutnotverystrongpassword"},
+	{"{ssha256}06$5lsi4pETf/0p/12k$xACBftDMh30RqgrM5Sppl.Txgho41u0oPoD21E1b.QT", "I<3JtR"},
+	{"{ssha512}06$y2/.O4drNJd3ecgJ$DhNk3sS28lkIo7XZaXWSkFOIdP2Zsd9DIKdYDSuSU5tsnl29Q7xTc3f64eAGMpcMJCVp/SXZ4Xgx3jlHVIOr..", "solarisalwaysbusyitseems"},
+	{"{ssha512}06$Dz/dDr1qa8JJm0UB$DFNu2y8US18fW37ht8WRiwhSeOqAMJTJ6mLDW03D/SeQpdI50GJMYb1fBog5/ZU3oM9qsSr9w6u22.OjjufV..", "idontbelievethatyourpasswordislongerthanthisone"},
 	/* hash posted on john-users */
 	{"{ssha512}06$................$0egLaF88SUk6GAFIMN/vTwa/IYB.KlubYmjiaWvmQ975vHvgC3rf0I6ZYzgyUiQftS8qs7ULLQpRLrA3LA....", "44"},
 	{"{ssha512}06$aXayEJGxA02Bl4d2$TWfWx34oD.UjrS/Qtco6Ij2XPY1CPYJfdk3CcxEjnMZvQw2p5obHYH7SI2wxcJgaS9.S9Hz948R.GdGwsvR...", "test"},
@@ -102,7 +108,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if ((p = strtok(NULL, "$")) == NULL)	/* hash */
 		goto err;
 	len = strspn(p, BASE64_ALPHABET);
-	if (len != 44 && len != 28 && len != 86)
+	/* do we need to be so strict? */
+	if (len != 43 && len != 27 && len != 86)
 		goto err;
 	MEM_FREE(keeptr);
 	return 1;
