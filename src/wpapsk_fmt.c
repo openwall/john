@@ -12,6 +12,9 @@
  */
 #include <string.h>
 #include "arch.h"
+#if defined (MMX_COEF) && MMX_COEF==2 && defined (_OPENMP)
+#undef _OPENMP
+#endif
 
 #include <assert.h>
 #include "formats.h"
