@@ -62,10 +62,15 @@ static struct fmt_tests tests[] = {
 	{"$1$boire$gf.YM2y3InYEu9.NbVr.v0", "manger"},
 	{"$1$bas$qvkmmWnVHRCSv/6LQ1doH/", "haut"},
 	{"$1$gauche$EPvd6LZlrgb0MMFPxUrJN1", "droite"},
-	/* following hash is AIX non-standard smd5 */
+	/* following hashes are AIX non-standard smd5 hashes */
 	{"{smd5}s8/xSJ/v$uGam4GB8hOjTLQqvBfxJ2/", "password"},
-	/* following hash is AIX standard smd5 hash (with corrected tag) */
+	{"{smd5}alRJaSLb$aKM3H1.h1ycXl5GEVDH1e1", "aixsucks?"},
+	{"{smd5}eLB0QWeS$Eg.YfWY8clZuCxF0xNrKg.", "0123456789ABCDE"},
+	/* following hashes are AIX standard smd5 hashes (with corrected tag)
+	 * lpa_options = std_hash=true */
 	{"$1$JVDbGx8K$T9h8HK4LZxeLPMTAxCfpc1", "password"},
+	{"$1$1Cu6fEvv$42kuaJ5fMEqyVStPuFG040", "0123456789ABCDE"},
+	{"$1$ql5x.xXL$vYVDhExol2xUBBpERRWcn1", "jtr>hashcat"},
 	{NULL}
 };
 
