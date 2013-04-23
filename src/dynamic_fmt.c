@@ -9725,7 +9725,7 @@ static char *FixupIfNeeded(char *ciphertext, private_subformat_data *pPriv)
 					char Fld[5];
 					sprintf(Fld, "$$F%d", i);
 					if (!strstr(&ciphertext[pPriv->dynamic_SALT_OFFSET-1], Fld))
-						return 0;
+						return ciphertext;
 				}
 			}
 		}
