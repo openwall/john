@@ -102,6 +102,7 @@ extern struct fmt_main fmt_django;
 extern struct fmt_main fmt_truecrypt;
 extern struct fmt_main fmt_truecrypt_sha512;
 extern struct fmt_main fmt_truecrypt_whirlpool;
+extern struct fmt_main fmt_aixssha;
 #endif
 
 #ifdef __SSE2__
@@ -297,6 +298,7 @@ static void john_register_all(void)
 	john_register_one(&fmt_truecrypt);
 	john_register_one(&fmt_truecrypt_sha512);
 	john_register_one(&fmt_truecrypt_whirlpool);
+	john_register_one(&fmt_aixssha);
 #endif
 
 #ifdef __SSE2__

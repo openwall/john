@@ -119,6 +119,7 @@ JOHN_OBJS = \
 	hmacMD5_fmt.o hmacSHA1_fmt.o \
 	django_fmt.o \
 	truecrypt_fmt.o \
+	aix_ssha_fmt.o \
 	SKEY_fmt.o \
 	ssh_fmt.o ssh2john.o \
 	pfx_fmt.o pfx2john.o \

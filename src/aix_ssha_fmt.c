@@ -11,6 +11,11 @@
  * modification, are permitted.
  */
 
+#include <openssl/evp.h>
+
+/* this check can be relaxed more */
+#if OPENSSL_VERSION_NUMBER >= 0x10001000
+
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
@@ -328,3 +333,5 @@ struct fmt_main fmt_aixssha = {
 		cmp_exact
 	}
 };
+
+#endif
