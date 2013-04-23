@@ -199,6 +199,9 @@ __version__ = '0.23'
 
 import struct, array, os.path, sys
 
+reload(sys)
+sys.setdefaultencoding("utf8")
+
 PY3 = sys.version_info[0] == 3
 
 if PY3:
@@ -226,7 +229,7 @@ else:
 
 #[PL] Experimental setting: if True, OLE filenames will be kept in Unicode
 # if False (default PIL behaviour), all filenames are converted to Latin-1.
-KEEP_UNICODE_NAMES = False
+KEEP_UNICODE_NAMES = True
 
 #[PL] DEBUG display mode: False by default, use set_debug_mode() or "-d" on
 # command line to change it.
@@ -627,6 +630,7 @@ class _OleDirectoryEntry:
         # name is converted from unicode to Latin-1:
         self.name = _unicode(name)
 
+        debug ("OLE name: %s" % name)
         debug('DirEntry SID=%d: %s' % (self.sid, repr(self.name)))
         debug(' - type: %d' % self.entry_type)
         debug(' - sect: %d' % self.isectStart)
@@ -1105,7 +1109,8 @@ class OleFileIO:
                 #TODO: check if corresponding FAT SID = DIFSECT
                 sector_difat = self.getsect(isect_difat)
                 difat = self.sect2array(sector_difat)
-                self.dumpsect(sector_difat)
+                # FIXME this errored out:
+                #self.dumpsect(sector_difat)
                 self.loadfat_sect(difat[:127])
                 # last DIFAT pointer is next DIFAT sector:
                 isect_difat = difat[127]
@@ -1441,6 +1446,8 @@ class OleFileIO:
         # get section
         s = b"****" + fp.read(i32(fp.read(4))-4)
 
+        encoding = "ERROR"
+
         for i in range(i32(s, 4)):
 
             id = i32(s, 8+i*8)
@@ -1454,6 +1461,12 @@ class OleFileIO:
 
             if type == VT_I2:
                 value = i16(s, offset+4)
+                if (id == 1):
+                    if (value == 65001):
+                        encoding = "utf8"
+                    else:
+                        encoding = "CP" + str(value)
+                    debug ("New encoding: %s" % encoding)
                 if value >= 32768:
                     value = value - 65536
             elif type == VT_UI2:
@@ -1464,13 +1477,13 @@ class OleFileIO:
                 value = i32(s, offset+4) # FIXME
             elif type in (VT_BSTR, VT_LPSTR):
                 count = i32(s, offset+4)
-                value = s[offset+8:offset+8+count-1]
+                value = s[offset+8:offset+8+count-1].decode(encoding)
             elif type == VT_BLOB:
                 count = i32(s, offset+4)
                 value = s[offset+8:offset+8+count]
             elif type == VT_LPWSTR:
                 count = i32(s, offset+4)
-                value = _unicode(s[offset+8:offset+8+count*2])
+                value = s[offset+8:offset+8+count*2].decode("utf-16le")
             elif type == VT_FILETIME:
                 value = i32(s, offset+4) + ((i32(s, offset+8))<<32)
                 # FIXME: this is a 64-bit int: "number of 100ns periods
@@ -1904,48 +1917,18 @@ def process_file(filename):
         if streamname[0] == "\005":
             have_summary = True
             props = ole.getproperties(streamname)
-            props = props.items()
-            for k, v in props:
+            for k, v in props.items():
                 if v is None:
                     continue
-                binary = False
-                if isinstance(v, bytes):
-                    try:
-                        v = v.decode()
-                    except:
-                        import traceback
-                        traceback.print_exc()
-                if PY3:
-                    check = isinstance(v, str)
-                else:
-                    check = isinstance(v, str) or isinstance(v, unicode)
-                if check:
-                    v = remove_html_tags(v)
-                    v = v.replace(":", "")
-                    v = remove_extra_spaces(v)
-                    # binary filter
-                    o = ""
-                    for c in v:
-                        if c in string.printable:
-                            o = o + c
-                    v = o
-                    # v = filter(lambda x: x in string.printable, v)
-                    # length filter
-                    words = str(v).split()
-                    words = filter(lambda x: len(x) < 20, words)
-                    v = " ".join(words)
-                    #[PL]: avoid to display too large or binary values:
-                    #if len(v) > 50:
-                    #    v = v[:50]
-                    # quick and dirty binary check:
-                    for c in (1, 2, 3, 4, 5, 6, 7, 11, 12, 14, 15, 16, 17, 18, 19, 20,
-                            21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31):
-                        if chr(c) in v:
-                            v = '(binary data)'
-                            binary = True
-                            break
-                if not binary:
-                    summary.append(str(v))
+                if not isinstance(v, unicode): # We are only interested in strings
+                    continue
+                v = remove_html_tags(v)
+                v = v.replace(":", "")
+                v = remove_extra_spaces(v)
+                #words = v.split()
+                #words = filter(lambda x: len(x) < 20, words)
+                #v = " ".join(words)
+                summary.append(v)
     summary = " ".join(summary)
     summary = remove_extra_spaces(summary)
 
@@ -2020,5 +2003,7 @@ if __name__ == "__main__":
         sys.stderr.write("Usage: %s <encrypted Office file(s)>\n" % sys.argv[0])
         sys.exit(1)
 
+#set_debug_mode(1)
+
 for i in range(1, len(sys.argv)):
-    ret = process_file(sys.argv[i])
+    ret = process_file(sys.argv[i].decode("utf8"))
