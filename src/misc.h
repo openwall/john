@@ -185,6 +185,7 @@ extern char *strupr(char *s);
 #pragma warning (disable : 4018 297 )
 #undef inline
 #define inline _inline
+#define snprintf sprintf_s
 #endif
 
 #endif

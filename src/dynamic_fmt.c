@@ -755,6 +755,12 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 			return 0;
 		else if (pPriv->dynamic_FIXED_SALT_SIZE < -1 && strlen(&cp[23]) > -(pPriv->dynamic_FIXED_SALT_SIZE))
 			return  0;
+		if ((pPriv->pSetup->startFlags & MGF_PHPassSetup) == MGF_PHPassSetup) {
+			// we have to perform the salt 'length' check here, so we do not process invalid hashes later.
+			int Lcount = atoi64[ARCH_INDEX(cp[23])];
+			if (Lcount < 7 || Lcount > 31)
+				return 0;
+		}
 		return 1;
 	}
 	if (pPriv->dynamic_base64_inout == 2)
@@ -807,8 +813,11 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 		if (atoi16[ARCH_INDEX(cp[i])] == 0x7f)
 			return 0;
 	}
-	if (!cp[cipherTextLen] && (pPriv->pSetup->flags&MGF_SALTED) == 0)
-		return 1;
+	if ((pPriv->pSetup->flags&MGF_SALTED) == 0) {
+		if (!cp[cipherTextLen])
+			return 1;
+		return 0;
+	}
 
 	if (cp[cipherTextLen] && cp[cipherTextLen] != '$')
 		return 0;
@@ -1177,7 +1186,6 @@ static void init(struct fmt_main *pFmt)
  *********************************************************************************/
 static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 {
-	static char ct[512];
 	private_subformat_data *pPriv = pFmt->private.data;
 	char Tmp[80];
 	int i;
@@ -1186,6 +1194,11 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 
 	if (!pPriv)
 		return split_fields[1];
+
+	// ANY field[1] longer than 490 will simply be ignored, and returned 'as is'.
+	// the rest of this function makes this assumption.
+	if (!cpBuilding || strlen(cpBuilding) > 490)
+		return cpBuilding;
 
 	if (pFmt->params.salt_size && !strchr(split_fields[1], '$')) {
 		if (!pPriv->nUserName && !pPriv->FldMask)
@@ -1197,16 +1210,21 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 	// $dynamic_x$ will be written out (into .pot, output lines, etc).
 	if (!strncmp(cpBuilding, "md5_gen(", 8))
 	{
+		static char ct[496];
 		char *cp = &cpBuilding[8], *cpo = &ct[sprintf(ct, "$dynamic_")];
 		while (*cp >= '0' && *cp <= '9')
 			*cpo++ = *cp++;
 		*cpo++ = '$';
 		++cp;
-		strnzcpy(cpo, cp, 512);
+		strcpy(cpo, cp);
 		cpBuilding = ct;
 	}
+	// At this point, max length of cpBuilding is 491 (if it was a md5_gen signature)
 
 	cpBuilding = FixupIfNeeded(cpBuilding, pPriv);
+
+	// at this point max length is still < 512.  491 + strlen($dynamic_xxxxx$) is 506
+
 	if (strncmp(cpBuilding, "$dynamic_", 9))
 		return split_fields[1];
 
@@ -1220,6 +1238,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 	if (strstr(cpBuilding, "$HEX$")) {
 		char *cp, *cpo;
 		int bGood=1;
+		static char ct[512];
 
 		strcpy(ct, cpBuilding);
 		cp = strstr(ct, "$HEX$");
@@ -1250,23 +1269,34 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 		}
 		if (bGood)
 			cpBuilding = ct;
+		// if we came into $HEX$ removal, then cpBuilding will always be shorter
 	}
+
+	// at this point max length is still < 512.  491 + strlen($dynamic_xxxxx$) is 506
 
 	if (pPriv->nUserName && !strstr(cpBuilding, "$$U")) {
 		char *userName=split_fields[0], *cp;
+		static char ct[1024];
 		// assume field[0] is in format: username OR DOMAIN\\username  If we find a \\, then  use the username 'following' it.
 		cp = strchr(split_fields[0], '\\');
 		if (cp)
 			userName = &cp[1];
 		userName = HandleCase(userName, pPriv->nUserName);
-		sprintf (ct, "%s$$U%s", cpBuilding, userName);
+		snprintf (ct, sizeof(ct), "%s$$U%s", cpBuilding, userName);
 		cpBuilding = ct;
 	}
-	for (i = 0; i <= 8; ++i) {
-		sprintf(Tmp, "$$F%d", i);
-		if ( split_fields[i] &&  (pPriv->FldMask&(MGF_FLDx_BIT<<i)) && !strstr(cpBuilding, Tmp)) {
-			sprintf (ct, "%s$$F%d%s", cpBuilding, i, split_fields[i]);
-			cpBuilding = ct;
+	if (pPriv->FldMask) {
+		for (i = 0; i < 10; ++i) {
+			if (pPriv->FldMask&(MGF_FLDx_BIT<<i)) {
+				sprintf(Tmp, "$$F%d", i);
+				if ( split_fields[i] && !strstr(cpBuilding, Tmp)) {
+					static char ct[1024];
+					char ct2[1024];
+					snprintf (ct2, sizeof(ct2), "%s$$F%d%s", cpBuilding, i, split_fields[i]);
+					strcpy(ct, ct2);
+					cpBuilding = ct;
+				}
+			}
 		}
 	}
 	return cpBuilding;
@@ -1285,6 +1315,9 @@ static char *split(char *ciphertext, int index)
 	private_subformat_data *pPriv = &curdat;
 #endif
 
+	if (strlen(ciphertext) > 950)
+		return ciphertext;
+
 	if (!strncmp(ciphertext, "$dynamic", 8)) {
 		if (strstr(ciphertext, "$HEX$"))
 			return RemoveHEX(out, ciphertext);
@@ -1299,7 +1332,7 @@ static char *split(char *ciphertext, int index)
 		char *cp = out + sprintf(out, "%s", pPriv->dynamic_WHICH_TYPE_SIG);
 		RemoveHEX(cp, ciphertext);
 	} else
-		sprintf(out, "%s%s", pPriv->dynamic_WHICH_TYPE_SIG, ciphertext);
+		snprintf(out, sizeof(out), "%s%s", pPriv->dynamic_WHICH_TYPE_SIG, ciphertext);
 
 	return out;
 }
