@@ -214,7 +214,8 @@ class PacketHeader
 		typedef enum {
 			TYPE_UNKOWN = -1,
 			TYPE_SECRET_KEY = 5,
-			TYPE_PUBLIC_KEY = 6
+			TYPE_PUBLIC_KEY = 6,
+			TYPE_USER_ID = 13
 		} Type;
 
 	public:
