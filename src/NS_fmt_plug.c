@@ -65,18 +65,18 @@ static unsigned short e64toshort[256];
 
 #define ADM_LEN 22
 static int salt_len, key_len;
-static char cipher_salt[ SALT_SIZE  ];
+static char cipher_salt[ SALT_SIZE + 1 ];
 static char cipher_key[ PLAINTEXT_LENGTH + 1 ];
 static char *adm = ":Administration Tools:";
 static char tocipher[ SALT_SIZE + ADM_LEN + PLAINTEXT_LENGTH ];
 static ARCH_WORD_32 crypted[4];
 
+static const char *b64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 static void NS_init(struct fmt_main *self)
 {
 	int i;
-	static char *b64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-	char *pos;
+	const char *pos;
 	for (pos = b64, i = 0 ; *pos != 0 ; pos++, i++)
 		e64toshort[(int)*pos] = i;
 }
@@ -93,9 +93,14 @@ static int NS_valid(char *ciphertext, struct fmt_main *self)
         while ((*password != '$') && (*password != '\0' ))
             password++;
         if (*password == '\0') return 0;
+
+        if ((int)(password - ciphertext) > SALT_SIZE)
+	        return 0;
+
         password++;
 
 	if (strlen(password) != 30) return 0;
+        if (strspn(password, b64) != 30) return 0;
 	for (i = 0; i < 6 ; i++)
 		if (netscreen[i] != password[p[i]]) return 0;
 
