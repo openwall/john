@@ -121,8 +121,6 @@ static void init(struct fmt_main *self)
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	unsigned char *c = (unsigned char*)ciphertext + 12;
-	unsigned char f = 0;
 	char *p, *data = ciphertext + 12;
 
 	if (strncmp(ciphertext, "$DIGEST-MD5$", 12) != 0)
@@ -131,81 +129,66 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (strlen(ciphertext) > CIPHERTEXT_LENGTH)
 		return 0;
 
-	while(*c)
-		if (*c++ == '$')
-			f++;
-
-	if (f < 7 || f > 8) // last field is optional
+	if (!(p = strchr(data, '$')) || (int)(p-data) >= 64) // username
 		return 0;
-
-	/* more checking */
-	p = strchr(data, '$'); if (!p) return 0;
-	if (p - data + 1 > 64)
+	data = p + 1; // realm
+	if (!(p = strchr(data, '$')) || (int)(p-data) >= 64)
 		return 0;
-
-	data = p + 1; p = strchr(data, '$'); if (!p) return 0;
-	if (p - data + 1 > 64)
+	data = p + 1; // nonce
+	if (!(p = strchr(data, '$')) || (int)(p-data) >= 64)
 		return 0;
-
-	data = p + 1; p = strchr(data, '$'); if (!p) return 0;
-	if (p - data + 1 > 64)
+	data = p + 1; // digest_uri
+	if (!(p = strchr(data, '$')) || (int)(p-data) >= DSIZE)
 		return 0;
-
-	data = p + 1; p = strchr(data, '$'); if (!p) return 0;
-	if (p - data + 1 > DSIZE)
+	data = p + 1; // cnonce
+	if (!(p = strchr(data, '$')) || (int)(p-data) > MD5_HEX_SIZE)
 		return 0;
-
-	data = p + 1; p = strchr(data, '$'); if (!p) return 0;
-	if (p - data + 1 > MD5_HEX_SIZE + 1)
+	data = p + 1; // nc
+	if (!(p = strchr(data, '$')) || (int)(p-data) >= 9)
 		return 0;
-
-	data = p + 1; p = strchr(data, '$'); if (!p) return 0;
-	if (p - data + 1 > 9)
+	data = p + 1; // qop
+	if (strncmp(data, "auth", 4) && strncmp(data, "auth-int", 8) &&
+	        strncmp(data, "auth-conf", 9))
 		return 0;
-
-	data = p + 1; p = strchr(data, '$'); if (!p) return 0;
-	if (p - data + 1 > 9)
+	if (!(p = strchr(data, '$')) || (int)(p-data) >= 9)
 		return 0;
-
-	data = p + 1; p = strchr(data, '$');
-	if (p) {
-		data = p + 1;
-		if (*data) {
-			if (strlen(data) > 8)
-				return 0;
-		}
-	}
+	data = p + 1; // authzid, optional
+	if ((p = strchr(data, '$'))) {
+		if ((int)(p-data) > MD5_HEX_SIZE || strlen(&p[1]) >= 8)
+			return 0;
+	} else if (strlen(data) > MD5_HEX_SIZE)
+		return 0;
 
 	return 1;
 }
 
 static void *binary(char *ciphertext)
 {
-	static ARCH_WORD_32 binary_response[BINARY_SIZE/4];
+	static ARCH_WORD_32 out[BINARY_SIZE/4];
 	char response[MD5_HEX_SIZE + 1];
 	unsigned int i;
 	char *p, *data = ciphertext + 12;
 
-	p = strchr(data, '$'); if (!p) return NULL; data = p + 1;
-	p = strchr(data, '$'); if (!p) return NULL; data = p + 1;
-	p = strchr(data, '$'); if (!p) return NULL; data = p + 1;
-	p = strchr(data, '$'); if (!p) return NULL; data = p + 1;
-	p = strchr(data, '$'); if (!p) return NULL; data = p + 1;
-	p = strchr(data, '$'); if (!p) return NULL; data = p + 1;
-	p = strchr(data, '$'); if (!p) return NULL; data = p + 1;
+	p = strchr(data, '$'); data = p + 1;
+	p = strchr(data, '$'); data = p + 1;
+	p = strchr(data, '$'); data = p + 1;
+	p = strchr(data, '$'); data = p + 1;
+	p = strchr(data, '$'); data = p + 1;
+	p = strchr(data, '$'); data = p + 1;
+	p = strchr(data, '$'); data = p + 1;
 
 	p = strchr(data, '$');
-	if (p)
+	if (p && (p - data + 1) < sizeof(response))
 		strnzcpy(response, data, p - data + 1);
 	else
 		strnzcpy(response, data, sizeof(response));
 
 	for (i = 0; i < BINARY_SIZE; ++i)
-		((unsigned char*)binary_response)[i] =
+		((unsigned char*)out)[i] =
 			(atoi16[ARCH_INDEX(response[i*2])] << 4)
 			+ atoi16[ARCH_INDEX(response[i*2+1])];
 
-	return (void*)binary_response;
+	return (void*)out;
 }
 
 static void *salt(char *ciphertext)
@@ -219,35 +202,37 @@ static void *salt(char *ciphertext)
 	char qop[9];
 	char authzid[8];
 	unsigned char *ptr_src, *ptr_dst, v, i;
-	char *p, *data = ciphertext + 12;
+	char *ccopy = strdup(ciphertext);
+	char *p, *data = ccopy + 12;
 	MD5_CTX ctx;
 	char A2[DSIZE];
 	unsigned char hash[BINARY_SIZE];
 	unsigned char hex_hash[2*MD5_HEX_SIZE];
 
-	p = strchr(data, '$'); if (!p) return NULL;
-	strnzcpy(username, data, p - data + 1);
+	if ((p = strchr(data, '$'))) *p = 0;
+	strnzcpy(username, data, sizeof(username));
 
-	data = p + 1; p = strchr(data, '$'); if (!p) return NULL;
-	strnzcpy(realm, data, p - data + 1);
+	data = p + 1; if ((p = strchr(data, '$'))) *p = 0;
+	strnzcpy(realm, data, sizeof(realm));
 
-	data = p + 1; p = strchr(data, '$'); if (!p) return NULL;
-	strnzcpy(nonce, data, p - data + 1);
+	data = p + 1; if ((p = strchr(data, '$'))) *p = 0;
+	strnzcpy(nonce, data, sizeof(nonce));
 
-	data = p + 1; p = strchr(data, '$'); if (!p) return NULL;
-	strnzcpy(digest_uri, data, p - data + 1);
+	data = p + 1; if ((p = strchr(data, '$'))) *p = 0;
+	strnzcpy(digest_uri, data, sizeof(digest_uri));
 
-	data = p + 1; p = strchr(data, '$'); if (!p) return NULL;
-	strnzcpy(cnonce, data, p - data + 1);
+	data = p + 1; if ((p = strchr(data, '$'))) *p = 0;
+	strnzcpy(cnonce, data, sizeof(cnonce));
 
-	data = p + 1; p = strchr(data, '$'); if (!p) return NULL;
-	strnzcpy(nc, data, p - data + 1);
+	data = p + 1; if ((p = strchr(data, '$'))) *p = 0;
+	strnzcpy(nc, data, sizeof(nc));
 
-	data = p + 1; p = strchr(data, '$'); if (!p) return NULL;
-	strnzcpy(qop, data, p - data + 1);
+	data = p + 1; if ((p = strchr(data, '$'))) *p = 0;
+	strnzcpy(qop, data, sizeof(qop));
 
-	data = p + 1; p = strchr(data, '$');
-	if (p) {
+	data = p + 1;
+	if ((p = strchr(data, '$'))) {
+		*p = 0;
 		data = p + 1;
 		if (*data)
 			strnzcpy(authzid, data, sizeof(authzid));
@@ -259,15 +244,11 @@ static void *salt(char *ciphertext)
 
 	if (!strcmp(qop, "auth"))
 		snprintf((char*)A2, sizeof(A2),
-		         "AUTHENTICATE:%s", digest_uri);
+		        "AUTHENTICATE:%s", digest_uri);
 	else if (!strcmp(qop, "auth-int") || !strcmp(qop, "auth-conf"))
 		snprintf((char*)A2, sizeof(A2),
-		         "AUTHENTICATE:%s:00000000000000000000000000000000",
-		         digest_uri);
-	else {
-		fprintf(stderr, "unknown 'qop' value\n");
-		exit(-1);
-	}
+		        "AUTHENTICATE:%s:00000000000000000000000000000000",
+		        digest_uri);
 
 	MD5_Init(&ctx);
 	MD5_Update(&ctx, A2, strlen((char*)A2));
@@ -299,6 +280,7 @@ static void *salt(char *ciphertext)
 	         "%s:%s:", username, realm);
 	cur_salt.login_id_len = strlen((char*)cur_salt.login_id);
 
+	MEM_FREE(ccopy);
 	return (void*)&cur_salt;
 }
 
