@@ -2195,7 +2195,7 @@ endif
 ../run/vncpcap2john:
 	$(CXX) -Wall vncpcap2john.cpp -lpcap -o ../run/vncpcap2john
 
-../run/gpg2john:
+../run/gpg2john: gpg2john.cpp gpg2john.h
 	$(CXX) -Wall gpg2john.cpp -lcrypto -o ../run/gpg2john
 
 ../run/uaf2john: uaf2john.o uaf_encode_plug.o
