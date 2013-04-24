@@ -335,7 +335,6 @@ static void __SSE_gen_BenchLowLevelFunctions();
 #define MAX_KEYS_PER_CRYPT_X86	X86_BLOCK_LOOPS
 extern void MD5_Go2 (unsigned char *data, unsigned int len, unsigned char *result);
 #if MD5_X2 && (!MD5_ASM)
-static MD5_OUT tmpOut;
 #if (defined(_OPENMP)||defined(WAS_MMX_OPENMP))
 #define MD5_body(x0, x1, out0, out1) \
 	MD5_body_for_thread(0, x0, x1, out0, out1)
@@ -350,6 +349,7 @@ extern void MD5_body(MD5_word x[15], MD5_word x2[15], MD5_word out[4], MD5_word 
 #define DoMD5a(A,L,C) MD5_body(A->x1.w,A->x2.w2,C->x1.w,C->x2.w2)
 #define DoMD5a2(A,L,C,D) MD5_body(A->x1.w,A->x2.w2, (ARCH_WORD_32*)D[0], (ARCH_WORD_32*)D[1])
 #else
+static MD5_OUT tmpOut;
 #define DoMD5a(A,L,C) do{MD5_body(A->x1.w,A->x2.w2,C->x1.w,C->x2.w2);MD5_swap2(C->x1.w,C->x2.w2,C->x1.w,C->x2.w2,4);}while(0)
 #define DoMD5a2(A,L,C,D) do{MD5_body(A->x1.w,A->x2.w2,tmpOut.x1.w,tmpOut.x2.w2);MD5_swap2(tmpOut.x1.w,tmpOut.x2.w2,tmpOut.x1.w,tmpOut.x2.w2,4);memcpy(&(C->x1.b[D[0]]),tmpOut.x1.b,16);memcpy(&(C->x2.b2[D[1]]),tmpOut.x2.b2,16);}while(0)
 #endif
