@@ -38,7 +38,7 @@
 #include <fstream>
 #include <libgen.h>
 #include <string.h>
-
+#include <wchar.h>
 #include "gpg2john.h"
 
 using namespace std;
@@ -988,7 +988,7 @@ char *strip_basename(char* filename)
 	return base;
 }
 
-void key2john(Key &key,char *filename) {
+void key2john(Key &key,char *filename, const wchar_t *gecos) {
 	const String2Key &s2k = key.string2Key();
 	char *base=strip_basename(filename);
 	printf("%s:$gpg$*%d*%d*%d*", base, key.m_algorithm, key.m_datalen, key.bits());
@@ -1010,9 +1010,10 @@ void key2john(Key &key,char *filename) {
 			print_hex((unsigned char*)s2k.m_salt, 8);
 			break;
 	}
+	if(wcslen(gecos))
+		printf(":::%ls",gecos);
 	printf("\n");
 }
-
 
 int process_file(char *filename) {
 	ifstream inStream;
@@ -1035,9 +1036,37 @@ int process_file(char *filename) {
 #endif
 			if(header.type()==PacketHeader::TYPE_SECRET_KEY){
 				readSecretKey(in,header,key);
+				//try to read USER ID
+				wchar_t gecos[256];
+				int8_t gecos_buff[1024];
+				memset(gecos,0,256*sizeof(wchar_t));
+				memset(gecos_buff,0,1024);
+				try{
+					readPacketHeader(in,header);
+					if(header.type()==PacketHeader::TYPE_USER_ID){
+						uint32_t i,idsize=header.length();
+						for(i=0;i<idsize;i++)
+							if(i<1023)
+								in>>gecos_buff[i];
+						gecos_buff[i]=0;
+						const char *p=(char*)gecos_buff;
+						mbstowcs(gecos,p,256);
+
+						for(i=0;i<wcslen(gecos);i++)
+							if(gecos[i]==L':')
+								gecos[i]=L' ';
+					}else{
+						suckUnwantedPacket(in,header);
+					}
+				} catch(const string &str) {
+					throw "Error while reading user ID";
+				} catch(const char *cstr) {
+					throw "Error while reading user ID";
+				}
+
 
 				if(key.locked()){
-					key2john(key,filename);
+					key2john(key,filename,gecos);
 				}
 				foundSecret=true;
 
