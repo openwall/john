@@ -11,10 +11,6 @@
 
 #include <string.h>
 
-#ifdef _MSC_VER
-#define snprintf _snprintf
-#endif
-
 #ifdef __MMX__
 #include <mmintrin.h>
 #endif

@@ -99,10 +99,6 @@ static struct {
 static ARCH_WORD_32 (*crypt_key)[BINARY_SIZE/4];
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 
-#ifdef _MSC_VER
-#define snprintf sprintf_s
-#endif
-
 static struct fmt_tests tests[] = {
 	{"$DIGEST-MD5$s3443$pjwstk$00$ldap/10.253.34.43$0734d94ad9abd5bd7fc5e7e77bcf49a8$00000001$auth-int$dd98347e6da3efd6c4ff2263a729ef77", "test"},
 	{NULL}

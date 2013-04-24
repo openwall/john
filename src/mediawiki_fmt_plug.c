@@ -90,6 +90,8 @@ static char *Convert(char *Buf, char *ciphertext)
 	if (text_in_dynamic_format_already(pDynamic_9, ciphertext))
 		return ciphertext;
 
+	if (strncmp(ciphertext, "$B$", 3))
+		return ciphertext;
 	cp = strchr(&ciphertext[3], '$');
 	if (!cp)
 		return "*";

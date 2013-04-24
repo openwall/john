@@ -123,7 +123,9 @@ extern char *strupr(char *s);
 #define strcasecmp _stricmp
 #define alloca _alloca
 #pragma warning (disable : 4018 297 )
+#undef inline
 #define inline _inline
+#define snprintf sprintf_s
 #endif
 
 #endif
