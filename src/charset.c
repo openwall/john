@@ -191,7 +191,7 @@ static int charset_new_length(int length,
 }
 
 typedef struct {
-	int pos;
+	int index;
 	unsigned int value;
 } count_sort_t;
 
@@ -202,7 +202,7 @@ static int cmp_count(const void *p1, const void *p2)
 	int diff = (int)c2->value - (int)c1->value;
 	if (diff)
 		return diff;
-	return c1->pos - c2->pos;
+	return c1->index - c2->index;
 }
 
 static void charset_generate_chars(struct list_main **lists,
@@ -211,7 +211,7 @@ static void charset_generate_chars(struct list_main **lists,
 {
 	struct list_entry *current;
 	unsigned char buffer[CHARSET_SIZE];
-	count_sort_t pv[CHARSET_SIZE];
+	count_sort_t iv[CHARSET_SIZE];
 	int length, pos, count;
 	int i, j, k;
 
@@ -233,16 +233,16 @@ static void charset_generate_chars(struct list_main **lists,
 	for (k = 0; k < CHARSET_SIZE; k++) {
 		unsigned int value = (*chars)[0][0][k];
 		if (value) {
-			pv[count].pos = k;
-			pv[count++].value = value;
+			iv[count].index = k;
+			iv[count++].value = value;
 		}
 	}
 
 	if (count > 1)
-		qsort(pv, count, sizeof(pv[0]), cmp_count);
+		qsort(iv, count, sizeof(iv[0]), cmp_count);
 
 	for (k = 0; k < count; k++)
-		buffer[k] = CHARSET_MIN + pv[k].pos;
+		buffer[k] = CHARSET_MIN + iv[k].index;
 
 	header->count = count;
 	fwrite(buffer, 1, count, file);
@@ -299,8 +299,8 @@ static void charset_generate_chars(struct list_main **lists,
 			for (k = 0; k < CHARSET_SIZE; k++) {
 				unsigned int value = (*chars)[i][j][k];
 				if (value) {
-					pv[count].pos = k;
-					pv[count++].value = value;
+					iv[count].index = k;
+					iv[count++].value = value;
 				}
 			}
 
@@ -308,14 +308,14 @@ static void charset_generate_chars(struct list_main **lists,
 				continue;
 
 			if (count > 1)
-				qsort(pv, count, sizeof(pv[0]), cmp_count);
+				qsort(iv, count, sizeof(iv[0]), cmp_count);
 
 			if (i == CHARSET_SIZE && j == CHARSET_SIZE)
 				for (k = 0; k < count; k++)
-					(*cracks)[length][pos][k] = pv[k].value;
+					(*cracks)[length][pos][k] = iv[k].value;
 
 			for (k = 0; k < count; k++)
-				buffer[k] = CHARSET_MIN + pv[k].pos;
+				buffer[k] = CHARSET_MIN + iv[k].index;
 
 			cfputc(CHARSET_ESC, file);
 			cfputc(CHARSET_LINE, file);
