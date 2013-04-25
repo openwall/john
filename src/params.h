@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2012 by Solar Designer
+ * Copyright (c) 1996-2013 by Solar Designer
  *
  * ...with changes in the jumbo patch, by various authors
  */
@@ -19,7 +19,7 @@
 /*
  * John's version number.
  */
-#define JOHN_VERSION			"1.7.9.6-jumbo-8+bleeding"
+#define JOHN_VERSION			"1.7.9.8-bleeding-jumbo"
 
 /*
  * Notes to packagers of John for *BSD "ports", Linux distributions, etc.:
@@ -107,9 +107,8 @@
 /*
  * Charset file format version string.
  */
-#define CHARSET_V1			"CHR1"
-#define CHARSET_V2			"CHR2"
-#define CHARSET_V			CHARSET_V2
+#define CHARSET_V3			"CHR3"
+#define CHARSET_V			CHARSET_V3
 
 /*
  * Timer interval in seconds.

@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 2009-2012 by Solar Designer
+ * Copyright (c) 2009-2013 by Solar Designer
  *
  * Generic crypt(3) support, as well as support for glibc's crypt_r(3) and
  * Solaris' MT-safe crypt(3C) with OpenMP parallelization.
@@ -11,6 +11,7 @@
 #define _XOPEN_VERSION 4
 #define _XPG4_2
 #define _GNU_SOURCE /* for crypt_r(3) */
+#include <stdio.h>
 #include <string.h>
 #ifndef _MSC_VER
 #include <strings.h>
@@ -204,7 +205,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 #ifdef HAVE_MPI
 	if (mpi_id == 0)
 #endif
-		fprintf(stderr, "Generic crypt(3) module: "
+		fprintf(stderr, "Warning: "
 		    "hash encoding string length %d, type id %c%c\n"
 		    "appears to be unsupported on this system; "
 		    "will not load such hashes.\n",
@@ -403,7 +404,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	int index;
 
 #if defined(_OPENMP) && defined(__GLIBC__)
-#pragma omp parallel for default(none) private(index) shared(count, crypt_out, saved_key, saved_salt, crypt_data)
+#pragma omp parallel for default(none) private(index) shared(count, crypt_out, saved_key, saved_salt, crypt_data, stderr)
 	for (index = 0; index < count; index++) {
 		char *hash;
 		int t = omp_get_thread_num();
@@ -431,6 +432,16 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			memset(&data, 0, sizeof(data));
 			hash = crypt_r(saved_key[index], saved_salt, &data);
 		}
+		if (!hash) {
+			static int warned = 0;
+#pragma omp critical
+			if (!warned) {
+				fprintf(stderr,
+				    "Warning: crypt_r() returned NULL\n");
+				warned = 1;
+			}
+			hash = "";
+		}
 		strnzcpy(crypt_out[index], hash, BINARY_SIZE);
 	}
 #else
@@ -442,13 +453,26 @@ static int crypt_all(int *pcount, struct db_salt *salt)
  * modern hash types, the function is actually able to compute multiple hashes
  * in parallel by different threads (and the performance for some hash types is
  * reasonable).  Overall, this code is reasonable to use for SHA-crypt and
- * SunMD5 hashes, which are not yet supported by John natively.
+ * SunMD5 hashes, which are not yet supported by non-jumbo John natively.
  */
-#pragma omp parallel for default(none) private(index) shared(count, crypt_out, saved_key, saved_salt)
+#pragma omp parallel for default(none) private(index) shared(count, crypt_out, saved_key, saved_salt, stderr)
 #endif
-	for (index = 0; index < count; index++)
-		strnzcpy(crypt_out[index], crypt(saved_key[index], saved_salt),
-		    BINARY_SIZE);
+	for (index = 0; index < count; index++) {
+		char *hash = crypt(saved_key[index], saved_salt);
+		if (!hash) {
+			static int warned = 0;
+#if defined(_OPENMP) && defined(__sun)
+#pragma omp critical
+#endif
+			if (!warned) {
+				fprintf(stderr,
+				    "Warning: crypt() returned NULL\n");
+				warned = 1;
+			}
+			hash = "";
+		}
+		strnzcpy(crypt_out[index], hash, BINARY_SIZE);
+	}
 #endif
 
 	return count;

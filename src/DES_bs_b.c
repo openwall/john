@@ -1454,12 +1454,11 @@ int DES_bs_crypt_LM(int *pcount, struct db_salt *salt)
 {
 	int keys_count = *pcount;
 #if DES_bs_mt
-	int retval = (salt && salt->bitmap) ? 0 : keys_count;
 	int t, n = (keys_count + (DES_BS_DEPTH - 1)) / DES_BS_DEPTH;
 #endif
 
 #ifdef _OPENMP
-#pragma omp parallel for default(none) private(t) shared(retval, n, DES_bs_all_p, keys_count, salt)
+#pragma omp parallel for default(none) private(t) shared(n, DES_bs_all_p, keys_count)
 #endif
 	for_each_t(n) {
 		ARCH_WORD **k;
@@ -1558,45 +1557,9 @@ int DES_bs_crypt_LM(int *pcount, struct db_salt *salt)
 
 			k += 96;
 		} while (--rounds);
-
-#if DES_bs_mt
-		if (!retval) {
-			int index, start, end;
-			start = t;
-#ifdef __GNUC__
-/* This integer division may be slow - need to revise */
-			start /= DES_bs_all_size;
-#endif
-			start *= DES_BS_DEPTH;
-			end = start + DES_BS_DEPTH;
-			if (end > keys_count)
-				end = keys_count;
-			for (index = start; index < end; index++) {
-				unsigned int hash = salt->index(index);
-				if (salt->bitmap[hash / (sizeof(*salt->bitmap) * 8)] &
-				    (1U << (hash % (sizeof(*salt->bitmap) * 8)))) {
-					struct db_password *pw;
-					pw = salt->hash[hash >> PASSWORD_HASH_SHR];
-					do {
-						if (DES_bs_cmp_one(pw->binary, 64, index)) {
-#pragma omp critical
-							retval = keys_count;
-							goto done;
-						}
-					} while ((pw = pw->next_hash));
-				}
-			}
-done:
-			;
-		}
-#endif
 	}
 
-#if DES_bs_mt
-	return retval;
-#else
 	return keys_count;
-#endif
 }
 
 

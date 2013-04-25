@@ -1,8 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-99,2003,2005,2008,2011 by Solar Designer
- *
- * ...with changes in the jumbo patch, by various authors
+ * Copyright (c) 1996-99,2003,2005,2008,2010-2013 by Solar Designer
  */
 
 #include <stdio.h>
@@ -104,10 +102,7 @@ static void charset_write_header(FILE *file, struct charset_header *header)
 
 int charset_read_header(FILE *file, struct charset_header *header)
 {
-	if (fread(header->version, sizeof(header->version), 1, file) != 1)
-		return -1;
-	memset(header->check, 0, sizeof(header->check));
-	if (memcmp(header->version, CHARSET_V1, sizeof(header->version)) &&
+	if (fread(header->version, sizeof(header->version), 1, file) != 1 ||
 	    fread(header->check, sizeof(header->check), 1, file) != 1)
 		return -1;
 	{
@@ -276,8 +271,11 @@ static void charset_generate_order(crack_counters cracks,
 	int length, pos, count; /* zero-based */
 	int best_length, best_pos, best_count;
 	double total, min, value;
-	unsigned char *ptr;
+	unsigned char *ptr, *end;
 	double (*ratios)[CHARSET_LENGTH][CHARSET_LENGTH][CHARSET_SIZE];
+	int counts[CHARSET_LENGTH][CHARSET_LENGTH];
+	int recalcs;
+	unsigned char *prev_order;
 
 	ratios = mem_alloc(sizeof(*ratios));
 
@@ -311,6 +309,11 @@ static void charset_generate_order(crack_counters cracks,
 		}
 	}
 
+	prev_order = NULL;
+	recalcs = 0;
+
+again:
+
 /*
  * Fill out the order[] with combinations sorted for non-decreasing ratios.
  *
@@ -318,6 +321,8 @@ static void charset_generate_order(crack_counters cracks,
  * as the size of order[] is small and this code only executes once per charset
  * file generated.
  */
+
+	memset(counts, 0, sizeof(counts));
 
 	ptr = order;
 	best_length = best_pos = best_count = 0;
@@ -327,8 +332,10 @@ static void charset_generate_order(crack_counters cracks,
 		min = 0.0; /* unused */
 
 		for (length = 0; length < CHARSET_LENGTH; length++)
-		for (count = 0; count < CHARSET_SIZE; count++)
 		for (pos = 0; pos <= length; pos++) {
+			count = counts[length][pos];
+			if (count >= CHARSET_SIZE)
+				continue;
 			value = (*ratios)[length][pos][count];
 			if (value >= 0.0 && (!found || value < min)) {
 				found = 1;
@@ -342,6 +349,8 @@ static void charset_generate_order(crack_counters cracks,
 		if (!found)
 			break;
 
+		counts[best_length][best_pos]++;
+
 /* Record the combination and "take" it out of the input array */
 		(*ratios)[best_length][best_pos][best_count] = -1.0; /* taken */
 		assert(ptr <= order + size - 3);
@@ -352,6 +361,69 @@ static void charset_generate_order(crack_counters cracks,
 
 	assert(event_abort || ptr == order + size);
 
+	end = ptr;
+
+	if (prev_order) {
+		if (!memcmp(order, prev_order, end - order)) {
+			printf("Stable order (%d recalculations)\n", recalcs);
+			goto out;
+		}
+	} else {
+		prev_order = mem_alloc(end - order);
+	}
+	memcpy(prev_order, order, end - order);
+
+/* Recalculate the ratios */
+
+	memset(counts, 0, sizeof(counts));
+	ptr = order;
+	do {
+		double est;
+
+		length = *ptr++;
+		pos = *ptr++;
+		count = *ptr++;
+		counts[length][pos] = count;
+
+/* First calculate the number of candidate passwords */
+		total = 1.0;
+		{
+			int i;
+			for (i = 0; i <= length; i++)
+			if (i != pos)
+				total *= counts[length][i] + 1;
+		}
+
+/* Then calculate the candidates to successful cracks ratio */
+		{
+			int i, j;
+			est = 1.0; /* estimated cracks for this portion */
+			for (i = 0; i <= length; i++)
+			if (i != pos) {
+				unsigned int sum = 0;
+				double tmp = 0.0;
+				for (j = 0; j <= counts[length][i]; j++)
+					tmp += (*cracks)[length][i][j];
+				for (j = 0; j < CHARSET_SIZE; j++)
+					sum += (*cracks)[length][i][j];
+				if (sum)
+					tmp /= sum;
+				est *= tmp;
+			}
+			est *= (*cracks)[length][pos][count];
+			if (est < 1e-3) /* may adjust this */
+				est = 1e-3;
+		}
+		total /= est;
+		(*ratios)[length][pos][count] = total;
+	} while (ptr < end);
+
+/* This is something to experiment with, reasonable values are 1 to 200+ */
+	if (++recalcs < 1000) goto again;
+	printf("Unstable order (%d recalculations)\n", recalcs);
+
+out:
+	MEM_FREE(prev_order);
 	MEM_FREE(ratios);
 }
 
