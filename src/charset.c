@@ -354,15 +354,18 @@ static int cmp_ratio(const void *p1, const void *p2)
 {
 	const ratio_sort_t *r1 = (const ratio_sort_t *)p1;
 	const ratio_sort_t *r2 = (const ratio_sort_t *)p2;
+	int diff;
 	if (r1->value < r2->value)
 		return -1;
 	if (r1->value > r2->value)
 		return 1;
-	if (r1->length != r2->length)
-		return r1->length - r2->length;
+	diff = r1->length - r2->length;
+	if (diff)
+		return diff;
 #if 1
-	if (r1->count != r2->count)
-		return r1->count - r2->count;
+	diff = r1->count - r2->count;
+	if (diff)
+		return diff;
 	return r1->pos - r2->pos;
 #else
 /*
@@ -370,8 +373,9 @@ static int cmp_ratio(const void *p1, const void *p2)
  * of the code.  This kind of stabilization is arguably illogical and it tends
  * to require many more recalculations.
  */
-	if (r1->pos != r2->pos)
-		return r1->pos - r2->pos;
+	diff = r1->pos - r2->pos;
+	if (diff)
+		return diff;
 	return r1->count - r2->count;
 #endif
 }
