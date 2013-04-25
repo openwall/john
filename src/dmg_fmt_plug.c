@@ -293,6 +293,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 			goto err;
 		if (strlen(p) != res * 2)
 			goto err;
+		if (res > 8192)
+			goto err;
 		if ((p = strtok(NULL, "*")) == NULL)	/* scp */
 			goto err;
 		res = atoi(p);
