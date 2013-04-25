@@ -167,9 +167,15 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto error;
 	if (strlen(ptr) > MAXLEN)
 		goto error;
-
 	if (!ishex(ptr))
 		goto error;
+	if (!(ptr = strtok(NULL, "*")))
+		goto error;
+	if (strlen(ptr) > MAXLEN)
+		goto error;
+	if (!ishex(ptr))
+		goto error;
+
 	MEM_FREE(keeptr);
 	return 1;
 error:
