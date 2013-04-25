@@ -357,7 +357,7 @@ static int cmp_ratio(const void *p1, const void *p2)
 		return 1;
 	if (r1->length != r2->length)
 		return r1->length - r2->length;
-#if 0
+#if 1
 	if (r1->count != r2->count)
 		return r1->count - r2->count;
 	return r1->pos - r2->pos;
