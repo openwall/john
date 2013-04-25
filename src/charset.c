@@ -199,7 +199,10 @@ static int cmp_count(const void *p1, const void *p2)
 {
 	const count_sort_t *c1 = (const count_sort_t *)p1;
 	const count_sort_t *c2 = (const count_sort_t *)p2;
-	return (int)c2->value - (int)c1->value;
+	int diff = (int)c2->value - (int)c1->value;
+	if (diff)
+		return diff;
+	return c1->pos - c2->pos;
 }
 
 static void charset_generate_chars(struct list_main **lists,
