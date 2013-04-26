@@ -4,6 +4,7 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #ifndef _MSC_VER
 #include <unistd.h>
 #else
@@ -32,38 +33,92 @@ typedef unsigned int (*crack_counters)
 
 static CRC32_t checksum;
 
-static void charset_filter_plaintexts(struct db_main *db)
+static unsigned long charset_filter_plaintexts(struct db_main *db,
+    struct list_main **lists)
 {
-	struct list_entry *current, *last;
-	unsigned char *ptr;
-	char key[PLAINTEXT_BUFFER_SIZE];
+	int length, old_length;
+	unsigned long count;
+	struct list_entry *current, *next;
+	char *ptr, key[PLAINTEXT_BUFFER_SIZE];
 
-	last = NULL;
+	for (length = 0; length <= CHARSET_LENGTH; length++)
+		list_init(&lists[length]);
+
+	count = 0;
+
 	if ((current = db->plaintexts->head))
 	do {
-		if (!current->data[0]) {
-			list_del_next(db->plaintexts, last);
+		next = current->next;
+
+		if (!current->data[0])
 			continue;
+
+		old_length = 0;
+		ptr = current->data;
+		if (f_filter) {
+			old_length = strlen(current->data);
+/*
+ * The current->data string might happen to end near page boundary and the next
+ * page might not be mapped, whereas ext_filter_body() may pre-read a few chars
+ * beyond NUL for greater speed in uses during cracking.  Also, the external
+ * filter() may make the string longer.  Finally, ext_filter_body() assumes
+ * that the string passed to it fits in PLAINTEXT_BUFFER_SIZE.  Hence, we copy
+ * the string here.
+ */
+			if (old_length < sizeof(key)) {
+				memcpy(key, current->data, old_length + 1);
+			} else {
+				memcpy(key, current->data, sizeof(key) - 1);
+				key[sizeof(key) - 1] = 0;
+			}
+			if (!ext_filter_body(key, key))
+				continue;
+			ptr = key;
 		}
 
-		for (ptr = (unsigned char *)current->data; *ptr; ptr++)
-		if (*ptr < CHARSET_MIN || *ptr > CHARSET_MAX) {
-			list_del_next(db->plaintexts, last);
-			break;
-		}
-		if (*ptr) continue;
-
-		strnzcpy(key, current->data, PLAINTEXT_BUFFER_SIZE);
-		if (ext_filter(key)) {
-			if (strlen(key) <= strlen(current->data))
-				strcpy(current->data, key);
-		} else {
-			list_del_next(db->plaintexts, last);
-			continue;
+		length = 0;
+		while (*ptr) {
+			int c = *(unsigned char *)ptr;
+			if (c < CHARSET_MIN || c > CHARSET_MAX)
+				break;
+			length++;
+			ptr++;
 		}
 
-		last = current;
-	} while ((current = current->next));
+		if (!*ptr) {
+			struct list_main *list;
+/*
+ * lists[CHARSET_LENGTH] is a catch-all for excessive length strings that
+ * nevertheless consist exclusively of characters in the CHARSET_MIN to
+ * CHARSET_MAX range (including in their portion beyond CHARSET_LENGTH).
+ */
+			if (length > CHARSET_LENGTH)
+				list = lists[CHARSET_LENGTH];
+			else
+				list = lists[length - 1];
+			if (old_length) {
+				if (length > old_length) {
+					list_add(list, key);
+				} else {
+					memcpy(current->data, key, length + 1);
+					list_add_link(list, current);
+				}
+			} else {
+/*
+ * Truncate very long strings at PLAINTEXT_BUFFER_SIZE for consistency with
+ * what would happen if we applied a dummy filter(), as we as for easy testing
+ * against older revisions of this code.
+ */
+				if (length >= PLAINTEXT_BUFFER_SIZE)
+					current->data
+					    [PLAINTEXT_BUFFER_SIZE - 1] = 0;
+				list_add_link(list, current);
+			}
+			count++;
+		}
+	} while ((current = next));
+
+	return count;
 }
 
 static int cfputc(int c, FILE *stream)
@@ -139,36 +194,59 @@ static int charset_new_length(int length,
 	return result;
 }
 
-static void charset_generate_chars(struct list_entry *plaintexts,
+typedef struct {
+	int index;
+	unsigned int value;
+} count_sort_t;
+
+static int cmp_count(const void *p1, const void *p2)
+{
+	const count_sort_t *c1 = (const count_sort_t *)p1;
+	const count_sort_t *c2 = (const count_sort_t *)p2;
+	int diff = (int)c2->value - (int)c1->value;
+	if (diff)
+		return diff;
+	return c1->index - c2->index;
+}
+
+static void charset_generate_chars(struct list_main **lists,
 	FILE *file, struct charset_header *header,
 	char_counters chars, crack_counters cracks)
 {
 	struct list_entry *current;
-	unsigned char *ptr;
 	unsigned char buffer[CHARSET_SIZE];
-	int length, pos, best, count;
-	unsigned int value, max;
+	count_sort_t iv[CHARSET_SIZE];
+	int length, pos, count;
 	int i, j, k;
 
-	current = plaintexts;
-	do {
-		for (ptr = (unsigned char *)current->data; *ptr; ptr++)
-			(*chars)[0][0][ARCH_INDEX(*ptr - CHARSET_MIN)]++;
-	} while ((current = current->next));
+/* Zeroize the same portion of "chars" as is used by the loop below */
+	memset((*chars)[0][0], 0, sizeof((*chars)[0][0]));
+
+	for (length = 0; length <= CHARSET_LENGTH; length++) {
+		if ((current = lists[length]->head))
+		do {
+			char *ptr;
+			for (ptr = current->data; *ptr; ptr++) {
+				int c = *(unsigned char *)ptr;
+				(*chars)[0][0][ARCH_INDEX(c - CHARSET_MIN)]++;
+			}
+		} while ((current = current->next));
+	}
 
 	count = 0;
-	best = 0;
-	do {
-		max = 0;
-		for (k = 0; k < CHARSET_SIZE; k++)
-		if ((value = (*chars)[0][0][k]) > max) {
-			max = value; best = k;
+	for (k = 0; k < CHARSET_SIZE; k++) {
+		unsigned int value = (*chars)[0][0][k];
+		if (value) {
+			iv[count].index = k;
+			iv[count++].value = value;
 		}
-		if (!max) break;
+	}
 
-		(*chars)[0][0][best] = 0;
-		buffer[count++] = CHARSET_MIN + best;
-	} while (1);
+	if (count > 1)
+		qsort(iv, count, sizeof(iv[0]), cmp_count);
+
+	for (k = 0; k < count; k++)
+		buffer[k] = CHARSET_MIN + iv[k].index;
 
 	header->count = count;
 	fwrite(buffer, 1, count, file);
@@ -181,52 +259,73 @@ static void charset_generate_chars(struct list_entry *plaintexts,
 		cfputc(CHARSET_ESC, file); cfputc(CHARSET_NEW, file);
 		cfputc(length, file); cfputc(pos, file);
 
-		memset(chars, 0, sizeof(*chars));
-
-		current = plaintexts;
-		do
-		if ((int)strlen(current->data) == length + 1) {
-			ptr = (unsigned char *)current->data;
-			(*chars)
-				[CHARSET_SIZE]
-				[CHARSET_SIZE]
-				[ARCH_INDEX(ptr[pos] - CHARSET_MIN)]++;
-			if (pos) (*chars)
-				[CHARSET_SIZE]
-				[ARCH_INDEX(ptr[pos - 1] - CHARSET_MIN)]
-				[ARCH_INDEX(ptr[pos] - CHARSET_MIN)]++;
-			if (pos > 1) (*chars)
-				[ARCH_INDEX(ptr[pos - 2] - CHARSET_MIN)]
-				[ARCH_INDEX(ptr[pos - 1] - CHARSET_MIN)]
-				[ARCH_INDEX(ptr[pos] - CHARSET_MIN)]++;
-		} while ((current = current->next));
+		if ((current = lists[length]->head))
+		switch (pos) {
+		case 0:
+			memset((*chars)[CHARSET_SIZE][CHARSET_SIZE], 0,
+			    sizeof((*chars)[CHARSET_SIZE][CHARSET_SIZE]));
+			do {
+				unsigned char *ptr =
+				    (unsigned char *)current->data;
+				int c = ARCH_INDEX(ptr[0] - CHARSET_MIN);
+				(*chars)[CHARSET_SIZE][CHARSET_SIZE][c]++;
+			} while ((current = current->next));
+			break;
+		case 1:
+			memset((*chars)[CHARSET_SIZE], 0,
+			    sizeof((*chars)[CHARSET_SIZE]));
+			do {
+				unsigned char *ptr =
+				    (unsigned char *)current->data;
+				int b = ARCH_INDEX(ptr[0] - CHARSET_MIN);
+				int c = ARCH_INDEX(ptr[1] - CHARSET_MIN);
+				(*chars)[CHARSET_SIZE][b][c]++;
+				(*chars)[CHARSET_SIZE][CHARSET_SIZE][c]++;
+			} while ((current = current->next));
+			break;
+		default:
+			memset(chars, 0, sizeof(*chars));
+			do {
+				unsigned char *ptr =
+				    (unsigned char *)current->data;
+				int a = ARCH_INDEX(ptr[pos - 2] - CHARSET_MIN);
+				int b = ARCH_INDEX(ptr[pos - 1] - CHARSET_MIN);
+				int c = ARCH_INDEX(ptr[pos] - CHARSET_MIN);
+				(*chars)[a][b][c]++;
+				(*chars)[CHARSET_SIZE][b][c]++;
+				(*chars)[CHARSET_SIZE][CHARSET_SIZE][c]++;
+			} while ((current = current->next));
+		}
 
 		for (i = (pos > 1 ? 0 : CHARSET_SIZE); i <= CHARSET_SIZE; i++)
 		for (j = (pos ? 0 : CHARSET_SIZE); j <= CHARSET_SIZE; j++) {
 			count = 0;
-			do {
-				max = 0;
-				for (k = 0; k < CHARSET_SIZE; k++)
-				if ((value = (*chars)[i][j][k]) > max) {
-					max = value; best = k;
+			for (k = 0; k < CHARSET_SIZE; k++) {
+				unsigned int value = (*chars)[i][j][k];
+				if (value) {
+					iv[count].index = k;
+					iv[count++].value = value;
 				}
-
-				if (i == CHARSET_SIZE && j == CHARSET_SIZE)
-					(*cracks)[length][pos][count] = max;
-
-				if (!max) break;
-
-				(*chars)[i][j][best] = 0;
-				buffer[count++] = CHARSET_MIN + best;
-			} while (1);
-
-			if (count) {
-				cfputc(CHARSET_ESC, file);
-				cfputc(CHARSET_LINE, file);
-				cfputc(i, file); cfputc(j, file);
-				fwrite(buffer, 1, count, file);
-				CRC32_Update(&checksum, buffer, count);
 			}
+
+			if (!count)
+				continue;
+
+			if (count > 1)
+				qsort(iv, count, sizeof(iv[0]), cmp_count);
+
+			if (i == CHARSET_SIZE && j == CHARSET_SIZE)
+				for (k = 0; k < count; k++)
+					(*cracks)[length][pos][k] = iv[k].value;
+
+			for (k = 0; k < count; k++)
+				buffer[k] = CHARSET_MIN + iv[k].index;
+
+			cfputc(CHARSET_ESC, file);
+			cfputc(CHARSET_LINE, file);
+			cfputc(i, file); cfputc(j, file);
+			fwrite(buffer, 1, count, file);
+			CRC32_Update(&checksum, buffer, count);
 		}
 	}
 
@@ -250,6 +349,41 @@ static double powi(int x, unsigned int y)
 	return a;
 }
 
+typedef struct {
+	int length, pos, count;
+	double value;
+} ratio_sort_t;
+
+static int cmp_ratio(const void *p1, const void *p2)
+{
+	const ratio_sort_t *r1 = (const ratio_sort_t *)p1;
+	const ratio_sort_t *r2 = (const ratio_sort_t *)p2;
+	int diff;
+	if (r1->value < r2->value)
+		return -1;
+	if (r1->value > r2->value)
+		return 1;
+	diff = r1->length - r2->length;
+	if (diff)
+		return diff;
+#if 1
+	diff = r1->count - r2->count;
+	if (diff)
+		return diff;
+	return r1->pos - r2->pos;
+#else
+/*
+ * Stabilize the sorting order differently for testing against older revisions
+ * of the code.  This kind of stabilization is arguably illogical and it tends
+ * to require many more recalculations.
+ */
+	diff = r1->pos - r2->pos;
+	if (diff)
+		return diff;
+	return r1->count - r2->count;
+#endif
+}
+
 /*
  * This generates the "cracking order" (please see the comment in charset.h)
  * based on the number of candidate passwords for each {length, fixed index
@@ -257,10 +391,12 @@ static double powi(int x, unsigned int y)
  * passwords for that combination.  The idea is to start with combinations for
  * which the ratio between the number of candidates and the number of
  * successful cracks is the smallest.  This way, the expected number of
- * successful cracks per a unit of time will be monotonically non-increasing
+ * successful cracks per unit of time will be monotonically non-increasing
  * over time.  Of course, this applies to the expectation only (based on
  * available statistics) - actual behavior (on a yet unknown set of passwords
- * to be cracked) may and likely will differ.
+ * to be cracked) may and likely will differ.  Additionally, there are some
+ * algorithmic constraints, which may force us to deviate from the perfect
+ * monotonically non-decreasing sequence of ratios.
  *
  * The cracks[] array is used as input (containing the number of successful
  * cracks for each combination).
@@ -269,10 +405,11 @@ static void charset_generate_order(crack_counters cracks,
 	unsigned char *order, int size)
 {
 	int length, pos, count; /* zero-based */
-	int best_length, best_pos, best_count;
-	double total, min, value;
+	int nratios, taken;
+	double total;
 	unsigned char *ptr, *end;
-	double (*ratios)[CHARSET_LENGTH][CHARSET_LENGTH][CHARSET_SIZE];
+	ratio_sort_t (*ratios)
+	    [CHARSET_LENGTH * (CHARSET_LENGTH + 1) / 2 * CHARSET_SIZE];
 	int counts[CHARSET_LENGTH][CHARSET_LENGTH];
 	int recalcs;
 	unsigned char *prev_order;
@@ -281,6 +418,7 @@ static void charset_generate_order(crack_counters cracks,
 
 /* Calculate the ratios */
 
+	nratios = 0;
 	for (length = 0; length < CHARSET_LENGTH; length++)
 	for (count = 0; count < CHARSET_SIZE; count++) {
 /* First, calculate the number of candidate passwords for this combination of
@@ -305,7 +443,10 @@ static void charset_generate_order(crack_counters cracks,
 			unsigned int div = (*cracks)[length][pos][count];
 			if (div)
 				ratio /= div;
-			(*ratios)[length][pos][count] = ratio;
+			(*ratios)[nratios].length = length;
+			(*ratios)[nratios].pos = pos;
+			(*ratios)[nratios].count = count;
+			(*ratios)[nratios++].value = ratio;
 		}
 	}
 
@@ -314,58 +455,66 @@ static void charset_generate_order(crack_counters cracks,
 
 again:
 
+	assert(nratios == sizeof(*ratios) / sizeof((*ratios)[0]));
+
 /*
- * Fill out the order[] with combinations sorted for non-decreasing ratios.
- *
- * We currently use a very inefficient sorting algorithm, but it's fine as long
- * as the size of order[] is small and this code only executes once per charset
- * file generated.
+ * Fill out the order[] with combinations sorted for (mostly) non-decreasing
+ * ratios (except as we may have to deviate from this to meet the
+ * "count == counts[length][pos]" constraint).
  */
+
+	qsort(ratios, nratios, sizeof((*ratios)[0]), cmp_ratio);
 
 	memset(counts, 0, sizeof(counts));
 
+	taken = 0;
 	ptr = order;
-	best_length = best_pos = best_count = 0;
 	do {
-/* Find the minimum ratio and its corresponding combination */
-		int found = 0;
-		min = 0.0; /* unused */
+/* Find the minimum non-taken ratio and its corresponding combination */
+		int found = 0, alltaken = 1;
+		int i;
 
-		for (length = 0; length < CHARSET_LENGTH; length++)
-		for (pos = 0; pos <= length; pos++) {
-			count = counts[length][pos];
-			if (count >= CHARSET_SIZE)
+		for (i = taken; i < nratios; i++) {
+			if ((*ratios)[i].value < 0.0) {
+				if (alltaken && taken < i)
+					taken = i;
 				continue;
-			value = (*ratios)[length][pos][count];
-			if (value >= 0.0 && (!found || value < min)) {
+			}
+			alltaken = 0;
+			length = (*ratios)[i].length;
+			pos = (*ratios)[i].pos;
+			count = (*ratios)[i].count;
+			if (count == counts[length][pos]) {
 				found = 1;
-				min = value;
-				best_length = length;
-				best_pos = pos;
-				best_count = count;
+				break;
 			}
 		}
 
 		if (!found)
 			break;
 
-		counts[best_length][best_pos]++;
+		counts[length][pos]++;
 
 /* Record the combination and "take" it out of the input array */
-		(*ratios)[best_length][best_pos][best_count] = -1.0; /* taken */
+		(*ratios)[i].value = -1.0; /* taken */
 		assert(ptr <= order + size - 3);
-		*ptr++ = best_length;
-		*ptr++ = best_pos;
-		*ptr++ = best_count;
+		*ptr++ = length;
+		*ptr++ = pos;
+		*ptr++ = count;
 	} while (!event_abort);
 
-	assert(event_abort || ptr == order + size);
+	if (event_abort)
+		goto out;
+
+	assert(ptr == order + size);
 
 	end = ptr;
 
 	if (prev_order) {
-		if (!memcmp(order, prev_order, end - order)) {
-			printf("Stable order (%d recalculations)\n", recalcs);
+		int stable = !memcmp(order, prev_order, end - order);
+		if (++recalcs >= 1000 || stable) {
+			printf("%stable order (%d recalculations)\n",
+			    stable ? "S" : "Uns", recalcs);
 			goto out;
 		}
 	} else {
@@ -377,6 +526,7 @@ again:
 
 	memset(counts, 0, sizeof(counts));
 	ptr = order;
+	nratios = 0;
 	do {
 		double est;
 
@@ -414,20 +564,21 @@ again:
 			if (est < 1e-3) /* may adjust this */
 				est = 1e-3;
 		}
-		total /= est;
-		(*ratios)[length][pos][count] = total;
+		(*ratios)[nratios].length = length;
+		(*ratios)[nratios].pos = pos;
+		(*ratios)[nratios].count = count;
+		(*ratios)[nratios++].value = total / est;
 	} while (ptr < end);
 
-/* This is something to experiment with, reasonable values are 1 to 200+ */
-	if (++recalcs < 1000) goto again;
-	printf("Unstable order (%d recalculations)\n", recalcs);
+	if (!event_abort)
+		goto again;
 
 out:
 	MEM_FREE(prev_order);
 	MEM_FREE(ratios);
 }
 
-static void charset_generate_all(struct list_entry *plaintexts, char *charset)
+static void charset_generate_all(struct list_main **lists, char *charset)
 {
 	FILE *file;
 	int was_error;
@@ -439,7 +590,6 @@ static void charset_generate_all(struct list_entry *plaintexts, char *charset)
 	memset(header, 0, sizeof(*header));
 
 	chars = (char_counters)mem_alloc(sizeof(*chars));
-	memset(chars, 0, sizeof(*chars));
 
 	cracks = (crack_counters)mem_alloc(sizeof(*cracks));
 
@@ -451,7 +601,7 @@ static void charset_generate_all(struct list_entry *plaintexts, char *charset)
 	printf("Generating charsets... ");
 	fflush(stdout);
 
-	charset_generate_chars(plaintexts, file, header, chars, cracks);
+	charset_generate_chars(lists, file, header, chars, cracks);
 	if (event_abort) {
 		fclose(file);
 		unlink(charset);
@@ -467,8 +617,6 @@ static void charset_generate_all(struct list_entry *plaintexts, char *charset)
 		unlink(charset);
 		putchar('\n'); check_abort(0);
 	}
-
-	puts("DONE");
 
 	fflush(file);
 	if (!ferror(file) && !fseek(file, 0, SEEK_SET)) {
@@ -498,16 +646,28 @@ static void charset_generate_all(struct list_entry *plaintexts, char *charset)
 
 void do_makechars(struct db_main *db, char *charset)
 {
-	charset_filter_plaintexts(db);
+	struct list_main *lists[CHARSET_LENGTH + 1];
+	unsigned long total, remaining;
 
-	printf("Loaded %d plaintext%s%s\n",
-		db->plaintexts->count,
-		db->plaintexts->count != 1 ? "s" : "",
-		db->plaintexts->count ? "" : ", exiting...");
+	total = db->plaintexts->count;
 
-	if (!db->plaintexts->count) return;
+	printf("Loaded %lu plaintext%s%s\n",
+		total,
+		total != 1 ? "s" : "",
+		total ? "" : ", exiting...");
+
+	remaining = charset_filter_plaintexts(db, lists);
+
+	if (remaining < total)
+		printf("Remaining %lu plaintext%s%s\n",
+			remaining,
+			remaining != 1 ? "s" : "",
+			remaining ? "" : ", exiting...");
+
+	if (!remaining)
+		return;
 
 	CRC32_Init(&checksum);
 
-	charset_generate_all(db->plaintexts->head, charset);
+	charset_generate_all(lists, charset);
 }
