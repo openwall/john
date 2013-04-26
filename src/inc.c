@@ -74,7 +74,7 @@ static int restore_state(FILE *file)
 
 static void fix_state(void)
 {
-	memcpy(rec_numbers, numbers, sizeof(rec_numbers));
+	memcpy(rec_numbers, numbers, rec_length);
 }
 
 static void inc_format_error(char *charset)
