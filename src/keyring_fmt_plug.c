@@ -106,6 +106,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if(strlen(p) != ctlen * 2)
 		goto err;
+	if (strlen(p) < 32) /* this shouldn't happen for valid hashes */
+		goto err;
 
 	MEM_FREE(keeptr);
 	return 1;
