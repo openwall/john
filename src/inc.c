@@ -59,25 +59,25 @@ typedef char (*chars_table)
 	[CHARSET_SIZE + 1][CHARSET_SIZE + 1][CHARSET_SIZE + 1];
 
 static int rec_entry;
-static int rec_numbers[CHARSET_LENGTH];
-static int rec_counts[CHARSET_LENGTH][CHARSET_LENGTH];
+static int rec_length;
+static unsigned char rec_numbers[CHARSET_LENGTH];
 
-static int entry;
-static int numbers[CHARSET_LENGTH];
+static unsigned char numbers[CHARSET_LENGTH];
 static int counts[CHARSET_LENGTH][CHARSET_LENGTH];
+
+static unsigned int real_count, real_min, real_max, real_size;
+static unsigned char real_chars[CHARSET_SIZE];
 
 static void save_state(FILE *file)
 {
-	int length, pos;
+	int pos;
 	unsigned tmp;
 	unsigned long long tmpLL;
 
-	fprintf(file, "%d\n2\n%d\n", rec_entry, CHARSET_LENGTH);
-	for (pos = 0; pos < CHARSET_LENGTH; pos++)
-		fprintf(file, "%d\n", rec_numbers[pos]);
-	for (length = 0; length < CHARSET_LENGTH; length++)
-	for (pos = 0; pos <= length; pos++)
-		fprintf(file, "%d\n", rec_counts[length][pos]);
+	fprintf(file, "%d\n2\n%d\n", rec_entry, rec_length);
+	for (pos = 0; pos < rec_length; pos++)
+		fprintf(file, "%u\n", (unsigned int)rec_numbers[pos]);
+
 	// number added 'after' array, to preserve the try count, so that we can later know the
 	// values tested, to report progress.  Before this, we could NOT report.
 	if (cand) {
@@ -92,30 +92,26 @@ static void save_state(FILE *file)
 static int restore_state(FILE *file)
 {
 	int compat;
-	int length;
 	int pos;
 	unsigned tmp;
 
 	if (rec_version < 2)
 		return 1;
 
-	if (fscanf(file, "%d\n%d\n%d\n", &rec_entry, &compat, &length) != 3)
+	if (fscanf(file, "%d\n%d\n%d\n", &rec_entry, &compat, &rec_length) != 3)
 		return 1;
-	if (compat != 2 || (unsigned int)length > CHARSET_LENGTH)
+	if (compat != 2 || (unsigned int)rec_length > CHARSET_LENGTH)
 		return 1;
-	for (pos = 0; pos < length; pos++) {
-		if (fscanf(file, "%d\n", &rec_numbers[pos]) != 1)
+	for (pos = 0; pos < rec_length; pos++) {
+		unsigned int number;
+		if (fscanf(file, "%u\n", &number) != 1)
 			return 1;
-		if ((unsigned int)rec_numbers[pos] >= CHARSET_SIZE)
+		if (number >= CHARSET_SIZE)
 			return 1;
+		rec_numbers[pos] = number;
 	}
-	for (length = 0; length < CHARSET_LENGTH; length++)
-	for (pos = 0; pos <= length; pos++) {
-		if (fscanf(file, "%d\n", &rec_counts[length][pos]) != 1)
-			return 1;
-		if ((unsigned int)rec_counts[length][pos] >= CHARSET_SIZE)
-			return 1;
-	}
+
+	// Jumbo restoring "cand" for progress.
 	tmp = 0;
 	if (fscanf(file, "%u\n", &tmp) != 1) { cand = 0; return 0; } // progress reporting don't work after resume so we mute it
 	try = tmp;
@@ -129,9 +125,7 @@ static int restore_state(FILE *file)
 
 static void fix_state(void)
 {
-	rec_entry = entry;
 	memcpy(rec_numbers, numbers, sizeof(rec_numbers));
-	memcpy(rec_counts, counts, sizeof(rec_counts));
 }
 
 static void inc_format_error(char *charset)
@@ -146,27 +140,19 @@ static void inc_format_error(char *charset)
 
 static int is_mixedcase(char *chars)
 {
-	char present[CHARSET_SIZE];
+	char present[0x100];
 	char *ptr, c;
-	unsigned int i;
 
 	memset(present, 0, sizeof(present));
 	ptr = chars;
-	while ((c = *ptr++)) {
-		i = ARCH_INDEX(c) - CHARSET_MIN;
-		if (i >= CHARSET_SIZE)
-			return -1;
-		present[i] = 1;
-	}
+	while ((c = *ptr++))
+		present[ARCH_INDEX(c)] = 1;
 
 	ptr = chars;
 	while ((c = *ptr++)) {
 		/* assume ASCII */
-		if (c >= 'A' && c <= 'Z') {
-			i = ARCH_INDEX(c | 0x20) - CHARSET_MIN;
-			if (i < CHARSET_SIZE && present[i])
-				return 1;
-		}
+		if (c >= 'A' && c <= 'Z' && present[ARCH_INDEX(c) | 0x20])
+			return 1;
 	}
 
 	return 0;
@@ -185,9 +171,12 @@ static void inc_new_length(unsigned int length,
 
 	char1[0] = 0;
 	if (length)
-		memset(char2, 0, sizeof(*char2));
+	for (i = real_min - CHARSET_MIN; i <= real_max - CHARSET_MIN; i++)
+		(*char2)[i][0] = 0;
 	for (pos = 0; pos <= (int)length - 2; pos++)
-		memset(chars[pos], 0, sizeof(**chars));
+	for (i = real_min - CHARSET_MIN; i <= real_max - CHARSET_MIN; i++)
+	for (j = real_min - CHARSET_MIN; j <= real_max - CHARSET_MIN; j++)
+		(*chars[pos])[i][j][0] = 0;
 
 	offset =
 		(long)header->offsets[length][0] |
@@ -275,24 +264,23 @@ static void inc_new_length(unsigned int length,
 
 static int expand(char *dst, char *src, int size)
 {
-	char present[CHARSET_SIZE];
+	char present[0x100];
 	char *dptr = dst, *sptr = src;
 	int count = size;
 	unsigned int i;
 
-	memset(present, 0, sizeof(present));
+	memset(&present[real_min], 0, real_size);
 	while (*dptr) {
 		if (--count <= 1)
 			return 0;
-		i = ARCH_INDEX(*dptr++) - CHARSET_MIN;
-		if (i >= CHARSET_SIZE)
+		present[i = ARCH_INDEX(*dptr++)] = 1;
+		if ((i - CHARSET_MIN) >= CHARSET_SIZE)
 			return -1;
-		present[i] = 1;
 	}
 
 	while (*sptr) {
-		i = ARCH_INDEX(*sptr) - CHARSET_MIN;
-		if (i >= CHARSET_SIZE)
+		i = ARCH_INDEX(*sptr);
+		if ((i - CHARSET_MIN) >= CHARSET_SIZE)
 			return -1;
 		if (!present[i]) {
 			*dptr++ = *sptr++;
@@ -309,7 +297,7 @@ static int expand(char *dst, char *src, int size)
 static void inc_new_count(unsigned int length, int count, char *charset,
 	char *allchars, char *char1, char2_table char2, chars_table *chars)
 {
-	int pos, i, j;
+	int pos, ci;
 	int size;
 	int error;
 
@@ -325,17 +313,23 @@ static void inc_new_count(unsigned int length, int count, char *charset,
 		error |= expand((*chars[pos])[CHARSET_SIZE][CHARSET_SIZE],
 		    allchars, size);
 
-	for (i = 0; i < CHARSET_SIZE; i++) {
+	for (ci = 0; ci < real_count; ci++) {
+		int i = real_chars[ci];
+		int cj;
+
 		if (length)
 			error |=
 			    expand((*char2)[i], (*char2)[CHARSET_SIZE], size);
 
-		for (j = 0; j < CHARSET_SIZE; j++)
-		for (pos = 0; pos <= (int)length - 2; pos++) {
-			error |= expand((*chars[pos])[i][j],
-			    (*chars[pos])[CHARSET_SIZE][j], size);
-			error |= expand((*chars[pos])[i][j],
-			    (*chars[pos])[CHARSET_SIZE][CHARSET_SIZE], size);
+		for (cj = 0; cj < real_count; cj++) {
+			int j = real_chars[cj];
+			for (pos = 0; pos <= (int)length - 2; pos++) {
+				error |= expand((*chars[pos])[i][j],
+				    (*chars[pos])[CHARSET_SIZE][j], size);
+				error |= expand((*chars[pos])[i][j],
+				    (*chars[pos])[CHARSET_SIZE][CHARSET_SIZE],
+				    size);
+			}
 		}
 	}
 
@@ -432,8 +426,8 @@ void do_incremental_crack(struct db_main *db, char *mode)
 	char2_table char2;
 	chars_table chars[CHARSET_LENGTH - 2];
 	unsigned char *ptr;
+	int entry;
 	unsigned int length, fixed, count;
-	unsigned int real_count;
 	int last_length, last_count;
 	int pos;
 
@@ -604,7 +598,22 @@ void do_incremental_crack(struct db_main *db, char *mode)
 			CHARSET_MIN, CHARSET_MAX);
 		error();
 	}
-	real_count = strlen(allchars);
+
+	{
+		unsigned char c;
+		real_min = 0xff;
+		real_count = real_max = 0;
+		while ((c = allchars[real_count])) {
+			if (c < real_min)
+				real_min = c;
+			if (c > real_max)
+				real_max = c;
+			real_chars[real_count++] = c - CHARSET_MIN;
+		}
+		real_size = real_max - real_min + 1;
+		if (real_size < real_count)
+			inc_format_error(charset);
+	}
 
 	if (max_count < 0)
 		max_count = CHARSET_SIZE;
@@ -628,12 +637,7 @@ void do_incremental_crack(struct db_main *db, char *mode)
 	for (pos = min_length; pos <= max_length; pos++)
 		cand += pow(real_count, pos);
 
-	if (!(db->format->params.flags & FMT_CASE))
-	switch (is_mixedcase(allchars)) {
-	case -1:
-		inc_format_error(charset);
-
-	case 1:
+	if (!(db->format->params.flags & FMT_CASE) && is_mixedcase(allchars)) {
 		log_event("! Mixed-case charset, "
 			"but the hash type is case-insensitive");
 #ifdef HAVE_MPI
@@ -645,12 +649,14 @@ void do_incremental_crack(struct db_main *db, char *mode)
 			"tried more than once.\n");
 	}
 
-	if (header->length >= 2)
+	char2 = NULL;
+	for (pos = 0; pos < CHARSET_LENGTH - 2; pos++)
+		chars[pos] = NULL;
+	if (max_length >= 2) {
 		char2 = (char2_table)mem_alloc(sizeof(*char2));
-	else
-		char2 = NULL;
-	for (pos = 0; pos < (int)header->length - 2; pos++)
-		chars[pos] = (chars_table)mem_alloc(sizeof(*chars[0]));
+		for (pos = 0; pos < max_length - 2; pos++)
+			chars[pos] = (chars_table)mem_alloc(sizeof(*chars[0]));
+	}
 
 #ifdef HAVE_MPI
 	/* *ptr has to start at different positions so they don't overlap */
@@ -659,16 +665,45 @@ void do_incremental_crack(struct db_main *db, char *mode)
 	rec_entry = 0;
 #endif
 	memset(rec_numbers, 0, sizeof(rec_numbers));
-	memset(rec_counts, 0, sizeof(rec_counts));
 
 	status_init(get_progress, 0);
 
 	rec_restore_mode(restore_state);
 	rec_init(db, save_state);
 
-	ptr = header->order + (entry = rec_entry) * 3;
+	ptr = header->order;
+	entry = 0;
+	while (entry < rec_entry &&
+	    ptr < &header->order[sizeof(header->order) - 1]) {
+		entry++;
+		length = *ptr++; fixed = *ptr++; count = *ptr++;
+
+		if (length >= CHARSET_LENGTH ||
+		    fixed > length ||
+		    count >= CHARSET_SIZE)
+			inc_format_error(charset);
+
+		if (count >= real_count || (fixed && !count))
+			continue;
+
+		if ((int)length + 1 < min_length ||
+		    (int)length >= max_length ||
+		    (int)count >= max_count)
+			continue;
+
+		if (count)
+			counts[length][fixed]++;
+
+		if (counts[length][fixed] != count) {
+			fprintf(stderr, "Unexpected count: %d != %d\n",
+				counts[length][fixed] + 1, count + 1);
+			log_event("! Unexpected count: %d != %d",
+				counts[length][fixed] + 1, count + 1);
+			error();
+		}
+	}
+
 	memcpy(numbers, rec_numbers, sizeof(numbers));
-	memcpy(counts, rec_counts, sizeof(counts));
 
 	crk_init(db, fix_state, NULL);
 
@@ -733,7 +768,7 @@ void do_incremental_crack(struct db_main *db, char *mode)
 				break;
 		}
 
-		if (count && entry != rec_entry)
+		if (count)
 			counts[length][fixed]++;
 
 		if (counts[length][fixed] != count) {
@@ -747,6 +782,8 @@ void do_incremental_crack(struct db_main *db, char *mode)
 		log_event("- Trying length %d, fixed @%d, character count %d",
 			length + 1, fixed + 1, counts[length][fixed] + 1);
 
+		rec_entry = entry;
+		rec_length = length + 1;
 		if (inc_key_loop(length, fixed, count, char1, char2, chars))
 			break;
 	}
@@ -757,7 +794,7 @@ void do_incremental_crack(struct db_main *db, char *mode)
 	crk_done();
 	rec_done(event_abort);
 
-	for (pos = 0; pos < (int)header->length - 2; pos++)
+	for (pos = 0; pos < max_length - 2; pos++)
 		MEM_FREE(chars[pos]);
 	MEM_FREE(char2);
 	MEM_FREE(header);

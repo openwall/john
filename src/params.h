@@ -282,10 +282,10 @@ extern int password_hash_thresholds[PASSWORD_HASH_SIZES];
  * Please note that changes to these parameters make your build of John
  * incompatible with charset files generated with other builds.
  */
-#define CHARSET_MIN			' '
-#define CHARSET_MAX			0x7E
+#define CHARSET_MIN			0x01
+#define CHARSET_MAX			0xff
 #define CHARSET_SIZE			(CHARSET_MAX - CHARSET_MIN + 1)
-#define CHARSET_LENGTH			8
+#define CHARSET_LENGTH			24
 
 /*
  * Compiler parameters.
