@@ -177,7 +177,7 @@ static int charset_new_length(int length,
 	long offset;
 
 	if ((result = length < CHARSET_LENGTH)) {
-		printf("%d ", length + 1);
+		putchar('.');
 		fflush(stdout);
 
 		if ((offset = ftell(file)) < 0) pexit("ftell");
@@ -407,8 +407,8 @@ static void charset_generate_order(crack_counters cracks,
 	ratio_sort_t (*ratios)
 	    [CHARSET_LENGTH * (CHARSET_LENGTH + 1) / 2 * CHARSET_SIZE];
 	int counts[CHARSET_LENGTH][CHARSET_LENGTH];
-	int recalcs;
-	unsigned char *prev_order;
+	int recalcs, diff, prev_diff, same_diff, best_diff;
+	unsigned char *best_order;
 
 	ratios = mem_alloc(sizeof(*ratios));
 
@@ -446,8 +446,9 @@ static void charset_generate_order(crack_counters cracks,
 		}
 	}
 
-	prev_order = NULL;
-	recalcs = 0;
+	recalcs = prev_diff = same_diff = 0;
+	best_diff = 0x7fffffff;
+	best_order = NULL;
 
 again:
 
@@ -463,6 +464,7 @@ again:
 
 	memset(counts, 0, sizeof(counts));
 
+	diff = 0;
 	taken = 0;
 	ptr = order;
 	do {
@@ -494,6 +496,9 @@ again:
 /* Record the combination and "take" it out of the input array */
 		(*ratios)[i].value = -1.0; /* taken */
 		assert(ptr <= order + size - 3);
+		if (recalcs &&
+		    (ptr[0] != length || ptr[1] != pos || ptr[2] != count))
+			diff++;
 		*ptr++ = length;
 		*ptr++ = pos;
 		*ptr++ = count;
@@ -506,17 +511,39 @@ again:
 
 	end = ptr;
 
-	if (prev_order) {
-		int stable = !memcmp(order, prev_order, end - order);
-		if (++recalcs >= 1000 || stable) {
-			printf("%stable order (%d recalculations)\n",
-			    stable ? "S" : "Uns", recalcs);
-			goto out;
-		}
-	} else {
-		prev_order = mem_alloc(end - order);
+	recalcs++;
+	putchar(recalcs < 3 ? '.' :
+	    (diff == prev_diff ? '=' : (diff > prev_diff ? '+' : '-')));
+	fflush(stdout);
+	if (recalcs >= 3) {
+		if (diff == prev_diff)
+			same_diff++;
+		else
+			same_diff = 0;
 	}
-	memcpy(prev_order, order, end - order);
+	if ((recalcs >= 2 && !diff) ||
+	    (diff == best_diff && !memcmp(order, best_order, end - order)) ||
+	    same_diff >= 50 ||
+	    (recalcs >= 200 && diff == best_diff) ||
+	    recalcs >= 300) {
+		if (diff > best_diff) {
+			memcpy(order, best_order, end - order);
+			diff = best_diff;
+		}
+		if (diff)
+			printf(" Unstable order (%d recalculations, "
+			    "%d differences remain)\n", recalcs, diff);
+		else
+			printf(" Stable order (%d recalculations)\n", recalcs);
+		goto out;
+	}
+	prev_diff = diff;
+	if (recalcs >= 2 && diff < best_diff) {
+		if (!best_order)
+			best_order = mem_alloc(end - order);
+		memcpy(best_order, order, end - order);
+		best_diff = diff;
+	}
 
 /* Recalculate the ratios */
 
@@ -570,7 +597,7 @@ again:
 		goto again;
 
 out:
-	MEM_FREE(prev_order);
+	MEM_FREE(best_order);
 	MEM_FREE(ratios);
 }
 
@@ -594,7 +621,7 @@ static void charset_generate_all(struct list_main **lists, char *charset)
 
 	charset_write_header(file, header);
 
-	printf("Generating charsets... ");
+	printf("Generating charsets");
 	fflush(stdout);
 
 	charset_generate_chars(lists, file, header, chars, cracks);
@@ -604,7 +631,7 @@ static void charset_generate_all(struct list_main **lists, char *charset)
 		putchar('\n'); check_abort(0);
 	}
 
-	printf("DONE\nGenerating cracking order... ");
+	printf(" DONE\nGenerating cracking order");
 	fflush(stdout);
 
 	charset_generate_order(cracks, header->order, sizeof(header->order));
@@ -634,7 +661,7 @@ static void charset_generate_all(struct list_main **lists, char *charset)
 		error();
 	}
 
-	printf("Successfully written charset file: %s (%d character%s)\n",
+	printf("Successfully wrote charset file: %s (%d character%s)\n",
 		charset, header->count, header->count != 1 ? "s" : "");
 
 	MEM_FREE(header);
