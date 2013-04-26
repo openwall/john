@@ -542,12 +542,14 @@ void do_incremental_crack(struct db_main *db, char *mode)
 			"tried more than once.\n");
 	}
 
-	if (header->length >= 2)
+	char2 = NULL;
+	for (pos = 0; pos < CHARSET_LENGTH - 2; pos++)
+		chars[pos] = NULL;
+	if (max_length >= 2) {
 		char2 = (char2_table)mem_alloc(sizeof(*char2));
-	else
-		char2 = NULL;
-	for (pos = 0; pos < (int)header->length - 2; pos++)
-		chars[pos] = (chars_table)mem_alloc(sizeof(*chars[0]));
+		for (pos = 0; pos < max_length - 2; pos++)
+			chars[pos] = (chars_table)mem_alloc(sizeof(*chars[0]));
+	}
 
 	rec_entry = 0;
 	memset(rec_numbers, 0, sizeof(rec_numbers));
@@ -638,7 +640,7 @@ void do_incremental_crack(struct db_main *db, char *mode)
 	crk_done();
 	rec_done(event_abort);
 
-	for (pos = 0; pos < (int)header->length - 2; pos++)
+	for (pos = 0; pos < max_length - 2; pos++)
 		MEM_FREE(chars[pos]);
 	MEM_FREE(char2);
 	MEM_FREE(header);
