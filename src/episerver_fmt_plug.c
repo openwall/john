@@ -124,6 +124,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto error;
 	if (strlen(ptr) > 44)
 		goto error;
+	if ((ptr = strtok(NULL, "*"))) /* end */
+		goto error;
 	MEM_FREE(keeptr);
 	return 1;
 
