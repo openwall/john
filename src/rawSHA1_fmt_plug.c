@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2004 bartavelle
- * bartavelle at bandecon.com
+ * This software is Copyright (c) 2004 bartavelle, <simon at banquise.net>, and it is hereby released to the general public under the following terms:
+ * Redistribution and use in source and binary forms, with or without modification, are permitted.
  *
  * Optimised set_key() and reduced binary size by magnum, 2012
  */

@@ -1,4 +1,7 @@
-
+/*
+ * This software is Copyright (c) 2005 bartavelle, <simon at banquise.net>, and it is hereby released to the general public under the following terms:
+ * Redistribution and use in source and binary forms, with or without modification, are permitted.
+ */
 // extern int mdfourmmx(unsigned char *out, unsigned char *in, int n) __attribute__((regparm(3)));
 
 #include "arch.h"

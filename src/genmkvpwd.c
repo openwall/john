@@ -1,3 +1,7 @@
+/*
+ * This software is Copyright (c) 2007 bartavelle, <simon at banquise.net>, and it is hereby released to the general public under the following terms:
+ * Redistribution and use in source and binary forms, with or without modification, are permitted.
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #ifndef _MSC_VER
