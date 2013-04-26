@@ -102,8 +102,8 @@ static unsigned long charset_filter_plaintexts(struct db_main *db,
 			} else {
 /*
  * Truncate very long strings at PLAINTEXT_BUFFER_SIZE for consistency with
- * what would happen if we applied a dummy filter(), as we as for easy testing
- * against older revisions of this code.
+ * what would happen if we applied a dummy filter(), as well as for easy
+ * testing against older revisions of this code.
  */
 				if (length >= PLAINTEXT_BUFFER_SIZE)
 					current->data
