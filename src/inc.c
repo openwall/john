@@ -31,7 +31,6 @@ typedef char (*chars_table)
 
 static int rec_entry;
 static int rec_numbers[CHARSET_LENGTH];
-static int rec_counts[CHARSET_LENGTH][CHARSET_LENGTH];
 
 static int entry;
 static int numbers[CHARSET_LENGTH];
@@ -39,14 +38,11 @@ static int counts[CHARSET_LENGTH][CHARSET_LENGTH];
 
 static void save_state(FILE *file)
 {
-	int length, pos;
+	int pos;
 
 	fprintf(file, "%d\n2\n%d\n", rec_entry, CHARSET_LENGTH);
 	for (pos = 0; pos < CHARSET_LENGTH; pos++)
 		fprintf(file, "%d\n", rec_numbers[pos]);
-	for (length = 0; length < CHARSET_LENGTH; length++)
-	for (pos = 0; pos <= length; pos++)
-		fprintf(file, "%d\n", rec_counts[length][pos]);
 }
 
 static int restore_state(FILE *file)
@@ -68,13 +64,6 @@ static int restore_state(FILE *file)
 		if ((unsigned int)rec_numbers[pos] >= CHARSET_SIZE)
 			return 1;
 	}
-	for (length = 0; length < CHARSET_LENGTH; length++)
-	for (pos = 0; pos <= length; pos++) {
-		if (fscanf(file, "%d\n", &rec_counts[length][pos]) != 1)
-			return 1;
-		if ((unsigned int)rec_counts[length][pos] >= CHARSET_SIZE)
-			return 1;
-	}
 
 	return 0;
 }
@@ -83,7 +72,6 @@ static void fix_state(void)
 {
 	rec_entry = entry;
 	memcpy(rec_numbers, numbers, sizeof(rec_numbers));
-	memcpy(rec_counts, counts, sizeof(rec_counts));
 }
 
 static void inc_format_error(char *charset)
@@ -553,16 +541,45 @@ void do_incremental_crack(struct db_main *db, char *mode)
 
 	rec_entry = 0;
 	memset(rec_numbers, 0, sizeof(rec_numbers));
-	memset(rec_counts, 0, sizeof(rec_counts));
 
 	status_init(NULL, 0);
 
 	rec_restore_mode(restore_state);
 	rec_init(db, save_state);
 
-	ptr = header->order + (entry = rec_entry) * 3;
+	ptr = header->order;
+	entry = 0;
+	while (entry < rec_entry &&
+	    ptr < &header->order[sizeof(header->order) - 1]) {
+		entry++;
+		length = *ptr++; fixed = *ptr++; count = *ptr++;
+
+		if (length >= CHARSET_LENGTH ||
+		    fixed > length ||
+		    count >= CHARSET_SIZE)
+			inc_format_error(charset);
+
+		if (count >= real_count || (fixed && !count))
+			continue;
+
+		if ((int)length + 1 < min_length ||
+		    (int)length >= max_length ||
+		    (int)count >= max_count)
+			continue;
+
+		if (count)
+			counts[length][fixed]++;
+
+		if (counts[length][fixed] != count) {
+			fprintf(stderr, "Unexpected count: %d != %d\n",
+				counts[length][fixed] + 1, count + 1);
+			log_event("! Unexpected count: %d != %d",
+				counts[length][fixed] + 1, count + 1);
+			error();
+		}
+	}
+
 	memcpy(numbers, rec_numbers, sizeof(numbers));
-	memcpy(counts, rec_counts, sizeof(counts));
 
 	crk_init(db, fix_state, NULL);
 
@@ -619,7 +636,7 @@ void do_incremental_crack(struct db_main *db, char *mode)
 				break;
 		}
 
-		if (count && entry != rec_entry)
+		if (count)
 			counts[length][fixed]++;
 
 		if (counts[length][fixed] != count) {
