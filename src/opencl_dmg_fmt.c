@@ -266,6 +266,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *ctcopy, *keeptr;
 	char *p;
 	int headerver;
+	int res;
 
 	if (strncmp(ciphertext, "$dmg$", 5) != 0)
 		return 0;
@@ -278,24 +279,51 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (headerver == 2) {
 		if ((p = strtok(NULL, "*")) == NULL)	/* salt len */
 			goto err;
-		if (atoi(p) > 20)
+		res = atoi(p);
+		if (res > 20)
 			goto err;
 		if ((p = strtok(NULL, "*")) == NULL)	/* salt */
 			goto err;
+		if (strlen(p) != res * 2)
+			goto err;
 		if ((p = strtok(NULL, "*")) == NULL)	/* ivlen */
 			goto err;
+		res = atoi(p);
 		if (atoi(p) > 32)
 			goto err;
 		if ((p = strtok(NULL, "*")) == NULL)	/* iv */
 			goto err;
+		if (strlen(p) != res * 2)
+			goto err;
 		if ((p = strtok(NULL, "*")) == NULL)	/* encrypted_keyblob_size */
 			goto err;
-		if (atoi(p) > 128)
+		res = atoi(p);
+		if (res > 128)
 			goto err;
 		if ((p = strtok(NULL, "*")) == NULL)	/* encrypted keyblob */
 			goto err;
+		if (strlen(p) != res * 2)
+			goto err;
 		if ((p = strtok(NULL, "*")) == NULL)	/* chunk number */
 			goto err;
+		if ((p = strtok(NULL, "*")) == NULL)	/* data_size */
+			goto err;
+		res = atoi(p);
+		if ((p = strtok(NULL, "*")) == NULL)	/* chunk */
+			goto err;
+		if (strlen(p) != res * 2)
+			goto err;
+		if (res > 8192)
+			goto err;
+		if ((p = strtok(NULL, "*")) == NULL)	/* scp */
+			goto err;
+		res = atoi(p);
+		if (res == 1) {
+			if ((p = strtok(NULL, "*")) == NULL)	/* zchunk */
+				goto err;
+			if (strlen(p) != 4096 * 2)
+				goto err;
+		}
 	}
 	else if (headerver == 1) {
 		if ((p = strtok(NULL, "*")) == NULL)	/* salt len */
