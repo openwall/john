@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2004 Simon Marechal
- * simon.marechal at thales-security.com
+ * This software is Copyright (c) 2004 bartavelle, <simon at banquise.net>, and it is hereby released to the general public under the following terms:
+ * Redistribution and use in source and binary forms, with or without modification, are permitted.
  *
  * UTF-8 support: Copyright magnum 2012 and hereby released to the general
  * public under the following terms:
