@@ -36,6 +36,9 @@ static unsigned char rec_numbers[CHARSET_LENGTH];
 static unsigned char numbers[CHARSET_LENGTH];
 static int counts[CHARSET_LENGTH][CHARSET_LENGTH];
 
+static unsigned int real_count, real_min, real_max, real_size;
+static unsigned char real_chars[CHARSET_SIZE];
+
 static void save_state(FILE *file)
 {
 	int pos;
@@ -83,27 +86,19 @@ static void inc_format_error(char *charset)
 
 static int is_mixedcase(char *chars)
 {
-	char present[CHARSET_SIZE];
+	char present[0x100];
 	char *ptr, c;
-	unsigned int i;
 
 	memset(present, 0, sizeof(present));
 	ptr = chars;
-	while ((c = *ptr++)) {
-		i = ARCH_INDEX(c) - CHARSET_MIN;
-		if (i >= CHARSET_SIZE)
-			return -1;
-		present[i] = 1;
-	}
+	while ((c = *ptr++))
+		present[ARCH_INDEX(c)] = 1;
 
 	ptr = chars;
 	while ((c = *ptr++)) {
 		/* assume ASCII */
-		if (c >= 'A' && c <= 'Z') {
-			i = ARCH_INDEX(c | 0x20) - CHARSET_MIN;
-			if (i < CHARSET_SIZE && present[i])
-				return 1;
-		}
+		if (c >= 'A' && c <= 'Z' && present[ARCH_INDEX(c) | 0x20])
+			return 1;
 	}
 
 	return 0;
@@ -122,9 +117,12 @@ static void inc_new_length(unsigned int length,
 
 	char1[0] = 0;
 	if (length)
-		memset(char2, 0, sizeof(*char2));
+	for (i = real_min - CHARSET_MIN; i <= real_max - CHARSET_MIN; i++)
+		(*char2)[i][0] = 0;
 	for (pos = 0; pos <= (int)length - 2; pos++)
-		memset(chars[pos], 0, sizeof(**chars));
+	for (i = real_min - CHARSET_MIN; i <= real_max - CHARSET_MIN; i++)
+	for (j = real_min - CHARSET_MIN; j <= real_max - CHARSET_MIN; j++)
+		(*chars[pos])[i][j][0] = 0;
 
 	offset =
 		(long)header->offsets[length][0] |
@@ -212,24 +210,23 @@ static void inc_new_length(unsigned int length,
 
 static int expand(char *dst, char *src, int size)
 {
-	char present[CHARSET_SIZE];
+	char present[0x100];
 	char *dptr = dst, *sptr = src;
 	int count = size;
 	unsigned int i;
 
-	memset(present, 0, sizeof(present));
+	memset(&present[real_min], 0, real_size);
 	while (*dptr) {
 		if (--count <= 1)
 			return 0;
-		i = ARCH_INDEX(*dptr++) - CHARSET_MIN;
-		if (i >= CHARSET_SIZE)
+		present[i = ARCH_INDEX(*dptr++)] = 1;
+		if ((i - CHARSET_MIN) >= CHARSET_SIZE)
 			return -1;
-		present[i] = 1;
 	}
 
 	while (*sptr) {
-		i = ARCH_INDEX(*sptr) - CHARSET_MIN;
-		if (i >= CHARSET_SIZE)
+		i = ARCH_INDEX(*sptr);
+		if ((i - CHARSET_MIN) >= CHARSET_SIZE)
 			return -1;
 		if (!present[i]) {
 			*dptr++ = *sptr++;
@@ -246,7 +243,7 @@ static int expand(char *dst, char *src, int size)
 static void inc_new_count(unsigned int length, int count, char *charset,
 	char *allchars, char *char1, char2_table char2, chars_table *chars)
 {
-	int pos, i, j;
+	int pos, ci;
 	int size;
 	int error;
 
@@ -262,17 +259,23 @@ static void inc_new_count(unsigned int length, int count, char *charset,
 		error |= expand((*chars[pos])[CHARSET_SIZE][CHARSET_SIZE],
 		    allchars, size);
 
-	for (i = 0; i < CHARSET_SIZE; i++) {
+	for (ci = 0; ci < real_count; ci++) {
+		int i = real_chars[ci];
+		int cj;
+
 		if (length)
 			error |=
 			    expand((*char2)[i], (*char2)[CHARSET_SIZE], size);
 
-		for (j = 0; j < CHARSET_SIZE; j++)
-		for (pos = 0; pos <= (int)length - 2; pos++) {
-			error |= expand((*chars[pos])[i][j],
-			    (*chars[pos])[CHARSET_SIZE][j], size);
-			error |= expand((*chars[pos])[i][j],
-			    (*chars[pos])[CHARSET_SIZE][CHARSET_SIZE], size);
+		for (cj = 0; cj < real_count; cj++) {
+			int j = real_chars[cj];
+			for (pos = 0; pos <= (int)length - 2; pos++) {
+				error |= expand((*chars[pos])[i][j],
+				    (*chars[pos])[CHARSET_SIZE][j], size);
+				error |= expand((*chars[pos])[i][j],
+				    (*chars[pos])[CHARSET_SIZE][CHARSET_SIZE],
+				    size);
+			}
 		}
 	}
 
@@ -370,7 +373,6 @@ void do_incremental_crack(struct db_main *db, char *mode)
 	unsigned char *ptr;
 	int entry;
 	unsigned int length, fixed, count;
-	unsigned int real_count;
 	int last_length, last_count;
 	int pos;
 
@@ -499,7 +501,22 @@ void do_incremental_crack(struct db_main *db, char *mode)
 			CHARSET_MIN, CHARSET_MAX);
 		error();
 	}
-	real_count = strlen(allchars);
+
+	{
+		unsigned char c;
+		real_min = 0xff;
+		real_count = real_max = 0;
+		while ((c = allchars[real_count])) {
+			if (c < real_min)
+				real_min = c;
+			if (c > real_max)
+				real_max = c;
+			real_chars[real_count++] = c - CHARSET_MIN;
+		}
+		real_size = real_max - real_min + 1;
+		if (real_size < real_count)
+			inc_format_error(charset);
+	}
 
 	if (max_count < 0)
 		max_count = CHARSET_SIZE;
@@ -517,12 +534,7 @@ void do_incremental_crack(struct db_main *db, char *mode)
 			real_count);
 	}
 
-	if (!(db->format->params.flags & FMT_CASE))
-	switch (is_mixedcase(allchars)) {
-	case -1:
-		inc_format_error(charset);
-
-	case 1:
+	if (!(db->format->params.flags & FMT_CASE) && is_mixedcase(allchars)) {
 		log_event("! Mixed-case charset, "
 			"but the hash type is case-insensitive");
 		fprintf(stderr, "Warning: mixed-case charset, "
