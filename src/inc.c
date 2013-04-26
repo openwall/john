@@ -30,9 +30,9 @@ typedef char (*chars_table)
 	[CHARSET_SIZE + 1][CHARSET_SIZE + 1][CHARSET_SIZE + 1];
 
 static int rec_entry;
+static int rec_length;
 static int rec_numbers[CHARSET_LENGTH];
 
-static int entry;
 static int numbers[CHARSET_LENGTH];
 static int counts[CHARSET_LENGTH][CHARSET_LENGTH];
 
@@ -40,25 +40,24 @@ static void save_state(FILE *file)
 {
 	int pos;
 
-	fprintf(file, "%d\n2\n%d\n", rec_entry, CHARSET_LENGTH);
-	for (pos = 0; pos < CHARSET_LENGTH; pos++)
+	fprintf(file, "%d\n2\n%d\n", rec_entry, rec_length);
+	for (pos = 0; pos < rec_length; pos++)
 		fprintf(file, "%d\n", rec_numbers[pos]);
 }
 
 static int restore_state(FILE *file)
 {
 	int compat;
-	int length;
 	int pos;
 
 	if (rec_version < 2)
 		return 1;
 
-	if (fscanf(file, "%d\n%d\n%d\n", &rec_entry, &compat, &length) != 3)
+	if (fscanf(file, "%d\n%d\n%d\n", &rec_entry, &compat, &rec_length) != 3)
 		return 1;
-	if (compat != 2 || (unsigned int)length > CHARSET_LENGTH)
+	if (compat != 2 || (unsigned int)rec_length > CHARSET_LENGTH)
 		return 1;
-	for (pos = 0; pos < length; pos++) {
+	for (pos = 0; pos < rec_length; pos++) {
 		if (fscanf(file, "%d\n", &rec_numbers[pos]) != 1)
 			return 1;
 		if ((unsigned int)rec_numbers[pos] >= CHARSET_SIZE)
@@ -70,7 +69,6 @@ static int restore_state(FILE *file)
 
 static void fix_state(void)
 {
-	rec_entry = entry;
 	memcpy(rec_numbers, numbers, sizeof(rec_numbers));
 }
 
@@ -368,6 +366,7 @@ void do_incremental_crack(struct db_main *db, char *mode)
 	char2_table char2;
 	chars_table chars[CHARSET_LENGTH - 2];
 	unsigned char *ptr;
+	int entry;
 	unsigned int length, fixed, count;
 	unsigned int real_count;
 	int last_length, last_count;
@@ -650,6 +649,8 @@ void do_incremental_crack(struct db_main *db, char *mode)
 		log_event("- Trying length %d, fixed @%d, character count %d",
 			length + 1, fixed + 1, counts[length][fixed] + 1);
 
+		rec_entry = entry;
+		rec_length = length + 1;
 		if (inc_key_loop(length, fixed, count, char1, char2, chars))
 			break;
 	}
