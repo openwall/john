@@ -215,6 +215,8 @@ static void charset_generate_chars(struct list_main **lists,
 	int length, pos, count;
 	int i, j, k;
 
+	memset(cracks, 0, sizeof(*cracks));
+
 /* Zeroize the same portion of "chars" as is used by the loop below */
 	memset((*chars)[0][0], 0, sizeof((*chars)[0][0]));
 
@@ -250,12 +252,12 @@ static void charset_generate_chars(struct list_main **lists,
 
 	for (length = 0; charset_new_length(length, header, file); length++)
 	for (pos = 0; pos <= length; pos++) {
-		if (event_abort) return;
+		if (event_abort)
+			return;
 
-		cfputc(CHARSET_ESC, file); cfputc(CHARSET_NEW, file);
-		cfputc(length, file); cfputc(pos, file);
+		if (!(current = lists[length]->head))
+			continue;
 
-		if ((current = lists[length]->head))
 		switch (pos) {
 		case 0:
 			memset((*chars)[CHARSET_SIZE][CHARSET_SIZE], 0,
@@ -293,6 +295,9 @@ static void charset_generate_chars(struct list_main **lists,
 			} while ((current = current->next));
 		}
 
+		cfputc(CHARSET_ESC, file); cfputc(CHARSET_NEW, file);
+		cfputc(length, file); cfputc(pos, file);
+
 		for (i = (pos > 1 ? 0 : CHARSET_SIZE); i <= CHARSET_SIZE; i++)
 		for (j = (pos ? 0 : CHARSET_SIZE); j <= CHARSET_SIZE; j++) {
 			count = 0;
@@ -317,8 +322,7 @@ static void charset_generate_chars(struct list_main **lists,
 			for (k = 0; k < count; k++)
 				buffer[k] = CHARSET_MIN + iv[k].index;
 
-			cfputc(CHARSET_ESC, file);
-			cfputc(CHARSET_LINE, file);
+			cfputc(CHARSET_ESC, file); cfputc(CHARSET_LINE, file);
 			cfputc(i, file); cfputc(j, file);
 			fwrite(buffer, 1, count, file);
 			CRC32_Update(&checksum, buffer, count);
@@ -613,7 +617,6 @@ static void charset_generate_all(struct list_main **lists, char *charset)
 	memset(header, 0, sizeof(*header));
 
 	chars = (char_counters)mem_alloc(sizeof(*chars));
-
 	cracks = (crack_counters)mem_alloc(sizeof(*cracks));
 
 	if (!(file = fopen(path_expand(charset), "wb")))
