@@ -31,9 +31,9 @@ typedef char (*chars_table)
 
 static int rec_entry;
 static int rec_length;
-static int rec_numbers[CHARSET_LENGTH];
+static unsigned char rec_numbers[CHARSET_LENGTH];
 
-static int numbers[CHARSET_LENGTH];
+static unsigned char numbers[CHARSET_LENGTH];
 static int counts[CHARSET_LENGTH][CHARSET_LENGTH];
 
 static void save_state(FILE *file)
@@ -42,7 +42,7 @@ static void save_state(FILE *file)
 
 	fprintf(file, "%d\n2\n%d\n", rec_entry, rec_length);
 	for (pos = 0; pos < rec_length; pos++)
-		fprintf(file, "%d\n", rec_numbers[pos]);
+		fprintf(file, "%u\n", (unsigned int)rec_numbers[pos]);
 }
 
 static int restore_state(FILE *file)
@@ -58,10 +58,12 @@ static int restore_state(FILE *file)
 	if (compat != 2 || (unsigned int)rec_length > CHARSET_LENGTH)
 		return 1;
 	for (pos = 0; pos < rec_length; pos++) {
-		if (fscanf(file, "%d\n", &rec_numbers[pos]) != 1)
+		unsigned int number;
+		if (fscanf(file, "%u\n", &number) != 1)
 			return 1;
-		if ((unsigned int)rec_numbers[pos] >= CHARSET_SIZE)
+		if (number >= CHARSET_SIZE)
 			return 1;
+		rec_numbers[pos] = number;
 	}
 
 	return 0;
