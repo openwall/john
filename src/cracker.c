@@ -362,11 +362,12 @@ int crk_process_key(char *key)
 	return ext_abort;
 }
 
+/* This function is used by single.c only */
 int crk_process_salt(struct db_salt *salt)
 {
 	char *ptr;
 	char key[PLAINTEXT_BUFFER_SIZE];
-	int count, index;
+	int count, count_from_guesses, index;
 
 	if (crk_guesses) {
 		crk_guesses->count = 0;
@@ -378,6 +379,7 @@ int crk_process_salt(struct db_salt *salt)
 
 	ptr = salt->keys->buffer;
 	count = salt->keys->count;
+	count_from_guesses = salt->keys->count_from_guesses;
 	index = 0;
 
 	crk_methods.clear_keys();
@@ -390,8 +392,24 @@ int crk_process_salt(struct db_salt *salt)
 		if (index >= crk_params.max_keys_per_crypt || !count) {
 			int done;
 			crk_key_index = index;
-			if ((done = crk_password_loop(salt)) >= 0)
-				add32to64(&status.cands, index);
+			if ((done = crk_password_loop(salt)) >= 0) {
+/*
+ * The approach we use here results in status.cands growing slower than it
+ * ideally should until this loop completes (at which point status.cands has
+ * the correct value).  If cracking is interrupted (and then possibly
+ * restored), status.cands may be left with a value lower than it should have.
+ * An alternative would have been storing per-candidate flags indicating where
+ * each candidate came from, but it'd cost.
+ */
+				int not_from_guesses =
+				    index - count_from_guesses;
+				if (not_from_guesses > 0) {
+					add32to64(&status.cands,
+					    not_from_guesses);
+					count_from_guesses = 0;
+				} else
+					count_from_guesses -= index;
+			}
 			if (done)
 				return 1;
 			if (!salt->list)

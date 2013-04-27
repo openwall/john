@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-99,2003,2004,2006,2010,2012 by Solar Designer
+ * Copyright (c) 1996-99,2003,2004,2006,2010,2012,2013 by Solar Designer
  */
 
 #include <stdio.h>
@@ -68,7 +68,7 @@ static void single_alloc_keys(struct db_keys **keys)
 		(*keys)->hash = mem_alloc_tiny(hash_size, MEM_ALIGN_WORD);
 	}
 
-	(*keys)->count = 0;
+	(*keys)->count = (*keys)->count_from_guesses = 0;
 	(*keys)->ptr = (*keys)->buffer;
 	(*keys)->have_words = 1; /* assume yes; we'll see for real later */
 	(*keys)->rule = rule_number;
@@ -174,7 +174,7 @@ out:
 	return hash;
 }
 
-static int single_add_key(struct db_keys *keys, char *key)
+static int single_add_key(struct db_keys *keys, char *key, int is_from_guesses)
 {
 	int index, new_hash, reuse_hash;
 	struct db_keys_hash_entry *entry;
@@ -213,6 +213,8 @@ static int single_add_key(struct db_keys *keys, char *key)
 	strnfcpy(keys->ptr, key, length);
 	keys->ptr += length;
 
+	keys->count_from_guesses += is_from_guesses;
+
 	return ++(keys->count) >= key_count;
 }
 
@@ -237,7 +239,7 @@ static int single_process_buffer(struct db_salt *salt)
  * password hash computations vs. the "overhead".
  */
 	keys = salt->keys;
-	keys->count = 0;
+	keys->count = keys->count_from_guesses = 0;
 	keys->ptr = keys->buffer;
 	keys->lock++;
 
@@ -253,7 +255,7 @@ static int single_process_buffer(struct db_salt *salt)
 				if (current == salt) continue;
 				if (!current->list) continue;
 
-				if (single_add_key(current->keys, keys->ptr))
+				if (single_add_key(current->keys, keys->ptr, 1))
 				if (single_process_buffer(current)) return 1;
 			} while ((current = current->next));
 			keys->ptr += length;
@@ -289,7 +291,7 @@ static int single_process_pw(struct db_salt *salt, struct db_password *pw,
 	do {
 		if ((key = rules_apply(first->data, rule, 0, NULL)))
 		if (ext_filter(key))
-		if (single_add_key(keys, key))
+		if (single_add_key(keys, key, 0))
 		if (single_process_buffer(salt)) return 1;
 		if (!salt->list) return 2;
 		if (!pw->binary) return 0;
@@ -310,7 +312,7 @@ static int single_process_pw(struct db_salt *salt, struct db_password *pw,
 
 				if ((key = rules_apply(pair, rule, split, NULL)))
 				if (ext_filter(key))
-				if (single_add_key(keys, key))
+				if (single_add_key(keys, key, 0))
 				if (single_process_buffer(salt)) return 1;
 				if (!salt->list) return 2;
 				if (!pw->binary) return 0;
@@ -323,7 +325,7 @@ static int single_process_pw(struct db_salt *salt, struct db_password *pw,
 
 				if ((key = rules_apply(pair, rule, 1, NULL)))
 				if (ext_filter(key))
-				if (single_add_key(keys, key))
+				if (single_add_key(keys, key, 0))
 				if (single_process_buffer(salt)) return 1;
 				if (!salt->list) return 2;
 				if (!pw->binary) return 0;
