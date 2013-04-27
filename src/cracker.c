@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2003,2006,2010-2012 by Solar Designer
+ * Copyright (c) 1996-2003,2006,2010-2013 by Solar Designer
  */
 
 #include <string.h>
@@ -241,8 +241,8 @@ static int crk_password_loop(struct db_salt *salt)
 
 	idle_yield();
 
-	if (event_pending)
-	if (crk_process_event()) return 1;
+	if (event_pending && crk_process_event())
+		return -1;
 
 	count = crk_key_index;
 	match = crk_methods.crypt_all(&count, salt);
@@ -251,7 +251,7 @@ static int crk_password_loop(struct db_salt *salt)
 	{
 		int64 effective_count;
 		mul32by32(&effective_count, salt->count, count);
-		status_update_crypts(&effective_count);
+		status_update_crypts(&effective_count, count);
 	}
 
 	if (!match)
@@ -292,13 +292,21 @@ static int crk_password_loop(struct db_salt *salt)
 
 static int crk_salt_loop(void)
 {
+	int done;
 	struct db_salt *salt;
 
 	salt = crk_db->salts;
 	do {
 		crk_methods.set_salt(salt->salt);
-		if (crk_password_loop(salt)) return 1;
+		if ((done = crk_password_loop(salt)))
+			break;
 	} while ((salt = salt->next));
+
+	if (done >= 0)
+		add32to64(&status.cands, crk_key_index);
+
+	if (salt)
+		return 1;
 
 	crk_key_index = 0;
 	crk_last_salt = NULL;
@@ -338,10 +346,7 @@ int crk_process_key(char *key)
 
 	puts(strnzcpy(crk_stdout_key, key, crk_params.plaintext_length + 1));
 
-	{
-		int64 one = {1, 0};
-		status_update_crypts(&one);
-	}
+	status_update_cands(1);
 
 	crk_fix_state();
 
@@ -383,9 +388,14 @@ int crk_process_salt(struct db_salt *salt)
 
 		crk_methods.set_key(key, index++);
 		if (index >= crk_params.max_keys_per_crypt || !count) {
+			int done;
 			crk_key_index = index;
-			if (crk_password_loop(salt)) return 1;
-			if (!salt->list) return 0;
+			if ((done = crk_password_loop(salt)) >= 0)
+				add32to64(&status.cands, index);
+			if (done)
+				return 1;
+			if (!salt->list)
+				return 0;
 			index = 0;
 		}
 	}

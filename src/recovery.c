@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2003,2005,2006,2009,2010 by Solar Designer
+ * Copyright (c) 1996-2003,2005,2006,2009,2010,2013 by Solar Designer
  */
 
 #ifndef __FreeBSD__
@@ -102,7 +102,7 @@ void rec_save(void)
 	save_format = !options.format && rec_db->loaded;
 
 	fprintf(rec_file, RECOVERY_V "\n%d\n",
-		rec_argc + (save_format ? 1 : 0));
+	    rec_argc + (save_format ? 1 : 0));
 
 	opt = rec_argv;
 	while (*++opt)
@@ -110,16 +110,23 @@ void rec_save(void)
 
 	if (save_format)
 		fprintf(rec_file, "--format=%s\n",
-			rec_db->format->params.label);
+		    rec_db->format->params.label);
 
-	fprintf(rec_file, "%u\n%u\n%08x\n%08x\n%d\n%d\n%08x\n",
-		status_get_time() + 1,
-		status.guess_count,
-		status.crypts.lo,
-		status.crypts.hi,
-		status.pass,
-		status_get_progress ? status_get_progress() : -1,
-		rec_check);
+	fprintf(rec_file, "%u\n%u\n%x\n%x\n%x\n%x\n%x\n%x\n%x\n"
+	    "%d\n%d\n%d\n%x\n",
+	    status_get_time() + 1,
+	    status.guess_count,
+	    status.combs.lo,
+	    status.combs.hi,
+	    status.combs_ehi,
+	    status.crypts.lo,
+	    status.crypts.hi,
+	    status.cands.lo,
+	    status.cands.hi,
+	    status.compat,
+	    status.pass,
+	    status_get_progress ? status_get_progress() : -1,
+	    rec_check);
 
 	if (rec_save_mode) rec_save_mode(rec_file);
 
@@ -177,6 +184,7 @@ void rec_restore_args(int lock)
 	if (!fgetl(line, sizeof(line), rec_file)) rec_format_error("fgets");
 
 	rec_version = 0;
+	if (!strcmp(line, RECOVERY_V4)) rec_version = 4; else
 	if (!strcmp(line, RECOVERY_V3)) rec_version = 3; else
 	if (!strcmp(line, RECOVERY_V2)) rec_version = 2; else
 	if (!strcmp(line, RECOVERY_V1)) rec_version = 1; else
@@ -204,11 +212,29 @@ void rec_restore_args(int lock)
 	rec_name_completed = 1;
 
 	if (fscanf(rec_file, "%u\n%u\n%x\n%x\n",
-		&status_restored_time,
-		&status.guess_count,
-		&status.crypts.lo,
-		&status.crypts.hi) != 4) rec_format_error("fscanf");
-	if (!status_restored_time) status_restored_time = 1;
+	    &status_restored_time,
+	    &status.guess_count,
+	    &status.combs.lo,
+	    &status.combs.hi) != 4)
+		rec_format_error("fscanf");
+	if (!status_restored_time)
+		status_restored_time = 1;
+
+	if (rec_version >= 4) {
+		if (fscanf(rec_file, "%x\n%x\n%x\n%x\n%x\n%d\n",
+		    &status.combs_ehi,
+		    &status.crypts.lo,
+		    &status.crypts.hi,
+		    &status.cands.lo,
+		    &status.cands.hi,
+		    &status.compat) != 6)
+			rec_format_error("fscanf");
+	} else {
+/* Historically, we were reusing what became the combs field for candidates
+ * count when in --stdout mode */
+		status.cands = status.combs;
+		status.compat = 1;
+	}
 
 	if (rec_version == 0) {
 		status.pass = 0;
