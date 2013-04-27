@@ -356,6 +356,7 @@ default:
 	@echo "dos-djgpp-x86-mmx        DOS, DJGPP, x86 with MMX"
 	@echo "dos-djgpp-x86-any        DOS, DJGPP, x86"
 	@echo "win32-cygwin-x86-sse2[i] Win32, Cygwin, x86 with SSE2 (best)"
+	@echo "win32-cygwin-x86-opencl  Win32, Cygwin, x86 with SSE2 and OpenCL"
 	@echo "win32-cygwin-x86-mmx     Win32, Cygwin, x86 with MMX"
 	@echo "win32-cygwin-x86-any     Win32, Cygwin, x86"
 	@echo "win32-mingw-x86-sse2[i]  Win32, MinGW, x86 with SSE2 (best)"
@@ -1698,6 +1699,22 @@ win32-cygwin-x86-sse2:
 		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
 		CFLAGS="$(CFLAGS) -mpreferred-stack-boundary=4 -msse2 -m32" \
 		ASFLAGS="$(ASFLAGS) -msse2 -m32 -DUNDERSCORES"
+	@echo "Failing after this point just means some helper tools did not build:"
+	$(MAKE) $(PROJ_CXX) CFLAGS="$(CFLAGS) -m32"
+	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
+	@echo "All done"
+
+win32-cygwin-x86-opencl:
+	$(CP) x86-sse.h arch.h
+	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
+	$(MAKE) $(PROJ_WIN32) \
+		JOHN_OBJS="$(JOHN_OBJS) $(OCL_OBJS) x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
+		CFLAGS="$(CFLAGS) -I'$(OCLROOT)/include' -DHAVE_OPENCL -mpreferred-stack-boundary=4 -msse2 -m32" \
+		ASFLAGS="$(ASFLAGS) -msse2 -m32 -DUNDERSCORES" \
+		LDFLAGS="$(LDFLAGS) -L'$(OCLROOT)/lib/x86' -lOpenCL "
+	$(MKDIR) ../run/kernels/
+	$(CP_PRESERVE) opencl/*.cl ../run/kernels/
+	$(CP_PRESERVE) opencl_*.h ../run/kernels/
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX) CFLAGS="$(CFLAGS) -m32"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
