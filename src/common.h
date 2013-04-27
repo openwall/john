@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-99,2005,2009,2011 by Solar Designer
+ * Copyright (c) 1996-99,2005,2009,2011,2013 by Solar Designer
  */
 
 /*
@@ -21,7 +21,7 @@ typedef unsigned int ARCH_WORD_32;
 
 #ifdef __GNUC__
 #if __GNUC__ > 3 || (__GNUC__ == 3 && __GNUC_MINOR__ >= 1)
-#define MAYBE_INLINE __attribute__((always_inline))
+#define MAYBE_INLINE __attribute__((always_inline)) __inline__
 #else
 #define MAYBE_INLINE __inline__
 #endif
