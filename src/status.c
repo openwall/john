@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2004,2006,2010-2012 by Solar Designer
+ * Copyright (c) 1996-2001,2004,2006,2010-2013 by Solar Designer
  */
 
 #ifdef __ultrix__
@@ -63,16 +63,57 @@ void status_ticks_overflow_safety(void)
 	}
 }
 
-void status_update_crypts(int64 *count)
+void status_update_crypts(int64 *combs, unsigned int crypts)
 {
-	unsigned int saved_hi;
+	{
+		unsigned int saved_hi = status.combs.hi;
+		add64to64(&status.combs, combs);
+		if (status.combs.hi < saved_hi)
+			status.combs_ehi++;
+	}
 
-	saved_hi = status.crypts.hi;
-	add64to64(&status.crypts, count);
+	{
+		unsigned int saved_lo = status.crypts.lo;
+		add32to64(&status.crypts, crypts);
+		if ((status.crypts.lo ^ saved_lo) & 0xfff00000U)
+			status_ticks_overflow_safety();
+	}
+}
 
-	if (status.crypts.hi != saved_hi &&
-	    !count->hi && count->lo <= 0x00100000)
+void status_update_cands(unsigned int cands)
+{
+	unsigned int saved_lo = status.cands.lo;
+	add32to64(&status.cands, cands);
+	if ((status.cands.lo ^ saved_lo) & 0xfff00000U)
 		status_ticks_overflow_safety();
+}
+
+static char *status_get_c(char *buffer, int64 *c, unsigned int c_ehi)
+{
+	int64 current, next, rem;
+	char *p;
+
+	if (c_ehi) {
+		strcpy(buffer, "OVERFLOW");
+		return buffer;
+	}
+
+	p = buffer + 31;
+	*p = 0;
+
+	current = *c;
+	do {
+		next = current;
+		div64by32(&next, 10);
+		rem = next;
+		mul64by32(&rem, 10);
+		neg64(&rem);
+		add64to64(&rem, &current);
+		*--p = rem.lo + '0';
+		current = next;
+	} while (current.lo || current.hi);
+
+	return p;
 }
 
 unsigned int status_get_time(void)
@@ -81,15 +122,17 @@ unsigned int status_get_time(void)
 		(get_time() - status.start_time) / clk_tck;
 }
 
-static char *status_get_cps(char *buffer)
+static char *status_get_cps(char *buffer, int64 *c, unsigned int c_ehi)
 {
 	int use_ticks;
 	clock_t ticks;
 	unsigned long time;
 	int64 tmp, cps;
-	unsigned int cps_100;
 
-	use_ticks = !status.crypts.hi && !status_restored_time;
+	if (!(c->lo | c->hi | c_ehi))
+		return "0";
+
+	use_ticks = !(c->hi | c_ehi | status_restored_time);
 
 	ticks = get_time() - status.start_time;
 	if (use_ticks)
@@ -98,9 +141,18 @@ static char *status_get_cps(char *buffer)
 		time = status_restored_time + ticks / clk_tck;
 	if (!time) time = 1;
 
-	cps = status.crypts;
-	if (use_ticks) mul64by32(&cps, clk_tck);
+	cps = *c;
+	if (c_ehi) {
+		cps.lo = cps.hi;
+		cps.hi = c_ehi;
+	}
+	if (use_ticks)
+		mul64by32(&cps, clk_tck);
 	div64by32(&cps, time);
+	if (c_ehi) {
+		cps.hi = cps.lo;
+		cps.lo = 0;
+	}
 
 	if (cps.hi > 232 || (cps.hi == 232 && cps.lo >= 3567587328U))
 		sprintf(buffer, "%uG", div64by32lo(&cps, 1000000000));
@@ -111,66 +163,44 @@ static char *status_get_cps(char *buffer)
 	if (cps.lo >= 1000000)
 		sprintf(buffer, "%uK", div64by32lo(&cps, 1000));
 	else
-	if (cps.lo >= 100)
+	if (cps.lo >= 1000)
 		sprintf(buffer, "%u", cps.lo);
 	else {
-		tmp = status.crypts;
-		if (use_ticks) mul64by32(&tmp, clk_tck);
-		mul64by32(&tmp, 100);
-		cps_100 = div64by32lo(&tmp, time) % 100;
-		sprintf(buffer, "%u.%02u", cps.lo, cps_100);
+		const char *fmt;
+		unsigned int div, frac;
+		fmt = "%u.%06u"; div = 1000000;
+		if (cps.lo >= 100) {
+			fmt = "%u.%u"; div = 10;
+		} else if (cps.lo >= 10) {
+			fmt = "%u.%02u"; div = 100;
+		} else if (cps.lo >= 1) {
+			fmt = "%u.%03u"; div = 1000;
+		}
+		tmp = *c;
+		if (use_ticks)
+			mul64by32(&tmp, clk_tck);
+		mul64by32(&tmp, div);
+		frac = div64by32lo(&tmp, time);
+		if (div == 1000000) {
+			if (frac >= 100000) {
+				fmt = "%u.%04u"; div = 10000; frac /= 100;
+			} else if (frac >= 10000) {
+				fmt = "%u.%05u"; div = 100000; frac /= 10;
+			}
+		}
+		frac %= div;
+		sprintf(buffer, fmt, cps.lo, frac);
 	}
 
 	return buffer;
-}
-
-static void status_print_stdout(char *percent)
-{
-	unsigned int time = status_get_time();
-	char s_wps[64];
-	char s_words[32];
-	int64 current, next, rem;
-	char *s_words_ptr;
-
-	s_words_ptr = &s_words[sizeof(s_words) - 1];
-	*s_words_ptr = 0;
-
-	current = status.crypts;
-	do {
-		next = current;
-		div64by32(&next, 10);
-		rem = next;
-		mul64by32(&rem, 10);
-		neg64(&rem);
-		add64to64(&rem, &current);
-		*--s_words_ptr = rem.lo + '0';
-		current = next;
-	} while (current.lo || current.hi);
-
-	fprintf(stderr,
-		"words: %s  "
-		"time: %u:%02u:%02u:%02u"
-		"%s  "
-		"w/s: %s",
-		s_words_ptr,
-		time / 86400, time % 86400 / 3600, time % 3600 / 60, time % 60,
-		percent,
-		status_get_cps(s_wps));
-
-	if ((options.flags & FLG_STATUS_CHK) ||
-	    !(status.crypts.lo | status.crypts.hi))
-		fputc('\n', stderr);
-	else
-		fprintf(stderr,
-			"  current: %s\n",
-			crk_get_key1());
 }
 
 static void status_print_cracking(char *percent)
 {
 	unsigned int time = status_get_time();
 	char *key, saved_key[PLAINTEXT_BUFFER_SIZE];
-	char s_cps[64];
+	int64 g = {status.guess_count, 0};
+	char s_gps[32], s_pps[32], s_crypts_ps[32], s_combs_ps[32];
 
 	if (!(options.flags & FLG_STATUS_CHK)) {
 		if ((key = crk_get_key2()))
@@ -180,22 +210,47 @@ static void status_print_cracking(char *percent)
 	}
 
 	fprintf(stderr,
-		"guesses: %u  "
-		"time: %u:%02u:%02u:%02u"
-		"%s  "
-		"c/s: %s",
-		status.guess_count,
-		time / 86400, time % 86400 / 3600, time % 3600 / 60, time % 60,
-		percent,
-		status_get_cps(s_cps));
+	    "%ug %u:%02u:%02u:%02u%s %sg/s ",
+	    status.guess_count,
+	    time / 86400, time % 86400 / 3600, time % 3600 / 60, time % 60,
+	    percent,
+	    status_get_cps(s_gps, &g, 0));
+
+	if (!status.compat)
+		fprintf(stderr,
+		    "%sp/s %sc/s ",
+		    status_get_cps(s_pps, &status.cands, 0),
+		    status_get_cps(s_crypts_ps, &status.crypts, 0));
+
+	fprintf(stderr, "%sC/s",
+	    status_get_cps(s_combs_ps, &status.combs, status.combs_ehi));
 
 	if ((options.flags & FLG_STATUS_CHK) ||
 	    !(status.crypts.lo | status.crypts.hi))
 		fputc('\n', stderr);
+	else if (!saved_key[0])
+		fprintf(stderr, " %s\n", crk_get_key1());
 	else
-		fprintf(stderr,
-			"  trying: %s%s%s\n",
-			crk_get_key1(), saved_key[0] ? " - " : "", saved_key);
+		fprintf(stderr, " %s..%s\n", crk_get_key1(), saved_key);
+}
+
+static void status_print_stdout(char *percent)
+{
+	unsigned int time = status_get_time();
+	char s_pps[32], s_p[32];
+
+	fprintf(stderr,
+	    "%sp %u:%02u:%02u:%02u%s %sp/s",
+	    status_get_c(s_p, &status.cands, 0),
+	    time / 86400, time % 86400 / 3600, time % 3600 / 60, time % 60,
+	    percent,
+	    status_get_cps(s_pps, &status.cands, 0));
+
+	if ((options.flags & FLG_STATUS_CHK) ||
+	    !(status.cands.lo | status.cands.hi))
+		fputc('\n', stderr);
+	else
+		fprintf(stderr, " %s\n", crk_get_key1());
 }
 
 void status_print(void)
@@ -212,11 +267,11 @@ void status_print(void)
 
 	s_percent[0] = 0;
 	if (percent_value >= 0)
-		sprintf(s_percent, status.pass ? " %d%% (%d)" : " %d%%",
-			percent_value, status.pass);
+		sprintf(s_percent, status.pass ? " %d%% %d/3" : " %d%%",
+		    percent_value, status.pass);
 	else
 	if (status.pass)
-		sprintf(s_percent, " (%d)", status.pass);
+		sprintf(s_percent, " %d/3", status.pass);
 
 	if (options.flags & FLG_STDOUT)
 		status_print_stdout(s_percent);
