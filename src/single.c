@@ -8,6 +8,7 @@
 
 #include "misc.h"
 #include "params.h"
+#include "common.h"
 #include "memory.h"
 #include "signals.h"
 #include "loader.h"
@@ -133,7 +134,7 @@ static void single_init(void)
 	crk_init(single_db, NULL, guessed_keys);
 }
 
-static int single_key_hash(char *key)
+static MAYBE_INLINE int single_key_hash(char *key)
 {
 	unsigned int hash, extra, pos;
 
