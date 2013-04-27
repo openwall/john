@@ -24,6 +24,8 @@ static int omp_t = 1;
 
 #define FORMAT_LABEL		"haval"
 #define FORMAT_NAME		"HAVAL"
+#define FORMAT_TAG		"$haval$"
+#define TAG_LENGTH		7
 #define ALGORITHM_NAME		"32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
@@ -41,6 +43,7 @@ static struct fmt_tests haval_256_3_tests[] = {
 
 static struct fmt_tests haval_128_4_tests[] = {
 	{"$haval$EE6BBF4D6A46A679B3A856C88538BB98", ""},
+	{"EE6BBF4D6A46A679B3A856C88538BB98", ""},
 	{NULL}
 };
 
@@ -63,8 +66,15 @@ static void init(struct fmt_main *self)
 // XXX fix me
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	if (strncmp(ciphertext, "$haval$", 7) != 0)
+	char *p;
+
+	p = ciphertext;
+
+	if (!strncmp(p, FORMAT_TAG, TAG_LENGTH))
+		p += TAG_LENGTH;
+	if (strlen(p) != 32 && strlen(p) != 64)
 		return 0;
+
 	return 1;
 }
 
@@ -77,7 +87,11 @@ static void *get_binary_256(char *ciphertext)
 	unsigned char *out = buf.c;
 	char *p;
 	int i;
-	p = strrchr(ciphertext, '$') + 1;
+
+	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
+		p = strrchr(ciphertext, '$') + 1;
+	else
+		p = ciphertext;
 	for (i = 0; i < 32; i++) {
 		out[i] =
 		    (atoi16[ARCH_INDEX(*p)] << 4) |
@@ -97,7 +111,11 @@ static void *get_binary_128(char *ciphertext)
 	unsigned char *out = buf.c;
 	char *p;
 	int i;
-	p = strrchr(ciphertext, '$') + 1;
+
+	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
+		p = strrchr(ciphertext, '$') + 1;
+	else
+		p = ciphertext;
 	for (i = 0; i < 16; i++) {
 		out[i] =
 		    (atoi16[ARCH_INDEX(*p)] << 4) |
