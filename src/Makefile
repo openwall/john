@@ -17,6 +17,7 @@ CPPFLAGS = -E
 OMPFLAGS =
 # gcc with OpenMP
 #OMPFLAGS = -fopenmp
+# gcc with OpenMP on 32-bit x86 with SSE2
 #OMPFLAGS = -fopenmp -msse2
 # Sun Studio with OpenMP (set the OMP_NUM_THREADS env var at runtime)
 #OMPFLAGS = -xopenmp
