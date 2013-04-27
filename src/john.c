@@ -611,7 +611,8 @@ static void CPU_detect_or_fallback(char **argv, int make_check)
 			perror("execv: " CPU_FALLBACK_PATHNAME);
 		}
 #endif
-		fprintf(stderr, "Sorry, %s is required\n", CPU_NAME);
+		fprintf(stderr, "Sorry, %s is required for this build\n",
+		    CPU_NAME);
 		if (make_check)
 			exit(0);
 		error();

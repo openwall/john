@@ -125,7 +125,7 @@ static int restore_state(FILE *file)
 
 static void fix_state(void)
 {
-	memcpy(rec_numbers, numbers, sizeof(rec_numbers));
+	memcpy(rec_numbers, numbers, rec_length);
 }
 
 static void inc_format_error(char *charset)
@@ -274,13 +274,13 @@ static int expand(char *dst, char *src, int size)
 		if (--count <= 1)
 			return 0;
 		present[i = ARCH_INDEX(*dptr++)] = 1;
-		if ((i - CHARSET_MIN) >= CHARSET_SIZE)
+		if ((i - real_min) >= real_size)
 			return -1;
 	}
 
 	while (*sptr) {
 		i = ARCH_INDEX(*sptr);
-		if ((i - CHARSET_MIN) >= CHARSET_SIZE)
+		if ((i - real_min) >= real_size)
 			return -1;
 		if (!present[i]) {
 			*dptr++ = *sptr++;
@@ -583,6 +583,8 @@ void do_incremental_crack(struct db_main *db, char *mode)
 		inc_format_error(charset);
 	}
 
+/* Sanity-check and expand allchars */
+	real_min = CHARSET_MIN; real_size = CHARSET_SIZE;
 	allchars[header->count] = 0;
 	if (expand(allchars, "", sizeof(allchars)))
 		inc_format_error(charset);
@@ -599,6 +601,7 @@ void do_incremental_crack(struct db_main *db, char *mode)
 		error();
 	}
 
+/* Calculate the actual real_* based on sanitized and expanded allchars */
 	{
 		unsigned char c;
 		real_min = 0xff;
