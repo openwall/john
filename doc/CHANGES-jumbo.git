@@ -1,6 +1,6 @@
 The following changes were made between 1.7.9-jumbo-7 and 1.7.9-jumbo-8:
 
-magnum (587):
+magnum (656):
 	Add a "Section [%s] not found" before outputting the catch-all
 	  --list=?
 	Merge fix
@@ -1085,8 +1085,113 @@ magnum (587):
 	  --max-run-time where a resumed session would immediately abort
 	  again. And if OS_TIMER, we only call status_get_time() if
 	  --max-run-time or --progress-every was given.
+	Update CHANGES-jumbo.git and CREDITS-jumbo.
+	Document --request-vector and --request-scalar options in
+	  README-OPENCL.
+	mscash2-opencl: Fix for forced LWS larger than kernel's max.
+	Document the OSX problem with OpenCL kernel header files.
+	Wordlist bug fixes: Reject wordlist containing NULL bytes, and handle
+	  inconsequent line feeds (eg. spurious CR within a line). This fix
+	  will do for Jumbo-8 so we don't introduce new problems.
+	cisco2john: Fixes after testing with lots of real config files. And
+	  add some more stuff to seed output (hostname, communities).
+	Fix the postgre format: Rename it to postgres, including the tag. The
+	  old format is still supported. Also improve valid().
+	Rename the postgre source file too o.O
+	Some format name changes to clarify what they are.
+	s/Staroffice/StarOffice/
+	Add CXX variable to Makefile. Add separate PROJ_ sections for C++ as
+	  well as pcap, so John does not fail building even if they do.
+	  Also add uaf2john and truecrypt_volume2john to the main targets
+	  and move office2john to unused.
+	Makefile tweaks.
+	uaf2john: Fix an aliasing problem.
+	Fix another warning in wpapcap2john (fread return value).
+	Fix generic build after the timer fixes.
+	Move wpapcap2john from PROJ_PCAP to PROJ - it does not depend on
+	  libpcap!
+	Revert 8e992e4 and instead bump RULE_BUFFER_SIZE in params.h by 4. We
+	  should look into this more closely but this will do for now.
+	Makefile: Add a "Done." after building the pcap targets.
+	Fix valid() in ntlmv2-opencl. It counted salt length incorrectly.
+	pass_gen.pl: Support UTF-8 for -salt argument when -utf8 option is
+	  given.
+	Stop user from trying to use any encoding other than iso-8859-1 with
+	  formats that lack support for it. It would just end up in false
+	  negatives.
+	Drop bogus FMT_UTF8 flag from Truecrypt.
+	Change MPI reduction for benchmarks for accurate average speeds. Also,
+	  reduce the int64 properly (only affects 32-bit or BE systems).
+	Update README-mpi.
+	Comment out all atexit(done) in OpenCL formats and let the OS do the
+	  clean-up. Otherwise we got segfaults in the end after a --test
+	  run. The real fixes are already present in bleeding branch.
+	CUDA formats: Tweak default THREADS*BLOCKS so they work on weaker
+	  devices.
+	Dynamic: Change name of "salted Cisco PIX" to "Cisco ASA"
+	Copy the improved ZIP valid() to the OpenCL version of same format.
+	Refuse to translate \x00 into a null in user classes.
+	Add external mode filters for UTF-8 validation. This is slow though.
+	Rename NETNTLM_old_fmt_plug.c to NETNTLM_bs_fmt_plug.c.
+	Change self-test use of set_key("", index) into something that
+	  actually passes a large enough buffer for any use.
+	Change self-test use of set_key(current->plaintext, index) into
+	  something that actually passes a large enough buffer for any
+	  use.
+	Sparc fixes. Latest optimization of mschap/ntlm formats broke BE.
+	PDF format still used the Bad Idea[tm] version of valid().
+	Add missing deallocations in OpenCL DMG & RAR formats' valid().
+	SAP F/G: Bump maximum length. We over-ran a buffer with the latest
+	  self-tests.
+	Bug fixes to thin dynamic formats PHPS, formspring, mediawiki, osc and
+	  phpassMD5. They over-ran buffer when given bad input files.
+	More robust valid() in salted sha1 / nsldap formats.
+	Do some actual validation in SIP valid().
+	Actually, while at it we should just as well validate it is lower-case
+	  hex.
+	WOW-SRP fixes. Not sure I found all, this is a mess.
+	rar2john big-endian fixes for Unicode filenames in RAR.
+	Makefile tweaks for JOHN_CFLAGS etc.
+	Canonical fixes for new tcphdr.h (failed on Sparc)
+	Revert "JtR-Dynamic_validation_raw_hashes-2.patch". It made things
+	  worse.
+	Macros for prefixing MD[45]_(Init|Update|Final) with "john_" for
+	  avoiding clashes with OpenSSL library.
+	Endian stuff.
+	Drop un-needed header in ssha-opencl.
+	Add macosx-x86-64-native build target. To use it, you need to copy
+	  osx_as_wrapper.sh (from the src directory) to /usr/local/bin/as or
+	  to some other directory (but the script MUST be called 'as') and
+	  ensure this directory is first in your $PATH.
+	Precedence: MSCHAPv2 should pick sploit version over BS one.
+	Generic crypt format bugfix.
+	Testpara vs. HAVE_OPENSSL fix.
+	kwallet2john: Handle multiple files, and strip suffix and path from
+	  login.
+	truecrypt_volume2john: Use filename as login field, and convert to a
+	  john symlink.
+	Makefile fixes for OSX 32-bit cross-compile.
+	Bugfix for memory.c under -DDEBUG. In order to easier track bugs,
+	  mem_alloc_tiny() is changed to a normal alloc. But it was supposed
+	  to still maintain requested alignment!
+	Dynamic bugfix for $HEX$.
+	Change the way -DDEBUG affects mem_alloc_tiny(). The outcome is
+	  practically the same but this is cleaner.
+	Revert "Change the way -DDEBUG affects mem_alloc_tiny(). The outcome
+	  is practically"
+	Final canonical change for -DDEBUG versus mem_alloc_tiny.
+	Do not misalign SSE2 buffers when --save-memory=3 or above. The
+	  previous fix did not catch all cases.
+	Relbench tweaks, for ignoring warnings.
+	OMP_SCALE tweaks. There are massive gains to win in some formats. All
+	  OMP formats should be revised, but there are so many :-/
+	Fixes for a couple of make targets.
+	Drop inconsistent paths in the auto-conf hack.
+	Drop the wchar stuff from gpg2john. 8-bit GECOS now works fine.
+	Netscreen: Better valid().
+	DMD5: Better valid().
 
-Dhiru Kholia (232):
+Dhiru Kholia (325):
 	BONUS: pwsafe format also cracks Password Gorilla databases.
 	Integrate psk-crack (from ike-scan) into john.
 	Add support for cracking Nuked-Klan CMS hashes.
@@ -1324,8 +1429,101 @@ Dhiru Kholia (232):
 	Add support for handling multiple files in truecrypt_volume2john
 	Dynamic type for md5($p,$s) for long salts
 	Remove redefinition (issue #233)
+	Add utility to convert Cisco type-4 hashes into raw-sha256 hashes
+	Fix ASAN crash in pkzip format
+	make valid() "stronger"
+	Fix ASAN crash in dmd5 format
+	Fix ASAN crash in oracle format
+	Fix ASAN crash (still needs better valid)
+	Fix ASAN crash (needs another look)
+	Commit another weird and custom format
+	Fix ASAN crash and (get|set)_salt methods
+	Python port of dmg2john utility
+	Fix ASAN crash in ipb2 format
+	Fix multiple ASAN related crashes
+	Fix ASAN related crashes in SAP formats
+	Revert "Fix ASAN crash (needs another look)"
+	Fix ASAN crash (without any performance loss)
+	Revert "Fix ASAN related crashes in SAP formats"
+	Document known ASAN related crashes
+	Fix mistakes made in commit 23dc44df
+	Revert "Fix ASAN crash in ipb2 format" due to speed loss
+	Document known ASAN related crash in ipb2 format
+	Fix ASAN related crash in nk format
+	Revert "Fix ASAN crash in dmd5 format" (better fix coming)
+	Fix ASAN crash in dmd5 format
+	Fix problems pointed out by Frank
+	fix clang-analyzer warning in mozilla DES code
+	misc. fixes
+	Remove dead code
+	Remove dead assignment
+	fix resource / memory leaks in dmg2john.c
+	Remove unused code
+	misc. small fixes in dmg2john
+	Fix a very weird compilation error with GCC 4.8.0
+	Fix compilation failure with Clang (trunk)
+	Fix memory leak + "invalid read" in pwsafe formats
+	Fix "invalid read" in keepass format
+	Fix "invalid read" in ike format
+	Fix misc. "invalid read" problems
+	make valid() stronger in clipperz format
+	make valid() stronger in radmin format
+	make valid() stronger in pst format
+	make valid() stronger in mozilla format
+	fix potential leaks in dmg format
+	fix memory leaks in zip2john
+	fix potential memory leaks in rar2john
+	fix typos
+	fix warnings in gpg2john
+	Fix problems found by Alexander Cherepanov in mozilla format
+	Fix valid in sip format
+	Fix various crashes found by Alexander Cherepanov
+	Fix crash in zip format found by Alexander Cherepanov
+	Fix various crashes found by Alexander Cherepanov
+	Revert "Fix crash in zip format found by Alexander Cherepanov"
+	Hopefully the "right" fix for the zip crash
+	misc. fixes for zip stuff
+	Fix crash in dmd5 format found by Alexander Cherepanov
+	Fix django crash found by Alexander Cherepanov
+	Fix a typo in keepass2john
+	Fix base64 decoding bug and add support for Cloud Keychain files
+	Make agilekc2john work under Python 3.3 too
+	Make sshng2john work under Python 3.3 too
+	Make sshng2john work under Python 2.4 to Python 3.3
+	Make agilekc2john work under Python 2.4 to Python 3.3
+	Fix crash for "qpdf" generated file and misc. PEP8 fixes
+	Remove unused code from ml2john.py
+	misc. Python portability fixes
+	Make dmg2john work under Python 2.4 to Python 3.3
+	Fix for django format crash (one of the many) :(
+	more portability fixes
+	Make odf2john work under Python 3.3 too
+	even more portability fixes
+	portability fixes
+	Make office2john.py work under Python 3.3 too
+	Add error handling in pdf2john
+	some less-than-ideal fixes for keyring2john
+	Agile Keychain optimizations (thanks atom!)
+	Calculate only what we will use (thanks atom!)
+	Even more optimizations (courtesy of atom)
+	misc. portability fixes
+	Add ssh2sshng.py utility for converting ssh hashes into sshng hashes
+	Add support for cracking Siemens S7 authentication protocol hashes
+	misc. portability fixes
+	make s7 format compatible with unstable-jumbo
+	Don't be too greedy. Fix failures caused by 07a3e05.
+	Document that mozilla format fails on big-endian boxes
+	Changes from commit 7eecef982c5d458a22d8c9c3b870743edfc5ba76
+	Pick changes from bleeding-jumbo
+	Pick tweaks from corresponding CPU format
+	fix crash in ike format
+	fix crash in dmg format
+	borrow valid from the corresponding CPU format
+	fix crash in keyring format
+	tighten check in episerver format
+	tighten check in clipperz format
 
-Claudio André (154):
+Claudio André (157):
 	Improvement: pre-compute modulus values.
 	Improvement: multi-kernel mode created.
 	Improvement: allow to select at runtime the kernel to be executed.
@@ -1540,60 +1738,11 @@ Claudio André (154):
 	Fix a bug using sha256crypt on OSX CPU.
 	Small tweaks on sha512crypt OpenCL file.
 	Include uint64_t definition (stdint.h) in common-opencl.h.
+	Add FMT_SPLIT_UNIFIES_CASE to a bunch of SHA-2 formats.
+	Mute a few warnings when using test=0 on OSX.
+	Mute some warnings.
 
-Frank Dittrich (47):
-	Make --list= a little bit more user friendly
-	Bash completion: add support for --list=format-methods[:WHICH]
-	Silence -Wpointer-sign warnings in hmacSHA*_fmt_plug.c, take 2
-	Add --help option to john (prints usage summary)
-	Define new [List.External:Repeats_*] sections
-	New external mode variable "maxlen"
-	Rename external mode variable maxlen to cipher_limit
-	Rewrite Filter_ROT13 external mode to allow easier adjustment
-	Dummy format: warn about unsupported password length
-	Define new external modes to generate sequences of characters
-	Fix compiler warnings in dummy.c
-	Make use of cipher_limit in some more external formats
-	Fix warning in dummy.c, this time for real
-	Bash completion: add trailing space for --nolog etc.
-	bash completion fix
-	Fix bash completion for hidden options
-	Fix bash completion for --subformat
-	Fix bash completion for --option[=value]
-	Rewrite bash completion for automatic handling of new john options
-	Refer to "doc/OPTIONS" for help regarding --fix-state-delay=N
-	Fix ./john --list=parameters:SECTION (with .include [other])
-	Bash completion: support (src)$ cd ../run; ./john -[tab]
-	sunmd5_fmt_plug.c: Fix -Wunused-variable and -Wunused-but-set-variable
-	  for generic builds (on a 32bit Linux system)
-	Adjust EPI format documentation
-	Rename doc/EPi.patch.README to doc/README.format-epi Reason: there
-	  is no longer a separate patch
-	Fix broken links in source code
-	SAP CODVN B and F(G): be more restrictive in valid()
-	Fix "Compiler error in ./john.conf at line 612: Unknown identifier"
-	  which occurred when using $ ./john --list=ext-filters-only
-	Separate function john_list_build_info
-	Add GMP library version to --list=build-info
-	Add even more version info to --list=build-info
-	Remove some obsolete FIXME comments from bash completion script
-	Fix a few typos in listconf.c comments
-	Fix typos in calc_stat.c
-	Fix more spelling errors
-	Fix spelling: then -> than
-	Fix typo in doc/README-OPENCL
-	Fixed some more typos
-	Add binary_hash_[56] and get_hash_[56] to 16 formats
-	mozilla_des.c and .h: #if 0 unused functions
-	sap2john.pl: improve coding style (tabs vs. spaces)
-	doc/OPTIONS: remove the only [tab] which is not part of a heading
-	Remove dead code from mozilla_fmt.c - used #ifdef DEBUF
-	Fix grammar
-	Adjust benchmark-unify to jumbo-8 format name changes
-	Benchmark-unify: map KRB5 format names
-	Fix a bug when using --stdout, introduced in e14ac00.
-
-JimF (45):
+JimF (62):
 	Add our own SHA-2, enabling 19 new formats for users stuck with
 	  OpenSSL 0.9.7. OpenSSL or not, boost sha256crypt with 10-20%.
 	Fix radmin format under Windows.
@@ -1667,6 +1816,79 @@ JimF (45):
 	Some warning pasifications
 	pass_gen.pl: Support creating WPA-PSK test hashes!
 	dyna_17_BE.patch from Jim
+	basename portability 'fix'.
+	Portablity fixes for VC.
+	fix wpapcap2john warnings
+	Dynamic bugfix, spotted by new warning in gcc 4.8.0.
+	Fixed mem leaks, found by mshell.
+	Minor fixes.
+	JtR-jumbo-dynamic_1014_fix_non_sse.patch
+	JtR-Dynamic_validation_raw_hashes.patch
+	JtR-Dynamic_validation_raw_hashes-2.patch
+	Re-apply JtR-Dynamic_validation_raw_hashes-2.patch but with some
+	  missing stuff added.
+	JtR_Bleeding_Dynamic_Salt2_UserID_Salt_Bug.patch
+	JtR_Bleeding_Dynamic_MEM_ALLOC_SIZE.patch
+	JtR_unstable_Dynamic_bare_hash_fix.patch
+	JtR-SunMD5-SSE2-scale.patch
+	Disable OMP for MMX in wpapsk format
+	Dyna21-crash.patch
+	dynamic-valid.patch
+
+Frank Dittrich (49):
+	Make --list= a little bit more user friendly
+	Bash completion: add support for --list=format-methods[:WHICH]
+	Silence -Wpointer-sign warnings in hmacSHA*_fmt_plug.c, take 2
+	Add --help option to john (prints usage summary)
+	Define new [List.External:Repeats_*] sections
+	New external mode variable "maxlen"
+	Rename external mode variable maxlen to cipher_limit
+	Rewrite Filter_ROT13 external mode to allow easier adjustment
+	Dummy format: warn about unsupported password length
+	Define new external modes to generate sequences of characters
+	Fix compiler warnings in dummy.c
+	Make use of cipher_limit in some more external formats
+	Fix warning in dummy.c, this time for real
+	Bash completion: add trailing space for --nolog etc.
+	bash completion fix
+	Fix bash completion for hidden options
+	Fix bash completion for --subformat
+	Fix bash completion for --option[=value]
+	Rewrite bash completion for automatic handling of new john options
+	Refer to "doc/OPTIONS" for help regarding --fix-state-delay=N
+	Fix ./john --list=parameters:SECTION (with .include [other])
+	Bash completion: support (src)$ cd ../run; ./john -[tab]
+	sunmd5_fmt_plug.c: Fix -Wunused-variable and -Wunused-but-set-variable
+	  for generic builds (on a 32bit Linux system)
+	Adjust EPI format documentation
+	Rename doc/EPi.patch.README to doc/README.format-epi Reason: there
+	  is no longer a separate patch
+	Fix broken links in source code
+	SAP CODVN B and F(G): be more restrictive in valid()
+	Fix "Compiler error in ./john.conf at line 612: Unknown identifier"
+	  which occurred when using $ ./john --list=ext-filters-only
+	Separate function john_list_build_info
+	Add GMP library version to --list=build-info
+	Add even more version info to --list=build-info
+	Remove some obsolete FIXME comments from bash completion script
+	Fix a few typos in listconf.c comments
+	Fix typos in calc_stat.c
+	Fix more spelling errors
+	Fix spelling: then -> than
+	Fix typo in doc/README-OPENCL
+	Fixed some more typos
+	Add binary_hash_[56] and get_hash_[56] to 16 formats
+	mozilla_des.c and .h: #if 0 unused functions
+	sap2john.pl: improve coding style (tabs vs. spaces)
+	doc/OPTIONS: remove the only [tab] which is not part of a heading
+	Remove dead code from mozilla_fmt.c - used #ifdef DEBUF
+	Fix grammar
+	Adjust benchmark-unify to jumbo-8 format name changes
+	Benchmark-unify: map KRB5 format names
+	Fix a bug when using --stdout, introduced in e14ac00.
+	benchmark-unify: adjust format name mappings Add "Mozilla SHA-1
+	  3DES" mapping Adjust "pdf" mapping
+	remove unused variable in putty_fmt_plug.c, valid()
 
 Sayantan Datta (23):
 	common-opencl.c:Added build from binary
@@ -1695,7 +1917,7 @@ Sayantan Datta (23):
 	  bf-opencl honours GWS environment variables, added functions to
 	  detect optimal GWS for bf-opencl and des-opencl
 
-Lukas Odzioba (12):
+Lukas Odzioba (19):
 	Make Truecrypt formats non-plugin and only build for OpenSSL >= 1.0.0
 	Fixed valid in pwsafe formats
 	Fixed valid() in pwsafe formats
@@ -1713,20 +1935,16 @@ Lukas Odzioba (12):
 	gpg2john: Handle multiple keys per in file, as well as multiple
 	  infiles.
 	Add OpenCL 1.2 error codes to our debug routines.
+	Include OpenCL version information into --list=build-info
+	CUDA versions in --list=build-info
+	(re-)enable agilekeychain format
+	gpg2john fixes
+	fix vncpcap2john exception handling
+	Basename helper function in misc.c, also capable of stripping
+	  extensions.
+	gpg2john GECOS support
 
-Narendra Kangralkar (10):
-	Make ciphertext parsing more robust in nk format
-	Make ciphertext parsing more robust in episerver format
-	Make ciphertext parsing more robust in IKE format
-	Make ciphertext parsing more robust in vnc format
-	Make ciphertext parsing more robust in django format
-	Make ciphertext parsing more robust in pbkdf2-hmac-sha512 format
-	Make ciphertext parsing more robust in office format
-	Make ciphertext parsing more robust in oldoffice format
-	Make ciphertext parsing more robust in zip format
-	Add support for cracking KDE KWallet files
-
-Solar (9):
+Solar (10):
 	hccap2john fixes
 	RAdmin, SIP speedup
 	sunmd5: minor fixes
@@ -1746,8 +1964,21 @@ Solar (9):
 	  once. There's a check for that in the code. Moreover, use of
 	  the bitmap is automatically disabled when the C/R pair count
 	  reduces to 1.
+	Licensing files
 
-ShaneQful (8):
+Narendra Kangralkar (10):
+	Make ciphertext parsing more robust in nk format
+	Make ciphertext parsing more robust in episerver format
+	Make ciphertext parsing more robust in IKE format
+	Make ciphertext parsing more robust in vnc format
+	Make ciphertext parsing more robust in django format
+	Make ciphertext parsing more robust in pbkdf2-hmac-sha512 format
+	Make ciphertext parsing more robust in office format
+	Make ciphertext parsing more robust in oldoffice format
+	Make ciphertext parsing more robust in zip format
+	Add support for cracking KDE KWallet files
+
+ShaneQful (9):
 	Added author comment at top of file & chmodded it to be executable
 	Added prepare method which checks for the old style pdf hashes and
 	  converts them to the new style pdf hashes if necessary
@@ -1759,16 +1990,9 @@ ShaneQful (8):
 	  for the mac
 	Fixed spelling error
 	Update CREDITS-jumbo
+	Added License to pdf2john
 
-bwall (6):
-	Initial pwsafe optimization
-	Removed OpenSSL tag from pwsafe_fmt_plug
-	Updated copyright
-	Optimized the iterated SHA256 in pwsafe-cuda
-	Added copyright information
-	Applied optimizations to pwsafe-opencl and cleaned up copyrights
-
-Vlatko Kosturjak (6):
+Vlatko Kosturjak (7):
 	Fix: handle error handling better. Helps in debugging OpenCL errors.
 	  For example, was getting OpenCL error
 	  (CL_INVALID_PROGRAM_EXECUTABLE) instead of OpenCL error
@@ -1782,6 +2006,23 @@ Vlatko Kosturjak (6):
 	expose markov stats file as command line option
 	Initial import of ZSH completion for john
 	make targets for zsh completion
+	"polishing" changes
+
+rofl0r (6):
+	timer.h: remove unneeded include (sys/timeb.h)
+	factor out struct tcphdr
+	Makefile: allow JOHN_LDFLAGS
+	tcphdr.h: remove unneeded typedef
+	tcphdr.h: special-case endian.h for mac/bsd
+	timer.h: re-add sys/timeb.h to windows section
+
+bwall (6):
+	Initial pwsafe optimization
+	Removed OpenSSL tag from pwsafe_fmt_plug
+	Updated copyright
+	Optimized the iterated SHA256 in pwsafe-cuda
+	Added copyright information
+	Applied optimizations to pwsafe-opencl and cleaned up copyrights
 
 Myrice (3):
 	Bug fixed: xsha512-cuda long password bug
@@ -1789,45 +2030,49 @@ Myrice (3):
 	  performance
 	Add mask mode
 
+Deepika Dutta (3):
+	Add bit-sliced MSCHAPv2 implementation by Deepika. This is added as a
+	  new separate format: We now have mschapv2, mschapv2-bs and
+	  mschapv2-naive.
+	Add MMX version of DES_bs_crypt_plain().
+	netntlm bitsliced conversion
+
+Alexander Cherepanov (2):
+	sunmd5 coinflip speedup
+	Just a small patch to fix strncmp in NETLM format.
+
+Costin Enache (2):
+	Fix for clock err in timers.
+	Silly bug in sunmd5 busted the rounds parsing.
+
 Julien Perrot (2):
 	add support for sips uri (with explicit port number)
 	adds support for sips uri (with explicit port number) when converting
 	  input from sipdump
 
-Deepika Dutta (2):
-	Add bit-sliced MSCHAPv2 implementation by Deepika. This is added as a
-	  new separate format: We now have mschapv2, mschapv2-bs and
-	  mschapv2-naive.
-	Add MMX version of DES_bs_crypt_plain().
-
 Tavis Ormandy (2):
 	Avoid useless roti operation for R75, minor syntax cleanup.
 	manually unroll the cmp_all loop a few times, as gcc refuses to do so.
 
+bartavelle (Simon Marechal) (2):
+	sunmd5.hack.diff
+	Updated copyright information
+
 tomrittervg (1):
 	fix typo in memory allocation check code
 
-Camille Mougey (1):
-	New formats: KRB5-18 and KRB5-23
-
-Costin Enache (1):
-	Fix for clock err in timers.
+Mat G (1):
+	New format: Fortigate (FortiOS)
 
 Linus Lüssing (1):
 	MSCHAPv2: Add support for freeradius-wep-patch challenge/response
 	  format
 
-Mat G (1):
-	New format: Fortigate (FortiOS)
+Camille Mougey (1):
+	New formats: KRB5-18 and KRB5-23
 
 alexandru (1):
 	Default value for number of iterations
-
-bartavelle (Simon Marechal) (1):
-	sunmd5.hack.diff
-
-Alexander Cherepanov (1):
-	sunmd5 coinflip speedup
 
 
 The following changes were made between 1.7.9-jumbo-6 and 1.7.9-jumbo-7:
