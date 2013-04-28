@@ -290,14 +290,15 @@ static void *get_salt(char *ciphertext){
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	int len;
-
 	if (strncasecmp(ciphertext, NSLDAP_MAGIC, NSLDAP_MAGIC_LENGTH))
 		return 0;
 	ciphertext += NSLDAP_MAGIC_LENGTH;
 
-	len = strspn(ciphertext, BASE64_ALPHABET);
-	if (len != CIPHERTEXT_LENGTH - 2)
+	if (strlen(ciphertext) != CIPHERTEXT_LENGTH)
+		return 0;
+	if (strncmp(ciphertext + CIPHERTEXT_LENGTH - 2, "==", 2))
+		return 0;
+	if (strspn(ciphertext, BASE64_ALPHABET) != CIPHERTEXT_LENGTH - 2)
 		return 0;
 
 	return 1;

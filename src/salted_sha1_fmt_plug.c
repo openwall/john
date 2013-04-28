@@ -149,6 +149,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		return 0;
 
 	len = strspn(ciphertext, BASE64_ALPHABET "=");
+	if (len != strlen(ciphertext))
+		return 0;
 	if (len & 3 || len > CIPHERTEXT_LENGTH)
 		return 0;
 

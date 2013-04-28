@@ -33,7 +33,7 @@
 #define BENCHMARK_LENGTH		-1
 
 #define PLAINTEXT_LENGTH		55
-#define CIPHERTEXT_LENGTH		33
+#define CIPHERTEXT_LENGTH		28
 
 #define BINARY_SIZE			20
 #define SALT_SIZE			0
@@ -49,6 +49,8 @@
 
 #define NSLDAP_MAGIC "{SHA}"
 #define NSLDAP_MAGIC_LENGTH 5
+#define BASE64_ALPHABET	  \
+	"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
 
 static struct fmt_tests tests[] = {
 	{"{SHA}MtEMe4z5ZXDKBM438qGdhCQNOok=", "abcdefghijklmnopqrstuvwxyz"},
@@ -90,9 +92,15 @@ static ARCH_WORD_32 crypt_key[BINARY_SIZE / 4];
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	if (ciphertext && strlen(ciphertext) == CIPHERTEXT_LENGTH)
-		return !strncasecmp(ciphertext, NSLDAP_MAGIC, NSLDAP_MAGIC_LENGTH);
-	return 0;
+	if (strncasecmp(ciphertext, NSLDAP_MAGIC, NSLDAP_MAGIC_LENGTH))
+		return 0;
+
+	ciphertext += NSLDAP_MAGIC_LENGTH;
+	if (strlen(ciphertext) != CIPHERTEXT_LENGTH ||
+	    strspn(ciphertext, BASE64_ALPHABET "=") != CIPHERTEXT_LENGTH)
+		return 0;
+
+	return 1;
 }
 
 static void init(struct fmt_main *self)
@@ -231,7 +239,8 @@ static void * binary(char *ciphertext)
 	static char realcipher[BINARY_SIZE + 9];
 
 	memset(realcipher, 0, sizeof(realcipher));
-	base64_decode(NSLDAP_MAGIC_LENGTH+ciphertext, CIPHERTEXT_LENGTH, realcipher);
+	base64_decode(ciphertext + NSLDAP_MAGIC_LENGTH,
+	              CIPHERTEXT_LENGTH, realcipher);
 
 #ifdef MMX_COEF
 	alter_endianity((unsigned char*)realcipher, BINARY_SIZE);
