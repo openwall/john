@@ -96,6 +96,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto error;
 	if (!(ptr = strtok(NULL, "$"))) /* username */
 		goto error;
+	if (strlen(ptr) > 127)
+		goto error;
 	if (type == 0) {
 		if (!(ptr = strtok(NULL, "$"))) /* hash */
 			goto error;
