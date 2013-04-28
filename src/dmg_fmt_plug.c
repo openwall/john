@@ -272,9 +272,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 			goto err;
 		if ((p = strtok(NULL, "*")) == NULL)	/* len_hmac_sha1_key */
 			goto err;
-		if (atoi(p) > 300)
+		res = atoi(p);
+		if (res > 300)
 			goto err;
 		if ((p = strtok(NULL, "*")) == NULL)	/* hmac_sha1_key */
+			goto err;
+		if (strlen(p) != res * 2)
 			goto err;
 	}
 	else
