@@ -174,8 +174,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		return 0;
 
 	hash = strrchr(ciphertext, '#');
-	if (hash++ == NULL)
+	if (hash == NULL || hash - (ciphertext + strlen(wpapsk_prefix)) > 32)
 		return 0;
+	hash++;
 	while (hash < ciphertext + strlen(ciphertext)) {
 		if (atoi64[ARCH_INDEX(*hash++)] == 0x7f)
 			return 0;
