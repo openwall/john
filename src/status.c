@@ -47,7 +47,8 @@
 
 struct status_main status;
 unsigned int status_restored_time = 0;
-static char* timeformat = NULL;
+static char* timeFmt = NULL;
+static char* timeFmt24 = NULL;
 static double ETAthreshold = 0.05;
 static int showcand;
 int (*status_get_progress)(int *) = NULL;
@@ -83,8 +84,11 @@ void status_init(int (*get_progress)(int *), int start)
 
 	status_get_progress = get_progress;
 
-	if (!(timeformat = cfg_get_param(SECTION_OPTIONS, NULL, "TimeFormat")))
-		timeformat = "%c";
+	if (!(timeFmt = cfg_get_param(SECTION_OPTIONS, NULL, "TimeFormat")))
+		timeFmt = "%Y-%m-%d %H:%M";
+
+	if (!(timeFmt24 = cfg_get_param(SECTION_OPTIONS, NULL, "TimeFormat24")))
+		timeFmt24 = "%H:%M:%S";
 
 	if ((cfg_threshold = cfg_get_param(SECTION_OPTIONS, NULL, "ETAthreshold")))
 		if ((ETAthreshold = atof(cfg_threshold)) < 0.01)
@@ -253,7 +257,7 @@ static char *status_get_ETA(char *percent, unsigned int secs_done)
 	/* Compute the ETA for this run.  Assumes even run time for
 	   work currently done and work left to do, and that the CPU
 	   utilization of work done and work to do will stay same
-	   which may not always a valid assumtions */
+	   which may not always be valid assumptions */
 	cp = percent;
 	while (cp && *cp && isspace(((unsigned char)(*cp))))
 		++cp;
@@ -267,7 +271,7 @@ static char *status_get_ETA(char *percent, unsigned int secs_done)
 		if (percent_left >= 100.0) {
 			pTm = localtime(&t_ETA);
 			strcpy(s_ETA, " (");
-			strftime(&s_ETA[2], sizeof(s_ETA)-3, timeformat, pTm);
+			strftime(&s_ETA[2], sizeof(s_ETA)-3, timeFmt, pTm);
 			strcat(s_ETA, ")");
 			return s_ETA;
 		}
@@ -291,7 +295,10 @@ static char *status_get_ETA(char *percent, unsigned int secs_done)
 		t_ETA += sec_left;
 		pTm = localtime(&t_ETA);
 		strcpy(s_ETA, " (ETA: ");
-		strftime(&s_ETA[7], sizeof(s_ETA)-10, timeformat, pTm);
+		if (sec_left < 24 * 3600)
+			strftime(&s_ETA[7], sizeof(s_ETA)-10, timeFmt24, pTm);
+		else
+			strftime(&s_ETA[7], sizeof(s_ETA)-10, timeFmt, pTm);
 		strcat(s_ETA, ")");
 	}
 	return s_ETA;
