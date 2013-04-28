@@ -29,6 +29,7 @@
 #include <sys/types.h>
 #include <fcntl.h>
 #include <arpa/inet.h>
+#include "params.h"
 
 #define LUKS_MAGIC_L        6
 #define LUKS_CIPHERNAME_L   32
@@ -123,21 +124,41 @@ static int hash_plugin_parse_hash(char *filename)
 	afsize =
 	    af_sectors(ntohl(myphdr.keyBytes),
 	    ntohl(myphdr.keyblock[bestslot].stripes));
-	cipherbuf = malloc(afsize);
-	fseek(myfile, ntohl(myphdr.keyblock[bestslot].keyMaterialOffset) * 512,
-	    SEEK_SET);
-	readbytes = fread(cipherbuf, afsize, 1, myfile);
 
-	if (readbytes < 0) {
-		free(cipherbuf);
-		fclose(myfile);
-		goto bad;
-	}
 	fprintf(stderr, "Best keyslot [%d]: %d keyslot iterations, %d stripes, %d mkiterations\n", bestslot, ntohl(myphdr.keyblock[bestslot].passwordIterations),ntohl(myphdr.keyblock[bestslot].stripes),ntohl(myphdr.mkDigestIterations));
-	printf("$luks$%s$", filename);
-	print_hex((unsigned char *)myphdr.mkDigest, LUKS_DIGESTSIZE);
-	printf("\n");
+	fprintf(stderr, "cipherbuf size : %d\n", afsize);
+	if (afsize * 2 < LINE_BUFFER_SIZE) {
+		cipherbuf = malloc(afsize);
+		fseek(myfile, ntohl(myphdr.keyblock[bestslot].keyMaterialOffset) * 512,
+		SEEK_SET);
+		readbytes = fread(cipherbuf, afsize, 1, myfile);
 
+		if (readbytes < 0) {
+			free(cipherbuf);
+			fclose(myfile);
+			goto bad;
+		}
+
+		fprintf(stderr, "Generating inlined hash!\n");
+		printf("$luks$1$%lu$", sizeof(myphdr));
+		print_hex((unsigned char *)&myphdr, sizeof(myphdr));
+		printf("$%d$", afsize);
+		print_hex(cipherbuf, afsize);
+		printf("$");
+		print_hex((unsigned char *)myphdr.mkDigest, LUKS_DIGESTSIZE);
+		printf("\n");
+		free(cipherbuf);
+		goto good;
+	}
+	else {
+		printf("$luks$0$%s$", filename);
+		print_hex((unsigned char *)myphdr.mkDigest, LUKS_DIGESTSIZE);
+		printf("\n");
+		goto good;
+	}
+
+good:
+	fclose(myfile);
 	return 0;
 bad:
 	printf("%s : parsing failed\n", filename);
