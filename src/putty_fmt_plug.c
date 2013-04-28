@@ -132,12 +132,16 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* public_blob */
 		goto err;
+	if (strlen(p) != res * 2)
+		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* private_blob_len */
 		goto err;
 	res = atoi(p);
 	if (res > 4096)
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* private_blob */
+		goto err;
+	if (strlen(p) != res * 2)
 		goto err;
 	if (!is_old_fmt) {
 		if ((p = strtok(NULL, "*")) == NULL)	/* alg */
