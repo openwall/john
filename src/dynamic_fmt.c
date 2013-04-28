@@ -856,19 +856,19 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 		// has a very complex salt function.  Requires certain fields, AND for these to be in proper order!!!
 		char *cp = strchr(&ciphertext[12], '$'), *cp2;
 		if (!cp) return 0;
+		if (cp[1] == '$') return 0; // if salt is 'empty', return false.
 		cp2 = strchr(&cp[1], '$');
-		if (!cp2 || cp2-cp == 0 || strncmp(cp2,"$$U",3)) return 0;
-		cp = strstr(&cp2[2], "$$F2");
-		if (!cp) return 0;
-		cp = strstr(&cp[2], "$$F3");
-		if (!cp) return 0;
-		cp = strstr(&cp[2], "$$F4");
-		if (!cp) return 0;
-		cp += 3;
-		cp = strchr(cp, '$');
-		if (!cp) return 0;
-		cp = strchr(&cp[1], '$');
-		if (!cp) return 0;
+		if (!cp2 || strncmp(cp2,"$$U",3) || cp2[3] == '$') return 0; // if next is not U or U is 'empty', return false.
+		cp2 = strstr(&cp2[3], "$$F2");
+		if (!cp2 || cp2[4] == '$') return 0; // if next is not F2 or F2 is 'empty', return false.
+		cp2 = strstr(&cp2[4], "$$F3");
+		if (!cp2 || cp2[4] == '$') return 0; // if next is not F3 or F3 is 'empty', return false.
+		cp2 = strstr(&cp2[4], "$$F4");
+		if (!cp2 || cp2[4] == '$') return 0; // if next is not F4 or F4 is 'empty', return false.
+		cp2 = strchr(&cp2[4], '$');
+		if (!cp2 || cp2[1] == '$') return 0; // if next is empty
+		cp2 = strchr(&cp2[1], '$');
+		if (!cp2 || !cp2[1]) return 0; // if last is empty
 	}
 
 	return 1;
