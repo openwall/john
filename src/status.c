@@ -390,7 +390,7 @@ void status_print(void)
 
 	s_percent[0] = 0;
 	if (percent_value >= 0 && hund_percent >= 0)
-		sprintf(s_percent, status.pass ? " %d.%02d%% %d/3" : " %d%%",
+		sprintf(s_percent, status.pass ? " %d.%02d%% %d/3" : " %d.%02d%%",
 		    percent_value, hund_percent, status.pass);
 	else
 	if (status.pass)
