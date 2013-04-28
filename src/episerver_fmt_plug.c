@@ -111,6 +111,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		return 0;
 	keeptr = ctcopy;
 	ctcopy += 12;	/* skip leading '$episerver$*' */
+	if (strlen(ciphertext) > 255)
+		goto error;
 	if (!(ptr = strtok(ctcopy, "*")))
 		goto error;
 	/* check version, must be '0' or '1' */
