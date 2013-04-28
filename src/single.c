@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-99,2003,2004,2006,2010,2012 by Solar Designer
+ * Copyright (c) 1996-99,2003,2004,2006,2010,2012,2013 by Solar Designer
  *
  * ...with changes in the jumbo patch, by magnum & JimF.
  */
@@ -10,6 +10,7 @@
 
 #include "misc.h"
 #include "params.h"
+#include "common.h"
 #include "memory.h"
 #include "signals.h"
 #include "loader.h"
@@ -84,7 +85,7 @@ static void single_alloc_keys(struct db_keys **keys)
 		(*keys)->hash = mem_alloc_tiny(hash_size, MEM_ALIGN_WORD);
 	}
 
-	(*keys)->count = 0;
+	(*keys)->count = (*keys)->count_from_guesses = 0;
 	(*keys)->ptr = (*keys)->buffer;
 	(*keys)->have_words = 1; /* assume yes; we'll see for real later */
 	(*keys)->rule = rule_number;
@@ -168,7 +169,7 @@ static void single_init(void)
 	crk_init(single_db, NULL, guessed_keys);
 }
 
-static int single_key_hash(char *key)
+static MAYBE_INLINE int single_key_hash(char *key)
 {
 	unsigned int hash, extra, pos;
 
@@ -209,8 +210,11 @@ out:
 	return hash;
 }
 
-static int single_add_key(struct db_keys *keys, char *key)
+static int single_process_buffer(struct db_salt *salt);
+
+static int single_add_key(struct db_salt *salt, char *key, int is_from_guesses)
 {
+	struct db_keys *keys = salt->keys;
 	int index, new_hash, reuse_hash;
 	struct db_keys_hash_entry *entry;
 
@@ -248,7 +252,12 @@ static int single_add_key(struct db_keys *keys, char *key)
 	strnfcpy(keys->ptr, key, length);
 	keys->ptr += length;
 
-	return ++(keys->count) >= key_count;
+	keys->count_from_guesses += is_from_guesses;
+
+	if (++(keys->count) >= key_count)
+		return single_process_buffer(salt);
+
+	return 0;
 }
 
 static int single_process_buffer(struct db_salt *salt)
@@ -257,7 +266,8 @@ static int single_process_buffer(struct db_salt *salt)
 	struct db_keys *keys;
 	size_t size;
 
-	if (crk_process_salt(salt)) return 1;
+	if (crk_process_salt(salt))
+		return 1;
 
 /*
  * Flush the keys list (since we've just processed the keys), but not the hash
@@ -272,7 +282,7 @@ static int single_process_buffer(struct db_salt *salt)
  * password hash computations vs. the "overhead".
  */
 	keys = salt->keys;
-	keys->count = 0;
+	keys->count = keys->count_from_guesses = 0;
 	keys->ptr = keys->buffer;
 	keys->lock++;
 
@@ -285,11 +295,11 @@ static int single_process_buffer(struct db_salt *salt)
 		do {
 			current = single_db->salts;
 			do {
-				if (current == salt) continue;
-				if (!current->list) continue;
+				if (current == salt || !current->list)
+					continue;
 
-				if (single_add_key(current->keys, keys->ptr))
-				if (single_process_buffer(current)) return 1;
+				if (single_add_key(current, keys->ptr, 1))
+					return 1;
 			} while ((current = current->next));
 			keys->ptr += length;
 		} while (--keys->count);
@@ -299,7 +309,8 @@ static int single_process_buffer(struct db_salt *salt)
 
 	keys = salt->keys;
 	keys->lock--;
-	if (!keys->count && !keys->lock) keys->rule = rule_number;
+	if (!keys->count && !keys->lock)
+		keys->rule = rule_number;
 
 	return 0;
 }
@@ -307,7 +318,6 @@ static int single_process_buffer(struct db_salt *salt)
 static int single_process_pw(struct db_salt *salt, struct db_password *pw,
 	char *rule)
 {
-	struct db_keys *keys;
 	struct list_entry *first, *second;
 	int first_number, second_number;
 	char pair[RULE_WORD_SIZE];
@@ -317,20 +327,22 @@ static int single_process_pw(struct db_salt *salt, struct db_password *pw,
 	if (!(first = pw->words->head))
 		return -1;
 
-	keys = salt->keys;
-
 	first_number = 0;
 	do {
 		if ((key = rules_apply(first->data, rule, 0, NULL)))
 		if (ext_filter(key))
-		if (single_add_key(keys, key))
-		if (single_process_buffer(salt)) return 1;
-		if (!salt->list) return 2;
-		if (!pw->binary) return 0;
+		if (single_add_key(salt, key, 0))
+			return 1;
+		if (!salt->list)
+			return 2;
+		if (!pw->binary)
+			return 0;
 
-		if (++first_number > words_pair_max) continue;
+		if (++first_number > words_pair_max)
+			continue;
 
-		if (!CP_isLetter[(unsigned char)first->data[0]]) continue;
+		if (!CP_isLetter[(unsigned char)first->data[0]])
+			continue;
 
 		second_number = 0;
 		second = pw->words->head;
@@ -343,10 +355,12 @@ static int single_process_pw(struct db_salt *salt, struct db_password *pw,
 
 				if ((key = rules_apply(pair, rule, split, NULL)))
 				if (ext_filter(key))
-				if (single_add_key(keys, key))
-				if (single_process_buffer(salt)) return 1;
-				if (!salt->list) return 2;
-				if (!pw->binary) return 0;
+				if (single_add_key(salt, key, 0))
+					return 1;
+				if (!salt->list)
+					return 2;
+				if (!pw->binary)
+					return 0;
 			}
 
 			if (first->data[1]) {
@@ -356,10 +370,12 @@ static int single_process_pw(struct db_salt *salt, struct db_password *pw,
 
 				if ((key = rules_apply(pair, rule, 1, NULL)))
 				if (ext_filter(key))
-				if (single_add_key(keys, key))
-				if (single_process_buffer(salt)) return 1;
-				if (!salt->list) return 2;
-				if (!pw->binary) return 0;
+				if (single_add_key(salt, key, 0))
+					return 1;
+				if (!salt->list)
+					return 2;
+				if (!pw->binary)
+					return 0;
 			}
 		} while (++second_number <= words_pair_max &&
 			(second = second->next));
@@ -404,14 +420,17 @@ next:
 	} while ((pw = pw->next));
 
 	if (keys->count && rule_number - keys->rule > (key_count << 1))
-		if (single_process_buffer(salt)) return 1;
+		if (single_process_buffer(salt))
+			return 1;
 
-	if (!keys->count) keys->rule = rule_number;
+	if (!keys->count)
+		keys->rule = rule_number;
 
 	if (!have_words) {
 		keys->have_words = 0;
 no_own_words:
-		if (keys->count && single_process_buffer(salt)) return 1;
+		if (keys->count && single_process_buffer(salt))
+			return 1;
 	}
 
 	return 0;
@@ -458,9 +477,12 @@ static void single_run(void)
 
 		salt = single_db->salts;
 		do {
-			if (!salt->list) continue;
-			if (single_process_salt(salt, rule)) return;
-			if (!salt->keys->have_words) continue;
+			if (!salt->list)
+				continue;
+			if (single_process_salt(salt, rule))
+				return;
+			if (!salt->keys->have_words)
+				continue;
 			have_words = 1;
 			if (salt->keys->rule < min)
 				min = salt->keys->rule;
@@ -469,7 +491,8 @@ static void single_run(void)
 		rec_rule = min;
 		rule_number++;
 
-		if (have_words) continue;
+		if (have_words)
+			continue;
 
 		log_event("- No information to base%s candidate passwords on",
 			rule_number > 1 ? " further" : "");
@@ -487,9 +510,11 @@ static void single_done(void)
 				"candidate passwords, if any");
 
 			do {
-				if (!salt->list) continue;
+				if (!salt->list)
+					continue;
 				if (salt->keys->count)
-				if (single_process_buffer(salt)) break;
+					if (single_process_buffer(salt))
+						break;
 			} while ((salt = salt->next));
 		}
 

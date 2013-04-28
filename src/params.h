@@ -19,7 +19,7 @@
 /*
  * John's version number.
  */
-#define JOHN_VERSION			"1.7.9.9-bleeding-jumbo"
+#define JOHN_VERSION			"1.7.9.10-bleeding-jumbo"
 
 /*
  * Notes to packagers of John for *BSD "ports", Linux distributions, etc.:
@@ -102,7 +102,8 @@
 #define RECOVERY_V1			"REC1"
 #define RECOVERY_V2			"REC2"
 #define RECOVERY_V3			"REC3"
-#define RECOVERY_V			RECOVERY_V3
+#define RECOVERY_V4			"REC4"
+#define RECOVERY_V			RECOVERY_V4
 
 /*
  * Charset file format version string.

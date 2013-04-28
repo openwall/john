@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-98,2010-2012 by Solar Designer
+ * Copyright (c) 1996-98,2010-2013 by Solar Designer
  *
  * ...with changes in the jumbo patch, by various authors
  */
@@ -80,6 +80,10 @@ struct db_keys {
 
 /* Number of keys currently in the buffer */
 	int count;
+
+/* Number of keys currently in the buffer that came from successful guesses
+ * for other salts and thus are being tried for all salts */
+	int count_from_guesses;
 
 /* Whether we have words to base candidate passwords on or not.
  * Even if not, we need this keys buffer anyway to hold other salts' successful

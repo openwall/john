@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2006,2011 by Solar Designer
+ * Copyright (c) 1996-2001,2006,2011,2013 by Solar Designer
  *
  * ...with changes in the jumbo patch, by JimF.
  */
@@ -22,7 +22,9 @@
 struct status_main {
 	clock_t start_time;
 	unsigned int guess_count;
-	int64 crypts;
+	int64 combs, crypts, cands;
+	unsigned int combs_ehi;
+	int compat;
 	int pass;
 	int progress;
 };
@@ -53,9 +55,17 @@ extern void status_init(int (*get_progress)(int*), int start);
 extern void status_ticks_overflow_safety(void);
 
 /*
- * Updates the crypts count.
+ * Updates the combinations and crypts counters by adding the supplied numbers
+ * to them.
+ * Calls status_ticks_overflow_safety() once in a while.
  */
-extern void status_update_crypts(int64 *count);
+extern void status_update_crypts(int64 *combs, unsigned int crypts);
+
+/*
+ * Updates the candidates counter by adding the supplied number to it.
+ * Calls status_ticks_overflow_safety() once in a while.
+ */
+extern void status_update_cands(unsigned int cands);
 
 /*
  * Returns the elapsed time in seconds.

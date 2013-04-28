@@ -1,8 +1,8 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2004,2006,2010-2012 by Solar Designer
+ * Copyright (c) 1996-2001,2004,2006,2010-2013 by Solar Designer
  *
- * ...with changes in the jumbo patch, by JimF.
+ * ...with changes in the jumbo patch, by JimF and magnum.
  */
 
 #ifdef __ultrix__
@@ -108,16 +108,57 @@ void status_ticks_overflow_safety(void)
 	}
 }
 
-void status_update_crypts(int64 *count)
+void status_update_crypts(int64 *combs, unsigned int crypts)
 {
-	unsigned int saved_hi;
+	{
+		unsigned int saved_hi = status.combs.hi;
+		add64to64(&status.combs, combs);
+		if (status.combs.hi < saved_hi)
+			status.combs_ehi++;
+	}
 
-	saved_hi = status.crypts.hi;
-	add64to64(&status.crypts, count);
+	{
+		unsigned int saved_lo = status.crypts.lo;
+		add32to64(&status.crypts, crypts);
+		if ((status.crypts.lo ^ saved_lo) & 0xfff00000U)
+			status_ticks_overflow_safety();
+	}
+}
 
-	if (status.crypts.hi != saved_hi &&
-	    !count->hi && count->lo <= 0x00100000)
+void status_update_cands(unsigned int cands)
+{
+	unsigned int saved_lo = status.cands.lo;
+	add32to64(&status.cands, cands);
+	if ((status.cands.lo ^ saved_lo) & 0xfff00000U)
 		status_ticks_overflow_safety();
+}
+
+static char *status_get_c(char *buffer, int64 *c, unsigned int c_ehi)
+{
+	int64 current, next, rem;
+	char *p;
+
+	if (c_ehi) {
+		strcpy(buffer, "OVERFLOW");
+		return buffer;
+	}
+
+	p = buffer + 31;
+	*p = 0;
+
+	current = *c;
+	do {
+		next = current;
+		div64by32(&next, 10);
+		rem = next;
+		mul64by32(&rem, 10);
+		neg64(&rem);
+		add64to64(&rem, &current);
+		*--p = rem.lo + '0';
+		current = next;
+	} while (current.lo || current.hi);
+
+	return p;
 }
 
 unsigned int status_get_time(void)
@@ -126,15 +167,17 @@ unsigned int status_get_time(void)
 		(get_time() - status.start_time) / clk_tck;
 }
 
-static char *status_get_cps(char *buffer)
+static char *status_get_cps(char *buffer, int64 *c, unsigned int c_ehi)
 {
 	int use_ticks;
 	clock_t ticks;
 	unsigned long time;
 	int64 tmp, cps;
-	unsigned int cps_100;
 
-	use_ticks = !status.crypts.hi && !status_restored_time;
+	if (!(c->lo | c->hi | c_ehi))
+		return "0";
+
+	use_ticks = !(c->hi | c_ehi | status_restored_time);
 
 	ticks = get_time() - status.start_time;
 	if (use_ticks)
@@ -143,9 +186,18 @@ static char *status_get_cps(char *buffer)
 		time = status_restored_time + ticks / clk_tck;
 	if (!time) time = 1;
 
-	cps = status.crypts;
-	if (use_ticks) mul64by32(&cps, clk_tck);
+	cps = *c;
+	if (c_ehi) {
+		cps.lo = cps.hi;
+		cps.hi = c_ehi;
+	}
+	if (use_ticks)
+		mul64by32(&cps, clk_tck);
 	div64by32(&cps, time);
+	if (c_ehi) {
+		cps.hi = cps.lo;
+		cps.lo = 0;
+	}
 
 	if (cps.hi > 232 || (cps.hi == 232 && cps.lo >= 3567587328U))
 		sprintf(buffer, "%uG", div64by32lo(&cps, 1000000000));
@@ -156,14 +208,33 @@ static char *status_get_cps(char *buffer)
 	if (cps.lo >= 1000000)
 		sprintf(buffer, "%uK", div64by32lo(&cps, 1000));
 	else
-	if (cps.lo >= 100)
+	if (cps.lo >= 1000)
 		sprintf(buffer, "%u", cps.lo);
 	else {
-		tmp = status.crypts;
-		if (use_ticks) mul64by32(&tmp, clk_tck);
-		mul64by32(&tmp, 100);
-		cps_100 = div64by32lo(&tmp, time) % 100;
-		sprintf(buffer, "%u.%02u", cps.lo, cps_100);
+		const char *fmt;
+		unsigned int div, frac;
+		fmt = "%u.%06u"; div = 1000000;
+		if (cps.lo >= 100) {
+			fmt = "%u.%u"; div = 10;
+		} else if (cps.lo >= 10) {
+			fmt = "%u.%02u"; div = 100;
+		} else if (cps.lo >= 1) {
+			fmt = "%u.%03u"; div = 1000;
+		}
+		tmp = *c;
+		if (use_ticks)
+			mul64by32(&tmp, clk_tck);
+		mul64by32(&tmp, div);
+		frac = div64by32lo(&tmp, time);
+		if (div == 1000000) {
+			if (frac >= 100000) {
+				fmt = "%u.%04u"; div = 10000; frac /= 100;
+			} else if (frac >= 10000) {
+				fmt = "%u.%05u"; div = 100000; frac /= 10;
+			}
+		}
+		frac %= div;
+		sprintf(buffer, fmt, cps.lo, frac);
 	}
 
 	return buffer;
@@ -226,277 +297,42 @@ static char *status_get_ETA(char *percent, unsigned int secs_done)
 	return s_ETA;
 }
 
-#ifdef HAVE_MPI
-static char *status_get_totalcps(char *buffer)
-{
-	int use_ticks, bufcat = 0;
-	clock_t ticks;
-	unsigned long time, sumtime;
-	unsigned long long cps;
-	double crypts, sumcrypts;
-	unsigned cps_100;
-
-	emms();
-
-	use_ticks = !status.crypts.hi && !status_restored_time;
-
-	ticks = get_time() - status.start_time;
-	if (use_ticks)
-		time = ticks;
-	else
-		time = status_restored_time + ticks / clk_tck;
-
-	crypts = ((long long)status.crypts.hi << 32) + status.crypts.lo;
-
-	// This calculates the total cps figure (total crypts / avg run time).
-	// It will show optimistic if the nodes don't finish at the same time
-	MPI_Reduce(&time, &sumtime, 1, MPI_UNSIGNED_LONG, MPI_SUM, 0, MPI_COMM_WORLD);
-	MPI_Reduce(&crypts, &sumcrypts, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
-	time = sumtime / mpi_p;
-	crypts = sumcrypts;
-
-	if (use_ticks) crypts *= clk_tck;
-	cps = crypts / (time ? time : 1);
-
-	if (cps >= 1000000000000LL)
-		bufcat = sprintf(buffer, "%lluG", (cps / 1000000000));
-	else
-	if (cps >= 1000000000)
-		bufcat = sprintf(buffer, "%lluM", (cps / 1000000));
-	else
-	if (cps >= 1000000)
-		bufcat = sprintf(buffer, "%lluK", (cps / 1000));
-	else
-	if (cps >= 100)
-		bufcat = sprintf(buffer, "%llu", cps);
-	else {
-		cps_100 = (unsigned)((unsigned long long)(crypts * 100 / (time ? time : 1)) % 100);
-		bufcat = sprintf(buffer, "%llu.%02u", cps, cps_100);
-	}
-
-	cps = crypts / mpi_p / (time ? time : 1);
-
-	if (cps >= 1000000000000LL)
-		sprintf(&buffer[bufcat], " avg %lluG", (cps / 1000000000));
-	else
-	if (cps >= 1000000000)
-		sprintf(&buffer[bufcat], " avg %lluM", (cps / 1000000));
-	else
-	if (cps >= 1000000)
-		sprintf(&buffer[bufcat], " avg %lluK", (cps / 1000));
-	else
-	if (cps >= 100)
-		sprintf(&buffer[bufcat], " avg %llu", cps);
-	else {
-		cps_100 = (unsigned)((unsigned long long)(crypts * 100 / mpi_p / (time ? time : 1)) % 100);
-		sprintf(&buffer[bufcat], " avg%llu.%02u", cps, cps_100);
-	}
-	return buffer;
-}
-
-static char *status_get_totalETA(char *percent, unsigned int secs_done)
-{
-	static char s_ETA[128];
-	char *cp;
-	double sec_left, percent_left, max_sec_left;
-	time_t t_ETA;
-	struct tm *pTm;
-
-	emms();
-
-	cp = percent;
-	while (cp && *cp && isspace(*cp))
-		++cp;
-	if (!cp || *cp == 0 || !isdigit(*cp)) {
-		// We must report to MPI_Allreduce anyway
-		sec_left = 0;
-		MPI_Allreduce(&sec_left, &max_sec_left, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
-		return "";  /* dont show ETA if no valid percentage. */
-	}
-	else
-	{
-		double chk;
-		percent_left = atof(percent);
-		t_ETA = time(NULL);
-		if (percent_left >= 100.0) {
-			// We must report to MPI_Allreduce anyway
-			sec_left = 0;
-			MPI_Allreduce(&sec_left, &max_sec_left, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
-			pTm = localtime(&t_ETA);
-			strcpy(s_ETA, " (");
-			strftime(&s_ETA[2], sizeof(s_ETA)-3, timeformat, pTm);
-			strcat(s_ETA, ")");
-			return s_ETA;
-		}
-		if (percent_left == 0 || percent_left < ETAthreshold) {
-			// We must report to MPI_Allreduce anyway
-			sec_left = 0;
-			MPI_Allreduce(&sec_left, &max_sec_left, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
-			return "";  /* mute ETA if too little progress */
-		}
-		percent_left /= 100;
-		sec_left = secs_done;
-		sec_left /= percent_left;
-		sec_left -= secs_done;
-		// Reports the worst ETA for all nodes
-		MPI_Allreduce(&sec_left, &max_sec_left, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
-		sec_left = max_sec_left;
-
-		chk = sec_left;
-		chk += t_ETA;
-		if (chk > 0x7FFFF000) { /* slightly less than 'max' 32 bit time_t, for safety */
-			strcpy(s_ETA, " (ETA: never)");
-			return s_ETA;
-		}
-		t_ETA += sec_left;
-		pTm = localtime(&t_ETA);
-		strcpy(s_ETA, " (ETA: ");
-		strftime(&s_ETA[7], sizeof(s_ETA)-10, timeformat, pTm);
-		strcat(s_ETA, ")");
-	}
-	return s_ETA;
-}
-
-static void status_print_total(char *totpercent)
-{
-	unsigned int max_time, time = status_get_time();
-	char s_cps[64];
-	char *tot_ETA;
-	unsigned int sum_guess;
-
-	MPI_Reduce(&status.guess_count, &sum_guess, 1, MPI_UNSIGNED, MPI_SUM, 0, MPI_COMM_WORLD);
-	MPI_Allreduce(&time, &max_time, 1, MPI_UNSIGNED, MPI_MAX, MPI_COMM_WORLD);
-	tot_ETA = status_get_totalETA(totpercent, max_time);
-	status_get_totalcps(s_cps);
-	if (mpi_id == 0) {
-		fprintf(stderr,
-		        "SUM: guesses: %u "
-		        "time: %u:%02u:%02u:%02u"
-		        "%s%s "
-		        "c/s: %s\n",
-		        sum_guess,
-		        max_time / 86400, max_time % 86400 / 3600, max_time % 3600 / 60, max_time % 60,
-		        strncmp(totpercent, " 100", 4) ? totpercent : " DONE",
-		        tot_ETA,
-		        s_cps);
-	}
-}
-#endif
-
-static void status_print_stdout(char *percent)
-{
-	unsigned int time = status_get_time();
-	char s_wps[64];
-	char s_words[32];
-	int64 current, next, rem;
-	char *s_words_ptr;
-
-	s_words_ptr = &s_words[sizeof(s_words) - 1];
-	*s_words_ptr = 0;
-
-	current = status.crypts;
-	do {
-		next = current;
-		div64by32(&next, 10);
-		rem = next;
-		mul64by32(&rem, 10);
-		neg64(&rem);
-		add64to64(&rem, &current);
-		*--s_words_ptr = rem.lo + '0';
-		current = next;
-	} while (current.lo || current.hi);
-
-	fprintf(stderr,
-		"words: %s  "
-		"time: %u:%02u:%02u:%02u"
-		"%s%s  "
-		"w/s: %s",
-		s_words_ptr,
-		time / 86400, time % 86400 / 3600, time % 3600 / 60, time % 60,
-		strncmp(percent, " 100", 4) ? percent : " DONE",
-		status_get_ETA(percent, time),
-		status_get_cps(s_wps));
-
-	if ((options.flags & FLG_STATUS_CHK) ||
-	    !(status.crypts.lo | status.crypts.hi))
-		fputc('\n', stderr);
-	else
-		fprintf(stderr,
-			"  current: %s\n",
-			crk_get_key1());
-}
-
 static void status_print_cracking(char *percent)
 {
 	unsigned int time = status_get_time();
-	char *key, saved_key[PLAINTEXT_BUFFER_SIZE] = "";
-	char s_cps[64], cand[32] = "";
-#ifdef HAVE_MPI
-	char nodeid[11] = "";
-	char trying[256];
-#endif
+	char *key, saved_key[PLAINTEXT_BUFFER_SIZE];
+	int64 g = {status.guess_count, 0};
+	char s_gps[32], s_pps[32], s_crypts_ps[32], s_combs_ps[32];
+	char cand[32] = "";
 
-	if (!(options.flags & FLG_STATUS_CHK))
+	if (!(options.flags & FLG_STATUS_CHK)) {
 		if ((key = crk_get_key2()))
 			strnzcpy(saved_key, key, PLAINTEXT_BUFFER_SIZE);
+		else
+			saved_key[0] = 0;
+	}
 
 	if (showcand)
 		sprintf(cand, "/%llu",
 		        ((unsigned long long)status.crypts.hi << 32) +
 		        status.crypts.lo);
 
-#ifdef HAVE_MPI
-	// we need to print until cr in one call, otherwise output gets interleaved
-	if (mpi_p > 1)
-		snprintf(nodeid, sizeof(nodeid), "%3d: ", mpi_id);
-	nodeid[sizeof(nodeid)-1] = 0;
-	if ((options.flags & FLG_STATUS_CHK) ||
-	    !(status.crypts.lo | status.crypts.hi))
-		trying[0] = 0;
-	else {
-		UTF8 t1buf[PLAINTEXT_BUFFER_SIZE + 1];
-		UTF8 t2buf[PLAINTEXT_BUFFER_SIZE + 1];
-		char *t1, *t2;
-		if (options.report_utf8 && !options.utf8) {
-			t1 = (char*)enc_to_utf8_r(crk_get_key1(), t1buf, PLAINTEXT_BUFFER_SIZE);
-			t2 = (char*)enc_to_utf8_r(saved_key, t2buf, PLAINTEXT_BUFFER_SIZE);
-		} else {
-			t1 = crk_get_key1();
-			t2 = saved_key;
-		}
-		snprintf(trying, sizeof(trying),
-		         "%strying: %s%s%s",
-		         mpi_p > 1 ? " " : "  ",
-		         t1, t2[0] ? " - " : "", t2);
-	}
-
 	fprintf(stderr,
-	        "%s"
-	        "guesses: %u%s%s"
-	        "time: %u:%02u:%02u:%02u"
-	        "%s%s%s"
-	        "c/s: %s"
-	        "%s\n",
-	        nodeid,
-	        status.guess_count, cand,
-	        mpi_p > 1 ? " " : "  ",
-	        time / 86400, time % 86400 / 3600, time % 3600 / 60, time % 60,
-	        strncmp(percent, " 100", 4) ? percent : " DONE",
-	        status_get_ETA(percent,time),
-	        mpi_p > 1 ? " " : "  ",
-	        status_get_cps(s_cps),
-	        trying);
-#else
-	fprintf(stderr,
-		"guesses: %u%s  "
-		"time: %u:%02u:%02u:%02u"
-		"%s%s  "
-		"c/s: %s",
-		status.guess_count, cand,
-		time / 86400, time % 86400 / 3600, time % 3600 / 60, time % 60,
+	    "%ug %u:%02u:%02u:%02u%s%s %sg/s ",
+	    status.guess_count,
+	    time / 86400, time % 86400 / 3600, time % 3600 / 60, time % 60,
 		strncmp(percent, " 100", 4) ? percent : " DONE",
 		status_get_ETA(percent,time),
-		status_get_cps(s_cps));
+	    status_get_cps(s_gps, &g, 0));
+
+	if (!status.compat)
+		fprintf(stderr,
+		    "%sp/s %sc/s ",
+		    status_get_cps(s_pps, &status.cands, 0),
+		    status_get_cps(s_crypts_ps, &status.crypts, 0));
+
+	fprintf(stderr, "%sC/s",
+	    status_get_cps(s_combs_ps, &status.combs, status.combs_ehi));
 
 	if ((options.flags & FLG_STATUS_CHK) ||
 	    !(status.crypts.lo | status.crypts.hi))
@@ -505,6 +341,7 @@ static void status_print_cracking(char *percent)
 		UTF8 t1buf[PLAINTEXT_BUFFER_SIZE + 1];
 		UTF8 t2buf[PLAINTEXT_BUFFER_SIZE + 1];
 		char *t1, *t2;
+
 		if (options.report_utf8 && !options.utf8) {
 			t1 = (char*)enc_to_utf8_r(crk_get_key1(), t1buf, PLAINTEXT_BUFFER_SIZE);
 			t2 = (char*)enc_to_utf8_r(saved_key, t2buf, PLAINTEXT_BUFFER_SIZE);
@@ -512,10 +349,31 @@ static void status_print_cracking(char *percent)
 			t1 = crk_get_key1();
 			t2 = saved_key;
 		}
-		fprintf(stderr,	"  trying: %s%s%s\n",
-		        t1, t2[0] ? " - " : "", t2);
+		if (!saved_key[0])
+			fprintf(stderr, " %s\n", t1);
+		else
+			fprintf(stderr, " %s..%s\n", t1, t2);
 	}
-#endif
+}
+
+static void status_print_stdout(char *percent)
+{
+	unsigned int time = status_get_time();
+	char s_pps[32], s_p[32];
+
+	fprintf(stderr,
+	    "%sp %u:%02u:%02u:%02u%s%s %sp/s",
+	    status_get_c(s_p, &status.cands, 0),
+	    time / 86400, time % 86400 / 3600, time % 3600 / 60, time % 60,
+		strncmp(percent, " 100", 4) ? percent : " DONE",
+		status_get_ETA(percent,time),
+	    status_get_cps(s_pps, &status.cands, 0));
+
+	if ((options.flags & FLG_STATUS_CHK) ||
+	    !(status.cands.lo | status.cands.hi))
+		fputc('\n', stderr);
+	else
+		fprintf(stderr, " %s\n", crk_get_key1());
 }
 
 void status_print(void)
@@ -532,37 +390,14 @@ void status_print(void)
 
 	s_percent[0] = 0;
 	if (percent_value >= 0 && hund_percent >= 0)
-		sprintf(s_percent, status.pass ? " %d.%02d%% (%d)" : " %d.%02d%%",
-			percent_value, hund_percent, status.pass);
+		sprintf(s_percent, status.pass ? " %d.%02d%% %d/3" : " %d%%",
+		    percent_value, hund_percent, status.pass);
 	else
 	if (status.pass)
-		sprintf(s_percent, " (%d)", status.pass);
+		sprintf(s_percent, " %d/3", status.pass);
 
 	if (options.flags & FLG_STDOUT)
 		status_print_stdout(s_percent);
-#ifdef HAVE_MPI
-	else {
-		status_print_cracking(s_percent);
-		if (mpi_p > 1 && (options.flags & FLG_STATUS_CHK)) {
-			int sum_percent;
-			percent_value = 100 * percent_value + hund_percent;
-			MPI_Allreduce(&percent_value, &sum_percent, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-			hund_percent = (sum_percent / mpi_p) % 100;
-			percent_value = (sum_percent / mpi_p) / 100;
-
-			s_percent[0] = 0;
-			if (percent_value >= 0 && hund_percent >= 0)
-				sprintf(s_percent, status.pass ? " %d.%02d%% (%d)" : " %d.%02d%%",
-				        percent_value, hund_percent, status.pass);
-			else
-				if (status.pass)
-					sprintf(s_percent, " (%d)", status.pass);
-
-			status_print_total(s_percent);
-		}
-	}
-#else
 	else
 		status_print_cracking(s_percent);
-#endif
 }
