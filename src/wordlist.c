@@ -138,6 +138,18 @@ static char *dummy_rules_apply(char *word, char *rule, int split, char *last)
 	return NULL;
 }
 
+static MAYBE_INLINE int skip_lines(int n, char *line)
+{
+	line_number += n;
+
+	do {
+		if (!fgetl(line, LINE_BUFFER_SIZE, word_file))
+			break;
+	} while (--n);
+
+	return n;
+}
+
 void do_wordlist_crack(struct db_main *db, char *name, int rules)
 {
 	union {
@@ -148,7 +160,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 	struct rpp_context ctx;
 	char *prerule, *rule, *word;
 	char *(*apply)(char *word, char *rule, int split, char *last);
-	int distrules, distwords;
+	int distrules, distwords, distswitch;
 
 	log_event("Proceeding with wordlist mode");
 
@@ -198,26 +210,35 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 	if (rules) prerule = rpp_next(&ctx); else prerule = "";
 	rule = "";
 
+/* A string that can't be produced by fgetl(). */
+	last[0] = '\n';
+	last[1] = 0;
+
 	distrules = distwords = 0;
+	distswitch = rule_count; /* never */
 	if (options.node_count) {
+		int rule_rem = rule_count % options.node_count;
 		const char *now, *later = "";
-		if (rule_count % options.node_count == 0) {
+		distswitch = rule_count - rule_rem;
+		if (!rule_rem) {
 			distrules = 2;
 			now = "rules";
-		} else if (rule_count - rule_number >= options.node_count) {
+		} else if (rule_number < distswitch) {
 			distrules = 1;
 			now = "rules";
 			later = ", then switch to distributing words";
 		} else {
-			distwords = 1;
+			distswitch = rule_count; /* never */
+			distwords = options.node_count -
+			    (options.node_max - options.node_min + 1);
 			now = "words";
 		}
 		log_event("- Will distribute %s across nodes%s", now, later);
 	}
 
-/* A string that can't be produced by fgetl(). */
-	last[0] = '\n';
-	last[1] = 0;
+	if (distwords && options.node_min > 1 &&
+	    skip_lines(options.node_min - 1, line))
+		prerule = NULL;
 
 	if (prerule)
 	do {
@@ -245,16 +266,6 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 
 		if (rule)
 		while (fgetl(line, LINE_BUFFER_SIZE, word_file)) {
-			if (distwords) {
-				int for_node =
-				    line_number % options.node_count + 1;
-				if (for_node < options.node_min ||
-				    for_node > options.node_max) {
-					line_number++;
-					continue;
-				}
-			}
-
 			line_number++;
 
 			if (line[0] != '#') {
@@ -268,27 +279,41 @@ not_comment:
 						break;
 					}
 				}
+				if (distwords && skip_lines(distwords, line))
+					break;
 				continue;
 			}
 
 			if (strncmp(line, "#!comment", 9))
 				goto not_comment;
+
+			if (distwords && skip_lines(distwords, line))
+				break;
 		}
+
+		if (ferror(word_file))
+			break;
 
 		if (rules) {
 next_rule:
 			if (!(rule = rpp_next(&ctx))) break;
 			rule_number++;
 
-			if (distrules == 1 &&
-			    rule_count - rule_number < options.node_count) {
-				distrules = 0;
-				distwords = 1;
+			if (rule_number >= distswitch) {
 				log_event("- Switching to distributing words");
+				distswitch = rule_count; /* not anymore */
+				distrules = 0;
+				distwords = options.node_count -
+				    (options.node_max - options.node_min + 1);
 			}
 
 			line_number = 0;
-			if (fseek(word_file, 0, SEEK_SET)) pexit("fseek");
+			if (fseek(word_file, 0, SEEK_SET))
+				pexit("fseek");
+
+			if (distwords && options.node_min > 1 &&
+			    skip_lines(options.node_min - 1, line))
+				break;
 		}
 	} while (rules);
 
