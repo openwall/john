@@ -913,6 +913,7 @@ next_rule:
 			}
 
 			line_number = 0;
+			if (!nWordFileLines)
 			if (fseek(word_file, 0, SEEK_SET))
 				pexit("fseek");
 
