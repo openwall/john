@@ -52,8 +52,8 @@ print OUTPUT $line;
 
 # add underscore macros
 print OUTPUT "\n#ifdef UNDERSCORES\n";
-foreach (keys %functions) {
-    printf OUTPUT "#define %-16s_%s\n", $_, $_;
+foreach (sort keys %functions) {
+    printf OUTPUT "#define %-36s_%s\n", $_, $_;
 }
 print OUTPUT "#endif\n\n";
 
