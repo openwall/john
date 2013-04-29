@@ -140,6 +140,9 @@ static int netntlmv2_valid(char *ciphertext, struct fmt_main *self)
   if (ciphertext == NULL) return 0;
   else if (strncmp(ciphertext, "$NETNTLMv2$", 11)!=0) return 0;
 
+  if (strlen(ciphertext) > TOTAL_LENGTH)
+    return 0;
+
   pos = &ciphertext[11];
 
   /* Validate Username and Domain Length */
