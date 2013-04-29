@@ -116,13 +116,19 @@ static void inc_new_length(unsigned int length,
 	log_event("- Switching to length %d", length + 1);
 
 	char1[0] = 0;
-	if (length)
-	for (i = real_min - CHARSET_MIN; i <= real_max - CHARSET_MIN; i++)
-		(*char2)[i][0] = 0;
-	for (pos = 0; pos <= (int)length - 2; pos++)
-	for (i = real_min - CHARSET_MIN; i <= real_max - CHARSET_MIN; i++)
-	for (j = real_min - CHARSET_MIN; j <= real_max - CHARSET_MIN; j++)
-		(*chars[pos])[i][j][0] = 0;
+	if (length) {
+		for (i = real_min - CHARSET_MIN; i <= real_max - CHARSET_MIN; i++)
+			(*char2)[i][0] = 0;
+		(*char2)[CHARSET_SIZE][0] = 0;
+	}
+	for (pos = 0; pos <= (int)length - 2; pos++) {
+		for (i = real_min - CHARSET_MIN; i <= real_max - CHARSET_MIN; i++)
+		for (j = real_min - CHARSET_MIN; j <= real_max - CHARSET_MIN; j++)
+			(*chars[pos])[i][j][0] = 0;
+		for (j = real_min - CHARSET_MIN; j <= real_max - CHARSET_MIN; j++)
+			(*chars[pos])[CHARSET_SIZE][j][0] = 0;
+		(*chars[pos])[CHARSET_SIZE][CHARSET_SIZE][0] = 0;
+	}
 
 	offset =
 		(long)header->offsets[length][0] |
