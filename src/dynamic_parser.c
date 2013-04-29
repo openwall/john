@@ -713,6 +713,16 @@ int dynamic_LOAD_PARSER_FUNCTIONS_LoadLINE(struct cfg_line *_line)
 	return !fprintf(stderr, "Error, unknown line:   %s\n", Line);
 }
 
+const char *dynamic_Find_Function_Name(DYNAMIC_primitive_funcp p) {
+	int i;
+	for (i = 0; Dynamic_Predicate[i].name; ++i)
+	{
+		if (Dynamic_Predicate[i].func == p)
+			return Dynamic_Predicate[i].name;
+	}
+	return "Error, unknown function";
+}
+
 char *dynamic_LOAD_PARSER_SIGNATURE(int which)
 {
 	struct cfg_line *gen_line;

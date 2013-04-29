@@ -404,9 +404,7 @@ sub whirlpool {
     my $ret;
     my $i;
     my $h = whirlpool_hex($_[0]);
-	for($i = 0; $i < 128; $i += 2) {
-		$ret .= chr(substr($h,$i,1)*16 + substr($h,$i,1)*1);
-	}
+	$ret = pack "H*", $h;
     return $ret;
 }
 #############################################################################
@@ -1786,6 +1784,17 @@ sub do_dynamic_GetToken {
 		return $exprStr;
 	}
 
+	$gen_lastTokIsFunc=2; # a func, but can NOT be the 'outside' function.
+	if (substr($exprStr, 0, 7) eq "md5_raw")    { push(@gen_toks, "f5r");   return substr($exprStr, 7); }
+	if (substr($exprStr, 0, 8) eq "sha1_raw")   { push(@gen_toks, "f1r");   return substr($exprStr, 8); }
+	if (substr($exprStr, 0, 7) eq "md4_raw")    { push(@gen_toks, "f4r");   return substr($exprStr, 7); }
+	if (substr($exprStr, 0,10) eq "sha224_raw") { push(@gen_toks, "f224r"); return substr($exprStr,10); }
+	if (substr($exprStr, 0,10) eq "sha256_raw") { push(@gen_toks, "f256r"); return substr($exprStr,10); }
+	if (substr($exprStr, 0,10) eq "sha384_raw") { push(@gen_toks, "f384r"); return substr($exprStr,10); }
+	if (substr($exprStr, 0,10) eq "sha512_raw") { push(@gen_toks, "f512r"); return substr($exprStr,10); }
+	if (substr($exprStr, 0, 8) eq "gost_raw")   { push(@gen_toks, "fgostr");return substr($exprStr, 8); }
+	if (substr($exprStr, 0,13) eq "whirlpool_raw")   { push(@gen_toks, "fwrlpr");return substr($exprStr, 13); }
+
 	$gen_lastTokIsFunc=1;
 	$stmp = uc substr($exprStr, 0, 3);
 	if ($stmp eq "MD5") {
@@ -1839,17 +1848,6 @@ sub do_dynamic_GetToken {
 		if (substr($exprStr, 0, 9) eq "WHIRLPOOL")      { push(@gen_toks, "fwrlpH"); return substr($exprStr, 9); }
 		if (substr($exprStr, 0, 9) eq "whirlpool")      { push(@gen_toks, "fwrlph"); return substr($exprStr, 9); }
 	}
-
-	$gen_lastTokIsFunc=2; # a func, but can NOT be the 'outside' function.
-	if (substr($exprStr, 0, 7) eq "md5_raw")    { push(@gen_toks, "f5r");   return substr($exprStr, 7); }
-	if (substr($exprStr, 0, 8) eq "sha1_raw")   { push(@gen_toks, "f1r");   return substr($exprStr, 8); }
-	if (substr($exprStr, 0, 7) eq "md4_raw")    { push(@gen_toks, "f4r");   return substr($exprStr, 7); }
-	if (substr($exprStr, 0,10) eq "sha224_raw") { push(@gen_toks, "f224r"); return substr($exprStr,10); }
-	if (substr($exprStr, 0,10) eq "sha256_raw") { push(@gen_toks, "f256r"); return substr($exprStr,10); }
-	if (substr($exprStr, 0,10) eq "sha384_raw") { push(@gen_toks, "f384r"); return substr($exprStr,10); }
-	if (substr($exprStr, 0,10) eq "sha512_raw") { push(@gen_toks, "f512r"); return substr($exprStr,10); }
-	if (substr($exprStr, 0, 8) eq "gost_raw")   { push(@gen_toks, "fgostr");return substr($exprStr, 8); }
-	if (substr($exprStr, 0,13) eq "whirlpool_raw")   { push(@gen_toks, "fwrlpr");return substr($exprStr, 13); }
 
 	$gen_lastTokIsFunc=0;
 	push(@gen_toks, "X");
@@ -2291,7 +2289,7 @@ sub dynamic_fgoste { $h = pop @gen_Stack; $h = gost_base64($h); while (length($h
 sub dynamic_fgostu { $h = pop @gen_Stack; $h = gost_hex(encode("UTF-16LE",$h)); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_fgostr { $h = pop @gen_Stack; $h = gost($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_fwrlph { $h = pop @gen_Stack; $h = whirlpool_hex($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
-sub dynamic_fwrlpH { $h = pop @gen_Stack; $h = uc whirlpoolt_hex($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_fwrlpH { $h = pop @gen_Stack; $h = uc whirlpool_hex($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_fwrlp6 { $h = pop @gen_Stack; $h = whirlpool_base64($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_fwrlpe { $h = pop @gen_Stack; $h = whirlpool_base64($h); while (length($h)%4) { $h .= "="; } $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_fwrlpu { $h = pop @gen_Stack; $h = whirlpool_hex(encode("UTF-16LE",$h)); $gen_Stack[@gen_Stack-1] .= $h; return $h; }

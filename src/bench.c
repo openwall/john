@@ -160,6 +160,7 @@ char *benchmark_format(struct fmt_main *format, int salts,
 		sprintf(s_error, "FAILED (%s)\n", where);
 		return s_error;
 	}
+	if (!current->ciphertext && !current->plaintext)  return "FAILED (no data)";
 
 	if (format->params.binary_size > binary_size) {
 		binary_size = format->params.binary_size;

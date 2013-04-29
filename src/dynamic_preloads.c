@@ -1113,6 +1113,111 @@ static struct fmt_tests _Preloads_52[] =
 	{NULL}
 };
 
+//	dynamic_53: sha224(sha224($p))
+static DYNAMIC_primitive_funcp _Funcs_53[] =
+{
+	//MGF_SHA224_56_BYTE_FINISH
+	//MGF_NOTSSE2Safe
+	//MGF_KEYS_IN_INPUT
+
+	//DynamicFunc__clean_input2,
+	//DynamicFunc__SHA224_crypt_input1_append_input2,
+	// both appand and overwrite tested.  Since we have a fixed size, overwrite, with no clean2 works fine and faster.
+	DynamicFunc__SHA224_crypt_input1_overwrite_input2,
+
+	DynamicFunc__SHA224_crypt_input2_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_53[] =
+{
+	{"$dynamic_53$9045f340c4c6cb4c9d2175d5a966cf06d1dcbbfbb59a352156a4b7c4","test1"},
+	{"$dynamic_53$f3fdb63f05b1a9612a7c2745e360bc312945e19926445bb41ae92fbd","thatsworking"},
+	{"$dynamic_53$56d951da2e775caff774ab31e9663cf6547f6b2bd2cd9aa449b7d225","test3"},
+	{NULL}
+};
+
+//	dynamic_54: sha224(sha224_raw($p))
+static DYNAMIC_primitive_funcp _Funcs_54[] =
+{
+	//MGF_SHA224_56_BYTE_FINISH
+	//MGF_NOTSSE2Safe
+	//MGF_KEYS_IN_INPUT
+	DynamicFunc__LargeHash_OUTMode_raw,
+	DynamicFunc__SHA224_crypt_input1_overwrite_input2,
+	DynamicFunc__SHA224_crypt_input2_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_54[] =
+{
+	{"$dynamic_54$dd5585fdb1252a3efa02bf9f922afabe9597ddcfe57f229e0ecd4c02","test1"},
+	{"$dynamic_54$4c380c601aa89ca51958bc05c5e58cd5f6f5093de5664243ef6100a3","thatsworking"},
+	{"$dynamic_54$8ffc176af75adce9c32ccc72b7ea5812f215fbc072ce5b4cc217c8e0","test3"},
+	{NULL}
+};
+
+//	dynamic_55: sha224(sha224($p).$s)
+static DYNAMIC_primitive_funcp _Funcs_55[] =
+{
+	//MGF_SHA224_56_BYTE_FINISH
+	//MGF_NOTSSE2Safe
+	//MGF_SALTED
+	//MGF_KEYS_IN_INPUT
+	DynamicFunc__SHA224_crypt_input1_overwrite_input2,
+	DynamicFunc__append_salt2,
+	DynamicFunc__SHA224_crypt_input2_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_55[] =
+{
+	{"$dynamic_55$aa76e5957376e31952715529cd72ec81d3c076d2152d8b5c8d0efb16$cVfR3OJX","test1"},
+	{"$dynamic_55$291b35e248a51a20ef0566a647e566e38ca5081ef12a4e33c560ff8a$YCJXInfb","thatsworking"},
+	{"$dynamic_55$71eb0eea12ce8ca85c35396c6e77e856dd524e96350d52a93581aaf0$eQgbWpKS","test3"},
+	{NULL}
+};
+
+//	dynamic_56: sha224($s.sha224($p))
+static DYNAMIC_primitive_funcp _Funcs_56[] =
+{
+	//MGF_SHA224_56_BYTE_FINISH
+	//MGF_NOTSSE2Safe
+	//MGF_SALTED
+	//MGF_KEYS_IN_INPUT
+	DynamicFunc__clean_input2,
+	DynamicFunc__append_salt2,
+	DynamicFunc__SHA224_crypt_input1_append_input2,
+	DynamicFunc__SHA224_crypt_input2_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_56[] =
+{
+	{"$dynamic_56$0c8b6bb4c29742f326aab75dacde2cba0c924f541ac8af44b7c448cb$WFJsOVXq","test1"},
+	{"$dynamic_56$168ece7168c0bddb27825e22b95914bf659ce1c54784ec44a1911fa0$CScG3ful","thatsworking"},
+	{"$dynamic_56$405eb278c3c0f398f4329ca751e1410b70ebe2207612d2467ae20293$UquVdi8J","test3"},
+	{NULL}
+};
+
+//	dynamic_57: sha224(sha224($s).sha224($p))
+static DYNAMIC_primitive_funcp _Funcs_57[] =
+{
+	//MGF_SHA224_56_BYTE_FINISH
+	//MGF_NOTSSE2Safe
+	//MGF_SALTED
+	//MGF_KEYS_IN_INPUT
+	DynamicFunc__clean_input2,
+	DynamicFunc__append_salt2,
+	DynamicFunc__SHA224_crypt_input2_overwrite_input2,
+	DynamicFunc__SHA224_crypt_input1_append_input2,
+	DynamicFunc__SHA224_crypt_input2_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_57[] =
+{
+	{"$dynamic_57$fb133d9adb3d7cd284311ec909b0168a020554e184adcaac4f018e18$w21ElJCa","test1"},
+	{"$dynamic_57$0ff48e0fe0847b04175af355256e5e56492bc410b5a915a3514b67e2$hoxc5hI8","thatsworking"},
+	{"$dynamic_57$b60b62b69b1754a533747d59c5d4ceb14afa55cf98ba757a407c23e4$rsA4jyVd","test3"},
+	{NULL}
+};
+
 //	dynamic_60: sha256($p)
 static DYNAMIC_primitive_funcp _Funcs_60[] =
 {
@@ -1168,6 +1273,110 @@ static struct fmt_tests _Preloads_62[] =
 	{"$dynamic_62$ee9357332c8c09da880ae180fb2ac9a2d8841df0232ac4b2c864ece23c16d3a2$T7eBFzmv","test1"},
 	{"$dynamic_62$22bfad6e017b09c8f6bbfcc1472d7ae476519654645edf8a5efd8fa141c9d74e$RZ8DFqOQ","thatsworking"},
 	{"$dynamic_62$2f592058708099d79c03534c7a295bf941fc8abbea6c921dbae82a69039ca0ec$DQGjbaC7","test3"},
+	{NULL}
+};
+//	dynamic_63: SHA256(SHA256($p))
+static DYNAMIC_primitive_funcp _Funcs_63[] =
+{
+	//MGF_SHA256_64_BYTE_FINISH
+	//MGF_NOTSSE2Safe
+	//MGF_KEYS_IN_INPUT
+
+	//DynamicFunc__clean_input2,
+	//DynamicFunc__SHA256_crypt_input1_append_input2,
+	// both appand and overwrite tested.  Since we have a fixed size, overwrite, with no clean2 works fine and faster.
+	DynamicFunc__SHA256_crypt_input1_overwrite_input2,
+
+	DynamicFunc__SHA256_crypt_input2_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_63[] =
+{
+	{"$dynamic_63$ab0ee213d0bc9b7f69411817874fdfe6550c640b5479e5111b90ccd566c1163b","test1"},
+	{"$dynamic_63$fb771a17a5b2693c5a8892840ca1c2516c318e6656dc371fd9099bcc3dff6d92","thatsworking"},
+	{"$dynamic_63$97b868b8503c20875cb0a0e37c418a7166d78304c9384ef0d864ece47d1803ac","test3"},
+	{NULL}
+};
+
+//	dynamic_64: SHA256(SHA256_raw($p))
+static DYNAMIC_primitive_funcp _Funcs_64[] =
+{
+	//MGF_SHA256_64_BYTE_FINISH
+	//MGF_NOTSSE2Safe
+	//MGF_KEYS_IN_INPUT
+	DynamicFunc__LargeHash_OUTMode_raw,
+	DynamicFunc__SHA256_crypt_input1_overwrite_input2,
+	DynamicFunc__SHA256_crypt_input2_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_64[] =
+{
+	{"$dynamic_64$41455282d6faeb0b02bb6441924e07a02b5b8d31c848b3a4f2189e15ed7e9689","test1"},
+	{"$dynamic_64$7ae2ef95fbd8c903ab905f007f946cbb3f83a64387af80dec403b333b8955fcf","thatsworking"},
+	{"$dynamic_64$2a869eb5421bbea3e5318900a99175a272980931ccf63668950a2b1eff8fa57a","test3"},
+	{NULL}
+};
+
+//	dynamic_65: SHA256(SHA256($p).$s)
+static DYNAMIC_primitive_funcp _Funcs_65[] =
+{
+	//MGF_SHA256_64_BYTE_FINISH
+	//MGF_NOTSSE2Safe
+	//MGF_SALTED
+	//MGF_KEYS_IN_INPUT
+	DynamicFunc__SHA256_crypt_input1_overwrite_input2,
+	DynamicFunc__append_salt2,
+	DynamicFunc__SHA256_crypt_input2_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_65[] =
+{
+	{"$dynamic_65$9e59ea803f5f5c0f2b7adfcb82db9654343d821230b16e123f3cb913d91cf7fa$UX6Hg9Vq","test1"},
+	{"$dynamic_65$5adbcc923f2636175a4776b24ea15c8e4592c226985ebc68fb13ee1635df2fe8$mCp6NQxB","thatsworking"},
+	{"$dynamic_65$ee4553fd14a4df097398fa87209b4d741b33163d9623c627215d3e3e25622f23$HoTNEE6s","test3"},
+	{NULL}
+};
+
+//	dynamic_66: SHA256($s.SHA256($p))
+static DYNAMIC_primitive_funcp _Funcs_66[] =
+{
+	//MGF_SHA256_64_BYTE_FINISH
+	//MGF_NOTSSE2Safe
+	//MGF_SALTED
+	//MGF_KEYS_IN_INPUT
+	DynamicFunc__clean_input2,
+	DynamicFunc__append_salt2,
+	DynamicFunc__SHA256_crypt_input1_append_input2,
+	DynamicFunc__SHA256_crypt_input2_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_66[] =
+{
+	{"$dynamic_66$6bb87d207be95597ad8bf29df9a983d29508ad2482ab4ceb8b9112ce3963b7f7$LAe5jTw1","test1"},
+	{"$dynamic_66$754f6146edb1154774ee74e8186c702047cb82ea1f1612ab035e8d74e8eb8a31$hwFD5o3w","thatsworking"},
+	{"$dynamic_66$4a24b7aaf803468f68667cc12d62649104037cd3d64c727997f95e922e35042b$RFHuAImh","test3"},
+	{NULL}
+};
+
+//	dynamic_67: SHA256(SHA256($s).SHA256($p))
+static DYNAMIC_primitive_funcp _Funcs_67[] =
+{
+	//MGF_SHA256_64_BYTE_FINISH
+	//MGF_NOTSSE2Safe
+	//MGF_SALTED
+	//MGF_KEYS_IN_INPUT
+	DynamicFunc__clean_input2,
+	DynamicFunc__append_salt2,
+	DynamicFunc__SHA256_crypt_input2_overwrite_input2,
+	DynamicFunc__SHA256_crypt_input1_append_input2,
+	DynamicFunc__SHA256_crypt_input2_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_67[] =
+{
+	{"$dynamic_67$eeda7f31366e2a3f88f727260e0a3809c81c77c46b1d199b6a00b79d13bb3748$qteXzYV0","test1"},
+	{"$dynamic_67$17ac40e67cd2d092e68d29c45cb62f1257801b6a40951b0abf2738d5917b7cef$YXFCIJ33","thatsworking"},
+	{"$dynamic_67$e3cb1a8b97c3510400ca7e0331b2a8e613f87207ee27cbcb6232fe2f571a4668$ujyylrp0","test3"},
 	{NULL}
 };
 
@@ -1229,7 +1438,110 @@ static struct fmt_tests _Preloads_72[] =
 	{"$dynamic_72$2497022cab716ab1b64e4c8fda667e857819a54d88af210f8433f0d77ecfa23c1b81fac3b24bbe0bbf82a11fe9629378$XCrwOUG4","test3"},
 	{NULL}
 };
+//	dynamic_73: SHA384(SHA384($p))
+static DYNAMIC_primitive_funcp _Funcs_73[] =
+{
+	//MGF_SHA384_96_BYTE_FINISH
+	//MGF_NOTSSE2Safe
+	//MGF_KEYS_IN_INPUT
 
+	//DynamicFunc__clean_input2,
+	//DynamicFunc__SHA384_crypt_input1_append_input2,
+	// both appand and overwrite tested.  Since we have a fixed size, overwrite, with no clean2 works fine and faster.
+	DynamicFunc__SHA384_crypt_input1_overwrite_input2,
+
+	DynamicFunc__SHA384_crypt_input2_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_73[] =
+{
+	{"$dynamic_73$d1c7baa840529e4f64dd82de1ffa6f1912b028ccab35d9cca431d50388711a65cdadb3920dc34baf696ccd972a4c7ef9","test1"},
+	{"$dynamic_73$84c128713f498cd950d4cdb0cab241cbedf1d391765d6bec92c4bd0aa6ddf1398b0803de4b40146e0d5ed2cee0b9d009","thatsworking"},
+	{"$dynamic_73$d26cc7a524bda031a89b0c25947772ea46121b2fe8be3802f2430c9468838b62340e7ae6df097641da3e63f248b8ef60","test3"},
+	{NULL}
+};
+
+//	dynamic_74: SHA384(SHA384_raw($p))
+static DYNAMIC_primitive_funcp _Funcs_74[] =
+{
+	//MGF_SHA384_96_BYTE_FINISH
+	//MGF_NOTSSE2Safe
+	//MGF_KEYS_IN_INPUT
+	DynamicFunc__LargeHash_OUTMode_raw,
+	DynamicFunc__SHA384_crypt_input1_overwrite_input2,
+	DynamicFunc__SHA384_crypt_input2_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_74[] =
+{
+	{"$dynamic_74$dbc81fc4a583f0a9e29381cc61fbc38fb1beac9057c4256a0700601f8980bb9da1856e31af5fb36d4aef3f91605ff57e","test1"},
+	{"$dynamic_74$3a4a08a0f8c3d9f1a3cad7c091c9cca96766a7aaa2bbd4a9f37d7dceed917e13020b936fac8f2ed07d3dea1904abeb16","thatsworking"},
+	{"$dynamic_74$4ccd6ddaf83062228bb19bddf6364ff7f0b54cf5416d33eecd5271a70c820d73312888a6cbb24dc790ce718be9a95494","test3"},
+	{NULL}
+};
+
+//	dynamic_75: SHA384(SHA384($p).$s)
+static DYNAMIC_primitive_funcp _Funcs_75[] =
+{
+	//MGF_SHA384_96_BYTE_FINISH
+	//MGF_NOTSSE2Safe
+	//MGF_SALTED
+	//MGF_KEYS_IN_INPUT
+	DynamicFunc__SHA384_crypt_input1_overwrite_input2,
+	DynamicFunc__append_salt2,
+	DynamicFunc__SHA384_crypt_input2_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_75[] =
+{
+	{"$dynamic_75$f14c57288d45d58bb0ab24ed03209cb0b5ac57963d4a454536b4415d8e7e11753208c52ac923d54726cfd197af956fd0$W1QG1oNr","test1"},
+	{"$dynamic_75$b80a91dd31512ef1a4c5773a17dc584b5871a1e80090602268044732184d8fae1ebfda7dadf493d0cdc36e7cd73b874f$HbpRzSQB","thatsworking"},
+	{"$dynamic_75$a3eba61a9c4d878599e73083a55e270d1e1b96be884ef65eea9d79e9b454ea8510ffa31615819915d5077b17498ea55c$K8aXzbfU","test3"},
+	{NULL}
+};
+
+//	dynamic_76: SHA384($s.SHA384($p))
+static DYNAMIC_primitive_funcp _Funcs_76[] =
+{
+	//MGF_SHA384_96_BYTE_FINISH
+	//MGF_NOTSSE2Safe
+	//MGF_SALTED
+	//MGF_KEYS_IN_INPUT
+	DynamicFunc__clean_input2,
+	DynamicFunc__append_salt2,
+	DynamicFunc__SHA384_crypt_input1_append_input2,
+	DynamicFunc__SHA384_crypt_input2_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_76[] =
+{
+	{"$dynamic_76$b2ae724870d28da5111060fda398c9516f04f556fccb22d819de9801a26120eaf85fe9e209fe618d6a2a8f89e30ffc5e$4uS21WR2","test1"},
+	{"$dynamic_76$aa2104f1c77b01066819eca04f0678dbe0119fa78ebfada490071b029db674ab28e3c0140d812095df68ad78a178e5be$nG1Gvoon","thatsworking"},
+	{"$dynamic_76$3e43e555f4167b0385947cd565bde40e785519d06c1cf3f9bc3213ab40522794bed84a2e57a68c49da74defb0a47ef04$kzw6ZI0c","test3"},
+	{NULL}
+};
+
+//	dynamic_77: SHA384(SHA384($s).SHA384($p))
+static DYNAMIC_primitive_funcp _Funcs_77[] =
+{
+	//MGF_SHA384_96_BYTE_FINISH
+	//MGF_NOTSSE2Safe
+	//MGF_SALTED
+	//MGF_KEYS_IN_INPUT
+	DynamicFunc__clean_input2,
+	DynamicFunc__append_salt2,
+	DynamicFunc__SHA384_crypt_input2_overwrite_input2,
+	DynamicFunc__SHA384_crypt_input1_append_input2,
+	DynamicFunc__SHA384_crypt_input2_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_77[] =
+{
+	{"$dynamic_77$a5c0d19086b33e8751c4ed51e16b8809938d9587fbb86c21faf17acd652dd2dfb1602f0a9a92ae15dc058e6e09a69b23$6fe9QLsN","test1"},
+	{"$dynamic_77$f203cc435d3181a427c455e9b5036dcfa6091acf570cb8ccf1931b4244e697e063cf86d41afe3150bc36983117775ea0$jwTEaXZB","thatsworking"},
+	{"$dynamic_77$1f21e9314a745688b04b295866713c1a3a608ec09b4a3311b0a9dec95f10f627b2b21e1b4489f2e6cfd9c30adff6dda2$BUKDtfhw","test3"},
+	{NULL}
+};
 
 
 //	dynamic_80: sha512($p)
@@ -1287,6 +1599,110 @@ static struct fmt_tests _Preloads_82[] =
 	{"$dynamic_82$214eb5bb00fa9d5fb57d50dbdf126dbe08b75471c15051e31fb99f2974b170ce5affcb602056eee10f0afe6db9143438412f2a9b5729a7753e27b9fc6c1a5fa2$tZ8nE5oA","test1"},
 	{"$dynamic_82$c962438ec174cc169cd425d6ed07c0211785301c6edaab2da1aff33b837a13e2df9639433bf6fd0a26c8aa654188d1528b3a7199508726a649e857eecf79125c$ugQMD6u3","thatsworking"},
 	{"$dynamic_82$400c5738cf75bf9d89a20fab33bcc83c2ff9fe2429404232ed4af6d275eaf9d40aa8ab0a0c7646a990c25f9ced176839672f56e27c61da24989f3f9886d4d7a2$fdOZ9GQb","test3"},
+	{NULL}
+};
+//	dynamic_83: SHA512(SHA512($p))
+static DYNAMIC_primitive_funcp _Funcs_83[] =
+{
+	//MGF_SHA512_128_BYTE_FINISH
+	//MGF_NOTSSE2Safe
+	//MGF_KEYS_IN_INPUT
+
+	//DynamicFunc__clean_input2,
+	//DynamicFunc__SHA512_crypt_input1_append_input2,
+	// both appand and overwrite tested.  Since we have a fixed size, overwrite, with no clean2 works fine and faster.
+	DynamicFunc__SHA512_crypt_input1_overwrite_input2,
+
+	DynamicFunc__SHA512_crypt_input2_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_83[] =
+{
+	{"$dynamic_83$e52e13f73a85b5fe15cea9f5a69a3eb29be31e9ce97b7e8ba1778757cfd624b4dcda4b40347ae57ff75fddae967bf6b0332d7848d0c3f2e31d380d2181f3ce38","test1"},
+	{"$dynamic_83$649cd1f8ef64b87760d6fb9a2040ea65bb74b8d1f0a4d603f880a553d4d85318505659eb52077ba6f9fb24030106d32ca9adcc01ab3f45f4a1aff40167259113","thatsworking"},
+	{"$dynamic_83$e803dc500bf2a24eaab1766abc35ae817788dba01b778caf41524867fec4ac804dbf498f668e20b19ba0cfc450091bb897554a7f26b8f07a753b300be1f91a1a","test3"},
+	{NULL}
+};
+
+//	dynamic_84: SHA512(SHA512_raw($p))
+static DYNAMIC_primitive_funcp _Funcs_84[] =
+{
+	//MGF_SHA512_128_BYTE_FINISH
+	//MGF_NOTSSE2Safe
+	//MGF_KEYS_IN_INPUT
+	DynamicFunc__LargeHash_OUTMode_raw,
+	DynamicFunc__SHA512_crypt_input1_overwrite_input2,
+	DynamicFunc__SHA512_crypt_input2_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_84[] =
+{
+	{"$dynamic_84$5c83a5d1967a3d317daeb97a6ec6bd16d508d1f595c6f32acaa24b760556afbbf7565ee87205bf313d0e6956ff6e26121a3a454e155a5cff118f77dc78963730","test1"},
+	{"$dynamic_84$eb8c9cfe799e4eb63d2bea8aad4991d3a6423ce39b7c1d1053f0cf396555040e3842e35af86b56d2542d481dba08a21d6eebc4feffb6f5667cfa4e67999f08eb","thatsworking"},
+	{"$dynamic_84$03921e479a31f4c13c4ab0d50b7ab143dad0ed8e0a909cced7cd62e087e29f55534a2811148c4bb2aef43e9996b260417d0b2a9886cca34836a337adfabd7310","test3"},
+	{NULL}
+};
+
+//	dynamic_85: SHA512(SHA512($p).$s)
+static DYNAMIC_primitive_funcp _Funcs_85[] =
+{
+	//MGF_SHA512_128_BYTE_FINISH
+	//MGF_NOTSSE2Safe
+	//MGF_SALTED
+	//MGF_KEYS_IN_INPUT
+	DynamicFunc__SHA512_crypt_input1_overwrite_input2,
+	DynamicFunc__append_salt2,
+	DynamicFunc__SHA512_crypt_input2_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_85[] =
+{
+	{"$dynamic_85$be530ba78d36bfd3d5ed428b714350ed1c7ea47b3dd7f261b848df4f1b41d20fd56b9d9356bfd26b82f578cf4ae977ec676b7b8b57b59b77729bcca22ac3d20a$uRT6ZkEI","test1"},
+	{"$dynamic_85$b5306565e197fa38935e3efe59f2294d6d28e7ca9c445425507923b55321f9678ab2446456a44cf3ed869c28ed719b52c43b66942e6371c07c886a4f531d3925$R55fEdYw","thatsworking"},
+	{"$dynamic_85$6cb42643b44f7963019c43c13024d7486b3d806f70520df6c1b1aebdfc2f532a53250ff3bcf468ae0bdbada9daecb1b3e8677c05fbf856ac78a5ba1a322f3d0e$Lo21TUNz","test3"},
+	{NULL}
+};
+
+//	dynamic_86: SHA512($s.SHA512($p))
+static DYNAMIC_primitive_funcp _Funcs_86[] =
+{
+	//MGF_SHA512_128_BYTE_FINISH
+	//MGF_NOTSSE2Safe
+	//MGF_SALTED
+	//MGF_KEYS_IN_INPUT
+	DynamicFunc__clean_input2,
+	DynamicFunc__append_salt2,
+	DynamicFunc__SHA512_crypt_input1_append_input2,
+	DynamicFunc__SHA512_crypt_input2_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_86[] =
+{
+	{"$dynamic_86$40928be83405d2ad3af1fd6e970dd2e5a3d0bf4caba70530895870edb65c59c219e91eb81058ac6af77f9f0dcf48c10d75763b0eb3e14e440ba41690023312fc$VXtAXAGy","test1"},
+	{"$dynamic_86$a391af55568dc0a0123e148572a2f9ff22af7d603792c7f7b0af97cd42e40112c983d25fc73fe554d3595c61cf332398309b6e1d4f0b744710706d4e607025fc$lRkHcT3s","thatsworking"},
+	{"$dynamic_86$c891d4c4f871ddae6b76c03c3d6108e259768b8730397510d74c114d6811acbd2bdf53d79bdfacd33b7587118edf6a11806554ccd2f7dc041d2f80a2c4eada02$aFthlASo","test3"},
+	{NULL}
+};
+
+//	dynamic_87: SHA512(SHA512($s).SHA512($p))
+static DYNAMIC_primitive_funcp _Funcs_87[] =
+{
+	//MGF_SHA512_128_BYTE_FINISH
+	//MGF_NOTSSE2Safe
+	//MGF_SALTED
+	//MGF_KEYS_IN_INPUT
+	DynamicFunc__clean_input2,
+	DynamicFunc__append_salt2,
+	DynamicFunc__SHA512_crypt_input2_overwrite_input2,
+	DynamicFunc__SHA512_crypt_input1_append_input2,
+	DynamicFunc__SHA512_crypt_input2_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_87[] =
+{
+	{"$dynamic_87$64facc9742d9e55ac1f621638e240d2ac1496aa90565244ef6838acc325e5badb3949df59fc70655fe64ebb8881cbac3205dcfe399fa59046ed7a58a23f794ec$T85XJRqI","test1"},
+	{"$dynamic_87$98399b8585396eeb6803e4a348c85841c85dad875d8cada05f3773fa9aabc642d51c045b1e23416c64a2690f720316de6bfcf9c6f8994a3dc477ac2145c0f5bf$bilwWWce","thatsworking"},
+	{"$dynamic_87$31d13b3bbb61e5ea1decdd6051232923fe63bc9cc117fba342959dfb6863327c8a00f8d3c0770ee39b80e480db139cc8c7823f86169cb51808d04da8c2796600$GILe8AIe","test3"},
 	{NULL}
 };
 
@@ -1348,6 +1764,111 @@ static struct fmt_tests _Preloads_92[] =
 	{"$dynamic_92$4a5c90d92462db40ddc47f78eaa02b8d75c9f18bc30c24001dbcf83397ed8641$xPW4qUH8","test3"},
 	{NULL}
 };
+//	dynamic_93: GOST(GOST($p))
+static DYNAMIC_primitive_funcp _Funcs_93[] =
+{
+	//MGF_GOST_64_BYTE_FINISH
+	//MGF_NOTSSE2Safe
+	//MGF_KEYS_IN_INPUT
+
+	//DynamicFunc__clean_input2,
+	//DynamicFunc__GOST_crypt_input1_append_input2,
+	// both appand and overwrite tested.  Since we have a fixed size, overwrite, with no clean2 works fine and faster.
+	DynamicFunc__GOST_crypt_input1_overwrite_input2,
+
+	DynamicFunc__GOST_crypt_input2_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_93[] =
+{
+	{"$dynamic_93$de68edcb2422bb842323d5f1e07921237a5e61a28472fe22c36912aecd4895d5","test1"},
+	{"$dynamic_93$d1459d7a9f1b79700e631905f1a6e506cd2eb6479d4d4af570cf4a3d8e12fb7c","thatsworking"},
+	{"$dynamic_93$1be4da94702cd716865d710619f16a634ff7049f154b0d9679d11081f739a765","test3"},
+	{NULL}
+};
+
+//	dynamic_94: GOST(GOST_raw($p))
+static DYNAMIC_primitive_funcp _Funcs_94[] =
+{
+	//MGF_GOST_64_BYTE_FINISH
+	//MGF_NOTSSE2Safe
+	//MGF_KEYS_IN_INPUT
+	DynamicFunc__LargeHash_OUTMode_raw,
+	DynamicFunc__GOST_crypt_input1_overwrite_input2,
+	DynamicFunc__GOST_crypt_input2_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_94[] =
+{
+	{"$dynamic_94$7c3c1ba038800fb4dd199120773a0236e62bc728ec1d18c91309be75b8363e1b","test1"},
+	{"$dynamic_94$ab95ce3f7acf5f7ad62b3abe4086541dc2b223474d46950b5f1f0c03faf35bd1","thatsworking"},
+	{"$dynamic_94$10ef1ff47724f4e07bc2265ab68171a43f83f98b4ea56966397be1dfded97df6","test3"},
+	{NULL}
+};
+
+//	dynamic_95: GOST(GOST($p).$s)
+static DYNAMIC_primitive_funcp _Funcs_95[] =
+{
+	//MGF_GOST_64_BYTE_FINISH
+	//MGF_NOTSSE2Safe
+	//MGF_SALTED
+	//MGF_KEYS_IN_INPUT
+	DynamicFunc__GOST_crypt_input1_overwrite_input2,
+	DynamicFunc__append_salt2,
+	DynamicFunc__GOST_crypt_input2_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_95[] =
+{
+	{"$dynamic_95$26d13201ded9c417175be1a37fe16a5f0ef6615b4e2ecdbe571cc34340139ae6$zodk0FNq","test1"},
+	{"$dynamic_95$64555c8e9119ebb7061156f1f76209796bb706d648608f3b454ee3fe0a4b96e9$801xxsMd","thatsworking"},
+	{"$dynamic_95$dbf7b360ad9c97a16b51f8f2f0650eebabbe244d5180b8575b95dfc00af1515b$0PWhE5IH","test3"},
+	{NULL}
+};
+
+//	dynamic_96: GOST($s.GOST($p))
+static DYNAMIC_primitive_funcp _Funcs_96[] =
+{
+	//MGF_GOST_64_BYTE_FINISH
+	//MGF_NOTSSE2Safe
+	//MGF_SALTED
+	//MGF_KEYS_IN_INPUT
+	DynamicFunc__clean_input2,
+	DynamicFunc__append_salt2,
+	DynamicFunc__GOST_crypt_input1_append_input2,
+	DynamicFunc__GOST_crypt_input2_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_96[] =
+{
+	{"$dynamic_96$b9488a9203cfcf2450a2062ec195ff68845f5ac2b945e7bd829a3a1086993b30$5SC1CcIc","test1"},
+	{"$dynamic_96$7ec95e96cb5aa5e95f3fcaeccba4bb9672ae0a2a9b681e8f0b3c5934290aac47$bwZH6PJv","thatsworking"},
+	{"$dynamic_96$829599885f51cfad36a43c695bba6f0e24f915547b7205a99284b31af99fb59f$gEwPE1bV","test3"},
+	{NULL}
+};
+
+//	dynamic_97: GOST(GOST($s).GOST($p))
+static DYNAMIC_primitive_funcp _Funcs_97[] =
+{
+	//MGF_GOST_64_BYTE_FINISH
+	//MGF_NOTSSE2Safe
+	//MGF_SALTED
+	//MGF_KEYS_IN_INPUT
+	DynamicFunc__clean_input2,
+	DynamicFunc__append_salt2,
+	DynamicFunc__GOST_crypt_input2_overwrite_input2,
+	DynamicFunc__GOST_crypt_input1_append_input2,
+	DynamicFunc__GOST_crypt_input2_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_97[] =
+{
+	{"$dynamic_97$a236e0eca5099cf35db2dd6d90f61f7b935fd234955480fda1b681ba2233b9b5$qLqXv6z0","test1"},
+	{"$dynamic_97$a51eda198a8ccd6d1fc3ed7da2ab0d1f6df2354ca7b2347b248feaeb2c040b80$3V9Fpadk","thatsworking"},
+	{"$dynamic_97$769b1838311d227b1106448f98604c0db61074aa1e7df104f69b344fe744fe6f$qhXqvwKR","test3"},
+	{NULL}
+};
+
 
 #if OPENSSL_VERSION_NUMBER >= 0x10000000
 //	dynamic_100: WHIRLPOOL($p)
@@ -1405,6 +1926,110 @@ static struct fmt_tests _Preloads_102[] =
 	{"$dynamic_102$7aa81139e7678b70751524388e364b64a8f68d08d51ef869c7cb00597246a3a5800af869a736da110836835e67b600936e6cb98004918a8eda60b7c529d420f7$Wdw73yeZ","test1"},
 	{"$dynamic_102$ec8ac0ab32650a2a9cf361b4743d0eda196868ce09c374ba59ed35122f88d184d4a4634e82579d98a54b97333e4c0333e20417b95efded39df453fb5a59f7701$MUf2c3pj","thatsworking"},
 	{"$dynamic_102$94bb2261deb52f06034106e7c61fdc121cfedcab468b97683b0baf46a3047b9b3da3440a478a1059b7b95a2206bb2a51d61ccfad6a684f1d44dce2b741ebfa10$xr57dTTr","test3"},
+	{NULL}
+};
+//	dynamic_103: WHIRLPOOL(WHIRLPOOL($p))
+static DYNAMIC_primitive_funcp _Funcs_103[] =
+{
+	//MGF_WHIRLPOOL_128_BYTE_FINISH
+	//MGF_NOTSSE2Safe
+	//MGF_KEYS_IN_INPUT
+
+	//DynamicFunc__clean_input2,
+	//DynamicFunc__WHIRLPOOL_crypt_input1_append_input2,
+	// both appand and overwrite tested.  Since we have a fixed size, overwrite, with no clean2 works fine and faster.
+	DynamicFunc__WHIRLPOOL_crypt_input1_overwrite_input2,
+
+	DynamicFunc__WHIRLPOOL_crypt_input2_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_103[] =
+{
+	{"$dynamic_103$0f5ab9dd203c82ab38b8364c5f784c3e4b1b80cfbdd2daa353e39023730d8b24527d451529f103018f9c0852919eff60aaa275d07765f44d0b7ba3dcff981034","test1"},
+	{"$dynamic_103$ef2efbdb472c549442bf4891724542f3a4662deda5e4d47f0eef176ebccff36c38acb33a57bb68b2d2c69dcdacda8fa17b5d3b453461733e6fb6d3fe5bf10299","thatsworking"},
+	{"$dynamic_103$3cd1b185a0779715393126f67f80793a4890b2c0dfccdde8eb83758853d7a8c466d4d7b4552abfb6c3f3cda0d60232772f3618f2d81f2c925bb0000754d2c4f5","test3"},
+	{NULL}
+};
+
+//	dynamic_104: WHIRLPOOL(WHIRLPOOL_raw($p))
+static DYNAMIC_primitive_funcp _Funcs_104[] =
+{
+	//MGF_WHIRLPOOL_128_BYTE_FINISH
+	//MGF_NOTSSE2Safe
+	//MGF_KEYS_IN_INPUT
+	DynamicFunc__LargeHash_OUTMode_raw,
+	DynamicFunc__WHIRLPOOL_crypt_input1_overwrite_input2,
+	DynamicFunc__WHIRLPOOL_crypt_input2_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_104[] =
+{
+	{"$dynamic_104$1346c99ccc424a11800cf44cc37552ae00b5d95901e8a6536f0828738ed59f3a1733d2d61e8df466172de6cb1b839ad6d442910b8bc2838b3df7a48d02512963","test1"},
+	{"$dynamic_104$c4d8241fc6a18d11c3359751275add6752e8e99b427b65fda4c28741c2fddbefe08751fcff36d631fea620039a9617d7edf30ab9651d49c0a42f4b242d2f5b21","thatsworking"},
+	{"$dynamic_104$28a068c520ebd249c184bd00e8d46058ede551e9277283acfe110f1699a85e84873c1be74ada487e637f4e2acc0007fe5d139589485239af222edcf59b730276","test3"},
+	{NULL}
+};
+
+//	dynamic_105: WHIRLPOOL(WHIRLPOOL($p).$s)
+static DYNAMIC_primitive_funcp _Funcs_105[] =
+{
+	//MGF_WHIRLPOOL_128_BYTE_FINISH
+	//MGF_NOTSSE2Safe
+	//MGF_SALTED
+	//MGF_KEYS_IN_INPUT
+	DynamicFunc__WHIRLPOOL_crypt_input1_overwrite_input2,
+	DynamicFunc__append_salt2,
+	DynamicFunc__WHIRLPOOL_crypt_input2_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_105[] =
+{
+	{"$dynamic_105$63f8823cf1573956490e3e50973b1710349777412dab36887092ed9045271ad269d3e0c304bab12b2a1a04a3dac303196b0ca7be8feca2a37ee7731458c91f00$AbDlqbZO","test1"},
+	{"$dynamic_105$a5e43524673714670a7c64393f1ec6d869ce366f2d2201a7a8d1f47379855be64a1e245d41f5cf67e553634a85cd48c06bfb26c621ae0e6d6e576702062fc24f$B2LbJu5x","thatsworking"},
+	{"$dynamic_105$af591b1577c7f4f42814452b0b60c68d86e9eba57787c40160afbead0e4c635fc356e9bf78fcc10952143910921f3435b05856a947f83664e015bfca092da2e5$qzlnAzZw","test3"},
+	{NULL}
+};
+
+//	dynamic_106: WHIRLPOOL($s.WHIRLPOOL($p))
+static DYNAMIC_primitive_funcp _Funcs_106[] =
+{
+	//MGF_WHIRLPOOL_128_BYTE_FINISH
+	//MGF_NOTSSE2Safe
+	//MGF_SALTED
+	//MGF_KEYS_IN_INPUT
+	DynamicFunc__clean_input2,
+	DynamicFunc__append_salt2,
+	DynamicFunc__WHIRLPOOL_crypt_input1_append_input2,
+	DynamicFunc__WHIRLPOOL_crypt_input2_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_106[] =
+{
+	{"$dynamic_106$40ee08aaf3c1450a76d6dd264c5136e584ad8403ec7322da13efb3661dc8a5c47d839ecf679aea1193176b50a835e1c6ac5480e38ae6a87baf3e4d4b4cb3f2cd$uXeCSVfI","test1"},
+	{"$dynamic_106$e01b66cbeeb31ec1ef2937147b2c7ab3efb6469cea01107b8c5e86e645bcfe119d3001b1c0b31ecf6c5d99e158e66d4765bcbb8502e63a82ac09fb5632ae183d$LWo9tepG","thatsworking"},
+	{"$dynamic_106$13060286557ae767444cbb5d726ee522355b9c287f4dd83ad36a67aedbaa0fcde111dcb781f2aee5ccac5e84944a27f0119d2d10bd97e3b464577b8546c846b5$7bgJXjSt","test3"},
+	{NULL}
+};
+
+//	dynamic_107: WHIRLPOOL(WHIRLPOOL($s).WHIRLPOOL($p))
+static DYNAMIC_primitive_funcp _Funcs_107[] =
+{
+	//MGF_WHIRLPOOL_128_BYTE_FINISH
+	//MGF_NOTSSE2Safe
+	//MGF_SALTED
+	//MGF_KEYS_IN_INPUT
+	DynamicFunc__clean_input2,
+	DynamicFunc__append_salt2,
+	DynamicFunc__WHIRLPOOL_crypt_input2_overwrite_input2,
+	DynamicFunc__WHIRLPOOL_crypt_input1_append_input2,
+	DynamicFunc__WHIRLPOOL_crypt_input2_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_107[] =
+{
+	{"$dynamic_107$86f1b82108b1bf3916a4edd016163348831c411cec38ed2e8f1dafc0b193edde716aae66ab7153ffcc98d968598e42559973c70a866bc8ea50c42cc929f7884e$q45a2XGl","test1"},
+	{"$dynamic_107$2e5edfa44b9ae94b34c8be6d7ccb7ac9115cd9989d44a7c29db395c3ed25b169c23a55c0060dce167ae96a845dab03bda783d8381ae233eac7eb809da5af23db$jqjvWzXq","thatsworking"},
+	{"$dynamic_107$721808e56a5a0a4111fb4b76652bc6b0a333356915ba50a62b420600a73fe7eb90e6751e3627bef7105a97611da40605d4d4efb6d41e21212cb6c6311a3354a6$FOpkjyZy","test3"},
 	{NULL}
 };
 #endif
@@ -1487,27 +2112,57 @@ static DYNAMIC_Setup Setups[] =
 	{ "dynamic_50: sha224($p)",                  _Funcs_50,_Preloads_50,_ConstDefault, MGF_NOTSSE2Safe, MGF_SHA224_56_BYTE_FINISH },
 	{ "dynamic_51: sha224($s.$p)",               _Funcs_51,_Preloads_51,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_SHA224_56_BYTE_FINISH, -20, 35 },
 	{ "dynamic_52: sha224($p.$s)",               _Funcs_52,_Preloads_52,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_SHA224_56_BYTE_FINISH, -20, 35 },
+	{ "dynamic_53: sha224(sha224($p))",          _Funcs_53,_Preloads_53,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_SHA224_56_BYTE_FINISH, },
+	{ "dynamic_54: sha224(sha224_raw($p))",      _Funcs_54,_Preloads_54,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_SHA224_56_BYTE_FINISH, },
+	{ "dynamic_55: sha224(sha224($p).$s)",       _Funcs_55,_Preloads_55,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_SHA224_56_BYTE_FINISH, -20, 35 },
+	{ "dynamic_56: sha224($s.sha224($p))",       _Funcs_56,_Preloads_56,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_SHA224_56_BYTE_FINISH, -20, 35 },
+	{ "dynamic_57: sha224(sha224($s).sha224($p))",_Funcs_57,_Preloads_57,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_SHA224_56_BYTE_FINISH, -20, 35 },
 	// Try to group sha256 here (from dyna-60 to dyna-69)
 	{ "dynamic_60: sha256($p)",                  _Funcs_60,_Preloads_60,_ConstDefault, MGF_NOTSSE2Safe, MGF_SHA256_64_BYTE_FINISH },
 	{ "dynamic_61: sha256($s.$p)",               _Funcs_61,_Preloads_61,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_SHA256_64_BYTE_FINISH, -20, 35 },
 	{ "dynamic_62: sha256($p.$s)",               _Funcs_62,_Preloads_62,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_SHA256_64_BYTE_FINISH, -20, 35 },
+	{ "dynamic_63: sha256(sha256($p))",          _Funcs_63,_Preloads_63,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_SHA256_64_BYTE_FINISH, },
+	{ "dynamic_64: sha256(sha256_raw($p))",      _Funcs_64,_Preloads_64,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_SHA256_64_BYTE_FINISH, },
+	{ "dynamic_65: sha256(sha256($p).$s)",       _Funcs_65,_Preloads_65,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_SHA256_64_BYTE_FINISH, -20, 35 },
+	{ "dynamic_66: sha256($s.sha256($p))",       _Funcs_66,_Preloads_66,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_SHA256_64_BYTE_FINISH, -20, 35 },
+	{ "dynamic_67: sha256(sha256($s).sha256($p))",_Funcs_67,_Preloads_67,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_SHA256_64_BYTE_FINISH, -20, 35 },
 	// Try to group sha384 here (from dyna-70 to dyna-79)
 	{ "dynamic_70: sha384($p)",                  _Funcs_70,_Preloads_70,_ConstDefault, MGF_NOTSSE2Safe, MGF_SHA384_96_BYTE_FINISH },
 	{ "dynamic_71: sha384($s.$p)",               _Funcs_71,_Preloads_71,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_SHA384_96_BYTE_FINISH, -20, 35 },
 	{ "dynamic_72: sha384($p.$s)",               _Funcs_72,_Preloads_72,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_SHA384_96_BYTE_FINISH, -20, 35 },
+	{ "dynamic_73: sha384(sha384($p))",          _Funcs_73,_Preloads_73,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_SHA384_96_BYTE_FINISH, },
+	{ "dynamic_74: sha384(sha384_raw($p))",      _Funcs_74,_Preloads_74,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_SHA384_96_BYTE_FINISH, },
+	{ "dynamic_75: sha384(sha384($p).$s)",       _Funcs_75,_Preloads_75,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_SHA384_96_BYTE_FINISH, -20, 35 },
+	{ "dynamic_76: sha384($s.sha384($p))",       _Funcs_76,_Preloads_76,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_SHA384_96_BYTE_FINISH, -20, 35 },
+	{ "dynamic_77: sha384(sha384($s).sha384($p))",_Funcs_77,_Preloads_77,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_SHA384_96_BYTE_FINISH, -20, 35 },
 	// Try to group sha512 here (from dyna-80 to dyna-89)
 	{ "dynamic_80: sha512($p)",                  _Funcs_80,_Preloads_80,_ConstDefault, MGF_NOTSSE2Safe, MGF_SHA512_128_BYTE_FINISH },
 	{ "dynamic_81: sha512($s.$p)",               _Funcs_81,_Preloads_81,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_SHA512_128_BYTE_FINISH, -20, 35 },
 	{ "dynamic_82: sha512($p.$s)",               _Funcs_82,_Preloads_82,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_SHA512_128_BYTE_FINISH, -20, 35 },
+	{ "dynamic_83: sha512(sha512($p))",          _Funcs_83,_Preloads_83,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_SHA512_128_BYTE_FINISH, },
+	{ "dynamic_84: sha512(sha512_raw($p))",      _Funcs_84,_Preloads_84,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_SHA512_128_BYTE_FINISH, },
+	{ "dynamic_85: sha512(sha512($p).$s)",       _Funcs_85,_Preloads_85,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_SHA512_128_BYTE_FINISH, -20, 35 },
+	{ "dynamic_86: sha512($s.sha512($p))",       _Funcs_86,_Preloads_86,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_SHA512_128_BYTE_FINISH, -20, 35 },
+	{ "dynamic_87: sha512(sha512($s).sha512($p))",_Funcs_87,_Preloads_87,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_SHA512_128_BYTE_FINISH, -20, 35 },
 	// Try to group GOST here (from dyna-90 to dyna-100)
 	{ "dynamic_90: GOST($p)",                    _Funcs_90,_Preloads_90,_ConstDefault, MGF_NOTSSE2Safe, MGF_GOST_64_BYTE_FINISH },
 	{ "dynamic_91: GOST($s.$p)",                 _Funcs_91,_Preloads_91,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_GOST_64_BYTE_FINISH, -20, 35 },
 	{ "dynamic_92: GOST($p.$s)",                 _Funcs_92,_Preloads_92,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_GOST_64_BYTE_FINISH, -20, 35 },
+	{ "dynamic_93: GOST(GOST($p))",              _Funcs_93,_Preloads_93,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_GOST_64_BYTE_FINISH, },
+	{ "dynamic_94: GOST(GOST_raw($p))",          _Funcs_94,_Preloads_94,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_GOST_64_BYTE_FINISH, },
+	{ "dynamic_95: GOST(GOST($p).$s)",           _Funcs_95,_Preloads_95,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_GOST_64_BYTE_FINISH, -20, 35 },
+	{ "dynamic_96: GOST($s.GOST($p))",           _Funcs_96,_Preloads_96,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_GOST_64_BYTE_FINISH, -20, 35 },
+	{ "dynamic_97: GOST(GOST($s).GOST($p))",     _Funcs_97,_Preloads_97,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_GOST_64_BYTE_FINISH, -20, 35 },
 #if OPENSSL_VERSION_NUMBER >= 0x10000000
 	// Try to group WHIRLPOOL here (from dyna-100 to dyna-110)
 	{ "dynamic_100: WHIRLPOOL($p)",              _Funcs_100,_Preloads_100,_ConstDefault, MGF_NOTSSE2Safe, MGF_WHIRLPOOL_128_BYTE_FINISH },
 	{ "dynamic_101: WHIRLPOOL($s.$p)",           _Funcs_101,_Preloads_101,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_WHIRLPOOL_128_BYTE_FINISH, -20, 35 },
 	{ "dynamic_102: WHIRLPOOL($p.$s)",           _Funcs_102,_Preloads_102,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_WHIRLPOOL_128_BYTE_FINISH, -20, 35 },
+	{ "dynamic_103: WHIRLPOOL(WHIRLPOOL($p))",   _Funcs_103,_Preloads_103,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_WHIRLPOOL_128_BYTE_FINISH, },
+	{ "dynamic_104: WHIRLPOOL(WHIRLPOOL_raw($p))",_Funcs_104,_Preloads_104,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_WHIRLPOOL_128_BYTE_FINISH, },
+	{ "dynamic_105: WHIRLPOOL(WHIRLPOOL($p).$s)",_Funcs_105,_Preloads_105,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_WHIRLPOOL_128_BYTE_FINISH, -20, 35 },
+	{ "dynamic_106: WHIRLPOOL($s.WHIRLPOOL($p))",_Funcs_106,_Preloads_106,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_WHIRLPOOL_128_BYTE_FINISH, -20, 35 },
+	{ "dynamic_107: WHIRLPOOL(WHIRLPOOL($s).WHIRLPOOL($p))",_Funcs_107,_Preloads_107,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_WHIRLPOOL_128_BYTE_FINISH, -20, 35 },
 #endif
 };
 

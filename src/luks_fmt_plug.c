@@ -25,7 +25,9 @@
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
+#ifndef _MSC_VER
 #include <alloca.h>
+#endif
 #include <stdint.h>
 #include <stdlib.h>
 #include <sys/types.h>
