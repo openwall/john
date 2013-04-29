@@ -1,9 +1,9 @@
 /*
  * This software was written by Jim Fougeron jfoug AT cox dot net
- * in 2009-2012. No copyright is claimed, and the software is hereby
+ * in 2009-2013. No copyright is claimed, and the software is hereby
  * placed in the public domain. In case this attempt to disclaim
  * copyright and place the software in the public domain is deemed
- * null and void, then the software is Copyright (c) 2009-2012 Jim Fougeron
+ * null and void, then the software is Copyright (c) 2009-2013 Jim Fougeron
  * and it is hereby released to the general public under the following
  * terms:
  *
@@ -22,13 +22,7 @@
  *
  * KNOWN issues, and things to do.
  *
- *   1. MD5 and MD4 MUST both be using same SSE_PARA values, and built the
- *      same (I think).  If not, then MD4 should fall back to X86 mode.
- *   2. Add more crypt types, using the SHA1 'model'.  Currently, all
- *      sha2 crypts have been added (sha224, sha256, sha384, sha512).
- *      others could be any from oSSL, or any that we can get hash files
- *      for (such as GOST, IDA, IDEA, AES, CAST, Whirlpool, etc, etc)
- *   3. create a new optimize flag, MGF_PASS_AFTER_FIXEDSALT and
+ *   1. create a new optimize flag, MGF_PASS_AFTER_FIXEDSALT and
  *      MGF_PASS_BEFORE_FIXEDSALT.  Then create DynamicFunc__appendsalt_after_pass[12]
  *      These would only be valid for a FIXED length salted format. Then
  *      we can write the pass right into the buffer, and get_key() would read
@@ -780,21 +774,21 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 	}
 	if ( (pPriv->pSetup->flags & MGF_HDAA_SALT) == MGF_HDAA_SALT) {
 		// has a very complex salt function.  Requires certain fields, AND for these to be in proper order!!!
-		char *cp = strchr(&ciphertext[12], '$'), *cp2;
+		char *cp = strchr(&ciphertext[12], '$');
 		if (!cp) return 0;
 		if (cp[1] == '$') return 0; // if salt is 'empty', return false.
-		cp2 = strchr(&cp[1], '$');
-		if (!cp2 || strncmp(cp2,"$$U",3) || cp2[3] == '$') return 0; // if next is not U or U is 'empty', return false.
-		cp2 = strstr(&cp2[3], "$$F2");
-		if (!cp2 || cp2[4] == '$') return 0; // if next is not F2 or F2 is 'empty', return false.
-		cp2 = strstr(&cp2[4], "$$F3");
-		if (!cp2 || cp2[4] == '$') return 0; // if next is not F3 or F3 is 'empty', return false.
-		cp2 = strstr(&cp2[4], "$$F4");
-		if (!cp2 || cp2[4] == '$') return 0; // if next is not F4 or F4 is 'empty', return false.
-		cp2 = strchr(&cp2[4], '$');
-		if (!cp2 || cp2[1] == '$') return 0; // if next is empty
-		cp2 = strchr(&cp2[1], '$');
-		if (!cp2 || !cp2[1]) return 0; // if last is empty
+		cp = strchr(&cp[1], '$');
+		if (!cp || strncmp(cp,"$$U",3) || cp[3] == '$') return 0; // if next is not U or U is 'empty', return false.
+		cp = strstr(&cp[3], "$$F2");
+		if (!cp || cp[4] == '$') return 0; // if next is not F2 or F2 is 'empty', return false.
+		cp = strstr(&cp[4], "$$F3");
+		if (!cp || cp[4] == '$') return 0; // if next is not F3 or F3 is 'empty', return false.
+		cp = strstr(&cp[4], "$$F4");
+		if (!cp || cp[4] == '$') return 0; // if next is not F4 or F4 is 'empty', return false.
+		cp = strchr(&cp[4], '$');
+		if (!cp || cp[1] == '$') return 0; // if next is empty
+		cp = strchr(&cp[1], '$');
+		if (!cp || !cp[1]) return 0; // if last is empty
 	}
 
 	return 1;
@@ -1610,6 +1604,8 @@ static void crypt_all(int count)
 			{
 #ifndef MMX_COEF
 				if (curdat.store_keys_normal_but_precompute_md5_to_output2_base16_to_input1_offset32==2)
+#else
+				if (dynamic_use_sse == 1)
 #endif
 					DynamicFunc__SSEtoX86_switch_output2();
 				DynamicFunc__clean_input();
@@ -1635,8 +1631,59 @@ static void crypt_all(int count)
 	// Since this array is in a structure, we assign a simple pointer to it
 	// before walking.  Trivial improvement, but every cycle counts :)
 	pFuncs = curdat.dynamic_FUNCTIONS;
-	for (i = 0; pFuncs[i]; ++i)
+	for (i = 0; pFuncs[i]; ++i) {
 		(*(pFuncs[i]))();
+#if 0
+		// Dump state (for debugging help)
+		printf ("\nState after function: %s\n", dynamic_Find_Function_Name(curdat.dynamic_FUNCTIONS[i]));
+		// dump input 1
+#ifdef MMX_COEF
+		dump_stuff_mmx_msg("input_buf[0]", input_buf[0].c, 64, 0);
+		dump_stuff_mmx_msg("input_buf[1]", input_buf[0].c, 64, 1);
+		dump_stuff_mmx_msg("input_buf[2]", input_buf[0].c, 64, 2);
+		dump_stuff_mmx_msg("input_buf[3]", input_buf[0].c, 64, 3);
+#endif
+		printf ("input_buf86[0] : %*.*s\n", total_len_X86[0],total_len_X86[0],input_buf_X86[0].x1.b);
+		printf ("input_buf86[1] : %*.*s\n", total_len_X86[1],total_len_X86[1],input_buf_X86[1].x1.b);
+		printf ("input_buf86[2] : %*.*s\n", total_len_X86[2],total_len_X86[2],input_buf_X86[2].x1.b);
+		printf ("input_buf86[3] : %*.*s\n", total_len_X86[3],total_len_X86[3],input_buf_X86[3].x1.b);
+		// dump crypt 1
+#ifdef MMX_COEF
+		dump_stuff_mmx_msg("crypt_key[0]", crypt_key[0].c, 16, 0);
+		dump_stuff_mmx_msg("crypt_key[1]", crypt_key[0].c, 16, 1);
+		dump_stuff_mmx_msg("crypt_key[2]", crypt_key[0].c, 16, 2);
+		dump_stuff_mmx_msg("crypt_key[3]", crypt_key[0].c, 16, 3);
+#endif
+		dump_stuff_be_msg("crypt_key_X86[0]", crypt_key_X86[0].x1.b, 16);
+		dump_stuff_be_msg("crypt_key_X86[1]", crypt_key_X86[1].x1.b, 16);
+		dump_stuff_be_msg("crypt_key_X86[2]", crypt_key_X86[2].x1.b, 16);
+		dump_stuff_be_msg("crypt_key_X86[3]", crypt_key_X86[3].x1.b, 16);
+		// dump input 2
+#ifdef MMX_COEF
+		dump_stuff_mmx_msg("input_buf2[0]", input_buf2[0].c, 64, 0);
+		dump_stuff_mmx_msg("input_buf2[1]", input_buf2[0].c, 64, 1);
+		dump_stuff_mmx_msg("input_buf2[2]", input_buf2[0].c, 64, 2);
+		dump_stuff_mmx_msg("input_buf2[3]", input_buf2[0].c, 64, 3);
+#endif
+		printf ("input2_buf86[0] : %*.*s\n", total_len2_X86[0],total_len2_X86[0],input_buf2_X86[0].x1.b);
+		printf ("input2_buf86[1] : %*.*s\n", total_len2_X86[1],total_len2_X86[1],input_buf2_X86[1].x1.b);
+		printf ("input2_buf86[2] : %*.*s\n", total_len2_X86[2],total_len2_X86[2],input_buf2_X86[2].x1.b);
+		printf ("input2_buf86[3] : %*.*s\n", total_len2_X86[3],total_len2_X86[3],input_buf2_X86[3].x1.b);
+		// dump crypt 2
+#ifdef MMX_COEF
+		dump_stuff_mmx_msg("crypt_key2[0]", crypt_key2[0].c, 16, 0);
+		dump_stuff_mmx_msg("crypt_key2[1]", crypt_key2[0].c, 16, 1);
+		dump_stuff_mmx_msg("crypt_key2[2]", crypt_key2[0].c, 16, 2);
+		dump_stuff_mmx_msg("crypt_key2[3]", crypt_key2[0].c, 16, 3);
+#endif
+		dump_stuff_be_msg("crypt_key2_X86[0]", crypt_key2_X86[0].x1.b, 16);
+		dump_stuff_be_msg("crypt_key2_X86[1]", crypt_key2_X86[1].x1.b, 16);
+		dump_stuff_be_msg("crypt_key2_X86[2]", crypt_key2_X86[2].x1.b, 16);
+		dump_stuff_be_msg("crypt_key2_X86[3]", crypt_key2_X86[3].x1.b, 16);
+#endif
+	}
+
+
 #if FMT_MAIN_VERSION > 10
 	return m_count;
 #endif
@@ -7002,7 +7049,7 @@ static inline unsigned char *hexu_out_buf(unsigned char *cpi, unsigned char *cpo
 	return cpo; // returns pointer TO the null byte, not past it.
 }
 
-// NOTE, cpo must be at least in_byte_cnt*2+1 bytes of buffer
+// NOTE, cpo must be at least in_byte_cnt bytes of buffer
 static inline unsigned char *raw_out_buf(unsigned char *cpi, unsigned char *cpo, int in_byte_cnt) {
 	int j;
 	for (j = 0; j < in_byte_cnt; ++j) {
@@ -7096,16 +7143,16 @@ static inline int large_hash_output(unsigned char *cpi, unsigned char *cpo, int 
 			cpo2 = hex_out_buf(cpi, cpo, in_byte_cnt);
 			break;
 		case eBase16u:
-			hexu_out_buf(cpi, cpo, in_byte_cnt);
+			cpo2 = hexu_out_buf(cpi, cpo, in_byte_cnt);
 			break;
 		case eBase64:
-			base64_out_buf(cpi, cpo, in_byte_cnt, 1);
+			cpo2 = base64_out_buf(cpi, cpo, in_byte_cnt, 1);
 			break;
 		case eBase64_nte:
-			base64_out_buf(cpi, cpo, in_byte_cnt, 0);
+			cpo2 = base64_out_buf(cpi, cpo, in_byte_cnt, 0);
 			break;
 		case eBaseRaw:
-			raw_out_buf(cpi, cpo, in_byte_cnt);
+			cpo2 = raw_out_buf(cpi, cpo, in_byte_cnt);
 			break;
 		case eUNK:
 		default:
@@ -7120,16 +7167,16 @@ static inline int large_hash_output_no_null(unsigned char *cpi, unsigned char *c
 			cpo2 = hex_out_buf_no_null(cpi, cpo, in_byte_cnt);
 			break;
 		case eBase16u:
-			hexu_out_buf_no_null(cpi, cpo, in_byte_cnt);
+			cpo2 = hexu_out_buf_no_null(cpi, cpo, in_byte_cnt);
 			break;
 		case eBase64:
-			base64_out_buf_no_null(cpi, cpo, in_byte_cnt, 1);
+			cpo2 = base64_out_buf_no_null(cpi, cpo, in_byte_cnt, 1);
 			break;
 		case eBase64_nte:
-			base64_out_buf_no_null(cpi, cpo, in_byte_cnt, 0);
+			cpo2 = base64_out_buf_no_null(cpi, cpo, in_byte_cnt, 0);
 			break;
 		case eBaseRaw:
-			raw_out_buf(cpi, cpo, in_byte_cnt);
+			cpo2 = raw_out_buf(cpi, cpo, in_byte_cnt);
 			break;
 		case eUNK:
 		default:
@@ -7368,7 +7415,7 @@ void DynamicFunc__SHA1_crypt_input1_overwrite_input1()
 			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x1.b;
 		}
 		SHA1_Final(crypt_out, &sha_ctx);
-		total_len_X86[i] += large_hash_output_no_null(crypt_out, cpo, 20);
+		total_len_X86[i] = large_hash_output_no_null(crypt_out, cpo, 20);
 	}
 	if (switchback==1) {
 		DynamicFunc__X86toSSE_switch_input1();
@@ -7403,7 +7450,7 @@ void DynamicFunc__SHA1_crypt_input1_overwrite_input2()
 			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x1.b;
 		}
 		SHA1_Final(crypt_out, &sha_ctx);
-		total_len2_X86[i] += large_hash_output_no_null(crypt_out, cpo, 20);
+		total_len2_X86[i] = large_hash_output_no_null(crypt_out, cpo, 20);
 	}
 	if (switchback==1) {
 		DynamicFunc__X86toSSE_switch_input2();
@@ -7438,7 +7485,7 @@ void DynamicFunc__SHA1_crypt_input2_overwrite_input1()
 			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x1.b;
 		}
 		SHA1_Final(crypt_out, &sha_ctx);
-		total_len_X86[i] += large_hash_output_no_null(crypt_out, cpo, 20);
+		total_len_X86[i] = large_hash_output_no_null(crypt_out, cpo, 20);
 	}
 	if (switchback==1) {
 		DynamicFunc__X86toSSE_switch_input1();
@@ -7473,7 +7520,7 @@ void DynamicFunc__SHA1_crypt_input2_overwrite_input2()
 			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x1.b;
 		}
 		SHA1_Final(crypt_out, &sha_ctx);
-		total_len2_X86[i] += large_hash_output_no_null(crypt_out, cpo, 20);
+		total_len2_X86[i] = large_hash_output_no_null(crypt_out, cpo, 20);
 	}
 	if (switchback==1) {
 		DynamicFunc__X86toSSE_switch_input2();
@@ -7685,7 +7732,7 @@ void DynamicFunc__SHA224_crypt_input1_overwrite_input1(){
 			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x1.b;
 		}
 		SHA224_Final(crypt_out, &ctx);
-		total_len_X86[i] += large_hash_output_no_null(crypt_out, cpo, 28);
+		total_len_X86[i] = large_hash_output_no_null(crypt_out, cpo, 28);
 	}
 }
 void DynamicFunc__SHA256_crypt_input1_overwrite_input1(){
@@ -7708,7 +7755,7 @@ void DynamicFunc__SHA256_crypt_input1_overwrite_input1(){
 			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x1.b;
 		}
 		SHA256_Final(crypt_out, &ctx);
-		total_len_X86[i] += large_hash_output_no_null(crypt_out, cpo, 32);
+		total_len_X86[i] = large_hash_output_no_null(crypt_out, cpo, 32);
 	}
 }
 void DynamicFunc__SHA224_crypt_input1_overwrite_input2(){
@@ -7731,7 +7778,7 @@ void DynamicFunc__SHA224_crypt_input1_overwrite_input2(){
 			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x1.b;
 		}
 		SHA224_Final(crypt_out, &ctx);
-		total_len2_X86[i] += large_hash_output_no_null(crypt_out, cpo, 28);
+		total_len2_X86[i] = large_hash_output_no_null(crypt_out, cpo, 28);
 	}
 }
 void DynamicFunc__SHA256_crypt_input1_overwrite_input2(){
@@ -7754,7 +7801,7 @@ void DynamicFunc__SHA256_crypt_input1_overwrite_input2(){
 			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x1.b;
 		}
 		SHA256_Final(crypt_out, &ctx);
-		total_len2_X86[i] += large_hash_output_no_null(crypt_out, cpo, 32);
+		total_len2_X86[i] = large_hash_output_no_null(crypt_out, cpo, 32);
 	}
 }
 void DynamicFunc__SHA224_crypt_input2_overwrite_input1(){
@@ -7777,7 +7824,7 @@ void DynamicFunc__SHA224_crypt_input2_overwrite_input1(){
 			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x1.b;
 		}
 		SHA224_Final(crypt_out, &ctx);
-		total_len_X86[i] += large_hash_output_no_null(crypt_out, cpo, 28);
+		total_len_X86[i] = large_hash_output_no_null(crypt_out, cpo, 28);
 	}
 }
 void DynamicFunc__SHA256_crypt_input2_overwrite_input1(){
@@ -7800,7 +7847,7 @@ void DynamicFunc__SHA256_crypt_input2_overwrite_input1(){
 			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x1.b;
 		}
 		SHA256_Final(crypt_out, &ctx);
-		total_len_X86[i] += large_hash_output_no_null(crypt_out, cpo, 32);
+		total_len_X86[i] = large_hash_output_no_null(crypt_out, cpo, 32);
 	}
 }
 void DynamicFunc__SHA224_crypt_input2_overwrite_input2(){
@@ -7823,7 +7870,7 @@ void DynamicFunc__SHA224_crypt_input2_overwrite_input2(){
 			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x1.b;
 		}
 		SHA224_Final(crypt_out, &ctx);
-		total_len2_X86[i] += large_hash_output_no_null(crypt_out, cpo, 28);
+		total_len2_X86[i] = large_hash_output_no_null(crypt_out, cpo, 28);
 	}
 }
 void DynamicFunc__SHA256_crypt_input2_overwrite_input2(){
@@ -7846,7 +7893,7 @@ void DynamicFunc__SHA256_crypt_input2_overwrite_input2(){
 			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x1.b;
 		}
 		SHA256_Final(crypt_out, &ctx);
-		total_len2_X86[i] += large_hash_output_no_null(crypt_out, cpo, 32);
+		total_len2_X86[i] = large_hash_output_no_null(crypt_out, cpo, 32);
 	}
 }
 void DynamicFunc__SHA224_crypt_input1_to_output1_FINAL(){
@@ -8093,7 +8140,7 @@ void DynamicFunc__SHA384_crypt_input1_overwrite_input1(){
 			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x1.b;
 		}
 		SHA384_Final(crypt_out, &ctx);
-		total_len_X86[i] += large_hash_output_no_null(crypt_out, cpo, 48);
+		total_len_X86[i] = large_hash_output_no_null(crypt_out, cpo, 48);
 	}
 }
 void DynamicFunc__SHA512_crypt_input1_overwrite_input1(){
@@ -8116,7 +8163,7 @@ void DynamicFunc__SHA512_crypt_input1_overwrite_input1(){
 			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x1.b;
 		}
 		SHA512_Final(crypt_out, &ctx);
-		total_len_X86[i] += large_hash_output_no_null(crypt_out, cpo, 64);
+		total_len_X86[i] = large_hash_output_no_null(crypt_out, cpo, 64);
 	}
 }
 void DynamicFunc__SHA384_crypt_input1_overwrite_input2(){
@@ -8139,7 +8186,7 @@ void DynamicFunc__SHA384_crypt_input1_overwrite_input2(){
 			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x1.b;
 		}
 		SHA384_Final(crypt_out, &ctx);
-		total_len2_X86[i] += large_hash_output_no_null(crypt_out, cpo, 48);
+		total_len2_X86[i] = large_hash_output_no_null(crypt_out, cpo, 48);
 	}
 }
 void DynamicFunc__SHA512_crypt_input1_overwrite_input2(){
@@ -8162,7 +8209,7 @@ void DynamicFunc__SHA512_crypt_input1_overwrite_input2(){
 			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x1.b;
 		}
 		SHA512_Final(crypt_out, &ctx);
-		total_len2_X86[i] += large_hash_output_no_null(crypt_out, cpo, 64);
+		total_len2_X86[i] = large_hash_output_no_null(crypt_out, cpo, 64);
 	}
 }
 void DynamicFunc__SHA384_crypt_input2_overwrite_input1(){
@@ -8185,7 +8232,7 @@ void DynamicFunc__SHA384_crypt_input2_overwrite_input1(){
 			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x1.b;
 		}
 		SHA384_Final(crypt_out, &ctx);
-		total_len_X86[i] += large_hash_output_no_null(crypt_out, cpo, 48);
+		total_len_X86[i] = large_hash_output_no_null(crypt_out, cpo, 48);
 	}
 }
 void DynamicFunc__SHA512_crypt_input2_overwrite_input1(){
@@ -8208,7 +8255,7 @@ void DynamicFunc__SHA512_crypt_input2_overwrite_input1(){
 			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x1.b;
 		}
 		SHA512_Final(crypt_out, &ctx);
-		total_len_X86[i] += large_hash_output_no_null(crypt_out, cpo, 64);
+		total_len_X86[i] = large_hash_output_no_null(crypt_out, cpo, 64);
 	}
 }
 void DynamicFunc__SHA384_crypt_input2_overwrite_input2(){
@@ -8231,7 +8278,7 @@ void DynamicFunc__SHA384_crypt_input2_overwrite_input2(){
 			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x1.b;
 		}
 		SHA384_Final(crypt_out, &ctx);
-		total_len2_X86[i] += large_hash_output_no_null(crypt_out, cpo, 48);
+		total_len2_X86[i] = large_hash_output_no_null(crypt_out, cpo, 48);
 	}
 }
 void DynamicFunc__SHA512_crypt_input2_overwrite_input2(){
@@ -8254,7 +8301,7 @@ void DynamicFunc__SHA512_crypt_input2_overwrite_input2(){
 			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x1.b;
 		}
 		SHA512_Final(crypt_out, &ctx);
-		total_len2_X86[i] += large_hash_output_no_null(crypt_out, cpo, 64);
+		total_len2_X86[i] = large_hash_output_no_null(crypt_out, cpo, 64);
 	}
 }
 void DynamicFunc__SHA384_crypt_input1_to_output1_FINAL(){
@@ -8456,7 +8503,7 @@ void DynamicFunc__GOST_crypt_input1_overwrite_input1() {
 			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x1.b;
 		}
 		john_gost_final(&ctx, crypt_out);
-		total_len_X86[i] += large_hash_output_no_null(crypt_out, cpo, 32);
+		total_len_X86[i] = large_hash_output_no_null(crypt_out, cpo, 32);
 	}
 }
 void DynamicFunc__GOST_crypt_input2_overwrite_input2() {
@@ -8479,7 +8526,7 @@ void DynamicFunc__GOST_crypt_input2_overwrite_input2() {
 			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x1.b;
 		}
 		john_gost_final(&ctx, crypt_out);
-		total_len2_X86[i] += large_hash_output_no_null(crypt_out, cpo, 32);
+		total_len2_X86[i] = large_hash_output_no_null(crypt_out, cpo, 32);
 	}
 }
 void DynamicFunc__GOST_crypt_input1_overwrite_input2() {
@@ -8502,7 +8549,7 @@ void DynamicFunc__GOST_crypt_input1_overwrite_input2() {
 			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x1.b;
 		}
 		john_gost_final(&ctx, crypt_out);
-		total_len2_X86[i] += large_hash_output_no_null(crypt_out, cpo, 32);
+		total_len2_X86[i] = large_hash_output_no_null(crypt_out, cpo, 32);
 	}
 }
 void DynamicFunc__GOST_crypt_input2_overwrite_input1() {
@@ -8525,7 +8572,7 @@ void DynamicFunc__GOST_crypt_input2_overwrite_input1() {
 			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x1.b;
 		}
 		john_gost_final(&ctx, crypt_out);
-		total_len_X86[i] += large_hash_output_no_null(crypt_out, cpo, 32);
+		total_len_X86[i] = large_hash_output_no_null(crypt_out, cpo, 32);
 	}
 }
 void DynamicFunc__GOST_crypt_input1_to_output1_FINAL() {
@@ -8663,7 +8710,7 @@ void DynamicFunc__WHIRLPOOL_crypt_input1_overwrite_input1() {
 			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x1.b;
 		}
 		WHIRLPOOL_Final(crypt_out, &ctx);
-		total_len_X86[i] += large_hash_output_no_null(crypt_out, cpo, 64);
+		total_len_X86[i] = large_hash_output_no_null(crypt_out, cpo, 64);
 	}
 }
 void DynamicFunc__WHIRLPOOL_crypt_input2_overwrite_input2() {
@@ -8686,7 +8733,7 @@ void DynamicFunc__WHIRLPOOL_crypt_input2_overwrite_input2() {
 			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x1.b;
 		}
 		WHIRLPOOL_Final(crypt_out, &ctx);
-		total_len2_X86[i] += large_hash_output_no_null(crypt_out, cpo, 64);
+		total_len2_X86[i] = large_hash_output_no_null(crypt_out, cpo, 64);
 	}
 }
 void DynamicFunc__WHIRLPOOL_crypt_input1_overwrite_input2() {
@@ -8709,7 +8756,7 @@ void DynamicFunc__WHIRLPOOL_crypt_input1_overwrite_input2() {
 			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x1.b;
 		}
 		WHIRLPOOL_Final(crypt_out, &ctx);
-		total_len2_X86[i] += large_hash_output_no_null(crypt_out, cpo, 64);
+		total_len2_X86[i] = large_hash_output_no_null(crypt_out, cpo, 64);
 	}
 }
 void DynamicFunc__WHIRLPOOL_crypt_input2_overwrite_input1() {
@@ -8732,7 +8779,7 @@ void DynamicFunc__WHIRLPOOL_crypt_input2_overwrite_input1() {
 			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x1.b;
 		}
 		WHIRLPOOL_Final(crypt_out, &ctx);
-		total_len_X86[i] += large_hash_output_no_null(crypt_out, cpo, 64);
+		total_len_X86[i] = large_hash_output_no_null(crypt_out, cpo, 64);
 	}
 }
 void DynamicFunc__WHIRLPOOL_crypt_input1_to_output1_FINAL() {
