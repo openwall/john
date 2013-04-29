@@ -233,6 +233,9 @@ static int chap_valid_long(char *ciphertext)
 	if (ciphertext == NULL) return 0;
 	else if (strncmp(ciphertext, "$MSCHAPv2$", 10)!=0) return 0;
 
+	if (strlen(ciphertext) > TOTAL_LENGTH)
+		return 0;
+
 	/* Validate Authenticator/Server Challenge Length */
 	pos = &ciphertext[10];
 	for (pos2 = pos; strncmp(pos2, "$", 1) != 0; pos2++)
@@ -273,6 +276,9 @@ static int chap_valid_short(char *ciphertext)
 
 	if (ciphertext == NULL) return 0;
 	else if (strncmp(ciphertext, "$MSCHAPv2$", 10)!=0) return 0;
+
+	if (strlen(ciphertext) > TOTAL_LENGTH)
+		return 0;
 
 	/* Validate MSCHAPv2 Challenge Length */
 	pos = &ciphertext[10];
