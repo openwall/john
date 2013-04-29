@@ -37,7 +37,7 @@ static struct rpp_context *rule_ctx;
 
 static void save_state(FILE *file)
 {
-	fprintf(file, "%d\n%ld\n%d\n", rec_rule, rec_pos, line_number);
+	fprintf(file, "%d\n%ld\n", rec_rule, rec_pos);
 }
 
 static int restore_rule_number(void)
@@ -69,9 +69,7 @@ static int restore_state(FILE *file)
 {
 	if (fscanf(file, "%d\n%ld\n", &rec_rule, &rec_pos) != 2)
 		return 1;
-	if (rec_version >= 4 && fscanf(file, "%d\n", &line_number) != 1)
-		return 1;
-	if (rec_rule < 0 || rec_pos < 0 || line_number < 0)
+	if (rec_rule < 0 || rec_pos < 0)
 		return 1;
 
 	if (restore_rule_number())
@@ -234,9 +232,23 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 		log_event("- Will distribute %s across nodes%s", now, later);
 	}
 
-	if (distwords && options.node_min > 1 &&
-	    skip_lines(options.node_min - 1, line))
-		prerule = NULL;
+/*
+ * We call crk_process_key() before skipping other nodes' lines in the loop
+ * below, so fix_state() records the rec_pos as of right after the word we've
+ * actually used.  Thus, when restoring a session we skip other nodes' lines
+ * here.  When starting a new session, we skip lower-numbered nodes' lines.
+ */
+	if (distwords) {
+		if (rec_pos) {
+			if (skip_lines(distwords, line))
+				prerule = NULL;
+/* We only need the line_number to be correct modulo node_count */
+			if (word_file != stdin)
+				line_number = options.node_min - 1;
+		} else if (options.node_min > 1 &&
+		    skip_lines(options.node_min - 1, line))
+			prerule = NULL;
+	}
 
 	if (prerule)
 	do {
