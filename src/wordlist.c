@@ -39,6 +39,9 @@
 #include "cracker.h"
 #include "memory.h"
 #include "options.h"
+#ifdef HAVE_MPI
+#include "john-mpi.h"
+#endif
 
 static int distrules;
 static int myrulecount;
