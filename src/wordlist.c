@@ -695,6 +695,7 @@ GRAB_NEXT_PIPE_LOAD:;
 						}
 					}
 				}
+				myWordFileLines = nWordFileLines;
 				sprintf(msg_buf, "- Read block of %d candidate passwords from pipe", nWordFileLines);
 				log_event("%s", msg_buf);
 			}
