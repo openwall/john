@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2004,2006,2009-2012 by Solar Designer
+ * Copyright (c) 1996-2004,2006,2009-2013 by Solar Designer
  */
 
 #include <stdio.h>
@@ -233,6 +233,16 @@ static void john_load(void)
 		}
 
 		if ((options.flags & FLG_PWD_REQ) && !database.salts) exit(0);
+	}
+
+	if (options.node_count) {
+		if (options.node_min != options.node_max)
+			fprintf(stderr, "Node numbers %u-%u of %u\n",
+			    options.node_min, options.node_max,
+			    options.node_count);
+		else
+			fprintf(stderr, "Node number %u of %u\n",
+			    options.node_min, options.node_count);
 	}
 }
 
