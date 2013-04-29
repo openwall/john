@@ -6,7 +6,7 @@ crack a fixed quantity of passwords.
 UTF-8 is handled pretty good. Supply the -p option to calc_stat and use
 --encoding:utf8 when you run john. Some invalid candidates are generated but
 for fast formats it's cheaper to accept them than to try to filter them out.
-For slow formats, an external filter can be used.
+For slow formats, --external:filter_utf8 can be used to mute them.
 
 Specify the --markov option on the command line to use Markov mode.
 
