@@ -220,13 +220,11 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 		int rule_rem = rule_count % options.node_count;
 		const char *now, *later = "";
 		distswitch = rule_count - rule_rem;
-		if (!rule_rem) {
-			distrules = 2;
-			now = "rules";
-		} else if (rule_number < distswitch) {
+		if (!rule_rem || rule_number < distswitch) {
 			distrules = 1;
 			now = "rules";
-			later = ", then switch to distributing words";
+			if (rule_rem)
+				later = ", then switch to distributing words";
 		} else {
 			distswitch = rule_count; /* never */
 			distwords = options.node_count -
