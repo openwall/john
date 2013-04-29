@@ -642,10 +642,6 @@ void do_incremental_crack(struct db_main *db, char *mode)
 			}
 		}
 
-		if ((int)count > last_count)
-			inc_new_count(length, last_count = count, charset,
-			    allchars, char1, char2, chars);
-
 		if (!length && !min_length) {
 			min_length = 1;
 			if (crk_process_key(""))
