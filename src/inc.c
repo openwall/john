@@ -17,6 +17,7 @@
 #include "logger.h"
 #include "status.h"
 #include "recovery.h"
+#include "options.h"
 #include "config.h"
 #include "charset.h"
 #include "external.h"
@@ -612,6 +613,13 @@ void do_incremental_crack(struct db_main *db, char *mode)
 
 	entry--;
 	while (ptr < &header->order[sizeof(header->order) - 1]) {
+		int skip = 0;
+		if (options.node_count) {
+			int for_node = entry % options.node_count + 1;
+			skip = for_node < options.node_min ||
+			    for_node > options.node_max;
+		}
+
 		entry++;
 		length = *ptr++; fixed = *ptr++; count = *ptr++;
 
@@ -631,14 +639,13 @@ void do_incremental_crack(struct db_main *db, char *mode)
 		    (int)count >= max_count)
 			continue;
 
-		if ((int)length != last_length) {
-			inc_new_length(last_length = length,
-			    header, file, charset, char1, char2, chars);
-			last_count = -1;
-		}
-
-		{
+		if (!skip) {
 			int i, max_count = 0;
+			if ((int)length != last_length) {
+				inc_new_length(last_length = length,
+				    header, file, charset, char1, char2, chars);
+				last_count = -1;
+			}
 			for (i = 0; i <= length; i++)
 				if (counts[length][i] > max_count)
 					max_count = counts[length][i];
@@ -655,7 +662,7 @@ void do_incremental_crack(struct db_main *db, char *mode)
 			min_length = 1;
 			rec_entry = entry;
 			rec_length = 0;
-			if (crk_process_key(""))
+			if (!skip && crk_process_key(""))
 				break;
 		}
 
@@ -669,6 +676,9 @@ void do_incremental_crack(struct db_main *db, char *mode)
 				counts[length][fixed] + 1, count + 1);
 			error();
 		}
+
+		if (skip)
+			continue;
 
 		log_event("- Trying length %d, fixed @%d, character count %d",
 			length + 1, fixed + 1, counts[length][fixed] + 1);

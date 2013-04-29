@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-98,2003,2006 by Solar Designer
+ * Copyright (c) 1996-98,2003,2006,2013 by Solar Designer
  */
 
 /*
@@ -46,7 +46,8 @@
 #define FLG_SINGLE_SET			(FLG_SINGLE_CHK | FLG_CRACKING_SET)
 /* Incremental mode enabled */
 #define FLG_INC_CHK			0x00000800
-#define FLG_INC_SET			(FLG_INC_CHK | FLG_CRACKING_SET)
+#define FLG_INC_SET \
+	(FLG_INC_CHK | FLG_CRACKING_SET | FLG_NODE_SUP)
 /* External mode or word filter enabled */
 #define FLG_EXTERNAL_CHK		0x00001000
 #define FLG_EXTERNAL_SET \
@@ -82,6 +83,12 @@
 #define FLG_FORMAT			0x02000000
 /* Memory saving enabled */
 #define FLG_SAVEMEM			0x04000000
+/* Node number(s) specified */
+#define FLG_NODE			0x10000000
+/* The cracking mode supports node specification */
+#define FLG_NODE_SUP			0x40000000
+
+/* Note that 0x80000000 is taken for OPT_REQ_PARAM, see getopt.h */
 
 /*
  * Structure with option flags and all the parameters.
@@ -113,6 +120,10 @@ struct options_main {
 
 /* Maximum plaintext length for stdout mode */
 	int length;
+
+/* Parallel processing options */
+	char *node_str;
+	unsigned int node_min, node_max, node_count;
 };
 
 extern struct options_main options;
