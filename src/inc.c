@@ -472,6 +472,7 @@ void do_incremental_crack(struct db_main *db, char *mode)
 			error();
 		}
 	}
+
 	extra = cfg_get_param(SECTION_INC, mode, "Extra");
 
 	if ((min_length = cfg_get_int(SECTION_INC, mode, "MinLen")) < 0)
@@ -671,12 +672,7 @@ void do_incremental_crack(struct db_main *db, char *mode)
 			chars[pos] = (chars_table)mem_alloc(sizeof(*chars[0]));
 	}
 
-#ifdef HAVE_MPI
-	/* *ptr has to start at different positions so they don't overlap */
-	rec_entry = mpi_id;
-#else
 	rec_entry = 0;
-#endif
 	memset(rec_numbers, 0, sizeof(rec_numbers));
 
 	status_init(get_progress, 0);
@@ -734,11 +730,6 @@ void do_incremental_crack(struct db_main *db, char *mode)
 		entry++;
 		length = *ptr++; fixed = *ptr++; count = *ptr++;
 
-#ifdef HAVE_MPI
-		/* increment *ptr with the number of processors after this */
-		ptr = ptr + (3 * (mpi_p - 1));
-		entry = entry + mpi_p - 1;
-#endif
 		if (length >= CHARSET_LENGTH ||
 		    fixed > length ||
 		    count >= CHARSET_SIZE)

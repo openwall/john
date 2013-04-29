@@ -824,6 +824,9 @@ SKIP_MEM_MAP_LOAD:;
 	if (prerule)
 	do {
 		if (rules) {
+#ifdef HAVE_MPI
+			if (mpi_p == 1 || distributeRules)
+#endif
 			if (options.node_count) {
 				int for_node =
 				    rule_number % options.node_count + 1;

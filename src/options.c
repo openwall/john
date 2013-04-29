@@ -493,6 +493,36 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 		error();
 	}
 
+#ifdef HAVE_MPI
+        if (mpi_p > 1) {
+                if (options.node_max &&
+                    (options.node_max - options.node_min + 1) != mpi_p) {
+                        fprintf(stderr, "Node range not consistent with MPI node count\n");
+                        error();
+                } else
+                        options.node_max = options.node_min + mpi_p - 1;
+                if (!options.node_count)
+                        options.node_count = mpi_p;
+                if (options.node_max > options.node_count) {
+                        fprintf(stderr, "Node numbers can't exceed node count\n");
+                        error();
+                }
+                if (options.node_count > 1) {
+                        if (options.flags & (FLG_CRACKING_CHK | FLG_TEST_CHK)) {
+                                if (mpi_id == 0 && mpi_p != options.node_count)
+                                        fprintf(stderr, "Node numbers %u-%u of %u\n",
+                                                options.node_min, options.node_max,
+                                                options.node_count);
+                        } else if (!(options.flags & (FLG_RESTORE_CHK | FLG_STATUS_CHK))) {
+                                if (mpi_id == 0)
+	                                fprintf(stderr, "Chosen mode not suitable for running with multiple nodes\n");
+                                error();
+                        }
+                }
+                options.node_min += mpi_id;
+                options.node_max = options.node_min;
+        } else
+#endif
 	if (options.node_count) {
 		if (options.node_min != options.node_max)
 			fprintf(stderr, "Node numbers %u-%u of %u\n",
