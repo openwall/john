@@ -19,6 +19,7 @@
 #include "logger.h"
 #include "status.h"
 #include "recovery.h"
+#include "options.h"
 #include "rpp.h"
 #include "rules.h"
 #include "external.h"
@@ -195,6 +196,14 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 	if (prerule)
 	do {
 		if (rules) {
+			if (options.node_count) {
+				int for_node =
+				    rule_number % options.node_count + 1;
+				int skip = for_node < options.node_min ||
+				    for_node > options.node_max;
+				if (skip)
+					goto next_rule;
+			}
 			if ((rule = rules_reject(prerule, -1, last, db))) {
 				if (strcmp(prerule, rule))
 					log_event("- Rule #%d: '%.100s'"
@@ -232,6 +241,7 @@ not_comment:
 		}
 
 		if (rules) {
+next_rule:
 			if (!(rule = rpp_next(&ctx))) break;
 			rule_number++;
 
