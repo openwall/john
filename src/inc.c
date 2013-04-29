@@ -19,6 +19,7 @@
 #include "logger.h"
 #include "status.h"
 #include "recovery.h"
+#include "options.h"
 #include "config.h"
 #include "charset.h"
 #include "external.h"
@@ -65,7 +66,7 @@ static unsigned char rec_numbers[CHARSET_LENGTH];
 static unsigned char numbers[CHARSET_LENGTH];
 static int counts[CHARSET_LENGTH][CHARSET_LENGTH];
 
-static unsigned int real_count, real_min, real_max, real_size;
+static unsigned int real_count, real_minc, real_min, real_max, real_size;
 static unsigned char real_chars[CHARSET_SIZE];
 
 static void save_state(FILE *file)
@@ -170,13 +171,19 @@ static void inc_new_length(unsigned int length,
 	log_event("- Switching to length %d", length + 1);
 
 	char1[0] = 0;
-	if (length)
-	for (i = real_min - CHARSET_MIN; i <= real_max - CHARSET_MIN; i++)
-		(*char2)[i][0] = 0;
-	for (pos = 0; pos <= (int)length - 2; pos++)
-	for (i = real_min - CHARSET_MIN; i <= real_max - CHARSET_MIN; i++)
-	for (j = real_min - CHARSET_MIN; j <= real_max - CHARSET_MIN; j++)
-		(*chars[pos])[i][j][0] = 0;
+	if (length) {
+		for (i = real_min; i <= real_max; i++)
+			(*char2)[i][0] = 0;
+		(*char2)[CHARSET_SIZE][0] = 0;
+	}
+	for (pos = 0; pos <= (int)length - 2; pos++) {
+		for (i = real_min; i <= real_max; i++)
+		for (j = real_min; j <= real_max; j++)
+			(*chars[pos])[i][j][0] = 0;
+		for (j = real_min; j <= real_max; j++)
+			(*chars[pos])[CHARSET_SIZE][j][0] = 0;
+		(*chars[pos])[CHARSET_SIZE][CHARSET_SIZE][0] = 0;
+	}
 
 	offset =
 		(long)header->offsets[length][0] |
@@ -264,23 +271,24 @@ static void inc_new_length(unsigned int length,
 
 static int expand(char *dst, char *src, int size)
 {
-	char present[0x100];
+	char present[CHARSET_SIZE];
 	char *dptr = dst, *sptr = src;
 	int count = size;
 	unsigned int i;
 
-	memset(&present[real_min], 0, real_size);
+	memset(present, 0, real_size);
 	while (*dptr) {
 		if (--count <= 1)
 			return 0;
-		present[i = ARCH_INDEX(*dptr++)] = 1;
-		if ((i - real_min) >= real_size)
+		i = ARCH_INDEX(*dptr++) - real_minc;
+		if (i >= real_size)
 			return -1;
+		present[i] = 1;
 	}
 
 	while (*sptr) {
-		i = ARCH_INDEX(*sptr);
-		if ((i - real_min) >= real_size)
+		i = ARCH_INDEX(*sptr) - real_minc;
+		if (i >= real_size)
 			return -1;
 		if (!present[i]) {
 			*dptr++ = *sptr++;
@@ -607,12 +615,14 @@ void do_incremental_crack(struct db_main *db, char *mode)
 		real_min = 0xff;
 		real_count = real_max = 0;
 		while ((c = allchars[real_count])) {
+			c -= CHARSET_MIN;
 			if (c < real_min)
 				real_min = c;
 			if (c > real_max)
 				real_max = c;
-			real_chars[real_count++] = c - CHARSET_MIN;
+			real_chars[real_count++] = c;
 		}
+		real_minc = CHARSET_MIN + real_min;
 		real_size = real_max - real_min + 1;
 		if (real_size < real_count)
 			inc_format_error(charset);
@@ -714,6 +724,13 @@ void do_incremental_crack(struct db_main *db, char *mode)
 
 	entry--;
 	while (ptr < &header->order[sizeof(header->order) - 1]) {
+		int skip = 0;
+		if (options.node_count) {
+			int for_node = entry % options.node_count + 1;
+			skip = for_node < options.node_min ||
+			    for_node > options.node_max;
+		}
+
 		entry++;
 		length = *ptr++; fixed = *ptr++; count = *ptr++;
 
@@ -738,14 +755,13 @@ void do_incremental_crack(struct db_main *db, char *mode)
 		    (int)count >= max_count)
 			continue;
 
-		if ((int)length != last_length) {
-			inc_new_length(last_length = length,
-			    header, file, charset, char1, char2, chars);
-			last_count = -1;
-		}
-
-		{
+		if (!skip) {
 			int i, max_count = 0;
+			if ((int)length != last_length) {
+				inc_new_length(last_length = length,
+				    header, file, charset, char1, char2, chars);
+				last_count = -1;
+			}
 			for (i = 0; i <= length; i++)
 				if (counts[length][i] > max_count)
 					max_count = counts[length][i];
@@ -758,16 +774,11 @@ void do_incremental_crack(struct db_main *db, char *mode)
 			}
 		}
 
-		if ((int)count > last_count)
-			inc_new_count(length, last_count = count, charset,
-			    allchars, char1, char2, chars);
-
 		if (!length && !min_length) {
 			min_length = 1;
-#ifdef HAVE_MPI
-			if (mpi_id == 0)
-#endif
-			if (crk_process_key(""))
+			rec_entry = entry;
+			rec_length = 0;
+			if (!skip && crk_process_key(""))
 				break;
 		}
 
@@ -781,6 +792,9 @@ void do_incremental_crack(struct db_main *db, char *mode)
 				counts[length][fixed] + 1, count + 1);
 			error();
 		}
+
+		if (skip)
+			continue;
 
 		log_event("- Trying length %d, fixed @%d, character count %d",
 			length + 1, fixed + 1, counts[length][fixed] + 1);

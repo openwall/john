@@ -63,7 +63,7 @@ static struct opt_entry opt_list[] = {
 #else
 	{"pipe", FLG_PIPE_SET, FLG_CRACKING_CHK},
 #endif
-	{"rules", FLG_RULES, FLG_RULES, FLG_WORDLIST_CHK, FLG_STDIN_CHK,
+	{"rules", FLG_RULES | FLG_NODE_SUP, FLG_RULES, FLG_WORDLIST_CHK, FLG_STDIN_CHK,
 		OPT_FMT_STR_ALLOC, &options.loader.activewordlistrules},
 	{"incremental", FLG_INC_SET, FLG_CRACKING_CHK,
 		0, 0, OPT_FMT_STR_ALLOC, &options.charset},
@@ -104,6 +104,8 @@ static struct opt_entry opt_list[] = {
 		OPT_FMT_STR_ALLOC, &options.salt_param},
 	{"save-memory", FLG_SAVEMEM, FLG_SAVEMEM, 0, OPT_REQ_PARAM,
 		"%u", &mem_saving_level},
+	{"node", FLG_NODE, FLG_NODE, FLG_NODE_SUP, OPT_REQ_PARAM,
+		OPT_FMT_STR_ALLOC, &options.node_str},
 	{"pot", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
 	    OPT_FMT_STR_ALLOC, &options.loader.activepot},
 	{"format", FLG_FORMAT, FLG_FORMAT,
@@ -201,6 +203,7 @@ static struct opt_entry opt_list[] = {
 "--shells=[-]SHELL[,..]    load users with[out] this (these) shell(s) only\n" \
 "--salts=[-]COUNT[:MAX]    load salts with[out] COUNT [to MAX] hashes\n" \
 "--save-memory=LEVEL       enable memory saving, at LEVEL 1..3\n" \
+"--node=MIN[-MAX]/TOTAL    this node's number range out of TOTAL count\n" \
 "--pot=NAME                pot file to use\n" \
 "--list=WHAT               list capabilities, see --list=help or doc/OPTIONS\n"
 
@@ -437,6 +440,33 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 
 	if (options.flags & FLG_STDOUT) options.flags &= ~FLG_PWD_REQ;
 
+	if (options.node_str) {
+		const char *msg = NULL;
+		if (sscanf(options.node_str, "%u-%u/%u",
+		    &options.node_min, &options.node_max,
+		    &options.node_count) != 3) {
+			if (sscanf(options.node_str, "%u/%u",
+			    &options.node_min, &options.node_count) != 2)
+				msg = "syntax error";
+			options.node_max = options.node_min;
+		}
+		if (!msg) {
+			if (!options.node_min)
+				msg = "valid node numbers start from 1";
+			else if (options.node_min > options.node_max)
+				msg = "range start can't exceed range end";
+			else if (options.node_count < 2)
+				msg = "node count must be at least 2";
+			else if (options.node_max > options.node_count)
+				msg = "node numbers can't exceed node count";
+		}
+		if (msg) {
+			fprintf(stderr, "Invalid node specification: %s\n",
+			    msg);
+			error();
+		}
+	}
+
 	if (options.encoding && !strcasecmp(options.encoding, "list")) {
 		listEncodings();
 		exit(0);
@@ -444,6 +474,7 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 
 	if (!(options.subformat && !strcasecmp(options.subformat, "list")) &&
 	    (!options.listconf))
+
 	if ((options.flags & (FLG_PASSWD | FLG_PWD_REQ)) == FLG_PWD_REQ) {
 #ifdef HAVE_MPI
 		if (mpi_id == 0)
@@ -460,6 +491,16 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 		fprintf(stderr, "Password files specified, "
 			"but no option would use them\n");
 		error();
+	}
+
+	if (options.node_count) {
+		if (options.node_min != options.node_max)
+			fprintf(stderr, "Node numbers %u-%u of %u\n",
+			    options.node_min, options.node_max,
+			    options.node_count);
+		else
+			fprintf(stderr, "Node number %u of %u\n",
+			    options.node_min, options.node_count);
 	}
 
 #ifdef HAVE_MPI

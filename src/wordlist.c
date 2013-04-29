@@ -33,12 +33,12 @@
 #include "logger.h"
 #include "status.h"
 #include "recovery.h"
+#include "options.h"
 #include "rpp.h"
 #include "rules.h"
 #include "external.h"
 #include "cracker.h"
 #include "memory.h"
-#include "options.h"
 
 #ifdef HAVE_MPI
 #include "john-mpi.h"
@@ -824,12 +824,14 @@ SKIP_MEM_MAP_LOAD:;
 	if (prerule)
 	do {
 		if (rules) {
-#ifdef HAVE_MPI
-			// MPI distribution - leapfrog rules
-			if (distributeRules && rule_number % mpi_p != mpi_id)
-				rule = NULL;
-			else
-#endif
+			if (options.node_count) {
+				int for_node =
+				    rule_number % options.node_count + 1;
+				int skip = for_node < options.node_min ||
+				    for_node > options.node_max;
+				if (skip)
+					goto next_rule;
+			}
 			if ((rule = rules_reject(prerule, -1, last, db))) {
 				if (strcmp(prerule, rule))
 					log_event("- Rule #%d: '%.100s'"
@@ -908,9 +910,8 @@ SKIP_MEM_MAP_LOAD:;
 
 EndOfFile:
 		if (rules) {
-			if (!(rule = rpp_next(&ctx)))
-				break;
-
+next_rule:
+			if (!(rule = rpp_next(&ctx))) break;
 			rule_number++;
 			line_number = 0;
 
