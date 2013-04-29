@@ -236,13 +236,19 @@ static void john_load(void)
 	}
 
 	if (options.node_count) {
-		if (options.node_min != options.node_max)
+		if (options.node_min != options.node_max) {
+			log_event("- Node numbers %u-%u of %u",
+			    options.node_min, options.node_max,
+			    options.node_count);
 			fprintf(stderr, "Node numbers %u-%u of %u\n",
 			    options.node_min, options.node_max,
 			    options.node_count);
-		else
+		} else {
+			log_event("- Node number %u of %u",
+			    options.node_min, options.node_count);
 			fprintf(stderr, "Node number %u of %u\n",
 			    options.node_min, options.node_count);
+		}
 	}
 }
 
