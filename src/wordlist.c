@@ -37,14 +37,15 @@ static struct rpp_context *rule_ctx;
 
 static void save_state(FILE *file)
 {
-	fprintf(file, "%d\n%ld\n", rec_rule, rec_pos);
+	fprintf(file, "%d\n%ld\n%d\n", rec_rule, rec_pos, line_number);
 }
 
 static int restore_rule_number(void)
 {
 	if (rule_ctx)
-	for (rule_number = 0; rule_number < rec_rule; rule_number++)
-	if (!rpp_next(rule_ctx)) return 1;
+		for (rule_number = 0; rule_number < rec_rule; rule_number++)
+			if (!rpp_next(rule_ctx))
+				return 1;
 
 	return 0;
 }
@@ -66,14 +67,21 @@ static void restore_line_number(void)
 
 static int restore_state(FILE *file)
 {
-	if (fscanf(file, "%d\n%ld\n", &rec_rule, &rec_pos) != 2) return 1;
+	if (fscanf(file, "%d\n%ld\n", &rec_rule, &rec_pos) != 2)
+		return 1;
+	if (rec_version >= 4 && fscanf(file, "%d\n", &line_number) != 1)
+		return 1;
+	if (rec_rule < 0 || rec_pos < 0 || line_number < 0)
+		return 1;
 
-	if (restore_rule_number()) return 1;
+	if (restore_rule_number())
+		return 1;
 
 	if (word_file == stdin)
 		restore_line_number();
 	else
-		if (fseek(word_file, rec_pos, SEEK_SET)) pexit("fseek");
+		if (fseek(word_file, rec_pos, SEEK_SET))
+			pexit("fseek");
 
 	return 0;
 }
@@ -140,6 +148,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 	struct rpp_context ctx;
 	char *prerule, *rule, *word;
 	char *(*apply)(char *word, char *rule, int split, char *last);
+	int distrules, distwords;
 
 	log_event("Proceeding with wordlist mode");
 
@@ -189,6 +198,23 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 	if (rules) prerule = rpp_next(&ctx); else prerule = "";
 	rule = "";
 
+	distrules = distwords = 0;
+	if (options.node_count) {
+		const char *now, *later = "";
+		if (rule_count % options.node_count == 0) {
+			distrules = 2;
+			now = "rules";
+		} else if (rule_count - rule_number >= options.node_count) {
+			distrules = 1;
+			now = "rules";
+			later = ", then switch to distributing words";
+		} else {
+			distwords = 1;
+			now = "words";
+		}
+		log_event("- Will distribute %s across nodes%s", now, later);
+	}
+
 /* A string that can't be produced by fgetl(). */
 	last[0] = '\n';
 	last[1] = 0;
@@ -196,7 +222,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 	if (prerule)
 	do {
 		if (rules) {
-			if (options.node_count) {
+			if (distrules) {
 				int for_node =
 				    rule_number % options.node_count + 1;
 				if (for_node < options.node_min ||
@@ -219,6 +245,16 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 
 		if (rule)
 		while (fgetl(line, LINE_BUFFER_SIZE, word_file)) {
+			if (distwords) {
+				int for_node =
+				    line_number % options.node_count + 1;
+				if (for_node < options.node_min ||
+				    for_node > options.node_max) {
+					line_number++;
+					continue;
+				}
+			}
+
 			line_number++;
 
 			if (line[0] != '#') {
@@ -243,6 +279,13 @@ not_comment:
 next_rule:
 			if (!(rule = rpp_next(&ctx))) break;
 			rule_number++;
+
+			if (distrules == 1 &&
+			    rule_count - rule_number < options.node_count) {
+				distrules = 0;
+				distwords = 1;
+				log_event("- Switching to distributing words");
+			}
 
 			line_number = 0;
 			if (fseek(word_file, 0, SEEK_SET)) pexit("fseek");
