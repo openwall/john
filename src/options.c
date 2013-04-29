@@ -234,16 +234,6 @@ void opt_init(char *name, int argc, char **argv)
 		error();
 	}
 
-	if (options.node_count) {
-		if (options.node_min != options.node_max)
-			fprintf(stderr, "Node numbers %u-%u of %u\n",
-			    options.node_min, options.node_max,
-			    options.node_count);
-		else
-			fprintf(stderr, "Node number %u of %u\n",
-			    options.node_min, options.node_count);
-	}
-
 	rec_argc = argc; rec_argv = argv;
 	rec_check = 0;
 }
