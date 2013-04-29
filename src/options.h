@@ -37,7 +37,8 @@
 /* Wordlist mode enabled, options.wordlist is set to the file name, or
  * we get it from john.conf */
 #define FLG_WORDLIST_CHK		0x00000080
-#define FLG_WORDLIST_SET		(FLG_WORDLIST_CHK | FLG_CRACKING_SET)
+#define FLG_WORDLIST_SET \
+	(FLG_WORDLIST_CHK | FLG_CRACKING_SET | FLG_NODE_SUP)
 /* Wordlist mode enabled, reading from stdin */
 #define FLG_STDIN_CHK			0x00000100
 #define FLG_STDIN_SET			(FLG_STDIN_CHK | FLG_WORDLIST_SET)
