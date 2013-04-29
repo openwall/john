@@ -277,11 +277,11 @@ static char *get_key(int index)
 
 static int akcdecrypt(unsigned char *derived_key, unsigned char *data)
 {
-	unsigned char key[16];
 	unsigned char iv[16];
 	unsigned char out[CTLEN];
 	int pad, n, i, key_size;
 	AES_KEY akey;
+
 	memcpy(iv, data + CTLEN - 32, 16);
 
 	if(AES_set_decrypt_key(derived_key, 128, &akey) < 0) {
