@@ -114,7 +114,8 @@
 #define FLG_LOG_STDERR			0x0000001000000000ULL
 /* Markov mode enabled */
 #define FLG_MKV_CHK			0x0000002000000000ULL
-#define FLG_MKV_SET			(FLG_MKV_CHK | FLG_CRACKING_SET)
+#define FLG_MKV_SET	\
+	(FLG_MKV_CHK | FLG_CRACKING_SET | FLG_NODE_SUP)
 /* Emit a status line for every password cracked */
 #define FLG_CRKSTAT			0x0000004000000000ULL
 /* Wordlist dupe suppression */

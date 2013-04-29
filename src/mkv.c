@@ -623,32 +623,28 @@ void do_markov_crack(struct db_main *db, char *mkv_param)
 	get_markov_start_end(start_token, end_token, nbparts[0], &mkv_start, &mkv_end);
 
 #ifdef HAVE_MPI
-	if (mpi_id == 0) {
+	if (mpi_id == 0)
+#endif
+	{
 		fprintf(stderr, "MKV start (stats=%s, lvl=", statfile);
 		if(mkv_minlevel>0) fprintf(stderr, "%d-", mkv_minlevel);
 		fprintf(stderr, "%d len=", mkv_level);
 		if(mkv_minlen>0) fprintf(stderr, "%d-", mkv_minlen);
 		fprintf(stderr, "%d pwd="LLd"%s)\n", mkv_maxlen, mkv_end-mkv_start,
-		mpi_p > 1 ? " split over MPI nodes" : "");
+		        options.node_count > 1 ? " split over nodes" : "");
 	}
 
-	if (mpi_p > 1) {
+	if (options.node_count > 1) {
+		unsigned long long mkv_size;
+
 		mkv_size = mkv_end - mkv_start + 1;
-		if (mpi_id != (mpi_p - 1))
-			mkv_end = mkv_start + (mkv_size / mpi_p) * (mpi_id + 1) - 1;
-		mkv_start = mkv_start + (mkv_size / mpi_p) * mpi_id;
+		if (options.node_max != options.node_count)
+			mkv_end = mkv_start + mkv_size / options.node_count * options.node_max - 1;
+		mkv_start += mkv_size / options.node_count * (options.node_min - 1);
 	}
-#endif
+
 	gstart = mkv_start;
 	gend = mkv_end + 10; /* omg !! */
-
-#ifndef HAVE_MPI
-	fprintf(stderr, "MKV start (stats=%s, lvl=", statfile);
-	if(mkv_minlevel>0) fprintf(stderr, "%d-", mkv_minlevel);
-	fprintf(stderr, "%d len=", mkv_level);
-	if(mkv_minlen>0) fprintf(stderr, "%d-", mkv_minlen);
-	fprintf(stderr, "%d pwd="LLd")\n", mkv_maxlen, mkv_end-mkv_start);
-#endif
 
 	if(param)
 		log_event("Proceeding with Markov mode %s", param);
