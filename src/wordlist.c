@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-99,2003,2004,2006,2009 by Solar Designer
+ * Copyright (c) 1996-99,2003,2004,2006,2009,2013 by Solar Designer
  */
 
 #define _POSIX_SOURCE /* for fileno(3) */
@@ -54,7 +54,7 @@ static void restore_line_number(void)
 	char line[LINE_BUFFER_SIZE];
 
 	for (line_number = 0; line_number < rec_pos; line_number++)
-	if (!fgets(line, sizeof(line), word_file)) {
+	if (!fgetl(line, sizeof(line), word_file)) {
 		if (ferror(word_file))
 			pexit("fgets");
 		else {
@@ -199,9 +199,8 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 			if (options.node_count) {
 				int for_node =
 				    rule_number % options.node_count + 1;
-				int skip = for_node < options.node_min ||
-				    for_node > options.node_max;
-				if (skip)
+				if (for_node < options.node_min ||
+				    for_node > options.node_max)
 					goto next_rule;
 			}
 			if ((rule = rules_reject(prerule, -1, last, db))) {
