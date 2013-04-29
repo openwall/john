@@ -644,6 +644,8 @@ void do_incremental_crack(struct db_main *db, char *mode)
 
 		if (!length && !min_length) {
 			min_length = 1;
+			rec_entry = entry;
+			rec_length = 0;
 			if (crk_process_key(""))
 				break;
 		}
