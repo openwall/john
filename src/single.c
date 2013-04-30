@@ -20,6 +20,7 @@
 #include "rules.h"
 #include "external.h"
 #include "cracker.h"
+#include "john.h"
 
 static int progress = 0;
 static int rec_rule;
@@ -101,8 +102,10 @@ static void single_init(void)
 
 	if (rpp_init(rule_ctx, SUBSECTION_SINGLE)) {
 		log_event("! No \"single crack\" mode rules found");
-		fprintf(stderr, "No \"single crack\" mode rules found in %s\n",
-			cfg_name);
+		if (john_main_process)
+			fprintf(stderr,
+			    "No \"single crack\" mode rules found in %s\n",
+			    cfg_name);
 		error();
 	}
 

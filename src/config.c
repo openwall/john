@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2002,2009 by Solar Designer
+ * Copyright (c) 1996-2002,2009,2013 by Solar Designer
  */
 
 #include <stdio.h>
@@ -14,6 +14,7 @@
 #include "path.h"
 #include "memory.h"
 #include "config.h"
+#include "john.h"
 
 char *cfg_name = NULL;
 static struct cfg_section *cfg_database = NULL;
@@ -109,8 +110,9 @@ static int cfg_process_line(char *line, int number)
 
 static void cfg_error(char *name, int number)
 {
-	fprintf(stderr, "Error in %s at line %d\n",
-		path_expand(name), number);
+	if (john_main_process)
+		fprintf(stderr, "Error in %s at line %d\n",
+		    path_expand(name), number);
 	error();
 }
 
