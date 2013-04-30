@@ -11,7 +11,7 @@
 
 #include "params.h"
 
-#if defined(_OPENMP) && OMP_FALLBACK
+#ifdef _OPENMP
 #include <omp.h>
 #endif
 
@@ -116,6 +116,44 @@ static void john_log_format(void)
 			min_chunk > 1 ? "will" : "may",
 			chunk);
 }
+
+#ifdef _OPENMP
+static void john_omp_init(void)
+{
+	int threads_orig = omp_get_max_threads();
+	int threads_new = threads_orig;
+
+	if (options.fork && !getenv("OMP_NUM_THREADS")) {
+		threads_new /= options.fork;
+		if (threads_new < 1)
+			threads_new = 1;
+		omp_set_num_threads(threads_new);
+	}
+
+	if (!(database.format->params.flags & FMT_OMP))
+		return;
+
+	if (options.fork) {
+		if (threads_new > 1)
+			fprintf(stderr,
+			    "Will run %d OpenMP threads per process "
+			    "(%u total across %u processes)\n",
+			    threads_new,
+			    threads_new * options.fork, options.fork);
+		else if (threads_orig > 1)
+			fputs("Warning: OpenMP was disabled due to --fork; "
+			    "a non-OpenMP build may be faster\n", stderr);
+	} else {
+		if (threads_new > 1)
+			fprintf(stderr,
+			    "Will run %d OpenMP threads\n", threads_new);
+	}
+
+	if (threads_orig == 1)
+		fputs("Warning: OpenMP is disabled; "
+		    "a non-OpenMP build may be faster\n", stderr);
+}
+#endif
 
 static void john_fork(void)
 {
@@ -281,6 +319,10 @@ static void john_load(void)
 
 		if ((options.flags & FLG_PWD_REQ) && !database.salts) exit(0);
 	}
+
+#ifdef _OPENMP
+	john_omp_init();
+#endif
 
 	if (options.node_count) {
 		if (options.node_min != options.node_max) {
