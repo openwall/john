@@ -162,7 +162,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 	} aligned;
 	char *line = aligned.buffer[0], *last = aligned.buffer[1];
 	struct rpp_context ctx;
-	char *prerule;
+	char *prerule, *rule, *word;
 	char *(*apply)(char *word, char *rule, int split, char *last);
 	int dist_rules, dist_switch;
 	unsigned long my_words, their_words, my_words_left;
@@ -213,7 +213,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 
 	crk_init(db, fix_state, NULL);
 
-	prerule = "";
+	prerule = rule = "";
 	if (rules)
 		prerule = rpp_next(&ctx);
 
@@ -269,8 +269,6 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 
 	if (prerule)
 	do {
-		char *rule, *word;
-
 		if (rules) {
 			if (dist_rules) {
 				int for_node =
