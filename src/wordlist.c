@@ -156,9 +156,9 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 	} aligned;
 	char *line = aligned.buffer[0], *last = aligned.buffer[1];
 	struct rpp_context ctx;
-	char *prerule, *rule, *word;
+	char *prerule;
 	char *(*apply)(char *word, char *rule, int split, char *last);
-	int dist_rules, dist_words, dist_switch;
+	int dist_rules, dist_switch, my_words, their_words;
 
 	log_event("Proceeding with wordlist mode");
 
@@ -205,15 +205,18 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 
 	crk_init(db, fix_state, NULL);
 
-	if (rules) prerule = rpp_next(&ctx); else prerule = "";
-	rule = "";
+	prerule = "";
+	if (rules)
+		prerule = rpp_next(&ctx);
 
 /* A string that can't be produced by fgetl(). */
 	last[0] = '\n';
 	last[1] = 0;
 
-	dist_rules = dist_words = 0;
+	dist_rules = 0;
 	dist_switch = rule_count; /* never */
+	my_words = 0x7fffffff; /* all */
+	their_words = 0;
 	if (options.node_count) {
 		int rule_rem = rule_count % options.node_count;
 		const char *now, *later = "";
@@ -225,8 +228,8 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 				later = ", then switch to distributing words";
 		} else {
 			dist_switch = rule_count; /* never */
-			dist_words = options.node_count -
-			    (options.node_max - options.node_min + 1);
+			my_words = options.node_max - options.node_min + 1;
+			their_words = options.node_count - my_words;
 			now = "words";
 		}
 		log_event("- Will distribute %s across nodes%s", now, later);
@@ -238,9 +241,9 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
  * actually used.  Thus, when restoring a session we skip other nodes' lines
  * here.  When starting a new session, we skip lower-numbered nodes' lines.
  */
-	if (dist_words) {
+	if (their_words) {
 		if (rec_pos) {
-			if (skip_lines(dist_words, line))
+			if (skip_lines(their_words, line))
 				prerule = NULL;
 /* We only need the line_number to be correct modulo node_count */
 			if (word_file != stdin)
@@ -252,6 +255,9 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 
 	if (prerule)
 	do {
+		char *rule, *word;
+		int my_words_left;
+
 		if (rules) {
 			if (dist_rules) {
 				int for_node =
@@ -269,17 +275,19 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 					log_event("- Rule #%d: '%.100s'"
 						" accepted",
 						rule_number + 1, prerule);
-			} else
+			} else {
 				log_event("- Rule #%d: '%.100s' rejected",
 					rule_number + 1, prerule);
+				goto next_rule;
+			}
 		}
 
-		if (rule)
+		my_words_left = my_words;
 		while (fgetl(line, LINE_BUFFER_SIZE, word_file)) {
 			line_number++;
 
 			if (line[0] != '#') {
-not_comment:
+process_word:
 				if ((word = apply(line, rule, -1, last))) {
 					last = word;
 
@@ -289,16 +297,19 @@ not_comment:
 						break;
 					}
 				}
-				if (dist_words && skip_lines(dist_words, line))
+next_word:
+				if (--my_words_left)
+					continue;
+				if (their_words &&
+				    skip_lines(their_words, line))
 					break;
+				my_words_left = my_words;
 				continue;
 			}
 
 			if (strncmp(line, "#!comment", 9))
-				goto not_comment;
-
-			if (dist_words && skip_lines(dist_words, line))
-				break;
+				goto process_word;
+			goto next_word;
 		}
 
 		if (ferror(word_file))
@@ -311,17 +322,18 @@ next_rule:
 
 			if (rule_number >= dist_switch) {
 				log_event("- Switching to distributing words");
-				dist_switch = rule_count; /* not anymore */
 				dist_rules = 0;
-				dist_words = options.node_count -
-				    (options.node_max - options.node_min + 1);
+				dist_switch = rule_count; /* not anymore */
+				my_words =
+				    options.node_max - options.node_min + 1;
+				their_words = options.node_count - my_words;
 			}
 
 			line_number = 0;
 			if (fseek(word_file, 0, SEEK_SET))
 				pexit("fseek");
 
-			if (dist_words && options.node_min > 1 &&
+			if (their_words && options.node_min > 1 &&
 			    skip_lines(options.node_min - 1, line))
 				break;
 		}
