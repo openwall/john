@@ -69,11 +69,18 @@ static void rec_lock(void)
 				path_expand(rec_name));
 			error();
 		} else
-			pexit("flock");
+			pexit("flock(LOCK_EX)");
 	}
+}
+static void rec_unlock(void)
+{
+	if (flock(rec_fd, LOCK_UN))
+		perror("flock(LOCK_UN)");
 }
 #else
 #define rec_lock() \
+	{}
+#define rec_unlock() \
 	{}
 #endif
 
@@ -270,6 +277,15 @@ void rec_restore_mode(int (*restore_mode)(FILE *file))
 
 	if (restore_mode)
 	if (restore_mode(rec_file)) rec_format_error("fscanf");
+
+/*
+ * Unlocking the file explicitly should not be necessary since we're about to
+ * close it anyway (which releases the lock), but it appears to help avoid a
+ * race condition on Linux where a subsequent rec_lock() would fail (flock()
+ * failing with EWOULDBLOCK) if too little time elapses yet the process happens
+ * to be bounced to a different CPU.
+ */
+	rec_unlock();
 
 	if (fclose(rec_file)) pexit("fclose");
 	rec_file = NULL;
