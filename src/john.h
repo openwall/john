@@ -16,4 +16,16 @@
  */
 extern int john_main_process;
 
+/*
+ * Number of child processes, if any (or zero otherwise).
+ */
+extern int john_child_count;
+
+/*
+ * Child process PIDs array, element 0 corresponds to node 2, array size is
+ * john_child_count elements.  (This is only used when options.fork is set,
+ * otherwise the pointer is NULL.)
+ */
+extern int *john_child_pids;
+
 #endif
