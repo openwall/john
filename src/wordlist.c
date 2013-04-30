@@ -29,16 +29,17 @@ static FILE *word_file = NULL;
 static int progress = 0;
 
 static int rec_rule;
-static long rec_pos;
-static int rec_line;
+static long rec_pos; /* ftell(3) is defined to return a long */
+static unsigned long rec_line;
 
-static int rule_number, rule_count, line_number;
+static int rule_number, rule_count;
+static unsigned long line_number;
 static int length;
 static struct rpp_context *rule_ctx;
 
 static void save_state(FILE *file)
 {
-	fprintf(file, "%d\n%ld\n%d\n", rec_rule, rec_pos, rec_line);
+	fprintf(file, "%d\n%ld\n%lu\n", rec_rule, rec_pos, rec_line);
 }
 
 static int restore_rule_number(void)
@@ -51,18 +52,18 @@ static int restore_rule_number(void)
 	return 0;
 }
 
-static MAYBE_INLINE int skip_lines(int n, char *line)
+static MAYBE_INLINE int skip_lines(unsigned long n, char *line)
 {
 	if (n) {
 		line_number += n;
 
 		do {
 			if (!fgetl(line, LINE_BUFFER_SIZE, word_file))
-				break;
+				return 1;
 		} while (--n);
 	}
 
-	return n;
+	return 0;
 }
 
 static void restore_line_number(void)
@@ -81,9 +82,9 @@ static int restore_state(FILE *file)
 	if (fscanf(file, "%d\n%ld\n", &rec_rule, &rec_pos) != 2)
 		return 1;
 	rec_line = 0;
-	if (rec_version >= 4 && fscanf(file, "%d\n", &rec_line) != 1)
+	if (rec_version >= 4 && fscanf(file, "%lu\n", &rec_line) != 1)
 		return 1;
-	if (rec_rule < 0 || rec_pos < 0 || rec_line < 0)
+	if (rec_rule < 0 || rec_pos < 0)
 		return 1;
 
 	if (restore_rule_number())
@@ -163,8 +164,8 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 	struct rpp_context ctx;
 	char *prerule;
 	char *(*apply)(char *word, char *rule, int split, char *last);
-	int dist_rules, dist_switch, my_words, their_words;
-	int my_words_left;
+	int dist_rules, dist_switch;
+	unsigned long my_words, their_words, my_words_left;
 
 	log_event("Proceeding with wordlist mode");
 
@@ -202,7 +203,8 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 		apply = dummy_rules_apply;
 	}
 
-	line_number = rule_number = 0;
+	rule_number = 0;
+	line_number = 0;
 
 	status_init(get_progress, 0);
 
@@ -221,7 +223,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 
 	dist_rules = 0;
 	dist_switch = rule_count; /* never */
-	my_words = 0x7fffffff; /* all */
+	my_words = ~0UL; /* all */
 	their_words = 0;
 	if (options.node_count) {
 		int rule_rem = rule_count % options.node_count;
