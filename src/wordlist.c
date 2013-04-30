@@ -30,6 +30,7 @@ static int progress = 0;
 
 static int rec_rule;
 static long rec_pos;
+static int rec_line;
 
 static int rule_number, rule_count, line_number;
 static int length;
@@ -37,7 +38,7 @@ static struct rpp_context *rule_ctx;
 
 static void save_state(FILE *file)
 {
-	fprintf(file, "%d\n%ld\n", rec_rule, rec_pos);
+	fprintf(file, "%d\n%ld\n%d\n", rec_rule, rec_pos, rec_line);
 }
 
 static int restore_rule_number(void)
@@ -69,17 +70,22 @@ static int restore_state(FILE *file)
 {
 	if (fscanf(file, "%d\n%ld\n", &rec_rule, &rec_pos) != 2)
 		return 1;
-	if (rec_rule < 0 || rec_pos < 0)
+	rec_line = 0;
+	if (rec_version >= 4 && fscanf(file, "%d\n", &rec_line) != 1)
+		return 1;
+	if (rec_rule < 0 || rec_pos < 0 || rec_line < 0)
 		return 1;
 
 	if (restore_rule_number())
 		return 1;
 
-	if (word_file == stdin)
+	if (word_file == stdin) {
 		restore_line_number();
-	else
+	} else {
 		if (fseek(word_file, rec_pos, SEEK_SET))
 			pexit("fseek");
+		line_number = rec_line;
+	}
 
 	return 0;
 }
@@ -87,6 +93,7 @@ static int restore_state(FILE *file)
 static void fix_state(void)
 {
 	rec_rule = rule_number;
+	rec_line = line_number;
 
 	if (word_file == stdin)
 		rec_pos = line_number;
@@ -159,6 +166,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 	char *prerule;
 	char *(*apply)(char *word, char *rule, int split, char *last);
 	int dist_rules, dist_switch, my_words, their_words;
+	int my_words_left;
 
 	log_event("Proceeding with wordlist mode");
 
@@ -235,28 +243,35 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 		log_event("- Will distribute %s across nodes%s", now, later);
 	}
 
-/*
- * We call crk_process_key() before skipping other nodes' lines in the loop
- * below, so fix_state() records the rec_pos as of right after the word we've
- * actually used.  Thus, when restoring a session we skip other nodes' lines
- * here.  When starting a new session, we skip lower-numbered nodes' lines.
- */
+	my_words_left = my_words;
 	if (their_words) {
-		if (rec_pos) {
-			if (skip_lines(their_words, line))
+		if (line_number) {
+/* Restored session.  line_number is right after a word we've actually used. */
+			int for_node = line_number % options.node_count + 1;
+			if (for_node < options.node_min ||
+			    for_node > options.node_max) {
+/* We assume that line_number is at the beginning of other nodes' block */
+				if (their_words &&
+				    skip_lines(their_words, line) &&
+/* Check for error since a mere EOF means next rule (the loop below should see
+ * the EOF again, and it will skip to next rule if applicable) */
+				    ferror(word_file))
+					prerule = NULL;
+			} else {
+				my_words_left =
+				    options.node_max - for_node + 1;
+			}
+		} else {
+/* New session.  Skip lower-numbered nodes' lines. */
+			if (options.node_min > 1 &&
+			    skip_lines(options.node_min - 1, line))
 				prerule = NULL;
-/* We only need the line_number to be correct modulo node_count */
-			if (word_file != stdin)
-				line_number = options.node_min - 1;
-		} else if (options.node_min > 1 &&
-		    skip_lines(options.node_min - 1, line))
-			prerule = NULL;
+		}
 	}
 
 	if (prerule)
 	do {
 		char *rule, *word;
-		int my_words_left;
 
 		if (rules) {
 			if (dist_rules) {
@@ -282,7 +297,6 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 			}
 		}
 
-		my_words_left = my_words;
 		while (fgetl(line, LINE_BUFFER_SIZE, word_file)) {
 			line_number++;
 
@@ -337,6 +351,8 @@ next_rule:
 			    skip_lines(options.node_min - 1, line))
 				break;
 		}
+
+		my_words_left = my_words;
 	} while (rules);
 
 	crk_done();
