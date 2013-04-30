@@ -145,12 +145,14 @@ static char *dummy_rules_apply(char *word, char *rule, int split, char *last)
 
 static MAYBE_INLINE int skip_lines(int n, char *line)
 {
-	line_number += n;
+	if (n) {
+		line_number += n;
 
-	do {
-		if (!fgetl(line, LINE_BUFFER_SIZE, word_file))
-			break;
-	} while (--n);
+		do {
+			if (!fgetl(line, LINE_BUFFER_SIZE, word_file))
+				break;
+		} while (--n);
+	}
 
 	return n;
 }
@@ -251,8 +253,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 			if (for_node < options.node_min ||
 			    for_node > options.node_max) {
 /* We assume that line_number is at the beginning of other nodes' block */
-				if (their_words &&
-				    skip_lines(their_words, line) &&
+				if (skip_lines(their_words, line) &&
 /* Check for error since a mere EOF means next rule (the loop below should see
  * the EOF again, and it will skip to next rule if applicable) */
 				    ferror(word_file))
@@ -263,8 +264,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 			}
 		} else {
 /* New session.  Skip lower-numbered nodes' lines. */
-			if (options.node_min > 1 &&
-			    skip_lines(options.node_min - 1, line))
+			if (skip_lines(options.node_min - 1, line))
 				prerule = NULL;
 		}
 	}
@@ -314,8 +314,7 @@ process_word:
 next_word:
 				if (--my_words_left)
 					continue;
-				if (their_words &&
-				    skip_lines(their_words, line))
+				if (skip_lines(their_words, line))
 					break;
 				my_words_left = my_words;
 				continue;
@@ -347,7 +346,7 @@ next_rule:
 			if (fseek(word_file, 0, SEEK_SET))
 				pexit("fseek");
 
-			if (their_words && options.node_min > 1 &&
+			if (their_words &&
 			    skip_lines(options.node_min - 1, line))
 				break;
 		}
