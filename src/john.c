@@ -54,6 +54,8 @@ extern int unshadow(int argc, char **argv);
 extern int unafs(int argc, char **argv);
 extern int unique(int argc, char **argv);
 
+int john_main_process = 1;
+
 static struct db_main database;
 static struct fmt_main dummy_format;
 
@@ -120,6 +122,14 @@ static void john_fork(void)
 	if (!options.fork)
 		return;
 
+/*
+ * It may cost less memory to reset john_main_process to 0 before fork()'ing
+ * the children than to do it in every child process individually (triggering
+ * copy-on-write of the entire page).  We then reset john_main_process back to
+ * 1 in the parent, but this only costs one page, not one page per child.
+ */
+	john_main_process = 0;
+
 	sig_pids = mem_alloc((options.fork - 1) * sizeof(*sig_pids));
 
 	for (i = 1; i < options.fork; i++) {
@@ -138,6 +148,7 @@ static void john_fork(void)
 		}
 	}
 
+	john_main_process = 1;
 	options.node_max = options.node_min;
 }
 
@@ -398,7 +409,7 @@ static void john_run(void)
 		status_print();
 		tty_done();
 
-		if (database.password_count < remaining) {
+		if (john_main_process && database.password_count < remaining) {
 			char *might = "Warning: passwords printed above might";
 			char *partial = " be partial";
 			char *not_all = " not be all those cracked";

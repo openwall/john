@@ -24,6 +24,7 @@
 #include "rules.h"
 #include "external.h"
 #include "cracker.h"
+#include "john.h"
 
 static FILE *word_file = NULL;
 static int progress = 0;
@@ -183,8 +184,10 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 	if (rules) {
 		if (rpp_init(rule_ctx = &ctx, SUBSECTION_WORDLIST)) {
 			log_event("! No wordlist mode rules found");
-			fprintf(stderr, "No wordlist mode rules found in %s\n",
-				cfg_name);
+			if (john_main_process)
+				fprintf(stderr,
+				    "No wordlist mode rules found in %s\n",
+				    cfg_name);
 			error();
 		}
 

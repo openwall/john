@@ -17,6 +17,7 @@
 #include "options.h"
 #include "config.h"
 #include "cracker.h"
+#include "john.h"
 #include "external.h"
 
 static char int_word[PLAINTEXT_BUFFER_SIZE];
@@ -82,16 +83,19 @@ static void ext_rewind(void)
 void ext_init(char *mode)
 {
 	if (!(ext_source = cfg_get_list(SECTION_EXT, mode))) {
-		fprintf(stderr, "Unknown external mode: %s\n", mode);
+		if (john_main_process)
+			fprintf(stderr, "Unknown external mode: %s\n", mode);
 		error();
 	}
 
 	if (c_compile(ext_getchar, ext_rewind, &ext_globals)) {
 		if (!ext_line) ext_line = ext_source->tail;
 
-		fprintf(stderr, "Compiler error in %s at line %d: %s\n",
-			cfg_name, ext_line->number,
-			c_errors[c_errno]);
+		if (john_main_process)
+			fprintf(stderr,
+			    "Compiler error in %s at line %d: %s\n",
+			    cfg_name, ext_line->number,
+			    c_errors[c_errno]);
 		error();
 	}
 
@@ -102,14 +106,19 @@ void ext_init(char *mode)
 	f_filter = c_lookup("filter");
 
 	if ((ext_flags & EXT_REQ_GENERATE) && !f_generate) {
-		fprintf(stderr, "No generate() for external mode: %s\n", mode);
+		if (john_main_process)
+			fprintf(stderr,
+			    "No generate() for external mode: %s\n", mode);
 		error();
 	}
 	if ((ext_flags & EXT_REQ_FILTER) && !f_filter) {
-		fprintf(stderr, "No filter() for external mode: %s\n", mode);
+		if (john_main_process)
+			fprintf(stderr,
+			    "No filter() for external mode: %s\n", mode);
 		error();
 	}
-	if ((ext_flags & (EXT_USES_GENERATE | EXT_USES_FILTER)) ==
+	if (john_main_process &&
+	    (ext_flags & (EXT_USES_GENERATE | EXT_USES_FILTER)) ==
 	    EXT_USES_FILTER && f_generate)
 		fprintf(stderr, "Warning: external mode defines generate(), "
 		    "but is only used for filter()\n");

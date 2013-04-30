@@ -36,6 +36,7 @@
 #include "options.h"
 #include "config.h"
 #include "bench.h"
+#include "john.h"
 
 volatile int event_pending = 0;
 volatile int event_abort = 0, event_save = 0, event_status = 0;
@@ -126,11 +127,13 @@ void check_abort(int be_async_signal_safe)
 	tty_done();
 
 	if (be_async_signal_safe) {
-		write_loop(2, "Session aborted\n", 16);
+		if (john_main_process)
+			write_loop(2, "Session aborted\n", 16);
 		_exit(1);
 	}
 
-	fprintf(stderr, "Session aborted\n");
+	if (john_main_process)
+		fprintf(stderr, "Session aborted\n");
 	error();
 }
 
