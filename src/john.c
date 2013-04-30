@@ -133,8 +133,28 @@ static void john_omp_init(void)
 		omp_set_num_threads(threads_new);
 	}
 
-	if (!(database.format->params.flags & FMT_OMP))
-		return;
+/*
+ * Only show OpenMP info if one of the following is true:
+ * - we have a format detected for the loaded hashes and it is OpenMP-enabled;
+ * - we're doing --test and no format is specified (so we will test all,
+ * including some that are presumably OpenMP-enabled);
+ * - we're doing --test and the specified format is OpenMP-enabled.
+ */
+	{
+		int show_omp_info = 0;
+		if (database.format &&
+		    (database.format->params.flags & FMT_OMP))
+			show_omp_info = 1;
+		else if ((options.flags & (FLG_TEST_CHK | FLG_FORMAT)) ==
+		    FLG_TEST_CHK)
+			show_omp_info = 1;
+		else if ((options.flags & FLG_TEST_CHK) &&
+		    (fmt_list->params.flags & FMT_OMP))
+			show_omp_info = 1;
+
+		if (!show_omp_info)
+			return;
+	}
 
 	if (options.fork) {
 		if (threads_new > 1)
