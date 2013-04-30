@@ -120,6 +120,7 @@ static int restore_state(FILE *file)
 	if (word_file == stdin) {
 		restore_line_number();
 	} else {
+		if (!nWordFileLines)
 		if (fseek(word_file, rec_pos, SEEK_SET))
 			pexit("fseek");
 		line_number = rec_line;
