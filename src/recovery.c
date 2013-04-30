@@ -29,6 +29,7 @@ extern int ftruncate(int fd, size_t length);
 #include "logger.h"
 #include "status.h"
 #include "recovery.h"
+#include "john.h"
 
 char *rec_name = RECOVERY_NAME;
 int rec_name_completed = 0;
@@ -48,7 +49,7 @@ static void rec_name_complete(void)
 	if (rec_name_completed)
 		return;
 
-	if (options.fork && options.node_min > 1) {
+	if (options.fork && !john_main_process) {
 		char *suffix = mem_alloc(1 + 20 + strlen(RECOVERY_SUFFIX) + 1);
 		sprintf(suffix, ".%u%s", options.node_min, RECOVERY_SUFFIX);
 		rec_name = path_session(rec_name, suffix);
