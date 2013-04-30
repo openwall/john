@@ -8,10 +8,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#ifdef HAVE_MPI
-#include "john-mpi.h"
-#endif
-
 #include "arch.h"
 #include "misc.h"
 #include "params.h"
@@ -23,6 +19,7 @@
 #include "rpp.h"
 #include "rules.h"
 #include "options.h"
+#include "john.h"
 
 char *rules_errors[] = {
 	NULL,	/* No error */
@@ -311,11 +308,10 @@ static void rules_init_classes(void)
 			if ((user_class = userclass_expand(user_class)))
 				rules_init_class(i, user_class);
 			else {
-#ifdef HAVE_MPI
-				if (mpi_id == 0)
-#endif
-				fprintf(stderr, "Invalid user-defined character class ?%c: "
-				        "Unexpected end of line\n", i);
+				if (john_main_process)
+					fprintf(stderr, "Invalid user-defined "
+					        "character class ?%c: "
+					        "Unexpected end of line\n", i);
 				error();
 			}
 		}
@@ -1675,12 +1671,10 @@ int rules_count(struct rpp_context *start, int split)
 	if (!(count1 = rules_check(start, split))) {
 		log_event("! Invalid rule at line %d: %.100s",
 			rules_line, rules_errors[rules_errno]);
-#ifdef HAVE_MPI
-		if (mpi_id == 0)
-#endif
-		fprintf(stderr, "Invalid rule in %s at line %d: %s\n",
-			start->input->cfg_name, rules_line,
-			rules_errors[rules_errno]);
+		if (john_main_process)
+			fprintf(stderr, "Invalid rule in %s at line %d: %s\n",
+			        start->input->cfg_name, rules_line,
+			        rules_errors[rules_errno]);
 		error();
 	}
 

@@ -168,12 +168,13 @@ void check_abort(int be_async_signal_safe)
 	tty_done();
 
 	if (be_async_signal_safe) {
-		if (time < timer_abort)
+		if (time < timer_abort) {
 			if (john_main_process)
 				write_loop(2, "Session aborted\n", 16);
-		else
+		} else
 			if (john_main_process)
-				write_loop(2, "Session stopped (max run-time reached)\n", 39);
+				write_loop(2, "Session stopped (max run-time"
+				           " reached)\n", 39);
 #if defined(HAVE_MPI) && defined(JOHN_MPI_ABORT)
 		if (mpi_p > 1) {
 			write_loop(2, "Aborting other nodes...\n", 24);

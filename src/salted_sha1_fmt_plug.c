@@ -16,9 +16,6 @@
 #include "arch.h"
 #include "options.h"
 #include "johnswap.h"
-#ifdef HAVE_MPI
-#include "john-mpi.h"
-#endif
 
 #ifdef SHA1_SSE_PARA
 #define NBKEYS	(MMX_COEF * SHA1_SSE_PARA)

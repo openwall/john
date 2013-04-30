@@ -39,9 +39,6 @@
 #include "cracker.h"
 #include "john.h"
 #include "memory.h"
-#ifdef HAVE_MPI
-#include "john-mpi.h"
-#endif
 
 static int dist_rules;
 static int myrulecount;
@@ -352,10 +349,9 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 		int ourshare = 0;
 
 		if (loopBack) {
-#ifdef HAVE_MPI
-			if (mpi_id == 0)
-#endif
-			fprintf(stderr, "Loop-back mode: Reading candidates from pot file %s\n", name);
+			if (john_main_process)
+				fprintf(stderr, "Loop-back mode: Reading "
+				        "candidates from pot file %s\n", name);
 			log_event("- Using loop-back mode:");
 		}
 
@@ -374,18 +370,17 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 		fseek(word_file, 0, SEEK_SET);
 		if (file_len < 0)
 		{
-#ifdef HAVE_MPI
-			if (mpi_id == 0)
-#endif
-			fprintf(stderr, "Error, dictionary file is too large for john to read (probably a 32 bit OS issue)\n");
+			if (john_main_process)
+				fprintf(stderr, "Error, dictionary file is too"
+				        " large for john to read (probably a "
+				        "32 bit OS issue)\n");
 			error();
 		}
 		if (file_len == 0)
 		{
-#ifdef HAVE_MPI
-			if (mpi_id == 0)
-#endif
-			fprintf(stderr, "Error, dictionary file is empty\n");
+			if (john_main_process)
+				fprintf(stderr, "Error, dictionary file is "
+				        "empty\n");
 			error();
 		}
 		if (file_len < db->options->max_wordfile_memory)
@@ -483,10 +478,10 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 				log_event("- loaded this node's share of wordfile %s into memory "
 				          "(%lu bytes of %lu, max_size=%u avg/node)",
 				          name, my_size, file_len, db->options->max_wordfile_memory);
-#ifdef HAVE_MPI
-				if (mpi_id == 0)
-#endif
-				fprintf(stderr,"Each node loaded 1/%d of wordfile to memory (about %lu %s/node)\n",
+				if (john_main_process)
+					fprintf(stderr,"Each node loaded 1/%d "
+					        "of wordfile to memory (about "
+					        "%lu %s/node)\n",
 				        options.node_count,
 				        my_size > 1<<23 ? my_size >> 20 : my_size >> 10,
 				        my_size > 1<<23 ? "MB" : "KB");
@@ -496,10 +491,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 			else {
 				log_event("- loading wordfile %s into memory (%lu bytes, max_size=%u)",
 				          name, file_len, db->options->max_wordfile_memory);
-#ifdef HAVE_MPI
-				if (mpi_id == 0)
-#endif
-				if (options.node_count > 1)
+				if (options.node_count > 1 && john_main_process)
 					fprintf(stderr,"Each node loaded the whole wordfile to memory\n");
 				word_file_str = mem_alloc_tiny(file_len + LINE_BUFFER_SIZE + 1, MEM_ALIGN_NONE);
 				if (fread(word_file_str, 1, file_len, word_file) != file_len) {
@@ -509,9 +501,6 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 					error();
 				}
 				if (memchr(word_file_str, 0, file_len)) {
-#ifdef HAVE_MPI
-					if (mpi_id == 0)
-#endif
 					fprintf(stderr, "Error: wordlist contains NULL bytes - aborting\n");
 					error();
 				}
@@ -560,9 +549,6 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 			{
 				char *ep, ec;
 				if (i > nWordFileLines) {
-#ifdef HAVE_MPI
-					if (mpi_id == 0)
-#endif
 					fprintf(stderr, "Warning: wordlist contains inconsequent newlines, some words may be skipped\n");
 					log_event("- Warning: wordlist contains inconsequent newlines, some words may be skipped");
 					i--;

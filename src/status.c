@@ -40,11 +40,6 @@
 #include "unicode.h"
 #include "signals.h"
 
-#ifdef HAVE_MPI
-#include "logger.h"
-#include "john-mpi.h"
-#endif
-
 struct status_main status;
 unsigned int status_restored_time = 0;
 static char* timeFmt = NULL;

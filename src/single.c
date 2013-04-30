@@ -23,9 +23,6 @@
 #include "external.h"
 #include "cracker.h"
 #include "john.h"
-#ifdef HAVE_MPI
-#include "john-mpi.h"
-#endif
 #include "unicode.h"
 #include "config.h"
 

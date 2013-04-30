@@ -20,10 +20,6 @@
 #include "logger.h"
 #include "external.h"
 
-#ifdef HAVE_MPI
-#include "john-mpi.h"
-#endif
-
 char *cfg_name = NULL;
 static struct cfg_section *cfg_database = NULL;
 static int cfg_recursion;

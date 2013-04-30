@@ -21,6 +21,7 @@
 #include "options.h"
 #include "bench.h"
 #include "external.h"
+#include "john.h"
 #include "dynamic.h"
 #include "unicode.h"
 #ifdef HAVE_MPI
@@ -420,17 +421,16 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 			else
 				options.loader.max_pps = 0x7fffffff;
 		} else if (options.loader.min_pps < 0) {
-#ifdef HAVE_MPI
-			if (mpi_id == 0)
-#endif
-			fprintf(stderr, "Usage of negative -salt min is not 'valid' if using Min and Max salt range of values\n");
+			if (john_main_process)
+				fprintf(stderr, "Usage of negative -salt min "
+				        "is not 'valid' if using Min and Max "
+				        "salt range of values\n");
 			error();
 		}
 		if (options.loader.min_pps > options.loader.max_pps) {
-#ifdef HAVE_MPI
-			if (mpi_id == 0)
-#endif
-			fprintf(stderr, "Min number salts wanted is less than Max salts wanted\n");
+			if (john_main_process)
+				fprintf(stderr, "Min number salts wanted is "
+				        "less than Max salts wanted\n");
 			error();
 		}
 	}
@@ -439,24 +439,19 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 		options.length = PLAINTEXT_BUFFER_SIZE - 3;
 	else
 	if (options.length < 1 || options.length > PLAINTEXT_BUFFER_SIZE - 3) {
-#ifdef HAVE_MPI
-		if (mpi_id == 0)
-#endif
-		fprintf(stderr, "Invalid plaintext length requested\n");
+		if (john_main_process)
+			fprintf(stderr, "Invalid plaintext length requested\n");
 		error();
 	}
 	if (options.force_maxlength && options.force_maxlength < options.force_minlength) {
-#ifdef HAVE_MPI
-		if (mpi_id == 0)
-#endif
-		fprintf(stderr, "Invalid options: --min-length larger than --max-length\n");
+		if (john_main_process)
+			fprintf(stderr, "Invalid options: --min-length larger "
+			        "than --max-length\n");
 		error();
 	}
 	if (options.force_maxlength < 0 || options.force_maxlength > PLAINTEXT_BUFFER_SIZE - 3) {
-#ifdef HAVE_MPI
-		if (mpi_id == 0)
-#endif
-		fprintf(stderr, "Invalid max length requested\n");
+		if (john_main_process)
+			fprintf(stderr, "Invalid max length requested\n");
 		error();
 	}
 
@@ -516,20 +511,16 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 	    (!options.listconf))
 
 	if ((options.flags & (FLG_PASSWD | FLG_PWD_REQ)) == FLG_PWD_REQ) {
-#ifdef HAVE_MPI
-		if (mpi_id == 0)
-#endif
-		fprintf(stderr, "Password files required, "
-			"but none specified\n");
+		if (john_main_process)
+			fprintf(stderr, "Password files required, "
+			        "but none specified\n");
 		error();
 	}
 
 	if ((options.flags & (FLG_PASSWD | FLG_PWD_SUP)) == FLG_PASSWD) {
-#ifdef HAVE_MPI
-		if (mpi_id == 0)
-#endif
-		fprintf(stderr, "Password files specified, "
-			"but no option would use them\n");
+		if (john_main_process)
+			fprintf(stderr, "Password files specified, "
+			        "but no option would use them\n");
 		error();
 	}
 
@@ -594,10 +585,11 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 			sscanf(&field_sep_char_string[2], "%x", &xTmp);
 			if (!xTmp || xTmp > 255)
 			{
-#ifdef HAVE_MPI
-				if (mpi_id == 0)
-#endif
-				fprintf (stderr, "trying to use an invalid field separator char:  %s\n", field_sep_char_string);
+				if (john_main_process)
+					fprintf (stderr, "trying to use an "
+					         "invalid field separator char:"
+					         "  %s\n",
+					         field_sep_char_string);
 				error();
 			}
 			options.field_sep_char = (char)xTmp;
@@ -605,10 +597,10 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 
 		options.loader.field_sep_char = options.field_sep_char;
 		if (options.loader.field_sep_char != ':')
-#ifdef HAVE_MPI
-			if (mpi_id == 0)
-#endif
-			fprintf (stderr, "using field sep char '%c' (0x%02x)\n", options.field_sep_char, options.field_sep_char);
+			if (john_main_process)
+				fprintf (stderr, "using field sep char '%c' "
+				         "(0x%02x)\n", options.field_sep_char,
+				         options.field_sep_char);
 	}
 
 	rec_argc = argc; rec_argv = argv;

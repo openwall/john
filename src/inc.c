@@ -7,6 +7,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 
 #include "arch.h"
 #include "misc.h"
@@ -30,11 +31,6 @@
 extern struct fmt_main fmt_LM;
 extern struct fmt_main fmt_NETLM;
 extern struct fmt_main fmt_NETHALFLM;
-
-#ifdef HAVE_MPI
-#include "john-mpi.h"
-#endif
-#include <math.h>
 
 static unsigned long long try, cand;
 

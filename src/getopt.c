@@ -10,9 +10,7 @@
 #include "memory.h"
 #include "list.h"
 #include "getopt.h"
-#ifdef HAVE_MPI
-#include "john-mpi.h"
-#endif
+#include "john.h"
 
 static char *opt_errors[] = {
 	NULL,	/* No error */
@@ -129,10 +127,8 @@ void opt_process(struct opt_entry *list, opt_flags *flg, char **argv)
 	if (*(opt = argv))
 	while (*++opt)
 	if ((res = opt_process_one(list, flg, *opt))) {
-#ifdef HAVE_MPI
-		if (mpi_id == 0)
-#endif
-		fprintf(stderr, "%s: \"%s\"\n", opt_errors[res], *opt);
+		if (john_main_process)
+			fprintf(stderr, "%s: \"%s\"\n", opt_errors[res], *opt);
 		error();
 	}
 }
@@ -145,10 +141,8 @@ void opt_check(struct opt_entry *list, opt_flags flg, char **argv)
 	if (*(opt = argv))
 	while (*++opt)
 	if ((res = opt_check_one(list, flg, *opt))) {
-#ifdef HAVE_MPI
-		if (mpi_id == 0)
-#endif
-		fprintf(stderr, "%s: \"%s\"\n", opt_errors[res], *opt);
+		if (john_main_process)
+			fprintf(stderr, "%s: \"%s\"\n", opt_errors[res], *opt);
 		error();
 	}
 }

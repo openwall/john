@@ -51,9 +51,6 @@
 
 #ifdef HAVE_MPI
 #include "john-mpi.h"
-#ifdef _OPENMP
-#include <omp.h>
-#endif /* _OPENMP */
 #endif /* HAVE_MPI */
 
 #include <openssl/opensslv.h>
@@ -394,10 +391,8 @@ static void john_register_all(void)
 #endif
 
 	if (!fmt_list) {
-#ifdef HAVE_MPI
-		if (mpi_id == 0)
-#endif
-		fprintf(stderr, "Unknown ciphertext format name requested\n");
+		if (john_main_process)
+			fprintf(stderr, "Unknown ciphertext format name requested\n");
 		error();
 	}
 }
@@ -827,9 +822,7 @@ static void john_run(void)
 			/* Now we need to re-check this */
 			if (options.force_maxlength &&
 			    options.force_maxlength < options.force_minlength) {
-#ifdef HAVE_MPI
-				if (mpi_id == 0)
-#endif
+				if (john_main_process)
 					fprintf(stderr, "Invalid option: "
 					        "--max-length smaller than "
 					        "minimum length for format\n");
@@ -866,27 +859,15 @@ static void john_run(void)
 			switch (database.options->flags &
 			    (DB_SPLIT | DB_NODUP)) {
 			case DB_SPLIT:
-#ifdef HAVE_MPI
-				if (mpi_id == 0)
-#endif
 				fprintf(stderr, "%s%s\n", might, partial);
 				break;
 			case DB_NODUP:
-#ifdef HAVE_MPI
-				if (mpi_id == 0)
-#endif
 				fprintf(stderr, "%s%s\n", might, not_all);
 				break;
 			case (DB_SPLIT | DB_NODUP):
-#ifdef HAVE_MPI
-				if (mpi_id == 0)
-#endif
 				fprintf(stderr, "%s%s and%s\n",
 				    might, partial, not_all);
 			}
-#ifdef HAVE_MPI
-			if (mpi_id == 0)
-#endif
 			fputs("Use the \"--show\" option to display all of "
 			    "the cracked passwords reliably\n", stderr);
 		}
