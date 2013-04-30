@@ -169,15 +169,33 @@ void opt_init(char *name, int argc, char **argv)
 	}
 
 	if (options.flags & FLG_RESTORE_CHK) {
+		char *rec_name_orig = rec_name;
 		rec_restore_args(1);
+		if (options.fork) {
+			rec_name = rec_name_orig;
+			rec_name_completed = 0;
+		}
 		return;
 	}
 
 	if (options.flags & FLG_STATUS_CHK) {
+		char *rec_name_orig = rec_name;
 		rec_restore_args(0);
 		options.flags |= FLG_STATUS_SET;
 		status_init(NULL, 1);
 		status_print();
+		if (options.fork) {
+			unsigned int i;
+			for (i = 2; i <= options.fork; i++) {
+				rec_name = rec_name_orig;
+				rec_name_completed = 0;
+				options.node_min = options.node_max = i;
+				rec_restore_args(0);
+				options.node_min = options.node_max = i;
+				options.flags |= FLG_STATUS_SET;
+				status_print();
+			}
+		}
 		exit(0);
 	}
 

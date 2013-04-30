@@ -45,18 +45,17 @@ static void (*rec_save_mode)(FILE *file);
 
 static void rec_name_complete(void)
 {
-	char *suffix = RECOVERY_SUFFIX;
-
 	if (rec_name_completed)
 		return;
 
-	if (options.fork) {
-		suffix = mem_alloc(1 + 20 + strlen(RECOVERY_SUFFIX) + 1);
+	if (options.fork && options.node_min > 1) {
+		char *suffix = mem_alloc(1 + 20 + strlen(RECOVERY_SUFFIX) + 1);
 		sprintf(suffix, ".%u%s", options.node_min, RECOVERY_SUFFIX);
-	}
-	rec_name = path_session(rec_name, suffix);
-	if (options.fork)
+		rec_name = path_session(rec_name, suffix);
 		MEM_FREE(suffix);
+	} else {
+		rec_name = path_session(rec_name, RECOVERY_SUFFIX);
+	}
 
 	rec_name_completed = 1;
 }
