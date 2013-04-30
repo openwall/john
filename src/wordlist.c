@@ -694,7 +694,6 @@ GRAB_NEXT_PIPE_LOAD:;
 						}
 					}
 				}
-				myWordFileLines = nWordFileLines;
 				sprintf(msg_buf, "- Read block of %d candidate passwords from pipe", nWordFileLines);
 				log_event("%s", msg_buf);
 			}
@@ -849,7 +848,8 @@ SKIP_MEM_MAP_LOAD:;
 
 		if (rule && nWordFileLines)
 		while (line_number < nWordFileLines) {
-			if (options.node_count && !dist_rules) {
+			if (options.node_count && !myWordFileLines)
+			if (!dist_rules) {
 				int for_node = line_number %
 					options.node_count + 1;
 				int skip = for_node < options.node_min ||
