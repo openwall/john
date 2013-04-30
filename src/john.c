@@ -13,13 +13,17 @@
 #include <stdlib.h>
 #include <crtdbg.h>
 #endif
+#include <errno.h>
 #include <string.h>
 #include <stdlib.h>
 #include <sys/stat.h>
+#ifndef __DJGPP__
+#include <sys/wait.h>
+#endif
 
 #include "params.h"
 
-#if defined(_OPENMP) && OMP_FALLBACK
+#ifdef _OPENMP
 #include <omp.h>
 #endif
 
@@ -36,6 +40,7 @@
 #include "loader.h"
 #include "logger.h"
 #include "status.h"
+#include "recovery.h"
 #include "options.h"
 #include "config.h"
 #include "bench.h"
@@ -428,13 +433,72 @@ static void john_log_format(void)
 			chunk);
 }
 
+#ifdef _OPENMP
+static void john_omp_init(void)
+{
+	int threads_orig = omp_get_max_threads();
+	int threads_new = threads_orig;
+
+	if (options.fork && !getenv("OMP_NUM_THREADS")) {
+		threads_new /= options.fork;
+		if (threads_new < 1)
+			threads_new = 1;
+		omp_set_num_threads(threads_new);
+	}
+
+/*
+ * Only show OpenMP info if one of the following is true:
+ * - we have a format detected for the loaded hashes and it is OpenMP-enabled;
+ * - we're doing --test and no format is specified (so we will test all,
+ * including some that are presumably OpenMP-enabled);
+ * - we're doing --test and the specified format is OpenMP-enabled.
+ */
+	{
+		int show_omp_info = 0;
+		if (database.format &&
+		    (database.format->params.flags & FMT_OMP))
+			show_omp_info = 1;
+		else if ((options.flags & (FLG_TEST_CHK | FLG_FORMAT)) ==
+		    FLG_TEST_CHK)
+			show_omp_info = 1;
+		else if ((options.flags & FLG_TEST_CHK) &&
+		    (fmt_list->params.flags & FMT_OMP))
+			show_omp_info = 1;
+
+		if (!show_omp_info)
+			return;
+	}
+
+	if (options.fork) {
+		if (threads_new > 1)
+			fprintf(stderr,
+			    "Will run %d OpenMP threads per process "
+			    "(%u total across %u processes)\n",
+			    threads_new,
+			    threads_new * options.fork, options.fork);
+		else if (threads_orig > 1)
+			fputs("Warning: OpenMP was disabled due to --fork; "
+			    "a non-OpenMP build may be faster\n", stderr);
+	} else {
+		if (threads_new > 1)
+			fprintf(stderr,
+			    "Will run %d OpenMP threads\n", threads_new);
+	}
+
+	if (threads_orig == 1)
+		fputs("Warning: OpenMP is disabled; "
+		    "a non-OpenMP build may be faster\n", stderr);
+}
+#endif
+
 static void john_fork(void)
 {
+#ifdef __DJGPP__
+	fputs("Warning: --fork is not supported in this build, "
+	    "will run one process\n", stderr);
+#else
 	int i, pid;
 	int *pids;
-
-	if (options.fork < 2)
-		return;
 
 /*
  * It may cost less memory to reset john_main_process to 0 before fork()'ing
@@ -455,6 +519,16 @@ static void john_fork(void)
 		case 0:
 			options.node_min += i;
 			options.node_max = options.node_min;
+			if (rec_restoring_now) {
+				unsigned int node_id = options.node_min;
+				rec_done(1);
+				rec_restore_args(1);
+				if (node_id != options.node_min + i)
+					fprintf(stderr,
+					    "Inconsistent crash recovery file:"
+					    " %s\n", rec_name);
+				options.node_min = options.node_max = node_id;
+			}
 			return;
 
 		default:
@@ -467,6 +541,37 @@ static void john_fork(void)
 	john_child_count = options.fork - 1;
 
 	options.node_max = options.node_min;
+#endif
+}
+
+static void john_wait(void)
+{
+#ifndef __DJGPP__
+	int waiting_for = john_child_count;
+
+	log_event("Waiting for %d child%s to terminate",
+	    waiting_for, waiting_for == 1 ? "" : "ren");
+	fprintf(stderr, "Waiting for %d child%s to terminate\n",
+	    waiting_for, waiting_for == 1 ? "" : "ren");
+
+/*
+ * Although we may block on wait(2), we still have signal handlers and a timer
+ * in place, so we're relaying keypresses to child processes via signals.
+ */
+	while (waiting_for) {
+		int i, pid = wait(NULL);
+		if (pid == -1) {
+			if (errno != EINTR)
+				perror("wait");
+		} else
+		for (i = 0; i < john_child_count; i++) {
+			if (john_child_pids[i] == pid) {
+				john_child_pids[i] = 0;
+				waiting_for--;
+			}
+		}
+	}
+#endif
 }
 
 static char *john_loaded_counts(void)
@@ -635,6 +740,10 @@ static void john_load(void)
 		if ((options.flags & FLG_PWD_REQ) && !database.salts) exit(0);
 	}
 
+#ifdef _OPENMP
+	john_omp_init();
+#endif
+
 	if (options.node_count) {
 		if (options.node_min != options.node_max) {
 			log_event("- Node numbers %u-%u of %u%s",
@@ -650,7 +759,8 @@ static void john_load(void)
 			    options.node_min, options.node_count);
 		}
 
-		john_fork();
+		if (options.fork)
+			john_fork();
 	}
 }
 
@@ -850,6 +960,10 @@ static void john_run(void)
 			do_batch_crack(&database);
 
 		status_print();
+
+		if (options.fork && john_main_process)
+			john_wait();
+
 		tty_done();
 
 		if (john_main_process && database.password_count < remaining) {
@@ -880,12 +994,16 @@ static void john_done(void)
 
 	if ((options.flags & (FLG_CRACKING_CHK | FLG_STDOUT)) ==
 	    FLG_CRACKING_CHK) {
-		if (event_abort)
+		if (event_abort) {
 			log_event((time < timer_abort) ?
 			          "Session aborted" :
 			          "Session stopped (max run-time reached)");
-		else
+			/* We have already printed to stderr from signals.c */
+		} else {
 			log_event("Session completed");
+			if (john_main_process)
+				fprintf(stderr, "Session completed\n");
+		}
 		fmt_done(database.format);
 	}
 	log_done();

@@ -45,6 +45,7 @@ extern int ftruncate(int fd, size_t length);
 #include "logger.h"
 #include "status.h"
 #include "recovery.h"
+#include "john.h"
 
 char *rec_name = RECOVERY_NAME;
 int rec_name_completed = 0;
@@ -64,7 +65,7 @@ static void rec_name_complete(void)
 	if (rec_name_completed)
 		return;
 
-	if (options.fork && options.node_min > 1) {
+	if (options.fork && !john_main_process) {
 		char *suffix = mem_alloc(1 + 20 + strlen(RECOVERY_SUFFIX) + 1);
 		sprintf(suffix, ".%u%s", options.node_min, RECOVERY_SUFFIX);
 		rec_name = path_session(rec_name, suffix);
@@ -328,11 +329,12 @@ void rec_restore_mode(int (*restore_mode)(FILE *file))
 	if (restore_mode(rec_file)) rec_format_error("fscanf");
 
 /*
- * Unlocking the file explicitly should not be necessary since we're about to
- * close it anyway (which releases the lock), but it appears to help avoid a
- * race condition on Linux where a subsequent rec_lock() would fail (flock()
- * failing with EWOULDBLOCK) if too little time elapses yet the process happens
- * to be bounced to a different CPU.
+ * Unlocking the file explicitly is normally not necessary since we're about to
+ * close it anyway (which would normally release the lock).  However, when
+ * we're the main process running with --fork, our newborn children may hold a
+ * copy of the fd for a moment (until they close the fd themselves).  Thus, if
+ * we don't explicitly remove the lock, there may be a race condition between
+ * our children closing the fd and us proceeding to re-open and re-lock it.
  */
 	rec_unlock();
 
