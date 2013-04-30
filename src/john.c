@@ -5,6 +5,7 @@
 
 #include <stdio.h>
 #include <unistd.h>
+#include <errno.h>
 #include <string.h>
 #include <stdlib.h>
 #include <sys/stat.h>
@@ -248,9 +249,10 @@ static void john_wait(void)
  */
 	while (waiting_for) {
 		int i, pid = wait(NULL);
-		if (pid == -1)
-			perror("wait");
-		else
+		if (pid == -1) {
+			if (errno != EINTR)
+				perror("wait");
+		} else
 		for (i = 0; i < john_child_count; i++) {
 			if (john_child_pids[i] == pid) {
 				john_child_pids[i] = 0;
