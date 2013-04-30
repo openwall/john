@@ -42,8 +42,6 @@ volatile int event_pending = 0;
 volatile int event_abort = 0, event_save = 0, event_status = 0;
 volatile int event_ticksafety = 0;
 
-int *sig_pids = NULL;
-
 static int timer_save_interval, timer_save_value;
 static clock_t timer_ticksafety_interval, timer_ticksafety_value;
 
@@ -220,11 +218,9 @@ static int sig_getchar(void)
 
 static void signal_children(void)
 {
-	if (options.fork) {
-		int i;
-		for (i = 0; i < options.fork - 1; i++)
-			kill(sig_pids[i], SIGUSR2);
-	}
+	int i;
+	for (i = 0; i < john_child_count; i++)
+		kill(john_child_pids[i], SIGUSR2);
 }
 
 static void sig_install_timer(void);

@@ -55,6 +55,8 @@ extern int unafs(int argc, char **argv);
 extern int unique(int argc, char **argv);
 
 int john_main_process = 1;
+int john_child_count = 0;
+int *john_child_pids = NULL;
 
 static struct db_main database;
 static struct fmt_main dummy_format;
@@ -118,8 +120,9 @@ static void john_log_format(void)
 static void john_fork(void)
 {
 	int i, pid;
+	int *pids;
 
-	if (!options.fork)
+	if (options.fork < 2)
 		return;
 
 /*
@@ -130,7 +133,8 @@ static void john_fork(void)
  */
 	john_main_process = 0;
 
-	sig_pids = mem_alloc((options.fork - 1) * sizeof(*sig_pids));
+	pids = mem_alloc_tiny((options.fork - 1) * sizeof(*pids),
+	    sizeof(*pids));
 
 	for (i = 1; i < options.fork; i++) {
 		switch ((pid = fork())) {
@@ -138,17 +142,19 @@ static void john_fork(void)
 			pexit("fork");
 
 		case 0:
-			MEM_FREE(sig_pids);
 			options.node_min += i;
 			options.node_max = options.node_min;
 			return;
 
 		default:
-			sig_pids[i - 1] = pid;
+			pids[i - 1] = pid;
 		}
 	}
 
 	john_main_process = 1;
+	john_child_pids = pids;
+	john_child_count = options.fork - 1;
+
 	options.node_max = options.node_min;
 }
 
