@@ -86,6 +86,8 @@
 #define FLG_SAVEMEM			0x04000000
 /* Node number(s) specified */
 #define FLG_NODE			0x10000000
+/* fork() requested, and process count specified */
+#define FLG_FORK			0x20000000
 
 /* Note that 0x80000000 is taken for OPT_REQ_PARAM, see getopt.h */
 
@@ -166,7 +168,7 @@ struct options_main {
 
 /* Parallel processing options */
 	char *node_str;
-	unsigned int node_min, node_max, node_count;
+	unsigned int node_min, node_max, node_count, fork;
 
 /* Configuration file name */
 	char *config;

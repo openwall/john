@@ -106,6 +106,9 @@ static struct opt_entry opt_list[] = {
 		"%u", &mem_saving_level},
 	{"node", FLG_NODE, FLG_NODE, FLG_CRACKING_CHK, OPT_REQ_PARAM,
 		OPT_FMT_STR_ALLOC, &options.node_str},
+	{"fork", FLG_FORK, FLG_FORK,
+		FLG_CRACKING_CHK, FLG_STDIN_CHK | FLG_STDOUT | OPT_REQ_PARAM,
+		"%u", &options.fork},
 	{"pot", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
 	    OPT_FMT_STR_ALLOC, &options.loader.activepot},
 	{"format", FLG_FORMAT, FLG_FORMAT,
@@ -204,6 +207,7 @@ static struct opt_entry opt_list[] = {
 "--salts=[-]COUNT[:MAX]    load salts with[out] COUNT [to MAX] hashes\n" \
 "--save-memory=LEVEL       enable memory saving, at LEVEL 1..3\n" \
 "--node=MIN[-MAX]/TOTAL    this node's number range out of TOTAL count\n" \
+"--fork=N                  fork N processes\n" \
 "--pot=NAME                pot file to use\n" \
 "--list=WHAT               list capabilities, see --list=help or doc/OPTIONS\n"
 
@@ -370,15 +374,33 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 	}
 
 	if (options.flags & FLG_RESTORE_CHK) {
+		char *rec_name_orig = rec_name;
 		rec_restore_args(1);
+		if (options.fork) {
+			rec_name = rec_name_orig;
+			rec_name_completed = 0;
+		}
 		return;
 	}
 
 	if (options.flags & FLG_STATUS_CHK) {
+		char *rec_name_orig = rec_name;
 		rec_restore_args(0);
 		options.flags |= FLG_STATUS_SET;
 		status_init(NULL, 1);
 		status_print();
+		if (options.fork) {
+			unsigned int i;
+			for (i = 2; i <= options.fork; i++) {
+				rec_name = rec_name_orig;
+				rec_name_completed = 0;
+				options.node_min = options.node_max = i;
+				rec_restore_args(0);
+				options.node_min = options.node_max = i;
+				options.flags |= FLG_STATUS_SET;
+				status_print();
+			}
+		}
 		exit(0);
 	}
 
@@ -440,31 +462,49 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 
 	if (options.flags & FLG_STDOUT) options.flags &= ~FLG_PWD_REQ;
 
+	if ((options.flags & FLG_FORK) && options.fork < 2) {
+		fprintf(stderr, "--fork number must be at least 2\n");
+		error();
+	}
+
 	if (options.node_str) {
 		const char *msg = NULL;
-		if (sscanf(options.node_str, "%u-%u/%u",
+		int n;
+		if ((n = sscanf(options.node_str, "%u-%u/%u",
 		    &options.node_min, &options.node_max,
-		    &options.node_count) != 3) {
-			if (sscanf(options.node_str, "%u/%u",
-			    &options.node_min, &options.node_count) != 2)
-				msg = "syntax error";
+		    &options.node_count)) != 3) {
+			n = sscanf(options.node_str, "%u/%u",
+			    &options.node_min, &options.node_count);
 			options.node_max = options.node_min;
+			if (options.fork)
+				options.node_max += options.fork - 1;
 		}
-		if (!msg) {
-			if (!options.node_min)
-				msg = "valid node numbers start from 1";
-			else if (options.node_min > options.node_max)
-				msg = "range start can't exceed range end";
-			else if (options.node_count < 2)
-				msg = "node count must be at least 2";
-			else if (options.node_max > options.node_count)
-				msg = "node numbers can't exceed node count";
-		}
+		if (n < 2)
+			msg = "valid syntax is MIN-MAX/TOTAL or N/TOTAL";
+		else if (!options.node_min)
+			msg = "valid node numbers start from 1";
+		else if (options.node_min > options.node_max)
+			msg = "range start can't exceed range end";
+		else if (options.node_count < 2)
+			msg = "node count must be at least 2";
+		else if (options.node_max > options.node_count)
+			msg = "node numbers can't exceed node count";
+		else if (options.fork &&
+		    options.node_max - options.node_min + 1 != options.fork)
+			msg = "range must be consistent with --fork number";
+		else if (!options.fork &&
+		    options.node_max - options.node_min + 1 ==
+		    options.node_count)
+			msg = "node numbers can't span the whole range";
 		if (msg) {
-			fprintf(stderr, "Invalid node specification: %s\n",
-			    msg);
+			fprintf(stderr, "Invalid node specification: %s: %s\n",
+			    options.node_str, msg);
 			error();
 		}
+	} else if (options.fork) {
+		options.node_min = 1;
+		options.node_max = options.node_min + options.fork - 1;
+		options.node_count = options.node_max;
 	}
 
 	if (options.encoding && !strcasecmp(options.encoding, "list")) {

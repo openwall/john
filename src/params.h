@@ -19,7 +19,7 @@
 /*
  * John's version number.
  */
-#define JOHN_VERSION			"1.7.9.11-bleeding-jumbo"
+#define JOHN_VERSION			"1.7.9.12-bleeding-jumbo"
 
 /*
  * Notes to packagers of John for *BSD "ports", Linux distributions, etc.:
@@ -141,19 +141,11 @@
 #define CFG_PRIVATE_ALT_NAME		JOHN_PRIVATE_HOME "/john.ini"
 #define POT_NAME			JOHN_PRIVATE_HOME "/john.pot"
 #define LOG_NAME			JOHN_PRIVATE_HOME "/john.log"
-#ifdef HAVE_MPI
 #define RECOVERY_NAME			JOHN_PRIVATE_HOME "/john"
-#else
-#define RECOVERY_NAME			JOHN_PRIVATE_HOME "/john.rec"
-#endif /* HAVE_MPI */
 #else
 #define POT_NAME			"$JOHN/john.pot"
 #define LOG_NAME			"$JOHN/john.log"
-#ifdef HAVE_MPI
 #define RECOVERY_NAME			"$JOHN/john"
-#else
-#define RECOVERY_NAME			"$JOHN/john.rec"
-#endif /* HAVE_MPI */
 #endif
 #define LOG_SUFFIX			".log"
 #define RECOVERY_SUFFIX			".rec"

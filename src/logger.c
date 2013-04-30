@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-99,2003,2004,2010 by Solar Designer
+ * Copyright (c) 1996-99,2003,2004,2010,2013 by Solar Designer
  *
  * ...with changes in the jumbo patch for mingw and MSC and
  * introducing field_sep, by JimF.
@@ -35,6 +35,7 @@
 #include "path.h"
 #include "memory.h"
 #include "status.h"
+#include "options.h"
 #include "config.h"
 #include "options.h"
 #include "unicode.h"
@@ -140,20 +141,25 @@ static void log_file_done(struct log_file *f)
 
 static int log_time(void)
 {
+	int count1, count2;
 	unsigned int time;
+
+	count1 = 0;
+	if (options.fork) {
+		count1 = (int)sprintf(log.ptr, "%u ", options.node_min);
+		if (count1 < 0)
+			return count1;
+	}
 
 	time = pot.fd >= 0 ? status_get_time() : status_restored_time;
 
-#ifdef HAVE_MPI
-	if (mpi_p > 1)
-		return (int)sprintf(log.ptr, "%u %u:%02u:%02u:%02u ", mpi_id,
-		    time / 86400, time % 86400 / 3600,
-		    time % 3600 / 60, time % 60);
-	else
-#endif
-	return (int)sprintf(log.ptr, "%u:%02u:%02u:%02u ",
-		time / 86400, time % 86400 / 3600,
-		time % 3600 / 60, time % 60);
+	count2 = (int)sprintf(log.ptr + count1, "%u:%02u:%02u:%02u ",
+	    time / 86400, time % 86400 / 3600,
+	    time % 3600 / 60, time % 60);
+	if (count2 < 0)
+		return count2;
+
+	return count1 + count2;
 }
 
 void log_init(char *log_name, char *pot_name, char *session)

@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2003,2006,2010 by Solar Designer
+ * Copyright (c) 1996-2003,2006,2010,2013 by Solar Designer
  *
  * ...with changes in the jumbo patch for mingw and MSC, by JimF.
  */
@@ -46,6 +46,7 @@
 #include "misc.h"
 #include "params.h"
 #include "tty.h"
+#include "options.h"
 #include "config.h"
 #include "options.h"
 #include "bench.h"
@@ -54,6 +55,8 @@
 volatile int event_pending = 0;
 volatile int event_abort = 0, event_save = 0, event_status = 0;
 volatile int event_ticksafety = 0;
+
+int *sig_pids = NULL;
 
 volatile int timer_abort = -1, timer_status = -1;
 static int timer_save_interval, timer_save_value;
@@ -277,6 +280,15 @@ static int sig_getchar(void)
 
 #endif
 
+static void signal_children(void)
+{
+	if (options.fork) {
+		int i;
+		for (i = 0; i < options.fork - 1; i++)
+			kill(sig_pids[i], SIGUSR2);
+	}
+}
+
 static void sig_install_timer(void);
 
 static void sig_handle_timer(int signum)
@@ -326,9 +338,11 @@ static void sig_handle_timer(int signum)
 	}
 
 	if (sig_getchar() >= 0) {
-		while (sig_getchar() >= 0);
+		while (sig_getchar() >= 0)
+			continue;
 
 		event_status = event_pending = 1;
+		signal_children();
 	}
 
 #if !OS_TIMER
@@ -382,6 +396,12 @@ static void sig_remove_timer(void)
 	signal(SIGALRM, SIG_DFL);
 }
 
+static void sig_handle_status(int signum)
+{
+	event_status = event_pending = 1;
+	signal(SIGUSR2, sig_handle_status);
+}
+
 static void sig_done(void);
 
 void sig_init(void)
@@ -410,6 +430,7 @@ void sig_init(void)
 	sig_install_update();
 	sig_install_abort();
 	sig_install_timer();
+	signal(SIGUSR2, sig_handle_status);
 }
 
 static void sig_done(void)

@@ -47,11 +47,7 @@ extern int ftruncate(int fd, size_t length);
 #include "recovery.h"
 
 char *rec_name = RECOVERY_NAME;
-#ifdef HAVE_MPI
 int rec_name_completed = 0;
-#else
-int rec_name_completed = 1;
-#endif
 int rec_version = 0;
 int rec_argc = 0;
 char **rec_argv;
@@ -65,24 +61,18 @@ static void (*rec_save_mode)(FILE *file);
 
 static void rec_name_complete(void)
 {
-#ifdef HAVE_MPI
-	char *mpi_suffix;
-#endif
-	if (rec_name_completed) return;
-#ifdef HAVE_MPI
-	mpi_suffix = mem_alloc_tiny(strlen(id2string()) + 1 +
-	    strlen(RECOVERY_SUFFIX) + 1, MEM_ALIGN_NONE);
-	mpi_suffix[0] = 0;
-	if (mpi_p > 1) {
-		strcat(mpi_suffix, ".");
-		strcat(mpi_suffix, id2string());
-	}
-	strcat(mpi_suffix, RECOVERY_SUFFIX);
+	if (rec_name_completed)
+		return;
 
-	rec_name = path_session(rec_name, mpi_suffix);
-#else
-	rec_name = path_session(rec_name, RECOVERY_SUFFIX);
-#endif
+	if (options.fork && options.node_min > 1) {
+		char *suffix = mem_alloc(1 + 20 + strlen(RECOVERY_SUFFIX) + 1);
+		sprintf(suffix, ".%u%s", options.node_min, RECOVERY_SUFFIX);
+		rec_name = path_session(rec_name, suffix);
+		MEM_FREE(suffix);
+	} else {
+		rec_name = path_session(rec_name, RECOVERY_SUFFIX);
+	}
+
 	rec_name_completed = 1;
 }
 
@@ -100,11 +90,18 @@ static void rec_lock(void)
 #endif
 			error();
 		} else
-			pexit("flock");
+			pexit("flock(LOCK_EX)");
 	}
+}
+static void rec_unlock(void)
+{
+	if (flock(rec_fd, LOCK_UN))
+		perror("flock(LOCK_UN)");
 }
 #else
 #define rec_lock() \
+	{}
+#define rec_unlock() \
 	{}
 #endif
 
@@ -329,6 +326,15 @@ void rec_restore_mode(int (*restore_mode)(FILE *file))
 
 	if (restore_mode)
 	if (restore_mode(rec_file)) rec_format_error("fscanf");
+
+/*
+ * Unlocking the file explicitly should not be necessary since we're about to
+ * close it anyway (which releases the lock), but it appears to help avoid a
+ * race condition on Linux where a subsequent rec_lock() would fail (flock()
+ * failing with EWOULDBLOCK) if too little time elapses yet the process happens
+ * to be bounced to a different CPU.
+ */
+	rec_unlock();
 
 	if (fclose(rec_file)) pexit("fclose");
 	rec_file = NULL;
