@@ -80,14 +80,10 @@ static int restore_rule_number(void)
 
 static MAYBE_INLINE int skip_lines(unsigned long n, char *line)
 {
-	static unsigned long last;
-
-	if (last != n)
-		fprintf(stderr, "Skipping %lu\n", n);
-	last = n;
 	if (n) {
 		line_number += n;
 
+		if (!nWordFileLines)
 		do {
 			if (!fgetl(line, LINE_BUFFER_SIZE, word_file))
 				return 1;
@@ -756,10 +752,10 @@ SKIP_MEM_MAP_LOAD:;
 	}
 
 	rule_number = 0;
+	line_number = 0;
 
 	if (init_once) {
 		init_once = 0;
-		line_number = 0;
 
 		status_init(get_progress, 0);
 
@@ -853,6 +849,16 @@ SKIP_MEM_MAP_LOAD:;
 
 		if (rule && nWordFileLines)
 		while (line_number < nWordFileLines) {
+			if (options.node_count && !dist_rules) {
+				int for_node = line_number %
+					options.node_count + 1;
+				int skip = for_node < options.node_min ||
+					for_node > options.node_max;
+				if (skip) {
+					line_number++;
+					continue;
+				}
+			}
 #if ARCH_ALLOWS_UNALIGNED
 			line = words[line_number];
 #else
