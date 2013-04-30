@@ -209,6 +209,9 @@ static void status_print_cracking(char *percent)
 			saved_key[0] = 0;
 	}
 
+	if (options.fork)
+		fprintf(stderr, "%u ", options.node_min);
+
 	fprintf(stderr,
 	    "%ug %u:%02u:%02u:%02u%s %sg/s ",
 	    status.guess_count,
