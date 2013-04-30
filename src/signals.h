@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2006 by Solar Designer
+ * Copyright (c) 1996-2001,2006,2013 by Solar Designer
  */
 
 /*
@@ -24,6 +24,12 @@ extern volatile int event_abort;	/* Abort requested */
 extern volatile int event_save;		/* Save the crash recovery file */
 extern volatile int event_status;	/* Status display requested */
 extern volatile int event_ticksafety;	/* System time in ticks may overflow */
+
+/*
+ * Child process PIDs array, element 0 corresponds to node 2, array size is
+ * (options.fork - 1) elements.  This is only used when options.fork is set.
+ */
+extern int *sig_pids;
 
 #if !OS_TIMER
 /*

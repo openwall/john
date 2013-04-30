@@ -115,21 +115,26 @@ static void john_log_format(void)
 
 static void john_fork(void)
 {
-	int i;
+	int i, pid;
+
+	if (!options.fork)
+		return;
+
+	sig_pids = mem_alloc((options.fork - 1) * sizeof(*sig_pids));
 
 	for (i = 1; i < options.fork; i++) {
-		switch (fork()) {
+		switch ((pid = fork())) {
 		case -1:
 			pexit("fork");
 
 		case 0:
+			MEM_FREE(sig_pids);
 			options.node_min += i;
 			options.node_max = options.node_min;
 			return;
 
 		default:
-			/* could record the PID here */
-			continue;
+			sig_pids[i - 1] = pid;
 		}
 	}
 
