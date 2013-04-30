@@ -37,6 +37,7 @@
 #include "rules.h"
 #include "external.h"
 #include "cracker.h"
+#include "john.h"
 #include "memory.h"
 #ifdef HAVE_MPI
 #include "john-mpi.h"
@@ -728,11 +729,10 @@ SKIP_MEM_MAP_LOAD:;
 	if (rules) {
 		if (rpp_init(rule_ctx = &ctx, db->options->activewordlistrules)) {
 			log_event("! No wordlist mode rules found");
-#ifdef HAVE_MPI
-			if (mpi_id == 0)
-#endif
-			fprintf(stderr, "No wordlist mode rules found in %s\n",
-				cfg_name);
+			if (john_main_process)
+				fprintf(stderr,
+				    "No wordlist mode rules found in %s\n",
+				    cfg_name);
 			error();
 		}
 

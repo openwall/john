@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2002,2009 by Solar Designer
+ * Copyright (c) 1996-2002,2009,2013 by Solar Designer
  *
  * ...with changes in the jumbo patch, by magnum
  */
@@ -16,6 +16,7 @@
 #include "path.h"
 #include "memory.h"
 #include "config.h"
+#include "john.h"
 #include "logger.h"
 #include "external.h"
 
@@ -126,11 +127,9 @@ static int cfg_process_line(char *line, int number)
 
 static void cfg_error(char *name, int number)
 {
-#ifdef HAVE_MPI
-	if (mpi_id == 0)
-#endif
-	fprintf(stderr, "Error in %s at line %d\n",
-		path_expand(name), number);
+	if (john_main_process)
+		fprintf(stderr, "Error in %s at line %d\n",
+		    path_expand(name), number);
 	error();
 }
 

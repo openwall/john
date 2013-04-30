@@ -50,13 +50,12 @@
 #include "config.h"
 #include "options.h"
 #include "bench.h"
+#include "john.h"
 #include "status.h"
 
 volatile int event_pending = 0;
 volatile int event_abort = 0, event_save = 0, event_status = 0;
 volatile int event_ticksafety = 0;
-
-int *sig_pids = NULL;
 
 volatile int timer_abort = -1, timer_status = -1;
 static int timer_save_interval, timer_save_value;
@@ -170,9 +169,11 @@ void check_abort(int be_async_signal_safe)
 
 	if (be_async_signal_safe) {
 		if (time < timer_abort)
-			write_loop(2, "Session aborted\n", 16);
+			if (john_main_process)
+				write_loop(2, "Session aborted\n", 16);
 		else
-			write_loop(2, "Session stopped (max run-time reached)\n", 39);
+			if (john_main_process)
+				write_loop(2, "Session stopped (max run-time reached)\n", 39);
 #if defined(HAVE_MPI) && defined(JOHN_MPI_ABORT)
 		if (mpi_p > 1) {
 			write_loop(2, "Aborting other nodes...\n", 24);
@@ -182,8 +183,9 @@ void check_abort(int be_async_signal_safe)
 		_exit(1);
 	}
 
-	fprintf(stderr, "Session %s\n", (time < timer_abort) ?
-	        "aborted" : "stopped (max run-time reached)");
+	if (john_main_process)
+		fprintf(stderr, "Session %s\n", (time < timer_abort) ?
+		        "aborted" : "stopped (max run-time reached)");
 	error();
 }
 
@@ -282,11 +284,9 @@ static int sig_getchar(void)
 
 static void signal_children(void)
 {
-	if (options.fork) {
-		int i;
-		for (i = 0; i < options.fork - 1; i++)
-			kill(sig_pids[i], SIGUSR2);
-	}
+	int i;
+	for (i = 0; i < john_child_count; i++)
+		kill(john_child_pids[i], SIGUSR2);
 }
 
 static void sig_install_timer(void);

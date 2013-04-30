@@ -19,6 +19,7 @@
 #include "options.h"
 #include "config.h"
 #include "cracker.h"
+#include "john.h"
 #include "external.h"
 #include "options.h"
 #ifdef HAVE_MPI
@@ -119,10 +120,8 @@ static void ext_rewind(void)
 int ext_has_function(char *mode, char *function)
 {
 	if (!(ext_source = cfg_get_list(SECTION_EXT, mode))) {
-#ifdef HAVE_MPI
-		if (mpi_id == 0)
-#endif
-		fprintf(stderr, "Unknown external mode: %s\n", mode);
+		if (john_main_process)
+			fprintf(stderr, "Unknown external mode: %s\n", mode);
 		error();
 	}
 	if (c_compile(ext_getchar, ext_rewind, &ext_globals)) {
@@ -166,12 +165,11 @@ void ext_init(char *mode, struct db_main *db)
 	if (c_compile(ext_getchar, ext_rewind, &ext_globals)) {
 		if (!ext_line) ext_line = ext_source->tail;
 
-#ifdef HAVE_MPI
-		if (mpi_id == 0)
-#endif
-		fprintf(stderr, "Compiler error in %s at line %d: %s\n",
-			ext_line->cfg_name, ext_line->number,
-			c_errors[c_errno]);
+		if (john_main_process)
+			fprintf(stderr,
+			    "Compiler error in %s at line %d: %s\n",
+			    cfg_name, ext_line->number,
+			    c_errors[c_errno]);
 		error();
 	}
 
@@ -182,20 +180,19 @@ void ext_init(char *mode, struct db_main *db)
 	f_filter = c_lookup("filter");
 
 	if ((ext_flags & EXT_REQ_GENERATE) && !f_generate) {
-#ifdef HAVE_MPI
-		if (mpi_id == 0)
-#endif
-		fprintf(stderr, "No generate() for external mode: %s\n", mode);
+		if (john_main_process)
+			fprintf(stderr,
+			    "No generate() for external mode: %s\n", mode);
 		error();
 	}
 	if ((ext_flags & EXT_REQ_FILTER) && !f_filter) {
-#ifdef HAVE_MPI
-		if (mpi_id == 0)
-#endif
-		fprintf(stderr, "No filter() for external mode: %s\n", mode);
+		if (john_main_process)
+			fprintf(stderr,
+			    "No filter() for external mode: %s\n", mode);
 		error();
 	}
-	if ((ext_flags & (EXT_USES_GENERATE | EXT_USES_FILTER)) ==
+	if (john_main_process &&
+	    (ext_flags & (EXT_USES_GENERATE | EXT_USES_FILTER)) ==
 	    EXT_USES_FILTER && f_generate)
 #ifdef HAVE_MPI
 	if (mpi_id == 0)

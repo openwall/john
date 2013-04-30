@@ -218,6 +218,10 @@ extern int truecrypt_volume2john(int argc, char **argv);
 #endif
 extern int zip2john(int argc, char **argv);
 
+int john_main_process = 1;
+int john_child_count = 0;
+int *john_child_pids = NULL;
+
 static struct db_main database;
 static struct fmt_main dummy_format;
 
@@ -432,11 +436,21 @@ static void john_log_format(void)
 static void john_fork(void)
 {
 	int i, pid;
+	int *pids;
 
-	if (!options.fork)
+	if (options.fork < 2)
 		return;
 
-	sig_pids = mem_alloc((options.fork - 1) * sizeof(*sig_pids));
+/*
+ * It may cost less memory to reset john_main_process to 0 before fork()'ing
+ * the children than to do it in every child process individually (triggering
+ * copy-on-write of the entire page).  We then reset john_main_process back to
+ * 1 in the parent, but this only costs one page, not one page per child.
+ */
+	john_main_process = 0;
+
+	pids = mem_alloc_tiny((options.fork - 1) * sizeof(*pids),
+	    sizeof(*pids));
 
 	for (i = 1; i < options.fork; i++) {
 		switch ((pid = fork())) {
@@ -444,15 +458,18 @@ static void john_fork(void)
 			pexit("fork");
 
 		case 0:
-			MEM_FREE(sig_pids);
 			options.node_min += i;
 			options.node_max = options.node_min;
 			return;
 
 		default:
-			sig_pids[i - 1] = pid;
+			pids[i - 1] = pid;
 		}
 	}
+
+	john_main_process = 1;
+	john_child_pids = pids;
+	john_child_count = options.fork - 1;
 
 	options.node_max = options.node_min;
 }
@@ -842,7 +859,7 @@ static void john_run(void)
 		status_print();
 		tty_done();
 
-		if (database.password_count < remaining) {
+		if (john_main_process && database.password_count < remaining) {
 			char *might = "Warning: passwords printed above might";
 			char *partial = " be partial";
 			char *not_all = " not be all those cracked";

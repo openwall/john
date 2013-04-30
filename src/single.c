@@ -22,6 +22,7 @@
 #include "rules.h"
 #include "external.h"
 #include "cracker.h"
+#include "john.h"
 #ifdef HAVE_MPI
 #include "john-mpi.h"
 #endif
@@ -122,11 +123,10 @@ static void single_init(void)
 
 	if (rpp_init(rule_ctx, single_db->options->activesinglerules)) {
 		log_event("! No \"single crack\" mode rules found");
-#ifdef HAVE_MPI
-		if (mpi_id == 0)
-#endif
-		fprintf(stderr, "No \"single crack\" mode rules found in %s\n",
-			cfg_name);
+		if (john_main_process)
+			fprintf(stderr,
+			    "No \"single crack\" mode rules found in %s\n",
+			    cfg_name);
 		error();
 	}
 
