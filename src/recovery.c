@@ -31,7 +31,7 @@ extern int ftruncate(int fd, size_t length);
 #include "recovery.h"
 
 char *rec_name = RECOVERY_NAME;
-int rec_name_completed = 1;
+int rec_name_completed = 0;
 int rec_version = 0;
 int rec_argc = 0;
 char **rec_argv;
@@ -45,8 +45,19 @@ static void (*rec_save_mode)(FILE *file);
 
 static void rec_name_complete(void)
 {
-	if (rec_name_completed) return;
-	rec_name = path_session(rec_name, RECOVERY_SUFFIX);
+	char *suffix = RECOVERY_SUFFIX;
+
+	if (rec_name_completed)
+		return;
+
+	if (options.fork) {
+		suffix = mem_alloc(1 + 20 + strlen(RECOVERY_SUFFIX) + 1);
+		sprintf(suffix, ".%u%s", options.node_min, RECOVERY_SUFFIX);
+	}
+	rec_name = path_session(rec_name, suffix);
+	if (options.fork)
+		MEM_FREE(suffix);
+
 	rec_name_completed = 1;
 }
 

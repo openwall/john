@@ -137,11 +137,11 @@
 #define CFG_PRIVATE_ALT_NAME		JOHN_PRIVATE_HOME "/john.ini"
 #define POT_NAME			JOHN_PRIVATE_HOME "/john.pot"
 #define LOG_NAME			JOHN_PRIVATE_HOME "/john.log"
-#define RECOVERY_NAME			JOHN_PRIVATE_HOME "/john.rec"
+#define RECOVERY_NAME			JOHN_PRIVATE_HOME "/john"
 #else
 #define POT_NAME			"$JOHN/john.pot"
 #define LOG_NAME			"$JOHN/john.log"
-#define RECOVERY_NAME			"$JOHN/john.rec"
+#define RECOVERY_NAME			"$JOHN/john"
 #endif
 #define LOG_SUFFIX			".log"
 #define RECOVERY_SUFFIX			".rec"

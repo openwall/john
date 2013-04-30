@@ -113,6 +113,29 @@ static void john_log_format(void)
 			chunk);
 }
 
+static void john_fork(void)
+{
+	int i;
+
+	for (i = 1; i < options.fork; i++) {
+		switch (fork()) {
+		case -1:
+			pexit("fork");
+
+		case 0:
+			options.node_min += i;
+			options.node_max = options.node_min;
+			return;
+
+		default:
+			/* could record the PID here */
+			continue;
+		}
+	}
+
+	options.node_max = options.node_min;
+}
+
 static char *john_loaded_counts(void)
 {
 	static char s_loaded_counts[80];
@@ -237,18 +260,20 @@ static void john_load(void)
 
 	if (options.node_count) {
 		if (options.node_min != options.node_max) {
-			log_event("- Node numbers %u-%u of %u",
+			log_event("- Node numbers %u-%u of %u%s",
 			    options.node_min, options.node_max,
-			    options.node_count);
-			fprintf(stderr, "Node numbers %u-%u of %u\n",
+			    options.node_count, options.fork ? " (fork)" : "");
+			fprintf(stderr, "Node numbers %u-%u of %u%s\n",
 			    options.node_min, options.node_max,
-			    options.node_count);
+			    options.node_count, options.fork ? " (fork)" : "");
 		} else {
 			log_event("- Node number %u of %u",
 			    options.node_min, options.node_count);
 			fprintf(stderr, "Node number %u of %u\n",
 			    options.node_min, options.node_count);
 		}
+
+		john_fork();
 	}
 }
 
