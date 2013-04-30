@@ -220,7 +220,8 @@ static void signal_children(void)
 {
 	int i;
 	for (i = 0; i < john_child_count; i++)
-		kill(john_child_pids[i], SIGUSR2);
+		if (john_child_pids[i])
+			kill(john_child_pids[i], SIGUSR2);
 }
 
 static void sig_install_timer(void);
