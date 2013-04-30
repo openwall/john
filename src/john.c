@@ -119,11 +119,12 @@ static void john_log_format(void)
 
 static void john_fork(void)
 {
+#ifdef __DJGPP__
+	fputs("Warning: --fork is not supported in this build, "
+	    "will run one process\n", stderr);
+#else
 	int i, pid;
 	int *pids;
-
-	if (options.fork < 2)
-		return;
 
 /*
  * It may cost less memory to reset john_main_process to 0 before fork()'ing
@@ -156,6 +157,7 @@ static void john_fork(void)
 	john_child_count = options.fork - 1;
 
 	options.node_max = options.node_min;
+#endif
 }
 
 static char *john_loaded_counts(void)
@@ -295,7 +297,8 @@ static void john_load(void)
 			    options.node_min, options.node_count);
 		}
 
-		john_fork();
+		if (options.fork)
+			john_fork();
 	}
 }
 
