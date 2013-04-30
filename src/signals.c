@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2003,2006,2010 by Solar Designer
+ * Copyright (c) 1996-2003,2006,2010,2013 by Solar Designer
  */
 
 #define _XOPEN_SOURCE 500 /* for setitimer(2) and siginterrupt(3) */
@@ -217,9 +217,11 @@ static int sig_getchar(void)
 
 static void signal_children(void)
 {
-	int i;
-	for (i = 0; i < options.fork - 1; i++)
-		kill(sig_pids[i], SIGUSR2);
+	if (options.fork) {
+		int i;
+		for (i = 0; i < options.fork - 1; i++)
+			kill(sig_pids[i], SIGUSR2);
+	}
 }
 
 static void sig_install_timer(void);
