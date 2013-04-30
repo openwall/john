@@ -107,7 +107,7 @@ static struct opt_entry opt_list[] = {
 	{"node", FLG_NODE, FLG_NODE, FLG_CRACKING_CHK, OPT_REQ_PARAM,
 		OPT_FMT_STR_ALLOC, &options.node_str},
 	{"fork", FLG_FORK, FLG_FORK,
-		FLG_CRACKING_CHK, FLG_STDIN_CHK | FLG_STDOUT | OPT_REQ_PARAM,
+		FLG_CRACKING_CHK, FLG_STDIN_CHK | FLG_STDOUT | FLG_PIPE_CHK | OPT_REQ_PARAM,
 		"%u", &options.fork},
 	{"pot", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
 	    OPT_FMT_STR_ALLOC, &options.loader.activepot},

@@ -948,7 +948,7 @@ next_rule:
 			}
 
 			line_number = 0;
-			if (!nWordFileLines)
+			if (!nWordFileLines && word_file != stdin)
 			if (fseek(word_file, 0, SEEK_SET))
 				pexit("fseek");
 
