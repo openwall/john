@@ -8,6 +8,9 @@
 #include <string.h>
 #include <stdlib.h>
 #include <sys/stat.h>
+#ifndef __DJGPP__
+#include <sys/wait.h>
+#endif
 
 #include "params.h"
 
@@ -195,6 +198,35 @@ static void john_fork(void)
 	john_child_count = options.fork - 1;
 
 	options.node_max = options.node_min;
+#endif
+}
+
+static void john_wait(void)
+{
+#ifndef __DJGPP__
+	int waiting_for = john_child_count;
+
+	log_event("Waiting for %d child%s to terminate",
+	    waiting_for, waiting_for == 1 ? "" : "ren");
+	fprintf(stderr, "Waiting for %d child%s to terminate\n",
+	    waiting_for, waiting_for == 1 ? "" : "ren");
+
+/*
+ * Although we may block on wait(2), we still have signal handlers and a timer
+ * in place, so we're relaying keypresses to child processes via signals.
+ */
+	while (waiting_for) {
+		int i, pid = wait(NULL);
+		if (pid == -1)
+			perror("wait");
+		else
+		for (i = 0; i < john_child_count; i++) {
+			if (john_child_pids[i] == pid) {
+				john_child_pids[i] = 0;
+				waiting_for--;
+			}
+		}
+	}
 #endif
 }
 
@@ -458,6 +490,10 @@ static void john_run(void)
 			do_batch_crack(&database);
 
 		status_print();
+
+		if (options.fork && john_main_process)
+			john_wait();
+
 		tty_done();
 
 		if (john_main_process && database.password_count < remaining) {
@@ -486,10 +522,14 @@ static void john_done(void)
 {
 	if ((options.flags & (FLG_CRACKING_CHK | FLG_STDOUT)) ==
 	    FLG_CRACKING_CHK) {
-		if (event_abort)
+		if (event_abort) {
 			log_event("Session aborted");
-		else
+			/* We have already printed to stderr from signals.c */
+		} else {
 			log_event("Session completed");
+			if (john_main_process)
+				fprintf(stderr, "Session completed\n");
+		}
 		fmt_done(database.format);
 	}
 	log_done();
