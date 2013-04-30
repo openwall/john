@@ -305,7 +305,7 @@ static void sha1_fmt_set_key(char *key, int index)
     uint32_t len = _mm_movemask_epi8(_mm_cmpeq_epi8(X, Z));
 
     // Create a lookup tables to find correct masks for each supported input
-    // length. It would be nice if could use 128 bit shifts to produce these
+    // length. It would be nice if we could use 128 bit shifts to produce these
     // dynamically, but they require an immediate operand.
     static const __aligned_16 uint32_t kTrailingBitTable[][4] = {
         { 0x00000080, 0x00000000, 0x00000000, 0x00000000 },

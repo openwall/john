@@ -31,7 +31,7 @@
 
 static const unsigned char padding[128] = { 0x80, 0 /* 0,0,0,0.... */ };
 
-// I wish C++ had a good 'known' ror command :( Hopefully the copilers will be nice with this one.
+// I wish C++ had a good 'known' ror command :( Hopefully the compilers will be nice with this one.
 // GCC seems to do a good job of converting into roll, which is 'good' enough.  The rotates are the
 // 'wrong' direction (rol(x,32-y) vs ror(x,y)), but that's not is a problem, same cycle count.
 #define ROR32(x,n) ((x>>n)|(x<<(32-n)))

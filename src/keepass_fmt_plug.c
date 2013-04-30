@@ -83,7 +83,7 @@ static void transform_key(char *masterkey, struct custom_salt *csp, unsigned cha
 	}
 	memset(&akey, 0, sizeof(AES_KEY));
 	if(AES_set_encrypt_key(csp->transf_randomseed, 256, &akey) < 0) {
-		fprintf(stderr, "AES_set_derypt_key failed!\n");
+		fprintf(stderr, "AES_set_encrypt_key failed!\n");
 	}
         // Next, encrypt the created hash
 	i = csp->key_transf_rounds >> 2;
@@ -330,7 +330,7 @@ static void crypt_all(int count)
 		memcpy(iv, cur_salt->enc_iv, 16);
 		memset(&akey, 0, sizeof(AES_KEY));
 		if(AES_set_decrypt_key(final_key, 256, &akey) < 0) {
-			fprintf(stderr, "AES_set_derypt_key failed in crypt!\n");
+			fprintf(stderr, "AES_set_decrypt_key failed in crypt!\n");
 		}
 		if(cur_salt->version == 1) {
 			AES_cbc_encrypt(cur_salt->contents, decrypted_content, cur_salt->contentsize, &akey, iv, AES_DECRYPT);
