@@ -222,7 +222,7 @@ static void decrypt_buffer(unsigned char *buffer, unsigned int len,
 
 	memset(&akey, 0, sizeof(AES_KEY));
 	if (AES_set_decrypt_key(key, 128, &akey) < 0) {
-		fprintf(stderr, "AES_set_derypt_key failed!\n");
+		fprintf(stderr, "AES_set_decrypt_key failed!\n");
 	}
 	AES_cbc_encrypt(buffer, buffer, len, &akey, iv, AES_DECRYPT);
 }

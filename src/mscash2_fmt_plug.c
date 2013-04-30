@@ -27,16 +27,16 @@
  *	- increased salt (user name) upto 22 UC2 characters. Bug in original code only allowed up to 8 chars.
  *	- Added SSE2(/MMX) and SSE2i to the deep inner loop.  2x to 4x speedup.
  *	- total about 2x to 10x improvment in speed (depending upon CPU and compiler).  Some compilers
- *	  were more efficient with orinal code, and thus received less of a performance boost.  Others
+ *	  were more efficient with original code, and thus received less of a performance boost.  Others
  *	  got a signicant improvment.
  *	- The utf8 code was greatly simplified.  There was no reason to try to optimized the UTF code as
- *	  the format is so slow that utf8 conversion is a non-issue. Thus the we always call the enc_to_utf16()
+ *	  the format is so slow that utf8 conversion is a non-issue. Thus we always call the enc_to_utf16()
  *	  at the proper locations, and let that function deal with being in --encoding=utf8 switch mode or not.
  *	- Fixed code to properly work with BE systems, and alignment required systems.
  *	- Made some 'interface' changes to the SSE2i for SHA1, and to the sha-mmx.S code, to make it work
  *	  properly, and to make it more efficient.  We deal with 2 SHA1 states, and alternate back and forth
  *	  between them. The changes to the SSE2i code, were to optimize this dual state, and the changes
- *	  to the .S code were simply to make it work at all and the same optimizations were place there.
+ *	  to the .S code were simply to make it work at all and the same optimizations were placed there.
  *	- the OMP code was removed during initial re-write, and was properly re-incorporated by magnum.
  *
  * This module is based on:
@@ -44,7 +44,7 @@
  *     - RFC 1320 - The MD4 Message-Digest Algorithm
  *     - RFC 2104 - HMAC: Keyed-Hashing for Message Authentication
  *     - RFC 3174 - US Secure Hash Algorithm 1 (SHA1)
- *     - the HMAC-SHA1 implementation of the PolarSSL open source cryptagraphic library (http://polarssl.org/)
+ *     - the HMAC-SHA1 implementation of the PolarSSL open source cryptographic library (http://polarssl.org/)
  */
 
 #include <string.h>
@@ -505,7 +505,7 @@ static int salt_hash(void *salt)
 
 #ifdef MMX_COEF
 // NOTE, in the end, this block will move above the pbkdf2() function, and the #else and #endif wrapping that function will be
-// uncommented. Thus, if built for SSE2 (mmx, or intrisic), we get this function. Otherwise we get teh pbkdf2() function which
+// uncommented. Thus, if built for SSE2 (mmx, or intrisic), we get this function. Otherwise we get the pbkdf2() function which
 // uses OpenSSL.  However to get the 'layout' right, The code here will walk through the array buffer, calling the pbkdf2
 // function.
 static void pbkdf2_sse2(int t)

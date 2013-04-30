@@ -259,7 +259,7 @@ static int cmp_one(void* binary, int index)
 		// printf("Real: %i %i %i %i Decrypt: %i %i %i %i\n", (int)know_crc32[0], (int)know_crc32[1], (int)know_crc32[2], (int)know_crc32[3],
 		// (int)crc32[0], (int)crc32[1], (int)crc32[2], (int)crc32[3]);
 
-		// TODO: Not use this code, use the commented up
+		// TODO: Do not use this code, use the commented up
 		if(!first_block_dec[12] && !first_block_dec[13] && !first_block_dec[14] && !first_block_dec[15])
 			return 1;
 	}

@@ -290,7 +290,7 @@ static int akcdecrypt(unsigned char *derived_key, unsigned char *data)
 	memset(&akey, 0, sizeof(AES_KEY));
 
 	if(AES_set_decrypt_key(key, 128, &akey) < 0) {
-		fprintf(stderr, "AES_set_derypt_key failed in crypt!\n");
+		fprintf(stderr, "AES_set_decrypt_key failed in crypt!\n");
 	}
 	AES_cbc_encrypt(data + CTLEN - 32, out + CTLEN - 32, 32, &akey, iv, AES_DECRYPT);
 

@@ -22,7 +22,7 @@ typedef unsigned long long ARCH_WORD_64;
 #endif
 
 /* ONLY use this to check alignments of even power of 2 (2, 4, 8, 16, etc) byte counts (CNT).
-   the cast to void* MUST be done, due to C spec. http://stackoverflow.com/a/1898487 */
+   The cast to void* MUST be done, due to C spec. http://stackoverflow.com/a/1898487 */
 #define is_aligned(PTR, CNT) ((((ARCH_WORD)(const void *)(PTR))&(CNT-1))==0)
 
 #ifdef __GNUC__

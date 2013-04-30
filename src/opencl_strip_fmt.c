@@ -336,7 +336,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		memcpy(iv_out, iv_in, 16);
 
 		if (AES_set_decrypt_key(master, 256, &akey) < 0) {
-			fprintf(stderr, "AES_set_derypt_key failed!\n");
+			fprintf(stderr, "AES_set_decrypt_key failed!\n");
 		}
 		/* decrypting 24 bytes is enough */
 		AES_cbc_encrypt(cur_salt->data + 16, output + 16, 24, &akey, iv_out, AES_DECRYPT);

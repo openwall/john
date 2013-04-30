@@ -156,7 +156,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		pbkdf2_sha256((unsigned char*)saved_key[index], strlen(saved_key[index]), (unsigned char*)cur_salt->username, strlen((char*)cur_salt->username), cur_salt->iterations, key);
 
 		if(AES_set_decrypt_key((const unsigned char *)key, 256, &akey) < 0) {
-			fprintf(stderr, "AES_set_derypt_key failed in crypt!\n");
+			fprintf(stderr, "AES_set_decrypt_key failed in crypt!\n");
 		}
 		AES_cbc_encrypt(cur_salt->encrypted_username, out, 32, &akey, iv, AES_DECRYPT);
 
