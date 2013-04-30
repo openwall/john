@@ -73,7 +73,7 @@ extern char *rules_reject(char *rule, int split, char *last,
  * rules_apply() are properly aligned).  If the new mangled word matches the
  * previous one, it will be rejected (rules_apply() will return NULL).
  */
-extern char *rules_apply(const char *word, char *rule, int split, char *last);
+extern char *rules_apply(char *word, char *rule, int split, char *last);
 
 /*
  * Checks if all the rules for context are valid. Returns the number of rules,

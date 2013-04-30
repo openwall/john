@@ -837,10 +837,9 @@ accept:
 	return out_rule;
 }
 
-char *rules_apply(const char *word, char *rule, int split, char *last)
+char *rules_apply(char *word, char *rule, int split, char *last)
 {
-	char *in, *alt;
-	const char *memory = word;
+	char *in, *alt, *memory = word;
 	int length;
 	int which;
 

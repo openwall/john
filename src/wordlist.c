@@ -78,7 +78,7 @@ static int restore_rule_number(void)
 	return 0;
 }
 
-static MAYBE_INLINE int skip_lines(unsigned long n, const char *line)
+static MAYBE_INLINE int skip_lines(unsigned long n, char *line)
 {
 	static unsigned long last;
 
@@ -89,7 +89,7 @@ static MAYBE_INLINE int skip_lines(unsigned long n, const char *line)
 		line_number += n;
 
 		do {
-			if (!fgetl((char*)line, LINE_BUFFER_SIZE, word_file))
+			if (!fgetl(line, LINE_BUFFER_SIZE, word_file))
 				return 1;
 		} while (--n);
 	}
@@ -199,14 +199,14 @@ static int get_progress(int *hundth_perc)
 	return percent;
 }
 
-static char *dummy_rules_apply(const char *word, char *rule, int split, char *last)
+static char *dummy_rules_apply(char *word, char *rule, int split, char *last)
 {
-	return (char*)word;
+	return word;
 }
 
-static MAYBE_INLINE const char *potword(const char *line)
+static MAYBE_INLINE char *potword(char *line)
 {
-	const char *p;
+	char *p;
 
 	p = strchr(line, options.field_sep_char);
 	return p ? p + 1 : line;
@@ -298,16 +298,11 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 		char buffer[2][LINE_BUFFER_SIZE + CACHE_BANK_SHIFT];
 		ARCH_WORD dummy;
 	} aligned;
-#if ARCH_ALLOWS_UNALIGNED
-	const char *line = aligned.buffer[0];
-#else
-	// for unaligned, we have to strcpy INTO line, so can't be 'const'
 	char *line = aligned.buffer[0];
-#endif
 	char *last = aligned.buffer[1];
 	struct rpp_context ctx;
 	char *prerule, *rule, *word;
-	char *(*apply)(const char *word, char *rule, int split, char *last) = NULL;
+	char *(*apply)(char *word, char *rule, int split, char *last) = NULL;
 	int dist_switch;
 	unsigned long my_words, their_words, my_words_left;
 	long file_len;
@@ -433,7 +428,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 					if (!strncmp(line, "#!comment", 9))
 						continue;
 					if (loopBack)
-						lp = (char*)potword(file_line);
+						lp = potword(file_line);
 					else
 						lp = file_line;
 					if (!rules) {
@@ -464,7 +459,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 					if (!strncmp(line, "#!comment", 9))
 						continue;
 					if (loopBack)
-						lp = (char*)potword(file_line);
+						lp = potword(file_line);
 					else
 						lp = file_line;
 					if (!rules) {
@@ -576,7 +571,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 					break;
 				}
 				if (loopBack)
-					cp = (char*)potword(cp);
+					cp = potword(cp);
 				ep = cp;
 				while ((ep < aep) && *ep && *ep != '\n' && *ep != '\r') ep++;
 				ec = *ep;
@@ -856,37 +851,35 @@ SKIP_MEM_MAP_LOAD:;
 			}
 		}
 
-		if (rule) {
-		if (nWordFileLines)
-			while (1) {
-				if (line_number == nWordFileLines)
-					break;
+		if (rule && nWordFileLines)
+		while (line_number < nWordFileLines) {
 #if ARCH_ALLOWS_UNALIGNED
-				line = words[line_number];
+			line = words[line_number];
 #else
-				strcpy(line, words[line_number]);
+			strcpy(line, words[line_number]);
 #endif
-				line_number++;
+			line_number++;
 
-				if ((word = apply(line, rule, -1, last))) {
-					last = word;
+			if ((word = apply(line, rule, -1, last))) {
+				last = word;
 
-					if (ext_filter(word))
-					if (crk_process_key(word)) {
-						rules = 0;
-						pipe_input = 0;
-						break;
-					}
+				if (ext_filter(word))
+				if (crk_process_key(word)) {
+					rules = 0;
+					pipe_input = 0;
+					break;
 				}
 			}
-		else
-			while (fgetl((char*)line, LINE_BUFFER_SIZE, word_file)) {
+		}
+
+		else if (rule)
+		while (fgetl(line, LINE_BUFFER_SIZE, word_file)) {
 			line_number++;
 
 			if (line[0] != '#') {
-			process_word:
+process_word:
 				if (loopBack)
-					memmove((char*)line, potword(line),
+					memmove(line, potword(line),
 					        strlen(potword(line)) + 1);
 
 				if (!rules) {
@@ -898,11 +891,11 @@ SKIP_MEM_MAP_LOAD:;
 						if (maxlength && len > maxlength)
 							continue;
 					}
-					((char*)line)[length] = 0;
+					line[length] = 0;
 				}
-				if (!strcmp(line, last)) {
+				if (!strcmp(line, last))
 					continue;
-				}
+
 				if ((word = apply(line, rule, -1, last))) {
 					strcpy(last, word);
 
@@ -913,7 +906,7 @@ SKIP_MEM_MAP_LOAD:;
 						break;
 					}
 				}
-			next_word:
+next_word:
 				if (--my_words_left)
 					continue;
 				if (skip_lines(their_words, line))
@@ -926,11 +919,13 @@ SKIP_MEM_MAP_LOAD:;
 				goto process_word;
 			goto next_word;
 		}
-		}
+
 		if (ferror(word_file))
 			break;
 
+#if defined (_MSC_VER) || defined (__MINGW32__) || defined (__CYGWIN32__)
 EndOfFile:
+#endif
 		if (rules) {
 next_rule:
 			if (!(rule = rpp_next(&ctx))) break;
