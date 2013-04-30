@@ -18,7 +18,7 @@ char *id2string() {
 
 	if (strlen(id_string)) return id_string;
 	snprintf(id_string, 11, "%d", mpi_id);
-	id_string[11] = 0x00;
+	id_string[11] = 0;
 	return id_string;
 }
 
@@ -34,7 +34,5 @@ void mpi_setup(int argc, char **argv) {
 	MPI_Comm_rank(MPI_COMM_WORLD, &mpi_id);
 	MPI_Comm_size(MPI_COMM_WORLD, &mpi_p);
 	MPI_Get_processor_name(mpi_name, &namesize);
-	if (mpi_id != 0)
-		close(STDOUT_FILENO);
 	atexit(mpi_teardown);
 }
