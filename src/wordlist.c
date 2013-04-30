@@ -158,7 +158,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 	struct rpp_context ctx;
 	char *prerule, *rule, *word;
 	char *(*apply)(char *word, char *rule, int split, char *last);
-	int distrules, distwords, distswitch;
+	int dist_rules, dist_words, dist_switch;
 
 	log_event("Proceeding with wordlist mode");
 
@@ -212,20 +212,20 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 	last[0] = '\n';
 	last[1] = 0;
 
-	distrules = distwords = 0;
-	distswitch = rule_count; /* never */
+	dist_rules = dist_words = 0;
+	dist_switch = rule_count; /* never */
 	if (options.node_count) {
 		int rule_rem = rule_count % options.node_count;
 		const char *now, *later = "";
-		distswitch = rule_count - rule_rem;
-		if (!rule_rem || rule_number < distswitch) {
-			distrules = 1;
+		dist_switch = rule_count - rule_rem;
+		if (!rule_rem || rule_number < dist_switch) {
+			dist_rules = 1;
 			now = "rules";
 			if (rule_rem)
 				later = ", then switch to distributing words";
 		} else {
-			distswitch = rule_count; /* never */
-			distwords = options.node_count -
+			dist_switch = rule_count; /* never */
+			dist_words = options.node_count -
 			    (options.node_max - options.node_min + 1);
 			now = "words";
 		}
@@ -238,9 +238,9 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
  * actually used.  Thus, when restoring a session we skip other nodes' lines
  * here.  When starting a new session, we skip lower-numbered nodes' lines.
  */
-	if (distwords) {
+	if (dist_words) {
 		if (rec_pos) {
-			if (skip_lines(distwords, line))
+			if (skip_lines(dist_words, line))
 				prerule = NULL;
 /* We only need the line_number to be correct modulo node_count */
 			if (word_file != stdin)
@@ -253,7 +253,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 	if (prerule)
 	do {
 		if (rules) {
-			if (distrules) {
+			if (dist_rules) {
 				int for_node =
 				    rule_number % options.node_count + 1;
 				if (for_node < options.node_min ||
@@ -289,7 +289,7 @@ not_comment:
 						break;
 					}
 				}
-				if (distwords && skip_lines(distwords, line))
+				if (dist_words && skip_lines(dist_words, line))
 					break;
 				continue;
 			}
@@ -297,7 +297,7 @@ not_comment:
 			if (strncmp(line, "#!comment", 9))
 				goto not_comment;
 
-			if (distwords && skip_lines(distwords, line))
+			if (dist_words && skip_lines(dist_words, line))
 				break;
 		}
 
@@ -309,11 +309,11 @@ next_rule:
 			if (!(rule = rpp_next(&ctx))) break;
 			rule_number++;
 
-			if (rule_number >= distswitch) {
+			if (rule_number >= dist_switch) {
 				log_event("- Switching to distributing words");
-				distswitch = rule_count; /* not anymore */
-				distrules = 0;
-				distwords = options.node_count -
+				dist_switch = rule_count; /* not anymore */
+				dist_rules = 0;
+				dist_words = options.node_count -
 				    (options.node_max - options.node_min + 1);
 			}
 
@@ -321,7 +321,7 @@ next_rule:
 			if (fseek(word_file, 0, SEEK_SET))
 				pexit("fseek");
 
-			if (distwords && options.node_min > 1 &&
+			if (dist_words && options.node_min > 1 &&
 			    skip_lines(options.node_min - 1, line))
 				break;
 		}
