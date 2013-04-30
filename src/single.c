@@ -15,6 +15,7 @@
 #include "logger.h"
 #include "status.h"
 #include "recovery.h"
+#include "options.h"
 #include "rpp.h"
 #include "rules.h"
 #include "external.h"
@@ -412,6 +413,15 @@ static void single_run(void)
 
 	saved_min = rec_rule;
 	while ((prerule = rpp_next(rule_ctx))) {
+		if (options.node_count) {
+			int for_node = rule_number % options.node_count + 1;
+			if (for_node < options.node_min ||
+			    for_node > options.node_max) {
+				rule_number++;
+				continue;
+			}
+		}
+
 		if (!(rule = rules_reject(prerule, 0, NULL, single_db))) {
 			log_event("- Rule #%d: '%.100s' rejected",
 				++rule_number, prerule);
