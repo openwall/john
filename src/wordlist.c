@@ -51,18 +51,28 @@ static int restore_rule_number(void)
 	return 0;
 }
 
+static MAYBE_INLINE int skip_lines(int n, char *line)
+{
+	if (n) {
+		line_number += n;
+
+		do {
+			if (!fgetl(line, LINE_BUFFER_SIZE, word_file))
+				break;
+		} while (--n);
+	}
+
+	return n;
+}
+
 static void restore_line_number(void)
 {
 	char line[LINE_BUFFER_SIZE];
-
-	for (line_number = 0; line_number < rec_pos; line_number++)
-	if (!fgetl(line, sizeof(line), word_file)) {
+	if (skip_lines(rec_pos, line)) {
 		if (ferror(word_file))
 			pexit("fgets");
-		else {
-			fprintf(stderr, "fgets: Unexpected EOF\n");
-			error();
-		}
+		fprintf(stderr, "fgets: Unexpected EOF\n");
+		error();
 	}
 }
 
@@ -141,20 +151,6 @@ static char *dummy_rules_apply(char *word, char *rule, int split, char *last)
 	if (strcmp(word, last))
 		return strcpy(last, word);
 	return NULL;
-}
-
-static MAYBE_INLINE int skip_lines(int n, char *line)
-{
-	if (n) {
-		line_number += n;
-
-		do {
-			if (!fgetl(line, LINE_BUFFER_SIZE, word_file))
-				break;
-		} while (--n);
-	}
-
-	return n;
 }
 
 void do_wordlist_crack(struct db_main *db, char *name, int rules)
