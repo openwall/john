@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-99,2003,2006,2011,2012 by Solar Designer
+ * Copyright (c) 1996-99,2003,2006,2011-2013 by Solar Designer
  */
 
 /*
@@ -25,6 +25,10 @@
 #include "bench.h"
 
 extern struct fmt_main fmt_DES, fmt_MD5, fmt_BF;
+
+int john_main_process = 0;
+int john_child_count = 0;
+int *john_child_pids = NULL;
 
 int main(int argc, char **argv)
 {
