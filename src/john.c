@@ -31,6 +31,7 @@
 #include "loader.h"
 #include "logger.h"
 #include "status.h"
+#include "recovery.h"
 #include "options.h"
 #include "config.h"
 #include "bench.h"
@@ -206,6 +207,16 @@ static void john_fork(void)
 		case 0:
 			options.node_min += i;
 			options.node_max = options.node_min;
+			if (rec_restoring_now) {
+				unsigned int node_id = options.node_min;
+				rec_done(1);
+				rec_restore_args(1);
+				if (node_id != options.node_min + i)
+					fprintf(stderr,
+					    "Inconsistent crash recovery file:"
+					    " %s\n", rec_name);
+				options.node_min = options.node_max = node_id;
+			}
 			return;
 
 		default:
