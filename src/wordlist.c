@@ -6,14 +6,13 @@
  */
 
 #define _POSIX_SOURCE /* for fileno(3) */
-
 #include <stdio.h>
 #include <sys/stat.h>
-#ifndef _MSC_VER
+#ifdef _MSC_VER
+#pragma warning ( disable : 4996 )
+#else
 #include <unistd.h>
 #include <strings.h>
-#else
-#pragma warning ( disable : 4996 )
 #endif
 #include <string.h>
 
@@ -33,39 +32,40 @@
 #include "logger.h"
 #include "status.h"
 #include "recovery.h"
+#include "options.h"
 #include "rpp.h"
 #include "rules.h"
 #include "external.h"
 #include "cracker.h"
 #include "memory.h"
-#include "options.h"
 #ifdef HAVE_MPI
 #include "john-mpi.h"
 #endif
 
-static int distrules;
+static int dist_rules;
 static int myrulecount;
 
 static FILE *word_file = NULL;
 static int progress = 0, hund_progress = 0;
 
 static int rec_rule;
-static long rec_pos;
+static long rec_pos; /* ftell(3) is defined to return a long */
+static unsigned long rec_line;
 
-static int rule_number, rule_count, line_number;
+static int rule_number, rule_count;
+static unsigned long line_number;
 static int length;
 static struct rpp_context *rule_ctx;
 
 // used for file in 'memory map' mode
 static char *word_file_str, **words;
-
 static unsigned int nWordFileLines;
 
 static struct db_main *_db;
 
 static void save_state(FILE *file)
 {
-	fprintf(file, "%d\n%ld\n", rec_rule, rec_pos);
+	fprintf(file, "%d\n%ld\n%lu\n", rec_rule, rec_pos, rec_line);
 }
 
 static int restore_rule_number(void)
@@ -78,18 +78,33 @@ static int restore_rule_number(void)
 	return 0;
 }
 
+static MAYBE_INLINE int skip_lines(unsigned long n, const char *line)
+{
+	static unsigned long last;
+
+	if (last != n)
+		fprintf(stderr, "Skipping %lu\n", n);
+	last = n;
+	if (n) {
+		line_number += n;
+
+		do {
+			if (!fgetl((char*)line, LINE_BUFFER_SIZE, word_file))
+				return 1;
+		} while (--n);
+	}
+
+	return 0;
+}
+
 static void restore_line_number(void)
 {
 	char line[LINE_BUFFER_SIZE];
-
-	for (line_number = 0; line_number < rec_pos; line_number++)
-	if (!fgetl(line, sizeof(line), word_file)) {
+	if (skip_lines(rec_pos, line)) {
 		if (ferror(word_file))
 			pexit("fgets");
-		else {
-			fprintf(stderr, "fgets: Unexpected EOF\n");
-			error();
-		}
+		fprintf(stderr, "fgets: Unexpected EOF\n");
+		error();
 	}
 }
 
@@ -97,17 +112,22 @@ static int restore_state(FILE *file)
 {
 	if (fscanf(file, "%d\n%ld\n", &rec_rule, &rec_pos) != 2)
 		return 1;
+	rec_line = 0;
+	if (rec_version >= 4 && fscanf(file, "%lu\n", &rec_line) != 1)
+		return 1;
 	if (rec_rule < 0 || rec_pos < 0)
 		return 1;
 
 	if (restore_rule_number())
 		return 1;
 
-	if (word_file == stdin)
+	if (word_file == stdin) {
 		restore_line_number();
-	else
+	} else {
 		if (fseek(word_file, rec_pos, SEEK_SET))
 			pexit("fseek");
+		line_number = rec_line;
+	}
 
 	return 0;
 }
@@ -121,6 +141,7 @@ static void fix_state(void)
 	fix_state_delay=0;
 
 	rec_rule = rule_number;
+	rec_line = line_number;
 
 	if (word_file == stdin)
 		rec_pos = line_number;
@@ -166,7 +187,7 @@ static int get_progress(int *hundth_perc)
 		}
 	}
 
-	if (distrules)
+	if (dist_rules)
 		hundredXpercent = (int)((long long)(10000 * (rule_number / options.node_count * file_stat.st_size + pos)) /
 		                        (long long)(myrulecount * file_stat.st_size));
 	else
@@ -181,18 +202,6 @@ static int get_progress(int *hundth_perc)
 static char *dummy_rules_apply(const char *word, char *rule, int split, char *last)
 {
 	return (char*)word;
-}
-
-static MAYBE_INLINE int skip_lines(int n, const char *line)
-{
-	line_number += n;
-
-	do {
-		if (!fgetl((char*)line, LINE_BUFFER_SIZE, word_file))
-			break;
-	} while (--n);
-
-	return n;
 }
 
 static MAYBE_INLINE const char *potword(const char *line)
@@ -297,12 +306,13 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 #endif
 	char *last = aligned.buffer[1];
 	struct rpp_context ctx;
-	char *prerule = NULL, *rule = NULL, *word;
+	char *prerule, *rule, *word;
 	char *(*apply)(const char *word, char *rule, int split, char *last) = NULL;
-	int distwords = 0, distswitch = 0;
+	int dist_switch;
+	unsigned long my_words, their_words, my_words_left;
 	long file_len;
-	int i, pipe_input=0, max_pipe_words=0, rules_keep=0;
-	int init_this_time=1, really_done=0;
+	int i, pipe_input = 0, max_pipe_words = 0, rules_keep = 0;
+	int init_once = 1;
 #if defined (_MSC_VER) || defined (__MINGW32__) || defined (__CYGWIN32__)
 	IPC_Item *pIPC=NULL;
 #endif
@@ -608,13 +618,15 @@ skip:
 			nWordFileLines = i;
 		}
 	} else {
-		/* Ok, we can be in --stdin or --pipe mode.  In --stdin, we simply copy over the
-		 * stdin file handle, and deal with it like a 'normal' word_file file (one line
-		 * at a time.  For --pipe mode, we read up to mem-buffer size, but that may not
-		 * be the end. We then set a value, so that when we are 'done' in the loop, we
-		 * jump back up.  Doing this, allows --pipe to have rules run on them. in --stdin
-		 * mode, we can NOT perform rules, due to we can not fseek stdin in most OS's
-		 */
+/*
+ * Ok, we can be in --stdin or --pipe mode.  In --stdin, we simply copy over
+ * the stdin file handle, and deal with it like a 'normal' word_file file (one
+ * line at a time.  For --pipe mode, we read up to mem-buffer size, but that
+ * may not be the end. We then set a value, so that when we are 'done' in the
+ * loop, we jump back up.  Doing this, allows --pipe to have rules run on them.
+ * in --stdin mode, we can NOT perform rules, due to we can not fseek stdin in
+ * most OS's.
+ */
  		word_file = stdin;
 		if (options.flags & FLG_STDIN_CHK) {
 			log_event("- Reading candidate passwords from stdin");
@@ -650,17 +662,13 @@ GRAB_NEXT_PIPE_LOAD:;
 
 				log_event("- Reading next block of candidate passwords from stdin pipe");
 
-				// the second (and subsquent) times through, we do NOT call init functions.
-				if (nWordFileLines)
-					init_this_time = 0;
-
 				rules = rules_keep;
 				nWordFileLines = 0;
 				cpi = word_file_str;
 				cpe = (cpi + db->options->max_wordfile_memory) - (LINE_BUFFER_SIZE+1);
 				while (nWordFileLines < max_pipe_words) {
 					if (!fgetl(cpi, LINE_BUFFER_SIZE, word_file)) {
-						pipe_input = 0; /* We are now done.  After processing, do NOT goto the GRAB_NEXT... again */
+						pipe_input = 0;
 						break;
 					}
 					if (strncmp(cpi, "#!comment", 9)) {
@@ -703,15 +711,13 @@ GRAB_NEXT_PIPE_LOAD:;
 			goto SKIP_MEM_MAP_LOAD;
 MEM_MAP_LOAD:;
 			{
-				if (nWordFileLines)
-					init_this_time = 0;
 				rules = rules_keep;
 				nWordFileLines = 0;
 				log_event("- Reading next block of candidate from the memory mapped file");
 				release_sharedmem_object(pIPC);
 				pIPC = next_sharedmem_object();
 				if (!pIPC || pIPC->n == 0) {
-					pipe_input = 0; /* We are now done.  After processing, do NOT goto the GRAB_NEXT... again */
+					pipe_input = 0;
 					shutdown_sharedmem();
 					goto EndOfFile;
 				} else {
@@ -735,7 +741,7 @@ SKIP_MEM_MAP_LOAD:;
 			if (mpi_id == 0)
 #endif
 			fprintf(stderr, "No wordlist mode rules found in %s\n",
-			        cfg_name);
+				cfg_name);
 			error();
 		}
 
@@ -756,7 +762,8 @@ SKIP_MEM_MAP_LOAD:;
 
 	rule_number = 0;
 
-	if (init_this_time) {
+	if (init_once) {
+		init_once = 0;
 		line_number = 0;
 
 		status_init(get_progress, 0);
@@ -767,55 +774,66 @@ SKIP_MEM_MAP_LOAD:;
 		crk_init(db, fix_state, NULL);
 	}
 
-	if (rules) prerule = rpp_next(&ctx); else prerule = "";
-	rule = "";
+	prerule = rule = "";
+	if (rules)
+		prerule = rpp_next(&ctx);
 
 /* A string that can't be produced by fgetl(). */
 	last[0] = '\n';
 	last[1] = 0;
 
-	distrules = distwords = 0;
-	distswitch = rule_count; /* never */
+	dist_rules = 0;
+	dist_switch = rule_count; /* never */
+	my_words = ~0UL; /* all */
+	their_words = 0;
+	/* myWordFileLines indicates we already have OUR share of words in
+	   memory buffer, so no further skipping. */
 	if (options.node_count && !myWordFileLines) {
 		int rule_rem = rule_count % options.node_count;
 		const char *now, *later = "";
-		distswitch = rule_count - rule_rem;
-		if (!rule_rem || rule_number < distswitch) {
-			distrules = 1;
+		dist_switch = rule_count - rule_rem;
+		if (!rule_rem || rule_number < dist_switch) {
+			dist_rules = 1;
 			now = "rules";
 			if (rule_rem)
 				later = ", then switch to distributing words";
 		} else {
-			distswitch = rule_count; /* never */
-			distwords = options.node_count -
-			    (options.node_max - options.node_min + 1);
+			dist_switch = rule_count; /* never */
+			my_words = options.node_max - options.node_min + 1;
+			their_words = options.node_count - my_words;
 			now = "words";
 		}
 		log_event("- Will distribute %s across nodes%s", now, later);
 	}
 
-/*
- * We call crk_process_key() before skipping other nodes' lines in the loop
- * below, so fix_state() records the rec_pos as of right after the word we've
- * actually used.  Thus, when restoring a session we skip other nodes' lines
- * here.  When starting a new session, we skip lower-numbered nodes' lines.
- */
-	if (distwords) {
-		if (rec_pos) {
-			if (skip_lines(distwords, line))
+	my_words_left = my_words;
+	if (their_words) {
+		if (line_number) {
+/* Restored session.  line_number is right after a word we've actually used. */
+			int for_node = line_number % options.node_count + 1;
+			if (for_node < options.node_min ||
+			    for_node > options.node_max) {
+/* We assume that line_number is at the beginning of other nodes' block */
+				if (skip_lines(their_words, line) &&
+/* Check for error since a mere EOF means next rule (the loop below should see
+ * the EOF again, and it will skip to next rule if applicable) */
+				    ferror(word_file))
+					prerule = NULL;
+			} else {
+				my_words_left =
+				    options.node_max - for_node + 1;
+			}
+		} else {
+/* New session.  Skip lower-numbered nodes' lines. */
+			if (skip_lines(options.node_min - 1, line))
 				prerule = NULL;
-/* We only need the line_number to be correct modulo node_count */
-			if (word_file != stdin)
-				line_number = options.node_min - 1;
-		} else if (options.node_min > 1 &&
-		    skip_lines(options.node_min - 1, line))
-			prerule = NULL;
+		}
 	}
 
 	if (prerule)
 	do {
 		if (rules) {
-			if (distrules) {
+			if (dist_rules) {
 				int for_node =
 				    rule_number % options.node_count + 1;
 				if (for_node < options.node_min ||
@@ -831,14 +849,16 @@ SKIP_MEM_MAP_LOAD:;
 					log_event("- Rule #%d: '%.100s'"
 						" accepted",
 						rule_number + 1, prerule);
-			} else
+			} else {
 				log_event("- Rule #%d: '%.100s' rejected",
 					rule_number + 1, prerule);
+				goto next_rule;
+			}
 		}
 
-		if (rule)
-		while (1) {
-			if (nWordFileLines) {
+		if (rule) {
+		if (nWordFileLines)
+			while (1) {
 				if (line_number == nWordFileLines)
 					break;
 #if ARCH_ALLOWS_UNALIGNED
@@ -846,56 +866,67 @@ SKIP_MEM_MAP_LOAD:;
 #else
 				strcpy(line, words[line_number]);
 #endif
-			}
-			else {
-				do {
-					if (!fgetl(((char*)line), LINE_BUFFER_SIZE, word_file))
-						goto EndOfFile;
-				} while (!strncmp(line, "#!comment", 9));
+				line_number++;
 
+				if ((word = apply(line, rule, -1, last))) {
+					last = word;
+
+					if (ext_filter(word))
+					if (crk_process_key(word)) {
+						rules = 0;
+						pipe_input = 0;
+						break;
+					}
+				}
+			}
+		else
+			while (fgetl((char*)line, LINE_BUFFER_SIZE, word_file)) {
+			line_number++;
+
+			if (line[0] != '#') {
+			process_word:
 				if (loopBack)
-					memmove((char*)line, potword(line), strlen(potword(line)) + 1);
+					memmove((char*)line, potword(line),
+					        strlen(potword(line)) + 1);
 
 				if (!rules) {
 					if (minlength || maxlength) {
 						int len = strlen(line);
 						if (minlength && len < minlength)
 							continue;
-						/* --max-length will skip, not truncate */
+						/* --max-length skips */
 						if (maxlength && len > maxlength)
 							continue;
 					}
 					((char*)line)[length] = 0;
 				}
 				if (!strcmp(line, last)) {
-					line_number++; // needed for MPI sync
 					continue;
 				}
-			}
-
-			line_number++;
-
-			if ((word = apply(line, rule, -1, last))) {
-				if (nWordFileLines)
-					last = word;
-				else
+				if ((word = apply(line, rule, -1, last))) {
 					strcpy(last, word);
 
-				if (ext_filter(word))
-				if (crk_process_key(word)) {
-					rules = 0;
-					really_done=1; /* keep us from relooping, if in -pipe mode */
-					break;
+					if (ext_filter(word))
+					if (crk_process_key(word)) {
+						rules = 0;
+						pipe_input = 0;
+						break;
+					}
 				}
-				if (distwords && skip_lines(distwords, line))
+			next_word:
+				if (--my_words_left)
+					continue;
+				if (skip_lines(their_words, line))
 					break;
+				my_words_left = my_words;
 				continue;
 			}
 
-			if (distwords && skip_lines(distwords, line))
-				break;
+			if (strncmp(line, "#!comment", 9))
+				goto process_word;
+			goto next_word;
 		}
-
+		}
 		if (ferror(word_file))
 			break;
 
@@ -905,12 +936,13 @@ next_rule:
 			if (!(rule = rpp_next(&ctx))) break;
 			rule_number++;
 
-			if (rule_number >= distswitch) {
+			if (rule_number >= dist_switch) {
 				log_event("- Switching to distributing words");
-				distswitch = rule_count; /* not anymore */
-				distrules = 0;
-				distwords = options.node_count -
-				    (options.node_max - options.node_min + 1);
+				dist_rules = 0;
+				dist_switch = rule_count; /* not anymore */
+				my_words =
+				    options.node_max - options.node_min + 1;
+				their_words = options.node_count - my_words;
 			}
 
 			line_number = 0;
@@ -918,13 +950,15 @@ next_rule:
 			if (fseek(word_file, 0, SEEK_SET))
 				pexit("fseek");
 
-			if (distwords && options.node_min > 1 &&
+			if (their_words &&
 			    skip_lines(options.node_min - 1, line))
 				break;
 		}
+
+		my_words_left = my_words;
 	} while (rules);
 
-	if (pipe_input && !really_done)
+	if (pipe_input)
 		goto GRAB_NEXT_PIPE_LOAD;
 
 	crk_done();

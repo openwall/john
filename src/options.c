@@ -104,7 +104,7 @@ static struct opt_entry opt_list[] = {
 		OPT_FMT_STR_ALLOC, &options.salt_param},
 	{"save-memory", FLG_SAVEMEM, FLG_SAVEMEM, 0, OPT_REQ_PARAM,
 		"%u", &mem_saving_level},
-	{"node", FLG_NODE, FLG_NODE, FLG_NODE_SUP, OPT_REQ_PARAM,
+	{"node", FLG_NODE, FLG_NODE, FLG_CRACKING_CHK, OPT_REQ_PARAM,
 		OPT_FMT_STR_ALLOC, &options.node_str},
 	{"pot", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
 	    OPT_FMT_STR_ALLOC, &options.loader.activepot},

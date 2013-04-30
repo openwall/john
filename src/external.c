@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2003,2004,2006,2011 by Solar Designer
+ * Copyright (c) 1996-2001,2003,2004,2006,2011,2013 by Solar Designer
  *
  * ...with changes in the jumbo patch, by magnum
  */
@@ -16,6 +16,7 @@
 #include "logger.h"
 #include "status.h"
 #include "recovery.h"
+#include "options.h"
 #include "config.h"
 #include "cracker.h"
 #include "external.h"
@@ -28,6 +29,13 @@ static unsigned long long mpi_line = 0;
 
 static char int_word[PLAINTEXT_BUFFER_SIZE];
 static char rec_word[PLAINTEXT_BUFFER_SIZE];
+
+/*
+ * A "sequence number" for distributing the candidate passwords across nodes.
+ * It is OK if this number overflows once in a while, as long as this happens
+ * in the same way for all nodes (must be same size unsigned integer type).
+ */
+static unsigned int seq, rec_seq;
 
 unsigned int ext_flags = 0;
 static char *ext_mode;
@@ -255,6 +263,7 @@ static void save_state(FILE *file)
 {
 	unsigned char *ptr;
 
+	fprintf(file, "%u\n", rec_seq);
 	ptr = (unsigned char *)rec_word;
 	do {
 		fprintf(file, "%d\n", (int)*ptr);
@@ -267,6 +276,9 @@ static int restore_state(FILE *file)
 	unsigned char *internal;
 	c_int *external;
 	int count;
+
+	if (rec_version >= 4 && fscanf(file, "%u\n", &seq) != 1)
+		return 1;
 
 	internal = (unsigned char *)int_word;
 	external = ext_word;
@@ -287,6 +299,7 @@ static int restore_state(FILE *file)
 static void fix_state(void)
 {
 	strcpy(rec_word, int_word);
+	rec_seq = seq;
 }
 
 void do_external_crack(struct db_main *db)
@@ -306,6 +319,8 @@ void do_external_crack(struct db_main *db)
 		*internal++ = *external++;
 	*internal = 0;
 
+	seq = 0;
+
 	status_init(&get_progress, 0);
 
 	rec_restore_mode(restore_state);
@@ -317,6 +332,17 @@ void do_external_crack(struct db_main *db)
 		c_execute_fast(f_generate);
 		if (!ext_word[0])
 			break;
+
+/*
+ * The skipping of other nodes' candidate passwords can be optimized, such as
+ * to avoid the modulo division like it's done for dist_words in wordlist.c.
+ */
+		if (options.node_count) {
+			int for_node = seq++ % options.node_count + 1;
+			if (for_node < options.node_min ||
+			    for_node > options.node_max)
+				continue;
+		}
 
 		if (f_filter) {
 			c_execute_fast(f_filter);

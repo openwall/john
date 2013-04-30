@@ -37,8 +37,7 @@
 /* Wordlist mode enabled, options.wordlist is set to the file name, or
  * we get it from john.conf */
 #define FLG_WORDLIST_CHK		0x00000080
-#define FLG_WORDLIST_SET \
-	(FLG_WORDLIST_CHK | FLG_CRACKING_SET | FLG_NODE_SUP)
+#define FLG_WORDLIST_SET		(FLG_WORDLIST_CHK | FLG_CRACKING_SET)
 /* Wordlist mode enabled, reading from stdin */
 #define FLG_STDIN_CHK			0x00000100
 #define FLG_STDIN_SET			(FLG_STDIN_CHK | FLG_WORDLIST_SET)
@@ -49,8 +48,7 @@
 #define FLG_SINGLE_SET			(FLG_SINGLE_CHK | FLG_CRACKING_SET)
 /* Incremental mode enabled */
 #define FLG_INC_CHK			0x00000800
-#define FLG_INC_SET \
-	(FLG_INC_CHK | FLG_CRACKING_SET | FLG_NODE_SUP)
+#define FLG_INC_SET			(FLG_INC_CHK | FLG_CRACKING_SET)
 /* External mode or word filter enabled */
 #define FLG_EXTERNAL_CHK		0x00001000
 #define FLG_EXTERNAL_SET \
@@ -88,8 +86,6 @@
 #define FLG_SAVEMEM			0x04000000
 /* Node number(s) specified */
 #define FLG_NODE			0x10000000
-/* The cracking mode supports node specification */
-#define FLG_NODE_SUP			0x40000000
 
 /* Note that 0x80000000 is taken for OPT_REQ_PARAM, see getopt.h */
 
@@ -115,8 +111,7 @@
 #define FLG_LOG_STDERR			0x0000001000000000ULL
 /* Markov mode enabled */
 #define FLG_MKV_CHK			0x0000002000000000ULL
-#define FLG_MKV_SET	\
-	(FLG_MKV_CHK | FLG_CRACKING_SET | FLG_NODE_SUP)
+#define FLG_MKV_SET			(FLG_MKV_CHK | FLG_CRACKING_SET)
 /* Emit a status line for every password cracked */
 #define FLG_CRKSTAT			0x0000004000000000ULL
 /* Wordlist dupe suppression */

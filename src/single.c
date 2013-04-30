@@ -17,6 +17,7 @@
 #include "logger.h"
 #include "status.h"
 #include "recovery.h"
+#include "options.h"
 #include "rpp.h"
 #include "rules.h"
 #include "external.h"
@@ -25,7 +26,6 @@
 #include "john-mpi.h"
 #endif
 #include "unicode.h"
-#include "options.h"
 #include "config.h"
 
 static int progress = 0;
@@ -136,16 +136,6 @@ static void single_init(void)
 
 	log_event("- %d preprocessed word mangling rules", rule_count);
 
-#ifdef HAVE_MPI
-	if (mpi_p > 1) {
-		log_event("MPI hack active: processsing 1/%d of rules, total %d for "
-		    "this node", mpi_p, (rule_count / mpi_p) +
-		    (rule_count % mpi_p > mpi_id ? 1 : 0));
-		if (mpi_id == 0) fprintf(stderr,"MPI: each node processing 1/%d of %d "
-		    "rules. (%seven split)\n",
-		    mpi_p, rule_count, rule_count % mpi_p ? "un" : "");
-	}
-#endif
 	status_init(get_progress, 0);
 
 	rec_restore_mode(restore_state);
@@ -445,13 +435,15 @@ static void single_run(void)
 
 	saved_min = rec_rule;
 	while ((prerule = rpp_next(rule_ctx))) {
-#ifdef HAVE_MPI
-		// MPI distribution: leapfrog rules
-		if (rule_number % mpi_p != mpi_id) {
-			rule_number++;
-			continue;
+		if (options.node_count) {
+			int for_node = rule_number % options.node_count + 1;
+			if (for_node < options.node_min ||
+			    for_node > options.node_max) {
+				rule_number++;
+				continue;
+			}
 		}
-#endif
+
 		if (!(rule = rules_reject(prerule, 0, NULL, single_db))) {
 			log_event("- Rule #%d: '%.100s' rejected",
 				++rule_number, prerule);
@@ -518,7 +510,7 @@ static void single_done(void)
 			} while ((salt = salt->next));
 		}
 
-		progress = 100; // For reporting DONE when finished
+		progress = 100;
 	}
 
 	rec_done(event_abort || (status.pass && single_db->salts));
