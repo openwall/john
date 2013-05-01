@@ -29,7 +29,7 @@ SORT = sort
 
 OMPFLAGS =
 # gcc with OpenMP
-OMPFLAGS = -fopenmp
+#OMPFLAGS = -fopenmp
 # gcc with OpenMP on 32-bit x86 with SSE2
 #OMPFLAGS = -fopenmp -msse2
 # OS X (llvm-gcc) with OpenMP
