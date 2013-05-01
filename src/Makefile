@@ -29,7 +29,7 @@ SORT = sort
 
 OMPFLAGS =
 # gcc with OpenMP
-#OMPFLAGS = -fopenmp
+OMPFLAGS = -fopenmp
 # gcc with OpenMP on 32-bit x86 with SSE2
 #OMPFLAGS = -fopenmp -msse2
 # OS X (llvm-gcc) with OpenMP
@@ -233,7 +233,7 @@ PROJ = ../run/john ../run/utils/unshadow ../run/utils/unafs ../run/utils/unique 
 	../run/xyz2john/ssh2john ../run/xyz2john/rar2john ../run/xyz2john/zip2john \
 	../run/utils/genmkvpwd ../run/utils/mkvcalcproba ../run/utils/calc_stat \
 	../run/utils/tgtsnarf ../run/xyz2john/racf2john ../run/xyz2john/mozilla2john ../run/xyz2john/hccap2john \
-	../run/xyz2john/pwsafe2john ../run/xyz2john/raw2dyna ../run/xyz2john/keepass2john ../run/xyz2john/pfx2john \
+	../run/xyz2john/pwsafe2john ../run/utils/raw2dyna ../run/xyz2john/keepass2john ../run/xyz2john/pfx2john \
 	../run/xyz2john/keychain2john ../run/xyz2john/keyring2john ../run/xyz2john/kwallet2john \
 	../run/xyz2john/dmg2john ../run/xyz2john/putty2john john.local.conf ../run/xyz2john/uaf2john \
 	../run/xyz2john/truecrypt_volume2john ../run/xyz2john/keystore2john ../run/xyz2john/wpapcap2john
@@ -251,7 +251,7 @@ PROJ_WIN32 = ../run/john.exe \
 	../run/xyz2john/ssh2john.exe ../run/xyz2john/rar2john.exe ../run/xyz2john/zip2john.exe \
 	../run/utils/genmkvpwd.exe ../run/utils/mkvcalcproba.exe ../run/utils/calc_stat.exe \
 	../run/xyz2john/racf2john.exe ../run/xyz2john/mozilla2john.exe ../run/xyz2john/hccap2john.exe \
-	../run/xyz2john/pwsafe2john.exe ../run/xyz2john/raw2dyna.exe ../run/xyz2john/keepass2john.exe \
+	../run/xyz2john/pwsafe2john.exe ../run/utils/raw2dyna.exe ../run/xyz2john/keepass2john.exe \
 	../run/xyz2john/pfx2john.exe ../run/xyz2john/keychain2john.exe ../run/xyz2john/keyring2john.exe \
 	../run/xyz2john/kwallet2john.exe ../run/xyz2john/dmg2john.exe ../run/xyz2john/putty2john.exe john.local.conf
 PROJ_WIN32_MINGW = ../run/john-mingw.exe \
@@ -260,11 +260,11 @@ PROJ_WIN32_MINGW = ../run/john-mingw.exe \
 	../run/xyz2john/ssh2john.exe ../run/xyz2john/rar2john.exe ../run/xyz2john/zip2john.exe \
 	../run/utils/genmkvpwd.exe ../run/utils/mkvcalcproba.exe ../run/utils/calc_stat.exe \
 	../run/xyz2john/racf2john.exe ../run/xyz2john/mozilla2john.exe ../run/xyz2john/hccap2john.exe \
-	../run/xyz2john/pwsafe2john.exe ../run/xyz2john/raw2dyna.exe ../run/xyz2john/keepass2john.exe \
+	../run/xyz2john/pwsafe2john.exe ../run/utils/raw2dyna.exe ../run/xyz2john/keepass2john.exe \
 	../run/xyz2john/pfx2john.exe ../run/xyz2john/keychain2john.exe ../run/xyz2john/keyring2john.exe \
 	../run/xyz2john/kwallet2john.exe ../run/xyz2john/putty2john john.local.conf
 PROJ_CXX = ../run/xyz2john/gpg2john
-PROJ_PCAP = ../run/utils/SIPdump ../run/utils/vncpcap2john
+PROJ_PCAP = ../run/utils/SIPdump ../run/xyz2john/vncpcap2john
 default:
 	@echo "To build John the Ripper, type:"
 	@echo "	make clean SYSTEM"
@@ -2211,7 +2211,7 @@ endif
 	$(LD) SIPdump.o $(LDFLAGS) -lpcap -o ../run/utils/SIPdump
 
 ../run/xyz2john/vncpcap2john:
-	$(CXX) -Wall vncpcap2john.cpp -lpcap -o ../run/utils/vncpcap2john
+	$(CXX) -Wall vncpcap2john.cpp -lpcap -o ../run/xyz2john/vncpcap2john
 
 ../run/xyz2john/gpg2john: gpg2john.cpp gpg2john.h
 	$(CXX) -Wall gpg2john.cpp -lcrypto -o ../run/xyz2john/gpg2john
@@ -2224,7 +2224,7 @@ endif
 
 ../run/xyz2john/keystore2john: ../run/john
 	$(RM) ../run/xyz2john/keystore2john
-	ln -s john ../run/xyz2john/keystore2john
+	ln -s ../john ../run/xyz2john/keystore2john
 
 ../run/utils/tgtsnarf: tgtsnarf.o
 	$(LD) tgtsnarf.o $(LDFLAGS) -o ../run/utils/tgtsnarf
