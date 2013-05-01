@@ -31,7 +31,7 @@ http://creativecommons.org/publicdomain/zero/1.0/
     V128 Ekame, Ekemi, Ekimo, Ekomu, Ekuma; \
     V128 Esase, Esiso; \
     V64 Esu; \
-    V128 Zero;
+    V128 Zero = ZERO128();;
 
 #define prepareTheta
 

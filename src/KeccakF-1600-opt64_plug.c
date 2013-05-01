@@ -178,10 +178,10 @@ ALIGN const UINT64 rot_39_41[2] = {39, 41};
 
 void KeccakPermutationOnWords(UINT64 *state)
 {
-    declareABCDE
 #if (Unrolling != 24)
     unsigned int i;
 #endif
+    declareABCDE
 
     copyFromState(A, state)
     rounds
@@ -192,11 +192,11 @@ void KeccakPermutationOnWords(UINT64 *state)
 
 void KeccakPermutationOnWordsAfterXoring(UINT64 *state, const UINT64 *input, unsigned int laneCount)
 {
-    declareABCDE
 #if (Unrolling != 24)
     unsigned int i;
 #endif
-	unsigned int j;
+    unsigned int j;
+    declareABCDE
 
     for(j=0; j<laneCount; j++)
         state[j] ^= input[j];
@@ -210,10 +210,10 @@ void KeccakPermutationOnWordsAfterXoring(UINT64 *state, const UINT64 *input, uns
 #ifdef ProvideFast576
 void KeccakPermutationOnWordsAfterXoring576bits(UINT64 *state, const UINT64 *input)
 {
-    declareABCDE
 #if (Unrolling != 24)
     unsigned int i;
 #endif
+    declareABCDE
 
     copyFromStateAndXor576bits(A, state, input)
     rounds
@@ -226,10 +226,10 @@ void KeccakPermutationOnWordsAfterXoring576bits(UINT64 *state, const UINT64 *inp
 #ifdef ProvideFast832
 void KeccakPermutationOnWordsAfterXoring832bits(UINT64 *state, const UINT64 *input)
 {
-    declareABCDE
 #if (Unrolling != 24)
     unsigned int i;
 #endif
+    declareABCDE
 
     copyFromStateAndXor832bits(A, state, input)
     rounds
@@ -242,10 +242,10 @@ void KeccakPermutationOnWordsAfterXoring832bits(UINT64 *state, const UINT64 *inp
 #ifdef ProvideFast1024
 void KeccakPermutationOnWordsAfterXoring1024bits(UINT64 *state, const UINT64 *input)
 {
-    declareABCDE
 #if (Unrolling != 24)
     unsigned int i;
 #endif
+    declareABCDE
 
     copyFromStateAndXor1024bits(A, state, input)
     rounds
@@ -258,10 +258,10 @@ void KeccakPermutationOnWordsAfterXoring1024bits(UINT64 *state, const UINT64 *in
 #ifdef ProvideFast1088
 void KeccakPermutationOnWordsAfterXoring1088bits(UINT64 *state, const UINT64 *input)
 {
-    declareABCDE
 #if (Unrolling != 24)
     unsigned int i;
 #endif
+    declareABCDE
 
     copyFromStateAndXor1088bits(A, state, input)
     rounds
@@ -274,10 +274,10 @@ void KeccakPermutationOnWordsAfterXoring1088bits(UINT64 *state, const UINT64 *in
 #ifdef ProvideFast1152
 void KeccakPermutationOnWordsAfterXoring1152bits(UINT64 *state, const UINT64 *input)
 {
-    declareABCDE
 #if (Unrolling != 24)
     unsigned int i;
 #endif
+    declareABCDE
 
     copyFromStateAndXor1152bits(A, state, input)
     rounds
@@ -290,10 +290,10 @@ void KeccakPermutationOnWordsAfterXoring1152bits(UINT64 *state, const UINT64 *in
 #ifdef ProvideFast1344
 void KeccakPermutationOnWordsAfterXoring1344bits(UINT64 *state, const UINT64 *input)
 {
-    declareABCDE
 #if (Unrolling != 24)
     unsigned int i;
 #endif
+    declareABCDE
 
     copyFromStateAndXor1344bits(A, state, input)
     rounds
