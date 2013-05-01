@@ -216,6 +216,7 @@ static int sig_getchar(void)
 
 #endif
 
+#ifndef __DJGPP__
 static void signal_children(void)
 {
 	int i;
@@ -223,6 +224,7 @@ static void signal_children(void)
 		if (john_child_pids[i])
 			kill(john_child_pids[i], SIGUSR2);
 }
+#endif
 
 static void sig_install_timer(void);
 
@@ -247,7 +249,9 @@ static void sig_handle_timer(int signum)
 			continue;
 
 		event_status = event_pending = 1;
+#ifndef __DJGPP__
 		signal_children();
+#endif
 	}
 
 #if !OS_TIMER
@@ -301,11 +305,13 @@ static void sig_remove_timer(void)
 	signal(SIGALRM, SIG_DFL);
 }
 
+#ifndef __DJGPP__
 static void sig_handle_status(int signum)
 {
 	event_status = event_pending = 1;
 	signal(SIGUSR2, sig_handle_status);
 }
+#endif
 
 static void sig_done(void);
 
@@ -332,7 +338,9 @@ void sig_init(void)
 	sig_install_update();
 	sig_install_abort();
 	sig_install_timer();
+#ifndef __DJGPP__
 	signal(SIGUSR2, sig_handle_status);
+#endif
 }
 
 static void sig_done(void)

@@ -60,8 +60,10 @@ extern int unafs(int argc, char **argv);
 extern int unique(int argc, char **argv);
 
 int john_main_process = 1;
+#ifndef __DJGPP__
 int john_child_count = 0;
 int *john_child_pids = NULL;
+#endif
 
 static struct db_main database;
 static struct fmt_main dummy_format;
