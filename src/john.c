@@ -221,8 +221,10 @@ extern int truecrypt_volume2john(int argc, char **argv);
 extern int zip2john(int argc, char **argv);
 
 int john_main_process = 1;
+#ifndef __DJGPP__
 int john_child_count = 0;
 int *john_child_pids = NULL;
+#endif
 
 static struct db_main database;
 static struct fmt_main dummy_format;
@@ -571,6 +573,9 @@ static void john_wait(void)
 			}
 		}
 	}
+
+/* OK to remove our .rec file now */
+	rec_done(-1);
 #endif
 }
 

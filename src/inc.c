@@ -56,10 +56,10 @@ typedef char (*char2_table)
 typedef char (*chars_table)
 	[CHARSET_SIZE + 1][CHARSET_SIZE + 1][CHARSET_SIZE + 1];
 
-static int rec_entry;
-static int rec_length;
+static unsigned int rec_entry, rec_length;
 static unsigned char rec_numbers[CHARSET_LENGTH];
 
+static unsigned int entry, length;
 static unsigned char numbers[CHARSET_LENGTH];
 static int counts[CHARSET_LENGTH][CHARSET_LENGTH];
 
@@ -68,12 +68,12 @@ static unsigned char real_chars[CHARSET_SIZE];
 
 static void save_state(FILE *file)
 {
-	int pos;
+	unsigned int pos;
 	unsigned tmp;
 	unsigned long long tmpLL;
 
-	fprintf(file, "%d\n2\n%d\n", rec_entry, rec_length);
-	for (pos = 0; pos < rec_length; pos++)
+	fprintf(file, "%u\n2\n%u\n", rec_entry, rec_length + 1);
+	for (pos = 0; pos <= rec_length; pos++)
 		fprintf(file, "%u\n", (unsigned int)rec_numbers[pos]);
 
 	// number added 'after' array, to preserve the try count, so that we can later know the
@@ -89,18 +89,18 @@ static void save_state(FILE *file)
 
 static int restore_state(FILE *file)
 {
-	int compat;
-	int pos;
+	unsigned int compat, pos;
 	unsigned tmp;
 
 	if (rec_version < 2)
 		return 1;
 
-	if (fscanf(file, "%d\n%d\n%d\n", &rec_entry, &compat, &rec_length) != 3)
+	if (fscanf(file, "%u\n%u\n%u\n", &rec_entry, &compat, &rec_length) != 3)
 		return 1;
-	if (compat != 2 || (unsigned int)rec_length > CHARSET_LENGTH)
+	rec_length--; /* zero-based */
+	if (compat != 2 || rec_length >= CHARSET_LENGTH)
 		return 1;
-	for (pos = 0; pos < rec_length; pos++) {
+	for (pos = 0; pos <= rec_length; pos++) {
 		unsigned int number;
 		if (fscanf(file, "%u\n", &number) != 1)
 			return 1;
@@ -123,7 +123,9 @@ static int restore_state(FILE *file)
 
 static void fix_state(void)
 {
-	memcpy(rec_numbers, numbers, rec_length);
+	rec_entry = entry;
+	rec_length = length;
+	memcpy(rec_numbers, numbers, length);
 }
 
 static void inc_format_error(char *charset)
@@ -429,8 +431,7 @@ void do_incremental_crack(struct db_main *db, char *mode)
 	char2_table char2;
 	chars_table chars[CHARSET_LENGTH - 2];
 	unsigned char *ptr;
-	int entry;
-	unsigned int length, fixed, count;
+	unsigned int fixed, count;
 	int last_length, last_count;
 	int pos;
 
@@ -737,8 +738,6 @@ void do_incremental_crack(struct db_main *db, char *mode)
 
 		if (!length && !min_length) {
 			min_length = 1;
-			rec_entry = entry;
-			rec_length = 0;
 			if (!skip && crk_process_key(""))
 				break;
 		}
@@ -760,8 +759,6 @@ void do_incremental_crack(struct db_main *db, char *mode)
 		log_event("- Trying length %d, fixed @%d, character count %d",
 		    length + 1, fixed + 1, counts[length][fixed] + 1);
 
-		rec_entry = entry;
-		rec_length = length + 1;
 		if (inc_key_loop(length, fixed, count, char1, char2, chars))
 			break;
 	}

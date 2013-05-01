@@ -16,6 +16,7 @@
  */
 extern int john_main_process;
 
+#ifndef __DJGPP__
 /*
  * Number of child processes, if any (or zero otherwise).
  */
@@ -27,5 +28,6 @@ extern int john_child_count;
  * otherwise the pointer is NULL.)
  */
 extern int *john_child_pids;
+#endif
 
 #endif
