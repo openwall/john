@@ -183,6 +183,10 @@ void KeccakPermutationOnWords(UINT64 *state)
     unsigned int i;
 #endif
 
+    /* unused in some builds - mute warnings */
+    (void)Bmu;
+    (void)Bko;
+
     copyFromState(A, state)
     rounds
 #if defined(UseMMX)
@@ -197,6 +201,10 @@ void KeccakPermutationOnWordsAfterXoring(UINT64 *state, const UINT64 *input, uns
     unsigned int i;
 #endif
 	unsigned int j;
+
+    /* unused in some builds - mute warnings */
+    (void)Bmu;
+    (void)Bko;
 
     for(j=0; j<laneCount; j++)
         state[j] ^= input[j];
@@ -215,6 +223,10 @@ void KeccakPermutationOnWordsAfterXoring576bits(UINT64 *state, const UINT64 *inp
     unsigned int i;
 #endif
 
+    /* unused in some builds - mute warnings */
+    (void)Bmu;
+    (void)Bko;
+
     copyFromStateAndXor576bits(A, state, input)
     rounds
 #if defined(UseMMX)
@@ -230,6 +242,10 @@ void KeccakPermutationOnWordsAfterXoring832bits(UINT64 *state, const UINT64 *inp
 #if (Unrolling != 24)
     unsigned int i;
 #endif
+
+    /* unused in some builds - mute warnings */
+    (void)Bmu;
+    (void)Bko;
 
     copyFromStateAndXor832bits(A, state, input)
     rounds
@@ -247,6 +263,10 @@ void KeccakPermutationOnWordsAfterXoring1024bits(UINT64 *state, const UINT64 *in
     unsigned int i;
 #endif
 
+    /* unused in some builds - mute warnings */
+    (void)Bmu;
+    (void)Bko;
+
     copyFromStateAndXor1024bits(A, state, input)
     rounds
 #if defined(UseMMX)
@@ -262,6 +282,10 @@ void KeccakPermutationOnWordsAfterXoring1088bits(UINT64 *state, const UINT64 *in
 #if (Unrolling != 24)
     unsigned int i;
 #endif
+
+    /* unused in some builds - mute warnings */
+    (void)Bmu;
+    (void)Bko;
 
     copyFromStateAndXor1088bits(A, state, input)
     rounds
@@ -279,6 +303,10 @@ void KeccakPermutationOnWordsAfterXoring1152bits(UINT64 *state, const UINT64 *in
     unsigned int i;
 #endif
 
+    /* unused in some builds - mute warnings */
+    (void)Bmu;
+    (void)Bko;
+
     copyFromStateAndXor1152bits(A, state, input)
     rounds
 #if defined(UseMMX)
@@ -294,6 +322,10 @@ void KeccakPermutationOnWordsAfterXoring1344bits(UINT64 *state, const UINT64 *in
 #if (Unrolling != 24)
     unsigned int i;
 #endif
+
+    /* unused in some builds - mute warnings */
+    (void)Bmu;
+    (void)Bko;
 
     copyFromStateAndXor1344bits(A, state, input)
     rounds
