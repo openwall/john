@@ -29,7 +29,7 @@ run/xyz2john/putty2john
 run/xyz2john/pwsafe2john
 run/xyz2john/racf2john
 run/xyz2john/rar2john
-run/xyz2john/raw2dyna
+run/utils/raw2dyna
 run/xyz2john/ssh2john
 run/utils/tgtsnarf
 run/to_dyna
