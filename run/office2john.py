@@ -199,10 +199,11 @@ __version__ = '0.23'
 
 import struct, array, os.path, sys
 
-reload(sys)
-sys.setdefaultencoding("utf8")
-
 PY3 = sys.version_info[0] == 3
+
+if not PY3:
+    reload(sys)
+    sys.setdefaultencoding("utf8")
 
 if PY3:
     from io import BytesIO as StringIO
@@ -717,7 +718,8 @@ class _OleDirectoryEntry:
         self.append_kids(child.sid_left)
         # Check if its name is not already used (case-insensitive):
         # name_lower = child.name
-        child.name = child.name.decode()
+        if not PY3:
+            child.name = child.name.decode()
         name_lower = child.name.lower()
         if self.kids_dict.get(name_lower, None):
             self.olefile._raise_defect(DEFECT_INCORRECT,
@@ -1582,7 +1584,7 @@ def find_rc4_passinfo_xls(filename, stream):
 
 def find_doc_type(filename, stream):
     w_ident = stream.read(2)
-    assert(w_ident == "\xec\xa5")
+    assert(w_ident == b"\xec\xa5")
     stream.read(9)  # unused
     flags = ord(stream.read(1))
     if (flags & 1) != 0:
@@ -1872,7 +1874,7 @@ import string
 
 def remove_html_tags(data):
     p = re.compile(r'<.*?>', re.DOTALL)
-    return p.sub('', data)
+    return p.sub('', str(data))
 
 
 def remove_extra_spaces(data):
@@ -1920,8 +1922,12 @@ def process_file(filename):
             for k, v in props.items():
                 if v is None:
                     continue
-                if not isinstance(v, unicode): # We are only interested in strings
-                    continue
+                if not PY3:
+                    if not isinstance(v, unicode): # We are only interested in strings
+                        continue
+                else:
+                    if not isinstance(v, str): # We are only interested in strings
+                        continue
                 v = remove_html_tags(v)
                 v = v.replace(":", "")
                 v = remove_extra_spaces(v)
@@ -2006,4 +2012,7 @@ if __name__ == "__main__":
 #set_debug_mode(1)
 
 for i in range(1, len(sys.argv)):
-    ret = process_file(sys.argv[i].decode("utf8"))
+    if not PY3:
+        ret = process_file(sys.argv[i].decode("utf8"))
+    else:
+        ret = process_file(sys.argv[i])
