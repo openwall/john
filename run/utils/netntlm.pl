@@ -27,7 +27,7 @@ my $VERSION = "0.2";
 my %opt;
 my %data;
 
-my $JOHN = "john";
+my $JOHN = "../john";
 
 GetOptions (
   'seed=s'      => \$opt{'seed'},
