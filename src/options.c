@@ -107,9 +107,11 @@ static struct opt_entry opt_list[] = {
 		"%u", &mem_saving_level},
 	{"node", FLG_NODE, FLG_NODE, FLG_CRACKING_CHK, OPT_REQ_PARAM,
 		OPT_FMT_STR_ALLOC, &options.node_str},
+#if !defined (_MSC_VER) && !defined (__DJGPP__)
 	{"fork", FLG_FORK, FLG_FORK,
 		FLG_CRACKING_CHK, FLG_STDIN_CHK | FLG_STDOUT | FLG_PIPE_CHK | OPT_REQ_PARAM,
 		"%u", &options.fork},
+#endif
 	{"pot", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
 	    OPT_FMT_STR_ALLOC, &options.loader.activepot},
 	{"format", FLG_FORMAT, FLG_FORMAT,
@@ -178,6 +180,12 @@ static struct opt_entry opt_list[] = {
 #include "john_build_rule.h"
 #endif
 
+#if !defined (_MSC_VER) && !defined (__DJGPP__)
+#define FORK_MSG_STRING "--fork=N                  fork N processes\n"
+#else
+#define FORK_MSG_STRING ""
+#endif
+
 #define JOHN_USAGE \
 "John the Ripper password cracker, version " JOHN_VERSION _MP_VERSION " [" JOHN_BLD "]\n" \
 "Copyright (c) 1996-2013 by " JOHN_COPYRIGHT "\n" \
@@ -208,7 +216,7 @@ static struct opt_entry opt_list[] = {
 "--salts=[-]COUNT[:MAX]    load salts with[out] COUNT [to MAX] hashes\n" \
 "--save-memory=LEVEL       enable memory saving, at LEVEL 1..3\n" \
 "--node=MIN[-MAX]/TOTAL    this node's number range out of TOTAL count\n" \
-"--fork=N                  fork N processes\n" \
+FORK_MSG_STRING \
 "--pot=NAME                pot file to use\n" \
 "--list=WHAT               list capabilities, see --list=help or doc/OPTIONS\n"
 

@@ -283,6 +283,7 @@ static int sig_getchar(void)
 
 #endif
 
+#ifndef _MSC_VER
 static void signal_children(void)
 {
 	int i;
@@ -290,7 +291,7 @@ static void signal_children(void)
 		if (john_child_pids[i])
 			kill(john_child_pids[i], SIGUSR2);
 }
-
+#endif
 static void sig_install_timer(void);
 
 static void sig_handle_timer(int signum)
@@ -339,6 +340,7 @@ static void sig_handle_timer(int signum)
 		event_ticksafety = event_pending = 1;
 	}
 
+#ifndef _MSC_VER
 	if (sig_getchar() >= 0) {
 		while (sig_getchar() >= 0)
 			continue;
@@ -346,6 +348,7 @@ static void sig_handle_timer(int signum)
 		event_status = event_pending = 1;
 		signal_children();
 	}
+#endif
 
 #if !OS_TIMER
 	signal(SIGALRM, sig_handle_timer);
@@ -398,11 +401,13 @@ static void sig_remove_timer(void)
 	signal(SIGALRM, SIG_DFL);
 }
 
+#ifndef _MSC_VER
 static void sig_handle_status(int signum)
 {
 	event_status = event_pending = 1;
 	signal(SIGUSR2, sig_handle_status);
 }
+#endif
 
 static void sig_done(void);
 
@@ -432,7 +437,9 @@ void sig_init(void)
 	sig_install_update();
 	sig_install_abort();
 	sig_install_timer();
+#ifndef _MSC_VER
 	signal(SIGUSR2, sig_handle_status);
+#endif
 }
 
 static void sig_done(void)
