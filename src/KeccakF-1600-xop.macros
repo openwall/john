@@ -14,11 +14,11 @@ http://creativecommons.org/publicdomain/zero/1.0/
 #define declareABCDE \
     V128 Abage, Abegi, Abigo, Abogu, Abuga; \
     V128 Akame, Akemi, Akimo, Akomu, Akuma; \
-    V128 Abae, Abio, Agae, Agio, Akae, Akio, Amae, Amio; \
+    V128 Abae, Abio, Agae, Agio, Akae, Akio, /*Amae,*/ Amio; \
     V64 Aba, Abe, Abi, Abo, Abu; \
     V64 Aga, Age, Agi, Ago, Agu; \
-    V64 Aka, Ake, Aki, Ako, Aku; \
-    V64 Ama, Ame, Ami, Amo, Amu; \
+    V64 Aka, Ake, Aki, Ako/*, Aku*/; \
+    V64 /*Ama,*/ Ame, Ami, Amo, Amu; \
     V128 Asase, Asiso; \
     V64 Asu; \
     V128 Bbage, Bbegi, Bbigo, Bbogu, Bbuga; \
@@ -26,7 +26,7 @@ http://creativecommons.org/publicdomain/zero/1.0/
     V128 Bsase, Bsesi, Bsiso, Bsosu, Bsusa; \
     V128 Cae, Cei, Cio, Cou, Cua; \
     V128 Dau, Dea, Die, Doi, Duo; \
-    V128 Dua, Dae, Dei, Dio, Dou; \
+    V128 /*Dua,*/ Dae, Dei, /*Dio,*/ Dou; \
     V128 Ebage, Ebegi, Ebigo, Ebogu, Ebuga; \
     V128 Ekame, Ekemi, Ekimo, Ekomu, Ekuma; \
     V128 Esase, Esiso; \
@@ -569,5 +569,4 @@ const UINT64 KeccakF1600RoundConstants[24] = {
     X##kuma = Y##kuma; \
     X##sase = Y##sase; \
     X##siso = Y##siso; \
-    X##su = Y##su; \
-
+    X##su = Y##su;

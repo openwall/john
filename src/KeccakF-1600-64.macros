@@ -724,5 +724,4 @@ const UINT64 KeccakF1600RoundConstants[24] = {
     X##se = Y##se; \
     X##si = Y##si; \
     X##so = Y##so; \
-    X##su = Y##su; \
-
+    X##su = Y##su;

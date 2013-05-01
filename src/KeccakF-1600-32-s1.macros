@@ -1183,5 +1183,4 @@ const UINT32 KeccakF1600RoundConstants_int2_1[24] = {
     X##so0 = Y##so0; \
     X##so1 = Y##so1; \
     X##su0 = Y##su0; \
-    X##su1 = Y##su1; \
-
+    X##su1 = Y##su1;
