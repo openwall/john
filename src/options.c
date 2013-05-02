@@ -19,6 +19,7 @@
 #include "options.h"
 #include "bench.h"
 #include "external.h"
+#include "john.h"
 
 struct options_main options;
 
@@ -190,7 +191,9 @@ void opt_init(char *name, int argc, char **argv)
 				rec_name = rec_name_orig;
 				rec_name_completed = 0;
 				options.node_min = options.node_max = i;
+				john_main_process = 0;
 				rec_restore_args(0);
+				john_main_process = 1;
 				options.node_min = options.node_max = i;
 				options.flags |= FLG_STATUS_SET;
 				status_print();
