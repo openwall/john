@@ -155,7 +155,8 @@ void rec_save(void)
 	if (fflush(rec_file)) pexit("fflush");
 	if (ftruncate(rec_fd, size)) pexit("ftruncate");
 #ifndef __CYGWIN32__
-	if (fsync(rec_fd)) pexit("fsync");
+	if (!options.fork && fsync(rec_fd))
+		pexit("fsync");
 #endif
 }
 
