@@ -10,7 +10,6 @@
  * FreeBSD's own <sys/file.h> needs. */
 #define _XOPEN_SOURCE 500 /* for fdopen(3), fileno(3), fsync(2), ftruncate(2) */
 #endif
-
 #include <stdio.h>
 #include <stdlib.h>
 #ifndef _MSC_VER
@@ -66,7 +65,11 @@ static void rec_name_complete(void)
 	if (rec_name_completed)
 		return;
 
+#ifndef HAVE_MPI
 	if (options.fork && !john_main_process) {
+#else
+	if (!john_main_process) {
+#endif
 		char *suffix = mem_alloc(1 + 20 + strlen(RECOVERY_SUFFIX) + 1);
 		sprintf(suffix, ".%u%s", options.node_min, RECOVERY_SUFFIX);
 		rec_name = path_session(rec_name, suffix);
