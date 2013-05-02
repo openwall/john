@@ -64,6 +64,7 @@ int john_main_process = 1;
 int john_child_count = 0;
 int *john_child_pids = NULL;
 #endif
+static int children_ok = 1;
 
 static struct db_main database;
 static struct fmt_main dummy_format;
@@ -239,7 +240,6 @@ static void john_wait(void)
 {
 #ifndef __DJGPP__
 	int waiting_for = john_child_count;
-	int children_ok = 1;
 
 	log_event("Waiting for %d child%s to terminate",
 	    waiting_for, waiting_for == 1 ? "" : "ren");
@@ -568,10 +568,16 @@ static void john_done(void)
 		if (event_abort) {
 			log_event("Session aborted");
 			/* We have already printed to stderr from signals.c */
-		} else {
+		} else if (children_ok) {
 			log_event("Session completed");
 			if (john_main_process)
 				fprintf(stderr, "Session completed\n");
+		} else {
+			const char *msg =
+			    "Main process session completed, "
+			    "but some child processes failed";
+			log_event(msg);
+			fprintf(stderr, "%s\n", msg);
 		}
 		fmt_done(database.format);
 	}
