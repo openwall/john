@@ -102,11 +102,14 @@ static void log_file_fsync(struct log_file *f)
 #endif
 }
 
-static void log_file_done(struct log_file *f)
+static void log_file_done(struct log_file *f, int do_sync)
 {
 	if (f->fd < 0) return;
 
-	log_file_fsync(f);
+	if (do_sync)
+		log_file_fsync(f);
+	else
+		log_file_flush(f);
 	if (close(f->fd)) pexit("close");
 	f->fd = -1;
 
@@ -243,7 +246,10 @@ void log_flush(void)
 {
 	in_logger = 1;
 
-	log_file_fsync(&log);
+	if (options.fork)
+		log_file_flush(&log);
+	else
+		log_file_fsync(&log);
 	log_file_fsync(&pot);
 
 	in_logger = 0;
@@ -258,8 +264,8 @@ void log_done(void)
 	if (in_logger) return;
 	in_logger = 1;
 
-	log_file_done(&log);
-	log_file_done(&pot);
+	log_file_done(&log, !options.fork);
+	log_file_done(&pot, 1);
 
 	in_logger = 0;
 }
