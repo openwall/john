@@ -17,6 +17,8 @@
 
 #ifdef _OPENMP
 #include <omp.h>
+static int john_omp_threads_orig = 0;
+static int john_omp_threads_new;
 #endif
 
 #include "arch.h"
@@ -128,22 +130,47 @@ static void john_log_format(void)
 #ifdef _OPENMP
 static void john_omp_init(void)
 {
-	int threads_orig = omp_get_max_threads();
-	int threads_new = threads_orig;
+	john_omp_threads_new = omp_get_max_threads();
+	if (!john_omp_threads_orig)
+		john_omp_threads_orig = john_omp_threads_new;
+}
 
-	if (options.fork && !getenv("OMP_NUM_THREADS")) {
-		threads_new /= options.fork;
-		if (threads_new < 1)
-			threads_new = 1;
-		omp_set_num_threads(threads_new);
+#if OMP_FALLBACK
+#if defined(__DJGPP__) || defined(__CYGWIN32__)
+#error OMP_FALLBACK is incompatible with the current DOS and Win32 code
+#endif
+#define HAVE_JOHN_OMP_FALLBACK
+static void john_omp_fallback(char **argv) {
+	if (!getenv("JOHN_NO_OMP_FALLBACK") && john_omp_threads_new <= 1) {
+#define OMP_FALLBACK_PATHNAME JOHN_SYSTEMWIDE_EXEC "/" OMP_FALLBACK_BINARY
+		execv(OMP_FALLBACK_PATHNAME, argv);
+		perror("execv: " OMP_FALLBACK_PATHNAME);
 	}
+}
+#endif
 
-	if (!options.fork && threads_orig > 1 &&
+static void john_omp_maybe_adjust_or_fallback(char **argv)
+{
+	if (options.fork && !getenv("OMP_NUM_THREADS")) {
+		john_omp_threads_new /= options.fork;
+		if (john_omp_threads_new < 1)
+			john_omp_threads_new = 1;
+		omp_set_num_threads(john_omp_threads_new);
+		john_omp_init();
+#ifdef HAVE_JOHN_OMP_FALLBACK
+		john_omp_fallback(argv);
+#endif
+	}
+}
+
+static void john_omp_show_info(void)
+{
+	if (!options.fork && john_omp_threads_orig > 1 &&
 	    database.format &&
 	    !(database.format->params.flags & FMT_OMP) &&
 	    !rec_restoring_now)
 		fprintf(stderr, "Warning: no OpenMP support for this "
-		    "hash type, consider --fork=%d\n", threads_orig);
+		    "hash type, consider --fork=%d\n", john_omp_threads_orig);
 
 /*
  * Only show OpenMP info if one of the following is true:
@@ -153,38 +180,39 @@ static void john_omp_init(void)
  * - we're doing --test and the specified format is OpenMP-enabled.
  */
 	{
-		int show_omp_info = 0;
+		int show = 0;
 		if (database.format &&
 		    (database.format->params.flags & FMT_OMP))
-			show_omp_info = 1;
+			show = 1;
 		else if ((options.flags & (FLG_TEST_CHK | FLG_FORMAT)) ==
 		    FLG_TEST_CHK)
-			show_omp_info = 1;
+			show = 1;
 		else if ((options.flags & FLG_TEST_CHK) &&
 		    (fmt_list->params.flags & FMT_OMP))
-			show_omp_info = 1;
+			show = 1;
 
-		if (!show_omp_info)
+		if (!show)
 			return;
 	}
 
 	if (options.fork) {
-		if (threads_new > 1)
+		if (john_omp_threads_new > 1)
 			fprintf(stderr,
 			    "Will run %d OpenMP threads per process "
 			    "(%u total across %u processes)\n",
-			    threads_new,
-			    threads_new * options.fork, options.fork);
-		else if (threads_orig > 1)
+			    john_omp_threads_new,
+			    john_omp_threads_new * options.fork, options.fork);
+		else if (john_omp_threads_orig > 1)
 			fputs("Warning: OpenMP was disabled due to --fork; "
 			    "a non-OpenMP build may be faster\n", stderr);
 	} else {
-		if (threads_new > 1)
+		if (john_omp_threads_new > 1)
 			fprintf(stderr,
-			    "Will run %d OpenMP threads\n", threads_new);
+			    "Will run %d OpenMP threads\n",
+			    john_omp_threads_new);
 	}
 
-	if (threads_orig == 1)
+	if (john_omp_threads_orig == 1)
 		fputs("Warning: OpenMP is disabled; "
 		    "a non-OpenMP build may be faster\n", stderr);
 }
@@ -403,7 +431,7 @@ static void john_load(void)
 	}
 
 #ifdef _OPENMP
-	john_omp_init();
+	john_omp_show_info();
 #endif
 
 	if (options.node_count) {
@@ -461,17 +489,13 @@ static void john_init(char *name, int argc, char **argv)
 
 	CPU_detect_or_fallback(argv, make_check);
 
-	if (!make_check) {
-#if defined(_OPENMP) && OMP_FALLBACK
-#if defined(__DJGPP__) || defined(__CYGWIN32__)
-#error OMP_FALLBACK is incompatible with the current DOS and Win32 code
+#ifdef _OPENMP
+	john_omp_init();
 #endif
-		if (!getenv("JOHN_NO_OMP_FALLBACK") &&
-		    omp_get_max_threads() <= 1) {
-#define OMP_FALLBACK_PATHNAME JOHN_SYSTEMWIDE_EXEC "/" OMP_FALLBACK_BINARY
-			execv(OMP_FALLBACK_PATHNAME, argv);
-			perror("execv: " OMP_FALLBACK_PATHNAME);
-		}
+
+	if (!make_check) {
+#ifdef HAVE_JOHN_OMP_FALLBACK
+		john_omp_fallback(argv);
 #endif
 
 		path_init(argv);
@@ -488,6 +512,9 @@ static void john_init(char *name, int argc, char **argv)
 	if (argc < 2)
 		john_register_all(); /* for printing by opt_init() */
 	opt_init(name, argc, argv);
+#ifdef _OPENMP
+	john_omp_maybe_adjust_or_fallback(argv);
+#endif
 	john_register_all(); /* maybe restricted to one format by options */
 	common_init();
 	sig_init();
