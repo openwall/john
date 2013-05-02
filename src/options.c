@@ -190,13 +190,15 @@ void opt_init(char *name, int argc, char **argv)
 			for (i = 2; i <= options.fork; i++) {
 				rec_name = rec_name_orig;
 				rec_name_completed = 0;
+				rec_restoring_now = 0;
 				options.node_min = options.node_max = i;
 				john_main_process = 0;
 				rec_restore_args(0);
 				john_main_process = 1;
 				options.node_min = options.node_max = i;
 				options.flags |= FLG_STATUS_SET;
-				status_print();
+				if (rec_restoring_now)
+					status_print();
 			}
 		}
 		exit(0);
