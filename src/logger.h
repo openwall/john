@@ -29,7 +29,7 @@ extern void log_guess(char *login, char *ciphertext, char *rep_plain, char *stor
  * The caller must make sure that any conversion specifiers in the
  * format string expand to no more than 500 characters.
  */
-extern void log_event(char *format, ...)
+extern void log_event(const char *format, ...)
 #ifdef __GNUC__
 	__attribute__ ((format (printf, 1, 2)));
 #else

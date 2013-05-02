@@ -25,6 +25,8 @@
 
 #ifdef _OPENMP
 #include <omp.h>
+static int john_omp_threads_orig = 0;
+static int john_omp_threads_new;
 #endif
 
 #include "arch.h"
@@ -90,12 +92,12 @@ extern int CPU_detect(void);
 
 extern struct fmt_main fmt_DES, fmt_BSDI, fmt_MD5, fmt_BF;
 extern struct fmt_main fmt_AFS, fmt_LM;
-extern struct fmt_main fmt_NT;
 #ifdef HAVE_CRYPT
 extern struct fmt_main fmt_crypt;
 #endif
 extern struct fmt_main fmt_trip;
 extern struct fmt_main fmt_dummy;
+extern struct fmt_main fmt_NT;
 
 // can be done as a _plug format now. But I have not renamed the plugin file just yet.
 extern struct fmt_main fmt_django;
@@ -198,9 +200,9 @@ extern struct fmt_main fmt_hmacMD5;
 extern struct fmt_main fmt_hmacSHA1;
 extern struct fmt_main fmt_rawSHA0;
 
-extern int unique(int argc, char **argv);
 extern int unshadow(int argc, char **argv);
 extern int unafs(int argc, char **argv);
+extern int unique(int argc, char **argv);
 extern int undrop(int argc, char **argv);
 #ifndef _MSC_VER
 /* XXX: What's wrong with having these along with MSC? Perhaps this restriction
@@ -230,6 +232,7 @@ int john_main_process = 1;
 int john_child_count = 0;
 int *john_child_pids = NULL;
 #endif
+static int children_ok = 1;
 
 static struct db_main database;
 static struct fmt_main dummy_format;
@@ -286,6 +289,11 @@ static void john_register_all(void)
 	john_register_one(&fmt_BF);
 	john_register_one(&fmt_AFS);
 	john_register_one(&fmt_LM);
+#ifdef HAVE_CRYPT
+	john_register_one(&fmt_crypt);
+#endif
+	john_register_one(&fmt_trip);
+	john_register_one(&fmt_dummy);
 	john_register_one(&fmt_NT);
 	for (i = 0; i < cnt; ++i)
 		john_register_one(&(selfs[i]));
@@ -302,11 +310,6 @@ static void john_register_all(void)
 
 #include "fmt_registers.h"
 
-#ifdef HAVE_CRYPT
-	john_register_one(&fmt_crypt);
-#endif
-	john_register_one(&fmt_trip);
-	john_register_one(&fmt_dummy);
 	john_register_one(&fmt_hmacMD5);
 	john_register_one(&fmt_hmacSHA1);
 	john_register_one(&fmt_rawSHA0);
@@ -448,15 +451,48 @@ static void john_log_format(void)
 #ifdef _OPENMP
 static void john_omp_init(void)
 {
-	int threads_orig = omp_get_max_threads();
-	int threads_new = threads_orig;
+	john_omp_threads_new = omp_get_max_threads();
+	if (!john_omp_threads_orig)
+		john_omp_threads_orig = john_omp_threads_new;
+}
 
-	if (options.fork && !getenv("OMP_NUM_THREADS")) {
-		threads_new /= options.fork;
-		if (threads_new < 1)
-			threads_new = 1;
-		omp_set_num_threads(threads_new);
+#if OMP_FALLBACK
+#if defined(__DJGPP__) || defined(__CYGWIN32__)
+#error OMP_FALLBACK is incompatible with the current DOS and Win32 code
+#endif
+#define HAVE_JOHN_OMP_FALLBACK
+static void john_omp_fallback(char **argv) {
+	if (!getenv("JOHN_NO_OMP_FALLBACK") && john_omp_threads_new <= 1) {
+		rec_done(-2);
+#define OMP_FALLBACK_PATHNAME JOHN_SYSTEMWIDE_EXEC "/" OMP_FALLBACK_BINARY
+		execv(OMP_FALLBACK_PATHNAME, argv);
+		perror("execv: " OMP_FALLBACK_PATHNAME);
 	}
+}
+#endif
+
+static void john_omp_maybe_adjust_or_fallback(char **argv)
+{
+	if (options.fork && !getenv("OMP_NUM_THREADS")) {
+		john_omp_threads_new /= options.fork;
+		if (john_omp_threads_new < 1)
+			john_omp_threads_new = 1;
+		omp_set_num_threads(john_omp_threads_new);
+		john_omp_init();
+#ifdef HAVE_JOHN_OMP_FALLBACK
+		john_omp_fallback(argv);
+#endif
+	}
+}
+
+static void john_omp_show_info(void)
+{
+	if (!options.fork && john_omp_threads_orig > 1 &&
+	    database.format &&
+	    !(database.format->params.flags & FMT_OMP) &&
+	    !rec_restoring_now)
+		fprintf(stderr, "Warning: no OpenMP support for this "
+		    "hash type, consider --fork=%d\n", john_omp_threads_orig);
 
 /*
  * Only show OpenMP info if one of the following is true:
@@ -466,18 +502,18 @@ static void john_omp_init(void)
  * - we're doing --test and the specified format is OpenMP-enabled.
  */
 	{
-		int show_omp_info = 0;
+		int show = 0;
 		if (database.format &&
 		    (database.format->params.flags & FMT_OMP))
-			show_omp_info = 1;
+			show = 1;
 		else if ((options.flags & (FLG_TEST_CHK | FLG_FORMAT)) ==
 		    FLG_TEST_CHK)
-			show_omp_info = 1;
+			show = 1;
 		else if ((options.flags & FLG_TEST_CHK) &&
 		    (fmt_list->params.flags & FMT_OMP))
-			show_omp_info = 1;
+			show = 1;
 
-		if (!show_omp_info)
+		if (!show)
 			return;
 	}
 
@@ -498,22 +534,23 @@ static void john_omp_init(void)
 	} else
 #endif
 	if (options.fork) {
-		if (threads_new > 1)
+		if (john_omp_threads_new > 1)
 			fprintf(stderr,
 			    "Will run %d OpenMP threads per process "
 			    "(%u total across %u processes)\n",
-			    threads_new,
-			    threads_new * options.fork, options.fork);
-		else if (threads_orig > 1)
+			    john_omp_threads_new,
+			    john_omp_threads_new * options.fork, options.fork);
+		else if (john_omp_threads_orig > 1)
 			fputs("Warning: OpenMP was disabled due to --fork; "
 			    "a non-OpenMP build may be faster\n", stderr);
 	} else {
-		if (threads_new > 1)
+		if (john_omp_threads_new > 1)
 			fprintf(stderr,
-			    "Will run %d OpenMP threads\n", threads_new);
+			    "Will run %d OpenMP threads\n",
+			    john_omp_threads_new);
 	}
 
-	if (threads_orig == 1)
+	if (john_omp_threads_orig == 1)
 		fputs("Warning: OpenMP is disabled; "
 		    "a non-OpenMP build may be faster\n", stderr);
 }
@@ -549,7 +586,7 @@ static void john_fork(void)
 			options.node_max = options.node_min;
 			if (rec_restoring_now) {
 				unsigned int node_id = options.node_min;
-				rec_done(1);
+				rec_done(-2);
 				rec_restore_args(1);
 				if (node_id != options.node_min + i)
 					fprintf(stderr,
@@ -587,7 +624,8 @@ static void john_wait(void)
  * in place, so we're relaying keypresses to child processes via signals.
  */
 	while (waiting_for) {
-		int i, pid = wait(NULL);
+		int i, status;
+		int pid = wait(&status);
 		if (pid == -1) {
 			if (errno != EINTR)
 				perror("wait");
@@ -596,12 +634,15 @@ static void john_wait(void)
 			if (john_child_pids[i] == pid) {
 				john_child_pids[i] = 0;
 				waiting_for--;
+				children_ok = children_ok &&
+				    WIFEXITED(status) && !WEXITSTATUS(status);
+				break;
 			}
 		}
 	}
 
-/* OK to remove our .rec file now */
-	rec_done(-1);
+/* Close and possibly remove our .rec file now */
+	rec_done((children_ok && !event_abort) ? -1 : -2);
 #endif
 }
 
@@ -693,7 +734,7 @@ static void john_load(void)
 		else
 		if (mem_saving_level) {
 			options.loader.flags &= ~DB_LOGIN;
-			options.loader.max_wordfile_memory = 0;
+			options.loader.max_wordfile_memory = 1;
 		}
 
 		ldr_init_database(&database, &options.loader);
@@ -710,7 +751,7 @@ static void john_load(void)
 		    !options.ascii && !options.iso8859_1 &&
 		    database.format->params.flags & FMT_UNICODE &&
 		    !(database.format->params.flags & FMT_UTF8)) {
-			if (john_main_process)
+				if (john_main_process)
 				fprintf(stderr, "This format does not yet "
 				        "support other encodings than"
 				        " ISO-8859-1\n");
@@ -779,7 +820,7 @@ static void john_load(void)
 	}
 
 #ifdef _OPENMP
-	john_omp_init();
+	john_omp_show_info();
 #endif
 
 	if (options.node_count) {
@@ -839,17 +880,13 @@ static void john_init(char *name, int argc, char **argv)
 
 	CPU_detect_or_fallback(argv, make_check);
 
-	if (!make_check) {
-#if defined(_OPENMP) && OMP_FALLBACK
-#if defined(__DJGPP__) || defined(__CYGWIN32__)
-#error OMP_FALLBACK is incompatible with the current DOS and Win32 code
+#ifdef _OPENMP
+	john_omp_init();
 #endif
-		if (!getenv("JOHN_NO_OMP_FALLBACK") &&
-		    omp_get_max_threads() <= 1) {
-#define OMP_FALLBACK_PATHNAME JOHN_SYSTEMWIDE_EXEC "/" OMP_FALLBACK_BINARY
-			execv(OMP_FALLBACK_PATHNAME, argv);
-			perror("execv: " OMP_FALLBACK_PATHNAME);
-		}
+
+	if (!make_check) {
+#ifdef HAVE_JOHN_OMP_FALLBACK
+		john_omp_fallback(argv);
 #endif
 
 		path_init(argv);
@@ -893,6 +930,14 @@ static void john_init(char *name, int argc, char **argv)
 	   john.conf, we can disable it using the command line option */
 	if (cfg_get_bool(SECTION_OPTIONS, NULL, "CrackStatus", 0))
 		options.flags ^= FLG_CRKSTAT;
+
+	status_init(NULL, 1);
+	if (argc < 2)
+		john_register_all(); /* for printing by opt_init() */
+	opt_init(name, argc, argv, show_usage);
+#ifdef _OPENMP
+	john_omp_maybe_adjust_or_fallback(argv);
+#endif
 
 	initUnicode(UNICODE_UNICODE); /* Init the unicode system */
 
@@ -1025,10 +1070,16 @@ static void john_done(void)
 			          "Session aborted" :
 			          "Session stopped (max run-time reached)");
 			/* We have already printed to stderr from signals.c */
-		} else {
+		} else if (children_ok) {
 			log_event("Session completed");
 			if (john_main_process)
 				fprintf(stderr, "Session completed\n");
+		} else {
+			const char *msg =
+			    "Main process session completed, "
+			    "but some child processes failed";
+			log_event("%s", msg);
+			fprintf(stderr, "%s\n", msg);
 		}
 		fmt_done(database.format);
 	}

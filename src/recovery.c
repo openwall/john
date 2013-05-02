@@ -12,6 +12,7 @@
 #endif
 
 #include <stdio.h>
+#include <stdlib.h>
 #ifndef _MSC_VER
 #include <unistd.h>
 #else
@@ -179,25 +180,28 @@ void rec_save(void)
 	if (ftruncate(rec_fd, size)) pexit("ftruncate");
 #endif
 #if !defined(__CYGWIN32__) && !defined(__MINGW32__) && !defined (_MSC_VER)
-	if (fsync(rec_fd)) pexit("fsync");
+	if (!options.fork && fsync(rec_fd))
+		pexit("fsync");
 #endif
 }
 
+/* See the comment in recovery.h on how the "save" parameter is used */
 void rec_done(int save)
 {
-	if (!rec_file) return;
+	if (!rec_file)
+		return;
 
 /*
  * If we're the main process for a --fork'ed group of children, leave our .rec
- * file around until the children terminate (at which time we're called again
- * with save = -1).
+ * file around until the children terminate (at which time we may be called
+ * again with save < 0, meaning forced non-saving).
  */
-	if (!save && options.fork && john_main_process)
-		save = 1;
-	if (save == -1)
-		save = 0;
+	if (!save && options.fork && john_main_process) {
+		rec_save();
+		return;
+	}
 
-	if (save)
+	if (save > 0)
 		rec_save();
 	else
 #ifdef HAVE_MPI
@@ -226,10 +230,11 @@ void rec_done(int save)
 	log_flush();
 #endif
 
-	if (fclose(rec_file)) pexit("fclose");
+	if (fclose(rec_file))
+		pexit("fclose");
 	rec_file = NULL;
 
-	if (!save && unlink(path_expand(rec_name)))
+	if ((!save || save == -1) && unlink(path_expand(rec_name)))
 		pexit("unlink: %s", path_expand(rec_name));
 }
 
@@ -238,7 +243,7 @@ static void rec_format_error(char *fn)
 	if (fn && errno && ferror(rec_file))
 		pexit("%s", fn);
 	else {
-		fprintf(stderr, "Incorrect crash recovery file format: %s\n",
+		fprintf(stderr, "Incorrect crash recovery file: %s\n",
 			path_expand(rec_name));
 		error();
 	}
@@ -252,8 +257,18 @@ void rec_restore_args(int lock)
 	char *save_rec_name;
 
 	rec_name_complete();
-	if (!(rec_file = fopen(path_expand(rec_name), "r+")))
+	if (!(rec_file = fopen(path_expand(rec_name), "r+"))) {
+		if (options.fork && !john_main_process && errno == ENOENT) {
+			fprintf(stderr, "%u Session completed\n",
+			    options.node_min);
+			if (options.flags & FLG_STATUS_CHK)
+				return;
+			log_event("No crash recovery file, terminating");
+			log_done();
+			exit(0);
+		}
 		pexit("fopen: %s", path_expand(rec_name));
+	}
 	rec_fd = fileno(rec_file);
 
 	if (lock) rec_lock();
@@ -333,6 +348,8 @@ void rec_restore_args(int lock)
 
 void rec_restore_mode(int (*restore_mode)(FILE *file))
 {
+	rec_name_complete();
+
 	if (!rec_file) return;
 
 	if (restore_mode)
