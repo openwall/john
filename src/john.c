@@ -138,6 +138,13 @@ static void john_omp_init(void)
 		omp_set_num_threads(threads_new);
 	}
 
+	if (!options.fork && threads_orig > 1 &&
+	    database.format &&
+	    !(database.format->params.flags & FMT_OMP) &&
+	    !rec_restoring_now)
+		fprintf(stderr, "Warning: no OpenMP support for this "
+		    "hash type, consider --fork=%d\n", threads_orig);
+
 /*
  * Only show OpenMP info if one of the following is true:
  * - we have a format detected for the loaded hashes and it is OpenMP-enabled;
