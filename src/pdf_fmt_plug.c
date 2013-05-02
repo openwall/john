@@ -113,6 +113,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* length */
 		goto err;
+	res = atoi(p);
+	if (res < 0 || res > 256)
+		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* P */
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* encrypt_metadata */
@@ -206,6 +209,9 @@ static int old_valid(char *ciphertext, struct fmt_main *self)
 	if (!(ptr = strtok(NULL, "*"))) /* version_minor */
 		goto error;
 	if (!(ptr = strtok(NULL, "*"))) /* length */
+		goto error;
+	res = atoi(ptr);
+	if (res < 0 || res > 256)
 		goto error;
 	if (!(ptr = strtok(NULL, "*"))) /* permissions */
 		goto error;

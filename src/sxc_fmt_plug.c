@@ -111,6 +111,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* checksum field (skipped) */
 		goto err;
+	if (strlen(p) != BINARY_SIZE * 2)
+		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* iv length */
 		goto err;
 	res = atoi(p);
