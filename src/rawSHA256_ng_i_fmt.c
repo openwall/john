@@ -54,7 +54,6 @@
 #define BENCHMARK_LENGTH          -1
 
 #define MAXLEN                    55
-#define DIGEST_SIZE               32
 #ifndef TEST_SHA224
 #define CIPHERTEXT_LENGTH         64
 #define BINARY_SIZE               32
@@ -170,7 +169,7 @@ static void *get_binary (char *ciphertext)
     int i;
 
     if (!out)
-        out = mem_alloc_tiny (DIGEST_SIZE, MEM_ALIGN_WORD);
+        out = mem_alloc_tiny (BINARY_SIZE, MEM_ALIGN_WORD);
 
     ciphertext += TAG_LENGTH;
 
@@ -178,7 +177,7 @@ static void *get_binary (char *ciphertext)
         out[i] = atoi16[ARCH_INDEX(ciphertext[i*2])] * 16 +
                  atoi16[ARCH_INDEX(ciphertext[i*2 + 1])];
 
-    alter_endianity (out, DIGEST_SIZE);
+    alter_endianity (out, BINARY_SIZE);
 
     return (void *) out;
 }

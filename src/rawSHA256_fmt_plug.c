@@ -4,33 +4,54 @@
  * based on rawMD4_fmt.c code, with trivial changes by groszek.
  */
 
-#include "sha2.h"
-
 #include "arch.h"
+#include "sha2.h"
+#include "stdint.h"
 #include "params.h"
 #include "common.h"
+#include "johnswap.h"
 #include "formats.h"
-
 #ifdef _OPENMP
+#ifdef MMX_COEF_SHA256
+#define OMP_SCALE			1024
+#else
 #define OMP_SCALE			2048
+#endif
 #include <omp.h>
 #endif
+#include "sse-intrinsics.h"
 
-#define FORMAT_LABEL			"raw-sha256"
-#define FORMAT_NAME			"Raw SHA-256"
+#define FORMAT_LABEL            "raw-sha256"
+#define FORMAT_NAME             "Raw SHA-256"
+#define FORMAT_TAG              "$SHA256$"
+#define TAG_LENGTH              8
+
+#ifdef MMX_COEF_SHA256
+#define ALGORITHM_NAME			SHA256_ALGORITHM_NAME
+#else
 #define ALGORITHM_NAME			"32/" ARCH_BITS_STR " " SHA2_LIB
+#endif
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1
 
+#ifdef MMX_COEF_SHA256
+#define PLAINTEXT_LENGTH		55
+#else
 #define PLAINTEXT_LENGTH		125
+#endif
 #define CIPHERTEXT_LENGTH		64
 
-#define BINARY_SIZE			32
-#define SALT_SIZE			0
+#define BINARY_SIZE				32
+#define SALT_SIZE				0
 
 #define MIN_KEYS_PER_CRYPT		1
+#ifdef MMX_COEF_SHA256
+#define MAX_KEYS_PER_CRYPT      MMX_COEF_SHA256
+#define MMX_LOAD                16
+#else
 #define MAX_KEYS_PER_CRYPT		1
+#endif
 
 static struct fmt_tests tests[] = {
 	{"5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8", "password"},
@@ -39,10 +60,16 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
+#ifdef MMX_COEF_SHA256
+#define GETPOS(i, index)		( (index&(MMX_COEF_SHA256-1))*4 + ((i)&(0xffffffff-3))*MMX_COEF_SHA256 + (3-((i)&3)) + (index>>(MMX_COEF_SHA256>>1))*MMX_LOAD*MMX_COEF_SHA256*4 )
+static uint32_t (*saved_key)[MMX_LOAD*MMX_COEF_SHA256];
+static uint32_t (*crypt_out)[8*MMX_COEF_SHA256];
+#else
 static int (*saved_key_length);
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static ARCH_WORD_32 (*crypt_out)
     [(BINARY_SIZE + sizeof(ARCH_WORD_32) - 1) / sizeof(ARCH_WORD_32)];
+#endif
 
 static void init(struct fmt_main *self)
 {
@@ -54,9 +81,14 @@ static void init(struct fmt_main *self)
 	omp_t *= OMP_SCALE;
 	self->params.max_keys_per_crypt = omp_t * MAX_KEYS_PER_CRYPT;
 #endif
+#ifndef MMX_COEF_SHA256
 	saved_key_length = mem_calloc_tiny(sizeof(*saved_key_length) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+#else
+	saved_key = mem_calloc_tiny(sizeof(*saved_key) * self->params.max_keys_per_crypt/MMX_COEF_SHA256, MEM_ALIGN_SIMD);
+	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt/MMX_COEF_SHA256, MEM_ALIGN_SIMD);
+#endif
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -64,7 +96,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *p, *q;
 
 	p = ciphertext;
-	if (!strncmp(p, "$SHA256$", 8))
+	if (!strncmp(p, FORMAT_TAG, TAG_LENGTH))
 		p += 8;
 
 	q = p;
@@ -77,104 +109,103 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[8 + CIPHERTEXT_LENGTH + 1];
 
-	if (!strncmp(ciphertext, "$SHA256$", 8))
+	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
 		return ciphertext;
 
-	memcpy(out, "$SHA256$", 8);
-	memcpy(out + 8, ciphertext, CIPHERTEXT_LENGTH + 1);
-	strlwr(out + 8);
+	memcpy(out, FORMAT_TAG, TAG_LENGTH);
+	memcpy(out + TAG_LENGTH, ciphertext, CIPHERTEXT_LENGTH + 1);
+	strlwr(out + TAG_LENGTH);
 	return out;
 }
 
 static void *get_binary(char *ciphertext)
 {
 	static unsigned char *out;
-	char *p;
 	int i;
 
-	if (!out) out = mem_alloc_tiny(BINARY_SIZE, MEM_ALIGN_WORD);
+	if (!out)
+		out = mem_alloc_tiny(BINARY_SIZE, MEM_ALIGN_WORD);
 
-	p = ciphertext + 8;
+	ciphertext += TAG_LENGTH;
 	for (i = 0; i < BINARY_SIZE; i++) {
-		out[i] =
-		    (atoi16[ARCH_INDEX(*p)] << 4) |
-		    atoi16[ARCH_INDEX(p[1])];
-		p += 2;
+		out[i] = atoi16[ARCH_INDEX(ciphertext[i*2])] * 16 +
+                 atoi16[ARCH_INDEX(ciphertext[i*2 + 1])];
 	}
-
+#ifdef MMX_COEF_SHA256
+	alter_endianity (out, BINARY_SIZE);
+#endif
 	return out;
 }
 
-static int binary_hash_0(void *binary)
-{
-	return *(ARCH_WORD_32 *)binary & 0xF;
-}
+static int binary_hash_0 (void *binary) { return *(uint32_t *) binary & 0xf; }
+static int binary_hash_1 (void *binary) { return *(uint32_t *) binary & 0xff; }
+static int binary_hash_2 (void *binary) { return *(uint32_t *) binary & 0xfff; }
+static int binary_hash_3 (void *binary) { return *(uint32_t *) binary & 0xffff; }
+static int binary_hash_4 (void *binary) { return *(uint32_t *) binary & 0xfffff; }
+static int binary_hash_5 (void *binary) { return *(uint32_t *) binary & 0xffffff; }
+static int binary_hash_6 (void *binary) { return *(uint32_t *) binary & 0x7ffffff; }
 
-static int binary_hash_1(void *binary)
-{
-	return *(ARCH_WORD_32 *)binary & 0xFF;
-}
+#ifdef MMX_COEF_SHA256
+static int get_hash_0 (int index) { return crypt_out[index>>(MMX_COEF_SHA256>>1)][index&(MMX_COEF_SHA256-1)] & 0xf; }
+static int get_hash_1 (int index) { return crypt_out[index>>(MMX_COEF_SHA256>>1)][index&(MMX_COEF_SHA256-1)] & 0xff; }
+static int get_hash_2 (int index) { return crypt_out[index>>(MMX_COEF_SHA256>>1)][index&(MMX_COEF_SHA256-1)] & 0xfff; }
+static int get_hash_3 (int index) { return crypt_out[index>>(MMX_COEF_SHA256>>1)][index&(MMX_COEF_SHA256-1)] & 0xffff; }
+static int get_hash_4 (int index) { return crypt_out[index>>(MMX_COEF_SHA256>>1)][index&(MMX_COEF_SHA256-1)] & 0xfffff; }
+static int get_hash_5 (int index) { return crypt_out[index>>(MMX_COEF_SHA256>>1)][index&(MMX_COEF_SHA256-1)] & 0xffffff; }
+static int get_hash_6 (int index) { return crypt_out[index>>(MMX_COEF_SHA256>>1)][index&(MMX_COEF_SHA256-1)] & 0x7ffffff; }
+#else
+static int get_hash_0(int index) { return crypt_out[index][0] & 0xF; }
+static int get_hash_1(int index) { return crypt_out[index][0] & 0xFF; }
+static int get_hash_2(int index) { return crypt_out[index][0] & 0xFFF; }
+static int get_hash_3(int index) { return crypt_out[index][0] & 0xFFFF; }
+static int get_hash_4(int index) { return crypt_out[index][0] & 0xFFFFF; }
+static int get_hash_5(int index) { return crypt_out[index][0] & 0xFFFFFF; }
+static int get_hash_6(int index) { return crypt_out[index][0] & 0x7FFFFFF; }
+#endif
 
-static int binary_hash_2(void *binary)
-{
-	return *(ARCH_WORD_32 *)binary & 0xFFF;
-}
+#ifdef MMX_COEF_SHA256
+static void set_key(char *key, int index) {
+	const ARCH_WORD_32 *wkey = (ARCH_WORD_32*)key;
+	ARCH_WORD_32 *keybuffer = &((ARCH_WORD_32 *)saved_key)[(index&(MMX_COEF-1)) + (index>>(MMX_COEF>>1))*MMX_LOAD*MMX_COEF];
+	ARCH_WORD_32 *keybuf_word = keybuffer;
+	unsigned int len;
+	ARCH_WORD_32 temp;
 
-static int binary_hash_3(void *binary)
-{
-	return *(ARCH_WORD_32 *)binary & 0xFFFF;
-}
+	len = 0;
+	while((unsigned char)(temp = *wkey++)) {
+		if (!(temp & 0xff00))
+		{
+			*keybuf_word = JOHNSWAP((temp & 0xff) | (0x80 << 8));
+			len++;
+			goto key_cleaning;
+		}
+		if (!(temp & 0xff0000))
+		{
+			*keybuf_word = JOHNSWAP((temp & 0xffff) | (0x80 << 16));
+			len+=2;
+			goto key_cleaning;
+		}
+		if (!(temp & 0xff000000))
+		{
+			*keybuf_word = JOHNSWAP(temp | (0x80 << 24));
+			len+=3;
+			goto key_cleaning;
+		}
+		*keybuf_word = JOHNSWAP(temp);
+		len += 4;
+		keybuf_word += MMX_COEF;
+	}
+	*keybuf_word = 0x80000000;
 
-static int binary_hash_4(void *binary)
-{
-	return *(ARCH_WORD_32 *)binary & 0xFFFFF;
+key_cleaning:
+	keybuf_word += MMX_COEF;
+	while(*keybuf_word) {
+		*keybuf_word = 0;
+		keybuf_word += MMX_COEF;
+	}
+	keybuffer[15*MMX_COEF] = len << 3;
 }
-
-static int binary_hash_5(void *binary)
-{
-	return *(ARCH_WORD_32 *)binary & 0xFFFFFF;
-}
-
-static int binary_hash_6(void *binary)
-{
-	return *(ARCH_WORD_32 *)binary & 0x7FFFFFF;
-}
-
-static int get_hash_0(int index)
-{
-	return crypt_out[index][0] & 0xF;
-}
-
-static int get_hash_1(int index)
-{
-	return crypt_out[index][0] & 0xFF;
-}
-
-static int get_hash_2(int index)
-{
-	return crypt_out[index][0] & 0xFFF;
-}
-
-static int get_hash_3(int index)
-{
-	return crypt_out[index][0] & 0xFFFF;
-}
-
-static int get_hash_4(int index)
-{
-	return crypt_out[index][0] & 0xFFFFF;
-}
-
-static int get_hash_5(int index)
-{
-	return crypt_out[index][0] & 0xFFFFFF;
-}
-
-static int get_hash_6(int index)
-{
-	return crypt_out[index][0] & 0x7FFFFFF;
-}
-
+#else
 static void set_key(char *key, int index)
 {
 	int len = strlen(key);
@@ -183,46 +214,80 @@ static void set_key(char *key, int index)
 		len = saved_key_length[index] = PLAINTEXT_LENGTH;
 	memcpy(saved_key[index], key, len);
 }
+#endif
 
+#ifdef MMX_COEF_SHA256
+static char *get_key(int index) {
+	unsigned int i,s;
+	static char out[64];
+	unsigned char *wucp = (unsigned char*)saved_key;
+
+	s = ((ARCH_WORD_32 *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*MMX_LOAD*MMX_COEF] >> 3;
+	for(i=0;i<s;i++)
+		out[i] = wucp[ GETPOS(i, index) ];
+	out[i] = 0;
+	return (char*) out;
+}
+#else
 static char *get_key(int index)
 {
 	saved_key[index][saved_key_length[index]] = 0;
 	return saved_key[index];
 }
+#endif
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
 	int index = 0;
-
 #ifdef _OPENMP
+#ifdef MMX_COEF_SHA256
+	int inc = MMX_COEF_SHA256;
+#else
+	int inc = 1;
+#endif
+
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
+	for (index = 0; index < count; index += inc)
 #endif
 	{
+#ifdef MMX_COEF_SHA256
+		SSESHA256body(&saved_key[index/MMX_COEF_SHA256], crypt_out[index/MMX_COEF_SHA256], SHA256_MIXED_IN);
+#else
 		SHA256_CTX ctx;
-
 		SHA256_Init(&ctx);
 		SHA256_Update(&ctx, saved_key[index], saved_key_length[index]);
 		SHA256_Final((unsigned char *)crypt_out[index], &ctx);
+#endif
 	}
 	return count;
 }
 
 static int cmp_all(void *binary, int count)
 {
-	int index = 0;
-#ifdef _OPENMP
-	for (; index < count; index++)
-#endif
+    int index;
+
+    for (index = 0; index < count; index++)
+#ifdef MMX_COEF_SHA256
+        if (((uint32_t *) binary)[0] == crypt_out[index>>(MMX_COEF_SHA256>>1)][index&(MMX_COEF_SHA256-1)])
+#else
 		if (!memcmp(binary, crypt_out[index], BINARY_SIZE))
-			return 1;
-	return 0;
+#endif
+             return 1;
+    return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
+#ifdef MMX_COEF_SHA256
+    int i;
+    for (i=1; i < BINARY_SIZE/4; i++)
+        if (((uint32_t *) binary)[i] != crypt_out[index>>(MMX_COEF_SHA256>>1)][(index&(MMX_COEF_SHA256-1))+i*MMX_COEF_SHA256])
+            return 0;
+    return 1;
+#else
 	return !memcmp(binary, crypt_out[index], BINARY_SIZE);
+#endif
 }
 
 static int cmp_exact(char *source, int index)
