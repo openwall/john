@@ -193,7 +193,7 @@ static void rec_format_error(char *fn)
 	if (fn && errno && ferror(rec_file))
 		pexit("%s", fn);
 	else {
-		fprintf(stderr, "Incorrect crash recovery file format: %s\n",
+		fprintf(stderr, "Incorrect crash recovery file: %s\n",
 			path_expand(rec_name));
 		error();
 	}
