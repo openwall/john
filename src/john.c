@@ -142,6 +142,7 @@ static void john_omp_init(void)
 #define HAVE_JOHN_OMP_FALLBACK
 static void john_omp_fallback(char **argv) {
 	if (!getenv("JOHN_NO_OMP_FALLBACK") && john_omp_threads_new <= 1) {
+		rec_done(-2);
 #define OMP_FALLBACK_PATHNAME JOHN_SYSTEMWIDE_EXEC "/" OMP_FALLBACK_BINARY
 		execv(OMP_FALLBACK_PATHNAME, argv);
 		perror("execv: " OMP_FALLBACK_PATHNAME);
