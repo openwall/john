@@ -158,31 +158,32 @@ void rec_save(void)
 #endif
 }
 
+/* See the comment in recovery.h on how the "save" parameter is used */
 void rec_done(int save)
 {
-	if (!rec_file) return;
+	if (!rec_file)
+		return;
 
 /*
  * If we're the main process for a --fork'ed group of children, leave our .rec
  * file around until the children terminate (at which time we may be called
- * again with save = -1).
+ * again with save < 0, meaning forced non-saving).
  */
 	if (!save && options.fork && john_main_process) {
 		rec_save();
 		return;
 	}
-	if (save == -1)
-		save = 0;
 
-	if (save)
+	if (save > 0)
 		rec_save();
 	else
 		log_flush();
 
-	if (fclose(rec_file)) pexit("fclose");
+	if (fclose(rec_file))
+		pexit("fclose");
 	rec_file = NULL;
 
-	if (!save && unlink(path_expand(rec_name)))
+	if ((!save || save == -1) && unlink(path_expand(rec_name)))
 		pexit("unlink: %s", path_expand(rec_name));
 }
 

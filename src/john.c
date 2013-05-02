@@ -212,7 +212,7 @@ static void john_fork(void)
 			options.node_max = options.node_min;
 			if (rec_restoring_now) {
 				unsigned int node_id = options.node_min;
-				rec_done(1);
+				rec_done(-2);
 				rec_restore_args(1);
 				if (node_id != options.node_min + i)
 					fprintf(stderr,
@@ -263,9 +263,8 @@ static void john_wait(void)
 		}
 	}
 
-/* OK to remove our .rec file now */
-	if (!event_abort)
-		rec_done(-1);
+/* OK to close and possibly remove our .rec file now */
+	rec_done(event_abort ? -2 : -1);
 #endif
 }
 
