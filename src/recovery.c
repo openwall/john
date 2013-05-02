@@ -298,6 +298,8 @@ void rec_restore_args(int lock)
 
 void rec_restore_mode(int (*restore_mode)(FILE *file))
 {
+	rec_name_complete();
+
 	if (!rec_file) return;
 
 	if (restore_mode)
