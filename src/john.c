@@ -1244,6 +1244,7 @@ int main(int argc, char **argv)
 
 #ifdef HAVE_MPI
 	mpi_setup(argc, argv);
+	if (mpi_id == 0) fprintf(stderr, "WARNING: MPI session save/restore is currently busted.\n");
 #else
 	if (getenv("OMPI_COMM_WORLD_SIZE"))
 	if (atoi(getenv("OMPI_COMM_WORLD_SIZE")) > 1)
