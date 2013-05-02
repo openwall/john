@@ -540,6 +540,9 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 			    options.node_str, msg);
 			error();
 		}
+#ifdef HAVE_MPI
+		options.node_max = options.node_min += mpi_id;
+#endif
 	} else if (options.fork) {
 		options.node_min = 1;
 		options.node_max = options.node_min + options.fork - 1;
