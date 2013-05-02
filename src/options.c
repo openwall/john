@@ -392,6 +392,13 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 
 	if (options.flags & FLG_RESTORE_CHK) {
 		char *rec_name_orig = rec_name;
+#ifdef HAVE_MPI
+		if (mpi_p > 1) {
+			options.node_min = mpi_id + 1;
+			options.node_max = mpi_id + 1;
+			options.node_count = mpi_p;
+		}
+#endif
 		rec_restore_args(1);
 #ifndef HAVE_MPI
 		if (options.fork) {
@@ -540,9 +547,9 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 	}
 #ifdef HAVE_MPI
 	else if (mpi_p > 1) {
-		options.node_min = 1;
-		options.node_max = options.node_min + mpi_p - 1;
-		options.node_count = options.node_max;
+		options.node_min = mpi_id + 1;
+		options.node_max = mpi_id + 1;
+		options.node_count = mpi_p;
 	}
 #endif
 

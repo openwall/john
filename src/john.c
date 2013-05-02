@@ -491,6 +491,9 @@ static void john_omp_show_info(void)
 	    database.format &&
 	    !(database.format->params.flags & FMT_OMP) &&
 	    !rec_restoring_now)
+#ifdef HAVE_MPI
+		if (mpi_p == 1)
+#endif
 		fprintf(stderr, "Warning: no OpenMP support for this "
 		    "hash type, consider --fork=%d\n", john_omp_threads_orig);
 
@@ -828,7 +831,6 @@ static void john_load(void)
 			log_event("- Node numbers %u-%u of %u%s",
 			    options.node_min, options.node_max,
 			    options.node_count, options.fork ? " (fork)" : "");
-			if (john_main_process)
 			fprintf(stderr, "Node numbers %u-%u of %u%s\n",
 			    options.node_min, options.node_max,
 			    options.node_count, options.fork ? " (fork)" : "");
@@ -931,10 +933,6 @@ static void john_init(char *name, int argc, char **argv)
 	if (cfg_get_bool(SECTION_OPTIONS, NULL, "CrackStatus", 0))
 		options.flags ^= FLG_CRKSTAT;
 
-	status_init(NULL, 1);
-	if (argc < 2)
-		john_register_all(); /* for printing by opt_init() */
-	opt_init(name, argc, argv, show_usage);
 #ifdef _OPENMP
 	john_omp_maybe_adjust_or_fallback(argv);
 #endif

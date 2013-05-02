@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include "john.h"
 #ifdef _OPENMP
 #include <omp.h>
 #endif

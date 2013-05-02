@@ -152,7 +152,11 @@ static int log_time(void)
 	unsigned int time;
 
 	count1 = 0;
+#ifndef HAVE_MPI
 	if (options.fork) {
+#else
+	if (options.fork || mpi_p > 1) {
+#endif
 		count1 = (int)sprintf(log.ptr, "%u ", options.node_min);
 		if (count1 < 0)
 			return count1;
