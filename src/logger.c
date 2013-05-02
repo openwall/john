@@ -194,7 +194,7 @@ void log_guess(char *login, char *ciphertext, char *plaintext)
 		write_loop(fileno(stderr), "\007", 1);
 }
 
-void log_event(char *format, ...)
+void log_event(const char *format, ...)
 {
 	va_list args;
 	int count1, count2;
