@@ -69,12 +69,16 @@ static void log_file_flush(struct log_file *f)
 	if (count <= 0) return;
 
 #if defined(LOCK_EX) && OS_FLOCK
-	if (flock(f->fd, LOCK_EX)) pexit("flock");
+	while (flock(f->fd, LOCK_EX)) {
+		if (errno != EINTR)
+			pexit("flock(LOCK_EX)");
+	}
 #endif
 	if (write_loop(f->fd, f->buffer, count) < 0) pexit("write");
 	f->ptr = f->buffer;
 #if defined(LOCK_EX) && OS_FLOCK
-	if (flock(f->fd, LOCK_UN)) pexit("flock");
+	if (flock(f->fd, LOCK_UN))
+		pexit("flock(LOCK_UN)");
 #endif
 }
 
