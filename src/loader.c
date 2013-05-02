@@ -519,7 +519,9 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 		ldr_init_password_hash(db);
 		if (cfg_get_bool(SECTION_OPTIONS, NULL, "NoLoaderDupeCheck", 0)) {
 			skip_dupe_checking = 1;
-			fprintf(stderr, "No dupe-checking performed when loading hashes.\n");
+			if (john_main_process)
+				fprintf(stderr, "No dupe-checking performed "
+				        "when loading hashes.\n");
 		}
 	}
 

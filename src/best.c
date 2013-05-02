@@ -27,8 +27,10 @@
 extern struct fmt_main fmt_DES, fmt_MD5, fmt_BF;
 
 int john_main_process = 0;
+#ifndef __DJGPP__
 int john_child_count = 0;
 int *john_child_pids = NULL;
+#endif
 
 int main(int argc, char **argv)
 {

@@ -7,7 +7,7 @@
  */
 
 #include "arch.h"
-#ifdef __SSE2__
+#if defined (__SSE2__)  || defined (_MSC_VER)
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -359,7 +359,11 @@ static void crypt_all (int count)
         for (i=0; i < 16; i++) GATHER (w[i], saved_key, i);
         for (i=0; i < 15; i++) SWAP_ENDIAN (w[i]);
 #else
+#ifdef _MSC_VER
+		__declspec(align(16)) uint32_t __w[16][VWIDTH];
+#else
         uint32_t __w[16][VWIDTH] __attribute__ ((aligned (16)));
+#endif
         int j;
 
         for (i=0; i < VWIDTH; i++)

@@ -98,12 +98,16 @@ static void log_file_flush(struct log_file *f)
 	if (count <= 0) return;
 
 #if defined(LOCK_EX) && OS_FLOCK
-	if (flock(f->fd, LOCK_EX)) pexit("flock");
+	while (flock(f->fd, LOCK_EX)) {
+		if (errno != EINTR)
+			pexit("flock(LOCK_EX)");
+	}
 #endif
 	if (write_loop(f->fd, f->buffer, count) < 0) pexit("write");
 	f->ptr = f->buffer;
 #if defined(LOCK_EX) && OS_FLOCK
-	if (flock(f->fd, LOCK_UN)) pexit("flock");
+	if (flock(f->fd, LOCK_UN))
+		pexit("flock(LOCK_UN)");
 #endif
 }
 
@@ -128,11 +132,14 @@ static void log_file_fsync(struct log_file *f)
 #endif
 }
 
-static void log_file_done(struct log_file *f)
+static void log_file_done(struct log_file *f, int do_sync)
 {
 	if (f->fd < 0) return;
 
-	log_file_fsync(f);
+	if (do_sync)
+		log_file_fsync(f);
+	else
+		log_file_flush(f);
 	if (close(f->fd)) pexit("close");
 	f->fd = -1;
 
@@ -259,7 +266,7 @@ void log_guess(char *login, char *ciphertext, char *rep_plain, char *store_plain
 		write_loop(fileno(stderr), "\007", 1);
 }
 
-void log_event(char *format, ...)
+void log_event(const char *format, ...)
 {
 	va_list args;
 	int count1, count2;
@@ -313,7 +320,10 @@ void log_flush(void)
 {
 	in_logger = 1;
 
-	log_file_fsync(&log);
+	if (options.fork)
+		log_file_flush(&log);
+	else
+		log_file_fsync(&log);
 	log_file_fsync(&pot);
 
 	in_logger = 0;
@@ -328,8 +338,8 @@ void log_done(void)
 	if (in_logger) return;
 	in_logger = 1;
 
-	log_file_done(&log);
-	log_file_done(&pot);
+	log_file_done(&log, !options.fork);
+	log_file_done(&pot, 1);
 
 	in_logger = 0;
 }

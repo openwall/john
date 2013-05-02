@@ -88,8 +88,11 @@ void advance_cursor()
 {
 	static int pos = 0;
 	char cursor[4] = { '/', '-', '\\', '|' };
-	fprintf(stderr, "%c\b", cursor[pos]);
-	pos = (pos + 1) % 4;
+
+	if (john_main_process) {
+		fprintf(stderr, "%c\b", cursor[pos]);
+		pos = (pos + 1) % 4;
+	}
 }
 
 void handle_clerror(cl_int cl_error, const char *message, const char *file,

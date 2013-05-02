@@ -14,6 +14,14 @@
 #ifndef _JOHN_ARCH_H
 #define _JOHN_ARCH_H
 
+#if defined (_MSC_VER) && !defined (_OPENMP)
+#define __SSE2__
+//#define __SSSE3__
+//#define __SSE4_1__
+//#define __XOP__
+//#define __AVX__
+#endif
+
 #define ARCH_WORD			long
 #define ARCH_SIZE			4
 #define ARCH_BITS			32
@@ -157,8 +165,8 @@
 #define MD5_SSE_PARA			4
 #define MD5_N_STR			"16x"
 #elif defined (_MSC_VER)
-#define MD5_SSE_PARA			3
-#define MD5_N_STR			"12x"
+#define MD5_SSE_PARA			1
+#define MD5_N_STR			"4x"
 #elif defined(__GNUC__) && GCC_VERSION < 30406	// 3.4.6
 #undef MD5_SSE_PARA
 #undef MD5_N_STR
@@ -182,8 +190,8 @@
 #define MD4_SSE_PARA			3
 #define MD4_N_STR			"12x"
 #elif defined (_MSC_VER)
-#define MD4_SSE_PARA			3
-#define MD4_N_STR			"12x"
+#define MD4_SSE_PARA			1
+#define MD4_N_STR			"4x"
 #elif defined(__GNUC__) && GCC_VERSION < 30406	// 3.4.6
 #undef MD4_SSE_PARA
 #undef MD4_N_STR
@@ -257,5 +265,8 @@
 #define MMX_COEF			4
 
 #define NT_SSE2
+
+#define MMX_COEF_SHA256 4
+#define MMX_COEF_SHA512 2
 
 #endif

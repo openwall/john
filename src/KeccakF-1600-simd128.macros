@@ -24,8 +24,8 @@ http://creativecommons.org/publicdomain/zero/1.0/
     V128 Bkame, Bkemi, Bkimo, Bkomu, Bkuma; \
     V64 Bba, Bbe, Bbi, Bbo, Bbu; \
     V64 Bga, Bge, Bgi, Bgo, Bgu; \
-    V64 Bka, Bke, Bki, Bko, Bku; \
-    V64 Bma, Bme, Bmi, Bmo, Bmu; \
+    V64 Bka, Bke, Bki, /*Bko,*/ Bku; \
+    V64 Bma, Bme, Bmi, Bmo/*, Bmu */; \
     V64 Bsa, Bse, Bsi, Bso, Bsu; \
     V128 Cae, Cei, Cio, Cou, Cua, Dei, Dou; \
     V64 Ca, Ce, Ci, Co, Cu; \
@@ -647,5 +647,4 @@ const UINT64 KeccakF1600RoundConstants[24] = {
     X##se = Y##se; \
     X##si = Y##si; \
     X##so = Y##so; \
-    X##su = Y##su; \
-
+    X##su = Y##su;

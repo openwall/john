@@ -1,10 +1,19 @@
 /*
  * This software is Copyright (c) 2010 bartavelle, <bartavelle at bandecon.com>, and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification, are permitted.
+ *
+ * Some modifications, Jim Fougeron, 2013.  Licensing rights listed in accompanying sse-intrinsics.c file.
  */
+
+#include "common.h"
+#include "sse-intrinsics-load-flags.h"
+
 #ifndef _EMMINTRIN_H_INCLUDED
 #define __m128i void
 #endif
+
+#define STRINGIZE2(s) #s
+#define STRINGIZE(s) STRINGIZE2(s)
 
 #if defined(__XOP__)
 #define SSE_type			"XOP intrinsics"
@@ -69,4 +78,26 @@ void SSESHA1body(__m128i* data, unsigned int * out, unsigned int * reload_state,
 #else
 #define SHA1_SSE_type			"1x"
 #define SHA1_ALGORITHM_NAME		"32/" ARCH_BITS_STR
+#endif
+
+// code for SHA256 and SHA512 (from rawSHA256_ng_fmt.c and rawSHA512_ng_fmt.c)
+
+#if defined __XOP__
+#define SIMD_TYPE                 "XOP"
+#elif defined __SSE4_1__
+#define SIMD_TYPE                 "SSE4.1"
+#elif defined __SSSE3__
+#define SIMD_TYPE                 "SSSE3"
+#else
+#define SIMD_TYPE                 "SSE2"
+#endif
+
+#ifdef MMX_COEF_SHA256
+#define SHA256_ALGORITHM_NAME	"128/128 " SIMD_TYPE " intrinsics " STRINGIZE(MMX_COEF_SHA256)"x"
+void SSESHA256body(__m128i* data, ARCH_WORD_32 *out, int sha256_flags);
+#endif
+
+#ifdef MMX_COEF_SHA512
+#define SHA512_ALGORITHM_NAME	"128/128 " SIMD_TYPE " intrinsics " STRINGIZE(MMX_COEF_SHA512)"x"
+void SSESHA512body(__m128i* data, ARCH_WORD_32 *out, int init);
 #endif
