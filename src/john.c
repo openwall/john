@@ -264,7 +264,8 @@ static void john_wait(void)
 	}
 
 /* OK to remove our .rec file now */
-	rec_done(-1);
+	if (!event_abort)
+		rec_done(-1);
 #endif
 }
 
