@@ -40,6 +40,7 @@
 #include "formats.h"
 #include "params.h"
 #include "options.h"
+#include "memory.h"
 #include "gladman_pwd2key.h"
 #ifdef _OPENMP
 static int omp_t = 1;
@@ -249,7 +250,7 @@ static int hash_plugin_parse_hash(char *filename, struct custom_salt *cs, int is
 	cs->afsize =
 	    af_sectors(john_ntohl(cs->myphdr.keyBytes),
 	    john_ntohl(cs->myphdr.keyblock[cs->bestslot].stripes));
-	cs->cipherbuf = malloc(cs->afsize); // XXX handle this leak
+	cs->cipherbuf = mem_alloc_tiny(cs->afsize, MEM_ALIGN_NONE);
 	fseek(myfile, john_ntohl(cs->myphdr.keyblock[cs->bestslot].keyMaterialOffset) * 512,
 	    SEEK_SET);
 	readbytes = fread(cs->cipherbuf, cs->afsize, 1, myfile);
@@ -311,19 +312,23 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	is_inlined = atoi(p);
 
 	if (is_inlined) {
-		p = strtok(NULL, "$");
+		if ((p = strtok(NULL, "$")) == NULL)
+			goto err;
 		res = atoi(p);
 		if (res != sizeof(struct luks_phdr))
 			goto err;
 		p = strtok(NULL, "$");
 		if (res * 2 != strlen(p))
 			goto err;
-		p = strtok(NULL, "$");
+		if ((p = strtok(NULL, "$")) == NULL)
+			goto err;
 		res = atoi(p);
-		p = strtok(NULL, "$");
+		if ((p = strtok(NULL, "$")) == NULL)
+			goto err;
 		if (res * 2 != strlen(p))
 			goto err;
-		p = strtok(NULL, "$");
+		if ((p = strtok(NULL, "$")) == NULL)
+			goto err;
 		if (strlen(p) != LUKS_DIGESTSIZE * 2)
 			goto err;
 	}
@@ -383,7 +388,7 @@ static void *get_salt(char *ciphertext)
 		cs.afsize = af_sectors(john_ntohl(cs.myphdr.keyBytes),
 				john_ntohl(cs.myphdr.keyblock[cs.bestslot].stripes));
 		assert(res == cs.afsize);
-		cs.cipherbuf = malloc(cs.afsize);
+		cs.cipherbuf = mem_alloc_tiny(cs.afsize, MEM_ALIGN_NONE);
 
 		p = strtok(NULL, "$");
 		for (i = 0; i < res; i++) {
