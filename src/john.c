@@ -239,6 +239,7 @@ static void john_wait(void)
 {
 #ifndef __DJGPP__
 	int waiting_for = john_child_count;
+	int children_ok = 1;
 
 	log_event("Waiting for %d child%s to terminate",
 	    waiting_for, waiting_for == 1 ? "" : "ren");
@@ -250,7 +251,8 @@ static void john_wait(void)
  * in place, so we're relaying keypresses to child processes via signals.
  */
 	while (waiting_for) {
-		int i, pid = wait(NULL);
+		int i, status;
+		int pid = wait(&status);
 		if (pid == -1) {
 			if (errno != EINTR)
 				perror("wait");
@@ -259,12 +261,15 @@ static void john_wait(void)
 			if (john_child_pids[i] == pid) {
 				john_child_pids[i] = 0;
 				waiting_for--;
+				children_ok = children_ok &&
+				    WIFEXITED(status) && !WEXITSTATUS(status);
+				break;
 			}
 		}
 	}
 
-/* OK to close and possibly remove our .rec file now */
-	rec_done(event_abort ? -2 : -1);
+/* Close and possibly remove our .rec file now */
+	rec_done((children_ok && !event_abort) ? -1 : -2);
 #endif
 }
 
