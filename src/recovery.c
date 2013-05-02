@@ -164,11 +164,13 @@ void rec_done(int save)
 
 /*
  * If we're the main process for a --fork'ed group of children, leave our .rec
- * file around until the children terminate (at which time we're called again
- * with save = -1).
+ * file around until the children terminate (at which time we may be called
+ * again with save = -1).
  */
-	if (!save && options.fork && john_main_process)
-		save = 1;
+	if (!save && options.fork && john_main_process) {
+		rec_save();
+		return;
+	}
 	if (save == -1)
 		save = 0;
 
