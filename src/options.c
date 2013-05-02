@@ -382,10 +382,22 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 		rec_name_completed = 0;
 	}
 
+#ifdef HAVE_MPI
+	if (options.fork && mpi_p > 1) {
+		if (john_main_process)
+			fprintf(stderr, "Can't use --fork with MPI.\n");
+		error();
+	}
+#endif
+
 	if (options.flags & FLG_RESTORE_CHK) {
 		char *rec_name_orig = rec_name;
 		rec_restore_args(1);
+#ifndef HAVE_MPI
 		if (options.fork) {
+#else
+		if (options.fork || mpi_p > 1) {
+#endif
 			rec_name = rec_name_orig;
 			rec_name_completed = 0;
 		}
@@ -481,6 +493,10 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 			options.node_max = options.node_min;
 			if (options.fork)
 				options.node_max += options.fork - 1;
+#ifdef HAVE_MPI
+			else if (mpi_p > 1)
+				options.node_max += mpi_p - 1;
+#endif
 		}
 		if (n < 2)
 			msg = "valid syntax is MIN-MAX/TOTAL or N/TOTAL";
@@ -495,11 +511,20 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 		else if (options.fork &&
 		    options.node_max - options.node_min + 1 != options.fork)
 			msg = "range must be consistent with --fork number";
+#ifdef HAVE_MPI
+		else if (mpi_p > 1 &&
+		    options.node_max - options.node_min + 1 != mpi_p)
+			msg = "range must be consistent with MPI node count";
+#endif
 		else if (!options.fork &&
+#ifdef HAVE_MPI
+		         mpi_p == 1 &&
+#endif
 		    options.node_max - options.node_min + 1 ==
 		    options.node_count)
 			msg = "node numbers can't span the whole range";
 		if (msg) {
+			//if (john_main_process)
 			fprintf(stderr, "Invalid node specification: %s: %s\n",
 			    options.node_str, msg);
 			error();
@@ -509,6 +534,13 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 		options.node_max = options.node_min + options.fork - 1;
 		options.node_count = options.node_max;
 	}
+#ifdef HAVE_MPI
+	else if (mpi_p > 1) {
+		options.node_min = 1;
+		options.node_max = options.node_min + mpi_p - 1;
+		options.node_count = options.node_max;
+	}
+#endif
 
 	if (options.encoding && !strcasecmp(options.encoding, "list")) {
 		listEncodings();
@@ -531,22 +563,6 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 			        "but no option would use them\n");
 		error();
 	}
-
-#ifdef HAVE_MPI
-        if (mpi_p > 1) {
-                if (options.node_max &&
-                    (options.node_max - options.node_min + 1) != mpi_p) {
-                        fprintf(stderr, "Node range not consistent with MPI node count\n");
-                        error();
-                } else
-                        options.node_max = options.node_min + mpi_p - 1;
-                if (!options.node_count)
-                        options.node_count = mpi_p;
-                if (options.node_max > options.node_count) {
-                        fprintf(stderr, "Node numbers can't exceed node count\n");
-                        error();
-                }
-#endif
 
 	if ( (options.flags & FLG_SHOW_SET) && options.showuncracked_str) {
 		if (!strcasecmp( options.showuncracked_str, "left"))  {

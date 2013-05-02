@@ -481,6 +481,22 @@ static void john_omp_init(void)
 			return;
 	}
 
+#if defined(HAVE_MPI)
+	if (mpi_p > 1) {
+		if(cfg_get_bool(SECTION_OPTIONS, SUBSECTION_MPI,
+		                "MPIOMPmutex", 1)) {
+			if(cfg_get_bool(SECTION_OPTIONS, SUBSECTION_MPI,
+			                "MPIOMPverbose", 1) && mpi_id == 0)
+				fprintf(stderr, "MPI in use, disabling OMP "
+				        "(see doc/README.mpi)\n");
+			omp_set_num_threads(1);
+		} else
+			if(cfg_get_bool(SECTION_OPTIONS, SUBSECTION_MPI,
+			                "MPIOMPverbose", 1) && mpi_id == 0)
+				fprintf(stderr, "Note: Running both MPI and OMP"
+				        " (see doc/README.mpi)\n");
+	} else
+#endif
 	if (options.fork) {
 		if (threads_new > 1)
 			fprintf(stderr,
@@ -660,6 +676,7 @@ static void john_load(void)
 				ldr_show_pw_file(&database, current->data);
 			} while ((current = current->next));
 
+			if (john_main_process)
 			printf("%s%d password hash%s cracked, %d left\n",
 				database.guess_count ? "\n" : "",
 				database.guess_count,
@@ -693,7 +710,10 @@ static void john_load(void)
 		    !options.ascii && !options.iso8859_1 &&
 		    database.format->params.flags & FMT_UNICODE &&
 		    !(database.format->params.flags & FMT_UTF8)) {
-			fprintf(stderr, "This format does not yet support other encodings than ISO-8859-1\n");
+			if (john_main_process)
+				fprintf(stderr, "This format does not yet "
+				        "support other encodings than"
+				        " ISO-8859-1\n");
 				error();
 		}
 
@@ -707,6 +727,7 @@ static void john_load(void)
 			log_event("Loaded a total of %s", john_loaded_counts());
 			/* make sure the format is properly initialized */
 			fmt_init(database.format);
+			if (john_main_process)
 			printf("Loaded %s (%s [%s])\n",
 				john_loaded_counts(),
 				database.format->params.format_name,
@@ -739,11 +760,13 @@ static void john_load(void)
 
 		if (!database.password_count) {
 			log_discard();
+			if (john_main_process)
 			printf("No password hashes %s (see FAQ)\n",
 			    total ? "left to crack" : "loaded");
 		} else
 		if (database.password_count < total) {
 			log_event("Remaining %s", john_loaded_counts());
+			if (john_main_process)
 			printf("Remaining %s\n", john_loaded_counts());
 		}
 
@@ -764,6 +787,7 @@ static void john_load(void)
 			log_event("- Node numbers %u-%u of %u%s",
 			    options.node_min, options.node_max,
 			    options.node_count, options.fork ? " (fork)" : "");
+			if (john_main_process)
 			fprintf(stderr, "Node numbers %u-%u of %u%s\n",
 			    options.node_min, options.node_max,
 			    options.node_count, options.fork ? " (fork)" : "");
@@ -920,21 +944,6 @@ static void john_run(void)
 		}
 		tty_init(options.flags & FLG_STDIN_CHK);
 
-#if defined(HAVE_MPI) && defined(_OPENMP)
-		if (database.format->params.flags & FMT_OMP &&
-		    omp_get_max_threads() > 1 && mpi_p > 1) {
-			if(cfg_get_bool(SECTION_OPTIONS, SUBSECTION_MPI, "MPIOMPmutex", 1)) {
-				if(cfg_get_bool(SECTION_OPTIONS, SUBSECTION_MPI, "MPIOMPverbose", 1) &&
-				   mpi_id == 0)
-					fprintf(stderr, "MPI in use, disabling OMP (see doc/README.mpi)\n");
-				omp_set_num_threads(1);
-			} else
-				if(cfg_get_bool(SECTION_OPTIONS, SUBSECTION_MPI, "MPIOMPverbose", 1) &&
-				   mpi_id == 0)
-					fprintf(stderr, "Note: Running both MPI and OMP (see doc/README.mpi)\n");
-		}
-#endif
-
 		/* WPA-PSK and WoW both have min-length 8. Until the format
 		   struct can hold this information, we need this hack here. */
 		if (database.format->params.label &&
@@ -942,7 +951,9 @@ static void john_run(void)
 		     !strncmp(database.format->params.label, "wowsrp", 6)) &&
 		    options.force_minlength < 8) {
 			options.force_minlength = 8;
-			fprintf(stderr, "Note: minimum length forced to 8\n");
+			if (john_main_process)
+				fprintf(stderr,
+				        "Note: minimum length forced to 8\n");
 
 			/* Now we need to re-check this */
 			if (options.force_maxlength &&

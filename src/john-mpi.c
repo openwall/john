@@ -33,6 +33,7 @@ void mpi_setup(int argc, char **argv) {
 	MPI_Init(&argc, &argv);
 	MPI_Comm_rank(MPI_COMM_WORLD, &mpi_id);
 	MPI_Comm_size(MPI_COMM_WORLD, &mpi_p);
+	john_main_process = !mpi_id;
 	MPI_Get_processor_name(mpi_name, &namesize);
 	atexit(mpi_teardown);
 }
