@@ -7,6 +7,7 @@
 #define _XOPEN_SOURCE 500 /* for fdopen(3), fileno(3), fsync(2), ftruncate(2) */
 #endif
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -206,8 +207,18 @@ void rec_restore_args(int lock)
 	char *save_rec_name;
 
 	rec_name_complete();
-	if (!(rec_file = fopen(path_expand(rec_name), "r+")))
+	if (!(rec_file = fopen(path_expand(rec_name), "r+"))) {
+		if (options.fork && !john_main_process && errno == ENOENT) {
+			fprintf(stderr, "%u Session completed\n",
+			    options.node_min);
+			if (options.flags & FLG_STATUS_CHK)
+				return;
+			log_event("No crash recovery file, terminating");
+			log_done();
+			exit(0);
+		}
 		pexit("fopen: %s", path_expand(rec_name));
+	}
 	rec_fd = fileno(rec_file);
 
 	if (lock) rec_lock();
