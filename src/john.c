@@ -611,7 +611,7 @@ static void john_done(void)
 			const char *msg =
 			    "Main process session completed, "
 			    "but some child processes failed";
-			log_event(msg);
+			log_event("%s", msg);
 			fprintf(stderr, "%s\n", msg);
 		}
 		fmt_done(database.format);
