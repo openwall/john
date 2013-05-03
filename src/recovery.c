@@ -68,7 +68,7 @@ static void rec_name_complete(void)
 #ifndef HAVE_MPI
 	if (options.fork && !john_main_process) {
 #else
-	if (!john_main_process) {
+	if (!john_main_process && options.node_min) {
 #endif
 		char *suffix = mem_alloc(1 + 20 + strlen(RECOVERY_SUFFIX) + 1);
 		sprintf(suffix, ".%u%s", options.node_min, RECOVERY_SUFFIX);
@@ -130,6 +130,9 @@ void rec_init(struct db_main *db, void (*save_mode)(FILE *file))
 void rec_save(void)
 {
 	int save_format, hund;
+#ifdef HAVE_MPI
+	int fake_fork;
+#endif
 	long size;
 	char **opt;
 
@@ -146,8 +149,20 @@ void rec_save(void)
 
 	save_format = !options.format && rec_db->loaded;
 
+#ifdef HAVE_MPI
+	fake_fork = (mpi_p > 1);
+	opt = rec_argv;
+	while (*++opt)
+		if (!strncmp(*opt, "-fork", 5) || !strncmp(*opt, "--fork", 6))
+			fake_fork = 0;
+#endif
+
 	fprintf(rec_file, RECOVERY_V "\n%d\n",
+#ifndef HAVE_MPI
 	    rec_argc + (save_format ? 1 : 0));
+#else
+	    rec_argc + (save_format ? 1 : 0) + (fake_fork ? 1 : 0));
+#endif
 
 	opt = rec_argv;
 	while (*++opt)
@@ -156,6 +171,11 @@ void rec_save(void)
 	if (save_format)
 		fprintf(rec_file, "--format=%s\n",
 		    rec_db->format->params.label);
+
+#ifdef HAVE_MPI
+	if (fake_fork)
+		fprintf(rec_file, "--fork=%d\n", mpi_p);
+#endif
 
 	fprintf(rec_file, "%u\n%u\n%x\n%x\n%x\n%x\n%x\n%x\n%x\n"
 	    "%d\n%d\n%d\n%x\n",
@@ -199,7 +219,11 @@ void rec_done(int save)
  * file around until the children terminate (at which time we may be called
  * again with save < 0, meaning forced non-saving).
  */
+#ifndef HAVE_MPI
 	if (!save && options.fork && john_main_process) {
+#else
+	if (!save && (options.fork || mpi_p > 1) && john_main_process) {
+#endif
 		rec_save();
 		return;
 	}
@@ -207,31 +231,7 @@ void rec_done(int save)
 	if (save > 0)
 		rec_save();
 	else
-#ifdef HAVE_MPI
-	{
 		log_flush();
-		if (mpi_p > 1) {
-			if (rec_db->password_count) {
-#ifdef JOHN_MPI_BARRIER
-				int time = status_get_time();
-				if (nice(20) < 0) fprintf(stderr, "nice() failed\n");
-				fprintf(stderr, "Node %d finished at %u:%02u:%02u:%02u.\n", mpi_id, time / 86400, time % 86400 / 3600, time % 3600 / 60, time % 60);
-				MPI_Barrier(MPI_COMM_WORLD);
-#endif
-			} else {
-#ifdef JOHN_MPI_ABORT
-				int time = status_get_time();
-				fprintf(stderr, "Node %d: All hashes cracked at %u:%02u:%02u:%02u! Aborting other nodes.\n", mpi_id, time / 86400, time % 86400 / 3600, time % 3600 / 60, time % 60);
-				MPI_Abort(MPI_COMM_WORLD, 0);
-#else
-				fprintf(stderr, "Node %d: All hashes cracked! Abort the other nodes manually!\n", mpi_id);
-#endif
-			}
-		}
-	}
-#else
-	log_flush();
-#endif
 
 	if (fclose(rec_file))
 		pexit("fclose");
@@ -261,7 +261,11 @@ void rec_restore_args(int lock)
 
 	rec_name_complete();
 	if (!(rec_file = fopen(path_expand(rec_name), "r+"))) {
+#ifndef HAVE_MPI
 		if (options.fork && !john_main_process && errno == ENOENT) {
+#else
+		if (!john_main_process && errno == ENOENT) {
+#endif
 			fprintf(stderr, "%u Session completed\n",
 			    options.node_min);
 			if (options.flags & FLG_STATUS_CHK)

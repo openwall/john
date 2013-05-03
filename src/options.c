@@ -383,23 +383,35 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 	}
 
 #ifdef HAVE_MPI
-	if (options.fork && mpi_p > 1) {
-		if (john_main_process)
-			fprintf(stderr, "Can't use --fork with MPI.\n");
-		error();
+	if (mpi_p > 1) {
+		static int mpi_restoring = 0;
+		if (options.flags & FLG_RESTORE_CHK || mpi_restoring) {
+			if (options.fork && options.fork != mpi_p) {
+				if (john_main_process)
+				fprintf(stderr,
+				        "Node count in session file is %d.\n",
+				        options.fork);
+				error();
+			}
+			mpi_restoring = 1;
+			options.fork = 0;
+			options.flags &= ~FLG_FORK;
+		} else
+		if (options.fork) {
+			if (john_main_process)
+				fprintf(stderr, "Can't use --fork with MPI.\n");
+			error();
+		}
 	}
 #endif
 
 	if (options.flags & FLG_RESTORE_CHK) {
 		char *rec_name_orig = rec_name;
-#ifdef HAVE_MPI
-		if (mpi_p > 1) {
-			options.node_min = mpi_id + 1;
-			options.node_max = mpi_id + 1;
-			options.node_count = mpi_p;
-		}
-#endif
+#ifndef HAVE_MPI
 		rec_restore_args(1);
+#else
+		rec_restore_args(!mpi_id);
+#endif
 #ifndef HAVE_MPI
 		if (options.fork) {
 #else
@@ -547,9 +559,9 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 	}
 #ifdef HAVE_MPI
 	else if (mpi_p > 1) {
-		options.node_min = mpi_id + 1;
-		options.node_max = mpi_id + 1;
-		options.node_count = mpi_p;
+		options.node_min = 1;
+		options.node_max = options.node_min + mpi_p - 1;
+		options.node_count = options.node_max;
 	}
 #endif
 

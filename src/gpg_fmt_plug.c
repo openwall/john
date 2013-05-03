@@ -214,10 +214,43 @@ static void init(struct fmt_main *self)
 	cracked = mem_calloc_tiny(cracked_size, MEM_ALIGN_WORD);
 }
 
+static int valid_cipher_algorithm(int cipher_algorithm)
+{
+	switch(cipher_algorithm)
+	{
+	  case CIPHER_CAST5: return 1;
+	  case CIPHER_BLOWFISH: return 1;
+	  case CIPHER_AES128: return 1;
+	  case CIPHER_AES192: return 1;
+	  case CIPHER_AES256: return 1;
+	}
+	return 0;
+}
+
+static int valid_hash_algorithm(int hash_algorithm, int spec)
+{
+      if(spec == SPEC_SIMPLE || spec == SPEC_SALTED)
+	switch(hash_algorithm)
+	{
+	  case HASH_SHA1: return 1;
+	  case HASH_MD5: return 1;
+	}
+      if(spec == SPEC_ITERATED_SALTED)
+	switch(hash_algorithm)
+	{
+	  case HASH_SHA1: return 1;
+	  case HASH_MD5: return 1;
+	  case HASH_SHA256: return 1;
+	  case HASH_RIPEMD160: return 1;
+	  case HASH_SHA512: return 1;
+	}
+      return 0;
+}
+
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *keeptr, *p;
-	int res;
+	int res,i,spec;
 	if (strncmp(ciphertext, "$gpg$", 5) != 0)
 		return 0;
 	ctcopy = strdup(ciphertext);
@@ -236,29 +269,51 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if (strlen(p) != res * 2)
 		goto err;
+	for(i = 0; i < strlen(p); i++)
+		if(atoi16[ARCH_INDEX(p[i])] == 0x7F)
+			goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* spec */
 		goto err;
+	spec = atoi(p);
 	if ((p = strtok(NULL, "*")) == NULL)	/* usage */
+		goto err;
+	res = atoi(p);
+	if(res != 0 && res != 254 && res != 255)
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* hash_algorithm */
 		goto err;
+	res = atoi(p);
+	if(!valid_hash_algorithm(res,spec))
+		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* cipher_algorithm */
+		goto err;
+	res = atoi(p);
+	if(!valid_cipher_algorithm(res))
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* ivlen */
 		goto err;
 	res = atoi(p);
-	if (res > 16)
+	if (res != 8 && res != 16)
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* iv */
 		goto err;
 	if (strlen(p) != res * 2)
 		goto err;
+	for(i = 0; i < strlen(p); i++)
+		if(atoi16[ARCH_INDEX(p[i])] == 0x7F)
+			goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* count */
+		goto err;
+	res = atoi(p);
+	if(res < 0)
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* salt */
 		goto err;
 	if (strlen(p) != 8 * 2)
 		goto err;
+	for(i = 0; i < strlen(p); i++)
+		if(atoi16[ARCH_INDEX(p[i])] == 0x7F)
+			goto err;
 	MEM_FREE(keeptr);
 	return 1;
 

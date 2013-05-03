@@ -38,11 +38,51 @@
 #include <string.h>
 //#include <memory.h>
 #include "gladman_hmac.h"
+#include <math.h>
 
 #if defined(__cplusplus)
 extern "C"
 {
 #endif
+
+void pbkdf2_zip(const unsigned char pwd[],
+               unsigned int pwd_len,
+               const unsigned char salt[],
+               unsigned int salt_len,
+               unsigned int iter,
+               unsigned char key[],
+               unsigned int start_offset,
+               unsigned int key_len)
+{
+    unsigned int  i, j, k;
+    unsigned char uu[OUT_BLOCK_LENGTH], ux[OUT_BLOCK_LENGTH];
+    hmac_ctx c1[1];
+
+    int loops = ceil((start_offset + key_len) / 20.0);
+    for (i = floor(start_offset / 20.0) + 1; i <= loops; i++) {
+        uu[0] = (unsigned char)((i) >> 24);
+        uu[1] = (unsigned char)((i) >> 16);
+        uu[2] = (unsigned char)((i) >> 8);
+        uu[3] = (unsigned char)(i);
+
+        hmac_sha1_begin(c1);
+        hmac_sha1_key(pwd, pwd_len, c1);
+        hmac_sha1_data(salt, salt_len, c1);
+        hmac_sha1_data(uu, 4, c1);
+        hmac_sha1_end(uu, OUT_BLOCK_LENGTH, c1);
+
+        memcpy(ux, uu, OUT_BLOCK_LENGTH);
+        for (j = 1; j < iter; j++) {
+             hmac_sha1_begin(c1);
+             hmac_sha1_key(pwd, pwd_len, c1);
+             hmac_sha1_data(uu, OUT_BLOCK_LENGTH, c1);
+             hmac_sha1_end(uu, OUT_BLOCK_LENGTH, c1);
+                 for (k = 0; k < OUT_BLOCK_LENGTH; k++)
+                     ux[k] = ux[k] ^ uu[k];
+        }
+        memcpy(key, ux + (start_offset % OUT_BLOCK_LENGTH), 2);
+    }
+}
 
 void derive_key(const unsigned char pwd[],  /* the PASSWORD     */
                unsigned int pwd_len,        /* and its length   */
