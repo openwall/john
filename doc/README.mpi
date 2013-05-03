@@ -152,13 +152,12 @@ USAGE:
     - or -
     pkill -USR1 mpirun
 
-    Another approach would be to do a normal status print. This must be done
-    with mpirun and using the same -np as used for starting the job:
+    Another approach would be to do a normal status print. This is now done
+    without mpirun, all nodes will be printed:
 
-    mpirun -np 4 ./john --status
+    ./john --status
 
     This will dump the status of each process as recorded in the .rec files.
-    You will also get an extra summary line with total statistics.
 
 ====================
 CAVEATS:

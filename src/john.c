@@ -55,10 +55,9 @@ static int john_omp_threads_new;
 #include "batch.h"
 #include "dynamic.h"
 #include "listconf.h"
-
 #ifdef HAVE_MPI
 #include "john-mpi.h"
-#endif /* HAVE_MPI */
+#endif
 
 #include <openssl/opensslv.h>
 #include "unicode.h"
