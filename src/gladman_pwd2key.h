@@ -51,6 +51,14 @@ void derive_key(
         unsigned char key[],    /* space for the output key */
         unsigned int key_len);  /* and its required length  */
 
+void pbkdf2_zip(const unsigned char pwd[],
+               unsigned int pwd_len,
+               const unsigned char salt[],
+               unsigned int salt_len,
+               unsigned int iter,
+               unsigned char key[],
+               unsigned int start_offset,
+               unsigned int key_len);
 #if defined(__cplusplus)
 }
 #endif
