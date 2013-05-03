@@ -18,7 +18,10 @@
 #endif
 #endif
 
+// These compilers claim to be __GNUC__ but warn on gcc pragmas.
+#if !defined(__INTEL_COMPILER) && !defined(__clang__) && !defined(__llvm__)
 #pragma GCC optimize 3
+#endif
 
 //#define DEBUG
 
