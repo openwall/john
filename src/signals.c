@@ -311,8 +311,10 @@ static void sig_handle_timer(int signum)
 
 	if (timer_abort > 0 || timer_status > 0) {
 		time = status_get_time();
-		if (time >= timer_abort)
+		if (time >= timer_abort) {
 			event_abort = event_pending = 1;
+			timer_abort = 0;
+		}
 
 		if (time >= timer_status) {
 			event_status = event_pending = 1;
