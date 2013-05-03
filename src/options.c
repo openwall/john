@@ -383,10 +383,16 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 	}
 
 #ifdef HAVE_MPI
-
 	if (mpi_p > 1) {
 		static int mpi_restoring = 0;
 		if (options.flags & FLG_RESTORE_CHK || mpi_restoring) {
+			if (options.fork && options.fork != mpi_p) {
+				if (john_main_process)
+				fprintf(stderr,
+				        "Node count in session file is %d.\n",
+				        options.fork);
+				error();
+			}
 			mpi_restoring = 1;
 			options.fork = 0;
 			options.flags &= ~FLG_FORK;
@@ -398,6 +404,7 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 		}
 	}
 #endif
+
 	if (options.flags & FLG_RESTORE_CHK) {
 		char *rec_name_orig = rec_name;
 #ifndef HAVE_MPI
