@@ -3,6 +3,8 @@
  * Copyright (c) 1996-98 by Solar Designer
  *
  * ...with changes in the jumbo patch for MSC, by JimF.
+ * 
+ * ...fixed after the paths rework, by SmilingWolf
  */
 
 /*
@@ -12,7 +14,7 @@
 #include <string.h>
 #include <process.h>
 
-#define MAIN_NAME			"john.exe"
+#define MAIN_NAME			"../john.exe"
 
 int main(int argc, char **argv)
 {

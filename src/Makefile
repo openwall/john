@@ -21,6 +21,9 @@ NULL = /dev/null
 CPPFLAGS = -E
 SORT = sort
 
+CONVERTERS = converters
+UTILS = utils
+
 ## Uncomment the TWO lines below for MPI (can be used together with OMP as well)
 ## For experimental MPI_Abort support, add -DJOHN_MPI_ABORT too.
 #CC = mpicc -DHAVE_MPI
@@ -228,42 +231,42 @@ BENCH_PARA_DEPEND = \
 GENMKVPWD_OBJS = \
 	genmkvpwd.o mkvlib.o memory.o miscnl.o path.o
 
-PROJ = ../run/john ../run/unshadow ../run/unafs ../run/unique ../run/undrop \
-	../run/ssh2john ../run/rar2john ../run/zip2john \
-	../run/genmkvpwd ../run/mkvcalcproba ../run/calc_stat \
-	../run/tgtsnarf ../run/racf2john ../run/mozilla2john ../run/hccap2john \
-	../run/pwsafe2john ../run/raw2dyna ../run/keepass2john ../run/pfx2john \
-	../run/keychain2john ../run/keyring2john ../run/kwallet2john \
-	../run/dmg2john ../run/putty2john john.local.conf ../run/uaf2john \
-	../run/truecrypt_volume2john ../run/keystore2john ../run/wpapcap2john
+PROJ = ../run/john ../run/$(UTILS)/unshadow ../run/$(UTILS)/unafs ../run/$(UTILS)/unique ../run/$(UTILS)/undrop \
+	../run/$(CONVERTERS)/ssh2john ../run/$(CONVERTERS)/rar2john ../run/$(CONVERTERS)/zip2john \
+	../run/$(UTILS)/genmkvpwd ../run/$(UTILS)/mkvcalcproba ../run/$(UTILS)/calc_stat \
+	../run/$(UTILS)/tgtsnarf ../run/$(CONVERTERS)/racf2john ../run/$(CONVERTERS)/mozilla2john ../run/$(CONVERTERS)/hccap2john \
+	../run/$(CONVERTERS)/pwsafe2john ../run/$(UTILS)/raw2dyna ../run/$(CONVERTERS)/keepass2john ../run/$(CONVERTERS)/pfx2john \
+	../run/$(CONVERTERS)/keychain2john ../run/$(CONVERTERS)/keyring2john ../run/$(CONVERTERS)/kwallet2john \
+	../run/$(CONVERTERS)/dmg2john ../run/$(CONVERTERS)/putty2john john.local.conf ../run/$(CONVERTERS)/uaf2john \
+	../run/$(CONVERTERS)/truecrypt_volume2john ../run/$(CONVERTERS)/keystore2john ../run/$(CONVERTERS)/wpapcap2john
 PROJ_DOS = ../run/john.bin ../run/john.com \
-	../run/unshadow.com ../run/unafs.com ../run/unique.com \
-	../run/undrop.com \
-	../run/ssh2john.com ../run/rar2john.com ../run/zip2john \
-	../run/racf2john.com ../run/mozilla2john.com ../run/hccap2john.com \
-	../run/pwsafe2john.com ../run/keepass2john.com ../run/pfx2john.com \
-	../run/keychain2john.com ../run/keyring2john.com ../run/kwallet2john.com \
-	../run/dmg2john.com ../run/putty2john.com john.local.conf
+	../run/$(UTILS)/unshadow.com ../run/$(UTILS)/unafs.com ../run/$(UTILS)/unique.com \
+	../run/$(UTILS)/undrop.com \
+	../run/$(CONVERTERS)/ssh2john.com ../run/$(CONVERTERS)/rar2john.com ../run/$(CONVERTERS)/zip2john \
+	../run/$(CONVERTERS)/racf2john.com ../run/$(CONVERTERS)/mozilla2john.com ../run/$(CONVERTERS)/hccap2john.com \
+	../run/$(CONVERTERS)/pwsafe2john.com ../run/$(CONVERTERS)/keepass2john.com ../run/$(CONVERTERS)/pfx2john.com \
+	../run/$(CONVERTERS)/keychain2john.com ../run/$(CONVERTERS)/keyring2john.com ../run/$(CONVERTERS)/kwallet2john.com \
+	../run/$(CONVERTERS)/dmg2john.com ../run/$(CONVERTERS)/putty2john.com john.local.conf
 PROJ_WIN32 = ../run/john.exe \
-	../run/unshadow.exe ../run/unafs.exe ../run/unique.exe \
-	../run/undrop.exe \
-	../run/ssh2john.exe ../run/rar2john.exe ../run/zip2john.exe \
-	../run/genmkvpwd.exe ../run/mkvcalcproba.exe ../run/calc_stat.exe \
-	../run/racf2john.exe ../run/mozilla2john.exe ../run/hccap2john.exe \
-	../run/pwsafe2john.exe ../run/raw2dyna.exe ../run/keepass2john.exe \
-	../run/pfx2john.exe ../run/keychain2john.exe ../run/keyring2john.exe \
-	../run/kwallet2john.exe ../run/dmg2john.exe ../run/putty2john.exe john.local.conf
+	../run/$(UTILS)/unshadow.exe ../run/$(UTILS)/unafs.exe ../run/$(UTILS)/unique.exe \
+	../run/$(UTILS)/undrop.exe \
+	../run/$(CONVERTERS)/ssh2john.exe ../run/$(CONVERTERS)/rar2john.exe ../run/$(CONVERTERS)/zip2john.exe \
+	../run/$(UTILS)/genmkvpwd.exe ../run/$(UTILS)/mkvcalcproba.exe ../run/$(UTILS)/calc_stat.exe \
+	../run/$(CONVERTERS)/racf2john.exe ../run/$(CONVERTERS)/mozilla2john.exe ../run/$(CONVERTERS)/hccap2john.exe \
+	../run/$(CONVERTERS)/pwsafe2john.exe ../run/$(UTILS)/raw2dyna.exe ../run/$(CONVERTERS)/keepass2john.exe \
+	../run/$(CONVERTERS)/pfx2john.exe ../run/$(CONVERTERS)/keychain2john.exe ../run/$(CONVERTERS)/keyring2john.exe \
+	../run/$(CONVERTERS)/kwallet2john.exe ../run/$(CONVERTERS)/dmg2john.exe ../run/$(CONVERTERS)/putty2john.exe john.local.conf
 PROJ_WIN32_MINGW = ../run/john-mingw.exe \
-	../run/unshadow.exe ../run/unafs.exe ../run/unique.exe \
-	../run/undrop.exe \
-	../run/ssh2john.exe ../run/rar2john.exe ../run/zip2john.exe \
-	../run/genmkvpwd.exe ../run/mkvcalcproba.exe ../run/calc_stat.exe \
-	../run/racf2john.exe ../run/mozilla2john.exe ../run/hccap2john.exe \
-	../run/pwsafe2john.exe ../run/raw2dyna.exe ../run/keepass2john.exe \
-	../run/pfx2john.exe ../run/keychain2john.exe ../run/keyring2john.exe \
-	../run/kwallet2john.exe ../run/putty2john john.local.conf
-PROJ_CXX = ../run/gpg2john
-PROJ_PCAP = ../run/SIPdump ../run/vncpcap2john
+	../run/$(UTILS)/unshadow.exe ../run/$(UTILS)/unafs.exe ../run/$(UTILS)/unique.exe \
+	../run/$(UTILS)/undrop.exe \
+	../run/$(CONVERTERS)/ssh2john.exe ../run/$(CONVERTERS)/rar2john.exe ../run/$(CONVERTERS)/zip2john.exe \
+	../run/$(UTILS)/genmkvpwd.exe ../run/$(UTILS)/mkvcalcproba.exe ../run/$(UTILS)/calc_stat.exe \
+	../run/$(CONVERTERS)/racf2john.exe ../run/$(CONVERTERS)/mozilla2john.exe ../run/$(CONVERTERS)/hccap2john.exe \
+	../run/$(CONVERTERS)/pwsafe2john.exe ../run/$(UTILS)/raw2dyna.exe ../run/$(CONVERTERS)/keepass2john.exe \
+	../run/$(CONVERTERS)/pfx2john.exe ../run/$(CONVERTERS)/keychain2john.exe ../run/$(CONVERTERS)/keyring2john.exe \
+	../run/$(CONVERTERS)/kwallet2john.exe ../run/$(CONVERTERS)/putty2john john.local.conf
+PROJ_CXX = ../run/$(CONVERTERS)/gpg2john
+PROJ_PCAP = ../run/$(UTILS)/SIPdump ../run/$(CONVERTERS)/vncpcap2john
 default:
 	@echo "To build John the Ripper, type:"
 	@echo "	make clean SYSTEM"
@@ -1939,83 +1942,83 @@ opencl_mscash2_fmt.o: common_opencl_pbkdf2.h common_opencl_pbkdf2.o opencl_mscas
 ../run/john: $(JOHN_OBJS)
 	$(LD) $(JOHN_OBJS) $(LDFLAGS) -o ../run/john
 
-../run/unshadow: ../run/john
-	$(RM) ../run/unshadow
-	ln -s john ../run/unshadow
+../run/$(UTILS)/unshadow: ../run/john
+	$(RM) ../run/$(UTILS)/unshadow
+	ln -s ../john ../run/$(UTILS)/unshadow
 
-../run/unafs: ../run/john
-	$(RM) ../run/unafs
-	ln -s john ../run/unafs
+../run/$(UTILS)/unafs: ../run/john
+	$(RM) ../run/$(UTILS)/unafs
+	ln -s ../john ../run/$(UTILS)/unafs
 
-../run/undrop: ../run/john
-	$(RM) ../run/undrop
-	ln -s john ../run/undrop
+../run/$(UTILS)/undrop: ../run/john
+	$(RM) ../run/$(UTILS)/undrop
+	ln -s ../john ../run/$(UTILS)/undrop
 
-../run/ssh2john: ../run/john
-	$(RM) ../run/ssh2john
-	ln -s john ../run/ssh2john
+../run/$(CONVERTERS)/ssh2john: ../run/john
+	$(RM) ../run/$(CONVERTERS)/ssh2john
+	ln -s ../john ../run/$(CONVERTERS)/ssh2john
 
-../run/putty2john: ../run/john
-	$(RM) ../run/putty2john
-	ln -s john ../run/putty2john
+../run/$(CONVERTERS)/putty2john: ../run/john
+	$(RM) ../run/$(CONVERTERS)/putty2john
+	ln -s ../john ../run/$(CONVERTERS)/putty2john
 
-../run/pfx2john: ../run/john
-	$(RM) ../run/pfx2john
-	ln -s john ../run/pfx2john
+../run/$(CONVERTERS)/pfx2john: ../run/john
+	$(RM) ../run/$(CONVERTERS)/pfx2john
+	ln -s ../john ../run/$(CONVERTERS)/pfx2john
 
-../run/keepass2john: ../run/john
-	$(RM) ../run/keepass2john
-	ln -s john ../run/keepass2john
+../run/$(CONVERTERS)/keepass2john: ../run/john
+	$(RM) ../run/$(CONVERTERS)/keepass2john
+	ln -s ../john ../run/$(CONVERTERS)/keepass2john
 
-../run/keyring2john: ../run/john
-	$(RM) ../run/keyring2john
-	ln -s john ../run/keyring2john
+../run/$(CONVERTERS)/keyring2john: ../run/john
+	$(RM) ../run/$(CONVERTERS)/keyring2john
+	ln -s ../john ../run/$(CONVERTERS)/keyring2john
 
-../run/zip2john: ../run/john
-	$(RM) ../run/zip2john
-	ln -s john ../run/zip2john
+../run/$(CONVERTERS)/zip2john: ../run/john
+	$(RM) ../run/$(CONVERTERS)/zip2john
+	ln -s ../john ../run/$(CONVERTERS)/zip2john
 
-../run/rar2john: ../run/john
-	$(RM) ../run/rar2john
-	ln -s john ../run/rar2john
+../run/$(CONVERTERS)/rar2john: ../run/john
+	$(RM) ../$(CONVERTERS)/run/rar2john
+	ln -s ../john ../run/$(CONVERTERS)/rar2john
 
-../run/mozilla2john: ../run/john
+../run/$(CONVERTERS)/mozilla2john: ../run/john
 ifdef HAVE_NSS
-	$(RM) ../run/mozilla2john
-	ln -s john ../run/mozilla2john
+	$(RM) ../run/$(CONVERTERS)/mozilla2john
+	ln -s ../john ../run/$(CONVERTERS)/mozilla2john
 endif
 
-../run/racf2john: ../run/john
-	$(RM) ../run/racf2john
-	ln -s john ../run/racf2john
+../run/$(CONVERTERS)/racf2john: ../run/john
+	$(RM) ../run/$(CONVERTERS)/racf2john
+	ln -s ../john ../run/$(CONVERTERS)/racf2john
 
-../run/keychain2john: ../run/john
-	$(RM) ../run/keychain2john
-	ln -s john ../run/keychain2john
+../run/$(CONVERTERS)/keychain2john: ../run/john
+	$(RM) ../run/$(CONVERTERS)/keychain2john
+	ln -s ../john ../run/$(CONVERTERS)/keychain2john
 
-../run/kwallet2john: ../run/john
-	$(RM) ../run/kwallet2john
-	ln -s john ../run/kwallet2john
+../run/$(CONVERTERS)/kwallet2john: ../run/john
+	$(RM) ../run/$(CONVERTERS)/kwallet2john
+	ln -s ../john ../run/$(CONVERTERS)/kwallet2john
 
-../run/pwsafe2john: ../run/john
-	$(RM) ../run/pwsafe2john
-	ln -s john ../run/pwsafe2john
+../run/$(CONVERTERS)/pwsafe2john: ../run/john
+	$(RM) ../$(CONVERTERS)/run/pwsafe2john
+	ln -s ../john ../run/$(CONVERTERS)/pwsafe2john
 
-../run/dmg2john: ../run/john
-	$(RM) ../run/dmg2john
-	ln -s john ../run/dmg2john
+../run/$(CONVERTERS)/dmg2john: ../run/john
+	$(RM) ../run/$(CONVERTERS)/dmg2john
+	ln -s ../john ../run/$(CONVERTERS)/dmg2john
 
-../run/hccap2john: ../run/john
-	$(RM) ../run/hccap2john
-	ln -s john ../run/hccap2john
+../run/$(CONVERTERS)/hccap2john: ../run/john
+	$(RM) ../run/$(CONVERTERS)/hccap2john
+	ln -s ../john ../run/$(CONVERTERS)/hccap2john
 
-../run/truecrypt_volume2john: ../run/john
-	$(RM) ../run/truecrypt_volume2john
-	ln -s john ../run/truecrypt_volume2john
+../run/$(CONVERTERS)/truecrypt_volume2john: ../run/john
+	$(RM) ../run/$(CONVERTERS)/truecrypt_volume2john
+	ln -s ../john ../run/$(CONVERTERS)/truecrypt_volume2john
 
-../run/unique: ../run/john
-	$(RM) ../run/unique
-	ln -s john ../run/unique
+../run/$(UTILS)/unique: ../run/john
+	$(RM) ../run/$(UTILS)/unique
+	ln -s ../john ../run/$(UTILS)/unique
 
 ../run/john.bin: $(JOHN_OBJS)
 	$(LD) $(JOHN_OBJS) $(LDFLAGS) -o ../run/john.exe
@@ -2023,63 +2026,63 @@ endif
 	ren ..\run\john.exe john.bin
 
 ../run/john.com: john.com
-	copy john.com ..\run\john.com
+	copy john.com ..\run\$(UTILS)\john.com
 
-../run/unshadow.com: john.com
-	copy john.com ..\run\unshadow.com
+../run/$(UTILS)/unshadow.com: john.com
+	copy john.com ..\run\$(UTILS)\unshadow.com
 
-../run/unafs.com: john.com
-	copy john.com ..\run\unafs.com
+../run/$(UTILS)/unafs.com: john.com
+	copy john.com ..\run\$(UTILS)\unafs.com
 
-../run/undrop.com: john.com
-	copy john.com ..\run\undrop.com
+../run/$(UTILS)/undrop.com: john.com
+	copy john.com ..\run\$(UTILS)\undrop.com
 
-../run/ssh2john.com: john.com
-	copy john.com ..\run\ssh2john.com
+../run/$(CONVERTERS)/ssh2john.com: john.com
+	copy john.com ..\run\$(CONVERTERS)\ssh2john.com
 
-../run/putty2john.com: john.com
-	copy john.com ..\run\putty2john.com
+../run/$(CONVERTERS)/putty2john.com: john.com
+	copy john.com ..\run\$(CONVERTERS)\putty2john.com
 
-../run/pfx2john.com: john.com
-	copy john.com ..\run\pfx2john.com
+../run/$(CONVERTERS)/pfx2john.com: john.com
+	copy john.com ..\run\$(CONVERTERS)\pfx2john.com
 
-../run/keepass2john.com: john.com
-	copy john.com ..\run\keepass2john.com
+../run/$(CONVERTERS)/keepass2john.com: john.com
+	copy john.com ..\run\$(CONVERTERS)\keepass2john.com
 
-../run/keyring2john.com: john.com
-	copy john.com ..\run\keyring2john.com
+../run/$(CONVERTERS)/keyring2john.com: john.com
+	copy john.com ..\run\$(CONVERTERS)\keyring2john.com
 
-../run/rar2john.com: john.com
-	copy john.com ..\run\rar2john.com
+../run/$(CONVERTERS)/rar2john.com: john.com
+	copy john.com ..\run\$(CONVERTERS)\rar2john.com
 
-../run/mozilla2john.com: john.com
+../run/$(CONVERTERS)/mozilla2john.com: john.com
 ifdef HAVE_NSS
-	copy john.com ..\run\mozilla2john.com
+	copy john.com ..\run\$(CONVERTERS)\mozilla2john.com
 endif
 
-../run/racf2john.com: john.com
-	copy john.com ..\run\racf2john.com
+../run/$(CONVERTERS)/racf2john.com: john.com
+	copy john.com ..\run\$(CONVERTERS)\racf2john.com
 
-../run/keychain2john.com: john.com
-	copy john.com ..\run\keychain2john.com
+../run/$(CONVERTERS)/keychain2john.com: john.com
+	copy john.com ..\run\$(CONVERTERS)\keychain2john.com
 
-../run/kwallet2john.com: john.com
-	copy john.com ..\run\kwallet2john.com
+../run/$(CONVERTERS)/kwallet2john.com: john.com
+	copy john.com ..\run\$(CONVERTERS)\kwallet2john.com
 
-../run/pwsafe2john.com: john.com
-	copy john.com ..\run\pwsafe2john.com
+../run/$(CONVERTERS)/pwsafe2john.com: john.com
+	copy john.com ..\run\$(CONVERTERS)\pwsafe2john.com
 
-../run/dmg2john.com: john.com
-	copy john.com ..\run\dmg2john.com
+../run/$(CONVERTERS)/dmg2john.com: john.com
+	copy john.com ..\run\$(CONVERTERS)\dmg2john.com
 
-../run/zip2john.com: john.com
-	copy john.com ..\run\zip2john.com
+../run/$(CONVERTERS)/zip2john.com: john.com
+	copy john.com ..\run\$(CONVERTERS)\zip2john.com
 
-../run/hccap2john.com: john.com
-	copy john.com ..\run\hccap2john.com
+../run/$(CONVERTERS)/hccap2john.com: john.com
+	copy john.com ..\run\$(CONVERTERS)\hccap2john.com
 
-../run/unique.com: john.com
-	copy john.com ..\run\unique.com
+../run/$(UTILS)/unique.com: john.com
+	copy john.com ..\run\$(UTILS)\unique.com
 
 # This must not be specified with path because "make clean" would delete it.
 john.local.conf:
@@ -2108,125 +2111,125 @@ john.com: john.asm
 	strip ../run/john-mingw.exe
 	cp ../run/john-mingw.exe ../run/john.exe
 
-../run/unshadow.exe: symlink.c
-	$(CC) symlink.c -o ../run/unshadow.exe
-	strip ../run/unshadow.exe
+../run/$(UTILS)/unshadow.exe: symlink.c
+	$(CC) symlink.c -o ../run/$(UTILS)/unshadow.exe
+	strip ../run/$(UTILS)/unshadow.exe
 
-../run/unafs.exe: symlink.c
-	$(CC) symlink.c -o ../run/unafs.exe
-	strip ../run/unafs.exe
+../run/$(UTILS)/unafs.exe: symlink.c
+	$(CC) symlink.c -o ../run/$(UTILS)/unafs.exe
+	strip ../run/$(UTILS)/unafs.exe
 
-../run/undrop.exe: symlink.c
-	$(CC) symlink.c -o ../run/undrop.exe
-	strip ../run/undrop.exe
+../run/$(UTILS)/undrop.exe: symlink.c
+	$(CC) symlink.c -o ../run/$(UTILS)/undrop.exe
+	strip ../run/$(UTILS)/undrop.exe
 
-../run/ssh2john.exe: symlink.c
-	$(CC) symlink.c -o ../run/ssh2john.exe
-	strip ../run/ssh2john.exe
+../run/$(CONVERTERS)/ssh2john.exe: symlink.c
+	$(CC) symlink.c -o ../run/$(CONVERTERS)/ssh2john.exe
+	strip ../run/$(UTILS)/ssh2john.exe
 
-../run/putty2john.exe: symlink.c
-	$(CC) symlink.c -o ../run/putty2john.exe
-	strip ../run/putty2john.exe
+.../run/$(CONVERTERS)/putty2john.exe: symlink.c
+	$(CC) symlink.c -o ../run/$(CONVERTERS)/putty2john.exe
+	strip ../run/$(CONVERTERS)/putty2john.exe
 
-../run/pfx2john.exe: symlink.c
-	$(CC) symlink.c -o ../run/pfx2john.exe
-	strip ../run/pfx2john.exe
+.../run/$(CONVERTERS)/pfx2john.exe: symlink.c
+	$(CC) symlink.c -o ../run/$(CONVERTERS)/pfx2john.exe
+	strip ../run/$(CONVERTERS)/pfx2john.exe
 
-../run/keepass2john.exe: symlink.c
-	$(CC) symlink.c -o ../run/keepass2john.exe
-	strip ../run/keepass2john.exe
+.../run/$(CONVERTERS)/keepass2john.exe: symlink.c
+	$(CC) symlink.c -o ../run/$(CONVERTERS)/keepass2john.exe
+	strip ../run/$(CONVERTERS)/keepass2john.exe
 
-../run/keyring2john.exe: symlink.c
-	$(CC) symlink.c -o ../run/keyring2john.exe
-	strip ../run/keyring2john.exe
+.../run/$(CONVERTERS)/keyring2john.exe: symlink.c
+	$(CC) symlink.c -o ../run/$(CONVERTERS)/keyring2john.exe
+	strip ../run/$(CONVERTERS)/keyring2john.exe
 
-../run/rar2john.exe: symlink.c
-	$(CC) symlink.c -o ../run/rar2john.exe
-	strip ../run/rar2john.exe
+.../run/$(CONVERTERS)/rar2john.exe: symlink.c
+	$(CC) symlink.c -o ../run/$(CONVERTERS)/rar2john.exe
+	strip ../run/$(CONVERTERS)/rar2john.exe
 
-../run/mozilla2john.exe: symlink.c
+.../run/$(CONVERTERS)/mozilla2john.exe: symlink.c
 ifdef HAVE_NSS
-	$(CC) symlink.c -o ../run/mozilla2john.exe
-	strip ../run/mozilla2john.exe
+	$(CC) symlink.c -o ../run/$(CONVERTERS)/mozilla2john.exe
+	strip ../run/$(CONVERTERS)/mozilla2john.exe
 endif
 
-../run/racf2john.exe: symlink.c
-	$(CC) symlink.c -o ../run/racf2john.exe
-	strip ../run/racf2john.exe
+.../run/$(CONVERTERS)/racf2john.exe: symlink.c
+	$(CC) symlink.c -o ../run/$(CONVERTERS)/racf2john.exe
+	strip ../run/$(CONVERTERS)/racf2john.exe
 
-../run/keychain2john.exe: symlink.c
-	$(CC) symlink.c -o ../run/keychain2john.exe
-	strip ../run/keychain2john.exe
+.../run/$(CONVERTERS)/keychain2john.exe: symlink.c
+	$(CC) symlink.c -o ../run/$(CONVERTERS)/keychain2john.exe
+	strip ../run/$(CONVERTERS)/keychain2john.exe
 
-../run/kwallet2john.exe: symlink.c
-	$(CC) symlink.c -o ../run/kwallet2john.exe
-	strip ../run/kwallet2john.exe
+.../run/$(CONVERTERS)/kwallet2john.exe: symlink.c
+	$(CC) symlink.c -o ../run/$(CONVERTERS)/kwallet2john.exe
+	strip ../run/$(CONVERTERS)/kwallet2john.exe
 
-../run/pwsafe2john.exe: symlink.c
-	$(CC) symlink.c -o ../run/pwsafe2john.exe
-	strip ../run/pwsafe2john.exe
+.../run/$(CONVERTERS)/pwsafe2john.exe: symlink.c
+	$(CC) symlink.c -o ../run/$(CONVERTERS)/pwsafe2john.exe
+	strip ../run/$(CONVERTERS)/pwsafe2john.exe
 
-../run/dmg2john.exe: symlink.c
-	$(CC) symlink.c -o ../run/dmg2john.exe
-	strip ../run/dmg2john.exe
+.../run/$(CONVERTERS)/dmg2john.exe: symlink.c
+	$(CC) symlink.c -o ../run/$(CONVERTERS)/dmg2john.exe
+	strip ../run/$(CONVERTERS)/dmg2john.exe
 
-../run/zip2john.exe: symlink.c
-	$(CC) symlink.c -o ../run/zip2john.exe
-	strip ../run/zip2john.exe
+.../run/$(CONVERTERS)/zip2john.exe: symlink.c
+	$(CC) symlink.c -o ../run/$(CONVERTERS)/zip2john.exe
+	strip ../run/$(CONVERTERS)/zip2john.exe
 
-../run/hccap2john.exe: symlink.c
-	$(CC) symlink.c -o ../run/hccap2john.exe
-	strip ../run/hccap2john.exe
+.../run/$(CONVERTERS)/hccap2john.exe: symlink.c
+	$(CC) symlink.c -o ../run/$(CONVERTERS)/hccap2john.exe
+	strip ../run/$(CONVERTERS)/hccap2john.exe
 
-../run/unique.exe: symlink.c
-	$(CC) symlink.c -o ../run/unique.exe
-	strip ../run/unique.exe
+.../run/$(UTILS)/unique.exe: symlink.c
+	$(CC) symlink.c -o ../run/$(UTILS)/unique.exe
+	strip ../run/$(UTILS)/unique.exe
 
-../run/genmkvpwd: $(GENMKVPWD_OBJS)
-	$(LD) $(GENMKVPWD_OBJS) $(LDFLAGS) -o ../run/genmkvpwd
+../run/$(UTILS)/genmkvpwd: $(GENMKVPWD_OBJS)
+	$(LD) $(GENMKVPWD_OBJS) $(LDFLAGS) -o ../run/$(UTILS)/genmkvpwd
 
-../run/genmkvpwd.exe: $(GENMKVPWD_OBJS)
-	$(LD) $(GENMKVPWD_OBJS) $(LDFLAGS_MKV) -o ../run/genmkvpwd.exe
+../run/$(UTILS)/genmkvpwd.exe: $(GENMKVPWD_OBJS)
+	$(LD) $(GENMKVPWD_OBJS) $(LDFLAGS_MKV) -o ../run/$(UTILS)/genmkvpwd.exe
 
-../run/mkvcalcproba: mkvcalcproba.o
-	$(LD) mkvcalcproba.o $(LDFLAGS) -o ../run/mkvcalcproba
+../run/$(UTILS)/mkvcalcproba: mkvcalcproba.o
+	$(LD) mkvcalcproba.o $(LDFLAGS) -o ../run/$(UTILS)/mkvcalcproba
 
-../run/mkvcalcproba.exe: mkvcalcproba.o
-	$(LD) mkvcalcproba.o $(LDFLAGS_MKV) -o ../run/mkvcalcproba.exe
+../run/$(UTILS)/mkvcalcproba.exe: mkvcalcproba.o
+	$(LD) mkvcalcproba.o $(LDFLAGS_MKV) -o ../run/$(UTILS)/mkvcalcproba.exe
 
-../run/calc_stat: calc_stat.o
-	$(LD) calc_stat.o $(LDFLAGS) -o ../run/calc_stat
+../run/$(UTILS)/calc_stat: calc_stat.o
+	$(LD) calc_stat.o $(LDFLAGS) -o ../run/$(UTILS)/calc_stat
 
-../run/calc_stat.exe: calc_stat.o
-	$(LD) calc_stat.o $(LDFLAGS_MKV) -o ../run/calc_stat.exe
+../run/$(UTILS)/calc_stat.exe: calc_stat.o
+	$(LD) calc_stat.o $(LDFLAGS_MKV) -o ../run/$(UTILS)/calc_stat.exe
 
-../run/raw2dyna: raw2dyna.o
-	$(LD) raw2dyna.o $(LDFLAGS) -o ../run/raw2dyna
+../run/$(UTILS)/raw2dyna: raw2dyna.o
+	$(LD) raw2dyna.o $(LDFLAGS) -o ../run/$(UTILS)/raw2dyna
 
-../run/raw2dyna.exe: raw2dyna.o
-	$(LD) raw2dyna.o $(LDFLAGS) -o ../run/raw2dyna.exe
+../run/$(UTILS)/raw2dyna.exe: raw2dyna.o
+	$(LD) raw2dyna.o $(LDFLAGS) -o ../run/$(UTILS)/raw2dyna.exe
 
-../run/SIPdump: SIPdump.o
-	$(LD) SIPdump.o $(LDFLAGS) -lpcap -o ../run/SIPdump
+../run/$(UTILS)/SIPdump: SIPdump.o
+	$(LD) SIPdump.o $(LDFLAGS) -lpcap -o ../run/$(UTILS)/SIPdump
 
-../run/vncpcap2john:
-	$(CXX) -Wall vncpcap2john.cpp -lpcap -o ../run/vncpcap2john
+../run/$(CONVERTERS)/vncpcap2john:
+	$(CXX) -Wall vncpcap2john.cpp -lpcap -o ../run/$(CONVERTERS)/vncpcap2john
 
-../run/gpg2john: gpg2john.cpp gpg2john.h
-	$(CXX) -Wall gpg2john.cpp -lcrypto -o ../run/gpg2john
+../run/$(CONVERTERS)/gpg2john: gpg2john.cpp gpg2john.h
+	$(CXX) -Wall gpg2john.cpp -lcrypto -o ../run/$(CONVERTERS)/gpg2john
 
-../run/uaf2john: uaf2john.o uaf_encode_plug.o
-	$(LD) $(LDFLAGS) uaf2john.o uaf_encode_plug.o -o ../run/uaf2john
+../run/$(CONVERTERS)/uaf2john: uaf2john.o uaf_encode_plug.o
+	$(LD) $(LDFLAGS) uaf2john.o uaf_encode_plug.o -o ../run/$(CONVERTERS)/uaf2john
 
-../run/wpapcap2john: wpapcap2john.o
-	$(LD) $(LDFLAGS) wpapcap2john.o -o ../run/wpapcap2john
+../run/$(CONVERTERS)/wpapcap2john: wpapcap2john.o
+	$(LD) $(LDFLAGS) wpapcap2john.o -o ../run/$(CONVERTERS)/wpapcap2john
 
-../run/keystore2john: ../run/john
-	$(RM) ../run/keystore2john
-	ln -s john ../run/keystore2john
+../run/$(CONVERTERS)/keystore2john: ../run/john
+	$(RM) ../run/$(CONVERTERS)/keystore2john
+	ln -s ../john ../run/$(CONVERTERS)/keystore2john
 
-../run/tgtsnarf: tgtsnarf.o
-	$(LD) tgtsnarf.o $(LDFLAGS) -o ../run/tgtsnarf
+../run/$(UTILS)/tgtsnarf: tgtsnarf.o
+	$(LD) tgtsnarf.o $(LDFLAGS) -o ../run/$(UTILS)/tgtsnarf
 
 # Inlining the S-boxes produces faster code as long as they fit in the cache.
 DES_bs_b.o: DES_bs_b.c sboxes.c nonstd.c sboxes-s.c
