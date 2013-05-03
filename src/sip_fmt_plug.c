@@ -82,8 +82,6 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	int res = 0;
 	if (strncmp(ciphertext, "$sip$*", 6))
 		return 0;
-	if (strspn(ciphertext, "*") != 14)
-		return 0;
 	if (strlen(ciphertext) > 2048) // sizeof(saltBuf) in get_salt
 		return 0;
 	p += 6;

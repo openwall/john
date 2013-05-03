@@ -55,10 +55,9 @@ static int john_omp_threads_new;
 #include "batch.h"
 #include "dynamic.h"
 #include "listconf.h"
-
 #ifdef HAVE_MPI
 #include "john-mpi.h"
-#endif /* HAVE_MPI */
+#endif
 
 #include <openssl/opensslv.h>
 #include "unicode.h"
@@ -521,14 +520,14 @@ static void john_omp_show_info(void)
 	}
 
 #ifdef HAVE_MPI
-	/* TODO: getenv OMP_NUM_THREADS; if it is set, assume user knows what
-	 * he is doing. This might deprecate the john.conf stuff below.
-	 *
-	 * Here's how to pass it to remote hosts:
+	/*
+	 * If OMP_NUM_THREADS is set, we assume the user knows what
+	 * he is doing. Here's how to pass it to remote hosts:
 	 * mpirun -x OMP_NUM_THREADS=4 -np 4 -host ...
 	 */
 	if (mpi_p > 1) {
-		if(cfg_get_bool(SECTION_OPTIONS, SUBSECTION_MPI,
+		if(getenv("OMP_NUM_THREADS") == NULL &&
+		   cfg_get_bool(SECTION_OPTIONS, SUBSECTION_MPI,
 		                "MPIOMPmutex", 1)) {
 			if(cfg_get_bool(SECTION_OPTIONS, SUBSECTION_MPI,
 			                "MPIOMPverbose", 1) && mpi_id == 0)
@@ -685,12 +684,10 @@ static void john_wait(void)
 #ifdef HAVE_MPI
 static void john_mpi_wait(void)
 {
-	if (database.password_count) {
-		int time = status_get_time();
-		fprintf(stderr, "Node %d finished at %u:%02u:%02u:%02u.\n", mpi_id, time / 86400, time % 86400 / 3600, time % 3600 / 60, time % 60);
-	} else {
-		fprintf(stderr, "Node %d: All hashes cracked! Abort remaining nodes manually!\n", mpi_id);
-	}
+	if (!database.password_count)
+		fprintf(stderr, "Node %d: All hashes cracked! Abort remaining"
+		        " nodes manually!\n", mpi_id);
+
 	if (nice(20) < 0) fprintf(stderr, "%d: nice() failed\n", mpi_id + 1);
 	MPI_Barrier(MPI_COMM_WORLD);
 

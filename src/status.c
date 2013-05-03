@@ -39,6 +39,9 @@
 #include "config.h"
 #include "unicode.h"
 #include "signals.h"
+#ifdef HAVE_MPI
+#include "john-mpi.h"
+#endif
 
 struct status_main status;
 unsigned int status_restored_time = 0;
@@ -330,7 +333,11 @@ static void status_print_cracking(char *percent)
 	s1[0] = s2[0] = s3[0] = s4[0] = 0;
 	sc[0] = 0;
 
+#ifndef HAVE_MPI
 	if (options.fork)
+#else
+	if (options.fork || mpi_p > 1)
+#endif
 		sprintf(s1, "%u ", options.node_min);
 
 	if (showcand)

@@ -29,7 +29,7 @@
 #ifdef _OPENMP
 static int omp_t = 1;
 #include <omp.h>
-#define OMP_SCALE               1 // FIXME
+#define OMP_SCALE               8 // Tuned on i7 w/HT for SHA-256
 #endif
 
 #define FORMAT_LABEL		"aix-ssha"

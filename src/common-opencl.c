@@ -17,14 +17,15 @@
 #include <ctype.h>
 #include <sys/stat.h>
 #include <time.h>
+#include <signal.h>
+
 #include "options.h"
 #include "config.h"
-
 #include "common-opencl.h"
 #include "signals.h"
 #include "recovery.h"
 #include "status.h"
-#include <signal.h>
+#include "john.h"
 
 #define LOG_SIZE 1024*16
 
