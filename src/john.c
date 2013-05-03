@@ -684,12 +684,10 @@ static void john_wait(void)
 #ifdef HAVE_MPI
 static void john_mpi_wait(void)
 {
-	if (database.password_count) {
-		int time = status_get_time();
-		fprintf(stderr, "Node %d finished at %u:%02u:%02u:%02u.\n", mpi_id, time / 86400, time % 86400 / 3600, time % 3600 / 60, time % 60);
-	} else {
-		fprintf(stderr, "Node %d: All hashes cracked! Abort remaining nodes manually!\n", mpi_id);
-	}
+	if (!database.password_count)
+		fprintf(stderr, "Node %d: All hashes cracked! Abort remaining"
+		        " nodes manually!\n", mpi_id);
+
 	if (nice(20) < 0) fprintf(stderr, "%d: nice() failed\n", mpi_id + 1);
 	MPI_Barrier(MPI_COMM_WORLD);
 
