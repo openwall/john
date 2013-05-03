@@ -520,14 +520,14 @@ static void john_omp_show_info(void)
 	}
 
 #ifdef HAVE_MPI
-	/* TODO: getenv OMP_NUM_THREADS; if it is set, assume user knows what
-	 * he is doing. This might deprecate the john.conf stuff below.
-	 *
-	 * Here's how to pass it to remote hosts:
+	/*
+	 * If OMP_NUM_THREADS is set, we assume the user knows what
+	 * he is doing. Here's how to pass it to remote hosts:
 	 * mpirun -x OMP_NUM_THREADS=4 -np 4 -host ...
 	 */
 	if (mpi_p > 1) {
-		if(cfg_get_bool(SECTION_OPTIONS, SUBSECTION_MPI,
+		if(getenv("OMP_NUM_THREADS") == NULL &&
+		   cfg_get_bool(SECTION_OPTIONS, SUBSECTION_MPI,
 		                "MPIOMPmutex", 1)) {
 			if(cfg_get_bool(SECTION_OPTIONS, SUBSECTION_MPI,
 			                "MPIOMPverbose", 1) && mpi_id == 0)
