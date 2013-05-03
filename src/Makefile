@@ -22,7 +22,6 @@ CPPFLAGS = -E
 SORT = sort
 
 ## Uncomment the TWO lines below for MPI (can be used together with OMP as well)
-## For experimental MPI_Barrier support, add -DJOHN_MPI_BARRIER too.
 ## For experimental MPI_Abort support, add -DJOHN_MPI_ABORT too.
 #CC = mpicc -DHAVE_MPI
 #MPIOBJ = john-mpi.o

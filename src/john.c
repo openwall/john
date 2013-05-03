@@ -487,13 +487,13 @@ static void john_omp_maybe_adjust_or_fallback(char **argv)
 
 static void john_omp_show_info(void)
 {
+#ifdef HAVE_MPI
+	if (mpi_p == 1)
+#endif
 	if (!options.fork && john_omp_threads_orig > 1 &&
 	    database.format &&
 	    !(database.format->params.flags & FMT_OMP) &&
 	    !rec_restoring_now)
-#ifdef HAVE_MPI
-		if (mpi_p == 1)
-#endif
 		fprintf(stderr, "Warning: no OpenMP support for this "
 		    "hash type, consider --fork=%d\n", john_omp_threads_orig);
 
@@ -520,7 +520,13 @@ static void john_omp_show_info(void)
 			return;
 	}
 
-#if defined(HAVE_MPI)
+#ifdef HAVE_MPI
+	/* TODO: getenv OMP_NUM_THREADS; if it is set, assume user knows what
+	 * he is doing. This might deprecate the john.conf stuff below.
+	 *
+	 * Here's how to pass it to remote hosts:
+	 * mpirun -x OMP_NUM_THREADS=4 -np 4 -host ...
+	 */
 	if (mpi_p > 1) {
 		if(cfg_get_bool(SECTION_OPTIONS, SUBSECTION_MPI,
 		                "MPIOMPmutex", 1)) {
@@ -612,6 +618,33 @@ static void john_fork(void)
 #endif
 }
 
+/*
+ * This is the "equivalent" of john_fork() for MPI runs. We are mostly
+ * mimicing a -fork run, especially for resuming a session.
+ */
+#ifdef HAVE_MPI
+static void john_set_mpi(void)
+{
+	options.node_min += mpi_id;
+	options.node_max = options.node_min;
+
+	if (mpi_p > 1) {
+		if (!john_main_process) {
+			if (rec_restoring_now) {
+				unsigned int node_id = options.node_min;
+				rec_done(-2);
+				rec_restore_args(1);
+				if (node_id != options.node_min + mpi_id)
+					fprintf(stderr,
+					    "Inconsistent crash recovery file:"
+					    " %s\n", rec_name);
+				options.node_min = options.node_max = node_id;
+			}
+		}
+	}
+}
+#endif
+
 static void john_wait(void)
 {
 #if !defined __DJGPP__ && !defined (_MSC_VER)
@@ -648,6 +681,20 @@ static void john_wait(void)
 	rec_done((children_ok && !event_abort) ? -1 : -2);
 #endif
 }
+
+#ifdef HAVE_MPI
+static void john_mpi_wait(void)
+{
+	if (database.password_count) {
+		int time = status_get_time();
+		if (nice(20) < 0) fprintf(stderr, "nice() failed\n");
+		fprintf(stderr, "Node %d finished at %u:%02u:%02u:%02u.\n", mpi_id, time / 86400, time % 86400 / 3600, time % 3600 / 60, time % 60);
+	} else {
+		fprintf(stderr, "Node %d: All hashes cracked! Abort remaining nodes manually!\n", mpi_id);
+	}
+	MPI_Barrier(MPI_COMM_WORLD);
+}
+#endif
 
 static char *john_loaded_counts(void)
 {
@@ -830,19 +877,35 @@ static void john_load(void)
 		if (options.node_min != options.node_max) {
 			log_event("- Node numbers %u-%u of %u%s",
 			    options.node_min, options.node_max,
+#ifndef HAVE_MPI
 			    options.node_count, options.fork ? " (fork)" : "");
+#else
+			    options.node_count, options.fork ? " (fork)" :
+				    mpi_p > 1 ? " (MPI)" : "");
+#endif
+			if (john_main_process)
 			fprintf(stderr, "Node numbers %u-%u of %u%s\n",
 			    options.node_min, options.node_max,
+#ifndef HAVE_MPI
 			    options.node_count, options.fork ? " (fork)" : "");
+#else
+			    options.node_count, options.fork ? " (fork)" :
+				    mpi_p > 1 ? " (MPI)" : "");
+#endif
 		} else {
 			log_event("- Node number %u of %u",
 			    options.node_min, options.node_count);
+			if (john_main_process)
 			fprintf(stderr, "Node number %u of %u\n",
 			    options.node_min, options.node_count);
 		}
 
 		if (options.fork)
 			john_fork();
+#ifdef HAVE_MPI
+		else
+			john_set_mpi();
+#endif
 	}
 }
 
@@ -1032,6 +1095,11 @@ static void john_run(void)
 
 		if (options.fork && john_main_process)
 			john_wait();
+
+#ifdef HAVE_MPI
+		if (mpi_p > 1)
+			john_mpi_wait();
+#endif
 
 		tty_done();
 
@@ -1244,7 +1312,7 @@ int main(int argc, char **argv)
 
 #ifdef HAVE_MPI
 	mpi_setup(argc, argv);
-	if (mpi_id == 0) fprintf(stderr, "WARNING: MPI session save/restore is currently busted.\n");
+	if (mpi_id == 0) fprintf(stderr, "WARNING: MPI session save/restore is currently untested.\n");
 #else
 	if (getenv("OMPI_COMM_WORLD_SIZE"))
 	if (atoi(getenv("OMPI_COMM_WORLD_SIZE")) > 1)
