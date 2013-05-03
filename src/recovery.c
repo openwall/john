@@ -130,6 +130,9 @@ void rec_init(struct db_main *db, void (*save_mode)(FILE *file))
 void rec_save(void)
 {
 	int save_format, hund;
+#ifdef HAVE_MPI
+	int fake_fork;
+#endif
 	long size;
 	char **opt;
 
@@ -146,8 +149,20 @@ void rec_save(void)
 
 	save_format = !options.format && rec_db->loaded;
 
+#ifdef HAVE_MPI
+	fake_fork = (mpi_p > 1);
+	opt = rec_argv;
+	while (*++opt)
+		if (!strncmp(*opt, "-fork", 5) || !strncmp(*opt, "--fork", 6))
+			fake_fork = 0;
+#endif
+
 	fprintf(rec_file, RECOVERY_V "\n%d\n",
+#ifndef HAVE_MPI
 	    rec_argc + (save_format ? 1 : 0));
+#else
+	    rec_argc + (save_format ? 1 : 0) + (fake_fork ? 1 : 0));
+#endif
 
 	opt = rec_argv;
 	while (*++opt)
@@ -156,6 +171,11 @@ void rec_save(void)
 	if (save_format)
 		fprintf(rec_file, "--format=%s\n",
 		    rec_db->format->params.label);
+
+#ifdef HAVE_MPI
+	if (fake_fork)
+		fprintf(rec_file, "--fork=%d\n", mpi_p);
+#endif
 
 	fprintf(rec_file, "%u\n%u\n%x\n%x\n%x\n%x\n%x\n%x\n%x\n"
 	    "%d\n%d\n%d\n%x\n",

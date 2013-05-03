@@ -687,12 +687,15 @@ static void john_mpi_wait(void)
 {
 	if (database.password_count) {
 		int time = status_get_time();
-		if (nice(20) < 0) fprintf(stderr, "nice() failed\n");
 		fprintf(stderr, "Node %d finished at %u:%02u:%02u:%02u.\n", mpi_id, time / 86400, time % 86400 / 3600, time % 3600 / 60, time % 60);
 	} else {
 		fprintf(stderr, "Node %d: All hashes cracked! Abort remaining nodes manually!\n", mpi_id);
 	}
+	if (nice(20) < 0) fprintf(stderr, "%d: nice() failed\n", mpi_id + 1);
 	MPI_Barrier(MPI_COMM_WORLD);
+
+/* Close and possibly remove our .rec file now */
+	rec_done((children_ok && !event_abort) ? -1 : -2);
 }
 #endif
 
@@ -1312,11 +1315,12 @@ int main(int argc, char **argv)
 
 #ifdef HAVE_MPI
 	mpi_setup(argc, argv);
-	if (mpi_id == 0) fprintf(stderr, "WARNING: MPI session save/restore is currently untested.\n");
 #else
 	if (getenv("OMPI_COMM_WORLD_SIZE"))
-	if (atoi(getenv("OMPI_COMM_WORLD_SIZE")) > 1)
-		fprintf(stderr, "WARNING: Running under MPI, but this is NOT an MPI build of John.\n");
+	if (atoi(getenv("OMPI_COMM_WORLD_SIZE")) > 1) {
+		fprintf(stderr, "ERROR: Running under MPI, but this is NOT an MPI build of John.\n");
+		error();
+	}
 #endif
 	john_init(name, argc, argv);
 
