@@ -69,6 +69,10 @@ USAGE:
     practical difference is that -fork can only run on your local host, while
     MPI can run partly or solely on one or more remote hosts.
 
+    Actually, MPI and -fork are so similar, and MPI "fakes" the -fork option
+    in the session file, so you can start a session as MPI and later resume
+    it without MPI - it will then use fork instead. Or vice versa.
+
     Both these will start nodes 1-4 out of 4 total:
 	./john -fork=4 ...
 	mpirun -np 4 ./john ...
