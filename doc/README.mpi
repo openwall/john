@@ -7,12 +7,19 @@ PRELUDE:
 
     In 2008, it was picked up by AoZ and stripped back down to the original
     MPI-only changes to improve its compatibility with the 'jumbo' patchsets,
-    which had better-maintained alternate cipher support.
+    which had better-maintained alternate cipher support. Up to this point,
+    the patch only worked for Incremental mode.
 
-    In 2010, it was extended by magnum to support all cracking modes. With the
-    exception of Markov it is far from perfect but it works just fine and
-    should support correct resuming in all modes. It is well tested but you
-    have absolutely NO guarantees.
+    In 2010, it was extended by magnum to support all cracking modes. It was
+    far from perfect (with the exception of Markov mode and some cases of
+    Wordlist mode use) but worked just fine. From version 1.7.7-Jumbo-5, the
+    patch was incorporated in the main tree.
+
+    In 2013, core John got support for node/fork and MPI was unified with this
+    code. This meant significantly better QA and also better scaling in some
+    cases. Note that the new -fork option obsoletes MPI for use on a single
+    host! MPI works exactly like -fork except you can span the processes over
+    several remote hosts.
 
 ====================
 COMPILING:
@@ -20,24 +27,26 @@ COMPILING:
     You must have an operational MPI environment prior to both compiling and
     using the MPI version; configuring one is outside the scope of this
     document but for a single, multi-core, host you don't need much
-    configuration. MPICH2 or OpenMPI seems to do the job fine, for example.
-    Most testing of fullmpi is now done under latest stable OpenMPI.
+    configuration. MPICH2 or OpenMPI does the job fine, for example. Most
+    testing of fullmpi is now made using the version of OpenMPI included
+    with latest Ubuntu.
 
     Debian/Ubuntu/Mint Linux example for installing OpenMPI:
     sudo apt-get install libopenmpi-dev openmpi-bin
 
     To enable MPI in John, un-comment these two lines in Makefile (the last two
-    of the five below):
+    of the four below):
 
 ----8<--------------8<--------------8<--------------8<--------------8<----------
+
 ## Uncomment the TWO lines below for MPI (can be used together with OMP as well)
-## For experimental MPI_Barrier support, add -DJOHN_MPI_BARRIER too.
 ## For experimental MPI_Abort support, add -DJOHN_MPI_ABORT too.
 CC = mpicc -DHAVE_MPI
 MPIOBJ = john-mpi.o
+
 ----8<--------------8<--------------8<--------------8<--------------8<----------
 
-    Note that this patch works just fine together with OMP enabled as well.
+    Note that this works just fine together with OMP enabled as well.
     When MPI is in use (with more than one process), OMP is (by default)
     automatically disabled. Advanced users may want to change this setting
     (change MPIOMPmutex to N in john.conf) and start one MPI node per
@@ -47,54 +56,87 @@ MPIOBJ = john-mpi.o
 ====================
 USAGE:
 ====================
-    Typical invocation is as follows:
+    Typical invocation is as follows (mpiexec is usually synonym to mpirun):
+        mpirun -np 4 -host host1 [-host host2...] ./john pwfile
 
-    mpiexec -np 4 ./john --incremental passwd
+    The above will launch four parallel processes that will split the job in
+    a more-or-less even fashion. If no -host is given, it will run all
+    processes on your local host (and -fork=4 would be a better option then).
 
-    The above will launch four parallel processes that will split the
-    Incremental keyspace in a more-or-less even fashion. If you run it to
-    completion, some nodes will however finish very early due to how this
-    mode is implemented, decreasing the overall performance. This problem
-    gets much worse with a lot of nodes.
+    Using "mpirun -np <num> ./john ..." can be seen as functionally equivalent
+    to "./john -fork=<num> ..." in that it will start the same number of
+    processes and parse the optional "-node" option equally. The main
+    practical difference is that -fork can only run on your local host, while
+    MPI can run partly or solely on one or more remote hosts.
+
+    Both these will start nodes 1-4 out of 4 total:
+	./john -fork=4 ...
+	mpirun -np 4 ./john ...
+
+    All these will start nodes 5-8 out of 12 total:
+	./john -fork=4 -node=5/12 ...
+	./john -fork=4 -node=5-8/12 ...
+	mpirun -np 4 ./john -node=5/12 ...
+	mpirun -np 4 ./john -node=5-8/12 ...
+
+    All these will refuse to run (-node parameter ambigous):
+	./john -node=2
+	./john -fork=4 -node=2
+	mpirun -np 4 ./john -node=2
+
+    This will start node 7 out of 12, or nodes 3-4 (but using just one process)
+    out of 16, MPI build or not:
+        ./john -node=7/12 ...
+        ./john -node=3-4/16 ...
+
+    This will start node 7/12 on a remote node:
+        mpirun -host hostname -np 1 ./john -node=7/12 ...
+
+    This will start nodes 3-4/16 (using just one process) on a remote node:
+        mpirun -host hostname -np 1 ./john -node=3-4/16 ...
+
+    The following is rejected - you can't use -fork and mpirun [with -np > 1]
+    at the same time:
+        mpirun -np 4 ./john -fork=...
+
+    This is somewhat more advanced, it will start 1-4/4 on one remote node:
+        mpirun -host hostname -np 1 ./john -fork=4 ...
+
+    This will do the same as above, but somewhat less efficiently:
+        mpirun -host hostname -np 4 ./john ...
+
+
+    In INCREMENTAL mode, the job is automatically split as evenly as possible
+    without performance loss. This is not perfect so in some cases, some nodes
+    will complete earlier than others.
 
     In MARKOV mode, the range is automatically split evenly across the nodes,
     just like you could do manually. This does not introduce any overhead,
     assuming job runs to completion.
 
-    The single and wordlist modes scale fairly well and cleartexts will not be
-    tried by more than one node (except when different word + rule combinations
+    The single and wordlist modes scale well and cleartexts will not be tried
+    by more than one node (except when different word + rule combinations
     result in the same candidate, but that problem is not MPI specific).
 
     In SINGLE mode, and sometimes in Wordlist mode (see below), john will
-    distribute (actually leapfrog) the rules (after preprocessor expansion).
-    This works very well but will not likely result in a perfectly even
-    workload across nodes.
+    distribute the rules (after preprocessor expansion). This works very well
+    but will not likely result in a perfectly even workload across nodes.
 
     WORDLIST mode with rules will work the same way. Without rules, or when
-    rules can't be split across the nodes, john will distribute (again, it
-    really just leapfrogs) the words instead. This is practically the same as
-    using the External:Parallel example filter in john.conf, but much more user
-    friendly.
+    rules can no longer be split across the nodes, john will switch to
+    distributing words instead.
 
-    If the --mem-file-size parameter (default 5000000) will allow the file to
-    be loaded in memory, this will be preferred and each node will only load
-    its own share of words. In this case, there is no further leapfrogging and
-    no other overhead. Note that the limit is per node, so using the default
-    and four nodes, a 16 MB file WILL be loaded to memory, with 4 MB on each
-    node.
-
-    You can override the leapfrogging selection. This is debug code really and
-    should eventually be replace by proper options:
-
-       --mem-file-size=0   (force split loading, no leapfrog)
-       --mem-file-size=1   (force leapfrogging of words)
-       --mem-file-size=2   (force leapfrogging of rules)
+    If the --mem-file-size parameter (default 5000000 [bytes]) will allow the
+    file to be loaded in memory, this will be preferred and each node will
+    only load its own share of words. In this case, there is no further
+    distribution and no other overhead. Note that the limit is per node, so
+    using the default and four nodes, a 16 MB file WILL be loaded to memory,
+    with 4 MB on each node. To enforce this regardless of wordlist size, use
+    -mem-file-size=0.
 
     In EXTERNAL mode, john will distribute candidates in the same way as in
-    Wordlist mode without rules. That is, all candidates will be produced on
-    all nodes, and then skipped by all nodes but one. This is the mode where
-    the fullmpi patch performs worst. When attacking very fast formats, this
-    scales very poorly.
+    Wordlist mode without rules. When attacking very fast formats, this scales
+    poorly.
 
 
     You may send a USR1 signal to the parent MPI process (or HUP to all
@@ -102,14 +144,14 @@ USAGE:
     Be aware that they may not appear in order, because they blindly share the
     same terminal.
 
-    skill -USR1 -c mpiexec
+    skill -USR1 -c mpirun
     - or -
-    pkill -USR1 mpiexec
+    pkill -USR1 mpirun
 
     Another approach would be to do a normal status print. This must be done
-    with mpiexec and using the same -np as used for starting the job:
+    with mpirun and using the same -np as used for starting the job:
 
-    mpiexec -np 4 ./john --status
+    mpirun -np 4 ./john --status
 
     This will dump the status of each process as recorded in the .rec files.
     You will also get an extra summary line with total statistics.
