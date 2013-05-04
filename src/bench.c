@@ -394,7 +394,7 @@ int benchmark_all(void)
 	if ((format = fmt_list))
 	do {
 #ifndef _JOHN_BENCH_TMP
-/* Silently skip DIGEST-MD5 (for which we have no tests), unless forced */
+/* Silently skip formats for which we have no tests, unless forced */
 		if (!format->params.tests && format != fmt_list)
 			continue;
 
@@ -421,7 +421,8 @@ int benchmark_all(void)
 #if defined(HAVE_MPI) && defined(_OPENMP)
 		if (format->params.flags & FMT_OMP &&
 		    ompt_start > 1 && mpi_p > 1 && haveWarned++ == 0) {
-			if(cfg_get_bool(SECTION_OPTIONS, SUBSECTION_MPI, "MPIOMPmutex", 1)) {
+			if(getenv("OMP_NUM_THREADS") == NULL &&
+			   cfg_get_bool(SECTION_OPTIONS, SUBSECTION_MPI, "MPIOMPmutex", 1)) {
 				omp_set_num_threads(1);
 				ompt_start = 1;
 				if(cfg_get_bool(SECTION_OPTIONS, SUBSECTION_MPI, "MPIOMPverbose", 1) &&
@@ -528,7 +529,7 @@ int benchmark_all(void)
 #endif
 		puts("DONE");
 #ifdef _OPENMP
-		// reset this in case format capped it (we may be running more formats)
+		// reset this in case format capped it (we may be testing more formats)
 		omp_set_num_threads(ompt_start);
 #endif
 
@@ -579,19 +580,11 @@ next:
 		fmt_done(format);
 	} while ((format = format->next) && !event_abort);
 
-#ifdef HAVE_MPI
-	if (john_main_process) {
-#endif
 	if (failed && total > 1 && !event_abort)
 		printf("%u out of %u tests have FAILED\n", failed, total);
 	else if (total > 1 && !event_abort)
-#ifdef HAVE_MPI
 		if (john_main_process)
-#endif
-		printf("All %u formats passed self-tests!\n", total);
-#ifdef HAVE_MPI
-	}
-#endif
+			printf("All %u formats passed self-tests!\n", total);
 
 	return failed || event_abort;
 }
