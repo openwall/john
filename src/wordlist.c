@@ -41,7 +41,6 @@
 #include "memory.h"
 
 static int dist_rules;
-static int myrulecount;
 
 static FILE *word_file = NULL;
 static int progress = 0, hund_progress = 0;
@@ -185,12 +184,9 @@ static int get_progress(int *hundth_perc)
 		}
 	}
 
-	if (dist_rules)
-		hundredXpercent = (int)((long long)(10000 * (rule_number / options.node_count * file_stat.st_size + pos)) /
-		                        (long long)(myrulecount * file_stat.st_size));
-	else
-		hundredXpercent = (int)((long long)(10000 * (rule_number * file_stat.st_size + pos)) /
-		                        (long long)(rule_count * file_stat.st_size));
+	hundredXpercent = (int)((long long)(10000 *
+	                        (rule_number * file_stat.st_size + pos)) /
+		                (long long)(rule_count * file_stat.st_size));
 
 	percent = hundredXpercent / 100;
 	*hundth_perc = hundredXpercent - (percent*100);
