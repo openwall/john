@@ -416,7 +416,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i)
 			memcpy(master[i], out[i], cur_salt->keySize + cur_salt->ivLength);
 #else
-		pbkdf2((const unsigned char *)saved_key[index], strlen(saved_key[index]), cur_salt->salt, cur_salt->saltLen, cur_salt->iterations, out[0], cur_salt->keySize + cur_salt->ivLength, 0);
+		pbkdf2_sha1((const unsigned char *)saved_key[index], strlen(saved_key[index]), cur_salt->salt, cur_salt->saltLen, cur_salt->iterations, out[0], cur_salt->keySize + cur_salt->ivLength, 0);
 		memcpy(master[0], out[0], cur_salt->keySize + cur_salt->ivLength);
 #endif
 		for (j = 0; j < MAX_KEYS_PER_CRYPT; ++j) {
