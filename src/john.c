@@ -559,6 +559,7 @@ static void john_omp_show_info(void)
 	}
 
 	if (john_omp_threads_orig == 1)
+		if (john_main_process)
 		fputs("Warning: OpenMP is disabled; "
 		    "a non-OpenMP build may be faster\n", stderr);
 }
