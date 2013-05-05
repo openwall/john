@@ -211,11 +211,18 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* key size */
 		goto err;
+	res = atoi(p);
+	if (res != 16 && res != 32)
+		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* checksum field (skipped) */
+		goto err;
+	if (strlen(p) != BINARY_SIZE * 2)
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* iv length */
 		goto err;
 	res = atoi(p);
+	if (res > 16)
+		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* iv */
 		goto err;
 	if (strlen(p) != res * 2)
@@ -225,6 +232,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if ((p = strtok(NULL, "*")) == NULL)	/* salt length */
 		goto err;
 	res = atoi(p);
+	if (res > 32)
+		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* salt */
 		goto err;
 	if (strlen(p) != res * 2)
@@ -236,6 +245,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if ((p = strtok(NULL, "*")) == NULL)	/* length */
 		goto err;
 	res = atoi(p);
+	if (res > 1024)
+		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* content */
 		goto err;
 	if (strlen(p) != res * 2)
@@ -267,7 +278,7 @@ static void *get_salt(char *ciphertext)
 	cs.iterations = atoi(p);
 	p = strtok(NULL, "*");
 	cs.key_size = atoi(p);
-	p = strtok(NULL, "*");
+	strtok(NULL, "*");
 	/* skip checksum field */
 	p = strtok(NULL, "*");
 	cs.iv_length = atoi(p);
@@ -305,10 +316,10 @@ static void *get_binary(char *ciphertext)
 	char *ctcopy = strdup(ciphertext);
 	char *keeptr = ctcopy;
 	ctcopy += 6;	/* skip over "$sxc$*" */
-	p = strtok(ctcopy, "*");
-	p = strtok(NULL, "*");
-	p = strtok(NULL, "*");
-	p = strtok(NULL, "*");
+	strtok(ctcopy, "*");
+	strtok(NULL, "*");
+	strtok(NULL, "*");
+	strtok(NULL, "*");
 	p = strtok(NULL, "*");
 	for (i = 0; i < BINARY_SIZE; i++) {
 		out[i] =
