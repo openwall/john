@@ -197,8 +197,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
 	int index = 0;
-
-	memset(cracked, 0, sizeof(*cracked) * MAX_KEYS_PER_CRYPT);
 #ifdef _OPENMP
 #pragma omp parallel for
 	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
@@ -217,6 +215,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
 			if(akcdecrypt(master[i], cur_salt->ct[0]) == 0)
 				cracked[i+index] = 1;
+			else
+				cracked[i+index] = 0;
 		}
 #else
 		unsigned char master[32];
@@ -226,6 +226,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		       cur_salt->iterations[0], master, 16, 0);
 		if(akcdecrypt(master, cur_salt->ct[0]) == 0)
 			cracked[index] = 1;
+		else
+			cracked[index] = 0;
 #endif
 	}
 	return count;
