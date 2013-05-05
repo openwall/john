@@ -561,6 +561,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	data = p + 1;
 
 	// We support a max. total salt length of 52.
+	// We could opt to emit a warning if rejected here.
 	if(saltlen > MAX_SALTLEN) {
 		static int warned = 0;
 
@@ -570,6 +571,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 		return 0;
 	}
+
 
 	// 56 bytes (112 hex chars) encrypted timestamp + checksum
 	if (strlen(data) != 2 * (TIMESTAMP_SIZE + CHECKSUM_SIZE))

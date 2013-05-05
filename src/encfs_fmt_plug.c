@@ -91,7 +91,7 @@ static void setIVec( unsigned char *ivec, uint64_t seed,
 	HMAC_Update( &mac_ctx, md, 8 );
 	HMAC_Final( &mac_ctx, md, &mdLen );
 	HMAC_CTX_cleanup(&mac_ctx);
-	memcpy( ivec, md, mdLen );
+	memcpy( ivec, md, cur_salt->ivLength );
 }
 
 
@@ -180,7 +180,7 @@ static unsigned int MAC_32( unsigned char *src, int len,
 	return mac32;
 }
 
-int streamDecode(unsigned char *buf, int size,
+static int streamDecode(unsigned char *buf, int size,
 		uint64_t iv64, unsigned char *key)
 {
 	unsigned char ivec[ MAX_IVLENGTH ];

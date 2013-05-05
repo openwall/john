@@ -379,26 +379,34 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	else if (headerver == 1) {
 		if ((p = strtok(NULL, "*")) == NULL)	/* salt len */
 			goto err;
-		if (atoi(p) > 20)
+		res = atoi(p);
+		if (res > 20)
 			goto err;
 		if ((p = strtok(NULL, "*")) == NULL)	/* salt */
 			goto err;
+		if (strlen(p) != res * 2)
+			goto err;
 		if ((p = strtok(NULL, "*")) == NULL)	/* len_wrapped_aes_key */
 			goto err;
-		if (atoi(p) > 296)
+		res = atoi(p);
+		if (res > 296)
 			goto err;
 		if ((p = strtok(NULL, "*")) == NULL)	/* wrapped_aes_key  */
 			goto err;
+		if (strlen(p) != res * 2)
+			goto err;
 		if ((p = strtok(NULL, "*")) == NULL)	/* len_hmac_sha1_key */
 			goto err;
-		if (atoi(p) > 300)
+		res = atoi(p);
+		if (res > 300)
 			goto err;
 		if ((p = strtok(NULL, "*")) == NULL)	/* hmac_sha1_key */
+			goto err;
+		if (strlen(p) != res * 2)
 			goto err;
 	}
 	else
 		goto err;
-
 	MEM_FREE(keeptr);
 	return 1;
 
@@ -528,10 +536,10 @@ static int apple_des3_ede_unwrap_key1(unsigned char *wrapped_key, int wrapped_ke
 	EVP_CIPHER_CTX_init(&ctx);
 	EVP_DecryptInit_ex(&ctx, EVP_des_ede3_cbc(), NULL, decryptKey, IV);
 	if (!EVP_DecryptUpdate(&ctx, TEMP1, &outlen, wrapped_key, wrapped_key_len)) {
-		return (-1);
+		goto err;
 	}
 	if (!EVP_DecryptFinal_ex(&ctx, TEMP1 + outlen, &tmplen)) {
-		return (-1);
+		goto err;
 	}
 	outlen += tmplen;
 	EVP_CIPHER_CTX_cleanup(&ctx);
@@ -541,14 +549,17 @@ static int apple_des3_ede_unwrap_key1(unsigned char *wrapped_key, int wrapped_ke
 	EVP_CIPHER_CTX_init(&ctx);
 	EVP_DecryptInit_ex(&ctx, EVP_des_ede3_cbc(), NULL, decryptKey, TEMP2);
 	if (!EVP_DecryptUpdate(&ctx, CEKICV, &outlen, TEMP2 + 8, outlen - 8)) {
-		return (-1);
+		goto err;
 	}
 	if (!EVP_DecryptFinal_ex(&ctx, CEKICV + outlen, &tmplen)) {
-		return (-1);
+		goto err;
 	}
 	outlen += tmplen;
 	EVP_CIPHER_CTX_cleanup(&ctx);
 	return 0;
+err:
+	EVP_CIPHER_CTX_cleanup(&ctx);
+	return -1;
 }
 
 #ifdef DMG_DEBUG
