@@ -79,11 +79,17 @@ static void init(struct fmt_main *self)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *p = ciphertext, *q;
-	int res = 0;
+	int i,res = 0;
 	if (strncmp(ciphertext, "$sip$*", 6))
 		return 0;
 	if (strlen(ciphertext) > 2048) // sizeof(saltBuf) in get_salt
 		return 0;
+	for(i = 0; i < strlen(ciphertext); i++)
+		if(ciphertext[i] == '*')
+			res++;
+	if(res != 14)
+		goto err;
+	res = 0;
 	p += 6;
 	if ((q = strchr(p, '*')) == NULL)
 		goto err;
