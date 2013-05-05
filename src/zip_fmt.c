@@ -26,28 +26,43 @@
 #include "params.h"
 #include "common.h"
 #include "formats.h"
-#include "gladman_pwd2key.h"
+#include "pbkdf2_hmac_sha1.h"
+#ifdef _OPENMP
+#include <omp.h>
+#define OMP_SCALE               16
+static int omp_t = 1;
+#endif
+#define BASE_SCALE             96
 
 /* From gladman_fileenc.h */
 #define PWD_VER_LENGTH         2
 #define KEYING_ITERATIONS   1000
 #define KEY_LENGTH(mode)        (8 * ((mode) & 3) + 8)
 #define SALT_LENGTH(mode)       (4 * ((mode) & 3) + 4)
-#define PLAINTEXT_LENGTH 	125
 #define FORMAT_LABEL        "zip"
 #define FORMAT_NAME         "WinZip PBKDF2-HMAC-SHA-1"
+#ifdef MMX_COEF
+#define ALGORITHM_NAME      SHA1_N_STR MMX_TYPE
+#else
 #define ALGORITHM_NAME      "32/" ARCH_BITS_STR
+#endif
 #define BENCHMARK_COMMENT   ""
 #define BENCHMARK_LENGTH    -1
 #define BINARY_SIZE         0
 #define BINARY_ALIGN        MEM_ALIGN_NONE
 #define SALT_SIZE           128
 #define SALT_ALIGN          MEM_ALIGN_NONE
+#ifdef MMX_COEF
+#define MIN_KEYS_PER_CRYPT  SSE_GROUP_SZ
+#define MAX_KEYS_PER_CRYPT  SSE_GROUP_SZ
+#else
 #define MIN_KEYS_PER_CRYPT  1
-#define MAX_KEYS_PER_CRYPT  96
+#define MAX_KEYS_PER_CRYPT  1
+#endif
 
-static char saved_key[MAX_KEYS_PER_CRYPT][PLAINTEXT_LENGTH + 1];
-static int cracked[MAX_KEYS_PER_CRYPT];
+static char (*saved_key)[PLAINTEXT_LENGTH + 1];
+static int *cracked;
+
 static unsigned char *saved_salt;
 static unsigned char passverify[2];
 static int type;		/* type of zip file */
@@ -59,7 +74,18 @@ static struct fmt_tests zip_tests[] = {
 	{NULL}
 };
 
-struct fmt_main zip_fmt;
+static void init(struct fmt_main *self)
+{
+#ifdef _OPENMP
+	omp_t = omp_get_max_threads();
+	self->params.min_keys_per_crypt *= omp_t;
+	omp_t *= OMP_SCALE;
+	self->params.max_keys_per_crypt *= omp_t;
+#endif
+	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
+			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	cracked = mem_calloc_tiny(sizeof(*cracked) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+}
 
 static int ishex(char *q)
 {
@@ -168,13 +194,28 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for default(none) private(index) shared(count, passverify, cracked, saved_key, saved_salt, mode)
 #endif
-	for (index = 0; index < count; index++) {
+	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT) {
+#ifdef MMX_COEF
+		unsigned char pwd_ver[2*MAX_KEYS_PER_CRYPT];
+		int lens[MAX_KEYS_PER_CRYPT], i;
+		unsigned char *pin[MAX_KEYS_PER_CRYPT], *pout[MAX_KEYS_PER_CRYPT];
+		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+			lens[i] = strlen(saved_key[i+index]);
+			pin[i] = (unsigned char*)saved_key[i+index];
+			pout[i] = &pwd_ver[i*2];
+		}
+		pbkdf2_sha1_sse((const unsigned char **)pin, lens, saved_salt, SALT_LENGTH(mode), KEYING_ITERATIONS, pout, 2, 2 * KEY_LENGTH(mode));
+		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i)
+			cracked[i+index] = !memcmp(&pwd_ver[i*2], passverify, 2);
+#else
 		unsigned char pwd_ver[2];
-		// derive the password verifier */
-		pbkdf2_zip((unsigned char *)saved_key[index],
+		/* derive the password verifier */
+		/* NOTE this one skips, possibly many bytes and pbkdf2 hashes, only does 1 pbkdf2 limb where the 2 bytes are */
+		pbkdf2_sha1((unsigned char *)saved_key[index],
 		       strlen(saved_key[index]), saved_salt, SALT_LENGTH(mode),
-		       KEYING_ITERATIONS, pwd_ver, 2 * KEY_LENGTH(mode), 2);
+		       KEYING_ITERATIONS, pwd_ver, 2, 2 * KEY_LENGTH(mode));
 		cracked[index] = !memcmp(pwd_ver, passverify, 2);
+#endif
 	}
 	return count;
 }
@@ -212,11 +253,11 @@ struct fmt_main fmt_zip = {
 		SALT_SIZE,
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
-		MAX_KEYS_PER_CRYPT,
+		MAX_KEYS_PER_CRYPT*BASE_SCALE,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_NOT_EXACT,   /*ldr_remove_hash(crk_db, salt, pw);*/
 		zip_tests
 	}, {
-		fmt_default_init,
+		init,
 		fmt_default_done,
 		fmt_default_reset,
 		fmt_default_prepare,

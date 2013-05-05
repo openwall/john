@@ -1540,10 +1540,12 @@ void was_crypt_all_rawsha512(uint64_t **saved_key, uint64_t *crypt_key)
  *  3. (DONE, needs tested.) Handle the init, so we can do more than 1 block.
  *  4. (DONE) try to make this function work properly with either a 'flat' input or a more common (in JtR lingo), COEF mixed set of data
  *  5. (DONE) Redid the out, into a MMX mixed blob, and not 8 arrays
+ *  6. (DONE) Separated the reload array from the out array.  Required for work like PBKDF2, where we capture first block value, then replay it over and over.
  *  6. Optimizations.  Look at intel, AMD, newest intel, newest AMD, etc performances.
  *  7. See if we can do anything better using 'DO_PARA' type methods, like we do in SHA1/MD4/5
  */
-void SSESHA256body(__m128i *data, ARCH_WORD_32 *out, int sha256_flags)
+#if defined (MMX_COEF_SHA256)
+void SSESHA256body(__m128i *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload, int sha256_flags)
 {
 	__m128i a, b, c, d, e, f, g, h;
 	__m128i _w[16], tmp1, tmp2, *w=_w;
@@ -1571,7 +1573,7 @@ void SSESHA256body(__m128i *data, ARCH_WORD_32 *out, int sha256_flags)
 
 
 	if (sha256_flags & SHA256_RELOAD) {
-		__m128i *p = (__m128i *)out;
+		__m128i *p = (__m128i *)reload;
 		a=p[0]; b=p[1]; c=p[2]; d=p[3];
 		e=p[4]; f=p[5]; g=p[6]; h=p[7];
 	} else {
@@ -1658,7 +1660,7 @@ void SSESHA256body(__m128i *data, ARCH_WORD_32 *out, int sha256_flags)
 	SHA256_STEP_R(b,c,d,e,f,g,h,a, 15,13, 8, 0, 0xc67178f2);
 
 	if (sha256_flags & SHA256_RELOAD) {
-		__m128i *p = (__m128i *)out;
+		__m128i *p = (__m128i *)reload;
 		a = _mm_add_epi32 (a, p[0]); b = _mm_add_epi32 (b, p[1]);
 		c = _mm_add_epi32 (c, p[2]); d = _mm_add_epi32 (d, p[3]);
 		e = _mm_add_epi32 (e, p[4]); f = _mm_add_epi32 (f, p[5]);
@@ -1703,7 +1705,10 @@ void SSESHA256body(__m128i *data, ARCH_WORD_32 *out, int sha256_flags)
 	_mm_store_si128 ((__m128i *)&(out[16]), e); _mm_store_si128 ((__m128i *)&(out[20]), f);
 	_mm_store_si128 ((__m128i *)&(out[24]), g); _mm_store_si128 ((__m128i *)&(out[28]), h);
 }
+#endif
 
-void SSESHA512body(__m128i* data, unsigned int * out, int init) {
+#if defined (MMX_COEF_SHA512)
+void SSESHA512body(__m128i* data, unsigned int * out, ARCH_WORD_32 *reload, int sha512_flags) {
 	/* TODO */
 }
+#endif

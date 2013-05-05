@@ -240,15 +240,28 @@
 #define STR_VALUE(arg)			#arg
 #define PARA_TO_N(n)			"4x" STR_VALUE(n)
 
-#if defined(MD4_SSE_PARA) && !defined(MD4_N_STR)
+#ifndef MD4_N_STR
+#if defined(MD4_SSE_PARA)
 #define MD4_N_STR			PARA_TO_N(MD4_SSE_PARA)
+#else
+#define MD4_N_STR			"4x"
 #endif
-#if defined(MD5_SSE_PARA) && !defined(MD5_N_STR)
+#endif
+#ifndef MD5_N_STR
+#if defined(MD5_SSE_PARA)
 #define MD5_N_STR			PARA_TO_N(MD5_SSE_PARA)
+#else
+#define MD5_N_STR			"4x"
 #endif
-#if defined(SHA1_SSE_PARA) && !defined(SHA1_N_STR)
+#endif
+#ifndef SHA1_N_STR
+#if defined(SHA1_SSE_PARA)
 #define SHA1_N_STR			PARA_TO_N(SHA1_SSE_PARA)
+#else
+#define SHA1_N_STR			"4x"
 #endif
+#endif
+
 #endif /* JOHN_DISABLE_INTRINSICS */
 
 #ifndef SHA_BUF_SIZ

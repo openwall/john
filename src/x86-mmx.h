@@ -89,4 +89,9 @@
 #define MMX_TYPE			" MMX"
 #define MMX_COEF			2
 
+#define MD4_N_STR			"2x"
+#define MD5_N_STR			"2x"
+#define SHA1_N_STR			"2x"
+
+
 #endif

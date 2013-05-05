@@ -120,7 +120,6 @@ static struct fmt_tests tests[] = {
 static unsigned char (*sse_hash1);
 static unsigned char (*sse_crypt1);
 static unsigned char (*sse_crypt2);
-static unsigned char (*sse_crypt);
 
 #else
 # define MS_NUM_KEYS			1
@@ -157,7 +156,6 @@ static void init(struct fmt_main *self)
 	sse_hash1 = mem_calloc_tiny(sizeof(*sse_hash1)*SHA_BUF_SIZ*4*self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
 	sse_crypt1 = mem_calloc_tiny(sizeof(*sse_crypt1)*20*self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
 	sse_crypt2 = mem_calloc_tiny(sizeof(*sse_crypt2)*20*self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
-	sse_crypt = mem_calloc_tiny(sizeof(*sse_crypt)*20*self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
 	{
 		int index;
 		for (index = 0; index < self->params.max_keys_per_crypt; ++index) {

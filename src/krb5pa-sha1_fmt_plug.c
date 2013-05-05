@@ -54,13 +54,22 @@ static int omp_t = 1;
 
 #define FORMAT_LABEL       "krb5pa-sha1"
 #define FORMAT_NAME        "Kerberos 5 AS-REQ Pre-Auth etype 17/18 aes-cts-hmac-sha1-96"
+#ifdef MMX_COEF
+#define ALGORITHM_NAME      SHA1_N_STR MMX_TYPE
+#else
 #define ALGORITHM_NAME     "32/" ARCH_BITS_STR
+#endif
 #define BENCHMARK_COMMENT  ""
 #define BENCHMARK_LENGTH   -1
 #define BINARY_SIZE		12
 #define SALT_SIZE		sizeof(struct custom_salt)
+#ifdef MMX_COEF
+#define MIN_KEYS_PER_CRYPT  SSE_GROUP_SZ
+#define MAX_KEYS_PER_CRYPT  SSE_GROUP_SZ
+#else
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
+#endif
 #define MAX_SALTLEN             128
 #define MAX_REALMLEN            64
 #define MAX_USERLEN             64
@@ -475,67 +484,80 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	int index = 0;
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
+	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 #endif
 	{
-		unsigned char tkey[32];
+		unsigned char tkey[MAX_KEYS_PER_CRYPT][32];
 		unsigned char base_key[32];
 		unsigned char Ke[32];
 		unsigned char plaintext[44];
-		int key_size;
-		int len = strlen(saved_key[index]);
-
-		pbkdf2((const unsigned char*)saved_key[index], len,
+		int key_size, i;
+		int len[MAX_KEYS_PER_CRYPT];
+#ifdef MMX_COEF
+		unsigned char *pin[MAX_KEYS_PER_CRYPT], *pout[MAX_KEYS_PER_CRYPT];
+		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+			len[i] = strlen(saved_key[i+index]);
+			pin[i] = (unsigned char*)saved_key[i+index];
+			pout[i] = tkey[i];
+		}
+		pbkdf2_sha1_sse((const unsigned char **)pin, len, cur_salt->salt,strlen((char*)cur_salt->salt), 4096, pout, 32, 0);
+#else
+		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+			len[i] = strlen(saved_key[index+i]);
+		}
+		pbkdf2_sha1((const unsigned char*)saved_key[index], len[0],
 		       cur_salt->salt,strlen((char*)cur_salt->salt),
-		       4096, tkey, 32);
+		       4096, tkey[0], 32, 0);
+#endif
+		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+			// generate 128 bits from 40 bits of "kerberos" string
+			// This is precomputed in init()
+			//nfold(8 * 8, (unsigned char*)"kerberos", 128, constant);
+			if (cur_salt->etype == 17)
+				key_size = 16;
+			else
+				key_size = 32;
 
-		// generate 128 bits from 40 bits of "kerberos" string
-		// This is precomputed in init()
-		//nfold(8 * 8, (unsigned char*)"kerberos", 128, constant);
-		if (cur_salt->etype == 17)
-			key_size = 16;
-		else
-			key_size = 32;
+			dk(base_key, tkey[i], key_size, constant, 32);
 
-		dk(base_key, tkey, key_size, constant, 32);
+			/* The "well-known constant" used for the DK function is the key usage number,
+			 * expressed as four octets in big-endian order, followed by one octet indicated below.
+			 * Kc = DK(base-key, usage | 0x99);
+			 * Ke = DK(base-key, usage | 0xAA);
+			 * Ki = DK(base-key, usage | 0x55); */
 
-		/* The "well-known constant" used for the DK function is the key usage number,
-		 * expressed as four octets in big-endian order, followed by one octet indicated below.
-		 * Kc = DK(base-key, usage | 0x99);
-		 * Ke = DK(base-key, usage | 0xAA);
-		 * Ki = DK(base-key, usage | 0x55); */
-
-		// derive Ke for decryption/encryption
-		// This is precomputed in init()
-		//memset(usage,0,sizeof(usage));
-		//usage[3] = 0x01;        // key number in big-endian format
-		//usage[4] = 0xAA;        // used to derive Ke
-
-		//nfold(sizeof(usage)*8,usage,sizeof(ke_input)*8,ke_input);
-		dk(Ke, base_key, key_size, ke_input, 32);
-
-		// decrypt the AS-REQ timestamp encrypted with 256-bit AES
-		// here is enough to check the string, further computation below is required
-		// to fully verify the checksum
-		krb_decrypt(cur_salt->ct,44,plaintext,Ke, key_size);
-
-		// Check a couple bytes from known plain (YYYYMMDDHHMMSSZ) and
-		// bail out if we are out of luck.
-		if (plaintext[22] == '2' && plaintext[23] == '0' && plaintext[36] == 'Z') {
-			unsigned char Ki[32];
-			unsigned char checksum[20];
-			// derive Ki used in HMAC-SHA-1 checksum
+			// derive Ke for decryption/encryption
 			// This is precomputed in init()
 			//memset(usage,0,sizeof(usage));
 			//usage[3] = 0x01;        // key number in big-endian format
-			//usage[4] = 0x55;        // used to derive Ki
-			//nfold(sizeof(usage)*8,usage,sizeof(ki_input)*8,ki_input);
-			dk(Ki,base_key, key_size, ki_input, 32);
-			// derive checksum of plaintext
-			hmac_sha1(Ki, key_size, plaintext, 44, checksum, 20);
-			memcpy(crypt_out[index], checksum, BINARY_SIZE);
-		} else {
-			memset(crypt_out[index], 0, BINARY_SIZE);
+			//usage[4] = 0xAA;        // used to derive Ke
+
+			//nfold(sizeof(usage)*8,usage,sizeof(ke_input)*8,ke_input);
+			dk(Ke, base_key, key_size, ke_input, 32);
+
+			// decrypt the AS-REQ timestamp encrypted with 256-bit AES
+			// here is enough to check the string, further computation below is required
+			// to fully verify the checksum
+			krb_decrypt(cur_salt->ct,44,plaintext,Ke, key_size);
+
+			// Check a couple bytes from known plain (YYYYMMDDHHMMSSZ) and
+			// bail out if we are out of luck.
+			if (plaintext[22] == '2' && plaintext[23] == '0' && plaintext[36] == 'Z') {
+				unsigned char Ki[32];
+				unsigned char checksum[20];
+				// derive Ki used in HMAC-SHA-1 checksum
+				// This is precomputed in init()
+				//memset(usage,0,sizeof(usage));
+				//usage[3] = 0x01;        // key number in big-endian format
+				//usage[4] = 0x55;        // used to derive Ki
+				//nfold(sizeof(usage)*8,usage,sizeof(ki_input)*8,ki_input);
+				dk(Ki,base_key, key_size, ki_input, 32);
+				// derive checksum of plaintext
+				hmac_sha1(Ki, key_size, plaintext, 44, checksum, 20);
+				memcpy(crypt_out[index+i], checksum, BINARY_SIZE);
+			} else {
+				memset(crypt_out[index+i], 0, BINARY_SIZE);
+			}
 		}
 	}
 	return count;
@@ -544,9 +566,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 static int cmp_all(void *binary, int count)
 {
 	int index = 0;
-#ifdef _OPENMP
 	for (; index < count; index++)
-#endif
 		if (!memcmp(binary, crypt_out[index], BINARY_SIZE))
 			return 1;
 	return 0;

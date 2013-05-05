@@ -28,13 +28,22 @@
 
 #define FORMAT_LABEL		"odf"
 #define FORMAT_NAME		"ODF SHA-1 Blowfish / SHA-256 AES"
+#ifdef MMX_COEF
+#define ALGORITHM_NAME      SHA1_N_STR MMX_TYPE
+#else
 #define ALGORITHM_NAME		"32/" ARCH_BITS_STR " " SHA2_LIB
+#endif
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define BINARY_SIZE		20
 #define SALT_SIZE		sizeof(struct custom_salt)
+#ifdef MMX_COEF
+#define MIN_KEYS_PER_CRYPT  SSE_GROUP_SZ
+#define MAX_KEYS_PER_CRYPT  SSE_GROUP_SZ
+#else
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
+#endif
 
 static struct fmt_tests odf_tests[] = {
 	{"$odf$*0*0*1024*16*df6c10f64d191a841812af53874b636d014ce3fe*8*07e28aff39d2660e*16*b124be9f3346fb77e0ebcc3bb80028f8*0*2276a1077f6a2a027bd565ce89824d6a20086e378876be05c4b8e3796a460e828c9803a692caf7a53492c220d1d7ecbf4e2d336c7abf5a7672acc804ca267318252cbc13676616d1fde38820f9fbeef1360067d9de096ba8c1032ae947bde1d0fedaf37b6020663d49faf36b7c095c5b9aae11c8fc2be74148f008edbdbb180b44028ad8259f1215b483542bf3027f56dee5f962448333b30f88e6ae4790b60d24abb286edff9adee831a4b3351fc47259043f0d683d7a25be7e47aff3aedca140005d866e218c8efcca32093c19bbece50bd96656d0f94a712d3c60d1e5342db86482fc73f05faf513ca0b137378126597b95986c372b412c953e97011259aab0839fe453c756559497a28ba88dce009e1e7980436131029d38e56a34f608e6471970d9959068808c898608024db9eb394c4feae7a364ea9272ec4ea2315a9f0407a4b27d5e49a8ab1e3ddce5c84927d5aecd7e68e4437a820ea8743c6b5b4e2abbb47b0001e2f77ceac4603e8774e4ccbc1adde794428c11ae4a7492727b620334302e63f72b0c06c1cf83800366916ee8295176819272d557863a831ee0a576841191482959aad69095831fa1d64e3e0e6f6c6a751bcdadf0fbaa27a17458709f708c04587cb208984c9525da6786e0e5aabefe30ad1dbbef66e85ce9d6dbe456fd85e4135de5cf16d9455976d7ca8de7b1b530661c74c0fae90c0fff1a2b5fcdfab19fcff75fadcec445ed8af6ab5babf1463e08458918be8045083de6db988c37e4be582cfac5cdf741d1f0322fb2902665c7ff347813348109e5d442e91fcb010c28f042da481e807084fcb4759b40ccf2cae77bad00cdfbfba4acf36aa1f74c30a315e3d7f1ca522b6306e8903352aafa51dc523d582d418934398d5eb88120e3656bfb640a239db507b285302a86855ea850ddc9af72fc62dc79336c9bc29ee8314c65adb0574e9c701d73d7fa977edd1d52a1ff2da5b8b94e1a0fdd01ffcc6583758f0a1f51750e45f12b58c6d38b140e5676cf3474224520ef7c52ca5e634f85456651f3d6f43d016ed7cc5da54ea640a3bc50c2b9d3dea8f93c0340d66ccd06efc5ae002108c33cf3a470c4a50f6a6ca2f11b8ad15511688c282b94ba6f1c332e239d10946dc46f763f08d12cb9edc1e79c0e07f7151f548e6d7d20ec13b52d911bf980cac60694e192651403c9a69abea045190e847be093fc9ba43fec55b32f77f5796ddca25b441f259d5c51e06df6c6588c6414899481ba9e06bcebec58f82ff3021b09c6beae13a5d22bc94870f72ab813d0c0be01d91f3d075192e7a5de765599d72244757d09539529a8347e077a36678166e5ed9f73a5aad2e147d8154095c397e3e5e4ba1987ca64c1301a0c6c3e438097ede9b701a105ec38fcb54abb31b367c7740cd9ac459e561094a34f01acee555e60267157e6", "test"},
@@ -250,52 +259,88 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 #ifdef _OPENMP
 #pragma omp parallel for
+	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 #endif
-	for (index = 0; index < count; index++)
 	{
-		unsigned char key[32];
-		unsigned char hash[32];
+		unsigned char key[MAX_KEYS_PER_CRYPT][32];
+		unsigned char hash[MAX_KEYS_PER_CRYPT][32];
 		BF_KEY bf_key;
-		int bf_ivec_pos;
+		int bf_ivec_pos, i;
 		unsigned char ivec[8];
 		unsigned char output[1024];
+		SHA_CTX ctx;
+#ifdef MMX_COEF
+		int lens[MAX_KEYS_PER_CRYPT];
+		unsigned char *pin[MAX_KEYS_PER_CRYPT], *pout[MAX_KEYS_PER_CRYPT];
+#endif
 		if(cur_salt->checksum_type == 0 && cur_salt->cipher_type == 0) {
-			SHA_CTX ctx;
-			SHA1_Init(&ctx);
-			SHA1_Update(&ctx, (unsigned char *)saved_key[index], strlen(saved_key[index]));
-			SHA1_Final((unsigned char *)hash, &ctx);
-			pbkdf2(hash, 20, cur_salt->salt,
+			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+				SHA1_Init(&ctx);
+				SHA1_Update(&ctx, (unsigned char *)saved_key[index+i], strlen(saved_key[index+i]));
+				SHA1_Final((unsigned char *)(hash[i]), &ctx);
+			}
+#ifdef MMX_COEF
+			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+				lens[i] = 20;
+				pin[i] = hash[i];
+				pout[i] = key[i];
+			}
+			pbkdf2_sha1_sse((const unsigned char**)pin, lens, cur_salt->salt,
 			       cur_salt->salt_length,
-			       cur_salt->iterations, key,
-			       cur_salt->key_size);
-			bf_ivec_pos = 0;
-			memcpy(ivec, cur_salt->iv, 8);
-			BF_set_key(&bf_key, cur_salt->key_size, key);
-			BF_cfb64_encrypt(cur_salt->content, output, cur_salt->content_length, &bf_key, ivec, &bf_ivec_pos, 0);
-			SHA1_Init(&ctx);
-			SHA1_Update(&ctx, output, cur_salt->content_length);
-			SHA1_Final((unsigned char*)crypt_out[index], &ctx);
+			       cur_salt->iterations, pout,
+			       cur_salt->key_size, 0);
+#else
+			pbkdf2_sha1(hash[0], 20, cur_salt->salt,
+			       cur_salt->salt_length,
+			       cur_salt->iterations, key[0],
+			       cur_salt->key_size, 0);
+#endif
+			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+				bf_ivec_pos = 0;
+				memcpy(ivec, cur_salt->iv, 8);
+				BF_set_key(&bf_key, cur_salt->key_size, key[i]);
+				BF_cfb64_encrypt(cur_salt->content, output, cur_salt->content_length, &bf_key, ivec, &bf_ivec_pos, 0);
+				SHA1_Init(&ctx);
+				SHA1_Update(&ctx, output, cur_salt->content_length);
+				SHA1_Final((unsigned char*)crypt_out[index+i], &ctx);
+			}
 		}
 		else {
 			SHA256_CTX ctx;
 			AES_KEY akey;
-	                unsigned char iv[32];
-			SHA256_Init(&ctx);
-			SHA256_Update(&ctx, (unsigned char *)saved_key[index], strlen(saved_key[index]));
-			SHA256_Final((unsigned char *)hash, &ctx);
-			pbkdf2(hash, 32, cur_salt->salt,
-			       cur_salt->salt_length,
-			       cur_salt->iterations, key,
-			       cur_salt->key_size);
-			memcpy(iv, cur_salt->iv, 32);
-			memset(&akey, 0, sizeof(AES_KEY));
-			if(AES_set_decrypt_key(key, 256, &akey) < 0) {
-				fprintf(stderr, "AES_set_derypt_key failed!\n");
+	        unsigned char iv[32];
+			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+				SHA256_Init(&ctx);
+				SHA256_Update(&ctx, (unsigned char *)saved_key[index+i], strlen(saved_key[index+i]));
+				SHA256_Final((unsigned char *)hash[i], &ctx);
 			}
-			AES_cbc_encrypt(cur_salt->content, output, cur_salt->content_length, &akey, iv, AES_DECRYPT);
-			SHA256_Init(&ctx);
-			SHA256_Update(&ctx, output, cur_salt->content_length);
-			SHA256_Final((unsigned char*)crypt_out[index], &ctx);
+#ifdef MMX_COEF
+			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+				lens[i] = 32;
+				pin[i] = hash[i];
+				pout[i] = key[i];
+			}
+			pbkdf2_sha1_sse((const unsigned char**)pin, lens, cur_salt->salt,
+			       cur_salt->salt_length,
+			       cur_salt->iterations, pout,
+			       cur_salt->key_size, 0);
+#else
+			pbkdf2_sha1(hash[0], 32, cur_salt->salt,
+			       cur_salt->salt_length,
+			       cur_salt->iterations, key[0],
+			       cur_salt->key_size, 0);
+#endif
+			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+				memcpy(iv, cur_salt->iv, 32);
+				memset(&akey, 0, sizeof(AES_KEY));
+				if(AES_set_decrypt_key(key[i], 256, &akey) < 0) {
+					fprintf(stderr, "AES_set_derypt_key failed!\n");
+				}
+				AES_cbc_encrypt(cur_salt->content, output, cur_salt->content_length, &akey, iv, AES_DECRYPT);
+				SHA256_Init(&ctx);
+				SHA256_Update(&ctx, output, cur_salt->content_length);
+				SHA256_Final((unsigned char*)crypt_out[index+i], &ctx);
+			}
 		}
 	}
 	return count;

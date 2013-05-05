@@ -92,16 +92,22 @@ void SSESHA1body(__m128i* data, unsigned int * out, unsigned int * reload_state,
 #define SIMD_TYPE                 "SSE2"
 #endif
 
+// we use the 'outter' MMX_COEF wrapper, as the flag for SHA256/SHA512.  FIX_ME!!
 #if MMX_COEF==4
 
 #ifdef MMX_COEF_SHA256
 #define SHA256_ALGORITHM_NAME	"128/128 " SIMD_TYPE " intrinsics " STRINGIZE(MMX_COEF_SHA256)"x"
-void SSESHA256body(__m128i* data, ARCH_WORD_32 *out, int sha256_flags);
+void SSESHA256body(__m128i* data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload, int sha256_flags);
+#define SHA256_BUF_SIZ 16
+#define SHA256_SSE_PARA 1
 #endif
 
 #ifdef MMX_COEF_SHA512
 #define SHA512_ALGORITHM_NAME	"128/128 " SIMD_TYPE " intrinsics " STRINGIZE(MMX_COEF_SHA512)"x"
-void SSESHA512body(__m128i* data, ARCH_WORD_32 *out, int init);
+void SSESHA512body(__m128i* data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload, int sha512_flags);
+// ????
+#define SHA512_BUF_SIZ 32
+#define SHA512_SSE_PARA 1
 #endif
 
 #endif

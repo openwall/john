@@ -27,13 +27,22 @@
 
 #define FORMAT_LABEL		"keychain"
 #define FORMAT_NAME		"Mac OS X Keychain PBKDF2-HMAC-SHA-1 3DES"
+#ifdef MMX_COEF
+#define ALGORITHM_NAME      SHA1_N_STR MMX_TYPE
+#else
 #define ALGORITHM_NAME		"32/" ARCH_BITS_STR
+#endif
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define BINARY_SIZE		0
 #define SALT_SIZE		sizeof(*salt_struct)
+#ifdef MMX_COEF
+#define MIN_KEYS_PER_CRYPT	SSE_GROUP_SZ
+#define MAX_KEYS_PER_CRYPT	SSE_GROUP_SZ
+#else
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
+#endif
 
 #define SALTLEN 20
 #define IVLEN 8
@@ -170,15 +179,29 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	int index = 0;
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
+	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 #endif
 	{
-		unsigned char master[32];
-		pbkdf2((unsigned char *)saved_key[index],  strlen(saved_key[index]), salt_struct->salt, SALTLEN, 1000, master, 24);
-		if(kcdecrypt(master, salt_struct->iv, salt_struct->ct) == 0)
-			cracked[index] = 1;
-		else
-			cracked[index] = 0;
+		unsigned char master[MAX_KEYS_PER_CRYPT][32];
+		int i;
+#ifdef MMX_COEF
+		int lens[MAX_KEYS_PER_CRYPT];
+		unsigned char *pin[MAX_KEYS_PER_CRYPT], *pout[MAX_KEYS_PER_CRYPT];
+		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+			lens[i] = strlen(saved_key[index+i]);
+			pin[i] = (unsigned char*)saved_key[index+i];
+			pout[i] = master[i];
+		}
+		pbkdf2_sha1_sse((const unsigned char**)pin, lens, salt_struct->salt, SALTLEN, 1000, pout, 24, 0);
+#else
+		pbkdf2_sha1((unsigned char *)saved_key[index],  strlen(saved_key[index]), salt_struct->salt, SALTLEN, 1000, master[0], 24, 0);
+#endif
+		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+			if(kcdecrypt(master[i], salt_struct->iv, salt_struct->ct) == 0)
+				cracked[index+i] = 1;
+			else
+				cracked[index+i] = 0;
+		}
 	}
 	return count;
 }

@@ -44,6 +44,7 @@
 #include "params.h"
 #include "common.h"
 #include "formats.h"
+#undef MMX_COEF
 #include "pbkdf2_hmac_sha1.h"
 #ifdef _OPENMP
 #include <omp.h>
@@ -52,13 +53,22 @@
 
 #define FORMAT_LABEL        "dmg"
 #define FORMAT_NAME         "Apple DMG PBKDF2-HMAC-SHA-1 3DES / AES"
+#ifdef MMX_COEF
+#define ALGORITHM_NAME      SHA1_N_STR MMX_TYPE
+#else
 #define ALGORITHM_NAME      "32/" ARCH_BITS_STR
+#endif
 #define BENCHMARK_COMMENT   ""
 #define BENCHMARK_LENGTH    -1001
 #define BINARY_SIZE         0
 #define SALT_SIZE           sizeof(struct custom_salt)
+#ifdef MMX_COEF
+#define MIN_KEYS_PER_CRYPT  SSE_GROUP_SZ
+#define MAX_KEYS_PER_CRYPT  SSE_GROUP_SZ
+#else
 #define MIN_KEYS_PER_CRYPT  1
 #define MAX_KEYS_PER_CRYPT  1
+#endif
 
 #undef HTONL
 #define HTONL(n) (((((unsigned long)(n) & 0xFF)) << 24) | \
@@ -448,8 +458,8 @@ static int hash_plugin_check_hash(const char *password)
 	unsigned char aes_key_[32];
 
 	if (cur_salt->headerver == 1) {
-		pbkdf2((const unsigned char*)password, strlen(password),
-		       cur_salt->salt, 20, cur_salt->iterations, derived_key, 32);
+		pbkdf2_sha1((const unsigned char*)password, strlen(password),
+		       cur_salt->salt, 20, cur_salt->iterations, derived_key, 32, 0);
 		if ((apple_des3_ede_unwrap_key1(cur_salt->wrapped_aes_key, cur_salt->len_wrapped_aes_key, derived_key) == 0) && (apple_des3_ede_unwrap_key1(cur_salt->wrapped_hmac_sha1_key, cur_salt->len_hmac_sha1_key, derived_key) == 0)) {
 			return 1;
 		}
@@ -466,8 +476,8 @@ static int hash_plugin_check_hash(const char *password)
 		unsigned char *r;
 		const char nulls[16] = { 0 };
 
-		pbkdf2((const unsigned char*)password, strlen(password),
-		       cur_salt->salt, 20, cur_salt->iterations, derived_key, 32);
+		pbkdf2_sha1((const unsigned char*)password, strlen(password),
+		       cur_salt->salt, 20, cur_salt->iterations, derived_key, 32, 0);
 
 		EVP_CIPHER_CTX_init(&ctx);
 		EVP_DecryptInit_ex(&ctx, EVP_des_ede3_cbc(), NULL, derived_key, cur_salt->iv);
@@ -597,7 +607,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index++)
+	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 	{
 		if (hash_plugin_check_hash(saved_key[index]) == 1)
 			cracked[index] = 1;

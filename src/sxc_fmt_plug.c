@@ -25,13 +25,22 @@
 
 #define FORMAT_LABEL		"sxc"
 #define FORMAT_NAME		"StarOffice SXC SHA-1 Blowfish"
+#ifdef MMX_COEF
+#define ALGORITHM_NAME      SHA1_N_STR MMX_TYPE
+#else
 #define ALGORITHM_NAME		"32/" ARCH_BITS_STR
+#endif
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define BINARY_SIZE		20
 #define SALT_SIZE		sizeof(struct custom_salt)
+#ifdef MMX_COEF
+#define MIN_KEYS_PER_CRYPT  SSE_GROUP_SZ
+#define MAX_KEYS_PER_CRYPT  SSE_GROUP_SZ
+#else
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
+#endif
 
 static struct fmt_tests sxc_tests[] = {
 	{"$sxc$*0*0*1024*16*4448359828281a1e6842c31453473abfeae584fb*8*dc0248bea0c7508c*16*1d53770002fe9d8016064e5ef9423174*860*864*f00399ab17b9899cd517758ecf918d4da78099ccd3557aef5e22e137fd5b81f732fc7c167c4de0cf263b4f82b50e3d6abc65da613a36b0025d89e1a09adeb4106da28040d1019bb4b36630fc8bc94fe5b515504bf8a92ea630bb95ace074868e7c10743ec970c89895f44b975a30b6ca032354f3e73ec86b2cc7a4f7a185884026d971b37b1e0e650376a2552e27ba955c700f8903a82a6df11f6cc2ecf63290f02ffdd278f890d1db75f9e8bd0f437c4ec613d3c6dcb421bbd1067be633593ba9bd58f77ef08e0cca64c732f892567d20de8d4c444fa9c1c1adc5e4657ef9740cb69ce55c8f9e6b1cfed0739ef002f1e1c1e54a5df50a759d92354f78eb90a9d9378f36df7d1edd8002ea0d637604fcd2408494c2d42b1771e2a2a20b55044836f76db4ed71e8a53f55a04f9437946603e7246c2d2d70caf6be0de82e8977fab4de84ca3783baedac041195d8b51166b502ff80c17db78f63d3632df1d5ef5b14d8d5553fc40b072030f9e3374c93e929a490c6cfb170f04433fc46f43b9c7d27f3f8c4ed759d4a20c2e53a0701b7c3d9201390a9b5597ce8ba35bd765b662e2242b9821bbb63b6be502d2150fff37e4b7f2a6b592fd0e319a7349df320e7fe7da600a2a05628dc00e04d480c085417f676bd0518bc39d9a9be34fc0cb192d5fa5e0c657cdf7c1ad265a2e81b90ac8b28d326f98b8f33c123df83edc964d2c17a904d0df8bd9ecbf629929d6e48cadc97f49a8941ada3d219e8c0f04f37cecc9a50cc5307fd2a488c34829b05cd1615ae0d1ef0ce450529aa755f9ae38332187ffe4144990de3265afaacb9f0f0fb9c67f6210369f7a0cc5bb346412db08e0f4732f91aa8d4b32fe6eece4fba118f118f6df2fb6c53fa9bc164c9ab7a9d414d33281eb0c3cd02abe0a4dd1c170e41c1c960a8f12a48a7b5e1f748c08e1b150a4e389c110ea3368bc6c6ef2bee98dc92c6825cbf6aee20e690e116c0e6cf48d49b38035f6a9b0cd6053b9f5b9f8360024c9c608cbba3fe5e7966b656fa08dec3e3ce3178a0c0007b7d177c7c44e6a68f4c7325cb98264b1e0f391c75a6a8fd3691581fb68ef459458830f2138d0fd743631efd92b742dfeb62c5ea8502515eb65af414bf805992f9272a7b1b745970fd54e128751f8f6c0a4d5bc7872bc09c04037e1e91dc7192d68f780cdb0f7ef6b282ea883be462ffeffb7b396e30303030", "openwall"},
@@ -254,30 +263,51 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
+	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 #endif
 	{
-		unsigned char key[32];
-		unsigned char hash[32];
+		unsigned char key[MAX_KEYS_PER_CRYPT][32];
+		unsigned char hash[MAX_KEYS_PER_CRYPT][32];
 		BF_KEY bf_key;
 		int bf_ivec_pos;
 		unsigned char ivec[8];
 		unsigned char output[1024];
+		int i;
 		SHA_CTX ctx;
-		SHA1_Init(&ctx);
-		SHA1_Update(&ctx, (unsigned char *)saved_key[index], strlen(saved_key[index]));
-		SHA1_Final((unsigned char *)hash, &ctx);
-		pbkdf2(hash, 20, cur_salt->salt,
+		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+			SHA1_Init(&ctx);
+			SHA1_Update(&ctx, (unsigned char *)saved_key[index+i], strlen(saved_key[index+i]));
+			SHA1_Final((unsigned char *)hash[i], &ctx);
+		}
+#ifdef MMX_COEF
+		{
+			int lens[MAX_KEYS_PER_CRYPT];
+			unsigned char *pin[MAX_KEYS_PER_CRYPT], *pout[MAX_KEYS_PER_CRYPT];
+			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+				lens[i] = 20;
+				pin[i] = (unsigned char*)hash[i];
+				pout[i] = key[i];
+			}
+			pbkdf2_sha1_sse((const unsigned char**)pin, lens, cur_salt->salt,
+				   cur_salt->salt_length,
+				   cur_salt->iterations, pout,
+				   cur_salt->key_size, 0);
+		}
+#else
+		pbkdf2_sha1(hash[0], 20, cur_salt->salt,
 		       cur_salt->salt_length,
-		       cur_salt->iterations, key,
-		       cur_salt->key_size);
-		bf_ivec_pos = 0;
-		memcpy(ivec, cur_salt->iv, 8);
-		BF_set_key(&bf_key, cur_salt->key_size, key);
-		BF_cfb64_encrypt(cur_salt->content, output, cur_salt->length, &bf_key, ivec, &bf_ivec_pos, 0);
-		SHA1_Init(&ctx);
-		SHA1_Update(&ctx, output, cur_salt->original_length);
-		SHA1_Final((unsigned char*)crypt_out[index], &ctx);
+		       cur_salt->iterations, key[0],
+		       cur_salt->key_size, 0);
+#endif
+		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+			bf_ivec_pos = 0;
+			memcpy(ivec, cur_salt->iv, 8);
+			BF_set_key(&bf_key, cur_salt->key_size, key[i]);
+			BF_cfb64_encrypt(cur_salt->content, output, cur_salt->length, &bf_key, ivec, &bf_ivec_pos, 0);
+			SHA1_Init(&ctx);
+			SHA1_Update(&ctx, output, cur_salt->original_length);
+			SHA1_Final((unsigned char*)crypt_out[index+i], &ctx);
+		}
 	}
 	return count;
 }
@@ -285,9 +315,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 static int cmp_all(void *binary, int count)
 {
 	int index = 0;
-#ifdef _OPENMP
 	for (; index < count; index++)
-#endif
 		if (!memcmp(binary, crypt_out[index], BINARY_SIZE))
 			return 1;
 	return 0;

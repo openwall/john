@@ -25,13 +25,22 @@
 
 #define FORMAT_LABEL		"strip"
 #define FORMAT_NAME		"STRIP Password Manager PBKDF2-SHA1"
+#ifdef MMX_COEF
+#define ALGORITHM_NAME      SHA1_N_STR MMX_TYPE
+#else
 #define ALGORITHM_NAME		"32/" ARCH_BITS_STR
+#endif
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define BINARY_SIZE		0
 #define SALT_SIZE		sizeof(struct custom_salt)
+#ifdef MMX_COEF
+#define MIN_KEYS_PER_CRYPT  SSE_GROUP_SZ
+#define MAX_KEYS_PER_CRYPT  SSE_GROUP_SZ
+#else
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
+#endif
 
 #define ITERATIONS		4000
 #define FILE_HEADER_SZ 16
@@ -167,36 +176,49 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
+	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 #endif
 	{
-		unsigned char master[32];
+		unsigned char master[MAX_KEYS_PER_CRYPT][32];
 		unsigned char output[1024];
 		unsigned char *iv_in;
 		unsigned char iv_out[16];
-		int size;
+		int size,i;
 		int page_sz = 1008; /* 1024 - strlen(SQLITE_FILE_HEADER) */
 		int reserve_sz = 16; /* for HMAC off case */
 		AES_KEY akey;
 
-		pbkdf2((unsigned char *)saved_key[index],
+#ifdef MMX_COEF
+		int len[MAX_KEYS_PER_CRYPT];
+		unsigned char *pin[MAX_KEYS_PER_CRYPT], *pout[MAX_KEYS_PER_CRYPT];
+		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+			len[i] = strlen(saved_key[i+index]);
+			pin[i] = (unsigned char*)saved_key[i+index];
+			pout[i] = master[i];
+		}
+		pbkdf2_sha1_sse((const unsigned char **)pin, len, cur_salt->salt, 16, ITERATIONS, pout, 32, 0);
+#else
+		pbkdf2_sha1((unsigned char *)saved_key[index],
 		       strlen(saved_key[index]), cur_salt->salt,
-		       16, ITERATIONS, master, 32);
-		memcpy(output, SQLITE_FILE_HEADER, FILE_HEADER_SZ);
-		size = page_sz - reserve_sz;
-		iv_in = cur_salt->data + size + 16;
-		memcpy(iv_out, iv_in, 16);
+		       16, ITERATIONS, master[0], 32, 0);
+#endif
+		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+			memcpy(output, SQLITE_FILE_HEADER, FILE_HEADER_SZ);
+			size = page_sz - reserve_sz;
+			iv_in = cur_salt->data + size + 16;
+			memcpy(iv_out, iv_in, 16);
 
-		if (AES_set_decrypt_key(master, 256, &akey) < 0) {
-			fprintf(stderr, "AES_set_decrypt_key failed!\n");
+			if (AES_set_decrypt_key(master[i], 256, &akey) < 0) {
+				fprintf(stderr, "AES_set_decrypt_key failed!\n");
+			}
+			/* decrypting 24 bytes is enough */
+			AES_cbc_encrypt(cur_salt->data + 16, output + 16, 24, &akey, iv_out, AES_DECRYPT);
+			if (verify_page(output) == 0) {
+				cracked[index+i] = 1;
+			}
+			else
+				cracked[index+i] = 0;
 		}
-		/* decrypting 24 bytes is enough */
-		AES_cbc_encrypt(cur_salt->data + 16, output + 16, 24, &akey, iv_out, AES_DECRYPT);
-		if (verify_page(output) == 0) {
-			cracked[index] = 1;
-		}
-		else
-			cracked[index] = 0;
 	}
 	return count;
 }

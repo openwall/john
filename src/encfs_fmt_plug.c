@@ -18,7 +18,6 @@
 #include "arch.h"
 #include "stdint.h"
 #include "pbkdf2_hmac_sha1.h"
-#undef MEM_FREE
 #include "options.h"
 #ifdef _OPENMP
 #include <omp.h>
@@ -31,15 +30,24 @@
 
 #define FORMAT_LABEL        "encfs"
 #define FORMAT_NAME         "EncFS PBKDF2 AES / Blowfish"
+#ifdef MMX_COEF
+#define ALGORITHM_NAME      SHA1_N_STR MMX_TYPE
+#else
 #define ALGORITHM_NAME      "32/" ARCH_BITS_STR
+#endif
 #define BENCHMARK_COMMENT   ""
 #define BENCHMARK_LENGTH    -1001
 #define BINARY_SIZE         0
 #define BINARY_ALIGN        MEM_ALIGN_NONE
 #define SALT_SIZE           sizeof(struct custom_salt)
 #define SALT_ALIGN          sizeof(int)
+#ifdef MMX_COEF
+#define MIN_KEYS_PER_CRYPT  SSE_GROUP_SZ
+#define MAX_KEYS_PER_CRYPT  SSE_GROUP_SZ
+#else
 #define MIN_KEYS_PER_CRYPT  1
 #define MAX_KEYS_PER_CRYPT  1
+#endif
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static int any_cracked, *cracked;
@@ -386,28 +394,41 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
+	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 #endif
 	{
-		int i;
-		unsigned char master[MAX_KEYLENGTH + MAX_IVLENGTH];
+		int i, j;
+		unsigned char master[MAX_KEYS_PER_CRYPT][MAX_KEYLENGTH + MAX_IVLENGTH];
 		unsigned char tmpBuf[sizeof(cur_salt->data)];
 		unsigned int checksum = 0;
 		unsigned int checksum2 = 0;
-		unsigned char out[128];
+		unsigned char out[MAX_KEYS_PER_CRYPT][128];
 
-		pbkdf2((const unsigned char *)saved_key[index], strlen(saved_key[index]), cur_salt->salt, cur_salt->saltLen, cur_salt->iterations, out, cur_salt->keySize + cur_salt->ivLength);
-
-		memcpy(master, out, cur_salt->keySize + cur_salt->ivLength);
-
-		// First N bytes are checksum bytes.
-		for(i=0; i<KEY_CHECKSUM_BYTES; ++i)
-			checksum = (checksum << 8) | (unsigned int)cur_salt->data[i];
-		memcpy( tmpBuf, cur_salt->data+KEY_CHECKSUM_BYTES, cur_salt->keySize + cur_salt->ivLength );
-		streamDecode(tmpBuf, cur_salt->keySize + cur_salt->ivLength ,checksum, master);
-		checksum2 = MAC_32( tmpBuf,  cur_salt->keySize + cur_salt->ivLength, master);
-		if(checksum2 == checksum) {
-			any_cracked = cracked[index] = 1;
+#ifdef MMX_COEF
+		int len[MAX_KEYS_PER_CRYPT];
+		unsigned char *pin[MAX_KEYS_PER_CRYPT], *pout[MAX_KEYS_PER_CRYPT];
+		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+			len[i] = strlen(saved_key[i+index]);
+			pin[i] = (unsigned char*)saved_key[i+index];
+			pout[i] = out[i];
+		}
+		pbkdf2_sha1_sse((const unsigned char **)pin, len, cur_salt->salt, cur_salt->saltLen, cur_salt->iterations, pout, cur_salt->keySize + cur_salt->ivLength, 0);
+		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i)
+			memcpy(master[i], out[i], cur_salt->keySize + cur_salt->ivLength);
+#else
+		pbkdf2((const unsigned char *)saved_key[index], strlen(saved_key[index]), cur_salt->salt, cur_salt->saltLen, cur_salt->iterations, out[0], cur_salt->keySize + cur_salt->ivLength, 0);
+		memcpy(master[0], out[0], cur_salt->keySize + cur_salt->ivLength);
+#endif
+		for (j = 0; j < MAX_KEYS_PER_CRYPT; ++j) {
+			// First N bytes are checksum bytes.
+			for(i=0; i<KEY_CHECKSUM_BYTES; ++i)
+				checksum = (checksum << 8) | (unsigned int)cur_salt->data[i];
+			memcpy( tmpBuf, cur_salt->data+KEY_CHECKSUM_BYTES, cur_salt->keySize + cur_salt->ivLength );
+			streamDecode(tmpBuf, cur_salt->keySize + cur_salt->ivLength ,checksum, master[j]);
+			checksum2 = MAC_32( tmpBuf,  cur_salt->keySize + cur_salt->ivLength, master[j]);
+			if(checksum2 == checksum) {
+				any_cracked = cracked[index+j] = 1;
+			}
 		}
 	}
 	return count;

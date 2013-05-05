@@ -31,14 +31,23 @@
 
 #define FORMAT_LABEL		"lastpass"
 #define FORMAT_NAME		"LastPass sniffed sessions PBKDF2-HMAC-SHA-256 AES"
+#ifdef MMX_COEF_SHA256
+#define ALGORITHM_NAME		SHA256_ALGORITHM_NAME
+#else
 #define ALGORITHM_NAME		"32/" ARCH_BITS_STR
+#endif
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	15
 #define BINARY_SIZE		0
 #define SALT_SIZE		sizeof(struct custom_salt)
+#ifdef MMX_COEF_SHA256
+#define MIN_KEYS_PER_CRYPT	MMX_COEF_SHA256
+#define MAX_KEYS_PER_CRYPT	MMX_COEF_SHA256
+#else
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
+#endif
 
 #define SALTLEN 8
 #define IVLEN 8
@@ -145,25 +154,52 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	int index = 0;
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
+	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 #endif
 	{
-		ARCH_WORD_32 key[8];
 		unsigned char out[32];
-		unsigned char iv[16] = { 0 };
+		unsigned char iv[16];
 		AES_KEY akey;
+#ifdef MMX_COEF_SHA256
+		int lens[MMX_COEF_SHA256], i;
+		unsigned char *pin[MMX_COEF_SHA256];
+		ARCH_WORD_32 key[MMX_COEF_SHA256][8];
+		ARCH_WORD_32 *pout[MMX_COEF_SHA256];
+		for (i = 0; i < MMX_COEF_SHA256; ++i) {
+			lens[i] = strlen(saved_key[i+index]);
+			pin[i] = (unsigned char*)saved_key[i+index];
+			pout[i] = key[i];
+		}
+		pbkdf2_sha256_sse(pin, lens, (unsigned char*)cur_salt->username, strlen((char*)cur_salt->username), cur_salt->iterations, pout);
+
+		for (i = 0; i < MMX_COEF_SHA256; ++i) {
+			unsigned char *Key = (unsigned char*)key[i];
+			memset(iv, 0, sizeof(iv));
+			if(AES_set_decrypt_key(Key, 256, &akey) < 0) {
+				fprintf(stderr, "AES_set_decrypt_key failed in crypt!\n");
+			}
+			AES_cbc_encrypt(cur_salt->encrypted_username, out, 32, &akey, iv, AES_DECRYPT);
+			if(strncmp((const char*)out, cur_salt->username, cur_salt->length) == 0)
+				cracked[i+index] = 1;
+			else
+				cracked[i+index] = 0;
+		}
+#else
+		ARCH_WORD_32 key[8];
 		// PKCS5_PBKDF2_HMAC(saved_key[index], strlen(saved_key[index]), (unsigned char*)cur_salt->username, strlen((char*)cur_salt->username), cur_salt->iterations, EVP_sha256(), 32, key);
 		pbkdf2_sha256((unsigned char*)saved_key[index], strlen(saved_key[index]), (unsigned char*)cur_salt->username, strlen((char*)cur_salt->username), cur_salt->iterations, key);
 
 		if(AES_set_decrypt_key((const unsigned char *)key, 256, &akey) < 0) {
 			fprintf(stderr, "AES_set_decrypt_key failed in crypt!\n");
 		}
+		memset(iv, 0, sizeof(iv));
 		AES_cbc_encrypt(cur_salt->encrypted_username, out, 32, &akey, iv, AES_DECRYPT);
 
 		if(strncmp((const char*)out, cur_salt->username, cur_salt->length) == 0)
 			cracked[index] = 1;
 		else
 			cracked[index] = 0;
+#endif
 	}
 	return count;
 }

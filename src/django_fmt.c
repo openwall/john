@@ -48,21 +48,31 @@ static int omp_t = 1;
 
 #define FORMAT_LABEL		"django"
 #define FORMAT_NAME		"Django PBKDF2-HMAC-SHA-256"
+#ifdef MMX_COEF_SHA256
+#define ALGORITHM_NAME		SHA256_ALGORITHM_NAME
+#else
 #define ALGORITHM_NAME		"32/" ARCH_BITS_STR
+#endif
 #define BENCHMARK_COMMENT	" (x10000)"
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	64
 #define HASH_LENGTH		44
 #define BINARY_SIZE		32
 #define SALT_SIZE		sizeof(struct custom_salt)
+#ifdef MMX_COEF_SHA256
+#define MIN_KEYS_PER_CRYPT	MMX_COEF_SHA256
+#define MAX_KEYS_PER_CRYPT	MMX_COEF_SHA256
+#else
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
+#endif
 
 static struct fmt_tests django_tests[] = {
 	{"$django$*1*pbkdf2_sha256$10000$qPmFbibfAY06$x/geVEkdZSlJMqvIYJ7G6i5l/6KJ0UpvLUU6cfj83VM=", "openwall"},
 	{"$django$*1*pbkdf2_sha256$10000$BVmpZMBhRSd7$2nTDwPhSsDKOwpKiV04teVtf+a14Rs7na/lIB3KnHkM=", "123"},
 	{"$django$*1*pbkdf2_sha256$10000$BVmpZMBhRSd1$bkdQo9RoatRomupPFP+XEo+Guuirq4mi+R1cFcV0U3M=", "openwall"},
 	{"$django$*1*pbkdf2_sha256$10000$BVmpZMBhRSd6$Uq33DAHOFHUED+32IIqCqm+ITU1mhsGOJ7YwFf6h+6k=", "password"},
+	{"$django$*1*pbkdf2_sha256$10000$34L3roCQ6ZfN$R21tJK1sIDfmj9BfBocefFfuGVwE3pXcLEhChNjc+pU=", "0123456789012345678901234567890123456789012345678901234567890123"},
 	{NULL}
 };
 
@@ -180,9 +190,20 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	int index = 0;
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
+	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 #endif
 	{
+#ifdef MMX_COEF_SHA256
+		int lens[MMX_COEF_SHA256], i;
+		unsigned char *pin[MMX_COEF_SHA256];
+		ARCH_WORD_32 *pout[MMX_COEF_SHA256];
+		for (i = 0; i < MMX_COEF_SHA256; ++i) {
+			lens[i] = strlen(saved_key[i+index]);
+			pin[i] = (unsigned char*)saved_key[i+index];
+			pout[i] = crypt_out[i+index];
+		}
+		pbkdf2_sha256_sse(pin, lens, cur_salt->salt, strlen((char*)cur_salt->salt), cur_salt->iterations, pout);
+#else
 //		PKCS5_PBKDF2_HMAC(saved_key[index], strlen(saved_key[index]),
 //			cur_salt->salt, strlen((char*)cur_salt->salt),
 //			cur_salt->iterations, EVP_sha256(), 32, (unsigned char*)crypt_out[index]);
@@ -190,6 +211,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		pbkdf2_sha256((unsigned char *)saved_key[index], strlen(saved_key[index]),
 			cur_salt->salt, strlen((char*)cur_salt->salt),
 			cur_salt->iterations, crypt_out[index]);
+#endif
 	}
 	return count;
 }
@@ -197,9 +219,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 static int cmp_all(void *binary, int count)
 {
 	int index = 0;
-#ifdef _OPENMP
 	for (; index < count; index++)
-#endif
 		if (!memcmp(binary, crypt_out[index], BINARY_SIZE))
 			return 1;
 	return 0;

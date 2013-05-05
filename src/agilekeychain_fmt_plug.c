@@ -29,13 +29,22 @@
 
 #define FORMAT_LABEL		"agilekeychain"
 #define FORMAT_NAME		"1Password Agile Keychain PBKDF2-HMAC-SHA-1 AES"
+#ifdef MMX_COEF
+#define ALGORITHM_NAME      SHA1_N_STR MMX_TYPE
+#else
 #define ALGORITHM_NAME		"32/" ARCH_BITS_STR
+#endif
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define BINARY_SIZE		0
 #define SALT_SIZE		sizeof(struct custom_salt)
+#ifdef MMX_COEF
+#define MIN_KEYS_PER_CRYPT  SSE_GROUP_SZ
+#define MAX_KEYS_PER_CRYPT  SSE_GROUP_SZ
+#else
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
+#endif
 
 #define SALTLEN 8
 #define IVLEN 8
@@ -188,21 +197,35 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
 	int index = 0;
-
+	memset(cracked, 0, sizeof(cracked));
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
+	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 #endif
 	{
+#ifdef MMX_COEF
+		unsigned char master[MAX_KEYS_PER_CRYPT][32];
+		int lens[MAX_KEYS_PER_CRYPT], i;
+		unsigned char *pin[MAX_KEYS_PER_CRYPT], *pout[MAX_KEYS_PER_CRYPT];
+		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+			lens[i] = strlen(saved_key[i+index]);
+			pin[i] = (unsigned char*)saved_key[i+index];
+			pout[i] = master[i];
+		}
+		pbkdf2_sha1_sse((const unsigned char **)pin, lens, cur_salt->salt[0], cur_salt->saltlen[0], cur_salt->iterations[0], pout, 16, 0);
+		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+			if(akcdecrypt(master[i], cur_salt->ct[0]) == 0)
+				cracked[i+index] = 1;
+		}
+#else
 		unsigned char master[32];
-		pbkdf2((unsigned char *)saved_key[index],
+		pbkdf2_sha1((unsigned char *)saved_key[index],
 		       strlen(saved_key[index]),
 		       cur_salt->salt[0], cur_salt->saltlen[0],
-		       cur_salt->iterations[0], master, 16);
+		       cur_salt->iterations[0], master, 16, 0);
 		if(akcdecrypt(master, cur_salt->ct[0]) == 0)
 			cracked[index] = 1;
-		else
-			cracked[index] = 0;
+#endif
 	}
 	return count;
 }

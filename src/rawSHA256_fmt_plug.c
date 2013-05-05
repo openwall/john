@@ -48,7 +48,6 @@
 #define MIN_KEYS_PER_CRYPT		1
 #ifdef MMX_COEF_SHA256
 #define MAX_KEYS_PER_CRYPT      MMX_COEF_SHA256
-#define MMX_LOAD                16
 #else
 #define MAX_KEYS_PER_CRYPT		1
 #endif
@@ -61,8 +60,8 @@ static struct fmt_tests tests[] = {
 };
 
 #ifdef MMX_COEF_SHA256
-#define GETPOS(i, index)		( (index&(MMX_COEF_SHA256-1))*4 + ((i)&(0xffffffff-3))*MMX_COEF_SHA256 + (3-((i)&3)) + (index>>(MMX_COEF_SHA256>>1))*MMX_LOAD*MMX_COEF_SHA256*4 )
-static uint32_t (*saved_key)[MMX_LOAD*MMX_COEF_SHA256];
+#define GETPOS(i, index)		( (index&(MMX_COEF_SHA256-1))*4 + ((i)&(0xffffffff-3))*MMX_COEF_SHA256 + (3-((i)&3)) + (index>>(MMX_COEF_SHA256>>1))*SHA256_BUF_SIZ*MMX_COEF_SHA256*4 )
+static uint32_t (*saved_key)[SHA256_BUF_SIZ*MMX_COEF_SHA256];
 static uint32_t (*crypt_out)[8*MMX_COEF_SHA256];
 #else
 static int (*saved_key_length);
@@ -166,7 +165,7 @@ static int get_hash_6(int index) { return crypt_out[index][0] & 0x7FFFFFF; }
 #ifdef MMX_COEF_SHA256
 static void set_key(char *key, int index) {
 	const ARCH_WORD_32 *wkey = (ARCH_WORD_32*)key;
-	ARCH_WORD_32 *keybuffer = &((ARCH_WORD_32 *)saved_key)[(index&(MMX_COEF-1)) + (index>>(MMX_COEF>>1))*MMX_LOAD*MMX_COEF];
+	ARCH_WORD_32 *keybuffer = &((ARCH_WORD_32 *)saved_key)[(index&(MMX_COEF-1)) + (index>>(MMX_COEF>>1))*SHA256_BUF_SIZ*MMX_COEF];
 	ARCH_WORD_32 *keybuf_word = keybuffer;
 	unsigned int len;
 	ARCH_WORD_32 temp;
@@ -222,7 +221,7 @@ static char *get_key(int index) {
 	static char out[64];
 	unsigned char *wucp = (unsigned char*)saved_key;
 
-	s = ((ARCH_WORD_32 *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*MMX_LOAD*MMX_COEF] >> 3;
+	s = ((ARCH_WORD_32 *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*SHA256_BUF_SIZ*MMX_COEF] >> 3;
 	for(i=0;i<s;i++)
 		out[i] = wucp[ GETPOS(i, index) ];
 	out[i] = 0;
@@ -252,7 +251,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	{
 #ifdef MMX_COEF_SHA256
-		SSESHA256body(&saved_key[index/MMX_COEF_SHA256], crypt_out[index/MMX_COEF_SHA256], SHA256_MIXED_IN);
+		SSESHA256body(&saved_key[index/MMX_COEF_SHA256], crypt_out[index/MMX_COEF_SHA256], NULL, SHA256_MIXED_IN);
 #else
 		SHA256_CTX ctx;
 		SHA256_Init(&ctx);

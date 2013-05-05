@@ -26,14 +26,23 @@
 
 #define FORMAT_LABEL		"lp"
 #define FORMAT_NAME		"LastPass offline PBKDF2 SHA1"
+#ifdef MMX_COEF_SHA256
+#define ALGORITHM_NAME		SHA256_ALGORITHM_NAME
+#else
 #define ALGORITHM_NAME		"32/" ARCH_BITS_STR
+#endif
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	64
 #define BINARY_SIZE		16
 #define SALT_SIZE		sizeof(struct custom_salt)
+#ifdef MMX_COEF_SHA256
+#define MIN_KEYS_PER_CRYPT	MMX_COEF_SHA256
+#define MAX_KEYS_PER_CRYPT	MMX_COEF_SHA256
+#else
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
+#endif
 
 static struct fmt_tests lastpass_tests[] = {
 	{"$lp$hackme@mailinator.com$6f5d8cec3615fc9ac7ba2e0569bce4f5", "strongpassword"},
@@ -160,15 +169,34 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	int index = 0;
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
+	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 #endif
 	{
-		unsigned char key[32];
 		AES_KEY akey;
+#ifdef MMX_COEF_SHA256
+		int lens[MMX_COEF_SHA256], i;
+		unsigned char *pin[MMX_COEF_SHA256];
+		ARCH_WORD_32 key[MMX_COEF_SHA256][8];
+		ARCH_WORD_32 *pout[MMX_COEF_SHA256];
+		for (i = 0; i < MMX_COEF_SHA256; ++i) {
+			lens[i] = strlen(saved_key[i+index]);
+			pin[i] = (unsigned char*)saved_key[i+index];
+			pout[i] = key[i];
+		}
+		pbkdf2_sha256_sse(pin, lens, cur_salt->salt, cur_salt->salt_length, 500, pout);
+
+		for (i = 0; i < MMX_COEF_SHA256; ++i) {
+			memset(&akey, 0, sizeof(AES_KEY));
+			AES_set_encrypt_key((unsigned char*)key[i], 256, &akey);
+			AES_ecb_encrypt((unsigned char*)"lastpass rocks\x02\x02", (unsigned char*)crypt_out[i+index], &akey, AES_ENCRYPT);
+		}
+#else
+		unsigned char key[32];
 		pbkdf2_sha256((unsigned char*)saved_key[index], strlen(saved_key[index]), cur_salt->salt, cur_salt->salt_length, 500, (ARCH_WORD_32 *)key);
 		memset(&akey, 0, sizeof(AES_KEY));
 		AES_set_encrypt_key((unsigned char*)key, 256, &akey);
 		AES_ecb_encrypt((unsigned char*)"lastpass rocks\x02\x02", (unsigned char*)crypt_out[index], &akey, AES_ENCRYPT);
+#endif
 	}
 	return count;
 }
