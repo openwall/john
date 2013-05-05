@@ -59,9 +59,25 @@ static uaf_qword (*crypt_out)[BINARY_SIZE / sizeof(uaf_qword)];
  */
 static int valid(char *ciphertext, struct fmt_main *self )
 {
+	struct uaf_hash_info pwd;
+	int uaf_res;
+
 	if (strncmp(ciphertext, "$V$", 3)) return 0;	/* no match */
 	if ( strlen ( ciphertext ) < (UAF_ENCODE_SIZE-1) )
 		return 0;
+
+	if (!uaf_hash_decode(ciphertext, &pwd))
+		return 0;
+
+#ifdef DEBUG
+	fprintf(stderr, "/VMS_STD/ get_salt decoded '%s' to %x/%x-%x-%x-%x-%x"
+		"  %ld\n", ciphertext, pwd.salt, pwd.alg, pwd.username.r40[0],
+		pwd.username.r40[1], pwd.username.r40[2], pwd.username.r40[3],
+		pwd.flags);
+#endif
+	if (pwd.alg < 1 || pwd.alg > 3)
+		return 0;
+
 	return 1;
 }
 
