@@ -28,6 +28,10 @@
 
 extern struct fmt_main fmt_rawMD4, fmt_rawMD5, fmt_MD5, fmt_rawSHA1;
 
+int john_main_process = 0;
+int john_child_count = 0;
+int *john_child_pids = NULL;
+
 int main(int argc, char **argv)
 {
 	struct fmt_main *format;
