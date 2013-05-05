@@ -172,7 +172,7 @@ static void init(struct fmt_main *self)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *keeptr, *p;
-	if (strncmp(ciphertext,  "$keychain$", 10) != 0)
+	if (strncmp(ciphertext,  "$keychain$*", 11) != 0)
 		return 0;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;

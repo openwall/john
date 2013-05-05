@@ -175,6 +175,7 @@ static uint64_t _checksum_64(unsigned char *key,
 	unsigned char h[8] = {0,0,0,0,0,0,0,0};
 	uint64_t value;
 	HMAC_CTX mac_ctx;
+
 	HMAC_CTX_init(&mac_ctx);
 	HMAC_Init_ex( &mac_ctx, key, cur_salt->keySize, EVP_sha1(), 0 );
 	HMAC_Init_ex( &mac_ctx, 0, 0, 0, 0 );
@@ -192,8 +193,9 @@ static uint64_t _checksum_64(unsigned char *key,
 	}
 	HMAC_Final( &mac_ctx, md, &mdLen );
 	HMAC_CTX_cleanup(&mac_ctx);
+
 	// chop this down to a 64bit value..
-	for(i=0; i<(mdLen-1); ++i)
+	for(i=0; i < (mdLen - 1); ++i)
 		h[i%8] ^= (unsigned char)(md[i]);
 
 	value = (uint64_t)h[0];
@@ -354,6 +356,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if ((p = strtok(NULL, "*")) == NULL)	/* salt length */
 		goto err;
 	res = atoi(p);
+	if (res > 40)
+		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* salt */
 		goto err;
 	if (res * 2 != strlen(p))
@@ -363,6 +367,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if ((p = strtok(NULL, "*")) == NULL)	/* data length */
 		goto err;
 	res = atoi(p);
+	if (res > 128)
+		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* data */
 		goto err;
 	if (res * 2 != strlen(p))

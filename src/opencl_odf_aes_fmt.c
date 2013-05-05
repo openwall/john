@@ -184,7 +184,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *keeptr;
 	char *p;
 	int res;
-	if (strncmp(ciphertext, "$odf$", 5))
+	if (strncmp(ciphertext, "$odf$*", 6))
 		return 0;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
@@ -204,11 +204,16 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* key size */
 		goto err;
+	res = atoi(p);
+	if (res != 16 && res != 32)
+		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* checksum field (skipped) */
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* iv length */
 		goto err;
 	res = atoi(p);
+	if (res > 16)
+		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* iv */
 		goto err;
 	if (strlen(p) != res * 2)
@@ -218,6 +223,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if ((p = strtok(NULL, "*")) == NULL)	/* salt length */
 		goto err;
 	res = atoi(p);
+	if (res > 32)
+		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* salt */
 		goto err;
 	if (strlen(p) != res * 2)

@@ -186,6 +186,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	int ctlen;
 	int saltlen;
 	char *p;
+
 	if (strncmp(ciphertext,  "$agilekeychain$", 15) != 0)
 		return 0;
 	ctcopy = strdup(ciphertext);
@@ -209,6 +210,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if ((p = strtok(NULL, "*")) == NULL)	/* ct length */
 		goto err;
 	ctlen = atoi(p);
+	if (ctlen > CTLEN)
+		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* ciphertext */
 		goto err;
 	if(strlen(p) != ctlen * 2)
@@ -229,6 +232,7 @@ static void *get_salt(char *ciphertext)
 	int i;
 	char *p;
 	static struct custom_salt cs;
+
 	ctcopy += 15;	/* skip over "$agilekeychain$" */
 	p = strtok(ctcopy, "*");
 	cs.nkeys = atoi(p);
@@ -249,6 +253,7 @@ static void *get_salt(char *ciphertext)
 	MEM_FREE(keeptr);
 	return (void *)&cs;
 }
+
 
 static void set_salt(void *salt)
 {
@@ -280,19 +285,16 @@ static char *get_key(int index)
 
 static int akcdecrypt(unsigned char *derived_key, unsigned char *data)
 {
-	unsigned char key[16];
-	unsigned char iv[16] = { 0 };
 	unsigned char out[CTLEN];
 	int pad, n, i, key_size;
 	AES_KEY akey;
-	memcpy(key, derived_key, 16);
-	memset(out, 0, sizeof(out));
-	memset(&akey, 0, sizeof(AES_KEY));
+	unsigned char iv[16];
+	memcpy(iv, data + CTLEN - 32, 16);
 
-	if(AES_set_decrypt_key(key, 128, &akey) < 0) {
+	if(AES_set_decrypt_key(derived_key, 128, &akey) < 0) {
 		fprintf(stderr, "AES_set_decrypt_key failed in crypt!\n");
 	}
-	AES_cbc_encrypt(data + CTLEN - 32, out + CTLEN - 32, 32, &akey, iv, AES_DECRYPT);
+	AES_cbc_encrypt(data + CTLEN - 16, out + CTLEN - 16, 16, &akey, iv, AES_DECRYPT);
 
 	// now check padding
 	pad = out[CTLEN - 1];
