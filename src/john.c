@@ -905,6 +905,8 @@ static void john_load(void)
 #ifdef HAVE_MPI
 		else
 			john_set_mpi();
+
+		fflush(stderr);
 #endif
 	}
 }
