@@ -197,7 +197,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
 	int index = 0;
-	memset(cracked, 0, sizeof(cracked));
+
+	memset(cracked, 0, sizeof(*cracked) * MAX_KEYS_PER_CRYPT);
 #ifdef _OPENMP
 #pragma omp parallel for
 	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
