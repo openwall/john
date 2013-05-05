@@ -60,7 +60,6 @@ static uaf_qword (*crypt_out)[BINARY_SIZE / sizeof(uaf_qword)];
 static int valid(char *ciphertext, struct fmt_main *self )
 {
 	struct uaf_hash_info pwd;
-	int uaf_res;
 
 	if (strncmp(ciphertext, "$V$", 3)) return 0;	/* no match */
 	if ( strlen ( ciphertext ) < (UAF_ENCODE_SIZE-1) )
