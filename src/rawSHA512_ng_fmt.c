@@ -7,7 +7,7 @@
  */
 
 #include "arch.h"
-#ifdef MMX_COEF
+#ifdef __SSE2__
 
 #ifdef _OPENMP
 #include <omp.h>

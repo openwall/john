@@ -187,11 +187,6 @@ void dump_stuff_be_msg_sepline(void *msg, void *x, unsigned int size) {
 	dump_stuff_be(x, size);
 }
 
-#if defined(MMX_COEF) || defined(NT_X86_64) || defined (MD5_SSE_PARA) || defined (MD4_SSE_PARA) || defined (SHA1_SSE_PARA)
-#ifndef MMX_COEF
-#define MMX_COEF	4
-#endif
-
 #if ARCH_ALLOWS_UNALIGNED
 void alter_endianity(void * _x, unsigned int size)
 {
@@ -205,6 +200,11 @@ void alter_endianity(void * _x, unsigned int size)
 		x[i] = JOHNSWAP(x[i]);
 	}
 }
+#endif
+
+#if defined(MMX_COEF) || defined(NT_X86_64) || defined (MD5_SSE_PARA) || defined (MD4_SSE_PARA) || defined (SHA1_SSE_PARA)
+#ifndef MMX_COEF
+#define MMX_COEF	4
 #endif
 
 // These work for standard MMX_COEF buffers, AND for SSEi MMX_PARA multiple MMX_COEF blocks, where index will be mod(X * MMX_COEF) and not simply mod(MMX_COEF)
