@@ -1,27 +1,13 @@
-#include "john-mpi.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+
+#include "john-mpi.h"
 #include "john.h"
-#ifdef _OPENMP
-#include <omp.h>
-#endif
 
 int mpi_p, mpi_id;
 char mpi_name[MPI_MAX_PROCESSOR_NAME + 1];
-
-/* Fixed version of id2string to correct a memory leak
- * Submitted by Carsten G
- */
-char *id2string() {
-	static char id_string[12] = "";
-
-	if (strlen(id_string)) return id_string;
-	snprintf(id_string, 11, "%d", mpi_id);
-	id_string[11] = 0;
-	return id_string;
-}
 
 void mpi_teardown(void){
 	if (nice(20) < 0) fprintf(stderr, "nice() failed\n");
