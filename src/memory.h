@@ -117,6 +117,9 @@ void dump_stuff_be(void *x, unsigned int size);
 void dump_stuff_be_msg(void *msg, void *x, unsigned int size);
 void dump_stuff_be_noeol(void *x, unsigned int size);
 void dump_stuff_be_msg_sepline(void *msg, void *x, unsigned int size);
+#if ARCH_ALLOWS_UNALIGNED
+void alter_endianity(void * x, unsigned int size);
+#endif
 #if defined (MMX_COEF) || defined(NT_X86_64) || defined (MD5_SSE_PARA) || defined (MD4_SSE_PARA) || defined (SHA1_SSE_PARA)
 void dump_stuff_mmx(void *x, unsigned int size, unsigned int index);
 void dump_stuff_mmx_noeol(void *x, unsigned int size, unsigned int index);
@@ -130,7 +133,6 @@ void dump_stuff_shammx(void *x, unsigned int size, unsigned int index);
 void dump_stuff_shammx_msg(void *msg, void *buf, unsigned int size, unsigned int index);
 void dump_out_shammx(void *x, unsigned int size, unsigned int index);
 void dump_out_shammx_msg(void *msg, void *buf, unsigned int size, unsigned int index);
-void alter_endianity(void * x, unsigned int size);
 #endif
 
 #if defined (MD5_SSE_PARA)
