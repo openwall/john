@@ -1843,6 +1843,7 @@ testpara-native:
 testpara32:
 	$(LN) x86-sse.h arch.h
 	CFLAGS="$(CFLAGS) -m32 -msse2 -DHAVE_OPENSSL" \
+	ASFLAGS="$(ASFLAGS) -m32 -msse2" \
 	perl ./para-best.pl "$(CC)" "$(MAKE)" \
 		"$(BENCH_PARA_DEPEND)" "-m32 -msse2 -DHAVE_OPENSSL" 32
 

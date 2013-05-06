@@ -29,7 +29,7 @@ $formNum{"sha1"} = 6;
 if ($arch_size eq "32") {
     `rm -f $depend para-bench`;
     print STDERR "\nCompiling assembler (4x) benchmarks\n";
-    `JOHN_CFLAGS="$extra_cflags -DJOHN_DISABLE_INTRINSICS" $make >/dev/null para-bench${arch_size}`;
+    `JOHN_ASFLAGS="$extra_cflags" JOHN_CFLAGS="$extra_cflags -DJOHN_DISABLE_INTRINSICS" $make >/dev/null para-bench${arch_size}`;
     foreach my $format (qw(md4 md5 md5c sha1)) {
 	$res{$format}{"asm 4x80"} = `./para-bench $formNum{$format} $time`;
     }
@@ -43,7 +43,7 @@ foreach my $format (qw(md4 md5 sha1)) {
 		my $sha1p = ++$para;
 		`rm -f $depend para-bench`;
 		printf STDERR "\nCompiling $format [${shabuf}x4] intrinsics benchmarks with PARA %u (%ux)\n", $para, $para * 4;
-		`JOHN_CFLAGS="$extra_cflags -DMD4_SSE_PARA=1 -DMD5_SSE_PARA=1 -DSHA1_SSE_PARA=$sha1p -DSHA_BUF_SIZ=$shabuf" $make >/dev/null para-bench${arch_size}`;
+		`JOHN_ASFLAGS="$extra_cflags" JOHN_CFLAGS="$extra_cflags -DMD4_SSE_PARA=1 -DMD5_SSE_PARA=1 -DSHA1_SSE_PARA=$sha1p -DSHA_BUF_SIZ=$shabuf" $make >/dev/null para-bench${arch_size}`;
 		$res{$format}{"para_".$para." 4x".$shabuf} = `./para-bench $formNum{$format} $time`;
 	    } while (($para < 2) || $res{$format}{"para_".$para." 4x".$shabuf} > $res{$format}{"para_".($para-1)." 4x".$shabuf});
 	    delete $res{$format}{"para_".$para." 4x".$shabuf};
@@ -54,9 +54,9 @@ foreach my $format (qw(md4 md5 sha1)) {
 	    `rm -f $depend para-bench`;
 	    printf STDERR "\nCompiling $format intrinsics benchmarks with PARA %u (%ux)\n", ++$para, $para * 4;
 	    if ($format eq "md4") {
-		`JOHN_CFLAGS="$extra_cflags -DMD4_SSE_PARA=$para -DMD5_SSE_PARA=1 -DSHA1_SSE_PARA=1 -DSHA_BUF_SIZ=16" $make >/dev/null para-bench${arch_size}`;
+		`JOHN_ASFLAGS="$extra_cflags" JOHN_CFLAGS="$extra_cflags -DMD4_SSE_PARA=$para -DMD5_SSE_PARA=1 -DSHA1_SSE_PARA=1 -DSHA_BUF_SIZ=16" $make >/dev/null para-bench${arch_size}`;
 	    } else {
-		`JOHN_CFLAGS="$extra_cflags -DMD4_SSE_PARA=1 -DMD5_SSE_PARA=$para -DSHA1_SSE_PARA=1 -DSHA_BUF_SIZ=16" $make >/dev/null para-bench${arch_size}`;
+		`JOHN_ASFLAGS="$extra_cflags" JOHN_CFLAGS="$extra_cflags -DMD4_SSE_PARA=1 -DMD5_SSE_PARA=$para -DSHA1_SSE_PARA=1 -DSHA_BUF_SIZ=16" $make >/dev/null para-bench${arch_size}`;
 	    }
 	    $res{$format}{"para_".$para} = `./para-bench $formNum{$format} $time`;
 	    if ($format eq "md5") {
