@@ -7,6 +7,9 @@
 #ifdef __APPLE__
 #define _DARWIN_C_SOURCE /* for flock(2) */
 #endif
+
+#include "os.h"
+
 #include <stdio.h>
 #include <unistd.h>
 #include <sys/types.h>
@@ -18,7 +21,6 @@
 #include <string.h>
 
 #include "arch.h"
-#include "os.h"
 #include "misc.h"
 #include "params.h"
 #include "path.h"

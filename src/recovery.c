@@ -9,6 +9,9 @@
 #ifdef __APPLE__
 #define _DARWIN_C_SOURCE /* for flock(2) */
 #endif
+
+#include "os.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -24,7 +27,6 @@ extern int ftruncate(int fd, size_t length);
 #endif
 
 #include "arch.h"
-#include "os.h"
 #include "misc.h"
 #include "params.h"
 #include "path.h"
