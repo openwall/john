@@ -216,7 +216,7 @@ BENCH_OBJS = \
 PARA_BENCH_32_OBJS = \
 	bench-t.o para-best.o common.o config_g.o formats_g.o math.o memory.o \
 	miscnl.o params.o path.o signals_g.o tty.o sha1-mmx.o md4-mmx.o \
-	md5-mmx.o x86.S $(BENCH_PARA_DEPEND)
+	md5-mmx.o x86.o $(BENCH_PARA_DEPEND)
 
 PARA_BENCH_OBJS = \
 	bench-t.o para-best.o common.o config_g.o formats_g.o math.o memory.o \

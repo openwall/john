@@ -13,7 +13,7 @@ my ($cc, $make, $depend, $extra_cflags, $arch_size) = @ARGV;
 my %res;
 my $time;
 
-if ($^O eq 'MSWin32') {
+if ($^O eq 'MSWin32' || $^O eq 'cygwin') {
     $time = 5;	# Windows has lousy timer resolution
     $extra_cflags .= " -DUNDERSCORES";
 } else {
