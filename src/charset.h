@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2005,2008 by Solar Designer
+ * Copyright (c) 1996-2001,2005,2008,2013 by Solar Designer
  */
 
 /*
@@ -12,6 +12,13 @@
 
 #include "params.h"
 #include "loader.h"
+
+/*
+ * While CHARSET_MIN and CHARSET_MAX are configurable in params.h, CHARSET_SIZE
+ * is expected (by declarations and code in charset.c and inc.c) to be exactly
+ * (CHARSET_MAX - CHARSET_MIN + 1).  So let's define it that way in here.
+ */
+#define CHARSET_SIZE			(CHARSET_MAX - CHARSET_MIN + 1)
 
 /*
  * Charset file control char codes (only CHARSET_ESC is reserved, and can't
