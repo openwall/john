@@ -475,8 +475,10 @@ void do_incremental_crack(struct db_main *db, char *mode)
 		error();
 	}
 
+#if CHARSET_SIZE < 0xff
 	if (header->count > CHARSET_SIZE)
 		inc_format_error(charset);
+#endif
 
 	check =
 		(unsigned int)header->check[0] |
