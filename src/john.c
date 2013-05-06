@@ -419,10 +419,12 @@ static void john_load(void)
 			else
 				log_event("Starting a new session");
 			log_event("Loaded a total of %s", john_loaded_counts());
-			printf("Loaded %s (%s [%s])\n",
-				john_loaded_counts(),
-				database.format->params.format_name,
-				database.format->params.algorithm_name);
+			printf("Loaded %s (%s%s%s [%s])\n",
+			    john_loaded_counts(),
+			    database.format->params.label,
+			    database.format->params.format_name[0] ? ", " : "",
+			    database.format->params.format_name,
+			    database.format->params.algorithm_name);
 		}
 
 		total = database.password_count;
