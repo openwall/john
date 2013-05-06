@@ -4,6 +4,9 @@
  */
 
 #define _XOPEN_SOURCE /* for fileno(3) and fsync(2) */
+#ifdef __APPLE__
+#define _DARWIN_C_SOURCE /* for flock(2) */
+#endif
 #include <stdio.h>
 #include <unistd.h>
 #include <sys/types.h>
