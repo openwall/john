@@ -44,4 +44,14 @@
 
 #endif
 
+#ifdef NEED_OS_FORK
+
+#ifdef __DJGPP__
+#define OS_FORK				0
+#else
+#define OS_FORK				1
+#endif
+
+#endif
+
 #endif

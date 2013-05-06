@@ -16,7 +16,12 @@
  */
 extern int john_main_process;
 
-#ifndef __DJGPP__
+#ifndef NEED_OS_FORK
+#define NEED_OS_FORK
+#include "os.h"
+#endif
+
+#if OS_FORK
 /*
  * Number of child processes, if any (or zero otherwise).
  */

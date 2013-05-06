@@ -11,6 +11,7 @@
 #endif
 
 #define NEED_OS_TIMER
+#define NEED_OS_FORK
 #include "os.h"
 
 #ifdef _SCO_C_DIALECT
@@ -199,7 +200,7 @@ static void sig_remove_abort(void)
 #endif
 }
 
-#ifndef __DJGPP__
+#if OS_FORK
 static void signal_children(int signum)
 {
 	int i;
@@ -228,17 +229,25 @@ static void sig_handle_timer(int signum)
 	}
 
 	if (john_main_process) {
-		int c, new_abort = 0, new_status = 0;
+		int c;
+#if OS_FORK
+		int new_abort = 0, new_status = 0;
+#endif
 		while ((c = tty_getchar()) >= 0) {
 			if (c == 3 || c == 'q') {
+#if OS_FORK
 				new_abort = 1;
+#endif
 				sig_handle_abort(0);
 			} else {
-				event_status = event_pending = new_status = 1;
+#if OS_FORK
+				new_status = 1;
+#endif
+				event_status = event_pending = 1;
 			}
 		}
 
-#ifndef __DJGPP__
+#if OS_FORK
 		if (new_abort || new_status)
 			signal_children(new_abort ? SIGTERM : SIGUSR2);
 #endif
@@ -304,7 +313,7 @@ static void sig_remove_timer(void)
 	signal(SIGALRM, SIG_DFL);
 }
 
-#ifndef __DJGPP__
+#if OS_FORK
 static void sig_handle_status(int signum)
 {
 	event_status = event_pending = 1;
@@ -337,7 +346,7 @@ void sig_init(void)
 	sig_install_update();
 	sig_install_abort();
 	sig_install_timer();
-#ifndef __DJGPP__
+#if OS_FORK
 	signal(SIGUSR2, sig_handle_status);
 #endif
 }

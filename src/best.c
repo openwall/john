@@ -12,6 +12,9 @@
 #define _POSIX_SOURCE
 #endif
 
+#define NEED_OS_FORK
+#include "os.h"
+
 #ifdef _SCO_C_DIALECT
 #include <limits.h>
 #endif
@@ -27,7 +30,7 @@
 extern struct fmt_main fmt_DES, fmt_MD5, fmt_BF;
 
 int john_main_process = 0;
-#ifndef __DJGPP__
+#if OS_FORK
 int john_child_count = 0;
 int *john_child_pids = NULL;
 #endif
