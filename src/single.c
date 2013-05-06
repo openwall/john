@@ -432,7 +432,7 @@ static void single_run(void)
 		}
 
 		if (strcmp(prerule, rule))
-			log_event("- Rule #%d: '%.100s' accepted as '%s'",
+			log_event("- Rule #%d: '%.100s' accepted as '%.100s'",
 				rule_number + 1, prerule, rule);
 		else
 			log_event("- Rule #%d: '%.100s' accepted",
