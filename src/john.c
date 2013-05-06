@@ -167,11 +167,17 @@ static void john_omp_maybe_adjust_or_fallback(char **argv)
 static void john_omp_show_info(void)
 {
 	if (!options.fork && john_omp_threads_orig > 1 &&
-	    database.format &&
-	    !(database.format->params.flags & FMT_OMP) &&
-	    !rec_restoring_now)
-		fprintf(stderr, "Warning: no OpenMP support for this "
-		    "hash type, consider --fork=%d\n", john_omp_threads_orig);
+	    database.format && !rec_restoring_now) {
+		const char *msg = NULL;
+		if (!(database.format->params.flags & FMT_OMP))
+			msg = "no OpenMP support";
+		else if ((database.format->params.flags & FMT_OMP_BAD))
+			msg = "poor OpenMP scalability";
+		if (msg)
+			fprintf(stderr, "Warning: %s for this hash type, "
+			    "consider --fork=%d\n",
+			    msg, john_omp_threads_orig);
+	}
 
 /*
  * Only show OpenMP info if one of the following is true:
