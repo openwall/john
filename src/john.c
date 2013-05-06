@@ -603,6 +603,7 @@ static void john_fork(void)
 					    " %s\n", rec_name);
 				options.node_min = options.node_max = node_id;
 			}
+			sig_init_child();
 			return;
 
 		default:

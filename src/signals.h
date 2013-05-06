@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2006 by Solar Designer
+ * Copyright (c) 1996-2001,2006,2013 by Solar Designer
  *
  * ...with changes in the jumbo patch for mingw and MSC, by JimF.
  */
@@ -51,6 +51,12 @@ extern void sig_timer_emu_tick(void);
  * Installs the signal handlers.
  */
 extern void sig_init(void);
+
+/*
+ * Performs additional (re-)initialization after fork().  Assumes that
+ * sig_init() has already been called.
+ */
+extern void sig_init_child(void);
 
 /*
  * Terminates the process if event_abort is set.

@@ -307,7 +307,7 @@ static void status_print_cracking(char *percent)
 	unsigned int time = status_get_time();
 	char *key1, key2[PLAINTEXT_BUFFER_SIZE];
 	UTF8 t1buf[PLAINTEXT_BUFFER_SIZE + 1];
-	int64 g = {status.guess_count, 0};
+	int64 g;
 	char s_gps[32], s_pps[32], s_crypts_ps[32], s_combs_ps[32];
 	char s1[32], s2[256], s3[72], s4[40];
 	char sc[32];
@@ -345,6 +345,7 @@ static void status_print_cracking(char *percent)
 		        ((unsigned long long)status.crypts.hi << 32) +
 		        status.crypts.lo);
 
+	g.lo = status.guess_count; g.hi = 0;
 	sprintf(s2,
 	    "%ug%s %u:%02u:%02u:%02u%s%s %sg/s ",
 	    status.guess_count,

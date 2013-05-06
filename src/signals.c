@@ -261,34 +261,14 @@ static void sig_remove_abort(void)
 #endif
 }
 
-#ifdef __CYGWIN32__
-
-static int sig_getchar(void)
-{
-	int c;
-
-	if ((c = tty_getchar()) == 3) {
-		sig_handle_abort(CTRL_C_EVENT);
-		return -1;
-	}
-
-	return c;
-}
-
-#else
-
-#define sig_getchar tty_getchar
-
-#endif
-
-#ifndef __DJGPP__
 #ifndef _MSC_VER
-static void signal_children(void)
+#ifndef __DJGPP__
+static void signal_children(int signum)
 {
 	int i;
 	for (i = 0; i < john_child_count; i++)
 		if (john_child_pids[i])
-			kill(john_child_pids[i], SIGUSR2);
+			kill(john_child_pids[i], signum);
 }
 #endif
 #endif
@@ -343,17 +323,24 @@ static void sig_handle_timer(int signum)
 		event_ticksafety = event_pending = 1;
 	}
 
-#ifndef _MSC_VER
-	if (sig_getchar() >= 0) {
-		while (sig_getchar() >= 0)
-			continue;
+#ifndef HAVE_MPI
+	if (john_main_process) {
+#else
+	{
+#endif
+		int c;
+		while ((c = tty_getchar()) >= 0) {
+			if (c == 3 || c == 'q')
+				sig_handle_abort(0);
+			else
+				event_status = event_pending = 1;
+		}
 
-		event_status = event_pending = 1;
 #ifndef __DJGPP__
-		signal_children();
+		if (event_abort || event_status)
+			signal_children(event_abort ? SIGTERM : SIGUSR2);
 #endif
 	}
-#endif
 
 #if !OS_TIMER
 	signal(SIGALRM, sig_handle_timer);
@@ -364,6 +351,23 @@ static void sig_handle_timer(int signum)
 	errno = saved_errno;
 }
 
+#if OS_TIMER
+static void sig_init_timer(void)
+{
+	struct itimerval it;
+
+	it.it_value.tv_sec = TIMER_INTERVAL;
+	it.it_value.tv_usec = 0;
+#if defined(SA_RESTART) || defined(__DJGPP__)
+	it.it_interval = it.it_value;
+#else
+	memset(&it.it_interval, 0, sizeof(it.it_interval));
+#endif
+	if (setitimer(ITIMER_REAL, &it, NULL))
+		pexit("setitimer");
+}
+#endif
+
 static void sig_install_timer(void)
 {
 #if !OS_TIMER
@@ -371,7 +375,6 @@ static void sig_install_timer(void)
 	sig_timer_emu_init(TIMER_INTERVAL * clk_tck);
 #else
 	struct sigaction sa;
-	struct itimerval it;
 
 	memset(&sa, 0, sizeof(sa));
 	sa.sa_handler = sig_handle_timer;
@@ -383,14 +386,7 @@ static void sig_install_timer(void)
 	siginterrupt(SIGALRM, 0);
 #endif
 
-	it.it_value.tv_sec = TIMER_INTERVAL;
-	it.it_value.tv_usec = 0;
-#if defined(SA_RESTART) || defined(__DJGPP__)
-	it.it_interval = it.it_value;
-#else
-	memset(&it.it_interval, 0, sizeof(it.it_interval));
-#endif
-	if (setitimer(ITIMER_REAL, &it, NULL)) pexit("setitimer");
+	sig_init_timer();
 #endif
 }
 
@@ -448,6 +444,13 @@ void sig_init(void)
 #ifndef _MSC_VER
 	signal(SIGUSR2, sig_handle_status);
 #endif
+#endif
+}
+
+void sig_init_child(void)
+{
+#if OS_TIMER
+	sig_init_timer();
 #endif
 }
 
