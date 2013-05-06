@@ -3,6 +3,7 @@
  * Copyright (c) 1996-2003,2006,2010-2013 by Solar Designer
  */
 
+#define NEED_OS_TIMER
 #include "os.h"
 
 #include <string.h>

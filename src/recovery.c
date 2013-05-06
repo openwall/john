@@ -6,10 +6,8 @@
 #ifndef __FreeBSD__
 #define _XOPEN_SOURCE 500 /* for fdopen(3), fileno(3), fsync(2), ftruncate(2) */
 #endif
-#ifdef __APPLE__
-#define _DARWIN_C_SOURCE /* for flock(2) */
-#endif
 
+#define NEED_OS_FLOCK
 #include "os.h"
 
 #include <stdio.h>
@@ -68,11 +66,7 @@ static void rec_name_complete(void)
 	rec_name_completed = 1;
 }
 
-#if !defined(LOCK_EX) && OS_FLOCK
-#warning LOCK_EX is not available - will skip locking
-#endif
-
-#if defined(LOCK_EX) && OS_FLOCK
+#if OS_FLOCK
 static void rec_lock(void)
 {
 	if (flock(rec_fd, LOCK_EX | LOCK_NB)) {
