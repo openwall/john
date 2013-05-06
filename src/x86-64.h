@@ -241,8 +241,8 @@
 
 #ifndef SHA1_SSE_PARA
 #if defined(__INTEL_COMPILER) || defined(USING_ICC_S_FILE)
-#define SHA1_SSE_PARA			2
-#define SHA1_N_STR			"8x"
+#define SHA1_SSE_PARA			1
+#define SHA1_N_STR			"4x"
 #elif defined(__clang__)
 #define SHA1_SSE_PARA			2
 #define SHA1_N_STR			"8x"
