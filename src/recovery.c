@@ -6,6 +6,9 @@
 #ifndef __FreeBSD__
 #define _XOPEN_SOURCE 500 /* for fdopen(3), fileno(3), fsync(2), ftruncate(2) */
 #endif
+#ifdef __APPLE__
+#define _DARWIN_C_SOURCE /* for flock(2) */
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
