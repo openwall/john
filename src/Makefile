@@ -19,6 +19,8 @@ OMPFLAGS =
 #OMPFLAGS = -fopenmp
 # gcc with OpenMP on 32-bit x86 with SSE2
 #OMPFLAGS = -fopenmp -msse2
+# Mac OS X (llvm-gcc) with OpenMP
+#OMPFLAGS = -fopenmp -D_FORTIFY_SOURCE=0
 # Sun Studio with OpenMP (set the OMP_NUM_THREADS env var at runtime)
 #OMPFLAGS = -xopenmp
 CFLAGS = -c -Wall -Wdeclaration-after-statement -O2 -fomit-frame-pointer $(OMPFLAGS)
