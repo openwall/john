@@ -1,3 +1,8 @@
+The following changes have been made between John 1.7.9.12 and 1.7.9.13:
+
+* Mass rename of formats.
+* Assorted other changes.
+
 The following changes have been made between John 1.7.9.11 and 1.7.9.12:
 
 * The --fork=N option has been added.
