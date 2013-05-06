@@ -410,11 +410,7 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 
 	if (options.flags & FLG_RESTORE_CHK) {
 		char *rec_name_orig = rec_name;
-#ifndef HAVE_MPI
-		rec_restore_args(1);
-#else
-		rec_restore_args(!mpi_id);
-#endif
+		rec_restore_args(john_main_process ? 1 : 2);
 #ifndef HAVE_MPI
 		if (options.fork) {
 #else

@@ -82,9 +82,9 @@ static void rec_name_complete(void)
 }
 
 #if defined(LOCK_EX) && OS_FLOCK
-static void rec_lock(void)
+static void rec_lock(int lock)
 {
-	if (flock(rec_fd, LOCK_EX | LOCK_NB)) {
+	if (flock(rec_fd, ((lock == 1) ? LOCK_EX : LOCK_SH) | LOCK_NB)) {
 		if (errno == EWOULDBLOCK) {
 #ifdef HAVE_MPI
 			fprintf(stderr, "Node %d@%s: Crash recovery file is locked: %s\n",
@@ -95,7 +95,7 @@ static void rec_lock(void)
 #endif
 			error();
 		} else
-			pexit("flock(LOCK_EX)");
+			pexit("flock(%s)", (lock == 1) ? "LOCK_EX" : "LOCK_SH");
 	}
 }
 static void rec_unlock(void)
@@ -104,7 +104,7 @@ static void rec_unlock(void)
 		perror("flock(LOCK_UN)");
 }
 #else
-#define rec_lock() \
+#define rec_lock(lock) \
 	{}
 #define rec_unlock() \
 	{}
@@ -120,7 +120,7 @@ void rec_init(struct db_main *db, void (*save_mode)(FILE *file))
 
 	if ((rec_fd = open(path_expand(rec_name), O_RDWR | O_CREAT, 0600)) < 0)
 		pexit("open: %s", path_expand(rec_name));
-	rec_lock();
+	rec_lock(1);
 	if (!(rec_file = fdopen(rec_fd, "w"))) pexit("fdopen");
 
 	rec_db = db;
@@ -278,7 +278,7 @@ void rec_restore_args(int lock)
 	}
 	rec_fd = fileno(rec_file);
 
-	if (lock) rec_lock();
+	if (lock) rec_lock(lock);
 
 	if (!fgetl(line, sizeof(line), rec_file)) rec_format_error("fgets");
 
