@@ -10,6 +10,8 @@
 #define _POSIX_SOURCE
 #endif
 
+#include "os.h"
+
 #ifdef _SCO_C_DIALECT
 #include <limits.h>
 #endif
@@ -30,7 +32,6 @@
 #endif
 
 #include "arch.h"
-#include "os.h"
 #include "misc.h"
 #include "params.h"
 #include "tty.h"

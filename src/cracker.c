@@ -3,11 +3,12 @@
  * Copyright (c) 1996-2003,2006,2010-2013 by Solar Designer
  */
 
+#include "os.h"
+
 #include <string.h>
 #include <assert.h>
 
 #include "arch.h"
-#include "os.h"
 #include "misc.h"
 #include "math.h"
 #include "params.h"

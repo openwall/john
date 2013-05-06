@@ -10,6 +10,8 @@
 #define _POSIX_SOURCE
 #endif
 
+#include "os.h"
+
 #ifdef _SCO_C_DIALECT
 #include <limits.h>
 #endif
@@ -24,7 +26,6 @@
 #include "times.h"
 
 #include "arch.h"
-#include "os.h"
 #include "misc.h"
 #include "math.h"
 #include "params.h"
