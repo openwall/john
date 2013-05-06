@@ -626,6 +626,7 @@ static void john_done(void)
 			    "but some child processes failed";
 			log_event("%s", msg);
 			fprintf(stderr, "%s\n", msg);
+			exit_status = 1;
 		}
 		fmt_done(database.format);
 	}
