@@ -199,7 +199,7 @@ static void status_print_cracking(char *percent)
 {
 	unsigned int time = status_get_time();
 	char *key1, key2[PLAINTEXT_BUFFER_SIZE];
-	int64 g = {status.guess_count, 0};
+	int64 g;
 	char s_gps[32], s_pps[32], s_crypts_ps[32], s_combs_ps[32];
 	char s1[32], s2[256], s3[72], s4[40];
 
@@ -218,6 +218,7 @@ static void status_print_cracking(char *percent)
 	if (options.fork)
 		sprintf(s1, "%u ", options.node_min);
 
+	g.lo = status.guess_count; g.hi = 0;
 	sprintf(s2,
 	    "%ug %u:%02u:%02u:%02u%s %sg/s ",
 	    status.guess_count,
