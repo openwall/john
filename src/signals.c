@@ -10,6 +10,7 @@
 #define _POSIX_SOURCE
 #endif
 
+#define NEED_OS_TIMER
 #include "os.h"
 
 #ifdef _SCO_C_DIALECT

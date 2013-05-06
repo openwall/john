@@ -3,13 +3,12 @@
  * Copyright (c) 1996-2001,2003,2004,2006,2008-2012 by Solar Designer
  */
 
-#define _XOPEN_SOURCE 500 /* for setitimer(2) */
-
 #ifdef __ultrix__
 #define __POSIX
 #define _POSIX_SOURCE
 #endif
 
+#define NEED_OS_TIMER
 #include "os.h"
 
 #ifdef _SCO_C_DIALECT
