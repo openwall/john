@@ -24,6 +24,7 @@
 #include "times.h"
 
 #include "arch.h"
+#include "os.h"
 #include "misc.h"
 #include "math.h"
 #include "params.h"
