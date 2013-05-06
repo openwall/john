@@ -247,7 +247,7 @@ static void status_print_stdout(char *percent)
 
 	key = NULL;
 	if (!(options.flags & FLG_STATUS_CHK) &&
-	    (status.crypts.lo | status.crypts.hi))
+	    (status.cands.lo | status.cands.hi))
 		key = crk_get_key1();
 
 	fprintf(stderr,
