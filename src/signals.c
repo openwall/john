@@ -196,33 +196,13 @@ static void sig_remove_abort(void)
 #endif
 }
 
-#ifdef __CYGWIN32__
-
-static int sig_getchar(void)
-{
-	int c;
-
-	if ((c = tty_getchar()) == 3) {
-		sig_handle_abort(CTRL_C_EVENT);
-		return -1;
-	}
-
-	return c;
-}
-
-#else
-
-#define sig_getchar tty_getchar
-
-#endif
-
 #ifndef __DJGPP__
-static void signal_children(void)
+static void signal_children(int signum)
 {
 	int i;
 	for (i = 0; i < john_child_count; i++)
 		if (john_child_pids[i])
-			kill(john_child_pids[i], SIGUSR2);
+			kill(john_child_pids[i], signum);
 }
 #endif
 
@@ -244,13 +224,18 @@ static void sig_handle_timer(int signum)
 		event_ticksafety = event_pending = 1;
 	}
 
-	if (john_main_process && sig_getchar() >= 0) {
-		while (sig_getchar() >= 0)
-			continue;
+	if (john_main_process) {
+		int c;
+		while ((c = tty_getchar()) >= 0) {
+			if (c == 3 || c == 'q')
+				sig_handle_abort(0);
+			else
+				event_status = event_pending = 1;
+		}
 
-		event_status = event_pending = 1;
 #ifndef __DJGPP__
-		signal_children();
+		if (event_abort || event_status)
+			signal_children(event_abort ? SIGTERM : SIGUSR2);
 #endif
 	}
 
