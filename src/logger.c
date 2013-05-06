@@ -18,6 +18,7 @@
 #include <string.h>
 
 #include "arch.h"
+#include "os.h"
 #include "misc.h"
 #include "params.h"
 #include "path.h"

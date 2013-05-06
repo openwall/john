@@ -24,6 +24,7 @@ extern int ftruncate(int fd, size_t length);
 #endif
 
 #include "arch.h"
+#include "os.h"
 #include "misc.h"
 #include "params.h"
 #include "path.h"

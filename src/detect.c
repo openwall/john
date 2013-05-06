@@ -7,15 +7,6 @@
  * Architecture specific parameters detection program.
  */
 
-#define _XOPEN_SOURCE 500 /* for ITIMER_REAL */
-#include <sys/time.h>
-
-#ifdef ITIMER_REAL
-#define OS_TIMER
-#endif
-
-#define OS_FLOCK /* we also check for defined(LOCK_EX) on all uses anyway */
-
 #include <stdio.h>
 
 int main(int argc, char **argv)
@@ -49,17 +40,6 @@ int main(int argc, char **argv)
 "#define ARCH_INDEX(x)\t\t\t((unsigned long)(unsigned char)(x))\n"
 #else
 "#define ARCH_INDEX(x)\t\t\t((unsigned int)(unsigned char)(x))\n"
-#endif
-"\n"
-#ifdef OS_TIMER
-"#define OS_TIMER\t\t\t1\n"
-#else
-"#define OS_TIMER\t\t\t0\n"
-#endif
-#ifdef OS_FLOCK
-"#define OS_FLOCK\t\t\t1\n"
-#else
-"#define OS_FLOCK\t\t\t0\n"
 #endif
 "\n",
 		(int)sizeof(long),
