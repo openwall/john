@@ -225,17 +225,19 @@ static void sig_handle_timer(int signum)
 	}
 
 	if (john_main_process) {
-		int c;
+		int c, new_abort = 0, new_status = 0;
 		while ((c = tty_getchar()) >= 0) {
-			if (c == 3 || c == 'q')
+			if (c == 3 || c == 'q') {
+				new_abort = 1;
 				sig_handle_abort(0);
-			else
-				event_status = event_pending = 1;
+			} else {
+				event_status = event_pending = new_status = 1;
+			}
 		}
 
 #ifndef __DJGPP__
-		if (event_abort || event_status)
-			signal_children(event_abort ? SIGTERM : SIGUSR2);
+		if (new_abort || new_status)
+			signal_children(new_abort ? SIGTERM : SIGUSR2);
 #endif
 	}
 
