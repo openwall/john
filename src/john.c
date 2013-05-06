@@ -178,8 +178,11 @@ static void john_omp_show_info(void)
 		else if ((database.format->params.flags & FMT_OMP_BAD))
 			msg = "poor OpenMP scalability";
 		if (msg)
-			fprintf(stderr, "Warning: %s for this hash type, "
-			    "consider --fork=%d\n",
+			fprintf(stderr, "Warning: %s for this hash type"
+#if OS_FORK
+			    ", consider --fork=%d"
+#endif
+			    "\n",
 			    msg, john_omp_threads_orig);
 	}
 
@@ -207,6 +210,7 @@ static void john_omp_show_info(void)
 	}
 
 	if (options.fork) {
+#if OS_FORK
 		if (john_omp_threads_new > 1)
 			fprintf(stderr,
 			    "Will run %d OpenMP threads per process "
@@ -216,6 +220,7 @@ static void john_omp_show_info(void)
 		else if (john_omp_threads_orig > 1)
 			fputs("Warning: OpenMP was disabled due to --fork; "
 			    "a non-OpenMP build may be faster\n", stderr);
+#endif
 	} else {
 		if (john_omp_threads_new > 1)
 			fprintf(stderr,
