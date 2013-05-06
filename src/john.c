@@ -3,6 +3,9 @@
  * Copyright (c) 1996-2004,2006,2009-2013 by Solar Designer
  */
 
+#define NEED_OS_FORK
+#include "os.h"
+
 #include <stdio.h>
 #include <unistd.h>
 #include <errno.h>
@@ -10,7 +13,7 @@
 #include <strings.h>
 #include <stdlib.h>
 #include <sys/stat.h>
-#ifndef __DJGPP__
+#if OS_FORK
 #include <sys/wait.h>
 #endif
 
@@ -63,7 +66,7 @@ extern int unafs(int argc, char **argv);
 extern int unique(int argc, char **argv);
 
 int john_main_process = 1;
-#ifndef __DJGPP__
+#if OS_FORK
 int john_child_count = 0;
 int *john_child_pids = NULL;
 #endif
@@ -228,7 +231,7 @@ static void john_omp_show_info(void)
 
 static void john_fork(void)
 {
-#ifdef __DJGPP__
+#if !OS_FORK
 	fputs("Warning: --fork is not supported in this build, "
 	    "will run one process\n", stderr);
 #else
@@ -285,7 +288,7 @@ static void john_fork(void)
 
 static void john_wait(void)
 {
-#ifndef __DJGPP__
+#if OS_FORK
 	int waiting_for = john_child_count;
 
 	log_event("Waiting for %d child%s to terminate",
