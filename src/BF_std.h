@@ -55,9 +55,9 @@ extern BF_binary BF_out[BF_N];
 extern unsigned char BF_atoi64[0x80];
 
 #if BF_X2
-#define BF_ALGORITHM_NAME		"32/" ARCH_BITS_STR " X2"
+#define BF_ALGORITHM_NAME		"Blowfish 32/" ARCH_BITS_STR " X2"
 #else
-#define BF_ALGORITHM_NAME		"32/" ARCH_BITS_STR
+#define BF_ALGORITHM_NAME		"Blowfish 32/" ARCH_BITS_STR
 #endif
 
 /*

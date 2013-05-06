@@ -12,8 +12,8 @@
 #include "common.h"
 #include "formats.h"
 
-#define FORMAT_LABEL			"afs"
-#define FORMAT_NAME			"Kerberos AFS DES"
+#define FORMAT_LABEL			"AFS"
+#define FORMAT_NAME			"Kerberos AFS"
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		8

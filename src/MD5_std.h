@@ -121,9 +121,9 @@ extern MD5_std_combined MD5_std_all;
 #define MD5_out				MD5_std_all.out
 
 #if MD5_X2
-#define MD5_ALGORITHM_NAME		"32/" ARCH_BITS_STR " X2"
+#define MD5_ALGORITHM_NAME		"MD5 32/" ARCH_BITS_STR " X2"
 #else
-#define MD5_ALGORITHM_NAME		"32/" ARCH_BITS_STR
+#define MD5_ALGORITHM_NAME		"MD5 32/" ARCH_BITS_STR
 #endif
 
 /*

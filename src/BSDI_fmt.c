@@ -11,10 +11,10 @@
 #include "common.h"
 #include "formats.h"
 
-#define FORMAT_LABEL			"bsdi"
-#define FORMAT_NAME			"BSDI DES"
+#define FORMAT_LABEL			"bsdicrypt"
+#define FORMAT_NAME			"BSDI crypt(3)"
 
-#define BENCHMARK_COMMENT		" (x725)"
+#define BENCHMARK_COMMENT		" (\"_J9..\", 725 iterations)"
 #define BENCHMARK_LENGTH		0
 
 #define PLAINTEXT_LENGTH		64
