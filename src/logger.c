@@ -71,6 +71,10 @@ static void log_file_flush(struct log_file *f)
 	count = f->ptr - f->buffer;
 	if (count <= 0) return;
 
+#if !defined(LOCK_EX) && OS_FLOCK
+#warning LOCK_EX is not available - will skip locking
+#endif
+
 #if defined(LOCK_EX) && OS_FLOCK
 	while (flock(f->fd, LOCK_EX)) {
 		if (errno != EINTR)
