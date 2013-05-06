@@ -244,7 +244,7 @@ static void sig_handle_timer(int signum)
 		event_ticksafety = event_pending = 1;
 	}
 
-	if (sig_getchar() >= 0) {
+	if (john_main_process && sig_getchar() >= 0) {
 		while (sig_getchar() >= 0)
 			continue;
 
@@ -263,6 +263,23 @@ static void sig_handle_timer(int signum)
 	errno = saved_errno;
 }
 
+#if OS_TIMER
+static void sig_init_timer(void)
+{
+	struct itimerval it;
+
+	it.it_value.tv_sec = TIMER_INTERVAL;
+	it.it_value.tv_usec = 0;
+#if defined(SA_RESTART) || defined(__DJGPP__)
+	it.it_interval = it.it_value;
+#else
+	memset(&it.it_interval, 0, sizeof(it.it_interval));
+#endif
+	if (setitimer(ITIMER_REAL, &it, NULL))
+		pexit("setitimer");
+}
+#endif
+
 static void sig_install_timer(void)
 {
 #if !OS_TIMER
@@ -270,7 +287,6 @@ static void sig_install_timer(void)
 	sig_timer_emu_init(TIMER_INTERVAL * clk_tck);
 #else
 	struct sigaction sa;
-	struct itimerval it;
 
 	memset(&sa, 0, sizeof(sa));
 	sa.sa_handler = sig_handle_timer;
@@ -282,14 +298,7 @@ static void sig_install_timer(void)
 	siginterrupt(SIGALRM, 0);
 #endif
 
-	it.it_value.tv_sec = TIMER_INTERVAL;
-	it.it_value.tv_usec = 0;
-#if defined(SA_RESTART) || defined(__DJGPP__)
-	it.it_interval = it.it_value;
-#else
-	memset(&it.it_interval, 0, sizeof(it.it_interval));
-#endif
-	if (setitimer(ITIMER_REAL, &it, NULL)) pexit("setitimer");
+	sig_init_timer();
 #endif
 }
 
@@ -340,6 +349,13 @@ void sig_init(void)
 	sig_install_timer();
 #ifndef __DJGPP__
 	signal(SIGUSR2, sig_handle_status);
+#endif
+}
+
+void sig_init_child(void)
+{
+#if OS_TIMER
+	sig_init_timer();
 #endif
 }
 
