@@ -87,6 +87,8 @@ extern void rec_done(int save);
 
 /*
  * Opens the file and restores command line arguments. Leaves the file open.
+ * MPI code path call rec_restore_args(mpi_p) which in turn calls rec_lock()
+ * with same argument - relying on anything >1 meaning LOCK_SH.
  */
 extern void rec_restore_args(int lock);
 

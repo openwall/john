@@ -84,6 +84,8 @@ static void rec_name_complete(void)
 #if defined(LOCK_EX) && OS_FLOCK
 static void rec_lock(int lock)
 {
+	/* In options.c, MPI code path call rec_restore_args(mpi_p)
+	 * relying on anything >1 meaning LOCK_SH */
 	if (flock(rec_fd, ((lock == 1) ? LOCK_EX : LOCK_SH) | LOCK_NB)) {
 		if (errno == EWOULDBLOCK) {
 #ifdef HAVE_MPI
