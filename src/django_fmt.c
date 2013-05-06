@@ -202,7 +202,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			pin[i] = (unsigned char*)saved_key[i+index];
 			pout[i] = crypt_out[i+index];
 		}
-		pbkdf2_sha256_sse(pin, lens, cur_salt->salt, strlen((char*)cur_salt->salt), cur_salt->iterations, pout);
+		pbkdf2_sha256_sse((const unsigned char **)pin, lens, cur_salt->salt, strlen((char*)cur_salt->salt), cur_salt->iterations, (unsigned char**)pout, 32, 0);
 #else
 //		PKCS5_PBKDF2_HMAC(saved_key[index], strlen(saved_key[index]),
 //			cur_salt->salt, strlen((char*)cur_salt->salt),
@@ -210,7 +210,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 		pbkdf2_sha256((unsigned char *)saved_key[index], strlen(saved_key[index]),
 			cur_salt->salt, strlen((char*)cur_salt->salt),
-			cur_salt->iterations, crypt_out[index]);
+			cur_salt->iterations, (unsigned char*)crypt_out[index], 32, 0);
 #endif
 	}
 	return count;

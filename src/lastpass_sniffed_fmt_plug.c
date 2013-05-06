@@ -170,7 +170,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			pin[i] = (unsigned char*)saved_key[i+index];
 			pout[i] = key[i];
 		}
-		pbkdf2_sha256_sse(pin, lens, (unsigned char*)cur_salt->username, strlen((char*)cur_salt->username), cur_salt->iterations, pout);
+		pbkdf2_sha256_sse((const unsigned char **)pin, lens, (unsigned char*)cur_salt->username, strlen((char*)cur_salt->username), cur_salt->iterations, (unsigned char **)pout, 32, 0);
 
 		for (i = 0; i < MMX_COEF_SHA256; ++i) {
 			unsigned char *Key = (unsigned char*)key[i];
@@ -187,7 +187,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #else
 		ARCH_WORD_32 key[8];
 		// PKCS5_PBKDF2_HMAC(saved_key[index], strlen(saved_key[index]), (unsigned char*)cur_salt->username, strlen((char*)cur_salt->username), cur_salt->iterations, EVP_sha256(), 32, key);
-		pbkdf2_sha256((unsigned char*)saved_key[index], strlen(saved_key[index]), (unsigned char*)cur_salt->username, strlen((char*)cur_salt->username), cur_salt->iterations, key);
+		pbkdf2_sha256((unsigned char*)saved_key[index], strlen(saved_key[index]), (unsigned char*)cur_salt->username, strlen((char*)cur_salt->username), cur_salt->iterations, (unsigned char*)key,32,0);
+		//pbkdf2_sha256_x((unsigned char*)saved_key[index], strlen(saved_key[index]), (unsigned char*)cur_salt->username, strlen((char*)cur_salt->username), cur_salt->iterations, (unsigned char*)key);
 
 		if(AES_set_decrypt_key((const unsigned char *)key, 256, &akey) < 0) {
 			fprintf(stderr, "AES_set_decrypt_key failed in crypt!\n");

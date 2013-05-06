@@ -33,7 +33,7 @@
 
 static void _pbkdf2_sha1_load_hmac(const unsigned char *K, int KL, SHA_CTX *pIpad, SHA_CTX *pOpad) {
 	unsigned char ipad[SHA_CBLOCK], opad[SHA_CBLOCK];
-	unsigned i;
+	int i;
 
 	memset(ipad, 0x36, SHA_CBLOCK);
 	memset(opad, 0x5C, SHA_CBLOCK);
@@ -54,7 +54,7 @@ static void _pbkdf2_sha1(const unsigned char *S, int SL, int R, ARCH_WORD_32 *ou
 	                     unsigned char loop, const SHA_CTX *pIpad, const SHA_CTX *pOpad) {
 	SHA_CTX ctx;
 	unsigned char tmp_hash[SHA_DIGEST_LENGTH];
-	unsigned i, j;
+	int i, j;
 
 	memcpy(&ctx, pIpad, sizeof(SHA_CTX));
 	SHA1_Update(&ctx, S, SL);
@@ -119,7 +119,7 @@ static void pbkdf2_sha1(const unsigned char *K, int KL, const unsigned char *S, 
 static void _pbkdf2_sha1_sse_load_hmac(const unsigned char *K[SSE_GROUP_SZ], int KL[SSE_GROUP_SZ], SHA_CTX pIpad[SSE_GROUP_SZ], SHA_CTX pOpad[SSE_GROUP_SZ])
 {
 	unsigned char ipad[SHA_CBLOCK], opad[SHA_CBLOCK];
-	unsigned i, j;
+	int i, j;
 
 	for (j = 0; j < SSE_GROUP_SZ; ++j) {
 		memset(ipad, 0x36, SHA_CBLOCK);
@@ -141,7 +141,8 @@ static void _pbkdf2_sha1_sse_load_hmac(const unsigned char *K[SSE_GROUP_SZ], int
 static void pbkdf2_sha1_sse(const unsigned char *K[SSE_GROUP_SZ], int KL[SSE_GROUP_SZ], const unsigned char *S, int SL, int R, unsigned char *out[SSE_GROUP_SZ], int outlen, int skip_bytes)
 {
 	unsigned char tmp_hash[SHA_DIGEST_LENGTH];
-	ARCH_WORD_32 i, j, *i1, *i2, *o1, *ptmp;
+	ARCH_WORD_32 *i1, *i2, *o1, *ptmp;
+	int i,j;
 	ARCH_WORD_32 dgst[SSE_GROUP_SZ][5];
 	int loops, accum=0;
 	unsigned char loop;
@@ -172,7 +173,7 @@ static void pbkdf2_sha1_sse(const unsigned char *K[SSE_GROUP_SZ], int KL[SSE_GRO
 		for (i = 6*MMX_COEF; i < 15*MMX_COEF; ++i)
 			ptmp[i] = 0;
 		for (i = 0; i < MMX_COEF; ++i)
-			ptmp[15*MMX_COEF + (i&(MMX_COEF-1))] = (84<<3); // all encrypts are 64+20 bytes.
+			ptmp[15*MMX_COEF + (i&(MMX_COEF-1))] = ((64+20)<<3); // all encrypts are 64+20 bytes.
 	}
 
 	// Load up the IPAD and OPAD values, saving off the first half of the crypt.  We then push the ipad/opad all
