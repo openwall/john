@@ -21,7 +21,7 @@ OMPFLAGS =
 #OMPFLAGS = -fopenmp -msse2
 # Sun Studio with OpenMP (set the OMP_NUM_THREADS env var at runtime)
 #OMPFLAGS = -xopenmp
-CFLAGS = -c -Wall -O2 -fomit-frame-pointer $(OMPFLAGS)
+CFLAGS = -c -Wall -Wdeclaration-after-statement -O2 -fomit-frame-pointer $(OMPFLAGS)
 # CFLAGS for use on the main john.c file only
 CFLAGS_MAIN = $(CFLAGS)
 ASFLAGS = -c $(OMPFLAGS)
