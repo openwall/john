@@ -38,7 +38,7 @@
 
 #if 1
 #define DES_BS_VECTOR			2
-#define DES_BS_ALGORITHM_NAME		"128/128 BS AltiVec"
+#define DES_BS_ALGORITHM_NAME		"DES 128/128 AltiVec"
 #elif 0
 /* It is likely unreasonable to use S-box expressions requiring vsel when this
  * operation is only available in one of the two instruction sets.
@@ -47,10 +47,10 @@
 #define DES_BS				1
 #define DES_BS_VECTOR			3
 #define DES_BS_VECTOR_SIZE		4
-#define DES_BS_ALGORITHM_NAME		"128/128 BS AltiVec + 64/64 BS"
+#define DES_BS_ALGORITHM_NAME		"DES 128/128 AltiVec + 64/64"
 #else
 #define DES_BS_VECTOR			4
-#define DES_BS_ALGORITHM_NAME		"128/128 X2 BS AltiVec"
+#define DES_BS_ALGORITHM_NAME		"DES 128/128 X2 AltiVec"
 #endif
 
 #define MD5_ASM				0

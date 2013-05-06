@@ -59,10 +59,12 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	fprintf(stderr, "Benchmarking: %s%s [%s]... ",
-		format->params.format_name,
-		format->params.benchmark_comment,
-		format->params.algorithm_name);
+	fprintf(stderr, "Benchmarking: %s%s%s%s [%s]... ",
+	    format->params.label,
+	    format->params.format_name[0] ? ", " : "",
+	    format->params.format_name,
+	    format->params.benchmark_comment,
+	    format->params.algorithm_name);
 
 	common_init();
 

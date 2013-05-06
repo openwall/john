@@ -243,10 +243,12 @@ int benchmark_all(void)
 	total = failed = 0;
 	if ((format = fmt_list))
 	do {
-		printf("Benchmarking: %s%s [%s]... ",
-			format->params.format_name,
-			format->params.benchmark_comment,
-			format->params.algorithm_name);
+		printf("Benchmarking: %s%s%s%s [%s]... ",
+		    format->params.label,
+		    format->params.format_name[0] ? ", " : "",
+		    format->params.format_name,
+		    format->params.benchmark_comment,
+		    format->params.algorithm_name);
 		fflush(stdout);
 
 		switch (format->params.benchmark_length) {

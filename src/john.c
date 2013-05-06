@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
+#include <strings.h>
 #include <stdlib.h>
 #include <sys/stat.h>
 #ifndef __DJGPP__
@@ -75,27 +76,25 @@ static int exit_status = 0;
 
 static void john_register_one(struct fmt_main *format)
 {
-	if (options.format)
-	if (strcmp(options.format, format->params.label)) return;
+	if (options.format && strcasecmp(options.format, format->params.label))
+		return;
 
 	fmt_register(format);
 }
 
 static void john_register_all(void)
 {
-	if (options.format) strlwr(options.format);
-
 	john_register_one(&fmt_DES);
 	john_register_one(&fmt_BSDI);
 	john_register_one(&fmt_MD5);
 	john_register_one(&fmt_BF);
-	john_register_one(&fmt_AFS);
 	john_register_one(&fmt_LM);
+	john_register_one(&fmt_AFS);
+	john_register_one(&fmt_trip);
+	john_register_one(&fmt_dummy);
 #ifdef HAVE_CRYPT
 	john_register_one(&fmt_crypt);
 #endif
-	john_register_one(&fmt_trip);
-	john_register_one(&fmt_dummy);
 
 	if (!fmt_list) {
 		fprintf(stderr, "Unknown ciphertext format name requested\n");
@@ -107,14 +106,16 @@ static void john_log_format(void)
 {
 	int min_chunk, chunk;
 
-	log_event("- Hash type: %.100s (lengths up to %d%s)",
-		database.format->params.format_name,
-		database.format->params.plaintext_length,
-		database.format->methods.split != fmt_default_split ?
-		", longer passwords split" : "");
+	log_event("- Hash type: %.100s%s%.100s (lengths up to %d%s)",
+	    database.format->params.label,
+	    database.format->params.format_name[0] ? ", " : "",
+	    database.format->params.format_name,
+	    database.format->params.plaintext_length,
+	    database.format->methods.split != fmt_default_split ?
+	    ", longer passwords split" : "");
 
 	log_event("- Algorithm: %.100s",
-		database.format->params.algorithm_name);
+	    database.format->params.algorithm_name);
 
 	chunk = min_chunk = database.format->params.max_keys_per_crypt;
 	if (options.flags & (FLG_SINGLE_CHK | FLG_BATCH_CHK) &&
