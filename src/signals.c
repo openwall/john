@@ -336,7 +336,7 @@ static void sig_handle_timer(int signum)
 				event_status = event_pending = 1;
 		}
 
-#ifndef __DJGPP__
+#if !defined (__DJGPP__) && !defined (_MSC_VER)
 		if (event_abort || event_status)
 			signal_children(event_abort ? SIGTERM : SIGUSR2);
 #endif
