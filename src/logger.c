@@ -212,13 +212,7 @@ void log_guess(char *login, char *ciphertext, char *rep_plain, char *store_plain
 		len = strlen(rep_plain);
 	spacer[len > 16 ? 0 : 16 - len] = 0;
 
-#ifdef HAVE_MPI
-	// All but node 0 has stdout closed so we output to stderr
-	if (mpi_p > 1)
-		fprintf(stderr, "%s%s (%s)\n", rep_plain, spacer, login);
-	else
-#endif
-		printf("%s%s (%s)\n", rep_plain, spacer, login);
+	printf("%s%s (%s)\n", rep_plain, spacer, login);
 
 	in_logger = 1;
 
