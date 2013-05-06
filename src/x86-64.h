@@ -48,7 +48,7 @@
 #define DES_BS				1
 #if 0
 #define DES_BS_VECTOR			0
-#define DES_BS_ALGORITHM_NAME		"64/64 BS"
+#define DES_BS_ALGORITHM_NAME		"DES 64/64"
 #elif defined(JOHN_AVX) && defined(__GNUC__)
 /* Require gcc for AVX because DES_bs_all is aligned in a gcc-specific way */
 #undef CPU_DETECT
@@ -71,9 +71,9 @@
 /* Require gcc for 256-bit XOP because of __builtin_ia32_vpcmov_v8sf256() */
 #undef DES_BS
 #define DES_BS				3
-#define DES_BS_ALGORITHM_NAME		"256/256 X2 BS XOP-16"
+#define DES_BS_ALGORITHM_NAME		"DES 256/256 X2 XOP-16"
 #else
-#define DES_BS_ALGORITHM_NAME		"256/256 X2 BS AVX-16"
+#define DES_BS_ALGORITHM_NAME		"DES 256/256 X2 AVX-16"
 #endif
 #elif 0
 /* 384-bit as 256+128 */
@@ -83,27 +83,27 @@
 /* Require gcc for 256-bit XOP because of __builtin_ia32_vpcmov_v8sf256() */
 #undef DES_BS
 #define DES_BS				3
-#define DES_BS_ALGORITHM_NAME		"256/256 BS XOP-16 + 128/128 BS XOP-16"
+#define DES_BS_ALGORITHM_NAME		"DES 256/256 XOP-16 + 128/128 XOP-16"
 #else
-#define DES_BS_ALGORITHM_NAME		"256/256 BS AVX-16 + 128/128 BS AVX-16"
+#define DES_BS_ALGORITHM_NAME		"DES 256/256 AVX-16 + 128/128 AVX-16"
 #endif
 #elif 0
 /* 384-bit as 256+64+64 */
 #define DES_BS_NO_AVX128
 #define DES_BS_VECTOR_SIZE		8
 #define DES_BS_VECTOR			6
-#define DES_BS_ALGORITHM_NAME		"256/256 BS AVX-16 + 64/64 BS MMX + 64/64 BS"
+#define DES_BS_ALGORITHM_NAME		"DES 256/256 AVX-16 + 64/64 MMX + 64/64"
 #elif 0
 /* 320-bit as 256+64 MMX */
 #define DES_BS_VECTOR_SIZE		8
 #define DES_BS_VECTOR			5
-#define DES_BS_ALGORITHM_NAME		"256/256 BS AVX-16 + 64/64 BS MMX"
+#define DES_BS_ALGORITHM_NAME		"DES 256/256 AVX-16 + 64/64 MMX"
 #elif 0
 /* 320-bit as 256+64 */
 #define DES_BS_NO_MMX
 #define DES_BS_VECTOR_SIZE		8
 #define DES_BS_VECTOR			5
-#define DES_BS_ALGORITHM_NAME		"256/256 BS AVX-16 + 64/64 BS"
+#define DES_BS_ALGORITHM_NAME		"DES 256/256 AVX-16 + 64/64"
 #elif 0
 /* 256-bit as 1x256 */
 #define DES_BS_VECTOR			4
@@ -111,9 +111,9 @@
 /* Require gcc for 256-bit XOP because of __builtin_ia32_vpcmov_v8sf256() */
 #undef DES_BS
 #define DES_BS				3
-#define DES_BS_ALGORITHM_NAME		"256/256 BS XOP-16"
+#define DES_BS_ALGORITHM_NAME		"DES 256/256 XOP-16"
 #else
-#define DES_BS_ALGORITHM_NAME		"256/256 BS AVX-16"
+#define DES_BS_ALGORITHM_NAME		"DES 256/256 AVX-16"
 #endif
 #elif 0
 /* 256-bit as 2x128 */
@@ -122,9 +122,9 @@
 #ifdef JOHN_XOP
 #undef DES_BS
 #define DES_BS				3
-#define DES_BS_ALGORITHM_NAME		"128/128 X2 BS XOP-16"
+#define DES_BS_ALGORITHM_NAME		"DES 128/128 X2 XOP-16"
 #else
-#define DES_BS_ALGORITHM_NAME		"128/128 X2 BS AVX-16"
+#define DES_BS_ALGORITHM_NAME		"DES 128/128 X2 AVX-16"
 #endif
 #else
 /* 128-bit */
@@ -132,37 +132,37 @@
 #ifdef JOHN_XOP
 #undef DES_BS
 #define DES_BS				3
-#define DES_BS_ALGORITHM_NAME		"128/128 BS XOP-16"
+#define DES_BS_ALGORITHM_NAME		"DES 128/128 XOP-16"
 #else
-#define DES_BS_ALGORITHM_NAME		"128/128 BS AVX-16"
+#define DES_BS_ALGORITHM_NAME		"DES 128/128 AVX-16"
 #endif
 #endif
 #elif defined(__SSE2__) && defined(_OPENMP)
 #define DES_BS_ASM			0
 #if 1
 #define DES_BS_VECTOR			2
-#define DES_BS_ALGORITHM_NAME		"128/128 BS SSE2-16"
+#define DES_BS_ALGORITHM_NAME		"DES 128/128 SSE2-16"
 #elif 0
 #define DES_BS_VECTOR			3
 #define DES_BS_VECTOR_SIZE		4
-#define DES_BS_ALGORITHM_NAME		"128/128 BS SSE2-16 + 64/64 BS MMX"
+#define DES_BS_ALGORITHM_NAME		"DES 128/128 SSE2-16 + 64/64 MMX"
 #elif 0
 #define DES_BS_NO_MMX
 #define DES_BS_VECTOR			3
 #define DES_BS_VECTOR_SIZE		4
-#define DES_BS_ALGORITHM_NAME		"128/128 BS SSE2-16 + 64/64 BS"
+#define DES_BS_ALGORITHM_NAME		"DES 128/128 SSE2-16 + 64/64"
 #elif 0
 #define DES_BS_NO_MMX
 #define DES_BS_VECTOR			4
-#define DES_BS_ALGORITHM_NAME		"128/128 X2 BS SSE2-16"
+#define DES_BS_ALGORITHM_NAME		"DES 128/128 X2 SSE2-16"
 #else
 #define DES_BS_VECTOR			4
-#define DES_BS_ALGORITHM_NAME		"128/128 BS SSE2-16 + 64/64 BS MMX + 64/64 BS"
+#define DES_BS_ALGORITHM_NAME		"DES 128/128 SSE2-16 + 64/64 MMX + 64/64"
 #endif
 #else
 #define DES_BS_ASM			1
 #define DES_BS_VECTOR			2
-#define DES_BS_ALGORITHM_NAME		"128/128 BS SSE2-16"
+#define DES_BS_ALGORITHM_NAME		"DES 128/128 SSE2-16"
 #endif
 #define DES_BS_EXPAND			1
 

@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2005,2010-2012 by Solar Designer
+ * Copyright (c) 1996-2001,2005,2010-2013 by Solar Designer
  *
  * ...with a change in the jumbo patch, by JimF
  */
@@ -54,8 +54,11 @@ struct db_salt;
 /* Parallelized with OpenMP */
 #ifdef _OPENMP
 #define FMT_OMP				0x01000000
+/* Poor OpenMP scalability */
+#define FMT_OMP_BAD			0x02000000
 #else
 #define FMT_OMP				0
+#define FMT_OMP_BAD			0
 #endif
 /* We've already warned the user about hashes of this type being present */
 #define FMT_WARNED			0x80000000

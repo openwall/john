@@ -424,10 +424,12 @@ int benchmark_all(void)
 #ifdef HAVE_MPI
 		if (john_main_process)
 #endif
-		printf("Benchmarking: %s%s [%s]%s... ",
-			format->params.format_name,
-			format->params.benchmark_comment,
-			format->params.algorithm_name,
+		printf("Benchmarking: %s%s%s%s [%s]%s... ",
+		    format->params.label,
+		    format->params.format_name[0] ? ", " : "",
+		    format->params.format_name,
+		    format->params.benchmark_comment,
+		    format->params.algorithm_name,
 #ifndef _JOHN_BENCH_TMP
 			(options.utf8) ? " in UTF-8 mode" : "");
 #else

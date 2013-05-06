@@ -36,7 +36,7 @@
 #define DES_BS				1
 #define DES_BS_VECTOR			8
 #define DES_BS_EXPAND			0
-#define DES_BS_ALGORITHM_NAME		"32/32x8V BS"
+#define DES_BS_ALGORITHM_NAME		"DES 32/32 X8"
 
 #define MD5_ASM				0
 #define MD5_X2				1

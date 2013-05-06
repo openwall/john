@@ -11,8 +11,8 @@
 #include "common.h"
 #include "formats.h"
 
-#define FORMAT_LABEL			"trip"
-#define FORMAT_NAME			"Tripcode DES"
+#define FORMAT_LABEL			"tripcode"
+#define FORMAT_NAME			""
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1

@@ -15,6 +15,7 @@
 #endif
 #include <errno.h>
 #include <string.h>
+#include <strings.h>
 #include <stdlib.h>
 #include <sys/stat.h>
 #if !defined (__DJGPP__) && !defined (_MSC_VER)
@@ -245,26 +246,26 @@ static void john_register_one(struct fmt_main *format)
 
 		if (options.format[len] == '*') {
 			// Wildcard, as in wpapsk*
-			if (strncmp(options.format, format->params.label, len)) return;
+			if (strncasecmp(options.format, format->params.label, len)) return;
 		}
-		else if (!strcmp(options.format, "dynamic")) {
+		else if (!strcasecmp(options.format, "dynamic")) {
 			if ( (format->params.flags & FMT_DYNAMIC) == 0) return;
 		}
-		else if (!strcmp(options.format, "cpu")) {
+		else if (!strcasecmp(options.format, "cpu")) {
 			if (strstr(format->params.label, "-opencl") ||
 			    strstr(format->params.label, "-cuda")) return;
 		}
-		else if (!strcmp(options.format, "gpu")) {
+		else if (!strcasecmp(options.format, "gpu")) {
 			if (!strstr(format->params.label, "-opencl") &&
 			    !strstr(format->params.label, "-cuda")) return;
 		}
-		else if (!strcmp(options.format, "opencl")) {
+		else if (!strcasecmp(options.format, "opencl")) {
 			if (!strstr(format->params.label, "-opencl")) return;
 		}
-		else if (!strcmp(options.format, "cuda")) {
+		else if (!strcasecmp(options.format, "cuda")) {
 			if (!strstr(format->params.label, "cuda")) return;
 		}
-		else if (strcmp(options.format, format->params.label)) return;
+		else if (strcasecmp(options.format, format->params.label)) return;
 	}
 
 	fmt_register(format);
@@ -286,14 +287,13 @@ static void john_register_all(void)
 	john_register_one(&fmt_BSDI);
 	john_register_one(&fmt_MD5);
 	john_register_one(&fmt_BF);
-	john_register_one(&fmt_AFS);
 	john_register_one(&fmt_LM);
+	john_register_one(&fmt_AFS);
+	john_register_one(&fmt_trip);
+	john_register_one(&fmt_dummy);
 #ifdef HAVE_CRYPT
 	john_register_one(&fmt_crypt);
 #endif
-	john_register_one(&fmt_trip);
-	john_register_one(&fmt_dummy);
-	john_register_one(&fmt_NT);
 	for (i = 0; i < cnt; ++i)
 		john_register_one(&(selfs[i]));
 
@@ -427,14 +427,16 @@ static void john_log_format(void)
 	/* make sure the format is properly initialized */
 	fmt_init(database.format);
 
-	log_event("- Hash type: %.100s (lengths up to %d%s)",
-		database.format->params.format_name,
-		database.format->params.plaintext_length,
-		(database.format == &fmt_DES || database.format == &fmt_LM) ?
-		", longer passwords split" : "");
+	log_event("- Hash type: %.100s%s%.100s (lengths up to %d%s)",
+	    database.format->params.label,
+	    database.format->params.format_name[0] ? ", " : "",
+	    database.format->params.format_name,
+	    database.format->params.plaintext_length,
+	    (database.format == &fmt_DES || database.format == &fmt_LM) ?
+	    ", longer passwords split" : "");
 
 	log_event("- Algorithm: %.100s",
-		database.format->params.algorithm_name);
+	    database.format->params.algorithm_name);
 
 	chunk = min_chunk = database.format->params.max_keys_per_crypt;
 	if (options.flags & (FLG_SINGLE_CHK | FLG_BATCH_CHK) &&
@@ -490,11 +492,17 @@ static void john_omp_show_info(void)
 	if (mpi_p == 1)
 #endif
 	if (!options.fork && john_omp_threads_orig > 1 &&
-	    database.format &&
-	    !(database.format->params.flags & FMT_OMP) &&
-	    !rec_restoring_now)
-		fprintf(stderr, "Warning: no OpenMP support for this "
-		    "hash type, consider --fork=%d\n", john_omp_threads_orig);
+	    database.format && !rec_restoring_now) {
+		const char *msg = NULL;
+		if (!(database.format->params.flags & FMT_OMP))
+			msg = "no OpenMP support";
+		else if ((database.format->params.flags & FMT_OMP_BAD))
+			msg = "poor OpenMP scalability";
+		if (msg)
+			fprintf(stderr, "Warning: %s for this hash type, "
+			    "consider --fork=%d\n",
+			    msg, john_omp_threads_orig);
+	}
 
 /*
  * Only show OpenMP info if one of the following is true:
@@ -574,6 +582,9 @@ static void john_fork(void)
 	int i, pid;
 	int *pids;
 
+	fflush(stdout);
+	fflush(stderr);
+
 /*
  * It may cost less memory to reset john_main_process to 0 before fork()'ing
  * the children than to do it in every child process individually (triggering
@@ -643,6 +654,8 @@ static void john_set_mpi(void)
 			}
 		}
 	}
+	fflush(stdout);
+	fflush(stderr);
 }
 #endif
 
@@ -821,10 +834,12 @@ static void john_load(void)
 			/* make sure the format is properly initialized */
 			fmt_init(database.format);
 			if (john_main_process)
-			printf("Loaded %s (%s [%s])\n",
-				john_loaded_counts(),
-				database.format->params.format_name,
-				database.format->params.algorithm_name);
+			printf("Loaded %s (%s%s%s [%s])\n",
+			    john_loaded_counts(),
+			    database.format->params.label,
+			    database.format->params.format_name[0] ? ", " : "",
+			    database.format->params.format_name,
+			    database.format->params.algorithm_name);
 
 			// Tell External our max length
 			if (options.flags & FLG_EXTERNAL_CHK)
@@ -907,8 +922,6 @@ static void john_load(void)
 #ifdef HAVE_MPI
 		else
 			john_set_mpi();
-
-		fflush(stderr);
 #endif
 	}
 }

@@ -503,8 +503,9 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 
 	if (options.flags & FLG_STDOUT) options.flags &= ~FLG_PWD_REQ;
 
-	if ((options.flags & FLG_FORK) && options.fork < 2) {
-		fprintf(stderr, "--fork number must be at least 2\n");
+	if ((options.flags & FLG_FORK) &&
+	    (options.fork < 2 || options.fork > 1024)) {
+		fprintf(stderr, "--fork number must be between 2 and 1024\n");
 		error();
 	}
 

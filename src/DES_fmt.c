@@ -10,8 +10,8 @@
 #include "common.h"
 #include "formats.h"
 
-#define FORMAT_LABEL			"des"
-#define FORMAT_NAME			"Traditional DES"
+#define FORMAT_LABEL			"descrypt"
+#define FORMAT_NAME			"traditional crypt(3)"
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		0

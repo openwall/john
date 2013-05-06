@@ -17,7 +17,7 @@
 #include "loader.h"
 
 #ifndef DES_BS_ALGORITHM_NAME
-#define DES_BS_ALGORITHM_NAME		ARCH_BITS_STR "/" ARCH_BITS_STR " BS"
+#define DES_BS_ALGORITHM_NAME		"DES " ARCH_BITS_STR "/" ARCH_BITS_STR
 #endif
 
 #if DES_BS_VECTOR
