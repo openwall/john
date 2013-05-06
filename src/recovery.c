@@ -65,6 +65,10 @@ static void rec_name_complete(void)
 	rec_name_completed = 1;
 }
 
+#if !defined(LOCK_EX) && OS_FLOCK
+#warning LOCK_EX is not available - will skip locking
+#endif
+
 #if defined(LOCK_EX) && OS_FLOCK
 static void rec_lock(void)
 {
