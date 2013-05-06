@@ -228,6 +228,9 @@ static void john_fork(void)
 	int i, pid;
 	int *pids;
 
+	fflush(stdout);
+	fflush(stderr);
+
 /*
  * It may cost less memory to reset john_main_process to 0 before fork()'ing
  * the children than to do it in every child process individually (triggering
