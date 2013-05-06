@@ -19,6 +19,7 @@
 #include "status.h"
 #include "recovery.h"
 #include "external.h"
+#include "john.h"
 
 #ifdef index
 #undef index
@@ -48,6 +49,16 @@ static void crk_init_salt(void)
 		crk_methods.set_salt(crk_db->salts->salt);
 		crk_methods.set_salt = crk_dummy_set_salt;
 	}
+}
+
+static void crk_help(void)
+{
+	static int printed = 0;
+	if (!john_main_process || printed)
+		return;
+	fprintf(stderr, "Press Ctrl-C or 'q' to abort, "
+	    "almost any other key for status\n");
+	printed = 1;
 }
 
 void crk_init(struct db_main *db, void (*fix_state)(void),
@@ -93,6 +104,8 @@ void crk_init(struct db_main *db, void (*fix_state)(void),
 		crk_stdout_key[0] = 0;
 
 	rec_save();
+
+	crk_help();
 
 	idle_init(db->format);
 }
