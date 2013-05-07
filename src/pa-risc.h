@@ -20,9 +20,6 @@
 #define ARCH_ALLOWS_UNALIGNED		0
 #define ARCH_INDEX(x)			((unsigned int)(unsigned char)(x))
 
-#define OS_TIMER			0
-#define OS_FLOCK			1
-
 #define CPU_DETECT			0
 
 #define DES_ASM				0

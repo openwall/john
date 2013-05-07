@@ -5,6 +5,9 @@
  * ...with changes in the jumbo patch, by JimF and magnum (and various others?)
  */
 
+#define NEED_OS_FORK
+#include "os.h"
+
 #include <stdio.h>
 #ifndef _MSC_VER
 #include <unistd.h>
@@ -18,7 +21,7 @@
 #include <strings.h>
 #include <stdlib.h>
 #include <sys/stat.h>
-#if !defined (__DJGPP__) && !defined (_MSC_VER)
+#if OS_FORK
 #include <sys/wait.h>
 #endif
 
@@ -228,7 +231,7 @@ extern int truecrypt_volume2john(int argc, char **argv);
 extern int zip2john(int argc, char **argv);
 
 int john_main_process = 1;
-#ifndef __DJGPP__
+#if OS_FORK
 int john_child_count = 0;
 int *john_child_pids = NULL;
 #endif
@@ -411,7 +414,7 @@ static void john_register_all(void)
 
 	if (!fmt_list) {
 		if (john_main_process)
-			fprintf(stderr, "Unknown ciphertext format name requested\n");
+		fprintf(stderr, "Unknown ciphertext format name requested\n");
 		error();
 	}
 }
@@ -499,9 +502,14 @@ static void john_omp_show_info(void)
 		else if ((database.format->params.flags & FMT_OMP_BAD))
 			msg = "poor OpenMP scalability";
 		if (msg)
+#if OS_FORK
 			fprintf(stderr, "Warning: %s for this hash type, "
 			    "consider --fork=%d\n",
 			    msg, john_omp_threads_orig);
+#else
+			fprintf(stderr, "Warning: %s for this hash type\n",
+			    msg);
+#endif
 	}
 
 /*
@@ -550,6 +558,7 @@ static void john_omp_show_info(void)
 	} else
 #endif
 	if (options.fork) {
+#if OS_FORK
 		if (john_omp_threads_new > 1)
 			fprintf(stderr,
 			    "Will run %d OpenMP threads per process "
@@ -559,6 +568,7 @@ static void john_omp_show_info(void)
 		else if (john_omp_threads_orig > 1)
 			fputs("Warning: OpenMP was disabled due to --fork; "
 			    "a non-OpenMP build may be faster\n", stderr);
+#endif
 	} else {
 		if (john_omp_threads_new > 1)
 			fprintf(stderr,
@@ -573,12 +583,9 @@ static void john_omp_show_info(void)
 }
 #endif
 
+#if OS_FORK
 static void john_fork(void)
 {
-#if defined (__DJGPP__) || defined (_MSC_VER)
-	fputs("Warning: --fork is not supported in this build, "
-	    "will run one process\n", stderr);
-#else
 	int i, pid;
 	int *pids;
 
@@ -627,7 +634,6 @@ static void john_fork(void)
 	john_child_count = options.fork - 1;
 
 	options.node_max = options.node_min;
-#endif
 }
 
 /*
@@ -661,7 +667,6 @@ static void john_set_mpi(void)
 
 static void john_wait(void)
 {
-#if !defined __DJGPP__ && !defined (_MSC_VER)
 	int waiting_for = john_child_count;
 
 	log_event("Waiting for %d child%s to terminate",
@@ -693,8 +698,8 @@ static void john_wait(void)
 
 /* Close and possibly remove our .rec file now */
 	rec_done((children_ok && !event_abort) ? -1 : -2);
-#endif
 }
+#endif
 
 #ifdef HAVE_MPI
 static void john_mpi_wait(void)
@@ -917,10 +922,12 @@ static void john_load(void)
 			    options.node_min, options.node_count);
 		}
 
+#if OS_FORK
 		if (options.fork)
 			john_fork();
+#endif
 #ifdef HAVE_MPI
-		else
+		if (mpi_p > 1)
 			john_set_mpi();
 #endif
 	}
@@ -1110,8 +1117,10 @@ static void john_run(void)
 
 		status_print();
 
+#if OS_FORK
 		if (options.fork && john_main_process)
 			john_wait();
+#endif
 
 #ifdef HAVE_MPI
 		if (mpi_p > 1)
@@ -1163,6 +1172,7 @@ static void john_done(void)
 			    "but some child processes failed";
 			log_event("%s", msg);
 			fprintf(stderr, "%s\n", msg);
+			exit_status = 1;
 		}
 		fmt_done(database.format);
 	}

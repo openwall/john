@@ -5,6 +5,9 @@
  * ...with changes in the jumbo patch, by JimF and magnum (and various others?)
  */
 
+#define NEED_OS_FORK
+#include "os.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -107,7 +110,7 @@ static struct opt_entry opt_list[] = {
 		"%u", &mem_saving_level},
 	{"node", FLG_NODE, FLG_NODE, FLG_CRACKING_CHK, OPT_REQ_PARAM,
 		OPT_FMT_STR_ALLOC, &options.node_str},
-#if !defined (_MSC_VER) && !defined (__DJGPP__)
+#if OS_FORK
 	{"fork", FLG_FORK, FLG_FORK,
 		FLG_CRACKING_CHK, FLG_STDIN_CHK | FLG_STDOUT | FLG_PIPE_CHK | OPT_REQ_PARAM,
 		"%u", &options.fork},
@@ -180,10 +183,11 @@ static struct opt_entry opt_list[] = {
 #include "john_build_rule.h"
 #endif
 
-#if !defined (_MSC_VER) && !defined (__DJGPP__)
-#define FORK_MSG_STRING "--fork=N                  fork N processes\n"
+#if OS_FORK
+#define JOHN_USAGE_FORK \
+"--fork=N                  fork N processes\n"
 #else
-#define FORK_MSG_STRING ""
+#define JOHN_USAGE_FORK ""
 #endif
 
 #define JOHN_USAGE \
@@ -216,7 +220,7 @@ static struct opt_entry opt_list[] = {
 "--salts=[-]COUNT[:MAX]    load salts with[out] COUNT [to MAX] hashes\n" \
 "--save-memory=LEVEL       enable memory saving, at LEVEL 1..3\n" \
 "--node=MIN[-MAX]/TOTAL    this node's number range out of TOTAL count\n" \
-FORK_MSG_STRING \
+JOHN_USAGE_FORK \
 "--pot=NAME                pot file to use\n" \
 "--list=WHAT               list capabilities, see --list=help or doc/OPTIONS\n"
 
@@ -409,12 +413,15 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 #endif
 
 	if (options.flags & FLG_RESTORE_CHK) {
+#if OS_FORK || defined(HAVE_MPI)
 		char *rec_name_orig = rec_name;
+#endif
 #ifndef HAVE_MPI
 		rec_restore_args(1);
 #else
 		rec_restore_args(mpi_p);
 #endif
+#if OS_FORK || defined(HAVE_MPI)
 #ifndef HAVE_MPI
 		if (options.fork) {
 #else
@@ -423,15 +430,19 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 			rec_name = rec_name_orig;
 			rec_name_completed = 0;
 		}
+#endif
 		return;
 	}
 
 	if (options.flags & FLG_STATUS_CHK) {
+#if OS_FORK
 		char *rec_name_orig = rec_name;
+#endif
 		rec_restore_args(0);
 		options.flags |= FLG_STATUS_SET;
 		status_init(NULL, 1);
 		status_print();
+#if OS_FORK
 		if (options.fork) {
 			unsigned int i;
 			for (i = 2; i <= options.fork; i++) {
@@ -448,6 +459,7 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 					status_print();
 			}
 		}
+#endif
 		exit(0);
 	}
 
@@ -503,11 +515,13 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 
 	if (options.flags & FLG_STDOUT) options.flags &= ~FLG_PWD_REQ;
 
+#if OS_FORK
 	if ((options.flags & FLG_FORK) &&
 	    (options.fork < 2 || options.fork > 1024)) {
 		fprintf(stderr, "--fork number must be between 2 and 1024\n");
 		error();
 	}
+#endif
 
 	if (options.node_str) {
 		const char *msg = NULL;
@@ -518,10 +532,12 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 			n = sscanf(options.node_str, "%u/%u",
 			    &options.node_min, &options.node_count);
 			options.node_max = options.node_min;
+#if OS_FORK
 			if (options.fork)
 				options.node_max += options.fork - 1;
+#endif
 #ifdef HAVE_MPI
-			else if (mpi_p > 1)
+			if (mpi_p > 1)
 				options.node_max += mpi_p - 1;
 #endif
 		}
@@ -535,11 +551,13 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 			msg = "node count must be at least 2";
 		else if (options.node_max > options.node_count)
 			msg = "node numbers can't exceed node count";
+#if OS_FORK
 		else if (options.fork &&
 		    options.node_max - options.node_min + 1 != options.fork)
 			msg = "range must be consistent with --fork number";
+#endif
 #ifdef HAVE_MPI
-		else if (mpi_p > 1 &&
+		if (mpi_p > 1 &&
 		    options.node_max - options.node_min + 1 != mpi_p)
 			msg = "range must be consistent with MPI node count";
 #endif
@@ -556,10 +574,12 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 			    options.node_str, msg);
 			error();
 		}
+#if OS_FORK
 	} else if (options.fork) {
 		options.node_min = 1;
 		options.node_max = options.node_min + options.fork - 1;
 		options.node_count = options.node_max;
+#endif
 	}
 #ifdef HAVE_MPI
 	else if (mpi_p > 1) {

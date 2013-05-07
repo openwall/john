@@ -21,6 +21,10 @@
 #define _POSIX_SOURCE
 #endif
 
+#define NEED_OS_TIMER
+#define NEED_OS_FORK
+#include "os.h"
+
 #ifdef _SCO_C_DIALECT
 #include <limits.h>
 #endif
@@ -261,8 +265,7 @@ static void sig_remove_abort(void)
 #endif
 }
 
-#ifndef _MSC_VER
-#ifndef __DJGPP__
+#if OS_FORK
 static void signal_children(int signum)
 {
 	int i;
@@ -270,7 +273,6 @@ static void signal_children(int signum)
 		if (john_child_pids[i])
 			kill(john_child_pids[i], signum);
 }
-#endif
 #endif
 
 static void sig_install_timer(void);
@@ -329,16 +331,26 @@ static void sig_handle_timer(int signum)
 	{
 #endif
 		int c;
+#if OS_FORK
+		int new_abort = 0, new_status = 0;
+#endif
 		while ((c = tty_getchar()) >= 0) {
-			if (c == 3 || c == 'q')
+			if (c == 3 || c == 'q') {
+#if OS_FORK
+				new_abort = 1;
+#endif
 				sig_handle_abort(0);
-			else
+			} else {
+#if OS_FORK
+				new_status = 1;
+#endif
 				event_status = event_pending = 1;
+			}
 		}
 
-#if !defined (__DJGPP__) && !defined (_MSC_VER)
-		if (event_abort || event_status)
-			signal_children(event_abort ? SIGTERM : SIGUSR2);
+#if OS_FORK
+		if (new_abort || new_status)
+			signal_children(new_abort ? SIGTERM : SIGUSR2);
 #endif
 	}
 
@@ -402,14 +414,12 @@ static void sig_remove_timer(void)
 	signal(SIGALRM, SIG_DFL);
 }
 
-#ifndef __DJGPP__
-#ifndef _MSC_VER
+#if OS_FORK
 static void sig_handle_status(int signum)
 {
 	event_status = event_pending = 1;
 	signal(SIGUSR2, sig_handle_status);
 }
-#endif
 #endif
 
 static void sig_done(void);
@@ -440,10 +450,8 @@ void sig_init(void)
 	sig_install_update();
 	sig_install_abort();
 	sig_install_timer();
-#ifndef __DJGPP__
-#ifndef _MSC_VER
+#if OS_FORK
 	signal(SIGUSR2, sig_handle_status);
-#endif
 #endif
 }
 

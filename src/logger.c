@@ -9,6 +9,10 @@
  */
 
 #define _XOPEN_SOURCE /* for fileno(3) and fsync(2) */
+
+#define NEED_OS_FLOCK
+#include "os.h"
+
 #include <stdio.h>
 #ifndef _MSC_VER
 #include <unistd.h>
@@ -97,7 +101,7 @@ static void log_file_flush(struct log_file *f)
 	count = f->ptr - f->buffer;
 	if (count <= 0) return;
 
-#if defined(LOCK_EX) && OS_FLOCK
+#if OS_FLOCK
 	while (flock(f->fd, LOCK_EX)) {
 		if (errno != EINTR)
 			pexit("flock(LOCK_EX)");
@@ -105,7 +109,7 @@ static void log_file_flush(struct log_file *f)
 #endif
 	if (write_loop(f->fd, f->buffer, count) < 0) pexit("write");
 	f->ptr = f->buffer;
-#if defined(LOCK_EX) && OS_FLOCK
+#if OS_FLOCK
 	if (flock(f->fd, LOCK_UN))
 		pexit("flock(LOCK_UN)");
 #endif

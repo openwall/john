@@ -10,6 +10,10 @@
  * FreeBSD's own <sys/file.h> needs. */
 #define _XOPEN_SOURCE 500 /* for fdopen(3), fileno(3), fsync(2), ftruncate(2) */
 #endif
+
+#define NEED_OS_FLOCK
+#include "os.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #ifndef _MSC_VER
@@ -81,7 +85,7 @@ static void rec_name_complete(void)
 	rec_name_completed = 1;
 }
 
-#if defined(LOCK_EX) && OS_FLOCK
+#if OS_FLOCK
 static void rec_lock(int lock)
 {
 	/* In options.c, MPI code path call rec_restore_args(mpi_p)

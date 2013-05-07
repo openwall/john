@@ -5,7 +5,6 @@
  * ...with changes in the jumbo patch, by JimF and magnum
  */
 
-#define _XOPEN_SOURCE 500 /* for setitimer(2) */
 #define _BSD_SOURCE /* for setenv() */
 
 #if defined (__MINGW32__) || defined (_MSC_VER)
@@ -16,6 +15,9 @@
 #define __POSIX
 #define _POSIX_SOURCE
 #endif
+
+#define NEED_OS_TIMER
+#include "os.h"
 
 #ifdef _SCO_C_DIALECT
 #include <limits.h>
