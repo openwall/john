@@ -1,8 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1996-2001,2008,2010,2011 by Solar Designer
- *
- * ...with changes in the jumbo patch for mingw and MSC, by JimF.
  */
 
 /*

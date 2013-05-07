@@ -13,7 +13,7 @@ sha1($p)     (Note, $p is password, and sha1 is the cipher).
 sha1(md5($p)) Here we first run md5 on password, then sha1 on the
               resultant 'hex' string.
 sha512($s.sha512($p.$s).$p)  This uses a couple of calls to sha512.
-              The intermedidate results are possible to be in 
+              The intermedidate results are possible to be in
               base-16 (or base-16 uppercase), base-64 (MIME), or
               raw 64 bytes.
 ...
@@ -446,7 +446,7 @@ examples (this whole list is also found in dynamic.conf).
 #     These are similar to the 40 byte flag for the SHA1. NOTE, calling
 #     these 'finish' flags, is actually strange, since what it really
 #     means, is the hash line CONTAINS a hash string this long.  Yes the
-#     last operation IS the type listed (such as sha1, gost, etc). But 
+#     last operation IS the type listed (such as sha1, gost, etc). But
 #     that means that dynamic should look for valid input strings which
 #     are the appropriate length, based upon that final hash size.
 #     One off these flags MUST be used, on a format that is longer than
@@ -783,8 +783,8 @@ examples (this whole list is also found in dynamic.conf).
 # DynamicFunc__SHA256_crypt_input1_to_output1_FINAL
 # DynamicFunc__SHA256_crypt_input2_to_output1_FINAL
 #
-# All of these 'large' hash functions, when used MUST end with either an MD5 or MD4 into 
-# output1, OR by using one of the *_to_output1_FINAL calls.  The ONLY call actaully 
+# All of these 'large' hash functions, when used MUST end with either an MD5 or MD4 into
+# output1, OR by using one of the *_to_output1_FINAL calls.  The ONLY call actaully
 # has to be one of the *_to_output1_FINAL calls (if the format is a simple single
 # hash, such as SHA512($s.$p.$u)  In this case, we would simply load one of the input
 # variables with the salt, the password, and the userid, and then call a single
@@ -809,7 +809,7 @@ examples (this whole list is also found in dynamic.conf).
 # DynamicFunc__LargeHash_OUTMode_base16
 # DynamicFunc__LargeHash_OUTMode_base16u
 # DynamicFunc__LargeHash_OUTMode_base64
-# DynamicFunc__LargeHash_OUTMode_base64_nte 
+# DynamicFunc__LargeHash_OUTMode_base64_nte
 # DynamicFunc__LargeHash_OUTMode_raw
 #
 ####################

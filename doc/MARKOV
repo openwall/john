@@ -3,7 +3,7 @@ The Markov mode is based from [1], tested and applied to "classical" password
 cracking in [2]. This mode similar to the "wordlist" mode because it will only
 crack a fixed quantity of passwords.
 
-UTF-8 is handled pretty good. Supply the -p option to calc_stat and use
+UTF-8 is handled pretty good. Supply the -p option to calc_stat, and use
 --encoding:utf8 when you run john. Some invalid candidates are generated but
 for fast formats it's cheaper to accept them than to try to filter them out.
 For slow formats, --external:filter_utf8 can be used to mute them.
@@ -23,38 +23,32 @@ If the mode name is not specified, the default mode as specified in section
 
 * LEVEL is the "Markov level".
 It can be specified as MIN_LEVEL-MAX_LEVEL or as MAX_LEVEL.
-MAX_LEVEL determines the maximum strength of passwords
-that are going to be cracked. When MAX_LEVEL increases, the quantity of passwords
-that are going to be tested increases exponentially.
+MAX_LEVEL determines the maximum strength of passwords that are going to be
+cracked. When MAX_LEVEL increases, the quantity of passwords that are going
+to be tested increases exponentially.
+
 MIN_LEVEL determines the minimum strength of passwords that are generated.
 If LEVEL is 0 or not specified on the command line, the LEVEL interval is
-read from config variables in the [Markov:mode] section, or [Markov:Default] section
-if MODE is not specified on the command line, see CONFIGURATION OPTIONS.
+read from config variables in the [Markov:mode] section, or [Markov:Default]
+section. If MODE is not specified on the command line, see CONFIGURATION
+OPTIONS.
 
 * START is the index of the first password that is going to be tested, starting
 with 0.
-Alternatively, you can specify an integer value < 100, followed by a percent sign,
-e.g. 10%.
-This will be converted into the correct start word depending on the total number
-of words.
 
 * END is the index of the last password that is going to be tested. When it is
 set to 0, it will represent the last possible password.
-Alternatively, you can specify an integer value <= 100, followed by a percent sign,
-e.g. 20%.
-This will be converted into the correct end word depending on the total number
-of words.
 
-* LENGTH determines the length of passwords generated.
-It can be specified as MIN_LENGTH-MAX_LENGTH or as MAX_LENGTH.
-MAX_LENGTH the maximum length of the tested passwords.
-MIN_LENGTH is the minimum length of the tested passwords.
-If LENGTH is 0 or not specified on the command line, the LENGTH interval is
-read from config variables in the [Markov:mode] section, or [Markov:Default] section
-if MODE is not specified on the command line, see CONFIGURATION OPTIONS.
+* LENGTH determines the length of passwords generated. If LENGTH is 0 or not
+specified on the command line, the LENGTH interval is read from config
+variables in the [Markov:mode] section, or [Markov:Default] section. The
+-min-length and -max-length options deprecate the LENGTH parameter (and
+over-rides it).
 
-using --markov:100:0:0:12 will let john check every password whose length is 12
-or less and whose "Markov strength" is 100 or less.
+If MODE is not specified on the command line, see CONFIGURATION OPTIONS.
+
+Using "--markov:100:0:0 --max-len=12" will let john check every password whose
+length is 12 or less and whose "Markov strength" is 100 or less.
 
 
 SELECTING THE PARAMETERS
@@ -104,11 +98,17 @@ john -markov:246:0:0:12 test
 
 DISTRIBUTING WORK
 The START and END parameter could be used to distribute work among many CPUs.
-The preferred method is to evaluate the combined cracking speed of all CPUs
+The old method is to evaluate the combined cracking speed of all CPUs
 (adding the step 2 result for every CPUs available) and follow the previous
-method.
-At step 5, share the cracking space among all CPUs, where is share is
-proportionnal with the CPU's cracking speed.
+method. At step 5, share the cracking space among all CPUs, where is share is
+proportional with the CPU's cracking speed. When using the new -node or -fork
+options (or MPI), this will happen automatically!
+
+For example:
+./john -markov -node=3/4	will split the space in four parts and pick the
+				third fourth for that session.
+./john -markov -fork=8		will split the space in eight parts and run one
+				process for each. MPI works the same.
 
 
 CONFIGURATION OPTIONS
@@ -147,9 +147,9 @@ MkvMinLvl - the default min. level
 
 This value is used to determine the min. level if no Markov level was specified
 or if the Markov level specified on the command line was 0.
-(In other words, when the max. Markov level is read from the Markov mode section,
-the min. Markov level will be read from the Markov mode section as well.)
-If it is not found, the default min. Markov level will be 0.
+(In other words, when the max. Markov level is read from the Markov mode
+section, the min. Markov level will be read from the Markov mode section as
+well.) If it is not found, the default min. Markov level will be 0.
 
 MkvMinLen - the default min. length
 

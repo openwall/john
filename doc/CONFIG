@@ -141,7 +141,7 @@ it can be used to load common information among several incremental
 sections, or a common init function (or other functions), in a pair
 of extern sections.
 
-See [Incremental:All7] and several others around there for examples.
+See [List.Rules:Single-Extra] and several others around there for examples.
 
 
 	Defining an external mode.

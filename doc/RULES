@@ -84,7 +84,7 @@ example, "?D" matches everything but digits.
 
 NOTE, if running in --encoding=iso-8859-1 (or koi8-r/cp1251/cp866,etc), then the
 high bit characters are added to the respective classes. So in iso-8859-1 mode,
-lower case ?l would include àáâãäåæçèéêëìíîïğñòóôõöøùúûüışßÿ while in 'normal'
+lower case ?l would include Ã Ã¡Ã¢Ã£Ã¤Ã¥Ã¦Ã§Ã¨Ã©ÃªÃ«Ã¬Ã­Ã®Ã¯Ã°Ã±Ã²Ã³Ã´ÃµÃ¶Ã¸Ã¹ÃºÃ»Ã¼Ã½Ã¾ÃŸÃ¿ while in 'normal'
 runs, it is only a-z.
 
 NOTE 2, the rules engine currently have very limited understanding of UTF-8 so
@@ -111,7 +111,7 @@ $X	append character X to the word
 
 NOTE, all of these are encoding-aware. Eg. if you do not specify an encoding,
 the l command will lowercase A-Z only. If you use --encoding=iso-8859-1 it will
-also recognise ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏĞÑÒÓÔÕÖØÙÚÛÜİŞ and lowercase them properly.
+also recognise Ã€ÃÃ‚ÃƒÃ„Ã…Ã†Ã‡ÃˆÃ‰ÃŠÃ‹ÃŒÃÃÃÃÃ‘Ã’Ã“Ã”Ã•Ã–Ã˜Ã™ÃšÃ›ÃœÃÃ and lowercase them properly.
 
 
 	String commands.

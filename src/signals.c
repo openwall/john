@@ -5,9 +5,6 @@
  * ...with changes in the jumbo patch for mingw and MSC, by JimF.
  */
 
-#ifdef HAVE_MPI
-#include "john-mpi.h"
-#endif
 #if defined (__MINGW32__) || defined (_MSC_VER)
 #define __CYGWIN32__
 #define SIGALRM SIGFPE
@@ -56,6 +53,9 @@
 #include "bench.h"
 #include "john.h"
 #include "status.h"
+#ifdef HAVE_MPI
+#include "john-mpi.h"
+#endif
 
 volatile int event_pending = 0;
 volatile int event_abort = 0, event_save = 0, event_status = 0;

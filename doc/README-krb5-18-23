@@ -7,19 +7,19 @@ are permitted.
 
 The package contains:
 
-+ README: 
++ README:
         This file.
 
 + kdcdump.patch:
-        A patch for MIT Kerberos 5 kdb5_util tool. Run it on a KDC server as 
+        A patch for MIT Kerberos 5 kdb5_util tool. Run it on a KDC server as
 root to export the realm database unencrypted.
 
 + kdcdump2john.py:
-        Converts the output of the previous tool in a JohnTheRipper 
+        Converts the output of the previous tool in a JohnTheRipper
 understandable format.
 
 + john.krb5-18-23_fmt.patch:
-        Provide the format "krb5-18" (Kerberos5 aes256-cts-hmac-sha1-96) and 
+        Provide the format "krb5-18" (Kerberos5 aes256-cts-hmac-sha1-96) and
 "krb5-23" (arcfour-hmac) for JohnTheRipper software. Tested on 1.7.9-jumbo-6.
 
 ================================================================================
@@ -49,5 +49,5 @@ aqzsedrf	(test/admin@OLYMPE.OL)
 
 
 Note:
-        If the KDC server is not properly configured and provide the both 
+        If the KDC server is not properly configured and provide the both
 format, prefer the Arcfour-hmac format.

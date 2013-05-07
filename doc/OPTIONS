@@ -24,26 +24,26 @@ argument (if supported for a given option).
 The supported options are as follows, square brackets denote optional
 arguments:
 
---single[=SECTION]        "single crack" mode
+--single[=SECTION]		"single crack" mode
 
 Enables the "single crack" mode, using rules from the configuration
 file section [List.Rules:Single].  If --single=Single_2 then the rules
 from [List.Rules:Single_2] section would be used.
 
---wordlist[=FILE]         wordlist mode, read words from FILE,
---stdin                   or from stdin
+--wordlist[=FILE]		wordlist mode, read words from FILE,
+--stdin				or from stdin
 
 These are used to enable the wordlist mode. If FILE is not specified,
-the default batch-mode one (from john.conf) will be used.
+the one defined in john.conf will be used.
 
---dupe-suppression              suppress all duplicates from wordlist
+--dupe-suppression		suppress all duplicates from wordlist
 
 Normally, consecutive duplicates are ignored when reading a wordlist file.
 This switch enables full dupe suppression, using some memory and a little
 extra start-up time. This option implies preload regardless of file size,
 see the --mem-file-size option.
 
---loopback[=FILE]               use a pot file as a wordlist
+--loopback[=FILE]		use a pot file as a wordlist
 
 This mode implies --dupe-suppression. This is a special variant of Wordlist
 mode. Parse the file as a .pot file, so only the actual password part of
@@ -58,24 +58,23 @@ attacked.
 Input data in a character encoding other than the default 'raw'. See also
 doc/ENCODINGS.   --list=encodings gives a list of all handled encodings.
 
---rules[=SECTION]         enable word mangling rules for wordlist mode
+--rules[=SECTION]		enable word mangling rules for wordlist mode
 
-Enables word mangling rules that are read from [List.Rules:Wordlist].
-If --rules=Wordlist_elite  was used, then [List.Rules:Wordlist_elite]
-would be the section used.
+Enables word mangling rules that are read from the specified section, which
+defaults to [List.Rules:Wordlist] if not given.
 
---incremental[=MODE]      "incremental" mode [using section MODE]
+--incremental[=MODE]		"incremental" mode [using section MODE]
 
 Enables the "incremental" mode, using the specified configuration file
 definition (section [Incremental:MODE], or [Incremental:All] by default
 except for LM hashes for which the default is [Incremental:LanMan]).
 
---external=MODE           external mode or word filter
+--external=MODE			external mode or word filter
 
 Enables an external mode, using external functions defined in section
 [List.External:MODE].
 
---stdout[=LENGTH]         just output candidate passwords
+--stdout[=LENGTH]		just output candidate passwords
 
 When used with a cracking mode, except for "single crack", makes John
 output the candidate passwords it generates to stdout instead of
@@ -84,12 +83,12 @@ specified when this option is used.  If a LENGTH is given, John
 assumes that to be the significant password length and only produces
 passwords up to that length.
 
---restore[=NAME]          restore an interrupted session
+--restore[=NAME]		restore an interrupted session
 
 Continues an interrupted cracking session, reading state information
 from the specified session file or from $JOHN/john.rec by default.
 
---session=NAME            give a new session the NAME
+--session=NAME			give a new session the NAME
 
 This option can only be used when starting a new cracking session and
 its purpose is to give the new session a name (to which John will
@@ -99,14 +98,14 @@ able to later recover a session other than the last one you interrupt.
 john.log file will also be named NAME.log (whatever 'NAME' is), so
 that any logging of the session work will end up in this file.
 
---status[=NAME]           print status of a session [called NAME]
+--status[=NAME]			print status of a session [called NAME]
 
 Prints status of an interrupted or running session.  Note that on a
 Unix-like system, you can get a detached running session to update its
 session file by sending a SIGHUP to the appropriate "john" process;
 then use this option to read in and display the status.
 
---make-charset=FILE       make a charset, overwriting FILE
+--make-charset=FILE		make a charset, overwriting FILE
 
 Generates a charset file based on character frequencies from
 $JOHN/john.pot, for use with the "incremental" mode.  The entire
@@ -116,7 +115,7 @@ may restrict the set of passwords used by specifying some password files
 password files will be used), "--format", or/and "--external" (with an
 external mode that defines a filter() function).
 
---show[=left]             show cracked passwords
+--show[=left]			show cracked passwords
 
 Shows the cracked passwords for given password files (which you must
 specify).  You can use this option while another instance of John is
@@ -125,32 +124,32 @@ information, first send a SIGHUP to the appropriate "john" process.
 if --show=left then all uncracked hashes are listed (in a john 'input'
 file format way).  =left is just that literal string "=left".
 
---test[=TIME]             run tests and benchmarks for TIME seconds each
+--test[=TIME]			run tests and benchmarks for TIME seconds each
 
 Tests all of the compiled in hashing algorithms for proper operation and
 benchmarks them.  The "--format" option can be used to restrict this to
 a specific algorithm.  Using --test=0 will do a very quick self-test but
 will not produce usable speed figures.
 
---users=[-]LOGIN|UID[,..] [do not] load this (these) user(s)
+--users=[-]LOGIN|UID[,..]	[do not] load this (these) user(s)
 
 Allows you to select just a few accounts for cracking or for other
 operations.  A dash before the list can be used to invert the check
 (that is, load information for all the accounts that are not listed).
 
---groups=[-]GID[,..]      load users [not] of this (these) group(s)
+--groups=[-]GID[,..]		load users [not] of this (these) group(s)
 
 Tells John to load (or to not load) information for accounts in the
 specified group(s) only.
 
---shells=[-]SHELL[,..]    load users with[out] this (these) shell(s)
+--shells=[-]SHELL[,..]		load users with[out] this (these) shell(s)
 
 This option is useful to load accounts with a valid shell only or to
 not load accounts with a bad shell.  You can omit the path before a
 shell name, so "--shells=csh" will match both "/bin/csh" and
 "/usr/bin/csh", while "--shells=/bin/csh" will only match "/bin/csh".
 
---salts=[-]COUNT[:MAX]    load salts with[out] at least COUNT passwords
+--salts=[-]COUNT[:MAX]		load salts with[out] at least COUNT passwords
 
 This is a feature which allows to achieve better performance in some
 special cases.  For example, you can crack only some salts using
@@ -161,12 +160,12 @@ loaded where there are more than MAX salts.  This is so that if you
 have run --salts=25 and then later can run --salts=10:24 and none of
 the hashes that were already done from the --salts=25 will be re-done.
 
---pot=NAME                pot filename to use
+--pot=NAME			pot filename to use
 
 By default, john will use john.pot.  This override allows using a different
 john.pot-like file (to start from, and to store any found password into).
 
---format=NAME             force hash type NAME
+--format=NAME			force hash type NAME
 
 Allows you to override the hash type detection.  Currently, valid
 "format names" are DES, BSDI, MD5, BF, AFS, LM, and crypt (and many more
@@ -206,10 +205,10 @@ cracked) for hashes of the "faster" types (as compared to the "slower"
 ones loaded for cracking at the same time).  So you are advised to use
 separate invocations of John, one per hash type.
 
---list=subformats         displays all the built-in dynamic formats,
-                          and exits
+--list=subformats		displays all the built-in dynamic formats,
+				and exits
 
---save-memory=LEVEL       enable memory saving, at LEVEL 1..3
+--save-memory=LEVEL		enable memory saving, at LEVEL 1..3
 
 You might need this option if you don't have enough memory or don't
 want John to affect other processes too much.  Level 1 tells John to
@@ -219,7 +218,7 @@ impact is that you won't see the login names while cracking.  Higher
 memory saving levels have a performance impact; you should probably
 avoid using them unless John doesn't work or gets into swap otherwise.
 
---mem-file-size=SIZE      max. size of wordlist to preload into memory
+--mem-file-size=SIZE		max. size of wordlist to preload into memory
 
 One of the significant performance improvements for some builds of
 john, is preloading the wordlist file into memory, instead of reading
@@ -230,7 +229,7 @@ will force loading to memory regardless of file size (take care not to
 exceed your physical memory limits, or things will just run much slower).
 NOTE if --save-memory is used, preload will be disabled.
 
---field-separator-char=c  Use 'c' instead of the char ':'
+--field-separator-char=c	Use 'c' instead of the char ':'
 
 By design, john works with most files, as 'tokenized' files.  The field
 separator used by john is the colon ':' character.  However, there are
@@ -248,7 +247,7 @@ represented by the keyboard, then the format of
 --field-separator-char=\xHH can be used. --field-separator-char=\x1F
 would represent the character right before the space (space is 0x20)
 
---fix-state-delay=N       only determine the wordlist offset every N times
+--fix-state-delay=N		only determine the wordlist offset every N times
 
 This is an optimization which helps on some systems.  This just
 limits the number of times that the ftell() call is performed.
@@ -256,7 +255,7 @@ The one side effect, is that if john is aborted, and restarted, it
 may redo more tests.  Thus, the use of this option is only acceptable
 and desirable for fast hash types (e.g., raw MD5).
 
---nolog                   turns off john.log file
+--nolog				turns off john.log file
 
 This will turn off creation, or updating to the john.log file (which may
 have a different name if the --session=NAME flag was used.)  Often the
@@ -266,17 +265,17 @@ is often used to check what work has been done, but if this will not be
 needed, and the log file is simply going to be deleted when done, then
 running in --nolog mode may be used.
 
---crack-status            show status line on every crack
+--crack-status			show status line on every crack
 
 This will automagically emit a status line at every cracked password. This is
 mostly for testing.
 
---progress-every=N        emit a status line every N seconds
+--progress-every=N		emit a status line every N seconds
 
 This will automagically emit a status line every N seconds. This is mostly
 for testing.
 
---mkpc=N                  force min/max keys per crypt to N
+--mkpc=N			force min/max keys per crypt to N
 
 This option is for certain kinds of testing and is not mentioned in the usage
 blob. Many formats perform the crypts in batches of several (sometimes
@@ -286,7 +285,7 @@ example is for studying which rules give most "hits": Without this options,
 you can't know for sure which rule produced a successful guess when analyzing
 the log file.
 
---list=WHAT               list capabilities
+--list=WHAT			list capabilities
 
 This option can be used to gain information about what rules, modes etc are
 available. Use --list=help for a list of valid arguments. For example, the now
@@ -333,7 +332,7 @@ The different variants of list externals may be worth mentioning:
                           will ONLY be formats which have the 'WHICH' format
                           overridden.
 
---regen-lost-salts=N      Try to find password AND salt in a set of raw hashes.
+--regen-lost-salts=N		Try to find password AND salt in a set of raw hashes.
 
 This option will allow certain types (with short salts), to be found, when
 they are present in a set of raw hashes, but where we have lost the salt value.

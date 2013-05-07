@@ -13,6 +13,9 @@
 #define _JOHN_SIGNALS_H
 
 #include "arch.h"
+#define NEED_OS_TIMER
+#define NEED_OS_FORK
+#include "os.h"
 
 /*
  * Event flags.
