@@ -31,12 +31,12 @@
 #define _JOHN_SHA2_h
 
 #include <string.h>
-
 #include <openssl/opensslv.h>
 
-#if OPENSSL_VERSION_NUMBER >= 0x00908000 && !defined(FORCE_GENERIC_SHA2) && !defined(__SSE2__)
+#if OPENSSL_VERSION_NUMBER >= 0x00908000 && !defined(FORCE_GENERIC_SHA2)
 
-#if defined(__APPLE__) && defined(__MACH__) && defined(__MAC_OS_X_VERSION_MIN_REQUIRED) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070 && !defined(FORCE_OPENSSL_SHA2)
+#include "arch.h"
+#if defined(__APPLE__) && defined(__MACH__) && defined(__MAC_OS_X_VERSION_MIN_REQUIRED) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070 && !defined(FORCE_OPENSSL_SHA2) && !defined(MMX_COEF)
 #define COMMON_DIGEST_FOR_OPENSSL
 #define SHA2_LIB "CommonCrypto"
 #include <CommonCrypto/CommonDigest.h>
