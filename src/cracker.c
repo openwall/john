@@ -27,6 +27,9 @@
 #include "options.h"
 #include "unicode.h"
 #include "john.h"
+#ifdef HAVE_MPI
+#include "john-mpi.h"
+#endif
 
 #ifdef index
 #undef index
@@ -63,6 +66,12 @@ static void crk_help(void)
 	static int printed = 0;
 	if (!john_main_process || printed)
 		return;
+#ifdef HAVE_MPI
+	if (mpi_p > 1) {
+		fprintf(stderr, "Send SIGUSR1 to mpirun for status\n");
+		return;
+	}
+#endif
 	fprintf(stderr, "Press Ctrl-C or 'q' to abort, "
 	    "almost any other key for status\n");
 	printed = 1;
