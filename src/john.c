@@ -178,12 +178,14 @@ static void john_omp_show_info(void)
 		else if ((database.format->params.flags & FMT_OMP_BAD))
 			msg = "poor OpenMP scalability";
 		if (msg)
-			fprintf(stderr, "Warning: %s for this hash type"
 #if OS_FORK
-			    ", consider --fork=%d"
-#endif
-			    "\n",
+			fprintf(stderr, "Warning: %s for this hash type, "
+			    "consider --fork=%d\n",
 			    msg, john_omp_threads_orig);
+#else
+			fprintf(stderr, "Warning: %s for this hash type\n",
+			    msg);
+#endif
 	}
 
 /*
@@ -234,12 +236,9 @@ static void john_omp_show_info(void)
 }
 #endif
 
+#if OS_FORK
 static void john_fork(void)
 {
-#if !OS_FORK
-	fputs("Warning: --fork is not supported in this build, "
-	    "will run one process\n", stderr);
-#else
 	int i, pid;
 	int *pids;
 
@@ -288,12 +287,10 @@ static void john_fork(void)
 	john_child_count = options.fork - 1;
 
 	options.node_max = options.node_min;
-#endif
 }
 
 static void john_wait(void)
 {
-#if OS_FORK
 	int waiting_for = john_child_count;
 
 	log_event("Waiting for %d child%s to terminate",
@@ -325,8 +322,8 @@ static void john_wait(void)
 
 /* Close and possibly remove our .rec file now */
 	rec_done((children_ok && !event_abort) ? -1 : -2);
-#endif
 }
+#endif
 
 static char *john_loaded_counts(void)
 {
@@ -471,8 +468,10 @@ static void john_load(void)
 			    options.node_min, options.node_count);
 		}
 
+#if OS_FORK
 		if (options.fork)
 			john_fork();
+#endif
 	}
 }
 
@@ -590,8 +589,10 @@ static void john_run(void)
 
 		status_print();
 
+#if OS_FORK
 		if (options.fork && john_main_process)
 			john_wait();
+#endif
 
 		tty_done();
 

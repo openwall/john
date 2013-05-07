@@ -3,6 +3,9 @@
  * Copyright (c) 1996-2013 by Solar Designer
  */
 
+#define NEED_OS_FORK
+#include "os.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -66,9 +69,11 @@ static struct opt_entry opt_list[] = {
 		"%u", &mem_saving_level},
 	{"node", FLG_NODE, FLG_NODE, FLG_CRACKING_CHK, OPT_REQ_PARAM,
 		OPT_FMT_STR_ALLOC, &options.node_str},
+#if OS_FORK
 	{"fork", FLG_FORK, FLG_FORK,
 		FLG_CRACKING_CHK, FLG_STDIN_CHK | FLG_STDOUT | OPT_REQ_PARAM,
 		"%u", &options.fork},
+#endif
 	{"format", FLG_FORMAT, FLG_FORMAT,
 		0, FLG_STDOUT | OPT_REQ_PARAM,
 		OPT_FMT_STR_ALLOC, &options.format},
@@ -76,6 +81,13 @@ static struct opt_entry opt_list[] = {
 };
 
 #define JOHN_COPYRIGHT "Solar Designer"
+
+#if OS_FORK
+#define JOHN_USAGE_FORK \
+"--fork=N                   fork N processes\n"
+#else
+#define JOHN_USAGE_FORK ""
+#endif
 
 #define JOHN_USAGE \
 "John the Ripper password cracker, version " JOHN_VERSION "\n" \
@@ -101,7 +113,7 @@ static struct opt_entry opt_list[] = {
 "--salts=[-]N               load salts with[out] at least N passwords only\n" \
 "--save-memory=LEVEL        enable memory saving, at LEVEL 1..3\n" \
 "--node=MIN[-MAX]/TOTAL     this node's number range out of TOTAL count\n" \
-"--fork=N                   fork N processes\n" \
+JOHN_USAGE_FORK \
 "--format=NAME              force hash type NAME: "
 
 #define JOHN_USAGE_INDENT \
@@ -170,21 +182,28 @@ void opt_init(char *name, int argc, char **argv)
 	}
 
 	if (options.flags & FLG_RESTORE_CHK) {
+#if OS_FORK
 		char *rec_name_orig = rec_name;
+#endif
 		rec_restore_args(1);
+#if OS_FORK
 		if (options.fork) {
 			rec_name = rec_name_orig;
 			rec_name_completed = 0;
 		}
+#endif
 		return;
 	}
 
 	if (options.flags & FLG_STATUS_CHK) {
+#if OS_FORK
 		char *rec_name_orig = rec_name;
+#endif
 		rec_restore_args(0);
 		options.flags |= FLG_STATUS_SET;
 		status_init(NULL, 1);
 		status_print();
+#if OS_FORK
 		if (options.fork) {
 			unsigned int i;
 			for (i = 2; i <= options.fork; i++) {
@@ -201,6 +220,7 @@ void opt_init(char *name, int argc, char **argv)
 					status_print();
 			}
 		}
+#endif
 		exit(0);
 	}
 
@@ -220,11 +240,13 @@ void opt_init(char *name, int argc, char **argv)
 
 	if (options.flags & FLG_STDOUT) options.flags &= ~FLG_PWD_REQ;
 
+#if OS_FORK
 	if ((options.flags & FLG_FORK) &&
 	    (options.fork < 2 || options.fork > 1024)) {
 		fprintf(stderr, "--fork number must be between 2 and 1024\n");
 		error();
 	}
+#endif
 
 	if (options.node_str) {
 		const char *msg = NULL;
@@ -235,8 +257,10 @@ void opt_init(char *name, int argc, char **argv)
 			n = sscanf(options.node_str, "%u/%u",
 			    &options.node_min, &options.node_count);
 			options.node_max = options.node_min;
+#if OS_FORK
 			if (options.fork)
 				options.node_max += options.fork - 1;
+#endif
 		}
 		if (n < 2)
 			msg = "valid syntax is MIN-MAX/TOTAL or N/TOTAL";
@@ -248,9 +272,11 @@ void opt_init(char *name, int argc, char **argv)
 			msg = "node count must be at least 2";
 		else if (options.node_max > options.node_count)
 			msg = "node numbers can't exceed node count";
+#if OS_FORK
 		else if (options.fork &&
 		    options.node_max - options.node_min + 1 != options.fork)
 			msg = "range must be consistent with --fork number";
+#endif
 		else if (!options.fork &&
 		    options.node_max - options.node_min + 1 ==
 		    options.node_count)
@@ -260,10 +286,12 @@ void opt_init(char *name, int argc, char **argv)
 			    options.node_str, msg);
 			error();
 		}
+#if OS_FORK
 	} else if (options.fork) {
 		options.node_min = 1;
 		options.node_max = options.node_min + options.fork - 1;
 		options.node_count = options.node_max;
+#endif
 	}
 
 	if ((options.flags & (FLG_PASSWD | FLG_PWD_REQ)) == FLG_PWD_REQ) {
