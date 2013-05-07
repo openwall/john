@@ -201,7 +201,8 @@ static void status_print_cracking(char *percent)
 	char *key1, key2[PLAINTEXT_BUFFER_SIZE];
 	int64 g;
 	char s_gps[32], s_pps[32], s_crypts_ps[32], s_combs_ps[32];
-	char s1[32], s2[256], s3[72], s4[40];
+	char s[1024], *p;
+	int n;
 
 	key1 = NULL;
 	key2[0] = 0;
@@ -213,30 +214,39 @@ static void status_print_cracking(char *percent)
 		key1 = crk_get_key1();
 	}
 
-	s1[0] = s2[0] = s3[0] = s4[0] = 0;
-
-	if (options.fork)
-		sprintf(s1, "%u ", options.node_min);
+	p = s;
+	if (options.fork) {
+		n = sprintf(p, "%u ", options.node_min);
+		if (n > 0)
+			p += n;
+	}
 
 	g.lo = status.guess_count; g.hi = 0;
-	sprintf(s2,
-	    "%ug %u:%02u:%02u:%02u%s %sg/s ",
+	n = sprintf(p,
+	    "%ug %u:%02u:%02u:%02u%.100s %.31sg/s ",
 	    status.guess_count,
 	    time / 86400, time % 86400 / 3600, time % 3600 / 60, time % 60,
 	    percent,
 	    status_get_cps(s_gps, &g, 0));
+	if (n > 0)
+		p += n;
 
-	if (!status.compat)
-		sprintf(s3,
-		    "%sp/s %sc/s ",
+	if (!status.compat) {
+		n = sprintf(p,
+		    "%.31sp/s %.31sc/s ",
 		    status_get_cps(s_pps, &status.cands, 0),
 		    status_get_cps(s_crypts_ps, &status.crypts, 0));
+		if (n > 0)
+			p += n;
+	}
 
-	sprintf(s4, "%sC/s",
-	    status_get_cps(s_combs_ps, &status.combs, status.combs_ehi));
-
-	fprintf(stderr, "%s%s%s%s%s%s%s%s\n", s1, s2, s3, s4,
+	n = sprintf(p, "%.31sC/s%s%.200s%s%.200s\n",
+	    status_get_cps(s_combs_ps, &status.combs, status.combs_ehi),
 	    key1 ? " " : "", key1 ? key1 : "", key2[0] ? ".." : "", key2);
+	if (n > 0)
+		p += n;
+
+	fwrite(s, p - s, 1, stderr);
 }
 
 static void status_print_stdout(char *percent)
