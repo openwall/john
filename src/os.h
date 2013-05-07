@@ -46,7 +46,7 @@
 
 #ifdef NEED_OS_FORK
 
-#ifdef __DJGPP__
+#if defined(__DJGPP__) || defined(__CYGWIN32__)
 #define OS_FORK				0
 #else
 #define OS_FORK				1
