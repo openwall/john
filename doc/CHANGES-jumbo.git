@@ -3326,7 +3326,7 @@ magnum (109):
 	Drop the "MaxOrder < 64" constraint - I have files with MaxOrder 165 that was not cracked due to the limit. (-m4, -m5, -mct)
 	Change a bunch of ISO-8859-1 source files to UTF-8
 	Use LC_ALL=C for plugins' sed incovation in Makefile
-	Change all © to (c) in source files.
+	Change all non-ascii copyright signs to (c) in source files.
 	RAR: Use mem_alloc_tiny() instead of mem_alloc()
 	Accidental spaces in Makefile replaced with TABs (it matters).
 	RAR: Memory leak fixed. It was introduced with early reject.
