@@ -64,8 +64,8 @@ static int omp_t = 1;
 #define BINARY_SIZE		12
 #define SALT_SIZE		sizeof(struct custom_salt)
 #ifdef MMX_COEF
-#define MIN_KEYS_PER_CRYPT  SSE_GROUP_SZ
-#define MAX_KEYS_PER_CRYPT  SSE_GROUP_SZ
+#define MIN_KEYS_PER_CRYPT  SSE_GROUP_SZ_SHA1
+#define MAX_KEYS_PER_CRYPT  SSE_GROUP_SZ_SHA1
 #else
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1

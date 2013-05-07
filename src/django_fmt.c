@@ -60,8 +60,8 @@ static int omp_t = 1;
 #define BINARY_SIZE		32
 #define SALT_SIZE		sizeof(struct custom_salt)
 #ifdef MMX_COEF_SHA256
-#define MIN_KEYS_PER_CRYPT	MMX_COEF_SHA256
-#define MAX_KEYS_PER_CRYPT	MMX_COEF_SHA256
+#define MIN_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA256
+#define MAX_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA256
 #else
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
@@ -194,10 +194,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	{
 #ifdef MMX_COEF_SHA256
-		int lens[MMX_COEF_SHA256], i;
-		unsigned char *pin[MMX_COEF_SHA256];
-		ARCH_WORD_32 *pout[MMX_COEF_SHA256];
-		for (i = 0; i < MMX_COEF_SHA256; ++i) {
+		int lens[MAX_KEYS_PER_CRYPT], i;
+		unsigned char *pin[MAX_KEYS_PER_CRYPT];
+		ARCH_WORD_32 *pout[MAX_KEYS_PER_CRYPT];
+		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
 			lens[i] = strlen(saved_key[i+index]);
 			pin[i] = (unsigned char*)saved_key[i+index];
 			pout[i] = crypt_out[i+index];

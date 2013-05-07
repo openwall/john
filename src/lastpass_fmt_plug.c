@@ -37,8 +37,8 @@
 #define BINARY_SIZE		16
 #define SALT_SIZE		sizeof(struct custom_salt)
 #ifdef MMX_COEF_SHA256
-#define MIN_KEYS_PER_CRYPT	MMX_COEF_SHA256
-#define MAX_KEYS_PER_CRYPT	MMX_COEF_SHA256
+#define MIN_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA256
+#define MAX_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA256
 #else
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
@@ -174,18 +174,18 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	{
 		AES_KEY akey;
 #ifdef MMX_COEF_SHA256
-		int lens[MMX_COEF_SHA256], i;
-		unsigned char *pin[MMX_COEF_SHA256];
-		ARCH_WORD_32 key[MMX_COEF_SHA256][8];
-		ARCH_WORD_32 *pout[MMX_COEF_SHA256];
-		for (i = 0; i < MMX_COEF_SHA256; ++i) {
+		int lens[MAX_KEYS_PER_CRYPT], i;
+		unsigned char *pin[MAX_KEYS_PER_CRYPT];
+		ARCH_WORD_32 key[MAX_KEYS_PER_CRYPT][8];
+		ARCH_WORD_32 *pout[MAX_KEYS_PER_CRYPT];
+		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
 			lens[i] = strlen(saved_key[i+index]);
 			pin[i] = (unsigned char*)saved_key[i+index];
 			pout[i] = key[i];
 		}
 		pbkdf2_sha256_sse((const unsigned char **)pin, lens, cur_salt->salt, cur_salt->salt_length, 500, (unsigned char **)pout, 32, 0);
 
-		for (i = 0; i < MMX_COEF_SHA256; ++i) {
+		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
 			memset(&akey, 0, sizeof(AES_KEY));
 			AES_set_encrypt_key((unsigned char*)key[i], 256, &akey);
 			AES_ecb_encrypt((unsigned char*)"lastpass rocks\x02\x02", (unsigned char*)crypt_out[i+index], &akey, AES_ENCRYPT);

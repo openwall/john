@@ -11,10 +11,10 @@
  * modification, are permitted.
  */
 
-#include <openssl/evp.h>
+//#include <openssl/evp.h>
 
 /* this check can be relaxed more */
-#if OPENSSL_VERSION_NUMBER >= 0x10001000
+//#if OPENSSL_VERSION_NUMBER >= 0x10001000
 
 #include <string.h>
 #include <assert.h>
@@ -25,34 +25,79 @@
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-#include <openssl/evp.h>
+//#include <openssl/evp.h>
 #ifdef _OPENMP
 static int omp_t = 1;
 #include <omp.h>
 #define OMP_SCALE               8 // Tuned on i7 w/HT for SHA-256
 #endif
+#include "pbkdf2_hmac_sha1.h"
+#include "pbkdf2_hmac_sha256.h"
+#include "pbkdf2_hmac_sha512.h"
 
-#define FORMAT_LABEL		"aix-ssha"
-#define FORMAT_NAME		"AIX LPA PBKDF2-HMAC-SHA-1 / SHA-2"
-#define ALGORITHM_NAME		"32/" ARCH_BITS_STR
+#define FORMAT_LABEL_SHA1	"aix-ssha-1"
+#define FORMAT_LABEL_SHA256	"aix-ssha-256"
+#define FORMAT_LABEL_SHA512	"aix-ssha-512"
+#define FORMAT_NAME_SHA1	"AIX LPA PBKDF2-HMAC-SHA-1"
+#define FORMAT_NAME_SHA256	"AIX LPA PBKDF2-HMAC-SHA-256"
+#define FORMAT_NAME_SHA512	"AIX LPA PBKDF2-HMAC-SHA-512"
+#ifdef MMX_COEF
+#define ALGORITHM_NAME_SHA1	SHA1_N_STR MMX_TYPE
+#else
+#define ALGORITHM_NAME_SHA1	"32/" ARCH_BITS_STR
+#endif
+#ifdef MMX_COEF_SHA256
+#define ALGORITHM_NAME_SHA256	SHA256_ALGORITHM_NAME
+#else
+#define ALGORITHM_NAME_SHA256	"32/" ARCH_BITS_STR
+#endif
+#ifdef MMX_COEF_SHA512
+#define ALGORITHM_NAME_SHA512	SHA512_ALGORITHM_NAME
+#else
+#define ALGORITHM_NAME_SHA512	"32/" ARCH_BITS_STR
+#endif
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
+#ifndef PLAINTEXT_LENGTH
 #define PLAINTEXT_LENGTH	125 /* actual max in AIX is 255 */
+#endif
 #define BINARY_SIZE		20
 #define CMP_SIZE 		BINARY_SIZE - 2
 #define LARGEST_BINARY_SIZE	64
 #define MAX_SALT_SIZE		24
 #define SALT_SIZE		sizeof(struct custom_salt)
+#ifdef MMX_COEF
+// since we have a 'common' crypt_all() function, find 'max' of sha1/sha256/sha512, and that is the block size
+// crypt_all handles looping 'within' each OMP thread (or within the single thread if non OMP).
+#if SSE_GROUP_SZ_SHA1 > SSE_GROUP_SZ_SHA256 && SSE_GROUP_SZ_SHA1 > SSE_GROUP_SZ_SHA512
+#define MIN_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA1
+#define MAX_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA1
+#elif SSE_GROUP_SZ_SHA512 > SSE_GROUP_SZ_SHA256
+#define MIN_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA512
+#define MAX_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA512
+#else
+#define MIN_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA256
+#define MAX_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA256
+#endif
+#else
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
+#endif
 #define BASE64_ALPHABET	  \
 	"./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 
-static struct fmt_tests aixssha_tests[] = {
+static struct fmt_tests aixssha_tests1[] = {
 	{"{ssha1}06$T6numGi8BRLzTYnF$AdXq1t6baevg9/cu5QBBk8Xg.se", "whatdoyouwantfornothing$$$$$$"},
 	{"{ssha1}06$6cZ2YrFYwVQPAVNb$1agAljwERjlin9RxFxzKl.E0.sJ", "gentoo=>meh"},
+	{NULL}
+};
+
+static struct fmt_tests aixssha_tests256[] = {
 	{"{ssha256}06$YPhynOx/iJQaJOeV$EXQbOSYZftEo3k01uoanAbA7jEKZRUU9LCCs/tyU.wG", "verylongbutnotverystrongpassword"},
 	{"{ssha256}06$5lsi4pETf/0p/12k$xACBftDMh30RqgrM5Sppl.Txgho41u0oPoD21E1b.QT", "I<3JtR"},
+	{NULL}
+};
+static struct fmt_tests aixssha_tests512[] = {
 	{"{ssha512}06$y2/.O4drNJd3ecgJ$DhNk3sS28lkIo7XZaXWSkFOIdP2Zsd9DIKdYDSuSU5tsnl29Q7xTc3f64eAGMpcMJCVp/SXZ4Xgx3jlHVIOr..", "solarisalwaysbusyitseems"},
 	{"{ssha512}06$Dz/dDr1qa8JJm0UB$DFNu2y8US18fW37ht8WRiwhSeOqAMJTJ6mLDW03D/SeQpdI50GJMYb1fBog5/ZU3oM9qsSr9w6u22.OjjufV..", "idontbelievethatyourpasswordislongerthanthisone"},
 	/* hash posted on john-users */
@@ -86,21 +131,14 @@ static void init(struct fmt_main *self)
 	                self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
-static int valid(char *ciphertext, struct fmt_main *self)
+static int inline valid_common(char *ciphertext, struct fmt_main *self, int b64len, char *sig, int siglen)
 {
 	char *p = ciphertext;
-	int len, b64len;
+	int len;
 
-	if (!strncmp(p, "{ssha1}", 7)) {
-		p += 7;
-		b64len = 27;
-	} else if (!strncmp(p, "{ssha256}", 9)) {
-		p += 9;
-		b64len = 43;
-	} else if (!strncmp(p, "{ssha512}", 9)) {
-		p += 9;
-		b64len = 86;
-	} else
+	if (!strncmp(p, sig, siglen))
+		p += siglen;
+	else
 		return 0;
 
 	len = strspn(p, "0123456789"); /* iterations, exactly two digits */
@@ -123,6 +161,16 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		return 0;
 
 	return 1;
+}
+
+static int valid_sha1(char *ciphertext, struct fmt_main *self) {
+	return valid_common(ciphertext, self, 27, "{ssha1}", 7);
+}
+static int valid_sha256(char *ciphertext, struct fmt_main *self) {
+	return valid_common(ciphertext, self, 43, "{ssha256}", 9);
+}
+static int valid_sha512(char *ciphertext, struct fmt_main *self) {
+	return valid_common(ciphertext, self, 86, "{ssha512}", 9);
 }
 
 static void *get_salt(char *ciphertext)
@@ -221,24 +269,87 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
 #endif
+	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 	{
-		if (cur_salt->type == 1)
-			PKCS5_PBKDF2_HMAC(saved_key[index], strlen(saved_key[index]),
-				cur_salt->salt, strlen((char*)cur_salt->salt),
-				cur_salt->iterations, EVP_sha1(), BINARY_SIZE,
-				(unsigned char*)crypt_out[index]);
-		else if (cur_salt->type == 256)
-			PKCS5_PBKDF2_HMAC(saved_key[index], strlen(saved_key[index]),
-				cur_salt->salt, strlen((char*)cur_salt->salt),
-				cur_salt->iterations, EVP_sha256(), BINARY_SIZE,
-				(unsigned char*)crypt_out[index]);
-		else
-			PKCS5_PBKDF2_HMAC(saved_key[index], strlen(saved_key[index]),
-				cur_salt->salt, strlen((char*)cur_salt->salt),
-				cur_salt->iterations, EVP_sha512(), BINARY_SIZE,
-				(unsigned char*)crypt_out[index]);
+		int j = index;
+		while (j < index + MAX_KEYS_PER_CRYPT) {
+			if (cur_salt->type == 1) {
+#ifdef SSE_GROUP_SZ_SHA1
+				int lens[SSE_GROUP_SZ_SHA1], i;
+				unsigned char *pin[SSE_GROUP_SZ_SHA1];
+				ARCH_WORD_32 *pout[SSE_GROUP_SZ_SHA1];
+				for (i = 0; i < SSE_GROUP_SZ_SHA1; ++i) {
+					lens[i] = strlen(saved_key[j]);
+					pin[i] = (unsigned char*)(saved_key[j]);
+					pout[i] = crypt_out[j];
+					++j;
+				}
+				pbkdf2_sha1_sse((const unsigned char **)pin, lens, cur_salt->salt, strlen((char*)cur_salt->salt), cur_salt->iterations, (unsigned char**)pout, BINARY_SIZE, 0);
+#else
+				/* // code is 5x slower than my pbkdf2_sha1. Come'on Eric. speed yer stuff up!!!
+				PKCS5_PBKDF2_HMAC(saved_key[index], strlen(saved_key[index]),
+					cur_salt->salt, strlen((char*)cur_salt->salt),
+					cur_salt->iterations, EVP_sha1(), BINARY_SIZE,
+					(unsigned char*)crypt_out[index]);
+				*/
+				pbkdf2_sha1((const unsigned char*)(saved_key[j]), strlen(saved_key[j]),
+					cur_salt->salt, strlen((char*)cur_salt->salt),
+					cur_salt->iterations, (unsigned char*)crypt_out[j], BINARY_SIZE, 0);
+				++j;
+#endif
+			}
+			else if (cur_salt->type == 256) {
+#ifdef SSE_GROUP_SZ_SHA256
+				int lens[SSE_GROUP_SZ_SHA256], i;
+				unsigned char *pin[SSE_GROUP_SZ_SHA256];
+				ARCH_WORD_32 *pout[SSE_GROUP_SZ_SHA256];
+				for (i = 0; i < SSE_GROUP_SZ_SHA256; ++i) {
+					lens[i] = strlen(saved_key[j]);
+					pin[i] = (unsigned char*)saved_key[j];
+					pout[i] = crypt_out[j];
+					++j;
+				}
+				pbkdf2_sha256_sse((const unsigned char **)pin, lens, cur_salt->salt, strlen((char*)cur_salt->salt), cur_salt->iterations, (unsigned char**)pout, BINARY_SIZE, 0);
+#else
+				/*
+				PKCS5_PBKDF2_HMAC(saved_key[index], strlen(saved_key[index]),
+					cur_salt->salt, strlen((char*)cur_salt->salt),
+					cur_salt->iterations, EVP_sha256(), BINARY_SIZE,
+					(unsigned char*)crypt_out[index]);
+				*/
+				pbkdf2_sha256((const unsigned char*)(saved_key[j]), strlen(saved_key[j]),
+					cur_salt->salt, strlen((char*)cur_salt->salt),
+					cur_salt->iterations, (unsigned char*)crypt_out[j], BINARY_SIZE, 0);
+				++j;
+#endif
+			}
+			else {
+#ifdef SSE_GROUP_SZ_SHA512
+				int lens[SSE_GROUP_SZ_512], i;
+				unsigned char *pin[SSE_GROUP_SZ_SHA512];
+				ARCH_WORD_32 *pout[SSE_GROUP_SZ_SHA512];
+				for (i = 0; i < SSE_GROUP_SZ_SHA512; ++i) {
+					lens[i] = strlen(saved_key[j]);
+					pin[i] = (unsigned char*)saved_key[j];
+					pout[i] = crypt_out[j];
+					++j;
+				}
+				pbkdf2_sha512_sse((const unsigned char **)pin, lens, cur_salt->salt, strlen((char*)cur_salt->salt), cur_salt->iterations, (unsigned char**)pout, BINARY_SIZE, 0);
+#else
+				/*
+				PKCS5_PBKDF2_HMAC(saved_key[index], strlen(saved_key[index]),
+					cur_salt->salt, strlen((char*)cur_salt->salt),
+					cur_salt->iterations, EVP_sha512(), BINARY_SIZE,
+					(unsigned char*)crypt_out[index]);
+				*/
+				pbkdf2_sha512((const unsigned char*)(saved_key[j]), strlen(saved_key[j]),
+					cur_salt->salt, strlen((char*)cur_salt->salt),
+					cur_salt->iterations, (unsigned char*)crypt_out[j], BINARY_SIZE, 0);
+				++j;
+#endif
+			}
+		}
 	}
 	return count;
 }
@@ -246,9 +357,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 static int cmp_all(void *binary, int count)
 {
 	int index = 0;
-#ifdef _OPENMP
 	for (; index < count; index++)
-#endif
 		if (!memcmp(binary, crypt_out[index], CMP_SIZE))
 			return 1;
 	return 0;
@@ -278,11 +387,11 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-struct fmt_main fmt_aixssha = {
+struct fmt_main fmt_aixssha1 = {
 	{
-		FORMAT_LABEL,
-		FORMAT_NAME,
-		ALGORITHM_NAME,
+		FORMAT_LABEL_SHA1,
+		FORMAT_NAME_SHA1,
+		ALGORITHM_NAME_SHA1,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
@@ -293,13 +402,13 @@ struct fmt_main fmt_aixssha = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
-		aixssha_tests
+		aixssha_tests1
 	}, {
 		init,
 		fmt_default_done,
 		fmt_default_reset,
 		fmt_default_prepare,
-		valid,
+		valid_sha1,
 		fmt_default_split,
 		get_binary,
 		get_salt,
@@ -334,4 +443,116 @@ struct fmt_main fmt_aixssha = {
 	}
 };
 
-#endif
+struct fmt_main fmt_aixssha256 = {
+	{
+		FORMAT_LABEL_SHA256,
+		FORMAT_NAME_SHA256,
+		ALGORITHM_NAME_SHA256,
+		BENCHMARK_COMMENT,
+		BENCHMARK_LENGTH,
+		PLAINTEXT_LENGTH,
+		BINARY_SIZE,
+		DEFAULT_ALIGN,
+		SALT_SIZE,
+		DEFAULT_ALIGN,
+		MIN_KEYS_PER_CRYPT,
+		MAX_KEYS_PER_CRYPT,
+		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		aixssha_tests256
+	}, {
+		init,
+		fmt_default_done,
+		fmt_default_reset,
+		fmt_default_prepare,
+		valid_sha256,
+		fmt_default_split,
+		get_binary,
+		get_salt,
+		fmt_default_source,
+		{
+			binary_hash_0,
+			binary_hash_1,
+			binary_hash_2,
+			binary_hash_3,
+			binary_hash_4,
+			binary_hash_5,
+			binary_hash_6
+		},
+		fmt_default_salt_hash,
+		set_salt,
+		aixssha_set_key,
+		get_key,
+		fmt_default_clear_keys,
+		crypt_all,
+		{
+			get_hash_0,
+			get_hash_1,
+			get_hash_2,
+			get_hash_3,
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
+		},
+		cmp_all,
+		cmp_one,
+		cmp_exact
+	}
+};
+
+struct fmt_main fmt_aixssha512 = {
+	{
+		FORMAT_LABEL_SHA512,
+		FORMAT_NAME_SHA512,
+		ALGORITHM_NAME_SHA512,
+		BENCHMARK_COMMENT,
+		BENCHMARK_LENGTH,
+		PLAINTEXT_LENGTH,
+		BINARY_SIZE,
+		DEFAULT_ALIGN,
+		SALT_SIZE,
+		DEFAULT_ALIGN,
+		MIN_KEYS_PER_CRYPT,
+		MAX_KEYS_PER_CRYPT,
+		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		aixssha_tests512
+	}, {
+		init,
+		fmt_default_done,
+		fmt_default_reset,
+		fmt_default_prepare,
+		valid_sha512,
+		fmt_default_split,
+		get_binary,
+		get_salt,
+		fmt_default_source,
+		{
+			binary_hash_0,
+			binary_hash_1,
+			binary_hash_2,
+			binary_hash_3,
+			binary_hash_4,
+			binary_hash_5,
+			binary_hash_6
+		},
+		fmt_default_salt_hash,
+		set_salt,
+		aixssha_set_key,
+		get_key,
+		fmt_default_clear_keys,
+		crypt_all,
+		{
+			get_hash_0,
+			get_hash_1,
+			get_hash_2,
+			get_hash_3,
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
+		},
+		cmp_all,
+		cmp_one,
+		cmp_exact
+	}
+};
+
+//#endif

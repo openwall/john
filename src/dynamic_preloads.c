@@ -742,7 +742,7 @@ static struct fmt_tests _Preloads_26[] =
 	{NULL}
 };
 
-#if !defined (_OPENMP)
+#if !defined (_OPENMP)  && defined (MMX_COEF)
 #if ARCH_LITTLE_ENDIAN
 //dynamic_27 --> FreeBSD MD5
 static DYNAMIC_primitive_funcp _Funcs_27[] =
@@ -2092,7 +2092,7 @@ static DYNAMIC_Setup Setups[] =
 	{ "dynamic_24: sha1($p.$s)",                _Funcs_24,_Preloads_24,_ConstDefault, MGF_SALTED, MGF_NO_FLAG|MGF_SHA1_40_BYTE_FINISH, -24 },
 	{ "dynamic_25: sha1($s.$p)",                _Funcs_25,_Preloads_25,_ConstDefault, MGF_SALTED, MGF_NO_FLAG|MGF_SHA1_40_BYTE_FINISH, -24 },
 	{ "dynamic_26: sha1($p) raw-sha1",          _Funcs_26,_Preloads_26,_ConstDefault, MGF_NO_FLAG, MGF_RAW_SHA1_INPUT|MGF_SHA1_40_BYTE_FINISH },
-#if !defined (_OPENMP)
+#if !defined (_OPENMP) && defined (MMX_COEF)
 #if ARCH_LITTLE_ENDIAN
 	{ "dynamic_27: FreeBSD MD5",                _Funcs_27,_Preloads_27,_Const_27,     MGF_SALTED|MGF_INPBASE64a|MGF_StartInX86Mode, MGF_FreeBSDMD5Setup, -8, 15, 15 },
 	{ "dynamic_28: Apache MD5",                 _Funcs_28,_Preloads_28,_Const_28,     MGF_SALTED|MGF_INPBASE64a|MGF_StartInX86Mode, MGF_FreeBSDMD5Setup, -8, 15, 15 },

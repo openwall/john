@@ -72,11 +72,33 @@ static void _pbkdf2_sha256(const unsigned char *S, int SL, int R, ARCH_WORD_32 *
 	memcpy(out, tmp_hash, SHA256_DIGEST_LENGTH);
 
 	for(i = 1; i < R; i++) {
+#if defined(__JTR_SHA2___H_) || (defined (HEADER_E_OS2_H) && defined (HEADER_SHA_H) )
+		memcpy(ctx.h, pIpad->h, 40);
+#if defined(__JTR_SHA2___H_)
+		ctx.total = pIpad->total;
+		ctx.bIs256 = pIpad->bIs256;
+#else
+		ctx.num = pIpad->num;
+		ctx.md_len = pIpad->md_len;
+#endif
+#else
 		memcpy(&ctx, pIpad, sizeof(SHA256_CTX));
+#endif
 		SHA256_Update(&ctx, tmp_hash, SHA256_DIGEST_LENGTH);
 		SHA256_Final(tmp_hash, &ctx);
 
+#if defined(__JTR_SHA2___H_) || (defined (HEADER_E_OS2_H) && defined (HEADER_SHA_H) )
+		memcpy(ctx.h, pOpad->h, 40);
+#if defined(__JTR_SHA2___H_)
+		ctx.total = pOpad->total;
+		ctx.bIs256 = pOpad->bIs256;
+#else
+		ctx.num = pOpad->num;
+		ctx.md_len = pOpad->md_len;
+#endif
+#else
 		memcpy(&ctx, pOpad, sizeof(SHA256_CTX));
+#endif
 		SHA256_Update(&ctx, tmp_hash, SHA256_DIGEST_LENGTH);
 		SHA256_Final(tmp_hash, &ctx);
 		for(j = 0; j < SHA256_DIGEST_LENGTH/sizeof(ARCH_WORD_32); j++)
@@ -84,22 +106,22 @@ static void _pbkdf2_sha256(const unsigned char *S, int SL, int R, ARCH_WORD_32 *
 	}
 }
 
-static void pbkdf2_sha256(unsigned char *K, int KL, unsigned char *S, int SL, int R, unsigned char *out, int outlen, int skip_bytes)
+static void pbkdf2_sha256(const unsigned char *K, int KL, unsigned char *S, int SL, int R, unsigned char *out, int outlen, int skip_bytes)
 {
 	union {
-		ARCH_WORD_32 x32[8];
-		unsigned char out[32];
+		ARCH_WORD_32 x32[SHA256_DIGEST_LENGTH/sizeof(ARCH_WORD_32)];
+		unsigned char out[SHA256_DIGEST_LENGTH];
 	} tmp;
 	int loop, loops, i, accum=0;
 	SHA256_CTX ipad, opad;
 
 	_pbkdf2_sha256_load_hmac(K, KL, &ipad, &opad);
 
-	loops = (skip_bytes + outlen + 31) / 32;
-	loop = skip_bytes / 32 + 1;
+	loops = (skip_bytes + outlen + (SHA256_DIGEST_LENGTH-1)) / SHA256_DIGEST_LENGTH;
+	loop = skip_bytes / SHA256_DIGEST_LENGTH + 1;
 	while (loop <= loops) {
 		_pbkdf2_sha256(S,SL,R,tmp.x32,loop,&ipad,&opad);
-		for (i = skip_bytes%32; i < 32 && accum < outlen; i++) {
+		for (i = skip_bytes%SHA256_DIGEST_LENGTH; i < SHA256_DIGEST_LENGTH && accum < outlen; i++) {
 #if ARCH_LITTLE_ENDIAN
 			out[accum++] = ((uint8_t*)tmp.out)[i];
 #else
@@ -133,17 +155,17 @@ extern void sha256_final  (void *output, sha256_ctx *ctx);
 
 
 #if SHA256_SSE_PARA
-#define SSE_GROUP_SZ_256 (MMX_COEF_SHA256*SHA256_SSE_PARA)
+#define SSE_GROUP_SZ_SHA256 (MMX_COEF_SHA256*SHA256_SSE_PARA)
 #else
-#define SSE_GROUP_SZ MMX_COEF_SHA256
+#define SSE_GROUP_SZ_SHA256 MMX_COEF_SHA256
 #endif
 
-static void _pbkdf2_sha256_sse_load_hmac(const unsigned char *K[SSE_GROUP_SZ_256], int KL[SSE_GROUP_SZ_256], SHA256_CTX pIpad[SSE_GROUP_SZ_256], SHA256_CTX pOpad[SSE_GROUP_SZ_256])
+static void _pbkdf2_sha256_sse_load_hmac(const unsigned char *K[SSE_GROUP_SZ_SHA256], int KL[SSE_GROUP_SZ_SHA256], SHA256_CTX pIpad[SSE_GROUP_SZ_SHA256], SHA256_CTX pOpad[SSE_GROUP_SZ_SHA256])
 {
 	unsigned char ipad[SHA256_CBLOCK], opad[SHA256_CBLOCK];
 	int i, j;
 
-	for (j = 0; j < SSE_GROUP_SZ_256; ++j) {
+	for (j = 0; j < SSE_GROUP_SZ_SHA256; ++j) {
 		memset(ipad, 0x36, SHA256_CBLOCK);
 		memset(opad, 0x5C, SHA256_CBLOCK);
 
@@ -165,20 +187,20 @@ static void pbkdf2_sha256_sse(const unsigned char *K[MMX_COEF_SHA256], int KL[MM
 	unsigned char tmp_hash[SHA256_DIGEST_LENGTH];
 	ARCH_WORD_32 *i1, *i2, *o1, *ptmp;
 	int i,j;
-	ARCH_WORD_32 dgst[SSE_GROUP_SZ_256][8];
+	ARCH_WORD_32 dgst[SSE_GROUP_SZ_SHA256][SHA256_DIGEST_LENGTH/sizeof(ARCH_WORD_32)];
 	int loops, accum=0;
 	unsigned char loop;
-	SHA256_CTX ipad[SSE_GROUP_SZ_256], opad[SSE_GROUP_SZ_256], ctx;
+	SHA256_CTX ipad[SSE_GROUP_SZ_SHA256], opad[SSE_GROUP_SZ_SHA256], ctx;
 
 #ifdef _MSC_VER
 	// sse_hash1 would need to be 'adjusted' for SHA256_PARA
-	__declspec(align(16)) unsigned char sse_hash1[SHA256_BUF_SIZ*4*SSE_GROUP_SZ_256];
-	__declspec(align(16)) unsigned char sse_crypt1[32*SSE_GROUP_SZ_256];
-	__declspec(align(16)) unsigned char sse_crypt2[32*SSE_GROUP_SZ_256];
+	__declspec(align(16)) unsigned char sse_hash1[SHA256_BUF_SIZ*sizeof(ARCH_WORD_32)*SSE_GROUP_SZ_SHA256];
+	__declspec(align(16)) unsigned char sse_crypt1[SHA256_DIGEST_LENGTH*SSE_GROUP_SZ_SHA256];
+	__declspec(align(16)) unsigned char sse_crypt2[SHA256_DIGEST_LENGTH*SSE_GROUP_SZ_SHA256];
 #else
-	unsigned char sse_hash1[SHA256_BUF_SIZ*4*SSE_GROUP_SZ_256] __attribute__ ((aligned (16)));
-	unsigned char sse_crypt1[32*SSE_GROUP_SZ_256] __attribute__ ((aligned (16)));
-	unsigned char sse_crypt2[32*SSE_GROUP_SZ_256] __attribute__ ((aligned (16)));
+	unsigned char sse_hash1[SHA256_BUF_SIZ*sizeof(ARCH_WORD_32)*SSE_GROUP_SZ_SHA256] __attribute__ ((aligned (16)));
+	unsigned char sse_crypt1[SHA256_DIGEST_LENGTH*SSE_GROUP_SZ_SHA256] __attribute__ ((aligned (16)));
+	unsigned char sse_crypt2[SHA256_DIGEST_LENGTH*SSE_GROUP_SZ_SHA256] __attribute__ ((aligned (16)));
 #endif
 	i1 = (ARCH_WORD_32*)sse_crypt1;
 	i2 = (ARCH_WORD_32*)sse_crypt2;
@@ -188,37 +210,37 @@ static void pbkdf2_sha256_sse(const unsigned char *K[MMX_COEF_SHA256], int KL[MM
 	// then zero out the rest of the buffer, putting 0x300 (#bits), into the proper location in the buffer.  Once this
 	// part of the buffer is setup, we never touch it again, for the rest of the crypt.  We simply overwrite the first
 	// half of this buffer, over and over again, with BE results of the prior hash.
-	for (j = 0; j < SSE_GROUP_SZ_256/MMX_COEF_SHA256; ++j) {
+	for (j = 0; j < SSE_GROUP_SZ_SHA256/MMX_COEF_SHA256; ++j) {
 		ptmp = &o1[j*MMX_COEF_SHA256*SHA256_BUF_SIZ];
 		for (i = 0; i < MMX_COEF_SHA256; ++i)
-			ptmp[ 8*MMX_COEF_SHA256 + (i&(MMX_COEF_SHA256-1))] = 0x80000000;
-		for (i = 9*MMX_COEF_SHA256; i < 15*MMX_COEF_SHA256; ++i)
+			ptmp[ (SHA256_DIGEST_LENGTH/sizeof(ARCH_WORD_32))*MMX_COEF_SHA256 + (i&(MMX_COEF_SHA256-1))] = 0x80000000;
+		for (i = (SHA256_DIGEST_LENGTH/sizeof(ARCH_WORD_32)+1)*MMX_COEF_SHA256; i < 15*MMX_COEF_SHA256; ++i)
 			ptmp[i] = 0;
 		for (i = 0; i < MMX_COEF_SHA256; ++i)
-			ptmp[15*MMX_COEF_SHA256 + (i&(MMX_COEF_SHA256-1))] = ((64+32)<<3); // all encrypts are 64+32 bytes.
+			ptmp[15*MMX_COEF_SHA256 + (i&(MMX_COEF_SHA256-1))] = ((64+SHA256_DIGEST_LENGTH)<<3); // all encrypts are 64+32 bytes.
 	}
 
 	// Load up the IPAD and OPAD values, saving off the first half of the crypt.  We then push the ipad/opad all
 	// the way to the end, and that ends up being the first iteration of the pbkdf2.  From that point on, we use
 	// the 2 first halves, to load the sha256 2nd part of each crypt, in each loop.
 	_pbkdf2_sha256_sse_load_hmac(K, KL, ipad, opad);
-	for (j = 0; j < SSE_GROUP_SZ_256; ++j) {
-		ptmp = &i1[(j/MMX_COEF_SHA256)*MMX_COEF_SHA256*8+(j&(MMX_COEF_SHA256-1))];
-		for (i = 0; i < 8; ++i) {
+	for (j = 0; j < SSE_GROUP_SZ_SHA256; ++j) {
+		ptmp = &i1[(j/MMX_COEF_SHA256)*MMX_COEF_SHA256*(SHA256_DIGEST_LENGTH/sizeof(ARCH_WORD_32))+(j&(MMX_COEF_SHA256-1))];
+		for (i = 0; i < (SHA256_DIGEST_LENGTH/sizeof(ARCH_WORD_32)); ++i) {
 			*ptmp = ipad[j].h[i];
 			ptmp += MMX_COEF_SHA256;
 		}
-		ptmp = &i2[(j/MMX_COEF_SHA256)*MMX_COEF_SHA256*8+(j&(MMX_COEF_SHA256-1))];
-		for (i = 0; i < 8; ++i) {
+		ptmp = &i2[(j/MMX_COEF_SHA256)*MMX_COEF_SHA256*(SHA256_DIGEST_LENGTH/sizeof(ARCH_WORD_32))+(j&(MMX_COEF_SHA256-1))];
+		for (i = 0; i < (SHA256_DIGEST_LENGTH/sizeof(ARCH_WORD_32)); ++i) {
 			*ptmp = opad[j].h[i];
 			ptmp += MMX_COEF_SHA256;
 		}
 	}
 
-	loops = (skip_bytes + outlen + 31) / 32;
-	loop = skip_bytes / 32 + 1;
+	loops = (skip_bytes + outlen + (SHA256_DIGEST_LENGTH-1)) / SHA256_DIGEST_LENGTH;
+	loop = skip_bytes / SHA256_DIGEST_LENGTH + 1;
 	while (loop <= loops) {
-		for (j = 0; j < SSE_GROUP_SZ_256; ++j) {
+		for (j = 0; j < SSE_GROUP_SZ_SHA256; ++j) {
 			memcpy(&ctx, &ipad[j], sizeof(ctx));
 			SHA256_Update(&ctx, S, SL);
 			// this BE 1 appended to the salt, allows us to do passwords up
@@ -239,7 +261,7 @@ static void pbkdf2_sha256_sse(const unsigned char *K[MMX_COEF_SHA256], int KL[MM
 			// Also, perform the 'first' ^= into the crypt buffer.  NOTE, we are doing that in BE format
 			// so we will need to 'undo' that in the end.
 			ptmp = &o1[(j/MMX_COEF_SHA256)*MMX_COEF_SHA256*SHA256_BUF_SIZ+(j&(MMX_COEF_SHA256-1))];
-			for (i = 0; i < 8; ++i) {
+			for (i = 0; i < (SHA256_DIGEST_LENGTH/sizeof(ARCH_WORD_32)); ++i) {
 				*ptmp = dgst[j][i] = ctx.h[i];
 				ptmp += MMX_COEF_SHA256;
 			}
@@ -251,9 +273,9 @@ static void pbkdf2_sha256_sse(const unsigned char *K[MMX_COEF_SHA256], int KL[MM
 			SSESHA256body(o1,o1,i1, SHA256_RELOAD);
 			SSESHA256body(o1,o1,i2, SHA256_RELOAD);
 			// only xor first 16 bytes, since that is ALL this format uses
-			for (k = 0; k < SSE_GROUP_SZ_256; k++) {
+			for (k = 0; k < SSE_GROUP_SZ_SHA256; k++) {
 				unsigned *p = &o1[(k/MMX_COEF_SHA256)*MMX_COEF_SHA256*SHA256_BUF_SIZ + (k&(MMX_COEF_SHA256-1))];
-				for(j = 0; j < 8; j++)
+				for(j = 0; j < (SHA256_DIGEST_LENGTH/sizeof(ARCH_WORD_32)); j++)
 					dgst[k][j] ^= p[(j<<(MMX_COEF_SHA256>>1))];
 			}
 		}
@@ -261,8 +283,8 @@ static void pbkdf2_sha256_sse(const unsigned char *K[MMX_COEF_SHA256], int KL[MM
 		// we must fixup final results.  We have been working in BE (NOT switching out of, just to switch back into it at every loop).
 		// for the 'very' end of the crypt, we remove BE logic, so the calling function can view it in native format.
 		alter_endianity(dgst, sizeof(dgst));
-		for (i = skip_bytes%32; i < 32 && accum < outlen; ++i) {
-			for (j = 0; j < SSE_GROUP_SZ_256; ++j) {
+		for (i = skip_bytes%SHA256_DIGEST_LENGTH; i < SHA256_DIGEST_LENGTH && accum < outlen; ++i) {
+			for (j = 0; j < SSE_GROUP_SZ_SHA256; ++j) {
 #if ARCH_LITTLE_ENDIAN
 				out[j][accum] = ((unsigned char*)(dgst[j]))[i];
 #else

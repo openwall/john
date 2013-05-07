@@ -47,6 +47,7 @@
 
 #define MIN_KEYS_PER_CRYPT		1
 #ifdef MMX_COEF_SHA256
+//#define MAX_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA256  // NOTE, need to deal with PARA when we get it.
 #define MAX_KEYS_PER_CRYPT      MMX_COEF_SHA256
 #else
 #define MAX_KEYS_PER_CRYPT		1
@@ -241,6 +242,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	int index = 0;
 #ifdef _OPENMP
 #ifdef MMX_COEF_SHA256
+	//int inc = SSE_GROUP_SZ_SHA256;  // NOTE, need to deal with para, when we get it.
 	int inc = MMX_COEF_SHA256;
 #else
 	int inc = 1;
