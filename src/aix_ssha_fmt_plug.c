@@ -35,9 +35,9 @@ static int omp_t = 1;
 #include "pbkdf2_hmac_sha256.h"
 #include "pbkdf2_hmac_sha512.h"
 
-#define FORMAT_LABEL_SHA1	"aix-ssha-1"
-#define FORMAT_LABEL_SHA256	"aix-ssha-256"
-#define FORMAT_LABEL_SHA512	"aix-ssha-512"
+#define FORMAT_LABEL_SHA1	"aix-ssha1"
+#define FORMAT_LABEL_SHA256	"aix-ssha256"
+#define FORMAT_LABEL_SHA512	"aix-ssha512"
 #define FORMAT_NAME_SHA1	"AIX LPA PBKDF2-HMAC-SHA-1"
 #define FORMAT_NAME_SHA256	"AIX LPA PBKDF2-HMAC-SHA-256"
 #define FORMAT_NAME_SHA512	"AIX LPA PBKDF2-HMAC-SHA-512"
