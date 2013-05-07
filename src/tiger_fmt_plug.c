@@ -112,7 +112,7 @@ static int get_hash_4(int index) { return crypt_out[index][0] & 0xfffff; }
 static int get_hash_5(int index) { return crypt_out[index][0] & 0xffffff; }
 static int get_hash_6(int index) { return crypt_out[index][0] & 0x7ffffff; }
 
-static int crypt(int *pcount, struct db_salt *salt)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
 	int index = 0;
@@ -206,7 +206,7 @@ struct fmt_main fmt_tiger = {
 		tiger_set_key,
 		get_key,
 		fmt_default_clear_keys,
-		crypt,
+		crypt_all,
 		{
 			get_hash_0,
 			get_hash_1,

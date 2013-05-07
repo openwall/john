@@ -60,7 +60,7 @@ static struct custom_salt {
 	int length_o;
 	int length_ue;
 	int length_oe;
-} *crypt;
+} *crypt_out;
 
 static struct fmt_tests pdf_tests[] = {
 	{"$pdf$4*4*128*-1028*1*16*e03460febe17a048b0adc7f7631bcc56*32*3456205208ad52066d5604018d498a6400000000000000000000000000000000*32*6d598152b22f8fa8085b19a866dce1317f645788a065a74831588a739a579ac4", "openwall"},
@@ -323,7 +323,7 @@ static void *get_salt(char *ciphertext)
 
 static void set_salt(void *salt)
 {
-	crypt = (struct custom_salt *)salt;
+	crypt_out = (struct custom_salt *)salt;
 }
 
 static void pdf_set_key(char *key, int index)
@@ -359,7 +359,7 @@ pdf_compute_encryption_key(unsigned char *password, int pwlen, unsigned char *ke
         int n;
         MD5_CTX md5;
 
-        n = crypt->length / 8;
+        n = crypt_out->length / 8;
 
         /* Step 1 - copy and pad password string */
         if (pwlen > 32)
@@ -372,10 +372,10 @@ pdf_compute_encryption_key(unsigned char *password, int pwlen, unsigned char *ke
         MD5_Update(&md5, buf, 32);
 
         /* Step 3 - pass O value */
-        MD5_Update(&md5, crypt->o, 32);
+        MD5_Update(&md5, crypt_out->o, 32);
 
         /* Step 4 - pass P value as unsigned int, low-order byte first */
-        p = (unsigned int) crypt->P;
+        p = (unsigned int) crypt_out->P;
         buf[0] = (p) & 0xFF;
         buf[1] = (p >> 8) & 0xFF;
         buf[2] = (p >> 16) & 0xFF;
@@ -383,12 +383,12 @@ pdf_compute_encryption_key(unsigned char *password, int pwlen, unsigned char *ke
         MD5_Update(&md5, buf, 4);
 
         /* Step 5 - pass first element of ID array */
-        MD5_Update(&md5, crypt->id, crypt->length_id);
+        MD5_Update(&md5, crypt_out->id, crypt_out->length_id);
 
         /* Step 6 (revision 4 or greater) - if metadata is not encrypted pass 0xFFFFFFFF */
-        if (crypt->R >= 4)
+        if (crypt_out->R >= 4)
         {
-                if (!crypt->encrypt_metadata)
+                if (!crypt_out->encrypt_metadata)
                 {
                         buf[0] = 0xFF;
                         buf[1] = 0xFF;
@@ -402,7 +402,7 @@ pdf_compute_encryption_key(unsigned char *password, int pwlen, unsigned char *ke
         MD5_Final(buf, &md5);
 
         /* Step 8 (revision 3 or greater) - do some voodoo 50 times */
-        if (crypt->R >= 3)
+        if (crypt_out->R >= 3)
         {
                 /* for (i = 0; i < 50; i++)
                 {
@@ -434,11 +434,11 @@ pdf_compute_encryption_key_r5(unsigned char *password, int pwlen, int ownerkey, 
         memcpy(buffer, password, pwlen);
         if (ownerkey)
         {
-                memcpy(buffer + pwlen, crypt->o + 32, 8);
-                memcpy(buffer + pwlen + 8, crypt->u, 48);
+                memcpy(buffer + pwlen, crypt_out->o + 32, 8);
+                memcpy(buffer + pwlen + 8, crypt_out->u, 48);
         }
         else
-                memcpy(buffer + pwlen, crypt->u + 32, 8);
+                memcpy(buffer + pwlen, crypt_out->u + 32, 8);
 
         SHA256_Init(&sha256);
         SHA256_Update(&sha256, buffer, pwlen + 8 + (ownerkey ? 48 : 0));
@@ -531,26 +531,26 @@ static void pdf_compute_user_password(unsigned char *password,  unsigned char *o
 	int pwlen = strlen((char*)password);
 	unsigned char key[128];
 
-	if (crypt->R == 2) {
+	if (crypt_out->R == 2) {
 		RC4_KEY arc4;
 		int n;
-		n = crypt->length / 8;
+		n = crypt_out->length / 8;
 		pdf_compute_encryption_key(password, pwlen, key);
 		RC4_set_key(&arc4, n, key);
 		RC4(&arc4, 32, padding, output);
 	}
 
-	if (crypt->R == 3 || crypt->R == 4) {
+	if (crypt_out->R == 3 || crypt_out->R == 4) {
 		unsigned char xor[32];
 		unsigned char digest[16];
 		MD5_CTX md5;
 		RC4_KEY arc4;
 		int i, x, n;
-		n = crypt->length / 8;
+		n = crypt_out->length / 8;
 		pdf_compute_encryption_key(password, pwlen, key);
 		MD5_Init(&md5);
 		MD5_Update(&md5, (char*)padding, 32);
-		MD5_Update(&md5, crypt->id, crypt->length_id);
+		MD5_Update(&md5, crypt_out->id, crypt_out->length_id);
 		MD5_Final(digest, &md5);
 		RC4_set_key(&arc4, n, key);
 		RC4(&arc4, 16, digest, output);
@@ -562,13 +562,13 @@ static void pdf_compute_user_password(unsigned char *password,  unsigned char *o
 		}
 		memcpy(output + 16, padding, 16);
 	}
-	if (crypt->R == 5) {
+	if (crypt_out->R == 5) {
 		pdf_compute_encryption_key_r5(password, pwlen, 0, output);
 	}
 
 	/* SumatraPDF: support crypt version 5 revision 6 */
-	if (crypt->R == 6)
-		pdf_compute_hardened_hash_r6(password, pwlen, crypt->u + 32,  NULL, output);
+	if (crypt_out->R == 6)
+		pdf_compute_hardened_hash_r6(password, pwlen, crypt_out->u + 32,  NULL, output);
 }
 
 static int crypt_all(int *pcount, struct db_salt *salt)
@@ -588,11 +588,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	{
 		unsigned char output[32];
 		pdf_compute_user_password((unsigned char*)saved_key[index], output);
-		if (crypt->R == 2 || crypt->R == 5 || crypt->R == 6)
-			if(memcmp(output, crypt->u, 32) == 0)
+		if (crypt_out->R == 2 || crypt_out->R == 5 || crypt_out->R == 6)
+			if(memcmp(output, crypt_out->u, 32) == 0)
 				any_cracked = cracked[index] = 1;
-		if (crypt->R == 3 || crypt->R == 4)
-			if(memcmp(output, crypt->u, 16) == 0)
+		if (crypt_out->R == 3 || crypt_out->R == 4)
+			if(memcmp(output, crypt_out->u, 16) == 0)
 				any_cracked = cracked[index] = 1;
 	}
 	return count;

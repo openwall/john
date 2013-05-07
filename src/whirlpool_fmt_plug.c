@@ -158,7 +158,7 @@ static int crypt_1(int *pcount, struct db_salt *salt)
 	return count;
 }
 
-static int crypt(int *pcount, struct db_salt *salt)
+static int crypt_2(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
 	int index = 0;
@@ -365,7 +365,7 @@ struct fmt_main fmt_whirlpool = {
 		whirlpool_set_key,
 		get_key,
 		fmt_default_clear_keys,
-		crypt,
+		crypt_2,
 		{
 			get_hash_0,
 			get_hash_1,
