@@ -2,38 +2,24 @@
 
 Not working on big-endian CPU architectures (these formats fail
 self-test on big-endian CPUs):
-* mssql05
-* office
-* rar
-* mozilla
+* OpenVMS
+* SSH
+* krb5-18
+* krb5-23
+* Mozilla
 (x86 and x86-64 are little-endian, so they are not affected.)
-
-Not working on HD 4000 series and older ATI GPUs (these formats need
-byte-addressable store, which is only present in HD 5000 series and
-newer ATI/AMD GPUs):
-* sha512crypt-opencl
-* wpapsk-opencl
 
 Many OpenCL formats fail at runtime on Mac OS X (whereas CUDA ones work
 fine).  We've seen these fail on Mac OS X 10.8.1: bf-opencl,
-mscash2-opencl, nt-opencl, rar, raw-sha512-opencl, sha512crypt-opencl,
-wpapsk-opencl, and xsha512-opencl.  We suspect that this may be caused
-by driver bugs.  The same formats work fine on Linux using the same
-hardware.
+mscash2-opencl, nt-opencl, raw-sha512-opencl, sha512crypt-opencl and
+xsha512-opencl.  We suspect that this may be caused by driver bugs.
+The same formats work fine on Linux using the same hardware (in fact
+they even work on OSX when using CPU device).
 
 OS X also has a problem with run-time compile of kernels that include
 header files. A workaround is to cd to the src directory and run each
 OpenCL format once. After that, the kernel binary is cached so you can
 move away from the src directory.
-
-In GPU-enabled builds, running "john --test" (with no --format
-restriction) will eventually fail (before it has a chance to test all
-formats).  This is because GPU resources allocated by one format are
-currently not freed before proceeding to test another format (they're
-only freed when John exits).  We're going to correct this in a future
-release.  Meanwhile, please test GPU-enabled formats one by one, e.g.
-with "john --test --format=mscash2-opencl", etc. From this version of
-Jumbo, you can test all CPU formats using "john --test --format=cpu".
 
 Some OpenCL-enabled formats (for "slow" hashes and non-hashes) may
 sometimes trigger "ASIC hang" errors as reported by AMD/ATI GPU drivers,
@@ -63,15 +49,15 @@ WORK_GROUP_SIZE is reduced.  Most OpenCL formats may benefit from tuning
 of KEYS_PER_CRYPT, although higher values, while generally increasing
 the c/s rate, may create usability issues (more work lost on
 interrupted/restored sessions, less optimal order of candidate passwords
-being tested). Some formats allow run-time tuning using the environment
+being tested). Most formats allow run-time tuning using the environment
 variables LWS (local work size) and GWS (global work size, this
 corresponds to KEYS_PER_CRYPT). A few formats will also allow specifying
 such values per-format in john.conf under the [OpenCL] section.
 
-Even though wpapsk-cuda and wpapsk-opencl primarily use the GPU, they
-also do a (small, but not negligible) portion of the computation on CPU
-and thus they substantially benefit from OpenMP-enabled builds.  We
-intend to reduce their use of CPU in a future version.
+Even though wpapsk-cuda primarily use the GPU, it also does a (small,
+but not negligible) portion of the computation on CPU and thus it
+substantially benefits from OpenMP-enabled builds.  We intend to reduce
+its use of CPU in a future version.
 
 Interrupting a cracking session that uses an ATI/AMD GPU with Ctrl-C
 often results in:
