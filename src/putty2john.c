@@ -1,7 +1,7 @@
 /* Modified in July 2012 by Dhiru Kholia <dhiru at openwall.com> to be
  * standalone and compilable.
  *
- * p-ppk-crack v0.5 made by michu@neophob.com — PuTTY private key cracker
+ * p-ppk-crack v0.5 made by michu@neophob.com -- PuTTY private key cracker
  *
  * Source code based on putty svn version, check
  * http://www.chiark.greenend.org.uk/~sgtatham/putty/licence.html

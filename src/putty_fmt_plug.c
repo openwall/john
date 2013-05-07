@@ -3,7 +3,7 @@
  *
  * This software is Copyright (c) 2012, Dhiru Kholia <dhiru.kholia at gmail.com>
  *
- * p-ppk-crack v0.5 made by michu@neophob.com — PuTTY private key cracker
+ * p-ppk-crack v0.5 made by michu@neophob.com -- PuTTY private key cracker
  *
  * Source code based on putty svn version, check
  * http://www.chiark.greenend.org.uk/~sgtatham/putty/licence.html
