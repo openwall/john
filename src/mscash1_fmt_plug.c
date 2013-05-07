@@ -74,7 +74,7 @@ static struct fmt_tests tests[] = {
 
 static unsigned int *ms_buffer1x;
 static unsigned int *output1x;
-static unsigned int *crypt;
+static unsigned int *crypt_out;
 static unsigned int *last;
 static unsigned int *last_i;
 
@@ -128,7 +128,7 @@ static void init(struct fmt_main *self)
 
 	ms_buffer1x = mem_calloc_tiny(sizeof(ms_buffer1x[0]) * 16*fmt_mscash.params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	output1x    = mem_calloc_tiny(sizeof(output1x[0])    *  4*fmt_mscash.params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	crypt       = mem_calloc_tiny(sizeof(crypt[0])       *  4*fmt_mscash.params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	crypt_out       = mem_calloc_tiny(sizeof(crypt_out[0])       *  4*fmt_mscash.params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	last        = mem_calloc_tiny(sizeof(last[0])        *  4*fmt_mscash.params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	last_i      = mem_calloc_tiny(sizeof(last_i[0])      *    fmt_mscash.params.max_keys_per_crypt, MEM_ALIGN_WORD);
 
@@ -422,7 +422,7 @@ static void nt_hash(int count)
 	int i;
 
 #if MS_NUM_KEYS > 1 && defined(_OPENMP)
-#pragma omp parallel for default(none) private(i) shared(count, ms_buffer1x, crypt, last)
+#pragma omp parallel for default(none) private(i) shared(count, ms_buffer1x, crypt_out, last)
 #endif
 	for (i = 0; i < count; i++)
 	{
@@ -494,17 +494,17 @@ static void nt_hash(int count)
 		c += (d ^ a ^ b) + ms_buffer1x[16*i+7]  + SQRT_3; c = (c << 11) | (c >> 21);
 		b += (c ^ d ^ a) /*+ ms_buffer1x[16*i+15] */+ SQRT_3; b = (b << 15) | (b >> 17);
 
-		crypt[4*i+0] = a + INIT_A;
-		crypt[4*i+1] = b + INIT_B;
-		crypt[4*i+2] = c + INIT_C;
-		crypt[4*i+3] = d + INIT_D;
+		crypt_out[4*i+0] = a + INIT_A;
+		crypt_out[4*i+1] = b + INIT_B;
+		crypt_out[4*i+2] = c + INIT_C;
+		crypt_out[4*i+3] = d + INIT_D;
 
 		//Another MD4_crypt for the salt
 		/* Round 1 */
-		a= 	        0xFFFFFFFF 	            +crypt[4*i+0]; a=(a<<3 )|(a>>29);
-		d=INIT_D + ( INIT_C ^ ( a & 0x77777777))    +crypt[4*i+1]; d=(d<<7 )|(d>>25);
-		c=INIT_C + ( INIT_B ^ ( d & ( a ^ INIT_B))) +crypt[4*i+2]; c=(c<<11)|(c>>21);
-		b=INIT_B + (    a   ^ ( c & ( d ^    a  ))) +crypt[4*i+3]; b=(b<<19)|(b>>13);
+		a= 	        0xFFFFFFFF 	            +crypt_out[4*i+0]; a=(a<<3 )|(a>>29);
+		d=INIT_D + ( INIT_C ^ ( a & 0x77777777))    +crypt_out[4*i+1]; d=(d<<7 )|(d>>25);
+		c=INIT_C + ( INIT_B ^ ( d & ( a ^ INIT_B))) +crypt_out[4*i+2]; c=(c<<11)|(c>>21);
+		b=INIT_B + (    a   ^ ( c & ( d ^    a  ))) +crypt_out[4*i+3]; b=(b<<19)|(b>>13);
 
 		last[4*i+0]=a;
 		last[4*i+1]=b;
@@ -525,7 +525,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	}
 
 #if MS_NUM_KEYS > 1 && defined(_OPENMP)
-#pragma omp parallel for default(none) private(i) shared(count, last, crypt, salt_buffer, output1x)
+#pragma omp parallel for default(none) private(i) shared(count, last, crypt_out, salt_buffer, output1x)
 #endif
 	for(i = 0; i < count; i++)
 	{
@@ -555,38 +555,38 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		b += (a ^ (c & (d ^ a)))/*+salt_buffer[11]*/;b = (b << 19) | (b >> 13);
 
 		/* Round 2 */
-		a += ((b & (c | d)) | (c & d))  +  crypt[4*i+0]    + SQRT_2; a = (a << 3 ) | (a >> 29);
+		a += ((b & (c | d)) | (c & d))  +  crypt_out[4*i+0]    + SQRT_2; a = (a << 3 ) | (a >> 29);
 		d += ((a & (b | c)) | (b & c))  +  salt_buffer[0]  + SQRT_2; d = (d << 5 ) | (d >> 27);
 		c += ((d & (a | b)) | (a & b))  +  salt_buffer[4]  + SQRT_2; c = (c << 9 ) | (c >> 23);
 		b += ((c & (d | a)) | (d & a))  +  salt_buffer[8]  + SQRT_2; b = (b << 13) | (b >> 19);
 
-		a += ((b & (c | d)) | (c & d))  +  crypt[4*i+1]    + SQRT_2; a = (a << 3 ) | (a >> 29);
+		a += ((b & (c | d)) | (c & d))  +  crypt_out[4*i+1]    + SQRT_2; a = (a << 3 ) | (a >> 29);
 		d += ((a & (b | c)) | (b & c))  +  salt_buffer[1]  + SQRT_2; d = (d << 5 ) | (d >> 27);
 		c += ((d & (a | b)) | (a & b))  +  salt_buffer[5]  + SQRT_2; c = (c << 9 ) | (c >> 23);
 		b += ((c & (d | a)) | (d & a))  +  salt_buffer[9]  + SQRT_2; b = (b << 13) | (b >> 19);
 
-		a += ((b & (c | d)) | (c & d))  +  crypt[4*i+2]    + SQRT_2; a = (a << 3 ) | (a >> 29);
+		a += ((b & (c | d)) | (c & d))  +  crypt_out[4*i+2]    + SQRT_2; a = (a << 3 ) | (a >> 29);
 		d += ((a & (b | c)) | (b & c))  +  salt_buffer[2]  + SQRT_2; d = (d << 5 ) | (d >> 27);
 		c += ((d & (a | b)) | (a & b))  +  salt_buffer[6]  + SQRT_2; c = (c << 9 ) | (c >> 23);
 		b += ((c & (d | a)) | (d & a))  +  salt_buffer[10] + SQRT_2; b = (b << 13) | (b >> 19);
 
-		a += ((b & (c | d)) | (c & d))  +  crypt[4*i+3]    + SQRT_2; a = (a << 3 ) | (a >> 29);
+		a += ((b & (c | d)) | (c & d))  +  crypt_out[4*i+3]    + SQRT_2; a = (a << 3 ) | (a >> 29);
 		d += ((a & (b | c)) | (b & c))  +  salt_buffer[3]  + SQRT_2; d = (d << 5 ) | (d >> 27);
 		c += ((d & (a | b)) | (a & b))  +  salt_buffer[7]  + SQRT_2; c = (c << 9 ) | (c >> 23);
 		b += ((c & (d | a)) | (d & a))/*+ salt_buffer[11]*/+ SQRT_2; b = (b << 13) | (b >> 19);
 
 		/* Round 3 */
-		a += (b ^ c ^ d) + crypt[4*i+0]    +  SQRT_3; a = (a << 3 ) | (a >> 29);
+		a += (b ^ c ^ d) + crypt_out[4*i+0]    +  SQRT_3; a = (a << 3 ) | (a >> 29);
 		d += (a ^ b ^ c) + salt_buffer[4]  +  SQRT_3; d = (d << 9 ) | (d >> 23);
 		c += (d ^ a ^ b) + salt_buffer[0]  +  SQRT_3; c = (c << 11) | (c >> 21);
 		b += (c ^ d ^ a) + salt_buffer[8]  +  SQRT_3; b = (b << 15) | (b >> 17);
 
-		a += (b ^ c ^ d) + crypt[4*i+2]    +  SQRT_3; a = (a << 3 ) | (a >> 29);
+		a += (b ^ c ^ d) + crypt_out[4*i+2]    +  SQRT_3; a = (a << 3 ) | (a >> 29);
 		d += (a ^ b ^ c) + salt_buffer[6]  +  SQRT_3; d = (d << 9 ) | (d >> 23);
 		c += (d ^ a ^ b) + salt_buffer[2]  +  SQRT_3; c = (c << 11) | (c >> 21);
 		b += (c ^ d ^ a) + salt_buffer[10] +  SQRT_3; b = (b << 15) | (b >> 17);
 
-		a += (b ^ c ^ d) + crypt[4*i+1]    +  SQRT_3; a = (a << 3 ) | (a >> 29);
+		a += (b ^ c ^ d) + crypt_out[4*i+1]    +  SQRT_3; a = (a << 3 ) | (a >> 29);
 		d += (a ^ b ^ c) + salt_buffer[5];
 
 		output1x[4*i+0]=a;
@@ -629,7 +629,7 @@ static int cmp_one(void * binary, int index)
 	if(b!=t[1])
 		return 0;
 
-	a += (b ^ c ^ d) + crypt[4*index+3]+  SQRT_3; a = (a << 3 ) | (a >> 29);
+	a += (b ^ c ^ d) + crypt_out[4*index+3]+  SQRT_3; a = (a << 3 ) | (a >> 29);
 	return (a==t[0]);
 }
 

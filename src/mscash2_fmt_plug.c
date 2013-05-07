@@ -137,7 +137,7 @@ static unsigned int   salt_len;
 static unsigned char(*key);
 static unsigned int   new_key = 1;
 static unsigned char(*md4hash); // allows the md4 of user, and salt to be appended to it.  the md4 is ntlm, with the salt is DCC1
-static unsigned int (*crypt);
+static unsigned int (*crypt_out);
 static int omp_t = 1;
 
 static void init(struct fmt_main *self)
@@ -151,7 +151,7 @@ static void init(struct fmt_main *self)
 
 	key = mem_calloc_tiny(sizeof(*key)*PLAIN_KEY_LEN*self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
 	md4hash = mem_calloc_tiny(sizeof(*md4hash)*HASH_LEN*self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
-	crypt = mem_calloc_tiny(sizeof(*crypt)*4*self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	crypt_out = mem_calloc_tiny(sizeof(*crypt_out)*4*self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 #if defined (MMX_COEF)
 	sse_hash1 = mem_calloc_tiny(sizeof(*sse_hash1)*SHA_BUF_SIZ*4*self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
 	sse_crypt1 = mem_calloc_tiny(sizeof(*sse_crypt1)*20*self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
@@ -403,37 +403,37 @@ static int binary_hash_6(void *binary)
 
 static int get_hash_0(int index)
 {
-	return crypt[4 * index + 3] & 0x0F;
+	return crypt_out[4 * index + 3] & 0x0F;
 }
 
 static int get_hash_1(int index)
 {
-	return crypt[4 * index + 3] & 0xFF;
+	return crypt_out[4 * index + 3] & 0xFF;
 }
 
 static int get_hash_2(int index)
 {
-	return crypt[4 * index + 3] & 0x0FFF;
+	return crypt_out[4 * index + 3] & 0x0FFF;
 }
 
 static int get_hash_3(int index)
 {
-	return crypt[4 * index + 3] & 0x0FFFF;
+	return crypt_out[4 * index + 3] & 0x0FFFF;
 }
 
 static int get_hash_4(int index)
 {
-	return crypt[4 * index + 3] & 0x0FFFFF;
+	return crypt_out[4 * index + 3] & 0x0FFFFF;
 }
 
 static int get_hash_5(int index)
 {
-	return crypt[4 * index + 3] & 0x0FFFFFF;
+	return crypt_out[4 * index + 3] & 0x0FFFFFF;
 }
 
 static int get_hash_6(int index)
 {
-	return crypt[4 * index + 3] & 0x07FFFFFF;
+	return crypt_out[4 * index + 3] & 0x07FFFFFF;
 }
 
 static int cmp_all(void *binary, int count)
@@ -442,7 +442,7 @@ static int cmp_all(void *binary, int count)
 	unsigned int d = ((unsigned int *)binary)[3];
 
 	for (; i < count; i++)
-		if (d == crypt[i * 4 + 3])
+		if (d == crypt_out[i * 4 + 3])
 			return 1;
 
 	return 0;
@@ -452,10 +452,10 @@ static int cmp_all(void *binary, int count)
 static int cmp_one(void * binary, int index)
 {
 	unsigned int *t = (unsigned int *)binary;
-	unsigned int a = crypt[4 * index + 0];
-	unsigned int b = crypt[4 * index + 1];
-	unsigned int c = crypt[4 * index + 2];
-	unsigned int d = crypt[4 * index + 3];
+	unsigned int a = crypt_out[4 * index + 0];
+	unsigned int b = crypt_out[4 * index + 1];
+	unsigned int c = crypt_out[4 * index + 2];
+	unsigned int d = crypt_out[4 * index + 3];
 
 	if (d != t[3])
 		return 0;
@@ -521,7 +521,7 @@ static void pbkdf2_sse2(int t)
 
 
 	// All pointers get their offset for this thread here. No further offsetting below.
-	t_crypt = &crypt[t * MS_NUM_KEYS * 4];
+	t_crypt = &crypt_out[t * MS_NUM_KEYS * 4];
 	t_sse_crypt1 = &sse_crypt1[t * MS_NUM_KEYS * 20];
 	t_sse_crypt2 = &sse_crypt2[t * MS_NUM_KEYS * 20];
 	t_sse_hash1 = &sse_hash1[t * MS_NUM_KEYS * SHA_BUF_SIZ * 4];
@@ -690,7 +690,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	}
 
 #ifdef _OPENMP
-#pragma omp parallel for default(none) private(t, i) shared(omp_t, salt_buffer, salt_len, crypt, md4hash)
+#pragma omp parallel for default(none) private(t, i) shared(omp_t, salt_buffer, salt_len, crypt_out, md4hash)
 #endif
 	for (t = 0; t < omp_t; t++)	{
 		MD4_CTX ctx;
@@ -699,12 +699,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			MD4_Init(&ctx);
 			MD4_Update(&ctx, &md4hash[(t * MS_NUM_KEYS + i) * HASH_LEN], 16);
 			MD4_Update(&ctx, salt_buffer, salt_len);
-			MD4_Final((unsigned char*)&crypt[(t * MS_NUM_KEYS + i) * 4], &ctx);
+			MD4_Final((unsigned char*)&crypt_out[(t * MS_NUM_KEYS + i) * 4], &ctx);
 			// now we have DCC1 (mscash) which is MD4 (MD4(unicode(pass)) . unicode(lc username))
 
 #ifndef MMX_COEF
 			// Non-SSE: Compute DCC2 one at a time
-			pbkdf2(&crypt[(t * MS_NUM_KEYS + i) * 4]);
+			pbkdf2(&crypt_out[(t * MS_NUM_KEYS + i) * 4]);
 #endif
 		}
 #ifdef MMX_COEF
