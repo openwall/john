@@ -379,10 +379,10 @@ static void init_IP_E(void)
 		if (value & mask)
 #if ARCH_BITS >= 64
 			DES_IP_E[chunk][value] |=
-				(ARCH_WORD)1 << dst;
+				(unsigned ARCH_WORD)1 << dst;
 #else
 			DES_IP_E[chunk][value][dst >> 5] |=
-				(ARCH_WORD)1 << (dst & 0x1F);
+				(unsigned ARCH_WORD)1 << (dst & 0x1F);
 #endif
 	}
 }
@@ -404,10 +404,10 @@ static void init_C_FP(void)
 		if (value & mask)
 #if ARCH_BITS >= 64
 			DES_C_FP[chunk][value] |=
-				(ARCH_WORD)1 << dst;
+				(unsigned ARCH_WORD)1 << dst;
 #else
 			DES_C_FP[chunk][value][dst >> 5] |=
-				(ARCH_WORD)1 << (dst & 0x1F);
+				(unsigned ARCH_WORD)1 << (dst & 0x1F);
 #endif
 	}
 }
@@ -1081,8 +1081,8 @@ ARCH_WORD *DES_do_IP(ARCH_WORD in[2])
 	for (dst = 0; dst < 64; dst++) {
 		src = DES_IP[dst ^ 0x20];
 
-		if (in[src >> 5] & (1 << (src & 0x1F)))
-			out[dst >> 5] |= 1 << (dst & 0x1F);
+		if (in[src >> 5] & ((unsigned ARCH_WORD)1 << (src & 0x1F)))
+			out[dst >> 5] |= (unsigned ARCH_WORD)1 << (dst & 0x1F);
 	}
 
 	return out;
@@ -1097,8 +1097,8 @@ ARCH_WORD *DES_do_FP(ARCH_WORD in[2])
 	for (src = 0; src < 64; src++) {
 		dst = DES_IP[src ^ 0x20];
 
-		if (in[src >> 5] & (1 << (src & 0x1F)))
-			out[dst >> 5] |= 1 << (dst & 0x1F);
+		if (in[src >> 5] & ((unsigned ARCH_WORD)1 << (src & 0x1F)))
+			out[dst >> 5] |= (unsigned ARCH_WORD)1 << (dst & 0x1F);
 	}
 
 	return out;
@@ -1120,7 +1120,7 @@ ARCH_WORD *DES_raw_get_binary(char *ciphertext)
 
 		for (src = 0; src < 6; src++) {
 			if (value & mask)
-				block[dst >> 5] |= 1 << (dst & 0x1F);
+				block[dst >> 5] |= (unsigned ARCH_WORD)1 << (dst & 0x1F);
 			mask >>= 1;
 			dst++;
 		}
