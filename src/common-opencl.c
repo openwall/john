@@ -13,6 +13,9 @@
  *    modifications, are permitted.
  */
 
+#define NEED_OS_TIMER
+#include "os.h"
+
 #include <assert.h>
 #include <string.h>
 #include <ctype.h>
