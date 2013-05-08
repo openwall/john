@@ -2,6 +2,8 @@
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 2010 by Solar Designer
  * based on rawMD4_fmt.c code, with trivial changes by groszek.
+ *
+ * Understands hex hashes as well as Cisco "type 4" base64.
  */
 
 #include "arch.h"
@@ -13,9 +15,9 @@
 #include "formats.h"
 #ifdef _OPENMP
 #ifdef MMX_COEF_SHA256
-#define OMP_SCALE			1024
+#define OMP_SCALE               1024
 #else
-#define OMP_SCALE			2048
+#define OMP_SCALE               2048
 #endif
 #include <omp.h>
 #endif
@@ -23,45 +25,52 @@
 
 #define FORMAT_LABEL            "raw-sha256"
 #define FORMAT_NAME             "Raw SHA-256"
-#define FORMAT_TAG              "$SHA256$"
-#define TAG_LENGTH              8
+#define HEX_TAG                 "$SHA256$"
+#define CISCO_TAG               "$cisco4$"
+
+#define HEX_TAG_LEN             (sizeof(HEX_TAG) - 1)
+#define CISCO_TAG_LEN           (sizeof(CISCO_TAG) - 1)
 
 #ifdef MMX_COEF_SHA256
-#define ALGORITHM_NAME			SHA256_ALGORITHM_NAME
+#define ALGORITHM_NAME          SHA256_ALGORITHM_NAME
 #else
-#define ALGORITHM_NAME			"32/" ARCH_BITS_STR " " SHA2_LIB
+#define ALGORITHM_NAME          "32/" ARCH_BITS_STR " " SHA2_LIB
 #endif
 
-#define BENCHMARK_COMMENT		""
-#define BENCHMARK_LENGTH		-1
+#define BENCHMARK_COMMENT       ""
+#define BENCHMARK_LENGTH        -1
 
+/* Note: Cisco hashes are truncated at length 25. We currently ignore this. */
 #ifdef MMX_COEF_SHA256
-#define PLAINTEXT_LENGTH		55
+#define PLAINTEXT_LENGTH        55
 #else
-#define PLAINTEXT_LENGTH		125
+#define PLAINTEXT_LENGTH        125
 #endif
-#define CIPHERTEXT_LENGTH		64
+#define HEX_CIPHERTEXT_LENGTH   64
+#define CISCO_CIPHERTEXT_LENGTH 43
 
-#define BINARY_SIZE				32
-#define SALT_SIZE				0
+#define BINARY_SIZE             32
+#define SALT_SIZE               0
 
-#define MIN_KEYS_PER_CRYPT		1
+#define MIN_KEYS_PER_CRYPT      1
 #ifdef MMX_COEF_SHA256
 //#define MAX_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA256  // NOTE need to deal with para, when we get it!!
 #define MAX_KEYS_PER_CRYPT      MMX_COEF_SHA256
 #else
-#define MAX_KEYS_PER_CRYPT		1
+#define MAX_KEYS_PER_CRYPT      1
 #endif
 
 static struct fmt_tests tests[] = {
 	{"5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8", "password"},
+	{"LcV6aBcc/53FoCJjXQMd7rBUDEpeevrK8V5jQVoJEhU", "password"},
 	{"$SHA256$ef797c8118f02dfb649607dd5d3f8c7623048c9c063d532cc95c5ed7a898a64f", "12345678"},
-	{"$SHA256$e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", ""},
+	{"$SHA256$E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855", ""},
+	{"$cisco4$OsOmQzwozC4ROs/CzpczJoShdCeW9lp7k/tGrPS5Kog", "1"},
 	{NULL}
 };
 
 #ifdef MMX_COEF_SHA256
-#define GETPOS(i, index)		( (index&(MMX_COEF_SHA256-1))*4 + ((i)&(0xffffffff-3))*MMX_COEF_SHA256 + (3-((i)&3)) + (index>>(MMX_COEF_SHA256>>1))*SHA256_BUF_SIZ*MMX_COEF_SHA256*4 )
+#define GETPOS(i, index)        ( (index&(MMX_COEF_SHA256-1))*4 + ((i)&(0xffffffff-3))*MMX_COEF_SHA256 + (3-((i)&3)) + (index>>(MMX_COEF_SHA256>>1))*SHA256_BUF_SIZ*MMX_COEF_SHA256*4 )
 static uint32_t (*saved_key)[SHA256_BUF_SIZ*MMX_COEF_SHA256];
 static uint32_t (*crypt_out)[8*MMX_COEF_SHA256];
 #else
@@ -91,34 +100,99 @@ static void init(struct fmt_main *self)
 #endif
 }
 
-static int valid(char *ciphertext, struct fmt_main *self)
+static int valid_cisco(char *ciphertext)
 {
 	char *p, *q;
 
 	p = ciphertext;
-	if (!strncmp(p, FORMAT_TAG, TAG_LENGTH))
-		p += 8;
+	if (!strncmp(p, CISCO_TAG, CISCO_TAG_LEN))
+		p += CISCO_TAG_LEN;
+
+	q = p;
+	while (atoi64[ARCH_INDEX(*q)] != 0x7F)
+		q++;
+	return !*q && q - p == CISCO_CIPHERTEXT_LENGTH;
+}
+
+static int valid_hex(char *ciphertext)
+{
+	char *p, *q;
+
+	p = ciphertext;
+	if (!strncmp(p, HEX_TAG, HEX_TAG_LEN))
+		p += HEX_TAG_LEN;
 
 	q = p;
 	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
 		q++;
-	return !*q && q - p == CIPHERTEXT_LENGTH;
+	return !*q && q - p == HEX_CIPHERTEXT_LENGTH;
+}
+
+static int valid(char *ciphertext, struct fmt_main *self)
+{
+	return (valid_hex(ciphertext) || valid_cisco(ciphertext));
+}
+
+/* Convert Cisco hashes to hex ones, so .pot entries are compatible */
+static char *prepare(char *split_fields[10], struct fmt_main *self)
+{
+	static char out[HEX_TAG_LEN + HEX_CIPHERTEXT_LENGTH + 1];
+	char *o, *p = split_fields[1];
+
+	if (!valid_cisco(p))
+		return p;
+
+	if (!strncmp(p, CISCO_TAG, CISCO_TAG_LEN))
+		p += CISCO_TAG_LEN;
+
+	strcpy(out, HEX_TAG);
+	o = out + HEX_TAG_LEN;
+
+	while(*p) {
+		unsigned int ch, b;
+
+		// Get 1st byte of input (1st and 2nd)
+		ch = *p++;
+		b = ((atoi64[ch] << 2) & 252) +
+			(atoi64[ARCH_INDEX(*p)] >> 4 & 0x03);
+		*o++ = itoa16[b >> 4];
+		*o++ = itoa16[b & 0x0f];
+
+		// Get 2nd byte of input (2nd and 3rd)
+		ch = *p++;
+		b = ((atoi64[ch] << 4) & 240) +
+			(atoi64[ARCH_INDEX(*p)] >> 2 & 0x0f);
+		*o++ = itoa16[b >> 4];
+		*o++ = itoa16[b & 0x0f];
+
+		if (!p[1])
+			return out;
+
+		// Get 3rd byte of input (3rd and 4th)
+		ch = *p++;
+		b = ((atoi64[ch] << 6) & 192) +
+			(atoi64[ARCH_INDEX(*p++)] & 0x3f);
+		*o++ = itoa16[b >> 4];
+		*o++ = itoa16[b & 0x0f];
+	}
+	printf("Error in prepare()");
+	exit(1);
 }
 
 static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
-	static char out[8 + CIPHERTEXT_LENGTH + 1];
+	static char out[HEX_TAG_LEN + HEX_CIPHERTEXT_LENGTH + 1];
 
-	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
+	if (!strncmp(ciphertext, HEX_TAG, HEX_TAG_LEN))
 		return ciphertext;
 
-	memcpy(out, FORMAT_TAG, TAG_LENGTH);
-	memcpy(out + TAG_LENGTH, ciphertext, CIPHERTEXT_LENGTH + 1);
-	strlwr(out + TAG_LENGTH);
+	memcpy(out, HEX_TAG, HEX_TAG_LEN);
+	memcpy(out + HEX_TAG_LEN, ciphertext, HEX_CIPHERTEXT_LENGTH + 1);
+	strlwr(out + HEX_TAG_LEN);
 	return out;
 }
 
-static void *get_binary(char *ciphertext)
+static void *binary(char *ciphertext)
 {
 	static unsigned char *out;
 	int i;
@@ -126,10 +200,10 @@ static void *get_binary(char *ciphertext)
 	if (!out)
 		out = mem_alloc_tiny(BINARY_SIZE, MEM_ALIGN_WORD);
 
-	ciphertext += TAG_LENGTH;
+	ciphertext += HEX_TAG_LEN;
 	for (i = 0; i < BINARY_SIZE; i++) {
 		out[i] = atoi16[ARCH_INDEX(ciphertext[i*2])] * 16 +
-                 atoi16[ARCH_INDEX(ciphertext[i*2 + 1])];
+			atoi16[ARCH_INDEX(ciphertext[i*2 + 1])];
 	}
 #ifdef MMX_COEF_SHA256
 	alter_endianity (out, BINARY_SIZE);
@@ -266,26 +340,26 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 static int cmp_all(void *binary, int count)
 {
-    int index;
+	int index;
 
-    for (index = 0; index < count; index++)
+	for (index = 0; index < count; index++)
 #ifdef MMX_COEF_SHA256
-        if (((uint32_t *) binary)[0] == crypt_out[index>>(MMX_COEF_SHA256>>1)][index&(MMX_COEF_SHA256-1)])
+		if (((uint32_t *) binary)[0] == crypt_out[index>>(MMX_COEF_SHA256>>1)][index&(MMX_COEF_SHA256-1)])
 #else
-		if (!memcmp(binary, crypt_out[index], BINARY_SIZE))
+			if (!memcmp(binary, crypt_out[index], BINARY_SIZE))
 #endif
-             return 1;
-    return 0;
+				return 1;
+	return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
 #ifdef MMX_COEF_SHA256
-    int i;
-    for (i=1; i < BINARY_SIZE/4; i++)
-        if (((uint32_t *) binary)[i] != crypt_out[index>>(MMX_COEF_SHA256>>1)][(index&(MMX_COEF_SHA256-1))+i*MMX_COEF_SHA256])
-            return 0;
-    return 1;
+	int i;
+	for (i=1; i < BINARY_SIZE/4; i++)
+		if (((uint32_t *) binary)[i] != crypt_out[index>>(MMX_COEF_SHA256>>1)][(index&(MMX_COEF_SHA256-1))+i*MMX_COEF_SHA256])
+			return 0;
+	return 1;
 #else
 	return !memcmp(binary, crypt_out[index], BINARY_SIZE);
 #endif
@@ -316,10 +390,10 @@ struct fmt_main fmt_rawSHA256 = {
 		init,
 		fmt_default_done,
 		fmt_default_reset,
-		fmt_default_prepare,
+		prepare,
 		valid,
 		split,
-		get_binary,
+		binary,
 		fmt_default_salt,
 		fmt_default_source,
 		{
