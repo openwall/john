@@ -19,6 +19,7 @@
 #include <ctype.h>
 #include <string.h>
 #include <time.h>
+#include "os.h"
 #if HAVE_SYS_TIMES_H
 #include <sys/times.h>
 #endif

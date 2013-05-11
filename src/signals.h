@@ -38,6 +38,7 @@ extern volatile int timer_status;
  * Timer emulation for systems with no setitimer(2).
  */
 #include <time.h>
+#include "os.h"
 #if HAVE_SYS_TIMES_H
 #include <sys/times.h>
 #endif

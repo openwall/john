@@ -6,6 +6,7 @@
  */
 
 #include <stdio.h>
+#include "os.h"
 #if HAVE_UNISTD_H
 #include <unistd.h>
 #endif
