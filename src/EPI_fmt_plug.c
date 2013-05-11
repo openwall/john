@@ -30,18 +30,7 @@ static char global_salt[SALT_LENGTH + PLAINTEXT_LENGTH + 1]; // set by set_salt 
                                                          // the extra plaintext_length is needed because the
                                                          // current key is copied there before hashing
 
-int valid(char *ciphertext, struct fmt_main *self);
-void* binary(char *ciphertext);
-void* salt(char *ciphertext);
-void set_salt(void *salt);
-void set_key(char *key, int index);
-char* get_key(int index);
-int crypt_all(int *pcount, struct db_salt *salt);
-int cmp_all(void *binary, int count);
-int cmp_one(void *binary, int index);
-int cmp_exact(char *source, int index);
-
-struct fmt_tests global_tests[] =
+static struct fmt_tests global_tests[] =
 {
   {"0x5F1D84A6DE97E2BEFB637A3CB5318AFEF0750B856CF1836BD1D4470175BE 0x4D5EFDFA143EDF74193076F174AC47CEBF2F417F", "Abc.!23"},
 // new tests from pass_gen.pl
@@ -50,6 +39,112 @@ struct fmt_tests global_tests[] =
   {"0x6F724166466172354A7431316A4842746878434B6632744945574A37524A 0xE1ADE625160BB27C16184795715F1C9EF30C45B0","test3"},
   {NULL}
 };
+
+/*
+ * Expects ciphertext of format: 0xHEX*60 0xHEX*40
+ */
+static int valid(char *ciphertext, struct fmt_main *self)
+{
+  unsigned int len, n;
+
+  if(!ciphertext) return 0;
+  len = strlen(ciphertext);
+
+  if(len != 105)
+    return 0;
+
+  // check fixed positions
+  if(ciphertext[0]  != '0' || ciphertext[1]  != 'x' ||
+     ciphertext[62] != ' ' ||
+     ciphertext[63] != '0' || ciphertext[64] != 'x')
+    return 0;
+
+  for(n = 2; n < 62 && atoi16[ARCH_INDEX(ciphertext[n])] != 0x7F; ++n);
+  for(n = 65; n < 105 && atoi16[ARCH_INDEX(ciphertext[n])] != 0x7F; ++n);
+
+  return n == len;
+}
+
+static void _tobin(char* dst, char *src, unsigned int len)
+{
+  unsigned int n;
+
+  if(src[0] == '0' && src[1] == 'x')
+    src += sizeof(char)*2;
+
+  for(n = 0; n < len; ++n)
+    dst[n] = atoi16[ARCH_INDEX(src[n*2])]<<4 |
+             atoi16[ARCH_INDEX(src[n*2+1])];
+}
+
+static void* binary(char *ciphertext)
+{
+  static char bin[BINARY_LENGTH];
+
+  _tobin(bin, (char*)(ciphertext+65), sizeof(bin));
+
+  return bin;
+}
+
+static void* salt(char *ciphertext)
+{
+  static char salt[SALT_LENGTH];
+
+  _tobin(salt, (char*)(ciphertext+2), sizeof(salt));
+
+  return salt;
+}
+
+static void set_salt(void *salt)
+{
+  memcpy(global_salt, salt, SALT_LENGTH);
+}
+
+static void set_key(char *key, int index)
+{
+  if(!key) return;
+  strnzcpy(global_key, key, PLAINTEXT_LENGTH + 1);
+}
+
+static char* get_key(int index)
+{
+  return global_key;
+}
+
+static int crypt_all(int *pcount, struct db_salt *salt)
+{
+	int count = *pcount;
+	static SHA_CTX ctx;
+
+	// Yes, I'm overwriting the last byte of the salt, perhaps the coder at ElektoPost whom wrote the EPiServer password checking function used to be a C coder (their code is written in .NET)
+	strnzcpy(global_salt+SALT_LENGTH-1, global_key, PLAINTEXT_LENGTH + 1);
+
+	SHA1_Init(&ctx);
+	SHA1_Update(&ctx, (unsigned char*)global_salt, SALT_LENGTH+strlen(global_key));
+	SHA1_Final((unsigned char*)global_crypt, &ctx);
+
+	return count;
+}
+
+static int cmp_all(void *binary, int count)
+{
+  if (((ARCH_WORD *)binary)[0] != global_crypt[0])
+    return 0;
+
+  return !memcmp(&((ARCH_WORD *)binary)[1], &global_crypt[1],
+    BINARY_LENGTH - ARCH_SIZE);
+}
+
+static int cmp_one(void *binary, int index)
+{
+  return cmp_all(binary, 0);
+}
+
+// This functions job is done in cmp_all instead
+static int cmp_exact(char *source, int index)
+{
+  return 1;
+}
 
 // Define john integration
 struct fmt_main fmt_EPI =
@@ -105,110 +200,3 @@ struct fmt_main fmt_EPI =
 		cmp_exact
 	}
 };
-
-/*
- * Expects ciphertext of format: 0xHEX*60 0xHEX*40
- */
-int valid(char *ciphertext, struct fmt_main *self)
-{
-  unsigned int len, n;
-
-  if(!ciphertext) return 0;
-  len = strlen(ciphertext);
-
-  if(len != 105)
-    return 0;
-
-  // check fixed positions
-  if(ciphertext[0]  != '0' || ciphertext[1]  != 'x' ||
-     ciphertext[62] != ' ' ||
-     ciphertext[63] != '0' || ciphertext[64] != 'x')
-    return 0;
-
-  for(n = 2; n < 62 && atoi16[ARCH_INDEX(ciphertext[n])] != 0x7F; ++n);
-  for(n = 65; n < 105 && atoi16[ARCH_INDEX(ciphertext[n])] != 0x7F; ++n);
-
-  return n == len;
-}
-
-void _tobin(char* dst, char *src, unsigned int len)
-{
-  unsigned int n;
-
-  if(src[0] == '0' && src[1] == 'x')
-    src += sizeof(char)*2;
-
-  for(n = 0; n < len; ++n)
-    dst[n] = atoi16[ARCH_INDEX(src[n*2])]<<4 |
-             atoi16[ARCH_INDEX(src[n*2+1])];
-}
-
-void* binary(char *ciphertext)
-{
-  static char bin[BINARY_LENGTH];
-
-  _tobin(bin, (char*)(ciphertext+65), sizeof(bin));
-
-  return bin;
-}
-
-void* salt(char *ciphertext)
-{
-  static char salt[SALT_LENGTH];
-
-  _tobin(salt, (char*)(ciphertext+2), sizeof(salt));
-
-  return salt;
-}
-
-void set_salt(void *salt)
-{
-  memcpy(global_salt, salt, SALT_LENGTH);
-}
-
-void set_key(char *key, int index)
-{
-  if(!key) return;
-  strnzcpy(global_key, key, PLAINTEXT_LENGTH + 1);
-}
-
-char* get_key(int index)
-{
-  return global_key;
-}
-
-int crypt_all(int *pcount, struct db_salt *salt)
-{
-	int count = *pcount;
-	static SHA_CTX ctx;
-
-	// Yes, I'm overwriting the last byte of the salt, perhaps the coder at ElektoPost whom wrote the EPiServer password checking function used to be a C coder (their code is written in .NET)
-	strnzcpy(global_salt+SALT_LENGTH-1, global_key, PLAINTEXT_LENGTH + 1);
-
-	SHA1_Init(&ctx);
-	SHA1_Update(&ctx, (unsigned char*)global_salt, SALT_LENGTH+strlen(global_key));
-	SHA1_Final((unsigned char*)global_crypt, &ctx);
-
-	return count;
-}
-
-int cmp_all(void *binary, int count)
-{
-  if (((ARCH_WORD *)binary)[0] != global_crypt[0])
-    return 0;
-
-  return !memcmp(&((ARCH_WORD *)binary)[1], &global_crypt[1],
-    BINARY_LENGTH - ARCH_SIZE);
-}
-
-int cmp_one(void *binary, int index)
-{
-  return cmp_all(binary, 0);
-}
-
-// This functions job is done in cmp_all instead
-int cmp_exact(char *source, int index)
-{
-  return 1;
-}
-
