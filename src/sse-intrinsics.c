@@ -124,13 +124,6 @@
 	MD5_PARA_DO(i) a[i] = _mm_roti_epi32( a[i], (s) ); \
 	MD5_PARA_DO(i) a[i] = _mm_add_epi32( a[i], b[i] );
 
-unsigned int debug = 0;
-
-void sse_debug(void)
-{
-	debug = 1;
-}
-
 void SSEmd5body(__m128i* data, unsigned int * out, int init)
 {
 	__m128i a[MD5_SSE_PARA];
@@ -265,7 +258,7 @@ void SSEmd5body(__m128i* data, unsigned int * out, int init)
 
 #define GETPOS(i, index)                ( (index&3)*4 + (i& (0xffffffff-3) )*MMX_COEF + ((i)&3) )
 
-void mmxput(void * buf, unsigned int index, unsigned int bid, unsigned int offset, unsigned char * src, unsigned int len)
+static MAYBE_INLINE void mmxput(void * buf, unsigned int index, unsigned int bid, unsigned int offset, unsigned char * src, unsigned int len)
 {
 	unsigned char * nbuf;
 	unsigned int i;
@@ -276,7 +269,7 @@ void mmxput(void * buf, unsigned int index, unsigned int bid, unsigned int offse
 
 }
 
-void mmxput2(void * buf, unsigned int bid, void * src)
+static MAYBE_INLINE void mmxput2(void * buf, unsigned int bid, void * src)
 {
 	unsigned char * nbuf;
 	unsigned int i;
@@ -286,7 +279,7 @@ void mmxput2(void * buf, unsigned int bid, void * src)
 		memcpy( nbuf+i*64*MMX_COEF, ((unsigned char*)src)+i*64, 64);
 }
 
-void mmxput3(void * buf, unsigned int bid, unsigned int * offset, int mult, int saltlen, void * src)
+static MAYBE_INLINE void mmxput3(void * buf, unsigned int bid, unsigned int * offset, int mult, int saltlen, void * src)
 {
 	unsigned char * nbuf;
 	unsigned int noff;
@@ -324,7 +317,7 @@ void mmxput3(void * buf, unsigned int bid, unsigned int * offset, int mult, int 
 
 }
 
-void dispatch(unsigned char buffers[8][64*MD5_SSE_NUM_KEYS], unsigned int f[4*MD5_SSE_NUM_KEYS], unsigned int length[MD5_SSE_NUM_KEYS], unsigned int saltlen)
+static MAYBE_INLINE void dispatch(unsigned char buffers[8][64*MD5_SSE_NUM_KEYS], unsigned int f[4*MD5_SSE_NUM_KEYS], unsigned int length[MD5_SSE_NUM_KEYS], unsigned int saltlen)
 {
 	unsigned int i, j;
 	unsigned int bufferid;
