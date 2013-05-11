@@ -34,7 +34,7 @@ static int omp_t = 1;
 #define SIZE_INITV 16
 
 #define FORMAT_LABEL		"RAR5"
-#define FORMAT_NAME		"RAR5 PBKDF2 SHA-256"
+#define FORMAT_NAME		"PBKDF2 SHA-256"
 #define FORMAT_TAG  		"$rar5$"
 #define TAG_LENGTH  		6
 #define ALGORITHM_NAME		"32/" ARCH_BITS_STR
@@ -64,14 +64,6 @@ static struct custom_salt {
 	unsigned char salt[32];
 	unsigned char iv[32];
 } *cur_salt;
-
-static void print_hex(unsigned char *str, int len)
-{
-	int i;
-	for (i = 0; i < len; ++i)
-		printf("%02x", str[i]);
-	printf("\n");
-}
 
 static void init(struct fmt_main *self)
 {
@@ -190,7 +182,7 @@ static void hmac_sha256(unsigned char * pass, int passlen, unsigned char * salt,
 // and password verification) for iterations+16 and iterations+32.
 static void rar5kdf(unsigned char *Pwd, size_t PwdLength,
             unsigned char *Salt, size_t SaltLength,
-            unsigned char *Key, unsigned char *V1, unsigned char *V2, uint Count)
+            unsigned char *Key, unsigned char *V1, unsigned char *V2, int Count)
 {
 	const size_t MaxSalt=64;
 	unsigned char SaltData[MaxSalt+4];
@@ -199,6 +191,8 @@ static void rar5kdf(unsigned char *Pwd, size_t PwdLength,
 	int I;
 	int J;
 	int K;
+	int CurCount[] = { Count-1, 16, 16 };
+	unsigned char *CurValue[] = { Key    , V1, V2 };
 	unsigned char Fn[SHA256_DIGEST_SIZE]; // Current function value.
 	memcpy(SaltData, Salt, Min(SaltLength,MaxSalt));
 
@@ -210,9 +204,6 @@ static void rar5kdf(unsigned char *Pwd, size_t PwdLength,
 	// First iteration: HMAC of password, salt and block index (1).
 	hmac_sha256(Pwd, PwdLength, SaltData, SaltLength + 4, 0, U1);
 	memcpy(Fn, U1, sizeof(Fn)); // Function at first iteration.
-
-	uint  CurCount[] = { Count-1, 16, 16 };
-	unsigned char *CurValue[] = { Key    , V1, V2 };
 
 	for (I = 0; I < 3; I++) // For output key and 2 supplementary values.
 	{
