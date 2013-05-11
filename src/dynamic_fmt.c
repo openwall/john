@@ -95,10 +95,11 @@ static int m_ompt;
 #define STRINGIZE2(s) #s
 #define STRINGIZE(s) STRINGIZE2(s)
 
-extern struct fmt_main fmt_Dynamic;
+static struct fmt_main fmt_Dynamic;
 static struct fmt_main *pFmts;
 static int nFmts;
 static int force_md5_ctx;
+static void dynamic_RESET(struct fmt_main *fmt);
 
 typedef enum { eUNK=0, eBase16=1, eBase16u=2, eBase64=3, eBase64_nte=4, eBaseRaw=5} eLargeOut_t;
 static eLargeOut_t *eLargeOut;
@@ -1679,32 +1680,32 @@ static int binary_hash_2_64x4(void * binary) { return (((ARCH_WORD_32 *)binary)[
 static int binary_hash_3_64x4(void * binary) { return (((ARCH_WORD_32 *)binary)[0]>>8) & 0xffff; }
 static int binary_hash_4_64x4(void * binary) { return (((ARCH_WORD_32 *)binary)[0]>>8) & 0xfffff; }
 static int binary_hash_5_64x4(void * binary) { return (((ARCH_WORD_32 *)binary)[0]>>8) & 0xffffff; }
-int get_hash_0_64x4(int index) {
+static int get_hash_0_64x4(int index) {
 #if MD5_X2
 	if (index & 1) return (crypt_key_X86[index>>MD5_X2].x2.w2[0]>>8) & 0xf;
 #endif
 	return (crypt_key_X86[index>>MD5_X2].x1.w[0]>>8) & 0xf;}
-int get_hash_1_64x4(int index) {
+static int get_hash_1_64x4(int index) {
 #if MD5_X2
 	if (index & 1) return (crypt_key_X86[index>>MD5_X2].x2.w2[0]>>8) & 0xff;
 #endif
 	return (crypt_key_X86[index>>MD5_X2].x1.w[0]>>8) & 0xff;}
-int get_hash_2_64x4(int index) {
+static int get_hash_2_64x4(int index) {
 #if MD5_X2
 	if (index & 1) return (crypt_key_X86[index>>MD5_X2].x2.w2[0]>>8) & 0xfff;
 #endif
 	return (crypt_key_X86[index>>MD5_X2].x1.w[0]>>8) & 0xfff;}
-int get_hash_3_64x4(int index) {
+static int get_hash_3_64x4(int index) {
 #if MD5_X2
 	if (index & 1) return (crypt_key_X86[index>>MD5_X2].x2.w2[0]>>8) & 0xffff;
 #endif
 	return (crypt_key_X86[index>>MD5_X2].x1.w[0]>>8) & 0xffff;}
-int get_hash_4_64x4(int index) {
+static int get_hash_4_64x4(int index) {
 #if MD5_X2
 	if (index & 1) return (crypt_key_X86[index>>MD5_X2].x2.w2[0]>>8) & 0xfffff;
 #endif
 	return (crypt_key_X86[index>>MD5_X2].x1.w[0]>>8) & 0xfffff;}
-int get_hash_5_64x4(int index) {
+static int get_hash_5_64x4(int index) {
 #if MD5_X2
 	if (index & 1) return (crypt_key_X86[index>>MD5_X2].x2.w2[0]>>8) & 0xffffff;
 #endif
@@ -1713,7 +1714,7 @@ int get_hash_5_64x4(int index) {
 
 #endif
 
-int get_hash_0(int index)
+static int get_hash_0(int index)
 {
 #ifdef MMX_COEF
 	if (dynamic_use_sse&1) {
@@ -1728,7 +1729,7 @@ int get_hash_0(int index)
 	return crypt_key_X86[index>>MD5_X2].x1.w[0] & 0xf;
 }
 
-int get_hash_1(int index)
+static int get_hash_1(int index)
 {
 #ifdef MMX_COEF
 	if (dynamic_use_sse&1) {
@@ -1743,7 +1744,7 @@ int get_hash_1(int index)
 	return crypt_key_X86[index>>MD5_X2].x1.w[0] & 0xff;
 }
 
-int get_hash_2(int index)
+static int get_hash_2(int index)
 {
 #ifdef MMX_COEF
 	if (dynamic_use_sse&1) {
@@ -1758,7 +1759,7 @@ int get_hash_2(int index)
 	return crypt_key_X86[index>>MD5_X2].x1.w[0] & 0xfff;
 }
 
-int get_hash_3(int index)
+static int get_hash_3(int index)
 {
 #ifdef MMX_COEF
 	if (dynamic_use_sse&1) {
@@ -1772,7 +1773,7 @@ int get_hash_3(int index)
 #endif
 	return crypt_key_X86[index>>MD5_X2].x1.w[0] & 0xffff;
 }
-int get_hash_4(int index)
+static int get_hash_4(int index)
 {
 #ifdef MMX_COEF
 	if (dynamic_use_sse&1) {
@@ -1786,7 +1787,7 @@ int get_hash_4(int index)
 #endif
 	return crypt_key_X86[index>>MD5_X2].x1.w[0] & 0xfffff;
 }
-int get_hash_5(int index)
+static int get_hash_5(int index)
 {
 #ifdef MMX_COEF
 	if (dynamic_use_sse&1) {
@@ -1800,7 +1801,7 @@ int get_hash_5(int index)
 #endif
 	return crypt_key_X86[index>>MD5_X2].x1.w[0] & 0xffffff;
 }
-int get_hash_6(int index)
+static int get_hash_6(int index)
 {
 #ifdef MMX_COEF
 	if (dynamic_use_sse&1) {
@@ -2545,7 +2546,7 @@ static void * binary_b64_4x6(char *ciphertext)
  * ready to handle base-16 hashes.  The phpass stuff will be linked in later, IF
  * needed.
  *********************************************************************************/
-struct fmt_main fmt_Dynamic =
+static struct fmt_main fmt_Dynamic =
 {
 	{
 		FORMAT_LABEL,
@@ -3962,7 +3963,7 @@ unsigned i, til;
 }
 
 #ifdef MD5_SSE_PARA
-void SSE_Intrinsics_LoadLens(int side, int i)
+static void SSE_Intrinsics_LoadLens(int side, int i)
 {
 	ARCH_WORD_32 *p;
 	ARCH_WORD_32 TL;
@@ -4651,7 +4652,7 @@ static void CopyCryptToOut1Location(unsigned char *o, int j, int k) {
 	}
 }
 
-void CopyCryptToFlat(unsigned char *cp, int plen, int idx, int idx_mod) {
+static void CopyCryptToFlat(unsigned char *cp, int plen, int idx, int idx_mod) {
 	// this function is ONLY called during key setup (once), so trying to optimize
 	// to do full DWORD copying (vs byte/byte copying), will not gain us anything.
 	unsigned char *in = md5_tmp_out[idx];
@@ -7086,7 +7087,7 @@ static inline int large_hash_output_no_null(unsigned char *cpi, unsigned char *c
 
 #ifdef MMX_COEF
 // NOTE SSE SHA1 as implemented is NOT valid in _OPENMP build mode.  It is not valid, because it switches into and out of SSE/x86 modes.
-void SHA1_SSE_Crypt(DYNA_OMP_PARAMSm MD5_IN input[MAX_KEYS_PER_CRYPT_X86], unsigned int ilen[MAX_KEYS_PER_CRYPT_X86],
+static void SHA1_SSE_Crypt(DYNA_OMP_PARAMSm MD5_IN input[MAX_KEYS_PER_CRYPT_X86], unsigned int ilen[MAX_KEYS_PER_CRYPT_X86],
 					MD5_IN out[MAX_KEYS_PER_CRYPT_X86]  , unsigned int olen[MAX_KEYS_PER_CRYPT_X86], int append)
 {
 	unsigned i, j, tot=0, tot2=0, z, k;
@@ -7155,7 +7156,7 @@ void SHA1_SSE_Crypt(DYNA_OMP_PARAMSm MD5_IN input[MAX_KEYS_PER_CRYPT_X86], unsig
 	}
 }
 // NOTE SSE SHA1 as implemented is NOT valid in _OPENMP build mode.  It is not valid, because it switches into and out of SSE/x86 modes.
-void SHA1_SSE_Crypt_final(DYNA_OMP_PARAMSm MD5_IN input[MAX_KEYS_PER_CRYPT_X86], unsigned int ilen[MAX_KEYS_PER_CRYPT_X86])
+static void SHA1_SSE_Crypt_final(DYNA_OMP_PARAMSm MD5_IN input[MAX_KEYS_PER_CRYPT_X86], unsigned int ilen[MAX_KEYS_PER_CRYPT_X86])
 {
 #if !SHA1_SSE_PARA
 	if (dynamic_use_sse==3)
@@ -10056,7 +10057,7 @@ static struct fmt_main *dynamic_Get_fmt_main(int which)
  * This function will 'forget' which md5-gen subtype we are working with. It will allow
  * a different type to be used.  Very useful for things like -test (benchmarking).
  */
-void dynamic_RESET(struct fmt_main *fmt)
+static void dynamic_RESET(struct fmt_main *fmt)
 {
 	memset(&curdat, 0, sizeof(curdat));
 	m_count = 0;

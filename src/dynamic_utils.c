@@ -72,7 +72,7 @@ void dynamic_DISPLAY_ALL_FORMATS()
 }
 
 // Only called at load time, so does not have to be overly optimal
-int ishexdigit(char c) {
+static int ishexdigit(char c) {
 	if (c >= '0' && c <= '9')
 		return 1;
 	if (c >= 'a' && c <= 'f')

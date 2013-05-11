@@ -505,7 +505,7 @@ static int load_config(int which) {
 	return !!gen_source;
 }
 
-char *GetFld(char **out, char *in)
+static char *GetFld(char **out, char *in)
 {
 	char *cp;
 	if (!in || !*in) return "";
