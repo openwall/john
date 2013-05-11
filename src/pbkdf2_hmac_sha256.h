@@ -72,7 +72,7 @@ static void _pbkdf2_sha256(const unsigned char *S, int SL, int R, ARCH_WORD_32 *
 	memcpy(out, tmp_hash, SHA256_DIGEST_LENGTH);
 
 	for(i = 1; i < R; i++) {
-#if defined(__JTR_SHA2___H_) || (defined (HEADER_E_OS2_H) && defined (HEADER_SHA_H) )
+#if !defined(COMMON_DIGEST_FOR_OPENSSL)
 		memcpy(ctx.h, pIpad->h, 40);
 #if defined(__JTR_SHA2___H_)
 		ctx.total = pIpad->total;
@@ -87,7 +87,7 @@ static void _pbkdf2_sha256(const unsigned char *S, int SL, int R, ARCH_WORD_32 *
 		SHA256_Update(&ctx, tmp_hash, SHA256_DIGEST_LENGTH);
 		SHA256_Final(tmp_hash, &ctx);
 
-#if defined(__JTR_SHA2___H_) || (defined (HEADER_E_OS2_H) && defined (HEADER_SHA_H) )
+#if !defined(COMMON_DIGEST_FOR_OPENSSL)
 		memcpy(ctx.h, pOpad->h, 40);
 #if defined(__JTR_SHA2___H_)
 		ctx.total = pOpad->total;
