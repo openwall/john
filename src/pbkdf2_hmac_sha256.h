@@ -268,7 +268,7 @@ static void pbkdf2_sha256_sse(const unsigned char *K[MMX_COEF_SHA256], int KL[MM
 			SSESHA256body(o1,o1,i2, SHA256_RELOAD);
 			// only xor first 16 bytes, since that is ALL this format uses
 			for (k = 0; k < SSE_GROUP_SZ_SHA256; k++) {
-				unsigned *p = &o1[(k/MMX_COEF_SHA256)*MMX_COEF_SHA256*SHA256_BUF_SIZ + (k&(MMX_COEF_SHA256-1))];
+				ARCH_WORD_32 *p = &o1[(k/MMX_COEF_SHA256)*MMX_COEF_SHA256*SHA256_BUF_SIZ + (k&(MMX_COEF_SHA256-1))];
 				for(j = 0; j < (SHA256_DIGEST_LENGTH/sizeof(ARCH_WORD_32)); j++)
 					dgst[k][j] ^= p[(j<<(MMX_COEF_SHA256>>1))];
 			}

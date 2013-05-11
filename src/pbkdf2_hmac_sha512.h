@@ -157,12 +157,12 @@ extern void sha512_final  (void *output, sha512_ctx *ctx);
 #define SSE_GROUP_SZ_SHA512 MMX_COEF_SHA512
 #endif
 
-static void _pbkdf2_sha512_sse_load_hmac(const unsigned char *K[SSE_GROUP_SZ_512], int KL[SSE_GROUP_SZ_512], SHA512_CTX pIpad[SSE_GROUP_SZ_512], SHA512_CTX pOpad[SSE_GROUP_SZ_512])
+static void _pbkdf2_sha512_sse_load_hmac(const unsigned char *K[SSE_GROUP_SZ_SHA512], int KL[SSE_GROUP_SZ_SHA512], SHA512_CTX pIpad[SSE_GROUP_SZ_SHA512], SHA512_CTX pOpad[SSE_GROUP_SZ_SHA512])
 {
 	unsigned char ipad[SHA512_CBLOCK], opad[SHA512_CBLOCK];
 	int i, j;
 
-	for (j = 0; j < SSE_GROUP_SZ_512; ++j) {
+	for (j = 0; j < SSE_GROUP_SZ_SHA512; ++j) {
 		memset(ipad, 0x36, SHA512_CBLOCK);
 		memset(opad, 0x5C, SHA512_CBLOCK);
 
@@ -184,21 +184,15 @@ static void pbkdf2_sha512_sse(const unsigned char *K[MMX_COEF_SHA512], int KL[MM
 	unsigned char tmp_hash[SHA512_DIGEST_LENGTH];
 	ARCH_WORD_64 *i1, *i2, *o1, *ptmp;
 	int i,j;
-	ARCH_WORD_64 dgst[SSE_GROUP_SZ_512][8];
+	ARCH_WORD_64 dgst[SSE_GROUP_SZ_SHA512][8];
 	int loops, accum=0;
 	unsigned char loop;
-	SHA512_CTX ipad[SSE_GROUP_SZ_512], opad[SSE_GROUP_SZ_512], ctx;
+	SHA512_CTX ipad[SSE_GROUP_SZ_SHA512], opad[SSE_GROUP_SZ_SHA512], ctx;
 
-#ifdef _MSC_VER
 	// sse_hash1 would need to be 'adjusted' for SHA512_PARA
-	__declspec(align(16)) unsigned char sse_hash1[SHA512_BUF_SIZ*sizeof(ARCH_WORD_64)*SSE_GROUP_SZ_512];
-	__declspec(align(16)) unsigned char sse_crypt1[SHA512_DIGEST_LENGTH*SSE_GROUP_SZ_512];
-	__declspec(align(16)) unsigned char sse_crypt2[SHA512_DIGEST_LENGTH*SSE_GROUP_SZ_512];
-#else
-	unsigned char sse_hash1[SHA512_BUF_SIZ*sizeof(ARCH_WORD_64)*SSE_GROUP_SZ_512] __attribute__ ((aligned (16)));
-	unsigned char sse_crypt1[SHA512_DIGEST_LENGTH*SSE_GROUP_SZ_512] __attribute__ ((aligned (16)));
-	unsigned char sse_crypt2[SHA512_DIGEST_LENGTH*SSE_GROUP_SZ_512] __attribute__ ((aligned (16)));
-#endif
+	ALIGN(16) unsigned char sse_hash1[SHA512_BUF_SIZ*sizeof(ARCH_WORD_64)*SSE_GROUP_SZ_SHA512];
+	ALIGN(16) unsigned char sse_crypt1[SHA512_DIGEST_LENGTH*SSE_GROUP_SZ_SHA512];
+	ALIGN(16) unsigned char sse_crypt2[SHA512_DIGEST_LENGTH*SSE_GROUP_SZ_SHA512];
 	i1 = (ARCH_WORD_64*)sse_crypt1;
 	i2 = (ARCH_WORD_64*)sse_crypt2;
 	o1 = (ARCH_WORD_64*)sse_hash1;
@@ -207,7 +201,7 @@ static void pbkdf2_sha512_sse(const unsigned char *K[MMX_COEF_SHA512], int KL[MM
 	// then zero out the rest of the buffer, putting 0x300 (#bits), into the proper location in the buffer.  Once this
 	// part of the buffer is setup, we never touch it again, for the rest of the crypt.  We simply overwrite the first
 	// half of this buffer, over and over again, with BE results of the prior hash.
-	for (j = 0; j < SSE_GROUP_SZ_512/MMX_COEF_SHA512; ++j) {
+	for (j = 0; j < SSE_GROUP_SZ_SHA512/MMX_COEF_SHA512; ++j) {
 		ptmp = &o1[j*MMX_COEF_SHA512*SHA512_BUF_SIZ];
 		for (i = 0; i < MMX_COEF_SHA512; ++i)
 			ptmp[ (SHA512_DIGEST_LENGTH/sizeof(ARCH_WORD_64))*MMX_COEF_SHA512 + (i&(MMX_COEF_SHA512-1))] = 0x80000000;
@@ -221,7 +215,7 @@ static void pbkdf2_sha512_sse(const unsigned char *K[MMX_COEF_SHA512], int KL[MM
 	// the way to the end, and that ends up being the first iteration of the pbkdf2.  From that point on, we use
 	// the 2 first halves, to load the sha512 2nd part of each crypt, in each loop.
 	_pbkdf2_sha512_sse_load_hmac(K, KL, ipad, opad);
-	for (j = 0; j < SSE_GROUP_SZ_512; ++j) {
+	for (j = 0; j < SSE_GROUP_SZ_SHA512; ++j) {
 		ptmp = &i1[(j/MMX_COEF_SHA512)*MMX_COEF_SHA512*(SHA512_DIGEST_LENGTH/sizeof(ARCH_WORD_64))+(j&(MMX_COEF_SHA512-1))];
 		for (i = 0; i < (SHA512_DIGEST_LENGTH/sizeof(ARCH_WORD_64)); ++i) {
 			*ptmp = ipad[j].h[i];
@@ -237,7 +231,7 @@ static void pbkdf2_sha512_sse(const unsigned char *K[MMX_COEF_SHA512], int KL[MM
 	loops = (skip_bytes + outlen + (SHA512_DIGEST_LENGTH-1)) / SHA512_DIGEST_LENGTH;
 	loop = skip_bytes / SHA512_DIGEST_LENGTH + 1;
 	while (loop <= loops) {
-		for (j = 0; j < SSE_GROUP_SZ_512; ++j) {
+		for (j = 0; j < SSE_GROUP_SZ_SHA512; ++j) {
 			memcpy(&ctx, &ipad[j], sizeof(ctx));
 			SHA512_Update(&ctx, S, SL);
 			// this BE 1 appended to the salt, allows us to do passwords up
@@ -270,8 +264,8 @@ static void pbkdf2_sha512_sse(const unsigned char *K[MMX_COEF_SHA512], int KL[MM
 			SSESHA512body(o1,o1,i1, SHA512_RELOAD);
 			SSESHA512body(o1,o1,i2, SHA512_RELOAD);
 			// only xor first 16 bytes, since that is ALL this format uses
-			for (k = 0; k < SSE_GROUP_SZ_512; k++) {
-				unsigned *p = &o1[(k/MMX_COEF_SHA512)*MMX_COEF_SHA512*SHA512_BUF_SIZ + (k&(MMX_COEF_SHA512-1))];
+			for (k = 0; k < SSE_GROUP_SZ_SHA512; k++) {
+				ARCH_WORD_64 *p = &o1[(k/MMX_COEF_SHA512)*MMX_COEF_SHA512*SHA512_BUF_SIZ + (k&(MMX_COEF_SHA512-1))];
 				for(j = 0; j < (SHA512_DIGEST_LENGTH/sizeof(ARCH_WORD_64)); j++)
 					dgst[k][j] ^= p[(j<<(MMX_COEF_SHA512>>1))];
 			}
@@ -281,7 +275,7 @@ static void pbkdf2_sha512_sse(const unsigned char *K[MMX_COEF_SHA512], int KL[MM
 		// for the 'very' end of the crypt, we remove BE logic, so the calling function can view it in native format.
 		alter_endianity(dgst, sizeof(dgst));
 		for (i = skip_bytes%SHA512_DIGEST_LENGTH; i < SHA512_DIGEST_LENGTH && accum < outlen; ++i) {
-			for (j = 0; j < SSE_GROUP_SZ_512; ++j) {
+			for (j = 0; j < SSE_GROUP_SZ_SHA512; ++j) {
 #if ARCH_LITTLE_ENDIAN
 				out[j][accum] = ((unsigned char*)(dgst[j]))[i];
 #else

@@ -326,7 +326,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			}
 			else {
 #ifdef SSE_GROUP_SZ_SHA512
-				int lens[SSE_GROUP_SZ_512], i;
+				int lens[SSE_GROUP_SZ_SHA256], i;
 				unsigned char *pin[SSE_GROUP_SZ_SHA512];
 				ARCH_WORD_32 *pout[SSE_GROUP_SZ_SHA512];
 				for (i = 0; i < SSE_GROUP_SZ_SHA512; ++i) {
