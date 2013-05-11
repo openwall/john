@@ -66,13 +66,8 @@ static struct fmt_tests tests[] = {
 /* Cygwin would not guarantee the alignment if these were declared static */
 #define saved_key rawmd5_saved_key
 #define crypt_key rawmd5_crypt_key
-#if defined (_MSC_VER)
-__declspec(align(16)) unsigned char saved_key[64*MAX_KEYS_PER_CRYPT];
-__declspec(align(16)) unsigned char crypt_key[DIGEST_SIZE*MAX_KEYS_PER_CRYPT];
-#else
-unsigned char saved_key[64*MAX_KEYS_PER_CRYPT] __attribute__ ((aligned(MMX_COEF*4)));
-unsigned char crypt_key[DIGEST_SIZE*MAX_KEYS_PER_CRYPT+1] __attribute__ ((aligned(MMX_COEF*4)));
-#endif
+ALIGN(16) unsigned char saved_key[64*MAX_KEYS_PER_CRYPT];
+ALIGN(16) unsigned char crypt_key[DIGEST_SIZE*MAX_KEYS_PER_CRYPT];
 #else
 static MD5_CTX ctx;
 static int saved_key_length;

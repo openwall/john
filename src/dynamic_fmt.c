@@ -75,6 +75,7 @@ ahead of time.
 #include "unicode.h"
 #include "johnswap.h"
 #include "pkzip.h"
+#include "aligned.h"
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -4500,29 +4501,16 @@ static void DynamicFunc__FreeBSDMD5Crypt_ANY(DYNA_OMP_PARAMS)
 }
 #else  // if !defined MMX_COEF
 
-#ifdef _MSC_VER
-__declspec(align(16)) unsigned char md5_cspp[BSD_BLKS][64*MMX_COEF];
-__declspec(align(16)) unsigned char md5_pspc[BSD_BLKS][64*MMX_COEF];
-__declspec(align(16)) unsigned char md5_cpp [BSD_BLKS][64*MMX_COEF];
-__declspec(align(16)) unsigned char md5_ppc [BSD_BLKS][64*MMX_COEF];
-__declspec(align(16)) unsigned char md5_csp [BSD_BLKS][64*MMX_COEF];
-__declspec(align(16)) unsigned char md5_psc [BSD_BLKS][64*MMX_COEF];
-__declspec(align(16)) unsigned char md5_cp  [BSD_BLKS][64*MMX_COEF];
-__declspec(align(16)) unsigned char md5_pc  [BSD_BLKS][64*MMX_COEF];
-__declspec(align(16)) unsigned char md5_tmp_out [BSD_BLKS][16*MMX_COEF];
-__declspec(align(16)) unsigned char md5_tmp_in [BSD_BLKS][64*MMX_COEF];
-#else
-unsigned char md5_cspp[BSD_BLKS][64*MMX_COEF] __attribute__ ((aligned(16)));
-unsigned char md5_pspc[BSD_BLKS][64*MMX_COEF] __attribute__ ((aligned(16)));
-unsigned char md5_cpp [BSD_BLKS][64*MMX_COEF] __attribute__ ((aligned(16)));
-unsigned char md5_ppc [BSD_BLKS][64*MMX_COEF] __attribute__ ((aligned(16)));
-unsigned char md5_csp [BSD_BLKS][64*MMX_COEF] __attribute__ ((aligned(16)));
-unsigned char md5_psc [BSD_BLKS][64*MMX_COEF] __attribute__ ((aligned(16)));
-unsigned char md5_cp  [BSD_BLKS][64*MMX_COEF] __attribute__ ((aligned(16)));
-unsigned char md5_pc  [BSD_BLKS][64*MMX_COEF] __attribute__ ((aligned(16)));
-unsigned char md5_tmp_out [BSD_BLKS][16*MMX_COEF] __attribute__ ((aligned(16)));
-unsigned char md5_tmp_in [BSD_BLKS][64*MMX_COEF] __attribute__ ((aligned(16)));
-#endif
+ALIGN(16) unsigned char md5_cspp[BSD_BLKS][64*MMX_COEF];
+ALIGN(16) unsigned char md5_pspc[BSD_BLKS][64*MMX_COEF];
+ALIGN(16) unsigned char md5_cpp [BSD_BLKS][64*MMX_COEF];
+ALIGN(16) unsigned char md5_ppc [BSD_BLKS][64*MMX_COEF];
+ALIGN(16) unsigned char md5_csp [BSD_BLKS][64*MMX_COEF];
+ALIGN(16) unsigned char md5_psc [BSD_BLKS][64*MMX_COEF];
+ALIGN(16) unsigned char md5_cp  [BSD_BLKS][64*MMX_COEF];
+ALIGN(16) unsigned char md5_pc  [BSD_BLKS][64*MMX_COEF];
+ALIGN(16) unsigned char md5_tmp_out [BSD_BLKS][16*MMX_COEF];
+ALIGN(16) unsigned char md5_tmp_in [BSD_BLKS][64*MMX_COEF];
 
 struct md5_item {
 	void *in1, *in2, *out2;	// what we used to call out1 is actually in2, so we simply 'ignore' the extra variable.

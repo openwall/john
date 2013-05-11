@@ -23,16 +23,16 @@
 #include <limits.h>
 #endif
 #include <stdio.h>
-#ifndef _MSC_VER
+#if HAVE_UNISTD_H
 #include <unistd.h>
 #endif
 #include <string.h>
 #include <signal.h>
 #include <time.h>
-#ifndef _MSC_VER
+#if HAVE_SYS_TIME_H
 #include <sys/time.h>
 #endif
-#if !defined (__MINGW32__) && !defined (_MSC_VER)
+#if HAVE_SYS_TIMES_H
 #include <sys/times.h>
 #endif
 #include <stdlib.h> /* setenv */

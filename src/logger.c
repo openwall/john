@@ -14,10 +14,13 @@
 #include "os.h"
 
 #include <stdio.h>
-#ifndef _MSC_VER
+#if HAVE_UNISTD_H
 #include <unistd.h>
+#endif
+#if HAVE_SYS_FILE_H
 #include <sys/file.h>
-#else
+#endif
+#if _MSC_VER
 #include <io.h>
 #pragma warning ( disable : 4996 )
 #define S_IRUSR _S_IREAD
@@ -25,9 +28,6 @@
 #endif
 #include <sys/types.h>
 #include <sys/stat.h>
-#ifndef _MSC_VER
-#include <sys/file.h>
-#endif
 #include <fcntl.h>
 #include <errno.h>
 #include <stdarg.h>
@@ -131,7 +131,7 @@ static void log_file_fsync(struct log_file *f)
 	if (f->fd < 0) return;
 
 	log_file_flush(f);
-#if !defined(__CYGWIN32__) && !defined(__MINGW32__) && !defined(_MSC_VER)
+#if HAVE_WINDOWS_H==0
 	if (fsync(f->fd)) pexit("fsync");
 #endif
 }

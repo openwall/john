@@ -19,11 +19,11 @@
 #endif
 
 // These compilers claim to be __GNUC__ but warn on gcc pragmas.
-#if !defined(__INTEL_COMPILER) && !defined(__clang__) && !defined(__llvm__)
+#if !defined(__INTEL_COMPILER) && !defined(__clang__) && !defined(__llvm__) && !defined (_MSC_VER)
 #pragma GCC optimize 3
 #endif
 
-#include <stdint.h>
+#include "stdint.h"
 #include <string.h>
 #include <emmintrin.h>
 
@@ -35,7 +35,7 @@
 
 #include "common.h"
 #include "formats.h"
-
+#include "johnswap.h"
 
 #if defined __XOP__
 #define SIMD_TYPE                 "XOP"
@@ -64,6 +64,21 @@
 #define MIN_KEYS_PER_CRYPT        2
 #define MAX_KEYS_PER_CRYPT        2
 
+#if defined (_MSC_VER) && defined (_M_IX86)
+// 32 bit VC does NOT define these intrinsics :((((
+_inline __m128i _mm_set_epi64x(uint64_t a, uint64_t b) {
+	__m128i x;
+	x.m128i_i64[0] = b;
+	x.m128i_i64[1] = a;
+	return x;
+}
+_inline __m128i _mm_set1_epi64x(uint64_t a) {
+	__m128i x;
+	x.m128i_i64[0] = a;
+	x.m128i_i64[1] = a;
+	return x;
+}
+#endif
 
 #ifndef __XOP__
 #define _mm_roti_epi64(x, n)                                              \
@@ -209,7 +224,7 @@ static inline void alter_endianity_64 (uint64_t *x, unsigned int size)
     int i;
 
     for (i=0; i < (size / sizeof(*x)); i++)
-        x[i] = __builtin_bswap64 (x[i]);
+        x[i] = JOHNSWAP64(x[i]);
 }
 
 
@@ -318,7 +333,7 @@ static char *get_key (int index)
     uint8_t  *buf8  = (uint8_t * ) buf64;
 
     static char out[MAXLEN + 1];
-    int len = buf64[15] >> 3;
+    int len = (int)(buf64[15] >> 3);
 
     out[len] = 0;
 

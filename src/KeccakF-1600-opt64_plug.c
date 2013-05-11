@@ -17,17 +17,10 @@ http://creativecommons.org/publicdomain/zero/1.0/
 /* #include "brg_endian.h" */
 #include "KeccakF-1600-opt64-settings.h"
 #include "KeccakF-1600-interface.h"
+#include "aligned.h"
 
 typedef unsigned char UINT8;
 typedef unsigned long long int UINT64;
-
-#if defined(__GNUC__)
-#define ALIGN __attribute__ ((aligned(32)))
-#elif defined(_MSC_VER)
-#define ALIGN __declspec(align(32))
-#else
-#define ALIGN
-#endif
 
 #if defined(UseSSE)
     #include <x86intrin.h>
@@ -65,7 +58,7 @@ typedef unsigned long long int UINT64;
     #ifdef UseOnlySIMD64
     #include "KeccakF-1600-simd64.macros"
     #else
-ALIGN const UINT64 rho8_56[2] = {0x0605040302010007, 0x080F0E0D0C0B0A09};
+ALIGN(32) const UINT64 rho8_56[2] = {0x0605040302010007, 0x080F0E0D0C0B0A09};
     #include "KeccakF-1600-simd128.macros"
     #endif
 
@@ -103,18 +96,18 @@ ALIGN const UINT64 rho8_56[2] = {0x0605040302010007, 0x080F0E0D0C0B0A09};
 
     #define ROL6464same(a, o)   _mm_roti_epi64(a, o)
     #define ROL6464(a, r1, r2)  _mm_rot_epi64(a, CONST128( rot_##r1##_##r2 ))
-ALIGN const UINT64 rot_0_20[2]  = { 0, 20};
-ALIGN const UINT64 rot_44_3[2]  = {44,  3};
-ALIGN const UINT64 rot_43_45[2] = {43, 45};
-ALIGN const UINT64 rot_21_61[2] = {21, 61};
-ALIGN const UINT64 rot_14_28[2] = {14, 28};
-ALIGN const UINT64 rot_1_36[2]  = { 1, 36};
-ALIGN const UINT64 rot_6_10[2]  = { 6, 10};
-ALIGN const UINT64 rot_25_15[2] = {25, 15};
-ALIGN const UINT64 rot_8_56[2]  = { 8, 56};
-ALIGN const UINT64 rot_18_27[2] = {18, 27};
-ALIGN const UINT64 rot_62_55[2] = {62, 55};
-ALIGN const UINT64 rot_39_41[2] = {39, 41};
+ALIGN(32) const UINT64 rot_0_20[2]  = { 0, 20};
+ALIGN(32) const UINT64 rot_44_3[2]  = {44,  3};
+ALIGN(32) const UINT64 rot_43_45[2] = {43, 45};
+ALIGN(32) const UINT64 rot_21_61[2] = {21, 61};
+ALIGN(32) const UINT64 rot_14_28[2] = {14, 28};
+ALIGN(32) const UINT64 rot_1_36[2]  = { 1, 36};
+ALIGN(32) const UINT64 rot_6_10[2]  = { 6, 10};
+ALIGN(32) const UINT64 rot_25_15[2] = {25, 15};
+ALIGN(32) const UINT64 rot_8_56[2]  = { 8, 56};
+ALIGN(32) const UINT64 rot_18_27[2] = {18, 27};
+ALIGN(32) const UINT64 rot_62_55[2] = {62, 55};
+ALIGN(32) const UINT64 rot_39_41[2] = {39, 41};
 
 #if defined(UseSimulatedXOP)
     // For debugging purposes, when XOP is not available

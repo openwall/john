@@ -9,7 +9,7 @@
 
 #include <stdio.h>
 #include <string.h>
-#if !defined (_MSC_VER)
+#if HAVE_UNISTD_H
 #include <unistd.h>
 #endif
 

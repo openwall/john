@@ -9,7 +9,7 @@
 #include "os.h"
 
 #include <stdio.h>
-#ifndef _MSC_VER
+#if HAVE_UNISTD_H
 #include <unistd.h>
 #else
 #define CRTDBG_MAP_ALLOC
@@ -18,7 +18,7 @@
 #endif
 #include <errno.h>
 #include <string.h>
-#ifndef _MSC_VER
+#ifndef HAVE_STRINGS_H
 #include <strings.h>
 #endif
 #include <stdlib.h>
@@ -115,9 +115,9 @@ extern struct fmt_main fmt_truecrypt_whirlpool;
 
 #ifdef __SSE2__
 extern struct fmt_main fmt_rawSHA256_ng;
+extern struct fmt_main fmt_rawSHA512_ng;
 #ifndef _MSC_VER
 extern struct fmt_main fmt_sha1_ng;
-extern struct fmt_main fmt_rawSHA512_ng;
 #endif
 #endif
 #ifdef MMX_COEF_SHA256
@@ -303,9 +303,7 @@ static void john_register_all(void)
 
 #ifdef __SSE2__
 	john_register_one(&fmt_rawSHA256_ng);
-#ifndef _MSC_VER
 	john_register_one(&fmt_rawSHA512_ng);
-#endif
 #endif
 #ifdef MMX_COEF_SHA256
 	john_register_one(&fmt_rawSHA256_ng_i);
@@ -1216,7 +1214,7 @@ int main(int argc, char **argv)
 	else
 	if ((name = strrchr(argv[0], '/')))
 		name++;
-#if defined(__CYGWIN32__) || defined (__MINGW32__) || defined (_MSC_VER)
+#if HAVE_WINDOWS_H
 	else
 	if ((name = strrchr(argv[0], '\\')))
 		name++;

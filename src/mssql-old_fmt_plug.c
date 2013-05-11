@@ -80,13 +80,8 @@ static unsigned char cursalt[SALT_SIZE];
 /* Cygwin would not guarantee the alignment if these were declared static */
 #define saved_key mssql_saved_key
 #define crypt_key mssql_crypt_key
-#ifdef _MSC_VER
-__declspec(align(16)) char saved_key[SHA_BUF_SIZ*4*NBKEYS];
-__declspec(align(16)) char crypt_key[BINARY_SIZE*NBKEYS];
-#else
-char saved_key[SHA_BUF_SIZ*4*NBKEYS] __attribute__ ((aligned(16)));
-char crypt_key[BINARY_SIZE*NBKEYS] __attribute__ ((aligned(16)));
-#endif
+ALIGN(16) char saved_key[SHA_BUF_SIZ*4*NBKEYS];
+ALIGN(16) char crypt_key[BINARY_SIZE*NBKEYS];
 static char plain_keys[NBKEYS][PLAINTEXT_LENGTH*3+1];
 #else
 

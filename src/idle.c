@@ -7,7 +7,9 @@
 
 #define _XOPEN_SOURCE /* for nice(2) */
 
-#ifndef _MSC_VER
+#include "os.h"
+
+#if HAVE_UNISTD_H
 #include <unistd.h>
 #endif
 #include <stdio.h>
@@ -20,7 +22,7 @@
 static int use_yield = 0;
 #endif
 
-#if defined (__MINGW32__) || defined (_MSC_VER)
+#if HAVE_WINDOWS_H
 #include <windows.h>
 #endif
 

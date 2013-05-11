@@ -12,7 +12,7 @@
 #include <sys/types.h>
 #include <string.h>
 #include <sys/stat.h>
-#ifndef _MSC_VER
+#if HAVE_UNISTD_H
 #include <unistd.h>
 #endif
 #include <errno.h>

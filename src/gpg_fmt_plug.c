@@ -44,11 +44,6 @@
 #include "sha2.h"
 #include "stdint.h"
 
-#ifdef _MSC_VER
-typedef int int32_t;
-typedef unsigned char uint8_t;
-#endif
-
 #define FORMAT_LABEL        "gpg"
 #define FORMAT_NAME         "OpenPGP / GnuPG Secret Key"
 #define ALGORITHM_NAME      "32/" ARCH_BITS_STR

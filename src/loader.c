@@ -9,9 +9,10 @@
 
 #include <stdio.h>
 #include <sys/stat.h>
-#ifndef _MSC_VER
+#if HAVE_UNISTD_H
 #include <unistd.h>
-#else
+#endif
+#ifdef _MSC_VER
 #define S_ISDIR(a) ((a) & _S_IFDIR)
 #endif
 #include <errno.h>

@@ -6,9 +6,10 @@
  */
 
 #include <stdio.h>
-#ifndef _MSC_VER
+#if HAVE_UNISTD_H
 #include <unistd.h>
-#else
+#endif
+#ifdef _MSC_VER
 #include <io.h>
 #pragma warning ( disable : 4996 )
 #endif

@@ -16,16 +16,17 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#ifndef _MSC_VER
+#if HAVE_UNISTD_H
 #include <unistd.h>
-#else
+#endif
+#ifdef _MSC_VER
 #include <io.h>
 #pragma warning ( disable : 4996 )
 #endif
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#ifndef _MSC_VER
+#if HAVE_SYS_FILE_H
 #include <sys/file.h>
 #endif
 #include <errno.h>
@@ -208,7 +209,7 @@ void rec_save(void)
 #ifndef _MSC_VER
 	if (ftruncate(rec_fd, size)) pexit("ftruncate");
 #endif
-#if !defined(__CYGWIN32__) && !defined(__MINGW32__) && !defined (_MSC_VER)
+#if HAVE_WINDOWS_H==0
 	if (!options.fork && fsync(rec_fd))
 		pexit("fsync");
 #endif

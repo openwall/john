@@ -64,19 +64,12 @@ static struct fmt_tests tests[] = {
 #define ipad hmacsha1_ipad
 #define cursalt hmacsha1_cursalt
 #define dump hmacsha1_dump
-#ifdef _MSC_VER
-__declspec(align(16)) unsigned char crypt_key[SHA_BUF_SIZ*4*SHA1_N];
-__declspec(align(16)) unsigned char opad[SHA_BUF_SIZ*4*SHA1_N];
-__declspec(align(16)) unsigned char ipad[SHA_BUF_SIZ*4*SHA1_N];
-__declspec(align(16)) unsigned char cursalt[SHA_BUF_SIZ*4*SHA1_N];
-__declspec(align(16)) unsigned char dump[BINARY_SIZE*SHA1_N];
-#else
-unsigned char crypt_key[SHA_BUF_SIZ*4*SHA1_N] __attribute__ ((aligned(16)));
-unsigned char opad[SHA_BUF_SIZ*4*SHA1_N] __attribute__ ((aligned(16)));
-unsigned char ipad[SHA_BUF_SIZ*4*SHA1_N] __attribute__ ((aligned(16)));
-unsigned char cursalt[SHA_BUF_SIZ*4*SHA1_N] __attribute__ ((aligned(16)));
-unsigned char dump[BINARY_SIZE*SHA1_N] __attribute__((aligned(16)));
-#endif
+
+ALIGN(16) unsigned char crypt_key[SHA_BUF_SIZ*4*SHA1_N];
+ALIGN(16) unsigned char opad[SHA_BUF_SIZ*4*SHA1_N];
+ALIGN(16) unsigned char ipad[SHA_BUF_SIZ*4*SHA1_N];
+ALIGN(16) unsigned char cursalt[SHA_BUF_SIZ*4*SHA1_N];
+ALIGN(16) unsigned char dump[BINARY_SIZE*SHA1_N];
 static char saved_plain[SHA1_N][PLAINTEXT_LENGTH + 1];
 #else
 static ARCH_WORD_32 crypt_key[BINARY_SIZE/4];

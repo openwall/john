@@ -42,15 +42,6 @@ extern "C" {
 #define IS_ALIGNED_32(p) (0 == (3 & ((const char*)(p) - (const char*)0)))
 #define IS_ALIGNED_64(p) (0 == (7 & ((const char*)(p) - (const char*)0)))
 
-#if defined(_MSC_VER)
-#define ALIGN_ATTR(n) __declspec(align(n))
-#elif defined(__GNUC__)
-#define ALIGN_ATTR(n) __attribute__((aligned (n)))
-#else
-#define ALIGN_ATTR(n) /* nothing */
-#endif
-
-
 #if defined(_MSC_VER) || defined(__BORLANDC__)
 #define I64(x) x##ui64
 #else

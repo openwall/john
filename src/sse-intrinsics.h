@@ -7,6 +7,7 @@
 
 #include "common.h"
 #include "sse-intrinsics-load-flags.h"
+#include "aligned.h"
 
 #ifndef _EMMINTRIN_H_INCLUDED
 #define __m128i void

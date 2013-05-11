@@ -1,4 +1,5 @@
-#if defined (_MSC_VER) || defined (__MINGW32__) || defined (__CYGWIN32__)
+#include "os.h"
+#if HAVE_WINDOWS_H
 
 #include "win32_memmap.h"
 #include <stdio.h>

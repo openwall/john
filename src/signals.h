@@ -37,9 +37,8 @@ extern volatile int timer_status;
 /*
  * Timer emulation for systems with no setitimer(2).
  */
-#if defined (__MINGW32__) || defined (_MSC_VER)
 #include <time.h>
-#else
+#if HAVE_SYS_TIMES_H
 #include <sys/times.h>
 #endif
 

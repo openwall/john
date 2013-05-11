@@ -205,6 +205,10 @@ struct db_options {
 /* which can be assigned to this variable.  This var is set by the undocummented --regen_lost_salts=# */
 	int regen_lost_salts;
 
+/* #if HAVE_WINDOWS_H  */
+/* NOTE, we can not use the HAVE_WINDOWS_H here.  We are in a header, and can not guarentee os.h */
+/* without causing os.h to not be able to be loaded later in the .c file.  Thus ANY time we */
+/* change the OS's that make up HAVE_WINDOWS_H, we will also need to change THIS define */
 #if defined (_MSC_VER) || defined (__MINGW32__) || defined (__CYGWIN32__)
 	/* if built for Win32, then the pipe/stdin is VERY slow.  We allow special processing */
 	/* to use the pipe command, but in a -pipe=sharedmemoryfilename so that the producer  */

@@ -26,9 +26,7 @@
 #include <windows.h>
 #undef MEM_FREE
 typedef LARGE_INTEGER hr_timer;
-#if defined (_MSC_VER)
-#define inline _inline
-#endif
+
 #define HRZERO(X)				(X).HighPart = (X).LowPart = 0
 #define HRSETCURRENT(X)			QueryPerformanceCounter (&(X));
 #define HRGETTICKS(X)			((double)(X).HighPart*4294967296.0+(double)(X).LowPart)

@@ -21,25 +21,16 @@
 
 #ifndef _HMAC_MD5_H
 
+#include "aligned.h"
+
 #if defined(__SUNPRO_C)
 // In this case, align is for memcpy, not strictly needed
 //#warning INFO: using Solaris CC align pragma for HMACMD5Context
 #pragma align ARCH_SIZE (k_ipad, k_opad)
 #endif
 typedef struct {
-#ifdef _MSC_VER
-//#warning INFO: using Microsoft align pragma for HMACMD5Context
-	__declspec(align(ARCH_SIZE)) unsigned char k_ipad[64];
-	__declspec(align(ARCH_SIZE)) unsigned char k_opad[64];
-#elif defined (__GNUC__)
-//#warning INFO: using GNU align pragma for HMACMD5Context
-	unsigned char k_ipad[64] __attribute__ ((aligned(ARCH_SIZE)));
-	unsigned char k_opad[64] __attribute__ ((aligned(ARCH_SIZE)));
-#else
-//#warning INFO: using no align pragma for HMACMD5Context
-	unsigned char k_ipad[64];
-	unsigned char k_opad[64];
-#endif
+	ALIGN(ARCH_SIZE) unsigned char k_ipad[64];
+	ALIGN(ARCH_SIZE) unsigned char k_opad[64];
 	MD5_CTX ctx;
 } HMACMD5Context;
 

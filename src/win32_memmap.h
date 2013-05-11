@@ -1,4 +1,5 @@
-#if defined (_MSC_VER) || defined (__MINGW32__) || defined (__CYGWIN32__)
+#include "os.h"
+#if HAVE_WINDOWS_H
 #define WIN32_LEAN_AND_MEAN
 #include "windows.h"
 

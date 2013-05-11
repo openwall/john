@@ -47,7 +47,7 @@ HashReturn Update(hashState *state, const BitSequence *data, DataLength databitl
     else {
         HashReturn ret = Absorb((spongeState*)state, data, databitlen - (databitlen % 8));
         if (ret == SUCCESS) {
-            unsigned char lastByte; 
+            unsigned char lastByte;
             // Align the last partial byte to the least significant bits
             lastByte = data[databitlen/8] >> (8 - (databitlen % 8));
             return Absorb((spongeState*)state, &lastByte, databitlen % 8);

@@ -31,6 +31,9 @@
 
 #ifdef NEED_OS_FLOCK
 
+#if defined (_MSC_VER)
+#define OS_FLOCK			0
+#else
 #if defined(__APPLE__) && !defined(_DARWIN_C_SOURCE)
 #define _DARWIN_C_SOURCE /* for LOCK_EX */
 #endif
@@ -40,6 +43,7 @@
 #else
 #define OS_FLOCK			0
 #warning LOCK_EX is not available - will skip locking
+#endif
 #endif
 
 #endif
@@ -53,5 +57,54 @@
 #endif
 
 #endif
+
+#if defined (_MSC_VER)
+#define HAVE_UNISTD_H		0
+#else
+#define HAVE_UNISTD_H		1
+#endif
+
+#if defined (_MSC_VER)
+#define HAVE_SYS_TIME_H		0
+#else
+#define HAVE_SYS_TIME_H		1
+#endif
+
+#if defined (_MSC_VER)
+#define HAVE_SYS_FILE_H		0
+#else
+#define HAVE_SYS_FILE_H		1
+#endif
+
+#if defined (__MINGW32__) || defined (_MSC_VER)
+#define HAVE_SYS_TIMES_H	0
+#else
+#define HAVE_SYS_TIMES_H	1
+#endif
+
+#if defined (__DJGPP__)
+#define HAVE_DOS_H			1
+#else
+#define HAVE_DOS_H			0
+#endif
+
+#if defined (_MSC_VER) || defined(__CYGWIN32__) || defined(__MINGW32__)
+#define HAVE_WINDOWS_H		1
+#else
+#define HAVE_WINDOWS_H		0
+#endif
+
+#if defined (_MSC_VER)
+#define HAVE_STRINGS_H		0
+#else
+#define HAVE_STRINGS_H		1
+#endif
+
+#if defined (_MSC_VER)
+#define HAVE_ALLOCA_H		0
+#else
+#define HAVE_ALLOCA_H		1
+#endif
+
 
 #endif

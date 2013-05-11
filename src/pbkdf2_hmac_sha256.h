@@ -192,16 +192,10 @@ static void pbkdf2_sha256_sse(const unsigned char *K[MMX_COEF_SHA256], int KL[MM
 	unsigned char loop;
 	SHA256_CTX ipad[SSE_GROUP_SZ_SHA256], opad[SSE_GROUP_SZ_SHA256], ctx;
 
-#ifdef _MSC_VER
 	// sse_hash1 would need to be 'adjusted' for SHA256_PARA
-	__declspec(align(16)) unsigned char sse_hash1[SHA256_BUF_SIZ*sizeof(ARCH_WORD_32)*SSE_GROUP_SZ_SHA256];
-	__declspec(align(16)) unsigned char sse_crypt1[SHA256_DIGEST_LENGTH*SSE_GROUP_SZ_SHA256];
-	__declspec(align(16)) unsigned char sse_crypt2[SHA256_DIGEST_LENGTH*SSE_GROUP_SZ_SHA256];
-#else
-	unsigned char sse_hash1[SHA256_BUF_SIZ*sizeof(ARCH_WORD_32)*SSE_GROUP_SZ_SHA256] __attribute__ ((aligned (16)));
-	unsigned char sse_crypt1[SHA256_DIGEST_LENGTH*SSE_GROUP_SZ_SHA256] __attribute__ ((aligned (16)));
-	unsigned char sse_crypt2[SHA256_DIGEST_LENGTH*SSE_GROUP_SZ_SHA256] __attribute__ ((aligned (16)));
-#endif
+	ALIGN(16) unsigned char sse_hash1[SHA256_BUF_SIZ*sizeof(ARCH_WORD_32)*SSE_GROUP_SZ_SHA256];
+	ALIGN(16) unsigned char sse_crypt1[SHA256_DIGEST_LENGTH*SSE_GROUP_SZ_SHA256];
+	ALIGN(16) unsigned char sse_crypt2[SHA256_DIGEST_LENGTH*SSE_GROUP_SZ_SHA256];
 	i1 = (ARCH_WORD_32*)sse_crypt1;
 	i2 = (ARCH_WORD_32*)sse_crypt2;
 	o1 = (ARCH_WORD_32*)sse_hash1;

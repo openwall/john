@@ -13,6 +13,7 @@
 #include "common.h"
 #include "formats.h"
 #include "md5.h"
+#include "aligned.h"
 
 #define FORMAT_LABEL			"hmac-md5"
 #define FORMAT_NAME			"HMAC MD5"
@@ -65,19 +66,12 @@ static struct fmt_tests tests[] = {
 #define ipad hmacmd5_ipad
 #define cursalt hmacmd5_cursalt
 #define dump hmacmd5_dump
-#ifdef _MSC_VER
-__declspec(align(16)) unsigned char crypt_key[64*MD5_N];
-__declspec(align(16)) unsigned char opad[64*MD5_N];
-__declspec(align(16)) unsigned char ipad[64*MD5_N];
-__declspec(align(16)) unsigned char cursalt[SALT_SIZE*MD5_N];
-__declspec(align(16)) unsigned char dump[BINARY_SIZE*MD5_N];
-#else
-unsigned char crypt_key[64*MD5_N] __attribute__ ((aligned(16)));
-unsigned char opad[64*MD5_N] __attribute__ ((aligned(16)));
-unsigned char ipad[64*MD5_N] __attribute__ ((aligned(16)));
-unsigned char cursalt[SALT_SIZE*MD5_N] __attribute__ ((aligned(16)));
-unsigned char dump[BINARY_SIZE*MD5_N] __attribute__((aligned(16)));
-#endif
+
+ALIGN(16) unsigned char crypt_key[64*MD5_N];
+ALIGN(16) unsigned char opad[64*MD5_N];
+ALIGN(16) unsigned char ipad[64*MD5_N];
+ALIGN(16) unsigned char cursalt[SALT_SIZE*MD5_N];
+ALIGN(16) unsigned char dump[BINARY_SIZE*MD5_N];
 static char saved_plain[MD5_N][PLAINTEXT_LENGTH + 1];
 #else
 static ARCH_WORD_32 crypt_key[BINARY_SIZE/4];

@@ -5,10 +5,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#ifndef _MSC_VER
+#if HAVE_UNISTD_H
 #include <unistd.h>
-#else
-#define unlink _unlink
 #endif
 #include <string.h>
 #include <assert.h>

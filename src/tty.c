@@ -12,10 +12,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#if !defined (_MSC_VER)
 #include <termios.h>
 #include <unistd.h>
-#endif
 #include <stdlib.h>
 #else
 #include <bios.h>

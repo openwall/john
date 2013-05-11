@@ -5,12 +5,6 @@
  * ...with changes in the jumbo patch for mingw and MSC, by JimF.
  */
 
-#if defined (__MINGW32__) || defined (_MSC_VER)
-#define __CYGWIN32__
-#define SIGALRM SIGFPE
-#define SIGHUP SIGILL
-#endif
-
 #define _XOPEN_SOURCE 500 /* for setitimer(2) and siginterrupt(3) */
 
 #ifdef __ultrix__
@@ -22,12 +16,20 @@
 #define NEED_OS_FORK
 #include "os.h"
 
+#if HAVE_WINDOWS_H
+#define WIN32_SIGNAL_HANDLER
+#define SIGALRM SIGFPE
+#define SIGHUP SIGILL
+#endif
+
 #ifdef _SCO_C_DIALECT
 #include <limits.h>
 #endif
 #include <stdio.h>
-#if !defined (_MSC_VER)
+#if HAVE_SYS_TIME_H
 #include <sys/time.h>
+#endif
+#if HAVE_UNISTD_H
 #include <unistd.h>
 #endif
 #include <stdlib.h>
@@ -35,11 +37,11 @@
 #include <signal.h>
 #include <errno.h>
 
-#ifdef __DJGPP__
+#if HAVE_DOS_H
 #include <dos.h>
 #endif
 
-#ifdef __CYGWIN32__
+#if HAVE_WINDOWS_H
 #include <windows.h>
 #endif
 
@@ -53,6 +55,7 @@
 #include "bench.h"
 #include "john.h"
 #include "status.h"
+#include "signals.h"
 #ifdef HAVE_MPI
 #include "john-mpi.h"
 #endif
@@ -209,29 +212,23 @@ static void sig_handle_abort(int signum)
 	errno = saved_errno;
 }
 
+#ifdef WIN32_SIGNAL_HANDLER
 #ifdef __CYGWIN32__
-#if defined (_MSC_VER)
-static BOOL WINAPI sig_handle_abort_ctrl(DWORD ctrltype)
-{
-	sig_handle_abort(SIGINT);
-	return TRUE;
-}
-#else
 static CALLBACK BOOL sig_handle_abort_ctrl(DWORD ctrltype)
+#else
+static BOOL WINAPI sig_handle_abort_ctrl(DWORD ctrltype)
+#endif
 {
 	sig_handle_abort(SIGINT);
 	return TRUE;
 }
-#endif
 #endif
 
 static void sig_install_abort(void)
 {
 #ifdef __DJGPP__
 	setcbrk(1);
-#endif
-
-#ifdef __CYGWIN32__
+#elif defined(WIN32_SIGNAL_HANDLER)
 	SetConsoleCtrlHandler(sig_handle_abort_ctrl, TRUE);
 #endif
 
@@ -249,7 +246,7 @@ static void sig_install_abort(void)
 
 static void sig_remove_abort(void)
 {
-#ifdef __CYGWIN32__
+#ifdef WIN32_SIGNAL_HANDLER
 	SetConsoleCtrlHandler(sig_handle_abort_ctrl, FALSE);
 #endif
 

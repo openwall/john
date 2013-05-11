@@ -75,10 +75,6 @@
 #include "unrar.h"
 #include "config.h"
 
-#ifdef _MSC_VER
-#define atoll _atoi64
-#endif
-
 #define FORMAT_LABEL		"rar"
 #define FORMAT_NAME		"RAR3 SHA-1 AES"
 #define ALGORITHM_NAME		"32/" ARCH_BITS_STR

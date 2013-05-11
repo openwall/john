@@ -182,10 +182,13 @@ extern char *strupr(char *s);
 #define strncasecmp _strnicmp
 #define strcasecmp _stricmp
 #define alloca _alloca
+#define unlink _unlink
+#define fileno _fileno
 #pragma warning (disable : 4018 297 )
 #undef inline
 #define inline _inline
 #define snprintf sprintf_s
+#define atoll _atoi64
 #endif
 
 #endif

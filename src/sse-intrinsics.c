@@ -50,6 +50,7 @@
 #include "stdint.h"
 #include "johnswap.h"
 #include "sse-intrinsics-load-flags.h"
+#include "aligned.h"
 
 #ifndef __XOP__
 #define _mm_slli_epi32a(a, s) \
@@ -412,13 +413,8 @@ void md5cryptsse(unsigned char pwd[MD5_SSE_NUM_KEYS][16], unsigned char * salt, 
 	unsigned int i,j;
 	MD5_CTX ctx;
 	MD5_CTX tctx;
-#ifdef _MSC_VER
-	__declspec(align(16)) unsigned char buffers[8][64*MD5_SSE_NUM_KEYS];
-	__declspec(align(16)) unsigned int F[4*MD5_SSE_NUM_KEYS];
-#else
-	unsigned char buffers[8][64*MD5_SSE_NUM_KEYS] __attribute__ ((aligned(16)));
-	unsigned int F[4*MD5_SSE_NUM_KEYS] __attribute__ ((aligned(16)));
-#endif
+	ALIGN(16) unsigned char buffers[8][64*MD5_SSE_NUM_KEYS];
+	ALIGN(16) unsigned int F[4*MD5_SSE_NUM_KEYS];
 
 	memset(F,0,sizeof(F));
 	memset(buffers, 0, sizeof(buffers));

@@ -68,13 +68,8 @@ static struct fmt_tests tests[] = {
 #define saved_key rawSHA1_saved_key
 #define crypt_key rawSHA1_crypt_key
 #ifdef MMX_COEF
-#if defined (_MSC_VER)
-__declspec(align(16)) ARCH_WORD_32 saved_key[SHA_BUF_SIZ*NBKEYS];
-__declspec(align(16)) ARCH_WORD_32 crypt_key[DIGEST_SIZE/4*NBKEYS];
-#else
-ARCH_WORD_32 saved_key[SHA_BUF_SIZ*NBKEYS] __attribute__ ((aligned(16)));
-ARCH_WORD_32 crypt_key[DIGEST_SIZE/4*NBKEYS] __attribute__ ((aligned(16)));
-#endif
+ALIGN(16) ARCH_WORD_32 saved_key[SHA_BUF_SIZ*NBKEYS];
+ALIGN(16) ARCH_WORD_32 crypt_key[DIGEST_SIZE/4*NBKEYS];
 static unsigned char out[PLAINTEXT_LENGTH + 1];
 #else
 static char saved_key[PLAINTEXT_LENGTH + 1];

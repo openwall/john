@@ -26,7 +26,7 @@
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
-#ifndef _MSC_VER
+#if HAVE_ALLOCA_H
 #include <alloca.h>
 #endif
 #include <stdint.h>

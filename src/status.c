@@ -19,7 +19,7 @@
 #include <ctype.h>
 #include <string.h>
 #include <time.h>
-#if !defined (__MINGW32__) && !defined (_MSC_VER)
+#if HAVE_SYS_TIMES_H
 #include <sys/times.h>
 #endif
 
@@ -62,7 +62,7 @@ int (*status_get_progress)(int *) = NULL;
 
 static clock_t get_time(void)
 {
-#if defined (__MINGW32__) || defined (_MSC_VER)
+#if !HAVE_SYS_TIMES_H
 	return clock();
 #else
 	struct tms buf;

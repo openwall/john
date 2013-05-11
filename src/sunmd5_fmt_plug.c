@@ -17,11 +17,10 @@
  */
 
 #include <string.h>
-#ifdef _MSC_VER
-#include <stdio.h>
-#else
+#if HAVE_UNISTD_H
 #include <unistd.h>
 #endif
+#include <stdio.h>
 #include <stdlib.h>
 
 #include "arch.h"
@@ -147,7 +146,7 @@ static struct fmt_tests tests[] = {
 #endif
 //#define GETPOS(i, index)		    ( ((index)&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3))*MMX_COEF + ((i)&3) )
 //#define PARAGETPOS(i, index)		( ((index)&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3))*MMX_COEF + ((i)&3) + ((index)>>(MMX_COEF>>1))*MMX_COEF*64 )
-// these next 2 defines are same as above, but faster (on my gcc). Speed went fro 282 to 292, abotu 3.5% improvement.  Shifts vs mults.
+// these next 2 defines are same as above, but faster (on my gcc). Speed went fro 282 to 292, about 3.5% improvement.  Shifts vs mults.
 #define GETPOS(i, index)		    ( (((index)&(MMX_COEF-1))<<2) + (((i)&(0xffffffff-3))<<(MMX_COEF>>1)) + ((i)&3) )
 #define PARAGETPOS(i, index)		( (((index)&(MMX_COEF-1))<<2) + (((i)&(0xffffffff-3))<<(MMX_COEF>>1)) + ((i)&3) + ((((index)>>(MMX_COEF>>1))<<(MMX_COEF>>1))<<6) )
 /* GETPOS0 can be 'faster' if we already have a pointer to the first DWORD in this block.  Thus we can do a GETPOS(0,idx), and then multiple GETPOS0(x) and sometimes be faster */
@@ -157,9 +156,9 @@ static struct fmt_tests tests[] = {
 
 #if defined (_DEBUG)
 // for VC debugging
-__declspec(align(16)) static unsigned char input_buf[BLK_CNT*MD5_CBLOCK];
-__declspec(align(16)) static unsigned char out_buf[BLK_CNT*MD5_DIGEST_LENGTH];
-__declspec(align(16)) static unsigned char input_buf_big[25][BLK_CNT*MD5_CBLOCK];
+ALIGN(16) static unsigned char input_buf[BLK_CNT*MD5_CBLOCK];
+ALIGN(16) static unsigned char out_buf[BLK_CNT*MD5_DIGEST_LENGTH];
+ALIGN(16) static unsigned char input_buf_big[25][BLK_CNT*MD5_CBLOCK];
 /*  Now these are allocated in init()
 unsigned char input_buf[BLK_CNT*MD5_CBLOCK]         __attribute__ ((aligned(16)));
 unsigned char input_buf_big[25][BLK_CNT*MD5_CBLOCK] __attribute__ ((aligned(16)));
