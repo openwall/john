@@ -12,6 +12,7 @@
 #include "params.h"
 #include "common.h"
 #include "memory.h"
+#include "os.h" /* Needed for signals.h */
 #include "signals.h"
 #include "loader.h"
 #include "logger.h"

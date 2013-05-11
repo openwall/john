@@ -6,6 +6,7 @@
 #include <stdio.h>
 
 #include "params.h"
+#include "os.h"
 #include "signals.h"
 #include "loader.h"
 #include "status.h"

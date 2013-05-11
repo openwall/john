@@ -12,6 +12,10 @@
 #ifndef _JOHN_SIGNALS_H
 #define _JOHN_SIGNALS_H
 
+#ifndef _JOHN_OS_H
+#Error: Need to include os.h before signals.h
+#endif
+
 #include "arch.h"
 
 /*
@@ -38,7 +42,6 @@ extern volatile int timer_status;
  * Timer emulation for systems with no setitimer(2).
  */
 #include <time.h>
-#include "os.h"
 #if HAVE_SYS_TIMES_H
 #include <sys/times.h>
 #endif

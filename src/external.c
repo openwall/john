@@ -10,6 +10,7 @@
 
 #include "misc.h"
 #include "params.h"
+#include "os.h" /* Needed for signals.h */
 #include "signals.h"
 #include "compiler.h"
 #include "loader.h"

@@ -13,6 +13,7 @@
 #include "params.h"
 #include "path.h"
 #include "memory.h"
+#include "os.h" /* Needed for signals.h */
 #include "signals.h"
 #include "formats.h"
 #include "loader.h"
