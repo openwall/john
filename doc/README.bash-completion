@@ -273,7 +273,7 @@ $ ./john --conf=my.conf --rules
 --rules             --rules=some_rules
 --rules=more_rules
 
-The same possible completions are listed of you switch the sequence
+The same possible completions are listed if you switch the sequence
 of the options on the command line, place the cursor immediately after
 the word "--rules", and press the  [tab] key twice.
 
@@ -291,7 +291,7 @@ $ ./john --rules=some_rules --config=my.conf
 	--incremental
 
 The option --incremental can be used with and without a value.
-Possible values are the Incremental sectiom names defined in john.conf
+Possible values are the Incremental section names defined in john.conf
 (or another config file specified with --config=..., see the description
 of the completion logic for --rules and --single).
 
