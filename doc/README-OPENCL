@@ -2,8 +2,8 @@
 PRELUDE:
 ====================
 
-You can use OpenCL if your video Card - from now GPU - support it.
-Ati/AMD and Nvidia support it through their SDK available at
+You can use OpenCL if your video card - from now GPU - support it.
+ATI/AMD and Nvidia support it through their SDK available at
 nvidia and ati/amd website.
 
 N.B. DON'T use X11 opensource drivers provided by your distribution,
@@ -39,7 +39,7 @@ OpenCL won't:
 COMPILING:
 ====================
 
-Ati/AMD suggest you to use ATISTREAMSDKROOT env variable to
+ATI/AMD suggest you to use ATISTREAMSDKROOT env variable to
 provide where you have installed their SDK root.
 nvidia simply install it in /usr/local/nvidia .
 
@@ -47,7 +47,7 @@ Makefile assume you have $ATISTREAMSDKROOT set up to point
 to your ati installation or you have $NVIDIA_CUDA pointing to
 nvidia installation.
 
-In in doubt do a
+If in doubt do a
 
 # updatedb && locate CL/cl.h && locate libOpenCL.so
 
@@ -62,7 +62,7 @@ an email to john-users@lists.openwall.com for help.
 USAGE:
 ====================
 
-You can use john with your favourite options and the relative
+You can use john with your favourite options and the corresponding
 opencl format you need.
 
 On some opencl formats there are two environment variables you can adjust:
@@ -71,7 +71,7 @@ these are $LWS and $GWS.
 LWS is the local work size, aka the number of "threads" the job
 will be split and sent to the GPU.
 
-- if $LWS is not set, john will try to get the one
+- If $LWS is not set, john will try to get the one
   best for your system. On some slow hashes, a good default
   is going to be picked.
 
@@ -79,13 +79,13 @@ GWS is the Global Work Size. For non-vectorized format it is the same as
 Keys Per Crypt, the number of keys that will be tried in a GPU call.
 - If you unset GWS, john will use a default work size, which depends on
   what format is used.
-- if GWS is set to 0 john will try to get the one best for
+- If GWS is set to 0 john will try to get the one best for
   your system, BEWARE it will take a couple of minutes.
 - GWS is highly dependent on your PCI-E bandwidth rate which at the
   moment is one of the biggest bottlenecks for opencl in john.
 
 
-once you have found the best LWS or GWS for your system you can do
+Once you have found the best LWS or GWS for your system you can do
 
 export LWS=NUM1
 or
@@ -96,8 +96,8 @@ to avoid testing.
 Warning! LWS and GWS are highly dependent on the format you are using.
 LWS and GWS are not yet in every opencl format john is using.
 
-- There's no check for LWS and GWS values so you should now how
-  to set them to properly values, if in doubt just use the defaults
+- There's no check for LWS and GWS values so you should know how
+  to set them to proper values, if in doubt just use the defaults
   and unset them.
 
 
@@ -105,8 +105,8 @@ LWS and GWS are not yet in every opencl format john is using.
 Optimization:
 ====================
 
-if you plan on using opencl only for incremental mode (which at
-the moment is the one that gives the fastest speed) it could be
+If you plan on using opencl only for incremental mode (which at
+the moment is the one that gives the highest speed) it could be
 a good idea to set up PLAINTEXT_LENGTH to a lower value than
 32. Some formats honour the --max-length option, optimizing for
 this.
