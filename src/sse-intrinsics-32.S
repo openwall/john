@@ -5,7 +5,7 @@
 #define SSESHA256body                       _SSESHA256body
 #define SSEmd4body                          _SSEmd4body
 #define SSEmd5body                          _SSEmd5body
-#define SSEmd5body..0                       _SSEmd5body..0
+#define SSEmd5body__0                       _SSEmd5body__0
 #define john_MD5_Final                      _john_MD5_Final
 #define john_MD5_Init                       _john_MD5_Init
 #define john_MD5_Update                     _john_MD5_Update
@@ -3030,7 +3030,7 @@ SSEmd5body:
         movdqa    %xmm3, 160(%edx)
         movdqa    %xmm4, 176(%edx)
         addl      $1660, %esp
-        ret       
+        ret
 ..B1.6:
         paddd     16(%esp), %xmm7
         paddd     32(%esp), %xmm4
@@ -3065,14 +3065,14 @@ SSEmd5body:
         movdqa    %xmm1, 176(%edx)
 ..B1.7:
         addl      $1660, %esp
-        ret       
+        ret
         .align    16,0x90
 	.data
 # -- End  SSEmd5body
 	.text
-# -- Begin  SSEmd5body..0
+# -- Begin  SSEmd5body__0
        .align    16,0x90
-SSEmd5body..0:
+SSEmd5body__0:
 # parameter 1: %eax
 # parameter 2: %edx
 # parameter 3: %ecx
@@ -5978,10 +5978,10 @@ SSEmd5body..0:
         movdqa    %xmm4, 160(%edx)
         movdqa    %xmm0, 176(%edx)
         addl      $1564, %esp
-        ret       
+        ret
         .align    16,0x90
 	.data
-# -- End  SSEmd5body..0
+# -- End  SSEmd5body__0
 	.text
 # -- Begin  md5cryptsse
        .align    16,0x90
@@ -11815,7 +11815,7 @@ md5cryptsse:
         lea       16(%esp), %edx
         addl      %edx, %eax
         movl      %esi, %edx
-        call      SSEmd5body..0
+        call      SSEmd5body__0
 ..B3.402:
         incl      %ebp
         lea       -1(%ebp), %eax
@@ -11907,7 +11907,7 @@ md5cryptsse:
         popl      %ebx
         popl      %edi
         popl      %esi
-        ret       
+        ret
 ..B3.445:
         testl     %ebx, %ebx
         ja        ..B3.189
@@ -14148,7 +14148,7 @@ SSEmd4body:
         movdqa    %xmm0, 160(%edx)
         movdqa    %xmm1, 176(%edx)
         addl      $1724, %esp
-        ret       
+        ret
 ..B4.6:
         paddd     16(%esp), %xmm4
         paddd     32(%esp), %xmm1
@@ -14183,7 +14183,7 @@ SSEmd4body:
         movdqa    %xmm2, 176(%edx)
 ..B4.7:
         addl      $1724, %esp
-        ret       
+        ret
         .align    16,0x90
 	.data
 # -- End  SSEmd4body
@@ -16187,7 +16187,7 @@ SSESHA1body:
         movdqa    %xmm5, 48(%eax)
         movdqa    %xmm3, 64(%eax)
         addl      $636, %esp
-        ret       
+        ret
 ..B5.6:
         movdqa    .L_2il0floatpacket.601, %xmm2
         movdqa    .L_2il0floatpacket.602, %xmm4
@@ -21829,7 +21829,7 @@ SSESHA256body:
         movdqa    %xmm1, 112(%eax)
         addl      $792, %esp
         popl      %esi
-        ret       
+        ret
         .align    16,0x90
 	.data
 # -- End  SSESHA256body
