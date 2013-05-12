@@ -182,7 +182,7 @@ static void *get_salt(char *ciphertext)
 	memset(binary_salt, 0, SALT_SIZE_MAX);
 
 	/* Calculate identity length */
-	for (pos = ciphertext + 11; strncmp(pos, "$", 1) != 0; pos++);
+	for (pos = ciphertext + 11; *pos != '$'; pos++);
 
 	/* Convert identity (username + domain) string to NT unicode */
 	identity_length = enc_to_utf16((UTF16*)binary_salt, 64, (unsigned char *)ciphertext + 11, pos - (ciphertext + 11)) * sizeof(UTF16);
@@ -487,7 +487,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	pos = &ciphertext[11];
 
 	/* Validate Username and Domain Length */
-	for (pos2 = pos; strncmp(pos2, "$", 1) != 0; pos2++)
+	for (pos2 = pos; *pos2 != '$'; pos2++)
 		if ((unsigned char)*pos2 < 0x20)
 			return 0;
 
@@ -503,7 +503,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	/* Validate Server Challenge Length */
 	pos2++; pos = pos2;
-	for (; strncmp(pos2, "$", 1) != 0; pos2++)
+	for (; *pos2 != '$'; pos2++)
 		if (atoi16[ARCH_INDEX(*pos2)] == 0x7F)
 			return 0;
 
@@ -512,7 +512,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	/* Validate NTLMv2 Response Length */
 	pos2++; pos = pos2;
-	for (; strncmp(pos2, "$", 1) != 0; pos2++)
+	for (; *pos2 != '$'; pos2++)
 		if (atoi16[ARCH_INDEX(*pos2)] == 0x7F)
 			return 0;
 
@@ -589,7 +589,7 @@ static char *split(char *ciphertext, int index, struct fmt_main *pFmt)
 	int identity_length = 0;
 
 	/* Calculate identity length */
-	for (pos = ciphertext + 11; strncmp(pos, "$", 1) != 0; pos++);
+	for (pos = ciphertext + 11; *pos != '$'; pos++);
 	identity_length = pos - (ciphertext + 11);
 
 	memset(out, 0, sizeof(out));
@@ -607,7 +607,7 @@ static void *get_binary(char *ciphertext)
 
 	if (!binary) binary = mem_alloc_tiny(DIGEST_SIZE, MEM_ALIGN_WORD);
 
-	for (pos = ciphertext + 11; strncmp(pos, "$", 1) != 0; pos++);
+	for (pos = ciphertext + 11; *pos != '$'; pos++);
 	identity_length = pos - (ciphertext + 11);
 
 	ciphertext += 11 + identity_length + 1 + SERVER_CHALL_LENGTH + 1;

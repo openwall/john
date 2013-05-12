@@ -238,7 +238,7 @@ static int chap_valid_long(char *ciphertext)
 
 	/* Validate Authenticator/Server Challenge Length */
 	pos = &ciphertext[10];
-	for (pos2 = pos; strncmp(pos2, "$", 1) != 0; pos2++)
+	for (pos2 = pos; *pos2 != '$'; pos2++)
 		if (atoi16[ARCH_INDEX(*pos2)] == 0x7F)
 			return 0;
 
@@ -247,7 +247,7 @@ static int chap_valid_long(char *ciphertext)
 
 	/* Validate MSCHAPv2 Response Length */
 	pos2++; pos = pos2;
-	for (; strncmp(pos2, "$", 1) != 0; pos2++)
+	for (; *pos2 != '$'; pos2++)
 		if (atoi16[ARCH_INDEX(*pos2)] == 0x7F)
 			return 0;
 
@@ -256,7 +256,7 @@ static int chap_valid_long(char *ciphertext)
 
 	/* Validate Peer/Client Challenge Length */
 	pos2++; pos = pos2;
-	for (; strncmp(pos2, "$", 1) != 0; pos2++)
+	for (; *pos2 != '$'; pos2++)
 		if (atoi16[ARCH_INDEX(*pos2)] == 0x7F)
 			return 0;
 
@@ -282,7 +282,7 @@ static int chap_valid_short(char *ciphertext)
 
 	/* Validate MSCHAPv2 Challenge Length */
 	pos = &ciphertext[10];
-	for (pos2 = pos; strncmp(pos2, "$", 1) != 0; pos2++)
+	for (pos2 = pos; *pos2 != '$'; pos2++)
 		if (atoi16[ARCH_INDEX(*pos2)] == 0x7F)
 			return 0;
 
@@ -291,7 +291,7 @@ static int chap_valid_short(char *ciphertext)
 
 	/* Validate MSCHAPv2 Response Length */
 	pos2++; pos = pos2;
-	for (; strncmp(pos2, "$", 1) != 0; pos2++)
+	for (; *pos2 != '$'; pos2++)
 		if (atoi16[ARCH_INDEX(*pos2)] == 0x7F)
 			return 0;
 

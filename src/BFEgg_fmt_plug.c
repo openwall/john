@@ -54,7 +54,7 @@ static char _atoi64[0x100];
 static int valid(char *ciphertext, struct fmt_main *self) {
     char *pos;
 
-    if (strncmp(ciphertext, "+", 1) != 0) return 0;
+    if (*ciphertext != '+') return 0;
     if (strlen(ciphertext) != CIPHERTEXT_LENGTH) return 0;
 
     for (pos = &ciphertext[1]; atoi64[ARCH_INDEX(*pos)] != 0x7F; pos++);
