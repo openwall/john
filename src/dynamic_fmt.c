@@ -3707,6 +3707,116 @@ void DynamicFunc__set_input2_len_16(DYNA_OMP_PARAMS)
 	}
 }
 
+void DynamicFunc__set_input_len_20(DYNA_OMP_PARAMS)
+{
+	unsigned j, til;
+#ifdef _OPENMP
+	til = last;
+	j = first;
+#else
+	j = 0;
+	til = m_count;
+#endif
+#ifdef MMX_COEF
+	if (dynamic_use_sse==1) {
+		unsigned k;
+		j /= MMX_COEF;
+		til = (til+MMX_COEF-1)/MMX_COEF;
+		for (; j < til; ++j)
+		{
+			// If length is < 20, then remove existing end of buffer marker, and then set
+			// one at offset 20
+			unsigned cur_block_len = total_len[j];
+			for (k = 0; k < MMX_COEF; ++k) {
+				unsigned this_item_len = cur_block_len & 0xFF;
+#if (MMX_COEF==4)
+				cur_block_len >>= 8;
+#else
+				cur_block_len >>= 16;
+#endif
+				if (this_item_len < 20)
+					input_buf[j].c[GETPOS(this_item_len, k&(MMX_COEF-1))] = 0x00;
+				input_buf[j].c[GETPOS(20, k&(MMX_COEF-1))] = 0x80;
+			}
+#if (MMX_COEF==4)
+			total_len[j] = 0x14141414;
+#else
+			total_len[j] = 0x140014;
+#endif
+		}
+		return;
+	}
+#endif
+	for (; j < til; ++j)
+	{
+#if MD5_X2
+		if (j&1) {
+			while (total_len_X86[j] < 20)
+				input_buf_X86[j>>MD5_X2].x2.b2[total_len_X86[j]++] = 0;
+		}
+		else
+#endif
+		{while (total_len_X86[j] < 20)
+			input_buf_X86[j>>MD5_X2].x1.b[total_len_X86[j]++] = 0;}
+		total_len_X86[j] = 20;
+	}
+}
+
+void DynamicFunc__set_input2_len_20(DYNA_OMP_PARAMS)
+{
+	unsigned j, til;
+#ifdef _OPENMP
+	til = last;
+	j = first;
+#else
+	j = 0;
+	til = m_count;
+#endif
+#ifdef MMX_COEF
+	if (dynamic_use_sse==1) {
+		unsigned k;
+		j /= MMX_COEF;
+		til = (til+MMX_COEF-1)/MMX_COEF;
+		for (; j < til; ++j)
+		{
+			// If length is < 20, then remove existing end of buffer marker, and then set
+			// one at offset 20
+			unsigned cur_block_len = total_len2[j];
+			for (k = 0; k < MMX_COEF; ++k) {
+				unsigned this_item_len = cur_block_len & 0xFF;
+#if (MMX_COEF==4)
+				cur_block_len >>= 8;
+#else
+				cur_block_len >>= 16;
+#endif
+				if (this_item_len < 20)
+					input_buf2[j].c[GETPOS(this_item_len, k&(MMX_COEF-1))] = 0x00;
+				input_buf2[j].c[GETPOS(20, k&(MMX_COEF-1))] = 0x80;
+			}
+#if (MMX_COEF==4)
+			total_len2[j] = 0x14141414;
+#else
+			total_len2[j] = 0x100014;
+#endif
+		}
+		return;
+	}
+#endif
+	for (; j < til; ++j)
+	{
+#if MD5_X2
+		if (j&1) {
+			while (total_len2_X86[j] < 20)
+				input_buf2_X86[j>>MD5_X2].x2.b2[total_len2_X86[j]++] = 0;
+		}
+		else
+#endif
+		{while (total_len2_X86[j] < 20)
+			input_buf2_X86[j>>MD5_X2].x1.b[total_len2_X86[j]++] = 0;}
+		total_len2_X86[j] = 20;
+	}
+}
+
 void DynamicFunc__set_input_len_32(DYNA_OMP_PARAMS)
 {
 	unsigned j, til;
@@ -3723,6 +3833,9 @@ void DynamicFunc__set_input_len_32(DYNA_OMP_PARAMS)
 		til = (til+MMX_COEF-1)/MMX_COEF;
 		for (; j < til; ++j)
 		{
+			unsigned k;
+			for (k = 0; k < MMX_COEF; ++k)
+				input_buf[j].c[GETPOS(32, k&(MMX_COEF-1))] = 0x80;
 #if (MMX_COEF==4)
 			total_len[j] = 0x20202020;
 #else
@@ -3767,6 +3880,9 @@ void DynamicFunc__set_input2_len_32(DYNA_OMP_PARAMS)
 		til = (til+MMX_COEF-1)/MMX_COEF;
 		for (; j < til; ++j)
 		{
+			unsigned k;
+			for (k = 0; k < MMX_COEF; ++k)
+				input_buf2[j].c[GETPOS(32, k&(MMX_COEF-1))] = 0x80;
 #if (MMX_COEF==4)
 			total_len2[j] = 0x20202020;
 #else
@@ -3795,6 +3911,96 @@ void DynamicFunc__set_input2_len_32(DYNA_OMP_PARAMS)
 	}
 }
 
+void DynamicFunc__set_input_len_40(DYNA_OMP_PARAMS)
+{
+	unsigned j, til;
+#ifdef _OPENMP
+	til = last;
+	j = first;
+#else
+	j = 0;
+	til = m_count;
+#endif
+#ifdef MMX_COEF
+	if (dynamic_use_sse==1) {
+		j /= MMX_COEF;
+		til = (til+MMX_COEF-1)/MMX_COEF;
+		for (; j < til; ++j)
+		{
+			unsigned k;
+			for (k = 0; k < MMX_COEF; ++k)
+				input_buf[j].c[GETPOS(40, k&(MMX_COEF-1))] = 0x80;
+#if (MMX_COEF==4)
+			total_len[j] = 0x28282828;
+#else
+			total_len[j] = 0x280028;
+#endif
+		}
+		return;
+	}
+#endif
+	for (; j < til; ++j)
+	{
+		total_len_X86[j] = 40;
+#if !ARCH_LITTLE_ENDIAN
+#if MD5_X2
+		if (j&1) {
+			memset(&(input_buf_X86[j>>MD5_X2].x2.B2[40]), 0, 16);
+		}
+		else
+#endif
+		{
+			memset(&(input_buf_X86[j>>MD5_X2].x1.B[40]), 0, 16);
+		}
+#endif
+	}
+}
+
+void DynamicFunc__set_input2_len_40(DYNA_OMP_PARAMS)
+{
+	unsigned j, til;
+#ifdef _OPENMP
+	til = last;
+	j = first;
+#else
+	j = 0;
+	til = m_count;
+#endif
+#ifdef MMX_COEF
+	if (dynamic_use_sse==1) {
+		j /= MMX_COEF;
+		til = (til+MMX_COEF-1)/MMX_COEF;
+		for (; j < til; ++j)
+		{
+			unsigned k;
+			for (k = 0; k < MMX_COEF; ++k)
+				input_buf2[j].c[GETPOS(40, k&(MMX_COEF-1))] = 0x80;
+#if (MMX_COEF==4)
+			total_len2[j] = 0x28282828;
+#else
+			total_len2[j] = 0x280028;
+#endif
+		}
+		return;
+	}
+#endif
+	for (; j < til; ++j)
+	{
+		total_len2_X86[j] = 40;
+#if !ARCH_LITTLE_ENDIAN
+#if MD5_X2
+		if (j&1) {
+			memset(&(input_buf2_X86[j>>MD5_X2].x2.B2[40]), 0, 16);
+		}
+		else
+#endif
+		{
+			memset(&(input_buf2_X86[j>>MD5_X2].x1.B[40]), 0, 16);
+		}
+#endif
+	}
+}
+
 void DynamicFunc__set_input_len_64(DYNA_OMP_PARAMS)
 {
 	unsigned j, til;
@@ -3811,6 +4017,23 @@ void DynamicFunc__set_input_len_64(DYNA_OMP_PARAMS)
 #endif
 	for (; j < til; ++j)
 		total_len_X86[j] = 64;
+}
+void DynamicFunc__set_input2_len_64(DYNA_OMP_PARAMS)
+{
+	unsigned j, til;
+#ifdef _OPENMP
+	til = last;
+	j = first;
+#else
+	j = 0;
+	til = m_count;
+#endif
+#ifdef MMX_COEF
+	if (dynamic_use_sse==1)
+		exit(!!fprintf(stderr, "Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input2_len_64 in SSE2/MMX mode\n"));
+#endif
+	for (; j < til; ++j)
+		total_len2_X86[j] = 64;
 }
 void DynamicFunc__set_input_len_100(DYNA_OMP_PARAMS)
 {
@@ -3839,23 +4062,6 @@ void DynamicFunc__set_input_len_100(DYNA_OMP_PARAMS)
 			*cp++ = 0;
 		total_len_X86[j] = 100;
 	}
-}
-void DynamicFunc__set_input2_len_64(DYNA_OMP_PARAMS)
-{
-	unsigned j, til;
-#ifdef _OPENMP
-	til = last;
-	j = first;
-#else
-	j = 0;
-	til = m_count;
-#endif
-#ifdef MMX_COEF
-	if (dynamic_use_sse==1)
-		exit(!!fprintf(stderr, "Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input2_len_64 in SSE2/MMX mode\n"));
-#endif
-	for (; j < til; ++j)
-		total_len2_X86[j] = 64;
 }
 
 /**************************************************************

@@ -70,8 +70,8 @@
 //dynamic_24 --> sha1($p.$s)               // requires a 40 byte hex hash
 //dynamic_25 --> sha1($s.$p)               // requires a 40 byte hex hash
 //dynamic_26 --> sha1($p)                  // MGF_RAW_SHA1_INPUT
-//dynamic_27 --> FreeBSD MD5
-//dynamic_28 --> Apache MD5
+ // DEPRICATED //dynamic_27 --> FreeBSD MD5
+ // DEPRICATED //dynamic_28 --> Apache MD5
 //dynamic_29 --> md5(unicode($p))			// raw-md5-unicode
 //dynamic_30 --> md4($p)                    // raw-md4
 //dynamic_31 --> md4($s.$p)
@@ -86,26 +86,56 @@
 //dynamic_50 -->sha224($p)
 //dynamic_51 -->sha224($s.$p)
 //dynamic_52 -->sha224($p.$s)
+//dynamic_53 -->sha224(sha224($p))
+//dynamic_54 -->sha224(sha224_raw($p))
+//dynamic_55 -->sha224(sha224($p).$s)
+//dynamic_56 -->sha224($s.sha224($p))
+//dynamic_57 -->sha224(sha224($s).sha224($p))
 	// Try to group sha256 here (from dyna-60 to dyna-69)
 //dynamic_60 -->sha256($p)
 //dynamic_61 -->sha256($s.$p)
 //dynamic_62 -->sha256($p.$s)
+//dynamic_63 -->sha256(sha256($p))
+//dynamic_64 -->sha256(sha256_raw($p))
+//dynamic_65 -->sha256(sha256($p).$s)
+//dynamic_66 -->sha256($s.sha256($p))
+//dynamic_67 -->sha256(sha256($s).sha256($p))
 	// Try to group sha384 here (from dyna-70 to dyna-79)
 //dynamic_70 -->sha384($p)
 //dynamic_71 -->sha384($s.$p)
 //dynamic_72 -->sha384($p.$s)
+//dynamic_73 -->sha384(sha384($p))
+//dynamic_74 -->sha384(sha384_raw($p))
+//dynamic_75 -->sha384(sha384($p).$s)
+//dynamic_76 -->sha384($s.sha384($p))
+//dynamic_77 -->sha384(sha384($s).sha384($p))
 	// Try to group sha512 here (from dyna-80 to dyna-89)
 //dynamic_80 -->sha512($p)
 //dynamic_81 -->sha512($s.$p)
 //dynamic_82 -->sha512($p.$s)
+//dynamic_83 -->sha512(sha512($p))
+//dynamic_84 -->sha512(sha512_raw($p))
+//dynamic_85 -->sha512(sha512($p).$s)
+//dynamic_86 -->sha512($s.sha512($p))
+//dynamic_87 -->sha512(sha512($s).sha512($p))
 	// Try to group GOST here (from dyna-90 to dyna-100)
 //dynamic_90 -->GOST($p)
 //dynamic_91 -->GOST($s.$p)
 //dynamic_92 -->GOST($p.$s)
+//dynamic_93 -->GOST(GOST($p))
+//dynamic_94 -->GOST(GOST_raw($p))
+//dynamic_95 -->GOST(GOST($p).$s)
+//dynamic_96 -->GOST($s.GOST($p))
+//dynamic_97 -->GOST(GOST($s).GOST($p))
 	// Try to group WHIRLPOOL here (from dyna-100 to dyna-110)
 //dynamic_100 -->WHIRLPOOL($p)
 //dynamic_101 -->WHIRLPOOL($s.$p)
 //dynamic_102 -->WHIRLPOOL($p.$s)
+//dynamic_103 -->WHIRLPOOL(WHIRLPOOL($p))
+//dynamic_104 -->WHIRLPOOL(WHIRLPOOL_raw($p))
+//dynamic_105 -->WHIRLPOOL(WHIRLPOOL($p).$s)
+//dynamic_106 -->WHIRLPOOL($s.WHIRLPOOL($p))
+//dynamic_107 -->WHIRLPOOL(WHIRLPOOL($s).WHIRLPOOL($p))
 
 static DYNAMIC_primitive_funcp _Funcs_0[] =
 {

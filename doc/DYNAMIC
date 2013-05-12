@@ -161,21 +161,51 @@ dynamic_38  | sha1($s.sha1($s.sha1($p)))} YES | Wolt3BB
 dynamic_50  | sha224($p)              | No    |
 dynamic_51  | sha224($s.$p)           | Yes   |
 dynamic_52  | sha224($p.$s)           | Yes   |
+dynamic_53  | sha224(sha224($p))      | No    |
+dynamic_54  | sha224(sha224_raw($p))  | No    |
+dynamic_55  | sha224(sha224($p).$s)   | Yes   |
+dynamic_56  | sha224($s.sha224($p))   | Yes   |
+dynamic_57  | sha224(sha224($s).sha224($p)) | Yes   |
 dynamic_60  | sha256($p)              | No    |
 dynamic_61  | sha256($s.$p)           | Yes   |
 dynamic_62  | sha256($p.$s)           | Yes   |
+dynamic_63  | sha256(sha256($p))      | No    |
+dynamic_64  | sha256(sha256_raw($p))  | No    |
+dynamic_65  | sha256(sha256($p).$s)   | Yes   |
+dynamic_66  | sha256($s.sha256($p))   | Yes   |
+dynamic_67  | sha256(sha256($s).sha256($p)) | Yes   |
 dynamic_70  | sha384($p)              | No    |
 dynamic_71  | sha384($s.$p)           | Yes   |
 dynamic_72  | sha384($p.$s)           | Yes   |
+dynamic_73  | sha384(sha384($p))      | No    |
+dynamic_74  | sha384(sha384_raw($p))  | No    |
+dynamic_75  | sha384(sha384($p).$s)   | Yes   |
+dynamic_76  | sha384($s.sha384($p))   | Yes   |
+dynamic_77  | sha384(sha384($s).sha384($p)) | Yes   |
 dynamic_80  | sha512($p)              | No    |
 dynamic_81  | sha512($s.$p)           | Yes   |
 dynamic_82  | sha512($p.$s)           | Yes   |
+dynamic_83  | sha512(sha512($p))      | No    |
+dynamic_84  | sha512(sha512_raw($p))  | No    |
+dynamic_85  | sha512(sha512($p).$s)   | Yes   |
+dynamic_86  | sha512($s.sha512($p))   | Yes   |
+dynamic_87  | sha512(sha512($s).sha512($p)) | Yes   |
 dynamic_90  | GOST($p)                | No    |
 dynamic_91  | GOST($s.$p)             | Yes   |
 dynamic_92  | GOST($p.$s)             | Yes   |
+dynamic_93  | GOST(GOST($p))          | No    |
+dynamic_94  | GOST(GOST_raw($p))      | No    |
+dynamic_95  | GOST(GOST($p).$s)       | Yes   |
+dynamic_96  | GOST($s.GOST($p))       | Yes   |
+dynamic_97  | GOST(GOST($s).GOST($p)) | Yes   |
 dynamic_100 | WHIRLPOOL($p)           | No    |
 dynamic_101 | WHIRLPOOL($s.$p)        | Yes   |
 dynamic_102 | WHIRLPOOL($p.$s)        | Yes   |
+dynamic_103 | WHIRLPOOL(WHIRLPOOL($p))     | No    |
+dynamic_104 | WHIRLPOOL(WHIRLPOOL_raw($p)) | No    |
+dynamic_105 | WHIRLPOOL(WHIRLPOOL($p).$s)  | Yes   |
+dynamic_106 | WHIRLPOOL($s.WHIRLPOOL($p))  | Yes   |
+dynamic_107 | WHIRLPOOL(WHIRLPOOL($s).WHIRLPOOL($p)) | Yes   |
 ........    | RESERVED                | UNK   |
 dynamic_999 | RESERVED                | UNK   |
 
@@ -189,7 +219,29 @@ dynamic_1005  md5(md5(md5(md5(md5(md5(md5($p)))))))
 dynamic_1006  md5(md5(md5(md5(md5(md5(md5(md5($p))))))))
 dynamic_1007  md5(md5($p).$s) (vBulletin)
 dynamic_1008  md5($p.$s) (joomla)
-
+# and many other newer items, added from user requests.
+dynamic_1010  md5($p null_padded_to_len_100) RAdmin v2.x MD5
+dynamic_1011  md5($p.md5($s)) (WebEdition CMS)
+dynamic_1012  md5($p.md5($s)) (WebEdition CMS)  (much faster)
+dynamic_1013  md5($p.PMD5(username)) (WebEdition CMS)  (fast speed, but user name is stored in md5 hash format)
+dynamic_1014  md5($p.$s) (long salt)
+dynamic_1015  md5(md5($p.$u).$s)
+dynamic_1018  md5(sha1(sha1($pass)))
+dynamic_1019  md5(sha1(sha1(md5($pass))))
+dynamic_1020  md5(sha1(md5($pass)))
+dynamic_1021  md5(sha1(md5(sha1($pass))))
+dynamic_1022  md5(sha1(md5(sha1(md5($pass)))))
+dynamic_1023  sha1($pass) (first 32 bytes)
+dynamic_1024  sha1(md5($pass)) (first 32 bytes)
+dynamic_1025  sha1(md5(md5($pass))) (first 32 bytes)
+dynamic_1026  sha1(sha1($pass))) (first 32 bytes)
+dynamic_1027  sha1(sha1(sha1($pass)))) (first 32 bytes)
+dynamic_1028  sha1(sha1_raw($pass)) (first 32 bytes)
+dynamic_1029  sha256($pass) (first 32 bytes)
+dynamic_1030  Whirlpool($pass) (first 32 bytes)
+dynamic_1031  GOST($pass) (first 32 bytes)
+dynamic_1300  md5(md5_raw($pass))
+dynamic_1350  md5(md5($s.$p):$s)
 
 
 NOTE the documentation section of dynamic.conf is listed here.  It shows
@@ -607,24 +659,44 @@ examples (this whole list is also found in dynamic.conf).
 #     Sets the length of each element of input1[] to 16.  In SSE2 mode, if the length of the input buffer
 #     was less than 16, then that 0x80 end of marker is removed, and a new one is 'added' at offset 16.
 #
+#  DynamicFunc__set_input_len_20
+#     Sets the length of each element of input1[] to 20.  In SSE2 mode, if the length of the input buffer
+#     was less than 20, then that 0x80 end of marker is removed, and a new one is 'added' at offset 20.
+#
 #  DynamicFunc__set_input2_len_16
 #     Sets the length of each element of input2[] to 16.
+#
+#  DynamicFunc__set_input2_len_20
+#     Sets the length of each element of input2[] to 20.
 #
 #  DynamicFunc__set_input_len_32
 #     Sets the length of each element of input1[] to 32.  This was designed as is used in conjunction with
 #     the funtion overwrite_from_last_output_as_base16_no_size_fix in mind, but would not
 #     be the 'only' reason to use it (but is the only reason I have at this time).  This function does NOT
-#     clean the input[] items prior to this.  Usually a call to clean_input would be required priot to
-#     calling this function, to make sure the buffer is 'clean'.
+#     clean the input[] items prior to this.  Usually a call to clean_input would be required prior to
+#     calling this function, to make sure the buffer is 'clean'.  A 0x80 is placed into offset 32
 #
 #  DynamicFunc__set_input2_len_32
 #     Same as DynamicFunc__set_input_len_32 but this one works on input2[] array.
+#
+#  DynamicFunc__set_input_len_40
+#     Sets the length of each element of input1[] to 30.  A 0x80 is placed into offset 40.  This would be
+#     the companion function to DynamicFunc__set_input_len_32, but useful for SHA1 hashes which would
+#     themselves output 40 bytes of hex.
+#
+#  DynamicFunc__set_input2_len_40
+#     Same as DynamicFunc__set_input_len_40 but this one works on input2[] array.
 #
 #  DynamicFunc__set_input_len_64
 #     Like the above function, but sets lengths to 64 bytes.  NOTE valid to use in SSE2 mode.
 #
 #  DynamicFunc__set_input2_len_64
 #     Same as DynamicFunc__set_input2_len_64 but this one works on input2[] array.
+#
+#  DynamicFunc__set_input_len_100
+#     Like the above function, but sets lengths to 100 bytes.  NOTE valid to use in SSE2 mode.
+#     This is a 'specialized' function for the RAdmin hash, and simply nulls out the buffer
+#     up to 100 bytes.
 #
 #  SSE 'switching' functions.  SSE is only valid for 54 byte or less input strings.
 #  This is due to optimizations which place a 'single' md5 limb restriction on the
@@ -633,6 +705,15 @@ examples (this whole list is also found in dynamic.conf).
 #  to convert a buffer (or more).  The input buffers, and output buffers are NOT
 #  compatible between x86 and SSE2.  If possible, convert the output buffers, they
 #  are smaller, and faster (usually).
+#
+#  NOTE, proper usage of these functions CAN improve performance of some SHA1 processing
+#  putting the data into or out of 'flat' model. The SHA1 hash does have SSE code, however
+#  since it also requires BE layout for the data (vs LE for md5), a design choice was made
+#  to not store the BE sse buffers long term.  All crypting will determin IF sse sha1 code
+#  should be used, and if so, the crypt function will convert from flat into sse format.
+#  however, if the data already is in sse format, it has to be transformed into a format
+#  valid for ShA1.   Look at formats 1022 to 1031 for insite on how to best use these
+#  data conversion functions with SHA1.
 #
 #  DynamicFunc__SSEtoX86_switch_input1
 #    Copies the SSE Input1 buffer to x86 Input1.  Changes 'mode' to non-SSE for any
