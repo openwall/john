@@ -298,6 +298,8 @@ static void john_register_all(void)
 #ifdef HAVE_CRYPT
 	john_register_one(&fmt_crypt);
 #endif
+	john_register_one(&fmt_NT);
+
 	for (i = 0; i < cnt; ++i)
 		john_register_one(&(selfs[i]));
 
