@@ -2,7 +2,7 @@
 PRELUDE:
 ====================
 
-You can use OpenCL if your video card - from now GPU - support it.
+You can use OpenCL if your video card - from now GPU - supports it.
 ATI/AMD and Nvidia support it through their SDK available at
 nvidia and ati/amd website.
 
