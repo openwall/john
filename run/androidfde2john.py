@@ -42,6 +42,7 @@ import base64
 import os
 import struct
 import subprocess
+import binascii
 import sys
 from warnings import warn
 
@@ -120,7 +121,7 @@ class CryptMntFtr(namedtuple('CryptMntFtr', (
         footer_tuple = cls._struct.unpack(bytestring)
         named_footer = super(CryptMntFtr, cls).__new__(cls, *footer_tuple)
         return named_footer._replace(
-                crypto_type_name=named_footer.crypto_type_name.rstrip("\0"))
+                crypto_type_name=named_footer.crypto_type_name.decode("ascii").rstrip("\0"))
 
     @classmethod
     def struct_size(cls):
@@ -140,9 +141,9 @@ def parse_footer(data):
         while True:
             footer = fh.read(CryptMntFtr.struct_size())
             if len(footer) < CryptMntFtr.struct_size():
-                print "Cannot read disk image footer"
+                print("Cannot read disk image footer")
                 return
-            idx = footer.find("\xC4\xB1\xB5\xD0")
+            idx = footer.find(b"\xC4\xB1\xB5\xD0")
             if idx == 0:
                 break
 
@@ -189,17 +190,15 @@ def main(args):
     if len(args) < 3:
         sys.stderr.write("Usage: %s <data partition / image> <footer partition / image>\n" % args[0])
         return
-    print args[2]
     data = parse_data(args[1])
     (crypt_ftr, encrypted_key, salt) = parse_footer(args[2])
 
-    print "%s:$fde$%s$%s$%s$%s$%s" % (args[1],
+    print("%s:$fde$%s$%s$%s$%s$%s" % (args[1],
             len(salt),
-            salt.encode("hex"),
+            binascii.hexlify(salt).decode("ascii"),
             crypt_ftr.keysize,
-            encrypted_key.encode("hex"),
-            data.encode("hex"))
-
+            binascii.hexlify(encrypted_key).decode("ascii"),
+            binascii.hexlify(data).decode("ascii")))
 
 if __name__ == '__main__':
     main(sys.argv)
