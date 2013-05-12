@@ -13,7 +13,7 @@
 #define _JOHN_SIGNALS_H
 
 #ifndef _JOHN_OS_H
-#Error: Need to include os.h before signals.h
+#error Need to include os.h before signals.h
 #endif
 
 #include "arch.h"
