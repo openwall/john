@@ -293,7 +293,6 @@ extern void fmt_default_init(struct fmt_main *self);
 extern void fmt_default_done(void);
 extern void fmt_default_reset(struct db_main *db);
 extern char *fmt_default_prepare(char *fields[10], struct fmt_main *self);
-extern int fmt_default_valid(char *ciphertext, struct fmt_main *self);
 extern char *fmt_default_split(char *ciphertext, int index,
     struct fmt_main *self);
 extern void *fmt_default_binary(char *ciphertext);

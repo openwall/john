@@ -172,7 +172,7 @@ void mediawiki_fix_salt(char *Buf, char *source_to_fix, char *salt_rec, int max_
 /*
  * Updates the database after a password has been cracked.
  */
-void crk_remove_hash(struct db_salt *salt, struct db_password *pw)
+static void crk_remove_hash(struct db_salt *salt, struct db_password *pw)
 {
 	struct db_password **current;
 	int hash, count;
