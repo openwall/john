@@ -118,7 +118,7 @@ not load accounts with a bad shell.  You can omit the path before a
 shell name, so "--shells=csh" will match both "/bin/csh" and
 "/usr/bin/csh", while "--shells=/bin/csh" will only match "/bin/csh".
 
---salts=[-]COUNT		load salts with[out] at least COUNT passwords
+--salts=[-]N			load salts with[out] at least N passwords
 
 This is a feature which allows to achieve better performance in some
 special cases.  For example, you can crack only some salts using
