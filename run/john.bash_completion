@@ -91,8 +91,8 @@
 ## have grep && have sed && have tr &&
 _john()
 {
-	local first cur options valopts compreplya compreplyb encodings formats 
-	local subformats list dir cmd i ver ver1 ver2 ver3 prev words prefix option 
+	local first cur options valopts compreplya compreplyb encodings formats
+	local subformats list dir cmd i ver ver1 ver2 ver3 prev words prefix option
 
 	# Without LC_ALL=C, [A-Z] match [a-z] (case "${cur}" in ... esac)
 	LC_ALL=C
@@ -119,7 +119,7 @@ _john()
 		fi
 	fi
 
-	# if bash completion is requested for something different than an 
+	# if bash completion is requested for something different than an
 	# option, we can skip all the option parsing logic
 	if [[ "_${cur}" != _-* ]] ; then
 		compopt  -o bashdefault -o default
@@ -130,7 +130,7 @@ _john()
 #	called john which is located somewhere in $PATH
 	first="${COMP_WORDS[0]}"
 
-#	Most options are listed at the begin of the line, but the line with 
+#	Most options are listed at the begin of the line, but the line with
 #	the --pipe option does have leading spaces, and --stdin is mentioned
 #	after --wordlist=FILE.
 #
@@ -152,10 +152,10 @@ _john()
 		#
 		# So, this will work:
 		# 	src$ cd ../run; ./john --format=[tab][tab]
-		# 
+		#
 		# But this won't:
 		# 	src$ cd ../run; ./john --config=[tab][tab]
-		# 
+		#
 		# (The command will search for *.conf files in the directory
 		# one level above the run directory, because that is the
 		# current directory at the time the bash completion script is
@@ -213,8 +213,8 @@ _john()
 	#options=`echo "$options"|sed 's#\[=##g'`
 	options="${options//[=/}"
 
-	# When new options get added to john, this version of the 
-	# bash completion script should be much more robust 
+	# When new options get added to john, this version of the
+	# bash completion script should be much more robust
 	# than previous versions.
 	# All those cases when a formerly unique abbreviation
 	# becomes ambiguous should now be handled automatically.
@@ -235,7 +235,7 @@ _john()
 	fi
 
 	# Check the number of different possible completions
-	# for the (possibly abbreviated) option	
+	# for the (possibly abbreviated) option
 	i=${#COMPREPLY[*]}
 	if [[ $i -eq 1 ]] ; then
 		# (abbreviated) option is not ambiguous
@@ -262,7 +262,7 @@ _john()
 				fi
 			else
 				# Option doesn't allow a value
-				# COMPREPLY is already filled with the only 
+				# COMPREPLY is already filled with the only
 				# possible option name
 				return 0
 			fi
@@ -617,7 +617,7 @@ _john()
 			;;
 		-+(platform|device)=[Ll]?([Ii]|[Ii][Ss]|[Ii][Ss][Tt]))
 			list=`${first} --list=\? 2>/dev/null|sed 's#\(,\)\?\( or\)\?[ ]*[<].*$##; s#,##g'`
-			# Only complete to LIST if --list=cuda-devices 
+			# Only complete to LIST if --list=cuda-devices
 			# and --list=opencl-devices don't exist
 			# CUDA doesn't allow --device=LIST
 			# workaround: check if --platform= is allowed
