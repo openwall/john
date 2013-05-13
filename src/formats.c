@@ -254,11 +254,6 @@ char *fmt_default_prepare(char *fields[10], struct fmt_main *self)
 	return fields[1];
 }
 
-int fmt_default_valid(char *ciphertext, struct fmt_main *self)
-{
-	return 0;
-}
-
 char *fmt_default_split(char *ciphertext, int index, struct fmt_main *self)
 {
 	return ciphertext;
