@@ -17,6 +17,20 @@
 #include "rpp.h"
 #include "rules.h"
 
+/*
+ * Error codes.
+ */
+#define RULES_ERROR_NONE		0
+#define RULES_ERROR_END			1
+#define RULES_ERROR_UNKNOWN		2
+#define RULES_ERROR_UNALLOWED		3
+#define RULES_ERROR_POSITION		4
+#define RULES_ERROR_CLASS		5
+#define RULES_ERROR_REJECT		6
+
+/*
+ * Error names.
+ */
 static const char * const rules_errors[] = {
 	NULL,	/* No error */
 	"Unexpected end of rule",
@@ -27,7 +41,16 @@ static const char * const rules_errors[] = {
 	"Unknown rule reject flag"
 };
 
-static int rules_errno, rules_line;
+/*
+ * Last error code.
+ */
+static int rules_errno;
+
+/*
+ * Configuration file line number, only set after a rules_check() call if
+ * rules_errno indicates an error.
+ */
+static int rules_line;
 
 static int rules_max_length = 0;
 
@@ -956,6 +979,15 @@ out_ERROR_UNALLOWED:
 	goto out_NULL;
 }
 
+/*
+ * This function is currently not used outside of rules.c, thus not exported.
+ *
+ * Checks if all the rules for context are valid. Returns the number of rules,
+ * or returns zero and sets rules_errno on error.
+ *
+ * split == 0	"single crack" mode rules allowed
+ * split < 0	"single crack" mode rules are invalid
+ */
 static int rules_check(struct rpp_context *start, int split)
 {
 	struct rpp_context ctx;
