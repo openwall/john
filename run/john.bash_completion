@@ -297,9 +297,9 @@ _john()
 	# previous if ... fi.
 	case "${option}" in
 		--format=dynamic*)
-			subformats=`${first} --list=subformats|sed 's#^\(User\)\?Format = \(dynamic_[0-9]*\).*$#\2#'`
+			subformats=`${first} 2>/dev/null --list=subformats|sed 's#^\(User\)\?Format = \(dynamic_[0-9]*\).*$#\2#'`
 			if [[ "_${subformats}" != _dynamic_0* ]] ; then
-				subformats=`${first} --subformat=LIST|sed 's#^\(User\)\?Format = \(dynamic_[0-9]*\).*$#\2#'`
+				subformats=`${first} 2>/dev/null --subformat=LIST|sed 's#^\(User\)\?Format = \(dynamic_[0-9]*\).*$#\2#'`
 				if [[ "_${subformats}" != _dynamic_0* ]] ; then
 					return 0
 				fi
