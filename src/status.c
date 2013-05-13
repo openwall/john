@@ -390,7 +390,7 @@ static void status_print_stdout(char *percent)
 		key = crk_get_key1();
 
 	fprintf(stderr,
-	    "%sp %u:%02u:%02u:%02u%s%s %sp/s%s%s",
+	    "%sp %u:%02u:%02u:%02u%s%s %sp/s%s%s\n",
 	    status_get_c(s_p, &status.cands, 0),
 	    time / 86400, time % 86400 / 3600, time % 3600 / 60, time % 60,
 		strncmp(percent, " 100", 4) ? percent : " DONE",
