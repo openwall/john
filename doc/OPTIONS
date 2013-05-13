@@ -136,6 +136,45 @@ impact is that you won't see the login names while cracking.  Higher
 memory saving levels have a performance impact; you should probably
 avoid using them unless John doesn't work or gets into swap otherwise.
 
+--node=MIN[-MAX]/TOTAL		this node's number range out of TOTAL count
+
+This option is intended to allow for some trivial manually-configured
+parallel and distributed processing.  For example, to split the workload
+across two nodes (which could be machines, CPU cores, etc.), you'd
+specify "--node=1/2" on one invocation of John and "--node=2/2" on the
+other.  (If you do this on one machine and with the same build of John,
+you will also need to specify different "--session" names for the two
+simultaneous invocations.)  The nodes are assumed to be same speed (if
+this is not the case, one will get ahead of the other and is likely to
+be done sooner, unless you're using a cracking mode and settings such
+that the session is not expected to ever "complete" - which is fine.)
+If your nodes are of very different speed, you may compensate for that
+by allocating ranges of node numbers to individual invocations.  For
+example, if you use OpenMP-enabled builds of John on two machines,
+OpenMP is supported for the hash type you're cracking, and one of the
+machines has twice more of similar speed CPU cores than the other, then
+you may use "--node=1-2/3" on the twice bigger machine (let it be nodes
+1 and 2 out of 3 nodes total) and "--node=3/3" on the smaller one.
+
+Efficiency of this approach to parallel processing, as currently
+implemented, varies by cracking mode and its settings (efficiency is
+higher for incremental mode and for wordlist mode with many rules, and
+lower for other cracking modes and for wordlist mode without rules or
+with few rules), hash type (efficiency is higher for slower to compute
+hashes), salt count (efficiency is higher for higher salt counts), and
+node count (efficiency is higher for lower node counts).  Scalability
+may be limited.  The highest node count you can reasonably use varies by
+cracking mode, its settings, hash type, and salt count.  With
+incremental mode, efficiency in terms of c/s rate is nearly perfect
+(there's essentially no overhead), but some nodes may currently receive
+too little work - and this problem is exacerbated by high node counts
+(such as 100 or more) and/or restrictive settings (such as MinLen and
+MaxLen set to the same value or to a narrow range, and/or a charset file
+with few characters being used).  With wordlist mode, for high
+efficiency the rule count (after preprocessor expansion) needs to be
+many times higher than node count, unless the p/s rate is low anyway
+(due to slow hash type and/or high salt count).
+
 --format=NAME			force hash type NAME
 
 Allows you to override the hash type detection.  As of John the Ripper
