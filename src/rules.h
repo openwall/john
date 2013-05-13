@@ -24,10 +24,15 @@
 #define RULES_ERROR_CLASS		5
 #define RULES_ERROR_REJECT		6
 
+#if 0
+/*
+ * These symbols are currently not used outside of rules.c, thus not exported.
+ */
+
 /*
  * Error names.
  */
-extern char *rules_errors[];
+extern const char * const rules_errors[];
 
 /*
  * Last error code.
@@ -39,6 +44,7 @@ extern int rules_errno;
  * rules_errno indicates an error.
  */
 extern int rules_line;
+#endif
 
 /*
  * Initializes the rules support.
@@ -75,7 +81,10 @@ extern char *rules_reject(char *rule, int split, char *last,
  */
 extern char *rules_apply(char *word, char *rule, int split, char *last);
 
+#if 0
 /*
+ * This function is currently not used outside of rules.c, thus not exported.
+ *
  * Checks if all the rules for context are valid. Returns the number of rules,
  * or returns zero and sets rules_errno on error.
  *
@@ -83,6 +92,7 @@ extern char *rules_apply(char *word, char *rule, int split, char *last);
  * split < 0	"single crack" mode rules are invalid
  */
 extern int rules_check(struct rpp_context *start, int split);
+#endif
 
 /*
  * Similar to rules_check(), but displays a message and does not return on

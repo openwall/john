@@ -17,7 +17,7 @@
 #include "rpp.h"
 #include "rules.h"
 
-char *rules_errors[] = {
+static const char * const rules_errors[] = {
 	NULL,	/* No error */
 	"Unexpected end of rule",
 	"Unknown command",
@@ -27,7 +27,7 @@ char *rules_errors[] = {
 	"Unknown rule reject flag"
 };
 
-int rules_errno, rules_line;
+static int rules_errno, rules_line;
 
 static int rules_max_length = 0;
 
@@ -956,7 +956,7 @@ out_ERROR_UNALLOWED:
 	goto out_NULL;
 }
 
-int rules_check(struct rpp_context *start, int split)
+static int rules_check(struct rpp_context *start, int split)
 {
 	struct rpp_context ctx;
 	char *rule;
