@@ -115,7 +115,7 @@ JOHN_OBJS = \
 	hmacmd5.o \
 	base64.o \
 	md4.o sha2.o \
-	dynamic_fmt.o dynamic_parser.o dynamic_preloads.o dynamic_utils.o \
+	dynamic_fmt.o dynamic_parser.o dynamic_preloads.o dynamic_utils.o dynamic_big_crypt.o \
 	hmacMD5_fmt.o hmacSHA1_fmt.o \
 	django_fmt.o \
 	truecrypt_fmt.o \

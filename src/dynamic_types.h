@@ -118,6 +118,7 @@ typedef struct private_subformat_data
 	int dynamic_128_byte_sha512;
 	int dynamic_64_byte_gost;
 	int dynamic_128_byte_whirlpool;
+	int dynamic_48_byte_tiger;
 
 	// Some formats have 'constants'.  A good example is the MD5 Post Office format dynamic_18
 	// There can be 8 constants which can be put into the strings being built.  Most formats do
@@ -253,8 +254,13 @@ typedef struct private_subformat_data
 #define ALGORITHM_NAME_X86_S2	ARCH_BITS_STR"/"ARCH_BITS_STR" "STRINGIZE(X86_BLOCK_LOOPS) "x1 sha2-OpenSSL"
 #endif
 
+#if OPENSSL_VERSION_NUMBER >= 0x10000000
 #define ALGORITHM_NAME_WP2      ARCH_BITS_STR"/"ARCH_BITS_STR" "STRINGIZE(X86_BLOCK_LOOPS) "x1 OpenSSL"
 #define ALGORITHM_NAME_X86_WP2  ARCH_BITS_STR"/"ARCH_BITS_STR" "STRINGIZE(X86_BLOCK_LOOPS) "x1 OpenSSL"
+#else
+#define ALGORITHM_NAME_WP2      ARCH_BITS_STR"/"ARCH_BITS_STR" "STRINGIZE(X86_BLOCK_LOOPS) "x1 SPH_WP"
+#define ALGORITHM_NAME_X86_WP2  ARCH_BITS_STR"/"ARCH_BITS_STR" "STRINGIZE(X86_BLOCK_LOOPS) "x1 SPH_WP"
+#endif
 
 #if !defined(USE_GCC_ASM_IA32) && defined(USE_GCC_ASM_X64)
 #define ALGORITHM_NAME_GST2     "64/64 "STRINGIZE(X86_BLOCK_LOOPS) "x1"
@@ -263,6 +269,9 @@ typedef struct private_subformat_data
 #define ALGORITHM_NAME_GST2     "32/"ARCH_BITS_STR" "STRINGIZE(X86_BLOCK_LOOPS) "x1"
 #define ALGORITHM_NAME_X86_GST2 "32/"ARCH_BITS_STR" "STRINGIZE(X86_BLOCK_LOOPS) "x1"
 #endif
+
+#define ALGORITHM_NAME_TGR     "32/"ARCH_BITS_STR" "STRINGIZE(X86_BLOCK_LOOPS) "x1 sph_tiger"
+#define ALGORITHM_NAME_X86_TGR "32/"ARCH_BITS_STR" "STRINGIZE(X86_BLOCK_LOOPS) "x1 sph_tiger"
 
 #ifdef USE_MD5_Go
 #define MIN_KEYS_PER_CRYPT_X86	1
@@ -348,6 +357,12 @@ extern void MD5_body(MD5_word x[15],MD5_word out[4]);
 #else
 #define DoMD4(A,L,C) do{ MD4_CTX ctx; MD4_Init(&ctx); MD4_Update(&ctx,A.x1.b,L); MD4_Final(C.x1.B,&ctx);}while(0)
 #endif
+
+
+extern int large_hash_output(unsigned char *cpi, unsigned char *cpo, int in_byte_cnt, int tid);
+int large_hash_output_no_null(unsigned char *cpi, unsigned char *cpo, int in_byte_cnt, int tid);
+
+typedef enum { eUNK=0, eBase16=1, eBase16u=2, eBase64=3, eBase64_nte=4, eBaseRaw=5} eLargeOut_t;
 
 
 #endif  // __Dynamic_Types__H__

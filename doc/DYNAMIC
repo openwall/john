@@ -206,6 +206,14 @@ dynamic_104 | WHIRLPOOL(WHIRLPOOL_raw($p)) | No    |
 dynamic_105 | WHIRLPOOL(WHIRLPOOL($p).$s)  | Yes   |
 dynamic_106 | WHIRLPOOL($s.WHIRLPOOL($p))  | Yes   |
 dynamic_107 | WHIRLPOOL(WHIRLPOOL($s).WHIRLPOOL($p)) | Yes   |
+dynamic_110 | Tiger($p)                | No   |
+dynamic_111 | Tiger($s.$p)             | Yes  |
+dynamic_112 | Tiger($p.$s)             | Yes  |
+dynamic_113 | Tiger(Tiger($p))         | No   |
+dynamic_114 | Tiger(Tiger_raw($p))     | No   |
+dynamic_115 | Tiger(Tiger($p).$s)      | Yes  |
+dynamic_116 | Tiger($s.Tiger($p))      | Yes  |
+dynamic_117 | Tiger(Tiger($s).Tiger($p)) | Yes  |
 ........    | RESERVED                | UNK   |
 dynamic_999 | RESERVED                | UNK   |
 

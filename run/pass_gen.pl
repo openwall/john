@@ -20,6 +20,8 @@ use Digest::HMAC_MD5;
 use Digest; # Whirlpool is gotten from Digest->new('Whirlpool')
 use Digest::SHA qw(sha1 sha1_hex sha1_base64 sha224 sha224_hex sha224_base64 sha256 sha256_hex sha256_base64 sha384 sha384_hex sha384_base64 sha512 sha512_hex sha512_base64 );
 use Digest::GOST qw(gost gost_hex gost_base64);
+use Digest::Haval256;
+use Digest::Tiger;
 use Encode;
 use Switch 'Perl5', 'Perl6';
 use POSIX;
@@ -407,7 +409,41 @@ sub whirlpool {
 	$ret = pack "H*", $h;
     return $ret;
 }
-#############################################################################
+sub haval256 {
+	my $hash = new Digest::Haval256;
+    $hash->add( $_[0] );
+	my $h = $hash->hexdigest;
+	my $ret = pack "H*", $h;
+    return $ret;
+}
+sub haval256_hex {
+	my $hash = new Digest::Haval256;
+    $hash->add( $_[0] );
+    return $hash->hexdigest;
+}
+sub haval256_base64 {
+	my $hash = new Digest::Haval256;
+    $hash->add( $_[0] );
+    return $hash->base64digest;
+}
+sub tiger_hex {
+	return lc Digest::Tiger::hexhash($_[0]);
+}
+sub tiger {
+#	return Digest::Tiger::hash($_[0]);
+	my $h = tiger_hex($_[0]);
+	my $ret = pack "H*", $h;
+    return $ret;
+}
+sub tiger_base64 {
+#	my $haval = Digest::Tiger::hash('Tiger')
+#	$haval->add( $_[0] );
+#	return $haval->base64digest;
+	print "tiger_base64 is not working yet\n";
+	return Digest::Tiger::hexhash($_[0]);
+# this function is not right, but simply here to compile properly.
+}
+############################################################################
 # Here are the encryption subroutines.
 #  the format of ALL of these is:    function(password)
 #  all salted formats choose 'random' salts, in one way or another.
@@ -1630,12 +1666,12 @@ sub dynamic_compile {
 		print "        Added \$s2 (if 2nd salt is defined),\n";
 		print "        Added \$c1 to \$c9 for constants (must be defined in const#= values)\n";
 		print "        Added \$u if user name (normal, upper/lower case or unicode convert)\n";
-		print "        Handle md5, sha1, md4 sha2 (sha224,sha256,sha384,sha512) gost and whirlpool crypts.\n";
-		print "        Handle MD5, SHA1, MD4 SHA2 (all uc(sha2) types) GOST WHILRPOOL which output hex in uppercase.\n";
-		print "        Handle md5u, sha1u md4u, sha2*u gostu whirlpoolu which encode to UTF16LE.\n";
+		print "        Handle md5, sha1, md4 sha2 (sha224,sha256,sha384,sha512) gost whirlpool tiger and haval crypts.\n";
+		print "        Handle MD5, SHA1, MD4 SHA2 (all uc(sha2) types) GOST WHILRPOOL TIGER HAVAL which output hex in uppercase.\n";
+		print "        Handle md5u, sha1u md4u, sha2*u gostu whirlpoolu tigeru havalu which encode to UTF16LE.\n";
 		print "          prior to hashing. Warning, be careful with md5u and usrname=uni,\n";
 		print "          they will 'clash'\n";
-		print "        Handle md5_64, sha1_64, md4_64, sha2*_64 gost_64 whirlpool_64 which output in\n";
+		print "        Handle md5_64, sha1_64, md4_64, sha2*_64 gost_64 whirlpool_64 tiger_64 haval_64 which output in\n";
 		print "          'standard' base-64 which is \"./0-9A-Za-z\"\n";
 		print "        Handle md5_64e, sha1_64e, md4_64e, sha2*_64e goste, whirlpoole which output in\n";
 		print "          'standard' base-64 which is \"./0-9A-Za-z\" with '=' padding up to even\n";
@@ -1699,23 +1735,61 @@ sub dynamic_compile {
 			$dynamic_args==37 && do {$fmt='sha1($u.$p),usrname=lc';		last SWITCH; };
 			$dynamic_args==38 && do {$fmt='sha1($s.sha1($s.sha1($p))),saltlen=20';	last SWITCH; };
 			$dynamic_args==50 && do {$fmt='sha224($p)';					last SWITCH; };
-			$dynamic_args==51 && do {$fmt='sha224($s.$p),saltlen=2';	last SWITCH; };
+			$dynamic_args==51 && do {$fmt='sha224($s.$p),saltlen=6';	last SWITCH; };
 			$dynamic_args==52 && do {$fmt='sha224($p.$s)';				last SWITCH; };
+			$dynamic_args==53 && do {$fmt='sha224(sha224($p)';			last SWITCH; };
+			$dynamic_args==54 && do {$fmt='sha224(sha224_raw($p))';	    last SWITCH; };
+			$dynamic_args==55 && do {$fmt='sha224(sha224($p).$s),saltlen=6';            last SWITCH; };
+			$dynamic_args==56 && do {$fmt='sha224($s.sha224($p)),saltlen=6';            last SWITCH; };
+			$dynamic_args==57 && do {$fmt='sha224(sha224($s).sha224($p)),saltlen=6';	last SWITCH; };
 			$dynamic_args==60 && do {$fmt='sha256($p)';					last SWITCH; };
-			$dynamic_args==61 && do {$fmt='sha256($s.$p),saltlen=2';	last SWITCH; };
+			$dynamic_args==61 && do {$fmt='sha256($s.$p),saltlen=6';	last SWITCH; };
 			$dynamic_args==62 && do {$fmt='sha256($p.$s)';				last SWITCH; };
+			$dynamic_args==63 && do {$fmt='sha256(sha256($p)';			last SWITCH; };
+			$dynamic_args==64 && do {$fmt='sha256(sha256_raw($p))';	    last SWITCH; };
+			$dynamic_args==65 && do {$fmt='sha256(sha256($p).$s),saltlen=6';            last SWITCH; };
+			$dynamic_args==66 && do {$fmt='sha256($s.sha256($p)),saltlen=6';            last SWITCH; };
+			$dynamic_args==67 && do {$fmt='sha256(sha256($s).sha256($p)),saltlen=6';	last SWITCH; };
 			$dynamic_args==70 && do {$fmt='sha384($p)';					last SWITCH; };
-			$dynamic_args==71 && do {$fmt='sha384($s.$p),saltlen=2';	last SWITCH; };
+			$dynamic_args==71 && do {$fmt='sha384($s.$p),saltlen=6';	last SWITCH; };
 			$dynamic_args==72 && do {$fmt='sha384($p.$s)';				last SWITCH; };
+			$dynamic_args==73 && do {$fmt='sha384(sha384($p)';			last SWITCH; };
+			$dynamic_args==74 && do {$fmt='sha384(sha384_raw($p))';	    last SWITCH; };
+			$dynamic_args==75 && do {$fmt='sha384(sha384($p).$s),saltlen=6';            last SWITCH; };
+			$dynamic_args==76 && do {$fmt='sha384($s.sha384($p)),saltlen=6';            last SWITCH; };
+			$dynamic_args==77 && do {$fmt='sha384(sha384($s).sha384($p)),saltlen=6';	last SWITCH; };
 			$dynamic_args==80 && do {$fmt='sha512($p)';					last SWITCH; };
-			$dynamic_args==81 && do {$fmt='sha512($s.$p),saltlen=2';	last SWITCH; };
+			$dynamic_args==81 && do {$fmt='sha512($s.$p),saltlen=6';	last SWITCH; };
 			$dynamic_args==82 && do {$fmt='sha512($p.$s)';				last SWITCH; };
+			$dynamic_args==83 && do {$fmt='sha512(sha512($p)';			last SWITCH; };
+			$dynamic_args==84 && do {$fmt='sha512(sha512_raw($p))';	    last SWITCH; };
+			$dynamic_args==85 && do {$fmt='sha512(sha512($p).$s),saltlen=6';            last SWITCH; };
+			$dynamic_args==86 && do {$fmt='sha512($s.sha512($p)),saltlen=6';            last SWITCH; };
+			$dynamic_args==87 && do {$fmt='sha512(sha512($s).sha512($p)),saltlen=6';	last SWITCH; };
 			$dynamic_args==90 && do {$fmt='gost($p)';					last SWITCH; };
-			$dynamic_args==91 && do {$fmt='gost($s.$p),saltlen=2';		last SWITCH; };
+			$dynamic_args==91 && do {$fmt='gost($s.$p),saltlen=6';		last SWITCH; };
 			$dynamic_args==92 && do {$fmt='gost($p.$s)';				last SWITCH; };
-			$dynamic_args==100 && do {$fmt='whirlpool($p)';				last SWITCH; };
-			$dynamic_args==101 && do {$fmt='whirlpool($s.$p),saltlen=2';	last SWITCH; };
-			$dynamic_args==102 && do {$fmt='whirlpool($p.$s)';			last SWITCH; };
+			$dynamic_args==93 && do {$fmt='gost(gost($p)';			    last SWITCH; };
+			$dynamic_args==94 && do {$fmt='gost(gost_raw($p))';	        last SWITCH; };
+			$dynamic_args==95 && do {$fmt='gost(gost($p).$s),saltlen=6';        last SWITCH; };
+			$dynamic_args==96 && do {$fmt='gost($s.gost($p)),saltlen=6';        last SWITCH; };
+			$dynamic_args==97 && do {$fmt='gost(gost($s).gost($p)),saltlen=6';	last SWITCH; };
+			$dynamic_args==100 && do {$fmt='whirlpool($p)';					last SWITCH; };
+			$dynamic_args==101 && do {$fmt='whirlpool($s.$p),saltlen=6';	last SWITCH; };
+			$dynamic_args==102 && do {$fmt='whirlpool($p.$s)';				last SWITCH; };
+			$dynamic_args==103 && do {$fmt='whirlpool(whirlpool($p)';		last SWITCH; };
+			$dynamic_args==104 && do {$fmt='whirlpool(whirlpool_raw($p))';	last SWITCH; };
+			$dynamic_args==105 && do {$fmt='whirlpool(whirlpool($p).$s),saltlen=6';				last SWITCH; };
+			$dynamic_args==106 && do {$fmt='whirlpool($s.whirlpool($p)),saltlen=6';				last SWITCH; };
+			$dynamic_args==107 && do {$fmt='whirlpool(whirlpool($s).whirlpool($p)),saltlen=6';	last SWITCH; };
+			$dynamic_args==110 && do {$fmt='tiger($p)';					last SWITCH; };
+			$dynamic_args==111 && do {$fmt='tiger($s.$p),saltlen=6';	last SWITCH; };
+			$dynamic_args==112 && do {$fmt='tiger($p.$s)';				last SWITCH; };
+			$dynamic_args==113 && do {$fmt='tiger(tiger($p))';		last SWITCH; };
+			$dynamic_args==114 && do {$fmt='tiger(tiger_raw($p))';	last SWITCH; };
+			$dynamic_args==115 && do {$fmt='tiger(tiger($p).$s),saltlen=6';				last SWITCH; };
+			$dynamic_args==116 && do {$fmt='tiger($s.tiger($p)),saltlen=6';				last SWITCH; };
+			$dynamic_args==117 && do {$fmt='tiger(tiger($s).tiger($p)),saltlen=6';	last SWITCH; };
 
 			# 7, 17, 19, 20, 21, 27, 28 are still handled by 'special' functions.
 
@@ -1729,8 +1803,29 @@ sub dynamic_compile {
 			$dynamic_args==1007 && do {$fmt='md5(md5($p).$s)';			last SWITCH; };
 			$dynamic_args==1008 && do {$fmt='md5($p.$s),saltlen=16';	last SWITCH; };
 			$dynamic_args==1009 && do {$fmt='md5($s.$p),saltlen=16';	last SWITCH; };
-			$dynamic_args==1010 && do {$fmt='sha256($s.$p),saltlen=2';	last SWITCH; };
 			# dyna-1010 not handled yet (the pad null to 100 bytes)
+			$dynamic_args==1011 && do {$fmt='md5($p.md5($s)),saltlen=6';	last SWITCH; };
+			$dynamic_args==1012 && do {$fmt='md5($p.md5($s)),saltlen=6';	last SWITCH; };
+			$dynamic_args==1013 && do {$fmt='md5($p.md5($u)),username';	last SWITCH; };
+			$dynamic_args==1014 && do {$fmt='md5($p.$s),saltlen=56';	last SWITCH; };
+			$dynamic_args==1015 && do {$fmt='md5(md5($p.$u).$s),saltlen=6,username';	last SWITCH; };
+			$dynamic_args==1018 && do {$fmt='md5(sha1(sha1($p)))';	last SWITCH; };
+			$dynamic_args==1019 && do {$fmt='md5(sha1(sha1(md5($p))))';	last SWITCH; };
+			$dynamic_args==1020 && do {$fmt='md5(sha1(md5($p)))';	last SWITCH; };
+			$dynamic_args==1021 && do {$fmt='md5(sha1(md5(sha1($p))))';	last SWITCH; };
+			$dynamic_args==1022 && do {$fmt='md5(sha1(md5(sha1(md5($p)))))';	last SWITCH; };
+			$dynamic_args==1023 && do {$fmt='trunc32(sha1($p))';	last SWITCH; };
+			$dynamic_args==1024 && do {$fmt='trunc32(sha1(md5($p)))';	last SWITCH; };
+			$dynamic_args==1025 && do {$fmt='trunc32(sha1(md5(md5($p))))';	last SWITCH; };
+			$dynamic_args==1026 && do {$fmt='trunc32(sha1(sha1($p)))';	last SWITCH; };
+			$dynamic_args==1027 && do {$fmt='trunc32(sha1(sha1(sha1($p))))';	last SWITCH; };
+			$dynamic_args==1028 && do {$fmt='trunc32(sha1(sha1_raw($p)))';	last SWITCH; };
+			$dynamic_args==1029 && do {$fmt='trunc32(sha256($p))';	last SWITCH; };
+			$dynamic_args==1030 && do {$fmt='trunc32(whirlpool($p))';	last SWITCH; };
+			$dynamic_args==1031 && do {$fmt='trunc32(gost($p))';	last SWITCH; };
+			$dynamic_args==1300 && do {$fmt='md5(md5_raw($p))';	last SWITCH; };
+			$dynamic_args==1350 && do {$fmt='md5(md5($s.$p).$c1.$s),saltlen=2,const1=:';	last SWITCH; };
+
 			return $func;
 		}
 		# allow the generic compiler to handle these types.
@@ -1793,7 +1888,10 @@ sub do_dynamic_GetToken {
 	if (substr($exprStr, 0,10) eq "sha384_raw") { push(@gen_toks, "f384r"); return substr($exprStr,10); }
 	if (substr($exprStr, 0,10) eq "sha512_raw") { push(@gen_toks, "f512r"); return substr($exprStr,10); }
 	if (substr($exprStr, 0, 8) eq "gost_raw")   { push(@gen_toks, "fgostr");return substr($exprStr, 8); }
-	if (substr($exprStr, 0,13) eq "whirlpool_raw")   { push(@gen_toks, "fwrlpr");return substr($exprStr, 13); }
+	if (substr($exprStr, 0,13) eq "whirlpool_raw") { push(@gen_toks, "fwrlpr");return substr($exprStr, 13); }
+	if (substr($exprStr, 0, 9) eq "tiger_raw")     { push(@gen_toks, "ftigr"); return substr($exprStr, 9); }
+	if (substr($exprStr, 0,13) eq "ripemd160_raw") { push(@gen_toks, "fripr"); return substr($exprStr,13); }
+	if (substr($exprStr, 0,12) eq "haval256_raw")  { push(@gen_toks, "fhavr"); return substr($exprStr,12); }
 
 	$gen_lastTokIsFunc=1;
 	$stmp = uc substr($exprStr, 0, 3);
@@ -1847,6 +1945,26 @@ sub do_dynamic_GetToken {
 		if (substr($exprStr, 0,10) eq "whirlpoolu")     { push(@gen_toks, "fwrlpu"); return substr($exprStr, 10); }
 		if (substr($exprStr, 0, 9) eq "WHIRLPOOL")      { push(@gen_toks, "fwrlpH"); return substr($exprStr, 9); }
 		if (substr($exprStr, 0, 9) eq "whirlpool")      { push(@gen_toks, "fwrlph"); return substr($exprStr, 9); }
+	} elsif ($stmp eq "TIG") {
+		if (substr($exprStr, 0, 9) eq "tiger_64e")  { push(@gen_toks, "ftige"); return substr($exprStr, 9); }
+		if (substr($exprStr, 0, 8) eq "tiger_64")   { push(@gen_toks, "ftig6"); return substr($exprStr, 8); }
+		if (substr($exprStr, 0, 6) eq "tigeru")     { push(@gen_toks, "ftigu"); return substr($exprStr, 6); }
+		if (substr($exprStr, 0, 5) eq "TIGER")      { push(@gen_toks, "ftigH"); return substr($exprStr, 5); }
+		if (substr($exprStr, 0, 5) eq "tiger")      { push(@gen_toks, "ftigh"); return substr($exprStr, 5); }
+	} elsif ($stmp eq "RIP") {
+		if (substr($exprStr, 0,13) eq "ripemd160_64e")  { push(@gen_toks, "fripe"); return substr($exprStr,13); }
+		if (substr($exprStr, 0,12) eq "ripemd160_64")   { push(@gen_toks, "frip6"); return substr($exprStr,12); }
+		if (substr($exprStr, 0,10) eq "ripemd160u")     { push(@gen_toks, "fripu"); return substr($exprStr,10); }
+		if (substr($exprStr, 0, 9) eq "RIPEMD160")      { push(@gen_toks, "fripH"); return substr($exprStr, 9); }
+		if (substr($exprStr, 0, 9) eq "ripemd160")      { push(@gen_toks, "friph"); return substr($exprStr, 9); }
+	} elsif ($stmp eq "HAV") {
+		if (substr($exprStr, 0,12) eq "haval256_64e")  { push(@gen_toks, "fhave"); return substr($exprStr,12); }
+		if (substr($exprStr, 0,11) eq "haval256_64")   { push(@gen_toks, "fhav6"); return substr($exprStr,11); }
+		if (substr($exprStr, 0, 9) eq "haval256u")     { push(@gen_toks, "fhavu"); return substr($exprStr, 9); }
+		if (substr($exprStr, 0, 8) eq "HAVEL256")      { push(@gen_toks, "fhavH"); return substr($exprStr, 8); }
+		if (substr($exprStr, 0, 8) eq "haval256")      { push(@gen_toks, "fhavh"); return substr($exprStr, 8); }
+	} elsif ($stmp eq "TRU") {
+		if (substr($exprStr, 0,7) eq "trunc32")  { push(@gen_toks, "ftr32"); return substr($exprStr, 7); }
 	}
 
 	$gen_lastTokIsFunc=0;
@@ -2240,6 +2358,7 @@ sub dynamic_app_6  { $gen_Stack[@gen_Stack-1] .= $gen_c[5]; }
 sub dynamic_app_7  { $gen_Stack[@gen_Stack-1] .= $gen_c[6]; }
 sub dynamic_app_8  { $gen_Stack[@gen_Stack-1] .= $gen_c[7]; }
 sub dynamic_app_9  { $gen_Stack[@gen_Stack-1] .= $gen_c[8]; }
+sub dynamic_ftr32  { $h = pop @gen_Stack; $h = substr($h,0,32);  $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_f5h    { $h = pop @gen_Stack; $h = md5_hex($h);  $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_f1h    { $h = pop @gen_Stack; $h = sha1_hex($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_f4h    { $h = pop @gen_Stack; $h = md4_hex($h);  $gen_Stack[@gen_Stack-1] .= $h; return $h; }
@@ -2294,3 +2413,21 @@ sub dynamic_fwrlp6 { $h = pop @gen_Stack; $h = whirlpool_base64($h); $gen_Stack[
 sub dynamic_fwrlpe { $h = pop @gen_Stack; $h = whirlpool_base64($h); while (length($h)%4) { $h .= "="; } $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_fwrlpu { $h = pop @gen_Stack; $h = whirlpool_hex(encode("UTF-16LE",$h)); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_fwrlpr { $h = pop @gen_Stack; $h = whirlpool($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_ftigh  { $h = pop @gen_Stack; $h = tiger_hex($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_ftigH  { $h = pop @gen_Stack; $h = uc tiger_hex($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_ftig6  { $h = pop @gen_Stack; $h = tiger_base64($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_ftige  { $h = pop @gen_Stack; $h = tiger_base64($h); while (length($h)%4) { $h .= "="; } $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_ftigu  { $h = pop @gen_Stack; $h = tiger_hex(encode("UTF-16LE",$h)); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_ftigr  { $h = pop @gen_Stack; $h = tiger($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_friph  { $h = pop @gen_Stack; $h = ripemd160_hex($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_fripH  { $h = pop @gen_Stack; $h = uc ripemd160_hex($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_frip6  { $h = pop @gen_Stack; $h = ripemd160_base64($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_fripe  { $h = pop @gen_Stack; $h = ripemd160_base64($h); while (length($h)%4) { $h .= "="; } $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_fripu  { $h = pop @gen_Stack; $h = ripemd160_hex(encode("UTF-16LE",$h)); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_fripr  { $h = pop @gen_Stack; $h = ripemd160($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_fhavh  { $h = pop @gen_Stack; $h = haval256_hex($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_fhavH  { $h = pop @gen_Stack; $h = uc haval256_hex($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_fhav6  { $h = pop @gen_Stack; $h = haval256_base64($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_fhave  { $h = pop @gen_Stack; $h = haval256_base64($h); while (length($h)%4) { $h .= "="; } $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_fhavu  { $h = pop @gen_Stack; $h = haval256_hex(encode("UTF-16LE",$h)); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_fhavr  { $h = pop @gen_Stack; $h = haval256($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }

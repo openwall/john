@@ -53,7 +53,7 @@
  * Renamed and changed from md5_gen* to dynamic*.  We handle MD5 and SHA1
  * at the present time.  More crypt types 'may' be added later.
  * Added SHA2 (SHA224, SHA256, SHA384, SHA512), GOST, Whirlpool crypt types.
- * Whirlpool only if OPENSSL_VERSION_NUMBER >= 0x10000000
+ * Whirlpool use oSSSL if OPENSSL_VERSION_NUMBER >= 0x10000000, otherwise use sph_* code.
  *
  */
 
@@ -256,7 +256,6 @@ static Dynamic_Predicate_t Dynamic_Predicate[] =  {
 	{ "DynamicFunc__GOST_crypt_input2_overwrite_input1", DynamicFunc__GOST_crypt_input2_overwrite_input1 },
 	{ "DynamicFunc__GOST_crypt_input1_to_output1_FINAL", DynamicFunc__GOST_crypt_input1_to_output1_FINAL },
 	{ "DynamicFunc__GOST_crypt_input2_to_output1_FINAL", DynamicFunc__GOST_crypt_input2_to_output1_FINAL },
-#if OPENSSL_VERSION_NUMBER >= 0x10000000
 	{ "DynamicFunc__WHIRLPOOL_crypt_input1_append_input2", DynamicFunc__WHIRLPOOL_crypt_input1_append_input2 },
 	{ "DynamicFunc__WHIRLPOOL_crypt_input2_append_input1", DynamicFunc__WHIRLPOOL_crypt_input2_append_input1 },
 	{ "DynamicFunc__WHIRLPOOL_crypt_input1_overwrite_input1", DynamicFunc__WHIRLPOOL_crypt_input1_overwrite_input1 },
@@ -265,8 +264,14 @@ static Dynamic_Predicate_t Dynamic_Predicate[] =  {
 	{ "DynamicFunc__WHIRLPOOL_crypt_input2_overwrite_input1", DynamicFunc__WHIRLPOOL_crypt_input2_overwrite_input1 },
 	{ "DynamicFunc__WHIRLPOOL_crypt_input1_to_output1_FINAL", DynamicFunc__WHIRLPOOL_crypt_input1_to_output1_FINAL },
 	{ "DynamicFunc__WHIRLPOOL_crypt_input2_to_output1_FINAL", DynamicFunc__WHIRLPOOL_crypt_input2_to_output1_FINAL },
-#endif
-
+	{ "DynamicFunc__Tiger_crypt_input1_append_input2", DynamicFunc__Tiger_crypt_input1_append_input2 },
+	{ "DynamicFunc__Tiger_crypt_input2_append_input1", DynamicFunc__Tiger_crypt_input2_append_input1 },
+	{ "DynamicFunc__Tiger_crypt_input1_overwrite_input1", DynamicFunc__Tiger_crypt_input1_overwrite_input1 },
+	{ "DynamicFunc__Tiger_crypt_input2_overwrite_input2", DynamicFunc__Tiger_crypt_input2_overwrite_input2 },
+	{ "DynamicFunc__Tiger_crypt_input1_overwrite_input2", DynamicFunc__Tiger_crypt_input1_overwrite_input2 },
+	{ "DynamicFunc__Tiger_crypt_input2_overwrite_input1", DynamicFunc__Tiger_crypt_input2_overwrite_input1 },
+	{ "DynamicFunc__Tiger_crypt_input1_to_output1_FINAL", DynamicFunc__Tiger_crypt_input1_to_output1_FINAL },
+	{ "DynamicFunc__Tiger_crypt_input2_to_output1_FINAL", DynamicFunc__Tiger_crypt_input2_to_output1_FINAL },
 
 	/* These are now depricated.  When we find them, 2 functions get called. The functions HAVE been kept in dynamic_fmt.c, but they are VERY thin */
 	{ "DynamicFunc__SHA1_crypt_input1_append_input2_base16", DynamicFunc__SHA1_crypt_input1_append_input2_base16 },
@@ -305,14 +310,19 @@ static Dynamic_Predicate_t Dynamic_Predicate[] =  {
 	{ "DynamicFunc__GOST_crypt_input2_overwrite_input2_base16", DynamicFunc__GOST_crypt_input2_overwrite_input2_base16 },
 	{ "DynamicFunc__GOST_crypt_input1_overwrite_input2_base16", DynamicFunc__GOST_crypt_input1_overwrite_input2_base16 },
 	{ "DynamicFunc__GOST_crypt_input2_overwrite_input1_base16", DynamicFunc__GOST_crypt_input2_overwrite_input1_base16 },
-#if OPENSSL_VERSION_NUMBER >= 0x10000000
 	{ "DynamicFunc__WHIRLPOOL_crypt_input1_append_input2_base16", DynamicFunc__WHIRLPOOL_crypt_input1_append_input2_base16 },
 	{ "DynamicFunc__WHIRLPOOL_crypt_input2_append_input1_base16", DynamicFunc__WHIRLPOOL_crypt_input2_append_input1_base16 },
 	{ "DynamicFunc__WHIRLPOOL_crypt_input1_overwrite_input1_base16", DynamicFunc__WHIRLPOOL_crypt_input1_overwrite_input1_base16 },
 	{ "DynamicFunc__WHIRLPOOL_crypt_input2_overwrite_input2_base16", DynamicFunc__WHIRLPOOL_crypt_input2_overwrite_input2_base16 },
 	{ "DynamicFunc__WHIRLPOOL_crypt_input1_overwrite_input2_base16", DynamicFunc__WHIRLPOOL_crypt_input1_overwrite_input2_base16 },
 	{ "DynamicFunc__WHIRLPOOL_crypt_input2_overwrite_input1_base16", DynamicFunc__WHIRLPOOL_crypt_input2_overwrite_input1_base16 },
-#endif
+	{ "DynamicFunc__Tiger_crypt_input1_append_input2_base16", DynamicFunc__Tiger_crypt_input1_append_input2_base16 },
+	{ "DynamicFunc__Tiger_crypt_input2_append_input1_base16", DynamicFunc__Tiger_crypt_input2_append_input1_base16 },
+	{ "DynamicFunc__Tiger_crypt_input1_overwrite_input1_base16", DynamicFunc__Tiger_crypt_input1_overwrite_input1_base16 },
+	{ "DynamicFunc__Tiger_crypt_input2_overwrite_input2_base16", DynamicFunc__Tiger_crypt_input2_overwrite_input2_base16 },
+	{ "DynamicFunc__Tiger_crypt_input1_overwrite_input2_base16", DynamicFunc__Tiger_crypt_input1_overwrite_input2_base16 },
+	{ "DynamicFunc__Tiger_crypt_input2_overwrite_input1_base16", DynamicFunc__Tiger_crypt_input2_overwrite_input1_base16 },
+
 
 	// Depricated.  These are the 'original' md5_gen version. We have changed to using Dynamic_Func__ but still 'parse'
 	// and use the MD5GenBaseFunc__ script files.
@@ -487,6 +497,7 @@ static Dynamic_Str_Flag_t Dynamic_Str_sFlag[] =  {
 	{ "MGF_SHA512_128_BYTE_FINISH",       MGF_SHA512_128_BYTE_FINISH },
 	{ "MGF_GOST_64_BYTE_FINISH",          MGF_GOST_64_BYTE_FINISH },
 	{ "MGF_WHIRLPOOL_128_BYTE_FINISH",    MGF_WHIRLPOOL_128_BYTE_FINISH },
+	{ "MGF_Tiger_48_BYTE_FINISH",         MGF_Tiger_48_BYTE_FINISH },
 	{ NULL, 0 }};
 
 static DYNAMIC_Setup *pSetup;

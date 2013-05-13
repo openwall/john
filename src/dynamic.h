@@ -18,7 +18,7 @@
  * Renamed and changed from md5_gen* to dynamic*.  We handle MD5 and SHA1
  * at the present time.  More crypt types 'may' be added later.
  * Added SHA2 (SHA224, SHA256, SHA384, SHA512), GOST, Whirlpool crypt types.
- * Whirlpool only if OPENSSL_VERSION_NUMBER >= 0x10000000
+ * Whirlpool use oSSSL if OPENSSL_VERSION_NUMBER >= 0x10000000, otherwise use sph_* code.
  */
 
 #if !defined (__DYNAMIC___H)
@@ -115,6 +115,7 @@ typedef struct DYNAMIC_Constants_t
 #define MGF_SHA512_128_BYTE_FINISH       0x02000000
 #define MGF_GOST_64_BYTE_FINISH          0x04000000
 #define MGF_WHIRLPOOL_128_BYTE_FINISH    0x08000000
+#define MGF_Tiger_48_BYTE_FINISH         0x10000000
 
 typedef struct DYNAMIC_Setup_t
 {
@@ -348,7 +349,6 @@ extern void DynamicFunc__GOST_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS);
 extern void DynamicFunc__GOST_crypt_input1_to_output1_FINAL(DYNA_OMP_PARAMS);
 extern void DynamicFunc__GOST_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS);
 
-#if OPENSSL_VERSION_NUMBER >= 0x10000000
 extern void DynamicFunc__WHIRLPOOL_crypt_input1_append_input2(DYNA_OMP_PARAMS);
 extern void DynamicFunc__WHIRLPOOL_crypt_input2_append_input1(DYNA_OMP_PARAMS);
 extern void DynamicFunc__WHIRLPOOL_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS);
@@ -357,7 +357,15 @@ extern void DynamicFunc__WHIRLPOOL_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS
 extern void DynamicFunc__WHIRLPOOL_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS);
 extern void DynamicFunc__WHIRLPOOL_crypt_input1_to_output1_FINAL(DYNA_OMP_PARAMS);
 extern void DynamicFunc__WHIRLPOOL_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS);
-#endif
+
+extern void DynamicFunc__Tiger_crypt_input1_append_input2(DYNA_OMP_PARAMS);
+extern void DynamicFunc__Tiger_crypt_input2_append_input1(DYNA_OMP_PARAMS);
+extern void DynamicFunc__Tiger_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS);
+extern void DynamicFunc__Tiger_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS);
+extern void DynamicFunc__Tiger_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS);
+extern void DynamicFunc__Tiger_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS);
+extern void DynamicFunc__Tiger_crypt_input1_to_output1_FINAL(DYNA_OMP_PARAMS);
+extern void DynamicFunc__Tiger_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS);
 
 // These 3 dump the raw crypt back into input (only at the head of it).
 // they are for phpass, wordpress, etc.
@@ -427,14 +435,17 @@ extern void DynamicFunc__GOST_crypt_input1_overwrite_input1_base16(DYNA_OMP_PARA
 extern void DynamicFunc__GOST_crypt_input2_overwrite_input2_base16(DYNA_OMP_PARAMS);
 extern void DynamicFunc__GOST_crypt_input1_overwrite_input2_base16(DYNA_OMP_PARAMS);
 extern void DynamicFunc__GOST_crypt_input2_overwrite_input1_base16(DYNA_OMP_PARAMS);
-#if OPENSSL_VERSION_NUMBER >= 0x10000000
 extern void DynamicFunc__WHIRLPOOL_crypt_input1_append_input2_base16(DYNA_OMP_PARAMS);
 extern void DynamicFunc__WHIRLPOOL_crypt_input2_append_input1_base16(DYNA_OMP_PARAMS);
 extern void DynamicFunc__WHIRLPOOL_crypt_input1_overwrite_input1_base16(DYNA_OMP_PARAMS);
 extern void DynamicFunc__WHIRLPOOL_crypt_input2_overwrite_input2_base16(DYNA_OMP_PARAMS);
 extern void DynamicFunc__WHIRLPOOL_crypt_input1_overwrite_input2_base16(DYNA_OMP_PARAMS);
 extern void DynamicFunc__WHIRLPOOL_crypt_input2_overwrite_input1_base16(DYNA_OMP_PARAMS);
-#endif
-
+extern void DynamicFunc__Tiger_crypt_input1_append_input2_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__Tiger_crypt_input2_append_input1_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__Tiger_crypt_input1_overwrite_input1_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__Tiger_crypt_input2_overwrite_input2_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__Tiger_crypt_input1_overwrite_input2_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__Tiger_crypt_input2_overwrite_input1_base16(DYNA_OMP_PARAMS);
 
 #endif // __DYNAMIC___H
