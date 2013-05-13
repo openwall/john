@@ -8,7 +8,7 @@
 #include "arch.h"
 #include "common.h"
 
-static char itoa64[64] =
+char itoa64[64] =
 	"./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 char atoi64[0x100];
 
