@@ -447,7 +447,7 @@ void listconf_parse_late(void)
 					ShowIt = 1;
 				if (format->methods.prepare != fmt_default_prepare && !strcasecmp(&options.listconf[15], "prepare"))
 					ShowIt = 1;
-				if (format->methods.valid != fmt_default_valid && !strcasecmp(&options.listconf[15], "valid"))
+				if (!strcasecmp(&options.listconf[15], "valid"))
 					ShowIt = 1;
 				if (format->methods.split != fmt_default_split && !strcasecmp(&options.listconf[15], "split"))
 					ShowIt = 1;
@@ -486,8 +486,7 @@ void listconf_parse_late(void)
 					printf("\tinit()\n");
 				if (format->methods.prepare != fmt_default_prepare)
 					printf("\tprepare()\n");
-				if (format->methods.valid != fmt_default_valid)
-					printf("\tvalid()\n");
+				printf("\tvalid()\n");
 				if (format->methods.split != fmt_default_split)
 					printf("\tsplit()\n");
 				if (format->methods.binary != fmt_default_binary)
