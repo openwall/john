@@ -741,6 +741,8 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 
 	if (cp[cipherTextLen] && cp[cipherTextLen] != '$')
 		return 0;
+	if (strlen(&cp[cipherTextLen]) > SALT_SIZE)
+		return 0;
 	if (pPriv->dynamic_FIXED_SALT_SIZE && ciphertext[pPriv->dynamic_SALT_OFFSET-1] != '$')
 		return 0;
 	if (pPriv->dynamic_FIXED_SALT_SIZE > 0 && strlen(&ciphertext[pPriv->dynamic_SALT_OFFSET]) != pPriv->dynamic_FIXED_SALT_SIZE) {
