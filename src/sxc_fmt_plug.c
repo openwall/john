@@ -104,6 +104,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* iterations */
 		goto err;
+	res = atoi(p);
+	if (res <= 0)
+		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* key size */
 		goto err;
 	res = atoi(p);
@@ -113,10 +116,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if (strlen(p) != BINARY_SIZE * 2)
 		goto err;
+	if (!ishex(p))
+		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* iv length */
 		goto err;
 	res = atoi(p);
-	if (res > 16)
+	if (res <= 0 || res > 16)
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* iv */
 		goto err;
@@ -127,7 +132,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if ((p = strtok(NULL, "*")) == NULL)	/* salt length */
 		goto err;
 	res = atoi(p);
-	if (res > 32)
+	if (res <= 0 || res > 32)
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* salt */
 		goto err;
@@ -137,16 +142,21 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* original length */
 		goto err;
+	res = atoi(p);
+	if (res <= 0 || res > 1024)             /* 1024 because of "unsigned char output[1024];" in crypt_all */
+		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* length */
 		goto err;
 	res = atoi(p);
-	if (res > 1024)
+	if (res <= 0 || res > 1024)
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* content */
 		goto err;
 	if (strlen(p) != res * 2)
 		goto err;
 	if (!ishex(p))
+		goto err;
+	if (strtok(NULL, "*") != NULL)	        /* the end */
 		goto err;
 
 	MEM_FREE(keeptr);
