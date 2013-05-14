@@ -242,10 +242,10 @@ void log_guess(char *login, char *ciphertext, char *rep_plain, char *store_plain
 				                       ": %s", rep_plain);
 			if (cfg_showcand)
 				count2 += (int)sprintf(log.ptr + count2,
-				                       " after %llu crypts",
+				                       " as candidate #%llu",
 				                       ((unsigned long long)
-				                       status.crypts.hi << 32) +
-				                       status.crypts.lo);
+				                       status.cands.hi << 32) +
+				                       status.cands.lo);
 			count2 += (int)sprintf(log.ptr + count2, "\n");
 
 			if (count2 > 0)
