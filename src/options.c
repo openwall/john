@@ -157,6 +157,7 @@ static struct opt_entry opt_list[] = {
 		"%u", &options.regen_lost_salts},
 	{"raw-always-valid", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
 		"%c", &options.dynamic_raw_hashes_always_valid},
+	{"reject-printable", FLG_REJECT_PRINTABLE, FLG_REJECT_PRINTABLE},
 #ifdef HAVE_OPENCL
 	{"platform", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
 		OPT_FMT_STR_ALLOC, &options.ocl_platform},
@@ -324,6 +325,7 @@ void opt_print_hidden_usage(void)
 	puts("--max-run-time=N          gracefully exit after this many seconds");
 	puts("--regen-lost-salts=N      regenerate lost salts (see doc/OPTIONS)");
 	puts("--mkv-stats=FILE          \"Markov\" stats file (see doc/MARKOV)");
+	puts("--reject-printable        reject printable binaries");
 #ifdef HAVE_DL
 	puts("--plugin=NAME[,..]        load this (these) dynamic plugin(s)");
 #endif

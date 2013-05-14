@@ -18,6 +18,7 @@
 #endif
 #include <errno.h>
 #include <string.h>
+#include <ctype.h>
 
 #include "arch.h"
 #include "misc.h"
@@ -519,7 +520,8 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 
 	if (!db->password_hash) {
 		ldr_init_password_hash(db);
-		if (cfg_get_bool(SECTION_OPTIONS, NULL, "NoLoaderDupeCheck", 0)) {
+		if (cfg_get_bool(SECTION_OPTIONS, NULL,
+		                 "NoLoaderDupeCheck", 0)) {
 			skip_dupe_checking = 1;
 			if (john_main_process)
 				fprintf(stderr, "No dupe-checking performed "
@@ -532,6 +534,22 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 
 		binary = format->methods.binary(piece);
 		pw_hash = db->password_hash_func(binary);
+
+		if (options.flags & FLG_REJECT_PRINTABLE) {
+			int i = 0;
+
+			while (isprint(((char*)binary)[i]) &&
+			       i < format->params.binary_size)
+				i++;
+
+			if (i == format->params.binary_size) {
+				fprintf(stderr, "rejecting printable binary"
+				        " \"%.*s\" (%s)\n",
+				        format->params.binary_size,
+				        (char*)binary, piece);
+				break;
+			}
+		}
 
 		if (!(db->options->flags & DB_WORDS) && !skip_dupe_checking) {
 			int collisions = 0;

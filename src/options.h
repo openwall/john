@@ -122,6 +122,8 @@
 #define FLG_VECTORIZE			0x0000010000000000ULL
 /* Request to not vectorize */
 #define FLG_SCALAR			0x0000020000000000ULL
+/* Reject printable binaries */
+#define FLG_REJECT_PRINTABLE		0x0000040000000000ULL
 
 /*
  * Structure with option flags and all the parameters.
