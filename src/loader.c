@@ -543,6 +543,7 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 				i++;
 
 			if (i == format->params.binary_size) {
+				if (john_main_process)
 				fprintf(stderr, "rejecting printable binary"
 				        " \"%.*s\" (%s)\n",
 				        format->params.binary_size,
