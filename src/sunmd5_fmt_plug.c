@@ -102,10 +102,6 @@
 // it is salted, but very slow, AND there is no difference between 1 and multi salts, so simply turn off salt benchmarks
 #define BENCHMARK_LENGTH		-1
 
-// There 'ARE' more types, but we only handle these 2, at this time.
-#define MAGIC  "$md5,"
-#define MAGIC2 "$md5$"
-
 /* THIS one IS a depricated sun string, but for real:  $md5$3UqYqndY$$6P.aaWOoucxxq.l00SS9k0: Sun MD5 "password"  */
 /* $md5,rounds=5000$GUBv0xjJ$$mSwgIswdjlTY0YxV7HBVm0   passwd  This one was the python code from http://packages.python.org/passlib/lib/passlib.hash.sun_md5_crypt.html, but the rounds are busted. */
 
@@ -259,15 +255,55 @@ static void init(struct fmt_main *self)
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	char *cp;
-	if (strncmp(ciphertext, MAGIC, sizeof(MAGIC) - 1) && strncmp(ciphertext, MAGIC2, sizeof(MAGIC2) - 1))
+	char *pos;
+
+	/* Common prefix. */
+	if (strncmp(ciphertext, "$md5", 4))
 		return 0;
-	cp = strrchr(ciphertext, '$');
-	if (!cp) return 0;
-	if (strlen(cp) != 23) return 0;
-	while (*++cp)
-		if (atoi64[ARCH_INDEX(*cp)] == 0x7F)
+	ciphertext += 4;
+
+	/* Optional rounds. */
+	if (!strncmp(ciphertext, ",rounds=", 8) ||
+	    !strncmp(ciphertext, "$rounds=", 8)) {
+		pos = ciphertext += 8;
+		while (*ciphertext >= '0' && *ciphertext <= '9')
+			ciphertext++;
+		/* Accept only numbers from 0 to 999999? */
+		/* Zero-padding is ok */
+		if (ciphertext - pos < 1 || ciphertext - pos > 6)
 			return 0;
+	}
+	if (*ciphertext++ != '$')
+		return 0;
+
+	/* Salt per se. */
+	pos = ciphertext;
+	while (atoi64[ARCH_INDEX(*ciphertext)] != 0x7F)
+		ciphertext++;
+	/* Upto 16 salt chars? */
+	if (ciphertext - pos > 16)
+		return 0;
+
+	/* One or two $ */
+	if (*ciphertext++ != '$')
+		return 0;
+	if (*ciphertext == '$')
+		ciphertext++;
+
+	/* Hash per se. */
+	pos = ciphertext;
+	while (atoi64[ARCH_INDEX(*ciphertext)] != 0x7F)
+		ciphertext++;
+	/* Samples from CMIYC-12 have garbage in padding bits.
+	   Hence the check is disabled for now. */
+	if (ciphertext - pos != 22
+	    /* || atoi64[ARCH_INDEX(*(ciphertext - 1))] & 0x0F */)
+		return 0;
+
+	/* No garbage at the end */
+	if (*ciphertext)
+		return 0;
+
 	return 1;
 }
 
