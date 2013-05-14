@@ -178,8 +178,8 @@ static u8 *GetFld(u8 *p, u8 **pRet) {
 static int is_hex_str(const u8 *cp) {
 	int len, i;
 
-	if (!cp)
-		return 1; /* empty is 'fine' */
+	if (!cp || !*cp)
+		return 0; /* empty is NOT 'fine' */
 	len = strlen((c8*)cp);
 	for (i = 0; i < len; ++i) {
 		if (atoi16[ARCH_INDEX(cp[i])] == 0x7F)
@@ -211,7 +211,7 @@ unsigned get_hex_num(const u8 *cp) {
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	u8 *p, *cp;
-	int cnt, len, data_len;
+	int cnt, data_len;
 	u32 crc;
 	FILE *in;
 	const char *sFailStr;
@@ -227,54 +227,53 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	p = &cp[7];
 	p = GetFld(p, &cp);
-	if (!p || *p==0) {
+	if (!is_hex_str(cp)) {
 		sFailStr = "Out of data, reading count of hashes field"; goto Bail; }
 	sscanf((c8*)cp, "%x", &cnt);
 	if (cnt < 1 || cnt > MAX_PKZ_FILES) {
 		sFailStr = "Count of hashes field out of range"; goto Bail; }
 	p = GetFld(p, &cp);
-	if (!p || *p==0 || *cp < '1' || *cp > '2') {
+	if (cp[0] < '1' || cp[0] > '2' || cp[1]) {
 		sFailStr = "Number of valid hash bytes empty or out of range"; goto Bail; }
 
 	while (cnt--) {
 		p = GetFld(p, &cp);
-		if ( !p || *cp<'1' || *cp>'3') {
+		if (cp[0]<'1' || cp[0]>'3' || cp[1]) {
 			sFailStr = "Invalid data enumeration type"; goto Bail; }
-		type = *cp - '0';
+		type = cp[0] - '0';
 		p = GetFld(p, &cp);
-		if ( !p || !is_hex_str(cp)) {
+		if (!is_hex_str(cp)) {
 			sFailStr = "Invalid type enumeration"; goto Bail; }
 		if (type > 1) {
 			p = GetFld(p, &cp);
-			sscanf((c8*)cp, "%x", &(complen));
-			if ( !p || !cp[0] || !is_hex_str(cp)) {
+			if (!is_hex_str(cp)) {
 				sFailStr = "Invalid compressed length"; goto Bail; }
-			sscanf((c8*)cp, "%x", &len);
+			sscanf((c8*)cp, "%x", &complen);
 			p = GetFld(p, &cp);
-			if ( !p || !cp[0] || !is_hex_str(cp)) {
+			if (!is_hex_str(cp)) {
 				sFailStr = "Invalid data length value"; goto Bail; }
 			p = GetFld(p, &cp);
-			if ( !p || !cp[0] || !is_hex_str(cp)) {
+			if (!is_hex_str(cp)) {
 				sFailStr = "Invalid CRC value"; goto Bail; }
 			sscanf((c8*)cp, "%x", &crc);
 			p = GetFld(p, &cp);
-			if ( !p || !cp[0] || !is_hex_str(cp)) {
+			if (!is_hex_str(cp)) {
 				sFailStr = "Invalid offset length"; goto Bail; }
 			sscanf((c8*)cp, "%lx", &offset);
 			p = GetFld(p, &cp);
-			if ( !p || !cp[0] || !is_hex_str(cp)) {
+			if (!is_hex_str(cp)) {
 				sFailStr = "Invalid offset length"; goto Bail; }
 			sscanf((c8*)cp, "%x", &offex);
 		}
 		p = GetFld(p, &cp);
-		if ( !p || (*cp != '0' && *cp != '8')) {
+		if ((cp[0] != '0' && cp[0] != '8') || cp[1]) {
 			sFailStr = "Compression type enumeration"; goto Bail; }
 		p = GetFld(p, &cp);
-		if ( !p || !is_hex_str(cp)) {
-			sFailStr = "data length value"; goto Bail; }
+		if (!is_hex_str(cp)) {
+			sFailStr = "Invalid data length value"; goto Bail; }
 		sscanf((c8*)cp, "%x", &data_len);
 		p = GetFld(p, &cp);
-		if ( !p || !is_hex_str(cp) || strlen((c8*)cp) != 4) {
+		if (!is_hex_str(cp) || strlen((c8*)cp) != 4) {
 			sFailStr = "invalid checksum value"; goto Bail; }
 		p = GetFld(p, &cp);
 		if (type > 1) {
@@ -287,7 +286,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 					fprintf(stderr, "Error loading a pkzip hash line. The ZIP file '%s' could NOT be found\n", cp);
 					return 0;
 				}
-				sFailStr = ValidateZipContents(in, offset, offex, len, crc);
+				sFailStr = ValidateZipContents(in, offset, offex, complen, crc);
 				if (*sFailStr) {
 					/* this error is listed, even if not in pkzip debugging mode. */
 					fprintf(stderr, "pkzip validation failed [%s] Hash is %s\n", sFailStr, ciphertext);
@@ -308,16 +307,17 @@ static int valid(char *ciphertext, struct fmt_main *self)
 			} else {
 				/* 'inline' data. */
 				if (complen != data_len) {
-					return 0;
-				}
-				if ( !p || !is_hex_str(cp) || strlen((c8*)cp) != data_len<<1) {
-					sFailStr = "invalid checksum value"; goto Bail;
-				}
+					sFailStr = "length of full data does not match the salt len"; goto Bail; }
+				if (!is_hex_str(cp) || strlen((c8*)cp) != data_len<<1) {
+					sFailStr = "invalid inline data"; goto Bail; }
 			}
-		}
+		} else {
+			if (!is_hex_str(cp) || strlen((c8*)cp) != data_len<<1) {
+				sFailStr = "invalid partial data"; goto Bail; }
+                }
 	}
 	p = GetFld(p, &cp);
-	return !strcmp((c8*)cp, "$/pkzip$");
+	return !strcmp((c8*)cp, "$/pkzip$") && !*p;
 
 Bail:;
 #ifdef ZIP_DEBUG
@@ -603,11 +603,6 @@ static void *get_salt(char *ciphertext)
 					salt->H[i].datlen = 384;
 				}
 			} else {
-				/* 'inline' data. */
-				if (salt->compLen != salt->H[i].datlen) {
-					fprintf(stderr, "Error, length of full data does not match the salt len. %s\n", ciphertext);
-					return 0;
-				}
 				salt->H[i].h = mem_alloc_tiny(salt->compLen, MEM_ALIGN_WORD);
 				for (j = 0; j < salt->H[i].datlen; ++j)
 					salt->H[i].h[j] = (atoi16[ARCH_INDEX(cp[j*2])]<<4) + atoi16[ARCH_INDEX(cp[j*2+1])];
