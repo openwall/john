@@ -31,35 +31,7 @@
 
 #include <time.h>
 
-//#define USE_ALLOC
-/* keep a set of rotating P & S boxes */
-#ifdef USE_ALLOC
-static struct box_t {
-  UWORD_32bits *P;
-  UWORD_32bits **S;
-  char key[81];
-  char keybytes;
-} box;
-#endif
-
-#ifndef USE_ALLOC
-static UWORD_32bits bf_P[bf_N+2];
-static UWORD_32bits bf_S[4][256];
-#else
-static UWORD_32bits *bf_P;
-static UWORD_32bits **bf_S;
-#endif
-
-
-void blowfish_first_init(void) {
-#ifdef USE_ALLOC
-      box.P = NULL;
-      box.S = NULL;
-      box.key[0] = 0;
-#endif
-}
-
-static void blowfish_encipher(UWORD_32bits * xl, UWORD_32bits * xr)
+static void blowfish_encipher(UWORD_32bits *bf_P, UWORD_32bits bf_S[][256], UWORD_32bits * xl, UWORD_32bits * xr)
 {
   union aword Xl;
   union aword Xr;
@@ -90,45 +62,13 @@ static void blowfish_encipher(UWORD_32bits * xl, UWORD_32bits * xr)
   *xl = Xr.word;
 }
 
-static void blowfish_init(UBYTE_08bits * key, short keybytes)
+static void blowfish_init(UWORD_32bits bf_P[], UWORD_32bits (*bf_S)[256], UBYTE_08bits * key, short keybytes)
 {
   int i, j;
   UWORD_32bits data;
   UWORD_32bits datal;
   UWORD_32bits datar;
   union aword temp;
-
-  /* is buffer already allocated for this? */
-#ifdef USE_ALLOC
-  // this whole alloc block is really not needed!! It runs slower, and never really frees the last few blocks in the end.
-  // without the continual allocs, we run about 10% faster.  I am not sure why there are there.  It does not appear that the
-  // 'matched' happens very often.
-  if (box.P != NULL) {
-      if ((box.keybytes == keybytes) &&
-	  (!strncmp((char *) (box.key), (char *) key, keybytes))) {
-	/* match! */
-//		  printf("matched\n");
-	bf_P = box.P;
-	bf_S = box.S;
-	return;
-      }
-//	  printf ("Freed\n");
-        MEM_FREE(box.P);
-        for (i = 0; i < 4; i++)
-          MEM_FREE(box.S[i]);
-        MEM_FREE(box.S);
-  }
-  /* initialize new buffer */
-  /* uh... this is over 4k */
-  box.P = (UWORD_32bits *) malloc((bf_N + 2) * sizeof(UWORD_32bits));
-  box.S = (UWORD_32bits **) malloc(4 * sizeof(UWORD_32bits *));
-  for (i = 0; i < 4; i++)
-    box.S[i] = (UWORD_32bits *) malloc(256 * sizeof(UWORD_32bits));
-  bf_P = box.P;
-  bf_S = box.S;
-  box.keybytes = keybytes;
-  strncpy(box.key, (char *) key, keybytes);
-#endif
 
   /* robey: reset blowfish boxes to initial state */
   /* (i guess normally it just keeps scrambling them, but here it's
@@ -153,13 +93,13 @@ static void blowfish_init(UBYTE_08bits * key, short keybytes)
   datal = 0x00000000;
   datar = 0x00000000;
   for (i = 0; i < bf_N + 2; i += 2) {
-    blowfish_encipher(&datal, &datar);
+    blowfish_encipher(bf_P, bf_S, &datal, &datar);
     bf_P[i] = datal;
     bf_P[i + 1] = datar;
   }
   for (i = 0; i < 4; ++i) {
     for (j = 0; j < 256; j += 2) {
-      blowfish_encipher(&datal, &datar);
+      blowfish_encipher(bf_P, bf_S, &datal, &datar);
       bf_S[i][j] = datal;
       bf_S[i][j + 1] = datar;
     }
@@ -173,19 +113,16 @@ static void blowfish_init(UBYTE_08bits * key, short keybytes)
 #define SALT1  0xdeadd061
 #define SALT2  0x23f6b095
 
-#if 0
-/* convert 64-bit encrypted password to text for userfile */
-static char *base64 = "./0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-#endif
-
 static void blowfish_encrypt_pass(char *text, char *new)
 {
   UWORD_32bits left, right;
+  UWORD_32bits bf_S[4][256];
+  UWORD_32bits bf_P[bf_N+2];
 
-  blowfish_init((UBYTE_08bits *) text, strlen(text));
+  blowfish_init(bf_P, bf_S, (UBYTE_08bits *) text, strlen(text));
   left = SALT1;
   right = SALT2;
-  blowfish_encipher(&left, &right);
+  blowfish_encipher(bf_P, bf_S, &left, &right);
 
 #if 1
 #if !ARCH_LITTLE_ENDIAN

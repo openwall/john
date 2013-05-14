@@ -10,6 +10,11 @@
 #include "formats.h"
 #include "common.h"
 #include "blowfish.c"
+#ifdef _OPENMP
+static int omp_t = 1;
+#include <omp.h>
+#define OMP_SCALE               4 // FIXME
+#endif
 
 #define FORMAT_LABEL			"bfegg"
 #define FORMAT_NAME			"Eggdrop Blowfish"
@@ -38,10 +43,8 @@ static struct fmt_tests tests[] = {
     {NULL}
 };
 
-int zerolengthkey = 0;
-
-static char crypt_key[BINARY_SIZE];
-static char saved_key[PLAINTEXT_LENGTH + 1];
+static char (*saved_key)[PLAINTEXT_LENGTH + 1];
+static ARCH_WORD_32 (*crypt_out)[(BINARY_SIZE + 1) / sizeof(ARCH_WORD_32)];
 
 #if defined (_MSC_VER) || defined (__MINGW32__)
 // in VC, _atoi64 is a function.
@@ -66,11 +69,19 @@ static int valid(char *ciphertext, struct fmt_main *self) {
 void init(struct fmt_main *self) {
     const char *pos;
 
+#ifdef _OPENMP
+	omp_t = omp_get_max_threads();
+	self->params.min_keys_per_crypt *= omp_t;
+	omp_t *= OMP_SCALE;
+	self->params.max_keys_per_crypt *= omp_t;
+#endif
+	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
+			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+
     memset(_atoi64, 0x7F, sizeof(_atoi64));
     for (pos = _itoa64; pos <= &_itoa64[63]; pos++)
         _atoi64[ARCH_INDEX(*pos)] = pos - _itoa64;
-
-    blowfish_first_init();
 }
 
 /* The base64 is flawed - we just mimic flaws from the original code */
@@ -104,30 +115,64 @@ static void *binary(char *ciphertext)
 }
 
 static void set_key(char *key, int index) {
-    strnzcpy(saved_key, key, PLAINTEXT_LENGTH+1);
+    strnzcpy(saved_key[index], key, PLAINTEXT_LENGTH+1);
 }
 
 static char *get_key(int index) {
-  return saved_key;
+  return saved_key[index];
 }
 
 static int cmp_all(void *binary, int count) {
-  if (zerolengthkey) return 0;
-  return !memcmp(binary, crypt_key, BINARY_SIZE);
+	int index = 0;
+#ifdef _OPENMP
+	for (; index < count; index++)
+#endif
+		if (!memcmp(binary, crypt_out[index], BINARY_SIZE))
+			return 1;
+	return 0;
+}
+
+static int cmp_one(void *binary, int index)
+{
+	return !memcmp(binary, crypt_out[index], BINARY_SIZE);
 }
 
 static int cmp_exact(char *source, int index) {
   return 1;
 }
 
+static int binary_hash_0(void *binary) { return *(ARCH_WORD_32 *)binary & 0xf; }
+static int binary_hash_1(void *binary) { return *(ARCH_WORD_32 *)binary & 0xff; }
+static int binary_hash_2(void *binary) { return *(ARCH_WORD_32 *)binary & 0xfff; }
+static int binary_hash_3(void *binary) { return *(ARCH_WORD_32 *)binary & 0xffff; }
+static int binary_hash_4(void *binary) { return *(ARCH_WORD_32 *)binary & 0xfffff; }
+static int binary_hash_5(void *binary) { return *(ARCH_WORD_32 *)binary & 0xffffff; }
+static int binary_hash_6(void *binary) { return *(ARCH_WORD_32 *)binary & 0x7ffffff; }
+
+static int get_hash_0(int index) { return crypt_out[index][0] & 0xf; }
+static int get_hash_1(int index) { return crypt_out[index][0] & 0xff; }
+static int get_hash_2(int index) { return crypt_out[index][0] & 0xfff; }
+static int get_hash_3(int index) { return crypt_out[index][0] & 0xffff; }
+static int get_hash_4(int index) { return crypt_out[index][0] & 0xfffff; }
+static int get_hash_5(int index) { return crypt_out[index][0] & 0xffffff; }
+static int get_hash_6(int index) { return crypt_out[index][0] & 0x7ffffff; }
+
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
-	if (saved_key[0] == '\0') {
-		zerolengthkey = 1;
-	} else {
-		zerolengthkey = 0;
-		blowfish_encrypt_pass(saved_key, crypt_key);
+	int index = 0;
+#ifdef _OPENMP
+#pragma omp parallel for
+	for (index = 0; index < count; index++)
+#endif
+	{
+		/*if (saved_key[index][0] == '\0') {
+			zerolengthkey = 1;
+		} else {
+			zerolengthkey = 0; */
+		if (saved_key[index][0] != 0)
+			blowfish_encrypt_pass(saved_key[index],
+				(char*)crypt_out[index]);
 	}
 	return count;
 }
@@ -146,7 +191,7 @@ struct fmt_main fmt_BFEgg = {
     SALT_ALIGN,
     MIN_KEYS_PER_CRYPT,
     MAX_KEYS_PER_CRYPT,
-    FMT_CASE | FMT_8_BIT,
+    FMT_CASE | FMT_8_BIT | FMT_OMP,
     tests
   }, {
     init,
@@ -159,11 +204,13 @@ struct fmt_main fmt_BFEgg = {
     fmt_default_salt,
     fmt_default_source,
     {
-	fmt_default_binary_hash,
-	fmt_default_binary_hash,
-	fmt_default_binary_hash,
-	fmt_default_binary_hash,
-	fmt_default_binary_hash
+        binary_hash_0,
+        binary_hash_1,
+        binary_hash_2,
+        binary_hash_3,
+        binary_hash_4,
+        binary_hash_5,
+        binary_hash_6
     },
 	fmt_default_salt_hash,
 	fmt_default_set_salt,
@@ -172,14 +219,16 @@ struct fmt_main fmt_BFEgg = {
 	fmt_default_clear_keys,
 	crypt_all,
 	{
-	    fmt_default_get_hash,
-	    fmt_default_get_hash,
-	    fmt_default_get_hash,
-	    fmt_default_get_hash,
-	    fmt_default_get_hash
+            get_hash_0,
+            get_hash_1,
+            get_hash_2,
+            get_hash_3,
+            get_hash_4,
+            get_hash_5,
+            get_hash_6
 	},
 	    cmp_all,
-	    cmp_all,
+	    cmp_one,
 	    cmp_exact
   }
 };
