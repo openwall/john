@@ -46,6 +46,7 @@ static int omp_t = 1;
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 #define SHA256_DIGEST_SIZE      32
+#define MaxSalt				64
 
 static struct fmt_tests rar5_tests[] = {
 	{"$rar5$16$37526a0922b4adcc32f8fed5d51bb6c8$16$8955617d9b801def51d734095bb8ecdb$8$9f0b23c98ebb3653", "password"},
@@ -184,7 +185,6 @@ static void rar5kdf(unsigned char *Pwd, size_t PwdLength,
             unsigned char *Salt, size_t SaltLength,
             unsigned char *Key, unsigned char *V1, unsigned char *V2, int Count)
 {
-	const size_t MaxSalt=64;
 	unsigned char SaltData[MaxSalt+4];
 	unsigned char U1[SHA256_DIGEST_SIZE];
 	unsigned char U2[SHA256_DIGEST_SIZE];
