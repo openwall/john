@@ -28,6 +28,9 @@
  * ===========================(LICENSE END)=============================
  *
  * @author   Thomas Pornin <thomas.pornin@cryptolog.com>
+ *
+ * Added code to do RIPEMD256 and RIPEMD320, JimF, 2013.
+ *
  */
 
 #include <stddef.h>
@@ -59,6 +62,16 @@ static const sph_u32 oIV[5] = {
 static const sph_u32 IV[5] = {
 	SPH_C32(0x67452301), SPH_C32(0xEFCDAB89), SPH_C32(0x98BADCFE),
 	SPH_C32(0x10325476), SPH_C32(0xC3D2E1F0)
+};
+
+static const sph_u32 IV256[8] = {
+	SPH_C32(0x67452301), SPH_C32(0xEFCDAB89), SPH_C32(0x98BADCFE), SPH_C32(0x10325476),
+	SPH_C32(0x76543210), SPH_C32(0xFEDCBA98), SPH_C32(0x89ABCDEF), SPH_C32(0x01234567)
+};
+
+static const sph_u32 IV320[10] = {
+	SPH_C32(0x67452301), SPH_C32(0xEFCDAB89), SPH_C32(0x98BADCFE), SPH_C32(0x10325476), SPH_C32(0xC3D2E1F0),
+	SPH_C32(0x76543210), SPH_C32(0xFEDCBA98), SPH_C32(0x89ABCDEF), SPH_C32(0x01234567), SPH_C32(0x3C2D1E0F)
 };
 
 #define ROTL    SPH_ROTL32
@@ -322,15 +335,22 @@ sph_ripemd_comp(const sph_u32 msg[16], sph_u32 val[4])
  * contains the input and output of the compression function.
  */
 
-#define RIPEMD128_ROUND_BODY(in, h)   do { \
+#define RIPEMD128_ROUND_BODY(in, h, _256)   do { \
 		sph_u32 A1, B1, C1, D1; \
 		sph_u32 A2, B2, C2, D2; \
 		sph_u32 tmp; \
  \
+		if (_256) { \
+		A1 = (h)[0]; A2 = (h)[4]; \
+		B1 = (h)[1]; B2 = (h)[5];  \
+		C1 = (h)[2]; C2 = (h)[6];  \
+		D1 = (h)[3]; D2 = (h)[7];  \
+		} else { \
 		A1 = A2 = (h)[0]; \
 		B1 = B2 = (h)[1]; \
 		C1 = C2 = (h)[2]; \
 		D1 = D2 = (h)[3]; \
+		} \
  \
 		sROUND1(A, B, C, D, F1, 11, in( 0),  1); \
 		sROUND1(D, A, B, C, F1, 14, in( 1),  1); \
@@ -349,57 +369,6 @@ sph_ripemd_comp(const sph_u32 msg[16], sph_u32 val[4])
 		sROUND1(C, D, A, B, F1,  9, in(14),  1); \
 		sROUND1(B, C, D, A, F1,  8, in(15),  1); \
  \
-		sROUND1(A, B, C, D, F2,  7, in( 7),  2); \
-		sROUND1(D, A, B, C, F2,  6, in( 4),  2); \
-		sROUND1(C, D, A, B, F2,  8, in(13),  2); \
-		sROUND1(B, C, D, A, F2, 13, in( 1),  2); \
-		sROUND1(A, B, C, D, F2, 11, in(10),  2); \
-		sROUND1(D, A, B, C, F2,  9, in( 6),  2); \
-		sROUND1(C, D, A, B, F2,  7, in(15),  2); \
-		sROUND1(B, C, D, A, F2, 15, in( 3),  2); \
-		sROUND1(A, B, C, D, F2,  7, in(12),  2); \
-		sROUND1(D, A, B, C, F2, 12, in( 0),  2); \
-		sROUND1(C, D, A, B, F2, 15, in( 9),  2); \
-		sROUND1(B, C, D, A, F2,  9, in( 5),  2); \
-		sROUND1(A, B, C, D, F2, 11, in( 2),  2); \
-		sROUND1(D, A, B, C, F2,  7, in(14),  2); \
-		sROUND1(C, D, A, B, F2, 13, in(11),  2); \
-		sROUND1(B, C, D, A, F2, 12, in( 8),  2); \
- \
-		sROUND1(A, B, C, D, F3, 11, in( 3),  3); \
-		sROUND1(D, A, B, C, F3, 13, in(10),  3); \
-		sROUND1(C, D, A, B, F3,  6, in(14),  3); \
-		sROUND1(B, C, D, A, F3,  7, in( 4),  3); \
-		sROUND1(A, B, C, D, F3, 14, in( 9),  3); \
-		sROUND1(D, A, B, C, F3,  9, in(15),  3); \
-		sROUND1(C, D, A, B, F3, 13, in( 8),  3); \
-		sROUND1(B, C, D, A, F3, 15, in( 1),  3); \
-		sROUND1(A, B, C, D, F3, 14, in( 2),  3); \
-		sROUND1(D, A, B, C, F3,  8, in( 7),  3); \
-		sROUND1(C, D, A, B, F3, 13, in( 0),  3); \
-		sROUND1(B, C, D, A, F3,  6, in( 6),  3); \
-		sROUND1(A, B, C, D, F3,  5, in(13),  3); \
-		sROUND1(D, A, B, C, F3, 12, in(11),  3); \
-		sROUND1(C, D, A, B, F3,  7, in( 5),  3); \
-		sROUND1(B, C, D, A, F3,  5, in(12),  3); \
- \
-		sROUND1(A, B, C, D, F4, 11, in( 1),  4); \
-		sROUND1(D, A, B, C, F4, 12, in( 9),  4); \
-		sROUND1(C, D, A, B, F4, 14, in(11),  4); \
-		sROUND1(B, C, D, A, F4, 15, in(10),  4); \
-		sROUND1(A, B, C, D, F4, 14, in( 0),  4); \
-		sROUND1(D, A, B, C, F4, 15, in( 8),  4); \
-		sROUND1(C, D, A, B, F4,  9, in(12),  4); \
-		sROUND1(B, C, D, A, F4,  8, in( 4),  4); \
-		sROUND1(A, B, C, D, F4,  9, in(13),  4); \
-		sROUND1(D, A, B, C, F4, 14, in( 3),  4); \
-		sROUND1(C, D, A, B, F4,  5, in( 7),  4); \
-		sROUND1(B, C, D, A, F4,  6, in(15),  4); \
-		sROUND1(A, B, C, D, F4,  8, in(14),  4); \
-		sROUND1(D, A, B, C, F4,  6, in( 5),  4); \
-		sROUND1(C, D, A, B, F4,  5, in( 6),  4); \
-		sROUND1(B, C, D, A, F4, 12, in( 2),  4); \
- \
 		sROUND2(A, B, C, D, F4,  8, in( 5),  1); \
 		sROUND2(D, A, B, C, F4,  9, in(14),  1); \
 		sROUND2(C, D, A, B, F4,  9, in( 7),  1); \
@@ -416,6 +385,27 @@ sph_ripemd_comp(const sph_u32 msg[16], sph_u32 val[4])
 		sROUND2(D, A, B, C, F4, 14, in(10),  1); \
 		sROUND2(C, D, A, B, F4, 12, in( 3),  1); \
 		sROUND2(B, C, D, A, F4,  6, in(12),  1); \
+ \
+		if (_256) { \
+		tmp = A1; A1 = A2; A2 = tmp; \
+		} \
+ \
+		sROUND1(A, B, C, D, F2,  7, in( 7),  2); \
+		sROUND1(D, A, B, C, F2,  6, in( 4),  2); \
+		sROUND1(C, D, A, B, F2,  8, in(13),  2); \
+		sROUND1(B, C, D, A, F2, 13, in( 1),  2); \
+		sROUND1(A, B, C, D, F2, 11, in(10),  2); \
+		sROUND1(D, A, B, C, F2,  9, in( 6),  2); \
+		sROUND1(C, D, A, B, F2,  7, in(15),  2); \
+		sROUND1(B, C, D, A, F2, 15, in( 3),  2); \
+		sROUND1(A, B, C, D, F2,  7, in(12),  2); \
+		sROUND1(D, A, B, C, F2, 12, in( 0),  2); \
+		sROUND1(C, D, A, B, F2, 15, in( 9),  2); \
+		sROUND1(B, C, D, A, F2,  9, in( 5),  2); \
+		sROUND1(A, B, C, D, F2, 11, in( 2),  2); \
+		sROUND1(D, A, B, C, F2,  7, in(14),  2); \
+		sROUND1(C, D, A, B, F2, 13, in(11),  2); \
+		sROUND1(B, C, D, A, F2, 12, in( 8),  2); \
  \
 		sROUND2(A, B, C, D, F3,  9, in( 6),  2); \
 		sROUND2(D, A, B, C, F3, 13, in(11),  2); \
@@ -434,6 +424,27 @@ sph_ripemd_comp(const sph_u32 msg[16], sph_u32 val[4])
 		sROUND2(C, D, A, B, F3, 13, in( 1),  2); \
 		sROUND2(B, C, D, A, F3, 11, in( 2),  2); \
  \
+		if (_256) { \
+		tmp = B1; B1 = B2; B2 = tmp; \
+		} \
+ \
+		sROUND1(A, B, C, D, F3, 11, in( 3),  3); \
+		sROUND1(D, A, B, C, F3, 13, in(10),  3); \
+		sROUND1(C, D, A, B, F3,  6, in(14),  3); \
+		sROUND1(B, C, D, A, F3,  7, in( 4),  3); \
+		sROUND1(A, B, C, D, F3, 14, in( 9),  3); \
+		sROUND1(D, A, B, C, F3,  9, in(15),  3); \
+		sROUND1(C, D, A, B, F3, 13, in( 8),  3); \
+		sROUND1(B, C, D, A, F3, 15, in( 1),  3); \
+		sROUND1(A, B, C, D, F3, 14, in( 2),  3); \
+		sROUND1(D, A, B, C, F3,  8, in( 7),  3); \
+		sROUND1(C, D, A, B, F3, 13, in( 0),  3); \
+		sROUND1(B, C, D, A, F3,  6, in( 6),  3); \
+		sROUND1(A, B, C, D, F3,  5, in(13),  3); \
+		sROUND1(D, A, B, C, F3, 12, in(11),  3); \
+		sROUND1(C, D, A, B, F3,  7, in( 5),  3); \
+		sROUND1(B, C, D, A, F3,  5, in(12),  3); \
+ \
 		sROUND2(A, B, C, D, F2,  9, in(15),  3); \
 		sROUND2(D, A, B, C, F2,  7, in( 5),  3); \
 		sROUND2(C, D, A, B, F2, 15, in( 1),  3); \
@@ -450,6 +461,27 @@ sph_ripemd_comp(const sph_u32 msg[16], sph_u32 val[4])
 		sROUND2(D, A, B, C, F2, 13, in( 0),  3); \
 		sROUND2(C, D, A, B, F2,  7, in( 4),  3); \
 		sROUND2(B, C, D, A, F2,  5, in(13),  3); \
+ \
+		if (_256) { \
+		tmp = C1; C1 = C2; C2 = tmp; \
+		} \
+ \
+		sROUND1(A, B, C, D, F4, 11, in( 1),  4); \
+		sROUND1(D, A, B, C, F4, 12, in( 9),  4); \
+		sROUND1(C, D, A, B, F4, 14, in(11),  4); \
+		sROUND1(B, C, D, A, F4, 15, in(10),  4); \
+		sROUND1(A, B, C, D, F4, 14, in( 0),  4); \
+		sROUND1(D, A, B, C, F4, 15, in( 8),  4); \
+		sROUND1(C, D, A, B, F4,  9, in(12),  4); \
+		sROUND1(B, C, D, A, F4,  8, in( 4),  4); \
+		sROUND1(A, B, C, D, F4,  9, in(13),  4); \
+		sROUND1(D, A, B, C, F4, 14, in( 3),  4); \
+		sROUND1(C, D, A, B, F4,  5, in( 7),  4); \
+		sROUND1(B, C, D, A, F4,  6, in(15),  4); \
+		sROUND1(A, B, C, D, F4,  8, in(14),  4); \
+		sROUND1(D, A, B, C, F4,  6, in( 5),  4); \
+		sROUND1(C, D, A, B, F4,  5, in( 6),  4); \
+		sROUND1(B, C, D, A, F4, 12, in( 2),  4); \
  \
 		sROUND2(A, B, C, D, F1, 15, in( 8),  4); \
 		sROUND2(D, A, B, C, F1,  5, in( 6),  4); \
@@ -468,11 +500,27 @@ sph_ripemd_comp(const sph_u32 msg[16], sph_u32 val[4])
 		sROUND2(C, D, A, B, F1, 15, in(10),  4); \
 		sROUND2(B, C, D, A, F1,  8, in(14),  4); \
  \
+		/*this has been removed, and the D1 and D2 are reversed in the session setting below */if (_256) { \
+		/* tmp = D1; D1 = D2; D2 = tmp; */ \
+		} \
+ \
+		if (_256) { \
+		(h)[0] = SPH_T32((h)[0] + A1); \
+		(h)[1] = SPH_T32((h)[1] + B1); \
+		(h)[2] = SPH_T32((h)[2] + C1); \
+		(h)[3] = SPH_T32((h)[3] + D2); /*reversed*/ \
+		(h)[4] = SPH_T32((h)[4] + A2); \
+		(h)[5] = SPH_T32((h)[5] + B2); \
+		(h)[6] = SPH_T32((h)[6] + C2); \
+		(h)[7] = SPH_T32((h)[7] + D1); /*reversed*/ \
+		} else {\
+ \
 		tmp = SPH_T32((h)[1] + C1 + D2); \
 		(h)[1] = SPH_T32((h)[2] + D1 + A2); \
 		(h)[2] = SPH_T32((h)[3] + A1 + B2); \
 		(h)[3] = SPH_T32((h)[0] + B1 + C2); \
 		(h)[0] = tmp; \
+		} \
 	} while (0)
 
 /*
@@ -495,7 +543,7 @@ ripemd128_round(const unsigned char *data, sph_u32 r[5])
 #define RIPEMD128_IN(x)   X_var[x]
 
 #endif
-	RIPEMD128_ROUND_BODY(RIPEMD128_IN, r);
+	RIPEMD128_ROUND_BODY(RIPEMD128_IN, r, 0);
 #undef RIPEMD128_IN
 }
 
@@ -513,6 +561,41 @@ sph_ripemd128_init(void *cc)
 	sc->count_high = sc->count_low = 0;
 #endif
 }
+
+void sph_ripemd256_init(void *cc)
+{
+	sph_ripemd256_context *sc;
+
+	sc = cc;
+	memcpy(sc->val, IV256, sizeof sc->val);
+#if SPH_64
+	sc->count = 0;
+#else
+	sc->count_high = sc->count_low = 0;
+#endif
+}
+
+static void
+ripemd256_round(const unsigned char *data, sph_u32 r[10])
+{
+#if SPH_LITTLE_FAST
+
+#define RIPEMD128_IN(x)   sph_dec32le_aligned(data + (4 * (x)))
+
+#else
+
+	sph_u32 X_var[16];
+	int i;
+
+	for (i = 0; i < 16; i ++)
+		X_var[i] = sph_dec32le_aligned(data + 4 * i);
+#define RIPEMD128_IN(x)   X_var[x]
+
+#endif
+	RIPEMD128_ROUND_BODY(RIPEMD128_IN, r, 1);
+#undef RIPEMD128_IN
+}
+
 
 #define RFUN   ripemd128_round
 #define HASH   ripemd128
@@ -535,9 +618,37 @@ void
 sph_ripemd128_comp(const sph_u32 msg[16], sph_u32 val[4])
 {
 #define RIPEMD128_IN(x)   msg[x]
-	RIPEMD128_ROUND_BODY(RIPEMD128_IN, val);
+	RIPEMD128_ROUND_BODY(RIPEMD128_IN, val, 0);
 #undef RIPEMD128_IN
 }
+
+
+#define RFUN   ripemd256_round
+#define HASH   ripemd256
+#define LE32   1
+#include "md_helper.c"
+#undef RFUN
+#undef HASH
+#undef LE32
+
+
+/* see sph_ripemd.h */
+void
+sph_ripemd256_close(void *cc, void *dst)
+{
+	ripemd256_close(cc, dst, 8);
+	sph_ripemd256_init(cc);
+}
+
+/* see sph_ripemd.h */
+void
+sph_ripemd256_comp(const sph_u32 msg[16], sph_u32 val[8])
+{
+#define RIPEMD128_IN(x)   msg[x]
+	RIPEMD128_ROUND_BODY(RIPEMD128_IN, val, 1);
+#undef RIPEMD128_IN
+}
+
 
 /* ===================================================================== */
 /*
@@ -579,16 +690,24 @@ sph_ripemd128_comp(const sph_u32 msg[16], sph_u32 val[4])
  * contains the input and output of the compression function.
  */
 
-#define RIPEMD160_ROUND_BODY(in, h)   do { \
+#define RIPEMD160_ROUND_BODY(in, h, _320)   do { \
 		sph_u32 A1, B1, C1, D1, E1; \
 		sph_u32 A2, B2, C2, D2, E2; \
 		sph_u32 tmp; \
  \
+		if (_320) { \
+		A1 = (h)[0]; A2 = (h)[5]; \
+		B1 = (h)[1]; B2 = (h)[6]; \
+		C1 = (h)[2]; C2 = (h)[7]; \
+		D1 = (h)[3]; D2 = (h)[8]; \
+		E1 = (h)[4]; E2 = (h)[9]; \
+		} else { \
 		A1 = A2 = (h)[0]; \
 		B1 = B2 = (h)[1]; \
 		C1 = C2 = (h)[2]; \
 		D1 = D2 = (h)[3]; \
 		E1 = E2 = (h)[4]; \
+		} \
  \
 		ROUND1(A, B, C, D, E, F1, 11, in( 0),  1); \
 		ROUND1(E, A, B, C, D, F1, 14, in( 1),  1); \
@@ -607,74 +726,6 @@ sph_ripemd128_comp(const sph_u32 msg[16], sph_u32 val[4])
 		ROUND1(B, C, D, E, A, F1,  9, in(14),  1); \
 		ROUND1(A, B, C, D, E, F1,  8, in(15),  1); \
  \
-		ROUND1(E, A, B, C, D, F2,  7, in( 7),  2); \
-		ROUND1(D, E, A, B, C, F2,  6, in( 4),  2); \
-		ROUND1(C, D, E, A, B, F2,  8, in(13),  2); \
-		ROUND1(B, C, D, E, A, F2, 13, in( 1),  2); \
-		ROUND1(A, B, C, D, E, F2, 11, in(10),  2); \
-		ROUND1(E, A, B, C, D, F2,  9, in( 6),  2); \
-		ROUND1(D, E, A, B, C, F2,  7, in(15),  2); \
-		ROUND1(C, D, E, A, B, F2, 15, in( 3),  2); \
-		ROUND1(B, C, D, E, A, F2,  7, in(12),  2); \
-		ROUND1(A, B, C, D, E, F2, 12, in( 0),  2); \
-		ROUND1(E, A, B, C, D, F2, 15, in( 9),  2); \
-		ROUND1(D, E, A, B, C, F2,  9, in( 5),  2); \
-		ROUND1(C, D, E, A, B, F2, 11, in( 2),  2); \
-		ROUND1(B, C, D, E, A, F2,  7, in(14),  2); \
-		ROUND1(A, B, C, D, E, F2, 13, in(11),  2); \
-		ROUND1(E, A, B, C, D, F2, 12, in( 8),  2); \
- \
-		ROUND1(D, E, A, B, C, F3, 11, in( 3),  3); \
-		ROUND1(C, D, E, A, B, F3, 13, in(10),  3); \
-		ROUND1(B, C, D, E, A, F3,  6, in(14),  3); \
-		ROUND1(A, B, C, D, E, F3,  7, in( 4),  3); \
-		ROUND1(E, A, B, C, D, F3, 14, in( 9),  3); \
-		ROUND1(D, E, A, B, C, F3,  9, in(15),  3); \
-		ROUND1(C, D, E, A, B, F3, 13, in( 8),  3); \
-		ROUND1(B, C, D, E, A, F3, 15, in( 1),  3); \
-		ROUND1(A, B, C, D, E, F3, 14, in( 2),  3); \
-		ROUND1(E, A, B, C, D, F3,  8, in( 7),  3); \
-		ROUND1(D, E, A, B, C, F3, 13, in( 0),  3); \
-		ROUND1(C, D, E, A, B, F3,  6, in( 6),  3); \
-		ROUND1(B, C, D, E, A, F3,  5, in(13),  3); \
-		ROUND1(A, B, C, D, E, F3, 12, in(11),  3); \
-		ROUND1(E, A, B, C, D, F3,  7, in( 5),  3); \
-		ROUND1(D, E, A, B, C, F3,  5, in(12),  3); \
- \
-		ROUND1(C, D, E, A, B, F4, 11, in( 1),  4); \
-		ROUND1(B, C, D, E, A, F4, 12, in( 9),  4); \
-		ROUND1(A, B, C, D, E, F4, 14, in(11),  4); \
-		ROUND1(E, A, B, C, D, F4, 15, in(10),  4); \
-		ROUND1(D, E, A, B, C, F4, 14, in( 0),  4); \
-		ROUND1(C, D, E, A, B, F4, 15, in( 8),  4); \
-		ROUND1(B, C, D, E, A, F4,  9, in(12),  4); \
-		ROUND1(A, B, C, D, E, F4,  8, in( 4),  4); \
-		ROUND1(E, A, B, C, D, F4,  9, in(13),  4); \
-		ROUND1(D, E, A, B, C, F4, 14, in( 3),  4); \
-		ROUND1(C, D, E, A, B, F4,  5, in( 7),  4); \
-		ROUND1(B, C, D, E, A, F4,  6, in(15),  4); \
-		ROUND1(A, B, C, D, E, F4,  8, in(14),  4); \
-		ROUND1(E, A, B, C, D, F4,  6, in( 5),  4); \
-		ROUND1(D, E, A, B, C, F4,  5, in( 6),  4); \
-		ROUND1(C, D, E, A, B, F4, 12, in( 2),  4); \
- \
-		ROUND1(B, C, D, E, A, F5,  9, in( 4),  5); \
-		ROUND1(A, B, C, D, E, F5, 15, in( 0),  5); \
-		ROUND1(E, A, B, C, D, F5,  5, in( 5),  5); \
-		ROUND1(D, E, A, B, C, F5, 11, in( 9),  5); \
-		ROUND1(C, D, E, A, B, F5,  6, in( 7),  5); \
-		ROUND1(B, C, D, E, A, F5,  8, in(12),  5); \
-		ROUND1(A, B, C, D, E, F5, 13, in( 2),  5); \
-		ROUND1(E, A, B, C, D, F5, 12, in(10),  5); \
-		ROUND1(D, E, A, B, C, F5,  5, in(14),  5); \
-		ROUND1(C, D, E, A, B, F5, 12, in( 1),  5); \
-		ROUND1(B, C, D, E, A, F5, 13, in( 3),  5); \
-		ROUND1(A, B, C, D, E, F5, 14, in( 8),  5); \
-		ROUND1(E, A, B, C, D, F5, 11, in(11),  5); \
-		ROUND1(D, E, A, B, C, F5,  8, in( 6),  5); \
-		ROUND1(C, D, E, A, B, F5,  5, in(15),  5); \
-		ROUND1(B, C, D, E, A, F5,  6, in(13),  5); \
- \
 		ROUND2(A, B, C, D, E, F5,  8, in( 5),  1); \
 		ROUND2(E, A, B, C, D, F5,  9, in(14),  1); \
 		ROUND2(D, E, A, B, C, F5,  9, in( 7),  1); \
@@ -691,6 +742,27 @@ sph_ripemd128_comp(const sph_u32 msg[16], sph_u32 val[4])
 		ROUND2(C, D, E, A, B, F5, 14, in(10),  1); \
 		ROUND2(B, C, D, E, A, F5, 12, in( 3),  1); \
 		ROUND2(A, B, C, D, E, F5,  6, in(12),  1); \
+ \
+		if (_320) { \
+		tmp = A1; A1 = A2; A2 = tmp;/*tmp = B1; B1 = B2; B2 = tmp;*/ \
+		} \
+ \
+		ROUND1(E, A, B, C, D, F2,  7, in( 7),  2); \
+		ROUND1(D, E, A, B, C, F2,  6, in( 4),  2); \
+		ROUND1(C, D, E, A, B, F2,  8, in(13),  2); \
+		ROUND1(B, C, D, E, A, F2, 13, in( 1),  2); \
+		ROUND1(A, B, C, D, E, F2, 11, in(10),  2); \
+		ROUND1(E, A, B, C, D, F2,  9, in( 6),  2); \
+		ROUND1(D, E, A, B, C, F2,  7, in(15),  2); \
+		ROUND1(C, D, E, A, B, F2, 15, in( 3),  2); \
+		ROUND1(B, C, D, E, A, F2,  7, in(12),  2); \
+		ROUND1(A, B, C, D, E, F2, 12, in( 0),  2); \
+		ROUND1(E, A, B, C, D, F2, 15, in( 9),  2); \
+		ROUND1(D, E, A, B, C, F2,  9, in( 5),  2); \
+		ROUND1(C, D, E, A, B, F2, 11, in( 2),  2); \
+		ROUND1(B, C, D, E, A, F2,  7, in(14),  2); \
+		ROUND1(A, B, C, D, E, F2, 13, in(11),  2); \
+		ROUND1(E, A, B, C, D, F2, 12, in( 8),  2); \
  \
 		ROUND2(E, A, B, C, D, F4,  9, in( 6),  2); \
 		ROUND2(D, E, A, B, C, F4, 13, in(11),  2); \
@@ -709,6 +781,27 @@ sph_ripemd128_comp(const sph_u32 msg[16], sph_u32 val[4])
 		ROUND2(A, B, C, D, E, F4, 13, in( 1),  2); \
 		ROUND2(E, A, B, C, D, F4, 11, in( 2),  2); \
  \
+		if (_320) { \
+		tmp = B1; B1 = B2; B2 = tmp;/*tmp = D1; D1 = D2; D2 = tmp;*/ \
+		} \
+ \
+		ROUND1(D, E, A, B, C, F3, 11, in( 3),  3); \
+		ROUND1(C, D, E, A, B, F3, 13, in(10),  3); \
+		ROUND1(B, C, D, E, A, F3,  6, in(14),  3); \
+		ROUND1(A, B, C, D, E, F3,  7, in( 4),  3); \
+		ROUND1(E, A, B, C, D, F3, 14, in( 9),  3); \
+		ROUND1(D, E, A, B, C, F3,  9, in(15),  3); \
+		ROUND1(C, D, E, A, B, F3, 13, in( 8),  3); \
+		ROUND1(B, C, D, E, A, F3, 15, in( 1),  3); \
+		ROUND1(A, B, C, D, E, F3, 14, in( 2),  3); \
+		ROUND1(E, A, B, C, D, F3,  8, in( 7),  3); \
+		ROUND1(D, E, A, B, C, F3, 13, in( 0),  3); \
+		ROUND1(C, D, E, A, B, F3,  6, in( 6),  3); \
+		ROUND1(B, C, D, E, A, F3,  5, in(13),  3); \
+		ROUND1(A, B, C, D, E, F3, 12, in(11),  3); \
+		ROUND1(E, A, B, C, D, F3,  7, in( 5),  3); \
+		ROUND1(D, E, A, B, C, F3,  5, in(12),  3); \
+ \
 		ROUND2(D, E, A, B, C, F3,  9, in(15),  3); \
 		ROUND2(C, D, E, A, B, F3,  7, in( 5),  3); \
 		ROUND2(B, C, D, E, A, F3, 15, in( 1),  3); \
@@ -725,6 +818,27 @@ sph_ripemd128_comp(const sph_u32 msg[16], sph_u32 val[4])
 		ROUND2(A, B, C, D, E, F3, 13, in( 0),  3); \
 		ROUND2(E, A, B, C, D, F3,  7, in( 4),  3); \
 		ROUND2(D, E, A, B, C, F3,  5, in(13),  3); \
+ \
+		if (_320) { \
+		tmp = C1; C1 = C2; C2 = tmp; /*tmp = A1; A1 = A2; A2 = tmp;*/ \
+		} \
+ \
+		ROUND1(C, D, E, A, B, F4, 11, in( 1),  4); \
+		ROUND1(B, C, D, E, A, F4, 12, in( 9),  4); \
+		ROUND1(A, B, C, D, E, F4, 14, in(11),  4); \
+		ROUND1(E, A, B, C, D, F4, 15, in(10),  4); \
+		ROUND1(D, E, A, B, C, F4, 14, in( 0),  4); \
+		ROUND1(C, D, E, A, B, F4, 15, in( 8),  4); \
+		ROUND1(B, C, D, E, A, F4,  9, in(12),  4); \
+		ROUND1(A, B, C, D, E, F4,  8, in( 4),  4); \
+		ROUND1(E, A, B, C, D, F4,  9, in(13),  4); \
+		ROUND1(D, E, A, B, C, F4, 14, in( 3),  4); \
+		ROUND1(C, D, E, A, B, F4,  5, in( 7),  4); \
+		ROUND1(B, C, D, E, A, F4,  6, in(15),  4); \
+		ROUND1(A, B, C, D, E, F4,  8, in(14),  4); \
+		ROUND1(E, A, B, C, D, F4,  6, in( 5),  4); \
+		ROUND1(D, E, A, B, C, F4,  5, in( 6),  4); \
+		ROUND1(C, D, E, A, B, F4, 12, in( 2),  4); \
  \
 		ROUND2(C, D, E, A, B, F2, 15, in( 8),  4); \
 		ROUND2(B, C, D, E, A, F2,  5, in( 6),  4); \
@@ -743,6 +857,27 @@ sph_ripemd128_comp(const sph_u32 msg[16], sph_u32 val[4])
 		ROUND2(D, E, A, B, C, F2, 15, in(10),  4); \
 		ROUND2(C, D, E, A, B, F2,  8, in(14),  4); \
  \
+		if (_320) { \
+		tmp = D1; D1 = D2; D2 = tmp; /*tmp = C1; C1 = C2; C2 = tmp;*/ \
+		} \
+ \
+		ROUND1(B, C, D, E, A, F5,  9, in( 4),  5); \
+		ROUND1(A, B, C, D, E, F5, 15, in( 0),  5); \
+		ROUND1(E, A, B, C, D, F5,  5, in( 5),  5); \
+		ROUND1(D, E, A, B, C, F5, 11, in( 9),  5); \
+		ROUND1(C, D, E, A, B, F5,  6, in( 7),  5); \
+		ROUND1(B, C, D, E, A, F5,  8, in(12),  5); \
+		ROUND1(A, B, C, D, E, F5, 13, in( 2),  5); \
+		ROUND1(E, A, B, C, D, F5, 12, in(10),  5); \
+		ROUND1(D, E, A, B, C, F5,  5, in(14),  5); \
+		ROUND1(C, D, E, A, B, F5, 12, in( 1),  5); \
+		ROUND1(B, C, D, E, A, F5, 13, in( 3),  5); \
+		ROUND1(A, B, C, D, E, F5, 14, in( 8),  5); \
+		ROUND1(E, A, B, C, D, F5, 11, in(11),  5); \
+		ROUND1(D, E, A, B, C, F5,  8, in( 6),  5); \
+		ROUND1(C, D, E, A, B, F5,  5, in(15),  5); \
+		ROUND1(B, C, D, E, A, F5,  6, in(13),  5); \
+ \
 		ROUND2(B, C, D, E, A, F1,  8, in(12),  5); \
 		ROUND2(A, B, C, D, E, F1,  5, in(15),  5); \
 		ROUND2(E, A, B, C, D, F1, 12, in(10),  5); \
@@ -760,12 +895,29 @@ sph_ripemd128_comp(const sph_u32 msg[16], sph_u32 val[4])
 		ROUND2(C, D, E, A, B, F1, 11, in( 9),  5); \
 		ROUND2(B, C, D, E, A, F1, 11, in(11),  5); \
  \
+		if (_320) { \
+		tmp = E1; E1 = E2; E2 = tmp; \
+		} \
+ \
+		if (_320) { \
+		(h)[0] = SPH_T32((h)[0] + A1); \
+		(h)[1] = SPH_T32((h)[1] + B1); \
+		(h)[2] = SPH_T32((h)[2] + C1); \
+		(h)[3] = SPH_T32((h)[3] + D1); \
+		(h)[4] = SPH_T32((h)[4] + E1); \
+		(h)[5] = SPH_T32((h)[5] + A2); \
+		(h)[6] = SPH_T32((h)[6] + B2); \
+		(h)[7] = SPH_T32((h)[7] + C2); \
+		(h)[8] = SPH_T32((h)[8] + D2); \
+		(h)[9] = SPH_T32((h)[9] + E2); \
+		} else { \
 		tmp = SPH_T32((h)[1] + C1 + D2); \
 		(h)[1] = SPH_T32((h)[2] + D1 + E2); \
 		(h)[2] = SPH_T32((h)[3] + E1 + A2); \
 		(h)[3] = SPH_T32((h)[4] + A1 + B2); \
 		(h)[4] = SPH_T32((h)[0] + B1 + C2); \
 		(h)[0] = tmp; \
+		} \
 	} while (0)
 
 /*
@@ -788,7 +940,7 @@ ripemd160_round(const unsigned char *data, sph_u32 r[5])
 #define RIPEMD160_IN(x)   X_var[x]
 
 #endif
-	RIPEMD160_ROUND_BODY(RIPEMD160_IN, r);
+	RIPEMD160_ROUND_BODY(RIPEMD160_IN, r, 0);
 #undef RIPEMD160_IN
 }
 
@@ -823,11 +975,114 @@ sph_ripemd160_close(void *cc, void *dst)
 	sph_ripemd160_init(cc);
 }
 
-/* see sph_ripemd.h */
 void
 sph_ripemd160_comp(const sph_u32 msg[16], sph_u32 val[5])
 {
 #define RIPEMD160_IN(x)   msg[x]
-	RIPEMD160_ROUND_BODY(RIPEMD160_IN, val);
+	RIPEMD160_ROUND_BODY(RIPEMD160_IN, val, 0);
 #undef RIPEMD160_IN
 }
+
+
+/*
+ * One round of RIPEMD-320. The data must be aligned for 32-bit access.
+ */
+static void
+ripemd320_round(const unsigned char *data, sph_u32 r[10])
+{
+#if SPH_LITTLE_FAST
+
+#define RIPEMD160_IN(x)   sph_dec32le_aligned(data + (4 * (x)))
+
+#else
+
+	sph_u32 X_var[16];
+	int i;
+
+	for (i = 0; i < 16; i ++)
+		X_var[i] = sph_dec32le_aligned(data + 4 * i);
+#define RIPEMD160_IN(x)   X_var[x]
+
+#endif
+	RIPEMD160_ROUND_BODY(RIPEMD160_IN, r, 1);
+#undef RIPEMD160_IN
+}
+
+/* see sph_ripemd.h */
+void
+sph_ripemd320_init(void *cc)
+{
+	sph_ripemd320_context *sc;
+
+	sc = cc;
+	memcpy(sc->val, IV320, sizeof sc->val);
+#if SPH_64
+	sc->count = 0;
+#else
+	sc->count_high = sc->count_low = 0;
+#endif
+}
+
+#define RFUN   ripemd320_round
+#define HASH   ripemd320
+#define LE32   1
+#include "md_helper.c"
+#undef RFUN
+#undef HASH
+#undef LE32
+
+/* see sph_ripemd.h */
+void
+sph_ripemd320_close(void *cc, void *dst)
+{
+	ripemd320_close(cc, dst, 10);
+	sph_ripemd320_init(cc);
+}
+
+void
+sph_ripemd320_comp(const sph_u32 msg[16], sph_u32 val[10])
+{
+#define RIPEMD160_IN(x)   msg[x]
+	RIPEMD160_ROUND_BODY(RIPEMD160_IN, val, 1);
+#undef RIPEMD160_IN
+}
+
+
+
+/* Here is RIPEMD128 Pseudocode
+    for i := 0 to t-1 {
+        A := h0; B := h1; C := h2; D = h3;
+        A' := h0; B' := h1; C' := h2; D' = h3;
+        for j := 0 to 63 {
+            T := rol_s(j)(A [+] f(j, B, C, D) [+] X[i][r(j)] [+] K(j));
+            A := D; D := C; C := B; B := T;
+            T := rol_s'(j)(A' [+] f(63-j, B', C', D') [+] X[i][r'(j)] [+] K'(j));
+            A' := D'; D' := C'; C' := B'; B' := T;
+        }
+        T := h1 [+] C [+] D'; h1 := h2 [+] D [+] A'; h2 := h3 [+] A [+] B';
+        h3 := h0 [+] B [+] C'; h0 := T;
+    }
+
+	Here is RIPEMD256 Pseudocode
+    for i := 0 to t-1 {
+        A := h0; B := h1; C := h2; D = h3;
+        A' := h4; B' := h5; C' := h6; D' = h7;
+        for j := 0 to 63 {
+            T := rol_s(j)(A [+] f(j, B, C, D) [+] X[i][r(j)] [+] K(j));
+            A := D; D := C; C := B; B := T;
+            T := rol_s'(j)(A' [+] f(63-j, B', C', D') [+] X[i][r'(j)] [+] K'(j));
+            A' := D'; D' := C'; C' := B'; B' := T;
+            if j == 15 {
+                T := A; A := A'; A' := T;
+            } else if j == 31 {
+                T := B; B := B'; B' := T;
+            } else if j == 47 {
+                T := C; C := C'; C' := T;
+            } else if j == 63 {
+                T := D; D := D'; D' := T;
+            }
+        }
+        h0 := h0 + A; h1 := h1 + B; h2 := h2 + C; h3 := h3 + D;
+        h4 := h4 + A'; h5 := h5 + B'; h6 := h6 + C'; h7 := h7 + D';
+    }
+*/

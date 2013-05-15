@@ -51,6 +51,8 @@
  *
  * @file     sph_ripemd.h
  * @author   Thomas Pornin <thomas.pornin@cryptolog.com>
+ *
+ * Added RIPEMD256 and RIPEMD320, JimF, 2013.
  */
 
 #ifndef SPH_RIPEMD_H__
@@ -269,5 +271,36 @@ void sph_ripemd160_close(void *cc, void *dst);
  * @param val   the function 160-bit input and output
  */
 void sph_ripemd160_comp(const sph_u32 msg[16], sph_u32 val[5]);
+
+
+/****** Code added for RIPEMD256 and RIPEMD320 ****/
+#define SPH_SIZE_ripemd256   256
+#define SPH_SIZE_ripemd320   320
+
+typedef struct {
+	unsigned char buf[64];    /* first field, for alignment */
+	sph_u32 val[8];
+#if SPH_64
+	sph_u64 count;
+#else
+	sph_u32 count_high, count_low;
+#endif
+} sph_ripemd256_context;
+void sph_ripemd256_init(void *cc);
+void sph_ripemd256(void *cc, const void *data, size_t len);
+void sph_ripemd256_close(void *cc, void *dst);
+
+typedef struct {
+	unsigned char buf[64];    /* first field, for alignment */
+	sph_u32 val[10];
+#if SPH_64
+	sph_u64 count;
+#else
+	sph_u32 count_high, count_low;
+#endif
+} sph_ripemd320_context;
+void sph_ripemd320_init(void *cc);
+void sph_ripemd320(void *cc, const void *data, size_t len);
+void sph_ripemd320_close(void *cc, void *dst);
 
 #endif
