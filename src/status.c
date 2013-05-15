@@ -349,7 +349,7 @@ static void status_print_cracking(char *percent)
 		unsigned long long cands =
 			((unsigned long long) status.cands.hi << 32) +
 			status.cands.lo;
-		sprintf(sc, ", %llup", cands);
+		sprintf(sc, " %llup", cands);
 	}
 
 	g.lo = status.guess_count; g.hi = 0;
