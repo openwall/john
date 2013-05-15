@@ -23,6 +23,11 @@
 #include "misc.h"
 #include "formats.h"
 #include "common.h"
+#ifdef _OPENMP
+static int omp_t = 1;
+#include <omp.h>
+#define OMP_SCALE               32
+#endif
 
 #define FORMAT_LABEL		"dominosec"
 #define FORMAT_NAME		"Lotus Notes/Domino 6 More Secure Internet Password"
@@ -43,13 +48,12 @@
 #define ASCII_DIGEST_LENGTH	(DIGEST_SIZE*2)
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
+#define WTFSIZE 		SALT_SIZE+1+ASCII_DIGEST_LENGTH+1+1
 
-static unsigned char key_digest[DIGEST_SIZE];
-static char saved_key[PLAINTEXT_LENGTH+1];
-static unsigned char crypted_key[DIGEST_SIZE];
-static unsigned char salt_and_digest[SALT_SIZE+1+ASCII_DIGEST_LENGTH+1+1] =
-	"saalt(................................)";
-static unsigned int saved_key_len;
+static unsigned char (*key_digest)[DIGEST_SIZE];
+static char (*saved_key)[PLAINTEXT_LENGTH+1];
+static ARCH_WORD_32 (*crypt_out)[(DIGEST_SIZE + 3) / sizeof(ARCH_WORD_32)];
+static unsigned char salt_and_digest[WTFSIZE] = "saalt(................................)";
 
 static const char *hex_table[] = {
 	"00", "01", "02", "03", "04", "05", "06", "07",
@@ -166,10 +170,25 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
+static void init(struct fmt_main *self)
+{
+#ifdef _OPENMP
+	omp_t = omp_get_max_threads();
+	self->params.min_keys_per_crypt *= omp_t;
+	omp_t *= OMP_SCALE;
+	self->params.max_keys_per_crypt *= omp_t;
+#endif
+	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
+			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	key_digest = mem_calloc_tiny(sizeof(*saved_key) *
+			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+}
+
 struct cipher_binary_struct {
 	unsigned char salt[SALT_SIZE];
 	unsigned char hash[BINARY_BUFFER_SIZE];
-} cipher_binary;
+};
 
 static void mdtransform(unsigned char state[16], unsigned char checksum[16], unsigned char block[16])
 {
@@ -351,53 +370,62 @@ static void decode(unsigned char *ascii_cipher, unsigned char *binary)
 
 static void *binary(char *ciphertext)
 {
-	decode((unsigned char*)ciphertext, (unsigned char*)&cipher_binary);
-	return (void*)cipher_binary.hash;
+	static struct cipher_binary_struct cipher_binary_local;
+	decode((unsigned char*)ciphertext, (unsigned char*)&cipher_binary_local);
+	return (void*)cipher_binary_local.hash;
 }
 
 static void *salt(char *ciphertext)
 {
-	return cipher_binary.salt;
+	static struct cipher_binary_struct cipher_binary_local;
+	decode((unsigned char*)ciphertext, (unsigned char*)&cipher_binary_local);
+	return cipher_binary_local.salt;
 }
 
 static void set_salt(void *salt)
 {
-	memcpy(salt_and_digest, salt, SALT_SIZE);
+	memcpy(salt_and_digest, (unsigned char*)salt, SALT_SIZE);
 }
 
 static void set_key(char *key, int index)
 {
-	unsigned char *offset = salt_and_digest+6;
-	unsigned int i;
-
-	saved_key_len = strlen(key);
-	strnzcpy(saved_key, key, PLAINTEXT_LENGTH + 1);
-
-	domino_big_md((unsigned char*)key, saved_key_len, key_digest);
-
-	i = 0;
-	do {
-		memcpy(offset, *(hex_table+*(key_digest+i)), 2);
-		offset += 2;
-	} while (++i < 14);
-
-	/*
-	 * Not (++i < 16) !
-	 * Domino will do hash of first 34 bytes ignoring The Fact that now
-	 * there is a salt at a beginning of buffer. This means that last 5
-	 * bytes "EEFF)" of password digest are meaningless.
-	 */
+	strnzcpy(saved_key[index], key, PLAINTEXT_LENGTH + 1);
 }
 
 static char *get_key(int index)
 {
-	return saved_key;
+	return saved_key[index];
 }
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	domino_big_md(salt_and_digest, 34, crypted_key);
+	int index = 0;
+	int count = *pcount;
+#ifdef _OPENMP
+#pragma omp parallel for
+	for (index = 0; index < count; index++)
+#endif
+	{
+		unsigned char osalt[WTFSIZE];
+		unsigned char *offset = osalt+6;
+		int saved_key_len = strlen(saved_key[index]);
+		int i = 0;
+		memcpy(osalt, salt_and_digest, 6);
+		domino_big_md((unsigned char*)saved_key[index],
+				saved_key_len, key_digest[index]);
+		/* Not (++i < 16) !
+		 * Domino will do hash of first 34 bytes ignoring The Fact that now
+		 * there is a salt at a beginning of buffer. This means that last 5
+		 * bytes "EEFF)" of password digest are meaningless.
+		 */
 
+		do {
+			memcpy(offset, *(hex_table+*(key_digest[index]+i)), 2);
+			offset += 2;
+		} while (++i < 14);
+
+		domino_big_md(osalt, 34, (unsigned char*)crypt_out[index]);
+	}
 	return *pcount;
 }
 
@@ -408,7 +436,16 @@ static int cmp_all(void *binary, int count)
 	 * 48 bits are left alone.
 	 * Funny that.
 	 */
-	return !memcmp(crypted_key, binary, BINARY_SIZE);
+	int index = 0;
+	for (; index < count; index++)
+		if (!memcmp(binary, crypt_out[index], BINARY_SIZE))
+			return 1;
+	return 0;
+}
+
+static int cmp_one(void *binary, int index)
+{
+	return !memcmp(binary, crypt_out[index], BINARY_SIZE);
 }
 
 static int cmp_exact(char *source, int index)
@@ -430,11 +467,11 @@ struct fmt_main fmt_DOMINOSEC = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT,
+		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		tests
 	},
 	{
-		fmt_default_init,
+		init,
 		fmt_default_done,
 		fmt_default_reset,
 		fmt_default_prepare,
@@ -464,7 +501,7 @@ struct fmt_main fmt_DOMINOSEC = {
 			fmt_default_get_hash
 		},
 		cmp_all,
-		cmp_all,
+		cmp_one,
 		cmp_exact
 	}
 };
