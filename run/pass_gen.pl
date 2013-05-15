@@ -1756,6 +1756,7 @@ sub dynamic_compile {
 			$dynamic_args==55 && do {$fmt='sha224(sha224($p).$s),saltlen=6';            last SWITCH; };
 			$dynamic_args==56 && do {$fmt='sha224($s.sha224($p)),saltlen=6';            last SWITCH; };
 			$dynamic_args==57 && do {$fmt='sha224(sha224($s).sha224($p)),saltlen=6';	last SWITCH; };
+			$dynamic_args==58 && do {$fmt='sha224(sha224($p).sha224($p))';				last SWITCH; };
 			$dynamic_args==60 && do {$fmt='sha256($p)';					last SWITCH; };
 			$dynamic_args==61 && do {$fmt='sha256($s.$p),saltlen=6';	last SWITCH; };
 			$dynamic_args==62 && do {$fmt='sha256($p.$s)';				last SWITCH; };
@@ -1764,6 +1765,7 @@ sub dynamic_compile {
 			$dynamic_args==65 && do {$fmt='sha256(sha256($p).$s),saltlen=6';            last SWITCH; };
 			$dynamic_args==66 && do {$fmt='sha256($s.sha256($p)),saltlen=6';            last SWITCH; };
 			$dynamic_args==67 && do {$fmt='sha256(sha256($s).sha256($p)),saltlen=6';	last SWITCH; };
+			$dynamic_args==68 && do {$fmt='sha256(sha256($p).sha256($p))';				last SWITCH; };
 			$dynamic_args==70 && do {$fmt='sha384($p)';					last SWITCH; };
 			$dynamic_args==71 && do {$fmt='sha384($s.$p),saltlen=6';	last SWITCH; };
 			$dynamic_args==72 && do {$fmt='sha384($p.$s)';				last SWITCH; };
@@ -1772,6 +1774,7 @@ sub dynamic_compile {
 			$dynamic_args==75 && do {$fmt='sha384(sha384($p).$s),saltlen=6';            last SWITCH; };
 			$dynamic_args==76 && do {$fmt='sha384($s.sha384($p)),saltlen=6';            last SWITCH; };
 			$dynamic_args==77 && do {$fmt='sha384(sha384($s).sha384($p)),saltlen=6';	last SWITCH; };
+			$dynamic_args==78 && do {$fmt='sha384(sha384($p).sha384($p))';				last SWITCH; };
 			$dynamic_args==80 && do {$fmt='sha512($p)';					last SWITCH; };
 			$dynamic_args==81 && do {$fmt='sha512($s.$p),saltlen=6';	last SWITCH; };
 			$dynamic_args==82 && do {$fmt='sha512($p.$s)';				last SWITCH; };
@@ -1780,6 +1783,7 @@ sub dynamic_compile {
 			$dynamic_args==85 && do {$fmt='sha512(sha512($p).$s),saltlen=6';            last SWITCH; };
 			$dynamic_args==86 && do {$fmt='sha512($s.sha512($p)),saltlen=6';            last SWITCH; };
 			$dynamic_args==87 && do {$fmt='sha512(sha512($s).sha512($p)),saltlen=6';	last SWITCH; };
+			$dynamic_args==88 && do {$fmt='sha512(sha512($p).sha512($p))';				last SWITCH; };
 			$dynamic_args==90 && do {$fmt='gost($p)';					last SWITCH; };
 			$dynamic_args==91 && do {$fmt='gost($s.$p),saltlen=6';		last SWITCH; };
 			$dynamic_args==92 && do {$fmt='gost($p.$s)';				last SWITCH; };
@@ -1788,6 +1792,7 @@ sub dynamic_compile {
 			$dynamic_args==95 && do {$fmt='gost(gost($p).$s),saltlen=6';        last SWITCH; };
 			$dynamic_args==96 && do {$fmt='gost($s.gost($p)),saltlen=6';        last SWITCH; };
 			$dynamic_args==97 && do {$fmt='gost(gost($s).gost($p)),saltlen=6';	last SWITCH; };
+			$dynamic_args==98 && do {$fmt='gost(gost($p).gost($p))';			last SWITCH; };
 			$dynamic_args==100 && do {$fmt='whirlpool($p)';					last SWITCH; };
 			$dynamic_args==101 && do {$fmt='whirlpool($s.$p),saltlen=6';	last SWITCH; };
 			$dynamic_args==102 && do {$fmt='whirlpool($p.$s)';				last SWITCH; };
@@ -1796,6 +1801,7 @@ sub dynamic_compile {
 			$dynamic_args==105 && do {$fmt='whirlpool(whirlpool($p).$s),saltlen=6';				last SWITCH; };
 			$dynamic_args==106 && do {$fmt='whirlpool($s.whirlpool($p)),saltlen=6';				last SWITCH; };
 			$dynamic_args==107 && do {$fmt='whirlpool(whirlpool($s).whirlpool($p)),saltlen=6';	last SWITCH; };
+			$dynamic_args==108 && do {$fmt='whirlpool(whirlpool($p).whirlpool($p))';			last SWITCH; };
 			$dynamic_args==110 && do {$fmt='tiger($p)';					last SWITCH; };
 			$dynamic_args==111 && do {$fmt='tiger($s.$p),saltlen=6';	last SWITCH; };
 			$dynamic_args==112 && do {$fmt='tiger($p.$s)';				last SWITCH; };
@@ -1804,6 +1810,7 @@ sub dynamic_compile {
 			$dynamic_args==115 && do {$fmt='tiger(tiger($p).$s),saltlen=6';				last SWITCH; };
 			$dynamic_args==116 && do {$fmt='tiger($s.tiger($p)),saltlen=6';				last SWITCH; };
 			$dynamic_args==117 && do {$fmt='tiger(tiger($s).tiger($p)),saltlen=6';	last SWITCH; };
+			$dynamic_args==118 && do {$fmt='tiger(tiger($p).tiger($p))';			last SWITCH; };
 			$dynamic_args==120 && do {$fmt='ripemd128($p)';					last SWITCH; };
 			$dynamic_args==121 && do {$fmt='ripemd128($s.$p),saltlen=6';	last SWITCH; };
 			$dynamic_args==122 && do {$fmt='ripemd128($p.$s)';				last SWITCH; };
@@ -1812,6 +1819,7 @@ sub dynamic_compile {
 			$dynamic_args==125 && do {$fmt='ripemd128(ripemd128($p).$s),saltlen=6';				last SWITCH; };
 			$dynamic_args==126 && do {$fmt='ripemd128($s.ripemd128($p)),saltlen=6';				last SWITCH; };
 			$dynamic_args==127 && do {$fmt='ripemd128(ripemd128($s).ripemd128($p)),saltlen=6';	last SWITCH; };
+			$dynamic_args==128 && do {$fmt='ripemd128(ripemd128($p).ripemd128($p))';			last SWITCH; };
 			$dynamic_args==130 && do {$fmt='ripemd160($p)';					last SWITCH; };
 			$dynamic_args==131 && do {$fmt='ripemd160($s.$p),saltlen=6';	last SWITCH; };
 			$dynamic_args==132 && do {$fmt='ripemd160($p.$s)';				last SWITCH; };
@@ -1820,6 +1828,7 @@ sub dynamic_compile {
 			$dynamic_args==135 && do {$fmt='ripemd160(ripemd160($p).$s),saltlen=6';				last SWITCH; };
 			$dynamic_args==136 && do {$fmt='ripemd160($s.ripemd160($p)),saltlen=6';				last SWITCH; };
 			$dynamic_args==137 && do {$fmt='ripemd160(ripemd160($s).ripemd160($p)),saltlen=6';	last SWITCH; };
+			$dynamic_args==138 && do {$fmt='ripemd160(ripemd160($p).ripemd160($p))';			last SWITCH; };
 			$dynamic_args==140 && do {$fmt='ripemd256($p)';					last SWITCH; };
 			$dynamic_args==141 && do {$fmt='ripemd256($s.$p),saltlen=6';	last SWITCH; };
 			$dynamic_args==142 && do {$fmt='ripemd256($p.$s)';				last SWITCH; };
@@ -1828,6 +1837,7 @@ sub dynamic_compile {
 			$dynamic_args==145 && do {$fmt='ripemd256(ripemd256($p).$s),saltlen=6';				last SWITCH; };
 			$dynamic_args==146 && do {$fmt='ripemd256($s.ripemd256($p)),saltlen=6';				last SWITCH; };
 			$dynamic_args==147 && do {$fmt='ripemd256(ripemd256($s).ripemd256($p)),saltlen=6';	last SWITCH; };
+			$dynamic_args==148 && do {$fmt='ripemd256(ripemd256($p).ripemd256($p))';			last SWITCH; };
 			$dynamic_args==150 && do {$fmt='ripemd320($p)';			last SWITCH; };
 			$dynamic_args==151 && do {$fmt='ripemd320($s.$p),saltlen=6';	last SWITCH; };
 			$dynamic_args==152 && do {$fmt='ripemd320($p.$s)';				last SWITCH; };
@@ -1836,6 +1846,7 @@ sub dynamic_compile {
 			$dynamic_args==155 && do {$fmt='ripemd320(ripemd320($p).$s),saltlen=6';				last SWITCH; };
 			$dynamic_args==156 && do {$fmt='ripemd320($s.ripemd320($p)),saltlen=6';				last SWITCH; };
 			$dynamic_args==157 && do {$fmt='ripemd320(ripemd320($s).ripemd320($p)),saltlen=6';	last SWITCH; };
+			$dynamic_args==158 && do {$fmt='ripemd320(ripemd320($p).ripemd320($p))';			last SWITCH; };
 
 			# 7, 17, 19, 20, 21, 27, 28 are still handled by 'special' functions.
 

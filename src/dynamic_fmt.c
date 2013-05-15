@@ -30,7 +30,6 @@
  *      from the end. This would allow crypt($s.$p) and crypt($p.s) to be optimized
  *      in the way of string loading, and many fewer buffer copies.  So dyna_1 could
  *      be optimized to something like:
-
  // dynamic_1  Joomla md5($p.$s)
 static DYNAMIC_primitive_funcp _Funcs_1[] =
 {
@@ -40,14 +39,24 @@ static DYNAMIC_primitive_funcp _Funcs_1[] =
 	DynamicFunc__crypt_md5,
 	NULL
 };
-
-WELL, the fixed size salt, it 'may' not be key for the MGF_PASS_BEFORE_FIXEDSALT, I think I can
-make that 'work' for variable sized salts.  But for the MGF_PASS_AFTER_FIXEDSALT, i.e. crypt($s.$p)
-the fixed size salt IS key.  I would like to store all PW's at salt_len offset in the buffer, and
-simply overwrite the first part of each buffer with the salt, never moving the password after the
-first time it is written. THEN it is very important this ONLY be allowed when we KNOW the salt length
-ahead of time.
-
+ *      WELL, the fixed size salt, it 'may' not be key for the MGF_PASS_BEFORE_FIXEDSALT,
+ *      I think I can make that 'work' for variable sized salts.  But for the
+ *      MGF_PASS_AFTER_FIXEDSALT, i.e. crypt($s.$p) the fixed size salt IS key.  I would
+ *      like to store all PW's at salt_len offset in the buffer, and simply overwrite the
+ *      first part of each buffer with the salt, never moving the password after the first
+ *      time it is written. THEN it is very important this ONLY be allowed when we KNOW
+ *      the salt length ahead of time.
+ *
+ *   2. The flat buffer length is getting 'tight'.  Right now the buffer length is
+ *      PLAINTEXT_LENGTH_X86+EX_BUF_LEN which is 124+136 == 260.  We currently have
+ *      a couple of hashes that are 256 bytes long (sha512(sha512($p).sha512($p)) and
+ *      the same for whirlpool. This does not give much room for growth.  But these buffers
+ *      should not be made to be 'too' much larger than needed.  This is an issue that needs
+ *      to be looked into.
+ *
+ *   3. sha512(sha512($p).sha512($p) does tripple crypts when it should only do 2 of them.
+ *      need to create an append_input2_input2 and use it, I think.
+ *
  */
 
 #include <string.h>
@@ -454,8 +463,10 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 
 	if (cp[cipherTextLen] && cp[cipherTextLen] != '$')
 		return 0;
+// NOTE if looking at this in the future, this was not my fix.
 	if (strlen(&cp[cipherTextLen]) > SALT_SIZE)
 		return 0;
+// end NOTE.
 	if (pPriv->dynamic_FIXED_SALT_SIZE && ciphertext[pPriv->dynamic_SALT_OFFSET-1] != '$')
 		return 0;
 	if (pPriv->dynamic_FIXED_SALT_SIZE > 0 && strlen(&ciphertext[pPriv->dynamic_SALT_OFFSET]) != pPriv->dynamic_FIXED_SALT_SIZE) {
@@ -4146,6 +4157,87 @@ unsigned i, til;
 #endif
 		memcpy(&(input_buf2_X86[i>>MD5_X2].x1.b[total_len2_X86[i]]), input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i]);
 		total_len2_X86[i] += total_len_X86[i];
+	}
+}
+
+void DynamicFunc__append_input_from_input(DYNA_OMP_PARAMS)
+{
+unsigned i, til;
+#ifdef _OPENMP
+	til = last;
+	i = first;
+#else
+	i = 0;
+	til = m_count;
+#endif
+#ifdef MMX_COEF
+	if (dynamic_use_sse==1) {
+		unsigned j, k;
+		til = (til+MMX_COEF-1)/MMX_COEF;
+		i /= MMX_COEF;
+		for (; i < til; ++i)
+		{
+			for (j = 0; j < MMX_COEF; ++j)
+			{
+				unsigned start_len = (total_len[i] >> ((32/MMX_COEF)*j)) & 0xFF;
+				for (k = 0; k < start_len; ++k)
+					input_buf[i].c[GETPOS((k+start_len), j)] = input_buf[i].c[GETPOS(k,j)];
+				input_buf[i].c[GETPOS((start_len+start_len), j)] = 0x80;
+				total_len[i] += ( start_len << ( ( (32/MMX_COEF) * j ) ));
+			}
+		}
+		return;
+	}
+#endif
+	for (; i < til; ++i)
+	{
+#if MD5_X2
+		if (i&1)
+			memcpy(&(input_buf_X86[i>>MD5_X2].x2.b2[total_len_X86[i]]), input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i]);
+		else
+#endif
+		memcpy(&(input_buf_X86[i>>MD5_X2].x1.b[total_len_X86[i]]), input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i]);
+		total_len_X86[i] <<= 1;
+	}
+}
+void DynamicFunc__append_input2_from_input2(DYNA_OMP_PARAMS)
+{
+unsigned i, til;
+#ifdef _OPENMP
+	til = last;
+	i = first;
+#else
+	i = 0;
+	til = m_count;
+#endif
+#ifdef MMX_COEF
+	if (dynamic_use_sse==1) {
+		unsigned j, k;
+		til = (til+MMX_COEF-1)/MMX_COEF;
+		i /= MMX_COEF;
+		for (; i < til; ++i)
+		{
+			for (j = 0; j < MMX_COEF; ++j)
+			{
+				unsigned start_len = (total_len2[i] >> ((32/MMX_COEF)*j)) & 0xFF;
+				for (k = 0; k < start_len; ++k)
+					input_buf2[i].c[GETPOS((k+start_len), j)] = input_buf2[i].c[GETPOS(k,j)];
+				input_buf2[i].c[GETPOS((start_len+start_len), j)] = 0x80;
+				total_len2[i] += ( start_len << ( ( (32/MMX_COEF) * j ) ));
+			}
+		}
+		return;
+	}
+#endif
+	for (; i < til; ++i)
+	{
+#if MD5_X2
+		if (i&1)
+			memcpy(&(input_buf2_X86[i>>MD5_X2].x2.b2[total_len2_X86[i]]), input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i]);
+		else
+#endif
+		memcpy(&(input_buf2_X86[i>>MD5_X2].x1.b[total_len2_X86[i]]), input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i]);
+		total_len2_X86[i] <<= 1;
 	}
 }
 

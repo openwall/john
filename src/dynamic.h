@@ -80,6 +80,8 @@ typedef struct DYNAMIC_Constants_t
 #define MGF_PASSWORD_UPCASE          0x08000000
 #define MGF_PASSWORD_LOCASE          0x10000000
 #define MGF_FULL_CLEAN_REQUIRED      0x20000000
+// open                              0x40000000
+// open                              0x80000000
 
 // These are special loader flags.  They specify that keys loads are 'special', and
 // do MORE than simply load keys into the keys[] array.  They may preload the keys
@@ -101,13 +103,24 @@ typedef struct DYNAMIC_Constants_t
 // the unicode_b4_crypt does a unicode convert, prior to crypt_in2, base16-in1, etc.  It can NOT be used with KEYS_INPUT.
 #define MGF_KEYS_UNICODE_B4_CRYPT        0x00001000
 #define MGF_SOURCE                       0x00002000
-#define MGF_INPUT_20_BYTE                0x00004000
-#define MGF_INPUT_24_BYTE                0x00008000
-#define MGF_INPUT_28_BYTE                0x00010000
-#define MGF_INPUT_32_BYTE                0x00020000
-#define MGF_INPUT_40_BYTE                0x00040000
-#define MGF_INPUT_48_BYTE                0x00080000
-#define MGF_INPUT_64_BYTE                0x00100000
+// open                                  0x00004000
+// open                                  0x00008000
+// open                                  0x00010000
+// open                                  0x00020000
+// open                                  0x00040000
+// open                                  0x00080000
+#define MGF_INPUT_20_BYTE                0x00100000
+#define MGF_INPUT_24_BYTE                0x00200000
+#define MGF_INPUT_28_BYTE                0x00400000
+#define MGF_INPUT_32_BYTE                0x00800000
+#define MGF_INPUT_40_BYTE                0x01000000
+#define MGF_INPUT_48_BYTE                0x02000000
+#define MGF_INPUT_64_BYTE                0x04000000
+// open                                  0x08000000
+// open                                  0x10000000
+// open                                  0x20000000
+// open                                  0x40000000
+// open                                  0x80000000
 
 typedef struct DYNAMIC_Setup_t
 {
@@ -210,6 +223,14 @@ extern void DynamicFunc__overwrite_salt_to_input2_no_size_fix(DYNA_OMP_PARAMS);
 
 extern void DynamicFunc__append_input_from_input2(DYNA_OMP_PARAMS);
 extern void DynamicFunc__append_input2_from_input(DYNA_OMP_PARAMS);
+
+// NOTE, these are input=input+input and input2=input2+input2
+// (must be careful to not use strcat type stuff).  Added for types like
+// sha256(sha256($p).sha256($p)) so that we can still keep keys in input1,
+// and simply double the output of input2, without having to double compute
+// sha256($p)
+extern void DynamicFunc__append_input_from_input(DYNA_OMP_PARAMS);
+extern void DynamicFunc__append_input2_from_input2(DYNA_OMP_PARAMS);
 
 extern void DynamicFunc__append_2nd_salt(DYNA_OMP_PARAMS);
 extern void DynamicFunc__append_2nd_salt2(DYNA_OMP_PARAMS);

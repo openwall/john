@@ -117,6 +117,8 @@ static Dynamic_Predicate_t Dynamic_Predicate[] =  {
 	{ "DynamicFunc__append_salt2", DynamicFunc__append_salt2 },
 	{ "DynamicFunc__append_input_from_input2", DynamicFunc__append_input_from_input2 },
 	{ "DynamicFunc__append_input2_from_input", DynamicFunc__append_input2_from_input },
+	{ "DynamicFunc__append_input_from_input", DynamicFunc__append_input_from_input },
+	{ "DynamicFunc__append_input2_from_input2", DynamicFunc__append_input2_from_input2 },
 	{ "DynamicFunc__append_2nd_salt", DynamicFunc__append_2nd_salt },
 	{ "DynamicFunc__append_2nd_salt2", DynamicFunc__append_2nd_salt2 },
 	{ "DynamicFunc__append_userid", DynamicFunc__append_userid },

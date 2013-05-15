@@ -166,6 +166,7 @@ dynamic_54  | sha224(sha224_raw($p))  | No    |
 dynamic_55  | sha224(sha224($p).$s)   | Yes   |
 dynamic_56  | sha224($s.sha224($p))   | Yes   |
 dynamic_57  | sha224(sha224($s).sha224($p)) | Yes   |
+dynamic_58  | sha224(sha224($p).sha224($p)) | No    |
 dynamic_60  | sha256($p)              | No    |
 dynamic_61  | sha256($s.$p)           | Yes   |
 dynamic_62  | sha256($p.$s)           | Yes   |
@@ -174,6 +175,7 @@ dynamic_64  | sha256(sha256_raw($p))  | No    |
 dynamic_65  | sha256(sha256($p).$s)   | Yes   |
 dynamic_66  | sha256($s.sha256($p))   | Yes   |
 dynamic_67  | sha256(sha256($s).sha256($p)) | Yes   |
+dynamic_68  | sha256(sha256($p).sha256($p)) | No    |
 dynamic_70  | sha384($p)              | No    |
 dynamic_71  | sha384($s.$p)           | Yes   |
 dynamic_72  | sha384($p.$s)           | Yes   |
@@ -182,6 +184,7 @@ dynamic_74  | sha384(sha384_raw($p))  | No    |
 dynamic_75  | sha384(sha384($p).$s)   | Yes   |
 dynamic_76  | sha384($s.sha384($p))   | Yes   |
 dynamic_77  | sha384(sha384($s).sha384($p)) | Yes   |
+dynamic_78  | sha384(sha384($p).sha384($p)) | No    |
 dynamic_80  | sha512($p)              | No    |
 dynamic_81  | sha512($s.$p)           | Yes   |
 dynamic_82  | sha512($p.$s)           | Yes   |
@@ -190,6 +193,7 @@ dynamic_84  | sha512(sha512_raw($p))  | No    |
 dynamic_85  | sha512(sha512($p).$s)   | Yes   |
 dynamic_86  | sha512($s.sha512($p))   | Yes   |
 dynamic_87  | sha512(sha512($s).sha512($p)) | Yes   |
+dynamic_88  | sha512(sha512($p).sha512($p)) | No    |
 dynamic_90  | GOST($p)                | No    |
 dynamic_91  | GOST($s.$p)             | Yes   |
 dynamic_92  | GOST($p.$s)             | Yes   |
@@ -198,6 +202,7 @@ dynamic_94  | GOST(GOST_raw($p))      | No    |
 dynamic_95  | GOST(GOST($p).$s)       | Yes   |
 dynamic_96  | GOST($s.GOST($p))       | Yes   |
 dynamic_97  | GOST(GOST($s).GOST($p)) | Yes   |
+dynamic_98  | GOST(GOST($p).GOST($p)) | No    |
 dynamic_100 | WHIRLPOOL($p)           | No    |
 dynamic_101 | WHIRLPOOL($s.$p)        | Yes   |
 dynamic_102 | WHIRLPOOL($p.$s)        | Yes   |
@@ -206,6 +211,7 @@ dynamic_104 | WHIRLPOOL(WHIRLPOOL_raw($p)) | No    |
 dynamic_105 | WHIRLPOOL(WHIRLPOOL($p).$s)  | Yes   |
 dynamic_106 | WHIRLPOOL($s.WHIRLPOOL($p))  | Yes   |
 dynamic_107 | WHIRLPOOL(WHIRLPOOL($s).WHIRLPOOL($p)) | Yes   |
+dynamic_108 | WHIRLPOOL(WHIRLPOOL($p).WHIRLPOOL($p)) | No    |
 dynamic_110 | Tiger($p)                | No   |
 dynamic_111 | Tiger($s.$p)             | Yes  |
 dynamic_112 | Tiger($p.$s)             | Yes  |
@@ -214,6 +220,7 @@ dynamic_114 | Tiger(Tiger_raw($p))     | No   |
 dynamic_115 | Tiger(Tiger($p).$s)      | Yes  |
 dynamic_116 | Tiger($s.Tiger($p))      | Yes  |
 dynamic_117 | Tiger(Tiger($s).Tiger($p)) | Yes  |
+dynamic_118 | Tiger(Tiger($p).Tiger($p)) | No   |
 dynamic_120 | RIPEMD128($p)                | No   |
 dynamic_121 | RIPEMD128($s.$p)             | Yes  |
 dynamic_122 | RIPEMD128($p.$s)             | Yes  |
@@ -222,6 +229,7 @@ dynamic_124 | RIPEMD128(RIPEMD128_raw($p))     | No   |
 dynamic_125 | RIPEMD128(RIPEMD128($p).$s)      | Yes  |
 dynamic_126 | RIPEMD128($s.RIPEMD128($p))      | Yes  |
 dynamic_127 | RIPEMD128(RIPEMD128($s).RIPEMD128($p)) | Yes  |
+dynamic_128 | RIPEMD128(RIPEMD128($p).RIPEMD128($p)) | No   |
 dynamic_130 | RIPEMD160($p)                | No   |
 dynamic_131 | RIPEMD160($s.$p)             | Yes  |
 dynamic_132 | RIPEMD160($p.$s)             | Yes  |
@@ -230,6 +238,7 @@ dynamic_134 | RIPEMD160(RIPEMD160_raw($p))     | No   |
 dynamic_135 | RIPEMD160(RIPEMD160($p).$s)      | Yes  |
 dynamic_136 | RIPEMD160($s.RIPEMD160($p))      | Yes  |
 dynamic_137 | RIPEMD160(RIPEMD160($s).RIPEMD160($p)) | Yes  |
+dynamic_138 | RIPEMD160(RIPEMD160($p).RIPEMD160($p)) | No   |
 dynamic_140 | RIPEMD256($p)                | No   |
 dynamic_141 | RIPEMD256($s.$p)             | Yes  |
 dynamic_142 | RIPEMD256($p.$s)             | Yes  |
@@ -238,6 +247,7 @@ dynamic_144 | RIPEMD256(RIPEMD256_raw($p))     | No   |
 dynamic_145 | RIPEMD256(RIPEMD256($p).$s)      | Yes  |
 dynamic_146 | RIPEMD256($s.RIPEMD256($p))      | Yes  |
 dynamic_147 | RIPEMD256(RIPEMD256($s).RIPEMD256($p)) | Yes  |
+dynamic_148 | RIPEMD256(RIPEMD256($p).RIPEMD256($p)) | No   |
 dynamic_150 | RIPEMD320($p)                | No   |
 dynamic_151 | RIPEMD320($s.$p)             | Yes  |
 dynamic_152 | RIPEMD320($p.$s)             | Yes  |
@@ -246,6 +256,7 @@ dynamic_154 | RIPEMD320(RIPEMD320_raw($p))     | No   |
 dynamic_155 | RIPEMD320(RIPEMD320($p).$s)      | Yes  |
 dynamic_156 | RIPEMD320($s.RIPEMD320($p))      | Yes  |
 dynamic_157 | RIPEMD320(RIPEMD320($s).RIPEMD320($p)) | Yes  |
+dynamic_158 | RIPEMD320(RIPEMD320($p).RIPEMD320($p)) | No   |
 
 
 ........    | RESERVED                | UNK   |
@@ -652,6 +663,12 @@ examples (this whole list is also found in dynamic.conf).
 #
 #  DynamicFunc__append_input2_from_input
 #     Appends input1 to input2   input2 += input
+#
+#  DynamicFunc__append_input_from_input
+#     Appends input1 to input1   input1 += input2
+#
+#  DynamicFunc__append_input2_from_input2
+#     Appends input2 to input2   input2 += input2
 #
 #  DynamicFunc__append_from_last_output2_as_raw
 #     Appends the 'raw' output data from output2 to input1.  Length of input1 grows by 16 bytes.

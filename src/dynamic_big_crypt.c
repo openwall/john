@@ -2358,9 +2358,11 @@ void DynamicFunc__RIPEMD128_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS) {
 		total_len_X86[i] = large_hash_output_no_null(crypt_out, cpo, 16, tid);
 	}
 }
+// since this hash is only 128 bits also, the output 'fits' properly into
+// the crypt_key array, without using an intermediate buffer.
 void DynamicFunc__RIPEMD128_crypt_input1_to_output1_FINAL(DYNA_OMP_PARAMS) {
-	union xx { unsigned char u[16]; ARCH_WORD a[16/sizeof(ARCH_WORD)]; } u;
-	unsigned char *crypt_out=u.u;
+//	union xx { unsigned char u[16]; ARCH_WORD a[16/sizeof(ARCH_WORD)]; } u;
+//	unsigned char *crypt_out=u.u;
 	int i, til;
 	sph_ripemd128_context ctx;
 
@@ -2379,19 +2381,23 @@ void DynamicFunc__RIPEMD128_crypt_input1_to_output1_FINAL(DYNA_OMP_PARAMS) {
 		else
 #endif
 			sph_ripemd128(&ctx, input_buf_X86[i>>MD5_X2].x1.B, total_len_X86[i]);
-		sph_ripemd128_close(&ctx, crypt_out);
+//		sph_ripemd128_close(&ctx, crypt_out);
 
 #if (MD5_X2)
 		if (i & 1)
-			memcpy(crypt_key_X86[i>>MD5_X2].x2.B2, crypt_out, 16);
+//			memcpy(crypt_key_X86[i>>MD5_X2].x2.B2, crypt_out, 16);
+			sph_ripemd128_close(&ctx, crypt_key_X86[i>>MD5_X2].x2.B2);
 		else
 #endif
-			memcpy(crypt_key_X86[i>>MD5_X2].x1.B, crypt_out, 16);
+//			memcpy(crypt_key_X86[i>>MD5_X2].x1.B, crypt_out, 16);
+			sph_ripemd128_close(&ctx, crypt_key_X86[i>>MD5_X2].x1.B);
 	}
 }
+// since this hash is only 128 bits also, the output 'fits' properly into
+// the crypt_key array, without using an intermediate buffer.
 void DynamicFunc__RIPEMD128_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS) {
-	union xx { unsigned char u[16]; ARCH_WORD a[16/sizeof(ARCH_WORD)]; } u;
-	unsigned char *crypt_out=u.u;
+//	union xx { unsigned char u[16]; ARCH_WORD a[16/sizeof(ARCH_WORD)]; } u;
+//	unsigned char *crypt_out=u.u;
 	int i, til;
 	sph_ripemd128_context ctx;
 
@@ -2410,14 +2416,16 @@ void DynamicFunc__RIPEMD128_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS) {
 		else
 #endif
 			sph_ripemd128(&ctx, input_buf2_X86[i>>MD5_X2].x1.B, total_len2_X86[i]);
-		sph_ripemd128_close(&ctx, crypt_out);
+//		sph_ripemd128_close(&ctx, crypt_out);
 
 #if (MD5_X2)
 		if (i & 1)
-			memcpy(crypt_key_X86[i>>MD5_X2].x2.B2, crypt_out, 16);
+//			memcpy(crypt_key_X86[i>>MD5_X2].x2.B2, crypt_out, 16);
+		sph_ripemd128_close(&ctx, crypt_key_X86[i>>MD5_X2].x2.B2);
 		else
 #endif
-			memcpy(crypt_key_X86[i>>MD5_X2].x1.B, crypt_out, 16);
+			//memcpy(crypt_key_X86[i>>MD5_X2].x1.B, crypt_out, 16);
+			sph_ripemd128_close(&ctx, crypt_key_X86[i>>MD5_X2].x1.B);
 	}
 }
 

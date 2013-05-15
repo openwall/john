@@ -286,7 +286,7 @@ void
 sph_ripemd_close(void *cc, void *dst)
 {
 	ripemd_close(cc, dst, 4);
-	sph_ripemd_init(cc);
+	//sph_ripemd_init(cc);
 }
 
 /* see sph_ripemd.h */
@@ -610,7 +610,7 @@ void
 sph_ripemd128_close(void *cc, void *dst)
 {
 	ripemd128_close(cc, dst, 4);
-	sph_ripemd128_init(cc);
+	//sph_ripemd128_init(cc);
 }
 
 /* see sph_ripemd.h */
@@ -637,7 +637,7 @@ void
 sph_ripemd256_close(void *cc, void *dst)
 {
 	ripemd256_close(cc, dst, 8);
-	sph_ripemd256_init(cc);
+	//sph_ripemd256_init(cc);
 }
 
 /* see sph_ripemd.h */
@@ -895,8 +895,8 @@ sph_ripemd256_comp(const sph_u32 msg[16], sph_u32 val[8])
 		ROUND2(C, D, E, A, B, F1, 11, in( 9),  5); \
 		ROUND2(B, C, D, E, A, F1, 11, in(11),  5); \
  \
-		if (_320) { \
-		tmp = E1; E1 = E2; E2 = tmp; \
+		/* we do not swap here, but swap in the next block*/ /*if (_320)*/ { \
+		/*tmp = E1; E1 = E2; E2 = tmp;*/ \
 		} \
  \
 		if (_320) { \
@@ -904,12 +904,12 @@ sph_ripemd256_comp(const sph_u32 msg[16], sph_u32 val[8])
 		(h)[1] = SPH_T32((h)[1] + B1); \
 		(h)[2] = SPH_T32((h)[2] + C1); \
 		(h)[3] = SPH_T32((h)[3] + D1); \
-		(h)[4] = SPH_T32((h)[4] + E1); \
+		(h)[4] = SPH_T32((h)[4] + E2); /*Swapped with E1*/ \
 		(h)[5] = SPH_T32((h)[5] + A2); \
 		(h)[6] = SPH_T32((h)[6] + B2); \
 		(h)[7] = SPH_T32((h)[7] + C2); \
 		(h)[8] = SPH_T32((h)[8] + D2); \
-		(h)[9] = SPH_T32((h)[9] + E2); \
+		(h)[9] = SPH_T32((h)[9] + E1); /*Swapped with E2*/\
 		} else { \
 		tmp = SPH_T32((h)[1] + C1 + D2); \
 		(h)[1] = SPH_T32((h)[2] + D1 + E2); \
@@ -972,7 +972,7 @@ void
 sph_ripemd160_close(void *cc, void *dst)
 {
 	ripemd160_close(cc, dst, 5);
-	sph_ripemd160_init(cc);
+	//sph_ripemd160_init(cc);
 }
 
 void
@@ -1036,7 +1036,7 @@ void
 sph_ripemd320_close(void *cc, void *dst)
 {
 	ripemd320_close(cc, dst, 10);
-	sph_ripemd320_init(cc);
+	//sph_ripemd320_init(cc);
 }
 
 void

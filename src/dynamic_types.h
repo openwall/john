@@ -35,6 +35,10 @@ typedef ARCH_WORD_32 MD5_word;
 // NOTE, this was flushed out by the max password sized stuff in format self test code, but
 // this IS the size needed to avoid overflows.  126 'would' be large enough. We go a bit over
 // this.  NOTE, if we are using md5_go any more, we would need to expand this even more.
+// Right now, we have type dynamic_107: WHIRLPOOL(WHIRLPOOL($s).WHIRLPOOL($p)) and
+// dynamic_87: sha512(sha512($s).sha512($p)) which both require a 257 byte buffer.  We
+// have only a 260 byte buffer, so it is barely large enough for those. This would be
+// nowhere near large enough to use for md5_go code any more.
 #define EX_BUF_LEN 136
 
 
@@ -54,12 +58,6 @@ typedef struct {
 	}x2;
 #endif
 } MD5_OUT;
-typedef union {
-	double dummy;
-	MD5_word w[5];
-	char b[20];
-	unsigned char B[16];
-} SHA1_OUT;
 
 typedef struct {
 	union {
