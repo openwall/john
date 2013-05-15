@@ -2,7 +2,7 @@
  * This software is Copyright (c) 2012 Sayantan Datta <std2048 at gmail dot com>
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification, are permitted.
- * Based on Solar Designer implementation of DES_bs_b.c in jtr-v1.7.9 
+ * Based on Solar Designer implementation of DES_bs_b.c in jtr-v1.7.9
  */
 
 
@@ -13,7 +13,7 @@
 #include "common-opencl.h"
 #include "opencl_DES_WGS.h"
 
-#define DES_BS_OPENCL_ALGORITHM_NAME		"OpenCL"
+#define DES_BS_OPENCL_ALGORITHM_NAME		"DES OpenCL"
 
 #define DES_BS_DEPTH			32
 #define DES_BS_LOG2			5
@@ -35,7 +35,7 @@ unsigned int CC_CACHE_ALIGN index96[96];
 
 
 #define	MAX_DEVICES_PER_PLATFORM	10
-#define DES_BS_EXPAND                   1 
+#define DES_BS_EXPAND                   1
 /*
  * All bitslice DES parameters combined into one struct for more efficient
  * cache usage. Don't re-order unless you know what you're doing, as there
@@ -49,19 +49,19 @@ typedef struct {
 	unsigned int salt;	/* Salt value corresponding to E[] contents */
 	DES_bs_vector *Ens[48];	/* Pointers into B[] for non-salted E */
 
-  
+
 } opencl_DES_bs_combined;
 
 typedef struct{
-	
-	
+
+
 	union {
 		unsigned char c[8][8][sizeof(DES_bs_vector)];
 		DES_bs_vector v[8][8];
 	} xkeys;
-		
+
 	int keys_changed;
-	
+
 } opencl_DES_bs_transfer ;
 
 /*
@@ -147,27 +147,27 @@ extern int opencl_DES_bs_cmp_one(WORD *binary, int count, int index);
 /*
  * Returns the salt.
  */
-extern WORD opencl_DES_raw_get_salt(char *ciphertext);  
+extern WORD opencl_DES_raw_get_salt(char *ciphertext);
 
 /*
  * Returns the iteration count for DES_std_crypt().
  */
-extern WORD opencl_DES_raw_get_count(char *ciphertext);   
+extern WORD opencl_DES_raw_get_count(char *ciphertext);
 
 /*
  * Does the Initial Permutation; to be used at startup only (doesn't
  * require that DES_std_init() has been called, is not as fast as it
  * could be).
  */
-extern WORD *opencl_DES_do_IP(WORD in[2]);       
+extern WORD *opencl_DES_do_IP(WORD in[2]);
 
 /*
  * Converts an ASCII ciphertext to binary.
  */
-extern WORD *opencl_DES_raw_get_binary(char *ciphertext);   
+extern WORD *opencl_DES_raw_get_binary(char *ciphertext);
 
 extern void DES_bs_select_device(int platform_no,int dev_no,struct fmt_main*);
 
-extern void DES_opencl_clean_all_buffer(void); 
+extern void DES_opencl_clean_all_buffer(void);
 
 #endif
