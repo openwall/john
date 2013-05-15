@@ -465,7 +465,9 @@ int crk_process_key(char *key)
 	if (event_pending)
 	if (crk_process_event()) return 1;
 
-	puts(strnzcpy(crk_stdout_key, key, crk_params.plaintext_length + 1));
+	strnzcpy(crk_stdout_key, key, crk_params.plaintext_length + 1);
+	if (options.verbosity > 1)
+		puts(crk_stdout_key);
 
 	status_update_cands(1);
 
