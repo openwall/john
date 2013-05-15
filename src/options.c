@@ -158,6 +158,8 @@ static struct opt_entry opt_list[] = {
 	{"raw-always-valid", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
 		"%c", &options.dynamic_raw_hashes_always_valid},
 	{"reject-printable", FLG_REJECT_PRINTABLE, FLG_REJECT_PRINTABLE},
+	{"verbosity", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
+		"%u", &options.verbosity},
 #ifdef HAVE_OPENCL
 	{"platform", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
 		OPT_FMT_STR_ALLOC, &options.ocl_platform},
@@ -326,6 +328,7 @@ void opt_print_hidden_usage(void)
 	puts("--regen-lost-salts=N      regenerate lost salts (see doc/OPTIONS)");
 	puts("--mkv-stats=FILE          \"Markov\" stats file (see doc/MARKOV)");
 	puts("--reject-printable        reject printable binaries");
+	puts("--verbosity=N             change verbosity (1-5, default 3)");
 #ifdef HAVE_DL
 	puts("--plugin=NAME[,..]        load this (these) dynamic plugin(s)");
 #endif
@@ -352,6 +355,7 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 	options.force_minlength = -1;
 	options.max_run_time = options.status_interval = 0;
 	options.dynamic_raw_hashes_always_valid = 0;
+	options.verbosity = 3;
 
 	list_init(&options.passwd);
 
@@ -495,6 +499,11 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 		}
 	}
 
+	if (options.verbosity < 1 || options.verbosity > 5) {
+		if (john_main_process)
+			fprintf(stderr, "Invalid --verbosity level, use 1-5\n");
+		error();
+	}
 	if (options.length < 0)
 		options.length = PLAINTEXT_BUFFER_SIZE - 3;
 	else

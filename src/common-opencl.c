@@ -500,7 +500,8 @@ static void dev_init(unsigned int sequential_id)
 	HANDLE_CLERROR(clGetDeviceInfo(devices[sequential_id], CL_DEVICE_NAME,
 		sizeof(device_name), device_name, NULL),
 		"Error querying DEVICE_NAME");
-	fprintf(stderr, "Device %d: %s ", sequential_id, device_name);
+	if (options.verbosity > 2)
+		fprintf(stderr, "Device %d: %s ", sequential_id, device_name);
 
 #ifdef CL_DEVICE_BOARD_NAME_AMD
 	{
@@ -517,14 +518,16 @@ static void dev_init(unsigned int sequential_id)
 				len--;
 
 			opencl_log[len-1] = '\0';
-			fprintf(stderr, "(%s)", opencl_log);
+			if (options.verbosity > 2)
+				fprintf(stderr, "(%s)", opencl_log);
 		}
 	}
 #endif
-	fprintf(stderr, "\n");
+	if (options.verbosity > 2)
+		fprintf(stderr, "\n");
 }
 
-static char *include_source(char *pathname, unsigned int sequential_id, char *options)
+static char *include_source(char *pathname, unsigned int sequential_id, char *opts)
 {
 	static char include[PATH_BUFFER_SIZE];
 
@@ -539,18 +542,17 @@ static char *include_source(char *pathname, unsigned int sequential_id, char *op
 #endif
 		OPENCLBUILDOPTIONS);
 
-	if (options) {
+	if (opts) {
 		strcat(include, " ");
-		strcat(include, options);
+		strcat(include, opts);
 	}
 
-#ifdef DEBUG
-	fprintf(stderr, "Options used: %s\n", include);
-#endif
+	if (options.verbosity > 3)
+		fprintf(stderr, "Options used: %s\n", include);
 	return include;
 }
 
-static void build_kernel(unsigned int sequential_id, char *options, int save, char * file_name)
+static void build_kernel(unsigned int sequential_id, char *opts, int save, char * file_name)
 {
 	cl_int build_code;
 	char * build_log; size_t log_size;
@@ -562,7 +564,7 @@ static void build_kernel(unsigned int sequential_id, char *options, int save, ch
 	HANDLE_CLERROR(ret_code, "Error while creating program");
 
 	build_code = clBuildProgram(program[sequential_id], 0, NULL,
-		include_source("$JOHN/kernels", sequential_id, options), NULL, NULL);
+		include_source("$JOHN/kernels", sequential_id, opts), NULL, NULL);
 
 	HANDLE_CLERROR(clGetProgramBuildInfo(program[sequential_id], devices[sequential_id],
 		CL_PROGRAM_BUILD_LOG, 0, NULL,
@@ -580,10 +582,9 @@ static void build_kernel(unsigned int sequential_id, char *options, int save, ch
 		fprintf(stderr, "Error %d building kernel. DEVICE_INFO=%d\n", build_code, device_info[sequential_id]);
 		HANDLE_CLERROR (build_code, "clBuildProgram failed.");
 	}
-#if defined(REPORT_OPENCL_WARNINGS) || defined(DEBUG)
-	else if (strlen(build_log) > 1) // Nvidia may return a single '\n'
+	// Nvidia may return a single '\n' that we ignore
+	else if (options.verbosity > 3 && strlen(build_log) > 1)
 		fprintf(stderr, "Build log: %s\n", build_log);
-#endif
 	MEM_FREE(build_log);
 
 	if (save) {
@@ -594,9 +595,10 @@ static void build_kernel(unsigned int sequential_id, char *options, int save, ch
 		HANDLE_CLERROR(clGetProgramInfo(program[sequential_id],
 			CL_PROGRAM_BINARY_SIZES,
 			sizeof(size_t), &source_size, NULL), "error");
-#ifdef DEBUG
-		fprintf(stderr, "binary size %zu\n", source_size);
-#endif
+
+		if (options.verbosity > 4)
+			fprintf(stderr, "binary size %zu\n", source_size);
+
 		source = mem_alloc(source_size);
 
 		HANDLE_CLERROR(clGetProgramInfo(program[sequential_id],
@@ -640,10 +642,9 @@ static void build_kernel_from_binary(unsigned int sequential_id)
 			" DEVICE_INFO=%d\n", build_code, device_info[sequential_id]);
 		HANDLE_CLERROR (build_code, "clBuildProgram failed.");
 	}
-#if defined(REPORT_OPENCL_WARNINGS) || defined(DEBUG)
-	else if (strlen(opencl_log) > 1) // Nvidia may return a single '\n'
-		fprintf(stderr, "Binary build log: %s\n", opencl_log);
-#endif
+	// Nvidia may return a single '\n' that we ignore
+	else if (options.verbosity > 3 && strlen(opencl_log) > 1)
+		fprintf(stderr, "Binary Build log: %s\n", opencl_log);
 }
 
 /*
@@ -1273,15 +1274,15 @@ static void read_kernel_source(char *kernel_filename)
 	kernel_loaded = 1;
 }
 
-void opencl_build_kernel_opt(char *kernel_filename, unsigned int sequential_id, char *options)
+void opencl_build_kernel_opt(char *kernel_filename, unsigned int sequential_id, char *opts)
 {
 	read_kernel_source(kernel_filename);
-	build_kernel(sequential_id, options, 0, NULL);
+	build_kernel(sequential_id, opts, 0, NULL);
 }
 
 //CPU and any non nvidia GPU will benefit from this routine.
 //On OSX (including with nvidia) save binary kernel too.
-void opencl_build_kernel_save(char *kernel_filename, unsigned int sequential_id, char *options, int save, int warn) {
+void opencl_build_kernel_save(char *kernel_filename, unsigned int sequential_id, char *opts, int save, int warn) {
 	struct stat source_stat, bin_stat;
 	char dev_name[128], bin_name[128];
 	char * p;
@@ -1290,7 +1291,7 @@ void opencl_build_kernel_save(char *kernel_filename, unsigned int sequential_id,
 	kernel_loaded = 0;
 
 	if ((!cpu(device_info[sequential_id]) && !gpu_amd(device_info[sequential_id]) && !platform_apple(platform_id)) || !save || stat(path_expand(kernel_filename), &source_stat))
-		opencl_build_kernel_opt(kernel_filename, sequential_id, options);
+		opencl_build_kernel_opt(kernel_filename, sequential_id, opts);
 
 	else {
 		startTime = (unsigned long) time(NULL);
@@ -1304,8 +1305,8 @@ void opencl_build_kernel_save(char *kernel_filename, unsigned int sequential_id,
 		p = strstr(bin_name, ".cl");
 		if (p) *p = 0;
 		strcat(bin_name, "_");
-		if (options) {
-			strcat(bin_name, options);
+		if (opts) {
+			strcat(bin_name, opts);
 			strcat(bin_name, "_");
 		}
 		strcat(bin_name, dev_name);
@@ -1330,7 +1331,7 @@ void opencl_build_kernel_save(char *kernel_filename, unsigned int sequential_id,
 				fflush(stdout);
 			}
 			read_kernel_source(kernel_filename);
-			build_kernel(sequential_id, options, 1, bin_name);
+			build_kernel(sequential_id, opts, 1, bin_name);
 		}
 		if (warn) {
 			if ((runtime = (unsigned long) (time(NULL) - startTime)) > 2UL)
@@ -1346,21 +1347,21 @@ void opencl_init_dev(unsigned int sequential_id)
 	dev_init(sequential_id);
 }
 
-void opencl_init_Sayantan(char *kernel_filename, unsigned int dev_id, unsigned int platform_id, char *options)
+void opencl_init_Sayantan(char *kernel_filename, unsigned int dev_id, unsigned int platform_id, char *opts)
 {
 	//Shows the information about in use device(s).
 	int sequential_id = get_sequential_id(dev_id, platform_id);
 
 	kernel_loaded=0;
 	opencl_init_dev(sequential_id);
-	opencl_build_kernel_save(kernel_filename, sequential_id, options, 1, 1);
+	opencl_build_kernel_save(kernel_filename, sequential_id, opts, 1, 1);
 }
 
-void opencl_init_opt(char *kernel_filename, unsigned int sequential_id, char *options)
+void opencl_init_opt(char *kernel_filename, unsigned int sequential_id, char *opts)
 {
 	kernel_loaded=0;
 	opencl_init_dev(sequential_id);
-	opencl_build_kernel_save(kernel_filename, sequential_id, options, 1, 0);
+	opencl_build_kernel_save(kernel_filename, sequential_id, opts, 1, 0);
 }
 
 void opencl_init(char *kernel_filename, unsigned int sequential_id)

@@ -216,6 +216,7 @@ void log_guess(char *login, char *ciphertext, char *rep_plain, char *store_plain
 		len = strlen(rep_plain);
 	spacer[len > 16 ? 0 : 16 - len] = 0;
 
+	if (options.verbosity > 1)
 	printf("%s%s (%s)\n", rep_plain, spacer, login);
 
 	in_logger = 1;
