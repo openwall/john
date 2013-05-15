@@ -214,6 +214,40 @@ dynamic_114 | Tiger(Tiger_raw($p))     | No   |
 dynamic_115 | Tiger(Tiger($p).$s)      | Yes  |
 dynamic_116 | Tiger($s.Tiger($p))      | Yes  |
 dynamic_117 | Tiger(Tiger($s).Tiger($p)) | Yes  |
+dynamic_120 | RIPEMD128($p)                | No   |
+dynamic_121 | RIPEMD128($s.$p)             | Yes  |
+dynamic_122 | RIPEMD128($p.$s)             | Yes  |
+dynamic_123 | RIPEMD128(RIPEMD128($p))         | No   |
+dynamic_124 | RIPEMD128(RIPEMD128_raw($p))     | No   |
+dynamic_125 | RIPEMD128(RIPEMD128($p).$s)      | Yes  |
+dynamic_126 | RIPEMD128($s.RIPEMD128($p))      | Yes  |
+dynamic_127 | RIPEMD128(RIPEMD128($s).RIPEMD128($p)) | Yes  |
+dynamic_130 | RIPEMD160($p)                | No   |
+dynamic_131 | RIPEMD160($s.$p)             | Yes  |
+dynamic_132 | RIPEMD160($p.$s)             | Yes  |
+dynamic_133 | RIPEMD160(RIPEMD160($p))         | No   |
+dynamic_134 | RIPEMD160(RIPEMD160_raw($p))     | No   |
+dynamic_135 | RIPEMD160(RIPEMD160($p).$s)      | Yes  |
+dynamic_136 | RIPEMD160($s.RIPEMD160($p))      | Yes  |
+dynamic_137 | RIPEMD160(RIPEMD160($s).RIPEMD160($p)) | Yes  |
+dynamic_140 | RIPEMD256($p)                | No   |
+dynamic_141 | RIPEMD256($s.$p)             | Yes  |
+dynamic_142 | RIPEMD256($p.$s)             | Yes  |
+dynamic_143 | RIPEMD256(RIPEMD256($p))         | No   |
+dynamic_144 | RIPEMD256(RIPEMD256_raw($p))     | No   |
+dynamic_145 | RIPEMD256(RIPEMD256($p).$s)      | Yes  |
+dynamic_146 | RIPEMD256($s.RIPEMD256($p))      | Yes  |
+dynamic_147 | RIPEMD256(RIPEMD256($s).RIPEMD256($p)) | Yes  |
+dynamic_150 | RIPEMD320($p)                | No   |
+dynamic_151 | RIPEMD320($s.$p)             | Yes  |
+dynamic_152 | RIPEMD320($p.$s)             | Yes  |
+dynamic_153 | RIPEMD320(RIPEMD320($p))         | No   |
+dynamic_154 | RIPEMD320(RIPEMD320_raw($p))     | No   |
+dynamic_155 | RIPEMD320(RIPEMD320($p).$s)      | Yes  |
+dynamic_156 | RIPEMD320($s.RIPEMD320($p))      | Yes  |
+dynamic_157 | RIPEMD320(RIPEMD320($s).RIPEMD320($p)) | Yes  |
+
+
 ........    | RESERVED                | UNK   |
 dynamic_999 | RESERVED                | UNK   |
 
@@ -489,25 +523,22 @@ examples (this whole list is also found in dynamic.conf).
 #     If a field IS used, then you also MUST have the proper
 #     flag set, or the prepare function will NOT load it.
 #
-# MGF_SHA1_40_BYTE_FINISH
+# MGF_INPUT_20_BYTE
 #     Tell $dynamic$ that the 'final' crypt is an SHA1 (still experimental
-#     code, so 'caveat emptor' ).  What this will do, is cause john to
-#     only load hashes that are 40 hex digits (md5 is 32 hex digits).
-#     NOTE, when the 'final' crypt is done (in SHA1), it will only have
-#     the first 16 bytes compared against (vs the full 20 bytes which
+#     code, so 'caveat emptor' ).  What this will do, is cause john to only load
+#     hashes that are 20 binary bytes of input (40 hex digits md5 is 32 hex
+#     digits). NOTE, when the 'final' crypt is done (in SHA1), it will only
+#     have the first 16 bytes compared against (vs the full 20 bytes which
 #     sha1 generates).  This 'should' be more than adequate to know
 #     you have cracked the hash.
-# MGF_SHA224_56_BYTE_FINISH
-# MGF_SHA256_64_BYTE_FINISH
-# MGF_SHA384_96_BYTE_FINISH
-# MGF_SHA512_128_BYTE_FINISH
-# MGF_GOST_64_BYTE_FINISH
-# MGF_WHIRLPOOL_128_BYTE_FINISH
-#     These are similar to the 40 byte flag for the SHA1. NOTE, calling
-#     these 'finish' flags, is actually strange, since what it really
-#     means, is the hash line CONTAINS a hash string this long.  Yes the
-#     last operation IS the type listed (such as sha1, gost, etc). But
-#     that means that dynamic should look for valid input strings which
+# MGF_INPUT_24_BYTE
+# MGF_INPUT_28_BYTE
+# MGF_INPUT_32_BYTE
+# MGF_INPUT_40_BYTE
+# MGF_INPUT_48_BYTE
+# MGF_INPUT_64_BYTE
+#     These are similar to the 20 byte flag for the SHA1. NOTE, this
+#     means that dynamic will only look for valid input strings which
 #     are the appropriate length, based upon that final hash size.
 #     One off these flags MUST be used, on a format that is longer than
 #     the 16 byte MD5 (or md4) hash.
@@ -833,7 +864,7 @@ examples (this whole list is also found in dynamic.conf).
 #    md5(sha1(md5($p))) working (sort of works now, but again, still experimental).
 #    The 2 '_FINAL' functions should ONLY be used as the last call. This allows
 #    for support of sha1(sha1(m5($p).$s)) type hashes.  NOTE, if you use on of the
-#    *_FINAL calls, then you have to use the MGF_SHA1_40_BYTE_FINISH flag, and notes
+#    *_FINAL calls, then you have to use the MGF_INPUT_20_BYTE flag, and notes
 #    that only the first 16 bytes of the final hash are evaluated. Also, only 40 bytes
 #    long hex string hashes will be loaded (base-64? needed?).
 #    At this time, ALL sha1 is done in non-SSE code (x86, OpenSSL). Also note, that
@@ -849,7 +880,7 @@ examples (this whole list is also found in dynamic.conf).
 #
 ####################
 #
-# OTHER large hash functions (SHA2 hashes, GOST, WHIRLPOOL currently)
+# OTHER large hash functions (SHA2 hashes, GOST, WHIRLPOOL, Tiger, RIPEMD(128/160/256/512) currently)
 #
 ####################
 #
@@ -2690,7 +2721,7 @@ Test=$dynamic_1062$71a1083be5c288da7e57b8c2bd7cbc96:test3
 [List.Generic:dynamic_1063]
 Expression=dynamic_1063: sha1(md5($p))
 Flag=MGF_KEYS_INPUT
-Flag=MGF_SHA1_40_BYTE_FINISH
+Flag=MGF_INPUT_20_BYTE
 Func=DynamicFunc__crypt_md5
 Func=DynamicFunc__SSEtoX86_switch_output1
 Func=DynamicFunc__clean_input2
@@ -2704,7 +2735,7 @@ Test=$dynamic_1063$7d653cf00d747a9fbab213b6c2b335cfe8199ff3:test3
 # sha1($p)
 [List.Generic:dynamic_1064]
 Expression=dynamic_1064: sha1($p)
-Flag=MGF_SHA1_40_BYTE_FINISH
+Flag=MGF_INPUT_20_BYTE
 Flag=MGF_RAW_SHA1_INPUT
 Func=DynamicFunc__SHA1_crypt_md5_input1_to_output1_FINAL
 Test=$dynamic_1064$b444ac06613fc8d63795be9ad0beaf55011936ac:test1
@@ -2735,7 +2766,7 @@ Test=$dynamic_1165$72a4064912ccaea4b982b3e9fc710cd7:test3
 Expression=dynamic_1066: sha1($p.$s)
 Flag=MGF_NOTSSE2Safe
 Flag=MGF_SALTED
-Flag=MGF_SHA1_40_BYTE_FINISH
+Flag=MGF_INPUT_20_BYTE
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_keys
 Func=DynamicFunc__append_salt
@@ -2748,7 +2779,7 @@ Test=$dynamic_1066$b966eff1aac95e92818a7c59326cce297b935eff$s3xx:test3
 Expression=dynamic_1067: sha1($s.$p)
 Flag=MGF_NOTSSE2Safe
 Flag=MGF_SALTED
-Flag=MGF_SHA1_40_BYTE_FINISH
+Flag=MGF_INPUT_20_BYTE
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_salt
 Func=DynamicFunc__append_keys
@@ -2760,7 +2791,7 @@ Test=$dynamic_1067$f0058038be0e821caa3031b463aed00fbe7e3beb$s3xx:test3
 [List.Generic:dynamic_1068]
 Expression=dynamic_1068: sha1(sha1($p))
 Flag=MGF_NOTSSE2Safe
-Flag=MGF_SHA1_40_BYTE_FINISH
+Flag=MGF_INPUT_20_BYTE
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__clean_input2
 Func=DynamicFunc__append_keys
@@ -2773,7 +2804,7 @@ Test=$dynamic_1068$b13773cfee62f832cacb618b257feec972f30b13:test3
 [List.Generic:dynamic_1069]
 Expression=dynamic_1069: sha1(sha1($p))
 Flag=MGF_NOTSSE2Safe
-Flag=MGF_SHA1_40_BYTE_FINISH
+Flag=MGF_INPUT_20_BYTE
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__clean_input2
 Func=DynamicFunc__append_keys
@@ -2805,7 +2836,7 @@ Test=$dynamic_1065$72a4064912ccaea4b982b3e9fc710cd7:test3
 [List.Generic:dynamic_1070]
 Expression=dynamic_1070: sha1(upr($u).':'.$p)
 Flag=MGF_NOTSSE2Safe
-Flag=MGF_SHA1_40_BYTE_FINISH
+Flag=MGF_INPUT_20_BYTE
 Flag=MGF_USERNAME_UPCASE
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__clean_input2
@@ -2849,7 +2880,7 @@ Test=$dynamic_1100$537e738b1ac5551f65106368dc301ece:thatsworking
 ####################################################################
 [List.Generic:dynamic_1101]
 Expression=sha1(unicode($p))
-Flag=MGF_SHA1_40_BYTE_FINISH
+Flag=MGF_INPUT_20_BYTE
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__setmode_unicode
 Func=DynamicFunc__append_keys
@@ -2882,7 +2913,7 @@ Test=$dynamic_1401$4a8e71480c5b1ef0a5d502a8eb98576a:abcd:1234
 
 [List.Generic:dynamic_1403]
 Expression=dynamic_1403: sha1(upr($u).':'.$p)
-Flag=MGF_SHA1_40_BYTE_FINISH
+Flag=MGF_INPUT_20_BYTE
 Flag=MGF_USERNAME_UPCASE
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__clean_input2

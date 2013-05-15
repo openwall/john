@@ -101,21 +101,13 @@ typedef struct DYNAMIC_Constants_t
 // the unicode_b4_crypt does a unicode convert, prior to crypt_in2, base16-in1, etc.  It can NOT be used with KEYS_INPUT.
 #define MGF_KEYS_UNICODE_B4_CRYPT        0x00001000
 #define MGF_SOURCE                       0x00002000
-#define MGF_SOURCE_SHA                   0x00004000
-#define MGF_SOURCE_SHA224                0x00008000
-#define MGF_SOURCE_SHA256                0x00010000
-#define MGF_SOURCE_SHA384                0x00020000
-#define MGF_SOURCE_SHA512                0x00040000
-#define MGF_SOURCE_GOST                  0x00080000
-#define MGF_SOURCE_WHIRLPOOL             0x00100000
-#define MGF_SHA1_40_BYTE_FINISH          0x00200000
-#define MGF_SHA224_56_BYTE_FINISH        0x00400000
-#define MGF_SHA256_64_BYTE_FINISH        0x00800000
-#define MGF_SHA384_96_BYTE_FINISH        0x01000000
-#define MGF_SHA512_128_BYTE_FINISH       0x02000000
-#define MGF_GOST_64_BYTE_FINISH          0x04000000
-#define MGF_WHIRLPOOL_128_BYTE_FINISH    0x08000000
-#define MGF_Tiger_48_BYTE_FINISH         0x10000000
+#define MGF_INPUT_20_BYTE                0x00004000
+#define MGF_INPUT_24_BYTE                0x00008000
+#define MGF_INPUT_28_BYTE                0x00010000
+#define MGF_INPUT_32_BYTE                0x00020000
+#define MGF_INPUT_40_BYTE                0x00040000
+#define MGF_INPUT_48_BYTE                0x00080000
+#define MGF_INPUT_64_BYTE                0x00100000
 
 typedef struct DYNAMIC_Setup_t
 {
@@ -367,6 +359,43 @@ extern void DynamicFunc__Tiger_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS);
 extern void DynamicFunc__Tiger_crypt_input1_to_output1_FINAL(DYNA_OMP_PARAMS);
 extern void DynamicFunc__Tiger_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS);
 
+extern void DynamicFunc__RIPEMD128_crypt_input1_append_input2(DYNA_OMP_PARAMS);
+extern void DynamicFunc__RIPEMD128_crypt_input2_append_input1(DYNA_OMP_PARAMS);
+extern void DynamicFunc__RIPEMD128_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS);
+extern void DynamicFunc__RIPEMD128_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS);
+extern void DynamicFunc__RIPEMD128_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS);
+extern void DynamicFunc__RIPEMD128_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS);
+extern void DynamicFunc__RIPEMD128_crypt_input1_to_output1_FINAL(DYNA_OMP_PARAMS);
+extern void DynamicFunc__RIPEMD128_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS);
+
+extern void DynamicFunc__RIPEMD160_crypt_input1_append_input2(DYNA_OMP_PARAMS);
+extern void DynamicFunc__RIPEMD160_crypt_input2_append_input1(DYNA_OMP_PARAMS);
+extern void DynamicFunc__RIPEMD160_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS);
+extern void DynamicFunc__RIPEMD160_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS);
+extern void DynamicFunc__RIPEMD160_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS);
+extern void DynamicFunc__RIPEMD160_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS);
+extern void DynamicFunc__RIPEMD160_crypt_input1_to_output1_FINAL(DYNA_OMP_PARAMS);
+extern void DynamicFunc__RIPEMD160_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS);
+
+extern void DynamicFunc__RIPEMD256_crypt_input1_append_input2(DYNA_OMP_PARAMS);
+extern void DynamicFunc__RIPEMD256_crypt_input2_append_input1(DYNA_OMP_PARAMS);
+extern void DynamicFunc__RIPEMD256_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS);
+extern void DynamicFunc__RIPEMD256_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS);
+extern void DynamicFunc__RIPEMD256_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS);
+extern void DynamicFunc__RIPEMD256_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS);
+extern void DynamicFunc__RIPEMD256_crypt_input1_to_output1_FINAL(DYNA_OMP_PARAMS);
+extern void DynamicFunc__RIPEMD256_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS);
+
+extern void DynamicFunc__RIPEMD320_crypt_input1_append_input2(DYNA_OMP_PARAMS);
+extern void DynamicFunc__RIPEMD320_crypt_input2_append_input1(DYNA_OMP_PARAMS);
+extern void DynamicFunc__RIPEMD320_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS);
+extern void DynamicFunc__RIPEMD320_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS);
+extern void DynamicFunc__RIPEMD320_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS);
+extern void DynamicFunc__RIPEMD320_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS);
+extern void DynamicFunc__RIPEMD320_crypt_input1_to_output1_FINAL(DYNA_OMP_PARAMS);
+extern void DynamicFunc__RIPEMD320_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS);
+
+
 // These 3 dump the raw crypt back into input (only at the head of it).
 // they are for phpass, wordpress, etc.
 extern void DynamicFunc__crypt_md5_to_input_raw(DYNA_OMP_PARAMS);
@@ -447,5 +476,29 @@ extern void DynamicFunc__Tiger_crypt_input1_overwrite_input1_base16(DYNA_OMP_PAR
 extern void DynamicFunc__Tiger_crypt_input2_overwrite_input2_base16(DYNA_OMP_PARAMS);
 extern void DynamicFunc__Tiger_crypt_input1_overwrite_input2_base16(DYNA_OMP_PARAMS);
 extern void DynamicFunc__Tiger_crypt_input2_overwrite_input1_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__RIPEMD128_crypt_input1_append_input2_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__RIPEMD128_crypt_input2_append_input1_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__RIPEMD128_crypt_input1_overwrite_input1_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__RIPEMD128_crypt_input2_overwrite_input2_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__RIPEMD128_crypt_input1_overwrite_input2_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__RIPEMD128_crypt_input2_overwrite_input1_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__RIPEMD160_crypt_input1_append_input2_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__RIPEMD160_crypt_input2_append_input1_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__RIPEMD160_crypt_input1_overwrite_input1_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__RIPEMD160_crypt_input2_overwrite_input2_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__RIPEMD160_crypt_input1_overwrite_input2_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__RIPEMD160_crypt_input2_overwrite_input1_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__RIPEMD256_crypt_input1_append_input2_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__RIPEMD256_crypt_input2_append_input1_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__RIPEMD256_crypt_input1_overwrite_input1_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__RIPEMD256_crypt_input2_overwrite_input2_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__RIPEMD256_crypt_input1_overwrite_input2_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__RIPEMD256_crypt_input2_overwrite_input1_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__RIPEMD320_crypt_input1_append_input2_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__RIPEMD320_crypt_input2_append_input1_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__RIPEMD320_crypt_input1_overwrite_input1_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__RIPEMD320_crypt_input2_overwrite_input2_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__RIPEMD320_crypt_input1_overwrite_input2_base16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__RIPEMD320_crypt_input2_overwrite_input1_base16(DYNA_OMP_PARAMS);
 
 #endif // __DYNAMIC___H

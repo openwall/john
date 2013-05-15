@@ -710,7 +710,7 @@ static struct fmt_tests _Preloads_22[] =
 //dynamic_23 --> sha1(md5($p))
 static DYNAMIC_primitive_funcp _Funcs_23[] =
 {
-	//MGF_SHA1_40_BYTE_FINISH
+	//MGF_INPUT_20_BYTE
 	//MGF_KEYS_INPUT
 	DynamicFunc__crypt_md5,
 	DynamicFunc__SSEtoX86_switch_output1,
@@ -730,7 +730,7 @@ static struct fmt_tests _Preloads_23[] =
 //dynamic_24 --> sha1($p.$s)
 static DYNAMIC_primitive_funcp _Funcs_24[] =
 {
-	//MGF_SHA1_40_BYTE_FINISH
+	//MGF_INPUT_20_BYTE
 	//MGF_SALTED
 	DynamicFunc__clean_input,
 	DynamicFunc__append_keys,
@@ -749,7 +749,7 @@ static struct fmt_tests _Preloads_24[] =
 //dynamic_25 --> sha1($s.$p)
 static DYNAMIC_primitive_funcp _Funcs_25[] =
 {
-	//MGF_SHA1_40_BYTE_FINISH
+	//MGF_INPUT_20_BYTE
 	//MGF_SALTED
 	DynamicFunc__clean_input,
 	DynamicFunc__append_salt,
@@ -768,7 +768,7 @@ static struct fmt_tests _Preloads_25[] =
 // dynamic_26  raw-sha1
 static DYNAMIC_primitive_funcp _Funcs_26[] =
 {
-	//MGF_SHA1_40_BYTE_FINISH
+	//MGF_INPUT_20_BYTE
 	//MGF_RAW_SHA1_INPUT
 	DynamicFunc__SHA1_crypt_input1_to_output1_FINAL,
 	NULL
@@ -989,7 +989,7 @@ static struct fmt_tests _Preloads_34[] =
 //dynamic_35 --> sha1(uc($u).:.$p)
 static DYNAMIC_primitive_funcp _Funcs_35[] =
 {
-	//MGF_SHA1_40_BYTE_FINISH
+	//MGF_INPUT_20_BYTE
 	//MGF_SALTED ???
 	//MGF_USERNAME_UPCASE
 	DynamicFunc__clean_input,
@@ -1019,7 +1019,7 @@ static DYNAMIC_Constants _Const_35[] =
 //dynamic_36 --> sha1($u.:.$p)
 static DYNAMIC_primitive_funcp _Funcs_36[] =
 {
-	//MGF_SHA1_40_BYTE_FINISH
+	//MGF_INPUT_20_BYTE
 	//MGF_USERNAME
 	DynamicFunc__clean_input,
 	DynamicFunc__append_userid,
@@ -1048,7 +1048,7 @@ static DYNAMIC_Constants _Const_36[] =
 //dynamic_37 --> sha1(lc($u).$p)
 static DYNAMIC_primitive_funcp _Funcs_37[] =
 {
-	//MGF_SHA1_40_BYTE_FINISH
+	//MGF_INPUT_20_BYTE
 	//MGF_USERNAME
 	DynamicFunc__clean_input,
 	DynamicFunc__append_userid,
@@ -1071,7 +1071,7 @@ static struct fmt_tests _Preloads_37[] =
 //dynamic_38 --> sha1($salt.sha1($salt.sha1($pass)))
 static DYNAMIC_primitive_funcp _Funcs_38[] =
 {
-	//MGF_SHA1_40_BYTE_FINISH
+	//MGF_INPUT_20_BYTE
 	//MGF_SALTED
 	//MGF_NOTSSE2Safe
 	DynamicFunc__clean_input,
@@ -1097,7 +1097,7 @@ static struct fmt_tests _Preloads_38[] =
 //	dynamic_50: sha224($p)
 static DYNAMIC_primitive_funcp _Funcs_50[] =
 {
-	//MGF_SHA224_56_BYTE_FINISH
+	//MGF_INPUT_28_BYTE
 	//MGF_NOTSSE2Safe
 	DynamicFunc__clean_input,
 	DynamicFunc__append_keys,
@@ -1115,7 +1115,7 @@ static struct fmt_tests _Preloads_50[] =
 //	dynamic_51: sha224($s.$p)
 static DYNAMIC_primitive_funcp _Funcs_51[] =
 {
-	//MGF_SHA224_56_BYTE_FINISH
+	//MGF_INPUT_28_BYTE
 	//MGF_SALTED
 	//MGF_NOTSSE2Safe
 	DynamicFunc__clean_input,
@@ -1135,7 +1135,7 @@ static struct fmt_tests _Preloads_51[] =
 //	dynamic_52: sha224($s.$p)
 static DYNAMIC_primitive_funcp _Funcs_52[] =
 {
-	//MGF_SHA224_56_BYTE_FINISH
+	//MGF_INPUT_28_BYTE
 	//MGF_SALTED
 	//MGF_NOTSSE2Safe
 	DynamicFunc__clean_input,
@@ -1155,7 +1155,7 @@ static struct fmt_tests _Preloads_52[] =
 //	dynamic_53: sha224(sha224($p))
 static DYNAMIC_primitive_funcp _Funcs_53[] =
 {
-	//MGF_SHA224_56_BYTE_FINISH
+	//MGF_INPUT_28_BYTE
 	//MGF_NOTSSE2Safe
 	//MGF_KEYS_IN_INPUT
 
@@ -1163,7 +1163,6 @@ static DYNAMIC_primitive_funcp _Funcs_53[] =
 	//DynamicFunc__SHA224_crypt_input1_append_input2,
 	// both appand and overwrite tested.  Since we have a fixed size, overwrite, with no clean2 works fine and faster.
 	DynamicFunc__SHA224_crypt_input1_overwrite_input2,
-
 	DynamicFunc__SHA224_crypt_input2_to_output1_FINAL,
 	NULL
 };
@@ -1178,7 +1177,7 @@ static struct fmt_tests _Preloads_53[] =
 //	dynamic_54: sha224(sha224_raw($p))
 static DYNAMIC_primitive_funcp _Funcs_54[] =
 {
-	//MGF_SHA224_56_BYTE_FINISH
+	//MGF_INPUT_28_BYTE
 	//MGF_NOTSSE2Safe
 	//MGF_KEYS_IN_INPUT
 	DynamicFunc__LargeHash_OUTMode_raw,
@@ -1197,7 +1196,7 @@ static struct fmt_tests _Preloads_54[] =
 //	dynamic_55: sha224(sha224($p).$s)
 static DYNAMIC_primitive_funcp _Funcs_55[] =
 {
-	//MGF_SHA224_56_BYTE_FINISH
+	//MGF_INPUT_28_BYTE
 	//MGF_NOTSSE2Safe
 	//MGF_SALTED
 	//MGF_KEYS_IN_INPUT
@@ -1217,7 +1216,7 @@ static struct fmt_tests _Preloads_55[] =
 //	dynamic_56: sha224($s.sha224($p))
 static DYNAMIC_primitive_funcp _Funcs_56[] =
 {
-	//MGF_SHA224_56_BYTE_FINISH
+	//MGF_INPUT_28_BYTE
 	//MGF_NOTSSE2Safe
 	//MGF_SALTED
 	//MGF_KEYS_IN_INPUT
@@ -1238,7 +1237,7 @@ static struct fmt_tests _Preloads_56[] =
 //	dynamic_57: sha224(sha224($s).sha224($p))
 static DYNAMIC_primitive_funcp _Funcs_57[] =
 {
-	//MGF_SHA224_56_BYTE_FINISH
+	//MGF_INPUT_28_BYTE
 	//MGF_NOTSSE2Safe
 	//MGF_SALTED
 	//MGF_KEYS_IN_INPUT
@@ -1260,7 +1259,7 @@ static struct fmt_tests _Preloads_57[] =
 //	dynamic_60: sha256($p)
 static DYNAMIC_primitive_funcp _Funcs_60[] =
 {
-	//MGF_SHA256_64_BYTE_FINISH
+	//MGF_INPUT_32_BYTE
 	//MGF_NOTSSE2Safe
 	DynamicFunc__clean_input,
 	DynamicFunc__append_keys,
@@ -1278,7 +1277,7 @@ static struct fmt_tests _Preloads_60[] =
 //	dynamic_61: sha256($s.$p)
 static DYNAMIC_primitive_funcp _Funcs_61[] =
 {
-	//MGF_SHA256_64_BYTE_FINISH
+	//MGF_INPUT_32_BYTE
 	//MGF_SALTED
 	//MGF_NOTSSE2Safe
 	DynamicFunc__clean_input,
@@ -1298,7 +1297,7 @@ static struct fmt_tests _Preloads_61[] =
 //	dynamic_62: sha256($s.$p)
 static DYNAMIC_primitive_funcp _Funcs_62[] =
 {
-	//MGF_SHA256_64_BYTE_FINISH
+	//MGF_INPUT_32_BYTE
 	//MGF_SALTED
 	//MGF_NOTSSE2Safe
 	DynamicFunc__clean_input,
@@ -1317,7 +1316,7 @@ static struct fmt_tests _Preloads_62[] =
 //	dynamic_63: SHA256(SHA256($p))
 static DYNAMIC_primitive_funcp _Funcs_63[] =
 {
-	//MGF_SHA256_64_BYTE_FINISH
+	//MGF_INPUT_32_BYTE
 	//MGF_NOTSSE2Safe
 	//MGF_KEYS_IN_INPUT
 
@@ -1325,7 +1324,6 @@ static DYNAMIC_primitive_funcp _Funcs_63[] =
 	//DynamicFunc__SHA256_crypt_input1_append_input2,
 	// both appand and overwrite tested.  Since we have a fixed size, overwrite, with no clean2 works fine and faster.
 	DynamicFunc__SHA256_crypt_input1_overwrite_input2,
-
 	DynamicFunc__SHA256_crypt_input2_to_output1_FINAL,
 	NULL
 };
@@ -1340,7 +1338,7 @@ static struct fmt_tests _Preloads_63[] =
 //	dynamic_64: SHA256(SHA256_raw($p))
 static DYNAMIC_primitive_funcp _Funcs_64[] =
 {
-	//MGF_SHA256_64_BYTE_FINISH
+	//MGF_INPUT_32_BYTE
 	//MGF_NOTSSE2Safe
 	//MGF_KEYS_IN_INPUT
 	DynamicFunc__LargeHash_OUTMode_raw,
@@ -1359,7 +1357,7 @@ static struct fmt_tests _Preloads_64[] =
 //	dynamic_65: SHA256(SHA256($p).$s)
 static DYNAMIC_primitive_funcp _Funcs_65[] =
 {
-	//MGF_SHA256_64_BYTE_FINISH
+	//MGF_INPUT_32_BYTE
 	//MGF_NOTSSE2Safe
 	//MGF_SALTED
 	//MGF_KEYS_IN_INPUT
@@ -1379,7 +1377,7 @@ static struct fmt_tests _Preloads_65[] =
 //	dynamic_66: SHA256($s.SHA256($p))
 static DYNAMIC_primitive_funcp _Funcs_66[] =
 {
-	//MGF_SHA256_64_BYTE_FINISH
+	//MGF_INPUT_32_BYTE
 	//MGF_NOTSSE2Safe
 	//MGF_SALTED
 	//MGF_KEYS_IN_INPUT
@@ -1400,7 +1398,7 @@ static struct fmt_tests _Preloads_66[] =
 //	dynamic_67: SHA256(SHA256($s).SHA256($p))
 static DYNAMIC_primitive_funcp _Funcs_67[] =
 {
-	//MGF_SHA256_64_BYTE_FINISH
+	//MGF_INPUT_32_BYTE
 	//MGF_NOTSSE2Safe
 	//MGF_SALTED
 	//MGF_KEYS_IN_INPUT
@@ -1423,7 +1421,7 @@ static struct fmt_tests _Preloads_67[] =
 //	dynamic_70: sha384($p)
 static DYNAMIC_primitive_funcp _Funcs_70[] =
 {
-	//MGF_SHA384_96_BYTE_FINISH
+	//MGF_INPUT_48_BYTE
 	//MGF_NOTSSE2Safe
 	DynamicFunc__clean_input,
 	DynamicFunc__append_keys,
@@ -1441,7 +1439,7 @@ static struct fmt_tests _Preloads_70[] =
 //	dynamic_71: sha384($s.$p)
 static DYNAMIC_primitive_funcp _Funcs_71[] =
 {
-	//MGF_SHA384_96_BYTE_FINISH
+	//MGF_INPUT_48_BYTE
 	//MGF_SALTED
 	//MGF_NOTSSE2Safe
 	DynamicFunc__clean_input,
@@ -1461,7 +1459,7 @@ static struct fmt_tests _Preloads_71[] =
 //	dynamic_72: sha384($s.$p)
 static DYNAMIC_primitive_funcp _Funcs_72[] =
 {
-	//MGF_SHA384_96_BYTE_FINISH
+	//MGF_INPUT_48_BYTE
 	//MGF_SALTED
 	//MGF_NOTSSE2Safe
 	DynamicFunc__clean_input,
@@ -1480,7 +1478,7 @@ static struct fmt_tests _Preloads_72[] =
 //	dynamic_73: SHA384(SHA384($p))
 static DYNAMIC_primitive_funcp _Funcs_73[] =
 {
-	//MGF_SHA384_96_BYTE_FINISH
+	//MGF_INPUT_48_BYTE
 	//MGF_NOTSSE2Safe
 	//MGF_KEYS_IN_INPUT
 
@@ -1488,7 +1486,6 @@ static DYNAMIC_primitive_funcp _Funcs_73[] =
 	//DynamicFunc__SHA384_crypt_input1_append_input2,
 	// both appand and overwrite tested.  Since we have a fixed size, overwrite, with no clean2 works fine and faster.
 	DynamicFunc__SHA384_crypt_input1_overwrite_input2,
-
 	DynamicFunc__SHA384_crypt_input2_to_output1_FINAL,
 	NULL
 };
@@ -1503,7 +1500,7 @@ static struct fmt_tests _Preloads_73[] =
 //	dynamic_74: SHA384(SHA384_raw($p))
 static DYNAMIC_primitive_funcp _Funcs_74[] =
 {
-	//MGF_SHA384_96_BYTE_FINISH
+	//MGF_INPUT_48_BYTE
 	//MGF_NOTSSE2Safe
 	//MGF_KEYS_IN_INPUT
 	DynamicFunc__LargeHash_OUTMode_raw,
@@ -1522,7 +1519,7 @@ static struct fmt_tests _Preloads_74[] =
 //	dynamic_75: SHA384(SHA384($p).$s)
 static DYNAMIC_primitive_funcp _Funcs_75[] =
 {
-	//MGF_SHA384_96_BYTE_FINISH
+	//MGF_INPUT_48_BYTE
 	//MGF_NOTSSE2Safe
 	//MGF_SALTED
 	//MGF_KEYS_IN_INPUT
@@ -1542,7 +1539,7 @@ static struct fmt_tests _Preloads_75[] =
 //	dynamic_76: SHA384($s.SHA384($p))
 static DYNAMIC_primitive_funcp _Funcs_76[] =
 {
-	//MGF_SHA384_96_BYTE_FINISH
+	//MGF_INPUT_48_BYTE
 	//MGF_NOTSSE2Safe
 	//MGF_SALTED
 	//MGF_KEYS_IN_INPUT
@@ -1563,7 +1560,7 @@ static struct fmt_tests _Preloads_76[] =
 //	dynamic_77: SHA384(SHA384($s).SHA384($p))
 static DYNAMIC_primitive_funcp _Funcs_77[] =
 {
-	//MGF_SHA384_96_BYTE_FINISH
+	//MGF_INPUT_48_BYTE
 	//MGF_NOTSSE2Safe
 	//MGF_SALTED
 	//MGF_KEYS_IN_INPUT
@@ -1586,7 +1583,7 @@ static struct fmt_tests _Preloads_77[] =
 //	dynamic_80: sha512($p)
 static DYNAMIC_primitive_funcp _Funcs_80[] =
 {
-	//MGF_SHA512_128_BYTE_FINISH
+	//MGF_INPUT_64_BYTE
 	//MGF_NOTSSE2Safe
 	DynamicFunc__clean_input,
 	DynamicFunc__append_keys,
@@ -1604,7 +1601,7 @@ static struct fmt_tests _Preloads_80[] =
 //	dynamic_81: sha512($s.$p)
 static DYNAMIC_primitive_funcp _Funcs_81[] =
 {
-	//MGF_SHA512_128_BYTE_FINISH
+	//MGF_INPUT_64_BYTE
 	//MGF_SALTED
 	//MGF_NOTSSE2Safe
 	DynamicFunc__clean_input,
@@ -1624,7 +1621,7 @@ static struct fmt_tests _Preloads_81[] =
 //	dynamic_82: sha512($s.$p)
 static DYNAMIC_primitive_funcp _Funcs_82[] =
 {
-	//MGF_SHA512_128_BYTE_FINISH
+	//MGF_INPUT_64_BYTE
 	//MGF_SALTED
 	//MGF_NOTSSE2Safe
 	DynamicFunc__clean_input,
@@ -1643,7 +1640,7 @@ static struct fmt_tests _Preloads_82[] =
 //	dynamic_83: SHA512(SHA512($p))
 static DYNAMIC_primitive_funcp _Funcs_83[] =
 {
-	//MGF_SHA512_128_BYTE_FINISH
+	//MGF_INPUT_64_BYTE
 	//MGF_NOTSSE2Safe
 	//MGF_KEYS_IN_INPUT
 
@@ -1651,7 +1648,6 @@ static DYNAMIC_primitive_funcp _Funcs_83[] =
 	//DynamicFunc__SHA512_crypt_input1_append_input2,
 	// both appand and overwrite tested.  Since we have a fixed size, overwrite, with no clean2 works fine and faster.
 	DynamicFunc__SHA512_crypt_input1_overwrite_input2,
-
 	DynamicFunc__SHA512_crypt_input2_to_output1_FINAL,
 	NULL
 };
@@ -1666,7 +1662,7 @@ static struct fmt_tests _Preloads_83[] =
 //	dynamic_84: SHA512(SHA512_raw($p))
 static DYNAMIC_primitive_funcp _Funcs_84[] =
 {
-	//MGF_SHA512_128_BYTE_FINISH
+	//MGF_INPUT_64_BYTE
 	//MGF_NOTSSE2Safe
 	//MGF_KEYS_IN_INPUT
 	DynamicFunc__LargeHash_OUTMode_raw,
@@ -1685,7 +1681,7 @@ static struct fmt_tests _Preloads_84[] =
 //	dynamic_85: SHA512(SHA512($p).$s)
 static DYNAMIC_primitive_funcp _Funcs_85[] =
 {
-	//MGF_SHA512_128_BYTE_FINISH
+	//MGF_INPUT_64_BYTE
 	//MGF_NOTSSE2Safe
 	//MGF_SALTED
 	//MGF_KEYS_IN_INPUT
@@ -1705,7 +1701,7 @@ static struct fmt_tests _Preloads_85[] =
 //	dynamic_86: SHA512($s.SHA512($p))
 static DYNAMIC_primitive_funcp _Funcs_86[] =
 {
-	//MGF_SHA512_128_BYTE_FINISH
+	//MGF_INPUT_64_BYTE
 	//MGF_NOTSSE2Safe
 	//MGF_SALTED
 	//MGF_KEYS_IN_INPUT
@@ -1726,7 +1722,7 @@ static struct fmt_tests _Preloads_86[] =
 //	dynamic_87: SHA512(SHA512($s).SHA512($p))
 static DYNAMIC_primitive_funcp _Funcs_87[] =
 {
-	//MGF_SHA512_128_BYTE_FINISH
+	//MGF_INPUT_64_BYTE
 	//MGF_NOTSSE2Safe
 	//MGF_SALTED
 	//MGF_KEYS_IN_INPUT
@@ -1749,7 +1745,7 @@ static struct fmt_tests _Preloads_87[] =
 //	dynamic_90: GOST($p)
 static DYNAMIC_primitive_funcp _Funcs_90[] =
 {
-	//MGF_GOST_64_BYTE_FINISH
+	//MGF_INPUT_32_BYTE
 	//MGF_NOTSSE2Safe
 	DynamicFunc__clean_input,
 	DynamicFunc__append_keys,
@@ -1767,7 +1763,7 @@ static struct fmt_tests _Preloads_90[] =
 //	dynamic_91: GOST($s.$p)
 static DYNAMIC_primitive_funcp _Funcs_91[] =
 {
-	//MGF_GOST_64_BYTE_FINISH
+	//MGF_INPUT_32_BYTE
 	//MGF_SALTED
 	//MGF_NOTSSE2Safe
 	DynamicFunc__clean_input,
@@ -1787,7 +1783,7 @@ static struct fmt_tests _Preloads_91[] =
 //	dynamic_92: GOST($s.$p)
 static DYNAMIC_primitive_funcp _Funcs_92[] =
 {
-	//MGF_GOST_64_BYTE_FINISH
+	//MGF_INPUT_32_BYTE
 	//MGF_SALTED
 	//MGF_NOTSSE2Safe
 	DynamicFunc__clean_input,
@@ -1806,7 +1802,7 @@ static struct fmt_tests _Preloads_92[] =
 //	dynamic_93: GOST(GOST($p))
 static DYNAMIC_primitive_funcp _Funcs_93[] =
 {
-	//MGF_GOST_64_BYTE_FINISH
+	//MGF_INPUT_32_BYTE
 	//MGF_NOTSSE2Safe
 	//MGF_KEYS_IN_INPUT
 
@@ -1814,7 +1810,6 @@ static DYNAMIC_primitive_funcp _Funcs_93[] =
 	//DynamicFunc__GOST_crypt_input1_append_input2,
 	// both appand and overwrite tested.  Since we have a fixed size, overwrite, with no clean2 works fine and faster.
 	DynamicFunc__GOST_crypt_input1_overwrite_input2,
-
 	DynamicFunc__GOST_crypt_input2_to_output1_FINAL,
 	NULL
 };
@@ -1829,7 +1824,7 @@ static struct fmt_tests _Preloads_93[] =
 //	dynamic_94: GOST(GOST_raw($p))
 static DYNAMIC_primitive_funcp _Funcs_94[] =
 {
-	//MGF_GOST_64_BYTE_FINISH
+	//MGF_INPUT_32_BYTE
 	//MGF_NOTSSE2Safe
 	//MGF_KEYS_IN_INPUT
 	DynamicFunc__LargeHash_OUTMode_raw,
@@ -1848,7 +1843,7 @@ static struct fmt_tests _Preloads_94[] =
 //	dynamic_95: GOST(GOST($p).$s)
 static DYNAMIC_primitive_funcp _Funcs_95[] =
 {
-	//MGF_GOST_64_BYTE_FINISH
+	//MGF_INPUT_32_BYTE
 	//MGF_NOTSSE2Safe
 	//MGF_SALTED
 	//MGF_KEYS_IN_INPUT
@@ -1868,7 +1863,7 @@ static struct fmt_tests _Preloads_95[] =
 //	dynamic_96: GOST($s.GOST($p))
 static DYNAMIC_primitive_funcp _Funcs_96[] =
 {
-	//MGF_GOST_64_BYTE_FINISH
+	//MGF_INPUT_32_BYTE
 	//MGF_NOTSSE2Safe
 	//MGF_SALTED
 	//MGF_KEYS_IN_INPUT
@@ -1889,7 +1884,7 @@ static struct fmt_tests _Preloads_96[] =
 //	dynamic_97: GOST(GOST($s).GOST($p))
 static DYNAMIC_primitive_funcp _Funcs_97[] =
 {
-	//MGF_GOST_64_BYTE_FINISH
+	//MGF_INPUT_32_BYTE
 	//MGF_NOTSSE2Safe
 	//MGF_SALTED
 	//MGF_KEYS_IN_INPUT
@@ -1911,7 +1906,7 @@ static struct fmt_tests _Preloads_97[] =
 //	dynamic_100: WHIRLPOOL($p)
 static DYNAMIC_primitive_funcp _Funcs_100[] =
 {
-	//MGF_WHIRLPOOL_128_BYTE_FINISH
+	//MGF_INPUT_64_BYTE
 	//MGF_NOTSSE2Safe
 	DynamicFunc__clean_input,
 	DynamicFunc__append_keys,
@@ -1929,7 +1924,7 @@ static struct fmt_tests _Preloads_100[] =
 //	dynamic_101: WHIRLPOOL($s.$p)
 static DYNAMIC_primitive_funcp _Funcs_101[] =
 {
-	//MGF_WHIRLPOOL_128_BYTE_FINISH
+	//MGF_INPUT_64_BYTE
 	//MGF_SALTED
 	//MGF_NOTSSE2Safe
 	DynamicFunc__clean_input,
@@ -1949,7 +1944,7 @@ static struct fmt_tests _Preloads_101[] =
 //	dynamic_102: WHIRLPOOL($s.$p)
 static DYNAMIC_primitive_funcp _Funcs_102[] =
 {
-	//MGF_WHIRLPOOL_128_BYTE_FINISH
+	//MGF_INPUT_64_BYTE
 	//MGF_SALTED
 	//MGF_NOTSSE2Safe
 	DynamicFunc__clean_input,
@@ -1969,7 +1964,7 @@ static struct fmt_tests _Preloads_102[] =
 //	dynamic_103: WHIRLPOOL(WHIRLPOOL($p))
 static DYNAMIC_primitive_funcp _Funcs_103[] =
 {
-	//MGF_WHIRLPOOL_128_BYTE_FINISH
+	//MGF_INPUT_64_BYTE
 	//MGF_NOTSSE2Safe
 	//MGF_KEYS_IN_INPUT
 
@@ -1977,7 +1972,6 @@ static DYNAMIC_primitive_funcp _Funcs_103[] =
 	//DynamicFunc__WHIRLPOOL_crypt_input1_append_input2,
 	// both appand and overwrite tested.  Since we have a fixed size, overwrite, with no clean2 works fine and faster.
 	DynamicFunc__WHIRLPOOL_crypt_input1_overwrite_input2,
-
 	DynamicFunc__WHIRLPOOL_crypt_input2_to_output1_FINAL,
 	NULL
 };
@@ -1992,7 +1986,7 @@ static struct fmt_tests _Preloads_103[] =
 //	dynamic_104: WHIRLPOOL(WHIRLPOOL_raw($p))
 static DYNAMIC_primitive_funcp _Funcs_104[] =
 {
-	//MGF_WHIRLPOOL_128_BYTE_FINISH
+	//MGF_INPUT_64_BYTE
 	//MGF_NOTSSE2Safe
 	//MGF_KEYS_IN_INPUT
 	DynamicFunc__LargeHash_OUTMode_raw,
@@ -2011,7 +2005,7 @@ static struct fmt_tests _Preloads_104[] =
 //	dynamic_105: WHIRLPOOL(WHIRLPOOL($p).$s)
 static DYNAMIC_primitive_funcp _Funcs_105[] =
 {
-	//MGF_WHIRLPOOL_128_BYTE_FINISH
+	//MGF_INPUT_64_BYTE
 	//MGF_NOTSSE2Safe
 	//MGF_SALTED
 	//MGF_KEYS_IN_INPUT
@@ -2031,7 +2025,7 @@ static struct fmt_tests _Preloads_105[] =
 //	dynamic_106: WHIRLPOOL($s.WHIRLPOOL($p))
 static DYNAMIC_primitive_funcp _Funcs_106[] =
 {
-	//MGF_WHIRLPOOL_128_BYTE_FINISH
+	//MGF_INPUT_64_BYTE
 	//MGF_NOTSSE2Safe
 	//MGF_SALTED
 	//MGF_KEYS_IN_INPUT
@@ -2052,7 +2046,7 @@ static struct fmt_tests _Preloads_106[] =
 //	dynamic_107: WHIRLPOOL(WHIRLPOOL($s).WHIRLPOOL($p))
 static DYNAMIC_primitive_funcp _Funcs_107[] =
 {
-	//MGF_WHIRLPOOL_128_BYTE_FINISH
+	//MGF_INPUT_64_BYTE
 	//MGF_NOTSSE2Safe
 	//MGF_SALTED
 	//MGF_KEYS_IN_INPUT
@@ -2074,7 +2068,7 @@ static struct fmt_tests _Preloads_107[] =
 //	dynamic_110: Tiger($p)
 static DYNAMIC_primitive_funcp _Funcs_110[] =
 {
-	//MGF_Tiger_48_BYTE_FINISH
+	//MGF_INPUT_24_BYTE
 	//MGF_NOTSSE2Safe
 	DynamicFunc__clean_input,
 	DynamicFunc__append_keys,
@@ -2092,7 +2086,7 @@ static struct fmt_tests _Preloads_110[] =
 //	dynamic_111: Tiger($s.$p)
 static DYNAMIC_primitive_funcp _Funcs_111[] =
 {
-	//MGF_Tiger_48_BYTE_FINISH
+	//MGF_INPUT_24_BYTE
 	//MGF_SALTED
 	//MGF_NOTSSE2Safe
 	DynamicFunc__clean_input,
@@ -2112,7 +2106,7 @@ static struct fmt_tests _Preloads_111[] =
 //	dynamic_112: Tiger($s.$p)
 static DYNAMIC_primitive_funcp _Funcs_112[] =
 {
-	//MGF_Tiger_48_BYTE_FINISH
+	//MGF_INPUT_24_BYTE
 	//MGF_SALTED
 	//MGF_NOTSSE2Safe
 	DynamicFunc__clean_input,
@@ -2132,7 +2126,7 @@ static struct fmt_tests _Preloads_112[] =
 //	dynamic_113: Tiger(Tiger($p))
 static DYNAMIC_primitive_funcp _Funcs_113[] =
 {
-	//MGF_Tiger_48_BYTE_FINISH
+	//MGF_INPUT_24_BYTE
 	//MGF_NOTSSE2Safe
 	//MGF_KEYS_IN_INPUT
 
@@ -2140,7 +2134,6 @@ static DYNAMIC_primitive_funcp _Funcs_113[] =
 	//DynamicFunc__Tiger_crypt_input1_append_input2,
 	// both appand and overwrite tested.  Since we have a fixed size, overwrite, with no clean2 works fine and faster.
 	DynamicFunc__Tiger_crypt_input1_overwrite_input2,
-
 	DynamicFunc__Tiger_crypt_input2_to_output1_FINAL,
 	NULL
 };
@@ -2155,7 +2148,7 @@ static struct fmt_tests _Preloads_113[] =
 //	dynamic_114: Tiger(Tiger_raw($p))
 static DYNAMIC_primitive_funcp _Funcs_114[] =
 {
-	//MGF_Tiger_48_BYTE_FINISH
+	//MGF_INPUT_24_BYTE
 	//MGF_NOTSSE2Safe
 	//MGF_KEYS_IN_INPUT
 	DynamicFunc__LargeHash_OUTMode_raw,
@@ -2174,7 +2167,7 @@ static struct fmt_tests _Preloads_114[] =
 //	dynamic_115: Tiger(Tiger($p).$s)
 static DYNAMIC_primitive_funcp _Funcs_115[] =
 {
-	//MGF_Tiger_48_BYTE_FINISH
+	//MGF_INPUT_24_BYTE
 	//MGF_NOTSSE2Safe
 	//MGF_SALTED
 	//MGF_KEYS_IN_INPUT
@@ -2194,7 +2187,7 @@ static struct fmt_tests _Preloads_115[] =
 //	dynamic_116: Tiger($s.Tiger($p))
 static DYNAMIC_primitive_funcp _Funcs_116[] =
 {
-	//MGF_Tiger_48_BYTE_FINISH
+	//MGF_INPUT_24_BYTE
 	//MGF_NOTSSE2Safe
 	//MGF_SALTED
 	//MGF_KEYS_IN_INPUT
@@ -2215,7 +2208,7 @@ static struct fmt_tests _Preloads_116[] =
 //	dynamic_117: Tiger(Tiger($s).Tiger($p))
 static DYNAMIC_primitive_funcp _Funcs_117[] =
 {
-	//MGF_Tiger_48_BYTE_FINISH
+	//MGF_INPUT_24_BYTE
 	//MGF_NOTSSE2Safe
 	//MGF_SALTED
 	//MGF_KEYS_IN_INPUT
@@ -2231,6 +2224,644 @@ static struct fmt_tests _Preloads_117[] =
 	{"$dynamic_117$4a3443bc430e461236578b3a6d894543caa11dc67608f5e1$zuvXaO","test1"},
 	{"$dynamic_117$c5da7cf68984d2a15bc09c79766d6d0e2715efb6aa9707bd$BhU05y","thatsworking"},
 	{"$dynamic_117$137362481b7ace538d52b731564dc23b3ce20d18c985637b$Ozow4i","test3"},
+	{NULL}
+};
+
+//	dynamic_120: RIPEMD128($p)
+static DYNAMIC_primitive_funcp _Funcs_120[] =
+{
+	//MGF_NOTSSE2Safe
+	DynamicFunc__clean_input,
+	DynamicFunc__append_keys,
+	DynamicFunc__RIPEMD128_crypt_input1_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_120[] =
+{
+	{"$dynamic_120$f9a23a637f86eda730ce9cf163632ad5", "test1"},
+	{"$dynamic_120$252ad54db91c4cc15a11662a277a5f77", "thatsworking"},
+	{"$dynamic_120$f6a1643123332bd035bfe354af813669", "test3"},
+	{NULL}
+};
+
+//	dynamic_121: RIPEMD128($s.$p)
+static DYNAMIC_primitive_funcp _Funcs_121[] =
+{
+	//MGF_SALTED
+	//MGF_NOTSSE2Safe
+	DynamicFunc__clean_input,
+	DynamicFunc__append_salt,
+	DynamicFunc__append_keys,
+	DynamicFunc__RIPEMD128_crypt_input1_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_121[] =
+{
+	{"$dynamic_121$0bb8ae84dde90f9f645141f6f4af3bdb$4WXiYq","test1"},
+	{"$dynamic_121$58526c066590a74fad9b2a1ed96dcf86$lcSnpQ","thatsworking"},
+	{"$dynamic_121$184e1f3f8faa8c0646027a61152ae42c$6aucqk","test3"},
+	{NULL}
+};
+
+//	dynamic_122: RIPEMD128($s.$p)
+static DYNAMIC_primitive_funcp _Funcs_122[] =
+{
+	//MGF_SALTED
+	//MGF_NOTSSE2Safe
+	DynamicFunc__clean_input,
+	DynamicFunc__append_keys,
+	DynamicFunc__append_salt,
+	DynamicFunc__RIPEMD128_crypt_input1_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_122[] =
+{
+	{"$dynamic_122$d6ad14f6c1903a81d4c430cfcaa19a88$NBQTeKMC","test1"},
+	{"$dynamic_122$2bbe72c7b34c76026faff9373bc9a66d$3ivG1Fiq","thatsworking"},
+	{"$dynamic_122$8e8d9579716cced03d472b99ab0caba2$CT7bc2vn","test3"},
+	{NULL}
+};
+
+//	dynamic_123: RIPEMD128(RIPEMD128($p))
+static DYNAMIC_primitive_funcp _Funcs_123[] =
+{
+	//MGF_NOTSSE2Safe
+	//MGF_KEYS_IN_INPUT
+
+	//DynamicFunc__clean_input2,
+	//DynamicFunc__RIPEMD128_crypt_input1_append_input2,
+	// both appand and overwrite tested.  Since we have a fixed size, overwrite, with no clean2 works fine and faster.
+	DynamicFunc__RIPEMD128_crypt_input1_overwrite_input2,
+	DynamicFunc__RIPEMD128_crypt_input2_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_123[] =
+{
+	{"$dynamic_123$82cf6702a0086265c121e53c8ec0429b","test1"},
+	{"$dynamic_123$93bb21d4f8e8810ea20a7d35f83a1a15","thatsworking"},
+	{"$dynamic_123$cc13be2cf4ecaef2451288eee126b0e2","test3"},
+	{NULL}
+};
+
+//	dynamic_124: RIPEMD128(RIPEMD128_raw($p))
+static DYNAMIC_primitive_funcp _Funcs_124[] =
+{
+	//MGF_NOTSSE2Safe
+	//MGF_KEYS_IN_INPUT
+	DynamicFunc__LargeHash_OUTMode_raw,
+	DynamicFunc__RIPEMD128_crypt_input1_overwrite_input2,
+	DynamicFunc__RIPEMD128_crypt_input2_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_124[] =
+{
+	{"$dynamic_124$15b65cb87ea92f0664b8fba08eb8ed96","test1"},
+	{"$dynamic_124$f5ee005cf57939b982008d20d2ab59be","thatsworking"},
+	{"$dynamic_124$0cfa0daae0d7dd9e90bc831d0e3e4f2f","test3"},
+	{NULL}
+};
+
+//	dynamic_125: RIPEMD128(RIPEMD128($p).$s)
+static DYNAMIC_primitive_funcp _Funcs_125[] =
+{
+	//MGF_NOTSSE2Safe
+	//MGF_SALTED
+	//MGF_KEYS_IN_INPUT
+	DynamicFunc__RIPEMD128_crypt_input1_overwrite_input2,
+	DynamicFunc__append_salt2,
+	DynamicFunc__RIPEMD128_crypt_input2_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_125[] =
+{
+	{"$dynamic_125$387e8777e5cfd291949c2597cd7b5e5e$nJQUYy","test1"},
+	{"$dynamic_125$29c3b080553b93f65cde3af1acd45598$OTaKW5","thatsworking"},
+	{"$dynamic_125$40e2c171ce9e1ebb86b31fb115c406e3$JFTav4","test3"},
+	{NULL}
+};
+
+//	dynamic_126: RIPEMD128($s.RIPEMD128($p))
+static DYNAMIC_primitive_funcp _Funcs_126[] =
+{
+	//MGF_NOTSSE2Safe
+	//MGF_SALTED
+	//MGF_KEYS_IN_INPUT
+	DynamicFunc__clean_input2,
+	DynamicFunc__append_salt2,
+	DynamicFunc__RIPEMD128_crypt_input1_append_input2,
+	DynamicFunc__RIPEMD128_crypt_input2_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_126[] =
+{
+	{"$dynamic_126$97bb5a099b2f6e2ff1fe142f3fd5c498$qYpElZ","test1"},
+	{"$dynamic_126$61efb3f51a6bc0fa30665a30e9ba608c$DXIYEQ","thatsworking"},
+	{"$dynamic_126$1029b7c3f55f19126c3eaa9b7a5ddd55$mC2GcF","test3"},
+	{NULL}
+};
+
+//	dynamic_127: RIPEMD128(RIPEMD128($s).RIPEMD128($p))
+static DYNAMIC_primitive_funcp _Funcs_127[] =
+{
+	//MGF_NOTSSE2Safe
+	//MGF_SALTED
+	//MGF_KEYS_IN_INPUT
+	DynamicFunc__clean_input2,
+	DynamicFunc__append_salt2,
+	DynamicFunc__RIPEMD128_crypt_input2_overwrite_input2,
+	DynamicFunc__RIPEMD128_crypt_input1_append_input2,
+	DynamicFunc__RIPEMD128_crypt_input2_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_127[] =
+{
+	{"$dynamic_127$616b8734d328da207b9dcc98df822996$awiEMX","test1"},
+	{"$dynamic_127$10a6c4d59f3b7b60371e713a1445356c$jCk0T9","thatsworking"},
+	{"$dynamic_127$09c0088c0cb5b90d8076a7db1a11f868$G775MU","test3"},
+	{NULL}
+};
+
+//	dynamic_130: RIPEMD160($p)
+static DYNAMIC_primitive_funcp _Funcs_130[] =
+{
+	//MGF_INPUT_20_BYTE
+	//MGF_NOTSSE2Safe
+	DynamicFunc__clean_input,
+	DynamicFunc__append_keys,
+	DynamicFunc__RIPEMD160_crypt_input1_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_130[] =
+{
+	{"$dynamic_130$9295fac879006ff44812e43b83b515a06c2950aa", "test1"},
+	{"$dynamic_130$5a8c3d2e585ae3533a25a60a40736a9644fccf70", "thatsworking"},
+	{"$dynamic_130$78872e94d9e3c83e3ba17445a5f30642da51827c", "test3"},
+	{NULL}
+};
+
+//	dynamic_131: RIPEMD160($s.$p)
+static DYNAMIC_primitive_funcp _Funcs_131[] =
+{
+	//MGF_INPUT_20_BYTE
+	//MGF_SALTED
+	//MGF_NOTSSE2Safe
+	DynamicFunc__clean_input,
+	DynamicFunc__append_salt,
+	DynamicFunc__append_keys,
+	DynamicFunc__RIPEMD160_crypt_input1_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_131[] =
+{
+	{"$dynamic_131$702368a38713a074cae056beed5133cf51fbb7fc$kIA09e","test1"},
+	{"$dynamic_131$109490936b84898f4d525201fd6802c1250123d8$Kj5Hkq","thatsworking"},
+	{"$dynamic_131$30cf4d6bf729da8b4bc90878c7b084284e302540$L4YQ0N","test3"},
+	{NULL}
+};
+
+//	dynamic_132: RIPEMD160($s.$p)
+static DYNAMIC_primitive_funcp _Funcs_132[] =
+{
+	//MGF_INPUT_20_BYTE
+	//MGF_SALTED
+	//MGF_NOTSSE2Safe
+	DynamicFunc__clean_input,
+	DynamicFunc__append_keys,
+	DynamicFunc__append_salt,
+	DynamicFunc__RIPEMD160_crypt_input1_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_132[] =
+{
+	{"$dynamic_132$592cc8f4a54c9cd6739486a060c6faa54632994c$1gNbg96B","test1"},
+	{"$dynamic_132$c9e74120fb3373fea1adaedda031b93de7ff38e5$8M0daSKZ","thatsworking"},
+	{"$dynamic_132$89adf6af617b87736e9d4775a113d60256a147c2$ZviBFfAb","test3"},
+	{NULL}
+};
+
+//	dynamic_133: RIPEMD160(RIPEMD160($p))
+static DYNAMIC_primitive_funcp _Funcs_133[] =
+{
+	//MGF_INPUT_20_BYTE
+	//MGF_NOTSSE2Safe
+	//MGF_KEYS_IN_INPUT
+
+	//DynamicFunc__clean_input2,
+	//DynamicFunc__RIPEMD160_crypt_input1_append_input2,
+	// both appand and overwrite tested.  Since we have a fixed size, overwrite, with no clean2 works fine and faster.
+	DynamicFunc__RIPEMD160_crypt_input1_overwrite_input2,
+	DynamicFunc__RIPEMD160_crypt_input2_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_133[] =
+{
+	{"$dynamic_133$d09e375a8e6031e59861c479e892a3b169431419","test1"},
+	{"$dynamic_133$69056d1cd2c2ea986c1e031a3e09cf0633d42d7f","thatsworking"},
+	{"$dynamic_133$36554863e1db12d5743a21d4036f4a5b32b7aa90","test3"},
+	{NULL}
+};
+
+//	dynamic_134: RIPEMD160(RIPEMD160_raw($p))
+static DYNAMIC_primitive_funcp _Funcs_134[] =
+{
+	//MGF_INPUT_20_BYTE
+	//MGF_NOTSSE2Safe
+	//MGF_KEYS_IN_INPUT
+	DynamicFunc__LargeHash_OUTMode_raw,
+	DynamicFunc__RIPEMD160_crypt_input1_overwrite_input2,
+	DynamicFunc__RIPEMD160_crypt_input2_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_134[] =
+{
+	{"$dynamic_134$41a3ca6d04553f3d07bb8093a147beb4712fe293","test1"},
+	{"$dynamic_134$b9f43e379172276e0255f36dba0bf61a53c1a681","thatsworking"},
+	{"$dynamic_134$b21b9471406dda502265081d4e3756c3f5ed19ac","test3"},
+	{NULL}
+};
+
+//	dynamic_135: RIPEMD160(RIPEMD160($p).$s)
+static DYNAMIC_primitive_funcp _Funcs_135[] =
+{
+	//MGF_INPUT_20_BYTE
+	//MGF_NOTSSE2Safe
+	//MGF_SALTED
+	//MGF_KEYS_IN_INPUT
+	DynamicFunc__RIPEMD160_crypt_input1_overwrite_input2,
+	DynamicFunc__append_salt2,
+	DynamicFunc__RIPEMD160_crypt_input2_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_135[] =
+{
+	{"$dynamic_135$dcfecea55e0f6bb6ae86d48bde0d390d3ec292ab$8smSN6","test1"},
+	{"$dynamic_135$256ec34e20b7fc35a176002f2c12f17a12e1fcca$R5w0PU","thatsworking"},
+	{"$dynamic_135$0b926db2c6926a7a20fb342f82ab5d6e7e8cce3d$fi3FOT","test3"},
+	{NULL}
+};
+
+//	dynamic_136: RIPEMD160($s.RIPEMD160($p))
+static DYNAMIC_primitive_funcp _Funcs_136[] =
+{
+	//MGF_INPUT_20_BYTE
+	//MGF_NOTSSE2Safe
+	//MGF_SALTED
+	//MGF_KEYS_IN_INPUT
+	DynamicFunc__clean_input2,
+	DynamicFunc__append_salt2,
+	DynamicFunc__RIPEMD160_crypt_input1_append_input2,
+	DynamicFunc__RIPEMD160_crypt_input2_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_136[] =
+{
+	{"$dynamic_136$b748c1a685cfc519bb364767af1272dcdc822eed$hhrFRL","test1"},
+	{"$dynamic_136$7522b95c103a2c2d931ed431380c1cbb01320d88$8ZBzV9","thatsworking"},
+	{"$dynamic_136$5cb245d32aeb805ceb108c0bc70b2a2bc675df81$1PIXLR","test3"},
+	{NULL}
+};
+
+//	dynamic_137: RIPEMD160(RIPEMD160($s).RIPEMD160($p))
+static DYNAMIC_primitive_funcp _Funcs_137[] =
+{
+	//MGF_INPUT_20_BYTE
+	//MGF_NOTSSE2Safe
+	//MGF_SALTED
+	//MGF_KEYS_IN_INPUT
+	DynamicFunc__clean_input2,
+	DynamicFunc__append_salt2,
+	DynamicFunc__RIPEMD160_crypt_input2_overwrite_input2,
+	DynamicFunc__RIPEMD160_crypt_input1_append_input2,
+	DynamicFunc__RIPEMD160_crypt_input2_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_137[] =
+{
+	{"$dynamic_137$977090a8be7b29569f16aa0df492f12de4abf580$h6SIQX","test1"},
+	{"$dynamic_137$a0b89831305e33750e52119186a39d553f6d4fa7$XDiShI","thatsworking"},
+	{"$dynamic_137$b45aeb16d4ce6ceb68225a5647b19d6cb8e32b4e$cMdtOm","test3"},
+	{NULL}
+};
+
+
+//	dynamic_140: RIPEMD256($p)
+static DYNAMIC_primitive_funcp _Funcs_140[] =
+{
+	//MGF_INPUT_32_BYTE
+	//MGF_NOTSSE2Safe
+	DynamicFunc__clean_input,
+	DynamicFunc__append_keys,
+	DynamicFunc__RIPEMD256_crypt_input1_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_140[] =
+{
+	{"$dynamic_140$1419109aa0de60e6ba0b6d2b2f602c13b07e97b5ffc85b6be2297badc699262f", "test1"},
+	{"$dynamic_140$f156e6c20042057840f3251ee041596d89fde06c2505f61764ad1c03c2fc1375", "thatsworking"},
+	{"$dynamic_140$d20d9172e3ae2ade512d88eb69d548d62bdfc3d3ed3e3f0fdea12d84bc8f71a7", "test3"},
+	{NULL}
+};
+
+//	dynamic_141: RIPEMD256($s.$p)
+static DYNAMIC_primitive_funcp _Funcs_141[] =
+{
+	//MGF_INPUT_32_BYTE
+	//MGF_SALTED
+	//MGF_NOTSSE2Safe
+	DynamicFunc__clean_input,
+	DynamicFunc__append_salt,
+	DynamicFunc__append_keys,
+	DynamicFunc__RIPEMD256_crypt_input1_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_141[] =
+{
+	{"$dynamic_141$305191d90a91a457b0d68c1ce30b03b44c1b5ab2bdf1cb11ae1cc28e654c16f3$VQl6tP","test1"},
+	{"$dynamic_141$5d0b21f3e51781126c4dbec9e811d3d0ba6abc4a1c5ca157fedeec3b79288c4b$XXEuU5","thatsworking"},
+	{"$dynamic_141$ecb2e5ba9bcbcd2750a960a80eed73729c80db526bc08854ddb400a826105328$d5GEhi","test3"},
+	{NULL}
+};
+
+//	dynamic_142: RIPEMD256($s.$p)
+static DYNAMIC_primitive_funcp _Funcs_142[] =
+{
+	//MGF_INPUT_32_BYTE
+	//MGF_SALTED
+	//MGF_NOTSSE2Safe
+	DynamicFunc__clean_input,
+	DynamicFunc__append_keys,
+	DynamicFunc__append_salt,
+	DynamicFunc__RIPEMD256_crypt_input1_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_142[] =
+{
+	{"$dynamic_142$03b1ef0c912340bcdb2d54c6a090bd848eea04ca9cddd20ee0794d8bab991cf0$qsiyvyfd","test1"},
+	{"$dynamic_142$c9cfe7a23fc45711008c64e503088300bf2d74661cb8270177f667104eb34910$txjvunyP","thatsworking"},
+	{"$dynamic_142$38221d38279d3cbe09516db1cee712c78d68d0cb20210d21dd9bd6f6d2559fcc$xHyh3Eqo","test3"},
+	{NULL}
+};
+
+//	dynamic_143: RIPEMD256(RIPEMD256($p))
+static DYNAMIC_primitive_funcp _Funcs_143[] =
+{
+	//MGF_INPUT_32_BYTE
+	//MGF_NOTSSE2Safe
+	//MGF_KEYS_IN_INPUT
+	DynamicFunc__RIPEMD256_crypt_input1_overwrite_input2,
+	DynamicFunc__RIPEMD256_crypt_input2_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_143[] =
+{
+	{"$dynamic_143$14889a0b5d0cdfdd40d9b2b68bdf0362f76cbd405a7b389ef0c19fb4d10578c0","test1"},
+	{"$dynamic_143$1ca0090ad4b4d6d251e5a453f204f3b0b1aa220bdd1b5063a3e38cc4f06a6e46","thatsworking"},
+	{"$dynamic_143$a8f808b43eaad67023830d9f6d33fd36dc6c80840c49ef03d30607d86f4873ae","test3"},
+	{NULL}
+};
+
+//	dynamic_144: RIPEMD256(RIPEMD256_raw($p))
+static DYNAMIC_primitive_funcp _Funcs_144[] =
+{
+	//MGF_INPUT_32_BYTE
+	//MGF_NOTSSE2Safe
+	//MGF_KEYS_IN_INPUT
+	DynamicFunc__LargeHash_OUTMode_raw,
+	DynamicFunc__RIPEMD256_crypt_input1_overwrite_input2,
+	DynamicFunc__RIPEMD256_crypt_input2_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_144[] =
+{
+	{"$dynamic_144$6bac793b70b75cc04e0b1baae3a6aeb04c1008d0a483b2a024743902cb93b86f","test1"},
+	{"$dynamic_144$d686ebcdd2f2da167ef365c5682e758788a5493b098e943ef2b6fc7dbf9be361","thatsworking"},
+	{"$dynamic_144$f809ae64bbf1a5d834b0db355819f8fb166b826c0947d0e506cef331e030be4e","test3"},
+	{NULL}
+};
+
+//	dynamic_145: RIPEMD256(RIPEMD256($p).$s)
+static DYNAMIC_primitive_funcp _Funcs_145[] =
+{
+	//MGF_INPUT_32_BYTE
+	//MGF_NOTSSE2Safe
+	//MGF_SALTED
+	//MGF_KEYS_IN_INPUT
+	DynamicFunc__RIPEMD256_crypt_input1_overwrite_input2,
+	DynamicFunc__append_salt2,
+	DynamicFunc__RIPEMD256_crypt_input2_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_145[] =
+{
+	{"$dynamic_145$519b7e54144c9a9d655e93df5fb0a09f07a2692fe3fc30889aa9249dff48529d$uKs6lm","test1"},
+	{"$dynamic_145$ccf57a7acf5f1211d59fba187c741c05cf26e88f1bbb0ef25bbd22a6b31afb89$LsNB5N","thatsworking"},
+	{"$dynamic_145$8f4527840691f40799de14fdb2b0b68c10d2e7ce4a991ee17ff0b81b63ca8924$N2lQ7c","test3"},
+	{NULL}
+};
+
+//	dynamic_146: RIPEMD256($s.RIPEMD256($p))
+static DYNAMIC_primitive_funcp _Funcs_146[] =
+{
+	//MGF_INPUT_32_BYTE
+	//MGF_NOTSSE2Safe
+	//MGF_SALTED
+	//MGF_KEYS_IN_INPUT
+	DynamicFunc__clean_input2,
+	DynamicFunc__append_salt2,
+	DynamicFunc__RIPEMD256_crypt_input1_append_input2,
+	DynamicFunc__RIPEMD256_crypt_input2_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_146[] =
+{
+	{"$dynamic_146$9be0a3daed226b414ca4a8c756eeb5d26774ef2e0186721b07dc1375aad1f18e$JAap27","test1"},
+	{"$dynamic_146$b130046594c8929009513dab4bcad94d616747bc05eeb5e188f2ae228221bcf4$rfnDyG","thatsworking"},
+	{"$dynamic_146$13705270594ab1b9c84fddfa69816a6062f708c283b39faf46e9a5c056d652ae$CLSrX1","test3"},
+	{NULL}
+};
+
+//	dynamic_147: RIPEMD256(RIPEMD256($s).RIPEMD256($p))
+static DYNAMIC_primitive_funcp _Funcs_147[] =
+{
+	//MGF_INPUT_32_BYTE
+	//MGF_NOTSSE2Safe
+	//MGF_SALTED
+	//MGF_KEYS_IN_INPUT
+	DynamicFunc__clean_input2,
+	DynamicFunc__append_salt2,
+	DynamicFunc__RIPEMD256_crypt_input2_overwrite_input2,
+	DynamicFunc__RIPEMD256_crypt_input1_append_input2,
+	DynamicFunc__RIPEMD256_crypt_input2_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_147[] =
+{
+	{"$dynamic_147$5862a5cbdc4bde3f314151af504565f13ac289bedc2bb75f663705fd63aea107$qg784y","test1"},
+	{"$dynamic_147$aa936840f5a3476efbc990fac97ee8ad9c4391e85c79e7ed3ed8529121b2067a$nqifRw","thatsworking"},
+	{"$dynamic_147$c2d89bad1ed5ddfcbdb65f44cafe54f18ee3e63e51566d407ef914585a1f2432$5bq1yI","test3"},
+	{NULL}
+};
+
+//	dynamic_150: RIPEMD320($p)
+static DYNAMIC_primitive_funcp _Funcs_150[] =
+{
+	//MGF_INPUT_40_BYTE
+	//MGF_NOTSSE2Safe
+	DynamicFunc__clean_input,
+	DynamicFunc__append_keys,
+	DynamicFunc__RIPEMD320_crypt_input1_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_150[] =
+{
+	{"$dynamic_150$303aa1dcb731cd4e4bff2a60971eb7376c6c47cb59947c804776d115470183c8cc2e487337b45412", "test1"},
+	{"$dynamic_150$3c616c27aa7539c4726388c9e047aa4ea089dd739b3cfc470e964ea12e479da3cce437b9daa90214", "thatsworking"},
+	{"$dynamic_150$4e44b8f67fdc48c167ff0e285350a7df5c050660b601599f2e541d8cbc44696ad1c080028f13c6e7", "test3"},
+	{NULL}
+};
+
+//	dynamic_151: RIPEMD320($s.$p)
+static DYNAMIC_primitive_funcp _Funcs_151[] =
+{
+	//MGF_INPUT_40_BYTE
+	//MGF_SALTED
+	//MGF_NOTSSE2Safe
+	DynamicFunc__clean_input,
+	DynamicFunc__append_salt,
+	DynamicFunc__append_keys,
+	DynamicFunc__RIPEMD320_crypt_input1_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_151[] =
+{
+	{"$dynamic_151$883750723bb1b2c1d4be8ba6be77605885ba1ee8be4ea0f11a6b9c3d9f2dd67bfab7dc19abf6f17f$AMKTOt","test1"},
+	{"$dynamic_151$feacc00098c7da4a4ee07f2938110735c3bbdf98c9d18693bfb2687bd138f5293694ff7a8e1019c4$1IUmij","thatsworking"},
+	{"$dynamic_151$b7a213f281e5328e301faa67652d916bbac3187de6afd26d107db476319599e57aafd0378713a275$LqtyZa","test3"},
+	{NULL}
+};
+
+//	dynamic_152: RIPEMD320($s.$p)
+static DYNAMIC_primitive_funcp _Funcs_152[] =
+{
+	//MGF_INPUT_40_BYTE
+	//MGF_SALTED
+	//MGF_NOTSSE2Safe
+	DynamicFunc__clean_input,
+	DynamicFunc__append_keys,
+	DynamicFunc__append_salt,
+	DynamicFunc__RIPEMD320_crypt_input1_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_152[] =
+{
+	{"$dynamic_152$a52d865f5443c09dd56db4f9d817248a5b338dbd899b29fecf174b2118f4e8dc823b891d1411a54b$2zU2KwSK","test1"},
+	{"$dynamic_152$70f5f407eb29c213f4fb5c43ade06bdcbb9d629c806625c9aa3031ee16dedde337597f992d8cbc48$q01b45z5","thatsworking"},
+	{"$dynamic_152$2062185fe9d8577deb40669482803e3f21fd5bb15091c52cbb762df5bccf730993eb87f9802694da$S4RmC4l6","test3"},
+	{NULL}
+};
+
+//	dynamic_153: RIPEMD320(RIPEMD320($p))
+static DYNAMIC_primitive_funcp _Funcs_153[] =
+{
+	//MGF_INPUT_40_BYTE
+	//MGF_NOTSSE2Safe
+	//MGF_KEYS_IN_INPUT
+
+	//DynamicFunc__clean_input2,
+	//DynamicFunc__RIPEMD320_crypt_input1_append_input2,
+	// both appand and overwrite tested.  Since we have a fixed size, overwrite, with no clean2 works fine and faster.
+	DynamicFunc__RIPEMD320_crypt_input1_overwrite_input2,
+	DynamicFunc__RIPEMD320_crypt_input2_to_output1_FINAL,
+	NULL
+};
+
+static struct fmt_tests _Preloads_153[] =
+{
+	{"$dynamic_153$a31e129221c83ef39a11df2fb35207c3836bd6db07668745dd56abb9f183b7b27fdde856868f5d38","test1"},
+	{"$dynamic_153$9824e4a0d2c406cac91048824a7b5b4c81935a180325ab77e5287a9c7cfe288b8e450718709a6ab1","thatsworking"},
+	{"$dynamic_153$90c18c86ece60693f7001aed9693fc1a655fc383f76cfaa9936dc922ca3de9f1a07b31e2bcf6518f","test3"},
+	{NULL}
+};
+
+//	dynamic_154: RIPEMD320(RIPEMD320_raw($p))
+static DYNAMIC_primitive_funcp _Funcs_154[] =
+{
+	//MGF_INPUT_40_BYTE
+	//MGF_NOTSSE2Safe
+	//MGF_KEYS_IN_INPUT
+	DynamicFunc__LargeHash_OUTMode_raw,
+	DynamicFunc__RIPEMD320_crypt_input1_overwrite_input2,
+	DynamicFunc__RIPEMD320_crypt_input2_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_154[] =
+{
+	{"$dynamic_154$e104a7e9c56595fbf69c528a5249279c4e100a48c5b190d46ba73315ed729930d602234d59ad078a","test1"},
+	{"$dynamic_154$fb10077a7f09ffffb986fe79e9620e2645b4828a0ff6f5011d6ae7fa6ab15d56b787ee3fa7e00366","thatsworking"},
+	{"$dynamic_154$dd87e05b9950ab49a399b47918db5f7057cc8e2416def762660ccd45ae9cd3fe2d26c4114504d002","test3"},
+	{NULL}
+};
+
+//	dynamic_155: RIPEMD320(RIPEMD320($p).$s)
+static DYNAMIC_primitive_funcp _Funcs_155[] =
+{
+	//MGF_INPUT_40_BYTE
+	//MGF_NOTSSE2Safe
+	//MGF_SALTED
+	//MGF_KEYS_IN_INPUT
+	DynamicFunc__RIPEMD320_crypt_input1_overwrite_input2,
+	DynamicFunc__append_salt2,
+	DynamicFunc__RIPEMD320_crypt_input2_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_155[] =
+{
+	{"$dynamic_155$c791488c72190edf6f786ad9d4501eb237acfcb867e7bbc68cf1a7e39d78de63040727bfa0b92abb$3mmjYb","test1"},
+	{"$dynamic_155$365c0c4f0ee23d09fe7cf79383c3e2b9b9adeda8fa0c164c7d9e9d6a526ba31c64959d108019fbb1$wVG5YM","thatsworking"},
+	{"$dynamic_155$0bc38948f67f8610dd86fcfed3f1b3bf6723ad87c6e2e3e8d5bfb336454b0b15bc1eed35edc39971$3FW422","test3"},
+	{NULL}
+};
+
+//	dynamic_156: RIPEMD320($s.RIPEMD320($p))
+static DYNAMIC_primitive_funcp _Funcs_156[] =
+{
+	//MGF_INPUT_40_BYTE
+	//MGF_NOTSSE2Safe
+	//MGF_SALTED
+	//MGF_KEYS_IN_INPUT
+	DynamicFunc__clean_input2,
+	DynamicFunc__append_salt2,
+	DynamicFunc__RIPEMD320_crypt_input1_append_input2,
+	DynamicFunc__RIPEMD320_crypt_input2_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_156[] =
+{
+	{"$dynamic_156$a51215627a8f32fc030601ef602b7901858852425d9c5b6bd76b15df83ac297f1d413235041a71ae$9pDFpI","test1"},
+	{"$dynamic_156$f138210d758f0441e4550efd65e176c013ef626e1598c117e5e85ef9d9745dc0613d90c8a61a7769$3CJLnI","thatsworking"},
+	{"$dynamic_156$da4ac2fa4e302289fc708d095dafea134b72a176c118c06df42f8c2366f9c39c779004fdefd8887c$dlof3w","test3"},
+	{NULL}
+};
+
+//	dynamic_157: RIPEMD320(RIPEMD320($s).RIPEMD320($p))
+static DYNAMIC_primitive_funcp _Funcs_157[] =
+{
+	//MGF_INPUT_40_BYTE
+	//MGF_NOTSSE2Safe
+	//MGF_SALTED
+	//MGF_KEYS_IN_INPUT
+	DynamicFunc__clean_input2,
+	DynamicFunc__append_salt2,
+	DynamicFunc__RIPEMD320_crypt_input2_overwrite_input2,
+	DynamicFunc__RIPEMD320_crypt_input1_append_input2,
+	DynamicFunc__RIPEMD320_crypt_input2_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_157[] =
+{
+	{"$dynamic_157$fa2614cc3b494d5280811d5e5aac0c262f8ac1efcd01378b82be9c12d1a9ac8081315df61fac7173$xHBzxu","test1"},
+	{"$dynamic_157$f498579e4cfc825549023ead371460f771c2d039c9ca438b9e1889e38fb7687ab75b94ad60458f34$QuzmKD","thatsworking"},
+	{"$dynamic_157$a240f21c470dc8812234326922ecab6599ba48b8163912b66fd37ada9fab39229ffc7578a0cdb843$5mq9og","test3"},
 	{NULL}
 };
 
@@ -2288,10 +2919,10 @@ static DYNAMIC_Setup Setups[] =
 	{ "dynamic_20: Cisco ASA (MD5 salted)",     _Funcs_20,_Preloads_20,_ConstDefault, MGF_INPBASE64_4x6|MGF_SALTED, MGF_NO_FLAG, 4, 12, 12 },
 	{ "dynamic_21: HTTP Digest Access Auth",    _Funcs_21,_Preloads_21,_Const_21,     MGF_HDAA_SALT|MGF_USERNAME|MGF_FLD2|MGF_FLD3|MGF_FLD4|MGF_SALTED, MGF_NO_FLAG, 0, 26, 26 },
 	{ "dynamic_22: md5(sha1($p))",              _Funcs_22,_Preloads_22,_ConstDefault, MGF_StartInX86Mode, MGF_KEYS_INPUT_BE_SAFE },
-	{ "dynamic_23: sha1(md5($p))",              _Funcs_23,_Preloads_23,_ConstDefault, MGF_NO_FLAG, MGF_SHA1_40_BYTE_FINISH|MGF_KEYS_INPUT, },
-	{ "dynamic_24: sha1($p.$s)",                _Funcs_24,_Preloads_24,_ConstDefault, MGF_SALTED, MGF_NO_FLAG|MGF_SHA1_40_BYTE_FINISH, -24 },
-	{ "dynamic_25: sha1($s.$p)",                _Funcs_25,_Preloads_25,_ConstDefault, MGF_SALTED, MGF_NO_FLAG|MGF_SHA1_40_BYTE_FINISH, -24 },
-	{ "dynamic_26: sha1($p) raw-sha1",          _Funcs_26,_Preloads_26,_ConstDefault, MGF_NO_FLAG, MGF_RAW_SHA1_INPUT|MGF_SHA1_40_BYTE_FINISH },
+	{ "dynamic_23: sha1(md5($p))",              _Funcs_23,_Preloads_23,_ConstDefault, MGF_NO_FLAG, MGF_INPUT_20_BYTE|MGF_KEYS_INPUT, },
+	{ "dynamic_24: sha1($p.$s)",                _Funcs_24,_Preloads_24,_ConstDefault, MGF_SALTED, MGF_NO_FLAG|MGF_INPUT_20_BYTE, -24 },
+	{ "dynamic_25: sha1($s.$p)",                _Funcs_25,_Preloads_25,_ConstDefault, MGF_SALTED, MGF_NO_FLAG|MGF_INPUT_20_BYTE, -24 },
+	{ "dynamic_26: sha1($p) raw-sha1",          _Funcs_26,_Preloads_26,_ConstDefault, MGF_NO_FLAG, MGF_RAW_SHA1_INPUT|MGF_INPUT_20_BYTE },
 #if !defined (_OPENMP) && defined (MMX_COEF)
 #if ARCH_LITTLE_ENDIAN
 	{ "dynamic_27: FreeBSD MD5",                _Funcs_27,_Preloads_27,_Const_27,     MGF_SALTED|MGF_INPBASE64a|MGF_StartInX86Mode, MGF_FreeBSDMD5Setup, -8, 15, 15 },
@@ -2304,73 +2935,109 @@ static DYNAMIC_Setup Setups[] =
 	{ "dynamic_32: md4($p.$s)",                 _Funcs_32,_Preloads_32,_ConstDefault, MGF_SALTED, MGF_NO_FLAG, -24 },
 	{ "dynamic_33: md4(unicode($p))",           _Funcs_33,_Preloads_33,_ConstDefault, MGF_UTF8, MGF_NO_FLAG, 0, 27, 40 }, // if we are in utf8 mode, we triple this in the init() call
 	{ "dynamic_34: md5(md4($p))",               _Funcs_34,_Preloads_34,_ConstDefault, MGF_NO_FLAG, MGF_KEYS_INPUT|MGF_SET_INP2LEN32 },
-	{ "dynamic_35: sha1(uc($u).:.$p) (ManGOS)", _Funcs_35,_Preloads_35,_Const_35,     MGF_USERNAME_UPCASE, MGF_SHA1_40_BYTE_FINISH, -23, 32 },
-	{ "dynamic_36: sha1($u.:.$p) (ManGOS2)",    _Funcs_36,_Preloads_36,_Const_36,     MGF_USERNAME, MGF_SHA1_40_BYTE_FINISH, -23, 32 },
-	{ "dynamic_37: sha1(lc($u).$p) (SMF)",      _Funcs_37,_Preloads_37,_ConstDefault, MGF_USERNAME, MGF_SHA1_40_BYTE_FINISH, -23, 32 },
-	{ "dynamic_38: sha1($s.sha1($s.sha1($p))) (Wolt3BB)",  _Funcs_38,_Preloads_38,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_SHA1_40_BYTE_FINISH|MGF_NO_FLAG, -23, 40 },
+	{ "dynamic_35: sha1(uc($u).:.$p) (ManGOS)", _Funcs_35,_Preloads_35,_Const_35,     MGF_USERNAME_UPCASE, MGF_INPUT_20_BYTE, -23, 32 },
+	{ "dynamic_36: sha1($u.:.$p) (ManGOS2)",    _Funcs_36,_Preloads_36,_Const_36,     MGF_USERNAME, MGF_INPUT_20_BYTE, -23, 32 },
+	{ "dynamic_37: sha1(lc($u).$p) (SMF)",      _Funcs_37,_Preloads_37,_ConstDefault, MGF_USERNAME, MGF_INPUT_20_BYTE, -23, 32 },
+	{ "dynamic_38: sha1($s.sha1($s.sha1($p))) (Wolt3BB)",  _Funcs_38,_Preloads_38,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_INPUT_20_BYTE|MGF_NO_FLAG, -23, 40 },
 	// Try to group sha224 here (from dyna-50 to dyna-59)
-	{ "dynamic_50: sha224($p)",                  _Funcs_50,_Preloads_50,_ConstDefault, MGF_NOTSSE2Safe, MGF_SHA224_56_BYTE_FINISH },
-	{ "dynamic_51: sha224($s.$p)",               _Funcs_51,_Preloads_51,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_SHA224_56_BYTE_FINISH, -20, 35 },
-	{ "dynamic_52: sha224($p.$s)",               _Funcs_52,_Preloads_52,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_SHA224_56_BYTE_FINISH, -20, 35 },
-	{ "dynamic_53: sha224(sha224($p))",          _Funcs_53,_Preloads_53,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_SHA224_56_BYTE_FINISH, },
-	{ "dynamic_54: sha224(sha224_raw($p))",      _Funcs_54,_Preloads_54,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_SHA224_56_BYTE_FINISH, },
-	{ "dynamic_55: sha224(sha224($p).$s)",       _Funcs_55,_Preloads_55,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_SHA224_56_BYTE_FINISH, -20, 35 },
-	{ "dynamic_56: sha224($s.sha224($p))",       _Funcs_56,_Preloads_56,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_SHA224_56_BYTE_FINISH, -20, 35 },
-	{ "dynamic_57: sha224(sha224($s).sha224($p))",_Funcs_57,_Preloads_57,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_SHA224_56_BYTE_FINISH, -20, 35 },
+	{ "dynamic_50: sha224($p)",                  _Funcs_50,_Preloads_50,_ConstDefault, MGF_NOTSSE2Safe, MGF_INPUT_28_BYTE },
+	{ "dynamic_51: sha224($s.$p)",               _Funcs_51,_Preloads_51,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_INPUT_28_BYTE, -20, 35 },
+	{ "dynamic_52: sha224($p.$s)",               _Funcs_52,_Preloads_52,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_INPUT_28_BYTE, -20, 35 },
+	{ "dynamic_53: sha224(sha224($p))",          _Funcs_53,_Preloads_53,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_28_BYTE, },
+	{ "dynamic_54: sha224(sha224_raw($p))",      _Funcs_54,_Preloads_54,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_28_BYTE, },
+	{ "dynamic_55: sha224(sha224($p).$s)",       _Funcs_55,_Preloads_55,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_28_BYTE, -20, 35 },
+	{ "dynamic_56: sha224($s.sha224($p))",       _Funcs_56,_Preloads_56,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_28_BYTE, -20, 35 },
+	{ "dynamic_57: sha224(sha224($s).sha224($p))",_Funcs_57,_Preloads_57,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_28_BYTE, -20, 35 },
 	// Try to group sha256 here (from dyna-60 to dyna-69)
-	{ "dynamic_60: sha256($p)",                  _Funcs_60,_Preloads_60,_ConstDefault, MGF_NOTSSE2Safe, MGF_SHA256_64_BYTE_FINISH },
-	{ "dynamic_61: sha256($s.$p)",               _Funcs_61,_Preloads_61,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_SHA256_64_BYTE_FINISH, -20, 35 },
-	{ "dynamic_62: sha256($p.$s)",               _Funcs_62,_Preloads_62,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_SHA256_64_BYTE_FINISH, -20, 35 },
-	{ "dynamic_63: sha256(sha256($p))",          _Funcs_63,_Preloads_63,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_SHA256_64_BYTE_FINISH, },
-	{ "dynamic_64: sha256(sha256_raw($p))",      _Funcs_64,_Preloads_64,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_SHA256_64_BYTE_FINISH, },
-	{ "dynamic_65: sha256(sha256($p).$s)",       _Funcs_65,_Preloads_65,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_SHA256_64_BYTE_FINISH, -20, 35 },
-	{ "dynamic_66: sha256($s.sha256($p))",       _Funcs_66,_Preloads_66,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_SHA256_64_BYTE_FINISH, -20, 35 },
-	{ "dynamic_67: sha256(sha256($s).sha256($p))",_Funcs_67,_Preloads_67,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_SHA256_64_BYTE_FINISH, -20, 35 },
+	{ "dynamic_60: sha256($p)",                  _Funcs_60,_Preloads_60,_ConstDefault, MGF_NOTSSE2Safe, MGF_INPUT_32_BYTE },
+	{ "dynamic_61: sha256($s.$p)",               _Funcs_61,_Preloads_61,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_INPUT_32_BYTE, -20, 35 },
+	{ "dynamic_62: sha256($p.$s)",               _Funcs_62,_Preloads_62,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_INPUT_32_BYTE, -20, 35 },
+	{ "dynamic_63: sha256(sha256($p))",          _Funcs_63,_Preloads_63,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_32_BYTE, },
+	{ "dynamic_64: sha256(sha256_raw($p))",      _Funcs_64,_Preloads_64,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_32_BYTE, },
+	{ "dynamic_65: sha256(sha256($p).$s)",       _Funcs_65,_Preloads_65,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_32_BYTE, -20, 35 },
+	{ "dynamic_66: sha256($s.sha256($p))",       _Funcs_66,_Preloads_66,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_32_BYTE, -20, 35 },
+	{ "dynamic_67: sha256(sha256($s).sha256($p))",_Funcs_67,_Preloads_67,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_32_BYTE, -20, 35 },
 	// Try to group sha384 here (from dyna-70 to dyna-79)
-	{ "dynamic_70: sha384($p)",                  _Funcs_70,_Preloads_70,_ConstDefault, MGF_NOTSSE2Safe, MGF_SHA384_96_BYTE_FINISH },
-	{ "dynamic_71: sha384($s.$p)",               _Funcs_71,_Preloads_71,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_SHA384_96_BYTE_FINISH, -20, 35 },
-	{ "dynamic_72: sha384($p.$s)",               _Funcs_72,_Preloads_72,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_SHA384_96_BYTE_FINISH, -20, 35 },
-	{ "dynamic_73: sha384(sha384($p))",          _Funcs_73,_Preloads_73,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_SHA384_96_BYTE_FINISH, },
-	{ "dynamic_74: sha384(sha384_raw($p))",      _Funcs_74,_Preloads_74,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_SHA384_96_BYTE_FINISH, },
-	{ "dynamic_75: sha384(sha384($p).$s)",       _Funcs_75,_Preloads_75,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_SHA384_96_BYTE_FINISH, -20, 35 },
-	{ "dynamic_76: sha384($s.sha384($p))",       _Funcs_76,_Preloads_76,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_SHA384_96_BYTE_FINISH, -20, 35 },
-	{ "dynamic_77: sha384(sha384($s).sha384($p))",_Funcs_77,_Preloads_77,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_SHA384_96_BYTE_FINISH, -20, 35 },
+	{ "dynamic_70: sha384($p)",                  _Funcs_70,_Preloads_70,_ConstDefault, MGF_NOTSSE2Safe, MGF_INPUT_48_BYTE },
+	{ "dynamic_71: sha384($s.$p)",               _Funcs_71,_Preloads_71,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_INPUT_48_BYTE, -20, 35 },
+	{ "dynamic_72: sha384($p.$s)",               _Funcs_72,_Preloads_72,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_INPUT_48_BYTE, -20, 35 },
+	{ "dynamic_73: sha384(sha384($p))",          _Funcs_73,_Preloads_73,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_48_BYTE, },
+	{ "dynamic_74: sha384(sha384_raw($p))",      _Funcs_74,_Preloads_74,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_48_BYTE, },
+	{ "dynamic_75: sha384(sha384($p).$s)",       _Funcs_75,_Preloads_75,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_48_BYTE, -20, 35 },
+	{ "dynamic_76: sha384($s.sha384($p))",       _Funcs_76,_Preloads_76,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_48_BYTE, -20, 35 },
+	{ "dynamic_77: sha384(sha384($s).sha384($p))",_Funcs_77,_Preloads_77,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_48_BYTE, -20, 35 },
 	// Try to group sha512 here (from dyna-80 to dyna-89)
-	{ "dynamic_80: sha512($p)",                  _Funcs_80,_Preloads_80,_ConstDefault, MGF_NOTSSE2Safe, MGF_SHA512_128_BYTE_FINISH },
-	{ "dynamic_81: sha512($s.$p)",               _Funcs_81,_Preloads_81,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_SHA512_128_BYTE_FINISH, -20, 35 },
-	{ "dynamic_82: sha512($p.$s)",               _Funcs_82,_Preloads_82,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_SHA512_128_BYTE_FINISH, -20, 35 },
-	{ "dynamic_83: sha512(sha512($p))",          _Funcs_83,_Preloads_83,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_SHA512_128_BYTE_FINISH, },
-	{ "dynamic_84: sha512(sha512_raw($p))",      _Funcs_84,_Preloads_84,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_SHA512_128_BYTE_FINISH, },
-	{ "dynamic_85: sha512(sha512($p).$s)",       _Funcs_85,_Preloads_85,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_SHA512_128_BYTE_FINISH, -20, 35 },
-	{ "dynamic_86: sha512($s.sha512($p))",       _Funcs_86,_Preloads_86,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_SHA512_128_BYTE_FINISH, -20, 35 },
-	{ "dynamic_87: sha512(sha512($s).sha512($p))",_Funcs_87,_Preloads_87,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_SHA512_128_BYTE_FINISH, -20, 35 },
+	{ "dynamic_80: sha512($p)",                  _Funcs_80,_Preloads_80,_ConstDefault, MGF_NOTSSE2Safe, MGF_INPUT_64_BYTE },
+	{ "dynamic_81: sha512($s.$p)",               _Funcs_81,_Preloads_81,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_INPUT_64_BYTE, -20, 35 },
+	{ "dynamic_82: sha512($p.$s)",               _Funcs_82,_Preloads_82,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_INPUT_64_BYTE, -20, 35 },
+	{ "dynamic_83: sha512(sha512($p))",          _Funcs_83,_Preloads_83,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_64_BYTE, },
+	{ "dynamic_84: sha512(sha512_raw($p))",      _Funcs_84,_Preloads_84,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_64_BYTE, },
+	{ "dynamic_85: sha512(sha512($p).$s)",       _Funcs_85,_Preloads_85,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_64_BYTE, -20, 35 },
+	{ "dynamic_86: sha512($s.sha512($p))",       _Funcs_86,_Preloads_86,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_64_BYTE, -20, 35 },
+	{ "dynamic_87: sha512(sha512($s).sha512($p))",_Funcs_87,_Preloads_87,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_64_BYTE, -20, 35 },
 	// Try to group GOST here (from dyna-90 to dyna-99)
-	{ "dynamic_90: GOST($p)",                    _Funcs_90,_Preloads_90,_ConstDefault, MGF_NOTSSE2Safe, MGF_GOST_64_BYTE_FINISH },
-	{ "dynamic_91: GOST($s.$p)",                 _Funcs_91,_Preloads_91,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_GOST_64_BYTE_FINISH, -20, 35 },
-	{ "dynamic_92: GOST($p.$s)",                 _Funcs_92,_Preloads_92,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_GOST_64_BYTE_FINISH, -20, 35 },
-	{ "dynamic_93: GOST(GOST($p))",              _Funcs_93,_Preloads_93,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_GOST_64_BYTE_FINISH, },
-	{ "dynamic_94: GOST(GOST_raw($p))",          _Funcs_94,_Preloads_94,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_GOST_64_BYTE_FINISH, },
-	{ "dynamic_95: GOST(GOST($p).$s)",           _Funcs_95,_Preloads_95,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_GOST_64_BYTE_FINISH, -20, 35 },
-	{ "dynamic_96: GOST($s.GOST($p))",           _Funcs_96,_Preloads_96,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_GOST_64_BYTE_FINISH, -20, 35 },
-	{ "dynamic_97: GOST(GOST($s).GOST($p))",     _Funcs_97,_Preloads_97,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_GOST_64_BYTE_FINISH, -20, 35 },
+	{ "dynamic_90: GOST($p)",                    _Funcs_90,_Preloads_90,_ConstDefault, MGF_NOTSSE2Safe, MGF_INPUT_32_BYTE },
+	{ "dynamic_91: GOST($s.$p)",                 _Funcs_91,_Preloads_91,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_INPUT_32_BYTE, -20, 35 },
+	{ "dynamic_92: GOST($p.$s)",                 _Funcs_92,_Preloads_92,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_INPUT_32_BYTE, -20, 35 },
+	{ "dynamic_93: GOST(GOST($p))",              _Funcs_93,_Preloads_93,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_32_BYTE, },
+	{ "dynamic_94: GOST(GOST_raw($p))",          _Funcs_94,_Preloads_94,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_32_BYTE, },
+	{ "dynamic_95: GOST(GOST($p).$s)",           _Funcs_95,_Preloads_95,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_32_BYTE, -20, 35 },
+	{ "dynamic_96: GOST($s.GOST($p))",           _Funcs_96,_Preloads_96,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_32_BYTE, -20, 35 },
+	{ "dynamic_97: GOST(GOST($s).GOST($p))",     _Funcs_97,_Preloads_97,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_32_BYTE, -20, 35 },
 	// Try to group WHIRLPOOL here (from dyna-100 to dyna-109)
-	{ "dynamic_100: WHIRLPOOL($p)",              _Funcs_100,_Preloads_100,_ConstDefault, MGF_NOTSSE2Safe, MGF_WHIRLPOOL_128_BYTE_FINISH },
-	{ "dynamic_101: WHIRLPOOL($s.$p)",           _Funcs_101,_Preloads_101,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_WHIRLPOOL_128_BYTE_FINISH, -20, 35 },
-	{ "dynamic_102: WHIRLPOOL($p.$s)",           _Funcs_102,_Preloads_102,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_WHIRLPOOL_128_BYTE_FINISH, -20, 35 },
-	{ "dynamic_103: WHIRLPOOL(WHIRLPOOL($p))",   _Funcs_103,_Preloads_103,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_WHIRLPOOL_128_BYTE_FINISH, },
-	{ "dynamic_104: WHIRLPOOL(WHIRLPOOL_raw($p))",_Funcs_104,_Preloads_104,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_WHIRLPOOL_128_BYTE_FINISH, },
-	{ "dynamic_105: WHIRLPOOL(WHIRLPOOL($p).$s)",_Funcs_105,_Preloads_105,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_WHIRLPOOL_128_BYTE_FINISH, -20, 35 },
-	{ "dynamic_106: WHIRLPOOL($s.WHIRLPOOL($p))",_Funcs_106,_Preloads_106,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_WHIRLPOOL_128_BYTE_FINISH, -20, 35 },
-	{ "dynamic_107: WHIRLPOOL(WHIRLPOOL($s).WHIRLPOOL($p))",_Funcs_107,_Preloads_107,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_WHIRLPOOL_128_BYTE_FINISH, -20, 35 },
+	{ "dynamic_100: WHIRLPOOL($p)",              _Funcs_100,_Preloads_100,_ConstDefault, MGF_NOTSSE2Safe, MGF_INPUT_64_BYTE },
+	{ "dynamic_101: WHIRLPOOL($s.$p)",           _Funcs_101,_Preloads_101,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_INPUT_64_BYTE, -20, 35 },
+	{ "dynamic_102: WHIRLPOOL($p.$s)",           _Funcs_102,_Preloads_102,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_INPUT_64_BYTE, -20, 35 },
+	{ "dynamic_103: WHIRLPOOL(WHIRLPOOL($p))",   _Funcs_103,_Preloads_103,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_64_BYTE, },
+	{ "dynamic_104: WHIRLPOOL(WHIRLPOOL_raw($p))",_Funcs_104,_Preloads_104,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_64_BYTE, },
+	{ "dynamic_105: WHIRLPOOL(WHIRLPOOL($p).$s)",_Funcs_105,_Preloads_105,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_64_BYTE, -20, 35 },
+	{ "dynamic_106: WHIRLPOOL($s.WHIRLPOOL($p))",_Funcs_106,_Preloads_106,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_64_BYTE, -20, 35 },
+	{ "dynamic_107: WHIRLPOOL(WHIRLPOOL($s).WHIRLPOOL($p))",_Funcs_107,_Preloads_107,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_64_BYTE, -20, 35 },
 	// Try to group Tiger here (from dyna-110 to dyna-119)
-	{ "dynamic_110: Tiger($p)",                  _Funcs_110,_Preloads_110,_ConstDefault, MGF_NOTSSE2Safe, MGF_Tiger_48_BYTE_FINISH },
-	{ "dynamic_111: Tiger($s.$p)",               _Funcs_111,_Preloads_111,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_Tiger_48_BYTE_FINISH, -20, 35 },
-	{ "dynamic_112: Tiger($p.$s)",               _Funcs_112,_Preloads_112,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_Tiger_48_BYTE_FINISH, -20, 35 },
-	{ "dynamic_113: Tiger(Tiger($p))",           _Funcs_113,_Preloads_113,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_Tiger_48_BYTE_FINISH, },
-	{ "dynamic_114: Tiger(Tiger_raw($p))",       _Funcs_114,_Preloads_114,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_Tiger_48_BYTE_FINISH, },
-	{ "dynamic_115: Tiger(Tiger($p).$s)",        _Funcs_115,_Preloads_115,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_Tiger_48_BYTE_FINISH, -20, 35 },
-	{ "dynamic_116: Tiger($s.Tiger($p))",        _Funcs_116,_Preloads_116,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_Tiger_48_BYTE_FINISH, -20, 35 },
-	{ "dynamic_117: Tiger(Tiger($s).Tiger($p))", _Funcs_117,_Preloads_117,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_Tiger_48_BYTE_FINISH, -20, 35 },
+	{ "dynamic_110: Tiger($p)",                  _Funcs_110,_Preloads_110,_ConstDefault, MGF_NOTSSE2Safe, MGF_INPUT_24_BYTE },
+	{ "dynamic_111: Tiger($s.$p)",               _Funcs_111,_Preloads_111,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_INPUT_24_BYTE, -20, 35 },
+	{ "dynamic_112: Tiger($p.$s)",               _Funcs_112,_Preloads_112,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_INPUT_24_BYTE, -20, 35 },
+	{ "dynamic_113: Tiger(Tiger($p))",           _Funcs_113,_Preloads_113,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_24_BYTE, },
+	{ "dynamic_114: Tiger(Tiger_raw($p))",       _Funcs_114,_Preloads_114,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_24_BYTE, },
+	{ "dynamic_115: Tiger(Tiger($p).$s)",        _Funcs_115,_Preloads_115,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_24_BYTE, -20, 35 },
+	{ "dynamic_116: Tiger($s.Tiger($p))",        _Funcs_116,_Preloads_116,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_24_BYTE, -20, 35 },
+	{ "dynamic_117: Tiger(Tiger($s).Tiger($p))", _Funcs_117,_Preloads_117,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_24_BYTE, -20, 35 },
+	// Try to group RIPEMD128 here (from dyna-120 to dyna-129)
+	{ "dynamic_120: RIPEMD128($p)",                  _Funcs_120,_Preloads_120,_ConstDefault, MGF_NOTSSE2Safe, MGF_NO_FLAG },
+	{ "dynamic_121: RIPEMD128($s.$p)",               _Funcs_121,_Preloads_121,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_NO_FLAG, -20, 35 },
+	{ "dynamic_122: RIPEMD128($p.$s)",               _Funcs_122,_Preloads_122,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_NO_FLAG, -20, 35 },
+	{ "dynamic_123: RIPEMD128(RIPEMD128($p))",           _Funcs_123,_Preloads_123,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_NO_FLAG, },
+	{ "dynamic_124: RIPEMD128(RIPEMD128_raw($p))",       _Funcs_124,_Preloads_124,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_NO_FLAG, },
+	{ "dynamic_125: RIPEMD128(RIPEMD128($p).$s)",        _Funcs_125,_Preloads_125,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_NO_FLAG, -20, 35 },
+	{ "dynamic_126: RIPEMD128($s.RIPEMD128($p))",        _Funcs_126,_Preloads_126,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_NO_FLAG, -20, 35 },
+	{ "dynamic_127: RIPEMD128(RIPEMD128($s).RIPEMD128($p))", _Funcs_127,_Preloads_127,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_NO_FLAG, -20, 35 },
+	// Try to group RIPEMD160 here (from dyna-130 to dyna-139)
+	{ "dynamic_130: RIPEMD160($p)",                  _Funcs_130,_Preloads_130,_ConstDefault, MGF_NOTSSE2Safe, MGF_INPUT_20_BYTE },
+	{ "dynamic_131: RIPEMD160($s.$p)",               _Funcs_131,_Preloads_131,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_INPUT_20_BYTE, -20, 35 },
+	{ "dynamic_132: RIPEMD160($p.$s)",               _Funcs_132,_Preloads_132,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_INPUT_20_BYTE, -20, 35 },
+	{ "dynamic_133: RIPEMD160(RIPEMD160($p))",           _Funcs_133,_Preloads_133,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_20_BYTE, },
+	{ "dynamic_134: RIPEMD160(RIPEMD160_raw($p))",       _Funcs_134,_Preloads_134,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_20_BYTE, },
+	{ "dynamic_135: RIPEMD160(RIPEMD160($p).$s)",        _Funcs_135,_Preloads_135,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_20_BYTE, -20, 35 },
+	{ "dynamic_136: RIPEMD160($s.RIPEMD160($p))",        _Funcs_136,_Preloads_136,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_20_BYTE, -20, 35 },
+	{ "dynamic_137: RIPEMD160(RIPEMD160($s).RIPEMD160($p))", _Funcs_137,_Preloads_137,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_20_BYTE, -20, 35 },
+	// Try to group RIPEMD256 here (from dyna-140 to dyna-149)
+	{ "dynamic_140: RIPEMD256($p)",                  _Funcs_140,_Preloads_140,_ConstDefault, MGF_NOTSSE2Safe, MGF_INPUT_32_BYTE },
+	{ "dynamic_141: RIPEMD256($s.$p)",               _Funcs_141,_Preloads_141,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_INPUT_32_BYTE, -20, 35 },
+	{ "dynamic_142: RIPEMD256($p.$s)",               _Funcs_142,_Preloads_142,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_INPUT_32_BYTE, -20, 35 },
+	{ "dynamic_143: RIPEMD256(RIPEMD256($p))",           _Funcs_143,_Preloads_143,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_32_BYTE, },
+	{ "dynamic_144: RIPEMD256(RIPEMD256_raw($p))",       _Funcs_144,_Preloads_144,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_32_BYTE, },
+	{ "dynamic_145: RIPEMD256(RIPEMD256($p).$s)",        _Funcs_145,_Preloads_145,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_32_BYTE, -20, 35 },
+	{ "dynamic_146: RIPEMD256($s.RIPEMD256($p))",        _Funcs_146,_Preloads_146,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_32_BYTE, -20, 35 },
+	{ "dynamic_147: RIPEMD256(RIPEMD256($s).RIPEMD256($p))", _Funcs_147,_Preloads_147,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_32_BYTE, -20, 35 },
+	// Try to group RIPEMD320 here (from dyna-150 to dyna-159)
+	{ "dynamic_150: RIPEMD320($p)",                  _Funcs_150,_Preloads_150,_ConstDefault, MGF_NOTSSE2Safe, MGF_INPUT_40_BYTE },
+	{ "dynamic_151: RIPEMD320($s.$p)",               _Funcs_151,_Preloads_151,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_INPUT_40_BYTE, -20, 35 },
+	{ "dynamic_152: RIPEMD320($p.$s)",               _Funcs_152,_Preloads_152,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_INPUT_40_BYTE, -20, 35 },
+	{ "dynamic_153: RIPEMD320(RIPEMD320($p))",           _Funcs_153,_Preloads_153,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_40_BYTE, },
+	{ "dynamic_154: RIPEMD320(RIPEMD320_raw($p))",       _Funcs_154,_Preloads_154,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_40_BYTE, },
+	{ "dynamic_155: RIPEMD320(RIPEMD320($p).$s)",        _Funcs_155,_Preloads_155,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_40_BYTE, -20, 35 },
+	{ "dynamic_156: RIPEMD320($s.RIPEMD320($p))",        _Funcs_156,_Preloads_156,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_40_BYTE, -20, 35 },
+	{ "dynamic_157: RIPEMD320(RIPEMD320($s).RIPEMD320($p))", _Funcs_157,_Preloads_157,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_40_BYTE, -20, 35 },
 };
 
 char *dynamic_PRELOAD_SIGNATURE(int cnt)

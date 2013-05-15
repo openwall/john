@@ -35,6 +35,11 @@ use Crypt::PBKDF2;
 use Crypt::OpenSSL::PBKDF2;
 use String::CRC32;
 use MIME::Base64;
+# these come from CryptX which is very hard to get working under Cygwin, but the only place
+# to find RIPEMD128, RIPEMD266, RIPEMD320.  We use the Crypt::Digest usage, instead of
+# loading each Digest type (4 of them, at least)
+use Crypt::Digest qw( digest_data digest_data_hex digest_data_base64 );
+#end if CryptX includes.  But in code, we do all the RIPEMD sizes.
 
 #############################################################################
 #
@@ -430,19 +435,28 @@ sub tiger_hex {
 	return lc Digest::Tiger::hexhash($_[0]);
 }
 sub tiger {
-#	return Digest::Tiger::hash($_[0]);
 	my $h = tiger_hex($_[0]);
 	my $ret = pack "H*", $h;
     return $ret;
 }
 sub tiger_base64 {
-#	my $haval = Digest::Tiger::hash('Tiger')
-#	$haval->add( $_[0] );
-#	return $haval->base64digest;
-	print "tiger_base64 is not working yet\n";
-	return Digest::Tiger::hexhash($_[0]);
-# this function is not right, but simply here to compile properly.
+	my $bin = pack "H*", lc Digest::Tiger::hexhash($_[0]);
+	return encode_base64($bin);
 }
+# these all come from CryptX usage.
+sub ripemd128_hex    { digest_data_hex('RIPEMD128', $_[0]);    }
+sub ripemd128        { digest_data('RIPEMD128', $_[0]);        }
+sub ripemd128_base64 { digest_data_base64('RIPEMD128', $_[0]); }
+sub ripemd160_hex    { digest_data_hex('RIPEMD160', $_[0]);    }
+sub ripemd160        { digest_data('RIPEMD160', $_[0]);        }
+sub ripemd160_base64 { digest_data_base64('RIPEMD160', $_[0]); }
+sub ripemd256_hex    { digest_data_hex('RIPEMD256', $_[0]);    }
+sub ripemd256        { digest_data('RIPEMD256', $_[0]);        }
+sub ripemd256_base64 { digest_data_base64('RIPEMD256', $_[0]); }
+sub ripemd320_hex    { digest_data_hex('RIPEMD320', $_[0]);    }
+sub ripemd320        { digest_data('RIPEMD320', $_[0]);        }
+sub ripemd320_base64 { digest_data_base64('RIPEMD320', $_[0]); }
+
 ############################################################################
 # Here are the encryption subroutines.
 #  the format of ALL of these is:    function(password)
@@ -1790,6 +1804,38 @@ sub dynamic_compile {
 			$dynamic_args==115 && do {$fmt='tiger(tiger($p).$s),saltlen=6';				last SWITCH; };
 			$dynamic_args==116 && do {$fmt='tiger($s.tiger($p)),saltlen=6';				last SWITCH; };
 			$dynamic_args==117 && do {$fmt='tiger(tiger($s).tiger($p)),saltlen=6';	last SWITCH; };
+			$dynamic_args==120 && do {$fmt='ripemd128($p)';					last SWITCH; };
+			$dynamic_args==121 && do {$fmt='ripemd128($s.$p),saltlen=6';	last SWITCH; };
+			$dynamic_args==122 && do {$fmt='ripemd128($p.$s)';				last SWITCH; };
+			$dynamic_args==123 && do {$fmt='ripemd128(ripemd128($p))';		last SWITCH; };
+			$dynamic_args==124 && do {$fmt='ripemd128(ripemd128_raw($p))';	last SWITCH; };
+			$dynamic_args==125 && do {$fmt='ripemd128(ripemd128($p).$s),saltlen=6';				last SWITCH; };
+			$dynamic_args==126 && do {$fmt='ripemd128($s.ripemd128($p)),saltlen=6';				last SWITCH; };
+			$dynamic_args==127 && do {$fmt='ripemd128(ripemd128($s).ripemd128($p)),saltlen=6';	last SWITCH; };
+			$dynamic_args==130 && do {$fmt='ripemd160($p)';					last SWITCH; };
+			$dynamic_args==131 && do {$fmt='ripemd160($s.$p),saltlen=6';	last SWITCH; };
+			$dynamic_args==132 && do {$fmt='ripemd160($p.$s)';				last SWITCH; };
+			$dynamic_args==133 && do {$fmt='ripemd160(ripemd160($p))';		last SWITCH; };
+			$dynamic_args==134 && do {$fmt='ripemd160(ripemd160_raw($p))';	last SWITCH; };
+			$dynamic_args==135 && do {$fmt='ripemd160(ripemd160($p).$s),saltlen=6';				last SWITCH; };
+			$dynamic_args==136 && do {$fmt='ripemd160($s.ripemd160($p)),saltlen=6';				last SWITCH; };
+			$dynamic_args==137 && do {$fmt='ripemd160(ripemd160($s).ripemd160($p)),saltlen=6';	last SWITCH; };
+			$dynamic_args==140 && do {$fmt='ripemd256($p)';					last SWITCH; };
+			$dynamic_args==141 && do {$fmt='ripemd256($s.$p),saltlen=6';	last SWITCH; };
+			$dynamic_args==142 && do {$fmt='ripemd256($p.$s)';				last SWITCH; };
+			$dynamic_args==143 && do {$fmt='ripemd256(ripemd256($p))';		last SWITCH; };
+			$dynamic_args==144 && do {$fmt='ripemd256(ripemd256_raw($p))';	last SWITCH; };
+			$dynamic_args==145 && do {$fmt='ripemd256(ripemd256($p).$s),saltlen=6';				last SWITCH; };
+			$dynamic_args==146 && do {$fmt='ripemd256($s.ripemd256($p)),saltlen=6';				last SWITCH; };
+			$dynamic_args==147 && do {$fmt='ripemd256(ripemd256($s).ripemd256($p)),saltlen=6';	last SWITCH; };
+			$dynamic_args==150 && do {$fmt='ripemd320($p)';			last SWITCH; };
+			$dynamic_args==151 && do {$fmt='ripemd320($s.$p),saltlen=6';	last SWITCH; };
+			$dynamic_args==152 && do {$fmt='ripemd320($p.$s)';				last SWITCH; };
+			$dynamic_args==153 && do {$fmt='ripemd320(ripemd320($p))';		last SWITCH; };
+			$dynamic_args==154 && do {$fmt='ripemd320(ripemd320_raw($p))';	last SWITCH; };
+			$dynamic_args==155 && do {$fmt='ripemd320(ripemd320($p).$s),saltlen=6';				last SWITCH; };
+			$dynamic_args==156 && do {$fmt='ripemd320($s.ripemd320($p)),saltlen=6';				last SWITCH; };
+			$dynamic_args==157 && do {$fmt='ripemd320(ripemd320($s).ripemd320($p)),saltlen=6';	last SWITCH; };
 
 			# 7, 17, 19, 20, 21, 27, 28 are still handled by 'special' functions.
 
@@ -1890,7 +1936,10 @@ sub do_dynamic_GetToken {
 	if (substr($exprStr, 0, 8) eq "gost_raw")   { push(@gen_toks, "fgostr");return substr($exprStr, 8); }
 	if (substr($exprStr, 0,13) eq "whirlpool_raw") { push(@gen_toks, "fwrlpr");return substr($exprStr, 13); }
 	if (substr($exprStr, 0, 9) eq "tiger_raw")     { push(@gen_toks, "ftigr"); return substr($exprStr, 9); }
-	if (substr($exprStr, 0,13) eq "ripemd160_raw") { push(@gen_toks, "fripr"); return substr($exprStr,13); }
+	if (substr($exprStr, 0,13) eq "ripemd128_raw") { push(@gen_toks, "frip128r"); return substr($exprStr,13); }
+	if (substr($exprStr, 0,13) eq "ripemd160_raw") { push(@gen_toks, "frip160r"); return substr($exprStr,13); }
+	if (substr($exprStr, 0,13) eq "ripemd256_raw") { push(@gen_toks, "frip256r"); return substr($exprStr,13); }
+	if (substr($exprStr, 0,13) eq "ripemd320_raw") { push(@gen_toks, "frip320r"); return substr($exprStr,13); }
 	if (substr($exprStr, 0,12) eq "haval256_raw")  { push(@gen_toks, "fhavr"); return substr($exprStr,12); }
 
 	$gen_lastTokIsFunc=1;
@@ -1952,11 +2001,26 @@ sub do_dynamic_GetToken {
 		if (substr($exprStr, 0, 5) eq "TIGER")      { push(@gen_toks, "ftigH"); return substr($exprStr, 5); }
 		if (substr($exprStr, 0, 5) eq "tiger")      { push(@gen_toks, "ftigh"); return substr($exprStr, 5); }
 	} elsif ($stmp eq "RIP") {
-		if (substr($exprStr, 0,13) eq "ripemd160_64e")  { push(@gen_toks, "fripe"); return substr($exprStr,13); }
-		if (substr($exprStr, 0,12) eq "ripemd160_64")   { push(@gen_toks, "frip6"); return substr($exprStr,12); }
-		if (substr($exprStr, 0,10) eq "ripemd160u")     { push(@gen_toks, "fripu"); return substr($exprStr,10); }
-		if (substr($exprStr, 0, 9) eq "RIPEMD160")      { push(@gen_toks, "fripH"); return substr($exprStr, 9); }
-		if (substr($exprStr, 0, 9) eq "ripemd160")      { push(@gen_toks, "friph"); return substr($exprStr, 9); }
+		if (substr($exprStr, 0,13) eq "ripemd128_64e")  { push(@gen_toks, "frip128e"); return substr($exprStr,13); }
+		if (substr($exprStr, 0,12) eq "ripemd128_64")   { push(@gen_toks, "frip1286"); return substr($exprStr,12); }
+		if (substr($exprStr, 0,10) eq "ripemd128u")     { push(@gen_toks, "frip128u"); return substr($exprStr,10); }
+		if (substr($exprStr, 0, 9) eq "RIPEMD129")      { push(@gen_toks, "frip128H"); return substr($exprStr, 9); }
+		if (substr($exprStr, 0, 9) eq "ripemd128")      { push(@gen_toks, "frip128h"); return substr($exprStr, 9); }
+		if (substr($exprStr, 0,13) eq "ripemd160_64e")  { push(@gen_toks, "frip160e"); return substr($exprStr,13); }
+		if (substr($exprStr, 0,12) eq "ripemd160_64")   { push(@gen_toks, "frip1606"); return substr($exprStr,12); }
+		if (substr($exprStr, 0,10) eq "ripemd160u")     { push(@gen_toks, "frip160u"); return substr($exprStr,10); }
+		if (substr($exprStr, 0, 9) eq "RIPEMD160")      { push(@gen_toks, "frip160H"); return substr($exprStr, 9); }
+		if (substr($exprStr, 0, 9) eq "ripemd160")      { push(@gen_toks, "frip160h"); return substr($exprStr, 9); }
+		if (substr($exprStr, 0,13) eq "ripemd256_64e")  { push(@gen_toks, "frip256e"); return substr($exprStr,13); }
+		if (substr($exprStr, 0,12) eq "ripemd256_64")   { push(@gen_toks, "frip2566"); return substr($exprStr,12); }
+		if (substr($exprStr, 0,10) eq "ripemd256u")     { push(@gen_toks, "frip256u"); return substr($exprStr,10); }
+		if (substr($exprStr, 0, 9) eq "RIPEMD129")      { push(@gen_toks, "frip256H"); return substr($exprStr, 9); }
+		if (substr($exprStr, 0, 9) eq "ripemd256")      { push(@gen_toks, "frip256h"); return substr($exprStr, 9); }
+		if (substr($exprStr, 0,13) eq "ripemd320_64e")  { push(@gen_toks, "frip320e"); return substr($exprStr,13); }
+		if (substr($exprStr, 0,12) eq "ripemd320_64")   { push(@gen_toks, "frip3206"); return substr($exprStr,12); }
+		if (substr($exprStr, 0,10) eq "ripemd320u")     { push(@gen_toks, "frip320u"); return substr($exprStr,10); }
+		if (substr($exprStr, 0, 9) eq "RIPEMD129")      { push(@gen_toks, "frip320H"); return substr($exprStr, 9); }
+		if (substr($exprStr, 0, 9) eq "ripemd320")      { push(@gen_toks, "frip320h"); return substr($exprStr, 9); }
 	} elsif ($stmp eq "HAV") {
 		if (substr($exprStr, 0,12) eq "haval256_64e")  { push(@gen_toks, "fhave"); return substr($exprStr,12); }
 		if (substr($exprStr, 0,11) eq "haval256_64")   { push(@gen_toks, "fhav6"); return substr($exprStr,11); }
@@ -2419,12 +2483,30 @@ sub dynamic_ftig6  { $h = pop @gen_Stack; $h = tiger_base64($h); $gen_Stack[@gen
 sub dynamic_ftige  { $h = pop @gen_Stack; $h = tiger_base64($h); while (length($h)%4) { $h .= "="; } $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_ftigu  { $h = pop @gen_Stack; $h = tiger_hex(encode("UTF-16LE",$h)); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_ftigr  { $h = pop @gen_Stack; $h = tiger($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
-sub dynamic_friph  { $h = pop @gen_Stack; $h = ripemd160_hex($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
-sub dynamic_fripH  { $h = pop @gen_Stack; $h = uc ripemd160_hex($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
-sub dynamic_frip6  { $h = pop @gen_Stack; $h = ripemd160_base64($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
-sub dynamic_fripe  { $h = pop @gen_Stack; $h = ripemd160_base64($h); while (length($h)%4) { $h .= "="; } $gen_Stack[@gen_Stack-1] .= $h; return $h; }
-sub dynamic_fripu  { $h = pop @gen_Stack; $h = ripemd160_hex(encode("UTF-16LE",$h)); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
-sub dynamic_fripr  { $h = pop @gen_Stack; $h = ripemd160($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_frip128h  { $h = pop @gen_Stack; $h = ripemd128_hex($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_frip128H  { $h = pop @gen_Stack; $h = uc ripemd128_hex($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_frip1286  { $h = pop @gen_Stack; $h = ripemd128_base64($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_frip128e  { $h = pop @gen_Stack; $h = ripemd128_base64($h); while (length($h)%4) { $h .= "="; } $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_frip128u  { $h = pop @gen_Stack; $h = ripemd128_hex(encode("UTF-16LE",$h)); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_frip128r  { $h = pop @gen_Stack; $h = ripemd128($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_frip160h  { $h = pop @gen_Stack; $h = ripemd160_hex($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_frip160H  { $h = pop @gen_Stack; $h = uc ripemd160_hex($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_frip1606  { $h = pop @gen_Stack; $h = ripemd160_base64($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_frip160e  { $h = pop @gen_Stack; $h = ripemd160_base64($h); while (length($h)%4) { $h .= "="; } $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_frip160u  { $h = pop @gen_Stack; $h = ripemd160_hex(encode("UTF-16LE",$h)); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_frip160r  { $h = pop @gen_Stack; $h = ripemd160($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_frip256h  { $h = pop @gen_Stack; $h = ripemd256_hex($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_frip256H  { $h = pop @gen_Stack; $h = uc ripemd256_hex($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_frip2566  { $h = pop @gen_Stack; $h = ripemd256_base64($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_frip256e  { $h = pop @gen_Stack; $h = ripemd256_base64($h); while (length($h)%4) { $h .= "="; } $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_frip256u  { $h = pop @gen_Stack; $h = ripemd256_hex(encode("UTF-16LE",$h)); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_frip256r  { $h = pop @gen_Stack; $h = ripemd256($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_frip320h  { $h = pop @gen_Stack; $h = ripemd320_hex($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_frip320H  { $h = pop @gen_Stack; $h = uc ripemd320_hex($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_frip3206  { $h = pop @gen_Stack; $h = ripemd320_base64($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_frip320e  { $h = pop @gen_Stack; $h = ripemd320_base64($h); while (length($h)%4) { $h .= "="; } $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_frip320u  { $h = pop @gen_Stack; $h = ripemd320_hex(encode("UTF-16LE",$h)); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_frip320r  { $h = pop @gen_Stack; $h = ripemd320($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_fhavh  { $h = pop @gen_Stack; $h = haval256_hex($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_fhavH  { $h = pop @gen_Stack; $h = uc haval256_hex($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_fhav6  { $h = pop @gen_Stack; $h = haval256_base64($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }

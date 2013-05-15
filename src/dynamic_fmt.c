@@ -427,18 +427,20 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 			return 0;
 	}
 	cipherTextLen = CIPHERTEXT_LENGTH;
-	if (pPriv->dynamic_40_byte_sha1) {
+	if (pPriv->dynamic_40_byte_input) {
 		cipherTextLen = 40;
-	} else if (pPriv->dynamic_64_byte_sha256 || pPriv->dynamic_64_byte_gost) {
-		cipherTextLen = 64;
-	} else if (pPriv->dynamic_56_byte_sha224) {
-		cipherTextLen = 56;
-	} else if (pPriv->dynamic_96_byte_sha384) {
-		cipherTextLen = 96;
-	} else if (pPriv->dynamic_128_byte_sha512 || pPriv->dynamic_128_byte_whirlpool) {
-		cipherTextLen = 128;
-	} else if (pPriv->dynamic_48_byte_tiger) {
+	} else if (pPriv->dynamic_48_byte_input) {
 		cipherTextLen = 48;
+	} else if (pPriv->dynamic_64_byte_input) {
+		cipherTextLen = 64;
+	} else if (pPriv->dynamic_56_byte_input) {
+		cipherTextLen = 56;
+	} else if (pPriv->dynamic_80_byte_input) {
+		cipherTextLen = 80;
+	} else if (pPriv->dynamic_96_byte_input) {
+		cipherTextLen = 96;
+	} else if (pPriv->dynamic_128_byte_input) {
+		cipherTextLen = 128;
 	}
 	for (i = 0; i < cipherTextLen; i++) {
 		if (atoi16[ARCH_INDEX(cp[i])] == 0x7f)
@@ -2316,7 +2318,7 @@ static char *source(char *source, void *binary)
 	return Buf;
 }
 
-static char *source_sha(char *source, void *binary)
+static char *source_20_hex(char *source, void *binary)
 {
 	static char Buf[256];
 	unsigned char *cpi= (unsigned char*)(binary);
@@ -2332,7 +2334,7 @@ static char *source_sha(char *source, void *binary)
 	*cpo = 0;
 	return Buf;
 }
-static char *source_sha224(char *source, void *binary)
+static char *source_28_hex(char *source, void *binary)
 {
 	static char Buf[256];
 	unsigned char *cpi= (unsigned char*)(binary);
@@ -2348,7 +2350,7 @@ static char *source_sha224(char *source, void *binary)
 	*cpo = 0;
 	return Buf;
 }
-static char *source_sha256(char *source, void *binary)
+static char *source_32_hex(char *source, void *binary)
 {
 	static char Buf[256];
 	unsigned char *cpi= (unsigned char*)(binary);
@@ -2364,7 +2366,23 @@ static char *source_sha256(char *source, void *binary)
 	*cpo = 0;
 	return Buf;
 }
-static char *source_sha384(char *source, void *binary)
+static char *source_40_hex(char *source, void *binary)
+{
+	static char Buf[256];
+	unsigned char *cpi= (unsigned char*)(binary);
+	char *cpo = Buf;
+	int i;
+
+	cpo += sprintf(Buf, "%s", curdat.dynamic_WHICH_TYPE_SIG);
+	for (i = 0; i < 40; ++i) {
+		*cpo++ = itoa16[(*cpi)>>4];
+		*cpo++ = itoa16[*cpi&0xF];
+		++cpi;
+	}
+	*cpo = 0;
+	return Buf;
+}
+static char *source_48_hex(char *source, void *binary)
 {
 	static char Buf[256];
 	unsigned char *cpi= (unsigned char*)(binary);
@@ -2380,39 +2398,7 @@ static char *source_sha384(char *source, void *binary)
 	*cpo = 0;
 	return Buf;
 }
-static char *source_sha512(char *source, void *binary)
-{
-	static char Buf[256];
-	unsigned char *cpi= (unsigned char*)(binary);
-	char *cpo = Buf;
-	int i;
-
-	cpo += sprintf(Buf, "%s", curdat.dynamic_WHICH_TYPE_SIG);
-	for (i = 0; i < 64; ++i) {
-		*cpo++ = itoa16[(*cpi)>>4];
-		*cpo++ = itoa16[*cpi&0xF];
-		++cpi;
-	}
-	*cpo = 0;
-	return Buf;
-}
-static char *source_gost(char *source, void *binary)
-{
-	static char Buf[256];
-	unsigned char *cpi= (unsigned char*)(binary);
-	char *cpo = Buf;
-	int i;
-
-	cpo += sprintf(Buf, "%s", curdat.dynamic_WHICH_TYPE_SIG);
-	for (i = 0; i < 32; ++i) {
-		*cpo++ = itoa16[(*cpi)>>4];
-		*cpo++ = itoa16[*cpi&0xF];
-		++cpi;
-	}
-	*cpo = 0;
-	return Buf;
-}
-static char *source_whirlpool(char *source, void *binary)
+static char *source_64_hex(char *source, void *binary)
 {
 	static char Buf[256];
 	unsigned char *cpi= (unsigned char*)(binary);
@@ -7073,6 +7059,30 @@ void DynamicFunc__Tiger_crypt_input1_overwrite_input1_base16(DYNA_OMP_PARAMS){ D
 void DynamicFunc__Tiger_crypt_input2_overwrite_input2_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__Tiger_crypt_input2_overwrite_input2(DYNA_OMP_PARAMSd); }
 void DynamicFunc__Tiger_crypt_input1_overwrite_input2_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__Tiger_crypt_input1_overwrite_input2(DYNA_OMP_PARAMSd); }
 void DynamicFunc__Tiger_crypt_input2_overwrite_input1_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__Tiger_crypt_input2_overwrite_input1(DYNA_OMP_PARAMSd); }
+void DynamicFunc__RIPEMD128_crypt_input1_append_input2_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__RIPEMD128_crypt_input1_append_input2(DYNA_OMP_PARAMSd); }
+void DynamicFunc__RIPEMD128_crypt_input2_append_input1_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__RIPEMD128_crypt_input2_append_input1(DYNA_OMP_PARAMSd); }
+void DynamicFunc__RIPEMD128_crypt_input1_overwrite_input1_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__RIPEMD128_crypt_input1_overwrite_input1(DYNA_OMP_PARAMSd); }
+void DynamicFunc__RIPEMD128_crypt_input2_overwrite_input2_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__RIPEMD128_crypt_input2_overwrite_input2(DYNA_OMP_PARAMSd); }
+void DynamicFunc__RIPEMD128_crypt_input1_overwrite_input2_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__RIPEMD128_crypt_input1_overwrite_input2(DYNA_OMP_PARAMSd); }
+void DynamicFunc__RIPEMD128_crypt_input2_overwrite_input1_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__RIPEMD128_crypt_input2_overwrite_input1(DYNA_OMP_PARAMSd); }
+void DynamicFunc__RIPEMD160_crypt_input1_append_input2_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__RIPEMD160_crypt_input1_append_input2(DYNA_OMP_PARAMSd); }
+void DynamicFunc__RIPEMD160_crypt_input2_append_input1_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__RIPEMD160_crypt_input2_append_input1(DYNA_OMP_PARAMSd); }
+void DynamicFunc__RIPEMD160_crypt_input1_overwrite_input1_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__RIPEMD160_crypt_input1_overwrite_input1(DYNA_OMP_PARAMSd); }
+void DynamicFunc__RIPEMD160_crypt_input2_overwrite_input2_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__RIPEMD160_crypt_input2_overwrite_input2(DYNA_OMP_PARAMSd); }
+void DynamicFunc__RIPEMD160_crypt_input1_overwrite_input2_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__RIPEMD160_crypt_input1_overwrite_input2(DYNA_OMP_PARAMSd); }
+void DynamicFunc__RIPEMD160_crypt_input2_overwrite_input1_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__RIPEMD160_crypt_input2_overwrite_input1(DYNA_OMP_PARAMSd); }
+void DynamicFunc__RIPEMD256_crypt_input1_append_input2_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__RIPEMD256_crypt_input1_append_input2(DYNA_OMP_PARAMSd); }
+void DynamicFunc__RIPEMD256_crypt_input2_append_input1_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__RIPEMD256_crypt_input2_append_input1(DYNA_OMP_PARAMSd); }
+void DynamicFunc__RIPEMD256_crypt_input1_overwrite_input1_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__RIPEMD256_crypt_input1_overwrite_input1(DYNA_OMP_PARAMSd); }
+void DynamicFunc__RIPEMD256_crypt_input2_overwrite_input2_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__RIPEMD256_crypt_input2_overwrite_input2(DYNA_OMP_PARAMSd); }
+void DynamicFunc__RIPEMD256_crypt_input1_overwrite_input2_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__RIPEMD256_crypt_input1_overwrite_input2(DYNA_OMP_PARAMSd); }
+void DynamicFunc__RIPEMD256_crypt_input2_overwrite_input1_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__RIPEMD256_crypt_input2_overwrite_input1(DYNA_OMP_PARAMSd); }
+void DynamicFunc__RIPEMD320_crypt_input1_append_input2_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__RIPEMD320_crypt_input1_append_input2(DYNA_OMP_PARAMSd); }
+void DynamicFunc__RIPEMD320_crypt_input2_append_input1_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__RIPEMD320_crypt_input2_append_input1(DYNA_OMP_PARAMSd); }
+void DynamicFunc__RIPEMD320_crypt_input1_overwrite_input1_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__RIPEMD320_crypt_input1_overwrite_input1(DYNA_OMP_PARAMSd); }
+void DynamicFunc__RIPEMD320_crypt_input2_overwrite_input2_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__RIPEMD320_crypt_input2_overwrite_input2(DYNA_OMP_PARAMSd); }
+void DynamicFunc__RIPEMD320_crypt_input1_overwrite_input2_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__RIPEMD320_crypt_input1_overwrite_input2(DYNA_OMP_PARAMSd); }
+void DynamicFunc__RIPEMD320_crypt_input2_overwrite_input1_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__RIPEMD320_crypt_input2_overwrite_input1(DYNA_OMP_PARAMSd); }
 
 /**************************************************************
  **************************************************************
@@ -7775,15 +7785,14 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 	if (Setup->pFuncs[0] == DynamicFunc__InitialLoadKeys_md5crypt_ToOutput2_Base16_to_Input1_offset32)
 		Setup->startFlags |= MGF_KEYS_BASE16_IN1_Offset32;
 
-	curdat.dynamic_hdaa_salt      = ((Setup->flags     &MGF_HDAA_SALT)==MGF_HDAA_SALT) ? 1 : 0;
-	curdat.dynamic_40_byte_sha1   = ((Setup->startFlags&MGF_SHA1_40_BYTE_FINISH)==MGF_SHA1_40_BYTE_FINISH) ? 1 : 0;
-	curdat.dynamic_64_byte_sha256 = ((Setup->startFlags&MGF_SHA256_64_BYTE_FINISH)==MGF_SHA256_64_BYTE_FINISH) ? 1 : 0;
-	curdat.dynamic_56_byte_sha224 = ((Setup->startFlags&MGF_SHA224_56_BYTE_FINISH)==MGF_SHA224_56_BYTE_FINISH) ? 1 : 0;
-	curdat.dynamic_96_byte_sha384 = ((Setup->startFlags&MGF_SHA384_96_BYTE_FINISH)==MGF_SHA384_96_BYTE_FINISH) ? 1 : 0;
-	curdat.dynamic_128_byte_sha512= ((Setup->startFlags&MGF_SHA512_128_BYTE_FINISH)==MGF_SHA512_128_BYTE_FINISH) ? 1 : 0;
-	curdat.dynamic_64_byte_gost   = ((Setup->startFlags&MGF_GOST_64_BYTE_FINISH)==MGF_GOST_64_BYTE_FINISH) ? 1 : 0;
-	curdat.dynamic_128_byte_whirlpool = ((Setup->startFlags&MGF_WHIRLPOOL_128_BYTE_FINISH)==MGF_WHIRLPOOL_128_BYTE_FINISH) ? 1 : 0;
-	curdat.dynamic_48_byte_tiger = ((Setup->startFlags&MGF_Tiger_48_BYTE_FINISH)==MGF_Tiger_48_BYTE_FINISH) ? 1 : 0;
+	curdat.dynamic_hdaa_salt     = ((Setup->flags     &MGF_HDAA_SALT)==MGF_HDAA_SALT) ? 1 : 0;
+	curdat.dynamic_40_byte_input = ((Setup->startFlags&MGF_INPUT_20_BYTE)==MGF_INPUT_20_BYTE) ? 1 : 0;
+	curdat.dynamic_48_byte_input = ((Setup->startFlags&MGF_INPUT_24_BYTE)==MGF_INPUT_24_BYTE) ? 1 : 0;
+	curdat.dynamic_64_byte_input = ((Setup->startFlags&MGF_INPUT_32_BYTE)==MGF_INPUT_32_BYTE) ? 1 : 0;
+	curdat.dynamic_56_byte_input = ((Setup->startFlags&MGF_INPUT_28_BYTE)==MGF_INPUT_28_BYTE) ? 1 : 0;
+	curdat.dynamic_80_byte_input = ((Setup->startFlags&MGF_INPUT_40_BYTE)==MGF_INPUT_40_BYTE) ? 1 : 0;
+	curdat.dynamic_96_byte_input = ((Setup->startFlags&MGF_INPUT_48_BYTE)==MGF_INPUT_48_BYTE) ? 1 : 0;
+	curdat.dynamic_128_byte_input= ((Setup->startFlags&MGF_INPUT_64_BYTE)==MGF_INPUT_64_BYTE) ? 1 : 0;
 
 	curdat.FldMask = 0;
 	curdat.b2Salts               = ((Setup->flags&MGF_SALTED2)==MGF_SALTED2) ? 1 : 0;
@@ -7972,14 +7981,16 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 	curdat.input2_set_len32 = !!(Setup->startFlags&MGF_SET_INP2LEN32);
 
 #if FMT_MAIN_VERSION > 9
-	if (Setup->startFlags&MGF_SOURCE)        pFmt->methods.source = source;
-	if (Setup->startFlags&MGF_SOURCE_SHA)    pFmt->methods.source = source_sha;
-	if (Setup->startFlags&MGF_SOURCE_SHA224) pFmt->methods.source = source_sha224;
-	if (Setup->startFlags&MGF_SOURCE_SHA256) pFmt->methods.source = source_sha256;
-	if (Setup->startFlags&MGF_SOURCE_SHA384) pFmt->methods.source = source_sha384;
-	if (Setup->startFlags&MGF_SOURCE_SHA512) pFmt->methods.source = source_sha512;
-	if (Setup->startFlags&MGF_SOURCE_GOST)   pFmt->methods.source = source_gost;
-	if (Setup->startFlags&MGF_SOURCE_WHIRLPOOL)   pFmt->methods.source = source_whirlpool;
+	if (Setup->startFlags&MGF_SOURCE) {
+		if      (Setup->startFlags&MGF_INPUT_20_BYTE) pFmt->methods.source = source_20_hex;
+		else if (Setup->startFlags&MGF_INPUT_28_BYTE) pFmt->methods.source = source_28_hex;
+		else if (Setup->startFlags&MGF_INPUT_32_BYTE) pFmt->methods.source = source_32_hex;
+		else if (Setup->startFlags&MGF_INPUT_40_BYTE) pFmt->methods.source = source_40_hex;
+		else if (Setup->startFlags&MGF_INPUT_48_BYTE) pFmt->methods.source = source_48_hex;
+		else if (Setup->startFlags&MGF_INPUT_64_BYTE) pFmt->methods.source = source_64_hex;
+		else                                          pFmt->methods.source = source;
+	}
+
 #endif
 
 	if (!curdat.store_keys_in_input && Setup->startFlags&MGF_KEYS_INPUT_BE_SAFE)
@@ -8375,18 +8386,20 @@ static int LoadOneFormat(int idx, struct fmt_main *pFmt)
 		curdat.dynamic_SALT_OFFSET = curdat.dynamic_HASH_OFFSET + 22 + 1;
 	else if (curdat.dynamic_base64_inout == 2)
 		curdat.dynamic_SALT_OFFSET = curdat.dynamic_HASH_OFFSET + 16 + 1;
-	else if (curdat.dynamic_40_byte_sha1)
+	else if (curdat.dynamic_40_byte_input)
 		curdat.dynamic_SALT_OFFSET = curdat.dynamic_HASH_OFFSET + 40 + 1;
-	else if (curdat.dynamic_64_byte_sha256 || curdat.dynamic_64_byte_gost)
-		curdat.dynamic_SALT_OFFSET = curdat.dynamic_HASH_OFFSET + 64 + 1;
-	else if (curdat.dynamic_56_byte_sha224)
-		curdat.dynamic_SALT_OFFSET = curdat.dynamic_HASH_OFFSET + 56 + 1;
-	else if (curdat.dynamic_96_byte_sha384)
-		curdat.dynamic_SALT_OFFSET = curdat.dynamic_HASH_OFFSET + 96 + 1;
-	else if (curdat.dynamic_128_byte_sha512 || curdat.dynamic_128_byte_whirlpool)
-		curdat.dynamic_SALT_OFFSET = curdat.dynamic_HASH_OFFSET + 128 + 1;
-	else if (curdat.dynamic_48_byte_tiger)
+	else if (curdat.dynamic_48_byte_input)
 		curdat.dynamic_SALT_OFFSET = curdat.dynamic_HASH_OFFSET + 48 + 1;
+	else if (curdat.dynamic_64_byte_input)
+		curdat.dynamic_SALT_OFFSET = curdat.dynamic_HASH_OFFSET + 64 + 1;
+	else if (curdat.dynamic_56_byte_input)
+		curdat.dynamic_SALT_OFFSET = curdat.dynamic_HASH_OFFSET + 56 + 1;
+	else if (curdat.dynamic_80_byte_input)
+		curdat.dynamic_SALT_OFFSET = curdat.dynamic_HASH_OFFSET + 80 + 1;
+	else if (curdat.dynamic_96_byte_input)
+		curdat.dynamic_SALT_OFFSET = curdat.dynamic_HASH_OFFSET + 96 + 1;
+	else if (curdat.dynamic_128_byte_input)
+		curdat.dynamic_SALT_OFFSET = curdat.dynamic_HASH_OFFSET + 128 + 1;
 	else
 		curdat.dynamic_SALT_OFFSET = curdat.dynamic_HASH_OFFSET + 32 + 1;
 
