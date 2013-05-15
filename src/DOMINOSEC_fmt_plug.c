@@ -390,6 +390,8 @@ static void set_salt(void *salt)
 static void set_key(char *key, int index)
 {
 	strnzcpy(saved_key[index], key, PLAINTEXT_LENGTH + 1);
+	domino_big_md((unsigned char*)key,
+		strlen(key), key_digest[index]);
 }
 
 static char *get_key(int index)
@@ -408,11 +410,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	{
 		unsigned char osalt[WTFSIZE];
 		unsigned char *offset = osalt+6;
-		int saved_key_len = strlen(saved_key[index]);
 		int i = 0;
 		memcpy(osalt, salt_and_digest, 6);
-		domino_big_md((unsigned char*)saved_key[index],
-				saved_key_len, key_digest[index]);
 		/* Not (++i < 16) !
 		 * Domino will do hash of first 34 bytes ignoring The Fact that now
 		 * there is a salt at a beginning of buffer. This means that last 5
@@ -426,7 +425,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 		domino_big_md(osalt, 34, (unsigned char*)crypt_out[index]);
 	}
-	return *pcount;
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
