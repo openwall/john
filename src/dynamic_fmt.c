@@ -5554,8 +5554,7 @@ void DynamicFunc__crypt_md5_to_input_raw(DYNA_OMP_PARAMS)
 		unsigned len = total_len_X86[i];
 #endif
 		DoMD5(input_buf_X86[i>>MD5_X2], len, input_buf_X86[i>>MD5_X2]);
-		if (i < m_count)
-			total_len_X86[i] = 0x10;
+		total_len_X86[i] = 0x10;
 	}
 }
 void DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen_but_setlen_in_SSE(DYNA_OMP_PARAMS)
