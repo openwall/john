@@ -694,7 +694,7 @@ static void __nonMP_DynamicFunc__clean_input_kwik() {
 #endif
 	memset(total_len_X86, 0, FLAT_TOT_LEN_SZ);
 #if !ARCH_LITTLE_ENDIAN
-	memset(input_buf_X86, 0, FLAT_INP_BUF_SZ;
+	memset(input_buf_X86, 0, FLAT_INP_BUF_SZ);
 #endif
 }
 #ifndef _OPENMP
