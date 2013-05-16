@@ -67,4 +67,24 @@ Since Linux and *BSD distributions' packages of John typically use make
 targets other than "generic" and since they typically use gcc, they are
 usually not affected by this potential problem.
 
-$Owl: Owl/packages/john/john/doc/INSTALL,v 1.5 2010/05/27 13:37:48 solar Exp $
+
+	Optimal build on OSX X (Jumbo specific)
+
+Using OS X, you can install Xcode (free) and then its "command line tools"
+and after that the "macosx-x86-64" target should work fine. However, this
+results in suboptimal performance (AVX is not used, and some formats are
+disabled due to ancient OpenSSL). Here's how to make the best possible
+of your hardware. There are alternatives that probably work fine but these
+instructions are for "Homebrew" (http://mxcl.github.io/homebrew/).
+
+  1. Install Homebrew
+  2. Install Homebrew's openssl and gcc
+  3. From your base "john" directory:
+	cp -avi src/osx_as_wrapper.sh /usr/local/bin/as
+  4. Link whatever gcc version you got from Homebrew to just "gcc" in the
+     /usr/local/bin directory. This example is for gcc-4.7:
+        ln -s gcc-4.7 /usr/local/bin/gcc
+  5. Make sure /usr/local/bin preceeds /usr/bin in your $PATH
+
+After the above, you should be able to build "macosx-x86-64-native" which
+may use AVX and/or whatever extra features your CPU has got.
