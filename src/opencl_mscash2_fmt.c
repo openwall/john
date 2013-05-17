@@ -22,38 +22,22 @@
 
 
 #define INIT_MD4_A                  0x67452301
-
 #define INIT_MD4_B                  0xefcdab89
-
 #define INIT_MD4_C                  0x98badcfe
-
 #define INIT_MD4_D                  0x10325476
-
 #define SQRT_2                      0x5a827999
-
 #define SQRT_3                      0x6ed9eba1
 
 
 #define FORMAT_LABEL	           "mscash2-opencl"
 #define FORMAT_NAME		   "M$ Cache Hash 2 (DCC2) PBKDF2-HMAC-SHA-1"
-
 #define KERNEL_NAME		   "PBKDF2"
-
 #define ALGORITHM_NAME		   "OpenCL"
-
-
 #define BENCHMARK_COMMENT	   ""
-
 #define BENCHMARK_LENGTH	  -1
-
-
 #define MSCASH2_PREFIX            "$DCC2$"
-
-
 #define MAX_PLAINTEXT_LENGTH      31
-
 #define MAX_CIPHERTEXT_LENGTH     7 + MAX_SALT_LENGTH + 32
-
 
 #define BINARY_SIZE               4
 #define BINARY_ALIGN              4
@@ -65,11 +49,9 @@
 
 
 typedef struct {
-	unsigned int length;
-	unsigned char username[MAX_SALT_LENGTH+1];
-} ms_cash2_salt;
-
-
+	unsigned int 	length ;
+	unsigned char 	username[MAX_SALT_LENGTH + 1] ;
+} ms_cash2_salt ;
 
 static struct fmt_tests tests[] = {
 	{"$DCC2$test#a86012faf7d88d1fc037a69764a92cac", "password"},
@@ -85,272 +67,218 @@ static struct fmt_tests tests[] = {
 	{"$DCC2$eighteencharacters#fc5df74eca97afd7cd5abb0032496223", "w00t" },
 	{"$DCC2$john-the-ripper#495c800a038d11e55fafc001eb689d1d", "batman#$@#1991" },
 	{"$DCC2$#59137848828d14b1fca295a5032b52a1", "a" },                                   //Empty Salt
-
 	{NULL}
-};
+} ;
+
+static cl_uint 		*dcc_hash_host ;
+static cl_uint 		*dcc2_hash_host ;
+static unsigned char 	(*key_host)[MAX_PLAINTEXT_LENGTH + 1] ;
+static ms_cash2_salt 	currentsalt ;
 
 
-	static cl_uint *dcc_hash_host;
+static void md4_crypt(unsigned int *buffer, unsigned int *hash) {
+	unsigned int 	a ;
+	unsigned int 	b ;
+	unsigned int 	c ;
+        unsigned int    d ;
 
-	static cl_uint *dcc2_hash_host;
+	// round 1
+	a = 0xFFFFFFFF  +  buffer[0]; a = (a << 3 ) | (a >> 29) ;
+	d = INIT_MD4_D + (INIT_MD4_C ^ (a & 0x77777777)) + buffer[1]; d = (d << 7 ) | (d >> 25) ;
+	c = INIT_MD4_C + (INIT_MD4_B ^ (d & (a ^ INIT_MD4_B))) + buffer[2]; c = (c << 11) | (c >> 21) ;
+	b = INIT_MD4_B + (a ^ (c & (d ^ a))) + buffer[3]; b = (b << 19) | (b >> 13) ;
 
-	static unsigned char (*key_host)[MAX_PLAINTEXT_LENGTH+1];
+	a += (d ^ (b & (c ^ d)))  +  buffer[4];  a = (a << 3 ) | (a >> 29) ;
+	d += (c ^ (a & (b ^ c)))  +  buffer[5];  d = (d << 7 ) | (d >> 25) ;
+	c += (b ^ (d & (a ^ b)))  +  buffer[6];  c = (c << 11) | (c >> 21) ;
+	b += (a ^ (c & (d ^ a)))  +  buffer[7];  b = (b << 19) | (b >> 13) ;
 
-	static ms_cash2_salt currentsalt;
+	a += (d ^ (b & (c ^ d)))  + buffer[8] ;  a = (a << 3 ) | (a >> 29) ;
+	d += (c ^ (a & (b ^ c)))  + buffer[9] ;  d = (d << 7 ) | (d >> 25) ;
+	c += (b ^ (d & (a ^ b)))  + buffer[10];  c = (c << 11) | (c >> 21) ;
+	b += (a ^ (c & (d ^ a)))  + buffer[11];  b = (b << 19) | (b >> 13) ;
 
+	a += (d ^ (b & (c ^ d)))  + buffer[12]; a = (a << 3 ) | (a >> 29) ;
+	d += (c ^ (a & (b ^ c)))  + buffer[13]; d = (d << 7 ) | (d >> 25) ;
+	c += (b ^ (d & (a ^ b)))  + buffer[14]; c = (c << 11) | (c >> 21) ;
+	b += (a ^ (c & (d ^ a)))  + buffer[15]; b = (b << 19) | (b >> 13) ;
 
-static void md4_crypt(unsigned int *buffer, unsigned int *hash)
-{
-    unsigned int a;
+	// round 2
+	a += ((b & (c | d)) | (c & d)) + buffer[0]  + SQRT_2; a = (a<<3 ) | (a>>29) ;
+	d += ((a & (b | c)) | (b & c)) + buffer[4]  + SQRT_2; d = (d<<5 ) | (d>>27) ;
+	c += ((d & (a | b)) | (a & b)) + buffer[8]  + SQRT_2; c = (c<<9 ) | (c>>23) ;
+	b += ((c & (d | a)) | (d & a)) + buffer[12] + SQRT_2; b = (b<<13) | (b>>19) ;
 
-    unsigned int b;
+	a += ((b & (c | d)) | (c & d)) + buffer[1]  + SQRT_2; a = (a<<3 ) | (a>>29) ;
+	d += ((a & (b | c)) | (b & c)) + buffer[5]  + SQRT_2; d = (d<<5 ) | (d>>27) ;
+	c += ((d & (a | b)) | (a & b)) + buffer[9]  + SQRT_2; c = (c<<9 ) | (c>>23) ;
+	b += ((c & (d | a)) | (d & a)) + buffer[13] + SQRT_2; b = (b<<13) | (b>>19) ;
 
-    unsigned int c;
+	a += ((b & (c | d)) | (c & d)) + buffer[2]  + SQRT_2; a = (a<<3 ) | (a>>29) ;
+	d += ((a & (b | c)) | (b & c)) + buffer[6]  + SQRT_2; d = (d<<5 ) | (d>>27) ;
+	c += ((d & (a | b)) | (a & b)) + buffer[10] + SQRT_2; c = (c<<9 ) | (c>>23) ;
+	b += ((c & (d | a)) | (d & a)) + buffer[14] + SQRT_2; b = (b<<13) | (b>>19) ;
 
-    unsigned int d;
+	a += ((b & (c | d)) | (c & d)) + buffer[3]  + SQRT_2; a = (a<<3 ) | (a>>29) ;
+	d += ((a & (b | c)) | (b & c)) + buffer[7]  + SQRT_2; d = (d<<5 ) | (d>>27) ;
+	c += ((d & (a | b)) | (a & b)) + buffer[11] + SQRT_2; c = (c<<9 ) | (c>>23) ;
+	b += ((c & (d | a)) | (d & a)) + buffer[15] + SQRT_2; b = (b<<13) | (b>>19) ;
 
-    // round 1
-    a = 0xFFFFFFFF  +  buffer[0]; a = (a << 3 ) | (a >> 29);
-    d = INIT_MD4_D + (INIT_MD4_C ^ (a & 0x77777777)) + buffer[1]; d = (d << 7 ) | (d >> 25);
-    c = INIT_MD4_C + (INIT_MD4_B ^ (d & (a ^ INIT_MD4_B))) + buffer[2]; c = (c << 11) | (c >> 21);
-    b = INIT_MD4_B + (a ^ (c & (d ^ a))) + buffer[3]; b = (b << 19) | (b >> 13);
+	// round 3
+	a += (d ^ c ^ b) + buffer[0]  +  SQRT_3; a = (a << 3 ) | (a >> 29) ;
+	d += (c ^ b ^ a) + buffer[8]  +  SQRT_3; d = (d << 9 ) | (d >> 23) ;
+	c += (b ^ a ^ d) + buffer[4]  +  SQRT_3; c = (c << 11) | (c >> 21) ;
+	b += (a ^ d ^ c) + buffer[12] +  SQRT_3; b = (b << 15) | (b >> 17) ;
 
+	a += (d ^ c ^ b) + buffer[2]  +  SQRT_3; a = (a << 3 ) | (a >> 29) ;
+	d += (c ^ b ^ a) + buffer[10] +  SQRT_3; d = (d << 9 ) | (d >> 23) ;
+	c += (b ^ a ^ d) + buffer[6]  +  SQRT_3; c = (c << 11) | (c >> 21) ;
+	b += (a ^ d ^ c) + buffer[14] +  SQRT_3; b = (b << 15) | (b >> 17) ;
 
-    a += (d ^ (b & (c ^ d)))  +  buffer[4];  a = (a << 3 ) | (a >> 29);
-    d += (c ^ (a & (b ^ c)))  +  buffer[5];  d = (d << 7 ) | (d >> 25);
-    c += (b ^ (d & (a ^ b)))  +  buffer[6];  c = (c << 11) | (c >> 21);
-    b += (a ^ (c & (d ^ a)))  +  buffer[7];  b = (b << 19) | (b >> 13);
+	a += (d ^ c ^ b) + buffer[1]  +  SQRT_3; a = (a << 3 ) | (a >> 29) ;
+	d += (c ^ b ^ a) + buffer[9]  +  SQRT_3; d = (d << 9 ) | (d >> 23) ;
+	c += (b ^ a ^ d) + buffer[5]  +  SQRT_3; c = (c << 11) | (c >> 21) ;
+	b += (a ^ d ^ c) + buffer[13] +  SQRT_3; b = (b << 15) | (b >> 17) ;
 
+	a += (d ^ c ^ b) + buffer[3]  +  SQRT_3; a = (a << 3 ) | (a >> 29) ;
+	d += (c ^ b ^ a) + buffer[11] +  SQRT_3; d = (d << 9 ) | (d >> 23) ;
+	c += (b ^ a ^ d) + buffer[7]  +  SQRT_3; c = (c << 11) | (c >> 21) ;
+	b += (a ^ d ^ c) + buffer[15] +  SQRT_3; b = (b << 15) | (b >> 17) ;
 
-    a += (d ^ (b & (c ^ d)))  + buffer[8] ;  a = (a << 3 ) | (a >> 29);
-    d += (c ^ (a & (b ^ c)))  + buffer[9] ;  d = (d << 7 ) | (d >> 25);
-    c += (b ^ (d & (a ^ b)))  + buffer[10];  c = (c << 11) | (c >> 21);
-    b += (a ^ (c & (d ^ a)))  + buffer[11];  b = (b << 19) | (b >> 13);
-
-
-    a += (d ^ (b & (c ^ d)))  + buffer[12]; a = (a << 3 ) | (a >> 29);
-    d += (c ^ (a & (b ^ c)))  + buffer[13]; d = (d << 7 ) | (d >> 25);
-    c += (b ^ (d & (a ^ b)))  + buffer[14]; c = (c << 11) | (c >> 21);
-    b += (a ^ (c & (d ^ a)))  + buffer[15]; b = (b << 19) | (b >> 13);
-
-    // round 2
-
-    a += ((b & (c | d)) | (c & d)) + buffer[0]  + SQRT_2; a = (a<<3 ) | (a>>29);
-    d += ((a & (b | c)) | (b & c)) + buffer[4]  + SQRT_2; d = (d<<5 ) | (d>>27);
-    c += ((d & (a | b)) | (a & b)) + buffer[8]  + SQRT_2; c = (c<<9 ) | (c>>23);
-    b += ((c & (d | a)) | (d & a)) + buffer[12] + SQRT_2; b = (b<<13) | (b>>19);
-
-
-    a += ((b & (c | d)) | (c & d)) + buffer[1]  + SQRT_2; a = (a<<3 ) | (a>>29);
-    d += ((a & (b | c)) | (b & c)) + buffer[5]  + SQRT_2; d = (d<<5 ) | (d>>27);
-    c += ((d & (a | b)) | (a & b)) + buffer[9]  + SQRT_2; c = (c<<9 ) | (c>>23);
-    b += ((c & (d | a)) | (d & a)) + buffer[13] + SQRT_2; b = (b<<13) | (b>>19);
-
-
-    a += ((b & (c | d)) | (c & d)) + buffer[2]  + SQRT_2; a = (a<<3 ) | (a>>29);
-    d += ((a & (b | c)) | (b & c)) + buffer[6]  + SQRT_2; d = (d<<5 ) | (d>>27);
-    c += ((d & (a | b)) | (a & b)) + buffer[10] + SQRT_2; c = (c<<9 ) | (c>>23);
-    b += ((c & (d | a)) | (d & a)) + buffer[14] + SQRT_2; b = (b<<13) | (b>>19);
-
-
-    a += ((b & (c | d)) | (c & d)) + buffer[3]  + SQRT_2; a = (a<<3 ) | (a>>29);
-    d += ((a & (b | c)) | (b & c)) + buffer[7]  + SQRT_2; d = (d<<5 ) | (d>>27);
-    c += ((d & (a | b)) | (a & b)) + buffer[11] + SQRT_2; c = (c<<9 ) | (c>>23);
-    b += ((c & (d | a)) | (d & a)) + buffer[15] + SQRT_2; b = (b<<13) | (b>>19);
-
-    // round 3
-
-    a += (d ^ c ^ b) + buffer[0]  +  SQRT_3; a = (a << 3 ) | (a >> 29);
-    d += (c ^ b ^ a) + buffer[8]  +  SQRT_3; d = (d << 9 ) | (d >> 23);
-    c += (b ^ a ^ d) + buffer[4]  +  SQRT_3; c = (c << 11) | (c >> 21);
-    b += (a ^ d ^ c) + buffer[12] +  SQRT_3; b = (b << 15) | (b >> 17);
-
-
-    a += (d ^ c ^ b) + buffer[2]  +  SQRT_3; a = (a << 3 ) | (a >> 29);
-    d += (c ^ b ^ a) + buffer[10] +  SQRT_3; d = (d << 9 ) | (d >> 23);
-    c += (b ^ a ^ d) + buffer[6]  +  SQRT_3; c = (c << 11) | (c >> 21);
-    b += (a ^ d ^ c) + buffer[14] +  SQRT_3; b = (b << 15) | (b >> 17);
-
-
-    a += (d ^ c ^ b) + buffer[1]  +  SQRT_3; a = (a << 3 ) | (a >> 29);
-    d += (c ^ b ^ a) + buffer[9]  +  SQRT_3; d = (d << 9 ) | (d >> 23);
-    c += (b ^ a ^ d) + buffer[5]  +  SQRT_3; c = (c << 11) | (c >> 21);
-    b += (a ^ d ^ c) + buffer[13] +  SQRT_3; b = (b << 15) | (b >> 17);
-
-
-    a += (d ^ c ^ b) + buffer[3]  +  SQRT_3; a = (a << 3 ) | (a >> 29);
-    d += (c ^ b ^ a) + buffer[11] +  SQRT_3; d = (d << 9 ) | (d >> 23);
-    c += (b ^ a ^ d) + buffer[7]  +  SQRT_3; c = (c << 11) | (c >> 21);
-    b += (a ^ d ^ c) + buffer[15] +  SQRT_3; b = (b << 15) | (b >> 17);
-
-
-    hash[0] = a + INIT_MD4_A;
-
-    hash[1] = b + INIT_MD4_B;
-
-    hash[2] = c + INIT_MD4_C;
-
-    hash[3] = d + INIT_MD4_D;
+	hash[0] = a + INIT_MD4_A ;
+	hash[1] = b + INIT_MD4_B ;
+	hash[2] = c + INIT_MD4_C ;
+	hash[3] = d + INIT_MD4_D ;
 }
 
-static 	void set_key(char*,int);
-static int crypt_all(int *pcount, struct db_salt *salt);
+static void set_key(char*, int) ;
+static int crypt_all(int *pcount, struct db_salt *salt) ;
 
-static void init(struct fmt_main *self)
-{	
-	char *conf=NULL;
-	int i;
-	///Allocate memory
-	key_host = mem_calloc(self->params.max_keys_per_crypt*sizeof(*key_host));
-
-	dcc_hash_host=(cl_uint*)mem_alloc(4*sizeof(cl_uint)*MAX_KEYS_PER_CRYPT);
-
-	dcc2_hash_host=(cl_uint*)mem_alloc(4*sizeof(cl_uint)*MAX_KEYS_PER_CRYPT);
-
-	memset(dcc_hash_host,0,4*sizeof(cl_uint)*MAX_KEYS_PER_CRYPT);
-
-	memset(dcc2_hash_host,0,4*sizeof(cl_uint)*MAX_KEYS_PER_CRYPT);
+static void init(struct fmt_main *self) {	
+	char 	*conf = NULL ;
+	int 	i ;
 	
-	local_work_size = global_work_size = 0;
+	///Allocate memory
+	key_host = mem_calloc(self -> params.max_keys_per_crypt * sizeof(*key_host)) ;
+	dcc_hash_host = (cl_uint*)mem_alloc(4 * sizeof(cl_uint) * MAX_KEYS_PER_CRYPT) ;
+	dcc2_hash_host = (cl_uint*)mem_alloc(4 * sizeof(cl_uint) * MAX_KEYS_PER_CRYPT) ;
+
+	memset(dcc_hash_host, 0, 4 * sizeof(cl_uint) * MAX_KEYS_PER_CRYPT) ;
+	memset(dcc2_hash_host, 0, 4 * sizeof(cl_uint) * MAX_KEYS_PER_CRYPT) ;
+	
+	local_work_size = global_work_size = 0 ;
 	
 	if ((conf = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, LWS_CONFIG)))
-		local_work_size = atoi(conf);
-	
+		local_work_size = atoi(conf) ;
 	if ((conf = getenv("LWS")))
-		local_work_size = atoi(conf);
-
+		local_work_size = atoi(conf) ; 
 	if ((conf = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, GWS_CONFIG)))
-		global_work_size = atoi(conf);
-
+		global_work_size = atoi(conf) ;
 	if ((conf = getenv("GWS")))
-		global_work_size = atoi(conf);
+		global_work_size = atoi(conf) ;
 		
-	for( i=0; i<get_devices_being_used();i++)
-	select_device(get_platform_id(ocl_device_list[i]),get_device_id(ocl_device_list[i]),ocl_device_list[i],self);
+	for( i=0; i < get_devices_being_used(); i++)
+		select_device(ocl_device_list[i], self) ;
 
-	warning(ocl_device_list);
+	warning() ;
 }
 
+static void DCC(unsigned char *salt, unsigned char *username, unsigned int username_len, unsigned char *password, unsigned int *dcc_hash, unsigned int id) {
+	unsigned int 	i ;
+	unsigned int 	buffer[16] ;
+	unsigned int 	nt_hash[16] ;
+	unsigned int 	password_len = strlen((const char*)password) ;
 
-static void DCC(unsigned char *salt,unsigned char *username,unsigned int username_len,unsigned char *password,unsigned int *dcc_hash,unsigned int id)
-{
-	unsigned int i;
+	memset(nt_hash, 0, 64) ;
+	memset(buffer, 0, 64) ;
 
-	unsigned int buffer[16];
+	// convert ASCII password to Unicode
+	for (i = 0; i < password_len  >> 1; i++)
+	    buffer[i] = password[2 * i] | (password[2 * i + 1] << 16) ;
 
-	unsigned int nt_hash[16];
-
-	unsigned int password_len = strlen((const char*)password);
-
-	memset(nt_hash, 0, 64);
-
-	memset(buffer, 0, 64);
-
-
-    // convert ASCII password to Unicode
-	for(i = 0; i < password_len  >> 1; i++)
-	    buffer[i] = password[2 * i] | (password[2 * i + 1] << 16);
-
-
-     // MD4 padding
-	if(password_len % 2 == 1)
-	    buffer[i] = password[password_len - 1] | 0x800000;
+	// MD4 padding
+	if ((password_len & 1))
+		buffer[i] = password[password_len - 1] | 0x800000 ;
 	else
-	    buffer[i]=0x80;
+		buffer[i] = 0x80 ;
 
+	// put password length at end of buffer
+	buffer[14] = password_len << 4 ;
 
-    // put password length at end of buffer
-	buffer[14] = password_len << 4;
+	// generate MD4 hash of the password (NT hash)
+	md4_crypt(buffer, nt_hash) ;
 
+	// concatenate NT hash and the username (salt)
+	memcpy((unsigned char *)nt_hash + 16, salt, username_len << 1) ;
 
-    // generate MD4 hash of the password (NT hash)
-	md4_crypt(buffer, nt_hash);
+	i = username_len + 8 ;
 
-
-    // concatenate NT hash and the username (salt)
-	memcpy((unsigned char *)nt_hash + 16, salt, username_len << 1);
-
-
-	i = username_len + 8;
-
-
-    // MD4 padding
-	if(username_len % 2 == 1)
-	  nt_hash[i >> 1] = username[username_len - 1] | 0x800000;
+	// MD4 padding
+	if ((username_len & 1) )
+		nt_hash[i >> 1] = username[username_len - 1] | 0x800000 ;
 	else
-	  nt_hash[i >> 1] = 0x80;
+		nt_hash[i >> 1] = 0x80 ;
 
-
-    // put length at end of buffer
-	nt_hash[14] = i << 4;
-
-
-	md4_crypt(nt_hash, (dcc_hash+4*id));
-
+	// put length at end of buffer
+	nt_hash[14] = i << 4 ;
+	
+	md4_crypt(nt_hash, (dcc_hash + 4 * id)) ;
 }
 
-static void done()
-{
-	MEM_FREE(dcc2_hash_host);
-	MEM_FREE(dcc_hash_host);
-	MEM_FREE(key_host);
-	clean_all_buffer();
+static void done() {
+	MEM_FREE(dcc2_hash_host) ;
+	MEM_FREE(dcc_hash_host) ;
+	MEM_FREE(key_host) ;
+	clean_all_buffer() ;
 }
 
-static int valid(char *ciphertext,struct fmt_main *self)
-{
-	char *hash;
-	char *pos;
-	int hashlength = 0;
-	int saltlength = 0;
+static int valid(char *ciphertext, struct fmt_main *self) {
+	char 	*hash ;
+	char 	*pos ;
+	int 	hashlength = 0 ;
+	int 	saltlength = 0 ;
 
-	if(strncmp(ciphertext, MSCASH2_PREFIX, sizeof(MSCASH2_PREFIX) - 1) != 0)
+	if (strncmp(ciphertext, MSCASH2_PREFIX, sizeof(MSCASH2_PREFIX) - 1) != 0)
+		return 0 ;
+
+	hash = strrchr(ciphertext, '#') + 1 ;
+	if (hash == NULL)
 		return 0;
 
-	hash = strrchr(ciphertext, '#') + 1;
-
-	if (hash == NULL)
-	    return 0;
-
-	while (hash < ciphertext + strlen(ciphertext))
-	{
+	while (hash < ciphertext + strlen(ciphertext))	{
 		if (atoi16[ARCH_INDEX(*hash++)] == 0x7f)
-			return 0;
+			return 0 ;
 
-		hashlength++;
+		hashlength++ ;
 	}
 
-	if (hashlength != 32)  return 0;
+	if (hashlength != 32)  return 0 ;
 
-	saltlength=0;
+	saltlength=0 ;
 
-	pos=ciphertext + strlen(MSCASH2_PREFIX);
+	pos = ciphertext + strlen(MSCASH2_PREFIX) ;
 
-	while (*pos != '#')
-	{
-		if(saltlength==(MAX_SALT_LENGTH)) {
+	while (*pos != '#') {
+		if (saltlength == (MAX_SALT_LENGTH)) {
 			static int warned = 0;
-
 			if (!ldr_in_pot)
-			if (!warned++)
-				fprintf(stderr, "%s: One or more hashes rejected due to salt length limitation\n", FORMAT_LABEL);
+				if (!warned++)
+					fprintf(stderr, "%s: One or more hashes rejected due to salt length limitation\n", FORMAT_LABEL);
 
-			return 0;
+			return 0 ;
 		}
-
-		saltlength++;
-		pos++;
+		saltlength++ ;
+		pos++ ;
 	}
 
-	return 1;
+	return 1 ;
 }
 
-static char * split(char *ciphertext, int index, struct fmt_main *self)
-{
-	static char out[MAX_CIPHERTEXT_LENGTH + 1];
-	int i = 0;
+static char *split(char *ciphertext, int index, struct fmt_main *self) {
+	static char 	out[MAX_CIPHERTEXT_LENGTH + 1] ;
+	int 		i = 0 ;
 
-	for(; i < MAX_CIPHERTEXT_LENGTH && ciphertext[i]; i++)
+	for (; i < MAX_CIPHERTEXT_LENGTH && ciphertext[i]; i++)
 		out[i] = ciphertext[i];
 
 	out[i] = 0;
@@ -363,299 +291,236 @@ static char * split(char *ciphertext, int index, struct fmt_main *self)
 
 static void *binary(char *ciphertext)
 {
-	static unsigned int binary[4];
+	static unsigned int 	binary[4] ;
+	int 			i ;
+	char 			*hash ;
 
-	int i;
-
-	char *hash ;
-
-	hash= strrchr(ciphertext, '#') + 1;
+	hash = strrchr(ciphertext, '#') + 1 ;
 
 	if (hash == NULL)
-		return binary;
+		return binary ;
 
 	for (i = 0; i < 4; i++) {
-
-	  sscanf(hash + (8 * i), "%08x", &binary[i]);
-
-	  binary[i] = SWAP(binary[i]);
-
+		sscanf(hash + (8 * i), "%08x", &binary[i]) ;
+		binary[i] = SWAP(binary[i]) ;
 	}
 
-	return binary;
-
+	return binary ;
 }
 
+static void *salt(char *ciphertext) {
+	static ms_cash2_salt 	salt ;
+	unsigned int 		length ;
+	char 			*pos ;
 
+	memset(&salt, 0, sizeof(salt)) ;
+	length = 0 ;
+	pos = ciphertext + strlen(MSCASH2_PREFIX) ;
 
-static void *salt(char *ciphertext)
-{
-	static ms_cash2_salt salt;
-	unsigned int length;
-	char *pos;
+	while (*pos != '#') {
+		if (length == MAX_SALT_LENGTH)
+			return NULL ;
 
-	memset(&salt, 0, sizeof(salt));
-
-	length = 0;
-	pos = ciphertext + strlen(MSCASH2_PREFIX);
-
-	while (*pos != '#')
-	      {
-		if(length==MAX_SALT_LENGTH)
-		return NULL;
-
-		salt.username[length++] = *pos++;
+		salt.username[length++] = *pos++ ;
 	      }
 
-	salt.username[length] = 0;
-	salt.length=length;
+	salt.username[length] = 0 ;
+	salt.length = length ;
 
-	return &salt;
+	return &salt ;
 }
 
-
-
-static void set_salt(void *salt)
-{
-	memcpy(&currentsalt, salt, sizeof(ms_cash2_salt));
+static void set_salt(void *salt) {
+	memcpy(&currentsalt, salt, sizeof(ms_cash2_salt)) ;
 }
 
+static void set_key(char *key, int index) {
+	int 	strlength, i ;
 
+	strlength = strlen(key) ;
 
-static void set_key(char *key, int index)
-{
-	int strlength,i;
-
-	strlength=strlen(key);
-
-	for(i=0;i<=strlength;++i)
-	    key_host[index][i]=key[i];
-
+	for (i = 0; i <= strlength; ++i)
+		key_host[index][i] = key[i] ;
 }
 
-
-
-static  char *get_key(int index )
-{
-	return (char *)key_host[index];
+static  char *get_key(int index) {
+	return (char *)key_host[index] ;
 }
 
-static int crypt_all(int *pcount, struct db_salt *salt)
-{
-	int count = *pcount;
-	unsigned int i;
+static int crypt_all(int *pcount, struct db_salt *salt) {
+	int 		count = *pcount ;
+	unsigned int 	i ;
 #ifdef _DEBUG
-	struct timeval startc,endc,startg,endg;
-	gettimeofday(&startc,NULL);
+	struct timeval startc, endc, startg, endg ;
+	gettimeofday(&startc, NULL) ;
 #endif
-	unsigned char salt_unicode[MAX_SALT_LENGTH*2+1];
+	unsigned char 	salt_unicode[(MAX_SALT_LENGTH << 1) + 1] ;
+	cl_uint 	salt_host[(MAX_SALT_LENGTH >> 1) + 1] ;
 
-	cl_uint salt_host[MAX_SALT_LENGTH/2 +1];
+	memset(salt_unicode, 0, (MAX_SALT_LENGTH << 1) + 1) ;
+	memset(salt_host, 0, ((MAX_SALT_LENGTH >> 1) + 1) * sizeof(cl_uint)) ;
 
-	memset(salt_unicode,0,MAX_SALT_LENGTH*2+1);
-
-	memset(salt_host,0,(MAX_SALT_LENGTH/2 +1)*sizeof(cl_uint));
-
-	if(currentsalt.length%2==1)
-
-	for(i = 0; i < (currentsalt.length >> 1) + 1; i++)
-	    ((unsigned int *)salt_unicode)[i] = currentsalt.username[2 * i] | (currentsalt.username[2 * i + 1] << 16);
-
+	if (currentsalt.length & 1 )
+		for (i = 0; i < (currentsalt.length >> 1) + 1; i++)
+			((unsigned int *)salt_unicode)[i] = currentsalt.username[2 * i] | (currentsalt.username[2 * i + 1] << 16) ;
 	else
+		for (i = 0; i < (currentsalt.length >> 1) ; i++)
+			((unsigned int *)salt_unicode)[i] = currentsalt.username[2 * i] | (currentsalt.username[2 * i + 1] << 16) ;
 
-	for(i = 0; i < (currentsalt.length >> 1) ; i++)
-	   ((unsigned int *)salt_unicode)[i] = currentsalt.username[2 * i] | (currentsalt.username[2 * i + 1] << 16);
+	memcpy(salt_host, salt_unicode, (MAX_SALT_LENGTH << 1) + 1) ;
 
-	memcpy(salt_host,salt_unicode,MAX_SALT_LENGTH*2+1);
-
-	for(i=0;i<count;i++)    DCC(salt_unicode,currentsalt.username,currentsalt.length,key_host[i],dcc_hash_host,i);
+	for (i = 0; i < count; i++)    
+		DCC(salt_unicode, currentsalt.username, currentsalt.length, key_host[i], dcc_hash_host, i) ;
 
 #ifdef _DEBUG
-	gettimeofday(&startg,NULL);
+	gettimeofday(&startg, NULL) ;
 #endif
 
 	///defined in common_opencl_pbkdf2.c. Details provided in common_opencl_pbkdf2.h
-	pbkdf2_divide_work(dcc_hash_host,salt_host,currentsalt.length,dcc2_hash_host,count);
-
+	pbkdf2_divide_work(dcc_hash_host, salt_host, currentsalt.length, dcc2_hash_host, count) ;
 
 #ifdef _DEBUG
-	gettimeofday(&endg,NULL);
+	gettimeofday(&endg, NULL);
 	gettimeofday(&endc, NULL);
-	fprintf(stderr, "\nGPU:%f  ",(endg.tv_sec-startg.tv_sec)+(double)(endg.tv_usec-startg.tv_usec)/1000000.000);
-	fprintf(stderr, "CPU:%f  ",(endc.tv_sec-startc.tv_sec)+(double)(endc.tv_usec-startc.tv_usec)/1000000.000 - ((endg.tv_sec-startg.tv_sec)+(double)(endg.tv_usec-startg.tv_usec)/1000000.000));
+	fprintf(stderr, "\nGPU:%f  ",(endg.tv_sec - startg.tv_sec) + (double)(endg.tv_usec - startg.tv_usec) / 1000000.000) ;
+	fprintf(stderr, "CPU:%f  ",(endc.tv_sec - startc.tv_sec) + (double)(endc.tv_usec - startc.tv_usec) / 1000000.000 - ((endg.tv_sec - startg.tv_sec) + (double)(endg.tv_usec - startg.tv_usec) / 1000000.000)) ;
 #endif
-	return count;
+	return count ;
 }
 
-
-
-static int binary_hash_0(void *binary)
-{
+static int binary_hash_0(void *binary) {
 #ifdef _DEBUG
-	puts("binary");
-	unsigned int i, *b = binary;
+	puts("binary") ;
+	unsigned int i, *b = binary ;
 	for (i = 0; i < 4; i++)
 		fprintf(stderr, "%08x ", b[i]);
-	puts("");
+	puts("") ;
 #endif
-	return (((unsigned int *) binary)[0] & 0xf);
+	return (((unsigned int *) binary)[0] & 0xf) ;
 }
 
-static int binary_hash_1(void *binary)
-{
-	return ((unsigned int *) binary)[0] & 0xff;
+static int binary_hash_1(void *binary) {
+	return ((unsigned int *) binary)[0] & 0xff ;
 }
 
-static int binary_hash_2(void *binary)
-{
-	return ((unsigned int *) binary)[0] & 0xfff;
+static int binary_hash_2(void *binary) {
+	return ((unsigned int *) binary)[0] & 0xfff ;
 }
 
-static int binary_hash_3(void *binary)
-{
-	return ((unsigned int *) binary)[0] & 0xffff;
+static int binary_hash_3(void *binary) {
+	return ((unsigned int *) binary)[0] & 0xffff ;
 }
 
-static int binary_hash_4(void *binary)
-{
-	return ((unsigned int *) binary)[0] & 0xfffff;
+static int binary_hash_4(void *binary) {
+	return ((unsigned int *) binary)[0] & 0xfffff ;
 }
 
-static int binary_hash_5(void *binary)
-{
-	return ((unsigned int *) binary)[0] & 0xffffff;
+static int binary_hash_5(void *binary) {
+	return ((unsigned int *) binary)[0] & 0xffffff ;
 }
 
-static int binary_hash_6(void *binary)
-{
-	return ((unsigned int *) binary)[0] & 0x7ffffff;
+static int binary_hash_6(void *binary) {
+	return ((unsigned int *) binary)[0] & 0x7ffffff ;
 }
 
-
-
-static int get_hash_0(int index)
-{
+static int get_hash_0(int index) {
 #ifdef _DEBUG
 	int i;
 	puts("get_hash");
 	for (i = 0; i < 4; i++)
-		fprintf(stderr, "%08x ", dcc2_hash_host[index]);
-	puts("");
+		fprintf(stderr, "%08x ", dcc2_hash_host[index]) ;
+	puts("") ;
 #endif
-	return dcc2_hash_host[4*index]& 0xf;
+	return dcc2_hash_host[4 * index] & 0xf ;
 }
 
-static int get_hash_1(int index)
-{
-	return dcc2_hash_host[4*index] & 0xff;
+static int get_hash_1(int index) {
+	return dcc2_hash_host[4 * index] & 0xff ;
 }
 
-static int get_hash_2(int index)
-{
-	return dcc2_hash_host[4*index] & 0xfff;
+static int get_hash_2(int index) {
+	return dcc2_hash_host[4 * index] & 0xfff ;
 }
 
-static int get_hash_3(int index)
-{
-	return dcc2_hash_host[4*index] & 0xffff;
+static int get_hash_3(int index) {
+	return dcc2_hash_host[4 * index] & 0xffff ;
 }
 
-static int get_hash_4(int index)
-{
-	return dcc2_hash_host[4*index] & 0xfffff;
+static int get_hash_4(int index) {
+	return dcc2_hash_host[4 * index] & 0xfffff ;
 }
 
-static int get_hash_5(int index)
-{
-	return dcc2_hash_host[4*index] & 0xffffff;
+static int get_hash_5(int index) {
+	return dcc2_hash_host[4 * index] & 0xffffff ;
 }
 
-static int get_hash_6(int index)
-{
-	return dcc2_hash_host[4*index] & 0x7ffffff;
+static int get_hash_6(int index) {
+	return dcc2_hash_host[4 * index] & 0x7ffffff ;
 }
 
-static int cmp_all(void *binary, int count)
-{
-	unsigned int i, b = ((unsigned int *) binary)[0];
+static int cmp_all(void *binary, int count) {
+	unsigned int 	i, b = ((unsigned int *) binary)[0] ;
 
 	for (i = 0; i < count; i++)
-	     if (b == dcc2_hash_host[4*i])
-		 return 1;
+		if (b == dcc2_hash_host[4 * i])
+			return 1 ;
 
-	return 0;
+	return 0 ;
 }
 
-
-
-static int cmp_one(void *binary, int index)
-{
-	return 1;
+static int cmp_one(void *binary, int index) {
+	return 1 ;
 }
 
+static int cmp_exact(char *source, int count) {
+      unsigned int 	*bin, i ;
 
+      bin = (unsigned int*)binary(source) ;
+      i = 4 * count + 1 ;
 
-static int cmp_exact(char *source, int count)
-{
-      unsigned int *bin,i;
+      if (bin[1] != dcc2_hash_host[i++]) 
+		return 0 ;
 
-      bin=(unsigned int*)binary(source);
+      if (bin[2] != dcc2_hash_host[i++]) 
+		return 0 ;
 
-      i=4*count+1;
+      if (bin[3] != dcc2_hash_host[i]) 
+		return 0 ;
 
-      if(bin[1]!=dcc2_hash_host[i++])   return 0;
-
-      if(bin[2]!=dcc2_hash_host[i++]) return 0;
-
-      if(bin[3]!=dcc2_hash_host[i]) return 0;
-
-      return 1;
-
-
+      return 1 ;
 }
 
-
-
-static char *prepare(char *split_fields[10], struct fmt_main *self)
-{
-	char *cp;
+static char *prepare(char *split_fields[10], struct fmt_main *self) {
+	char 	*cp;
 
 	if (!strncmp(split_fields[1], "$DCC2$", 6) && valid(split_fields[1], self))
-	   return split_fields[1];
+	   return split_fields[1] ;
 
 	if (!split_fields[0])
-	   return split_fields[1];
+	   return split_fields[1] ;
 
-	cp = mem_alloc(strlen(split_fields[0]) + strlen(split_fields[1]) + 14);
-
-	sprintf (cp, "$DCC2$%s#%s", split_fields[0], split_fields[1]);
-
-	if (valid(cp, self))
-	{
-		char *cipher = str_alloc_copy(cp);
-
-		MEM_FREE(cp);
-
-		return cipher;
+	cp = mem_alloc(strlen(split_fields[0]) + strlen(split_fields[1]) + 14) ;
+	sprintf (cp, "$DCC2$%s#%s", split_fields[0], split_fields[1]) ;
+	if (valid(cp, self)) {
+		char *cipher = str_alloc_copy(cp) ;
+		MEM_FREE(cp) ;
+		return cipher ;
 	}
 
-	MEM_FREE(cp);
+	MEM_FREE(cp) ;
 
-	return split_fields[1];
+	return split_fields[1] ;
 }
 
-static int salt_hash(void *salt)
-{
-	ms_cash2_salt *_s=(ms_cash2_salt *)salt;
-
-	unsigned char *s = _s->username;
-
-	unsigned int hash = 5381;
+static int salt_hash(void *salt) {
+	ms_cash2_salt 	*_s = (ms_cash2_salt *)salt ;
+	unsigned char   *s = _s->username ; 
+	unsigned int 	hash = 5381 ;
 
 	while (*s != '\0')
-		hash = ((hash << 5) + hash) ^ *s++;
+		hash = ((hash << 5) + hash) ^ *s++ ;
 
-	return hash & (SALT_HASH_SIZE - 1);
+	return hash & (SALT_HASH_SIZE - 1) ;
 }
 
 struct fmt_main fmt_opencl_mscash2 = {
