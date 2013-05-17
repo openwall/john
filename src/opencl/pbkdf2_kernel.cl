@@ -32,17 +32,20 @@ typedef struct {
 #ifndef GET_WORD_32_BE
 #define GET_WORD_32_BE(n,b,i)                           \
 {                                                       \
-    (n) = ( (unsigned long) (b)[(i) ] <<24 )\
-        | ( (unsigned long) ((b)[(i) ]&0xff00) << 8 )\
-        | ( (unsigned long) ((b)[(i) ]>>8)&0xff00 )\
-        | ( (unsigned long) (b)[(i) ] >>24 );\
+    (n) = ( (unsigned long) (b)[(i) ] << 24 )		\
+        | ( (unsigned long) ((b)[(i) ] & 0xff00) << 8 )	\
+        | ( (unsigned long) ((b)[(i) ] >> 8) & 0xff00 )	\
+        | ( (unsigned long) (b)[(i) ] >> 24 );\
 }
 #endif
 
 #ifndef PUT_WORD_32_BE
-#define PUT_WORD_32_BE(n,b,i)                           \
+#define PUT_WORD_32_BE(n, b, i)                         \
 {                                                       \
-    (b)[(i)    ] = ((unsigned char) ( (n) >> 24 ))|((unsigned char) ( (n) >> 16 ))<<8|((unsigned char) ( (n) >>  8 ))<<16|((unsigned char) ( (n) ))<<24;       \
+    (b)[(i) ] = ((unsigned char) ((n) >> 24 ))		\ 
+	      | ((unsigned char) ((n) >> 16 )) << 8	\ 
+	      | ((unsigned char) ((n) >>  8 )) << 16	\ 
+	      | ((unsigned char) ((n))) << 24 ;		\
 }
 #endif
 
@@ -54,336 +57,335 @@ typedef struct {
 
 #define R0                                              \
 (                                                       \
-    W[0] = S1((W[13] ^ W[8] ^ W[2] ^ W[0]))   \
+    W[0] = S1((W[13] ^ W[8] ^ W[2] ^ W[0]))   		\
 )
 
 #define R1                                              \
 (                                                       \
-     W[1] = S1((W[14] ^ W[9] ^ W[3] ^ W[1]))  \
+     W[1] = S1((W[14] ^ W[9] ^ W[3] ^ W[1]))  		\
 )
 
 #define R2                                              \
 (                                                       \
-     W[2] = S1((W[15] ^ W[10] ^ W[4] ^ W[2]))  \
+     W[2] = S1((W[15] ^ W[10] ^ W[4] ^ W[2]))  		\
 )
 
 #define R3                                              \
 (                                                       \
-    W[3] = S1((W[0] ^ W[11] ^ W[5] ^ W[3]))   \
+    W[3] = S1((W[0] ^ W[11] ^ W[5] ^ W[3]))   		\
 )
 
 #define R4                                              \
 (                                                       \
-    W[4] = S1((W[1] ^ W[12] ^ W[6] ^ W[4]))   \
+    W[4] = S1((W[1] ^ W[12] ^ W[6] ^ W[4]))   		\
 )
 
 #define R5                                              \
 (                                                       \
-    W[5] = S1((W[2] ^ W[13] ^ W[7] ^ W[5]))   \
+    W[5] = S1((W[2] ^ W[13] ^ W[7] ^ W[5]))   		\
 )
 
 #define R6                                              \
 (                                                       \
-    W[6] = S1((W[3] ^ W[14] ^ W[8] ^ W[6]))  \
+    W[6] = S1((W[3] ^ W[14] ^ W[8] ^ W[6]))  		\
 )
 
 #define R7                                              \
 (                                                       \
-    W[7] = S1((W[4] ^ W[15] ^ W[9] ^ W[7]))  \
+    W[7] = S1((W[4] ^ W[15] ^ W[9] ^ W[7]))  		\
 )
 
 #define R8                                              \
 (                                                       \
-   W[8] = S1((W[5] ^ W[0] ^ W[10] ^ W[8])) \
+   W[8] = S1((W[5] ^ W[0] ^ W[10] ^ W[8])) 		\
 )
 
 #define R9                                              \
 (                                                       \
-   W[9] = S1((W[6] ^ W[1] ^ W[11] ^ W[9]) )  \
+   W[9] = S1((W[6] ^ W[1] ^ W[11] ^ W[9]))  		\
 )
 
 #define RA                                              \
 (                                                       \
-   W[10] = S1((W[7] ^ W[2] ^ W[12] ^ W[10]) ) \
+   W[10] = S1((W[7] ^ W[2] ^ W[12] ^ W[10])) 		\
 )
 
 #define RB                                              \
 (                                                       \
-   W[11] = S1((W[8] ^ W[3] ^ W[13] ^ W[11]) ) \
+   W[11] = S1((W[8] ^ W[3] ^ W[13] ^ W[11])) 		\
 )
 
 #define RC                                              \
 (                                                       \
-   W[12]  = S1((W[9] ^ W[4] ^ W[14] ^ W[12] )) \
+   W[12] = S1((W[9] ^ W[4] ^ W[14] ^ W[12])) 		\
 )
 
 #define RD                                              \
 (                                                       \
-   W[13] = S1(( W[10] ^ W[5] ^ W[15] ^ W[13]) ) \
+   W[13] = S1(( W[10] ^ W[5] ^ W[15] ^ W[13])) 		\
 )
 
 #define RE                                              \
 (                                                       \
-   W[14] = S1((W[11] ^ W[6] ^ W[0] ^ W[14] ) ) \
+   W[14] = S1((W[11] ^ W[6] ^ W[0] ^ W[14] )) 		\
 )
 
 #define RF                                              \
 (                                                       \
-   W[15] = S1((W[12] ^ W[7] ^ W[1] ^ W[15])  ) \
+   W[15] = S1((W[12] ^ W[7] ^ W[1] ^ W[15])) 		\
 )
 
 #define Q0                                              \
 (                                                       \
-    W[0] = S1((W[2] ^ W[0]))   \
+    W[0] = S1((W[2] ^ W[0]))   				\
 )
 
 #define Q1                                              \
 (                                                       \
-     W[1] = S1((W[3] ^ W[1]))  \
+     W[1] = S1((W[3] ^ W[1]))  				\
 )
 
 #define Q2                                              \
 (                                                       \
-     W[2] = S1((W[15] ^ W[4] ^ W[2]))  \
+     W[2] = S1((W[15] ^ W[4] ^ W[2]))  			\
 )
 
 #define Q3                                              \
 (                                                       \
-    W[3] = S1((W[0] ^ W[5] ^ W[3]))   \
+    W[3] = S1((W[0] ^ W[5] ^ W[3]))   			\
 )
 
 #define Q4                                              \
 (                                                       \
-    W[4] = S1((W[1] ^ W[4]))   \
+    W[4] = S1((W[1] ^ W[4]))   				\
 )
 
 #define Q5                                              \
 (                                                       \
-    W[5] = S1((W[2] ^ W[5]))   \
+    W[5] = S1((W[2] ^ W[5]))   				\
 )
 
 #define Q6                                              \
 (                                                       \
-    W[6] = S1((W[3] ))  \
+    W[6] = S1(W[3])	  				\
 )
 
 #define Q7                                              \
 (                                                       \
-    W[7] = S1((W[4] ^ W[15]))  \
+    W[7] = S1((W[4] ^ W[15]))  				\
 )
 
 #define Q8                                              \
 (                                                       \
-   W[8] = S1((W[5] ^ W[0] ))                            \
+   W[8] = S1((W[5] ^ W[0]))	                        \
 )
 
 #define Q9                                              \
 (                                                       \
-   W[9] = S1((W[6] ^ W[1] ) )                           \
+   W[9] = S1((W[6] ^ W[1]))	            	        \
 )
 
 #define QA                                              \
 (                                                       \
-   W[10] = S1((W[7] ^ W[2] ) ) \
+   W[10] = S1((W[7] ^ W[2]))		 		\
 )
 
 #define QB                                              \
 (                                                       \
-   W[11] = S1((W[8] ^ W[3] ) ) \
+   W[11] = S1((W[8] ^ W[3]))	 			\
 )
 
 #define QC                                              \
 (                                                       \
-   W[12]  = S1((W[9] ^ W[4] )) \
+   W[12]  = S1((W[9] ^ W[4])) 				\
 )
 
 #define QD                                              \
 (                                                       \
-   W[13] = S1(( W[10] ^ W[5] ^ W[15] ) ) \
+   W[13] = S1(( W[10] ^ W[5] ^ W[15]))	 		\
 )
 
 #define QE                                              \
 (                                                       \
-   W[14] = S1((W[11] ^ W[6] ^ W[0] ) ) \
+   W[14] = S1((W[11] ^ W[6] ^ W[0])) 			\
 )
 
 #define P(a,b,c,d,e,x)                                  \
 {                                                       \
-    e += S5(a) + F(b,c,d) + K + x; b = S30(b);        \
+    e += S5(a) + F(b,c,d) + K + x; b = S30(b);	        \
 }
 
-#define PZ(a,b,c,d,e)                                  \
+#define PZ(a,b,c,d,e)                           	\
 {                                                       \
-    e += S5(a) + F(b,c,d) + K ; b = S30(b);        \
+    e += S5(a) + F(b,c,d) + K ; b = S30(b);        	\
 }
 
-#define SHA1_part0(A,B,C,D,E,W) \
-        P(A, B, C, D, E, W[0]);\
-	P(E, A, B, C, D, W[1]);\
-	P(D, E, A, B, C, W[2]);\
-	P(C, D, E, A, B, W[3]);\
-	P(B, C, D, E, A, W[4]);\
-	P(A, B, C, D, E, W[5]);\
-	P(E, A, B, C, D, W[6]);\
-	P(D, E, A, B, C, W[7]);\
-	P(C, D, E, A, B, W[8]);\
-	P(B, C, D, E, A, W[9]);\
-	P(A, B, C, D, E, W[10]);\
-	P(E, A, B, C, D, W[11]);\
-	P(D, E, A, B, C, W[12]);\
-	P(C, D, E, A, B, W[13]);\
-	P(B, C, D, E, A, W[14]);\
-	P(A, B, C, D, E, W[15]);\
-	P(E, A, B, C, D, R0);\
-	P(D, E, A, B, C, R1);\
-	P(C, D, E, A, B, R2);\
+#define SHA1_part0(A,B,C,D,E,W) 			\
+        P(A, B, C, D, E, W[0]);				\
+	P(E, A, B, C, D, W[1]);				\
+	P(D, E, A, B, C, W[2]);				\
+	P(C, D, E, A, B, W[3]);				\
+	P(B, C, D, E, A, W[4]);				\
+	P(A, B, C, D, E, W[5]);				\
+	P(E, A, B, C, D, W[6]);				\
+	P(D, E, A, B, C, W[7]);				\
+	P(C, D, E, A, B, W[8]);				\
+	P(B, C, D, E, A, W[9]);				\
+	P(A, B, C, D, E, W[10]);			\
+	P(E, A, B, C, D, W[11]);			\
+	P(D, E, A, B, C, W[12]);			\
+	P(C, D, E, A, B, W[13]);			\
+	P(B, C, D, E, A, W[14]);			\
+	P(A, B, C, D, E, W[15]);			\
+	P(E, A, B, C, D, R0);				\
+	P(D, E, A, B, C, R1);				\
+	P(C, D, E, A, B, R2);				\
 	P(B, C, D, E, A, R3);
 
-#define SHA1_part1(A,B,C,D,E) \
-        P(A, B, C, D, E, R4);\
-	P(E, A, B, C, D, R5);\
-	P(D, E, A, B, C, R6);\
-	P(C, D, E, A, B, R7);\
-	P(B, C, D, E, A, R8);\
-	P(A, B, C, D, E, R9);\
-	P(E, A, B, C, D, RA);\
-	P(D, E, A, B, C, RB);\
-	P(C, D, E, A, B, RC);\
-	P(B, C, D, E, A, RD);\
-	P(A, B, C, D, E, RE);\
-	P(E, A, B, C, D, RF);\
-	P(D, E, A, B, C, R0);\
-	P(C, D, E, A, B, R1);\
-	P(B, C, D, E, A, R2);\
-	P(A, B, C, D, E, R3);\
-	P(E, A, B, C, D, R4);\
-	P(D, E, A, B, C, R5);\
-	P(C, D, E, A, B, R6);\
+#define SHA1_part1(A,B,C,D,E) 				\
+        P(A, B, C, D, E, R4);				\
+	P(E, A, B, C, D, R5);				\
+	P(D, E, A, B, C, R6);				\
+	P(C, D, E, A, B, R7);				\
+	P(B, C, D, E, A, R8);				\
+	P(A, B, C, D, E, R9);				\
+	P(E, A, B, C, D, RA);				\
+	P(D, E, A, B, C, RB);				\
+	P(C, D, E, A, B, RC);				\
+	P(B, C, D, E, A, RD);				\
+	P(A, B, C, D, E, RE);				\
+	P(E, A, B, C, D, RF);				\
+	P(D, E, A, B, C, R0);				\
+	P(C, D, E, A, B, R1);				\
+	P(B, C, D, E, A, R2);				\
+	P(A, B, C, D, E, R3);				\
+	P(E, A, B, C, D, R4);				\
+	P(D, E, A, B, C, R5);				\
+	P(C, D, E, A, B, R6);				\
 	P(B, C, D, E, A, R7);
 
-#define SHA1_part2(A,B,C,D,E)\
-        P(A, B, C, D, E, R8);\
-	P(E, A, B, C, D, R9);\
-	P(D, E, A, B, C, RA);\
-	P(C, D, E, A, B, RB);\
-	P(B, C, D, E, A, RC);\
-	P(A, B, C, D, E, RD);\
-	P(E, A, B, C, D, RE);\
-	P(D, E, A, B, C, RF);\
-	P(C, D, E, A, B, R0);\
-	P(B, C, D, E, A, R1);\
-	P(A, B, C, D, E, R2);\
-	P(E, A, B, C, D, R3);\
-	P(D, E, A, B, C, R4);\
-	P(C, D, E, A, B, R5);\
-	P(B, C, D, E, A, R6);\
-	P(A, B, C, D, E, R7);\
-	P(E, A, B, C, D, R8);\
-	P(D, E, A, B, C, R9);\
-	P(C, D, E, A, B, RA);\
+#define SHA1_part2(A,B,C,D,E)				\
+        P(A, B, C, D, E, R8);				\
+	P(E, A, B, C, D, R9);				\
+	P(D, E, A, B, C, RA);				\
+	P(C, D, E, A, B, RB);				\
+	P(B, C, D, E, A, RC);				\
+	P(A, B, C, D, E, RD);				\
+	P(E, A, B, C, D, RE);				\
+	P(D, E, A, B, C, RF);				\
+	P(C, D, E, A, B, R0);				\
+	P(B, C, D, E, A, R1);				\
+	P(A, B, C, D, E, R2);				\
+	P(E, A, B, C, D, R3);				\
+	P(D, E, A, B, C, R4);				\
+	P(C, D, E, A, B, R5);				\
+	P(B, C, D, E, A, R6);				\
+	P(A, B, C, D, E, R7);				\
+	P(E, A, B, C, D, R8);				\
+	P(D, E, A, B, C, R9);				\
+	P(C, D, E, A, B, RA);				\
 	P(B, C, D, E, A, RB);
 
-#define SHA1_part3(A,B,C,D,E)\
-        P(A, B, C, D, E, RC);\
-	P(E, A, B, C, D, RD);\
-	P(D, E, A, B, C, RE);\
-	P(C, D, E, A, B, RF);\
-	P(B, C, D, E, A, R0);\
-	P(A, B, C, D, E, R1);\
-	P(E, A, B, C, D, R2);\
-	P(D, E, A, B, C, R3);\
-	P(C, D, E, A, B, R4);\
-	P(B, C, D, E, A, R5);\
-	P(A, B, C, D, E, R6);\
-	P(E, A, B, C, D, R7);\
-	P(D, E, A, B, C, R8);\
-	P(C, D, E, A, B, R9);\
-	P(B, C, D, E, A, RA);\
-	P(A, B, C, D, E, RB);\
-	P(E, A, B, C, D, RC);\
-	P(D, E, A, B, C, RD);\
-	P(C, D, E, A, B, RE);\
+#define SHA1_part3(A,B,C,D,E)				\
+        P(A, B, C, D, E, RC);				\
+	P(E, A, B, C, D, RD);				\
+	P(D, E, A, B, C, RE);				\
+	P(C, D, E, A, B, RF);				\
+	P(B, C, D, E, A, R0);				\
+	P(A, B, C, D, E, R1);				\
+	P(E, A, B, C, D, R2);				\
+	P(D, E, A, B, C, R3);				\
+	P(C, D, E, A, B, R4);				\
+	P(B, C, D, E, A, R5);				\
+	P(A, B, C, D, E, R6);				\
+	P(E, A, B, C, D, R7);				\
+	P(D, E, A, B, C, R8);				\
+	P(C, D, E, A, B, R9);				\
+	P(B, C, D, E, A, RA);				\
+	P(A, B, C, D, E, RB);				\
+	P(E, A, B, C, D, RC);				\
+	P(D, E, A, B, C, RD);				\
+	P(C, D, E, A, B, RE);				\
 	P(B, C, D, E, A, RF);
 
-#define SHA1_digest_part0(A,B,C,D,E,W) \
-        P(A, B, C, D, E, W[0]);\
-	P(E, A, B, C, D, W[1]);\
-	P(D, E, A, B, C, W[2]);\
-	P(C, D, E, A, B, W[3]);\
-	P(B, C, D, E, A, W[4]);\
-	P(A, B, C, D, E, W[5]);\
-	PZ(E, A, B, C, D);\
-	PZ(D, E, A, B, C);\
-	PZ(C, D, E, A, B);\
-	PZ(B, C, D, E, A);\
-	PZ(A, B, C, D, E);\
-	PZ(E, A, B, C, D);\
-	PZ(D, E, A, B, C);\
-	PZ(C, D, E, A, B);\
-	PZ(B, C, D, E, A);\
-	P(A, B, C, D, E, W[15]);\
-	P(E, A, B, C, D, Q0);\
-	P(D, E, A, B, C, Q1);\
-	P(C, D, E, A, B, Q2);\
+#define SHA1_digest_part0(A,B,C,D,E,W) 			\
+        P(A, B, C, D, E, W[0]);				\
+	P(E, A, B, C, D, W[1]);				\
+	P(D, E, A, B, C, W[2]);				\
+	P(C, D, E, A, B, W[3]);				\
+	P(B, C, D, E, A, W[4]);				\
+	P(A, B, C, D, E, W[5]);				\
+	PZ(E, A, B, C, D);				\
+	PZ(D, E, A, B, C);				\
+	PZ(C, D, E, A, B);				\
+	PZ(B, C, D, E, A);				\
+	PZ(A, B, C, D, E);				\
+	PZ(E, A, B, C, D);				\
+	PZ(D, E, A, B, C);				\
+	PZ(C, D, E, A, B);				\
+	PZ(B, C, D, E, A);				\
+	P(A, B, C, D, E, W[15]);			\
+	P(E, A, B, C, D, Q0);				\
+	P(D, E, A, B, C, Q1);				\
+	P(C, D, E, A, B, Q2);				\
 	P(B, C, D, E, A, Q3);
 
 
-#define SHA1_digest_part1(A,B,C,D,E) \
-        P(A, B, C, D, E, Q4);\
-	P(E, A, B, C, D, Q5);\
-	P(D, E, A, B, C, Q6);\
-	P(C, D, E, A, B, Q7);\
-	P(B, C, D, E, A, Q8);\
-	P(A, B, C, D, E, Q9);\
-	P(E, A, B, C, D, QA);\
-	P(D, E, A, B, C, QB);\
-	P(C, D, E, A, B, QC);\
-	P(B, C, D, E, A, QD);\
-	P(A, B, C, D, E, QE);\
-	P(E, A, B, C, D, RF);\
-	P(D, E, A, B, C, R0);\
-	P(C, D, E, A, B, R1);\
-	P(B, C, D, E, A, R2);\
-	P(A, B, C, D, E, R3);\
-	P(E, A, B, C, D, R4);\
-	P(D, E, A, B, C, R5);\
-	P(C, D, E, A, B, R6);\
+#define SHA1_digest_part1(A,B,C,D,E)			 \
+        P(A, B, C, D, E, Q4);				 \
+	P(E, A, B, C, D, Q5);				 \
+	P(D, E, A, B, C, Q6);				 \
+	P(C, D, E, A, B, Q7);				 \
+	P(B, C, D, E, A, Q8);				 \
+	P(A, B, C, D, E, Q9);				 \
+	P(E, A, B, C, D, QA);				 \
+	P(D, E, A, B, C, QB);				 \
+	P(C, D, E, A, B, QC);				 \
+	P(B, C, D, E, A, QD);				 \
+	P(A, B, C, D, E, QE);				 \
+	P(E, A, B, C, D, RF);				 \
+	P(D, E, A, B, C, R0);				 \
+	P(C, D, E, A, B, R1);				 \
+	P(B, C, D, E, A, R2);				 \
+	P(A, B, C, D, E, R3);				 \
+	P(E, A, B, C, D, R4);				 \
+	P(D, E, A, B, C, R5);				 \
+	P(C, D, E, A, B, R6);				 \
 	P(B, C, D, E, A, R7);
 
-inline void SHA1(__private uint *A,__private uint *W)
+inline void SHA1(__private uint *A, __private uint *W)
 {
 #ifndef NVIDIA
-#define F(x,y,z) bitselect(z, y, x)
+#define F(x, y, z) bitselect(z, y, x)
 #else
-#define F(x,y,z) (z ^ (x & (y ^ z)))
+#define F(x, y, z) (z ^ (x & (y ^ z)))
 #endif
 #define K 0x5A827999
-	SHA1_part0(A[0],A[1],A[2],A[3],A[4],W);
+	SHA1_part0(A[0], A[1], A[2], A[3], A[4], W);
 #undef K
 #undef F
 
 #define F(x,y,z) (x ^ y ^ z)
 #define K 0x6ED9EBA1
-	SHA1_part1(A[0],A[1],A[2],A[3],A[4]);
+	SHA1_part1(A[0], A[1], A[2], A[3], A[4]);
 #undef K
 #undef F
 
 #ifndef NVIDIA
-#define F(x,y,z) (bitselect(x, y, z) ^ bitselect(x, (uint)0, y))
+#define F(x, y, z) (bitselect(x, y, z) ^ bitselect(x, (uint)0, y))
 #else
-#define F(x,y,z) ((x & y) | (z & (x | y)))
+#define F(x, y, z) ((x & y) | (z & (x | y)))
 #endif
 #define K 0x8F1BBCDC
-	SHA1_part2(A[0],A[1],A[2],A[3],A[4]);
+	SHA1_part2(A[0], A[1], A[2], A[3], A[4]);
 #undef K
 #undef F
 
 #define F(x,y,z) (x ^ y ^ z)
 #define K 0xCA62C1D6
-	SHA1_part3(A[0],A[1],A[2],A[3],A[4]);
+	SHA1_part3(A[0], A[1], A[2], A[3], A[4]);
 #undef K
 #undef F
-
 }
 
 inline void SHA1_digest(__private uint *A,__private uint *W)
@@ -394,13 +396,13 @@ inline void SHA1_digest(__private uint *A,__private uint *W)
 #define F(x,y,z) (z ^ (x & (y ^ z)))
 #endif
 #define K 0x5A827999
-	SHA1_digest_part0(A[0],A[1],A[2],A[3],A[4],W);
+	SHA1_digest_part0(A[0], A[1], A[2], A[3], A[4], W);
 #undef K
 #undef F
 
 #define F(x,y,z) (x ^ y ^ z)
 #define K 0x6ED9EBA1
-	SHA1_digest_part1(A[0],A[1],A[2],A[3],A[4]);
+	SHA1_digest_part1(A[0], A[1], A[2], A[3], A[4]);
 #undef K
 #undef F
 
@@ -410,16 +412,15 @@ inline void SHA1_digest(__private uint *A,__private uint *W)
 #define F(x,y,z) ((x & y) | (z & (x | y)))
 #endif
 #define K 0x8F1BBCDC
-	SHA1_part2(A[0],A[1],A[2],A[3],A[4]);
+	SHA1_part2(A[0], A[1], A[2], A[3], A[4]);
 #undef K
 #undef F
 
 #define F(x,y,z) (x ^ y ^ z)
 #define K 0xCA62C1D6
-	SHA1_part3(A[0],A[1],A[2],A[3],A[4]);
+	SHA1_part3(A[0], A[1], A[2], A[3], A[4]);
 #undef K
 #undef F
-
 }
 
 inline void sha1_pad(__private uint *pad, __private uint *state)
@@ -548,72 +549,62 @@ inline void hmac_sha1(__private uint *istate, __private uint *ostate, __private 
 }
 
 __kernel 
-void pbkdf2_preprocess ( const __global unsigned int *pass_global, 
-              const __global unsigned int *salt, 
-              int usrlen,  
-              uint num_keys,
-	      __global temp_buf *tmp)
+void pbkdf2_preprocess(const __global unsigned int *pass_global, 
+		       const __global unsigned int *salt, 
+		       int usrlen,  
+		       uint num_keys,
+		       __global temp_buf *tmp)
 {
 	int lid = get_local_id(0);
-	
-        int id = get_global_id(0);
+	int id = get_global_id(0);
 	
 	int i, j;
-	
+
 	__local unsigned int salt_local[40];
-	  
 	if (lid == 0)
-	    for (i = 0; i <= usrlen / 2; ++i)
-		salt_local[i] = salt[i];
-	
-		
+		for (i = 0; i <= usrlen / 2; ++i)
+			salt_local[i] = salt[i];
 	barrier(CLK_LOCAL_MEM_FENCE);
 
 	unsigned int pass[4];
-	
 	unsigned int buf[16] = { 0 };
-
-#define SHA1_DIGEST_LENGTH_by_4 SHA1_DIGEST_LENGTH/4
-	
 	unsigned int istate[5], ostate[5], out[4];
-	
-	unsigned int ipad[16];
-	
-	unsigned int opad[16];
-          
-	i=4*id;
-        pass[0]=pass_global[i++];
-        pass[1]=pass_global[i++];     
-        pass[2]=pass_global[i++];
-	pass[3]=pass_global[i];
-	
+#define IPAD	0x36363636
+#define OPAD 	0x5C5C5C5C
+	unsigned int ipad[16] = { IPAD, IPAD, IPAD, IPAD,
+				  IPAD, IPAD, IPAD, IPAD,
+				  IPAD, IPAD, IPAD, IPAD,
+				  IPAD, IPAD, IPAD, IPAD } ;
+	unsigned int opad[16] = { OPAD, OPAD, OPAD, OPAD,
+				  OPAD, OPAD, OPAD, OPAD,
+				  OPAD, OPAD, OPAD, OPAD,
+				  OPAD, OPAD, OPAD, OPAD } ;
+#undef IPAD
+#undef OPAD
 
+	i = 4 * id;
+        pass[0] = pass_global[i++];
+        pass[1] = pass_global[i++];     
+        pass[2] = pass_global[i++];
+	pass[3] = pass_global[i];
+	
 	if (usrlen % 2 == 1) {
-		for (i = 0; i <= usrlen / 2; i++)
+		for (i = 0; i <= usrlen >> 1; i++)
 			buf[i] = salt_local[i];
-		buf[(usrlen / 2) + 1] = 0x01 << 8;
+		buf[(usrlen >> 1) + 1] = 0x01 << 8;
 	} 
-        
         else {
-		for (i = 0; i < usrlen / 2; i++)
+		for (i = 0; i < usrlen >> 1; i++)
 			buf[i] = salt_local[i];
-		buf[usrlen / 2] = 0x01 << 24;
+		buf[usrlen >> 1] = 0x01 << 24;
 	}
 
-		
-        for (i = 0; i < 16; i++) {
-		ipad[i] = 0x36363636;
-		opad[i] = 0x5C5C5C5C;
-	}
-
-	if (usrlen % 2 == 1)
-		buf[usrlen / 2 + 1] = 0x80 << 16 | buf[usrlen / 2 + 1];
+	if ((usrlen & 1) == 1)
+		buf[(usrlen >> 1) + 1] = 0x80 << 16 | buf[(usrlen >> 1) + 1];
 	else
-		buf[usrlen / 2 + 1] = 0x80 | buf[usrlen / 2 + 1];
+		buf[(usrlen >> 1) + 1] = 0x80 | buf[(usrlen >> 1) + 1];
 
-
-	PUT_WORD_32_BE((64 + usrlen * 2 + 4) << 3, buf,15);
-
+	PUT_WORD_32_BE((64 + (usrlen << 1) + 4) << 3, buf, 15);
 	
 	 for (j = 0; j < 4; j++) {
 		ipad[j] = ipad[j] ^ pass[j];
@@ -634,16 +625,11 @@ void pbkdf2_preprocess ( const __global unsigned int *pass_global,
 	out[3] = buf[3];
 	
 	for( i = 0 ; i< 5 ;i++) {
-	
 		tmp[id].istate[i] = istate[i] ;
 		tmp[id].ostate[i] = ostate[i] ;
 		tmp[id].buf[i]    = buf[i] ;  
-		
-		if(i < 4) {
-		
+		if(i < 4) 
 			tmp[id].out[i] = out[i] ;
-		}
-	
 	}
 	
 }
@@ -651,26 +637,21 @@ void pbkdf2_preprocess ( const __global unsigned int *pass_global,
 
 __kernel
 void pbkdf2_iter(__global temp_buf *tmp,
-		 uint itr_count )
+		  uint itr_count )
 {  
-   uint id = get_global_id(0) ;
-   uint i;
-   uint istate[5],ostate[5],buf[5],out[4];
-   uint A[5], W[16];
-   
-   for( i = 0 ; i< 5 ;i++) {
-	
-		 istate[i] = tmp[id].istate[i];
-		 ostate[i] = tmp[id].ostate[i];
-		 buf[i]    = tmp[id].buf[i];  
-		 
-		if(i < 4) {
-		
-			 out[i] = tmp[id].out[i] ;
-		}
-	
+	uint id = get_global_id(0) ;
+	uint i;
+	uint istate[5], ostate[5], buf[5], out[4];
+	uint A[5], W[16];
+	  
+	for( i = 0 ; i< 5 ;i++) {
+		istate[i] = tmp[id].istate[i];
+		ostate[i] = tmp[id].ostate[i];
+		buf[i]    = tmp[id].buf[i];  
+		if(i < 4) 
+			out[i] = tmp[id].out[i] ;
 	}
-
+	
     	for (i = 0; i < itr_count; i++) {
 		W[0] = buf[0];
 		W[1] = buf[1];
@@ -734,40 +715,35 @@ void pbkdf2_iter(__global temp_buf *tmp,
 		out[3] ^= buf[3];
 	}
    
-    for( i = 0 ; i< 5 ;i++) {
-	
+	for( i = 0 ; i< 5 ;i++) {
 		tmp[id].istate[i] = istate[i] ;
 		tmp[id].ostate[i] = ostate[i] ;
 		tmp[id].buf[i]    = buf[i] ;  
 		//tmp[id].A[i]      = A[i] ;
-		if(i < 4) {
-		
+		if(i < 4) 
 			tmp[id].out[i] = out[i] ;
-		}
-	
 	}
 	
-  //  for( i= 0 ;i < 16 ; i++)
-    //    tmp[id].W[i] = W[i] ;	
+    //	for( i= 0 ;i < 16 ; i++)
+    //  	tmp[id].W[i] = W[i] ;	
 }
 
 __kernel
 void pbkdf2_postprocess(__global temp_buf *tmp,
                         __global unsigned int *out_global)
 {  
-   uint id = get_global_id(0) ;
-   uint i;
-   uint out[4];
-   
-   for( i = 0 ; i< 4 ;i++) 
-
-	out[i] = tmp[id].out[i] ;
-		
-   i = id * 4;
-   PUT_WORD_32_BE(out[0], out_global, i++);
-   PUT_WORD_32_BE(out[1], out_global, i++);
-   PUT_WORD_32_BE(out[2], out_global, i++);
-   PUT_WORD_32_BE(out[3], out_global, i);
-
+	uint id = get_global_id(0) ;
+	uint i;
+	uint out[4];
+	
+	for( i = 0 ; i< 4 ;i++) 
+		out[i] = tmp[id].out[i] ;
+		  
+	i = id * 4;
+	PUT_WORD_32_BE(out[0], out_global, i++);
+	PUT_WORD_32_BE(out[1], out_global, i++);
+	PUT_WORD_32_BE(out[2], out_global, i++);
+	PUT_WORD_32_BE(out[3], out_global, i);
+	
 }
 
