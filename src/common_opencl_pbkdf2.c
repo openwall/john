@@ -47,9 +47,9 @@ void clean_all_buffer() {
 
 	for (i = 0; i < active_dev_ctr; i++) {
 		clean_gpu_buffer(&globalObj[ocl_device_list[i]].gpu_buffer) ;
-		HANDLE_CLERROR(clReleaseKernel(globalObj[ocl_device_list[i]].krnl[0]),"Error releasing kernel pbkdf2_preprocess") ;  
-		HANDLE_CLERROR(clReleaseKernel(globalObj[ocl_device_list[i]].krnl[1]),"Error releasing kernel pbkdf2_iter") ; 
-		HANDLE_CLERROR(clReleaseKernel(globalObj[ocl_device_list[i]].krnl[2]),"Error releasing kernel pbkdf2_postprocess") ; 
+		HANDLE_CLERROR(clReleaseKernel(globalObj[ocl_device_list[i]].krnl[0]), "Error releasing kernel pbkdf2_preprocess") ;  
+		HANDLE_CLERROR(clReleaseKernel(globalObj[ocl_device_list[i]].krnl[1]), "Error releasing kernel pbkdf2_iter") ; 
+		HANDLE_CLERROR(clReleaseKernel(globalObj[ocl_device_list[i]].krnl[2]), "Error releasing kernel pbkdf2_postprocess") ; 
 	 }   
 }
 
@@ -59,22 +59,23 @@ static void find_best_workgroup(int jtrUniqDevNo) {
 	cl_command_queue cmdq ;
 	cl_int 		 err ;
 	cl_uint 	 *dcc_hash_host
-		       = (cl_uint*)malloc(4 * sizeof(cl_uint) * ((MAX_KEYS_PER_CRYPT < 65536) ? MAX_KEYS_PER_CRYPT : 65536)) ;
+		       = (cl_uint*)mem_alloc(4 * sizeof(cl_uint) * ((MAX_KEYS_PER_CRYPT < 65536) ? MAX_KEYS_PER_CRYPT : 65536)) ;
 	cl_uint 	 *dcc2_hash_host
-		       = (cl_uint*)malloc(4 * sizeof(cl_uint) * ((MAX_KEYS_PER_CRYPT < 65536) ? MAX_KEYS_PER_CRYPT : 65536)) ;
+		       = (cl_uint*)mem_alloc(4 * sizeof(cl_uint) * ((MAX_KEYS_PER_CRYPT < 65536) ? MAX_KEYS_PER_CRYPT : 65536)) ;
 	cl_uint salt_api[9], length = 10 ;
 	
 	event_ctr = 0 ;
 
-	HANDLE_CLERROR(clGetDeviceInfo(devices[jtrUniqDevNo], CL_DEVICE_TYPE, sizeof(cl_device_type), &dTyp, NULL), "Failed Device Info");
+	//HANDLE_CLERROR(clGetDeviceInfo(devices[jtrUniqDevNo], CL_DEVICE_TYPE, sizeof(cl_device_type), &dTyp, NULL), "Failed Device Info");
+	dTyp = get_device_type(jtrUniqDevNo) ;
 	if (dTyp == CL_DEVICE_TYPE_CPU)	
-		globalObj[jtrUniqDevNo].lws = 1;
+		globalObj[jtrUniqDevNo].lws = 1 ;
 	else
-		globalObj[jtrUniqDevNo].lws = 16;
+		globalObj[jtrUniqDevNo].lws = 16 ;
 	   
 	///Set Dummy DCC hash , unicode salt and ascii salt(username) length
-	memset(dcc_hash_host, 0xb5, 4 * sizeof(cl_uint) * ((MAX_KEYS_PER_CRYPT < 65536) ? MAX_KEYS_PER_CRYPT : 65536));
-	memset(salt_api, 0xfe, 9 * sizeof(cl_uint));
+	memset(dcc_hash_host, 0xb5, 4 * sizeof(cl_uint) * ((MAX_KEYS_PER_CRYPT < 65536) ? MAX_KEYS_PER_CRYPT : 65536)) ;
+	memset(salt_api, 0xfe, 9 * sizeof(cl_uint)) ;
 
 	cmdq = clCreateCommandQueue(context[jtrUniqDevNo], devices[jtrUniqDevNo], CL_QUEUE_PROFILING_ENABLE, &err);        
 	HANDLE_CLERROR(err, "Error creating command queue") ;
@@ -183,15 +184,13 @@ size_t 	select_device(int jtrUniqDevNo, struct fmt_main *fmt) {
 		find_best_workgroup(jtrUniqDevNo) ;
 	else {
 		size_t 		maxsize, maxsize2 ;
-		errMsg = "Query max work group size :FAILED" ;
-		
-		HANDLE_CLERROR(clGetKernelWorkGroupInfo(globalObj[jtrUniqDevNo].krnl[0], devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize), &maxsize, NULL), errMsg) ;
-		HANDLE_CLERROR(clGetKernelWorkGroupInfo(globalObj[jtrUniqDevNo].krnl[1], devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize2), &maxsize2, NULL), errMsg) ;
-		
+				
+		maxsize = get_kernel_preferred_work_group_size(jtrUniqDevNo, globalObj[jtrUniqDevNo].krnl[0]) ;
+		maxsize2 = get_kernel_preferred_work_group_size(jtrUniqDevNo, globalObj[jtrUniqDevNo].krnl[1]) ;
 		if (maxsize2 > maxsize) 
 			maxsize = maxsize2 ;
 		
-		HANDLE_CLERROR(clGetKernelWorkGroupInfo(globalObj[jtrUniqDevNo].krnl[2], devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize2), &maxsize2, NULL), errMsg) ;
+		maxsize2 = get_kernel_preferred_work_group_size(jtrUniqDevNo, globalObj[jtrUniqDevNo].krnl[2]) ;
 		if (maxsize2 > maxsize) 
 			maxsize = maxsize2 ;
 
@@ -301,7 +300,7 @@ void pbkdf2_divide_work(cl_uint *pass_api, cl_uint *salt_api, cl_uint saltlen_ap
 
 	 }
 	 else {
-		exec_pbkdf2(pass_api, salt_api, saltlen_api, hash_out_api, num, ocl_device_list[i], queue[ocl_device_list[0]]) ;
+		exec_pbkdf2(pass_api, salt_api, saltlen_api, hash_out_api, num, ocl_device_list[0], queue[ocl_device_list[0]]) ;
 		HANDLE_CLERROR(clFinish(queue[ocl_device_list[0]]), "Finish Error") ;										
 	}
 }

@@ -178,7 +178,7 @@ static void init(struct fmt_main *self) {
 		global_work_size = atoi(conf) ;
 		
 	for( i=0; i < get_devices_being_used(); i++)
-		select_device(ocl_device_list[i],self) ;
+		select_device(ocl_device_list[i], self) ;
 
 	warning() ;
 }
@@ -214,7 +214,7 @@ static void DCC(unsigned char *salt, unsigned char *username, unsigned int usern
 	i = username_len + 8 ;
 
 	// MD4 padding
-	if ((username_len & 1) == 1)
+	if ((username_len & 1) )
 		nt_hash[i >> 1] = username[username_len - 1] | 0x800000 ;
 	else
 		nt_hash[i >> 1] = 0x80 ;
