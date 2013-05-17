@@ -10,47 +10,41 @@
 
 #include "common-opencl.h"
 
-#define MAX_DEVICES_PER_PLATFORM  8
+#define MAX_DEVICES_PER_PLATFORM  	8
 
-#define MAX_KEYS_PER_CRYPT        65536*4
+#define MAX_KEYS_PER_CRYPT        	65536*4
 
-#define MIN_KEYS_PER_CRYPT        65536*4
+#define MIN_KEYS_PER_CRYPT        	65536*4
 
-#define LWS_CONFIG		"mscash2_LWS"
-#define GWS_CONFIG		"mscash2_GWS"
+#define LWS_CONFIG			"mscash2_LWS"
+#define GWS_CONFIG			"mscash2_GWS"
 
 /*
  * Acceptable Values : 2 , 4 , 8 ,16 , 32 , 64 , 128 ,256 , 512 , 1024 , 2048 , 5120 , 10240
  */  
-#define ITERATION_COUNT_PER_CALL  1024
+#define ITERATION_COUNT_PER_CALL  	1024
 
-#define MAX_SALT_LENGTH           19
+#define MAX_SALT_LENGTH           	19
 
 typedef struct {
-	cl_mem pass_gpu;
-
-	cl_mem salt_gpu;
-
-	cl_mem hash_out_gpu;
-	
-	cl_mem temp_buf_gpu; 
-
-} gpu_mem_buffer;
+	cl_mem pass_gpu ;
+	cl_mem salt_gpu ;
+	cl_mem hash_out_gpu ;
+	cl_mem temp_buf_gpu ; 
+} gpu_mem_buffer ;
 
 
-/* select_device(int platform_no,int device_no)
- * Use clinfo to view all available platfroms and devices.
- * platform_no = i selects the (i+1)th platform  e.g. platform_no = 1 selects second platform if available and so on..
- *dev_no = j seclcts the (j+1)th device on (i+1) th platform.
+/* select_device(int jtrUniqDevNo,struct fmt_main *fmt)
+ * jtrUniqDevNo:Each device is assigned a unqiue number by john.
  * Returns optimal work group size for selected device
  */
-extern size_t select_device(int,int,int,struct fmt_main *);
+extern size_t select_device(int, struct fmt_main *) ;
 
 /*Same as above with platform_no and dev_no both set to 0.
  * It selects the first device of the first platform.
  * Returns optimal work group size.
  */
-extern size_t select_default_device(struct fmt_main *);
+extern size_t select_default_device(struct fmt_main *) ;
 
 /*void pbkdf2_divide_work(cl_uint *pass_api,cl_uint *salt_api,cl_uint saltlen_api,cl_uint *hash_out_api,cl_uint num)
  * Arguments:
@@ -61,13 +55,13 @@ extern size_t select_default_device(struct fmt_main *);
  *                        Second set of four contains encrypted hash for second input key and so on...
  *  cl_uint num is the number of keys to be encrypted.
   */
-extern void pbkdf2_divide_work(cl_uint*,cl_uint*,cl_uint,cl_uint*,cl_uint);
+extern void pbkdf2_divide_work(cl_uint*, cl_uint*, cl_uint, cl_uint*, cl_uint) ;
 
 /*Clean all OpenCL GPU buffers.
  */
-extern void clean_all_buffer(void);
+extern void clean_all_buffer(void) ;
 
-extern void warning(int*);
+extern void warning(void) ;
 
 /*IMPORTANT NOTE:
  *  1. Max Keys per crypt must be an integral multiple of 8192. Preferred multiple is 65536 for higher performance.
@@ -79,7 +73,3 @@ extern void warning(int*);
  *  6. Implementation assumes endianity to be little endian.     .
  */
 #endif
-
-
-
-
