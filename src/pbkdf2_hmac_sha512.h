@@ -73,7 +73,7 @@ static void _pbkdf2_sha512(const unsigned char *S, int SL, int R, ARCH_WORD_64 *
 		memcpy(ctx.h, pIpad->h, 80);
 #if defined(__JTR_SHA2___H_)
 		ctx.total = pIpad->total;
-		ctx.bIs256 = pIpad->bIs512;
+		ctx.bIs512 = pIpad->bIs512;
 #else
 		ctx.num = pIpad->num;
 		ctx.md_len = pIpad->md_len;
@@ -88,7 +88,7 @@ static void _pbkdf2_sha512(const unsigned char *S, int SL, int R, ARCH_WORD_64 *
 		memcpy(ctx.h, pOpad->h, 80);
 #if defined(__JTR_SHA2___H_)
 		ctx.total = pOpad->total;
-		ctx.bIs256 = pOpad->bIs512;
+		ctx.bIs512 = pOpad->bIs512;
 #else
 		ctx.num = pOpad->num;
 		ctx.md_len = pOpad->md_len;
