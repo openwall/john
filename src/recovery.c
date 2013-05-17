@@ -59,6 +59,7 @@ int rec_argc = 0;
 char **rec_argv;
 unsigned int rec_check;
 int rec_restoring_now = 0;
+int rec_mpi_restored;
 
 static int rec_fd;
 static FILE *rec_file = NULL;
@@ -89,20 +90,36 @@ static void rec_name_complete(void)
 #if OS_FLOCK
 static void rec_lock(int lock)
 {
-	/* In options.c, MPI code path call rec_restore_args(mpi_p)
-	 * relying on anything >1 meaning LOCK_SH */
-	if (flock(rec_fd, ((lock == 1) ? LOCK_EX : LOCK_SH) | LOCK_NB)) {
+	int lockmode;
+
+	/*
+	 * In options.c, MPI code path call rec_restore_args(mpi_p)
+	 * relying on anything >1 meaning LOCK_SH. After restore, the
+	 * root node must block, in case some other node has not yet
+	 * closed the original file
+	 */
+	if (lock == 1) {
+		lockmode = LOCK_EX;
+#ifdef HAVE_MPI
+		if (!rec_mpi_restored || mpi_id || mpi_p == 1)
+#endif
+			lockmode |= LOCK_NB;
+	} else
+		lockmode = LOCK_SH | LOCK_NB;
+
+	if (flock(rec_fd, lockmode)) {
 		if (errno == EWOULDBLOCK) {
 #ifdef HAVE_MPI
-			fprintf(stderr, "Node %d@%s: Crash recovery file is locked: %s\n",
-			        mpi_id, mpi_name, path_expand(rec_name));
+			fprintf(stderr, "Node %d@%s: Crash recovery file is"
+			        " locked: %s\n", mpi_id + 1, mpi_name,
+			        path_expand(rec_name));
 #else
 			fprintf(stderr, "Crash recovery file is locked: %s\n",
 				path_expand(rec_name));
 #endif
 			error();
 		} else
-			pexit("flock(%s)", (lock == 1) ? "LOCK_EX" : "LOCK_SH");
+			pexit("flock(%d)", lockmode);
 	}
 }
 static void rec_unlock(void)

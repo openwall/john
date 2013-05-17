@@ -398,8 +398,7 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 
 #ifdef HAVE_MPI
 	if (mpi_p > 1) {
-		static int mpi_restoring = 0;
-		if (options.flags & FLG_RESTORE_CHK || mpi_restoring) {
+		if (options.flags & FLG_RESTORE_CHK || rec_mpi_restored) {
 			if (options.fork && options.fork != mpi_p) {
 				if (john_main_process)
 				fprintf(stderr,
@@ -407,7 +406,7 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 				        options.fork);
 				error();
 			}
-			mpi_restoring = 1;
+			rec_mpi_restored = 1;
 			options.fork = 0;
 			options.flags &= ~FLG_FORK;
 		} else
