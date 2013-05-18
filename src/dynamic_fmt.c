@@ -52,11 +52,33 @@ static DYNAMIC_primitive_funcp _Funcs_1[] =
  *      a couple of hashes that are 256 bytes long (sha512(sha512($p).sha512($p)) and
  *      the same for whirlpool. This does not give much room for growth.  But these buffers
  *      should not be made to be 'too' much larger than needed.  This is an issue that needs
- *      to be looked into.
+ *      to be looked into.  NOTE, we might want to go to 3 input buffers.  That way, we
+ *      could make input buffer 1 be 128 bytes, input buffer2 256 and input buffer3 be
+ *      512.  This would allow us to use a smaller buffer (buffer1), IF 128 bytes is 
+ *      enough, and hopefully reduce working set. But then have a double length buffer
+ *      and a new quad length buffer IF we need them (for large hashes if there are multiple
+ *      appended hashes).  This may add a BUNCH of extra functions.  NOTE, I have seen slowdowns
+ *      in current setup (2 buffers), if buffersize is 260 bytes, vs 256 bytes.  I am sure this
+ *      is due to page swapping, since this crosses 2 256 byte blocks.
  *
- *   3. sha512(sha512($p).sha512($p) does tripple crypts when it should only do 2 of them.
- *      need to create an append_input2_input2 and use it, I think.
+ *   3. Add SHA2 intrinsic code.  Also, make a 'plan' on how to do SSE code for the other
+ *      large hash types (and get SHA1 working 'better').  NOTE there are OMP implications
+ *      which make this harder.  Switching in/out of SSE buffers is very expensive.
  *
+ *   4. optimize the SHA1 vs MD5 (sse).  Possibly keep SHA1 in SSE buffers, and have a
+ *      a method to switch the buffer into LE md5/4 sse buffer space.  Same may go for
+ *      other BE 64 byte hashes.  There will be no way to switch back and forth 'easily'
+ *      between 128 byte hashes, into 64 byte, unless they contain 55 characters or
+ *      less.  Also, the length constrains on the 128 byte buffers is much less, for a
+ *      single block crypt.  64 byte hashes, can do 55 passwords (8 needed for length + 1 for
+ *      the 0x80).  128 byte hashes can do 111 byte passwords (16 needed for length + 1
+ *      for 0x80).  But on large hashes, if we allow over 55 byte passwords, we lose ability
+ *      to switch into 64 byte SSE hash space.  NOTE that md4/md5 are the same. sha1, sha224
+ *      and sha256 are the same.  The size of ALL of these are the same, but they differ in
+ *      endianity.  sha384, sha512 are the same, but they are 128 byte vs 64 byte per limb.
+ *
+ *   5. Change regen-salts to be generic. Add the logic to dynamic_fmt.c proper, and change
+ *      the fake-salts.c, and options so that 'generic' regen-salts can be done.
  */
 
 #include <string.h>
@@ -84,6 +106,7 @@ static DYNAMIC_primitive_funcp _Funcs_1[] =
 #include "johnswap.h"
 #include "pkzip.h"
 #include "aligned.h"
+#include "fake_salts.h"
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -860,7 +883,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 		return cpBuilding;
 
 	if (pFmt->params.salt_size && !strchr(split_fields[1], '$')) {
-		if (!pPriv->nUserName && !pPriv->FldMask)
+		if (!pPriv->nUserName && !pPriv->FldMask && options.regen_lost_salts == 0)
 			return split_fields[1];
 	}
 
@@ -884,8 +907,15 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 
 	// at this point max length is still < 512.  491 + strlen($dynamic_xxxxx$) is 506
 
-	if (strncmp(cpBuilding, "$dynamic_", 9))
+	if (strncmp(cpBuilding, "$dynamic_", 9)) {
+		// ok, here we add the 'generic' regen salt code
+		if (options.regen_lost_salts && !strchr(cpBuilding, '$')) {
+			char *cp = load_regen_lost_salt_Prepare(cpBuilding);
+			if (cp)
+				return cp;
+		}
 		return split_fields[1];
+	}
 
 	if ( (pPriv->pSetup->flags&MGF_SALTED) == 0)
 		return cpBuilding;
@@ -958,6 +988,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 			}
 		}
 	}
+
 	return cpBuilding;
 }
 

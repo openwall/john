@@ -60,6 +60,7 @@ static int john_omp_threads_new;
 #include "external.h"
 #include "batch.h"
 #include "dynamic.h"
+#include "fake_salts.h"
 #include "listconf.h"
 #ifdef HAVE_MPI
 #include "john-mpi.h"
@@ -883,12 +884,10 @@ static void john_load(void)
 			printf("Remaining %s\n", john_loaded_counts());
 		}
 
-		if (options.regen_lost_salts) {
-			extern void build_fake_salts_for_regen_lost(struct db_salt *);
-			build_fake_salts_for_regen_lost(database.salts);
-		}
-
 		if ((options.flags & FLG_PWD_REQ) && !database.salts) exit(0);
+
+		if (options.regen_lost_salts)
+			build_fake_salts_for_regen_lost(database.salts);
 	}
 
 #ifdef _OPENMP

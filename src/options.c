@@ -27,6 +27,7 @@
 #include "john.h"
 #include "dynamic.h"
 #include "unicode.h"
+#include "fake_salts.h"
 #ifdef HAVE_MPI
 #include "john-mpi.h"
 #ifdef _OPENMP
@@ -154,7 +155,7 @@ static struct opt_entry opt_list[] = {
 	{"progress-every", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
 		"%u", &options.status_interval},
 	{"regen-lost-salts", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
-		"%u", &options.regen_lost_salts},
+		OPT_FMT_STR_ALLOC, &regen_salts_options},
 	{"raw-always-valid", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
 		"%c", &options.dynamic_raw_hashes_always_valid},
 	{"reject-printable", FLG_REJECT_PRINTABLE, FLG_REJECT_PRINTABLE},
@@ -653,7 +654,7 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 		options.dynamic_raw_hashes_always_valid == '0' || options.dynamic_raw_hashes_always_valid == 'f' || options.dynamic_raw_hashes_always_valid == 'F')
 		options.dynamic_raw_hashes_always_valid = 'N';
 
-	options.loader.regen_lost_salts = options.regen_lost_salts;
+	options.loader.regen_lost_salts = options.regen_lost_salts = regen_lost_salt_parse_options();
 
 	if (field_sep_char_string != NULL)
 	{

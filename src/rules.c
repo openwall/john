@@ -237,10 +237,16 @@ static void rules_init_class(char name, char *valid)
 	}
 }
 
-static char *userclass_expand(const char *src)
+/* function used in fake_salts.c, to load user class data from john.conf   */
+/* note there 'used' to be a very nasty thing in this function, where we   */
+/* modified the data contents of our const src input param. This has been  */
+/* changed, so we have a separate buffer to memcpy to, instead of blasting */
+/* a buffer that we had assured would not be destroyed.  Also unneeded     */
+/* allocation was removed  (JimF, 2013)                                    */
+char *userclass_expand(const char *src)
 {
-	unsigned const char *src2 = (unsigned char*)src;
-	char *dst_tmp = mem_alloc(0x200);
+	unsigned char _src2[0x100], *src2=_src2;
+	char dst_tmp[0x200];
 	char *dst = dst_tmp, *dstend = &dst_tmp[0x100];
 	int j, br = 0;
 
@@ -266,7 +272,6 @@ static char *userclass_expand(const char *src)
 				src2++;
 				continue;
 			} else {
-				MEM_FREE(dst_tmp);
 				return NULL;
 			}
 		}
@@ -299,11 +304,9 @@ static char *userclass_expand(const char *src)
 	}
 	*dst = 0;
 	if (br) {
-		MEM_FREE(dst_tmp);
 		return NULL;
 	}
 	dst = str_alloc_copy(dst_tmp);
-	MEM_FREE(dst_tmp);
 	return dst;
 }
 

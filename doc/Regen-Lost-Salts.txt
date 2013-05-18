@@ -1,0 +1,143 @@
+***************************************************************************
+* JtR --regen-lost-salts code, written by JimF, 2012 and 2013, for use
+* within the salted dynamic formats.
+*
+* No copyright is claimed, and the software is hereby
+* placed in the public domain. In case this attempt to disclaim
+* copyright and place the software in the public domain is deemed
+* null and void, then the software is Copyright (c) 2012-2013 JimF
+* and it is hereby released to the general public under the following
+* terms:
+*
+* This software may be modified, redistributed, and used for any
+* purpose, in source and binary forms, with or without modification.
+***************************************************************************
+
+
+--regen-lost-salts=type:hash_sz:mask
+
+This option will allow certain types (with short salts), to be found, when
+they are present in a set of raw hashes, but where we have lost the salt value.
+Normally, without the salt, JtR would not be able to do anything with the hash,
+and could not find the password.  In this mode, JtR will load the hashes, giving
+each a 'fake' salt (but all get the same salt).  JtR then builds all of the
+possible salt values for this format, and associates every hash with each one
+of these salts.  So, JtR will now run, and find passwords using all possible
+salts for each of the hashes, thus recreating the salt (and finding the passwords).
+
+This function has recently been re-written.  The prior way of usage is still supported
+(limited), and should be considered depricated.  See the end of this document for
+the *** NOTE section.
+
+Usage:
+
+--regen-lost-salts=dynamic_9:32:?d?d?d-   --format=dynamic_9
+
+The above command will run on a set of 32 byte 'raw' hashes, but which are known
+to contain media-wiki hashes.  Media-wiki is of the format md5(salt.-.md5(pass))
+the salt is a decimal number (it actually was the user id of the wiki user). There
+is a dash separating the salt and the md5(pass) part.  What this regen-lost-salts
+line does, is checks all 3 digit salts (appending the '-' char also), and uses
+the dynamic format 9 (which is md5($s.md5($p)) that is 'almost' correct.  By our
+adding the '-' character to the salt as a constant, dynamic_9 works just fine.
+
+So that 'parts' of the --regen-lost-salts are:
+  type    - this will be some dynamic type. dynamic_4, dynamic_9, dynamic_1234 are
+            all the valid types.
+  hash_sz - this is the hex length of the data.  It MUST match the proper input
+            size for the format AND must match the data being processed (hashes
+            where the salts were lost).  If the data is only 32 bytes long, but
+            the hashes were from sha256($s.$p), then a proper dynamic script would
+            have to be created, that only used 32 bytes of input. There are examples
+            of this in dynamic.conf at the present time.
+  mask    - this is a mask of the salt.  The user will have to know how the salts
+            were laid out for this format. The user will need to know if there are
+            any 'constant' values, know the range of possible bytes in other positions
+            and other things.  NOTE, only shorter hashes will be able to be found,
+            and ones where smaller ranges of values.  JtR, when run in this mode,
+            will load all hashes, and create ALL possible salts and link up every
+            single input candidate to ALL possible hashes. So if there are 6 byte
+            salts, and these are all decimal digits, then there will be 10^6 salt
+            records created (1 million, each taking 12+ bytes of memory, plus other
+            memory overhead).  If this was a 6 digit salt, that used 95 possible
+            characters each, then it would require 95^6 salt records, which is
+			735 BILLION salts, or almost 9 TRILLION bytes of memory.  The regen
+			salt code will NOT work for salts this large.
+
+Here are more details about the mask value:
+- mask can contain static bytes. These will simply always be output. The example
+  above did this with the '-' character in the last spot.
+- the mask can use different 'character class' bytes.  These are similar to the
+  character types within JtR rules.  To set a 'class' for a specific byte location,
+  simply use 2 characters, a question mark, and the class character.
+  Here are the classes.
+    ??  - becomes a single ? char (2 question marks mean a literal question mark) 
+    ?d  - decimal digits [0-9]  ** very common salt **
+    ?l  - lower case letters [a-z]  (only ANSI lower case, does not take encodings
+          into account) 
+    ?u  - upper case letters [A-Z]
+    ?a  - upper / lower case letters [a-zA-Z]
+    ?h  - hex lower case [0-9a-f]  ** common salt **
+    ?H  - hex upper case [0-9A-F]
+    ?x  - hex upper and lower case [0-9a-fA-F]
+    ?b  - binary 0 or 1  (text 0x30 or 0x31)
+    ?o  - octal [0-7]
+    ?n  - upper / lower case letters and numbers [a-zA-Z0-9]
+    ?y  - 95 byte ASCII  [ -~]  (from space to ~ chars). ** very common salt **
+    ?#  - # is a digit, from 0 to 9  This will load a 'user defined' character class
+          from the john.conf file.  so ?0 will load the this user class:
+		  [Regen_Salts_UserClasses] / 0=    class
+
+With this information in hand, we can look back at that original example given:
+
+--regen-lost-salts=dynamic_9:32:?d?d?d-   --format=dynamic_9
+
+We can optimize this, with a little insite (speeding things up 10% in the process).
+Knowing that mediawiki assigns the user account number as the salt, we know that we
+will never have these salts 000- to 099-   So we can redo this regen in this manner.
+
+in john.conf, add a 1= line to Regen_Salts_UserClasses like this:
+
+[Regen_Salts_UserClasses]
+1 = [1-9]
+
+now, use this command line for john:
+
+--regen-lost-salts=dynamic_9:32:?1?d?d-   --format=dynamic_9
+
+This will use the user class-1 for the first byte, then digits for the other 2.
+This means our salt will start from 100- and go to 999- which skips 10% of the
+salts, and speeds things up by 10%.  This is due to the user-class-1 not having
+the '0' byte in it.
+
+
+At this time, only a fixed length salt is handled.  Doing a variable sized salt
+regen, simply adds too much complexity, and does slow things down, just a touch.
+This is different than the older --regen-lost-salts=3    This 'used to do 0- to 9-
+then 00- to 99- then 000- to 999-   The 'depricated' --regen-lost-salts=3 now only
+does 000- to 999- and would require running 2 more regen-salt runs to cover the
+entire salt range.
+
+******************************************************************************
+
+*** NOTE, depricated method (still works, but should not be used)
+There are only a few types supported.  To properly run, you MUST use one of the
+proper types in the -format=type command, AND use the -regen-lost-salts=N with
+N being set properly.  The valid N's are:
+  --regen-lost-salts=1 --format=PHPS         (form md5($p.$s) s is 3 bytes)
+  --regen-lost-salts=2 --format=OSC          (form md5($s.$p) s is 2 bytes)
+  --regen-lost-salts=3 --format=mediawiki    (user id's from 0 to 999)
+  --regen-lost-salts=4 --format=mediawiki    (user id's from 1000 to 9999)
+  --regen-lost-salts=5 --format=mediawiki    (user id's from 10000 to 99999)
+For types 3, 4, 5, we only look for numeric user id's, of the type:
+md5($u.'-'.md5($p)) Mediawiki made some changes to use longer 8 byte hex strings
+as salts.  This salt is too long to try to find, so JtR only focuses on the older
+type $B$ with the shorter numeric user id's.   The found lines in john.pot will
+be output as type $dynamic_2$ for the found PHPS (with the salts filled in). It
+will be $dynamic_4$ for the OSC (with salt), and $dynamic_9$ (with user id as
+salt), for the mediawiki items.
+NOTE, normally the salt is preserved with the hash, and thus JtR can properly
+find them using 'normal' methods.  This new functionality was added to handle
+leaked hashes where the original salt has been lost.  It is VERY slow to run
+in this manner, due to JtR having to check every possible salt, but it does
+allow these hashes to be cracked 'properly'.
