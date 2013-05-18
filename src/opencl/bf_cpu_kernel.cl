@@ -7,8 +7,6 @@
 
 #define BF_ROUNDS          	16
 
-#define WORK_GROUP_SIZE    	16
-
 #define pos_S(row, col, base)						\
 	base + (row * 256 + col) 
 

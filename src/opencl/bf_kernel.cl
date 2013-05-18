@@ -5,6 +5,8 @@
  * Based on Solar Designer implementation of bf_std.c in jtr-v1.7.8 
  */
 
+#include "opencl_bf_WGS.h" 
+ 
 #ifdef DEVICE_IS_CPU
 #define MAYBE_LOCAL
 #else
@@ -12,8 +14,6 @@
 #endif
 
 #define BF_ROUNDS          	16
-
-#define WORK_GROUP_SIZE    	8
 
 #define NUM_CHANNELS       	1
 
