@@ -10,7 +10,7 @@
 #include "common.h"
 #include "common-opencl.h"
 
-typedef unsigned int BF_word;
+typedef unsigned int BF_word ;
 
 /*
  * Binary salt type, also keeps the number of rounds and hash sub-type.
@@ -19,7 +19,7 @@ typedef struct {
 	BF_word salt[4];
 	unsigned char rounds;
 	char subtype;
-} BF_salt;
+} BF_salt ;
 
 /*
  * Binary ciphertext type.
@@ -42,7 +42,7 @@ typedef BF_word BF_binary[6];
 #define NUM_CHANNELS                    1   
 #define WAVEFRONT_SIZE                  1
 #define CHANNEL_INTERLEAVE              (WAVEFRONT_SIZE*NUM_CHANNELS)
-#define MULTIPLIER                      1024
+#define MULTIPLIER                      4096
 #define BF_N				(CHANNEL_INTERLEAVE*MULTIPLIER)
 #define MAX_DEVICES_PER_PLATFORM        8
 #define GWS_CONFIG		        "bf_GWS"
@@ -50,7 +50,7 @@ typedef BF_word BF_binary[6];
 /*
  * BF_std_crypt() output buffer.
  */
-extern BF_binary opencl_BF_out[BF_N];
+extern BF_binary *opencl_BF_out ;
 
 /*
  * ASCII to binary conversion table, for use in BF_fmt.valid().
@@ -87,7 +87,7 @@ extern void *opencl_BF_std_get_binary(char *ciphertext);
  * Select a device: BF_select_device(platform_id,device_id)
  */
 
-extern void BF_select_device(int,int,struct fmt_main*);
+extern void BF_select_device(struct fmt_main*);
 
 /*
  * Clear all GPU Buffers
