@@ -1,5 +1,7 @@
-/* bitcon-qt (bitcon) cracker patch for JtR. Hacked together during April of 2013
- * by Dhiru Kholia <dhiru at openwall dot com>.
+/* bitcon-qt (bitcoin) wallet cracker patch for JtR. Hacked together during
+ * April of 2013 by Dhiru Kholia <dhiru at openwall dot com>.
+ *
+ * Also works for Litecoin-Qt (litecoin) wallet files!
  *
  * This software is Copyright (c) 2013, Dhiru Kholia <dhiru at openwall dot com>,
  * and it is hereby released to the general public under the following terms:
@@ -41,9 +43,12 @@ static int omp_t = 1;
 #define SZ 			128
 
 static struct fmt_tests bitcoin_tests[] = {
+	/* bitcoin wallet hashes */
 	{"$bitcoin$96$169ce74743c260678fbbba92e926198702fd84e46ba555190f6f3d82f6852e4adeaa340d2ac065288e8605f13d1d7c86$16$26049c64dda292d5$177864$96$62aee49c1967b5635b663fc3b047d8bc562f7000921453ab15b98e5a5f2d2adc74393e789fe15c5a3fbc4625536be98a$66$020027f255fbfa6d4c010a1a5984e487443c68e1b32869ccfde92e92005814fd27", "openwall"},
 	{"$bitcoin$96$bd97a08e00e38910550e76848949285b9702fe64460f70d464feb2b63f83e1194c745e58fa4a0f09ac35e5777c507839$16$26049c64dda292d5$258507$96$62aee49c1967b5635b663fc3b047d8bc562f7000921453ab15b98e5a5f2d2adc74393e789fe15c5a3fbc4625536be98a$66$020027f255fbfa6d4c010a1a5984e487443c68e1b32869ccfde92e92005814fd27", "password"},
 	{"$bitcoin$96$4eca412eeb04971428efec70c9e18fb9375be0aa105e7eec55e528d0ba33a07eb6302add36da86736054dee9140ec9b8$16$26049c64dda292d5$265155$96$62aee49c1967b5635b663fc3b047d8bc562f7000921453ab15b98e5a5f2d2adc74393e789fe15c5a3fbc4625536be98a$66$020027f255fbfa6d4c010a1a5984e487443c68e1b32869ccfde92e92005814fd27", "strongpassword"},
+	/* litecoin wallet hash */
+	{"$bitcoin$96$54401984b32448917b6d18b7a11debe91d62aaa343ab62ed98e1d3063f30817832c744360331df94cbf1dcececf6d00e$16$bfbc8ee2c07bbb4b$194787$96$07a206d5422640cfa65a8482298ad8e8598b94d99e2c4ce09c9d015b734632778cb46541b8c10284b9e14e5468b654b9$66$03fe6587bf580ee38b719f0b8689c80d300840bbc378707dce51e6f1fe20f49c20", "isyourpasswordstronger"},
 	{NULL}
 };
 
