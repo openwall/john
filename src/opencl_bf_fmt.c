@@ -80,191 +80,161 @@ static struct fmt_tests tests[] = {
 		"\x55\xaa\xff\x55\xaa\xff\x55\xaa\xff\x55\xaa\xff"
 		"\x55\xaa\xff\x55\xaa\xff\x55\xaa\xff\x55\xaa\xff"},
 	{NULL}
-};
+} ;
 
-static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static char keys_mode;
-static int sign_extension_bug;
-static BF_salt saved_salt;
+static char 	(*saved_key)[PLAINTEXT_LENGTH + 1] ;
+static char 	keys_mode ;
+static int 	sign_extension_bug ;
+static BF_salt 	saved_salt ;
 
-static void done(void)
-{
-	BF_clear_buffer();
-	MEM_FREE(saved_key);
+static void done(void) {
+	BF_clear_buffer() ;
+	MEM_FREE(saved_key) ;
 }
 
-static void init(struct fmt_main *self)
-{
-	char *conf;
-
-	saved_key = mem_calloc(BF_N * sizeof(*saved_key));
-
-	global_work_size = 0;
+static void init(struct fmt_main *self) {
+	char 	*conf ;
+	saved_key = mem_calloc(BF_N * sizeof(*saved_key)) ;
+	global_work_size = 0 ;
 
 	if ((conf = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, GWS_CONFIG)))
-		global_work_size = atoi(conf);
-
+		global_work_size = atoi(conf) ;
 	if ((conf = getenv("GWS")))
-		global_work_size = atoi(conf);
+		global_work_size = atoi(conf) ;
 
 	// BF_select_device(platform,device);
-	platform_id = get_platform_id(ocl_gpu_id);
-        BF_select_device(platform_id, get_device_id(ocl_gpu_id),self);
-	keys_mode = 'a';
-	sign_extension_bug = 0;
+	//platform_id = get_platform_id(ocl_gpu_id) ;
+        BF_select_device(self) ;
+	keys_mode = 'a' ;
+	sign_extension_bug = 0 ;
 	//fprintf(stderr, "****Please see 'opencl_bf_std.h' for device specific optimizations****\n");
 }
 
-static int valid(char *ciphertext,struct fmt_main *self)
-{
-	int rounds;
-	char *pos;
+static int valid(char *ciphertext, struct fmt_main *self) {
+	int rounds ;
+	char *pos ;
 
 	if (strncmp(ciphertext, "$2a$", 4) &&
-	    strncmp(ciphertext, "$2x$", 4)) return 0;
+	    strncmp(ciphertext, "$2x$", 4)) return 0 ;
 
-	if (ciphertext[4] < '0' || ciphertext[4] > '9') return 0;
-	if (ciphertext[5] < '0' || ciphertext[5] > '9') return 0;
-	rounds = atoi(ciphertext + 4);
-	if (rounds < 4 || rounds > 31) return 0;
+	if (ciphertext[4] < '0' || ciphertext[4] > '9') return 0 ;
+	if (ciphertext[5] < '0' || ciphertext[5] > '9') return 0 ;
+	rounds = atoi(ciphertext + 4) ;
+	if (rounds < 4 || rounds > 31) return 0 ;
 
-	if (ciphertext[6] != '$') return 0;
+	if (ciphertext[6] != '$') return 0 ;
 
-	for (pos = &ciphertext[7]; atoi64[ARCH_INDEX(*pos)] != 0x7F; pos++);
-	if (*pos || pos - ciphertext != CIPHERTEXT_LENGTH) return 0;
+	for (pos = &ciphertext[7]; atoi64[ARCH_INDEX(*pos)] != 0x7F; pos++) ;
+	if (*pos || pos - ciphertext != CIPHERTEXT_LENGTH) return 0 ;
 
-	if (opencl_BF_atoi64[ARCH_INDEX(*(pos - 1))] & 3) return 0;
-	if (opencl_BF_atoi64[ARCH_INDEX(ciphertext[28])] & 0xF) return 0;
+	if (opencl_BF_atoi64[ARCH_INDEX(*(pos - 1))] & 3) return 0 ;
+	if (opencl_BF_atoi64[ARCH_INDEX(ciphertext[28])] & 0xF) return 0 ;
 
-	return 1;
+	return 1 ;
 }
 
-static int binary_hash_0(void *binary)
-{
-	return *(BF_word *)binary & 0xF;
+static int binary_hash_0(void *binary) {
+	return *(BF_word *)binary & 0xF ;
 }
 
-static int binary_hash_1(void *binary)
-{
-	return *(BF_word *)binary & 0xFF;
+static int binary_hash_1(void *binary) {
+	return *(BF_word *)binary & 0xFF ;
 }
 
-static int binary_hash_2(void *binary)
-{
-	return *(BF_word *)binary & 0xFFF;
+static int binary_hash_2(void *binary) {
+	return *(BF_word *)binary & 0xFFF ;
 }
 
-static int binary_hash_3(void *binary)
-{
-	return *(BF_word *)binary & 0xFFFF;
+static int binary_hash_3(void *binary) {
+	return *(BF_word *)binary & 0xFFFF ;
 }
 
-static int binary_hash_4(void *binary)
-{
-	return *(BF_word *)binary & 0xFFFFF;
+static int binary_hash_4(void *binary) {
+	return *(BF_word *)binary & 0xFFFFF ;
 }
 
-static int binary_hash_5(void *binary)
-{
-	return *(BF_word *)binary & 0xFFFFFF;
+static int binary_hash_5(void *binary) {
+	return *(BF_word *)binary & 0xFFFFFF ;
 }
 
-static int binary_hash_6(void *binary)
-{
-	return *(BF_word *)binary & 0x7FFFFFF;
+static int binary_hash_6(void *binary) {
+	return *(BF_word *)binary & 0x7FFFFFF ;
 }
 
-static int get_hash_0(int index)
-{
-	return opencl_BF_out[index][0] & 0xF;
+static int get_hash_0(int index) {
+	return opencl_BF_out[index][0] & 0xF ;
 }
 
-static int get_hash_1(int index)
-{
-	return opencl_BF_out[index][0] & 0xFF;
+static int get_hash_1(int index) {
+	return opencl_BF_out[index][0] & 0xFF ;
 }
 
-static int get_hash_2(int index)
-{
-	return opencl_BF_out[index][0] & 0xFFF;
+static int get_hash_2(int index) {
+	return opencl_BF_out[index][0] & 0xFFF ;
 }
 
-static int get_hash_3(int index)
-{
-	return opencl_BF_out[index][0] & 0xFFFF;
+static int get_hash_3(int index) {
+	return opencl_BF_out[index][0] & 0xFFFF ;
 }
 
-static int get_hash_4(int index)
-{
-	return opencl_BF_out[index][0] & 0xFFFFF;
+static int get_hash_4(int index) {
+	return opencl_BF_out[index][0] & 0xFFFFF ;
 }
 
-static int get_hash_5(int index)
-{
-	return opencl_BF_out[index][0] & 0xFFFFFF;
+static int get_hash_5(int index) {
+	return opencl_BF_out[index][0] & 0xFFFFFF ;
 }
 
-static int get_hash_6(int index)
-{
-	return opencl_BF_out[index][0] & 0x7FFFFFF;
+static int get_hash_6(int index) {
+	return opencl_BF_out[index][0] & 0x7FFFFFF ;
 }
 
-static int salt_hash(void *salt)
-{
-	return ((BF_salt *)salt)->salt[0] & 0x3FF;
+static int salt_hash(void *salt) {
+	return ((BF_salt *)salt) -> salt[0] & 0x3FF ;
 }
 
-static void set_salt(void *salt)
-{
-	memcpy(&saved_salt, salt, sizeof(saved_salt));
+static void set_salt(void *salt) {
+	memcpy(&saved_salt, salt, sizeof(saved_salt)) ;
 }
 
-static void set_key(char *key, int index)
-{
-	opencl_BF_std_set_key(key, index, sign_extension_bug);
-
-	strnzcpy(saved_key[index], key, PLAINTEXT_LENGTH + 1);
+static void set_key(char *key, int index) {
+	opencl_BF_std_set_key(key, index, sign_extension_bug) ;
+	strnzcpy(saved_key[index], key, PLAINTEXT_LENGTH + 1) ;
 }
 
-static char *get_key(int index)
-{
-	return saved_key[index];
+static char *get_key(int index) {
+	return saved_key[index] ;
 }
 
-static int crypt_all(int *pcount, struct db_salt *salt)
-{
-	int count = *pcount;
-
+static int crypt_all(int *pcount, struct db_salt *salt) {
+	int count = *pcount ;
 	if (keys_mode != saved_salt.subtype) {
-		int i;
+		int i ;
 
-		keys_mode = saved_salt.subtype;
+		keys_mode = saved_salt.subtype ;
 		sign_extension_bug = (keys_mode == 'x');
 		for (i = 0; i < count; i++)
-			opencl_BF_std_set_key(saved_key[i], i, sign_extension_bug);
+			opencl_BF_std_set_key(saved_key[i], i, sign_extension_bug) ;
 	}
 
-	opencl_BF_std_crypt(&saved_salt, count);
-	return count;
+	opencl_BF_std_crypt(&saved_salt, count) ;
+	return count ;
 }
 
-static int cmp_all(void *binary, int count)
-{
-	int i;
+static int cmp_all(void *binary, int count) {
+	int i ;
 	for (i = 0; i < count; i++)
 		if (*(BF_word *)binary == opencl_BF_out[i][0])
-			return 1;
-	return 0;
+			return 1 ;
+	return 0 ;
 }
 
-static int cmp_one(void *binary, int index)
-{
-	return *(BF_word *)binary == opencl_BF_out[index][0];
+static int cmp_one(void *binary, int index) {
+	return *(BF_word *)binary == opencl_BF_out[index][0] ;
 }
 
-static int cmp_exact(char *source, int index)
-{
-	opencl_BF_std_crypt_exact(index);
+static int cmp_exact(char *source, int index) {
+	opencl_BF_std_crypt_exact(index) ;
 
 	return !memcmp(opencl_BF_std_get_binary(source), opencl_BF_out[index],
 	    sizeof(BF_binary));
