@@ -66,7 +66,7 @@ int undrop(int argc, char *argv[]) {
 	}
 
 	if (strncmp(t_line, "--PASS +", 8) == 0) {
-	    sscanf(t_line, "--PASS %s", password);
+	    sscanf(t_line, "--PASS %12s", password);
 	    printf("%s:%s:::%s:\n", username, password, flags);
 	}
 	fflush(stdout);
