@@ -187,7 +187,7 @@ static void * salt(char *ciphertext) {
     if (!p)
 	return NULL;
     n = (p - data) + 1;
-    if (n >= sizeof(salt.user))
+    if (n <= 1 || n >= sizeof(salt.user))
 	return NULL;
     strnzcpy(salt.user, data, n);
     data = p + 1;
@@ -197,7 +197,7 @@ static void * salt(char *ciphertext) {
     if (!p)
 	return NULL;
     n = (p - data) + 1;
-    if (n >= sizeof(salt.realm))
+    if (n <= 1 || n >= sizeof(salt.realm))
 	return NULL;
     strnzcpy(salt.realm, data, n);
     data = p + 1;
