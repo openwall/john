@@ -41,7 +41,6 @@
 #include "johnswap.h"
 
 #if OPENSSL_VERSION_NUMBER >= 0x10000000
-#define USING_OSSL_WHRLP
 #include "openssl/whrlpool.h"
 #else
 // on my 32 bit cygwin builds, this code is about 4x slower than the oSSL code.

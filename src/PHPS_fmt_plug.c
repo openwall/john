@@ -50,13 +50,9 @@
 #define BINARY_SIZE			MD5_BINARY_SIZE
 
 #define SALT_SIZE			3
-#define PROCESSED_SALT_SIZE	SALT_SIZE
 
 #define PLAINTEXT_LENGTH	32
 #define CIPHERTEXT_LENGTH	(1 + 4 + 1 + SALT_SIZE * 2 + 1 + MD5_HEX_SIZE)
-
-#define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	1
 
 static struct fmt_tests phps_tests[] = {
 	{"$PHPS$433925$5d756853cd63acee76e6dcd6d3728447", "welcome"},
@@ -105,8 +101,6 @@ static char *our_split(char *ciphertext, int index, struct fmt_main *self)
 
 static char *our_prepare(char *split_fields[10], struct fmt_main *self)
 {
-	int i = strlen(split_fields[1]);
-	get_ptr();
 	return pDynamic_6->methods.prepare(split_fields, self);
 }
 

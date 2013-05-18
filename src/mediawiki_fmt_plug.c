@@ -60,12 +60,8 @@ userName2:$B$107$dd494cb03ac1c5b8f8d2dddafca2f7a6:1552:0::emailaddress@gmail.com
 #define BINARY_SIZE			MD5_BINARY_SIZE
 
 #define SALT_SIZE			9
-#define PROCESSED_SALT_SIZE	SALT_SIZE
 
 #define PLAINTEXT_LENGTH	32
-
-#define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	1
 
 static struct fmt_tests mediawiki_tests[] = {
 	{"$B$113$de2874e33da25313d808d2a8cbf31485",      "qwerty"},
@@ -112,7 +108,6 @@ static char *our_split(char *ciphertext, int index, struct fmt_main *self)
 
 static char *our_prepare(char *split_fields[10], struct fmt_main *self)
 {
-	int i = strlen(split_fields[1]);
 	get_ptr();
 	return pDynamic_9->methods.prepare(split_fields, self);
 }

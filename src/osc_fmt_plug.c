@@ -40,13 +40,9 @@
 #define BINARY_SIZE			MD5_BINARY_SIZE
 
 #define SALT_SIZE			2
-#define PROCESSED_SALT_SIZE	SALT_SIZE
 
 #define PLAINTEXT_LENGTH	32
 #define CIPHERTEXT_LENGTH	(1 + 3 + 1 + SALT_SIZE * 2 + 1 + MD5_HEX_SIZE)
-
-#define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	1
 
 static struct fmt_tests osc_tests[] = {
 	{"$OSC$2020$05de5c963ee6234dc7d52f7589a1922b", "welcome"},
@@ -94,7 +90,6 @@ static char *our_split(char *ciphertext, int index, struct fmt_main *self)
 
 static char *our_prepare(char *split_fields[10], struct fmt_main *self)
 {
-	int i = strlen(split_fields[1]);
 	get_ptr();
 	return pDynamic_4->methods.prepare(split_fields, self);
 }
