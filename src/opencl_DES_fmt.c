@@ -49,6 +49,8 @@ static void init(struct fmt_main *pFmt)
 	unsigned int i;
 
 	char *conf;
+	
+	opencl_DES_bs_init_global_variables();
 
 	for(i=0;i<MULTIPLIER;i++)
 		opencl_DES_bs_init(0, DES_bs_cpt,i);
@@ -61,8 +63,7 @@ static void init(struct fmt_main *pFmt)
 	if ((conf = getenv("GWS")))
 		global_work_size = atoi(conf);
 
-	platform_id = get_platform_id(ocl_gpu_id);
-	DES_bs_select_device(platform_id,get_device_id(ocl_gpu_id),pFmt);
+	DES_bs_select_device(pFmt);
 
 	atexit(done);
 

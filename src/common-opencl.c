@@ -34,7 +34,6 @@
 #define LOG_SIZE 1024*16
 
 static char opencl_log[LOG_SIZE];
-static char *kernel_source;
 static int kernel_loaded;
 static size_t program_size;
 
@@ -552,7 +551,7 @@ static char *include_source(char *pathname, unsigned int sequential_id, char *op
 	return include;
 }
 
-static void build_kernel(unsigned int sequential_id, char *opts, int save, char * file_name)
+void opencl_build(unsigned int sequential_id, char *opts, int save, char * file_name, int showLog)
 {
 	cl_int build_code;
 	char * build_log; size_t log_size;
@@ -576,14 +575,14 @@ static void build_kernel(unsigned int sequential_id, char *opts, int save, char 
 		NULL), "Error while getting build info");
 
 	///Report build errors and warnings
-	if (build_code != CL_SUCCESS) {
+	if ((build_code != CL_SUCCESS) && showLog ) {
 		// Give us much info about error and exit
 		fprintf(stderr, "Build log: %s\n", build_log);
 		fprintf(stderr, "Error %d building kernel. DEVICE_INFO=%d\n", build_code, device_info[sequential_id]);
 		HANDLE_CLERROR (build_code, "clBuildProgram failed.");
 	}
 	// Nvidia may return a single '\n' that we ignore
-	else if (options.verbosity > 3 && strlen(build_log) > 1)
+	else if (options.verbosity > 3 && strlen(build_log) > 1 && showLog)
 		fprintf(stderr, "Build log: %s\n", build_log);
 	MEM_FREE(build_log);
 
@@ -617,7 +616,7 @@ static void build_kernel(unsigned int sequential_id, char *opts, int save, char 
 	}
 }
 
-static void build_kernel_from_binary(unsigned int sequential_id)
+static void opencl_build_from_binary(unsigned int sequential_id)
 {
 	cl_int build_code;
 	const char *srcptr[] = { kernel_source };
@@ -1247,7 +1246,7 @@ err:
 	return;
 }
 
-static void read_kernel_source(char *kernel_filename)
+void read_kernel_source(char *kernel_filename)
 {
 	char *kernel_path = path_expand(kernel_filename);
 	FILE *fp = fopen(kernel_path, "r");
@@ -1277,7 +1276,7 @@ static void read_kernel_source(char *kernel_filename)
 void opencl_build_kernel_opt(char *kernel_filename, unsigned int sequential_id, char *opts)
 {
 	read_kernel_source(kernel_filename);
-	build_kernel(sequential_id, opts, 0, NULL);
+	opencl_build(sequential_id, opts, 0, NULL, 1);
 }
 
 //CPU and any non nvidia GPU will benefit from this routine.
@@ -1322,7 +1321,7 @@ void opencl_build_kernel_save(char *kernel_filename, unsigned int sequential_id,
 		//Select the kernel to run.
 		if (!stat(path_expand(bin_name), &bin_stat) && (source_stat.st_mtime < bin_stat.st_mtime)) {
 			read_kernel_source(bin_name);
-			build_kernel_from_binary(sequential_id);
+			opencl_build_from_binary(sequential_id);
 
 		} else {
 
@@ -1331,7 +1330,7 @@ void opencl_build_kernel_save(char *kernel_filename, unsigned int sequential_id,
 				fflush(stdout);
 			}
 			read_kernel_source(kernel_filename);
-			build_kernel(sequential_id, opts, 1, bin_name);
+			opencl_build(sequential_id, opts, 1, bin_name, 1);
 		}
 		if (warn) {
 			if ((runtime = (unsigned long) (time(NULL) - startTime)) > 2UL)
@@ -1345,16 +1344,6 @@ void opencl_init_dev(unsigned int sequential_id)
 {
 	profilingEvent = firstEvent = lastEvent = NULL;
 	dev_init(sequential_id);
-}
-
-void opencl_init_Sayantan(char *kernel_filename, unsigned int dev_id, unsigned int platform_id, char *opts)
-{
-	//Shows the information about in use device(s).
-	int sequential_id = get_sequential_id(dev_id, platform_id);
-
-	kernel_loaded=0;
-	opencl_init_dev(sequential_id);
-	opencl_build_kernel_save(kernel_filename, sequential_id, opts, 1, 1);
 }
 
 void opencl_init_opt(char *kernel_filename, unsigned int sequential_id, char *opts)
