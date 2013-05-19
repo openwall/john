@@ -1,4 +1,4 @@
-/* Snefru cracker patch for JtR. Hacked together during May of 2013 by Dhiru
+/* scrypt cracker patch for JtR. Hacked together during May of 2013 by Dhiru
  * Kholia <dhiru at openwall.com>.
  *
  * This software is Copyright (c) 2013 Dhiru Kholia <dhiru at openwall.com> and
@@ -41,6 +41,7 @@ static int omp_t = 1;
 static struct fmt_tests scrypt_tests[] = {
 	/* https://pypi.python.org/pypi/django-scrypt/ format hashes */
 	{"scrypt$NBGmaGIXijJW$14$8$1$64$achPt01SbytSt+F3CcCFgEPr96+/j9iCTdejFdAARZ8mzfejrP64TJ5XBJa3gYwuCKOEGlw2E/lWCWS7LeS6CA==", "notastrongpassword"},
+	{"scrypt$Cj0PzdtT3qS2$14$8$1$64$qn4CDnM8CcIBNrpQXHo6ti8vSUoSXj7GBFy7k1bp5wPs8jKjh/gHZ+qM9uk6LbcVHm02yBaI5WCbDm/Shq/MXA==", "realmenuseJtR"},
 	{NULL}
 };
 
@@ -192,9 +193,9 @@ struct fmt_main fmt_scrypt = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		DEFAULT_ALIGN, // XXX
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		DEFAULT_ALIGN, // XXX
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
