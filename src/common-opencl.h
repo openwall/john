@@ -69,6 +69,9 @@ size_t local_work_size;
 size_t global_work_size;
 size_t max_group_size;
 
+char *kernel_source;
+void read_kernel_source(char *kernel_filename);
+
 #define EVENTS 8
 cl_event *profilingEvent, *firstEvent, *lastEvent;
 cl_event multi_profilingEvent[EVENTS];
@@ -95,7 +98,7 @@ int get_sequential_id(unsigned int dev_id, unsigned int platform_id);
 void opencl_init_dev(unsigned int sequential_id);
 void opencl_init(char *kernel_filename, unsigned int sequential_id);
 void opencl_init_opt(char *kernel_filename, unsigned int sequential_id, char *options);
-void opencl_init_Sayantan(char *kernel_filename, unsigned int dev_id, unsigned int platform_id, char *options);
+void opencl_build(unsigned int sequential_id, char *opts, int save, char * file_name, int showLog);
 void opencl_build_kernel(char *kernel_filename, unsigned int sequential_id);
 void opencl_build_kernel_save(char *kernel_filename, unsigned int sequential_id, char *options, int save, int warn);
 void opencl_find_best_workgroup(struct fmt_main *self);

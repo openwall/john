@@ -71,9 +71,9 @@ typedef struct{
 struct fmt_main;
 
 #define DES_bs_cpt			1
-extern opencl_DES_bs_combined opencl_DES_bs_all[MULTIPLIER];
-extern opencl_DES_bs_transfer opencl_DES_bs_data[MULTIPLIER];
-extern DES_bs_vector B[64*MULTIPLIER];
+extern opencl_DES_bs_combined *opencl_DES_bs_all;
+extern opencl_DES_bs_transfer *opencl_DES_bs_data;
+extern DES_bs_vector *B;
 #define for_each_t(n)
 #define init_t()
 
@@ -81,6 +81,7 @@ extern DES_bs_vector B[64*MULTIPLIER];
  * Initializes the internal structures.
  */
 extern void opencl_DES_bs_init(int LM, int cpt,int block);
+extern void opencl_DES_bs_init_global_variables(void);
 
 /*
  * Sets a salt for DES_bs_crypt().
@@ -166,7 +167,7 @@ extern WORD *opencl_DES_do_IP(WORD in[2]);
  */
 extern WORD *opencl_DES_raw_get_binary(char *ciphertext);
 
-extern void DES_bs_select_device(int platform_no,int dev_no,struct fmt_main*);
+extern void DES_bs_select_device(struct fmt_main*);
 
 extern void DES_opencl_clean_all_buffer(void);
 
