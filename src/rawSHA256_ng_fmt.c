@@ -39,7 +39,7 @@
 
 #include "common.h"
 #include "formats.h"
-
+#include "aligned.h"
 
 #if defined __XOP__
 #define SIMD_TYPE                 "XOP"
@@ -350,7 +350,7 @@ static void crypt_all (int count)
 
 #ifdef _OPENMP
 #pragma omp parallel for
-    for (index = 0; index < count; index += 4)
+    for (index = 0; index < count; index += VWIDTH)
 #endif
     {
         __m128i a, b, c, d, e, f, g, h;
@@ -362,16 +362,12 @@ static void crypt_all (int count)
         for (i=0; i < 16; i++) GATHER (w[i], saved_key, i);
         for (i=0; i < 15; i++) SWAP_ENDIAN (w[i]);
 #else
-#ifdef _MSC_VER
-		__declspec(align(16)) uint32_t __w[16][VWIDTH];
-#else
-        uint32_t __w[16][VWIDTH] __attribute__ ((aligned (16)));
-#endif
+        ALIGN(16) uint32_t __w[16][VWIDTH];
         int j;
 
         for (i=0; i < VWIDTH; i++)
 	        for (j=0; j < 16; j++)
-		        __w[j][i] = saved_key[i][j];
+		        __w[j][i] = saved_key[index + i][j];
 
         for (i=0; i < 15; i++)
         {
