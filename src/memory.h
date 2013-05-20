@@ -133,6 +133,10 @@ void dump_stuff_shammx(void *x, unsigned int size, unsigned int index);
 void dump_stuff_shammx_msg(void *msg, void *buf, unsigned int size, unsigned int index);
 void dump_out_shammx(void *x, unsigned int size, unsigned int index);
 void dump_out_shammx_msg(void *msg, void *buf, unsigned int size, unsigned int index);
+void dump_stuff_shammx64(void *x, unsigned int size, unsigned int index);
+void dump_stuff_shammx64_msg(void *msg, void *buf, unsigned int size, unsigned int index);
+void dump_out_shammx64(void *x, unsigned int size, unsigned int index);
+void dump_out_shammx64_msg(void *msg, void *buf, unsigned int size, unsigned int index);
 #endif
 
 #if defined (MD5_SSE_PARA)
@@ -147,12 +151,50 @@ void getbuf_stuff_mpara_mmx(unsigned char *oBuf, void *buf, unsigned int size, u
 
 
 void alter_endianity_w(void *x, unsigned int count);
+void alter_endianity_w64(void *x, unsigned int count);
+
+#if ARCH_ALLOWS_UNALIGNED
+// we can inline these, to always use JOHNSWAP/JOHNSWAP64
+// NOTE, more portable to use #defines to inline, than the MAYBE_INLINE within header files.
+#if (ARCH_LITTLE_ENDIAN==0)
+#define alter_endianity_to_BE(a,b)
+#define alter_endianity_to_BE64(a,b)
+#define alter_endianity_to_LE(a,word32_cnt) do{ \
+    int i; \
+    for (i=0;i<word32_cnt; i++) \
+        ((ARCH_WORD_32*)ptr)[i] = JOHNSWAP(((ARCH_WORD_32*)ptr)[i]); \
+}while(0)
+#define alter_endianity_to_LE64(a,word64_cnt) do{ \
+    int i; \
+    for (i=0;i<word64_cnt; i++) \
+        ((ARCH_WORD_64*)ptr)[i] = JOHNSWAP64(((ARCH_WORD_64*)ptr)[i]); \
+}while(0)
+#else
+#define alter_endianity_to_LE(a,b)
+#define alter_endianity_to_LE64(a,b)
+#define alter_endianity_to_BE(ptr,word32_cnt) do{ \
+    int i; \
+    for (i=0;i<word32_cnt; i++) \
+        ((ARCH_WORD_32*)ptr)[i] = JOHNSWAP(((ARCH_WORD_32*)ptr)[i]); \
+}while(0)
+#define alter_endianity_to_BE64(ptr,word64_cnt) do{ \
+    int i; \
+    for (i=0;i<word64_cnt; i++) \
+        ((ARCH_WORD_64*)ptr)[i] = JOHNSWAP64(((ARCH_WORD_64*)ptr)[i]); \
+}while(0)
+#endif
+#else
 #if (ARCH_LITTLE_ENDIAN==0)
 #define alter_endianity_to_BE(a,b)
 #define alter_endianity_to_LE(a,b) do{alter_endianity_w(a,b);}while(0)
+#define alter_endianity_to_BE64(a,b)
+#define alter_endianity_to_LE64(a,b) do{alter_endianity_w64(a,b);}while(0)
 #else
 #define alter_endianity_to_BE(a,b) do{alter_endianity_w(a,b);}while(0)
 #define alter_endianity_to_LE(a,b)
+#define alter_endianity_to_BE64(a,b) do{alter_endianity_w64(a,b);}while(0)
+#define alter_endianity_to_LE64(a,b)
+#endif
 #endif
 
 

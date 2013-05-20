@@ -7,7 +7,7 @@
  */
 
 #include "arch.h"
-#ifdef __SSE2__
+#if defined __SSE2__
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -54,7 +54,12 @@
 #define BENCHMARK_COMMENT         ""
 #define BENCHMARK_LENGTH          -1
 
-#define MAXLEN                    119
+// max length is not 119, but 8 less than this, or 111.  111 actually make sense.
+// For SHA512 there are 14 'usable' 8 byte ints, minus 1 byte (for the 0x80).
+// 14*8-1 is 111. This comment left for reference for future sha2 hackers within JtR.
+
+//#define MAXLEN                    119
+#define MAXLEN                    111
 #define CIPHERTEXT_LENGTH         128
 #define FULL_BINARY_SIZE          64
 #define BINARY_SIZE               8
@@ -64,18 +69,18 @@
 #define MIN_KEYS_PER_CRYPT        2
 #define MAX_KEYS_PER_CRYPT        2
 
-#if defined (_MSC_VER) && defined (_M_IX86)
+#if defined (_MSC_VER) && !defined (_M_X64)
 // 32 bit VC does NOT define these intrinsics :((((
 _inline __m128i _mm_set_epi64x(uint64_t a, uint64_t b) {
 	__m128i x;
-	x.m128i_i64[0] = b;
-	x.m128i_i64[1] = a;
+	x.m128i_u64[0] = b;
+	x.m128i_u64[1] = a;
 	return x;
 }
 _inline __m128i _mm_set1_epi64x(uint64_t a) {
 	__m128i x;
-	x.m128i_i64[0] = a;
-	x.m128i_i64[1] = a;
+	x.m128i_u64[0] = a;
+	x.m128i_u64[1] = a;
 	return x;
 }
 #endif
@@ -195,6 +200,9 @@ static struct fmt_tests tests[] = {
     {FORMAT_TAG "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e", ""},
     {"c96f1c1260074832bd3068ddd29e733090285dfc65939555dbbcafb27834957d15d9c509481cc7df0e2a7e21429783ba573036b78f5284f9928b5fef02a791ef", "mot\xf6rhead"},
     {"db9981645857e59805132f7699e78bbcf39f69380a41aac8e6fa158a0593f2017ffe48764687aa855dae3023fcceefd51a1551d57730423df18503e80ba381ba", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"},
+	{"7aba4411846c61b08b0f2282a8a4600232ace4dd96593c755ba9c9a4e7b780b8bdc437b5c55574b3e8409c7b511032f98ef120e25467678f0458643578eb60ff", "123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901"},
+	// this one DOES NOT work for a 1 limb. Only 111 bytes max can be used, unless we do 2 sha512 limbs.
+//	{"a5fa73a3c9ca13df56c2cb3ae6f2e57671239a6b461ef5021a65d08f40336bfb458ec52a3003e1004f1a40d0706c27a9f4268fa4e1479382e2053c2b5b47b9b2", "12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789"},
     {NULL}
 };
 
@@ -366,7 +374,7 @@ static void crypt_all (int count)
         __m128i w[80], tmp1, tmp2;
 
 
-        for (i = 0; i < 14; i++) {
+        for (i = 0; i < 14; i += 2) {
             GATHER (tmp1, saved_key, i);
             GATHER (tmp2, saved_key, i + 1);
             SWAP_ENDIAN (tmp1);

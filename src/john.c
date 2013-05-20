@@ -124,6 +124,9 @@ extern struct fmt_main fmt_sha1_ng;
 #ifdef MMX_COEF_SHA256
 extern struct fmt_main fmt_rawSHA256_ng_i;
 #endif
+#ifdef MMX_COEF_SHA512
+extern struct fmt_main fmt_rawSHA512_ng_i;
+#endif
 
 #ifdef HAVE_SKEY
 extern struct fmt_main fmt_SKEY;
@@ -310,6 +313,9 @@ static void john_register_all(void)
 #endif
 #ifdef MMX_COEF_SHA256
 	john_register_one(&fmt_rawSHA256_ng_i);
+#endif
+#ifdef MMX_COEF_SHA512
+	john_register_one(&fmt_rawSHA512_ng_i);
 #endif
 
 #include "fmt_registers.h"

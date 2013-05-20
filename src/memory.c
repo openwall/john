@@ -209,9 +209,13 @@ void alter_endianity(void * _x, unsigned int size)
 
 // These work for standard MMX_COEF buffers, AND for SSEi MMX_PARA multiple MMX_COEF blocks, where index will be mod(X * MMX_COEF) and not simply mod(MMX_COEF)
 #define SHAGETPOS(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3) )*MMX_COEF + (3-((i)&3)) + (index>>(MMX_COEF>>1))*SHA_BUF_SIZ*4*MMX_COEF ) //for endianity conversion
-#define SHAGETOUTPOS(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3) )*MMX_COEF + (3-((i)&3)) + (index>>(MMX_COEF>>1))*20*MMX_COEF ) //for endianity conversion
+#define SHAGETOUTPOS(i, index)	( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3) )*MMX_COEF + (3-((i)&3)) + (index>>(MMX_COEF>>1))*20*MMX_COEF ) //for endianity conversion
+// for MD4/MD5 or any 64 byte LE SSE interleaved hash
 #define GETPOS(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3) )*MMX_COEF +    ((i)&3)  + (index>>(MMX_COEF>>1))*64*MMX_COEF  )
 #define GETOUTPOS(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3) )*MMX_COEF +    ((i)&3)  + (index>>(MMX_COEF>>1))*16*MMX_COEF  )
+// for SHA384/SHA512 128 byte BE interleaved hash (arrays of 16 8 byte ints)
+#define SHA64GETPOS(i,index)	( (index&(MMX_COEF_SHA512-1))*8 + ((i)&(0xffffffff-7) )*MMX_COEF_SHA512 + (7-((i)&7)) + (index>>(MMX_COEF_SHA512>>1))*SHA_BUF_SIZ*8*MMX_COEF_SHA512 )
+#define SHA64GETOUTPOS(i,index)	( (index&(MMX_COEF_SHA512-1))*8 + ((i)&(0xffffffff-7) )*MMX_COEF_SHA512 + (7-((i)&7)) + (index>>(MMX_COEF_SHA512>>1))*64*MMX_COEF_SHA512 )
 
 void dump_stuff_mmx_noeol(void *buf, unsigned int size, unsigned int index) {
 	unsigned int i;
@@ -317,6 +321,34 @@ void dump_out_shammx_msg(void *msg, void *buf, unsigned int size, unsigned int i
 	dump_out_shammx(buf, size, index);
 }
 
+void dump_stuff_shammx64(void *buf, unsigned int size, unsigned int index) {
+	unsigned int i;
+	for(i=0;i<size;i++)
+	{
+		printf("%.2x", ((unsigned char*)buf)[SHA64GETPOS(i, index)]);
+		if( (i%4)==3 )
+			printf(" ");
+	}
+	printf("\n");
+}
+void dump_stuff_shammx64_msg(void *msg, void *buf, unsigned int size, unsigned int index) {
+	printf("%s : ", (char*)msg);
+	dump_stuff_shammx64(buf, size, index);
+}
+void dump_out_shammx64(void *buf, unsigned int size, unsigned int index) {
+	unsigned int i;
+	for(i=0;i<size;i++)
+	{
+		printf("%.2x", ((unsigned char*)buf)[SHA64GETOUTPOS(i, index)]);
+		if( (i%4)==3 )
+			printf(" ");
+	}
+	printf("\n");
+}
+void dump_out_shammx64_msg(void *msg, void *buf, unsigned int size, unsigned int index) {
+	printf("%s : ", (char*)msg);
+	dump_out_shammx64(buf, size, index);
+}
 #endif
 
 void alter_endianity_w(void *_x, unsigned int count) {
@@ -344,6 +376,42 @@ void alter_endianity_w(void *_x, unsigned int count) {
 		c = cpX[1];
 		cpX[1] = cpX[2];
 		cpX[2] = c;
+		cpX += 4;
+	}
+#endif
+}
+
+void alter_endianity_w64(void *_x, unsigned int count) {
+	int i = -1;
+	ARCH_WORD_64 *x = (ARCH_WORD_64*)_x;
+#if ARCH_ALLOWS_UNALIGNED
+	while (++i < count) {
+		x[i] = JOHNSWAP64(x[i]);
+	}
+#else
+	unsigned char *cpX, c;
+	if (is_aligned(x,sizeof(ARCH_WORD_64))) {
+		// we are in alignment.
+		while (++i < count) {
+			x[i] = JOHNSWAP64(x[i]);
+		}
+		return;
+	}
+	// non-aligned data :(
+	cpX = (unsigned char*)x;
+	while (++i < count) {
+		c = *cpX;
+		*cpX = cpX[7];
+		cpX[7] = c;
+		c = cpX[1];
+		cpX[1] = cpX[6];
+		cpX[6] = c;
+		c = cpX[2];
+		cpX[2] = cpX[5];
+		cpX[5] = c;
+		c = cpX[3];
+		cpX[3] = cpX[4];
+		cpX[4] = c;
 		cpX += 4;
 	}
 #endif

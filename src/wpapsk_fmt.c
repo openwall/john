@@ -296,8 +296,8 @@ static MAYBE_INLINE void wpapsk_sse(int count, wpapsk_password * in, wpapsk_hash
 
 		for (i = 1; i < 4096; i++) {
 #if SHA1_SSE_PARA
-			SSESHA1body((unsigned int*)t_sse_hash1, (unsigned int*)t_sse_hash1, (unsigned int*)t_sse_crypt1, 1);
-			SSESHA1body((unsigned int*)t_sse_hash1, (unsigned int*)t_sse_hash1, (unsigned int*)t_sse_crypt2, 1);
+			SSESHA1body((unsigned int*)t_sse_hash1, (unsigned int*)t_sse_hash1, (unsigned int*)t_sse_crypt1, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
+			SSESHA1body((unsigned int*)t_sse_hash1, (unsigned int*)t_sse_hash1, (unsigned int*)t_sse_crypt2, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 			for (j = 0; j < NBKEYS; j++) {
 				unsigned *p = &((unsigned int*)t_sse_hash1)[(((j>>2)*SHA_BUF_SIZ)<<2) + (j&(MMX_COEF-1))];
 				for(k = 0; k < 5; k++)
@@ -337,8 +337,8 @@ static MAYBE_INLINE void wpapsk_sse(int count, wpapsk_password * in, wpapsk_hash
 		}
 		for (i = 1; i < 4096; i++) {
 #if SHA1_SSE_PARA
-			SSESHA1body((unsigned int*)t_sse_hash1, (unsigned int*)t_sse_hash1, (unsigned int*)t_sse_crypt1, 1);
-			SSESHA1body((unsigned int*)t_sse_hash1, (unsigned int*)t_sse_hash1, (unsigned int*)t_sse_crypt2, 1);
+			SSESHA1body((unsigned int*)t_sse_hash1, (unsigned int*)t_sse_hash1, (unsigned int*)t_sse_crypt1, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
+			SSESHA1body((unsigned int*)t_sse_hash1, (unsigned int*)t_sse_hash1, (unsigned int*)t_sse_crypt2, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 			for (j = 0; j < NBKEYS; j++) {
 				unsigned *p = &((unsigned int*)t_sse_hash1)[(((j>>2)*SHA_BUF_SIZ)<<2) + (j&(MMX_COEF-1))];
 				for(k = 5; k < 8; k++)

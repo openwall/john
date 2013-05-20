@@ -221,7 +221,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef MMX_COEF
 
 #if SHA1_SSE_PARA
-	SSESHA1body(saved_key, (ARCH_WORD_32*)crypt_key, NULL, 0);
+	SSESHA1body(saved_key, (ARCH_WORD_32*)crypt_key, NULL, SSEi_MIXED_IN);
 #else
 	shammx_nosizeupdate_nofinalbyteswap((unsigned char*) crypt_key, (unsigned char*) saved_key, 1);
 #endif

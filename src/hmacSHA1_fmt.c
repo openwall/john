@@ -14,6 +14,7 @@
 #include "formats.h"
 #include "sha.h"
 #include "johnswap.h"
+#include "sse-intrinsics.h"
 
 #define FORMAT_LABEL			"hmac-sha1"
 #define FORMAT_NAME			"HMAC SHA-1"
@@ -23,7 +24,6 @@
 #else
 #define SHA1_N				MMX_COEF
 #endif
-#include "sse-intrinsics.h"
 
 #define ALGORITHM_NAME			SHA1_ALGORITHM_NAME
 
@@ -278,11 +278,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	int count = *pcount;
 #ifdef MMX_COEF
 #ifdef SHA1_SSE_PARA
-	SSESHA1body(ipad, (unsigned int*)dump, NULL, 0);
-	SSESHA1body(cursalt, (unsigned int*)crypt_key, (unsigned int*)dump, 1);
+	SSESHA1body(ipad, (unsigned int*)dump, NULL, SSEi_MIXED_IN);
+	SSESHA1body(cursalt, (unsigned int*)crypt_key, (unsigned int*)dump, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 
-	SSESHA1body(opad, (unsigned int*)dump, NULL, 0);
-	SSESHA1body(crypt_key, (unsigned int*)crypt_key, (unsigned int*)dump, 1);
+	SSESHA1body(opad, (unsigned int*)dump, NULL, SSEi_MIXED_IN);
+	SSESHA1body(crypt_key, (unsigned int*)crypt_key, (unsigned int*)dump, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 #else
 	shammx_nosizeupdate_nofinalbyteswap(dump, ipad, 1);
 	shammx_reloadinit_nosizeupdate_nofinalbyteswap(crypt_key, cursalt, dump);

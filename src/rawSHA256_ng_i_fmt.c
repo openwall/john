@@ -43,6 +43,7 @@
 
 //#define TEST_SHA224
 #define MMX_LOAD SHA256_BUF_SIZ
+//#define REMOVE_TAIL_ADD
 
 #define FORMAT_LABEL              "raw-sha256-ng-i"
 #define ALGORITHM_NAME            SHA256_ALGORITHM_NAME
@@ -179,6 +180,28 @@ static void *get_binary (char *ciphertext)
 
     alter_endianity (out, BINARY_SIZE);
 
+#ifdef REMOVE_TAIL_ADD
+#ifdef TEST_SHA384
+    out->w[0] -= 0xcbbb9d5dc1059ed8ull;
+    out->w[1] -= 0x629a292a367cd507ull;
+    out->w[2] -= 0x9159015a3070dd17ull;
+    out->w[3] -= 0x152fecd8f70e5939ull;
+    out->w[4] -= 0x67332667ffc00b31ull;
+    out->w[5] -= 0x8eb44a8768581511ull;
+    out->w[6] -= 0xdb0c2e0d64f98fa7ull;
+    out->w[7] -= 0x47b5481dbefa4fa4ull;
+#else
+    out->w[0] -= 0x6a09e667f3bcc908ULL;
+    out->w[1] -= 0xbb67ae8584caa73bULL;
+    out->w[2] -= 0x3c6ef372fe94f82bULL;
+    out->w[3] -= 0xa54ff53a5f1d36f1ULL;
+    out->w[4] -= 0x510e527fade682d1ULL;
+    out->w[5] -= 0x9b05688c2b3e6c1fULL;
+    out->w[6] -= 0x1f83d9abfb41bd6bULL;
+    out->w[7] -= 0x5be0cd19137e2179ULL;
+#endif
+#endif
+
     return (void *) out;
 }
 
@@ -202,7 +225,7 @@ static int get_hash_6 (int index) { return crypt_key[index>>(MMX_COEF_SHA256>>1)
 #ifdef MMX_LOAD
 static void set_key(char *key, int index) {
 	const ARCH_WORD_32 *wkey = (ARCH_WORD_32*)key;
-	ARCH_WORD_32 *keybuffer = &((ARCH_WORD_32 *)saved_key)[(index&(MMX_COEF-1)) + (index>>(MMX_COEF>>1))*MMX_LOAD*MMX_COEF];
+	ARCH_WORD_32 *keybuffer = &((ARCH_WORD_32 *)saved_key)[(index&(MMX_COEF_SHA256-1)) + (index>>(MMX_COEF_SHA256>>1))*MMX_LOAD*MMX_COEF_SHA256];
 	ARCH_WORD_32 *keybuf_word = keybuffer;
 	unsigned int len;
 	ARCH_WORD_32 temp;
@@ -229,17 +252,17 @@ static void set_key(char *key, int index) {
 		}
 		*keybuf_word = JOHNSWAP(temp);
 		len += 4;
-		keybuf_word += MMX_COEF;
+		keybuf_word += MMX_COEF_SHA256;
 	}
 	*keybuf_word = 0x80000000;
 
 key_cleaning:
-	keybuf_word += MMX_COEF;
+	keybuf_word += MMX_COEF_SHA256;
 	while(*keybuf_word) {
 		*keybuf_word = 0;
-		keybuf_word += MMX_COEF;
+		keybuf_word += MMX_COEF_SHA256;
 	}
-	keybuffer[15*MMX_COEF] = len << 3;
+	keybuffer[15*MMX_COEF_SHA256] = len << 3;
 }
 #else
 static void set_key (char *key, int index)
@@ -267,7 +290,7 @@ static char *get_key(int index) {
 	static char out[64];
 	unsigned char *wucp = (unsigned char*)saved_key;
 
-	s = ((ARCH_WORD_32 *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*MMX_LOAD*MMX_COEF] >> 3;
+	s = ((ARCH_WORD_32 *)saved_key)[15*MMX_COEF_SHA256 + (index&3) + (index>>2)*MMX_LOAD*MMX_COEF_SHA256] >> 3;
 	for(i=0;i<s;i++)
 		out[i] = wucp[ GETPOS(i, index) ];
 	out[i] = 0;
@@ -304,17 +327,33 @@ static void crypt_all (int count)
     for (i = 0; i < count; i += MMX_COEF_SHA256)
 #endif
     {
-#ifdef MMX_LOAD
- #ifdef TEST_SHA224
-	SSESHA256body(&saved_key[i/MMX_COEF_SHA256], crypt_key[i/MMX_COEF_SHA256], NULL, SHA256_MIXED_IN|SHA256_CRYPT_SHA224);
+#ifdef REMOVE_TAIL_ADD
+ #ifdef MMX_LOAD
+  #ifdef TEST_SHA224
+	SSESHA256body(&saved_key[i/MMX_COEF_SHA256], crypt_key[i/MMX_COEF_SHA256], NULL, SSEi_MIXED_IN|SSEi_CRYPT_SHA224|SSEi_SKIP_FINAL_ADD);
+  #else
+	SSESHA256body(&saved_key[i/MMX_COEF_SHA256], crypt_key[i/MMX_COEF_SHA256], NULL, SSEi_MIXED_IN|SSEi_SKIP_FINAL_ADD);
+  #endif
  #else
-	SSESHA256body(&saved_key[i/MMX_COEF_SHA256], crypt_key[i/MMX_COEF_SHA256], NULL, SHA256_MIXED_IN);
+  #ifdef TEST_SHA224
+		SSESHA256body(&saved_key[i], crypt_key[i/MMX_COEF_SHA256], NULL, SSEi_FLAT_IN|SSEi_CRYPT_SHA224|SSEi_SKIP_FINAL_ADD);
+  #else
+		SSESHA256body(&saved_key[i], crypt_key[i/MMX_COEF_SHA256], NULL, SSEi_FLAT_IN|SSEi_SKIP_FINAL_ADD);
+  #endif
  #endif
 #else
- #ifdef TEST_SHA224
-		SSESHA256body(&saved_key[i], crypt_key[i/MMX_COEF_SHA256], NULL, SHA256_FLAT_IN|SHA256_CRYPT_SHA224);
+ #ifdef MMX_LOAD
+  #ifdef TEST_SHA224
+	SSESHA256body(&saved_key[i/MMX_COEF_SHA256], crypt_key[i/MMX_COEF_SHA256], NULL, SSEi_MIXED_IN|SSEi_CRYPT_SHA224);
+  #else
+	SSESHA256body(&saved_key[i/MMX_COEF_SHA256], crypt_key[i/MMX_COEF_SHA256], NULL, SSEi_MIXED_IN);
+  #endif
  #else
-		SSESHA256body(&saved_key[i], crypt_key[i/MMX_COEF_SHA256], NULL, SHA256_FLAT_IN);
+  #ifdef TEST_SHA224
+		SSESHA256body(&saved_key[i], crypt_key[i/MMX_COEF_SHA256], NULL, SSEi_FLAT_IN|SSEi_CRYPT_SHA224);
+  #else
+		SSESHA256body(&saved_key[i], crypt_key[i/MMX_COEF_SHA256], NULL, SSEi_FLAT_IN);
+  #endif
  #endif
 #endif
 	}

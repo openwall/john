@@ -264,8 +264,8 @@ static void pbkdf2_sha256_sse(const unsigned char *K[MMX_COEF_SHA256], int KL[MM
 		// Here is the inner loop.  We loop from 1 to count.  iteration 0 was done in the ipad/opad computation.
 		for(i = 1; i < R; i++) {
 			int k;
-			SSESHA256body(o1,o1,i1, SHA256_RELOAD);
-			SSESHA256body(o1,o1,i2, SHA256_RELOAD);
+			SSESHA256body(o1,o1,i1, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
+			SSESHA256body(o1,o1,i2, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 			// only xor first 16 bytes, since that is ALL this format uses
 			for (k = 0; k < SSE_GROUP_SZ_SHA256; k++) {
 				ARCH_WORD_32 *p = &o1[(k/MMX_COEF_SHA256)*MMX_COEF_SHA256*SHA256_BUF_SIZ + (k&(MMX_COEF_SHA256-1))];

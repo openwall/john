@@ -247,14 +247,14 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef SHA1_SSE_PARA
 	unsigned int i;
 
-	SSESHA1body(saved_key, (unsigned int *)crypt_key, NULL, 0);
+	SSESHA1body(saved_key, (unsigned int *)crypt_key, NULL, SSEi_MIXED_IN);
 
 	for (i = 0; i < SHA1_SSE_PARA; i++)
 		memcpy(&interm_key[i*SHA_BUF_SIZ*4*MMX_COEF],
 		       &crypt_key[i*BINARY_SIZE*MMX_COEF],
 		       MMX_COEF*BINARY_SIZE);
 
-	SSESHA1body(interm_key, (unsigned int *)crypt_key, NULL, 0);
+	SSESHA1body(interm_key, (unsigned int *)crypt_key, NULL, SSEi_MIXED_IN);
 
 #else
 	shammx_nosizeupdate_nofinalbyteswap((unsigned char *) crypt_key, (unsigned char *) saved_key, 1);

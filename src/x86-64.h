@@ -291,6 +291,6 @@
 #define NT_X86_64
 
 #define MMX_COEF_SHA256 4
-//#define MMX_COEF_SHA512 2
+#define MMX_COEF_SHA512 2
 
 #endif

@@ -1,5 +1,4 @@
 /*
- *
  * This code release under the following terms:
  * No copyright is claimed, and the software is hereby placed in the public domain.
  * In case this attempt to disclaim copyright and place the software in the public
@@ -19,6 +18,7 @@
 #include "arch.h"
 #include "sha2.h"
 #include "stdint.h"
+#include "johnswap.h"
 #include "sse-intrinsics.h"
 
 #ifndef SHA512_CBLOCK
@@ -98,9 +98,11 @@ static void _pbkdf2_sha512(const unsigned char *S, int SL, int R, ARCH_WORD_64 *
 #endif
 		SHA512_Update(&ctx, tmp_hash, SHA512_DIGEST_LENGTH);
 		SHA512_Final(tmp_hash, &ctx);
+
 		for(j = 0; j < SHA512_DIGEST_LENGTH/sizeof(ARCH_WORD_64); j++)
 			out[j] ^= ((ARCH_WORD_64*)tmp_hash)[j];
 	}
+
 }
 
 static void pbkdf2_sha512(const unsigned char *K, int KL, unsigned char *S, int SL, int R, unsigned char *out, int outlen, int skip_bytes)
@@ -116,13 +118,14 @@ static void pbkdf2_sha512(const unsigned char *K, int KL, unsigned char *S, int 
 
 	loops = (skip_bytes + outlen + (SHA512_DIGEST_LENGTH-1)) / SHA512_DIGEST_LENGTH;
 	loop = skip_bytes / SHA512_DIGEST_LENGTH + 1;
+
 	while (loop <= loops) {
 		_pbkdf2_sha512(S,SL,R,tmp.x64,loop,&ipad,&opad);
 		for (i = skip_bytes%SHA512_DIGEST_LENGTH; i < SHA512_DIGEST_LENGTH && accum < outlen; i++) {
 #if ARCH_LITTLE_ENDIAN
 			out[accum++] = ((uint8_t*)tmp.out)[i];
 #else
-			out[accum++] = ((uint8_t*)tmp.out)[i^3];
+			out[accum++] = ((uint8_t*)tmp.out)[i^7];
 #endif
 		}
 		loop++;
@@ -184,7 +187,7 @@ static void pbkdf2_sha512_sse(const unsigned char *K[MMX_COEF_SHA512], int KL[MM
 	unsigned char tmp_hash[SHA512_DIGEST_LENGTH];
 	ARCH_WORD_64 *i1, *i2, *o1, *ptmp;
 	int i,j;
-	ARCH_WORD_64 dgst[SSE_GROUP_SZ_SHA512][8];
+	ARCH_WORD_64 dgst[SSE_GROUP_SZ_SHA512][SHA512_DIGEST_LENGTH/sizeof(ARCH_WORD_64)];
 	int loops, accum=0;
 	unsigned char loop;
 	SHA512_CTX ipad[SSE_GROUP_SZ_SHA512], opad[SSE_GROUP_SZ_SHA512], ctx;
@@ -204,7 +207,7 @@ static void pbkdf2_sha512_sse(const unsigned char *K[MMX_COEF_SHA512], int KL[MM
 	for (j = 0; j < SSE_GROUP_SZ_SHA512/MMX_COEF_SHA512; ++j) {
 		ptmp = &o1[j*MMX_COEF_SHA512*SHA512_BUF_SIZ];
 		for (i = 0; i < MMX_COEF_SHA512; ++i)
-			ptmp[ (SHA512_DIGEST_LENGTH/sizeof(ARCH_WORD_64))*MMX_COEF_SHA512 + (i&(MMX_COEF_SHA512-1))] = 0x80000000;
+			ptmp[ (SHA512_DIGEST_LENGTH/sizeof(ARCH_WORD_64))*MMX_COEF_SHA512 + (i&(MMX_COEF_SHA512-1))] = 0x8000000000000000ULL;
 		for (i = (SHA512_DIGEST_LENGTH/sizeof(ARCH_WORD_64)+1)*MMX_COEF_SHA512; i < 15*MMX_COEF_SHA512; ++i)
 			ptmp[i] = 0;
 		for (i = 0; i < MMX_COEF_SHA512; ++i)
@@ -235,7 +238,7 @@ static void pbkdf2_sha512_sse(const unsigned char *K[MMX_COEF_SHA512], int KL[MM
 			memcpy(&ctx, &ipad[j], sizeof(ctx));
 			SHA512_Update(&ctx, S, SL);
 			// this BE 1 appended to the salt, allows us to do passwords up
-			// to and including 64 bytes long.  If we wanted longer passwords,
+			// to and including 128 bytes long.  If we wanted longer passwords,
 			// then we would have to call the HMAC multiple times (with the
 			// rounds between, but each chunk of password we would use a larger
 			// BE number appended to the salt. The first roung (64 byte pw), and
@@ -261,8 +264,8 @@ static void pbkdf2_sha512_sse(const unsigned char *K[MMX_COEF_SHA512], int KL[MM
 		// Here is the inner loop.  We loop from 1 to count.  iteration 0 was done in the ipad/opad computation.
 		for(i = 1; i < R; i++) {
 			int k;
-			SSESHA512body(o1,o1,i1, SHA512_RELOAD);
-			SSESHA512body(o1,o1,i2, SHA512_RELOAD);
+			SSESHA512body(o1,o1,i1, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
+			SSESHA512body(o1,o1,i2, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 			// only xor first 16 bytes, since that is ALL this format uses
 			for (k = 0; k < SSE_GROUP_SZ_SHA512; k++) {
 				ARCH_WORD_64 *p = &o1[(k/MMX_COEF_SHA512)*MMX_COEF_SHA512*SHA512_BUF_SIZ + (k&(MMX_COEF_SHA512-1))];
@@ -273,14 +276,10 @@ static void pbkdf2_sha512_sse(const unsigned char *K[MMX_COEF_SHA512], int KL[MM
 
 		// we must fixup final results.  We have been working in BE (NOT switching out of, just to switch back into it at every loop).
 		// for the 'very' end of the crypt, we remove BE logic, so the calling function can view it in native format.
-		alter_endianity(dgst, sizeof(dgst));
+		alter_endianity_to_BE64(dgst, sizeof(dgst)/8);
 		for (i = skip_bytes%SHA512_DIGEST_LENGTH; i < SHA512_DIGEST_LENGTH && accum < outlen; ++i) {
 			for (j = 0; j < SSE_GROUP_SZ_SHA512; ++j) {
-#if ARCH_LITTLE_ENDIAN
 				out[j][accum] = ((unsigned char*)(dgst[j]))[i];
-#else
-				out[j][accum] = ((unsigned char*)(dgst[j]))[i^3];
-#endif
 			}
 			++accum;
 		}

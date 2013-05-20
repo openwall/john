@@ -64,7 +64,7 @@ void SSEmd4body(__m128i* data, unsigned int * out, int init);
 #endif
 
 #ifdef SHA1_SSE_PARA
-void SSESHA1body(__m128i* data, unsigned int * out, unsigned int * reload_state, int input_layout_output); // if reload_state null, then 'normal' init performed.
+void SSESHA1body(__m128i* data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, unsigned SSEi_flags);
 #define SHA1_SSE_type			SSE_type
 #define SHA1_ALGORITHM_NAME		"128/128 " SHA1_SSE_type " " SHA1_N_STR
 #elif defined(MMX_COEF) && MMX_COEF == 4
@@ -98,16 +98,16 @@ void SSESHA1body(__m128i* data, unsigned int * out, unsigned int * reload_state,
 
 #ifdef MMX_COEF_SHA256
 #define SHA256_ALGORITHM_NAME	"128/128 " SIMD_TYPE " intrinsics " STRINGIZE(MMX_COEF_SHA256)"x"
-void SSESHA256body(__m128i* data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload, int sha256_flags);
+void SSESHA256body(__m128i* data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, unsigned SSEi_flags);
 #define SHA256_BUF_SIZ 16
 #define SHA256_SSE_PARA 1
 #endif
 
 #ifdef MMX_COEF_SHA512
 #define SHA512_ALGORITHM_NAME	"128/128 " SIMD_TYPE " intrinsics " STRINGIZE(MMX_COEF_SHA512)"x"
-void SSESHA512body(__m128i* data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload, int sha512_flags);
-// ????
-#define SHA512_BUF_SIZ 32
+void SSESHA512body(__m128i* data, ARCH_WORD_64 *out, ARCH_WORD_64 *reload_state, unsigned SSEi_flags);
+// ????  (16 long longs).
+#define SHA512_BUF_SIZ 16
 #define SHA512_SSE_PARA 1
 #endif
 

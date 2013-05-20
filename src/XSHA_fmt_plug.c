@@ -377,7 +377,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		for (j=0; j < NBKEYS; j++)
 			in[(j&(MMX_COEF-1)) + (j>>(MMX_COEF>>1))*SHA_BUF_SIZ*MMX_COEF] = cur_salt;
 #ifdef SHA1_SSE_PARA
-		SSESHA1body(in, out, NULL, 0);
+		SSESHA1body(in, out, NULL, SSEi_MIXED_IN);
 #else
 		shammx_nosizeupdate_nofinalbyteswap((unsigned char*)out, (unsigned char*)in, 1);
 #endif

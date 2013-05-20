@@ -478,7 +478,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		}
 
 #if SHA1_SSE_PARA
-		SSESHA1body(&saved_key[0][t*SHA_BUF_SIZ*4*NBKEYS], (unsigned int*)&crypt_key[t*20*NBKEYS], NULL, 0);
+		SSESHA1body(&saved_key[0][t*SHA_BUF_SIZ*4*NBKEYS], (unsigned int*)&crypt_key[t*20*NBKEYS], NULL, SSEi_MIXED_IN);
 #else
 		shammx_nosizeupdate_nofinalbyteswap(crypt_key, saved_key[0], 1);
 #endif
@@ -487,7 +487,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		if (longest > 55) {
 			memcpy(&interm_crypt[t*20*NBKEYS], &crypt_key[t*20*NBKEYS], 20*NBKEYS);
 #if SHA1_SSE_PARA
-			SSESHA1body(&saved_key[1][t*SHA_BUF_SIZ*4*NBKEYS], (unsigned int*)&interm_crypt[t*20*NBKEYS], (unsigned int*)&interm_crypt[t*20*NBKEYS], 0);
+			SSESHA1body(&saved_key[1][t*SHA_BUF_SIZ*4*NBKEYS], (unsigned int*)&interm_crypt[t*20*NBKEYS], (unsigned int*)&interm_crypt[t*20*NBKEYS], SSEi_MIXED_IN|SSEi_RELOAD);
 #else
 			shammx_reloadinit_nosizeupdate_nofinalbyteswap(interm_crypt, saved_key[1], interm_crypt);
 #endif
@@ -544,7 +544,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		}
 
 #if SHA1_SSE_PARA
-		SSESHA1body(&saved_key[0][t*SHA_BUF_SIZ*4*NBKEYS], (unsigned int*)&interm_crypt[t*20*NBKEYS], NULL, 0);
+		SSESHA1body(&saved_key[0][t*SHA_BUF_SIZ*4*NBKEYS], (unsigned int*)&interm_crypt[t*20*NBKEYS], NULL, SSEi_MIXED_IN);
 #else
 		shammx_nosizeupdate_nofinalbyteswap(interm_crypt, saved_key[0], 1);
 #endif
@@ -557,7 +557,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		// Do another and possibly a third limb
 		for (i = 1; i < (((longest + 8) >> 6) + 1); i++) {
 #if SHA1_SSE_PARA
-			SSESHA1body(&saved_key[i][t*SHA_BUF_SIZ*4*NBKEYS], (unsigned int*)&interm_crypt[t*20*NBKEYS], (unsigned int*)&interm_crypt[t*20*NBKEYS], 0);
+			SSESHA1body(&saved_key[i][t*SHA_BUF_SIZ*4*NBKEYS], (unsigned int*)&interm_crypt[t*20*NBKEYS], (unsigned int*)&interm_crypt[t*20*NBKEYS], SSEi_MIXED_IN|SSEi_RELOAD);
 #else
 			shammx_reloadinit_nosizeupdate_nofinalbyteswap(interm_crypt, saved_key[i], interm_crypt);
 #endif

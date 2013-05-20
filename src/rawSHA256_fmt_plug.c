@@ -327,7 +327,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	{
 #ifdef MMX_COEF_SHA256
-		SSESHA256body(&saved_key[index/MMX_COEF_SHA256], crypt_out[index/MMX_COEF_SHA256], NULL, SHA256_MIXED_IN);
+		SSESHA256body(&saved_key[index/MMX_COEF_SHA256], crypt_out[index/MMX_COEF_SHA256], NULL, SSEi_MIXED_IN);
 #else
 		SHA256_CTX ctx;
 		SHA256_Init(&ctx);

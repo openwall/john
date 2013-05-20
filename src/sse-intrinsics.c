@@ -689,7 +689,7 @@ void SSEmd4body(__m128i* data, unsigned int * out, int init)
 	SHA1_PARA_DO(i) e[i] = _mm_add_epi32( e[i], data[i*80+t] ); \
 	SHA1_PARA_DO(i) b[i] = _mm_roti_epi32(b[i], 30);
 
-void SSESHA1body(__m128i* data, unsigned int * out, unsigned int * reload_state, int input_layout_output)
+void SSESHA1body(__m128i* data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, unsigned SSEi_flags)
 {
 	__m128i a[SHA1_SSE_PARA];
 	__m128i b[SHA1_SSE_PARA];
@@ -706,7 +706,7 @@ void SSESHA1body(__m128i* data, unsigned int * out, unsigned int * reload_state,
 		SHA1_EXPAND(j);
 	}
 
-	if(!reload_state)
+	if((SSEi_flags & SSEi_RELOAD)==0)
 	{
 		SHA1_PARA_DO(i)
 		{
@@ -719,13 +719,27 @@ void SSESHA1body(__m128i* data, unsigned int * out, unsigned int * reload_state,
 	}
 	else
 	{
-		SHA1_PARA_DO(i)
+		if ((SSEi_flags & SSEi_RELOAD_INP_FMT)==SSEi_RELOAD_INP_FMT)
 		{
-			a[i] = _mm_load_si128((__m128i *)&reload_state[i*20+0]);
-			b[i] = _mm_load_si128((__m128i *)&reload_state[i*20+4]);
-			c[i] = _mm_load_si128((__m128i *)&reload_state[i*20+8]);
-			d[i] = _mm_load_si128((__m128i *)&reload_state[i*20+12]);
-			e[i] = _mm_load_si128((__m128i *)&reload_state[i*20+16]);
+			SHA1_PARA_DO(i)
+			{
+				a[i] = _mm_load_si128((__m128i *)&reload_state[i*80*4+0]);
+				b[i] = _mm_load_si128((__m128i *)&reload_state[i*80*4+4]);
+				c[i] = _mm_load_si128((__m128i *)&reload_state[i*80*4+8]);
+				d[i] = _mm_load_si128((__m128i *)&reload_state[i*80*4+12]);
+				e[i] = _mm_load_si128((__m128i *)&reload_state[i*80*4+16]);
+			}
+		}
+		else
+		{
+			SHA1_PARA_DO(i)
+			{
+				a[i] = _mm_load_si128((__m128i *)&reload_state[i*20+0]);
+				b[i] = _mm_load_si128((__m128i *)&reload_state[i*20+4]);
+				c[i] = _mm_load_si128((__m128i *)&reload_state[i*20+8]);
+				d[i] = _mm_load_si128((__m128i *)&reload_state[i*20+12]);
+				e[i] = _mm_load_si128((__m128i *)&reload_state[i*20+16]);
+			}
 		}
 	}
 
@@ -817,7 +831,7 @@ void SSESHA1body(__m128i* data, unsigned int * out, unsigned int * reload_state,
 	SHA1_ROUND( c, d, e, a, b, SHA1_I, 78 );
 	SHA1_ROUND( b, c, d, e, a, SHA1_I, 79 );
 
-	if(!reload_state)
+	if((SSEi_flags & SSEi_RELOAD)==0)
 	{
 		SHA1_PARA_DO(i)
 		{
@@ -830,16 +844,30 @@ void SSESHA1body(__m128i* data, unsigned int * out, unsigned int * reload_state,
 	}
 	else
 	{
-		SHA1_PARA_DO(i)
+		if ((SSEi_flags & SSEi_RELOAD_INP_FMT)==SSEi_RELOAD_INP_FMT)
 		{
-			a[i] = _mm_add_epi32(a[i], _mm_load_si128((__m128i *)&reload_state[i*20+0]));
-			b[i] = _mm_add_epi32(b[i], _mm_load_si128((__m128i *)&reload_state[i*20+4]));
-			c[i] = _mm_add_epi32(c[i], _mm_load_si128((__m128i *)&reload_state[i*20+8]));
-			d[i] = _mm_add_epi32(d[i], _mm_load_si128((__m128i *)&reload_state[i*20+12]));
-			e[i] = _mm_add_epi32(e[i], _mm_load_si128((__m128i *)&reload_state[i*20+16]));
+			SHA1_PARA_DO(i)
+			{
+				a[i] = _mm_add_epi32(a[i], _mm_load_si128((__m128i *)&reload_state[i*80*4+0]));
+				b[i] = _mm_add_epi32(b[i], _mm_load_si128((__m128i *)&reload_state[i*80*4+4]));
+				c[i] = _mm_add_epi32(c[i], _mm_load_si128((__m128i *)&reload_state[i*80*4+8]));
+				d[i] = _mm_add_epi32(d[i], _mm_load_si128((__m128i *)&reload_state[i*80*4+12]));
+				e[i] = _mm_add_epi32(e[i], _mm_load_si128((__m128i *)&reload_state[i*80*4+16]));
+			}
+		}
+		else
+		{
+			SHA1_PARA_DO(i)
+			{
+				a[i] = _mm_add_epi32(a[i], _mm_load_si128((__m128i *)&reload_state[i*20+0]));
+				b[i] = _mm_add_epi32(b[i], _mm_load_si128((__m128i *)&reload_state[i*20+4]));
+				c[i] = _mm_add_epi32(c[i], _mm_load_si128((__m128i *)&reload_state[i*20+8]));
+				d[i] = _mm_add_epi32(d[i], _mm_load_si128((__m128i *)&reload_state[i*20+12]));
+				e[i] = _mm_add_epi32(e[i], _mm_load_si128((__m128i *)&reload_state[i*20+16]));
+			}
 		}
 	}
-	if (input_layout_output)
+	if (SSEi_flags & SSEi_OUTPUT_AS_INP_FMT)
 	{
 		SHA1_PARA_DO(i)
 		{
@@ -947,7 +975,7 @@ void SSESHA1body(__m128i* data, unsigned int * out, unsigned int * reload_state,
 	SHA1_PARA_DO(i) e[i] = _mm_add_epi32( e[i], tmpR[i*16+(t&0xF)] ); \
 	SHA1_PARA_DO(i) b[i] = _mm_roti_epi32(b[i], 30);
 
-void SSESHA1body(__m128i* data, unsigned int * out, unsigned int * reload_state, int input_layout_output)
+void SSESHA1body(__m128i* data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, unsigned SSEi_flags)
 {
 	__m128i a[SHA1_SSE_PARA];
 	__m128i b[SHA1_SSE_PARA];
@@ -961,7 +989,7 @@ void SSESHA1body(__m128i* data, unsigned int * out, unsigned int * reload_state,
 	__m128i	cst;
 	unsigned int i; // ,j;
 
-	if(!reload_state)
+	if((SSEi_flags & SSEi_RELOAD)==0)
 	{
 		SHA1_PARA_DO(i)
 		{
@@ -974,13 +1002,27 @@ void SSESHA1body(__m128i* data, unsigned int * out, unsigned int * reload_state,
 	}
 	else
 	{
-		SHA1_PARA_DO(i)
+		if ((SSEi_flags & SSEi_RELOAD_INP_FMT)==SSEi_RELOAD_INP_FMT)
 		{
-			a[i] = _mm_load_si128((__m128i *)&reload_state[i*20+0]);
-			b[i] = _mm_load_si128((__m128i *)&reload_state[i*20+4]);
-			c[i] = _mm_load_si128((__m128i *)&reload_state[i*20+8]);
-			d[i] = _mm_load_si128((__m128i *)&reload_state[i*20+12]);
-			e[i] = _mm_load_si128((__m128i *)&reload_state[i*20+16]);
+			SHA1_PARA_DO(i)
+			{
+				a[i] = _mm_load_si128((__m128i *)&reload_state[i*16*4+0]);
+				b[i] = _mm_load_si128((__m128i *)&reload_state[i*16*4+4]);
+				c[i] = _mm_load_si128((__m128i *)&reload_state[i*16*4+8]);
+				d[i] = _mm_load_si128((__m128i *)&reload_state[i*16*4+12]);
+				e[i] = _mm_load_si128((__m128i *)&reload_state[i*16*4+16]);
+			}
+		}
+		else
+		{
+			SHA1_PARA_DO(i)
+			{
+				a[i] = _mm_load_si128((__m128i *)&reload_state[i*20+0]);
+				b[i] = _mm_load_si128((__m128i *)&reload_state[i*20+4]);
+				c[i] = _mm_load_si128((__m128i *)&reload_state[i*20+8]);
+				d[i] = _mm_load_si128((__m128i *)&reload_state[i*20+12]);
+				e[i] = _mm_load_si128((__m128i *)&reload_state[i*20+16]);
+			}
 		}
 	}
 
@@ -1072,7 +1114,7 @@ void SSESHA1body(__m128i* data, unsigned int * out, unsigned int * reload_state,
 	SHA1_ROUND2x( c, d, e, a, b, SHA1_I, 78 );
 	SHA1_ROUND2x( b, c, d, e, a, SHA1_I, 79 );
 
-	if(!reload_state)
+	if((SSEi_flags & SSEi_RELOAD)==0)
 	{
 		SHA1_PARA_DO(i)
 		{
@@ -1085,16 +1127,30 @@ void SSESHA1body(__m128i* data, unsigned int * out, unsigned int * reload_state,
 	}
 	else
 	{
-		SHA1_PARA_DO(i)
+		if ((SSEi_flags & SSEi_RELOAD_INP_FMT)==SSEi_RELOAD_INP_FMT)
 		{
-			a[i] = _mm_add_epi32(a[i], _mm_load_si128((__m128i *)&reload_state[i*20+0]));
-			b[i] = _mm_add_epi32(b[i], _mm_load_si128((__m128i *)&reload_state[i*20+4]));
-			c[i] = _mm_add_epi32(c[i], _mm_load_si128((__m128i *)&reload_state[i*20+8]));
-			d[i] = _mm_add_epi32(d[i], _mm_load_si128((__m128i *)&reload_state[i*20+12]));
-			e[i] = _mm_add_epi32(e[i], _mm_load_si128((__m128i *)&reload_state[i*20+16]));
+			SHA1_PARA_DO(i)
+			{
+				a[i] = _mm_add_epi32(a[i], _mm_load_si128((__m128i *)&reload_state[i*16*4+0]));
+				b[i] = _mm_add_epi32(b[i], _mm_load_si128((__m128i *)&reload_state[i*16*4+4]));
+				c[i] = _mm_add_epi32(c[i], _mm_load_si128((__m128i *)&reload_state[i*16*4+8]));
+				d[i] = _mm_add_epi32(d[i], _mm_load_si128((__m128i *)&reload_state[i*16*4+12]));
+				e[i] = _mm_add_epi32(e[i], _mm_load_si128((__m128i *)&reload_state[i*16*4+16]));
+			}
+		}
+		else
+		{
+			SHA1_PARA_DO(i)
+			{
+				a[i] = _mm_add_epi32(a[i], _mm_load_si128((__m128i *)&reload_state[i*20+0]));
+				b[i] = _mm_add_epi32(b[i], _mm_load_si128((__m128i *)&reload_state[i*20+4]));
+				c[i] = _mm_add_epi32(c[i], _mm_load_si128((__m128i *)&reload_state[i*20+8]));
+				d[i] = _mm_add_epi32(d[i], _mm_load_si128((__m128i *)&reload_state[i*20+12]));
+				e[i] = _mm_add_epi32(e[i], _mm_load_si128((__m128i *)&reload_state[i*20+16]));
+			}
 		}
 	}
-	if (input_layout_output)
+	if (SSEi_flags & SSEi_OUTPUT_AS_INP_FMT)
 	{
 		SHA1_PARA_DO(i)
 		{
@@ -1119,255 +1175,6 @@ void SSESHA1body(__m128i* data, unsigned int * out, unsigned int * reload_state,
 }
 #endif /* SHA_BUF_SIZ */
 #endif /* SHA1_SSE_PARA */
-
-#if 0
-/* This is just copied here for now, from raw-sha256/512-ng formats
-   by epixoip, before we optimize stuff away :-) */
-
-#pragma GCC optimize 3
-
-/* SHA-512 below */
-
-#ifndef __XOP__
-#define _mm_roti_epi64(x, n)                                              \
-(                                                                         \
-    _mm_xor_si128 (                                                       \
-        _mm_srli_epi64(x, ~n + 1),                                        \
-        _mm_slli_epi64(x, 64 + n)                                         \
-    )                                                                     \
-)
-
-#define _mm_cmov_si128(y, z, x)                                           \
-(                                                                         \
-    _mm_xor_si128 (z,                                                     \
-        _mm_and_si128 (x,                                                 \
-            _mm_xor_si128 (y, z)                                          \
-        )                                                                 \
-    )                                                                     \
-)
-#endif
-
-#undef SWAP_ENDIAN
-#ifdef __SSSE3__
-#define SWAP_ENDIAN(n)                                                    \
-{                                                                         \
-    n = _mm_shuffle_epi8 (n,                                              \
-            _mm_set_epi64x (0x08090a0b0c0d0e0f, 0x0001020304050607)       \
-        );                                                                \
-}
-#else
-#define SWAP_ENDIAN(n)                                                    \
-{                                                                         \
-    n = _mm_shufflehi_epi16 (_mm_shufflelo_epi16 (n, 0xb1), 0xb1);        \
-    n = _mm_xor_si128 (_mm_slli_epi16 (n, 8), _mm_srli_epi16 (n, 8));     \
-    n = _mm_shuffle_epi32 (n, 0xb1);                                      \
-}
-#endif
-
-#undef GATHER
-#define GATHER(x,y,z)                                                     \
-{                                                                         \
-    x = _mm_set_epi64x (y[1][z], y[0][z]);                                \
-}
-
-#undef S0
-#define S0(x)                                                             \
-(                                                                         \
-    _mm_xor_si128 (                                                       \
-        _mm_roti_epi64 (x, -39),                                          \
-        _mm_xor_si128 (                                                   \
-            _mm_roti_epi64 (x, -28),                                      \
-            _mm_roti_epi64 (x, -34)                                       \
-        )                                                                 \
-    )                                                                     \
-)
-
-#undef S1
-#define S1(x)                                                             \
-(                                                                         \
-    _mm_xor_si128 (                                                       \
-        _mm_roti_epi64 (x, -41),                                          \
-        _mm_xor_si128 (                                                   \
-            _mm_roti_epi64 (x, -14),                                      \
-            _mm_roti_epi64 (x, -18)                                       \
-        )                                                                 \
-    )                                                                     \
-)
-
-#undef s0
-#define s0(x)                                                             \
-(                                                                         \
-    _mm_xor_si128 (                                                       \
-        _mm_srli_epi64 (x, 7),                                            \
-        _mm_xor_si128 (                                                   \
-            _mm_roti_epi64 (x, -1),                                       \
-            _mm_roti_epi64 (x, -8)                                        \
-        )                                                                 \
-    )                                                                     \
-)
-
-#undef s1
-#define s1(x)                                                             \
-(                                                                         \
-    _mm_xor_si128 (                                                       \
-        _mm_srli_epi64 (x, 6),                                            \
-        _mm_xor_si128 (                                                   \
-            _mm_roti_epi64 (x, -19),                                      \
-            _mm_roti_epi64 (x, -61)                                       \
-        )                                                                 \
-    )                                                                     \
-)
-
-#define Maj(x,y,z) _mm_cmov_si128 (x, y, _mm_xor_si128 (z, y))
-
-#define Ch(x,y,z)  _mm_cmov_si128 (y, z, x)
-
-#undef R
-#define R(t)                                                              \
-{                                                                         \
-    tmp1 = _mm_add_epi64 (s1(w[t -  2]), w[t - 7]);                       \
-    tmp2 = _mm_add_epi64 (s0(w[t - 15]), w[t - 16]);                      \
-    w[t] = _mm_add_epi64 (tmp1, tmp2);                                    \
-}
-
-#define SHA512_STEP(a,b,c,d,e,f,g,h,x,K)                                  \
-{                                                                         \
-    tmp1 = _mm_add_epi64 (h,    w[x]);                                    \
-    tmp2 = _mm_add_epi64 (S1(e),_mm_set1_epi64x(K));                      \
-    tmp1 = _mm_add_epi64 (tmp1, Ch(e,f,g));                               \
-    tmp1 = _mm_add_epi64 (tmp1, tmp2);                                    \
-    tmp2 = _mm_add_epi64 (S0(a),Maj(a,b,c));                              \
-    d    = _mm_add_epi64 (tmp1, d);                                       \
-    h    = _mm_add_epi64 (tmp1, tmp2);                                    \
-}
-
-void was_crypt_all_rawsha512(uint64_t **saved_key, uint64_t *crypt_key)
-{
-	int i;
-
-	__m128i a, b, c, d, e, f, g, h;
-	__m128i w[80], tmp1, tmp2;
-
-
-	for (i = 0; i < 14; i++) {
-		GATHER (tmp1, saved_key, i);
-		GATHER (tmp2, saved_key, i + 1);
-		SWAP_ENDIAN (tmp1);
-		SWAP_ENDIAN (tmp2);
-		w[i] = tmp1;
-		w[i + 1] = tmp2;
-	}
-	GATHER (tmp1, saved_key, 14);
-	SWAP_ENDIAN (tmp1);
-	w[14] = tmp1;
-	GATHER (w[15], saved_key, 15);
-	for (i = 16; i < 80; i++) R(i);
-
-	a = _mm_set1_epi64x (0x6a09e667f3bcc908);
-	b = _mm_set1_epi64x (0xbb67ae8584caa73b);
-	c = _mm_set1_epi64x (0x3c6ef372fe94f82b);
-	d = _mm_set1_epi64x (0xa54ff53a5f1d36f1);
-	e = _mm_set1_epi64x (0x510e527fade682d1);
-	f = _mm_set1_epi64x (0x9b05688c2b3e6c1f);
-	g = _mm_set1_epi64x (0x1f83d9abfb41bd6b);
-	h = _mm_set1_epi64x (0x5be0cd19137e2179);
-
-	SHA512_STEP(a, b, c, d, e, f, g, h,  0, 0x428a2f98d728ae22);
-	SHA512_STEP(h, a, b, c, d, e, f, g,  1, 0x7137449123ef65cd);
-	SHA512_STEP(g, h, a, b, c, d, e, f,  2, 0xb5c0fbcfec4d3b2f);
-	SHA512_STEP(f, g, h, a, b, c, d, e,  3, 0xe9b5dba58189dbbc);
-	SHA512_STEP(e, f, g, h, a, b, c, d,  4, 0x3956c25bf348b538);
-	SHA512_STEP(d, e, f, g, h, a, b, c,  5, 0x59f111f1b605d019);
-	SHA512_STEP(c, d, e, f, g, h, a, b,  6, 0x923f82a4af194f9b);
-	SHA512_STEP(b, c, d, e, f, g, h, a,  7, 0xab1c5ed5da6d8118);
-	SHA512_STEP(a, b, c, d, e, f, g, h,  8, 0xd807aa98a3030242);
-	SHA512_STEP(h, a, b, c, d, e, f, g,  9, 0x12835b0145706fbe);
-	SHA512_STEP(g, h, a, b, c, d, e, f, 10, 0x243185be4ee4b28c);
-	SHA512_STEP(f, g, h, a, b, c, d, e, 11, 0x550c7dc3d5ffb4e2);
-	SHA512_STEP(e, f, g, h, a, b, c, d, 12, 0x72be5d74f27b896f);
-	SHA512_STEP(d, e, f, g, h, a, b, c, 13, 0x80deb1fe3b1696b1);
-	SHA512_STEP(c, d, e, f, g, h, a, b, 14, 0x9bdc06a725c71235);
-	SHA512_STEP(b, c, d, e, f, g, h, a, 15, 0xc19bf174cf692694);
-
-	SHA512_STEP(a, b, c, d, e, f, g, h, 16, 0xe49b69c19ef14ad2);
-	SHA512_STEP(h, a, b, c, d, e, f, g, 17, 0xefbe4786384f25e3);
-	SHA512_STEP(g, h, a, b, c, d, e, f, 18, 0x0fc19dc68b8cd5b5);
-	SHA512_STEP(f, g, h, a, b, c, d, e, 19, 0x240ca1cc77ac9c65);
-	SHA512_STEP(e, f, g, h, a, b, c, d, 20, 0x2de92c6f592b0275);
-	SHA512_STEP(d, e, f, g, h, a, b, c, 21, 0x4a7484aa6ea6e483);
-	SHA512_STEP(c, d, e, f, g, h, a, b, 22, 0x5cb0a9dcbd41fbd4);
-	SHA512_STEP(b, c, d, e, f, g, h, a, 23, 0x76f988da831153b5);
-	SHA512_STEP(a, b, c, d, e, f, g, h, 24, 0x983e5152ee66dfab);
-	SHA512_STEP(h, a, b, c, d, e, f, g, 25, 0xa831c66d2db43210);
-	SHA512_STEP(g, h, a, b, c, d, e, f, 26, 0xb00327c898fb213f);
-	SHA512_STEP(f, g, h, a, b, c, d, e, 27, 0xbf597fc7beef0ee4);
-	SHA512_STEP(e, f, g, h, a, b, c, d, 28, 0xc6e00bf33da88fc2);
-	SHA512_STEP(d, e, f, g, h, a, b, c, 29, 0xd5a79147930aa725);
-	SHA512_STEP(c, d, e, f, g, h, a, b, 30, 0x06ca6351e003826f);
-	SHA512_STEP(b, c, d, e, f, g, h, a, 31, 0x142929670a0e6e70);
-
-	SHA512_STEP(a, b, c, d, e, f, g, h, 32, 0x27b70a8546d22ffc);
-	SHA512_STEP(h, a, b, c, d, e, f, g, 33, 0x2e1b21385c26c926);
-	SHA512_STEP(g, h, a, b, c, d, e, f, 34, 0x4d2c6dfc5ac42aed);
-	SHA512_STEP(f, g, h, a, b, c, d, e, 35, 0x53380d139d95b3df);
-	SHA512_STEP(e, f, g, h, a, b, c, d, 36, 0x650a73548baf63de);
-	SHA512_STEP(d, e, f, g, h, a, b, c, 37, 0x766a0abb3c77b2a8);
-	SHA512_STEP(c, d, e, f, g, h, a, b, 38, 0x81c2c92e47edaee6);
-	SHA512_STEP(b, c, d, e, f, g, h, a, 39, 0x92722c851482353b);
-	SHA512_STEP(a, b, c, d, e, f, g, h, 40, 0xa2bfe8a14cf10364);
-	SHA512_STEP(h, a, b, c, d, e, f, g, 41, 0xa81a664bbc423001);
-	SHA512_STEP(g, h, a, b, c, d, e, f, 42, 0xc24b8b70d0f89791);
-	SHA512_STEP(f, g, h, a, b, c, d, e, 43, 0xc76c51a30654be30);
-	SHA512_STEP(e, f, g, h, a, b, c, d, 44, 0xd192e819d6ef5218);
-	SHA512_STEP(d, e, f, g, h, a, b, c, 45, 0xd69906245565a910);
-	SHA512_STEP(c, d, e, f, g, h, a, b, 46, 0xf40e35855771202a);
-	SHA512_STEP(b, c, d, e, f, g, h, a, 47, 0x106aa07032bbd1b8);
-
-	SHA512_STEP(a, b, c, d, e, f, g, h, 48, 0x19a4c116b8d2d0c8);
-	SHA512_STEP(h, a, b, c, d, e, f, g, 49, 0x1e376c085141ab53);
-	SHA512_STEP(g, h, a, b, c, d, e, f, 50, 0x2748774cdf8eeb99);
-	SHA512_STEP(f, g, h, a, b, c, d, e, 51, 0x34b0bcb5e19b48a8);
-	SHA512_STEP(e, f, g, h, a, b, c, d, 52, 0x391c0cb3c5c95a63);
-	SHA512_STEP(d, e, f, g, h, a, b, c, 53, 0x4ed8aa4ae3418acb);
-	SHA512_STEP(c, d, e, f, g, h, a, b, 54, 0x5b9cca4f7763e373);
-	SHA512_STEP(b, c, d, e, f, g, h, a, 55, 0x682e6ff3d6b2b8a3);
-	SHA512_STEP(a, b, c, d, e, f, g, h, 56, 0x748f82ee5defb2fc);
-	SHA512_STEP(h, a, b, c, d, e, f, g, 57, 0x78a5636f43172f60);
-	SHA512_STEP(g, h, a, b, c, d, e, f, 58, 0x84c87814a1f0ab72);
-	SHA512_STEP(f, g, h, a, b, c, d, e, 59, 0x8cc702081a6439ec);
-	SHA512_STEP(e, f, g, h, a, b, c, d, 60, 0x90befffa23631e28);
-	SHA512_STEP(d, e, f, g, h, a, b, c, 61, 0xa4506cebde82bde9);
-	SHA512_STEP(c, d, e, f, g, h, a, b, 62, 0xbef9a3f7b2c67915);
-	SHA512_STEP(b, c, d, e, f, g, h, a, 63, 0xc67178f2e372532b);
-
-	SHA512_STEP(a, b, c, d, e, f, g, h, 64, 0xca273eceea26619c);
-	SHA512_STEP(h, a, b, c, d, e, f, g, 65, 0xd186b8c721c0c207);
-	SHA512_STEP(g, h, a, b, c, d, e, f, 66, 0xeada7dd6cde0eb1e);
-	SHA512_STEP(f, g, h, a, b, c, d, e, 67, 0xf57d4f7fee6ed178);
-	SHA512_STEP(e, f, g, h, a, b, c, d, 68, 0x06f067aa72176fba);
-	SHA512_STEP(d, e, f, g, h, a, b, c, 69, 0x0a637dc5a2c898a6);
-	SHA512_STEP(c, d, e, f, g, h, a, b, 70, 0x113f9804bef90dae);
-	SHA512_STEP(b, c, d, e, f, g, h, a, 71, 0x1b710b35131c471b);
-	SHA512_STEP(a, b, c, d, e, f, g, h, 72, 0x28db77f523047d84);
-	SHA512_STEP(h, a, b, c, d, e, f, g, 73, 0x32caab7b40c72493);
-	SHA512_STEP(g, h, a, b, c, d, e, f, 74, 0x3c9ebe0a15c9bebc);
-	SHA512_STEP(f, g, h, a, b, c, d, e, 75, 0x431d67c49c100d4c);
-	SHA512_STEP(e, f, g, h, a, b, c, d, 76, 0x4cc5d4becb3e42b6);
-	SHA512_STEP(d, e, f, g, h, a, b, c, 77, 0x597f299cfc657e2a);
-	SHA512_STEP(c, d, e, f, g, h, a, b, 78, 0x5fcb6fab3ad6faec);
-	SHA512_STEP(b, c, d, e, f, g, h, a, 79, 0x6c44198c4a475817);
-
-	_mm_store_si128 ((__m128i *) &crypt_key[0], a);
-	_mm_store_si128 ((__m128i *) &crypt_key[1], b);
-	_mm_store_si128 ((__m128i *) &crypt_key[2], c);
-	_mm_store_si128 ((__m128i *) &crypt_key[3], d);
-	_mm_store_si128 ((__m128i *) &crypt_key[4], e);
-	_mm_store_si128 ((__m128i *) &crypt_key[5], f);
-	_mm_store_si128 ((__m128i *) &crypt_key[6], g);
-	_mm_store_si128 ((__m128i *) &crypt_key[7], h);
-}
-#endif /* 0 */
-
 
 // #pragma GCC optimize 3
 
@@ -1534,14 +1341,14 @@ void was_crypt_all_rawsha512(uint64_t **saved_key, uint64_t *crypt_key)
  *  7. See if we can do anything better using 'DO_PARA' type methods, like we do in SHA1/MD4/5
  */
 #if defined (MMX_COEF_SHA256)
-void SSESHA256body(__m128i *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload, int sha256_flags)
+void SSESHA256body(__m128i *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, unsigned SSEi_flags)
 {
 	__m128i a, b, c, d, e, f, g, h;
 	__m128i _w[16], tmp1, tmp2, *w=_w;
 	ARCH_WORD_32 *saved_key=0;
 
 	int i;
-	if (sha256_flags & SHA256_FLAT_IN) {
+	if (SSEi_flags & SSEi_FLAT_IN) {
 #ifdef __SSE4_1__
 		saved_key = (ARCH_WORD_32 *)data;
 		for (i=0; i < 14; ++i) { GATHER (w[i], saved_key, i); SWAP_ENDIAN (w[i]); }
@@ -1561,23 +1368,61 @@ void SSESHA256body(__m128i *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload, int s
 		memcpy(w, data, 16*sizeof(__m128i));
 
 
-	if (sha256_flags & SHA256_RELOAD) {
-		__m128i *p = (__m128i *)reload;
-		a=p[0]; b=p[1]; c=p[2]; d=p[3];
-		e=p[4]; f=p[5]; g=p[6]; h=p[7];
+	if (SSEi_flags & SSEi_RELOAD) {
+		if ((SSEi_flags & SSEi_RELOAD_INP_FMT)==SSEi_RELOAD_INP_FMT)
+		{
+			i=0; // later if we do PARA, i will be used in the PARA_FOR loop
+			a = _mm_load_si128((__m128i *)&reload_state[i*64*2+0]);
+			b = _mm_load_si128((__m128i *)&reload_state[i*64*2+4]);
+			c = _mm_load_si128((__m128i *)&reload_state[i*64*2+8]);
+			d = _mm_load_si128((__m128i *)&reload_state[i*64*2+12]);
+			e = _mm_load_si128((__m128i *)&reload_state[i*64*2+16]);
+			f = _mm_load_si128((__m128i *)&reload_state[i*64*2+20]);
+			g = _mm_load_si128((__m128i *)&reload_state[i*64*2+24]);
+			h = _mm_load_si128((__m128i *)&reload_state[i*64*2+28]);
+		}
+		else
+		{
+			i=0;
+			a = _mm_load_si128((__m128i *)&reload_state[i*32+0]);
+			b = _mm_load_si128((__m128i *)&reload_state[i*32+4]);
+			c = _mm_load_si128((__m128i *)&reload_state[i*32+8]);
+			d = _mm_load_si128((__m128i *)&reload_state[i*32+12]);
+			e = _mm_load_si128((__m128i *)&reload_state[i*32+16]);
+			f = _mm_load_si128((__m128i *)&reload_state[i*32+20]);
+			g = _mm_load_si128((__m128i *)&reload_state[i*32+24]);
+			h = _mm_load_si128((__m128i *)&reload_state[i*32+28]);
+		}
+//		__m128i *p = (__m128i *)reload_state;
+//		a=p[0];
+//		b=p[1];
+//		c=p[2];
+//		d=p[3];
+//		e=p[4];
+//		f=p[5];
+//		g=p[6];
+//		h=p[7];
 	} else {
-		if (sha256_flags & SHA256_CRYPT_SHA224) {
+		if (SSEi_flags & SSEi_CRYPT_SHA224) {
 			/* SHA-224 IV */
-			a = _mm_set1_epi32 (0xc1059ed8); b = _mm_set1_epi32 (0x367cd507);
-			c = _mm_set1_epi32 (0x3070dd17); d = _mm_set1_epi32 (0xf70e5939);
-			e = _mm_set1_epi32 (0xffc00b31); f = _mm_set1_epi32 (0x68581511);
-			g = _mm_set1_epi32 (0x64f98fa7); h = _mm_set1_epi32 (0xbefa4fa4);
+			a = _mm_set1_epi32 (0xc1059ed8);
+			b = _mm_set1_epi32 (0x367cd507);
+			c = _mm_set1_epi32 (0x3070dd17);
+			d = _mm_set1_epi32 (0xf70e5939);
+			e = _mm_set1_epi32 (0xffc00b31);
+			f = _mm_set1_epi32 (0x68581511);
+			g = _mm_set1_epi32 (0x64f98fa7);
+			h = _mm_set1_epi32 (0xbefa4fa4);
 		} else {
 			// SHA-256 IV */
-			a = _mm_set1_epi32 (0x6a09e667); b = _mm_set1_epi32 (0xbb67ae85);
-			c = _mm_set1_epi32 (0x3c6ef372); d = _mm_set1_epi32 (0xa54ff53a);
-			e = _mm_set1_epi32 (0x510e527f); f = _mm_set1_epi32 (0x9b05688c);
-			g = _mm_set1_epi32 (0x1f83d9ab); h = _mm_set1_epi32 (0x5be0cd19);
+			a = _mm_set1_epi32 (0x6a09e667);
+			b = _mm_set1_epi32 (0xbb67ae85);
+			c = _mm_set1_epi32 (0x3c6ef372);
+			d = _mm_set1_epi32 (0xa54ff53a);
+			e = _mm_set1_epi32 (0x510e527f);
+			f = _mm_set1_epi32 (0x9b05688c);
+			g = _mm_set1_epi32 (0x1f83d9ab);
+			h = _mm_set1_epi32 (0x5be0cd19);
 		}
 	}
 	SHA256_STEP0(a, b, c, d, e, f, g, h,  0, 0x428a2f98);
@@ -1648,14 +1493,33 @@ void SSESHA256body(__m128i *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload, int s
 	SHA256_STEP_R(c,d,e,f,g,h,a,b, 14,12, 7,15, 0xbef9a3f7);
 	SHA256_STEP_R(b,c,d,e,f,g,h,a, 15,13, 8, 0, 0xc67178f2);
 
-	if (sha256_flags & SHA256_RELOAD) {
-		__m128i *p = (__m128i *)reload;
-		a = _mm_add_epi32 (a, p[0]); b = _mm_add_epi32 (b, p[1]);
-		c = _mm_add_epi32 (c, p[2]); d = _mm_add_epi32 (d, p[3]);
-		e = _mm_add_epi32 (e, p[4]); f = _mm_add_epi32 (f, p[5]);
-		g = _mm_add_epi32 (g, p[6]); h = _mm_add_epi32 (h, p[7]);
-	} else {
-		if (sha256_flags & SHA256_CRYPT_SHA224) {
+	if (SSEi_flags & SSEi_RELOAD) {
+		if ((SSEi_flags & SSEi_RELOAD_INP_FMT)==SSEi_RELOAD_INP_FMT)
+		{
+			i=0; // later if we do PARA, i will be used in the PARA_FOR loop
+			a = _mm_add_epi32(a,_mm_load_si128((__m128i *)&reload_state[i*64*2+0]));
+			b = _mm_add_epi32(b,_mm_load_si128((__m128i *)&reload_state[i*64*2+4]));
+			c = _mm_add_epi32(c,_mm_load_si128((__m128i *)&reload_state[i*64*2+8]));
+			d = _mm_add_epi32(d,_mm_load_si128((__m128i *)&reload_state[i*64*2+12]));
+			e = _mm_add_epi32(e,_mm_load_si128((__m128i *)&reload_state[i*64*2+16]));
+			f = _mm_add_epi32(f,_mm_load_si128((__m128i *)&reload_state[i*64*2+20]));
+			g = _mm_add_epi32(g,_mm_load_si128((__m128i *)&reload_state[i*64*2+24]));
+			h = _mm_add_epi32(h,_mm_load_si128((__m128i *)&reload_state[i*64*2+28]));
+		}
+		else
+		{
+			i=0;
+			a = _mm_add_epi32(a,_mm_load_si128((__m128i *)&reload_state[i*32+0]));
+			b = _mm_add_epi32(b,_mm_load_si128((__m128i *)&reload_state[i*32+4]));
+			c = _mm_add_epi32(c,_mm_load_si128((__m128i *)&reload_state[i*32+8]));
+			d = _mm_add_epi32(d,_mm_load_si128((__m128i *)&reload_state[i*32+12]));
+			e = _mm_add_epi32(e,_mm_load_si128((__m128i *)&reload_state[i*32+16]));
+			f = _mm_add_epi32(f,_mm_load_si128((__m128i *)&reload_state[i*32+20]));
+			g = _mm_add_epi32(g,_mm_load_si128((__m128i *)&reload_state[i*32+24]));
+			h = _mm_add_epi32(h,_mm_load_si128((__m128i *)&reload_state[i*32+28]));
+		}
+	} else if ((SSEi_flags & SSEi_SKIP_FINAL_ADD) == 0) {
+		if (SSEi_flags & SSEi_CRYPT_SHA224) {
 			/* SHA-224 IV */
 			a = _mm_add_epi32 (a, _mm_set1_epi32 (0xc1059ed8));
 			b = _mm_add_epi32 (b, _mm_set1_epi32 (0x367cd507));
@@ -1677,27 +1541,464 @@ void SSESHA256body(__m128i *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload, int s
 			h = _mm_add_epi32 (h, _mm_set1_epi32 (0x5be0cd19));
 		}
 	}
-
-	if (sha256_flags & SHA256_SWAP_FINAL) {
+	if (SSEi_flags & SSEi_SWAP_FINAL) {
 		/* NOTE, if we swap OUT of BE into proper LE, then this can not be
 		 * used in a sha256_flags&SHA256_RELOAD manner, without swapping back into BE format.
 		 * NORMALLY, a format will switch binary values into BE format at start, and then
 		 * just take the 'normal' non swapped output of this function (i.e. keep it in BE) */
-		SWAP_ENDIAN (a); SWAP_ENDIAN (b); SWAP_ENDIAN (c); SWAP_ENDIAN (d);
-		SWAP_ENDIAN (e); SWAP_ENDIAN (f); SWAP_ENDIAN (g); SWAP_ENDIAN (h);
+		SWAP_ENDIAN (a);
+		SWAP_ENDIAN (b);
+		SWAP_ENDIAN (c);
+		SWAP_ENDIAN (d);
+		SWAP_ENDIAN (e);
+		SWAP_ENDIAN (f);
+		SWAP_ENDIAN (g);
+		SWAP_ENDIAN (h);
 	}
 	/* We store the MMX_mixed values.  This will be in proper 'mixed' format, in BE
 	 * format (i.e. correct to reload on a subsquent call), UNLESS, swapped in the prior
 	 * if statement (the SHA256_SWAP_FINAL) */
-	_mm_store_si128 ((__m128i *)&(out[ 0]), a); _mm_store_si128 ((__m128i *)&(out[ 4]), b);
-	_mm_store_si128 ((__m128i *)&(out[ 8]), c); _mm_store_si128 ((__m128i *)&(out[12]), d);
-	_mm_store_si128 ((__m128i *)&(out[16]), e); _mm_store_si128 ((__m128i *)&(out[20]), f);
-	_mm_store_si128 ((__m128i *)&(out[24]), g); _mm_store_si128 ((__m128i *)&(out[28]), h);
+	_mm_store_si128 ((__m128i *)&(out[ 0]), a);
+	_mm_store_si128 ((__m128i *)&(out[ 4]), b);
+	_mm_store_si128 ((__m128i *)&(out[ 8]), c);
+	_mm_store_si128 ((__m128i *)&(out[12]), d);
+	_mm_store_si128 ((__m128i *)&(out[16]), e);
+	_mm_store_si128 ((__m128i *)&(out[20]), f);
+	_mm_store_si128 ((__m128i *)&(out[24]), g);
+	_mm_store_si128 ((__m128i *)&(out[28]), h);
+	if (SSEi_flags & SSEi_OUTPUT_AS_INP_FMT)
+	{
+		i=0;
+		//SHA512_PARA_DO(i)
+		{
+			_mm_store_si128((__m128i *)&out[i*16*4+0], a);
+			_mm_store_si128((__m128i *)&out[i*16*4+4], b);
+			_mm_store_si128((__m128i *)&out[i*16*4+8], c);
+			_mm_store_si128((__m128i *)&out[i*16*4+12], d);
+			_mm_store_si128((__m128i *)&out[i*16*4+16], e);
+			_mm_store_si128((__m128i *)&out[i*16*4+20], f);
+			_mm_store_si128((__m128i *)&out[i*16*4+24], g);
+			_mm_store_si128((__m128i *)&out[i*16*4+28], h);
+		}
+	}
+	else
+	{
+		i=0;
+		//SHA512_PARA_DO(i)
+		{
+			_mm_store_si128 ((__m128i *)&(out[i*32+0]), a);
+			_mm_store_si128 ((__m128i *)&(out[i*32+4]), b);
+			_mm_store_si128 ((__m128i *)&(out[i*32+8]), c);
+			_mm_store_si128 ((__m128i *)&(out[i*32+12]), d);
+			_mm_store_si128 ((__m128i *)&(out[i*32+16]), e);
+			_mm_store_si128 ((__m128i *)&(out[i*32+20]), f);
+			_mm_store_si128 ((__m128i *)&(out[i*32+24]), g);
+			_mm_store_si128 ((__m128i *)&(out[i*32+28]), h);
+		}
+	}
+
 }
 #endif
 
+/* SHA-512 below */
+
+#if defined (_MSC_VER) && !defined (_M_X64)
+/* These are terribly slow, but this F'n compiler will not build these intrinsics unless building for Win64.
+   At least this lets me debug, and develop this code, in Visual Studio GUI. These function do the same thing,
+   but end up using CPU code, and not SSE code to do the loading, grrrrr.   */
+_inline __m128i _mm_set_epi64x(unsigned long long a, unsigned long long b) {
+	__m128i x;
+	x.m128i_u64[0] = b;
+	x.m128i_u64[1] = a;
+	return x;
+}
+_inline __m128i _mm_set1_epi64x(unsigned long long a) {
+	__m128i x;
+	x.m128i_u64[0] = a;
+	x.m128i_u64[1] = a;
+	return x;
+}
+#endif
+
+#ifndef __XOP__
+#define _mm_roti_epi64(x, n)                                              \
+(                                                                         \
+    _mm_xor_si128 (                                                       \
+        _mm_srli_epi64(x, ~n + 1),                                        \
+        _mm_slli_epi64(x, 64 + n)                                         \
+    )                                                                     \
+)
+
+#define _mm_cmov_si128(y, z, x)                                           \
+(                                                                         \
+    _mm_xor_si128 (z,                                                     \
+        _mm_and_si128 (x,                                                 \
+            _mm_xor_si128 (y, z)                                          \
+        )                                                                 \
+    )                                                                     \
+)
+#endif
+
+#undef SWAP_ENDIAN
+#ifdef __SSSE3__
+#define SWAP_ENDIAN(n)                                                    \
+{                                                                         \
+    n = _mm_shuffle_epi8 (n,                                              \
+            _mm_set_epi64x (0x08090a0b0c0d0e0f, 0x0001020304050607)       \
+        );                                                                \
+}
+#else
+#define SWAP_ENDIAN(n)                                                    \
+{                                                                         \
+    n = _mm_shufflehi_epi16 (_mm_shufflelo_epi16 (n, 0xb1), 0xb1);        \
+    n = _mm_xor_si128 (_mm_slli_epi16 (n, 8), _mm_srli_epi16 (n, 8));     \
+    n = _mm_shuffle_epi32 (n, 0xb1);                                      \
+}
+#endif
+
+#undef GATHER
+#define GATHER(x,y,z)                                                     \
+{                                                                         \
+    x = _mm_set_epi64x (y[1][z], y[0][z]);                                \
+}
+
+#undef S0
+#define S0(x)                                                             \
+(                                                                         \
+    _mm_xor_si128 (                                                       \
+        _mm_roti_epi64 (x, -39),                                          \
+        _mm_xor_si128 (                                                   \
+            _mm_roti_epi64 (x, -28),                                      \
+            _mm_roti_epi64 (x, -34)                                       \
+        )                                                                 \
+    )                                                                     \
+)
+
+#undef S1
+#define S1(x)                                                             \
+(                                                                         \
+    _mm_xor_si128 (                                                       \
+        _mm_roti_epi64 (x, -41),                                          \
+        _mm_xor_si128 (                                                   \
+            _mm_roti_epi64 (x, -14),                                      \
+            _mm_roti_epi64 (x, -18)                                       \
+        )                                                                 \
+    )                                                                     \
+)
+
+#undef s0
+#define s0(x)                                                             \
+(                                                                         \
+    _mm_xor_si128 (                                                       \
+        _mm_srli_epi64 (x, 7),                                            \
+        _mm_xor_si128 (                                                   \
+            _mm_roti_epi64 (x, -1),                                       \
+            _mm_roti_epi64 (x, -8)                                        \
+        )                                                                 \
+    )                                                                     \
+)
+
+#undef s1
+#define s1(x)                                                             \
+(                                                                         \
+    _mm_xor_si128 (                                                       \
+        _mm_srli_epi64 (x, 6),                                            \
+        _mm_xor_si128 (                                                   \
+            _mm_roti_epi64 (x, -19),                                      \
+            _mm_roti_epi64 (x, -61)                                       \
+        )                                                                 \
+    )                                                                     \
+)
+
+#define Maj(x,y,z) _mm_cmov_si128 (x, y, _mm_xor_si128 (z, y))
+
+#define Ch(x,y,z)  _mm_cmov_si128 (y, z, x)
+
+#undef R
+#define R(t)                                                              \
+{                                                                         \
+    tmp1 = _mm_add_epi64 (s1(w[t -  2]), w[t - 7]);                       \
+    tmp2 = _mm_add_epi64 (s0(w[t - 15]), w[t - 16]);                      \
+    w[t] = _mm_add_epi64 (tmp1, tmp2);                                    \
+}
+
+#define SHA512_STEP(a,b,c,d,e,f,g,h,x,K)                                  \
+{                                                                         \
+    tmp1 = _mm_add_epi64 (h,    w[x]);                                    \
+    tmp2 = _mm_add_epi64 (S1(e),_mm_set1_epi64x(K));                      \
+    tmp1 = _mm_add_epi64 (tmp1, Ch(e,f,g));                               \
+    tmp1 = _mm_add_epi64 (tmp1, tmp2);                                    \
+    tmp2 = _mm_add_epi64 (S0(a),Maj(a,b,c));                              \
+    d    = _mm_add_epi64 (tmp1, d);                                       \
+    h    = _mm_add_epi64 (tmp1, tmp2);                                    \
+}
+
 #if defined (MMX_COEF_SHA512)
-void SSESHA512body(__m128i* data, unsigned int * out, ARCH_WORD_32 *reload, int sha512_flags) {
-	/* TODO */
+void SSESHA512body(__m128i* data, unsigned int *out, ARCH_WORD_32 *reload_state, unsigned SSEi_flags)
+{
+	int i;
+
+	__m128i a, b, c, d, e, f, g, h;
+	__m128i w[80], tmp1, tmp2;
+
+	if (SSEi_flags & SSEi_FLAT_IN) {
+		ARCH_WORD_64 (*saved_key)[16] = (ARCH_WORD_64(*)[16])data;
+		for (i = 0; i < 14; i += 2) {
+			GATHER (tmp1, saved_key, i);
+			GATHER (tmp2, saved_key, i + 1);
+			SWAP_ENDIAN (tmp1);
+			SWAP_ENDIAN (tmp2);
+			w[i] = tmp1;
+			w[i + 1] = tmp2;
+		}
+		GATHER (tmp1, saved_key, 14);
+		SWAP_ENDIAN (tmp1);
+		w[14] = tmp1;
+		GATHER (w[15], saved_key, 15);
+	} else
+		memcpy(w, data, 16*sizeof(__m128i));
+
+	for (i = 16; i < 80; i++)
+		R(i);
+
+	if (SSEi_flags & SSEi_RELOAD) {
+		if ((SSEi_flags & SSEi_RELOAD_INP_FMT)==SSEi_RELOAD_INP_FMT)
+		{
+			i=0; // later if we do PARA, i will be used in the PARA_FOR loop
+			a = _mm_load_si128((__m128i *)&reload_state[i*16*8+0]);
+			b = _mm_load_si128((__m128i *)&reload_state[i*16*8+4]);
+			c = _mm_load_si128((__m128i *)&reload_state[i*16*8+8]);
+			d = _mm_load_si128((__m128i *)&reload_state[i*16*8+12]);
+			e = _mm_load_si128((__m128i *)&reload_state[i*16*8+16]);
+			f = _mm_load_si128((__m128i *)&reload_state[i*16*8+20]);
+			g = _mm_load_si128((__m128i *)&reload_state[i*16*8+24]);
+			h = _mm_load_si128((__m128i *)&reload_state[i*16*8+28]);
+		}
+		else
+		{
+			i=0;
+			a = _mm_load_si128((__m128i *)&reload_state[i*32+0]);
+			b = _mm_load_si128((__m128i *)&reload_state[i*32+4]);
+			c = _mm_load_si128((__m128i *)&reload_state[i*32+8]);
+			d = _mm_load_si128((__m128i *)&reload_state[i*32+12]);
+			e = _mm_load_si128((__m128i *)&reload_state[i*32+16]);
+			f = _mm_load_si128((__m128i *)&reload_state[i*32+20]);
+			g = _mm_load_si128((__m128i *)&reload_state[i*32+24]);
+			h = _mm_load_si128((__m128i *)&reload_state[i*32+28]);
+		}
+	} else {
+		if (SSEi_flags & SSEi_CRYPT_SHA384) {
+			/* SHA-384 IV */
+			a = _mm_set1_epi64x (0xcbbb9d5dc1059ed8);
+			b = _mm_set1_epi64x (0x629a292a367cd507);
+			c = _mm_set1_epi64x (0x9159015a3070dd17);
+			d = _mm_set1_epi64x (0x152fecd8f70e5939);
+			e = _mm_set1_epi64x (0x67332667ffc00b31);
+			f = _mm_set1_epi64x (0x8eb44a8768581511);
+			g = _mm_set1_epi64x (0xdb0c2e0d64f98fa7);
+			h = _mm_set1_epi64x (0x47b5481dbefa4fa4);
+		} else {
+			// SHA-512 IV */
+			a = _mm_set1_epi64x (0x6a09e667f3bcc908);
+			b = _mm_set1_epi64x (0xbb67ae8584caa73b);
+			c = _mm_set1_epi64x (0x3c6ef372fe94f82b);
+			d = _mm_set1_epi64x (0xa54ff53a5f1d36f1);
+			e = _mm_set1_epi64x (0x510e527fade682d1);
+			f = _mm_set1_epi64x (0x9b05688c2b3e6c1f);
+			g = _mm_set1_epi64x (0x1f83d9abfb41bd6b);
+			h = _mm_set1_epi64x (0x5be0cd19137e2179);
+		}
+	}
+
+	SHA512_STEP(a, b, c, d, e, f, g, h,  0, 0x428a2f98d728ae22);
+	SHA512_STEP(h, a, b, c, d, e, f, g,  1, 0x7137449123ef65cd);
+	SHA512_STEP(g, h, a, b, c, d, e, f,  2, 0xb5c0fbcfec4d3b2f);
+	SHA512_STEP(f, g, h, a, b, c, d, e,  3, 0xe9b5dba58189dbbc);
+	SHA512_STEP(e, f, g, h, a, b, c, d,  4, 0x3956c25bf348b538);
+	SHA512_STEP(d, e, f, g, h, a, b, c,  5, 0x59f111f1b605d019);
+	SHA512_STEP(c, d, e, f, g, h, a, b,  6, 0x923f82a4af194f9b);
+	SHA512_STEP(b, c, d, e, f, g, h, a,  7, 0xab1c5ed5da6d8118);
+	SHA512_STEP(a, b, c, d, e, f, g, h,  8, 0xd807aa98a3030242);
+	SHA512_STEP(h, a, b, c, d, e, f, g,  9, 0x12835b0145706fbe);
+	SHA512_STEP(g, h, a, b, c, d, e, f, 10, 0x243185be4ee4b28c);
+	SHA512_STEP(f, g, h, a, b, c, d, e, 11, 0x550c7dc3d5ffb4e2);
+	SHA512_STEP(e, f, g, h, a, b, c, d, 12, 0x72be5d74f27b896f);
+	SHA512_STEP(d, e, f, g, h, a, b, c, 13, 0x80deb1fe3b1696b1);
+	SHA512_STEP(c, d, e, f, g, h, a, b, 14, 0x9bdc06a725c71235);
+	SHA512_STEP(b, c, d, e, f, g, h, a, 15, 0xc19bf174cf692694);
+
+	SHA512_STEP(a, b, c, d, e, f, g, h, 16, 0xe49b69c19ef14ad2);
+	SHA512_STEP(h, a, b, c, d, e, f, g, 17, 0xefbe4786384f25e3);
+	SHA512_STEP(g, h, a, b, c, d, e, f, 18, 0x0fc19dc68b8cd5b5);
+	SHA512_STEP(f, g, h, a, b, c, d, e, 19, 0x240ca1cc77ac9c65);
+	SHA512_STEP(e, f, g, h, a, b, c, d, 20, 0x2de92c6f592b0275);
+	SHA512_STEP(d, e, f, g, h, a, b, c, 21, 0x4a7484aa6ea6e483);
+	SHA512_STEP(c, d, e, f, g, h, a, b, 22, 0x5cb0a9dcbd41fbd4);
+	SHA512_STEP(b, c, d, e, f, g, h, a, 23, 0x76f988da831153b5);
+	SHA512_STEP(a, b, c, d, e, f, g, h, 24, 0x983e5152ee66dfab);
+	SHA512_STEP(h, a, b, c, d, e, f, g, 25, 0xa831c66d2db43210);
+	SHA512_STEP(g, h, a, b, c, d, e, f, 26, 0xb00327c898fb213f);
+	SHA512_STEP(f, g, h, a, b, c, d, e, 27, 0xbf597fc7beef0ee4);
+	SHA512_STEP(e, f, g, h, a, b, c, d, 28, 0xc6e00bf33da88fc2);
+	SHA512_STEP(d, e, f, g, h, a, b, c, 29, 0xd5a79147930aa725);
+	SHA512_STEP(c, d, e, f, g, h, a, b, 30, 0x06ca6351e003826f);
+	SHA512_STEP(b, c, d, e, f, g, h, a, 31, 0x142929670a0e6e70);
+
+	SHA512_STEP(a, b, c, d, e, f, g, h, 32, 0x27b70a8546d22ffc);
+	SHA512_STEP(h, a, b, c, d, e, f, g, 33, 0x2e1b21385c26c926);
+	SHA512_STEP(g, h, a, b, c, d, e, f, 34, 0x4d2c6dfc5ac42aed);
+	SHA512_STEP(f, g, h, a, b, c, d, e, 35, 0x53380d139d95b3df);
+	SHA512_STEP(e, f, g, h, a, b, c, d, 36, 0x650a73548baf63de);
+	SHA512_STEP(d, e, f, g, h, a, b, c, 37, 0x766a0abb3c77b2a8);
+	SHA512_STEP(c, d, e, f, g, h, a, b, 38, 0x81c2c92e47edaee6);
+	SHA512_STEP(b, c, d, e, f, g, h, a, 39, 0x92722c851482353b);
+	SHA512_STEP(a, b, c, d, e, f, g, h, 40, 0xa2bfe8a14cf10364);
+	SHA512_STEP(h, a, b, c, d, e, f, g, 41, 0xa81a664bbc423001);
+	SHA512_STEP(g, h, a, b, c, d, e, f, 42, 0xc24b8b70d0f89791);
+	SHA512_STEP(f, g, h, a, b, c, d, e, 43, 0xc76c51a30654be30);
+	SHA512_STEP(e, f, g, h, a, b, c, d, 44, 0xd192e819d6ef5218);
+	SHA512_STEP(d, e, f, g, h, a, b, c, 45, 0xd69906245565a910);
+	SHA512_STEP(c, d, e, f, g, h, a, b, 46, 0xf40e35855771202a);
+	SHA512_STEP(b, c, d, e, f, g, h, a, 47, 0x106aa07032bbd1b8);
+
+	SHA512_STEP(a, b, c, d, e, f, g, h, 48, 0x19a4c116b8d2d0c8);
+	SHA512_STEP(h, a, b, c, d, e, f, g, 49, 0x1e376c085141ab53);
+	SHA512_STEP(g, h, a, b, c, d, e, f, 50, 0x2748774cdf8eeb99);
+	SHA512_STEP(f, g, h, a, b, c, d, e, 51, 0x34b0bcb5e19b48a8);
+	SHA512_STEP(e, f, g, h, a, b, c, d, 52, 0x391c0cb3c5c95a63);
+	SHA512_STEP(d, e, f, g, h, a, b, c, 53, 0x4ed8aa4ae3418acb);
+	SHA512_STEP(c, d, e, f, g, h, a, b, 54, 0x5b9cca4f7763e373);
+	SHA512_STEP(b, c, d, e, f, g, h, a, 55, 0x682e6ff3d6b2b8a3);
+	SHA512_STEP(a, b, c, d, e, f, g, h, 56, 0x748f82ee5defb2fc);
+	SHA512_STEP(h, a, b, c, d, e, f, g, 57, 0x78a5636f43172f60);
+	SHA512_STEP(g, h, a, b, c, d, e, f, 58, 0x84c87814a1f0ab72);
+	SHA512_STEP(f, g, h, a, b, c, d, e, 59, 0x8cc702081a6439ec);
+	SHA512_STEP(e, f, g, h, a, b, c, d, 60, 0x90befffa23631e28);
+	SHA512_STEP(d, e, f, g, h, a, b, c, 61, 0xa4506cebde82bde9);
+	SHA512_STEP(c, d, e, f, g, h, a, b, 62, 0xbef9a3f7b2c67915);
+	SHA512_STEP(b, c, d, e, f, g, h, a, 63, 0xc67178f2e372532b);
+
+	SHA512_STEP(a, b, c, d, e, f, g, h, 64, 0xca273eceea26619c);
+	SHA512_STEP(h, a, b, c, d, e, f, g, 65, 0xd186b8c721c0c207);
+	SHA512_STEP(g, h, a, b, c, d, e, f, 66, 0xeada7dd6cde0eb1e);
+	SHA512_STEP(f, g, h, a, b, c, d, e, 67, 0xf57d4f7fee6ed178);
+	SHA512_STEP(e, f, g, h, a, b, c, d, 68, 0x06f067aa72176fba);
+	SHA512_STEP(d, e, f, g, h, a, b, c, 69, 0x0a637dc5a2c898a6);
+	SHA512_STEP(c, d, e, f, g, h, a, b, 70, 0x113f9804bef90dae);
+	SHA512_STEP(b, c, d, e, f, g, h, a, 71, 0x1b710b35131c471b);
+	SHA512_STEP(a, b, c, d, e, f, g, h, 72, 0x28db77f523047d84);
+	SHA512_STEP(h, a, b, c, d, e, f, g, 73, 0x32caab7b40c72493);
+	SHA512_STEP(g, h, a, b, c, d, e, f, 74, 0x3c9ebe0a15c9bebc);
+	SHA512_STEP(f, g, h, a, b, c, d, e, 75, 0x431d67c49c100d4c);
+	SHA512_STEP(e, f, g, h, a, b, c, d, 76, 0x4cc5d4becb3e42b6);
+	SHA512_STEP(d, e, f, g, h, a, b, c, 77, 0x597f299cfc657e2a);
+	SHA512_STEP(c, d, e, f, g, h, a, b, 78, 0x5fcb6fab3ad6faec);
+	SHA512_STEP(b, c, d, e, f, g, h, a, 79, 0x6c44198c4a475817);
+
+	if (SSEi_flags & SSEi_RELOAD) {
+		if ((SSEi_flags & SSEi_RELOAD_INP_FMT)==SSEi_RELOAD_INP_FMT)
+		{
+			i=0; // later if we do PARA, i will be used in the PARA_FOR loop
+			//SHA512_PARA_DO(i)
+			{
+				a = _mm_add_epi64(a,_mm_load_si128((__m128i *)&reload_state[i*64*2+0]));
+				b = _mm_add_epi64(b,_mm_load_si128((__m128i *)&reload_state[i*64*2+4]));
+				c = _mm_add_epi64(c,_mm_load_si128((__m128i *)&reload_state[i*64*2+8]));
+				d = _mm_add_epi64(d,_mm_load_si128((__m128i *)&reload_state[i*64*2+12]));
+				e = _mm_add_epi64(e,_mm_load_si128((__m128i *)&reload_state[i*64*2+16]));
+				f = _mm_add_epi64(f,_mm_load_si128((__m128i *)&reload_state[i*64*2+20]));
+				g = _mm_add_epi64(g,_mm_load_si128((__m128i *)&reload_state[i*64*2+24]));
+				h = _mm_add_epi64(h,_mm_load_si128((__m128i *)&reload_state[i*64*2+28]));
+			}
+		}
+		else
+		{
+			i=0;
+			//SHA512_PARA_DO(i)
+			{
+				a = _mm_add_epi64(a,_mm_load_si128((__m128i *)&reload_state[i*32+0]));
+				b = _mm_add_epi64(b,_mm_load_si128((__m128i *)&reload_state[i*32+4]));
+				c = _mm_add_epi64(c,_mm_load_si128((__m128i *)&reload_state[i*32+8]));
+				d = _mm_add_epi64(d,_mm_load_si128((__m128i *)&reload_state[i*32+12]));
+				e = _mm_add_epi64(e,_mm_load_si128((__m128i *)&reload_state[i*32+16]));
+				f = _mm_add_epi64(f,_mm_load_si128((__m128i *)&reload_state[i*32+20]));
+				g = _mm_add_epi64(g,_mm_load_si128((__m128i *)&reload_state[i*32+24]));
+				h = _mm_add_epi64(h,_mm_load_si128((__m128i *)&reload_state[i*32+28]));
+				}
+		}
+	} else if ((SSEi_flags & SSEi_SKIP_FINAL_ADD) == 0) {
+		if (SSEi_flags & SSEi_CRYPT_SHA384) {
+			/* SHA-384 IV */
+			a = _mm_add_epi64 (a, _mm_set1_epi64x (0xcbbb9d5dc1059ed8));
+			b = _mm_add_epi64 (b, _mm_set1_epi64x (0x629a292a367cd507));
+			c = _mm_add_epi64 (c, _mm_set1_epi64x (0x9159015a3070dd17));
+			d = _mm_add_epi64 (d, _mm_set1_epi64x (0x152fecd8f70e5939));
+			e = _mm_add_epi64 (e, _mm_set1_epi64x (0x67332667ffc00b31));
+			f = _mm_add_epi64 (f, _mm_set1_epi64x (0x8eb44a8768581511));
+			g = _mm_add_epi64 (g, _mm_set1_epi64x (0xdb0c2e0d64f98fa7));
+			h = _mm_add_epi64 (h, _mm_set1_epi64x (0x47b5481dbefa4fa4));
+		} else {
+			/* SHA-512 IV */
+			a = _mm_add_epi64 (a, _mm_set1_epi64x (0x6a09e667f3bcc908));
+			b = _mm_add_epi64 (b, _mm_set1_epi64x (0xbb67ae8584caa73b));
+			c = _mm_add_epi64 (c, _mm_set1_epi64x (0x3c6ef372fe94f82b));
+			d = _mm_add_epi64 (d, _mm_set1_epi64x (0xa54ff53a5f1d36f1));
+			e = _mm_add_epi64 (e, _mm_set1_epi64x (0x510e527fade682d1));
+			f = _mm_add_epi64 (f, _mm_set1_epi64x (0x9b05688c2b3e6c1f));
+			g = _mm_add_epi64 (g, _mm_set1_epi64x (0x1f83d9abfb41bd6b));
+			h = _mm_add_epi64 (h, _mm_set1_epi64x (0x5be0cd19137e2179));
+		}
+	}
+
+	if (SSEi_flags & SSEi_SWAP_FINAL) {
+		/* NOTE, if we swap OUT of BE into proper LE, then this can not be
+		 * used in a sha256_flags&SHA256_RELOAD manner, without swapping back into BE format.
+		 * NORMALLY, a format will switch binary values into BE format at start, and then
+		 * just take the 'normal' non swapped output of this function (i.e. keep it in BE) */
+		SWAP_ENDIAN (a);
+		SWAP_ENDIAN (b);
+		SWAP_ENDIAN (c);
+		SWAP_ENDIAN (d);
+		SWAP_ENDIAN (e);
+		SWAP_ENDIAN (f);
+		SWAP_ENDIAN (g);
+		SWAP_ENDIAN (h);
+	}
+
+	/* We store the MMX_mixed values.  This will be in proper 'mixed' format, in BE
+	 * format (i.e. correct to reload on a subsquent call), UNLESS, swapped in the prior
+	 * if statement (the SHA256_SWAP_FINAL) */
+	if (SSEi_flags & SSEi_OUTPUT_AS_INP_FMT)
+	{
+		i=0;
+		//SHA512_PARA_DO(i)
+		{
+			_mm_store_si128((__m128i *)&out[i*16*8+0], a);
+			_mm_store_si128((__m128i *)&out[i*16*8+4], b);
+			_mm_store_si128((__m128i *)&out[i*16*8+8], c);
+			_mm_store_si128((__m128i *)&out[i*16*8+12], d);
+			_mm_store_si128((__m128i *)&out[i*16*8+16], e);
+			_mm_store_si128((__m128i *)&out[i*16*8+20], f);
+			_mm_store_si128((__m128i *)&out[i*16*8+24], g);
+			_mm_store_si128((__m128i *)&out[i*16*8+28], h);
+		}
+	}
+	else
+	{
+		i=0;
+		//SHA512_PARA_DO(i)
+		{
+			_mm_store_si128 ((__m128i *)&(out[i*32+0]), a);
+			_mm_store_si128 ((__m128i *)&(out[i*32+4]), b);
+			_mm_store_si128 ((__m128i *)&(out[i*32+8]), c);
+			_mm_store_si128 ((__m128i *)&(out[i*32+12]), d);
+			_mm_store_si128 ((__m128i *)&(out[i*32+16]), e);
+			_mm_store_si128 ((__m128i *)&(out[i*32+20]), f);
+			_mm_store_si128 ((__m128i *)&(out[i*32+24]), g);
+			_mm_store_si128 ((__m128i *)&(out[i*32+28]), h);
+		}
+	}
+
+
 }
 #endif

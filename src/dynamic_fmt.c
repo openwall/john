@@ -7246,7 +7246,7 @@ static void SHA1_SSE_Crypt(DYNA_OMP_PARAMSm MD5_IN input[MAX_KEYS_PER_CRYPT_X86]
 			}
 		}
 #ifdef SHA1_SSE_PARA
-		SSESHA1body(sinput_buf, scrypt_key[0].w, NULL, 0);
+		SSESHA1body(sinput_buf, scrypt_key[0].w, NULL, SSEi_MIXED_IN);
 #else
 		shammx_nosizeupdate_nofinalbyteswap(scrypt_key[0].c, sinput_buf[0].c, 1);
 #endif
@@ -7324,7 +7324,7 @@ static void SHA1_SSE_Crypt_final(DYNA_OMP_PARAMSm MD5_IN input[MAX_KEYS_PER_CRYP
 				}
 			}
 #ifdef SHA1_SSE_PARA
-			SSESHA1body(sinput_buf[0].c, scrypt_key[0].w, NULL, 0);
+			SSESHA1body(sinput_buf[0].c, scrypt_key[0].w, NULL, SSEi_MIXED_IN);
 			SHA1_swap(scrypt_key[0].w, scrypt_key[0].w, 5*MMX_COEF*SHA1_SSE_PARA);
 			for (z = 0; z < SHA1_SSE_PARA; ++z)
 				memcpy(crypt_key[k*SHA1_SSE_PARA+z].c, scrypt_key[z].c, BINARY_SIZE*MMX_COEF);

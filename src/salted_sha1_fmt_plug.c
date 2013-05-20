@@ -313,7 +313,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	last_salt_size = saved_salt->len;
 
 # if SHA1_SSE_PARA
-	SSESHA1body(saved_key, (unsigned int *)crypt_key, NULL, 0);
+	SSESHA1body(saved_key, (unsigned int *)crypt_key, NULL, SSEi_MIXED_IN);
 # else
 	shammx_nosizeupdate_nofinalbyteswap((unsigned char *) crypt_key, (unsigned char *) saved_key, 1);
 
