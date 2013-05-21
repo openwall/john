@@ -49,6 +49,7 @@ static int omp_t = 1;
 #define BENCHMARK_COMMENT   ""
 #define BENCHMARK_LENGTH    -1
 #define BINARY_SIZE         0
+#define PLAINTEXT_LENGTH	125
 #define BINARY_ALIGN        MEM_ALIGN_NONE
 #define SALT_SIZE           128
 #define SALT_ALIGN          MEM_ALIGN_NONE

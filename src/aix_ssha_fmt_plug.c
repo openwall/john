@@ -58,9 +58,7 @@ static int omp_t = 1;
 #endif
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
-#ifndef PLAINTEXT_LENGTH
 #define PLAINTEXT_LENGTH	125 /* actual max in AIX is 255 */
-#endif
 #define BINARY_SIZE		20
 #define CMP_SIZE 		BINARY_SIZE - 2
 #define LARGEST_BINARY_SIZE	64

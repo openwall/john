@@ -55,7 +55,7 @@ static int omp_t = 1;
 #endif
 #define BENCHMARK_COMMENT	" (x10000)"
 #define BENCHMARK_LENGTH	-1
-#define PLAINTEXT_LENGTH	64
+#define PLAINTEXT_LENGTH	125
 #define HASH_LENGTH		44
 #define BINARY_SIZE		32
 #define SALT_SIZE		sizeof(struct custom_salt)
@@ -73,6 +73,7 @@ static struct fmt_tests django_tests[] = {
 	{"$django$*1*pbkdf2_sha256$10000$BVmpZMBhRSd1$bkdQo9RoatRomupPFP+XEo+Guuirq4mi+R1cFcV0U3M=", "openwall"},
 	{"$django$*1*pbkdf2_sha256$10000$BVmpZMBhRSd6$Uq33DAHOFHUED+32IIqCqm+ITU1mhsGOJ7YwFf6h+6k=", "password"},
 	{"$django$*1*pbkdf2_sha256$10000$34L3roCQ6ZfN$R21tJK1sIDfmj9BfBocefFfuGVwE3pXcLEhChNjc+pU=", "0123456789012345678901234567890123456789012345678901234567890123"},
+	{"$django$*1*pbkdf2_sha256$10000$7qPqyUDw8kZV$pFmVRjlHvayoWEy8ZWXkHgfmgImUKLmkmruclpYVAxM=", "12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"},
 	{NULL}
 };
 

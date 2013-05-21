@@ -11,7 +11,8 @@
  * the bottom of this file, commented out.   New code is as fast or faster
  * than original code.  New code simply uses oSSL functions, or SSE2, is much
  * simpler, AND contains an option to skip bytes, and only call the hashing
- * function where needed (significant speedup for zip format).
+ * function where needed (significant speedup for zip format).  Also, new code
+ * does not have size restrictions on PLAINTEXT_LENGTH.
  */
 #if 1
 
@@ -21,23 +22,23 @@
 #include "stdint.h"
 #include "sse-intrinsics.h"
 
-#ifdef PLAINTEXT_LENGTH
-#if PLAINTEXT_LENGTH > 64
-#error pbkdf2_hmac_sha1.h can not use a PLAINTEXT_LENGTH larger than 64
-#endif
-#else
-#define PLAINTEXT_LENGTH	64
-#endif
-
 #ifndef MMX_COEF
 
 static void _pbkdf2_sha1_load_hmac(const unsigned char *K, int KL, SHA_CTX *pIpad, SHA_CTX *pOpad) {
-	unsigned char ipad[SHA_CBLOCK], opad[SHA_CBLOCK];
+	unsigned char ipad[SHA_CBLOCK], opad[SHA_CBLOCK], k0[SHA_DIGEST_LENGTH];
 	int i;
 
 	memset(ipad, 0x36, SHA_CBLOCK);
 	memset(opad, 0x5C, SHA_CBLOCK);
 
+	if (KL > SHA_CBLOCK) {
+		SHA_CTX ctx;
+		SHA1_Init( &ctx );
+		SHA1_Update( &ctx, K, KL);
+		SHA1_Final( k0, &ctx);
+		KL = SHA_DIGEST_LENGTH;
+		K = k0;
+	}
 	for(i = 0; i < KL; i++) {
 		ipad[i] ^= K[i];
 		opad[i] ^= K[i];
@@ -118,13 +119,21 @@ static void pbkdf2_sha1(const unsigned char *K, int KL, const unsigned char *S, 
 
 static void _pbkdf2_sha1_sse_load_hmac(const unsigned char *K[SSE_GROUP_SZ_SHA1], int KL[SSE_GROUP_SZ_SHA1], SHA_CTX pIpad[SSE_GROUP_SZ_SHA1], SHA_CTX pOpad[SSE_GROUP_SZ_SHA1])
 {
-	unsigned char ipad[SHA_CBLOCK], opad[SHA_CBLOCK];
+	unsigned char ipad[SHA_CBLOCK], opad[SHA_CBLOCK], k0[SHA_DIGEST_LENGTH];
 	int i, j;
 
 	for (j = 0; j < SSE_GROUP_SZ_SHA1; ++j) {
 		memset(ipad, 0x36, SHA_CBLOCK);
 		memset(opad, 0x5C, SHA_CBLOCK);
 
+		if (KL[j] > SHA_CBLOCK) {
+			SHA_CTX ctx;
+			SHA1_Init( &ctx );
+			SHA1_Update( &ctx, K[j], KL[j]);
+			SHA1_Final( k0, &ctx);
+			KL[j] = SHA_DIGEST_LENGTH;
+			K[j] = k0;
+		}
 		for(i = 0; i < KL[j]; i++) {
 			ipad[i] ^= K[j][i];
 			opad[i] ^= K[j][i];

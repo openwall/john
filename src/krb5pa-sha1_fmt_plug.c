@@ -62,6 +62,7 @@ static int omp_t = 1;
 #define BENCHMARK_COMMENT  ""
 #define BENCHMARK_LENGTH   -1
 #define BINARY_SIZE		12
+#define PLAINTEXT_LENGTH	125
 #define SALT_SIZE		sizeof(struct custom_salt)
 #ifdef MMX_COEF
 #define MIN_KEYS_PER_CRYPT  SSE_GROUP_SZ_SHA1

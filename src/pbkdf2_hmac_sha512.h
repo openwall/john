@@ -31,12 +31,20 @@
 #ifndef MMX_COEF_SHA512
 
 static void _pbkdf2_sha512_load_hmac(const unsigned char *K, int KL, SHA512_CTX *pIpad, SHA512_CTX *pOpad) {
-	unsigned char ipad[SHA512_CBLOCK], opad[SHA512_CBLOCK];
+	unsigned char ipad[SHA512_CBLOCK], opad[SHA512_CBLOCK], k0[SHA512_DIGEST_LENGTH];
 	unsigned i;
 
 	memset(ipad, 0x36, SHA512_CBLOCK);
 	memset(opad, 0x5C, SHA512_CBLOCK);
 
+	if (KL > SHA512_CBLOCK) {
+		SHA512_CTX ctx;
+		SHA512_Init( &ctx );
+		SHA512_Update( &ctx, K, KL);
+		SHA512_Final( k0, &ctx);
+		KL = SHA512_DIGEST_LENGTH;
+		K = k0;
+	}
 	for(i = 0; i < KL; i++) {
 		ipad[i] ^= K[i];
 		opad[i] ^= K[i];
@@ -162,13 +170,21 @@ extern void sha512_final  (void *output, sha512_ctx *ctx);
 
 static void _pbkdf2_sha512_sse_load_hmac(const unsigned char *K[SSE_GROUP_SZ_SHA512], int KL[SSE_GROUP_SZ_SHA512], SHA512_CTX pIpad[SSE_GROUP_SZ_SHA512], SHA512_CTX pOpad[SSE_GROUP_SZ_SHA512])
 {
-	unsigned char ipad[SHA512_CBLOCK], opad[SHA512_CBLOCK];
+	unsigned char ipad[SHA512_CBLOCK], opad[SHA512_CBLOCK], k0[SHA512_DIGEST_LENGTH];
 	int i, j;
 
 	for (j = 0; j < SSE_GROUP_SZ_SHA512; ++j) {
 		memset(ipad, 0x36, SHA512_CBLOCK);
 		memset(opad, 0x5C, SHA512_CBLOCK);
 
+		if (KL[j] > SHA512_CBLOCK) {
+			SHA512_CTX ctx;
+			SHA512_Init( &ctx );
+			SHA512_Update( &ctx, K[j], KL[j]);
+			SHA512_Final( k0, &ctx);
+			KL[j] = SHA512_DIGEST_LENGTH;
+			K[j] = k0;
+		}
 		for(i = 0; i < KL[j]; i++) {
 			ipad[i] ^= K[j][i];
 			opad[i] ^= K[j][i];

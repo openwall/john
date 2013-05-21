@@ -38,6 +38,7 @@
 #define BENCHMARK_COMMENT   ""
 #define BENCHMARK_LENGTH    -1001
 #define BINARY_SIZE         0
+#define PLAINTEXT_LENGTH	125
 #define BINARY_ALIGN        MEM_ALIGN_NONE
 #define SALT_SIZE           sizeof(struct custom_salt)
 #define SALT_ALIGN          sizeof(int)

@@ -34,12 +34,20 @@
 #ifndef MMX_COEF_SHA256
 
 static void _pbkdf2_sha256_load_hmac(const unsigned char *K, int KL, SHA256_CTX *pIpad, SHA256_CTX *pOpad) {
-	unsigned char ipad[SHA256_CBLOCK], opad[SHA256_CBLOCK];
+	unsigned char ipad[SHA256_CBLOCK], opad[SHA256_CBLOCK], k0[SHA256_DIGEST_LENGTH];
 	unsigned i;
 
 	memset(ipad, 0x36, SHA256_CBLOCK);
 	memset(opad, 0x5C, SHA256_CBLOCK);
 
+	if (KL > SHA256_CBLOCK) {
+		SHA256_CTX ctx;
+		SHA256_Init( &ctx );
+		SHA256_Update( &ctx, K, KL);
+		SHA256_Final( k0, &ctx);
+		KL = SHA256_DIGEST_LENGTH;
+		K = k0;
+	}
 	for(i = 0; i < KL; i++) {
 		ipad[i] ^= K[i];
 		opad[i] ^= K[i];
@@ -162,13 +170,21 @@ extern void sha256_final  (void *output, sha256_ctx *ctx);
 
 static void _pbkdf2_sha256_sse_load_hmac(const unsigned char *K[SSE_GROUP_SZ_SHA256], int KL[SSE_GROUP_SZ_SHA256], SHA256_CTX pIpad[SSE_GROUP_SZ_SHA256], SHA256_CTX pOpad[SSE_GROUP_SZ_SHA256])
 {
-	unsigned char ipad[SHA256_CBLOCK], opad[SHA256_CBLOCK];
+	unsigned char ipad[SHA256_CBLOCK], opad[SHA256_CBLOCK], k0[SHA256_DIGEST_LENGTH];
 	int i, j;
 
 	for (j = 0; j < SSE_GROUP_SZ_SHA256; ++j) {
 		memset(ipad, 0x36, SHA256_CBLOCK);
 		memset(opad, 0x5C, SHA256_CBLOCK);
 
+		if (KL[j] > SHA256_CBLOCK) {
+			SHA256_CTX ctx;
+			SHA256_Init( &ctx );
+			SHA256_Update( &ctx, K[j], KL[j]);
+			SHA256_Final( k0, &ctx);
+			KL[j] = SHA256_DIGEST_LENGTH;
+			K[j] = k0;
+		}
 		for(i = 0; i < KL[j]; i++) {
 			ipad[i] ^= K[j][i];
 			opad[i] ^= K[j][i];
