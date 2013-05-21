@@ -67,7 +67,7 @@ class PdfParser:
         p = pr.findall(encryption_dictionary)[0]
         pr = re.compile(b'-\d+')
         p = pr.findall(p)[0]
-        meta = self.is_meta_data_encrypted(encryption_dictionary)
+        meta = '1' if self.is_meta_data_encrypted(encryption_dictionary) else '0'
         idr = re.compile(b'\/ID\s*\[\s*<\w+>\s*<\w+>\s*\]')
         try:
             i_d = idr.findall(trailer)[0] # id key word
@@ -89,6 +89,7 @@ class PdfParser:
         output += p.decode('ascii')+'*'+meta+'*'
         output += str(int(len(i_d)/2))+'*'+i_d.decode('ascii')+'*'+passwords
         sys.stdout.write("%s\n" % output)
+            
 
     def get_passwords_for_JtR(self, encryption_dictionary):
         output = ""
@@ -126,11 +127,11 @@ class PdfParser:
             wr = re.compile(b'\w+')
             is_encrypted = wr.findall(mr.findall(encryption_dictionary)[0])[-1]
             if(is_encrypted == "false"):
-                return "0"
+                return False
             else:
-                return "1"
+                return True
         else:
-            return "1"
+            return True
 
     def get_encryption_dictionary(self, object_id):
         encryption_dictionary = \
