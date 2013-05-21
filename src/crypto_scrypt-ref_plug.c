@@ -39,6 +39,7 @@
 #include "misc.h"
 #include "pbkdf2_hmac_sha256.h"
 #include "sysendian.h"
+#include "johnswap.h"
 #include "crypto_scrypt.h"
 
 #define blkcpy(a,b,c) memcpy(a,b,c)
@@ -58,9 +59,15 @@ static void smix(uint8_t *, size_t, uint64_t, uint8_t *, uint8_t *);
 
 #if ARCH_ALLOWS_UNALIGNED
 
+#if ARCH_LITTLE_ENDIAN
 #define LE32dec(a)   *((uint32_t*)(a))
 #define LE32enc(a,b) *((uint32_t*)(a))=(b)
 #define LE64dec(a)   *((uint64_t*)(a))
+#else
+#define LE32dec(a)   JOHNSWAP(*((uint32_t*)(a)))
+#define LE32enc(a,b) *((uint32_t*)(a))=JOHNSWAP(b)
+#define LE64dec(a)   JOHNSWAP(*((uint64_t*)(a)))
+#endif
 
 #if ARCH_BITS==64
 static void inline
@@ -107,9 +114,13 @@ blkxor(uint8_t * dest, uint8_t * src, size_t len)
 static void inline
 salsa20_8(uint8_t B[64])
 {
-	uint32_t B32[16];
 	uint32_t x[16];
 	size_t i;
+
+#ifdef ARCH_LITTLE_ENDIAN
+	memcpy(x,B,64);
+#else
+ 	uint32_t B32[16];
 
 	/* Convert little-endian values in. */
 	for (i = 0; i < 16; i++)
@@ -118,6 +129,8 @@ salsa20_8(uint8_t B[64])
 	/* Compute x = doubleround^4(B32). */
 	for (i = 0; i < 16; i++)
 		x[i] = B32[i];
+#endif
+
 	for (i = 0; i < 8; i += 2) {
 		/* Operate on columns. */
 		x[ 4] ^= R(x[ 0]+x[12], 7);  x[ 8] ^= R(x[ 4]+x[ 0], 9);
@@ -144,9 +157,15 @@ salsa20_8(uint8_t B[64])
 
 		x[12] ^= R(x[15]+x[14], 7);  x[13] ^= R(x[12]+x[15], 9);
 		x[14] ^= R(x[13]+x[12],13);  x[15] ^= R(x[14]+x[13],18);
-#undef R
 	}
 
+#ifdef ARCH_LITTLE_ENDIAN
+	{
+		uint32_t *p = (uint32_t*)B;
+		for (i = 0; i < 16; ++i)
+			p[i] += x[i];
+	}
+#else
 	/* Compute B32 = B32 + x. */
 	for (i = 0; i < 16; i++)
 		B32[i] += x[i];
@@ -154,6 +173,7 @@ salsa20_8(uint8_t B[64])
 	/* Convert little-endian values out. */
 	for (i = 0; i < 16; i++) 
 		LE32enc(&B[4 * i], B32[i]);
+#endif
 }
 
 /**
