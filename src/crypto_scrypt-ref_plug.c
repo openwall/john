@@ -35,27 +35,63 @@
 #include "sha2.h"
 #undef MMX_COEF
 #undef MMX_COEF_SHA256
+#include "common.h"
+#include "misc.h"
 #include "pbkdf2_hmac_sha256.h"
 #include "sysendian.h"
 #include "crypto_scrypt.h"
 
-static void blkcpy(uint8_t *, uint8_t *, size_t);
-static void blkxor(uint8_t *, uint8_t *, size_t);
-static void salsa20_8(uint8_t[64]);
-static void blockmix_salsa8(uint8_t *, uint8_t *, size_t);
-static uint64_t integerify(uint8_t *, size_t);
+#define blkcpy(a,b,c) memcpy(a,b,c)
+
+static void inline blkxor(uint8_t *, uint8_t *, size_t);
+static void inline salsa20_8(uint8_t[64]);
+static void inline blockmix_salsa8(uint8_t *, uint8_t *, size_t);
+static uint64_t inline integerify(uint8_t *, size_t);
 static void smix(uint8_t *, size_t, uint64_t, uint8_t *, uint8_t *);
 
-static void
-blkcpy(uint8_t * dest, uint8_t * src, size_t len)
+#ifdef _MSC_VER
+#define R(a,b) _rotl(a,b)
+#else
+#define R(a,b) (((a) << (b)) | ((a) >> (32 - (b))))
+#endif
+
+
+#if ARCH_ALLOWS_UNALIGNED
+
+#define LE32dec(a)   *((uint32_t*)(a))
+#define LE32enc(a,b) *((uint32_t*)(a))=(b)
+#define LE64dec(a)   *((uint64_t*)(a))
+
+#if ARCH_BITS==64
+static void inline
+blkxor(uint8_t * dest, uint8_t * src, size_t len)
 {
-	size_t i;
+	size_t i, len2 = (len>>3);
 
-	for (i = 0; i < len; i++)
-		dest[i] = src[i];
+	for (i = 0; i < len2; ++i)
+		((ARCH_WORD_64*)dest)[i] ^= ((ARCH_WORD_64*)src)[i];
+	for (i <<= 3 ; i < len; i++)
+		dest[i] ^= src[i];
 }
+#else
+static void inline
+blkxor(uint8_t * dest, uint8_t * src, size_t len)
+{
+	size_t i, len2 = (len>>2);
 
-static void
+	for (i = 0; i < len2; ++i)
+		((ARCH_WORD_32*)dest)[i] ^= ((ARCH_WORD_32*)src)[i];
+	for (i <<= 2 ; i < len; i++)
+		dest[i] ^= src[i];
+}
+#endif
+#else
+
+#define LE32dec(a)   le32dec(a)
+#define LE32enc(a,b) le32enc(a,b)
+#define LE64dec(a)   le64dec(a)
+
+static void inline
 blkxor(uint8_t * dest, uint8_t * src, size_t len)
 {
 	size_t i;
@@ -63,12 +99,12 @@ blkxor(uint8_t * dest, uint8_t * src, size_t len)
 	for (i = 0; i < len; i++)
 		dest[i] ^= src[i];
 }
-
+#endif
 /**
  * salsa20_8(B):
  * Apply the salsa20/8 core to the provided block.
  */
-static void
+static void inline
 salsa20_8(uint8_t B[64])
 {
 	uint32_t B32[16];
@@ -77,13 +113,12 @@ salsa20_8(uint8_t B[64])
 
 	/* Convert little-endian values in. */
 	for (i = 0; i < 16; i++)
-		B32[i] = le32dec(&B[i * 4]);
+		B32[i] = LE32dec(&B[i * 4]);
 
 	/* Compute x = doubleround^4(B32). */
 	for (i = 0; i < 16; i++)
 		x[i] = B32[i];
 	for (i = 0; i < 8; i += 2) {
-#define R(a,b) (((a) << (b)) | ((a) >> (32 - (b))))
 		/* Operate on columns. */
 		x[ 4] ^= R(x[ 0]+x[12], 7);  x[ 8] ^= R(x[ 4]+x[ 0], 9);
 		x[12] ^= R(x[ 8]+x[ 4],13);  x[ 0] ^= R(x[12]+x[ 8],18);
@@ -117,8 +152,8 @@ salsa20_8(uint8_t B[64])
 		B32[i] += x[i];
 
 	/* Convert little-endian values out. */
-	for (i = 0; i < 16; i++)
-		le32enc(&B[4 * i], B32[i]);
+	for (i = 0; i < 16; i++) 
+		LE32enc(&B[4 * i], B32[i]);
 }
 
 /**
@@ -126,7 +161,7 @@ salsa20_8(uint8_t B[64])
  * Compute B = BlockMix_{salsa20/8, r}(B).  The input B must be 128r bytes in
  * length; the temporary space Y must also be the same size.
  */
-static void
+static void inline
 blockmix_salsa8(uint8_t * B, uint8_t * Y, size_t r)
 {
 	uint8_t X[64];
@@ -156,12 +191,10 @@ blockmix_salsa8(uint8_t * B, uint8_t * Y, size_t r)
  * integerify(B, r):
  * Return the result of parsing B_{2r-1} as a little-endian integer.
  */
-static uint64_t
+static uint64_t inline
 integerify(uint8_t * B, size_t r)
 {
-	uint8_t * X = &B[(2 * r - 1) * 64];
-
-	return (le64dec(X));
+	return (LE64dec(&B[(2 * r - 1) * 64]));
 }
 
 /**
