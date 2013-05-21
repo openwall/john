@@ -20,7 +20,7 @@
 #ifdef _OPENMP
 static int omp_t = 1;
 #include <omp.h>
-#define OMP_SCALE               1 // FIXME
+#define OMP_SCALE               1 // So slow a format, a multiplier is NOT needed
 #endif
 
 #define FORMAT_LABEL		"scrypt"
@@ -30,7 +30,7 @@ static int omp_t = 1;
 #define ALGORITHM_NAME		"32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
-#define PLAINTEXT_LENGTH	64
+#define PLAINTEXT_LENGTH	125
 #define BINARY_SIZE		64
 #define SALT_SIZE		sizeof(struct custom_salt)
 #define MIN_KEYS_PER_CRYPT	1
@@ -69,11 +69,42 @@ static void init(struct fmt_main *self)
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
-// XXX fix me
+static int isDigits(char *p) {
+	while (*p && *p != '$') {
+		if (*p <= '0' || *p >= '9')
+			return 0;
+		++p;
+	}
+	return 1;
+}
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	if (strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
-		return 0;
+	char *cp, *cp2;
+	if (strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH)) return 0;
+	cp = ciphertext + TAG_LENGTH;
+	if (*cp != '$') return 0;
+	++cp;
+	cp2 = strchr(cp, '$');
+	if (!cp2) return 0;
+	if (cp2-cp > 32) return 0;
+	cp = &cp2[1];
+	if (isDigits(cp) == 0) return 0;
+	cp = strchr(cp, '$');
+	if (!cp) return 0;
+	++cp;
+	if (isDigits(cp) == 0) return 0;
+	cp = strchr(cp, '$');
+	if (!cp) return 0;
+	++cp;
+	if (isDigits(cp) == 0) return 0;
+	cp = strchr(cp, '$');
+	if (!cp) return 0;
+	++cp;
+	if (isDigits(cp) == 0) return 0;
+	cp = strchr(cp, '$');
+	if (!cp) return 0;
+	++cp;
+	if (strlen(cp) != 88) return 0;
 	return 1;
 }
 
