@@ -22,6 +22,7 @@
 
 import re
 import sys
+import os
 
 PY3 = sys.version_info[0] == 3
 
@@ -49,7 +50,7 @@ class PdfParser:
             e = sys.exc_info()[1]
             sys.stdout.write("%s : %s\n" % (self.file_name, str(e)))
             return
-        object_id = self.get_encrypted_object_id(trailer)
+        object_id = self.get_object_id(b'Encrypt', trailer)
         encryption_dictionary = self.get_encryption_dictionary(object_id)
         dr = re.compile(b'\d+')
         vr = re.compile(b'\/V \d')
@@ -85,11 +86,14 @@ class PdfParser:
         i_d = i_d.replace(b'>',b'')
         i_d = i_d.lower()
         passwords = self.get_passwords_for_JtR(encryption_dictionary)
-        output = self.file_name+':$pdf$'+v.decode('ascii')+'*'+r.decode('ascii')+'*'+length.decode('ascii')+'*'
+        output = '$pdf$'+v.decode('ascii')+'*'+r.decode('ascii')+'*'+length.decode('ascii')+'*'
         output += p.decode('ascii')+'*'+meta+'*'
         output += str(int(len(i_d)/2))+'*'+i_d.decode('ascii')+'*'+passwords
-        sys.stdout.write("%s\n" % output)
-            
+        if(self.is_meta_data_encrypted(encryption_dictionary)):
+            sys.stdout.write("%s:%s:::::%s\n" % (os.path.basename(self.file_name), output, self.file_name))
+        #else:
+            #print self.parse_meta_data(trailer)
+            #sys.stdout.write("%s:%s:::%s::%s\n" % (os.path.basename(self.filename), output, gecos, self.filename))
 
     def get_passwords_for_JtR(self, encryption_dictionary):
         output = ""
@@ -133,6 +137,9 @@ class PdfParser:
         else:
             return True
 
+    #def parse_meta_data(self, trailer):
+        ##object = '/Info 13 0 R'
+
     def get_encryption_dictionary(self, object_id):
         encryption_dictionary = \
                 self.get_data_between(object_id+b" obj", b"endobj")
@@ -141,8 +148,8 @@ class PdfParser:
                 encryption_dictionary = o
         return encryption_dictionary
 
-    def get_encrypted_object_id(self, trailer):
-        oir = re.compile(b'\/Encrypt\s\d+\s\d\sR')
+    def get_object_id(self, name , trailer):
+        oir = re.compile(b'\/' + name + b'\s\d+\s\d\sR')
         object_id = oir.findall(trailer)[0]
         oir = re.compile(b'\d+ \d')
         object_id = oir.findall(object_id)[0]
