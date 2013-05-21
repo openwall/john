@@ -91,9 +91,9 @@ class PdfParser:
         output += str(int(len(i_d)/2))+'*'+i_d.decode('ascii')+'*'+passwords
         if(self.is_meta_data_encrypted(encryption_dictionary)):
             sys.stdout.write("%s:%s:::::%s\n" % (os.path.basename(self.file_name), output, self.file_name))
-        #else:
-            #print self.parse_meta_data(trailer)
-            #sys.stdout.write("%s:%s:::%s::%s\n" % (os.path.basename(self.filename), output, gecos, self.filename))
+        else:
+            gecos = self.parse_meta_data(trailer)
+            sys.stdout.write("%s:%s:::%s::%s\n" % (os.path.basename(self.file_name), output, gecos, self.file_name))
 
     def get_passwords_for_JtR(self, encryption_dictionary):
         output = ""
@@ -137,9 +137,21 @@ class PdfParser:
         else:
             return True
 
-    #def parse_meta_data(self, trailer):
-        ##object = '/Info 13 0 R'
-
+    def parse_meta_data(self, trailer):
+        object_id = self.get_object_id(b'Info', trailer)
+        info_object = self.get_data_between(object_id+b" obj", b"endobj")
+        # Not sure if I should try get both if info_object exists or if info_object
+        # Will ever be left unecrypted
+        if(len(info_object) > 0):
+            return self.get_info_values(info_object)
+        else:
+            #Get XMP Metadata and parse values from it.
+            root_object_id = self.get_object_id(b'Root', trailer)
+            root_object = self.get_data_between(root_object_id+b" obj", b"endobj")
+            object_id = self.get_object_id(b'Metadata', root_object)
+            xmp_metadata_object = self.get_data_between(object_id+b" obj", b"endobj")
+            return self.get_xmp_values(xmp_metadata_object)
+        
     def get_encryption_dictionary(self, object_id):
         encryption_dictionary = \
                 self.get_data_between(object_id+b" obj", b"endobj")
@@ -169,7 +181,7 @@ class PdfParser:
     def get_data_between(self, s1, s2):
         output = b""
         inside_first = False
-        lines = self.encrypted.split(b'\n')
+        lines = re.split(b'\n|\r', self.encrypted)
         for line in lines:
             inside_first = inside_first or line.find(s1) != -1
             if(inside_first):
