@@ -42,8 +42,11 @@
 #if 0
 #define DES_BS_VECTOR			0
 #define DES_BS_ALGORITHM_NAME		"DES 64/64"
-#elif defined(JOHN_AVX) && defined(__GNUC__)
-/* Require gcc for AVX because DES_bs_all is aligned in a gcc-specific way */
+#elif defined(JOHN_AVX) && (defined(__GNUC__) || defined(_OPENMP))
+/*
+ * Require gcc for AVX/XOP because DES_bs_all is aligned in a gcc-specific way,
+ * except in OpenMP-enabled builds, where it's aligned by different means.
+ */
 #undef CPU_DETECT
 #define CPU_DETECT			1
 #define CPU_REQ				1

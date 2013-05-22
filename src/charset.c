@@ -558,7 +558,7 @@ again:
 	ptr = order;
 	nratios = 0;
 	do {
-		double est;
+		double est; /* estimated cracks for this portion */
 
 		length = *ptr++;
 		pos = *ptr++;
@@ -576,24 +576,41 @@ again:
 
 /* Then calculate the candidates to successful cracks ratio */
 		{
-			int i, j;
-			est = 1.0; /* estimated cracks for this portion */
+			int i, j, relcount;
+
+			relcount = count + 2 + (count < 4); /* tunable */
+			if (relcount > CHARSET_SIZE - 1)
+				relcount = CHARSET_SIZE - 1;
+
+			est = 1.0;
 			for (i = 0; i <= length; i++)
 			if (i != pos) {
-				unsigned int sum = 0;
-				double tmp = 0.0;
-				for (j = 0; j <= counts[length][i]; j++)
-					tmp += (*cracks)[length][i][j];
-				for (j = 0; j < CHARSET_SIZE; j++)
-					sum += (*cracks)[length][i][j];
-				if (sum)
-					tmp /= sum;
-				est *= tmp;
+				unsigned int relsum = 0;
+				double cursum;
+				int curcount = counts[length][i];
+				int mincount = curcount;
+				if (mincount > relcount)
+					mincount = relcount;
+				for (j = 0; j <= mincount; j++)
+					relsum += (*cracks)[length][i][j];
+				cursum = relsum;
+				for (; j <= relcount; j++)
+					relsum += (*cracks)[length][i][j];
+				for (j = mincount + 1; j <= curcount; j++)
+					cursum += (*cracks)[length][i][j];
+				if (!relsum)
+					relsum = 1;
+				est *= cursum / relsum;
 			}
 			est *= (*cracks)[length][pos][count];
-			if (est < 1e-3) /* may adjust this */
-				est = 1e-3;
+			{
+				double min_est =
+				    length ? 0.001 : 0.9; /* tunable */
+				if (est < min_est)
+					est = min_est;
+			}
 		}
+
 		(*ratios)[nratios].length = length;
 		(*ratios)[nratios].pos = pos;
 		(*ratios)[nratios].count = count;

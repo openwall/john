@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2002,2005,2006,2008,2010,2011 by Solar Designer
+ * Copyright (c) 1996-2002,2005,2006,2008,2010,2011,2013 by Solar Designer
  *
  * ...with changes in the jumbo patch for mingw and MSC, by JimF.
  * ...and introduction of MMX_TYPE and MMX_COEF by Simon Marechal.
@@ -59,8 +59,11 @@
 #define DES_COPY			1
 #define DES_STD_ALGORITHM_NAME		"DES 48/64 4K MMX"
 #define DES_BS				1
-#if defined(JOHN_AVX) && defined(__GNUC__)
-/* Require gcc for AVX because DES_bs_all is aligned in a gcc-specific way */
+#if defined(JOHN_AVX) && (defined(__GNUC__) || defined(_OPENMP))
+/*
+ * Require gcc for AVX/XOP because DES_bs_all is aligned in a gcc-specific way,
+ * except in OpenMP-enabled builds, where it's aligned by different means.
+ */
 #define CPU_REQ_AVX
 #undef CPU_NAME
 #define CPU_NAME			"AVX"
