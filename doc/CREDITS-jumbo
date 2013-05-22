@@ -3,7 +3,6 @@ The following people have contributed between 1.7.9-jumbo-8 and 1.8-jumbo-1:
     Alexander Cherepanov
     bwall
     Claudio André
-    Claudio André
     Costin Enache
     Deepika Dutta
     Dhiru Kholia
@@ -90,3 +89,7 @@ The following people have contributed patches between 1.7.9-jumbo-5 and jumbo-6:
     sftp (Sergey V)
     Solar Designer (Alexander Peslyak)
     Tavis Ormandy
+
+---
+git shortlog -ns --no-merges 1.7.9-jumbo-7..HEAD ^unstable-jumbo ^master | cut -f2- | sort -f
+---
