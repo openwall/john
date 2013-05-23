@@ -295,8 +295,10 @@ static char *fmt_self_test_body(struct fmt_main *format,
 			/* Check that claimed max. length is actually supported:
 			   1. Fill the buffer with maximum length keys */
 			format->methods.clear_keys();
-			for (i = 0; i < max; i++)
-				format->methods.set_key(longcand(i, ml), i);
+			for (i = 0; i < max; i++) {
+				char *pCand = longcand(i, ml);
+				format->methods.set_key(pCand, i);
+			}
 
 #if defined(HAVE_OPENCL) || defined(HAVE_CUDA)
 			advance_cursor();
