@@ -37,6 +37,10 @@
 #elif MMX_COEF
 #  define NBKEYS				MMX_COEF
 #  define DO_MMX_SHA1(in,out,n)	shammx_nosizeupdate_nofinalbyteswap((unsigned char*)out, (unsigned char*)in, 1)
+// 32bit .S does NOT handle multi-threading. Remove OMP for any build doing that
+#  undef _OPENMP
+#  undef FMT_OMP
+#  define FMT_OMP 0
 #endif
 
 #define BENCHMARK_COMMENT		""

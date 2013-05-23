@@ -36,6 +36,10 @@
 #elif MMX_COEF
 #  define NBKEYS				MMX_COEF
 #  define DO_MMX_MD5(in, out)	mdfivemmx_nosizeupdate(out, in, 1)
+// 32bit .S does NOT handle multi-threading. Remove OMP for any build doing that
+#  undef _OPENMP
+#  undef FMT_OMP
+#  define FMT_OMP 0
 #endif
 
 #define BENCHMARK_COMMENT		""
