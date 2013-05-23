@@ -23,6 +23,7 @@
 import re
 import sys
 import os
+from xml.dom import minidom
 
 PY3 = sys.version_info[0] == 3
 
@@ -151,7 +152,25 @@ class PdfParser:
             object_id = self.get_object_id(b'Metadata', root_object)
             xmp_metadata_object = self.get_data_between(object_id+b" obj", b"endobj")
             return self.get_xmp_values(xmp_metadata_object)
-        
+
+    def get_xmp_values(self, xmp_metadata_object):
+        xmp_metadata_object = xmp_metadata_object.partition(b"stream")[2]
+        xmp_metadata_object = xmp_metadata_object.partition(b"endstreamendobj")[0]
+        xml_metadata = minidom.parseString(xmp_metadata_object)
+        title = xml_metadata.getElementsByTagName("dc:title")
+        if(len(title) > 0):
+            title = title[0]
+            title = title.getElementsByTagName("rdf:li")[0]
+            title = title.firstChild.data
+        created_year = xml_metadata.getElementsByTagName("xmp:CreateDate")
+        if(len(created_year) > 0):
+            created_year = created_year[0].firstChild.data[0:4]
+        # Need to research other values that could occur
+        return (title + " " + created_year).replace(":", "")
+
+    def get_info_values(self, info_object):
+        return ""
+    
     def get_encryption_dictionary(self, object_id):
         encryption_dictionary = \
                 self.get_data_between(object_id+b" obj", b"endobj")
