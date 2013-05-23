@@ -130,7 +130,7 @@ class PdfParser:
         if(len(mr.findall(encryption_dictionary)) > 0):
             wr = re.compile(b'\w+')
             is_encrypted = wr.findall(mr.findall(encryption_dictionary)[0])[-1]
-            if(is_encrypted == "false"):
+            if(is_encrypted == b"false"):
                 return False
             else:
                 return True
