@@ -2,6 +2,16 @@
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 2010 by Solar Designer
  * based on rawMD4_fmt.c code, with trivial changes by groszek.
+ *
+ * Rewritten Spring 2013, JimF. SSE code added and released with the following terms:
+ * No copyright is claimed, and the software is hereby placed in the public domain.
+ * In case this attempt to disclaim copyright and place the software in the public
+ * domain is deemed null and void, then the software is Copyright (c) 2011 JimF
+ * and it is hereby released to the general public under the following
+ * terms:
+ *
+ * This software may be modified, redistributed, and used for any
+ * purpose, in source and binary forms, with or without modification.
  */
 
 #include "arch.h"
@@ -43,11 +53,12 @@
 #define CIPHERTEXT_LENGTH       56
 
 #define BINARY_SIZE             28
+#define BINARY_ALIGN			MEM_ALIGN_WORD
 #define SALT_SIZE               0
+#define SALT_ALIGN				1
 
 #define MIN_KEYS_PER_CRYPT		1
 #ifdef MMX_COEF_SHA256
-//#define MAX_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA256  // NOTE, need to deal with PARA when we get it.
 #define MAX_KEYS_PER_CRYPT      MMX_COEF_SHA256
 #else
 #define MAX_KEYS_PER_CRYPT		1
@@ -107,7 +118,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
-	static char out[8 + CIPHERTEXT_LENGTH + 1];
+	static char out[TAG_LENGTH + CIPHERTEXT_LENGTH + 1];
 
 	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
 		return ciphertext;
@@ -118,7 +129,7 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 	return out;
 }
 
-static void *get_binary(char *ciphertext)
+static void *binary(char *ciphertext)
 {
 	static unsigned char *out;
 	int i;
@@ -166,7 +177,7 @@ static int get_hash_6(int index) { return crypt_out[index][0] & 0x7FFFFFF; }
 #ifdef MMX_COEF_SHA256
 static void set_key(char *key, int index) {
 	const ARCH_WORD_32 *wkey = (ARCH_WORD_32*)key;
-	ARCH_WORD_32 *keybuffer = &((ARCH_WORD_32 *)saved_key)[(index&(MMX_COEF-1)) + (index>>(MMX_COEF>>1))*SHA256_BUF_SIZ*MMX_COEF];
+	ARCH_WORD_32 *keybuffer = &((ARCH_WORD_32 *)saved_key)[(index&(MMX_COEF_SHA256-1)) + (index>>(MMX_COEF_SHA256>>1))*SHA256_BUF_SIZ*MMX_COEF_SHA256];
 	ARCH_WORD_32 *keybuf_word = keybuffer;
 	unsigned int len;
 	ARCH_WORD_32 temp;
@@ -193,17 +204,17 @@ static void set_key(char *key, int index) {
 		}
 		*keybuf_word = JOHNSWAP(temp);
 		len += 4;
-		keybuf_word += MMX_COEF;
+		keybuf_word += MMX_COEF_SHA256;
 	}
 	*keybuf_word = 0x80000000;
 
 key_cleaning:
-	keybuf_word += MMX_COEF;
+	keybuf_word += MMX_COEF_SHA256;
 	while(*keybuf_word) {
 		*keybuf_word = 0;
-		keybuf_word += MMX_COEF;
+		keybuf_word += MMX_COEF_SHA256;
 	}
-	keybuffer[15*MMX_COEF] = len << 3;
+	keybuffer[15*MMX_COEF_SHA256] = len << 3;
 }
 #else
 static void set_key(char *key, int index)
@@ -219,10 +230,10 @@ static void set_key(char *key, int index)
 #ifdef MMX_COEF_SHA256
 static char *get_key(int index) {
 	unsigned int i,s;
-	static char out[64];
+	static char out[PLAINTEXT_LENGTH+1];
 	unsigned char *wucp = (unsigned char*)saved_key;
 
-	s = ((ARCH_WORD_32 *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*SHA256_BUF_SIZ*MMX_COEF] >> 3;
+	s = ((ARCH_WORD_32 *)saved_key)[15*MMX_COEF_SHA256 + (index&(MMX_COEF_SHA256-1)) + (index>>(MMX_COEF_SHA256>>1))*SHA256_BUF_SIZ*MMX_COEF_SHA256] >> 3;
 	for(i=0;i<s;i++)
 		out[i] = wucp[ GETPOS(i, index) ];
 	out[i] = 0;
@@ -240,9 +251,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
 	int index = 0;
+
 #ifdef _OPENMP
 #ifdef MMX_COEF_SHA256
-	//int inc = SSE_GROUP_SZ_SHA256;  // NOTE, need to deal with para, when we get it.
 	int inc = MMX_COEF_SHA256;
 #else
 	int inc = 1;
@@ -274,7 +285,7 @@ static int cmp_all(void *binary, int count)
 #else
 		if (!memcmp(binary, crypt_out[index], BINARY_SIZE))
 #endif
-             return 1;
+			return 1;
     return 0;
 }
 
@@ -305,9 +316,9 @@ struct fmt_main fmt_rawSHA224 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_SPLIT_UNIFIES_CASE,
@@ -319,7 +330,7 @@ struct fmt_main fmt_rawSHA224 = {
 		fmt_default_prepare,
 		valid,
 		split,
-		get_binary,
+		binary,
 		fmt_default_salt,
 		fmt_default_source,
 		{

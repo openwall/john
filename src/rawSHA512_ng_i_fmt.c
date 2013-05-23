@@ -98,7 +98,7 @@ static struct fmt_tests tests[] = {
 
 #ifdef MMX_LOAD
 #define GETPOS(i, index)		( (index&(MMX_COEF_SHA512-1))*8 + ((i)&(0xffffffff-7))*MMX_COEF_SHA512 + (7-((i)&7)) + (index>>(MMX_COEF_SHA512>>1))*MMX_LOAD*MMX_COEF_SHA512*8 )
-static uint64_t (*saved_key)[MMX_LOAD*MMX_COEF_SHA512];
+static uint64_t (*saved_key)[SHA512_BUF_SIZ*MMX_COEF_SHA512];
 #else
 static uint64_t (*saved_key)[16];
 #endif
@@ -224,7 +224,7 @@ static int get_hash_6 (int index) { return crypt_key[index>>(MMX_COEF_SHA512>>1)
 #ifdef MMX_LOAD
 static void set_key(char *key, int index) {
 	const ARCH_WORD_64 *wkey = (ARCH_WORD_64*)key;
-	ARCH_WORD_64 *keybuffer = &((ARCH_WORD_64 *)saved_key)[(index&(MMX_COEF_SHA512-1)) + (index>>(MMX_COEF_SHA512>>1))*MMX_LOAD*MMX_COEF_SHA512];
+	ARCH_WORD_64 *keybuffer = &((ARCH_WORD_64 *)saved_key)[(index&(MMX_COEF_SHA512-1)) + (index>>(MMX_COEF_SHA512>>1))*SHA512_BUF_SIZ*MMX_COEF_SHA512];
 	ARCH_WORD_64 *keybuf_word = keybuffer;
 	unsigned int len;
 	ARCH_WORD_64 temp;
@@ -309,13 +309,13 @@ static void set_key (char *key, int index)
 
 #ifdef MMX_LOAD
 static char *get_key(int index) {
-	unsigned int i;
+	unsigned i;
 	uint64_t s;
 	static char out[MAXLEN + 1];
 	unsigned char *wucp = (unsigned char*)saved_key;
 
-	s = ((ARCH_WORD_64 *)saved_key)[15*MMX_COEF_SHA512 + (index&3) + (index>>2)*MMX_LOAD*MMX_COEF_SHA512] >> 3;
-	for(i=0;i<s;i++)
+	s = ((ARCH_WORD_64 *)saved_key)[15*MMX_COEF_SHA512 + (index&(MMX_COEF_SHA512-1)) + (index>>((MMX_COEF_SHA512>>1)))*SHA512_BUF_SIZ*MMX_COEF_SHA512] >> 3;
+	for(i=0;i<(unsigned)s;i++)
 		out[i] = wucp[ GETPOS(i, index) ];
 	out[i] = 0;
 	return (char*) out;
@@ -338,11 +338,7 @@ static char *get_key (int index)
 }
 #endif
 
-#if FMT_MAIN_VERSION > 10
 static int crypt_all (int *pcount, struct db_salt *salt)
-#else
-static void crypt_all (int count)
-#endif
 {
 #if FMT_MAIN_VERSION > 10
     int count = *pcount;
@@ -357,9 +353,9 @@ static void crypt_all (int count)
 #ifdef REMOVE_TAIL_ADD
  #ifdef MMX_LOAD
   #ifdef TEST_SHA384
-	SSESHA512body(&saved_key[i/MMX_COEF_SHA256], crypt_key[i/MMX_COEF_SHA256], NULL, SSEi_MIXED_IN|SSEi_CRYPT_SHA384|SSEi_SKIP_FINAL_ADD);
+	SSESHA512body(&saved_key[i/MMX_COEF_SHA512], crypt_key[i/MMX_COEF_SHA512], NULL, SSEi_MIXED_IN|SSEi_CRYPT_SHA384|SSEi_SKIP_FINAL_ADD);
   #else
-	SSESHA512body(&saved_key[i/MMX_COEF_SHA256], crypt_key[i/MMX_COEF_SHA256], NULL, SSEi_MIXED_IN|SSEi_SKIP_FINAL_ADD);
+	SSESHA512body(&saved_key[i/MMX_COEF_SHA512], crypt_key[i/MMX_COEF_SHA512], NULL, SSEi_MIXED_IN|SSEi_SKIP_FINAL_ADD);
   #endif
  #else
   #ifdef TEST_SHA384
@@ -371,9 +367,9 @@ static void crypt_all (int count)
 #else
  #ifdef MMX_LOAD
   #ifdef TEST_SHA384
-	SSESHA512body(&saved_key[i/MMX_COEF_SHA256], crypt_key[i/MMX_COEF_SHA256], NULL, SSEi_MIXED_IN|SSEi_CRYPT_SHA384);
+	SSESHA512body(&saved_key[i/MMX_COEF_SHA512], crypt_key[i/MMX_COEF_SHA512], NULL, SSEi_MIXED_IN|SSEi_CRYPT_SHA384);
   #else
-	SSESHA512body(&saved_key[i/MMX_COEF_SHA256], crypt_key[i/MMX_COEF_SHA256], NULL, SSEi_MIXED_IN);
+	SSESHA512body(&saved_key[i/MMX_COEF_SHA512], crypt_key[i/MMX_COEF_SHA512], NULL, SSEi_MIXED_IN);
   #endif
  #else
   #ifdef TEST_SHA384

@@ -102,7 +102,7 @@ static struct fmt_tests tests[] = {
 
 #ifdef MMX_LOAD
 #define GETPOS(i, index)		( (index&(MMX_COEF_SHA256-1))*4 + ((i)&(0xffffffff-3))*MMX_COEF_SHA256 + (3-((i)&3)) + (index>>(MMX_COEF_SHA256>>1))*MMX_LOAD*MMX_COEF_SHA256*4 )
-static uint32_t (*saved_key)[MMX_LOAD*MMX_COEF_SHA256];
+static uint32_t (*saved_key)[SHA256_BUF_SIZ*MMX_COEF_SHA256];
 #else
 static uint32_t (*saved_key)[16];
 #endif
@@ -225,7 +225,7 @@ static int get_hash_6 (int index) { return crypt_key[index>>(MMX_COEF_SHA256>>1)
 #ifdef MMX_LOAD
 static void set_key(char *key, int index) {
 	const ARCH_WORD_32 *wkey = (ARCH_WORD_32*)key;
-	ARCH_WORD_32 *keybuffer = &((ARCH_WORD_32 *)saved_key)[(index&(MMX_COEF_SHA256-1)) + (index>>(MMX_COEF_SHA256>>1))*MMX_LOAD*MMX_COEF_SHA256];
+	ARCH_WORD_32 *keybuffer = &((ARCH_WORD_32 *)saved_key)[(index&(MMX_COEF_SHA256-1)) + (index>>(MMX_COEF_SHA256>>1))*SHA256_BUF_SIZ*MMX_COEF_SHA256];
 	ARCH_WORD_32 *keybuf_word = keybuffer;
 	unsigned int len;
 	ARCH_WORD_32 temp;
@@ -290,7 +290,7 @@ static char *get_key(int index) {
 	static char out[64];
 	unsigned char *wucp = (unsigned char*)saved_key;
 
-	s = ((ARCH_WORD_32 *)saved_key)[15*MMX_COEF_SHA256 + (index&3) + (index>>2)*MMX_LOAD*MMX_COEF_SHA256] >> 3;
+	s = ((ARCH_WORD_32 *)saved_key)[15*MMX_COEF_SHA256 + (index&(MMX_COEF_SHA256-1)) + (index>>(MMX_COEF_SHA256>>1))*SHA256_BUF_SIZ*MMX_COEF_SHA256] >> 3;
 	for(i=0;i<s;i++)
 		out[i] = wucp[ GETPOS(i, index) ];
 	out[i] = 0;

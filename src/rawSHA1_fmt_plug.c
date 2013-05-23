@@ -163,7 +163,7 @@ static char *get_key(int index) {
 #ifdef MMX_COEF
 	unsigned int i,s;
 
-	s = saved_key[15*MMX_COEF + (index&3) + (index>>2)*SHA_BUF_SIZ*MMX_COEF] >> 3;
+	s = saved_key[15*MMX_COEF + (index&(MMX_COEF-1)) + (index>>(MMX_COEF>>1))*SHA_BUF_SIZ*MMX_COEF] >> 3;
 	for(i=0;i<s;i++)
 		out[i] = ((unsigned char*)saved_key)[ GETPOS(i, index) ];
 	out[i] = 0;
