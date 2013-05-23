@@ -75,8 +75,8 @@ static struct fmt_tests tests[] = {
 
 #ifdef MMX_COEF_SHA512
 #define GETPOS(i, index)        ( (index&(MMX_COEF_SHA512-1))*8 + ((i)&(0xffffffff-7))*MMX_COEF_SHA512 + (7-((i)&7)) + (index>>(MMX_COEF_SHA512>>1))*SHA512_BUF_SIZ*MMX_COEF_SHA512*8 )
-static uint64_t (*saved_key)[SHA512_BUF_SIZ*MMX_COEF_SHA512];
-static uint64_t (*crypt_out)[8*MMX_COEF_SHA512];
+static ARCH_WORD_64 (*saved_key)[SHA512_BUF_SIZ*MMX_COEF_SHA512];
+static ARCH_WORD_64 (*crypt_out)[8*MMX_COEF_SHA512];
 #else
 static int (*saved_key_length);
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
