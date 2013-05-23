@@ -325,7 +325,7 @@ static int cmp_one(void *binary, int index)
             return 0;
 	return 1;
 #else
-	return !memcmp(binary, CMP_PTR, BINARY_SIZE);
+	return !memcmp(binary, crypt_out[index], BINARY_SIZE);
 #endif
 }
 
