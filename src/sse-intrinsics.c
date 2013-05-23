@@ -29,8 +29,15 @@
  *    integration support (simply include "sse-intrinsics.h"
  *    #defines for algorithm name
  *    Output is in interleaved SSE format.
- *    OMP safe (output structure would have been a problem as implemented in raw_SHA256_ng_fmt.c)
- *    Code only requires [16] element array.  Original code required [64] elements.
+ *    OMP safe (output structure would have been a problem as implemented in
+ *    raw_SHA256_ng_fmt.c) Code only requires [16] element array.  Original
+ *    code required [64] elements. Optionally perform final +=.  This can be
+ *    eliminated, and only done at binary load (by doing a minus equal there
+ *    of the IV). It only works on 1 limb crypts.
+ * Ported SHA512, added SHA384.  Code still 50% original epixoip code (from
+ *    raw-SHA512_ng_fmt.c) added all setup and tear down logic, to do multi-block,
+ *    sha384, flat or interleaved, OMP safe optional un-BE, optional final add of
+ *    original vector (the +=). 
  */
 
 #include "arch.h"
@@ -52,32 +59,100 @@
 #include "sse-intrinsics-load-flags.h"
 #include "aligned.h"
 
-#ifndef __XOP__
-#define _mm_slli_epi32a(a, s) \
-	((s) == 1 ? _mm_add_epi32((a), (a)) : _mm_slli_epi32((a), (s)))
+#if defined (_MSC_VER) && !defined (_M_X64)
+/* These are slow, but the F'n 32 bit compiler will not build these intrinsics.
+   Only the 64-bit (Win64) MSVC compiler has these as intrinsics. These slow
+   ones let me debug, and develop this code, and work, but use CPU */
+_inline __m128i _mm_set_epi64x (long long a, long long b)
+{
+	__m128i x; x.m128i_i64[0] = b; x.m128i_i64[1] = a;
+	return x;
+}
+_inline __m128i _mm_set1_epi64x(long long a)
+{
+	__m128i x; x.m128i_i64[0] = x.m128i_i64[1] = a;
+	return x;
+}
+#endif
 
-#ifdef __SSSE3__
-#if 1 /* Solar */
-#define rot16_mask _mm_set_epi32(0x0d0c0f0e, 0x09080b0a, 0x05040706, 0x01000302)
-#define _mm_roti_epi32(a, s) \
-	((s) == 16 ? _mm_shuffle_epi8((a), rot16_mask) : \
-	_mm_or_si128(_mm_slli_epi32a((a), (s)), _mm_srli_epi32((a), 32-(s))))
-#else /* epixoip */
-#define _mm_roti_epi32(x, n)                                              \
-(                                                                         \
-    _mm_xor_si128 (                                                       \
-        _mm_srli_epi32(x, ~n + 1),                                        \
-        _mm_slli_epi32(x, 32 + n)                                         \
-    )                                                                     \
-)
+#ifdef __GNUC__
+#pragma GCC optimize 3
 #endif
+
+#ifdef __XOP__
+// for non XOP, we have a 'special' 16 bit roti. So we simply define
+// it back to the real roti intrinsic.
+#define _mm_roti16_epi32	_mm_roti_epi32
 #else
-#define _mm_roti_epi32(a, s) \
-	((s) == 16 ? \
-	_mm_shufflelo_epi16(_mm_shufflehi_epi16((a), 0xb1), 0xb1) : \
-	_mm_or_si128(_mm_slli_epi32a((a), (s)), _mm_srli_epi32((a), 32-(s))))
+  #define _mm_slli_epi32a(a, s)		\
+	((s) == 1 ?						\
+		_mm_add_epi32((a), (a))		\
+	:								\
+		_mm_slli_epi32((a), (s)))
+
+  #define _mm_cmov_si128(y,z,x)		\
+	(_mm_xor_si128(z, _mm_and_si128(x, _mm_xor_si128 (y,z))))
+
+  // XOP roti must handle both ROTL and ROTR. If s < 0, then ROTR. Else ROTL
+  // There's a specialized rotate16, which is specialized for ssse3+
+  #define _mm_roti_epi32(a, s)													\
+	((s) < 0 ?																	\
+		_mm_or_si128(_mm_srli_epi32((a), ~(s)+1), _mm_slli_epi32a((a),32+(s)))	\
+	:																			\
+		_mm_or_si128(_mm_slli_epi32a((a), (s)), _mm_srli_epi32((a), 32-(s))))
+
+  // 64 bit roti  (both ROTL and ROTR handled)
+  #define _mm_roti_epi64(a, s)													\
+	((s) < 0 ?																	\
+		_mm_or_si128(_mm_srli_epi64((a), ~(s)+1), _mm_slli_epi64((a),64+(s)))	\
+	:																			\
+		_mm_or_si128(_mm_slli_epi64((a), (s)), _mm_srli_epi64((a), 64-(s))))
+
+  #ifdef __SSSE3__
+    #define rot16_mask				\
+		_mm_set_epi32(0x0d0c0f0e, 0x09080b0a, 0x05040706, 0x01000302)
+
+    #define _mm_roti16_epi32(a,s)	\
+		(_mm_shuffle_epi8((a), rot16_mask))
+
+    #define swap_endian_mask		\
+		_mm_set_epi32(0x0c0d0e0f, 0x08090a0b, 0x04050607, 0x00010203)
+    #define swap_endian64_mask		\
+		_mm_set_epi64x(0x08090a0b0c0d0e0fULL, 0x0001020304050607ULL)
+
+    #define SWAP_ENDIAN(n)			\
+		(n = _mm_shuffle_epi8(n, swap_endian_mask))
+    #define SWAP_ENDIAN64(n)		\
+		(n = _mm_shuffle_epi8(n, swap_endian64_mask))
+ #else
+  #define _mm_roti16_epi32(a,s)		\
+	(_mm_shufflelo_epi16(_mm_shufflehi_epi16((a), 0xb1), 0xb1))
+
+  #define SWAP_ENDIAN(n)			\
+	(n = _mm_xor_si128(				\
+		_mm_srli_epi16(				\
+			_mm_roti16_epi32(n,16), 8),	\
+			_mm_slli_epi16(_mm_roti16_epi32(n,16), 8)))
+  #define SWAP_ENDIAN64(n)                                                \
+  {                                                                       \
+    n = _mm_shufflehi_epi16 (_mm_shufflelo_epi16 (n, 0xb1), 0xb1);        \
+    n = _mm_xor_si128 (_mm_slli_epi16 (n, 8), _mm_srli_epi16 (n, 8));     \
+    n = _mm_shuffle_epi32 (n, 0xb1);                                      \
+  }
+ #endif
 #endif
+
+#ifdef __SSE4_1__
+#define GATHER(x, y, z)                         \
+{                                               \
+    x = _mm_cvtsi32_si128 (   y[(z<<4)]   );    \
+    x = _mm_insert_epi32  (x, y[1+(z<<4)], 1);  \
+    x = _mm_insert_epi32  (x, y[2+(z<<4)], 2);  \
+    x = _mm_insert_epi32  (x, y[3+(z<<4)], 3);  \
+}
 #endif
+#define GATHER64(x,y,z)		{x = _mm_set_epi64x (y[1][z], y[0][z]);}
+
 
 #ifndef MMX_COEF
 #define MMX_COEF 4
@@ -87,25 +162,11 @@
 #define MD5_SSE_NUM_KEYS	(MMX_COEF*MD5_SSE_PARA)
 #define MD5_PARA_DO(x)	for((x)=0;(x)<MD5_SSE_PARA;(x)++)
 
-#ifdef __XOP__
 #define MD5_F(x,y,z) \
 	MD5_PARA_DO(i) tmp[i] = _mm_cmov_si128((y[i]),(z[i]),(x[i]));
-#else
-#define MD5_F(x,y,z) \
-	MD5_PARA_DO(i) tmp[i] = _mm_xor_si128((y[i]),(z[i])); \
-	MD5_PARA_DO(i) tmp[i] = _mm_and_si128((tmp[i]),(x[i])); \
-	MD5_PARA_DO(i) tmp[i] = _mm_xor_si128((tmp[i]),(z[i]));
-#endif
 
-#ifdef __XOP__
 #define MD5_G(x,y,z) \
 	MD5_PARA_DO(i) tmp[i] = _mm_cmov_si128((x[i]),(y[i]),(z[i]));
-#else
-#define MD5_G(x,y,z) \
-	MD5_PARA_DO(i) tmp[i] = _mm_xor_si128((y[i]),(x[i])); \
-	MD5_PARA_DO(i) tmp[i] = _mm_and_si128((tmp[i]),(z[i])); \
-	MD5_PARA_DO(i) tmp[i] = _mm_xor_si128((tmp[i]), (y[i]) );
-#endif
 
 #define MD5_H(x,y,z) \
 	MD5_PARA_DO(i) tmp[i] = _mm_xor_si128((y[i]),(z[i])); \
@@ -122,6 +183,14 @@
 	MD5_PARA_DO(i) a[i] = _mm_add_epi32( a[i], tmp[i] ); \
 	MD5_PARA_DO(i) a[i] = _mm_add_epi32( a[i], data[i*16+x] ); \
 	MD5_PARA_DO(i) a[i] = _mm_roti_epi32( a[i], (s) ); \
+	MD5_PARA_DO(i) a[i] = _mm_add_epi32( a[i], b[i] );
+
+#define MD5_STEP_r16(f, a, b, c, d, x, t, s) \
+	MD5_PARA_DO(i) a[i] = _mm_add_epi32( a[i], _mm_set_epi32(t,t,t,t) ); \
+	f((b),(c),(d)) \
+	MD5_PARA_DO(i) a[i] = _mm_add_epi32( a[i], tmp[i] ); \
+	MD5_PARA_DO(i) a[i] = _mm_add_epi32( a[i], data[i*16+x] ); \
+	MD5_PARA_DO(i) a[i] = _mm_roti16_epi32( a[i], (s) ); \
 	MD5_PARA_DO(i) a[i] = _mm_add_epi32( a[i], b[i] );
 
 void SSEmd5body(__m128i* data, unsigned int * out, int init)
@@ -196,19 +265,19 @@ void SSEmd5body(__m128i* data, unsigned int * out, int init)
 /* Round 3 */
 		MD5_STEP(MD5_H, a, b, c, d, 5, 0xfffa3942, 4)
 		MD5_STEP(MD5_H, d, a, b, c, 8, 0x8771f681, 11)
-		MD5_STEP(MD5_H, c, d, a, b, 11, 0x6d9d6122, 16)
+		MD5_STEP_r16(MD5_H, c, d, a, b, 11, 0x6d9d6122, 16)
 		MD5_STEP(MD5_H, b, c, d, a, 14, 0xfde5380c, 23)
 		MD5_STEP(MD5_H, a, b, c, d, 1, 0xa4beea44, 4)
 		MD5_STEP(MD5_H, d, a, b, c, 4, 0x4bdecfa9, 11)
-		MD5_STEP(MD5_H, c, d, a, b, 7, 0xf6bb4b60, 16)
+		MD5_STEP_r16(MD5_H, c, d, a, b, 7, 0xf6bb4b60, 16)
 		MD5_STEP(MD5_H, b, c, d, a, 10, 0xbebfbc70, 23)
 		MD5_STEP(MD5_H, a, b, c, d, 13, 0x289b7ec6, 4)
 		MD5_STEP(MD5_H, d, a, b, c, 0, 0xeaa127fa, 11)
-		MD5_STEP(MD5_H, c, d, a, b, 3, 0xd4ef3085, 16)
+		MD5_STEP_r16(MD5_H, c, d, a, b, 3, 0xd4ef3085, 16)
 		MD5_STEP(MD5_H, b, c, d, a, 6, 0x04881d05, 23)
 		MD5_STEP(MD5_H, a, b, c, d, 9, 0xd9d4d039, 4)
 		MD5_STEP(MD5_H, d, a, b, c, 12, 0xe6db99e5, 11)
-		MD5_STEP(MD5_H, c, d, a, b, 15, 0x1fa27cf8, 16)
+		MD5_STEP_r16(MD5_H, c, d, a, b, 15, 0x1fa27cf8, 16)
 		MD5_STEP(MD5_H, b, c, d, a, 2, 0xc4ac5665, 23)
 
 /* Round 4 */
@@ -492,15 +561,8 @@ void md5cryptsse(unsigned char pwd[MD5_SSE_NUM_KEYS][16], unsigned char * salt, 
 #define MD4_SSE_NUM_KEYS	(MMX_COEF*MD4_SSE_PARA)
 #define MD4_PARA_DO(x)	for((x)=0;(x)<MD4_SSE_PARA;(x)++)
 
-#ifdef __XOP__
 #define MD4_F(x,y,z) \
 	MD4_PARA_DO(i) tmp[i] = _mm_cmov_si128((y[i]),(z[i]),(x[i]));
-#else
-#define MD4_F(x,y,z) \
-	MD4_PARA_DO(i) tmp[i] = _mm_xor_si128((y[i]),(z[i])); \
-	MD4_PARA_DO(i) tmp[i] = _mm_and_si128((tmp[i]),(x[i])); \
-	MD4_PARA_DO(i) tmp[i] = _mm_xor_si128((tmp[i]),(z[i]));
-#endif
 
 #define MD4_G(x,y,z) \
 	MD4_PARA_DO(i) tmp[i] = _mm_or_si128((y[i]),(z[i])); \
@@ -641,15 +703,8 @@ void SSEmd4body(__m128i* data, unsigned int * out, int init)
 #define SHA1_SSE_NUM_KEYS	(MMX_COEF*SHA1_SSE_PARA)
 #define SHA1_PARA_DO(x)		for((x)=0;(x)<SHA1_SSE_PARA;(x)++)
 
-#ifdef __XOP__
 #define SHA1_F(x,y,z) \
 	SHA1_PARA_DO(i) tmp[i] = _mm_cmov_si128((y[i]),(z[i]),(x[i]));
-#else
-#define SHA1_F(x,y,z) \
-	SHA1_PARA_DO(i) tmp[i] = _mm_xor_si128((y[i]),(z[i])); \
-	SHA1_PARA_DO(i) tmp[i] = _mm_and_si128((tmp[i]),(x[i])); \
-	SHA1_PARA_DO(i) tmp[i] = _mm_xor_si128((tmp[i]),(z[i]));
-#endif
 
 #define SHA1_G(x,y,z) \
 	SHA1_PARA_DO(i) tmp[i] = _mm_xor_si128((y[i]),(z[i])); \
@@ -1176,72 +1231,6 @@ void SSESHA1body(__m128i* data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, u
 #endif /* SHA_BUF_SIZ */
 #endif /* SHA1_SSE_PARA */
 
-// #pragma GCC optimize 3
-
-#ifndef __XOP__
-#undef _mm_roti_epi32
-#define _mm_roti_epi32(x, n)        \
-(                                   \
-    _mm_xor_si128 (                 \
-        _mm_srli_epi32(x, ~n + 1),  \
-        _mm_slli_epi32(x, 32 + n)   \
-    )                               \
-)
-
-#define _mm_cmov_si128(y, z, x)     \
-(                                   \
-    _mm_xor_si128 (z,               \
-        _mm_and_si128 (x,           \
-            _mm_xor_si128 (y, z)    \
-        )                           \
-    )                               \
-)
-#endif
-
-#if defined (__SSSE3__)
-#undef _mm_roti_epi32
-#define SWAP_ENDIAN(n)                             \
-{                                                  \
-    n = _mm_shuffle_epi8 (n,                       \
-            _mm_set_epi32 (0x0c0d0e0f, 0x08090a0b, \
-                           0x04050607, 0x00010203  \
-            )                                      \
-        );                                         \
-}
-#define _mm_roti_epi32(x, n)                       \
-(                                                  \
-    _mm_xor_si128 (                                \
-        _mm_srli_epi32(x, ~n + 1),                 \
-        _mm_slli_epi32(x, 32 + n)                  \
-    )                                              \
-)
-#else
-#define ROT16(n)                                   \
-(                                                  \
-    _mm_shufflelo_epi16 (                          \
-        _mm_shufflehi_epi16 (n, 0xb1), 0xb1        \
-    )                                              \
-)
-
-#define SWAP_ENDIAN(n)                             \
-(                                                  \
-    n = _mm_xor_si128 (                            \
-            _mm_srli_epi16 (ROT16(n), 8),          \
-            _mm_slli_epi16 (ROT16(n), 8)           \
-        )                                          \
-)
-#endif
-
-#ifdef __SSE4_1__
-#undef GATHER
-#define GATHER(x, y, z)                         \
-{                                               \
-    x = _mm_cvtsi32_si128 (   y[(z<<4)]   );    \
-    x = _mm_insert_epi32  (x, y[1+(z<<4)], 1);  \
-    x = _mm_insert_epi32  (x, y[2+(z<<4)], 2);  \
-    x = _mm_insert_epi32  (x, y[3+(z<<4)], 3);  \
-}
-#endif
 
 #define S0(x)                           \
 (                                       \
@@ -1344,7 +1333,12 @@ void SSESHA1body(__m128i* data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, u
 void SSESHA256body(__m128i *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, unsigned SSEi_flags)
 {
 	__m128i a, b, c, d, e, f, g, h;
-	__m128i _w[16], tmp1, tmp2, *w=_w;
+	union {
+		__m128i w[16];
+		ARCH_WORD_32 p[16*sizeof(__m128i)/sizeof(ARCH_WORD_32)];
+
+	}_w;
+	__m128i tmp1, tmp2, *w=_w.w;
 	ARCH_WORD_32 *saved_key=0;
 
 	int i;
@@ -1356,7 +1350,7 @@ void SSESHA256body(__m128i *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state,
 		GATHER (w[15], saved_key, 15);
 #else
 		int j;
-		ARCH_WORD_32 *p = (ARCH_WORD_32*)w;
+		ARCH_WORD_32 *p = _w.p;
 		saved_key = (ARCH_WORD_32 *)data;
 		for (j=0; j < 16; j++)
 			for (i=0; i < MMX_COEF_SHA256; i++)
@@ -1393,15 +1387,6 @@ void SSESHA256body(__m128i *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state,
 			g = _mm_load_si128((__m128i *)&reload_state[i*32+24]);
 			h = _mm_load_si128((__m128i *)&reload_state[i*32+28]);
 		}
-//		__m128i *p = (__m128i *)reload_state;
-//		a=p[0];
-//		b=p[1];
-//		c=p[2];
-//		d=p[3];
-//		e=p[4];
-//		f=p[5];
-//		g=p[6];
-//		h=p[7];
 	} else {
 		if (SSEi_flags & SSEi_CRYPT_SHA224) {
 			/* SHA-224 IV */
@@ -1602,112 +1587,52 @@ void SSESHA256body(__m128i *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state,
 
 /* SHA-512 below */
 
-#if defined (_MSC_VER) && !defined (_M_X64)
-/* These are terribly slow, but this F'n compiler will not build these intrinsics unless building for Win64.
-   At least this lets me debug, and develop this code, in Visual Studio GUI. These function do the same thing,
-   but end up using CPU code, and not SSE code to do the loading, grrrrr.   */
-_inline __m128i _mm_set_epi64x(unsigned long long a, unsigned long long b) {
-	__m128i x;
-	x.m128i_u64[0] = b;
-	x.m128i_u64[1] = a;
-	return x;
-}
-_inline __m128i _mm_set1_epi64x(unsigned long long a) {
-	__m128i x;
-	x.m128i_u64[0] = a;
-	x.m128i_u64[1] = a;
-	return x;
-}
-#endif
-
-#ifndef __XOP__
-#define _mm_roti_epi64(x, n)                                              \
-(                                                                         \
-    _mm_xor_si128 (                                                       \
-        _mm_srli_epi64(x, ~n + 1),                                        \
-        _mm_slli_epi64(x, 64 + n)                                         \
-    )                                                                     \
-)
-
-#define _mm_cmov_si128(y, z, x)                                           \
-(                                                                         \
-    _mm_xor_si128 (z,                                                     \
-        _mm_and_si128 (x,                                                 \
-            _mm_xor_si128 (y, z)                                          \
-        )                                                                 \
-    )                                                                     \
-)
-#endif
-
-#undef SWAP_ENDIAN
-#ifdef __SSSE3__
-#define SWAP_ENDIAN(n)                                                    \
-{                                                                         \
-    n = _mm_shuffle_epi8 (n,                                              \
-            _mm_set_epi64x (0x08090a0b0c0d0e0f, 0x0001020304050607)       \
-        );                                                                \
-}
-#else
-#define SWAP_ENDIAN(n)                                                    \
-{                                                                         \
-    n = _mm_shufflehi_epi16 (_mm_shufflelo_epi16 (n, 0xb1), 0xb1);        \
-    n = _mm_xor_si128 (_mm_slli_epi16 (n, 8), _mm_srli_epi16 (n, 8));     \
-    n = _mm_shuffle_epi32 (n, 0xb1);                                      \
-}
-#endif
-
-#undef GATHER
-#define GATHER(x,y,z)                                                     \
-{                                                                         \
-    x = _mm_set_epi64x (y[1][z], y[0][z]);                                \
-}
-
 #undef S0
-#define S0(x)                                                             \
-(                                                                         \
-    _mm_xor_si128 (                                                       \
-        _mm_roti_epi64 (x, -39),                                          \
-        _mm_xor_si128 (                                                   \
-            _mm_roti_epi64 (x, -28),                                      \
-            _mm_roti_epi64 (x, -34)                                       \
-        )                                                                 \
-    )                                                                     \
+#define S0(x)                          \
+(                                      \
+    _mm_xor_si128 (                    \
+        _mm_roti_epi64 (x, -39),       \
+        _mm_xor_si128 (                \
+            _mm_roti_epi64 (x, -28),   \
+            _mm_roti_epi64 (x, -34)    \
+        )                              \
+    )                                  \
 )
 
 #undef S1
-#define S1(x)                                                             \
-(                                                                         \
-    _mm_xor_si128 (                                                       \
-        _mm_roti_epi64 (x, -41),                                          \
-        _mm_xor_si128 (                                                   \
-            _mm_roti_epi64 (x, -14),                                      \
-            _mm_roti_epi64 (x, -18)                                       \
-        )                                                                 \
-    )                                                                     \
+#define S1(x)                          \
+(                                      \
+    _mm_xor_si128 (                    \
+        _mm_roti_epi64 (x, -41),       \
+        _mm_xor_si128 (                \
+            _mm_roti_epi64 (x, -14),   \
+            _mm_roti_epi64 (x, -18)    \
+        )                              \
+    )                                  \
 )
 
 #undef s0
-#define s0(x)                                                             \
-(                                                                         \
-    _mm_xor_si128 (                                                       \
-        _mm_srli_epi64 (x, 7),                                            \
-        _mm_xor_si128 (                                                   \
-            _mm_roti_epi64 (x, -1),                                       \
-            _mm_roti_epi64 (x, -8)                                        \
-        )                                                                 \
-    )                                                                     \
+#define s0(x)                          \
+(                                      \
+    _mm_xor_si128 (                    \
+        _mm_srli_epi64 (x, 7),         \
+        _mm_xor_si128 (                \
+            _mm_roti_epi64 (x, -1),    \
+            _mm_roti_epi64 (x, -8)     \
+        )                              \
+    )                                  \
 )
 
 #undef s1
-#define s1(x)                                                             \
-(                                                                         \
-    _mm_xor_si128 (                                                       \
-        _mm_srli_epi64 (x, 6),                                            \
-        _mm_xor_si128 (                                                   \
-            _mm_roti_epi64 (x, -19),                                      \
-            _mm_roti_epi64 (x, -61)                                       \
-        )                                                                 \
-    )                                                                     \
+#define s1(x)                          \
+(                                      \
+    _mm_xor_si128 (                    \
+        _mm_srli_epi64 (x, 6),         \
+        _mm_xor_si128 (                \
+            _mm_roti_epi64 (x, -19),   \
+            _mm_roti_epi64 (x, -61)    \
+        )                              \
+    )                                  \
 )
 
 #define Maj(x,y,z) _mm_cmov_si128 (x, y, _mm_xor_si128 (z, y))
@@ -1715,22 +1640,22 @@ _inline __m128i _mm_set1_epi64x(unsigned long long a) {
 #define Ch(x,y,z)  _mm_cmov_si128 (y, z, x)
 
 #undef R
-#define R(t)                                                              \
-{                                                                         \
-    tmp1 = _mm_add_epi64 (s1(w[t -  2]), w[t - 7]);                       \
-    tmp2 = _mm_add_epi64 (s0(w[t - 15]), w[t - 16]);                      \
-    w[t] = _mm_add_epi64 (tmp1, tmp2);                                    \
+#define R(t)                                         \
+{                                                    \
+    tmp1 = _mm_add_epi64 (s1(w[t -  2]), w[t - 7]);  \
+    tmp2 = _mm_add_epi64 (s0(w[t - 15]), w[t - 16]); \
+    w[t] = _mm_add_epi64 (tmp1, tmp2);               \
 }
 
-#define SHA512_STEP(a,b,c,d,e,f,g,h,x,K)                                  \
-{                                                                         \
-    tmp1 = _mm_add_epi64 (h,    w[x]);                                    \
-    tmp2 = _mm_add_epi64 (S1(e),_mm_set1_epi64x(K));                      \
-    tmp1 = _mm_add_epi64 (tmp1, Ch(e,f,g));                               \
-    tmp1 = _mm_add_epi64 (tmp1, tmp2);                                    \
-    tmp2 = _mm_add_epi64 (S0(a),Maj(a,b,c));                              \
-    d    = _mm_add_epi64 (tmp1, d);                                       \
-    h    = _mm_add_epi64 (tmp1, tmp2);                                    \
+#define SHA512_STEP(a,b,c,d,e,f,g,h,x,K)             \
+{                                                    \
+    tmp1 = _mm_add_epi64 (h,    w[x]);               \
+    tmp2 = _mm_add_epi64 (S1(e),_mm_set1_epi64x(K)); \
+    tmp1 = _mm_add_epi64 (tmp1, Ch(e,f,g));          \
+    tmp1 = _mm_add_epi64 (tmp1, tmp2);               \
+    tmp2 = _mm_add_epi64 (S0(a),Maj(a,b,c));         \
+    d    = _mm_add_epi64 (tmp1, d);                  \
+    h    = _mm_add_epi64 (tmp1, tmp2);               \
 }
 
 #if defined (MMX_COEF_SHA512)
@@ -1744,17 +1669,17 @@ void SSESHA512body(__m128i* data, unsigned int *out, ARCH_WORD_32 *reload_state,
 	if (SSEi_flags & SSEi_FLAT_IN) {
 		ARCH_WORD_64 (*saved_key)[16] = (ARCH_WORD_64(*)[16])data;
 		for (i = 0; i < 14; i += 2) {
-			GATHER (tmp1, saved_key, i);
-			GATHER (tmp2, saved_key, i + 1);
-			SWAP_ENDIAN (tmp1);
-			SWAP_ENDIAN (tmp2);
+			GATHER64 (tmp1, saved_key, i);
+			GATHER64 (tmp2, saved_key, i + 1);
+			SWAP_ENDIAN64 (tmp1);
+			SWAP_ENDIAN64 (tmp2);
 			w[i] = tmp1;
 			w[i + 1] = tmp2;
 		}
-		GATHER (tmp1, saved_key, 14);
-		SWAP_ENDIAN (tmp1);
+		GATHER64 (tmp1, saved_key, 14);
+		SWAP_ENDIAN64 (tmp1);
 		w[14] = tmp1;
-		GATHER (w[15], saved_key, 15);
+		GATHER64 (w[15], saved_key, 15);
 	} else
 		memcpy(w, data, 16*sizeof(__m128i));
 
@@ -1955,14 +1880,14 @@ void SSESHA512body(__m128i* data, unsigned int *out, ARCH_WORD_32 *reload_state,
 		 * used in a sha256_flags&SHA256_RELOAD manner, without swapping back into BE format.
 		 * NORMALLY, a format will switch binary values into BE format at start, and then
 		 * just take the 'normal' non swapped output of this function (i.e. keep it in BE) */
-		SWAP_ENDIAN (a);
-		SWAP_ENDIAN (b);
-		SWAP_ENDIAN (c);
-		SWAP_ENDIAN (d);
-		SWAP_ENDIAN (e);
-		SWAP_ENDIAN (f);
-		SWAP_ENDIAN (g);
-		SWAP_ENDIAN (h);
+		SWAP_ENDIAN64(a);
+		SWAP_ENDIAN64(b);
+		SWAP_ENDIAN64(c);
+		SWAP_ENDIAN64(d);
+		SWAP_ENDIAN64(e);
+		SWAP_ENDIAN64(f);
+		SWAP_ENDIAN64(g);
+		SWAP_ENDIAN64(h);
 	}
 
 	/* We store the MMX_mixed values.  This will be in proper 'mixed' format, in BE
