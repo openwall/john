@@ -358,7 +358,7 @@ static int cmp_all(void *binary, int count)
 #ifdef MMX_COEF_SHA256
 		if (((uint32_t *) binary)[0] == crypt_out[index>>(MMX_COEF_SHA256>>1)][index&(MMX_COEF_SHA256-1)])
 #else
-		if (!memcmp(binary, crypt_out[index], BINARY_SIZE))
+		if ( ((ARCH_WORD_32*)binary)[0] == crypt_out[index][0] )
 #endif
 			return 1;
 	return 0;

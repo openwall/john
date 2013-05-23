@@ -247,8 +247,6 @@ static void set_key(char *key, int index)
 {
 	int len = strlen(key);
 	saved_key_length[index] = len;
-	if (len > PLAINTEXT_LENGTH)
-		len = saved_key_length[index] = PLAINTEXT_LENGTH;
 	memcpy(saved_key[index], key, len);
 }
 #endif
@@ -258,13 +256,13 @@ static char *get_key(int index) {
 	unsigned i;
 	ARCH_WORD_64 s;
 	static char out[PLAINTEXT_LENGTH + 1];
-	unsigned char *wucp = (unsigned char*)saved_key;
+	char *wucp = (char*)saved_key;
 
 	s = ((ARCH_WORD_64 *)saved_key)[15*MMX_COEF_SHA512 + (index&(MMX_COEF_SHA512-1)) + (index>>(MMX_COEF_SHA512>>1))*SHA512_BUF_SIZ*MMX_COEF_SHA512] >> 3;
 	for(i=0;i<(unsigned)s;i++)
 		out[i] = wucp[ GETPOS(i, index) ];
 	out[i] = 0;
-	return (char*) out;
+	return out;
 }
 #else
 static char *get_key(int index)
@@ -289,17 +287,16 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #pragma omp parallel for
 	for (index = 0; index < count; index += inc)
 #endif
+	{
 #ifdef MMX_COEF_SHA512
 		SSESHA512body(&saved_key[index/MMX_COEF_SHA512], crypt_out[index/MMX_COEF_SHA512], NULL, SSEi_MIXED_IN|SSEi_CRYPT_SHA384);
 #else
-	{
 		SHA512_CTX ctx;
-
 		SHA384_Init(&ctx);
 		SHA384_Update(&ctx, saved_key[index], saved_key_length[index]);
 		SHA384_Final((unsigned char *)crypt_out[index], &ctx);
-	}
 #endif
+	}
 	return count;
 }
 
@@ -308,9 +305,9 @@ static int cmp_all(void *binary, int count)
 	int index;
 	for (index = 0; index < count; index++)
 #ifdef MMX_COEF_SHA512
-        if (((uint64_t *) binary)[0] == crypt_out[index>>(MMX_COEF_SHA512>>1)][index&(MMX_COEF_SHA512-1)])
+        if (((ARCH_WORD_64 *) binary)[0] == crypt_out[index>>(MMX_COEF_SHA512>>1)][index&(MMX_COEF_SHA512-1)])
 #else
-		if (!memcmp(binary, crypt_out[index], BINARY_SIZE))
+		if ( ((ARCH_WORD_32*)binary)[0] == crypt_out[index][0] )
 #endif
 			return 1;
 	return 0;
@@ -321,7 +318,7 @@ static int cmp_one(void *binary, int index)
 #ifdef MMX_COEF_SHA512
     int i;
 	for (i=1; i < BINARY_SIZE/sizeof(ARCH_WORD_64); i++)
-        if (((uint64_t *) binary)[i] != crypt_out[index>>(MMX_COEF_SHA512>>1)][(index&(MMX_COEF_SHA512-1))+i*MMX_COEF_SHA512])
+        if (((ARCH_WORD_64 *) binary)[i] != crypt_out[index>>(MMX_COEF_SHA512>>1)][(index&(MMX_COEF_SHA512-1))+i*MMX_COEF_SHA512])
             return 0;
 	return 1;
 #else

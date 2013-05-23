@@ -84,11 +84,6 @@ static ARCH_WORD_32 (*crypt_out)
 	[(BINARY_SIZE + sizeof(ARCH_WORD_32) - 1) / sizeof(ARCH_WORD_32)];
 #endif
 
-#if !defined (MMX_COEF_SHA512) && !defined(_OPENMP) && !defined(__APPLE__) && ARCH_LITTLE_ENDIAN
-#define SHA_SPEED_TEST
-SHA512_CTX ctx;
-#endif
-
 static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
@@ -149,14 +144,6 @@ static void *binary(char *ciphertext)
 		out[i] = atoi16[ARCH_INDEX(ciphertext[i*2])] * 16 +
                  atoi16[ARCH_INDEX(ciphertext[i*2 + 1])];
 	}
-#ifdef SHA_SPEED_TEST
-	{
-		unsigned long long *p = (unsigned long long *)out;
-		int i;
-		for (i = 0; i < 8; ++i)
-			p[i] = JOHNSWAP64(p[i]);
-	}
-#endif
 #ifdef MMX_COEF_SHA512
 	alter_endianity_to_BE64 (out, BINARY_SIZE/8);
 #endif
@@ -180,18 +167,13 @@ static int get_hash_4 (int index) { return crypt_out[index>>(MMX_COEF_SHA512>>1)
 static int get_hash_5 (int index) { return crypt_out[index>>(MMX_COEF_SHA512>>1)][index&(MMX_COEF_SHA512-1)] & 0xffffff; }
 static int get_hash_6 (int index) { return crypt_out[index>>(MMX_COEF_SHA512>>1)][index&(MMX_COEF_SHA512-1)] & 0x7ffffff; }
 #else
-#ifndef SHA_SPEED_TEST
-#define CMP_PTR crypt_out[index]
-#else
-#define CMP_PTR ctx.h
-#endif
-static int get_hash_0(int index) { return CMP_PTR[0] & 0xF; }
-static int get_hash_1(int index) { return CMP_PTR[0] & 0xFF; }
-static int get_hash_2(int index) { return CMP_PTR[0] & 0xFFF; }
-static int get_hash_3(int index) { return CMP_PTR[0] & 0xFFFF; }
-static int get_hash_4(int index) { return CMP_PTR[0] & 0xFFFFF; }
-static int get_hash_5(int index) { return CMP_PTR[0] & 0xFFFFFF; }
-static int get_hash_6(int index) { return CMP_PTR[0] & 0x7FFFFFF; }
+static int get_hash_0(int index) { return crypt_out[index][0] & 0xF; }
+static int get_hash_1(int index) { return crypt_out[index][0] & 0xFF; }
+static int get_hash_2(int index) { return crypt_out[index][0] & 0xFFF; }
+static int get_hash_3(int index) { return crypt_out[index][0] & 0xFFFF; }
+static int get_hash_4(int index) { return crypt_out[index][0] & 0xFFFFF; }
+static int get_hash_5(int index) { return crypt_out[index][0] & 0xFFFFFF; }
+static int get_hash_6(int index) { return crypt_out[index][0] & 0x7FFFFFF; }
 #endif
 
 #ifdef MMX_COEF_SHA512
@@ -307,25 +289,16 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #pragma omp parallel for
 	for (index = 0; index < count; index += inc)
 #endif
-#ifndef SHA_SPEED_TEST
+	{
 #ifdef MMX_COEF_SHA512
 		SSESHA512body(&saved_key[index/MMX_COEF_SHA512], crypt_out[index/MMX_COEF_SHA512], NULL, SSEi_MIXED_IN);
 #else
-	{
 		SHA512_CTX ctx;
 		SHA512_Init(&ctx);
 		SHA512_Update(&ctx, saved_key[index], saved_key_length[index]);
 		SHA512_Final((unsigned char *)crypt_out[index], &ctx);
+#endif
 	}
-#endif
-#else
-	// Calling OpenSSL with this NULL, stops it from doing byte swapping
-	// and writing any results. We simply use the ctx.h value instead,
-	// AND we have to have our binary in BE format.
-	SHA512_Init(&ctx);
-	SHA512_Update(&ctx, saved_key[index], saved_key_length[index]);
-	SHA512_Final(NULL, &ctx);
-#endif
 	return count;
 }
 
@@ -335,9 +308,9 @@ static int cmp_all(void *binary, int count)
 
 	for (index = 0; index < count; index++)
 #ifdef MMX_COEF_SHA512
-        if (((uint64_t *) binary)[0] == crypt_out[index>>(MMX_COEF_SHA512>>1)][index&(MMX_COEF_SHA512-1)])
+        if (((ARCH_WORD_64 *) binary)[0] == crypt_out[index>>(MMX_COEF_SHA512>>1)][index&(MMX_COEF_SHA512-1)])
 #else
-		if (!memcmp(binary, CMP_PTR, BINARY_SIZE))
+		if ( ((ARCH_WORD_32*)binary)[0] == crypt_out[index][0] )
 #endif
 			return 1;
 	return 0;
@@ -348,7 +321,7 @@ static int cmp_one(void *binary, int index)
 #ifdef MMX_COEF_SHA512
     int i;
 	for (i=1; i < BINARY_SIZE/sizeof(ARCH_WORD_64); i++)
-        if (((uint64_t *) binary)[i] != crypt_out[index>>(MMX_COEF_SHA512>>1)][(index&(MMX_COEF_SHA512-1))+i*MMX_COEF_SHA512])
+        if (((ARCH_WORD_64 *) binary)[i] != crypt_out[index>>(MMX_COEF_SHA512>>1)][(index&(MMX_COEF_SHA512-1))+i*MMX_COEF_SHA512])
             return 0;
 	return 1;
 #else
