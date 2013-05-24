@@ -140,9 +140,9 @@ class PdfParser:
 
     def parse_meta_data(self, trailer):
         root_object_id = self.get_object_id(b'Root', trailer)
-        root_object = self.get_data_between(root_object_id+b" obj", b"endobj")
+        root_object = self.get_pdf_object(root_object_id)
         object_id = self.get_object_id(b'Metadata', root_object)
-        xmp_metadata_object = self.get_data_between(object_id+b" obj", b"endobj")
+        xmp_metadata_object = self.get_pdf_object(object_id)
         return self.get_xmp_values(xmp_metadata_object)
 
     def get_xmp_values(self, xmp_metadata_object):
@@ -170,8 +170,7 @@ class PdfParser:
         return ""
  
     def get_encryption_dictionary(self, object_id):
-        encryption_dictionary = \
-                self.get_data_between(object_id+b" obj", b"endobj")
+        encryption_dictionary = self.get_pdf_object(object_id)
         for o in encryption_dictionary.split(b"endobj"):
             if(object_id+b" obj" in o):
                 encryption_dictionary = o
@@ -183,6 +182,15 @@ class PdfParser:
         oir = re.compile(b'\d+ \d')
         object_id = oir.findall(object_id)[0]
         return object_id
+
+    def get_pdf_object(self, object_id):
+        output = object_id+b" obj" + \
+            self.encrypted.partition(b"\r"+object_id+b" obj")[2]
+        if(output == object_id+b" obj"):
+            output = object_id+b" obj" + \
+            self.encrypted.partition(b"\n"+object_id+b" obj")[2]
+        output = output.partition(b"endobj")[0] + b"endobj"
+        return output
 
     def get_trailer(self):
         trailer = self.get_data_between(b"trailer", b">>")
