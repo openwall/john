@@ -147,7 +147,7 @@ class PdfParser:
 
     def get_xmp_values(self, xmp_metadata_object):
         xmp_metadata_object = xmp_metadata_object.partition(b"stream")[2]
-        xmp_metadata_object = xmp_metadata_object.partition(b"endstreamendobj")[0]
+        xmp_metadata_object = xmp_metadata_object.partition(b"endstream")[0]
         xml_metadata = minidom.parseString(xmp_metadata_object)
         values = []
         values.append(self.get_dc_value("title", xml_metadata))
