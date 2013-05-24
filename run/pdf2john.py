@@ -139,38 +139,36 @@ class PdfParser:
             return True
 
     def parse_meta_data(self, trailer):
-        object_id = self.get_object_id(b'Info', trailer)
-        info_object = self.get_data_between(object_id+b" obj", b"endobj")
-        # Not sure if I should try get both if info_object exists or if info_object
-        # Will ever be left unecrypted
-        if(len(info_object) > 0):
-            return self.get_info_values(info_object)
-        else:
-            #Get XMP Metadata and parse values from it.
-            root_object_id = self.get_object_id(b'Root', trailer)
-            root_object = self.get_data_between(root_object_id+b" obj", b"endobj")
-            object_id = self.get_object_id(b'Metadata', root_object)
-            xmp_metadata_object = self.get_data_between(object_id+b" obj", b"endobj")
-            return self.get_xmp_values(xmp_metadata_object)
+        root_object_id = self.get_object_id(b'Root', trailer)
+        root_object = self.get_data_between(root_object_id+b" obj", b"endobj")
+        object_id = self.get_object_id(b'Metadata', root_object)
+        xmp_metadata_object = self.get_data_between(object_id+b" obj", b"endobj")
+        return self.get_xmp_values(xmp_metadata_object)
 
     def get_xmp_values(self, xmp_metadata_object):
         xmp_metadata_object = xmp_metadata_object.partition(b"stream")[2]
         xmp_metadata_object = xmp_metadata_object.partition(b"endstreamendobj")[0]
         xml_metadata = minidom.parseString(xmp_metadata_object)
-        title = xml_metadata.getElementsByTagName("dc:title")
-        if(len(title) > 0):
-            title = title[0]
-            title = title.getElementsByTagName("rdf:li")[0]
-            title = title.firstChild.data
+        values = []
+        values.append(self.get_dc_value("title", xml_metadata))
+        values.append(self.get_dc_value("creator", xml_metadata))
+        values.append(self.get_dc_value("description", xml_metadata))
+        values.append(self.get_dc_value("subject", xml_metadata))
         created_year = xml_metadata.getElementsByTagName("xmp:CreateDate")
         if(len(created_year) > 0):
             created_year = created_year[0].firstChild.data[0:4]
-        # Need to research other values that could occur
-        return (title + " " + created_year).replace(":", "")
+        values.append(created_year)
+        return " ".join(values).replace(":", "")
 
-    def get_info_values(self, info_object):
+    def get_dc_value(self, value, xml_metadata):
+        output = xml_metadata.getElementsByTagName("dc:"+value)
+        if(len(output) > 0):
+            output = output[0]
+            output = output.getElementsByTagName("rdf:li")[0]
+            output = output.firstChild.data
+            return output
         return ""
-    
+ 
     def get_encryption_dictionary(self, object_id):
         encryption_dictionary = \
                 self.get_data_between(object_id+b" obj", b"endobj")
