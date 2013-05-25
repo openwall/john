@@ -22,6 +22,7 @@ use Digest::SHA qw(sha1 sha1_hex sha1_base64 sha224 sha224_hex sha224_base64 sha
 use Digest::GOST qw(gost gost_hex gost_base64);
 use Digest::Haval256;
 use Digest::Tiger;
+use Crypt::Scrypt;
 use Encode;
 use Switch 'Perl5', 'Perl6';
 use POSIX;
@@ -32,7 +33,6 @@ use Crypt::CBC;
 use Crypt::DES;
 use Crypt::ECB qw(encrypt PADDING_AUTO PADDING_NONE);
 use Crypt::PBKDF2;
-use Crypt::OpenSSL::PBKDF2;
 use String::CRC32;
 use MIME::Base64;
 # these come from CryptX which is very hard to get working under Cygwin, but the only place
@@ -80,7 +80,7 @@ my @funcs = (qw(DES BigCrypt BSDI MD5_1 MD5_a BF BFx BFegg RawMD5 RawMD5u
 		sha256crypt sha512crypt XSHA512  dynamic_27 dynamic_28 pwsafe django
 		drupal7 epi episerver_sha1 episerver_sha256 hmailserver ike keepass
 		keychain nukedclan pfx racf radmin rawsha0 sip SybaseASE vnc wbb3 wpapsk
-		sunmd5 wow_srp));
+		sunmd5 wow_srp scrypt aix_ssha1 aix_ssha256 aix_ssha512));
 
 # todo: ike keychain pfx racf sip vnc wpapsk
 
@@ -349,6 +349,40 @@ sub base64_wpa {
 	}
 	if ($mod == 2) { $l = (ord(substr($final, $i*3, 1))<<16) | (ord(substr($final, $i*3+1, 1))<<8); _crypt_to64_wpa($out, $l, 3); }
 	if ($mod == 1) { $l = (ord(substr($final, $i*3, 1))<<16);                                       _crypt_to64_wpa($out, $l, 2); }
+	return $out;
+}
+# aix was like wpa, byte swapped, but it also swaps the end result chars (4 byte swap), and odd last limb gets all 4, swaps and then trims.
+sub base64_aix {
+	my $final = $_[0];
+	my $len = length $final;
+	my $mod = $len%3;
+	my $cnt = ($len-$mod)/3;
+	my $out = "";
+	my $l;
+	for ($i = 0; $i < $cnt; $i++) {
+		$l = (ord(substr($final, $i*3, 1))<<16) | (ord(substr($final, $i*3+1, 1)) << 8) | (ord(substr($final, $i*3+2, 1)));
+		my $x="";
+		_crypt_to64_wpa($x, $l, 4);
+		$out .= substr($x,3,1);
+		$out .= substr($x,2,1);
+		$out .= substr($x,1,1);
+		$out .= substr($x,0,1);
+	}
+	if ($mod == 2) {
+	    $l = (ord(substr($final, $i*3, 1))<<16) | (ord(substr($final, $i*3+1, 1))<<8);
+		my $x="";
+		_crypt_to64_wpa($x, $l, 4);
+		$out .= substr($x,3,1);
+		$out .= substr($x,2,1);
+		$out .= substr($x,1,1);
+    }
+	if ($mod == 1) {
+	    $l = (ord(substr($final, $i*3, 1))<<16);
+		my $x="";
+		_crypt_to64_wpa($x, $l, 4);
+		$out .= substr($x,3,1);
+		$out .= substr($x,2,1);
+    }
 	return $out;
 }
 
@@ -1497,6 +1531,31 @@ sub django {
 		salt_len => length($salt),
 		);
 	print "u$u-django:\$django\$\*1\*pbkdf2_sha256\$10000\$$salt\$", base64($pbkdf2->PBKDF2($salt, $_[0])), ":$u:0:$_[0]::\n";
+}
+sub django_scrypt {
+	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(16); }
+
+	print "THIS ONE STILL TO DO\n";
+	print "u$u-scrypt:scrypt\$$h\$", uc unpack("H*", $salt), ":$u:0:", $_[0], "::\n";
+}
+sub aix_ssha1 {
+	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(16); }
+	my $itr = 64; # 1<<6
+	my $pbkdf2 = Crypt::PBKDF2->new(hash_class => 'HMACSHA1', iterations => $itr, output_len => 20, salt_len => length($salt) );
+	my $hash = $pbkdf2->PBKDF2($salt, $_[0]);
+	print "u$u-aix-ssha1:{ssha1}06\$$salt\$", base64_aix($hash) ,":$u:0:", $_[0], "::\n";
+}
+sub aix_ssha256 {
+	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(16); }
+	my $itr = 64; # 1<<6
+	my $pbkdf2 = Crypt::PBKDF2->new(hash_class => 'HMACSHA2', iterations => $itr, output_len => 32, salt_len => length($salt) );
+	print "u$u-aix-ssha256:{ssha256}06\$$salt\$", base64_aix($pbkdf2->PBKDF2($salt, $_[0])) ,":$u:0:", $_[0], "::\n";
+}
+sub aix_ssha512 {
+	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(16); }
+	my $itr = 64; # 1<<6
+	my $pbkdf2 = Crypt::PBKDF2->new(hash_class => 'HMACSHA2', hash_args => { sha_size => 512 },  iterations => $itr, output_len => 64, salt_len => length($salt) );
+	print "u$u-aix-ssha512:{ssha512}06\$$salt\$", base64_aix($pbkdf2->PBKDF2($salt, $_[0])) ,":$u:0:", $_[0], "::\n";
 }
 sub drupal7 {
 	if (defined $argsalt && length($argsalt)<=8) { $salt = $argsalt; } else { $salt=randstr(8); }
