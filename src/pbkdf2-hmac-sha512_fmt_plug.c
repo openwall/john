@@ -25,6 +25,7 @@
 #include "sha2.h"
 #include "johnswap.h"
 #include "stdint.h"
+#define PBKDF2_HMAC_SHA512_ALSO_INCLUDE_CTX
 #include "pbkdf2_hmac_sha512.h"
 
 #define FORMAT_LABEL            "pbkdf2-hmac-sha512"
@@ -268,44 +269,6 @@ static int get_hash_4(int index) { return crypt_out[index][0] & 0xfffff; }
 static int get_hash_5(int index) { return crypt_out[index][0] & 0xffffff; }
 static int get_hash_6(int index) { return crypt_out[index][0] & 0x7ffffff; }
 
-// code 'kept' here, since it is used in cmp_exact.  The 'faster' code is called in 
-// crypt_all.  That code may be SSE2 and is much faster even in oSSL than this.
-// however, if building in SSE, then the doing 1 hash work is harder, so we
-// simply keep this function for usage in cmp_exact.  This is the 2x slower
-// algorithm.  The code in pbkdf2_hmac_sha512.h eliminates all but the first
-// computation of ipad and opad, and eliminates 1/2 of the SHA512 calls, replacing
-// them with a simple memcpy of the hash 'state'.
-static void hmac_sha512(uint8_t * pass, uint8_t passlen, uint8_t * salt,
-                        uint8_t saltlen, uint32_t add, uint64_t * ret)
-{
-	uint8_t i, ipad[PAD_SIZE], opad[PAD_SIZE];
-	SHA512_CTX ctx;
-	memset(ipad, 0x36, PAD_SIZE);
-	memset(opad, 0x5c, PAD_SIZE);
-
-	for (i = 0; i < passlen; i++) {
-		ipad[i] ^= pass[i];
-		opad[i] ^= pass[i];
-	}
-
-	SHA512_Init(&ctx);
-	SHA512_Update(&ctx, ipad, PAD_SIZE);
-	SHA512_Update(&ctx, salt, saltlen);
-	if (add > 0) {
-#if ARCH_LITTLE_ENDIAN
-		add = JOHNSWAP(add);
-#endif
-		SHA512_Update(&ctx, &add, 4);
-	}
-	SHA512_Final((uint8_t *) ret, &ctx);
-
-	SHA512_Init(&ctx);
-	SHA512_Update(&ctx, opad, PAD_SIZE);
-	SHA512_Update(&ctx, (uint8_t *) ret, BINARY_SIZE);
-	SHA512_Final((uint8_t *) ret, &ctx);
-}
-
-
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
@@ -357,13 +320,10 @@ static int cmp_one(void *binary, int index)
    have a false positive here but this function is not performance sensitive. */
 static int cmp_exact(char *source, int index)
 {
-	int i = 0, j, l, result;
-	uint64_t tmp[BINARY_SIZE];
-	uint64_t key[BINARY_SIZE];
+	int i = 0, len, result;
 	char *p;
-	int len, loops;
 	char delim;
-	char *binary, *crypt;
+	unsigned char *binary, *crypt;
 
 	delim = strchr(source, '.') ? '.' : '$';
 	p = strrchr(source, delim) + 1;
@@ -371,34 +331,16 @@ static int cmp_exact(char *source, int index)
 
 	if (len == 64) return 1;
 
-	//printf("Full test of \"%s\"...\n", saved_key[index]);
 	binary = mem_alloc(len);
 	crypt = mem_alloc(len);
 
 	while (*p) {
-		binary[i++] =
-			(atoi16[ARCH_INDEX(*p)] << 4) |
-			atoi16[ARCH_INDEX(p[1])];
+		binary[i++] = (atoi16[ARCH_INDEX(*p)] << 4) | atoi16[ARCH_INDEX(p[1])];
 		p += 2;
 	}
-
-	l = strlen(saved_key[index]);
-	for (loops = 0; loops < (len + 63) / 64; loops++) {
-		hmac_sha512((unsigned char*)saved_key[index], l,
-		        (uint8_t *) cur_salt->salt, cur_salt->length,
-		        loops + 1, tmp);
-		memcpy(key, tmp, BINARY_SIZE);
-
-		for (i = 1; i < cur_salt->rounds; i++) {
-			hmac_sha512((unsigned char*)saved_key[index], l,
-			        (uint8_t *) tmp, BINARY_SIZE, 0, tmp);
-			for (j = 0; j < 8; j++)
-				key[j] ^= tmp[j];
-		}
-		memcpy((unsigned char*)&crypt[64 * loops], key, BINARY_SIZE);
-	}
-	//dump_stuff_msg("in ", binary, len);
-	//dump_stuff_msg("out", crypt, len);
+	pbkdf2_sha512((const unsigned char*)(saved_key[index]), strlen(saved_key[index]),
+			cur_salt->salt, strlen((char*)cur_salt->salt),
+			cur_salt->rounds, crypt, len, 0);
 	result = !memcmp(binary, crypt, len);
 	MEM_FREE(binary);
 	MEM_FREE(crypt);

@@ -31,7 +31,7 @@
 #define SHA256_DIGEST_LENGTH 32
 #endif
 
-#ifndef MMX_COEF_SHA256
+#if !defined(MMX_COEF_SHA256) || defined (PBKDF2_HMAC_SHA256_ALSO_INCLUDE_CTX)
 
 static void _pbkdf2_sha256_load_hmac(const unsigned char *K, int KL, SHA256_CTX *pIpad, SHA256_CTX *pOpad) {
 	unsigned char ipad[SHA256_CBLOCK], opad[SHA256_CBLOCK], k0[SHA256_DIGEST_LENGTH];
@@ -141,7 +141,9 @@ static void pbkdf2_sha256(const unsigned char *K, int KL, unsigned char *S, int 
 	}
 }
 
-#else
+#endif
+
+#ifdef MMX_COEF_SHA256
 
 #ifndef __JTR_SHA2___H_
 // we MUST call our sha2.c functions, to know the layout.  Since it is possible that apple's CommonCrypto lib could

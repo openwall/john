@@ -22,7 +22,7 @@
 #include "stdint.h"
 #include "sse-intrinsics.h"
 
-#ifndef MMX_COEF
+#if !defined(MMX_COEF) || defined (PBKDF2_HMAC_SHA1_ALSO_INCLUDE_CTX)
 
 static void _pbkdf2_sha1_load_hmac(const unsigned char *K, int KL, SHA_CTX *pIpad, SHA_CTX *pOpad) {
 	unsigned char ipad[SHA_CBLOCK], opad[SHA_CBLOCK], k0[SHA_DIGEST_LENGTH];
@@ -109,7 +109,9 @@ static void pbkdf2_sha1(const unsigned char *K, int KL, const unsigned char *S, 
 	}
 }
 
-#else
+#endif
+
+#ifdef MMX_COEF
 
 #if SHA1_SSE_PARA
 #define SSE_GROUP_SZ_SHA1 (MMX_COEF*SHA1_SSE_PARA)
