@@ -25,24 +25,36 @@
 #include "sha2.h"
 #include "johnswap.h"
 #include "stdint.h"
+#include "pbkdf2_hmac_sha512.h"
 
 #define FORMAT_LABEL            "pbkdf2-hmac-sha512"
 #define FORMAT_TAG              "$pbkdf2-hmac-sha512$"
 #define FORMAT_TAG2             "$ml$"
 #define FORMAT_TAG3             "grub.pbkdf2.sha512."
 #define FORMAT_NAME             "PBKDF2-HMAC-SHA512 GRUB2 / OS X 10.8"
+
+#ifdef MMX_COEF_SHA512
+#define ALGORITHM_NAME			SHA512_ALGORITHM_NAME
+#else
 #if ARCH_BITS >= 64
 #define ALGORITHM_NAME          "64/" ARCH_BITS_STR " " SHA2_LIB
 #else
 #define ALGORITHM_NAME          "32/" ARCH_BITS_STR " " SHA2_LIB
 #endif
+#endif
+
 #define BINARY_SIZE             64
 #define MAX_CIPHERTEXT_LENGTH   1024 /* Bump this and code will adopt */
 #define MAX_BINARY_SIZE         (4*64) /* Bump this and code will adopt */
 #define MAX_SALT_SIZE           128 /* Bump this and code will adopt */
 #define SALT_SIZE               sizeof(struct custom_salt)
+#ifdef MMX_COEF_SHA512
+#define MIN_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA512
+#define MAX_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA512
+#else
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
+#endif
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        -1
 #define KEYS_PER_CRYPT          1
@@ -256,6 +268,13 @@ static int get_hash_4(int index) { return crypt_out[index][0] & 0xfffff; }
 static int get_hash_5(int index) { return crypt_out[index][0] & 0xffffff; }
 static int get_hash_6(int index) { return crypt_out[index][0] & 0x7ffffff; }
 
+// code 'kept' here, since it is used in cmp_exact.  The 'faster' code is called in 
+// crypt_all.  That code may be SSE2 and is much faster even in oSSL than this.
+// however, if building in SSE, then the doing 1 hash work is harder, so we
+// simply keep this function for usage in cmp_exact.  This is the 2x slower
+// algorithm.  The code in pbkdf2_hmac_sha512.h eliminates all but the first
+// computation of ipad and opad, and eliminates 1/2 of the SHA512 calls, replacing
+// them with a simple memcpy of the hash 'state'.
 static void hmac_sha512(uint8_t * pass, uint8_t passlen, uint8_t * salt,
                         uint8_t saltlen, uint32_t add, uint64_t * ret)
 {
@@ -296,26 +315,24 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #pragma omp parallel for
 #endif
 #if defined(_OPENMP) || MAX_KEYS_PER_CRYPT > 1
-	for (index = 0; index < count; index++)
 #endif
+	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 	{
-		int i, j, l;
-		uint64_t tmp[BINARY_SIZE];
-		uint64_t key[BINARY_SIZE];
-
-		l = strlen(saved_key[index]);
-		hmac_sha512((unsigned char*)saved_key[index], l,
-		        (uint8_t *) cur_salt->salt, cur_salt->length,
-		        1, tmp);
-		memcpy(key, tmp, BINARY_SIZE);
-
-		for (i = 1; i < cur_salt->rounds; i++) {
-			hmac_sha512((unsigned char*)saved_key[index], l,
-			        (uint8_t *) tmp, BINARY_SIZE, 0, tmp);
-			for (j = 0; j < 8; j++)
-				key[j] ^= tmp[j];
+#ifdef SSE_GROUP_SZ_SHA512
+		int lens[SSE_GROUP_SZ_SHA512], i;
+		unsigned char *pin[SSE_GROUP_SZ_SHA512];
+		ARCH_WORD_32 *pout[SSE_GROUP_SZ_SHA512];
+		for (i = 0; i < SSE_GROUP_SZ_SHA512; ++i) {
+			lens[i] = strlen(saved_key[index+i]);
+			pin[i] = (unsigned char*)saved_key[index+i];
+			pout[i] = crypt_out[index+i];
 		}
-		memcpy((unsigned char*)crypt_out[index], key, BINARY_SIZE);
+		pbkdf2_sha512_sse((const unsigned char **)pin, lens, cur_salt->salt, strlen((char*)cur_salt->salt), cur_salt->rounds, (unsigned char**)pout, BINARY_SIZE, 0);
+#else
+		pbkdf2_sha512((const unsigned char*)(saved_key[index]), strlen(saved_key[index]),
+			cur_salt->salt, strlen((char*)cur_salt->salt),
+			cur_salt->rounds, (unsigned char*)crypt_out[index], BINARY_SIZE, 0);
+#endif
 	}
 	return count;
 }
