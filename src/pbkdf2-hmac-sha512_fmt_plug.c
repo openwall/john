@@ -58,7 +58,6 @@
 #endif
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        -1
-#define KEYS_PER_CRYPT          1
 #ifdef _OPENMP
 static int omp_t = 1;
 #include <omp.h>
@@ -81,6 +80,9 @@ static struct fmt_tests tests[] = {
 	{"grub.pbkdf2.sha512.10000.4483972AD2C52E1F590B3E2260795FDA9CA0B07B96FF492814CA9775F08C4B59CD1707F10B269E09B61B1E2D11729BCA8D62B7827B25B093EC58C4C1EAC23137.DF4FCB5DD91340D6D31E33423E4210AD47C7A4DF9FA16F401663BF288C20BF973530866178FE6D134256E4DBEFBD984B652332EED3ACAED834FEA7B73CAE851D", "password"},
 	/* Canonical format */
 	{"$pbkdf2-hmac-sha512$10000.82dbab96e072834d1f725db9aded51e703f1d449e77d01f6be65147a765c997d8865a1f1ab50856aa3b08d25a5602fe538ad0757b8ca2933fe8ca9e7601b3fbf.859d65960e6d05c6858f3d63fa35c6adfc456637b4a0a90f6afa7d8e217ce2d3dfdc56c8deaca217f0864ae1efb4a09b00eb84cf9e4a2723534f34e26a279193", "openwall"},
+	/* max length password (and longer salt) made by pass_gen.pl */
+	{"$pbkdf2-hmac-sha512$56789.3132333435363738393031323334353637383930313233343536373839303132333435363738393031323334353637383930313233343536373839303132333435363738393031323334353637383930313233343536373839303132333435363738393031323334353637383930313233343536373839303132333435363738.c4ac265e1b5d30694d04454e88f3f363a401aa82c7936d08d6bfc0751bc3e395b38422116665feecade927e7fa339d60022796f1354b064a4dc3c5304adf102a","12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"},
+	{"$pbkdf2-hmac-sha512$10000.2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e.cd9f205b20c3cc9699b1304d02cfa4dd2f69adda583402e99d1102911b14519653f4d2d09d0c8576d745ec9fa14888e0b3f32b254bb4d80aad2bd8b0c433e56d", "12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"},
 	{NULL}
 };
 
@@ -290,7 +292,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			pin[i] = (unsigned char*)saved_key[index+i];
 			pout[i] = crypt_out[index+i];
 		}
-		pbkdf2_sha512_sse((const unsigned char **)pin, lens, cur_salt->salt, strlen((char*)cur_salt->salt), cur_salt->rounds, (unsigned char**)pout, BINARY_SIZE, 0);
+		pbkdf2_sha512_sse((const unsigned char **)pin, lens, cur_salt->salt, cur_salt->length, cur_salt->rounds, (unsigned char**)pout, BINARY_SIZE, 0);
 #else
 		pbkdf2_sha512((const unsigned char*)(saved_key[index]), strlen(saved_key[index]),
 			cur_salt->salt, strlen((char*)cur_salt->salt),
@@ -339,7 +341,7 @@ static int cmp_exact(char *source, int index)
 		p += 2;
 	}
 	pbkdf2_sha512((const unsigned char*)(saved_key[index]), strlen(saved_key[index]),
-			cur_salt->salt, strlen((char*)cur_salt->salt),
+			cur_salt->salt, cur_salt->length,
 			cur_salt->rounds, crypt, len, 0);
 	result = !memcmp(binary, crypt, len);
 	MEM_FREE(binary);
@@ -348,7 +350,6 @@ static int cmp_exact(char *source, int index)
 		fprintf(stderr, "\n%s: Warning: Partial match for '%s'.\n"
 		        "This is a bug or a malformed input line of:\n%s\n",
 		        FORMAT_LABEL, saved_key[index], source);
-
 	return result;
 }
 

@@ -80,7 +80,7 @@ my @funcs = (qw(DES BigCrypt BSDI MD5_1 MD5_a BF BFx BFegg RawMD5 RawMD5u
 		sha256crypt sha512crypt XSHA512  dynamic_27 dynamic_28 pwsafe django
 		drupal7 epi episerver_sha1 episerver_sha256 hmailserver ike keepass
 		keychain nukedclan pfx racf radmin rawsha0 sip SybaseASE vnc wbb3 wpapsk
-		sunmd5 wow_srp scrypt aix_ssha1 aix_ssha256 aix_ssha512));
+		sunmd5 wow_srp scrypt aix_ssha1 aix_ssha256 aix_ssha512 pbkdf2_hmac_sha512));
 
 # todo: ike keychain pfx racf sip vnc wpapsk
 
@@ -114,7 +114,7 @@ my $gen_lastTokIsFunc; my $gen_u_do; my $dynamic_usernameType; my $dynamic_passT
 my @gen_pCode; my @gen_Stack; my @gen_Flags;
 my $debug_pcode=0; my $gen_needs; my $gen_needs2; my $gen_needu; my $gen_singlesalt;
 my $hash_format; my $arg_utf8 = 0; my $arg_codepage = ""; my $arg_minlen = 0; my $arg_maxlen = 128; my $arg_dictfile = "unknown";
-my $arg_count = 1500, my $argsalt, my $arg_nocomment = 0; my $arg_hidden_cp;
+my $arg_count = 1500, my $argsalt, my $arg_nocomment = 0; my $arg_hidden_cp; my $arg_loops=-1;
 
 GetOptions(
 	'codepage=s'       => \$arg_codepage,
@@ -125,6 +125,7 @@ GetOptions(
 	'maxlength=n'      => \$arg_maxlen,
 	'salt=s'           => \$argsalt,
 	'count=n'          => \$arg_count,
+	'loops=n'          => \$arg_loops,
 	'dictfile=s'       => \$arg_dictfile
 	) || usage();
 
@@ -145,6 +146,8 @@ usage: $0 [-h|-?] [codepage=CP|-utf8] [-option[s]] HashType [HashType2 [...]] [ 
     -minlen <n>   Discard lines shorter than <n> characters  (0)
     -maxlen <n>   Discard lines longer than <n> characters (128)
     -count <n>    Stop when we have produced <n> hashes   (1320)
+	-loops <n>    some format (pbkdf2, etc), have a loop count. This
+                  allows setting a custom count for some formats.
 
 	-salt <s>     Force a single salt (only supported in a few formats)
     -dictfile <s> Put name of dict file into the first line comment
@@ -1556,6 +1559,17 @@ sub aix_ssha512 {
 	my $itr = 64; # 1<<6
 	my $pbkdf2 = Crypt::PBKDF2->new(hash_class => 'HMACSHA2', hash_args => { sha_size => 512 },  iterations => $itr, output_len => 64, salt_len => length($salt) );
 	print "u$u-aix-ssha512:{ssha512}06\$$salt\$", base64_aix($pbkdf2->PBKDF2($salt, $_[0])) ,":$u:0:", $_[0], "::\n";
+}
+# there are many 'formats' handled, but we just do the cannonical $pbkdf2-hmac-sha512$ one.
+# there could also be $ml$ and grub.pbkdf2.sha512. as the signatures. but within prepare() of pbkdf2-hmac-sha512_fmt,
+# they all get converted to this one, so that is all I plan on using.
+sub pbkdf2_hmac_sha512 {
+	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(16); }
+	my $itr = 10000;
+	if ($arg_loops > 0) { $itr = $arg_loops; }
+	my $pbkdf2 = Crypt::PBKDF2->new(hash_class => 'HMACSHA2', hash_args => { sha_size => 512 },  iterations => $itr, output_len => 64, salt_len => length($salt) );
+	print "u$u-pbkdf2-hmac-ssha512:\$pbkdf2-hmac-sha512\$${itr}.".unpack("H*", $salt).".", unpack("H*", $pbkdf2->PBKDF2($salt, $_[0])) ,":$u:0:", $_[0], "::\n";
+
 }
 sub drupal7 {
 	if (defined $argsalt && length($argsalt)<=8) { $salt = $argsalt; } else { $salt=randstr(8); }
