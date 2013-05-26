@@ -114,20 +114,29 @@ _inline __m128i _mm_set1_epi64x(long long a)
 
     #define _mm_roti16_epi32(a,s)	\
 		(_mm_shuffle_epi8((a), rot16_mask))
+  #else
+    #define _mm_roti16_epi32(a,s)		\
+		(_mm_shufflelo_epi16(_mm_shufflehi_epi16((a), 0xb1), 0xb1))
+  #endif
+#endif
 
-    #define swap_endian_mask		\
-		_mm_set_epi32(0x0c0d0e0f, 0x08090a0b, 0x04050607, 0x00010203)
-    #define swap_endian64_mask		\
-		_mm_set_epi64x(0x08090a0b0c0d0e0fULL, 0x0001020304050607ULL)
+#ifdef __SSSE3__
+  #define rot16_mask				\
+	_mm_set_epi32(0x0d0c0f0e, 0x09080b0a, 0x05040706, 0x01000302)
 
-    #define SWAP_ENDIAN(n)			\
-		(n = _mm_shuffle_epi8(n, swap_endian_mask))
-    #define SWAP_ENDIAN64(n)		\
-		(n = _mm_shuffle_epi8(n, swap_endian64_mask))
+  #define _mm_roti16_epi32(a,s)	\
+	(_mm_shuffle_epi8((a), rot16_mask))
+
+  #define swap_endian_mask		\
+	_mm_set_epi32(0x0c0d0e0f, 0x08090a0b, 0x04050607, 0x00010203)
+  #define swap_endian64_mask		\
+	_mm_set_epi64x(0x08090a0b0c0d0e0fULL, 0x0001020304050607ULL)
+
+  #define SWAP_ENDIAN(n)			\
+	(n = _mm_shuffle_epi8(n, swap_endian_mask))
+  #define SWAP_ENDIAN64(n)		\
+	(n = _mm_shuffle_epi8(n, swap_endian64_mask))
  #else
-  #define _mm_roti16_epi32(a,s)		\
-	(_mm_shufflelo_epi16(_mm_shufflehi_epi16((a), 0xb1), 0xb1))
-
   #define SWAP_ENDIAN(n)			\
 	(n = _mm_xor_si128(				\
 		_mm_srli_epi16(				\
@@ -139,7 +148,6 @@ _inline __m128i _mm_set1_epi64x(long long a)
     n = _mm_xor_si128 (_mm_slli_epi16 (n, 8), _mm_srli_epi16 (n, 8));     \
     n = _mm_shuffle_epi32 (n, 0xb1);                                      \
   }
- #endif
 #endif
 
 #ifdef __SSE4_1__
