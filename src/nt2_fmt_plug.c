@@ -47,8 +47,12 @@
 #define SALT_ALIGN			1
 
 #ifdef MMX_COEF
-#ifdef MD4_SSE_PARA
-#define BLOCK_LOOPS			1 // Experimental. Try 1536 and OMP
+#if defined(MD4_SSE_PARA) && defined(_OPENMP)
+#ifdef __XOP__
+#define BLOCK_LOOPS			(1024*1024)
+#else
+#define BLOCK_LOOPS			4096 // tuned for i7 w/o HT
+#endif
 #else
 #define BLOCK_LOOPS			1 // Never change this
 #endif
@@ -517,8 +521,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #if (BLOCK_LOOPS > 1)
 	int i;
 
-	// This was an experiment. It's not used (unless you bump BLOCK_LOOPS),
-	// cause it does not scale well. We would need to parallelize set_key()
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
