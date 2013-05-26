@@ -283,6 +283,7 @@ default:
 #	@echo "linux-x86-64-32-sse2[i]  Linux, x86-64, 32-bit with SSE2 (for regression tests)"
 #	@echo "linux-x86-64-32-mmx      Linux, x86-64, 32-bit with MMX (for regression tests)"
 #	@echo "linux-x86-64-32-any      Linux, x86-64, 32-bit (for regression tests)"
+	@echo "linux-X32-native         Linux, X32 'native' (all CPU features you've got)"
 	@echo "linux-x86-gpu            Linux, x86 32-bit with SSE2, CUDA and OpenCL (experimental)"
 	@echo "linux-x86-opencl         Linux, x86 32-bit with SSE2 and OpenCL (experimental)"
 	@echo "linux-x86-cuda           Linux, x86 32-bit with SSE2 and CUDA (experimental)"
@@ -446,6 +447,19 @@ linux-x86-64-native:
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -DHAVE_DL -march=native" \
 		ASFLAGS="$(ASFLAGS) -march=native" \
 		LDFLAGS="$(LDFLAGS) -lcrypt -ldl -march=native"
+	@echo "Failing after this point just means some helper tools did not build:"
+	$(MAKE) $(PROJ_CXX)
+	$(MAKE) $(PROJ_PCAP)
+	@echo "All done"
+
+linux-X32-native:
+	$(LN) x86-64.h arch.h
+	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
+		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -DHAVE_DL -march=native -mx32" \
+		ASFLAGS="$(ASFLAGS) -march=native -mx32" \
+		LDFLAGS="$(LDFLAGS) -lcrypt -ldl -march=native -mx32"
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
