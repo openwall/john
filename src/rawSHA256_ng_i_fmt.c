@@ -42,8 +42,14 @@
 // IS kept the same (makes for easier running after a change).
 
 //#define TEST_SHA224
+
+#if __SSE4_1__
+//#define MMX_LOAD SHA256_BUF_SIZ
+#define REMOVE_TAIL_ADD
+#else
 #define MMX_LOAD SHA256_BUF_SIZ
-//#define REMOVE_TAIL_ADD
+#define REMOVE_TAIL_ADD
+#endif
 
 #define FORMAT_LABEL              "raw-sha256-ng-i"
 #define ALGORITHM_NAME            SHA256_ALGORITHM_NAME

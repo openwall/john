@@ -26,11 +26,13 @@ typedef enum {
 	SSEi_OUTPUT_AS_INP_FMT=0x8,  // Write final output, using 'INPUT' format. Will not matter, unless PARA > 1
 	SSEi_SWAP_FINAL=0x10,        // swap results into machine native endianity.  Normally, results are left in crypt endianity
 	SSEi_SKIP_FINAL_ADD=0x20,    // do NOT do a=a+init. ONLY valid if not doing reload, AND if format did out[0]-=init in binary.
+	SSEi_2BUF_INPUT=0x40,        // input array is 2x in size (we do 2 limbs of work also).
+	SSEi_2BUF_INPUT_FIRST_BLK=(0x40|0x80),  // input array 2x in size.  This is the first block, so we MUST rotate element 14/15 if in flat mode.
 
 	// this are specific to SHA2 hashes. Can be the same bit, since only 1 will be used (i.e. it is not valid to do SSE_CRYPT_SHA224|SSE_CRYPT_SHA224 and expect both to be loaded)
 	// WARNING, SHA224 requires a FULL SHA256 width output buffer, and SHA384 requires a full SHA512 width output buffer.  This is to allow proper reloading and doing multi-limb crypts.
-	SSEi_CRYPT_SHA224=0x100,     // use SHA224 IV.
-	SSEi_CRYPT_SHA384=0x100,     // use SHA384 IV.
+	SSEi_CRYPT_SHA224=0x1000,     // use SHA224 IV.
+	SSEi_CRYPT_SHA384=0x1000,     // use SHA384 IV.
 
 } SSEi_FLAGS;
 

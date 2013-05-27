@@ -151,12 +151,19 @@ _inline __m128i _mm_set1_epi64x(long long a)
 #endif
 
 #ifdef __SSE4_1__
+#define GATHER_2x(x, y, z)                      \
+{                                               \
+    x = _mm_cvtsi32_si128 (   y[z]   );         \
+    x = _mm_insert_epi32  (x, y[z+(1<<5)], 1);  \
+    x = _mm_insert_epi32  (x, y[z+(2<<5)], 2);  \
+    x = _mm_insert_epi32  (x, y[z+(3<<5)], 3);  \
+}
 #define GATHER(x, y, z)                         \
 {                                               \
-    x = _mm_cvtsi32_si128 (   y[(z<<4)]   );    \
-    x = _mm_insert_epi32  (x, y[1+(z<<4)], 1);  \
-    x = _mm_insert_epi32  (x, y[2+(z<<4)], 2);  \
-    x = _mm_insert_epi32  (x, y[3+(z<<4)], 3);  \
+    x = _mm_cvtsi32_si128 (   y[z]   );    \
+    x = _mm_insert_epi32  (x, y[z+(1<<4)], 1);  \
+    x = _mm_insert_epi32  (x, y[z+(2<<4)], 2);  \
+    x = _mm_insert_epi32  (x, y[z+(3<<4)], 3);  \
 }
 #endif
 #define GATHER64(x,y,z)		{x = _mm_set_epi64x (y[1][z], y[0][z]);}
@@ -1351,37 +1358,60 @@ void SSESHA256body(__m128i *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state,
 
 	int i;
 	if (SSEi_flags & SSEi_FLAT_IN) {
+
 #ifdef __SSE4_1__
 		saved_key = (ARCH_WORD_32 *)data;
-		for (i=0; i < 14; ++i) { GATHER (w[i], saved_key, i); SWAP_ENDIAN (w[i]); }
-		GATHER (w[14], saved_key, 14);
-		GATHER (w[15], saved_key, 15);
+		if (SSEi_flags & SSEi_2BUF_INPUT) {
+			for (i=0; i < 14; ++i) { GATHER_2x (w[i], saved_key, i); SWAP_ENDIAN (w[i]); }
+			GATHER_2x (w[14], saved_key, 14);
+			GATHER_2x (w[15], saved_key, 15);
+		} else {
+			for (i=0; i < 14; ++i) { GATHER (w[i], saved_key, i); SWAP_ENDIAN (w[i]); }
+			GATHER (w[14], saved_key, 14);
+			GATHER (w[15], saved_key, 15);
+		}
+		if ((SSEi_flags & SSEi_2BUF_INPUT_FIRST_BLK) == SSEi_2BUF_INPUT_FIRST_BLK) {
+			SWAP_ENDIAN (w[14]);
+			SWAP_ENDIAN (w[15]);
+		}
 #else
 		int j;
 		ARCH_WORD_32 *p = _w.p;
 		saved_key = (ARCH_WORD_32 *)data;
-		for (j=0; j < 16; j++)
-			for (i=0; i < MMX_COEF_SHA256; i++)
-				*p++ = saved_key[(i<<4)+j];
+		if (SSEi_flags & SSEi_2BUF_INPUT) {
+			for (j=0; j < 16; j++)
+				for (i=0; i < MMX_COEF_SHA256; i++)
+					*p++ = saved_key[(i<<5)+j];
+		} else {
+			for (j=0; j < 16; j++)
+				for (i=0; i < MMX_COEF_SHA256; i++)
+					*p++ = saved_key[(i<<4)+j];
+		}
 		for (i=0; i < 14; i++)
 			SWAP_ENDIAN (w[i]);
+		if ((SSEi_flags & SSEi_2BUF_INPUT_FIRST_BLK) == SSEi_2BUF_INPUT_FIRST_BLK) {
+			SWAP_ENDIAN (w[14]);
+			SWAP_ENDIAN (w[15]);
+		}
 #endif
 	} else
 		memcpy(w, data, 16*sizeof(__m128i));
+
+//	dump_stuff_shammx(w, 64, 0);
 
 
 	if (SSEi_flags & SSEi_RELOAD) {
 		if ((SSEi_flags & SSEi_RELOAD_INP_FMT)==SSEi_RELOAD_INP_FMT)
 		{
 			i=0; // later if we do PARA, i will be used in the PARA_FOR loop
-			a = _mm_load_si128((__m128i *)&reload_state[i*64*2+0]);
-			b = _mm_load_si128((__m128i *)&reload_state[i*64*2+4]);
-			c = _mm_load_si128((__m128i *)&reload_state[i*64*2+8]);
-			d = _mm_load_si128((__m128i *)&reload_state[i*64*2+12]);
-			e = _mm_load_si128((__m128i *)&reload_state[i*64*2+16]);
-			f = _mm_load_si128((__m128i *)&reload_state[i*64*2+20]);
-			g = _mm_load_si128((__m128i *)&reload_state[i*64*2+24]);
-			h = _mm_load_si128((__m128i *)&reload_state[i*64*2+28]);
+			a = _mm_load_si128((__m128i *)&reload_state[i*64*4+0]);
+			b = _mm_load_si128((__m128i *)&reload_state[i*64*4+4]);
+			c = _mm_load_si128((__m128i *)&reload_state[i*64*4+8]);
+			d = _mm_load_si128((__m128i *)&reload_state[i*64*4+12]);
+			e = _mm_load_si128((__m128i *)&reload_state[i*64*4+16]);
+			f = _mm_load_si128((__m128i *)&reload_state[i*64*4+20]);
+			g = _mm_load_si128((__m128i *)&reload_state[i*64*4+24]);
+			h = _mm_load_si128((__m128i *)&reload_state[i*64*4+28]);
 		}
 		else
 		{
@@ -1885,7 +1915,7 @@ void SSESHA512body(__m128i* data, unsigned int *out, ARCH_WORD_32 *reload_state,
 
 	if (SSEi_flags & SSEi_SWAP_FINAL) {
 		/* NOTE, if we swap OUT of BE into proper LE, then this can not be
-		 * used in a sha256_flags&SHA256_RELOAD manner, without swapping back into BE format.
+		 * used in a sha512_flags&SHA512_RELOAD manner, without swapping back into BE format.
 		 * NORMALLY, a format will switch binary values into BE format at start, and then
 		 * just take the 'normal' non swapped output of this function (i.e. keep it in BE) */
 		SWAP_ENDIAN64(a);
@@ -1900,7 +1930,7 @@ void SSESHA512body(__m128i* data, unsigned int *out, ARCH_WORD_32 *reload_state,
 
 	/* We store the MMX_mixed values.  This will be in proper 'mixed' format, in BE
 	 * format (i.e. correct to reload on a subsquent call), UNLESS, swapped in the prior
-	 * if statement (the SHA256_SWAP_FINAL) */
+	 * if statement (the SHA512_SWAP_FINAL) */
 	if (SSEi_flags & SSEi_OUTPUT_AS_INP_FMT)
 	{
 		i=0;
