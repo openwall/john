@@ -96,6 +96,16 @@ void main() {
 #include "johnswap.h"
 #include "sse-intrinsics.h"
 
+#ifdef MMX_COEF_SHA256
+// there are problems with SSE OMP builds.  Until found, simply do not allow OMP.
+//#undef _OPENMP
+//#undef FMT_OMP
+//#define FMT_OMP 0
+// Well, I tried by turning of OMP, but the run still failed.  So, I will simply
+// leave OMP on, but turn off SSE in an OMP build, until I get this figured out.
+#undef MMX_COEF_SHA256
+#endif
+
 #ifdef _OPENMP
 #define OMP_SCALE			8
 #include <omp.h>
