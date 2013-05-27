@@ -100,7 +100,6 @@ void main() {
 #define OMP_SCALE			8
 #include <omp.h>
 #endif
-#include "memdbg.h"
 
 // NOTE, in SSE mode, even if NOT in OMP, we may need to scale, quite a bit, due to needing
 // to 'group' passwords differently, so that we have lengths which 'share' the same number
@@ -414,7 +413,6 @@ static void LoadCryptStruct(cryptloopstruct *crypt_struct, int index, int idx, c
 
 	// Adjust cp for idx;
 #ifdef MMX_COEF_SHA256
-	cp += (idx*2*64);
 	next_cp = cp + (2*64*BLKS);
 #endif
 

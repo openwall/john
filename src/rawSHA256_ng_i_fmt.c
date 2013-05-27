@@ -187,24 +187,24 @@ static void *get_binary (char *ciphertext)
     alter_endianity (out, BINARY_SIZE);
 
 #ifdef REMOVE_TAIL_ADD
-#ifdef TEST_SHA384
-    out->w[0] -= 0xcbbb9d5dc1059ed8ull;
-    out->w[1] -= 0x629a292a367cd507ull;
-    out->w[2] -= 0x9159015a3070dd17ull;
-    out->w[3] -= 0x152fecd8f70e5939ull;
-    out->w[4] -= 0x67332667ffc00b31ull;
-    out->w[5] -= 0x8eb44a8768581511ull;
-    out->w[6] -= 0xdb0c2e0d64f98fa7ull;
-    out->w[7] -= 0x47b5481dbefa4fa4ull;
+#ifdef TEST_SHA224
+    ((ARCH_WORD_32*)out)[0] -= 0xc1059ed8;
+    ((ARCH_WORD_32*)out)[1] -= 0x367cd507;
+    ((ARCH_WORD_32*)out)[2] -= 0x3070dd17;
+    ((ARCH_WORD_32*)out)[3] -= 0xf70e5939;
+    ((ARCH_WORD_32*)out)[4] -= 0xffc00b31;
+    ((ARCH_WORD_32*)out)[5] -= 0x68581511;
+    ((ARCH_WORD_32*)out)[6] -= 0x64f98fa7;
+    ((ARCH_WORD_32*)out)[7] -= 0xbefa4fa4;
 #else
-    out->w[0] -= 0x6a09e667f3bcc908ULL;
-    out->w[1] -= 0xbb67ae8584caa73bULL;
-    out->w[2] -= 0x3c6ef372fe94f82bULL;
-    out->w[3] -= 0xa54ff53a5f1d36f1ULL;
-    out->w[4] -= 0x510e527fade682d1ULL;
-    out->w[5] -= 0x9b05688c2b3e6c1fULL;
-    out->w[6] -= 0x1f83d9abfb41bd6bULL;
-    out->w[7] -= 0x5be0cd19137e2179ULL;
+    ((ARCH_WORD_32*)out)[0] -= 0x6a09e667;
+    ((ARCH_WORD_32*)out)[1] -= 0xbb67ae85;
+    ((ARCH_WORD_32*)out)[2] -= 0x3c6ef372;
+    ((ARCH_WORD_32*)out)[3] -= 0xa54ff53a;
+    ((ARCH_WORD_32*)out)[4] -= 0x510e527f;
+    ((ARCH_WORD_32*)out)[5] -= 0x9b05688c;
+    ((ARCH_WORD_32*)out)[6] -= 0x1f83d9ab;
+    ((ARCH_WORD_32*)out)[7] -= 0x5be0cd19;
 #endif
 #endif
 

@@ -16203,16 +16203,141 @@ SSESHA256body:
         movl      812(%esp), %esi
         testl     $1, %esi
         movl      800(%esp), %eax
-        jne       ..B6.3
+        je        ..B6.10
 ..B6.2:
-        addl      $12, %esp
-        lea       4(%esp), %edx
-        pushl     $256
-        pushl     %eax
-        pushl     %edx
-        call      memcpy
-        jmp       ..B6.6
+        testl     $64, %esi
+        je        ..B6.4
 ..B6.3:
+        movl      (%eax), %edx
+        movl      %edx, 16(%esp)
+        movl      128(%eax), %ecx
+        movl      %ecx, 20(%esp)
+        movl      256(%eax), %edx
+        movl      %edx, 24(%esp)
+        movl      384(%eax), %ecx
+        movl      %ecx, 28(%esp)
+        movl      4(%eax), %edx
+        movl      %edx, 32(%esp)
+        movl      132(%eax), %ecx
+        movl      %ecx, 36(%esp)
+        movl      260(%eax), %edx
+        movl      %edx, 40(%esp)
+        movl      388(%eax), %ecx
+        movl      %ecx, 44(%esp)
+        movl      8(%eax), %edx
+        movl      %edx, 48(%esp)
+        movl      136(%eax), %ecx
+        movl      %ecx, 52(%esp)
+        movl      264(%eax), %edx
+        movl      %edx, 56(%esp)
+        movl      392(%eax), %ecx
+        movl      %ecx, 60(%esp)
+        movl      12(%eax), %edx
+        movl      %edx, 64(%esp)
+        movl      140(%eax), %ecx
+        movl      %ecx, 68(%esp)
+        movl      268(%eax), %edx
+        movl      %edx, 72(%esp)
+        movl      396(%eax), %ecx
+        movl      %ecx, 76(%esp)
+        movl      16(%eax), %edx
+        movl      %edx, 80(%esp)
+        movl      144(%eax), %ecx
+        movl      %ecx, 84(%esp)
+        movl      272(%eax), %edx
+        movl      %edx, 88(%esp)
+        movl      400(%eax), %ecx
+        movl      %ecx, 92(%esp)
+        movl      20(%eax), %edx
+        movl      %edx, 96(%esp)
+        movl      148(%eax), %ecx
+        movl      %ecx, 100(%esp)
+        movl      276(%eax), %edx
+        movl      %edx, 104(%esp)
+        movl      404(%eax), %ecx
+        movl      %ecx, 108(%esp)
+        movl      24(%eax), %edx
+        movl      %edx, 112(%esp)
+        movl      152(%eax), %ecx
+        movl      %ecx, 116(%esp)
+        movl      280(%eax), %edx
+        movl      %edx, 120(%esp)
+        movl      408(%eax), %ecx
+        movl      %ecx, 124(%esp)
+        movl      28(%eax), %edx
+        movl      %edx, 128(%esp)
+        movl      156(%eax), %ecx
+        movl      %ecx, 132(%esp)
+        movl      284(%eax), %edx
+        movl      %edx, 136(%esp)
+        movl      412(%eax), %ecx
+        movl      %ecx, 140(%esp)
+        movl      32(%eax), %edx
+        movl      %edx, 144(%esp)
+        movl      160(%eax), %ecx
+        movl      %ecx, 148(%esp)
+        movl      288(%eax), %edx
+        movl      %edx, 152(%esp)
+        movl      416(%eax), %ecx
+        movl      %ecx, 156(%esp)
+        movl      36(%eax), %edx
+        movl      %edx, 160(%esp)
+        movl      164(%eax), %ecx
+        movl      %ecx, 164(%esp)
+        movl      292(%eax), %edx
+        movl      %edx, 168(%esp)
+        movl      420(%eax), %ecx
+        movl      %ecx, 172(%esp)
+        movl      40(%eax), %edx
+        movl      %edx, 176(%esp)
+        movl      168(%eax), %ecx
+        movl      %ecx, 180(%esp)
+        movl      296(%eax), %edx
+        movl      %edx, 184(%esp)
+        movl      424(%eax), %ecx
+        movl      %ecx, 188(%esp)
+        movl      44(%eax), %edx
+        movl      %edx, 192(%esp)
+        movl      172(%eax), %ecx
+        movl      %ecx, 196(%esp)
+        movl      300(%eax), %edx
+        movl      %edx, 200(%esp)
+        movl      428(%eax), %ecx
+        movl      %ecx, 204(%esp)
+        movl      48(%eax), %edx
+        movl      %edx, 208(%esp)
+        movl      176(%eax), %ecx
+        movl      %ecx, 212(%esp)
+        movl      304(%eax), %edx
+        movl      %edx, 216(%esp)
+        movl      432(%eax), %ecx
+        movl      %ecx, 220(%esp)
+        movl      52(%eax), %edx
+        movl      %edx, 224(%esp)
+        movl      180(%eax), %ecx
+        movl      %ecx, 228(%esp)
+        movl      308(%eax), %edx
+        movl      %edx, 232(%esp)
+        movl      436(%eax), %ecx
+        movl      %ecx, 236(%esp)
+        movl      56(%eax), %edx
+        movl      %edx, 240(%esp)
+        movl      184(%eax), %ecx
+        movl      %ecx, 244(%esp)
+        movl      312(%eax), %edx
+        movl      %edx, 248(%esp)
+        movl      440(%eax), %ecx
+        movl      %ecx, 252(%esp)
+        movl      60(%eax), %edx
+        movl      %edx, 256(%esp)
+        movl      188(%eax), %ecx
+        movl      %ecx, 260(%esp)
+        movl      316(%eax), %edx
+        movl      %edx, 264(%esp)
+        movl      444(%eax), %eax
+        movl      %eax, 268(%esp)
+        jmp       ..B6.5
+..B6.4:
         movl      (%eax), %edx
         movl      %edx, 16(%esp)
         movl      64(%eax), %ecx
@@ -16341,8 +16466,9 @@ SSESHA256body:
         movl      %edx, 264(%esp)
         movl      252(%eax), %eax
         movl      %eax, 268(%esp)
+..B6.5:
         xorl      %eax, %eax
-..B6.4:
+..B6.6:
         movl      %eax, %edx
         incl      %eax
         shll      $4, %edx
@@ -16354,13 +16480,54 @@ SSESHA256body:
         psrlw     $8, %xmm2
         pxor      %xmm1, %xmm2
         movdqa    %xmm2, 16(%esp,%edx)
-        jl        ..B6.4
-..B6.6:
+        jl        ..B6.6
+..B6.7:
+        movl      %esi, %eax
+        andl      $192, %eax
+        movdqa    240(%esp), %xmm0
+        cmpl      $192, %eax
+        movdqa    %xmm0, 496(%esp)
+        jne       ..B6.9
+..B6.8:
+        pshufhw   $177, 496(%esp), %xmm0
+        pshufhw   $177, 256(%esp), %xmm3
+        pshuflw   $177, %xmm0, %xmm1
+        pshuflw   $177, %xmm3, %xmm4
+        movdqa    %xmm1, %xmm2
+        movdqa    %xmm4, %xmm5
+        psrlw     $8, %xmm2
+        psllw     $8, %xmm1
+        psrlw     $8, %xmm5
+        psllw     $8, %xmm4
+        pxor      %xmm1, %xmm2
+        pxor      %xmm4, %xmm5
+        movdqa    %xmm2, 496(%esp)
+        movdqa    %xmm2, 240(%esp)
+        movdqa    %xmm5, 480(%esp)
+        movdqa    %xmm5, 256(%esp)
+        jmp       ..B6.12
+..B6.9:
+        movdqa    256(%esp), %xmm0
+        movdqa    %xmm0, 480(%esp)
+        jmp       ..B6.12
+..B6.10:
+        addl      $12, %esp
+        lea       4(%esp), %edx
+        pushl     $256
+        pushl     %eax
+        pushl     %edx
+        call      memcpy
+..B6.11:
+        movdqa    240(%esp), %xmm0
+        movdqa    256(%esp), %xmm1
+        movdqa    %xmm0, 496(%esp)
+        movdqa    %xmm1, 480(%esp)
+..B6.12:
         movl      %esi, %eax
         movl      808(%esp), %edx
         andl      $2, %eax
-        je        ..B6.8
-..B6.7:
+        je        ..B6.14
+..B6.13:
         movdqa    (%edx), %xmm2
         movdqa    16(%edx), %xmm0
         movdqa    48(%edx), %xmm1
@@ -16374,11 +16541,11 @@ SSESHA256body:
         movdqa    112(%edx), %xmm1
         movdqa    %xmm3, 320(%esp)
         movdqa    %xmm4, 272(%esp)
-        jmp       ..B6.11
-..B6.8:
-        testl     $256, %esi
-        je        ..B6.10
-..B6.9:
+        jmp       ..B6.17
+..B6.14:
+        testl     $4096, %esi
+        je        ..B6.16
+..B6.15:
         movdqa    .L_2il0floatpacket.680, %xmm2
         movdqa    .L_2il0floatpacket.681, %xmm0
         movdqa    .L_2il0floatpacket.683, %xmm1
@@ -16392,8 +16559,8 @@ SSESHA256body:
         movdqa    %xmm3, 320(%esp)
         movdqa    %xmm4, 272(%esp)
         movdqa    .L_2il0floatpacket.687, %xmm1
-        jmp       ..B6.11
-..B6.10:
+        jmp       ..B6.17
+..B6.16:
         movdqa    .L_2il0floatpacket.688, %xmm2
         movdqa    .L_2il0floatpacket.689, %xmm0
         movdqa    .L_2il0floatpacket.691, %xmm1
@@ -16407,7 +16574,7 @@ SSESHA256body:
         movdqa    %xmm3, 320(%esp)
         movdqa    %xmm4, 272(%esp)
         movdqa    .L_2il0floatpacket.695, %xmm1
-..B6.11:
+..B6.17:
         movdqa    %xmm0, %xmm6
         movdqa    %xmm0, %xmm5
         movdqa    %xmm0, %xmm7
@@ -16989,405 +17156,399 @@ SSESHA256body:
         pxor      %xmm4, %xmm5
         movdqa    %xmm2, %xmm4
         paddd     %xmm5, %xmm7
-        movdqa    %xmm2, %xmm5
+        psrld     $6, %xmm6
         paddd     %xmm7, %xmm3
         movdqa    %xmm2, %xmm7
         movdqa    %xmm3, 272(%esp)
-        pslld     $7, %xmm7
-        movdqa    176(%esp), %xmm3
         pslld     $26, %xmm4
-        movdqa    %xmm3, 704(%esp)
+        movdqa    176(%esp), %xmm3
+        pslld     $7, %xmm7
+        movdqa    %xmm3, 736(%esp)
         movdqa    %xmm2, %xmm3
         psrld     $25, %xmm3
-        psrld     $11, %xmm6
+        por       %xmm4, %xmm6
+        movdqa    %xmm2, %xmm5
+        movdqa    %xmm2, %xmm4
         por       %xmm7, %xmm3
-        movdqa    %xmm2, %xmm7
-        psrld     $6, %xmm7
-        pslld     $21, %xmm5
-        por       %xmm4, %xmm7
-        por       %xmm5, %xmm6
-        pxor      %xmm6, %xmm7
-..B6.31:
-        movdqa    304(%esp), %xmm4
-        pxor      %xmm7, %xmm3
-        pxor      %xmm0, %xmm4
-        movdqa    %xmm2, 384(%esp)
-        pand      %xmm2, %xmm4
-        movdqa    320(%esp), %xmm5
-        pxor      %xmm0, %xmm4
-        movdqa    272(%esp), %xmm2
-        paddd     %xmm3, %xmm5
-        movdqa    %xmm0, 352(%esp)
-        movdqa    %xmm2, %xmm3
-        movdqa    %xmm2, %xmm0
-        movdqa    %xmm2, %xmm6
-        movdqa    %xmm2, %xmm7
-        psrld     $22, %xmm3
-        pslld     $10, %xmm0
-        psrld     $2, %xmm6
-        pslld     $30, %xmm7
-        por       %xmm0, %xmm3
-        por       %xmm7, %xmm6
-        movdqa    %xmm2, %xmm7
-        movdqa    %xmm2, %xmm0
-        psrld     $13, %xmm7
-        pslld     $19, %xmm0
-        paddd     %xmm4, %xmm5
-        por       %xmm0, %xmm7
-        pxor      %xmm1, %xmm2
-        pxor      %xmm7, %xmm6
+        psrld     $11, %xmm5
+        pslld     $21, %xmm4
+..B6.37:
+        por       %xmm4, %xmm5
+        pxor      %xmm5, %xmm6
         pxor      %xmm6, %xmm3
-        movdqa    288(%esp), %xmm6
-        movdqa    %xmm6, %xmm0
-        pxor      %xmm1, %xmm0
-        paddd     .L_2il0floatpacket.626, %xmm5
-        pand      %xmm2, %xmm0
-        paddd     704(%esp), %xmm5
-        pxor      %xmm1, %xmm0
-        movdqa    336(%esp), %xmm4
-        paddd     %xmm0, %xmm3
-        paddd     %xmm5, %xmm4
+        movdqa    304(%esp), %xmm6
+        pxor      %xmm0, %xmm6
+        movdqa    320(%esp), %xmm5
+        pand      %xmm2, %xmm6
         paddd     %xmm3, %xmm5
-        movdqa    %xmm1, 368(%esp)
-        movdqa    %xmm4, %xmm1
-        movdqa    %xmm4, %xmm3
-        movdqa    %xmm4, %xmm2
-        movdqa    %xmm4, %xmm0
-        psrld     $25, %xmm1
-        pslld     $7, %xmm3
-        psrld     $6, %xmm2
-        pslld     $26, %xmm0
-        por       %xmm3, %xmm1
+        pxor      %xmm0, %xmm6
+        movdqa    272(%esp), %xmm3
+        paddd     %xmm6, %xmm5
+        movdqa    %xmm0, 352(%esp)
+        movdqa    %xmm3, %xmm0
+        movdqa    %xmm2, 384(%esp)
+        movdqa    %xmm3, %xmm2
+        movdqa    %xmm3, %xmm7
+        movdqa    %xmm3, %xmm6
+        psrld     $22, %xmm2
+        pslld     $10, %xmm0
+        psrld     $2, %xmm7
+        pslld     $30, %xmm6
         por       %xmm0, %xmm2
-        movdqa    %xmm4, %xmm0
-        movdqa    %xmm4, %xmm3
-        psrld     $11, %xmm0
-        pslld     $21, %xmm3
-        por       %xmm3, %xmm0
-        pxor      %xmm0, %xmm2
-        movdqa    %xmm5, %xmm0
-        pxor      %xmm2, %xmm1
-        psrld     $22, %xmm0
-        movdqa    352(%esp), %xmm2
-        movdqa    384(%esp), %xmm3
-        paddd     %xmm1, %xmm2
-        movdqa    304(%esp), %xmm1
+        por       %xmm6, %xmm7
+        movdqa    %xmm3, %xmm6
+        movdqa    %xmm3, %xmm0
+        psrld     $13, %xmm6
+        pslld     $19, %xmm0
+        por       %xmm0, %xmm6
         pxor      %xmm1, %xmm3
-        pand      %xmm4, %xmm3
-        pxor      %xmm1, %xmm3
-        paddd     %xmm3, %xmm2
-        movdqa    %xmm5, %xmm3
-        movdqa    192(%esp), %xmm7
-        psrld     $2, %xmm3
-        paddd     .L_2il0floatpacket.627, %xmm2
-        movdqa    %xmm4, 336(%esp)
-        paddd     %xmm7, %xmm2
-        movdqa    %xmm7, 624(%esp)
-        movdqa    %xmm5, %xmm4
-        movdqa    %xmm5, %xmm7
-        pslld     $10, %xmm4
-        pslld     $30, %xmm7
-        por       %xmm4, %xmm0
-        por       %xmm7, %xmm3
-        movdqa    %xmm5, %xmm7
-        movdqa    %xmm5, %xmm4
-        psrld     $13, %xmm7
-        pslld     $19, %xmm4
-        paddd     %xmm2, %xmm6
-        por       %xmm4, %xmm7
-        movdqa    272(%esp), %xmm4
-        pxor      %xmm7, %xmm3
-        movdqa    368(%esp), %xmm7
-        pxor      %xmm3, %xmm0
-        movdqa    %xmm4, %xmm3
-        pxor      %xmm4, %xmm7
-        pxor      %xmm5, %xmm3
+        pxor      %xmm6, %xmm7
+        movdqa    288(%esp), %xmm6
+        pxor      %xmm7, %xmm2
+        movdqa    %xmm6, %xmm7
+        pxor      %xmm1, %xmm7
+        paddd     .L_2il0floatpacket.626, %xmm5
         pand      %xmm3, %xmm7
-        movdqa    %xmm6, %xmm3
-        pxor      %xmm4, %xmm7
-        movdqa    %xmm6, %xmm4
-        paddd     %xmm7, %xmm0
-        psrld     $25, %xmm4
-        movdqa    %xmm5, 320(%esp)
-        paddd     %xmm0, %xmm2
-        movdqa    %xmm6, %xmm5
+        paddd     736(%esp), %xmm5
+        pxor      %xmm1, %xmm7
+        movdqa    336(%esp), %xmm4
+        paddd     %xmm7, %xmm2
+        paddd     %xmm5, %xmm4
+        paddd     %xmm2, %xmm5
+        movdqa    %xmm1, 368(%esp)
+        movdqa    %xmm4, %xmm3
+        movdqa    %xmm4, %xmm1
+        movdqa    %xmm4, %xmm2
+        movdqa    %xmm4, %xmm7
+        psrld     $25, %xmm3
+        pslld     $7, %xmm1
+        psrld     $6, %xmm2
+        pslld     $26, %xmm7
+        por       %xmm1, %xmm3
+        por       %xmm7, %xmm2
+        movdqa    %xmm4, %xmm7
+        movdqa    %xmm4, %xmm1
+        psrld     $11, %xmm7
+        pslld     $21, %xmm1
+        por       %xmm1, %xmm7
+        movdqa    %xmm5, %xmm1
+        pxor      %xmm7, %xmm2
+        psrld     $22, %xmm1
+        movdqa    352(%esp), %xmm7
+        pxor      %xmm2, %xmm3
+        movdqa    304(%esp), %xmm2
+        paddd     %xmm3, %xmm7
+        movdqa    384(%esp), %xmm3
+        pxor      %xmm2, %xmm3
+        pand      %xmm4, %xmm3
+        pxor      %xmm2, %xmm3
+        paddd     %xmm3, %xmm7
+        movdqa    %xmm5, %xmm3
+        movdqa    192(%esp), %xmm0
+        pslld     $30, %xmm3
+        paddd     .L_2il0floatpacket.627, %xmm7
+        movdqa    %xmm4, 336(%esp)
+        paddd     %xmm0, %xmm7
+        movdqa    %xmm0, 720(%esp)
+        movdqa    %xmm5, %xmm4
+        movdqa    %xmm5, %xmm0
+        pslld     $10, %xmm4
+        psrld     $2, %xmm0
+        por       %xmm4, %xmm1
+        por       %xmm3, %xmm0
+        movdqa    %xmm5, %xmm3
+        movdqa    %xmm5, %xmm4
+        psrld     $13, %xmm3
+        pslld     $19, %xmm4
+        paddd     %xmm7, %xmm6
+        por       %xmm4, %xmm3
+        pxor      %xmm3, %xmm0
+        movdqa    272(%esp), %xmm3
+        pxor      %xmm0, %xmm1
+        movdqa    368(%esp), %xmm4
+        movdqa    %xmm3, %xmm0
+        pxor      %xmm3, %xmm4
+        pxor      %xmm5, %xmm0
+        pand      %xmm0, %xmm4
         movdqa    %xmm6, %xmm0
-        pslld     $7, %xmm5
-        psrld     $6, %xmm3
+        pxor      %xmm3, %xmm4
         pslld     $26, %xmm0
+        paddd     %xmm4, %xmm1
+        movdqa    %xmm6, %xmm4
+        movdqa    %xmm5, 320(%esp)
+        paddd     %xmm1, %xmm7
+        movdqa    %xmm6, %xmm5
+        movdqa    %xmm6, %xmm1
+        psrld     $25, %xmm4
+        pslld     $7, %xmm5
+        psrld     $6, %xmm1
         por       %xmm5, %xmm4
-        por       %xmm0, %xmm3
+        por       %xmm0, %xmm1
         movdqa    %xmm6, %xmm0
         movdqa    %xmm6, %xmm5
         psrld     $11, %xmm0
         pslld     $21, %xmm5
         por       %xmm5, %xmm0
-        movdqa    %xmm2, %xmm5
-        pxor      %xmm0, %xmm3
-        movdqa    %xmm2, %xmm0
-        pxor      %xmm3, %xmm4
+        movdqa    %xmm7, %xmm5
+        pxor      %xmm0, %xmm1
+        movdqa    %xmm7, %xmm0
+        pxor      %xmm1, %xmm4
         psrld     $2, %xmm0
-        movdqa    384(%esp), %xmm3
-        paddd     %xmm4, %xmm1
-        movdqa    %xmm3, %xmm4
+        movdqa    384(%esp), %xmm1
+        paddd     %xmm4, %xmm2
+        movdqa    %xmm1, %xmm4
         pslld     $30, %xmm5
         pxor      336(%esp), %xmm4
         por       %xmm5, %xmm0
         pand      %xmm6, %xmm4
-        movdqa    %xmm2, %xmm5
-        pxor      %xmm3, %xmm4
+        movdqa    %xmm7, %xmm5
+        pxor      %xmm1, %xmm4
         psrld     $13, %xmm5
+        paddd     %xmm4, %xmm2
+        movdqa    208(%esp), %xmm3
+        paddd     .L_2il0floatpacket.628, %xmm2
         movdqa    %xmm6, 288(%esp)
-        paddd     %xmm4, %xmm1
-        movdqa    %xmm2, %xmm4
-        movdqa    %xmm2, %xmm6
-        psrld     $22, %xmm4
+        paddd     %xmm3, %xmm2
+        movdqa    %xmm3, 704(%esp)
+        movdqa    %xmm7, %xmm3
+        movdqa    %xmm7, %xmm6
+        psrld     $22, %xmm3
         pslld     $10, %xmm6
-        por       %xmm6, %xmm4
-        movdqa    %xmm2, %xmm6
+        por       %xmm6, %xmm3
+        movdqa    %xmm7, %xmm6
         pslld     $19, %xmm6
         por       %xmm6, %xmm5
         pxor      %xmm5, %xmm0
-        pxor      %xmm0, %xmm4
+        pxor      %xmm0, %xmm3
         movdqa    272(%esp), %xmm0
         movdqa    320(%esp), %xmm6
         movdqa    %xmm0, %xmm5
-        movdqa    %xmm2, 352(%esp)
+        movdqa    %xmm7, 352(%esp)
         pxor      %xmm6, %xmm5
-        pxor      %xmm6, %xmm2
-        movdqa    208(%esp), %xmm7
-        pand      %xmm2, %xmm5
-        paddd     .L_2il0floatpacket.628, %xmm1
+        pxor      %xmm6, %xmm7
+        pand      %xmm7, %xmm5
+        movdqa    368(%esp), %xmm4
         pxor      %xmm6, %xmm5
-        movdqa    %xmm7, 496(%esp)
+        paddd     %xmm2, %xmm4
+        paddd     %xmm5, %xmm3
+        paddd     %xmm3, %xmm2
+        movdqa    %xmm4, %xmm7
+        movdqa    %xmm4, %xmm3
+        psrld     $25, %xmm7
+        pslld     $7, %xmm3
+        movdqa    %xmm4, %xmm6
+        por       %xmm3, %xmm7
+        movdqa    %xmm4, %xmm3
+        psrld     $6, %xmm3
+        pslld     $26, %xmm6
+        por       %xmm6, %xmm3
+        movdqa    %xmm4, %xmm6
+        movdqa    %xmm4, %xmm5
+        psrld     $11, %xmm6
+        pslld     $21, %xmm5
+        por       %xmm5, %xmm6
+        pxor      %xmm6, %xmm3
+        pxor      %xmm3, %xmm7
+        movdqa    336(%esp), %xmm3
         paddd     %xmm7, %xmm1
-        movdqa    368(%esp), %xmm7
-        paddd     %xmm5, %xmm4
-        paddd     %xmm1, %xmm7
-        paddd     %xmm4, %xmm1
-        movdqa    %xmm7, %xmm2
+        movdqa    288(%esp), %xmm7
+        pxor      %xmm3, %xmm7
+        pand      %xmm4, %xmm7
+        pxor      %xmm3, %xmm7
+        movdqa    %xmm2, 304(%esp)
+        paddd     %xmm7, %xmm1
+        movdqa    224(%esp), %xmm2
+        paddd     .L_2il0floatpacket.629, %xmm1
+        movdqa    304(%esp), %xmm7
+        paddd     %xmm2, %xmm1
+        movdqa    %xmm4, 368(%esp)
         movdqa    %xmm7, %xmm4
+        movdqa    %xmm2, 656(%esp)
+        movdqa    %xmm7, %xmm2
         movdqa    %xmm7, %xmm6
         movdqa    %xmm7, %xmm5
-        psrld     $25, %xmm2
-        pslld     $7, %xmm4
-        psrld     $6, %xmm6
-        pslld     $26, %xmm5
+        psrld     $22, %xmm2
+        pslld     $10, %xmm4
+        psrld     $2, %xmm6
+        pslld     $30, %xmm5
         por       %xmm4, %xmm2
         por       %xmm5, %xmm6
         movdqa    %xmm7, %xmm5
         movdqa    %xmm7, %xmm4
-        psrld     $11, %xmm5
-        pslld     $21, %xmm4
+        psrld     $13, %xmm5
+        pslld     $19, %xmm4
         por       %xmm4, %xmm5
+        paddd     %xmm1, %xmm0
         pxor      %xmm5, %xmm6
         pxor      %xmm6, %xmm2
-        movdqa    336(%esp), %xmm6
-        paddd     %xmm2, %xmm3
-        movdqa    288(%esp), %xmm2
-        pxor      %xmm6, %xmm2
-        pand      %xmm7, %xmm2
-        pxor      %xmm6, %xmm2
-        paddd     %xmm2, %xmm3
-        movdqa    %xmm1, 304(%esp)
-        movdqa    224(%esp), %xmm1
-        paddd     .L_2il0floatpacket.629, %xmm3
-        movdqa    %xmm1, 480(%esp)
-        paddd     %xmm1, %xmm3
-        movdqa    304(%esp), %xmm1
-        paddd     %xmm3, %xmm0
-        movdqa    %xmm7, 368(%esp)
-        movdqa    %xmm1, %xmm2
-        movdqa    %xmm1, %xmm7
-        psrld     $22, %xmm2
-        pslld     $10, %xmm7
-        movdqa    %xmm1, %xmm4
-        por       %xmm7, %xmm2
-        movdqa    %xmm1, %xmm7
-        psrld     $2, %xmm7
-        pslld     $30, %xmm4
-        por       %xmm4, %xmm7
-        movdqa    %xmm1, %xmm4
-        movdqa    %xmm1, %xmm5
-        psrld     $13, %xmm4
-        pslld     $19, %xmm5
-        por       %xmm5, %xmm4
+        movdqa    320(%esp), %xmm6
+        movdqa    352(%esp), %xmm4
+        movdqa    %xmm6, %xmm5
+        pxor      %xmm4, %xmm5
         pxor      %xmm4, %xmm7
-        pxor      %xmm7, %xmm2
-        movdqa    320(%esp), %xmm7
-        movdqa    352(%esp), %xmm5
-        movdqa    %xmm7, %xmm4
-        pxor      %xmm5, %xmm4
-        pxor      %xmm5, %xmm1
-        pand      %xmm1, %xmm4
-        pxor      %xmm5, %xmm4
-        movdqa    %xmm0, %xmm5
-        paddd     %xmm4, %xmm2
-        pslld     $26, %xmm5
-        paddd     %xmm2, %xmm3
+        pand      %xmm7, %xmm5
+        movdqa    %xmm0, %xmm7
+        pxor      %xmm4, %xmm5
+        movdqa    %xmm0, %xmm4
+        paddd     %xmm5, %xmm2
+        psrld     $25, %xmm4
+        paddd     %xmm2, %xmm1
         movdqa    %xmm0, %xmm2
-        movdqa    %xmm3, 384(%esp)
-        movdqa    %xmm0, %xmm3
-        psrld     $25, %xmm3
         pslld     $7, %xmm2
-        por       %xmm2, %xmm3
+        movdqa    %xmm0, %xmm5
+        por       %xmm2, %xmm4
         movdqa    %xmm0, %xmm2
         psrld     $6, %xmm2
-        movdqa    %xmm0, %xmm4
+        pslld     $26, %xmm5
         por       %xmm5, %xmm2
         movdqa    %xmm0, %xmm5
         psrld     $11, %xmm5
-        pslld     $21, %xmm4
-        por       %xmm4, %xmm5
+        pslld     $21, %xmm7
+        por       %xmm7, %xmm5
+        movdqa    %xmm1, %xmm7
         pxor      %xmm5, %xmm2
-        pxor      %xmm2, %xmm3
+        movdqa    %xmm1, %xmm5
+        pxor      %xmm2, %xmm4
+        pslld     $10, %xmm5
         movdqa    288(%esp), %xmm2
-        paddd     %xmm3, %xmm6
-        movdqa    368(%esp), %xmm3
-        pxor      %xmm2, %xmm3
-        pand      %xmm0, %xmm3
-        pxor      %xmm2, %xmm3
-        paddd     %xmm3, %xmm6
-        movdqa    384(%esp), %xmm3
-        movdqa    240(%esp), %xmm1
-        movdqa    %xmm3, %xmm5
-        paddd     .L_2il0floatpacket.630, %xmm6
-        movdqa    %xmm3, %xmm4
+        paddd     %xmm4, %xmm3
+        movdqa    368(%esp), %xmm4
+        pslld     $30, %xmm7
+        pxor      %xmm2, %xmm4
         movdqa    %xmm0, 272(%esp)
-        paddd     %xmm1, %xmm6
-        movdqa    %xmm1, 736(%esp)
-        movdqa    %xmm3, %xmm0
-        movdqa    %xmm3, %xmm1
+        pand      %xmm0, %xmm4
+        movdqa    %xmm1, %xmm0
+        pxor      %xmm2, %xmm4
         psrld     $22, %xmm0
-        pslld     $10, %xmm1
+        paddd     %xmm4, %xmm3
+        por       %xmm5, %xmm0
+        movdqa    %xmm1, %xmm5
         psrld     $2, %xmm5
-        pslld     $30, %xmm4
-        por       %xmm1, %xmm0
-        por       %xmm4, %xmm5
-        movdqa    %xmm3, %xmm4
-        movdqa    %xmm3, %xmm1
-        psrld     $13, %xmm4
-        pslld     $19, %xmm1
-        paddd     %xmm6, %xmm7
-        por       %xmm1, %xmm4
-        pxor      %xmm4, %xmm5
+        movdqa    %xmm1, %xmm4
+        por       %xmm7, %xmm5
+        movdqa    %xmm1, %xmm7
+        psrld     $13, %xmm7
+        pslld     $19, %xmm4
+        por       %xmm4, %xmm7
+        pxor      %xmm7, %xmm5
         pxor      %xmm5, %xmm0
         movdqa    352(%esp), %xmm5
-        movdqa    304(%esp), %xmm1
-        movdqa    %xmm5, %xmm4
-        pxor      %xmm1, %xmm4
-        pxor      %xmm1, %xmm3
-        pand      %xmm3, %xmm4
-        movdqa    %xmm7, %xmm3
-        pxor      %xmm1, %xmm4
-        movdqa    %xmm7, %xmm1
-        paddd     %xmm4, %xmm0
-        movdqa    %xmm7, %xmm4
-        paddd     %xmm0, %xmm6
-        psrld     $25, %xmm3
-        movdqa    %xmm6, 336(%esp)
-        movdqa    %xmm7, %xmm6
-        pslld     $7, %xmm6
-        psrld     $6, %xmm1
-        pslld     $26, %xmm4
-        por       %xmm6, %xmm3
-        por       %xmm4, %xmm1
-        movdqa    %xmm7, %xmm4
-        movdqa    %xmm7, %xmm6
-        psrld     $11, %xmm4
-        pslld     $21, %xmm6
-        por       %xmm6, %xmm4
-        pxor      %xmm4, %xmm1
-        pxor      %xmm1, %xmm3
-        movdqa    368(%esp), %xmm1
-        paddd     %xmm3, %xmm2
-        movdqa    272(%esp), %xmm3
-        pxor      %xmm1, %xmm3
-        pand      %xmm7, %xmm3
-        pxor      %xmm1, %xmm3
-        paddd     %xmm3, %xmm2
-        movdqa    %xmm7, 320(%esp)
-        movdqa    256(%esp), %xmm0
-        paddd     .L_2il0floatpacket.631, %xmm2
-        movdqa    336(%esp), %xmm7
-        paddd     %xmm0, %xmm2
-        movdqa    %xmm0, 720(%esp)
-        movdqa    %xmm7, %xmm0
-        movdqa    %xmm7, %xmm4
-        psrld     $22, %xmm0
-        pslld     $10, %xmm4
-        movdqa    %xmm7, %xmm6
-        por       %xmm4, %xmm0
-        movdqa    %xmm7, %xmm4
-        psrld     $2, %xmm4
-        pslld     $30, %xmm6
-        por       %xmm6, %xmm4
-        movdqa    %xmm7, %xmm6
-        movdqa    %xmm7, %xmm3
-        psrld     $13, %xmm6
-        pslld     $19, %xmm3
-        paddd     %xmm2, %xmm5
-        por       %xmm3, %xmm6
-        pxor      %xmm6, %xmm4
-        pxor      %xmm4, %xmm0
         movdqa    304(%esp), %xmm4
-        movdqa    384(%esp), %xmm6
-        movdqa    %xmm4, %xmm3
-        pxor      %xmm6, %xmm3
-        pxor      %xmm6, %xmm7
-        pand      %xmm7, %xmm3
-        pxor      %xmm6, %xmm3
-        paddd     %xmm3, %xmm0
-        movdqa    464(%esp), %xmm3
+        movdqa    %xmm5, %xmm7
+        movdqa    %xmm1, 384(%esp)
+        pxor      %xmm4, %xmm7
+        pxor      %xmm4, %xmm1
+        paddd     .L_2il0floatpacket.630, %xmm3
+        pand      %xmm1, %xmm7
+        paddd     496(%esp), %xmm3
+        pxor      %xmm4, %xmm7
+        paddd     %xmm3, %xmm6
+        paddd     %xmm7, %xmm0
+        paddd     %xmm0, %xmm3
+        movdqa    %xmm6, %xmm0
+        movdqa    %xmm6, %xmm4
+        movdqa    %xmm6, %xmm1
+        movdqa    %xmm6, %xmm7
+        psrld     $25, %xmm0
+        pslld     $7, %xmm4
+        psrld     $6, %xmm1
+        pslld     $26, %xmm7
+        por       %xmm4, %xmm0
+        por       %xmm7, %xmm1
+        movdqa    %xmm6, %xmm7
+        movdqa    %xmm6, %xmm4
+        psrld     $11, %xmm7
+        pslld     $21, %xmm4
+        por       %xmm4, %xmm7
+        movdqa    %xmm3, %xmm4
+        pxor      %xmm7, %xmm1
+        pslld     $10, %xmm4
+        pxor      %xmm1, %xmm0
+        movdqa    %xmm3, %xmm7
+        movdqa    368(%esp), %xmm1
         paddd     %xmm0, %xmm2
+        movdqa    272(%esp), %xmm0
+        pslld     $30, %xmm7
+        pxor      %xmm1, %xmm0
+        movdqa    %xmm6, 320(%esp)
+        pand      %xmm6, %xmm0
+        movdqa    %xmm3, %xmm6
+        pxor      %xmm1, %xmm0
+        psrld     $22, %xmm6
+        paddd     %xmm0, %xmm2
+        por       %xmm4, %xmm6
+        movdqa    %xmm3, %xmm4
+        psrld     $2, %xmm4
+        movdqa    %xmm3, %xmm0
+        por       %xmm7, %xmm4
+        movdqa    %xmm3, %xmm7
+        psrld     $13, %xmm7
+        pslld     $19, %xmm0
+        por       %xmm0, %xmm7
+        pxor      %xmm7, %xmm4
+        pxor      %xmm4, %xmm6
+        movdqa    304(%esp), %xmm4
+        movdqa    384(%esp), %xmm7
+        movdqa    %xmm4, %xmm0
+        movdqa    %xmm3, 336(%esp)
+        pxor      %xmm7, %xmm0
+        pxor      %xmm7, %xmm3
+        pand      %xmm3, %xmm0
+        paddd     .L_2il0floatpacket.631, %xmm2
+        pxor      %xmm7, %xmm0
+        paddd     480(%esp), %xmm2
+        paddd     %xmm0, %xmm6
+        movdqa    464(%esp), %xmm3
+        paddd     %xmm2, %xmm5
+        paddd     %xmm6, %xmm2
+        movdqa    %xmm3, %xmm7
         movdqa    %xmm3, %xmm6
         movdqa    %xmm3, %xmm0
-        movdqa    %xmm3, %xmm7
-        psrld     $7, %xmm6
         movdqa    %xmm2, 288(%esp)
         movdqa    %xmm3, %xmm2
-        pslld     $25, %xmm0
-        psrld     $18, %xmm7
+        psrld     $7, %xmm7
+        pslld     $25, %xmm6
+        psrld     $18, %xmm0
         pslld     $14, %xmm3
-        por       %xmm0, %xmm6
-        por       %xmm3, %xmm7
-        psrld     $3, %xmm2
-        movdqa    240(%esp), %xmm0
-        pxor      %xmm7, %xmm6
-        pxor      %xmm6, %xmm2
-        movdqa    %xmm0, %xmm7
-        movdqa    %xmm0, %xmm6
-        psrld     $17, %xmm7
-        pslld     $15, %xmm6
-        movdqa    %xmm0, %xmm3
         por       %xmm6, %xmm7
+        por       %xmm3, %xmm0
+        psrld     $3, %xmm2
+        pxor      %xmm0, %xmm7
+        movdqa    496(%esp), %xmm0
+        pxor      %xmm7, %xmm2
         movdqa    %xmm0, %xmm6
-        psrld     $19, %xmm6
+        movdqa    %xmm0, %xmm7
+        psrld     $17, %xmm6
+        pslld     $15, %xmm7
+        por       %xmm7, %xmm6
+        movdqa    %xmm0, %xmm7
+        movdqa    %xmm0, %xmm3
+        psrld     $19, %xmm7
         pslld     $13, %xmm0
-        por       %xmm0, %xmm6
         psrld     $10, %xmm3
-        pxor      %xmm6, %xmm7
+        por       %xmm0, %xmm7
         movdqa    %xmm5, %xmm0
-        pxor      %xmm7, %xmm3
+        pxor      %xmm7, %xmm6
         pslld     $7, %xmm0
+        pxor      %xmm6, %xmm3
+        movdqa    %xmm5, %xmm7
         paddd     560(%esp), %xmm3
-        movdqa    %xmm5, %xmm6
-        movdqa    432(%esp), %xmm7
-        pslld     $26, %xmm6
-        paddd     %xmm3, %xmm7
+        pslld     $26, %xmm7
+        movdqa    432(%esp), %xmm6
+        paddd     %xmm3, %xmm6
         movdqa    %xmm5, %xmm3
         psrld     $25, %xmm3
-        paddd     %xmm7, %xmm2
+        paddd     %xmm6, %xmm2
         por       %xmm0, %xmm3
         movdqa    %xmm5, %xmm0
         psrld     $6, %xmm0
-        movdqa    %xmm5, %xmm7
-        por       %xmm6, %xmm0
         movdqa    %xmm5, %xmm6
-        psrld     $11, %xmm6
-        pslld     $21, %xmm7
-        por       %xmm7, %xmm6
-        pxor      %xmm6, %xmm0
+        por       %xmm7, %xmm0
+        movdqa    %xmm5, %xmm7
+        psrld     $11, %xmm7
+        pslld     $21, %xmm6
+        por       %xmm6, %xmm7
+        pxor      %xmm7, %xmm0
         pxor      %xmm0, %xmm3
         movdqa    272(%esp), %xmm0
         paddd     %xmm3, %xmm1
@@ -17396,79 +17557,79 @@ SSESHA256body:
         pand      %xmm5, %xmm3
         pxor      %xmm0, %xmm3
         paddd     %xmm3, %xmm1
-        movdqa    288(%esp), %xmm6
+        movdqa    288(%esp), %xmm3
         paddd     .L_2il0floatpacket.632, %xmm1
-        movdqa    %xmm6, %xmm7
+        movdqa    %xmm3, %xmm6
         movdqa    %xmm5, 352(%esp)
         paddd     %xmm2, %xmm1
         movdqa    %xmm2, 752(%esp)
-        movdqa    %xmm6, %xmm5
-        movdqa    %xmm6, %xmm2
+        movdqa    %xmm3, %xmm5
+        movdqa    %xmm3, %xmm2
         psrld     $22, %xmm5
         pslld     $10, %xmm2
-        pslld     $30, %xmm7
+        pslld     $30, %xmm6
         por       %xmm2, %xmm5
-        movdqa    %xmm6, %xmm2
+        movdqa    %xmm3, %xmm2
         psrld     $2, %xmm2
-        movdqa    %xmm6, %xmm3
-        por       %xmm7, %xmm2
-        movdqa    %xmm6, %xmm7
-        psrld     $13, %xmm7
-        pslld     $19, %xmm3
-        por       %xmm3, %xmm7
+        movdqa    %xmm3, %xmm7
+        por       %xmm6, %xmm2
+        movdqa    %xmm3, %xmm6
+        psrld     $13, %xmm6
+        pslld     $19, %xmm7
+        por       %xmm7, %xmm6
         paddd     %xmm1, %xmm4
-        pxor      %xmm7, %xmm2
+        pxor      %xmm6, %xmm2
         pxor      %xmm2, %xmm5
         movdqa    384(%esp), %xmm2
-        movdqa    336(%esp), %xmm3
+        movdqa    336(%esp), %xmm6
         movdqa    %xmm2, %xmm7
-        pxor      %xmm3, %xmm7
-        pxor      %xmm3, %xmm6
-        pand      %xmm6, %xmm7
-        pxor      %xmm3, %xmm7
-        movdqa    448(%esp), %xmm3
-        paddd     %xmm7, %xmm5
-        paddd     %xmm5, %xmm1
-        movdqa    %xmm3, %xmm6
-        movdqa    %xmm3, %xmm5
-        movdqa    %xmm3, %xmm7
-        movdqa    %xmm1, 368(%esp)
-        movdqa    %xmm3, %xmm1
-        psrld     $7, %xmm6
-        pslld     $25, %xmm5
-        psrld     $18, %xmm7
-        pslld     $14, %xmm3
-        por       %xmm5, %xmm6
-        por       %xmm3, %xmm7
-        movdqa    256(%esp), %xmm3
-        psrld     $3, %xmm1
-        pxor      %xmm7, %xmm6
-        movdqa    %xmm3, %xmm7
-        pxor      %xmm6, %xmm1
-        movdqa    %xmm3, %xmm6
-        psrld     $17, %xmm7
-        pslld     $15, %xmm6
-        por       %xmm6, %xmm7
-        movdqa    %xmm3, %xmm6
-        movdqa    %xmm3, %xmm5
-        psrld     $19, %xmm6
-        pslld     $13, %xmm3
-        psrld     $10, %xmm5
-        por       %xmm3, %xmm6
-        movdqa    %xmm4, %xmm3
         pxor      %xmm6, %xmm7
-        psrld     $6, %xmm3
-        pxor      %xmm7, %xmm5
-        movdqa    %xmm4, %xmm7
-        paddd     704(%esp), %xmm5
-        pslld     $7, %xmm7
-        movdqa    464(%esp), %xmm6
-        paddd     %xmm5, %xmm6
-        movdqa    %xmm4, %xmm5
-        paddd     %xmm6, %xmm1
+        pxor      %xmm6, %xmm3
+        pand      %xmm3, %xmm7
+        pxor      %xmm6, %xmm7
+        paddd     %xmm7, %xmm5
+        movdqa    448(%esp), %xmm7
+        paddd     %xmm5, %xmm1
+        movdqa    %xmm7, %xmm3
+        movdqa    %xmm7, %xmm5
+        movdqa    %xmm7, %xmm6
+        psrld     $7, %xmm3
+        movdqa    %xmm1, 368(%esp)
+        movdqa    %xmm7, %xmm1
+        pslld     $25, %xmm5
+        psrld     $18, %xmm6
+        pslld     $14, %xmm7
+        por       %xmm5, %xmm3
+        por       %xmm7, %xmm6
+        psrld     $3, %xmm1
+        pxor      %xmm6, %xmm3
+        movdqa    480(%esp), %xmm6
+        pxor      %xmm3, %xmm1
+        movdqa    %xmm6, %xmm3
+        movdqa    %xmm6, %xmm7
+        psrld     $17, %xmm3
+        pslld     $15, %xmm7
+        por       %xmm7, %xmm3
+        movdqa    %xmm6, %xmm7
+        movdqa    %xmm6, %xmm5
+        psrld     $19, %xmm7
+        pslld     $13, %xmm6
+        psrld     $10, %xmm5
+        por       %xmm6, %xmm7
         movdqa    %xmm4, %xmm6
-        psrld     $25, %xmm5
+        pxor      %xmm7, %xmm3
+        movdqa    %xmm4, %xmm7
+        pxor      %xmm3, %xmm5
+        pslld     $7, %xmm7
+        paddd     736(%esp), %xmm5
         pslld     $26, %xmm6
+        movdqa    464(%esp), %xmm3
+        paddd     %xmm5, %xmm3
+        movdqa    %xmm4, %xmm5
+        paddd     %xmm3, %xmm1
+        movdqa    %xmm4, %xmm3
+        psrld     $25, %xmm5
+        psrld     $6, %xmm3
         por       %xmm7, %xmm5
         por       %xmm6, %xmm3
         movdqa    %xmm4, %xmm6
@@ -17485,86 +17646,86 @@ SSESHA256body:
         pand      %xmm4, %xmm5
         pxor      %xmm3, %xmm5
         paddd     %xmm5, %xmm0
+        movdqa    368(%esp), %xmm7
         paddd     .L_2il0floatpacket.633, %xmm0
-        movdqa    %xmm1, 544(%esp)
-        paddd     %xmm1, %xmm0
-        movdqa    368(%esp), %xmm1
-        paddd     %xmm0, %xmm2
+        movdqa    %xmm7, %xmm6
         movdqa    %xmm4, 304(%esp)
-        movdqa    %xmm1, %xmm4
-        movdqa    %xmm1, %xmm6
-        movdqa    %xmm1, %xmm5
-        movdqa    %xmm1, %xmm7
+        paddd     %xmm1, %xmm0
+        movdqa    %xmm1, 544(%esp)
+        movdqa    %xmm7, %xmm4
+        movdqa    %xmm7, %xmm1
+        movdqa    %xmm7, %xmm5
         psrld     $22, %xmm4
-        pslld     $10, %xmm6
-        psrld     $2, %xmm5
-        pslld     $30, %xmm7
-        por       %xmm6, %xmm4
-        por       %xmm7, %xmm5
-        movdqa    %xmm1, %xmm7
-        movdqa    %xmm1, %xmm6
-        psrld     $13, %xmm7
-        pslld     $19, %xmm6
-        por       %xmm6, %xmm7
-        pxor      %xmm7, %xmm5
-        pxor      %xmm5, %xmm4
-        movdqa    336(%esp), %xmm5
-        movdqa    288(%esp), %xmm6
-        movdqa    %xmm5, %xmm7
-        pxor      %xmm6, %xmm7
-        pxor      %xmm6, %xmm1
-        pand      %xmm1, %xmm7
-        pxor      %xmm6, %xmm7
-        paddd     %xmm7, %xmm4
+        pslld     $10, %xmm1
+        psrld     $2, %xmm6
+        pslld     $30, %xmm5
+        por       %xmm1, %xmm4
+        por       %xmm5, %xmm6
+        movdqa    %xmm7, %xmm5
+        movdqa    %xmm7, %xmm1
+        psrld     $13, %xmm5
+        pslld     $19, %xmm1
+        por       %xmm1, %xmm5
+        paddd     %xmm0, %xmm2
+        pxor      %xmm5, %xmm6
+        pxor      %xmm6, %xmm4
+        movdqa    336(%esp), %xmm6
+        movdqa    288(%esp), %xmm1
+        movdqa    %xmm6, %xmm5
+        pxor      %xmm1, %xmm5
+        pxor      %xmm1, %xmm7
+        pand      %xmm7, %xmm5
+        pxor      %xmm1, %xmm5
+        paddd     %xmm5, %xmm4
         movdqa    768(%esp), %xmm1
         paddd     %xmm4, %xmm0
         movdqa    %xmm0, 272(%esp)
         movdqa    %xmm1, %xmm4
         movdqa    %xmm1, %xmm0
-        movdqa    %xmm1, %xmm6
         movdqa    %xmm1, %xmm7
+        movdqa    %xmm1, %xmm5
         psrld     $7, %xmm4
         pslld     $25, %xmm0
-        psrld     $18, %xmm6
+        psrld     $18, %xmm7
         pslld     $14, %xmm1
         por       %xmm0, %xmm4
-        por       %xmm1, %xmm6
-        psrld     $3, %xmm7
+        por       %xmm1, %xmm7
+        psrld     $3, %xmm5
         movdqa    752(%esp), %xmm0
-        pxor      %xmm6, %xmm4
-        pxor      %xmm4, %xmm7
-        movdqa    %xmm0, %xmm6
+        pxor      %xmm7, %xmm4
+        pxor      %xmm4, %xmm5
+        movdqa    %xmm0, %xmm7
         movdqa    %xmm0, %xmm4
-        psrld     $17, %xmm6
+        psrld     $17, %xmm7
         pslld     $15, %xmm4
         movdqa    %xmm0, %xmm1
-        por       %xmm4, %xmm6
+        por       %xmm4, %xmm7
         movdqa    %xmm0, %xmm4
         psrld     $19, %xmm4
         pslld     $13, %xmm0
         por       %xmm0, %xmm4
         psrld     $10, %xmm1
-        pxor      %xmm4, %xmm6
+        pxor      %xmm4, %xmm7
         movdqa    %xmm2, %xmm0
-        pxor      %xmm6, %xmm1
+        pxor      %xmm7, %xmm1
         pslld     $7, %xmm0
-        movdqa    448(%esp), %xmm6
+        movdqa    448(%esp), %xmm7
         movdqa    %xmm2, %xmm4
         paddd     192(%esp), %xmm1
         pslld     $26, %xmm4
-        paddd     %xmm1, %xmm6
+        paddd     %xmm1, %xmm7
         movdqa    %xmm2, %xmm1
         psrld     $25, %xmm1
-        paddd     %xmm6, %xmm7
+        paddd     %xmm7, %xmm5
         por       %xmm0, %xmm1
         movdqa    %xmm2, %xmm0
         psrld     $6, %xmm0
-        movdqa    %xmm2, %xmm6
+        movdqa    %xmm2, %xmm7
         por       %xmm4, %xmm0
         movdqa    %xmm2, %xmm4
         psrld     $11, %xmm4
-        pslld     $21, %xmm6
-        por       %xmm6, %xmm4
+        pslld     $21, %xmm7
+        por       %xmm7, %xmm4
         pxor      %xmm4, %xmm0
         pxor      %xmm0, %xmm1
         movdqa    352(%esp), %xmm0
@@ -17575,35 +17736,35 @@ SSESHA256body:
         pxor      %xmm0, %xmm1
         paddd     %xmm1, %xmm3
         paddd     .L_2il0floatpacket.634, %xmm3
-        paddd     %xmm7, %xmm3
-        movdqa    272(%esp), %xmm6
-        paddd     %xmm3, %xmm5
-        movdqa    %xmm7, 528(%esp)
-        movdqa    %xmm6, %xmm4
-        movdqa    %xmm5, 336(%esp)
-        movdqa    %xmm6, %xmm5
-        movdqa    %xmm6, %xmm1
-        movdqa    %xmm6, %xmm7
+        paddd     %xmm5, %xmm3
+        movdqa    272(%esp), %xmm7
+        paddd     %xmm3, %xmm6
+        movdqa    %xmm5, 528(%esp)
+        movdqa    %xmm7, %xmm4
+        movdqa    %xmm6, 336(%esp)
+        movdqa    %xmm7, %xmm6
+        movdqa    %xmm7, %xmm1
+        movdqa    %xmm7, %xmm5
         psrld     $22, %xmm4
-        pslld     $10, %xmm5
+        pslld     $10, %xmm6
         psrld     $2, %xmm1
-        pslld     $30, %xmm7
-        por       %xmm5, %xmm4
-        por       %xmm7, %xmm1
-        movdqa    %xmm6, %xmm7
-        movdqa    %xmm6, %xmm5
-        psrld     $13, %xmm7
-        pslld     $19, %xmm5
-        por       %xmm5, %xmm7
-        pxor      %xmm7, %xmm1
-        movdqa    288(%esp), %xmm5
+        pslld     $30, %xmm5
+        por       %xmm6, %xmm4
+        por       %xmm5, %xmm1
+        movdqa    %xmm7, %xmm5
+        movdqa    %xmm7, %xmm6
+        psrld     $13, %xmm5
+        pslld     $19, %xmm6
+        por       %xmm6, %xmm5
+        pxor      %xmm5, %xmm1
+        movdqa    288(%esp), %xmm6
         pxor      %xmm1, %xmm4
         movdqa    368(%esp), %xmm1
-        pxor      %xmm1, %xmm5
         pxor      %xmm1, %xmm6
-        pand      %xmm6, %xmm5
-        pxor      %xmm1, %xmm5
-        paddd     %xmm5, %xmm4
+        pxor      %xmm1, %xmm7
+        pand      %xmm7, %xmm6
+        pxor      %xmm1, %xmm6
+        paddd     %xmm6, %xmm4
         movdqa    608(%esp), %xmm6
         paddd     %xmm4, %xmm3
         movdqa    %xmm3, 320(%esp)
@@ -17621,7 +17782,7 @@ SSESHA256body:
         pxor      %xmm7, %xmm3
         pxor      %xmm3, %xmm5
         movdqa    %xmm5, 512(%esp)
-..B6.30:
+..B6.36:
         movdqa    544(%esp), %xmm3
         movdqa    %xmm1, 368(%esp)
         movdqa    %xmm3, %xmm7
@@ -17637,7 +17798,7 @@ SSESHA256body:
         psrld     $10, %xmm6
         pxor      %xmm1, %xmm7
         pxor      %xmm7, %xmm6
-        paddd     496(%esp), %xmm6
+        paddd     704(%esp), %xmm6
         movdqa    768(%esp), %xmm1
         movdqa    512(%esp), %xmm5
         paddd     %xmm6, %xmm1
@@ -17730,7 +17891,7 @@ SSESHA256body:
         movdqa    %xmm5, %xmm7
         pxor      %xmm4, %xmm2
         movdqa    %xmm5, %xmm6
-        paddd     480(%esp), %xmm2
+        paddd     656(%esp), %xmm2
         pslld     $7, %xmm7
         movdqa    608(%esp), %xmm4
         psrld     $6, %xmm6
@@ -17818,7 +17979,7 @@ SSESHA256body:
         movdqa    %xmm1, %xmm5
         pxor      %xmm0, %xmm7
         movdqa    %xmm1, %xmm4
-        paddd     736(%esp), %xmm7
+        paddd     496(%esp), %xmm7
         pslld     $7, %xmm5
         movdqa    592(%esp), %xmm0
         pslld     $26, %xmm4
@@ -17909,7 +18070,7 @@ SSESHA256body:
         movdqa    %xmm2, %xmm0
         pxor      %xmm3, %xmm1
         pslld     $7, %xmm0
-        paddd     720(%esp), %xmm1
+        paddd     480(%esp), %xmm1
         psrld     $6, %xmm4
         movdqa    576(%esp), %xmm3
         paddd     %xmm1, %xmm3
@@ -17942,7 +18103,7 @@ SSESHA256body:
         psrld     $22, %xmm1
         pslld     $10, %xmm2
         paddd     %xmm6, %xmm7
-        movdqa    %xmm6, 656(%esp)
+        movdqa    %xmm6, 640(%esp)
         por       %xmm2, %xmm1
         movdqa    %xmm0, %xmm2
         movdqa    %xmm0, %xmm6
@@ -18028,7 +18189,7 @@ SSESHA256body:
         movdqa    %xmm7, %xmm1
         movdqa    %xmm5, 320(%esp)
         paddd     %xmm3, %xmm4
-        movdqa    %xmm3, 640(%esp)
+        movdqa    %xmm3, 624(%esp)
         movdqa    %xmm7, %xmm5
         movdqa    %xmm7, %xmm3
         movdqa    %xmm7, %xmm6
@@ -18067,7 +18228,7 @@ SSESHA256body:
         pslld     $14, %xmm7
         por       %xmm3, %xmm5
         por       %xmm7, %xmm6
-        movdqa    656(%esp), %xmm3
+        movdqa    640(%esp), %xmm3
         psrld     $3, %xmm4
         pxor      %xmm6, %xmm5
         movdqa    %xmm3, %xmm6
@@ -18143,7 +18304,7 @@ SSESHA256body:
         pand      %xmm7, %xmm6
         pxor      %xmm4, %xmm6
         paddd     %xmm6, %xmm5
-        movdqa    704(%esp), %xmm7
+        movdqa    736(%esp), %xmm7
         paddd     %xmm5, %xmm0
         movdqa    %xmm0, 368(%esp)
         movdqa    %xmm7, %xmm5
@@ -18157,7 +18318,7 @@ SSESHA256body:
         por       %xmm0, %xmm5
         por       %xmm7, %xmm4
         psrld     $3, %xmm6
-        movdqa    640(%esp), %xmm0
+        movdqa    624(%esp), %xmm0
         pxor      %xmm4, %xmm5
         pxor      %xmm5, %xmm6
         movdqa    %xmm0, %xmm4
@@ -18234,7 +18395,7 @@ SSESHA256body:
         pxor      %xmm4, %xmm6
         paddd     %xmm6, %xmm7
         paddd     %xmm7, %xmm3
-        movdqa    624(%esp), %xmm7
+        movdqa    720(%esp), %xmm7
         movdqa    %xmm3, 272(%esp)
         movdqa    %xmm7, %xmm3
         psrld     $3, %xmm3
@@ -18242,8 +18403,8 @@ SSESHA256body:
         movdqa    %xmm7, %xmm3
         psrld     $7, %xmm3
         pslld     $25, %xmm7
-..B6.29:
-        movdqa    624(%esp), %xmm4
+..B6.35:
+        movdqa    720(%esp), %xmm4
         por       %xmm7, %xmm3
         movdqa    %xmm4, %xmm7
         pslld     $14, %xmm4
@@ -18271,7 +18432,7 @@ SSESHA256body:
         movdqa    %xmm2, %xmm7
         paddd     512(%esp), %xmm6
         pslld     $26, %xmm7
-        movdqa    704(%esp), %xmm5
+        movdqa    736(%esp), %xmm5
         paddd     %xmm6, %xmm5
         movdqa    %xmm2, %xmm6
         psrld     $25, %xmm6
@@ -18321,7 +18482,7 @@ SSESHA256body:
         movdqa    %xmm5, %xmm6
         pxor      %xmm1, %xmm6
         pand      %xmm7, %xmm6
-        movdqa    496(%esp), %xmm7
+        movdqa    704(%esp), %xmm7
         pxor      %xmm1, %xmm6
         movdqa    %xmm2, 384(%esp)
         paddd     %xmm6, %xmm0
@@ -18361,7 +18522,7 @@ SSESHA256body:
         pslld     $7, %xmm1
         paddd     688(%esp), %xmm7
         psrld     $6, %xmm6
-        movdqa    624(%esp), %xmm4
+        movdqa    720(%esp), %xmm4
         paddd     %xmm7, %xmm4
         movdqa    %xmm2, %xmm7
         paddd     %xmm4, %xmm0
@@ -18414,7 +18575,7 @@ SSESHA256body:
         pxor      %xmm3, %xmm1
         pand      %xmm1, %xmm4
         pxor      %xmm2, %xmm4
-        movdqa    480(%esp), %xmm2
+        movdqa    656(%esp), %xmm2
         paddd     %xmm4, %xmm0
         movdqa    %xmm3, 320(%esp)
         paddd     %xmm0, %xmm6
@@ -18450,7 +18611,7 @@ SSESHA256body:
         pslld     $7, %xmm3
         paddd     672(%esp), %xmm0
         psrld     $6, %xmm4
-        movdqa    496(%esp), %xmm2
+        movdqa    704(%esp), %xmm2
         paddd     %xmm0, %xmm2
         movdqa    %xmm5, %xmm0
         paddd     %xmm2, %xmm1
@@ -18506,7 +18667,7 @@ SSESHA256body:
         paddd     %xmm3, %xmm5
         paddd     %xmm7, %xmm2
         paddd     %xmm5, %xmm7
-        movdqa    736(%esp), %xmm5
+        movdqa    496(%esp), %xmm5
         movdqa    %xmm7, 304(%esp)
         movdqa    %xmm5, %xmm1
         movdqa    %xmm5, %xmm7
@@ -18538,9 +18699,9 @@ SSESHA256body:
         movdqa    %xmm2, %xmm5
         pxor      %xmm1, %xmm7
         pslld     $7, %xmm3
-        paddd     656(%esp), %xmm7
+        paddd     640(%esp), %xmm7
         pslld     $26, %xmm5
-        movdqa    480(%esp), %xmm1
+        movdqa    656(%esp), %xmm1
         paddd     %xmm7, %xmm1
         movdqa    %xmm2, %xmm7
         paddd     %xmm1, %xmm6
@@ -18593,7 +18754,7 @@ SSESHA256body:
         pxor      %xmm2, %xmm7
         pand      %xmm7, %xmm6
         pxor      %xmm2, %xmm6
-        movdqa    720(%esp), %xmm7
+        movdqa    480(%esp), %xmm7
         paddd     %xmm6, %xmm5
         paddd     %xmm5, %xmm4
         movdqa    %xmm7, %xmm5
@@ -18627,9 +18788,9 @@ SSESHA256body:
         pslld     $7, %xmm2
         pxor      %xmm6, %xmm7
         movdqa    %xmm0, %xmm5
-        paddd     640(%esp), %xmm7
+        paddd     624(%esp), %xmm7
         pslld     $26, %xmm5
-        movdqa    736(%esp), %xmm6
+        movdqa    496(%esp), %xmm6
         paddd     %xmm7, %xmm6
         movdqa    %xmm0, %xmm7
         psrld     $25, %xmm7
@@ -18717,7 +18878,7 @@ SSESHA256body:
         pslld     $7, %xmm1
         paddd     464(%esp), %xmm7
         movdqa    %xmm3, %xmm5
-        movdqa    720(%esp), %xmm4
+        movdqa    480(%esp), %xmm4
         pslld     $26, %xmm5
         paddd     %xmm7, %xmm4
         movdqa    %xmm3, %xmm7
@@ -18859,7 +19020,7 @@ SSESHA256body:
         pxor      %xmm4, %xmm5
         pxor      %xmm4, %xmm7
         pand      %xmm7, %xmm5
-..B6.28:
+..B6.34:
         pxor      336(%esp), %xmm5
         paddd     %xmm5, %xmm3
         paddd     %xmm3, %xmm1
@@ -18923,7 +19084,7 @@ SSESHA256body:
         pxor      %xmm7, %xmm0
         paddd     %xmm0, %xmm1
         paddd     .L_2il0floatpacket.649, %xmm1
-        movdqa    %xmm4, 624(%esp)
+        movdqa    %xmm4, 656(%esp)
         paddd     %xmm4, %xmm1
         movdqa    368(%esp), %xmm4
         paddd     %xmm1, %xmm2
@@ -19054,7 +19215,7 @@ SSESHA256body:
         pslld     $14, %xmm6
         por       %xmm2, %xmm5
         por       %xmm6, %xmm7
-        movdqa    624(%esp), %xmm6
+        movdqa    656(%esp), %xmm6
         psrld     $3, %xmm1
         pxor      %xmm7, %xmm5
         movdqa    %xmm6, %xmm7
@@ -19218,7 +19379,7 @@ SSESHA256body:
         pxor      %xmm3, %xmm2
         pand      %xmm2, %xmm7
         pxor      %xmm3, %xmm7
-        movdqa    656(%esp), %xmm2
+        movdqa    640(%esp), %xmm2
         paddd     %xmm7, %xmm1
         paddd     %xmm1, %xmm6
         movdqa    %xmm2, %xmm1
@@ -19307,7 +19468,7 @@ SSESHA256body:
         pxor      %xmm5, %xmm6
         pand      %xmm6, %xmm7
         pxor      %xmm5, %xmm7
-        movdqa    640(%esp), %xmm5
+        movdqa    624(%esp), %xmm5
         paddd     %xmm7, %xmm2
         paddd     %xmm2, %xmm4
         movdqa    %xmm5, %xmm6
@@ -19343,7 +19504,7 @@ SSESHA256body:
         movdqa    %xmm0, %xmm7
         paddd     400(%esp), %xmm5
         pslld     $7, %xmm7
-        movdqa    656(%esp), %xmm6
+        movdqa    640(%esp), %xmm6
         paddd     %xmm5, %xmm6
         movdqa    %xmm0, %xmm5
         paddd     %xmm6, %xmm4
@@ -19431,7 +19592,7 @@ SSESHA256body:
         pslld     $7, %xmm1
         paddd     416(%esp), %xmm4
         movdqa    %xmm3, %xmm7
-        movdqa    640(%esp), %xmm6
+        movdqa    624(%esp), %xmm6
         pslld     $26, %xmm7
         paddd     %xmm4, %xmm6
         movdqa    %xmm3, %xmm4
@@ -19476,7 +19637,7 @@ SSESHA256body:
         psrld     $13, %xmm6
         movdqa    384(%esp), %xmm2
         pslld     $19, %xmm5
-..B6.27:
+..B6.33:
         por       %xmm5, %xmm6
         movdqa    304(%esp), %xmm5
         pxor      %xmm6, %xmm3
@@ -19523,7 +19684,7 @@ SSESHA256body:
         pslld     $7, %xmm2
         pxor      %xmm6, %xmm7
         movdqa    %xmm0, %xmm4
-        paddd     624(%esp), %xmm7
+        paddd     656(%esp), %xmm7
         pslld     $26, %xmm4
         movdqa    464(%esp), %xmm6
         paddd     %xmm7, %xmm6
@@ -19727,7 +19888,7 @@ SSESHA256body:
         pxor      %xmm6, %xmm4
         paddd     %xmm4, %xmm0
         paddd     .L_2il0floatpacket.658, %xmm0
-        movdqa    %xmm1, 656(%esp)
+        movdqa    %xmm1, 640(%esp)
         paddd     %xmm1, %xmm0
         movdqa    272(%esp), %xmm1
         paddd     %xmm0, %xmm7
@@ -19820,7 +19981,7 @@ SSESHA256body:
         movdqa    %xmm2, %xmm3
         movdqa    %xmm7, 336(%esp)
         paddd     %xmm0, %xmm6
-        movdqa    %xmm0, 640(%esp)
+        movdqa    %xmm0, 624(%esp)
         movdqa    %xmm2, %xmm7
         movdqa    %xmm2, %xmm0
         movdqa    %xmm2, %xmm1
@@ -19860,7 +20021,7 @@ SSESHA256body:
         por       %xmm7, %xmm2
         por       %xmm1, %xmm6
         psrld     $3, %xmm0
-        movdqa    656(%esp), %xmm7
+        movdqa    640(%esp), %xmm7
         pxor      %xmm6, %xmm2
         pxor      %xmm2, %xmm0
         movdqa    %xmm7, %xmm2
@@ -19948,7 +20109,7 @@ SSESHA256body:
         pslld     $14, %xmm7
         por       %xmm0, %xmm5
         por       %xmm7, %xmm6
-        movdqa    640(%esp), %xmm0
+        movdqa    624(%esp), %xmm0
         psrld     $3, %xmm4
         pxor      %xmm6, %xmm5
         movdqa    %xmm0, %xmm6
@@ -20096,7 +20257,7 @@ SSESHA256body:
         movdqa    %xmm7, 320(%esp)
         pslld     $10, %xmm4
         movdqa    352(%esp), %xmm0
-..B6.26:
+..B6.32:
         por       %xmm4, %xmm3
         movdqa    %xmm2, %xmm7
         movdqa    %xmm2, %xmm5
@@ -20207,7 +20368,7 @@ SSESHA256body:
         pxor      %xmm4, %xmm3
         pand      %xmm3, %xmm7
         pxor      %xmm6, %xmm7
-        movdqa    624(%esp), %xmm6
+        movdqa    656(%esp), %xmm6
         paddd     %xmm7, %xmm2
         paddd     %xmm2, %xmm5
         movdqa    %xmm6, %xmm2
@@ -20330,9 +20491,9 @@ SSESHA256body:
         movdqa    %xmm2, %xmm5
         pxor      %xmm3, %xmm0
         pslld     $7, %xmm5
-        paddd     656(%esp), %xmm0
+        paddd     640(%esp), %xmm0
         psrld     $6, %xmm4
-        movdqa    624(%esp), %xmm3
+        movdqa    656(%esp), %xmm3
         paddd     %xmm0, %xmm3
         movdqa    %xmm2, %xmm0
         paddd     %xmm3, %xmm1
@@ -20418,7 +20579,7 @@ SSESHA256body:
         movdqa    %xmm6, %xmm2
         pxor      %xmm0, %xmm5
         pslld     $7, %xmm2
-        paddd     640(%esp), %xmm5
+        paddd     624(%esp), %xmm5
         movdqa    %xmm6, %xmm7
         movdqa    736(%esp), %xmm0
         pslld     $26, %xmm7
@@ -20712,7 +20873,7 @@ SSESHA256body:
         pand      %xmm1, %xmm3
         pxor      %xmm5, %xmm3
         paddd     %xmm3, %xmm2
-..B6.25:
+..B6.31:
         movdqa    304(%esp), %xmm3
         movdqa    %xmm1, 368(%esp)
         movdqa    %xmm3, %xmm4
@@ -20987,7 +21148,7 @@ SSESHA256body:
         psrld     $22, %xmm3
         paddd     .L_2il0floatpacket.672, %xmm7
         pslld     $10, %xmm4
-        movdqa    %xmm0, 624(%esp)
+        movdqa    %xmm0, 656(%esp)
         paddd     %xmm0, %xmm7
         por       %xmm4, %xmm3
         movdqa    %xmm2, %xmm4
@@ -21010,7 +21171,7 @@ SSESHA256body:
         pxor      %xmm1, %xmm2
         pand      %xmm2, %xmm0
         pxor      %xmm1, %xmm0
-        movdqa    656(%esp), %xmm1
+        movdqa    640(%esp), %xmm1
         paddd     %xmm0, %xmm3
         paddd     %xmm3, %xmm7
         movdqa    %xmm1, %xmm2
@@ -21099,7 +21260,7 @@ SSESHA256body:
         pxor      %xmm3, %xmm0
         pand      %xmm0, %xmm7
         pxor      %xmm3, %xmm7
-        movdqa    640(%esp), %xmm0
+        movdqa    624(%esp), %xmm0
         paddd     %xmm7, %xmm6
         paddd     %xmm6, %xmm5
         movdqa    %xmm0, %xmm3
@@ -21113,7 +21274,7 @@ SSESHA256body:
         pslld     $14, %xmm0
         por       %xmm6, %xmm3
         por       %xmm0, %xmm7
-        movdqa    624(%esp), %xmm0
+        movdqa    656(%esp), %xmm0
         psrld     $3, %xmm5
         pxor      %xmm7, %xmm3
         movdqa    %xmm0, %xmm6
@@ -21135,7 +21296,7 @@ SSESHA256body:
         pslld     $7, %xmm0
         paddd     576(%esp), %xmm7
         pslld     $26, %xmm6
-        movdqa    656(%esp), %xmm3
+        movdqa    640(%esp), %xmm3
         paddd     %xmm7, %xmm3
         movdqa    %xmm4, %xmm7
         paddd     %xmm3, %xmm5
@@ -21224,7 +21385,7 @@ SSESHA256body:
         movdqa    %xmm1, %xmm5
         paddd     592(%esp), %xmm4
         pslld     $26, %xmm5
-        movdqa    640(%esp), %xmm6
+        movdqa    624(%esp), %xmm6
         paddd     %xmm4, %xmm6
         movdqa    %xmm1, %xmm4
         psrld     $25, %xmm4
@@ -21331,7 +21492,7 @@ SSESHA256body:
         por       %xmm0, %xmm6
         movdqa    352(%esp), %xmm0
         pxor      %xmm6, %xmm3
-..B6.24:
+..B6.30:
         movdqa    336(%esp), %xmm5
         pxor      %xmm3, %xmm4
         pxor      %xmm2, %xmm5
@@ -21581,7 +21742,7 @@ SSESHA256body:
         movdqa    %xmm5, %xmm1
         pxor      %xmm2, %xmm4
         pslld     $7, %xmm1
-        paddd     624(%esp), %xmm4
+        paddd     656(%esp), %xmm4
         pslld     $26, %xmm7
         movdqa    560(%esp), %xmm2
         paddd     %xmm4, %xmm2
@@ -21639,43 +21800,43 @@ SSESHA256body:
         paddd     %xmm5, %xmm0
         movdqa    %xmm0, 288(%esp)
         movdqa    352(%esp), %xmm0
-        je        ..B6.15
-..B6.12:
-        movdqa    %xmm3, 256(%esp)
-        movl      %esi, %eax
-        movdqa    496(%esp), %xmm3
-        andl      $6, %eax
+        je        ..B6.21
+..B6.18:
         movdqa    480(%esp), %xmm4
-        cmpl      $6, %eax
+        movl      %esi, %eax
         movdqa    752(%esp), %xmm5
+        andl      $6, %eax
+        movdqa    %xmm4, 224(%esp)
+        cmpl      $6, %eax
+        movdqa    %xmm5, 208(%esp)
         movdqa    736(%esp), %xmm6
         movdqa    720(%esp), %xmm7
-        movdqa    %xmm3, 240(%esp)
-        movdqa    %xmm4, 224(%esp)
-        movdqa    %xmm5, 208(%esp)
+        movdqa    704(%esp), %xmm4
+        movdqa    656(%esp), %xmm5
         movdqa    %xmm6, 192(%esp)
         movdqa    %xmm7, 176(%esp)
-        movdqa    704(%esp), %xmm3
-        movdqa    624(%esp), %xmm4
-        movdqa    416(%esp), %xmm5
-        movdqa    400(%esp), %xmm6
-        movdqa    608(%esp), %xmm7
-        movdqa    %xmm3, 160(%esp)
-        movdqa    %xmm4, 144(%esp)
-        movdqa    %xmm5, 128(%esp)
-        movdqa    %xmm6, 112(%esp)
-        movdqa    %xmm7, 96(%esp)
-        movdqa    592(%esp), %xmm3
-        movdqa    576(%esp), %xmm4
-        movdqa    448(%esp), %xmm5
-        movdqa    432(%esp), %xmm6
-        movdqa    464(%esp), %xmm7
-        movdqa    %xmm3, 80(%esp)
-        movdqa    %xmm4, 64(%esp)
-        movdqa    %xmm5, 48(%esp)
-        movdqa    %xmm6, 32(%esp)
-        movdqa    %xmm7, 16(%esp)
-..B6.13:
+        movdqa    %xmm4, 160(%esp)
+        movdqa    %xmm5, 144(%esp)
+        movdqa    416(%esp), %xmm6
+        movdqa    400(%esp), %xmm7
+        movdqa    608(%esp), %xmm4
+        movdqa    592(%esp), %xmm5
+        movdqa    %xmm6, 128(%esp)
+        movdqa    %xmm7, 112(%esp)
+        movdqa    %xmm4, 96(%esp)
+        movdqa    %xmm5, 80(%esp)
+        movdqa    %xmm3, 256(%esp)
+        movdqa    576(%esp), %xmm6
+        movdqa    448(%esp), %xmm7
+        movdqa    432(%esp), %xmm4
+        movdqa    464(%esp), %xmm5
+        movdqa    496(%esp), %xmm3
+        movdqa    %xmm6, 64(%esp)
+        movdqa    %xmm7, 48(%esp)
+        movdqa    %xmm4, 32(%esp)
+        movdqa    %xmm5, 16(%esp)
+        movdqa    %xmm3, 240(%esp)
+..B6.19:
         movdqa    288(%esp), %xmm3
         movdqa    336(%esp), %xmm4
         movdqa    304(%esp), %xmm5
@@ -21694,14 +21855,14 @@ SSESHA256body:
         movdqa    %xmm5, 304(%esp)
         movdqa    %xmm6, 320(%esp)
         movdqa    %xmm7, 272(%esp)
-        jmp       ..B6.19
-..B6.15:
+        jmp       ..B6.25
+..B6.21:
         testl     $32, %esi
-        jne       ..B6.19
-..B6.16:
-        testl     $256, %esi
-        je        ..B6.18
-..B6.17:
+        jne       ..B6.25
+..B6.22:
+        testl     $4096, %esi
+        je        ..B6.24
+..B6.23:
         movdqa    288(%esp), %xmm3
         movdqa    336(%esp), %xmm4
         movdqa    304(%esp), %xmm5
@@ -21720,8 +21881,8 @@ SSESHA256body:
         movdqa    %xmm6, 320(%esp)
         movdqa    %xmm7, 272(%esp)
         paddd     .L_2il0floatpacket.703, %xmm1
-        jmp       ..B6.19
-..B6.18:
+        jmp       ..B6.25
+..B6.24:
         movdqa    288(%esp), %xmm3
         movdqa    336(%esp), %xmm4
         movdqa    304(%esp), %xmm5
@@ -21740,10 +21901,10 @@ SSESHA256body:
         movdqa    %xmm6, 320(%esp)
         movdqa    %xmm7, 272(%esp)
         paddd     .L_2il0floatpacket.711, %xmm1
-..B6.19:
+..B6.25:
         testl     $16, %esi
-        je        ..B6.21
-..B6.20:
+        je        ..B6.27
+..B6.26:
         pshufhw   $177, 288(%esp), %xmm3
         pshuflw   $177, %xmm3, %xmm4
         movdqa    %xmm4, %xmm5
@@ -21797,7 +21958,7 @@ SSESHA256body:
         pxor      %xmm6, %xmm7
         pxor      %xmm3, %xmm1
         movdqa    %xmm7, 272(%esp)
-..B6.21:
+..B6.27:
         movl      804(%esp), %eax
         movdqa    288(%esp), %xmm3
         movdqa    336(%esp), %xmm4
@@ -21944,7 +22105,7 @@ SSESHA512body:
         movdqa    112(%edx), %xmm0
         jmp       ..B7.13
 ..B7.10:
-        testl     $256, %ebx
+        testl     $4096, %ebx
         je        ..B7.12
 ..B7.11:
         movdqa    .L_2il0floatpacket.796, %xmm1
@@ -26359,7 +26520,7 @@ SSESHA512body:
         testb     $32, %bl
         jne       ..B7.21
 ..B7.18:
-        testl     $256, %ebx
+        testl     $4096, %ebx
         je        ..B7.20
 ..B7.19:
         movdqa    1296(%esp), %xmm4
