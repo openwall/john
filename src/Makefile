@@ -269,6 +269,7 @@ default:
 	@echo "where SYSTEM can be one of the following:"
 	@echo "([i] is an optional letter for pre-built intrinsics, eg. -sse2i vs -sse2):"
 	@echo "linux-x86-64-native      Linux, x86-64 'native' (all CPU features you've got)"
+	@echo "linux-x86-X32-native     Linux, X32-ABI 'native' (all CPU features you've got)"
 	@echo "linux-x86-64-gpu         Linux, x86-64 'native', CUDA and OpenCL (experimental)"
 	@echo "linux-x86-64-opencl      Linux, x86-64 'native', OpenCL (experimental)"
 	@echo "linux-x86-64-cuda        Linux, x86-64 'native', CUDA (experimental)"
@@ -283,7 +284,6 @@ default:
 #	@echo "linux-x86-64-32-sse2[i]  Linux, x86-64, 32-bit with SSE2 (for regression tests)"
 #	@echo "linux-x86-64-32-mmx      Linux, x86-64, 32-bit with MMX (for regression tests)"
 #	@echo "linux-x86-64-32-any      Linux, x86-64, 32-bit (for regression tests)"
-	@echo "linux-X32-native         Linux, X32 'native' (all CPU features you've got)"
 	@echo "linux-x86-gpu            Linux, x86 32-bit with SSE2, CUDA and OpenCL (experimental)"
 	@echo "linux-x86-opencl         Linux, x86 32-bit with SSE2 and OpenCL (experimental)"
 	@echo "linux-x86-cuda           Linux, x86 32-bit with SSE2 and CUDA (experimental)"
@@ -452,7 +452,7 @@ linux-x86-64-native:
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
 
-linux-X32-native:
+linux-x86-X32-native:
 	$(LN) x86-64.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
