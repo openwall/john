@@ -345,6 +345,14 @@ static char *fmt_self_test_body(struct fmt_main *format,
 				return "crypt_all";
 		}
 
+/* change the next line to #if 0 to temp stop doing validity checks.
+ * this should almost NEVER be done.  However, I have done it when
+ * trying new code out in a format, and before it was totally working
+ * just to check the speed of the changes, to determine it it was 
+ * good  enough to continue to fully implement, or if the changes
+ * were not making any difference.
+ */
+#if 1
 		for (size = 0; size < PASSWORD_HASH_SIZES; size++)
 		if (format->methods.binary_hash[size] &&
 		    format->methods.get_hash[size](index) !=
@@ -370,6 +378,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 			sprintf(s_size, "get_key(%d)", index);
 			return s_size;
 		}
+#endif
 
 /* Remove some old keys to better test cmp_all() */
 		if (index & 1)
