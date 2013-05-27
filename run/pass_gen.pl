@@ -146,7 +146,7 @@ usage: $0 [-h|-?] [codepage=CP|-utf8] [-option[s]] HashType [HashType2 [...]] [ 
     -minlen <n>   Discard lines shorter than <n> characters  (0)
     -maxlen <n>   Discard lines longer than <n> characters (128)
     -count <n>    Stop when we have produced <n> hashes   (1320)
-	-loops <n>    some format (pbkdf2, etc), have a loop count. This
+    -loops <n>    some format (pbkdf2, etc), have a loop count. This
                   allows setting a custom count for some formats.
 
 	-salt <s>     Force a single salt (only supported in a few formats)
@@ -1095,6 +1095,7 @@ sub _sha_crypts {
 	my $a; my $b, my $c, my $tmp; my $i; my $ds; my $dp; my $p; my $s;
 	my ($func, $bits, $key, $salt) = @_;
 	my $bytes = $bits/8;
+	my $loops = $arg_loops != -1 ? $arg_loops : 5000;
 
 	$b = $func->($key.$salt.$key);
 
@@ -1140,8 +1141,8 @@ sub _sha_crypts {
 	}
 
 	$c = $a; # Ok, we saved this, which will 'seed' our crypt value here in the loop.
-	# now we do 5000 iterations of md5.
-	for ($i = 0; $i < 5000; ++$i) {
+	# now we do 5000 iterations of SHA2 (256 or 512)
+	for ($i = 0; $i < $loops; ++$i) {
 		if ($i&1) { $tmp  = $p; }
 		else      { $tmp  = $c; }
 		if ($i%3) { $tmp .= $s; }
@@ -1176,12 +1177,20 @@ sub _sha_crypts {
 sub sha256crypt {
 	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(16); }
 	my $bin = _sha_crypts(\&sha256, 256, $_[0], $salt);
+	if ($arg_loops != -1) {
+	print "u$u-sha256crypt:\$5\$rounds=${arg_loops}\$$salt\$$bin:$u:0:$_[0]::\n";
+	} else {
 	print "u$u-sha256crypt:\$5\$$salt\$$bin:$u:0:$_[0]::\n";
+	}
 }
 sub sha512crypt {
 	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(16); }
 	my $bin = _sha_crypts(\&sha512, 512, $_[0], $salt);
+	if ($arg_loops != -1) {
+	print "u$u-sha512crypt:\$6\$rounds=${arg_loops}\$$salt\$$bin:$u:0:$_[0]::\n";
+	} else {
 	print "u$u-sha512crypt:\$6\$$salt\$$bin:$u:0:$_[0]::\n";
+	}
 }
 sub xsha512 {
 # simple 4 byte salted crypt.  No separator char, just raw hash. Also 'may' have $LION$.  We alternate, and every other
