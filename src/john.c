@@ -935,6 +935,10 @@ static void john_load(void)
 		if (mpi_p > 1)
 			john_set_mpi();
 #endif
+		/* Re-init the unicode system. After resuming a forked or
+		   MPI session, this is needed because the whole options
+		   struct is reset. */
+		initUnicode(UNICODE_UNICODE);
 	}
 }
 
