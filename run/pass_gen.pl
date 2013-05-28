@@ -1654,13 +1654,13 @@ sub dynamic_7 { #dynamic_7 --> md5(md5($p).$s)
 	} else {
 		$salt = randstr(3);
 	}
-	print "u$u-dynamic_7"."\x1F"."dynamic_7", md5_hex(md5_hex($_[0]), $salt), "\$$salt"."\x1F"."$u"."\x1F"."0"."\x1F"."$_[0]"."\x1F"."\x1F"."\n";
+	print "u$u-dynamic_7"."\x1F"."\$dynamic_7\$", md5_hex(md5_hex($_[0]), $salt), "\$$salt"."\x1F"."$u"."\x1F"."0"."\x1F"."$_[0]"."\x1F"."\x1F"."\n";
 }
 sub dynamic_17 { #dynamic_17 --> phpass ($P$ or $H$)	phpass
 	$h = Authen::Passphrase::PHPass->new(cost => 11, salt_random => 1, passphrase => $_[0]);
 	my $hh = $h->as_crypt;
 	$salt = substr($hh,3,9);
-	print "u$u-dynamic_17:dynamic_17", substr($hh,12), "\$$salt:$u:0:$_[0]::\n";
+	print "u$u-dynamic_17:\$dynamic_17\$", substr($hh,12), "\$$salt:$u:0:$_[0]::\n";
 }
 sub dynamic_19 { #dynamic_19 --> Cisco PIX (MD5)
 	my $pass;
@@ -1676,7 +1676,7 @@ sub dynamic_19 { #dynamic_19 --> Cisco PIX (MD5)
 		$h .= $i64[($n>>12) & 0x3f];
 		$h .= $i64[($n>>18) & 0x3f];
 	}
-	print "u$u-dynamic_19:dynamic_19$h:$u:0:", $pass, "::\n";
+	print "u$u-dynamic_19:\$dynamic_19\$$h:$u:0:", $pass, "::\n";
 }
 sub dynamic_20 { #dynamic_20 --> Cisco PIX (MD5 salted)
 	if (defined $argsalt) {
@@ -1698,7 +1698,7 @@ sub dynamic_20 { #dynamic_20 --> Cisco PIX (MD5 salted)
 		$h .= $i64[($n>>12) & 0x3f];
 		$h .= $i64[($n>>18) & 0x3f];
 	}
-	print "u$u-dynamic_20:dynamic_20$h\$$salt:$u:0:", $pass, "::\n";
+	print "u$u-dynamic_20:\$dynamic_20\$$h\$$salt:$u:0:", $pass, "::\n";
 }
 sub dynamic_21 { #HDAA HTTP Digest  access authentication
 	#dynamic_21679066476e67b5c7c4e88f04be567f8b$8c12bd8f728afe56d45a0ce846b70e5a$$Uuser$$F2myrealm$$F3GET$/$$F400000001$4b61913cec32e2c9$auth","nocode"},
@@ -1713,7 +1713,7 @@ sub dynamic_21 { #HDAA HTTP Digest  access authentication
 	my $h1 = md5_hex($user, ":myrealm:", $_[0]);
 	my $h2 = md5_hex("GET:/");
 	my $resp = md5_hex($h1, ":", $nonce, ":00000001:", $clientNonce, ":auth:", $h2);
-	print "$user:dynamic_21$resp\$$nonce\$\$U$user\$\$F2myrealm\$\$F3GET\$/\$\$F400000001\$$clientNonce\$auth:$u:0:$_[0]::\n";
+	print "$user:\$dynamic_21\$$resp\$$nonce\$\$U$user\$\$F2myrealm\$\$F3GET\$/\$\$F400000001\$$clientNonce\$auth:$u:0:$_[0]::\n";
 }
 sub dynamic_27 { #dynamic_27 --> OpenBSD MD5
 	#if (length($_[0]) > 15) { print "Warning, john can only handle 15 byte passwords for this format!\n"; }
@@ -1833,7 +1833,7 @@ sub dynamic_compile {
 			$dynamic_args==50 && do {$fmt='sha224($p)';					last SWITCH; };
 			$dynamic_args==51 && do {$fmt='sha224($s.$p),saltlen=6';	last SWITCH; };
 			$dynamic_args==52 && do {$fmt='sha224($p.$s)';				last SWITCH; };
-			$dynamic_args==53 && do {$fmt='sha224(sha224($p)';			last SWITCH; };
+			$dynamic_args==53 && do {$fmt='sha224(sha224($p))';			last SWITCH; };
 			$dynamic_args==54 && do {$fmt='sha224(sha224_raw($p))';	    last SWITCH; };
 			$dynamic_args==55 && do {$fmt='sha224(sha224($p).$s),saltlen=6';            last SWITCH; };
 			$dynamic_args==56 && do {$fmt='sha224($s.sha224($p)),saltlen=6';            last SWITCH; };
@@ -1842,7 +1842,7 @@ sub dynamic_compile {
 			$dynamic_args==60 && do {$fmt='sha256($p)';					last SWITCH; };
 			$dynamic_args==61 && do {$fmt='sha256($s.$p),saltlen=6';	last SWITCH; };
 			$dynamic_args==62 && do {$fmt='sha256($p.$s)';				last SWITCH; };
-			$dynamic_args==63 && do {$fmt='sha256(sha256($p)';			last SWITCH; };
+			$dynamic_args==63 && do {$fmt='sha256(sha256($p))';			last SWITCH; };
 			$dynamic_args==64 && do {$fmt='sha256(sha256_raw($p))';	    last SWITCH; };
 			$dynamic_args==65 && do {$fmt='sha256(sha256($p).$s),saltlen=6';            last SWITCH; };
 			$dynamic_args==66 && do {$fmt='sha256($s.sha256($p)),saltlen=6';            last SWITCH; };
@@ -1851,7 +1851,7 @@ sub dynamic_compile {
 			$dynamic_args==70 && do {$fmt='sha384($p)';					last SWITCH; };
 			$dynamic_args==71 && do {$fmt='sha384($s.$p),saltlen=6';	last SWITCH; };
 			$dynamic_args==72 && do {$fmt='sha384($p.$s)';				last SWITCH; };
-			$dynamic_args==73 && do {$fmt='sha384(sha384($p)';			last SWITCH; };
+			$dynamic_args==73 && do {$fmt='sha384(sha384($p))';			last SWITCH; };
 			$dynamic_args==74 && do {$fmt='sha384(sha384_raw($p))';	    last SWITCH; };
 			$dynamic_args==75 && do {$fmt='sha384(sha384($p).$s),saltlen=6';            last SWITCH; };
 			$dynamic_args==76 && do {$fmt='sha384($s.sha384($p)),saltlen=6';            last SWITCH; };
@@ -1860,7 +1860,7 @@ sub dynamic_compile {
 			$dynamic_args==80 && do {$fmt='sha512($p)';					last SWITCH; };
 			$dynamic_args==81 && do {$fmt='sha512($s.$p),saltlen=6';	last SWITCH; };
 			$dynamic_args==82 && do {$fmt='sha512($p.$s)';				last SWITCH; };
-			$dynamic_args==83 && do {$fmt='sha512(sha512($p)';			last SWITCH; };
+			$dynamic_args==83 && do {$fmt='sha512(sha512($p))';			last SWITCH; };
 			$dynamic_args==84 && do {$fmt='sha512(sha512_raw($p))';	    last SWITCH; };
 			$dynamic_args==85 && do {$fmt='sha512(sha512($p).$s),saltlen=6';            last SWITCH; };
 			$dynamic_args==86 && do {$fmt='sha512($s.sha512($p)),saltlen=6';            last SWITCH; };
@@ -1869,7 +1869,7 @@ sub dynamic_compile {
 			$dynamic_args==90 && do {$fmt='gost($p)';					last SWITCH; };
 			$dynamic_args==91 && do {$fmt='gost($s.$p),saltlen=6';		last SWITCH; };
 			$dynamic_args==92 && do {$fmt='gost($p.$s)';				last SWITCH; };
-			$dynamic_args==93 && do {$fmt='gost(gost($p)';			    last SWITCH; };
+			$dynamic_args==93 && do {$fmt='gost(gost($p))';			    last SWITCH; };
 			$dynamic_args==94 && do {$fmt='gost(gost_raw($p))';	        last SWITCH; };
 			$dynamic_args==95 && do {$fmt='gost(gost($p).$s),saltlen=6';        last SWITCH; };
 			$dynamic_args==96 && do {$fmt='gost($s.gost($p)),saltlen=6';        last SWITCH; };
@@ -1878,7 +1878,7 @@ sub dynamic_compile {
 			$dynamic_args==100 && do {$fmt='whirlpool($p)';					last SWITCH; };
 			$dynamic_args==101 && do {$fmt='whirlpool($s.$p),saltlen=6';	last SWITCH; };
 			$dynamic_args==102 && do {$fmt='whirlpool($p.$s)';				last SWITCH; };
-			$dynamic_args==103 && do {$fmt='whirlpool(whirlpool($p)';		last SWITCH; };
+			$dynamic_args==103 && do {$fmt='whirlpool(whirlpool($p))';		last SWITCH; };
 			$dynamic_args==104 && do {$fmt='whirlpool(whirlpool_raw($p))';	last SWITCH; };
 			$dynamic_args==105 && do {$fmt='whirlpool(whirlpool($p).$s),saltlen=6';				last SWITCH; };
 			$dynamic_args==106 && do {$fmt='whirlpool($s.whirlpool($p)),saltlen=6';				last SWITCH; };
