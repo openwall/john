@@ -998,6 +998,21 @@ examples (this whole list is also found in dynamic.conf).
 #    ALL conversions are done prior to the line being 'looked at' within
 #    the parser.
 #
+#    There are other specialized 'Test=' lines that may need to be used
+#    in certain situations.
+#
+#  TestU= allows placing a test case out, that will ONLY load if the encoding
+#    of utf8 is selected from command line.
+#
+#  TestA= allows placing a test case will will NEVER be loaded if encoding of
+#    utf8 is selected at command line (ASCII test case).
+#
+#  TestM= Allows placing a test case that will ONLY load if this is an MMX or
+#    SSE build.
+#
+#  TestF= Allows placing a test case that will NEVER be loaded if this was an
+#    MMX or SSE build (Only load for 'flat' builds, like oSSL only).
+#   
 #################
 #
 # The testing line is simply of this format:

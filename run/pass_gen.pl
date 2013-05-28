@@ -1939,13 +1939,14 @@ sub dynamic_compile {
 			$dynamic_args==1004 && do {$fmt='md5(md5(md5(md5(md5(md5($p))))))';	last SWITCH; };
 			$dynamic_args==1005 && do {$fmt='md5(md5(md5(md5(md5(md5(md5($p)))))))';	last SWITCH; };
 			$dynamic_args==1006 && do {$fmt='md5(md5(md5(md5(md5(md5(md5(md5($p))))))))';	last SWITCH; };
-			$dynamic_args==1007 && do {$fmt='md5(md5($p).$s)';			last SWITCH; };
+			$dynamic_args==1007 && do {$fmt='md5(md5($p).$s),saltlen=3';	last SWITCH; };
 			$dynamic_args==1008 && do {$fmt='md5($p.$s),saltlen=16';	last SWITCH; };
 			$dynamic_args==1009 && do {$fmt='md5($s.$p),saltlen=16';	last SWITCH; };
 			# dyna-1010 not handled yet (the pad null to 100 bytes)
 			$dynamic_args==1011 && do {$fmt='md5($p.md5($s)),saltlen=6';	last SWITCH; };
 			$dynamic_args==1012 && do {$fmt='md5($p.md5($s)),saltlen=6';	last SWITCH; };
-			$dynamic_args==1013 && do {$fmt='md5($p.md5($u)),username';	last SWITCH; };
+			# dyna_1013 not handled, since we have no way to precompute md5(u) and add that as a 32 byte salt.
+			# $dynamic_args==1013 && do {$fmt='md5($p.md5($u)),username';	last SWITCH; };
 			$dynamic_args==1014 && do {$fmt='md5($p.$s),saltlen=56';	last SWITCH; };
 			$dynamic_args==1015 && do {$fmt='md5(md5($p.$u).$s),saltlen=6,username';	last SWITCH; };
 			$dynamic_args==1018 && do {$fmt='md5(sha1(sha1($p)))';	last SWITCH; };
