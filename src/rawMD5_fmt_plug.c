@@ -87,17 +87,10 @@ static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static ARCH_WORD_32 (*crypt_key)[4];
 #endif
 
-#ifdef _OPENMP
-static int omp_numthreads_t;
-#endif
-
 static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
-	int omp_t;
-
-	omp_numthreads_t = omp_get_max_threads();
-	omp_t = omp_numthreads_t;
+	int omp_t = omp_get_max_threads();
 	self->params.min_keys_per_crypt = omp_t * MIN_KEYS_PER_CRYPT;
 	omp_t *= OMP_SCALE;
 	self->params.max_keys_per_crypt = omp_t * MAX_KEYS_PER_CRYPT;
@@ -269,32 +262,24 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
 	int index = 0;
-	int inc = 1;
 
 #ifdef MMX_COEF
 	count = (count+NBKEYS-1)/NBKEYS;
 #endif
 
 #ifdef _OPENMP
-	inc = (count/omp_numthreads_t)+1;
-#pragma omp parallel for default(none) private(index) shared (inc, count, saved_key, crypt_key)
+#pragma omp parallel for
 #endif
-	for (index = 0; index < count; index += inc)
+	for (index = 0; index < count; index++)
 	{
-		int j;
-		for (j = 0; j < inc; ++j) {
-			int real_idx = index+j;
-			if (real_idx >= count)
-				break;
 #if MMX_COEF
-			DO_MMX_MD5(saved_key[real_idx], crypt_key[real_idx]);
+		DO_MMX_MD5(saved_key[index], crypt_key[index]);
 #else
-			MD5_CTX ctx;
-			MD5_Init(&ctx);
-			MD5_Update(&ctx, saved_key[real_idx], saved_key_length[real_idx]);
-			MD5_Final((unsigned char *)crypt_key[real_idx], &ctx);
+		MD5_CTX ctx;
+		MD5_Init(&ctx);
+		MD5_Update(&ctx, saved_key[index], saved_key_length[index]);
+		MD5_Final((unsigned char *)crypt_key[index], &ctx);
 #endif
-		}
 	}
 	return *pcount;
 }
