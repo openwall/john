@@ -21,6 +21,25 @@ John only.  If you have a binary distribution, then there's nothing
 for you to compile and you can start using John right away.
 
 
+	Requirements
+
+The Jumbo versions requires OpenSSL 0.9.7 or later. To get all functionality
+you need 1.0.1. For building, not only the run-time libs are needed but also
+"devel" stuff like header files. This is often a separate package, so eg.
+for Ubuntu you need "libssl-dev" as well as "libssl".
+
+A few helper tools need C++. Some helper tools are written in Python. A couple
+helper tools (vncpcap2john and SIPdump) need libpcap. A couple of formats need
+extra libraries in order to get included:
+
+	mozilla		libnss
+	krb5-18/23	libkrb5
+	wowsrp		libgmp (will build without it, but is slower then)
+
+Again, you also need eg. libnss-dev, libkrb5-dev and libgmp-dev in order to
+build.
+
+
 	Compiling the sources on a Unix-like system.
 
 Enter the directory into which you extracted the source code
