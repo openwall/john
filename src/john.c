@@ -299,9 +299,6 @@ static void john_register_all(void)
 	john_register_one(&fmt_AFS);
 	john_register_one(&fmt_trip);
 	john_register_one(&fmt_dummy);
-#ifdef HAVE_CRYPT
-	john_register_one(&fmt_crypt);
-#endif
 	john_register_one(&fmt_NT);
 
 	for (i = 0; i < cnt; ++i)
@@ -410,6 +407,9 @@ static void john_register_all(void)
 	john_register_one(&fmt_cuda_rawsha512);
 	john_register_one(&fmt_cuda_wpapsk);
 	john_register_one(&fmt_cuda_xsha512);
+#endif
+#ifdef HAVE_CRYPT
+	john_register_one(&fmt_crypt);
 #endif
 
 #ifdef HAVE_DL
