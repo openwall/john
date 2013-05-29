@@ -37,7 +37,7 @@
  * Ported SHA512, added SHA384.  Code still 50% original epixoip code (from
  *    raw-SHA512_ng_fmt.c) added all setup and tear down logic, to do multi-block,
  *    sha384, flat or interleaved, OMP safe optional un-BE, optional final add of
- *    original vector (the +=). 
+ *    original vector (the +=).
  */
 
 #include "arch.h"
@@ -75,7 +75,7 @@ _inline __m128i _mm_set1_epi64x(long long a)
 }
 #endif
 
-#ifdef __GNUC__
+#if defined(__GNUC__) && !defined(__INTEL_COMPILER) && !defined(__clang__) && !defined(__llvm__) && !defined (_MSC_VER)
 #pragma GCC optimize 3
 #endif
 
