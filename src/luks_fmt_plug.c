@@ -149,7 +149,7 @@ static int AF_merge(unsigned char *src, unsigned char *dst, int afsize,
 	char *bufblock;
 	int blocksize = afsize / stripes;
 
-	bufblock = mem_calloc(blocksize);
+	bufblock = mem_calloc(blocksize + 20);
 
 	for (i = 0; i < (stripes - 1); i++) {
 		XORblock((char *) (src + (blocksize * i)), bufblock, bufblock,
@@ -466,7 +466,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	{
 		unsigned char keycandidate[255];
 		unsigned char masterkeycandidate[255];
-		unsigned char *af_decrypted = mem_alloc(cur_salt->afsize);
+		unsigned char *af_decrypted = mem_alloc(cur_salt->afsize + 20);
 		char *password = saved_key[index];
 		int iterations = john_ntohl(cur_salt->myphdr.keyblock[cur_salt->bestslot].passwordIterations);
 
