@@ -336,7 +336,7 @@ you just make a new "single crack" mode rule (see RULES for information
 on the syntax) and place it somewhere near the beginning:
 
 	[List.Rules:Single]
-	$?$!
+	Az"?!"
 
 Hint: if you want to temporarily disable all of the default rules, you
 can simply rename the section to something John doesn't use and define
