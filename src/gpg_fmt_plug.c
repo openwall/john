@@ -855,7 +855,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		int res;
 		int ks = keySize(cur_salt->cipher_algorithm);
 		//int ds = digestSize(cur_salt->hash_algorithm);
-		//unsigned char *keydata = alloca(ds * ((ks + ds- 1) / ds));
 		unsigned char keydata[64 * ((32 + 64 - 1) / 64)];
 
 		cur_salt->s2kfun(saved_key[index], keydata, ks);

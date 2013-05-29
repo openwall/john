@@ -27,9 +27,6 @@
 #include <assert.h>
 #include <errno.h>
 #include "os.h"
-#if HAVE_ALLOCA_H
-#include <alloca.h>
-#endif
 #include <stdint.h>
 #include <stdlib.h>
 #include <sys/types.h>

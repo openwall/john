@@ -239,7 +239,6 @@ static void SHA_Simple(void *p, int len, unsigned char *output)
 static int LAME_ssh2_load_userkey(char *passphrase)
 {
 	int passlen = strlen(passphrase);
-	//unsigned char *out = alloca(cur_salt->private_blob_len);
 	unsigned char out[sizeof(cur_salt->private_blob)];
 	AES_KEY akey;
 	unsigned char iv[32];
