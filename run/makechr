@@ -7,7 +7,9 @@
 #
 # Copyright (c) 2013 by Solar Designer
 # Redistribution and use in source and binary forms, with or without
-# modification, are permitted.  (This is a heavily cut-down "BSD license".)
+# modification, are permitted.
+# There's ABSOLUTELY NO WARRANTY, express or implied.
+# (This is a heavily cut-down "BSD license".)
 #
 
 # Look for John in the same directory with this script
