@@ -249,21 +249,29 @@ A: Do you really want to see a 0% all the time?  As explained in MODES,
 (There are a few exceptions to this, so a progress indicator has been
 added in -jumbo and it might be added in official versions later.)
 
-Q: Why does John display meaningless c/s values while cracking, instead
-of real "crypts per second" rate?
-A: The values displayed by John mean combinations (of username and
-password) per second, not crypts per second.  This is the effective
-cracking speed that you get on a particular set of password hashes, and
-it may be useful, for example, to tune the "--salts=..." threshold and
-other settings.  If you want a benchmark of the low-level password
-hashing routines only, use "--test".  (Future versions of John the
-Ripper might report effective and raw c/s rates for different time
-intervals.  These won't fit on the current status line, though.)
+Q: What do the various numbers printed on the status line mean?
+A: As of version 1.8.0, the status line may include: successful guess
+count ("g"), session duration (in the D:HH:MM:SS format for days, hours,
+minutes, and seconds), progress indicator (percent done and optionally
+pass number out of the total number of passes), up to four speed metrics
+("g/s", "p/s", "c/s", and "C/s"), and the current (range of) candidate
+password(s) being tested (John is often able to test multiple candidate
+passwords in parallel for better performance, hence a range).  The four
+speed metrics are as follows: g/s is successful guesses per second (so
+it'll stay at 0 until at least one password is cracked), p/s is
+candidate passwords tested per second, c/s is "crypts" (password hash or
+cipher computations) per second, and C/s is combinations of candidate
+password and target hash per second.  Versions of John prior to 1.8.0
+displayed only the C/s rate (calling it c/s).  When you restore a
+pre-1.8.0 session with version 1.8.0 or newer, only the g/s and C/s
+rates will be displayed, because the older .rec file format lacked
+information needed to compute p/s and c/s.
 
-Q: I just noticed that the c/s rate reported while using "incremental"
-mode is a lot lower than it is with other cracking modes.  Why?
+Q: I just noticed that the p/s, c/s, and C/s rates reported while using
+"incremental" mode are a lot lower than they are with other cracking
+modes.  Why is that?
 A: You're probably running John for a few seconds only.  The current
-"incremental" mode implementation uses large character sets which need
+"incremental" mode implementation uses large character sets, which need
 to be expanded into even larger data structures in memory each time John
 switches to a different password length.  Fortunately, this is only
 noticeable when John has just started since the length switches become
