@@ -1,9 +1,20 @@
 /*
  * This is a tiny implementation of CRC-32.
  *
- * Written by Solar Designer <solar at openwall.com> in 1998, revised in
- * 2005 for use in John the Ripper, and placed in the public domain.
- * There's absolutely no warranty.
+ * This software was written by Solar Designer in 1998 and revised in 2005.
+ * No copyright is claimed, and the software is hereby placed in the public
+ * domain.
+ * In case this attempt to disclaim copyright and place the software in the
+ * public domain is deemed null and void, then the software is
+ * Copyright (c) 1998,2005 by Solar Designer and it is hereby released to the
+ * general public under the following terms:
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ *
+ * There's ABSOLUTELY NO WARRANTY, express or implied.
+ *
+ * (This is a heavily cut-down "BSD license".)
  */
 
 #include <stdio.h>
