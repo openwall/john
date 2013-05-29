@@ -50,11 +50,11 @@ static void pbkdf2_sha256(unsigned char *K, int KL, unsigned char *S, int SL, in
 	SHA256_Final(tmp_hash, &ctx);
 
 	SHA256_Init(&ctx);
- 	SHA256_Update(&ctx, opad, SHA256_CBLOCK);
+	SHA256_Update(&ctx, opad, SHA256_CBLOCK);
 	// save off the first 1/2 of the opad hash.  We will NEVER recompute this
 	// again, during the rounds, but reuse it. Saves 1/4 the SHA256's
- 	memcpy(&tmp_ctx2, &ctx, sizeof(SHA256_CTX));
- 	SHA256_Update(&ctx, tmp_hash, SHA256_DIGEST_LENGTH);
+	memcpy(&tmp_ctx2, &ctx, sizeof(SHA256_CTX));
+	SHA256_Update(&ctx, tmp_hash, SHA256_DIGEST_LENGTH);
 	SHA256_Final(tmp_hash, &ctx);
 
 	memcpy(dgst, tmp_hash, SHA256_DIGEST_LENGTH);

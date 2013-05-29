@@ -226,7 +226,7 @@ static void mdtransform_norecalc(unsigned char state[16], unsigned char block[16
 			t = *pt;
 			pt++;
 		}
-  	}
+	}
 
 	memcpy(state, x, 16);
 }

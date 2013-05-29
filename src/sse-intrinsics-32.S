@@ -26,7 +26,7 @@
 sse_debug:
 ..B1.1:
         movl      $1, debug
-        ret       
+        ret
         .align    16,0x90
 	.data
 # -- End  sse_debug
@@ -119,7 +119,7 @@ mmxput:
         addl      $20, %esp
         popl      %ebp
         popl      %ebx
-        ret       
+        ret
 ..B2.9:
         movl      $1, %edx
         jmp       ..B2.6
@@ -169,7 +169,7 @@ mmxput2:
         popl      %ebx
         popl      %edi
         popl      %esi
-        ret       
+        ret
         .align    16,0x90
 	.data
 # -- End  mmxput2
@@ -390,7 +390,7 @@ dispatch:
         popl      %ebx
         popl      %edi
         popl      %esi
-        ret       
+        ret
         .align    16,0x90
 	.section .rodata, "a"
 	.align 32
@@ -802,7 +802,7 @@ mmxput3.:
         popl      %ebx
         popl      %edi
         popl      %esi
-        ret       
+        ret
         .align    16,0x90
 	.data
 # -- End  mmxput3
@@ -3812,7 +3812,7 @@ SSEmd5body.:
         movdqa    %xmm4, 160(%edx)
         movdqa    %xmm1, 176(%edx)
         addl      $1692, %esp
-        ret       
+        ret
 ..B6.6:
         paddd     16(%esp), %xmm5
         paddd     32(%esp), %xmm1
@@ -3847,7 +3847,7 @@ SSEmd5body.:
         movdqa    %xmm3, 176(%edx)
 ..B6.7:
         addl      $1692, %esp
-        ret       
+        ret
         .align    16,0x90
 	.data
 # -- End  SSEmd5body
@@ -5251,7 +5251,7 @@ md5cryptsse:
         popl      %ebx
         popl      %edi
         popl      %esi
-        ret       
+        ret
 ..B7.203:
         movl      $1, %edx
         jmp       ..B7.11
@@ -7551,7 +7551,7 @@ SSEmd4body:
         movdqa    %xmm2, 160(%edx)
         movdqa    %xmm4, 176(%edx)
         addl      $1708, %esp
-        ret       
+        ret
 ..B8.6:
         paddd     16(%esp), %xmm4
         paddd     32(%esp), %xmm6
@@ -7586,7 +7586,7 @@ SSEmd4body:
         movdqa    %xmm5, 176(%edx)
 ..B8.7:
         addl      $1708, %esp
-        ret       
+        ret
         .align    16,0x90
 	.data
 # -- End  SSEmd4body
@@ -12239,7 +12239,7 @@ SSESHA1body:
         movdqa    %xmm5, 256(%eax)
         movdqa    %xmm2, 320(%eax)
         addl      $1340, %esp
-        ret       
+        ret
 ..B9.7:
         movdqa    %xmm1, (%eax)
         movdqa    %xmm2, 16(%eax)
@@ -12256,7 +12256,7 @@ SSESHA1body:
         movdqa    %xmm2, 144(%eax)
 ..B9.8:
         addl      $1340, %esp
-        ret       
+        ret
 ..B9.9:
         movdqa    .L_2il0floatpacket.501, %xmm3
         paddd     %xmm3, %xmm1

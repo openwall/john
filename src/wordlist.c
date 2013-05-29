@@ -623,7 +623,7 @@ skip:
 		 * jump back up.  Doing this, allows --pipe to have rules run on them. in --stdin
 		 * mode, we can NOT perform rules, due to we can not fseek stdin in most OS's
 		 */
- 		word_file = stdin;
+		word_file = stdin;
 		if (options.flags & FLG_STDIN_CHK) {
 			log_event("- Reading candidate passwords from stdin");
 		} else {

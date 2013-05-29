@@ -502,10 +502,10 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 	if (options.loader.activesinglerules == NULL)
 		options.loader.activesinglerules = str_alloc_copy(SUBSECTION_SINGLE);
 
-	if (options.dynamic_raw_hashes_always_valid == 'Y' || options.dynamic_raw_hashes_always_valid == 'y' || 
+	if (options.dynamic_raw_hashes_always_valid == 'Y' || options.dynamic_raw_hashes_always_valid == 'y' ||
 		options.dynamic_raw_hashes_always_valid == '1' || options.dynamic_raw_hashes_always_valid == 't' || options.dynamic_raw_hashes_always_valid == 'T')
 		options.dynamic_raw_hashes_always_valid = 'Y';
-	else if (options.dynamic_raw_hashes_always_valid == 'N' || options.dynamic_raw_hashes_always_valid == 'n' || 
+	else if (options.dynamic_raw_hashes_always_valid == 'N' || options.dynamic_raw_hashes_always_valid == 'n' ||
 		options.dynamic_raw_hashes_always_valid == '0' || options.dynamic_raw_hashes_always_valid == 'f' || options.dynamic_raw_hashes_always_valid == 'F')
 		options.dynamic_raw_hashes_always_valid = 'N';
 

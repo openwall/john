@@ -146,7 +146,7 @@ static void *get_salt(char *ciphertext)
 	p = strtok(NULL, "*");
 	for (i = 0; i < cs.len; i++)
 		decoded_data[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16 +
-    			atoi16[ARCH_INDEX(p[i * 2 + 1])];
+			atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	decoded_data[cs.len] = 0;
 	/* load decoded data into OpenSSL structures */
 	bp = BIO_new(BIO_s_mem());

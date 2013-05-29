@@ -55,10 +55,10 @@ static struct fmt_tests tests[] = {
 	{"*97CF7A3ACBE0CA58D5391AC8377B5D9AC11D46D9", "' OR 1 /*'"},
 	{"*2470C0C06DEE42FD1618BB99005ADCA2EC9D1E19", "password"},
 	{"*7534F9EAEE5B69A586D1E9C1ACE3E3F9F6FCC446", "5"},
-  	{"*18E70DF2758EE4C0BD954910E5808A686BC38C6A", "VAwJsrUcrchdG9"},
-  	{"*440F91919FD39C01A9BC5EDB6E1FE626D2BFBA2F", "lMUXgJFc2rNnn"},
-  	{"*171A78FB2E228A08B74A70FE7401C807B234D6C9", "TkUDsVJC"},
-  	{"*F7D70FD3341C2D268E98119ED2799185F9106F5C", "tVDZsHSG"},
+	{"*18E70DF2758EE4C0BD954910E5808A686BC38C6A", "VAwJsrUcrchdG9"},
+	{"*440F91919FD39C01A9BC5EDB6E1FE626D2BFBA2F", "lMUXgJFc2rNnn"},
+	{"*171A78FB2E228A08B74A70FE7401C807B234D6C9", "TkUDsVJC"},
+	{"*F7D70FD3341C2D268E98119ED2799185F9106F5C", "tVDZsHSG"},
 	{NULL}
 };
 
@@ -127,7 +127,7 @@ static void find_best_kpc(void){
 		memcpy(&(mysqlsha_plain[i*PLAINTEXT_LENGTH]),"abacaeaf",PLAINTEXT_LENGTH);
 	}
 	clEnqueueWriteBuffer(queue_prof, buf_msha_keys, CL_TRUE, 0, (PLAINTEXT_LENGTH) * num, mysqlsha_plain, 0, NULL, NULL);
-    	ret_code = clEnqueueNDRangeKernel( queue_prof, crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &myEvent);
+	ret_code = clEnqueueNDRangeKernel( queue_prof, crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &myEvent);
 	if(ret_code != CL_SUCCESS){
 		fprintf(stderr, "Error %d\n",ret_code);
 		continue;
@@ -146,7 +146,7 @@ static void find_best_kpc(void){
 		optimal_kpc = num;
 	}
 	MEM_FREE(tmpbuffer);
-    	clReleaseCommandQueue(queue_prof);
+	clReleaseCommandQueue(queue_prof);
     }
     fprintf(stderr, "Optimal keys per crypt %d\n(to avoid this test on next run do export GWS=%d)\n",optimal_kpc,optimal_kpc);
     global_work_size = optimal_kpc;

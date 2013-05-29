@@ -284,7 +284,7 @@ static rarvm_standard_filters_t is_standard_filter(unsigned char *code, int code
 		{120, 0x3769893f, VMSF_ITANIUM},
 		{29,  0x0e06077d, VMSF_DELTA},
 		{149, 0x1c2c5dc8, VMSF_RGB},
- 		{216, 0xbc85e701, VMSF_AUDIO},
+		{216, 0xbc85e701, VMSF_AUDIO},
 		{40,  0x46b9c560, VMSF_UPCASE}
 	};
 
@@ -1049,7 +1049,7 @@ int rarvm_prepare(rarvm_data_t *rarvm_data, rarvm_input_t *rarvm_input, unsigned
 	rarvm_standard_filters_t filter_type;
 	struct rarvm_prepared_command *cur_cmd;
 	unsigned int data_flag, data;
- 	struct rarvm_prepared_command *cmd;
+	struct rarvm_prepared_command *cmd;
 
 	//rar_dbgmsg("in rarvm_prepare code_size=%d\n", code_size);
 	rarvm_input->in_addr = rarvm_input->in_bit = 0;

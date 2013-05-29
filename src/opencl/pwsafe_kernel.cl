@@ -202,7 +202,7 @@ __kernel void pwsafe(__global pwsafe_pass * in,
 		f += b;
 		b += Sigma0( c ) + Maj( c, d, e );
 
-		
+
 		a += Sigma1( f ) + Ch( f, g, h ) + 0xc19bf274;
 		e += a;
 		a += Sigma0( b ) + Maj( b, c, d );
@@ -447,7 +447,7 @@ __kernel void pwsafe(__global pwsafe_pass * in,
 		b += Sigma1( g ) + Ch( g, h, a ) + 0xbef9a3f7 + ( (w[14]) );
 		f += b;
 		b += Sigma0( c ) + Maj( c, d, e );
-		
+
 		w[15] += sigma1( w[13] ) + w[8] + sigma0( w[0] );
 		a += Sigma1( f ) + Ch( f, g, h ) + 0xc67178f2 + ( (w[15]) );
 		e += a;
@@ -535,7 +535,7 @@ __kernel void pwsafe(__global pwsafe_pass * in,
 	f += b;
 	b += Sigma0( c ) + Maj( c, d, e );
 
-	
+
 	a += Sigma1( f ) + Ch( f, g, h ) + 0xc19bf274;
 	e += a;
 	a += Sigma0( b ) + Maj( b, c, d );

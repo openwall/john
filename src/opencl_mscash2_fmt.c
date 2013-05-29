@@ -196,7 +196,7 @@ static 	void set_key(char*,int);
 static  void crypt_all(int);
 
 static void init(struct fmt_main *self)
-{	
+{
 	char *conf=NULL;
 	///Allocate memory
 	key_host = mem_calloc(self->params.max_keys_per_crypt*sizeof(*key_host));
@@ -208,12 +208,12 @@ static void init(struct fmt_main *self)
 	memset(dcc_hash_host,0,4*sizeof(cl_uint)*MAX_KEYS_PER_CRYPT);
 
 	memset(dcc2_hash_host,0,4*sizeof(cl_uint)*MAX_KEYS_PER_CRYPT);
-	
+
 	local_work_size = global_work_size = 0;
-	
+
 	if ((conf = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, LWS_CONFIG)))
 		local_work_size = atoi(conf);
-	
+
 	if ((conf = getenv("LWS")))
 		local_work_size = atoi(conf);
 
@@ -222,9 +222,9 @@ static void init(struct fmt_main *self)
 
 	if ((conf = getenv("GWS")))
 		global_work_size = atoi(conf);
-		
+
 	select_device(platform_id,ocl_gpu_id,self);
-		
+
 	///Select devices select_device(int platform_no, int device_no). You may select multiple devices for faster cracking spped. Please See common_opencl_pbkdf2.h
 	//select_device(1,0);
 	//select_device(0,0);

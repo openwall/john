@@ -133,7 +133,7 @@ static void create_clobj(int kpc, struct fmt_main *self) {
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(buffer_out),
 		(void *) &buffer_out), "Error setting argument 2");
 
-    	global_work_size = kpc;
+	global_work_size = kpc;
 }
 
 static void release_clobj(void){
@@ -180,7 +180,7 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 	}
 	clEnqueueWriteBuffer(queue_prof, mysalt, CL_TRUE, 0, SALT_SIZE, saved_salt, 0, NULL, NULL);
 	clEnqueueWriteBuffer(queue_prof, buffer_keys, CL_TRUE, 0, PLAINTEXT_LENGTH * gws, saved_plain, 0, NULL, NULL);
-    	ret_code = clEnqueueNDRangeKernel( queue_prof, crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &myEvent);
+	ret_code = clEnqueueNDRangeKernel( queue_prof, crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &myEvent);
 	if(ret_code != CL_SUCCESS) {
 		// We hit some resource limit so we end here.
 		release_clobj();

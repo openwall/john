@@ -259,7 +259,7 @@ static int init_LAME(const Filename *filename) {
 	/* Select key algorithm structure. */
 	if (!strcmp(b, "ssh-rsa"))
 		strcpy(alg, "ssh-rsa");
-    	else if (!strcmp(b, "ssh-dss"))
+	else if (!strcmp(b, "ssh-dss"))
 		strcpy(alg, "ssh-dss");
 	MEM_FREE(b);
 

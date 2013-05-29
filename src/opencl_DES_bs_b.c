@@ -2,7 +2,7 @@
  * This software is Copyright (c) 2012 Sayantan Datta <std2048 at gmail dot com>
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification, are permitted.
- * Based on Solar Designer implementation of DES_bs_b.c in jtr-v1.7.9 
+ * Based on Solar Designer implementation of DES_bs_b.c in jtr-v1.7.9
  */
 
 
@@ -14,7 +14,7 @@
 
 opencl_DES_bs_transfer CC_CACHE_ALIGN opencl_DES_bs_data[MULTIPLIER];
 
-DES_bs_vector CC_CACHE_ALIGN B[64*MULTIPLIER]; 
+DES_bs_vector CC_CACHE_ALIGN B[64*MULTIPLIER];
 
 
 typedef unsigned WORD vtype;
@@ -29,23 +29,23 @@ typedef unsigned WORD vtype;
 	static cl_command_queue cmdq[MAX_PLATFORMS][MAX_DEVICES_PER_PLATFORM];
 
 	static cl_kernel krnl[MAX_PLATFORMS][MAX_DEVICES_PER_PLATFORM][4096];
-	
+
 	static cl_int err;
 
 	static int devno,pltfrmno;
-	
+
 	static cl_mem index768_gpu,index96_gpu,opencl_DES_bs_data_gpu,B_gpu;
-	
+
 	static int set_salt = 0;
-	
+
         static   WORD current_salt;
 
 	static size_t DES_local_work_size = WORK_GROUP_SIZE;
-	
+
 void DES_opencl_clean_all_buffer()
-{	
+{
 	int i;
-	
+
 	HANDLE_CLERROR(clReleaseMemObject(index768_gpu),"Release Memory Object FAILED.");
 
 	HANDLE_CLERROR(clReleaseMemObject(index96_gpu),"Release Memory Object FAILED.");
@@ -53,13 +53,13 @@ void DES_opencl_clean_all_buffer()
 	HANDLE_CLERROR(clReleaseMemObject(opencl_DES_bs_data_gpu),"Release Memory Object FAILED.");
 
 	HANDLE_CLERROR(clReleaseMemObject(B_gpu),"Release Memory Object FAILED.");
-	
+
 	for(i=0; i< 4096;i++)
 		clReleaseKernel(krnl[pltfrmno][devno][i]);
 }
 
 static void find_best_gws(struct fmt_main *fmt) {
-	
+
 	struct timeval start,end;
 	double savetime;
 	long int count=64;
@@ -71,7 +71,7 @@ static void find_best_gws(struct fmt_main *fmt) {
 	speed = ((double)count)/savetime;
 	do {
 	count *= 2;
-	if((count*WORK_GROUP_SIZE)>MULTIPLIER) {count=count>>1; break; } 
+	if((count*WORK_GROUP_SIZE)>MULTIPLIER) {count=count>>1; break; }
 	gettimeofday(&start,NULL);
 	opencl_DES_bs_crypt_25(count*WORK_GROUP_SIZE*DES_BS_DEPTH);
 	gettimeofday(&end, NULL);
@@ -85,18 +85,18 @@ static void find_best_gws(struct fmt_main *fmt) {
 	fprintf(stderr, "Optimal Global Work Size:%ld\n",count*WORK_GROUP_SIZE*DES_BS_DEPTH);
 	fmt->params.max_keys_per_crypt = count*WORK_GROUP_SIZE*DES_BS_DEPTH ;
 	fmt->params.min_keys_per_crypt = WORK_GROUP_SIZE*DES_BS_DEPTH ;
-}  
+}
 
 #if (HARDCODE_SALT)
 
 	static WORD stored_salt[4096]= {0x7fffffff};
-	
+
 	static char *kernel_source;
-	
+
 	static int kernel_loaded;
 
 	static size_t program_size;
-	
+
 static char *include_source(char *pathname, int dev_id, char *options)
 {
 	static char include[PATH_BUFFER_SIZE];
@@ -119,8 +119,8 @@ static char *include_source(char *pathname, int dev_id, char *options)
 
 	//fprintf(stderr, "Options used: %s\n", include);
 	return include;
-}	
-	
+}
+
 static void read_kernel_source(char *kernel_filename)
 {
 	char *kernel_path = path_expand(kernel_filename);
@@ -157,16 +157,16 @@ static void build_kernel(int dev_id, char *options)
 	program[dev_id] =
 	    clCreateProgramWithSource(context[dev_id], 1, srcptr, NULL,
 	    &ret_code);
-	
+
 	HANDLE_CLERROR(ret_code, "Error while creating program");
-	
+
 	if(gpu_nvidia(device_info[dev_id]))
 	   options = "";
 
-	//build_code = 
+	//build_code =
 	clBuildProgram(program[dev_id], 0, NULL,
 		include_source("$JOHN/kernels/", dev_id, options), NULL, NULL);
-	
+
 	/*
         HANDLE_CLERROR(clGetProgramBuildInfo(program[dev_id], devices[dev_id],
                 CL_PROGRAM_BUILD_LOG, 0, NULL,
@@ -213,31 +213,31 @@ static void build_kernel(int dev_id, char *options)
 #endif
 */
 }
-	
+
 void init_dev()
-{	
+{
 	opencl_init_dev(devno, pltfrmno);
 	pltfrmid[pltfrmno]     = platform[pltfrmno];
 	devid[pltfrmno][devno] = devices[devno];
 	cntxt[pltfrmno][devno] = context[devno];
 	cmdq[pltfrmno][devno]  = queue[devno];
-	
+
 	opencl_DES_bs_data_gpu = clCreateBuffer(cntxt[pltfrmno][devno], CL_MEM_READ_WRITE, MULTIPLIER*sizeof(opencl_DES_bs_transfer), NULL, &err);
 	if(opencl_DES_bs_data_gpu==(cl_mem)0) { HANDLE_CLERROR(err, "Create Buffer FAILED\n"); }
-	
+
 	index768_gpu = clCreateBuffer(cntxt[pltfrmno][devno], CL_MEM_READ_WRITE, 768*sizeof(unsigned int), NULL, &err);
 	if(index768_gpu==(cl_mem)0) { HANDLE_CLERROR(err, "Create Buffer FAILED\n"); }
-	
+
 	index96_gpu = clCreateBuffer(cntxt[pltfrmno][devno], CL_MEM_READ_WRITE, 96*sizeof(unsigned int), NULL, &err);
 	if(index96_gpu==(cl_mem)0) { HANDLE_CLERROR(err, "Create Buffer FAILED\n"); }
-	
+
 	B_gpu = clCreateBuffer(cntxt[pltfrmno][devno], CL_MEM_READ_WRITE, 64*MULTIPLIER*sizeof(DES_bs_vector), NULL, &err);
 	if(B_gpu==(cl_mem)0) { HANDLE_CLERROR(err, "Create Buffer FAILED\n"); }
-	
+
 	HANDLE_CLERROR(clEnqueueWriteBuffer(cmdq[pltfrmno][devno],index768_gpu,CL_TRUE,0,768*sizeof(unsigned int),index768,0,NULL,NULL ), "Failed Copy data to gpu");
-	
-	read_kernel_source("$JOHN/kernels/DES_bs_kernel.cl") ; 
-	
+
+	read_kernel_source("$JOHN/kernels/DES_bs_kernel.cl") ;
+
 }
 
 void modify_src() {
@@ -256,29 +256,29 @@ void modify_src() {
 	     ++i;
 	     kernel_source[i+j*17 ] = digits[tmp];
 	     ++i;
-	     
-	  }
-	  
-}  
 
-	
+	  }
+
+}
+
+
 void DES_bs_select_device(int platform_no,int dev_no,struct fmt_main *fmt)
 {
 	devno = dev_no;
 	pltfrmno = platform_no;
 	init_dev();
 	if(!global_work_size)	find_best_gws(fmt);
-	else {  
+	else {
 		fprintf(stderr, "Global worksize (GWS) forced to %zu\n",global_work_size);
 		fmt->params.max_keys_per_crypt = global_work_size;
 		fmt->params.min_keys_per_crypt = WORK_GROUP_SIZE*DES_BS_DEPTH ;
 	}
-	
-}	
+
+}
 
 #else
 
-	static cl_program prg[MAX_PLATFORMS][MAX_DEVICES_PER_PLATFORM];	
+	static cl_program prg[MAX_PLATFORMS][MAX_DEVICES_PER_PLATFORM];
 
 void DES_bs_select_device(int platform_no,int dev_no,struct fmt_main *fmt)
 {
@@ -310,32 +310,32 @@ void DES_bs_select_device(int platform_no,int dev_no,struct fmt_main *fmt)
 
 	opencl_DES_bs_data_gpu = clCreateBuffer(cntxt[platform_no][dev_no], CL_MEM_READ_WRITE, MULTIPLIER*sizeof(opencl_DES_bs_transfer), NULL, &err);
 	if(opencl_DES_bs_data_gpu==(cl_mem)0) { HANDLE_CLERROR(err, "Create Buffer FAILED\n"); }
-	
+
 	index768_gpu = clCreateBuffer(cntxt[platform_no][dev_no], CL_MEM_READ_WRITE, 768*sizeof(unsigned int), NULL, &err);
 	if(index768_gpu==(cl_mem)0) { HANDLE_CLERROR(err, "Create Buffer FAILED\n"); }
-	
+
 	index96_gpu = clCreateBuffer(cntxt[platform_no][dev_no], CL_MEM_READ_WRITE, 96*sizeof(unsigned int), NULL, &err);
 	if(index96_gpu==(cl_mem)0) { HANDLE_CLERROR(err, "Create Buffer FAILED\n"); }
-	
+
 	B_gpu = clCreateBuffer(cntxt[platform_no][dev_no], CL_MEM_READ_WRITE, 64*MULTIPLIER*sizeof(DES_bs_vector), NULL, &err);
 	if(B_gpu==(cl_mem)0) { HANDLE_CLERROR(err, "Create Buffer FAILED\n"); }
-	
+
 	HANDLE_CLERROR(clSetKernelArg(krnl[platform_no][dev_no][0],0,sizeof(cl_mem),&index768_gpu),"Set Kernel Arg FAILED arg0\n");
 	HANDLE_CLERROR(clSetKernelArg(krnl[platform_no][dev_no][0],1,sizeof(cl_mem),&index96_gpu),"Set Kernel Arg FAILED arg1\n");
 	HANDLE_CLERROR(clSetKernelArg(krnl[platform_no][dev_no][0],2,sizeof(cl_mem),&opencl_DES_bs_data_gpu),"Set Kernel Arg FAILED arg2\n");
 	HANDLE_CLERROR(clSetKernelArg(krnl[platform_no][dev_no][0],3,sizeof(cl_mem),&B_gpu),"Set Kernel Arg FAILED arg4\n");
-	
+
 	HANDLE_CLERROR(clEnqueueWriteBuffer(cmdq[pltfrmno][devno],index768_gpu,CL_TRUE,0,768*sizeof(unsigned int),index768,0,NULL,NULL ), "Failed Copy data to gpu");
-	
+
 	if(!global_work_size)	find_best_gws(fmt);
-	
-	else {  
+
+	else {
 		fprintf(stderr, "Global worksize (GWS) forced to %zu\n",global_work_size);
 		fmt->params.max_keys_per_crypt = global_work_size;
 		fmt->params.min_keys_per_crypt = WORK_GROUP_SIZE*DES_BS_DEPTH ;
 	}
-	
-}	
+
+}
 
 #endif
 
@@ -343,11 +343,11 @@ void DES_bs_select_device(int platform_no,int dev_no,struct fmt_main *fmt)
 
 void opencl_DES_bs_set_salt(WORD salt)
 
-{	
+{
 	unsigned int new = salt,section=0;
-	unsigned int old; 
+	unsigned int old;
 	int dst;
-	
+
 	for(section = 0; section < MAX_KEYS_PER_CRYPT/DES_BS_DEPTH; section++) {
 	new=salt;
 	old = opencl_DES_bs_all[section].salt;
@@ -366,52 +366,52 @@ void opencl_DES_bs_set_salt(WORD salt)
 			}
 			sp1 = opencl_DES_bs_all[section].Ens[src1];
 			sp2 = opencl_DES_bs_all[section].Ens[src2];
-						
+
 			index96[dst] = (WORD *)sp1 - (WORD *)B;
 			index96[dst + 24] = (WORD *)sp2 - (WORD *)B;
 			index96[dst + 48] = (WORD *)(sp1 + 32) - (WORD *)B;
 			index96[dst + 72] = (WORD *)(sp2 + 32) - (WORD *)B;
-			
+
 		}
 		new >>= 1;
 		old >>= 1;
 		if (new == old)
 			break;
 	}
-	
+
 	set_salt = 1;
-			
+
 }
 #if HARDCODE_SALT
 void opencl_DES_bs_crypt_25(int keys_count)
 {
-	
+
 	unsigned int section=0,keys_count_multiple;
 	static unsigned int pos ;
 	cl_event evnt;
 	size_t N,M;
-	
+
 	if(keys_count%DES_BS_DEPTH==0) keys_count_multiple=keys_count;
-	
+
 	else keys_count_multiple = ((keys_count/DES_BS_DEPTH)+1)*DES_BS_DEPTH;
-	
+
 	section=keys_count_multiple/DES_BS_DEPTH;
-	
+
 	M = DES_local_work_size;
 
 	if(section%DES_local_work_size !=0)
 	N=  (section/DES_local_work_size +1) *DES_local_work_size ;
 
 	else
-	N = section;  
-	
-	if(set_salt == 1){ 
+	N = section;
+
+	if(set_salt == 1){
 		unsigned int found = 0;
-		 if(stored_salt[current_salt]==current_salt){ 
+		 if(stored_salt[current_salt]==current_salt){
 			found = 1;
 			pos=current_salt;
-		} 
-		
+		}
+
 		if(found==0){
 			pos = current_salt;
 			modify_src();
@@ -424,74 +424,74 @@ void opencl_DES_bs_crypt_25(int keys_count)
 			HANDLE_CLERROR(clSetKernelArg(krnl[pltfrmno][devno][pos],2,sizeof(cl_mem),&opencl_DES_bs_data_gpu),"Set Kernel Arg FAILED arg2\n");
 			HANDLE_CLERROR(clSetKernelArg(krnl[pltfrmno][devno][pos],3,sizeof(cl_mem),&B_gpu),"Set Kernel Arg FAILED arg4\n");
 			stored_salt[current_salt] = current_salt;
-			  
+
 		}
-				
-	        
-		
+
+
+
 		//HANDLE_CLERROR(clEnqueueWriteBuffer(cmdq[pltfrmno][devno],index96_gpu,CL_TRUE,0,96*sizeof(unsigned int),index96,0,NULL,NULL ), "Failed Copy data to gpu");
 		set_salt = 0;
-		
-	} 
-		
+
+	}
+
 	HANDLE_CLERROR(clEnqueueWriteBuffer(cmdq[pltfrmno][devno],opencl_DES_bs_data_gpu,CL_TRUE,0,MULTIPLIER*sizeof(opencl_DES_bs_transfer),opencl_DES_bs_data,0,NULL,NULL ), "Failed Copy data to gpu");
-	
+
 	err=clEnqueueNDRangeKernel(cmdq[pltfrmno][devno],krnl[pltfrmno][devno][pos],1,NULL,&N,&M,0,NULL,&evnt);
-        
+
 	HANDLE_CLERROR(err,"Enque Kernel Failed");
-	
+
 	clWaitForEvents(1,&evnt);
-	
+
 	HANDLE_CLERROR(clEnqueueReadBuffer(cmdq[pltfrmno][devno],B_gpu,CL_TRUE,0,MULTIPLIER*64*sizeof(DES_bs_vector),B, 0, NULL, NULL),"Write FAILED\n");
 
 	clFinish(cmdq[pltfrmno][devno]);
-	
-		
+
+
 }
 
 #else
 void opencl_DES_bs_crypt_25(int keys_count)
 {
-	
+
 	unsigned int section=0,keys_count_multiple;
-	
+
 	cl_event evnt;
-	
+
 	size_t N,M;
-	
+
 	if(keys_count%DES_BS_DEPTH==0) keys_count_multiple=keys_count;
-	
+
 	else keys_count_multiple = ((keys_count/DES_BS_DEPTH)+1)*DES_BS_DEPTH;
-	
+
 	section=keys_count_multiple/DES_BS_DEPTH;
-	
+
 	M = DES_local_work_size;
 
 	if(section%DES_local_work_size !=0)
 	N=  (section/DES_local_work_size +1) *DES_local_work_size ;
 
 	else
-	N = section;  
-	
+	N = section;
+
 	if(set_salt == 1){
 
 		HANDLE_CLERROR(clEnqueueWriteBuffer(cmdq[pltfrmno][devno],index96_gpu,CL_TRUE,0,96*sizeof(unsigned int),index96,0,NULL,NULL ), "Failed Copy data to gpu");
 		set_salt = 0;
-	}  
-	
-	
+	}
+
+
 	HANDLE_CLERROR(clEnqueueWriteBuffer(cmdq[pltfrmno][devno],opencl_DES_bs_data_gpu,CL_TRUE,0,MULTIPLIER*sizeof(opencl_DES_bs_transfer),opencl_DES_bs_data,0,NULL,NULL ), "Failed Copy data to gpu");
-	
+
 	err=clEnqueueNDRangeKernel(cmdq[pltfrmno][devno],krnl[pltfrmno][devno][0],1,NULL,&N,&M,0,NULL,&evnt);
-	
+
 	HANDLE_CLERROR(err,"Enqueue Kernel Failed");
 
 	clWaitForEvents(1,&evnt);
-	
+
 	HANDLE_CLERROR(clEnqueueReadBuffer(cmdq[pltfrmno][devno],B_gpu,CL_TRUE,0,MULTIPLIER*64*sizeof(DES_bs_vector),B, 0, NULL, NULL),"Write FAILED\n");
 
 	clFinish(cmdq[pltfrmno][devno]);
-	
-		
+
+
 }
 #endif

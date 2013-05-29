@@ -35,7 +35,7 @@ int undrop(int argc, char *argv[]) {
 	printf("# userfile reading from stdin\n");
     } else {
         if ((userfile = fopen(argv[1], "rt")) == NULL) {
-    	        fprintf(stderr, "opening userfile\n");
+	        fprintf(stderr, "opening userfile\n");
 	        userfile = stdin;
         }
     }

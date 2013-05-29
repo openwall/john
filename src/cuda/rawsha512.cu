@@ -199,7 +199,7 @@ __global__ static void kernel_sha512(sha512_key *cuda_password, sha512_hash *cud
     uint32_t idx = blockIdx.x * blockDim.x + threadIdx.x;
 	for(uint32_t it = 0; it < ITERATIONS; ++it) {
 		uint32_t offset = idx+it*KEYS_PER_CRYPT;
-    	sha512((const char*)cuda_password[offset].v, cuda_password[offset].length, (uint64_t*)cuda_hash, offset);
+	sha512((const char*)cuda_password[offset].v, cuda_password[offset].length, (uint64_t*)cuda_hash, offset);
 	}
 }
 

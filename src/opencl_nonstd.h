@@ -181,7 +181,7 @@ s1(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vandn(x20, x7FA7FF69, a2);
 	vxor(x21, x20, xD89697CC);
 	vxor(out[c3], out[c3], x21);
-	  
+
 
 	vxor(x05B77AC0, x00FFFF00, x054885C0);
 	vor(x05F77AD6, x00D20096, x05B77AC0);

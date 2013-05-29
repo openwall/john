@@ -6,14 +6,14 @@
 #ifndef _CUDA_COMMON_CUH
 #define _CUDA_COMMON_CUH
 
-extern "C" 
+extern "C"
 void HandleError(cudaError_t err, const char *file, int line);
 
 #define HANDLE_ERROR(err) (HandleError(err,__FILE__,__LINE__))
 
 extern "C"
 char *get_cuda_header_version();
-extern "C" 
+extern "C"
 void cuda_init(unsigned int cuda_gpu_id);
 extern "C"
 void cuda_device_list();

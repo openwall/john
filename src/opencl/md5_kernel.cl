@@ -62,7 +62,7 @@ __kernel void md5(__global const uint * keys, __global uint * hashes)
 	// Find actual length
 	p = (char *) W;
 	for (i = i ? (i - 1) * 4 : 0; p[i]; i++);
-            
+
 	PUTCHAR(W, i, 0x80);
 	W[14] = i << 3;
 

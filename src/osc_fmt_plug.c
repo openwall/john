@@ -135,7 +135,7 @@ static int osc_valid(char *ciphertext, struct fmt_main *self)
 	if (strncmp(ciphertext, "$OSC$", 5) != 0)
 		return 0;
 
- 	if (ciphertext[9] != '$')
+	if (ciphertext[9] != '$')
 		return 0;
 
 	for (i = 0;i < SALT_SIZE*2; ++i)

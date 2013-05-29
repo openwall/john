@@ -17,7 +17,7 @@
 #define FULL_BINARY_SIZE 64
 
 
-#define PLAINTEXT_LENGTH 20 
+#define PLAINTEXT_LENGTH 20
 
 #define CIPHERTEXT_LENGTH 136
 
@@ -28,7 +28,7 @@
 #define MAX_KEYS_PER_CRYPT	(ITERATIONS*KEYS_PER_CRYPT)
 
 /// Warning: This version of SWAP64(n) is slow and avoid bugs on AMD GPUs(7970)
-#define SWAP64(n)       as_ulong(as_uchar8(n).s76543210) 
+#define SWAP64(n)       as_ulong(as_uchar8(n).s76543210)
 
 /*
 #define SWAP64(n) \
@@ -112,15 +112,15 @@ __constant uint64_t k[] = {
 	    0x6c44198c4a475817UL,
 };
 
-inline void xsha512(__global const char* password, uint8_t pass_len, 
+inline void xsha512(__global const char* password, uint8_t pass_len,
 	__global uint64_t* hash, uint32_t offset, __constant uint32_t* salt)
 {
     __private xsha512_ctx ctx;
-	
+
 	uint32_t* b32 = ctx.buffer;
 	//set salt to buffer
 	*b32 = *salt;
-	
+
 	//set password to buffer
     for (uint32_t i = 0; i < pass_len; i++) {
 		PUTCHAR(b32,i+SALT_SIZE,password[i]);
@@ -141,11 +141,11 @@ inline void xsha512(__global const char* password, uint8_t pass_len,
 
 	//append length to buffer
 	uint64_t *buffer64 = (uint64_t *)ctx.buffer;
-	buffer64[15] = SWAP64((uint64_t) ctx.buflen * 8); 
+	buffer64[15] = SWAP64((uint64_t) ctx.buflen * 8);
 
 	// sha512 main
 	int i;
-	
+
 	uint64_t a = 0x6a09e667f3bcc908UL;
 	uint64_t b = 0xbb67ae8584caa73bUL;
 	uint64_t c = 0x3c6ef372fe94f82bUL;
@@ -178,7 +178,7 @@ inline void xsha512(__global const char* password, uint8_t pass_len,
 		b = a;
 		a = t1 + t2;
 	}
-	
+
 	#pragma unroll 61
 	for (i = 16; i < 77; i++) {
 
@@ -199,29 +199,29 @@ inline void xsha512(__global const char* password, uint8_t pass_len,
 }
 
 __kernel void kernel_xsha512(
-	__global const xsha512_key *password, 
+	__global const xsha512_key *password,
 	__global uint64_t *hash,
 	__constant uint32_t *salt)
 {
 
     uint32_t idx = get_global_id(0);
-	for(uint32_t it = 0; it < ITERATIONS; ++it) {		
+	for(uint32_t it = 0; it < ITERATIONS; ++it) {
 		uint32_t offset = idx+it*KEYS_PER_CRYPT;
-    	xsha512(password[offset].v, password[offset].length, 
+	xsha512(password[offset].v, password[offset].length,
 			hash, offset, salt);
 	}
 }
 
 __kernel void kernel_cmp(
-	__constant uint64_t* binary, 
+	__constant uint64_t* binary,
 	__global uint64_t *hash,
 	__global uint32_t* result)
 {
     uint32_t idx = get_global_id(0);
 	if(idx == 0)
 		*result = 0;
-	
-	for(uint32_t it = 0; it < ITERATIONS; ++it) {		
+
+	for(uint32_t it = 0; it < ITERATIONS; ++it) {
 		uint32_t offset = idx+it*KEYS_PER_CRYPT;
 			if (*binary == hash[offset])
 				*result = 1;

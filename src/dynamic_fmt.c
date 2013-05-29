@@ -2488,7 +2488,7 @@ static void * binary_b64(char *ciphertext)
 	}
 	for (i = 0; i < 5; ++i)
 	{
- 		sixbits = atoi64[ARCH_INDEX(*pos++)];
+		sixbits = atoi64[ARCH_INDEX(*pos++)];
 		b[bidx] = sixbits;
 		sixbits = atoi64[ARCH_INDEX(*pos++)];
 		b[bidx++] |= (sixbits<<6);
@@ -8935,7 +8935,7 @@ static int isSHA2Func(DYNAMIC_primitive_funcp p) {
 		p==DynamicFunc__SHA224_crypt_input1_overwrite_input1_base16 || p==DynamicFunc__SHA224_crypt_input1_overwrite_input1 ||
 		p==DynamicFunc__SHA224_crypt_input2_overwrite_input2_base16 || p==DynamicFunc__SHA224_crypt_input2_overwrite_input2 ||
 		p==DynamicFunc__SHA224_crypt_input2_overwrite_input2_base16 || p==DynamicFunc__SHA224_crypt_input2_overwrite_input2 ||
- 		p==DynamicFunc__SHA224_crypt_input2_overwrite_input1_base16 || p==DynamicFunc__SHA224_crypt_input2_overwrite_input1 ||
+		p==DynamicFunc__SHA224_crypt_input2_overwrite_input1_base16 || p==DynamicFunc__SHA224_crypt_input2_overwrite_input1 ||
 		p==DynamicFunc__SHA224_crypt_input1_to_output1_FINAL ||
 		p==DynamicFunc__SHA224_crypt_input2_to_output1_FINAL ||
 		p==DynamicFunc__SHA256_crypt_input1_append_input2_base16    || p==DynamicFunc__SHA256_crypt_input1_append_input2    ||

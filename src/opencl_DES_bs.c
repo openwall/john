@@ -2,7 +2,7 @@
  * This software is Copyright (c) 2012 Sayantan Datta <std2048 at gmail dot com>
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification, are permitted.
- * Based on Solar Designer implementation of DES_bs_b.c in jtr-v1.7.9 
+ * Based on Solar Designer implementation of DES_bs_b.c in jtr-v1.7.9
  */
 
 #include <string.h>
@@ -102,7 +102,7 @@ static unsigned char DES_atoi64[0x100] = {
 	53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 0, 1, 2, 3, 4
 };
 void init_index(int LM)
-{	
+{
 	int p,q,s,t ;
 	int round, index, bit;
 
@@ -124,7 +124,7 @@ void init_index(int LM)
 			index768[t++] = bit;
 		}
 	}
-  
+
 }
 
 void opencl_DES_bs_init(int LM, int cpt,int block)
@@ -135,7 +135,7 @@ void opencl_DES_bs_init(int LM, int cpt,int block)
 	//int c;
 
 	for_each_t(n) {
-/*	  
+/*
 #if DES_BS_EXPAND
 		if (LM)
 			k = opencl_DES_bs_all[block].KS.p;
@@ -216,7 +216,7 @@ void opencl_DES_bs_set_key(char *key, int index)
 	dst = opencl_DES_bs_all[sector].pxkeys[key_index];
 
 	opencl_DES_bs_data[sector].keys_changed = 1;
-	
+
 	dst[0] = 				(!flag)?0:key[0];
 	dst[sizeof(DES_bs_vector) * 8]      =	(!flag)?0:key[1];
 	flag = flag&&key[1] ;
@@ -353,7 +353,7 @@ static MAYBE_INLINE int DES_bs_get_hash(int index, int count)
 	DES_bs_vector *b;
 	unsigned int sector;
 	init_t();
-	sector = index>>DES_BS_LOG2; 
+	sector = index>>DES_BS_LOG2;
 	index &= (DES_BS_DEPTH-1);
 #if ARCH_LITTLE_ENDIAN
 /*

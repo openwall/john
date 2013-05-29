@@ -8,7 +8,7 @@ sse_debug:
 ..B1.1:
 ..___tag_value_sse_debug.1:
         movl      $1, debug(%rip)
-        ret       
+        ret
         .align    16,0x90
 ..___tag_value_sse_debug.3:
 	.type	sse_debug,@function
@@ -101,7 +101,7 @@ mmxput:
         movb      (%rax,%r8), %r8b
         movb      %r8b, (%rsi,%rdi)
 ..B2.8:
-        ret       
+        ret
         .align    16,0x90
 ..___tag_value_mmxput.12:
 	.type	mmxput,@function
@@ -164,7 +164,7 @@ mmxput2:
 ..___tag_value_mmxput2.34:
         popq      %r12
 ..___tag_value_mmxput2.36:
-        ret       
+        ret
         .align    16,0x90
 ..___tag_value_mmxput2.37:
 	.type	mmxput2,@function
@@ -444,7 +444,7 @@ dispatch:
 ..___tag_value_dispatch.81:
         popq      %r12
 ..___tag_value_dispatch.83:
-        ret       
+        ret
         .align    16,0x90
 ..___tag_value_dispatch.84:
 	.type	dispatch,@function
@@ -861,7 +861,7 @@ mmxput3:
 ..___tag_value_mmxput3.108:
         popq      %r12
 ..___tag_value_mmxput3.110:
-        ret       
+        ret
         .align    16,0x90
 ..___tag_value_mmxput3.111:
 	.type	mmxput3,@function
@@ -3361,7 +3361,7 @@ SSEmd5body:
         movdqa    %xmm6, 176(%rsi)
         addq      $840, %rsp
 ..___tag_value_SSEmd5body.115:
-        ret       
+        ret
 ..___tag_value_SSEmd5body.116:
 ..B6.6:
         paddd     (%rsp), %xmm7
@@ -3391,7 +3391,7 @@ SSEmd5body:
 ..B6.7:
         addq      $840, %rsp
 ..___tag_value_SSEmd5body.117:
-        ret       
+        ret
         .align    16,0x90
 ..___tag_value_SSEmd5body.118:
 	.type	SSEmd5body,@function
@@ -4787,7 +4787,7 @@ md5cryptsse:
 ..___tag_value_md5cryptsse.198:
         popq      %r12
 ..___tag_value_md5cryptsse.200:
-        ret       
+        ret
 ..___tag_value_md5cryptsse.201:
 ..B7.203:
         movl      $.L_2__STRING.1, %esi
@@ -6676,7 +6676,7 @@ SSEmd4body:
         movdqa    %xmm4, 176(%rsi)
         addq      $840, %rsp
 ..___tag_value_SSEmd4body.214:
-        ret       
+        ret
 ..___tag_value_SSEmd4body.215:
 ..B8.6:
         paddd     (%rsp), %xmm15
@@ -6706,7 +6706,7 @@ SSEmd4body:
 ..B8.7:
         addq      $840, %rsp
 ..___tag_value_SSEmd4body.216:
-        ret       
+        ret
         .align    16,0x90
 ..___tag_value_SSEmd4body.217:
 	.type	SSEmd4body,@function
@@ -10787,7 +10787,7 @@ SSESHA1body:
         movdqa    %xmm5, 320(%rsi)
         addq      $904, %rsp
 ..___tag_value_SSESHA1body.221:
-        ret       
+        ret
 ..___tag_value_SSESHA1body.222:
 ..B9.7:
         movdqa    %xmm11, 80(%rsi)
@@ -10798,7 +10798,7 @@ SSESHA1body:
 ..B9.8:
         addq      $904, %rsp
 ..___tag_value_SSESHA1body.223:
-        ret       
+        ret
 ..___tag_value_SSESHA1body.224:
 ..B9.9:
         movdqa    .L_2il0floatpacket.501(%rip), %xmm4

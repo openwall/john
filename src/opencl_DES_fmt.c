@@ -2,7 +2,7 @@
  * This software is Copyright (c) 2012 Sayantan Datta <std2048 at gmail dot com>
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification, are permitted.
- * Based on Solar Designer implementation of DES_fmt.c in jtr-v1.7.9 
+ * Based on Solar Designer implementation of DES_fmt.c in jtr-v1.7.9
  */
 
 #include <string.h>
@@ -49,14 +49,14 @@ static void done()
 static void init(struct fmt_main *pFmt)
 {
 	unsigned int i;
-	
+
 	char *conf;
-	
+
 	for(i=0;i<MULTIPLIER;i++)
 		opencl_DES_bs_init(0, DES_bs_cpt,i);
-	
+
 	global_work_size = 0;
-	
+
 	if ((conf = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, GWS_CONFIG)))
 		global_work_size = atoi(conf);
 

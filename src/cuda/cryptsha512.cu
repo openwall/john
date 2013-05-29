@@ -1,5 +1,5 @@
 /*
-* This software is Copyright (c) 2011 Lukas Odzioba <lukas dot odzioba at gmail dot com> 
+* This software is Copyright (c) 2011 Lukas Odzioba <lukas dot odzioba at gmail dot com>
 * and it is hereby released to the general public under the following terms:
 * Redistribution and use in source and binary forms, with or without modification, are permitted.
 */
@@ -207,7 +207,7 @@ __device__ void clear_ctx_buffer(sha512_ctx * ctx)
 //#pragma unroll 30
 	for (int i = 0; i < 30; i++)
 		w[i] = 0;
-	  
+
 	  ctx->buflen = 0;
 }
 
@@ -251,7 +251,7 @@ __device__ void sha512crypt(const char *pass, uint8_t passlength,
 
 	sha512_digest(&ctx, alt_result);
 	init_ctx(&ctx);
-	
+
 	ctx_update(&ctx, pass, passlength);
 	ctx_update(&ctx, cuda_salt[0].salt, cuda_salt[0].saltlen);
 	ctx_update(&ctx, (const char *) alt_result, passlength);

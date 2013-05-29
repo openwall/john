@@ -186,7 +186,7 @@ static int PasswordVerifier(unsigned char * key)
 	SHA_CTX ctx;
 	unsigned char checkHash[20];
 
-   	memset(&akey, 0, sizeof(AES_KEY));
+	memset(&akey, 0, sizeof(AES_KEY));
 	if(AES_set_decrypt_key(key, 128, &akey) < 0) {
 		fprintf(stderr, "AES_set_decrypt_key failed!\n");
 		return 0;
@@ -304,7 +304,7 @@ static void DecryptUsingSymmetricKeyAlgorithm(unsigned char *verifierInputKey, u
 	AES_KEY akey;
 	memcpy(iv, cur_salt->osalt, 16);
 	memset(&iv[16], 0, 16);
-     	memset(&akey, 0, sizeof(AES_KEY));
+	memset(&akey, 0, sizeof(AES_KEY));
 	if(cur_salt->keySize == 128) {
 		if(AES_set_decrypt_key(verifierInputKey, 128, &akey) < 0) {
 			fprintf(stderr, "AES_set_decrypt_key failed!\n");
