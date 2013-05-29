@@ -317,4 +317,12 @@ with passwdqc, before you ask users to change their passwords - whether
 using this script or otherwise.  And you should edit the message inside
 the script before possibly using it.
 
+	makechr
+
+This is a script to (re-)generate the .chr files using passwords in
+john.pot and applying all of the defined external mode filters.  To
+speed it up on a sufficiently large computer (RAM and CPUs), "&" may be
+added after the John invocation inside the script (to run all of them in
+parallel).
+
 $Owl$
