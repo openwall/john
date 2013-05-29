@@ -1,3 +1,5 @@
+#ifdef HAVE_MPI
+
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,12 +11,23 @@
 int mpi_p, mpi_id;
 char mpi_name[MPI_MAX_PROCESSOR_NAME + 1];
 
-void mpi_teardown(void){
-	if (nice(20) < 0) fprintf(stderr, "nice() failed\n");
+void mpi_teardown(void)
+{
+	static int finalized = 0;
+
+	if (finalized++)
+		return;
+
+	if (nice(20) < 0)
+		fprintf(stderr, "nice() failed\n");
+
+	if (mpi_p > 1)
+		MPI_Barrier(MPI_COMM_WORLD);
 	MPI_Finalize();
 }
 
-void mpi_setup(int argc, char **argv) {
+void mpi_setup(int argc, char **argv)
+{
 	int namesize;
 
 	MPI_Init(&argc, &argv);
@@ -24,3 +37,5 @@ void mpi_setup(int argc, char **argv) {
 	MPI_Get_processor_name(mpi_name, &namesize);
 	atexit(mpi_teardown);
 }
+
+#endif /* HAVE_MPI */

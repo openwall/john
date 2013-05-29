@@ -712,11 +712,14 @@ static void john_wait(void)
 static void john_mpi_wait(void)
 {
 	if (!database.password_count)
-		fprintf(stderr, "Node %d: All hashes cracked! Abort remaining"
-		        " nodes manually!\n", mpi_id);
+		fprintf(stderr, "%d: All hashes cracked! Abort remaining"
+		        " nodes manually!\n", mpi_id + 1);
 
-	if (nice(20) < 0) fprintf(stderr, "%d: nice() failed\n", mpi_id + 1);
-	MPI_Barrier(MPI_COMM_WORLD);
+	if (nice(20) < 0)
+		fprintf(stderr, "%d: nice() failed\n", mpi_id + 1);
+
+	if (john_main_process)
+		mpi_teardown();
 
 /* Close and possibly remove our .rec file now */
 	rec_done((children_ok && !event_abort) ? -1 : -2);

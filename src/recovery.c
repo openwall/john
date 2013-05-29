@@ -296,6 +296,9 @@ void rec_restore_args(int lock)
 				return;
 			log_event("No crash recovery file, terminating");
 			log_done();
+#ifdef HAVE_MPI
+			mpi_teardown();
+#endif
 			exit(0);
 		}
 		pexit("fopen: %s", path_expand(rec_name));

@@ -21,10 +21,9 @@ NULL = /dev/null
 CPPFLAGS = -E
 SORT = sort
 
-## Uncomment the TWO lines below for MPI (can be used together with OMP as well)
-## For experimental MPI_Abort support, add -DJOHN_MPI_ABORT too.
-#CC = mpicc -DHAVE_MPI
-#MPIOBJ = john-mpi.o
+## Uncomment the line below for MPI (can be used together with OMP as well)
+## For experimental MPI_Abort support, append -DJOHN_MPI_ABORT too.
+CC = mpicc -DHAVE_MPI
 
 OMPFLAGS =
 # gcc with OpenMP
@@ -100,7 +99,7 @@ PLUGFORMATS_SRCS += $(wildcard *_plug.c)
 PLUGFORMATS_OBJS = $(PLUGFORMATS_SRCS:.c=.o)
 
 JOHN_OBJS = \
-	$(MPIOBJ) \
+	john-mpi.o \
 	DES_fmt.o DES_std.o DES_bs.o DES_bs_b.o \
 	BSDI_fmt.o \
 	MD5_fmt.o MD5_std.o \
