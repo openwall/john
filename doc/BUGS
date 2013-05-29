@@ -1,5 +1,8 @@
 	Known issues with using this release.
 
+Under OSX using native "Heimdal" Kerberos5 library, krb5-23 often fails.
+This seems to be a bug in the library and not in JtR.
+
 Not working on big-endian CPU architectures (these formats fail
 self-test on big-endian CPUs):
 * OpenVMS
