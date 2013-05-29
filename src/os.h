@@ -100,11 +100,5 @@
 #define HAVE_STRINGS_H		1
 #endif
 
-#if defined (_MSC_VER)
-#define HAVE_ALLOCA_H		0
-#else
-#define HAVE_ALLOCA_H		1
-#endif
-
 
 #endif
