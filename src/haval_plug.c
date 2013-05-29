@@ -180,7 +180,7 @@
 				in(pass_count + 6), SPH_C32(0x00000000)); \
 			STEP(n, 1, s0, s7, s6, s5, s4, s3, s2, s1, \
 				in(pass_count + 7), SPH_C32(0x00000000)); \
-   		} \
+		} \
 	} while (0)
 
 #define PASSG(p, n, in)   do { \
@@ -210,7 +210,7 @@
 			STEP(n, p, s0, s7, s6, s5, s4, s3, s2, s1, \
 				in(MP ## p[pass_count + 7]), \
 				RK ## p[pass_count + 7]); \
-   		} \
+		} \
 	} while (0)
 
 #define PASS2(n, in)    PASSG(2, n, in)

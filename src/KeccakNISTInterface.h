@@ -26,7 +26,7 @@ typedef spongeState hashState;
   * Function to initialize the state of the Keccak[r, c] sponge function.
   * The rate r and capacity c values are determined from @a hashbitlen.
   * @param  state       Pointer to the state of the sponge function to be initialized.
-  * @param  hashbitlen  The desired number of output bits, 
+  * @param  hashbitlen  The desired number of output bits,
   *                     or 0 for Keccak[] with default parameters
   *                     and arbitrarily-long output.
   * @pre    The value of hashbitlen must be one of 0, 224, 256, 384 and 512.
@@ -36,7 +36,7 @@ HashReturn Init(hashState *state, int hashbitlen);
 /**
   * Function to give input data for the sponge function to absorb.
   * @param  state       Pointer to the state of the sponge function initialized by Init().
-  * @param  data        Pointer to the input data. 
+  * @param  data        Pointer to the input data.
   *                     When @a databitLen is not a multiple of 8, the last bits of data must be
   *                     in the most significant bits of the last byte.
   * @param  databitLen  The number of input bits provided in the input data.
@@ -57,7 +57,7 @@ HashReturn Final(hashState *state, BitSequence *hashval);
   * Function to compute a hash using the Keccak[r, c] sponge function.
   * The rate r and capacity c values are determined from @a hashbitlen.
   * @param  hashbitlen  The desired number of output bits.
-  * @param  data        Pointer to the input data. 
+  * @param  data        Pointer to the input data.
   *                     When @a databitLen is not a multiple of 8, the last bits of data must be
   *                     in the most significant bits of the last byte.
   * @param  databitLen  The number of input bits provided in the input data.

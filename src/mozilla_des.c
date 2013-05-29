@@ -693,29 +693,29 @@ void DES_Do1Block(HALF * ks, const BYTE * inbuf, BYTE * outbuf)
 #if defined(_X86_)
 /* Intel X86 CPUs do unaligned loads and stores without complaint. */
 #define COPY8B(to, from, ptr) \
-    	HALFPTR(to)[0] = HALFPTR(from)[0]; \
-    	HALFPTR(to)[1] = HALFPTR(from)[1];
+	HALFPTR(to)[0] = HALFPTR(from)[0]; \
+	HALFPTR(to)[1] = HALFPTR(from)[1];
 #elif defined(USE_MEMCPY)
 #define COPY8B(to, from, ptr) memcpy(to, from, 8)
 #else
 #define COPY8B(to, from, ptr) \
     if (((ptrdiff_t)(ptr) & 0x3) == 0) { \
-    	HALFPTR(to)[0] = HALFPTR(from)[0]; \
-    	HALFPTR(to)[1] = HALFPTR(from)[1]; \
+	HALFPTR(to)[0] = HALFPTR(from)[0]; \
+	HALFPTR(to)[1] = HALFPTR(from)[1]; \
     } else if (((ptrdiff_t)(ptr) & 0x1) == 0) { \
-    	SHORTPTR(to)[0] = SHORTPTR(from)[0]; \
-    	SHORTPTR(to)[1] = SHORTPTR(from)[1]; \
-    	SHORTPTR(to)[2] = SHORTPTR(from)[2]; \
-    	SHORTPTR(to)[3] = SHORTPTR(from)[3]; \
+	SHORTPTR(to)[0] = SHORTPTR(from)[0]; \
+	SHORTPTR(to)[1] = SHORTPTR(from)[1]; \
+	SHORTPTR(to)[2] = SHORTPTR(from)[2]; \
+	SHORTPTR(to)[3] = SHORTPTR(from)[3]; \
     } else { \
-    	BYTEPTR(to)[0] = BYTEPTR(from)[0]; \
-    	BYTEPTR(to)[1] = BYTEPTR(from)[1]; \
-    	BYTEPTR(to)[2] = BYTEPTR(from)[2]; \
-    	BYTEPTR(to)[3] = BYTEPTR(from)[3]; \
-    	BYTEPTR(to)[4] = BYTEPTR(from)[4]; \
-    	BYTEPTR(to)[5] = BYTEPTR(from)[5]; \
-    	BYTEPTR(to)[6] = BYTEPTR(from)[6]; \
-    	BYTEPTR(to)[7] = BYTEPTR(from)[7]; \
+	BYTEPTR(to)[0] = BYTEPTR(from)[0]; \
+	BYTEPTR(to)[1] = BYTEPTR(from)[1]; \
+	BYTEPTR(to)[2] = BYTEPTR(from)[2]; \
+	BYTEPTR(to)[3] = BYTEPTR(from)[3]; \
+	BYTEPTR(to)[4] = BYTEPTR(from)[4]; \
+	BYTEPTR(to)[5] = BYTEPTR(from)[5]; \
+	BYTEPTR(to)[6] = BYTEPTR(from)[6]; \
+	BYTEPTR(to)[7] = BYTEPTR(from)[7]; \
     }
 #endif
 #define COPY8BTOHALF(to, from) COPY8B(to, from, from)

@@ -120,7 +120,7 @@ salsa20_8(uint8_t B[64])
 #ifdef ARCH_LITTLE_ENDIAN
 	memcpy(x,B,64);
 #else
- 	uint32_t B32[16];
+	uint32_t B32[16];
 
 	/* Convert little-endian values in. */
 	for (i = 0; i < 16; i++)
@@ -171,7 +171,7 @@ salsa20_8(uint8_t B[64])
 		B32[i] += x[i];
 
 	/* Convert little-endian values out. */
-	for (i = 0; i < 16; i++) 
+	for (i = 0; i < 16; i++)
 		LE32enc(&B[4 * i], B32[i]);
 #endif
 }

@@ -7,18 +7,18 @@
  * general public under the following terms:  Redistribution and use in source
  * and binary forms, with or without modification, are permitted.
  *
- * Ported to SSE2, May 2013, JimF.  A little harder than some, since we have to 
+ * Ported to SSE2, May 2013, JimF.  A little harder than some, since we have to
  * group and rearrange passwords based upon length.  We must only run passwords
  * of a specific block group size in 1 SSE_COEF_SHA256 bundle.  If we later do
  * PARA_SHA256, then each bundle of SSE_COEF_SHA256*PARA_SHA256 will have to be
- * made up of passwords of same block group size.  
+ * made up of passwords of same block group size.
  *
  * Here are the block sizes per password length.  To be equal group size, all
  * numbers for 2 passwords must be equal all the way across.  So, password lengths
  * of 0, 1, 2, 3 are 1 group.  4, 5, 6, 7 are another group. 8,9,10,11 are another,
  * 12-23 are another and the final is 24-35. So there are 5 'groups' of lengths. We
  * could skip the length 0,1,2,3 group
- * 
+ *
  * Here is the raw block length data. The
 Len: cp   pspc cspp ppc  cpp  psc  csp  pc
 0  : 1    1    1    1    1    1    1    1

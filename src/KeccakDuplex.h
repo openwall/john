@@ -44,7 +44,7 @@ int InitDuplex(duplexState *state, unsigned int rate, unsigned int capacity);
 /**
   * Function to make a duplexing call to the duplex object intialized with InitDuplex().
   * @param  state       Pointer to the state of the duplex object initialized by InitDuplex().
-  * @param  in          Pointer to the input data. 
+  * @param  in          Pointer to the input data.
   *                     When @a inBitLen is not a multiple of 8, the last bits of data must be
   *                     in the least significant bits of the last byte.
   * @param  inBitLen    The number of input bits provided in the input data.

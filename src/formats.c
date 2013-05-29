@@ -348,7 +348,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 /* change the next line to #if 0 to temp stop doing validity checks.
  * this should almost NEVER be done.  However, I have done it when
  * trying new code out in a format, and before it was totally working
- * just to check the speed of the changes, to determine it it was 
+ * just to check the speed of the changes, to determine it it was
  * good  enough to continue to fully implement, or if the changes
  * were not making any difference.
  */

@@ -68,17 +68,17 @@ struct UnpackFilter *rar_filter_new(void)
 		return NULL;
 	}
 	filter->block_start = 0;
-  	filter->block_length = 0;
-  	filter->exec_count = 0;
-  	filter->next_window = 0;
+	filter->block_length = 0;
+	filter->exec_count = 0;
+	filter->next_window = 0;
 
-   	rar_cmd_array_init(&filter->prg.cmd);
+	rar_cmd_array_init(&filter->prg.cmd);
 	filter->prg.global_data = NULL;
 	filter->prg.static_data = NULL;
 	filter->prg.global_size = filter->prg.static_size = 0;
 	filter->prg.filtered_data = NULL;
 	filter->prg.filtered_data_size = 0;
-  	return filter;
+	return filter;
 }
 
 void rar_filter_delete(struct UnpackFilter *filter)

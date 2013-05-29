@@ -295,7 +295,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		pbkdf2_sha512_sse((const unsigned char **)pin, lens, cur_salt->salt, cur_salt->length, cur_salt->rounds, (unsigned char**)pout, BINARY_SIZE, 0);
 #else
 		pbkdf2_sha512((const unsigned char*)(saved_key[index]), strlen(saved_key[index]),
-			cur_salt->salt, cur_salt->length, 
+			cur_salt->salt, cur_salt->length,
 			cur_salt->rounds, (unsigned char*)crypt_out[index], BINARY_SIZE, 0);
 #endif
 	}

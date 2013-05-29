@@ -120,7 +120,7 @@ static int phps_valid(char *ciphertext, struct fmt_main *self)
 	if (strncmp(ciphertext, "$PHPS$", 6) != 0)
 		return 0;
 
- 	if (ciphertext[12] != '$')
+	if (ciphertext[12] != '$')
 		return 0;
 
 	for (i = 0;i < SALT_SIZE*2; ++i)

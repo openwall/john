@@ -58,7 +58,7 @@
 
 static struct fmt_tests skey_tests[] = {
 	{"0096 luky451004  b519dcfe18eb7aab", "w00w00 v00d00"},
-  	{"md5 0099 luky451001  93b3774544ba92a3", "swirling zagnuts"},
+	{"md5 0099 luky451001  93b3774544ba92a3", "swirling zagnuts"},
 	{"sha1 0042 luky451002  d4f0b50e17b29310", "abcdefg12345678"},
 	{"rmd160 0099 luky451006  2dbcbb728e8bb456", "squeamish ossifrage"},
 	{NULL}

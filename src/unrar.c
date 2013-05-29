@@ -559,7 +559,7 @@ static int read_tables(const unsigned char **fd, unpack_data_t *unpack_data)
 
 	/*dump_tables(unpack_data);*/
 	//rar_dbgmsg("ReadTables finished\n");
-  	return 1;
+	return 1;
 }
 
 static int read_end_of_block(const unsigned char **fd, unpack_data_t *unpack_data)

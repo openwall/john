@@ -137,7 +137,7 @@ static void find_best_gws(int jtrUniqDevNo, struct fmt_main *fmt) {
 }
 
 size_t 	select_device(int jtrUniqDevNo, struct fmt_main *fmt) {
-      	cl_int 		err ;
+	cl_int 		err ;
 	const char  	*errMsg ;
 
 	opencl_init_opt("$JOHN/kernels/pbkdf2_kernel.cl", jtrUniqDevNo, NULL) ;
