@@ -87,9 +87,23 @@ parameters, including password length limits and the charset to use.
 These parameters are defined in the configuration file sections called
 [Incremental:MODE], where MODE is any name that you assign to the mode
 (it's the name that you will need to specify on John's command line).
-You can either use a pre-defined incremental mode definition (one of
-"All", "Alnum", "Alpha", "Digits", or "LanMan" for LM hashes) or define
-a custom one.
+You can either use a pre-defined incremental mode definition or define a
+custom one.
+
+As of version 1.8.0, pre-defined incremental modes are "ASCII" (all 95
+printable ASCII characters), "LM_ASCII" (for use on LM hashes), "Alnum"
+(all 62 alphanumeric characters), "Alpha" (all 52 letters), "LowerNum"
+(lowercase letters plus digits, for 36 total), "UpperNum" (uppercase
+letters plus digits, for 36 total), "LowerSpace" (lowercase letters plus
+space, for 27 total), "Lower" (lowercase letters), "Upper" (uppercase
+letters), and "Digits" (digits only).  The supplied .chr files include
+data for lengths up to 13 for all of these modes except for "LM_ASCII"
+(where password portions input to the LM hash halves are assumed to be
+truncated at length 7) and "Digits" (where the supplied .chr file and
+pre-defined incremental mode work for lengths up to 20).  Some of the
+many .chr files needed by these pre-defined incremental modes might not
+be bundled with every version of John the Ripper, being available as a
+separate download.
 
 See CONFIG and EXAMPLES for information on defining custom modes.
 
@@ -109,4 +123,4 @@ particular external mode on John's command line.  See EXTERNAL.
 
 See EXAMPLES for a reasonable order of cracking modes to use.
 
-$Owl: Owl/packages/john/john/doc/MODES,v 1.5 2006/01/02 06:48:40 solar Exp $
+$Owl: Owl/packages/john/john/doc/MODES,v 1.6 2013/05/29 17:57:56 solar Exp $
