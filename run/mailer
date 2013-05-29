@@ -1,8 +1,5 @@
 #!/bin/sh
 #
-# This file is part of John the Ripper password cracker,
-# Copyright (c) 1996-98 by Solar Designer
-#
 # This is a script to send mail to all users whose passwords got cracked.
 # This is not always a good idea, though, since lots of people do not
 # check their e-mail or ignore such messages, and the messages can be a
@@ -12,6 +9,10 @@
 # with passwdqc, before you ask users to change their passwords - whether
 # using this script or otherwise.  And you should edit the message inside
 # the script before possibly using it.
+#
+# Copyright (c) 1996-98 by Solar Designer
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted.  (This is a heavily cut-down "BSD license".)
 #
 
 if [ $# -ne 1 ]; then
