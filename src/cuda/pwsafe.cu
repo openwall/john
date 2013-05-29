@@ -75,10 +75,10 @@ __global__ void kernel_pwsafe(pwsafe_pass * in, pwsafe_salt * salt,
 	w[10] += sigma1(w[8]) + w[3] + sigma0(w[11]);
 	w[11] += sigma1(w[9]) + w[4] + sigma0(w[12]);
 	w[12] += sigma1(w[10]) + w[5] + sigma0(w[13]);
-	w[13] += sigma1(w[11]) + w[6] + sigma0(w[14]); 
+	w[13] += sigma1(w[11]) + w[6] + sigma0(w[14]);
 	w[14] += sigma1(w[12]) + w[7] + sigma0(w[15]);
-	w[15] += sigma1(w[13]) + w[8] + sigma0(w[0]); 
-	
+	w[15] += sigma1(w[13]) + w[8] + sigma0(w[0]);
+
 	R1(a, b, c, d, e, f, g, h, 0xe49b69c1 + w[0]);
 	R1(h, a, b, c, d, e, f, g, 0xefbe4786 + w[1]);
 	R1(g, h, a, b, c, d, e, f, 0x0fc19dc6 + w[2]);
@@ -109,9 +109,9 @@ __global__ void kernel_pwsafe(pwsafe_pass * in, pwsafe_salt * salt,
 	w[10] += sigma1(w[8]) + w[3] + sigma0(w[11]);
 	w[11] += sigma1(w[9]) + w[4] + sigma0(w[12]);
 	w[12] += sigma1(w[10]) + w[5] + sigma0(w[13]);
-	w[13] += sigma1(w[11]) + w[6] + sigma0(w[14]); 
+	w[13] += sigma1(w[11]) + w[6] + sigma0(w[14]);
 	w[14] += sigma1(w[12]) + w[7] + sigma0(w[15]);
-	w[15] += sigma1(w[13]) + w[8] + sigma0(w[0]); 
+	w[15] += sigma1(w[13]) + w[8] + sigma0(w[0]);
 
 	R1(a, b, c, d, e, f, g, h, 0x27b70a85 + w[0]);
 	R1(h, a, b, c, d, e, f, g, 0x2e1b2138 + w[1]);
@@ -143,9 +143,9 @@ __global__ void kernel_pwsafe(pwsafe_pass * in, pwsafe_salt * salt,
 	w[10] += sigma1(w[8]) + w[3] + sigma0(w[11]);
 	w[11] += sigma1(w[9]) + w[4] + sigma0(w[12]);
 	w[12] += sigma1(w[10]) + w[5] + sigma0(w[13]);
-	w[13] += sigma1(w[11]) + w[6] + sigma0(w[14]); 
+	w[13] += sigma1(w[11]) + w[6] + sigma0(w[14]);
 	w[14] += sigma1(w[12]) + w[7] + sigma0(w[15]);
-	w[15] += sigma1(w[13]) + w[8] + sigma0(w[0]); 
+	w[15] += sigma1(w[13]) + w[8] + sigma0(w[0]);
 
 	R1(a, b, c, d, e, f, g, h, 0x19a4c116 + w[0]);
 	R1(h, a, b, c, d, e, f, g, 0x1e376c08 + w[1]);
@@ -246,9 +246,9 @@ __global__ void kernel_pwsafe(pwsafe_pass * in, pwsafe_salt * salt,
 		w[10] += sigma1(w[8]) + w[3] + sigma0(w[11]);
 		w[11] += sigma1(w[9]) + w[4] + sigma0(w[12]);
 		w[12] += sigma1(w[10]) + w[5] + sigma0(w[13]);
-		w[13] += sigma1(w[11]) + w[6] + sigma0(w[14]); 
+		w[13] += sigma1(w[11]) + w[6] + sigma0(w[14]);
 		w[14] += sigma1(w[12]) + w[7] + sigma0(w[15]);
-		w[15] += sigma1(w[13]) + w[8] + sigma0(w[0]); 
+		w[15] += sigma1(w[13]) + w[8] + sigma0(w[0]);
 
 		R1(a, b, c, d, e, f, g, h, 0x27b70a85 + w[0]);
 		R1(h, a, b, c, d, e, f, g, 0x2e1b2138 + w[1]);
@@ -280,9 +280,9 @@ __global__ void kernel_pwsafe(pwsafe_pass * in, pwsafe_salt * salt,
 		w[10] += sigma1(w[8]) + w[3] + sigma0(w[11]);
 		w[11] += sigma1(w[9]) + w[4] + sigma0(w[12]);
 		w[12] += sigma1(w[10]) + w[5] + sigma0(w[13]);
-		w[13] += sigma1(w[11]) + w[6] + sigma0(w[14]); 
+		w[13] += sigma1(w[11]) + w[6] + sigma0(w[14]);
 		w[14] += sigma1(w[12]) + w[7] + sigma0(w[15]);
-		w[15] += sigma1(w[13]) + w[8] + sigma0(w[0]); 
+		w[15] += sigma1(w[13]) + w[8] + sigma0(w[0]);
 
 		R1(a, b, c, d, e, f, g, h, 0x19a4c116 + w[0]);
 		R1(h, a, b, c, d, e, f, g, 0x1e376c08 + w[1]);

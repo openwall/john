@@ -647,7 +647,7 @@ void pbkdf2_iter(__global temp_buf *tmp,
 			out[i] = tmp[id].out[i] ;
 	}
 
-    	for (i = 0; i < itr_count; i++) {
+	for (i = 0; i < itr_count; i++) {
 		W[0] = buf[0] ;
 		W[1] = buf[1] ;
 		W[2] = buf[2] ;

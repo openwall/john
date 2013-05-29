@@ -82,7 +82,7 @@ static void sha256_transform(uint32_t * w, uint32_t * state)
 	uint32_t e = state[4];
 	uint32_t f = state[5];
 	uint32_t g = state[6];
-	uint32_t h = state[7];	
+	uint32_t h = state[7];
 
 	R1(a, b, c, d, e, f, g, h, 0x428a2f98 + w[0]);
 	R1(h, a, b, c, d, e, f, g, 0x71374491 + w[1]);
@@ -102,7 +102,7 @@ static void sha256_transform(uint32_t * w, uint32_t * state)
 	R1(b, c, d, e, f, g, h, a, 0xc19bf174 + w[15]);
 
 	R2();
-	
+
 	R1(a, b, c, d, e, f, g, h, 0xe49b69c1 + w[0]);
 	R1(h, a, b, c, d, e, f, g, 0xefbe4786 + w[1]);
 	R1(g, h, a, b, c, d, e, f, 0x0fc19dc6 + w[2]);
@@ -182,7 +182,7 @@ __kernel void pwsafe_init(__global pwsafe_pass * in, __global pwsafe_salt * salt
 		{
 			w[i / 4] |= (((uint32_t) in[idx].v[i]) << ((3 - (i & 0x3)) << 3));
 		}
-		for (; i < 32 + pl; i++) 
+		for (; i < 32 + pl; i++)
 		{
 			w[i / 4] |= (((uint32_t) salt->salt[i - pl]) << ((3 - (i & 0x3)) << 3));
 		}
@@ -196,7 +196,7 @@ __kernel void pwsafe_init(__global pwsafe_pass * in, __global pwsafe_salt * salt
 		{
 			w[i / 4] |= (((uint32_t) in[idx].v[i]) << ((3 - (i & 0x3)) << 3));
 		}
-		for (; i < 32 + pl; i++) 
+		for (; i < 32 + pl; i++)
 		{
 			w[i / 4] |= (((uint32_t) salt->salt[i - pl]) << ((3 - (i & 0x3)) << 3));
 		}
