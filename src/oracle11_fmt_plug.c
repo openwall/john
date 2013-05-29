@@ -373,17 +373,20 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 static void * binary(char *ciphertext)
 {
-	static unsigned char realcipher[BINARY_SIZE];
+	static union {
+		unsigned char c[BINARY_SIZE];
+		long dummy;
+	} realcipher;
 
 	int i;
 	for(i=0;i<BINARY_SIZE;i++)
-		realcipher[i] = atoi16[ARCH_INDEX(ciphertext[i*2])]*16 +
+		realcipher.c[i] = atoi16[ARCH_INDEX(ciphertext[i*2])]*16 +
 						atoi16[ARCH_INDEX(ciphertext[i*2+1])];
 
 #ifdef MMX_COEF
-	alter_endianity((unsigned char *)realcipher, BINARY_SIZE);
+	alter_endianity((unsigned char *)realcipher.c, BINARY_SIZE);
 #endif
-	return (void *)realcipher;
+	return (void *)realcipher.c;
 }
 
 static int binary_hash_0(void *binary) { return ((ARCH_WORD_32 *)binary)[0] & 0xf; }
