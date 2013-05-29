@@ -49,7 +49,7 @@ static void init(struct fmt_main *pFmt)
 	unsigned int i;
 
 	char *conf;
-	
+
 	opencl_DES_bs_init_global_variables();
 
 	for(i=0;i<MULTIPLIER;i++)
@@ -220,7 +220,7 @@ struct fmt_main fmt_opencl_DES = {
 	}, {
 		init,
 		fmt_default_done,
-		fmt_default_reset,
+		opencl_DES_reset,
 		fmt_default_prepare,
 		valid,
 		split,

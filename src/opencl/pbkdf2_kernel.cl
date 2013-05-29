@@ -21,12 +21,12 @@
 #define INIT_SHA1_E                 0xC3D2E1F0
 
 typedef struct {
-	
+
 	    unsigned int istate[5] ;
 	    unsigned int ostate[5] ;
 	    unsigned int buf[5] ;
 	    unsigned int out[4] ;
-	
+
 } temp_buf ;
 
 #ifndef GET_WORD_32_BE
@@ -553,7 +553,7 @@ void pbkdf2_preprocess(	const __global unsigned int *pass_global,
 			__global temp_buf *tmp) {
 	int lid = get_local_id(0) ;
 	int id = get_global_id(0) ;
-	
+
 	int i, j ;
 
 	__local unsigned int salt_local[40] ;
@@ -583,7 +583,7 @@ void pbkdf2_preprocess(	const __global unsigned int *pass_global,
         pass[1] = pass_global[i++] ;
         pass[2] = pass_global[i++] ;
 	pass[3] = pass_global[i] ;
-	
+
 	if ((usrlen & 1)) {
 		for (i = 0; i <= usrlen >> 1; i++)
 			buf[i] = salt_local[i] ;
@@ -601,7 +601,7 @@ void pbkdf2_preprocess(	const __global unsigned int *pass_global,
 		buf[(usrlen >> 1) + 1] = 0x80 | buf[(usrlen >> 1) + 1] ;
 
 	PUT_WORD_32_BE((64 + (usrlen << 1) + 4) << 3, buf, 15) ;
-	
+
 	 for (j = 0; j < 4; j++) {
 		ipad[j] = ipad[j] ^ pass[j] ;
 		opad[j] = opad[j] ^ pass[j] ;
@@ -619,7 +619,7 @@ void pbkdf2_preprocess(	const __global unsigned int *pass_global,
 	out[1] = buf[1] ;
 	out[2] = buf[2] ;
 	out[3] = buf[3] ;
-	
+
 	for (i = 0; i< 5; i++) {
 		tmp[id].istate[i] = istate[i] ;
 		tmp[id].ostate[i] = ostate[i] ;
@@ -627,7 +627,7 @@ void pbkdf2_preprocess(	const __global unsigned int *pass_global,
 		if (i < 4)
 			tmp[id].out[i] = out[i] ;
 	}
-	
+
 }
 
 
@@ -638,7 +638,7 @@ void pbkdf2_iter(__global temp_buf *tmp,
 	uint i ;
 	uint istate[5], ostate[5], buf[5], out[4] ;
 	uint A[5], W[16] ;
-	
+
 	for (i = 0; i< 5; i++) {
 		istate[i] = tmp[id].istate[i] ;
 		ostate[i] = tmp[id].ostate[i] ;
@@ -646,7 +646,7 @@ void pbkdf2_iter(__global temp_buf *tmp,
 		if (i < 4)
 			out[i] = tmp[id].out[i] ;
 	}
-	
+
     	for (i = 0; i < itr_count; i++) {
 		W[0] = buf[0] ;
 		W[1] = buf[1] ;
@@ -718,9 +718,9 @@ void pbkdf2_iter(__global temp_buf *tmp,
 		if (i < 4)
 			tmp[id].out[i] = out[i] ;
 	}
-	
+
     //	for (i= 0; i < 16; i++)
-    //  	tmp[id].W[i] = W[i] ;	
+    //  	tmp[id].W[i] = W[i] ;
 }
 
 __kernel
@@ -730,15 +730,15 @@ void pbkdf2_postprocess(__global temp_buf *tmp,
 	uint id = get_global_id(0) ;
 	uint i ;
 	uint out[4] ;
-	
+
 	for (i = 0; i< 4; i++)
 		out[i] = tmp[id].out[i] ;
-		
+
 	i = id * 4;
 	PUT_WORD_32_BE(out[0], out_global, i++) ;
 	PUT_WORD_32_BE(out[1], out_global, i++) ;
 	PUT_WORD_32_BE(out[2], out_global, i++) ;
 	PUT_WORD_32_BE(out[3], out_global, i) ;
-	
+
 }
 

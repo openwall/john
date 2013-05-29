@@ -83,12 +83,12 @@ typedef unsigned ARCH_WORD vtype ;
 #endif
 
 typedef struct{
-	
+
 	union {
 		unsigned char c[8][8][sizeof(DES_bs_vector)] ;
 		DES_bs_vector v[8][8] ;
 	} xkeys ;
-		
+
 	int keys_changed ;
 } DES_bs_transfer ;
 
@@ -104,13 +104,13 @@ typedef struct{
 #define vandn(dst, a, b) 				\
 	(dst) = (a) & ~(b)
 
-#if defined(_NV)||defined(_CPU)	
+#if defined(_NV)||defined(_CPU)
 #define vsel(dst, a, b, c) 				\
 	(dst) = (((a) & ~(c)) ^ ((b) & (c)))
 #else
 #define vsel(dst, a, b, c) 				\
 	(dst) = bitselect((a),(b),(c))
-#endif	
+#endif
 
 #define vshl(dst, src, shift) 				\
 	(dst) = (src) << (shift)
@@ -123,9 +123,9 @@ typedef struct{
 
 #define vst(dst, ofs, src) 				\
 	*((MAYBE_GLOBAL vtype *)((MAYBE_GLOBAL DES_bs_vector *)&(dst) + (ofs))) = (src)
-	
+
 #define vst_private(dst, ofs, src) 			\
-	*((__private vtype *)((__private DES_bs_vector *)&(dst) + (ofs))) = (src)	
+	*((__private vtype *)((__private DES_bs_vector *)&(dst) + (ofs))) = (src)
 
 #define vxor(dst, a, b) 				\
 	(dst) = vxorf((a), (b))
@@ -297,7 +297,72 @@ typedef struct{
 	kvand_shr_or(va, v6, m, 1); 			\
 	kvand_or(vb, v7, m); 				\
 	kvor(kp[0], va, vb); 				\
-	kp++; 						\
+	kp++;
+
+#define BODY(p, q)					\
+	mask = mask | (b[p] ^				\
+		-(value & 1));				\
+	if (mask == ~0) goto next_depth;		\
+	mask = mask | (b[q] ^				\
+		-((value >> 1) & 1));			\
+	if (mask == ~0) goto next_depth;		\
+	value >>= 2;
+
+inline void cmp( __private DES_bs_vector *b,
+	  __global int *binary,
+	  int num_loaded_hash,
+	  volatile __global uint *output,
+	  int section) {
+
+
+	int value , mask, i;
+
+
+	for(i = 0; i < num_loaded_hash; i++) {
+
+		value = binary[i];
+
+		mask = b[0] ^ -(value & 1);
+		mask = mask | (b[1] ^ -((value >> 1) & 1));
+		if (mask == ~0) goto next_depth;
+		mask = mask | (b[2] ^ -((value >> 2) & 1));
+		mask = mask | (b[3] ^ -((value >> 3) & 1));
+		if (mask == ~0) goto next_depth;
+		value >>= 4;
+
+		BODY(4, 5);
+		BODY(6, 7);
+
+
+		BODY(8, 9);
+		BODY(10, 11);
+
+
+		BODY(12, 13);
+		BODY(14, 15);
+
+
+		BODY(16, 17);
+		BODY(18, 19);
+
+
+		BODY(20, 21);
+		BODY(22, 23);
+
+
+		BODY(24, 25);
+		BODY(26, 27);
+
+
+		BODY(28, 29);
+		BODY(30, 31);
+
+		atomic_max( &output[i],section) ;
+
+	next_depth: ;
+	}
+
+}
 
 inline void DES_bs_finalize_keys(unsigned int section,
 				__global DES_bs_transfer *DES_bs_all,
@@ -305,7 +370,7 @@ inline void DES_bs_finalize_keys(unsigned int section,
 				__local DES_bs_vector *K ) {
 
 		__local DES_bs_vector *kp = (__local DES_bs_vector *)&K[local_offset_K] ;
-		
+
 		int ic ;
 		for (ic = 0; ic < 8; ic++) {
 			MAYBE_GLOBAL DES_bs_vector *vp =
@@ -318,7 +383,7 @@ inline void DES_bs_finalize_keys(unsigned int section,
 			FINALIZE_NEXT_KEY_BIT_4
 			FINALIZE_NEXT_KEY_BIT_5
 			FINALIZE_NEXT_KEY_BIT_6
-			
+
 	}
 
 }
@@ -348,10 +413,10 @@ inline void DES_bs_finalize_keys(unsigned int section,
 	DES_bs_clear_block_8(40); 			\
 	DES_bs_clear_block_8(48); 			\
 	DES_bs_clear_block_8(56);
-	
-#if (FULL_UNROLL || !HARDCODE_SALT)	
 
-#ifndef RV7xx 	
+#if (FULL_UNROLL || !HARDCODE_SALT)
+
+#ifndef RV7xx
 #define x(p) vxorf(B[ index96[p]], _local_K[_local_index768[p + k] + local_offset_K])
 #define y(p, q) vxorf(B[p]       , _local_K[_local_index768[q + k] + local_offset_K])
 #else
@@ -384,7 +449,7 @@ inline void DES_bs_finalize_keys(unsigned int section,
 	s8(y(27, 42), y(28, 43), y(29, 44),\
 		y(30, 45), y(31, 46), y(0, 47),\
 		B,36, 58, 46, 52);
-			
+
 #define H2()\
 	s1(x(48), x(49), x(50), x(51), x(52), x(53),\
 		B,8, 16, 22, 30);\
@@ -406,7 +471,7 @@ inline void DES_bs_finalize_keys(unsigned int section,
 	s8(y(59, 90), y(60, 91), y(61, 92),\
 		y(62, 93), y(63, 94), y(32, 95),\
 		B,4, 26, 14, 20);
-			
+
 #define H1_s()\
 	s1(z(index00, 0), z(index01, 1), z(index02, 2), z(index03, 3), z(index04, 4), z(index05, 5),\
 		B,40, 48, 54, 62);\
@@ -428,7 +493,7 @@ inline void DES_bs_finalize_keys(unsigned int section,
 	s8(z(27, 42), z(28, 43), z(29, 44),\
 		z(30, 45), z(31, 46), z(0, 47),\
 		B,36, 58, 46, 52);
-			
+
 #define H2_s()\
 	s1(z(index48, 48), z(index49, 49), z(index50, 50), z(index51, 51), z(index52, 52), z(index53, 53),\
 		B,8, 16, 22, 30);\
@@ -449,7 +514,7 @@ inline void DES_bs_finalize_keys(unsigned int section,
 		B,31, 11, 21, 6);\
 	s8(z(59, 90), z(60, 91), z(61, 92),\
 		z(62, 93), z(63, 94), z(32, 95),\
-		B,4, 26, 14, 20);	
+		B,4, 26, 14, 20);
 
 #define H1_k0()\
         s1(z(index00, 12), z(index01, 46), z(index02, 33), z(index03, 52), z(index04, 48), z(index05, 20),\
@@ -494,7 +559,7 @@ inline void DES_bs_finalize_keys(unsigned int section,
 	s8(z(59, 30), z(60, 1), z(61, 2),\
 		z(62, 43), z(63, 35), z(32, 14),\
 		B,4, 26, 14, 20);
-			
+
 #define H2_k48()\
 	s1(y48(index48, 12), y48(index49, 46), y48(index50, 33), y48(index51, 52), y48(index52, 48), y48(index53, 20),\
 		B,8, 16, 22, 30);\
@@ -515,7 +580,7 @@ inline void DES_bs_finalize_keys(unsigned int section,
 		B,31, 11, 21, 6);\
 	s8(y48(59, 37), y48(60, 8), y48(61, 9),\
 		y48(62, 50), y48(63, 42), y48(32, 21),\
-		B,4, 26, 14, 20);					
+		B,4, 26, 14, 20);
 
 #define H1_k96()\
         s1(z(index00, 46), z(index01, 25), z(index02, 12), z(index03, 31), z(index04, 27), z(index05, 54),\
@@ -538,7 +603,7 @@ inline void DES_bs_finalize_keys(unsigned int section,
 	s8(z(27, 16), z(28, 44), z(29, 17),\
 		z(30, 29), z(31, 21), z(0, 0),\
 		B,36, 58, 46, 52);
-		
+
 #define H2_k96()\
 	s1(z(index48, 32), z(index49, 11), z(index50, 53), z(index51, 48), z(index52, 13), z(index53, 40),\
 		B,8, 16, 22, 30);\
@@ -559,8 +624,8 @@ inline void DES_bs_finalize_keys(unsigned int section,
 		B,31, 11, 21, 6);\
 	s8(z(59, 2), z(60, 30), z(61, 3),\
 		z(62, 15), z(63, 7), z(32, 43),\
-		B,4, 26, 14, 20);	
-			
+		B,4, 26, 14, 20);
+
 #define H1_k192()\
         s1(z(index00, 18), z(index01, 52), z(index02, 39), z(index03, 34), z(index04, 54), z(index05, 26),\
 		B,40, 48, 54, 62);\
@@ -581,8 +646,8 @@ inline void DES_bs_finalize_keys(unsigned int section,
 		B,63, 43, 53, 38);\
 	s8(z(27, 17), z(28, 16), z(29, 42),\
 		z(30, 1), z(31, 50), z(0, 29),\
-		B,36, 58, 46, 52);	
-			
+		B,36, 58, 46, 52);
+
 #define H2_k192()\
 	s1(z(index48, 4), z(index49, 38), z(index50, 25), z(index51, 20), z(index52, 40), z(index53, 12),\
 		B,8, 16, 22, 30);\
@@ -604,7 +669,7 @@ inline void DES_bs_finalize_keys(unsigned int section,
 	s8(z(59, 3), z(60, 2), z(61, 28),\
 		z(62, 44), z(63, 36), z(32, 15),\
 		B,4, 26, 14, 20);
-			
+
 #define H1_k288()\
         s1(z(index00, 45), z(index01, 55), z(index02, 11), z(index03, 6), z(index04, 26), z(index05, 53),\
 		B,40, 48, 54, 62);\
@@ -626,7 +691,7 @@ inline void DES_bs_finalize_keys(unsigned int section,
 	s8(z(27, 42), z(28, 17), z(29, 14),\
 		z(30, 30), z(31, 22), z(0, 1),\
 		B,36, 58, 46, 52);
-			
+
 #define H2_k288()\
 	s1(z(index48, 31), z(index49, 41), z(index50, 52), z(index51, 47), z(index52, 12), z(index53, 39),\
 		B,8, 16, 22, 30);\
@@ -648,7 +713,7 @@ inline void DES_bs_finalize_keys(unsigned int section,
 	s8(z(59, 28), z(60, 3), z(61, 0),\
 		z(62, 16), z(63, 8), z(32, 44),\
 		B,4, 26, 14, 20);
-		
+
 #define H1_k384()\
         s1(z(index00, 55), z(index01, 34), z(index02, 45), z(index03, 40), z(index04, 5), z(index05, 32),\
 		B,40, 48, 54, 62);\
@@ -669,8 +734,8 @@ inline void DES_bs_finalize_keys(unsigned int section,
 		B,63, 43, 53, 38);\
 	s8(z(27, 21), z(28, 49), z(29, 50),\
 		z(30, 9), z(31, 1), z(0, 37),\
-		B,36, 58, 46, 52);	
-		
+		B,36, 58, 46, 52);
+
 #define H2_k384()\
 	s1(z(index48, 41), z(index49, 20), z(index50, 31), z(index51, 26), z(index52, 46), z(index53, 18),\
 		B,8, 16, 22, 30);\
@@ -691,8 +756,8 @@ inline void DES_bs_finalize_keys(unsigned int section,
 		B,31, 11, 21, 6);\
 	s8(z(59, 7), z(60, 35), z(61, 36),\
 		z(62, 24), z(63, 44), z(32, 23),\
-		B,4, 26, 14, 20);	
-			
+		B,4, 26, 14, 20);
+
 #define H1_k480()\
         s1(z(index00, 27), z(index01, 6), z(index02, 48), z(index03, 12), z(index04, 32), z(index05, 4),\
 		B,40, 48, 54, 62);\
@@ -714,7 +779,7 @@ inline void DES_bs_finalize_keys(unsigned int section,
 	s8(z(27, 50), z(28, 21), z(29, 22),\
 		z(30, 10), z(31, 30), z(0, 9),\
 		B,36, 58, 46, 52);
-			
+
 #define H2_k480()\
 	s1(z(index48, 13), z(index49, 47), z(index50, 34), z(index51, 53), z(index52, 18), z(index53, 45),\
 		B,8, 16, 22, 30);\
@@ -736,7 +801,7 @@ inline void DES_bs_finalize_keys(unsigned int section,
 	s8(z(59, 36), z(60, 7), z(61, 8),\
 		z(62, 49), z(63, 16), z(32, 24),\
 		B,4, 26, 14, 20);
-			
+
 #define H1_k576()\
         s1(z(index00, 54), z(index01, 33), z(index02, 20), z(index03, 39), z(index04, 4), z(index05, 31),\
 		B,40, 48, 54, 62);\
@@ -757,8 +822,8 @@ inline void DES_bs_finalize_keys(unsigned int section,
 		B,63, 43, 53, 38);\
 	s8(z(27, 22), z(28, 50), z(29, 51),\
 		z(30, 35), z(31, 2), z(0, 10),\
-		B,36, 58, 46, 52);	
-			
+		B,36, 58, 46, 52);
+
 #define H2_k576()\
 	s1(z(index48, 40), z(index49, 19), z(index50, 6), z(index51, 25), z(index52, 45), z(index53, 48),\
 		B,8, 16, 22, 30);\
@@ -779,8 +844,8 @@ inline void DES_bs_finalize_keys(unsigned int section,
 		B,31, 11, 21, 6);\
 	s8(z(59, 8), z(60, 36), z(61, 37),\
 		z(62, 21), z(63, 17), z(32, 49),\
-		B,4, 26, 14, 20);	
-		
+		B,4, 26, 14, 20);
+
 #define H1_k672()\
         s1(z(index00, 26), z(index01, 5), z(index02, 47), z(index03, 11), z(index04, 31), z(index05, 34),\
 		B,40, 48, 54, 62);\
@@ -802,7 +867,7 @@ inline void DES_bs_finalize_keys(unsigned int section,
 	s8(z(27, 51), z(28, 22), z(29, 23),\
 		z(30, 7), z(31, 3), z(0, 35),\
 		B,36, 58, 46, 52);
-			
+
 #define H2_k672()\
 	s1(z(index48, 19), z(index49, 53), z(index50, 40), z(index51, 4), z(index52, 55), z(index53, 27),\
 		B,8, 16, 22, 30);\
@@ -823,48 +888,56 @@ inline void DES_bs_finalize_keys(unsigned int section,
 		B,31, 11, 21, 6);\
 	s8(z(59, 44), z(60, 15), z(61, 16),\
 		z(62, 0), z(63, 49), z(32, 28),\
-		B,4, 26, 14, 20);	
-			
+		B,4, 26, 14, 20);
+
 #if (HARDCODE_SALT & FULL_UNROLL)
 __kernel void DES_bs_25(constant uint *index768 __attribute__((max_constant_size(3072))),
 			__global int *index96 ,
 			__global DES_bs_transfer *DES_bs_all,
-			__global DES_bs_vector *B_global ) {
-			
+			__global DES_bs_vector *B_global,
+			__global int *binary,
+			  int num_loaded_hash,
+			  volatile __global uint *output) {
+
 		unsigned int section = get_global_id(0), global_offset_B ,local_offset_K;
-		unsigned int local_id = get_local_id(0);
-		
+		unsigned int local_id = get_local_id(0),i;
+
 		global_offset_B = 64 * section;
 		local_offset_K  = 56 * local_id;
-		
+
 		vtype B[64], tmp;
-				
+
 		__local DES_bs_vector _local_K[56 * WORK_GROUP_SIZE] ;
+
+		if(!section)
+			for(i = 0; i < num_loaded_hash; i++)
+				output[i] = 0;
+
 
 #ifndef RV7xx
 		__local ushort _local_index768[768] ;
-#endif	
+#endif
 		int iterations;
-		int i;
-					
+
+
 		if (DES_bs_all[section].keys_changed)
-			goto finalize_keys;			
-body:		
+			goto finalize_keys;
+body:
 		{
 			vtype zero = vzero;
 			DES_bs_clear_block
 		}
-				
+
 		iterations = 25;
 
-#ifndef RV7xx		
+#ifndef RV7xx
 		if (!local_id )
 			for(i = 0; i < 768; i++)
 				_local_index768[i] = index768[i];
-		
+
 		barrier(CLK_LOCAL_MEM_FENCE);
 #endif
-		
+
 start:         	H1_k0();
 		H2_k0();
 		H1_k96();
@@ -881,7 +954,7 @@ start:         	H1_k0();
 		H2_k576();
 		H1_k672();
 		H2_k672();
-				
+
 		if (--iterations) {
 			for (i = 0; i < 32; i++){
 				tmp = B[i];
@@ -890,22 +963,31 @@ start:         	H1_k0();
 			}
 			goto start;
 		}
-				
+
+		cmp(B, binary, num_loaded_hash, output, section);
+
+		tmp = 0 ;
+		for (i = 0; i < num_loaded_hash; i++) {
+				tmp = tmp | output[i];
+			if(tmp) break ;
+		}
+
+		if(tmp || (!num_loaded_hash))
 		for (i = 0; i < 64; i++)
 			B_global[global_offset_B + i] = (DES_bs_vector)B[i] ;
-			
+
 		return;
 
 finalize_keys:
 		DES_bs_all[section].keys_changed = 0;
 	        DES_bs_finalize_keys(section, DES_bs_all, local_offset_K, _local_K);
-		goto body;	
+		goto body;
 
 }
 
 #elif  (HARDCODE_SALT & (!FULL_UNROLL))
 
-#ifndef RV7xx 	
+#ifndef RV7xx
 #define x(p) vxorf(B[index96[p]], _local_K[_local_index768[p + k] + local_offset_K])
 #define z(p, q) vxorf(B[p]      , _local_K[ *_index768_ptr++ + local_offset_K])
 #else
@@ -918,50 +1000,58 @@ finalize_keys:
 __kernel void DES_bs_25( constant uint *index768 __attribute__((max_constant_size(3072))),
 			  __global int *index96 ,
 			  __global DES_bs_transfer *DES_bs_all,
-			  __global DES_bs_vector *B_global ) {
-			
+			  __global DES_bs_vector *B_global,
+			  __global int *binary,
+			  int num_loaded_hash,
+			  volatile __global uint *output) {
+
 		unsigned int section = get_global_id(0), global_offset_B, local_offset_K;
 		unsigned int local_id = get_local_id(0);
-		
+
 		global_offset_B = 64 * section;
 		local_offset_K  = 56 * local_id;
-		
-		vtype B[64];
-				
+
+		vtype B[64],tmp;
+
 		__local DES_bs_vector _local_K[56*WORK_GROUP_SIZE] ;
 #ifndef RV7xx
 		__local ushort _local_index768[768] ;
 		__local ushort *_index768_ptr ;
-#endif		
+#endif
 		int iterations, rounds_and_swapped;
-		
+
 		long int k=0, i;
-					
+
 		if (DES_bs_all[section].keys_changed)
 			goto finalize_keys;
-				
-body:		
+
+body:
 		{
 			vtype zero = vzero;
 			DES_bs_clear_block
 		}
-		
+
+		if(!section)
+			for(i = 0; i < num_loaded_hash; i++)
+				output[i] = 0;
+
+
 		k=0;
 		rounds_and_swapped = 8;
 		iterations = 25;
 
-#ifndef RV7xx		
+#ifndef RV7xx
 		if (!local_id )
 			for (i = 0; i < 768; i++)
 				_local_index768[i] = index768[i];
-		
+
 		barrier(CLK_LOCAL_MEM_FENCE);
 #endif
 
-start:		
+start:
 #ifndef RV7xx
 		_index768_ptr = _local_index768 + k ;
-#endif		
+#endif
 		H1_s();
 		if (rounds_and_swapped == 0x100) goto next;
 		H2_s();
@@ -972,17 +1062,26 @@ start:
 		k -= (0x300 + 48);
 		rounds_and_swapped = 0x108;
 		if (--iterations) goto swap;
-		
+
+		cmp(B, binary, num_loaded_hash, output, section);
+
+		tmp = 0 ;
+		for (i = 0; i < num_loaded_hash; i++) {
+				tmp = tmp | output[i];
+			if(tmp) break ;
+		}
+
+		if(tmp || (!num_loaded_hash))
 		for (i = 0; i < 64; i++)
 			B_global[global_offset_B + i] = (DES_bs_vector)B[i] ;
-			
+
 		return;
-		
-swap:           		
+
+swap:
 		H2_k48();
 		k += 96;
-		if (--rounds_and_swapped) goto start;		
-		
+		if (--rounds_and_swapped) goto start;
+
 next:
 		k -= (0x300 - 48);
 		rounds_and_swapped = 8;
@@ -992,13 +1091,13 @@ next:
 finalize_keys:
 		DES_bs_all[section].keys_changed = 0;
 	        DES_bs_finalize_keys(section, DES_bs_all, local_offset_K, _local_K);
-		goto body;	
+		goto body;
 }
 #endif
 
 #if !HARDCODE_SALT
 
-#ifdef _CPU			
+#ifdef _CPU
 #define loop_body()\
 		H1();\
 		if (rounds_and_swapped == 0x100) goto next;\
@@ -1026,46 +1125,53 @@ finalize_keys:
 		H2();\
 		k += 96;\
 		rounds_and_swapped--;
-#endif			
+#endif
 
  __kernel void DES_bs_25_b( constant uint *index768 __attribute__((max_constant_size(3072))),
 			__global int *index96 ,
 			__global DES_bs_transfer *DES_bs_all,
-			__global DES_bs_vector *B_global )  {
-			
+			__global DES_bs_vector *B_global,
+			__global int *binary,
+			int num_loaded_hash,
+			volatile __global uint *output)  {
+
 		unsigned int section = get_global_id(0), global_offset_B ,local_offset_K;
 		unsigned int local_id = get_local_id(0);
-		
+
 		global_offset_B = 64 * section;
 		local_offset_K  = 56 * local_id;
-		
-		vtype B[64];
-				
+
+		vtype B[64], tmp;
+
 		__local DES_bs_vector _local_K[56 * WORK_GROUP_SIZE] ;
 #ifndef RV7xx
 		__local ushort _local_index768[768] ;
-#endif		
+#endif
 		int iterations, rounds_and_swapped;
-		
+
 		long int k=0, i;
-					
+
 		if (DES_bs_all[section].keys_changed)
-			goto finalize_keys;				
-body:		
+			goto finalize_keys;
+body:
 		{
 			vtype zero = vzero;
 			DES_bs_clear_block
 		}
-		
+
+		if(!section)
+			for(i = 0; i < num_loaded_hash; i++)
+				output[i] = 0;
+
 		k=0;
 		rounds_and_swapped = 8;
 		iterations = 25;
 
-#ifndef RV7xx		
+#ifndef RV7xx
 		if (!local_id )
 			for (i = 0; i < 768; i++)
 				_local_index768[i] = index768[i];
-		
+
 		barrier(CLK_LOCAL_MEM_FENCE);
 #endif
 
@@ -1076,17 +1182,26 @@ start:
 		k -= (0x300 + 48);
 		rounds_and_swapped = 0x108;
 		if (--iterations) goto swap;
-		
-		for(i = 0; i < 64; i++)
+
+		cmp(B, binary, num_loaded_hash, output, section);
+
+		tmp = 0 ;
+		for (i = 0; i < num_loaded_hash; i++) {
+				tmp = tmp | output[i];
+			if(tmp) break ;
+		}
+
+		if(tmp || (!num_loaded_hash))
+		for (i = 0; i < 64; i++)
 			B_global[global_offset_B + i] = (DES_bs_vector)B[i] ;
-			
+
 		return;
-		
-swap:           		
+
+swap:
 		H2();
 		k += 96;
-		if (--rounds_and_swapped) goto start;		
-		
+		if (--rounds_and_swapped) goto start;
+
 next:
 		k -= (0x300 - 48);
 		rounds_and_swapped = 8;
@@ -1096,6 +1211,78 @@ next:
 finalize_keys:
 		DES_bs_all[section].keys_changed = 0;
 	        DES_bs_finalize_keys(section, DES_bs_all, local_offset_K, _local_K);
-		goto body;	
+		goto body;
 }
 #endif
+
+#define Fetch()						\
+	b[0] = B_global[bit++];				\
+	b[1] = B_global[bit++];				\
+	b[2] = B_global[bit++];				\
+	b[3] = B_global[bit++];
+
+__kernel void cmp_all( __global DES_bs_vector *B_global,
+		       __global int *binary,
+		       int num_loaded_hash,
+		       volatile __global uint *output) {
+
+	uint section = get_global_id(0) ;
+	int bit = section * 64;
+	int value , mask, i;
+	DES_bs_vector b[4];
+
+	if(!section) {
+		for(i = 0; i < num_loaded_hash; i++)
+			output[i] = 0;
+
+		//printf("In kernel:%d\n",binary[num_loaded_hash-1]);
+		}
+
+	for(i = 0; i < num_loaded_hash; i++) {
+
+		value = binary[i];
+		bit = section * 64;
+
+		Fetch();
+		mask = b[0] ^ -(value & 1);
+		mask |= b[1] ^ -((value >> 1) & 1);
+		if (mask == ~0) goto next_depth;
+		mask |= b[2] ^ -((value >> 2) & 1);
+		mask |= b[3] ^ -((value >> 3) & 1);
+		if (mask == ~0) goto next_depth;
+		value >>= 4;
+
+		Fetch();
+		BODY(0, 1);
+		BODY(2, 3);
+
+		Fetch();
+		BODY(0, 1);
+		BODY(2, 3);
+
+		Fetch();
+		BODY(0, 1);
+		BODY(2, 3);
+
+		Fetch();
+		BODY(0, 1);
+		BODY(2, 3);
+
+		Fetch();
+		BODY(0, 1);
+		BODY(2, 3);
+
+		Fetch();
+		BODY(0, 1);
+		BODY(2, 3);
+
+		Fetch();
+		BODY(0, 1);
+		BODY(2, 3);
+
+		atomic_or(&output[i], 0x01) ;
+
+	next_depth: ;
+	}
+
+}

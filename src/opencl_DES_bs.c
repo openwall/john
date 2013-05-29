@@ -452,55 +452,6 @@ int opencl_DES_bs_get_hash_6(int index)
 	return DES_bs_get_hash(index, 27);
 }
 
-/*
- * The trick used here allows to compare one ciphertext against all the
- * DES_bs_crypt*() outputs in just O(log2(ARCH_BITS)) operations, assuming
- * that DES_BS_VECTOR is 0 or 1. This routine isn't vectorized yet.
- */
-int opencl_DES_bs_cmp_all(WORD *binary, int count)
-{
-	WORD value, mask;
-	int bit;
-	DES_bs_vector *b;
-	unsigned int sector = 0, count_multiple;
-	
-	if ((count & (DES_BS_DEPTH-1)) == 0)
-		count_multiple = count;
-	else
-		count_multiple = ((count >> DES_BS_LOG2) + 1) << DES_BS_LOG2;
-	//for_each_t(n)
-	for (sector = 0; sector < (count_multiple >> DES_BS_LOG2); sector++) {
-		value = binary[0];
-		//b = (DES_bs_vector *)&opencl_DES_bs_all[sector].B[0] DEPTH;
-		b = (DES_bs_vector *)&B[sector * 64] DEPTH;
-
-		mask = b[0] START ^ -(value & 1);
-		mask |= b[1] START ^ -((value >> 1) & 1);
-		if (mask == ~(WORD)0) goto next_depth;
-		mask |= b[2] START ^ -((value >> 2) & 1);
-		mask |= b[3] START ^ -((value >> 3) & 1);
-		if (mask == ~(WORD)0) goto next_depth;
-		value >>= 4;
-		b += 4;
-		for (bit = 4; bit < 32; bit += 2) {
-			mask |= b[0] START ^
-				-(value & 1);
-			if (mask == ~(WORD)0) goto next_depth;
-			mask |= b[1] START ^
-				-((value >> 1) & 1);
-			if (mask == ~(WORD)0) goto next_depth;
-			value >>= 2;
-			b += 2;
-		}
-
-		return 1;
-next_depth:
-		;
-	}
-
-	return 0;
-}
-
 int opencl_DES_bs_cmp_one(WORD *binary, int count, int index)
 {
 	int bit;

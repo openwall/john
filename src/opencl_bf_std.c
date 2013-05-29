@@ -318,7 +318,7 @@ static unsigned int S_box[1024] = {
 	0x85cbfe4e, 0x8ae88dd8, 0x7aaaf9b0, 0x4cf9aa7e,
 	0x1948c25c, 0x02fb8a8c, 0x01c36ae4, 0xd6ebe1f9,
 	0x90d4f869, 0xa65cdea0, 0x3f09252d, 0xc208e69f,
-	0xb74e6132, 0xce77e25b, 0x578fdfe3, 0x3ac372e6		
+	0xb74e6132, 0xce77e25b, 0x578fdfe3, 0x3ac372e6
 } ;
 
 /*
@@ -389,7 +389,7 @@ static void BF_swap(BF_word *x, int count) {
 	R = L ;								\
 	L = u4 ^ ctx_P[pos_P((BF_ROUNDS+1))] ;
 
-static void clean_gpu_buffer(gpu_buffer *pThis) {	
+static void clean_gpu_buffer(gpu_buffer *pThis) {
 	const char *errMsg = "Release Memory Object FAILED." ;
 
 	HANDLE_CLERROR(clReleaseMemObject(pThis->salt_gpu), errMsg);
@@ -416,20 +416,20 @@ static void find_best_gws(struct fmt_main *fmt) {
 			= 2 * WORK_GROUP_SIZE ;
 	double 		speed = 999999 ;
 	BF_salt 	random_salt ;
-	
+
 	random_salt.salt[0] = 0x12345678 ;
 	random_salt.salt[1] = 0x87654321 ;
 	random_salt.salt[2] = 0x21876543 ;
 	random_salt.salt[3] = 0x98765432 ;
 	random_salt.rounds  = 5 ;
 	random_salt.subtype = 'x' ;
-	
+
 	gettimeofday(&start,NULL) ;
 	opencl_BF_std_crypt(&random_salt,count) ;
 	gettimeofday(&end, NULL) ;
 	savetime = (end.tv_sec - start.tv_sec) + (double)(end.tv_usec - start.tv_usec) / 1000000.000;
 	speed = ((double)count) / savetime ;
-	
+
 	do {
 		count *= 2 ;
 		if (count > BF_N) {
@@ -449,9 +449,9 @@ static void find_best_gws(struct fmt_main *fmt) {
 		diff = (diff < 0)? (-diff): diff ;
 		speed = ((double)count) / savetime ;
 	} while (diff > 0.01) ;
-	
+
 	fprintf(stderr, "Optimal Global Work Size:%ld\n", count) ;
-	
+
 	fmt -> params.max_keys_per_crypt = count ;
 	fmt -> params.min_keys_per_crypt = WORK_GROUP_SIZE ;
 }
@@ -463,7 +463,7 @@ void BF_select_device(struct fmt_main *fmt) {
 	BF_current_P = 	(unsigned int*)mem_alloc(BF_N * 18 * sizeof(unsigned int)) ;
 	BF_init_key = 	(unsigned int*)mem_alloc(BF_N * 18 * sizeof(unsigned int)) ;
 	opencl_BF_out = (BF_binary*)mem_alloc(BF_N * sizeof(BF_binary)) ;
-	
+
 	if ((CL_DEVICE_TYPE_CPU == get_device_type(ocl_gpu_id)) || amd_vliw5(device_info[ocl_gpu_id])) {
 	        if(CHANNEL_INTERLEAVE == 1)
 			 opencl_init_opt("$JOHN/kernels/bf_cpu_kernel.cl", ocl_gpu_id, NULL) ;
@@ -478,13 +478,13 @@ void BF_select_device(struct fmt_main *fmt) {
 		fprintf(stderr, "Create Kernel blowfish FAILED\n") ;
 		return ;
 	}
-	
+
 	errMsg = "Create Buffer Failed" ;
-	
+
 	buffers[ocl_gpu_id].salt_gpu = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, 4 * sizeof(cl_uint), NULL, &err) ;
 	if ((buffers[ocl_gpu_id].salt_gpu == (cl_mem)0))
 		HANDLE_CLERROR(err, errMsg) ;
-	
+
 	buffers[ocl_gpu_id].P_box_gpu = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY|CL_MEM_COPY_HOST_PTR, sizeof(cl_uint) * 18, P_box, &err) ;
 	if ((buffers[ocl_gpu_id].P_box_gpu == (cl_mem)0))
 		HANDLE_CLERROR(err, errMsg) ;
@@ -571,7 +571,7 @@ void exec_bf(cl_uint *salt_api, cl_uint *BF_out, cl_uint rounds, int n) {
 		N = n/2 ;  ///Two hashes per crypt call for cpu
 	else
 		N = n ;
-	
+
 	errMsg = "Copy data to device: Failed" ;
 
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], buffers[ocl_gpu_id].salt_gpu, CL_TRUE, 0, 4 * sizeof(cl_uint), salt_api, 0, NULL, NULL ), errMsg) ;
@@ -582,13 +582,13 @@ void exec_bf(cl_uint *salt_api, cl_uint *BF_out, cl_uint rounds, int n) {
 	HANDLE_CLERROR(err, "Enque Kernel Failed") ;
 
 	HANDLE_CLERROR(clWaitForEvents(1, &evnt), "Sync :FAILED") ;
-		
+
 	errMsg = "Read data from device: Failed" ;
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], buffers[ocl_gpu_id].out_gpu, CL_FALSE, 0, 2 * BF_N * sizeof(cl_uint), BF_out, 0, NULL, NULL), errMsg) ;
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], buffers[ocl_gpu_id].BF_current_P_gpu, CL_FALSE, 0, BF_N * sizeof(unsigned int) * 18, BF_current_P, 0, NULL, NULL), errMsg)  ;
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], buffers[ocl_gpu_id].BF_current_S_gpu, CL_TRUE, 0, BF_N * 1024 * sizeof(unsigned int), BF_current_S, 0, NULL, NULL), errMsg) ;
 
-	HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "Finish Error") ;	
+	HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "Finish Error") ;
 }
 
 void opencl_BF_std_crypt(BF_salt *salt, int n)

@@ -12,6 +12,7 @@
 #include "arch.h"
 #include "common-opencl.h"
 #include "opencl_DES_WGS.h"
+#include "loader.h"
 
 #define DES_BS_OPENCL_ALGORITHM_NAME		"DES OpenCL"
 
@@ -170,5 +171,7 @@ extern WORD *opencl_DES_raw_get_binary(char *ciphertext);
 extern void DES_bs_select_device(struct fmt_main*);
 
 extern void DES_opencl_clean_all_buffer(void);
+
+extern void opencl_DES_reset(struct db_main *);
 
 #endif

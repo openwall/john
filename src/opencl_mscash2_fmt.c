@@ -154,10 +154,10 @@ static void md4_crypt(unsigned int *buffer, unsigned int *hash) {
 static void set_key(char*, int) ;
 static int crypt_all(int *pcount, struct db_salt *salt) ;
 
-static void init(struct fmt_main *self) {	
+static void init(struct fmt_main *self) {
 	char 	*conf = NULL ;
 	int 	i ;
-	
+
 	///Allocate memory
 	key_host = mem_calloc(self -> params.max_keys_per_crypt * sizeof(*key_host)) ;
 	dcc_hash_host = (cl_uint*)mem_alloc(4 * sizeof(cl_uint) * MAX_KEYS_PER_CRYPT) ;
@@ -165,9 +165,9 @@ static void init(struct fmt_main *self) {
 
 	memset(dcc_hash_host, 0, 4 * sizeof(cl_uint) * MAX_KEYS_PER_CRYPT) ;
 	memset(dcc2_hash_host, 0, 4 * sizeof(cl_uint) * MAX_KEYS_PER_CRYPT) ;
-	
+
 	local_work_size = global_work_size = 0 ;
-	
+
 	if ((conf = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, LWS_CONFIG)))
 		local_work_size = atoi(conf) ;
 	if ((conf = getenv("LWS")))
@@ -176,7 +176,7 @@ static void init(struct fmt_main *self) {
 		global_work_size = atoi(conf) ;
 	if ((conf = getenv("GWS")))
 		global_work_size = atoi(conf) ;
-		
+
 	for( i=0; i < get_devices_being_used(); i++)
 		select_device(ocl_device_list[i], self) ;
 
@@ -221,7 +221,7 @@ static void DCC(unsigned char *salt, unsigned char *username, unsigned int usern
 
 	// put length at end of buffer
 	nt_hash[14] = i << 4 ;
-	
+
 	md4_crypt(nt_hash, (dcc_hash + 4 * id)) ;
 }
 
@@ -492,22 +492,22 @@ static int cmp_exact(char *source, int count) {
 
 static char *prepare(char *split_fields[10], struct fmt_main *self) {
 	char 	*cp;
-		
+
 	if (split_fields[0]) {
 	  	if (split_fields[0][0] != '?') {
 			cp = mem_alloc(strlen(split_fields[0]) + strlen(split_fields[1]) + 14) ;
 			sprintf (cp, "$DCC2$10240#%s#%s", split_fields[0], split_fields[1]) ;
 			if (valid(cp, self)) {
 				char *cipher = str_alloc_copy(cp) ;
-				MEM_FREE(cp) ;			
+				MEM_FREE(cp) ;
 				return cipher ;
 			}
 			MEM_FREE(cp);
-			
+
 			return split_fields[1];
 		}
-	}	
-	
+	}
+
 	//If the format is $DCC2$salt#hash
 	if (strncmp(split_fields[1], "$DCC2$10240#", 12)) {
 		char *hash = str_alloc_copy(strrchr(split_fields[1], '#') + 1) ;
@@ -515,27 +515,27 @@ static char *prepare(char *split_fields[10], struct fmt_main *self) {
 		char *pos;
 		int i = 0;
 		cp = mem_alloc(MAX_CIPHERTEXT_LENGTH + 1) ;
-		
+
 		pos = strrchr(split_fields[1],'$') + 1 ;
 		while (pos[i] != '#') {
 			salt[i] = pos[i];
 			i++;
 		}
 		salt[i] = '\0';
-		
+
 		sprintf(cp,"$DCC2$10240#%s#%s",salt,hash);
-		
+
 		MEM_FREE(salt);
 		//MEM_FREE(hash);
 		if(valid(cp,self)) {  return cp;}
-		
+
 		MEM_FREE(cp);
 	}
 
 	if (!strncmp(split_fields[1], "$DCC2$", 6) && valid(split_fields[1], self)){
 		return split_fields[1] ;
 	}
-	
+
 	return split_fields[1] ;
 }
 

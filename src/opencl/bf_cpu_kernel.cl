@@ -53,7 +53,7 @@
 	u4 = R ; 							\
 	R = L ; 							\
 	L = u4 ^ ctx_P[BF_ROUNDS + 1].x ;
-	
+
 #define BF_ROUNDy(ctx_S, ctx_P, L, R, N, tmp1, tmp2, tmp3, tmp4 ) 	\
 	tmp1 = L & 0xff ; 						\
 	tmp1 = Sptr4[tmp1].y ;						\
@@ -176,26 +176,26 @@
 	      BF_ENCRYPTy(Sptr, ctx_P, L00.y, R00.y) ;			\
 	      Sptr[i + 6] = L00 ;					\
 	      Sptr[i + 7] = R00 ;					\
-	     }	
-	
+	     }
+
 __kernel void blowfish(	constant uint *salt __attribute__((max_constant_size(16))),
 			constant uint *P_box __attribute__((max_constant_size(72))),
 			__global uint *BF_out,
 			__global uint *BF_current_S,
 			__global uint *BF_current_P_global,
 			uint rounds,
-			constant uint *S_box __attribute__((max_constant_size(4096)))) {	
+			constant uint *S_box __attribute__((max_constant_size(4096)))) {
 		int index = 2 * get_global_id(0);
-		
+
 		int _index_S1,_index_S2 ;
 		int _index_P1,_index_P2 ;
-		
+
 		_index_S1 = index * 1024 ;
 		_index_P1 = index * 18 ;
-		
+
 		_index_S2 = (index + 1) * 1024 ;
 		_index_P2 = 18 * (index+1) ;
-		
+
 		int i,j ;
 		uint2 tmp0 ;
 		uint2 BF_key_exp[18] ;
@@ -213,19 +213,19 @@ __kernel void blowfish(	constant uint *salt __attribute__((max_constant_size(16)
 			BF_current_P[i] = tmp0 ;
 			BF_key_exp[i]   = tmp0 ^ P_box[i] ;
 	        }
-	
+
 	  	for (i = 0; i < 1024; i++) {
 			j = i >> 8 ;
 			S_Buffer[pos_S_local(j, (i & 0xff))] = S_box[i] ;
 		}
-		
+
 		uint u1, u2, u3, u4 ;
-		
+
 		uint2 L00, R00 ;
 		uint2 u01, u02, u03, u04 ;
-		
+
 		uint count ;
-		
+
 		L00.x = R00.x = L00.y =  R00.y = 0 ;
 		for (i = 0; i < (BF_ROUNDS + 2); i += 2) {
 			L00 ^= salt[i & 2] ;
@@ -235,7 +235,7 @@ __kernel void blowfish(	constant uint *salt __attribute__((max_constant_size(16)
 			BF_current_P[i] = L00 ;
 			BF_current_P[i + 1] = R00 ;
 		}
-				
+
 		for (i = 0; i < 1023 ;i = i + 4) {
 			j = i >> 8  ;
 			L00 ^= salt[(BF_ROUNDS + 2) & 3] ;
@@ -250,11 +250,11 @@ __kernel void blowfish(	constant uint *salt __attribute__((max_constant_size(16)
 			BF_ENCRYPTx(Sptr, BF_current_P, L00.x, R00.x) ;
 			S_Buffer[pos_S_local(j, ((i + 2) & 0xff))] = L00 ;
 			S_Buffer[pos_S_local(j, ((i + 3) & 0xff))] = R00 ;
-		
+
 		}
-		
+
 		count = 1 << rounds ;
-		
+
 		do {
 			BF_current_P[0] ^= BF_key_exp[0] ;
 			BF_current_P[1] ^= BF_key_exp[1] ;
@@ -274,14 +274,14 @@ __kernel void blowfish(	constant uint *salt __attribute__((max_constant_size(16)
 			BF_current_P[15] ^= BF_key_exp[15] ;
 			BF_current_P[16] ^= BF_key_exp[16] ;
 			BF_current_P[17] ^= BF_key_exp[17] ;
-			
+
 			BF_body(BF_current_P) ;
-			
+
 			u01 = salt[0] ;
 			u02 = salt[1] ;
 			u03 = salt[2] ;
 			u04 = salt[3] ;
-			
+
 			BF_current_P[0] ^= u01 ;
 			BF_current_P[1] ^= u02 ;
 			BF_current_P[2] ^= u03 ;
@@ -300,33 +300,33 @@ __kernel void blowfish(	constant uint *salt __attribute__((max_constant_size(16)
 			BF_current_P[15] ^= u04 ;
 			BF_current_P[16] ^= u01 ;
 			BF_current_P[17] ^= u02 ;
-			
+
 			BF_body(BF_current_P) ;
-					
+
 		} while (--count);
-		
- 		
+
+
 		L00 = 0x4F727068 ;
 		R00 = 0x65616E42 ;
 
 		count = 64 ;
-		
+
 		do {
 			BF_ENCRYPTx(Sptr, BF_current_P, L00.x, R00.x) ;
 			BF_ENCRYPTy(Sptr, BF_current_P, L00.y, R00.y) ;
 		} while (--count) ;
-		
+
 		BF_out[2 * index] = L00.x ;
 		BF_out[2 * index + 1] = R00.x ;
-		
+
 		BF_out[2 * (index + 1)] = L00.y;
 		BF_out[2 * (index + 1) + 1] = R00.y;
 
 		for (i = 0; i < 18; i++) {
-		
+
 			BF_current_P_global [pos_P(i, _index_P1)] = BF_current_P[i].x ;
 			BF_current_P_global [pos_P(i, _index_P2)] = BF_current_P[i].y ;
-		}	
+		}
 
 		for (i = 0; i < 1024; i++) {
 			j = i >> 8 ;
