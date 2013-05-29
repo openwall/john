@@ -40,8 +40,8 @@ Enables word mangling rules that are read from [List.Rules:Wordlist].
 --incremental[=MODE]		"incremental" mode [using section MODE]
 
 Enables the "incremental" mode, using the specified configuration file
-definition (section [Incremental:MODE], or [Incremental:All] by default
-except for LM hashes for which the default is [Incremental:LanMan]).
+definition (section [Incremental:MODE]).  If MODE is omitted, the
+default is "ASCII" for most hash types and "LM_ASCII" for LM hashes.
 
 --external=MODE			external mode or word filter
 
