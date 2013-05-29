@@ -391,7 +391,7 @@ static void BF_swap(BF_word *x, int count) {
 
 static void clean_gpu_buffer(gpu_buffer *pThis) {	
 	const char *errMsg = "Release Memory Object FAILED." ;
-  
+
 	HANDLE_CLERROR(clReleaseMemObject(pThis->salt_gpu), errMsg);
 	HANDLE_CLERROR(clReleaseMemObject(pThis-> P_box_gpu), errMsg);
 	HANDLE_CLERROR(clReleaseMemObject(pThis-> S_box_gpu), errMsg);
@@ -434,7 +434,7 @@ static void find_best_gws(struct fmt_main *fmt) {
 		count *= 2 ;
 		if (count > BF_N) {
 			count = count >> 1 ;
-			break ; 
+			break ;
 		}
 		gettimeofday(&start,NULL) ;
 		opencl_BF_std_crypt(&random_salt,count) ;
@@ -443,7 +443,7 @@ static void find_best_gws(struct fmt_main *fmt) {
 		diff = (((double)count) / savetime) / speed ;
 		if (diff < 1) {
 		  count = count	>> 1 ;
-		  break ; 
+		  break ;
 		}
 		diff = diff - 1 ;
 		diff = (diff < 0)? (-diff): diff ;
@@ -475,35 +475,35 @@ void BF_select_device(struct fmt_main *fmt) {
 
 	krnl[ocl_gpu_id] = clCreateKernel(program[ocl_gpu_id], "blowfish", &err) ;
 	if (err) {
-		fprintf(stderr, "Create Kernel blowfish FAILED\n") ; 
+		fprintf(stderr, "Create Kernel blowfish FAILED\n") ;
 		return ;
 	}
 	
 	errMsg = "Create Buffer Failed" ;
 	
 	buffers[ocl_gpu_id].salt_gpu = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, 4 * sizeof(cl_uint), NULL, &err) ;
-	if ((buffers[ocl_gpu_id].salt_gpu == (cl_mem)0))  
-		HANDLE_CLERROR(err, errMsg) ; 
+	if ((buffers[ocl_gpu_id].salt_gpu == (cl_mem)0))
+		HANDLE_CLERROR(err, errMsg) ;
 	
 	buffers[ocl_gpu_id].P_box_gpu = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY|CL_MEM_COPY_HOST_PTR, sizeof(cl_uint) * 18, P_box, &err) ;
-	if ((buffers[ocl_gpu_id].P_box_gpu == (cl_mem)0))  
-		HANDLE_CLERROR(err, errMsg) ; 
+	if ((buffers[ocl_gpu_id].P_box_gpu == (cl_mem)0))
+		HANDLE_CLERROR(err, errMsg) ;
 
 	buffers[ocl_gpu_id].S_box_gpu = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY|CL_MEM_COPY_HOST_PTR, sizeof(cl_uint) * 1024, S_box, &err) ;
-	if ((buffers[ocl_gpu_id].S_box_gpu==(cl_mem)0))  
-		HANDLE_CLERROR(err, errMsg) ; 
+	if ((buffers[ocl_gpu_id].S_box_gpu==(cl_mem)0))
+		HANDLE_CLERROR(err, errMsg) ;
 
 	buffers[ocl_gpu_id].out_gpu = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE, BF_N * sizeof(cl_uint) * 2, NULL, &err) ;
-	if ((buffers[ocl_gpu_id].out_gpu == (cl_mem)0)) 
-		HANDLE_CLERROR(err, errMsg) ; 
+	if ((buffers[ocl_gpu_id].out_gpu == (cl_mem)0))
+		HANDLE_CLERROR(err, errMsg) ;
 
 	buffers[ocl_gpu_id].BF_current_S_gpu = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE, BF_N * 1024 * sizeof(unsigned int), NULL, &err) ;
-	if ((buffers[ocl_gpu_id].BF_current_S_gpu == (cl_mem)0))  
-		HANDLE_CLERROR(err, errMsg) ; 
+	if ((buffers[ocl_gpu_id].BF_current_S_gpu == (cl_mem)0))
+		HANDLE_CLERROR(err, errMsg) ;
 
 	buffers[ocl_gpu_id].BF_current_P_gpu = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE, BF_N * sizeof(unsigned int) * 18, NULL, &err) ;
-	if ((buffers[ocl_gpu_id].BF_current_P_gpu==(cl_mem)0))  
-		HANDLE_CLERROR(err, errMsg) ; 
+	if ((buffers[ocl_gpu_id].BF_current_P_gpu==(cl_mem)0))
+		HANDLE_CLERROR(err, errMsg) ;
 
 	HANDLE_CLERROR(clSetKernelArg(krnl[ocl_gpu_id], 0, sizeof(cl_mem), &buffers[ocl_gpu_id].salt_gpu), "Set Kernel Arg FAILED arg0") ;
 	HANDLE_CLERROR(clSetKernelArg(krnl[ocl_gpu_id], 1, sizeof(cl_mem), &buffers[ocl_gpu_id].P_box_gpu), "Set Kernel Arg FAILED arg1") ;
@@ -553,15 +553,15 @@ void exec_bf(cl_uint *salt_api, cl_uint *BF_out, cl_uint rounds, int n) {
 
 	///Make sure amount of work isn't unnecessarily doubled
 	if ((temp - n) != 0) {
-		if ((temp - n) < 0.00001) 
+		if ((temp - n) < 0.00001)
 			n = (int)pow((double)2, (double)n) ;
-		else if ((n + 1 - temp) < 0.00001) 
+		else if ((n + 1 - temp) < 0.00001)
 			n = (int)pow((double)2, (double)n) ;
-		else 
+		else
 			n = (int)pow((double)2, (double)(n+1)) ;
 	}
 
-	else  
+	else
 		n = (int)pow((double)2, (double)n) ;
 
 	n = (n > BF_N)? BF_N: n ;

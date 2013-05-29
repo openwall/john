@@ -2,13 +2,13 @@
  * This software is Copyright (c) 2012 Sayantan Datta <std2048 at gmail dot com>
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification, are permitted.
- * Based on Solar Designer implementation of bf_std.c in jtr-v1.7.8 
+ * Based on Solar Designer implementation of bf_std.c in jtr-v1.7.8
  */
 
 #define BF_ROUNDS          	16
 
 #define pos_S(row, col, base)						\
-	base + (row * 256 + col) 
+	base + (row * 256 + col)
 
 #define pos_P(i , base)							\
         base + i
@@ -53,7 +53,7 @@
 	u4 = R ; 							\
 	R = L ; 							\
 	L = u4 ^ ctx_P[BF_ROUNDS + 1].x ;
-	    
+	
 #define BF_ROUNDy(ctx_S, ctx_P, L, R, N, tmp1, tmp2, tmp3, tmp4 ) 	\
 	tmp1 = L & 0xff ; 						\
 	tmp1 = Sptr4[tmp1].y ;						\
@@ -91,7 +91,7 @@
 	u4 = R ; 							\
 	R = L ; 							\
 	L = u4 ^ ctx_P[BF_ROUNDS + 1].y ;
- 
+
 #define BF_ROUND(ctx_S, ctx_P, L, R, N, tmp1, tmp2, tmp3, tmp4 ) 	\
 	tmp1.x = L.x & 0xff ; 						\
 	tmp1.y = L.y & 0xff ; 						\
@@ -177,7 +177,7 @@
 	      Sptr[i + 6] = L00 ;					\
 	      Sptr[i + 7] = R00 ;					\
 	     }	
-	    
+	
 __kernel void blowfish(	constant uint *salt __attribute__((max_constant_size(16))),
 			constant uint *P_box __attribute__((max_constant_size(72))),
 			__global uint *BF_out,
@@ -186,7 +186,7 @@ __kernel void blowfish(	constant uint *salt __attribute__((max_constant_size(16)
 			uint rounds,
 			constant uint *S_box __attribute__((max_constant_size(4096)))) {	
 		int index = 2 * get_global_id(0);
-		       
+		
 		int _index_S1,_index_S2 ;
 		int _index_P1,_index_P2 ;
 		
@@ -197,7 +197,7 @@ __kernel void blowfish(	constant uint *salt __attribute__((max_constant_size(16)
 		_index_P2 = 18 * (index+1) ;
 		
 		int i,j ;
-		uint2 tmp0 ;  
+		uint2 tmp0 ;
 		uint2 BF_key_exp[18] ;
 		uint2 BF_current_P[18] ;
 
@@ -207,16 +207,16 @@ __kernel void blowfish(	constant uint *salt __attribute__((max_constant_size(16)
 		 uint2 *Sptr3 = Sptr + 512 ;
 		 uint2 *Sptr4 = Sptr + 768 ;
 
-		for (i = 0; i < 18; i++) { 
+		for (i = 0; i < 18; i++) {
 			tmp0.x          = BF_current_P_global [pos_P(i , _index_P1)] ;
 			tmp0.y          = BF_current_P_global [pos_P(i , _index_P2)] ;
 			BF_current_P[i] = tmp0 ;
 			BF_key_exp[i]   = tmp0 ^ P_box[i] ;
 	        }
-	        
+	
 	  	for (i = 0; i < 1024; i++) {
 			j = i >> 8 ;
-			S_Buffer[pos_S_local(j, (i & 0xff))] = S_box[i] ; 
+			S_Buffer[pos_S_local(j, (i & 0xff))] = S_box[i] ;
 		}
 		
 		uint u1, u2, u3, u4 ;
@@ -254,7 +254,7 @@ __kernel void blowfish(	constant uint *salt __attribute__((max_constant_size(16)
 		}
 		
 		count = 1 << rounds ;
-		  
+		
 		do {
 			BF_current_P[0] ^= BF_key_exp[0] ;
 			BF_current_P[1] ^= BF_key_exp[1] ;
@@ -324,7 +324,7 @@ __kernel void blowfish(	constant uint *salt __attribute__((max_constant_size(16)
 
 		for (i = 0; i < 18; i++) {
 		
-			BF_current_P_global [pos_P(i, _index_P1)] = BF_current_P[i].x ; 
+			BF_current_P_global [pos_P(i, _index_P1)] = BF_current_P[i].x ;
 			BF_current_P_global [pos_P(i, _index_P2)] = BF_current_P[i].y ;
 		}	
 

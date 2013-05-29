@@ -161,7 +161,7 @@ void opencl_DES_bs_init(int LM, int cpt,int block)
 				*k++ = &opencl_DES_bs_all[block].K[bit] START;
 			}
 		}*/
-	if(block==0) 
+	if(block==0)
 		init_index(LM);
 /*
  * Have keys go to bit layers where DES_bs_get_hash() and DES_bs_cmp_one()
@@ -464,9 +464,9 @@ int opencl_DES_bs_cmp_all(WORD *binary, int count)
 	DES_bs_vector *b;
 	unsigned int sector = 0, count_multiple;
 	
-	if ((count & (DES_BS_DEPTH-1)) == 0) 
+	if ((count & (DES_BS_DEPTH-1)) == 0)
 		count_multiple = count;
-	else 
+	else
 		count_multiple = ((count >> DES_BS_LOG2) + 1) << DES_BS_LOG2;
 	//for_each_t(n)
 	for (sector = 0; sector < (count_multiple >> DES_BS_LOG2); sector++) {

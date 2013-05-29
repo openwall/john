@@ -64,9 +64,9 @@ static void find_best_gws(struct fmt_main *fmt)
 	do {
 		count *= 2;
 		if ((count * WORK_GROUP_SIZE) > MULTIPLIER) {
-			count = count >> 1; 
-			break; 
-		  
+			count = count >> 1;
+			break;
+		
 		}
 		gettimeofday(&start, NULL);
 		ccount = count * WORK_GROUP_SIZE * DES_BS_DEPTH;
@@ -76,7 +76,7 @@ static void find_best_gws(struct fmt_main *fmt)
 		diff = (((double)count) / savetime) / speed;
 		if (diff < 1) {
 			count = count >> 1;
-			break; 
+			break;
 		}
 		diff = diff - 1;
 		diff = (diff < 0) ? (-diff) : diff;
@@ -222,20 +222,20 @@ static void init_dev()
 	opencl_init_dev(ocl_gpu_id);
 	
 	opencl_DES_bs_data_gpu = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE, MULTIPLIER * sizeof(opencl_DES_bs_transfer), NULL, &err);
-	if(opencl_DES_bs_data_gpu == (cl_mem)0) 
-		HANDLE_CLERROR(err, "Create Buffer FAILED\n"); 
+	if(opencl_DES_bs_data_gpu == (cl_mem)0)
+		HANDLE_CLERROR(err, "Create Buffer FAILED\n");
 
 	index768_gpu = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE, 768 * sizeof(unsigned int), NULL, &err);
-	if(index768_gpu == (cl_mem)0) 
-		HANDLE_CLERROR(err, "Create Buffer FAILED\n"); 
+	if(index768_gpu == (cl_mem)0)
+		HANDLE_CLERROR(err, "Create Buffer FAILED\n");
 
 	index96_gpu = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE, 96 * sizeof(unsigned int), NULL, &err);
-	if(index96_gpu == (cl_mem)0) 
+	if(index96_gpu == (cl_mem)0)
 		HANDLE_CLERROR(err, "Create Buffer FAILED\n");
 
 	B_gpu = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE, 64 * MULTIPLIER * sizeof(DES_bs_vector), NULL, &err);
-	if(B_gpu == (cl_mem)0) 
-		HANDLE_CLERROR(err, "Create Buffer FAILED\n"); 
+	if(B_gpu == (cl_mem)0)
+		HANDLE_CLERROR(err, "Create Buffer FAILED\n");
 
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], index768_gpu, CL_TRUE, 0, 768 * sizeof(unsigned int), index768, 0, NULL, NULL ), "Failed Copy data to gpu");
 
@@ -244,7 +244,7 @@ static void init_dev()
 
 void modify_src() {
 
-	  int i = 55, j = 1, tmp;
+	  int i = 53, j = 1, tmp;
 	  static char digits[10] = {'0','1','2','3','4','5','6','7','8','9'} ;
 	  static unsigned int  index[48]  = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,
 					     24,25,26,27,28,29,30,31,32,33,34,35,
@@ -252,7 +252,7 @@ void modify_src() {
 					     72,73,74,75,76,77,78,79,80,81,82,83 } ;
 	  for (j = 1; j <= 48; j++) {
 		tmp = index96[index[j - 1]] / 10;
-		if (tmp == 0) 
+		if (tmp == 0)
 			kernel_source[i + j * 17] = ' ' ;
 		else
 			kernel_source[i + j * 17] = digits[tmp];
@@ -286,7 +286,7 @@ void DES_bs_select_device(struct fmt_main *fmt)
 	
 	krnl[ocl_gpu_id][0] = clCreateKernel(program[ocl_gpu_id], "DES_bs_25_b", &err) ;
 	if (err) {
-		fprintf(stderr, "Create Kernel DES_bs_25_b FAILED\n"); 
+		fprintf(stderr, "Create Kernel DES_bs_25_b FAILED\n");
 		return ;
 	}
 	//cmdq[platform_no][dev_no] = queue[ocl_gpu_id];
@@ -303,22 +303,22 @@ void DES_bs_select_device(struct fmt_main *fmt)
 		DES_local_work_size >>= 1;
 	//fprintf(stderr, "Using LWS %zu\n", DES_local_work_size);
 		
-	errMsg = "Create Buffer FAILED."; 
+	errMsg = "Create Buffer FAILED.";
 	opencl_DES_bs_data_gpu = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE, MULTIPLIER * sizeof(opencl_DES_bs_transfer), NULL, &err);
-	if (opencl_DES_bs_data_gpu == (cl_mem)0)  
-		HANDLE_CLERROR(err, errMsg); 
+	if (opencl_DES_bs_data_gpu == (cl_mem)0)
+		HANDLE_CLERROR(err, errMsg);
 
 	index768_gpu = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE, 768 * sizeof(unsigned int), NULL, &err);
-	if (index768_gpu == (cl_mem)0)  
-		HANDLE_CLERROR(err, errMsg); 
+	if (index768_gpu == (cl_mem)0)
+		HANDLE_CLERROR(err, errMsg);
 
 	index96_gpu = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE, 96 * sizeof(unsigned int), NULL, &err);
-	if (index96_gpu == (cl_mem)0) 
-		HANDLE_CLERROR(err, errMsg); 
+	if (index96_gpu == (cl_mem)0)
+		HANDLE_CLERROR(err, errMsg);
 
 	B_gpu = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE, 64 * MULTIPLIER * sizeof(DES_bs_vector), NULL, &err);
-	if (B_gpu == (cl_mem)0) 
-		HANDLE_CLERROR(err, errMsg); 
+	if (B_gpu == (cl_mem)0)
+		HANDLE_CLERROR(err, errMsg);
 
 	HANDLE_CLERROR(clSetKernelArg(krnl[ocl_gpu_id][0], 0, sizeof(cl_mem), &index768_gpu), "Set Kernel Arg FAILED arg0\n");
 	HANDLE_CLERROR(clSetKernelArg(krnl[ocl_gpu_id][0], 1, sizeof(cl_mem), &index96_gpu), "Set Kernel Arg FAILED arg1\n");
@@ -386,9 +386,9 @@ int opencl_DES_bs_crypt_25(int *pcount, struct db_salt *salt)
 	cl_event evnt;
 	size_t N,M;
 
-	if (keys_count%DES_BS_DEPTH == 0) 
+	if (keys_count%DES_BS_DEPTH == 0)
 		keys_count_multiple = keys_count;
-	else 
+	else
 		keys_count_multiple = (keys_count / DES_BS_DEPTH + 1) * DES_BS_DEPTH;
 
 	section = keys_count_multiple / DES_BS_DEPTH;
@@ -416,7 +416,7 @@ int opencl_DES_bs_crypt_25(int *pcount, struct db_salt *salt)
 			krnl[ocl_gpu_id][pos] = clCreateKernel(program[ocl_gpu_id], "DES_bs_25", &err) ;
 			
 			if (err) {
-				fprintf(stderr, "Create Kernel DES_bs_25 FAILED\n"); 
+				fprintf(stderr, "Create Kernel DES_bs_25 FAILED\n");
 				return 0;
 			}
 			
@@ -455,7 +455,7 @@ int opencl_DES_bs_crypt_25(int *pcount, struct db_salt *salt)
 
 	if (keys_count % DES_BS_DEPTH == 0)
 		keys_count_multiple = keys_count;
-	else 
+	else
 		keys_count_multiple = (keys_count/DES_BS_DEPTH + 1) * DES_BS_DEPTH;
 
 	section = keys_count_multiple / DES_BS_DEPTH;

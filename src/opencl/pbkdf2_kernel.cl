@@ -3,7 +3,7 @@
 * and it is hereby released to the general public under the following terms:
 * Redistribution and use in source and binary forms, with or without modification, are permitted.
 * Based on S3nf implementation http://openwall.info/wiki/john/MSCash2
-* Modified to support salts upto 19 characters. Bug in orginal code allowed only upto 8 characters.  
+* Modified to support salts upto 19 characters. Bug in orginal code allowed only upto 8 characters.
 */
 
 #ifdef cl_nv_pragma_unroll
@@ -21,13 +21,13 @@
 #define INIT_SHA1_E                 0xC3D2E1F0
 
 typedef struct {
-	    
+	
 	    unsigned int istate[5] ;
-	    unsigned int ostate[5] ; 
+	    unsigned int ostate[5] ;
 	    unsigned int buf[5] ;
 	    unsigned int out[4] ;
-	    
-} temp_buf ; 
+	
+} temp_buf ;
 
 #ifndef GET_WORD_32_BE
 #define GET_WORD_32_BE(n,b,i)				\
@@ -42,9 +42,9 @@ typedef struct {
 #ifndef PUT_WORD_32_BE
 #define PUT_WORD_32_BE(n, b, i)				\
 {							\
-    (b)[(i) ] = ((unsigned char) ((n) >> 24 ))		\ 
-	      | ((unsigned char) ((n) >> 16 )) << 8	\ 
-	      | ((unsigned char) ((n) >>  8 )) << 16	\ 
+    (b)[(i) ] = ((unsigned char) ((n) >> 24 ))		\
+	      | ((unsigned char) ((n) >> 16 )) << 8	\
+	      | ((unsigned char) ((n) >>  8 )) << 16	\
 	      | ((unsigned char) ((n))) << 24 ;		\
 }
 #endif
@@ -545,10 +545,10 @@ inline void hmac_sha1(__private uint *istate, __private uint *ostate, __private 
 	PUT_WORD_32_BE(A[4], buf, 4) ;
 }
 
-__kernel 
-void pbkdf2_preprocess(	const __global unsigned int *pass_global, 
-			const __global unsigned int *salt, 
-			int usrlen,  
+__kernel
+void pbkdf2_preprocess(	const __global unsigned int *pass_global,
+			const __global unsigned int *salt,
+			int usrlen,
 			uint num_keys,
 			__global temp_buf *tmp) {
 	int lid = get_local_id(0) ;
@@ -580,7 +580,7 @@ void pbkdf2_preprocess(	const __global unsigned int *pass_global,
 
 	i = 4 * id ;
         pass[0] = pass_global[i++] ;
-        pass[1] = pass_global[i++] ;     
+        pass[1] = pass_global[i++] ;
         pass[2] = pass_global[i++] ;
 	pass[3] = pass_global[i] ;
 	
@@ -588,7 +588,7 @@ void pbkdf2_preprocess(	const __global unsigned int *pass_global,
 		for (i = 0; i <= usrlen >> 1; i++)
 			buf[i] = salt_local[i] ;
 		buf[(usrlen >> 1) + 1] = 0x01 << 8 ;
-	} 
+	}
         else {
 		for (i = 0; i < usrlen >> 1; i++)
 			buf[i] = salt_local[i] ;
@@ -612,7 +612,7 @@ void pbkdf2_preprocess(	const __global unsigned int *pass_global,
 
 	hmac_sha1(istate, ostate, buf) ;
 
-        for (i = 0; i < 5; i++) 
+        for (i = 0; i < 5; i++)
 		GET_WORD_32_BE(buf[i], buf, i) ;
 
 	out[0] = buf[0] ;
@@ -623,8 +623,8 @@ void pbkdf2_preprocess(	const __global unsigned int *pass_global,
 	for (i = 0; i< 5; i++) {
 		tmp[id].istate[i] = istate[i] ;
 		tmp[id].ostate[i] = ostate[i] ;
-		tmp[id].buf[i]    = buf[i] ;  
-		if (i < 4) 
+		tmp[id].buf[i]    = buf[i] ;
+		if (i < 4)
 			tmp[id].out[i] = out[i] ;
 	}
 	
@@ -633,17 +633,17 @@ void pbkdf2_preprocess(	const __global unsigned int *pass_global,
 
 __kernel
 void pbkdf2_iter(__global temp_buf *tmp,
-		uint itr_count ) {  
+		uint itr_count ) {
 	uint id = get_global_id(0) ;
 	uint i ;
 	uint istate[5], ostate[5], buf[5], out[4] ;
 	uint A[5], W[16] ;
-	  
+	
 	for (i = 0; i< 5; i++) {
 		istate[i] = tmp[id].istate[i] ;
 		ostate[i] = tmp[id].ostate[i] ;
-		buf[i]    = tmp[id].buf[i] ;  
-		if (i < 4) 
+		buf[i]    = tmp[id].buf[i] ;
+		if (i < 4)
 			out[i] = tmp[id].out[i] ;
 	}
 	
@@ -709,13 +709,13 @@ void pbkdf2_iter(__global temp_buf *tmp,
 		out[2] ^= buf[2] ;
 		out[3] ^= buf[3] ;
 	}
-   
+
 	for (i = 0; i< 5; i++) {
 		tmp[id].istate[i] = istate[i] ;
 		tmp[id].ostate[i] = ostate[i] ;
-		tmp[id].buf[i]    = buf[i] ;  
+		tmp[id].buf[i]    = buf[i] ;
 		//tmp[id].A[i]      = A[i] ;
-		if (i < 4) 
+		if (i < 4)
 			tmp[id].out[i] = out[i] ;
 	}
 	
@@ -726,14 +726,14 @@ void pbkdf2_iter(__global temp_buf *tmp,
 __kernel
 void pbkdf2_postprocess(__global temp_buf *tmp,
 			__global unsigned int *out_global)
-{  
+{
 	uint id = get_global_id(0) ;
 	uint i ;
 	uint out[4] ;
 	
-	for (i = 0; i< 4; i++) 
+	for (i = 0; i< 4; i++)
 		out[i] = tmp[id].out[i] ;
-		  
+		
 	i = id * 4;
 	PUT_WORD_32_BE(out[0], out_global, i++) ;
 	PUT_WORD_32_BE(out[1], out_global, i++) ;

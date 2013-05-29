@@ -2,11 +2,11 @@
  * This software is Copyright (c) 2012 Sayantan Datta <std2048 at gmail dot com>
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification, are permitted.
- * Based on Solar Designer implementation of bf_std.c in jtr-v1.7.8 
+ * Based on Solar Designer implementation of bf_std.c in jtr-v1.7.8
  */
 
-#include "opencl_bf_WGS.h" 
- 
+#include "opencl_bf_WGS.h"
+
 #ifdef DEVICE_IS_CPU
 #define MAYBE_LOCAL
 #else
@@ -17,12 +17,12 @@
 
 #define NUM_CHANNELS       	1
 
-#define WAVEFRONT_SIZE     	1  
+#define WAVEFRONT_SIZE     	1
 
 #define CHANNEL_INTERLEAVE 	NUM_CHANNELS * WAVEFRONT_SIZE
 
 #define pos_S(row,col)							\
-	_index_S + (row * 256 + col) * (CHANNEL_INTERLEAVE) 
+	_index_S + (row * 256 + col) * (CHANNEL_INTERLEAVE)
 
 #define pos_P(i)							\
         _index_P + i
@@ -122,14 +122,14 @@ __kernel void blowfish(	constant uint *salt __attribute__((max_constant_size(16)
 			constant uint *S_box __attribute__((max_constant_size(4096)))  	)
 {	
 		int index = get_global_id(0) ;
-		int lid   = get_local_id(0) ;  
-       
+		int lid   = get_local_id(0) ;
+
 		int _index_S = (index / (CHANNEL_INTERLEAVE)) * (CHANNEL_INTERLEAVE) * 1024 + index % (CHANNEL_INTERLEAVE) ;
 		int _index_P = 18 * index ;
 		int _index_S_local = lid * 1024 ;
 
 		int i, j, tmp0 ;
-        
+
 		uint BF_key_exp[18] ;
 		uint BF_current_P[18] ;
 
@@ -139,7 +139,7 @@ __kernel void blowfish(	constant uint *salt __attribute__((max_constant_size(16)
 		MAYBE_LOCAL uint *Sptr3 = Sptr + 512 ;
 		MAYBE_LOCAL uint *Sptr4 = Sptr + 768 ;
 
-		for (i = 0; i < 18; i++) { 
+		for (i = 0; i < 18; i++) {
 			tmp0 = BF_current_P_global [pos_P(i)] ;
 			BF_current_P[i] = tmp0 ;
 			BF_key_exp[i] = tmp0 ^ P_box[i] ;
@@ -147,9 +147,9 @@ __kernel void blowfish(	constant uint *salt __attribute__((max_constant_size(16)
 
 		for(i = 0; i < 1024; i++) {
 			j = i >> 8 ;
-			S_Buffer[pos_S_local(j, (i & 0xff))] = S_box[i] ; 
+			S_Buffer[pos_S_local(j, (i & 0xff))] = S_box[i] ;
 		}
-	              
+	
 		uint L0, R0 ;
 		uint u1, u2, u3, u4 ;
 		uint count ;
@@ -178,7 +178,7 @@ __kernel void blowfish(	constant uint *salt __attribute__((max_constant_size(16)
 		}
 			
 		count = 1 << rounds ;
-		  
+		
 		do {
 			BF_current_P[0] ^= BF_key_exp[0] ;
 			BF_current_P[1] ^= BF_key_exp[1] ;
@@ -198,7 +198,7 @@ __kernel void blowfish(	constant uint *salt __attribute__((max_constant_size(16)
 			BF_current_P[15] ^= BF_key_exp[15] ;
 			BF_current_P[16] ^= BF_key_exp[16] ;
 			BF_current_P[17] ^= BF_key_exp[17] ;
-	 
+	
 			BF_body() ;
 			
 			u1 = salt[0] ;
@@ -210,8 +210,8 @@ __kernel void blowfish(	constant uint *salt __attribute__((max_constant_size(16)
 			BF_current_P[2] ^= u3 ;
 			BF_current_P[3] ^= u4 ;
 			BF_current_P[4] ^= u1 ;
-			BF_current_P[5] ^= u2 ; 
-			BF_current_P[6] ^= u3 ; 
+			BF_current_P[5] ^= u2 ;
+			BF_current_P[6] ^= u3 ;
 			BF_current_P[7] ^= u4 ;
 			BF_current_P[8] ^= u1 ;
 			BF_current_P[9] ^= u2 ;
@@ -225,7 +225,7 @@ __kernel void blowfish(	constant uint *salt __attribute__((max_constant_size(16)
 			BF_current_P[17] ^= u2 ;
 
 			BF_body() ;
-		    
+		
 		} while (--count) ;
 		
 		L0 = 0x4F727068 ;
@@ -241,10 +241,10 @@ __kernel void blowfish(	constant uint *salt __attribute__((max_constant_size(16)
 		BF_out[2 * index + 1] = R0 ;
 
 	    for(i = 0; i < 18; i++)
-		BF_current_P_global[pos_P(i)] = BF_current_P[i] ; 
+		BF_current_P_global[pos_P(i)] = BF_current_P[i] ;
 
 	    for(i = 0; i < 1024; i++) {
 			j = i >> 8 ;
-			BF_current_S[pos_S(j, (i & 0xff))] = S_Buffer[pos_S_local(j, (i & 0xff))] ;  
+			BF_current_S[pos_S(j, (i & 0xff))] = S_Buffer[pos_S_local(j, (i & 0xff))] ;
 		}
 }

@@ -26,7 +26,7 @@ static unsigned int 	active_dev_ctr = 0 ;
 
 typedef struct {
 	unsigned int 	istate[5] ;
-	unsigned int 	ostate[5] ; 
+	unsigned int 	ostate[5] ;
 	unsigned int 	buf[5] ;
 	unsigned int 	out[4] ;
 } temp_buf ; 	
@@ -34,7 +34,7 @@ typedef struct {
 static gpu_mem_buffer exec_pbkdf2(cl_uint *, cl_uint *, cl_uint, cl_uint *, cl_uint, int, cl_command_queue) ;
 
 static void clean_gpu_buffer(gpu_mem_buffer *pThis) {	
-	const char 	*errMsg = "Release Memory Object FAILED." ;  
+	const char 	*errMsg = "Release Memory Object FAILED." ;
 	
 	HANDLE_CLERROR(clReleaseMemObject(pThis -> pass_gpu), errMsg) ;
 	HANDLE_CLERROR(clReleaseMemObject(pThis -> hash_out_gpu), errMsg) ;
@@ -47,10 +47,10 @@ void clean_all_buffer() {
 
 	for (i = 0; i < active_dev_ctr; i++) {
 		clean_gpu_buffer(&globalObj[ocl_device_list[i]].gpu_buffer) ;
-		HANDLE_CLERROR(clReleaseKernel(globalObj[ocl_device_list[i]].krnl[0]), "Error releasing kernel pbkdf2_preprocess") ;  
-		HANDLE_CLERROR(clReleaseKernel(globalObj[ocl_device_list[i]].krnl[1]), "Error releasing kernel pbkdf2_iter") ; 
-		HANDLE_CLERROR(clReleaseKernel(globalObj[ocl_device_list[i]].krnl[2]), "Error releasing kernel pbkdf2_postprocess") ; 
-	 }   
+		HANDLE_CLERROR(clReleaseKernel(globalObj[ocl_device_list[i]].krnl[0]), "Error releasing kernel pbkdf2_preprocess") ;
+		HANDLE_CLERROR(clReleaseKernel(globalObj[ocl_device_list[i]].krnl[1]), "Error releasing kernel pbkdf2_iter") ;
+		HANDLE_CLERROR(clReleaseKernel(globalObj[ocl_device_list[i]].krnl[2]), "Error releasing kernel pbkdf2_postprocess") ;
+	 }
 }
 
 static void find_best_workgroup(int jtrUniqDevNo) {
@@ -72,12 +72,12 @@ static void find_best_workgroup(int jtrUniqDevNo) {
 		globalObj[jtrUniqDevNo].lws = 1 ;
 	else
 		globalObj[jtrUniqDevNo].lws = 16 ;
-	   
+	
 	///Set Dummy DCC hash , unicode salt and ascii salt(username) length
 	memset(dcc_hash_host, 0xb5, 4 * sizeof(cl_uint) * ((MAX_KEYS_PER_CRYPT < 65536) ? MAX_KEYS_PER_CRYPT : 65536)) ;
 	memset(salt_api, 0xfe, 9 * sizeof(cl_uint)) ;
 
-	cmdq = clCreateCommandQueue(context[jtrUniqDevNo], devices[jtrUniqDevNo], CL_QUEUE_PROFILING_ENABLE, &err);        
+	cmdq = clCreateCommandQueue(context[jtrUniqDevNo], devices[jtrUniqDevNo], CL_QUEUE_PROFILING_ENABLE, &err);
 	HANDLE_CLERROR(err, "Error creating command queue") ;
 
 	PROFILE = 1 ;
@@ -144,34 +144,34 @@ size_t 	select_device(int jtrUniqDevNo, struct fmt_main *fmt) {
 	
 	globalObj[jtrUniqDevNo].krnl[0] = clCreateKernel(program[jtrUniqDevNo], "pbkdf2_preprocess", &err) ;	
 	if (err) {
-		fprintf(stderr, "Create Kernel pbkdf2_preprocess FAILED\n") ; 
+		fprintf(stderr, "Create Kernel pbkdf2_preprocess FAILED\n") ;
 		return 0 ;
 	}
 	globalObj[jtrUniqDevNo].krnl[1] = clCreateKernel(program[jtrUniqDevNo], "pbkdf2_iter", &err) ;		
 	if (err) {
-		fprintf(stderr, "Create Kernel pbkdf2_iter FAILED\n") ; 
+		fprintf(stderr, "Create Kernel pbkdf2_iter FAILED\n") ;
 		return 0 ;
 	}
 	globalObj[jtrUniqDevNo].krnl[2] = clCreateKernel(program[jtrUniqDevNo], "pbkdf2_postprocess", &err) ;	
 	if (err) {
-		fprintf(stderr, "Create Kernel pbkdf2_postprocess FAILED\n") ; 
+		fprintf(stderr, "Create Kernel pbkdf2_postprocess FAILED\n") ;
 		return 0 ;
 	}
 	
-	errMsg = "Create Buffer FAILED" ; 
+	errMsg = "Create Buffer FAILED" ;
 
-	globalObj[jtrUniqDevNo].gpu_buffer.pass_gpu = clCreateBuffer(context[jtrUniqDevNo], CL_MEM_READ_ONLY, 4 * MAX_KEYS_PER_CRYPT * sizeof(cl_uint), NULL, &err) ;          
-	if (globalObj[jtrUniqDevNo].gpu_buffer.pass_gpu == (cl_mem)0)  
-		HANDLE_CLERROR(err,errMsg ) ; 
-	globalObj[jtrUniqDevNo].gpu_buffer.salt_gpu = clCreateBuffer(context[jtrUniqDevNo], CL_MEM_READ_ONLY, (MAX_SALT_LENGTH / 2 + 1) * sizeof(cl_uint), NULL, &err) ;         
-	if (globalObj[jtrUniqDevNo].gpu_buffer.salt_gpu == (cl_mem)0)  
-		HANDLE_CLERROR(err, errMsg) ; 
-	globalObj[jtrUniqDevNo].gpu_buffer.hash_out_gpu = clCreateBuffer(context[jtrUniqDevNo], CL_MEM_WRITE_ONLY, 4 * MAX_KEYS_PER_CRYPT * sizeof(cl_uint), NULL, &err) ;    
-	if (globalObj[jtrUniqDevNo].gpu_buffer.hash_out_gpu == (cl_mem)0) 
-		HANDLE_CLERROR(err, errMsg) ; 
+	globalObj[jtrUniqDevNo].gpu_buffer.pass_gpu = clCreateBuffer(context[jtrUniqDevNo], CL_MEM_READ_ONLY, 4 * MAX_KEYS_PER_CRYPT * sizeof(cl_uint), NULL, &err) ;
+	if (globalObj[jtrUniqDevNo].gpu_buffer.pass_gpu == (cl_mem)0)
+		HANDLE_CLERROR(err,errMsg ) ;
+	globalObj[jtrUniqDevNo].gpu_buffer.salt_gpu = clCreateBuffer(context[jtrUniqDevNo], CL_MEM_READ_ONLY, (MAX_SALT_LENGTH / 2 + 1) * sizeof(cl_uint), NULL, &err) ;
+	if (globalObj[jtrUniqDevNo].gpu_buffer.salt_gpu == (cl_mem)0)
+		HANDLE_CLERROR(err, errMsg) ;
+	globalObj[jtrUniqDevNo].gpu_buffer.hash_out_gpu = clCreateBuffer(context[jtrUniqDevNo], CL_MEM_WRITE_ONLY, 4 * MAX_KEYS_PER_CRYPT * sizeof(cl_uint), NULL, &err) ;
+	if (globalObj[jtrUniqDevNo].gpu_buffer.hash_out_gpu == (cl_mem)0)
+		HANDLE_CLERROR(err, errMsg) ;
 	globalObj[jtrUniqDevNo].gpu_buffer.temp_buf_gpu = clCreateBuffer(context[jtrUniqDevNo], CL_MEM_READ_WRITE, MAX_KEYS_PER_CRYPT * sizeof(temp_buf), NULL, &err) ;	
-	if (globalObj[jtrUniqDevNo].gpu_buffer.temp_buf_gpu == (cl_mem)0) 
-		HANDLE_CLERROR(err, errMsg) ;         
+	if (globalObj[jtrUniqDevNo].gpu_buffer.temp_buf_gpu == (cl_mem)0)
+		HANDLE_CLERROR(err, errMsg) ;
 
 	HANDLE_CLERROR(clSetKernelArg(globalObj[jtrUniqDevNo].krnl[0], 0, sizeof(cl_mem), &globalObj[jtrUniqDevNo].gpu_buffer.pass_gpu), "Set Kernel 0 Arg 0 :FAILED") ;
 	HANDLE_CLERROR(clSetKernelArg(globalObj[jtrUniqDevNo].krnl[0], 1, sizeof(cl_mem), &globalObj[jtrUniqDevNo].gpu_buffer.salt_gpu), "Set Kernel 0 Arg 1 :FAILED") ;
@@ -180,18 +180,18 @@ size_t 	select_device(int jtrUniqDevNo, struct fmt_main *fmt) {
 	HANDLE_CLERROR(clSetKernelArg(globalObj[jtrUniqDevNo].krnl[2], 0, sizeof(cl_mem), &globalObj[jtrUniqDevNo].gpu_buffer.temp_buf_gpu), "Set Kernel 2 Arg 0 :FAILED") ;
 	HANDLE_CLERROR(clSetKernelArg(globalObj[jtrUniqDevNo].krnl[2], 1, sizeof(cl_mem), &globalObj[jtrUniqDevNo].gpu_buffer.hash_out_gpu), "Set Kernel 2 Arg 1 :FAILED") ;
 
-	if (((!global_work_size) || ((!local_work_size) && global_work_size)) || (active_dev_ctr != 0)) 
+	if (((!global_work_size) || ((!local_work_size) && global_work_size)) || (active_dev_ctr != 0))
 		find_best_workgroup(jtrUniqDevNo) ;
 	else {
 		size_t 		maxsize, maxsize2 ;
 				
 		maxsize = get_kernel_preferred_work_group_size(jtrUniqDevNo, globalObj[jtrUniqDevNo].krnl[0]) ;
 		maxsize2 = get_kernel_preferred_work_group_size(jtrUniqDevNo, globalObj[jtrUniqDevNo].krnl[1]) ;
-		if (maxsize2 > maxsize) 
+		if (maxsize2 > maxsize)
 			maxsize = maxsize2 ;
 		
 		maxsize2 = get_kernel_preferred_work_group_size(jtrUniqDevNo, globalObj[jtrUniqDevNo].krnl[2]) ;
-		if (maxsize2 > maxsize) 
+		if (maxsize2 > maxsize)
 			maxsize = maxsize2 ;
 
 		while (local_work_size > maxsize)
@@ -202,7 +202,7 @@ size_t 	select_device(int jtrUniqDevNo, struct fmt_main *fmt) {
 		globalObj[jtrUniqDevNo].lws = local_work_size ;
 	}
 	
-	if ((!global_work_size) || (active_dev_ctr != 0)) 
+	if ((!global_work_size) || (active_dev_ctr != 0))
 		find_best_gws(jtrUniqDevNo, fmt) ;
 	else {
 		fprintf(stderr, "Global worksize (GWS) forced to %zu\n", global_work_size) ;
@@ -228,7 +228,7 @@ void warning() {
 		total_exec_time_inv += globalObj[ocl_device_list[i]].exec_time_inv ;
 	
 	for (i = 0; i < active_dev_ctr; ++i)
-		if (globalObj[ocl_device_list[i]].exec_time_inv / total_exec_time_inv < 0.01) 
+		if (globalObj[ocl_device_list[i]].exec_time_inv / total_exec_time_inv < 0.01)
 			fprintf(stderr, "WARNING: Device %d is too slow and might cause degradation in performance.\n", ocl_device_list[i]) ;
 		
 }
@@ -249,7 +249,7 @@ void pbkdf2_divide_work(cl_uint *pass_api, cl_uint *salt_api, cl_uint saltlen_ap
 	///Divide work only if number of keys is greater than 8192, else use first device selected
 	if (num > 8192) {
 		///Calculates t0tal Kernel Execution Speed
-		for (i = 0; i < active_dev_ctr; ++i) 
+		for (i = 0; i < active_dev_ctr; ++i)
 			total_exec_time_inv += globalObj[ocl_device_list[i]].exec_time_inv ;
 		
 		///Calculate work division ratio
@@ -269,7 +269,7 @@ void pbkdf2_divide_work(cl_uint *pass_api, cl_uint *salt_api, cl_uint saltlen_ap
 					work_part = (work_part / lws_max + 1) * lws_max;
 			}
 			
-			if ((int)work_part <= 0) 
+			if ((int)work_part <= 0)
 				work_part = lws_max;
 			
 			///call to exec_pbkdf2()
@@ -282,12 +282,12 @@ void pbkdf2_divide_work(cl_uint *pass_api, cl_uint *salt_api, cl_uint saltlen_ap
 
 		///Synchronize Device memory and Host memory
 		for (i = active_dev_ctr - 1; i >= 0; --i)
-			HANDLE_CLERROR(clFlush(queue[ocl_device_list[i]]), "Flush Error") ;                                                                       
+			HANDLE_CLERROR(clFlush(queue[ocl_device_list[i]]), "Flush Error") ;
 
 		for (i = 0; i < active_dev_ctr; ++i) {
 			while (1) {
 				HANDLE_CLERROR(clGetEventInfo(events[i], CL_EVENT_COMMAND_EXECUTION_STATUS, sizeof(cl_int), &ret, NULL), "Error in Get Event Info") ;
-				if ((ret) == CL_COMPLETE) 
+				if ((ret) == CL_COMPLETE)
 					break ;
 #ifdef  _DEBUG
 				 printf("%d%d ", ret, i) ;
@@ -296,7 +296,7 @@ void pbkdf2_divide_work(cl_uint *pass_api, cl_uint *salt_api, cl_uint saltlen_ap
 		}
 
 		for (i = 0; i < active_dev_ctr; ++i)
-			HANDLE_CLERROR(clFinish(queue[ocl_device_list[i]]), "Finish Error") ;                                                                  
+			HANDLE_CLERROR(clFinish(queue[ocl_device_list[i]]), "Finish Error") ;
 
 	 }
 	 else {
@@ -311,17 +311,17 @@ static gpu_mem_buffer exec_pbkdf2(cl_uint *pass_api,cl_uint *salt_api,cl_uint sa
 	size_t 		N = num, M = globalObj[jtrUniqDevNo].lws ;
 	cl_int 		err ;
 	unsigned int 	i, itrCntKrnl = ITERATION_COUNT_PER_CALL ;
-	cl_ulong 	_kernelExecTimeNs = 0 ; 
+	cl_ulong 	_kernelExecTimeNs = 0 ;
 	
 	HANDLE_CLERROR(clEnqueueWriteBuffer(cmdq, globalObj[jtrUniqDevNo].gpu_buffer.pass_gpu, CL_TRUE, 0, 4 * num * sizeof(cl_uint), pass_api, 0, NULL, NULL ), "Copy data to gpu") ;		
-	HANDLE_CLERROR(clEnqueueWriteBuffer(cmdq, globalObj[jtrUniqDevNo].gpu_buffer.salt_gpu, CL_TRUE, 0, (MAX_SALT_LENGTH / 2 + 1) * sizeof(cl_uint), salt_api, 0, NULL, NULL ), "Copy data to gpu") ;      
+	HANDLE_CLERROR(clEnqueueWriteBuffer(cmdq, globalObj[jtrUniqDevNo].gpu_buffer.salt_gpu, CL_TRUE, 0, (MAX_SALT_LENGTH / 2 + 1) * sizeof(cl_uint), salt_api, 0, NULL, NULL ), "Copy data to gpu") ;
 
 	HANDLE_CLERROR(clSetKernelArg(globalObj[jtrUniqDevNo].krnl[0], 2, sizeof(cl_uint), &saltlen_api), "Set Kernel 0 Arg 2 :FAILED") ;
 	HANDLE_CLERROR(clSetKernelArg(globalObj[jtrUniqDevNo].krnl[0], 3, sizeof(cl_uint), &num), "Set Kernel 0 Arg 3 :FAILED") ;
 
 	err = clEnqueueNDRangeKernel(cmdq, globalObj[jtrUniqDevNo].krnl[0], 1, NULL, &N, &M, 0, NULL, &evnt);											
 	if (err) {
-		if (PROFILE) 
+		if (PROFILE)
 			globalObj[jtrUniqDevNo].lws = globalObj[jtrUniqDevNo].lws / 2 ;
 	  	else
 			HANDLE_CLERROR(err, "Enque Kernel Failed") ;
@@ -342,14 +342,14 @@ static gpu_mem_buffer exec_pbkdf2(cl_uint *pass_api,cl_uint *salt_api,cl_uint sa
 	}
 	
 	for (i=0; i< (10240 - 1) ; i = i+ itrCntKrnl ) {
-		if (i == (10240 - itrCntKrnl)) 
+		if (i == (10240 - itrCntKrnl))
 			--itrCntKrnl ;
-	  
+	
 		HANDLE_CLERROR(clSetKernelArg(globalObj[jtrUniqDevNo].krnl[1], 1, sizeof(cl_uint), &itrCntKrnl), "Set Kernel 1 Arg 1 :FAILED") ;
 	
 		err = clEnqueueNDRangeKernel(cmdq, globalObj[jtrUniqDevNo].krnl[1], 1, NULL, &N, &M, 0, NULL, &evnt) ;										
 		if (err) {
-			if (PROFILE) 
+			if (PROFILE)
 				globalObj[jtrUniqDevNo].lws = globalObj[jtrUniqDevNo].lws / 2 ;
 			else
 				HANDLE_CLERROR(err, "Enque Kernel Failed") ;
@@ -371,7 +371,7 @@ static gpu_mem_buffer exec_pbkdf2(cl_uint *pass_api,cl_uint *salt_api,cl_uint sa
 			_kernelExecTimeNs += endTime - startTime ;
 		}
 
-		else if (active_dev_ctr == 1) 
+		else if (active_dev_ctr == 1)
 			HANDLE_CLERROR(clFinish(cmdq), "clFinish error") ;
 		
 	}
@@ -408,7 +408,7 @@ static gpu_mem_buffer exec_pbkdf2(cl_uint *pass_api,cl_uint *salt_api,cl_uint sa
          }
          else
 		HANDLE_CLERROR(clEnqueueReadBuffer(cmdq, globalObj[jtrUniqDevNo].gpu_buffer.hash_out_gpu, CL_FALSE, 0, 4*num*sizeof(cl_uint), hash_out_api, 1, &evnt, &events[event_ctr++]), "Write :FAILED") ;
-	 
+	
 
 	 return globalObj[jtrUniqDevNo].gpu_buffer ;
 }

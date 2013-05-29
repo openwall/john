@@ -1,4 +1,4 @@
-/* CAUTION:Do not change or move the next 48 lines */  
+/* CAUTION:Do not change or move the next 48 lines */
 #define index00 31
 #define index01  0
 #define index02  1
@@ -52,12 +52,12 @@
  * This software is Copyright (c) 2012 Sayantan Datta <std2048 at gmail dot com>
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification, are permitted.
- * Based on Solar Designer implementation of DES_bs_b.c in jtr-v1.7.9 
+ * Based on Solar Designer implementation of DES_bs_b.c in jtr-v1.7.9
  */
- 
+
 #include "opencl_DES_WGS.h"
 #include "opencl_device_info.h"
- 
+
 #define ARCH_WORD     			int
 #define DES_BS_DEPTH                    32
 #define DES_bs_vector                   ARCH_WORD
@@ -301,9 +301,9 @@ typedef struct{
 
 inline void DES_bs_finalize_keys(unsigned int section,
 				__global DES_bs_transfer *DES_bs_all,
-				int local_offset_K, 
+				int local_offset_K,
 				__local DES_bs_vector *K ) {
- 
+
 		__local DES_bs_vector *kp = (__local DES_bs_vector *)&K[local_offset_K] ;
 		
 		int ic ;
@@ -337,7 +337,7 @@ inline void DES_bs_finalize_keys(unsigned int section,
 	vst_private(B[j] , 4, zero); 			\
 	vst_private(B[j] , 5, zero); 			\
 	vst_private(B[j] , 6, zero); 			\
-	vst_private(B[j] , 7, zero); 
+	vst_private(B[j] , 7, zero);
 
 #define DES_bs_clear_block 				\
 	DES_bs_clear_block_8(0); 			\
@@ -359,7 +359,7 @@ inline void DES_bs_finalize_keys(unsigned int section,
 #define y(p, q) vxorf(B[p]       , _local_K[index768[q + k] + local_offset_K])
 #endif
 
-#define z(p, q) vxorf(B[p]       , _local_K[ q + local_offset_K]) 
+#define z(p, q) vxorf(B[p]       , _local_K[ q + local_offset_K])
 
 #endif
 
@@ -826,18 +826,18 @@ inline void DES_bs_finalize_keys(unsigned int section,
 		B,4, 26, 14, 20);	
 			
 #if (HARDCODE_SALT & FULL_UNROLL)
-__kernel void DES_bs_25(constant uint *index768 __attribute__((max_constant_size(3072))), 
+__kernel void DES_bs_25(constant uint *index768 __attribute__((max_constant_size(3072))),
 			__global int *index96 ,
 			__global DES_bs_transfer *DES_bs_all,
 			__global DES_bs_vector *B_global ) {
 			
 		unsigned int section = get_global_id(0), global_offset_B ,local_offset_K;
-		unsigned int local_id = get_local_id(0); 
-		 
+		unsigned int local_id = get_local_id(0);
+		
 		global_offset_B = 64 * section;
 		local_offset_K  = 56 * local_id;
 		
-		vtype B[64], tmp; 
+		vtype B[64], tmp;
 				
 		__local DES_bs_vector _local_K[56 * WORK_GROUP_SIZE] ;
 
@@ -902,7 +902,7 @@ finalize_keys:
 		goto body;	
 
 }
- 
+
 #elif  (HARDCODE_SALT & (!FULL_UNROLL))
 
 #ifndef RV7xx 	
@@ -915,18 +915,18 @@ finalize_keys:
 
 #define y48(p, q) vxorf(B[p]     , _local_K[q + local_offset_K])
 
-__kernel void DES_bs_25( constant uint *index768 __attribute__((max_constant_size(3072))), 
+__kernel void DES_bs_25( constant uint *index768 __attribute__((max_constant_size(3072))),
 			  __global int *index96 ,
 			  __global DES_bs_transfer *DES_bs_all,
 			  __global DES_bs_vector *B_global ) {
-			  
+			
 		unsigned int section = get_global_id(0), global_offset_B, local_offset_K;
-		unsigned int local_id = get_local_id(0); 
-		 
+		unsigned int local_id = get_local_id(0);
+		
 		global_offset_B = 64 * section;
 		local_offset_K  = 56 * local_id;
 		
-		vtype B[64]; 
+		vtype B[64];
 				
 		__local DES_bs_vector _local_K[56*WORK_GROUP_SIZE] ;
 #ifndef RV7xx
@@ -959,7 +959,7 @@ body:
 #endif
 
 start:		
-#ifndef RV7xx 
+#ifndef RV7xx
 		_index768_ptr = _local_index768 + k ;
 #endif		
 		H1_s();
@@ -1028,18 +1028,18 @@ finalize_keys:
 		rounds_and_swapped--;
 #endif			
 
- __kernel void DES_bs_25_b( constant uint *index768 __attribute__((max_constant_size(3072))), 
+ __kernel void DES_bs_25_b( constant uint *index768 __attribute__((max_constant_size(3072))),
 			__global int *index96 ,
 			__global DES_bs_transfer *DES_bs_all,
 			__global DES_bs_vector *B_global )  {
 			
 		unsigned int section = get_global_id(0), global_offset_B ,local_offset_K;
-		unsigned int local_id = get_local_id(0); 
-		 
+		unsigned int local_id = get_local_id(0);
+		
 		global_offset_B = 64 * section;
 		local_offset_K  = 56 * local_id;
 		
-		vtype B[64]; 
+		vtype B[64];
 				
 		__local DES_bs_vector _local_K[56 * WORK_GROUP_SIZE] ;
 #ifndef RV7xx

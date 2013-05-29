@@ -21,7 +21,7 @@
 
 /*
  * Acceptable Values : 2 , 4 , 8 ,16 , 32 , 64 , 128 ,256 , 512 , 1024 , 2048 , 5120 , 10240
- */  
+ */
 #define ITERATION_COUNT_PER_CALL  	1024
 
 #define MAX_SALT_LENGTH           	19
@@ -30,7 +30,7 @@ typedef struct {
 	cl_mem pass_gpu ;
 	cl_mem salt_gpu ;
 	cl_mem hash_out_gpu ;
-	cl_mem temp_buf_gpu ; 
+	cl_mem temp_buf_gpu ;
 } gpu_mem_buffer ;
 
 

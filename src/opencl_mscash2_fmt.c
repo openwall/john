@@ -1,6 +1,6 @@
 /*
 * This software is Copyright (c) 2012 Sayantan Datta <std2048 at gmail dot com>
-* and it is hereby released to the general public under the following terms:
+* and it is hereby released to the general public under the following terms :
 * Redistribution and use in source and binary forms, with or without modification, are permitted.
 * Based on S3nf implementation http://openwall.info/wiki/john/MSCash2
 * This format supports salts upto 19 characters.
@@ -37,7 +37,7 @@
 #define BENCHMARK_LENGTH	  -1
 #define MSCASH2_PREFIX            "$DCC2$"
 #define MAX_PLAINTEXT_LENGTH      31
-#define MAX_CIPHERTEXT_LENGTH     7 + MAX_SALT_LENGTH + 32
+#define MAX_CIPHERTEXT_LENGTH     7 +7 + MAX_SALT_LENGTH + 32
 
 #define BINARY_SIZE               4
 #define BINARY_ALIGN              4
@@ -63,8 +63,8 @@ static struct fmt_tests tests[] = {
 	{"$DCC2$nineteen_characters#87136ae0a18b2dafe4a41d555425b2ed", "w00t"},
 	{"$DCC2$administrator#56f8c24c5a914299db41f70e9b43f36d", "w00t" },
 	{"$DCC2$AdMiNiStRaToR#56f8C24c5A914299Db41F70e9b43f36d", "w00t" },                   //Salt and hash are lowercased
-	{"$DCC2$TEST2#c6758e5be7fc943d00b97972a8a97620", "test2" },                          // salt is lowercased before hashing
-	{"$DCC2$eighteencharacters#fc5df74eca97afd7cd5abb0032496223", "w00t" },
+	{"$DCC2$10240#TEST2#c6758e5be7fc943d00b97972a8a97620", "test2" },                    // salt is lowercased before hashing
+	{"$DCC2$10240#eighteencharacters#fc5df74eca97afd7cd5abb0032496223", "w00t" },
 	{"$DCC2$john-the-ripper#495c800a038d11e55fafc001eb689d1d", "batman#$@#1991" },
 	{"$DCC2$#59137848828d14b1fca295a5032b52a1", "a" },                                   //Empty Salt
 	{NULL}
@@ -171,7 +171,7 @@ static void init(struct fmt_main *self) {
 	if ((conf = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, LWS_CONFIG)))
 		local_work_size = atoi(conf) ;
 	if ((conf = getenv("LWS")))
-		local_work_size = atoi(conf) ; 
+		local_work_size = atoi(conf) ;
 	if ((conf = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, GWS_CONFIG)))
 		global_work_size = atoi(conf) ;
 	if ((conf = getenv("GWS")))
@@ -256,7 +256,7 @@ static int valid(char *ciphertext, struct fmt_main *self) {
 
 	saltlength=0 ;
 
-	pos = ciphertext + strlen(MSCASH2_PREFIX) ;
+	pos = strchr(ciphertext, '#') + 1 ;
 
 	while (*pos != '#') {
 		if (saltlength == (MAX_SALT_LENGTH)) {
@@ -315,7 +315,7 @@ static void *salt(char *ciphertext) {
 
 	memset(&salt, 0, sizeof(salt)) ;
 	length = 0 ;
-	pos = ciphertext + strlen(MSCASH2_PREFIX) ;
+	pos = strchr(ciphertext, '#') + 1 ;
 
 	while (*pos != '#') {
 		if (length == MAX_SALT_LENGTH)
@@ -369,7 +369,7 @@ static int crypt_all(int *pcount, struct db_salt *salt) {
 
 	memcpy(salt_host, salt_unicode, (MAX_SALT_LENGTH << 1) + 1) ;
 
-	for (i = 0; i < count; i++)    
+	for (i = 0; i < count; i++)
 		DCC(salt_unicode, currentsalt.username, currentsalt.length, key_host[i], dcc_hash_host, i) ;
 
 #ifdef _DEBUG
@@ -478,13 +478,13 @@ static int cmp_exact(char *source, int count) {
       bin = (unsigned int*)binary(source) ;
       i = 4 * count + 1 ;
 
-      if (bin[1] != dcc2_hash_host[i++]) 
+      if (bin[1] != dcc2_hash_host[i++])
 		return 0 ;
 
-      if (bin[2] != dcc2_hash_host[i++]) 
+      if (bin[2] != dcc2_hash_host[i++])
 		return 0 ;
 
-      if (bin[3] != dcc2_hash_host[i]) 
+      if (bin[3] != dcc2_hash_host[i])
 		return 0 ;
 
       return 1 ;
@@ -492,29 +492,56 @@ static int cmp_exact(char *source, int count) {
 
 static char *prepare(char *split_fields[10], struct fmt_main *self) {
 	char 	*cp;
-
-	if (!strncmp(split_fields[1], "$DCC2$", 6) && valid(split_fields[1], self))
-	   return split_fields[1] ;
-
-	if (!split_fields[0])
-	   return split_fields[1] ;
-
-	cp = mem_alloc(strlen(split_fields[0]) + strlen(split_fields[1]) + 14) ;
-	sprintf (cp, "$DCC2$%s#%s", split_fields[0], split_fields[1]) ;
-	if (valid(cp, self)) {
-		char *cipher = str_alloc_copy(cp) ;
-		MEM_FREE(cp) ;
-		return cipher ;
+		
+	if (split_fields[0]) {
+	  	if (split_fields[0][0] != '?') {
+			cp = mem_alloc(strlen(split_fields[0]) + strlen(split_fields[1]) + 14) ;
+			sprintf (cp, "$DCC2$10240#%s#%s", split_fields[0], split_fields[1]) ;
+			if (valid(cp, self)) {
+				char *cipher = str_alloc_copy(cp) ;
+				MEM_FREE(cp) ;			
+				return cipher ;
+			}
+			MEM_FREE(cp);
+			
+			return split_fields[1];
+		}
+	}	
+	
+	//If the format is $DCC2$salt#hash
+	if (strncmp(split_fields[1], "$DCC2$10240#", 12)) {
+		char *hash = str_alloc_copy(strrchr(split_fields[1], '#') + 1) ;
+		char *salt = (char *)mem_alloc(MAX_SALT_LENGTH + 4);
+		char *pos;
+		int i = 0;
+		cp = mem_alloc(MAX_CIPHERTEXT_LENGTH + 1) ;
+		
+		pos = strrchr(split_fields[1],'$') + 1 ;
+		while (pos[i] != '#') {
+			salt[i] = pos[i];
+			i++;
+		}
+		salt[i] = '\0';
+		
+		sprintf(cp,"$DCC2$10240#%s#%s",salt,hash);
+		
+		MEM_FREE(salt);
+		//MEM_FREE(hash);
+		if(valid(cp,self)) {  return cp;}
+		
+		MEM_FREE(cp);
 	}
 
-	MEM_FREE(cp) ;
-
+	if (!strncmp(split_fields[1], "$DCC2$", 6) && valid(split_fields[1], self)){
+		return split_fields[1] ;
+	}
+	
 	return split_fields[1] ;
 }
 
 static int salt_hash(void *salt) {
 	ms_cash2_salt 	*_s = (ms_cash2_salt *)salt ;
-	unsigned char   *s = _s->username ; 
+	unsigned char   *s = _s->username ;
 	unsigned int 	hash = 5381 ;
 
 	while (*s != '\0')
