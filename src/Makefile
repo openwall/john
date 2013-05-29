@@ -23,7 +23,7 @@ SORT = sort
 
 ## Uncomment the line below for MPI (can be used together with OMP as well)
 ## For experimental MPI_Abort support, append -DJOHN_MPI_ABORT too.
-CC = mpicc -DHAVE_MPI
+#CC = mpicc -DHAVE_MPI
 
 OMPFLAGS =
 # gcc with OpenMP

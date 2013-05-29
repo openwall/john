@@ -34,15 +34,13 @@ COMPILING:
     Debian/Ubuntu/Mint Linux example for installing OpenMPI:
     sudo apt-get install libopenmpi-dev openmpi-bin
 
-    To enable MPI in John, un-comment these two lines in Makefile (the last two
-    of the four below):
+    To enable MPI in John, un-comment the line in Makefile as shown here:
 
 ----8<--------------8<--------------8<--------------8<--------------8<----------
 
-## Uncomment the TWO lines below for MPI (can be used together with OMP as well)
-## For experimental MPI_Abort support, add -DJOHN_MPI_ABORT too.
+## Uncomment the line below for MPI (can be used together with OMP as well)
+## For experimental MPI_Abort support, append -DJOHN_MPI_ABORT too.
 CC = mpicc -DHAVE_MPI
-MPIOBJ = john-mpi.o
 
 ----8<--------------8<--------------8<--------------8<--------------8<----------
 
