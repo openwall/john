@@ -97,6 +97,7 @@ while (<>) {
 #
 # For readability, please keep this list sorted by old format name
 __DATA__
+bf-opencl, OpenBSD Blowfish (x32)	bcrypt-opencl ("$2a$05", 32 iterations)
 DIGEST-MD5	DIGEST-MD5 C/R
 dynamic_20: Cisco PIX (MD5 salted)	dynamic_20: Cisco ASA (MD5 salted)
 dynamic_38: sha1($s.sha1($s.($p))) (Wolt3BB)	dynamic_38: sha1($s.sha1($s.sha1($p))) (Wolt3BB)
