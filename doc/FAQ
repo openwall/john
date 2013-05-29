@@ -129,6 +129,50 @@ of John, the first step is for you to try -jumbo instead.  As of this
 writing, you do need -jumbo for some popular hash types such as raw MD5
 and NTLM.
 
+Q: What do the various numbers printed on the status line mean?
+A: As of version 1.8.0, the status line may include: successful guess
+count ("g"), session duration (in the D:HH:MM:SS format for days, hours,
+minutes, and seconds), progress indicator (percent done and optionally
+pass number out of the total number of passes), up to four speed metrics
+("g/s", "p/s", "c/s", and "C/s"), and the current (range of) candidate
+password(s) being tested (John is often able to test multiple candidate
+passwords in parallel for better performance, hence a range).  The four
+speed metrics are as follows: g/s is successful guesses per second (so
+it'll stay at 0 until at least one password is cracked), p/s is
+candidate passwords tested per second, c/s is "crypts" (password hash or
+cipher computations) per second, and C/s is combinations of candidate
+password and target hash per second.  Versions of John prior to 1.8.0
+displayed only the C/s rate (calling it c/s).  When you restore a
+pre-1.8.0 session with version 1.8.0 or newer, only the g/s and C/s
+rates will be displayed, because the older .rec file format lacked
+information needed to compute p/s and c/s.
+
+Q: I am running John for 10 days and it is still not finished?!
+Q: How long should I expect John to run?
+A: It primarily depends on the cracking mode(s) and on your password
+files (in particular, the type of hashes and the number of different
+salts, if applicable).  Most importantly, you should note that the
+"incremental" mode, which a default John run (with no command line
+options) proceeds with after being done with the quicker checks, is not
+supposed to terminate in a reasonable time.  It is up to you to decide
+how long you're going to let it run, then consider any uncracked
+passwords strong enough.  "Single crack" mode runs typically take from
+under a second to one day (depending on the type and number of password
+hashes).  Wordlist mode runs may also be quick (under a second) for
+tiny wordlists and fast hashes or they may take multiple days with large
+wordlists, with word mangling rules, and with slow hash types and
+substantial numbers of different salts.  The status line John reports
+whenever you hit a key includes a progress indicator (percent complete)
+for "single crack" and wordlist modes.  With no cracking mode requested
+explicitly, John will start with "single crack" mode (pass 1), then
+proceed with wordlist mode (pass 2), and finally with "incremental" mode
+(pass 3).  The pass numbers are reported on the status line, too.  It is
+reasonable to let John reach "incremental" mode (pass 3) and run that
+for a while (some days).  You will notice that John's success rate (the
+number of passwords cracked per hour or per day) will be dropping
+rapidly.  When you determine that the success rate is low enough, you
+interrupt John.
+
 Q: Does John support multi-processing or distributed processing?
 A: Yes, but you need to explicitly enable this if desired.  Starting
 with version 1.8.0, there's the "--fork" option on Unix-like systems (to
@@ -188,32 +232,6 @@ A: See CONTACT.
 
 	Questions sometimes asked by existing users.
 
-Q: I am running John for 10 days and it is still not finished?!
-Q: How long should I expect John to run?
-A: It primarily depends on the cracking mode(s) and on your password
-files (in particular, the type of hashes and the number of different
-salts, if applicable).  Most importantly, you should note that the
-"incremental" mode, which a default John run (with no command line
-options) proceeds with after being done with the quicker checks, is not
-supposed to terminate in a reasonable time.  It is up to you to decide
-how long you're going to let it run, then consider any uncracked
-passwords strong enough.  "Single crack" mode runs typically take from
-under a second to one day (depending on the type and number of password
-hashes).  Wordlist mode runs may also be quick (under a second) for
-tiny wordlists and fast hashes or they may take multiple days with large
-wordlists, with word mangling rules, and with slow hash types and
-substantial numbers of different salts.  The status line John reports
-whenever you hit a key includes a progress indicator (percent complete)
-for "single crack" and wordlist modes.  With no cracking mode requested
-explicitly, John will start with "single crack" mode (pass 1), then
-proceed with wordlist mode (pass 2), and finally with "incremental" mode
-(pass 3).  The pass numbers are reported on the status line, too.  It is
-reasonable to let John reach "incremental" mode (pass 3) and run that
-for a while (some days).  You will notice that John's success rate (the
-number of passwords cracked per hour or per day) will be dropping
-rapidly.  When you determine that the success rate is low enough, you
-interrupt John.
-
 Q: I've recently switched my system to Blowfish-based password hashes,
 but there are still some DES-based and MD5-based hashes in the password
 file.  How do I handle multiple hash types in one file?
@@ -248,24 +266,6 @@ A: Do you really want to see a 0% all the time?  As explained in MODES,
 "incremental" mode is not supposed to terminate in a reasonable time.
 (There are a few exceptions to this, so a progress indicator has been
 added in -jumbo and it might be added in official versions later.)
-
-Q: What do the various numbers printed on the status line mean?
-A: As of version 1.8.0, the status line may include: successful guess
-count ("g"), session duration (in the D:HH:MM:SS format for days, hours,
-minutes, and seconds), progress indicator (percent done and optionally
-pass number out of the total number of passes), up to four speed metrics
-("g/s", "p/s", "c/s", and "C/s"), and the current (range of) candidate
-password(s) being tested (John is often able to test multiple candidate
-passwords in parallel for better performance, hence a range).  The four
-speed metrics are as follows: g/s is successful guesses per second (so
-it'll stay at 0 until at least one password is cracked), p/s is
-candidate passwords tested per second, c/s is "crypts" (password hash or
-cipher computations) per second, and C/s is combinations of candidate
-password and target hash per second.  Versions of John prior to 1.8.0
-displayed only the C/s rate (calling it c/s).  When you restore a
-pre-1.8.0 session with version 1.8.0 or newer, only the g/s and C/s
-rates will be displayed, because the older .rec file format lacked
-information needed to compute p/s and c/s.
 
 Q: I just noticed that the p/s, c/s, and C/s rates reported while using
 "incremental" mode are a lot lower than they are with other cracking
