@@ -316,7 +316,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		res = atoi(p);
 		if (res != sizeof(struct luks_phdr))
 			goto err;
-		p = strtok(NULL, "$");
+		if ((p = strtok(NULL, "$")) == NULL)
+			goto err;
 		if (res * 2 != strlen(p))
 			goto err;
 		if ((p = strtok(NULL, "$")) == NULL)
