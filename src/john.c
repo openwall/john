@@ -1,6 +1,17 @@
 /*
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1996-2004,2006,2009-2013 by Solar Designer
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ *
+ * There's ABSOLUTELY NO WARRANTY, express or implied.
+ *
+ * Please note that although this main john.c file is under the cut-down BSD
+ * license above (so that you may reuse sufficiently generic pieces of code
+ * from this file under these relaxed terms), some other source files that it
+ * uses are under GPLv2.  For licensing terms for John the Ripper as a whole,
+ * see doc/LICENSE.
  */
 
 #define NEED_OS_FORK
