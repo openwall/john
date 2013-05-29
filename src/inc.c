@@ -389,9 +389,9 @@ void do_incremental_crack(struct db_main *db, char *mode)
 
 	if (!mode) {
 		if (db->format == &fmt_LM)
-			mode = "LanMan";
+			mode = "LM_ASCII";
 		else
-			mode = "All";
+			mode = "ASCII";
 	}
 
 	log_event("Proceeding with \"incremental\" mode: %.100s", mode);
