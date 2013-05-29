@@ -59,7 +59,7 @@ static void crk_help(void)
 	static int printed = 0;
 	if (!john_main_process || printed)
 		return;
-	fprintf(stderr, "Press Ctrl-C or 'q' to abort, "
+	fprintf(stderr, "Press 'q' or Ctrl-C to abort, "
 	    "almost any other key for status\n");
 	printed = 1;
 }
