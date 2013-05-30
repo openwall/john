@@ -321,7 +321,7 @@ static inline uint32_t DoSHA256_FixBufferLen32(unsigned char *input_buf, int tot
 	return ret;
 }
 static void DoSHA256_crypt_f_sse(void *in, int len[MMX_COEF_SHA256], void *out, int isSHA256) {
-	ALIGN(16) ARCH_WORD_32 a[(32*MMX_COEF_SHA256)/sizeof(ARCH_WORD)];
+	ALIGN(16) ARCH_WORD_32 a[(32*MMX_COEF_SHA256)/sizeof(ARCH_WORD_32)];
 	unsigned int i, j, loops[MMX_COEF_SHA256], bMore, cnt;
 	unsigned char *cp = (unsigned char*)in;
 	for (i = 0; i < MMX_COEF_SHA256; ++i) {
@@ -347,8 +347,8 @@ static void DoSHA256_crypt_f_sse(void *in, int len[MMX_COEF_SHA256], void *out, 
 	}
 }
 static void DoSHA256_crypt_sse(void *in, int ilen[MMX_COEF_SHA256], void *out[MMX_COEF_SHA256], unsigned int *tot_len, int isSHA256, int tid) {
-	ALIGN(16) ARCH_WORD_32 a[(32*MMX_COEF_SHA256)/sizeof(ARCH_WORD)];
-	union yy { unsigned char u[32]; ARCH_WORD_32 a[32/sizeof(ARCH_WORD)]; } y;
+	ALIGN(16) ARCH_WORD_32 a[(32*MMX_COEF_SHA256)/sizeof(ARCH_WORD_32)];
+	union yy { unsigned char u[32]; ARCH_WORD_32 a[32/sizeof(ARCH_WORD_32)]; } y;
 	unsigned int i, j, loops[MMX_COEF_SHA256], bMore, cnt;
 	unsigned char *cp = (unsigned char*)in;
 	for (i = 0; i < MMX_COEF_SHA256; ++i) {
