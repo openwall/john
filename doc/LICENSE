@@ -14,13 +14,14 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 As a special exception to the GNU General Public License terms,
-permission is hereby granted to link the code of this program with any
-version of the OpenSSL library, and distribute linked combinations
-including the two.  You must obey the GNU GPL in all respects for all of
-the code used other than OpenSSL.  If you modify this program, you may
-extend this exception to your version of the program, but you are not
-obligated to do so.  (In other words, you may release your derived work
-under pure GNU GPL version 2 or later as published by the FSF.)
+permission is hereby granted to link the code of this program, with or
+without modification, with any version of the OpenSSL library and/or any
+version of unRAR, and to distribute such linked combinations.  You must
+obey the GNU GPL in all respects for all of the code used other than
+OpenSSL and unRAR.  If you modify this program, you may extend this
+exception to your version of the program, but you are not obligated to
+do so.  (In other words, you may release your derived work under pure
+GNU GPL version 2 or later as published by the FSF.)
 
 (This exception from the GNU GPL is not required for the core tree of
 John the Ripper, but arguably it is required for -jumbo.)
