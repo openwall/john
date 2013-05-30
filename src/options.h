@@ -242,11 +242,11 @@ struct options_main {
 /* Emit a status line every N seconds */
 	int status_interval;
 
-/* Force dynamic format to always treat raw hashes as valid. If not set
-   then dynamic format only uses raw hashes if -form=dynamic_xxx is used.
+/* Force dynamic format to always treat bare hashes as valid. If not set
+   then dynamic format only uses bare hashes if -form=dynamic_xxx is used.
    If this is 'N', then original logic used.  If 'Y' or 'y' then we always
-   use raw hashes as valid in dynamic. */
-	char dynamic_raw_hashes_always_valid;
+   use bare hashes as valid in dynamic. */
+	char dynamic_bare_hashes_always_valid;
 
 #ifdef HAVE_OPENCL
 	char *ocl_platform;
