@@ -186,7 +186,7 @@ static void init(struct fmt_main *self)
 	}
 }
 
-static char * ms_split(char *ciphertext, int index, struct fmt_main *self)
+char * mscash2_split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[MAX_CIPHERTEXT_LENGTH + 1];
 	int i = 0;
@@ -202,8 +202,7 @@ static char * ms_split(char *ciphertext, int index, struct fmt_main *self)
 	return out;
 }
 
-
-static int valid(char *ciphertext, struct fmt_main *self)
+int mscash2_valid(char *ciphertext, int max_salt_length, const char *format_label, struct fmt_main *self)
 {
 	unsigned int i;
 	unsigned int l;
@@ -211,7 +210,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	UTF16 realsalt[23];
 	int saltlen;
 
-	if (strncmp(ciphertext, "$DCC2$", 6))
+	if (strncmp(ciphertext, "$DCC2$10240#", 12))
 		return 0;
 
 	l = strlen(ciphertext);
@@ -230,13 +229,13 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	i = 6;
 	while (ciphertext[i] && ciphertext[i] != '#') ++i;
 	++i;
-	saltlen = enc_to_utf16(realsalt, 22, (UTF8*)strnzcpy(insalt, &ciphertext[i], l-i), l-(i+1));
-	if (saltlen < 0 || saltlen > 22) {
+	saltlen = enc_to_utf16(realsalt, max_salt_length, (UTF8*)strnzcpy(insalt, &ciphertext[i], l-i), l-(i+1));
+	if (saltlen < 0 || saltlen > max_salt_length) {
 		static int warned = 0;
 
 		if (!ldr_in_pot)
 		if (!warned++)
-			fprintf(stderr, "%s: One or more hashes rejected due to salt length limitation\n", FORMAT_LABEL);
+			fprintf(stderr, "%s: One or more hashes rejected due to salt length limitation\n", format_label);
 
 		return 0;
 	}
@@ -249,7 +248,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	return 1;
 }
 
-static char *prepare(char *split_fields[10], struct fmt_main *self)
+static int valid(char *ciphertext, struct fmt_main *self)
+{
+	return mscash2_valid(ciphertext, 22, FORMAT_LABEL, self);
+}
+
+char *mscash2_prepare(char *split_fields[10], struct fmt_main *self)
 {
 	char *cp;
 	int i;
@@ -735,9 +739,9 @@ struct fmt_main fmt_mscash2 = {
 		init,
 		fmt_default_done,
 		fmt_default_reset,
-		prepare,
+		mscash2_prepare,
 		valid,
-		ms_split,
+		mscash2_split,
 		get_binary,
 		get_salt,
 		fmt_default_source,

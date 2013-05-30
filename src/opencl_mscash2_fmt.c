@@ -56,7 +56,7 @@ typedef struct {
 static struct fmt_tests tests[] = {
 	{"$DCC2$test#a86012faf7d88d1fc037a69764a92cac", "password"},
 	{"$DCC2$test3#360e51304a2d383ea33467ab0b639cc4", "test3" },
-	{"$DCC2$test4#6f79ee93518306f071c47185998566ae", "test4" },
+	{"$DCC2$10240#test4#6f79ee93518306f071c47185998566ae", "test4" },
 	{"$DCC2$january#26b5495b21f9ad58255d99b5e117abe2", "verylongpassword" },
 	{"$DCC2$february#469375e08b5770b989aa2f0d371195ff", "(##)(&#*%%" },
 	{"$DCC2$nineteen_characters#c4201b8267d74a2db1d5d19f5c9f7b57", "verylongpassword" }, //max salt_length
@@ -75,6 +75,9 @@ static cl_uint 		*dcc2_hash_host ;
 static unsigned char 	(*key_host)[MAX_PLAINTEXT_LENGTH + 1] ;
 static ms_cash2_salt 	currentsalt ;
 
+extern int mscash2_valid(char *, int,  const char *, struct fmt_main *);
+extern char * mscash2_prepare(char *, struct fmt_main *);
+extern char * mscash2_split(char *, int, struct fmt_main *);
 
 static void md4_crypt(unsigned int *buffer, unsigned int *hash) {
 	unsigned int 	a ;
@@ -232,61 +235,9 @@ static void done() {
 	clean_all_buffer() ;
 }
 
-static int valid(char *ciphertext, struct fmt_main *self) {
-	char 	*hash ;
-	char 	*pos ;
-	int 	hashlength = 0 ;
-	int 	saltlength = 0 ;
-
-	if (strncmp(ciphertext, MSCASH2_PREFIX, sizeof(MSCASH2_PREFIX) - 1) != 0)
-		return 0 ;
-
-	hash = strrchr(ciphertext, '#') + 1 ;
-	if (hash == NULL)
-		return 0;
-
-	while (hash < ciphertext + strlen(ciphertext))	{
-		if (atoi16[ARCH_INDEX(*hash++)] == 0x7f)
-			return 0 ;
-
-		hashlength++ ;
-	}
-
-	if (hashlength != 32)  return 0 ;
-
-	saltlength=0 ;
-
-	pos = strchr(ciphertext, '#') + 1 ;
-
-	while (*pos != '#') {
-		if (saltlength == (MAX_SALT_LENGTH)) {
-			static int warned = 0;
-			if (!ldr_in_pot)
-				if (!warned++)
-					fprintf(stderr, "%s: One or more hashes rejected due to salt length limitation\n", FORMAT_LABEL);
-
-			return 0 ;
-		}
-		saltlength++ ;
-		pos++ ;
-	}
-
-	return 1 ;
-}
-
-static char *split(char *ciphertext, int index, struct fmt_main *self) {
-	static char 	out[MAX_CIPHERTEXT_LENGTH + 1] ;
-	int 		i = 0 ;
-
-	for (; i < MAX_CIPHERTEXT_LENGTH && ciphertext[i]; i++)
-		out[i] = ciphertext[i];
-
-	out[i] = 0;
-
-	// lowercase salt as well as hash, encoding-aware
-	enc_strlwr(&out[6]);
-
-	return out;
+static int valid(char *ciphertext, struct fmt_main *self)
+{
+	return mscash2_valid(ciphertext, MAX_SALT_LENGTH, FORMAT_LABEL, self);
 }
 
 static void *binary(char *ciphertext)
@@ -490,55 +441,6 @@ static int cmp_exact(char *source, int count) {
       return 1 ;
 }
 
-static char *prepare(char *split_fields[10], struct fmt_main *self) {
-	char 	*cp;
-
-	if (split_fields[0]) {
-	  	if (split_fields[0][0] != '?') {
-			cp = mem_alloc(strlen(split_fields[0]) + strlen(split_fields[1]) + 14) ;
-			sprintf (cp, "$DCC2$10240#%s#%s", split_fields[0], split_fields[1]) ;
-			if (valid(cp, self)) {
-				char *cipher = str_alloc_copy(cp) ;
-				MEM_FREE(cp) ;
-				return cipher ;
-			}
-			MEM_FREE(cp);
-
-			return split_fields[1];
-		}
-	}
-
-	//If the format is $DCC2$salt#hash
-	if (strncmp(split_fields[1], "$DCC2$10240#", 12)) {
-		char *hash = str_alloc_copy(strrchr(split_fields[1], '#') + 1) ;
-		char *salt = (char *)mem_alloc(MAX_SALT_LENGTH + 4);
-		char *pos;
-		int i = 0;
-		cp = mem_alloc(MAX_CIPHERTEXT_LENGTH + 1) ;
-
-		pos = strrchr(split_fields[1],'$') + 1 ;
-		while (pos[i] != '#') {
-			salt[i] = pos[i];
-			i++;
-		}
-		salt[i] = '\0';
-
-		sprintf(cp,"$DCC2$10240#%s#%s",salt,hash);
-
-		MEM_FREE(salt);
-		//MEM_FREE(hash);
-		if(valid(cp,self)) {  return cp;}
-
-		MEM_FREE(cp);
-	}
-
-	if (!strncmp(split_fields[1], "$DCC2$", 6) && valid(split_fields[1], self)){
-		return split_fields[1] ;
-	}
-
-	return split_fields[1] ;
-}
-
 static int salt_hash(void *salt) {
 	ms_cash2_salt 	*_s = (ms_cash2_salt *)salt ;
 	unsigned char   *s = _s->username ;
@@ -570,9 +472,9 @@ struct fmt_main fmt_opencl_mscash2 = {
 		init,
 		done,
 		fmt_default_reset,
-		prepare,
+		mscash2_prepare,
 		valid,
-		split,
+		mscash2_split,
 		binary,
 		salt,
 		fmt_default_source,
