@@ -248,20 +248,23 @@ static void release_clobj(void) {
 
 /* ------- Salt functions ------- */
 static void * get_salt(char *ciphertext) {
-	static unsigned char out[SALT_SIZE_X];
+	static union {
+		unsigned char c[SALT_SIZE_X];
+		ARCH_WORD dummy;
+	} out;
 	char *p;
 	int i;
 
 	ciphertext += 6;
 	p = ciphertext;
-	for (i = 0; i < sizeof (out); i++) {
-		out[i] =
+	for (i = 0; i < sizeof (out.c); i++) {
+		out.c[i] =
 				(atoi16[ARCH_INDEX(*p)] << 4) |
 				atoi16[ARCH_INDEX(p[1])];
 		p += 2;
 	}
 
-	return out;
+	return out.c;
 }
 
 static void set_salt(void * salt_info) {
