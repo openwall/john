@@ -133,6 +133,7 @@ the recommended order of reading:
 * CONTACT (*) - how to contact the author or otherwise obtain support
 * CREDITS (*) - credits
 * LICENSE - copyrights and licensing terms
+* COPYING - GNU GPL version 2, as referenced by LICENSE above
 
 (*) most users can safely skip these.
 
