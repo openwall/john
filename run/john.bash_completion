@@ -91,7 +91,7 @@
 ## have grep && have sed && have tr &&
 _john()
 {
-	local first cur options valopts compreplya compreplyb encodings formats
+	local first cur options valopts compreplya compreplyb encodings formats format_classes
 	local subformats list dir cmd i ver ver1 ver2 ver3 prev words prefix option
 
 	# Without LC_ALL=C, [A-Z] match [a-z] (case "${cur}" in ... esac)
@@ -138,7 +138,7 @@ _john()
 #	with --list=hidden-options.
 #
 #	All options:
-	options="`{ ${first} 2>/dev/null|sed -n -e 's#^ *\(--[a-z-]*\(\[\)\?=\?\(LIST\)\?\).*$#\1#' -e '/^--/ p'; echo --stdin; ${first} --list=hidden-options 2>/dev/null|sed -n -e 's#^\(--[a-z-]*\(\[\)\?=\?\).*$#\1#' -e '/--/ p'; }`"
+	options="`{ ${first} 2>/dev/null|sed -n -e 's#^ *\(--[a-z-]*\(\[\)\?=\?\(LIST\)\?\).*$#\1#' -e '/^--/ p'; echo --stdin; ${first} --list=hidden-options 2>/dev/null|sed -n -e 's#^\(--[a-z-]*\(\[\)\?=\?\).*$#\1#' -e '/--/ p'; } | sort -u`"
 
 	if [[ "_${options}" == "_--stdin" && "_${__john_binary}" != "_" ]] ; then
 		# No options and hidden options with ${first}, but a previous
@@ -180,7 +180,7 @@ _john()
 		# jumbo version...)
 		first="${__john_binary}"
 
-		options="`{ ${first} 2>/dev/null|sed -n -e 's#^ *\(--[a-z-]*\(\[\)\?=\?\(LIST\)\?\).*$#\1#' -e '/^--/ p'; echo --stdin; ${first} --list=hidden-options 2>/dev/null|sed -n -e 's#^\(--[a-z-]*\(\[\)\?=\?\).*$#\1#' -e '/--/ p'; }`"
+		options="`{ ${first} 2>/dev/null|sed -n -e 's#^ *\(--[a-z-]*\(\[\)\?=\?\(LIST\)\?\).*$#\1#' -e '/^--/ p'; echo --stdin; ${first} --list=hidden-options 2>/dev/null| sed -n -e 's#^\(--[a-z-]*\(\[\)\?=\?\).*$#\1#' -e '/--/ p'; } | sort -u`"
 		if [[ "_${options}" == "_--stdin" ]] ; then
 			_filedir_xspec 2> /dev/null
 			return 0
@@ -309,9 +309,10 @@ _john()
 			return 0
 			;;
 		--format=*)
-			cur=`echo ${cur#*[=:]}|LC_ALL=C tr A-Z a-z`
-			formats=`${first} |sed -n -e '/^--format/,$ {' -e 's#^--format=[ A-Za-z]*:##' -e '/^--/ b' -e 's#^ *##' -e 's#\<dynamic_n\>#dynamic#' -e 's#^\(.*\)$#\1#' -e 's#/# #g' -e 'p }'|LC_ALL=C tr A-Z a-z`
-			COMPREPLY=( $(compgen -W "${formats}" -- ${cur}) )
+			cur=`echo ${cur#*[=:]} | tr A-Z a-z`
+			formats=`${first} |sed -n -e '/^--format/,$ {' -e 's#^--format=[ A-Za-z]*:##' -e '/^--/ b' -e 's#^ *##' -e 's#\<dynamic_n\>#dynamic#' -e 's#^\(.*\)$#\1#' -e 's#/# #g' -e 'p }' | tr A-Z a-z` 
+			format_classes=`${first} --list=hidden-options  2>/dev/null|sed -n -e '/^--format/,$ {' -e 's#^--format=[ A-Za-z]*:##' -e '/^--/ b' -e 's#^ *##' -e 's#\<dynamic\>##' -e 's#^\(.*\)$#\1#' -e 's#,# #g' -e 'p }' | tr A-Z a-z`
+			COMPREPLY=( $(compgen -W "${formats} ${format_classes}" -- ${cur}) )
 			if [[ "${COMPREPLY[0]}_" == dynamic_ ]] ; then
 				compopt -o nospace
 			fi
@@ -369,7 +370,7 @@ _john()
 				list=`${first} --list=rules 2>/dev/null`
 			fi
 			if [[ $? -eq 0 ]] ; then
-				cur=`echo ${cur#*[=:]}|LC_ALL=C tr A-Z a-z`
+				cur=`echo ${cur#*[=:]} | tr A-Z a-z`
 				COMPREPLY=( $(compgen -W "${list}" -- ${cur}) )
 			else
 				cur=${cur#*[=:]}
@@ -412,7 +413,7 @@ _john()
 				fi
 				cur=${cur#*[=:]}
 			else
-				cur=`echo ${cur#*[=:]}|LC_ALL=C tr A-Z a-z`
+				cur=`echo ${cur#*[=:]} | tr A-Z a-z`
 			fi
 			COMPREPLY=( $(compgen -W "${list}" -- ${cur}) )
 			return 0
@@ -438,7 +439,7 @@ _john()
 				list=`${first} --list=inc-modes 2>/dev/null`
 			fi
 			if [[ $? -eq 0 ]] ; then
-				cur=`echo ${cur#*[=:]}|LC_ALL=C tr A-Z a-z`
+				cur=`echo ${cur#*[=:]} | tr A-Z a-z`
 				COMPREPLY=( $(compgen -W "${list}" -- ${cur}) )
 			else
 				cur=${cur#*[=:]}
@@ -480,11 +481,11 @@ _john()
 			# Just try completion for --markov=MODE
 			# for all [Markov:...] sections?
 			if [[ "${valopts}" == *--list=* ]] ; then
-				cur=`echo ${cur#*[=:]}|LC_ALL=C tr A-Z a-z`
+				cur=`echo ${cur#*[=:]} | tr A-Z a-z`
 				# Don't include subsection names which
 				# contain a ':' or which contain
 				# just '-' and digits
-				list=`${first} --list=Markov 2>/dev/null | LC_ALL=C sed 's#^.*:.*$##'|LC_ALL=C sed 's#^[-0-9]*$##'`
+				list=`${first} --list=Markov 2>/dev/null | sed 's#^.*:.*$##' | sed 's#^[-0-9]*$##'`
 				COMPREPLY=( $(compgen -W "${list}" -- ${cur}) )
 				# no trailing space, just in case
 				# the user wants to add :LEVEL...
@@ -501,7 +502,7 @@ _john()
 			return 0
 			;;
 		--show=?([Ll]|[Ll][Ee]|[Ll][Ee][Ff]|[Ll][Ee][Ff][Tt]))
-			cur=`echo ${cur#*[=:]}|LC_ALL=C tr a-z A-Z`
+			cur=`echo ${cur#*[=:]} | tr a-z A-Z`
 			COMPREPLY=( $(compgen -W "LEFT" -- ${cur}) )
 			return 0
 			;;
@@ -543,9 +544,8 @@ _john()
 				# is supported
 				if [[ "_${list}" != *encoding* ]] ; then
 					encodings="${encodings} LIST"
-					# make sure LIST will be
-					# the first option:
-					LC_ALL=C
+					# LIST will be the first option because og
+					# LC_ALL=C at the begin of this function
 				fi
 			fi
 			COMPREPLY=( $(compgen -W "${encodings}" -- ${cur}) )
@@ -594,13 +594,13 @@ _john()
 			if [[ "${options}" == *--subformat=LIST* ]] ; then
 				# may be this deprecated version should be
 				# ignored!
-				cur=`echo ${cur#*[=:]}|LC_ALL=C tr a-z A-Z`
+				cur=`echo ${cur#*[=:]} | tr a-z A-Z`
 				COMPREPLY=( $(compgen -W "LIST" -- ${cur}) )
 			else
 				# possible subformats for --format=crypt
 				# (descrypt, md5crypt, bcrypt, sha256crypt,
 				# sha512crypt)
-				cur=`echo ${cur#*[=:]}|LC_ALL=C tr A-Z a-z`
+				cur=`echo ${cur#*[=:]} | tr A-Z a-z`
 				# Should I test if --format=crypt
 				# (or -fo:crypt ...) is specified?
 				# Should I really parse the output of
@@ -622,7 +622,7 @@ _john()
 			# CUDA doesn't allow --device=LIST
 			# workaround: check if --platform= is allowed
 			if [[  "${valopts}" == *--platform=* && "_${list}" != _*-devices* ]] ; then
-				cur=`echo ${cur#*[=:]}|LC_ALL=C tr a-z A-Z`
+				cur=`echo ${cur#*[=:]} | tr a-z A-Z`
 				COMPREPLY=( $(compgen -W "LIST" -- ${cur}) )
 			fi
 			return 0
@@ -642,7 +642,7 @@ _john()
 			return 0
 			;;
 		--list+(+(=|:)+([a-z_-]):|:+([a-z._-])=)*([A-Za-z0-9:._-]))
-			cur=`echo ${cur#*[=:]}|LC_ALL=C tr A-Z a-z`
+			cur=`echo ${cur#*[=:]} | tr A-Z a-z`
 			cmd=${cur%[=:]*}
 			prefix=""
 			if [[ "_${cmd}" == _*:* ]] ; then
