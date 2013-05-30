@@ -310,12 +310,37 @@ _john()
 			;;
 		--format=*)
 			cur=`echo ${cur#*[=:]} | tr A-Z a-z`
-			formats=`${first} |sed -n -e '/^--format/,$ {' -e 's#^--format=[ A-Za-z]*:##' -e '/^--/ b' -e 's#^ *##' -e 's#\<dynamic_n\>#dynamic#' -e 's#^\(.*\)$#\1#' -e 's#/# #g' -e 'p }' | tr A-Z a-z` 
-			format_classes=`${first} --list=hidden-options  2>/dev/null|sed -n -e '/^--format/,$ {' -e 's#^--format=[ A-Za-z]*:##' -e '/^--/ b' -e 's#^ *##' -e 's#\<dynamic\>##' -e 's#^\(.*\)$#\1#' -e 's#,# #g' -e 'p }' | tr A-Z a-z`
+			# Looks like b is not a good enough replacement for q (which is a GNU extension).
+			# For now this works, because no other option after --format=NAME needs more than
+			# one line of text.
+			formats=`${first} |sed -n -e '/^--format/,$ {' -e 's#^--format=[ A-Za-z]*:##' -e '/^--/ b' -e 's#^ *##' -e 's#\<dynamic_n\>#dynamic#' -e 's#^\(.*\)$#\1#' -e 's#/# #g' -e 'p }' | tr A-Z a-z`
+			# Looks like b is not a good enough replacement for q (which is a GNU extension).
+			# Ugly workaround for now: skip lines that end with '.'.
+			# This breaks as soon as someone changes the line
+			# "always treat bare hashes as valid." into
+			# "always treat bare hashes as valid"
+			# or adds another option with more than one line of text...
+			format_classes=`${first} --list=hidden-options  2>/dev/null|sed -n -e '/^--format/,$ {' -e 's#^--format=[ A-Za-z]*:##' -e '/^--/ b' -e '/\.$/ b' -e 's#^ *##' -e 's#\<dynamic\>##' -e 's#^\(.*\)$#\1#' -e 's#,# #g' -e 'p }' | tr A-Z a-z`
 			COMPREPLY=( $(compgen -W "${formats} ${format_classes}" -- ${cur}) )
 			if [[ "${COMPREPLY[0]}_" == dynamic_ ]] ; then
 				compopt -o nospace
 			fi
+			#
+			# Commented out the current state of wildcard support for --format=
+			# because I am not yet fully satisfied with this implementaton...
+			#
+			#i=${#COMPREPLY[*]}
+			#if [[ $i -gt 1 ]] ; then
+				# This would add matching file names (raw2dyna) in addition to raw*
+				#COMPREPLY=( $(compgen -W "${formats} ${format_classes} ${cur}*" -- ${cur}) )
+				
+				# This would not complete raw to raw- first, before adding raw-* in the next step.
+				# It will just add raw* to all the raw-<something> formats.
+				# (I need to find the common substring first, because I don't like the generic
+				# completion as long as all other possible completions do have a larger common
+				# substring...)
+			#	COMPREPLY[$i]="${cur}*"
+			#fi
 			return 0
 			;;
 
