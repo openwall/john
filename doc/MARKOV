@@ -24,7 +24,7 @@ If the mode name is not specified, the default mode as specified in section
 * LEVEL is the "Markov level".
 It can be specified as MIN_LEVEL-MAX_LEVEL or as MAX_LEVEL.
 MAX_LEVEL determines the maximum strength of passwords that are going to be
-cracked. When MAX_LEVEL increases, the quantity of passwords that are going
+tried. When MAX_LEVEL increases, the quantity of passwords that are going
 to be tested increases exponentially.
 
 MIN_LEVEL determines the minimum strength of passwords that are generated.
@@ -73,7 +73,7 @@ This means that john can test 24.9M passwords / second (24914Kp/s). Since John
 version 1.8, this figure can be used directly, salts or not (earlier versions
 only showed what is now output as 3319MC/s and that is harder to use).
 
-3/ Evaluate the quantity of passwords that could be cracked during the selected
+3/ Evaluate the quantity of passwords that could be tried during the selected
 time. Using the previous example, a cracking time of 3 hours will lead to a
 quantity of 269 G passwords (24914000*3600*3) to test.
 
