@@ -309,14 +309,17 @@ void listconf_parse_late(void)
 	if (!strcasecmp(options.listconf, "formats")) {
 		struct fmt_main *format;
 		int column = 0, dynamics = 0;
+		int grp_dyna;
+
+		grp_dyna = options.format ?
+			strcmp(options.format, "dynamic") ?
+			0 : strstr(options.format, "*") != 0 : 1;
 
 		format = fmt_list;
 		do {
 			int length;
 			char *label = format->params.label;
-			if ((!options.format ||
-			     strcmp(options.format, "dynamic")) &&
-			    !strncmp(label, "dynamic", 7)) {
+			if (grp_dyna && !strncmp(label, "dynamic", 7)) {
 				if (dynamics++)
 					continue;
 				else
