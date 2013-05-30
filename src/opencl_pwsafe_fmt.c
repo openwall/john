@@ -12,6 +12,7 @@
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
+
 #include "arch.h"
 #include "misc.h"
 #include "common.h"
@@ -270,7 +271,8 @@ static void init(struct fmt_main *self)
 	self->params.max_keys_per_crypt = global_work_size;
 	self->methods.crypt_all = crypt_all;
 
-	fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
+	if (options.verbosity > 2)
+		fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)

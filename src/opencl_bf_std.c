@@ -8,10 +8,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/time.h>
+#include <math.h>
+
 #include "arch.h"
 #include "common.h"
+#include "options.h"
 #include "opencl_bf_std.h"
-#include <math.h>
 
 /* Number of Blowfish rounds, this is also hardcoded into a few places */
 #define BF_ROUNDS			16
@@ -450,7 +452,8 @@ static void find_best_gws(struct fmt_main *fmt) {
 		speed = ((double)count) / savetime ;
 	} while (diff > 0.01) ;
 
-	fprintf(stderr, "Optimal Global Work Size:%ld\n", count) ;
+	if (options.verbosity > 2)
+		fprintf(stderr, "Optimal Global Work Size:%ld\n", count) ;
 
 	fmt -> params.max_keys_per_crypt = count ;
 	fmt -> params.min_keys_per_crypt = WORK_GROUP_SIZE ;
@@ -514,7 +517,10 @@ void BF_select_device(struct fmt_main *fmt) {
 
 	if (!global_work_size)	find_best_gws(fmt) ;
 	else {
-		fprintf(stderr, "Global worksize (GWS) forced to %zu\n", global_work_size) ;
+		if (options.verbosity > 3)
+			fprintf(stderr,
+			        "Global worksize (GWS) forced to %zu\n",
+			        global_work_size) ;
 		fmt -> params.max_keys_per_crypt = global_work_size ;
 		fmt -> params.min_keys_per_crypt = WORK_GROUP_SIZE  ;
 	}

@@ -709,7 +709,8 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
 		CL_QUEUE_PROFILING_ENABLE, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating command queue");
 
-	//fprintf(stderr, "Max local work size %d, ", (int) max_group_size);
+	if (options.verbosity > 3)
+		fprintf(stderr, "Max local work size %d, ", (int) max_group_size);
 
 	self->methods.clear_keys();
 
@@ -1283,7 +1284,7 @@ void opencl_build_kernel_opt(char *kernel_filename, unsigned int sequential_id, 
 //On OSX (including with nvidia) save binary kernel too.
 void opencl_build_kernel_save(char *kernel_filename, unsigned int sequential_id, char *opts, int save, int warn) {
 	struct stat source_stat, bin_stat;
-	char dev_name[128], bin_name[128];
+	char dev_name[512], bin_name[512];
 	char * p;
 	uint64_t startTime, runtime;
 
@@ -1325,14 +1326,14 @@ void opencl_build_kernel_save(char *kernel_filename, unsigned int sequential_id,
 
 		} else {
 
-			if (warn) {
+			if (warn && options.verbosity > 2) {
 				fprintf(stderr, "Building the kernel, this could take a while\n");
 				fflush(stdout);
 			}
 			read_kernel_source(kernel_filename);
 			opencl_build(sequential_id, opts, 1, bin_name, 1);
 		}
-		if (warn) {
+		if (warn && options.verbosity > 2) {
 			if ((runtime = (unsigned long) (time(NULL) - startTime)) > 2UL)
 				fprintf(stderr, "Build time: %lu seconds\n", (unsigned long)runtime);
 			fflush(stdout);

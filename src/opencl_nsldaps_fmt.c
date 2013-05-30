@@ -16,7 +16,7 @@
 #include "formats.h"
 #include "common.h"
 #include "config.h"
-
+#include "options.h"
 #include "sha.h"
 #include "base64.h"
 #include "common-opencl.h"
@@ -267,7 +267,8 @@ static void fmt_ssha_init(struct fmt_main *self)
 	if (global_work_size < local_work_size)
 		global_work_size = local_work_size;
 
-	fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
+	if (options.verbosity > 2)
+		fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
 	create_clobj(global_work_size, self);
 
 	self->params.min_keys_per_crypt = local_work_size;

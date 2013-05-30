@@ -19,10 +19,12 @@
  */
 
 #include <string.h>
+
 #include "sha.h"
 #include "sha2.h"
 #include "common-opencl.h"
 #include "config.h"
+#include "options.h"
 #include "opencl_rawsha512-ng.h"
 
 #define RAW_FORMAT_LABEL		"raw-sha512-ng-opencl"
@@ -424,8 +426,10 @@ static void init(struct fmt_main * self) {
 	while (global_work_size > gws_limit)
 		global_work_size -= local_work_size;
 
-	fprintf(stderr, "Local worksize (LWS) %zd, global worksize (GWS) %zd\n",
-		   local_work_size, global_work_size);
+	if (options.verbosity > 2)
+		fprintf(stderr,
+		        "Local worksize (LWS) %zd, global worksize (GWS) %zd\n",
+		        local_work_size, global_work_size);
 	self->params.min_keys_per_crypt = local_work_size;
 	self->params.max_keys_per_crypt = global_work_size;
 	self->methods.crypt_all = crypt_all;

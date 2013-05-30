@@ -18,8 +18,10 @@
  */
 
 #include <string.h>
+
 #include "arch.h"
 #include "misc.h"
+#include "options.h"
 #include "memory.h"
 #include "common.h"
 #include "formats.h"
@@ -211,7 +213,8 @@ static void init(struct fmt_main *self){
 	if (!local_work_size)
 		opencl_find_best_workgroup(self);
 
-	fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
+	if (options.verbosity > 2)
+		fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
 }
 
 static char *split(char *ciphertext, int index, struct fmt_main *self)

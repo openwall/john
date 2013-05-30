@@ -15,6 +15,7 @@
 #include "arch.h"
 #include "misc.h"
 #include "common.h"
+#include "options.h"
 #include "formats.h"
 #include "sha.h"
 #include "common-opencl.h"
@@ -223,7 +224,8 @@ static void init(struct fmt_main *self){
 		create_clobj(global_work_size);
 	}
 
-	fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n",(int)local_work_size, (int)global_work_size);
+	if (options.verbosity > 2)
+		fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n",(int)local_work_size, (int)global_work_size);
 
 	self->params.max_keys_per_crypt = global_work_size;
 

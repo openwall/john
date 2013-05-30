@@ -7,16 +7,18 @@
  * modification, are permitted. */
 
 #include <string.h>
+#include <openssl/des.h>
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 #include "arch.h"
 #include "formats.h"
 #include "common.h"
 #include "misc.h"
-#include <openssl/des.h>
 #include "common-opencl.h"
 #include "gladman_fileenc.h"
-#ifdef _OPENMP
-#include <omp.h>
-#endif
+#include "options.h"
 
 #define FORMAT_LABEL		"zip-opencl"
 #define FORMAT_NAME		"ZIP-AES PBKDF2-HMAC-SHA-1"
@@ -178,7 +180,8 @@ static void init(struct fmt_main *self)
 
 	self->params.min_keys_per_crypt = local_work_size;
 
-	fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
+	if (options.verbosity > 2)
+		fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
 }
 
 static int ishex(char *q)

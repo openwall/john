@@ -15,6 +15,7 @@
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
+#include <openssl/aes.h>
 
 #include "arch.h"
 #include "misc.h"
@@ -27,7 +28,6 @@
 #include "common-opencl.h"
 #include "config.h"
 #include "sha2.h"
-#include <openssl/aes.h>
 
 #define PLAINTEXT_LENGTH	47
 #define UNICODE_LENGTH		96 /* In octets, including 0x80 */
@@ -484,7 +484,8 @@ static void init(struct fmt_main *self)
 	if (global_work_size < local_work_size)
 		global_work_size = local_work_size;
 
-	fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
+	if (options.verbosity > 2)
+		fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
 	create_clobj(global_work_size, self);
 
 	if (options.utf8)
