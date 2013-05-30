@@ -4,7 +4,9 @@
 # Copyright (c) 2011 Solar Designer
 # Enhancements for revision 4.1, copyright (c) 2012 Frank Dittrich
 # Redistribution and use in source and binary forms, with or without
-# modification, are permitted.  (This is a heavily cut-down "BSD license".)
+# modification, are permitted.
+# There's ABSOLUTELY NO WARRANTY, express or implied.
+# (This is a heavily cut-down "BSD license".)
 #
 # This is a Perl script to compare two "john --test" benchmark runs,
 # such as for different machines, "make" targets, C compilers,

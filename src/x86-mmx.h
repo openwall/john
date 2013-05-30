@@ -4,6 +4,12 @@
  *
  * ...with changes in the jumbo patch for mingw and MSC, by JimF.
  * ...and introduction of MMX_TYPE and MMX_COEF by Simon Marechal.
+ * ...and various little things by magnum
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ *
+ * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
 /*

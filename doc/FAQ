@@ -129,58 +129,23 @@ of John, the first step is for you to try -jumbo instead.  As of this
 writing, you do need -jumbo for some popular hash types such as raw MD5
 and NTLM.
 
-Q: Does John support multi-processing or distributed processing?
-A: Yes, but you need to explicitly enable this if desired.  There's
-currently built-in parallel processing support using OpenMP (to make use
-of multiple CPUs and/or CPU cores in a single system) for all crypt(3)
-hash flavors (DES-, MD5-, and Blowfish-based) supported by John
-natively, as well as for LM hashes and, when running on Linux or
-Solaris, also for the underlying system's thread-safe password hashing
-function.  The latter is only reasonable to use for crypt(3) hash types
-not yet supported by John natively (that is, for glibc 2.7+ SHA-crypt
-hashes as used by recent versions of Fedora and Ubuntu, and for SunMD5
-hashes, which may optionally be enabled on Solaris).  In "community
-enhanced" -jumbo versions, parallelization with OpenMP is also supported
-for many (but not all) of the hash and cipher types added in those
-versions.  To use John's OpenMP support, you need to either use an
-existing OpenMP-enabled build (e.g., "john-omp.exe" on Windows) or make
-an OpenMP-enabled build by uncommenting one of the OMPFLAGS lines near
-the beginning of Makefile.  This requires GCC 4.2 or newer, or another
-OpenMP-capable C compiler.  For other hash or cipher types and/or to
-distribute the workload between multiple machines, other approaches need
-to be used.  For a small number of nodes (CPUs, CPU cores, and/or
-machines), it is reasonable to use a manual approach.  One of those
-approaches is to have your nodes try different password lengths.  This
-is easily accomplished with "incremental" mode's "MinLen" and "MaxLen"
-settings (see CONFIG).  Typically, you would not really need to split
-the workload for "single crack" and wordlist modes since these are
-relatively quick, although you may dedicate one node to those initially.
-You may safely run multiple instances of John in the same working
-directory, all writing to the same "pot file" (this is a feature).  You
-do, however, need to assign each of them a unique session name, with
-"--session" (please note that doing so does not eliminate the need to
-also distribute the workload manually as discussed above).  Other
-approaches, such as splitting password files naively (without regard to
-salts), are typically less efficient (in some cases to the extent where
-there's no speedup from using multiple nodes at all).  Some advanced and
-automated approaches, such as using MPI, are listed on the wiki at:
-http://openwall.info/wiki/john/parallelization
-
-Q: Where do I get wordlists for use with John?
-A: http://www.openwall.com/wordlists/
-
-Q: Where do I get new versions of John the Ripper?
-Q: Where do I get the source code for John?
-Q: I only have the source code for John the Ripper, where do I get it
-pre-compiled for my OS (if supported)?
-Q: What is the primary website for John the Ripper?
-A: http://www.openwall.com/john/
-
-Q: How can I contact you (the author)?
-A: See CONTACT.
-
-
-	Questions sometimes asked by existing users.
+Q: What do the various numbers printed on the status line mean?
+A: As of version 1.8.0, the status line may include: successful guess
+count ("g"), session duration (in the D:HH:MM:SS format for days, hours,
+minutes, and seconds), progress indicator (percent done and optionally
+pass number out of the total number of passes), up to four speed metrics
+("g/s", "p/s", "c/s", and "C/s"), and the current (range of) candidate
+password(s) being tested (John is often able to test multiple candidate
+passwords in parallel for better performance, hence a range).  The four
+speed metrics are as follows: g/s is successful guesses per second (so
+it'll stay at 0 until at least one password is cracked), p/s is
+candidate passwords tested per second, c/s is "crypts" (password hash or
+cipher computations) per second, and C/s is combinations of candidate
+password and target hash per second.  Versions of John prior to 1.8.0
+displayed only the C/s rate (calling it c/s).  When you restore a
+pre-1.8.0 session with version 1.8.0 or newer, only the g/s and C/s
+rates will be displayed, because the older .rec file format lacked
+information needed to compute p/s and c/s.
 
 Q: I am running John for 10 days and it is still not finished?!
 Q: How long should I expect John to run?
@@ -207,6 +172,65 @@ for a while (some days).  You will notice that John's success rate (the
 number of passwords cracked per hour or per day) will be dropping
 rapidly.  When you determine that the success rate is low enough, you
 interrupt John.
+
+Q: Does John support multi-processing or distributed processing?
+A: Yes, but you need to explicitly enable this if desired.  Starting
+with version 1.8.0, there's the "--fork" option on Unix-like systems (to
+make use of multiple CPUs and/or CPU cores in a single system) and the
+"--node" option on all systems (this one allows for a trivial form of
+distributed processing).  The "--fork" and "--node" options may also be
+used together.  Please refer to OPTIONS for a description of these
+options.  Additionally, there's built-in parallel processing support
+using OpenMP for all crypt(3) hash flavors (DES-, MD5-, and
+Blowfish-based) supported by John natively, and when running on Linux or
+Solaris also for the underlying system's thread-safe password hashing
+function.  The latter is only reasonable to use for crypt(3) hash types
+not yet supported by John natively (such as for glibc 2.7+ SHA-crypt
+hashes as used by recent versions of Fedora and Ubuntu, and for SunMD5
+hashes, which may optionally be enabled on Solaris).  In "community
+enhanced" -jumbo versions, parallelization with OpenMP is also supported
+for many (but not all) of the hash and cipher types added in those
+versions (including for their built-in implementation of SHA-crypt).
+To use John's OpenMP support, you need to either use an existing
+OpenMP-enabled build (e.g., "john-omp.exe" on Windows) or make an
+OpenMP-enabled build by uncommenting one of the OMPFLAGS lines near the
+beginning of Makefile.  This requires GCC 4.2 or newer, or another
+OpenMP-capable C compiler.  For other hash or cipher types and/or to
+distribute the workload between multiple machines, other approaches need
+to be used.  One of those approaches is to use the "--fork" and "--node"
+options.  For a very small number of nodes (CPUs, CPU cores, and/or
+machines), it is also reasonable to use a manual approach, such as to
+have your nodes try different password lengths.  This is easily
+accomplished with "incremental" mode's "MinLen" and "MaxLen" settings
+(see CONFIG).  You might not need to split the workload for "single
+crack" and wordlist modes since these are typically relatively quick,
+although "--fork" and "--node" are supported for these modes too.  You
+may safely run multiple instances of John in the same working directory,
+all writing to the same "pot file" (this is a feature).  You do,
+however, need to assign each of them a unique session name, with
+"--session" (please note that doing so does not eliminate the need to
+also distribute the workload with "--node" or otherwise, as discussed
+above).  Other approaches, such as splitting password files naively
+(without regard to salts), are typically less efficient (in some cases
+to the extent where there's no speedup from using multiple nodes at
+all).  Some other approaches, such as using MPI, are listed on the wiki
+at: http://openwall.info/wiki/john/parallelization
+
+Q: Where do I get wordlists for use with John?
+A: http://www.openwall.com/wordlists/
+
+Q: Where do I get new versions of John the Ripper?
+Q: Where do I get the source code for John?
+Q: I only have the source code for John the Ripper, where do I get it
+pre-compiled for my OS (if supported)?
+Q: What is the primary website for John the Ripper?
+A: http://www.openwall.com/john/
+
+Q: How can I contact you (the author)?
+A: See CONTACT.
+
+
+	Questions sometimes asked by existing users.
 
 Q: I've recently switched my system to Blowfish-based password hashes,
 but there are still some DES-based and MD5-based hashes in the password
@@ -243,21 +267,11 @@ A: Do you really want to see a 0% all the time?  As explained in MODES,
 (There are a few exceptions to this, so a progress indicator has been
 added in -jumbo and it might be added in official versions later.)
 
-Q: Why does John display meaningless c/s values while cracking, instead
-of real "crypts per second" rate?
-A: The values displayed by John mean combinations (of username and
-password) per second, not crypts per second.  This is the effective
-cracking speed that you get on a particular set of password hashes, and
-it may be useful, for example, to tune the "--salts=..." threshold and
-other settings.  If you want a benchmark of the low-level password
-hashing routines only, use "--test".  (Future versions of John the
-Ripper might report effective and raw c/s rates for different time
-intervals.  These won't fit on the current status line, though.)
-
-Q: I just noticed that the c/s rate reported while using "incremental"
-mode is a lot lower than it is with other cracking modes.  Why?
+Q: I just noticed that the p/s, c/s, and C/s rates reported while using
+"incremental" mode are a lot lower than they are with other cracking
+modes.  Why is that?
 A: You're probably running John for a few seconds only.  The current
-"incremental" mode implementation uses large character sets which need
+"incremental" mode implementation uses large character sets, which need
 to be expanded into even larger data structures in memory each time John
 switches to a different password length.  Fortunately, this is only
 noticeable when John has just started since the length switches become
@@ -289,4 +303,4 @@ trivial to explain, it is not possible to reasonably describe some
 others without going into great detail on John internals.  If you really
 need to know, read the source code.
 
-$Owl: Owl/packages/john/john/doc/FAQ,v 1.31 2012/01/12 02:55:46 solar Exp $
+$Owl: Owl/packages/john/john/doc/FAQ,v 1.34 2013/05/29 22:44:35 solar Exp $

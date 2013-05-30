@@ -1,6 +1,11 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2000,2003,2005,2011,2012 by Solar Designer
+ * Copyright (c) 1996-2000,2003,2005,2011-2013 by Solar Designer
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ *
+ * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
 #include <stdio.h>
@@ -232,11 +237,13 @@ static c_int c_getint(char *token)
 	char *error;
 
 	if (token[0] == '\'') {
-		if ((value = c_getchar(1)) == '\'')
+		if ((value = (unsigned char)c_getchar(1)) == '\'')
 			c_errno = C_ERROR_UNEXPECTED;
 		else
-			if (value == '\\') value = c_getchar(1);
-		if (c_getchar(1) != '\'') c_errno = C_ERROR_UNEXPECTED;
+			if (value == '\\')
+				value = (unsigned char)c_getchar(1);
+		if (c_getchar(1) != '\'')
+			c_errno = C_ERROR_UNEXPECTED;
 	} else {
 		errno = 0;
 		l_value = strtol(token, &error, 0);

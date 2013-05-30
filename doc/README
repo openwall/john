@@ -150,9 +150,10 @@ the recommended order of reading:
 * CONTACT (*) - how to contact the author or otherwise obtain support
 * CREDITS (*) - credits
 * LICENSE - copyrights and licensing terms
+* COPYING - GNU GPL version 2, as referenced by LICENSE above
 
 (*) most users can safely skip these.
 
 Happy reading!
 
-$Owl: Owl/packages/john/john/doc/README,v 1.24 2013/05/29 18:17:37 solar Exp $
+$Owl: Owl/packages/john/john/doc/README,v 1.25 2013/05/30 00:22:14 solar Exp $

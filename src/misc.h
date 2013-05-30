@@ -2,7 +2,12 @@
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1996-99,2003 by Solar Designer
  *
- * ...with changes in the jumbo patch for MSC, by JimF.
+ * ...with changes in the jumbo patch, by JimF and magnum.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ *
+ * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
 /*

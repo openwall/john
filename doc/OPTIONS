@@ -215,6 +215,14 @@ efficiency the rule count (after preprocessor expansion) needs to be
 many times higher than node count, unless the p/s rate is low anyway
 (due to slow hash type and/or high salt count).
 
+Since there's no communication between the nodes, hashes successfully
+cracked by one node continue being cracked by other nodes.  This is
+mostly OK for saltless hash types or when there's just one salt (since
+the same number of hash computations is to be made anyway - namely, only
+one per candidate password tested), but it is a serious drawback when
+many different salts are present and their number could potentially be
+decreasing as some hashes get cracked.
+
 --fork=N			fork N processes
 
 This option is only available on Unix-like systems.  It is an easy way
@@ -249,6 +257,15 @@ Under the hood, "--fork" makes use of the same functionality that
 Despite of those, "--fork" is often much more efficient than OpenMP -
 especially for fast to compute hash types (such as LM hashes), where
 OpenMP overhead is often unacceptable.
+
+Similarly to "--node", there's almost no communication between the
+processes with "--fork".  Hashes successfully cracked by one process
+continue being cracked by other processes.  Just like with "--node",
+this is mostly OK for saltless hash types or when there's just one salt,
+but it is a serious drawback when many different salts are present and
+their number could potentially be decreasing as some hashes get cracked.
+To have the cracked hashes (and possibly salts) removed from all
+processes, you may interrupt and restore the session once in a while.
 
 --format=NAME			force hash type NAME
 
@@ -498,5 +515,13 @@ with passwdqc, before you ask users to change their passwords - whether
 using this script or otherwise.  And you should edit the message inside
 the script before possibly using it.
 
+	makechr
+
+This is a script to (re-)generate the .chr files using passwords in
+john.pot and applying all of the defined external mode filters.  To
+speed it up on a sufficiently large computer (RAM and CPUs), "&" may be
+added after the John invocation inside the script (to run all of them in
+parallel).
+
 Based on (and modified in the jumbo patch):
-$Owl: Owl/packages/john/john/doc/OPTIONS,v 1.17 2013/05/29 17:57:56 solar Exp $
+$Owl: Owl/packages/john/john/doc/OPTIONS,v 1.19 2013/05/29 20:20:08 solar Exp $

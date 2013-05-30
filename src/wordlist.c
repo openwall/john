@@ -3,6 +3,11 @@
  * Copyright (c) 1996-99,2003,2004,2006,2009,2013 by Solar Designer
  *
  * Heavily modified by JimF, magnum and maybe by others.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ *
+ * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
 #define _POSIX_SOURCE /* for fileno(3) */

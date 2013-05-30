@@ -3,6 +3,11 @@
  * Copyright (c) 2003,2006,2008,2010,2011 by Solar Designer
  *
  * ...with a trivial change in the jumbo patch, by Alain Espinosa.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ *
+ * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
 /*

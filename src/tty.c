@@ -3,6 +3,11 @@
  * Copyright (c) 1996-99,2003,2010 by Solar Designer
  *
  * ...with changes in the jumbo patch for mingw and MSC, by JimF.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ *
+ * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
 #if defined (__MINGW32__) || defined (_MSC_VER)

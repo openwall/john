@@ -2,6 +2,11 @@
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1996-2001,2003,2006,2011 by Solar Designer
  *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ *
+ * There's ABSOLUTELY NO WARRANTY, express or implied.
+ *
  * This implementation of FreeBSD-style MD5-based crypt(3) password hashing
  * supports passwords of up to 15 characters long only since this lets us use a
  * significantly faster algorithm. -- SD

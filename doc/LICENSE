@@ -1,42 +1,61 @@
 	John the Ripper copyright and license.
 
 John the Ripper password cracker,
-Copyright (c) 1996-2011 by Solar Designer.
+Copyright (c) 1996-2013 by Solar Designer.
 
-This version of John the Ripper is hereby being made available to you
-under the terms of the GNU General Public License version 2 as published
-by the Free Software Foundation.
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
 
-John the Ripper is distributed in the hope that it will be useful, but
-WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-General Public License for more details.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+As a special exception to the GNU General Public License terms,
+permission is hereby granted to link the code of this program, with or
+without modification, with any version of the OpenSSL library and/or any
+version of unRAR, and to distribute such linked combinations.  You must
+obey the GNU GPL in all respects for all of the code used other than
+OpenSSL and unRAR.  If you modify this program, you may extend this
+exception to your version of the program, but you are not obligated to
+do so.  (In other words, you may release your derived work under pure
+GNU GPL version 2 or later as published by the FSF.)
+
+(This exception from the GNU GPL is not required for the core tree of
+John the Ripper, but arguably it is required for -jumbo.)
 
 
 	Relaxed terms for certain components.
 
-In addition or alternatively to the license above, the following
-components are available to you under more relaxed terms:
+In addition or alternatively to the license above, many components are
+available to you under more relaxed terms (most commonly under cut-down
+BSD license) as specified in the corresponding source files.
 
-As the copyright holder for the bcrypt (Blowfish-based password hashing)
-implementation found in John the Ripper, I have placed a derived version
-of this implementation in the public domain.  This derived version may
-be obtained at:
+Furthermore, as the copyright holder for the bcrypt (Blowfish-based
+password hashing) implementation found in John the Ripper, I have placed
+a derived version of this implementation in the public domain.  This
+derived version may be obtained at:
 
 	http://www.openwall.com/crypt/
 
 The intent is to provide modern password hashing for your servers and
 your software (where the GPL restrictions could be a problem).
 
-Additionally, I have placed the CRC-32 implementation (crc32.c, crc32.h)
-in the public domain.
-
 
 	Commercial licensing.
 
 Commercial licenses (non-GPL) are available upon request.
 
--- 
+
+	Copyright holder contact information.
+
+For the core John the Ripper tree:
+
 Alexander Peslyak aka Solar Designer <solar at openwall.com>
 
-$Owl: Owl/packages/john/john/doc/LICENSE,v 1.12 2011/06/22 13:03:43 solar Exp $
+(There are additional copyright holders for "community enhanced" -jumbo
+versions of John the Ripper.)
+
+$Owl: Owl/packages/john/john/doc/LICENSE,v 1.16 2013/05/30 00:42:06 solar Exp $

@@ -6,6 +6,8 @@
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
  *
+ * There's ABSOLUTELY NO WARRANTY, express or implied.
+ *
  * -v  (some debugging output
  * -inp=fname vs using stdin
  * -ex_file=FNAME       also unique's against this external file

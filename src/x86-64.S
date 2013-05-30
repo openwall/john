@@ -26,7 +26,7 @@
  * <dipikadutta at gmail.com> in 2013, no rights reserved.
 
  * ...with changes in the jumbo patch, by Alain Espinosa (starting with a
- * comment further down this file).
+ * comment further down this file) and magnum.
  */
 
 #include "arch.h"

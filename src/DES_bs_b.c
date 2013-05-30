@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2003,2010-2012 by Solar Designer
+ * Copyright (c) 1996-2001,2003,2010-2013 by Solar Designer
  *
  * Addition of single DES encryption with no salt by
  * Deepika Dutta Mishra <dipikadutta at gmail.com> in 2012, no
@@ -10,7 +10,6 @@
 #include "arch.h"
 #include "common.h"
 #include "DES_bs.h"
-
 
 #if DES_BS_ASM && defined(_OPENMP) && defined(__GNUC__)
 #warning Assembly code and OpenMP are both requested - will provide the former, but not the latter (for DES-based hashes).  This may likely be corrected by enabling SIMD intrinsics with the C compiler (try adding -msse2 to OMPFLAGS).
@@ -35,7 +34,7 @@
 typedef vector signed int vtype;
 
 #define vst(dst, ofs, src) \
-	vec_st((src), (ofs) * sizeof(DES_bs_vector), &(dst))
+	vec_st((src), (ofs) * sizeof(DES_bs_vector), (dst))
 
 #define vxorf(a, b) \
 	vec_xor((a), (b))
@@ -49,7 +48,7 @@ typedef vector signed int vtype;
 #define vandn(dst, a, b) \
 	(dst) = vec_andc((a), (b))
 #define vsel(dst, a, b, c) \
-	(dst) = vec_sel((a), (b), (c))
+	(dst) = vec_sel((a), (b), (vector bool int)(c))
 
 #elif defined(__ALTIVEC__) && \
     ((ARCH_BITS == 64 && DES_BS_DEPTH == 192) || \
@@ -64,7 +63,7 @@ typedef struct {
 } vtype;
 
 #define vst(dst, ofs, src) \
-	vec_st((src).f, (ofs) * sizeof(DES_bs_vector), &((vtype *)&(dst))->f); \
+	vec_st((src).f, (ofs) * sizeof(DES_bs_vector), ((vtype *)&(dst))->f); \
 	((vtype *)((DES_bs_vector *)&(dst) + (ofs)))->g = (src).g
 
 #define vxor(dst, a, b) \
@@ -84,7 +83,7 @@ typedef struct {
 	(dst).f = vec_andc((a).f, (b).f); \
 	(dst).g = (a).g & ~(b).g
 #define vsel(dst, a, b, c) \
-	(dst).f = vec_sel((a).f, (b).f, (c).f); \
+	(dst).f = vec_sel((a).f, (b).f, (vector bool int)(c).f); \
 	(dst).g = (((a).g & ~(c).g) ^ ((b).g & (c).g))
 
 #elif defined(__ALTIVEC__) && DES_BS_DEPTH == 256
@@ -97,8 +96,8 @@ typedef struct {
 } vtype;
 
 #define vst(dst, ofs, src) \
-	vec_st((src).f, (ofs) * sizeof(DES_bs_vector), &((vtype *)&(dst))->f); \
-	vec_st((src).g, (ofs) * sizeof(DES_bs_vector), &((vtype *)&(dst))->g)
+	vec_st((src).f, (ofs) * sizeof(DES_bs_vector), ((vtype *)&(dst))->f); \
+	vec_st((src).g, (ofs) * sizeof(DES_bs_vector), ((vtype *)&(dst))->g)
 
 #define vxor(dst, a, b) \
 	(dst).f = vec_xor((a).f, (b).f); \
@@ -117,8 +116,8 @@ typedef struct {
 	(dst).f = vec_andc((a).f, (b).f); \
 	(dst).g = vec_andc((a).g, (b).g)
 #define vsel(dst, a, b, c) \
-	(dst).f = vec_sel((a).f, (b).f, (c).f); \
-	(dst).g = vec_sel((a).g, (b).g, (c).g)
+	(dst).f = vec_sel((a).f, (b).f, (vector bool int)(c).f); \
+	(dst).g = vec_sel((a).g, (b).g, (vector bool int)(c).g)
 
 #elif defined(__AVX__) && DES_BS_DEPTH == 256 && !defined(DES_BS_NO_AVX256)
 #include <immintrin.h>

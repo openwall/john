@@ -3,6 +3,11 @@
  * Copyright (c) 1996-2013 by Solar Designer
  *
  * ...with changes in the jumbo patch, by various authors
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ *
+ * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
 /*
@@ -19,7 +24,7 @@
 /*
  * John's version number.
  */
-#define JOHN_VERSION			"1.7.9.14-bleeding-jumbo"
+#define JOHN_VERSION			"1.8.0-bleeding-jumbo"
 
 /*
  * Notes to packagers of John for *BSD "ports", Linux distributions, etc.:

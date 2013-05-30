@@ -3,6 +3,11 @@
  * Copyright (c) 1996-99,2003 by Solar Designer
  *
  * ...with field_sep introduced in the jumbo patch, by JimF.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ *
+ * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
 /*

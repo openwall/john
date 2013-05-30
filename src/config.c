@@ -3,6 +3,11 @@
  * Copyright (c) 1996-2002,2009,2013 by Solar Designer
  *
  * ...with changes in the jumbo patch, by magnum
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ *
+ * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
 #include <stdio.h>

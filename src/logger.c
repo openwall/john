@@ -2,10 +2,12 @@
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1996-99,2003,2004,2010,2013 by Solar Designer
  *
- * ...with changes in the jumbo patch for mingw and MSC and
- * introducing field_sep, by JimF.
+ * ...with changes in the jumbo patch, by JimF and magnum.
  *
- * ...and with even more changes in the jumbo patch for MPI support, by magnum.
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ *
+ * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
 #define _XOPEN_SOURCE /* for fileno(3) and fsync(2) */
