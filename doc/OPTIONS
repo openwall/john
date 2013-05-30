@@ -266,6 +266,18 @@ is often used to check what work has been done, but if this will not be
 needed, and the log file is simply going to be deleted when done, then
 running in --nolog mode may be used.
 
+--log-stderr
+
+Log to screen (stderr) instead of to file.
+
+--bare-always-valid=C
+
+Normally, dynamic mode will only load hashes with tags in the input file (for
+example, $dynamic_0$368dc60082c8b47e697826b282b94e3d) or when a specific format
+is requested (eg. --format=dynamic_0). If C is 'Y' or 'y', then the dynamic
+format will always treat bare hashes as valid. You can permanently enable this
+option by editing john.conf and setting "DynamicAlwaysUseBareHashes".
+
 --crack-status            show status line on every crack
 
 This will automagically emit a status line at every cracked password. This is
@@ -278,13 +290,28 @@ for testing.
 
 --mkpc=N                  force min/max keys per crypt to N
 
-This option is for certain kinds of testing and is not mentioned in the usage
-blob. Many formats perform the crypts in batches of several (sometimes
-thousands or even tens of thousands) candidates. This option forces it down
-from the format's default. For most purposes, you would use 1. One good
-example is for studying which rules give most "hits": Without this options,
-you can't know for sure which rule produced a successful guess when analyzing
-the log file.
+This option is for certain kinds of testing. There is a performance impact.
+Many formats perform the crypts in batches of several (sometimes thousands or
+even tens of thousands) candidates. This option forces it down from the
+format's default. For most purposes, you would use 1. One good example is for
+studying which rules give most "hits": Without this options, you can't know for
+sure which rule produced a successful guess when analyzing the log file.
+
+--min-length=N          force minimum candidate length
+--max-length=N          force maximum candidate length
+
+These options limit the length of candidates that will be tried. In wordlist
+mode (after applying rules, if any), a word that is not within the requested
+limits will be rejected (not truncated). Most other modes also honour these
+settings. For example, you can fully exhaust a short keyspace with incremental
+mode with eg. -max-len=4 and then start a longer session for the rest with
+-min-length=5, or use one core for lengths up to 8 and other cores for exact
+lengths of 9, 10 and so on.
+
+--max-run-time=N
+
+Gracefully exit after N seconds. If you resume it, it will run for another N
+seconds and exit again.
 
 --list=WHAT               list capabilities
 
