@@ -23,6 +23,16 @@
 #define ARCH_INDEX(x)			((unsigned int)(unsigned char)(x))
 
 #define CPU_DETECT			0
+#define CPU_NAME			"SSE2"
+
+#ifdef __SSSE3__
+#undef CPU_NAME
+#define CPU_NAME		"SSSE3"
+#endif
+#ifdef __SSE4_1__
+#undef CPU_NAME
+#define CPU_NAME		"SSE4.1"
+#endif
 
 #ifdef __XOP__
 #define JOHN_XOP
@@ -51,6 +61,7 @@
 #define CPU_DETECT			1
 #define CPU_REQ				1
 #define CPU_REQ_AVX
+#undef CPU_NAME
 #define CPU_NAME			"AVX"
 #ifndef CPU_FALLBACK
 #define CPU_FALLBACK			0

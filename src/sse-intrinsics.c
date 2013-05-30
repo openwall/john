@@ -151,6 +151,13 @@ _inline __m128i _mm_set1_epi64x(long long a)
 #endif
 
 #ifdef __SSE4_1__
+#define GATHER_4x(x, y, z)                      \
+{                                               \
+    x = _mm_cvtsi32_si128 (   y[z]   );         \
+    x = _mm_insert_epi32  (x, y[z+(1<<6)], 1);  \
+    x = _mm_insert_epi32  (x, y[z+(2<<6)], 2);  \
+    x = _mm_insert_epi32  (x, y[z+(3<<6)], 3);  \
+}
 #define GATHER_2x(x, y, z)                      \
 {                                               \
     x = _mm_cvtsi32_si128 (   y[z]   );         \
@@ -1361,7 +1368,11 @@ void SSESHA256body(__m128i *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state,
 
 #ifdef __SSE4_1__
 		saved_key = (ARCH_WORD_32 *)data;
-		if (SSEi_flags & SSEi_2BUF_INPUT) {
+		if (SSEi_flags & SSEi_4BUF_INPUT) {
+			for (i=0; i < 14; ++i) { GATHER_4x (w[i], saved_key, i); SWAP_ENDIAN (w[i]); }
+			GATHER_4x (w[14], saved_key, 14);
+			GATHER_4x (w[15], saved_key, 15);
+		} else if (SSEi_flags & SSEi_2BUF_INPUT) {
 			for (i=0; i < 14; ++i) { GATHER_2x (w[i], saved_key, i); SWAP_ENDIAN (w[i]); }
 			GATHER_2x (w[14], saved_key, 14);
 			GATHER_2x (w[15], saved_key, 15);
@@ -1370,7 +1381,8 @@ void SSESHA256body(__m128i *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state,
 			GATHER (w[14], saved_key, 14);
 			GATHER (w[15], saved_key, 15);
 		}
-		if ((SSEi_flags & SSEi_2BUF_INPUT_FIRST_BLK) == SSEi_2BUF_INPUT_FIRST_BLK) {
+		if ( ((SSEi_flags & SSEi_2BUF_INPUT_FIRST_BLK) == SSEi_2BUF_INPUT_FIRST_BLK) ||
+			 ((SSEi_flags & SSEi_4BUF_INPUT_FIRST_BLK) == SSEi_4BUF_INPUT_FIRST_BLK)) {
 			SWAP_ENDIAN (w[14]);
 			SWAP_ENDIAN (w[15]);
 		}
@@ -1378,7 +1390,11 @@ void SSESHA256body(__m128i *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state,
 		int j;
 		ARCH_WORD_32 *p = _w.p;
 		saved_key = (ARCH_WORD_32 *)data;
-		if (SSEi_flags & SSEi_2BUF_INPUT) {
+		if (SSEi_flags & SSEi_4BUF_INPUT) {
+			for (j=0; j < 16; j++)
+				for (i=0; i < MMX_COEF_SHA256; i++)
+					*p++ = saved_key[(i<<6)+j];
+		} else if (SSEi_flags & SSEi_2BUF_INPUT) {
 			for (j=0; j < 16; j++)
 				for (i=0; i < MMX_COEF_SHA256; i++)
 					*p++ = saved_key[(i<<5)+j];
@@ -1389,7 +1405,8 @@ void SSESHA256body(__m128i *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state,
 		}
 		for (i=0; i < 14; i++)
 			SWAP_ENDIAN (w[i]);
-		if ((SSEi_flags & SSEi_2BUF_INPUT_FIRST_BLK) == SSEi_2BUF_INPUT_FIRST_BLK) {
+		if ( ((SSEi_flags & SSEi_2BUF_INPUT_FIRST_BLK) == SSEi_2BUF_INPUT_FIRST_BLK) ||
+			 ((SSEi_flags & SSEi_4BUF_INPUT_FIRST_BLK) == SSEi_4BUF_INPUT_FIRST_BLK)) {
 			SWAP_ENDIAN (w[14]);
 			SWAP_ENDIAN (w[15]);
 		}
@@ -1581,14 +1598,6 @@ void SSESHA256body(__m128i *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state,
 	/* We store the MMX_mixed values.  This will be in proper 'mixed' format, in BE
 	 * format (i.e. correct to reload on a subsquent call), UNLESS, swapped in the prior
 	 * if statement (the SHA256_SWAP_FINAL) */
-	_mm_store_si128 ((__m128i *)&(out[ 0]), a);
-	_mm_store_si128 ((__m128i *)&(out[ 4]), b);
-	_mm_store_si128 ((__m128i *)&(out[ 8]), c);
-	_mm_store_si128 ((__m128i *)&(out[12]), d);
-	_mm_store_si128 ((__m128i *)&(out[16]), e);
-	_mm_store_si128 ((__m128i *)&(out[20]), f);
-	_mm_store_si128 ((__m128i *)&(out[24]), g);
-	_mm_store_si128 ((__m128i *)&(out[28]), h);
 	if (SSEi_flags & SSEi_OUTPUT_AS_INP_FMT)
 	{
 		i=0;
@@ -1705,19 +1714,38 @@ void SSESHA512body(__m128i* data, unsigned int *out, ARCH_WORD_32 *reload_state,
 	__m128i w[80], tmp1, tmp2;
 
 	if (SSEi_flags & SSEi_FLAT_IN) {
-		ARCH_WORD_64 (*saved_key)[16] = (ARCH_WORD_64(*)[16])data;
-		for (i = 0; i < 14; i += 2) {
-			GATHER64 (tmp1, saved_key, i);
-			GATHER64 (tmp2, saved_key, i + 1);
+		
+		if (SSEi_flags & SSEi_2BUF_INPUT) {
+			ARCH_WORD_64 (*saved_key)[32] = (ARCH_WORD_64(*)[32])data;
+			for (i = 0; i < 14; i += 2) {
+				GATHER64 (tmp1, saved_key, i);
+				GATHER64 (tmp2, saved_key, i + 1);
+				SWAP_ENDIAN64 (tmp1);
+				SWAP_ENDIAN64 (tmp2);
+				w[i] = tmp1;
+				w[i + 1] = tmp2;
+			}
+			GATHER64 (tmp1, saved_key, 14);
+			GATHER64 (tmp2, saved_key, 15);
+		} else {
+			ARCH_WORD_64 (*saved_key)[16] = (ARCH_WORD_64(*)[16])data;
+			for (i = 0; i < 14; i += 2) {
+				GATHER64 (tmp1, saved_key, i);
+				GATHER64 (tmp2, saved_key, i + 1);
+				SWAP_ENDIAN64 (tmp1);
+				SWAP_ENDIAN64 (tmp2);
+				w[i] = tmp1;
+				w[i + 1] = tmp2;
+			}
+			GATHER64 (tmp1, saved_key, 14);
+			GATHER64 (tmp2, saved_key, 15);
+		}
+		if ( ((SSEi_flags & SSEi_2BUF_INPUT_FIRST_BLK) == SSEi_2BUF_INPUT_FIRST_BLK)) {
 			SWAP_ENDIAN64 (tmp1);
 			SWAP_ENDIAN64 (tmp2);
-			w[i] = tmp1;
-			w[i + 1] = tmp2;
 		}
-		GATHER64 (tmp1, saved_key, 14);
-		SWAP_ENDIAN64 (tmp1);
 		w[14] = tmp1;
-		GATHER64 (w[15], saved_key, 15);
+		w[15] = tmp2;
 	} else
 		memcpy(w, data, 16*sizeof(__m128i));
 

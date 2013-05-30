@@ -39,7 +39,11 @@ typedef ARCH_WORD_32 MD5_word;
 // dynamic_87: sha512(sha512($s).sha512($p)) which both require a 257 byte buffer.  We
 // have only a 260 byte buffer, so it is barely large enough for those. This would be
 // nowhere near large enough to use for md5_go code any more.
-#define EX_BUF_LEN 136
+//
+// reduced to exactly 256 bytes, and will be KEPT at that length. This will allow non-mmx to work up to 
+// dynamic_87/dynamic_107 length. Also, the original 'flat' buffers can be used for direct work, within
+// the SHA2 SSE code (4x buffer size for sha256 and 2x buffer size for SHA512).
+#define EX_BUF_LEN 132
 
 
 typedef struct {
@@ -94,6 +98,7 @@ typedef struct private_subformat_data
 	int store_keys_normal_but_precompute_md5_to_output2;
 	int store_keys_normal_but_precompute_md5_to_output2_base16_to_input1;
 	int store_keys_normal_but_precompute_md5_to_output2_base16_to_input1_offset32;
+	int using_flat_buffers_sse2_ok;
 	int dynamic_salt_as_hex;
 	int force_md5_ctx;
 
@@ -238,16 +243,17 @@ typedef struct private_subformat_data
 #define ALGORITHM_NAME_X86_S	ARCH_BITS_STR"/"ARCH_BITS_STR" "STRINGIZE(X86_BLOCK_LOOPS) "x1"
 #define ALGORITHM_NAME_X86_4	ARCH_BITS_STR"/"ARCH_BITS_STR" "STRINGIZE(X86_BLOCK_LOOPS) "x1"
 
-// No SSE2 'yet' for sha2.  Waiting patiently for a kind super hacker to do these formats ;)
+#define ALGORITHM_NAME_S2_256		"128/128 "CPU_NAME" 4x"
+#define ALGORITHM_NAME_S2_512		"128/128 "CPU_NAME" 2x"
 #if defined (COMMON_DIGEST_FOR_OPENSSL)
-#define ALGORITHM_NAME_S2		ARCH_BITS_STR"/"ARCH_BITS_STR" "STRINGIZE(X86_BLOCK_LOOPS) "x1 CommonCrypto"
-#define ALGORITHM_NAME_X86_S2	ARCH_BITS_STR"/"ARCH_BITS_STR" "STRINGIZE(X86_BLOCK_LOOPS) "x1 CommonCrypto"
+#define ALGORITHM_NAME_X86_S2_256	ARCH_BITS_STR"/"ARCH_BITS_STR" "STRINGIZE(X86_BLOCK_LOOPS) "x1 CommonCrypto"
+#define ALGORITHM_NAME_X86_S2_512	ARCH_BITS_STR"/64 "STRINGIZE(X86_BLOCK_LOOPS) "x1 CommonCrypto"
 #elif defined (GENERIC_SHA2)
-#define ALGORITHM_NAME_S2		ARCH_BITS_STR"/"ARCH_BITS_STR" "STRINGIZE(X86_BLOCK_LOOPS) "x1 sha2-generic"
-#define ALGORITHM_NAME_X86_S2	ARCH_BITS_STR"/"ARCH_BITS_STR" "STRINGIZE(X86_BLOCK_LOOPS) "x1 sha2-generic"
+#define ALGORITHM_NAME_X86_S2_256	ARCH_BITS_STR"/"ARCH_BITS_STR" "STRINGIZE(X86_BLOCK_LOOPS) "x1 sha2-generic"
+#define ALGORITHM_NAME_X86_S2_512	ARCH_BITS_STR"/64 "STRINGIZE(X86_BLOCK_LOOPS) "x1 sha2-generic"
 #else
-#define ALGORITHM_NAME_S2		ARCH_BITS_STR"/"ARCH_BITS_STR" "STRINGIZE(X86_BLOCK_LOOPS) "x1 sha2-OpenSSL"
-#define ALGORITHM_NAME_X86_S2	ARCH_BITS_STR"/"ARCH_BITS_STR" "STRINGIZE(X86_BLOCK_LOOPS) "x1 sha2-OpenSSL"
+#define ALGORITHM_NAME_X86_S2_256	ARCH_BITS_STR"/"ARCH_BITS_STR" "STRINGIZE(X86_BLOCK_LOOPS) "x1 sha2-OpenSSL"
+#define ALGORITHM_NAME_X86_S2_512	ARCH_BITS_STR"/64 "STRINGIZE(X86_BLOCK_LOOPS) "x1 sha2-OpenSSL"
 #endif
 
 #if OPENSSL_VERSION_NUMBER >= 0x10000000

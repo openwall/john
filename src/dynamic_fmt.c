@@ -771,12 +771,15 @@ static void init(struct fmt_main *pFmt)
 	}
 #endif
 	if (!crypt_key_X86) {
-		crypt_key_X86  = (MD5_OUT *)mem_calloc_tiny(sizeof(*crypt_key_X86)*(MAX_KEYS_PER_CRYPT_X86>>MD5_X2),sizeof(double));
-		crypt_key2_X86 = (MD5_OUT *)mem_calloc_tiny(sizeof(*crypt_key2_X86)*(MAX_KEYS_PER_CRYPT_X86>>MD5_X2),sizeof(double));
-		input_buf_X86  = (MD5_IN *)mem_calloc_tiny(sizeof(*input_buf_X86)*(MAX_KEYS_PER_CRYPT_X86>>MD5_X2),sizeof(double));
-		input_buf2_X86 = (MD5_IN *)mem_calloc_tiny(sizeof(*input_buf2_X86)*(MAX_KEYS_PER_CRYPT_X86>>MD5_X2),sizeof(double));
-		total_len_X86  = (unsigned int *)mem_calloc_tiny(sizeof(*total_len_X86)*MAX_KEYS_PER_CRYPT_X86,sizeof(*total_len_X86));
-		total_len2_X86 = (unsigned int *)mem_calloc_tiny(sizeof(*total_len2_X86)*MAX_KEYS_PER_CRYPT_X86,sizeof(*total_len2_X86));
+		// we have to align SIMD, since now we may load directly from these buffers (or save to them), in 
+		// large hash SIMD code (sha256, etc).  Also 1 larger in the array, since we might point 'extra'
+		// hashes past the end of our buffer to that value.
+		crypt_key_X86  = (MD5_OUT *)mem_calloc_tiny(sizeof(*crypt_key_X86)*((MAX_KEYS_PER_CRYPT_X86>>MD5_X2)+1),	MEM_ALIGN_SIMD);
+		crypt_key2_X86 = (MD5_OUT *)mem_calloc_tiny(sizeof(*crypt_key2_X86)*((MAX_KEYS_PER_CRYPT_X86>>MD5_X2)+1),	MEM_ALIGN_SIMD);
+		input_buf_X86  = (MD5_IN *)mem_calloc_tiny(sizeof(*input_buf_X86)*((MAX_KEYS_PER_CRYPT_X86>>MD5_X2)+1),		MEM_ALIGN_SIMD);
+		input_buf2_X86 = (MD5_IN *)mem_calloc_tiny(sizeof(*input_buf2_X86)*((MAX_KEYS_PER_CRYPT_X86>>MD5_X2)+1),	MEM_ALIGN_SIMD);
+		total_len_X86  = (unsigned int *)mem_calloc_tiny(sizeof(*total_len_X86)*(MAX_KEYS_PER_CRYPT_X86+1),			sizeof(*total_len_X86));
+		total_len2_X86 = (unsigned int *)mem_calloc_tiny(sizeof(*total_len2_X86)*(MAX_KEYS_PER_CRYPT_X86+1),		sizeof(*total_len2_X86));
 	}
 
 	gost_init_table();
@@ -7796,7 +7799,7 @@ static int isSHA1Func(DYNAMIC_primitive_funcp p) {
 		return 1;
 	return 0;
 }
-static int isSHA2Func(DYNAMIC_primitive_funcp p) {
+static int isSHA2_256Func(DYNAMIC_primitive_funcp p) {
 	if (p==DynamicFunc__SHA224_crypt_input1_append_input2_base16    || p==DynamicFunc__SHA224_crypt_input1_append_input2    ||
 		p==DynamicFunc__SHA224_crypt_input2_append_input1_base16    || p==DynamicFunc__SHA224_crypt_input2_append_input1    ||
 		p==DynamicFunc__SHA224_crypt_input1_overwrite_input1_base16 || p==DynamicFunc__SHA224_crypt_input1_overwrite_input1 ||
@@ -7812,8 +7815,12 @@ static int isSHA2Func(DYNAMIC_primitive_funcp p) {
 		p==DynamicFunc__SHA256_crypt_input1_overwrite_input2_base16 || p==DynamicFunc__SHA256_crypt_input1_overwrite_input2 ||
 		p==DynamicFunc__SHA256_crypt_input2_overwrite_input1_base16 || p==DynamicFunc__SHA256_crypt_input2_overwrite_input1 ||
 		p==DynamicFunc__SHA256_crypt_input1_to_output1_FINAL ||
-		p==DynamicFunc__SHA256_crypt_input2_to_output1_FINAL ||
-		p==DynamicFunc__SHA384_crypt_input1_append_input2_base16    || p==DynamicFunc__SHA384_crypt_input1_append_input2    ||
+		p==DynamicFunc__SHA256_crypt_input2_to_output1_FINAL)
+		return 1;
+	return 0;
+}
+static int isSHA2_512Func(DYNAMIC_primitive_funcp p) {
+	if (p==DynamicFunc__SHA384_crypt_input1_append_input2_base16    || p==DynamicFunc__SHA384_crypt_input1_append_input2    ||
 		p==DynamicFunc__SHA384_crypt_input2_append_input1_base16    || p==DynamicFunc__SHA384_crypt_input2_append_input1    ||
 		p==DynamicFunc__SHA384_crypt_input1_overwrite_input1_base16 || p==DynamicFunc__SHA384_crypt_input1_overwrite_input1 ||
 		p==DynamicFunc__SHA384_crypt_input2_overwrite_input2_base16 || p==DynamicFunc__SHA384_crypt_input2_overwrite_input2 ||
@@ -7953,13 +7960,17 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 	pFmt->params.min_keys_per_crypt = 1;
 #ifdef MMX_COEF
 	curdat.dynamic_use_sse = 1;  // if 1, then we are in SSE2 mode (but can switch out)
-	if ((Setup->flags & MGF_NOTSSE2Safe) == MGF_NOTSSE2Safe)
+	curdat.using_flat_buffers_sse2_ok = 0;	// used to distingish MGF_NOTSSE2Safe from MGF_FLAT_BUFFERS
+	if ((Setup->flags & MGF_NOTSSE2Safe) == MGF_NOTSSE2Safe) {
 		curdat.dynamic_use_sse = 0;  // Do not use SSE code at all.
-	else if ((Setup->flags & MGF_StartInX86Mode) == MGF_StartInX86Mode) {
+	} else if ((Setup->flags & MGF_FLAT_BUFFERS) == MGF_FLAT_BUFFERS) {
+		curdat.dynamic_use_sse = 0; // uses flat buffers but will use SSE code (large formats use the flat buffers, and the SSE2 code 'mixes' them).
+		curdat.using_flat_buffers_sse2_ok = 1;
+	} else if ((Setup->flags & MGF_StartInX86Mode) == MGF_StartInX86Mode) {
 		curdat.dynamic_use_sse = 2;  // if 2, then we are in SSE2 mode, but currently using X86 (and can switch back to SSE2).
 		curdat.md5_startup_in_x86 = 1;
 	}
-	if (curdat.dynamic_use_sse) {
+	if (curdat.dynamic_use_sse || curdat.using_flat_buffers_sse2_ok) {
 		pFmt->params.max_keys_per_crypt = MAX_KEYS_PER_CRYPT;
 		pFmt->params.algorithm_name = ALGORITHM_NAME;
 	} else {
@@ -8367,11 +8378,17 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 					else if (!strcmp(pFmt->params.algorithm_name, ALGORITHM_NAME_X86))
 						pFmt->params.algorithm_name = ALGORITHM_NAME_X86_S;
 				}
-				if (isSHA2Func(pFuncs[x])) {
-					if (!strcmp(pFmt->params.algorithm_name, ALGORITHM_NAME))
-						pFmt->params.algorithm_name = ALGORITHM_NAME_S2;
-					else if (!strcmp(pFmt->params.algorithm_name, ALGORITHM_NAME_X86))
-						pFmt->params.algorithm_name = ALGORITHM_NAME_X86_S2;
+				if (isSHA2_256Func(pFuncs[x])) {
+					if (curdat.using_flat_buffers_sse2_ok)
+						pFmt->params.algorithm_name = ALGORITHM_NAME_S2_256;
+					else
+						pFmt->params.algorithm_name = ALGORITHM_NAME_X86_S2_256;
+				}
+				if (isSHA2_512Func(pFuncs[x])) {
+					if (curdat.using_flat_buffers_sse2_ok)
+						pFmt->params.algorithm_name = ALGORITHM_NAME_S2_512;
+					else
+						pFmt->params.algorithm_name = ALGORITHM_NAME_X86_S2_512;
 				}
 				if (isMD4Func(pFuncs[x])) {
 					if (!strcmp(pFmt->params.algorithm_name, ALGORITHM_NAME))

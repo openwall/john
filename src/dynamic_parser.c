@@ -493,6 +493,7 @@ static Dynamic_Predicate_t Dynamic_Predicate[] =  {
 
 static Dynamic_Str_Flag_t Dynamic_Str_Flag[] =  {
 	{ "MGF_NOTSSE2Safe",                  MGF_NOTSSE2Safe },
+	{ "MGF_FLAT_BUFFERS",                 MGF_FLAT_BUFFERS },
 	{ "MGF_StartInX86Mode",               MGF_StartInX86Mode },
 	{ "MGF_ColonNOTValid",                MGF_ColonNOTValid },
 	{ "MGF_SALTED",                       MGF_SALTED },

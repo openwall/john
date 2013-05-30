@@ -80,7 +80,7 @@ typedef struct DYNAMIC_Constants_t
 #define MGF_PASSWORD_UPCASE          0x08000000
 #define MGF_PASSWORD_LOCASE          0x10000000
 #define MGF_FULL_CLEAN_REQUIRED      0x20000000
-// open                              0x40000000
+#define MGF_FLAT_BUFFERS             0x40000000
 // open                              0x80000000
 
 // These are special loader flags.  They specify that keys loads are 'special', and

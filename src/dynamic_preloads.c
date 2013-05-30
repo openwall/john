@@ -1279,7 +1279,7 @@ static DYNAMIC_primitive_funcp _Funcs_50[] =
 {
 	//MGF_KEYS_INPUT
 	//MGF_INPUT_28_BYTE
-	//MGF_NOTSSE2Safe
+	//MGF_FLAT_BUFFERS
 	DynamicFunc__SHA224_crypt_input1_to_output1_FINAL,
 	NULL
 };
@@ -1300,7 +1300,7 @@ static DYNAMIC_primitive_funcp _Funcs_51[] =
 {
 	//MGF_INPUT_28_BYTE
 	//MGF_SALTED
-	//MGF_NOTSSE2Safe
+	//MGF_FLAT_BUFFERS
 	DynamicFunc__clean_input,
 	DynamicFunc__append_salt,
 	DynamicFunc__append_keys,
@@ -1324,7 +1324,7 @@ static DYNAMIC_primitive_funcp _Funcs_52[] =
 {
 	//MGF_INPUT_28_BYTE
 	//MGF_SALTED
-	//MGF_NOTSSE2Safe
+	//MGF_FLAT_BUFFERS
 	DynamicFunc__clean_input,
 	DynamicFunc__append_keys,
 	DynamicFunc__append_salt,
@@ -1347,7 +1347,7 @@ static struct fmt_tests _Preloads_52[] =
 static DYNAMIC_primitive_funcp _Funcs_53[] =
 {
 	//MGF_INPUT_28_BYTE
-	//MGF_NOTSSE2Safe
+	//MGF_FLAT_BUFFERS
 	//MGF_KEYS_IN_INPUT
 
 	//DynamicFunc__clean_input2,
@@ -1373,7 +1373,7 @@ static struct fmt_tests _Preloads_53[] =
 static DYNAMIC_primitive_funcp _Funcs_54[] =
 {
 	//MGF_INPUT_28_BYTE
-	//MGF_NOTSSE2Safe
+	//MGF_FLAT_BUFFERS
 	//MGF_KEYS_IN_INPUT
 	DynamicFunc__LargeHash_OUTMode_raw,
 	DynamicFunc__SHA224_crypt_input1_overwrite_input2,
@@ -1396,7 +1396,7 @@ static struct fmt_tests _Preloads_54[] =
 static DYNAMIC_primitive_funcp _Funcs_55[] =
 {
 	//MGF_INPUT_28_BYTE
-	//MGF_NOTSSE2Safe
+	//MGF_FLAT_BUFFERS
 	//MGF_SALTED
 	//MGF_KEYS_IN_INPUT
 	DynamicFunc__SHA224_crypt_input1_overwrite_input2,
@@ -1420,7 +1420,7 @@ static struct fmt_tests _Preloads_55[] =
 static DYNAMIC_primitive_funcp _Funcs_56[] =
 {
 	//MGF_INPUT_28_BYTE
-	//MGF_NOTSSE2Safe
+	//MGF_FLAT_BUFFERS
 	//MGF_SALTED
 	//MGF_KEYS_IN_INPUT
 	DynamicFunc__clean_input2,
@@ -1445,7 +1445,7 @@ static struct fmt_tests _Preloads_56[] =
 static DYNAMIC_primitive_funcp _Funcs_57[] =
 {
 	//MGF_INPUT_28_BYTE
-	//MGF_NOTSSE2Safe
+	//MGF_FLAT_BUFFERS
 	//MGF_SALTED
 	//MGF_KEYS_IN_INPUT
 	DynamicFunc__clean_input2,
@@ -1471,7 +1471,7 @@ static struct fmt_tests _Preloads_57[] =
 static DYNAMIC_primitive_funcp _Funcs_58[] =
 {
 	//MGF_INPUT_28_BYTE
-	//MGF_NOTSSE2Safe
+	//MGF_FLAT_BUFFERS
 	//MGF_KEYS_IN_INPUT
 	DynamicFunc__clean_input2_kwik,
 	DynamicFunc__SHA224_crypt_input1_append_input2,
@@ -1496,7 +1496,7 @@ static DYNAMIC_primitive_funcp _Funcs_60[] =
 {
 	//MGF_KEYS_INPUT
 	//MGF_INPUT_32_BYTE
-	//MGF_NOTSSE2Safe
+	//MGF_FLAT_BUFFERS
 	DynamicFunc__SHA256_crypt_input1_to_output1_FINAL,
 	NULL
 };
@@ -1517,7 +1517,7 @@ static DYNAMIC_primitive_funcp _Funcs_61[] =
 {
 	//MGF_INPUT_32_BYTE
 	//MGF_SALTED
-	//MGF_NOTSSE2Safe
+	//MGF_FLAT_BUFFERS
 	DynamicFunc__clean_input,
 	DynamicFunc__append_salt,
 	DynamicFunc__append_keys,
@@ -1541,7 +1541,7 @@ static DYNAMIC_primitive_funcp _Funcs_62[] =
 {
 	//MGF_INPUT_32_BYTE
 	//MGF_SALTED
-	//MGF_NOTSSE2Safe
+	//MGF_FLAT_BUFFERS
 	DynamicFunc__clean_input,
 	DynamicFunc__append_keys,
 	DynamicFunc__append_salt,
@@ -1563,7 +1563,7 @@ static struct fmt_tests _Preloads_62[] =
 static DYNAMIC_primitive_funcp _Funcs_63[] =
 {
 	//MGF_INPUT_32_BYTE
-	//MGF_NOTSSE2Safe
+	//MGF_FLAT_BUFFERS
 	//MGF_KEYS_IN_INPUT
 
 	//DynamicFunc__clean_input2,
@@ -1589,7 +1589,7 @@ static struct fmt_tests _Preloads_63[] =
 static DYNAMIC_primitive_funcp _Funcs_64[] =
 {
 	//MGF_INPUT_32_BYTE
-	//MGF_NOTSSE2Safe
+	//MGF_FLAT_BUFFERS
 	//MGF_KEYS_IN_INPUT
 	DynamicFunc__LargeHash_OUTMode_raw,
 	DynamicFunc__SHA256_crypt_input1_overwrite_input2,
@@ -1612,7 +1612,7 @@ static struct fmt_tests _Preloads_64[] =
 static DYNAMIC_primitive_funcp _Funcs_65[] =
 {
 	//MGF_INPUT_32_BYTE
-	//MGF_NOTSSE2Safe
+	//MGF_FLAT_BUFFERS
 	//MGF_SALTED
 	//MGF_KEYS_IN_INPUT
 	DynamicFunc__SHA256_crypt_input1_overwrite_input2,
@@ -1636,7 +1636,7 @@ static struct fmt_tests _Preloads_65[] =
 static DYNAMIC_primitive_funcp _Funcs_66[] =
 {
 	//MGF_INPUT_32_BYTE
-	//MGF_NOTSSE2Safe
+	//MGF_FLAT_BUFFERS
 	//MGF_SALTED
 	//MGF_KEYS_IN_INPUT
 	DynamicFunc__clean_input2,
@@ -1661,7 +1661,7 @@ static struct fmt_tests _Preloads_66[] =
 static DYNAMIC_primitive_funcp _Funcs_67[] =
 {
 	//MGF_INPUT_32_BYTE
-	//MGF_NOTSSE2Safe
+	//MGF_FLAT_BUFFERS
 	//MGF_SALTED
 	//MGF_KEYS_IN_INPUT
 	DynamicFunc__clean_input2,
@@ -1687,7 +1687,7 @@ static struct fmt_tests _Preloads_67[] =
 static DYNAMIC_primitive_funcp _Funcs_68[] =
 {
 	//MGF_INPUT_32_BYTE
-	//MGF_NOTSSE2Safe
+	//MGF_FLAT_BUFFERS
 	//MGF_KEYS_IN_INPUT
 	DynamicFunc__clean_input2_kwik,
 	DynamicFunc__SHA256_crypt_input1_append_input2,
@@ -3721,25 +3721,25 @@ static DYNAMIC_Setup Setups[] =
 	{ "dynamic_37: sha1(lc($u).$p) (SMF)",      _Funcs_37,_Preloads_37,_ConstDefault, MGF_USERNAME, MGF_INPUT_20_BYTE, -23, 32 },
 	{ "dynamic_38: sha1($s.sha1($s.sha1($p))) (Wolt3BB)",  _Funcs_38,_Preloads_38,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_INPUT_20_BYTE|MGF_NO_FLAG, -23, 40 },
 	// Try to group sha224 here (from dyna-50 to dyna-59)
-	{ "dynamic_50: sha224($p)",                  _Funcs_50,_Preloads_50,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_28_BYTE },
-	{ "dynamic_51: sha224($s.$p)",               _Funcs_51,_Preloads_51,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_INPUT_28_BYTE, -20, 35 },
-	{ "dynamic_52: sha224($p.$s)",               _Funcs_52,_Preloads_52,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_INPUT_28_BYTE, -20, 35 },
-	{ "dynamic_53: sha224(sha224($p))",          _Funcs_53,_Preloads_53,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_28_BYTE },
-	{ "dynamic_54: sha224(sha224_raw($p))",      _Funcs_54,_Preloads_54,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_28_BYTE },
-	{ "dynamic_55: sha224(sha224($p).$s)",       _Funcs_55,_Preloads_55,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_28_BYTE, -20, 35 },
-	{ "dynamic_56: sha224($s.sha224($p))",       _Funcs_56,_Preloads_56,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_28_BYTE, -20, 35 },
-	{ "dynamic_57: sha224(sha224($s).sha224($p))",_Funcs_57,_Preloads_57,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_28_BYTE, -20, 35 },
-	{ "dynamic_58: sha224(sha224($p).sha224($p))",_Funcs_58,_Preloads_58,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_28_BYTE },
+	{ "dynamic_50: sha224($p)",                  _Funcs_50,_Preloads_50,_ConstDefault, MGF_FLAT_BUFFERS, MGF_KEYS_INPUT|MGF_INPUT_28_BYTE },
+	{ "dynamic_51: sha224($s.$p)",               _Funcs_51,_Preloads_51,_ConstDefault, MGF_SALTED|MGF_FLAT_BUFFERS, MGF_INPUT_28_BYTE, -20 },
+	{ "dynamic_52: sha224($p.$s)",               _Funcs_52,_Preloads_52,_ConstDefault, MGF_SALTED|MGF_FLAT_BUFFERS, MGF_INPUT_28_BYTE, -20 },
+	{ "dynamic_53: sha224(sha224($p))",          _Funcs_53,_Preloads_53,_ConstDefault, MGF_FLAT_BUFFERS, MGF_KEYS_INPUT|MGF_INPUT_28_BYTE },
+	{ "dynamic_54: sha224(sha224_raw($p))",      _Funcs_54,_Preloads_54,_ConstDefault, MGF_FLAT_BUFFERS, MGF_KEYS_INPUT|MGF_INPUT_28_BYTE },
+	{ "dynamic_55: sha224(sha224($p).$s)",       _Funcs_55,_Preloads_55,_ConstDefault, MGF_SALTED|MGF_FLAT_BUFFERS, MGF_KEYS_INPUT|MGF_INPUT_28_BYTE, -20, 55, 80 },
+	{ "dynamic_56: sha224($s.sha224($p))",       _Funcs_56,_Preloads_56,_ConstDefault, MGF_SALTED|MGF_FLAT_BUFFERS, MGF_KEYS_INPUT|MGF_INPUT_28_BYTE, -20, 55, 80 },
+	{ "dynamic_57: sha224(sha224($s).sha224($p))",_Funcs_57,_Preloads_57,_ConstDefault, MGF_SALTED|MGF_FLAT_BUFFERS, MGF_KEYS_INPUT|MGF_INPUT_28_BYTE, -20 },
+	{ "dynamic_58: sha224(sha224($p).sha224($p))",_Funcs_58,_Preloads_58,_ConstDefault, MGF_FLAT_BUFFERS, MGF_KEYS_INPUT|MGF_INPUT_28_BYTE },
 	// Try to group sha256 here (from dyna-60 to dyna-69)
-	{ "dynamic_60: sha256($p)",                  _Funcs_60,_Preloads_60,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_32_BYTE },
-	{ "dynamic_61: sha256($s.$p)",               _Funcs_61,_Preloads_61,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_INPUT_32_BYTE, -20, 35 },
-	{ "dynamic_62: sha256($p.$s)",               _Funcs_62,_Preloads_62,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_INPUT_32_BYTE, -20, 35 },
-	{ "dynamic_63: sha256(sha256($p))",          _Funcs_63,_Preloads_63,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_32_BYTE },
-	{ "dynamic_64: sha256(sha256_raw($p))",      _Funcs_64,_Preloads_64,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_32_BYTE },
-	{ "dynamic_65: sha256(sha256($p).$s)",       _Funcs_65,_Preloads_65,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_32_BYTE, -20, 35 },
-	{ "dynamic_66: sha256($s.sha256($p))",       _Funcs_66,_Preloads_66,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_32_BYTE, -20, 35 },
-	{ "dynamic_67: sha256(sha256($s).sha256($p))",_Funcs_67,_Preloads_67,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_32_BYTE, -20, 35 },
-	{ "dynamic_68: sha256(sha256($p).sha256($p))",_Funcs_68,_Preloads_68,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_32_BYTE },
+	{ "dynamic_60: sha256($p)",                  _Funcs_60,_Preloads_60,_ConstDefault, MGF_FLAT_BUFFERS, MGF_KEYS_INPUT|MGF_INPUT_32_BYTE },
+	{ "dynamic_61: sha256($s.$p)",               _Funcs_61,_Preloads_61,_ConstDefault, MGF_SALTED|MGF_FLAT_BUFFERS, MGF_INPUT_32_BYTE, -20, 35 },
+	{ "dynamic_62: sha256($p.$s)",               _Funcs_62,_Preloads_62,_ConstDefault, MGF_SALTED|MGF_FLAT_BUFFERS, MGF_INPUT_32_BYTE, -20, 35 },
+	{ "dynamic_63: sha256(sha256($p))",          _Funcs_63,_Preloads_63,_ConstDefault, MGF_FLAT_BUFFERS, MGF_KEYS_INPUT|MGF_INPUT_32_BYTE },
+	{ "dynamic_64: sha256(sha256_raw($p))",      _Funcs_64,_Preloads_64,_ConstDefault, MGF_FLAT_BUFFERS, MGF_KEYS_INPUT|MGF_INPUT_32_BYTE },
+	{ "dynamic_65: sha256(sha256($p).$s)",       _Funcs_65,_Preloads_65,_ConstDefault, MGF_SALTED|MGF_FLAT_BUFFERS, MGF_KEYS_INPUT|MGF_INPUT_32_BYTE, -20, 55, 80 },
+	{ "dynamic_66: sha256($s.sha256($p))",       _Funcs_66,_Preloads_66,_ConstDefault, MGF_SALTED|MGF_FLAT_BUFFERS, MGF_KEYS_INPUT|MGF_INPUT_32_BYTE, -20, 55, 80 },
+	{ "dynamic_67: sha256(sha256($s).sha256($p))",_Funcs_67,_Preloads_67,_ConstDefault, MGF_SALTED|MGF_FLAT_BUFFERS, MGF_KEYS_INPUT|MGF_INPUT_32_BYTE, -20 },
+	{ "dynamic_68: sha256(sha256($p).sha256($p))",_Funcs_68,_Preloads_68,_ConstDefault, MGF_FLAT_BUFFERS, MGF_KEYS_INPUT|MGF_INPUT_32_BYTE },
 	// Try to group sha384 here (from dyna-70 to dyna-79)
 	{ "dynamic_70: sha384($p)",                  _Funcs_70,_Preloads_70,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_48_BYTE },
 	{ "dynamic_71: sha384($s.$p)",               _Funcs_71,_Preloads_71,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_INPUT_48_BYTE, -20, 35 },

@@ -39,6 +39,7 @@
 #include "sph_whirlpool.h"
 
 #include "johnswap.h"
+#include "sse-intrinsics.h"
 
 #if OPENSSL_VERSION_NUMBER >= 0x10000000
 #include "openssl/whrlpool.h"
@@ -245,20 +246,23 @@ void TEST_MIME_crap() {
 }
 #endif
 
+// NOTE, all large_hash_output NOW only call the 'no_null' functions.  Adding the NULL was NOT
+// needed, AND it causes dyna_87 and dyna_107 to overflow our 256 byte input buffer. So we
+// fall back to never adding a null byte.
 int large_hash_output(unsigned char *cpi, unsigned char *cpo, int in_byte_cnt, int tid) {
 	unsigned char *cpo2=cpo;
 	switch(eLargeOut_get(tid)) {
 		case eBase16:
-			cpo2 = hex_out_buf(cpi, cpo, in_byte_cnt);
+			cpo2 = hex_out_buf_no_null(cpi, cpo, in_byte_cnt);
 			break;
 		case eBase16u:
-			cpo2 = hexu_out_buf(cpi, cpo, in_byte_cnt);
+			cpo2 = hexu_out_buf_no_null(cpi, cpo, in_byte_cnt);
 			break;
 		case eBase64:
-			cpo2 = base64_out_buf(cpi, cpo, in_byte_cnt, 1);
+			cpo2 = base64_out_buf_no_null(cpi, cpo, in_byte_cnt, 1);
 			break;
 		case eBase64_nte:
-			cpo2 = base64_out_buf(cpi, cpo, in_byte_cnt, 0);
+			cpo2 = base64_out_buf_no_null(cpi, cpo, in_byte_cnt, 0);
 			break;
 		case eBaseRaw:
 			cpo2 = raw_out_buf(cpi, cpo, in_byte_cnt);
@@ -298,11 +302,110 @@ int large_hash_output_no_null(unsigned char *cpi, unsigned char *cpo, int in_byt
 /********************************************************************
  ****  Here are the SHA224 and SHA256 functions!!!
  *******************************************************************/
-void DynamicFunc__SHA224_crypt_input1_append_input2(DYNA_OMP_PARAMS) {
-	union xx { unsigned char u[32]; ARCH_WORD a[32/sizeof(ARCH_WORD)]; } u;
-	unsigned char *crypt_out=u.u, *cpo;
-	int i, til;
+//#undef MMX_COEF_SHA256
+#ifdef MMX_COEF_SHA256
+
+static const int sha256_inc = MMX_COEF_SHA256;
+
+static inline uint32_t DoSHA256_FixBufferLen32(unsigned char *input_buf, int total_len) {
+	uint32_t *p;
+	uint32_t ret = (total_len / 64) + 1;
+	if (total_len % 64 > 55)
+		++ret;
+	input_buf[total_len] = 0x80;
+	p = (uint32_t *)&(input_buf[total_len+1]);
+	while (*p && p < (uint32_t *)&input_buf[(ret<<6)-4])
+		*p++ = 0;
+	p = (uint32_t *)input_buf;
+	p[(ret*16)-1] = JOHNSWAP(total_len<<3);
+	return ret;
+}
+static void DoSHA256_crypt_f_sse(void *in, int len[MMX_COEF_SHA256], void *out, int isSHA256) {
+	ALIGN(16) ARCH_WORD_32 a[(32*MMX_COEF_SHA256)/sizeof(ARCH_WORD)];
+	unsigned int i, j, loops[MMX_COEF_SHA256], bMore, cnt;
+	unsigned char *cp = (unsigned char*)in;
+	for (i = 0; i < MMX_COEF_SHA256; ++i) {
+		loops[i] = DoSHA256_FixBufferLen32(cp, len[i]);
+		cp += 256;
+	}
+	cp = (unsigned char*)in;
+	bMore = 1;
+	cnt = 1;
+	while (bMore) {
+		SSESHA256body(cp, a, a, SSEi_FLAT_IN|(isSHA256?0:SSEi_CRYPT_SHA224)|SSEi_4BUF_INPUT_FIRST_BLK|(cnt==1?0:SSEi_RELOAD));
+		bMore = 0;
+		for (i = 0; i < MMX_COEF_SHA256; ++i) {
+			if (cnt == loops[i]) {
+				for (j = 0; j < 4; ++j) {
+					((ARCH_WORD_32*)out)[(i<<2)+j] = JOHNSWAP(a[(j<<2)+i]);
+				}
+			} else if (cnt < loops[i])
+				bMore = 1;
+		}
+		cp += 64;
+		++cnt;
+	}
+}
+static void DoSHA256_crypt_sse(void *in, int ilen[MMX_COEF_SHA256], void *out[MMX_COEF_SHA256], unsigned int *tot_len, int isSHA256, int tid) {
+	ALIGN(16) ARCH_WORD_32 a[(32*MMX_COEF_SHA256)/sizeof(ARCH_WORD)];
+	union yy { unsigned char u[32]; ARCH_WORD_32 a[32/sizeof(ARCH_WORD)]; } y;
+	unsigned int i, j, loops[MMX_COEF_SHA256], bMore, cnt;
+	unsigned char *cp = (unsigned char*)in;
+	for (i = 0; i < MMX_COEF_SHA256; ++i) {
+		loops[i] = DoSHA256_FixBufferLen32(cp, ilen[i]);
+		cp += 256;
+	}
+	cp = (unsigned char*)in;
+	bMore = 1;
+	cnt = 1;
+	while (bMore) {
+		SSESHA256body(cp, a, NULL, SSEi_FLAT_IN|(isSHA256?0:SSEi_CRYPT_SHA224)|SSEi_4BUF_INPUT_FIRST_BLK|(cnt==1?0:SSEi_RELOAD));
+		bMore = 0;
+		for (i = 0; i < MMX_COEF_SHA256; ++i) {
+			if (cnt == loops[i]) {
+				for (j = 0; j < 8; ++j) {
+					y.a[j] =JOHNSWAP(a[(j<<2)+i]);
+				}
+				*(tot_len+i) += large_hash_output(y.u, &(((unsigned char*)out[i])[*(tot_len+i)]), isSHA256?32:28, tid);
+			} else if (cnt < loops[i])
+				bMore = 1;
+		}
+		cp += 64;
+		++cnt;
+	}
+}
+#else
+
+static const int sha256_inc = 1;
+
+static void DoSHA256_crypt_f(void *in, int len, void *out, int isSHA256) {
+	union xx { unsigned char u[32]; ARCH_WORD_32 a[32/sizeof(ARCH_WORD)]; } u;
+	unsigned char *crypt_out=u.u;
 	SHA256_CTX ctx;
+	if (isSHA256)
+		SHA256_Init(&ctx);
+	else
+		SHA224_Init(&ctx);
+	SHA224_Update(&ctx, in, len);
+	SHA224_Final(crypt_out, &ctx);
+	memcpy(out, crypt_out, 16);
+}
+static void DoSHA256_crypt(void *in, int ilen, void *out, unsigned int *tot_len, int isSHA256, int tid) {
+	union xx { unsigned char u[32]; ARCH_WORD_32 a[32/sizeof(ARCH_WORD)]; } u;
+	unsigned char *crypt_out=u.u;
+	SHA256_CTX ctx;
+	if (isSHA256)
+		SHA256_Init(&ctx);
+	else
+		SHA224_Init(&ctx);
+	SHA224_Update(&ctx, in, ilen);
+	SHA224_Final(crypt_out, &ctx);
+	*tot_len += large_hash_output(crypt_out, &(((unsigned char*)out)[*tot_len]), isSHA256?32:28, tid);
+}
+#endif
+
+void DynamicFunc__SHA224_crypt_input1_append_input2(DYNA_OMP_PARAMS) {
+	int i, til;
 
 #ifdef _OPENMP
 	i = first;
@@ -312,28 +415,32 @@ void DynamicFunc__SHA224_crypt_input1_append_input2(DYNA_OMP_PARAMS) {
 	i = 0;
 	til = m_count;
 #endif
-	for (; i < til; ++i) {
-		SHA224_Init(&ctx);
-#if (MD5_X2)
-		if (i & 1) {
-			SHA224_Update(&ctx, input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i]);
-			cpo = (unsigned char *)&(input_buf2_X86[i>>MD5_X2].x2.b2[total_len2_X86[i]]);
+	for (; i < til; i += sha256_inc) {
+#ifdef MMX_COEF_SHA256
+		int len[MMX_COEF_SHA256], j;
+		void *out[MMX_COEF_SHA256];
+		for (j = 0; j < MMX_COEF_SHA256; ++j) {
+			len[j] = total_len_X86[i+j];
+			#if (MD5_X2)
+			if (j&1)
+				out[j] = input_buf2_X86[(i+j)>>MD5_X2].x2.b2;
+			else
+			#endif
+				out[j] = input_buf2_X86[(i+j)>>MD5_X2].x1.b;
 		}
+		DoSHA256_crypt_sse(input_buf_X86[i>>MD5_X2].x1.b, len, out, &(total_len2_X86[i]), 0, tid);
+#else
+		#if (MD5_X2)
+		if (i & 1)
+			DoSHA256_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &(total_len2_X86[i]), 0, tid);
 		else
+		#endif
+		DoSHA256_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &(total_len2_X86[i]), 0, tid);
 #endif
-		{
-			SHA224_Update(&ctx, input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i]);
-			cpo = (unsigned char *)&(input_buf2_X86[i>>MD5_X2].x1.b[total_len2_X86[i]]);
-		}
-		SHA224_Final(crypt_out, &ctx);
-		total_len2_X86[i] += large_hash_output(crypt_out, cpo, 28, tid);
 	}
 }
 void DynamicFunc__SHA256_crypt_input1_append_input2(DYNA_OMP_PARAMS) {
-	union xx { unsigned char u[32]; ARCH_WORD a[32/sizeof(ARCH_WORD)]; } u;
-	unsigned char *crypt_out=u.u, *cpo;
 	int i, til;
-	SHA256_CTX ctx;
 
 #ifdef _OPENMP
 	i = first;
@@ -343,28 +450,32 @@ void DynamicFunc__SHA256_crypt_input1_append_input2(DYNA_OMP_PARAMS) {
 	i = 0;
 	til = m_count;
 #endif
-	for (; i < til; ++i) {
-		SHA256_Init(&ctx);
-#if (MD5_X2)
-		if (i & 1) {
-			SHA256_Update(&ctx, input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i]);
-			cpo = (unsigned char *)&(input_buf2_X86[i>>MD5_X2].x2.b2[total_len2_X86[i]]);
+	for (; i < til; i += sha256_inc) {
+#ifdef MMX_COEF_SHA256
+		int len[MMX_COEF_SHA256], j;
+		void *out[MMX_COEF_SHA256];
+		for (j = 0; j < MMX_COEF_SHA256; ++j) {
+			len[j] = total_len_X86[i+j];
+			#if (MD5_X2)
+			if (j&1)
+				out[j] = input_buf2_X86[(i+j)>>MD5_X2].x2.b2;
+			else
+			#endif
+				out[j] = input_buf2_X86[(i+j)>>MD5_X2].x1.b;
 		}
+		DoSHA256_crypt_sse(input_buf_X86[i>>MD5_X2].x1.b, len, out, &(total_len2_X86[i]), 1, tid);
+#else
+		#if (MD5_X2)
+		if (i & 1)
+			DoSHA256_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &(total_len2_X86[i]), 1, tid);
 		else
+		#endif
+		DoSHA256_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &(total_len2_X86[i]), 1, tid);
 #endif
-		{
-			SHA256_Update(&ctx, input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i]);
-			cpo = (unsigned char *)&(input_buf2_X86[i>>MD5_X2].x1.b[total_len2_X86[i]]);
-		}
-		SHA256_Final(crypt_out, &ctx);
-		total_len2_X86[i] += large_hash_output(crypt_out, cpo, 32, tid);
 	}
 }
 void DynamicFunc__SHA224_crypt_input2_append_input1(DYNA_OMP_PARAMS) {
-	union xx { unsigned char u[32]; ARCH_WORD a[32/sizeof(ARCH_WORD)]; } u;
-	unsigned char *crypt_out=u.u, *cpo;
 	int i, til;
-	SHA256_CTX ctx;
 
 #ifdef _OPENMP
 	i = first;
@@ -374,28 +485,32 @@ void DynamicFunc__SHA224_crypt_input2_append_input1(DYNA_OMP_PARAMS) {
 	i = 0;
 	til = m_count;
 #endif
-	for (; i < til; ++i) {
-		SHA224_Init(&ctx);
-#if (MD5_X2)
-		if (i & 1) {
-			SHA224_Update(&ctx, input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i]);
-			cpo = (unsigned char *)&(input_buf_X86[i>>MD5_X2].x2.b2[total_len_X86[i]]);
+	for (; i < til; i += sha256_inc) {
+#ifdef MMX_COEF_SHA256
+		int len[MMX_COEF_SHA256], j;
+		void *out[MMX_COEF_SHA256];
+		for (j = 0; j < MMX_COEF_SHA256; ++j) {
+			len[j] = total_len2_X86[i+j];
+			#if (MD5_X2)
+			if (j&1)
+				out[j] = input_buf_X86[(i+j)>>MD5_X2].x2.b2;
+			else
+			#endif
+				out[j] = input_buf_X86[(i+j)>>MD5_X2].x1.b;
 		}
+		DoSHA256_crypt_sse(input_buf2_X86[i>>MD5_X2].x1.b, len, out, &(total_len_X86[i]), 0, tid);
+#else
+		#if (MD5_X2)
+		if (i & 1)
+			DoSHA256_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &(total_len_X86[i]), 0, tid);
 		else
+		#endif
+		DoSHA256_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &(total_len_X86[i]), 0, tid);
 #endif
-		{
-			SHA224_Update(&ctx, input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i]);
-			cpo = (unsigned char *)&(input_buf_X86[i>>MD5_X2].x1.b[total_len_X86[i]]);
-		}
-		SHA224_Final(crypt_out, &ctx);
-		total_len_X86[i] += large_hash_output(crypt_out, cpo, 28, tid);
 	}
 }
 void DynamicFunc__SHA256_crypt_input2_append_input1(DYNA_OMP_PARAMS) {
-	union xx { unsigned char u[32]; ARCH_WORD a[32/sizeof(ARCH_WORD)]; } u;
-	unsigned char *crypt_out=u.u, *cpo;
 	int i, til;
-	SHA256_CTX ctx;
 
 #ifdef _OPENMP
 	i = first;
@@ -405,28 +520,32 @@ void DynamicFunc__SHA256_crypt_input2_append_input1(DYNA_OMP_PARAMS) {
 	i = 0;
 	til = m_count;
 #endif
-	for (; i < til; ++i) {
-		SHA256_Init(&ctx);
-#if (MD5_X2)
-		if (i & 1) {
-			SHA256_Update(&ctx, input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i]);
-			cpo = (unsigned char *)&(input_buf_X86[i>>MD5_X2].x2.b2[total_len_X86[i]]);
+	for (; i < til; i += sha256_inc) {
+#ifdef MMX_COEF_SHA256
+		int len[MMX_COEF_SHA256], j;
+		void *out[MMX_COEF_SHA256];
+		for (j = 0; j < MMX_COEF_SHA256; ++j) {
+			len[j] = total_len2_X86[i+j];
+			#if (MD5_X2)
+			if (j&1)
+				out[j] = input_buf_X86[(i+j)>>MD5_X2].x2.b2;
+			else
+			#endif
+				out[j] = input_buf_X86[(i+j)>>MD5_X2].x1.b;
 		}
+		DoSHA256_crypt_sse(input_buf2_X86[i>>MD5_X2].x1.b, len, out, &(total_len_X86[i]), 1, tid);
+#else
+		#if (MD5_X2)
+		if (i & 1)
+			DoSHA256_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &(total_len_X86[i]), 1, tid);
 		else
+		#endif
+		DoSHA256_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &(total_len_X86[i]), 1, tid);
 #endif
-		{
-			SHA256_Update(&ctx, input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i]);
-			cpo = (unsigned char *)&(input_buf_X86[i>>MD5_X2].x1.b[total_len_X86[i]]);
-		}
-		SHA256_Final(crypt_out, &ctx);
-		total_len_X86[i] += large_hash_output(crypt_out, cpo, 32, tid);
 	}
 }
 void DynamicFunc__SHA224_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS){
-	union xx { unsigned char u[32]; ARCH_WORD a[32/sizeof(ARCH_WORD)]; } u;
-	unsigned char *crypt_out=u.u, *cpo;
 	int i, til;
-	SHA256_CTX ctx;
 
 #ifdef _OPENMP
 	i = first;
@@ -436,28 +555,38 @@ void DynamicFunc__SHA224_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS){
 	i = 0;
 	til = m_count;
 #endif
-	for (; i < til; ++i) {
-		SHA224_Init(&ctx);
-#if (MD5_X2)
-		if (i & 1) {
-			SHA224_Update(&ctx, input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i]);
-			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x2.b2;
+	for (; i < til; i += sha256_inc) {
+#ifdef MMX_COEF_SHA256
+		int len[MMX_COEF_SHA256], j;
+		unsigned int x[MMX_COEF_SHA256];
+		void *out[MMX_COEF_SHA256];
+		for (j = 0; j < MMX_COEF_SHA256; ++j) {
+			len[j] = total_len_X86[i+j];
+			#if (MD5_X2)
+			if (j&1)
+				out[j] = input_buf_X86[(i+j)>>MD5_X2].x2.b2;
+			else
+			#endif
+				out[j] = input_buf_X86[(i+j)>>MD5_X2].x1.b;
+			x[j] = 0;
 		}
+		DoSHA256_crypt_sse(input_buf_X86[i>>MD5_X2].x1.b, len, out, x, 0, tid);
+		for (j = 0; j < MMX_COEF_SHA256; ++j)
+			total_len_X86[i+j] = x[j];
+#else
+		unsigned int x = 0;
+		#if (MD5_X2)
+		if (i & 1)
+			DoSHA256_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, 0, tid);
 		else
+		#endif
+		DoSHA256_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, 0, tid);
+		total_len_X86[i] = x;
 #endif
-		{
-			SHA224_Update(&ctx, input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i]);
-			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x1.b;
-		}
-		SHA224_Final(crypt_out, &ctx);
-		total_len_X86[i] = large_hash_output_no_null(crypt_out, cpo, 28, tid);
 	}
 }
 void DynamicFunc__SHA256_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS){
-	union xx { unsigned char u[32]; ARCH_WORD a[32/sizeof(ARCH_WORD)]; } u;
-	unsigned char *crypt_out=u.u, *cpo;
 	int i, til;
-	SHA256_CTX ctx;
 
 #ifdef _OPENMP
 	i = first;
@@ -467,28 +596,38 @@ void DynamicFunc__SHA256_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS){
 	i = 0;
 	til = m_count;
 #endif
-	for (; i < til; ++i) {
-		SHA256_Init(&ctx);
-#if (MD5_X2)
-		if (i & 1) {
-			SHA256_Update(&ctx, input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i]);
-			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x2.b2;
+	for (; i < til; i += sha256_inc) {
+#ifdef MMX_COEF_SHA256
+		int len[MMX_COEF_SHA256], j;
+		unsigned int x[MMX_COEF_SHA256];
+		void *out[MMX_COEF_SHA256];
+		for (j = 0; j < MMX_COEF_SHA256; ++j) {
+			len[j] = total_len_X86[i+j];
+			#if (MD5_X2)
+			if (j&1)
+				out[j] = input_buf_X86[(i+j)>>MD5_X2].x2.b2;
+			else
+			#endif
+				out[j] = input_buf_X86[(i+j)>>MD5_X2].x1.b;
+			x[j] = 0;
 		}
+		DoSHA256_crypt_sse(input_buf_X86[i>>MD5_X2].x1.b, len, out, x, 1, tid);
+		for (j = 0; j < MMX_COEF_SHA256; ++j)
+			total_len_X86[i+j] = x[j];
+#else
+		unsigned int x = 0;
+		#if (MD5_X2)
+		if (i & 1)
+			DoSHA256_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, 1, tid);
 		else
+		#endif
+		DoSHA256_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, 1, tid);
+		total_len_X86[i] = x;
 #endif
-		{
-			SHA256_Update(&ctx, input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i]);
-			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x1.b;
-		}
-		SHA256_Final(crypt_out, &ctx);
-		total_len_X86[i] = large_hash_output_no_null(crypt_out, cpo, 32, tid);
 	}
 }
 void DynamicFunc__SHA224_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS){
-	union xx { unsigned char u[32]; ARCH_WORD a[32/sizeof(ARCH_WORD)]; } u;
-	unsigned char *crypt_out=u.u, *cpo;
 	int i, til;
-	SHA256_CTX ctx;
 
 #ifdef _OPENMP
 	i = first;
@@ -498,28 +637,38 @@ void DynamicFunc__SHA224_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS){
 	i = 0;
 	til = m_count;
 #endif
-	for (; i < til; ++i) {
-		SHA224_Init(&ctx);
-#if (MD5_X2)
-		if (i & 1) {
-			SHA224_Update(&ctx, input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i]);
-			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x2.b2;
+	for (; i < til; i += sha256_inc) {
+#ifdef MMX_COEF_SHA256
+		int len[MMX_COEF_SHA256], j;
+		unsigned int x[MMX_COEF_SHA256];
+		void *out[MMX_COEF_SHA256];
+		for (j = 0; j < MMX_COEF_SHA256; ++j) {
+			len[j] = total_len_X86[i+j];
+			#if (MD5_X2)
+			if (j&1)
+				out[j] = input_buf2_X86[(i+j)>>MD5_X2].x2.b2;
+			else
+			#endif
+				out[j] = input_buf2_X86[(i+j)>>MD5_X2].x1.b;
+			x[j] = 0;
 		}
+		DoSHA256_crypt_sse(input_buf_X86[i>>MD5_X2].x1.b, len, out, x, 0, tid);
+		for (j = 0; j < MMX_COEF_SHA256; ++j)
+			total_len2_X86[i+j] = x[j];
+#else
+		unsigned int x = 0;
+		#if (MD5_X2)
+		if (i & 1)
+			DoSHA256_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, 0, tid);
 		else
+		#endif
+		DoSHA256_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, 0, tid);
+		total_len2_X86[i] = x;
 #endif
-		{
-			SHA224_Update(&ctx, input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i]);
-			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x1.b;
-		}
-		SHA224_Final(crypt_out, &ctx);
-		total_len2_X86[i] = large_hash_output_no_null(crypt_out, cpo, 28, tid);
 	}
 }
 void DynamicFunc__SHA256_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS){
-	union xx { unsigned char u[32]; ARCH_WORD a[32/sizeof(ARCH_WORD)]; } u;
-	unsigned char *crypt_out=u.u, *cpo;
 	int i, til;
-	SHA256_CTX ctx;
 
 #ifdef _OPENMP
 	i = first;
@@ -529,28 +678,38 @@ void DynamicFunc__SHA256_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS){
 	i = 0;
 	til = m_count;
 #endif
-	for (; i < til; ++i) {
-		SHA256_Init(&ctx);
-#if (MD5_X2)
-		if (i & 1) {
-			SHA256_Update(&ctx, input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i]);
-			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x2.b2;
+	for (; i < til;i += sha256_inc) {
+#ifdef MMX_COEF_SHA256
+		int len[MMX_COEF_SHA256], j;
+		unsigned int x[MMX_COEF_SHA256];
+		void *out[MMX_COEF_SHA256];
+		for (j = 0; j < MMX_COEF_SHA256; ++j) {
+			len[j] = total_len_X86[i+j];
+			#if (MD5_X2)
+			if (j&1)
+				out[j] = input_buf2_X86[(i+j)>>MD5_X2].x2.b2;
+			else
+			#endif
+				out[j] = input_buf2_X86[(i+j)>>MD5_X2].x1.b;
+			x[j] = 0;
 		}
+		DoSHA256_crypt_sse(input_buf_X86[i>>MD5_X2].x1.b, len, out, x, 1, tid);
+		for (j = 0; j < MMX_COEF_SHA256; ++j)
+			total_len2_X86[i+j] = x[j];
+#else
+		unsigned int x = 0;
+		#if (MD5_X2)
+		if (i & 1)
+			DoSHA256_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, 1, tid);
 		else
+		#endif
+		DoSHA256_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, 1, tid);
+		total_len2_X86[i] = x;
 #endif
-		{
-			SHA256_Update(&ctx, input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i]);
-			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x1.b;
-		}
-		SHA256_Final(crypt_out, &ctx);
-		total_len2_X86[i] = large_hash_output_no_null(crypt_out, cpo, 32, tid);
 	}
 }
 void DynamicFunc__SHA224_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS){
-	union xx { unsigned char u[32]; ARCH_WORD a[32/sizeof(ARCH_WORD)]; } u;
-	unsigned char *crypt_out=u.u, *cpo;
 	int i, til;
-	SHA256_CTX ctx;
 
 #ifdef _OPENMP
 	i = first;
@@ -560,28 +719,38 @@ void DynamicFunc__SHA224_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS){
 	i = 0;
 	til = m_count;
 #endif
-	for (; i < til; ++i) {
-		SHA224_Init(&ctx);
-#if (MD5_X2)
-		if (i & 1) {
-			SHA224_Update(&ctx, input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i]);
-			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x2.b2;
+	for (; i < til; i += sha256_inc) {
+#ifdef MMX_COEF_SHA256
+		int len[MMX_COEF_SHA256], j;
+		unsigned int x[MMX_COEF_SHA256];
+		void *out[MMX_COEF_SHA256];
+		for (j = 0; j < MMX_COEF_SHA256; ++j) {
+			len[j] = total_len2_X86[i+j];
+			#if (MD5_X2)
+			if (j&1)
+				out[j] = input_buf_X86[(i+j)>>MD5_X2].x2.b2;
+			else
+			#endif
+				out[j] = input_buf_X86[(i+j)>>MD5_X2].x1.b;
+			x[j] = 0;
 		}
+		DoSHA256_crypt_sse(input_buf2_X86[i>>MD5_X2].x1.b, len, out, x, 0, tid);
+		for (j = 0; j < MMX_COEF_SHA256; ++j)
+			total_len_X86[i+j] = x[j];
+#else
+		unsigned int x = 0;
+		#if (MD5_X2)
+		if (i & 1)
+			DoSHA256_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, 0, tid);
 		else
+		#endif
+		DoSHA256_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, 0, tid);
+		total_len_X86[i] = x;
 #endif
-		{
-			SHA224_Update(&ctx, input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i]);
-			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x1.b;
-		}
-		SHA224_Final(crypt_out, &ctx);
-		total_len_X86[i] = large_hash_output_no_null(crypt_out, cpo, 28, tid);
 	}
 }
 void DynamicFunc__SHA256_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS){
-	union xx { unsigned char u[32]; ARCH_WORD a[32/sizeof(ARCH_WORD)]; } u;
-	unsigned char *crypt_out=u.u, *cpo;
 	int i, til;
-	SHA256_CTX ctx;
 
 #ifdef _OPENMP
 	i = first;
@@ -591,28 +760,38 @@ void DynamicFunc__SHA256_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS){
 	i = 0;
 	til = m_count;
 #endif
-	for (; i < til; ++i) {
-		SHA256_Init(&ctx);
-#if (MD5_X2)
-		if (i & 1) {
-			SHA256_Update(&ctx, input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i]);
-			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x2.b2;
+	for (; i < til; i += sha256_inc) {
+#ifdef MMX_COEF_SHA256
+		int len[MMX_COEF_SHA256], j;
+		unsigned int x[MMX_COEF_SHA256];
+		void *out[MMX_COEF_SHA256];
+		for (j = 0; j < MMX_COEF_SHA256; ++j) {
+			len[j] = total_len2_X86[i+j];
+			#if (MD5_X2)
+			if (j&1)
+				out[j] = input_buf_X86[(i+j)>>MD5_X2].x2.b2;
+			else
+			#endif
+				out[j] = input_buf_X86[(i+j)>>MD5_X2].x1.b;
+			x[j] = 0;
 		}
+		DoSHA256_crypt_sse(input_buf2_X86[i>>MD5_X2].x1.b, len, out, x, 1, tid);
+		for (j = 0; j < MMX_COEF_SHA256; ++j)
+			total_len_X86[i+j] = x[j];
+#else
+		unsigned int x = 0;
+		#if (MD5_X2)
+		if (i & 1)
+			DoSHA256_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, 1, tid);
 		else
+		#endif
+		DoSHA256_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, 1, tid);
+		total_len_X86[i] = x;
 #endif
-		{
-			SHA256_Update(&ctx, input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i]);
-			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x1.b;
-		}
-		SHA256_Final(crypt_out, &ctx);
-		total_len_X86[i] = large_hash_output_no_null(crypt_out, cpo, 32, tid);
 	}
 }
 void DynamicFunc__SHA224_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS){
-	union xx { unsigned char u[32]; ARCH_WORD a[32/sizeof(ARCH_WORD)]; } u;
-	unsigned char *crypt_out=u.u, *cpo;
 	int i, til;
-	SHA256_CTX ctx;
 
 #ifdef _OPENMP
 	i = first;
@@ -622,28 +801,38 @@ void DynamicFunc__SHA224_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS){
 	i = 0;
 	til = m_count;
 #endif
-	for (; i < til; ++i) {
-		SHA224_Init(&ctx);
-#if (MD5_X2)
-		if (i & 1) {
-			SHA224_Update(&ctx, input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i]);
-			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x2.b2;
+	for (; i < til; i += sha256_inc) {
+#ifdef MMX_COEF_SHA256
+		int len[MMX_COEF_SHA256], j;
+		unsigned int x[MMX_COEF_SHA256];
+		void *out[MMX_COEF_SHA256];
+		for (j = 0; j < MMX_COEF_SHA256; ++j) {
+			len[j] = total_len2_X86[i+j];
+			#if (MD5_X2)
+			if (j&1)
+				out[j] = input_buf2_X86[(i+j)>>MD5_X2].x2.b2;
+			else
+			#endif
+				out[j] = input_buf2_X86[(i+j)>>MD5_X2].x1.b;
+			x[j] = 0;
 		}
+		DoSHA256_crypt_sse(input_buf2_X86[i>>MD5_X2].x1.b, len, out, x, 0, tid);
+		for (j = 0; j < MMX_COEF_SHA256; ++j)
+			total_len2_X86[i+j] = x[j];
+#else
+		unsigned int x = 0;
+		#if (MD5_X2)
+		if (i & 1)
+			DoSHA256_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, 0, tid);
 		else
+		#endif
+		DoSHA256_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, 0, tid);
+		total_len2_X86[i] = x;
 #endif
-		{
-			SHA224_Update(&ctx, input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i]);
-			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x1.b;
-		}
-		SHA224_Final(crypt_out, &ctx);
-		total_len2_X86[i] = large_hash_output_no_null(crypt_out, cpo, 28, tid);
 	}
 }
 void DynamicFunc__SHA256_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS){
-	union xx { unsigned char u[32]; ARCH_WORD a[32/sizeof(ARCH_WORD)]; } u;
-	unsigned char *crypt_out=u.u, *cpo;
 	int i, til;
-	SHA256_CTX ctx;
 
 #ifdef _OPENMP
 	i = first;
@@ -653,28 +842,38 @@ void DynamicFunc__SHA256_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS){
 	i = 0;
 	til = m_count;
 #endif
-	for (; i < til; ++i) {
-		SHA256_Init(&ctx);
-#if (MD5_X2)
-		if (i & 1) {
-			SHA256_Update(&ctx, input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i]);
-			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x2.b2;
+	for (; i < til; i += sha256_inc) {
+#ifdef MMX_COEF_SHA256
+		int len[MMX_COEF_SHA256], j;
+		unsigned int x[MMX_COEF_SHA256];
+		void *out[MMX_COEF_SHA256];
+		for (j = 0; j < MMX_COEF_SHA256; ++j) {
+			len[j] = total_len2_X86[i+j];
+			#if (MD5_X2)
+			if (j&1)
+				out[j] = input_buf2_X86[(i+j)>>MD5_X2].x2.b2;
+			else
+			#endif
+				out[j] = input_buf2_X86[(i+j)>>MD5_X2].x1.b;
+			x[j] = 0;
 		}
+		DoSHA256_crypt_sse(input_buf2_X86[i>>MD5_X2].x1.b, len, out, x, 1, tid);
+		for (j = 0; j < MMX_COEF_SHA256; ++j)
+			total_len2_X86[i+j] = x[j];
+#else
+		unsigned int x = 0;
+		#if (MD5_X2)
+		if (i & 1)
+			DoSHA256_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, 1, tid);
 		else
+		#endif
+		DoSHA256_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, 1, tid);
+		total_len2_X86[i] = x;
 #endif
-		{
-			SHA256_Update(&ctx, input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i]);
-			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x1.b;
-		}
-		SHA256_Final(crypt_out, &ctx);
-		total_len2_X86[i] = large_hash_output_no_null(crypt_out, cpo, 32, tid);
 	}
 }
 void DynamicFunc__SHA224_crypt_input1_to_output1_FINAL(DYNA_OMP_PARAMS){
-	union xx { unsigned char u[32]; ARCH_WORD a[32/sizeof(ARCH_WORD)]; } u;
-	unsigned char *crypt_out=u.u;
 	int i, til;
-	SHA256_CTX ctx;
 
 #ifdef _OPENMP
 	i = first;
@@ -683,37 +882,24 @@ void DynamicFunc__SHA224_crypt_input1_to_output1_FINAL(DYNA_OMP_PARAMS){
 	i = 0;
 	til = m_count;
 #endif
-	for (; i < til; ++i) {
-		SHA224_Init(&ctx);
-#if (MD5_X2)
+	for (; i < til; i += sha256_inc) {
+#ifdef MMX_COEF_SHA256
+	int len[MMX_COEF_SHA256], j;
+	for (j = 0; j < MMX_COEF_SHA256; ++j)
+		len[j] = total_len_X86[i+j];
+	DoSHA256_crypt_f_sse(input_buf_X86[i>>MD5_X2].x1.b, len, crypt_key_X86[i>>MD5_X2].x1.b, 0);
+#else
+	#if (MD5_X2)
 		if (i & 1)
-			SHA224_Update(&ctx, input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i]);
+			DoSHA256_crypt_f(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], crypt_key_X86[i>>MD5_X2].x2.b2, 0);
 		else
+	#endif
+		DoSHA256_crypt_f(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], crypt_key_X86[i>>MD5_X2].x1.b, 0);
 #endif
-			SHA224_Update(&ctx, input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i]);
-		SHA224_Final(crypt_out, &ctx);
-
-		// Only copies the first 16 out of 28 bytes.  Thus we do not have
-		// the entire SHA224. It would NOT be valid to continue from here. However
-		// it is valid (and 128 bit safe), to simply check the first 128 bits
-		// of SHA224 hash (vs the whole 224 bits), with cmp_all/cmp_one, and if it
-		// matches, then we can 'assume' we have a hit.
-		// That is why the name of the function is *_FINAL()  it is meant to be
-		// something like sha1(md5($p))  and then we simply compare 16 bytes
-		// of hash (instead of the full 28).
-#if (MD5_X2)
-		if (i & 1)
-			memcpy(crypt_key_X86[i>>MD5_X2].x2.b2, crypt_out, 16);
-		else
-#endif
-			memcpy(crypt_key_X86[i>>MD5_X2].x1.b, crypt_out, 16);
 	}
 }
 void DynamicFunc__SHA256_crypt_input1_to_output1_FINAL(DYNA_OMP_PARAMS){
-	union xx { unsigned char u[32]; ARCH_WORD a[32/sizeof(ARCH_WORD)]; } u;
-	unsigned char *crypt_out=u.u;
 	int i, til;
-	SHA256_CTX ctx;
 
 #ifdef _OPENMP
 	i = first;
@@ -722,37 +908,24 @@ void DynamicFunc__SHA256_crypt_input1_to_output1_FINAL(DYNA_OMP_PARAMS){
 	i = 0;
 	til = m_count;
 #endif
-	for (; i < til; ++i) {
-		SHA256_Init(&ctx);
-#if (MD5_X2)
+	for (; i < til; i += sha256_inc) {
+#ifdef MMX_COEF_SHA256
+	int len[MMX_COEF_SHA256], j;
+	for (j = 0; j < MMX_COEF_SHA256; ++j)
+		len[j] = total_len_X86[i+j];
+	DoSHA256_crypt_f_sse(input_buf_X86[i>>MD5_X2].x1.b, len, crypt_key_X86[i>>MD5_X2].x1.b, 1);
+#else
+	#if (MD5_X2)
 		if (i & 1)
-			SHA256_Update(&ctx, input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i]);
+			DoSHA256_crypt_f(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], crypt_key_X86[i>>MD5_X2].x2.b2, 1);
 		else
+	#endif
+		DoSHA256_crypt_f(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], crypt_key_X86[i>>MD5_X2].x1.b, 1);
 #endif
-			SHA256_Update(&ctx, input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i]);
-		SHA256_Final(crypt_out, &ctx);
-
-		// Only copies the first 16 out of 32 bytes.  Thus we do not have
-		// the entire SHA256. It would NOT be valid to continue from here. However
-		// it is valid (and 128 bit safe), to simply check the first 128 bits
-		// of SHA256 hash (vs the whole 256 bits), with cmp_all/cmp_one, and if it
-		// matches, then we can 'assume' we have a hit.
-		// That is why the name of the function is *_FINAL()  it is meant to be
-		// something like sha1(md5($p))  and then we simply compare 16 bytes
-		// of hash (instead of the full 32).
-#if (MD5_X2)
-		if (i & 1)
-			memcpy(crypt_key_X86[i>>MD5_X2].x2.b2, crypt_out, 16);
-		else
-#endif
-			memcpy(crypt_key_X86[i>>MD5_X2].x1.b, crypt_out, 16);
 	}
 }
 void DynamicFunc__SHA224_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS){
-	union xx { unsigned char u[32]; ARCH_WORD a[32/sizeof(ARCH_WORD)]; } u;
-	unsigned char *crypt_out=u.u;
 	int i, til;
-	SHA256_CTX ctx;
 
 #ifdef _OPENMP
 	i = first;
@@ -761,37 +934,24 @@ void DynamicFunc__SHA224_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS){
 	i = 0;
 	til = m_count;
 #endif
-	for (; i < til; ++i) {
-		SHA224_Init(&ctx);
-#if (MD5_X2)
+	for (; i < til;  i += sha256_inc) {
+#ifdef MMX_COEF_SHA256
+	int len[MMX_COEF_SHA256], j;
+	for (j = 0; j < MMX_COEF_SHA256; ++j)
+		len[j] = total_len2_X86[i+j];
+	DoSHA256_crypt_f_sse(input_buf2_X86[i>>MD5_X2].x1.b, len, crypt_key_X86[i>>MD5_X2].x1.b, 0);
+#else
+	#if (MD5_X2)
 		if (i & 1)
-			SHA224_Update(&ctx, input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i]);
+			DoSHA256_crypt_f(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], crypt_key_X86[i>>MD5_X2].x2.b2, 0);
 		else
+	#endif
+		DoSHA256_crypt_f(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], crypt_key_X86[i>>MD5_X2].x1.b, 0);
 #endif
-			SHA224_Update(&ctx, input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i]);
-		SHA224_Final(crypt_out, &ctx);
-
-		// Only copies the first 16 out of 28 bytes.  Thus we do not have
-		// the entire SHA224. It would NOT be valid to continue from here. However
-		// it is valid (and 128 bit safe), to simply check the first 128 bits
-		// of SHA224 hash (vs the whole 224 bits), with cmp_all/cmp_one, and if it
-		// matches, then we can 'assume' we have a hit.
-		// That is why the name of the function is *_FINAL()  it is meant to be
-		// something like sha1(md5($p))  and then we simply compare 16 bytes
-		// of hash (instead of the full 28).
-#if (MD5_X2)
-		if (i & 1)
-			memcpy(crypt_key_X86[i>>MD5_X2].x2.b2, crypt_out, 16);
-		else
-#endif
-			memcpy(crypt_key_X86[i>>MD5_X2].x1.b, crypt_out, 16);
 	}
 }
 void DynamicFunc__SHA256_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS){
-	union xx { unsigned char u[32]; ARCH_WORD a[32/sizeof(ARCH_WORD)]; } u;
-	unsigned char *crypt_out=u.u;
 	int i, til;
-	SHA256_CTX ctx;
 
 #ifdef _OPENMP
 	i = first;
@@ -800,30 +960,20 @@ void DynamicFunc__SHA256_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS){
 	i = 0;
 	til = m_count;
 #endif
-	for (; i < til; ++i) {
-		SHA256_Init(&ctx);
-#if (MD5_X2)
+	for (; i < til; i += sha256_inc) {
+#ifdef MMX_COEF_SHA256
+	int len[MMX_COEF_SHA256], j;
+	for (j = 0; j < MMX_COEF_SHA256; ++j)
+		len[j] = total_len2_X86[i+j];
+	DoSHA256_crypt_f_sse(input_buf2_X86[i>>MD5_X2].x1.b, len, crypt_key_X86[i>>MD5_X2].x1.b, 1);
+#else
+	#if (MD5_X2)
 		if (i & 1)
-			SHA256_Update(&ctx, input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i]);
+			DoSHA256_crypt_f(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], crypt_key_X86[i>>MD5_X2].x2.b2, 1);
 		else
+	#endif
+		DoSHA256_crypt_f(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], crypt_key_X86[i>>MD5_X2].x1.b, 1);
 #endif
-			SHA256_Update(&ctx, input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i]);
-		SHA256_Final(crypt_out, &ctx);
-
-		// Only copies the first 16 out of 32 bytes.  Thus we do not have
-		// the entire SHA256. It would NOT be valid to continue from here. However
-		// it is valid (and 128 bit safe), to simply check the first 128 bits
-		// of SHA256 hash (vs the whole 256 bits), with cmp_all/cmp_one, and if it
-		// matches, then we can 'assume' we have a hit.
-		// That is why the name of the function is *_FINAL()  it is meant to be
-		// something like sha1(md5($p))  and then we simply compare 16 bytes
-		// of hash (instead of the full 32).
-#if (MD5_X2)
-		if (i & 1)
-			memcpy(crypt_key_X86[i>>MD5_X2].x2.b2, crypt_out, 16);
-		else
-#endif
-			memcpy(crypt_key_X86[i>>MD5_X2].x1.b, crypt_out, 16);
 	}
 }
 

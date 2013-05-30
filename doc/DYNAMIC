@@ -472,6 +472,25 @@ examples (this whole list is also found in dynamic.conf).
 #     SSE2 (or mmx) code, and thus, the SSE2/MMX builds can NOT be used
 #     to test that format.
 #
+#  Flag=MGF_FLAT_BUFFERS
+#     This is similar to MGF_NOTSSE2Safe in 'some' ways. It will cause
+#     dynamic to only use the flat buffers. However, it is used for
+#     large formats which HAVE SSE2 code.  These formats will use the
+#     the data from the flat buffers directly (even nulling them out
+#     and placing the # of bits into the right locations, and the 0x80
+#     trailing byte also).  So this tells dyna to store the data and
+#     intermediate flat, but use the special SSE2 code for this format
+#     that loads from flat.  At the current time, only SHA2 formats
+#     behave like this.  But SHA1 'may' also in the near future. One
+#     REALLY nice thing about doing SSE2 this way, is we are not limited
+#     to a single limb.  All of the sha256 can be done in SSE now. All
+#     of the SHA512 also, with the exception of the final crypt of the
+#     type 87 (sha512(sha512(x).sha512(x))  The final crypt is of 256
+#     bytes. Our internal buffers are ONLY 256 bytes long. Thus, we
+#     can not properly expand them to do the SSE2 (we would need to have
+#     384 byte buffers to do so). So that last step is done using oSSL,
+#     on the 256 byte strings stored (which we CAN work with).
+#
 #  Flag=MGF_INPBASE64
 #     If the hashes are in base-64 (such as phpass), then use this
 #     flag.  Note, the base 64 'format' used is that of phpass.  If there
