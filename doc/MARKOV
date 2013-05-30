@@ -59,10 +59,10 @@ followed:
 1/ Run the -single and -wordlist modes of john, as they will find many passwords
 for a low price. Perhaps also -inc with a low -max-len that ends in minutes.
 
-2/ Run john with a low markov level on the file, that runs for more than 10
-seconds but will quit in a minute or two. For example:
+2/ Run john for at least 10 seconds (the longer, the more correct measurement)
+on the file, for example using the -max-run-time=SECONDS option. For example:
 *******************************************************************************
-user@host:run$ ./john -markov:200 hashfile
+user@host:run$ ./john -markov -max-run=10 hashfile
 Loaded 128 password hashes with no different salts (nt, NT MD4 [128/128 X2 SSE2-16])
 Press 'q' or Ctrl-C to abort, almost any other key for status
 MKV start (stats=$JOHN/stats, lvl=200 len=12 pwd=259356431)
@@ -71,15 +71,15 @@ Session completed
 *******************************************************************************
 This means that john can test 24.9M passwords / second (24914Kp/s) when
 attacking this very file. Since John version 1.8, this figure can be used
-directly, salts or not (earlier versions only showed what is now output as
-3319MC/s and that is harder to use).
+directly, salts and dupes or not (earlier versions only showed what is now
+output as 3319MC/s and that is harder to use).
 
-3/ Evaluate the quantity of passwords that could be tried during the selected
-time. Using the previous example, a cracking time of 3 hours will lead to a
-quantity of 269 G passwords (24914000*3600*3) to test.
+3/ Evaluate the quantity of passwords that could be tried during the targeted
+time. Using the previous example, a targeted cracking time of 3 hours will lead
+to a quantity of 269 G passwords (24914000*3600*3) to test.
 
-4/ Use the genmkpwd command to find the corresponding level. Using the previous
-example, with a maximum password length of 12:
+4/ Use the genmkvpwd command to find the corresponding level. Using the
+previous example, with a maximum password length of 12:
 *******************************************************************************
 user@host:run$ ./genmkvpwd stats 0 12
 [...]
@@ -89,7 +89,7 @@ lvl=269 (7020 KB for nbparts) 292 G possible passwords (292593173165)
 [...]
 *******************************************************************************
 Here, the selected level will be 268 (the highest level where the number of
-possible passwords is less than 269 G).
+possible passwords is less than our targeted 269 G).
 
 5/ Run john:
 *******************************************************************************
@@ -107,11 +107,11 @@ options (or MPI), this will happen automatically (well, not the adjustment for
 heterogenous speeds, but an even split).
 
 For example:
-./john -markov -node=3/4	will split the space in four parts and pick the
-				third fourth for this session.
-./john -markov -fork=8		will split the space in eight parts and run one
-				process for each. MPI works the same but can
-                                launch the job on remote hosts.
+./john -markov -node=3/4      will split the space in four parts and pick the
+                              third fourth for this session.
+./john -markov -fork=8        will split the space in eight parts and run one
+                              process for each. MPI works the same but can
+                              launch the job on remote hosts.
 
 
 CONFIGURATION OPTIONS
