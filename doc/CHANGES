@@ -1,3 +1,15 @@
+The following changes have been made between John 1.7.9.14 and 1.7.9.15:
+
+* In incremental mode charset file generation, revised and tuned the estimated
+cracks calculation based on actual testing.
+* Revised the pre-defined incremental modes, as well as external mode filters
+that are used to generate .chr files.
+* Added makechr, a script to (re-)generate the .chr files.
+* Updated the documentation.
+* Relaxed the license for many source files to cut-down BSD.
+* Relaxed the license for John the Ripper as a whole from GPLv2 (exact version)
+to GPLv2 or newer with optional OpenSSL and unRAR exceptions.
+
 The following changes have been made between John 1.7.9.12 and 1.7.9.14:
 
 * Mass rename of formats.
@@ -329,4 +341,4 @@ Mac OS X (PowerPC and x86), SCO, BeOS.
 * Bug and portability fixes, and new bugs.
 * Bonus: "Strip" cracker included in the default john.conf (john.ini).
 
-$Owl: Owl/packages/john/john/doc/CHANGES,v 1.89 2013/05/07 00:16:10 solar Exp $
+$Owl: Owl/packages/john/john/doc/CHANGES,v 1.90 2013/05/30 00:54:19 solar Exp $
