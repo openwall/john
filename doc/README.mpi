@@ -158,6 +158,14 @@ USAGE:
     This will dump the status of each process as recorded in the .rec files.
 
 ====================
+MISC TIPS:
+====================
+    All MPI nodes share the same working directory, usually over NFS. When a
+    larger number of nodes is in use, the overhead for writing to the log file
+    (which includes file locking) may become an overhead. Use the -nolog option
+    to disable logging.
+
+====================
 CAVEATS:
 ====================
     - This implementation does not account for heterogeneous clusters or nodes
