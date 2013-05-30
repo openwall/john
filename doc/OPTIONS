@@ -66,8 +66,8 @@ defaults to [List.Rules:Wordlist] if not given.
 --incremental[=MODE]		"incremental" mode [using section MODE]
 
 Enables the "incremental" mode, using the specified configuration file
-definition (section [Incremental:MODE], or [Incremental:All] by default
-except for LM hashes for which the default is [Incremental:LanMan]).
+definition (section [Incremental:MODE]).  If MODE is omitted, the
+default is "ASCII" for most hash types and "LM_ASCII" for LM hashes.
 
 --external=MODE			external mode or word filter
 
@@ -499,4 +499,4 @@ using this script or otherwise.  And you should edit the message inside
 the script before possibly using it.
 
 Based on (and modified in the jumbo patch):
-$Owl: Owl/packages/john/john/doc/OPTIONS,v 1.16 2013/05/13 11:04:35 solar Exp $
+$Owl: Owl/packages/john/john/doc/OPTIONS,v 1.17 2013/05/29 17:57:56 solar Exp $

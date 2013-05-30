@@ -40,12 +40,12 @@ To retrieve the cracked passwords, run:
 
 	john --show passwd
 
-While cracking, you can press any key for status, or Ctrl-C to abort
-the session saving its state to a file ($JOHN/john.rec by default).
-If you press Ctrl-C for a second time before John had a chance to
-handle your first Ctrl-C, John will abort immediately without saving.
-By default, the state is also saved every 10 minutes to permit for
-recovery in case of a crash.
+While cracking, you can press any key for status, or 'q' or Ctrl-C to
+abort the session saving its state to a file ($JOHN/john.rec by
+default).  If you press Ctrl-C for a second time before John had a
+chance to complete handling of your first Ctrl-C, John will abort
+immediately without saving.  By default, the state is also saved every
+10 minutes to permit for recovery in case of a crash.
 
 To continue an interrupted session, run:
 
@@ -155,4 +155,4 @@ the recommended order of reading:
 
 Happy reading!
 
-$Owl: Owl/packages/john/john/doc/README,v 1.23 2012/01/12 03:07:51 solar Exp $
+$Owl: Owl/packages/john/john/doc/README,v 1.24 2013/05/29 18:17:37 solar Exp $
