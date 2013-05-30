@@ -12,7 +12,7 @@ Specify the --markov option on the command line to use Markov mode.
 
 You can use any of these forms of the --markov option
 
---markov[=LEVEL[:START[:END[:LENGTH]]]]
+--markov[:LEVEL[:START[:END[:LENGTH]]]]
 --markov=MODE[:LEVEL[:START[:END[:LENGTH]]]]
 
 Where:
@@ -47,7 +47,7 @@ over-rides it).
 
 If MODE is not specified on the command line, see CONFIGURATION OPTIONS.
 
-Using "--markov:100:0:0 --max-len=12" will let john check every password whose
+Using "--markov:100 --max-len=12" will let john check every password whose
 length is 12 or less and whose "Markov strength" is 100 or less.
 
 
@@ -55,44 +55,43 @@ SELECTING THE PARAMETERS
 The "LEVEL" parameter should be selected based on the desired maximum running
 time. In order to select the appropriate LEVEL, the following steps should be
 followed:
-1/ Run the -single and -wordlist modes of john, as they will find many passwords
-for a low price
-2/ Run john with a low markov level on the file, using the time utility. For
-example:
-*******************************************************************************
-time john -markov:180 test
-Loaded 156 password hashes with no different salts (NT LM DES [128/128 BS SSE2])
-Warning: MaxLen = 12 is too large for the current hash type, reduced to 7
-MKV start (lvl=180 len=7 pwd=30449568)
-guesses: 0  time: 0:00:00:10 99%  c/s: 475013K  trying:
 
-real    0m10.707s
-user    0m10.621s
-sys     0m0.012s
+1/ Run the -single and -wordlist modes of john, as they will find many passwords
+for a low price. Perhaps also -inc with a low -max-len that ends in minutes.
+
+2/ Run john with a low markov level on the file, that runs for more than 10
+seconds but will quit in a minute or two. For example:
 *******************************************************************************
-This means that john can test 2.8M (30449568/10.707) passwords / seconds. It
-should be noted that with salted passwords the cracking speed will increase with
-every cracked password. This number should be corrected based on the experience
-of the user.
+user@host:run$ ./john -markov:200 hashfile
+Loaded 128 password hashes with no different salts (nt, NT MD4 [128/128 X2 SSE2-16])
+Press 'q' or Ctrl-C to abort, almost any other key for status
+MKV start (stats=$JOHN/stats, lvl=200 len=12 pwd=259356431)
+0g 0:00:00:10 DONE (2013-05-30 23:37) 0g/s 24914Kp/s 24914Kc/s 3319MC/s }svi..}
+Session completed
+*******************************************************************************
+This means that john can test 24.9M passwords / second (24914Kp/s). Since John
+version 1.8, this figure can be used directly, salts or not (earlier versions
+only showed what is now output as 3319MC/s and that is harder to use).
+
 3/ Evaluate the quantity of passwords that could be cracked during the selected
 time. Using the previous example, a cracking time of 3 hours will lead to a
-quantity of passwords of 30714M passwords (30449568/10.707*3600*3).
+quantity of 269 G passwords (24914000*3600*3) to test.
+
 4/ Use the genmkpwd command to find the corresponding level. Using the previous
-example, with a maximum password length of 12 (stupid because LM has a maximum
-length of 7 ...):
+example, with a maximum password length of 12:
 *******************************************************************************
-genmkvpwd stats 0 12
+user@host:run$ ./genmkvpwd stats 0 12
 [...]
-lvl=245 (5904 Kb for nbparts) 26 G possible passwords (26528306250)
-lvl=246 (5928 Kb for nbparts) 29 G possible passwords (29373638087)
-lvl=247 (5952 Kb for nbparts) 32 G possible passwords (32524537496)
+lvl=267 (6968 KB for nbparts) 238 G possible passwords (238763065366)
+lvl=268 (6994 KB for nbparts) 264 G possible passwords (264314506579)
+lvl=269 (7020 KB for nbparts) 292 G possible passwords (292593173165)
 [...]
 *******************************************************************************
-Here, the selected level will be 246 (the higher level where the number of
-possible passwords is less than 30714M).
+Here, the selected level will be 268 (the highest level where the number of
+possible passwords is less than 269 G).
 5/ Run john:
 *******************************************************************************
-john -markov:246:0:0:12 test
+user@host:run$ ./john -markov:268 -max-len:12 hashfile
 *******************************************************************************
 
 
@@ -108,7 +107,8 @@ For example:
 ./john -markov -node=3/4	will split the space in four parts and pick the
 				third fourth for that session.
 ./john -markov -fork=8		will split the space in eight parts and run one
-				process for each. MPI works the same.
+				process for each. MPI works the same but can
+                                launch the job on remote hosts.
 
 
 CONFIGURATION OPTIONS
@@ -167,7 +167,7 @@ The markov mode is based on statistical data from real passwords. This data is
 stored in the "stat" file. In order to generate a custom stat file, it is
 recommanded to use the new calc_stat command:
 
-./calc_stat <dictionary_file> stats
+user@host:run$ ./calc_stat <dictionary_file> stats
 
 
 MKVCALCPROBA USAGE
@@ -176,7 +176,7 @@ as input the "stat" file and a file with a single cracked password per line.
 Here is a sample output:
 
 *******************************************************************************
-./mkvcalcproba stats /tmp/passwordlist
+user@host:run$ ./mkvcalcproba stats /tmp/passwordlist
 test    33+16+28+20     97      4       40030907        45
 password        29+16+30+22+51+25+24+30 227     8       2698006565378672        177
 32'[[!  55+24+98+1000+23+29     1229    6       39949021871     1169
