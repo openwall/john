@@ -2345,6 +2345,53 @@ clean:
 	$(RM) fmt_registers.h fmt_externs.h john_build_rule.h
 	$(CP) $(NULL) Makefile.dep
 
+
+# These are mostly for internal use.
+charsets: ../run/ascii.chr ../run/alpha.chr ../run/lowernum.chr ../run/uppernum.chr ../run/lowerspace.chr ../run/lower.chr ../run/upper.chr ../run/digits.chr ../run/alnum.chr ../run/lanman.chr ../run/lm_ascii.chr ../run/alnumspace.chr ../run/latin1.chr ../run/utf8.chr
+
+../run/ascii.chr: charset.c params.h
+	../run/john -make-charset=../run/ascii.chr -pot:rockyou.ansi.pot -ext:filter_ascii
+
+../run/alpha.chr: charset.c params.h
+	../run/john -make-charset=../run/alpha.chr -pot:rockyou.ansi.pot -ext:filter_alpha
+
+../run/lowernum.chr: charset.c params.h
+	../run/john -make-charset=../run/lowernum.chr -pot:rockyou.ansi.pot -ext:filter_lowernum
+
+../run/uppernum.chr: charset.c params.h
+	../run/john -make-charset=../run/uppernum.chr -pot:rockyou.ansi.pot -ext:filter_uppernum
+
+../run/lowerspace.chr: charset.c params.h
+	../run/john -make-charset=../run/lowerspace.chr -pot:rockyou.ansi.pot -ext:filter_lowerspace
+
+../run/lower.chr: charset.c params.h
+	../run/john -make-charset=../run/lower.chr -pot:rockyou.ansi.pot -ext:filter_lower
+
+../run/upper.chr: charset.c params.h
+	../run/john -make-charset=../run/upper.chr -pot:rockyou.ansi.pot -ext:filter_upper
+
+../run/digits.chr: charset.c params.h
+	../run/john -make-charset=../run/digits.chr -pot:rockyou.ansi.pot -ext:filter_digits
+
+../run/alnum.chr: charset.c params.h
+	../run/john -make-charset=../run/alnum.chr -pot:rockyou.ansi.pot -ext:filter_alnum
+
+../run/lanman.chr: charset.c params.h
+	../run/john -make-charset=../run/lanman.chr -pot:rockyou.lm850.pot -ext:filter_lanman
+
+../run/lm_ascii.chr: charset.c params.h
+	../run/john -make-charset=../run/lm_ascii.chr -pot:rockyou.lm850.pot -ext:filter_lm_ascii
+
+../run/alnumspace.chr: charset.c params.h
+	../run/john -make-charset=../run/alnumspace.chr -pot:rockyou.ansi.pot -ext:filter_alnumspace
+
+../run/latin1.chr: charset.c params.h
+	../run/john -make-charset=../run/latin1.chr -pot:rockyou.ansi.16.pot
+
+../run/utf8.chr: charset.c params.h
+	../run/john -make-charset=../run/utf8.chr -pot:rockyou.utf8.24.pot
+
+
 # For the time being, icc builds a better sse-intrinsics.S but this may
 # change over time. NOTE that sse-intrinsics.S is never re-built unless you
 # manually do a "make intrinsics".
