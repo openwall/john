@@ -69,9 +69,10 @@ MKV start (stats=$JOHN/stats, lvl=200 len=12 pwd=259356431)
 0g 0:00:00:10 DONE (2013-05-30 23:37) 0g/s 24914Kp/s 24914Kc/s 3319MC/s }svi..}
 Session completed
 *******************************************************************************
-This means that john can test 24.9M passwords / second (24914Kp/s). Since John
-version 1.8, this figure can be used directly, salts or not (earlier versions
-only showed what is now output as 3319MC/s and that is harder to use).
+This means that john can test 24.9M passwords / second (24914Kp/s) when
+attacking this very file. Since John version 1.8, this figure can be used
+directly, salts or not (earlier versions only showed what is now output as
+3319MC/s and that is harder to use).
 
 3/ Evaluate the quantity of passwords that could be tried during the selected
 time. Using the previous example, a cracking time of 3 hours will lead to a
@@ -89,6 +90,7 @@ lvl=269 (7020 KB for nbparts) 292 G possible passwords (292593173165)
 *******************************************************************************
 Here, the selected level will be 268 (the highest level where the number of
 possible passwords is less than 269 G).
+
 5/ Run john:
 *******************************************************************************
 user@host:run$ ./john -markov:268 -max-len:12 hashfile
@@ -99,13 +101,14 @@ DISTRIBUTING WORK
 The START and END parameter could be used to distribute work among many CPUs.
 The old method is to evaluate the combined cracking speed of all CPUs
 (adding the step 2 result for every CPUs available) and follow the previous
-method. At step 5, share the cracking space among all CPUs, where is share is
+method. At step 5, share the cracking space among all CPUs, where each share is
 proportional with the CPU's cracking speed. When using the new -node or -fork
-options (or MPI), this will happen automatically!
+options (or MPI), this will happen automatically (well, not the adjustment for
+heterogenous speeds, but an even split).
 
 For example:
 ./john -markov -node=3/4	will split the space in four parts and pick the
-				third fourth for that session.
+				third fourth for this session.
 ./john -markov -fork=8		will split the space in eight parts and run one
 				process for each. MPI works the same but can
                                 launch the job on remote hosts.
