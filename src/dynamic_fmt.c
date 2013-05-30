@@ -499,7 +499,7 @@ static char out[EFFECTIVE_MAX_LENGTH + 1];
 static int m_count;
 
 // If we are run in 'specific' mode (say, -format=dynamic -subformat=dynamic_0, then we
-// want to 'allow' raw hashes to be 'valid'. This is how we will do this.  We have a boolean
+// want to 'allow' bare hashes to be 'valid'. This is how we will do this.  We have a boolean
 // that if set to true, we will perform a 1 time check within the valid function. If at
 // that time we find out that we are cracking (or showing, etc) that we will accept lines
 // that are either format of $dynamic_0$hhhhhh...32 or simply in the format of hhhhhhh..32
@@ -9639,9 +9639,9 @@ int dynamic_Register_formats(struct fmt_main **ptr)
 		sscanf(options.format, "dynamic_%d", &single);
 	if (options.format && options.subformat  && !strcmp(options.format, "dynamic") && !strncmp(options.subformat, "dynamic_", 8))
 		sscanf(options.subformat, "dynamic_%d", &single);
-	if (options.dynamic_raw_hashes_always_valid == 'Y')
+	if (options.dynamic_bare_hashes_always_valid == 'Y')
 		m_allow_rawhash_fixup = 1;
-	else if (options.dynamic_raw_hashes_always_valid != 'N'  && cfg_get_bool(SECTION_OPTIONS, NULL, "DynamicAlwaysUseRawHashes", 1))
+	else if (options.dynamic_bare_hashes_always_valid != 'N'  && cfg_get_bool(SECTION_OPTIONS, NULL, "DynamicAlwaysUseBareHashes", 1))
 		m_allow_rawhash_fixup = 1;
 
 	if (single != -1) {
