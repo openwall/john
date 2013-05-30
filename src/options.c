@@ -289,6 +289,17 @@ void print_hidden_usage(void)
 	puts("                          without any parameters");
 	puts("--config=FILE             use FILE instead of john.conf or john.ini");
 	puts("--mem-file-size=SIZE      size threshold for wordlist preload (default 5 MB)");
+	printf("--format=CLASS            valid classes: dynamic");
+#if defined(HAVE_OPENCL) || defined(HAVE_CUDA)
+	printf(", cpu, gpu");
+#ifdef HAVE_CUDA
+	printf(", cuda");
+#endif
+#ifdef HAVE_OPENCL
+	printf(", opencl");
+#endif
+#endif
+	printf("\n");
 	puts("--subformat=FORMAT        pick a benchmark format for --format=crypt");
 	puts("--mkpc=N                  request a lower max. keys per crypt");
 	puts("--min-length=N            request a minimum candidate length");
