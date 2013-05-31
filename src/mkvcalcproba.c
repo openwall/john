@@ -47,16 +47,16 @@ int main(int argc, char * * argv)
 	unsigned int charset;
 	unsigned int nb_lignes;
 
-	if(argc!=3)
+	if(argc < 2 || argc > 3)
 	{
-		printf("Usage: %s statfile pwdfile\n", argv[0]);
+		printf("Usage: %s statfile [pwdfile]\n", argv[0]);
 		return -1;
 	}
 
 	fichier = fopen(argv[1], "r");
 	if(!fichier)
 	{
-		printf("could not open %s\n", argv[1]);
+		fprintf(stderr, "could not open %s\n", argv[1]);
 		return -1;
 	}
 
@@ -132,14 +132,18 @@ int main(int argc, char * * argv)
 	fprintf(stderr, "%d lines parsed [%p]\n", nb_lignes, fichier);
 	fclose(fichier);
 
-	fichier = fopen(argv[2], "r");
-	if(!fichier)
-	{
-		printf("could not open %s\n", argv[2]);
-		return -1;
+	if (argc == 3) {
+		fichier = fopen(argv[2], "r");
+		if(!fichier)
+		{
+			fprintf(stderr, "could not open %s\n", argv[2]);
+			return -1;
+		}
+		fprintf(stderr, "scanning password file ...\n");
+	} else {
+		fichier = stdin;
+		fprintf(stderr, "reading from stdin ...\n");
 	}
-
-	fprintf(stderr, "scanning password file ...\n");
 	while(fgets(ligne, 4096, fichier))
 	{
 		if (ligne[0] == 0)
