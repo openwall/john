@@ -18,7 +18,6 @@
 #include "opencl_sha512.h"
 
 //Constants.
-#define ROUNDS_PREFIX           "rounds="
 #define ROUNDS_DEFAULT          5000
 #define ROUNDS_MIN              1	/* Drepper has it as 1000 */
 #define ROUNDS_MAX              999999999

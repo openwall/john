@@ -10,6 +10,8 @@
 
 /* ------ Contains (at least) prepare(), valid() and split() ------ */
 
+#define ROUNDS_PREFIX           "rounds="
+
 /* ------- Check if the ciphertext if a valid SHA-512 crypt ------- */
 static int valid(char * ciphertext, struct fmt_main * self) {
 	char *pos, *start;
