@@ -452,37 +452,6 @@ int opencl_DES_bs_get_hash_6(int index)
 	return DES_bs_get_hash(index, 27);
 }
 
-int opencl_DES_bs_cmp_one(WORD *binary, int count, int index)
-{
-	int bit;
-	DES_bs_vector *b;
-	int depth;
-	unsigned int sector;
-	init_t();
-	sector = index >> DES_BS_LOG2;
-	index &= (DES_BS_DEPTH - 1);
-	depth = index >> 3;
-	index &= 7;
-
-	//b = (DES_bs_vector *)((unsigned char *)&opencl_DES_bs_all[sector].B[0] START + depth);
-	b = (DES_bs_vector *)((unsigned char *)&B[sector * 64] START + depth);
-
-#define GET_BIT \
-	((unsigned WORD)*(unsigned char *)&b[0] START >> index)
-
-	for (bit = 0; bit < 31; bit++, b++)
-		if ((GET_BIT ^ (binary[0] >> bit)) & 1)
-			return 0;
-
-	for (; bit < count; bit++, b++)
-		if ((GET_BIT ^ (binary[bit >> 5] >> (bit & 0x1F))) & 1)
-			return 0;
-
-#undef GET_BIT
-
-	return 1;
-}
-
 WORD opencl_DES_raw_get_salt(char *ciphertext)
 {
 	if (ciphertext[13]) return DES_atoi64[ARCH_INDEX(ciphertext[5])] |

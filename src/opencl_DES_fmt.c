@@ -36,7 +36,7 @@ static struct fmt_tests tests[] = {
 
 #define ALGORITHM_NAME			DES_BS_OPENCL_ALGORITHM_NAME
 
-#define BINARY_SIZE			sizeof(WORD)
+#define BINARY_SIZE			(2 * sizeof(WORD))
 #define SALT_SIZE			sizeof(WORD)
 
 static void done()
@@ -169,14 +169,9 @@ static void set_salt(void *salt)
 	opencl_DES_bs_set_salt(*(WORD *)salt);
 }
 
-static int cmp_one(void *binary, int index)
-{
-	return opencl_DES_bs_cmp_one((WORD *)binary, 32, index);
-}
-
 static int cmp_exact(char *source, int index)
 {
-	return opencl_DES_bs_cmp_one(opencl_DES_bs_get_binary(source), 64, index);
+	return opencl_DES_bs_cmp_one_b(opencl_DES_bs_get_binary(source), 64, index);
 }
 
 static char *get_key(int index)
@@ -257,7 +252,7 @@ struct fmt_main fmt_opencl_DES = {
 
 		(int (*)(void *, int))opencl_DES_bs_cmp_all,
 
-		cmp_one,
+		opencl_DES_bs_cmp_one,
 		cmp_exact
 	}
 };

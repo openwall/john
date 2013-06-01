@@ -299,90 +299,65 @@ typedef struct{
 	kvor(kp[0], va, vb); 				\
 	kp++;
 
-#define BODY(p, q)					\
-	mask = mask | (b[p] ^				\
-		-(value & 1));				\
-	if (mask == ~0) goto next_depth;		\
-	mask = mask | (b[q] ^				\
-		-((value >> 1) & 1));			\
-	if (mask == ~0) goto next_depth;		\
-	value >>= 2;
+#define GET_BIT \
+	(unsigned int)*(unsigned char *)&b[0] >> idx
 
-inline void cmp( __private DES_bs_vector *b,
+inline void cmp( __private DES_bs_vector *B,
 	  __global int *binary,
 	  int num_loaded_hash,
 	  volatile __global uint *output,
 	  int section) {
 
 
-	int value , mask, i;
+	int value[2] , mask, i, bit;
+	int index, flag, depth, idx;
+	DES_bs_vector *b;
 
 
 	for(i = 0; i < num_loaded_hash; i++) {
 
-		value = binary[i];
+		value[0] = binary[i];
+		value[1] = binary[i + num_loaded_hash];
 
-		mask = b[0] ^ -(value & 1);
-		mask = mask | (b[1] ^ -((value >> 1) & 1));
-		if (mask == ~0) goto next_depth;
-		mask = mask | (b[2] ^ -((value >> 2) & 1));
-		mask = mask | (b[3] ^ -((value >> 3) & 1));
-		if (mask == ~0) goto next_depth;
-		value >>= 4;
+		mask = B[0] ^ -(value[0] & 1);
 
-		BODY(4, 5);
-		BODY(6, 7);
+		for (bit = 1; bit < 32; bit++)
+			mask |= B[bit] ^ -((value[0] >> bit) & 1);
 
+		for (; bit < 64; bit += 2) {
+			mask |= B[bit] ^ -((value[1] >> (bit & 0x1F)) & 1);
+			mask |= B[bit + 1] ^ -((value[1] >> ((bit + 1) & 0x1F)) & 1);
 
-		BODY(8, 9);
-		BODY(10, 11);
+			if (mask == ~(int)0) goto next_hash;
+		}
 
+		atomic_max( &output[i],section + 1) ;
 
-		BODY(12, 13);
-		BODY(14, 15);
-
-
-		BODY(16, 17);
-		BODY(18, 19);
-
-
-		BODY(20, 21);
-		BODY(22, 23);
-
-
-		BODY(24, 25);
-		BODY(26, 27);
-
-
-		BODY(28, 29);
-		BODY(30, 31);
-
-		atomic_max( &output[i],section) ;
-
-	next_depth: ;
+	next_hash: ;
 	}
 
 }
+#undef GET_BIT
 
 inline void DES_bs_finalize_keys(unsigned int section,
 				__global DES_bs_transfer *DES_bs_all,
 				int local_offset_K,
 				__local DES_bs_vector *K ) {
 
-		__local DES_bs_vector *kp = (__local DES_bs_vector *)&K[local_offset_K] ;
+	__local DES_bs_vector *kp = (__local DES_bs_vector *)&K[local_offset_K] ;
 
-		int ic ;
-		for (ic = 0; ic < 8; ic++) {
-			MAYBE_GLOBAL DES_bs_vector *vp =
-			    (MAYBE_GLOBAL DES_bs_vector *)&DES_bs_all[section].xkeys.v[ic][0] ;
-			LOAD_V
-			FINALIZE_NEXT_KEY_BIT_0
-			FINALIZE_NEXT_KEY_BIT_1
-			FINALIZE_NEXT_KEY_BIT_2
-			FINALIZE_NEXT_KEY_BIT_3
-			FINALIZE_NEXT_KEY_BIT_4
-			FINALIZE_NEXT_KEY_BIT_5
-			FINALIZE_NEXT_KEY_BIT_6
+	int ic ;
+	for (ic = 0; ic < 8; ic++) {
+		MAYBE_GLOBAL DES_bs_vector *vp =
+		    (MAYBE_GLOBAL DES_bs_vector *)&DES_bs_all[section].xkeys.v[ic][0] ;
+		LOAD_V
+		FINALIZE_NEXT_KEY_BIT_0
+		FINALIZE_NEXT_KEY_BIT_1
+		FINALIZE_NEXT_KEY_BIT_2
+		FINALIZE_NEXT_KEY_BIT_3
+		FINALIZE_NEXT_KEY_BIT_4
+		FINALIZE_NEXT_KEY_BIT_5
+		FINALIZE_NEXT_KEY_BIT_6
 
 	}
 
@@ -1214,75 +1189,3 @@ finalize_keys:
 		goto body;
 }
 #endif
-
-#define Fetch()						\
-	b[0] = B_global[bit++];				\
-	b[1] = B_global[bit++];				\
-	b[2] = B_global[bit++];				\
-	b[3] = B_global[bit++];
-
-__kernel void cmp_all( __global DES_bs_vector *B_global,
-		       __global int *binary,
-		       int num_loaded_hash,
-		       volatile __global uint *output) {
-
-	uint section = get_global_id(0) ;
-	int bit = section * 64;
-	int value , mask, i;
-	DES_bs_vector b[4];
-
-	if(!section) {
-		for(i = 0; i < num_loaded_hash; i++)
-			output[i] = 0;
-
-		//printf("In kernel:%d\n",binary[num_loaded_hash-1]);
-		}
-
-	for(i = 0; i < num_loaded_hash; i++) {
-
-		value = binary[i];
-		bit = section * 64;
-
-		Fetch();
-		mask = b[0] ^ -(value & 1);
-		mask |= b[1] ^ -((value >> 1) & 1);
-		if (mask == ~0) goto next_depth;
-		mask |= b[2] ^ -((value >> 2) & 1);
-		mask |= b[3] ^ -((value >> 3) & 1);
-		if (mask == ~0) goto next_depth;
-		value >>= 4;
-
-		Fetch();
-		BODY(0, 1);
-		BODY(2, 3);
-
-		Fetch();
-		BODY(0, 1);
-		BODY(2, 3);
-
-		Fetch();
-		BODY(0, 1);
-		BODY(2, 3);
-
-		Fetch();
-		BODY(0, 1);
-		BODY(2, 3);
-
-		Fetch();
-		BODY(0, 1);
-		BODY(2, 3);
-
-		Fetch();
-		BODY(0, 1);
-		BODY(2, 3);
-
-		Fetch();
-		BODY(0, 1);
-		BODY(2, 3);
-
-		atomic_or(&output[i], 0x01) ;
-
-	next_depth: ;
-	}
-
-}

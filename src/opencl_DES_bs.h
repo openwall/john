@@ -144,7 +144,8 @@ extern int opencl_DES_bs_cmp_all(WORD *binary, int count);
 /*
  * Compares count bits of a given ciphertext against one of the outputs.
  */
-extern int opencl_DES_bs_cmp_one(WORD *binary, int count, int index);
+extern int opencl_DES_bs_cmp_one_b(WORD *binary, int count, int index);
+extern int opencl_DES_bs_cmp_one(void *binary, int index);
 
 /*
  * Returns the salt.
