@@ -96,8 +96,15 @@ typedef struct DYNAMIC_Constants_t
 #define MGF_KEYS_BASE16_X86_IN1_Offset32 0x00000020
 #define MGF_PHPassSetup                  0x00000040
 #define MGF_POSetup                      0x00000080
-#define MGF_FreeBSDMD5Setup              0x00000100
-#define MGF_RAW_SHA1_INPUT               0x00000200
+
+//#define MGF_FreeBSDMD5Setup            0x00000100 // no longer 'used'
+#define MGF_FreeBSDMD5Setup              0x00000000
+// open                                  0x00000100
+
+//#define MGF_RAW_SHA1_INPUT             0x00000200 // no longer 'used'
+#define MGF_RAW_SHA1_INPUT               0x00000000
+// open                                  0x00000200
+
 #define MGF_KEYS_INPUT_BE_SAFE           0x00000400
 #define MGF_SET_INP2LEN32                0x00000800
 // the unicode_b4_crypt does a unicode convert, prior to crypt_in2, base16-in1, etc.  It can NOT be used with KEYS_INPUT.

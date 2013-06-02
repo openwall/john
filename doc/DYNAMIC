@@ -2787,7 +2787,7 @@ Test=$dynamic_1063$7d653cf00d747a9fbab213b6c2b335cfe8199ff3:test3
 [List.Generic:dynamic_1064]
 Expression=dynamic_1064: sha1($p)
 Flag=MGF_INPUT_20_BYTE
-Flag=MGF_RAW_SHA1_INPUT
+Flag=MGF_FLAT_BUFFERS
 Func=DynamicFunc__SHA1_crypt_md5_input1_to_output1_FINAL
 Test=$dynamic_1064$b444ac06613fc8d63795be9ad0beaf55011936ac:test1
 Test=$dynamic_1064$1068db2941b46d12f790df99d72fe8c2eb6d3aaf:thatsworking

@@ -223,7 +223,7 @@
 #endif /* MD4_SSE_PARA */
 
 #ifndef SHA1_SSE_PARA
-#ifdef _OPENMP // The asm version is faster but not thread-safe
+//#ifdef _OPENMP // The asm version is faster but not thread-safe
 #if defined(__INTEL_COMPILER) || defined(USING_ICC_S_FILE)
 #define SHA1_SSE_PARA			1
 #define SHA1_N_STR			"4x"
@@ -246,7 +246,7 @@
 #define SHA1_SSE_PARA			1
 #define SHA1_N_STR			"4x"
 #endif
-#endif /* _OPENMP */
+//#endif /* _OPENMP */
 #endif /* SHA1_SSE_PARA */
 
 #define STR_VALUE(arg)			#arg

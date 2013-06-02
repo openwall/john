@@ -14170,52 +14170,492 @@ SSESHA1body:
 # parameter 3: 648 + %esp
 # parameter 4: 652 + %esp
 ..B5.1:
-        subl      $636, %esp
-        movl      652(%esp), %ecx
-        movl      648(%esp), %eax
-        andl      $2, %ecx
-        jne       ..B5.3
+        pushl     %esi
+        subl      $632, %esp
+        movl      652(%esp), %edx
+        testb     $1, %dl
+        movl      640(%esp), %eax
+        je        ..B5.14
 ..B5.2:
+        testl     $256, %edx
+        movl      (%eax), %ecx
+        je        ..B5.4
+..B5.3:
+        movl      %ecx, (%esp)
+        movl      256(%eax), %ecx
+        movl      512(%eax), %esi
+        movl      %ecx, 4(%esp)
+        movl      %esi, 8(%esp)
+        movl      768(%eax), %ecx
+        movl      4(%eax), %esi
+        movl      %ecx, 12(%esp)
+        movl      %esi, 16(%esp)
+        movl      260(%eax), %ecx
+        movl      516(%eax), %esi
+        movl      %ecx, 20(%esp)
+        movl      %esi, 24(%esp)
+        movl      772(%eax), %ecx
+        movl      8(%eax), %esi
+        movl      %ecx, 28(%esp)
+        movl      %esi, 32(%esp)
+        movl      264(%eax), %ecx
+        movl      520(%eax), %esi
+        movl      %ecx, 36(%esp)
+        movl      %esi, 40(%esp)
+        movl      776(%eax), %ecx
+        movl      12(%eax), %esi
+        movl      %ecx, 44(%esp)
+        movl      %esi, 48(%esp)
+        movl      268(%eax), %ecx
+        movl      524(%eax), %esi
+        movl      %ecx, 52(%esp)
+        movl      %esi, 56(%esp)
+        movl      780(%eax), %ecx
+        movl      16(%eax), %esi
+        movl      %ecx, 60(%esp)
+        movl      %esi, 64(%esp)
+        movl      272(%eax), %ecx
+        movl      528(%eax), %esi
+        movl      %ecx, 68(%esp)
+        movl      %esi, 72(%esp)
+        movl      784(%eax), %ecx
+        movl      20(%eax), %esi
+        movl      %ecx, 76(%esp)
+        movl      %esi, 80(%esp)
+        movl      276(%eax), %ecx
+        movl      532(%eax), %esi
+        movl      %ecx, 84(%esp)
+        movl      %esi, 88(%esp)
+        movl      788(%eax), %ecx
+        movl      24(%eax), %esi
+        movl      %ecx, 92(%esp)
+        movl      %esi, 96(%esp)
+        movl      280(%eax), %ecx
+        movl      536(%eax), %esi
+        movl      %ecx, 100(%esp)
+        movl      %esi, 104(%esp)
+        movl      792(%eax), %ecx
+        movl      28(%eax), %esi
+        movl      %ecx, 108(%esp)
+        movl      %esi, 112(%esp)
+        movl      284(%eax), %ecx
+        movl      540(%eax), %esi
+        movl      %ecx, 116(%esp)
+        movl      %esi, 120(%esp)
+        movl      796(%eax), %ecx
+        movl      32(%eax), %esi
+        movl      %ecx, 124(%esp)
+        movl      %esi, 128(%esp)
+        movl      288(%eax), %ecx
+        movl      544(%eax), %esi
+        movl      %ecx, 132(%esp)
+        movl      %esi, 136(%esp)
+        movl      800(%eax), %ecx
+        movl      36(%eax), %esi
+        movl      %ecx, 140(%esp)
+        movl      %esi, 144(%esp)
+        movl      292(%eax), %ecx
+        movl      548(%eax), %esi
+        movl      %ecx, 148(%esp)
+        movl      %esi, 152(%esp)
+        movl      804(%eax), %ecx
+        movl      40(%eax), %esi
+        movl      %ecx, 156(%esp)
+        movl      %esi, 160(%esp)
+        movl      296(%eax), %ecx
+        movl      552(%eax), %esi
+        movl      %ecx, 164(%esp)
+        movl      %esi, 168(%esp)
+        movl      808(%eax), %ecx
+        movl      44(%eax), %esi
+        movl      %ecx, 172(%esp)
+        movl      %esi, 176(%esp)
+        movl      300(%eax), %ecx
+        movl      556(%eax), %esi
+        movl      %ecx, 180(%esp)
+        movl      %esi, 184(%esp)
+        movl      812(%eax), %ecx
+        movl      48(%eax), %esi
+        movl      %ecx, 188(%esp)
+        movl      %esi, 192(%esp)
+        movl      304(%eax), %ecx
+        movl      560(%eax), %esi
+        movl      %ecx, 196(%esp)
+        movl      %esi, 200(%esp)
+        movl      816(%eax), %ecx
+        movl      52(%eax), %esi
+        movl      %ecx, 204(%esp)
+        movl      %esi, 208(%esp)
+        movl      308(%eax), %ecx
+        movl      564(%eax), %esi
+        movl      %ecx, 212(%esp)
+        movl      %esi, 216(%esp)
+        movl      820(%eax), %ecx
+        movl      56(%eax), %esi
+        movl      %ecx, 220(%esp)
+        movl      %esi, 224(%esp)
+        movl      312(%eax), %ecx
+        movl      568(%eax), %esi
+        movl      %ecx, 228(%esp)
+        movl      %esi, 232(%esp)
+        movl      824(%eax), %ecx
+        movl      60(%eax), %esi
+        movl      %ecx, 236(%esp)
+        movl      %esi, 240(%esp)
+        movl      316(%eax), %ecx
+        movl      572(%eax), %esi
+        movl      828(%eax), %eax
+        movl      %ecx, 244(%esp)
+        movl      %esi, 248(%esp)
+        movl      %eax, 252(%esp)
+        jmp       ..B5.7
+..B5.4:
+        testb     $64, %dl
+        je        ..B5.6
+..B5.5:
+        movl      %ecx, (%esp)
+        movl      128(%eax), %ecx
+        movl      256(%eax), %esi
+        movl      %ecx, 4(%esp)
+        movl      %esi, 8(%esp)
+        movl      384(%eax), %ecx
+        movl      4(%eax), %esi
+        movl      %ecx, 12(%esp)
+        movl      %esi, 16(%esp)
+        movl      132(%eax), %ecx
+        movl      260(%eax), %esi
+        movl      %ecx, 20(%esp)
+        movl      %esi, 24(%esp)
+        movl      388(%eax), %ecx
+        movl      8(%eax), %esi
+        movl      %ecx, 28(%esp)
+        movl      %esi, 32(%esp)
+        movl      136(%eax), %ecx
+        movl      264(%eax), %esi
+        movl      %ecx, 36(%esp)
+        movl      %esi, 40(%esp)
+        movl      392(%eax), %ecx
+        movl      12(%eax), %esi
+        movl      %ecx, 44(%esp)
+        movl      %esi, 48(%esp)
+        movl      140(%eax), %ecx
+        movl      268(%eax), %esi
+        movl      %ecx, 52(%esp)
+        movl      %esi, 56(%esp)
+        movl      396(%eax), %ecx
+        movl      16(%eax), %esi
+        movl      %ecx, 60(%esp)
+        movl      %esi, 64(%esp)
+        movl      144(%eax), %ecx
+        movl      272(%eax), %esi
+        movl      %ecx, 68(%esp)
+        movl      %esi, 72(%esp)
+        movl      400(%eax), %ecx
+        movl      20(%eax), %esi
+        movl      %ecx, 76(%esp)
+        movl      %esi, 80(%esp)
+        movl      148(%eax), %ecx
+        movl      276(%eax), %esi
+        movl      %ecx, 84(%esp)
+        movl      %esi, 88(%esp)
+        movl      404(%eax), %ecx
+        movl      24(%eax), %esi
+        movl      %ecx, 92(%esp)
+        movl      %esi, 96(%esp)
+        movl      152(%eax), %ecx
+        movl      280(%eax), %esi
+        movl      %ecx, 100(%esp)
+        movl      %esi, 104(%esp)
+        movl      408(%eax), %ecx
+        movl      28(%eax), %esi
+        movl      %ecx, 108(%esp)
+        movl      %esi, 112(%esp)
+        movl      156(%eax), %ecx
+        movl      284(%eax), %esi
+        movl      %ecx, 116(%esp)
+        movl      %esi, 120(%esp)
+        movl      412(%eax), %ecx
+        movl      32(%eax), %esi
+        movl      %ecx, 124(%esp)
+        movl      %esi, 128(%esp)
+        movl      160(%eax), %ecx
+        movl      288(%eax), %esi
+        movl      %ecx, 132(%esp)
+        movl      %esi, 136(%esp)
+        movl      416(%eax), %ecx
+        movl      36(%eax), %esi
+        movl      %ecx, 140(%esp)
+        movl      %esi, 144(%esp)
+        movl      164(%eax), %ecx
+        movl      292(%eax), %esi
+        movl      %ecx, 148(%esp)
+        movl      %esi, 152(%esp)
+        movl      420(%eax), %ecx
+        movl      40(%eax), %esi
+        movl      %ecx, 156(%esp)
+        movl      %esi, 160(%esp)
+        movl      168(%eax), %ecx
+        movl      296(%eax), %esi
+        movl      %ecx, 164(%esp)
+        movl      %esi, 168(%esp)
+        movl      424(%eax), %ecx
+        movl      44(%eax), %esi
+        movl      %ecx, 172(%esp)
+        movl      %esi, 176(%esp)
+        movl      172(%eax), %ecx
+        movl      300(%eax), %esi
+        movl      %ecx, 180(%esp)
+        movl      %esi, 184(%esp)
+        movl      428(%eax), %ecx
+        movl      48(%eax), %esi
+        movl      %ecx, 188(%esp)
+        movl      %esi, 192(%esp)
+        movl      176(%eax), %ecx
+        movl      304(%eax), %esi
+        movl      %ecx, 196(%esp)
+        movl      %esi, 200(%esp)
+        movl      432(%eax), %ecx
+        movl      52(%eax), %esi
+        movl      %ecx, 204(%esp)
+        movl      %esi, 208(%esp)
+        movl      180(%eax), %ecx
+        movl      308(%eax), %esi
+        movl      %ecx, 212(%esp)
+        movl      %esi, 216(%esp)
+        movl      436(%eax), %ecx
+        movl      56(%eax), %esi
+        movl      %ecx, 220(%esp)
+        movl      %esi, 224(%esp)
+        movl      184(%eax), %ecx
+        movl      312(%eax), %esi
+        movl      %ecx, 228(%esp)
+        movl      %esi, 232(%esp)
+        movl      440(%eax), %ecx
+        movl      60(%eax), %esi
+        movl      %ecx, 236(%esp)
+        movl      %esi, 240(%esp)
+        movl      188(%eax), %ecx
+        movl      316(%eax), %esi
+        movl      444(%eax), %eax
+        movl      %ecx, 244(%esp)
+        movl      %esi, 248(%esp)
+        movl      %eax, 252(%esp)
+        jmp       ..B5.7
+..B5.6:
+        movl      %ecx, (%esp)
+        movl      64(%eax), %ecx
+        movl      128(%eax), %esi
+        movl      %ecx, 4(%esp)
+        movl      %esi, 8(%esp)
+        movl      192(%eax), %ecx
+        movl      4(%eax), %esi
+        movl      %ecx, 12(%esp)
+        movl      %esi, 16(%esp)
+        movl      68(%eax), %ecx
+        movl      132(%eax), %esi
+        movl      %ecx, 20(%esp)
+        movl      %esi, 24(%esp)
+        movl      196(%eax), %ecx
+        movl      8(%eax), %esi
+        movl      %ecx, 28(%esp)
+        movl      %esi, 32(%esp)
+        movl      72(%eax), %ecx
+        movl      136(%eax), %esi
+        movl      %ecx, 36(%esp)
+        movl      %esi, 40(%esp)
+        movl      200(%eax), %ecx
+        movl      12(%eax), %esi
+        movl      %ecx, 44(%esp)
+        movl      %esi, 48(%esp)
+        movl      76(%eax), %ecx
+        movl      140(%eax), %esi
+        movl      %ecx, 52(%esp)
+        movl      %esi, 56(%esp)
+        movl      204(%eax), %ecx
+        movl      16(%eax), %esi
+        movl      %ecx, 60(%esp)
+        movl      %esi, 64(%esp)
+        movl      80(%eax), %ecx
+        movl      144(%eax), %esi
+        movl      %ecx, 68(%esp)
+        movl      %esi, 72(%esp)
+        movl      208(%eax), %ecx
+        movl      20(%eax), %esi
+        movl      %ecx, 76(%esp)
+        movl      %esi, 80(%esp)
+        movl      84(%eax), %ecx
+        movl      148(%eax), %esi
+        movl      %ecx, 84(%esp)
+        movl      %esi, 88(%esp)
+        movl      212(%eax), %ecx
+        movl      24(%eax), %esi
+        movl      %ecx, 92(%esp)
+        movl      %esi, 96(%esp)
+        movl      88(%eax), %ecx
+        movl      152(%eax), %esi
+        movl      %ecx, 100(%esp)
+        movl      %esi, 104(%esp)
+        movl      216(%eax), %ecx
+        movl      28(%eax), %esi
+        movl      %ecx, 108(%esp)
+        movl      %esi, 112(%esp)
+        movl      92(%eax), %ecx
+        movl      156(%eax), %esi
+        movl      %ecx, 116(%esp)
+        movl      %esi, 120(%esp)
+        movl      220(%eax), %ecx
+        movl      32(%eax), %esi
+        movl      %ecx, 124(%esp)
+        movl      %esi, 128(%esp)
+        movl      96(%eax), %ecx
+        movl      160(%eax), %esi
+        movl      %ecx, 132(%esp)
+        movl      %esi, 136(%esp)
+        movl      224(%eax), %ecx
+        movl      36(%eax), %esi
+        movl      %ecx, 140(%esp)
+        movl      %esi, 144(%esp)
+        movl      100(%eax), %ecx
+        movl      164(%eax), %esi
+        movl      %ecx, 148(%esp)
+        movl      %esi, 152(%esp)
+        movl      228(%eax), %ecx
+        movl      40(%eax), %esi
+        movl      %ecx, 156(%esp)
+        movl      %esi, 160(%esp)
+        movl      104(%eax), %ecx
+        movl      168(%eax), %esi
+        movl      %ecx, 164(%esp)
+        movl      %esi, 168(%esp)
+        movl      232(%eax), %ecx
+        movl      44(%eax), %esi
+        movl      %ecx, 172(%esp)
+        movl      %esi, 176(%esp)
+        movl      108(%eax), %ecx
+        movl      172(%eax), %esi
+        movl      %ecx, 180(%esp)
+        movl      %esi, 184(%esp)
+        movl      236(%eax), %ecx
+        movl      48(%eax), %esi
+        movl      %ecx, 188(%esp)
+        movl      %esi, 192(%esp)
+        movl      112(%eax), %ecx
+        movl      176(%eax), %esi
+        movl      %ecx, 196(%esp)
+        movl      %esi, 200(%esp)
+        movl      240(%eax), %ecx
+        movl      52(%eax), %esi
+        movl      %ecx, 204(%esp)
+        movl      %esi, 208(%esp)
+        movl      116(%eax), %ecx
+        movl      180(%eax), %esi
+        movl      %ecx, 212(%esp)
+        movl      %esi, 216(%esp)
+        movl      244(%eax), %ecx
+        movl      56(%eax), %esi
+        movl      %ecx, 220(%esp)
+        movl      %esi, 224(%esp)
+        movl      120(%eax), %ecx
+        movl      184(%eax), %esi
+        movl      %ecx, 228(%esp)
+        movl      %esi, 232(%esp)
+        movl      248(%eax), %ecx
+        movl      60(%eax), %esi
+        movl      %ecx, 236(%esp)
+        movl      %esi, 240(%esp)
+        movl      124(%eax), %ecx
+        movl      188(%eax), %esi
+        movl      252(%eax), %eax
+        movl      %ecx, 244(%esp)
+        movl      %esi, 248(%esp)
+        movl      %eax, 252(%esp)
+..B5.7:
+        xorl      %eax, %eax
+..B5.8:
+        movl      %eax, %ecx
+        incl      %eax
+        shll      $4, %ecx
+        cmpl      $14, %eax
+        pshufhw   $177, (%esp,%ecx), %xmm0
+        pshuflw   $177, %xmm0, %xmm1
+        movdqa    %xmm1, %xmm2
+        psllw     $8, %xmm1
+        psrlw     $8, %xmm2
+        pxor      %xmm1, %xmm2
+        movdqa    %xmm2, (%esp,%ecx)
+        jb        ..B5.8
+..B5.9:
+        movl      %edx, %eax
+        andl      $192, %eax
+        cmpl      $192, %eax
+        je        ..B5.11
+..B5.10:
+        movl      %edx, %eax
+        andl      $768, %eax
+        cmpl      $768, %eax
+        jne       ..B5.12
+..B5.11:
+        pshufhw   $177, 224(%esp), %xmm0
+        pshufhw   $177, 240(%esp), %xmm3
+        pshuflw   $177, %xmm0, %xmm1
+        pshuflw   $177, %xmm3, %xmm4
+        movdqa    %xmm1, %xmm2
+        movdqa    %xmm4, %xmm5
+        psrlw     $8, %xmm2
+        psllw     $8, %xmm1
+        psrlw     $8, %xmm5
+        psllw     $8, %xmm4
+        pxor      %xmm1, %xmm2
+        pxor      %xmm4, %xmm5
+        movdqa    %xmm2, 224(%esp)
+        movdqa    %xmm5, 240(%esp)
+..B5.12:
+        lea       (%esp), %eax
+..B5.14:
+        movl      %edx, %esi
+        andl      $2, %esi
+        jne       ..B5.16
+..B5.15:
         movdqa    .L_2il0floatpacket.603, %xmm7
         movdqa    .L_2il0floatpacket.604, %xmm3
         movdqa    .L_2il0floatpacket.605, %xmm1
         movdqa    .L_2il0floatpacket.606, %xmm6
         movdqa    .L_2il0floatpacket.607, %xmm0
-        jmp       ..B5.4
-..B5.3:
-        movdqa    (%eax), %xmm7
-        movdqa    16(%eax), %xmm3
-        movdqa    32(%eax), %xmm1
-        movdqa    48(%eax), %xmm6
-        movdqa    64(%eax), %xmm0
-..B5.4:
-        movl      640(%esp), %edx
+        jmp       ..B5.17
+..B5.16:
+        movl      648(%esp), %ecx
+        movdqa    (%ecx), %xmm7
+        movdqa    16(%ecx), %xmm3
+        movdqa    32(%ecx), %xmm1
+        movdqa    48(%ecx), %xmm6
+        movdqa    64(%ecx), %xmm0
+..B5.17:
         movdqa    %xmm1, %xmm5
+        movdqa    208(%eax), %xmm2
         pxor      %xmm6, %xmm5
+        pxor      128(%eax), %xmm2
         pand      %xmm3, %xmm5
-        movdqa    208(%edx), %xmm2
+        pxor      32(%eax), %xmm2
         pxor      %xmm6, %xmm5
-        pxor      128(%edx), %xmm2
+        pxor      (%eax), %xmm2
         paddd     %xmm5, %xmm0
-        pxor      32(%edx), %xmm2
         movdqa    %xmm3, %xmm5
-        pxor      (%edx), %xmm2
-        pslld     $30, %xmm5
         movdqa    %xmm2, %xmm4
+        pslld     $30, %xmm5
         psrld     $2, %xmm3
         paddd     %xmm2, %xmm4
         psrld     $31, %xmm2
         por       %xmm3, %xmm5
         por       %xmm2, %xmm4
-        movdqa    224(%edx), %xmm3
+        movdqa    224(%eax), %xmm3
         movdqa    %xmm7, %xmm2
-        movdqa    %xmm4, (%esp)
+        movdqa    %xmm4, 256(%esp)
         movdqa    %xmm7, %xmm4
-        pxor      144(%edx), %xmm3
+        pxor      144(%eax), %xmm3
         pslld     $5, %xmm4
-        pxor      48(%edx), %xmm3
+        pxor      48(%eax), %xmm3
         psrld     $27, %xmm2
-        pxor      16(%edx), %xmm3
+        pxor      16(%eax), %xmm3
         por       %xmm2, %xmm4
         paddd     %xmm4, %xmm0
         movdqa    %xmm3, %xmm4
@@ -14227,9 +14667,9 @@ SSESHA1body:
         pxor      %xmm5, %xmm3
         paddd     %xmm2, %xmm0
         pand      %xmm7, %xmm3
-        paddd     (%edx), %xmm0
+        paddd     (%eax), %xmm0
         pxor      %xmm1, %xmm3
-        movdqa    %xmm4, 16(%esp)
+        movdqa    %xmm4, 544(%esp)
         paddd     %xmm3, %xmm6
         movdqa    %xmm0, %xmm3
         movdqa    %xmm0, %xmm4
@@ -14241,11 +14681,11 @@ SSESHA1body:
         psrld     $2, %xmm7
         por       %xmm7, %xmm4
         paddd     %xmm3, %xmm6
-        movdqa    240(%edx), %xmm7
+        movdqa    240(%eax), %xmm7
         paddd     %xmm2, %xmm6
-        pxor      160(%edx), %xmm7
-        pxor      64(%edx), %xmm7
-        pxor      32(%edx), %xmm7
+        pxor      160(%eax), %xmm7
+        pxor      64(%eax), %xmm7
+        pxor      32(%eax), %xmm7
         movdqa    %xmm7, %xmm3
         paddd     %xmm7, %xmm3
         psrld     $31, %xmm7
@@ -14253,9 +14693,9 @@ SSESHA1body:
         movdqa    %xmm4, %xmm7
         pxor      %xmm5, %xmm7
         pand      %xmm0, %xmm7
-        paddd     16(%edx), %xmm6
+        paddd     16(%eax), %xmm6
         pxor      %xmm5, %xmm7
-        movdqa    %xmm3, 32(%esp)
+        movdqa    %xmm3, 560(%esp)
         paddd     %xmm7, %xmm1
         movdqa    %xmm6, %xmm7
         movdqa    %xmm6, %xmm3
@@ -14267,11 +14707,11 @@ SSESHA1body:
         psrld     $2, %xmm0
         por       %xmm0, %xmm3
         paddd     %xmm7, %xmm1
-        movdqa    176(%edx), %xmm0
+        movdqa    176(%eax), %xmm0
         paddd     %xmm2, %xmm1
-        pxor      (%esp), %xmm0
-        pxor      80(%edx), %xmm0
-        pxor      48(%edx), %xmm0
+        pxor      256(%esp), %xmm0
+        pxor      80(%eax), %xmm0
+        pxor      48(%eax), %xmm0
         movdqa    %xmm0, %xmm7
         paddd     %xmm0, %xmm7
         psrld     $31, %xmm0
@@ -14279,7 +14719,7 @@ SSESHA1body:
         movdqa    %xmm3, %xmm0
         pxor      %xmm4, %xmm0
         pand      %xmm6, %xmm0
-        paddd     32(%edx), %xmm1
+        paddd     32(%eax), %xmm1
         pxor      %xmm4, %xmm0
         movdqa    %xmm7, 464(%esp)
         paddd     %xmm0, %xmm5
@@ -14294,10 +14734,10 @@ SSESHA1body:
         psrld     $2, %xmm6
         por       %xmm6, %xmm0
         paddd     %xmm2, %xmm5
-        movdqa    192(%edx), %xmm6
-        pxor      16(%esp), %xmm6
-        pxor      96(%edx), %xmm6
-        pxor      64(%edx), %xmm6
+        movdqa    192(%eax), %xmm6
+        pxor      544(%esp), %xmm6
+        pxor      96(%eax), %xmm6
+        pxor      64(%eax), %xmm6
         movdqa    %xmm6, %xmm7
         paddd     %xmm6, %xmm7
         psrld     $31, %xmm6
@@ -14305,7 +14745,7 @@ SSESHA1body:
         movdqa    %xmm0, %xmm6
         pxor      %xmm3, %xmm6
         pand      %xmm1, %xmm6
-        paddd     48(%edx), %xmm5
+        paddd     48(%eax), %xmm5
         pxor      %xmm3, %xmm6
         movdqa    %xmm7, 432(%esp)
         paddd     %xmm6, %xmm4
@@ -14320,10 +14760,10 @@ SSESHA1body:
         psrld     $2, %xmm1
         por       %xmm1, %xmm6
         paddd     %xmm2, %xmm4
-        movdqa    208(%edx), %xmm1
-        pxor      32(%esp), %xmm1
-        pxor      112(%edx), %xmm1
-        pxor      80(%edx), %xmm1
+        movdqa    208(%eax), %xmm1
+        pxor      560(%esp), %xmm1
+        pxor      112(%eax), %xmm1
+        pxor      80(%eax), %xmm1
         movdqa    %xmm1, %xmm7
         paddd     %xmm1, %xmm7
         psrld     $31, %xmm1
@@ -14331,9 +14771,9 @@ SSESHA1body:
         movdqa    %xmm6, %xmm1
         pxor      %xmm0, %xmm1
         pand      %xmm5, %xmm1
-        paddd     64(%edx), %xmm4
+        paddd     64(%eax), %xmm4
         pxor      %xmm0, %xmm1
-        movdqa    %xmm7, 400(%esp)
+        movdqa    %xmm7, 416(%esp)
         paddd     %xmm1, %xmm3
         movdqa    %xmm4, %xmm1
         movdqa    %xmm4, %xmm7
@@ -14346,10 +14786,10 @@ SSESHA1body:
         psrld     $2, %xmm5
         por       %xmm5, %xmm1
         paddd     %xmm2, %xmm3
-        movdqa    224(%edx), %xmm5
+        movdqa    224(%eax), %xmm5
         pxor      464(%esp), %xmm5
-        pxor      128(%edx), %xmm5
-        pxor      96(%edx), %xmm5
+        pxor      128(%eax), %xmm5
+        pxor      96(%eax), %xmm5
         movdqa    %xmm5, %xmm7
         paddd     %xmm5, %xmm7
         psrld     $31, %xmm5
@@ -14357,9 +14797,9 @@ SSESHA1body:
         movdqa    %xmm1, %xmm5
         pxor      %xmm6, %xmm5
         pand      %xmm4, %xmm5
-        paddd     80(%edx), %xmm3
+        paddd     80(%eax), %xmm3
         pxor      %xmm6, %xmm5
-        movdqa    %xmm7, 384(%esp)
+        movdqa    %xmm7, 400(%esp)
         paddd     %xmm5, %xmm0
         movdqa    %xmm3, %xmm5
         movdqa    %xmm3, %xmm7
@@ -14372,10 +14812,10 @@ SSESHA1body:
         psrld     $2, %xmm4
         por       %xmm4, %xmm5
         paddd     %xmm2, %xmm0
-        movdqa    240(%edx), %xmm4
+        movdqa    240(%eax), %xmm4
         pxor      432(%esp), %xmm4
-        pxor      144(%edx), %xmm4
-        pxor      112(%edx), %xmm4
+        pxor      144(%eax), %xmm4
+        pxor      112(%eax), %xmm4
         movdqa    %xmm4, %xmm7
         paddd     %xmm4, %xmm7
         psrld     $31, %xmm4
@@ -14383,7 +14823,7 @@ SSESHA1body:
         movdqa    %xmm5, %xmm4
         pxor      %xmm1, %xmm4
         pand      %xmm3, %xmm4
-        paddd     96(%edx), %xmm0
+        paddd     96(%eax), %xmm0
         pxor      %xmm1, %xmm4
         movdqa    %xmm7, 368(%esp)
         paddd     %xmm4, %xmm6
@@ -14398,10 +14838,10 @@ SSESHA1body:
         psrld     $2, %xmm3
         por       %xmm3, %xmm4
         paddd     %xmm2, %xmm6
-        movdqa    400(%esp), %xmm3
-        pxor      (%esp), %xmm3
-        pxor      160(%edx), %xmm3
-        pxor      128(%edx), %xmm3
+        movdqa    416(%esp), %xmm3
+        pxor      256(%esp), %xmm3
+        pxor      160(%eax), %xmm3
+        pxor      128(%eax), %xmm3
         movdqa    %xmm3, %xmm7
         paddd     %xmm3, %xmm7
         psrld     $31, %xmm3
@@ -14409,7 +14849,7 @@ SSESHA1body:
         movdqa    %xmm4, %xmm3
         pxor      %xmm5, %xmm3
         pand      %xmm0, %xmm3
-        paddd     112(%edx), %xmm6
+        paddd     112(%eax), %xmm6
         pxor      %xmm5, %xmm3
         movdqa    %xmm7, 272(%esp)
         paddd     %xmm3, %xmm1
@@ -14423,11 +14863,11 @@ SSESHA1body:
         psrld     $2, %xmm0
         por       %xmm0, %xmm7
         paddd     %xmm3, %xmm1
-        movdqa    384(%esp), %xmm0
+        movdqa    400(%esp), %xmm0
         paddd     %xmm2, %xmm1
-        pxor      16(%esp), %xmm0
-        pxor      176(%edx), %xmm0
-        pxor      144(%edx), %xmm0
+        pxor      544(%esp), %xmm0
+        pxor      176(%eax), %xmm0
+        pxor      144(%eax), %xmm0
         movdqa    %xmm0, %xmm3
         paddd     %xmm0, %xmm3
         psrld     $31, %xmm0
@@ -14435,7 +14875,7 @@ SSESHA1body:
         movdqa    %xmm7, %xmm0
         pxor      %xmm4, %xmm0
         pand      %xmm6, %xmm0
-        paddd     128(%edx), %xmm1
+        paddd     128(%eax), %xmm1
         pxor      %xmm4, %xmm0
         movdqa    %xmm3, 288(%esp)
         paddd     %xmm0, %xmm5
@@ -14451,9 +14891,9 @@ SSESHA1body:
         por       %xmm6, %xmm0
         paddd     %xmm2, %xmm5
         movdqa    368(%esp), %xmm6
-        pxor      32(%esp), %xmm6
-        pxor      192(%edx), %xmm6
-        pxor      160(%edx), %xmm6
+        pxor      560(%esp), %xmm6
+        pxor      192(%eax), %xmm6
+        pxor      160(%eax), %xmm6
         movdqa    %xmm6, %xmm3
         paddd     %xmm6, %xmm3
         psrld     $31, %xmm6
@@ -14461,7 +14901,7 @@ SSESHA1body:
         movdqa    %xmm0, %xmm6
         pxor      %xmm7, %xmm6
         pand      %xmm1, %xmm6
-        paddd     144(%edx), %xmm5
+        paddd     144(%eax), %xmm5
         pxor      %xmm7, %xmm6
         movdqa    %xmm3, 304(%esp)
         paddd     %xmm6, %xmm4
@@ -14478,8 +14918,8 @@ SSESHA1body:
         paddd     %xmm2, %xmm4
         movdqa    272(%esp), %xmm1
         pxor      464(%esp), %xmm1
-        pxor      208(%edx), %xmm1
-        pxor      176(%edx), %xmm1
+        pxor      208(%eax), %xmm1
+        pxor      176(%eax), %xmm1
         movdqa    %xmm1, %xmm3
         paddd     %xmm1, %xmm3
         psrld     $31, %xmm1
@@ -14487,7 +14927,7 @@ SSESHA1body:
         movdqa    %xmm6, %xmm1
         pxor      %xmm0, %xmm1
         pand      %xmm5, %xmm1
-        paddd     160(%edx), %xmm4
+        paddd     160(%eax), %xmm4
         pxor      %xmm0, %xmm1
         movdqa    %xmm3, 320(%esp)
         paddd     %xmm1, %xmm7
@@ -14504,8 +14944,8 @@ SSESHA1body:
         paddd     %xmm2, %xmm7
         movdqa    288(%esp), %xmm5
         pxor      432(%esp), %xmm5
-        pxor      224(%edx), %xmm5
-        pxor      192(%edx), %xmm5
+        pxor      224(%eax), %xmm5
+        pxor      192(%eax), %xmm5
         movdqa    %xmm5, %xmm3
         paddd     %xmm5, %xmm3
         psrld     $31, %xmm5
@@ -14513,9 +14953,9 @@ SSESHA1body:
         movdqa    %xmm1, %xmm5
         pxor      %xmm6, %xmm5
         pand      %xmm4, %xmm5
-        paddd     176(%edx), %xmm7
+        paddd     176(%eax), %xmm7
         pxor      %xmm6, %xmm5
-        movdqa    %xmm3, 336(%esp)
+        movdqa    %xmm3, 352(%esp)
         paddd     %xmm5, %xmm0
         movdqa    %xmm7, %xmm5
         movdqa    %xmm7, %xmm3
@@ -14529,9 +14969,9 @@ SSESHA1body:
         por       %xmm4, %xmm5
         paddd     %xmm2, %xmm0
         movdqa    304(%esp), %xmm4
-        pxor      400(%esp), %xmm4
-        pxor      240(%edx), %xmm4
-        pxor      208(%edx), %xmm4
+        pxor      416(%esp), %xmm4
+        pxor      240(%eax), %xmm4
+        pxor      208(%eax), %xmm4
         movdqa    %xmm4, %xmm3
         paddd     %xmm4, %xmm3
         psrld     $31, %xmm4
@@ -14539,9 +14979,9 @@ SSESHA1body:
         movdqa    %xmm5, %xmm4
         pxor      %xmm1, %xmm4
         pand      %xmm7, %xmm4
-        paddd     192(%edx), %xmm0
+        paddd     192(%eax), %xmm0
         pxor      %xmm1, %xmm4
-        movdqa    %xmm3, 352(%esp)
+        movdqa    %xmm3, 336(%esp)
         paddd     %xmm4, %xmm6
         movdqa    %xmm0, %xmm4
         movdqa    %xmm0, %xmm3
@@ -14555,9 +14995,9 @@ SSESHA1body:
         paddd     %xmm4, %xmm6
         movdqa    320(%esp), %xmm7
         paddd     %xmm2, %xmm6
-        pxor      384(%esp), %xmm7
-        pxor      (%esp), %xmm7
-        pxor      224(%edx), %xmm7
+        pxor      400(%esp), %xmm7
+        pxor      256(%esp), %xmm7
+        pxor      224(%eax), %xmm7
         movdqa    %xmm7, %xmm4
         paddd     %xmm7, %xmm4
         psrld     $31, %xmm7
@@ -14565,9 +15005,9 @@ SSESHA1body:
         movdqa    %xmm3, %xmm7
         pxor      %xmm5, %xmm7
         pand      %xmm0, %xmm7
-        paddd     208(%edx), %xmm6
+        paddd     208(%eax), %xmm6
         pxor      %xmm5, %xmm7
-        movdqa    %xmm4, 416(%esp)
+        movdqa    %xmm4, 384(%esp)
         paddd     %xmm7, %xmm1
         movdqa    %xmm6, %xmm7
         movdqa    %xmm6, %xmm4
@@ -14577,15 +15017,15 @@ SSESHA1body:
         movdqa    %xmm0, %xmm4
         paddd     %xmm7, %xmm1
         pslld     $30, %xmm4
-        movdqa    336(%esp), %xmm7
+        movdqa    352(%esp), %xmm7
         psrld     $2, %xmm0
         pxor      368(%esp), %xmm7
         por       %xmm0, %xmm4
-        pxor      16(%esp), %xmm7
+        pxor      544(%esp), %xmm7
         paddd     %xmm2, %xmm1
-        movdqa    240(%edx), %xmm0
+        movdqa    240(%eax), %xmm0
         pxor      %xmm0, %xmm7
-        movdqa    %xmm0, 48(%esp)
+        movdqa    %xmm0, 576(%esp)
         movdqa    %xmm7, %xmm0
         paddd     %xmm7, %xmm0
         psrld     $31, %xmm7
@@ -14593,7 +15033,7 @@ SSESHA1body:
         movdqa    %xmm4, %xmm7
         pxor      %xmm3, %xmm7
         pand      %xmm6, %xmm7
-        paddd     224(%edx), %xmm1
+        paddd     224(%eax), %xmm1
         pxor      %xmm3, %xmm7
         movdqa    %xmm0, 448(%esp)
         paddd     %xmm7, %xmm5
@@ -14607,11 +15047,11 @@ SSESHA1body:
         psrld     $2, %xmm6
         por       %xmm6, %xmm0
         paddd     %xmm7, %xmm5
-        movdqa    352(%esp), %xmm6
+        movdqa    336(%esp), %xmm6
         paddd     %xmm2, %xmm5
         pxor      272(%esp), %xmm6
-        pxor      32(%esp), %xmm6
-        pxor      (%esp), %xmm6
+        pxor      560(%esp), %xmm6
+        pxor      256(%esp), %xmm6
         movdqa    %xmm6, %xmm7
         paddd     %xmm6, %xmm7
         psrld     $31, %xmm6
@@ -14619,7 +15059,7 @@ SSESHA1body:
         movdqa    %xmm0, %xmm6
         pxor      %xmm4, %xmm6
         pand      %xmm1, %xmm6
-        paddd     48(%esp), %xmm5
+        paddd     576(%esp), %xmm5
         pxor      %xmm4, %xmm6
         movdqa    %xmm7, 480(%esp)
         paddd     %xmm6, %xmm3
@@ -14634,10 +15074,10 @@ SSESHA1body:
         psrld     $2, %xmm1
         por       %xmm1, %xmm6
         paddd     %xmm2, %xmm3
-        movdqa    416(%esp), %xmm1
+        movdqa    384(%esp), %xmm1
         pxor      288(%esp), %xmm1
         pxor      464(%esp), %xmm1
-        pxor      16(%esp), %xmm1
+        pxor      544(%esp), %xmm1
         movdqa    %xmm1, %xmm7
         paddd     %xmm1, %xmm7
         psrld     $31, %xmm1
@@ -14645,7 +15085,7 @@ SSESHA1body:
         movdqa    %xmm6, %xmm1
         pxor      %xmm0, %xmm1
         pand      %xmm5, %xmm1
-        paddd     (%esp), %xmm3
+        paddd     256(%esp), %xmm3
         pxor      %xmm0, %xmm1
         movdqa    %xmm7, 528(%esp)
         paddd     %xmm1, %xmm4
@@ -14663,7 +15103,7 @@ SSESHA1body:
         movdqa    448(%esp), %xmm5
         pxor      304(%esp), %xmm5
         pxor      432(%esp), %xmm5
-        pxor      32(%esp), %xmm5
+        pxor      560(%esp), %xmm5
         movdqa    %xmm5, %xmm7
         paddd     %xmm5, %xmm7
         psrld     $31, %xmm5
@@ -14671,9 +15111,9 @@ SSESHA1body:
         movdqa    %xmm1, %xmm5
         pxor      %xmm6, %xmm5
         pand      %xmm3, %xmm5
-        paddd     16(%esp), %xmm4
+        paddd     544(%esp), %xmm4
         pxor      %xmm6, %xmm5
-        movdqa    %xmm7, 512(%esp)
+        movdqa    %xmm7, 496(%esp)
         paddd     %xmm5, %xmm0
         movdqa    %xmm4, %xmm5
         movdqa    %xmm4, %xmm7
@@ -14688,7 +15128,7 @@ SSESHA1body:
         paddd     %xmm2, %xmm0
         movdqa    480(%esp), %xmm3
         pxor      320(%esp), %xmm3
-        pxor      400(%esp), %xmm3
+        pxor      416(%esp), %xmm3
         pxor      464(%esp), %xmm3
         movdqa    %xmm3, %xmm7
         paddd     %xmm3, %xmm7
@@ -14697,9 +15137,9 @@ SSESHA1body:
         movdqa    %xmm5, %xmm3
         pxor      %xmm1, %xmm3
         pand      %xmm4, %xmm3
-        paddd     32(%esp), %xmm0
+        paddd     560(%esp), %xmm0
         pxor      %xmm1, %xmm3
-        movdqa    %xmm7, 496(%esp)
+        movdqa    %xmm7, 512(%esp)
         paddd     %xmm3, %xmm6
         movdqa    %xmm0, %xmm3
         movdqa    %xmm0, %xmm7
@@ -14708,12 +15148,12 @@ SSESHA1body:
         por       %xmm7, %xmm3
         paddd     %xmm3, %xmm6
         paddd     %xmm2, %xmm6
-..B5.14:
+..B5.27:
         movdqa    528(%esp), %xmm3
         movdqa    %xmm4, %xmm2
-        pxor      336(%esp), %xmm3
+        pxor      352(%esp), %xmm3
         pslld     $30, %xmm2
-        pxor      384(%esp), %xmm3
+        pxor      400(%esp), %xmm3
         psrld     $2, %xmm4
         movdqa    432(%esp), %xmm7
         por       %xmm4, %xmm2
@@ -14738,11 +15178,11 @@ SSESHA1body:
         pslld     $30, %xmm3
         psrld     $2, %xmm0
         por       %xmm0, %xmm3
-        movdqa    512(%esp), %xmm0
-        pxor      352(%esp), %xmm0
+        movdqa    496(%esp), %xmm0
+        pxor      336(%esp), %xmm0
         pxor      368(%esp), %xmm0
         movdqa    .L_2il0floatpacket.609, %xmm4
-        pxor      400(%esp), %xmm0
+        pxor      416(%esp), %xmm0
         paddd     %xmm4, %xmm1
         paddd     %xmm7, %xmm1
         movdqa    %xmm0, %xmm7
@@ -14764,18 +15204,18 @@ SSESHA1body:
         psrld     $2, %xmm6
         por       %xmm6, %xmm7
         paddd     %xmm0, %xmm5
-        movdqa    496(%esp), %xmm6
+        movdqa    512(%esp), %xmm6
         paddd     %xmm4, %xmm5
-        pxor      416(%esp), %xmm6
-        pxor      272(%esp), %xmm6
         pxor      384(%esp), %xmm6
+        pxor      272(%esp), %xmm6
+        pxor      400(%esp), %xmm6
         movdqa    %xmm6, %xmm0
         paddd     %xmm6, %xmm0
         psrld     $31, %xmm6
         por       %xmm6, %xmm0
         movdqa    %xmm7, %xmm6
         pxor      %xmm3, %xmm6
-        paddd     400(%esp), %xmm5
+        paddd     416(%esp), %xmm5
         pxor      %xmm1, %xmm6
         movdqa    %xmm0, 576(%esp)
         paddd     %xmm6, %xmm2
@@ -14800,7 +15240,7 @@ SSESHA1body:
         por       %xmm1, %xmm6
         movdqa    %xmm0, %xmm1
         pxor      %xmm7, %xmm1
-        paddd     384(%esp), %xmm2
+        paddd     400(%esp), %xmm2
         pxor      %xmm5, %xmm1
         movdqa    %xmm6, 592(%esp)
         paddd     %xmm1, %xmm3
@@ -14865,9 +15305,9 @@ SSESHA1body:
         psrld     $2, %xmm3
         por       %xmm3, %xmm2
         paddd     %xmm4, %xmm0
-        movdqa    512(%esp), %xmm3
+        movdqa    496(%esp), %xmm3
         pxor      592(%esp), %xmm3
-        pxor      336(%esp), %xmm3
+        pxor      352(%esp), %xmm3
         pxor      304(%esp), %xmm3
         movdqa    %xmm3, %xmm5
         paddd     %xmm3, %xmm5
@@ -14890,9 +15330,9 @@ SSESHA1body:
         psrld     $2, %xmm7
         por       %xmm7, %xmm3
         paddd     %xmm4, %xmm1
-        movdqa    496(%esp), %xmm7
+        movdqa    512(%esp), %xmm7
         pxor      608(%esp), %xmm7
-        pxor      352(%esp), %xmm7
+        pxor      336(%esp), %xmm7
         pxor      320(%esp), %xmm7
         movdqa    %xmm7, %xmm5
         paddd     %xmm7, %xmm5
@@ -14917,8 +15357,8 @@ SSESHA1body:
         movdqa    256(%esp), %xmm0
         paddd     %xmm4, %xmm6
         pxor      544(%esp), %xmm0
-        pxor      416(%esp), %xmm0
-        pxor      336(%esp), %xmm0
+        pxor      384(%esp), %xmm0
+        pxor      352(%esp), %xmm0
         movdqa    %xmm0, %xmm7
         paddd     %xmm0, %xmm7
         psrld     $31, %xmm0
@@ -14943,14 +15383,14 @@ SSESHA1body:
         movdqa    240(%esp), %xmm1
         pxor      560(%esp), %xmm1
         pxor      448(%esp), %xmm1
-        pxor      352(%esp), %xmm1
+        pxor      336(%esp), %xmm1
         movdqa    %xmm1, %xmm7
         paddd     %xmm1, %xmm7
         psrld     $31, %xmm1
         por       %xmm1, %xmm7
         movdqa    %xmm0, %xmm1
         pxor      %xmm5, %xmm1
-        paddd     336(%esp), %xmm2
+        paddd     352(%esp), %xmm2
         pxor      %xmm6, %xmm1
         movdqa    %xmm7, 192(%esp)
         paddd     %xmm1, %xmm3
@@ -14968,14 +15408,14 @@ SSESHA1body:
         movdqa    224(%esp), %xmm6
         pxor      576(%esp), %xmm6
         pxor      480(%esp), %xmm6
-        pxor      416(%esp), %xmm6
+        pxor      384(%esp), %xmm6
         movdqa    %xmm6, %xmm7
         paddd     %xmm6, %xmm7
         psrld     $31, %xmm6
         por       %xmm6, %xmm7
         movdqa    %xmm1, %xmm6
         pxor      %xmm0, %xmm6
-        paddd     352(%esp), %xmm3
+        paddd     336(%esp), %xmm3
         pxor      %xmm2, %xmm6
         movdqa    %xmm7, 176(%esp)
         paddd     %xmm6, %xmm5
@@ -15000,7 +15440,7 @@ SSESHA1body:
         por       %xmm2, %xmm6
         movdqa    %xmm7, %xmm2
         pxor      %xmm1, %xmm2
-        paddd     416(%esp), %xmm5
+        paddd     384(%esp), %xmm5
         pxor      %xmm3, %xmm2
         movdqa    %xmm6, 160(%esp)
         paddd     %xmm2, %xmm0
@@ -15017,7 +15457,7 @@ SSESHA1body:
         paddd     %xmm4, %xmm0
         movdqa    192(%esp), %xmm3
         pxor      608(%esp), %xmm3
-        pxor      512(%esp), %xmm3
+        pxor      496(%esp), %xmm3
         pxor      480(%esp), %xmm3
         movdqa    %xmm3, %xmm6
         paddd     %xmm3, %xmm6
@@ -15042,7 +15482,7 @@ SSESHA1body:
         paddd     %xmm4, %xmm1
         movdqa    176(%esp), %xmm5
         pxor      256(%esp), %xmm5
-        pxor      496(%esp), %xmm5
+        pxor      512(%esp), %xmm5
         pxor      528(%esp), %xmm5
         movdqa    %xmm5, %xmm6
         paddd     %xmm5, %xmm6
@@ -15068,7 +15508,7 @@ SSESHA1body:
         movdqa    160(%esp), %xmm0
         pxor      240(%esp), %xmm0
         pxor      544(%esp), %xmm0
-        pxor      512(%esp), %xmm0
+        pxor      496(%esp), %xmm0
         movdqa    %xmm0, %xmm6
         paddd     %xmm0, %xmm6
         psrld     $31, %xmm0
@@ -15093,14 +15533,14 @@ SSESHA1body:
         paddd     %xmm4, %xmm2
         pxor      224(%esp), %xmm1
         pxor      560(%esp), %xmm1
-        pxor      496(%esp), %xmm1
+        pxor      512(%esp), %xmm1
         movdqa    %xmm1, %xmm0
         paddd     %xmm1, %xmm0
         psrld     $31, %xmm1
         por       %xmm1, %xmm0
         movdqa    %xmm6, %xmm1
         pxor      %xmm5, %xmm1
-        paddd     512(%esp), %xmm2
+        paddd     496(%esp), %xmm2
         pxor      %xmm7, %xmm1
         movdqa    %xmm0, 96(%esp)
         paddd     %xmm1, %xmm3
@@ -15125,7 +15565,7 @@ SSESHA1body:
         por       %xmm7, %xmm1
         movdqa    %xmm0, %xmm7
         pxor      %xmm6, %xmm7
-        paddd     496(%esp), %xmm3
+        paddd     512(%esp), %xmm3
         pxor      %xmm2, %xmm7
         movdqa    %xmm1, 80(%esp)
         paddd     %xmm7, %xmm5
@@ -15267,7 +15707,7 @@ SSESHA1body:
         pslld     $5, %xmm6
         psrld     $27, %xmm0
         por       %xmm0, %xmm6
-..B5.13:
+..B5.26:
         paddd     %xmm6, %xmm3
         movdqa    %xmm1, %xmm0
         movdqa    (%esp), %xmm6
@@ -15829,7 +16269,7 @@ SSESHA1body:
         paddd     %xmm2, %xmm4
         movdqa    528(%esp), %xmm2
         por       %xmm3, %xmm1
-..B5.12:
+..B5.25:
         movdqa    400(%esp), %xmm3
         pxor      432(%esp), %xmm3
         pxor      352(%esp), %xmm3
@@ -16148,8 +16588,8 @@ SSESHA1body:
         psrld     $2, %xmm2
         paddd     %xmm4, %xmm7
         por       %xmm2, %xmm0
-        jne       ..B5.6
-..B5.5:
+        jne       ..B5.19
+..B5.18:
         movdqa    .L_2il0floatpacket.603, %xmm2
         movdqa    .L_2il0floatpacket.604, %xmm4
         paddd     %xmm2, %xmm7
@@ -16160,30 +16600,26 @@ SSESHA1body:
         movdqa    .L_2il0floatpacket.607, %xmm4
         paddd     %xmm2, %xmm5
         paddd     %xmm4, %xmm3
-        jmp       ..B5.9
-..B5.6:
-        movl      652(%esp), %edx
+        jmp       ..B5.22
+..B5.19:
         andl      $6, %edx
         cmpl      $6, %edx
-..B5.8:
-        movdqa    (%eax), %xmm2
-        movdqa    16(%eax), %xmm4
-        paddd     %xmm2, %xmm7
-        movdqa    32(%eax), %xmm6
-        paddd     %xmm4, %xmm1
-        movdqa    48(%eax), %xmm2
-        paddd     %xmm6, %xmm0
-        movdqa    64(%eax), %xmm4
-        paddd     %xmm2, %xmm5
-        paddd     %xmm4, %xmm3
-..B5.9:
+..B5.21:
+        movl      648(%esp), %eax
+        paddd     (%eax), %xmm7
+        paddd     16(%eax), %xmm1
+        paddd     32(%eax), %xmm0
+        paddd     48(%eax), %xmm5
+        paddd     64(%eax), %xmm3
+..B5.22:
         movl      644(%esp), %eax
         movdqa    %xmm7, (%eax)
         movdqa    %xmm1, 16(%eax)
         movdqa    %xmm0, 32(%eax)
         movdqa    %xmm5, 48(%eax)
         movdqa    %xmm3, 64(%eax)
-        addl      $636, %esp
+        addl      $632, %esp
+        popl      %esi
         ret
         .align    16,0x90
 	.data

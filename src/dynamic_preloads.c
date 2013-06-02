@@ -50,7 +50,7 @@
 //dynamic_4 --> md5($s.$p)  (osCommerce MD5 2 byte salt)
 //dynamic_5 --> md5($s.$p.$s)
 //dynamic_6 --> md5(md5($p).$s)
-   // DEPRICATED  //dynamic_7 --> md5(md5($p).$s) vBulletin  (fixed 3 byte salt, colon not valid as field sep, since all chars from 0x20 to 0x7E are in the salt)
+   // REMOVED! DEPRICATED  //dynamic_7 --> md5(md5($p).$s) vBulletin  (fixed 3 byte salt, colon not valid as field sep, since all chars from 0x20 to 0x7E are in the salt)
 //dynamic_8 --> md5(md5($s).$p)
 //dynamic_9 --> md5($s.md5($p))
 //dynamic_10 --> md5($s.md5($s.$p))
@@ -70,8 +70,8 @@
 //dynamic_24 --> sha1($p.$s)               // requires a 40 byte hex hash
 //dynamic_25 --> sha1($s.$p)               // requires a 40 byte hex hash
 //dynamic_26 --> sha1($p)                  // MGF_RAW_SHA1_INPUT
- // DEPRICATED //dynamic_27 --> FreeBSD MD5
- // DEPRICATED //dynamic_28 --> Apache MD5
+ // REMOVED! DEPRICATED //dynamic_27 --> FreeBSD MD5
+ // REMOVED! DEPRICATED //dynamic_28 --> Apache MD5
 //dynamic_29 --> md5(unicode($p))			// raw-md5-unicode
 //dynamic_30 --> md4($p)                    // raw-md4
 //dynamic_31 --> md4($s.$p)
@@ -812,7 +812,7 @@ static DYNAMIC_Constants _Const_21[] =
 static DYNAMIC_primitive_funcp _Funcs_22[] =
 {
 	//MGF_StartInX86Mode
-	//MGF_KEYS_INPUT_BE_SAFE
+	//MGF_KEYS_INPUT
 	DynamicFunc__clean_input2_kwik,
 	DynamicFunc__SHA1_crypt_input1_append_input2_base16,
 	DynamicFunc__X86toSSE_switch_input2,
@@ -838,7 +838,7 @@ static DYNAMIC_primitive_funcp _Funcs_23[] =
 	//MGF_KEYS_INPUT
 	DynamicFunc__crypt_md5,
 	DynamicFunc__SSEtoX86_switch_output1,
-	DynamicFunc__clean_input2,
+	DynamicFunc__clean_input2_kwik,
 	DynamicFunc__append_from_last_output_to_input2_as_base16,
 	DynamicFunc__SHA1_crypt_input2_to_output1_FINAL,
 	NULL
@@ -860,7 +860,8 @@ static DYNAMIC_primitive_funcp _Funcs_24[] =
 {
 	//MGF_INPUT_20_BYTE
 	//MGF_SALTED
-	DynamicFunc__clean_input,
+	//MGF_FLAT_BUFFERS
+	DynamicFunc__clean_input_kwik,
 	DynamicFunc__append_keys,
 	DynamicFunc__append_salt,
 	DynamicFunc__SHA1_crypt_input1_to_output1_FINAL,
@@ -883,7 +884,8 @@ static DYNAMIC_primitive_funcp _Funcs_25[] =
 {
 	//MGF_INPUT_20_BYTE
 	//MGF_SALTED
-	DynamicFunc__clean_input,
+	//MGF_FLAT_BUFFERS
+	DynamicFunc__clean_input_kwik,
 	DynamicFunc__append_salt,
 	DynamicFunc__append_keys,
 	DynamicFunc__SHA1_crypt_input1_to_output1_FINAL,
@@ -905,7 +907,8 @@ static struct fmt_tests _Preloads_25[] =
 static DYNAMIC_primitive_funcp _Funcs_26[] =
 {
 	//MGF_INPUT_20_BYTE
-	//MGF_RAW_SHA1_INPUT
+	//MGF_KEYS_INPUT
+	//MGF_FLAT_BUFFERS
 	DynamicFunc__SHA1_crypt_input1_to_output1_FINAL,
 	NULL
 };
@@ -921,6 +924,7 @@ static struct fmt_tests _Preloads_26[] =
 	{NULL}
 };
 
+#if 0
 #if !defined (_OPENMP)  && defined (MMX_COEF)
 #if ARCH_LITTLE_ENDIAN
 //dynamic_27 --> FreeBSD MD5
@@ -971,6 +975,7 @@ static DYNAMIC_Constants _Const_28[] =
 	{6, "$apr1$"},
 	{0, NULL}
 };
+#endif
 #endif
 #endif
 
@@ -1156,7 +1161,8 @@ static DYNAMIC_primitive_funcp _Funcs_35[] =
 	//MGF_INPUT_20_BYTE
 	//MGF_SALTED ???
 	//MGF_USERNAME_UPCASE
-	DynamicFunc__clean_input,
+	//MGF_FLAT_BUFFERS
+	DynamicFunc__clean_input_kwik,
 	DynamicFunc__append_userid,
 	DynamicFunc__append_input1_from_CONST1,
 	DynamicFunc__append_keys,
@@ -1189,7 +1195,8 @@ static DYNAMIC_primitive_funcp _Funcs_36[] =
 {
 	//MGF_INPUT_20_BYTE
 	//MGF_USERNAME
-	DynamicFunc__clean_input,
+	//MGF_FLAT_BUFFERS
+	DynamicFunc__clean_input_kwik,
 	DynamicFunc__append_userid,
 	DynamicFunc__append_input1_from_CONST1,
 	DynamicFunc__append_keys,
@@ -1222,7 +1229,8 @@ static DYNAMIC_primitive_funcp _Funcs_37[] =
 {
 	//MGF_INPUT_20_BYTE
 	//MGF_USERNAME
-	DynamicFunc__clean_input,
+	//MGF_FLAT_BUFFERS
+	DynamicFunc__clean_input_kwik,
 	DynamicFunc__append_userid,
 	DynamicFunc__append_keys,
 	DynamicFunc__SHA1_crypt_input1_to_output1_FINAL,
@@ -1249,9 +1257,9 @@ static DYNAMIC_primitive_funcp _Funcs_38[] =
 {
 	//MGF_INPUT_20_BYTE
 	//MGF_SALTED
-	//MGF_NOTSSE2Safe
-	DynamicFunc__clean_input,
-	DynamicFunc__clean_input2,
+	//MGF_FLAT_BUFFERS
+	DynamicFunc__clean_input_kwik,
+	DynamicFunc__clean_input2_kwik,
 	DynamicFunc__append_keys,
 	DynamicFunc__append_salt2,
 	DynamicFunc__SHA1_crypt_input1_append_input2,
@@ -3699,16 +3707,19 @@ static DYNAMIC_Setup Setups[] =
 	{ "dynamic_19: Cisco PIX (MD5)",            _Funcs_19,_Preloads_19,_ConstDefault, MGF_INPBASE64_4x6, MGF_NO_FLAG, 0, 16, 16 },
 	{ "dynamic_20: Cisco ASA (MD5 salted)",     _Funcs_20,_Preloads_20,_ConstDefault, MGF_INPBASE64_4x6|MGF_SALTED, MGF_NO_FLAG, 4, 12, 12 },
 	{ "dynamic_21: HTTP Digest Access Auth",    _Funcs_21,_Preloads_21,_Const_21,     MGF_HDAA_SALT|MGF_USERNAME|MGF_FLD2|MGF_FLD3|MGF_FLD4|MGF_SALTED, MGF_NO_FLAG, 0, 26, 26 },
-	{ "dynamic_22: md5(sha1($p))",              _Funcs_22,_Preloads_22,_ConstDefault, MGF_StartInX86Mode, MGF_KEYS_INPUT_BE_SAFE },
+	{ "dynamic_22: md5(sha1($p))",              _Funcs_22,_Preloads_22,_ConstDefault, MGF_StartInX86Mode, MGF_KEYS_INPUT },
 	{ "dynamic_23: sha1(md5($p))",              _Funcs_23,_Preloads_23,_ConstDefault, MGF_NO_FLAG, MGF_INPUT_20_BYTE|MGF_KEYS_INPUT, },
-	{ "dynamic_24: sha1($p.$s)",                _Funcs_24,_Preloads_24,_ConstDefault, MGF_SALTED, MGF_NO_FLAG|MGF_INPUT_20_BYTE, -24 },
-	{ "dynamic_25: sha1($s.$p)",                _Funcs_25,_Preloads_25,_ConstDefault, MGF_SALTED, MGF_NO_FLAG|MGF_INPUT_20_BYTE, -24 },
-	{ "dynamic_26: sha1($p) raw-sha1",          _Funcs_26,_Preloads_26,_ConstDefault, MGF_NO_FLAG, MGF_RAW_SHA1_INPUT|MGF_INPUT_20_BYTE },
-#if !defined (_OPENMP) && defined (MMX_COEF)
-#if ARCH_LITTLE_ENDIAN
+	{ "dynamic_24: sha1($p.$s)",                _Funcs_24,_Preloads_24,_ConstDefault, MGF_FLAT_BUFFERS|MGF_SALTED, MGF_NO_FLAG|MGF_INPUT_20_BYTE, -24 },
+	{ "dynamic_25: sha1($s.$p)",                _Funcs_25,_Preloads_25,_ConstDefault, MGF_FLAT_BUFFERS|MGF_SALTED, MGF_NO_FLAG|MGF_INPUT_20_BYTE, -24 },
+	{ "dynamic_26: sha1($p) raw-sha1",          _Funcs_26,_Preloads_26,_ConstDefault, MGF_FLAT_BUFFERS, MGF_KEYS_INPUT|MGF_INPUT_20_BYTE, 0, 80 },
+
+#if 0
+  #if !defined (_OPENMP) && defined (MMX_COEF)
+    #if ARCH_LITTLE_ENDIAN
 	{ "dynamic_27: FreeBSD MD5",                _Funcs_27,_Preloads_27,_Const_27,     MGF_SALTED|MGF_INPBASE64a|MGF_StartInX86Mode, MGF_FreeBSDMD5Setup, -8, 15, 15 },
 	{ "dynamic_28: Apache MD5",                 _Funcs_28,_Preloads_28,_Const_28,     MGF_SALTED|MGF_INPBASE64a|MGF_StartInX86Mode, MGF_FreeBSDMD5Setup, -8, 15, 15 },
-#endif
+    #endif
+  #endif
 #endif
 	{ "dynamic_29: md5(unicode($p))",           _Funcs_29,_Preloads_29,_ConstDefault, MGF_UTF8, MGF_NO_FLAG, 0, 27, 40 }, // if we are in utf8 mode, we triple this in the init() call
 	{ "dynamic_30: md4($p) (raw-md4)",          _Funcs_30,_Preloads_30,_ConstDefault, MGF_NO_FLAG, MGF_KEYS_INPUT },
@@ -3716,10 +3727,10 @@ static DYNAMIC_Setup Setups[] =
 	{ "dynamic_32: md4($p.$s)",                 _Funcs_32,_Preloads_32,_ConstDefault, MGF_SALTED, MGF_NO_FLAG, -24 },
 	{ "dynamic_33: md4(unicode($p))",           _Funcs_33,_Preloads_33,_ConstDefault, MGF_UTF8, MGF_NO_FLAG, 0, 27, 40 }, // if we are in utf8 mode, we triple this in the init() call
 	{ "dynamic_34: md5(md4($p))",               _Funcs_34,_Preloads_34,_ConstDefault, MGF_NO_FLAG, MGF_KEYS_INPUT|MGF_SET_INP2LEN32 },
-	{ "dynamic_35: sha1(uc($u).:.$p) (ManGOS)", _Funcs_35,_Preloads_35,_Const_35,     MGF_USERNAME_UPCASE, MGF_INPUT_20_BYTE, -23, 32 },
-	{ "dynamic_36: sha1($u.:.$p) (ManGOS2)",    _Funcs_36,_Preloads_36,_Const_36,     MGF_USERNAME, MGF_INPUT_20_BYTE, -23, 32 },
-	{ "dynamic_37: sha1(lc($u).$p) (SMF)",      _Funcs_37,_Preloads_37,_ConstDefault, MGF_USERNAME, MGF_INPUT_20_BYTE, -23, 32 },
-	{ "dynamic_38: sha1($s.sha1($s.sha1($p))) (Wolt3BB)",  _Funcs_38,_Preloads_38,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_INPUT_20_BYTE|MGF_NO_FLAG, -23, 40 },
+	{ "dynamic_35: sha1(uc($u).:.$p) (ManGOS)", _Funcs_35,_Preloads_35,_Const_35,     MGF_FLAT_BUFFERS|MGF_USERNAME_UPCASE, MGF_INPUT_20_BYTE, -23, 32 },
+	{ "dynamic_36: sha1($u.:.$p) (ManGOS2)",    _Funcs_36,_Preloads_36,_Const_36,     MGF_FLAT_BUFFERS|MGF_USERNAME, MGF_INPUT_20_BYTE, -23, 32 },
+	{ "dynamic_37: sha1(lc($u).$p) (SMF)",      _Funcs_37,_Preloads_37,_ConstDefault,MGF_FLAT_BUFFERS| MGF_USERNAME, MGF_INPUT_20_BYTE, -23, 32 },
+	{ "dynamic_38: sha1($s.sha1($s.sha1($p))) (Wolt3BB)",  _Funcs_38,_Preloads_38,_ConstDefault, MGF_SALTED|MGF_FLAT_BUFFERS, MGF_INPUT_20_BYTE, -23, 40 },
 	// Try to group sha224 here (from dyna-50 to dyna-59)
 	{ "dynamic_50: sha224($p)",                  _Funcs_50,_Preloads_50,_ConstDefault, MGF_FLAT_BUFFERS, MGF_KEYS_INPUT|MGF_INPUT_28_BYTE },
 	{ "dynamic_51: sha224($s.$p)",               _Funcs_51,_Preloads_51,_ConstDefault, MGF_SALTED|MGF_FLAT_BUFFERS, MGF_INPUT_28_BYTE, -20 },
