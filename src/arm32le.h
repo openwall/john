@@ -36,7 +36,24 @@
 #define DES_COPY			1
 #define DES_BS_ASM			0
 #define DES_BS				1
+#ifdef __ARM_NEON__
+#if 0
+#define DES_BS_VECTOR			2
+#define DES_BS_ALGORITHM_NAME		"DES 64/64 NEON"
+#elif 1
+#define DES_BS_VECTOR			4
+#define DES_BS_ALGORITHM_NAME		"DES 128/128 NEON"
+#elif 0
+#define DES_BS_VECTOR			5
+#define DES_BS_VECTOR_SIZE		8
+#define DES_BS_ALGORITHM_NAME		"DES 128/128 NEON + 32/32"
+#else
+#define DES_BS_VECTOR			8
+#define DES_BS_ALGORITHM_NAME		"DES 128/128 X2 NEON"
+#endif
+#else
 #define DES_BS_VECTOR			0
+#endif
 #define DES_BS_EXPAND			1
 
 #define MD5_ASM				0
