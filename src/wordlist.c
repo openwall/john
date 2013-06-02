@@ -178,7 +178,7 @@ static int get_progress(int *hundth_perc)
 
 	if (fstat(fileno(word_file), &file_stat)) pexit("fstat");
 	if (nWordFileLines) {
-		pos = rec_pos;
+		pos = line_number;
 	}
 	else {
 		if ((pos = ftell(word_file)) < 0) {
@@ -191,10 +191,15 @@ static int get_progress(int *hundth_perc)
 		}
 	}
 
-	hundredXpercent = (int)((long long)(10000 *
+	if (nWordFileLines) {
+		hundredXpercent = (int)((long long)(10000 *
+	                        (rule_number * nWordFileLines + pos)) /
+		                (long long)(rule_count * nWordFileLines));
+	} else {
+		hundredXpercent = (int)((long long)(10000 *
 	                        (rule_number * file_stat.st_size + pos)) /
 		                (long long)(rule_count * file_stat.st_size));
-
+	}
 	percent = hundredXpercent / 100;
 	*hundth_perc = hundredXpercent - (percent*100);
 	return percent;
