@@ -1,3 +1,8 @@
+The following changes have been made between John 1.8.0 and 1.8.0.1:
+
+* Added linux-arm32le and linux-arm32le-neon make targets (the latter makes use
+of NEON for bitslice DES).
+
 The following changes have been made between John 1.7.9.8 and 1.8.0:
 
 * Revised the incremental mode to let the current character counts grow for
@@ -328,4 +333,4 @@ Mac OS X (PowerPC and x86), SCO, BeOS.
 * Bug and portability fixes, and new bugs.
 * Bonus: "Strip" cracker included in the default john.conf (john.ini).
 
-$Owl: Owl/packages/john/john/doc/CHANGES,v 1.91 2013/05/30 03:11:02 solar Exp $
+$Owl: Owl/packages/john/john/doc/CHANGES,v 1.92 2013/06/02 23:53:33 solar Exp $
