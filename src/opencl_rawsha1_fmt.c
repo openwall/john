@@ -17,6 +17,7 @@
 #include "common.h"
 #include "formats.h"
 #include "sha.h"
+#include "johnswap.h"
 #include "common-opencl.h"
 #include "options.h"
 
@@ -27,15 +28,22 @@
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1
 
-#define PLAINTEXT_LENGTH		32
-#define CIPHERTEXT_LENGTH		40
+#define PLAINTEXT_LENGTH    	55 /* Max. is 55 with current kernel */
+#define BUFSIZE				((PLAINTEXT_LENGTH+3)/4*4)
+#define HASH_LENGTH			(2 * DIGEST_SIZE)
+#define CIPHERTEXT_LENGTH		(HASH_LENGTH + TAG_LENGTH)
 
 #define DIGEST_SIZE			20
 #define BINARY_SIZE			4
+#define BINARY_ALIGN			4
 #define SALT_SIZE			0
+#define SALT_ALIGN			1
 
 #define MIN_KEYS_PER_CRYPT		(1024*2048)
 #define MAX_KEYS_PER_CRYPT		MIN_KEYS_PER_CRYPT
+
+#define FORMAT_TAG			"$dynamic_26$"
+#define TAG_LENGTH			(sizeof(FORMAT_TAG) - 1)
 
 #ifndef uint32_t
 #define uint32_t unsigned int
@@ -49,28 +57,34 @@ typedef struct {
 cl_command_queue queue_prof;
 cl_int ret_code;
 cl_kernel crypt_kernel;
-cl_mem pinned_saved_keys, pinned_partial_hashes, buffer_out, buffer_keys;
+cl_mem pinned_saved_keys, pinned_saved_idx, pinned_partial_hashes, buffer_out;
+cl_mem buffer_keys, buffer_idx;
 static cl_uint *partial_hashes;
 static cl_uint *res_hashes;
-static char *saved_plain;
+static unsigned int *saved_plain, *saved_idx;
 static int have_full_hashes;
-static int keybuf_size = PLAINTEXT_LENGTH;
+static unsigned int key_idx = 0;
 
 #define MIN(a, b)		(((a) > (b)) ? (b) : (a))
 #define MAX(a, b)		(((a) > (b)) ? (a) : (b))
 
 static struct fmt_tests tests[] = {
 	{"a9993e364706816aba3e25717850c26c9cd0d89d", "abc"},
-	{"095bec1163897ac86e393fa16d6ae2c2fce21602", "7850"},
+	{FORMAT_TAG "095bec1163897ac86e393fa16d6ae2c2fce21602", "7850"},
 	{"dd3fbb0ba9e133c4fd84ed31ac2e5bc597d61774", "7858"},
 	{NULL}
 };
 
+static void set_key(char *_key, int index);
+
 static int valid(char *ciphertext, struct fmt_main *self){
 	int i;
 
-	if (strlen(ciphertext) != CIPHERTEXT_LENGTH) return 0;
-	for (i = 0; i < CIPHERTEXT_LENGTH; i++){
+	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
+		ciphertext += TAG_LENGTH;
+
+	if (strlen(ciphertext) != HASH_LENGTH) return 0;
+	for (i = 0; i < HASH_LENGTH; i++){
 		if (!((('0' <= ciphertext[i]) && (ciphertext[i] <= '9')) ||
 			(('a' <= ciphertext[i]) && (ciphertext[i] <= 'f'))
 			|| (('A' <= ciphertext[i]) && (ciphertext[i] <= 'F'))))
@@ -79,12 +93,33 @@ static int valid(char *ciphertext, struct fmt_main *self){
 	return 1;
 }
 
+static char *split(char *ciphertext, int index, struct fmt_main *self)
+{
+	static char out[CIPHERTEXT_LENGTH + 1];
+
+	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
+		ciphertext += TAG_LENGTH;
+
+	strncpy(out, FORMAT_TAG, sizeof(out));
+
+	memcpy(&out[TAG_LENGTH], ciphertext, HASH_LENGTH);
+	out[CIPHERTEXT_LENGTH] = 0;
+
+	strlwr(&out[TAG_LENGTH]);
+
+	return out;
+}
+
 static void create_clobj(int kpc){
-	pinned_saved_keys = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, keybuf_size*kpc, NULL, &ret_code);
+	pinned_saved_keys = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, BUFSIZE*kpc, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
-	saved_plain = (char*)clEnqueueMapBuffer(queue[ocl_gpu_id], pinned_saved_keys, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, keybuf_size*kpc, 0, NULL, NULL, &ret_code);
+	saved_plain = clEnqueueMapBuffer(queue[ocl_gpu_id], pinned_saved_keys, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, BUFSIZE*kpc, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_plain");
-	memset(saved_plain, 0, keybuf_size * kpc);
+
+	pinned_saved_idx = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, 4 * kpc, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating page-locked memory pinned_saved_idx");
+	saved_idx = clEnqueueMapBuffer(queue[ocl_gpu_id], pinned_saved_idx, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, 4 * kpc, 0, NULL, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_idx");
 
 	res_hashes = malloc(sizeof(cl_uint) * 4 * kpc);
 
@@ -93,13 +128,17 @@ static void create_clobj(int kpc){
 	partial_hashes = (cl_uint *) clEnqueueMapBuffer(queue[ocl_gpu_id], pinned_partial_hashes, CL_TRUE, CL_MAP_READ, 0, sizeof(cl_uint) * kpc, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory partial_hashes");
 
-	buffer_keys = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, keybuf_size * kpc, NULL, &ret_code);
+	buffer_keys = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, BUFSIZE * kpc, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating buffer keys argument");
+	buffer_idx = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, 4 * kpc, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_idx");
+
 	buffer_out = clCreateBuffer(context[ocl_gpu_id], CL_MEM_WRITE_ONLY, sizeof(cl_uint) * 5 * kpc, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating buffer out argument");
 
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(buffer_keys), (void *) &buffer_keys), "Error setting argument 0");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(buffer_out), (void *) &buffer_out), "Error setting argument 1");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(buffer_idx), (void *) &buffer_idx), "Error setting argument 1");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(buffer_out), (void *) &buffer_out), "Error setting argument 2");
 
 	global_work_size = kpc;
 }
@@ -107,8 +146,10 @@ static void create_clobj(int kpc){
 static void release_clobj(void){
 	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], pinned_partial_hashes, partial_hashes, 0,NULL,NULL), "Error Unmapping partial_hashes");
 	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], pinned_saved_keys, saved_plain, 0, NULL, NULL), "Error Unmapping saved_plain");
+	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], pinned_saved_idx, saved_idx, 0, NULL, NULL), "Error Unmapping saved_idx");
 
 	HANDLE_CLERROR(clReleaseMemObject(buffer_keys), "Error Releasing buffer_keys");
+	HANDLE_CLERROR(clReleaseMemObject(buffer_idx), "Error Releasing buffer_idx");
 	HANDLE_CLERROR(clReleaseMemObject(buffer_out), "Error Releasing buffer_out");
 	HANDLE_CLERROR(clReleaseMemObject(pinned_saved_keys), "Error Releasing pinned_saved_keys");
 	HANDLE_CLERROR(clReleaseMemObject(pinned_partial_hashes), "Error Releasing pinned_partial_hashes");
@@ -144,10 +185,12 @@ static void find_best_kpc(void){
 		create_clobj(num);
 		advance_cursor();
 		queue_prof = clCreateCommandQueue( context[ocl_gpu_id], devices[ocl_gpu_id], CL_QUEUE_PROFILING_ENABLE, &ret_code);
-		for (i=0; i < num; i++){
-			strcpy(&(saved_plain[i * keybuf_size]), tests[0].plaintext);
-		}
-		clEnqueueWriteBuffer(queue_prof, buffer_keys, CL_TRUE, 0, keybuf_size * num, saved_plain, 0, NULL, NULL);
+		for (i=0; i < num; i++)
+			set_key(tests[0].plaintext, i);
+
+		clEnqueueWriteBuffer(queue[ocl_gpu_id], buffer_keys, CL_TRUE, 0, 4 * key_idx, saved_plain, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_keys";
+		clEnqueueWriteBuffer(queue[ocl_gpu_id], buffer_idx, CL_TRUE, 0, 4 * global_work_size, saved_idx, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_idx";
+
 		ret_code = clEnqueueNDRangeKernel( queue_prof, crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &myEvent);
 		if(ret_code != CL_SUCCESS){
 			fprintf(stderr, "Error %d\n",ret_code);
@@ -176,22 +219,12 @@ static void find_best_kpc(void){
 }
 
 static void fmt_rawsha1_init(struct fmt_main *self) {
-	char build_opts[64];
 	char *temp;
 	cl_ulong maxsize;
 
 	local_work_size = global_work_size = 0;
 
-	/* Reduced length can give a significant boost. */
-	if (options.force_maxlength && options.force_maxlength < PLAINTEXT_LENGTH) {
-		keybuf_size = MAX(options.force_maxlength, 8);
-		self->params.benchmark_comment = mem_alloc_tiny(20, MEM_ALIGN_NONE);
-		sprintf(self->params.benchmark_comment, " (max length %d)",
-		        keybuf_size);
-	}
-	snprintf(build_opts, sizeof(build_opts),
-	         "-DKEY_LENGTH=%d", keybuf_size);
-	opencl_init_opt("$JOHN/kernels/sha1_kernel.cl", ocl_gpu_id, build_opts);
+	opencl_init("$JOHN/kernels/sha1_kernel.cl", ocl_gpu_id);
 
 	// create kernel to execute
 	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "sha1_crypt_kernel", &ret_code);
@@ -237,35 +270,50 @@ static void fmt_rawsha1_init(struct fmt_main *self) {
 
 static void clear_keys(void)
 {
-	memset(saved_plain, 0, keybuf_size * global_work_size);
+	key_idx = 0;
 }
 
-static void set_key(char *key, int index) {
-	char *dst = (char*)&saved_plain[index * keybuf_size];
+static void set_key(char *_key, int index)
+{
+	const ARCH_WORD_32 *key = (ARCH_WORD_32*)_key;
+	int len = strlen(_key);
 
-	while (*key)
-		*dst++ = *key++;
+	saved_idx[index] = (key_idx << 6) | len;
+
+	while (len > 4) {
+		saved_plain[key_idx++] = *key++;
+		len -= 4;
+	}
+	if (len)
+		saved_plain[key_idx++] = *key & (0xffffffffU >> (32 - (len << 3)));
 }
 
-static char *get_key(int index) {
-	int length = 0;
+static char *get_key(int index)
+{
 	static char out[PLAINTEXT_LENGTH + 1];
-	char *key = &saved_plain[index * keybuf_size];
+	int i, len = saved_idx[index] & 63;
+	char *key = (char*)&saved_plain[saved_idx[index] >> 6];
 
-	while (length < keybuf_size && *key)
-		out[length++] = *key++;
-	out[length] = 0;
+	for (i = 0; i < len; i++)
+		out[i] = key[i];
+	out[i] = 0;
 	return out;
 }
 
-static void *binary(char *ciphertext){
-	static char realcipher[DIGEST_SIZE];
+static void *binary(char *ciphertext)
+{
+	static unsigned char *realcipher;
 	int i;
 
-	for (i = 0; i < DIGEST_SIZE; i++) {
-		realcipher[i] =
-		    atoi16[ARCH_INDEX(ciphertext[i * 2])] * 16 +
-		    atoi16[ARCH_INDEX(ciphertext[i * 2 + 1])];
+	if (!realcipher)
+		realcipher = mem_alloc_tiny(DIGEST_SIZE, MEM_ALIGN_WORD);
+
+	ciphertext += TAG_LENGTH;
+
+	for(i=0;i<DIGEST_SIZE;i++)
+	{
+		realcipher[i] = atoi16[ARCH_INDEX(ciphertext[i*2])]*16 +
+			atoi16[ARCH_INDEX(ciphertext[i*2+1])];
 	}
 	return (void *) realcipher;
 }
@@ -289,7 +337,8 @@ static int cmp_one(void *binary, int index){
 	return 0;
 }
 
-static int cmp_exact(char *source, int count){
+static int cmp_exact(char *source, int index)
+{
 	unsigned int *t = (unsigned int *) binary(source);
 
 	if (!have_full_hashes){
@@ -299,14 +348,13 @@ static int cmp_exact(char *source, int count){
 			NULL, NULL);
 		have_full_hashes = 1;
 	}
-
-	if (t[1]!=res_hashes[count])
+	if (t[1]!=res_hashes[index])
 		return 0;
-	if (t[2]!=res_hashes[1*global_work_size+count])
+	if (t[2]!=res_hashes[1*global_work_size+index])
 		return 0;
-	if (t[3]!=res_hashes[2*global_work_size+count])
+	if (t[3]!=res_hashes[2*global_work_size+index])
 		return 0;
-	if (t[4]!=res_hashes[3*global_work_size+count])
+	if (t[4]!=res_hashes[3*global_work_size+index])
 		return 0;
 	return 1;
 }
@@ -317,11 +365,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	global_work_size = (count + local_work_size - 1) / local_work_size * local_work_size;
 
-	HANDLE_CLERROR( clEnqueueWriteBuffer(queue[ocl_gpu_id], buffer_keys, CL_TRUE, 0, keybuf_size * global_work_size, saved_plain, 0, NULL, NULL), "failed in clEnqueueWriteBuffer saved_plain");
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], buffer_keys, CL_TRUE, 0, 4 * key_idx, saved_plain, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_keys");
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], buffer_idx, CL_TRUE, 0, 4 * global_work_size, saved_idx, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_idx");
 
-	HANDLE_CLERROR( clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, profilingEvent), "failed in clEnqueueNDRangeKernel");
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, profilingEvent), "failed in clEnqueueNDRangeKernel");
 
 	HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]),"failed in clFinish");
+
 	// read back partial hashes
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], buffer_out, CL_TRUE, 0, sizeof(cl_uint) * global_work_size, partial_hashes, 0, NULL, NULL), "failed in reading data back");
 	have_full_hashes = 0;
@@ -354,12 +404,12 @@ struct fmt_main fmt_opencl_rawSHA1 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT,
+		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
 		tests
 	}, {
 		fmt_rawsha1_init,
@@ -367,7 +417,7 @@ struct fmt_main fmt_opencl_rawSHA1 = {
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
-		fmt_default_split,
+		split,
 		binary,
 		fmt_default_salt,
 		fmt_default_source,

@@ -343,37 +343,24 @@ inline uint SWAP32(uint x)
 		printf("\n"); \
 	}
 
-__kernel void sha1_crypt_kernel(__global uint* keys, __global uint* digest)
+__kernel void sha1_crypt_kernel(__global uint* keys, __global const uint *index, __global uint* digest)
 {
 	uint W[16] = { 0 }, output[5];
 	uint temp, A, B, C, D, E;
 	uint gid = get_global_id(0);
 	uint num_keys = get_global_size(0);
-#if 1
-	uint len = 0;
-	__global uchar *key = &((__global uchar*)keys)[gid * KEY_LENGTH];
+	uint base = index[gid];
+	uint len = base & 63;
+	uint i;
 
-	while (len < KEY_LENGTH && (temp = key[len])) {
-		PUTCHAR_BE(W, len, temp);
-		len++;
-	}
+	keys += base >> 6;
+
+	for (i = 0; i < (len+3)/4; i++)
+		W[i] = SWAP32(*keys++);
+
 	PUTCHAR_BE(W, len, 0x80);
 	W[15] = len << 3;
-#else
-	uint i;
-	int base = gid * (KEY_LENGTH / 4);
-	char *p;
 
-	for (i = 0; i != (KEY_LENGTH / 4) && keys[base + i]; i++)
-		W[i] = SWAP32(keys[base + i]);
-
-	// Find actual length
-	p = (char *) W;
-	for (i = i ? (i - 1) * 4 : 0; p[i ^ 3]; i++);
-
-	PUTCHAR_BE(W, i, 0x80);
-	W[15] = i << 3;
-#endif
 	sha1_init(output);
 	sha1_block(W, output);
 
