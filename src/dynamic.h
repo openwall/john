@@ -441,7 +441,7 @@ extern void DynamicFunc__PHPassCrypt(DYNA_OMP_PARAMS);
 // special for PO
 extern void DynamicFunc__POCrypt(DYNA_OMP_PARAMS);
 // special for OpenBSD MD5 and Apache MD5
-extern void DynamicFunc__FreeBSDMD5Crypt(DYNA_OMP_PARAMS);
+extern void DynamicFunc__FreeBSDMD5Crypt();
 
 // End of generic md5 'types' and helpers
 
