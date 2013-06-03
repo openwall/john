@@ -26,7 +26,140 @@
 
 #define DES_BS_VECTOR_LOOPS 0
 
-#if defined(__ALTIVEC__) && DES_BS_DEPTH == 128
+#if defined(__ARM_NEON__) && DES_BS_DEPTH == 64
+#include <arm_neon.h>
+
+typedef uint32x2_t vtype;
+
+#define vst(dst, ofs, src) \
+	vst1_u32((uint32_t *)((DES_bs_vector *)&(dst) + (ofs)), (src))
+
+#define vxorf(a, b) \
+	veor_u32((a), (b))
+
+#define vnot(dst, a) \
+	(dst) = vmvn_u32((a))
+#define vand(dst, a, b) \
+	(dst) = vand_u32((a), (b))
+#define vor(dst, a, b) \
+	(dst) = vorr_u32((a), (b))
+#define vandn(dst, a, b) \
+	(dst) = vbic_u32((a), (b))
+#define vsel(dst, a, b, c) \
+	(dst) = vbsl_u32((c), (b), (a))
+
+#if 0
+#define vshl1(dst, src) \
+	(dst) = vadd_u32((src), (src))
+#endif
+#define vshl(dst, src, shift) \
+	(dst) = vshl_n_u32((src), (shift))
+#define vshr(dst, src, shift) \
+	(dst) = vshr_n_u32((src), (shift))
+
+#elif defined(__ARM_NEON__) && DES_BS_DEPTH == 128
+#include <arm_neon.h>
+
+typedef uint32x4_t vtype;
+
+#define vst(dst, ofs, src) \
+	vst1q_u32((uint32_t *)((DES_bs_vector *)&(dst) + (ofs)), (src))
+
+#define vxorf(a, b) \
+	veorq_u32((a), (b))
+
+#define vnot(dst, a) \
+	(dst) = vmvnq_u32((a))
+#define vand(dst, a, b) \
+	(dst) = vandq_u32((a), (b))
+#define vor(dst, a, b) \
+	(dst) = vorrq_u32((a), (b))
+#define vandn(dst, a, b) \
+	(dst) = vbicq_u32((a), (b))
+#define vsel(dst, a, b, c) \
+	(dst) = vbslq_u32((c), (b), (a))
+
+#if 0
+#define vshl1(dst, src) \
+	(dst) = vaddq_u32((src), (src))
+#endif
+#define vshl(dst, src, shift) \
+	(dst) = vshlq_n_u32((src), (shift))
+#define vshr(dst, src, shift) \
+	(dst) = vshrq_n_u32((src), (shift))
+
+#elif defined(__ARM_NEON__) && \
+    ((ARCH_BITS == 64 && DES_BS_DEPTH == 192) || \
+    (ARCH_BITS == 32 && DES_BS_DEPTH == 160))
+#include <arm_neon.h>
+
+typedef struct {
+	uint32x4_t f;
+	unsigned ARCH_WORD g;
+} vtype;
+
+#define vst(dst, ofs, src) \
+	vst1q_u32( \
+	    (uint32_t *)&((vtype *)((DES_bs_vector *)&(dst) + (ofs)))->f, \
+	    (src).f); \
+	((vtype *)((DES_bs_vector *)&(dst) + (ofs)))->g = (src).g
+
+#define vxor(dst, a, b) \
+	(dst).f = veorq_u32((a).f, (b).f); \
+	(dst).g = (a).g ^ (b).g
+
+#define vnot(dst, a) \
+	(dst).f = vmvnq_u32((a).f); \
+	(dst).g = ~(a).g
+#define vand(dst, a, b) \
+	(dst).f = vandq_u32((a).f, (b).f); \
+	(dst).g = (a).g & (b).g
+#define vor(dst, a, b) \
+	(dst).f = vorrq_u32((a).f, (b).f); \
+	(dst).g = (a).g | (b).g
+#define vandn(dst, a, b) \
+	(dst).f = vbicq_u32((a).f, (b).f); \
+	(dst).g = (a).g & ~(b).g
+#define vsel(dst, a, b, c) \
+	(dst).f = vbslq_u32((c).f, (b).f, (a).f); \
+	(dst).g = (((a).g & ~(c).g) ^ ((b).g & (c).g))
+
+#elif defined(__ARM_NEON__) && DES_BS_DEPTH == 256
+#include <arm_neon.h>
+
+typedef struct {
+	uint32x4_t f, g;
+} vtype;
+
+#define vst(dst, ofs, src) \
+	vst1q_u32( \
+	    (uint32_t *)&((vtype *)((DES_bs_vector *)&(dst) + (ofs)))->f, \
+	    (src).f); \
+	vst1q_u32( \
+	    (uint32_t *)&((vtype *)((DES_bs_vector *)&(dst) + (ofs)))->g, \
+	    (src).g)
+
+#define vxor(dst, a, b) \
+	(dst).f = veorq_u32((a).f, (b).f); \
+	(dst).g = veorq_u32((a).g, (b).g)
+
+#define vnot(dst, a) \
+	(dst).f = vmvnq_u32((a).f); \
+	(dst).g = vmvnq_u32((a).g)
+#define vand(dst, a, b) \
+	(dst).f = vandq_u32((a).f, (b).f); \
+	(dst).g = vandq_u32((a).g, (b).g)
+#define vor(dst, a, b) \
+	(dst).f = vorrq_u32((a).f, (b).f); \
+	(dst).g = vorrq_u32((a).g, (b).g)
+#define vandn(dst, a, b) \
+	(dst).f = vbicq_u32((a).f, (b).f); \
+	(dst).g = vbicq_u32((a).g, (b).g)
+#define vsel(dst, a, b, c) \
+	(dst).f = vbslq_u32((c).f, (b).f, (a).f); \
+	(dst).g = vbslq_u32((c).g, (b).g, (a).g)
+
+#elif defined(__ALTIVEC__) && DES_BS_DEPTH == 128
 #ifdef __linux__
 #include <altivec.h>
 #endif

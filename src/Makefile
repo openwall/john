@@ -297,6 +297,8 @@ default:
 	@echo "linux-x86-any            Linux, x86 32-bit (for truly ancient computers)"
 	@echo "linux-x86-clang          Linux, x86 32-bit with SSE2, compiled with clang"
 #	@echo "linux-x86-clang-debug    Linux, x86 32-bit with SSE2, compiled with clang (with debugging options)
+	@echo "linux-arm32le-neon       Linux, ARM 32-bit little-endian w/NEON (best)"
+	@echo "linux-arm32le            Linux, ARM 32-bit little-endian"
 	@echo "linux-alpha              Linux, Alpha"
 	@echo "linux-sparc              Linux, SPARC 32-bit"
 	@echo "linux-ppc32-altivec      Linux, PowerPC w/AltiVec (best)"
@@ -784,6 +786,20 @@ linux-x86-clang-debug:
 		LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz -lcrypt -ldl -faddress-sanitizer $(NSS_LDFLAGS) $(GMP_LDFLAGS) $(KRB5_LDFLAGS) $(JOHN_LDFLAGS)" \
 		CPP="clang" CC="clang" AS="clang" LD="clang" CXX="clang++"
 	@echo "All done"
+
+linux-arm32le-neon:
+	$(LN) arm32le.h arch.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o" \
+		CFLAGS="$(CFLAGS) -mfpu=neon -DHAVE_CRYPT" \
+		LDFLAGS="$(LDFLAGS) -lcrypt"
+
+linux-arm32le:
+	$(LN) arm32le.h arch.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o" \
+		CFLAGS="$(CFLAGS) -DHAVE_CRYPT" \
+		LDFLAGS="$(LDFLAGS) -lcrypt"
 
 linux-alpha:
 	$(LN) alpha.h arch.h
