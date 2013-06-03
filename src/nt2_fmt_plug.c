@@ -50,8 +50,10 @@
 #if defined(MD4_SSE_PARA) && defined(_OPENMP)
 #ifdef __XOP__
 #define BLOCK_LOOPS			(1024*1024)
-#else
+#elif __AVX__
 #define BLOCK_LOOPS			4096 // tuned for i7 w/o HT
+#else
+#define BLOCK_LOOPS			1 // Old CPUs won't work well with OMP
 #endif
 #else
 #define BLOCK_LOOPS			1 // Never change this
