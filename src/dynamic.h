@@ -142,7 +142,7 @@ typedef struct DYNAMIC_Setup_t
 	unsigned startFlags;
 	int SaltLen;			// these are SSE lengths
 	int MaxInputLen;		// SSE length.  If 0, then set to 55-abs(SaltLen)
-	int MaxInputLenX86;		// if zero, then use PW len set to 80-abs(SaltLen) (or 80-abs(SaltLenX86), if it is not 0)
+	int MaxInputLenX86;		// if zero, then use PW len set to 110-abs(SaltLen) (or 110-abs(SaltLenX86), if it is not 0)
 	int SaltLenX86;			// if zero, then use salt len of SSE
 } DYNAMIC_Setup;
 

@@ -1187,8 +1187,8 @@ key_cleaning:
 		}
 #endif
 		len = strlen(key);
-		if (len > 80) // we never do UTF-8 -> UTF-16 in this mode
-			len = 80;
+		if (len > 110) // we never do UTF-8 -> UTF-16 in this mode
+			len = 110;
 
 //		if(index==0) {
 			// we 'have' to use full clean here. NOTE 100% sure why, but 10 formats fail if we do not.
@@ -1205,8 +1205,8 @@ key_cleaning:
 	else
 	{
 		len = strlen(key);
-		if (len > 80 && !(fmt_Dynamic.params.flags & FMT_UNICODE))
-			len = 80;
+		if (len > 110 && !(fmt_Dynamic.params.flags & FMT_UNICODE))
+			len = 110;
 //		if(index==0) {
 //			DynamicFunc__clean_input();
 //		}
@@ -6862,16 +6862,29 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 
 	if (Setup->MaxInputLen)
 		pFmt->params.plaintext_length = Setup->MaxInputLen;
-	else
-		pFmt->params.plaintext_length = 55 - abs(Setup->SaltLen);
+	else {
+		if ( ((Setup->flags&MGF_FLAT_BUFFERS)==MGF_FLAT_BUFFERS) || ((Setup->flags&MGF_NOTSSE2Safe)==MGF_NOTSSE2Safe)) {
+			pFmt->params.plaintext_length = 110 - abs(Setup->SaltLen);
+			if (pFmt->params.plaintext_length < 32)
+				pFmt->params.plaintext_length = 32;
+		} else {
+			pFmt->params.plaintext_length = 55 - abs(Setup->SaltLen);
+			if (pFmt->params.plaintext_length < 1) {
+				pFmt->params.plaintext_length = 1;
+				fprintf(stderr, "\nError, for format %s, MMX build, is not valid due to TOO long of a SaltLength\n", Setup->szFORMAT_NAME);
+			}
+		}
+	}
 #ifndef MMX_COEF
 	if (Setup->MaxInputLenX86) {
 		pFmt->params.plaintext_length = Setup->MaxInputLenX86;
 	} else {
 		if (Setup->SaltLenX86)
-			pFmt->params.plaintext_length = 80 - abs(Setup->SaltLenX86);
+			pFmt->params.plaintext_length = 110 - abs(Setup->SaltLenX86);
 		else
-			pFmt->params.plaintext_length = 80 - abs(Setup->SaltLen);
+			pFmt->params.plaintext_length = 110 - abs(Setup->SaltLen);
+		if (pFmt->params.plaintext_length < 32)
+			pFmt->params.plaintext_length = 32;
 	}
 #endif
 
@@ -6914,39 +6927,6 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 	{
 		curdat.store_keys_normal_but_precompute_md5_to_output2 = 1;
 	}
-
-#if 0
-	if (Setup->startFlags&MGF_FreeBSDMD5Setup)
-	{
-#ifdef MMX_COEF
-#if (MMX_COEF==2)
-		pFmt->params.algorithm_name = "64/64 " SSE_type " 2x1";
-		pFmt->params.max_keys_per_crypt = 2;
-#elif defined (MD5_SSE_PARA)
-		pFmt->params.algorithm_name = "128/128 " SSE_type " 4x" STRINGIZE(MD5_SSE_PARA);
-		pFmt->params.max_keys_per_crypt = 4*MD5_SSE_PARA;
-#else
-		pFmt->params.algorithm_name = "128/128 " SSE_type " 4x1";
-		pFmt->params.max_keys_per_crypt = 4;
-#endif
-#else
-		// In non-sse mode, 1 test runs as fast as 128. But validity checking is MUCH faster if
-		// we leave it at only 1.
-		pFmt->params.max_keys_per_crypt = 1;
-#if MD5_X2
-		pFmt->params.max_keys_per_crypt = 2;
-		pFmt->params.algorithm_name = "32/" ARCH_BITS_STR " X2 (MD5_body)";
-#else
-		pFmt->params.algorithm_name = "32/" ARCH_BITS_STR " (MD5_body)";
-#endif
-#endif
-		pFmt->params.min_keys_per_crypt = 1;
-		saltlen = 8;
-		// no reason to run double tests. The 1 salt vs MANY salts is the
-		// same speed, so why double the benchmark time for no reason.
-		pFmt->params.benchmark_length = -1;
-	}
-#endif
 
 	if (Setup->startFlags&MGF_PHPassSetup)
 	{
@@ -7195,11 +7175,7 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 		for (i = 0; cnt < ARRAY_COUNT(dynamic_tests) -1; ++i, ++cnt)
 		{
 			if (Setup->pPreloads[i].ciphertext == NULL) {
-				if (Setup->startFlags&MGF_PHPassSetup
-#if 0
-					|| Setup->startFlags&MGF_FreeBSDMD5Setup
-#endif
-					)
+				if (Setup->startFlags&MGF_PHPassSetup)
 					// for phpass, do not load ANY more than the 9 that are in the preload.
 					// loading more will simply slow down the validation code loop at startup.
 					break;

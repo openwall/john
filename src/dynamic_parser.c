@@ -910,10 +910,6 @@ int dynamic_IS_PARSER_VALID(int which)
 		if (strstr(gen_line->data, "DynamicFunc__ToX86")) return 0;
 		if (strstr(gen_line->data, "DynamicFunc__base16_convert_locase")) return 0;
 		if (strstr(gen_line->data, "DynamicFunc__base16_convert_upcase")) return 0;
-#ifdef MMX_COEF
-		if (strstr(gen_line->data, "DynamicFunc__SHA1_crypt_input2_to_output1_FINAL")) return 0;
-		if (strstr(gen_line->data, "DynamicFunc__SHA1_crypt_input1_to_output1_FINAL")) return 0;
-#endif
 #endif
 		gen_line = gen_line->next;
 	}
@@ -968,6 +964,11 @@ int dynamic_LOAD_PARSER_FUNCTIONS(int which, struct fmt_main *pFmt)
 	cnt = Count_Items("Test=");
 	cnt += Count_Items("TestU=");
 	cnt += Count_Items("TestA=");
+#ifdef MMX_COEF
+	cnt += Count_Items("TestM=");
+#else
+	cnt += Count_Items("TestF=");
+#endif
 	pSetup->pPreloads = mem_alloc_tiny((cnt+1)*sizeof(struct fmt_tests), MEM_ALIGN_WORD);
 	memset(pSetup->pPreloads, 0, (cnt+1)*sizeof(struct fmt_tests));
 
