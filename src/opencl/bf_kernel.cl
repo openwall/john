@@ -155,13 +155,52 @@ __kernel void blowfish(	constant uint *salt __attribute__((max_constant_size(16)
 		uint count ;
 
 		L0 = R0 = 0 ;
-		for (i = 0; i < (BF_ROUNDS + 2); i += 2) {
-			L0 ^= salt[i & 2] ;
-			R0 ^= salt[(i & 2) + 1] ;
-			BF_ENCRYPT(Sptr, BF_current_P, L0, R0) ;
-			BF_current_P[i] = L0 ;
-			BF_current_P[i + 1] = R0 ;
-		}
+
+		L0 ^= salt[0] ;
+		R0 ^= salt[1] ;
+		BF_ENCRYPT(Sptr, BF_current_P, L0, R0) ;
+		BF_current_P[0] = L0 ;
+		BF_current_P[1] = R0 ;
+		L0 ^= salt[2] ;
+		R0 ^= salt[3] ;
+		BF_ENCRYPT(Sptr, BF_current_P, L0, R0) ;
+		BF_current_P[2] = L0 ;
+		BF_current_P[3] = R0 ;
+		L0 ^= salt[0] ;
+		R0 ^= salt[1] ;
+		BF_ENCRYPT(Sptr, BF_current_P, L0, R0) ;
+		BF_current_P[4] = L0 ;
+		BF_current_P[5] = R0 ;
+		L0 ^= salt[2] ;
+		R0 ^= salt[3] ;
+		BF_ENCRYPT(Sptr, BF_current_P, L0, R0) ;
+		BF_current_P[6] = L0 ;
+		BF_current_P[7] = R0 ;
+		L0 ^= salt[0] ;
+		R0 ^= salt[1] ;
+		BF_ENCRYPT(Sptr, BF_current_P, L0, R0) ;
+		BF_current_P[8] = L0 ;
+		BF_current_P[9] = R0 ;
+		L0 ^= salt[2] ;
+		R0 ^= salt[3] ;
+		BF_ENCRYPT(Sptr, BF_current_P, L0, R0) ;
+		BF_current_P[10] = L0 ;
+		BF_current_P[11] = R0 ;
+		L0 ^= salt[0] ;
+		R0 ^= salt[1] ;
+		BF_ENCRYPT(Sptr, BF_current_P, L0, R0) ;
+		BF_current_P[12] = L0 ;
+		BF_current_P[13] = R0 ;
+		L0 ^= salt[2] ;
+		R0 ^= salt[3] ;
+		BF_ENCRYPT(Sptr, BF_current_P, L0, R0) ;
+		BF_current_P[14] = L0 ;
+		BF_current_P[15] = R0 ;
+		L0 ^= salt[0] ;
+		R0 ^= salt[1] ;
+		BF_ENCRYPT(Sptr, BF_current_P, L0, R0) ;
+		BF_current_P[16] = L0 ;
+		BF_current_P[17] = R0 ;
 
 		for (i = 0; i < 1023 ; i = i + 4) {
 			j = i >> 8 ;
