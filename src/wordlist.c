@@ -192,13 +192,13 @@ static int get_progress(int *hundth_perc)
 	}
 
 	if (nWordFileLines) {
-		hundredXpercent = (int)((long long)(10000 *
-	                        (rule_number * nWordFileLines + pos)) /
-		                (long long)(rule_count * nWordFileLines));
+		hundredXpercent = (int)((10000LL * (rule_number *
+		                  (long long)nWordFileLines + pos)) /
+		                  (rule_count * (long long)nWordFileLines));
 	} else {
-		hundredXpercent = (int)((long long)(10000 *
-	                        (rule_number * file_stat.st_size + pos)) /
-		                (long long)(rule_count * file_stat.st_size));
+		hundredXpercent = (int)((10000LL * (rule_number *
+		                  (long long)file_stat.st_size + pos)) /
+		                  (rule_count * (long long)file_stat.st_size));
 	}
 	percent = hundredXpercent / 100;
 	*hundth_perc = hundredXpercent - (percent*100);
