@@ -9,6 +9,7 @@
 #include "arch.h"
 #include "common.h"
 #include "common-opencl.h"
+#include "opencl_bf_WGS.h"
 
 typedef unsigned int BF_word;
 
@@ -26,16 +27,6 @@ typedef struct {
  */
 typedef BF_word BF_binary[6];
 
-/*NOTE: If you change the WORK_GROUP_SIZE here it must also be changed in bf_kernel.cl*/
-/*
- * WORK_GROUP_SIZE: Use trial and error to find best work group size. In any case it should not exceed 16.
- *                  E.g. For 7970 set it 8.
- *                       For 570  set it 4.
- * MULTIPLIER:      Increase keys per crypt using this parameter.
- *
- */
-
-#define WORK_GROUP_SIZE                 8
 /*
  * Parameters NUM_CHANNELS and WAVEFRONT_SIZE are kept to supprt legacy codes. Please don't change the parameters.
  */
