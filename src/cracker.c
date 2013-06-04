@@ -68,10 +68,9 @@ static void crk_help(void)
 	if (!john_main_process || printed)
 		return;
 #ifdef HAVE_MPI
-	if (mpi_p > 1) {
+	if (mpi_p > 1)
 		fprintf(stderr, "Send SIGUSR1 to mpirun for status\n");
-		return;
-	}
+	else
 #endif
 	fprintf(stderr, "Press 'q' or Ctrl-C to abort, "
 	    "almost any other key for status\n");
