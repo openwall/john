@@ -116,18 +116,24 @@ static void *get_salt(char *ciphertext)
 	char *ctcopy = strdup(ciphertext);
 	char *keeptr = ctcopy;
 	char *p;
-	static struct custom_salt cs;
+
+	/* ensure alignment */
+	static union {
+		struct custom_salt _cs;
+		ARCH_WORD_32 dummy;
+	} un;
+	static struct custom_salt *cs = &(un._cs);
 	ctcopy += TAG_LENGTH;
 	p = strtok(ctcopy, "$");
-	strncpy((char*)cs.salt, p, 32);
+	strncpy((char*)cs->salt, p, 32);
 	p = strtok(NULL, "$");
-	cs.N = atoi(p);
+	cs->N = atoi(p);
 	p = strtok(NULL, "$");
-	cs.r = atoi(p);
+	cs->r = atoi(p);
 	p = strtok(NULL, "$");
-	cs.p = atoi(p);
+	cs->p = atoi(p);
 	MEM_FREE(keeptr);
-	return (void *)&cs;
+	return (void *)cs;
 }
 
 static void *get_binary(char *ciphertext)
