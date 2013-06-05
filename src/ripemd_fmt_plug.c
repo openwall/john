@@ -35,6 +35,8 @@ static int omp_t = 1;
 #define SALT_SIZE		0
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
+#define BINARY_ALIGN		4
+#define SALT_ALIGN		1
 
 static struct fmt_tests ripemd_160_tests[] = {
 	{"$ripemd$9c1185a5c5e9fc54612808977ee8f548b2258d31", ""},
@@ -224,9 +226,9 @@ struct fmt_main fmt_ripemd_160 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
