@@ -52,6 +52,9 @@
 #define BINARY_SIZE			32
 #define SALT_SIZE			0
 
+#define BINARY_ALIGN			4
+#define SALT_ALIGN			1
+
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
 
@@ -255,11 +258,11 @@ struct fmt_main fmt_rawKeccak_256 = {
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
 #if FMT_MAIN_VERSION > 9
-                DEFAULT_ALIGN,
+                BINARY_ALIGN,
 #endif
 		SALT_SIZE,
 #if FMT_MAIN_VERSION > 9
-                DEFAULT_ALIGN,
+                SALT_ALIGN,
 #endif
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
