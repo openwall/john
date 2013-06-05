@@ -35,6 +35,9 @@
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	64
 
+#define BINARY_ALIGN		4
+#define SALT_ALIGN		1
+
 static struct fmt_tests radmin_tests[] = {
 	{"$radmin2$B137F09CF92F465CABCA06AB1B283C1F", "lastwolf"},
 	{"$radmin2$14e897b1a9354f875df51047bb1a0765", "podebradka"},
@@ -179,9 +182,9 @@ struct fmt_main fmt_radmin = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
