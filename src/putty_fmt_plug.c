@@ -33,7 +33,9 @@
 #define BENCHMARK_LENGTH    -1001
 #define PLAINTEXT_LENGTH    32
 #define BINARY_SIZE         0
+#define BINARY_ALIGN        1
 #define SALT_SIZE           sizeof(struct custom_salt)
+#define SALT_ALIGN          4
 #define MIN_KEYS_PER_CRYPT  1
 #define MAX_KEYS_PER_CRYPT  1
 
@@ -171,42 +173,47 @@ static void *get_salt(char *ciphertext)
 	char *keeptr = ctcopy;
 	int i;
 	char *p;
-	static struct custom_salt cs;
+	/* ensure alignment */
+	static union {
+		struct custom_salt _cs;
+		ARCH_WORD_32 dummy;
+	} un;
+	struct custom_salt *cs = &(un._cs);
 	ctcopy += 7;	/* skip over "$putty$" marker */
 	p = strtok(ctcopy, "*");
-	cs.cipher = atoi(p);
+	cs->cipher = atoi(p);
 	p = strtok(NULL, "*");
-	cs.cipherblk = atoi(p);
+	cs->cipherblk = atoi(p);
 	p = strtok(NULL, "*");
-	cs.is_mac = atoi(p);
+	cs->is_mac = atoi(p);
 	p = strtok(NULL, "*");
-	cs.old_fmt = atoi(p);
+	cs->old_fmt = atoi(p);
 	p = strtok(NULL, "*");
-	strcpy(cs.mac, p);
+	strcpy(cs->mac, p);
 	p = strtok(NULL, "*");
-	cs.public_blob_len = atoi(p);
+	cs->public_blob_len = atoi(p);
 	p = strtok(NULL, "*");
-	for (i = 0; i < cs.public_blob_len; i++)
-		cs.public_blob[i] =
+	for (i = 0; i < cs->public_blob_len; i++)
+		cs->public_blob[i] =
 		    atoi16[ARCH_INDEX(p[i * 2])] * 16 +
 		    atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	p = strtok(NULL, "*");
-	cs.private_blob_len = atoi(p);
+	cs->private_blob_len = atoi(p);
 	p = strtok(NULL, "*");
-	for (i = 0; i < cs.private_blob_len; i++)
-		cs.private_blob[i] =
+	for (i = 0; i < cs->private_blob_len; i++)
+		cs->private_blob[i] =
 		    atoi16[ARCH_INDEX(p[i * 2])] * 16 +
 		    atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	if(!cs.old_fmt) {
+	if(!cs->old_fmt) {
 		p = strtok(NULL, "*");
-		strcpy(cs.alg, p);
+		strcpy(cs->alg, p);
 		p = strtok(NULL, "*");
-		strcpy(cs.encryption, p);
+		strcpy(cs->encryption, p);
 		p = strtok(NULL, "*");
-		strcpy(cs.comment, p);
+		strcpy(cs->comment, p);
 	}
 	MEM_FREE(keeptr);
-	return (void *)&cs;
+	return (void *)cs;
 }
 
 static void set_salt(void *salt)
