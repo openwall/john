@@ -33,6 +33,8 @@ static int omp_t = 1;
 #define SALT_SIZE		0
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
+#define BINARY_ALIGN		4
+#define SALT_ALIGN		1
 
 static struct fmt_tests snefru_128_tests[] = {
 	{"$snefru$53b8a9b1c9ed00174d88d705fb7bae30", "mystrongpassword"},
@@ -222,9 +224,9 @@ struct fmt_main fmt_snefru_256 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
@@ -279,9 +281,9 @@ struct fmt_main fmt_snefru_128 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
