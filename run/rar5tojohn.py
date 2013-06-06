@@ -153,34 +153,32 @@ def read_rar5_header():
     buf.write(f.read(7))
     stuff = buf.read(4)
     SizeBytes = buf.GetVSize()
-    # print "SB", SizeBytes
+    # print "SizeBytes", SizeBytes
     BlockSize = buf.GetV()
-    # print "BS", BlockSize
+    # print "BlockSize", BlockSize
     SizeToRead = BlockSize
     SizeToRead = SizeToRead - (FirstReadSize - SizeBytes - 4)
-    # print "STR", SizeToRead
+    # print "SizeToRead", SizeToRead
     HeaderSize = 4 + SizeBytes + BlockSize
 
     # new stuff
     buf.write(f.read(SizeToRead))
     # GetCRC50();
     HeaderType = buf.GetV()
-    # print "HT", HeaderType
+    # print "HeaderType", HeaderType
     Flags = buf.GetV()
-    # print "FLAGS", Flags
+    # print "Flags", Flags
     SkipIfUnknown = (Flags & HFL_SKIPIFUNKNOWN) != 0
     HeadSize = HeaderSize;
     CurHeaderType = HeaderType;
     ExtraSize = 0
-    if (Flags & HFL_EXTRA) !=0:
-        print "!!!!!"
-        # ExtraSize = buf.GetV()
-        # if ExtraSize>=HeadSize:
-        #   print("BAD 3");
+    if (Flags & HFL_EXTRA) != 0:
+        ExtraSize = buf.GetV()
+        if ExtraSize >= HeadSize:
+            assert 0, "RAR5 file type (-p mode?) not handled yet!"
     DataSize = 0;
-    if (Flags & HFL_DATA)!=0:
-        print "!!!!!"
-        # DataSize = buf.GetV()
+    if (Flags & HFL_DATA) != 0:
+        DataSize = buf.GetV()
 
     NextBlockPos = CurBlockPos + FullHeaderSize(HeadSize) + DataSize;
 
