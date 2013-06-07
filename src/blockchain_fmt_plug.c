@@ -19,7 +19,6 @@
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-#undef MMX_COEF // XXX
 #include "pbkdf2_hmac_sha1.h"
 #include <openssl/aes.h>
 #ifdef _OPENMP
@@ -29,7 +28,11 @@
 
 #define FORMAT_LABEL		"blockchain"
 #define FORMAT_NAME		"blockchain My Wallet PBKDF2-HMAC-SHA-1 AES (10 iterations!)"
+#ifdef MMX_COEF
+#define ALGORITHM_NAME      SHA1_N_STR MMX_TYPE
+#else
 #define ALGORITHM_NAME		"32/" ARCH_BITS_STR
+#endif
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define BINARY_SIZE		0
@@ -37,8 +40,13 @@
 #define PLAINTEXT_LENGTH	125
 #define SALT_SIZE		sizeof(struct custom_salt)
 #define SALT_ALIGN		4
+#ifdef MMX_COEF
+#define MIN_KEYS_PER_CRYPT  SSE_GROUP_SZ_SHA1
+#define MAX_KEYS_PER_CRYPT  SSE_GROUP_SZ_SHA1
+#else
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
+#endif
 
 #define BIG_ENOUGH 		(8192 * 32)
 
@@ -145,6 +153,24 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 #endif
 	{
+#ifdef MMX_COEF
+		unsigned char master[MAX_KEYS_PER_CRYPT][32];
+		int lens[MAX_KEYS_PER_CRYPT], i;
+		unsigned char *pin[MAX_KEYS_PER_CRYPT], *pout[MAX_KEYS_PER_CRYPT];
+		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+			lens[i] = strlen(saved_key[i+index]);
+			pin[i] = (unsigned char*)saved_key[i+index];
+			pout[i] = master[i];
+		}
+		pbkdf2_sha1_sse((const unsigned char **)pin, lens,
+			cur_salt->salt, 16, 10, pout, 32, 0);
+		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+			if(blockchain_decrypt(master[i], cur_salt->data) == 0)
+				cracked[i+index] = 1;
+			else
+				cracked[i+index] = 0;
+		}
+#else
 		unsigned char master[32];
 		pbkdf2_sha1((unsigned char *)saved_key[index],
 			strlen(saved_key[index]),
@@ -154,6 +180,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			cracked[index] = 1;
 		else
 			cracked[index] = 0;
+#endif
 	}
 	return count;
 }
