@@ -50,6 +50,9 @@
 
 #define BIG_ENOUGH 		(8192 * 32)
 
+// increase me (in multiples of 16) to increase the decrypted and search area
+#define SAFETY_FACTOR 		64
+
 static struct fmt_tests agile_keychain_tests[] = {
 	{"$blockchain$400$53741f25a90ef521c90bb2fd73673e64089ff2cca6ba3cbf6f34e0f80f960b2f60b9ac48df009dc30c288dcf1ade5f16c70a3536403fc11a68f242ba5ad3fcceae3ca5ecd23905997474260aa1357fc322b1434ffa026ba6ad33707c9ad5260e7230b87d8888a45ddc27513adb30af8755ec0737963ae6bb281318c48f224e9c748f6697f75f63f718bebb3401d6d5f02cf62b1701c205762c2f43119b68771ed10ddab79b5f74f56d611f61f77b8b65b5b5669756017429633118b8e5b8b638667e44154de4cc76468c4200eeebda2711a65333a7e3c423c8241e219cdca5ac47c0d4479444241fa27da20dba1a1d81e778a037d40d33ddea7c39e6d02461d97185f66a73deedff39bc53af0e9b04a3d7bf43648303c9f652d99630cd0789819376d68443c85f0eeb7af7c83eecddf25ea912f7721e3fb73ccaedf860f0f033ffc990ed73db441220d0cbe6e029676fef264dc2dc497f39bedf4041ba355d086134744d5a36e09515d230cd499eb20e0c574fb1bd9d994ce26f53f21d06dd58db4f8e0efbcaee7038df793bbb3daa96", "strongpassword"},
 	{"$blockchain$384$ece598c58b22a3b245a02039ce36bdf589a86b6344e802b4a3ac9b727cc0b6977e9509bc1ac4d1b7b9cbf9089ecdc89706f0a469325f7ee218b2212b6cd3e32677be20eee91e267fe13ebded02946d4ae1163ef22b3dca327d7390091247ac770288a0c7be181b21a48a8f945d9913cdfdc4cfd739ee3a41ced11cacde22e3233250e36f8b8fb4d81de5298a84374af75b88afda3438eed232e52aa0eb29e0d475456c86ae9d1aaadca14bc25f273c93fd4d7fd8316ed5306733bca77e8214277edd3155342abe0710985dc20b4f80e6620e386aa7658f92df25c7c932f0eb1beca25253662bd558647a3ba741f89450bfdba59a0c016477450fbcecd62226626e06ed2e3f5a4180e32d534c7769bcd1160aad840cfd3b7b13a90d34fedb3408fe74379a9e8a840fe3bfee8e0ee01f77ee389613fa750c3d2771b83eeb4e16598f76c15c311c325bd5d54543571aa20934060e332f451e58d67ad0f4635c0c021fa76821a68d64f1a5fb6fd70365eef4442cedcc91eb8696d52d078807edd89d", "qwertyuiop1"},
@@ -61,7 +64,6 @@ static int *cracked;
 
 static struct custom_salt {
 	unsigned char data[BIG_ENOUGH];
-	unsigned char salt[16];
 	int length;
 } *cur_salt;
 
@@ -107,11 +109,8 @@ static void *get_salt(char *ciphertext)
 	p = strtok(ctcopy, "$");
 	cs->length = atoi(p);
 	p = strtok(NULL, "$");
-	for (i = 0; i < 16; i++)
-		cs->salt[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
-			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	for (; i < cs->length; i++)
-		cs->data[i - 16] = atoi16[ARCH_INDEX(p[i * 2])] * 16
+	for (i = 0; i < cs->length; i++)
+		cs->data[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	MEM_FREE(keeptr);
 	return (void *)cs;
@@ -124,23 +123,28 @@ static void set_salt(void *salt)
 }
 static int blockchain_decrypt(unsigned char *derived_key, unsigned char *data)
 {
-	unsigned char out[BIG_ENOUGH];
+	unsigned char out[SAFETY_FACTOR];
 	AES_KEY akey;
 	unsigned char iv[16] = { 0 };
 
 	if(AES_set_decrypt_key(derived_key, 256, &akey) < 0) {
 		fprintf(stderr, "AES_set_decrypt_key failed in crypt!\n");
 	}
-	AES_cbc_encrypt(data, out, cur_salt->length, &akey, iv, AES_DECRYPT);
+	AES_cbc_encrypt(data, out, SAFETY_FACTOR, &akey, iv, AES_DECRYPT);
 
 	/* various tests */
-	if (jtr_memmem(out, cur_salt->length, "pbkdf2_iterations", 17))
+	/* if (!jtr_memmem(out, SAFETY_FACTOR, "{", 1)) // fast test
+		return -1; */
+	if (jtr_memmem(out, SAFETY_FACTOR, "\"guid\"", 6))
+		return 0;
+	if (jtr_memmem(out, SAFETY_FACTOR, "sharedKey", 9))
 		return 0;
 
-	if (jtr_memmem(out, cur_salt->length, "sharedKey", 9))
-		return 0;
+	/* XXX more tests required?
+	 *  if (jtr_memmem(out, cur_salt->length, "pbkdf2_iterations", 17))
+	 *  	return 0;
+	 */
 
-	// XXX more tests required?
 	return -1;
 }
 
@@ -163,7 +167,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			pout[i] = master[i];
 		}
 		pbkdf2_sha1_sse((const unsigned char **)pin, lens,
-			cur_salt->salt, 16, 10, pout, 32, 0);
+			cur_salt->data, 16, 10, pout, 32, 0);
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
 			if(blockchain_decrypt(master[i], cur_salt->data) == 0)
 				cracked[i+index] = 1;
@@ -174,7 +178,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		unsigned char master[32];
 		pbkdf2_sha1((unsigned char *)saved_key[index],
 			strlen(saved_key[index]),
-			cur_salt->salt, 16,
+			cur_salt->data, 16,
 			10, master, 32, 0);
 		if(blockchain_decrypt(master, cur_salt->data) == 0)
 			cracked[index] = 1;
