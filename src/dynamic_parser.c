@@ -273,6 +273,25 @@ static Dynamic_Predicate_t Dynamic_Predicate[] =  {
 	{ "DynamicFunc__Tiger_crypt_input2_overwrite_input1", DynamicFunc__Tiger_crypt_input2_overwrite_input1 },
 	{ "DynamicFunc__Tiger_crypt_input1_to_output1_FINAL", DynamicFunc__Tiger_crypt_input1_to_output1_FINAL },
 	{ "DynamicFunc__Tiger_crypt_input2_to_output1_FINAL", DynamicFunc__Tiger_crypt_input2_to_output1_FINAL },
+
+	{ "DynamicFunc__MD5_crypt_input1_append_input2", DynamicFunc__MD5_crypt_input1_append_input2 },
+	{ "DynamicFunc__MD5_crypt_input2_append_input1", DynamicFunc__MD5_crypt_input2_append_input1 },
+	{ "DynamicFunc__MD5_crypt_input1_overwrite_input1", DynamicFunc__MD5_crypt_input1_overwrite_input1 },
+	{ "DynamicFunc__MD5_crypt_input2_overwrite_input2", DynamicFunc__MD5_crypt_input2_overwrite_input2 },
+	{ "DynamicFunc__MD5_crypt_input1_overwrite_input2", DynamicFunc__MD5_crypt_input1_overwrite_input2 },
+	{ "DynamicFunc__MD5_crypt_input2_overwrite_input1", DynamicFunc__MD5_crypt_input2_overwrite_input1 },
+	{ "DynamicFunc__MD5_crypt_input1_to_output1_FINAL", DynamicFunc__MD5_crypt_input1_to_output1_FINAL },
+	{ "DynamicFunc__MD5_crypt_input2_to_output1_FINAL", DynamicFunc__MD5_crypt_input2_to_output1_FINAL },
+
+	{ "DynamicFunc__MD4_crypt_input1_append_input2", DynamicFunc__MD4_crypt_input1_append_input2 },
+	{ "DynamicFunc__MD4_crypt_input2_append_input1", DynamicFunc__MD4_crypt_input2_append_input1 },
+	{ "DynamicFunc__MD4_crypt_input1_overwrite_input1", DynamicFunc__MD4_crypt_input1_overwrite_input1 },
+	{ "DynamicFunc__MD4_crypt_input2_overwrite_input2", DynamicFunc__MD4_crypt_input2_overwrite_input2 },
+	{ "DynamicFunc__MD4_crypt_input1_overwrite_input2", DynamicFunc__MD4_crypt_input1_overwrite_input2 },
+	{ "DynamicFunc__MD4_crypt_input2_overwrite_input1", DynamicFunc__MD4_crypt_input2_overwrite_input1 },
+	{ "DynamicFunc__MD4_crypt_input1_to_output1_FINAL", DynamicFunc__MD4_crypt_input1_to_output1_FINAL },
+	{ "DynamicFunc__MD4_crypt_input2_to_output1_FINAL", DynamicFunc__MD4_crypt_input2_to_output1_FINAL },
+
 	{ "DynamicFunc__RIPEMD128_crypt_input1_append_input2", DynamicFunc__RIPEMD128_crypt_input1_append_input2 },
 	{ "DynamicFunc__RIPEMD128_crypt_input2_append_input1", DynamicFunc__RIPEMD128_crypt_input2_append_input1 },
 	{ "DynamicFunc__RIPEMD128_crypt_input1_overwrite_input1", DynamicFunc__RIPEMD128_crypt_input1_overwrite_input1 },
@@ -356,6 +375,18 @@ static Dynamic_Predicate_t Dynamic_Predicate[] =  {
 	{ "DynamicFunc__Tiger_crypt_input2_overwrite_input2_base16", DynamicFunc__Tiger_crypt_input2_overwrite_input2_base16 },
 	{ "DynamicFunc__Tiger_crypt_input1_overwrite_input2_base16", DynamicFunc__Tiger_crypt_input1_overwrite_input2_base16 },
 	{ "DynamicFunc__Tiger_crypt_input2_overwrite_input1_base16", DynamicFunc__Tiger_crypt_input2_overwrite_input1_base16 },
+	{ "DynamicFunc__MD5_crypt_input1_append_input2_base16", DynamicFunc__MD5_crypt_input1_append_input2_base16 },
+	{ "DynamicFunc__MD5_crypt_input2_append_input1_base16", DynamicFunc__MD5_crypt_input2_append_input1_base16 },
+	{ "DynamicFunc__MD5_crypt_input1_overwrite_input1_base16", DynamicFunc__MD5_crypt_input1_overwrite_input1_base16 },
+	{ "DynamicFunc__MD5_crypt_input2_overwrite_input2_base16", DynamicFunc__MD5_crypt_input2_overwrite_input2_base16 },
+	{ "DynamicFunc__MD5_crypt_input1_overwrite_input2_base16", DynamicFunc__MD5_crypt_input1_overwrite_input2_base16 },
+	{ "DynamicFunc__MD5_crypt_input2_overwrite_input1_base16", DynamicFunc__MD5_crypt_input2_overwrite_input1_base16 },
+	{ "DynamicFunc__MD4_crypt_input1_append_input2_base16", DynamicFunc__MD4_crypt_input1_append_input2_base16 },
+	{ "DynamicFunc__MD4_crypt_input2_append_input1_base16", DynamicFunc__MD4_crypt_input2_append_input1_base16 },
+	{ "DynamicFunc__MD4_crypt_input1_overwrite_input1_base16", DynamicFunc__MD4_crypt_input1_overwrite_input1_base16 },
+	{ "DynamicFunc__MD4_crypt_input2_overwrite_input2_base16", DynamicFunc__MD4_crypt_input2_overwrite_input2_base16 },
+	{ "DynamicFunc__MD4_crypt_input1_overwrite_input2_base16", DynamicFunc__MD4_crypt_input1_overwrite_input2_base16 },
+	{ "DynamicFunc__MD4_crypt_input2_overwrite_input1_base16", DynamicFunc__MD4_crypt_input2_overwrite_input1_base16 },
 	{ "DynamicFunc__RIPEMD128_crypt_input1_append_input2_base16", DynamicFunc__RIPEMD128_crypt_input1_append_input2_base16 },
 	{ "DynamicFunc__RIPEMD128_crypt_input2_append_input1_base16", DynamicFunc__RIPEMD128_crypt_input2_append_input1_base16 },
 	{ "DynamicFunc__RIPEMD128_crypt_input1_overwrite_input1_base16", DynamicFunc__RIPEMD128_crypt_input1_overwrite_input1_base16 },
@@ -748,6 +779,36 @@ int dynamic_LOAD_PARSER_FUNCTIONS_LoadLINE(struct cfg_line *_line)
 		return 1;
 	}
 
+	if (c == 't' && !strncasecmp(Line, "TestD=", 6))
+	{
+#ifdef DEBUG
+		char *cp;
+		if (options.utf8)
+			return 1;
+		cp = convert_old_name_if_needed(&Line[6]);
+		cp = GetFld(&(pSetup->pPreloads[nPreloadCnt].ciphertext), cp);
+		if (!pSetup->pPreloads[nPreloadCnt].ciphertext ||
+			strncmp(pSetup->pPreloads[nPreloadCnt].ciphertext, SetupName, strlen(SetupName)))
+			return !fprintf(stderr, "Error, invalid test line (wrong generic type):  %s\n", Line);
+		cp = GetFld(&(pSetup->pPreloads[nPreloadCnt].plaintext), cp);
+		pSetup->pPreloads[nPreloadCnt].plaintext = dynamic_Demangle(pSetup->pPreloads[nPreloadCnt].plaintext, NULL);
+#if FMT_MAIN_VERSION > 9
+		pSetup->pPreloads[nPreloadCnt].fields[1] = str_alloc_copy(pSetup->pPreloads[nPreloadCnt].ciphertext);
+#else
+		pSetup->pPreloads[nPreloadCnt].flds[1] = str_alloc_copy(pSetup->pPreloads[nPreloadCnt].ciphertext);
+#endif
+		for (j = 0; j < 10; ++j) {
+			if (j==1) continue;
+#if FMT_MAIN_VERSION > 9
+			cp = GetFld(&(pSetup->pPreloads[nPreloadCnt].fields[j]), cp);
+#else
+			cp = GetFld(&(pSetup->pPreloads[nPreloadCnt].flds[j]), cp);
+#endif
+		}
+		++nPreloadCnt;
+#endif
+		return 1;
+	}
 	if (c == 'c' && !strncasecmp(Line, "ColonChar=", 10))
 	{
 		char *tmp = dynamic_Demangle(&Line[10], NULL);

@@ -279,13 +279,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef MMX_COEF
 #ifdef MD5_SSE_PARA
 	int i;
-	SSEmd5body(ipad, ((unsigned int*)dump), 1);
-	SSEmd5body(cursalt, ((unsigned int*)dump), 0);
+	SSEmd5body(ipad, ((unsigned int*)dump), NULL, SSEi_MIXED_IN);
+	SSEmd5body(cursalt, ((unsigned int*)dump), ((unsigned int*)dump), SSEi_RELOAD|SSEi_MIXED_IN);
 	for (i = 0; i < MD5_SSE_PARA; ++i)
 		memcpy(&crypt_key[64*MMX_COEF*i], &dump[BINARY_SIZE*MMX_COEF*i], BINARY_SIZE*MMX_COEF);
 
-	SSEmd5body(opad, ((unsigned int*)dump), 1);
-	SSEmd5body(crypt_key, ((unsigned int*)dump), 0);
+	SSEmd5body(opad, ((unsigned int*)dump), NULL, SSEi_MIXED_IN);
+	SSEmd5body(crypt_key, ((unsigned int*)dump), ((unsigned int*)dump), SSEi_RELOAD|SSEi_MIXED_IN);
 	for (i = 0; i < MD5_SSE_PARA; ++i)
 		memcpy(&crypt_key[64*MMX_COEF*i], &dump[BINARY_SIZE*MMX_COEF*i], BINARY_SIZE*MMX_COEF);
 #else

@@ -87,6 +87,10 @@ static DYNAMIC_primitive_funcp _Funcs_1[] =
  *
  *   5. Change regen-salts to be generic. Add the logic to dynamic_fmt.c proper, and change
  *      the fake-salts.c, and options so that 'generic' regen-salts can be done.
+ *
+ *   6. Make sure all big crypts list their crypt type in the algo name, and not MD5_BODY
+ *
+ *   7. Add big crypt md5/md4 and start to port the formats to use them.
  */
 
 #include <string.h>
@@ -660,6 +664,10 @@ static void __nonMP_DynamicFunc__clean_input2() {
 		return;
 	}
 #endif
+	if (curdat.using_flat_buffers_sse2_ok) {
+		memset(total_len2_X86, 0, sizeof(total_len2_X86[0])*MAX_KEYS_PER_CRYPT_X86);
+		return;
+	}
 	for (; i < MAX_KEYS_PER_CRYPT_X86; ++i) {
 		//if (total_len2_X86[i]) {
 #if MD5_X2
@@ -1491,26 +1499,49 @@ static void crypt_all(int count)
 				__nonMP_md5_unicode_convert(1);
 			__nonMP_DynamicFunc__append_keys2();
 			__nonMP_md5_unicode_convert(0);
-			__possMP_DynamicFunc__crypt2_md5();
 
-			if (curdat.store_keys_normal_but_precompute_md5_to_output2_base16_to_input1)
-			{
-				if (curdat.store_keys_normal_but_precompute_md5_to_output2_base16_to_input1==2)
-					__nonMP_DynamicFunc__SSEtoX86_switch_output2();
-				__nonMP_DynamicFunc__clean_input();
-				__nonMP_DynamicFunc__append_from_last_output2_to_input1_as_base16();
-			}
-			if (curdat.store_keys_normal_but_precompute_md5_to_output2_base16_to_input1_offset32)
-			{
-#ifndef MMX_COEF
-				if (curdat.store_keys_normal_but_precompute_md5_to_output2_base16_to_input1_offset32==2)
+			if (curdat.using_flat_buffers_sse2_ok) {
+				if (curdat.store_keys_normal_but_precompute_md5_to_output2_base16_to_input1) {
+#ifdef _OPENMP
+					DynamicFunc__MD5_crypt_input2_overwrite_input1(0,count,0);
 #else
-				if (dynamic_use_sse == 1)
+					DynamicFunc__MD5_crypt_input2_overwrite_input1();
 #endif
-					__nonMP_DynamicFunc__SSEtoX86_switch_output2();
-				__nonMP_DynamicFunc__clean_input();
-				__nonMP_DynamicFunc__set_input_len_32();
-				__nonMP_DynamicFunc__append_from_last_output2_to_input1_as_base16();
+				} else if (curdat.store_keys_normal_but_precompute_md5_to_output2_base16_to_input1_offset32) {
+					int i;
+					for (i = 0; i < m_count; ++i)
+						total_len_X86[i] = 32;
+#ifdef _OPENMP
+					DynamicFunc__MD5_crypt_input2_append_input1(0,count,0);
+#else
+					DynamicFunc__MD5_crypt_input2_append_input1();
+#endif
+				} else {
+					// calls 'old' code (ossl, sorry :(   We should FIND and remove any format
+					// written this way, if it is 
+					__possMP_DynamicFunc__crypt2_md5();
+				}
+			} else {
+				__possMP_DynamicFunc__crypt2_md5();
+				if (curdat.store_keys_normal_but_precompute_md5_to_output2_base16_to_input1)
+				{
+					if (curdat.store_keys_normal_but_precompute_md5_to_output2_base16_to_input1==2)
+						__nonMP_DynamicFunc__SSEtoX86_switch_output2();
+					__nonMP_DynamicFunc__clean_input();
+					__nonMP_DynamicFunc__append_from_last_output2_to_input1_as_base16();
+				}
+				if (curdat.store_keys_normal_but_precompute_md5_to_output2_base16_to_input1_offset32)
+				{
+#ifndef MMX_COEF
+					if (curdat.store_keys_normal_but_precompute_md5_to_output2_base16_to_input1_offset32==2)
+#else
+					if (dynamic_use_sse == 1)
+#endif
+						__nonMP_DynamicFunc__SSEtoX86_switch_output2();
+					__nonMP_DynamicFunc__clean_input();
+					__nonMP_DynamicFunc__set_input_len_32();
+					__nonMP_DynamicFunc__append_from_last_output2_to_input1_as_base16();
+				}
 			}
 		}
 	}
@@ -4252,12 +4283,12 @@ void DynamicFunc__crypt_md5(DYNA_OMP_PARAMS)
 #ifdef MD5_SSE_PARA
 		if (curdat.store_keys_in_input) {
 			for (; i < til; i += MD5_SSE_PARA) {
-				SSEmd5body(input_buf[i].c, crypt_key[i].w, 1);
+				SSEmd5body(input_buf[i].c, crypt_key[i].w, NULL, SSEi_MIXED_IN);
 			}
 		} else {
 			for (; i < til; i += MD5_SSE_PARA) {
 				SSE_Intrinsics_LoadLens(0, i);
-				SSEmd5body(input_buf[i].c, crypt_key[i].w, 1);
+				SSEmd5body(input_buf[i].c, crypt_key[i].w, NULL, SSEi_MIXED_IN);
 			}
 		}
 #else
@@ -4303,12 +4334,12 @@ unsigned i, til;
 #ifdef MD4_SSE_PARA
 		if (curdat.store_keys_in_input) {
 			for (; i < til; i += MD4_SSE_PARA) {
-				SSEmd4body(input_buf[i].c, crypt_key[i].w, 1);
+				SSEmd4body(input_buf[i].c, crypt_key[i].w, NULL, SSEi_MIXED_IN);
 			}
 		} else {
 			for (; i < til; i += MD4_SSE_PARA) {
 				SSE_Intrinsics_LoadLens(0, i);
-				SSEmd4body(input_buf[i].c, crypt_key[i].w, 1);
+				SSEmd4body(input_buf[i].c, crypt_key[i].w, NULL, SSEi_MIXED_IN);
 			}
 		}
 #else
@@ -4342,7 +4373,7 @@ unsigned i, til;
 
 // we do provide a NOOP function. This will not kill jtr, BUT output that this function has been REMOVED
 // but it DOES NOT shutdown john.
-void DynamicFunc__FreeBSDMD5Crypt() {
+void DynamicFunc__FreeBSDMD5Crypt(DYNA_OMP_PARAMS) {
 	static int first=1;
 	if (first) {
 		first = 0;
@@ -4499,7 +4530,7 @@ void DynamicFunc__crypt2_md5(DYNA_OMP_PARAMS)
 #ifdef MD5_SSE_PARA
 		for (; i < til; i += MD5_SSE_PARA) {
 			SSE_Intrinsics_LoadLens(1, i);
-			SSEmd5body(input_buf2[i].c, crypt_key2[i].w, 1);
+			SSEmd5body(input_buf2[i].c, crypt_key2[i].w, NULL, SSEi_MIXED_IN);
 		}
 #else
 		for (; i < til; ++i)
@@ -4539,7 +4570,7 @@ void DynamicFunc__crypt2_md4(DYNA_OMP_PARAMS)
 #ifdef MD4_SSE_PARA
 		for (; i < til; i += MD4_SSE_PARA) {
 			SSE_Intrinsics_LoadLens(1, i);
-			SSEmd4body(input_buf2[i].c, crypt_key2[i].w, 1);
+			SSEmd4body(input_buf2[i].c, crypt_key2[i].w, NULL, SSEi_MIXED_IN);
 		}
 #else
 		for (; i < til; ++i)
@@ -4586,12 +4617,12 @@ void DynamicFunc__crypt_md5_in1_to_out2(DYNA_OMP_PARAMS)
 #ifdef MD5_SSE_PARA
 		if (curdat.store_keys_in_input) {
 			for (; i < til; i += MD5_SSE_PARA) {
-				SSEmd5body(input_buf[i].c, crypt_key2[i].w, 1);
+				SSEmd5body(input_buf[i].c, crypt_key2[i].w, NULL, SSEi_MIXED_IN);
 			}
 		} else {
 			for (; i < til; i += MD5_SSE_PARA) {
 				SSE_Intrinsics_LoadLens(0, i);
-				SSEmd5body(input_buf[i].c, crypt_key2[i].w, 1);
+				SSEmd5body(input_buf[i].c, crypt_key2[i].w, NULL, SSEi_MIXED_IN);
 			}
 		}
 #else
@@ -4637,12 +4668,12 @@ void DynamicFunc__crypt_md4_in1_to_out2(DYNA_OMP_PARAMS)
 #ifdef MD4_SSE_PARA
 		if (curdat.store_keys_in_input) {
 			for (; i < til; i += MD4_SSE_PARA) {
-				SSEmd4body(input_buf[i].c, crypt_key2[i].w, 1);
+				SSEmd4body(input_buf[i].c, crypt_key2[i].w, NULL, SSEi_MIXED_IN);
 			}
 		} else {
 			for (; i < til; i += MD4_SSE_PARA) {
 				SSE_Intrinsics_LoadLens(0, i);
-				SSEmd4body(input_buf[i].c, crypt_key2[i].w, 1);
+				SSEmd4body(input_buf[i].c, crypt_key2[i].w, NULL, SSEi_MIXED_IN);
 			}
 		}
 #else
@@ -4696,7 +4727,7 @@ void DynamicFunc__crypt_md5_in2_to_out1(DYNA_OMP_PARAMS)
 		for (; i < til; i += MD5_SSE_PARA)
 		{
 			SSE_Intrinsics_LoadLens(1, i);
-			SSEmd5body(input_buf2[i].c, crypt_key[i].w, 1);
+			SSEmd5body(input_buf2[i].c, crypt_key[i].w, NULL, SSEi_MIXED_IN);
 			//dump_stuff_mmx_msg("DynamicFunc__crypt_md5_in2_to_out1", input_buf2[i].c,64,m_count-1);
 		}
 #else
@@ -4738,7 +4769,7 @@ void DynamicFunc__crypt_md4_in2_to_out1(DYNA_OMP_PARAMS)
 		for (; i < til; i += MD4_SSE_PARA)
 		{
 			SSE_Intrinsics_LoadLens(1, i);
-			SSEmd4body(input_buf2[i].c, crypt_key[i].w, 1);
+			SSEmd4body(input_buf2[i].c, crypt_key[i].w, NULL, SSEi_MIXED_IN);
 		}
 #else
 		for (; i < til; ++i)
@@ -4786,7 +4817,7 @@ void DynamicFunc__crypt_md5_to_input_raw(DYNA_OMP_PARAMS)
 			// NOTE, since crypt_key array is 16 bytes each, and input_buf is 64 bytes
 			// each, and we are doing 3 at a time, we can NOT directly write to the
 			// input buff, but have to use the crypt_key buffer, and then memcpy when done.
-			SSEmd5body(input_buf[i].c, crypt_key[i].w, 1);
+			SSEmd5body(input_buf[i].c, crypt_key[i].w, NULL, SSEi_MIXED_IN);
 			for (j = 0; j < MD5_SSE_PARA; ++j)
 			{
 				memset(input_buf[i+j].c, 0, sizeof(input_buf[0]));
@@ -4848,7 +4879,7 @@ void DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen_but_setlen_in_SSE(DYNA_
 			// NOTE, since crypt_key array is 16 bytes each, and input_buf is 64 bytes
 			// each, and we are doing 3 at a time, we can NOT directly write to the
 			// input buff, but have to use the crypt_key buffer, and then memcpy when done.
-			SSEmd5body(input_buf[i].c, crypt_key[i].w, 1);
+			SSEmd5body(input_buf[i].c, crypt_key[i].w, NULL, SSEi_MIXED_IN);
 			for (j = 0; j < MD5_SSE_PARA; ++j)
 				memcpy(input_buf[i+j].c, crypt_key[i+j].c, 16*4);
 		}
@@ -4895,7 +4926,7 @@ void DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen(DYNA_OMP_PARAMS)
 			// NOTE, since crypt_key array is 16 bytes each, and input_buf is 64 bytes
 			// each, and we are doing 3 at a time, we can NOT directly write to the
 			// input buff, but have to use the crypt_key buffer, and then memcpy when done.
-			SSEmd5body(input_buf[i].c, crypt_key[i].w, 1);
+			SSEmd5body(input_buf[i].c, crypt_key[i].w, NULL, SSEi_MIXED_IN);
 			for (j = 0; j < MD5_SSE_PARA; ++j)
 				memcpy(input_buf[i+j].c, crypt_key[i+j].c, 16*4);
 		}
@@ -6463,7 +6494,18 @@ void DynamicFunc__RIPEMD320_crypt_input1_overwrite_input1_base16(DYNA_OMP_PARAMS
 void DynamicFunc__RIPEMD320_crypt_input2_overwrite_input2_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__RIPEMD320_crypt_input2_overwrite_input2(DYNA_OMP_PARAMSd); }
 void DynamicFunc__RIPEMD320_crypt_input1_overwrite_input2_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__RIPEMD320_crypt_input1_overwrite_input2(DYNA_OMP_PARAMSd); }
 void DynamicFunc__RIPEMD320_crypt_input2_overwrite_input1_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__RIPEMD320_crypt_input2_overwrite_input1(DYNA_OMP_PARAMSd); }
-
+void DynamicFunc__MD5_crypt_input1_append_input2_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd);     DynamicFunc__MD5_crypt_input1_append_input2(DYNA_OMP_PARAMSd); }
+void DynamicFunc__MD5_crypt_input2_append_input1_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); 	   DynamicFunc__MD5_crypt_input2_append_input1(DYNA_OMP_PARAMSd); }
+void DynamicFunc__MD5_crypt_input1_overwrite_input1_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd);  DynamicFunc__MD5_crypt_input1_overwrite_input1(DYNA_OMP_PARAMSd); }
+void DynamicFunc__MD5_crypt_input2_overwrite_input2_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd);  DynamicFunc__MD5_crypt_input2_overwrite_input2(DYNA_OMP_PARAMSd); }
+void DynamicFunc__MD5_crypt_input1_overwrite_input2_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd);  DynamicFunc__MD5_crypt_input1_overwrite_input2(DYNA_OMP_PARAMSd); }
+void DynamicFunc__MD5_crypt_input2_overwrite_input1_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd);  DynamicFunc__MD5_crypt_input2_overwrite_input1(DYNA_OMP_PARAMSd); }
+void DynamicFunc__MD4_crypt_input1_append_input2_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); 	   DynamicFunc__MD4_crypt_input1_append_input2(DYNA_OMP_PARAMSd); }
+void DynamicFunc__MD4_crypt_input2_append_input1_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); 	   DynamicFunc__MD4_crypt_input2_append_input1(DYNA_OMP_PARAMSd); }
+void DynamicFunc__MD4_crypt_input1_overwrite_input1_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd);  DynamicFunc__MD4_crypt_input1_overwrite_input1(DYNA_OMP_PARAMSd); }
+void DynamicFunc__MD4_crypt_input2_overwrite_input2_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd);  DynamicFunc__MD4_crypt_input2_overwrite_input2(DYNA_OMP_PARAMSd); }
+void DynamicFunc__MD4_crypt_input1_overwrite_input2_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd);  DynamicFunc__MD4_crypt_input1_overwrite_input2(DYNA_OMP_PARAMSd); }
+void DynamicFunc__MD4_crypt_input2_overwrite_input1_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd);  DynamicFunc__MD4_crypt_input2_overwrite_input1(DYNA_OMP_PARAMSd); }
 
 /**************************************************************
  * DEPRICATED functions. These are the older pseudo functions

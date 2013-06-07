@@ -1065,7 +1065,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 		for (i = 0; i < BLOCK_LOOPS; i++)
 			SSEmd4body(&saved_key[i * NBKEYS * 64],
-			           (unsigned int*)&nthash[i * NBKEYS * 16], 1);
+			           (unsigned int*)&nthash[i * NBKEYS * 16], NULL, SSEi_MIXED_IN);
 #else
 		SSEmd4body(saved_key, (unsigned int*)nthash, 1);
 #endif

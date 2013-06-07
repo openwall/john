@@ -1029,6 +1029,12 @@ examples (this whole list is also found in dynamic.conf).
 #  TestM= Allows placing a test case that will ONLY load if this is an MMX or
 #    SSE build.
 #
+#  TestD= Allows placing a test case that will ONLY load, if -DDEBUG build of
+#    JtR is done (for testing).  At this time, the REALLY long password hashes
+#    are being added with TestD=  so that the timing of the formats will not be 
+#    impacted, but so that a debugging build can be done, and the extra long
+#    test strings will still be there and be tested.
+#
 #  TestF= Allows placing a test case that will NEVER be loaded if this was an
 #    MMX or SSE build (Only load for 'flat' builds, like oSSL only).
 #   

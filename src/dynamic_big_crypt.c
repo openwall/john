@@ -29,6 +29,9 @@
 #include "formats.h"
 #include "sha.h"
 #include "sha2.h"
+#include "md5.h"
+#include "md4.h"
+#include "stdint.h"
 #include "gost.h"
 // this one is going to be harder.  only haval_256_5 is implemented in CPAN perl, making genation of test cases harder.
 // Also, there are 15 different hashes in this 'family'.
@@ -157,10 +160,19 @@ static inline unsigned char *hexu_out_buf(unsigned char *cpi, unsigned char *cpo
 // NOTE, cpo must be at least in_byte_cnt bytes of buffer
 static inline unsigned char *raw_out_buf(unsigned char *cpi, unsigned char *cpo, int in_byte_cnt) {
 	int j;
-	for (j = 0; j < in_byte_cnt; ++j) {
+#if ARCH_ALLOWS_UNALIGNED
+	// note, all of these 'should' be even divisible by 4.  If not, then we need to rethink this logic.
+	uint32_t *pi = (uint32_t*)cpi;
+	uint32_t *po = (uint32_t*)cpo;
+	in_byte_cnt>>=2;
+	for (j = 0; j < in_byte_cnt; ++j)
+		*po++ = *pi++;
+	return (unsigned char*)po;
+#else
+	for (j = 0; j < in_byte_cnt; ++j)
 		*cpo++ = *cpi++;
-	}
 	return cpo;
+#endif
 }
 
 // compatible 'standard' MIME base-64 encoding.
@@ -267,6 +279,781 @@ int large_hash_output(unsigned char *cpi, unsigned char *cpo, int in_byte_cnt, i
 			exit(fprintf(stderr, "Error, unknown 'output' state found in large_hash_output function, in %s\n", curdat.dynamic_WHICH_TYPE_SIG));
 	}
 	return cpo2-cpo;
+}
+
+/********************************************************************
+ ****  Here are the MD5 functions (Now using 'common' interface)
+ *******************************************************************/
+#ifdef MD5_SSE_PARA
+#define MD5_LOOPS (MMX_COEF*MD5_SSE_PARA)
+static const int MD5_inc = MD5_LOOPS;
+
+static inline uint32_t DoMD5_FixBufferLen32(unsigned char *input_buf, int total_len) {
+	uint32_t *p;
+	uint32_t ret = (total_len / 64) + 1;
+	if (total_len % 64 > 55)
+		++ret;
+	input_buf[total_len] = 0x80;
+	p = (uint32_t *)&(input_buf[total_len+1]);
+	while (*p && p < (uint32_t *)&input_buf[(ret<<6)])
+		*p++ = 0;
+	p = (uint32_t *)input_buf;
+	p[(ret*16)-2] = (total_len<<3);
+	return ret;
+}
+static void DoMD5_crypt_f_sse(void *in, int len[MD5_LOOPS], void *out) {
+	ALIGN(16) ARCH_WORD_32 a[(16*MD5_LOOPS)/sizeof(ARCH_WORD_32)];
+	unsigned int i, j, loops[MD5_LOOPS], bMore, cnt;
+	unsigned char *cp = (unsigned char*)in;
+	for (i = 0; i < MD5_LOOPS; ++i) {
+		loops[i] = DoMD5_FixBufferLen32(cp, len[i]);
+		cp += 256;
+	}
+	cp = (unsigned char*)in;
+	bMore = 1;
+	cnt = 1;
+	while (bMore) {
+		SSEmd5body(cp, a, a, SSEi_FLAT_IN|SSEi_4BUF_INPUT_FIRST_BLK|(cnt==1?0:SSEi_RELOAD));
+		bMore = 0;
+		for (i = 0; i < MD5_LOOPS; ++i) {
+			if (cnt == loops[i]) {
+				unsigned int offx = ((i>>2)*16)+(i&3);
+				for (j = 0; j < 4; ++j) {
+					((ARCH_WORD_32*)out)[(i<<2)+j] = a[(j<<2)+offx];
+				}
+			} else if (cnt < loops[i])
+				bMore = 1;
+		}
+		cp += 64;
+		++cnt;
+	}
+}
+static void DoMD5_crypt_sse(void *in, int ilen[MD5_LOOPS], void *out[MD5_LOOPS], unsigned int *tot_len, int tid) {
+	ALIGN(16) ARCH_WORD_32 a[(16*MD5_LOOPS)/sizeof(ARCH_WORD_32)];
+	union yy { unsigned char u[16]; ARCH_WORD_32 a[16/sizeof(ARCH_WORD_32)]; } y;
+	unsigned int i, j, loops[MD5_LOOPS], bMore, cnt;
+	unsigned char *cp = (unsigned char*)in;
+	for (i = 0; i < MD5_LOOPS; ++i) {
+		loops[i] = DoMD5_FixBufferLen32(cp, ilen[i]);
+		cp += 256;
+	}
+	cp = (unsigned char*)in;
+	bMore = 1;
+	cnt = 1;
+	while (bMore) {
+		SSEmd5body(cp, a, a, SSEi_FLAT_IN|SSEi_4BUF_INPUT_FIRST_BLK|(cnt==1?0:SSEi_RELOAD));
+		bMore = 0;
+		for (i = 0; i < MD5_LOOPS; ++i) {
+			if (cnt == loops[i]) {
+				unsigned int offx = ((i>>2)*16)+(i&3);
+				for (j = 0; j < 4; ++j) {
+					y.a[j] = a[(j<<2)+offx];
+				}
+				*(tot_len+i) += large_hash_output(y.u, &(((unsigned char*)out[i])[*(tot_len+i)]), 16, tid);
+			} else if (cnt < loops[i])
+				bMore = 1;
+		}
+		cp += 64;
+		++cnt;
+	}
+}
+#else
+
+#define MD5_LOOPS 1
+static const int MD5_inc = 1;
+
+static void inline DoMD5_crypt_f(void *in, int len, void *out) {
+	MD5_CTX ctx;
+	MD5_Init(&ctx);
+	MD5_Update(&ctx, in, len);
+	MD5_Final((unsigned char*)out, &ctx);
+}
+static void inline DoMD5_crypt(void *in, int ilen, void *out, unsigned int *tot_len, int tid) {
+	unsigned char crypt_out[16];
+	MD5_CTX ctx;
+	MD5_Init(&ctx);
+	MD5_Update(&ctx, in, ilen);
+	MD5_Final(crypt_out, &ctx);
+	if (eLargeOut[0] == eBase16) {
+		// since this is the usual, we avoid the extra overhead of large_hash_output, and go directly to the hex_out.
+		hex_out_buf(crypt_out, &(((unsigned char*)out)[*tot_len]), 16);
+		*tot_len += 32;
+	} else
+		*tot_len += large_hash_output(crypt_out, &(((unsigned char*)out)[*tot_len]), 16, tid);
+}
+#endif
+
+void DynamicFunc__MD5_crypt_input1_append_input2(DYNA_OMP_PARAMS) {
+	int i, til;
+
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	int tid=0;
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; i += MD5_inc) {
+#ifdef MD5_SSE_PARA
+		int len[MD5_LOOPS], j;
+		void *out[MD5_LOOPS];
+		for (j = 0; j < MD5_LOOPS; ++j) {
+			len[j] = total_len_X86[i+j];
+			#if (MD5_X2)
+			if (j&1)
+				out[j] = input_buf2_X86[(i+j)>>MD5_X2].x2.b2;
+			else
+			#endif
+				out[j] = input_buf2_X86[(i+j)>>MD5_X2].x1.b;
+		}
+		DoMD5_crypt_sse(input_buf_X86[i>>MD5_X2].x1.b, len, out, &(total_len2_X86[i]), tid);
+#else
+		#if (MD5_X2)
+		if (i & 1)
+			DoMD5_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &(total_len2_X86[i]), tid);
+		else
+		#endif
+		DoMD5_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &(total_len2_X86[i]), tid);
+#endif
+	}
+}
+void DynamicFunc__MD5_crypt_input2_append_input1(DYNA_OMP_PARAMS) {
+	int i, til;
+
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	int tid=0;
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; i += MD5_inc) {
+#ifdef MD5_SSE_PARA
+		int len[MD5_LOOPS], j;
+		void *out[MD5_LOOPS];
+		for (j = 0; j < MD5_LOOPS; ++j) {
+			len[j] = total_len2_X86[i+j];
+			#if (MD5_X2)
+			if (j&1)
+				out[j] = input_buf_X86[(i+j)>>MD5_X2].x2.b2;
+			else
+			#endif
+				out[j] = input_buf_X86[(i+j)>>MD5_X2].x1.b;
+		}
+		DoMD5_crypt_sse(input_buf2_X86[i>>MD5_X2].x1.b, len, out, &(total_len_X86[i]), tid);
+#else
+		#if (MD5_X2)
+		if (i & 1)
+			DoMD5_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &(total_len_X86[i]), tid);
+		else
+		#endif
+		DoMD5_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &(total_len_X86[i]), tid);
+#endif
+	}
+}
+
+void DynamicFunc__MD5_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS){
+	int i, til;
+
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	int tid=0;
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; i += MD5_inc) {
+#ifdef MD5_SSE_PARA
+		int len[MD5_LOOPS], j;
+		unsigned int x[MD5_LOOPS];
+		void *out[MD5_LOOPS];
+		for (j = 0; j < MD5_LOOPS; ++j) {
+			len[j] = total_len_X86[i+j];
+			#if (MD5_X2)
+			if (j&1)
+				out[j] = input_buf_X86[(i+j)>>MD5_X2].x2.b2;
+			else
+			#endif
+				out[j] = input_buf_X86[(i+j)>>MD5_X2].x1.b;
+			x[j] = 0;
+		}
+		DoMD5_crypt_sse(input_buf_X86[i>>MD5_X2].x1.b, len, out, x, tid);
+		for (j = 0; j < MD5_LOOPS; ++j)
+			total_len_X86[i+j] = 32;
+#else
+		unsigned int x = 0;
+		#if (MD5_X2)
+		if (i & 1)
+			DoMD5_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoMD5_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+		total_len_X86[i] = x;
+#endif
+	}
+}
+void DynamicFunc__MD5_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS){
+	int i, til;
+
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	int tid=0;
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; i += MD5_inc) {
+#ifdef MD5_SSE_PARA
+		int len[MD5_LOOPS], j;
+		unsigned int x[MD5_LOOPS];
+		void *out[MD5_LOOPS];
+		for (j = 0; j < MD5_LOOPS; ++j) {
+			len[j] = total_len_X86[i+j];
+			#if (MD5_X2)
+			if (j&1)
+				out[j] = input_buf2_X86[(i+j)>>MD5_X2].x2.b2;
+			else
+			#endif
+				out[j] = input_buf2_X86[(i+j)>>MD5_X2].x1.b;
+			x[j] = 0;
+		}
+		DoMD5_crypt_sse(input_buf_X86[i>>MD5_X2].x1.b, len, out, x, tid);
+		for (j = 0; j < MD5_LOOPS; ++j)
+			total_len2_X86[i+j] = 32;
+#else
+		unsigned int x = 0;
+		#if (MD5_X2)
+		if (i & 1)
+			DoMD5_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoMD5_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
+		total_len2_X86[i] = x;
+#endif
+	}
+}
+void DynamicFunc__MD5_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS){
+	int i, til;
+
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	int tid=0;
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; i += MD5_inc) {
+#ifdef MD5_SSE_PARA
+		int len[MD5_LOOPS], j;
+		unsigned int x[MD5_LOOPS];
+		void *out[MD5_LOOPS];
+		for (j = 0; j < MD5_LOOPS; ++j) {
+			len[j] = total_len2_X86[i+j];
+			#if (MD5_X2)
+			if (j&1)
+				out[j] = input_buf_X86[(i+j)>>MD5_X2].x2.b2;
+			else
+			#endif
+				out[j] = input_buf_X86[(i+j)>>MD5_X2].x1.b;
+			x[j] = 0;
+		}
+		DoMD5_crypt_sse(input_buf2_X86[i>>MD5_X2].x1.b, len, out, x, tid);
+		for (j = 0; j < MD5_LOOPS; ++j)
+			total_len_X86[i+j] = 32;
+#else
+		unsigned int x = 0;
+		#if (MD5_X2)
+		if (i & 1)
+			DoMD5_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoMD5_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+		total_len_X86[i] = x;
+#endif
+	}
+}
+void DynamicFunc__MD5_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS){
+	int i, til;
+
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	int tid=0;
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; i += MD5_inc) {
+#ifdef MD5_SSE_PARA
+		int len[MD5_LOOPS], j;
+		unsigned int x[MD5_LOOPS];
+		void *out[MD5_LOOPS];
+		for (j = 0; j < MD5_LOOPS; ++j) {
+			len[j] = total_len2_X86[i+j];
+			#if (MD5_X2)
+			if (j&1)
+				out[j] = input_buf2_X86[(i+j)>>MD5_X2].x2.b2;
+			else
+			#endif
+				out[j] = input_buf2_X86[(i+j)>>MD5_X2].x1.b;
+			x[j] = 0;
+		}
+		DoMD5_crypt_sse(input_buf2_X86[i>>MD5_X2].x1.b, len, out, x, tid);
+		for (j = 0; j < MD5_LOOPS; ++j)
+			total_len2_X86[i+j] = 32;
+#else
+		unsigned int x = 0;
+		#if (MD5_X2)
+		if (i & 1)
+			DoMD5_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoMD5_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
+		total_len2_X86[i] = x;
+#endif
+	}
+}
+void DynamicFunc__MD5_crypt_input1_to_output1_FINAL(DYNA_OMP_PARAMS){
+	int i, til;
+
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; i += MD5_inc) {
+#ifdef MD5_SSE_PARA
+	int len[MD5_LOOPS], j;
+	for (j = 0; j < MD5_LOOPS; ++j)
+		len[j] = total_len_X86[i+j];
+	DoMD5_crypt_f_sse(input_buf_X86[i>>MD5_X2].x1.b, len, crypt_key_X86[i>>MD5_X2].x1.b);
+#else
+	#if (MD5_X2)
+		if (i & 1)
+			DoMD5_crypt_f(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], crypt_key_X86[i>>MD5_X2].x2.b2);
+		else
+	#endif
+		DoMD5_crypt_f(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], crypt_key_X86[i>>MD5_X2].x1.b);
+#endif
+	}
+}
+void DynamicFunc__MD5_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS){
+	int i, til;
+
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; i += MD5_inc) {
+#ifdef MD5_SSE_PARA
+	int len[MD5_LOOPS], j;
+	for (j = 0; j < MD5_LOOPS; ++j)
+		len[j] = total_len2_X86[i+j];
+	DoMD5_crypt_f_sse(input_buf2_X86[i>>MD5_X2].x1.b, len, crypt_key_X86[i>>MD5_X2].x1.b);
+#else
+	#if (MD5_X2)
+		if (i & 1)
+			DoMD5_crypt_f(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], crypt_key_X86[i>>MD5_X2].x2.b2);
+		else
+	#endif
+		DoMD5_crypt_f(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], crypt_key_X86[i>>MD5_X2].x1.b);
+#endif
+	}
+}
+
+/********************************************************************
+ ****  Here are the MD4 functions (Now using 'common' interface)
+ *******************************************************************/
+#ifdef MD4_SSE_PARA
+#define MD4_LOOPS (MMX_COEF*MD4_SSE_PARA)
+static const int MD4_inc = MD4_LOOPS;
+
+static inline uint32_t DoMD4_FixBufferLen32(unsigned char *input_buf, int total_len) {
+	uint32_t *p;
+	uint32_t ret = (total_len / 64) + 1;
+	if (total_len % 64 > 55)
+		++ret;
+	input_buf[total_len] = 0x80;
+	p = (uint32_t *)&(input_buf[total_len+1]);
+	while (*p && p < (uint32_t *)&input_buf[(ret<<6)])
+		*p++ = 0;
+	p = (uint32_t *)input_buf;
+	p[(ret*16)-1] = (total_len<<3);
+	return ret;
+}
+static void DoMD4_crypt_f_sse(void *in, int len[MD4_LOOPS], void *out) {
+	ALIGN(16) ARCH_WORD_32 a[(16*MD4_LOOPS)/sizeof(ARCH_WORD_32)];
+	unsigned int i, j, loops[MD4_LOOPS], bMore, cnt;
+	unsigned char *cp = (unsigned char*)in;
+	for (i = 0; i < MD4_LOOPS; ++i) {
+		loops[i] = DoMD4_FixBufferLen32(cp, len[i]);
+		cp += 256;
+	}
+	cp = (unsigned char*)in;
+	bMore = 1;
+	cnt = 1;
+	while (bMore) {
+		SSEmd4body(cp, a, a, SSEi_FLAT_IN|SSEi_4BUF_INPUT_FIRST_BLK|(cnt==1?0:SSEi_RELOAD));
+		bMore = 0;
+		for (i = 0; i < MD4_LOOPS; ++i) {
+			if (cnt == loops[i]) {
+				unsigned int offx = ((i>>2)*16)+(i&3);
+				for (j = 0; j < 4; ++j) {
+					((ARCH_WORD_32*)out)[(i<<2)+j] = a[(j<<2)+offx];
+				}
+			} else if (cnt < loops[i])
+				bMore = 1;
+		}
+		cp += 64;
+		++cnt;
+	}
+}
+static void DoMD4_crypt_sse(void *in, int ilen[MD4_LOOPS], void *out[MD4_LOOPS], unsigned int *tot_len, int tid) {
+	ALIGN(16) ARCH_WORD_32 a[(16*MD4_LOOPS)/sizeof(ARCH_WORD_32)];
+	union yy { unsigned char u[16]; ARCH_WORD_32 a[16/sizeof(ARCH_WORD_32)]; } y;
+	unsigned int i, j, loops[MD4_LOOPS], bMore, cnt;
+	unsigned char *cp = (unsigned char*)in;
+	for (i = 0; i < MD4_LOOPS; ++i) {
+		loops[i] = DoMD4_FixBufferLen32(cp, ilen[i]);
+		cp += 256;
+	}
+	cp = (unsigned char*)in;
+	bMore = 1;
+	cnt = 1;
+	while (bMore) {
+		SSEmd4body(cp, a, a, SSEi_FLAT_IN|SSEi_4BUF_INPUT_FIRST_BLK|(cnt==1?0:SSEi_RELOAD));
+		bMore = 0;
+		for (i = 0; i < MD4_LOOPS; ++i) {
+			if (cnt == loops[i]) {
+				unsigned int offx = ((i>>2)*16)+(i&3);
+				for (j = 0; j < 4; ++j) {
+					y.a[j] = a[(j<<2)+offx];
+				}
+				*(tot_len+i) += large_hash_output(y.u, &(((unsigned char*)out[i])[*(tot_len+i)]), 16, tid);
+			} else if (cnt < loops[i])
+				bMore = 1;
+		}
+		cp += 64;
+		++cnt;
+	}
+}
+#else
+
+#define MD4_LOOPS 1
+static const int MD4_inc = 1;
+
+static void DoMD4_crypt_f(void *in, int len, void *out) {
+	MD4_CTX ctx;
+	MD4_Init(&ctx);
+	MD4_Update(&ctx, in, len);
+	MD4_Final(out, &ctx);
+}
+static void DoMD4_crypt(void *in, int ilen, void *out, unsigned int *tot_len, int tid) {
+	union xx { unsigned char u[16]; ARCH_WORD_32 a[16/sizeof(ARCH_WORD)]; } u;
+	unsigned char *crypt_out=u.u;
+	MD4_CTX ctx;
+	MD4_Init(&ctx);
+	MD4_Update(&ctx, in, ilen);
+	MD4_Final(crypt_out, &ctx);
+	*tot_len += large_hash_output(crypt_out, &(((unsigned char*)out)[*tot_len]), 16, tid);
+}
+#endif
+
+void DynamicFunc__MD4_crypt_input1_append_input2(DYNA_OMP_PARAMS) {
+	int i, til;
+
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	int tid=0;
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; i += MD4_inc) {
+#ifdef MD4_SSE_PARA
+		int len[MD4_LOOPS], j;
+		void *out[MD4_LOOPS];
+		for (j = 0; j < MD4_LOOPS; ++j) {
+			len[j] = total_len_X86[i+j];
+			#if (MD5_X2)
+			if (j&1)
+				out[j] = input_buf2_X86[(i+j)>>MD5_X2].x2.b2;
+			else
+			#endif
+				out[j] = input_buf2_X86[(i+j)>>MD5_X2].x1.b;
+		}
+		DoMD4_crypt_sse(input_buf_X86[i>>MD5_X2].x1.b, len, out, &(total_len2_X86[i]), tid);
+#else
+		#if (MD5_X2)
+		if (i & 1)
+			DoMD4_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &(total_len2_X86[i]), tid);
+		else
+		#endif
+		DoMD4_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &(total_len2_X86[i]), tid);
+#endif
+	}
+}
+void DynamicFunc__MD4_crypt_input2_append_input1(DYNA_OMP_PARAMS) {
+	int i, til;
+
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	int tid=0;
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; i += MD4_inc) {
+#ifdef MD4_SSE_PARA
+		int len[MD4_LOOPS], j;
+		void *out[MD4_LOOPS];
+		for (j = 0; j < MD4_LOOPS; ++j) {
+			len[j] = total_len2_X86[i+j];
+			#if (MD5_X2)
+			if (j&1)
+				out[j] = input_buf_X86[(i+j)>>MD5_X2].x2.b2;
+			else
+			#endif
+				out[j] = input_buf_X86[(i+j)>>MD5_X2].x1.b;
+		}
+		DoMD4_crypt_sse(input_buf2_X86[i>>MD5_X2].x1.b, len, out, &(total_len_X86[i]), tid);
+#else
+		#if (MD5_X2)
+		if (i & 1)
+			DoMD4_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &(total_len_X86[i]), tid);
+		else
+		#endif
+		DoMD4_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &(total_len_X86[i]), tid);
+#endif
+	}
+}
+void DynamicFunc__MD4_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS){
+	int i, til;
+
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	int tid=0;
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; i += MD4_inc) {
+#ifdef MD4_SSE_PARA
+		int len[MD4_LOOPS], j;
+		unsigned int x[MD4_LOOPS];
+		void *out[MD4_LOOPS];
+		for (j = 0; j < MD4_LOOPS; ++j) {
+			len[j] = total_len_X86[i+j];
+			#if (MD5_X2)
+			if (j&1)
+				out[j] = input_buf_X86[(i+j)>>MD5_X2].x2.b2;
+			else
+			#endif
+				out[j] = input_buf_X86[(i+j)>>MD5_X2].x1.b;
+			x[j] = 0;
+		}
+		DoMD4_crypt_sse(input_buf_X86[i>>MD5_X2].x1.b, len, out, x, tid);
+		for (j = 0; j < MD4_LOOPS; ++j)
+			total_len_X86[i+j] = x[j];
+#else
+		unsigned int x = 0;
+		#if (MD5_X2)
+		if (i & 1)
+			DoMD4_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoMD4_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+		total_len_X86[i] = x;
+#endif
+	}
+}
+void DynamicFunc__MD4_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS){
+	int i, til;
+
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	int tid=0;
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; i += MD4_inc) {
+#ifdef MD4_SSE_PARA
+		int len[MD4_LOOPS], j;
+		unsigned int x[MD4_LOOPS];
+		void *out[MD4_LOOPS];
+		for (j = 0; j < MD4_LOOPS; ++j) {
+			len[j] = total_len_X86[i+j];
+			#if (MD5_X2)
+			if (j&1)
+				out[j] = input_buf2_X86[(i+j)>>MD5_X2].x2.b2;
+			else
+			#endif
+				out[j] = input_buf2_X86[(i+j)>>MD5_X2].x1.b;
+			x[j] = 0;
+		}
+		DoMD4_crypt_sse(input_buf_X86[i>>MD5_X2].x1.b, len, out, x, tid);
+		for (j = 0; j < MD4_LOOPS; ++j)
+			total_len2_X86[i+j] = x[j];
+#else
+		unsigned int x = 0;
+		#if (MD5_X2)
+		if (i & 1)
+			DoMD4_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoMD4_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
+		total_len2_X86[i] = x;
+#endif
+	}
+}
+void DynamicFunc__MD4_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS){
+	int i, til;
+
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	int tid=0;
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; i += MD4_inc) {
+#ifdef MD4_SSE_PARA
+		int len[MD4_LOOPS], j;
+		unsigned int x[MD4_LOOPS];
+		void *out[MD4_LOOPS];
+		for (j = 0; j < MD4_LOOPS; ++j) {
+			len[j] = total_len2_X86[i+j];
+			#if (MD5_X2)
+			if (j&1)
+				out[j] = input_buf_X86[(i+j)>>MD5_X2].x2.b2;
+			else
+			#endif
+				out[j] = input_buf_X86[(i+j)>>MD5_X2].x1.b;
+			x[j] = 0;
+		}
+		DoMD4_crypt_sse(input_buf2_X86[i>>MD5_X2].x1.b, len, out, x, tid);
+		for (j = 0; j < MD4_LOOPS; ++j)
+			total_len_X86[i+j] = x[j];
+#else
+		unsigned int x = 0;
+		#if (MD5_X2)
+		if (i & 1)
+			DoMD4_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoMD4_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+		total_len_X86[i] = x;
+#endif
+	}
+}
+void DynamicFunc__MD4_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS){
+	int i, til;
+
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	int tid=0;
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; i += MD4_inc) {
+#ifdef MD4_SSE_PARA
+		int len[MD4_LOOPS], j;
+		unsigned int x[MD4_LOOPS];
+		void *out[MD4_LOOPS];
+		for (j = 0; j < MD4_LOOPS; ++j) {
+			len[j] = total_len2_X86[i+j];
+			#if (MD5_X2)
+			if (j&1)
+				out[j] = input_buf2_X86[(i+j)>>MD5_X2].x2.b2;
+			else
+			#endif
+				out[j] = input_buf2_X86[(i+j)>>MD5_X2].x1.b;
+			x[j] = 0;
+		}
+		DoMD4_crypt_sse(input_buf2_X86[i>>MD5_X2].x1.b, len, out, x, tid);
+		for (j = 0; j < MD4_LOOPS; ++j)
+			total_len2_X86[i+j] = x[j];
+#else
+		unsigned int x = 0;
+		#if (MD5_X2)
+		if (i & 1)
+			DoMD4_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoMD4_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
+		total_len2_X86[i] = x;
+#endif
+	}
+}
+void DynamicFunc__MD4_crypt_input1_to_output1_FINAL(DYNA_OMP_PARAMS){
+	int i, til;
+
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; i += MD4_inc) {
+#ifdef MD4_SSE_PARA
+	int len[MD4_LOOPS], j;
+	for (j = 0; j < MD4_LOOPS; ++j)
+		len[j] = total_len_X86[i+j];
+	DoMD4_crypt_f_sse(input_buf_X86[i>>MD5_X2].x1.b, len, crypt_key_X86[i>>MD5_X2].x1.b);
+#else
+	#if (MD5_X2)
+		if (i & 1)
+			DoMD4_crypt_f(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], crypt_key_X86[i>>MD5_X2].x2.b2);
+		else
+	#endif
+		DoMD4_crypt_f(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], crypt_key_X86[i>>MD5_X2].x1.b);
+#endif
+	}
+}
+void DynamicFunc__MD4_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS){
+	int i, til;
+
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; i += MD4_inc) {
+#ifdef MD4_SSE_PARA
+	int len[MD4_LOOPS], j;
+	for (j = 0; j < MD4_LOOPS; ++j)
+		len[j] = total_len2_X86[i+j];
+	DoMD4_crypt_f_sse(input_buf2_X86[i>>MD5_X2].x1.b, len, crypt_key_X86[i>>MD5_X2].x1.b);
+#else
+	#if (MD5_X2)
+		if (i & 1)
+			DoMD4_crypt_f(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], crypt_key_X86[i>>MD5_X2].x2.b2);
+		else
+	#endif
+		DoMD4_crypt_f(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], crypt_key_X86[i>>MD5_X2].x1.b);
+#endif
+	}
 }
 
 /********************************************************************

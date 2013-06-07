@@ -529,7 +529,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	for (i = 0; i < BLOCK_LOOPS; i++)
 		SSEmd4body(&saved_key[i*NBKEYS*64], (unsigned int*)&crypt_key[i*NBKEYS*DIGEST_SIZE], 1);
 #else
-	SSEmd4body(saved_key, (unsigned int*)crypt_key, 1);
+	SSEmd4body(saved_key, (ARCH_WORD_32*)crypt_key, NULL, SSEi_MIXED_IN);
 #endif
 #elif defined(MMX_COEF)
 	mdfourmmx(crypt_key, saved_key, total_len);

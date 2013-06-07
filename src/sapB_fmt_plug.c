@@ -28,7 +28,7 @@
 
 #ifdef MD5_SSE_PARA
 #define NBKEYS				(MMX_COEF * MD5_SSE_PARA)
-#define DO_MMX_MD5(in, out)		SSEmd5body(in, (unsigned int*)out, 1)
+#define DO_MMX_MD5(in, out)		SSEmd5body(in, (unsigned int*)out, NULL, SSEi_MIXED_IN)
 #elif defined(MMX_COEF)
 #define NBKEYS				MMX_COEF
 #define DO_MMX_MD5(in, out)		mdfivemmx_nosizeupdate(out, (unsigned char*)in, 1)

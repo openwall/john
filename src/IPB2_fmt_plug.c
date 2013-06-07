@@ -340,7 +340,7 @@ key_cleaning:
 		}
 
 #ifdef MD5_SSE_PARA
-		SSEmd5body(&key_buf[t*NBKEYS*64], (unsigned int*)&crypt_key[t*NBKEYS*16], 1);
+		SSEmd5body(&key_buf[t*NBKEYS*64], (unsigned int*)&crypt_key[t*NBKEYS*16], NULL, SSEi_MIXED_IN);
 #else
 		mdfivemmx_nosizeupdate(crypt_key, key_buf, 0);
 #endif
@@ -354,8 +354,8 @@ key_cleaning:
 		}
 
 #ifdef MD5_SSE_PARA
-		SSEmd5body(&saved_key[t*NBKEYS*64], (unsigned int*)&crypt_key[t*NBKEYS*16], 1);
-		SSEmd5body(empty_key, (unsigned int*)&crypt_key[t*NBKEYS*16], 0);
+		SSEmd5body(&saved_key[t*NBKEYS*64], (unsigned int*)&crypt_key[t*NBKEYS*16], NULL, SSEi_MIXED_IN);
+		SSEmd5body(empty_key, (unsigned int*)&crypt_key[t*NBKEYS*16], (unsigned int*)&crypt_key[t*NBKEYS*16], SSEi_RELOAD|SSEi_MIXED_IN);
 #else
 		mdfivemmx_nosizeupdate(crypt_key, saved_key, 0);
 		mdfivemmx_noinit_nosizeupdate(crypt_key, empty_key, 0);

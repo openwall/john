@@ -34,7 +34,7 @@
 #ifdef MD4_SSE_PARA
 #  define MMX_COEF				4
 #  define NBKEYS				(MMX_COEF * MD4_SSE_PARA)
-#  define DO_MMX_MD4(in,out,n)	SSEmd4body(in, (unsigned int*)out, 1)
+#  define DO_MMX_MD4(in,out,n)	SSEmd4body(in, (unsigned int*)out, NULL, SSEi_MIXED_IN)
 #elif MMX_COEF
 #  define NBKEYS				MMX_COEF
 #  define DO_MMX_MD4(in,out,n)	mdfourmmx(out, in, n)
@@ -304,7 +304,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	for (index = 0; index < count; ++index)
 	{
 #if MMX_COEF
-		DO_MMX_MD4(saved_key[index], crypt_key[index], total_len[index]);
+		DO_MMX_MD4(saved_key[index], crypt_key[index], total_len[index]); 
 #else
 		MD4_CTX ctx;
 		MD4_Init(&ctx);

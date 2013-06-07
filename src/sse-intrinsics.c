@@ -215,8 +215,9 @@ _inline __m128i _mm_set1_epi64x(long long a)
 	MD5_PARA_DO(i) a[i] = _mm_roti16_epi32( a[i], (s) ); \
 	MD5_PARA_DO(i) a[i] = _mm_add_epi32( a[i], b[i] );
 
-void SSEmd5body(__m128i* data, unsigned int * out, int init)
+void SSEmd5body(__m128i* _data, unsigned int * out, ARCH_WORD_32 *reload_state, unsigned SSEi_flags)
 {
+	__m128i w[16*MD5_SSE_PARA];
 	__m128i a[MD5_SSE_PARA];
 	__m128i b[MD5_SSE_PARA];
 	__m128i c[MD5_SSE_PARA];
@@ -224,10 +225,62 @@ void SSEmd5body(__m128i* data, unsigned int * out, int init)
 	__m128i tmp[MD5_SSE_PARA];
 	__m128i mask;
 	unsigned int i;
+	__m128i *data;
 
 	mask = _mm_set1_epi32(0Xffffffff);
 
-	if(init)
+	if(SSEi_flags & SSEi_FLAT_IN) {
+		// Move _data to __data, mixing it MMX_COEF wise.
+#ifdef __SSE4_1__
+		unsigned k;
+		__m128i *W = w;
+		ARCH_WORD_32 *saved_key = (ARCH_WORD_32 *)_data;
+		MD5_PARA_DO(k)
+		{
+			if (SSEi_flags & SSEi_4BUF_INPUT) {
+				for (i=0; i < 16; ++i) { GATHER_4x (W[i], saved_key, i); }
+				saved_key += (MMX_COEF<<6);
+			} else if (SSEi_flags & SSEi_2BUF_INPUT) {
+				for (i=0; i < 16; ++i) { GATHER_2x (W[i], saved_key, i); }
+				saved_key += (MMX_COEF<<5);
+			} else {
+				for (i=0; i < 16; ++i) { GATHER (W[i], saved_key, i); }
+				saved_key += (MMX_COEF<<4);
+			}
+			W += 16;
+		}
+#else
+		unsigned j, k;
+		ARCH_WORD_32 *p = (ARCH_WORD_32 *)w;
+		__m128i *W = w;
+		ARCH_WORD_32 *saved_key = (ARCH_WORD_32 *)_data;
+		MD5_PARA_DO(k)
+		{
+			if (SSEi_flags & SSEi_4BUF_INPUT) {
+				for (j=0; j < 16; j++)
+					for (i=0; i < MMX_COEF; i++)
+						*p++ = saved_key[(i<<6)+j];
+				saved_key += (MMX_COEF<<6);
+			} else if (SSEi_flags & SSEi_2BUF_INPUT) {
+				for (j=0; j < 16; j++)
+					for (i=0; i < MMX_COEF; i++)
+						*p++ = saved_key[(i<<5)+j];
+				saved_key += (MMX_COEF<<5);
+			} else {
+				for (j=0; j < 16; j++)
+					for (i=0; i < MMX_COEF; i++)
+						*p++ = saved_key[(i<<4)+j];
+				saved_key += (MMX_COEF<<4);
+			}
+			W += 16;
+		}
+#endif
+		// now set our data pointer to point to this 'mixed' data.
+		data = w;
+	} else
+		data = _data;
+
+	if((SSEi_flags & SSEi_RELOAD)==0)
 	{
 		MD5_PARA_DO(i)
 		{
@@ -239,12 +292,25 @@ void SSEmd5body(__m128i* data, unsigned int * out, int init)
 	}
 	else
 	{
-		MD5_PARA_DO(i)
+		if ((SSEi_flags & SSEi_RELOAD_INP_FMT)==SSEi_RELOAD_INP_FMT)
 		{
-			a[i] = _mm_load_si128((__m128i *)&out[i*16+0]);
-			b[i] = _mm_load_si128((__m128i *)&out[i*16+4]);
-			c[i] = _mm_load_si128((__m128i *)&out[i*16+8]);
-			d[i] = _mm_load_si128((__m128i *)&out[i*16+12]);
+			MD5_PARA_DO(i)
+			{
+				a[i] = _mm_load_si128((__m128i *)&reload_state[i*16*4+0]);
+				b[i] = _mm_load_si128((__m128i *)&reload_state[i*16*4+4]);
+				c[i] = _mm_load_si128((__m128i *)&reload_state[i*16*4+8]);
+				d[i] = _mm_load_si128((__m128i *)&reload_state[i*16*4+12]);
+			}
+		}
+		else
+		{
+			MD5_PARA_DO(i)
+			{
+				a[i] = _mm_load_si128((__m128i *)&reload_state[i*16+0]);
+				b[i] = _mm_load_si128((__m128i *)&reload_state[i*16+4]);
+				c[i] = _mm_load_si128((__m128i *)&reload_state[i*16+8]);
+				d[i] = _mm_load_si128((__m128i *)&reload_state[i*16+12]);
+			}
 		}
 	}
 
@@ -320,25 +386,53 @@ void SSEmd5body(__m128i* data, unsigned int * out, int init)
 		MD5_STEP(MD5_I, c, d, a, b, 2, 0x2ad7d2bb, 15)
 		MD5_STEP(MD5_I, b, c, d, a, 9, 0xeb86d391, 21)
 
-	if (init) {
+	if((SSEi_flags & SSEi_RELOAD)==0)
+	{
 		MD5_PARA_DO(i)
 		{
 			a[i] = _mm_add_epi32(a[i], _mm_set1_epi32(0x67452301));
 			b[i] = _mm_add_epi32(b[i], _mm_set1_epi32(0xefcdab89));
 			c[i] = _mm_add_epi32(c[i], _mm_set1_epi32(0x98badcfe));
 			d[i] = _mm_add_epi32(d[i], _mm_set1_epi32(0x10325476));
-			_mm_store_si128((__m128i *)&out[i*16+0], a[i]);
-			_mm_store_si128((__m128i *)&out[i*16+4], b[i]);
-			_mm_store_si128((__m128i *)&out[i*16+8], c[i]);
-			_mm_store_si128((__m128i *)&out[i*16+12], d[i]);
 		}
-	} else {
+	}
+	else
+	{
+		if ((SSEi_flags & SSEi_RELOAD_INP_FMT)==SSEi_RELOAD_INP_FMT)
+		{
+			MD5_PARA_DO(i)
+			{
+				a[i] = _mm_add_epi32(a[i], _mm_load_si128((__m128i *)&reload_state[i*16*4+0]));
+				b[i] = _mm_add_epi32(b[i], _mm_load_si128((__m128i *)&reload_state[i*16*4+4]));
+				c[i] = _mm_add_epi32(c[i], _mm_load_si128((__m128i *)&reload_state[i*16*4+8]));
+				d[i] = _mm_add_epi32(d[i], _mm_load_si128((__m128i *)&reload_state[i*16*4+12]));
+			}
+		}
+		else
+		{
+			MD5_PARA_DO(i)
+			{
+				a[i] = _mm_add_epi32(a[i], _mm_load_si128((__m128i *)&reload_state[i*16+0]));
+				b[i] = _mm_add_epi32(b[i], _mm_load_si128((__m128i *)&reload_state[i*16+4]));
+				c[i] = _mm_add_epi32(c[i], _mm_load_si128((__m128i *)&reload_state[i*16+8]));
+				d[i] = _mm_add_epi32(d[i], _mm_load_si128((__m128i *)&reload_state[i*16+12]));
+			}
+		}
+	}
+	if (SSEi_flags & SSEi_OUTPUT_AS_INP_FMT)
+	{
 		MD5_PARA_DO(i)
 		{
-			a[i] = _mm_add_epi32(a[i], _mm_load_si128((__m128i *)&out[i*16+0]));
-			b[i] = _mm_add_epi32(b[i], _mm_load_si128((__m128i *)&out[i*16+4]));
-			c[i] = _mm_add_epi32(c[i], _mm_load_si128((__m128i *)&out[i*16+8]));
-			d[i] = _mm_add_epi32(d[i], _mm_load_si128((__m128i *)&out[i*16+12]));
+			_mm_store_si128((__m128i *)&out[i*16*4+0], a[i]);
+			_mm_store_si128((__m128i *)&out[i*16*4+4], b[i]);
+			_mm_store_si128((__m128i *)&out[i*16*4+8], c[i]);
+			_mm_store_si128((__m128i *)&out[i*16*4+12], d[i]);
+		}
+	}
+	else
+	{
+		MD5_PARA_DO(i)
+		{
 			_mm_store_si128((__m128i *)&out[i*16+0], a[i]);
 			_mm_store_si128((__m128i *)&out[i*16+4], b[i]);
 			_mm_store_si128((__m128i *)&out[i*16+8], c[i]);
@@ -473,7 +567,7 @@ static MAYBE_INLINE void dispatch(unsigned char buffers[8][64*MD5_SSE_NUM_KEYS],
 				mmxput3(buffers, bufferid, length, 2, saltlen, f);
 				break;
 		}
-		SSEmd5body((__m128i*)&buffers[bufferid], f, 1);
+		SSEmd5body((__m128i*)&buffers[bufferid], f, NULL, SSEi_MIXED_IN);
 		if (j++ < 1000 % 42 - 1)
 			continue;
 		if (j == 1000 % 42) {
@@ -603,8 +697,9 @@ void md5cryptsse(unsigned char pwd[MD5_SSE_NUM_KEYS][16], unsigned char * salt, 
 	MD4_PARA_DO(i) a[i] = _mm_add_epi32( a[i], data[i*16+x] ); \
 	MD4_PARA_DO(i) a[i] = _mm_roti_epi32( a[i], (s) );
 
-void SSEmd4body(__m128i* data, unsigned int * out, int init)
+void SSEmd4body(__m128i* _data, unsigned int * out, ARCH_WORD_32 *reload_state, unsigned SSEi_flags)
 {
+	__m128i w[16*MD4_SSE_PARA];
 	__m128i a[MD4_SSE_PARA];
 	__m128i b[MD4_SSE_PARA];
 	__m128i c[MD4_SSE_PARA];
@@ -613,8 +708,60 @@ void SSEmd4body(__m128i* data, unsigned int * out, int init)
 	__m128i tmp2[MD4_SSE_PARA];
 	__m128i	cst;
 	unsigned int i;
+	__m128i *data;
 
-	if(init)
+if(SSEi_flags & SSEi_FLAT_IN) {
+		// Move _data to __data, mixing it MMX_COEF wise.
+#ifdef __SSE4_1__
+		unsigned k;
+		__m128i *W = w;
+		ARCH_WORD_32 *saved_key = (ARCH_WORD_32 *)_data;
+		MD4_PARA_DO(k)
+		{
+			if (SSEi_flags & SSEi_4BUF_INPUT) {
+				for (i=0; i < 16; ++i) { GATHER_4x (W[i], saved_key, i); }
+				saved_key += (MMX_COEF<<6);
+			} else if (SSEi_flags & SSEi_2BUF_INPUT) {
+				for (i=0; i < 16; ++i) { GATHER_2x (W[i], saved_key, i); }
+				saved_key += (MMX_COEF<<5);
+			} else {
+				for (i=0; i < 16; ++i) { GATHER (W[i], saved_key, i); }
+				saved_key += (MMX_COEF<<4);
+			}
+			W += 16;
+		}
+#else
+		unsigned j, k;
+		ARCH_WORD_32 *p = (ARCH_WORD_32 *)w;
+		__m128i *W = w;
+		ARCH_WORD_32 *saved_key = (ARCH_WORD_32 *)_data;
+		MD4_PARA_DO(k)
+		{
+			if (SSEi_flags & SSEi_4BUF_INPUT) {
+				for (j=0; j < 16; j++)
+					for (i=0; i < MMX_COEF; i++)
+						*p++ = saved_key[(i<<6)+j];
+				saved_key += (MMX_COEF<<6);
+			} else if (SSEi_flags & SSEi_2BUF_INPUT) {
+				for (j=0; j < 16; j++)
+					for (i=0; i < MMX_COEF; i++)
+						*p++ = saved_key[(i<<5)+j];
+				saved_key += (MMX_COEF<<5);
+			} else {
+				for (j=0; j < 16; j++)
+					for (i=0; i < MMX_COEF; i++)
+						*p++ = saved_key[(i<<4)+j];
+				saved_key += (MMX_COEF<<4);
+			}
+			W += 16;
+		}
+#endif
+		// now set our data pointer to point to this 'mixed' data.
+		data = w;
+	} else
+		data = _data;
+
+	if((SSEi_flags & SSEi_RELOAD)==0)
 	{
 		MD4_PARA_DO(i)
 		{
@@ -626,14 +773,28 @@ void SSEmd4body(__m128i* data, unsigned int * out, int init)
 	}
 	else
 	{
-		MD4_PARA_DO(i)
+		if ((SSEi_flags & SSEi_RELOAD_INP_FMT)==SSEi_RELOAD_INP_FMT)
 		{
-			a[i] = _mm_load_si128((__m128i *)&out[i*16+0]);
-			b[i] = _mm_load_si128((__m128i *)&out[i*16+4]);
-			c[i] = _mm_load_si128((__m128i *)&out[i*16+8]);
-			d[i] = _mm_load_si128((__m128i *)&out[i*16+12]);
+			MD4_PARA_DO(i)
+			{
+				a[i] = _mm_load_si128((__m128i *)&reload_state[i*16*4+0]);
+				b[i] = _mm_load_si128((__m128i *)&reload_state[i*16*4+4]);
+				c[i] = _mm_load_si128((__m128i *)&reload_state[i*16*4+8]);
+				d[i] = _mm_load_si128((__m128i *)&reload_state[i*16*4+12]);
+			}
+		}
+		else
+		{
+			MD4_PARA_DO(i)
+			{
+				a[i] = _mm_load_si128((__m128i *)&reload_state[i*16+0]);
+				b[i] = _mm_load_si128((__m128i *)&reload_state[i*16+4]);
+				c[i] = _mm_load_si128((__m128i *)&reload_state[i*16+8]);
+				d[i] = _mm_load_si128((__m128i *)&reload_state[i*16+12]);
+			}
 		}
 	}
+
 
 /* Round 1 */
 		cst = _mm_set_epi32(0,0,0,0);
@@ -692,25 +853,54 @@ void SSEmd4body(__m128i* data, unsigned int * out, int init)
 		MD4_STEP(MD4_H, c, d, a, b, 7, cst, 11)
 		MD4_STEP(MD4_H, b, c, d, a, 15, cst, 15)
 
-	if (init) {
+
+	if((SSEi_flags & SSEi_RELOAD)==0)
+	{
 		MD4_PARA_DO(i)
 		{
 			a[i] = _mm_add_epi32(a[i], _mm_set1_epi32(0x67452301));
 			b[i] = _mm_add_epi32(b[i], _mm_set1_epi32(0xefcdab89));
 			c[i] = _mm_add_epi32(c[i], _mm_set1_epi32(0x98badcfe));
 			d[i] = _mm_add_epi32(d[i], _mm_set1_epi32(0x10325476));
-			_mm_store_si128((__m128i *)&out[i*16+0], a[i]);
-			_mm_store_si128((__m128i *)&out[i*16+4], b[i]);
-			_mm_store_si128((__m128i *)&out[i*16+8], c[i]);
-			_mm_store_si128((__m128i *)&out[i*16+12], d[i]);
 		}
-	} else {
+	}
+	else
+	{
+		if ((SSEi_flags & SSEi_RELOAD_INP_FMT)==SSEi_RELOAD_INP_FMT)
+		{
+			MD4_PARA_DO(i)
+			{
+				a[i] = _mm_add_epi32(a[i], _mm_load_si128((__m128i *)&reload_state[i*16*4+0]));
+				b[i] = _mm_add_epi32(b[i], _mm_load_si128((__m128i *)&reload_state[i*16*4+4]));
+				c[i] = _mm_add_epi32(c[i], _mm_load_si128((__m128i *)&reload_state[i*16*4+8]));
+				d[i] = _mm_add_epi32(d[i], _mm_load_si128((__m128i *)&reload_state[i*16*4+12]));
+			}
+		}
+		else
+		{
+			MD4_PARA_DO(i)
+			{
+				a[i] = _mm_add_epi32(a[i], _mm_load_si128((__m128i *)&reload_state[i*16+0]));
+				b[i] = _mm_add_epi32(b[i], _mm_load_si128((__m128i *)&reload_state[i*16+4]));
+				c[i] = _mm_add_epi32(c[i], _mm_load_si128((__m128i *)&reload_state[i*16+8]));
+				d[i] = _mm_add_epi32(d[i], _mm_load_si128((__m128i *)&reload_state[i*16+12]));
+			}
+		}
+	}
+	if (SSEi_flags & SSEi_OUTPUT_AS_INP_FMT)
+	{
 		MD4_PARA_DO(i)
 		{
-			a[i] = _mm_add_epi32(a[i], _mm_load_si128((__m128i *)&out[i*16+0]));
-			b[i] = _mm_add_epi32(b[i], _mm_load_si128((__m128i *)&out[i*16+4]));
-			c[i] = _mm_add_epi32(c[i], _mm_load_si128((__m128i *)&out[i*16+8]));
-			d[i] = _mm_add_epi32(d[i], _mm_load_si128((__m128i *)&out[i*16+12]));
+			_mm_store_si128((__m128i *)&out[i*16*4+0], a[i]);
+			_mm_store_si128((__m128i *)&out[i*16*4+4], b[i]);
+			_mm_store_si128((__m128i *)&out[i*16*4+8], c[i]);
+			_mm_store_si128((__m128i *)&out[i*16*4+12], d[i]);
+		}
+	}
+	else
+	{
+		MD4_PARA_DO(i)
+		{
 			_mm_store_si128((__m128i *)&out[i*16+0], a[i]);
 			_mm_store_si128((__m128i *)&out[i*16+4], b[i]);
 			_mm_store_si128((__m128i *)&out[i*16+8], c[i]);

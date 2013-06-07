@@ -28,7 +28,7 @@
 
 #ifdef MD5_SSE_PARA
 void md5cryptsse(unsigned char * buf, unsigned char * salt, char * out, int md5_type);
-void SSEmd5body(__m128i* data, unsigned int * out, int init);
+void SSEmd5body(__m128i* data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, unsigned SSEi_flags);
 #define MD5_SSE_type			SSE_type
 #define MD5_ALGORITHM_NAME		"128/128 " MD5_SSE_type " " MD5_N_STR
 #elif defined(MMX_COEF) && MMX_COEF == 4
@@ -46,7 +46,8 @@ void SSEmd5body(__m128i* data, unsigned int * out, int init);
 #endif
 
 #ifdef MD4_SSE_PARA
-void SSEmd4body(__m128i* data, unsigned int * out, int init);
+//void SSEmd4body(__m128i* data, unsigned int * out, int init);
+void SSEmd4body(__m128i* data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, unsigned SSEi_flags);
 #define MD4_SSE_type			SSE_type
 #define MD4_ALGORITHM_NAME		"128/128 " MD4_SSE_type " " MD4_N_STR
 #elif defined(MMX_COEF) && MMX_COEF == 4

@@ -482,9 +482,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #pragma omp parallel for
 #endif
 	for (i = 0; i < BLOCK_LOOPS; i++)
-		SSEmd5body(&saved_key[i*NBKEYS*64], (unsigned int*)&crypt_key[i*NBKEYS*BINARY_SIZE], 1);
+		SSEmd5body(&saved_key[i*NBKEYS*64], (unsigned int*)&crypt_key[i*NBKEYS*BINARY_SIZE], NULL, SSEi_MIXED_IN);
 #else
-	SSEmd5body(saved_key, (unsigned int*)crypt_key, 1);
+	SSEmd5body(saved_key, (unsigned int*)crypt_key, NULL, SSEi_MIXED_IN);
 #endif
 #elif defined(MMX_COEF)
 	mdfivemmx_nosizeupdate(crypt_key, saved_key, 1);

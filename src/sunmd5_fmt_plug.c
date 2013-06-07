@@ -688,7 +688,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				po[COEF+COEF+COEF] = pi[3];
 			}
 #ifdef MD5_SSE_PARA
-			SSEmd5body(input_buf, (unsigned int *)out_buf, 1);
+			SSEmd5body(input_buf, (unsigned int *)out_buf, NULL, SSEi_MIXED_IN);
 #else
 			mdfivemmx_nosizeupdate(out_buf, input_buf, 1);
 #endif
@@ -790,9 +790,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				po[COEF+COEF+COEF] = pi[3];
 			}
 #ifdef MD5_SSE_PARA
-			SSEmd5body(input_buf_big[0], (unsigned int *)out_buf, 1);
+			SSEmd5body(input_buf_big[0], (unsigned int *)out_buf, NULL, SSEi_MIXED_IN);
 			for (j = 1; j < 25; ++j)
-				SSEmd5body(input_buf_big[j], (unsigned int *)out_buf, 0);
+				SSEmd5body(input_buf_big[j], (unsigned int *)out_buf, (unsigned int *)out_buf, SSEi_RELOAD|SSEi_MIXED_IN);
 #else
 			mdfivemmx_nosizeupdate(out_buf, input_buf_big[0], 1);
 			for (j = 1; j < 25; ++j)
