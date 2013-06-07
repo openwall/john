@@ -1503,7 +1503,7 @@ static void crypt_all(int count)
 			if (curdat.using_flat_buffers_sse2_ok) {
 				if (curdat.store_keys_normal_but_precompute_md5_to_output2_base16_to_input1) {
 #ifdef _OPENMP
-					DynamicFunc__MD5_crypt_input2_overwrite_input1(0,count,0);
+					DynamicFunc__MD5_crypt_input2_overwrite_input1(0,m_count,0);
 #else
 					DynamicFunc__MD5_crypt_input2_overwrite_input1();
 #endif
@@ -1512,7 +1512,7 @@ static void crypt_all(int count)
 					for (i = 0; i < m_count; ++i)
 						total_len_X86[i] = 32;
 #ifdef _OPENMP
-					DynamicFunc__MD5_crypt_input2_append_input1(0,count,0);
+					DynamicFunc__MD5_crypt_input2_append_input1(0,m_count,0);
 #else
 					DynamicFunc__MD5_crypt_input2_append_input1();
 #endif
@@ -4374,9 +4374,9 @@ unsigned i, til;
 // we do provide a NOOP function. This will not kill jtr, BUT output that this function has been REMOVED
 // but it DOES NOT shutdown john.
 void DynamicFunc__FreeBSDMD5Crypt(DYNA_OMP_PARAMS) {
-	static int first=1;
-	if (first) {
-		first = 0;
+	static int bFirst=1;
+	if (bFirst) {
+		bFirst = 0;
 		fprintf(stderr, "\nERROR, DynamicFunc__FreeBSDMD5Crypt() dynamic primative is no longer supported.\nThis format is invalid and will not process\n");
 	}
 }
