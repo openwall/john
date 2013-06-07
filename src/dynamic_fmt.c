@@ -6765,9 +6765,11 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 	pFmt->params.benchmark_length = 0;		// NOTE 0 'assumes' salted. If unsalted, we set back to -1
 	pFmt->params.salt_size = 0;
 	pFmt->params.min_keys_per_crypt = 1;
+	curdat.using_flat_buffers_sse2_ok = 0;	// used to distingish MGF_NOTSSE2Safe from MGF_FLAT_BUFFERS
+	if ((Setup->flags & MGF_FLAT_BUFFERS) == MGF_FLAT_BUFFERS)
+		curdat.using_flat_buffers_sse2_ok = 1;
 #ifdef MMX_COEF
 	curdat.dynamic_use_sse = 1;  // if 1, then we are in SSE2 mode (but can switch out)
-	curdat.using_flat_buffers_sse2_ok = 0;	// used to distingish MGF_NOTSSE2Safe from MGF_FLAT_BUFFERS
 	if ((Setup->flags & MGF_NOTSSE2Safe) == MGF_NOTSSE2Safe) {
 		curdat.dynamic_use_sse = 0;  // Do not use SSE code at all.
 	} else if ((Setup->flags & MGF_FLAT_BUFFERS) == MGF_FLAT_BUFFERS) {
