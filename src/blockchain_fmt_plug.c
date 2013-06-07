@@ -125,16 +125,17 @@ static int blockchain_decrypt(unsigned char *derived_key, unsigned char *data)
 {
 	unsigned char out[SAFETY_FACTOR];
 	AES_KEY akey;
-	unsigned char iv[16] = { 0 };
+	unsigned char iv[16];
+	memcpy(iv, cur_salt->data, 16);
 
 	if(AES_set_decrypt_key(derived_key, 256, &akey) < 0) {
 		fprintf(stderr, "AES_set_decrypt_key failed in crypt!\n");
 	}
-	AES_cbc_encrypt(data, out, SAFETY_FACTOR, &akey, iv, AES_DECRYPT);
+	AES_cbc_encrypt(data + 16, out, SAFETY_FACTOR, &akey, iv, AES_DECRYPT);
 
 	/* various tests */
-	/* if (!jtr_memmem(out, SAFETY_FACTOR, "{", 1)) // fast test
-		return -1; */
+	if (out[0] != '{') // fast test
+		return -1;
 	if (jtr_memmem(out, SAFETY_FACTOR, "\"guid\"", 6))
 		return 0;
 	if (jtr_memmem(out, SAFETY_FACTOR, "sharedKey", 9))
