@@ -122,7 +122,7 @@ _inline __m128i _mm_set1_epi64x(long long a)
 
 #ifdef __SSSE3__
 
-#ifndef #ifdef __XOP__
+#ifndef __XOP__
   #define rot16_mask				\
 	_mm_set_epi32(0x0d0c0f0e, 0x09080b0a, 0x05040706, 0x01000302)
 
