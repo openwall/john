@@ -121,11 +121,14 @@ _inline __m128i _mm_set1_epi64x(long long a)
 #endif
 
 #ifdef __SSSE3__
+
+#ifndef #ifdef __XOP__
   #define rot16_mask				\
 	_mm_set_epi32(0x0d0c0f0e, 0x09080b0a, 0x05040706, 0x01000302)
 
   #define _mm_roti16_epi32(a,s)	\
 	(_mm_shuffle_epi8((a), rot16_mask))
+#endif
 
   #define swap_endian_mask		\
 	_mm_set_epi32(0x0c0d0e0f, 0x08090a0b, 0x04050607, 0x00010203)
