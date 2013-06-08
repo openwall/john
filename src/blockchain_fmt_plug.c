@@ -51,7 +51,7 @@
 #define BIG_ENOUGH 		(8192 * 32)
 
 // increase me (in multiples of 16) to increase the decrypted and search area
-#define SAFETY_FACTOR 		64
+#define SAFETY_FACTOR 		16
 
 static struct fmt_tests agile_keychain_tests[] = {
 	{"$blockchain$400$53741f25a90ef521c90bb2fd73673e64089ff2cca6ba3cbf6f34e0f80f960b2f60b9ac48df009dc30c288dcf1ade5f16c70a3536403fc11a68f242ba5ad3fcceae3ca5ecd23905997474260aa1357fc322b1434ffa026ba6ad33707c9ad5260e7230b87d8888a45ddc27513adb30af8755ec0737963ae6bb281318c48f224e9c748f6697f75f63f718bebb3401d6d5f02cf62b1701c205762c2f43119b68771ed10ddab79b5f74f56d611f61f77b8b65b5b5669756017429633118b8e5b8b638667e44154de4cc76468c4200eeebda2711a65333a7e3c423c8241e219cdca5ac47c0d4479444241fa27da20dba1a1d81e778a037d40d33ddea7c39e6d02461d97185f66a73deedff39bc53af0e9b04a3d7bf43648303c9f652d99630cd0789819376d68443c85f0eeb7af7c83eecddf25ea912f7721e3fb73ccaedf860f0f033ffc990ed73db441220d0cbe6e029676fef264dc2dc497f39bedf4041ba355d086134744d5a36e09515d230cd499eb20e0c574fb1bd9d994ce26f53f21d06dd58db4f8e0efbcaee7038df793bbb3daa96", "strongpassword"},
@@ -132,12 +132,16 @@ static int blockchain_decrypt(unsigned char *derived_key, unsigned char *data)
 		fprintf(stderr, "AES_set_decrypt_key failed in crypt!\n");
 	}
 	AES_cbc_encrypt(data + 16, out, SAFETY_FACTOR, &akey, iv, AES_DECRYPT);
-
 	/* various tests */
 	if (out[0] != '{') // fast test
 		return -1;
+
+	/* XXX we are assuming that "guid" will be found in the first block
+	 * itself (when SAFETY_FACTOR is 16).
+	 */
 	if (jtr_memmem(out, SAFETY_FACTOR, "\"guid\"", 6))
 		return 0;
+
 	if (jtr_memmem(out, SAFETY_FACTOR, "sharedKey", 9))
 		return 0;
 
