@@ -15,6 +15,7 @@
 #include <ctype.h>
 #include <string.h>
 #include <sys/time.h>
+#include "md4.h"
 #include "unicode.h"
 #include "common_opencl_pbkdf2.h"
 #include "loader.h"
@@ -36,7 +37,7 @@
 #define BENCHMARK_COMMENT	   ""
 #define BENCHMARK_LENGTH	  -1
 #define MSCASH2_PREFIX            "$DCC2$"
-#define MAX_PLAINTEXT_LENGTH      31
+#define MAX_PLAINTEXT_LENGTH      125
 #define MAX_CIPHERTEXT_LENGTH     7 +7 + MAX_SALT_LENGTH + 32
 
 #define BINARY_SIZE               4
@@ -67,6 +68,8 @@ static struct fmt_tests tests[] = {
 	{"$DCC2$10240#eighteencharacters#fc5df74eca97afd7cd5abb0032496223", "w00t" },
 	{"$DCC2$john-the-ripper#495c800a038d11e55fafc001eb689d1d", "batman#$@#1991" },
 	{"$DCC2$#59137848828d14b1fca295a5032b52a1", "a" },                                   //Empty Salt
+	// 125 character password, with MAX length salt
+	{"$DCC2$10240#nineteen_characters#cda4cef92db4398ce648a8fed8dc6853", "12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"},
 	{NULL}
 } ;
 
@@ -78,81 +81,6 @@ static ms_cash2_salt 	currentsalt ;
 extern int mscash2_valid(char *, int,  const char *, struct fmt_main *);
 extern char * mscash2_prepare(char **, struct fmt_main *);
 extern char * mscash2_split(char *, int, struct fmt_main *);
-
-static void md4_crypt(unsigned int *buffer, unsigned int *hash) {
-	unsigned int 	a ;
-	unsigned int 	b ;
-	unsigned int 	c ;
-        unsigned int    d ;
-
-	// round 1
-	a = 0xFFFFFFFF  +  buffer[0]; a = (a << 3 ) | (a >> 29) ;
-	d = INIT_MD4_D + (INIT_MD4_C ^ (a & 0x77777777)) + buffer[1]; d = (d << 7 ) | (d >> 25) ;
-	c = INIT_MD4_C + (INIT_MD4_B ^ (d & (a ^ INIT_MD4_B))) + buffer[2]; c = (c << 11) | (c >> 21) ;
-	b = INIT_MD4_B + (a ^ (c & (d ^ a))) + buffer[3]; b = (b << 19) | (b >> 13) ;
-
-	a += (d ^ (b & (c ^ d)))  +  buffer[4];  a = (a << 3 ) | (a >> 29) ;
-	d += (c ^ (a & (b ^ c)))  +  buffer[5];  d = (d << 7 ) | (d >> 25) ;
-	c += (b ^ (d & (a ^ b)))  +  buffer[6];  c = (c << 11) | (c >> 21) ;
-	b += (a ^ (c & (d ^ a)))  +  buffer[7];  b = (b << 19) | (b >> 13) ;
-
-	a += (d ^ (b & (c ^ d)))  + buffer[8] ;  a = (a << 3 ) | (a >> 29) ;
-	d += (c ^ (a & (b ^ c)))  + buffer[9] ;  d = (d << 7 ) | (d >> 25) ;
-	c += (b ^ (d & (a ^ b)))  + buffer[10];  c = (c << 11) | (c >> 21) ;
-	b += (a ^ (c & (d ^ a)))  + buffer[11];  b = (b << 19) | (b >> 13) ;
-
-	a += (d ^ (b & (c ^ d)))  + buffer[12]; a = (a << 3 ) | (a >> 29) ;
-	d += (c ^ (a & (b ^ c)))  + buffer[13]; d = (d << 7 ) | (d >> 25) ;
-	c += (b ^ (d & (a ^ b)))  + buffer[14]; c = (c << 11) | (c >> 21) ;
-	b += (a ^ (c & (d ^ a)))  + buffer[15]; b = (b << 19) | (b >> 13) ;
-
-	// round 2
-	a += ((b & (c | d)) | (c & d)) + buffer[0]  + SQRT_2; a = (a<<3 ) | (a>>29) ;
-	d += ((a & (b | c)) | (b & c)) + buffer[4]  + SQRT_2; d = (d<<5 ) | (d>>27) ;
-	c += ((d & (a | b)) | (a & b)) + buffer[8]  + SQRT_2; c = (c<<9 ) | (c>>23) ;
-	b += ((c & (d | a)) | (d & a)) + buffer[12] + SQRT_2; b = (b<<13) | (b>>19) ;
-
-	a += ((b & (c | d)) | (c & d)) + buffer[1]  + SQRT_2; a = (a<<3 ) | (a>>29) ;
-	d += ((a & (b | c)) | (b & c)) + buffer[5]  + SQRT_2; d = (d<<5 ) | (d>>27) ;
-	c += ((d & (a | b)) | (a & b)) + buffer[9]  + SQRT_2; c = (c<<9 ) | (c>>23) ;
-	b += ((c & (d | a)) | (d & a)) + buffer[13] + SQRT_2; b = (b<<13) | (b>>19) ;
-
-	a += ((b & (c | d)) | (c & d)) + buffer[2]  + SQRT_2; a = (a<<3 ) | (a>>29) ;
-	d += ((a & (b | c)) | (b & c)) + buffer[6]  + SQRT_2; d = (d<<5 ) | (d>>27) ;
-	c += ((d & (a | b)) | (a & b)) + buffer[10] + SQRT_2; c = (c<<9 ) | (c>>23) ;
-	b += ((c & (d | a)) | (d & a)) + buffer[14] + SQRT_2; b = (b<<13) | (b>>19) ;
-
-	a += ((b & (c | d)) | (c & d)) + buffer[3]  + SQRT_2; a = (a<<3 ) | (a>>29) ;
-	d += ((a & (b | c)) | (b & c)) + buffer[7]  + SQRT_2; d = (d<<5 ) | (d>>27) ;
-	c += ((d & (a | b)) | (a & b)) + buffer[11] + SQRT_2; c = (c<<9 ) | (c>>23) ;
-	b += ((c & (d | a)) | (d & a)) + buffer[15] + SQRT_2; b = (b<<13) | (b>>19) ;
-
-	// round 3
-	a += (d ^ c ^ b) + buffer[0]  +  SQRT_3; a = (a << 3 ) | (a >> 29) ;
-	d += (c ^ b ^ a) + buffer[8]  +  SQRT_3; d = (d << 9 ) | (d >> 23) ;
-	c += (b ^ a ^ d) + buffer[4]  +  SQRT_3; c = (c << 11) | (c >> 21) ;
-	b += (a ^ d ^ c) + buffer[12] +  SQRT_3; b = (b << 15) | (b >> 17) ;
-
-	a += (d ^ c ^ b) + buffer[2]  +  SQRT_3; a = (a << 3 ) | (a >> 29) ;
-	d += (c ^ b ^ a) + buffer[10] +  SQRT_3; d = (d << 9 ) | (d >> 23) ;
-	c += (b ^ a ^ d) + buffer[6]  +  SQRT_3; c = (c << 11) | (c >> 21) ;
-	b += (a ^ d ^ c) + buffer[14] +  SQRT_3; b = (b << 15) | (b >> 17) ;
-
-	a += (d ^ c ^ b) + buffer[1]  +  SQRT_3; a = (a << 3 ) | (a >> 29) ;
-	d += (c ^ b ^ a) + buffer[9]  +  SQRT_3; d = (d << 9 ) | (d >> 23) ;
-	c += (b ^ a ^ d) + buffer[5]  +  SQRT_3; c = (c << 11) | (c >> 21) ;
-	b += (a ^ d ^ c) + buffer[13] +  SQRT_3; b = (b << 15) | (b >> 17) ;
-
-	a += (d ^ c ^ b) + buffer[3]  +  SQRT_3; a = (a << 3 ) | (a >> 29) ;
-	d += (c ^ b ^ a) + buffer[11] +  SQRT_3; d = (d << 9 ) | (d >> 23) ;
-	c += (b ^ a ^ d) + buffer[7]  +  SQRT_3; c = (c << 11) | (c >> 21) ;
-	b += (a ^ d ^ c) + buffer[15] +  SQRT_3; b = (b << 15) | (b >> 17) ;
-
-	hash[0] = a + INIT_MD4_A ;
-	hash[1] = b + INIT_MD4_B ;
-	hash[2] = c + INIT_MD4_C ;
-	hash[3] = d + INIT_MD4_D ;
-}
 
 static void set_key(char*, int) ;
 static int crypt_all(int *pcount, struct db_salt *salt) ;
@@ -188,44 +116,26 @@ static void init(struct fmt_main *self) {
 
 static void DCC(unsigned char *salt, unsigned char *username, unsigned int username_len, unsigned char *password, unsigned int *dcc_hash, unsigned int id) {
 	unsigned int 	i ;
-	unsigned int 	buffer[16] ;
-	unsigned int 	nt_hash[16] ;
+	unsigned int 	buffer[64] ;
+	unsigned int 	nt_hash[69] ; // large enough to handle 128 byte user name (when we expand to that size).
 	unsigned int 	password_len = strlen((const char*)password) ;
-
-	memset(nt_hash, 0, 64) ;
-	memset(buffer, 0, 64) ;
+	MD4_CTX ctx;
 
 	// convert ASCII password to Unicode
 	for (i = 0; i < password_len  >> 1; i++)
 	    buffer[i] = password[2 * i] | (password[2 * i + 1] << 16) ;
 
-	// MD4 padding
-	if ((password_len & 1))
-		buffer[i] = password[password_len - 1] | 0x800000 ;
-	else
-		buffer[i] = 0x80 ;
-
-	// put password length at end of buffer
-	buffer[14] = password_len << 4 ;
-
 	// generate MD4 hash of the password (NT hash)
-	md4_crypt(buffer, nt_hash) ;
+	MD4_Init(&ctx);
+	MD4_Update(&ctx, buffer, password_len<<1);
+	MD4_Final(nt_hash, &ctx);
 
 	// concatenate NT hash and the username (salt)
 	memcpy((unsigned char *)nt_hash + 16, salt, username_len << 1) ;
 
-	i = username_len + 8 ;
-
-	// MD4 padding
-	if ((username_len & 1) )
-		nt_hash[i >> 1] = username[username_len - 1] | 0x800000 ;
-	else
-		nt_hash[i >> 1] = 0x80 ;
-
-	// put length at end of buffer
-	nt_hash[14] = i << 4 ;
-
-	md4_crypt(nt_hash, (dcc_hash + 4 * id)) ;
+	MD4_Init(&ctx);
+	MD4_Update(&ctx, nt_hash, (username_len<<1)+16);
+	MD4_Final((dcc_hash+4*id), &ctx);
 }
 
 static void done() {
