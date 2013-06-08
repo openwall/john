@@ -41,7 +41,7 @@
 #define SALT_SIZE		sizeof(struct custom_salt)
 #define BIG_ENOUGH 		(8192 * 32)
 // increase me (in multiples of 16) to increase the decrypted and search area
-#define SAFETY_FACTOR 		64
+#define SAFETY_FACTOR 		16
 
 #define uint8_t			unsigned char
 #define uint16_t		unsigned short
@@ -256,8 +256,13 @@ static int blockchain_decrypt(unsigned char *derived_key, unsigned char *data)
 	/* various tests */
 	if (out[0] != '{') // fast test
 		return -1;
+
+	/* XXX we are assuming that "guid" will be found in the first block
+	 * itself (when SAFETY_FACTOR is 16).
+	 */
 	if (jtr_memmem(out, SAFETY_FACTOR, "\"guid\"", 6))
 		return 0;
+
 	if (jtr_memmem(out, SAFETY_FACTOR, "sharedKey", 9))
 		return 0;
 
