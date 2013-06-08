@@ -39,6 +39,9 @@
  *	  to the .S code were simply to make it work at all and the same optimizations were placed there.
  *	- the OMP code was removed during initial re-write, and was properly re-incorporated by magnum.
  *
+ *  In June 2013, salt length (Username) increased from 22 to 128, and max password length increased
+ *     from 27 to 125 bytes (unicode bytes, so 250 ?)
+ *
  * This module is based on:
  *     - the MSCASH patch for john written by Alain Espinosa <alainesp at gmail.com> in 2007
  *     - RFC 1320 - The MD4 Message-Digest Algorithm
@@ -88,7 +91,9 @@ static struct fmt_tests tests[] = {
 	{"$DCC2$10240#TEST2#c6758e5be7fc943d00b97972a8a97620", "test2" },    // salt is lowercased before hashing
 	{"$DCC2$10240#test3#360e51304a2d383ea33467ab0b639cc4", "test3" },
 	{"$DCC2$10240#test4#6f79ee93518306f071c47185998566ae", "test4" },
-
+	
+	// max length user name 128 bytes, and max length password, 125 bytes
+	{"$DCC2$10240#12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678#5ba26de44bd3a369f43a1c72fba76d45", "12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"},
 	{NULL}
 };
 
@@ -98,12 +103,12 @@ static struct fmt_tests tests[] = {
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1
 
-#define PLAINTEXT_LENGTH		27
-#define MAX_CIPHERTEXT_LENGTH		(6 + 5 + 22*3 + 2 + 32) // x3 because salt may be UTF-8 in input  // changed to $DCC2$num#salt#hash  WARNING, only handles num of 5 digits!!
+#define PLAINTEXT_LENGTH		125
+#define MAX_CIPHERTEXT_LENGTH		(6 + 5 + 128*3 + 2 + 32) // x3 because salt may be UTF-8 in input  // changed to $DCC2$num#salt#hash  WARNING, only handles num of 5 digits!!
 
 #define BINARY_SIZE			16
 #define BINARY_ALIGN			4
-#define SALT_SIZE			(11*4+4)
+#define SALT_SIZE			(64*4+4)
 #define SALT_ALIGN			2
 
 #define ALGORITHM_NAME			SHA1_ALGORITHM_NAME
@@ -206,8 +211,8 @@ int mscash2_valid(char *ciphertext, int max_salt_length, const char *format_labe
 {
 	unsigned int i;
 	unsigned int l;
-	char insalt[3*22+1];
-	UTF16 realsalt[23];
+	char insalt[3*128+1];
+	UTF16 realsalt[129];
 	int saltlen;
 
 	if (strncmp(ciphertext, "$DCC2$10240#", 12))
@@ -225,7 +230,7 @@ int mscash2_valid(char *ciphertext, int max_salt_length, const char *format_labe
 		if (atoi16[ARCH_INDEX(ciphertext[i])] == 0x7F)
 			return 0;
 
-	// This is tricky: Max supported salt length is 22 characters of Unicode
+	// This is tricky: Max supported salt length is 128 characters of Unicode
 	i = 6;
 	while (ciphertext[i] && ciphertext[i] != '#') ++i;
 	++i;
@@ -250,7 +255,7 @@ int mscash2_valid(char *ciphertext, int max_salt_length, const char *format_labe
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	return mscash2_valid(ciphertext, 22, FORMAT_LABEL, self);
+	return mscash2_valid(ciphertext, 128, FORMAT_LABEL, self);
 }
 
 char *mscash2_prepare(char *split_fields[10], struct fmt_main *self)
@@ -298,8 +303,8 @@ static void set_salt(void *salt) {
 static void *get_salt(char *_ciphertext)
 {
 	unsigned char *ciphertext = (unsigned char *)_ciphertext;
-	static UTF16 out[24+1];
-	unsigned char input[22*3+1];
+	static UTF16 out[130+1];
+	unsigned char input[128*3+1];
 	int utf16len, md4_size;
 
 	memset(out, 0, sizeof(out));
@@ -315,7 +320,7 @@ static void *get_salt(char *_ciphertext)
 	}
 	input[md4_size] = 0;
 
-	utf16len = enc_to_utf16(&out[2], 22, input, md4_size);
+	utf16len = enc_to_utf16(&out[2], 128, input, md4_size);
 	if (utf16len < 0)
 		utf16len = strlen16(&out[2]);
 	out[0] = utf16len << 1;
