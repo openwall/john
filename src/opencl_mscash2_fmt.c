@@ -122,7 +122,7 @@ static void DCC(unsigned char *salt, unsigned char *username, unsigned int usern
 	MD4_CTX ctx;
 
 	// convert ASCII password to Unicode
-	for (i = 0; i < password_len  >> 1; i++)
+	for (i = 0; i <= password_len  >> 1; i++)
 	    buffer[i] = password[2 * i] | (password[2 * i + 1] << 16) ;
 
 	// generate MD4 hash of the password (NT hash)
