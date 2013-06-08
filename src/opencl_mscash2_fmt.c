@@ -76,7 +76,7 @@ static unsigned char 	(*key_host)[MAX_PLAINTEXT_LENGTH + 1] ;
 static ms_cash2_salt 	currentsalt ;
 
 extern int mscash2_valid(char *, int,  const char *, struct fmt_main *);
-extern char * mscash2_prepare(char *, struct fmt_main *);
+extern char * mscash2_prepare(char **, struct fmt_main *);
 extern char * mscash2_split(char *, int, struct fmt_main *);
 
 static void md4_crypt(unsigned int *buffer, unsigned int *hash) {
