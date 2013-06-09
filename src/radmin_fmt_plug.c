@@ -23,9 +23,9 @@
 #define OMP_SCALE               1
 #endif
 
-#define FORMAT_LABEL		"radmin"
-#define FORMAT_NAME		"RAdmin v2.x MD5"
-#define ALGORITHM_NAME		"32/" ARCH_BITS_STR
+#define FORMAT_LABEL		"RAdmin"
+#define FORMAT_NAME		"v2.x"
+#define ALGORITHM_NAME		"MD5 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	99
@@ -228,4 +228,3 @@ struct fmt_main fmt_radmin = {
 		cmp_exact
 	}
 };
-

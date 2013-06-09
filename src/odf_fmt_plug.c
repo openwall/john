@@ -26,12 +26,12 @@
 #include <openssl/aes.h>
 #include "pbkdf2_hmac_sha1.h"
 
-#define FORMAT_LABEL		"odf"
-#define FORMAT_NAME		"ODF SHA-1 Blowfish / SHA-256 AES"
+#define FORMAT_LABEL		"ODF"
+#define FORMAT_NAME		""
 #ifdef MMX_COEF
-#define ALGORITHM_NAME      SHA1_N_STR MMX_TYPE
+#define ALGORITHM_NAME		"SHA1 BF / SHA256 AES " SHA1_N_STR MMX_TYPE
 #else
-#define ALGORITHM_NAME		"32/" ARCH_BITS_STR " " SHA2_LIB
+#define ALGORITHM_NAME		"SHA1 BF / SHA256 AES 32/" ARCH_BITS_STR " " SHA2_LIB
 #endif
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1

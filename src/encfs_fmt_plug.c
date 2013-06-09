@@ -28,12 +28,12 @@
 #include "params.h"
 #include "misc.h"
 
-#define FORMAT_LABEL        "encfs"
-#define FORMAT_NAME         "EncFS PBKDF2 AES / Blowfish"
+#define FORMAT_LABEL        "EncFS"
+#define FORMAT_NAME         ""
 #ifdef MMX_COEF
-#define ALGORITHM_NAME      SHA1_N_STR MMX_TYPE
+#define ALGORITHM_NAME      "PBKDF2-SHA1 AES/Blowfish " SHA1_N_STR MMX_TYPE
 #else
-#define ALGORITHM_NAME      "32/" ARCH_BITS_STR
+#define ALGORITHM_NAME      "PBKDF2-SHA1 AES/Blowfish 32/" ARCH_BITS_STR
 #endif
 #define BENCHMARK_COMMENT   ""
 #define BENCHMARK_LENGTH    -1001

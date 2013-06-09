@@ -62,9 +62,9 @@
 static int omp_t = 1;
 #endif
 
-#define FORMAT_LABEL		"ike"
-#define FORMAT_NAME		"IKE PSK HMAC-MD5 / HMAC-SHA1"
-#define ALGORITHM_NAME		"32/" ARCH_BITS_STR
+#define FORMAT_LABEL		"IKE"
+#define FORMAT_NAME		"PSK"
+#define ALGORITHM_NAME		"HMAC MD5/SHA1 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	32

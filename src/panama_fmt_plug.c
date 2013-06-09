@@ -22,11 +22,11 @@ static int omp_t = 1;
 #define OMP_SCALE               1 // FIXME
 #endif
 
-#define FORMAT_LABEL		"panama"
-#define FORMAT_NAME		"Panama"
+#define FORMAT_LABEL		"Panama"
+#define FORMAT_NAME		""
 #define FORMAT_TAG		"$panama$"
 #define TAG_LENGTH		8
-#define ALGORITHM_NAME		"32/" ARCH_BITS_STR
+#define ALGORITHM_NAME		"Panama 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	125
@@ -222,4 +222,3 @@ struct fmt_main fmt_panama_ = {
 		cmp_exact
 	}
 };
-

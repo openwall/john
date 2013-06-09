@@ -30,9 +30,9 @@
 #include "base64.h"
 #include "sse-intrinsics.h"
 
-#define FORMAT_LABEL		"fortigate"
-#define FORMAT_NAME             "Fortigate FortiOS"
-#define ALGORITHM_NAME		SHA1_ALGORITHM_NAME
+#define FORMAT_LABEL		"Fortigate"
+#define FORMAT_NAME             "FortiOS"
+#define ALGORITHM_NAME		"SHA1 " SHA1_ALGORITHM_NAME
 
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	0

@@ -22,11 +22,11 @@ static int omp_t = 1;
 #define OMP_SCALE               1 // FIXME
 #endif
 
-#define FORMAT_LABEL		"skein"
-#define FORMAT_NAME		"Skein"
+#define FORMAT_LABEL		"Skein"
+#define FORMAT_NAME		""
 #define FORMAT_TAG		"$skein$"
 #define TAG_LENGTH		7
-#define ALGORITHM_NAME		"32/" ARCH_BITS_STR
+#define ALGORITHM_NAME		"Skein 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	125

@@ -33,7 +33,7 @@
 #include "params.h"
 #include "misc.h"
 
-#define FORMAT_LABEL        "pfx"
+#define FORMAT_LABEL        "PFX"
 #define FORMAT_NAME         "PKCS12 (.pfx, .p12)"
 #define ALGORITHM_NAME      "32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT   ""

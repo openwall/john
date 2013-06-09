@@ -24,7 +24,7 @@
 #include "sha2.h"
 
 #define FORMAT_LABEL			"XSHA512-opencl"
-#define FORMAT_NAME			"Mac OS X 10.7+ salted"
+#define FORMAT_NAME			"Mac OS X 10.7+"
 #define ALGORITHM_NAME			"SHA512 OpenCL (efficient at \"many salts\" only)"
 
 #define BENCHMARK_COMMENT		""

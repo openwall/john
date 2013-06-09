@@ -43,9 +43,9 @@
 #include "pdfcrack.h"
 #include "pdfparser.h"
 
-#define FORMAT_LABEL        "pdf"
-#define FORMAT_NAME         "PDF MD5 RC4"
-#define ALGORITHM_NAME      "32/" ARCH_BITS_STR
+#define FORMAT_LABEL        "PDF"
+#define FORMAT_NAME         ""
+#define ALGORITHM_NAME      "MD5 RC4 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT   ""
 #define BENCHMARK_LENGTH    -1000
 #define PLAINTEXT_LENGTH    32

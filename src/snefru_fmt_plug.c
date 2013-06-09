@@ -217,8 +217,8 @@ static char *get_key(int index)
 
 struct fmt_main fmt_snefru_256 = {
 	{
-		"snefru-256",
-		"Snefru 256",
+		"Snefru-256",
+		"",
 		ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
@@ -274,8 +274,8 @@ struct fmt_main fmt_snefru_256 = {
 
 struct fmt_main fmt_snefru_128 = {
 	{
-		"snefru-128",
-		"Snefru 128",
+		"Snefru-128",
+		"",
 		ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,

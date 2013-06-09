@@ -24,8 +24,8 @@
 #include "sha2.h"
 #include "johnswap.h"
 
-#define FORMAT_LABEL		"office"
-#define FORMAT_NAME		"Office 2007/2010 (SHA-1) / 2013 (SHA-512), with AES"
+#define FORMAT_LABEL		"Office"
+#define FORMAT_NAME		"2007/2010 (SHA-1) / 2013 (SHA-512), with AES"
 #define ALGORITHM_NAME		"32/" ARCH_BITS_STR " " SHA2_LIB
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1

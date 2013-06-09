@@ -53,7 +53,7 @@
 
 #define FORMAT_LABEL              "Raw-SHA256-ng"
 #define FORMAT_NAME               ""
-#define ALGORITHM_NAME            "SHA256 128/128 " SIMD_TYPE " instrinsics 4x"
+#define ALGORITHM_NAME            "SHA256 128/128 " SIMD_TYPE " 4x"
 #define FORMAT_TAG                "$SHA256$"
 #define TAG_LENGTH                8
 

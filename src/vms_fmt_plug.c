@@ -28,9 +28,9 @@ static int omp_t = 1;
 #define UAI$M_PWDMIX 0x2000000
 #endif
 
-#define FORMAT_LABEL			"openvms"
-#define FORMAT_NAME			"OpenVMS Purdy"
-#define FORMAT_NAME_NOPWDMIX		"OpenVMS Purdy (nopwdmix)"
+#define FORMAT_LABEL			"OpenVMS"
+#define FORMAT_NAME			"Purdy"
+#define FORMAT_NAME_NOPWDMIX		"Purdy (nopwdmix)"
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1

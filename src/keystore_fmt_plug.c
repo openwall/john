@@ -28,8 +28,8 @@ static int omp_t = 1;
 #endif
 
 #define FORMAT_LABEL		"keystore"
-#define FORMAT_NAME		"Java KeyStore SHA-1"
-#define ALGORITHM_NAME		"32/" ARCH_BITS_STR
+#define FORMAT_NAME		"Java KeyStore"
+#define ALGORITHM_NAME		"SHA1 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	125

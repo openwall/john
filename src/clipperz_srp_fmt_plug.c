@@ -62,9 +62,9 @@
 #endif
 
 
-#define FORMAT_LABEL		"clipperz"
-#define FORMAT_NAME		"Clipperz SRP SHA256"
-#define ALGORITHM_NAME		"32/" ARCH_BITS_STR EXP_STR
+#define FORMAT_LABEL		"Clipperz"
+#define FORMAT_NAME		"SRP"
+#define ALGORITHM_NAME		"SHA256 32/" ARCH_BITS_STR EXP_STR
 
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1

@@ -22,8 +22,8 @@ static int omp_t = 1;
 #define OMP_SCALE               1 // XXX
 #endif
 
-#define FORMAT_LABEL		"ripemd"
-#define FORMAT_NAME		"RIPEMD"
+#define FORMAT_LABEL		"RIPEMD"
+#define FORMAT_NAME		""
 #define FORMAT_TAG		"$ripemd$"
 #define TAG_LENGTH		8
 #define ALGORITHM_NAME		"32/" ARCH_BITS_STR

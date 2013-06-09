@@ -13,7 +13,7 @@
 
 #define FORMAT_LABEL			"md4-gen"
 #define FORMAT_NAME			"Generic salted MD4"
-#define ALGORITHM_NAME			"32/" ARCH_BITS_STR
+#define ALGORITHM_NAME			"MD4 32/" ARCH_BITS_STR
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		0

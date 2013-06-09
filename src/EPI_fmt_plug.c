@@ -150,9 +150,9 @@ static int cmp_exact(char *source, int index)
 struct fmt_main fmt_EPI =
 {
 	{ // fmt_params
-		"epi",
-		"EPiServer SID salted SHA-1",
-		"32/" ARCH_BITS_STR,
+		"EPI",
+		"EPiServer SID",
+		"SHA1 32/" ARCH_BITS_STR,
 		"", // benchmark comment
 		0, // benchmark length
 		PLAINTEXT_LENGTH,

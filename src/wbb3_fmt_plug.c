@@ -42,8 +42,8 @@
 #endif
 
 #define FORMAT_LABEL		"wbb3"
-#define FORMAT_NAME		"WoltLab BB3 salted SHA-1"
-#define ALGORITHM_NAME		"32/" ARCH_BITS_STR
+#define FORMAT_NAME		"WoltLab BB3"
+#define ALGORITHM_NAME		"SHA1 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1 /* change to 0 once there's any speedup for "many salts" */
 #define PLAINTEXT_LENGTH	32

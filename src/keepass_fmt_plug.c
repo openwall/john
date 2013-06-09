@@ -25,9 +25,9 @@
 #define OMP_SCALE               1
 #endif
 
-#define FORMAT_LABEL		"keepass"
-#define FORMAT_NAME		"KeePass SHA-256 AES"
-#define ALGORITHM_NAME		"32/" ARCH_BITS_STR " " SHA2_LIB
+#define FORMAT_LABEL		"KeePass"
+#define FORMAT_NAME		""
+#define ALGORITHM_NAME		"SHA256 AES 32/" ARCH_BITS_STR " " SHA2_LIB
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	32

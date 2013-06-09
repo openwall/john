@@ -29,9 +29,9 @@
 static int omp_t = 1;
 #endif
 
-#define FORMAT_LABEL		"bitcoin"
-#define FORMAT_NAME		"bitcoin (iterative SHA-256 + AES-256)"
-#define ALGORITHM_NAME		"32/" ARCH_BITS_STR
+#define FORMAT_LABEL		"Bitcoin"
+#define FORMAT_NAME		""
+#define ALGORITHM_NAME		"SHA256 AES 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	64

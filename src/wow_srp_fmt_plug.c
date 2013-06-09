@@ -50,9 +50,9 @@
 #endif
 
 
-#define FORMAT_LABEL		"wowsrp"
-#define FORMAT_NAME		"WoW (Battlenet) SRP sha1"
-#define ALGORITHM_NAME		"32/" ARCH_BITS_STR EXP_STR
+#define FORMAT_LABEL		"WoWSRP"
+#define FORMAT_NAME		"Battlenet"
+#define ALGORITHM_NAME		"SHA1 32/" ARCH_BITS_STR EXP_STR
 
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1

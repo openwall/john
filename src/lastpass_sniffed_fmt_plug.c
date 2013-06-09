@@ -29,8 +29,8 @@
 #define OMP_SCALE               64
 #endif
 
-#define FORMAT_LABEL		"lastpass"
-#define FORMAT_NAME		"LastPass sniffed sessions"
+#define FORMAT_LABEL		"LastPass"
+#define FORMAT_NAME		"sniffed sessions"
 #ifdef MMX_COEF_SHA256
 #define ALGORITHM_NAME		"PBKDF2-SHA256 AES " SHA256_ALGORITHM_NAME
 #else

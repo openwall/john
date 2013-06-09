@@ -33,9 +33,9 @@
 #include "params.h"
 #include "misc.h"
 
-#define FORMAT_LABEL        "ssh"
-#define FORMAT_NAME         "SSH RSA/DSA"
-#define ALGORITHM_NAME      "32/" ARCH_BITS_STR
+#define FORMAT_LABEL        "SSH"
+#define FORMAT_NAME         ""
+#define ALGORITHM_NAME      "RSA/DSA 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT   " (one 2048-bit RSA and one 1024-bit DSA key)"
 #define BENCHMARK_LENGTH    -1001
 #define PLAINTEXT_LENGTH    32

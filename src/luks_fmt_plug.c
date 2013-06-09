@@ -55,9 +55,9 @@ static int omp_t = 1;
 #define LUKS_SALTSIZE 32
 #define LUKS_NUMKEYS 8
 
-#define FORMAT_LABEL		"luks"
-#define FORMAT_NAME		"LUKS"
-#define ALGORITHM_NAME		"32/" ARCH_BITS_STR
+#define FORMAT_LABEL		"LUKS"
+#define FORMAT_NAME		""
+#define ALGORITHM_NAME		"PBKDF2-SHA1 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define PLAINTEXT_LENGTH  	125
 #define BENCHMARK_LENGTH	-1

@@ -25,9 +25,9 @@ static int omp_t = 1;
 #define OMP_SCALE               64
 #endif
 
-#define FORMAT_LABEL		"mongodb"
-#define FORMAT_NAME		"MongoDB system / network MD5"
-#define ALGORITHM_NAME		"32/" ARCH_BITS_STR
+#define FORMAT_LABEL		"MongoDB"
+#define FORMAT_NAME		"system / network"
+#define ALGORITHM_NAME		"MD5 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	32

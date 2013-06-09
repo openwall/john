@@ -26,9 +26,9 @@
 #define OMP_SCALE           64
 #endif
 
-#define FORMAT_LABEL        "putty"
-#define FORMAT_NAME         "PuTTY Private Key SHA-1 / AES"
-#define ALGORITHM_NAME      "32/" ARCH_BITS_STR
+#define FORMAT_LABEL        "PuTTY"
+#define FORMAT_NAME         "Private Key"
+#define ALGORITHM_NAME      "SHA1/AES 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT   ""
 #define BENCHMARK_LENGTH    -1001
 #define PLAINTEXT_LENGTH    32

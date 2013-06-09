@@ -39,7 +39,7 @@ static int omp_t = 1;
 #define KEYING_ITERATIONS   1000
 #define KEY_LENGTH(mode)        (8 * ((mode) & 3) + 8)
 #define SALT_LENGTH(mode)       (4 * ((mode) & 3) + 4)
-#define FORMAT_LABEL        "zip"
+#define FORMAT_LABEL        "ZIP"
 #define FORMAT_NAME         "WinZip"
 #ifdef MMX_COEF
 #define ALGORITHM_NAME      "PBKDF2-SHA1 " SHA1_N_STR MMX_TYPE

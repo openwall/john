@@ -26,8 +26,8 @@
 #define OMP_SCALE               1 // tuned on core i7
 #endif
 
-#define FORMAT_LABEL		"blockchain"
-#define FORMAT_NAME		"blockchain My Wallet"
+#define FORMAT_LABEL		"Blockchain"
+#define FORMAT_NAME		"My Wallet"
 #ifdef MMX_COEF
 #define ALGORITHM_NAME		"PBKDF2-SHA1 AES " SHA1_N_STR MMX_TYPE
 #else

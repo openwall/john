@@ -35,9 +35,9 @@ typedef struct sip_salt_t {
 static sip_salt *pSalt;
 
 
-#define FORMAT_LABEL		"sip"
-#define FORMAT_NAME		"SIP MD5"
-#define ALGORITHM_NAME		"32/" ARCH_BITS_STR
+#define FORMAT_LABEL		"SIP"
+#define FORMAT_NAME		""
+#define ALGORITHM_NAME		"MD5 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	32

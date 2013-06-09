@@ -103,8 +103,8 @@ extern volatile int bench_running;
 #endif
 #define MIN(a, b)               (((a) > (b)) ? (b) : (a))
 
-#define CHAP_FORMAT_LABEL       "mschapv2"
-#define CHAP_FORMAT_NAME        "MSCHAPv2 C/R MD4 DES"
+#define CHAP_FORMAT_LABEL       "MSCHAPv2"
+#define CHAP_FORMAT_NAME        "C/R"
 #define CHAP_USERNAME_LENGTH    256
 #define CHAP_CHALLENGE_LENGTH   64
 #define CHAP_TOTAL_LENGTH       13 + CHAP_USERNAME_LENGTH + CHAP_CHALLENGE_LENGTH + CIPHERTEXT_LENGTH

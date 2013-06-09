@@ -53,9 +53,9 @@ static int omp_t = 1;
 #define FORMAT_LABEL		"fde"
 #define FORMAT_NAME		"Android FDE"
 #ifdef MMX_COEF
-#define ALGORITHM_NAME      SHA1_N_STR MMX_TYPE
+#define ALGORITHM_NAME      "PBKDF2-SHA1 " SHA1_N_STR MMX_TYPE
 #else
-#define ALGORITHM_NAME      "32/" ARCH_BITS_STR
+#define ALGORITHM_NAME      "PBKDF2-SHA1 32/" ARCH_BITS_STR
 #endif
 #define BENCHMARK_COMMENT	""
 #define PLAINTEXT_LENGTH  	64

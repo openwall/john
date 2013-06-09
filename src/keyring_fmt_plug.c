@@ -25,8 +25,8 @@
 #include <openssl/aes.h>
 
 #define FORMAT_LABEL		"keyring"
-#define FORMAT_NAME		"GNOME Keyring iterated-SHA256 AES"
-#define ALGORITHM_NAME		"32/" ARCH_BITS_STR " " SHA2_LIB
+#define FORMAT_NAME		"GNOME Keyring"
+#define ALGORITHM_NAME		"SHA256 AES 32/" ARCH_BITS_STR " " SHA2_LIB
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	15

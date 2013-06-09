@@ -39,8 +39,8 @@
 #include "formats.h"
 
 #define FORMAT_LABEL			"md5ns"
-#define FORMAT_NAME			"Netscreen MD5"
-#define ALGORITHM_NAME			"32/" ARCH_BITS_STR
+#define FORMAT_NAME			"Netscreen"
+#define ALGORITHM_NAME			"MD5 32/" ARCH_BITS_STR
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1

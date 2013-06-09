@@ -23,8 +23,8 @@
 #define OMP_SCALE               4 // tuned on core i7
 #endif
 
-#define FORMAT_LABEL		"strip"
-#define FORMAT_NAME		"STRIP Password Manager"
+#define FORMAT_LABEL		"STRIP"
+#define FORMAT_NAME		"Password Manager"
 #ifdef MMX_COEF
 #define ALGORITHM_NAME		"PBKDF2-SHA1 " SHA1_N_STR MMX_TYPE
 #else

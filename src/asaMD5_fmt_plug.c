@@ -12,7 +12,7 @@
 #include "dynamic.h"
 
 #define FORMAT_LABEL            "asa-md5"
-#define FORMAT_NAME             "Cisco ASA MD5"
+#define FORMAT_NAME             "Cisco ASA"
 #define ALGORITHM_NAME          "?" /* filled in by md5-gen */
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        0

@@ -24,8 +24,8 @@ static int omp_t = 1;
 #endif
 
 #define FORMAT_LABEL		"aix-smd5"
-#define FORMAT_NAME		"AIX smd5 (modified crypt-md5)"
-#define ALGORITHM_NAME		"32/" ARCH_BITS_STR
+#define FORMAT_NAME		"AIX LPA {smd5} (modified crypt-md5)"
+#define ALGORITHM_NAME		"MD5 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	125

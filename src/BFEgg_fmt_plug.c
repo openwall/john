@@ -17,8 +17,8 @@ static int omp_t = 1;
 #endif
 
 #define FORMAT_LABEL			"bfegg"
-#define FORMAT_NAME			"Eggdrop Blowfish"
-#define ALGORITHM_NAME			"32/" ARCH_BITS_STR
+#define FORMAT_NAME			"Eggdrop"
+#define ALGORITHM_NAME			"Blowfish 32/" ARCH_BITS_STR
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1

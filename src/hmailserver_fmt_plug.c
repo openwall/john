@@ -32,10 +32,10 @@
 #include "common.h"
 #include "formats.h"
 
-#define FORMAT_LABEL        "hmailserver"
-#define FORMAT_NAME         "hMailServer salted SHA-256"
+#define FORMAT_LABEL        "hMailServer"
+#define FORMAT_NAME         ""
 
-#define ALGORITHM_NAME      "32/" ARCH_BITS_STR " " SHA2_LIB
+#define ALGORITHM_NAME      "SHA256 32/" ARCH_BITS_STR " " SHA2_LIB
 
 #define BENCHMARK_COMMENT   ""
 #define BENCHMARK_LENGTH    0

@@ -40,8 +40,8 @@
 #endif
 
 #define FORMAT_LABEL		"nk"
-#define FORMAT_NAME		"Nuked-Klan CMS SHA1 MD5"
-#define ALGORITHM_NAME		"32/" ARCH_BITS_STR
+#define FORMAT_NAME		"Nuked-Klan CMS"
+#define ALGORITHM_NAME		"SHA1 MD5 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1 /* change to 0 once there's any speedup for "many salts" */
 #define PLAINTEXT_LENGTH	32

@@ -43,9 +43,9 @@
 #define OMP_SCALE               32
 #endif
 
-#define FORMAT_LABEL		"mozilla"
-#define FORMAT_NAME		"Mozilla (key3.db) SHA-1 3DES"
-#define ALGORITHM_NAME		"32/" ARCH_BITS_STR
+#define FORMAT_LABEL		"Mozilla"
+#define FORMAT_NAME		"key3.db"
+#define ALGORITHM_NAME		"SHA1 3DES 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	16

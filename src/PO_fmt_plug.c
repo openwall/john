@@ -41,8 +41,8 @@ typedef MD5_word MD5_binary[4];
 extern MD5_binary MD5_out;
 
 #define FORMAT_LABEL			"po"
-#define FORMAT_NAME			"Post.Office MD5"
-#define ALGORITHM_NAME			"32/" ARCH_BITS_STR
+#define FORMAT_NAME			"Post.Office"
+#define ALGORITHM_NAME			"MD5 32/" ARCH_BITS_STR
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		0

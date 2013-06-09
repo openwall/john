@@ -34,10 +34,10 @@ static int omp_t = 1;
 #define SIZE_INITV 16
 
 #define FORMAT_LABEL		"RAR5"
-#define FORMAT_NAME		"PBKDF2 SHA-256"
+#define FORMAT_NAME		""
 #define FORMAT_TAG  		"$rar5$"
 #define TAG_LENGTH  		6
-#define ALGORITHM_NAME		"32/" ARCH_BITS_STR
+#define ALGORITHM_NAME		"PBKDF2-SHA256 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	32

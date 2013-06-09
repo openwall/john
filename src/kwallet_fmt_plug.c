@@ -24,8 +24,8 @@
 #endif
 
 #define FORMAT_LABEL		"kwallet"
-#define FORMAT_NAME		"KDE KWallet SHA-1"
-#define ALGORITHM_NAME		"32/" ARCH_BITS_STR
+#define FORMAT_NAME		"KDE KWallet"
+#define ALGORITHM_NAME		"SHA1 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define BINARY_SIZE		0

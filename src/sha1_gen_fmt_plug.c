@@ -13,7 +13,7 @@
 
 #define FORMAT_LABEL			"sha1-gen"
 #define FORMAT_NAME			"Generic salted SHA-1"
-#define ALGORITHM_NAME			"32/" ARCH_BITS_STR
+#define ALGORITHM_NAME			"SHA1 32/" ARCH_BITS_STR
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		0

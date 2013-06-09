@@ -30,7 +30,7 @@
 #include "memory.h"
 #include "johnswap.h"
 
-#define FORMAT_LABEL			"nt2"
+#define FORMAT_LABEL			"nt2" /* Should be nt-ng now */
 #define FORMAT_NAME			"NT"
 
 #define ALGORITHM_NAME			"MD4 " MD4_ALGORITHM_NAME
