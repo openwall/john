@@ -96,7 +96,9 @@ static struct fmt_tests tests[] = {
 };
 
 #define BINARY_SIZE			16
+#define BINARY_ALIGN			MEM_ALIGN_WORD
 #define SALT_SIZE			0
+#define SALT_ALIGN			MEM_ALIGN_NONE
 
 #if !ARCH_LITTLE_ENDIAN
 #define ROTATE_LEFT(x, n) (x) = (((x)<<(n))|((unsigned int)(x)>>(32-(n))))
@@ -976,9 +978,9 @@ struct fmt_main fmt_NT = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE | FMT_UTF8,

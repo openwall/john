@@ -54,10 +54,12 @@ static int omp_t = 1;
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	125 /* actual max in AIX is 255 */
 #define BINARY_SIZE		20
+#define BINARY_ALIGN		4
 #define CMP_SIZE 		BINARY_SIZE - 2
 #define LARGEST_BINARY_SIZE	64
 #define MAX_SALT_SIZE		24
 #define SALT_SIZE		sizeof(struct custom_salt)
+#define SALT_ALIGN		4
 #ifdef MMX_COEF
 // since we have a 'common' crypt_all() function, find 'max' of sha1/sha256/sha512, and that is the block size
 // crypt_all handles looping 'within' each OMP thread (or within the single thread if non OMP).
@@ -378,9 +380,9 @@ struct fmt_main fmt_aixssha1 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
@@ -434,9 +436,9 @@ struct fmt_main fmt_aixssha256 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
@@ -490,9 +492,9 @@ struct fmt_main fmt_aixssha512 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,

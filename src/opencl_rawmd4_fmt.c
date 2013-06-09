@@ -29,7 +29,9 @@
 #define CIPHERTEXT_LENGTH   32
 #define DIGEST_SIZE         16
 #define BINARY_SIZE         4
+#define BINARY_ALIGN        1
 #define SALT_SIZE           0
+#define SALT_ALIGN          1
 
 #define FORMAT_TAG          "$MD4$"
 #define TAG_LENGTH          (sizeof(FORMAT_TAG) - 1)
@@ -391,9 +393,9 @@ struct fmt_main fmt_opencl_rawMD4 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
