@@ -22,9 +22,9 @@
 #include "formats.h"
 #include "sha2.h"
 
-#define FORMAT_LABEL			"raw-sha512-opencl"
-#define FORMAT_NAME			"Raw SHA-512"
-#define ALGORITHM_NAME			"OpenCL (inefficient, development use mostly)"
+#define FORMAT_LABEL			"Raw-SHA512-opencl"
+#define FORMAT_NAME			""
+#define ALGORITHM_NAME			"SHA512 OpenCL (inefficient, development use mostly)"
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1

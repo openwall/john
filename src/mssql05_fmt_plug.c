@@ -30,9 +30,9 @@
 #include "johnswap.h"
 
 #define FORMAT_LABEL			"mssql05"
-#define FORMAT_NAME			"MS SQL 2005 SHA-1"
+#define FORMAT_NAME			"MS SQL 2005"
 
-#define ALGORITHM_NAME			SHA1_ALGORITHM_NAME
+#define ALGORITHM_NAME			"SHA1 " SHA1_ALGORITHM_NAME
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		0

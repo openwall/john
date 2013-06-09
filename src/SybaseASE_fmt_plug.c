@@ -40,9 +40,9 @@
 #endif
 
 #define FORMAT_LABEL        "sybasease"
-#define FORMAT_NAME         "Sybase ASE salted SHA-256"
+#define FORMAT_NAME         "Sybase ASE"
 
-#define ALGORITHM_NAME      "32/" ARCH_BITS_STR " " SHA2_LIB
+#define ALGORITHM_NAME      "SHA256 32/" ARCH_BITS_STR " " SHA2_LIB
 
 #define BENCHMARK_COMMENT   ""
 #define BENCHMARK_LENGTH    0

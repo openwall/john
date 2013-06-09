@@ -25,12 +25,12 @@
 
 #define FORMAT_LABEL_32			"dragonfly4-32"
 #define FORMAT_LABEL_64			"dragonfly4-64"
-#define FORMAT_NAME_32			"DragonFly BSD $4$ SHA-512 w/ bugs, 32-bit"
-#define FORMAT_NAME_64			"DragonFly BSD $4$ SHA-512 w/ bugs, 64-bit"
+#define FORMAT_NAME_32			"DragonFly BSD $4$ w/ bugs, 32-bit"
+#define FORMAT_NAME_64			"DragonFly BSD $4$ w/ bugs, 64-bit"
 #if ARCH_BITS >= 64
-#define ALGORITHM_NAME			"64/" ARCH_BITS_STR " " SHA2_LIB
+#define ALGORITHM_NAME			"SHA512 64/" ARCH_BITS_STR " " SHA2_LIB
 #else
-#define ALGORITHM_NAME			"32/" ARCH_BITS_STR " " SHA2_LIB
+#define ALGORITHM_NAME			"SHA512 32/" ARCH_BITS_STR " " SHA2_LIB
 #endif
 
 #define BENCHMARK_COMMENT		""

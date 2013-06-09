@@ -45,9 +45,9 @@
 #define SIMD_TYPE                 "SSE2"
 #endif
 
-#define FORMAT_LABEL              "raw-sha512-ng"
-#define FORMAT_NAME               "Raw SHA-512"
-#define ALGORITHM_NAME            "128/128 " SIMD_TYPE " 2x"
+#define FORMAT_LABEL              "Raw-SHA512-ng"
+#define FORMAT_NAME               ""
+#define ALGORITHM_NAME            "SHA512 128/128 " SIMD_TYPE " 2x"
 #define FORMAT_TAG                "$SHA512$"
 #define TAG_LENGTH                8
 

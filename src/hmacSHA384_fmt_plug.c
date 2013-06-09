@@ -18,13 +18,13 @@ static int omp_t = 1;
 #define OMP_SCALE               64
 #endif
 
-#define FORMAT_LABEL			"hmac-sha384"
-#define FORMAT_NAME			"HMAC SHA-384"
+#define FORMAT_LABEL			"HMAC-SHA384"
+#define FORMAT_NAME			""
 
 #if ARCH_BITS >= 64
-#define ALGORITHM_NAME			"64/" ARCH_BITS_STR " " SHA2_LIB
+#define ALGORITHM_NAME			"SHA384 64/" ARCH_BITS_STR " " SHA2_LIB
 #else
-#define ALGORITHM_NAME			"32/" ARCH_BITS_STR " " SHA2_LIB
+#define ALGORITHM_NAME			"SHA384 32/" ARCH_BITS_STR " " SHA2_LIB
 #endif
 
 #define BENCHMARK_COMMENT		""

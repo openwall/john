@@ -29,8 +29,8 @@
 #include "common-opencl.h"
 
 #define FORMAT_LABEL		"nt-opencl"
-#define FORMAT_NAME		"NT MD4"
-#define ALGORITHM_NAME		"OpenCL (inefficient, development use only)"
+#define FORMAT_NAME		"NT"
+#define ALGORITHM_NAME		"MD4 OpenCL (inefficient, development use only)"
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	23

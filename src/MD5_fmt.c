@@ -25,7 +25,7 @@
 #endif
 
 #define FORMAT_LABEL			"md5crypt"
-#define FORMAT_NAME			""
+#define FORMAT_NAME			"crypt(3) $1$"
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1
@@ -398,7 +398,7 @@ struct fmt_main fmt_MD5 = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,
-		MD5_ALGORITHM_NAME,
+		"MD5 " MD5_ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,

@@ -51,8 +51,7 @@
 #define REMOVE_TAIL_ADD
 #endif
 
-#define FORMAT_LABEL              "raw-sha256-ng-i"
-#define ALGORITHM_NAME            SHA256_ALGORITHM_NAME
+#define FORMAT_LABEL              "Raw-SHA256-ng-i"
 #define TAG_LENGTH                8
 
 #define NUMKEYS                   MMX_COEF_SHA256
@@ -65,12 +64,14 @@
 #define CIPHERTEXT_LENGTH         64
 #define BINARY_SIZE               32
 #define FORMAT_TAG                "$SHA256$"
-#define FORMAT_NAME               "Raw SHA-256"
+#define FORMAT_NAME               ""
+#define ALGORITHM_NAME            "SHA256 " SHA256_ALGORITHM_NAME
 #else
 #define CIPHERTEXT_LENGTH         56
 #define BINARY_SIZE               28
 #define FORMAT_TAG                "$SHA224$"
-#define FORMAT_NAME               "Raw SHA-224"
+#define FORMAT_NAME               ""
+#define ALGORITHM_NAME            "SHA224 " SHA256_ALGORITHM_NAME
 #endif
 #define BINARY_ALIGN              4
 #define SALT_SIZE                 0

@@ -32,8 +32,8 @@
 #endif
 #include "sse-intrinsics.h"
 
-#define FORMAT_LABEL			"raw-sha384"
-#define FORMAT_NAME				"Raw SHA-384"
+#define FORMAT_LABEL		"Raw-SHA384"
+#define FORMAT_NAME		""
 #define FORMAT_TAG              "$SHA384$"
 
 #define TAG_LENGTH             (sizeof(FORMAT_TAG) - 1)
@@ -335,7 +335,7 @@ struct fmt_main fmt_rawSHA384 = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,
-		ALGORITHM_NAME,
+		"SHA384 " ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,

@@ -27,12 +27,12 @@
 #include "options.h"
 #include "opencl_rawsha512-ng.h"
 
-#define RAW_FORMAT_LABEL		"raw-sha512-ng-opencl"
-#define RAW_FORMAT_NAME			"Raw SHA-512 (pwlen < " PLAINTEXT_TEXT ")"
-#define X_FORMAT_LABEL			"xsha512-ng-opencl"
-#define X_FORMAT_NAME			"Mac OS X 10.7+ salted SHA-512 (pwlen < " PLAINTEXT_TEXT ")"
+#define RAW_FORMAT_LABEL		"Raw-SHA512-ng-opencl"
+#define RAW_FORMAT_NAME			"(pwlen < " PLAINTEXT_TEXT ")"
+#define X_FORMAT_LABEL			"XSHA512-ng-opencl"
+#define X_FORMAT_NAME			"Mac OS X 10.7+ salted (pwlen < " PLAINTEXT_TEXT ")"
 
-#define ALGORITHM_NAME			"OpenCL (inefficient, development use mostly)"
+#define ALGORITHM_NAME			"SHA512 OpenCL (inefficient, development use mostly)"
 
 #define BENCHMARK_COMMENT		""
 #define RAW_BENCHMARK_LENGTH		-1

@@ -45,7 +45,6 @@
 #define MMX_LOAD SHA512_BUF_SIZ
 //#define REMOVE_TAIL_ADD
 
-#define ALGORITHM_NAME            SHA512_ALGORITHM_NAME
 #define TAG_LENGTH                8
 
 #define NUMKEYS                   MMX_COEF_SHA512
@@ -59,14 +58,16 @@
 #define CIPHERTEXT_LENGTH         128
 #define BINARY_SIZE               64
 #define FORMAT_TAG                "$SHA512$"
-#define FORMAT_NAME               "Raw SHA-512"
-#define FORMAT_LABEL              "raw-sha512-ng-i"
+#define FORMAT_NAME               ""
+#define FORMAT_LABEL              "Raw-SHA512-ng-i"
+#define ALGORITHM_NAME            "SHA512 " SHA512_ALGORITHM_NAME
 #else
 #define CIPHERTEXT_LENGTH         96
 #define BINARY_SIZE               48
 #define FORMAT_TAG                "$SHA384$"
-#define FORMAT_NAME               "Raw SHA-384"
-#define FORMAT_LABEL              "raw-sha384-ng-i"
+#define FORMAT_NAME               ""
+#define FORMAT_LABEL              "Raw-SHA384-ng-i"
+#define ALGORITHM_NAME            "SHA384 " SHA512_ALGORITHM_NAME
 #endif
 #define BINARY_ALIGN              8
 #define SALT_SIZE                 0

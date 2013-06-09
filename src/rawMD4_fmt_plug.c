@@ -27,9 +27,9 @@
 #endif
 #include "sse-intrinsics.h"
 
-#define FORMAT_LABEL			"raw-md4"
-#define FORMAT_NAME				"Raw MD4"
-#define ALGORITHM_NAME			MD4_ALGORITHM_NAME
+#define FORMAT_LABEL			"Raw-MD4"
+#define FORMAT_NAME			""
+#define ALGORITHM_NAME			"MD4 " MD4_ALGORITHM_NAME
 
 #ifdef MD4_SSE_PARA
 #  define MMX_COEF				4
@@ -304,7 +304,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	for (index = 0; index < count; ++index)
 	{
 #if MMX_COEF
-		DO_MMX_MD4(saved_key[index], crypt_key[index], total_len[index]); 
+		DO_MMX_MD4(saved_key[index], crypt_key[index], total_len[index]);
 #else
 		MD4_CTX ctx;
 		MD4_Init(&ctx);

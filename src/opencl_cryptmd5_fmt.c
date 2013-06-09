@@ -24,10 +24,10 @@
 #define PLAINTEXT_LENGTH	15 /* max. due to optimizations */
 
 #define FORMAT_LABEL		"md5crypt-opencl"
-#define FORMAT_NAME		"md5crypt"
+#define FORMAT_NAME		"crypt(3) $1$"
 #define KERNEL_NAME		"cryptmd5"
 
-#define ALGORITHM_NAME		"OpenCL"
+#define ALGORITHM_NAME		"MD5 OpenCL"
 
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1

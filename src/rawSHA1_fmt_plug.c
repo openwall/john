@@ -26,9 +26,9 @@
 #endif
 #include "sse-intrinsics.h"
 
-#define FORMAT_LABEL			"raw-sha1"
-#define FORMAT_NAME				"Raw SHA-1"
-#define ALGORITHM_NAME			SHA1_ALGORITHM_NAME
+#define FORMAT_LABEL			"Raw-SHA1"
+#define FORMAT_NAME			""
+#define ALGORITHM_NAME			"SHA1 " SHA1_ALGORITHM_NAME
 
 #ifdef SHA1_SSE_PARA
 #  define MMX_COEF				4

@@ -30,10 +30,10 @@
 #define NBKEYS				MMX_COEF
 #endif
 #include "sse-intrinsics.h"
-#define ALGORITHM_NAME			MD5_ALGORITHM_NAME
+#define ALGORITHM_NAME			"MD5 " MD5_ALGORITHM_NAME
 
 #define FORMAT_LABEL			"hdaa"
-#define FORMAT_NAME			"HTTP Digest access authentication MD5"
+#define FORMAT_NAME			"HTTP Digest access authentication"
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		0

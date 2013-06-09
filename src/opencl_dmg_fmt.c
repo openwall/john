@@ -22,8 +22,8 @@
 #include "common-opencl.h"
 
 #define FORMAT_LABEL		"dmg-opencl"
-#define FORMAT_NAME         "Apple DMG PBKDF2-HMAC-SHA-1 3DES / AES"
-#define ALGORITHM_NAME		"OpenCL"
+#define FORMAT_NAME		"Apple DMG"
+#define ALGORITHM_NAME		"PBKDF2-SHA1 3DES/AES OpenCL"
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1001
 #define	KEYS_PER_CRYPT		1024*9

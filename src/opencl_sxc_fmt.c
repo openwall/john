@@ -24,8 +24,8 @@
 #include "common-opencl.h"
 
 #define FORMAT_LABEL		"sxc-opencl"
-#define FORMAT_NAME		"StarOffice SXC SHA-1 Blowfish"
-#define ALGORITHM_NAME		"OpenCL"
+#define FORMAT_NAME		"StarOffice .sxc"
+#define ALGORITHM_NAME		"PBKDF2-SHA1 Blowfish OpenCL"
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define MIN_KEYS_PER_CRYPT	4096*9

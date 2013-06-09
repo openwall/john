@@ -29,7 +29,8 @@
 #include "johnswap.h"
 
 #define FORMAT_LABEL			"mscash"
-#define FORMAT_NAME			"M$ Cache Hash MD4"
+#define FORMAT_NAME			"M$ Cache Hash"
+#define ALGORITHM_NAME			"MD4 32/" ARCH_BITS_STR
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		0
@@ -54,8 +55,6 @@ static struct fmt_tests tests[] = {
 	{"b945d24866af4b01a6d89b9d932a153c", "test4", {"test4"} },
 	{NULL}
 };
-
-#define ALGORITHM_NAME			"32/" ARCH_BITS_STR
 
 #define BINARY_SIZE			16
 #define BINARY_ALIGN			4

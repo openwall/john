@@ -27,13 +27,13 @@
 #endif
 
 #define FORMAT_LABEL		"blockchain"
-#define FORMAT_NAME		"blockchain My Wallet PBKDF2-HMAC-SHA-1 AES (10 iterations!)"
+#define FORMAT_NAME		"blockchain My Wallet"
 #ifdef MMX_COEF
-#define ALGORITHM_NAME      SHA1_N_STR MMX_TYPE
+#define ALGORITHM_NAME		"PBKDF2-SHA1 AES " SHA1_N_STR MMX_TYPE
 #else
-#define ALGORITHM_NAME		"32/" ARCH_BITS_STR
+#define ALGORITHM_NAME		"PBKDF2-SHA1 AES 32/" ARCH_BITS_STR
 #endif
-#define BENCHMARK_COMMENT	""
+#define BENCHMARK_COMMENT	" (x10)"
 #define BENCHMARK_LENGTH	-1
 #define BINARY_SIZE		0
 #define BINARY_ALIGN		1

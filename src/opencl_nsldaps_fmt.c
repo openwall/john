@@ -22,8 +22,8 @@
 #include "common-opencl.h"
 
 #define FORMAT_LABEL			"ssha-opencl"
-#define FORMAT_NAME			"Netscape LDAP salted SHA-1"
-#define ALGORITHM_NAME			"OpenCL (inefficient, development use mostly)"
+#define FORMAT_NAME			"Netscape LDAP {SSHA}"
+#define ALGORITHM_NAME			"SHA1 OpenCL (inefficient, development use mostly)"
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		0

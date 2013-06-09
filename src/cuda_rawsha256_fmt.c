@@ -21,9 +21,11 @@
 #define MIN_KEYS_PER_CRYPT	KEYS_PER_CRYPT
 #define MAX_KEYS_PER_CRYPT	KEYS_PER_CRYPT
 
+#define FORMAT_NAME		""
+
 #ifdef SHA256
-#define FORMAT_LABEL		"raw-sha256-cuda"
-#define FORMAT_NAME		"Raw SHA-256"
+#define FORMAT_LABEL		"Raw-SHA256-cuda"
+#define ALGORITHM_NAME		"SHA256 CUDA (inefficient, development use mostly)"
 #define CIPHERTEXT_LENGTH	64	///256bit
 #define BINARY_SIZE		32
 #define SHA_HASH		sha256_hash
@@ -36,8 +38,8 @@ static struct fmt_tests sha256_tests[] = {
 };
 #endif
 #ifdef SHA224
-#define FORMAT_LABEL		"raw-sha224-cuda"
-#define FORMAT_NAME		"Raw SHA-224"
+#define FORMAT_LABEL		"Raw-SHA224-cuda"
+#define ALGORITHM_NAME		"SHA224 CUDA (inefficient, development use mostly)"
 #define CIPHERTEXT_LENGTH	56	///224bit
 #define BINARY_SIZE		32
 #define SHA_HASH 		sha224_hash
@@ -49,7 +51,6 @@ static struct fmt_tests sha224_tests[] = {
 	{NULL}
 };
 #endif
-#define ALGORITHM_NAME		"CUDA (inefficient, development use mostly)"
 
 extern void gpu_rawsha256(sha256_password *, SHA_HASH *, int);
 extern void gpu_rawsha224(sha256_password *, SHA_HASH *, int);

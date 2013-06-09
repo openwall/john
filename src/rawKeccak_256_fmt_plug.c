@@ -28,7 +28,7 @@
 #define TAG_LENGTH		11
 
 #define FORMAT_LABEL		"raw-keccak-256"
-#define FORMAT_NAME		"Keccak 256"
+#define FORMAT_NAME		""
 #if defined(__AVX__)
 #define ALGORITHM_NAME			"AVX"
 #elif defined(__XOP__)
@@ -252,7 +252,7 @@ struct fmt_main fmt_rawKeccak_256 = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,
-		ALGORITHM_NAME,
+		"Keccak 256 " ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,

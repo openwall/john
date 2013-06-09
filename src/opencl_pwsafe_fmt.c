@@ -28,8 +28,8 @@
 #define MIN(a,b) (((a)<(b))?(a):(b))
 
 #define FORMAT_LABEL            "pwsafe-opencl"
-#define FORMAT_NAME             "Password Safe SHA-256"
-#define ALGORITHM_NAME          "OpenCL"
+#define FORMAT_NAME             "Password Safe"
+#define ALGORITHM_NAME          "SHA256 OpenCL"
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        0
 #define PLAINTEXT_LENGTH        87

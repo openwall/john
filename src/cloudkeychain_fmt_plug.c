@@ -37,8 +37,8 @@
 #endif
 
 #define FORMAT_LABEL		"cloudkeychain"
-#define FORMAT_NAME		"1Password Cloud Keychain PBKDF2-HMAC-SHA-512"
-#define ALGORITHM_NAME		"32/" ARCH_BITS_STR
+#define FORMAT_NAME		"1Password Cloud Keychain"
+#define ALGORITHM_NAME		"PBKDF2-SHA512 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define HASH_LENGTH		64

@@ -76,8 +76,8 @@
 #include "config.h"
 
 #define FORMAT_LABEL		"rar"
-#define FORMAT_NAME		"RAR3 SHA-1 AES"
-#define ALGORITHM_NAME		"32/" ARCH_BITS_STR
+#define FORMAT_NAME		"RAR3"
+#define ALGORITHM_NAME		"SHA1 AES 32/" ARCH_BITS_STR
 
 #ifdef DEBUG
 #define BENCHMARK_COMMENT	" (1-16 characters)"

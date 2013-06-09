@@ -31,8 +31,8 @@
 #include <omp.h>
 #endif
 
-#define FORMAT_LABEL            "raw-sha224"
-#define FORMAT_NAME             "Raw SHA-224"
+#define FORMAT_LABEL            "Raw-SHA224"
+#define FORMAT_NAME             ""
 #define FORMAT_TAG              "$SHA224$"
 #define TAG_LENGTH              8
 
@@ -311,7 +311,7 @@ struct fmt_main fmt_rawSHA224 = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,
-		ALGORITHM_NAME,
+		"SHA224 " ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,

@@ -28,9 +28,9 @@
 #include "sha.h"
 
 #define FORMAT_LABEL			"mssql"
-#define FORMAT_NAME			"MS SQL SHA-1"
+#define FORMAT_NAME			"MS SQL"
 
-#define ALGORITHM_NAME			SHA1_ALGORITHM_NAME
+#define ALGORITHM_NAME			"SHA1 " SHA1_ALGORITHM_NAME
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		0

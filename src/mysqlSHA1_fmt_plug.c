@@ -43,9 +43,9 @@
 #include "sha.h"
 
 #define FORMAT_LABEL			"mysql-sha1"
-#define FORMAT_NAME			"MySQL 4.1 double-SHA-1"
+#define FORMAT_NAME			"MySQL 4.1"
 
-#define ALGORITHM_NAME			SHA1_ALGORITHM_NAME
+#define ALGORITHM_NAME			"SHA1 " SHA1_ALGORITHM_NAME
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1

@@ -25,7 +25,7 @@
 #endif
 
 #define FORMAT_LABEL			"sha512crypt"
-#define FORMAT_NAME			"sha512crypt"
+#define FORMAT_NAME			"crypt(3) $6$"
 #if ARCH_BITS >= 64
 #define ALGORITHM_NAME			"64/" ARCH_BITS_STR " " SHA2_LIB
 #else
@@ -330,7 +330,7 @@ struct fmt_main fmt_cryptsha512 = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,
-		ALGORITHM_NAME,
+		"SHA512 " ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,

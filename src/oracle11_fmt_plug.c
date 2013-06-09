@@ -68,9 +68,9 @@
 #include <ctype.h>
 
 #define FORMAT_LABEL			"oracle11"
-#define FORMAT_NAME			"Oracle 11g SHA-1"
+#define FORMAT_NAME			"Oracle 11g"
 
-#define ALGORITHM_NAME			SHA1_ALGORITHM_NAME
+#define ALGORITHM_NAME			"SHA1 " SHA1_ALGORITHM_NAME
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		0

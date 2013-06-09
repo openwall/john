@@ -15,9 +15,9 @@
 #include "loader.h"
 
 #define FORMAT_LABEL		"mscash2-cuda"
-#define FORMAT_NAME		"M$ Cache Hash 2 (DCC2) PBKDF2-HMAC-SHA-1"
+#define FORMAT_NAME		"M$ Cache Hash 2 (DCC2)"
 #define MAX_CIPHERTEXT_LENGTH    (8+5+19+32)
-#define ALGORITHM_NAME		"CUDA"
+#define ALGORITHM_NAME		"PBKDF2-SHA1 CUDA"
 
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1

@@ -25,9 +25,9 @@
 #endif
 #include "sse-intrinsics.h"
 
-#define FORMAT_LABEL			"raw-md5"
-#define FORMAT_NAME				"Raw MD5"
-#define ALGORITHM_NAME			MD5_ALGORITHM_NAME
+#define FORMAT_LABEL			"Raw-MD5"
+#define FORMAT_NAME			""
+#define ALGORITHM_NAME			"MD5 " MD5_ALGORITHM_NAME
 
 #ifdef MD5_SSE_PARA
 #  define MMX_COEF				4

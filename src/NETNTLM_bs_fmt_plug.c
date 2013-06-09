@@ -62,8 +62,8 @@
 #endif
 
 #define FORMAT_LABEL         "netntlm-naive"
-#define FORMAT_NAME          "NTLMv1 C/R MD4 DES (ESS MD5)"
-#define ALGORITHM_NAME       DES_BS_ALGORITHM_NAME " naive"
+#define FORMAT_NAME          "NTLMv1 C/R"
+#define ALGORITHM_NAME       "MD4 DES (ESS MD5) " DES_BS_ALGORITHM_NAME " naive"
 #define BENCHMARK_COMMENT    ""
 #define BENCHMARK_LENGTH     0
 #define PLAINTEXT_LENGTH     125

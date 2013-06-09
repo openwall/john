@@ -84,8 +84,8 @@
 #include "config.h"
 
 #define FORMAT_LABEL		"rar-opencl"
-#define FORMAT_NAME		"RAR3 SHA-1 AES"
-#define ALGORITHM_NAME		"OpenCL"
+#define FORMAT_NAME		"RAR3"
+#define ALGORITHM_NAME		"SHA1 AES OpenCL"
 #ifdef DEBUG
 #define BENCHMARK_COMMENT	" (1-16 characters)"
 #else

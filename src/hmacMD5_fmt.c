@@ -15,8 +15,8 @@
 #include "md5.h"
 #include "aligned.h"
 
-#define FORMAT_LABEL			"hmac-md5"
-#define FORMAT_NAME			"HMAC MD5"
+#define FORMAT_LABEL			"HMAC-MD5"
+#define FORMAT_NAME			""
 
 #ifdef MD5_SSE_PARA
 #define MD5_N				(MD5_SSE_PARA*MMX_COEF)
@@ -25,7 +25,7 @@
 #endif
 #include "sse-intrinsics.h"
 
-#define ALGORITHM_NAME			MD5_ALGORITHM_NAME
+#define ALGORITHM_NAME			"MD5 " MD5_ALGORITHM_NAME
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		0

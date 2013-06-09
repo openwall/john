@@ -34,8 +34,8 @@
 #endif
 #include "sse-intrinsics.h"
 
-#define FORMAT_LABEL            "raw-sha256"
-#define FORMAT_NAME             "Raw SHA-256"
+#define FORMAT_LABEL            "Raw-SHA256"
+#define FORMAT_NAME             ""
 #define HEX_TAG                 "$SHA256$"
 #define CISCO_TAG               "$cisco4$"
 
@@ -386,7 +386,7 @@ struct fmt_main fmt_rawSHA256 = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,
-		ALGORITHM_NAME,
+		"SHA256 " ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,

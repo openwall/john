@@ -29,8 +29,8 @@
 #include "common-opencl.h"
 #include "options.h"
 #define FORMAT_LABEL		"blockchain-opencl"
-#define FORMAT_NAME		"blockchain My Wallet PBKDF2-HMAC-SHA-1 AES"
-#define ALGORITHM_NAME		"OpenCL"
+#define FORMAT_NAME		"blockchain My Wallet"
+#define ALGORITHM_NAME		"PBKDF2-SHA1 AES OpenCL"
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define KEYS_PER_CRYPT		40960*9

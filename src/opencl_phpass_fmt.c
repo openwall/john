@@ -17,9 +17,9 @@
 #define uint8_t                 unsigned char
 
 #define FORMAT_LABEL            "phpass-opencl"
-#define FORMAT_NAME             "phpass MD5"
+#define FORMAT_NAME             ""
 
-#define ALGORITHM_NAME          "OpenCL"
+#define ALGORITHM_NAME          "MD5 OpenCL"
 
 #define BENCHMARK_COMMENT	" ($P$9 lengths 0 to 15)"
 #define BENCHMARK_LENGTH        -1

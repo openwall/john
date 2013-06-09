@@ -20,8 +20,8 @@
 #include "common-opencl.h"
 
 #define FORMAT_LABEL		"keychain-opencl"
-#define FORMAT_NAME		"Mac OS X Keychain PBKDF2-HMAC-SHA-1 3DES"
-#define ALGORITHM_NAME		"OpenCL"
+#define FORMAT_NAME		"Mac OS X Keychain"
+#define ALGORITHM_NAME		"PBKDF2-SHA1 3DES OpenCL"
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define MIN_KEYS_PER_CRYPT	1024*9

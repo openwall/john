@@ -54,8 +54,8 @@
 #endif
 
 #define FORMAT_LABEL         "mschapv2-naive"
-#define FORMAT_NAME          "MSCHAPv2 C/R MD4 DES"
-#define ALGORITHM_NAME       DES_BS_ALGORITHM_NAME " naive"
+#define FORMAT_NAME          "MSCHAPv2 C/R"
+#define ALGORITHM_NAME       "MD4 DES " DES_BS_ALGORITHM_NAME " naive"
 #define BENCHMARK_COMMENT    ""
 #define BENCHMARK_LENGTH     0
 #define PLAINTEXT_LENGTH     125 /* lmcons.h - PWLEN (256) ? 127 ? */

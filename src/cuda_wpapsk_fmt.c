@@ -12,9 +12,9 @@
 #include "cuda_wpapsk.h"
 #include "cuda_common.h"
 
-#define FORMAT_LABEL		"wpapsk-cuda"
-#define FORMAT_NAME		"WPA-PSK PBKDF2-HMAC-SHA-1"
-#define ALGORITHM_NAME		"CUDA"
+#define FORMAT_LABEL		"WPAPSK-cuda"
+#define FORMAT_NAME		""
+#define ALGORITHM_NAME		"PBKDF2-SHA1 CUDA"
 
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1

@@ -30,8 +30,8 @@ static int omp_t = 1;
 #include "options.h"
 
 #define FORMAT_LABEL            "postgres"
-#define FORMAT_NAME             "PostgreSQL MD5 challenge-response"
-#define ALGORITHM_NAME          "32/" ARCH_BITS_STR
+#define FORMAT_NAME             "PostgreSQL C/R"
+#define ALGORITHM_NAME          "MD5 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        -1
 #define PLAINTEXT_LENGTH        32

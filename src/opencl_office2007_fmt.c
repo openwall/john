@@ -34,8 +34,8 @@
 #define HASH_LOOPS		128 /* Lower figure gives less X hogging */
 
 #define FORMAT_LABEL		"office2007-opencl"
-#define FORMAT_NAME		"Office 2007 SHA-1 AES"
-#define ALGORITHM_NAME		"OpenCL"
+#define FORMAT_NAME		"Office 2007"
+#define ALGORITHM_NAME		"SHA1 AES OpenCL"
 #define BENCHMARK_COMMENT	" (50,000 iterations)"
 #define BENCHMARK_LENGTH	-1
 #define BINARY_SIZE		0

@@ -40,11 +40,11 @@ static int omp_t = 1;
 #define KEY_LENGTH(mode)        (8 * ((mode) & 3) + 8)
 #define SALT_LENGTH(mode)       (4 * ((mode) & 3) + 4)
 #define FORMAT_LABEL        "zip"
-#define FORMAT_NAME         "WinZip PBKDF2-HMAC-SHA-1"
+#define FORMAT_NAME         "WinZip"
 #ifdef MMX_COEF
-#define ALGORITHM_NAME      SHA1_N_STR MMX_TYPE
+#define ALGORITHM_NAME      "PBKDF2-SHA1 " SHA1_N_STR MMX_TYPE
 #else
-#define ALGORITHM_NAME      "32/" ARCH_BITS_STR
+#define ALGORITHM_NAME      "PBKDF2-SHA1 32/" ARCH_BITS_STR
 #endif
 #define BENCHMARK_COMMENT   ""
 #define BENCHMARK_LENGTH    -1

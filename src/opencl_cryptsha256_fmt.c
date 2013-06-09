@@ -20,8 +20,8 @@
 #include "opencl_cryptsha256.h"
 
 #define FORMAT_LABEL			"sha256crypt-opencl"
-#define FORMAT_NAME			"sha256crypt"
-#define ALGORITHM_NAME			"OpenCL"
+#define FORMAT_NAME			"crypt(3) $5$"
+#define ALGORITHM_NAME			"SHA256 OpenCL"
 
 #define BENCHMARK_COMMENT		" (rounds=5000)"
 #define BENCHMARK_LENGTH		-1

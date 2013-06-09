@@ -30,9 +30,9 @@ static unsigned int omp_t = 1;
 #include "johnswap.h"
 
 #define FORMAT_LABEL			"xsha"
-#define FORMAT_NAME			"Mac OS X 10.4 - 10.6 salted SHA-1"
+#define FORMAT_NAME			"Mac OS X 10.4 - 10.6 salted"
 
-#define ALGORITHM_NAME			SHA1_ALGORITHM_NAME
+#define ALGORITHM_NAME			"SHA1 " SHA1_ALGORITHM_NAME
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		0

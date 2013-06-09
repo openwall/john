@@ -15,8 +15,8 @@
 #include "unicode.h"
 
 #define FORMAT_LABEL		"mscash-cuda"
-#define FORMAT_NAME		"M$ Cache Hash MD4"
-#define ALGORITHM_NAME		"CUDA (inefficient, development use only)"
+#define FORMAT_NAME		"M$ Cache Hash"
+#define ALGORITHM_NAME		"MD4 CUDA (inefficient, development use only)"
 #define MAX_CIPHERTEXT_LENGTH	(2 + 19*3 + 1 + 32)
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	0

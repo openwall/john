@@ -34,7 +34,7 @@
 #define DO_MMX_MD5(in, out)		mdfivemmx_nosizeupdate(out, (unsigned char*)in, 1)
 #endif
 #include "sse-intrinsics.h"
-#define ALGORITHM_NAME			MD5_ALGORITHM_NAME
+#define ALGORITHM_NAME			"MD5 " MD5_ALGORITHM_NAME
 
 #if defined(_OPENMP) && (defined (MD5_SSE_PARA) || !defined(MMX_COEF))
 #include <omp.h>

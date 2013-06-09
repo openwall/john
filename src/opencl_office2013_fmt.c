@@ -34,8 +34,8 @@
 #define HASH_LOOPS		64 /* Lower figure gives less X hogging */
 
 #define FORMAT_LABEL		"office2013-opencl"
-#define FORMAT_NAME		"Office 2013 SHA-512 AES"
-#define ALGORITHM_NAME		"OpenCL"
+#define FORMAT_NAME		"Office 2013"
+#define ALGORITHM_NAME		"SHA512 AES OpenCL"
 #define BENCHMARK_COMMENT	" (100,000 iterations)"
 #define BENCHMARK_LENGTH	-1
 #define BINARY_SIZE		0

@@ -28,19 +28,19 @@
 #define PBKDF2_HMAC_SHA512_ALSO_INCLUDE_CTX
 #include "pbkdf2_hmac_sha512.h"
 
-#define FORMAT_LABEL            "pbkdf2-hmac-sha512"
+#define FORMAT_LABEL            "PBKDF2-HMAC-SHA512"
 #define FORMAT_TAG              "$pbkdf2-hmac-sha512$"
 #define FORMAT_TAG2             "$ml$"
 #define FORMAT_TAG3             "grub.pbkdf2.sha512."
-#define FORMAT_NAME             "PBKDF2-HMAC-SHA512 GRUB2 / OS X 10.8"
+#define FORMAT_NAME             "GRUB2 / OS X 10.8"
 
 #ifdef MMX_COEF_SHA512
-#define ALGORITHM_NAME			SHA512_ALGORITHM_NAME
+#define ALGORITHM_NAME		"PBKDF2-SHA512 " SHA512_ALGORITHM_NAME
 #else
 #if ARCH_BITS >= 64
-#define ALGORITHM_NAME          "64/" ARCH_BITS_STR " " SHA2_LIB
+#define ALGORITHM_NAME          "PBKDF2-SHA512 64/" ARCH_BITS_STR " " SHA2_LIB
 #else
-#define ALGORITHM_NAME          "32/" ARCH_BITS_STR " " SHA2_LIB
+#define ALGORITHM_NAME          "PBKDF2-SHA512 32/" ARCH_BITS_STR " " SHA2_LIB
 #endif
 #endif
 

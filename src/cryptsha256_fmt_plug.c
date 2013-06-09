@@ -142,7 +142,7 @@ void main() {
 #endif
 
 #define FORMAT_LABEL			"sha256crypt"
-#define FORMAT_NAME				"sha256crypt"
+#define FORMAT_NAME			"crypt(3) $5$"
 #ifdef MMX_COEF_SHA256
 #define ALGORITHM_NAME          SHA256_ALGORITHM_NAME
 #else
@@ -1007,7 +1007,7 @@ struct fmt_main fmt_cryptsha256 = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,
-		ALGORITHM_NAME,
+		"SHA256" ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,

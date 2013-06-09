@@ -12,9 +12,9 @@
 #include "cuda_common.h"
 
 #define FORMAT_LABEL		"phpass-cuda"
-#define FORMAT_NAME		"phpass MD5"
+#define FORMAT_NAME		""
 
-#define ALGORITHM_NAME		"CUDA"
+#define ALGORITHM_NAME		"MD5 CUDA"
 
 #define BENCHMARK_COMMENT	" ($P$9 lengths 0 to 15)"
 

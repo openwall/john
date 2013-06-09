@@ -110,10 +110,10 @@ extern volatile int bench_running;
 #define CHAP_TOTAL_LENGTH       13 + CHAP_USERNAME_LENGTH + CHAP_CHALLENGE_LENGTH + CIPHERTEXT_LENGTH
 
 #define NTLM_FORMAT_LABEL       "netntlm"
-#define NTLM_FORMAT_NAME        "NTLMv1 C/R MD4 DES (ESS MD5)"
+#define NTLM_FORMAT_NAME        "NTLMv1 C/R"
 #define NTLM_TOTAL_LENGTH       (10 + 2 * 2 * SALT_SIZE + CIPHERTEXT_LENGTH)
 
-#define ALGORITHM_NAME          MD4_ALGORITHM_NAME
+#define ALGORITHM_NAME          "MD4 DES (ESS MD5) " MD4_ALGORITHM_NAME
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        -1000
 #define FULL_BINARY_SIZE        (2 + 8 * 3)

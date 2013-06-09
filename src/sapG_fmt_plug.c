@@ -36,7 +36,7 @@
 #define FORMAT_LABEL			"sapg"
 #define FORMAT_NAME			"SAP CODVN F/G (PASSCODE)"
 
-#define ALGORITHM_NAME			SHA1_ALGORITHM_NAME
+#define ALGORITHM_NAME			"SHA1 " SHA1_ALGORITHM_NAME
 
 static unsigned int omp_t = 1;
 #if defined(_OPENMP) && (defined (SHA1_SSE_PARA) || !defined(MMX_COEF))

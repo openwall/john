@@ -25,8 +25,8 @@
 #include "cuda_common.h"
 
 #define FORMAT_LABEL			"xsha512-cuda"
-#define FORMAT_NAME			"Mac OS X 10.7+ salted SHA-512"
-#define ALGORITHM_NAME			"CUDA (efficient at \"many salts\" only)"
+#define FORMAT_NAME			"Mac OS X 10.7+"
+#define ALGORITHM_NAME			"SHA512 CUDA (efficient at \"many salts\" only)"
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		0

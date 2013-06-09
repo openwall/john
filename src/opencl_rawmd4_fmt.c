@@ -21,9 +21,9 @@
 
 #define PLAINTEXT_LENGTH    55 /* Max. is 55 with current kernel */
 #define BUFSIZE             ((PLAINTEXT_LENGTH+3)/4*4)
-#define FORMAT_LABEL        "raw-md4-opencl"
-#define FORMAT_NAME         "Raw MD4"
-#define ALGORITHM_NAME      "OpenCL (inefficient, development use only)"
+#define FORMAT_LABEL        "Raw-MD4-opencl"
+#define FORMAT_NAME         ""
+#define ALGORITHM_NAME      "MD4 OpenCL (inefficient, development use only)"
 #define BENCHMARK_COMMENT   ""
 #define BENCHMARK_LENGTH    -1
 #define CIPHERTEXT_LENGTH   32

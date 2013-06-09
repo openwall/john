@@ -28,11 +28,11 @@
 #endif
 
 #define FORMAT_LABEL		"agilekeychain"
-#define FORMAT_NAME		"1Password Agile Keychain PBKDF2-HMAC-SHA-1 AES"
+#define FORMAT_NAME		"1Password Agile Keychain"
 #ifdef MMX_COEF
-#define ALGORITHM_NAME      SHA1_N_STR MMX_TYPE
+#define ALGORITHM_NAME		"PBKDF2-SHA1 AES " SHA1_N_STR MMX_TYPE
 #else
-#define ALGORITHM_NAME		"32/" ARCH_BITS_STR
+#define ALGORITHM_NAME		"PBKDF2-SHA1 AES 32/" ARCH_BITS_STR
 #endif
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1

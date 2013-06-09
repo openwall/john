@@ -38,8 +38,8 @@
 #define SQRT_3 0x6ed9eba1
 
 
-#define FORMAT_LABEL			"nt"
-#define FORMAT_NAME			"NT MD4"
+#define FORMAT_LABEL			"NT"
+#define FORMAT_NAME			""
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1
@@ -971,7 +971,7 @@ struct fmt_main fmt_NT = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,
-		ALGORITHM_NAME,
+		"MD4 " ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,

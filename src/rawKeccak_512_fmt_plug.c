@@ -22,7 +22,7 @@
 #endif
 
 #define FORMAT_LABEL		"raw-keccak"
-#define FORMAT_NAME		"Keccak 512"
+#define FORMAT_NAME		""
 #if defined(__AVX__)
 #define ALGORITHM_NAME			"AVX"
 #elif defined(__XOP__)
@@ -248,7 +248,7 @@ struct fmt_main fmt_rawKeccak = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,
-		ALGORITHM_NAME,
+		"Keccak 512 " ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,

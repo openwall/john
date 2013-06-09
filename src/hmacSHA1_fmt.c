@@ -16,8 +16,8 @@
 #include "johnswap.h"
 #include "sse-intrinsics.h"
 
-#define FORMAT_LABEL			"hmac-sha1"
-#define FORMAT_NAME			"HMAC SHA-1"
+#define FORMAT_LABEL			"HMAC-SHA1"
+#define FORMAT_NAME			""
 
 #ifdef SHA1_SSE_PARA
 #define SHA1_N				(SHA1_SSE_PARA*MMX_COEF)
@@ -25,7 +25,7 @@
 #define SHA1_N				MMX_COEF
 #endif
 
-#define ALGORITHM_NAME			SHA1_ALGORITHM_NAME
+#define ALGORITHM_NAME			"SHA1 " SHA1_ALGORITHM_NAME
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		0

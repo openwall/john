@@ -22,8 +22,8 @@
 #include "common-opencl.h"
 
 #define FORMAT_LABEL		"strip-opencl"
-#define FORMAT_NAME		"STRIP Password Manager PBKDF2-SHA1"
-#define ALGORITHM_NAME		"OpenCL"
+#define FORMAT_NAME		"STRIP Password Manager"
+#define ALGORITHM_NAME		"PBKDF2-SHA1 OpenCL"
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define MIN_KEYS_PER_CRYPT	1024*9

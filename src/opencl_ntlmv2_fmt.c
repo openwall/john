@@ -32,8 +32,8 @@
 #include "loader.h"
 
 #define FORMAT_LABEL            "ntlmv2-opencl"
-#define FORMAT_NAME             "NTLMv2 C/R MD4 HMAC-MD5"
-#define ALGORITHM_NAME          "OpenCL"
+#define FORMAT_NAME             "NTLMv2 C/R"
+#define ALGORITHM_NAME          "MD4 HMAC-MD5 OpenCL"
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        0
 #define PLAINTEXT_LENGTH        27 /* Bumped 3x for UTF-8 */
