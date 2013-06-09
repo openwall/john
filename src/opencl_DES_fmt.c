@@ -64,9 +64,6 @@ static void init(struct fmt_main *pFmt)
 		global_work_size = atoi(conf);
 
 	DES_bs_select_device(pFmt);
-
-	atexit(done);
-
 }
 
 static int valid(char *ciphertext, struct fmt_main *pFmt)
@@ -214,7 +211,7 @@ struct fmt_main fmt_opencl_DES = {
 		tests
 	}, {
 		init,
-		fmt_default_done,
+		done,
 		opencl_DES_reset,
 		fmt_default_prepare,
 		valid,
