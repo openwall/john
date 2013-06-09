@@ -717,7 +717,7 @@ struct fmt_main fmt_sha1_ng = {
 #else
     "SSE2"
 #endif
-    " intrinsics 4x",
+    " 4x",
         .benchmark_comment  = "",
         .benchmark_length   = -1,
         .plaintext_length   = sizeof(__m128i) - 1,

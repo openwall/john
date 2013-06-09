@@ -47,7 +47,7 @@
 
 #define FORMAT_LABEL              "raw-sha512-ng"
 #define FORMAT_NAME               "Raw SHA-512"
-#define ALGORITHM_NAME            "128/128 " SIMD_TYPE " intrinsics 2x"
+#define ALGORITHM_NAME            "128/128 " SIMD_TYPE " 2x"
 #define FORMAT_TAG                "$SHA512$"
 #define TAG_LENGTH                8
 

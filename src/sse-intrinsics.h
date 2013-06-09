@@ -17,13 +17,13 @@
 #define STRINGIZE(s) STRINGIZE2(s)
 
 #if defined(__XOP__)
-#define SSE_type			"XOP intrinsics"
+#define SSE_type			"XOP"
 #elif defined(__AVX__)
-#define SSE_type			"AVX intrinsics"
+#define SSE_type			"AVX"
 #elif defined(MMX_COEF) && MMX_COEF == 2
 #define SSE_type			"MMX"
 #else
-#define SSE_type			"SSE2 intrinsics"
+#define SSE_type			"SSE2"
 #endif
 
 #ifdef MD5_SSE_PARA
@@ -98,14 +98,14 @@ void SSESHA1body(__m128i* data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, u
 #if MMX_COEF==4
 
 #ifdef MMX_COEF_SHA256
-#define SHA256_ALGORITHM_NAME	"128/128 " SIMD_TYPE " intrinsics " STRINGIZE(MMX_COEF_SHA256)"x"
+#define SHA256_ALGORITHM_NAME	"128/128 " SIMD_TYPE " " STRINGIZE(MMX_COEF_SHA256)"x"
 void SSESHA256body(__m128i* data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, unsigned SSEi_flags);
 #define SHA256_BUF_SIZ 16
 #define SHA256_SSE_PARA 1
 #endif
 
 #ifdef MMX_COEF_SHA512
-#define SHA512_ALGORITHM_NAME	"128/128 " SIMD_TYPE " intrinsics " STRINGIZE(MMX_COEF_SHA512)"x"
+#define SHA512_ALGORITHM_NAME	"128/128 " SIMD_TYPE " " STRINGIZE(MMX_COEF_SHA512)"x"
 void SSESHA512body(__m128i* data, ARCH_WORD_64 *out, ARCH_WORD_64 *reload_state, unsigned SSEi_flags);
 // ????  (16 long longs).
 #define SHA512_BUF_SIZ 16
