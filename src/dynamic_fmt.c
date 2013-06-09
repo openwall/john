@@ -6761,7 +6761,8 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 	pFmt->methods.salt = salt;
 	pFmt->methods.set_salt = set_salt;
 	pFmt->methods.salt_hash = salt_hash;
-	pFmt->params.format_name = str_alloc_copy(Setup->szFORMAT_NAME);
+	//pFmt->params.format_name = str_alloc_copy(Setup->szFORMAT_NAME);
+	pFmt->params.format_name = "";
 	pFmt->params.benchmark_length = 0;		// NOTE 0 'assumes' salted. If unsalted, we set back to -1
 	pFmt->params.salt_size = 0;
 	pFmt->params.min_keys_per_crypt = 1;
@@ -7261,6 +7262,14 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 	else
 		dynamic_itoa16 = itoa16;
 
+	{
+		char s[512], *cp;
+		cp = Setup->szFORMAT_NAME;
+		cp = strchr(Setup->szFORMAT_NAME, ' ');
+		++cp;
+		sprintf(s, "%s %s", cp, pFmt->params.algorithm_name);
+		pFmt->params.algorithm_name = str_alloc_copy(s);
+	}
 	return 1;
 }
 
