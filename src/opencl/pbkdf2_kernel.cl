@@ -646,6 +646,12 @@ void pbkdf2_preprocess(	const __global unsigned int *pass_global,
 		out[3] = hmac_sha1_out[i++] ;
 		out[4] = hmac_sha1_out[i] ;
 
+		GET_WORD_32_BE(out[0], out, 0);
+		GET_WORD_32_BE(out[1], out, 1);
+		GET_WORD_32_BE(out[2], out, 2);
+		GET_WORD_32_BE(out[3], out, 3);
+		GET_WORD_32_BE(out[4], out, 4);
+
 		tmp[id].buf[0] = out[0];
 		tmp[id].buf[1] = out[1];
 		tmp[id].buf[2] = out[2];

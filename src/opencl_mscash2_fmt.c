@@ -32,9 +32,9 @@
 
 
 #define FORMAT_LABEL	           "mscash2-opencl"
-#define FORMAT_NAME		   "M$ Cache Hash 2 (DCC2)"
+#define FORMAT_NAME		   "M$ Cache Hash 2 (DCC2) PBKDF2-HMAC-SHA-1"
 #define KERNEL_NAME		   "PBKDF2"
-#define ALGORITHM_NAME		   "PBKDF2-SHA1 OpenCL"
+#define ALGORITHM_NAME		   "OpenCL"
 #define BENCHMARK_COMMENT	   ""
 #define BENCHMARK_LENGTH	  -1
 #define MSCASH2_PREFIX            "$DCC2$"
@@ -48,7 +48,6 @@
 
 # define SWAP(n) \
     (((n) << 24) | (((n) & 0xff00) << 8) | (((n) >> 8) & 0xff00) | ((n) >> 24))
-
 
 typedef struct {
 	unsigned int 	length ;
@@ -136,14 +135,14 @@ static void DCC(unsigned char *salt, unsigned int username_len, unsigned int *dc
 		// generate MD4 hash of the password (NT hash)
 		MD4_Init(&ctx);
 		MD4_Update(&ctx, buffer, password_len<<1);
-		MD4_Final(nt_hash, &ctx);
+		MD4_Final((unsigned char*)nt_hash, &ctx);
 
 		// concatenate NT hash and the username (salt)
 		memcpy((unsigned char *)nt_hash + 16, salt, username_len << 1) ;
 
 		MD4_Init(&ctx);
 		MD4_Update(&ctx, nt_hash, (username_len<<1)+16);
-		MD4_Final((dcc_hash+4*id), &ctx);
+		MD4_Final((unsigned char*)(dcc_hash+4*id), &ctx);
 	}
 }
 
@@ -219,9 +218,9 @@ static  char *get_key(int index) {
 }
 
 static void pbkdf2_iter0(unsigned int *input_dcc_hash,unsigned char *salt_buffer, unsigned int salt_len, int count){
-	SHA_CTX ctx1, ctx2, tmp_ctx1, tmp_ctx2;
+	SHA_CTX ctx1, ctx2;
 	unsigned int ipad[SHA_LBLOCK], opad[SHA_LBLOCK];
-	unsigned int tmp_hash[SHA_DIGEST_LENGTH/4], i, k,tmp;
+	unsigned int tmp_hash[SHA_DIGEST_LENGTH/4], i, k;
 
 	memset(&ipad[4], 0x36, SHA_CBLOCK-16);
 	memset(&opad[4], 0x5C, SHA_CBLOCK-16);
@@ -248,14 +247,7 @@ static void pbkdf2_iter0(unsigned int *input_dcc_hash,unsigned char *salt_buffer
 		SHA1_Final((unsigned char*)tmp_hash,&ctx1);
 
 		SHA1_Update(&ctx2, (unsigned char*)tmp_hash, SHA_DIGEST_LENGTH);
-		SHA1_Final((unsigned char*)tmp_hash, &ctx2);
-
-		i = k * 5;
-		hmac_sha1_out[i++] = ctx2.h0;
-		hmac_sha1_out[i++] = ctx2.h1;
-		hmac_sha1_out[i++] = ctx2.h2;
-		hmac_sha1_out[i++] = ctx2.h3;
-		hmac_sha1_out[i++] = ctx2.h4;
+		SHA1_Final((unsigned char*)(hmac_sha1_out + 5 * k), &ctx2);
 	}
 }
 
@@ -284,7 +276,7 @@ static int crypt_all(int *pcount, struct db_salt *salt) {
 	DCC(salt_unicode, currentsalt.length, dcc_hash_host, count) ;
 
 	if(currentsalt.length > 22)
-		pbkdf2_iter0(dcc_hash_host, salt_host, (currentsalt.length << 1) , count);
+		pbkdf2_iter0(dcc_hash_host,(unsigned char*)salt_host, (currentsalt.length << 1) , count);
 
 #ifdef _DEBUG
 	gettimeofday(&startg, NULL) ;

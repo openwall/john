@@ -246,6 +246,14 @@ void warning() {
 		if (globalObj[ocl_device_list[i]].exec_time_inv / total_exec_time_inv < 0.01)
 			fprintf(stderr, "WARNING: Device %d is too slow and might cause degradation in performance.\n", ocl_device_list[i]);
 
+	total_exec_time_inv = globalObj[ocl_device_list[0]].exec_time_inv;
+	for (i = 1; i < active_dev_ctr; ++i) {
+		if(total_exec_time_inv < globalObj[ocl_device_list[i]].exec_time_inv)
+			fprintf(stderr, "WARNING: Devices are NOT arranged in DECREASING order of performance and might cause degradation in performance.\n");
+		total_exec_time_inv = globalObj[ocl_device_list[i]].exec_time_inv;
+	}
+
+
 }
 
 void pbkdf2_divide_work(cl_uint *pass_api, cl_uint *salt_api, cl_uint saltlen_api, cl_uint *hash_out_api, cl_uint *hmac_sha1_api, cl_uint num) {
