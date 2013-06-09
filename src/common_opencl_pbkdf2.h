@@ -24,13 +24,14 @@
  */
 #define ITERATION_COUNT_PER_CALL  	1024
 
-#define MAX_SALT_LENGTH           	19
+#define MAX_SALT_LENGTH           	128
 
 typedef struct {
 	cl_mem pass_gpu ;
 	cl_mem salt_gpu ;
 	cl_mem hash_out_gpu ;
 	cl_mem temp_buf_gpu ;
+	cl_mem hmac_sha1_gpu ;
 } gpu_mem_buffer ;
 
 
@@ -55,7 +56,7 @@ extern size_t select_default_device(struct fmt_main *) ;
  *                        Second set of four contains encrypted hash for second input key and so on...
  *  cl_uint num is the number of keys to be encrypted.
   */
-extern void pbkdf2_divide_work(cl_uint*, cl_uint*, cl_uint, cl_uint*, cl_uint) ;
+extern void pbkdf2_divide_work(cl_uint*, cl_uint*, cl_uint, cl_uint*, cl_uint*, cl_uint) ;
 
 /*Clean all OpenCL GPU buffers.
  */

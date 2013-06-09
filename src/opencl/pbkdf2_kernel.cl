@@ -538,11 +538,17 @@ inline void hmac_sha1(__private uint *istate, __private uint *ostate, __private 
 	A[3] += ostate[3] ;
 	A[4] += ostate[4] ;
 
-        PUT_WORD_32_BE(A[0], buf, 0) ;
-	PUT_WORD_32_BE(A[1], buf, 1) ;
-	PUT_WORD_32_BE(A[2], buf, 2) ;
-	PUT_WORD_32_BE(A[3], buf, 3) ;
-	PUT_WORD_32_BE(A[4], buf, 4) ;
+        //PUT_WORD_32_BE(A[0], buf, 0) ;
+	//PUT_WORD_32_BE(A[1], buf, 1) ;
+	//PUT_WORD_32_BE(A[2], buf, 2) ;
+	//PUT_WORD_32_BE(A[3], buf, 3) ;
+	//PUT_WORD_32_BE(A[4], buf, 4) ;
+
+	buf[0] = A[0];
+	buf[1] = A[1];
+	buf[2] = A[2];
+	buf[3] = A[3];
+	buf[4] = A[4];
 }
 
 __kernel
@@ -550,23 +556,19 @@ void pbkdf2_preprocess(	const __global unsigned int *pass_global,
 			const __global unsigned int *salt,
 			int usrlen,
 			uint num_keys,
-			__global temp_buf *tmp) {
+			__global temp_buf *tmp,
+			__global unsigned int *hmac_sha1_out) {
 	int lid = get_local_id(0) ;
 	int id = get_global_id(0) ;
 
 	int i, j ;
 
-	__local unsigned int salt_local[40] ;
-	if (lid == 0)
-		for (i = 0; i <= usrlen / 2; ++i)
-			salt_local[i] = salt[i] ;
-	barrier(CLK_LOCAL_MEM_FENCE) ;
-
 	unsigned int pass[4] ;
-	unsigned int buf[16] = { 0 } ;
-	unsigned int istate[5], ostate[5], out[4] ;
+
+	unsigned int istate[5], ostate[5];
 #define IPAD	0x36363636
 #define OPAD 	0x5C5C5C5C
+
 	unsigned int ipad[16] = { IPAD, IPAD, IPAD, IPAD,
 				  IPAD, IPAD, IPAD, IPAD,
 				  IPAD, IPAD, IPAD, IPAD,
@@ -584,48 +586,81 @@ void pbkdf2_preprocess(	const __global unsigned int *pass_global,
         pass[2] = pass_global[i++] ;
 	pass[3] = pass_global[i] ;
 
-	if ((usrlen & 1)) {
-		for (i = 0; i <= usrlen >> 1; i++)
-			buf[i] = salt_local[i] ;
-		buf[(usrlen >> 1) + 1] = 0x01 << 8 ;
-	}
-        else {
-		for (i = 0; i < usrlen >> 1; i++)
-			buf[i] = salt_local[i] ;
-		buf[usrlen >> 1] = 0x01 << 24 ;
-	}
-
-	if ((usrlen & 1))
-		buf[(usrlen >> 1) + 1] = 0x80 << 16 | buf[(usrlen >> 1) + 1] ;
-	else
-		buf[(usrlen >> 1) + 1] = 0x80 | buf[(usrlen >> 1) + 1] ;
-
-	PUT_WORD_32_BE((64 + (usrlen << 1) + 4) << 3, buf, 15) ;
-
-	 for (j = 0; j < 4; j++) {
+	for (j = 0; j < 4; j++) {
 		ipad[j] = ipad[j] ^ pass[j] ;
 		opad[j] = opad[j] ^ pass[j] ;
-	  }
+	}
 
 	sha1_pad(ipad, istate) ;
 	sha1_pad(opad, ostate) ;
 
-	hmac_sha1(istate, ostate, buf) ;
+	if ((usrlen <= 22)) {
 
-        for (i = 0; i < 5; i++)
-		GET_WORD_32_BE(buf[i], buf, i) ;
+		__local unsigned int salt_local[40] ;
+		if (lid == 0)
+		for (i = 0; i <= usrlen / 2; ++i)
+			salt_local[i] = salt[i] ;
+		barrier(CLK_LOCAL_MEM_FENCE) ;
 
-	out[0] = buf[0] ;
-	out[1] = buf[1] ;
-	out[2] = buf[2] ;
-	out[3] = buf[3] ;
+		unsigned int buf[16] = { 0 } ;
+
+		if ((usrlen & 1)) {
+			for (i = 0; i <= usrlen >> 1; i++)
+				buf[i] = salt_local[i] ;
+			buf[(usrlen >> 1) + 1] = 0x01 << 8 ;
+		}
+		else {
+			for (i = 0; i < usrlen >> 1; i++)
+				buf[i] = salt_local[i] ;
+			buf[usrlen >> 1] = 0x01 << 24 ;
+		}
+
+		if ((usrlen & 1))
+			buf[(usrlen >> 1) + 1] = 0x80 << 16 | buf[(usrlen >> 1) + 1] ;
+		else
+			buf[(usrlen >> 1) + 1] = 0x80 | buf[(usrlen >> 1) + 1] ;
+
+		PUT_WORD_32_BE((64 + (usrlen << 1) + 4) << 3, buf, 15) ;
+
+		hmac_sha1(istate, ostate, buf) ;
+
+		tmp[id].out[0] = buf[0] ;
+		tmp[id].out[1] = buf[1] ;
+		tmp[id].out[2] = buf[2] ;
+		tmp[id].out[3] = buf[3] ;
+
+		tmp[id].buf[0] = buf[0];
+		tmp[id].buf[1] = buf[1] ;
+		tmp[id].buf[2] = buf[2] ;
+		tmp[id].buf[3] = buf[3] ;
+		tmp[id].buf[4] = buf[4] ;
+	}
+
+	else {
+		unsigned int out[5];
+
+		i = id * 5;
+		out[0] = hmac_sha1_out[i++] ;
+		out[1] = hmac_sha1_out[i++] ;
+		out[2] = hmac_sha1_out[i++] ;
+		out[3] = hmac_sha1_out[i++] ;
+		out[4] = hmac_sha1_out[i] ;
+
+		tmp[id].buf[0] = out[0];
+		tmp[id].buf[1] = out[1];
+		tmp[id].buf[2] = out[2];
+		tmp[id].buf[3] = out[3];
+		tmp[id].buf[4] = out[4];
+
+		tmp[id].out[0] = out[0];
+		tmp[id].out[1] = out[1];
+		tmp[id].out[2] = out[2];
+		tmp[id].out[3] = out[3];
+	}
 
 	for (i = 0; i< 5; i++) {
 		tmp[id].istate[i] = istate[i] ;
 		tmp[id].ostate[i] = ostate[i] ;
-		tmp[id].buf[i]    = buf[i] ;
-		if (i < 4)
-			tmp[id].out[i] = out[i] ;
 	}
 
 }
@@ -709,6 +744,7 @@ void pbkdf2_iter(__global temp_buf *tmp,
 		out[2] ^= buf[2] ;
 		out[3] ^= buf[3] ;
 	}
+
 
 	for (i = 0; i< 5; i++) {
 		tmp[id].istate[i] = istate[i] ;

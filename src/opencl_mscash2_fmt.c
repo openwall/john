@@ -16,6 +16,7 @@
 #include <string.h>
 #include <sys/time.h>
 #include "md4.h"
+#include "sha.h"
 #include "unicode.h"
 #include "common_opencl_pbkdf2.h"
 #include "loader.h"
@@ -60,7 +61,7 @@ static struct fmt_tests tests[] = {
 	{"$DCC2$10240#test4#6f79ee93518306f071c47185998566ae", "test4" },
 	{"$DCC2$january#26b5495b21f9ad58255d99b5e117abe2", "verylongpassword" },
 	{"$DCC2$february#469375e08b5770b989aa2f0d371195ff", "(##)(&#*%%" },
-	{"$DCC2$nineteen_characters#c4201b8267d74a2db1d5d19f5c9f7b57", "verylongpassword" }, //max salt_length
+	{"$DCC2$nineteen_characters#c4201b8267d74a2db1d5d19f5c9f7b57", "verylongpassword" },
 	{"$DCC2$nineteen_characters#87136ae0a18b2dafe4a41d555425b2ed", "w00t"},
 	{"$DCC2$administrator#56f8c24c5a914299db41f70e9b43f36d", "w00t" },
 	{"$DCC2$AdMiNiStRaToR#56f8C24c5A914299Db41F70e9b43f36d", "w00t" },                   //Salt and hash are lowercased
@@ -68,8 +69,9 @@ static struct fmt_tests tests[] = {
 	{"$DCC2$10240#eighteencharacters#fc5df74eca97afd7cd5abb0032496223", "w00t" },
 	{"$DCC2$john-the-ripper#495c800a038d11e55fafc001eb689d1d", "batman#$@#1991" },
 	{"$DCC2$#59137848828d14b1fca295a5032b52a1", "a" },                                   //Empty Salt
-	// 125 character password, with MAX length salt
 	{"$DCC2$10240#nineteen_characters#cda4cef92db4398ce648a8fed8dc6853", "12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"},
+	//MAX length salt with MAX length password
+	{"$DCC2$10240#12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678#5ba26de44bd3a369f43a1c72fba76d45", "12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"},
 	{NULL}
 } ;
 
@@ -77,6 +79,7 @@ static cl_uint 		*dcc_hash_host ;
 static cl_uint 		*dcc2_hash_host ;
 static unsigned char 	(*key_host)[MAX_PLAINTEXT_LENGTH + 1] ;
 static ms_cash2_salt 	currentsalt ;
+static cl_uint          *hmac_sha1_out ;
 
 extern int mscash2_valid(char *, int,  const char *, struct fmt_main *);
 extern char * mscash2_prepare(char **, struct fmt_main *);
@@ -93,6 +96,7 @@ static void init(struct fmt_main *self) {
 	key_host = mem_calloc(self -> params.max_keys_per_crypt * sizeof(*key_host)) ;
 	dcc_hash_host = (cl_uint*)mem_alloc(4 * sizeof(cl_uint) * MAX_KEYS_PER_CRYPT) ;
 	dcc2_hash_host = (cl_uint*)mem_alloc(4 * sizeof(cl_uint) * MAX_KEYS_PER_CRYPT) ;
+	hmac_sha1_out  = (cl_uint*)mem_alloc(5 * sizeof(cl_uint) * MAX_KEYS_PER_CRYPT) ;
 
 	memset(dcc_hash_host, 0, 4 * sizeof(cl_uint) * MAX_KEYS_PER_CRYPT) ;
 	memset(dcc2_hash_host, 0, 4 * sizeof(cl_uint) * MAX_KEYS_PER_CRYPT) ;
@@ -114,34 +118,40 @@ static void init(struct fmt_main *self) {
 	warning() ;
 }
 
-static void DCC(unsigned char *salt, unsigned char *username, unsigned int username_len, unsigned char *password, unsigned int *dcc_hash, unsigned int id) {
-	unsigned int 	i ;
+static void DCC(unsigned char *salt, unsigned int username_len, unsigned int *dcc_hash, unsigned int count) {
+	unsigned int 	i, id ;
 	unsigned int 	buffer[64] ;
 	unsigned int 	nt_hash[69] ; // large enough to handle 128 byte user name (when we expand to that size).
-	unsigned int 	password_len = strlen((const char*)password) ;
+	unsigned int 	password_len;
 	MD4_CTX ctx;
 
-	// convert ASCII password to Unicode
-	for (i = 0; i <= password_len  >> 1; i++)
-	    buffer[i] = password[2 * i] | (password[2 * i + 1] << 16) ;
+	for (id = 0; id < count; id++) {
 
-	// generate MD4 hash of the password (NT hash)
-	MD4_Init(&ctx);
-	MD4_Update(&ctx, buffer, password_len<<1);
-	MD4_Final(nt_hash, &ctx);
+		password_len = strlen((const char*)key_host[id]) ;
 
-	// concatenate NT hash and the username (salt)
-	memcpy((unsigned char *)nt_hash + 16, salt, username_len << 1) ;
+		// convert ASCII password to Unicode
+		for (i = 0; i <= password_len  >> 1; i++)
+			buffer[i] = key_host[id][2 * i] | (key_host[id][2 * i + 1] << 16) ;
 
-	MD4_Init(&ctx);
-	MD4_Update(&ctx, nt_hash, (username_len<<1)+16);
-	MD4_Final((dcc_hash+4*id), &ctx);
+		// generate MD4 hash of the password (NT hash)
+		MD4_Init(&ctx);
+		MD4_Update(&ctx, buffer, password_len<<1);
+		MD4_Final(nt_hash, &ctx);
+
+		// concatenate NT hash and the username (salt)
+		memcpy((unsigned char *)nt_hash + 16, salt, username_len << 1) ;
+
+		MD4_Init(&ctx);
+		MD4_Update(&ctx, nt_hash, (username_len<<1)+16);
+		MD4_Final((dcc_hash+4*id), &ctx);
+	}
 }
 
 static void done() {
 	MEM_FREE(dcc2_hash_host) ;
 	MEM_FREE(dcc_hash_host) ;
 	MEM_FREE(key_host) ;
+	MEM_FREE(hmac_sha1_out);
 	clean_all_buffer() ;
 }
 
@@ -208,6 +218,47 @@ static  char *get_key(int index) {
 	return (char *)key_host[index] ;
 }
 
+static void pbkdf2_iter0(unsigned int *input_dcc_hash,unsigned char *salt_buffer, unsigned int salt_len, int count){
+	SHA_CTX ctx1, ctx2, tmp_ctx1, tmp_ctx2;
+	unsigned int ipad[SHA_LBLOCK], opad[SHA_LBLOCK];
+	unsigned int tmp_hash[SHA_DIGEST_LENGTH/4], i, k,tmp;
+
+	memset(&ipad[4], 0x36, SHA_CBLOCK-16);
+	memset(&opad[4], 0x5C, SHA_CBLOCK-16);
+
+	for(k = 0; k < count; k++) {
+		i = k * 4;
+		ipad[0] = dcc_hash_host[i]^0x36363636;
+		opad[0] = dcc_hash_host[i++]^0x5C5C5C5C;
+		ipad[1] = dcc_hash_host[i]^0x36363636;
+		opad[1] = dcc_hash_host[i++]^0x5C5C5C5C;
+		ipad[2] = dcc_hash_host[i]^0x36363636;
+		opad[2] = dcc_hash_host[i++]^0x5C5C5C5C;
+		ipad[3] = dcc_hash_host[i]^0x36363636;
+		opad[3] = dcc_hash_host[i++]^0x5C5C5C5C;
+
+		SHA1_Init(&ctx1);
+		SHA1_Init(&ctx2);
+
+		SHA1_Update(&ctx1, ipad, SHA_CBLOCK);
+		SHA1_Update(&ctx2, opad, SHA_CBLOCK);
+
+		SHA1_Update(&ctx1, salt_buffer, salt_len);
+		SHA1_Update(&ctx1, "\x0\x0\x0\x1", 4);
+		SHA1_Final((unsigned char*)tmp_hash,&ctx1);
+
+		SHA1_Update(&ctx2, (unsigned char*)tmp_hash, SHA_DIGEST_LENGTH);
+		SHA1_Final((unsigned char*)tmp_hash, &ctx2);
+
+		i = k * 5;
+		hmac_sha1_out[i++] = ctx2.h0;
+		hmac_sha1_out[i++] = ctx2.h1;
+		hmac_sha1_out[i++] = ctx2.h2;
+		hmac_sha1_out[i++] = ctx2.h3;
+		hmac_sha1_out[i++] = ctx2.h4;
+	}
+}
+
 static int crypt_all(int *pcount, struct db_salt *salt) {
 	int 		count = *pcount ;
 	unsigned int 	i ;
@@ -230,15 +281,16 @@ static int crypt_all(int *pcount, struct db_salt *salt) {
 
 	memcpy(salt_host, salt_unicode, (MAX_SALT_LENGTH << 1) + 1) ;
 
-	for (i = 0; i < count; i++)
-		DCC(salt_unicode, currentsalt.username, currentsalt.length, key_host[i], dcc_hash_host, i) ;
+	DCC(salt_unicode, currentsalt.length, dcc_hash_host, count) ;
+
+	if(currentsalt.length > 22)
+		pbkdf2_iter0(dcc_hash_host, salt_host, (currentsalt.length << 1) , count);
 
 #ifdef _DEBUG
 	gettimeofday(&startg, NULL) ;
 #endif
-
 	///defined in common_opencl_pbkdf2.c. Details provided in common_opencl_pbkdf2.h
-	pbkdf2_divide_work(dcc_hash_host, salt_host, currentsalt.length, dcc2_hash_host, count) ;
+	pbkdf2_divide_work(dcc_hash_host, salt_host, currentsalt.length, dcc2_hash_host, hmac_sha1_out, count) ;
 
 #ifdef _DEBUG
 	gettimeofday(&endg, NULL);
