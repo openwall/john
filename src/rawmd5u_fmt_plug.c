@@ -496,14 +496,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	return count;
 }
 
-static int binary_hash_0(void *binary) { return ((ARCH_WORD_32*)binary)[0] & 0xf; }
-static int binary_hash_1(void *binary) { return ((ARCH_WORD_32*)binary)[0] & 0xff; }
-static int binary_hash_2(void *binary) { return ((ARCH_WORD_32*)binary)[0] & 0xfff; }
-static int binary_hash_3(void *binary) { return ((ARCH_WORD_32*)binary)[0] & 0xffff; }
-static int binary_hash_4(void *binary) { return ((ARCH_WORD_32*)binary)[0] & 0xfffff; }
-static int binary_hash_5(void *binary) { return ((ARCH_WORD_32*)binary)[0] & 0xffffff; }
-static int binary_hash_6(void *binary) { return ((ARCH_WORD_32*)binary)[0] & 0x7ffffff; }
-
 #ifdef MMX_COEF
 static int get_hash_0(int index)
 {
@@ -594,13 +586,13 @@ struct fmt_main fmt_rawmd5uthick = {
 		fmt_default_salt,
 		fmt_default_source,
 		{
-			binary_hash_0,
-			binary_hash_1,
-			binary_hash_2,
-			binary_hash_3,
-			binary_hash_4,
-			binary_hash_5,
-			binary_hash_6
+			fmt_default_binary_hash_0,
+			fmt_default_binary_hash_1,
+			fmt_default_binary_hash_2,
+			fmt_default_binary_hash_3,
+			fmt_default_binary_hash_4,
+			fmt_default_binary_hash_5,
+			fmt_default_binary_hash_6
 		},
 		fmt_default_salt_hash,
 		fmt_default_set_salt,

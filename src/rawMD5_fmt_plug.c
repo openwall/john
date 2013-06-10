@@ -153,14 +153,6 @@ static void *binary(char *ciphertext)
 	return out;
 }
 
-static int binary_hash_0(void *binary) { return ((ARCH_WORD_32*)binary)[0] & 0xf; }
-static int binary_hash_1(void *binary) { return ((ARCH_WORD_32*)binary)[0] & 0xff; }
-static int binary_hash_2(void *binary) { return ((ARCH_WORD_32*)binary)[0] & 0xfff; }
-static int binary_hash_3(void *binary) { return ((ARCH_WORD_32*)binary)[0] & 0xffff; }
-static int binary_hash_4(void *binary) { return ((ARCH_WORD_32*)binary)[0] & 0xfffff; }
-static int binary_hash_5(void *binary) { return ((ARCH_WORD_32*)binary)[0] & 0xffffff; }
-static int binary_hash_6(void *binary) { return ((ARCH_WORD_32*)binary)[0] & 0x7ffffff; }
-
 #ifdef MMX_COEF
 #define HASH_OFFSET (index&(MMX_COEF-1))+((index%NBKEYS)/MMX_COEF)*MMX_COEF*4
 static int get_hash_0(int index) { return crypt_key[index/NBKEYS][HASH_OFFSET] & 0xf; }
@@ -362,13 +354,13 @@ struct fmt_main fmt_rawMD5 = {
 		fmt_default_salt,
 		source,
 		{
-			binary_hash_0,
-			binary_hash_1,
-			binary_hash_2,
-			binary_hash_3,
-			binary_hash_4,
-			binary_hash_5,
-			binary_hash_6
+			fmt_default_binary_hash_0,
+			fmt_default_binary_hash_1,
+			fmt_default_binary_hash_2,
+			fmt_default_binary_hash_3,
+			fmt_default_binary_hash_4,
+			fmt_default_binary_hash_5,
+			fmt_default_binary_hash_6
 		},
 		fmt_default_salt_hash,
 		fmt_default_set_salt,

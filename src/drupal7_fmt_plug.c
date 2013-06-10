@@ -223,14 +223,6 @@ static void * salt(char *ciphertext)
 	return salt.u8;
 }
 
-static int binary_hash_0(void * binary) { return ((ARCH_WORD_32 *)binary)[0] & 0xf; }
-static int binary_hash_1(void * binary) { return ((ARCH_WORD_32 *)binary)[0] & 0xff; }
-static int binary_hash_2(void * binary) { return ((ARCH_WORD_32 *)binary)[0] & 0xfff; }
-static int binary_hash_3(void * binary) { return ((ARCH_WORD_32 *)binary)[0] & 0xffff; }
-static int binary_hash_4(void * binary) { return ((ARCH_WORD_32 *)binary)[0] & 0xfffff; }
-static int binary_hash_5(void * binary) { return ((ARCH_WORD_32 *)binary)[0] & 0xffffff; }
-static int binary_hash_6(void * binary) { return ((ARCH_WORD_32 *)binary)[0] & 0x7ffffff; }
-
 static int get_hash_0(int index) { return *((ARCH_WORD_32 *)&crypt_key[index]) & 0xf; }
 static int get_hash_1(int index) { return *((ARCH_WORD_32 *)&crypt_key[index]) & 0xff; }
 static int get_hash_2(int index) { return *((ARCH_WORD_32 *)&crypt_key[index]) & 0xfff; }
@@ -272,13 +264,13 @@ struct fmt_main fmt_drupal7 = {
 		salt,
 		fmt_default_source,
 		{
-			binary_hash_0,
-			binary_hash_1,
-			binary_hash_2,
-			binary_hash_3,
-			binary_hash_4,
-			binary_hash_5,
-			binary_hash_6
+			fmt_default_binary_hash_0,
+			fmt_default_binary_hash_1,
+			fmt_default_binary_hash_2,
+			fmt_default_binary_hash_3,
+			fmt_default_binary_hash_4,
+			fmt_default_binary_hash_5,
+			fmt_default_binary_hash_6
 		},
 		salt_hash,
 		set_salt,
