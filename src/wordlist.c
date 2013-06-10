@@ -417,7 +417,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 			// Load only this node's share of words to memory
 			if (options.node_count > 1 &&
 			    (file_len > options.node_count * (length * 100)
-			     || forceLoad)) {
+			     && forceLoad)) {
 				/* Check net size for our share. */
 				for (nWordFileLines = 0;; ++nWordFileLines) {
 					char *lp;
