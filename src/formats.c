@@ -514,6 +514,41 @@ int fmt_default_binary_hash(void *binary)
 	return 0;
 }
 
+int fmt_default_binary_hash_0(void * binary)
+{
+	return *(ARCH_WORD_32 *) binary & 0xF;
+}
+
+int fmt_default_binary_hash_1(void * binary)
+{
+	return *(ARCH_WORD_32 *) binary & 0xFF;
+}
+
+int fmt_default_binary_hash_2(void * binary)
+{
+	return *(ARCH_WORD_32 *) binary & 0xFFF;
+}
+
+int fmt_default_binary_hash_3(void * binary)
+{
+	return *(ARCH_WORD_32 *) binary & 0xFFFF;
+}
+
+int fmt_default_binary_hash_4(void * binary)
+{
+	return *(ARCH_WORD_32 *) binary & 0xFFFFF;
+}
+
+int fmt_default_binary_hash_5(void * binary)
+{
+	return *(ARCH_WORD_32 *) binary & 0xFFFFFF;
+}
+
+int fmt_default_binary_hash_6(void * binary)
+{
+	return *(ARCH_WORD_32 *) binary & 0x7FFFFFF;
+}
+
 int fmt_default_salt_hash(void *salt)
 {
 	return 0;

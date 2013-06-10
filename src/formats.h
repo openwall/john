@@ -305,6 +305,17 @@ extern void fmt_default_clear_keys(void);
 extern int fmt_default_get_hash(int index);
 
 /*
+ * Default binary_hash_N methods
+ */
+extern int fmt_default_binary_hash_0(void * binary);
+extern int fmt_default_binary_hash_1(void * binary);
+extern int fmt_default_binary_hash_2(void * binary);
+extern int fmt_default_binary_hash_3(void * binary);
+extern int fmt_default_binary_hash_4(void * binary);
+extern int fmt_default_binary_hash_5(void * binary);
+extern int fmt_default_binary_hash_6(void * binary);
+
+/*
  * Dummy hash function to use for salts with no hash table.
  */
 #define fmt_dummy_hash fmt_default_get_hash
