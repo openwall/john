@@ -98,7 +98,7 @@ void crk_init(struct db_main *db, void (*fix_state)(void),
 		error();
 	}
 
-#ifdef HAVE_OPENCL
+#if defined(HAVE_OPENCL) || defined(HAVE_CUDA)
 	/* This erases the 'spinning wheel' cursor from self-test */
 	if (john_main_process)
 		fprintf(stderr, " \b");

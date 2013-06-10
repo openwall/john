@@ -1,6 +1,7 @@
 #include <ctype.h>
 #include "cuda_common.h"
 #include "options.h"
+#include "john.h"
 
 #ifndef HAVE_OPENCL
 /* If we have OpenCL as well, we use its exact same function */
@@ -8,8 +9,11 @@ void advance_cursor()
 {
 	static int pos = 0;
 	char cursor[4] = { '/', '-', '\\', '|' };
-	fprintf(stderr, "%c\b", cursor[pos]);
-	pos = (pos + 1) % 4;
+
+	if (john_main_process) {
+		fprintf(stderr, "%c\b", cursor[pos]);
+		pos = (pos + 1) % 4;
+	}
 }
 #endif
 

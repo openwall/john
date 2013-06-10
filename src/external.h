@@ -27,7 +27,7 @@
 
 extern unsigned int ext_flags;
 
-extern c_int ext_abort, ext_status, ext_maxlen;
+extern c_int ext_abort, ext_status;
 
 /*
  * Defined for use in the ext_filter() macro, below.

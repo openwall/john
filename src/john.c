@@ -445,7 +445,7 @@ static void john_log_format(void)
 
 #ifdef HAVE_MPI
 	if (mpi_p > 1)
-		log_event("- MPI mode: %u nodes, this one running on %s", mpi_p, mpi_name);
+		log_event("- MPI: Node %u/%u running on %s", mpi_id + 1, mpi_p, mpi_name);
 #endif
 	/* make sure the format is properly initialized */
 	fmt_init(database.format);
