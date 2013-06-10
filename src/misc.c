@@ -51,11 +51,9 @@ void pexit(char *format, ...)
 {
 	va_list args;
 
-#ifndef _JOHN_MISC_NO_LOG
-#ifdef HAVE_MPI
+#if defined(HAVE_MPI) && !defined(_JOHN_MISC_NO_LOG)
 	if (mpi_p > 1)
-		fprintf(stderr, "Node %u@%s: ", mpi_id, mpi_name);
-#endif
+		fprintf(stderr, "Node %u@%s: ", mpi_id + 1, mpi_name);
 #endif
 	va_start(args, format);
 	vfprintf(stderr, format, args);
