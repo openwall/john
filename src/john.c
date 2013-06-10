@@ -612,6 +612,14 @@ static void john_fork(void)
 	fflush(stdout);
 	fflush(stderr);
 
+#ifdef HAVE_MPI
+/*
+ * We already initialized MPI before knowing this is actually a fork session.
+ * So now we need to tear that "1-node MPI session" down before forking, or
+ * all sorts of funny things might happen.
+ */
+	mpi_teardown();
+#endif
 /*
  * It may cost less memory to reset john_main_process to 0 before fork()'ing
  * the children than to do it in every child process individually (triggering

@@ -23,6 +23,7 @@ void mpi_teardown(void)
 
 	if (mpi_p > 1)
 		MPI_Barrier(MPI_COMM_WORLD);
+
 	MPI_Finalize();
 }
 
