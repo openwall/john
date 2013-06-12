@@ -303,8 +303,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			// AES_cbc_encrypt(cur_salt->ct, out, cur_salt->ctl, &akey, iv, AES_DECRYPT);
 			// dirty hack!
 			AES_cbc_encrypt(cur_salt->ct, out, SAFETY_FACTOR, &akey, iv, AES_DECRYPT); // are starting SAFETY_FACTOR bytes enough?
-			// 2 blocks (32 bytes) are enough to self-recover from bad IV, required for correct padding check
-			AES_cbc_encrypt(cur_salt->ct + cur_salt->ctl - 32, out + cur_salt->ctl - 32, 32, &akey, iv, AES_DECRYPT);
+			// decrypting 1 blocks (16 bytes) is enough for correct padding check
+			memcpy(iv, cur_salt->ct + cur_salt->ctl - 32, 16);
+			AES_cbc_encrypt(cur_salt->ct + cur_salt->ctl - 16, out + cur_salt->ctl - 16, 16, &akey, iv, AES_DECRYPT);
 			if (check_padding_3des(out, cur_salt->ctl) == 0)
 				cracked[index] = 1;
 			else
