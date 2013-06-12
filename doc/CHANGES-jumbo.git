@@ -1,21 +1,20 @@
-The following changes were made between 1.7.9-jumbo-8 and 1.8-jumbo-1:
+The following changes were made between 1.7.9-jumbo-8 and 1.8.0-jumbo-1:
 
-magnum (534):
-	formats.c: Only check binary/salt alignment if not using
-	  fmt_default_*
+magnum (593):
+	formats.c: Only check binary/salt alignment if not using fmt_default_*
 	formats.c: Deliberately use misaligned ciphertext in self test
 	formats.c canary for binary/salt buffers
 	bench.c fix for salts that copy the pointer in set_salt()
 	bench.c: clean up that salt fix a little
-	bench.c: call set_salt() before bench_set_keys() (hopefully fixing
-	  the last issues with formats having pointers to freed memory)
+	bench.c: call set_salt() before bench_set_keys() (hopefully fixing the
+	  last issues with formats having pointers to freed memory)
 	Fix compiler warnings for void pointer arithmetic
-	trip_fmt: trivial fix for declarations at block starts, for VC
-	  builds. This is originally from Jim's patch d91bf42 but I
-	  dropped it in bleeding at first due to a merge conflict and
-	  because the offending lines are also declarations. However it
-	  turns out when this macro is not defined, the lines end up as
-	  spurios ';' so it upsets VC nonetheless.
+	trip_fmt: trivial fix for declarations at block starts, for VC builds.
+	  This is originally from Jim's patch d91bf42 but I dropped it in
+	  bleeding at first due to a merge conflict and because the
+	  offending lines are also declarations. However it turns out when
+	  this macro is not defined, the lines end up as spurios ';' so it
+	  upsets VC nonetheless.
 	Revert the last revertion. We only actually wanted it reverted in
 	  magnum-jumbo
 	Loader.c fix for get_source()
@@ -64,8 +63,8 @@ magnum (534):
 	Make sunmd5 handle bleeding FMT_MAIN_VERSION as well as current. Also
 	  fix some Linux warnings.
 	loader.c: The master.passwd test ate the pwdump format so uid was not
-	  loaded properly for pwdump. Also, we accept empty LM but
-	  present NT hash as pwdump.
+	  loaded properly for pwdump. Also, we accept empty LM but present
+	  NT hash as pwdump.
 	opencl_gpg lacked forward-compatible format struct
 	Dual-version format structs for new cryptsha2 formats
 	loader.c: Bugfix for pwdump files when uid is re-inserted in source.
@@ -98,8 +97,8 @@ magnum (534):
 	Comment out debug prints in pwsafe-cuda
 	Fix a bogus merge. In bleeding, we'll show OpenCL warnings.
 	Drop all #ifdef FMT_MAIN_VERSION except in dynamic. The latter should
-	  probably benefit from new ones added instead, so it can be
-	  moved between unstable and bleeding at will.
+	  probably benefit from new ones added instead, so it can be moved
+	  between unstable and bleeding at will.
 	pkzip: SALT_ALIGN
 	Documentation update (bleeding-jumbo specific)
 	Enhance the --mkv-stats=FILE option so it can find a file residing in
@@ -108,10 +107,10 @@ magnum (534):
 	  active so I missed it until now.
 	MPI and krb5-18/23 merge fixes.
 	SybaseASE salt alignment fix.
-	Minor OpenCL/CUDA tweaks. Enable advance_cursor() for CUDA-only
-	  builds too. Also some typos: git grep -il tunning | xargs
-	  sed -ri 's/([tT])unning/\1uning/g' git grep -il plataform |
-	  xargs sed -ri 's/lataform/latform/g'
+	Minor OpenCL/CUDA tweaks. Enable advance_cursor() for CUDA-only builds
+	  too. Also some typos: git grep -il tunning | xargs sed -ri
+	  's/([tT])unning/\1uning/g' git grep -il plataform | xargs sed
+	  -ri 's/lataform/latform/g'
 	OpenCL: Change the -DAPPLE for OpenCL build options to -D__APPLE__.
 	Bugfix for "make generic".
 	Commit 04cf5f1 hurt performance for dynamic because data locality
@@ -119,8 +118,8 @@ magnum (534):
 	  satisfy the compiler.
 	Relbench: Ignore the new "All nn tests passed self-tests"
 	Single mode: Optionally load the full GECOS field (before splitting)
-	  as one extra candidate. This is controlled with PristineGecos
-	  in john.conf (and defaults to disabled).
+	  as one extra candidate. This is controlled with PristineGecos in
+	  john.conf (and defaults to disabled).
 	Use list_add_unique() for the optional PristineGecos loading.
 	Add a john.conf option for over-riding SINGLE_WORDS_PAIR_MAX.
 	truecrypt_volume2john had CRLF line endings.
@@ -151,10 +150,10 @@ magnum (534):
 	Allow running an OpenCL binary without having any OpenCL platform
 	  active.
 	Bwall's pwsafe patch broke builds using CommonCrypto. This fixes it.
-	Fix a hideous bug in rar2john introduced by in 216cc57. A variable
-	  was declared as just "unsigned" (taken as int) instead of
-	  "unsigned char" which lead to incorrect output. Not sure why
-	  the compiler did not warn.
+	Fix a hideous bug in rar2john introduced by in 216cc57. A variable was
+	  declared as just "unsigned" (taken as int) instead of "unsigned
+	  char" which lead to incorrect output. Not sure why the compiler
+	  did not warn.
 	Correct ALGORITHM_NAME of mssql-12, pbkdf2-hmac-sha512 and the
 	  Truecrypts. Use sha2.h for a number of formats that depended on
 	  OpenSSL 0.9.8 (all but Truecrypt). Bump max length to 125
@@ -178,17 +177,17 @@ magnum (534):
 	BLAKE2: Do not "secure zero memory".
 	SIPdump fixes (CppCheck). Also revert using MEM_FREE() and mem_alloc.
 	  That is not a good idea for a stand-alone.
-	(Ab)use bench_running variable for keeping opencl_process_event()
-	  from processing events while self-test is running. Otherwise a
-	  slow self-test in combination with a short Save interval will
-	  thrash the .rec file during start of a resumed session.
+	(Ab)use bench_running variable for keeping opencl_process_event() from
+	  processing events while self-test is running. Otherwise a slow
+	  self-test in combination with a short Save interval will thrash
+	  the .rec file during start of a resumed session.
 	WPAPSK formats has a minimum password length of 8. This patch adds
-	  code to john.c that enforces this. We may want to add
-	  min_length in the format struct later on, and remove this hack.
+	  code to john.c that enforces this. We may want to add min_length
+	  in the format struct later on, and remove this hack.
 	WPA-PSK had a silly ESSID length limit of 14 that was already bumped
 	  to 32 (the actual real-life limit) for the OpenCL version.
-	  Moreover, it segfaulted on longer names. This patch bumps it
-	  for CPU & CUDA too. For some reason the hccap buffer size is 36
+	  Moreover, it segfaulted on longer names. This patch bumps it for
+	  CPU & CUDA too. For some reason the hccap buffer size is 36
 	  (from hccap2john) so I kept that. Perhaps it's because it ends
 	  up aligned including room for a NULL.
 	Decrease PLAINTEXT_LENGTH for all WPA-PSK formats to 64, because that
@@ -219,8 +218,8 @@ magnum (534):
 	  to better track problems.
 	Drop some #ifdef DEBUG, or change them to specific ones like
 	  RAR_DEBUG.
-	Wow-srp: This format is not case sensitive so unset FMT_CASE, and
-	  also make the upper-casing in set_key() encoding-aware.
+	Wow-srp: This format is not case sensitive so unset FMT_CASE, and also
+	  make the upper-casing in set_key() encoding-aware.
 	Wowsrp has a minimum password length of 8, so add it to the hack we
 	  did for wpa-psk.
 	Get the "weird_fmt" back to unused/.
@@ -279,31 +278,31 @@ magnum (534):
 	DMG formats: Disable all but the NULL test, but bump that one to 16.
 	DMG: Re-enable the other plaintext checks (but not Apple).
 	DMG: properly re-enable plain checks, for OpenCL too.
-	NTLMv1: Bugfix, and compact the hash functions (before merging the
-	  new stuff to mschapv2)
+	NTLMv1: Bugfix, and compact the hash functions (before merging the new
+	  stuff to mschapv2)
 	MSCHAPv2: SIMD support and exploitation of weakness just like NTLMv1
 	  (the formats are very similar)
 	NTLMv1 and MSCHAPv2: reject hashes in valid() as hinted by Solar.
-	Bugfix for Jim's patch. Some debug functions were not static, and
-	  they were included several times for GPU builds so the compiler
+	Bugfix for Jim's patch. Some debug functions were not static, and they
+	  were included several times for GPU builds so the compiler
 	  bailed. Also wrap that debug stuff in WPAPSK_DEBUG.
 	MSCHAPv2, NTLMv1: After the 3rd DES block check in valid(), cache the
 	  indexes so we don't have to loop again in binary().
-	loader.c: Support "late reject" from binary(). If binary returns
-	  NULL, the line is rejected.
+	loader.c: Support "late reject" from binary(). If binary returns NULL,
+	  the line is rejected.
 	NTLMv1 and MSCHAPv2: Make use of new late-reject feature, so it gets
 	  tested. This means we no longer test the 3rd DES block in
 	  valid() but instead return NULL from binary() if it fails.
-	Mute some over verbosity in OpenCL, and make the pwsafe format
-	  default to auto-tuning.
+	Mute some over verbosity in OpenCL, and make the pwsafe format default
+	  to auto-tuning.
 	pwsafe-opencl: revert a change by bwall that broke auto-tuning for
 	  weak devices.
 	Truecrypt: replace a dynamic array with alloc/free. The format is so
 	  slow this does not hurt performance at all.
-	OpenCL: Tweak find_best_gws. It gave up to early: We need to take
-	  into account how much work was done. If it took 10x more time
-	  than minimum but we had a 1000x higher GWS, we should
-	  definitely not stop! This code needs more tweaking.
+	OpenCL: Tweak find_best_gws. It gave up to early: We need to take into
+	  account how much work was done. If it took 10x more time than
+	  minimum but we had a 1000x higher GWS, we should definitely not
+	  stop! This code needs more tweaking.
 	pwsafe-opencl: Now that common code doesn't give up too early, lower
 	  max time for GWS enumeration to 2.4 seconds (should avoid
 	  watchdog problems).
@@ -351,9 +350,9 @@ magnum (534):
 	Endianness & alignment fixes from testing on a Sparc32.
 	More BE and alignment fixes. Some problems were in shared code in
 	  unicode.c and the problems has been fixed backwards until now.
-	  Most unicode.c functions convert/process UTF-16LE *regardless
-	  of arch* and any endian fixes must account for that (normally
-	  none is needed).
+	  Most unicode.c functions convert/process UTF-16LE *regardless of
+	  arch* and any endian fixes must account for that (normally none
+	  is needed).
 	para-best.c fix for core changes.
 	Make itoa64 and the likes const.
 	Crypt-SHA formats: Use a ROUNDS_MIN of 1.
@@ -370,8 +369,8 @@ magnum (534):
 	  pbkdf2-hmac-sha1. Also a bugfix for openvms but it still
 	  segfaults for me. This is now the only format that doesn't pass
 	  self-test.
-	Drop run-time version checks for NSS that would be bad if run-time
-	  lib is older than build-time one.
+	Drop run-time version checks for NSS that would be bad if run-time lib
+	  is older than build-time one.
 	Mscash: Get rid of compiler warnings on linux-ppc32. Conflicts:
 	  	src/mscash1_fmt_plug.c
 	Alignment fixes.
@@ -390,8 +389,8 @@ magnum (534):
 	  our supplied fmt_strnlen(). We could move it to misc.c too at
 	  some point.
 	Revert SHA2 strict-aliasing fixes. They did not work at all for BE.
-	We can force Jim's generic SHA-2 with -DFORCE_GENERIC_SHA2. This
-	  patch adds a way to force OpenSSL over CommonCrypto, using
+	We can force Jim's generic SHA-2 with -DFORCE_GENERIC_SHA2. This patch
+	  adds a way to force OpenSSL over CommonCrypto, using
 	  -DFORCE_OPENSSL_SHA2.
 	Alignment fixes (bleeding only)
 	Alignment fixes
@@ -400,8 +399,8 @@ magnum (534):
 	  Deepika's bitsliced format. Then drop the original format and
 	  use BS format as "naive". Lots of whitespace changes, view with
 	  -w.
-	DES BS plain SSE asm: Properly underscore P if applicable. It works
-	  on OSX anyway but I'm not sure it will on others that
+	DES BS plain SSE asm: Properly underscore P if applicable. It works on
+	  OSX anyway but I'm not sure it will on others that
 	  -DUNDERSCORES.
 	Alignment fix for mschapv2-bs
 	MSCHAPv2-BS: Merge two loops into one. This made a 5% boost here.
@@ -456,8 +455,8 @@ magnum (534):
 	  optimizations in set_key().
 	mssql05: Optimizations in set_key() for codepage encoding.
 	DES-opencl: Safer LWS capping (ensure GWS is still multiple of LWS).
-	ODF formats (all three): Handle content.xml sizes less than 1024
-	  bytes correctly.
+	ODF formats (all three): Handle content.xml sizes less than 1024 bytes
+	  correctly.
 	ODF formats: Make valid() a little more picky about hex length.
 	Add macosx-x86-sse2-opencl (ie. 32-bit) build target.
 	More uint64_t fixes.
@@ -467,10 +466,10 @@ magnum (534):
 	dmg2john: bugfix.
 	dmg2john: Use base name of file name in output.
 	DMG formats: Serious bug fixes for 3DES v1 images. This fixes the
-	  problem with false positives as well as an even worse one:
-	  false negatives o.O
-	uaf2john: Do not support writing to outfile, only to stdout. And add
-	  a make target.
+	  problem with false positives as well as an even worse one: false
+	  negatives o.O
+	uaf2john: Do not support writing to outfile, only to stdout. And add a
+	  make target.
 	wpapcap2john: Support multiple infiles. zip2john: Use base name of
 	  filename for login field.
 	MSCHAPv2 & NTLMv1: Smaller hot array. 25% boost for many salts, a
@@ -480,8 +479,8 @@ magnum (534):
 	Merge MSCHAPv2_fmt_plug.c and NETNTLM_fmt_plug.c to one file:
 	  ntlmv1_mschapv2_fmt_plug.c, sharing much of the code.
 	Make odf2john work with python 2.6 (as well as 2.7).
-	Change odf2john so we fall back to the deprecated function only if
-	  the newer one is not supported.
+	Change odf2john so we fall back to the deprecated function only if the
+	  newer one is not supported.
 	Unicode fixes for NOT_JOHN
 	unicode.c: Support re-init of encoding.
 	mscash2-opencl honours LWS and GWS env variables, des-opencl and
@@ -497,8 +496,8 @@ magnum (534):
 	mscash2-opencl: Fix for forced LWS larger than kernel's max.
 	Document the OSX problem with OpenCL kernel header files.
 	Wordlist bug fixes: Reject wordlist containing NULL bytes, and handle
-	  inconsequent line feeds (eg. spurious CR within a line). This
-	  fix will do for Jumbo-8 so we don't introduce new problems.
+	  inconsequent line feeds (eg. spurious CR within a line). This fix
+	  will do for Jumbo-8 so we don't introduce new problems.
 	Import cisco2john.pl from unstable.
 	Fix the postgre format: Rename it to postgres, including the tag. The
 	  old format is still supported. Also improve valid().
@@ -544,9 +543,8 @@ magnum (534):
 	misc.h: include string.h for memcmp.
 	Unicode re-init bugfix.
 	NTLMv2-opencl: Use packed key buffer as recently introduced in
-	  raw-md4/5. This also enables full-length UTF-8 support (up to
-	  81 bytes of UTF-8 for representing up to 27 Unicode
-	  characters).
+	  raw-md4/5. This also enables full-length UTF-8 support (up to 81
+	  bytes of UTF-8 for representing up to 27 Unicode characters).
 	NTLMv2 kernel: Bugfix for no-byte-addressable code path.
 	pass_gen.pl: Support UTF-8 for -salt argument when -utf8 option is
 	  given.
@@ -556,9 +554,8 @@ magnum (534):
 	Drop bogus FMT_UTF8 flag from Truecrypt.
 	NTLMv2 OpenCL: Use length 8 for benchmark unless -DDEBUG.
 	NTLMv2 OpenCL: Early transfer of keys.
-	Change MPI reduction for benchmarks for accurate average speeds.
-	  Also, reduce the int64 properly (only affects 32-bit or BE
-	  systems).
+	Change MPI reduction for benchmarks for accurate average speeds. Also,
+	  reduce the int64 properly (only affects 32-bit or BE systems).
 	Update README-mpi.
 	CUDA formats: Tweak default THREADS*BLOCKS so they work on weaker
 	  devices.
@@ -573,12 +570,11 @@ magnum (534):
 	Change self-test use of set_key(current->plaintext, index) into
 	  something that actually passes a large enough buffer for any
 	  use.
-	Bleeding fixes/unifying MSCHAPv2 & NETNTLM (naïve bit-slice
-	  versions).
+	Bleeding fixes/unifying MSCHAPv2 & NETNTLM (naïve bit-slice versions).
 	Sparc fixes. Latest optimization of mschap/ntlm formats broke BE.
 	PDF format still used the Bad Idea[tm] version of valid().
-	Purely academic bugfix in common-opencl.c. kernel_source was not
-	  freed in clean_opencl_environment().
+	Purely academic bugfix in common-opencl.c. kernel_source was not freed
+	  in clean_opencl_environment().
 	Add missing deallocations in OpenCL DMG & RAR formats' valid().
 	formats.c: self-test tweaks and source formatting.
 	SAP F/G: Bump maximum length. We over-ran a buffer with the latest
@@ -593,12 +589,12 @@ magnum (534):
 	Workarounds for bugs in raw-sha256-ng. Until we get better fixes, we
 	  decrease max. length to 55 and introduce a workaround for
 	  cmp_all().
-	Bug fixes to thin dynamic formats PHPS, formspring, mediawiki, osc
-	  and phpassMD5. They over-ran buffer when given bad input files.
+	Bug fixes to thin dynamic formats PHPS, formspring, mediawiki, osc and
+	  phpassMD5. They over-ran buffer when given bad input files.
 	More robust valid() in salted sha1 / nsldap formats.
 	Do some actual validation in SIP valid().
-	Actually, while at it we should just as well validate it is
-	  lower-case hex.
+	Actually, while at it we should just as well validate it is lower-case
+	  hex.
 	WOW-SRP fixes. Not sure I found all, this is a mess.
 	Makefile tweaks for JOHN_CFLAGS etc.
 	rar2john big-endian fixes for Unicode filenames in RAR.
@@ -614,8 +610,8 @@ magnum (534):
 	Tweak OMP_SCALE for AMD.
 	Add macosx-x86-64-native build target. To use it, you need to copy
 	  osx_as_wrapper.sh (from the src directory) to /usr/local/bin/as or
-	  to some other directory (but the script MUST be called 'as')
-	  and ensure this directory is first in your $PATH.
+	  to some other directory (but the script MUST be called 'as') and
+	  ensure this directory is first in your $PATH.
 	keystore2john: Use basename of filename for login field, and convert
 	  to symlink to john.
 	Bugfix for keystore2john target.
@@ -665,17 +661,16 @@ magnum (534):
 	  sse-intrinsics.c before we start optimizing things away :-)
 	Revert "Revert cmp_all omp parallel, performs poorly on AMD"
 	raw-sha1-ng: Bump OMP_SCALE to 1024.
-	Make our usual MD5 format handle AIX's {smd5} hashes too, and drop
-	  the much slower separate aix-smd5 format.
-	The pre-built (with-icc) .S files are now invalid, we need to
-	  generate new ones.
+	Make our usual MD5 format handle AIX's {smd5} hashes too, and drop the
+	  much slower separate aix-smd5 format.
+	The pre-built (with-icc) .S files are now invalid, we need to generate
+	  new ones.
 	Now that our MD5 format supports cracking AIX {smd5} hashes too, the
 	  "FreeBSD" output is more confusing than ever. I changed it to
 	  crypt-MD5.
 	I missed the "please keep this list sorted" :-)
-	Drop the intermediate encoding from aix2john.py and support the
-	  native hashes in aix-ssha instead. We now lack some test
-	  vectors.
+	Drop the intermediate encoding from aix2john.py and support the native
+	  hashes in aix-ssha instead. We now lack some test vectors.
 	Minor fixes to aix-ssha.
 	aix-ssha bugfix for new binary().
 	Fixes for a couple of make targets.
@@ -692,8 +687,8 @@ magnum (534):
 	Drop the wchar stuff from gpg2john. 8-bit GECOS now works fine.
 	Putty: drop an unused variable.
 	Add updated sse-intrinsics-xx.S files. Built with -O2 using icc
-	  13.1.1. -O3 (as we used with 12.1) took 47 minutes and was a
-	  lot slower.
+	  13.1.1. -O3 (as we used with 12.1) took 47 minutes and was a lot
+	  slower.
 	Merge branch 'master+patches' into bleeding-jumbo. NOTE: The charset
 	  files are gone for now. The old ones are incompatible. For
 	  testing, create new ones from the Rockyou list, or something.
@@ -720,9 +715,9 @@ magnum (534):
 	Node support for Markov.
 	doc/MARKOV note about UTF-8 filter.
 	Replace a dropped MPI header from wordlist.c.
-	Mute some warnings JimF were seeing about unintialized variables.
-	  They are bogus from what I can see but maybe some compilers get
-	  dizzy from the gotos.
+	Mute some warnings JimF were seeing about unintialized variables. They
+	  are bogus from what I can see but maybe some compilers get dizzy
+	  from the gotos.
 	Wordlist.c bugfix after core merge. --pipe was trying to fseek stdin.
 	Wordlist.c bugfix after core merge. --pipe must be treated as a
 	  per-thread memory buffer.
@@ -788,8 +783,8 @@ magnum (534):
 	  twice.
 	Tweak SHA1_SSE_PARA for latest ICC. 3.5% faster.
 	MPI fixes (output only on root node).
-	MPI: non-root processes now lock main rec-file in shared mode at
-	  first read.
+	MPI: non-root processes now lock main rec-file in shared mode at first
+	  read.
 	testpara32 fixes.
 	MPI: If more than one node, all must use LOCK_SH.
 	Merge branch 'master' into bleeding-jumbo
@@ -801,16 +796,16 @@ magnum (534):
 	Do not use CommonCrypto for SSE2 builds.
 	Jumbo code audit: Remove unnecessary differences from core tree. Drop
 	  some EOL whitespace. Update some documentation. Fix an OpenCL
-	  problem introduced by latest core merges. Use UTF-8 encoding
-	  for doc/RULES as it contains 8-bit characters. Drop some
-	  deprecated information from doc/MARKOV (though we'll keep
-	  supporting it for a while).
+	  problem introduced by latest core merges. Use UTF-8 encoding for
+	  doc/RULES as it contains 8-bit characters. Drop some deprecated
+	  information from doc/MARKOV (though we'll keep supporting it for
+	  a while).
 	Bugfix for the avoid-CommonCrypto patch.
 	Variable changes in mscash formats, to avoid function name clashes
 	  that seem to be the result of defining _DARWIN_C_SOURCE.
 	Variable changes in PDF, Tiger and Whirlpool formats, to avoid
-	  function name clashes that seem to be the result of now
-	  defining _DARWIN_C_SOURCE.
+	  function name clashes that seem to be the result of now defining
+	  _DARWIN_C_SOURCE.
 	Updated doc/BUGS for bleeding.
 	Rename AIX format so they reflect their well-known tags.
 	Move a Jumbo tweak from signals.h to common-opencl.c in order to mess
@@ -822,16 +817,16 @@ magnum (534):
 	Do not include os.h from signals.h. Instead, ensure it's included
 	  earlier.
 	Make all definitions in EPI_fmt static.
-	Make MD5 helper functions in sse-intrinsics.c static and
-	  MAYBE_INLINE, and drop unused debug/sse_debug() stuff.
+	Make MD5 helper functions in sse-intrinsics.c static and MAYBE_INLINE,
+	  and drop unused debug/sse_debug() stuff.
 	New intrinsics .S files after recent change. 4-5% faster MD5crypt.
 	Re-enable NT format, that was MIA since 7112446.
 	Typo in README-OPENCL.
 	Fix a mistyped #error pragma, although it sort of worked as intended
 	  anyway.
 	Hand-edited sse-intrinsics-32.S to fix an issue the sse2i_winfix.pl
-	  does not catch yet: Labels that have ".." in them. Apparently
-	  we can't use ".." in a macro name (for -DUNDERSCORES) so these
+	  does not catch yet: Labels that have ".." in them. Apparently we
+	  can't use ".." in a macro name (for -DUNDERSCORES) so these
 	  labels need to be renamed throughout the file. TODO: Fix
 	  sse2i_winfix.pl so can do this in a generic way.
 	Add a missing linefeed in status output for --stdout.
@@ -842,19 +837,18 @@ magnum (534):
 	The StatusShowCandidates config option showed "combinations" until
 	  now, this changes it to use "candidates" in the format "43210p"
 	  as we now have that figure handy.
-	The StatusShowCandidates line was accidentally dropped from
-	  john.conf.
+	The StatusShowCandidates line was accidentally dropped from john.conf.
 	Optionally reject printable binaries.
 	MPI fix for -reject-printable
-	Add --verbosity=N option. N is 1-5 and defaults to 3. For now, level
-	  1 will mute printing of cracked passwords to screen. Level 4
-	  will add some extra output from OpenCL and level 2 will mute
-	  some other. More to come.
+	Add --verbosity=N option. N is 1-5 and defaults to 3. For now, level 1
+	  will mute printing of cracked passwords to screen. Level 4 will
+	  add some extra output from OpenCL and level 2 will mute some
+	  other. More to come.
 	Mute --stdout candidates with --verbose=1
 	ShowCandidates fix (cosmetic).
 	DES-opencl: Rename to descrypt-opencl, and new-style algorithm name.
-	  Plus some trailing whitespace fixes that emacs did for me as
-	  soon as I touched the file.
+	  Plus some trailing whitespace fixes that emacs did for me as soon
+	  as I touched the file.
 	Dynamic: missing paren in BE code.
 	OS X specific build instructions.
 	Incremental: Correct progress for multiple nodes.
@@ -863,8 +857,98 @@ magnum (534):
 	Add ULL to large numbers in SHA512 code, muting loads of complaints
 	  when building 32-bit.
 	Update .mailmap for git shortlog.
+	Update CHANGES-jumbo.git and CREDITS-jumbo
+	New charset files (because charset.c changed). Also a new Jumbo-only
+	  "Alnum-case" incremental mode, that is upper+lower case and
+	  includes the space as well.
+	Enable OpenMP for NT2 format. Works fine on intel i7, not so good on
+	  AMD.
+	Add a linux-X32-native make target (for X32-ABI). For this to work we
+	  also change ARCH_WORD to "long long" in x86-64.h.
+	Rename linux-X32-native target to linux-x86-X32-native.
+	Fix a problem when resuming forked or MPI sessions that use the
+	  --encoding option.
+	Move crypt(3) format to lowest precedence.
+	Document some requirements in doc/INSTALL.
+	Possible bug fix for
+	  http://www.openwall.com/lists/john-dev/2013/05/27/20, thanks to
+	  Claudio.
+	MPI: More consistent exit handling.
+	Update MPI docs. Also, MPI was accidentally enabled by the last commit
+	  so this is fixed too.
+	Drop all uses of alloca() and variable size arrays.
+	Fix bugs in LUKS format. Allocations did not account for padding.
+	Drop HAVE_ALLOCA_H from os.h since we are not allowed to use alloca()
+	  at all.
+	LUKS: bug fix in valid().
+	Oracle11: Alignment fix.
+	hmac-sha-2 formats: Alignment fixes.
+	Document the OSX krb5-23 problem.
+	Avoid using GCC-specific pragmas on compilers that don't grok them.
+	100% white-space patch. I omitted dynamic as Jim's working on that
+	  one.
+	100% white-space fixes (GPU kernels).
+	Change name of bf-opencl to bcrypt-opencl, like the CPU format.
+	Adopt to new incremental modes (incomplete).
+	Adopt to new incremental modes.
+	Use official lm_ascii.chr from core John. The rest of the
+	  non-Jumbo-specific were already identical.
+	Reduce OpenCL formats verbosity, if requested.
+	xsha512-ng-opencl: Alignment.
+	Change --raw-always-valid (et al) to --bare-always-valid to avoid
+	  confusion.
+	Documentation updates.
+	Add a line to --list=hidden-options:
+	Fix a cosmetic bug when listing formats with wildcards that match
+	  dynamic.
+	Update doc/MARKOV. The examples are updated for version 1.8 output of
+	  John (which incidentally simplifies the calculation part a lot as
+	  we now get a proper p/s figure directly).
+	doc/MARKOV, change s/cracked/tried/ in a couple of places. They are
+	  not synonyms...
+	doc/MARKOV: Yet some minor adjustments.
+	Even more changes to doc/MARKOV: We can use the -max-run-time option
+	  instead of trying to find a proper markov level for measurement.
+	mkvcalcproba: Support reading from stdin.
+	genmkvpwd: Change %lld to %llu for correct printing of large numbers.
+	Fix progress calculation for wordlist mode without rules, when
+	  memory buffer is in use.
+	Fix a couple of problems with raw-sha1-opencl. And while at it, bump
+	  max length to 55 and use "compressed" key buffer for a nice
+	  boost.
+	NT2 format: Only use OMP+SSE2 for AVX or XOP. Older CPUs won't do
+	  well.
+	Dynamic OMP bugfix.
+	Wordlist.c: Fix for status overflow w/ millions of rules.
+	MPI: Fix cosmetic problem - help message printed several times.
+	Drop the word "intrinsics" from algorithm names.
+	FORMAT_NAME vs. ALGORITHM_NAME fixes.
+	Fix ALGORITHM_NAME for mscash2_opencl again, after Sayantan ignorantly
+	  reverted it.
+	Fix alignment for all formats that had my name in them for any reason.
+	Lots of algorithm_name vs format_name changes.
+	DES-opencl bugfix. It was using atexit() instead of registering
+	  done().
+	Use fmt_default_binary_hash_N() in more formats.
+	Fix a problem when using -fork with an MPI-enabled build. We
+	  initialize MPI before even parsing options, so if/when we are to
+	  fork later on, we need to tear that "1-node MPI session" down
+	  before forking, or the forked MPI world will result in all sorts
+	  of funny business. Tricky stuff.
+	Wordlist.c bugfix: Do not try to split-load a too small file into
+	  buffer.
+	Add repeats16 and repeats32 external modes (from the obsolete contest
+	  branch).
+	More use of fmt_default_binary_hash_N().
+	Even more use of fmt_default_binary_hash_N().
+	Correct MPI node number in pexit() message.
+	Minor cosmetic fixes and code cleanup.
+	Replace a check in gpg-opencl valid() that I accidentally dropped in
+	  ddb17ef
+	Replace a check in gpg-opencl valid() that I accidentally dropped in
+	  ddb17ef. Hopefully proper this time.
 
-Dhiru Kholia (158):
+Dhiru Kholia (188):
 	Add support for cracking KeePass 2.x files.
 	Get rid of BOM.
 	Add support for cracking PKCS #12 files.
@@ -1025,8 +1109,38 @@ Dhiru Kholia (158):
 	bitcoin format also works for litecoin wallet files!
 	Add support for cracking scrypt stuff
 	minor fixes for scrypt format
+	Add support for SHA3-256 hashing function
+	get rid of DEFAULT_ALIGN from panama format
+	get rid of DEFAULT_ALIGN from radmin format
+	get rid of DEFAULT_ALIGN from blake format
+	get rid of DEFAULT_ALIGN from Keccak formats
+	get rid of DEFAULT_ALIGN from ripemd format
+	get rid of DEFAULT_ALIGN from skein format
+	get rid of DEFAULT_ALIGN from haval format
+	get rid of DEFAULT_ALIGN from scrypt format
+	ensure salt alignment
+	fail a bit more gracefully for -p mode RAR5 files
+	get rid of DEFAULT_ALIGN from snefru format
+	get rid of DEFAULT_ALIGN from whirlpool format
+	get rid of DEFAULT_ALIGN from tiger format
+	get rid of DEFAULT_ALIGN from ripemd format (again)
+	get rid of DEFAULT_ALIGN from putty format
+	get rid of DEFAULT_ALIGN from putty format, this time for real
+	get rid of DEFAULT_ALIGN from md2 format
+	Add support for cracking blockchain "My Wallet" files
+	blockchain format actually works now ;)
+	Use SIMD in blockchain format
+	blockchain format optimizations
+	make use of IV in blockchain format
+	GPU support for blockchain format
+	fix build problem caused by blockchain format
+	fix function prototype in mscash2-opencl format
+	fix OMP build problem
+	some "dangerous" optimizations in the blockchain format
+	copy optimization made in blockchain CPU format
+	small optimization in ssh-ng format
 
-JimF (102):
+JimF (143):
 	get_source() supporting salts too. Added to crc32 and sapG.
 	raw-sha1_li: always store complete (repaired) hashes
 	Loads of minor fixes for Sparc (endianness, alignment)
@@ -1034,9 +1148,9 @@ JimF (102):
 	Use first two salts when benchmarking instead of top one.
 	wpapsk get_source()
 	Portability_issues_bleeding.diff
-	Use our own SHA-2 unless we have it in OpenSSL. This enables all
-	  SHA-2 formats even for users that only have OpenSSL 0.9.7. This
-	  also means we can have the formats as plugins.
+	Use our own SHA-2 unless we have it in OpenSSL. This enables all SHA-2
+	  formats even for users that only have OpenSSL 0.9.7. This also
+	  means we can have the formats as plugins.
 	Reflect what SHA-2 we use, in ALGORITHM_NAME
 	Enhancements to cryptsha256 (17% boost)
 	--list=format-methods[:WHICH] option added
@@ -1055,29 +1169,28 @@ JimF (102):
 	Added OMP, removed a few compile warnings, depending upon compile
 	  conditions, oSSL/GMP builds
 	Bug fixes for dynamic union crypt_key
-	SSE2 support for WPA-PSK. The code was taken and modified from my
-	  code in mscash2. They are pretty different, due to how the main
-	  format logic is (mscash2 split out just the inner function,
-	  this one did not break out the crypt). But they do about the
-	  same things. Also, in SSE2, mscash2 BE's the binary data. I
-	  do not do that here, since the wpapsk.h is common code to
-	  CPU/CUDA/OpenCL, and that is where that functionality is. So,
-	  there simply is a call to alter_endianity_to_BE when the
-	  results are stored at the end of crypt. There really should be
-	  no speed impact, due to this fact.
+	SSE2 support for WPA-PSK. The code was taken and modified from my code
+	  in mscash2. They are pretty different, due to how the main
+	  format logic is (mscash2 split out just the inner function, this
+	  one did not break out the crypt). But they do about the same
+	  things. Also, in SSE2, mscash2 BE's the binary data. I do not
+	  do that here, since the wpapsk.h is common code to
+	  CPU/CUDA/OpenCL, and that is where that functionality is. So, there
+	  simply is a call to alter_endianity_to_BE when the results are
+	  stored at the end of crypt. There really should be no speed
+	  impact, due to this fact.
 	wpapcap2john utility by Jim. C port by Dhiru.
 	wpapcap2john fixes from Jim
 	Here are a couple more fixes
 	Implement ldr_sort_salts(), currently hard-coded to only apply to
 	  wpapsk formats. In the future we will probably want a format
 	  struct entry for format->methods.salt_compare().
-	Some porting items. The typecasts are due to void* having an
-	  undefined size (on some compilerrs). error C2036: 'void *' :
-	  unknown size
-	Dynamic: Remove many more of the typecasts, putting them into
-	  anon unions.
-	listconf.c: Ensure we have a proper version of NSS lib before
-	  calling.
+	Some porting items. The typecasts are due to void* having an undefined
+	  size (on some compilerrs). error C2036: 'void *' : unknown
+	  size
+	Dynamic: Remove many more of the typecasts, putting them into anon
+	  unions.
+	listconf.c: Ensure we have a proper version of NSS lib before calling.
 	bench.c: Get around a crash in VC (and mingw), in -test=0 mode.
 	  These only use clock(), so if the bench is fast, there are 0 clocks
 	  used. I simply put a 1 in the time slot, if it is 0.
@@ -1119,12 +1232,11 @@ JimF (102):
 	JtR-Unstable-crash-fix-dyna_21.patch
 	JtR-Bleeding-Dyna-big-hash-fixes.patch
 	Portability issues fixed. fork/kill are not standard. They are *nix
-	  specific. I have taken it out of VC builds, and also removed
-	  the options from DJGPP builds. I would imagine that mingw also
+	  specific. I have taken it out of VC builds, and also removed the
+	  options from DJGPP builds. I would imagine that mingw also
 	  would have problems, but I do not have a build env under that
 	  any more, so did not add defines for it.
-	SHA-256 incorporated into sse-intrinsics.c - and a test format for
-	  it.
+	SHA-256 incorporated into sse-intrinsics.c - and a test format for it.
 	Raw-sha-224/256: Use new shared intrinsics.
 	JtR-bleeding-SSE2-pbkdf2-headers-v0.patch
 	JtR-bleeding-agilekeychain-fix.patch
@@ -1151,15 +1263,112 @@ JimF (102):
 	JtR-rules-avoid-double-include-char-classes.patch
 	JtR-bleeding-defines-cleanup.patch
 	small changes to regen-salts
-	SHA512 into intrinsics, normalizing SHA1 SSE2i interface to be same
-	  as SHA2
+	SHA512 into intrinsics, normalizing SHA1 SSE2i interface to be same as
+	  SHA2
 	SHA512 into intrinsics
 	removed password len restrictions from pbkdf2_hmac_sha*.h files
 	improved speed of scrypt, about 2x
 	more changes to scrypt and correct valid
 	missed 2 files on last scrypt update
+	SSE added to raw-sha384/512 and some fixes to other raw SHA formats
+	SSE added to raw-sha384/512 and some fixes to other raw SHA formats
+	use a var, to allow for easier step debugging, to not have to walk
+	  into the longcand function
+	some small changes in SSE SHA2 code
+	fixed bug in recent changes, if compiling in oSSL mode
+	Added OMP to raw MD4 MD5 SHA1 formats
+	remove OMP in MD4 MD5 SHA1 formats if built with 32 bit mmx-*.S
+	  file(s)
+	Merges some of the macros roti now handles ROTR as well as ROTL.
+	  Removed some if XOP defines, since we now have the cmov instruction
+	  memicked in non XOP builds
+	added aix-ssha* pbkdf2 hashes
+	added 125 byte password self tests (max size). Removed old oSSL
+	  commented out code. Fixed issue where a SHA256 constant was used
+	  instead of a SHA512. Should have caused no crashes, since the 512
+	  constant is smaller, but waste of memory
+	Use code from pbkdf2_hmac_sha512.h. 2x speedup for oSSE, and gets
+	  about 4x+ speedup for SSE2 (XOP gets more)
+	Allow the oSSL pbkdf2-sha* code to also be included in SSE2 builds.
+	  Now pbkdf2-hmac-sha512_fmt_plug.c can fully use the header
+	  functions, even when built with SSE. No reason to keep the internal
+	  hmac function in this fmt file any more. It was used in cmp_exact.
+	Added max length password and salt to test cases. Fixed serious bug,
+	  doing strlen on salt, vs using salt->length. The static salt buffer
+	  is not memset (probably should be) in the get_salt, and thus, a salt
+	  record 'can' have extra crap after the salt. Does not hurt anything
+	  AS LONG AS you only look at salt->length amount. The recent patch
+	  to use pbkdf2_hmac_sha512.h file lost the usage of salt->length and
+	  instead used the strlen, which was bad busted. Found when a shorter
+	  salt followed a longer salt in self tests. Things started to fail
+	  unexpectedly, and were hard to track down as why they were failing.
+	added new file to help within pass_gen.pl
+	Fixed compile issue in XOP from recent changes
+	added loop count to sha*Crypt formats
+	Added an ifdef in format.c to allow development work to temp turn off
+	  validations. Found useful in testing theories in format changes,
+	  and testing speed, without having to fully get the format working
+	Added SSE intrinsics to SHA256Crypt. Still more work to do, but
+	  currently this is working and faster
+	updated the sse-intrinsic .S files, removed memdbg.h from cryptsha256,
+	  and fixed possible overwrite isse, and fixed rawSHA256_ng_i code
+	  that eliminates final crypt adds. We were using SHA512 IV's and not
+	  SHA256, boom
+	sha256-crypt: Turn off SSE for OMP builds, until OMP crash bug found
+	raw-md5: modified OMP threading computation, to hopefully improve AMD
+	  scaling
+	Added max length passwords and max length salts to all values in
+	  dyna_preloads. Also fixed numerous items within pass_gen.pl which
+	  were for building dynamic hashes
+	Reverted 01a920146, raw-md5 OMP scaling attempt
+	Added max length passwords etc to dynamic in dynamic.conf, Updated
+	  DYNA docs and a fix or 2 in pass_gen.pl
+	generic was broken, needed to use salt->length and not strlen of salt
+	Added SIMD code to SHA224/256 within Dynamic, and started some
+	  significant core changes to dyna, to help use SIMD code for dyna
+	  large formats
+	fix compile problems on x64 builds
+	moved the rounds= #define into the header
+	Major modifications to dynamic. SHA1 re-written from ground up. Now
+	  uses 'flat' input buffer method, the same as SHA256. This improved
+	  perforamnce of ALL sha1 formats, except sha1() (raw-sha1). That
+	  format lost 15% speed or so, due to not being able to use
+	  specialized key loader. However, it was already 20% or more slower
+	  than the hand tuned raw-sha1* formats, so losing this speed race
+	  within dyna is not a major concern, when all other formats that have
+	  more complexity DID increase in speed, some up to 200%. Also, we
+	  are NO LONGER limited to 55 bytes on SSE for SHA1. This patch also
+	  removes the depricated formats dyna-27 and dyna-28. These were
+	  depricated, and only ran in sse builds, and were 20% slower than
+	  cryptmd5, so were not of any use, and had a LOT of code spacer (1000
+	  or more lines of code), and that code was VERY buggy. It simply has
+	  been removed totally
+	increased max length of non MMX password input from 80 to 110 bytes.
+	  all formats other than MD5/MMX layout have been increased. Also
+	  formats NOT MMX safe will get 110 byte inputs even when the build is
+	  an SIMD build. Before, these subformats were also honoring the 55
+	  byte max length, even though they did not need to. Also fixed a bug
+	  in parser which was not computing test counts properly if a TestM=
+	  or TestF= was being used.
+	Added large hash FLAT sse code for MD5/MD4. Also added some native
+	  FLAT format md4/5 to dynamic, and started adding these as 2nd re-gen
+	  hashes for dynamics where the older mixed layout is faster. The new
+	  FLAT is not limited by short max length passwords
+	new dyna conf file missed, and some problems with dyna generic builds
+	missed checking this new dyna conf file in
+	failed to build in OMP builds
+	Fix build problems on XOP systems
+	Fix build problems on XOP systems
+	increased PW length of mscash2 from 27 to 125 and username length from
+	  22 to 128
+	OpenCL mscash2 password length bug fixed, and PW length increased to
+	  125 byte JtR max length
+	mscash2-opencl: fixed bug in new 125 byte password code
+	Changed dynamic format names. Moved the expression to the algorithm
+	  section
+	fixed algorithm name
 
-Claudio André (101):
+Claudio André (102):
 	Selectively pick stuff from Claudio's experimental tree.
 	Get some nt-opencl fixes from Claudio
 	Rebase on bleeding and copied 'my' formats.
@@ -1221,15 +1430,15 @@ Claudio André (101):
 	Hopefully the bug is gone.
 	Tested with TS and 'real' cases from
 	  http://openwall.info/wiki/john/development/GPU#Acceptance-Tests.
-	  Everything seems to be Ok and on VLIW5 (at least mine) it runs at
-	  2x faster.
+	  Everything seems to be Ok and on VLIW5 (at least mine) it runs at 2x
+	  faster.
 	Better bounds detection Or I fixed a bug (i haven't found) or I
 	  create a new one.
 	Now opencl_find_gpu is called only if there is (at least) one valid
 	  OpenCL device (previous patchs). So opencl_find_gpu must point to
 	  one valid OpenCL resource (even if it is a CPU). It means
-	  opencl_find_gpu will point: - to an OpenCL CPU. - or
-	  better, to an OpenCL GPU (if any).
+	  opencl_find_gpu will point: - to an OpenCL CPU. - or better,
+	  to an OpenCL GPU (if any).
 	Allow sha512crypt to be used on no_byte_addressable hardware.
 	Refactor opencl_find_gpu() in order to show its real functionality.
 	GCG! Ah GCN! Are you kidding me?
@@ -1253,9 +1462,9 @@ Claudio André (101):
 	Remove the sha256crypt-ng: it is not necessary anymore.
 	My branch becames the reference to the next merge.
 	Small tweaks in sha512crypt OpenCL code.
-	A proper fix to the incapacity to deal with passlen=24 AND
-	  saltlen=16. Previous commit can handle it, but since it hurts
-	  performance a litte, this is a best solution.
+	A proper fix to the incapacity to deal with passlen=24 AND saltlen=16.
+	  Previous commit can handle it, but since it hurts performance a
+	  litte, this is a best solution.
 	Remove unused blank lines.
 	Memory flags reviewed at NVIDIA OpenCL Best Practices Guide (chapter
 	  3.1).
@@ -1279,11 +1488,56 @@ Claudio André (101):
 	Remove the '__local' version of sha512 (raw) kernel.
 	sha512 (raw): support max. length of 55 and minimize transfers to
 	  actually needed size.
-	Transfer partial data while JtR is still creating keys (sha512
-	  [raw]).
+	Transfer partial data while JtR is still creating keys (sha512 [raw]).
 	Mute (again) a warning on OSX.
 	Cisco type 4 fix
 	Remove unused xsha512 file.
+	Unify valid() and binary() for crypt-sha512 formats
+
+ShaneQful (18):
+	Added prepare method which checks for the old style pdf hashes and
+	  converts them to the new style pdf hashes if necessary
+	Cleaned up comments and added self to credits
+	Fixed bug Dhiru found in pdf2john.py. There was an issue with one of
+	  my regexs so that it didn't cover all situations
+	Remove FIXME(s) (Don't scare Frank and magnum anymore)
+	Removed assert which caused bugs in some documents generated with word
+	  for the mac (cherry picked from commit
+	  ddbbc65639305473a3311a339501da82473b1d77)
+	Update CREDITS-jumbo
+	Added License to pdf2john
+	Unicode fixes for python 3 in office2john
+	Added Python 3 support for pdf2john
+	Fixed spelling error
+	Changed is_meta_data_encrypted to return a boolean rather than a
+	  string
+	Changed get_encrypted_object_id to get_object_id in order to get any
+	  object id from the trailer
+	Impemented parse meta method, just get values methods left
+	Fix for checking meta data encrypted in python 3.2
+	pdf2john now gets the title and year created from xmp metadata
+	pdf2john now gets all relevant metadata when metadata left unencrypted
+	Fixed bug in pdf2john where wrong objects could have been used
+	Small fix to get_xmp_values method in pdf to john
+
+Sayantan Datta (16):
+	mscash2-opencl:added multi-gpu interfaces,bug fixes
+	opencl-mscash2:no segfault when mixing devices with large difference
+	  in speed
+	mscash2-opencl:code cleanup
+	mscash2-opencl:code cleanup
+	mscash2-opencl:code cleanup
+	bf-opencl:code cleanup
+	bf-opencl:code cleanup
+	bf-opencl:code cleanup
+	descrypt-opencl:code cleanup
+	mscash2-opencl:ciphertext format changed, no trailing white spaces
+	descrypt-opencl:cmp on gpu
+	shared valid,split,prepare for cpu and gpu mscash2
+	descrypt-opencl:improved compare
+	bcrypt-opencl: fixed AMD 7970 ASIC hang
+	mscash2-opencl: supports 128byte salts
+	mscash2-opencl: fixed warnings and other issues
 
 Alexander Cherepanov (16):
 	Just a small patch to fix strncmp in NETLM format.
@@ -1303,29 +1557,7 @@ Alexander Cherepanov (16):
 	undrop: limit the length of password. (Fixes a crash.)
 	krb5: ensure that username and realm are non-empty. (Fixes SIGFPE.)
 
-Solar (14):
-	Fix breakage caused by commit aab646b42afe93ca909b
-	Bleeding Backports from john-1.7.9.6-c6.
-	john-1.7.9.6-selftest-1.diff
-	john-1.7.9.6-done-1.diff
-	john-1.7.9.6+done-reset-1.diff
-	john-1.7.9.6+reset-crypt_all-2.diff
-	john-1.7.9.6-LM-1.diff
-	john-1.7.9.6+crypt_all+LM-crypt_all-pcount-1.diff
-	PoC optimization for NTLMv1. Maintain a table for the third DES
-	  block.
-	2nd version of NETNTLM patch
-	Try to speedup cmp_all() by use of a bitmap. This only makes sense
-	  when cmp_all() is called multiple times per crypt_all()'s
-	  actual processing - that is, when cracking two or more C/R
-	  pairs at once. There's a check for that in the code.
-	  Moreover, use of the bitmap is automatically disabled when the
-	  C/R pair count reduces to 1.
-	raw-SHA512-ng, trivial optimizations.
-	Licensing files
-	john-rawSHA1_ng_fmt-omp-reduction.diff
-
-Frank Dittrich (14):
+Frank Dittrich (16):
 	Add get_source to --list=help:format-methods output
 	Add binary and salt alignment to --list=format-[all-]details
 	Fix typo in doc/README-OPENCL
@@ -1341,6 +1573,50 @@ Frank Dittrich (14):
 	Fix a bug when using --stdout, introduced in e14ac00.
 	benchmark-unify: adjust format name mappings Add "Mozilla SHA-1
 	  3DES" mapping Adjust "pdf" mapping
+	Fix bash completion for formats if --list=hidden-option has
+	  --format=CLASS
+	Bash completion: Workaround for --format=CLASS parsing
+
+Solar (15):
+	Fix breakage caused by commit aab646b42afe93ca909b
+	Bleeding Backports from john-1.7.9.6-c6.
+	john-1.7.9.6-selftest-1.diff
+	john-1.7.9.6-done-1.diff
+	john-1.7.9.6+done-reset-1.diff
+	john-1.7.9.6+reset-crypt_all-2.diff
+	john-1.7.9.6-LM-1.diff
+	john-1.7.9.6+crypt_all+LM-crypt_all-pcount-1.diff
+	PoC optimization for NTLMv1. Maintain a table for the third DES block.
+	2nd version of NETNTLM patch
+	Try to speedup cmp_all() by use of a bitmap. This only makes sense
+	  when cmp_all() is called multiple times per crypt_all()'s actual
+	  processing - that is, when cracking two or more C/R pairs at
+	  once. There's a check for that in the code. Moreover, use of
+	  the bitmap is automatically disabled when the C/R pair count
+	  reduces to 1.
+	raw-SHA512-ng, trivial optimizations.
+	Licensing files
+	john-rawSHA1_ng_fmt-omp-reduction.diff
+	Add 'dokuwiki' external mode from
+	  http://www.openwall.com/lists/john-users/2013/06/08/14
+
+Lukas Odzioba (14):
+	CUDA multigpu first draft for pwsafe
+	gpg2john: Handle multiple keys per in file, as well as multiple
+	  infiles.
+	Add OpenCL 1.2 error codes to our debug routines.
+	Include OpenCL version information into --list=build-info
+	(re-)enable agilekeychain format
+	gpg2john fixes
+	CUDA versions in --list=build-info
+	Basename helper function in misc.c, also capable of stripping
+	  extensions.
+	gpg2john GECOS support
+	fix crash in gpg format
+	SIP valid() fix.
+	SIP valid() fix.
+	Implement shared fmt_default_binary_hash_N() for the common case.
+	Last bunch of formats making use of shared binary_hash() functions.
 
 bwall (13):
 	Initial pwsafe optimization
@@ -1356,50 +1632,6 @@ bwall (13):
 	Implemented split kernel on pwsafe-opencl
 	Pushed for more optimal settings
 	Increased the plaintext size to 87 in pwsafe-opencl
-
-Lukas Odzioba (12):
-	CUDA multigpu first draft for pwsafe
-	gpg2john: Handle multiple keys per in file, as well as multiple
-	  infiles.
-	Add OpenCL 1.2 error codes to our debug routines.
-	Include OpenCL version information into --list=build-info
-	(re-)enable agilekeychain format
-	gpg2john fixes
-	CUDA versions in --list=build-info
-	Basename helper function in misc.c, also capable of stripping
-	  extensions.
-	gpg2john GECOS support
-	fix crash in gpg format
-	SIP valid() fix.
-	SIP valid() fix.
-
-ShaneQful (10):
-	Added prepare method which checks for the old style pdf hashes and
-	  converts them to the new style pdf hashes if necessary
-	Cleaned up comments and added self to credits
-	Fixed bug Dhiru found in pdf2john.py. There was an issue with one of
-	  my regexs so that it didn't cover all situations
-	Remove FIXME(s) (Don't scare Frank and magnum anymore)
-	Removed assert which caused bugs in some documents generated with
-	  word for the mac (cherry picked from commit
-	  ddbbc65639305473a3311a339501da82473b1d77)
-	Update CREDITS-jumbo
-	Added License to pdf2john
-	Unicode fixes for python 3 in office2john
-	Added Python 3 support for pdf2john
-	Fixed spelling error
-
-Sayantan Datta (9):
-	mscash2-opencl:added multi-gpu interfaces,bug fixes
-	opencl-mscash2:no segfault when mixing devices with large difference
-	  in speed
-	mscash2-opencl:code cleanup
-	mscash2-opencl:code cleanup
-	mscash2-opencl:code cleanup
-	bf-opencl:code cleanup
-	bf-opencl:code cleanup
-	bf-opencl:code cleanup
-	descrypt-opencl:code cleanup
 
 Tavis Ormandy (7):
 	The second transpose in crypt() is not necessary, we can do it during
@@ -1434,16 +1666,24 @@ Deepika Dutta (3):
 
 Costin Enache (3):
 	Fix for clock err in timers.
-	rules.c: Provide enough space for \xHEX encoded lines (worst case,
-	  ie. x4).
+	rules.c: Provide enough space for \xHEX encoded lines (worst case, ie.
+	  x4).
 	Silly bug in sunmd5 busted the rounds parsing.
+
+Michael Samuel (2):
+	Add External:KDEPaste. This takes advantage of CVE-2013-2120 to find
+	  seeds that KDE Paste applet uses to generate passwords.
+	Add license notice to KDEPaste external mode.
+
+bartavelle (Simon Marechal) (1):
+	Updated copyright information
 
 Vlatko Kosturjak (1):
 	Expose markov stats file as "hidden" command line option
 	  (--mkv-stats=FILE)
 
-bartavelle (Simon Marechal) (1):
-	Updated copyright information
+Sergey V (1):
+	make blockchain-opencl non-plug
 
 Dániel Bali (1):
 	Add OpenCL target for Win32/Cygwin.
@@ -1451,7 +1691,7 @@ Dániel Bali (1):
 
 The following changes were made between 1.7.9-jumbo-7 and 1.7.9-jumbo-8:
 
-magnum (656):
+magnum (686):
 	Add a "Section [%s] not found" before outputting the catch-all
 	  --list=?
 	Merge fix
@@ -2641,8 +2881,44 @@ magnum (656):
 	Drop the wchar stuff from gpg2john. 8-bit GECOS now works fine.
 	Netscreen: Better valid().
 	DMD5: Better valid().
+	Update CHANGES-jumbo.git and CREDITS-jumbo.
+	More restrictive valid() in nsldap, salted-sha1 and ssha-opencl.
+	Comment out dynamic_1028. It was using un-implemented functions...
+	Improve valid() in all MSCHAPv2 and NETNTLMv2 formats.
+	Remove unused variable from agilekeychain-opencl.
+	doc/MARKOV note about UTF-8 filter.
+	Revert "SIP valid() fix."
+	Copyright blurb.
+	VMS: Better valid().
+	Drop unused variable from VMS.
+	Merge recent sxc fixes to sxc-opencl.
+	Merge a whole bunch of fixes made to CPU formats, to the OpenCL ones.
+	  Conflicts: 	src/opencl_agilekeychain_fmt.c
+	Updated doc/BUGS for unstable.
+	Typo in README-OPENCL.
+	Update .mailmap for git shortlog.
+	Update CHANGES-jumbo.git (CREDITS-jumbo does not need update).
+	Document some requirements in doc/INSTALL.
+	100% white-space cleaning.
+	Change name from 1.7.9-jumbo-8-unstable to 1.7.9-jumbo-8-RC
+	Change --raw-always-valid (et al) to --bare-always-valid to avoid
+	  confusion.
+	Documentation updates.
+	Add a line to --list=hidden-options:
+	Fix a cosmetic bug when listing formats with wildcards that match
+	  dynamic.
+	Fix a couple of problems with raw-sha1-opencl. And while at it, bump
+	  max length to 55 and use "compressed" key buffer for a nice
+	  boost.
+	mkvcalcproba: Support reading from stdin.
+	genmkvpwd: Change %lld to %llu for correct printing of large numbers.
+	bash-completion: Drop trailing whitespace.
+	bash-completion: Redirect dynamic.conf errors to /dev/null.
+	Update CHANGES-jumbo.git (CREDITS-jumbo needed no change).
+	Add repeats16 and repeats32 external modes (from the obsolete contest
+	  branch).
 
-Dhiru Kholia (325):
+Dhiru Kholia (334):
 	BONUS: pwsafe format also cracks Password Gorilla databases.
 	Integrate psk-crack (from ike-scan) into john.
 	Add support for cracking Nuked-Klan CMS hashes.
@@ -2973,6 +3249,15 @@ Dhiru Kholia (325):
 	fix crash in keyring format
 	tighten check in episerver format
 	tighten check in clipperz format
+	New dynamic types from Alexander Cherepanov and "Waffle"
+	fix yet another crash in dmg format
+	check maximum hash length in episerver format
+	check maximum username length in mongodb format
+	fix crash in putty format
+	fix crash in office format
+	fix crash in sxc format
+	fix crash in wbb3 format
+	fix crash in pdf format
 
 Claudio André (157):
 	Improvement: pre-compute modulus values.
@@ -3193,7 +3478,7 @@ Claudio André (157):
 	Mute a few warnings when using test=0 on OSX.
 	Mute some warnings.
 
-JimF (62):
+JimF (64):
 	Add our own SHA-2, enabling 19 new formats for users stuck with
 	  OpenSSL 0.9.7. OpenSSL or not, boost sha256crypt with 10-20%.
 	Fix radmin format under Windows.
@@ -3285,8 +3570,10 @@ JimF (62):
 	Disable OMP for MMX in wpapsk format
 	Dyna21-crash.patch
 	dynamic-valid.patch
+	JtR-Unstable-crash-fix-dyna_21.patch
+	JtR-Unstable-Dyna-big-hash-fixes.patch
 
-Frank Dittrich (49):
+Frank Dittrich (53):
 	Make --list= a little bit more user friendly
 	Bash completion: add support for --list=format-methods[:WHICH]
 	Silence -Wpointer-sign warnings in hmacSHA*_fmt_plug.c, take 2
@@ -3340,8 +3627,14 @@ Frank Dittrich (49):
 	benchmark-unify: adjust format name mappings Add "Mozilla SHA-1
 	  3DES" mapping Adjust "pdf" mapping
 	remove unused variable in putty_fmt_plug.c, valid()
+	Fix bash completion for formats if --list=hidden-option has
+	  --format=CLASS
+	Bash completion: Workaround for --format=CLASS parsing
+	Fix bash completion for formats if --list=hidden-option has
+	  --format=CLASS
+	Bash completion: Workaround for --format=CLASS parsing
 
-Sayantan Datta (23):
+Sayantan Datta (25):
 	common-opencl.c:Added build from binary
 	mscash2-opencl:bitselect optimization
 	New opencl format:DES-BS
@@ -3367,8 +3660,10 @@ Sayantan Datta (23):
 	mscash2-opencl honours LWS and GWS env variables, des-opencl and
 	  bf-opencl honours GWS environment variables, added functions to
 	  detect optimal GWS for bf-opencl and des-opencl
+	bcrypt-opencl: fixed AMD 7970 ASIC hang
+	bf-opencl:fixed 7970 ASIC hang
 
-Lukas Odzioba (19):
+Lukas Odzioba (22):
 	Make Truecrypt formats non-plugin and only build for OpenSSL >= 1.0.0
 	Fixed valid in pwsafe formats
 	Fixed valid() in pwsafe formats
@@ -3394,8 +3689,54 @@ Lukas Odzioba (19):
 	Basename helper function in misc.c, also capable of stripping
 	  extensions.
 	gpg2john GECOS support
+	GPG valid() fixes.
+	SIP valid() fix.
+	SIP valid() fix.
 
-Solar (10):
+ShaneQful (18):
+	Added author comment at top of file & chmodded it to be executable
+	Added prepare method which checks for the old style pdf hashes and
+	  converts them to the new style pdf hashes if necessary
+	Cleaned up comments and added self to credits
+	Fixed bug Dhiru found in pdf2john.py. There was an issue with one of
+	  my regexs so that it didn't cover all situations
+	Remove FIXME(s) (Don't scare Frank and magnum anymore)
+	Removed assert which caused bugs in some documents generated with word
+	  for the mac
+	Fixed spelling error
+	Update CREDITS-jumbo
+	Added License to pdf2john
+	Added Python 3 support for pdf2john
+	Changed is_meta_data_encrypted to return a boolean rather than a
+	  string
+	Changed get_encrypted_object_id to get_object_id in order to get any
+	  object id from the trailer
+	Impemented parse meta method, just get values methods left
+	Fix for checking meta data encrypted in python 3.2
+	pdf2john now gets the title and year created from xmp metadata
+	pdf2john now gets all relevant metadata when metadata left unencrypted
+	Fixed bug in pdf2john where wrong objects could have been used
+	Small fix to get_xmp_values method in pdf to john
+
+Alexander Cherepanov (16):
+	sunmd5 coinflip speedup
+	Just a small patch to fix strncmp in NETLM format.
+	WPAPSK bugfix.
+	Some typos.
+	Typo in dynamic.conf
+	Replace unicode em-dash in putty files.
+	Replace non-ascii char by hex code in pass_gen.pl.
+	Replace several non-ascii copyright signs by "(c)" string.
+	Fix typos in README.bash-completion.
+	Fix some typos in README-OPENCL.
+	Add some band-aid to valid() in sxc format.
+	Improve robustness of valid() in pkzip format.
+	Make valid() in sunmd5 format robust.
+	Fix a crash in dynamic with an overlong salt.
+	undrop: limit the length of password. (Fixes a crash.)
+	krb5: ensure that username and realm are non-empty. (Fixes SIGFPE.)
+
+Solar (11):
 	hccap2john fixes
 	RAdmin, SIP speedup
 	sunmd5: minor fixes
@@ -3416,6 +3757,8 @@ Solar (10):
 	  the bitmap is automatically disabled when the C/R pair count
 	  reduces to 1.
 	Licensing files
+	Add 'dokuwiki' external mode from
+	  http://www.openwall.com/lists/john-users/2013/06/08/14
 
 Narendra Kangralkar (10):
 	Make ciphertext parsing more robust in nk format
@@ -3428,20 +3771,6 @@ Narendra Kangralkar (10):
 	Make ciphertext parsing more robust in oldoffice format
 	Make ciphertext parsing more robust in zip format
 	Add support for cracking KDE KWallet files
-
-ShaneQful (9):
-	Added author comment at top of file & chmodded it to be executable
-	Added prepare method which checks for the old style pdf hashes and
-	  converts them to the new style pdf hashes if necessary
-	Cleaned up comments and added self to credits
-	Fixed bug Dhiru found in pdf2john.py. There was an issue with one of
-	  my regexs so that it didn't cover all situations
-	Remove FIXME(s) (Don't scare Frank and magnum anymore)
-	Removed assert which caused bugs in some documents generated with word
-	  for the mac
-	Fixed spelling error
-	Update CREDITS-jumbo
-	Added License to pdf2john
 
 Vlatko Kosturjak (7):
 	Fix: handle error handling better. Helps in debugging OpenCL errors.
@@ -3459,14 +3788,6 @@ Vlatko Kosturjak (7):
 	make targets for zsh completion
 	"polishing" changes
 
-rofl0r (6):
-	timer.h: remove unneeded include (sys/timeb.h)
-	factor out struct tcphdr
-	Makefile: allow JOHN_LDFLAGS
-	tcphdr.h: remove unneeded typedef
-	tcphdr.h: special-case endian.h for mac/bsd
-	timer.h: re-add sys/timeb.h to windows section
-
 bwall (6):
 	Initial pwsafe optimization
 	Removed OpenSSL tag from pwsafe_fmt_plug
@@ -3474,6 +3795,14 @@ bwall (6):
 	Optimized the iterated SHA256 in pwsafe-cuda
 	Added copyright information
 	Applied optimizations to pwsafe-opencl and cleaned up copyrights
+
+rofl0r (6):
+	timer.h: remove unneeded include (sys/timeb.h)
+	factor out struct tcphdr
+	Makefile: allow JOHN_LDFLAGS
+	tcphdr.h: remove unneeded typedef
+	tcphdr.h: special-case endian.h for mac/bsd
+	timer.h: re-add sys/timeb.h to windows section
 
 Myrice (3):
 	Bug fixed: xsha512-cuda long password bug
@@ -3488,18 +3817,10 @@ Deepika Dutta (3):
 	Add MMX version of DES_bs_crypt_plain().
 	netntlm bitsliced conversion
 
-Alexander Cherepanov (2):
-	sunmd5 coinflip speedup
-	Just a small patch to fix strncmp in NETLM format.
-
-Costin Enache (2):
-	Fix for clock err in timers.
-	Silly bug in sunmd5 busted the rounds parsing.
-
-Julien Perrot (2):
-	add support for sips uri (with explicit port number)
-	adds support for sips uri (with explicit port number) when converting
-	  input from sipdump
+Michael Samuel (2):
+	Add External:KDEPaste. This takes advantage of CVE-2013-2120 to find
+	  seeds that KDE Paste applet uses to generate passwords.
+	Add license notice to KDEPaste external mode.
 
 Tavis Ormandy (2):
 	Avoid useless roti operation for R75, minor syntax cleanup.
@@ -3509,18 +3830,27 @@ bartavelle (Simon Marechal) (2):
 	sunmd5.hack.diff
 	Updated copyright information
 
+Julien Perrot (2):
+	add support for sips uri (with explicit port number)
+	adds support for sips uri (with explicit port number) when converting
+	  input from sipdump
+
+Costin Enache (2):
+	Fix for clock err in timers.
+	Silly bug in sunmd5 busted the rounds parsing.
+
 tomrittervg (1):
 	fix typo in memory allocation check code
 
 Mat G (1):
 	New format: Fortigate (FortiOS)
 
+Camille Mougey (1):
+	New formats: KRB5-18 and KRB5-23
+
 Linus Lüssing (1):
 	MSCHAPv2: Add support for freeradius-wep-patch challenge/response
 	  format
-
-Camille Mougey (1):
-	New formats: KRB5-18 and KRB5-23
 
 alexandru (1):
 	Default value for number of iterations
