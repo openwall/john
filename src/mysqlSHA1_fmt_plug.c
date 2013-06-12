@@ -295,41 +295,6 @@ static void *binary(char *ciphertext)
 	return (void *)realcipher;
 }
 
-static int binary_hash_0(void *binary)
-{
-	return ((ARCH_WORD_32 *)binary)[0] & 0xF;
-}
-
-static int binary_hash_1(void *binary)
-{
-	return ((ARCH_WORD_32 *)binary)[0] & 0xFF;
-}
-
-static int binary_hash_2(void *binary)
-{
-	return ((ARCH_WORD_32 *)binary)[0] & 0xFFF;
-}
-
-static int binary_hash_3(void *binary)
-{
-	return ((ARCH_WORD_32 *)binary)[0] & 0xFFFF;
-}
-
-static int binary_hash_4(void *binary)
-{
-	return ((ARCH_WORD_32 *)binary)[0] & 0xFFFFF;
-}
-
-static int binary_hash_5(void *binary)
-{
-	return ((ARCH_WORD_32 *)binary)[0] & 0xFFFFFF;
-}
-
-static int binary_hash_6(void *binary)
-{
-	return ((ARCH_WORD_32 *)binary)[0] & 0x7FFFFFF;
-}
-
 #ifdef SHA1_SSE_PARA
 static int get_hash_0(int index)
 {
@@ -444,13 +409,13 @@ struct fmt_main fmt_mysqlSHA1 = {
 		fmt_default_salt,
 		fmt_default_source,
 		{
-			binary_hash_0,
-			binary_hash_1,
-			binary_hash_2,
-			binary_hash_3,
-			binary_hash_4,
-			binary_hash_5,
-			binary_hash_6
+			fmt_default_binary_hash_0,
+			fmt_default_binary_hash_1,
+			fmt_default_binary_hash_2,
+			fmt_default_binary_hash_3,
+			fmt_default_binary_hash_4,
+			fmt_default_binary_hash_5,
+			fmt_default_binary_hash_6
 		},
 		fmt_default_salt_hash,
 		fmt_default_set_salt,

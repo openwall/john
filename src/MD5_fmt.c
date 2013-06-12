@@ -134,41 +134,6 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	return 1;
 }
 
-static int binary_hash_0(void *binary)
-{
-	return *(MD5_word *)binary & 0xF;
-}
-
-static int binary_hash_1(void *binary)
-{
-	return *(MD5_word *)binary & 0xFF;
-}
-
-static int binary_hash_2(void *binary)
-{
-	return *(MD5_word *)binary & 0xFFF;
-}
-
-static int binary_hash_3(void *binary)
-{
-	return *(MD5_word *)binary & 0xFFFF;
-}
-
-static int binary_hash_4(void *binary)
-{
-	return *(MD5_word *)binary & 0xFFFFF;
-}
-
-static int binary_hash_5(void *binary)
-{
-	return *(MD5_word *)binary & 0xFFFFFF;
-}
-
-static int binary_hash_6(void *binary)
-{
-	return *(MD5_word *)binary & 0x7FFFFFF;
-}
-
 static int get_hash_0(int index)
 {
 #ifdef MD5_SSE_PARA
@@ -424,13 +389,13 @@ struct fmt_main fmt_MD5 = {
 		get_salt,
 		fmt_default_source,
 		{
-			binary_hash_0,
-			binary_hash_1,
-			binary_hash_2,
-			binary_hash_3,
-			binary_hash_4,
-			binary_hash_5,
-			binary_hash_6
+			fmt_default_binary_hash_0,
+			fmt_default_binary_hash_1,
+			fmt_default_binary_hash_2,
+			fmt_default_binary_hash_3,
+			fmt_default_binary_hash_4,
+			fmt_default_binary_hash_5,
+			fmt_default_binary_hash_6
 		},
 		salt_hash,
 		set_salt,
