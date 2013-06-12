@@ -312,8 +312,10 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if ((p = strtok(NULL, "*")) == NULL)	/* spec */
 		goto err;
 	spec = atoi(p);
-	if(spec != SPEC_ITERATED_SALTED)
+	if(spec != SPEC_ITERATED_SALTED) {
 		fprintf(stderr, "[-] gpg-opencl only supports cracking keys using SHA1 based s2k\n");
+		goto err;
+	}
 	if ((p = strtok(NULL, "*")) == NULL)	/* usage */
 		goto err;
 	res = atoi(p);
@@ -321,6 +323,10 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* hash_algorithm */
 		goto err;
+	if(atoi(p) != HASH_SHA1) {
+		fprintf(stderr, "[-] gpg-opencl only supports cracking keys using SHA1 based s2k\n");
+		goto err;
+	}
 	res = atoi(p);
 	if(!valid_hash_algorithm(res,spec))
 		goto err;
