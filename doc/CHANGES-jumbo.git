@@ -1,6 +1,6 @@
 The following changes were made between 1.7.9-jumbo-7 and 1.7.9-jumbo-8:
 
-magnum (684):
+magnum (686):
 	Add a "Section [%s] not found" before outputting the catch-all
 	  --list=?
 	Merge fix
@@ -1223,6 +1223,9 @@ magnum (684):
 	genmkvpwd: Change %lld to %llu for correct printing of large numbers.
 	bash-completion: Drop trailing whitespace.
 	bash-completion: Redirect dynamic.conf errors to /dev/null.
+	Update CHANGES-jumbo.git (CREDITS-jumbo needed no change).
+	Add repeats16 and repeats32 external modes (from the obsolete contest
+	  branch).
 
 Dhiru Kholia (334):
 	BONUS: pwsafe format also cracks Password Gorilla databases.
@@ -2042,19 +2045,7 @@ Alexander Cherepanov (16):
 	undrop: limit the length of password. (Fixes a crash.)
 	krb5: ensure that username and realm are non-empty. (Fixes SIGFPE.)
 
-Narendra Kangralkar (10):
-	Make ciphertext parsing more robust in nk format
-	Make ciphertext parsing more robust in episerver format
-	Make ciphertext parsing more robust in IKE format
-	Make ciphertext parsing more robust in vnc format
-	Make ciphertext parsing more robust in django format
-	Make ciphertext parsing more robust in pbkdf2-hmac-sha512 format
-	Make ciphertext parsing more robust in office format
-	Make ciphertext parsing more robust in oldoffice format
-	Make ciphertext parsing more robust in zip format
-	Add support for cracking KDE KWallet files
-
-Solar (10):
+Solar (11):
 	hccap2john fixes
 	RAdmin, SIP speedup
 	sunmd5: minor fixes
@@ -2075,6 +2066,20 @@ Solar (10):
 	  the bitmap is automatically disabled when the C/R pair count
 	  reduces to 1.
 	Licensing files
+	Add 'dokuwiki' external mode from
+	  http://www.openwall.com/lists/john-users/2013/06/08/14
+
+Narendra Kangralkar (10):
+	Make ciphertext parsing more robust in nk format
+	Make ciphertext parsing more robust in episerver format
+	Make ciphertext parsing more robust in IKE format
+	Make ciphertext parsing more robust in vnc format
+	Make ciphertext parsing more robust in django format
+	Make ciphertext parsing more robust in pbkdf2-hmac-sha512 format
+	Make ciphertext parsing more robust in office format
+	Make ciphertext parsing more robust in oldoffice format
+	Make ciphertext parsing more robust in zip format
+	Add support for cracking KDE KWallet files
 
 Vlatko Kosturjak (7):
 	Fix: handle error handling better. Helps in debugging OpenCL errors.
@@ -2092,14 +2097,6 @@ Vlatko Kosturjak (7):
 	make targets for zsh completion
 	"polishing" changes
 
-rofl0r (6):
-	timer.h: remove unneeded include (sys/timeb.h)
-	factor out struct tcphdr
-	Makefile: allow JOHN_LDFLAGS
-	tcphdr.h: remove unneeded typedef
-	tcphdr.h: special-case endian.h for mac/bsd
-	timer.h: re-add sys/timeb.h to windows section
-
 bwall (6):
 	Initial pwsafe optimization
 	Removed OpenSSL tag from pwsafe_fmt_plug
@@ -2107,6 +2104,14 @@ bwall (6):
 	Optimized the iterated SHA256 in pwsafe-cuda
 	Added copyright information
 	Applied optimizations to pwsafe-opencl and cleaned up copyrights
+
+rofl0r (6):
+	timer.h: remove unneeded include (sys/timeb.h)
+	factor out struct tcphdr
+	Makefile: allow JOHN_LDFLAGS
+	tcphdr.h: remove unneeded typedef
+	tcphdr.h: special-case endian.h for mac/bsd
+	timer.h: re-add sys/timeb.h to windows section
 
 Myrice (3):
 	Bug fixed: xsha512-cuda long password bug
@@ -2121,14 +2126,10 @@ Deepika Dutta (3):
 	Add MMX version of DES_bs_crypt_plain().
 	netntlm bitsliced conversion
 
-Julien Perrot (2):
-	add support for sips uri (with explicit port number)
-	adds support for sips uri (with explicit port number) when converting
-	  input from sipdump
-
-Costin Enache (2):
-	Fix for clock err in timers.
-	Silly bug in sunmd5 busted the rounds parsing.
+Michael Samuel (2):
+	Add External:KDEPaste. This takes advantage of CVE-2013-2120 to find
+	  seeds that KDE Paste applet uses to generate passwords.
+	Add license notice to KDEPaste external mode.
 
 Tavis Ormandy (2):
 	Avoid useless roti operation for R75, minor syntax cleanup.
@@ -2138,11 +2139,23 @@ bartavelle (Simon Marechal) (2):
 	sunmd5.hack.diff
 	Updated copyright information
 
-Mat G (1):
-	New format: Fortigate (FortiOS)
+Julien Perrot (2):
+	add support for sips uri (with explicit port number)
+	adds support for sips uri (with explicit port number) when converting
+	  input from sipdump
+
+Costin Enache (2):
+	Fix for clock err in timers.
+	Silly bug in sunmd5 busted the rounds parsing.
 
 tomrittervg (1):
 	fix typo in memory allocation check code
+
+Mat G (1):
+	New format: Fortigate (FortiOS)
+
+Camille Mougey (1):
+	New formats: KRB5-18 and KRB5-23
 
 Linus Lüssing (1):
 	MSCHAPv2: Add support for freeradius-wep-patch challenge/response
@@ -2150,9 +2163,6 @@ Linus Lüssing (1):
 
 alexandru (1):
 	Default value for number of iterations
-
-Camille Mougey (1):
-	New formats: KRB5-18 and KRB5-23
 
 
 The following changes were made between 1.7.9-jumbo-6 and 1.7.9-jumbo-7:
