@@ -40,6 +40,14 @@
 #if 0
 #define DES_BS_VECTOR			2
 #define DES_BS_ALGORITHM_NAME		"DES 64/64 NEON"
+#elif 0
+#define DES_BS_VECTOR			3
+#define DES_BS_VECTOR_SIZE		4
+#define DES_BS_ALGORITHM_NAME		"DES 64/64 NEON + 32/32"
+#elif 0
+#define DES_BS_2X64
+#define DES_BS_VECTOR			4
+#define DES_BS_ALGORITHM_NAME		"DES 64/64 X2 NEON"
 #elif 1
 #define DES_BS_VECTOR			4
 #define DES_BS_ALGORITHM_NAME		"DES 128/128 NEON"
