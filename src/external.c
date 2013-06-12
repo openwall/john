@@ -139,13 +139,12 @@ int ext_has_function(char *mode, char *function)
 
 void ext_init(char *mode, struct db_main *db)
 {
-	if (db!= NULL && db->format != NULL) {
+	if (db != NULL && db->format != NULL) {
+		/* This is second time we are called, just update max length */
 		ext_cipher_limit = maxlen = db->format->params.plaintext_length;
 		return;
-	}
-	else {
+	} else
 		ext_cipher_limit = options.length;
-	}
 
 	ext_maxlen = options.force_maxlength;
 	if (options.force_minlength > 0)
