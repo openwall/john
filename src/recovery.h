@@ -44,9 +44,9 @@ extern char **rec_argv;
 extern unsigned int rec_check;
 
 /*
- * Are we a restored MPI session?
+ * Are we a restored session?
  */
-extern int rec_mpi_restored;
+extern int rec_restored;
 
 /*
  * Are we between a rec_restore_args() and a rec_restore_mode()?

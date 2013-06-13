@@ -397,8 +397,10 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 			ext_flags = EXT_REQ_FILTER | EXT_USES_FILTER;
 		} else {
 			options.flags |= FLG_CRACKING_SET;
-			ext_flags = EXT_REQ_GENERATE |
+			ext_flags = EXT_REQ_GENERATE | EXT_USES_RESTORE |
 			    EXT_USES_GENERATE | EXT_USES_FILTER;
+			if (rec_restored)
+				ext_flags |= EXT_REQ_RESTORE;
 		}
 	}
 
@@ -414,7 +416,7 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 
 #ifdef HAVE_MPI
 	if (mpi_p > 1) {
-		if (options.flags & FLG_RESTORE_CHK || rec_mpi_restored) {
+		if (options.flags & FLG_RESTORE_CHK || rec_restored) {
 			if (options.fork && options.fork != mpi_p) {
 				if (john_main_process)
 				fprintf(stderr,
@@ -422,7 +424,6 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 				        options.fork);
 				error();
 			}
-			rec_mpi_restored = 1;
 			options.fork = 0;
 			options.flags &= ~FLG_FORK;
 		} else
@@ -438,6 +439,7 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 #if OS_FORK || defined(HAVE_MPI)
 		char *rec_name_orig = rec_name;
 #endif
+		rec_restored = 1;
 #ifndef HAVE_MPI
 		rec_restore_args(1);
 #else

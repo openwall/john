@@ -64,7 +64,7 @@ int rec_argc = 0;
 char **rec_argv;
 unsigned int rec_check;
 int rec_restoring_now = 0;
-int rec_mpi_restored;
+int rec_restored;
 
 static int rec_fd;
 static FILE *rec_file = NULL;
@@ -106,7 +106,7 @@ static void rec_lock(int lock)
 	if (lock == 1) {
 		lockmode = LOCK_EX;
 #ifdef HAVE_MPI
-		if (!rec_mpi_restored || mpi_id || mpi_p == 1)
+		if (!rec_restored || mpi_id || mpi_p == 1)
 #endif
 			lockmode |= LOCK_NB;
 	} else

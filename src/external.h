@@ -22,8 +22,10 @@
 
 #define EXT_REQ_GENERATE		0x00000001
 #define EXT_REQ_FILTER			0x00000002
+#define EXT_REQ_RESTORE			0x00000004
 #define EXT_USES_GENERATE		0x00010000
 #define EXT_USES_FILTER			0x00020000
+#define EXT_USES_RESTORE		0x00040000
 
 extern unsigned int ext_flags;
 
