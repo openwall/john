@@ -178,7 +178,8 @@ void ext_init(char *mode, struct db_main *db)
 	if ((ext_flags & EXT_REQ_RESTORE) && !c_lookup("restore")) {
 		if (john_main_process)
 			fprintf(stderr,
-			        "Warning: No restore() for external mode: %s\n", mode);
+			        "No restore() for external mode: %s\n", mode);
+		error();
 	}
 	if ((ext_flags & EXT_REQ_GENERATE) && !f_generate) {
 		if (john_main_process)

@@ -29,7 +29,9 @@ The functions, if defined, should do the following with "word":
 * generate() should set "word" to the next word to be tried, or zero out
 "word[0]" when cracking is complete (this will cause John to terminate);
 
-* restore() should set global variables to continue from the "word".
+* restore() should set global variables to continue from the "word". If
+there are no global variables needing restoring, an empty stub function
+should be provided, or John will refuse to resume a session.
 
 You can use an external mode on its own or with some other cracking
 mode, in which case only init() and filter() will be used (and only
