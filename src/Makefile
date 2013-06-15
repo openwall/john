@@ -152,8 +152,9 @@ JOHN_OBJS = \
 	gost.o \
 	batch.o bench.o charset.o common.o compiler.o config.o cracker.o \
 	crc32.o external.o formats.o getopt.o idle.o inc.o john.o list.o \
-	loader.o logger.o math.o memory.o misc.o options.o params.o path.o \
-	recovery.o rpp.o rules.o signals.o single.o status.o tty.o wordlist.o \
+	loader.o logger.o mask.o math.o memory.o misc.o options.o params.o \
+	path.o recovery.o rpp.o rules.o signals.o single.o status.o tty.o \
+	wordlist.o \
 	mkv.o mkvlib.o \
 	listconf.o \
 	fake_salts.o \

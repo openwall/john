@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-98,2009,2010 by Solar Designer
+ * Copyright (c) 1996-98,2009,2010,2013 by Solar Designer
  */
 
 /*
@@ -72,6 +72,9 @@ struct rpp_context {
 
 /* Character ranges */
 	struct rpp_range ranges[RULE_RANGES_MAX];
+
+/* Dummy list entry for use in mask mode */
+	struct cfg_line dummy_list_entry;
 };
 
 /*
@@ -79,6 +82,11 @@ struct rpp_context {
  * rules subsection. Returns a non-zero value on error (no rules found).
  */
 extern int rpp_init(struct rpp_context *ctx, char *subsection);
+
+/*
+ * Initializes the preprocessor's context for the supplied mask.
+ */
+extern void rpp_init_mask(struct rpp_context *ctx, char *mask);
 
 /*
  * Returns a preprocessed rule and moves to the next one.

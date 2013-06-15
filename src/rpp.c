@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-98,2006,2009,2010,2011 by Solar Designer
+ * Copyright (c) 1996-98,2006,2009,2010,2011,2013 by Solar Designer
  */
 
 #include <string.h>
@@ -24,6 +24,14 @@ int rpp_init(struct rpp_context *ctx, char *subsection)
 	return 1;
 }
 
+void rpp_init_mask(struct rpp_context *ctx, char *mask)
+{
+	ctx->input = &ctx->dummy_list_entry;
+	ctx->input->data = mask;
+	ctx->input->next = NULL;
+	ctx->count = -1;
+}
+
 static void rpp_add_char(struct rpp_range *range, unsigned char c)
 {
 	if (range->flag_r) {
@@ -44,6 +52,7 @@ static void rpp_process_rule(struct rpp_context *ctx)
 {
 	struct rpp_range *range;
 	unsigned char *input, *output, *end;
+	unsigned char *saved_input;
 	unsigned char c1, c2, c;
 	int flag_p, flag_r;
 
@@ -52,6 +61,8 @@ static void rpp_process_rule(struct rpp_context *ctx)
 	end = output + RULE_BUFFER_SIZE - 1;
 	flag_p = flag_r = 0;
 	ctx->count = ctx->refs_count = 0;
+
+	saved_input = NULL;
 
 	while (*input && output < end)
 	switch (*input) {
@@ -94,8 +105,34 @@ static void rpp_process_rule(struct rpp_context *ctx)
 		}
 		break;
 
+	case '?':
+		if (ctx->input != &ctx->dummy_list_entry) /* not mask mode */
+			goto not_mask;
+		if (*++input == '?')
+			goto not_mask;
+		saved_input = input + 1;
+		switch (*input) {
+		case 'l':
+			input = (unsigned char *)"[a-z]";
+			break;
+		case 'u':
+			input = (unsigned char *)"[A-Z]";
+			break;
+		case 'd':
+			input = (unsigned char *)"[0-9]";
+			break;
+		default:
+			saved_input = NULL;
+			input--;
+			goto not_mask;
+		}
+
 	case '[':
 		if (ctx->count >= RULE_RANGES_MAX) {
+			if (saved_input) {
+				input = saved_input - 2;
+				saved_input = NULL;
+			}
 			*output++ = *input++;
 			break;
 		}
@@ -146,9 +183,14 @@ static void rpp_process_rule(struct rpp_context *ctx)
 		}
 		if (*input) input++;
 
+		if (saved_input) {
+			input = saved_input;
+			saved_input = NULL;
+		}
 		break;
 
 	default:
+not_mask:
 		*output++ = *input++;
 	}
 
