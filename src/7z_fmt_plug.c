@@ -27,11 +27,7 @@
 
 #define FORMAT_LABEL		"7z"
 #define FORMAT_NAME		"7-Zip"
-#ifdef MMX_COEF
-#define ALGORITHM_NAME		"iterated SHA256 " SHA1_N_STR MMX_TYPE
-#else
-#define ALGORITHM_NAME		"iterated SHA256 " ARCH_BITS_STR
-#endif
+#define ALGORITHM_NAME		"SHA256 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define BINARY_SIZE		0
@@ -212,11 +208,14 @@ void sevenzip_kdf(unsigned char *password, unsigned char *master)
 {
 	int i;
 	int len;
-	long rounds = (long) 1 << cur_salt->NumCyclesPower;
-	long round;
+	long long rounds = (long long) 1 << cur_salt->NumCyclesPower;
+	long long round;
 	unsigned char buffer[PLAINTEXT_LENGTH * 2];
+#if !ARCH_LITTLE_ENDIAN
         unsigned char temp[8] = { 0,0,0,0,0,0,0,0 };
+#endif
 	SHA256_CTX sha;
+
 	/* convert password to utf-16-le format */
 	len = strlen((char*)password);
 	for (i = 0; i < len; i++) {
@@ -224,16 +223,21 @@ void sevenzip_kdf(unsigned char *password, unsigned char *master)
 		buffer[i * 2] = c;
 		buffer[i * 2 + 1] = (c >> 8) & 0xFF;
 	}
+	len *= 2;
 
 	/* kdf */
         SHA256_Init(&sha);
 	for (round = 0; round < rounds; round++) {
-		SHA256_Update(&sha, "", cur_salt->SaltSize);
-		SHA256_Update(&sha, buffer, len * 2);
+		//SHA256_Update(&sha, "", cur_salt->SaltSize);
+		SHA256_Update(&sha, buffer, len);
+#if ARCH_LITTLE_ENDIAN
+		SHA256_Update(&sha, (char*)&round, 8);
+#else
 		SHA256_Update(&sha, temp, 8);
 		for (i = 0; i < 8; i++)
 			if (++(temp[i]) != 0)
 				break;
+#endif
 	}
 	SHA256_Final(master, &sha);
 }
