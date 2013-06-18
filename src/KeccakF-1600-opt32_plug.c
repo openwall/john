@@ -14,7 +14,6 @@ http://creativecommons.org/publicdomain/zero/1.0/
 */
 
 #include <string.h>
-#include "brg_endian.h"
 #include "KeccakF-1600-opt32-settings.h"
 #include "KeccakF-1600-interface.h"
 
@@ -47,7 +46,7 @@ void buildInterleaveTables()
     }
 }
 
-#if (PLATFORM_BYTE_ORDER == IS_LITTLE_ENDIAN)
+#if ARCH_LITTLE_ENDIAN
 
 #define xor2bytesIntoInterleavedWords(even, odd, source, j) \
     i##j = interleaveTable[((const UINT16*)source)[j]]; \
@@ -108,7 +107,7 @@ void setInterleavedWordsInto8bytes(UINT8* dest, UINT32 even, UINT32 odd)
 
 #else // No interleaving tables
 
-#if (PLATFORM_BYTE_ORDER == IS_LITTLE_ENDIAN)
+#if ARCH_LITTLE_ENDIAN
 
 // Credit: Henry S. Warren, Hacker's Delight, Addison-Wesley, 2002
 #define xorInterleavedLE(rateInLanes, state, input) \
@@ -195,7 +194,7 @@ UINT64 fromInterleaving(UINT64 x)
 
 void setInterleavedWordsInto8bytes(UINT8* dest, UINT32* evenAndOdd)
 {
-#if (PLATFORM_BYTE_ORDER == IS_LITTLE_ENDIAN)
+#if ARCH_LITTLE_ENDIAN
     ((UINT64*)dest)[0] = fromInterleaving(*(UINT64*)evenAndOdd);
 #else // (PLATFORM_BYTE_ORDER == IS_BIG_ENDIAN)
     // This can be optimized
