@@ -565,7 +565,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 					i--;
 					break;
 				}
-				if (loopBack)
+				if (loopBack && !myWordFileLines)
 					cp = potword(cp);
 				ep = cp;
 				while ((ep < aep) && *ep && *ep != '\n' && *ep != '\r') ep++;
