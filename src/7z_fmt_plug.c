@@ -1,5 +1,5 @@
 /* 7-Zip cracker patch for JtR. Hacked together during June of 2013 by Dhiru
- * Kholia <dhiru at openwall.com>.
+ * Kholia <dhiru at openwall.com>. Unicode support and other fixes by magnum.
  *
  * This software is Copyright (c) 2013, Dhiru Kholia <dhiru at openwall.com>
  *
@@ -7,10 +7,21 @@
  * documentation for any purpose and without fee is hereby granted,
  * provided that the above copyright notice appear in all copies and that
  * both that copyright notice and this permission notice appear in
- * supporting documentation. */
+ * supporting documentation.
+ *
+ * Copyright (c) 2013, magnum.
+ * This software is hereby released to the general public under the following
+ * terms:  Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ */
 
 #include <string.h>
 #include <errno.h>
+#include <openssl/aes.h>
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 #include "arch.h"
 #include "misc.h"
 #include "common.h"
@@ -19,11 +30,7 @@
 #include "options.h"
 #include "sha2.h"
 #include "crc32.h"
-#include <openssl/aes.h>
-#ifdef _OPENMP
-#include <omp.h>
-#define OMP_SCALE               1 // tuned on core i7
-#endif
+#include "unicode.h"
 
 #define FORMAT_LABEL		"7z"
 #define FORMAT_NAME		"7-Zip"
@@ -37,6 +44,7 @@
 #define SALT_ALIGN		4
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
+#define OMP_SCALE               1 // tuned on core i7
 
 #define BIG_ENOUGH 		(8192 * 32)
 
@@ -204,24 +212,22 @@ static int sevenzip_decrypt(unsigned char *derived_key, unsigned char *data)
 
 
 
-void sevenzip_kdf(unsigned char *password, unsigned char *master)
+void sevenzip_kdf(UTF8 *password, unsigned char *master)
 {
-	int i;
 	int len;
 	long long rounds = (long long) 1 << cur_salt->NumCyclesPower;
 	long long round;
-	unsigned char buffer[PLAINTEXT_LENGTH * 2];
+	UTF16 buffer[PLAINTEXT_LENGTH + 1];
 #if !ARCH_LITTLE_ENDIAN
         unsigned char temp[8] = { 0,0,0,0,0,0,0,0 };
 #endif
 	SHA256_CTX sha;
 
-	/* convert password to utf-16-le format */
-	len = strlen((char*)password);
-	for (i = 0; i < len; i++) {
-		char c = password[i];
-		buffer[i * 2] = c;
-		buffer[i * 2 + 1] = (c >> 8) & 0xFF;
+	/* Convert password to utf-16-le format (--encoding aware) */
+	len = enc_to_utf16(buffer, PLAINTEXT_LENGTH, password, strlen((char*)password));
+	if (len <= 0) {
+		password[-len] = 0; // match truncation
+		len = strlen16(buffer);
 	}
 	len *= 2;
 
@@ -229,7 +235,7 @@ void sevenzip_kdf(unsigned char *password, unsigned char *master)
         SHA256_Init(&sha);
 	for (round = 0; round < rounds; round++) {
 		//SHA256_Update(&sha, "", cur_salt->SaltSize);
-		SHA256_Update(&sha, buffer, len);
+		SHA256_Update(&sha, (char*)buffer, len);
 #if ARCH_LITTLE_ENDIAN
 		SHA256_Update(&sha, (char*)&round, 8);
 #else
@@ -312,7 +318,7 @@ struct fmt_main fmt_sevenzip = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_NOT_EXACT | FMT_UNICODE,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_NOT_EXACT | FMT_UNICODE | FMT_UTF8,
 		sevenzip_tests
 	}, {
 		init,
