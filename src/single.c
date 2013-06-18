@@ -449,14 +449,15 @@ static void single_run(void)
 			continue;
 		}
 
-		if (strcmp(prerule, rule))
+		if (strcmp(prerule, rule)) {
 			if (options.verbosity > 2)
 			log_event("- Rule #%d: '%.100s' accepted as '%.100s'",
 				rule_number + 1, prerule, rule);
-		else
+		} else {
 			if (options.verbosity > 2)
 			log_event("- Rule #%d: '%.100s' accepted",
 				rule_number + 1, prerule);
+		}
 
 		if (saved_min != rec_rule) {
 			if (options.verbosity > 2)

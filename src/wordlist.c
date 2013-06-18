@@ -829,16 +829,17 @@ SKIP_MEM_MAP_LOAD:;
 					goto next_rule;
 			}
 			if ((rule = rules_reject(prerule, -1, last, db))) {
-				if (strcmp(prerule, rule))
+				if (strcmp(prerule, rule)) {
 					if (options.verbosity > 2)
 					log_event("- Rule #%d: '%.100s'"
 						" accepted as '%.100s'",
 						rule_number + 1, prerule, rule);
-				else
+				} else {
 					if (options.verbosity > 2)
 					log_event("- Rule #%d: '%.100s'"
 						" accepted",
 						rule_number + 1, prerule);
+				}
 			} else {
 				if (options.verbosity > 2)
 				log_event("- Rule #%d: '%.100s' rejected",
