@@ -327,8 +327,8 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 #ifdef HAVE_MPI
 	char file_line[LINE_BUFFER_SIZE];
 	long my_size = 0;
-	unsigned int myWordFileLines = 0;
 #endif
+	unsigned int myWordFileLines = 0;
 	int maxlength = options.force_maxlength;
 	int minlength = (options.force_minlength >= 0) ?
 		options.force_minlength : 0;
@@ -572,7 +572,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 					i--;
 					break;
 				}
-				if (loopBack)
+				if (loopBack && !myWordFileLines)
 					cp = (char*)potword(cp);
 				ep = cp;
 				while ((ep < aep) && *ep && *ep != '\n' && *ep != '\r') ep++;
