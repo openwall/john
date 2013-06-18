@@ -36,20 +36,31 @@ struct db_salt;
 #define FMT_CASE			0x00000001
 /* Supports 8-bit characters in passwords (does not ignore the 8th bit) */
 #define FMT_8_BIT			0x00000002
-/* This flag must be set for formats that do UCS-2, UTF-16 or some other wide
-   encoding internally (eg. most Microsoft formats) */
+/*
+ * This flag must be set for formats that do UCS-2, UTF-16 or some other wide
+ * encoding internally (eg. most Microsoft formats). The most common problem
+ * with formats not fully Unicode-aware is when a format like this is hard-coded
+ * to convert from ISO-8859-1 (ie. by just inserting 0x00, effectively just
+ * casting every char to a short). Such formats MUST set FMT_UNICODE and MUST
+ * NOT set FMT_UTF8, or users will get false negatives when using UTF-8 or
+ * codepages.
+ */
 #define FMT_UNICODE			0x00000004
-/* Honors the --encoding=NAME option. NOTE: Nowadays this means it can handle
-   codepages (like cp1251) as well as UTF-8 */
+/*
+ * Honors the --encoding=NAME option. This means it can handle codepages (like
+ * cp1251) as well as UTF-8.
+ */
 #define FMT_UTF8			0x00000008
-/* Format has false positive matches. Thus, do not remove hashes
-   when a likely PW is found */
+/*
+ * Format has false positive matches. Thus, do not remove hashes
+ * when a likely PW is found
+ */
 #define FMT_NOT_EXACT			0x00000100
 /* Uses a bitslice implementation */
 #define FMT_BS				0x00010000
 /* The split() method unifies the case of characters in hash encodings */
 #define FMT_SPLIT_UNIFIES_CASE		0x00020000
-/* Is this format a dynamic_x format (or a 'thin' format using dynamic code) ? */
+/* Is this format a dynamic_x format (or a 'thin' format using dynamic code)? */
 #define FMT_DYNAMIC				0x00100000
 #ifdef _OPENMP
 /* Parallelized with OpenMP */
