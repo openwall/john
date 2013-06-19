@@ -23,8 +23,8 @@ static int omp_t = 1;
 #define OMP_SCALE               1 // So slow a format, a multiplier is NOT needed
 #endif
 
-#define FORMAT_LABEL		"scrypt"
-#define FORMAT_NAME		"django-scrypt"
+#define FORMAT_LABEL		"django-scrypt"
+#define FORMAT_NAME		""
 #define FORMAT_TAG		"scrypt"
 #define TAG_LENGTH		6
 #define ALGORITHM_NAME		"32/" ARCH_BITS_STR
