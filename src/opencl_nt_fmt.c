@@ -264,7 +264,8 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 			if (valid(out,self))
 				return out;
 		}
-		if (options.format && !strcmp(options.format, "nt") && strlen(split_fields[1]) == 32) {
+		if (options.format && !strcasecmp(options.format, FORMAT_LABEL)
+		    && strlen(split_fields[1]) == 32) {
 			sprintf(out, "$NT$%s", split_fields[1]);
 			if (valid(out,self))
 				return out;
