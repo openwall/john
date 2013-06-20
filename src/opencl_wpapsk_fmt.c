@@ -206,8 +206,8 @@ static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
 	if (do_benchmark)
 		fprintf(stderr, "loop kernel %.2f ms x %u = %.2f s, ", (endTime - startTime)/1000000., 2 * ITERATIONS/HASH_LOOPS, 2 * (ITERATIONS/HASH_LOOPS) * (endTime - startTime) / 1000000000.);
 
-	/* 200 ms duration limit for GCN to avoid ASIC hangs */
-	if (amd_gcn(device_info[ocl_gpu_id]) && (endTime - startTime) > 200000000) {
+	/* 200 ms duration limit */
+	if ((endTime - startTime) > 200000000) {
 		if (do_benchmark)
 			fprintf(stderr, "- exceeds 200 ms\n");
 		clReleaseCommandQueue(queue_prof);
@@ -263,10 +263,9 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 	unsigned int SHAspeed, bestSHAspeed = 0;
 	int optimal_gws = local_work_size;
 	const int sha1perkey = 2 * ITERATIONS * 2 + 6 + 10;
-	unsigned long long int MaxRunTime = cpu(device_info[ocl_gpu_id]) ? 1000000000ULL : 10000000000ULL;
 
 	if (do_benchmark) {
-		fprintf(stderr, "Calculating best keys per crypt (GWS) for LWS=%zd and max. %llu s duration.\n\n", local_work_size, MaxRunTime / 1000000000UL);
+		fprintf(stderr, "Calculating best keys per crypt (GWS) for LWS=%zd and max. 200ms duration.\n\n", local_work_size);
 		fprintf(stderr, "Raw GPU speed figures including buffer transfers:\n");
 	}
 
@@ -290,7 +289,7 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 			bestSHAspeed = SHAspeed;
 			optimal_gws = num;
 		} else {
-			if (run_time < MaxRunTime && SHAspeed > (bestSHAspeed * 1.01)) {
+			if (SHAspeed > (bestSHAspeed * 1.01)) {
 				if (do_benchmark)
 					fprintf(stderr, "+\n");
 				bestSHAspeed = SHAspeed;
@@ -299,8 +298,6 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 			}
 			if (do_benchmark)
 				fprintf(stderr, "\n");
-			if (run_time >= MaxRunTime)
-				break;
 		}
 	}
 	global_work_size = optimal_gws;
