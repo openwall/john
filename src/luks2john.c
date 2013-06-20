@@ -16,6 +16,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
+ * gcc luks2john.c -lcrypto
  */
 
 
@@ -29,6 +31,8 @@
 #include <fcntl.h>
 #include <arpa/inet.h>
 #include "params.h"
+#include <openssl/bio.h>
+#include <openssl/evp.h>
 
 #define LUKS_MAGIC_L        6
 #define LUKS_CIPHERNAME_L   32
@@ -142,7 +146,15 @@ static int hash_plugin_parse_hash(char *filename)
 		printf("$luks$1$%lu$", sizeof(myphdr));
 		print_hex((unsigned char *)&myphdr, sizeof(myphdr));
 		printf("$%d$", afsize);
-		print_hex(cipherbuf, afsize);
+		/* base-64 encode cipherbuf */
+		BIO *bio, *b64;
+		b64 = BIO_new(BIO_f_base64());
+		bio = BIO_new_fp(stdout, BIO_NOCLOSE);
+		bio = BIO_push(b64, bio);
+		BIO_set_flags(bio, BIO_FLAGS_BASE64_NO_NL);
+		BIO_write(bio, cipherbuf, afsize);
+		BIO_flush(bio);
+		BIO_free_all(bio);
 		printf("$");
 		print_hex((unsigned char *)myphdr.mkDigest, LUKS_DIGESTSIZE);
 		printf("\n");
