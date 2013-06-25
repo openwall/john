@@ -47,7 +47,7 @@ static int *cracked;
 
 static struct custom_salt {
 	unsigned char ct[0x10000];
-	unsigned char ctlen;
+	unsigned int ctlen;
 } *cur_salt;
 
 static void init(struct fmt_main *self)
@@ -106,6 +106,7 @@ static void *get_salt(char *ciphertext)
 	MEM_FREE(keeptr);
 	return (void *)cur_salt;
 }
+
 #define MIN(x,y) ((x) < (y) ? (x) : (y))
 static int password2hash(const char *password, unsigned char *hash)
 {
