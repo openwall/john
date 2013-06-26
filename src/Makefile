@@ -790,6 +790,7 @@ linux-x86-clang-debug:
 
 linux-arm32le-neon:
 	$(LN) arm32le.h arch.h
+	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o" \
 		CFLAGS="$(CFLAGS) -mfpu=neon -DHAVE_CRYPT" \
@@ -797,6 +798,7 @@ linux-arm32le-neon:
 
 linux-arm32le:
 	$(LN) arm32le.h arch.h
+	echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o" \
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT" \
