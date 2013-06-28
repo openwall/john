@@ -795,19 +795,11 @@ if __name__ == '__main__':
 
     parser = OptionParser(usage="%prog [bitcoin wallet files]")
 
-    parser.add_option("--passphrase", dest="passphrase",
-            help="passphrase for the encrypted wallet")
-
     (options, args) = parser.parse_args()
 
     if len(args) < 1:
         print >> sys.stderr, "Usage: %s [bitcon wallet files]" % sys.argv[0]
         sys.exit(-1)
-
-
-    if options.passphrase:
-            passphrase = options.passphrase
-
 
     for i in range(0, len(args)):
         filename = args[i]
@@ -826,29 +818,17 @@ if __name__ == '__main__':
                 continue
 
         for k in json_db['keys']:
-          if 'encrypted_privkey' in k and options.passphrase:
-                ckey = k['encrypted_privkey'].decode('hex')
-                public_key = k['pubkey'].decode('hex')
-                crypter.SetIV(Hash(public_key))
-                secret = crypter.Decrypt(ckey)
-                compressed = public_key[0] != '\04'
-
-                check = False
-                pkey = EC_KEY(int('0x' + secret.encode('hex'), 16))
-                if public_key != GetPubKey(pkey, compressed):
-                    print >> sys.stderr, "%s : this wallet is crypted and the passphrase is incorrect" % os.path.basename(filename)
-                    break
-                else:
-                    print >> sys.stderr, "%s : correct password is %s" % (os.path.basename(filename), passphrase)
-                    break
+            pass  # dirty hack but it works!
 
         ckey = k['encrypted_privkey']
         public_key = k['pubkey']
         cry_master = json_db['mkey']['encrypted_key']
         cry_salt = json_db['mkey']['salt']
 
-        sys.stdout.write("$bitcoin$%s$%s$%s$%s$%s$%s$%s$%s$%s" % (len(cry_master), cry_master, len(cry_salt),
-            cry_salt, cry_rounds, len(ckey), ckey, len(public_key), public_key))
+        sys.stdout.write("$bitcoin$%s$%s$%s$%s$%s$%s$%s$%s$%s\n" %
+                (len(cry_master), cry_master, len(cry_salt),
+                cry_salt, cry_rounds, len(ckey), ckey, len(public_key),
+                public_key))
 
 
 
