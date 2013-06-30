@@ -33,6 +33,8 @@ static int omp_t = 1;
 
 #define FORMAT_LABEL			"RAKP"
 #define FORMAT_NAME			""
+#define FORMAT_TAG			"$rakp$"
+#define TAG_LENGTH			6
 
 #define ALGORITHM_NAME			"IPMI 2.0 RAKP (RMCP+) HMAC-SHA1 32/" ARCH_BITS_STR " " SHA2_LIB
 
@@ -53,6 +55,7 @@ static int omp_t = 1;
 static struct fmt_tests tests[] = {
 	{"$rakp$a4a3a2a03f0b000094272eb1ba576450b0d98ad10727a9fb0ab83616e099e8bf5f7366c9c03d36a3000000000000000000000000000000001404726f6f74$0ea27d6d5effaa996e5edc855b944e179a2f2434", "calvin"},
 	{"$rakp$c358d2a72f0c00001135f9b254c274629208b22f1166d94d2eba47f21093e9734355a33593da16f2000000000000000000000000000000001404726f6f74$41fce60acf2885f87fcafdf658d6f97db12639a9", "calvin"},
+	{"$rakp$b7c2d6f13a43dce2e44ad120a9cd8a13d0ca23f0414275c0bbe1070d2d1299b1c04da0f1a0f1e4e2537300263a2200000000000000000000140768617368636174$472bdabe2d5d4bffd6add7b3ba79a291d104a9ef", "hashcat"},
 	/* dummy hash for testing long salts */
 	{"$rakp$787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878$ba4ecc30a0b36a6ba0db862fc95201a81b9252ee", ""},
 	{NULL}
@@ -86,8 +89,22 @@ static void init(struct fmt_main *self)
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	if (strncmp(ciphertext,  "$rakp$", 6) != 0)
+	char *p, *q = NULL;;
+	p = ciphertext;
+
+	if (!strncmp(p, FORMAT_TAG, TAG_LENGTH))
+		p += TAG_LENGTH;
+
+	q = strrchr(ciphertext, '$');
+	if (!q)
 		return 0;
+	q = q + 1;
+	if (strlen(q) != BINARY_SIZE * 2)
+		return 0;
+
+	if ( (q - p) > SALT_SIZE * 2)
+		return 0;
+
 	return 1;
 }
 
