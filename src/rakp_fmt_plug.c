@@ -231,6 +231,21 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	return count;
 }
 
+// Public domain hash function by DJ Bernstein
+static int salt_hash(void *salt)
+{
+	unsigned int hash = 5381;
+	struct custom_salt *fck = (struct custom_salt *)salt;
+	unsigned char *s = fck->salt;
+	int length = fck->length / 4;
+
+	while (length) {
+		hash = ((hash << 5) + hash) ^ *s++;
+		length--;
+	}
+	return hash & (SALT_HASH_SIZE - 1);
+}
+
 struct fmt_main fmt_rakp = {
 	{
 		FORMAT_LABEL,
@@ -266,7 +281,7 @@ struct fmt_main fmt_rakp = {
 			fmt_default_binary_hash_5,
 			fmt_default_binary_hash_6
 		},
-		fmt_default_salt_hash,
+		salt_hash,
 		set_salt,
 		set_key,
 		get_key,
