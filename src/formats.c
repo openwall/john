@@ -13,6 +13,11 @@
 #ifndef BENCH_BUILD
 #include "options.h"
 #else
+#if ARCH_INT_GT_32
+typedef unsigned short ARCH_WORD_32;
+#else
+typedef unsigned int ARCH_WORD_32;
+#endif
 #include "loader.h"
 #endif
 
