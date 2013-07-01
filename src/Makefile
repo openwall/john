@@ -109,6 +109,9 @@ JOHN_OBJS = \
 	BSDI_fmt.o \
 	MD5_fmt.o MD5_std.o \
 	BF_fmt.o BF_std.o \
+	scrypt_fmt.o \
+	escrypt/crypto_scrypt-best.o escrypt/crypto_scrypt-common.o \
+	escrypt/sha256.o \
 	AFS_fmt.o \
 	LM_fmt.o \
 	trip_fmt.o \
@@ -2302,7 +2305,7 @@ john.o: john.c fmt_externs.h fmt_registers.h
 	$(CC) $(CFLAGS_MAIN) $(OPT_NORMAL) -O0 $*.c
 
 .c.o:
-	$(CC) $(CFLAGS) $(OPT_NORMAL) $*.c
+	$(CC) $(CFLAGS) $(OPT_NORMAL) $< -o $@
 
 .S.o:
 	$(AS) $(ASFLAGS) $*.S
@@ -2362,7 +2365,7 @@ shell-completion: bash-completion zsh-completion
 clean:
 	$(RM) $(PROJ) $(PROJ_DOS) $(PROJ_WIN32) $(PROJ_WIN32_MINGW)
 	$(RM) $(PROJ_CXX) $(PROJ_PCAP)
-	$(RM) ../run/john.exe john-macosx-* *.o *.bak core
+	$(RM) ../run/john.exe john-macosx-* *.o escrypt/*.o *.bak core
 	$(RM) ../run/kernels/*.cl ../run/kernels/*.h ../run/kernels/*.bin
 	$(RM) detect bench para-bench generic.h arch.h tmp.s
 	$(RM) cuda/*.o cuda/*~ *~

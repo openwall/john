@@ -108,6 +108,7 @@ extern int CPU_detect(void);
 #endif
 
 extern struct fmt_main fmt_DES, fmt_BSDI, fmt_MD5, fmt_BF;
+extern struct fmt_main fmt_scrypt;
 extern struct fmt_main fmt_AFS, fmt_LM;
 #ifdef HAVE_CRYPT
 extern struct fmt_main fmt_crypt;
@@ -309,6 +310,7 @@ static void john_register_all(void)
 	john_register_one(&fmt_BSDI);
 	john_register_one(&fmt_MD5);
 	john_register_one(&fmt_BF);
+	john_register_one(&fmt_scrypt);
 	john_register_one(&fmt_LM);
 	john_register_one(&fmt_AFS);
 	john_register_one(&fmt_trip);
