@@ -13,6 +13,7 @@ import zipfile
 import sys
 import base64
 import binascii
+import os
 
 
 def process_file(filename):
@@ -100,11 +101,39 @@ def process_file(filename):
                 filename)
         return 7
 
-    sys.stdout.write("%s:$odf$*%s*%s*%s*%s*%s*%d*%s*%d*%s*%d*%s\n" % \
-            (filename, algorithm_type, checksum_type, iteration_count,
-            key_size, checksum, len(iv) / 2,
-            iv, len(salt) / 2, salt, 0,
-            binascii.hexlify(content).decode("ascii")))
+    meta_data_available = True
+    gecos = ""
+    try:
+        meta = zf.open("meta.xml")
+        meta_tree = ElementTree()
+        meta_tree.parse(meta)
+        meta_r = meta_tree.getroot()
+        for office_meta in meta_r:
+            for child in office_meta:
+                if "subject" in child.tag:
+                    gecos += child.text
+                elif "keyword" in child.tag:
+                    gecos += child.text
+                elif "title" in child.tag:
+                    gecos += child.text
+                elif "description" in child.tag:
+                    gecos += child.text
+        gecos = gecos.replace("\n","").replace("\r","").replace(":","")
+    except:
+        meta_data_available = False
+
+    if meta_data_available:
+        sys.stdout.write("%s:$odf$*%s*%s*%s*%s*%s*%d*%s*%d*%s*%d*%s:::%s::%s\n" % \
+                (os.path.basename(filename), algorithm_type, checksum_type,
+                iteration_count, key_size, checksum, len(iv) / 2, iv,
+                len(salt) / 2, salt, 0, binascii.hexlify(content).decode("ascii"),
+                gecos, filename))
+    else:
+        sys.stdout.write("%s:$odf$*%s*%s*%s*%s*%s*%d*%s*%d*%s*%d*%s:::::%s\n" % \
+                (os.path.basename(filename), algorithm_type, checksum_type,
+                iteration_count, key_size, checksum, len(iv) / 2, iv,
+                len(salt) / 2, salt, 0, binascii.hexlify(content).decode("ascii"),
+                filename))
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
