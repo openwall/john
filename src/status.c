@@ -265,7 +265,8 @@ static char *status_get_ETA(char *percent, unsigned int secs_done)
 	cp = percent;
 	while (cp && *cp && isspace(((unsigned char)(*cp))))
 		++cp;
-	if (!cp || *cp == 0 || !isdigit(((unsigned char)(*cp))))
+	if (!cp || *cp == 0 || !isdigit(((unsigned char)(*cp))) ||
+	    strstr(cp, "%") == NULL)
 		return "";  /* dont show ETA if no valid percentage. */
 	else
 	{
