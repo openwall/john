@@ -2,7 +2,7 @@
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1996-2006,2010-2013 by Solar Designer
  *
- * ...with a change in the jumbo patch, by JoMo-Kun
+ * ...with changes in the jumbo patch, by JoMo-Kun and magnum
  */
 
 #include <stdio.h>
@@ -33,14 +33,17 @@ extern struct fmt_main fmt_LM;
 extern struct fmt_main fmt_NETLM;
 extern struct fmt_main fmt_NETHALFLM;
 
-static unsigned long long try, cand;
+static unsigned long long cand;
 
 static int get_progress(int *hundth_perc)
 {
 	int hundredXpercent, percent;
+	unsigned long long try;
 
 	if (!cand)
 		return -1;
+
+	try = ((unsigned long long)status.cands.hi << 32) + status.cands.lo;
 
 	if (try > 1844674407370955LL) {
 		*hundth_perc = percent = 99;
@@ -70,28 +73,15 @@ static unsigned char real_chars[CHARSET_SIZE];
 static void save_state(FILE *file)
 {
 	unsigned int pos;
-	unsigned tmp;
-	unsigned long long tmpLL;
 
 	fprintf(file, "%u\n2\n%u\n", rec_entry, rec_length + 1);
 	for (pos = 0; pos <= rec_length; pos++)
 		fprintf(file, "%u\n", (unsigned int)rec_numbers[pos]);
-
-	// number added 'after' array, to preserve the try count, so that we can later know the
-	// values tested, to report progress.  Before this, we could NOT report.
-	if (cand) {
-		tmpLL = try;
-		tmp = (unsigned) (tmpLL>>32);
-		fprintf(file, "%u\n", tmp);
-		tmp = (unsigned)tmpLL;
-		fprintf(file, "%u\n", tmp);
-	}
 }
 
 static int restore_state(FILE *file)
 {
 	unsigned int compat, pos;
-	unsigned tmp;
 
 	if (rec_version < 2)
 		return 1;
@@ -109,15 +99,6 @@ static int restore_state(FILE *file)
 			return 1;
 		rec_numbers[pos] = number;
 	}
-
-	// Jumbo restoring "cand" for progress.
-	tmp = 0;
-	if (fscanf(file, "%u\n", &tmp) != 1) { cand = 0; return 0; } // progress reporting don't work after resume so we mute it
-	try = tmp;
-	try <<= 32;
-	tmp = 0;
-	if (fscanf(file, "%u\n", &tmp) != 1) { cand = 0; try = 0; return 0; } // progress reporting don't work after resume so we mute it
-	try += tmp;
 
 	return 0;
 }
@@ -392,7 +373,6 @@ update_last:
 	}
 
 	key = key_i;
-	try++;
 	if (!f_filter || ext_filter_body(key_i, key = key_e))
 		if (crk_process_key(key))
 			return 1;
@@ -771,8 +751,10 @@ void do_incremental_crack(struct db_main *db, char *mode)
 			break;
 	}
 
+	// For reporting DONE after a no-ETA run
 	if (!event_abort)
-		try = cand = 100; // For reporting DONE after a no-ETA run
+		cand = ((unsigned long long)status.cands.hi << 32) +
+			status.cands.lo;
 
 	crk_done();
 	rec_done(event_abort);
