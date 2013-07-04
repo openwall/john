@@ -5,7 +5,7 @@
  *
  *
  * Copyright (c) 2013 by Claudio André <claudio.andre at correios.net.br>,
- * Copyright (c) 2012 by magnum,
+ * Copyright (c) 2012-2013 magnum,
  * Others and
  * is hereby released to the general public under the following terms:
  *    Redistribution and use in source and binary forms, with or without
@@ -70,7 +70,7 @@ size_t global_work_size;
 size_t max_group_size;
 
 char *kernel_source;
-void read_kernel_source(char *kernel_filename);
+void opencl_read_source(char *kernel_filename);
 
 #define EVENTS 8
 cl_event *profilingEvent, *firstEvent, *lastEvent;
@@ -84,22 +84,30 @@ cl_event multi_profilingEvent[EVENTS];
 int device_info[MAXGPUS];
 int cores_per_MP[MAXGPUS];
 
-cl_int oclGetDevCap(cl_device_id device, cl_int *iComputeCapMajor, cl_int *iComputeCapMinor);
+/* Passive init: enumerate platforms and devices and parse options */
+void opencl_preinit(void);
 
-void opencl_preinit();
-void opencl_done();
-int get_number_of_available_devices();
-int get_devices_being_used();
-int get_platform_id(unsigned int sequential_id);
-int get_device_id(unsigned int sequential_id);
-int get_sequential_id(unsigned int dev_id, unsigned int platform_id);
+/* Tear-down. Safe to call even if no device was used */
+void opencl_done(void);
 
+/* Returns number of selected devices */
+int opencl_get_devices(void);
+
+/* Initialize a specific device. Creates a queue and a context */
 void opencl_init_dev(unsigned int sequential_id);
+
+/* Initialize a device and build kernel. This invokes opencl_init_dev */
 void opencl_init(char *kernel_filename, unsigned int sequential_id);
+
+/* Same as above but pass options to OpenCL compiler */
 void opencl_init_opt(char *kernel_filename, unsigned int sequential_id, char *options);
+
+/* used by opencl_DES_bs_b.c */
 void opencl_build(unsigned int sequential_id, char *opts, int save, char * file_name, int showLog);
-void opencl_build_kernel(char *kernel_filename, unsigned int sequential_id);
-void opencl_build_kernel_save(char *kernel_filename, unsigned int sequential_id, char *options, int save, int warn);
+
+/* Build kernel (if not cached), and cache it */
+void opencl_build_kernel(char *kernel_filename, unsigned int sequential_id, char *options, int warn);
+
 void opencl_find_best_workgroup(struct fmt_main *self);
 void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_limit, unsigned int sequential_id, cl_kernel crypt_kernel);
 
@@ -124,13 +132,14 @@ void opencl_get_user_preferences(char * format);
 char *get_error_name(cl_int cl_error);
 
 /* Returns OpenCL version based on macro CL_VERSION_X_Y definded in cl.h */
-char *get_opencl_header_version();
+char *get_opencl_header_version(void);
 
 void handle_clerror(cl_int cl_error, const char *message, const char *file, int line);
 
-void advance_cursor();
+/* Progress indicator "spinning wheel" */
+void advance_cursor(void);
 
-void listOpenCLdevices();
+void listOpenCLdevices(void);
 
 /* Call this to check for keypress etc. within kernel loops */
 void opencl_process_event(void);

@@ -129,7 +129,7 @@ int get_number_of_available_devices()
 	return total;
 }
 
-int get_devices_being_used()
+int opencl_get_devices()
 {
 	int i = 0;
 
@@ -277,13 +277,13 @@ static void add_device_to_list(int sequential_id)
 		exit(EXIT_FAILURE);
 	}
 
-	for (i = 0; i < get_devices_being_used() && !found; i++) {
+	for (i = 0; i < opencl_get_devices() && !found; i++) {
 		if (sequential_id == ocl_device_list[i])
 			found = 1;
 	}
 	if (!found) {
-		ocl_device_list[get_devices_being_used() + 1] = -1;
-		ocl_device_list[get_devices_being_used()] = sequential_id;
+		ocl_device_list[opencl_get_devices() + 1] = -1;
+		ocl_device_list[opencl_get_devices()] = sequential_id;
 	}
 }
 
@@ -423,7 +423,7 @@ void opencl_preinit(void)
 
 	build_device_list(device_list);
 
-	if (get_devices_being_used() == 0) {
+	if (opencl_get_devices() == 0) {
 		fprintf(stderr, "No OpenCL devices found\n");
 		exit(1);
 	}
@@ -435,7 +435,7 @@ void opencl_done()
 {
 	int i;
 
-	for (i = 0; i < get_devices_being_used(); i++) {
+	for (i = 0; i < opencl_get_devices(); i++) {
 		if (queue[ocl_device_list[i]])
 			HANDLE_CLERROR(clReleaseCommandQueue(queue[ocl_device_list[i]]), "Release Queue");
 		if (context[ocl_device_list[i]])
@@ -1240,7 +1240,7 @@ err:
 	return;
 }
 
-void read_kernel_source(char *kernel_filename)
+void opencl_read_source(char *kernel_filename)
 {
 	char *kernel_path = path_expand(kernel_filename);
 	FILE *fp = fopen(kernel_path, "r");
@@ -1269,13 +1269,11 @@ void read_kernel_source(char *kernel_filename)
 
 void opencl_build_kernel_opt(char *kernel_filename, unsigned int sequential_id, char *opts)
 {
-	read_kernel_source(kernel_filename);
+	opencl_read_source(kernel_filename);
 	opencl_build(sequential_id, opts, 0, NULL, 1);
 }
 
-//CPU and any non nvidia GPU will benefit from this routine.
-//On OSX (including with nvidia) save binary kernel too.
-void opencl_build_kernel_save(char *kernel_filename, unsigned int sequential_id, char *opts, int save, int warn) {
+void opencl_build_kernel(char *kernel_filename, unsigned int sequential_id, char *opts, int warn) {
 	struct stat source_stat, bin_stat;
 	char dev_name[512], bin_name[512];
 	char * p;
@@ -1283,7 +1281,7 @@ void opencl_build_kernel_save(char *kernel_filename, unsigned int sequential_id,
 
 	kernel_loaded = 0;
 
-	if ((!cpu(device_info[sequential_id]) && !gpu_amd(device_info[sequential_id]) && !platform_apple(platform_id)) || !save || stat(path_expand(kernel_filename), &source_stat))
+	if ((!cpu(device_info[sequential_id]) && !gpu_amd(device_info[sequential_id]) && !platform_apple(platform_id)) || stat(path_expand(kernel_filename), &source_stat))
 		opencl_build_kernel_opt(kernel_filename, sequential_id, opts);
 
 	else {
@@ -1314,7 +1312,7 @@ void opencl_build_kernel_save(char *kernel_filename, unsigned int sequential_id,
 
 		//Select the kernel to run.
 		if (!stat(path_expand(bin_name), &bin_stat) && (source_stat.st_mtime < bin_stat.st_mtime)) {
-			read_kernel_source(bin_name);
+			opencl_read_source(bin_name);
 			opencl_build_from_binary(sequential_id);
 
 		} else {
@@ -1323,7 +1321,7 @@ void opencl_build_kernel_save(char *kernel_filename, unsigned int sequential_id,
 				fprintf(stderr, "Building the kernel, this could take a while\n");
 				fflush(stdout);
 			}
-			read_kernel_source(kernel_filename);
+			opencl_read_source(kernel_filename);
 			opencl_build(sequential_id, opts, 1, bin_name, 1);
 		}
 		if (warn && options.verbosity > 2) {
@@ -1346,7 +1344,7 @@ void opencl_init_opt(char *kernel_filename, unsigned int sequential_id, char *op
 	kernel_loaded = 0;
 
 	opencl_init_dev(sequential_id);
-	opencl_build_kernel_save(kernel_filename, sequential_id, opts, 1, 0);
+	opencl_build_kernel(kernel_filename, sequential_id, opts, 0);
 }
 
 void opencl_init(char *kernel_filename, unsigned int sequential_id)

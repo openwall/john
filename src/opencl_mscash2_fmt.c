@@ -111,7 +111,7 @@ static void init(struct fmt_main *self) {
 	if ((conf = getenv("GWS")))
 		global_work_size = atoi(conf) ;
 
-	for( i=0; i < get_devices_being_used(); i++)
+	for( i=0; i < opencl_get_devices(); i++)
 		select_device(ocl_device_list[i], self) ;
 
 	warning() ;

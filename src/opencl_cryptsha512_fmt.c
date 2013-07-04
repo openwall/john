@@ -333,7 +333,7 @@ static void find_best_gws(struct fmt_main * self, int sequential_id) {
 /* ------- Initialization  ------- */
 static void build_kernel(char * task) {
 
-	opencl_build_kernel_save(task, ocl_gpu_id, NULL, 1, 1);
+	opencl_build_kernel(task, ocl_gpu_id, NULL, 1);
 
 	// create kernel(s) to execute
 	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "kernel_crypt", &ret_code);

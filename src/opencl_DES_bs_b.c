@@ -211,7 +211,7 @@ static char *include_source(char *pathname, int dev_id, char *options)
 	return include;
 }
 
-static void read_kernel_source(char *kernel_filename)
+static void opencl_read_source(char *kernel_filename)
 {
 	char *kernel_path = path_expand(kernel_filename);
 	FILE *fp = fopen(kernel_path, "r");
@@ -327,7 +327,7 @@ static void init_dev()
 
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], index768_gpu, CL_TRUE, 0, 768 * sizeof(unsigned int), index768, 0, NULL, NULL ), "Failed Copy data to gpu");
 
-	read_kernel_source("$JOHN/kernels/DES_bs_kernel.cl") ;
+	opencl_read_source("$JOHN/kernels/DES_bs_kernel.cl") ;
 }
 
 void modify_src() {

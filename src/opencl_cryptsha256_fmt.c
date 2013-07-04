@@ -336,7 +336,7 @@ static void find_best_gws(struct fmt_main * self, int sequential_id) {
 /* ------- Initialization  ------- */
 static void build_kernel(char * task, int sequential_id) {
 
-	opencl_build_kernel_save(task, sequential_id, NULL, 1, 1);
+	opencl_build_kernel(task, sequential_id, NULL, 1);
 
 	// create kernel(s) to execute
 	main_kernel[sequential_id] = clCreateKernel(program[sequential_id], "kernel_crypt", &ret_code);
@@ -355,7 +355,7 @@ static void init(struct fmt_main * self) {
 	char * tmp_value;
 	char * task = NULL;
 
-	for (i = 0; i < get_devices_being_used(); i++) {
+	for (i = 0; i < opencl_get_devices(); i++) {
 		task = "$JOHN/kernels/cryptsha256_kernel_DEFAULT.cl";
 		opencl_init_dev(ocl_device_list[i]);
 		source_in_use = device_info[ocl_device_list[i]];
