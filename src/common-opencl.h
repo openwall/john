@@ -86,9 +86,8 @@ int cores_per_MP[MAXGPUS];
 
 cl_int oclGetDevCap(cl_device_id device, cl_int *iComputeCapMajor, cl_int *iComputeCapMinor);
 
-int any_opencl_device_exists(void);
-void init_opencl_devices();
-void clean_opencl_environment();
+void opencl_preinit();
+void opencl_done();
 int get_number_of_available_devices();
 int get_devices_being_used();
 int get_platform_id(unsigned int sequential_id);

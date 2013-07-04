@@ -282,11 +282,8 @@ static void add_device_to_list(int sequential_id)
 			found = 1;
 	}
 	if (!found) {
-		//Only requested and working devices should be started.
-		if (start_opencl_device(sequential_id)) {
-			ocl_device_list[get_devices_being_used() + 1] = -1;
-			ocl_device_list[get_devices_being_used()] = sequential_id;
-		}
+		ocl_device_list[get_devices_being_used() + 1] = -1;
+		ocl_device_list[get_devices_being_used()] = sequential_id;
 	}
 }
 
@@ -329,22 +326,16 @@ static void build_device_list(char * device_list[MAXGPUS])
 	}
 }
 
-int any_opencl_device_exists(void)
-{
-	ocl_device_list[0] = -1;
-	ocl_device_list[1] = -1;
-	start_opencl_environment();
-
-	/* This is an OpenCL build on a host without *any* working OpenCL device or platform. */
-	return (get_number_of_available_devices() > 0);
-}
-
-void init_opencl_devices(void)
+void opencl_preinit(void)
 {
 	char * device_list[MAXGPUS], string[10];
 	int n = 0;
 
 	device_list[0] = NULL;
+
+	ocl_device_list[0] = -1;
+	ocl_device_list[1] = -1;
+	start_opencl_environment();
 
 	if (options.ocl_platform) {
 		struct list_entry *current;
@@ -429,7 +420,7 @@ void init_opencl_devices(void)
 		device_list[0] = string;
 		device_list[1] = NULL;
 	}
-	//Start requested device(s). Take care of legacy.
+
 	build_device_list(device_list);
 
 	if (get_devices_being_used() == 0) {
@@ -440,13 +431,15 @@ void init_opencl_devices(void)
 	platform_id = get_platform_id(ocl_gpu_id);
 }
 
-void clean_opencl_environment()
+void opencl_done()
 {
 	int i;
 
 	for (i = 0; i < get_devices_being_used(); i++) {
-		HANDLE_CLERROR(clReleaseCommandQueue(queue[ocl_device_list[i]]), "Release Queue");
-		HANDLE_CLERROR(clReleaseContext(context[ocl_device_list[i]]), "Release Context");
+		if (queue[ocl_device_list[i]])
+			HANDLE_CLERROR(clReleaseCommandQueue(queue[ocl_device_list[i]]), "Release Queue");
+		if (context[ocl_device_list[i]])
+			HANDLE_CLERROR(clReleaseContext(context[ocl_device_list[i]]), "Release Context");
 	}
 	MEM_FREE(kernel_source);
 }
@@ -1344,12 +1337,14 @@ void opencl_build_kernel_save(char *kernel_filename, unsigned int sequential_id,
 void opencl_init_dev(unsigned int sequential_id)
 {
 	profilingEvent = firstEvent = lastEvent = NULL;
+	start_opencl_device(sequential_id);
 	dev_init(sequential_id);
 }
 
 void opencl_init_opt(char *kernel_filename, unsigned int sequential_id, char *opts)
 {
-	kernel_loaded=0;
+	kernel_loaded = 0;
+
 	opencl_init_dev(sequential_id);
 	opencl_build_kernel_save(kernel_filename, sequential_id, opts, 1, 0);
 }
@@ -1362,6 +1357,7 @@ void opencl_init(char *kernel_filename, unsigned int sequential_id)
 cl_device_type get_device_type(unsigned int sequential_id)
 {
 	cl_device_type type;
+
 	HANDLE_CLERROR(clGetDeviceInfo(devices[sequential_id], CL_DEVICE_TYPE,
 		sizeof(cl_device_type), &type, NULL),
 		"Error querying CL_DEVICE_TYPE");
@@ -1372,6 +1368,7 @@ cl_device_type get_device_type(unsigned int sequential_id)
 cl_ulong get_local_memory_size(unsigned int sequential_id)
 {
 	cl_ulong size;
+
 	HANDLE_CLERROR(clGetDeviceInfo(devices[sequential_id],
 		CL_DEVICE_LOCAL_MEM_SIZE, sizeof(cl_ulong), &size, NULL),
 		"Error querying CL_DEVICE_LOCAL_MEM_SIZE");
