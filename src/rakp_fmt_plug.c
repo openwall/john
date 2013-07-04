@@ -8,15 +8,7 @@
  *
  * Based on hmac-md5 by Bartavelle
  *
- * ipmi_dumphashes (metasploit) output format,
- *
- * 1XX.XXX.XXX.XXX root:c358d2a72f0c00001135f9b254c274629208b22f1166d94d2eba
- * 47f21093e9734355a33593da16f2000000000000000000000000000000001404726f6f74:41
- * fce60acf2885f87fcafdf658d6f97db12639a9
- *
- * !!! We need to replace ":" by "$" !!!
- *
- * This is done by ipmi_dumphashes2john.py utility
+ * ipmi_dumphashes (metasploit) can dump hashes in JtR format.
  */
 
 #include "sha2.h"
