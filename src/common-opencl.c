@@ -438,8 +438,10 @@ void opencl_done()
 	for (i = 0; i < opencl_get_devices(); i++) {
 		if (queue[ocl_device_list[i]])
 			HANDLE_CLERROR(clReleaseCommandQueue(queue[ocl_device_list[i]]), "Release Queue");
+		queue[ocl_device_list[i]] = NULL;
 		if (context[ocl_device_list[i]])
 			HANDLE_CLERROR(clReleaseContext(context[ocl_device_list[i]]), "Release Context");
+		context[ocl_device_list[i]] = NULL;
 	}
 	MEM_FREE(kernel_source);
 }
@@ -1335,7 +1337,8 @@ void opencl_build_kernel(char *kernel_filename, unsigned int sequential_id, char
 void opencl_init_dev(unsigned int sequential_id)
 {
 	profilingEvent = firstEvent = lastEvent = NULL;
-	start_opencl_device(sequential_id);
+	if (!context[sequential_id])
+		start_opencl_device(sequential_id);
 	dev_init(sequential_id);
 }
 
