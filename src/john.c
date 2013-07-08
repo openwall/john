@@ -182,7 +182,8 @@ static void john_omp_maybe_adjust_or_fallback(char **argv)
 static void john_omp_show_info(void)
 {
 	if (!options.fork && john_omp_threads_orig > 1 &&
-	    database.format && !rec_restoring_now) {
+	    database.format && database.format != dummy_format &&
+	    !rec_restoring_now) {
 		const char *msg = NULL;
 		if (!(database.format->params.flags & FMT_OMP))
 			msg = "no OpenMP support";
