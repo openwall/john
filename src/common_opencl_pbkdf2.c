@@ -227,7 +227,7 @@ size_t 	select_device(int jtrUniqDevNo, struct fmt_main *fmt) {
 	}
 
 	active_dev_ctr++;
-
+	
 	return globalObj[jtrUniqDevNo].lws;
 }
 
@@ -245,15 +245,6 @@ void warning() {
 	for (i = 0; i < active_dev_ctr; ++i)
 		if (globalObj[ocl_device_list[i]].exec_time_inv / total_exec_time_inv < 0.01)
 			fprintf(stderr, "WARNING: Device %d is too slow and might cause degradation in performance.\n", ocl_device_list[i]);
-
-	total_exec_time_inv = globalObj[ocl_device_list[0]].exec_time_inv;
-	for (i = 1; i < active_dev_ctr; ++i) {
-		if(total_exec_time_inv < globalObj[ocl_device_list[i]].exec_time_inv)
-			fprintf(stderr, "WARNING: Devices are NOT arranged in DECREASING order of performance and might cause degradation in performance.\n");
-		total_exec_time_inv = globalObj[ocl_device_list[i]].exec_time_inv;
-	}
-
-
 }
 
 void pbkdf2_divide_work(cl_uint *pass_api, cl_uint *salt_api, cl_uint saltlen_api, cl_uint *hash_out_api, cl_uint *hmac_sha1_api, cl_uint num) {
@@ -261,6 +252,10 @@ void pbkdf2_divide_work(cl_uint *pass_api, cl_uint *salt_api, cl_uint saltlen_ap
 	int 		i;
 	unsigned int 	work_part, work_offset = 0, lws_max = max_lws();
 	cl_int 		ret;
+	
+#ifdef  _DEBUG	
+	struct timeval startc, endc;
+#endif	
 
 	event_ctr = 0;
 	memset(hash_out_api, 0, num * sizeof(cl_uint));
@@ -295,18 +290,25 @@ void pbkdf2_divide_work(cl_uint *pass_api, cl_uint *salt_api, cl_uint saltlen_ap
 			if ((int)work_part <= 0)
 				work_part = lws_max;
 
+#ifdef  _DEBUG			
+			gettimeofday(&startc, NULL) ;
+			fprintf(stderr, "Work Offset:%d  Work Part Size:%d Event No:%d",work_offset,work_part,event_ctr);
+#endif			
+			
 			///call to exec_pbkdf2()
-#ifdef _DEBUG
-			printf("Work Offset:%d  Work Part Size:%d %d\n",work_offset,work_part,event_ctr);
-#endif
 			exec_pbkdf2(pass_api + 4 * work_offset, salt_api, saltlen_api, hash_out_api + 4 * work_offset, work_part, ocl_device_list[i], queue[ocl_device_list[i]], hmac_sha1_api + 5 * work_offset);
 			work_offset += work_part;
+			
+#ifdef  _DEBUG			
+			gettimeofday(&endc, NULL);
+			fprintf(stderr, "GPU enque time:%f\n",(endc.tv_sec - startc.tv_sec) + (double)(endc.tv_usec - startc.tv_usec) / 1000000.000) ;
+#endif			
 		}
-
+		
 		///Synchronize Device memory and Host memory
 		for (i = active_dev_ctr - 1; i >= 0; --i)
 			HANDLE_CLERROR(clFlush(queue[ocl_device_list[i]]), "Flush Error");
-
+		
 		for (i = 0; i < active_dev_ctr; ++i) {
 			while (1) {
 				HANDLE_CLERROR(clGetEventInfo(events[i], CL_EVENT_COMMAND_EXECUTION_STATUS, sizeof(cl_int), &ret, NULL), "Error in Get Event Info");
@@ -317,13 +319,54 @@ void pbkdf2_divide_work(cl_uint *pass_api, cl_uint *salt_api, cl_uint saltlen_ap
 #endif
 			}
 		}
+		
+		event_ctr = work_part = work_offset = 0;
+		
+		for (i = 0; i < active_dev_ctr; ++i) {
+			if (i == active_dev_ctr - 1) {
+				work_part = num - work_offset;
+				if (work_part % lws_max != 0)
+					work_part = (work_part / lws_max + 1) * lws_max;
+			}
+			else {
+				work_part = num * globalObj[ocl_device_list[i]].exec_time_inv;
+				if (work_part % lws_max != 0)
+					work_part = (work_part / lws_max + 1) * lws_max;
+			}
+
+			if ((int)work_part <= 0)
+				work_part = lws_max;
+
+#ifdef  _DEBUG			
+			gettimeofday(&startc, NULL) ;
+			fprintf(stderr, "Work Offset:%d  Work Part Size:%d Event No:%d",work_offset,work_part,event_ctr);
+#endif			
+			
+			///Read results back from device
+			HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_device_list[i]], 
+							   globalObj[ocl_device_list[i]].gpu_buffer.hash_out_gpu, 
+							   CL_FALSE, 0, 
+							   4 * work_part * sizeof(cl_uint), 
+							   hash_out_api + 4 * work_offset, 
+							   0, 
+							   NULL, 
+							   &events[event_ctr++]), "Write :FAILED");
+			work_offset += work_part;
+
+#ifdef  _DEBUG			
+			gettimeofday(&endc, NULL);
+			fprintf(stderr, "GPU enque time:%f\n",(endc.tv_sec - startc.tv_sec) + (double)(endc.tv_usec - startc.tv_usec) / 1000000.000) ;
+#endif			
+		}
 
 		for (i = 0; i < active_dev_ctr; ++i)
 			HANDLE_CLERROR(clFinish(queue[ocl_device_list[i]]), "Finish Error");
 
 	 }
+	 
 	 else {
 		exec_pbkdf2(pass_api, salt_api, saltlen_api, hash_out_api, num, ocl_device_list[0], queue[ocl_device_list[0]], hmac_sha1_api);
+		HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_device_list[0]], globalObj[ocl_device_list[0]].gpu_buffer.hash_out_gpu, CL_FALSE, 0, 4*num*sizeof(cl_uint), hash_out_api, 0, NULL, NULL), "Write :FAILED");
 		HANDLE_CLERROR(clFinish(queue[ocl_device_list[0]]), "Finish Error");
 	}
 }
@@ -335,17 +378,18 @@ static gpu_mem_buffer exec_pbkdf2(cl_uint *pass_api, cl_uint *salt_api, cl_uint 
 	cl_int 		err;
 	unsigned int 	i, itrCntKrnl = ITERATION_COUNT_PER_CALL;
 	cl_ulong 	_kernelExecTimeNs = 0;
-
-	HANDLE_CLERROR(clEnqueueWriteBuffer(cmdq, globalObj[jtrUniqDevNo].gpu_buffer.pass_gpu, CL_TRUE, 0, 4 * num * sizeof(cl_uint), pass_api, 0, NULL, NULL ), "Copy data to gpu");
+	
+	HANDLE_CLERROR(clEnqueueWriteBuffer(cmdq, globalObj[jtrUniqDevNo].gpu_buffer.pass_gpu, CL_FALSE, 0, 4 * num * sizeof(cl_uint), pass_api, 0, NULL, NULL ), "Copy data to gpu");
 	if(saltlen_api > 22)
-		HANDLE_CLERROR(clEnqueueWriteBuffer(cmdq, globalObj[jtrUniqDevNo].gpu_buffer.hmac_sha1_gpu, CL_TRUE, 0, 5 * num * sizeof(cl_uint), hmac_sha1_api, 0, NULL, NULL ), "Copy data to gpu");
+		HANDLE_CLERROR(clEnqueueWriteBuffer(cmdq, globalObj[jtrUniqDevNo].gpu_buffer.hmac_sha1_gpu, CL_FALSE, 0, 5 * num * sizeof(cl_uint), hmac_sha1_api, 0, NULL, NULL ), "Copy data to gpu");
 
-	HANDLE_CLERROR(clEnqueueWriteBuffer(cmdq, globalObj[jtrUniqDevNo].gpu_buffer.salt_gpu, CL_TRUE, 0, (MAX_SALT_LENGTH / 2 + 1) * sizeof(cl_uint), salt_api, 0, NULL, NULL ), "Copy data to gpu");
+	HANDLE_CLERROR(clEnqueueWriteBuffer(cmdq, globalObj[jtrUniqDevNo].gpu_buffer.salt_gpu, CL_FALSE, 0, (MAX_SALT_LENGTH / 2 + 1) * sizeof(cl_uint), salt_api, 0, NULL, NULL ), "Copy data to gpu");
 
 	HANDLE_CLERROR(clSetKernelArg(globalObj[jtrUniqDevNo].krnl[0], 2, sizeof(cl_uint), &saltlen_api), "Set Kernel 0 Arg 2 :FAILED");
 	HANDLE_CLERROR(clSetKernelArg(globalObj[jtrUniqDevNo].krnl[0], 3, sizeof(cl_uint), &num), "Set Kernel 0 Arg 3 :FAILED");
-
+	
 	err = clEnqueueNDRangeKernel(cmdq, globalObj[jtrUniqDevNo].krnl[0], 1, NULL, &N, &M, 0, NULL, &evnt);
+	
 	if (err) {
 		if (PROFILE)
 			globalObj[jtrUniqDevNo].lws = globalObj[jtrUniqDevNo].lws / 2;
@@ -366,14 +410,15 @@ static gpu_mem_buffer exec_pbkdf2(cl_uint *pass_api, cl_uint *salt_api, cl_uint 
 		clGetEventProfilingInfo(evnt, CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime, NULL);
 		_kernelExecTimeNs = endTime - startTime;
 	}
-
+	
 	for (i=0; i< (10240 - 1); i = i+ itrCntKrnl ) {
 		if (i == (10240 - itrCntKrnl))
 			--itrCntKrnl;
 
 		HANDLE_CLERROR(clSetKernelArg(globalObj[jtrUniqDevNo].krnl[1], 1, sizeof(cl_uint), &itrCntKrnl), "Set Kernel 1 Arg 1 :FAILED");
-
+		
 		err = clEnqueueNDRangeKernel(cmdq, globalObj[jtrUniqDevNo].krnl[1], 1, NULL, &N, &M, 0, NULL, &evnt);
+		
 		if (err) {
 			if (PROFILE)
 				globalObj[jtrUniqDevNo].lws = globalObj[jtrUniqDevNo].lws / 2;
@@ -382,7 +427,7 @@ static gpu_mem_buffer exec_pbkdf2(cl_uint *pass_api, cl_uint *salt_api, cl_uint 
 
 			return globalObj[jtrUniqDevNo].gpu_buffer;
 		}
-
+		
 		opencl_process_event();
 
 		if (PROFILE) {
@@ -397,12 +442,10 @@ static gpu_mem_buffer exec_pbkdf2(cl_uint *pass_api, cl_uint *salt_api, cl_uint 
 			_kernelExecTimeNs += endTime - startTime;
 		}
 
-		else if (active_dev_ctr == 1)
-			HANDLE_CLERROR(clFinish(cmdq), "clFinish error");
-
 	}
-
-	err = clEnqueueNDRangeKernel(cmdq, globalObj[jtrUniqDevNo].krnl[2], 1, NULL, &N, &M, 0, NULL, &evnt);
+	
+	err = clEnqueueNDRangeKernel(cmdq, globalObj[jtrUniqDevNo].krnl[2], 1, NULL, &N, &M, 0, NULL, &events[event_ctr]);
+	
 	if (err) {
 		if (PROFILE)
 			globalObj[jtrUniqDevNo].lws = globalObj[jtrUniqDevNo].lws / 2;
@@ -411,14 +454,14 @@ static gpu_mem_buffer exec_pbkdf2(cl_uint *pass_api, cl_uint *salt_api, cl_uint 
 
 		return globalObj[jtrUniqDevNo].gpu_buffer;
 	}
-
+ 
 	if (PROFILE) {
 			cl_ulong 	startTime, endTime;
-			HANDLE_CLERROR(clWaitForEvents(1, &evnt), "Sync :FAILED");
+			HANDLE_CLERROR(clWaitForEvents(1, &events[event_ctr]), "Sync :FAILED");
 			HANDLE_CLERROR(clFinish(cmdq), "clFinish error");
 
-			clGetEventProfilingInfo(evnt, CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime, NULL);
-			clGetEventProfilingInfo(evnt, CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime, NULL);
+			clGetEventProfilingInfo(events[event_ctr], CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime, NULL);
+			clGetEventProfilingInfo(events[event_ctr], CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime, NULL);
 
 			_kernelExecTimeNs += endTime - startTime;
 
@@ -432,9 +475,9 @@ static gpu_mem_buffer exec_pbkdf2(cl_uint *pass_api, cl_uint *salt_api, cl_uint 
 			}
 
          }
+         
          else
-		HANDLE_CLERROR(clEnqueueReadBuffer(cmdq, globalObj[jtrUniqDevNo].gpu_buffer.hash_out_gpu, CL_FALSE, 0, 4*num*sizeof(cl_uint), hash_out_api, 1, &evnt, &events[event_ctr++]), "Write :FAILED");
-
-
-	 return globalObj[jtrUniqDevNo].gpu_buffer;
+		event_ctr++;
+        
+         return globalObj[jtrUniqDevNo].gpu_buffer;
 }
