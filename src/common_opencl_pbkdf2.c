@@ -193,10 +193,12 @@ size_t 	select_device(int jtrUniqDevNo, struct fmt_main *fmt) {
 	HANDLE_CLERROR(clSetKernelArg(globalObj[jtrUniqDevNo].krnl[2], 0, sizeof(cl_mem), &globalObj[jtrUniqDevNo].gpu_buffer.temp_buf_gpu), "Set Kernel 2 Arg 0 :FAILED");
 	HANDLE_CLERROR(clSetKernelArg(globalObj[jtrUniqDevNo].krnl[2], 1, sizeof(cl_mem), &globalObj[jtrUniqDevNo].gpu_buffer.hash_out_gpu), "Set Kernel 2 Arg 1 :FAILED");
 
-	if (((!global_work_size) || ((!local_work_size) && global_work_size)) || (active_dev_ctr != 0))
+	if (!local_work_size)
 		find_best_workgroup(jtrUniqDevNo);
+	
 	else {
 		size_t 		maxsize, maxsize2;
+		cl_device_type 	dTyp;
 
 		maxsize = get_kernel_preferred_work_group_size(jtrUniqDevNo, globalObj[jtrUniqDevNo].krnl[0]);
 		maxsize2 = get_kernel_preferred_work_group_size(jtrUniqDevNo, globalObj[jtrUniqDevNo].krnl[1]);
@@ -210,15 +212,26 @@ size_t 	select_device(int jtrUniqDevNo, struct fmt_main *fmt) {
 		while (local_work_size > maxsize)
 			local_work_size /= 2;
 
-	if (options.verbosity > 3)
-		fprintf(stderr, "Local worksize (LWS) forced to %zu\n", local_work_size);
-
+		if(local_work_size < 64) local_work_size = 64;
+		
+		dTyp = get_device_type(jtrUniqDevNo);
+		if (dTyp == CL_DEVICE_TYPE_CPU)
+			globalObj[jtrUniqDevNo].lws = 1;
+		
+		if (options.verbosity > 3)
+			fprintf(stderr, "Local worksize (LWS) forced to %zu\n", local_work_size);
+		
 		globalObj[jtrUniqDevNo].lws = local_work_size;
+		globalObj[jtrUniqDevNo].exec_time_inv = 1;
 	}
 
-	if ((!global_work_size) || (active_dev_ctr != 0))
+	if (!global_work_size)
 		find_best_gws(jtrUniqDevNo, fmt);
+	
 	else {
+		global_work_size = (global_work_size < (MAX_KEYS_PER_CRYPT - 8192)) ? global_work_size : (MAX_KEYS_PER_CRYPT - 8192);
+		global_work_size = (global_work_size > 8192) ? global_work_size : 8192;
+		
 		if (options.verbosity > 3)
 			fprintf(stderr, "Global worksize (GWS) forced to %zu\n", global_work_size);
 
@@ -305,7 +318,7 @@ void pbkdf2_divide_work(cl_uint *pass_api, cl_uint *salt_api, cl_uint saltlen_ap
 #endif			
 		}
 		
-		///Synchronize Device memory and Host memory
+		///Synchronize all kernels
 		for (i = active_dev_ctr - 1; i >= 0; --i)
 			HANDLE_CLERROR(clFlush(queue[ocl_device_list[i]]), "Flush Error");
 		
@@ -322,6 +335,7 @@ void pbkdf2_divide_work(cl_uint *pass_api, cl_uint *salt_api, cl_uint saltlen_ap
 		
 		event_ctr = work_part = work_offset = 0;
 		
+		///Read results back from all kernels
 		for (i = 0; i < active_dev_ctr; ++i) {
 			if (i == active_dev_ctr - 1) {
 				work_part = num - work_offset;
