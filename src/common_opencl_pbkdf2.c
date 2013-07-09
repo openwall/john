@@ -195,7 +195,7 @@ size_t 	select_device(int jtrUniqDevNo, struct fmt_main *fmt) {
 
 	if (!local_work_size)
 		find_best_workgroup(jtrUniqDevNo);
-	
+
 	else {
 		size_t 		maxsize, maxsize2;
 		cl_device_type 	dTyp;
@@ -213,25 +213,25 @@ size_t 	select_device(int jtrUniqDevNo, struct fmt_main *fmt) {
 			local_work_size /= 2;
 
 		if(local_work_size < 64) local_work_size = 64;
-		
+
 		dTyp = get_device_type(jtrUniqDevNo);
 		if (dTyp == CL_DEVICE_TYPE_CPU)
 			globalObj[jtrUniqDevNo].lws = 1;
-		
+
 		if (options.verbosity > 3)
 			fprintf(stderr, "Local worksize (LWS) forced to %zu\n", local_work_size);
-		
+
 		globalObj[jtrUniqDevNo].lws = local_work_size;
 		globalObj[jtrUniqDevNo].exec_time_inv = 1;
 	}
 
 	if (!global_work_size)
 		find_best_gws(jtrUniqDevNo, fmt);
-	
+
 	else {
 		global_work_size = (global_work_size < (MAX_KEYS_PER_CRYPT - 8192)) ? global_work_size : (MAX_KEYS_PER_CRYPT - 8192);
 		global_work_size = (global_work_size > 8192) ? global_work_size : 8192;
-		
+
 		if (options.verbosity > 3)
 			fprintf(stderr, "Global worksize (GWS) forced to %zu\n", global_work_size);
 
@@ -240,7 +240,7 @@ size_t 	select_device(int jtrUniqDevNo, struct fmt_main *fmt) {
 	}
 
 	active_dev_ctr++;
-	
+
 	return globalObj[jtrUniqDevNo].lws;
 }
 
@@ -265,10 +265,10 @@ void pbkdf2_divide_work(cl_uint *pass_api, cl_uint *salt_api, cl_uint saltlen_ap
 	int 		i;
 	unsigned int 	work_part, work_offset = 0, lws_max = max_lws();
 	cl_int 		ret;
-	
-#ifdef  _DEBUG	
+
+#ifdef  _DEBUG
 	struct timeval startc, endc;
-#endif	
+#endif
 
 	event_ctr = 0;
 	memset(hash_out_api, 0, num * sizeof(cl_uint));
@@ -303,25 +303,25 @@ void pbkdf2_divide_work(cl_uint *pass_api, cl_uint *salt_api, cl_uint saltlen_ap
 			if ((int)work_part <= 0)
 				work_part = lws_max;
 
-#ifdef  _DEBUG			
+#ifdef  _DEBUG
 			gettimeofday(&startc, NULL) ;
 			fprintf(stderr, "Work Offset:%d  Work Part Size:%d Event No:%d",work_offset,work_part,event_ctr);
-#endif			
-			
+#endif
+
 			///call to exec_pbkdf2()
 			exec_pbkdf2(pass_api + 4 * work_offset, salt_api, saltlen_api, hash_out_api + 4 * work_offset, work_part, ocl_device_list[i], queue[ocl_device_list[i]], hmac_sha1_api + 5 * work_offset);
 			work_offset += work_part;
-			
-#ifdef  _DEBUG			
+
+#ifdef  _DEBUG
 			gettimeofday(&endc, NULL);
 			fprintf(stderr, "GPU enque time:%f\n",(endc.tv_sec - startc.tv_sec) + (double)(endc.tv_usec - startc.tv_usec) / 1000000.000) ;
-#endif			
+#endif
 		}
-		
+
 		///Synchronize all kernels
 		for (i = active_dev_ctr - 1; i >= 0; --i)
 			HANDLE_CLERROR(clFlush(queue[ocl_device_list[i]]), "Flush Error");
-		
+
 		for (i = 0; i < active_dev_ctr; ++i) {
 			while (1) {
 				HANDLE_CLERROR(clGetEventInfo(events[i], CL_EVENT_COMMAND_EXECUTION_STATUS, sizeof(cl_int), &ret, NULL), "Error in Get Event Info");
@@ -332,9 +332,9 @@ void pbkdf2_divide_work(cl_uint *pass_api, cl_uint *salt_api, cl_uint saltlen_ap
 #endif
 			}
 		}
-		
+
 		event_ctr = work_part = work_offset = 0;
-		
+
 		///Read results back from all kernels
 		for (i = 0; i < active_dev_ctr; ++i) {
 			if (i == active_dev_ctr - 1) {
@@ -351,33 +351,33 @@ void pbkdf2_divide_work(cl_uint *pass_api, cl_uint *salt_api, cl_uint saltlen_ap
 			if ((int)work_part <= 0)
 				work_part = lws_max;
 
-#ifdef  _DEBUG			
+#ifdef  _DEBUG
 			gettimeofday(&startc, NULL) ;
 			fprintf(stderr, "Work Offset:%d  Work Part Size:%d Event No:%d",work_offset,work_part,event_ctr);
-#endif			
-			
+#endif
+
 			///Read results back from device
-			HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_device_list[i]], 
-							   globalObj[ocl_device_list[i]].gpu_buffer.hash_out_gpu, 
-							   CL_FALSE, 0, 
-							   4 * work_part * sizeof(cl_uint), 
-							   hash_out_api + 4 * work_offset, 
-							   0, 
-							   NULL, 
+			HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_device_list[i]],
+							   globalObj[ocl_device_list[i]].gpu_buffer.hash_out_gpu,
+							   CL_FALSE, 0,
+							   4 * work_part * sizeof(cl_uint),
+							   hash_out_api + 4 * work_offset,
+							   0,
+							   NULL,
 							   &events[event_ctr++]), "Write :FAILED");
 			work_offset += work_part;
 
-#ifdef  _DEBUG			
+#ifdef  _DEBUG
 			gettimeofday(&endc, NULL);
 			fprintf(stderr, "GPU enque time:%f\n",(endc.tv_sec - startc.tv_sec) + (double)(endc.tv_usec - startc.tv_usec) / 1000000.000) ;
-#endif			
+#endif
 		}
 
 		for (i = 0; i < active_dev_ctr; ++i)
 			HANDLE_CLERROR(clFinish(queue[ocl_device_list[i]]), "Finish Error");
 
 	 }
-	 
+
 	 else {
 		exec_pbkdf2(pass_api, salt_api, saltlen_api, hash_out_api, num, ocl_device_list[0], queue[ocl_device_list[0]], hmac_sha1_api);
 		HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_device_list[0]], globalObj[ocl_device_list[0]].gpu_buffer.hash_out_gpu, CL_FALSE, 0, 4*num*sizeof(cl_uint), hash_out_api, 0, NULL, NULL), "Write :FAILED");
@@ -392,7 +392,7 @@ static gpu_mem_buffer exec_pbkdf2(cl_uint *pass_api, cl_uint *salt_api, cl_uint 
 	cl_int 		err;
 	unsigned int 	i, itrCntKrnl = ITERATION_COUNT_PER_CALL;
 	cl_ulong 	_kernelExecTimeNs = 0;
-	
+
 	HANDLE_CLERROR(clEnqueueWriteBuffer(cmdq, globalObj[jtrUniqDevNo].gpu_buffer.pass_gpu, CL_FALSE, 0, 4 * num * sizeof(cl_uint), pass_api, 0, NULL, NULL ), "Copy data to gpu");
 	if(saltlen_api > 22)
 		HANDLE_CLERROR(clEnqueueWriteBuffer(cmdq, globalObj[jtrUniqDevNo].gpu_buffer.hmac_sha1_gpu, CL_FALSE, 0, 5 * num * sizeof(cl_uint), hmac_sha1_api, 0, NULL, NULL ), "Copy data to gpu");
@@ -401,9 +401,9 @@ static gpu_mem_buffer exec_pbkdf2(cl_uint *pass_api, cl_uint *salt_api, cl_uint 
 
 	HANDLE_CLERROR(clSetKernelArg(globalObj[jtrUniqDevNo].krnl[0], 2, sizeof(cl_uint), &saltlen_api), "Set Kernel 0 Arg 2 :FAILED");
 	HANDLE_CLERROR(clSetKernelArg(globalObj[jtrUniqDevNo].krnl[0], 3, sizeof(cl_uint), &num), "Set Kernel 0 Arg 3 :FAILED");
-	
+
 	err = clEnqueueNDRangeKernel(cmdq, globalObj[jtrUniqDevNo].krnl[0], 1, NULL, &N, &M, 0, NULL, &evnt);
-	
+
 	if (err) {
 		if (PROFILE)
 			globalObj[jtrUniqDevNo].lws = globalObj[jtrUniqDevNo].lws / 2;
@@ -424,15 +424,15 @@ static gpu_mem_buffer exec_pbkdf2(cl_uint *pass_api, cl_uint *salt_api, cl_uint 
 		clGetEventProfilingInfo(evnt, CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime, NULL);
 		_kernelExecTimeNs = endTime - startTime;
 	}
-	
+
 	for (i=0; i< (10240 - 1); i = i+ itrCntKrnl ) {
 		if (i == (10240 - itrCntKrnl))
 			--itrCntKrnl;
 
 		HANDLE_CLERROR(clSetKernelArg(globalObj[jtrUniqDevNo].krnl[1], 1, sizeof(cl_uint), &itrCntKrnl), "Set Kernel 1 Arg 1 :FAILED");
-		
+
 		err = clEnqueueNDRangeKernel(cmdq, globalObj[jtrUniqDevNo].krnl[1], 1, NULL, &N, &M, 0, NULL, &evnt);
-		
+
 		if (err) {
 			if (PROFILE)
 				globalObj[jtrUniqDevNo].lws = globalObj[jtrUniqDevNo].lws / 2;
@@ -441,7 +441,7 @@ static gpu_mem_buffer exec_pbkdf2(cl_uint *pass_api, cl_uint *salt_api, cl_uint 
 
 			return globalObj[jtrUniqDevNo].gpu_buffer;
 		}
-		
+
 		opencl_process_event();
 
 		if (PROFILE) {
@@ -457,9 +457,9 @@ static gpu_mem_buffer exec_pbkdf2(cl_uint *pass_api, cl_uint *salt_api, cl_uint 
 		}
 
 	}
-	
+
 	err = clEnqueueNDRangeKernel(cmdq, globalObj[jtrUniqDevNo].krnl[2], 1, NULL, &N, &M, 0, NULL, &events[event_ctr]);
-	
+
 	if (err) {
 		if (PROFILE)
 			globalObj[jtrUniqDevNo].lws = globalObj[jtrUniqDevNo].lws / 2;
@@ -468,7 +468,7 @@ static gpu_mem_buffer exec_pbkdf2(cl_uint *pass_api, cl_uint *salt_api, cl_uint 
 
 		return globalObj[jtrUniqDevNo].gpu_buffer;
 	}
- 
+
 	if (PROFILE) {
 			cl_ulong 	startTime, endTime;
 			HANDLE_CLERROR(clWaitForEvents(1, &events[event_ctr]), "Sync :FAILED");
@@ -489,9 +489,9 @@ static gpu_mem_buffer exec_pbkdf2(cl_uint *pass_api, cl_uint *salt_api, cl_uint 
 			}
 
          }
-         
+
          else
 		event_ctr++;
-        
+
          return globalObj[jtrUniqDevNo].gpu_buffer;
 }
