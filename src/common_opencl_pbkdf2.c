@@ -198,30 +198,24 @@ size_t 	select_device(int jtrUniqDevNo, struct fmt_main *fmt) {
 
 	else {
 		size_t 		maxsize, maxsize2;
-		cl_device_type 	dTyp;
-
-		maxsize = get_kernel_preferred_work_group_size(jtrUniqDevNo, globalObj[jtrUniqDevNo].krnl[0]);
-		maxsize2 = get_kernel_preferred_work_group_size(jtrUniqDevNo, globalObj[jtrUniqDevNo].krnl[1]);
-		if (maxsize2 > maxsize)
-			maxsize = maxsize2;
-
-		maxsize2 = get_kernel_preferred_work_group_size(jtrUniqDevNo, globalObj[jtrUniqDevNo].krnl[2]);
-		if (maxsize2 > maxsize)
-			maxsize = maxsize2;
-
-		while (local_work_size > maxsize)
-			local_work_size /= 2;
-
-		if(local_work_size < 64) local_work_size = 64;
-
-		dTyp = get_device_type(jtrUniqDevNo);
-		if (dTyp == CL_DEVICE_TYPE_CPU)
-			globalObj[jtrUniqDevNo].lws = 1;
-
-		if (options.verbosity > 3)
-			fprintf(stderr, "Local worksize (LWS) forced to %zu\n", local_work_size);
 
 		globalObj[jtrUniqDevNo].lws = local_work_size;
+
+		// Obey limits
+		HANDLE_CLERROR(clGetKernelWorkGroupInfo(globalObj[jtrUniqDevNo].krnl[0], devices[jtrUniqDevNo], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize), &maxsize, NULL), "Error querying max LWS");
+		HANDLE_CLERROR(clGetKernelWorkGroupInfo(globalObj[jtrUniqDevNo].krnl[1], devices[jtrUniqDevNo], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize2), &maxsize2, NULL), "Error querying max LWS");
+		if (maxsize2 > maxsize)
+			maxsize = maxsize2;
+		HANDLE_CLERROR(clGetKernelWorkGroupInfo(globalObj[jtrUniqDevNo].krnl[2], devices[jtrUniqDevNo], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize2), &maxsize2, NULL), "Error querying max LWS");
+		if (maxsize2 > maxsize)
+			maxsize = maxsize2;
+
+		while (globalObj[jtrUniqDevNo].lws > maxsize)
+			globalObj[jtrUniqDevNo].lws /= 2;
+
+		if (options.verbosity > 3)
+			fprintf(stderr, "Local worksize (LWS) forced to %zu\n", globalObj[jtrUniqDevNo].lws);
+
 		globalObj[jtrUniqDevNo].exec_time_inv = 1;
 	}
 
@@ -229,9 +223,6 @@ size_t 	select_device(int jtrUniqDevNo, struct fmt_main *fmt) {
 		find_best_gws(jtrUniqDevNo, fmt);
 
 	else {
-		global_work_size = (global_work_size < (MAX_KEYS_PER_CRYPT - 8192)) ? global_work_size : (MAX_KEYS_PER_CRYPT - 8192);
-		global_work_size = (global_work_size > 8192) ? global_work_size : 8192;
-
 		if (options.verbosity > 3)
 			fprintf(stderr, "Global worksize (GWS) forced to %zu\n", global_work_size);
 
@@ -314,7 +305,7 @@ void pbkdf2_divide_work(cl_uint *pass_api, cl_uint *salt_api, cl_uint saltlen_ap
 
 #ifdef  _DEBUG
 			gettimeofday(&endc, NULL);
-			fprintf(stderr, "GPU enque time:%f\n",(endc.tv_sec - startc.tv_sec) + (double)(endc.tv_usec - startc.tv_usec) / 1000000.000) ;
+			fprintf(stderr, "GPU enqueue time:%f\n",(endc.tv_sec - startc.tv_sec) + (double)(endc.tv_usec - startc.tv_usec) / 1000000.000) ;
 #endif
 		}
 
@@ -369,7 +360,7 @@ void pbkdf2_divide_work(cl_uint *pass_api, cl_uint *salt_api, cl_uint saltlen_ap
 
 #ifdef  _DEBUG
 			gettimeofday(&endc, NULL);
-			fprintf(stderr, "GPU enque time:%f\n",(endc.tv_sec - startc.tv_sec) + (double)(endc.tv_usec - startc.tv_usec) / 1000000.000) ;
+			fprintf(stderr, "GPU enqueue time:%f\n",(endc.tv_sec - startc.tv_sec) + (double)(endc.tv_usec - startc.tv_usec) / 1000000.000) ;
 #endif
 		}
 
@@ -408,7 +399,7 @@ static gpu_mem_buffer exec_pbkdf2(cl_uint *pass_api, cl_uint *salt_api, cl_uint 
 		if (PROFILE)
 			globalObj[jtrUniqDevNo].lws = globalObj[jtrUniqDevNo].lws / 2;
 	  	else
-			HANDLE_CLERROR(err, "Enque Kernel Failed");
+			HANDLE_CLERROR(err, "Enqueue Kernel Failed");
 
 		return globalObj[jtrUniqDevNo].gpu_buffer;
 	}
@@ -437,7 +428,7 @@ static gpu_mem_buffer exec_pbkdf2(cl_uint *pass_api, cl_uint *salt_api, cl_uint 
 			if (PROFILE)
 				globalObj[jtrUniqDevNo].lws = globalObj[jtrUniqDevNo].lws / 2;
 			else
-				HANDLE_CLERROR(err, "Enque Kernel Failed");
+				HANDLE_CLERROR(err, "Enqueue Kernel Failed");
 
 			return globalObj[jtrUniqDevNo].gpu_buffer;
 		}
@@ -464,7 +455,7 @@ static gpu_mem_buffer exec_pbkdf2(cl_uint *pass_api, cl_uint *salt_api, cl_uint 
 		if (PROFILE)
 			globalObj[jtrUniqDevNo].lws = globalObj[jtrUniqDevNo].lws / 2;
 	  	else
-			HANDLE_CLERROR(err, "Enque Kernel Failed");
+			HANDLE_CLERROR(err, "Enqueue Kernel Failed");
 
 		return globalObj[jtrUniqDevNo].gpu_buffer;
 	}
