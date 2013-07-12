@@ -18,7 +18,9 @@
  * SUCH DAMAGE.
  */
 
+#ifndef _MSC_VER
 #include <sys/mman.h>
+#endif
 
 #include "scrypt_platform.h"
 

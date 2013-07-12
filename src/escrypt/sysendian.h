@@ -42,7 +42,8 @@
 
 #else
 
-#include <stdint.h>
+#include "stdint.h"
+#include "../misc.h"
 
 static inline uint32_t
 be32dec(const void *pp)

@@ -182,7 +182,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	{
 		crypto_scrypt((unsigned char*)saved_key[index], strlen((char*)saved_key[index]),
 				cur_salt->salt, strlen((char*)cur_salt->salt),
-				1 << cur_salt->N, cur_salt->r,
+				(1ULL) << cur_salt->N, cur_salt->r,
 				cur_salt->p, (unsigned char*)crypt_out[index],
 				BINARY_SIZE);
 	}
