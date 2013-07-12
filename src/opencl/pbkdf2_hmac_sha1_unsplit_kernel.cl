@@ -421,7 +421,7 @@ inline void hmac_sha1(__private uint * output,
 	for (i = 0; i < 16; i++)
 		GET_WORD_32_BE(W[i], buf, i * 4);
 
-	SHA1(A, B, C, D, E, W);
+	SHA2(A, B, C, D, E, W);
 
 	A += opad_state[0];
 	B += opad_state[1];
