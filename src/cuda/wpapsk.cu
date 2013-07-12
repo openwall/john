@@ -93,7 +93,7 @@ __device__ static void hmac_sha1(uint32_t * output,
 	for (i = 0; i < 16; i++)
 		GET_WORD_32_BE(W[i], buf, i * 4);
 
-	SHA1(A, B, C, D, E, W);
+	SHA1short(A, B, C, D, E, W);
 
 	A += opad_state[0];
 	B += opad_state[1];
@@ -131,7 +131,7 @@ __device__ static void big_hmac_sha1(uint32_t * input, uint32_t inputlen,
 		W[5] = 0x80000000;
 		W[15] = 0x2A0;
 
-		SHA2(A, B, C, D, E, W);
+		SHA1short(A, B, C, D, E, W);
 
 		A += ipad_state[0];
 		B += ipad_state[1];
@@ -153,7 +153,7 @@ __device__ static void big_hmac_sha1(uint32_t * input, uint32_t inputlen,
 		D = opad_state[3];
 		E = opad_state[4];
 
-		SHA2(A, B, C, D, E, W);
+		SHA1short(A, B, C, D, E, W);
 
 		A += opad_state[0];
 		B += opad_state[1];
