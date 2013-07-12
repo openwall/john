@@ -188,7 +188,7 @@
     P4(C, D, E, A, B, R(78));\
     P4(B, C, D, E, A, R(79));
 
-#define SHA2BEG(A,B,C,D,E,W) \
+#define SHA1shortBEG(A,B,C,D,E,W) \
     P1(A, B, C, D, E, W[0]);\
     P1(E, A, B, C, D, W[1]);\
     P1(D, E, A, B, C, W[2]);\
@@ -221,7 +221,7 @@
 #define Q28 (W[12] = S((W[9] ^ W[4]),1))
 #define Q29 (W[13] = S((W[10] ^ W[5] ^ W[15]),1))
 #define Q30 (W[14] = S((W[11] ^ W[6] ^ W[0]),1))
-#define SHA2END(A,B,C,D,E,W)\
+#define SHA1shortEND(A,B,C,D,E,W)\
     P1(E, A, B, C, D, Q16);\
     P1(D, E, A, B, C, Q17);\
     P1(C, D, E, A, B, Q18);\
@@ -287,7 +287,8 @@
     P4(C, D, E, A, B, R2(78));\
     P4(B, C, D, E, A, R2(79));
 
-#define  SHA2(A,B,C,D,E,W) SHA2BEG(A,B,C,D,E,W) SHA2END(A,B,C,D,E,W)
+#define  SHA1short(A,B,C,D,E,W) \
+	SHA1shortBEG(A,B,C,D,E,W) SHA1shortEND(A,B,C,D,E,W)
 
 
 #endif
