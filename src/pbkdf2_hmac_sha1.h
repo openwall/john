@@ -466,7 +466,7 @@ static void pbkdf2_sha1_sse(const unsigned char *K[SSE_GROUP_SZ_SHA1], int KL[SS
     P4(C, D, E, A, B, R(78));\
     P4(B, C, D, E, A, R(79));
 
-#define SHA2BEG(A,B,C,D,E,W) \
+#define SHA1shortBEG(A,B,C,D,E,W) \
     P1(A, B, C, D, E, W[0]);\
     P1(E, A, B, C, D, W[1]);\
     P1(D, E, A, B, C, W[2]);\
@@ -499,7 +499,7 @@ static void pbkdf2_sha1_sse(const unsigned char *K[SSE_GROUP_SZ_SHA1], int KL[SS
 #define Q28 (W[12] = S((W[9] ^ W[4]),1))
 #define Q29 (W[13] = S((W[10] ^ W[5] ^ W[15]),1))
 #define Q30 (W[14] = S((W[11] ^ W[6] ^ W[0]),1))
-#define SHA2END(A,B,C,D,E,W)\
+#define SHA1shortEND(A,B,C,D,E,W)\
     P1(E, A, B, C, D, Q16);\
     P1(D, E, A, B, C, Q17);\
     P1(C, D, E, A, B, Q18);\
@@ -565,7 +565,8 @@ static void pbkdf2_sha1_sse(const unsigned char *K[SSE_GROUP_SZ_SHA1], int KL[SS
     P4(C, D, E, A, B, R2(78));\
     P4(B, C, D, E, A, R2(79));
 
-#define  SHA2(A,B,C,D,E,W) SHA2BEG(A,B,C,D,E,W) SHA2END(A,B,C,D,E,W)
+#define  SHA1short(A,B,C,D,E,W) \
+	SHA1shortBEG(A,B,C,D,E,W) SHA1shortEND(A,B,C,D,E,W)
 
 static void preproc(const uint8_t * key, uint32_t keylen,
     uint32_t * state, uint32_t padding)
@@ -653,7 +654,7 @@ static void hmac_sha1_(uint32_t * output,
 	for (i = 0; i < 16; i++)
 		GET_WORD_32_BE(W[i], buf, i * 4);
 
-	SHA1(A, B, C, D, E, W);
+	SHA1short(A, B, C, D, E, W);
 
 	A += opad_state[0];
 	B += opad_state[1];
@@ -692,7 +693,7 @@ static void big_hmac_sha1(uint32_t * input, uint32_t inputlen,
 		W[5] = 0x80000000;
 		W[15] = 0x2A0;
 
-		SHA2(A, B, C, D, E, W);
+		SHA1short(A, B, C, D, E, W);
 
 		A += ipad_state[0];
 		B += ipad_state[1];
@@ -714,7 +715,7 @@ static void big_hmac_sha1(uint32_t * input, uint32_t inputlen,
 		D = opad_state[3];
 		E = opad_state[4];
 
-		SHA2(A, B, C, D, E, W);
+		SHA1short(A, B, C, D, E, W);
 
 		A += opad_state[0];
 		B += opad_state[1];
