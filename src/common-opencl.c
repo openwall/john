@@ -213,7 +213,7 @@ static void start_opencl_environment()
 	devices[device_pos] = NULL;
 }
 
-static int start_opencl_device(unsigned int sequential_id)
+static int start_opencl_device(unsigned int sequential_id, int * err_type)
 {
 	cl_context_properties properties[3];
 	char opencl_data[LOG_SIZE];
@@ -245,6 +245,7 @@ static int start_opencl_device(unsigned int sequential_id)
 			get_device_id(sequential_id), get_error_name(ret_code));
 #endif
 		platforms[get_platform_id(sequential_id)].num_devices--;
+		*err_type = 1;
 		return 0;
 	}
 	queue[sequential_id] = clCreateCommandQueue(context[sequential_id],
@@ -259,6 +260,7 @@ static int start_opencl_device(unsigned int sequential_id)
 		platforms[get_platform_id(sequential_id)].num_devices--;
 		HANDLE_CLERROR(clReleaseContext(context[sequential_id]),
 				"Release Context");
+		*err_type = 2;
 		return 0;
 	}
 #ifdef DEBUG
@@ -1336,9 +1338,11 @@ void opencl_build_kernel(char *kernel_filename, unsigned int sequential_id, char
 
 void opencl_init_dev(unsigned int sequential_id)
 {
+	int err_type = 0;
+
 	profilingEvent = firstEvent = lastEvent = NULL;
 	if (!context[sequential_id])
-		start_opencl_device(sequential_id);
+		start_opencl_device(sequential_id, &err_type);
 	dev_init(sequential_id);
 }
 
@@ -1723,7 +1727,7 @@ void listOpenCLdevices(void)
 	char dname[MAX_OCLINFO_STRING_LEN];
 	cl_uint entries;
 	cl_ulong long_entries;
-	int i, j, sequence_nr = 0;
+	int i, j, sequence_nr = 0, err_type = 0;
 	size_t p_size;
 
 	start_opencl_environment();
@@ -1759,6 +1763,19 @@ void listOpenCLdevices(void)
 			while (isspace(*p)) /* Intel quirk */
 				p++;
 			printf("\tDevice #%d (%d) name:\t%s\n", j, sequence_nr, p);
+
+			//Check if device seems to be working.
+			if (!start_opencl_device(sequence_nr, &err_type)) {
+
+				if (err_type == 1)
+					printf("\tStatus:\t\t\t%s (%s)\n",
+						"Context creation error",
+						get_error_name(ret_code));
+				else
+					printf("\tStatus:\t\t\t%s (%s)\n",
+						"Queue creation error",
+						get_error_name(ret_code));
+			}
 #ifdef CL_DEVICE_BOARD_NAME_AMD
 			ret = clGetDeviceInfo(devices[sequence_nr],
 						  CL_DEVICE_BOARD_NAME_AMD,
