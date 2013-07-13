@@ -25,15 +25,12 @@
 #endif
 
 #define FORMAT_LABEL			"sha512crypt"
-#define FORMAT_NAME			"crypt(3) $6$"
+
 #if ARCH_BITS >= 64
 #define ALGORITHM_NAME			"64/" ARCH_BITS_STR " " SHA2_LIB
 #else
 #define ALGORITHM_NAME			"32/" ARCH_BITS_STR " " SHA2_LIB
 #endif
-
-#define BENCHMARK_COMMENT		" (rounds=5000)"
-#define BENCHMARK_LENGTH		-1
 
 #define PLAINTEXT_LENGTH		125
 #define CIPHERTEXT_LENGTH		86
@@ -57,16 +54,6 @@ static struct fmt_tests tests[] = {
 	{"$6$ojWH1AiTee9x1peC$QVEnTvRVlPRhcLQCk/HnHaZmlGAAjCfrAN0FtOsOnUk5K5Bn/9eLHHiRzrTzaIKjW9NTLNIBUCtNVOowWS2mN.", ""},
 	{NULL}
 };
-
-/* Prefix for optional rounds specification.  */
-static const char sha512_rounds_prefix[] = "rounds=";
-
-/* Default number of rounds if not explicitly specified.  */
-#define ROUNDS_DEFAULT 5000
-/* Minimum number of rounds.  */
-#define ROUNDS_MIN 1	/* Drepper has it as 1000 */
-/* Maximum number of rounds.  */
-#define ROUNDS_MAX 999999999
 
 static int (*saved_key_length);
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
@@ -261,9 +248,9 @@ static void *get_salt(char *ciphertext)
 
 	out.rounds = ROUNDS_DEFAULT;
 	ciphertext += 3;
-	if (!strncmp(ciphertext, sha512_rounds_prefix,
-	             sizeof(sha512_rounds_prefix) - 1)) {
-		const char *num = ciphertext + sizeof(sha512_rounds_prefix) - 1;
+	if (!strncmp(ciphertext, ROUNDS_PREFIX,
+	             sizeof(ROUNDS_PREFIX) - 1)) {
+		const char *num = ciphertext + sizeof(ROUNDS_PREFIX) - 1;
 		char *endp;
 		unsigned long int srounds = strtoul(num, &endp, 10);
 		if (*endp == '$')

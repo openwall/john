@@ -21,12 +21,7 @@
 #include "cryptsha512_valid.h"
 
 #define FORMAT_LABEL			"sha512crypt-opencl"
-#define FORMAT_NAME			"crypt(3) $6$"
 #define ALGORITHM_NAME			"SHA512 OpenCL"
-
-#define BENCHMARK_COMMENT		" (rounds=5000)"
-#define BENCHMARK_LENGTH		-1
-
 #define CONFIG_NAME			"sha512crypt"
 
 //Checks for source code to pick (parameters, sizes, kernels to execute, etc.)

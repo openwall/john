@@ -18,10 +18,6 @@
 #include "opencl_sha512.h"
 
 //Constants.
-#define ROUNDS_DEFAULT          5000
-#define ROUNDS_MIN              1	/* Drepper has it as 1000 */
-#define ROUNDS_MAX              999999999
-
 #define SALT_LENGTH             16
 #define SALT_ALIGN              4
 #define PLAINTEXT_LENGTH        24
