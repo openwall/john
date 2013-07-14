@@ -364,6 +364,8 @@ static char *get_key(int index)
 {
 	static char out[PLAINTEXT_LENGTH + 1];
 	int i;
+	
+	if (index >= loaded_count) return "CHECK";
 	// Potential segfault if removed
 	index = (index < loaded_count) ? index: (loaded_count -1);
 	for (i = 0; i < return_keys[index].length; i++)
