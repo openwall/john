@@ -36,6 +36,7 @@
 static char opencl_log[LOG_SIZE];
 static int kernel_loaded;
 static size_t program_size;
+static int opencl_initialized;
 
 extern volatile int bench_running;
 static void opencl_get_dev_info(unsigned int sequential_id);
@@ -431,6 +432,8 @@ void opencl_preinit(void)
 	}
 	ocl_gpu_id = ocl_device_list[0];
 	platform_id = get_platform_id(ocl_gpu_id);
+
+	opencl_initialized = 1;
 }
 
 void opencl_done()
@@ -446,6 +449,8 @@ void opencl_done()
 		context[ocl_device_list[i]] = NULL;
 	}
 	MEM_FREE(kernel_source);
+
+	opencl_initialized = 0;
 }
 
 static char * opencl_get_config_name(char * format, char * config_name)
@@ -1348,8 +1353,13 @@ void opencl_init_dev(unsigned int sequential_id)
 
 void opencl_init_opt(char *kernel_filename, unsigned int sequential_id, char *opts)
 {
-	kernel_loaded = 0;
+	if (!opencl_initialized)
+		opencl_preinit();
 
+	if (!sequential_id)
+		sequential_id = ocl_gpu_id;
+
+	kernel_loaded = 0;
 	opencl_init_dev(sequential_id);
 	opencl_build_kernel(kernel_filename, sequential_id, opts, 0);
 }

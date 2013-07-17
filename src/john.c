@@ -1067,10 +1067,6 @@ static void john_init(char *name, int argc, char **argv)
 	    options.listconf)
 		listconf_parse_late();
 
-#ifdef HAVE_OPENCL
-	opencl_preinit();
-#endif
-
 	common_init();
 	sig_init();
 
