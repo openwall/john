@@ -147,9 +147,15 @@ static void release_clobj(void)
 static void done(void)
 {
 	release_clobj();
-	HANDLE_CLERROR(clReleaseMemObject(buffer_cmp_out), "Error Releasing cmp_out");
-	HANDLE_CLERROR(clReleaseMemObject(buffer_ld_hashes), "Error Releasing loaded hashes");
-	HANDLE_CLERROR(clReleaseMemObject(buffer_return_keys), "Error Releasing return keys");
+
+	if (buffer_cmp_out)
+		HANDLE_CLERROR(clReleaseMemObject(buffer_cmp_out), "Error Releasing cmp_out");
+
+	if (buffer_ld_hashes)
+		HANDLE_CLERROR(clReleaseMemObject(buffer_ld_hashes), "Error Releasing loaded hashes");
+
+	if (buffer_return_keys)
+		HANDLE_CLERROR(clReleaseMemObject(buffer_return_keys), "Error Releasing return keys");
 
 	MEM_FREE(cmp_out);
 	MEM_FREE(loaded_hashes);
@@ -301,33 +307,30 @@ static void clear_keys(void)
 	key_idx = 0;
 }
 
-static void opencl_md5_reset(struct db_main *db) {
+static void opencl_md5_reset(struct db_main *db)
+{
+	if (db) {
+		loaded_hashes = (unsigned int*)mem_alloc(((db->password_count) + 1)*sizeof(unsigned int));
+		cmp_out	      = (unsigned int*)mem_alloc((db->password_count) *sizeof(unsigned int));
+		return_keys   = (struct return_key*)mem_alloc((db->password_count) *sizeof(struct return_key));
 
+		buffer_ld_hashes = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE, ((db->password_count) + 1)*sizeof(int), NULL, &ret_code);
+		HANDLE_CLERROR(ret_code, "Error creating buffer arg loaded_hashes\n");
 
-	if(db) {
+		buffer_cmp_out = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE, (db->password_count) *sizeof(unsigned int), NULL, &ret_code);
+		HANDLE_CLERROR(ret_code, "Error creating buffer cmp_out\n");
 
-	loaded_hashes = (unsigned int*)mem_alloc(((db->password_count) + 1)*sizeof(unsigned int));
-	cmp_out	      = (unsigned int*)mem_alloc((db->password_count) *sizeof(unsigned int));
-	return_keys   = (struct return_key*)mem_alloc((db->password_count) *sizeof(struct return_key));
+		buffer_return_keys = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE, (db->password_count) *sizeof(struct return_key), NULL, &ret_code);
+		HANDLE_CLERROR(ret_code, "Error creating buffer cmp_out\n");
 
-	buffer_ld_hashes = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE, ((db->password_count) + 1)*sizeof(int), NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating buffer arg loaded_hashes\n");
+		HANDLE_CLERROR(clSetKernelArg(crk_kernel, 3, sizeof(buffer_ld_hashes), &buffer_ld_hashes), "Error setting argument 4");
+		HANDLE_CLERROR(clSetKernelArg(crk_kernel, 4, sizeof(buffer_cmp_out), &buffer_cmp_out), "Error setting argument 5");
+		HANDLE_CLERROR(clSetKernelArg(crk_kernel, 5, sizeof(buffer_return_keys), &buffer_return_keys), "Error setting argument 6");
 
-	buffer_cmp_out = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE, (db->password_count) *sizeof(unsigned int), NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating buffer cmp_out\n");
+		benchmark = 0;
 
-	buffer_return_keys = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE, (db->password_count) *sizeof(struct return_key), NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating buffer cmp_out\n");
-
-	HANDLE_CLERROR(clSetKernelArg(crk_kernel, 3, sizeof(buffer_ld_hashes), &buffer_ld_hashes), "Error setting argument 4");
-	HANDLE_CLERROR(clSetKernelArg(crk_kernel, 4, sizeof(buffer_cmp_out), &buffer_cmp_out), "Error setting argument 5");
-	HANDLE_CLERROR(clSetKernelArg(crk_kernel, 5, sizeof(buffer_return_keys), &buffer_return_keys), "Error setting argument 6");
-
-	benchmark = 0;
-
-	db->format->methods.crypt_all = crypt_all;
-	db->format->methods.get_key = get_key;
-
+		db->format->methods.crypt_all = crypt_all;
+		db->format->methods.get_key = get_key;
 	}
 }
 
@@ -364,7 +367,7 @@ static char *get_key(int index)
 {
 	static char out[PLAINTEXT_LENGTH + 1];
 	int i;
-	
+
 	if (index >= loaded_count) return "CHECK";
 	// Potential segfault if removed
 	index = (index < loaded_count) ? index: (loaded_count -1);
