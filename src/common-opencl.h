@@ -58,7 +58,6 @@ typedef struct {
 } cl_platform;
 cl_platform platforms[MAX_PLATFORMS];
 
-cl_platform_id platform[MAX_PLATFORMS];
 cl_device_id devices[MAXGPUS];
 cl_context context[MAXGPUS];
 cl_program program[MAXGPUS];
@@ -93,38 +92,39 @@ void opencl_done(void);
 /* Returns number of selected devices */
 int opencl_get_devices(void);
 
-/* Initialize a specific device. Creates a queue and a context */
-void opencl_init_dev(unsigned int sequential_id);
+/* Initialize a specific device. If necessary, parse command line and get
+ * information about all OpenCL devices. */
+int opencl_prepare_dev(int sequential_id);
 
 /* Initialize a device and build kernel. This invokes opencl_init_dev */
-void opencl_init(char *kernel_filename, unsigned int sequential_id);
+void opencl_init(char *kernel_filename, int sequential_id);
 
 /* Same as above but pass options to OpenCL compiler */
-void opencl_init_opt(char *kernel_filename, unsigned int sequential_id, char *options);
+void opencl_init_opt(char *kernel_filename, int sequential_id, char *options);
 
 /* used by opencl_DES_bs_b.c */
-void opencl_build(unsigned int sequential_id, char *opts, int save, char * file_name, int showLog);
+void opencl_build(int sequential_id, char *opts, int save, char * file_name, int showLog);
 
 /* Build kernel (if not cached), and cache it */
-void opencl_build_kernel(char *kernel_filename, unsigned int sequential_id, char *options, int warn);
+void opencl_build_kernel(char *kernel_filename, int sequential_id, char *options, int warn);
 
 void opencl_find_best_workgroup(struct fmt_main *self);
-void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_limit, unsigned int sequential_id, cl_kernel crypt_kernel);
+void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_limit, int sequential_id, cl_kernel crypt_kernel);
 
-cl_device_type get_device_type(unsigned int sequential_id);
-cl_ulong get_local_memory_size(unsigned int sequential_id);
-cl_ulong get_global_memory_size(unsigned int sequential_id);
-size_t get_max_work_group_size(unsigned int sequential_id);
-cl_ulong get_max_mem_alloc_size(unsigned int sequential_id);
-size_t get_current_work_group_size(unsigned int sequential_id, cl_kernel crypt_kernel);
-cl_uint get_max_compute_units(unsigned int sequential_id);
-cl_uint get_processors_count(unsigned int sequential_id);
-cl_uint get_processor_family(unsigned int sequential_id);
-int get_vendor_id(unsigned int sequential_id);
+cl_device_type get_device_type(int sequential_id);
+cl_ulong get_local_memory_size(int sequential_id);
+cl_ulong get_global_memory_size(int sequential_id);
+size_t get_max_work_group_size(int sequential_id);
+cl_ulong get_max_mem_alloc_size(int sequential_id);
+size_t get_current_work_group_size(int sequential_id, cl_kernel crypt_kernel);
+cl_uint get_max_compute_units(int sequential_id);
+cl_uint get_processors_count(int sequential_id);
+cl_uint get_processor_family(int sequential_id);
+int get_vendor_id(int sequential_id);
 int get_platform_vendor_id(int platform_id);
-int get_device_version(unsigned int sequential_id);
-int get_byte_addressable(unsigned int sequential_id);
-size_t get_kernel_preferred_work_group_size(unsigned int sequential_id, cl_kernel crypt_kernel);
+int get_device_version(int sequential_id);
+int get_byte_addressable(int sequential_id);
+size_t get_kernel_preferred_work_group_size(int sequential_id, cl_kernel crypt_kernel);
 
 void opencl_get_user_preferences(char * format);
 
@@ -167,7 +167,7 @@ void opencl_process_event(void);
  */
 void opencl_find_best_lws(
 	int show_details, size_t group_size_limit,
-	unsigned int sequential_id, cl_kernel crypt_kernel);
+	int sequential_id, cl_kernel crypt_kernel);
 
 /*
  * Shared function to find 'the best' global work group size (keys per crypt).

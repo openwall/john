@@ -74,7 +74,7 @@ void common_find_best_gws(int sequential_id, unsigned int rounds, int step,
   group size for the given format
 -- */
 void common_find_best_lws(size_t group_size_limit,
-	unsigned int sequential_id, cl_kernel crypt_kernel);
+	int sequential_id, cl_kernel crypt_kernel);
 #endif
 
 #endif	/* OPENCL_SHA2_COMMON_H */

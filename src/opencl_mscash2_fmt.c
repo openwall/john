@@ -91,6 +91,9 @@ static void init(struct fmt_main *self) {
 	char 	*conf = NULL ;
 	int 	i ;
 
+	//Prepare OpenCL environment.
+	opencl_preinit();
+
 	///Allocate memory
 	key_host = mem_calloc(self -> params.max_keys_per_crypt * sizeof(*key_host)) ;
 	dcc_hash_host = (cl_uint*)mem_alloc(4 * sizeof(cl_uint) * MAX_KEYS_PER_CRYPT) ;

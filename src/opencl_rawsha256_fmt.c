@@ -340,7 +340,7 @@ static void init(struct fmt_main * self) {
 	char * task = "$JOHN/kernels/sha256_kernel.cl";
 	size_t gws_limit;
 
-	opencl_init_dev(ocl_gpu_id);
+	opencl_prepare_dev(ocl_gpu_id);
 	opencl_build_kernel(task, ocl_gpu_id, NULL, 1);
 
 	// create kernel(s) to execute

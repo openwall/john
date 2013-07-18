@@ -346,7 +346,7 @@ static void init(struct fmt_main * self) {
 	char * tmp_value;
 	char * task = "$JOHN/kernels/cryptsha512_kernel_DEFAULT.cl";
 
-	opencl_init_dev(ocl_gpu_id);
+	opencl_prepare_dev(ocl_gpu_id);
 	source_in_use = device_info[ocl_gpu_id];
 
 	if ((tmp_value = getenv("_TYPE")))

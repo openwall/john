@@ -97,13 +97,16 @@ static void init(struct fmt_main *self) {
 	saved_key = mem_calloc(BF_N * sizeof(*saved_key)) ;
 	global_work_size = 0 ;
 
+	//Prepare OpenCL environment.
+	opencl_preinit();
+
 	if ((conf = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, GWS_CONFIG)))
 		global_work_size = atoi(conf) ;
 	if ((conf = getenv("GWS")))
 		global_work_size = atoi(conf) ;
 
 	// BF_select_device(platform,device);
-	//platform_id = get_platform_id(ocl_gpu_id) ;
+	//platform_id = get_platform_id(ocl_gpu_id);
         BF_select_device(self) ;
 	keys_mode = 'a' ;
 	sign_extension_bug = 0 ;

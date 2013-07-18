@@ -49,7 +49,7 @@ static const char * warn[] = {
 };
 
 extern void common_find_best_lws(size_t group_size_limit,
-	unsigned int sequential_id, cl_kernel crypt_kernel);
+	int sequential_id, cl_kernel crypt_kernel);
 extern void common_find_best_gws(int sequential_id, unsigned int rounds, int step,
 	unsigned long long int max_run_time);
 

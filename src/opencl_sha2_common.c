@@ -82,7 +82,7 @@ int common_salt_hash(void * salt, int salt_size, int salt_hash_size) {
   group size for the given format
 -- */
 void common_find_best_lws(size_t group_size_limit,
-	unsigned int sequential_id, cl_kernel crypt_kernel) {
+	int sequential_id, cl_kernel crypt_kernel) {
 
 	int show_details = 0;
 

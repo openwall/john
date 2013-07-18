@@ -307,7 +307,7 @@ static void build_kernel_exp(int dev_id, char *options)
 
 static void init_dev()
 {
-	opencl_init_dev(ocl_gpu_id);
+	opencl_prepare_dev(ocl_gpu_id);
 
 	opencl_DES_bs_data_gpu = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE, MULTIPLIER * sizeof(opencl_DES_bs_transfer), NULL, &err);
 	if(opencl_DES_bs_data_gpu == (cl_mem)0)
