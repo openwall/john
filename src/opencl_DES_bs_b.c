@@ -372,7 +372,7 @@ void DES_bs_select_device(struct fmt_main *fmt)
 	size_t max_lws;
 	const char *errMsg;
 
-	opencl_init_opt("$JOHN/kernels/DES_bs_kernel.cl", ocl_gpu_id, NULL);
+	opencl_init("$JOHN/kernels/DES_bs_kernel.cl", ocl_gpu_id, NULL);
 
 	krnl[ocl_gpu_id][0] = clCreateKernel(program[ocl_gpu_id], "DES_bs_25_b", &err) ;
 	if (err) {

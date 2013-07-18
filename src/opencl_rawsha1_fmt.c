@@ -224,7 +224,7 @@ static void fmt_rawsha1_init(struct fmt_main *self) {
 
 	local_work_size = global_work_size = 0;
 
-	opencl_init("$JOHN/kernels/sha1_kernel.cl", ocl_gpu_id);
+	opencl_init("$JOHN/kernels/sha1_kernel.cl", ocl_gpu_id, NULL);
 
 	// create kernel to execute
 	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "sha1_crypt_kernel", &ret_code);

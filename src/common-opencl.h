@@ -97,10 +97,8 @@ int opencl_get_devices(void);
 int opencl_prepare_dev(int sequential_id);
 
 /* Initialize a device and build kernel. This invokes opencl_init_dev */
-void opencl_init(char *kernel_filename, int sequential_id);
-
-/* Same as above but pass options to OpenCL compiler */
-void opencl_init_opt(char *kernel_filename, int sequential_id, char *options);
+/* User can pass build options to the OpenCL compiler */
+void opencl_init(char *kernel_filename, int sequential_id, char *options);
 
 /* used by opencl_DES_bs_b.c */
 void opencl_build(int sequential_id, char *opts, int save, char * file_name, int showLog);

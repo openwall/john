@@ -155,7 +155,7 @@ static void init(struct fmt_main *self)
 	char *temp;
 	cl_ulong maxsize;
 
-	opencl_init_opt("$JOHN/kernels/phpass_kernel.cl", ocl_gpu_id, NULL);
+	opencl_init("$JOHN/kernels/phpass_kernel.cl", ocl_gpu_id, NULL);
 
 	if ((temp = getenv("LWS")))
 		local_work_size = atoi(temp);

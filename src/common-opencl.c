@@ -1360,16 +1360,11 @@ int opencl_prepare_dev(int sequential_id)
 	return sequential_id;
 }
 
-void opencl_init_opt(char *kernel_filename, int sequential_id, char *opts)
+void opencl_init(char *kernel_filename, int sequential_id, char *opts)
 {
 	kernel_loaded = 0;
 	sequential_id = opencl_prepare_dev(sequential_id);
 	opencl_build_kernel(kernel_filename, sequential_id, opts, 0);
-}
-
-void opencl_init(char *kernel_filename, int sequential_id)
-{
-	opencl_init_opt(kernel_filename, sequential_id, NULL);
 }
 
 cl_device_type get_device_type(int sequential_id)

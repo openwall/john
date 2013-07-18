@@ -469,12 +469,12 @@ void BF_select_device(struct fmt_main *fmt) {
 
 	if ((CL_DEVICE_TYPE_CPU == get_device_type(ocl_gpu_id)) || amd_vliw5(device_info[ocl_gpu_id])) {
 	        if(CHANNEL_INTERLEAVE == 1)
-			 opencl_init_opt("$JOHN/kernels/bf_cpu_kernel.cl", ocl_gpu_id, NULL) ;
+			 opencl_init("$JOHN/kernels/bf_cpu_kernel.cl", ocl_gpu_id, NULL) ;
 		else
 			fprintf(stderr, "Please set NUM_CHANNELS and WAVEFRONT_SIZE to 1 in opencl_bf_std.h") ;
 	}
 	else
-		 opencl_init_opt("$JOHN/kernels/bf_kernel.cl", ocl_gpu_id, NULL) ;
+		 opencl_init("$JOHN/kernels/bf_kernel.cl", ocl_gpu_id, NULL) ;
 
 	krnl[ocl_gpu_id] = clCreateKernel(program[ocl_gpu_id], "blowfish", &err) ;
 	if (err) {

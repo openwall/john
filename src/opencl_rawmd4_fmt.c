@@ -174,7 +174,7 @@ static void init(struct fmt_main *self)
 {
 	size_t selected_gws, max_mem;
 
-	opencl_init("$JOHN/kernels/md4_kernel.cl", ocl_gpu_id);
+	opencl_init("$JOHN/kernels/md4_kernel.cl", ocl_gpu_id, NULL);
 	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "md4", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 

@@ -219,7 +219,7 @@ static void init(struct fmt_main *self)
 	cl_ulong maxsize;
 	size_t selected_gws;
 
-	opencl_init_opt("$JOHN/kernels/pwsafe_kernel.cl", ocl_gpu_id, NULL);
+	opencl_init("$JOHN/kernels/pwsafe_kernel.cl", ocl_gpu_id, NULL);
 
 	init_kernel = clCreateKernel(program[ocl_gpu_id], KERNEL_INIT_NAME, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error while creating init kernel");

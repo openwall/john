@@ -148,7 +148,7 @@ size_t 	select_device(int jtrUniqDevNo, struct fmt_main *fmt) {
 	cl_int 		err;
 	const char  	*errMsg;
 
-	opencl_init_opt("$JOHN/kernels/pbkdf2_kernel.cl", jtrUniqDevNo, NULL);
+	opencl_init("$JOHN/kernels/pbkdf2_kernel.cl", jtrUniqDevNo, NULL);
 
 	globalObj[jtrUniqDevNo].krnl[0] = clCreateKernel(program[jtrUniqDevNo], "pbkdf2_preprocess", &err);
 	if (err) {

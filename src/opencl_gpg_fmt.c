@@ -190,7 +190,7 @@ static void init(struct fmt_main *self)
 	snprintf(build_opts, sizeof(build_opts),
 	         "-DPLAINTEXT_LENGTH=%d",
 	         PLAINTEXT_LENGTH);
-	opencl_init_opt("$JOHN/kernels/gpg_kernel.cl",
+	opencl_init("$JOHN/kernels/gpg_kernel.cl",
 	                ocl_gpu_id, build_opts);
 
 	if ((temp = getenv("LWS")))
