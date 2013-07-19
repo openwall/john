@@ -442,6 +442,9 @@ void opencl_done()
 {
 	int i;
 
+	if (!opencl_initialized)
+		return;
+
 	for (i = 0; i < opencl_get_devices(); i++) {
 		if (queue[ocl_device_list[i]])
 			HANDLE_CLERROR(clReleaseCommandQueue(queue[ocl_device_list[i]]), "Release Queue");
