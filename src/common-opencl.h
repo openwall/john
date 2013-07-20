@@ -37,11 +37,7 @@
 #define SUBSECTION_OPENCL	":OpenCL"
 #define MAX_OCLINFO_STRING_LEN	2048
 
-#ifdef __APPLE__
-#define OPENCLBUILDOPTIONS ""
-#else
 #define OPENCLBUILDOPTIONS "-cl-strict-aliasing -cl-mad-enable"
-#endif
 
 /* Comment if you do not want to see OpenCL warnings during kernel compilation.
    Currently commented out for releases. The output will also be present if
