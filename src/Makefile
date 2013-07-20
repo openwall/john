@@ -1444,6 +1444,27 @@ macosx-x86-64-gpu:
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
 
+# This target needs a real gcc and a wrapper for using clang's assembler:
+# Copy osx_as_wrapper.sh to /usr/local/bin/as or some other directory at your
+# choice (but the file MUST be named 'as') and be sure this directory is
+# first in your $PATH.
+macosx-x86-64-native-gpu:
+	$(LN) x86-64.h arch.h
+	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) $(OCL_OBJS) $(CUDA_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
+		ASFLAGS="$(ASFLAGS) -march=native -DUNDERSCORES -DBSD -DALIGN_LOG" \
+		CFLAGS="$(CFLAGS) -march=native -I$(OCLROOT)/include -I$(CUDAPATH)/include -DHAVE_CRYPT -DHAVE_OPENCL -DHAVE_CUDA -Wno-deprecated-declarations" \
+		LDFLAGS="$(LDFLAGS) -march=native -L$(CUDAPATH)/lib -lcudart -framework OpenCL" \
+		NVCC_FLAGS="$(NVCC_FLAGS) -m64"
+	$(MKDIR) ../run/kernels/
+	$(CP_PRESERVE) opencl/*.cl ../run/kernels/
+	$(CP_PRESERVE) opencl_*.h ../run/kernels/
+	@echo "Failing after this point just means some helper tools did not build:"
+	$(MAKE) $(PROJ_CXX) CFLAGS="$(CFLAGS) -march=native"
+	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -march=native"
+	@echo "All done"
+
 macosx-x86-64-opencl:
 	$(LN) x86-64.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
