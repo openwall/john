@@ -355,6 +355,9 @@ static void init(struct fmt_main * self) {
 	char * tmp_value;
 	char * task = NULL;
 
+	//Prepare OpenCL environment.
+	opencl_preinit();
+
 	for (i = 0; i < opencl_get_devices(); i++) {
 		task = "$JOHN/kernels/cryptsha256_kernel_DEFAULT.cl";
 		opencl_prepare_dev(ocl_device_list[i]);
