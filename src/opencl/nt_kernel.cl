@@ -18,6 +18,8 @@
  * (This is a heavily cut-down "BSD license".)
  */
 
+#include "opencl_nt_fmt.h"
+
 //Init values
 #define INIT_A 0x67452301
 #define INIT_B 0xefcdab89
@@ -26,6 +28,9 @@
 
 #define SQRT_2 0x5a827999
 #define SQRT_3 0x6ed9eba1
+
+#define BITMAP_HASH_0 	    (BITMAP_SIZE_0 - 1)
+#define BITMAP_HASH_1	    (BITMAP_SIZE_1 - 1)
 
 #define GET_CHAR(x,elem) (((x)>>elem) & 0xFF)
 
@@ -149,6 +154,47 @@ void nt_crypt(__private uint *hash, __private uint *nt_buffer, uint md4_size) {
 
 }
 
+void cmp(__global uint *hashes,
+	  __global const uint *loaded_hashes,
+	  __local uint *bitmap0,
+	  __local uint *bitmap1,
+	  __private uint *hash,
+	  __global uint *cmp_out,
+	  __global uint *outKeyIdx,
+	  uint gid) {
+
+	uint num_loaded_hashes = loaded_hashes[0];
+	uint loaded_hash, i, tmp;
+
+	for(i = 0; i < num_loaded_hashes; i++) {
+
+		loaded_hash = hash[0] & BITMAP_HASH_1;
+		tmp = (bitmap0[loaded_hash >> 5] >> (loaded_hash & 31)) & 1U ;
+		if(tmp) {
+
+			loaded_hash = hash[1] & BITMAP_HASH_1;
+			tmp &= (bitmap1[loaded_hash >> 5] >> (loaded_hash & 31)) & 1U;
+			if(tmp) {
+
+				loaded_hash = loaded_hashes[i * 4 + 3];
+				if(hash[2] == loaded_hash) {
+
+					loaded_hash = loaded_hashes[i * 4 + 4];
+					if(hash[3] == loaded_hash) {
+
+						hashes[i] = hash[1];
+						hashes[1 * num_loaded_hashes + i] = hash[0];
+						hashes[2 * num_loaded_hashes + i] = hash[2];
+						hashes[3 * num_loaded_hashes + i] = hash[3];
+						cmp_out[i] = 0xffffffff;
+						outKeyIdx[2 * i] = gid ;
+					}
+				}
+			}
+		}
+	}
+ }
+
 __kernel void nt_self_test(const __global uint *keys , __global uint *output)
 {
 	uint gid = get_global_id(0);
@@ -167,4 +213,45 @@ __kernel void nt_self_test(const __global uint *keys , __global uint *output)
 	output[1*num_keys+gid] = hash[0];
 	output[2*num_keys+gid] = hash[2];
 	output[3*num_keys+gid] = hash[3];
+}
+
+__kernel void nt(const __global uint *keys ,
+		       __global uint *output,
+		 const __global uint *loaded_hashes,
+		       __global uint *cmp_out,
+		       __global uint *outKeyIdx,
+		       __global struct bitmap_ctx *bitmap)
+{
+	uint gid = get_global_id(0);
+	uint lid = get_local_id(0);
+	uint nt_buffer[12] = { 0 };
+	uint md4_size = 0;
+	uint num_keys = get_global_size(0);
+	uint i;
+
+	// hash[0] and hash[1] values are sawpped
+	uint hash[4];
+
+	__local uint sbitmap0[BITMAP_SIZE_1 >> 5];
+	__local uint sbitmap1[BITMAP_SIZE_1 >> 5];
+
+	if(!gid)
+		for (i = 0; i < loaded_hashes[0]; i++) {
+			cmp_out[i] = 0;
+			outKeyIdx[2 * i] = outKeyIdx[2 * i + 1] = 0;
+		}
+
+	for(i = 0; i < ((BITMAP_SIZE_1 >> 5) / LWS); i++)
+		sbitmap0[i*LWS + lid] = bitmap[0].bitmap0[i*LWS + lid];
+
+	for(i = 0; i < ((BITMAP_SIZE_1 >> 5)/ LWS); i++)
+		sbitmap1[i*LWS + lid] = bitmap[0].bitmap1[i*LWS + lid];
+
+
+	barrier(CLK_LOCAL_MEM_FENCE);
+
+	coalasced_load(nt_buffer, keys, &md4_size, gid, num_keys);
+	nt_crypt(hash, nt_buffer, md4_size);
+	cmp(output, loaded_hashes, sbitmap0, sbitmap1, hash, cmp_out, outKeyIdx, gid);
+
 }
