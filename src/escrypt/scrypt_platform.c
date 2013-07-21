@@ -19,7 +19,9 @@
  */
 
 #ifndef _MSC_VER
+#ifndef __MINGW32__
 #include <sys/mman.h>
+#endif
 #endif
 
 #include "scrypt_platform.h"

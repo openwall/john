@@ -55,7 +55,7 @@
 
 #ifdef NEED_OS_FORK
 
-#if defined(__DJGPP__) || defined(__CYGWIN32__) || defined(_MSC_VER)
+#if defined(__DJGPP__) || defined(__CYGWIN32__) || defined(_MSC_VER) || defined(__MINGW32__)
 #define OS_FORK				0
 #else
 #define OS_FORK				1
