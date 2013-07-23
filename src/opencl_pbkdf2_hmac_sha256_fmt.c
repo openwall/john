@@ -342,15 +342,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 static int cmp_all(void *binary, int count)
 {
-	int i, j, cracked, any_cracked = 0;
-	for (i = 0; i < count; i++) {
-		cracked = 1;
-		for (j = 0; j < 8; j++)
-			if (host_crack[i].hash[j] != ((uint32_t *) binary)[j])
-				cracked = 0;
-		any_cracked |= cracked;
-	}
-	return any_cracked;
+	int i;
+
+	for (i = 0; i < count; i++)
+		if (host_crack[i].hash[0] == ((uint32_t *) binary)[0])
+			return 1;
+	return 0;
 }
 
 static int cmp_one(void *binary, int index)
