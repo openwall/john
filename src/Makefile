@@ -1822,7 +1822,7 @@ win32-mingw-x86-sse2:
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ_WIN32_MINGW) \
 		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
-		CFLAGS="-c -static -Wall -Wdeclaration-after-statement -O2 -fomit-frame-pointer -I/usr/local/include $(HAVE_GMP) $(OMPFLAGS) $(AMDAPP) $(JOHN_CFLAGS) -Wall -mpreferred-stack-boundary=4 -msse2 -m32" \
+		CFLAGS="-c -static -Wall -Wdeclaration-after-statement -O2 -fomit-frame-pointer -I/usr/local/include $(OMPFLAGS) $(AMDAPP) $(JOHN_CFLAGS) -Wall -mpreferred-stack-boundary=4 -msse2 -m32" \
 		LDFLAGS="-static -lssl -lcrypto -lwsock32 -lwst -lws2_32 -lgdi32 -lm -lpthread.dll -lz.dll $(OMPFLAGS)" \
 		ASFLAGS="$(ASFLAGS) -msse2 -m32 -DUNDERSCORES" \
 		CPP=$(GCC) CC=$(GCC) LD=$(GCC) CXX=$(CXX)
