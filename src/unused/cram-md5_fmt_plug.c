@@ -12,7 +12,6 @@
 
 #include <string.h>
 #include "arch.h"
-#include "base64.h"
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
@@ -21,8 +20,8 @@
 #include <openssl/bio.h>
 #include <openssl/buffer.h>
 #include <openssl/evp.h>
-#include "md5.h"
-#include "hmacmd5.h"
+#include <openssl/md5.h>
+#include <openssl/hmac.h>
 
 #ifdef _OPENMP
 static int omp_t = 1;
@@ -35,9 +34,8 @@ static int omp_t = 1;
 #define ALGORITHM_NAME		"32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
-#define PLAINTEXT_LENGTH	32
-#define BINARY_SIZE		256
-#define MIN_BINARY_SIZE		30
+#define PLAINTEXT_LENGTH	125
+#define BINARY_SIZE		16
 #define SALT_SIZE		sizeof(struct custom_salt)
 #define SALT_LENGTH		256
 #define USER_LENGTH		256
@@ -48,7 +46,6 @@ static struct fmt_tests cram_md5_tests[] = {
 
 	/* Challenge ==> PDE3ODkzLjEzMjA2NzkxMjNAdGVzc2VyYWN0LnN1c2FtLmluPg==
 	 * Response ==> YWxpY2UgNjRiMmE0M2MxZjZlZDY4MDZhOTgwOTE0ZTIzZTc1ZjA= */
-
 	{"$cram_md5$PDE3ODkzLjEzMjA2NzkxMjNAdGVzc2VyYWN0LnN1c2FtLmluPg==$YWxpY2UgNjRiMmE0M2MxZjZlZDY4MDZhOTgwOTE0ZTIzZTc1ZjA=", "wonderland"},
 	{NULL}
 };
@@ -137,21 +134,20 @@ static void *get_binary(char *ciphertext)
 	unsigned char *out = buf.c;
 	char pinput[256] = { 0 };
 	char *p;
+	int i;
 
 	p = strrchr(ciphertext, '$') + 1;
 	strncpy(pinput, p, SALT_LENGTH);
 	base64_decode_good(pinput, (char*)out);
-
+	p = strrchr((char*)out, ' ') + 1;
+	for (i = 0; i < BINARY_SIZE; i++) {
+		out[i] =
+		    (atoi16[ARCH_INDEX(*p)] << 4) |
+		    atoi16[ARCH_INDEX(p[1])];
+		p += 2;
+	}
 	return out;
 }
-
-static int binary_hash_0(void *binary) { return *(ARCH_WORD_32 *)binary & 0xf; }
-static int binary_hash_1(void *binary) { return *(ARCH_WORD_32 *)binary & 0xff; }
-static int binary_hash_2(void *binary) { return *(ARCH_WORD_32 *)binary & 0xfff; }
-static int binary_hash_3(void *binary) { return *(ARCH_WORD_32 *)binary & 0xffff; }
-static int binary_hash_4(void *binary) { return *(ARCH_WORD_32 *)binary & 0xfffff; }
-static int binary_hash_5(void *binary) { return *(ARCH_WORD_32 *)binary & 0xffffff; }
-static int binary_hash_6(void *binary) { return *(ARCH_WORD_32 *)binary & 0x7ffffff; }
 
 static int get_hash_0(int index) { return crypt_out[index][0] & 0xf; }
 static int get_hash_1(int index) { return crypt_out[index][0] & 0xff; }
@@ -166,40 +162,21 @@ static void set_salt(void *salt)
 	cur_salt = (struct custom_salt *)salt;
 }
 
-static inline void hex_encode(unsigned char *str, int len, unsigned char *out)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int i;
-	for (i = 0; i < len; ++i) {
-		out[0] = itoa16[str[i]>>4];
-		out[1] = itoa16[str[i]&0xF];
-		out += 2;
-	}
-}
-
-#ifdef DEBUG
-static void print_hex(unsigned char *str, int len)
-{
-	int i;
-	for (i = 0; i < len; ++i)
-		printf("%02x", str[i]);
-	printf("\n");
-}
-#endif
-
-static void crypt_all(int count)
-{
+	int count = *pcount;
 	int index = 0;
+
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
 #endif
+	for (index = 0; index < count; index++)
 	{
-		unsigned char hexhash[33];
-		hmac_md5((unsigned char*)saved_key[index], cur_salt->salt, cur_salt->saltlen, (unsigned char*)crypt_out[index]);
-		hex_encode((unsigned char*)crypt_out[index], 16, hexhash);
-		hexhash[32] = 0;
-		sprintf((char*)crypt_out[index], "%s %s", cur_salt->username, hexhash);
+		unsigned char *result;
+		result = HMAC(EVP_md5(), saved_key[index], strlen(saved_key[index]), cur_salt->salt, cur_salt->saltlen, NULL, NULL);
+		memcpy(crypt_out[index], result, 16);
 	}
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -208,14 +185,14 @@ static int cmp_all(void *binary, int count)
 #ifdef _OPENMP
 	for (; index < count; index++)
 #endif
-		if (!memcmp(binary, crypt_out[index], MIN_BINARY_SIZE))
+		if (!memcmp(binary, crypt_out[index], BINARY_SIZE))
 			return 1;
 	return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return !memcmp(binary, crypt_out[index], MIN_BINARY_SIZE);
+	return !memcmp(binary, crypt_out[index], BINARY_SIZE);
 }
 
 static int cmp_exact(char *source, int index)
@@ -246,35 +223,31 @@ struct fmt_main cram_md5_fmt = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-#if FMT_MAIN_VERSION > 9
 		DEFAULT_ALIGN,
-#endif
 		SALT_SIZE,
-#if FMT_MAIN_VERSION > 9
 		DEFAULT_ALIGN,
-#endif
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		cram_md5_tests
 	}, {
 		init,
+		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
 		get_binary,
 		get_salt,
-#if FMT_MAIN_VERSION > 9
 		fmt_default_source,
-#endif
 		{
-			binary_hash_0,
-			binary_hash_1,
-			binary_hash_2,
-			binary_hash_3,
-			binary_hash_4,
-			binary_hash_5,
-			binary_hash_6
+			fmt_default_binary_hash_0,
+			fmt_default_binary_hash_1,
+			fmt_default_binary_hash_2,
+			fmt_default_binary_hash_3,
+			fmt_default_binary_hash_4,
+			fmt_default_binary_hash_5,
+			fmt_default_binary_hash_6
 		},
 		fmt_default_salt_hash,
 		set_salt,
