@@ -3,7 +3,8 @@
  * This code is in public domain.
  *
  * This software is Copyright (c) 2010, Dhiru Kholia <dhiru.kholia at gmail.com>
- * and Copyright (c) 2012, magnum
+ * Copyright (c) 2012, magnum
+ * and Copyright (c) 2013, Sayantan Datta <std2048 at gmail.com>
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted.

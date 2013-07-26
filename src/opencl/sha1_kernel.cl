@@ -4,7 +4,8 @@
    and md5_opencl_kernel.cl inside jtr.
    Copyright 2011 by Samuele Giovanni Tonon
    samu at linuxasylum dot net
-   and Copyright (c) 2012, magnum
+   Copyright (c) 2012, magnum
+   and Copyright (c) 2013, Sayantan Datta <std2048 at gmail.com>
    This program comes with ABSOLUTELY NO WARRANTY; express or
    implied .
    This is free software, and you are welcome to redistribute it
@@ -13,6 +14,10 @@
 */
 
 #include "opencl_device_info.h"
+#include "opencl_rawsha1_fmt.h"
+
+#define BITMAP_HASH_0 	    (BITMAP_SIZE_0 - 1)
+#define BITMAP_HASH_1	    (BITMAP_SIZE_1 - 1)
 
 #if gpu_amd(DEVICE_INFO)
 #define USE_BITSELECT
@@ -343,7 +348,53 @@ inline uint SWAP32(uint x)
 		printf("\n"); \
 	}
 
-__kernel void sha1_crypt_kernel(__global uint* keys, __global const uint *index, __global uint* digest)
+void cmp(__global uint *hashes,
+	  __global uint *loaded_hashes,
+	  __local uint *bitmap0,
+	  __local uint *bitmap1,
+	  __private uint *hash,
+	  __global uint *outKeyIdx,
+	  uint gid,
+	  uint num_loaded_hashes) {
+
+	uint loaded_hash, i, tmp;
+
+	hash[0] = SWAP32(hash[0]);
+	hash[1] = SWAP32(hash[1]);
+	hash[2] = SWAP32(hash[2]);
+	hash[3] = SWAP32(hash[3]);
+	hash[4] = SWAP32(hash[4]);
+
+	for(i = 0; i < num_loaded_hashes; i++) {
+
+		loaded_hash = hash[0] & BITMAP_HASH_1;
+		tmp = (bitmap0[loaded_hash >> 5] >> (loaded_hash & 31)) & 1U ;
+		if(tmp) {
+
+			loaded_hash = hash[1] & BITMAP_HASH_1;
+			tmp &= (bitmap1[loaded_hash >> 5] >> (loaded_hash & 31)) & 1U;
+			if(tmp) {
+
+				loaded_hash = loaded_hashes[i * 4 + 3];
+				if(hash[2] == loaded_hash) {
+
+					loaded_hash = loaded_hashes[i * 4 + 4];
+					if(hash[3] == loaded_hash) {
+
+						hashes[i] = hash[0];
+						hashes[1 * num_loaded_hashes + i] = hash[1];
+						hashes[2 * num_loaded_hashes + i] = hash[2];
+						hashes[3 * num_loaded_hashes + i] = hash[3];
+						hashes[4 * num_loaded_hashes + i] = hash[4];
+						outKeyIdx[i] = gid ;
+					}
+				}
+			}
+		}
+	}
+ }
+
+__kernel void sha1_self_test(__global uint* keys, __global const uint *index, __global uint* digest)
 {
 	uint W[16] = { 0 }, output[5];
 	uint temp, A, B, C, D, E;
@@ -369,4 +420,46 @@ __kernel void sha1_crypt_kernel(__global uint* keys, __global const uint *index,
 	digest[gid + 2 * num_keys] = SWAP32(output[2]);
 	digest[gid + 3 * num_keys] = SWAP32(output[3]);
 	digest[gid + 4 * num_keys] = SWAP32(output[4]);
+}
+
+__kernel void sha1_crypt_kernel(__global uint* keys, __global const uint *index, __global uint* digest, __global uint *loaded_hashes, __global uint *outKeyIdx, __global struct bitmap_ctx *bitmap)
+{
+	uint W[16] = { 0 }, output[5];
+	uint temp, A, B, C, D, E;
+	uint gid = get_global_id(0);
+	uint num_keys = get_global_size(0);
+	uint lid = get_local_id(0);
+	uint base = index[gid];
+	uint len = base & 63;
+	uint i;
+	uint num_loaded_hashes = loaded_hashes[0];
+
+	__local uint sbitmap0[BITMAP_SIZE_1 >> 5];
+	__local uint sbitmap1[BITMAP_SIZE_1 >> 5];
+
+	if(!gid)
+		for (i = 0; i < num_loaded_hashes; i++)
+			outKeyIdx[i] = outKeyIdx[i + num_loaded_hashes] = 0;
+
+	for(i = 0; i < ((BITMAP_SIZE_1 >> 5) / LWS); i++)
+		sbitmap0[i*LWS + lid] = bitmap[0].bitmap0[i*LWS + lid];
+
+	for(i = 0; i < ((BITMAP_SIZE_1 >> 5)/ LWS); i++)
+		sbitmap1[i*LWS + lid] = bitmap[0].bitmap1[i*LWS + lid];
+
+	keys += base >> 6;
+
+	for (i = 0; i < (len+3)/4; i++)
+		W[i] = SWAP32(*keys++);
+
+	barrier(CLK_LOCAL_MEM_FENCE);
+
+	PUTCHAR_BE(W, len, 0x80);
+	W[15] = len << 3;
+
+	sha1_init(output);
+	sha1_block(W, output);
+	cmp(digest, loaded_hashes, sbitmap0, sbitmap1, output, outKeyIdx, gid, num_loaded_hashes);
+
+
 }
