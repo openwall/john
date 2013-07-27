@@ -196,6 +196,7 @@ extern struct fmt_main fmt_opencl_blockchain;
 extern struct fmt_main fmt_opencl_keyring;
 extern struct fmt_main fmt_opencl_sevenzip;
 extern struct fmt_main fmt_opencl_pbkdf2_hmac_sha256;
+extern struct fmt_main fmt_opencl_mscash;
 #endif
 #ifdef HAVE_CUDA
 extern struct fmt_main fmt_cuda_cryptmd5;
@@ -409,6 +410,7 @@ static void john_register_all(void)
 	john_register_one(&fmt_opencl_xsha512_ng);
 	john_register_one(&fmt_opencl_zip);
 	john_register_one(&fmt_opencl_pbkdf2_hmac_sha256);
+	john_register_one(&fmt_opencl_mscash);
 #endif
 
 #ifdef HAVE_CUDA
