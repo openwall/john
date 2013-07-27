@@ -285,8 +285,11 @@ static void add_device_to_list(int sequential_id)
 			found = 1;
 	}
 	if (!found) {
-		ocl_device_list[opencl_get_devices() + 1] = -1;
-		ocl_device_list[opencl_get_devices()] = sequential_id;
+		//Only requested and working devices should be started.
+		if (start_opencl_device(sequential_id, &i)) {
+			ocl_device_list[opencl_get_devices() + 1] = -1;
+			ocl_device_list[opencl_get_devices()] = sequential_id;
+		}
 	}
 }
 
