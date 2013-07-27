@@ -289,7 +289,8 @@ static void add_device_to_list(int sequential_id)
 		if (start_opencl_device(sequential_id, &i)) {
 			ocl_device_list[opencl_get_devices() + 1] = -1;
 			ocl_device_list[opencl_get_devices()] = sequential_id;
-		}
+		} else
+			fprintf(stderr, "Device id %d not working correctly, skipping.\n", sequential_id);
 	}
 }
 
