@@ -2,7 +2,7 @@
  * This software is Copyright (c) 2013 Sayantan Datta <std2048 at gmail dot com>
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification, are permitted.
- * This is a direct port of mscash-cuda format by Lukas Odzioba
+ * This is format is based on mscash-cuda by Lukas Odzioba
  * <lukas dot odzioba at gmail dot com>
  */
 #ifndef _MSCASH_H
@@ -36,16 +36,10 @@ static const char mscash_prefix[] = "M$";
 
 typedef struct {
 	unsigned char length;
-	unsigned char v[PLAINTEXT_LENGTH];
-} mscash_password;
-
-typedef struct {
-	unsigned int v[8];
-} mscash_hash;
-
-typedef struct {
-	unsigned char length;
-	char salt[SALT_LENGTH+1];
+	union {
+		char csalt[SALT_LENGTH+1];
+		unsigned int isalt[(SALT_LENGTH + 4)/4];
+	} salt;
 } mscash_salt;
 
 #endif

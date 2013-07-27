@@ -2,7 +2,7 @@
  * This software is Copyright (c) 2013 Sayantan Datta <std2048 at gmail dot com>
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification, are permitted.
- * This is a direct port of mscash-cuda format by Lukas Odzioba
+ * This is format is based on mscash-cuda by Lukas Odzioba
  * <lukas dot odzioba at gmail dot com>
  */
 
@@ -132,64 +132,69 @@ void md4_crypt(__private uint *output, __private uint *nt_buffer)
 	output[3] = d + INIT_D;
 }
 
-void prepare_key(uchar * key, int length, uint * nt_buffer)
+void prepare_key(__global uint * key, int length, uint * nt_buffer)
 {
-	int i = 0;
-	for (i = 0; i < 16; i++)
-		nt_buffer[i] = 0;
-	for (i = 0; i < length / 2; i++)
-		nt_buffer[i] = key[2 * i] | (key[2 * i + 1] << 16);
-	if (length % 2 == 1)
-		nt_buffer[i] = key[length - 1] | 0x800000;
-	else
-		nt_buffer[i] = 0x80;
+	int i = 0, nt_index, keychars;
+	nt_index = 0;
+	for (i = 0; i < (length + 3)/ 4; i++) {
+		keychars = key[i];
+		nt_buffer[nt_index++] = (keychars & 0xFF) | (((keychars >> 8) & 0xFF) << 16);
+		nt_buffer[nt_index++] = ((keychars >> 16) & 0xFF) | ((keychars >> 24) << 16);
+	}
+	nt_index = length >> 1;
+	nt_buffer[nt_index] = (nt_buffer[nt_index] & 0xFF) | (0x80 << ((length & 1) << 4));
+	nt_buffer[nt_index + 1] = 0;
 	nt_buffer[14] = length << 4;
 }
 
-void prepare_login(uchar * login, int length,
-    uint * login_buffer)
+void prepare_login(__local uint * login, int length,
+    uint * nt_buffer)
 {
-	int i = 0;
-	for (i = 0; i < 12; i++)
-		login_buffer[i] = 0;
-	for (i = 0; i < length / 2; i++)
-		login_buffer[i] = login[2 * i] | (login[2 * i + 1] << 16);
-	if (length % 2 == 1)
-		login_buffer[i] = login[length - 1] | 0x800000;
-	else
-		login_buffer[i] = 0x80;
-	login_buffer[10] = (length << 4) + 128;
+	int i = 0, nt_index, keychars;;
+	for (i = 4; i < 16; i++)
+		nt_buffer[i] = 0;
+
+	nt_index = 4;
+	for (i = 0; i < (length + 4)/ 4; i++) {
+		keychars = login[i];
+		nt_buffer[nt_index++] = (keychars & 0xFF) | (((keychars >> 8) & 0xFF) << 16);
+		nt_buffer[nt_index++] = ((keychars >> 16) & 0xFF) | ((keychars >> 24) << 16);
+	}
+	nt_index = 4 + (length >> 1);
+	nt_buffer[nt_index] = (nt_buffer[nt_index] & 0xFF) | (0x80 << ((length & 1) << 4));
+	nt_buffer[nt_index + 1] = 0;
+	nt_buffer[14] = (length << 4) + 128;
 }
 
-__kernel void mscash(__global mscash_password *inBuffer, __global mscash_salt *salt, __global mscash_hash *outBuffer) {
+__kernel void mscash(__global uint *keys, __global uint *keyIdx, __global mscash_salt *salt, __global uint *outBuffer) {
 
 	int gid = get_global_id(0), i;
-	uchar login[19] = { 0 };
-	uchar password[23] = { 0 };
+	int lid = get_local_id(0);
+	int numkeys = get_global_size(0);
 	uint nt_buffer[16] = { 0 };
-	uint login_buffer[12] = { 0 };
 	uint output[4] = { 0 };
 	uchar loginlength = salt[0].length;
-	uchar passwordlength = inBuffer[gid].length;
+	uchar passwordlength = keyIdx[gid];
 
-	for(i = 0; i < loginlength; i++)
-		login[i] = salt[0].salt[i];
+	__local uint login[16];
 
-	for(i = 0; i < passwordlength; i++)
-		password[i] = inBuffer[gid].v[i];
+	if(!lid)
+		for(i = 0; i < (loginlength + 4)/4; i++)
+			login[i] = salt[0].salt.isalt[i];
+	barrier(CLK_LOCAL_MEM_FENCE);
 
-	prepare_key(password, passwordlength, nt_buffer);
+	prepare_key(keys + gid * ((PLAINTEXT_LENGTH + 3)/4), passwordlength, nt_buffer);
 	md4_crypt(output, nt_buffer);
 	nt_buffer[0] = output[0];
 	nt_buffer[1] = output[1];
 	nt_buffer[2] = output[2];
 	nt_buffer[3] = output[3];
 
-	prepare_login(login, loginlength, login_buffer);
-	for(i = 0; i < 12; i++)
-		nt_buffer[i + 4] = login_buffer[i];
+	prepare_login(login, loginlength, nt_buffer);
 	md4_crypt(output, nt_buffer);
 
-	for (i = 0; i < 4; i++)
-		outBuffer[gid].v[i] = output[i];
+	outBuffer[gid] = output[0];
+	outBuffer[gid + numkeys] = output[1];
+	outBuffer[gid + 2 * numkeys] = output[2];
+	outBuffer[gid + 3 * numkeys] = output[3];
 }
