@@ -8,7 +8,7 @@
 #ifndef _MSCASH_H
 #define _MSCASH_H
 
-#define	KEYS_PER_CRYPT		(1024 * 512)
+#define	KEYS_PER_CRYPT		(1024 * 2048)
 
 #define BINARY_SIZE		16
 #define PLAINTEXT_LENGTH	27
