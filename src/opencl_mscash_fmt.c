@@ -24,7 +24,7 @@
 
 static unsigned int *outbuffer, *saved_idx;
 static unsigned char *saved_plain;
-static mscash_salt currentsalt;
+static unsigned int current_salt[12];
 
 cl_mem buffer_out, buffer_keys, buffer_idx, buffer_salt;
 
@@ -78,7 +78,7 @@ static void init(struct fmt_main *self)
 	HANDLE_CLERROR(ret_code,"Error creating buffer argument");
 	buffer_idx = clCreateBuffer( context[ocl_gpu_id], CL_MEM_READ_ONLY, sizeof(unsigned int) * MAX_KEYS_PER_CRYPT, NULL, &ret_code );
 	HANDLE_CLERROR(ret_code,"Error creating buffer argument");
-	buffer_salt = clCreateBuffer( context[ocl_gpu_id], CL_MEM_READ_ONLY, sizeof(mscash_salt), NULL, &ret_code );
+	buffer_salt = clCreateBuffer( context[ocl_gpu_id], CL_MEM_READ_ONLY, sizeof(unsigned int) * 12, NULL, &ret_code );
 	HANDLE_CLERROR(ret_code,"Error creating buffer argument");
 	buffer_out  = clCreateBuffer( context[ocl_gpu_id], CL_MEM_WRITE_ONLY , 4 * MAX_KEYS_PER_CRYPT * sizeof(unsigned int), NULL, &ret_code );
 	HANDLE_CLERROR(ret_code,"Error creating buffer argument");
@@ -151,26 +151,49 @@ static void *binary(char *ciphertext)
 	return binary;
 }
 
+void prepare_login(uint * login, int length,
+    uint * nt_buffer)
+{
+	int i = 0, nt_index, keychars;;
+	for (i = 0; i < 12; i++)
+		nt_buffer[i] = 0;
+
+	nt_index = 0;
+	for (i = 0; i < (length + 4)/ 4; i++) {
+		keychars = login[i];
+		nt_buffer[nt_index++] = (keychars & 0xFF) | (((keychars >> 8) & 0xFF) << 16);
+		nt_buffer[nt_index++] = ((keychars >> 16) & 0xFF) | ((keychars >> 24) << 16);
+	}
+	nt_index = (length >> 1);
+	nt_buffer[nt_index] = (nt_buffer[nt_index] & 0xFF) | (0x80 << ((length & 1) << 4));
+	nt_buffer[nt_index + 1] = 0;
+	nt_buffer[10] = (length << 4) + 128;
+}
+
 static void *salt(char *ciphertext)
 {
-	static mscash_salt salt;
+	static union {
+		unsigned char csalt[SALT_LENGTH + 1];
+		unsigned int  isalt[(SALT_LENGTH + 4)/4];
+	} salt;
+	static unsigned int final_salt[12];
 	char *pos = ciphertext + strlen(mscash_prefix);
 	int length = 0;
 	memset(&salt, 0, sizeof(salt));
 	while (*pos != '#') {
 		if (length == SALT_LENGTH)
 			return NULL;
-		salt.salt.csalt[length++] = *pos++;
+		salt.csalt[length++] = *pos++;
 	}
-	salt.salt.csalt[length] = 0;
-	enc_strlwr(salt.salt.csalt);
-	salt.length = length;
-	return &salt;
+	salt.csalt[length] = 0;
+	enc_strlwr(salt.csalt);
+	prepare_login(salt.isalt, length, final_salt);
+	return &final_salt;
 }
 
 static void set_salt(void *salt)
 {
-	memcpy(&currentsalt, salt, sizeof(mscash_salt));
+	memcpy(&current_salt, salt, sizeof(unsigned int) * 12);
 }
 
 static void set_key(char *key, int index)
@@ -205,7 +228,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		BUFSIZE * MAX_KEYS_PER_CRYPT, saved_plain, 0, NULL, NULL),
 		"failed in clEnqueWriteBuffer buffer_idx");
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], buffer_salt, CL_TRUE, 0,
-		sizeof(mscash_salt), &currentsalt, 0, NULL, NULL),
+		sizeof(unsigned int) * 12, &current_salt, 0, NULL, NULL),
 		"failed in clEnqueWriteBuffer salt");
 
 	// Execute method
@@ -296,8 +319,8 @@ struct fmt_main fmt_opencl_mscash = {
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
 		DEFAULT_ALIGN,
-		SALT_SIZE,
-		DEFAULT_ALIGN,
+		sizeof(unsigned int) * 12,
+		sizeof(unsigned int) ,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE,
