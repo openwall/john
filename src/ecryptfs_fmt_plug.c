@@ -67,6 +67,8 @@ static struct fmt_tests ecryptfs_tests[] = {
 	/* first 16 bytes of ~/.ecryptfs/wrapped-passphrase
 	 * sorry, no base-64 until I get some hefeweizen */
 	{"$ecryptfs$0$92dc3db8feaf1676", "openwall"},
+	{"$ecryptfs$0$ccb515ee115be591", "failpassword"},
+	{"$ecryptfs$0$8acb10b9e061fcc7", "verylongbutstillfailpassword"},
 	{NULL}
 };
 
