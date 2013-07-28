@@ -154,7 +154,10 @@ __kernel void mscash(__global uint *keys, __global uint *keyIdx, __global uint *
 	int numkeys = get_global_size(0);
 	uint nt_buffer[16] = { 0 };
 	uint output[4] = { 0 };
-	uchar passwordlength = keyIdx[gid];
+	uint base = keyIdx[gid];
+	uint passwordlength = base & 63;
+
+	keys += base >> 6;
 
 	__local uint login[12];
 
@@ -163,7 +166,7 @@ __kernel void mscash(__global uint *keys, __global uint *keyIdx, __global uint *
 			login[i] = salt[i];
 	barrier(CLK_LOCAL_MEM_FENCE);
 
-	prepare_key(keys + gid * ((PLAINTEXT_LENGTH + 3)/4), passwordlength, nt_buffer);
+	prepare_key(keys, passwordlength, nt_buffer);
 	md4_crypt(output, nt_buffer);
 	nt_buffer[0] = output[0];
 	nt_buffer[1] = output[1];
