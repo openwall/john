@@ -49,7 +49,7 @@
  * global to local (thread) memory. Break the key into 16 32-bit (uint)
  * words. MD4 hash of a key is 128 bit (uint4). */
 
-void md4_encrypt(__private uint *hash, __private uint *W, uint len) {
+inline void md4_encrypt(__private uint *hash, __private uint *W, uint len) {
 
 	PUTCHAR(W, len, 0x80);
 	W[14] = len << 3;
@@ -115,7 +115,7 @@ void md4_encrypt(__private uint *hash, __private uint *W, uint len) {
 
 }
 
-void cmp(__global uint *hashes,
+inline void cmp(__global uint *hashes,
 	  __global uint *loaded_hashes,
 	  __local uint *bitmap0,
 	  __local uint *bitmap1,

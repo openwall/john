@@ -54,7 +54,7 @@ struct return_key {
  * global to local (thread) memory. Break the key into 16 32-bit (uint)
  * words. MD5 hash of a key is 128 bit (uint4). */
 
-void raw_md5_encrypt(__global const uint *keys, __private uint4 *hash, int len) {
+inline void raw_md5_encrypt(__global const uint *keys, __private uint4 *hash, int len) {
 
 	uint W[16] = { 0 };
 	uint i;
@@ -144,7 +144,7 @@ void raw_md5_encrypt(__global const uint *keys, __private uint4 *hash, int len) 
 
  }
 
- void cmp(__global uint *hashes,
+inline void cmp(__global uint *hashes,
 	  __global const uint *loaded_hashes,
 	  __private uint4 *hash,
 	  __local uint *lds_cache,

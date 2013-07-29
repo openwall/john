@@ -32,6 +32,10 @@
 #define SQRT_2			0x5a827999
 #define SQRT_3			0x6ed9eba1
 
-static const char mscash_prefix[] = "M$";
+static
+#ifdef _OPENCL_COMPILER
+__constant
+#endif
+const char mscash_prefix[] = "M$";
 
 #endif

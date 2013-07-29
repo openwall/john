@@ -175,8 +175,8 @@ static void *binary(char *ciphertext)
 	return binary;
 }
 
-void prepare_login(uint * login, int length,
-    uint * nt_buffer)
+void prepare_login(unsigned int * login, int length,
+    unsigned int * nt_buffer)
 {
 	int i = 0, nt_index, keychars;;
 	for (i = 0; i < 12; i++)
