@@ -734,12 +734,14 @@ void ldr_load_pot_file(struct db_main *db, char *name)
 static void ldr_init_salts(struct db_main *db)
 {
 	struct db_salt **tail, *current;
-	int hash;
+	int hash, ctr = 0;
 
 	for (hash = 0, tail = &db->salts; hash < SALT_HASH_SIZE; hash++)
 	if ((current = db->salt_hash[hash])) {
 		*tail = current;
+		ctr = 0;
 		do {
+			current -> sequential_id = ctr++;
 			tail = &current->next;
 		} while ((current = current->next));
 	}
