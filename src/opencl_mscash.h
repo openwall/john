@@ -8,9 +8,12 @@
 #ifndef _MSCASH_H
 #define _MSCASH_H
 
+#define LWS 		    	64
+
 #define	KEYS_PER_CRYPT		(1024 * 2048)
 
 #define BINARY_SIZE		16
+#define BINARY_ALIGN		4
 #define PLAINTEXT_LENGTH	27
 #define SALT_LENGTH		19
 #define SALT_SIZE		sizeof(mscash_salt)
@@ -31,6 +34,14 @@
 
 #define SQRT_2			0x5a827999
 #define SQRT_3			0x6ed9eba1
+
+#define BITMAP_SIZE_0 	    	0x80000000
+#define BITMAP_SIZE_1	    	0x4000
+
+struct bitmap_ctx{
+	unsigned int bitmap0[BITMAP_SIZE_1>>5];
+	unsigned int bitmap1[BITMAP_SIZE_1>>5];
+};
 
 static
 #ifdef _OPENCL_COMPILER
