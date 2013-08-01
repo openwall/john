@@ -4431,7 +4431,7 @@ void DynamicFunc__PHPassCrypt(DYNA_OMP_PARAMS)
 	// end of the buffer again (it has been put into BE format already.
 	// Thus, simply use the raw_overwrite again, then swap the output that
 	// is found in the input buf to the output buf.
-	DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen();
+	DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen(DYNA_OMP_PARAMSd);
 #if MD5_X2
 	MD5_swap2(input_buf_X86[0].x1.w, input_buf_X86[0].x2.w2, crypt_key_X86[0].x1.w, crypt_key_X86[0].x2.w2, 4);
 #else
