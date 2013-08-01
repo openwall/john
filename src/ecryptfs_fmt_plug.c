@@ -40,7 +40,8 @@ static int omp_t = 1;
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	125
-#define BINARY_SIZE		8
+#define REAL_BINARY_SIZE	8
+#define BINARY_SIZE		64
 #define BINARY_ALIGN		4
 #define SALT_SIZE		sizeof(struct custom_salt)
 #define SALT_ALIGN		4
@@ -107,7 +108,7 @@ static void *get_salt(char *ciphertext)
 {
 	static struct custom_salt cs;
 
-	memcpy(cs.salt, ECRYPTFS_DEFAULT_SALT, 8);
+	memcpy(cs.salt, ECRYPTFS_DEFAULT_SALT, ECRYPTFS_SALT_SIZE);
 
 	return (void *)&cs;
 }
@@ -126,7 +127,7 @@ static void print_hex(unsigned char *str, int len)
 static void *get_binary(char *ciphertext)
 {
 	static union {
-		unsigned char c[BINARY_SIZE];
+		unsigned char c[REAL_BINARY_SIZE];
 		ARCH_WORD_32 dummy;
 	} buf;
 	unsigned char *out = buf.c;
@@ -134,7 +135,7 @@ static void *get_binary(char *ciphertext)
 	char *p = ciphertext + FORMAT_TAG_LENGTH + 2;
 	/* 2 is required to skip over "hash type" */
 
-	for (i = 0; i < BINARY_SIZE; i++) {
+	for (i = 0; i < REAL_BINARY_SIZE; i++) {
 		out[i] =
 		    (atoi16[ARCH_INDEX(*p)] << 4) |
 		    atoi16[ARCH_INDEX(p[1])];
@@ -176,10 +177,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 		/* now "h" (crypt_out[index] becomes our input
 		 * total SHA-512 calls => 65536 */
-		for (j = 1; j <= 65536; j++) {
+		for (j = 1; j <= ECRYPTFS_DEFAULT_NUM_HASH_ITERATIONS; j++) {
 			SHA512_CTX ctx;
 			SHA512_Init(&ctx);
-			SHA512_Update(&ctx, (unsigned char*)crypt_out[index], 64);
+			SHA512_Update(&ctx, (unsigned char*)crypt_out[index], BINARY_SIZE);
 			SHA512_Final((unsigned char *)crypt_out[index], &ctx);
 		}
 	}
@@ -190,14 +191,14 @@ static int cmp_all(void *binary, int count)
 {
 	int index = 0;
 	for (; index < count; index++)
-		if (!memcmp(binary, crypt_out[index], BINARY_SIZE))
+		if (!memcmp(binary, crypt_out[index], REAL_BINARY_SIZE))
 			return 1;
 	return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return !memcmp(binary, crypt_out[index], BINARY_SIZE);
+	return !memcmp(binary, crypt_out[index], REAL_BINARY_SIZE);
 }
 
 static int cmp_exact(char *source, int index)
