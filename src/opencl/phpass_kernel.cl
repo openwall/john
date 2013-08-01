@@ -24,23 +24,17 @@ typedef struct {
 #define F(x, y, z) bitselect((z), (y), (x))
 #define G(x, y, z) bitselect((y), (x), (z))
 
+#define FF(v, w, x, y, z, s, ac)\
+	v = ROTATE_LEFT(v + z + ac + F(w, x, y), (uint)s) + w;
 
-#define FF(a, b, c, d, x, s, ac) \
-  {(a) += F ((b), (c), (d)) + (x) + (ac); \
-   (a) = ROTATE_LEFT ((a), (s)) + (b); \
-  }
-#define GG(a, b, c, d, x, s, ac) \
-  {(a) += G ((b), (c), (d)) + (x) + (ac); \
-   (a) = ROTATE_LEFT ((a), (s)) + (b); \
-  }
-#define HH(a, b, c, d, x, s, ac) \
-  {(a) += H ((b), (c), (d)) + (x) + (ac); \
-   (a) = ROTATE_LEFT ((a), (s)) + (b); \
-  }
-#define II(a, b, c, d, x, s, ac) \
-  {(a) += I ((b), (c), (d)) + (x) + (ac); \
-   (a) = ROTATE_LEFT ((a), (s)) + (b); \
-  }
+#define GG(v, w, x, y, z, s, ac)\
+	v = ROTATE_LEFT(v + z + ac + G(w, x, y), (uint)s) + w;
+
+#define HH(v, w, x, y, z, s, ac)\
+	v = ROTATE_LEFT(v + z + ac + H(w, x, y), (uint)s) + w;
+
+#define II(v, w, x, y, z, s, ac)\
+	v = ROTATE_LEFT(v + z + ac + I(w, x, y), (uint)s) + w;
 
 #define S11                             7
 #define S12                             12
