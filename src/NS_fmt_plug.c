@@ -58,6 +58,7 @@
 static struct fmt_tests tests[] = {
 	{"admin$nMjFM0rdC9iOc+xIFsGEm3LtAeGZhn", "password"},
 	{"a$nMf9FkrCIgHGccRAxsBAwxBtDtPHfn", "netscreen"},
+	{"admin$nDa2MErEKCsMcuQOTsLNpGCtKJAq5n", "QUESTIONDEFENSE"},
 	{NULL}
 };
 
