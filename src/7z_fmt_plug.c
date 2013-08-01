@@ -219,7 +219,8 @@ void sevenzip_kdf(UTF8 *password, unsigned char *master)
 	long long round;
 	UTF16 buffer[PLAINTEXT_LENGTH + 1];
 #if !ARCH_LITTLE_ENDIAN
-        unsigned char temp[8] = { 0,0,0,0,0,0,0,0 };
+	int i;
+	unsigned char temp[8] = { 0,0,0,0,0,0,0,0 };
 #endif
 	SHA256_CTX sha;
 
