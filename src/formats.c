@@ -172,8 +172,10 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		return NULL;
 #endif
 
+#ifndef BENCH_BUILD
 	if (options.flags & FLG_NOTESTS)
 		return NULL;
+#endif
 
 	if (format->params.plaintext_length < 1 ||
 	    format->params.plaintext_length > PLAINTEXT_BUFFER_SIZE - 3)
