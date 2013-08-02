@@ -561,6 +561,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], buffer_keys, CL_TRUE, 0,
 		key_length_mul_4 * global_work_size, saved_plain, 0, NULL, NULL),
 		"failed in clEnqueWriteBuffer buffer_keys");
+	max_key_length = 0;	
 
 	// Execute method
 	clEnqueueNDRangeKernel( queue[ocl_gpu_id], crk_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, profilingEvent);
@@ -584,8 +585,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	}
 
 	else return 0;
-
-	max_key_length = 0;
 }
 
 struct fmt_main fmt_opencl_NT = {
