@@ -129,6 +129,8 @@
 #define FLG_SCALAR			0x0000020000000000ULL
 /* Reject printable binaries */
 #define FLG_REJECT_PRINTABLE		0x0000040000000000ULL
+/* Skip self tests */
+#define FLG_NOTESTS			0x0000080000000000ULL
 
 /*
  * Structure with option flags and all the parameters.

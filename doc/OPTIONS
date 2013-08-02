@@ -427,6 +427,13 @@ Make John more verbose, or less verbose. Default level is 3. For example,
 level 2 will mute the extra messages (device, work sizes etc) printed by
 OpenCL formats and level 1 will mute printing of cracked passwords to screen.
 
+--skip-self-tests		skip self tests
+
+Tells John to skip self tests. Basic integrity checks will be done but hashes
+from test vector will not be cracked. This option is useful to run many small
+attacks in a row against slow hashes. Usually it is not needed. It affects
+--test option: --skip-self-tests and --test together perform only benchmarks.
+
 --list=WHAT			list capabilities
 
 This option can be used to gain information about what rules, modes etc are

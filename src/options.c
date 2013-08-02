@@ -178,6 +178,7 @@ static struct opt_entry opt_list[] = {
 	{"request-vectorize", FLG_VECTORIZE, FLG_VECTORIZE, 0, FLG_SCALAR},
 	{"request-scalar", FLG_SCALAR, FLG_SCALAR, 0, FLG_VECTORIZE},
 #endif
+	{"skip-self-tests", FLG_NOTESTS, FLG_NOTESTS},
 	{NULL}
 };
 
@@ -346,6 +347,7 @@ void opt_print_hidden_usage(void)
 	puts("--mkv-stats=FILE          \"Markov\" stats file (see doc/MARKOV)");
 	puts("--reject-printable        reject printable binaries");
 	puts("--verbosity=N             change verbosity (1-5, default 3)");
+	puts("--skip-self-tests         skip self tests");
 #ifdef HAVE_DL
 	puts("--plugin=NAME[,..]        load this (these) dynamic plugin(s)");
 #endif
