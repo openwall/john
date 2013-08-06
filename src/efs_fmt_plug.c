@@ -56,7 +56,7 @@ static struct fmt_tests efs_tests[] = {
 #endif
 
 // XXX this is most likely crap!
-void pbkdf2_sha1_shit(unsigned char *password, size_t plen,
+static void pbkdf2_sha1_shit(unsigned char *password, size_t plen,
     const unsigned char *salt, size_t slen,
     const unsigned long iteration_count, const unsigned long key_length,
     unsigned char *output)
@@ -334,7 +334,7 @@ struct fmt_main fmt_efs = {
 		DEFAULT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_UNICODE,
 		efs_tests
 	}, {
 		init,
