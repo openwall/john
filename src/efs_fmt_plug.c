@@ -24,6 +24,7 @@
 #include "params.h"
 #include "memory.h"
 #include "options.h"
+#include "unicode.h"
 #include <openssl/sha.h>
 #include "gladman_hmac.h"
 #include <openssl/des.h>
@@ -104,7 +105,7 @@ static void pbkdf2_sha1_shit(unsigned char *password, size_t plen,
 #if defined (_OPENMP)
 static int omp_t = 1;
 #endif
-static char (*saved_key)[PLAINTEXT_LENGTH + 1];
+static UTF16 (*saved_key)[PLAINTEXT_LENGTH + 1];
 static int *cracked;
 
 static struct custom_salt {
@@ -114,7 +115,7 @@ static struct custom_salt {
 	int iterations;
 	int ctlen;
 	unsigned char ct[4096];
-	unsigned char SID[2048];
+	UTF16 SID[2048];
 } *cur_salt;
 
 static void init(struct fmt_main *self)
@@ -149,9 +150,13 @@ static void *get_salt(char *ciphertext)
 	char *p;
 	int length;
 	static struct custom_salt cs;
+
 	ctcopy += 5;	/* skip over "$efs$" */
 	p = strtok(ctcopy, "$");
-	strncpy((char*)cs.SID, p, 2048);
+
+	// Convert SID to Unicode
+	enc_to_utf16(cs.SID, sizeof(cs.SID) / 2 - 1, (UTF8*)p, strlen(p));
+
 	p = strtok(NULL, "$");
 	length = strlen(p) / 2;
 	cs.ivlen = length;
@@ -188,10 +193,10 @@ static int kcdecrypt(unsigned char *key, unsigned char *iv, unsigned char *pwdha
 	unsigned char *hmac;
 	unsigned char hmacComputed[20];
 	unsigned char encKey[20];
-
 	DES_cblock key1, key2, key3;
 	DES_cblock ivec;
 	DES_key_schedule ks1, ks2, ks3;
+
 	memset(out, 0, sizeof(out));
 	memcpy(key1, key, 8);
 	memcpy(key2, key + 8, 8);
@@ -237,52 +242,35 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		// def derivePassword(userPwd, userSID, hashAlgo)
 		// Computes the encryption key from a user's password
 		// return derivePwdHash(hashlib.sha1(userPwd.encode("UTF-16LE")).digest()
-		// XXX Use magnum's way!
-		// 1. UTL-16 LE encode password + hash it
-		unsigned char *password = (unsigned char*)saved_key[index];
-		unsigned char passwordBuf[512] = {0};
-		int passwordBufSize = strlen((char*)password) * 2;
-		int i;
-		unsigned char c;
-		int position = 0;
+		unsigned char *passwordBuf = (unsigned char*)saved_key[index];
+		int passwordBufSize = strlen16((UTF16*)passwordBuf) * 2;
 		unsigned char out[32];
 		unsigned char out2[32];
 		unsigned char iv[32];
 		SHA_CTX ctx;
 
-		/* convert key to UTF-16LE and hash it */
-		for(i = 0; (c = password[i]); i++) {
-			passwordBuf[position] = c;
-			position += 2;
-		}
+		/* hash the UTF-16LE encoded key */
 		SHA1_Init(&ctx);
-		// puts((char*)password);
 		SHA1_Update(&ctx, passwordBuf, passwordBufSize);
 		SHA1_Final(out, &ctx);
-		// dump_stuff(out, 20);
-		// def derivePwdHash(passwordBuf, userSID, hashAlgo)
-		// Computes the encryption key from a user's password hash"""
-		// return encKey = hmac.new(passwordBuf, (userSID+"\0").encode("UTF-16LE"), dg).digest()
-		// 2. UTL-16 LE encode SID + use in HMAC
-		password = cur_salt->SID;
-		// puts(password);
-		passwordBufSize = strlen((char*)password) * 2 + 2;
-		position = 0;
-		memset(passwordBuf, 0, 512);
-		/* convert key to UTF-16LE and hash it */
-		for(i = 0; (c = password[i]); i++) {
-			passwordBuf[position] = c;
-			position += 2;
-		}
+
+		// 2. use UTF-16LE encoded SID in HMAC
+		passwordBuf = (unsigned char*)cur_salt->SID;
+		passwordBufSize = (strlen16(cur_salt->SID) + 1) * 2;
 		hmac_sha1(out, 20, passwordBuf, passwordBufSize, out2, 20);
-		// dump_stuff(out2, 20);
+
 		pbkdf2_sha1_shit(out2, 20, cur_salt->iv, 16, 4000, 32, out);
+
+		// kcdecrypt will use 32 bytes, we only initialized 20 so far
+		memset(out2 + 20, 0, 32 - 20);
+
 		// split derived key into "key" and IV
 		memcpy(iv, out + 24, 8);
-		if(kcdecrypt(out, iv, out2, cur_salt->ct) == 0)
-				cracked[index] = 1;
-			else
-				cracked[index] = 0;
+
+		if (kcdecrypt(out, iv, out2, cur_salt->ct) == 0)
+			cracked[index] = 1;
+		else
+			cracked[index] = 0;
 	}
 	return count;
 }
@@ -308,16 +296,14 @@ static int cmp_exact(char *source, int index)
 
 static void efs_set_key(char *key, int index)
 {
-	int saved_key_length = strlen(key);
-	if (saved_key_length > PLAINTEXT_LENGTH)
-		saved_key_length = PLAINTEXT_LENGTH;
-	memcpy(saved_key[index], key, saved_key_length);
-	saved_key[index][saved_key_length] = 0;
+	/* Convert key to UTF-16LE (--encoding aware) */
+	enc_to_utf16(saved_key[index], PLAINTEXT_LENGTH,
+	             (UTF8*)key, strlen(key));
 }
 
 static char *get_key(int index)
 {
-	return saved_key[index];
+	return (char*)utf16_to_enc(saved_key[index]);
 }
 
 struct fmt_main fmt_efs = {
@@ -334,7 +320,7 @@ struct fmt_main fmt_efs = {
 		DEFAULT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_UNICODE,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_UNICODE | FMT_UTF8,
 		efs_tests
 	}, {
 		init,
