@@ -31,7 +31,6 @@
 static unsigned char *inbuffer;				/** plaintext ciphertexts **/
 static phpass_crack *outbuffer;				/** calculated hashes **/
 static phpass_salt currentsalt;
-static int any_cracked;
 
 extern void gpu_phpass(uint8_t *, phpass_salt *, phpass_crack *, int count);
 
@@ -165,7 +164,6 @@ static void *salt(char *ciphertext)
 	static phpass_salt salt;
 	salt.rounds = 1 << atoi64[ARCH_INDEX(ciphertext[3])];
 	memcpy(salt.salt, &ciphertext[4], 8);
-	pbinary(ciphertext, (unsigned char*)salt.hash);
 	return &salt;
 }
 
@@ -194,34 +192,43 @@ static char *get_key(int index)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int count = *pcount;
-	int i;
-
-	if (any_cracked) {
-		memset(outbuffer, 0, sizeof(phpass_crack) * KEYS_PER_CRYPT);
-		any_cracked = 0;
-	}
-	gpu_phpass(inbuffer, &currentsalt, outbuffer, count);
-	for (i = 0; i < count; i++) {
-		any_cracked |= outbuffer[i].cracked;
-	}
-	return count;
+	memset(outbuffer, 0, sizeof(phpass_crack) * KEYS_PER_CRYPT);
+	gpu_phpass(inbuffer, &currentsalt, outbuffer, *pcount);
+	return *pcount;
 }
 
 static int cmp_all(void *binary, int count)
 {
-	return any_cracked;
+	int i;
+	unsigned int *b32 = (unsigned int *)binary;
+	for(i=0; i < count; i++)
+		if(outbuffer[i].hash[0] == b32[0])
+			return 1;
+	return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return outbuffer[index].cracked;
+	int i;
+	unsigned int *b32 = (unsigned int *)binary;
+	for(i=0; i < 4; i++)
+		if(outbuffer[index].hash[i] != b32[i])
+			return 0;
+	return 1;
 }
 
 static int cmp_exact(char *source, int index)
 {
-	return outbuffer[index].cracked;
+	return 1;
 }
+
+static int get_hash_0(int index) { return outbuffer[index].hash[0] & 0xf; }
+static int get_hash_1(int index) { return outbuffer[index].hash[0] & 0xff; }
+static int get_hash_2(int index) { return outbuffer[index].hash[0] & 0xfff; }
+static int get_hash_3(int index) { return outbuffer[index].hash[0] & 0xffff; }
+static int get_hash_4(int index) { return outbuffer[index].hash[0] & 0xfffff; }
+static int get_hash_5(int index) { return outbuffer[index].hash[0] & 0xffffff; }
+static int get_hash_6(int index) { return outbuffer[index].hash[0] & 0x7ffffff; }
 
 struct fmt_main fmt_cuda_phpass = {
 	{
@@ -250,7 +257,13 @@ struct fmt_main fmt_cuda_phpass = {
 		salt,
 		fmt_default_source,
 		{
-			fmt_default_binary_hash
+			fmt_default_binary_hash_0,
+			fmt_default_binary_hash_1,
+			fmt_default_binary_hash_2,
+			fmt_default_binary_hash_3,
+			fmt_default_binary_hash_4,
+			fmt_default_binary_hash_5,
+			fmt_default_binary_hash_6
 		},
 		fmt_default_salt_hash,
 		set_salt,
@@ -259,7 +272,13 @@ struct fmt_main fmt_cuda_phpass = {
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-			fmt_default_get_hash
+			get_hash_0,
+			get_hash_1,
+			get_hash_2,
+			get_hash_3,
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
 		},
 		cmp_all,
 		cmp_one,

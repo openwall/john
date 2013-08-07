@@ -73,12 +73,11 @@ typedef struct {
 
 typedef struct {
 	uint8_t salt[8];
-	uint32_t hash[4];
 	uint32_t rounds;
 } phpass_salt;
 
 typedef struct {
-	uint8_t cracked;
+	uint32_t hash[4];
 } phpass_crack;
 
 #endif

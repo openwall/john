@@ -22,7 +22,6 @@
 #define PLAINTEXT_LENGTH	15
 
 typedef struct {
-	uint32_t hash[4];	//hash that we are looking for
 	uint8_t length;   //salt length
 	char salt[8];
 	char prefix;		// 'a' when $apr1$ or '1' when $1$
@@ -34,7 +33,7 @@ typedef struct {
 } crypt_md5_password;
 
 typedef struct {
-	  char cracked;
+	uint32_t hash[4];
 } crypt_md5_crack;
 
 typedef struct __attribute__((__aligned__(4))){

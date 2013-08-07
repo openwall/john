@@ -131,7 +131,7 @@ __device__ void md5_digest(md5_ctx * ctx, uint32_t * result,
 }
 
 
-__device__ void md5crypt(const char *gpass, size_t keysize, char *result)
+__device__ void md5crypt(const char *gpass, size_t keysize, unsigned int *result)
 {
 
 	uint32_t i;
@@ -202,12 +202,10 @@ __device__ void md5crypt(const char *gpass, size_t keysize, char *result)
 			ctx_update(&ctx, pass, pass_len, &ctx_buflen);
 		md5_digest(&ctx, alt_result[threadIdx.x], &ctx_buflen);
 	}
-	char cracked = 1;
-	cracked &= (alt_result[threadIdx.x][0] == cuda_salt[0].hash[0]);
-	cracked &= (alt_result[threadIdx.x][1] == cuda_salt[0].hash[1]);
-	cracked &= (alt_result[threadIdx.x][2] == cuda_salt[0].hash[2]);
-	cracked &= (alt_result[threadIdx.x][3] == cuda_salt[0].hash[3]);
-	*result = cracked;
+	result[0] = alt_result[threadIdx.x][0];
+	result[1] = alt_result[threadIdx.x][1];
+	result[2] = alt_result[threadIdx.x][2];
+	result[3] = alt_result[threadIdx.x][3];
 }
 
 
@@ -216,7 +214,7 @@ __global__ void kernel_crypt_r(crypt_md5_password * inbuffer,
 {
 	uint32_t idx = blockIdx.x * blockDim.x + threadIdx.x;
 	md5crypt((char *) inbuffer[idx].v, inbuffer[idx].length,
-	    &outbuffer[idx].cracked);
+	    outbuffer[idx].hash);
 }
 
 __host__ void md5_crypt_gpu(crypt_md5_password * inbuffer, uint32_t * outbuffer,

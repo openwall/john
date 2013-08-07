@@ -31,7 +31,6 @@ void md5_crypt_gpu(crypt_md5_password *, crypt_md5_crack *,
 static crypt_md5_password *inbuffer;			/** plaintext ciphertexts **/
 static crypt_md5_crack *outbuffer;			/** cracked or no **/
 static crypt_md5_salt host_salt;			/** salt **/
-static int any_cracked;
 
 //#define CUDA_DEBUG
 
@@ -191,7 +190,7 @@ static void *salt(char *ciphertext)
 #endif
 	static crypt_md5_salt ret;
 	uint8_t i, *pos = (uint8_t *) ciphertext, *end;
-	char *p,*dest = ret.salt;
+	char *dest = ret.salt;
 	if (strncmp(ciphertext, md5_salt_prefix, strlen(md5_salt_prefix)) == 0) {
 		pos += strlen(md5_salt_prefix);
 		ret.prefix = '1';
@@ -206,15 +205,6 @@ static void *salt(char *ciphertext)
 	while (pos != end)
 		*dest++ = *pos++;
 	ret.length = i;
-	p = strrchr(ciphertext, '$') + 1;
-	to_binary(p,(char*) ret.hash);
-#ifdef CUDA_DEBUG
-	puts("salted:");
-	uint32_t *t=ret.hash;
-	for(i=0;i<4;i++)
-	  printf("%08x ",t[i]);
-	puts("");
-#endif
 	return (void *) &ret;
 }
 
@@ -244,38 +234,42 @@ static char *get_key(int index)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int count = *pcount;
-	int i;
-
-	if (any_cracked) {
-		memset(outbuffer, 0, sizeof(crypt_md5_crack) * KEYS_PER_CRYPT);
-		any_cracked = 0;
-	}
-	md5_crypt_gpu(inbuffer, outbuffer, &host_salt, count);
-	for (i = 0; i < count; i++) {
-		any_cracked|=outbuffer[i].cracked;
-	}
-#ifdef CUDA_DEBUG
-	printf("crypt_all(%d)\n", count);
-	printf("any_cracked=%d\n",any_cracked);
-#endif
-	return count;
+	md5_crypt_gpu(inbuffer, outbuffer, &host_salt, *pcount);
+	return *pcount;
 }
 
 static int cmp_all(void *binary, int count)
 {
-	return any_cracked;
+	int i;
+	unsigned int *b32 = (unsigned int *)binary;
+	for(i=0; i < count; i++)
+		if(outbuffer[i].hash[0] == b32[0])
+			return 1;
+	return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return outbuffer[index].cracked;
+	int i;
+	unsigned int *b32 = (unsigned int *)binary;
+	for(i=0; i < 4; i++)
+		if(outbuffer[index].hash[i] != b32[i])
+			return 0;
+	return 1;
 }
 
 static int cmp_exact(char *source, int index)
 {
-	return outbuffer[index].cracked;
+	return 1;
 }
+
+static int get_hash_0(int index) { return outbuffer[index].hash[0] & 0xf; }
+static int get_hash_1(int index) { return outbuffer[index].hash[0] & 0xff; }
+static int get_hash_2(int index) { return outbuffer[index].hash[0] & 0xfff; }
+static int get_hash_3(int index) { return outbuffer[index].hash[0] & 0xffff; }
+static int get_hash_4(int index) { return outbuffer[index].hash[0] & 0xfffff; }
+static int get_hash_5(int index) { return outbuffer[index].hash[0] & 0xffffff; }
+static int get_hash_6(int index) { return outbuffer[index].hash[0] & 0x7ffffff; }
 
 struct fmt_main fmt_cuda_cryptmd5 = {
 	{
@@ -304,7 +298,13 @@ struct fmt_main fmt_cuda_cryptmd5 = {
 		salt,
 		fmt_default_source,
 		{
-			fmt_default_binary_hash
+			fmt_default_binary_hash_0,
+			fmt_default_binary_hash_1,
+			fmt_default_binary_hash_2,
+			fmt_default_binary_hash_3,
+			fmt_default_binary_hash_4,
+			fmt_default_binary_hash_5,
+			fmt_default_binary_hash_6
 		},
 		fmt_default_salt_hash,
 		set_salt,
@@ -313,7 +313,13 @@ struct fmt_main fmt_cuda_cryptmd5 = {
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-			fmt_default_get_hash
+			get_hash_0,
+			get_hash_1,
+			get_hash_2,
+			get_hash_3,
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
 		},
 		cmp_all,
 		cmp_one,

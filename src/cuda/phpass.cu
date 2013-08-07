@@ -266,11 +266,8 @@ __global__ void kernel_phpass(unsigned char *password, phpass_crack * data_out)
 		x3 = d + 0x10325476;
 
 	} while (--count);
-
-	char cracked = 1;
-	cracked &= (x0 == cuda_salt[0].hash[0]);
-	cracked &= (x1 == cuda_salt[0].hash[1]);
-	cracked &= (x2 == cuda_salt[0].hash[2]);
-	cracked &= (x3 == cuda_salt[0].hash[3]);
-	data_out[idx].cracked = cracked;
+	data_out[idx].hash[0] = x0;
+	data_out[idx].hash[1] = x1;
+	data_out[idx].hash[2] = x2;
+	data_out[idx].hash[3] = x3;
 }
