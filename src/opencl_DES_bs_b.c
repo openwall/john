@@ -73,6 +73,8 @@ void opencl_DES_reset(struct db_main *db) {
 
 	benchmark = 0;
 
+	db->max_int_keys = 0;
+
 	}
 }
 

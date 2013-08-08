@@ -54,22 +54,25 @@
 /* Incremental mode enabled */
 #define FLG_INC_CHK			0x00000800
 #define FLG_INC_SET			(FLG_INC_CHK | FLG_CRACKING_SET)
+/* Mask mode enabled */
+#define FLG_MASK_CHK			0x00001000
+#define FLG_MASK_SET 			FLG_MASK_CHK | FLG_CRACKING_SET
 /* External mode or word filter enabled */
-#define FLG_EXTERNAL_CHK		0x00001000
+#define FLG_EXTERNAL_CHK		0x00002000
 #define FLG_EXTERNAL_SET \
 	(FLG_EXTERNAL_CHK | FLG_ACTION | FLG_CRACKING_SUP | FLG_PWD_SUP)
 /* Batch cracker */
 #define FLG_BATCH_CHK			0x00004000
 #define FLG_BATCH_SET			(FLG_BATCH_CHK | FLG_CRACKING_SET)
 /* Stdout mode */
-#define FLG_STDOUT			0x00008000
+#define FLG_STDOUT			0x00010000
 /* Restoring an interrupted session */
-#define FLG_RESTORE_CHK			0x00010000
+#define FLG_RESTORE_CHK			0x00020000
 #define FLG_RESTORE_SET			(FLG_RESTORE_CHK | FLG_ACTION)
 /* A session name is set */
-#define FLG_SESSION			0x00020000
+#define FLG_SESSION			0x00040000
 /* Print status of a session */
-#define FLG_STATUS_CHK			0x00040000
+#define FLG_STATUS_CHK			0x00080000
 #define FLG_STATUS_SET			(FLG_STATUS_CHK | FLG_ACTION)
 /* Make a charset */
 #define FLG_MAKECHR_CHK			0x00100000
@@ -159,6 +162,9 @@ struct options_main {
 
 /* Charset file name */
 	char *charset;
+
+/* Mask mode's mask */
+	char *mask;
 
 /* The non-default input character set (utf8, ansi, iso-8859-1, etc)
    as given by the user (might be with/without dash and lower/upper case
