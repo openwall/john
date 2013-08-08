@@ -24,7 +24,7 @@
 /*
  * John's version number.
  */
-#define JOHN_VERSION			"1.8.0.1-bleeding-jumbo"
+#define JOHN_VERSION			"1.8.0.2-bleeding-jumbo"
 
 /*
  * Notes to packagers of John for *BSD "ports", Linux distributions, etc.:

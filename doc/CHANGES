@@ -1,7 +1,9 @@
-The following changes have been made between John 1.8.0 and 1.8.0.1:
+The following changes have been made between John 1.8.0 and 1.8.0.2:
 
 * Added linux-arm32le and linux-arm32le-neon make targets (the latter makes use
 of NEON for bitslice DES).
+* Fixed a bug where "Warning: no OpenMP support for this hash type" could be
+printed in "--stdout" mode.
 
 The following changes have been made between John 1.7.9.8 and 1.8.0:
 
@@ -333,4 +335,4 @@ Mac OS X (PowerPC and x86), SCO, BeOS.
 * Bug and portability fixes, and new bugs.
 * Bonus: "Strip" cracker included in the default john.conf (john.ini).
 
-$Owl: Owl/packages/john/john/doc/CHANGES,v 1.92 2013/06/02 23:53:33 solar Exp $
+$Owl: Owl/packages/john/john/doc/CHANGES,v 1.93 2013/07/08 09:57:18 solar Exp $

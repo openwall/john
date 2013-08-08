@@ -57,6 +57,75 @@ typedef uint32x2_t vtype;
 #define vshr(dst, src, shift) \
 	(dst) = vshr_n_u32((src), (shift))
 
+#elif defined(__ARM_NEON__) && ARCH_BITS == 32 && DES_BS_DEPTH == 96
+#include <arm_neon.h>
+
+typedef struct {
+	uint32x2_t f;
+	unsigned ARCH_WORD g;
+} vtype;
+
+#define vst(dst, ofs, src) \
+	vst1_u32( \
+	    (uint32_t *)&((vtype *)((DES_bs_vector *)&(dst) + (ofs)))->f, \
+	    (src).f); \
+	((vtype *)((DES_bs_vector *)&(dst) + (ofs)))->g = (src).g
+
+#define vxor(dst, a, b) \
+	(dst).f = veor_u32((a).f, (b).f); \
+	(dst).g = (a).g ^ (b).g
+
+#define vnot(dst, a) \
+	(dst).f = vmvn_u32((a).f); \
+	(dst).g = ~(a).g
+#define vand(dst, a, b) \
+	(dst).f = vand_u32((a).f, (b).f); \
+	(dst).g = (a).g & (b).g
+#define vor(dst, a, b) \
+	(dst).f = vorr_u32((a).f, (b).f); \
+	(dst).g = (a).g | (b).g
+#define vandn(dst, a, b) \
+	(dst).f = vbic_u32((a).f, (b).f); \
+	(dst).g = (a).g & ~(b).g
+#define vsel(dst, a, b, c) \
+	(dst).f = vbsl_u32((c).f, (b).f, (a).f); \
+	(dst).g = (((a).g & ~(c).g) ^ ((b).g & (c).g))
+
+#elif defined(__ARM_NEON__) && DES_BS_DEPTH == 128 && defined(DES_BS_2X64)
+#include <arm_neon.h>
+
+typedef struct {
+	uint32x2_t f, g;
+} vtype;
+
+#define vst(dst, ofs, src) \
+	vst1_u32( \
+	    (uint32_t *)&((vtype *)((DES_bs_vector *)&(dst) + (ofs)))->f, \
+	    (src).f); \
+	vst1_u32( \
+	    (uint32_t *)&((vtype *)((DES_bs_vector *)&(dst) + (ofs)))->g, \
+	    (src).g)
+
+#define vxor(dst, a, b) \
+	(dst).f = veor_u32((a).f, (b).f); \
+	(dst).g = veor_u32((a).g, (b).g)
+
+#define vnot(dst, a) \
+	(dst).f = vmvn_u32((a).f); \
+	(dst).g = vmvn_u32((a).g)
+#define vand(dst, a, b) \
+	(dst).f = vand_u32((a).f, (b).f); \
+	(dst).g = vand_u32((a).g, (b).g)
+#define vor(dst, a, b) \
+	(dst).f = vorr_u32((a).f, (b).f); \
+	(dst).g = vorr_u32((a).g, (b).g)
+#define vandn(dst, a, b) \
+	(dst).f = vbic_u32((a).f, (b).f); \
+	(dst).g = vbic_u32((a).g, (b).g)
+#define vsel(dst, a, b, c) \
+	(dst).f = vbsl_u32((c).f, (b).f, (a).f); \
+	(dst).g = vbsl_u32((c).g, (b).g, (a).g)
+
 #elif defined(__ARM_NEON__) && DES_BS_DEPTH == 128
 #include <arm_neon.h>
 
