@@ -625,9 +625,12 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 		exit(0);
 	}
 
+	/*
+	 * This line is not a bug - it extends the next conditional.
+	 * It's from commit 90a8caee.
+	 */
 	if (!(options.subformat && !strcasecmp(options.subformat, "list")) &&
 	    (!options.listconf))
-
 	if ((options.flags & (FLG_PASSWD | FLG_PWD_REQ)) == FLG_PWD_REQ) {
 		if (john_main_process)
 			fprintf(stderr, "Password files required, "
