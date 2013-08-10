@@ -139,25 +139,15 @@ static void release_clobj(void)
 	HANDLE_CLERROR(clReleaseMemObject(buffer_idx), "Error Releasing buffer_idx");
 	HANDLE_CLERROR(clReleaseMemObject(buffer_out), "Error Releasing buffer_out");
 	HANDLE_CLERROR(clReleaseMemObject(pinned_saved_keys), "Error Releasing pinned_saved_keys");
-
-
+	HANDLE_CLERROR(clReleaseMemObject(pinned_partial_hashes), "Error Releasing pinned_partial_hashes");
 	MEM_FREE(res_hashes);
 }
 
 static void done(void)
 {
 	release_clobj();
-	HANDLE_CLERROR(clReleaseMemObject(buffer_cmp_out), "Error Releasing cmp_out");
-	HANDLE_CLERROR(clReleaseMemObject(buffer_ld_hashes), "Error Releasing loaded hashes");
-	HANDLE_CLERROR(clReleaseMemObject(buffer_return_keys), "Error Releasing return keys");
-	HANDLE_CLERROR(clReleaseMemObject(pinned_partial_hashes), "Error Releasing pinned_partial_hashes");
 
-	MEM_FREE(cmp_out);
-	MEM_FREE(loaded_hashes);
-	MEM_FREE(return_keys);
-
-	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release self_test kernel");
-	HANDLE_CLERROR(clReleaseKernel(crk_kernel), "Release cracking kernel");
+	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
 	HANDLE_CLERROR(clReleaseProgram(program[ocl_gpu_id]), "Release Program");
 }
 
