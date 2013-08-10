@@ -543,19 +543,12 @@ int opencl_DES_bs_crypt_25(int *pcount, struct db_salt *salt)
 		pw = salt -> list;
 		do {
 			  bin = (int *)pw -> binary;
-			  if(bin != NULL) {
-				loaded_hash[i] = bin[0] ;
-				loaded_hash[i + salt -> count] = bin[1];
-				i++ ;
-			  }
-
+			  loaded_hash[i] = bin[0] ;
+			  loaded_hash[i + salt -> count] = bin[1];
+			  i++ ;
+			  //  printf("%d %d\n", i++, bin[0]);
 		} while ((pw = pw -> next)) ;
 		num_loaded_hash = (salt -> count);
-
-		if(i != (salt->count)) {
-			fprintf(stderr, "Something went wrong while loading hashes to gpu..Exiting..\n");
-			exit(0);
-		}
 		//printf("%d\n",loaded_hash[salt->count-1]);
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], loaded_hash_gpu, CL_TRUE, 0, (salt -> count) * sizeof(int) * 2, loaded_hash, 0, NULL, NULL ), "Failed Copy data to gpu");
 		HANDLE_CLERROR(clSetKernelArg(krnl[ocl_gpu_id][pos], 5, sizeof(int), &(salt->count)), "Set Kernel krnl Arg 5 :FAILED") ;
@@ -648,19 +641,12 @@ int opencl_DES_bs_crypt_25(int *pcount, struct db_salt *salt)
 		pw = salt -> list;
 		do {
 			  bin = (int *)pw -> binary;
-			  if(bin != NULL) {
-				loaded_hash[i] = bin[0] ;
-				loaded_hash[i + salt -> count] = bin[1];
-				i++ ;
-			  }
-
+			  loaded_hash[i] = bin[0] ;
+			  loaded_hash[i + salt -> count] = bin[1];
+			  i++ ;
+			  //printf("%d %d\n", i++, bin[0]);
 		} while ((pw = pw -> next)) ;
 		num_loaded_hash = (salt -> count);
-
-		if(i != (salt->count)) {
-			fprintf(stderr, "Something went wrong while loading hashes to gpu..Exiting..\n");
-			exit(0);
-		}
 		//printf("%d\n",loaded_hash[salt->count-1 + salt -> count]);
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], loaded_hash_gpu, CL_TRUE, 0, (salt -> count) * sizeof(int) * 2, loaded_hash, 0, NULL, NULL ), "Failed Copy data to gpu");
 		HANDLE_CLERROR(clSetKernelArg(krnl[ocl_gpu_id][0], 5, sizeof(int), &(salt->count)), "Set Kernel krnl Arg 5 :FAILED") ;
