@@ -329,7 +329,6 @@ static void opencl_md5_reset(struct db_main *db)
 
 		benchmark = 0;
 
-		db->max_int_keys = 0;
 		db->format->methods.crypt_all = crypt_all;
 		db->format->methods.get_key = get_key;
 	}

@@ -1138,9 +1138,6 @@ static void john_run(void)
 		if (options.flags & FLG_SINGLE_CHK)
 			do_single_crack(&database);
 		else
-		if (options.flags & FLG_MASK_CHK)
-			do_mask_crack(&database, options.mask, options.wordlist);
-		else
 		if (options.flags & FLG_WORDLIST_CHK)
 			do_wordlist_crack(&database, options.wordlist,
 				(options.flags & FLG_RULES) != 0);

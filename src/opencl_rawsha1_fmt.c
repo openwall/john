@@ -339,8 +339,6 @@ static void opencl_sha1_reset(struct db_main *db) {
 		        "New local worksize (LWS) %zd\n",
 		        local_work_size);
 
-	db->max_int_keys = 0;
-
 	db->format->methods.crypt_all = crypt_all;
 	db->format->methods.get_key = get_key;
 	db->format->params.min_keys_per_crypt = local_work_size;

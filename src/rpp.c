@@ -24,14 +24,6 @@ int rpp_init(struct rpp_context *ctx, char *subsection)
 	return 1;
 }
 
-void rpp_init_mask(struct rpp_context *ctx, char *mask)
-{
-	ctx->input = &ctx->dummy_list_entry;
-	ctx->input->data = mask;
-	ctx->input->next = NULL;
-	ctx->count = -1;
-}
-
 static void rpp_add_char(struct rpp_range *range, unsigned char c)
 {
 	if (range->flag_r) {
@@ -48,11 +40,10 @@ static void rpp_add_char(struct rpp_range *range, unsigned char c)
 	range->chars[range->count++] = (char)c;
 }
 
-void rpp_process_rule(struct rpp_context *ctx)
+static void rpp_process_rule(struct rpp_context *ctx)
 {
 	struct rpp_range *range;
 	unsigned char *input, *output, *end;
-	unsigned char *saved_input;
 	unsigned char c1, c2, c;
 	int flag_p, flag_r;
 
@@ -61,8 +52,6 @@ void rpp_process_rule(struct rpp_context *ctx)
 	end = output + RULE_BUFFER_SIZE - 1;
 	flag_p = flag_r = 0;
 	ctx->count = ctx->refs_count = 0;
-
-	saved_input = NULL;
 
 	while (*input && output < end)
 	switch (*input) {
@@ -105,40 +94,8 @@ void rpp_process_rule(struct rpp_context *ctx)
 		}
 		break;
 
-	case '?':
-		if (ctx->input != &ctx->dummy_list_entry) /* not mask mode */
-			goto not_mask;
-		if (*++input == '?')
-			goto not_mask;
-		saved_input = input + 1;
-		switch (*input) {
-		case 'l':
-			input = (unsigned char *)"[a-z]";
-			break;
-		case 'u':
-			input = (unsigned char *)"[A-Z]";
-			break;
-		case 'd':
-			input = (unsigned char *)"[0-9]";
-			break;
-		case 's':
-			input = (unsigned char *)"[!-/:-@[-`{-~]";
-			break;
-		case 'a':
-			input = (unsigned char *)"[!-~]";
-			break;
-		default:
-			saved_input = NULL;
-			input--;
-			goto not_mask;
-		}
-
 	case '[':
 		if (ctx->count >= RULE_RANGES_MAX) {
-			if (saved_input) {
-				input = saved_input - 2;
-				saved_input = NULL;
-			}
 			*output++ = *input++;
 			break;
 		}
@@ -189,15 +146,9 @@ void rpp_process_rule(struct rpp_context *ctx)
 		}
 		if (*input) input++;
 
-		if (saved_input) {
-			input = saved_input;
-			saved_input = NULL;
-		}
-
 		break;
 
 	default:
-not_mask:
 		*output++ = *input++;
 	}
 
@@ -267,59 +218,4 @@ char *rpp_next(struct rpp_context *ctx)
 	}
 
 	return ctx->output;
-}
-
-char *msk_next(struct rpp_context *rpp_ctx, struct mask_context *msk_ctx, int *flag)
-{
-	struct rpp_range *range;
-	int index, done, i;
-	static int skipcurrentidx = 0x7fffffff, processcurrentidx=0x7fffffff;
-
-	done = 1;
-	if((*flag)) return NULL;
-
-	if ((index = rpp_ctx->count - 1) >= 0) {
-
-		do {
-			range = &rpp_ctx->ranges[index];
-			*range->pos = range->chars[range->index];
-		} while (index--);
-
-		index = rpp_ctx->count - 1;
-
-		do {
-			if(skipcurrentidx == index) goto next_idx;
-			if(processcurrentidx == index) goto skip_search;
-			for (i = 0; i < msk_ctx -> count; i++) {
-				if(msk_ctx -> activeRangePos[i] == index) {
-					skipcurrentidx = index;
-					goto next_idx;
-				}
-			}
-			processcurrentidx = index;
-skip_search:            ;
-			range = &rpp_ctx->ranges[index];
-			if (range->flag_p > 0)
-				continue;
-			if (++range->index < range->count) {
-				if (range->flag_p)
-					continue;
-				else
-					break;
-			}
-			range->index = 0;
-
-next_idx: 		;
-		} while (index--);
-		done = index < 0;
-
-	}
-
-	if (done) {
-		rpp_ctx->input = rpp_ctx->input->next;
-		rpp_ctx->count = -1;
-		*flag = 1;
-	}
-	//printf("%s\n",rpp_ctx->output);
-	return rpp_ctx->output;
 }

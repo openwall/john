@@ -492,7 +492,6 @@ void fmt_default_done(void)
 
 void fmt_default_reset(struct db_main *db)
 {
-	if(db) db -> max_int_keys = 0;
 }
 
 char *fmt_default_prepare(char *fields[10], struct fmt_main *self)
