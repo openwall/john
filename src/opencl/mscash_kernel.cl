@@ -147,20 +147,40 @@ void prepare_key(__global uint * key, int length, uint * nt_buffer)
 	nt_buffer[14] = length << 4;
 }
 
-__kernel void mscash(__global uint *keys, __global uint *keyIdx, __global uint *salt, __global uint *outBuffer) {
+void prepare_login(__local uint * login, int length,
+    uint * nt_buffer)
+{
+	int i = 0, nt_index, keychars;;
+	for (i = 4; i < 16; i++)
+		nt_buffer[i] = 0;
+
+	nt_index = 4;
+	for (i = 0; i < (length + 4)/ 4; i++) {
+		keychars = login[i];
+		nt_buffer[nt_index++] = (keychars & 0xFF) | (((keychars >> 8) & 0xFF) << 16);
+		nt_buffer[nt_index++] = ((keychars >> 16) & 0xFF) | ((keychars >> 24) << 16);
+	}
+	nt_index = 4 + (length >> 1);
+	nt_buffer[nt_index] = (nt_buffer[nt_index] & 0xFF) | (0x80 << ((length & 1) << 4));
+	nt_buffer[nt_index + 1] = 0;
+	nt_buffer[14] = (length << 4) + 128;
+}
+
+__kernel void mscash(__global uint *keys, __global uint *keyIdx, __global mscash_salt *salt, __global uint *outBuffer) {
 
 	int gid = get_global_id(0), i;
 	int lid = get_local_id(0);
 	int numkeys = get_global_size(0);
 	uint nt_buffer[16] = { 0 };
 	uint output[4] = { 0 };
+	uchar loginlength = salt[0].length;
 	uchar passwordlength = keyIdx[gid];
 
-	__local uint login[12];
+	__local uint login[16];
 
 	if(!lid)
-		for(i = 0; i < 12; i++)
-			login[i] = salt[i];
+		for(i = 0; i < (loginlength + 4)/4; i++)
+			login[i] = salt[0].salt.isalt[i];
 	barrier(CLK_LOCAL_MEM_FENCE);
 
 	prepare_key(keys + gid * ((PLAINTEXT_LENGTH + 3)/4), passwordlength, nt_buffer);
@@ -170,8 +190,7 @@ __kernel void mscash(__global uint *keys, __global uint *keyIdx, __global uint *
 	nt_buffer[2] = output[2];
 	nt_buffer[3] = output[3];
 
-	for(i = 0; i < 12; i++)
-		nt_buffer[i + 4] = login[i];
+	prepare_login(login, loginlength, nt_buffer);
 	md4_crypt(output, nt_buffer);
 
 	outBuffer[gid] = output[0];

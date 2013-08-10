@@ -34,4 +34,12 @@
 
 static const char mscash_prefix[] = "M$";
 
+typedef struct {
+	unsigned char length;
+	union {
+		char csalt[SALT_LENGTH+1];
+		unsigned int isalt[(SALT_LENGTH + 4)/4];
+	} salt;
+} mscash_salt;
+
 #endif
