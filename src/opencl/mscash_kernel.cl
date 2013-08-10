@@ -6,10 +6,9 @@
  * <lukas dot odzioba at gmail dot com>
  */
 
-#define _OPENCL_COMPILER
 #include "opencl_mscash.h"
 
-inline void md4_crypt(__private uint *output, __private uint *nt_buffer)
+void md4_crypt(__private uint *output, __private uint *nt_buffer)
 {
 	unsigned int a = INIT_A;
 	unsigned int b = INIT_B;
@@ -133,7 +132,7 @@ inline void md4_crypt(__private uint *output, __private uint *nt_buffer)
 	output[3] = d + INIT_D;
 }
 
-inline void prepare_key(__global uint * key, int length, uint * nt_buffer)
+void prepare_key(__global uint * key, int length, uint * nt_buffer)
 {
 	int i = 0, nt_index, keychars;
 	nt_index = 0;

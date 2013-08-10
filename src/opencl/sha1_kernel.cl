@@ -348,7 +348,7 @@ inline uint SWAP32(uint x)
 		printf("\n"); \
 	}
 
-inline void cmp(__global uint *hashes,
+void cmp(__global uint *hashes,
 	  __global uint *loaded_hashes,
 	  __local uint *bitmap0,
 	  __local uint *bitmap1,

@@ -547,6 +547,7 @@ static int crypt_all_self_test(int *pcount, struct db_salt *salt)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	unsigned int i;
 	int key_length_mul_4 = (((max_key_length+1) + 3)/4)*4;
 

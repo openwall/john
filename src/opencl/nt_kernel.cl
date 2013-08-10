@@ -48,7 +48,7 @@
 	#define ELEM_3 0
 #endif
 
-inline void coalasced_load(__private uint *nt_buffer, const __global uint *keys, uint *md4_size, uint gid, uint num_keys) {
+void coalasced_load(__private uint *nt_buffer, const __global uint *keys, uint *md4_size, uint gid, uint num_keys) {
 
 	uint key_chars;
 	uint nt_index = 0;
@@ -84,7 +84,7 @@ inline void coalasced_load(__private uint *nt_buffer, const __global uint *keys,
 	(*md4_size) = (*md4_size) << 4;
 }
 
-inline void nt_crypt(__private uint *hash, __private uint *nt_buffer, uint md4_size) {
+void nt_crypt(__private uint *hash, __private uint *nt_buffer, uint md4_size) {
 	uint tmp;
 
 	/* Round 1 */
@@ -154,7 +154,7 @@ inline void nt_crypt(__private uint *hash, __private uint *nt_buffer, uint md4_s
 
 }
 
-inline void cmp(__global uint *hashes,
+void cmp(__global uint *hashes,
 	  __global const uint *loaded_hashes,
 	  __local uint *bitmap0,
 	  __local uint *bitmap1,
