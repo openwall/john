@@ -23,8 +23,8 @@
 #define BUFSIZE            	((PLAINTEXT_LENGTH+3)/4*4)
 
 static unsigned int *outbuffer, *saved_idx;
-static unsigned int *saved_plain;
-static unsigned int current_salt[12], key_idx = 0;
+static unsigned char *saved_plain;
+static unsigned int current_salt[12];
 
 cl_mem buffer_out, buffer_keys, buffer_idx, buffer_salt;
 
@@ -64,7 +64,7 @@ static void init(struct fmt_main *self)
 	int argIndex;
 
 	//Allocate memory for hashes and passwords
-	saved_plain = (unsigned int *) mem_calloc(MAX_KEYS_PER_CRYPT * BUFSIZE);
+	saved_plain = (unsigned char *) mem_calloc(MAX_KEYS_PER_CRYPT * BUFSIZE);
 	saved_idx = (unsigned int*) mem_calloc(MAX_KEYS_PER_CRYPT * sizeof(unsigned int));
 	outbuffer =
 	    (unsigned int *) mem_alloc(MAX_KEYS_PER_CRYPT * 4 * sizeof(unsigned int));
@@ -196,36 +196,23 @@ static void set_salt(void *salt)
 	memcpy(&current_salt, salt, sizeof(unsigned int) * 12);
 }
 
-static void clear_keys(void)
+static void set_key(char *key, int index)
 {
-	key_idx = 0;
-}
+	unsigned char length = strlen(key);
+	unsigned int i;
+	saved_idx[index] = length;
+	for(i = 0; i < length; i++)
+		saved_plain[i + index * BUFSIZE] = key[i];
 
-static void set_key(char *_key, int index)
-{
-	const ARCH_WORD_32 *key = (ARCH_WORD_32*)_key;
-	int len = strlen(_key);
-
-	saved_idx[index] = (key_idx << 6) | len;
-
-	while (len > 4) {
-		saved_plain[key_idx++] = *key++;
-		len -= 4;
-	}
-	if (len)
-		saved_plain[key_idx++] = *key & (0xffffffffU >> (32 - (len << 3)));
 }
 
 static char *get_key(int index)
 {
-	static char out[PLAINTEXT_LENGTH + 1];
-	int i, len = saved_idx[index] & 63;
-	char *key = (char*)&saved_plain[saved_idx[index] >> 6];
-
-	for (i = 0; i < len; i++)
-		out[i] = *key++;
-	out[i] = 0;
-	return out;
+	static char ret[PLAINTEXT_LENGTH + 1];
+	unsigned char length = saved_idx[index];
+	memcpy(ret, saved_plain + BUFSIZE * index, length);
+	ret[length] = '\0';
+	return ret;
 }
 
 static int crypt_all(int *pcount, struct db_salt *salt)
@@ -235,10 +222,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	size_t lws = 64;
 
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], buffer_idx, CL_TRUE, 0,
-		sizeof(unsigned int) * global_work_size, saved_idx, 0, NULL, NULL),
+		sizeof(unsigned int) * MAX_KEYS_PER_CRYPT, saved_idx, 0, NULL, NULL),
 		"failed in clEnqueWriteBuffer buffer_idx");
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], buffer_keys, CL_TRUE, 0,
-		4 * key_idx, saved_plain, 0, NULL, NULL),
+		BUFSIZE * MAX_KEYS_PER_CRYPT, saved_plain, 0, NULL, NULL),
 		"failed in clEnqueWriteBuffer buffer_idx");
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], buffer_salt, CL_TRUE, 0,
 		sizeof(unsigned int) * 12, &current_salt, 0, NULL, NULL),
@@ -249,7 +236,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	clFinish( queue[ocl_gpu_id] );
 
 	// read back compare results
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], buffer_out, CL_TRUE, 0, 4 * global_work_size * sizeof(unsigned int), outbuffer, 0, NULL, NULL), "failed in reading cmp data back");
+	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], buffer_out, CL_TRUE, 0, 4 * MAX_KEYS_PER_CRYPT * sizeof(unsigned int), outbuffer, 0, NULL, NULL), "failed in reading cmp data back");
 
 	return count;
 }
@@ -361,7 +348,7 @@ struct fmt_main fmt_opencl_mscash = {
 		set_salt,
 		set_key,
 		get_key,
-		clear_keys,
+		fmt_default_clear_keys,
 		crypt_all,
 		{
 			get_hash_0,
