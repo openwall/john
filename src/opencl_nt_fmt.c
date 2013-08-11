@@ -7,7 +7,6 @@
  * public domain is deemed null and void, then the software is
  * Copyright (c) 2010 Alain Espinosa
  * Copyright (c) 2011 Samuele Giovanni Tonon
- * Copyright (c) 2013 Sayantan Datta
  * and it is hereby released to the general public under the following terms:
  *
  * Redistribution and use in source and binary forms, with or without
@@ -47,7 +46,7 @@ static struct fmt_tests tests[] = {
 	{"$NT$b7e4b9022cd45f275334bbdb83bb5be5", "John the Ripper"},
 	{"$NT$8bd6e4fb88e01009818749c5443ea712", "\xFC"},         // German u-diaeresis in ISO-8859-1
 	{"$NT$cc1260adb6985ca749f150c7e0b22063", "\xFC\xFC"},     // Two of the above
-	{"$NT$72810BFD51F61B92956CE08E22FD6C74", "abcdefghijklmnopqrstuvw"}, //Max length password
+	{"$NT$7a21990fcd3d759941e45c490f143d5f", "12345"},
 	{"$NT$f9e37e83b83c47a93c2f09f66408631b", "abc123"},
 	{"$NT$8846f7eaee8fb117ad06bdd830b7586c", "password"},
 	{"$NT$2b2ac2d1c7c8fda6cea80b5fad7563aa", "computer"},
@@ -176,7 +175,7 @@ static void init(struct fmt_main *self){
 	else
 		global_work_size = MAX_KEYS_PER_CRYPT;
 
-	crypt_kernel = clCreateKernel( program[ocl_gpu_id], "nt_self_test", &ret_code );
+	crypt_kernel = clCreateKernel( program[ocl_gpu_id], "nt_crypt", &ret_code );
 	HANDLE_CLERROR(ret_code,"Error creating kernel");
 
 	/* Note: we ask for the kernels' max sizes, not the device's! */
