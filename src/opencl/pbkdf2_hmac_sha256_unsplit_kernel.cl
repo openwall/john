@@ -8,6 +8,7 @@
 #define uint32_t		unsigned int
 
 #define PLAINTEXT_LENGTH	55
+#define MIN(a,b)		(((a)<(b))?(a):(b))
 
 #if gpu_amd(DEVICE_INFO)
 #define Ch(x, y, z)	bitselect(z, y, x)
@@ -257,6 +258,13 @@ typedef struct {
 	uint32_t rounds;  /** 12000 by default **/
 } salt_t;
 
+typedef struct {
+	uint32_t ipad[8];
+	uint32_t opad[8];
+	uint32_t hash[8];
+	uint32_t W[8];
+	uint32_t rounds;
+} state_t;
 
 inline void preproc(__global const uint8_t * key, uint32_t keylen,
     uint32_t * state, uint32_t padding)
@@ -381,17 +389,25 @@ inline void hmac_sha256(uint32_t * output, uint32_t * ipad_state,
 
 
 
-inline void big_hmac_sha256(uint32_t * input, uint32_t rounds,
-    uint32_t * ipad_state, uint32_t * opad_state, uint32_t * tmp_out)
+
+__kernel void pbkdf2_sha256_loop(__global state_t *state, __global crack_t *out)
 {
-	int i, round;
-	uint32_t W[16];
-	uint32_t A, B, C, D, E, F, G, H, t;
+	uint idx = get_global_id(0);
+	uint i, round, rounds = state[idx].rounds;
+	uint W[16];
+	uint ipad_state[8];
+	uint opad_state[8];
+	uint tmp_out[8];
+	uint A, B, C, D, E, F, G, H, t;
 
-	for (i = 0; i < 8; i++)
-		W[i] = input[i];
+	for (i = 0; i < 8; i++) {
+		W[i] = state[idx].W[i];
+		ipad_state[i] = state[idx].ipad[i];
+		opad_state[i] = state[idx].opad[i];
+		tmp_out[i] = state[idx].hash[i];
+	}
 
-	for (round = 1; round < rounds; round++) {
+	for (round = 0; round < MIN(rounds,HASH_LOOPS); round++) {
 
 		A = ipad_state[0];
 		B = ipad_state[1];
@@ -466,33 +482,45 @@ inline void big_hmac_sha256(uint32_t * input, uint32_t rounds,
 		tmp_out[7] ^= H;
 	}
 
-
-	for (i = 0; i < 8; i++)
-		tmp_out[i] = SWAP(tmp_out[i]);
+	if(rounds >= HASH_LOOPS){ // there is still work to do
+		state[idx].rounds = rounds - HASH_LOOPS;
+		for(i = 0; i < 8; i++) {
+			state[idx].hash[i] = tmp_out[i];
+			state[idx].W[i] = W[i];
+		}
+	}
+	else { // rounds == 0 - we're done
+		for (i = 0; i < 8; i++)
+			out[idx].hash[i] = SWAP(tmp_out[i]);
+	}
 }
 
+
+
 __kernel void pbkdf2_sha256_kernel(__global const pass_t * inbuffer,
-    __global const salt_t * gsalt, __global crack_t * outbuffer)
+    __global const salt_t * gsalt, __global state_t * state)
 {
 
-	uint32_t ipad_state[8];
-	uint32_t opad_state[8];
-	uint32_t tmp_out[8];
-	uint32_t i;
-	uint idx = get_global_id(0);
+	uint ipad_state[8];
+	uint opad_state[8];
+	uint tmp_out[8];
+	uint i, idx = get_global_id(0);
 
-	__global const uint8_t *pass = inbuffer[idx].v;
-	__global const uint8_t *salt = gsalt->salt;
-	uint32_t passlen = inbuffer[idx].length;
-	uint32_t saltlen = gsalt->length;
-	uint32_t rounds = gsalt->rounds;
+	__global const uchar *pass = inbuffer[idx].v;
+	__global const uchar *salt = gsalt->salt;
+	uint passlen = inbuffer[idx].length;
+	uint saltlen = gsalt->length;
+	state[idx].rounds = gsalt->rounds - 1;
 
 	preproc(pass, passlen, ipad_state, 0x36363636);
 	preproc(pass, passlen, opad_state, 0x5c5c5c5c);
 
 	hmac_sha256(tmp_out, ipad_state, opad_state, salt, saltlen);
-	big_hmac_sha256(tmp_out, rounds, ipad_state, opad_state, tmp_out);
 
-	for (i = 0; i < 8; i++)
-		outbuffer[idx].hash[i] = tmp_out[i];
+	for(i=0; i < 8; i++) {
+		state[idx].ipad[i] = ipad_state[i];
+		state[idx].opad[i] = opad_state[i];
+		state[idx].hash[i] = tmp_out[i];
+		state[idx].W[i] = tmp_out[i];
+	}
 }
