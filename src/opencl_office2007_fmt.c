@@ -10,7 +10,7 @@
  * modification, are permitted.
  */
 
-#include <openssl/sha.h>
+#include "sha.h"
 #include <openssl/aes.h>
 #include <stdio.h>
 #include <stdlib.h>

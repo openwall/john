@@ -19,7 +19,7 @@
 #ifndef CRYPTUTILS_H_
 #define CRYPTUTILS_H_
 
-#include <openssl/sha.h>
+#include "sha.h"
 #include "stdint.h"
 
 #define LARGE_ENOUGH 8192

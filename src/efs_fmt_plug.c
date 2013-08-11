@@ -25,7 +25,7 @@
 #include "memory.h"
 #include "options.h"
 #include "unicode.h"
-#include <openssl/sha.h>
+#include "sha.h"
 #include "gladman_hmac.h"
 #include <openssl/des.h>
 #ifdef _OPENMP

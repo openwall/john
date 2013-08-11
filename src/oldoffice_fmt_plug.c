@@ -14,7 +14,7 @@
 #include <string.h>
 #include "stdint.h"
 #include <assert.h>
-#include <openssl/sha.h>
+#include "sha.h"
 #include <errno.h>
 #include "arch.h"
 #include "misc.h"

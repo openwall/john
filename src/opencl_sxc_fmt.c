@@ -7,7 +7,7 @@
  * modification, are permitted. */
 
 #include <string.h>
-#include <openssl/sha.h>
+#include "sha.h"
 #include <openssl/blowfish.h>
 #include <openssl/aes.h>
 #ifdef _OPENMP

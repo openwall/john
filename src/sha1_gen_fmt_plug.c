@@ -4,7 +4,7 @@
  */
 
 #include <string.h>
-#include <openssl/sha.h>
+#include "sha.h"
 
 #include "arch.h"
 #include "params.h"

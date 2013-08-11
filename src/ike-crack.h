@@ -51,7 +51,7 @@
 #include <stdarg.h>
 #include "stdint.h"
 #include "md5.h"
-#include "sha.h"
+#include <openssl/sha.h>
 #include "memory.h"
 
 /* Defines */

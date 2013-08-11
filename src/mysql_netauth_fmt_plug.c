@@ -6,7 +6,7 @@
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted. */
 
-#include <openssl/sha.h>
+#include "sha.h"
 #include <string.h>
 #include <assert.h>
 #include <errno.h>

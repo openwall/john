@@ -34,7 +34,7 @@
 #ifdef HAVE_NSS
 #include <plarena.h>
 #include "lowpbe.h"
-#include <openssl/sha.h>
+#include "sha.h"
 //#include <memory.h>
 #include <stdio.h>
 #include <hasht.h>

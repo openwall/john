@@ -16,7 +16,7 @@
 #include "formats.h"
 #include "misc.h"
 #include <openssl/aes.h>
-#include <openssl/sha.h>
+#include "sha.h"
 #include <openssl/evp.h>
 //#include <openssl/hmac.h>
 #include "gladman_hmac.h"
@@ -312,7 +312,7 @@ static int LAME_ssh2_load_userkey(char *passphrase)
 			SHA1_Init(&s);
 			SHA1_Update(&s, header, sizeof(header)-1);
 			if (cur_salt->cipher && passphrase)
-				SHA_Update(&s, passphrase, passlen);
+				SHA1_Update(&s, passphrase, passlen);
 			SHA1_Final(mackey, &s);
 			hmac_sha1(mackey, 20, macdata, maclen, binary, length);
 			/* HMAC_Init(&ctx, mackey, 20, EVP_sha1());

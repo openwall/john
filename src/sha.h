@@ -1,7 +1,21 @@
 #ifndef JOHN_SHA_H
 #define JOHN_SHA_H
 
+#include <openssl/opensslv.h>
+
+#include "arch.h"
+#if defined(__APPLE__) && defined(__MACH__) && defined(__MAC_OS_X_VERSION_MIN_REQUIRED) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070 && !defined(MMX_COEF)
+/* Mitigate CommonCrypto name clashes */
+#include "md4.h"
+#include "md5.h"
+#define COMMON_DIGEST_FOR_OPENSSL
+#include <CommonCrypto/CommonDigest.h>
+#ifndef SHA_CBLOCK
+#define SHA_CBLOCK CC_SHA1_BLOCK_BYTES
+#endif
+#else
 #include <openssl/sha.h>
+#endif
 
 #ifdef MMX_COEF
 #ifdef _MSC_VER

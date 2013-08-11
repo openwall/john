@@ -8,7 +8,7 @@
  * are permitted.
  */
 
-#include <openssl/sha.h>
+#include "sha.h"
 #include <string.h>
 #include <assert.h>
 #include <errno.h>

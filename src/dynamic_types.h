@@ -40,7 +40,7 @@ typedef ARCH_WORD_32 MD5_word;
 // have only a 260 byte buffer, so it is barely large enough for those. This would be
 // nowhere near large enough to use for md5_go code any more.
 //
-// reduced to exactly 256 bytes, and will be KEPT at that length. This will allow non-mmx to work up to 
+// reduced to exactly 256 bytes, and will be KEPT at that length. This will allow non-mmx to work up to
 // dynamic_87/dynamic_107 length. Also, the original 'flat' buffers can be used for direct work, within
 // the SHA2 SSE code (4x buffer size for sha256 and 2x buffer size for SHA512).
 #define EX_BUF_LEN 132
@@ -292,11 +292,11 @@ extern void MD5_body(MD5_word x[15], MD5_word x2[15], MD5_word out[4], MD5_word 
 #define DoMD5o(A,L,C) do{if((L[0])<55&&(L[1])<55) {MD5_body(A.x1.w,A.x2.w2,C.x1.w,C.x2.w2);} else {MD5_Go2(A.x1.B,L[0],C.x1.B); MD5_Go2(A.x2.B2,L[1],C.x2.B2);} }while(0)
 #if ARCH_LITTLE_ENDIAN
 #define DoMD5a(A,L,C) MD5_body(A->x1.w,A->x2.w2,C->x1.w,C->x2.w2)
-#define DoMD5a2(A,L,C,D) MD5_body(A->x1.w,A->x2.w2, (ARCH_WORD_32*)D[0], (ARCH_WORD_32*)D[1])
+//#define DoMD5a2(A,L,C,D) MD5_body(A->x1.w,A->x2.w2, (ARCH_WORD_32*)D[0], (ARCH_WORD_32*)D[1])
 #else
-static MD5_OUT tmpOut;
+//static MD5_OUT tmpOut;
 #define DoMD5a(A,L,C) do{MD5_body(A->x1.w,A->x2.w2,C->x1.w,C->x2.w2);MD5_swap2(C->x1.w,C->x2.w2,C->x1.w,C->x2.w2,4);}while(0)
-#define DoMD5a2(A,L,C,D) do{MD5_body(A->x1.w,A->x2.w2,tmpOut.x1.w,tmpOut.x2.w2);MD5_swap2(tmpOut.x1.w,tmpOut.x2.w2,tmpOut.x1.w,tmpOut.x2.w2,4);memcpy(&(C->x1.b[D[0]]),tmpOut.x1.b,16);memcpy(&(C->x2.b2[D[1]]),tmpOut.x2.b2,16);}while(0)
+//#define DoMD5a2(A,L,C,D) do{MD5_body(A->x1.w,A->x2.w2,tmpOut.x1.w,tmpOut.x2.w2);MD5_swap2(tmpOut.x1.w,tmpOut.x2.w2,tmpOut.x1.w,tmpOut.x2.w2,4);memcpy(&(C->x1.b[D[0]]),tmpOut.x1.b,16);memcpy(&(C->x2.b2[D[1]]),tmpOut.x2.b2,16);}while(0)
 #endif
 #else
 #if (defined(_OPENMP)||defined(WAS_MMX_OPENMP)) && !MD5_ASM
@@ -311,16 +311,16 @@ extern void MD5_body(ARCH_WORD_32 x[15], ARCH_WORD_32 out[4]);
 #define DoMD5o(A,L,C) do{if((L)<55) {MD5_body(A.x1.w,C.x1.w);} else MD5_Go2(A.x1.B,L,C.x1.B); }while(0)
 #if ARCH_LITTLE_ENDIAN
 #define DoMD5a(A,L,C) MD5_body(A->x1.w,C->x1.w)
-#define DoMD5a2(A,L,C,D) MD5_body(A->x1.w,(ARCH_WORD_32*)D)
+//#define DoMD5a2(A,L,C,D) MD5_body(A->x1.w,(ARCH_WORD_32*)D)
 #else
-static MD5_OUT tmpOut;
+//static MD5_OUT tmpOut;
 #define DoMD5a(A,L,C) do{MD5_body(A->x1.w,C->x1.w);MD5_swap(C->x1.w,C->x1.w,4);}while(0)
-#define DoMD5a2(A,L,C,D) do{MD5_body(A->x1.w,tmpOut.x1.w);MD5_swap(tmpOut.x1.w,tmpOut.x1.w,4);memcpy(&(C->x1.b[D[0]]),tmpOut.x1.b,16);}while(0)
+//#define DoMD5a2(A,L,C,D) do{MD5_body(A->x1.w,tmpOut.x1.w);MD5_swap(tmpOut.x1.w,tmpOut.x1.w,4);memcpy(&(C->x1.b[D[0]]),tmpOut.x1.b,16);}while(0)
 #endif
 #endif
 #else // !USE_MD5_Go
 #ifndef MMX_COEF
-static MD5_OUT tmpOut;
+//static MD5_OUT tmpOut;
 #endif
 #define MIN_KEYS_PER_CRYPT_X86	1
 #define MAX_KEYS_PER_CRYPT_X86	X86_BLOCK_LOOPS
@@ -336,7 +336,7 @@ extern void MD5_body(ARCH_WORD_32 x1[15], ARCH_WORD_32 x2[15], ARCH_WORD_32 out1
 #define DoMD5(A,L,C) do{if(!force_md5_ctx&&(L[0])<55&&(L[1])<55) {A.x1.b[L[0]]=0x80;A.x2.b2[L[1]]=0x80;A.x1.w[14]=(L[0]<<3);A.x2.w2[14]=(L[1]<<3);MD5_swap(A.x1.w,A.x1.w,(L[0]+4)>>2);MD5_swap(A.x2.w2,A.x2.w2,(L[1]+4)>>2);MD5_body(A.x1.w,A.x2.w2,C.x1.w,C.x2.w2);MD5_swap2(C.x1.w,C.x2.w2,C.x1.w,C.x2.w2,4);} else {MD5_CTX ctx; MD5_Init(&ctx); MD5_Update(&ctx,A.x1.b,L[0]); MD5_Final((unsigned char *)(C.x1.b),&ctx); MD5_Init(&ctx); MD5_Update(&ctx,A.x2.b2,L[1]); MD5_Final((unsigned char *)(C.x2.b2),&ctx);} }while(0)
 #define DoMD5o(A,L,C) do{if((L[0])<55&&(L[1])<55) {MD5_body(A.x1.w,A.x2.w2,C.x1.w,C.x2.w2);} else {MD5_CTX ctx; MD5_Init(&ctx); MD5_Update(&ctx,A.x1.b,L[0]); MD5_Final((unsigned char *)(C.x1.b),&ctx); MD5_Init(&ctx); MD5_Update(&ctx,A.x2.b2,L[1]); MD5_Final((unsigned char *)(C.x2.b2),&ctx);} }while(0)
 #define DoMD5a(A,L,C) do{MD5_body(A->x1.w,A->x2.w2,C->x1.w,C->x2.w2);}while(0)
-#define DoMD5a2(A,L,C,D) do{MD5_body(A->x1.w,A->x2.w2,tmpOut.x1.w,tmpOut.x2.w2);MD5_swap(C->x1.w,C->x1.w,(D[0]+21)>>2);MD5_swap(C->x2.w2,C->x2.w2,(D[1]+21)>>2);MD5_swap(tmpOut.x1.w,tmpOut.x1.w,4);MD5_swap(tmpOut.x2.w2,tmpOut.x2.w2,4);memcpy(&(C->x1.b[D[0]]),tmpOut.x1.b,16);memcpy(&(C->x2.b2[D[1]]),tmpOut.x2.b2,16);MD5_swap(C->x1.w,C->x1.w,(D[0]+21)>>2);MD5_swap(C->x2.w2,C->x2.w2,(D[1]+21)>>2);}while(0)
+//#define DoMD5a2(A,L,C,D) do{MD5_body(A->x1.w,A->x2.w2,tmpOut.x1.w,tmpOut.x2.w2);MD5_swap(C->x1.w,C->x1.w,(D[0]+21)>>2);MD5_swap(C->x2.w2,C->x2.w2,(D[1]+21)>>2);MD5_swap(tmpOut.x1.w,tmpOut.x1.w,4);MD5_swap(tmpOut.x2.w2,tmpOut.x2.w2,4);memcpy(&(C->x1.b[D[0]]),tmpOut.x1.b,16);memcpy(&(C->x2.b2[D[1]]),tmpOut.x2.b2,16);MD5_swap(C->x1.w,C->x1.w,(D[0]+21)>>2);MD5_swap(C->x2.w2,C->x2.w2,(D[1]+21)>>2);}while(0)
 #else
 #if (defined(_OPENMP)||defined(WAS_MMX_OPENMP)) && !MD5_ASM
 #define MD5_body(x, out) \
@@ -349,7 +349,7 @@ extern void MD5_body(MD5_word x[15],MD5_word out[4]);
 #define DoMD5(A,L,C) do{if(!force_md5_ctx&&(L)<55) {A.x1.b[L]=0x80;A.x1.w[14]=(L<<3);MD5_swap(A.x1.w,A.x1.w,((L+4)>>2));MD5_body(A.x1.w,C.x1.w);MD5_swap(C.x1.w,C.x1.w,4);} else {MD5_CTX ctx; MD5_Init(&ctx); MD5_Update(&ctx,A.x1.b,L); MD5_Final((unsigned char *)(C.x1.b),&ctx); } }while(0)
 #define DoMD5o(A,L,C) do{if((L)<55) {MD5_body(A.x1.w,C.x1.w);} else {MD5_CTX ctx; MD5_Init(&ctx); MD5_Update(&ctx,A.x1.b,L); MD5_Final((unsigned char *)(C.x1.b),&ctx); } }while(0)
 #define DoMD5a(A,L,C) do{MD5_body(A->x1.w,C->x1.w);}while(0)
-#define DoMD5a2(A,L,C,D)  do{MD5_body(A->x1.w,tmpOut.x1.w); MD5_swap(C->x1.w,C->x1.w,(D[0]+21)>>2);memcpy(&(C->x1.b[D[0]]),tmpOut.x1.b,16); MD5_swap(C->x1.w,C->x1.w,(D[0]+21)>>2);}while(0)
+//#define DoMD5a2(A,L,C,D)  do{MD5_body(A->x1.w,tmpOut.x1.w); MD5_swap(C->x1.w,C->x1.w,(D[0]+21)>>2);memcpy(&(C->x1.b[D[0]]),tmpOut.x1.b,16); MD5_swap(C->x1.w,C->x1.w,(D[0]+21)>>2);}while(0)
 #endif
 #endif
 

@@ -17,7 +17,7 @@
 #include "params.h"
 #include "options.h"
 #include "bad_blowfish.h"
-#include <openssl/sha.h>
+#include "sha.h"
 #ifdef _OPENMP
 #include <omp.h>
 #define OMP_SCALE               64

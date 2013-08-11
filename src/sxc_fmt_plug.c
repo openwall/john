@@ -15,7 +15,7 @@
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-#include <openssl/sha.h>
+#include "sha.h"
 #include <openssl/blowfish.h>
 #include "pbkdf2_hmac_sha1.h"
 #ifdef _OPENMP

@@ -878,7 +878,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			if (cnt == cur_salt->rounds)
 				break;
 #ifdef JTR_INC_COMMON_CRYPTO_SHA2
-			SHA256_Final(crypt_struct[MixOrder[index]].cptr[0][idx], &ctx);
+			SHA256_Final(crypt_struct.cptr[0][idx], &ctx);
 #else // !defined JTR_INC_COMMON_CRYPTO_SHA2, so it is oSSL, or generic
 #if ARCH_LITTLE_ENDIAN == 1
 			{

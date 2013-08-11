@@ -12,14 +12,12 @@
 #include "arch.h"
 #include "common.h"
 #include "johnswap.h"
+#include "stdint.h"
 
 #include <assert.h>
 #include <openssl/hmac.h>
 
 #define HCCAP_SIZE		392
-#define uint8_t			unsigned char
-#define uint16_t		unsigned short
-#define uint32_t		ARCH_WORD_32
 
 #define BINARY_SIZE		sizeof(mic_t)
 #define BINARY_ALIGN		4

@@ -35,7 +35,7 @@
 #define _SECPKCS5_H_
 
 #include <plarena.h>
-#include <openssl/sha.h>
+#include "sha.h"
 #include <seccomon.h>
 #include <hasht.h>
 

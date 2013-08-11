@@ -37,6 +37,9 @@
 
 #include "arch.h"
 #if defined(__APPLE__) && defined(__MACH__) && defined(__MAC_OS_X_VERSION_MIN_REQUIRED) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070 && !defined(FORCE_OPENSSL_SHA2) && !defined(MMX_COEF)
+/* Mitigate CommonCrypto name clashes */
+#include "md4.h"
+#include "md5.h"
 #define COMMON_DIGEST_FOR_OPENSSL
 #define SHA2_LIB "CommonCrypto"
 #include <CommonCrypto/CommonDigest.h>

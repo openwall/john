@@ -35,7 +35,7 @@
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-#include <openssl/sha.h>
+#include "sha.h"
 #include "lowpbe.h"
 #include "KeyDBCracker.h"
 #ifdef _OPENMP

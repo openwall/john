@@ -1,8 +1,9 @@
-#ifndef _STDINT_H
+#if !defined(_STDINT_H) && !defined(_STDINT_H_)
 #if defined(__STDC__) || defined(__STDC_VERSION__)
 #include <stdint.h>
 #else
 #define _STDINT_H 1
+#define _STDINT_H_ 1
 
 #undef uint8_t
 #define uint8_t _john_uint8_t
