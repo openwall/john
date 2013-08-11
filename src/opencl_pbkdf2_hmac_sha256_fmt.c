@@ -149,7 +149,7 @@ static void init(struct fmt_main *self)
 	cl_ulong maxsize;
 	char build_opts[64];
         snprintf(build_opts, sizeof(build_opts), "-DHASH_LOOPS=%u", HASH_LOOPS);
-        opencl_init("$JOHN/kernels/pbkdf2_hmac_sha256_unsplit_kernel.cl",
+        opencl_init("$JOHN/kernels/pbkdf2_hmac_sha256_kernel.cl",
             ocl_gpu_id, build_opts);
 
 	local_work_size = global_work_size = 0;
