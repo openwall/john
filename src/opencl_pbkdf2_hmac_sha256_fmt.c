@@ -364,7 +364,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			1, NULL, &global_work_size, &local_work_size, 0, NULL,
 			profilingEvent), "Run split kernel");
 		HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "clFinish");
-
+		opencl_process_event();
 	}
 	/// Read the result back
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], mem_out,
