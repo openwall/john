@@ -1,6 +1,6 @@
 The following changes were made between 1.7.9-jumbo-8 and 1.8.0-jumbo-1:
 
-magnum (593):
+magnum (660):
 	formats.c: Only check binary/salt alignment if not using fmt_default_*
 	formats.c: Deliberately use misaligned ciphertext in self test
 	formats.c canary for binary/salt buffers
@@ -947,8 +947,111 @@ magnum (593):
 	  ddb17ef
 	Replace a check in gpg-opencl valid() that I accidentally dropped in
 	  ddb17ef. Hopefully proper this time.
+	Update CHANGES-jumbo-git and CREDITS-jumbo
+	Add a comment in ext_init explaining a confusing bail-out.
+	Warn when resuming an external mode lacking resume(). For modes
+	  that actually doesn't need any restore handling, add a no-op
+	  resume() function to mute the warning.
+	Add a restore() function for KDEPaste. Very slow but better than
+	  nothing.
+	External mode now refuses to resume unless a restore() function is
+	  present.
+	Minor optimizations and corrections in 7z.
+	Endianness fixes in Blake and Keccak.
+	Set FMT_UNICODE in 7z formats, so we don't produce false negatives.
+	Bad wordlist.c bug fixed, triggered when running -loop with fork/MPI.
+	Make Incremental and Rules optionally less chatty.
+	Mitigate compiler warnings from last patch.
+	Proper Unicode (and codepage) support for 7-zip format.
+	Rename scrypt to django-scrypt, as we have more generic scrypt
+	  inbound.
+	NT-opencl: Copy prepare() from CPU format. Without it, it did not
+	  handle pwdump format files.
+	All NT formats: prepare() tweak for bare hashes.
+	WPAPSK-opencl: Change auto-tune so we target a loop kernel duration of
+	  max. 200ms instead of a total crypt_all() duration of max. 10 s.
+	  This makes for a 16% boost on my laptop, 1% on GTX570 and no
+	  change on 7970.
+	KWallet bugfix for long keys. Kudos to Private2@GitHub.
+	Change django-scrypt to use the new scrypt code enhanced by Solar.
+	  NOTE there may be more changes needed, I just made it build and
+	  test OK. Are we using SIMD now as-is? Should we use escrypt_r()
+	  instead?
+	Fix generic build after introducing fmt_default_binary_hash_N
+	  functions.
+	Revert changes to DES, BSDI and LM formats from 831abd7. Never change
+	  core files unless you really know what you are doing!
+	Drop incrementals "try" counter, which was naively updated at every
+	  call to crk_process_key(), in favour of the now existing
+	  status.cands which is better implemented. This also means I
+	  could drop Jumbo-specific code for restoring progress -
+	  status.cands is already handled by core.
+	Bugfix: The "3/3" batch mode output was mistaken for a percent figure.
+	The OpenCL initialization called from john.c is made passive, so it
+	  doesn't wake up GPU devices unless needed. Queue and context
+	  creation is postponed until opencl_init_opt().
+	Refactor some function names of common-opencl.c (prefix with opencl_).
+	  Add some comments and drop some obsoleted stuff.
+	Do not initialize OpenCL devices more than once.
+	Fixes for mscash2-opencl. The existing code was bogus in several ways.
+	Bugfix for pbkdf2 unsplit OpenCL kernel. Bug may have affected several
+	  formats where salt length was larger than 23. Thanks to Marcus
+	  Desto for reporting.
+	Rename the super confusing SHA2 macro in pbkdf2-hmac-sha1 to
+	  "SHA1short". Also apply the recent bugfix to CUDA and CPU code
+	  too.
+	Fix CUDA pbkdf2 too.
+	raw-md5-opencl bugfix: You can't release buffers that are not
+	  allocated.
+	No OpenCL initialization whatsoever until opencl_init_opt().
+	Fix for opencl_done() when not initialized. I thought it would work
+	  as-is.
+	Add a 'hidden' build target macosx-x86-64-native-gpu.
+	Workaround for crappy OpenCL drivers (that don't understand compiler
+	  options that are mandatory).
+	pbkdf2-hmac-sha256-opencl: Simplify cmp_all(). We don't need to test
+	  more than 32 bits, the rest are checked in cmp_one() and this
+	  will happen very infrequently.
+	Warn when b0rken device is skipped.
+	Various minor fixes for Sayantan's OpenCL versus OS X.
+	EFS bugfix: This is a Unicode format. Also make a local function
+	  static.
+	Proper --encoding support for EFS. Also fixes a bug with uninitialized
+	  data.
+	Improve comments in unicode.h.
+	Comment on a weird line in options.c that looked like some code fell
+	  off.
+	Jumbo uses a shorter tab stop than core for the usage blob.
+	Revert "Jumbo uses a shorter tab stop than core for the usage blob."
+	Revert "added mask mode interface"
+	Revert "nt-opencl: fixed bug causing inefficient keys transfer."
+	Revert "mscash-opencl: compare on gpu"
+	Revert "Various minor fixes for Sayantan's OpenCL versus OS X."
+	Revert "mscash-opencl: optimization patch #3"
+	Revert "mscash-opencl: optimization patch #2"
+	Revert "mscash-opencl: optimization patch #1"
+	Revert "mscash-opencl: optimization patch #0"
+	Revert "New format added, mscash-opencl: ported directly from
+	  mscash-cuda."
+	Revert "raw-sha1-opencl: cmp on gpu"
+	Revert "raw-md4-opencl:cmp on gpu"
+	Revert "nt-opencl: use opencl_init instead of opencl_init_opt"
+	Revert "nt-opencl: cmp on gpu"
+	Revert "raw-md5-opencl bugfix: You can't release buffers that are not
+	  allocated."
+	Revert "Raw-MD5-opencl: status check bug fix"
+	Revert "Update opencl_rawmd5_fmt.c"
+	Revert "Raw-MD5-opencl: fixed memory cleanup"
+	Revert "Raw-MD5-opencl: compare on gpu"
+	Fix after reverts.
+	Revert "nt-opencl: no branching in coalasced loading loop."
+	Fixes and bug fixes for CommonCrypto builds.
+	pbkdf2-hmac-sha256-opencl: Immediate response to keystroke.
+	pbkdf2-hmac-sha256-opencl: Rename kernel since it's no longer
+	  "unsplit".
+	Move 7z-opencl to unused/
 
-Dhiru Kholia (188):
+Dhiru Kholia (215):
 	Add support for cracking KeePass 2.x files.
 	Get rid of BOM.
 	Add support for cracking PKCS #12 files.
@@ -1139,8 +1242,35 @@ Dhiru Kholia (188):
 	some "dangerous" optimizations in the blockchain format
 	copy optimization made in blockchain CPU format
 	small optimization in ssh-ng format
+	add GPU support for cracking GNOME Keyring files
+	add support for cracking 7-Zip files using header encryption
+	add GPU support for cracking 7-Zip files (aka GPU killer format)
+	Fix Issue #311 (use Base64 instead of hex encoding)
+	remove unused code from bitcoin2john.py
+	remove broken feature from bitcoin2john.py
+	add support for cracking IPMI 2.0 RAKP (RMCP+) hashes
+	fix slow hash loading problem in RAKP format
+	somewhat better valid for RAKP format
+	ipmi_dumphashes2john utility is no longer required
+	fix whitespace errors
+	Cracker for BlackBerry Enterprise Server 10 hashes
+	avoid naming conflicts with OpenSSL
+	add documentation for cross-compiling MinGW builds
+	MinGW portability fixes # 2 (for Makefile)
+	MinGW portability fixes # 1
+	GMP is not worth the trouble for MinGW builds (revisit later)
+	a format for CRAM-MD5 cracking
+	CRAM-MD5 format actually works now ;)
+	format for cracking eCryptfs
+	add ecryptfs2john utility
+	add more test vectors in ecryptfs format
+	add another test vector in md5ns format
+	fixes for linux-ppc64 target
+	fixes for OMP linux-ppc64 target
+	ecryptfs format is actually correct now
+	early preview of EFS format for cracking M$ EFS
 
-JimF (143):
+JimF (145):
 	get_source() supporting salts too. Added to crc32 and sapG.
 	raw-sha1_li: always store complete (repaired) hashes
 	Loads of minor fixes for Sparc (endianness, alignment)
@@ -1367,8 +1497,10 @@ JimF (143):
 	Changed dynamic format names. Moved the expression to the algorithm
 	  section
 	fixed algorithm name
+	Portablity issues, VC, and some other fixes
+	add some useful dynamic sub-formats
 
-Claudio André (102):
+Claudio André (108):
 	Selectively pick stuff from Claudio's experimental tree.
 	Get some nt-opencl fixes from Claudio
 	Rebase on bleeding and copied 'my' formats.
@@ -1493,8 +1625,80 @@ Claudio André (102):
 	Cisco type 4 fix
 	Remove unused xsha512 file.
 	Unify valid() and binary() for crypt-sha512 formats
+	Finish 0b7a3f5efbbbad94c421e34855b7168f04d4d92d (unify common
+	  functions).
+	Improve error handling and messaging while at --list:opencl-devices.
+	Call OpenCL related functions only at format init(). - also, use make
+	  sequential_id an int.
+	Remove unnecessary OpenCL init() functions.
+	sha256crypt-opencl fix for opencl_preinit().
+	Revert to do a full check (device is really working) while
+	  initializing a specific device.
 
-ShaneQful (18):
+Sayantan Datta (36):
+	mscash2-opencl:added multi-gpu interfaces,bug fixes
+	opencl-mscash2:no segfault when mixing devices with large difference
+	  in speed
+	mscash2-opencl:code cleanup
+	mscash2-opencl:code cleanup
+	mscash2-opencl:code cleanup
+	bf-opencl:code cleanup
+	bf-opencl:code cleanup
+	bf-opencl:code cleanup
+	descrypt-opencl:code cleanup
+	mscash2-opencl:ciphertext format changed, no trailing white spaces
+	descrypt-opencl:cmp on gpu
+	shared valid,split,prepare for cpu and gpu mscash2
+	descrypt-opencl:improved compare
+	bcrypt-opencl: fixed AMD 7970 ASIC hang
+	mscash2-opencl: supports 128byte salts
+	mscash2-opencl: fixed warnings and other issues
+	mscash2-opencl:multi-gpu fix
+	mscash2-opencl:fixed quick benchmark
+	Raw-MD5-opencl: compare on gpu
+	Raw-MD5-opencl: fixed memory cleanup
+	Update opencl_rawmd5_fmt.c
+	Raw-MD5-opencl: status check bug fix
+	nt-opencl: no branching in coalasced loading loop.
+	nt-opencl: cmp on gpu
+	nt-opencl: use opencl_init instead of opencl_init_opt
+	raw-md4-opencl:cmp on gpu
+	raw-sha1-opencl: cmp on gpu
+	New format added, mscash-opencl: ported directly from mscash-cuda.
+	mscash-opencl: optimization patch #0
+	mscash-opencl: optimization patch #1
+	mscash-opencl: optimization patch #2
+	mscash-opencl: optimization patch #3
+	loader: added sequential id for salts
+	mscash-opencl: compare on gpu
+	nt-opencl: fixed bug causing inefficient keys transfer.
+	added mask mode interface
+
+Lukas Odzioba (20):
+	CUDA multigpu first draft for pwsafe
+	gpg2john: Handle multiple keys per in file, as well as multiple
+	  infiles.
+	Add OpenCL 1.2 error codes to our debug routines.
+	Include OpenCL version information into --list=build-info
+	(re-)enable agilekeychain format
+	gpg2john fixes
+	CUDA versions in --list=build-info
+	Basename helper function in misc.c, also capable of stripping
+	  extensions.
+	gpg2john GECOS support
+	fix crash in gpg format
+	SIP valid() fix.
+	SIP valid() fix.
+	Implement shared fmt_default_binary_hash_N() for the common case.
+	Last bunch of formats making use of shared binary_hash() functions.
+	Commit PBKDF2-HMAC-SHA256 format
+	Commit PBKDF2-HMAC-SHA256 OpenCL format
+	tool to convert gadu-gadu auth packets to JtR format
+	phpass OpenCL kernel tweaks
+	Add binary_hash() functions to phpass-cuda and md5crypt-cuda formats.
+	PBKDF2-HMAC-SHA256 Patch for splitted kernel.
+
+ShaneQful (19):
 	Added prepare method which checks for the old style pdf hashes and
 	  converts them to the new style pdf hashes if necessary
 	Cleaned up comments and added self to credits
@@ -1519,65 +1723,10 @@ ShaneQful (18):
 	pdf2john now gets all relevant metadata when metadata left unencrypted
 	Fixed bug in pdf2john where wrong objects could have been used
 	Small fix to get_xmp_values method in pdf to john
+	Added ability to odf2john to generate a gecos field for meta data of
+	  it exists
 
-Sayantan Datta (16):
-	mscash2-opencl:added multi-gpu interfaces,bug fixes
-	opencl-mscash2:no segfault when mixing devices with large difference
-	  in speed
-	mscash2-opencl:code cleanup
-	mscash2-opencl:code cleanup
-	mscash2-opencl:code cleanup
-	bf-opencl:code cleanup
-	bf-opencl:code cleanup
-	bf-opencl:code cleanup
-	descrypt-opencl:code cleanup
-	mscash2-opencl:ciphertext format changed, no trailing white spaces
-	descrypt-opencl:cmp on gpu
-	shared valid,split,prepare for cpu and gpu mscash2
-	descrypt-opencl:improved compare
-	bcrypt-opencl: fixed AMD 7970 ASIC hang
-	mscash2-opencl: supports 128byte salts
-	mscash2-opencl: fixed warnings and other issues
-
-Alexander Cherepanov (16):
-	Just a small patch to fix strncmp in NETLM format.
-	WPAPSK bugfix.
-	Some typos.
-	Typo in dynamic.conf
-	Replace unicode em-dash in putty files.
-	Replace non-ascii char by hex code in pass_gen.pl.
-	Replace several non-ascii copyright signs by "(c)" string.
-	Fix typos in README.bash-completion.
-	Fix some typos in README-OPENCL.
-	Get rid of strncmp with n==1.
-	Add some band-aid to valid() in sxc format.
-	Improve robustness of valid() in pkzip format.
-	Make valid() in sunmd5 format robust.
-	Fix a crash in dynamic with an overlong salt.
-	undrop: limit the length of password. (Fixes a crash.)
-	krb5: ensure that username and realm are non-empty. (Fixes SIGFPE.)
-
-Frank Dittrich (16):
-	Add get_source to --list=help:format-methods output
-	Add binary and salt alignment to --list=format-[all-]details
-	Fix typo in doc/README-OPENCL
-	Fixed some more typos
-	Add binary_hash_[56] and get_hash_[56] to 16 formats
-	mozilla_des.c and .h: #if 0 unused functions
-	sap2john.pl: improve coding style (tabs vs. spaces)
-	doc/OPTIONS: remove the only [tab] which is not part of a heading
-	Remove dead code from mozilla_fmt.c - used #ifdef DEBUF
-	Fix grammar
-	Adjust benchmark-unify to jumbo-8 format name changes
-	Benchmark-unify: map KRB5 format names
-	Fix a bug when using --stdout, introduced in e14ac00.
-	benchmark-unify: adjust format name mappings Add "Mozilla SHA-1
-	  3DES" mapping Adjust "pdf" mapping
-	Fix bash completion for formats if --list=hidden-option has
-	  --format=CLASS
-	Bash completion: Workaround for --format=CLASS parsing
-
-Solar (15):
+Solar (17):
 	Fix breakage caused by commit aab646b42afe93ca909b
 	Bleeding Backports from john-1.7.9.6-c6.
 	john-1.7.9.6-selftest-1.diff
@@ -1599,24 +1748,46 @@ Solar (15):
 	john-rawSHA1_ng_fmt-omp-reduction.diff
 	Add 'dokuwiki' external mode from
 	  http://www.openwall.com/lists/john-users/2013/06/08/14
+	Added scrypt format
+	Mask mode for GPU
 
-Lukas Odzioba (14):
-	CUDA multigpu first draft for pwsafe
-	gpg2john: Handle multiple keys per in file, as well as multiple
-	  infiles.
-	Add OpenCL 1.2 error codes to our debug routines.
-	Include OpenCL version information into --list=build-info
-	(re-)enable agilekeychain format
-	gpg2john fixes
-	CUDA versions in --list=build-info
-	Basename helper function in misc.c, also capable of stripping
-	  extensions.
-	gpg2john GECOS support
-	fix crash in gpg format
-	SIP valid() fix.
-	SIP valid() fix.
-	Implement shared fmt_default_binary_hash_N() for the common case.
-	Last bunch of formats making use of shared binary_hash() functions.
+Frank Dittrich (16):
+	Add get_source to --list=help:format-methods output
+	Add binary and salt alignment to --list=format-[all-]details
+	Fix typo in doc/README-OPENCL
+	Fixed some more typos
+	Add binary_hash_[56] and get_hash_[56] to 16 formats
+	mozilla_des.c and .h: #if 0 unused functions
+	sap2john.pl: improve coding style (tabs vs. spaces)
+	doc/OPTIONS: remove the only [tab] which is not part of a heading
+	Remove dead code from mozilla_fmt.c - used #ifdef DEBUF
+	Fix grammar
+	Adjust benchmark-unify to jumbo-8 format name changes
+	Benchmark-unify: map KRB5 format names
+	Fix a bug when using --stdout, introduced in e14ac00.
+	benchmark-unify: adjust format name mappings Add "Mozilla SHA-1
+	  3DES" mapping Adjust "pdf" mapping
+	Fix bash completion for formats if --list=hidden-option has
+	  --format=CLASS
+	Bash completion: Workaround for --format=CLASS parsing
+
+Alexander Cherepanov (16):
+	Just a small patch to fix strncmp in NETLM format.
+	WPAPSK bugfix.
+	Some typos.
+	Typo in dynamic.conf
+	Replace unicode em-dash in putty files.
+	Replace non-ascii char by hex code in pass_gen.pl.
+	Replace several non-ascii copyright signs by "(c)" string.
+	Fix typos in README.bash-completion.
+	Fix some typos in README-OPENCL.
+	Get rid of strncmp with n==1.
+	Add some band-aid to valid() in sxc format.
+	Improve robustness of valid() in pkzip format.
+	Make valid() in sunmd5 format robust.
+	Fix a crash in dynamic with an overlong salt.
+	undrop: limit the length of password. (Fixes a crash.)
+	krb5: ensure that username and realm are non-empty. (Fixes SIGFPE.)
 
 bwall (13):
 	Initial pwsafe optimization
@@ -1664,29 +1835,39 @@ Deepika Dutta (3):
 	Add MMX version of DES_bs_crypt_plain().
 	netntlm bitsliced conversion
 
+Michael Samuel (3):
+	Add External:KDEPaste. This takes advantage of CVE-2013-2120 to find
+	  seeds that KDE Paste applet uses to generate passwords.
+	Add license notice to KDEPaste external mode.
+	Add external mode that replays the Awesome Password Generator 1.3.2
+	  RNG.
+
 Costin Enache (3):
 	Fix for clock err in timers.
 	rules.c: Provide enough space for \xHEX encoded lines (worst case, ie.
 	  x4).
 	Silly bug in sunmd5 busted the rounds parsing.
 
-Michael Samuel (2):
-	Add External:KDEPaste. This takes advantage of CVE-2013-2120 to find
-	  seeds that KDE Paste applet uses to generate passwords.
-	Add license notice to KDEPaste external mode.
-
-bartavelle (Simon Marechal) (1):
-	Updated copyright information
+Aleksey Cherepanov (2):
+	add --skip-self-tests option
+	fix to repare build with defined BENCH_BUILD after add of
+	  --skip-self-tests option
 
 Vlatko Kosturjak (1):
 	Expose markov stats file as "hidden" command line option
 	  (--mkv-stats=FILE)
 
-Sergey V (1):
-	make blockchain-opencl non-plug
+bartavelle (Simon Marechal) (1):
+	Updated copyright information
 
 Dániel Bali (1):
 	Add OpenCL target for Win32/Cygwin.
+
+Lord_Rafa (1):
+	fixed the arm profile to compile in parallella
+
+Sergey V (1):
+	make blockchain-opencl non-plug
 
 
 The following changes were made between 1.7.9-jumbo-7 and 1.7.9-jumbo-8:
