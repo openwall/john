@@ -1,6 +1,6 @@
 The following changes were made between 1.7.9-jumbo-7 and 1.7.9-jumbo-8:
 
-magnum (686):
+magnum (691):
 	Add a "Section [%s] not found" before outputting the catch-all
 	  --list=?
 	Merge fix
@@ -1226,6 +1226,13 @@ magnum (686):
 	Update CHANGES-jumbo.git (CREDITS-jumbo needed no change).
 	Add repeats16 and repeats32 external modes (from the obsolete contest
 	  branch).
+	Update CREDITS-jumbo & CHANGES-jumbo.git.
+	Add a comment in ext_init explaining a confusing bail-out.
+	Endianness fixes in Blake.
+	Bad wordlist.c bug fixed, triggered when running -loop under MPI.
+	Bugfix for pbkdf2 CPU/OpenCL/CUDA code. Bug may have affected several
+	  formats where salt length was larger than 23. Thanks to Marcus
+	  Desto for reporting.
 
 Dhiru Kholia (334):
 	BONUS: pwsafe format also cracks Password Gorilla databases.
