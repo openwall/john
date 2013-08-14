@@ -16,10 +16,14 @@
 #include "formats.h"
 #include "params.h"
 #include "options.h"
+#include <openssl/opensslv.h>
+#if OPENSSL_VERSION_NUMBER >= 0x10000000
+#include "openssl/whrlpool.h"
+#endif
 #ifdef _OPENMP
 static int omp_t = 1;
 #include <omp.h>
-#define OMP_SCALE               2
+#define OMP_SCALE               256
 #endif
 
 #define FORMAT_LABEL		"Whirpool"
@@ -162,11 +166,19 @@ static int crypt_2(int *pcount, struct db_salt *salt)
 	for (index = 0; index < count; index++)
 #endif
 	{
+#if OPENSSL_VERSION_NUMBER >= 0x10000000
+		WHIRLPOOL_CTX ctx;
+		
+		WHIRLPOOL_Init(&ctx);
+		WHIRLPOOL_Update(&ctx, saved_key[index], strlen(saved_key[index]));
+		WHIRLPOOL_Final((unsigned char*)crypt_out[index], &ctx);
+#else
 		sph_whirlpool_context ctx;
 
 		sph_whirlpool_init(&ctx);
 		sph_whirlpool(&ctx, saved_key[index], strlen(saved_key[index]));
 		sph_whirlpool_close(&ctx, (unsigned char*)crypt_out[index]);
+#endif
 	}
 	return count;
 }
