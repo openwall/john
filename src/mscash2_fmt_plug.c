@@ -60,7 +60,7 @@
 #include "unicode.h"
 #include "options.h"
 #include "unicode.h"
-#include "sha.h"
+#include <openssl/sha.h>
 #include "md4.h"
 #include "sse-intrinsics.h"
 #include "loader.h"
