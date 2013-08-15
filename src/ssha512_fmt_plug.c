@@ -9,6 +9,10 @@
 #define MAX_SALT_LEN    16      // bytes, the base64 representation is longer
 
 #include <string.h>
+#ifdef _OPENMP
+#include <omp.h>
+#define OMP_SCALE                       2048 // i7 not using HT
+#endif
 
 #include "misc.h"
 #include "formats.h"
@@ -57,12 +61,29 @@ static struct s_salt *saved_salt;
 
 static struct fmt_tests tests[] = {
 	{"{SSHA512}SCMmLlStPIxVtJc8Y6REiGTMsgSEFF7xVQFoYZYg39H0nEeDuK/fWxxNZCdSYlRgJK3U3q0lYTka3Nre2CjXzeNUjbvHabYP", "password"},
+	{"{SSHA512}WucBQuH6NyeRYMz6gHQddkJLwzTUXaf8Ag0n9YM0drMFHG9XCO+FllvvwjXmo5/yFPvs+n1JVvJmdsvX5XHYvSUn9Xw=", "test123"},
+	{"{SSHA512}uURShqzuCx/8BKVrc4HkTpYnv2eVfwEzg+Zi2AbsTQaIV7Xo6pDhRAZnp70h5P8MC6XyotrB2f27aLhhRj4GYrkJSFmbKmuF", "testpass"},
 	{NULL}
 };
 
-static char saved_key[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 crypt_key[BINARY_SIZE / 4];
-static SHA512_CTX ctx;
+static unsigned char (*saved_key)[PLAINTEXT_LENGTH + 1];
+static int *saved_len;
+static ARCH_WORD_32 (*crypt_key)[BINARY_SIZE / 4];
+
+static void init(struct fmt_main *self)
+{
+#ifdef _OPENMP
+	int omp_t;
+
+	omp_t = omp_get_max_threads();
+	self->params.min_keys_per_crypt *= omp_t;
+	omp_t *= OMP_SCALE;
+	self->params.max_keys_per_crypt *= omp_t;
+#endif
+	saved_key = mem_calloc_tiny(sizeof(*saved_key) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	saved_len = mem_calloc_tiny(sizeof(*saved_len) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	crypt_key = mem_calloc_tiny(sizeof(*crypt_key) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+}
 
 static void * binary(char *ciphertext) {
 	static char *realcipher;
@@ -98,7 +119,10 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 static void set_key(char *key, int index)
 {
-	strnzcpy(saved_key, key, PLAINTEXT_LENGTH + 1);
+	int len = strlen(key);
+
+	saved_len[index] = len;
+	memcpy(saved_key[index], key, len + 1);
 }
 
 static void * get_salt(char * ciphertext)
@@ -125,20 +149,25 @@ static void * get_salt(char * ciphertext)
 }
 
 static char *get_key(int index) {
-	return saved_key;
+	return (char*)saved_key[index];
 }
 
 static int cmp_all(void *binary, int count) {
-	return !memcmp(binary, crypt_key, BINARY_SIZE);
+	int index;
+
+	for (index = 0; index < count; index++)
+		if (((ARCH_WORD_32*)binary)[0] == crypt_key[index][0])
+			return 1;
+	return 0;
+}
+
+static int cmp_one(void *binary, int index)
+{
+	return !memcmp(binary, crypt_key[index], BINARY_SIZE);
 }
 
 static int cmp_exact(char *source, int count){
 	return 1;
-}
-
-static int cmp_one(void * binary, int index)
-{
-	return cmp_all(binary, index);
 }
 
 static void set_salt(void *salt) {
@@ -148,22 +177,29 @@ static void set_salt(void *salt) {
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
+	int index;
 
-	SHA512_Init( &ctx );
-	SHA512_Update( &ctx, (unsigned char*) saved_key, strlen( saved_key ) );
-	SHA512_Update( &ctx, (unsigned char*) saved_salt->data.c, saved_salt->len);
-	SHA512_Final( (unsigned char*) crypt_key, &ctx);
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+	for (index = 0; index < count; index++) {
+		SHA512_CTX ctx;
 
+		SHA512_Init(&ctx);
+		SHA512_Update(&ctx, saved_key[index], saved_len[index]);
+		SHA512_Update(&ctx, saved_salt->data.c, saved_salt->len);
+		SHA512_Final((unsigned char*)crypt_key[index], &ctx);
+	}
 	return count;
 }
 
-static int get_hash_0(int index) { return ((ARCH_WORD_32*)crypt_key)[0] & 0xf; }
-static int get_hash_1(int index) { return ((ARCH_WORD_32*)crypt_key)[0] & 0xff; }
-static int get_hash_2(int index) { return ((ARCH_WORD_32*)crypt_key)[0] & 0xfff; }
-static int get_hash_3(int index) { return ((ARCH_WORD_32*)crypt_key)[0] & 0xffff; }
-static int get_hash_4(int index) { return ((ARCH_WORD_32*)crypt_key)[0] & 0xfffff; }
-static int get_hash_5(int index) { return ((ARCH_WORD_32*)crypt_key)[0] & 0xffffff; }
-static int get_hash_6(int index) { return ((ARCH_WORD_32*)crypt_key)[0] & 0x7ffffff; }
+static int get_hash_0(int index) { return ((ARCH_WORD_32*)crypt_key[index])[0] & 0xf; }
+static int get_hash_1(int index) { return ((ARCH_WORD_32*)crypt_key[index])[0] & 0xff; }
+static int get_hash_2(int index) { return ((ARCH_WORD_32*)crypt_key[index])[0] & 0xfff; }
+static int get_hash_3(int index) { return ((ARCH_WORD_32*)crypt_key[index])[0] & 0xffff; }
+static int get_hash_4(int index) { return ((ARCH_WORD_32*)crypt_key[index])[0] & 0xfffff; }
+static int get_hash_5(int index) { return ((ARCH_WORD_32*)crypt_key[index])[0] & 0xffffff; }
+static int get_hash_6(int index) { return ((ARCH_WORD_32*)crypt_key[index])[0] & 0x7ffffff; }
 
 static int salt_hash(void *salt)
 {
@@ -188,7 +224,7 @@ struct fmt_main fmt_saltedsha2 = {
 		FMT_CASE | FMT_8_BIT,
 		tests
 	}, {
-		fmt_default_init,
+		init,
 		fmt_default_done,
 		fmt_default_reset,
 		fmt_default_prepare,
