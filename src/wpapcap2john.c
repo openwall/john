@@ -123,7 +123,7 @@ void HandleBeacon() {
 	char ssid[36];
 	char essid[18];
 	memset(ssid, 0, sizeof(ssid));
-	while (((uint8*)tag) < pFinal) {
+	while (((uint8*)tag) < ((uint8*)pFinal)) {
 		char *x = (char*)tag;
 		if (tag->tagtype == 0) { // essid
 			memcpy(ssid, tag->tag, tag->taglen);
