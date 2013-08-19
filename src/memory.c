@@ -80,6 +80,17 @@ void *mem_alloc_tiny(size_t size, size_t align)
 	static unsigned long buffer, bufree = 0;
 	unsigned long start, end;
 
+#ifdef DEBUG
+	/*
+	 * We may be called with size zero, for example from ldr_load_pw_line()
+	 * that calls mem_alloc_copy() with format->params.salt_size as size.
+	 * This causes problems with -DDEBUG without this fix because we never
+	 * get out of the while loop when MEM_ALLOC_SIZE is zero too.
+	 */
+	if (size == 0)
+		return NULL;
+#endif
+
 #if ARCH_ALLOWS_UNALIGNED
 	if (mem_saving_level > 2 && align < MEM_ALIGN_SIMD)
 		align = MEM_ALIGN_NONE;
