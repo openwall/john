@@ -26,7 +26,13 @@ struct rm_list
 static struct rm_list *mem_alloc_tiny_memory;
 
 static void add_memory_link(void *v) {
-	struct rm_list *p = mem_alloc(sizeof(struct rm_list));
+	struct rm_list *p;
+
+	/* See comments in mem_alloc_tiny() about -DDEBUG */
+	if (v == NULL)
+		return;
+
+	p  = mem_alloc(sizeof(struct rm_list));
 	p->next = mem_alloc_tiny_memory;
 	p->mem = v;
 	mem_alloc_tiny_memory = p;
