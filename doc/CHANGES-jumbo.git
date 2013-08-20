@@ -1,6 +1,6 @@
 The following changes were made between 1.7.9-jumbo-8 and 1.8.0-jumbo-1:
 
-magnum (660):
+magnum (668):
 	formats.c: Only check binary/salt alignment if not using fmt_default_*
 	formats.c: Deliberately use misaligned ciphertext in self test
 	formats.c canary for binary/salt buffers
@@ -1050,6 +1050,18 @@ magnum (660):
 	pbkdf2-hmac-sha256-opencl: Rename kernel since it's no longer
 	  "unsplit".
 	Move 7z-opencl to unused/
+	Update CHANGES-jumbo.git (CREDITS-jumbo needed no change).
+	Never use CommonCrypto for mscash2. Fixes issue #362.
+	First draft of {SSHA512} (LDAP-style) format. OpenSSL only for now.
+	ssha512 format: Add OMP support and a couple more test vectors.
+	Add missing FMT_OMP flag to ssha512 format.
+	Fix a bug where -DDEBUG would cause an infinite loop in
+	  mem_alloc_tiny() because MEM_ALLOC_SIZE is set to zero
+	  (Jumbo-specific) and we ended up never breaking out of the while
+	  loop. Thanks to bytebieger for noticing the problem and
+	  patiently convince me.
+	Fix another potential problem with -DDEBUG vs. mem_alloc_tiny().
+	Print human readable OpenSSL version string with --list=build-info.
 
 Dhiru Kholia (215):
 	Add support for cracking KeePass 2.x files.
@@ -1270,7 +1282,7 @@ Dhiru Kholia (215):
 	ecryptfs format is actually correct now
 	early preview of EFS format for cracking M$ EFS
 
-JimF (145):
+JimF (146):
 	get_source() supporting salts too. Added to crc32 and sapG.
 	raw-sha1_li: always store complete (repaired) hashes
 	Loads of minor fixes for Sparc (endianness, alignment)
@@ -1499,6 +1511,8 @@ JimF (145):
 	fixed algorithm name
 	Portablity issues, VC, and some other fixes
 	add some useful dynamic sub-formats
+	Better OMP for whirlpool. Use oSSL Whirlpool functions if oSSL
+	  version high enough (much faster)
 
 Claudio André (108):
 	Selectively pick stuff from Claudio's experimental tree.
@@ -1872,7 +1886,7 @@ Sergey V (1):
 
 The following changes were made between 1.7.9-jumbo-7 and 1.7.9-jumbo-8:
 
-magnum (686):
+magnum (696):
 	Add a "Section [%s] not found" before outputting the catch-all
 	  --list=?
 	Merge fix
@@ -3098,6 +3112,22 @@ magnum (686):
 	Update CHANGES-jumbo.git (CREDITS-jumbo needed no change).
 	Add repeats16 and repeats32 external modes (from the obsolete contest
 	  branch).
+	Update CREDITS-jumbo & CHANGES-jumbo.git.
+	Add a comment in ext_init explaining a confusing bail-out.
+	Endianness fixes in Blake.
+	Bad wordlist.c bug fixed, triggered when running -loop under MPI.
+	Bugfix for pbkdf2 CPU/OpenCL/CUDA code. Bug may have affected several
+	  formats where salt length was larger than 23. Thanks to Marcus
+	  Desto for reporting.
+	Update CHANGES-jumbo.git (CREDITS-jumbo needed no change).
+	Fix a bug where -DDEBUG would cause an infinite loop in
+	  mem_alloc_tiny() because MEM_ALLOC_SIZE is set to zero
+	  (Jumbo-specific) and we ended up never breaking out of the while
+	  loop. Thanks to bytebieger for noticing the problem and
+	  patiently convince me.
+	Fix another potential problem with -DDEBUG vs. mem_alloc_tiny().
+	Print human readable OpenSSL version string with --list=build-info.
+	Update CHANGES-jumbo & CREDITS-jumbo.git
 
 Dhiru Kholia (334):
 	BONUS: pwsafe format also cracks Password Gorilla databases.
