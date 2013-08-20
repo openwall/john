@@ -1,6 +1,6 @@
 The following changes were made between 1.7.9-jumbo-7 and 1.7.9-jumbo-8:
 
-magnum (691):
+magnum (695):
 	Add a "Section [%s] not found" before outputting the catch-all
 	  --list=?
 	Merge fix
@@ -1233,6 +1233,14 @@ magnum (691):
 	Bugfix for pbkdf2 CPU/OpenCL/CUDA code. Bug may have affected several
 	  formats where salt length was larger than 23. Thanks to Marcus
 	  Desto for reporting.
+	Update CHANGES-jumbo.git (CREDITS-jumbo needed no change).
+	Fix a bug where -DDEBUG would cause an infinite loop in
+	  mem_alloc_tiny() because MEM_ALLOC_SIZE is set to zero
+	  (Jumbo-specific) and we ended up never breaking out of the while
+	  loop. Thanks to bytebieger for noticing the problem and
+	  patiently convince me.
+	Fix another potential problem with -DDEBUG vs. mem_alloc_tiny().
+	Print human readable OpenSSL version string with --list=build-info.
 
 Dhiru Kholia (334):
 	BONUS: pwsafe format also cracks Password Gorilla databases.
