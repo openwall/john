@@ -142,11 +142,15 @@ static void listconf_list_build_info(void)
 	printf("OpenCL library version: %s\n",get_opencl_header_version());
 #endif
 #ifdef OPENSSL_VERSION_NUMBER
-	// The man page suggests the type of OPENSSL_VERSION_NUMBER is long,
-	// gcc insists it is int.
-	printf("OpenSSL library version: %lx", (unsigned long)OPENSSL_VERSION_NUMBER);
-	if ((unsigned long)OPENSSL_VERSION_NUMBER != (unsigned long)SSLeay())
-		printf("\t(loaded: %lx)", (unsigned long)SSLeay());
+	printf("OpenSSL library version: %09lx", (unsigned long)OPENSSL_VERSION_NUMBER);
+	if (OPENSSL_VERSION_NUMBER != SSLeay())
+		printf("\t(loaded: %09lx)", (unsigned long)SSLeay());
+	printf("\n");
+#endif
+#ifdef OPENSSL_VERSION_TEXT
+	printf("%s", OPENSSL_VERSION_TEXT);
+	if (strcmp(OPENSSL_VERSION_TEXT, SSLeay_version(SSLEAY_VERSION)))
+		printf("\t(loaded: %s)", SSLeay_version(SSLEAY_VERSION));
 	printf("\n");
 #endif
 #ifdef __GNU_MP_VERSION
