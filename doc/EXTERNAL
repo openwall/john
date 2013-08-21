@@ -65,7 +65,11 @@ password length get larger than "cipher_limit".
 
 From 1.7.9-Jumbo-8 on, two new variables "req_minlen" (requested min.
 length), "req_maxlen" (requested max. length) was added, reflecting
-the -min-len=N and -max-len=N options.
+the -min-len=N and -max-len=N options. Also, a variable "session_start_time"
+was added that is equivalent of time(NULL) at start, ie. the current time
+expressed in seconds after Jan 1 1970. This variable is initialized once,
+not updated. Note: On a resume you will end up using a new value than was
+originally used.
 
 
 	The language.
