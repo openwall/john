@@ -31,13 +31,7 @@ struct rm_list
 static struct rm_list *mem_alloc_tiny_memory;
 
 static void add_memory_link(void *v) {
-	struct rm_list *p;
-
-	/* See comments in mem_alloc_tiny() about -DDEBUG */
-	if (v == NULL)
-		return;
-
-	p  = mem_alloc(sizeof(struct rm_list));
+	struct rm_list *p = mem_alloc(sizeof(struct rm_list));
 	p->next = mem_alloc_tiny_memory;
 	p->mem = v;
 	mem_alloc_tiny_memory = p;
@@ -93,16 +87,19 @@ void *mem_alloc_tiny(size_t size, size_t align)
 	size_t mask;
 	char *p;
 
+#ifdef DEBUG
 	/*
 	 * We may be called with size zero, for example from ldr_load_pw_line()
 	 * that calls mem_alloc_copy() with format->params.salt_size as size.
 	 * This causes problems with -DDEBUG without this fix because we never
-	 * get out of the while loop when MEM_ALLOC_SIZE is zero too. Also, I
-	 * don't really like the idea of returning a pointer that will be a
-	 * dupe so this might be a good idea even without -DDEBUG.
+	 * get out of the while loop when MEM_ALLOC_SIZE is zero too. The
+	 * previous fix for this was returning NULL but that lead to other
+	 * problems that I did not bother digging into. This fix should be
+	 * 100% safe.
 	 */
 	if (size == 0)
-		return NULL;
+		size = 1;
+#endif
 
 #if ARCH_ALLOWS_UNALIGNED
 	if (mem_saving_level > 2 && align < MEM_ALIGN_SIMD)
