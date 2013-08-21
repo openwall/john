@@ -12,6 +12,9 @@
  * JimF, July 2012.
  * Made small change in hex_encode 10x improvement in speed.  Also some other
  * changes.  Should be a thin dyanamic.
+ *
+ * Apparently, BWTDT stands for "Bad Way To Do This" and was made up just
+ * for the CMIYC 2013 contest. magnum thinks it should be moved to unused/
  */
 
 #if defined(__APPLE__) && defined(__MACH__) && \
