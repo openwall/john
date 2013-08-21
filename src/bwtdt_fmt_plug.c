@@ -41,14 +41,14 @@
 
 #define FORMAT_LABEL		"bwtdt"
 #define FORMAT_NAME		"bwtdt s.md5(sha1(md5(s.sha1(p))))"
-#define ALGORITHM_NAME		"SHA1 32/" ARCH_BITS_STR
+#define ALGORITHM_NAME		"MD5+SHA1 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1 /* change to 0 once there's any speedup for "many salts" */
 #define PLAINTEXT_LENGTH	32
 #define BINARY_SIZE		16
 #define BINARY_ALIGN		4
 #define SALT_SIZE		sizeof(struct custom_salt)
-#define SALT_ALIGN		4
+#define SALT_ALIGN		1
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 
@@ -63,7 +63,7 @@ static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
 
 static struct custom_salt {
-	unsigned char salt[41];
+	unsigned char salt[8];
 } *cur_salt;
 
 static inline void hex_encode(unsigned char *str, int len, unsigned char *out)
@@ -90,12 +90,10 @@ static void init(struct fmt_main *self)
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
-// XXX implement me!
+// XXX implement me FOR CRYING OUT LOUD!
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	if (strncmp(ciphertext, "*", 1) == 0)
-		return 0;
-	return 1;
+	return (strlen(ciphertext) == 40);
 }
 
 static void *get_salt(char *ciphertext)
@@ -216,7 +214,11 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-struct fmt_main fmt_bwtdt = {
+/*
+ * The zzz is a little protection against Dhiru's vandalism,
+ * it hopefully makes the format come last in auto-detection.
+ */
+struct fmt_main fmt_zzz_bwtdt = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,
