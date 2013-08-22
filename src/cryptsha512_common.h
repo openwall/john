@@ -8,6 +8,9 @@
  * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
+#ifndef _COMMON_CRYPTSHA512_H
+#define _COMMON_CRYPTSHA512_H
+
 /* ------ Contains (at least) prepare(), valid() and split() ------ */
 /* Prefix for optional rounds specification.  */
 #define ROUNDS_PREFIX           "rounds="
@@ -76,3 +79,4 @@ static void * get_binary(char * ciphertext) {
 	out[63] = value;
 	return (void *)out;
 }
+#endif

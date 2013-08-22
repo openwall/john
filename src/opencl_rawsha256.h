@@ -21,9 +21,6 @@
 #define RAW_PLAINTEXT_LENGTH    56      /* 55 characters + 0x80 */
 #define CISCO_PLAINTEXT_LENGTH  26      /* 25 characters + 0x80 */
 
-#define RAW_CIPHERTEXT_LENGTH   64
-#define CISCO_CIPHERTEXT_LENGTH 43
-
 #define BUFFER_SIZE             56      /* RAW_PLAINTEXT_LENGTH multiple of 4 */
 #define CIPHERTEXT_LENGTH       64
 #define BINARY_SIZE             4
