@@ -651,7 +651,7 @@ static char *get_key(int index)
 	UTF16 buf[PLAINTEXT_LENGTH + 1];
 
 	memcpy(buf, &saved_key[index * UNICODE_LENGTH], saved_len[index]);
-	memset((char*)buf + saved_len[index], 0, 1);
+	buf[saved_len[index] >> 1] = 0;
 	return (char*)utf16_to_enc(buf);
 }
 
