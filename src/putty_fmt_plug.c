@@ -277,7 +277,7 @@ static int LAME_ssh2_load_userkey(char *passphrase)
 		char realmac[41];
 		unsigned char binary[20];
 		unsigned char *macdata;
-		unsigned char macdata_ar[4*5+sizeof(cur_salt->alg)+sizeof(cur_salt->encryption)+sizeof(cur_salt->comment)+sizeof(cur_salt->public_blob_len)+sizeof(cur_salt->private_blob_len)+1];
+		unsigned char macdata_ar[4*5+sizeof(cur_salt->alg)+sizeof(cur_salt->encryption)+sizeof(cur_salt->comment)+sizeof(cur_salt->public_blob)+sizeof(cur_salt->private_blob)+1];
 		int maclen;
 		int i;
 		if (cur_salt->old_fmt) {
