@@ -305,7 +305,6 @@ inline uint SWAP32(uint x)
 		o[4] = INIT_E; \
 	}
 
-#if KEY_LENGTH > 23
 #define sha1_block(b, o) {	\
 		A = o[0]; \
 		B = o[1]; \
@@ -319,21 +318,6 @@ inline uint SWAP32(uint x)
 		o[3] += D; \
 		o[4] += E; \
 	}
-#else
-#define sha1_block(b, o) {	\
-		A = o[0]; \
-		B = o[1]; \
-		C = o[2]; \
-		D = o[3]; \
-		E = o[4]; \
-		SHA1_SHORT(A, B, C, D, E, b); \
-		o[0] += A; \
-		o[1] += B; \
-		o[2] += C; \
-		o[3] += D; \
-		o[4] += E; \
-	}
-#endif
 
 #define dump_stuff_msg(msg, x, size) {	  \
 		uint ii; \

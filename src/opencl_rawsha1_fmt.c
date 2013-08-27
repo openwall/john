@@ -72,6 +72,7 @@ static struct fmt_tests tests[] = {
 	{"a9993e364706816aba3e25717850c26c9cd0d89d", "abc"},
 	{FORMAT_TAG "095bec1163897ac86e393fa16d6ae2c2fce21602", "7850"},
 	{"dd3fbb0ba9e133c4fd84ed31ac2e5bc597d61774", "7858"},
+	{"207db421a91dc3eb1d976e1925fe97313a1ae0b3", "Skipping and& Dipping__1"},
 	{NULL}
 };
 
