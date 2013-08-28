@@ -49,7 +49,7 @@ static void print_hccap(hccap_t * cap)
 {
 	int i;
 	unsigned char *w = (unsigned char *) cap;
-	printf("$WPAPSK$%s#", cap->essid);
+	printf("%s:$WPAPSK$%s#", cap->essid, cap->essid);
 	for (i = 36; i + 3 < sizeof(hccap_t); i += 3)
 		code_block(&w[i], 1);
 	code_block(&w[i], 0);
