@@ -419,9 +419,9 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		if (!(++current)->ciphertext) {
 /* Jump straight to last index for non-bitslice DES */
 			if (!(format->params.flags & FMT_BS) &&
-			    (!strcmp(format->params.label, "des") ||
-			    !strcmp(format->params.label, "bsdi") ||
-			    !strcmp(format->params.label, "afs")))
+			    (!strcmp(format->params.label, "descrypt") ||
+			    !strcmp(format->params.label, "bsdicrypt") ||
+			    !strcmp(format->params.label, "AFS")))
 				index = max - 1;
 
 			current = format->params.tests;
