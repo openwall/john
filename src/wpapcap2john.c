@@ -238,7 +238,7 @@ void Handle4Way(int bIsQOS) {
 			p += sizeof(ether_frame_hdr_t);
 			auth1 = (ether_auto_802_1x_t*)p;
 			if (auth1->replay_cnt == auth2->replay_cnt) {
-				fprintf (stderr, "Key1/Key2 hit (hopful hit), for SSID:%s\n", wpa[ess].ssid);
+				fprintf (stderr, "Key1/Key2 hit (hopeful hit), for SSID:%s\n", wpa[ess].ssid);
 				DumpKey(ess, 1, bIsQOS);
 			}
 			// we no longer want to know about this packet 1.
@@ -300,7 +300,7 @@ void DumpKey(int ess, int one_three, int bIsQOS) {
 	int i;
 	uint8 *w;
 	fprintf (stderr, "Dumping key %d at time:  %d.%d\n", one_three, cur_t, cur_u);
-	printf ("$WPAPSK$%s#", wpa[ess].ssid);
+	printf ("%s:$WPAPSK$%s#", wpa[ess].ssid, wpa[ess].ssid);
 	if (!wpa[ess].packet2) { printf ("ERROR, msg2 null\n"); return; }
 	if (bIsQOS)
 		p += 2;
