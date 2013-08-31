@@ -12,7 +12,6 @@
  * http://www.gnu.org/licenses/gpl-2.0.html
  */
 
-#define _OPENCL_COMPILER
 #include "opencl_rawsha512-ng.h"
 
 inline void _memcpy(               uint32_t * dest,

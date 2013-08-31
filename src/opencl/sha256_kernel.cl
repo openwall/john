@@ -11,7 +11,6 @@
  * http://www.gnu.org/licenses/gpl-2.0.html
  */
 
-#define _OPENCL_COMPILER
 #include "opencl_rawsha256.h"
 
 inline void init_ctx(sha256_ctx * ctx) {
