@@ -40,7 +40,7 @@
 #define MIN_KEYS_PER_CRYPT	1 /* These will change in init() */
 #define MAX_KEYS_PER_CRYPT	1
 
-#define CONFIG_NAME		"md5crypt"
+#define OCL_CONFIG		"md5crypt"
 #define STEP                    1024
 #define ROUNDS_DEFAULT          1000
 
@@ -317,7 +317,8 @@ static void init(struct fmt_main *self)
 	/* Note: we ask for the kernels' max sizes, not the device's! */
 	HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize), &maxsize, NULL), "Query max work group size");
 
-	opencl_get_user_preferences(CONFIG_NAME);
+	/* Read LWS/GWS prefs from config or environment */
+	opencl_get_user_preferences(OCL_CONFIG);
 
 	//Initialize openCL tuning (library) for this format.
 	opencl_init_auto_setup(STEP, 0, 3, NULL,

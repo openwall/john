@@ -38,7 +38,7 @@
 #define RAW_BENCHMARK_LENGTH		-1
 #define X_BENCHMARK_LENGTH		0
 
-#define CONFIG_NAME			"rawsha512"
+#define OCL_CONFIG			"rawsha512"
 
 static sha512_salt			* salt;
 static uint32_t				* plaintext, * saved_idx;	// plaintext ciphertexts
@@ -393,7 +393,9 @@ static void init(struct fmt_main * self) {
 
 	global_work_size = get_task_max_size();
 	local_work_size = get_default_workgroup();
-	opencl_get_user_preferences(CONFIG_NAME);
+
+	/* Read LWS/GWS prefs from config or environment */
+	opencl_get_user_preferences(OCL_CONFIG);
 
 	gws_limit = MIN((0xf << 22) * 4 / BUFFER_SIZE,
 			get_max_mem_alloc_size(ocl_gpu_id) / BUFFER_SIZE);

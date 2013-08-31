@@ -40,7 +40,7 @@
 #define FMT_PREFIX		"$pbkdf2-sha256$"
 #define KERNEL_NAME		"pbkdf2_sha256_kernel"
 #define SPLIT_KERNEL_NAME	"pbkdf2_sha256_loop"
-#define CONFIG_NAME		"pbkdf2_sha256"
+#define OCL_CONFIG		"pbkdf2_sha256"
 
 #define MIN(a,b)		(((a)<(b))?(a):(b))
 #define HASH_LOOPS		500
@@ -152,7 +152,8 @@ static void init(struct fmt_main *self)
         opencl_init("$JOHN/kernels/pbkdf2_hmac_sha256_kernel.cl",
             ocl_gpu_id, build_opts);
 
-	opencl_get_user_preferences(CONFIG_NAME);
+	/* Read LWS/GWS prefs from config or environment */
+	opencl_get_user_preferences(OCL_CONFIG);
 	if (!local_work_size) {
 #ifdef DEBUG
 		fprintf(stderr, "Forcing LWS = %d\n", DEFAULT_LWS);

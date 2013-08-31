@@ -26,7 +26,7 @@
 #define BENCHMARK_COMMENT		" (rounds=5000)"
 #define BENCHMARK_LENGTH		-1
 
-#define CONFIG_NAME			"sha256crypt"
+#define OCL_CONFIG			"sha256crypt"
 
 //Checks for source code to pick (parameters, sizes, kernels to execute, etc.)
 #define _USE_CPU_SOURCE			(cpu(source_in_use))
@@ -377,7 +377,9 @@ static void init(struct fmt_main * self) {
 	source_in_use = device_info[ocl_gpu_id];
 	global_work_size = get_task_max_size();
 	local_work_size = get_default_workgroup();
-	opencl_get_user_preferences(CONFIG_NAME);
+
+	/* Read LWS/GWS prefs from config or environment */
+	opencl_get_user_preferences(OCL_CONFIG);
 
 	//Initialize openCL tuning (library) for this format.
 	opencl_init_auto_setup(STEP, HASH_LOOPS, ((_SPLIT_KERNEL_IN_USE) ? 7 : 3),

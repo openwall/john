@@ -50,7 +50,7 @@ static unsigned int key_idx = 0;
 #define MIN_KEYS_PER_CRYPT      1024
 #define MAX_KEYS_PER_CRYPT      (1024 * 2048)
 
-#define CONFIG_NAME             "rawmd4"
+#define OCL_CONFIG              "rawmd4"
 #define STEP                    65536
 
 static int have_full_hashes;
@@ -178,7 +178,8 @@ static void init(struct fmt_main *self)
 	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "md4", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 
-	opencl_get_user_preferences(CONFIG_NAME);
+	/* Read LWS/GWS prefs from config or environment */
+	opencl_get_user_preferences(OCL_CONFIG);
 
 	// Initialize openCL tuning (library) for this format.
 	opencl_init_auto_setup(STEP, 0, 3, NULL, warn,

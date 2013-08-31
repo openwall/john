@@ -28,7 +28,7 @@
 
 #define ALGORITHM_NAME			"SHA256 OpenCL (inefficient, development use mostly)"
 
-#define CONFIG_NAME			"rawsha256"
+#define OCL_CONFIG			"rawsha256"
 
 static uint32_t				* plaintext, * saved_idx;	// plaintext ciphertexts
 static uint32_t				* calculated_hash;		// calculated (partial) hashes
@@ -320,7 +320,9 @@ static void init(struct fmt_main * self) {
 
 	global_work_size = get_task_max_size();
 	local_work_size = get_default_workgroup();
-	opencl_get_user_preferences(CONFIG_NAME);
+
+	/* Read LWS/GWS prefs from config or environment */
+	opencl_get_user_preferences(OCL_CONFIG);
 
 	gws_limit = MIN((0xf << 22) * 4 / BUFFER_SIZE,
 			get_max_mem_alloc_size(ocl_gpu_id) / BUFFER_SIZE);

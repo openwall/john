@@ -40,7 +40,7 @@
 #define MIN_KEYS_PER_CRYPT      (512*112)
 #define MAX_KEYS_PER_CRYPT      MIN_KEYS_PER_CRYPT
 
-#define CONFIG_NAME		"pwsafe"
+#define OCL_CONFIG		"pwsafe"
 #define STEP                    256
 #define ROUNDS_DEFAULT          2048
 
@@ -232,7 +232,8 @@ static void init(struct fmt_main *self)
 
 	local_work_size = cpu(device_info[ocl_gpu_id]) ? 1 : 64;
 
-	opencl_get_user_preferences(CONFIG_NAME);
+	/* Read LWS/GWS prefs from config or environment */
+	opencl_get_user_preferences(OCL_CONFIG);
 
 	//Initialize openCL tuning (library) for this format.
 	opencl_init_auto_setup(STEP, ROUNDS_DEFAULT/8, 8, split_events,
