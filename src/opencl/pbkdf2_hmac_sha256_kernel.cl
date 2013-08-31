@@ -300,7 +300,7 @@ inline void preproc(__global const uint8_t * key, uint32_t keylen,
 
 
 inline void hmac_sha256(uint32_t * output, uint32_t * ipad_state,
-    uint32_t * opad_state, __global const uint8_t * salt, int saltlen)
+    uint32_t * opad_state, __global const uint8_t * salt, uint saltlen)
 {
 	uint32_t i, t;
 	uint32_t W[16];
