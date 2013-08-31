@@ -527,40 +527,7 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 }
 
 /* ------- Binary Hash functions group ------- */
-#ifdef DEBUG
-static void print_binary(void * binary) {
-	uint64_t *bin = binary;
-	int i;
-
-	for (i = 0; i < 8; i++)
-		fprintf(stderr, "%016lx ", bin[i]);
-	puts("(Ok)");
-}
-
-static void print_hash() {
-	int i;
-
-	fprintf(stderr, "\n");
-	for (i = 0; i < 8; i++)
-		fprintf(stderr, "%016lx ", calculated_hash[0].v[i]);
-	puts("");
-}
-#endif
-
-static int binary_hash_0(void * binary) {
-#ifdef DEBUG
-	print_binary(binary);
-#endif
-	return *(ARCH_WORD_32 *) binary & 0xF;
-}
-
-//Get Hash functions group.
-static int get_hash_0(int index) {
-#ifdef DEBUG
-	print_hash(index);
-#endif
-	return calculated_hash[index].v[0] & 0xF;
-}
+static int get_hash_0(int index) { return calculated_hash[index].v[0] & 0xf; }
 static int get_hash_1(int index) { return calculated_hash[index].v[0] & 0xff; }
 static int get_hash_2(int index) { return calculated_hash[index].v[0] & 0xfff; }
 static int get_hash_3(int index) { return calculated_hash[index].v[0] & 0xffff; }
@@ -596,7 +563,7 @@ struct fmt_main fmt_opencl_cryptsha512 = {
 		get_salt,
 		fmt_default_source,
 		{
-			binary_hash_0,
+			fmt_default_binary_hash_0,
 			fmt_default_binary_hash_1,
 			fmt_default_binary_hash_2,
 			fmt_default_binary_hash_3,
