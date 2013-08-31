@@ -48,8 +48,7 @@
 #define CIPHERTEXT_LENGTH       32 /* hex chars */
 #define TOTAL_LENGTH            (12 + 3 * SALT_MAX_LENGTH + 1 + SERVER_CHALL_LENGTH + 1 + CLIENT_CHALL_LENGTH_MAX + 1 + CIPHERTEXT_LENGTH + 1)
 
-#define LWS_CONFIG              "ntlmv2_LWS"
-#define GWS_CONFIG              "ntlmv2_GWS"
+#define OCL_CONFIG              "ntlmv2"
 
 #define MIN(a, b)               (((a) > (b)) ? (b) : (a))
 #define MAX(a, b)               (((a) > (b)) ? (a) : (b))
@@ -396,7 +395,6 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 
 static void init(struct fmt_main *self)
 {
-	char *temp;
 	cl_ulong maxsize, maxsize2, max_mem;
 	char build_opts[64];
 	char *encoding = options.encodingDef ? options.encodingDef : "ISO_8859_1";
@@ -404,23 +402,12 @@ static void init(struct fmt_main *self)
 	if (options.utf8)
 		max_len = self->params.plaintext_length = 3 * PLAINTEXT_LENGTH;
 
-	local_work_size = global_work_size = 0;
-
 	snprintf(build_opts, sizeof(build_opts),
 	        "-DENC_%s -DENCODING=%s", encoding, encoding);
 	opencl_init("$JOHN/kernels/ntlmv2_kernel.cl", ocl_gpu_id, build_opts);
 
-	if ((temp = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, LWS_CONFIG)))
-		local_work_size = atoi(temp);
-
-	if ((temp = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, GWS_CONFIG)))
-		global_work_size = atoi(temp);
-
-	if ((temp = getenv("LWS")))
-		local_work_size = atoi(temp);
-
-	if ((temp = getenv("GWS")))
-		global_work_size = atoi(temp);
+	/* Read LWS/GWS prefs from config or environment */
+	opencl_get_user_preferences(OCL_CONFIG);
 
 	/* create kernels to execute */
 	ntlmv2_nthash = clCreateKernel(program[ocl_gpu_id], "ntlmv2_nthash", &ret_code);

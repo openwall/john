@@ -41,8 +41,7 @@
 #define MIN_KEYS_PER_CRYPT              1
 #define MAX_KEYS_PER_CRYPT		1
 
-#define LWS_CONFIG			"ssha_LWS"
-#define GWS_CONFIG			"ssha_GWS"
+#define OCL_CONFIG			"ssha"
 
 #ifndef uint32_t
 #define uint32_t unsigned int
@@ -220,11 +219,8 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 
 static void fmt_ssha_init(struct fmt_main *self)
 {
-	char *temp;
 	cl_ulong maxsize;
 	char build_opts[64];
-
-	local_work_size = global_work_size = 0;
 
 	snprintf(build_opts, sizeof(build_opts),
 	         "-DPLAINTEXT_LENGTH=%d", PLAINTEXT_LENGTH);
@@ -236,17 +232,8 @@ static void fmt_ssha_init(struct fmt_main *self)
 
 	HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize), &maxsize, NULL), "Query max work group size");
 
-	if ((temp = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, LWS_CONFIG)))
-		local_work_size = atoi(temp);
-
-	if ((temp = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, GWS_CONFIG)))
-		global_work_size = atoi(temp);
-
-	if ((temp = getenv("LWS")))
-		local_work_size = atoi(temp);
-
-	if ((temp = getenv("GWS")))
-		global_work_size = atoi(temp);
+	/* Read LWS/GWS prefs from config or environment */
+	opencl_get_user_preferences(OCL_CONFIG);
 
 	if (!local_work_size) {
 		int temp = global_work_size;

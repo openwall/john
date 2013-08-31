@@ -231,7 +231,7 @@ static void init(struct fmt_main *self)
 	HANDLE_CLERROR(ret_code, "Error while creating finish kernel");
 
 	local_work_size = cpu(device_info[ocl_gpu_id]) ? 1 : 64;
-	global_work_size = 0;
+
 	opencl_get_user_preferences(CONFIG_NAME);
 
 	//Initialize openCL tuning (library) for this format.

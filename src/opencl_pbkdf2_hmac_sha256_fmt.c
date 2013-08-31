@@ -152,7 +152,6 @@ static void init(struct fmt_main *self)
         opencl_init("$JOHN/kernels/pbkdf2_hmac_sha256_kernel.cl",
             ocl_gpu_id, build_opts);
 
-	local_work_size = global_work_size = 0;
 	opencl_get_user_preferences(CONFIG_NAME);
 	if (!local_work_size) {
 #ifdef DEBUG

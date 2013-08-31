@@ -88,7 +88,6 @@ static void set_key(char*, int) ;
 static int crypt_all(int *pcount, struct db_salt *salt) ;
 
 static void init(struct fmt_main *self) {
-	char 	*conf = NULL ;
 	int 	i ;
 
 	//Prepare OpenCL environment.
@@ -103,16 +102,8 @@ static void init(struct fmt_main *self) {
 	memset(dcc_hash_host, 0, 4 * sizeof(cl_uint) * MAX_KEYS_PER_CRYPT) ;
 	memset(dcc2_hash_host, 0, 4 * sizeof(cl_uint) * MAX_KEYS_PER_CRYPT) ;
 
-	local_work_size = global_work_size = 0 ;
-
-	if ((conf = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, LWS_CONFIG)))
-		local_work_size = atoi(conf) ;
-	if ((conf = getenv("LWS")))
-		local_work_size = atoi(conf) ;
-	if ((conf = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, GWS_CONFIG)))
-		global_work_size = atoi(conf) ;
-	if ((conf = getenv("GWS")))
-		global_work_size = atoi(conf) ;
+	/* Read LWS/GWS prefs from config or environment */
+	opencl_get_user_preferences(OCL_CONFIG);
 
 	for( i=0; i < opencl_get_devices(); i++)
 		select_device(ocl_device_list[i], self) ;

@@ -16,8 +16,7 @@
 
 #define MIN_KEYS_PER_CRYPT        	65536*32
 
-#define LWS_CONFIG			"mscash2_LWS"
-#define GWS_CONFIG			"mscash2_GWS"
+#define OCL_CONFIG			"mscash2"
 
 /*
  * Acceptable Values : 2 , 4 , 8 ,16 , 32 , 64 , 128 ,256 , 512 , 1024 , 2048 , 5120 , 10240

@@ -51,6 +51,8 @@ static struct fmt_tests strip_tests[] = {
 	{NULL}
 };
 
+#define OCL_CONFIG		"strip"
+
 typedef struct {
 	uint32_t length;
 	uint8_t v[PLAINTEXT_LENGTH];
@@ -108,7 +110,6 @@ static void init(struct fmt_main *self)
 {
 	cl_int cl_error;
 	char build_opts[64];
-	char *temp;
 	cl_ulong maxsize;
 
 	snprintf(build_opts, sizeof(build_opts),
@@ -119,14 +120,13 @@ static void init(struct fmt_main *self)
 	opencl_init("$JOHN/kernels/pbkdf2_hmac_sha1_unsplit_kernel.cl",
 	                ocl_gpu_id, build_opts);
 
-	if ((temp = getenv("LWS")))
-		local_work_size = atoi(temp);
-	else
+	/* Read LWS/GWS prefs from config or environment */
+	opencl_get_user_preferences(OCL_CONFIG);
+
+	if (!local_work_size)
 		local_work_size = cpu(device_info[ocl_gpu_id]) ? 1 : 64;
 
-	if ((temp = getenv("GWS")))
-		global_work_size = atoi(temp);
-	else
+	if (!global_work_size)
 		global_work_size = MAX_KEYS_PER_CRYPT;
 
 	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "derive_key", &cl_error);

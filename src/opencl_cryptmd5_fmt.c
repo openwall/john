@@ -317,7 +317,6 @@ static void init(struct fmt_main *self)
 	/* Note: we ask for the kernels' max sizes, not the device's! */
 	HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize), &maxsize, NULL), "Query max work group size");
 
-	local_work_size = global_work_size = 0;
 	opencl_get_user_preferences(CONFIG_NAME);
 
 	//Initialize openCL tuning (library) for this format.

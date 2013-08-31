@@ -69,8 +69,7 @@
 
 #define ITERATIONS		4095
 #define HASH_LOOPS		105 /* Must be made from factors 3, 3, 5, 7, 13 */
-#define LWS_CONFIG		"krbng_LWS"
-#define GWS_CONFIG		"krbng_GWS"
+#define OCL_CONFIG		"krbng"
 
 #define MIN(a, b)		(((a) > (b)) ? (b) : (a))
 #define MAX(a, b)		(((a) > (b)) ? (a) : (b))
@@ -414,10 +413,8 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *salt);
 static void init(struct fmt_main *self)
 {
 	unsigned char usage[5];
-	char *temp, build_opts[128];
+	char build_opts[128];
 	cl_ulong maxsize, maxsize2;
-
-	local_work_size = global_work_size = 0;
 
 	snprintf(build_opts, sizeof(build_opts),
 	         "-DHASH_LOOPS=%u -DITERATIONS=%u -DPLAINTEXT_LENGTH=%u %s",
@@ -435,17 +432,8 @@ static void init(struct fmt_main *self)
 		self->params.algorithm_name = "OpenCL 4x";
 	}
 
-	if ((temp = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, LWS_CONFIG)))
-		local_work_size = atoi(temp);
-
-	if ((temp = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, GWS_CONFIG)))
-		global_work_size = atoi(temp);
-
-	if ((temp = getenv("LWS")))
-		local_work_size = atoi(temp);
-
-	if ((temp = getenv("GWS")))
-		global_work_size = atoi(temp);
+	/* Read LWS/GWS prefs from config or environment */
+	opencl_get_user_preferences(OCL_CONFIG);
 
 	crypt_kernel = pbkdf2_init = clCreateKernel(program[ocl_gpu_id], "pbkdf2_init", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel");

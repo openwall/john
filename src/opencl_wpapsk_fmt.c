@@ -35,8 +35,7 @@ static int VF = 1;	/* Will be set to 4 if we run vectorized */
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 
-#define LWS_CONFIG		"wpapsk_LWS"
-#define GWS_CONFIG		"wpapsk_GWS"
+#define OCL_CONFIG		"wpapsk"
 
 #define MIN(a, b)		(((a) > (b)) ? (b) : (a))
 #define MAX(a, b)		(((a) > (b)) ? (a) : (b))
@@ -308,10 +307,9 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *salt);
 
 static void init(struct fmt_main *self)
 {
-	char *temp, build_opts[128];
+	char build_opts[128];
 	cl_ulong maxsize, maxsize2;
 
-	local_work_size = global_work_size = 0;
 	assert(sizeof(hccap_t) == HCCAP_SIZE);
 
 	snprintf(build_opts, sizeof(build_opts),
@@ -330,17 +328,8 @@ static void init(struct fmt_main *self)
 		self->params.algorithm_name = "OpenCL 4x";
 	}
 
-	if ((temp = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, LWS_CONFIG)))
-		local_work_size = atoi(temp);
-
-	if ((temp = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, GWS_CONFIG)))
-		global_work_size = atoi(temp);
-
-	if ((temp = getenv("LWS")))
-		local_work_size = atoi(temp);
-
-	if ((temp = getenv("GWS")))
-		global_work_size = atoi(temp);
+	/* Read LWS/GWS prefs from config or environment */
+	opencl_get_user_preferences(OCL_CONFIG);
 
 	// create kernels to execute
 	crypt_kernel = wpapsk_init = clCreateKernel(program[ocl_gpu_id], "wpapsk_init", &ret_code);

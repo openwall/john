@@ -100,8 +100,7 @@
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 
-#define LWS_CONFIG		"rar_LWS"
-#define GWS_CONFIG		"rar_GWS"
+#define OCL_CONFIG		"rar"
 
 #define ROUNDS			0x40000
 
@@ -628,11 +627,8 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 
 static void init(struct fmt_main *self)
 {
-	char *temp;
 	cl_ulong maxsize, maxsize2;
 	char build_opts[64];
-
-	local_work_size = global_work_size = 0;
 
 	snprintf(build_opts, sizeof(build_opts), "-DHASH_LOOPS=%u -DPLAINTEXT_LENGTH=%u", HASH_LOOPS, PLAINTEXT_LENGTH);
 	opencl_init("$JOHN/kernels/rar_kernel.cl", ocl_gpu_id, build_opts);
@@ -658,17 +654,8 @@ static void init(struct fmt_main *self)
 		self->params.tests = gpu_tests;
 	}
 
-	if ((temp = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, LWS_CONFIG)))
-		local_work_size = atoi(temp);
-
-	if ((temp = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, GWS_CONFIG)))
-		global_work_size = atoi(temp);
-
-	if ((temp = getenv("LWS")))
-		local_work_size = atoi(temp);
-
-	if ((temp = getenv("GWS")))
-		global_work_size = atoi(temp);
+	/* Read LWS/GWS prefs from config or environment */
+	opencl_get_user_preferences(OCL_CONFIG);
 
 	/* Note: we ask for the kernels' max sizes, not the device's! */
 	HANDLE_CLERROR(clGetKernelWorkGroupInfo(RarInit, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize), &maxsize, NULL), "Query max work group size");

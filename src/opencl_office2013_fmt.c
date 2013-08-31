@@ -46,8 +46,7 @@
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 
-#define LWS_CONFIG		"office2013_LWS"
-#define GWS_CONFIG		"office2013_GWS"
+#define OCL_CONFIG		"office2013"
 
 #define MIN(a, b)		(((a) > (b)) ? (b) : (a))
 #define MAX(a, b)		(((a) > (b)) ? (a) : (b))
@@ -402,11 +401,8 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 
 static void init(struct fmt_main *self)
 {
-	char *temp;
 	cl_ulong maxsize, maxsize2;
 	char build_opts[64];
-
-	local_work_size = global_work_size = 0;
 
 	snprintf(build_opts, sizeof(build_opts),
 	         "-DHASH_LOOPS=%u -DUNICODE_LENGTH=%u %s",
@@ -426,17 +422,8 @@ static void init(struct fmt_main *self)
 		self->params.algorithm_name = "OpenCL 4x";
 	}
 
-	if ((temp = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, LWS_CONFIG)))
-		local_work_size = atoi(temp);
-
-	if ((temp = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, GWS_CONFIG)))
-		global_work_size = atoi(temp);
-
-	if ((temp = getenv("LWS")))
-		local_work_size = atoi(temp);
-
-	if ((temp = getenv("GWS")))
-		global_work_size = atoi(temp);
+	/* Read LWS/GWS prefs from config or environment */
+	opencl_get_user_preferences(OCL_CONFIG);
 
 	// Create kernels to execute
 	GenerateSHA512pwhash = clCreateKernel(program[ocl_gpu_id], "GenerateSHA512pwhash", &ret_code);
