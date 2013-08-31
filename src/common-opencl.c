@@ -477,6 +477,9 @@ void opencl_get_user_preferences(char * format)
 {
 	char * tmp_value;
 
+	local_work_size = global_work_size = duration_time = 0;
+
+	if (format)
 	if ((tmp_value = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL,
 		opencl_get_config_name(format, LWS_CONFIG_NAME))))
 		local_work_size = atoi(tmp_value);
@@ -484,6 +487,7 @@ void opencl_get_user_preferences(char * format)
 	if ((tmp_value = getenv("LWS")))
 		local_work_size = atoi(tmp_value);
 
+	if (format)
 	if ((tmp_value = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL,
 		opencl_get_config_name(format, GWS_CONFIG_NAME))))
 		global_work_size = atoi(tmp_value);
@@ -495,6 +499,7 @@ void opencl_get_user_preferences(char * format)
 		// Ensure a valid multiple is used.
 		global_work_size = GET_MULTIPLE(global_work_size, local_work_size);
 
+	if (format)
 	if ((tmp_value = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL,
 		opencl_get_config_name(format, DUR_CONFIG_NAME))))
 		duration_time = atoi(tmp_value) * 1000000000ULL;
