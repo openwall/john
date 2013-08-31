@@ -142,15 +142,12 @@ void main() {
 #endif
 
 #define FORMAT_LABEL			"sha256crypt"
-#define FORMAT_NAME			"crypt(3) $5$"
+
 #ifdef MMX_COEF_SHA256
 #define ALGORITHM_NAME          SHA256_ALGORITHM_NAME
 #else
 #define ALGORITHM_NAME          "32/" ARCH_BITS_STR " " SHA2_LIB
 #endif
-
-#define BENCHMARK_COMMENT		" (rounds=5000)"
-#define BENCHMARK_LENGTH		-1
 
 // 35 character input is MAX password that fits into 2 SHA256 blocks
 // 35 character input creates a 118 byte buffer, plus 1 for 0x80 and
@@ -171,6 +168,7 @@ void main() {
 #define MAX_KEYS_PER_CRYPT		1
 #endif
 
+#include "cryptsha256_common.h"
 
 static struct fmt_tests tests[] = {
 	{"$5$LKO/Ute40T3FNF95$U0prpBQd4PloSGU0pnpM4z9wKn4vZ1.jsrzQfPqxph9", "U*U*U*U*"},
@@ -190,16 +188,6 @@ static struct fmt_tests tests[] = {
 	//{"$5$rounds=50000$LKO/Ute40T3FNF95$S51z7fjx29wblQAQbkqY7G8ExS18kQva39ur8FG5VS0", "U*U*U*U*"},
 	{NULL}
 };
-
-/* Prefix for optional rounds specification.  */
-static const char sha256_rounds_prefix[] = "rounds=";
-
-/* Default number of rounds if not explicitly specified.  */
-#define ROUNDS_DEFAULT 5000
-/* Minimum number of rounds.  */
-#define ROUNDS_MIN 1	/* Drepper has it as 1000 */
-/* Maximum number of rounds.  */
-#define ROUNDS_MAX 999999999
 
 /* This structure is 'pre-loaded' with the keyspace of all possible crypts which  */
 /* will be performed WITHIN the inner loop.  There are 8 possible buffers that    */
@@ -279,65 +267,6 @@ static void init(struct fmt_main *self)
 	saved_key_length = mem_calloc_tiny(sizeof(*saved_key_length) * (1+max_crypts), MEM_ALIGN_WORD);
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) * (1+max_crypts), MEM_ALIGN_WORD);
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * (1+max_crypts), MEM_ALIGN_WORD);
-}
-
-static int valid(char *ciphertext, struct fmt_main *self)
-{
-	char *pos, *start;
-
-	if (strncmp(ciphertext, "$5$", 3))
-		return 0;
-
-	ciphertext += 3;
-
-	if (!strncmp(ciphertext, sha256_rounds_prefix,
-	             sizeof(sha256_rounds_prefix) - 1)) {
-		const char *num = ciphertext + sizeof(sha256_rounds_prefix) - 1;
-		char *endp;
-		if (!strtoul(num, &endp, 10))
-			return 0;
-		if (*endp == '$')
-			ciphertext = endp + 1;
-	}
-
-	for (pos = ciphertext; *pos && *pos != '$'; pos++);
-	if (!*pos || pos < ciphertext || pos > &ciphertext[SALT_LENGTH]) return 0;
-
-	start = ++pos;
-	while (atoi64[ARCH_INDEX(*pos)] != 0x7F) pos++;
-	if (*pos || pos - start != CIPHERTEXT_LENGTH) return 0;
-
-	return 1;
-}
-
-#define TO_BINARY(b1, b2, b3) \
-	value = (ARCH_WORD_32)atoi64[ARCH_INDEX(pos[0])] | \
-		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[1])] << 6) | \
-		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[2])] << 12) | \
-		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[3])] << 18); \
-	pos += 4; \
-	out[b1] = value >> 16; \
-	out[b2] = value >> 8; \
-	out[b3] = value;
-
-static void *get_binary(char *ciphertext)
-{
-	static ARCH_WORD_32 outbuf[BINARY_SIZE/4];
-	ARCH_WORD_32 value;
-	char *pos = strrchr(ciphertext, '$') + 1;
-	unsigned char *out = (unsigned char*)outbuf;
-	int i=0;
-
-	do {
-		TO_BINARY(i, (i+10)%30, (i+20)%30);
-		i = (i+21)%30;
-	} while (i != 0);
-	value = (ARCH_WORD_32)atoi64[ARCH_INDEX(pos[0])] |
-		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[1])] << 6) |
-		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[2])] << 12);
-	out[31] = value >> 8;
-	out[30] = value;
-	return (void *)out;
 }
 
 static int get_hash_0(int index) { return crypt_out[index][0] & 0xf; }
@@ -940,9 +869,9 @@ static void *get_salt(char *ciphertext)
 
 	out.rounds = ROUNDS_DEFAULT;
 	ciphertext += 3;
-	if (!strncmp(ciphertext, sha256_rounds_prefix,
-	             sizeof(sha256_rounds_prefix) - 1)) {
-		const char *num = ciphertext + sizeof(sha256_rounds_prefix) - 1;
+	if (!strncmp(ciphertext, ROUNDS_PREFIX,
+	             sizeof(ROUNDS_PREFIX) - 1)) {
+		const char *num = ciphertext + sizeof(ROUNDS_PREFIX) - 1;
 		char *endp;
 		unsigned long int srounds = strtoul(num, &endp, 10);
 		if (*endp == '$')
