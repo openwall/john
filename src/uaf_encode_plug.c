@@ -542,7 +542,7 @@ int uaf_test_password (
 	if ( password_dx.dsc$w_length > sizeof(uc_password) )
 		password_dx.dsc$w_length = sizeof(uc_password);
 	for ( i = 0; i < password_dx.dsc$w_length; i++ )
-	    uc_password[i] = toupper ( password[i] );
+		uc_password[i] = toupper ( ARCH_INDEX(password[i]) );
     }
     /*
      * Try private implementation first (optimized) and fall back

@@ -539,7 +539,7 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 		if (options.flags & FLG_REJECT_PRINTABLE) {
 			int i = 0;
 
-			while (isprint(((char*)binary)[i]) &&
+			while (isprint((int)((unsigned char*)binary)[i]) &&
 			       i < format->params.binary_size)
 				i++;
 

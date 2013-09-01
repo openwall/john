@@ -368,7 +368,7 @@ void opencl_preinit(void)
 					fprintf(stderr, "Only a single numerical --device allowed when using legacy --platform syntax.\n");
 					exit(1);
 				}
-				if (!isdigit(current->data[0])) {
+				if (!isdigit(ARCH_INDEX(current->data[0]))) {
 					fprintf(stderr, "Invalid OpenCL device id %s\n",
 						current->data);
 					exit(1);
@@ -529,7 +529,7 @@ static void dev_init(int sequential_id)
 
 		if (ret_code == CL_SUCCESS && (len = strlen(opencl_log))) {
 
-			while (len > 0 && isspace(opencl_log[len]))
+			while (len > 0 && isspace(ARCH_INDEX(opencl_log[len])))
 				len--;
 
 			opencl_log[len-1] = '\0';
@@ -1791,7 +1791,7 @@ void listOpenCLdevices(void)
 			clGetDeviceInfo(devices[sequence_nr], CL_DEVICE_NAME,
 				sizeof(dname), dname, NULL);
 			p = dname;
-			while (isspace(*p)) /* Intel quirk */
+			while (isspace(ARCH_INDEX(*p))) /* Intel quirk */
 				p++;
 			printf("\tDevice #%d (%d) name:\t%s\n", j, sequence_nr, p);
 
