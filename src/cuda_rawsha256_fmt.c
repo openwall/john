@@ -236,6 +236,7 @@ struct fmt_main FMT_MAIN = {
 		DEFAULT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
+		0,
 		FMT_CASE | FMT_8_BIT,
 		TESTS
 	}, {

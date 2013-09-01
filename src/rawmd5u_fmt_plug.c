@@ -570,6 +570,7 @@ struct fmt_main fmt_rawmd5uthick = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
+		0,
 #if (BLOCK_LOOPS > 1) && defined(SSE_MD5_PARA)
 		FMT_OMP |
 #endif

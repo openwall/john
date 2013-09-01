@@ -300,6 +300,7 @@ struct fmt_main fmt_bitcoin = {
 #endif
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
+		0,
 		FMT_CASE | FMT_OMP,
 		bitcoin_tests
 	}, {

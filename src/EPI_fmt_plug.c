@@ -162,6 +162,7 @@ struct fmt_main fmt_EPI =
 		DEFAULT_ALIGN,
 		1,
 		1,
+		0,
 		FMT_CASE | FMT_8_BIT, // flags XXX, these are just guesses
 		global_tests
 	},

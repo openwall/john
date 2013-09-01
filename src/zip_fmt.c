@@ -255,6 +255,7 @@ struct fmt_main fmt_zip = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT*BASE_SCALE,
+		0,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_NOT_EXACT,   /*ldr_remove_hash(crk_db, salt, pw);*/
 		zip_tests
 	}, {

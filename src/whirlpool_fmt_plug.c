@@ -168,7 +168,7 @@ static int crypt_2(int *pcount, struct db_salt *salt)
 	{
 #if OPENSSL_VERSION_NUMBER >= 0x10000000
 		WHIRLPOOL_CTX ctx;
-		
+
 		WHIRLPOOL_Init(&ctx);
 		WHIRLPOOL_Update(&ctx, saved_key[index], strlen(saved_key[index]));
 		WHIRLPOOL_Final((unsigned char*)crypt_out[index], &ctx);
@@ -232,6 +232,7 @@ struct fmt_main fmt_whirlpool_0 = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
+		0,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		whirlpool_0_tests
 	}, {
@@ -289,6 +290,7 @@ struct fmt_main fmt_whirlpool_1 = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
+		0,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		whirlpool_1_tests
 	}, {
@@ -345,6 +347,7 @@ struct fmt_main fmt_whirlpool = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
+		0,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		whirlpool_tests
 	}, {

@@ -735,6 +735,7 @@ struct fmt_main fmt_sapG = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
+		0,
 #if !defined(MMX_COEF) || defined(SHA1_SSE_PARA)
 		FMT_OMP |
 #endif

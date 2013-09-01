@@ -208,6 +208,7 @@ struct fmt_main fmt_LM = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
+		0,
 #if DES_bs_mt
 		FMT_OMP | FMT_OMP_BAD |
 #endif

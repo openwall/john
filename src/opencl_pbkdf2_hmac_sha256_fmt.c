@@ -482,6 +482,7 @@ struct fmt_main fmt_opencl_pbkdf2_hmac_sha256 = {
 	SALT_ALIGN,
 	1,
 	1,
+	0,
 	FMT_CASE | FMT_8_BIT,
 	tests
 }, {

@@ -1241,6 +1241,7 @@ struct fmt_main fmt_MSCHAPv2_new = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
+		0,
 #if !defined(MMX_COEF) || (defined(MD4_SSE_PARA) && defined(SSE_OMP))
 		FMT_OMP |
 #endif
@@ -1300,6 +1301,7 @@ struct fmt_main fmt_NETNTLM_new = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
+		0,
 #if !defined(MMX_COEF) || (defined(MD4_SSE_PARA) && defined(SSE_OMP))
 		FMT_OMP |
 #endif

@@ -446,6 +446,7 @@ struct fmt_main fmt_opencl_odf_aes = {
 		1,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
+		0,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		tests
 	}, {

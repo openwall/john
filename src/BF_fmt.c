@@ -258,6 +258,7 @@ struct fmt_main fmt_BF = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
+		0,
 #if BF_mt > 1
 		FMT_OMP |
 #endif

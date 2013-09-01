@@ -272,6 +272,7 @@ struct fmt_main fmt_krb5_18 = {
 		sizeof(ARCH_WORD_32),
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
+		0,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		kinit_tests
 	}, {
