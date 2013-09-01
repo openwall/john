@@ -230,10 +230,11 @@ static void init(struct fmt_main *self)
 	finish_kernel = clCreateKernel(program[ocl_gpu_id], KERNEL_FINISH_NAME, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error while creating finish kernel");
 
-	local_work_size = cpu(device_info[ocl_gpu_id]) ? 1 : 64;
-
 	/* Read LWS/GWS prefs from config or environment */
 	opencl_get_user_preferences(OCL_CONFIG);
+
+	if (!local_work_size && !getenv("LWS"))
+		local_work_size = cpu(device_info[ocl_gpu_id]) ? 1 : 64;
 
 	//Initialize openCL tuning (library) for this format.
 	opencl_init_auto_setup(STEP, ROUNDS_DEFAULT/8, 8, split_events,

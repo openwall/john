@@ -357,11 +357,14 @@ static void init(struct fmt_main * self) {
 
 	build_kernel(task);
 
-	global_work_size = get_task_max_size();
-	local_work_size = get_default_workgroup();
-
 	/* Read LWS/GWS prefs from config or environment */
 	opencl_get_user_preferences(OCL_CONFIG);
+
+	if (!global_work_size && !getenv("GWS"))
+		global_work_size = get_task_max_size();
+
+	if (!local_work_size && !getenv("LWS"))
+		local_work_size = get_default_workgroup();
 
 	//Initialize openCL tuning (library) for this format.
 	opencl_init_auto_setup(STEP, HASH_LOOPS, ((_SPLIT_KERNEL_IN_USE) ? 7 : 3),

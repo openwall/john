@@ -391,11 +391,14 @@ static void init(struct fmt_main * self) {
 	cmp_kernel = clCreateKernel(program[ocl_gpu_id], "kernel_cmp", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel_cmp. Double-check kernel name?");
 
-	global_work_size = get_task_max_size();
-	local_work_size = get_default_workgroup();
-
 	/* Read LWS/GWS prefs from config or environment */
 	opencl_get_user_preferences(OCL_CONFIG);
+
+	if (!global_work_size && !getenv("GWS"))
+		global_work_size = get_task_max_size();
+
+	if (!local_work_size && !getenv("LWS"))
+		local_work_size = get_default_workgroup();
 
 	gws_limit = MIN((0xf << 22) * 4 / BUFFER_SIZE,
 			get_max_mem_alloc_size(ocl_gpu_id) / BUFFER_SIZE);

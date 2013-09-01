@@ -159,12 +159,14 @@ static void init(struct fmt_main *self)
 
 	if ((temp = getenv("LWS")))
 		local_work_size = atoi(temp);
-	else
+
+	if (!local_work_size)
 		local_work_size = cpu(device_info[ocl_gpu_id]) ? 1 : 64;
 
 	if ((temp = getenv("GWS")))
 		global_work_size = atoi(temp);
-	else
+
+	if (!global_work_size)
 		global_work_size = MAX_KEYS_PER_CRYPT / 8;
 
 	/// Allocate memory
