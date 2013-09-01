@@ -48,7 +48,7 @@ static struct fmt_tests oracle_tests[] = {
 	{"O$BOB#c0ee5107c9a080c1", "AZERTYUIOP" },
 	{"O$BOB#99e8b231d33772f9", "CANARDWC" },
 	{"O$BOB#da3224126a67c8ed", "COUCOU_COUCOU" },
-	{"O$BOB#ec8147abb3373d53", "LONG_MOT_DE_PASSE_OUI" },
+	{"O$bob#ec8147abb3373d53", "LONG_MOT_DE_PASSE_OUI" },
 
 	{"9EEDFA0AD26C6D52", "THALES",        {"SYSTEM"} },
 	{"4F8BC1809CB2AF77", "A",             {"SIMON"} },
@@ -282,8 +282,9 @@ static void * oracle_get_salt(char * ciphertext)
 	}
 	salt[l-2] = 0;
 
-	// we now upcase the user name in the prepare() function.
-	// So we are going back to 'simple' plain->utf16 convert only.
+	// Encoding-aware shift to upper-case
+	enc_strupper((char*)salt);
+
 	l = enc_to_utf16_be(&out[1], 16, (UTF8 *)salt, l-2);
 	if (l < 0)
 		l = strlen16(&out[1]);
