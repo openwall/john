@@ -121,6 +121,8 @@ void crk_init(struct db_main *db, void (*fix_state)(void),
 
 	if (db->loaded) {
 		size = crk_params.max_keys_per_crypt * sizeof(int64);
+		if (crk_params.num_internal_keys)
+			size *= crk_params.num_internal_keys;
 		memset(crk_timestamps = mem_alloc_tiny(size,sizeof(int64)), -1, size);
 	} else
 		crk_stdout_key[0] = 0;
