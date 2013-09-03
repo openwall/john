@@ -121,9 +121,8 @@ void crk_init(struct db_main *db, void (*fix_state)(void),
 
 	if (db->loaded) {
 		size = crk_params.max_keys_per_crypt * sizeof(int64);
-		if (crk_params.num_internal_keys)
-			size *= crk_params.num_internal_keys;
-		memset(crk_timestamps = mem_alloc_tiny(size,sizeof(int64)), -1, size);
+		memset(crk_timestamps = mem_alloc_tiny(size, sizeof(int64)),
+		       -1, size);
 	} else
 		crk_stdout_key[0] = 0;
 
@@ -220,8 +219,12 @@ static int crk_process_guess(struct db_salt *salt, struct db_password *pw,
 	int dupe;
 	char *key, *utf8key, *repkey, *replogin;
 
-	dupe = !memcmp(&crk_timestamps[index], &status.crypts, sizeof(int64));
-	crk_timestamps[index] = status.crypts;
+	if (index < crk_params.max_keys_per_crypt) {
+		dupe = !memcmp(&crk_timestamps[index],
+		               &status.crypts, sizeof(int64));
+		crk_timestamps[index] = status.crypts;
+	} else
+		dupe = 0;
 
 	repkey = key = crk_methods.get_key(index);
 	replogin = pw->login;
