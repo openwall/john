@@ -27,8 +27,8 @@ typedef ushort UTF16;
 typedef uchar  UTF8;
 
 __constant uint halfShift  = 10; /* used for shifting by 10 bits */
-__constant UTF32 halfBase = 0x0010000UL;
-__constant UTF32 halfMask = 0x3FFUL;
+__constant UTF32 halfBase = 0x0010000U;
+__constant UTF32 halfMask = 0x3FFU;
 
 /*
  * Index into the table below with the first byte of a UTF-8 sequence to
@@ -583,7 +583,7 @@ __kernel void ntlmv2_final(const __global uint *nthash, MAYBE_CONSTANT uint *cha
 	uint block[16];
 	uint output[4], hash[4];
 	uint a, b, c, d;
-	MAYBE_CONSTANT uint *cp = challenge; /* identity[16].len,server_chal.client_chal[len] */
+	MAYBE_CONSTANT uint *cp = challenge; /* identity[32].len,server_chal.client_chal[len] */
 	uint challenge_size;
 
 	/* 1st HMAC */
@@ -596,10 +596,17 @@ __kernel void ntlmv2_final(const __global uint *nthash, MAYBE_CONSTANT uint *cha
 	md5_block(block, output); /* md5_update(ipad, 64) */
 
 	/* Salt buffer is prepared with 0x80, zero-padding and length,
-	 * ie. (saltlen + 64) << 3 in get_salt() */
+	 * it can be one or two blocks */
 	for (i = 0; i < 16; i++)
 		block[i] = *cp++;
 	md5_block(block, output); /* md5_update(salt, saltlen), md5_final() */
+
+	if (cp[14]) { /* salt longer than 27 characters */
+		for (i = 0; i < 16; i++)
+			block[i] = *cp++;
+		md5_block(block, output); /* alternate final */
+	} else
+		cp += 16;
 
 	for (i = 0; i < 4; i++)
 		hash[i] = output[i];
