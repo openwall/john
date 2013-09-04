@@ -121,6 +121,15 @@ static void rpp_process_rule(struct rpp_context *ctx)
 		case 'd':
 			input = (unsigned char *)"[0-9]";
 			break;
+		case 's':
+			input = (unsigned char *)"[ -/:-@[-`{-~]";
+			break;
+		case 'a':
+			input = (unsigned char *)"[ -~]";
+			break;
+		case 'A':
+			input = (unsigned char *)"[\x20-\xff]";
+			break;
 		default:
 			saved_input = NULL;
 			input--;
