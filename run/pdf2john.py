@@ -53,6 +53,7 @@ class PdfParser:
             return
         object_id = self.get_object_id(b'Encrypt', trailer)
         encryption_dictionary = self.get_encryption_dictionary(object_id)
+        # print encryption_dictionary
         dr = re.compile(b'\d+')
         vr = re.compile(b'\/V \d')
         rr = re.compile(b'\/R \d')
@@ -107,15 +108,21 @@ class PdfParser:
             pas = pr.findall(encryption_dictionary)
             if(len(pas) > 0):
                 pas = pr.findall(encryption_dictionary)[0]
-                #Because regexs in python suck
+                # because regexs in python suck <=== LOL
                 while(pas[-2] == b'\\'):
                     pr_str += b'[^)]+\)'
                     pr = re.compile(pr_str)
-                    pas = pr.findall(encryption_dictionary)[0]
+                    pas = pr.findall(encryption_dictionary)
+                    if not pas:
+                        break
+                    pas = pas[0]
                 output +=  self.get_password_from_byte_string(pas)+"*"
             else:
                 pr = re.compile(let + b'\s*<\w+>')
-                pas = pr.findall(encryption_dictionary)[0]
+                pas = pr.findall(encryption_dictionary)
+                if not pas:
+                    continue
+                pas = pas[0]
                 pr = re.compile(b'<\w+>')
                 pas = pr.findall(pas)[0]
                 pas = pas.replace(b"<",b"")
@@ -168,7 +175,7 @@ class PdfParser:
             output = output.firstChild.data
             return output
         return ""
- 
+
     def get_encryption_dictionary(self, object_id):
         encryption_dictionary = self.get_pdf_object(object_id)
         for o in encryption_dictionary.split(b"endobj"):
