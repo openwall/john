@@ -574,6 +574,7 @@ void opencl_build(int sequential_id, char *opts, int save, char * file_name, int
 	cl_int build_code;
 	char * build_log; size_t log_size;
 	const char *srcptr[] = { kernel_source };
+	int stdopts = 1;
 
 	assert(kernel_loaded);
 	program[sequential_id] =
@@ -581,16 +582,13 @@ void opencl_build(int sequential_id, char *opts, int save, char * file_name, int
 		&ret_code);
 	HANDLE_CLERROR(ret_code, "Error while creating program");
 
-	build_code = clBuildProgram(program[sequential_id], 0, NULL,
-		include_source("$JOHN/kernels", sequential_id, opts, 1),
-		 NULL, NULL);
+	if (get_platform_vendor_id(sequential_id) == DEV_INTEL
+	    || get_platform_vendor_id(sequential_id) == PLATFORM_APPLE)
+		stdopts = 0;
 
-	// Workaround for crappy non-compliant drivers (eg. Intel, Apple)
-	if ((build_code == CL_INVALID_BUILD_OPTIONS)) {
-		build_code = clBuildProgram(program[sequential_id], 0, NULL,
-			include_source("$JOHN/kernels", sequential_id, opts, 0),
-		        NULL, NULL);
-	}
+	build_code = clBuildProgram(program[sequential_id], 0, NULL,
+		include_source("$JOHN/kernels", sequential_id, opts, stdopts),
+		 NULL, NULL);
 
 	HANDLE_CLERROR(clGetProgramBuildInfo(program[sequential_id], devices[sequential_id],
 		CL_PROGRAM_BUILD_LOG, 0, NULL,
@@ -1319,6 +1317,8 @@ void opencl_build_kernel(char *kernel_filename, int sequential_id, char *opts, i
 		opencl_build_kernel_opt(kernel_filename, sequential_id, opts);
 
 	else {
+		char pnum[16];
+
 		startTime = (unsigned long) time(NULL);
 
 		// Get device name.
@@ -1335,6 +1335,8 @@ void opencl_build_kernel(char *kernel_filename, int sequential_id, char *opts, i
 			strcat(bin_name, "_");
 		}
 		strcat(bin_name, dev_name);
+		sprintf(pnum, "_%d", platform_id);
+		strcat(bin_name, pnum);
 		strcat(bin_name, ".bin");
 
 		// Change spaces to '_'
@@ -1484,14 +1486,14 @@ size_t get_kernel_preferred_work_group_size(int sequential_id, cl_kernel crypt_k
 void get_compute_capability(int sequential_id, unsigned int *major,
 	unsigned int *minor)
 {
-	HANDLE_CLERROR(clGetDeviceInfo(devices[sequential_id],
-		CL_DEVICE_COMPUTE_CAPABILITY_MAJOR_NV,
-		sizeof(cl_uint), major, NULL),
-		"Error querying CL_DEVICE_COMPUTE_CAPABILITY_MAJOR_NV");
-	HANDLE_CLERROR(clGetDeviceInfo(devices[sequential_id],
-		CL_DEVICE_COMPUTE_CAPABILITY_MINOR_NV,
-		sizeof(cl_uint), minor, NULL),
-		"Error querying CL_DEVICE_COMPUTE_CAPABILITY_MINOR_NV");
+	if (!clGetDeviceInfo(devices[sequential_id],
+	                     CL_DEVICE_COMPUTE_CAPABILITY_MAJOR_NV,
+	                     sizeof(cl_uint), major, NULL))
+		major = 0;
+	if (!clGetDeviceInfo(devices[sequential_id],
+	                     CL_DEVICE_COMPUTE_CAPABILITY_MINOR_NV,
+	                     sizeof(cl_uint), minor, NULL))
+		minor = 0;
 }
 #endif
 
@@ -1910,10 +1912,10 @@ void listOpenCLdevices(void)
 
 			if (gpu_nvidia(device_info[sequence_nr])) {
 				unsigned int major = 0, minor = 0;
+
 				get_compute_capability(j, &major, &minor);
-				printf
-					("\tCompute capability:\t%u.%u (sm_%u%u)\n",
-					major, minor, major, minor);
+				if (major && minor)
+				printf("\tCompute capability:\t%u.%u (sm_%u%u)\n", major, minor, major, minor);
 			}
 			ret = clGetDeviceInfo(devices[sequence_nr],
 				CL_DEVICE_KERNEL_EXEC_TIMEOUT_NV,
