@@ -547,16 +547,16 @@ static char *include_source(char *pathname, int sequential_id, char *opts,
 {
 	static char include[PATH_BUFFER_SIZE];
 
-	sprintf(include, "-I %s %s%s%s%d %s%s %s", path_expand(pathname),
+	sprintf(include, "-I %s %s%s%s%s%d %s %s", path_expand(pathname),
 	        defaults ? OPENCLBUILDOPTIONS " " : "",
-		get_device_type(sequential_id) == CL_DEVICE_TYPE_CPU ?
-		"-DDEVICE_IS_CPU " : "",
-		"-DDEVICE_INFO=", device_info[sequential_id],
 #ifdef __APPLE__
 		"-DAPPLE ",
 #else
 		gpu_nvidia(device_info[sequential_id]) ? "-cl-nv-verbose " : "",
 #endif
+		get_device_type(sequential_id) == CL_DEVICE_TYPE_CPU ?
+		"-DDEVICE_IS_CPU " : "",
+		"-DDEVICE_INFO=", device_info[sequential_id],
 	        "-D_OPENCL_COMPILER",
 	        opts ? opts : "");
 
