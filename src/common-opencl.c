@@ -547,22 +547,18 @@ static char *include_source(char *pathname, int sequential_id, char *opts,
 {
 	static char include[PATH_BUFFER_SIZE];
 
-	sprintf(include, "-I %s %s %s%d %s %s %s", path_expand(pathname),
+	sprintf(include, "-I %s %s%s%s%d %s%s %s", path_expand(pathname),
+	        defaults ? OPENCLBUILDOPTIONS " " : "",
 		get_device_type(sequential_id) == CL_DEVICE_TYPE_CPU ?
-		"-DDEVICE_IS_CPU" : "",
+		"-DDEVICE_IS_CPU " : "",
 		"-DDEVICE_INFO=", device_info[sequential_id],
 #ifdef __APPLE__
-		"-DAPPLE",
+		"-DAPPLE ",
 #else
-		gpu_nvidia(device_info[sequential_id]) ? "-cl-nv-verbose" : "",
+		gpu_nvidia(device_info[sequential_id]) ? "-cl-nv-verbose " : "",
 #endif
 	        "-D_OPENCL_COMPILER",
-	        defaults ? OPENCLBUILDOPTIONS : "");
-
-	if (opts) {
-		strcat(include, " ");
-		strcat(include, opts);
-	}
+	        opts ? opts : "");
 
 	if (options.verbosity > 3)
 		fprintf(stderr, "Options used: %s\n", include);
@@ -582,8 +578,7 @@ void opencl_build(int sequential_id, char *opts, int save, char * file_name, int
 		&ret_code);
 	HANDLE_CLERROR(ret_code, "Error while creating program");
 
-	if (get_platform_vendor_id(sequential_id) == DEV_INTEL
-	    || get_platform_vendor_id(sequential_id) == PLATFORM_APPLE)
+	if (get_platform_vendor_id(get_platform_id(sequential_id)) == DEV_INTEL)
 		stdopts = 0;
 
 	build_code = clBuildProgram(program[sequential_id], 0, NULL,
@@ -701,7 +696,8 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
 	if (get_device_version(sequential_id) < 110) {
 		if (get_device_type(sequential_id) == CL_DEVICE_TYPE_GPU)
 			wg_multiple = 32;
-		else if (get_platform_vendor_id(sequential_id) == DEV_INTEL)
+		else if (get_platform_vendor_id(get_platform_id(sequential_id))
+		         == DEV_INTEL)
 			wg_multiple = 8;
 		else
 			wg_multiple = 1;
@@ -977,7 +973,8 @@ void opencl_find_best_lws(
 	if (get_device_version(sequential_id) < 110) {
 		if (get_device_type(sequential_id) == CL_DEVICE_TYPE_GPU)
 			wg_multiple = 32;
-		else if (get_platform_vendor_id(sequential_id) == DEV_INTEL)
+		else if (get_platform_vendor_id(get_platform_id(sequential_id))
+		         == DEV_INTEL)
 			wg_multiple = 8;
 		else
 			wg_multiple = 1;
