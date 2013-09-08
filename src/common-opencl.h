@@ -39,10 +39,19 @@
 
 #define OPENCLBUILDOPTIONS "-cl-strict-aliasing -cl-mad-enable"
 
-/* Comment if you do not want to see OpenCL warnings during kernel compilation.
-   Currently commented out for releases. The output will also be present if
-   you define DEBUG so this may be deprecated anyway. */
-#define REPORT_OPENCL_WARNINGS
+#ifdef DEBUG_CL_ALLOC
+static inline cl_mem john_clCreateBuffer (int l, char *f,
+                                          cl_context context,
+                                          cl_mem_flags flags, size_t size,
+                                          void *host_ptr, cl_int *errcode_ret)
+{
+	fprintf(stderr, "allocating %zu bytes in line %d of %s\n", size, l, f);
+	return clCreateBuffer(context, flags, size, host_ptr, errcode_ret);
+}
+
+#define clCreateBuffer(a, b, c, d, e)	john_clCreateBuffer(__LINE__, \
+	                    __FILE__, a, b, c, d, e)
+#endif
 
 /* Common OpenCL variables */
 int ocl_gpu_id, platform_id;
