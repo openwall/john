@@ -112,10 +112,7 @@ class PdfParser:
                 while(pas[-2] == b'\\'):
                     pr_str += b'[^)]+\)'
                     pr = re.compile(pr_str)
-                    pas = pr.findall(encryption_dictionary)
-                    if not pas:
-                        break
-                    pas = pas[0]
+                    pas = pr.findall(encryption_dictionary)[0]
                 output +=  self.get_password_from_byte_string(pas)+"*"
             else:
                 pr = re.compile(let + b'\s*<\w+>')
