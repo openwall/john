@@ -261,6 +261,13 @@ static void fmt_rawsha1_init(struct fmt_main *self) {
 		create_clobj(global_work_size);
 	}
 
+	// Current key_idx can only hold 26 bits of offset so
+	// we can't reliably use a GWS higher than 4.7M or so.
+	if (global_work_size > (1 << 26) * 4 / PLAINTEXT_LENGTH) {
+		global_work_size = (1 << 26) * 4 / PLAINTEXT_LENGTH;
+		global_work_size = global_work_size / local_work_size *
+			local_work_size;
+	}
 	if (options.verbosity > 2)
 		fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n",(int)local_work_size, (int)global_work_size);
 
