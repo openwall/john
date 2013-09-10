@@ -422,13 +422,15 @@ __kernel void RarFinal(
 	__global uint *aes_key)
 {
 	uint gid = get_global_id(0);
-	uint *block[16], output[5];
+	uint block[16], output[5];
 	uint i;
 
 	for (i = 0; i < 5; i++)
 		output[i] = OutputBuf[gid * 5 + i];
 
-	sha1_final((uint*)block, (uint*)output, (pw_len[gid] + 8 + 3) * ROUNDS);
+	// This is always an empty block with only length set so we never
+	// initialize block[16]
+	sha1_final(block, output, (pw_len[gid] + 8 + 3) * ROUNDS);
 
 	// Still no endian-swap
 	for (i = 0; i < 4; i++)

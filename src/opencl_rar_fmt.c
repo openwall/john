@@ -78,8 +78,10 @@
 /* Max. 256. Lower gives better desktop response. This must be an even multiple
  * of 2 (ie. 1, 2, 4, 8 ...). The actual number of loops per kernel call is
  * this figure x (password_length * 2 + 11).
+ * Using 256 here will limit GWS on Tahiti to avoid ASIC hangs, so it's just
+ * bad for performance. 128 seem to work fine on 2013 GPUs.
  */
-#define HASH_LOOPS		8
+#define HASH_LOOPS		128
 
 #include "config.h"
 
