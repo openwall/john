@@ -75,14 +75,6 @@
 #include "unrar.h"
 #include "common-opencl.h"
 
-/* Max. 256. Lower gives better desktop response. This must be an even multiple
- * of 2 (ie. 1, 2, 4, 8 ...). The actual number of loops per kernel call is
- * this figure x (password_length * 2 + 11).
- * Using 256 here will limit GWS on Tahiti to avoid ASIC hangs, so it's just
- * bad for performance. 128 seem to work fine on 2013 GPUs.
- */
-#define HASH_LOOPS		128
-
 #include "config.h"
 
 #define FORMAT_LABEL		"rar-opencl"
@@ -150,9 +142,9 @@ static rarfile *cur_file;
 
 /* Determines when to use CPU instead (eg. Single mode, few keys in a call) */
 #define CPU_GPU_RATIO		32
-static cl_mem cl_saved_key, cl_saved_len, cl_salt, cl_RawBuf, cl_OutputBuf, cl_round, cl_aes_key, cl_aes_iv;
+static cl_mem cl_saved_key, cl_saved_len, cl_salt, cl_OutputBuf, cl_round, cl_aes_key, cl_aes_iv;
 static cl_mem pinned_saved_key, pinned_saved_len, pinned_salt, pinned_aes_key, pinned_aes_iv;
-static cl_kernel RarInit, RarGetIV, RarFinal;
+static cl_kernel RarInit, RarFinal;
 
 /* cRARk use 4-char passwords for CPU benchmark */
 static struct fmt_tests cpu_tests[] = {
@@ -194,15 +186,23 @@ static struct fmt_tests cpu_tests[] = {
 	{NULL}
 };
 
-/* cRARk use 6-char passwords for GPU benchmark */
+/* cRARk use 5-char passwords for GPU benchmark */
 static struct fmt_tests gpu_tests[] = {
+	{"$RAR3$*0*c203c4d80a8a09dc*49bbecccc08b5d893f308bce7ad36c0f", "sator"},
+	{"$RAR3$*0*672fca155cb74ac3*8d534cd5f47a58f6493012cf76d2a68b", "arepo"},
+	{"$RAR3$*0*c203c4d80a8a09dc*c3055efe7ca6587127fd541a5b88e0e4", "tenet"},
+	{"$RAR3$*0*672fca155cb74ac3*c760267628f94060cca57be5896003c8", "opera"},
+	{"$RAR3$*0*c203c4d80a8a09dc*1f406154556d4c895a8be207fd2b5d0c", "rotas"},
+	/* -p mode tests, -m0 and -m3 (in that order) */
+	{"$RAR3$*1*c47c5bef0bbd1e98*965f1453*48*47*1*c5e987f81d316d9dcfdb6a1b27105ce63fca2c594da5aa2f6fdf2f65f50f0d66314f8a09da875ae19d6c15636b65c815*30", "test"},
+	{"$RAR3$*1*b4eee1a48dc95d12*965f1453*64*47*1*0fe529478798c0960dd88a38a05451f9559e15f0cf20b4cac58260b0e5b56699d5871bdcc35bee099cc131eb35b9a116adaedf5ecc26b1c09cadf5185b3092e6*33", "test"},
+#ifdef DEBUG
 	{"$RAR3$*0*af24c0c95e9cafc7*e7f207f30dec96a5ad6f917a69d0209e", "magnum"},
 	{"$RAR3$*0*2653b9204daa2a8e*39b11a475f486206e2ec6070698d9bbc", "123456"},
 	{"$RAR3$*0*63f1649f16c2b687*8a89f6453297bcdb66bd756fa10ddd98", "abc123"},
 	/* -p mode tests, -m0 and -m3 (in that order) */
 	{"$RAR3$*1*575b083d78672e85*965f1453*48*47*1*cd3d8756438f43ab70e668792e28053f0ad7449af1c66863e3e55332bfa304b2c082b9f23b36cd4a8ebc0b743618c5b2*30", "magnum"},
 	{"$RAR3$*1*6f5954680c87535a*965f1453*64*47*1*c9bb398b9a5d54f035fd22be54bc6dc75822f55833f30eb4fb8cc0b8218e41e6d01824e3467475b90b994a5ddb7fe19366d293c9ee305316c2a60c3a7eb3ce5a*33", "magnum"},
-#ifdef DEBUG
 	/* Various lengths, these should be in self-test but not benchmark */
 	/* from CMIYC 2012 */
 	{"$RAR3$*1*0f263dd52eead558*834015cd*384*693*1*e28e9648f51b59e32f573b302f0e94aadf1050678b90c38dd4e750c7dd281d439ab4cccec5f1bd1ac40b6a1ead60c75625666307171e0fe2639d2397d5f68b97a2a1f733289eac0038b52ec6c3593ff07298fce09118c255b2747a02c2fa3175ab81166ebff2f1f104b9f6284a66f598764bd01f093562b5eeb9471d977bf3d33901acfd9643afe460e1d10b90e0e9bc8b77dc9ac40d40c2d211df9b0ecbcaea72c9d8f15859d59b3c85149b5bb5f56f0218cbbd9f28790777c39e3e499bc207289727afb2b2e02541b726e9ac028f4f05a4d7930efbff97d1ffd786c4a195bbed74997469802159f3b0ae05b703238da264087b6c2729d9023f67c42c5cbe40b6c67eebbfc4658dfb99bfcb523f62133113735e862c1430adf59c837305446e8e34fac00620b99f574fabeb2cd34dc72752014cbf4bd64d35f17cef6d40747c81b12d8c0cd4472089889a53f4d810b212fb314bf58c3dd36796de0feeefaf26be20c6a2fd00517152c58d0b1a95775ef6a1374c608f55f416b78b8c81761f1d*33:1::to-submit-challenges.txt", "wachtwoord"},
@@ -210,11 +210,6 @@ static struct fmt_tests gpu_tests[] = {
 	{"$RAR3$*1*79e17c26407a7d52*834015cd*384*693*1*6844a189e732e9390b5a958b623589d5423fa432d756fd00940ac31e245214983507a035d4e0ee09469491551759a66c12150fe6c5d05f334fb0d8302a96d48ef4da04954222e0705507aaa84f8b137f284dbec344eee9cea6b2c4f63540c64df3ee8be3013466d238c5999e9a98eb6375ec5462869bba43401ec95077d0c593352339902c24a3324178e08fe694d11bfec646c652ffeafbdda929052c370ffd89168c83194fedf7c50fc7d9a1fbe64332063d267a181eb07b5d70a5854067db9b66c12703fde62728d3680cf3fdb9933a0f02bfc94f3a682ad5e7c428d7ed44d5ff554a8a445dea28b81e3a2631870e17f3f3c0c0204136802c0701590cc3e4c0ccd9f15e8be245ce9caa6969fab9e8443ac9ad9e73e7446811aee971808350c38c16c0d3372c7f44174666d770e3dd321e8b08fb2dc5e8a6a5b2a1720bad66e54abc194faabc5f24225dd8fee137ba5d4c2ed48c6462618e6333300a5b8dfc75c65608925e786eb0988f7b3a5ab106a55168d1001adc47ce95bba77b38c35b*33:1::to-submit-challenges.txt", "P-i-r-A-T-E"},
 	{"$RAR3$*1*e1df79fd9ee1dadf*771a163b*64*39*1*edc483d67b94ab22a0a9b8375a461e06fa1108fa72970e16d962092c311970d26eb92a033a42f53027bdc0bb47231a12ed968c8d530a9486a90cbbc00040569b*33", "333"},
 	{"$RAR3$*1*c83c00534d4af2db*771a163b*64*39*1*05244526d6b32cb9c524a15c79d19bba685f7fc3007a9171c65fc826481f2dce70be6148f2c3497f0d549aa4e864f73d4e4f697fdb66ff528ed1503d9712a414*33", "11eleven111"},
-	{"$RAR3$*0*c203c4d80a8a09dc*49bbecccc08b5d893f308bce7ad36c0f", "sator"},
-	{"$RAR3$*0*672fca155cb74ac3*8d534cd5f47a58f6493012cf76d2a68b", "arepo"},
-	{"$RAR3$*0*c203c4d80a8a09dc*c3055efe7ca6587127fd541a5b88e0e4", "tenet"},
-	{"$RAR3$*0*672fca155cb74ac3*c760267628f94060cca57be5896003c8", "opera"},
-	{"$RAR3$*0*c203c4d80a8a09dc*1f406154556d4c895a8be207fd2b5d0c", "rotas"},
 	{"$RAR3$*0*345f5f573a077ad7*638e388817cc7851e313406fd77730b9", "Boustrophedon"},
 	{"$RAR3$*0*c9dea41b149b53b4*fcbdb66122d8ebdb32532c22ca7ab9ec", "password"},
 	{"$RAR3$*0*7ce241baa2bd521b*f2b26d76424efa351c728b321671d074", "@"},
@@ -334,9 +329,6 @@ static void create_clobj(int gws, struct fmt_main *self)
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_salt");
 	memset(saved_salt, 0, 8);
 
-	cl_RawBuf = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE, sizeof(cl_int) * (UNICODE_LENGTH + 11) * 16 * gws, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error allocating device memory");
-
 	cl_OutputBuf = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE, sizeof(cl_int) * 5 * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error allocating device memory");
 
@@ -360,23 +352,15 @@ static void create_clobj(int gws, struct fmt_main *self)
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory aes_iv");
 	memset(aes_iv, 0, 16 * gws);
 
-	HANDLE_CLERROR(clSetKernelArg(RarInit, 0, sizeof(cl_mem), (void*)&cl_saved_key), "Error setting argument 0");
-	HANDLE_CLERROR(clSetKernelArg(RarInit, 1, sizeof(cl_mem), (void*)&cl_saved_len), "Error setting argument 1");
-	HANDLE_CLERROR(clSetKernelArg(RarInit, 2, sizeof(cl_mem), (void*)&cl_salt), "Error setting argument 2");
-	HANDLE_CLERROR(clSetKernelArg(RarInit, 3, sizeof(cl_mem), (void*)&cl_RawBuf), "Error setting argument 3");
-	HANDLE_CLERROR(clSetKernelArg(RarInit, 4, sizeof(cl_mem), (void*)&cl_OutputBuf), "Error setting argument 4");
-	HANDLE_CLERROR(clSetKernelArg(RarInit, 5, sizeof(cl_mem), (void*)&cl_round), "Error setting argument 5");
+	HANDLE_CLERROR(clSetKernelArg(RarInit, 0, sizeof(cl_mem), (void*)&cl_OutputBuf), "Error setting argument 0");
+	HANDLE_CLERROR(clSetKernelArg(RarInit, 1, sizeof(cl_mem), (void*)&cl_round), "Error setting argument 1");
 
-	HANDLE_CLERROR(clSetKernelArg(RarGetIV, 0, sizeof(cl_mem), (void*)&cl_saved_len), "Error setting argument 0");
-	HANDLE_CLERROR(clSetKernelArg(RarGetIV, 1, sizeof(cl_mem), (void*)&cl_RawBuf), "Error setting argument 1");
-	HANDLE_CLERROR(clSetKernelArg(RarGetIV, 2, sizeof(cl_mem), (void*)&cl_OutputBuf), "Error setting argument 2");
-	HANDLE_CLERROR(clSetKernelArg(RarGetIV, 3, sizeof(cl_mem), (void*)&cl_round), "Error setting argument 3");
-	HANDLE_CLERROR(clSetKernelArg(RarGetIV, 4, sizeof(cl_mem), (void*)&cl_aes_iv), "Error setting argument 4");
-
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(cl_mem), (void*)&cl_saved_len), "Error setting argument 0");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(cl_mem), (void*)&cl_round), "Error setting argument 1");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(cl_mem), (void*)&cl_RawBuf), "Error setting argument 2");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(cl_mem), (void*)&cl_saved_key), "Error setting argument 0");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(cl_mem), (void*)&cl_saved_len), "Error setting argument 1");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(cl_mem), (void*)&cl_round), "Error setting argument 2");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(cl_mem), (void*)&cl_OutputBuf), "Error setting argument 3");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 4, sizeof(cl_mem), (void*)&cl_salt), "Error setting argument 4");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 5, sizeof(cl_mem), (void*)&cl_aes_iv), "Error setting argument 5");
 
 	HANDLE_CLERROR(clSetKernelArg(RarFinal, 0, sizeof(cl_mem), (void*)&cl_saved_len), "Error setting argument 0");
 	HANDLE_CLERROR(clSetKernelArg(RarFinal, 1, sizeof(cl_mem), (void*)&cl_OutputBuf), "Error setting argument 1");
@@ -404,7 +388,6 @@ static void release_clobj(void)
 	HANDLE_CLERROR(clReleaseMemObject(pinned_saved_key), "Release saved_key");
 	HANDLE_CLERROR(clReleaseMemObject(pinned_saved_len), "Release saved_len");
 	HANDLE_CLERROR(clReleaseMemObject(pinned_salt), "Release salt");
-	HANDLE_CLERROR(clReleaseMemObject(cl_RawBuf), "Release RawBuf");
 	HANDLE_CLERROR(clReleaseMemObject(cl_OutputBuf), "Release OutputBuf");
 
 	MEM_FREE(cracked);
@@ -532,13 +515,8 @@ static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, cl_saved_len, CL_FALSE, 0, sizeof(int) * gws, saved_len, 0, NULL, NULL), "Failed transferring lengths");
 
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, RarInit, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &Event[1]), "running kernel");
-	//for (k = 0; k < 16; k++) {
-		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, RarGetIV, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &Event[2]), "running kernel");
-		//for (j = 0; j < 256 / HASH_LOOPS; j++)
-			// Warm-up run
-			//HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "running kernel");
-			HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &Event[3]), "running kernel");
-	//}
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &Event[3]), "running kernel");
+
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, RarFinal, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &Event[4]), "running kernel");
 
 	HANDLE_CLERROR(clFinish(queue_prof), "Failed running kernel");
@@ -550,35 +528,30 @@ static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
 	clGetEventProfilingInfo(Event[1], CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime, NULL);
 	if (do_benchmark)
 		fprintf(stderr, "init %.2f ms\t", (float)((endTime - startTime)/1000000.));
-	clGetEventProfilingInfo(Event[2], CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime, NULL);
-	clGetEventProfilingInfo(Event[2], CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime, NULL);
-	if (do_benchmark)
-		fprintf(stderr, "iv %.2f ms\t", (float)((endTime - startTime)/1000000.));
 	clGetEventProfilingInfo(Event[3], CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime, NULL);
 	clGetEventProfilingInfo(Event[3], CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime, NULL);
 	if (do_benchmark)
-		fprintf(stderr, "%.2f ms x %u = %.2f s\t", (float)((endTime - startTime)/1000000.), 16 * (256/HASH_LOOPS), (float)(16. * (float)(256/HASH_LOOPS) * (endTime - startTime) / 1000000000.));
+		fprintf(stderr, "%.2f ms x %u = %.2f s\t", (float)((endTime - startTime)/1000000.), 16, (float)(16. * (endTime - startTime) / 1000000000.));
 	clGetEventProfilingInfo(Event[4], CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime, NULL);
 	clGetEventProfilingInfo(Event[4], CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime, NULL);
 	if (do_benchmark)
 		fprintf(stderr, "final %.2f ms\n", (float)((endTime - startTime)/1000000.));
 
-	/* 200 ms duration limit for GCN to avoid ASIC hangs */
-	if (amd_gcn(device_info[ocl_gpu_id]) && endTime - startTime > 200000000) {
-		if (do_benchmark)
-			fprintf(stderr, "- exceeds 200 ms\n");
-		clReleaseCommandQueue(queue_prof);
-		release_clobj();
-		return 0;
-	}
-
 	clGetEventProfilingInfo(Event[3], CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime, NULL);
 	clGetEventProfilingInfo(Event[3], CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime, NULL);
-	//fprintf(stderr, "Total: %.2f s\n", (float)((endTime - startTime)/1000000000.));
+
 	clReleaseCommandQueue(queue_prof);
 	release_clobj();
 
-	return 16 * (256/HASH_LOOPS) * (endTime - startTime);
+	/* 200 ms duration limit for GCN to avoid ASIC hangs */
+	if (amd_gcn(device_info[ocl_gpu_id]) && endTime - startTime > 200000000)
+	{
+		if (do_benchmark)
+			fprintf(stderr, "- exceeds 200 ms\n");
+		return 0;
+	}
+
+	return 16 * (endTime - startTime);
 }
 
 static void find_best_gws(int do_benchmark, struct fmt_main *self)
@@ -642,13 +615,11 @@ static void init(struct fmt_main *self)
 	cl_ulong maxsize, maxsize2;
 	char build_opts[64];
 
-	snprintf(build_opts, sizeof(build_opts), "-DHASH_LOOPS=%u -DPLAINTEXT_LENGTH=%u", HASH_LOOPS, PLAINTEXT_LENGTH);
+	snprintf(build_opts, sizeof(build_opts), "-DPLAINTEXT_LENGTH=%u", PLAINTEXT_LENGTH);
 	opencl_init("$JOHN/kernels/rar_kernel.cl", ocl_gpu_id, build_opts);
 
 	// create kernels to execute
 	RarInit = clCreateKernel(program[ocl_gpu_id], "RarInit", &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
-	RarGetIV = clCreateKernel(program[ocl_gpu_id], "RarGetIV", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "RarHashLoop", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
@@ -661,7 +632,7 @@ static void init(struct fmt_main *self)
 	/* We mimic the lengths of cRARk for comparisons */
 	if (gpu(device_info[ocl_gpu_id])) {
 #ifndef DEBUG
-		self->params.benchmark_comment = " (6 characters)";
+		self->params.benchmark_comment = " (length 5)";
 #endif
 		self->params.tests = gpu_tests;
 	}
@@ -671,8 +642,6 @@ static void init(struct fmt_main *self)
 
 	/* Note: we ask for the kernels' max sizes, not the device's! */
 	HANDLE_CLERROR(clGetKernelWorkGroupInfo(RarInit, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize), &maxsize, NULL), "Query max work group size");
-	HANDLE_CLERROR(clGetKernelWorkGroupInfo(RarGetIV, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize2), &maxsize2, NULL), "Query max work group size");
-	if (maxsize2 < maxsize) maxsize = maxsize2;
 	HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize2), &maxsize2, NULL), "Query max work group size");
 	if (maxsize2 < maxsize) maxsize = maxsize2;
 	HANDLE_CLERROR(clGetKernelWorkGroupInfo(RarFinal, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize2), &maxsize2, NULL), "Query max work group size");
@@ -941,7 +910,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
 	int index = 0;
-	int j, k;
+	int k;
 	size_t gws = ((count + (local_work_size - 1)) / local_work_size) * local_work_size;
 
 	if (new_keys) {
@@ -951,12 +920,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	}
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], RarInit, 1, NULL, &gws, &local_work_size, 0, NULL, firstEvent), "failed in clEnqueueNDRangeKernel");
 	for (k = 0; k < 16; k++) {
-		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], RarGetIV, 1, NULL, &gws, &local_work_size, 0, NULL, NULL), "failed in clEnqueueNDRangeKernel");
-		for (j = 0; j < 256 / HASH_LOOPS; j++) {
-			HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL, &gws, &local_work_size, 0, NULL, NULL), "failed in clEnqueueNDRangeKernel");
-			HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "Error running loop kernel");
-			opencl_process_event();
-		}
+		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL, &gws, &local_work_size, 0, NULL, NULL), "failed in clEnqueueNDRangeKernel");
+		HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "Error running loop kernel");
+		opencl_process_event();
 	}
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], RarFinal, 1, NULL, &gws, &local_work_size, 0, NULL, lastEvent), "failed in clEnqueueNDRangeKernel");
 	// read back aes key & iv
