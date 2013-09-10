@@ -82,6 +82,160 @@ inline uint SWAP32(uint x)
 #define H5	0xC3D2E1F0
 
 /* raw'n'lean sha1, context kept in output buffer */
+/* This version use global memory and preserves input */
+inline void sha1G_block(__global uint *Win, __global uint *output) {
+	uint W[16], A, B, C, D, E, temp;
+
+#pragma unroll
+	for (temp = 0; temp < 16; temp++)
+		W[temp] = Win[temp];
+
+	A = output[0];
+	B = output[1];
+	C = output[2];
+	D = output[3];
+	E = output[4];
+
+#undef R
+#define R(t)	  \
+	( \
+		temp = W[(t -  3) & 0x0F] ^ W[(t - 8) & 0x0F] ^ \
+		W[(t - 14) & 0x0F] ^ W[ t      & 0x0F], \
+		( W[t & 0x0F] = rotate(temp, 1U) ) \
+		)
+
+#undef P
+#define P(a,b,c,d,e,x)	\
+	{ \
+		e += rotate(a, 5U) + F(b,c,d) + K + x; \
+		b = rotate(b, 30U); \
+	}
+
+#ifdef USE_BITSELECT
+#define F(x,y,z)	bitselect(z, y, x)
+#else
+#define F(x,y,z)	(z ^ (x & (y ^ z)))
+#endif
+
+#define K		0x5A827999
+
+	P( A, B, C, D, E, W[0]  );
+	P( E, A, B, C, D, W[1]  );
+	P( D, E, A, B, C, W[2]  );
+	P( C, D, E, A, B, W[3]  );
+	P( B, C, D, E, A, W[4]  );
+	P( A, B, C, D, E, W[5]  );
+	P( E, A, B, C, D, W[6]  );
+	P( D, E, A, B, C, W[7]  );
+	P( C, D, E, A, B, W[8]  );
+	P( B, C, D, E, A, W[9]  );
+	P( A, B, C, D, E, W[10] );
+	P( E, A, B, C, D, W[11] );
+	P( D, E, A, B, C, W[12] );
+	P( C, D, E, A, B, W[13] );
+	P( B, C, D, E, A, W[14] );
+	P( A, B, C, D, E, W[15] );
+	P( E, A, B, C, D, R(16) );
+	P( D, E, A, B, C, R(17) );
+	P( C, D, E, A, B, R(18) );
+	P( B, C, D, E, A, R(19) );
+
+#undef K
+#undef F
+
+#define F(x,y,z)	(x ^ y ^ z)
+#define K		0x6ED9EBA1
+
+	P( A, B, C, D, E, R(20) );
+	P( E, A, B, C, D, R(21) );
+	P( D, E, A, B, C, R(22) );
+	P( C, D, E, A, B, R(23) );
+	P( B, C, D, E, A, R(24) );
+	P( A, B, C, D, E, R(25) );
+	P( E, A, B, C, D, R(26) );
+	P( D, E, A, B, C, R(27) );
+	P( C, D, E, A, B, R(28) );
+	P( B, C, D, E, A, R(29) );
+	P( A, B, C, D, E, R(30) );
+	P( E, A, B, C, D, R(31) );
+	P( D, E, A, B, C, R(32) );
+	P( C, D, E, A, B, R(33) );
+	P( B, C, D, E, A, R(34) );
+	P( A, B, C, D, E, R(35) );
+	P( E, A, B, C, D, R(36) );
+	P( D, E, A, B, C, R(37) );
+	P( C, D, E, A, B, R(38) );
+	P( B, C, D, E, A, R(39) );
+
+#undef K
+#undef F
+
+#ifdef USE_BITSELECT
+#define F(x,y,z)	(bitselect(x, y, z) ^ bitselect(x, 0U, y))
+#else
+#define F(x,y,z)	((x & y) | (z & (x | y)))
+#endif
+#define K		0x8F1BBCDC
+
+	P( A, B, C, D, E, R(40) );
+	P( E, A, B, C, D, R(41) );
+	P( D, E, A, B, C, R(42) );
+	P( C, D, E, A, B, R(43) );
+	P( B, C, D, E, A, R(44) );
+	P( A, B, C, D, E, R(45) );
+	P( E, A, B, C, D, R(46) );
+	P( D, E, A, B, C, R(47) );
+	P( C, D, E, A, B, R(48) );
+	P( B, C, D, E, A, R(49) );
+	P( A, B, C, D, E, R(50) );
+	P( E, A, B, C, D, R(51) );
+	P( D, E, A, B, C, R(52) );
+	P( C, D, E, A, B, R(53) );
+	P( B, C, D, E, A, R(54) );
+	P( A, B, C, D, E, R(55) );
+	P( E, A, B, C, D, R(56) );
+	P( D, E, A, B, C, R(57) );
+	P( C, D, E, A, B, R(58) );
+	P( B, C, D, E, A, R(59) );
+
+#undef K
+#undef F
+
+#define F(x,y,z)	(x ^ y ^ z)
+#define K		0xCA62C1D6
+
+	P( A, B, C, D, E, R(60) );
+	P( E, A, B, C, D, R(61) );
+	P( D, E, A, B, C, R(62) );
+	P( C, D, E, A, B, R(63) );
+	P( B, C, D, E, A, R(64) );
+	P( A, B, C, D, E, R(65) );
+	P( E, A, B, C, D, R(66) );
+	P( D, E, A, B, C, R(67) );
+	P( C, D, E, A, B, R(68) );
+	P( B, C, D, E, A, R(69) );
+	P( A, B, C, D, E, R(70) );
+	P( E, A, B, C, D, R(71) );
+	P( D, E, A, B, C, R(72) );
+	P( C, D, E, A, B, R(73) );
+	P( B, C, D, E, A, R(74) );
+	P( A, B, C, D, E, R(75) );
+	P( E, A, B, C, D, R(76) );
+	P( D, E, A, B, C, R(77) );
+	P( C, D, E, A, B, R(78) );
+	P( B, C, D, E, A, R(79) );
+
+#undef K
+#undef F
+
+	output[0] += A;
+	output[1] += B;
+	output[2] += C;
+	output[3] += D;
+	output[4] += E;
+}
+
+/* This version use private memory and destroys input */
 inline void sha1_block(uint *W, uint *output) {
 	uint A, B, C, D, E, temp;
 
@@ -256,13 +410,45 @@ inline void sha1_final(uint *W, uint *output, const uint tot_len)
 	sha1_block(W, output);
 }
 
-#define dump_stuff_msg(msg, x, size) {	  \
-		uint ii; \
-		printf("%s : ", msg); \
-		for (ii = 0; ii < (size)/4; ii++) \
-			printf("%08x ", SWAP32(x[ii])); \
-		printf("\n"); \
+#if 0
+#ifdef SCALAR
+#define AMD_V
+inline void memcpy32(uint *d, const uint *s, uint len)
+{
+	while (len--)
+		*d++ = *s++;
+}
+#else
+#define AMD_V	(uint4*)&
+inline void memcpy32(uint4 *d, const uint4 *s, uint len)
+{
+	while (len >= 4) {
+		*d++ = *s++;
+		len -= 4;
 	}
+	while (len--)
+		*(uint*)d++ = *(uint*)s++;
+}
+#endif
+
+void dump_stuff_be(uchar *x, unsigned int size)
+{
+        unsigned int i;
+        for(i=0;i<size;i++)
+        {
+	        printf("%.2x", x[(i>>2)*4+3-(i&3)]);
+                if( (i%4)==3 )
+                        printf(" ");
+        }
+        printf("\n");
+}
+void dump_stuff_be_msg(__constant char *msg, uchar *x, unsigned int size) {
+	printf("%s : ", (char *)msg);
+	dump_stuff_be(x, size);
+}
+
+//#define printf	if (gid == 0) printf
+#endif
 
 __kernel void RarInit(
 	const __global uint *unicode_pw,
@@ -273,147 +459,90 @@ __kernel void RarInit(
 	__global uint *round)
 {
 	uint gid = get_global_id(0);
-	__global uint *RawPsw = &RawBuf[gid * (UNICODE_LENGTH + 8) / 4];
+	__global uint *block = &RawBuf[gid * (UNICODE_LENGTH + 11) * 16];
 	__global uint *output = &OutputBuf[gid * 5];
 	uint pwlen = pw_len[gid];
-	uint i;
+	uint blocklen = pwlen + 11;
+	uint i, j;
 
-	/* Copy to 1x buffer */
-	for (i = 0; i < (pwlen + 3) >> 2; i++)
-		RawPsw[i] = SWAP32(unicode_pw[gid * UNICODE_LENGTH / 4 + i]);
-	for (i = 0; i < 8; i++)
-		PUTCHAR_BE_G(RawPsw, pwlen + i, ((__constant uchar*)salt)[i]);
+	/* Copy to 64x buffer (always ends at SHA-1 block boundary) */
+	for (i = 0; i < 64; i++) {
+		for (j = 0; j < pwlen; j++)
+			PUTCHAR_BE_G(block, i * blocklen + j, GETCHAR_G(unicode_pw, gid * UNICODE_LENGTH + j));
+#pragma unroll
+		for (j = 0; j < 8; j++)
+			PUTCHAR_BE_G(block, i * blocklen + pwlen + j, ((__constant uchar*)salt)[j]);
+	}
 	round[gid] = 0;
 	sha1_init(output);
 }
 
 __kernel void RarGetIV(
 	const __global uint *pw_len,
-	const __global uint *RawBuf,
+	__global uint *RawBuf,
 	__global uint *OutputBuf,
 	__global uint *round_p,
 	__global uint *aes_iv)
 {
 	uint gid = get_global_id(0);
-	uint block[16], output[5];
+	__global uint *block = &RawBuf[gid * (UNICODE_LENGTH + 11) * 16];
+	__global uint *output = &OutputBuf[gid * 5];
+	uint tempin[16], tempout[5];
 	uint pwlen = pw_len[gid];
 	uint round = round_p[gid];
 	uint i;
 
+#pragma unroll
 	for (i = 0; i < 5; i++)
-		output[i] = OutputBuf[gid * 5 + i];
+		tempout[i] = output[i];
+#pragma unroll
 	for (i = 0; i < (UNICODE_LENGTH + 8) / 4; i++)
-		block[i] = RawBuf[gid * (UNICODE_LENGTH + 8) / 4 + i];
+		tempin[i] = block[i];
 
-	PUTCHAR_BE(block, pwlen + 8, round & 255);
-	PUTCHAR_BE(block, pwlen + 9, (round >> 8) & 255);
-	PUTCHAR_BE(block, pwlen + 10, round >> 16);
+	PUTCHAR_BE(tempin, pwlen + 8, round & 255);
+	PUTCHAR_BE(tempin, pwlen + 9, (round >> 8) & 255);
+	PUTCHAR_BE(tempin, pwlen + 10, round >> 16);
 
 #ifdef APPLE
 	/* This is the weirdest workaround. Using the sha1_final()
 	   works perfectly fine in the RarFinal() subkernel below. */
-	PUTCHAR_BE(block, pwlen + 11, 0x80);
+	PUTCHAR_BE(tempin, pwlen + 11, 0x80);
 	for (i = pwlen + 12; i < 56; i++)
-		PUTCHAR_BE(block, i, 0);
-	block[14] = 0;
-	block[15] = ((pwlen + 8 + 3) * (round + 1)) << 3;
-	sha1_block(block, output);
+		PUTCHAR_BE(tempin, i, 0);
+	tempin[14] = 0;
+	tempin[15] = ((pwlen + 8 + 3) * (round + 1)) << 3;
+	sha1_block(tempin, tempout);
 #else
-	sha1_final(block, output, (pwlen + 8 + 3) * (round + 1));
+	sha1_final(tempin, tempout, (pwlen + 8 + 3) * (round + 1));
 #endif
-	PUTCHAR_G(aes_iv, gid * 16 + (round >> 14), GETCHAR(output, 16));
+	PUTCHAR_G(aes_iv, gid * 16 + (round >> 14), GETCHAR(tempout, 16));
 }
 
 __kernel void RarHashLoop(
 	const __global uint *pw_len,
 	__global uint *round_p,
-	const __global uint *RawBuf,
-	__global uint *OutputBuf
-#if gpu_nvidia(DEVICE_INFO)
-	, __local uint *LocBuf
-#endif
-	)
+	__global uint *RawBuf,
+	__global uint *OutputBuf)
 {
 	uint gid = get_global_id(0);
-	uint block[2][16];
-	uint output[5];
-#if gpu_nvidia(DEVICE_INFO)
-	__local uint *RawPsw = &LocBuf[get_local_id(0) * (UNICODE_LENGTH + 8) / 4];
-#else
-	uint RawPsw[(UNICODE_LENGTH + 8) / 4];
-#endif
-	uint blocklen = pw_len[gid] + 11;
+	__global uint *block = &RawBuf[gid * (UNICODE_LENGTH + 11) * 16];
+	__global uint *output = &OutputBuf[gid * 5];
+	uint pwlen = pw_len[gid];
+	uint blocklen = pwlen + 11;
 	uint round = round_p[gid];
-	uint i;
+	uint i, j;
 
-	for (i = 0; i < (UNICODE_LENGTH + 8) / 4; i++)
-		RawPsw[i] = RawBuf[gid * (UNICODE_LENGTH + 8) / 4 + i];
-
-	for (i = 0; i < 5; i++)
-		output[i] = OutputBuf[gid * 5 + i];
-
-	for (i = 0; i < HASH_LOOPS; i++) {
-		uint len = 0, b = 0, j;
-
-		for (j = 0; j < blocklen; j++) {
-			do {
-				/* At odd character lengths, alignment is 01230123
-				 * At even lengths, it is 03210321 */
-				switch (len & 3) {
-					uint k;
-
-				case 0: /* 32-bit aligned! */
-					block[0][((len >> 2) + 0) & 31] = RawPsw[0];
-					block[0][((len >> 2) + 1) & 31] = RawPsw[1];
-					block[0][((len >> 2) + 2) & 31] = RawPsw[2];
-					for (k = 3; k < blocklen >> 2; k++)
-						block[0][((len >> 2) + k) & 31] = RawPsw[k];
-					break;
-				case 1: /* unaligned mod 1 */
-					PUTCHAR_BE(block[0], (len + 0) & 127, GETCHAR_BE(RawPsw, 0));
-					PUTCHAR_BE(block[0], (len + 1) & 127, GETCHAR_BE(RawPsw, 1));
-					PUTCHAR_BE(block[0], (len + 2) & 127, GETCHAR_BE(RawPsw, 2));
-					block[0][((len >> 2) + 0 + 1) & 31] = (RawPsw[0] << 24) + (RawPsw[1] >> 8);
-					block[0][((len >> 2) + 1 + 1) & 31] = (RawPsw[1] << 24) + (RawPsw[2] >> 8);
-					for (k = 2; k < (blocklen >> 2) - 1; k++)
-						block[0][((len >> 2) + k + 1) & 31] = (RawPsw[k] << 24) + (RawPsw[k + 1] >> 8);
-					block[0][((len >> 2) + k + 1) & 31] = (RawPsw[k] << 24);
-					break;
-				case 2: /* unaligned mod 2 */
-					PUTCHAR_BE(block[0], (len + 0) & 127, GETCHAR_BE(RawPsw, 0));
-					PUTCHAR_BE(block[0], (len + 1) & 127, GETCHAR_BE(RawPsw, 1));
-					block[0][((len >> 2) + 0 + 1) & 31] = (RawPsw[0] << 16) + (RawPsw[1] >> 16);
-					block[0][((len >> 2) + 1 + 1) & 31] = (RawPsw[1] << 16) + (RawPsw[2] >> 16);
-					for (k = 2; k < (blocklen >> 2) - 1; k++)
-						block[0][((len >> 2) + k + 1) & 31] = (RawPsw[k] << 16) + (RawPsw[k + 1] >> 16);
-					block[0][((len >> 2) + k + 1) & 31] = (RawPsw[k] << 16);
-					break;
-				case 3: /* unaligned mod 3 */
-					PUTCHAR_BE(block[0], (len + 0) & 127, GETCHAR_BE(RawPsw, 0));
-					block[0][((len >> 2) + 0 + 1) & 31] = (RawPsw[0] << 8) + (RawPsw[1] >> 24);
-					block[0][((len >> 2) + 1 + 1) & 31] = (RawPsw[1] << 8) + (RawPsw[2] >> 24);
-					for (k = 2; k < (blocklen >> 2) - 1; k++)
-						block[0][((len >> 2) + k + 1) & 31] = (RawPsw[k] << 8) + (RawPsw[k + 1] >> 24);
-					block[0][((len >> 2) + k + 1) & 31] = (RawPsw[k] << 8);
-					break;
-				}
-				len += blocklen;
-
-				/* Serial */
-				PUTCHAR_BE(block[0], (len - 3) & 127, round & 0xff);
-				PUTCHAR_BE(block[0], (len - 2) & 127, (round >> 8) & 0xff);
-				PUTCHAR_BE(block[0], (len - 1) & 127, round >> 16);
-
-				round++;
-			} while ((len & 64) == (b << 6));
-			sha1_block(block[b], output);
-			b = 1 - b;
+	for (j = 0; j < HASH_LOOPS; j++) {
+//#pragma unroll /* Not good for nvidia */
+		for (i = 0; i < 64; i++, round++) {
+			PUTCHAR_BE_G(block, i * blocklen + pwlen + 8, round & 0xff);
+			PUTCHAR_BE_G(block, i * blocklen + pwlen + 9, (round >> 8) & 0xff);
+			PUTCHAR_BE_G(block, i * blocklen + pwlen + 10, round >> 16);
 		}
+		for (i = 0; i < blocklen; i++)
+			sha1G_block(&block[i * 16], output);
 	}
 	round_p[gid] = round;
-
-	for (i = 0; i < 5; i++)
-		OutputBuf[gid * 5 + i] = output[i];
 }
 
 __kernel void RarFinal(
@@ -429,10 +558,10 @@ __kernel void RarFinal(
 		output[i] = OutputBuf[gid * 5 + i];
 
 	// This is always an empty block with only length set so we never
-	// initialize block[16]
+	// initialize block[]
 	sha1_final(block, output, (pw_len[gid] + 8 + 3) * ROUNDS);
 
-	// Still no endian-swap
+	// Still no endian-swap and we only use first 128 bits.
 	for (i = 0; i < 4; i++)
 		aes_key[gid * 4 + i] = output[i];
 }

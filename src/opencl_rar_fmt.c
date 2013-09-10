@@ -95,7 +95,7 @@
 #endif
 #define BENCHMARK_LENGTH	-1
 
-#define PLAINTEXT_LENGTH	22 /* Max. currently supported */
+#define PLAINTEXT_LENGTH	16 /* Max. currently supported is 22 */
 #define UNICODE_LENGTH		(2 * PLAINTEXT_LENGTH)
 #define BINARY_SIZE		0
 #define SALT_SIZE		sizeof(rarfile)
@@ -334,7 +334,7 @@ static void create_clobj(int gws, struct fmt_main *self)
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_salt");
 	memset(saved_salt, 0, 8);
 
-	cl_RawBuf = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE, (UNICODE_LENGTH + 8) * gws, NULL, &ret_code);
+	cl_RawBuf = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE, sizeof(cl_int) * (UNICODE_LENGTH + 11) * 16 * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error allocating device memory");
 
 	cl_OutputBuf = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE, sizeof(cl_int) * 5 * gws, NULL, &ret_code);
@@ -377,8 +377,6 @@ static void create_clobj(int gws, struct fmt_main *self)
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(cl_mem), (void*)&cl_round), "Error setting argument 1");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(cl_mem), (void*)&cl_RawBuf), "Error setting argument 2");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(cl_mem), (void*)&cl_OutputBuf), "Error setting argument 3");
-	if (gpu_nvidia(device_info[ocl_gpu_id]))
-		HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 4, local_work_size * (UNICODE_LENGTH + 8), NULL), "Error setting argument 4 (local memory)");
 
 	HANDLE_CLERROR(clSetKernelArg(RarFinal, 0, sizeof(cl_mem), (void*)&cl_saved_len), "Error setting argument 0");
 	HANDLE_CLERROR(clSetKernelArg(RarFinal, 1, sizeof(cl_mem), (void*)&cl_OutputBuf), "Error setting argument 1");
@@ -679,17 +677,6 @@ static void init(struct fmt_main *self)
 	if (maxsize2 < maxsize) maxsize = maxsize2;
 	HANDLE_CLERROR(clGetKernelWorkGroupInfo(RarFinal, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize2), &maxsize2, NULL), "Query max work group size");
 	if (maxsize2 < maxsize) maxsize = maxsize2;
-
-	/* Adopt to available local memory */
-	if (gpu_nvidia(device_info[ocl_gpu_id])) {
-		cl_ulong loc_mem_used;
-
-		HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[ocl_gpu_id], CL_KERNEL_LOCAL_MEM_SIZE, sizeof(loc_mem_used), &loc_mem_used, NULL), "Query local memory usage");
-		maxsize2 = (get_local_memory_size(ocl_gpu_id) - loc_mem_used) / (UNICODE_LENGTH + 8);
-
-		while (maxsize > maxsize2)
-			maxsize /= 2;
-	}
 
 	if (!local_work_size) {
 		if (getenv("LWS")) {
