@@ -519,7 +519,7 @@ static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
 {
 	cl_ulong startTime, endTime;
 	cl_command_queue queue_prof;
-	cl_event Event[3];
+	cl_event Event[6];
 	cl_int ret_code;
 	int i /*, j, k*/ ;
 
@@ -533,25 +533,37 @@ static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, cl_saved_key, CL_FALSE, 0, UNICODE_LENGTH * gws, saved_key, 0, NULL, NULL), "Failed transferring keys");
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, cl_saved_len, CL_FALSE, 0, sizeof(int) * gws, saved_len, 0, NULL, NULL), "Failed transferring lengths");
 
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, RarInit, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "running kernel");
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, RarInit, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &Event[1]), "running kernel");
 	//for (k = 0; k < 16; k++) {
-		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, RarGetIV, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "running kernel");
+		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, RarGetIV, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &Event[2]), "running kernel");
 		//for (j = 0; j < 256 / HASH_LOOPS; j++)
 			// Warm-up run
-			HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "running kernel");
-			HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &Event[1]), "running kernel");
+			//HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "running kernel");
+			HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &Event[3]), "running kernel");
 	//}
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, RarFinal, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "running kernel");
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, RarFinal, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &Event[4]), "running kernel");
 
 	HANDLE_CLERROR(clFinish(queue_prof), "Failed running kernel");
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue_prof, cl_aes_iv, CL_FALSE, 0, 16 * gws, aes_iv, 0, NULL, NULL), "Failed reading iv back");
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue_prof, cl_aes_key, CL_TRUE, 0, 16 * gws, aes_key, 0, NULL, &Event[2]), "Failed reading key back");
+	HANDLE_CLERROR(clEnqueueReadBuffer(queue_prof, cl_aes_key, CL_TRUE, 0, 16 * gws, aes_key, 0, NULL, &Event[5]), "Failed reading key back");
 	HANDLE_CLERROR(clFinish(queue_prof), "Failed reading results back");
 
 	clGetEventProfilingInfo(Event[1], CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime, NULL);
 	clGetEventProfilingInfo(Event[1], CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime, NULL);
 	if (do_benchmark)
+		fprintf(stderr, "init %.2f ms\t", (float)((endTime - startTime)/1000000.));
+	clGetEventProfilingInfo(Event[2], CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime, NULL);
+	clGetEventProfilingInfo(Event[2], CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime, NULL);
+	if (do_benchmark)
+		fprintf(stderr, "iv %.2f ms\t", (float)((endTime - startTime)/1000000.));
+	clGetEventProfilingInfo(Event[3], CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime, NULL);
+	clGetEventProfilingInfo(Event[3], CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime, NULL);
+	if (do_benchmark)
 		fprintf(stderr, "%.2f ms x %u = %.2f s\t", (float)((endTime - startTime)/1000000.), 16 * (256/HASH_LOOPS), (float)(16. * (float)(256/HASH_LOOPS) * (endTime - startTime) / 1000000000.));
+	clGetEventProfilingInfo(Event[4], CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime, NULL);
+	clGetEventProfilingInfo(Event[4], CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime, NULL);
+	if (do_benchmark)
+		fprintf(stderr, "final %.2f ms\n", (float)((endTime - startTime)/1000000.));
 
 	/* 200 ms duration limit for GCN to avoid ASIC hangs */
 	if (amd_gcn(device_info[ocl_gpu_id]) && endTime - startTime > 200000000) {
@@ -562,8 +574,8 @@ static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
 		return 0;
 	}
 
-	clGetEventProfilingInfo(Event[1], CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime, NULL);
-	clGetEventProfilingInfo(Event[1], CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime, NULL);
+	clGetEventProfilingInfo(Event[3], CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime, NULL);
+	clGetEventProfilingInfo(Event[3], CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime, NULL);
 	//fprintf(stderr, "Total: %.2f s\n", (float)((endTime - startTime)/1000000000.));
 	clReleaseCommandQueue(queue_prof);
 	release_clobj();
