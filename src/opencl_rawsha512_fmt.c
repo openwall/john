@@ -152,6 +152,8 @@ static char *get_key(int index)
 
 static void init(struct fmt_main *self)
 {
+	size_t maxlws;
+
 	/* Read LWS/GWS prefs from config or environment */
 	opencl_get_user_preferences(OCL_CONFIG);
 
@@ -196,6 +198,13 @@ static void init(struct fmt_main *self)
 	clSetKernelArg(cmp_kernel, 0, sizeof(mem_binary), &mem_binary);
 	clSetKernelArg(cmp_kernel, 1, sizeof(mem_out), &mem_out);
 	clSetKernelArg(cmp_kernel, 2, sizeof(mem_cmp), &mem_cmp);
+
+	HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxlws), &maxlws, NULL), "Query max work group size");
+
+	if (local_work_size > maxlws) {
+		local_work_size = maxlws;
+		global_work_size = (global_work_size + local_work_size - 1) / local_work_size * local_work_size;
+	}
 
 	self->params.max_keys_per_crypt = global_work_size;
 	if (!local_work_size)
