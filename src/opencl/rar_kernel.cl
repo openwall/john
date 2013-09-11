@@ -417,6 +417,7 @@ __kernel void RarInit(__global uint *OutputBuf, __global uint *round)
 	sha1_init(output);
 }
 
+/* This kernel is called 16 times in a row */
 __kernel void RarHashLoop(
 	const __global uint *unicode_pw,
 	const __global uint *pw_len,
@@ -469,6 +470,10 @@ __kernel void RarHashLoop(
 		PUTCHAR_G(aes_iv, gid * 16 + (round >> 14), GETCHAR(tempout, 16));
 	}
 
+	/*
+	 * The inner loop. Compared to earlier revisions of this kernel
+	 * this is really a piece of art
+	 */
 	for (j = 0; j < 256; j++) {
 		for (i = 0; i < 64; i++, round++) {
 			PUTCHAR_BE(block, i * blocklen + pwlen + 8, round & 0xff);
@@ -493,11 +498,10 @@ __kernel void RarFinal(
 	for (i = 0; i < 5; i++)
 		output[i] = OutputBuf[gid * 5 + i];
 
-	// This is always an empty block with only length set so we never
-	// initialize it before calling final.
+	/* This is always an empty block (except length) */
 	sha1_final(block, output, (pw_len[gid] + 8 + 3) * ROUNDS);
 
-	// No endian-swap and we only use first 128 bits.
+	/* No endian-swap and we only use first 128 bits */
 	for (i = 0; i < 4; i++)
 		aes_key[gid * 4 + i] = output[i];
 }
