@@ -33,15 +33,10 @@
 /* Macros for reading/writing chars from int32's */
 #define GETCHAR(buf, index) (((uchar*)(buf))[(index)])
 #define GETCHAR_G(buf, index) (((const __global uchar*)(buf))[(index)])
+#define GETCHAR_BE(buf, index) (((uchar*)(buf))[(index) ^ 3])
 #define LASTCHAR_BE(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2] & (0xffffff00U << ((((index) & 3) ^ 3) << 3))) + ((val) << ((((index) & 3) ^ 3) << 3))
 
-#if gpu_nvidia(DEVICE_INFO)
-#define GETCHAR_BE(buf, index) (((__local uchar*)(buf))[(index) ^ 3])
-#else
-#define GETCHAR_BE(buf, index) (((uchar*)(buf))[(index) ^ 3])
-#endif
-
-#if gpu_amd(DEVICE_INFO) || no_byte_addressable(DEVICE_INFO)
+#if no_byte_addressable(DEVICE_INFO)
 
 /* These use 32-bit stores */
 #define PUTCHAR(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2] & ~(0xffU << (((index) & 3) << 3))) + ((val) << (((index) & 3) << 3))

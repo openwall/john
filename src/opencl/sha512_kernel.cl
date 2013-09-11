@@ -4,9 +4,7 @@
 * Redistribution and use in source and binary forms, with or without modification, are permitted.
 */
 
-#ifdef cl_khr_byte_addressable_store
-#pragma OPENCL EXTENSION cl_khr_byte_addressable_store : disable
-#endif
+#include "opencl_device_info.h"
 
 #define uint8_t  unsigned char
 #define uint32_t unsigned int
@@ -68,8 +66,11 @@ typedef struct {
 
 
 /* Macros for reading/writing chars from int32's */
+#if gpu_amd(DEVICE_INFO) || no_byte_addressable(DEVICE_INFO)
 #define PUTCHAR(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2] & ~(0xffU << (((index) & 3) << 3))) + ((val) << (((index) & 3) << 3))
-
+#else
+#define PUTCHAR(buf, index, val) ((uchar*)(buf))[(index)] = (val)
+#endif
 
 __constant uint64_t k[] = {
 	0x428a2f98d728ae22UL, 0x7137449123ef65cdUL, 0xb5c0fbcfec4d3b2fUL,
@@ -226,5 +227,3 @@ __kernel void kernel_cmp(
 				*result = 1;
 	}
 }
-
-

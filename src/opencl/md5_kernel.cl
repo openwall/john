@@ -21,7 +21,11 @@
 
 /* Macros for reading/writing chars from int32's (from rar_kernel.cl) */
 #define GETCHAR(buf, index) (((uchar*)(buf))[(index)])
+#if gpu_amd(DEVICE_INFO) || no_byte_addressable(DEVICE_INFO)
 #define PUTCHAR(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2] & ~(0xffU << (((index) & 3) << 3))) + ((val) << (((index) & 3) << 3))
+#else
+#define PUTCHAR(buf, index, val) ((uchar*)(buf))[index] = (val)
+#endif
 
 /* The basic MD5 functions */
 #ifdef USE_BITSELECT
