@@ -12,13 +12,8 @@
    http://www.gnu.org/licenses/gpl-2.0.html
 */
 
-#ifdef cl_khr_byte_addressable_store
-#pragma OPENCL EXTENSION cl_khr_byte_addressable_store : disable
-#endif
-
 #ifdef cl_nv_pragma_unroll
 #define NVIDIA
-#pragma OPENCL EXTENSION cl_nv_pragma_unroll : enable
 #endif
 
 #ifdef NVIDIA

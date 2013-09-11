@@ -9,10 +9,6 @@
 
 #include "opencl_device_info.h"
 
-#if gpu_amd(DEVICE_INFO) || no_byte_addressable(DEVICE_INFO)
-#pragma OPENCL EXTENSION cl_khr_byte_addressable_store : disable
-#endif
-
 #if gpu_amd(DEVICE_INFO)
 #define USE_BITSELECT
 #endif

@@ -50,8 +50,6 @@
         w[14] += sigma1(w[12]) + w[7] + sigma0(w[15]); \
         w[15] += sigma1(w[13]) + w[8] + sigma0(w[0]);
 
-#pragma OPENCL EXTENSION cl_khr_byte_addressable_store : disable
-
 #define PWSAFE_IN_SIZE (KEYS_PER_CRYPT * sizeof(pwsafe_pass))
 #define PWSAFE_OUT_SIZE (KEYS_PER_CRYPT * sizeof(pwsafe_hash))
 #define PWSAFE_SALT_SIZE (sizeof(pwsafe_salt))
@@ -377,4 +375,3 @@ __kernel void pwsafe_check(__global pwsafe_pass * in, __global pwsafe_hash * out
 	}
 	out[idx].cracked = cmp;
 }
-

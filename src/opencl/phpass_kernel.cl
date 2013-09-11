@@ -5,7 +5,6 @@
 */
 #define PLAINTEXT_LENGTH        15
 #define SALT_SIZE               8
-//#pragma OPENCL EXTENSION cl_khr_byte_addressable_store : disable
 
 typedef struct {
         uchar v[PLAINTEXT_LENGTH];
