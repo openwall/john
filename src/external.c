@@ -184,17 +184,23 @@ void ext_init(char *mode, struct db_main *db)
 	f_generate = c_lookup("generate");
 	f_filter = c_lookup("filter");
 
-	if ((ext_flags & EXT_REQ_RESTORE) && !c_lookup("restore")) {
-		if (john_main_process)
-			fprintf(stderr,
-			        "No restore() for external mode: %s\n", mode);
-		error();
-	}
 	if ((ext_flags & EXT_REQ_GENERATE) && !f_generate) {
 		if (john_main_process)
 			fprintf(stderr,
 			    "No generate() for external mode: %s\n", mode);
 		error();
+	}
+	if ((ext_flags & EXT_REQ_GENERATE) && !c_lookup("restore")) {
+		if (ext_flags & EXT_REQ_RESTORE) {
+			if (john_main_process)
+				fprintf(stderr,
+				        "No restore() for external mode: %s\n",
+				        mode);
+			error();
+		} else if (john_main_process)
+				fprintf(stderr,
+				        "Warning: external mode '%s' can't be"
+				        " resumed if aborted\n", mode);
 	}
 	if ((ext_flags & EXT_REQ_FILTER) && !f_filter) {
 		if (john_main_process)
