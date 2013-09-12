@@ -394,7 +394,9 @@ static void done(void)
 {
 	release_clobj();
 
+	HANDLE_CLERROR(clReleaseKernel(RarInit), "Release kernel");
 	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
+	HANDLE_CLERROR(clReleaseKernel(RarFinal), "Release kernel");
 	HANDLE_CLERROR(clReleaseProgram(program[ocl_gpu_id]), "Release Program");
 }
 

@@ -440,6 +440,7 @@ __kernel void RarHashLoop(
 			PUTCHAR_BE(block, i * blocklen + j, GETCHAR_G(unicode_pw, gid * UNICODE_LENGTH + j));
 		for (j = 0; j < 8; j++)
 			PUTCHAR_BE(block, i * blocklen + pwlen + j, ((__constant uchar*)salt)[j]);
+		PUTCHAR_BE(block, i * blocklen + pwlen + 10, round >> 16);
 	}
 
 	/* Get IV */
@@ -478,7 +479,6 @@ __kernel void RarHashLoop(
 		for (i = 0; i < 64; i++, round++) {
 			PUTCHAR_BE(block, i * blocklen + pwlen + 8, round & 0xff);
 			PUTCHAR_BE(block, i * blocklen + pwlen + 9, (round >> 8) & 0xff);
-			PUTCHAR_BE(block, i * blocklen + pwlen + 10, round >> 16);
 		}
 		sha1_mblock(block, output, blocklen);
 	}
