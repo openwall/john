@@ -396,12 +396,6 @@ inline void sha1_final(uint *W, uint *output, const uint tot_len)
 
 	LASTCHAR_BE(W, tot_len & 63, 0x80);
 
-#if UNICODE_LENGTH > 45
-	if (len > 13) {
-		sha1_block(W, output);
-		len = 0;
-	}
-#endif
 	while (len < 15)
 		W[len++] = 0;
 	W[15] = tot_len << 3;
@@ -429,8 +423,8 @@ __kernel void RarHashLoop(
 	uint gid = get_global_id(0);
 	uint block[(UNICODE_LENGTH + 11) * 16];
 	__global uint *output = &OutputBuf[gid * 5];
-	uint pwlen = pw_len[gid];
-	uint blocklen = pwlen + 11;
+	const uint pwlen = pw_len[gid];
+	const uint blocklen = pwlen + 11;
 	uint round = round_p[gid];
 	uint i, j;
 
@@ -454,7 +448,6 @@ __kernel void RarHashLoop(
 
 		PUTCHAR_BE(tempin, pwlen + 8, round & 255);
 		PUTCHAR_BE(tempin, pwlen + 9, (round >> 8) & 255);
-		PUTCHAR_BE(tempin, pwlen + 10, round >> 16);
 
 #ifdef APPLE
 		/* This is the weirdest workaround. Using sha1_final()
