@@ -1,10 +1,13 @@
 /* KDE KWallet cracker patch for JtR. Written by Narendra Kangralkar
  * <narendrakangralkar at gmail.com> and Dhiru Kholia <dhiru at openwall.com>.
  *
- * This software is Copyright (c) 2013 by above authors
- * and it is hereby released to the general public under the following terms:
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted.
+ * Also see https://github.com/gaganpreet/kwallet-dump ;)
+ *
+ * This software is Copyright (c) 2013 by above authors and it is hereby
+ * released to the general public under the following terms:
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
  */
 
 #include <string.h>
@@ -12,11 +15,12 @@
 #include <errno.h>
 #include "arch.h"
 #include "misc.h"
+#include "memory.h"
 #include "common.h"
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-#include "bad_blowfish.h"
+#include <openssl/blowfish.h>
 #include "sha.h"
 #ifdef _OPENMP
 #include <omp.h>
@@ -205,20 +209,28 @@ static int verify_passphrase(char *passphrase)
 {
 	unsigned char key[20];
 	SHA_CTX ctx;
-	BlowFish _bf;
+	BF_KEY bf_key;
 	int sz;
 	int i;
 	unsigned char testhash[20];
-	unsigned char buffer[0x10000];
+	unsigned char buffer[0x10000]; // XXX respect the stack limits!
 	const char *t;
 	long fsize;
-	CipherBlockChain bf;
 	password2hash(passphrase, key);
-	CipherBlockChain_constructor(&bf, &_bf);
-	CipherBlockChain_setKey(&bf, (void *) key, 20 * 8);
 	memcpy(buffer, cur_salt->ct, cur_salt->ctlen);
-	CipherBlockChain_decrypt(&bf, buffer, cur_salt->ctlen);
 
+	/* Blowfish implementation in KWallet is wrong w.r.t endianness
+	 * Well, that is why we had bad_blowfish_plug.c originally ;) */
+
+	alter_endianity(buffer, cur_salt->ctlen);
+	/* decryption stuff */
+	BF_set_key(&bf_key, 20, key);
+	for(i = 0; i < cur_salt->ctlen; i += 8) {
+		BF_ecb_encrypt(buffer + i, buffer + i, &bf_key, 0);
+	}
+	alter_endianity(buffer, cur_salt->ctlen);
+
+	/* verification stuff */
 	t = (char *) buffer;
 
 	// strip the leading data
@@ -250,7 +262,6 @@ static int verify_passphrase(char *passphrase)
 	}
 	return 0;
 }
-
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
