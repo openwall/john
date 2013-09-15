@@ -157,9 +157,9 @@ static void password2hash(const char *password, unsigned char *hash, int *key_si
 	}
 	else {
 		// key size is 56 (14/14/14 split)
-		memcpy(hash + 14 * 0, output + 14 * 0, 14);
-		memcpy(hash + 14 * 1, output + 14 * 1, 14);
-		memcpy(hash + 14 * 2, output + 14 * 2, 14);
+		memcpy(hash + 14 * 0, output +  0, 14);
+		memcpy(hash + 14 * 1, output + 20, 14);
+		memcpy(hash + 14 * 2, output + 40, 14);
 		*key_size = 56;
 	}
 }
