@@ -37,9 +37,14 @@
 #define SALT_SIZE		sizeof(*cur_salt)
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
+// #define BENCH_LARGE_PASSWORDS   1
 
 static struct fmt_tests kwallet_tests[] = {
 	{"$kwallet$112$25be8c9cdaa53f5404d7809ff48a37752b325c8ccd296fbd537440dfcef9d66f72940e97141d21702b325c8ccd296fbd537440dfcef9d66fcd953cf1e41904b0c494ad1e718760e74c4487cc1449233d85525e7974da221774010bb9582b1d68b55ea9288f53a2be6bd15b93a5e1b33d", "openwall"},
+	{"$kwallet$240$e5383800cf0ccabf76461a647bf7ed94b7260f0ac33374ea1fec0bb0144b7e3f8fa3d0f368a61075827ac60beb62be830ece6fb2f9cfb13561ed4372af19d0a720a37b0d21132a59513b3ab9030395671c9725d7d6592ad98a4754795c858c59df6049522384af98c77d5351ddc577da07ea10e7d44b3fbc9af737744f53ed0a0a67252599b66a4d1fc65926d7097dc50f45b57f41f11934e0cfc4d5491f82b43f38acde1fd337d51cf47eb5da1bcd8bff1432d7b02f0d316633b33ced337d202a44342fc79db6aea568fb322831d886d4cb6dcc50a3e17c1027550b9ee94f56bc33f9861d2b24cbb7797d79f967bea4", ""},
+#ifdef BENCH_LARGE_PASSWORDS
+	{"$kwallet$240$f17296588b2dd9f22f7c9ec43fddb5ee28db5edcb69575dcb887f5d2d0bfcc9317773c0f4e32517ace087d33ace8155a099e16c259c1a2f4f8992fc17481b122ef9f0c38c9eafd46794ff34e32c3ad83345f2d4e19ce727379856af9b774c00dca25a8528f5a2318af1fcbffdc6e73e7e081b106b4fbfe1887ea5bde782f9b3c3a2cfe3b215a65c66c03d053bfdee4d5d940e3e28f0c2d9897460fc1153af198b9037aac4dcd76e999c6d6a1f67f559e87349c6416cd7fc37b85ee230ef8caa2417b65732b61dbdb68fd2d12eb3df87474a05f337305c79427a970700a1b63f2018ba06f32e522bba4d30a0ec8ae223d", "pythonpythonpythonpythonpython"},
+#endif
 	{NULL}
 };
 
@@ -112,93 +117,52 @@ static void *get_salt(char *ciphertext)
 }
 
 #define MIN(x,y) ((x) < (y) ? (x) : (y))
-static int password2hash(const char *password, unsigned char *hash)
+static void password2hash(const char *password, unsigned char *hash, int *key_size)
 {
 	SHA_CTX ctx;
-	unsigned char block1[20] = { 0 };
-	int i;
+	unsigned char output[20 * 4];
+	unsigned char buf[20];
+	int i, j, oindex = 0;
+	int plength = strlen(password);
 
-	SHA1_Init(&ctx);
-	SHA1_Update(&ctx, password, MIN(strlen(password), 16));
-	// To make brute force take longer
-	for (i = 0; i < 2000; i++) {
-		SHA1_Final(block1, &ctx);
+	// divide the password into blocks of size 16 and hash the resulting
+	// individually!
+	for (i = 0; i <= plength; i += 16) {
 		SHA1_Init(&ctx);
-		SHA1_Update(&ctx, block1, 20);
+		SHA1_Update(&ctx, password + i, MIN(plength - i, 16));
+		// To make brute force take longer
+		for (j = 0; j < 2000; j++) {
+			SHA1_Final(buf, &ctx);
+			SHA1_Init(&ctx);
+			SHA1_Update(&ctx, buf, 20);
+		}
+		memcpy(output + oindex, buf, 20);
+		oindex += 20;
 	}
-	memcpy(hash, block1, 20);
 
-	/*if (password.size() > 16) {
-
-	   sha.process(password.data() + 16, qMin(password.size() - 16, 16));
-	   QByteArray block2(shasz, 0);
-	   // To make brute force take longer
-	   for (int i = 0; i < 2000; i++) {
-	   memcpy(block2.data(), sha.hash(), shasz);
-	   sha.reset();
-	   sha.process(block2.data(), shasz);
-	   }
-
-	   sha.reset();
-
-	   if (password.size() > 32) {
-	   sha.process(password.data() + 32, qMin(password.size() - 32, 16));
-
-	   QByteArray block3(shasz, 0);
-	   // To make brute force take longer
-	   for (int i = 0; i < 2000; i++) {
-	   memcpy(block3.data(), sha.hash(), shasz);
-	   sha.reset();
-	   sha.process(block3.data(), shasz);
-	   }
-
-	   sha.reset();
-
-	   if (password.size() > 48) {
-	   sha.process(password.data() + 48, password.size() - 48);
-
-	   QByteArray block4(shasz, 0);
-	   // To make brute force take longer
-	   for (int i = 0; i < 2000; i++) {
-	   memcpy(block4.data(), sha.hash(), shasz);
-	   sha.reset();
-	   sha.process(block4.data(), shasz);
-	   }
-
-	   sha.reset();
-	   // split 14/14/14/14
-	   hash.resize(56);
-	   memcpy(hash.data(),      block1.data(), 14);
-	   memcpy(hash.data() + 14, block2.data(), 14);
-	   memcpy(hash.data() + 28, block3.data(), 14);
-	   memcpy(hash.data() + 42, block4.data(), 14);
-	   block4.fill(0);
-	   } else {
-	   // split 20/20/16
-	   hash.resize(56);
-	   memcpy(hash.data(),      block1.data(), 20);
-	   memcpy(hash.data() + 20, block2.data(), 20);
-	   memcpy(hash.data() + 40, block3.data(), 16);
-	   }
-	   block3.fill(0);
-	   } else {
-	   // split 20/20
-	   hash.resize(40);
-	   memcpy(hash.data(),      block1.data(), 20);
-	   memcpy(hash.data() + 20, block2.data(), 20);
-	   }
-	   block2.fill(0);
-	   } else {
-	   // entirely block1
-	   hash.resize(20);
-	   memcpy(hash.data(), block1.data(), 20);
-	   }
-
-	   block1.fill(0); */
-	return 0;
+	if (plength < 16) {
+		// key size is 20
+		memcpy(hash, output, 20);
+		*key_size = 20;
+	}
+	else if (plength < 32) {
+		// key size is 40 (20/20)
+		memcpy(hash, output, 40);
+		*key_size = 40;
+	}
+	else if (plength < 48) {
+		// key size is 56 (20/20/16 split)
+		memcpy(hash, output, 56);
+		*key_size = 56;
+	}
+	else {
+		// key size is 56 (14/14/14 split)
+		memcpy(hash + 14 * 0, output + 14 * 0, 14);
+		memcpy(hash + 14 * 1, output + 14 * 1, 14);
+		memcpy(hash + 14 * 2, output + 14 * 2, 14);
+		*key_size = 56;
+	}
 }
-
-
 
 static void set_salt(void *salt)
 {
@@ -207,16 +171,17 @@ static void set_salt(void *salt)
 
 static int verify_passphrase(char *passphrase)
 {
-	unsigned char key[20];
+	unsigned char key[56]; /* 56 seems to be the max. key size */
 	SHA_CTX ctx;
 	BF_KEY bf_key;
 	int sz;
 	int i;
+	int key_size = 0;
 	unsigned char testhash[20];
 	unsigned char buffer[0x10000]; // XXX respect the stack limits!
 	const char *t;
 	long fsize;
-	password2hash(passphrase, key);
+	password2hash(passphrase, key, &key_size);
 	memcpy(buffer, cur_salt->ct, cur_salt->ctlen);
 
 	/* Blowfish implementation in KWallet is wrong w.r.t endianness
@@ -224,7 +189,7 @@ static int verify_passphrase(char *passphrase)
 
 	alter_endianity(buffer, cur_salt->ctlen);
 	/* decryption stuff */
-	BF_set_key(&bf_key, 20, key);
+	BF_set_key(&bf_key, key_size, key);
 	for(i = 0; i < cur_salt->ctlen; i += 8) {
 		BF_ecb_encrypt(buffer + i, buffer + i, &bf_key, 0);
 	}
