@@ -451,6 +451,9 @@ static void john_log_format(void)
 		log_event("- MPI: Node %u/%u running on %s", mpi_id + 1, mpi_p, mpi_name);
 #endif
 	/* make sure the format is properly initialized */
+#ifdef HAVE_OPENCL
+	if (!(options.gpu_devices && options.fork))
+#endif
 	fmt_init(database.format);
 
 	log_event("- Hash type: %.100s%s%.100s (lengths up to %d%s)",
@@ -643,6 +646,16 @@ static void john_fork(void)
 		case 0:
 			options.node_min += i;
 			options.node_max = options.node_min;
+#ifdef HAVE_OPENCL
+			if (options.gpu_devices) {
+				// Pick device to use for this child
+				opencl_preinit();
+				ocl_gpu_id = ocl_device_list[i % opencl_get_devices()];
+
+				// Postponed format init in forked process
+				fmt_init(database.format);
+			}
+#endif
 			if (rec_restoring_now) {
 				unsigned int node_id = options.node_min;
 				rec_done(-2);
@@ -661,6 +674,16 @@ static void john_fork(void)
 		}
 	}
 
+#ifdef HAVE_OPENCL
+	if (options.gpu_devices) {
+		// Pick device to use for mother process
+		opencl_preinit();
+		ocl_gpu_id = ocl_device_list[0];
+
+		// Postponed format init in mother process
+		fmt_init(database.format);
+	}
+#endif
 	john_main_process = 1;
 	john_child_pids = pids;
 	john_child_count = options.fork - 1;
@@ -873,6 +896,9 @@ static void john_load(void)
 				log_event("Starting a new session");
 			log_event("Loaded a total of %s", john_loaded_counts());
 			/* make sure the format is properly initialized */
+#ifdef HAVE_OPENCL
+			if (!(options.gpu_devices && options.fork))
+#endif
 			fmt_init(database.format);
 			if (john_main_process)
 			printf("Loaded %s (%s%s%s [%s])\n",

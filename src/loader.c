@@ -221,14 +221,14 @@ static int ldr_check_shells(struct list_main *list, char *shell)
 static int ldr_split_line(char **login, char **ciphertext,
 	char **gecos, char **home,
 	char *source, struct fmt_main **format,
-	struct db_options *options, char *line)
+	struct db_options *db_opts, char *line)
 {
 	struct fmt_main *alt;
 	char *fields[10], *uid, *gid, *shell;
 	int i, retval;
 
-	fields[0] = *login = ldr_get_field(&line, options->field_sep_char);
-	fields[1] = *ciphertext = ldr_get_field(&line, options->field_sep_char);
+	fields[0] = *login = ldr_get_field(&line, db_opts->field_sep_char);
+	fields[1] = *ciphertext = ldr_get_field(&line, db_opts->field_sep_char);
 
 /* Check for NIS stuff */
 	if ((!strcmp(*login, "+") || !strncmp(*login, "+@", 2)) &&
@@ -271,17 +271,17 @@ static int ldr_split_line(char **login, char **ciphertext,
  * fewer fields when we know we won't need the rest.  It should be revised or
  * removed when there are formats that use higher-numbered fields in prepare().
  */
-	if ((options->flags & DB_WORDS) || options->shells->head) {
+	if ((db_opts->flags & DB_WORDS) || db_opts->shells->head) {
 		/* Parse all fields */
 		for (i = 2; i < 10; i++)
-			fields[i] = ldr_get_field(&line, options->field_sep_char);
+			fields[i] = ldr_get_field(&line, db_opts->field_sep_char);
 	} else {
 		/* Parse some fields only */
 		for (i = 2; i < 4; i++)
-			fields[i] = ldr_get_field(&line, options->field_sep_char);
+			fields[i] = ldr_get_field(&line, db_opts->field_sep_char);
 		// Next line needed for l0phtcrack (in Jumbo)
 		for (; i < 6; i++)
-			fields[i] = ldr_get_field(&line, options->field_sep_char);
+			fields[i] = ldr_get_field(&line, db_opts->field_sep_char);
 		for (; i < 10; i++)
 			fields[i] = "/";
 	}
@@ -309,7 +309,7 @@ static int ldr_split_line(char **login, char **ciphertext,
 			int shift = strlen(uid);
 			memmove(source + shift + 1, source, strlen(source) + 1);
 			memcpy(source, uid, shift);
-			source[shift] = options->field_sep_char;
+			source[shift] = db_opts->field_sep_char;
 		}
 	}
 	else if (SPLFLEN(1) == 0 && SPLFLEN(3) >= 16 && SPLFLEN(4) >= 32 &&
@@ -331,9 +331,9 @@ static int ldr_split_line(char **login, char **ciphertext,
 		shell = fields[9];
 	}
 
-	if (ldr_check_list(options->users, *login, uid)) return 0;
-	if (ldr_check_list(options->groups, gid, gid)) return 0;
-	if (ldr_check_shells(options->shells, shell)) return 0;
+	if (ldr_check_list(db_opts->users, *login, uid)) return 0;
+	if (ldr_check_list(db_opts->groups, gid, gid)) return 0;
+	if (ldr_check_shells(db_opts->shells, shell)) return 0;
 
 	if (*format) {
 		char *prepared;
@@ -419,6 +419,11 @@ static int ldr_split_line(char **login, char **ciphertext,
 		if (retval < 0) {
 			retval = valid;
 			*ciphertext = prepared;
+#ifdef HAVE_OPENCL
+			if (options.gpu_devices && options.fork)
+				*format = alt;
+			else
+#endif
 			fmt_init(*format = alt);
 #ifdef LDR_WARN_AMBIGUOUS
 			if (!source) /* not --show */
