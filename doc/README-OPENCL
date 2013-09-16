@@ -4,12 +4,13 @@ PRELUDE:
 
 You can use OpenCL if your video card - from now GPU - supports it.
 ATI/AMD and Nvidia support it through their SDK available at
-nvidia and ati/amd website.
+nvidia and ATI/AMD website.
 
-N.B. DON'T use X11 opensource drivers provided by your distribution,
-only the vendor-supplied drivers support OpenCL. Either install fglrx
-(for AMD) or nvidia dkms package or go directly with the ones provided
-by nvidia and ati.
+Some recent distros have all (proprietry) stuff available as normal
+packages. N.B. DON'T use X11 opensource drivers provided by your
+distribution, only the vendor-supplied drivers support OpenCL. Either
+install fglrx (for AMD) or nvidia dkms package or go directly with the
+ones provided by nvidia and ATI.
 
 You can also use OpenCL with CPU, mostly useful if you have several
 (or loads of) cores. This sometimes outperforms the CPU-only formats
@@ -22,17 +23,13 @@ get overheated due to some protection in the hardware, however keep
 an eye on temperatures (use "aticonfig -odgt" for AMD cards, or
 "nvidia-smi" for nvidia cards).
 
-This code has been tested on Linux and OSX, see doc/BUGS for known
-issues.
-
-OpenCL patches have been lately introduced to add GPU support to john;
-unfortunately, due to opencl design they shine when you have million
-of password to test.
+This code has been tested on Linux, OSX and Windows, see doc/BUGS for
+known issues.
 
 OpenCL won't:
 - improve your speed on very short runs (due to longer startup).
 - work well in single mode due to using large sets of password (but some
-  formats now handle this quite well).
+  formats now handle this quite well by adopting work sizes).
 
 
 ====================
@@ -44,7 +41,7 @@ provide where you have installed their SDK root.
 nvidia simply install it in /usr/local/nvidia .
 
 Makefile assume you have $ATISTREAMSDKROOT set up to point
-to your ati installation or you have $NVIDIA_CUDA pointing to
+to your ATI installation or you have $NVIDIA_CUDA pointing to
 nvidia installation.
 
 If in doubt do a
@@ -63,9 +60,9 @@ USAGE:
 ====================
 
 You can use john with your favourite options and the corresponding
-opencl format you need.
+OpenCL format you need.
 
-On some opencl formats there are two environment variables you can adjust:
+For most OpenCL formats there are two environment variables you can adjust:
 these are $LWS and $GWS.
 
 LWS is the local work size, aka the number of "threads" the job
@@ -80,9 +77,9 @@ Keys Per Crypt, the number of keys that will be tried in a GPU call.
 - If you unset GWS, john will use a default work size, which depends on
   what format is used.
 - If GWS is set to 0 john will try to get the one best for
-  your system, BEWARE it will take a couple of minutes.
+  your system, BEWARE it may take a couple of minutes.
 - GWS is highly dependent on your PCI-E bandwidth rate which at the
-  moment is one of the biggest bottlenecks for opencl in john.
+  moment is one of the biggest bottlenecks for OpenCL in john.
 
 
 Once you have found the best LWS or GWS for your system you can do
@@ -91,10 +88,12 @@ export LWS=NUM1
 or
 export GWS=NUM2
 
-to avoid testing.
+to avoid testing. Or set them for a one-off run like this:
+
+$ LWS=64 GWS=8192 ./john -format=(...)
 
 Warning! LWS and GWS are highly dependent on the format you are using.
-LWS and GWS are not yet in every opencl format john is using.
+LWS and GWS are not yet in every OpenCL format john is using.
 
 - There's no check for LWS and GWS values so you should know how
   to set them to proper values, if in doubt just use the defaults
@@ -105,16 +104,36 @@ LWS and GWS are not yet in every opencl format john is using.
 Optimization:
 ====================
 
-If you plan on using opencl only for incremental mode (which at
-the moment is the one that gives the highest speed) it could be
-a good idea to set up PLAINTEXT_LENGTH to a lower value than
-32. Some formats honour the --max-length option, optimizing for
-this.
-
-- LWS and GWS should be set with numbers that are power of two.
-
-- GWS should always be a multiple of LWS: you should always
+- For most current cards, a good LWS is nearly always a multiple
+  of 32.
+- GWS must always be a multiple of LWS: you should always
   be able to divide GWS / LWS and get an integer number.
+
+
+====================
+Multi-device support
+====================
+
+Currently only mscash2-OpenCL support multiple devices by itself. However,
+All other formats can use it together with MPI or the --fork option. For
+example, let's say you have four GPU cards in your local host:
+
+$ ./john -fork=4 -dev=gpu -format=(...)
+
+The above will fork to four processes and each process will use a different
+GPU device. For this to happen, the "-dev" option (--device) is mandatory
+and instead of -dev=gpu (use all GPUs) you could specify them yourself, eg.
+-dev=0,1,5,6.
+
+Or maybe you have two cards in a remote host called alpha and one card in
+a host called bravo. Build with MPI support and use this variant of the above:
+
+$ mpirun -host alpha -host alpha -host bravo ./john -dev=gpu -format=(...)
+
+The above will start two processes on alpha, using different GPUs, as well
+as one process on bravo. In this case, the "-dev=gpu" option will be
+enumerated on each host so if GPUs are devices 1 & 3 on alpha but device 0 on
+bravo, that is not a problem.
 
 
 ====================
@@ -127,47 +146,47 @@ http://openwall.info/wiki/john/GPU
 Currently John the Ripper supports OpenCL enabled devices for
 the following hashes:
 
-agilekeychain-opencl  1Password Agile Keychain PBKDF2-HMAC-SHA-1 AES
-bf-opencl             OpenBSD Blowfish
-des-opencl            Traditional DES
-dmg-opencl            Apple DMG PBKDF2-HMAC-SHA-1 3DES / AES
-encfs-opencl          EncFS PBKDF2 AES / Blowfish
-gpg-opencl            OpenPGP / GnuPG Secret Key
-keychain-opencl       Mac OS X Keychain PBKDF2-HMAC-SHA-1 3DES
-krb5pa-sha1-opencl    Kerberos 5 AS-REQ PreAuth etype 17/18 aes-cts-hmac-sha1-96
-md5crypt-opencl       md5crypt
-mscash2-opencl        M$ Cache Hash 2 (DCC2) PBKDF2-HMAC-SHA-1
-mysql-sha1-opencl     MySQL 4.1 double-SHA-1
-nt-opencl             NT MD4
-ntlmv2-opencl         NTLMv2 C/R MD4 HMAC-MD5
-odf-aes-opencl        ODF SHA-256 AES
-odf-opencl            ODF SHA-1 Blowfish
-office2007-opencl     Office 2007 SHA-1 AES
-office2010-opencl     Office 2010 SHA-1 AES
-office2013-opencl     Office 2013 SHA-512 AES
-phpass-opencl         phpass MD5
-pwsafe-opencl         Password Safe SHA-256
-rar-opencl            RAR3 SHA-1 AES
-raw-md4-opencl        Raw MD4
-raw-md5-opencl        Raw MD5
-raw-sha1-opencl       Raw SHA-1
-raw-sha256-opencl     Raw SHA-256 (pwlen < 32)
-raw-sha512-ng-opencl  Raw SHA-512 (pwlen < 32)
-raw-sha512-opencl     Raw SHA-512
-sha256crypt-opencl    sha256crypt
-sha512crypt-opencl    sha512crypt
-ssha-opencl           Netscape LDAP salted SHA-1
-strip-opencl          STRIP Password Manager PBKDF2-SHA1
-sxc-opencl            SXC SHA-1 Blowfish
-wpapsk-opencl         WPA-PSK PBKDF2-HMAC-SHA-1
-xsha512-ng-opencl     Mac OS X 10.7+ salted SHA-512 (pwlen < 32)
-xsha512-opencl        Mac OS X 10.7+ salted SHA-512
-zip-opencl            ZIP-AES PBKDF2-HMAC-SHA-1
+agilekeychain-OpenCL  1Password Agile Keychain PBKDF2-HMAC-SHA-1 AES
+bf-OpenCL             OpenBSD Blowfish
+des-OpenCL            Traditional DES
+dmg-OpenCL            Apple DMG PBKDF2-HMAC-SHA-1 3DES / AES
+encfs-OpenCL          EncFS PBKDF2 AES / Blowfish
+gpg-OpenCL            OpenPGP / GnuPG Secret Key
+keychain-OpenCL       Mac OS X Keychain PBKDF2-HMAC-SHA-1 3DES
+krb5pa-sha1-OpenCL    Kerberos 5 AS-REQ PreAuth etype 17/18 aes-cts-hmac-sha1-96
+md5crypt-OpenCL       md5crypt
+mscash2-OpenCL        M$ Cache Hash 2 (DCC2) PBKDF2-HMAC-SHA-1
+mysql-sha1-OpenCL     MySQL 4.1 double-SHA-1
+nt-OpenCL             NT MD4
+ntlmv2-OpenCL         NTLMv2 C/R MD4 HMAC-MD5
+odf-aes-OpenCL        ODF SHA-256 AES
+odf-OpenCL            ODF SHA-1 Blowfish
+office2007-OpenCL     Office 2007 SHA-1 AES
+office2010-OpenCL     Office 2010 SHA-1 AES
+office2013-OpenCL     Office 2013 SHA-512 AES
+phpass-OpenCL         phpass MD5
+pwsafe-OpenCL         Password Safe SHA-256
+rar-OpenCL            RAR3 SHA-1 AES
+raw-md4-OpenCL        Raw MD4
+raw-md5-OpenCL        Raw MD5
+raw-sha1-OpenCL       Raw SHA-1
+raw-sha256-OpenCL     Raw SHA-256 (pwlen < 32)
+raw-sha512-ng-OpenCL  Raw SHA-512 (pwlen < 32)
+raw-sha512-OpenCL     Raw SHA-512
+sha256crypt-OpenCL    sha256crypt
+sha512crypt-OpenCL    sha512crypt
+ssha-OpenCL           Netscape LDAP salted SHA-1
+strip-OpenCL          STRIP Password Manager PBKDF2-SHA1
+sxc-OpenCL            SXC SHA-1 Blowfish
+wpapsk-OpenCL         WPA-PSK PBKDF2-HMAC-SHA-1
+xsha512-ng-OpenCL     Mac OS X 10.7+ salted SHA-512 (pwlen < 32)
+xsha512-OpenCL        Mac OS X 10.7+ salted SHA-512
+zip-OpenCL            ZIP-AES PBKDF2-HMAC-SHA-1
 
 
-===================
-Optional vecorizing
-===================
+====================
+Optional vectorizing
+====================
 
 A few formats honour the --request-vector option. A vectorized format runs
 faster on some devices (notably pre-Tahiti AMD GPUs, and CPUs). If a format
@@ -175,11 +194,11 @@ defaults to vectorizing, --request-scalar will disable it. There has been a
 lot of problems with vectorizing, possibly due to driver bugs so it's usually
 not the default. The following formats currently support optional vectorizing:
 
-krb5pa-sha1-opencl    Kerberos 5 AS-REQ PreAuth etype 17/18 aes-cts-hmac-sha1-96
-office2007-opencl     Office 2007 SHA-1 AES
-office2010-opencl     Office 2010 SHA-1 AES
-office2013-opencl     Office 2013 SHA-512 AES
-wpapsk-opencl         WPA-PSK PBKDF2-HMAC-SHA-1
+krb5pa-sha1-OpenCL    Kerberos 5 AS-REQ PreAuth etype 17/18 aes-cts-hmac-sha1-96
+office2007-OpenCL     Office 2007 SHA-1 AES
+office2010-OpenCL     Office 2010 SHA-1 AES
+office2013-OpenCL     Office 2013 SHA-512 AES
+wpapsk-OpenCL         WPA-PSK PBKDF2-HMAC-SHA-1
 
 When a format runs vectorized, it will show algorithm name as eg. [OpenCL 4x]
 as opposed to just [OpenCL].
@@ -194,12 +213,12 @@ by default, killing any kernel that runs for more than about five seconds
 (nvidia) or two seconds (AMD). You will normally not get a proper error
 message, just some kind of failure after five seconds or more, like:
 
-  OpenCL error (CL_INVALID_COMMAND_QUEUE) in file (opencl_encfs_fmt.c) (...)
+  OpenCL error (CL_INVALID_COMMAND_QUEUE) in file (OpenCL_encfs_fmt.c) (...)
 
 Our goal is to split such kernels into subkernels with shorter durations but
 in the meantime (and especially if running slow kernels on weak devices) you
 might need to disable this watchdog. For nvidia cards, you can check this
-setting using "--list=opencl-devices". Example output:
+setting using "--list=OpenCL-devices". Example output:
 
     Platform version: OpenCL 1.1 CUDA 4.2.1
         Device #0 name:         GeForce GT 650M
