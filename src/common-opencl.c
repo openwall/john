@@ -30,6 +30,9 @@
 #include "recovery.h"
 #include "status.h"
 #include "john.h"
+#ifdef HAVE_MPI
+#include "john-mpi.h"
+#endif
 
 #define LOG_SIZE 1024*16
 
@@ -435,7 +438,13 @@ void opencl_preinit(void)
 			fprintf(stderr, "No OpenCL devices found\n");
 			exit(1);
 		}
-		ocl_gpu_id = ocl_device_list[0];
+#ifdef HAVE_MPI
+		if (mpi_p > 1)
+			ocl_gpu_id =
+				ocl_device_list[mpi_id % opencl_get_devices()];
+		else
+#endif
+			ocl_gpu_id = ocl_device_list[0];
 		platform_id = get_platform_id(ocl_gpu_id);
 
 		opencl_initialized = 1;
