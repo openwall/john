@@ -207,6 +207,10 @@ static char *fmt_self_test_body(struct fmt_main *format,
 	    (format->params.flags & FMT_SPLIT_UNIFIES_CASE))
 		return "FMT_SPLIT_UNIFIES_CASE";
 
+	if ((format->params.flags & FMT_OMP_BAD) &&
+	    !(format->params.flags & FMT_OMP))
+		return "FMT_OMP_BAD";
+
 	if ((format->methods.binary == fmt_default_binary) &&
 	    (format->params.binary_size > 0))
 		puts("Warning: Using default binary() with a "
