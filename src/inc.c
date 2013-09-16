@@ -52,6 +52,11 @@ static int get_progress(int *hundth_perc)
 		percent = hundredXpercent / 100;
 		*hundth_perc = hundredXpercent - (percent*100);
 	}
+
+	// Due to uneven splitting we may get over 100% on some nodes
+	if (percent > 100 || (percent == 100 && *hundth_perc > 0))
+		*hundth_perc = percent = 99;
+
 	return percent;
 }
 
