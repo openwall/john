@@ -740,6 +740,7 @@ static void john_mpi_wait(void)
 		fprintf(stderr, "%d: All hashes cracked! Abort remaining"
 		        " nodes manually!\n", mpi_id + 1);
 
+/* Some versions of MPI will eat 100% CPU while just waiting for exit */
 	if (nice(20) < 0)
 		fprintf(stderr, "%d: nice() failed\n", mpi_id + 1);
 
@@ -747,7 +748,7 @@ static void john_mpi_wait(void)
 		mpi_teardown();
 
 /* Close and possibly remove our .rec file now */
-	rec_done((children_ok && !event_abort) ? -1 : -2);
+	rec_done(!event_abort ? -1 : -2);
 }
 #endif
 
