@@ -420,7 +420,7 @@ static int ldr_split_line(char **login, char **ciphertext,
 			retval = valid;
 			*ciphertext = prepared;
 #ifdef HAVE_OPENCL
-			if (options.gpu_devices && options.fork)
+			if (options.gpu_devices->count && options.fork)
 				*format = alt;
 			else
 #endif
