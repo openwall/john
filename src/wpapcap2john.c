@@ -109,6 +109,25 @@ void to_bssid(char ssid[18], uint8 *p) {
 	sprintf(ssid, "%02X:%02X:%02X:%02X:%02X:%02X",p[0],p[1],p[2],p[3],p[4],p[5]);
 }
 
+void dump_stuff_noeol(void *x, unsigned int size) {
+	unsigned int i;
+	for(i=0;i<size;i++)
+	{
+		printf("%.2x", ((unsigned char*)x)[i]);
+		if( (i%4)==3 )
+		printf(" ");
+	}
+}
+void dump_stuff(void* x, unsigned int size)
+{
+	dump_stuff_noeol(x,size);
+	printf("\n");
+}
+void dump_stuff_msg(void *msg, void *x, unsigned int size) {
+	printf("%s : ", (char *)msg);
+	dump_stuff(x, size);
+}
+
 void HandleBeacon() {
 	// addr1 should be broadcast
 	// addr2 is source addr (should be same as BSSID
@@ -126,7 +145,12 @@ void HandleBeacon() {
 	while (((uint8*)tag) < pFinal) {
 		char *x = (char*)tag;
 		if (tag->tagtype == 0) { // essid
-			memcpy(ssid, tag->tag, tag->taglen);
+			if (tag->taglen > 32) {
+				dump_stuff_msg("**********\ntag hex-dump", tag->tag, tag->taglen);
+				fprintf(stderr, "ERROR: tag->taglen is %d - should be max. 32.\nOffending string will be truncated to '%.32s'\n**********\n", tag->taglen, tag->tag);
+				memcpy(ssid, tag->tag, 32);
+			} else
+				memcpy(ssid, tag->tag, tag->taglen);
 		}
 		x += tag->taglen + 2;
 		tag = (ether_beacon_tag_t *)x;
