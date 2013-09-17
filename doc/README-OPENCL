@@ -54,6 +54,11 @@ Adjust NVIDIA_CUDA or ATISTREAMSDKROOT to your needs and
 if something is still wrong (but it shouldn't) send
 an email to john-users@lists.openwall.com for help.
 
+If you use an old AMD/ATI driver and get problems with signals or
+ctrl-c, with messages about "semaphore" and/or "sem_wait() failed",
+remove the comments from line 20 of os.h (so the last two ifdefs get
+into play) and rebuild.
+
 
 ====================
 USAGE:

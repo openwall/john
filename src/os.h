@@ -17,7 +17,7 @@
 
 #ifdef NEED_OS_TIMER
 
-#if defined(__CYGWIN32__) || defined(__BEOS__) || defined(__MINGW32__) || defined(_MSC_VER) || (defined(AMDAPPSDK) && defined(HAVE_OPENCL))
+#if defined(__CYGWIN32__) || defined(__BEOS__) || defined(__MINGW32__) || defined(_MSC_VER) /* || (defined(AMDAPPSDK) && defined(HAVE_OPENCL)) */
 #define OS_TIMER			0
 #else
 #ifndef _XOPEN_SOURCE
