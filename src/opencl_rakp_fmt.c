@@ -22,32 +22,32 @@
 #include "common-opencl.h"
 #include "options.h"
 
-#define FORMAT_LABEL			"RAKP-opencl"
-#define FORMAT_NAME			""
-#define ALGORITHM_NAME			"IPMI 2.0 RAKP (RMCP+) OpenCL (experimental, development use only)"
+#define FORMAT_LABEL            "RAKP-opencl"
+#define FORMAT_NAME             ""
+#define ALGORITHM_NAME          "IPMI 2.0 RAKP (RMCP+) OpenCL (experimental, development use only)"
 
-#define BENCHMARK_COMMENT		""
-#define BENCHMARK_LENGTH		-1000
+#define BENCHMARK_COMMENT       ""
+#define BENCHMARK_LENGTH        -1000
 
-#define BLOCK_SIZE			64
-#define PAD_SIZE			BLOCK_SIZE
-#define SALT_STORAGE_SIZE		(BLOCK_SIZE*2)
-#define SALT_SIZE			(SALT_STORAGE_SIZE - 9)
-#define SALT_MIN_SIZE			(SALT_SIZE - BLOCK_SIZE + 1)
+#define BLOCK_SIZE              64
+#define PAD_SIZE                BLOCK_SIZE
+#define SALT_STORAGE_SIZE       (BLOCK_SIZE*2)
+#define SALT_SIZE               (SALT_STORAGE_SIZE - 9)
+#define SALT_MIN_SIZE           (SALT_SIZE - BLOCK_SIZE + 1)
 
-#define PLAINTEXT_LENGTH		(PAD_SIZE - 1)
+#define PLAINTEXT_LENGTH        (PAD_SIZE - 1)
 
-#define DIGEST_SIZE			20
-#define BINARY_SIZE			DIGEST_SIZE
+#define DIGEST_SIZE             20
+#define BINARY_SIZE             DIGEST_SIZE
 
-#define MIN_KEYS_PER_CRYPT		(1024*2048)
-#define MAX_KEYS_PER_CRYPT		MIN_KEYS_PER_CRYPT
+#define MIN_KEYS_PER_CRYPT      (1024*2048)
+#define MAX_KEYS_PER_CRYPT      MIN_KEYS_PER_CRYPT
 
-#define FORMAT_TAG			"$rakp$"
-#define TAG_LENGTH			(sizeof(FORMAT_TAG) - 1)
+#define FORMAT_TAG              "$rakp$"
+#define TAG_LENGTH              (sizeof(FORMAT_TAG) - 1)
 
-#define BINARY_ALIGN			1
-#define SALT_ALIGN			1
+#define BINARY_ALIGN            1
+#define SALT_ALIGN              1
 
 #ifndef uint32_t
 #define uint32_t unsigned int
@@ -63,45 +63,45 @@ cl_mem salt_buffer, keys_buffer, digest_buffer;
 static unsigned char (*keys)[PAD_SIZE];
 static ARCH_WORD_32 (*digest)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
 
-#define MIN(a, b)		(((a) > (b)) ? (b) : (a))
-#define MAX(a, b)		(((a) > (b)) ? (a) : (b))
+#define MIN(a, b)               (((a) > (b)) ? (b) : (a))
+#define MAX(a, b)               (((a) > (b)) ? (a) : (b))
 
 static struct fmt_tests tests[] = {
-        {"$rakp$a4a3a2a03f0b000094272eb1ba576450b0d98ad10727a9fb0ab83616e099e8bf5f7366c9c03d36a3000000000000000000000000000000001404726f6f74$0ea27d6d5effaa996e5edc855b944e179a2f2434", "calvin"},
-        {"$rakp$c358d2a72f0c00001135f9b254c274629208b22f1166d94d2eba47f21093e9734355a33593da16f2000000000000000000000000000000001404726f6f74$41fce60acf2885f87fcafdf658d6f97db12639a9", "calvin"},
-        {"$rakp$b7c2d6f13a43dce2e44ad120a9cd8a13d0ca23f0414275c0bbe1070d2d1299b1c04da0f1a0f1e4e2537300263a2200000000000000000000140768617368636174$472bdabe2d5d4bffd6add7b3ba79a291d104a9ef", "hashcat"},
-        {NULL}
+	{"$rakp$a4a3a2a03f0b000094272eb1ba576450b0d98ad10727a9fb0ab83616e099e8bf5f7366c9c03d36a3000000000000000000000000000000001404726f6f74$0ea27d6d5effaa996e5edc855b944e179a2f2434", "calvin"},
+	{"$rakp$c358d2a72f0c00001135f9b254c274629208b22f1166d94d2eba47f21093e9734355a33593da16f2000000000000000000000000000000001404726f6f74$41fce60acf2885f87fcafdf658d6f97db12639a9", "calvin"},
+	{"$rakp$b7c2d6f13a43dce2e44ad120a9cd8a13d0ca23f0414275c0bbe1070d2d1299b1c04da0f1a0f1e4e2537300263a2200000000000000000000140768617368636174$472bdabe2d5d4bffd6add7b3ba79a291d104a9ef", "hashcat"},
+	{NULL}
 };
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-        char *p, *q = NULL;;
-        p = ciphertext;
+	char *p, *q = NULL;;
+	p = ciphertext;
 
-        if (!strncmp(p, FORMAT_TAG, TAG_LENGTH))
-                p += TAG_LENGTH;
+	if (!strncmp(p, FORMAT_TAG, TAG_LENGTH))
+		p += TAG_LENGTH;
 
-        q = strrchr(ciphertext, '$');
-        if (!q)
-                return 0;
-        q = q + 1;
-        if (strlen(q) != BINARY_SIZE * 2)
-                return 0;
+	q = strrchr(ciphertext, '$');
+	if (!q)
+		return 0;
+	q = q + 1;
+	if (strlen(q) != BINARY_SIZE * 2)
+		return 0;
 
-        if ( (q - p) > SALT_SIZE * 2)
-                return 0;
+	if ( (q - p) > SALT_SIZE * 2)
+		return 0;
 
 	if ( (q - p) < SALT_MIN_SIZE * 2)
 		return 0;
 
-        return 1;
+	return 1;
 }
 
 static void set_key(char *_key, int index);
 
 static void create_clobj(int kpc){
-        keys = mem_calloc_tiny(sizeof(*keys) * kpc, MEM_ALIGN_WORD);
-        digest = mem_calloc_tiny(sizeof(*digest) * kpc, MEM_ALIGN_WORD);
+	keys = mem_calloc_tiny(sizeof(*keys) * kpc, MEM_ALIGN_WORD);
+	digest = mem_calloc_tiny(sizeof(*digest) * kpc, MEM_ALIGN_WORD);
 
 	salt_buffer = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, SALT_STORAGE_SIZE, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating salt_buffer out argument");
@@ -142,8 +142,8 @@ static void done(void)
 }
 
 /*
-   this function could be used to calculated the best num
-   of keys per crypt for the given format
+  this function could be used to calculated the best num
+  of keys per crypt for the given format
 */
 
 static void find_best_kpc(void){
@@ -246,11 +246,11 @@ static void init(struct fmt_main *self) {
 
 static void set_key(char *key, int index)
 {
-        int len;
-        int i;
+	int len;
+	int i;
 
-        len = strlen(key);
-        memcpy(keys[index], key, len);
+	len = strlen(key);
+	memcpy(keys[index], key, len);
 	for (i = len; i < PAD_SIZE; i++) {
 		keys[index][i] = 0;
 	}
@@ -263,39 +263,39 @@ static char *get_key(int index)
 
 static void *binary(char *ciphertext)
 {
-        static union {
-                unsigned char c[BINARY_SIZE];
-                ARCH_WORD dummy;
-        } buf;
-        unsigned char *out = buf.c;
-        char *p;
-        int i;
-        p = strrchr(ciphertext, '$') + 1;
-        for (i = 0; i < BINARY_SIZE; i++) {
-                out[i] =
-                    (atoi16[ARCH_INDEX(*p)] << 4) |
-                    atoi16[ARCH_INDEX(p[1])];
-                p += 2;
-        }
+	static union {
+		unsigned char c[BINARY_SIZE];
+		ARCH_WORD dummy;
+	} buf;
+	unsigned char *out = buf.c;
+	char *p;
+	int i;
+	p = strrchr(ciphertext, '$') + 1;
+	for (i = 0; i < BINARY_SIZE; i++) {
+		out[i] =
+			(atoi16[ARCH_INDEX(*p)] << 4) |
+			atoi16[ARCH_INDEX(p[1])];
+		p += 2;
+	}
 
-        return out;
+	return out;
 }
 
 static void *salt(char *ciphertext)
 {
-        char *ctcopy = strdup(ciphertext);
-        char *keeptr = ctcopy;
-        char *p;
-        unsigned int i, len;
-        ctcopy += 6;
-        p = strtok(ctcopy, "$");
-        len = strlen(p) / 2;
-        for (i = 0; i < len; i++) {
-                salt_storage[i] =
-                    (atoi16[ARCH_INDEX(*p)] << 4) |
-                    atoi16[ARCH_INDEX(p[1])];
-                p += 2;
-        }
+	char *ctcopy = strdup(ciphertext);
+	char *keeptr = ctcopy;
+	char *p;
+	unsigned int i, len;
+	ctcopy += 6;
+	p = strtok(ctcopy, "$");
+	len = strlen(p) / 2;
+	for (i = 0; i < len; i++) {
+		salt_storage[i] =
+			(atoi16[ARCH_INDEX(*p)] << 4) |
+			atoi16[ARCH_INDEX(p[1])];
+		p += 2;
+	}
 	salt_storage[len] = 0x80;
 	for (i = len + 1; i < SALT_STORAGE_SIZE - 2; i++) {
 		salt_storage[i] = 0;
@@ -304,8 +304,8 @@ static void *salt(char *ciphertext)
 	len *= 8;
 	salt_storage[SALT_STORAGE_SIZE - 1] = len & 0xffU;
 	salt_storage[SALT_STORAGE_SIZE - 2] = (len >> 8) & 0xffU;
-        MEM_FREE(keeptr);
-        return (void *)&salt_storage;
+	MEM_FREE(keeptr);
+	return (void *)&salt_storage;
 }
 
 static void set_salt(void *salt)
