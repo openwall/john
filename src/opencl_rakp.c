@@ -258,7 +258,7 @@ static void set_key(char *key, int index)
 
 static char *get_key(int index)
 {
-	return keys[index];
+	return (char*)keys[index];
 }
 
 static void *binary(char *ciphertext)
