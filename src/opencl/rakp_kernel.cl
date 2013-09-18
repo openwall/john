@@ -29,7 +29,7 @@ inline uint SWAP32(uint x)
 /* Macros for reading/writing chars from int32's */
 #define LASTCHAR_BE(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2] & (0xffffff00U << ((((index) & 3) ^ 3) << 3))) + ((val) << ((((index) & 3) ^ 3) << 3))
 
-#if gpu_amd(DEVICE_INFO) || no_byte_addressable(DEVICE_INFO)
+#if no_byte_addressable(DEVICE_INFO)
 /* 32-bit stores */
 #define PUTCHAR_BE(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2] & ~(0xffU << ((((index) & 3) ^ 3) << 3))) + ((val) << ((((index) & 3) ^ 3) << 3))
 #else
@@ -230,7 +230,7 @@ void rakp_kernel(
 	__global const	uint* index,
 	__global	uint* digest
 ) {
-	uint W[16] = { 0 }, K[16] = { 0 }, stage1[5], stage2[5];
+	uint W[16], K[16] = { 0 }, stage1[5], stage2[5];
 	uint temp, A, B, C, D, E;
 	uint gid = get_global_id(0);
 	uint i;
