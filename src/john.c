@@ -649,10 +649,17 @@ static void john_fork(void)
 			options.node_min += i;
 			options.node_max = options.node_min;
 #ifdef HAVE_OPENCL
+			// Poor man's multi-device support
 			if (options.gpu_devices->count) {
 				// Pick device to use for this child
 				opencl_preinit();
-				ocl_gpu_id = ocl_device_list[i % opencl_get_devices()];
+				ocl_gpu_id =
+				    ocl_device_list[i % opencl_get_devices()];
+				platform_id = get_platform_id(ocl_gpu_id);
+
+				// Hide any other devices from list
+				ocl_device_list[0] = ocl_gpu_id;
+				ocl_device_list[1] = -1;
 
 				// Postponed format init in forked process
 				fmt_init(database.format);
@@ -677,10 +684,15 @@ static void john_fork(void)
 	}
 
 #ifdef HAVE_OPENCL
+	// Poor man's multi-device support
 	if (options.gpu_devices->count) {
 		// Pick device to use for mother process
 		opencl_preinit();
 		ocl_gpu_id = ocl_device_list[0];
+		platform_id = get_platform_id(ocl_gpu_id);
+
+		// Hide any other devices from list
+		ocl_device_list[1] = -1;
 
 		// Postponed format init in mother process
 		fmt_init(database.format);

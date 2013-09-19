@@ -439,10 +439,16 @@ void opencl_preinit(void)
 			exit(1);
 		}
 #ifdef HAVE_MPI
-		if (mpi_p > 1)
+		// Poor man's multi-device support
+		if (mpi_p > 1) {
+			// Pick device to use for this node
 			ocl_gpu_id =
 				ocl_device_list[mpi_id % opencl_get_devices()];
-		else
+
+			// Hide any other devices from list
+			ocl_device_list[0] = ocl_gpu_id;
+			ocl_device_list[1] = -1;
+		} else
 #endif
 			ocl_gpu_id = ocl_device_list[0];
 		platform_id = get_platform_id(ocl_gpu_id);
