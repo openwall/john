@@ -526,35 +526,34 @@ void opencl_get_user_preferences(char * format)
 static void dev_init(int sequential_id)
 {
 	char device_name[MAX_OCLINFO_STRING_LEN];
-
+#ifdef CL_DEVICE_BOARD_NAME_AMD
+	cl_int ret_code;
+	int len;
+#endif
 	HANDLE_CLERROR(clGetDeviceInfo(devices[sequential_id], CL_DEVICE_NAME,
 		sizeof(device_name), device_name, NULL),
 		"Error querying DEVICE_NAME");
-	if (options.verbosity > 2)
-		fprintf(stderr, "Device %d: %s ", sequential_id, device_name);
 
 #ifdef CL_DEVICE_BOARD_NAME_AMD
-	{
-		cl_int ret_code;
-		int len;
+	ret_code = clGetDeviceInfo(devices[sequential_id],
+	                           CL_DEVICE_BOARD_NAME_AMD,
+	                           sizeof(opencl_log), opencl_log, NULL);
 
-		ret_code = clGetDeviceInfo(devices[sequential_id],
-			CL_DEVICE_BOARD_NAME_AMD,
-			sizeof(opencl_log), opencl_log, NULL);
+	if (ret_code == CL_SUCCESS && (len = strlen(opencl_log))) {
+		while (len > 0 && isspace(ARCH_INDEX(opencl_log[len - 1])))
+			len--;
+		opencl_log[len] = '\0';
 
-		if (ret_code == CL_SUCCESS && (len = strlen(opencl_log))) {
-
-			while (len > 0 && isspace(ARCH_INDEX(opencl_log[len])))
-				len--;
-
-			opencl_log[len-1] = '\0';
-			if (options.verbosity > 2)
-				fprintf(stderr, "(%s)", opencl_log);
-		}
-	}
+		if (options.verbosity > 2)
+			fprintf(stderr, "Device %d: %s (%s)\n",
+			        sequential_id, device_name, opencl_log);
+	} else
 #endif
-	if (options.verbosity > 2)
-		fprintf(stderr, "\n");
+	{
+		if (options.verbosity > 2)
+			fprintf(stderr, "Device %d: %s\n",
+			        sequential_id, device_name);
+	}
 }
 
 static char *include_source(char *pathname, int sequential_id, char *opts,
