@@ -65,9 +65,12 @@ KRB5_LDFLAGS = `find 2>&1 /usr/include/ /usr/local/include/ -name "krb5.h" | gre
 #HAVE_KRB5 = -DHAVE_KRB5
 #KRB5_LDFLAGS = -lk5crypto -lkrb5
 
-# Change sm_10 to sm_20 if you have Fermi support (400 series or later) or
-# sm_30 if you have Kepler (600 series or later) and your nvcc supports it.
-NVCC_FLAGS = -c -Xptxas -v -arch sm_10
+# CUDA settings. Instead of "-arch sm_10" you could use sm_20 or sm_30 or
+# -gencode arch=compute_10,code=sm_10 -gencode arch=compute_20,code=sm_21
+# but that leads to problems on GTX Titan.
+# You could add "-gencode arch=compute_30,code=sm_30" too but that just
+# leads to regressions for Kepler cards, when it works at all.
+NVCC_FLAGS = -c -Xptxas -v -fmad=true -arch sm_10
 CUDAPATH = /usr/local/cuda
 
 ifdef NVIDIA_CUDA
