@@ -124,6 +124,7 @@ cl_uint get_max_compute_units(int sequential_id);
 cl_uint get_processors_count(int sequential_id);
 cl_uint get_processor_family(int sequential_id);
 int get_vendor_id(int sequential_id);
+int get_platform_id(int sequential_id);
 int get_platform_vendor_id(int platform_id);
 int get_device_version(int sequential_id);
 int get_byte_addressable(int sequential_id);
