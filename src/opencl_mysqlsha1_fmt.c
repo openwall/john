@@ -70,7 +70,7 @@ static void create_clobj(int gws)
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory mysqlsha_plain");
 	memset(mysqlsha_plain, 0, PLAINTEXT_LENGTH * gws);
 
-	res_hashes = malloc(sizeof(cl_uint) * 4 * gws);
+	res_hashes = mem_alloc(sizeof(cl_uint) * 4 * gws);
 
 	pin_part_msha_hashes = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, sizeof(cl_uint) * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
