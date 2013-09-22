@@ -13,7 +13,7 @@
 
 #define THREADS			128//set at least 256 on fermi
 #define BLOCKS			14
-#define	KEYS_PER_CRYPT		(THREADS)*(BLOCKS)
+#define	KEYS_PER_CRYPT		((THREADS)*(BLOCKS))
 
 #define BINARY_SIZE		16
 #define PLAINTEXT_LENGTH	27
