@@ -1,6 +1,6 @@
 The following changes were made between 1.7.9-jumbo-8 and 1.8.0-jumbo-1:
 
-magnum (668):
+magnum (743):
 	formats.c: Only check binary/salt alignment if not using fmt_default_*
 	formats.c: Deliberately use misaligned ciphertext in self test
 	formats.c canary for binary/salt buffers
@@ -1062,8 +1062,127 @@ magnum (668):
 	  patiently convince me.
 	Fix another potential problem with -DDEBUG vs. mem_alloc_tiny().
 	Print human readable OpenSSL version string with --list=build-info.
+	Update CHANGES-jumbo & CREDITS-jumbo.git.
+	Use the recent mem_alloc_tiny() bugfix for size zero even when not
+	  -DDEBUG because returning a pointer might be asking for problems.
+	Add session_start_time external variable that maps to time(NULL) at
+	  session start.
+	Another tweak to the mem_alloc_tiny() vs. -DDEBUG issue.
+	Bare minimum of fixes to bwtdt so it doesn't break too much.
+	Add some comments to bwtdt format.
+	Unicode bugfix for OpenCL Office formats.
+	Stack smash bugfix for putty format. Bug introduced in 79c871d, using
+	  sizeof len fields (ints) instead of actual fields (arrays),
+	  causing a buffer to be potentially 8 KB too small.
+	raw-sha1-opencl: Fix bug where obsolete code that only handled up
+	  to length 23 was accidentally used.
+	raw-sha1-opencl: Drop obsolete code for short length.
+	Bugfixes due to format labels no longer lower-case.
+	Fix bug in formats.c where old names for descrypt, bsdicrypt and AFS
+	  were used in strcmp().
+	wpapcap2john: Add SSID in "user" field for Single mode use.
+	hccap2john: Add SSID in "user" field for Single mode use.
+	Always -D_OPENCL_COMPILER when building OpenCL kernels.
+	Avoid a compiler warning for signed vs unsigned integer.
+	Whitespace-only in common-opencl.c
+	Allow calling opencl_get_user_preferences() with NULL argument.
+	OpenCL formats: Use more shared code from common-opencl.c
+	Tweaks for LWS/GWS environment vs auto-tune vs defaults.
+	Fix a couple compiler warnings about "array subscript has type ‘char’"
+	  and other minor things.
+	Make Oracle 10 format more robust (allow lower-case salts even when
+	  prepare() is not used).
+	Fix issue 328 using the new num_internal_keys format parameter.
+	Issue #328 revisited.
+	Issue #328 revisited again...
+	Revert "Issue #328 revisited again..." Revert "Issue #328
+	  revisited."
+	Bump FORMAT_MAIN_VERSION due to 018a5ac.
+	Issue #328 hopefully settled.
+	Under --verbosity=1 we don't print passwords to screen when cracked,
+	  so also mute the warning about them not being the complete list.
+	Add new masks ?s (specials), ?a (printable ASCII) and ?A (everything
+	  between space (0x20) and 0xff).
+	NTLMv2: Bump max. salt size (username + domain) from 27 to 59
+	  characters.
+	OpenCL fixes. Work around silly Intel driver issue with
+	  -cl-strict-aliasing and some other weird issue with late nvidia
+	  drivers not supporting CL_DEVICE_COMPUTE_CAPABILITY_MINOR_NV et
+	  al.
+	OpenCL bugfix (common code): sequential_id was used where platform_id
+	  was expected. Also a workaround for Apple's brain-dead driver
+	  that apparently dies on dual spaces eg. between -DTHIS and
+	  -DTHAT. That is just ridiculous.
+	Minor tweaks to common OpenCL code.
+	Added a function for tracing memory allocations in OpenCL.
+	Limit GWS in OpenCL formats using packed buffer, so we don't over-run
+	  the 26-bit index.
+	Bump HASH_LOOPS for RAR OpenCL format to one optimal for Tahiti and
+	  Titan.
+	RAR OpenCL: Add more profiling output.
+	RAR OpenCL: Back to 64x buffer
+	RAR OpenCL: Do blocklen sha1's at once.
+	RAR OpenCL: Get rid of HASH_LOOPS. Use a 64x __private buffer. Merge
+	  that and IV into the loop kernel. Finally a significant speedup.
+	Various OpenCL formats: Use byte addressed stores if allowed (though
+	  sometimes not if AMD). For RAR this gave 33% boost on AMD.
+	raw-sha512-opencl: Obey device/kernel limit for LWS.
+	Drop old junk from OpenCL kernels.
+	OpenCL RAR kernel accidentally got max length limited to 16. Bump to
+	  22 again, it does not affect performance now.
+	When starting an external mode that lacks restore(), emit a warning.
+	Yet an optimization for RAR OpenCL, and a minor fix for done().
+	Minor tweak to RAR OpenCL. We now do over 20K on 7970.
+	MPI: Enable poor man's multi-GPU support. This should be available for
+	  -fork too but it's very tricky to accomplish.
+	No-op MPI tweak + comments.
+	Add a self-test that ensures FMT_OMP_BAD is not used without FMT_OMP.
+	  We could consider defining FMT_OMP_BAD so it includes FMT_OMP.
+	Fork: Enable poor man's multi-GPU support. This is experimental. It
+	  postpones format init and that might have side effects. To mitigate
+	  unnecessary problems, everything is just like before as long as
+	  you don't use both --fork and --device options at once.
+	Don't cache CPU kernels. There were problems seen on Well's AMD
+	  driver.
+	Incremental mode may get >100% progress because of uneven splitting.
+	  Show that as 99.99% instead.
+	Inc progress: For some odd reason we sometimes ended up showing 99.99%
+	  instead of DONE so cap it at 100.0% instead of 99.99%.
+	Document the "poor man's multi-GPU support".
+	Bugfix for "poor man's multi-device support" for --fork.
+	Cosmetic tweak for MPI + OMP notice.
+	Drop the use of OS_TIMER=0 for AMD OpenCL builds, but add instructions
+	  for how to re-enable it.
+	wpapcap2john: Ensure we don't overrun SSID buffer with overlong tags,
+	  and print a debug message. Thanks to bytebieger for reporting
+	  this issue. We still do not know the cause. See
+	  https://github.com/magnumripper/JohnTheRipper/pull/366 for
+	  discussion.
+	Mute a compiler warning for rakp-opencl.
+	rakp-opencl: Whitespace fixes and rename file according to standard.
+	rakp-opencl: Bug fixes, optimizations and packed key buffer.
+	rakp-opencl: Optimizations for HD7970.
+	Add macosx-x86-64-native-opencl target because latest Xcode broke
+	  CUDA.
+	OpenCL: Fix for the fork/MPI "poor man's multi-device" stuff, so
+	  formats that support multiple devices natively does not get
+	  screwed up.
+	Export get_platform_id() from common-opencl.
+	Fix OSX build targets for CUDA for Xcode 5.0 and CUDA 5.
+	NVCC tweaks (mostly comments, but add -fmad=true) in Makefile.
+	pass_gen.pl: Only require libs that are actually needed for specific
+	  run.
+	Fix an obscure bug in mscash where an overlong key would truncate
+	  to 28 instead of 27 in UTF-8 mode. NT already had a fix for it so
+	  unify the code for them.
+	Cosmetical fixes in common-opencl.c.
+	Protect a CUDA macro from being expanded to something not intended.
+	  I'm not sure there was a problem, just saw the dangerous definiton.
+	Change malloc() to mem_alloc() in a bunch of formats. The latter sits
+	  in memory.c and has error checking.
+	Align fix to CUDA md5crypt.
 
-Dhiru Kholia (215):
+Dhiru Kholia (226):
 	Add support for cracking KeePass 2.x files.
 	Get rid of BOM.
 	Add support for cracking PKCS #12 files.
@@ -1281,6 +1400,17 @@ Dhiru Kholia (215):
 	fixes for OMP linux-ppc64 target
 	ecryptfs format is actually correct now
 	early preview of EFS format for cracking M$ EFS
+	commit bwtdt format before I lose it!
+	move "bwtdt" format to unused/
+	pdf2john fixes for bugs triggered by CMIYC 2013 files
+	add more test vectors in pdf format
+	add another test vector in keepass format
+	add another test vector in odf format
+	add another test vector in pkzip format
+	some KWallet format "improvements"
+	more KWallet fixes, thanks to gaganpreet!
+	fix math in kwallet format
+	commit broken MD5 format
 
 JimF (146):
 	get_source() supporting salts too. Added to crc32 and sapG.
@@ -1514,7 +1644,7 @@ JimF (146):
 	Better OMP for whirlpool. Use oSSL Whirlpool functions if oSSL
 	  version high enough (much faster)
 
-Claudio André (108):
+Claudio André (112):
 	Selectively pick stuff from Claudio's experimental tree.
 	Get some nt-opencl fixes from Claudio
 	Rebase on bleeding and copied 'my' formats.
@@ -1648,8 +1778,12 @@ Claudio André (108):
 	sha256crypt-opencl fix for opencl_preinit().
 	Revert to do a full check (device is really working) while
 	  initializing a specific device.
+	Unify OpenCL raw-sha256 and cisco-4, just like the CPU formats.
+	Follow naming convention specified at: a77b867.
+	Unify valid() and binary() for sha256crypt CPU and OpenCL formats.
+	Remove (old) debug code.
 
-Sayantan Datta (36):
+Sayantan Datta (37):
 	mscash2-opencl:added multi-gpu interfaces,bug fixes
 	opencl-mscash2:no segfault when mixing devices with large difference
 	  in speed
@@ -1687,6 +1821,7 @@ Sayantan Datta (36):
 	mscash-opencl: compare on gpu
 	nt-opencl: fixed bug causing inefficient keys transfer.
 	added mask mode interface
+	added new format param
 
 Lukas Odzioba (20):
 	CUDA multigpu first draft for pwsafe
@@ -1712,7 +1847,7 @@ Lukas Odzioba (20):
 	Add binary_hash() functions to phpass-cuda and md5crypt-cuda formats.
 	PBKDF2-HMAC-SHA256 Patch for splitted kernel.
 
-ShaneQful (19):
+ShaneQful (20):
 	Added prepare method which checks for the old style pdf hashes and
 	  converts them to the new style pdf hashes if necessary
 	Cleaned up comments and added self to credits
@@ -1739,6 +1874,7 @@ ShaneQful (19):
 	Small fix to get_xmp_values method in pdf to john
 	Added ability to odf2john to generate a gecos field for meta data of
 	  it exists
+	Removed pointless fix to pdf2john
 
 Solar (17):
 	Fix breakage caused by commit aab646b42afe93ca909b
@@ -1842,19 +1978,19 @@ Jeremi Gosney (4):
 	sse/xop implementation of raw-sha512
 	fixes for rawSHA512_ng format
 
-Deepika Dutta (3):
-	Add bit-sliced MSCHAPv2 implementation by Deepika. This is added as a
-	  new separate format: We now have mschapv2, mschapv2-bs and
-	  mschapv2-naive.
-	Add MMX version of DES_bs_crypt_plain().
-	netntlm bitsliced conversion
-
 Michael Samuel (3):
 	Add External:KDEPaste. This takes advantage of CVE-2013-2120 to find
 	  seeds that KDE Paste applet uses to generate passwords.
 	Add license notice to KDEPaste external mode.
 	Add external mode that replays the Awesome Password Generator 1.3.2
 	  RNG.
+
+Deepika Dutta (3):
+	Add bit-sliced MSCHAPv2 implementation by Deepika. This is added as a
+	  new separate format: We now have mschapv2, mschapv2-bs and
+	  mschapv2-naive.
+	Add MMX version of DES_bs_crypt_plain().
+	netntlm bitsliced conversion
 
 Costin Enache (3):
 	Fix for clock err in timers.
@@ -1867,6 +2003,10 @@ Aleksey Cherepanov (2):
 	fix to repare build with defined BENCH_BUILD after add of
 	  --skip-self-tests option
 
+Harrison Neal (2):
+	Add OpenCL plugin for RAKP
+	Have RAKP OpenCL plugin be compiled and used
+
 Vlatko Kosturjak (1):
 	Expose markov stats file as "hidden" command line option
 	  (--mkv-stats=FILE)
@@ -1877,11 +2017,11 @@ bartavelle (Simon Marechal) (1):
 Dániel Bali (1):
 	Add OpenCL target for Win32/Cygwin.
 
-Lord_Rafa (1):
-	fixed the arm profile to compile in parallella
-
 Sergey V (1):
 	make blockchain-opencl non-plug
+
+Lord_Rafa (1):
+	fixed the arm profile to compile in parallella
 
 
 The following changes were made between 1.7.9-jumbo-7 and 1.7.9-jumbo-8:
