@@ -2026,7 +2026,7 @@ Lord_Rafa (1):
 
 The following changes were made between 1.7.9-jumbo-7 and 1.7.9-jumbo-8:
 
-magnum (696):
+magnum (709):
 	Add a "Section [%s] not found" before outputting the catch-all
 	  --list=?
 	Merge fix
@@ -3268,6 +3268,30 @@ magnum (696):
 	Fix another potential problem with -DDEBUG vs. mem_alloc_tiny().
 	Print human readable OpenSSL version string with --list=build-info.
 	Update CHANGES-jumbo & CREDITS-jumbo.git
+	Use the recent mem_alloc_tiny() bugfix for size zero even when not
+	  -DDEBUG because returning a pointer might be asking for problems.
+	Unicode bugfix for OpenCL Office formats.
+	raw-sha1-opencl: Fix bug where obsolete code that only handled up
+	  to length 23 was accidentally used. And drop the obsolete code.
+	wpapcap2john: Add SSID in "user" field for Single mode use.
+	hccap2john: Add SSID in "user" field for Single mode use.
+	Make Oracle 10 format more robust (allow lower-case salts even when
+	  prepare() is not used).
+	Another tweak to the mem_alloc_tiny() vs. -DDEBUG issue.
+	wpapcap2john: Ensure we don't overrun SSID buffer with overlong tags,
+	  and print a debug message. Thanks to bytebieger for reporting
+	  this issue. We still do not know the cause. See
+	  https://github.com/magnumripper/JohnTheRipper/pull/366 for
+	  discussion.
+	NVCC tweaks (mostly comments, but add -fmad=true) in Makefile.
+	Fix an obscure bug in mscash where an overlong key would truncate
+	  to 28 instead of 27 in UTF-8 mode. NT already had a fix for it so
+	  unify the code for them.
+	Protect a CUDA macro from being expanded to something not intended.
+	  I'm not sure there was a problem, just saw the dangerous definiton.
+	Change malloc() to mem_alloc() in a bunch of formats. The latter sits
+	  in memory.c and has error checking.
+	Update CHANGES-jumbo.git and CREDITS-jumbo
 
 Dhiru Kholia (334):
 	BONUS: pwsafe format also cracks Password Gorilla databases.
