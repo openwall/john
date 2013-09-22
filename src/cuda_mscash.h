@@ -14,7 +14,7 @@
 
 #define THREADS			256
 #define BLOCKS			42
-#define	KEYS_PER_CRYPT		(THREADS)*(BLOCKS)
+#define	KEYS_PER_CRYPT		((THREADS)*(BLOCKS))
 
 #define BINARY_SIZE		16
 #define PLAINTEXT_LENGTH	27

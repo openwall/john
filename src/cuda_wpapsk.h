@@ -10,7 +10,7 @@
 
 #define THREADS			64	//set at least 256 on fermi
 #define BLOCKS			16
-#define	KEYS_PER_CRYPT		(THREADS)*(BLOCKS)
+#define	KEYS_PER_CRYPT		((THREADS)*(BLOCKS))
 
 #define MIN_KEYS_PER_CRYPT	THREADS
 #define MAX_KEYS_PER_CRYPT	KEYS_PER_CRYPT
