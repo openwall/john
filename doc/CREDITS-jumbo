@@ -69,3 +69,6 @@ The following people have contributed between 1.7.9-jumbo-5 and jumbo-6:
     sftp (Sergey V)
     Solar Designer (Alexander Peslyak)
     Tavis Ormandy
+
+---
+git shortlog -ns --no-merges 1.7.9-jumbo-7..HEAD | cut -f2- | sort -f
