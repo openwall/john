@@ -105,9 +105,9 @@ static void clear_keys(void);
 static void set_key(char *key, int index);
 
 static void create_clobj(int kpc){
-	keys = malloc((PLAINTEXT_LENGTH + 1) * kpc);
-	idx = malloc(sizeof(*idx) * kpc);
-	digest = malloc(sizeof(*digest) * kpc);
+	keys = mem_alloc((PLAINTEXT_LENGTH + 1) * kpc);
+	idx = mem_alloc(sizeof(*idx) * kpc);
+	digest = mem_alloc(sizeof(*digest) * kpc);
 
 	salt_buffer = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, SALT_STORAGE_SIZE, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating salt_buffer out argument");

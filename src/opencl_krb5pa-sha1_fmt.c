@@ -159,7 +159,7 @@ static void create_clobj(int gws, struct fmt_main *self)
 	HANDLE_CLERROR(clSetKernelArg(pbkdf2_final, 0, sizeof(mem_state), &mem_state), "Error while setting mem_state kernel argument");
 	HANDLE_CLERROR(clSetKernelArg(pbkdf2_final, 1, sizeof(mem_out), &mem_out), "Error while setting mem_out kernel argument");
 
-	crypt_out = malloc(sizeof(*crypt_out) * gws);
+	crypt_out = mem_alloc(sizeof(*crypt_out) * gws);
 }
 
 static void release_clobj(void)

@@ -100,7 +100,7 @@ static void create_clobj(int kpc, struct fmt_main *self) {
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_plain");
 	memset(saved_plain, 0, PLAINTEXT_LENGTH * kpc);
 
-	outbuffer2 = malloc(sizeof(cl_uint) * 4 * kpc);
+	outbuffer2 = mem_alloc(sizeof(cl_uint) * 4 * kpc);
 
 	pinned_partial_hashes = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR,
 	    sizeof(cl_uint) * kpc, NULL, &ret_code);
