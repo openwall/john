@@ -21,7 +21,9 @@
 #define BENCHMARK_LENGTH	-1
 
 #define BINARY_SIZE		16
+#define BINARY_ALIGN		1
 #define SALT_SIZE		(sizeof(crypt_md5_salt))
+#define SALT_ALIGN		1
 #define MIN_KEYS_PER_CRYPT	THREADS
 #define MAX_KEYS_PER_CRYPT	KEYS_PER_CRYPT
 
@@ -280,9 +282,9 @@ struct fmt_main fmt_cuda_cryptmd5 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		0,
