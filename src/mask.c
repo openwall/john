@@ -1,6 +1,7 @@
 /*
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 2013 by Solar Designer
+ * Copyright (c) 2013 by magnum
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -12,6 +13,8 @@
 
 #include "misc.h" /* for error() */
 #include "logger.h"
+#include "os.h"
+#include "signals.h"
 #include "status.h"
 #include "options.h"
 #include "rpp.h"
@@ -20,22 +23,51 @@
 #include "john.h"
 #include "mask.h"
 
-void do_mask_crack(struct db_main *db, char *mask)
+static struct rpp_context ctx;
+
+/* TODO: the fork/node/MPI splitting is very inefficient */
+static unsigned int seq;
+
+static int get_progress(int *hundth_perc)
 {
-	struct rpp_context ctx;
-	char *word;
+	int hundredXpercent, percent;
+	unsigned long long try, cand;
+	int i;
+
+	i = 0; cand = 1;
+	while (ctx.ranges[i].count)
+		cand *= ctx.ranges[i++].count;
 
 	if (options.node_count) {
-		if (john_main_process)
-			fprintf(stderr, "--mask is not yet compatible with --node and --fork\n");
-		error();
+		cand /= options.node_count;
 	}
+
+
+	try = ((unsigned long long)status.cands.hi << 32) + status.cands.lo;
+
+	if (!cand || !try)
+		return -1;
+
+	if (try > 1844674407370955LL) {
+		*hundth_perc = percent = 99;
+	} else {
+		hundredXpercent = (int)((unsigned long long)(10000 * (try)) / (unsigned long long)cand);
+		percent = hundredXpercent / 100;
+		*hundth_perc = hundredXpercent - (percent*100);
+	}
+
+	return percent;
+}
+
+void do_mask_crack(struct db_main *db, char *mask)
+{
+	char *word;
 
 	log_event("Proceeding with mask mode");
 
 	rpp_init_mask(&ctx, mask);
 
-	status_init(NULL, 0);
+	status_init(&get_progress, 0);
 
 #if 0
 	rec_restore_mode(restore_state);
@@ -47,6 +79,12 @@ void do_mask_crack(struct db_main *db, char *mask)
 #endif
 
 	while ((word = rpp_next(&ctx))) {
+		if (options.node_count) {
+			int for_node = seq++ % options.node_count + 1;
+			if (for_node < options.node_min ||
+			    for_node > options.node_max)
+				continue;
+		}
 		if (ext_filter(word))
 			if (crk_process_key(word))
 				break;
