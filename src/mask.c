@@ -13,6 +13,7 @@
 
 #include "misc.h" /* for error() */
 #include "logger.h"
+#include "recovery.h"
 #include "os.h"
 #include "signals.h"
 #include "status.h"
@@ -23,10 +24,10 @@
 #include "john.h"
 #include "mask.h"
 
-static struct rpp_context ctx;
+static struct rpp_context ctx, rec_ctx;
 
 /* TODO: the fork/node/MPI splitting is very inefficient */
-static unsigned int seq;
+static unsigned int seq, rec_seq;
 
 static int get_progress(int *hundth_perc)
 {
@@ -63,6 +64,39 @@ static int get_progress(int *hundth_perc)
 	return percent;
 }
 
+static void save_state(FILE *file)
+{
+	int i;
+
+	fprintf(file, "%u\n", rec_seq);
+	fprintf(file, "%s\n", rec_ctx.output);
+	fprintf(file, "%d\n", rec_ctx.count);
+	for (i = 0; i < rec_ctx.count; i++)
+		fprintf(file, "%d\n", rec_ctx.ranges[i].index);
+}
+
+static int restore_state(FILE *file)
+{
+	int i;
+
+	if (fscanf(file, "%u\n", &seq) != 1)
+		return 1;
+	if (fscanf(file, "%s\n", ctx.output) != 1)
+		return 1;
+	if (fscanf(file, "%d\n", &ctx.count) != 1)
+		return 1;
+	for (i = 0; i < ctx.count; i++)
+		if (fscanf(file, "%d\n", &ctx.ranges[i].index) != 1)
+			return 1;
+	return 0;
+}
+
+static void fix_state(void)
+{
+	rec_seq = seq;
+	rec_ctx = ctx;
+}
+
 void do_mask_crack(struct db_main *db, char *mask)
 {
 	char *word;
@@ -73,7 +107,8 @@ void do_mask_crack(struct db_main *db, char *mask)
 
 	status_init(&get_progress, 0);
 
-#if 0
+#if 1
+	rpp_process_rule(&ctx);
 	rec_restore_mode(restore_state);
 	rec_init(db, save_state);
 
@@ -96,7 +131,7 @@ void do_mask_crack(struct db_main *db, char *mask)
 
 	crk_done();
 
-#if 0
+#if 1
 	rec_done(event_abort);
 #endif
 }

@@ -48,7 +48,7 @@ static void rpp_add_char(struct rpp_range *range, unsigned char c)
 	range->chars[range->count++] = (char)c;
 }
 
-static void rpp_process_rule(struct rpp_context *ctx)
+void rpp_process_rule(struct rpp_context *ctx)
 {
 	struct rpp_range *range;
 	unsigned char *input, *output, *end;

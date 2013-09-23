@@ -93,4 +93,9 @@ extern void rpp_init_mask(struct rpp_context *ctx, char *mask);
  */
 extern char *rpp_next(struct rpp_context *ctx);
 
+/*
+ * Used by mask.c for restore. Maybe there is a much simpler init possible?
+ */
+extern void rpp_process_rule(struct rpp_context *ctx);
+
 #endif
