@@ -42,10 +42,14 @@ static int get_progress(int *hundth_perc)
 		cand /= options.node_count;
 	}
 
-
 	try = ((unsigned long long)status.cands.hi << 32) + status.cands.lo;
 
-	if (!cand || !try)
+	if (!try) {
+		hundredXpercent = percent = 0;
+		return percent;
+	}
+
+	if (!cand)
 		return -1;
 
 	if (try > 1844674407370955LL) {
