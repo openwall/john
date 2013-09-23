@@ -124,6 +124,9 @@ static void rpp_process_rule(struct rpp_context *ctx)
 		case 's':
 			input = (unsigned char *)"[ -/:-@[-`{-~]";
 			break;
+		case 'h':
+			input = (unsigned char *)"[\x80-\xff]";
+			break;
 		case 'a':
 			input = (unsigned char *)"[ -~]";
 			break;
