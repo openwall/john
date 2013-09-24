@@ -1,4 +1,4 @@
-/* bitcon-qt (bitcoin) wallet cracker patch for JtR. Hacked together during
+/* bitcoin-qt (bitcoin) wallet cracker patch for JtR. Hacked together during
  * April of 2013 by Dhiru Kholia <dhiru at openwall dot com>.
  *
  * Also works for Litecoin-Qt (litecoin) wallet files!
