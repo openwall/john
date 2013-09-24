@@ -4,4 +4,4 @@ Fedora 19 cross-compiling instructions
 $ export GCC=/usr/bin/i686-w64-mingw32-gcc
 $ export GXX=/usr/bin/i686-w64-mingw32-g++
 
-$ make windows-mingw-x86-sse2
+$ make win32-mingw-x86-sse2
