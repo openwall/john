@@ -404,9 +404,6 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 			(file_len / options.node_count) *
 			(options.node_max - options.node_min + 1)
 			: file_len;
-		if (options.node_count >= 1000000000)
-			ourshare = 0;
-		if (options.node_count != 1000000000)
 		if (!(options.flags & FLG_EXTERNAL_CHK) && !mem_saving_level)
 		if ((options.node_count > 1 &&
 		     file_len > options.node_count * (length * 100) &&
