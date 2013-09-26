@@ -43,9 +43,8 @@ static int get_progress(int *hundth_perc)
 	while (ctx.ranges[i].count)
 		cand *= ctx.ranges[i++].count;
 
-	if (options.node_count) {
+	if (options.node_count)
 		cand /= options.node_count;
-	}
 
 	try = ((unsigned long long)status.cands.hi << 32) + status.cands.lo;
 
@@ -105,9 +104,6 @@ void do_mask_crack(struct db_main *db, char *mask)
 {
 	char *word;
 	int my_words, their_words;
-
-	my_words = options.node_max - options.node_min + 1;
-	their_words = options.node_min - 1;
 
 	log_event("Proceeding with mask mode");
 
