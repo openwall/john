@@ -33,21 +33,11 @@ static char int_word[PLAINTEXT_BUFFER_SIZE];
 static char rec_word[PLAINTEXT_BUFFER_SIZE];
 
 /*
- * Faster node distribution, avoiding modulo op.
- * Session file will be incompatible.
- */
-//#define NEW_DISTRIBUTION
-
-#ifdef NEW_DISTRIBUTION
-static int my_words, rec_my_words, their_words, rec_their_words;
-#else
-/*
  * A "sequence number" for distributing the candidate passwords across nodes.
  * It is OK if this number overflows once in a while, as long as this happens
  * in the same way for all nodes (must be same size unsigned integer type).
  */
 static unsigned int seq, rec_seq;
-#endif
 
 unsigned int ext_flags = 0;
 static char *ext_mode;
@@ -285,12 +275,7 @@ static void save_state(FILE *file)
 {
 	unsigned char *ptr;
 
-#ifdef NEW_DISTRIBUTION
-	fprintf(file, "%u\n", rec_my_words);
-	fprintf(file, "%u\n", rec_their_words);
-#else
 	fprintf(file, "%u\n", rec_seq);
-#endif
 	ptr = (unsigned char *)rec_word;
 	do {
 		fprintf(file, "%d\n", (int)*ptr);
@@ -304,15 +289,8 @@ static int restore_state(FILE *file)
 	c_int *external;
 	int count;
 
-#ifdef NEW_DISTRIBUTION
-	if (rec_version >= 4 && fscanf(file, "%u\n", &my_words) != 1)
-		return 1;
-	if (rec_version >= 4 && fscanf(file, "%u\n", &their_words) != 1)
-		return 1;
-#else
 	if (rec_version >= 4 && fscanf(file, "%u\n", &seq) != 1)
 		return 1;
-#endif
 
 	internal = (unsigned char *)int_word;
 	external = ext_word;
@@ -330,22 +308,14 @@ static int restore_state(FILE *file)
 static void fix_state(void)
 {
 	strcpy(rec_word, int_word);
-#ifdef NEW_DISTRIBUTION
-	rec_my_words = my_words;
-	rec_their_words = their_words;
-#else
 	rec_seq = seq;
-#endif
 }
 
 void do_external_crack(struct db_main *db)
 {
 	unsigned char *internal;
 	c_int *external;
-#ifdef NEW_DISTRIBUTION
-	my_words = options.node_max - options.node_min + 1;
-	their_words = options.node_min - 1;
-#endif
+	int my_words, their_words;
 
 	log_event("Proceeding with external mode: %.100s", ext_mode);
 
@@ -355,9 +325,7 @@ void do_external_crack(struct db_main *db)
 		*internal++ = *external++;
 	*internal = 0;
 
-#ifndef NEW_DISTRIBUTION
 	seq = 0;
-#endif
 
 	status_init(&get_progress, 0);
 
@@ -366,13 +334,29 @@ void do_external_crack(struct db_main *db)
 
 	crk_init(db, fix_state, NULL);
 
+	my_words = options.node_max - options.node_min + 1;
+	their_words = options.node_min - 1;
+
+	if (seq) {
+/* Restored session.  seq is right after a word we've actually used. */
+		int for_node = seq % options.node_count + 1;
+		if (for_node < options.node_min ||
+		        for_node > options.node_max) {
+/* We assume that seq is at the beginning of other nodes' block */
+			their_words = options.node_count - my_words;
+		} else {
+			my_words = options.node_max - for_node + 1;
+			their_words = 0;
+		}
+	}
+
 	do {
 		c_execute_fast(f_generate);
 		if (!ext_word[0])
 			break;
 
-#ifdef NEW_DISTRIBUTION
 		if (options.node_count) {
+			seq++;
 			if (their_words) {
 				their_words--;
 				continue;
@@ -383,18 +367,6 @@ void do_external_crack(struct db_main *db)
 				their_words = options.node_count - my_words;
 			}
 		}
-#else
-/*
- * The skipping of other nodes' candidate passwords can be optimized, such as
- * to avoid the modulo division like it's done for dist_words in wordlist.c.
- */
-		if (options.node_count) {
-			int for_node = seq++ % options.node_count + 1;
-			if (for_node < options.node_min ||
-			    for_node > options.node_max)
-				continue;
-		}
-#endif
 
 		if (f_filter) {
 			c_execute_fast(f_filter);
