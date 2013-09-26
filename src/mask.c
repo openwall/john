@@ -26,8 +26,12 @@
 
 static struct rpp_context ctx, rec_ctx;
 
-/* TODO: the fork/node/MPI splitting is inefficient */
-static int my_words, rec_my_words, their_words, rec_their_words;
+/*
+ * A "sequence number" for distributing the candidate passwords across nodes.
+ * It is OK if this number overflows once in a while, as long as this happens
+ * in the same way for all nodes (must be same size unsigned integer type).
+ */
+static unsigned int seq, rec_seq;
 
 static int get_progress(int *hundth_perc)
 {
@@ -68,8 +72,7 @@ static void save_state(FILE *file)
 {
 	int i;
 
-	fprintf(file, "%u\n", rec_my_words);
-	fprintf(file, "%u\n", rec_their_words);
+	fprintf(file, "%u\n", rec_seq);
 	fprintf(file, "%s\n", rec_ctx.output);
 	fprintf(file, "%d\n", rec_ctx.count);
 	for (i = 0; i < rec_ctx.count; i++)
@@ -80,9 +83,7 @@ static int restore_state(FILE *file)
 {
 	int i;
 
-	if (fscanf(file, "%u\n", &my_words) != 1)
-		return 1;
-	if (fscanf(file, "%u\n", &their_words) != 1)
+	if (fscanf(file, "%u\n", &seq) != 1)
 		return 1;
 	if (fscanf(file, "%s\n", ctx.output) != 1)
 		return 1;
@@ -96,14 +97,14 @@ static int restore_state(FILE *file)
 
 static void fix_state(void)
 {
-	rec_my_words = my_words;
-	rec_their_words = their_words;
+	rec_seq = seq;
 	rec_ctx = ctx;
 }
 
 void do_mask_crack(struct db_main *db, char *mask)
 {
 	char *word;
+	int my_words, their_words;
 
 	my_words = options.node_max - options.node_min + 1;
 	their_words = options.node_min - 1;
@@ -111,6 +112,8 @@ void do_mask_crack(struct db_main *db, char *mask)
 	log_event("Proceeding with mask mode");
 
 	rpp_init_mask(&ctx, mask);
+
+	seq = 0;
 
 	status_init(&get_progress, 0);
 
@@ -120,8 +123,25 @@ void do_mask_crack(struct db_main *db, char *mask)
 
 	crk_init(db, fix_state, NULL);
 
+	my_words = options.node_max - options.node_min + 1;
+	their_words = options.node_min - 1;
+
+	if (seq) {
+/* Restored session.  seq is right after a word we've actually used. */
+		int for_node = seq % options.node_count + 1;
+		if (for_node < options.node_min ||
+		        for_node > options.node_max) {
+/* We assume that seq is at the beginning of other nodes' block */
+			their_words = options.node_count - my_words;
+		} else {
+			my_words = options.node_max - for_node + 1;
+			their_words = 0;
+		}
+	}
+
 	while ((word = rpp_next(&ctx))) {
 		if (options.node_count) {
+			seq++;
 			if (their_words) {
 				their_words--;
 				continue;
