@@ -499,7 +499,7 @@ static int cmp_one (void *binary, int index)
 {
     int i;
 
-    for (i=1; i < 8; i++)
+    for (i = 0; i < 8; i++)
         if (((uint32_t *) binary)[i] != crypt_key[i][index])
             return 0;
 

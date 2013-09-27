@@ -344,7 +344,7 @@ static int cmp_one(void * binary, int index)
 	return 0;
 }
 
-static int cmp_exact(char *source, int count) {
+static int cmp_exact(char *source, int index) {
 	unsigned int *t = (unsigned int *) get_binary(source);
 
 	if (!have_full_hashes){
@@ -355,11 +355,13 @@ static int cmp_exact(char *source, int count) {
 		have_full_hashes = 1;
 	}
 
-	if (t[0]!=res_hashes[count])
+	if (t[0]!=res_hashes[index])
 		return 0;
-	if (t[2]!=res_hashes[1*global_work_size+count])
+	if (t[1]!=bbbs[index])
 		return 0;
-	if (t[3]!=res_hashes[2*global_work_size+count])
+	if (t[2]!=res_hashes[1*global_work_size+index])
+		return 0;
+	if (t[3]!=res_hashes[2*global_work_size+index])
 		return 0;
 	return 1;
 }

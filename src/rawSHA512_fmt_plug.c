@@ -312,7 +312,7 @@ static int cmp_one(void *binary, int index)
 {
 #ifdef MMX_COEF_SHA512
     int i;
-	for (i=1; i < BINARY_SIZE/sizeof(ARCH_WORD_64); i++)
+	for (i = 0; i < BINARY_SIZE/sizeof(ARCH_WORD_64); i++)
         if (((ARCH_WORD_64 *) binary)[i] != crypt_out[index>>(MMX_COEF_SHA512>>1)][(index&(MMX_COEF_SHA512-1))+i*MMX_COEF_SHA512])
             return 0;
 	return 1;

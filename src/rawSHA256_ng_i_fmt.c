@@ -377,7 +377,7 @@ static int cmp_one (void *binary, int index)
 {
     int i;
 
-    for (i=1; i < BINARY_SIZE/4; i++)
+    for (i = 0; i < BINARY_SIZE/4; i++)
         if (((uint32_t *) binary)[i] != crypt_key[index>>(MMX_COEF_SHA256>>1)][(index&(MMX_COEF_SHA256-1))+i*MMX_COEF_SHA256])
             return 0;
 

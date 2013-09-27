@@ -358,15 +358,6 @@ static char *fmt_self_test_body(struct fmt_main *format,
 			if (match != count)
 				return "crypt_all";
 		}
-
-/* change the next line to #if 0 to temp stop doing validity checks.
- * this should almost NEVER be done.  However, I have done it when
- * trying new code out in a format, and before it was totally working
- * just to check the speed of the changes, to determine if it was
- * good  enough to continue to fully implement, or if the changes
- * were not making any difference.
- */
-#if 1
 		for (size = 0; size < PASSWORD_HASH_SIZES; size++)
 		if (format->methods.binary_hash[size] &&
 		    format->methods.get_hash[size](index) !=
@@ -383,6 +374,30 @@ static char *fmt_self_test_body(struct fmt_main *format,
 			sprintf(s_size, "cmp_one(%d)", index);
 			return s_size;
 		}
+/*
+ * When bitmap is used, cmp_all() is never called, so cmp_one() or
+ * cmp_exact() MUST check the full hash - they can not rely on cmp_all()
+ * having been called.
+ *
+ * This test currently gives false positives, excluded here.
+ */
+		if (strcmp(format->params.label, "AFS"))
+		if (strcmp(format->params.label, "Raw-SHA1-Linkedin"))
+		if (strcmp(format->params.label, "Raw-SHA512-cuda"))
+		if (strcmp(format->params.label, "Raw-SHA512-opencl"))
+		if (strcmp(format->params.label, "xsha512-cuda"))
+		if (strcmp(format->params.label, "XSHA512-opencl"))
+		if (strcmp(format->params.label, "nt-opencl"))
+		if (format->params.binary_size > 4) {
+			void *tr_bin = mem_alloc(format->params.binary_size);
+			memcpy(tr_bin, binary, format->params.binary_size);
+			*(unsigned int*)tr_bin ^= 0x80000000;
+			if (format->methods.cmp_one(tr_bin, index)) {
+				sprintf(s_size, "cmp_one() assumes cmp_all()");
+				return s_size;
+			}
+			MEM_FREE(tr_bin);
+		}
 		if (!format->methods.cmp_exact(ciphertext, index)) {
 			sprintf(s_size, "cmp_exact(%d)", index);
 			return s_size;
@@ -392,7 +407,6 @@ static char *fmt_self_test_body(struct fmt_main *format,
 			sprintf(s_size, "get_key(%d)", index);
 			return s_size;
 		}
-#endif
 
 /* Remove some old keys to better test cmp_all() */
 		if (index & 1)

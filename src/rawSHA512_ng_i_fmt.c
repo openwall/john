@@ -394,7 +394,7 @@ static int cmp_one (void *binary, int index)
 {
     int i;
 
-    for (i=1; i < BINARY_SIZE/sizeof(ARCH_WORD_64); i++)
+    for (i = 0; i < BINARY_SIZE/sizeof(ARCH_WORD_64); i++)
         if (((uint64_t *) binary)[i] != crypt_key[index>>(MMX_COEF_SHA512>>1)][(index&(MMX_COEF_SHA512-1))+i*MMX_COEF_SHA512])
             return 0;
 

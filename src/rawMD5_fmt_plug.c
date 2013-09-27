@@ -292,7 +292,7 @@ static int cmp_one(void *binary, int index)
 {
 #ifdef MMX_COEF
     int i;
-	for (i=1; i < BINARY_SIZE/sizeof(ARCH_WORD_32); i++)
+	for (i = 0; i < BINARY_SIZE/sizeof(ARCH_WORD_32); i++)
         if (((ARCH_WORD_32 *) binary)[i] != ((ARCH_WORD_32*)crypt_key)[(index&(MMX_COEF-1)) + (index>>(MMX_COEF>>1))*4*MMX_COEF+i*MMX_COEF])
             return 0;
 	return 1;
