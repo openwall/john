@@ -51,6 +51,8 @@
 #define BINARY_ALIGN            1
 #define SALT_ALIGN              1
 
+#define HEXCHARS			"0123456789abcdef"
+
 #ifndef uint32_t
 #define uint32_t unsigned int
 #endif
@@ -89,7 +91,10 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!q)
 		return 0;
 	q = q + 1;
-	if (strlen(q) != BINARY_SIZE * 2)
+	if (strspn(q, HEXCHARS) != BINARY_SIZE * 2)
+		return 0;
+
+	if (strspn(p, HEXCHARS) > SALT_SIZE * 2)
 		return 0;
 
 	if ( (q - p) > SALT_SIZE * 2)

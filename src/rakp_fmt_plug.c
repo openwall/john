@@ -41,8 +41,12 @@ static int omp_t = 1;
 #define SALT_SIZE			sizeof(struct custom_salt)
 #define SALT_ALIGN			1
 
+#define SALT_MIN_SIZE                   56
+
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
+
+#define HEXCHARS			"0123456789abcdef"
 
 static struct fmt_tests tests[] = {
 	{"$rakp$a4a3a2a03f0b000094272eb1ba576450b0d98ad10727a9fb0ab83616e099e8bf5f7366c9c03d36a3000000000000000000000000000000001404726f6f74$0ea27d6d5effaa996e5edc855b944e179a2f2434", "calvin"},
@@ -91,10 +95,16 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!q)
 		return 0;
 	q = q + 1;
-	if (strlen(q) != BINARY_SIZE * 2)
+	if (strspn(q, HEXCHARS) != BINARY_SIZE * 2)
+		return 0;
+
+	if (strspn(p, HEXCHARS) > SALT_SIZE * 2)
 		return 0;
 
 	if ( (q - p) > SALT_SIZE * 2)
+		return 0;
+
+	if ( (q - p) < SALT_MIN_SIZE * 2)
 		return 0;
 
 	return 1;
