@@ -133,7 +133,6 @@ static unsigned char (*sse_crypt2);
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		MS_NUM_KEYS
 
-#define PLAIN_KEY_LEN			(3*PLAINTEXT_LENGTH+1)
 #define U16_KEY_LEN			(2*PLAINTEXT_LENGTH)
 #define HASH_LEN			(16+48)
 
@@ -154,7 +153,7 @@ static void init(struct fmt_main *self)
 	self->params.max_keys_per_crypt = omp_t * MS_NUM_KEYS;
 #endif
 
-	key = mem_calloc_tiny(sizeof(*key)*PLAIN_KEY_LEN*self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+	key = mem_calloc_tiny(sizeof(*key)*(PLAINTEXT_LENGTH + 1)*self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
 	md4hash = mem_calloc_tiny(sizeof(*md4hash)*HASH_LEN*self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out)*4*self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 #if defined (MMX_COEF)
@@ -177,7 +176,8 @@ static void init(struct fmt_main *self)
 
 	if (options.utf8) {
 		// UTF8 may be up to three bytes per character
-		self->params.plaintext_length = PLAIN_KEY_LEN - 1;
+		// but core max. is 125 anyway
+		//self->params.plaintext_length = MIN(125, 3*PLAINTEXT_LENGTH);
 		tests[1].plaintext = "\xc3\xbc";         // German u-umlaut in UTF-8
 		tests[1].ciphertext = "$DCC2$10240#joe#bdb80f2c4656a8b8591bd27d39064a54";
 		tests[2].plaintext = "\xe2\x82\xac\xe2\x82\xac"; // 2 x Euro signs
@@ -487,14 +487,14 @@ static int cmp_exact(char *source, int index)
 
 static void set_key(char *_key, int index)
 {
-	strnzcpy ((char*)&key[index*PLAIN_KEY_LEN], _key, PLAIN_KEY_LEN);
+	strnzcpy ((char*)&key[index*(PLAINTEXT_LENGTH + 1)], _key, (PLAINTEXT_LENGTH + 1));
 	new_key = 1;
 }
 
 
 static char *get_key(int index)
 {
-	return (char*)&key[index*PLAIN_KEY_LEN];
+	return (char*)&key[index*(PLAINTEXT_LENGTH + 1)];
 }
 
 
@@ -685,9 +685,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			int utf16len;
 			UTF16 pass_unicode[PLAINTEXT_LENGTH+1];
 			MD4_CTX ctx;
-			utf16len = enc_to_utf16(pass_unicode, PLAINTEXT_LENGTH, &key[PLAIN_KEY_LEN*i], strlen((char*)&key[PLAIN_KEY_LEN*i]));
+			utf16len = enc_to_utf16(pass_unicode, PLAINTEXT_LENGTH, &key[(PLAINTEXT_LENGTH + 1)*i], strlen((char*)&key[(PLAINTEXT_LENGTH + 1)*i]));
 			if (utf16len <= 0) {
-				key[PLAIN_KEY_LEN*i-utf16len] = 0;
+				key[(PLAINTEXT_LENGTH + 1)*i-utf16len] = 0;
 				if (utf16len != 0)
 					utf16len = strlen16(pass_unicode);
 			}
