@@ -739,7 +739,7 @@ struct fmt_main fmt_sapG = {
 #if !defined(MMX_COEF) || defined(SHA1_SSE_PARA)
 		FMT_OMP |
 #endif
-		FMT_CASE | FMT_8_BIT,
+		FMT_CASE | FMT_8_BIT | FMT_UTF8,
 		tests
 	}, {
 		init,
