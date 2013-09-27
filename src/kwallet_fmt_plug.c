@@ -120,7 +120,7 @@ static void *get_salt(char *ciphertext)
 static void password2hash(const char *password, unsigned char *hash, int *key_size)
 {
 	SHA_CTX ctx;
-	unsigned char output[20 * 4];
+	unsigned char output[20 * ((PLAINTEXT_LENGTH + 15) / 16)];
 	unsigned char buf[20];
 	int i, j, oindex = 0;
 	int plength = strlen(password);
