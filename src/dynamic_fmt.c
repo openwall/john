@@ -6690,6 +6690,8 @@ static int isLargeHashFinalFunc(DYNAMIC_primitive_funcp p) {
 	return 0;
 }
 
+// XXX fix me at some point!
+ATTRIBUTE_NO_ADDRESS_SAFETY_ANALYSIS
 int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 {
 	int i, j, cnt, cnt2, x;

@@ -196,4 +196,18 @@ extern char *strupr(char *s);
 #define atoll _atoi64
 #endif
 
+#ifndef __has_feature
+# define __has_feature(x) 0
+#endif
+
+#if /* is ASAN enabled? */ \
+    __has_feature(address_sanitizer) /* Clang */ || \
+    defined(__SANITIZE_ADDRESS__)  /* GCC 4.8.x */
+  #define ATTRIBUTE_NO_ADDRESS_SAFETY_ANALYSIS \
+        __attribute__((no_address_safety_analysis)) \
+        __attribute__((noinline))
+#else
+  #define ATTRIBUTE_NO_ADDRESS_SAFETY_ANALYSIS
+#endif
+
 #endif
