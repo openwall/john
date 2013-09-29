@@ -381,6 +381,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
  *
  * This test currently gives false positives, excluded here.
  */
+#if 0 /* This test did its job but should be replaced with something better */
 		if (strcmp(format->params.label, "AFS"))
 		if (strcmp(format->params.label, "Raw-SHA1-Linkedin"))
 		if (strcmp(format->params.label, "Raw-SHA512-cuda"))
@@ -398,6 +399,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 			}
 			MEM_FREE(tr_bin);
 		}
+#endif
 		if (!format->methods.cmp_exact(ciphertext, index)) {
 			sprintf(s_size, "cmp_exact(%d)", index);
 			return s_size;
