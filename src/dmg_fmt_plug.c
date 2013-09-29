@@ -470,7 +470,7 @@ static int hash_plugin_check_hash(const char *password)
 		unsigned char TEMP1[sizeof(cur_salt->wrapped_hmac_sha1_key)];
 		int outlen, tmplen;
 		AES_KEY aes_decrypt_key;
-		unsigned char outbuf[8192];
+		unsigned char outbuf[8192 + 1]; // XXX verify jtr_memmem function!
 		unsigned char iv[20];
 		HMAC_CTX hmacsha1_ctx;
 		int mdlen;
