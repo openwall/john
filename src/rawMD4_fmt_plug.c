@@ -373,7 +373,7 @@ struct fmt_main fmt_rawMD4 = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		0,
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_OMP_BAD,
 		tests
 	}, {
 		init,

@@ -519,17 +519,17 @@ static char *get_key(int index)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int count = *pcount;
 #if defined(MD4_SSE_PARA)
 #if (BLOCK_LOOPS > 1)
+	int count;
 	int i;
 
+	count = (*pcount + NBKEYS - 1) / NBKEYS;
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (i = 0; i < BLOCK_LOOPS; i++)
-		SSEmd4body(&saved_key[i*NBKEYS*64], (unsigned int*)&crypt_key[i*NBKEYS*DIGEST_SIZE],
-			NULL, SSEi_MIXED_IN);
+	for (i = 0; i < count; i++)
+		SSEmd4body(&saved_key[i*NBKEYS*64], (unsigned int*)&crypt_key[i*NBKEYS*DIGEST_SIZE], NULL, SSEi_MIXED_IN);
 #else
 	SSEmd4body(saved_key, (ARCH_WORD_32*)crypt_key, NULL, SSEi_MIXED_IN);
 #endif
@@ -542,7 +542,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	MD4_Final((unsigned char*) crypt_key, &ctx);
 //	dump_stuff_msg("crypt_key", crypt_key, 16);
 #endif
-	return count;
+	return *pcount;
 }
 
 static int cmp_all(void *binary, int count) {
@@ -701,7 +701,7 @@ struct fmt_main fmt_NT2 = {
 		MAX_KEYS_PER_CRYPT,
 		0,
 #if (BLOCK_LOOPS > 1) && defined(MD4_SSE_PARA)
-		FMT_OMP |
+		FMT_OMP | FMT_OMP_BAD |
 #endif
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE | FMT_UTF8,
 		tests
