@@ -117,7 +117,10 @@ static void *get_salt(char *ciphertext)
 	char *keeptr = ctcopy;
 	char *p;
 	int i;
-	ctcopy += 6;
+
+	if (!strncmp(ctcopy, FORMAT_TAG, TAG_LENGTH))
+		ctcopy += TAG_LENGTH;
+
 	p = strtok(ctcopy, "$");
 	cs.length = strlen(p) / 2;
 	for (i = 0; i < cs.length; i++) {

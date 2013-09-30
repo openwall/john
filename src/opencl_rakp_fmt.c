@@ -334,7 +334,9 @@ static void *salt(char *ciphertext)
 	char *p;
 	unsigned int i, len;
 
-	ctcopy += 6;
+	if (!strncmp(ctcopy, FORMAT_TAG, TAG_LENGTH))
+		ctcopy += TAG_LENGTH;
+
 	p = strtok(ctcopy, "$");
 	len = strlen(p) / 2;
 	for (i = 0; i < len; i++) {
