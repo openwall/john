@@ -314,7 +314,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 #ifdef SHA1_SSE_PARA
 		SSESHA1body(&ipad[index * SHA_BUF_SIZ * 4], dump, NULL, SSEi_MIXED_IN);
-		SSESHA1body(cur_salt[0], dump, dump, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
+		SSESHA1body(cur_salt[0], dump, dump, SSEi_MIXED_IN|SSEi_RELOAD);
 		SSESHA1body(cur_salt[1], (unsigned int*)&crypt_key[index * SHA_BUF_SIZ * 4], dump, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 
 		SSESHA1body(&opad[index * SHA_BUF_SIZ * 4], dump, NULL, SSEi_MIXED_IN);
