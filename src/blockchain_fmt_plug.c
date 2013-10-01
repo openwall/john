@@ -3,13 +3,12 @@
  *
  * See https://blockchain.info/wallet/wallet-format
  *
- * This software is Copyright (c) 2013, Dhiru Kholia <dhiru at openwall.com>
+ * This software is Copyright (c) 2013 Dhiru Kholia <dhiru at openwall.com>,
+ * and it is hereby released to the general public under the following terms:
  *
- * Permission to use, copy, modify, and distribute this software and its
- * documentation for any purpose and without fee is hereby granted,
- * provided that the above copyright notice appear in all copies and that
- * both that copyright notice and this permission notice appear in
- * supporting documentation. */
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ */
 
 #include <string.h>
 #include <errno.h>

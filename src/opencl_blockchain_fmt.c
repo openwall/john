@@ -3,18 +3,13 @@
  *
  * See https://blockchain.info/wallet/wallet-format
 
- * This software is Copyright (c) 2012 Lukas Odzioba <ukasz@openwall.net>
- * and it is hereby released to the general public under the following terms:
+ * This software is Copyright (c) 2012 Lukas Odzioba <ukasz at openwall.net>
+ * and Copyright (c) 2013 Dhiru Kholia <dhiru at openwall.com>, and it is
+ * hereby released to the general public under the following terms:
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
- *
- * This software is Copyright (c) 2013, Dhiru Kholia <dhiru at openwall.com>
- *
- * Permission to use, copy, modify, and distribute this software and its
- * documentation for any purpose and without fee is hereby granted,
- * provided that the above copyright notice appear in all copies and that
- * both that copyright notice and this permission notice appear in
- * supporting documentation. */
+ */
 
 #include <string.h>
 #include <openssl/aes.h>
