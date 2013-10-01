@@ -76,8 +76,8 @@ static struct fmt_tests tests[] = {
 #ifdef MMX_COEF
 #define cur_salt rakp_cur_salt
 static unsigned char *crypt_key;
-static unsigned char *opad;
-static unsigned char *ipad;
+static unsigned char *ipad, *prep_ipad;
+static unsigned char *opad, *prep_opad;
 ALIGN(16) unsigned char cur_salt[2][SHA_BUF_SIZ * 4 * SHA1_N];
 static int bufsize;
 #else
@@ -87,10 +87,13 @@ static struct {
 } cur_salt;
 
 static ARCH_WORD_32 (*crypt_key)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
-static unsigned char (*opad)[PAD_SIZE];
 static unsigned char (*ipad)[PAD_SIZE];
+static unsigned char (*opad)[PAD_SIZE];
+static SHA_CTX *ipad_ctx;
+static SHA_CTX *opad_ctx;
 #endif
 static char (*saved_plain)[PLAINTEXT_LENGTH + 1];
+static int new_keys;
 
 #define SALT_SIZE               sizeof(cur_salt)
 
@@ -117,8 +120,10 @@ static void init(struct fmt_main *self)
 #ifdef MMX_COEF
 	bufsize = sizeof(*opad) * self->params.max_keys_per_crypt * SHA_BUF_SIZ * 4;
 	crypt_key = mem_calloc_tiny(bufsize, MEM_ALIGN_SIMD);
-	opad = mem_calloc_tiny(bufsize, MEM_ALIGN_SIMD);
 	ipad = mem_calloc_tiny(bufsize, MEM_ALIGN_SIMD);
+	opad = mem_calloc_tiny(bufsize, MEM_ALIGN_SIMD);
+	prep_ipad = mem_calloc_tiny(sizeof(*prep_ipad) * self->params.max_keys_per_crypt * BINARY_SIZE, MEM_ALIGN_SIMD);
+	prep_opad = mem_calloc_tiny(sizeof(*prep_opad) * self->params.max_keys_per_crypt * BINARY_SIZE, MEM_ALIGN_SIMD);
 	for (i = 0; i < self->params.max_keys_per_crypt; ++i) {
 		crypt_key[GETPOS(BINARY_SIZE, i)] = 0x80;
 		((unsigned int*)crypt_key)[15 * MMX_COEF + (i & 3) + (i >> 2) * SHA_BUF_SIZ * MMX_COEF] = (BINARY_SIZE + 64) << 3;
@@ -128,6 +133,8 @@ static void init(struct fmt_main *self)
 	crypt_key = mem_calloc_tiny(sizeof(*crypt_key) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	opad = mem_calloc_tiny(sizeof(*opad) * self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
 	ipad = mem_calloc_tiny(sizeof(*ipad) * self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+	ipad_ctx = mem_calloc_tiny(sizeof(*opad_ctx) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	opad_ctx = mem_calloc_tiny(sizeof(*opad_ctx) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 #endif
 	saved_plain = mem_calloc_tiny(sizeof(*saved_plain) * self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
 }
@@ -246,6 +253,7 @@ static void set_key(char *key, int index)
 		opad[index][i] ^= key[i];
 	}
 #endif
+	new_keys = 1;
 }
 
 static char *get_key(int index)
@@ -310,36 +318,56 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	{
 #ifdef MMX_COEF
-		ALIGN(16) unsigned int dump[BINARY_SIZE * SHA1_N / sizeof(int)];
-
 #ifdef SHA1_SSE_PARA
-		SSESHA1body(&ipad[index * SHA_BUF_SIZ * 4], dump, NULL, SSEi_MIXED_IN);
-		SSESHA1body(cur_salt[0], dump, dump, SSEi_MIXED_IN|SSEi_RELOAD);
-		SSESHA1body(cur_salt[1], (unsigned int*)&crypt_key[index * SHA_BUF_SIZ * 4], dump, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
-
-		SSESHA1body(&opad[index * SHA_BUF_SIZ * 4], dump, NULL, SSEi_MIXED_IN);
-		SSESHA1body(&crypt_key[index * SHA_BUF_SIZ * 4], (unsigned int*)&crypt_key[index * SHA_BUF_SIZ * 4], dump, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
+		if (new_keys) {
+			SSESHA1body(&ipad[index * SHA_BUF_SIZ * 4],
+			            (unsigned int*)&prep_ipad[index * BINARY_SIZE],
+			            NULL, SSEi_MIXED_IN);
+			SSESHA1body(&opad[index * SHA_BUF_SIZ * 4],
+			            (unsigned int*)&prep_opad[index * BINARY_SIZE],
+			            NULL, SSEi_MIXED_IN);
+		}
+		SSESHA1body(cur_salt[0],
+		            (unsigned int*)&crypt_key[index * SHA_BUF_SIZ * 4],
+		            (unsigned int*)&prep_ipad[index * BINARY_SIZE],
+		            SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
+		SSESHA1body(cur_salt[1],
+		            (unsigned int*)&crypt_key[index * SHA_BUF_SIZ * 4],
+		            (unsigned int*)&crypt_key[index * SHA_BUF_SIZ * 4],
+		            SSEi_MIXED_IN|SSEi_RELOAD_INP_FMT|SSEi_OUTPUT_AS_INP_FMT);
+		SSESHA1body(&crypt_key[index * SHA_BUF_SIZ * 4],
+		            (unsigned int*)&crypt_key[index * SHA_BUF_SIZ * 4],
+		            (unsigned int*)&prep_opad[index * BINARY_SIZE],
+		            SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 #else
-		shammx_nosizeupdate_nofinalbyteswap(dump, ipad, 1);
-		shammx_reloadinit_nosizeupdate_nofinalbyteswap(dump, cur_salt[0], dump);
-		shammx_reloadinit_nosizeupdate_nofinalbyteswap(crypt_key, cur_salt[1], dump);
-		shammx_nosizeupdate_nofinalbyteswap(dump, opad, 1);
-		shammx_reloadinit_nosizeupdate_nofinalbyteswap(crypt_key, crypt_key, dump);
+		if (new_keys) {
+			shammx_nosizeupdate_nofinalbyteswap(prep_ipad, ipad, 1);
+			shammx_nosizeupdate_nofinalbyteswap(prep_opad, opad, 1);
+		}
+		shammx_reloadinit_nosizeupdate_nofinalbyteswap(crypt_key, cur_salt[0], prep_ipad);
+		shammx_reloadinit_nosizeupdate_nofinalbyteswap(crypt_key, cur_salt[1], crypt_key);
+		shammx_reloadinit_nosizeupdate_nofinalbyteswap(crypt_key, crypt_key, prep_opad);
 #endif
 #else
 		SHA_CTX ctx;
 
-		SHA1_Init(&ctx);
-		SHA1_Update(&ctx, ipad[index], PAD_SIZE);
+		if (new_keys) {
+			SHA1_Init(&ipad_ctx[index]);
+			SHA1_Update(&ipad_ctx[index], ipad[index], PAD_SIZE);
+			SHA1_Init(&opad_ctx[index]);
+			SHA1_Update(&opad_ctx[index], opad[index], PAD_SIZE);
+		}
+
+		memcpy(&ctx, &ipad_ctx[index], sizeof(ctx));
 		SHA1_Update(&ctx, cur_salt.salt, cur_salt.length);
 		SHA1_Final((unsigned char*) crypt_key[index], &ctx);
 
-		SHA1_Init(&ctx);
-		SHA1_Update(&ctx, opad[index], PAD_SIZE);
+		memcpy(&ctx, &opad_ctx[index], sizeof(ctx));
 		SHA1_Update(&ctx, crypt_key[index], BINARY_SIZE);
 		SHA1_Final((unsigned char*) crypt_key[index], &ctx);
 #endif
 	}
+	new_keys = 0;
 	return count;
 }
 
