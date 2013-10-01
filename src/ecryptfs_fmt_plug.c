@@ -113,17 +113,6 @@ static void *get_salt(char *ciphertext)
 	return (void *)&cs;
 }
 
-#ifdef DEBUG
-/* critical function, don't remove ;) */
-static void print_hex(unsigned char *str, int len)
-{
-	int i;
-	for (i = 0; i < len; ++i)
-		printf("%02x", str[i]);
-	printf("\n");
-}
-#endif
-
 static void *get_binary(char *ciphertext)
 {
 	static union {
