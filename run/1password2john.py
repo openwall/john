@@ -1,7 +1,11 @@
 #!/usr/bin/env python
 
-# Modfied by Dhiru Kholia <dhiru at openwall.com> in July 2012
-# for JtR project.
+# Written by Dhiru Kholia <dhiru at openwall.com> in July 2012 for JtR project.
+# Copyright (c) 2012-2013, Dhiru Kholia.
+#
+# Permission to use, copy, modify, and/or distribute this software for any
+# purpose with or without fee is hereby granted, provided that the above
+# copyright notice and this permission notice appear in all copies.
 #
 # Code borrowed from https://github.com/Roguelazer/onepasswordpy
 #
