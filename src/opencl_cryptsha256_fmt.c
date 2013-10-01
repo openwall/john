@@ -40,7 +40,7 @@ static cl_mem hash_buffer;		//Hash keys (output).
 static cl_mem work_buffer;		//Temporary buffer
 static cl_mem pinned_saved_keys, pinned_partial_hashes;
 
-static cl_kernel prepare_kernel[MAXGPUS], main_kernel[MAXGPUS], final_kernel[MAXGPUS];
+static cl_kernel prepare_kernel, final_kernel;
 
 static int new_keys, source_in_use;
 static int split_events[3] = { 1, 4, 5 };
@@ -76,13 +76,13 @@ static size_t get_task_max_work_group_size(){
 
 	return common_get_task_max_work_group_size(_USE_LOCAL_SOURCE,
 		(sizeof(sha256_ctx) + sizeof(sha256_buffers) + 1),
-		main_kernel[ocl_gpu_id]);
+		crypt_kernel);
 }
 
 static size_t get_task_max_size(){
 
 	return common_get_task_max_size((amd_gcn(device_info[ocl_gpu_id]) ? 10 : 4),
-		KEYS_PER_CORE_CPU, KEYS_PER_CORE_GPU, main_kernel[ocl_gpu_id]);
+		KEYS_PER_CORE_CPU, KEYS_PER_CORE_GPU, crypt_kernel);
 }
 
 static size_t get_default_workgroup(){
@@ -135,59 +135,59 @@ static void create_clobj(int gws, struct fmt_main * self) {
 	HANDLE_CLERROR(ret_code, "Error creating buffer argument work_area");
 
 	//Set kernel arguments
-	HANDLE_CLERROR(clSetKernelArg(main_kernel[ocl_gpu_id], 0, sizeof(cl_mem),
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(cl_mem),
 			(void *) &salt_buffer), "Error setting argument 0");
-	HANDLE_CLERROR(clSetKernelArg(main_kernel[ocl_gpu_id], 1, sizeof(cl_mem),
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(cl_mem),
 			(void *) &pass_buffer), "Error setting argument 1");
-	HANDLE_CLERROR(clSetKernelArg(main_kernel[ocl_gpu_id], 2, sizeof(cl_mem),
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(cl_mem),
 			(void *) &hash_buffer), "Error setting argument 2");
 
 	if (_SPLIT_KERNEL_IN_USE) {
 		//Set prepare kernel arguments
-		HANDLE_CLERROR(clSetKernelArg(prepare_kernel[ocl_gpu_id], 0, sizeof(cl_mem),
+		HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 0, sizeof(cl_mem),
 			(void *) &salt_buffer), "Error setting argument 0");
-		HANDLE_CLERROR(clSetKernelArg(prepare_kernel[ocl_gpu_id], 1, sizeof(cl_mem),
+		HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 1, sizeof(cl_mem),
 			(void *) &pass_buffer), "Error setting argument 1");
-		HANDLE_CLERROR(clSetKernelArg(prepare_kernel[ocl_gpu_id], 2, sizeof(cl_mem),
+		HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 2, sizeof(cl_mem),
 			(void *) &work_buffer), "Error setting argument 2");
 
 		if (_USE_LOCAL_SOURCE) {
-			HANDLE_CLERROR(clSetKernelArg(prepare_kernel[ocl_gpu_id], 3,
+			HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 3,
 				sizeof(sha256_buffers) * local_work_size,
 				NULL), "Error setting argument 3");
-			HANDLE_CLERROR(clSetKernelArg(prepare_kernel[ocl_gpu_id], 4,
+			HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 4,
 				sizeof(sha256_ctx) * local_work_size,
 				NULL), "Error setting argument 4");
 		}
 		//Set crypt kernel arguments
-		HANDLE_CLERROR(clSetKernelArg(main_kernel[ocl_gpu_id], 3, sizeof(cl_mem),
+		HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(cl_mem),
 			(void *) &work_buffer), "Error setting argument crypt_kernel (3)");
 
 		if (_USE_LOCAL_SOURCE) {
 			//Fast working memory.
-			HANDLE_CLERROR(clSetKernelArg(main_kernel[ocl_gpu_id], 4,
+			HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 4,
 				sizeof(sha256_buffers) * local_work_size,
 				NULL), "Error setting argument 4");
-			HANDLE_CLERROR(clSetKernelArg(main_kernel[ocl_gpu_id], 5,
+			HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 5,
 				sizeof(sha256_ctx) * local_work_size,
 				NULL), "Error setting argument 5");
 		}
 		//Set final kernel arguments
-		HANDLE_CLERROR(clSetKernelArg(final_kernel[ocl_gpu_id], 0, sizeof(cl_mem),
+		HANDLE_CLERROR(clSetKernelArg(final_kernel, 0, sizeof(cl_mem),
 				(void *) &salt_buffer), "Error setting argument 0");
-		HANDLE_CLERROR(clSetKernelArg(final_kernel[ocl_gpu_id], 1, sizeof(cl_mem),
+		HANDLE_CLERROR(clSetKernelArg(final_kernel, 1, sizeof(cl_mem),
 				(void *) &pass_buffer), "Error setting argument 1");
-		HANDLE_CLERROR(clSetKernelArg(final_kernel[ocl_gpu_id], 2, sizeof(cl_mem),
+		HANDLE_CLERROR(clSetKernelArg(final_kernel, 2, sizeof(cl_mem),
 				(void *) &hash_buffer), "Error setting argument 2");
-		HANDLE_CLERROR(clSetKernelArg(final_kernel[ocl_gpu_id], 3, sizeof(cl_mem),
+		HANDLE_CLERROR(clSetKernelArg(final_kernel, 3, sizeof(cl_mem),
 			(void *) &work_buffer), "Error setting argument crypt_kernel (3)");
 
 		if (_USE_LOCAL_SOURCE) {
 			//Fast working memory.
-			HANDLE_CLERROR(clSetKernelArg(final_kernel[ocl_gpu_id], 4,
+			HANDLE_CLERROR(clSetKernelArg(final_kernel, 4,
 				sizeof(sha256_buffers) * local_work_size,
 				NULL), "Error setting argument 4");
-			HANDLE_CLERROR(clSetKernelArg(final_kernel[ocl_gpu_id], 5,
+			HANDLE_CLERROR(clSetKernelArg(final_kernel, 5,
 				sizeof(sha256_ctx) * local_work_size,
 				NULL), "Error setting argument 5");
 		}
@@ -310,7 +310,7 @@ static void find_best_lws(struct fmt_main * self, int sequential_id) {
 
 	//Call the default function.
 	common_find_best_lws(
-		get_task_max_work_group_size(), sequential_id, main_kernel[sequential_id]
+		get_task_max_work_group_size(), sequential_id, crypt_kernel
 	);
 }
 
@@ -330,47 +330,39 @@ static void find_best_gws(struct fmt_main * self, int sequential_id) {
 }
 
 /* ------- Initialization  ------- */
-static void build_kernel(char * task, int sequential_id) {
+static void build_kernel(char * task) {
 
-	opencl_build_kernel(task, sequential_id, NULL, 1);
+	opencl_build_kernel(task, ocl_gpu_id, NULL, 1);
 
 	// create kernel(s) to execute
-	main_kernel[sequential_id] = clCreateKernel(program[sequential_id], "kernel_crypt", &ret_code);
+	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "kernel_crypt", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 
 	if (_SPLIT_KERNEL_IN_USE) {
-		prepare_kernel[sequential_id] = clCreateKernel(program[sequential_id], "kernel_prepare", &ret_code);
+		prepare_kernel = clCreateKernel(program[ocl_gpu_id], "kernel_prepare", &ret_code);
 		HANDLE_CLERROR(ret_code, "Error creating kernel_prepare. Double-check kernel name?");
-		final_kernel[sequential_id] = clCreateKernel(program[sequential_id], "kernel_final", &ret_code);
+		final_kernel = clCreateKernel(program[ocl_gpu_id], "kernel_final", &ret_code);
 		HANDLE_CLERROR(ret_code, "Error creating kernel_final. Double-check kernel name?");
 	}
 }
 
 static void init(struct fmt_main * self) {
-	int i;
 	char * tmp_value;
-	char * task = NULL;
+	char * task = "$JOHN/kernels/cryptsha256_kernel_DEFAULT.cl";
 
-	//Prepare OpenCL environment.
-	opencl_preinit();
-
-	for (i = 0; i < opencl_get_devices(); i++) {
-		task = "$JOHN/kernels/cryptsha256_kernel_DEFAULT.cl";
-		opencl_prepare_dev(ocl_device_list[i]);
-		source_in_use = device_info[ocl_device_list[i]];
-
-		if ((tmp_value = getenv("_TYPE")))
-			source_in_use = atoi(tmp_value);
-
-		if (_USE_LOCAL_SOURCE)
-			task = "$JOHN/kernels/cryptsha256_kernel_LOCAL.cl";
-
-		else if (_USE_GPU_SOURCE)
-			task = "$JOHN/kernels/cryptsha256_kernel_GPU.cl";
-
-		build_kernel(task, ocl_device_list[i]);
-	}
+	opencl_prepare_dev(ocl_gpu_id);
 	source_in_use = device_info[ocl_gpu_id];
+
+	if ((tmp_value = getenv("_TYPE")))
+		source_in_use = atoi(tmp_value);
+
+	if (_USE_LOCAL_SOURCE)
+		task = "$JOHN/kernels/cryptsha256_kernel_LOCAL.cl";
+
+	else if (_USE_GPU_SOURCE)
+		task = "$JOHN/kernels/cryptsha256_kernel_GPU.cl";
+
+	build_kernel(task);
 
 	/* Read LWS/GWS prefs from config or environment */
 	opencl_get_user_preferences(OCL_CONFIG);
@@ -424,11 +416,11 @@ static void init(struct fmt_main * self) {
 static void done(void) {
 	release_clobj();
 
-	HANDLE_CLERROR(clReleaseKernel(main_kernel[ocl_gpu_id]), "Release kernel");
+	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
 
 	if (_SPLIT_KERNEL_IN_USE) {
-		HANDLE_CLERROR(clReleaseKernel(prepare_kernel[ocl_gpu_id]), "Release kernel");
-		HANDLE_CLERROR(clReleaseKernel(final_kernel[ocl_gpu_id]), "Release kernel");
+		HANDLE_CLERROR(clReleaseKernel(prepare_kernel), "Release kernel");
+		HANDLE_CLERROR(clReleaseKernel(final_kernel), "Release kernel");
 	}
 	HANDLE_CLERROR(clReleaseProgram(program[ocl_gpu_id]), "Release Program");
 }
@@ -469,21 +461,21 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *_salt)
 
 	//Enqueue the kernel
 	if (_SPLIT_KERNEL_IN_USE) {
-		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], prepare_kernel[ocl_gpu_id], 1, NULL,
+		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], prepare_kernel, 1, NULL,
 			&gws, &local_work_size, 0, NULL, &multi_profilingEvent[3]),
 			"failed in clEnqueueNDRangeKernel I");
 
 		for (i = 0; i < 3; i++) {
-			BENCH_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], main_kernel[ocl_gpu_id], 1, NULL,
+			BENCH_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL,
 				&gws, &local_work_size, 0, NULL,
 				&multi_profilingEvent[split_events[i]]),  //1 ,4 ,5
 				"failed in clEnqueueNDRangeKernel");
 		}
-		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], final_kernel[ocl_gpu_id], 1, NULL,
+		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], final_kernel, 1, NULL,
 			&gws, &local_work_size, 0, NULL, &multi_profilingEvent[6]),
 			"failed in clEnqueueNDRangeKernel II");
 	} else
-		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], main_kernel[ocl_gpu_id], 1, NULL,
+		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL,
 			&gws, &local_work_size, 0, NULL, &multi_profilingEvent[1]),
 			"failed in clEnqueueNDRangeKernel");
 
@@ -514,22 +506,22 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 
 	//Enqueue the kernel
 	if (_SPLIT_KERNEL_IN_USE) {
-		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], prepare_kernel[ocl_gpu_id], 1, NULL,
+		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], prepare_kernel, 1, NULL,
 			&gws, &local_work_size, 0, NULL, NULL),
 			"failed in clEnqueueNDRangeKernel I");
 
 		for (i = 0; i < (salt->rounds / HASH_LOOPS); i++) {
-			HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], main_kernel[ocl_gpu_id], 1, NULL,
+			HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL,
 				&gws, &local_work_size, 0, NULL, NULL),
 				"failed in clEnqueueNDRangeKernel");
 			HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "Error running loop kernel");
 			opencl_process_event();
 		}
-		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], final_kernel[ocl_gpu_id], 1, NULL,
+		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], final_kernel, 1, NULL,
 			&gws, &local_work_size, 0, NULL, NULL),
 			"failed in clEnqueueNDRangeKernel II");
 	} else
-		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], main_kernel[ocl_gpu_id], 1, NULL,
+		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL,
 			&gws, &local_work_size, 0, NULL, NULL),
 			"failed in clEnqueueNDRangeKernel");
 
