@@ -1,17 +1,11 @@
 /* 7-Zip cracker patch for JtR. Hacked together during June of 2013 by Dhiru
  * Kholia <dhiru at openwall.com>. Unicode support and other fixes by magnum.
  *
- * This software is Copyright (c) 2013, Dhiru Kholia <dhiru at openwall.com>
+ * This software is Copyright (c) 2013 Dhiru Kholia <dhiru at openwall.com>
+ * and Copyright (c) 2013 magnum, and it is hereby released to the general
+ * public under the following terms:
  *
- * Permission to use, copy, modify, and distribute this software and its
- * documentation for any purpose and without fee is hereby granted,
- * provided that the above copyright notice appear in all copies and that
- * both that copyright notice and this permission notice appear in
- * supporting documentation.
- *
- * Copyright (c) 2013, magnum.
- * This software is hereby released to the general public under the following
- * terms:  Redistribution and use in source and binary forms, with or without
+ * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
  */
 
