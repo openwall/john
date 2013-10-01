@@ -122,9 +122,7 @@ void dump_stuff_be(void *x, unsigned int size);
 void dump_stuff_be_msg(void *msg, void *x, unsigned int size);
 void dump_stuff_be_noeol(void *x, unsigned int size);
 void dump_stuff_be_msg_sepline(void *msg, void *x, unsigned int size);
-#if ARCH_ALLOWS_UNALIGNED
-void alter_endianity(void * x, unsigned int size);
-#endif
+
 #if defined (MMX_COEF) || defined(NT_X86_64) || defined (MD5_SSE_PARA) || defined (MD4_SSE_PARA) || defined (SHA1_SSE_PARA)
 void dump_stuff_mmx(void *x, unsigned int size, unsigned int index);
 void dump_stuff_mmx_noeol(void *x, unsigned int size, unsigned int index);
@@ -154,8 +152,16 @@ void dump_stuff_mpara_mmx_msg_sepline(void *msg, void *buf, unsigned int size, u
 void getbuf_stuff_mpara_mmx(unsigned char *oBuf, void *buf, unsigned int size, unsigned int index);
 #endif
 
+/*
+ * 32-bit endian-swap a memory buffer in place. Size is in octets (so should
+ * be a multiple of 4). From now on, this function may be used on any arch.
+ */
+void alter_endianity(void * x, unsigned int size);
 
+/* 32-bit endian-swap a memory buffer in place. Count is in 32-bit words */
 void alter_endianity_w(void *x, unsigned int count);
+
+/* 64-bit endian-swap a memory buffer in place. Count is in 64-bit words */
 void alter_endianity_w64(void *x, unsigned int count);
 
 #if ARCH_ALLOWS_UNALIGNED

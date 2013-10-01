@@ -206,20 +206,36 @@ void dump_stuff_be_msg_sepline(void *msg, void *x, unsigned int size) {
 	dump_stuff_be(x, size);
 }
 
-#if ARCH_ALLOWS_UNALIGNED
-void alter_endianity(void * _x, unsigned int size)
-{
-	// size is in BYTES
-	// since we are only using this in MMX code, we KNOW that we are using x86 CPU's which do not have problems
-	// with non aligned 4 byte word access.  Thus, we use a faster swapping function.
+void alter_endianity(void *_x, unsigned int size) {
 	ARCH_WORD_32 *x = (ARCH_WORD_32*)_x;
-	int i = -1;
+
+	// size is in octets
 	size>>=2;
-	while (++i < size) {
-		x[i] = JOHNSWAP(x[i]);
-	}
-}
+
+#if !ARCH_ALLOWS_UNALIGNED
+	if (is_aligned(x, sizeof(ARCH_WORD_32))) {
 #endif
+		while (size--) {
+			*x = JOHNSWAP(*x);
+			x++;
+		}
+#if !ARCH_ALLOWS_UNALIGNED
+	} else {
+		unsigned char *cpX, c;
+
+		cpX = (unsigned char*)x;
+		while (size--) {
+			c = *cpX;
+			*cpX = cpX[3];
+			cpX[3] = c;
+			c = cpX[1];
+			cpX[1] = cpX[2];
+			cpX[2] = c;
+			cpX += 4;
+		}
+	}
+#endif
+}
 
 #if defined(MMX_COEF) || defined(NT_X86_64) || defined (MD5_SSE_PARA) || defined (MD4_SSE_PARA) || defined (SHA1_SSE_PARA)
 #ifndef MMX_COEF
