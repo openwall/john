@@ -1,16 +1,16 @@
 /* 1Password Agile Keychain cracker patch for JtR. Hacked together during
  * July of 2012 by Dhiru Kholia <dhiru.kholia at gmail.com>.
  *
- * This software is Copyright (c) 2012, Dhiru Kholia <dhiru.kholia at gmail.com>
- * and is based on agilekeychain (https://bitbucket.org/gwik/agilekeychain)
-
- * Copyright (c) 2009 Antonin Amand <antonin.amand@gmail.com>
+ * This software is Copyright (c) 2012, Dhiru Kholia <dhiru.kholia at gmail.com>,
+ * and it is hereby released to the general public under the following terms:
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
  *
- * Permission to use, copy, modify, and distribute this software and its
- * documentation for any purpose and without fee is hereby granted,
- * provided that the above copyright notice appear in all copies and that
- * both that copyright notice and this permission notice appear in
- * supporting documentation. */
+ * This software is based on "agilekeychain" project but no actual code is
+ * borrowed from it.
+ *
+ * "agilekeychain" project is at https://bitbucket.org/gwik/agilekeychain
+ */
 
 #include <string.h>
 #include <errno.h>
