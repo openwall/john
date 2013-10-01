@@ -288,7 +288,7 @@ static void john_register_one(struct fmt_main *format)
 			if (!strstr(format->params.label, "-opencl")) return;
 		}
 		else if (!strcasecmp(options.format, "cuda")) {
-			if (!strstr(format->params.label, "cuda")) return;
+			if (!strstr(format->params.label, "-cuda")) return;
 		}
 		else if (strcasecmp(options.format, format->params.label)) return;
 	}
@@ -522,8 +522,9 @@ static void john_omp_show_info(void)
 #ifdef HAVE_MPI
 	if (mpi_p == 1)
 #endif
-	if (!strstr(database.format->params.label, "-opencl") &&
-	    !strstr(database.format->params.label, "-cuda"))
+	if (database.format && database.format->params.label &&
+	        (!strstr(database.format->params.label, "-opencl") &&
+	         !strstr(database.format->params.label, "-cuda")))
 	if (!options.fork && john_omp_threads_orig > 1 &&
 	    database.format && database.format != &dummy_format &&
 	    !rec_restoring_now) {
