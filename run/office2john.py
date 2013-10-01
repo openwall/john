@@ -1,5 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: latin-1 -*-
+
+# This software is Copyright (c) 2012-2013 Dhiru Kholia <dhiru at openwall.com>
+# and is licensed under the same license as used by the OleFileIO_PL library,
+# which is included below.
+
 """
 OleFileIO_PL:
     Module to read Microsoft OLE2 files (also called Structured Storage or
@@ -1506,15 +1511,22 @@ class OleFileIO:
         return data
 
 
-# library ends, program starts
-# Author: Worawit (sleepya), http://auntitled.blogspot.in
-# http://msdn.microsoft.com/en-us/library/dd908560%28v=office.12%29
-# http://msdn.microsoft.com/en-us/library/dd920360%28v=office.12%29
+##### library ends, program starts #####
 
 from struct import unpack
 import binascii
 
 def find_rc4_passinfo_xls(filename, stream):
+    """
+    Initial version of this function was based on a blog entry posted by
+    Worawit (sleepya) at http://auntitled.blogspot.in site.
+
+    Since then this function has been heavily modified and extended.
+
+    http://msdn.microsoft.com/en-us/library/dd908560%28v=office.12%29
+    http://msdn.microsoft.com/en-us/library/dd920360%28v=office.12%29
+    """
+
     while True:
         pos = stream.tell()
         if pos >= stream.size:
