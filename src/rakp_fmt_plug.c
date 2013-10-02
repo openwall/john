@@ -46,8 +46,8 @@
 #define BINARY_ALIGN            sizeof(ARCH_WORD_32)
 #define SALT_LENGTH             (2 * PAD_SIZE)
 #define SALT_ALIGN              MEM_ALIGN_NONE
-#define SALT_MIN_SIZE           56
-#define CIPHERTEXT_LENGTH       (2 * SALT_LENGTH + 2 * BINARY_SIZE)
+#define SALT_MIN_SIZE           (PAD_SIZE - 8)
+#define SALT_MAX_SIZE           (2 * PAD_SIZE - 8 - 1)
 
 #define FORMAT_TAG              "$rakp$"
 #define TAG_LENGTH              (sizeof(FORMAT_TAG) - 1)
@@ -147,22 +147,20 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!strncmp(p, FORMAT_TAG, TAG_LENGTH))
 		p += TAG_LENGTH;
 
-	if (strlen(p) > CIPHERTEXT_LENGTH)
-		return 0;
 	q = strrchr(ciphertext, '$');
 	if (!q)
 		return 0;
 	q = q + 1;
+	if ((q - p - 1) > SALT_MAX_SIZE * 2)
+		return 0;
+
+	if ((q - p - 1) < SALT_MIN_SIZE * 2)
+		return 0;
+
 	if (strspn(q, HEXCHARS) != BINARY_SIZE * 2)
 		return 0;
 
-	if (strspn(p, HEXCHARS) > SALT_LENGTH * 2)
-		return 0;
-
-	if ((q - p) > SALT_LENGTH * 2)
-		return 0;
-
-	if ((q - p) < SALT_MIN_SIZE * 2)
+	if (strspn(p, HEXCHARS) > SALT_MAX_SIZE * 2)
 		return 0;
 
 	return 1;

@@ -267,7 +267,7 @@ void rakp_kernel(
 	for (i = 5; i < 15; i++)
 		W[i] = 0;
 	PUTCHAR_BE(W, 20, 0x80);
-	W[15] = 672;
+	W[15] = 672; // (64 + 20) * 8
 	sha1_block(W, stage2);
 
 	for (i = 0; i < 5; i++)

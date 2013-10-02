@@ -37,7 +37,7 @@
 #define SALT_SIZE               (SALT_STORAGE_SIZE - 9)
 #define SALT_MIN_SIZE           (SALT_SIZE - BLOCK_SIZE + 1)
 
-#define PLAINTEXT_LENGTH        (PAD_SIZE - 1)
+#define PLAINTEXT_LENGTH        (PAD_SIZE - 1) /* idx & 63 */
 
 #define DIGEST_SIZE             20
 #define BINARY_SIZE             DIGEST_SIZE
@@ -51,7 +51,7 @@
 #define BINARY_ALIGN            1
 #define SALT_ALIGN              1
 
-#define HEXCHARS			"0123456789abcdef"
+#define HEXCHARS                "0123456789abcdef"
 
 #ifndef uint32_t
 #define uint32_t unsigned int
@@ -91,16 +91,16 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!q)
 		return 0;
 	q = q + 1;
+	if ((q - p - 1) > SALT_SIZE * 2)
+		return 0;
+
+	if ((q - p - 1) < SALT_MIN_SIZE * 2)
+		return 0;
+
 	if (strspn(q, HEXCHARS) != BINARY_SIZE * 2)
 		return 0;
 
 	if (strspn(p, HEXCHARS) > SALT_SIZE * 2)
-		return 0;
-
-	if ( (q - p) > SALT_SIZE * 2)
-		return 0;
-
-	if ( (q - p) < SALT_MIN_SIZE * 2)
 		return 0;
 
 	return 1;
