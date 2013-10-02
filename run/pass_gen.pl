@@ -55,7 +55,7 @@ use MIME::Base64;
 # lotus5 is done in some custom C code.  If someone wants to take a crack at it here, be my guest :)
 #############################################################################
 my @funcs = (qw(DES BigCrypt BSDI MD5_1 MD5_a BF BFx BFegg RawMD5 RawMD5u
-		RawSHA1 RawSHA1u msCash LM NT pwdump RawMD4 PHPass PO hmacMD5
+		RawSHA1 RawSHA1u msCash LM NT pwdump RawMD4 PHPass PO hmac_MD5
 		IPB2 PHPS MD4p MD4s SHA1p SHA1s mysqlSHA1 pixMD5 MSSql05 MSSql12 nsldap
 		nsldaps ns XSHA mskrb5 mysql mssql_no_upcase_change mssql oracle
 		oracle_no_upcase_change oracle11 hdaa netntlm_ess openssha
@@ -1075,6 +1075,9 @@ sub binToHex {
 sub _hmacmd5 {
 	my ($key, $data) = @_;
 	my $ipad; my $opad;
+	if (length($key) > 64) {
+	    $key = md5($key);
+	}
 	for ($i = 0; $i < length($key); ++$i) {
 		$ipad .= chr(ord(substr($key, $i, 1)) ^ 0x36);
 		$opad .= chr(ord(substr($key, $i, 1)) ^ 0x5C);
@@ -1085,7 +1088,7 @@ sub _hmacmd5 {
 	}
 	return md5($opad,md5($ipad,$data));
 }
-sub hmacmd5 {
+sub hmac_md5 {
 	# now uses _hmacmd5 instead of being done inline.
 	$salt = randstr(32);
 	my $bin = _hmacmd5($_[0], $salt);
@@ -1094,6 +1097,9 @@ sub hmacmd5 {
 sub _hmac_shas {
 	my ($func, $pad_sz, $key, $data) = @_;
 	my $ipad; my $opad;
+	if (length($key) > $pad_sz) {
+	    $key = $func->($key);
+	}
 	for ($i = 0; $i < length($key); ++$i) {
 		$ipad .= chr(ord(substr($key, $i, 1)) ^ 0x36);
 		$opad .= chr(ord(substr($key, $i, 1)) ^ 0x5C);
