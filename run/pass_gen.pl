@@ -66,7 +66,8 @@ my @funcs = (qw(DES BigCrypt BSDI MD5_1 MD5_a BF BFx BFegg RawMD5 RawMD5u
 		sha256crypt sha512crypt XSHA512  dynamic_27 dynamic_28 pwsafe django
 		drupal7 epi episerver_sha1 episerver_sha256 hmailserver ike keepass
 		keychain nukedclan pfx racf radmin rawsha0 sip SybaseASE vnc wbb3 wpapsk
-		sunmd5 wow_srp scrypt aix_ssha1 aix_ssha256 aix_ssha512 pbkdf2_hmac_sha512));
+		sunmd5 wow_srp scrypt aix_ssha1 aix_ssha256 aix_ssha512 pbkdf2_hmac_sha512
+		rakp));
 
 # todo: ike keychain pfx racf sip vnc wpapsk
 
@@ -1127,6 +1128,12 @@ sub hmac_sha512 {
 	$salt = randstr(32);
 	my $bin = _hmac_shas(\&sha512, 128, $_[0], $salt);
 	print "u$u-hmacSHA512:$salt#", binToHex($bin), ":$u:0:$_[0]::\n";
+}
+sub rakp {
+	my $user = randstr(rand(63) + 1);
+	$salt = randbytes(56) . $user;
+	my $bin = _hmac_shas(\&sha1, 64, $_[0], $salt);
+	print "$user:", binToHex($salt), "\$", binToHex($bin), ":$u:0:$_[0]::\n";
 }
 sub _sha_crypts {
 	my $a; my $b, my $c, my $tmp; my $i; my $ds; my $dp; my $p; my $s;
