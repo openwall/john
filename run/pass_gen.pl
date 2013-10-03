@@ -27,43 +27,46 @@ use MIME::Base64;
 #
 # Here is how to add a new hash subroutine to this script file:
 #
-# 1.	add a new element to the @funcs array.  The case of this string does
-#	not matter.  The only time it is shown is on the usage screen, so make
-#	it something recognizable to the user wanting to know what this script
-#	can do.
-# 2.	add a new  sub to the bottom of this program. The sub MUST be same
-#	spelling as what is added here, but MUST be lower case.  Thus, we see
-#	DES here in funcs array, but the sub is:   sub des($pass)  This
-#	subroutine will be passed a candidate password, and should should output
-#	the proper hash.  All salts are randomly selected, either from the perl
-#	function doing the script, or by using the randstr()  subroutine.
-# 3.	Test to make sure it works properly.  Make sure john can find ALL values
-#	your subroutine returns.
-# 4.	Update the version of this file (at the top of it)
-# 5.	Publish it to the john wiki for others to also use.
+# 1.    add a new element to the @funcs array.  The case of this string does
+#       not matter.  The only time it is shown is on the usage screen, so make
+#       it something recognizable to the user wanting to know what this script
+#       can do.
+# 2.    add a new  sub to the bottom of this program. The sub MUST be same
+#       spelling as what is added here, but MUST be lower case.  Thus, we see
+#       DES here in funcs array, but the sub is:   sub des($pass)  This
+#       subroutine will be passed a candidate password, and should should output
+#       the proper hash.  All salts are randomly selected, either from the perl
+#       function doing the script, or by using the randstr()  subroutine.
+# 3.    Test to make sure it works properly.  Make sure john can find ALL values
+#       your subroutine returns.
+# 4.    Update the version of this file (at the top of it)
+# 5.    Publish it to the john wiki for others to also use.
 #
 # These john jumbo formats are not done 'yet':
 # AFS/KRB5/dominosec/sapG/sapB/DMD5/trip/keychain/pfx/racf/sip/vnc/wpapsk
 #
-# these are decrypt images, which we may not be able to do in perl. We will take these case by case.
+# these are decrypt images, which we may not be able to do in perl. We will
+# take these case by case.
 # odf office pdf pkzip zip rar ssh
 #
-# lotus5 is done in some custom C code.  If someone wants to take a crack at it here, be my guest :)
+# lotus5 is done in some custom C code.  If someone wants to take a crack at
+# it here, be my guest :)
 #############################################################################
 my @funcs = (qw(DES BigCrypt BSDI MD5_1 MD5_a BF BFx BFegg RawMD5 RawMD5u
 		RawSHA1 RawSHA1u msCash LM NT pwdump RawMD4 PHPass PO hmac_MD5
-		IPB2 PHPS MD4p MD4s SHA1p SHA1s mysqlSHA1 pixMD5 MSSql05 MSSql12 nsldap
-		nsldaps ns XSHA mskrb5 mysql mssql_no_upcase_change mssql oracle
-		oracle_no_upcase_change oracle11 hdaa netntlm_ess openssha
-		l0phtcrack netlmv2 netntlmv2 mschapv2 mscash2 mediawiki crc_32
-		Dynamic dummy rawsha224 rawsha256 rawsha384 rawsha512 dragonfly3_32
-		dragonfly4_32 dragonfly3_64 dragonfly4_64 saltedsha1 raw_gost
-		raw_gost_cp hmac_sha1 hmac_sha224 hmac_sha256 hmac_sha384 hmac_sha512
-		sha256crypt sha512crypt XSHA512  dynamic_27 dynamic_28 pwsafe django
-		drupal7 epi episerver_sha1 episerver_sha256 hmailserver ike keepass
-		keychain nukedclan pfx racf radmin rawsha0 sip SybaseASE vnc wbb3 wpapsk
-		sunmd5 wow_srp django_scrypt aix_ssha1 aix_ssha256 aix_ssha512 pbkdf2_hmac_sha512
-		rakp));
+		IPB2 PHPS MD4p MD4s SHA1p SHA1s mysqlSHA1 pixMD5 MSSql05 MSSql12
+		nsldap nsldaps ns XSHA mskrb5 mysql mssql_no_upcase_change
+		mssql oracle oracle_no_upcase_change oracle11 hdaa netntlm_ess
+		openssha l0phtcrack netlmv2 netntlmv2 mschapv2 mscash2 mediawiki
+		crc_32 Dynamic dummy rawsha224 rawsha256 rawsha384 rawsha512
+		dragonfly3_32 dragonfly4_32 dragonfly3_64 dragonfly4_64
+		saltedsha1 raw_gost raw_gost_cp hmac_sha1 hmac_sha224
+		hmac_sha256 hmac_sha384 hmac_sha512 sha256crypt sha512crypt
+		XSHA512  dynamic_27 dynamic_28 pwsafe django drupal7 epi
+		episerver_sha1 episerver_sha256 hmailserver ike keepass
+		keychain nukedclan pfx racf radmin rawsha0 sip SybaseASE vnc
+		wbb3 wpapsk sunmd5 wow_srp django_scrypt aix_ssha1 aix_ssha256
+		aix_ssha512 pbkdf2_hmac_sha512 rakp));
 
 # todo: ike keychain pfx racf sip vnc wpapsk
 
@@ -127,7 +130,7 @@ usage: $0 [-h|-?] [codepage=CP|-utf8] [-option[s]] HashType [HashType2 [...]] [ 
     -utf8         shortcut to -codepage=UTF-8.
     -codepage=CP  Read and write files in CP encoding.
 
-	Options are:
+    Options are:
     -minlen <n>   Discard lines shorter than <n> characters  (0)
     -maxlen <n>   Discard lines longer than <n> characters (128)
     -count <n>    Stop when we have produced <n> hashes   (1320)
@@ -154,9 +157,9 @@ if (@ARGV == 0) {
 }
 
 if ($arg_utf8) {
-    #@ARGV = map { decode_utf8($_, 1) } @ARGV;
-    $argsalt = decode_utf8($argsalt, 1);
-    $arg_codepage="UTF-8";
+	#@ARGV = map { decode_utf8($_, 1) } @ARGV;
+	$argsalt = decode_utf8($argsalt, 1);
+	$arg_codepage="UTF-8";
 }
 
 #if not a redirected file, prompt the user
@@ -380,20 +383,20 @@ sub base64_aix {
 		$out .= substr($x,0,1);
 	}
 	if ($mod == 2) {
-	    $l = (ord(substr($final, $i*3, 1))<<16) | (ord(substr($final, $i*3+1, 1))<<8);
+		$l = (ord(substr($final, $i*3, 1))<<16) | (ord(substr($final, $i*3+1, 1))<<8);
 		my $x="";
 		_crypt_to64_wpa($x, $l, 4);
 		$out .= substr($x,3,1);
 		$out .= substr($x,2,1);
 		$out .= substr($x,1,1);
-    }
+	}
 	if ($mod == 1) {
-	    $l = (ord(substr($final, $i*3, 1))<<16);
+		$l = (ord(substr($final, $i*3, 1))<<16);
 		my $x="";
 		_crypt_to64_wpa($x, $l, 4);
 		$out .= substr($x,3,1);
 		$out .= substr($x,2,1);
-    }
+	}
 	return $out;
 }
 
@@ -443,98 +446,110 @@ sub saltToHex {
 }
 
 sub whirlpool_hex {
-    require Digest;
+	require Digest;
 	my $whirlpool = Digest->new('Whirlpool');
-    $whirlpool->add( $_[0] );
-    return $whirlpool->hexdigest;
+	$whirlpool->add( $_[0] );
+	return $whirlpool->hexdigest;
 }
 sub whirlpool_base64 {
-    require Digest;
+	require Digest;
 	my $whirlpool = Digest->new('Whirlpool');
-    $whirlpool->add( $_[0] );
-    return $whirlpool->b64digest;
+	$whirlpool->add( $_[0] );
+	return $whirlpool->b64digest;
 }
 sub whirlpool {
-    my $ret;
-    my $i;
-    my $h = whirlpool_hex($_[0]);
+	my $ret;
+	my $i;
+	my $h = whirlpool_hex($_[0]);
 	$ret = pack "H*", $h;
-    return $ret;
+	return $ret;
 }
 sub haval256 {
-    require Digest::Haval256;
+	require Digest::Haval256;
 	my $hash = new Digest::Haval256;
-    $hash->add( $_[0] );
+	$hash->add( $_[0] );
 	my $h = $hash->hexdigest;
 	my $ret = pack "H*", $h;
-    return $ret;
+	return $ret;
 }
 sub haval256_hex {
-    require Digest::Haval256;
+	require Digest::Haval256;
 	my $hash = new Digest::Haval256;
-    $hash->add( $_[0] );
-    return $hash->hexdigest;
+	$hash->add( $_[0] );
+	return $hash->hexdigest;
 }
 sub haval256_base64 {
-    require Digest::Haval256;
+	require Digest::Haval256;
 	my $hash = new Digest::Haval256;
-    $hash->add( $_[0] );
-    return $hash->base64digest;
+	$hash->add( $_[0] );
+	return $hash->base64digest;
 }
 sub tiger_hex {
-    require Digest::Tiger;
+	require Digest::Tiger;
 	return lc Digest::Tiger::hexhash($_[0]);
 }
 sub tiger {
 	my $h = tiger_hex($_[0]);
 	my $ret = pack "H*", $h;
-    return $ret;
+	return $ret;
 }
 sub tiger_base64 {
-    require Digest::Tiger;
+	require Digest::Tiger;
 	my $bin = pack "H*", lc Digest::Tiger::hexhash($_[0]);
 	return encode_base64($bin);
 }
 # these all come from CryptX usage.
-sub ripemd128_hex    {
-# these come from CryptX which is very hard to get working under Cygwin, but the only place
-# to find RIPEMD128, RIPEMD266, RIPEMD320.  We use the Crypt::Digest usage, instead of
-# loading each Digest type (4 of them, at least)
-    require Crypt::Digest;
- Crypt::Digest::digest_data_hex('RIPEMD128', $_[0]);    }
-sub ripemd128        {
-    require Crypt::Digest;
- Crypt::Digest::digest_data('RIPEMD128', $_[0]);        }
+sub ripemd128_hex {
+	# these come from CryptX which is very hard to get working under Cygwin, but the only place
+	# to find RIPEMD128, RIPEMD266, RIPEMD320.  We use the Crypt::Digest usage, instead of
+	# loading each Digest type (4 of them, at least)
+	require Crypt::Digest;
+	Crypt::Digest::digest_data_hex('RIPEMD128', $_[0]);
+}
+sub ripemd128 {
+	require Crypt::Digest;
+	Crypt::Digest::digest_data('RIPEMD128', $_[0]);
+}
 sub ripemd128_base64 {
-    require Crypt::Digest;
- Crypt::Digest::digest_data_base64('RIPEMD128', $_[0]); }
-sub ripemd160_hex    {
-    require Crypt::Digest;
- Crypt::Digest::digest_data_hex('RIPEMD160', $_[0]);    }
-sub ripemd160        {
-    require Crypt::Digest;
- Crypt::Digest::digest_data('RIPEMD160', $_[0]);        }
+	require Crypt::Digest;
+	Crypt::Digest::digest_data_base64('RIPEMD128', $_[0]);
+}
+sub ripemd160_hex {
+	require Crypt::Digest;
+	Crypt::Digest::digest_data_hex('RIPEMD160', $_[0]);
+}
+sub ripemd160 {
+	require Crypt::Digest;
+	Crypt::Digest::digest_data('RIPEMD160', $_[0]);
+}
 sub ripemd160_base64 {
-    require Crypt::Digest;
- Crypt::Digest::digest_data_base64('RIPEMD160', $_[0]); }
-sub ripemd256_hex    {
-    require Crypt::Digest;
- Crypt::Digest::digest_data_hex('RIPEMD256', $_[0]);    }
-sub ripemd256        {
-    require Crypt::Digest;
- Crypt::Digest::digest_data('RIPEMD256', $_[0]);        }
+	require Crypt::Digest;
+	Crypt::Digest::digest_data_base64('RIPEMD160', $_[0]);
+}
+sub ripemd256_hex {
+	require Crypt::Digest;
+	Crypt::Digest::digest_data_hex('RIPEMD256', $_[0]);
+}
+sub ripemd256 {
+	require Crypt::Digest;
+	Crypt::Digest::digest_data('RIPEMD256', $_[0]);
+}
 sub ripemd256_base64 {
-    require Crypt::Digest;
- Crypt::Digest::digest_data_base64('RIPEMD256', $_[0]); }
-sub ripemd320_hex    {
-    require Crypt::Digest;
- Crypt::Digest::digest_data_hex('RIPEMD320', $_[0]);    }
-sub ripemd320        {
-    require Crypt::Digest;
- Crypt::Digest::digest_data('RIPEMD320', $_[0]);        }
+	require Crypt::Digest;
+	Crypt::Digest::digest_data_base64('RIPEMD256', $_[0]);
+}
+sub ripemd320_hex {
+	require Crypt::Digest;
+	Crypt::Digest::digest_data_hex('RIPEMD320', $_[0]);
+}
+sub ripemd320 {
+	require Crypt::Digest;
+	Crypt::Digest::digest_data('RIPEMD320', $_[0]);
+}
 sub ripemd320_base64 {
-    require Crypt::Digest;
- Crypt::Digest::digest_data_base64('RIPEMD320', $_[0]); }
+	require Crypt::Digest;
+	Crypt::Digest::digest_data_base64('RIPEMD320', $_[0]);
+}
 
 ############################################################################
 # Here are the encryption subroutines.
@@ -542,7 +557,7 @@ sub ripemd320_base64 {
 #  all salted formats choose 'random' salts, in one way or another.
 #############################################################################
 sub des {
-    require Authen::Passphrase::DESCrypt;
+	require Authen::Passphrase::DESCrypt;
 	if ($argsalt && length($argsalt)==2) {
 		$h = Authen::Passphrase::DESCrypt->new(passphrase => $_[0], salt_base64 => $argsalt);
 	} else {
@@ -551,14 +566,14 @@ sub des {
 	print "u$u-DES:", $h->as_crypt, ":$u:0:$_[0]::\n";
 }
 sub bigcrypt {
-    require Authen::Passphrase::BigCrypt;
+	require Authen::Passphrase::BigCrypt;
 	if (length($_[0]) > 8) {
 		$h = Authen::Passphrase::BigCrypt->new(passphrase => $_[0], salt_random => 12);
 		print "u$u-DES_BigCrypt:", $h->salt_base64_2, $h->hash_base64, ":$u:0:$_[0]::\n";
 	}
 }
 sub bsdi {
-    require Authen::Passphrase::DESCrypt;
+	require Authen::Passphrase::DESCrypt;
 	$h = Authen::Passphrase::DESCrypt->new(passphrase => $_[0], fold => 1, nrounds => 725, salt_random => 24);
 	print "u$u-BSDI:", $h->as_crypt, ":$u:0:$_[0]::\n";
 }
@@ -612,7 +627,7 @@ sub bfx_fix_pass {
 	}
 }
 sub bfx {
-    require Authen::Passphrase::BlowfishCrypt;
+	require Authen::Passphrase::BlowfishCrypt;
 	my $fixed_pass = bfx_fix_pass($_[0]);
 	if ($argsalt && length($argsalt)==16) {
 		$h = Authen::Passphrase::BlowfishCrypt->new(passphrase => $fixed_pass, cost => 5, salt => $argsalt);
@@ -625,7 +640,7 @@ sub bfx {
 	print "u$u-BF:", $hash_str, ":$u:0:$_[0]::\n";
 }
 sub bf {
-    require Authen::Passphrase::BlowfishCrypt;
+	require Authen::Passphrase::BlowfishCrypt;
 	if ($argsalt && length($argsalt)==16) {
 		$h = Authen::Passphrase::BlowfishCrypt->new(passphrase => $_[0], cost => 5, salt => $argsalt);
 	}
@@ -635,8 +650,8 @@ sub bf {
 	print "u$u-BF:", $h->as_crypt, ":$u:0:$_[0]::\n";
 }
 sub bfegg {
-    require Authen::Passphrase::BlowfishCrypt;
-    require Authen::Passphrase::EggdropBlowfish;
+	require Authen::Passphrase::BlowfishCrypt;
+	require Authen::Passphrase::EggdropBlowfish;
 	if (length($_[0]) > 0) {
 		$h = Authen::Passphrase::EggdropBlowfish->new(passphrase => $_[0] );
 		print "u$u-BFegg:+", $h->hash_base64, ":$u:0:$_[0]::\n";
@@ -740,8 +755,8 @@ sub ike {
 sub keychain {
 }
 sub wpapsk {
-    require Digest::HMAC_MD5;
-    require Crypt::PBKDF2;
+	require Digest::HMAC_MD5;
+	require Crypt::PBKDF2;
 	# max ssid is 32 bytes
 	# min password is 8 bytes.  Max is 63 bytes
 	if (length($_[0]) < 8 || length($_[0]) > 63) { return; }
@@ -825,7 +840,7 @@ sub Load_MinMax {
 	$_[0] .= $v1.$v2;
 }
 sub mscash2 {
-    require Crypt::PBKDF2;
+	require Crypt::PBKDF2;
 	# max username (salt) length is supposed to be 19 characters (in John)
 	# max password length is 27 characters (in John)
 	# the algorithm lowercases the salt
@@ -843,20 +858,20 @@ sub mscash2 {
 	":$u:0:$_[0]:mscash2:\n";
 }
 sub lm {
-    require Authen::Passphrase::LANManager;
+	require Authen::Passphrase::LANManager;
 	my $s = $_[0];
 	if (length($s)>14) { $s = substr($s,14);}
 	$h = Authen::Passphrase::LANManager->new(passphrase => length($s) <= 14 ? $s : "");
 	print "u$u-LM:$u:", $h->hash_hex, ":$u:0:", uc $s, "::\n";
 }
 sub nt { #$utf8mode=0, $utf8_pass;
-    require Authen::Passphrase::NTHash;
+	require Authen::Passphrase::NTHash;
 	$h = Authen::Passphrase::NTHash->new(passphrase => $_[0]);
 	print "u$u-NT:\$NT\$", $h->hash_hex, ":$u:0:$_[0]::\n";
 }
 sub pwdump {
-    require Authen::Passphrase::LANManager;
-    require Authen::Passphrase::NTHash;
+	require Authen::Passphrase::LANManager;
+	require Authen::Passphrase::NTHash;
 	my $lm = Authen::Passphrase::LANManager->new(passphrase => length($_[0]) <= 14 ? $_[0] : "");
 	my $nt = Authen::Passphrase::NTHash->new(passphrase => $_[0]);
 	print "u$u-pwdump:$u:", $lm->hash_hex, ":", $nt->hash_hex, ":$_[0]::\n";
@@ -869,7 +884,7 @@ sub mediawiki {
 	print "u$u-mediawiki:\$B\$" . $salt . "\$" . md5_hex($salt . "-" . md5_hex($_[0])) . ":$u:0:$_[0]::\n";
 }
 sub phpass {
-    require Authen::Passphrase::PHPass;
+	require Authen::Passphrase::PHPass;
 	$h = Authen::Passphrase::PHPass->new(cost => 11, salt_random => 1, passphrase => $_[0]);
 	print "u$u-PHPass:", $h->as_crypt, ":$u:0:$_[0]::\n";
 }
@@ -1062,7 +1077,7 @@ sub sunmd5 {
 	print "u$u-sunmd5:$salt\$$h:$u:0:$_[0]::\n";
 }
 sub wow_srp {
-    require Math::BigInt;
+	require Math::BigInt;
 	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(16); }
 	my $usr = uc randusername();
 
@@ -1422,7 +1437,7 @@ sub xsha {
 	print "u$u-xsha:", uc saltToHex(4), uc sha1_hex($salt, $_[0]), ":$u:0:$_[0]::\n";
 }
 sub oracle {
-    require Crypt::CBC;
+	require Crypt::CBC;
 	# snagged perl source from http://users.aber.ac.uk/auj/freestuff/orapass.pl.txt
 	my $username;
 	if (defined $argsalt) { $username = $argsalt; } else { $username = randusername(16); }
@@ -1440,7 +1455,7 @@ sub oracle {
 	print "$username:", uc(unpack('H*', $hash)), ":$u:0:$pass:oracle_des_hash:\n";
 }
 sub oracle_no_upcase_change {
-    require Crypt::CBC;
+	require Crypt::CBC;
 	# snagged perl source from http://users.aber.ac.uk/auj/freestuff/orapass.pl.txt
 	my $username;
 	if (defined $argsalt) { $username = uc $argsalt; } else { $username = uc randusername(16); }
@@ -1494,9 +1509,9 @@ sub setup_des_key
 }
 # This produces only NETNTLM ESS hashes, in L0phtcrack format
 sub netntlm_ess {
-    require Authen::Passphrase::NTHash;
-    require Crypt::ECB;
-    import Crypt::ECB qw(encrypt PADDING_AUTO PADDING_NONE);
+	require Authen::Passphrase::NTHash;
+	require Crypt::ECB;
+	import Crypt::ECB qw(encrypt PADDING_AUTO PADDING_NONE);
 	my $password = shift;
 	my $domain = randstr(rand(15)+1);
 	my $nthash = Authen::Passphrase::NTHash->new(passphrase => $password)->hash;
@@ -1513,11 +1528,11 @@ sub netntlm_ess {
 }
 # This produces NETHALFLM, NETLM and non-ESS NETNTLM hashes in L0pthcrack format
 sub l0phtcrack {
-    require Authen::Passphrase::LANManager;
-    require Authen::Passphrase::NTHash;
-    require Crypt::ECB;
-    import Crypt::ECB qw(encrypt PADDING_AUTO PADDING_NONE);
-    my $password = shift;
+	require Authen::Passphrase::LANManager;
+	require Authen::Passphrase::NTHash;
+	require Crypt::ECB;
+	import Crypt::ECB qw(encrypt PADDING_AUTO PADDING_NONE);
+	my $password = shift;
 	my $domain = randstr(rand(15)+1);
 	my $nthash = Authen::Passphrase::NTHash->new(passphrase => $password)->hash;
 	$nthash .= "\x00"x5;
@@ -1542,7 +1557,7 @@ sub l0phtcrack {
 	printf("%s\\%s:::%s:%s:%s::%s:%s\n", $domain, "u$u-netntlm", binToHex($lmresp), binToHex($ntresp), binToHex($challenge), $password, $type);
 }
 sub netlmv2 {
-    require Authen::Passphrase::NTHash;
+	require Authen::Passphrase::NTHash;
 	my $pwd = shift;
 	my $nthash = Authen::Passphrase::NTHash->new(passphrase => $pwd)->hash;
 	my $domain = randstr(rand(15)+1);
@@ -1554,7 +1569,7 @@ sub netlmv2 {
 	printf("%s\\%s:::%s:%s:%s::%s:netlmv2\n", $domain, $user, binToHex($s_challenge), binToHex($lmresponse), binToHex($c_challenge), $pwd);
 }
 sub netntlmv2 {
-    require Authen::Passphrase::NTHash;
+	require Authen::Passphrase::NTHash;
 	my $pwd = shift;
 	my $nthash = Authen::Passphrase::NTHash->new(passphrase => $pwd)->hash;
 	my $user;
@@ -1575,9 +1590,9 @@ sub netntlmv2 {
 	printf("%s\\%s:::%s:%s:%s::%s:netntlmv2\n", $domain, $user, binToHex($s_challenge), binToHex($ntproofstr), binToHex($temp), $pwd);
 }
 sub mschapv2 {
-    require Authen::Passphrase::NTHash;
-    require Crypt::ECB;
-    import Crypt::ECB qw(encrypt PADDING_AUTO PADDING_NONE);
+	require Authen::Passphrase::NTHash;
+	require Crypt::ECB;
+	import Crypt::ECB qw(encrypt PADDING_AUTO PADDING_NONE);
 	my $pwd = shift;
 	my $nthash = Authen::Passphrase::NTHash->new(passphrase => $pwd)->hash;
 	my $user = randusername();
@@ -1608,8 +1623,8 @@ sub dummy {
     print "$u-dummy:", '$dummy$', unpack('H*', $_[0]), "\n";
 }
 sub raw_gost {
-    require Digest::GOST;
-    import Digest::GOST qw(gost gost_hex gost_base64);
+	require Digest::GOST;
+	import Digest::GOST qw(gost gost_hex gost_base64);
 	my $pwd = shift;
 	printf("$u-gost:\$gost\$%s:0:0:100:%s:\n", gost_hex($pwd), $pwd);
 }
@@ -1627,7 +1642,7 @@ sub pwsafe {
 	print "u$u-pwsafe:\$pwsafe\$\*3\*", unpack('H*', $salt), "\*2048\*", unpack('H*', $digest), ":$u:0:$_[0]::\n";
 }
 sub django {
-    require Crypt::PBKDF2;
+	require Crypt::PBKDF2;
 	if (defined $argsalt && length($argsalt)<=32) { $salt = $argsalt; } else { $salt=randstr(12); }
 	my $pbkdf2 = Crypt::PBKDF2->new(
 		hash_class => 'HMACSHA2',
@@ -1638,14 +1653,14 @@ sub django {
 	print "u$u-django:\$django\$\*1\*pbkdf2_sha256\$10000\$$salt\$", base64($pbkdf2->PBKDF2($salt, $_[0])), ":$u:0:$_[0]::\n";
 }
 sub django_scrypt {
-    #require Crypt::Scrypt;
+	#require Crypt::Scrypt;
 	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(16); }
 
 	print "django_scrypt : THIS ONE STILL TO DO\n";
 	print "u$u-scrypt:scrypt\$$h\$", uc unpack("H*", $salt), ":$u:0:", $_[0], "::\n";
 }
 sub aix_ssha1 {
-    require Crypt::PBKDF2;
+	require Crypt::PBKDF2;
 	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(16); }
 	my $itr = 64; # 1<<6
 	my $pbkdf2 = Crypt::PBKDF2->new(hash_class => 'HMACSHA1', iterations => $itr, output_len => 20, salt_len => length($salt) );
@@ -1653,14 +1668,14 @@ sub aix_ssha1 {
 	print "u$u-aix-ssha1:{ssha1}06\$$salt\$", base64_aix($hash) ,":$u:0:", $_[0], "::\n";
 }
 sub aix_ssha256 {
-    require Crypt::PBKDF2;
+	require Crypt::PBKDF2;
 	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(16); }
 	my $itr = 64; # 1<<6
 	my $pbkdf2 = Crypt::PBKDF2->new(hash_class => 'HMACSHA2', iterations => $itr, output_len => 32, salt_len => length($salt) );
 	print "u$u-aix-ssha256:{ssha256}06\$$salt\$", base64_aix($pbkdf2->PBKDF2($salt, $_[0])) ,":$u:0:", $_[0], "::\n";
 }
 sub aix_ssha512 {
-    require Crypt::PBKDF2;
+	require Crypt::PBKDF2;
 	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(16); }
 	my $itr = 64; # 1<<6
 	my $pbkdf2 = Crypt::PBKDF2->new(hash_class => 'HMACSHA2', hash_args => { sha_size => 512 },  iterations => $itr, output_len => 64, salt_len => length($salt) );
@@ -1670,7 +1685,7 @@ sub aix_ssha512 {
 # there could also be $ml$ and grub.pbkdf2.sha512. as the signatures. but within prepare() of pbkdf2-hmac-sha512_fmt,
 # they all get converted to this one, so that is all I plan on using.
 sub pbkdf2_hmac_sha512 {
-    require Crypt::PBKDF2;
+	require Crypt::PBKDF2;
 	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(16); }
 	my $itr = 10000;
 	if ($arg_loops > 0) { $itr = $arg_loops; }
@@ -1755,7 +1770,7 @@ sub dynamic_7 { #dynamic_7 --> md5(md5($p).$s)
 	print "u$u-dynamic_7"."\x1F"."\$dynamic_7\$", md5_hex(md5_hex($_[0]), $salt), "\$$salt"."\x1F"."$u"."\x1F"."0"."\x1F"."$_[0]"."\x1F"."\x1F"."\n";
 }
 sub dynamic_17 { #dynamic_17 --> phpass ($P$ or $H$)	phpass
-    require Authen::Passphrase::PHPass;
+	require Authen::Passphrase::PHPass;
 	$h = Authen::Passphrase::PHPass->new(cost => 11, salt_random => 1, passphrase => $_[0]);
 	my $hh = $h->as_crypt;
 	$salt = substr($hh,3,9);
@@ -1841,7 +1856,7 @@ sub dynamic_28 { # Apache MD5
 	print "u$u-dynamic_28:\$dynamic_28\$", substr($h,15), "\$$salt:$u:0:$_[0]::\n";
 }
 sub dynamic_compile {
-    require Digest::Haval256;
+	require Digest::Haval256;
 	my $dynamic_args = $_[0];
 	if (length($dynamic_args) == 0) {
 		print "usage: $0 [-h|-?] HashType ... [ < wordfile ]\n";
@@ -2080,7 +2095,7 @@ sub dynamic_compile {
 	return "dynamic_run_compiled_pcode";
 }
 sub do_dynamic_GetToken {
-    require Digest::Haval256;
+	require Digest::Haval256;
 	# parses next token.
 	# the token is placed on the gen_toks array as the 'new' token.
 	#  the return is the rest of the string (not tokenized yet)
@@ -2660,30 +2675,12 @@ sub dynamic_f5126  { $h = pop @gen_Stack; $h = sha512_base64($h); $gen_Stack[@ge
 sub dynamic_f512e  { $h = pop @gen_Stack; $h = sha512_base64($h); while (length($h)%4) { $h .= "="; } $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_f512u  { $h = pop @gen_Stack; $h = sha512_hex(encode("UTF-16LE",$h)); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_f512r  { $h = pop @gen_Stack; $h = sha512($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
-sub dynamic_fgosth {
-    require Digest::GOST;
-    import Digest::GOST qw(gost gost_hex gost_base64);
- $h = pop @gen_Stack; $h = gost_hex($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
-sub dynamic_fgostH {
-    require Digest::GOST;
-    import Digest::GOST qw(gost gost_hex gost_base64);
- $h = pop @gen_Stack; $h = uc gost_hex($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
-sub dynamic_fgost6 {
-    require Digest::GOST;
-    import Digest::GOST qw(gost gost_hex gost_base64);
- $h = pop @gen_Stack; $h = gost_base64($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
-sub dynamic_fgoste {
-    require Digest::GOST;
-    import Digest::GOST qw(gost gost_hex gost_base64);
- $h = pop @gen_Stack; $h = gost_base64($h); while (length($h)%4) { $h .= "="; } $gen_Stack[@gen_Stack-1] .= $h; return $h; }
-sub dynamic_fgostu {
-    require Digest::GOST;
-    import Digest::GOST qw(gost gost_hex gost_base64);
- $h = pop @gen_Stack; $h = gost_hex(encode("UTF-16LE",$h)); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
-sub dynamic_fgostr {
-    require Digest::GOST;
-    import Digest::GOST qw(gost gost_hex gost_base64);
- $h = pop @gen_Stack; $h = gost($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_fgosth { require Digest::GOST; import Digest::GOST qw(gost gost_hex gost_base64); $h = pop @gen_Stack; $h = gost_hex($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_fgostH { require Digest::GOST; import Digest::GOST qw(gost gost_hex gost_base64); $h = pop @gen_Stack; $h = uc gost_hex($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_fgost6 { require Digest::GOST; import Digest::GOST qw(gost gost_hex gost_base64); $h = pop @gen_Stack; $h = gost_base64($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_fgoste { require Digest::GOST; import Digest::GOST qw(gost gost_hex gost_base64); $h = pop @gen_Stack; $h = gost_base64($h); while (length($h)%4) { $h .= "="; } $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_fgostu { require Digest::GOST; import Digest::GOST qw(gost gost_hex gost_base64); $h = pop @gen_Stack; $h = gost_hex(encode("UTF-16LE",$h)); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_fgostr { require Digest::GOST; import Digest::GOST qw(gost gost_hex gost_base64); $h = pop @gen_Stack; $h = gost($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_fwrlph { $h = pop @gen_Stack; $h = whirlpool_hex($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_fwrlpH { $h = pop @gen_Stack; $h = uc whirlpool_hex($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_fwrlp6 { $h = pop @gen_Stack; $h = whirlpool_base64($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
@@ -2720,21 +2717,9 @@ sub dynamic_frip3206  { $h = pop @gen_Stack; $h = ripemd320_base64($h); $gen_Sta
 sub dynamic_frip320e  { $h = pop @gen_Stack; $h = ripemd320_base64($h); while (length($h)%4) { $h .= "="; } $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_frip320u  { $h = pop @gen_Stack; $h = ripemd320_hex(encode("UTF-16LE",$h)); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_frip320r  { $h = pop @gen_Stack; $h = ripemd320($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
-sub dynamic_fhavh  {
-    require Digest::Haval256;
- $h = pop @gen_Stack; $h = haval256_hex($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
-sub dynamic_fhavH  {
-    require Digest::Haval256;
- $h = pop @gen_Stack; $h = uc haval256_hex($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
-sub dynamic_fhav6  {
-    require Digest::Haval256;
- $h = pop @gen_Stack; $h = haval256_base64($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
-sub dynamic_fhave  {
-    require Digest::Haval256;
- $h = pop @gen_Stack; $h = haval256_base64($h); while (length($h)%4) { $h .= "="; } $gen_Stack[@gen_Stack-1] .= $h; return $h; }
-sub dynamic_fhavu  {
-    require Digest::Haval256;
- $h = pop @gen_Stack; $h = haval256_hex(encode("UTF-16LE",$h)); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
-sub dynamic_fhavr  {
-    require Digest::Haval256;
- $h = pop @gen_Stack; $h = haval256($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_fhavh  { require Digest::Haval256; $h = pop @gen_Stack; $h = haval256_hex($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_fhavH  { require Digest::Haval256; $h = pop @gen_Stack; $h = uc haval256_hex($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_fhav6  { require Digest::Haval256; $h = pop @gen_Stack; $h = haval256_base64($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_fhave  { require Digest::Haval256; $h = pop @gen_Stack; $h = haval256_base64($h); while (length($h)%4) { $h .= "="; } $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_fhavu  { require Digest::Haval256; $h = pop @gen_Stack; $h = haval256_hex(encode("UTF-16LE",$h)); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_fhavr  { require Digest::Haval256; $h = pop @gen_Stack; $h = haval256($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
