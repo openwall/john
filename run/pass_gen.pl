@@ -21,11 +21,7 @@ use Encode;
 use Switch 'Perl5', 'Perl6';
 use POSIX;
 use Getopt::Long;
-#use Crypt::RC4;
-#use Crypt::DES;
-#use String::CRC32;
 use MIME::Base64;
-#end if CryptX includes.  But in code, we do all the RIPEMD sizes.
 
 #############################################################################
 #
@@ -66,7 +62,7 @@ my @funcs = (qw(DES BigCrypt BSDI MD5_1 MD5_a BF BFx BFegg RawMD5 RawMD5u
 		sha256crypt sha512crypt XSHA512  dynamic_27 dynamic_28 pwsafe django
 		drupal7 epi episerver_sha1 episerver_sha256 hmailserver ike keepass
 		keychain nukedclan pfx racf radmin rawsha0 sip SybaseASE vnc wbb3 wpapsk
-		sunmd5 wow_srp scrypt aix_ssha1 aix_ssha256 aix_ssha512 pbkdf2_hmac_sha512
+		sunmd5 wow_srp django_scrypt aix_ssha1 aix_ssha256 aix_ssha512 pbkdf2_hmac_sha512
 		rakp));
 
 # todo: ike keychain pfx racf sip vnc wpapsk
@@ -102,6 +98,7 @@ my @gen_pCode; my @gen_Stack; my @gen_Flags;
 my $debug_pcode=0; my $gen_needs; my $gen_needs2; my $gen_needu; my $gen_singlesalt;
 my $hash_format; my $arg_utf8 = 0; my $arg_codepage = ""; my $arg_minlen = 0; my $arg_maxlen = 128; my $arg_dictfile = "unknown";
 my $arg_count = 1500, my $argsalt, my $arg_nocomment = 0; my $arg_hidden_cp; my $arg_loops=-1;
+my $arg_tstall = 0;
 
 GetOptions(
 	'codepage=s'       => \$arg_codepage,
@@ -113,7 +110,8 @@ GetOptions(
 	'salt=s'           => \$argsalt,
 	'count=n'          => \$arg_count,
 	'loops=n'          => \$arg_loops,
-	'dictfile=s'       => \$arg_dictfile
+	'dictfile=s'       => \$arg_dictfile,
+	'tstall!'          => \$arg_tstall
 	) || usage();
 
 sub usage {
@@ -136,12 +134,19 @@ usage: $0 [-h|-?] [codepage=CP|-utf8] [-option[s]] HashType [HashType2 [...]] [ 
     -loops <n>    some format (pbkdf2, etc), have a loop count. This
                   allows setting a custom count for some formats.
 
-	-salt <s>     Force a single salt (only supported in a few formats)
+    -salt <s>     Force a single salt (only supported in a few formats)
     -dictfile <s> Put name of dict file into the first line comment
-	-nocomment    eliminate the first line comment
+    -nocomment    eliminate the first line comment
+
+    -tstall       runs a 'simple' test for all known types.
 
     -help         shows this help screen.
 UsageHelp
+}
+
+if ($arg_tstall != 0) {
+	tst_all();
+	exit(0);
 }
 
 if (@ARGV == 0) {
@@ -242,6 +247,22 @@ if (@ARGV == 1) {
 				last;
 			}
 		}
+	}
+}
+
+#############################################################################
+# if the 'magic' option -tstall is used, we simply call a function that calls
+# ALL of the functions which is used to test if all CPAN modules are installed.
+#############################################################################
+sub tst_all
+{
+	$u = 1;
+	$arg_hidden_cp = "iso-8859-1";
+	foreach my $f (@funcs) {
+		no strict 'refs';
+		$f = lc $f;
+		if ($f ne "dynamic") {&$f("password");}
+		use strict;
 	}
 }
 
@@ -854,8 +875,7 @@ sub phpass {
 }
 sub po {
 	if (defined $argsalt) {
-		if ($argsalt.length() == 32) { $salt = $argsalt; }
-		else { $salt = md5_hex($argsalt); }
+		$salt = md5_hex($argsalt);
 	} else {
 		$salt=randstr(32, \@chrHexLo);
 	}
@@ -1251,7 +1271,9 @@ sub xsha512 {
 	print "" . unpack("H*", $salt) . sha512_hex($salt . $_[0]) . ":$u:0:$_[0]::\n";
 }
 sub mskrb5 {
-    require Authen::Passphrase::NTHash;
+	require Authen::Passphrase::NTHash;
+	require Crypt::RC4;
+	import Crypt::RC4 qw(RC4);
 	my $password = shift;
 	my $datestring = sprintf('20%02u%02u%02u%02u%02u%02uZ', rand(100), rand(12)+1, rand(31)+1, rand(24), rand(60), rand(60));
 	my $timestamp = randbytes(14) . $datestring . randbytes(7);
@@ -1572,6 +1594,8 @@ sub mschapv2 {
 	printf("%s:::%s:%s:%s::%s:netntlmv2\n", $user, binToHex($a_challenge), binToHex($response), binToHex($p_challenge), $pwd);
 }
 sub crc_32 {
+	require String::CRC32;
+	import String::CRC32 qw(crc32);
 	my $pwd = shift;
 	if (rand(256) > 245) {
 		my $init = rand(2000000000);
@@ -1589,9 +1613,10 @@ sub raw_gost {
 	my $pwd = shift;
 	printf("$u-gost:\$gost\$%s:0:0:100:%s:\n", gost_hex($pwd), $pwd);
 }
-#sub raw_gost_cp {
-#	# HMMM.  Not sure how to do this at this time in perl.
-#}
+sub raw_gost_cp {
+	# HMMM.  Not sure how to do this at this time in perl.
+	print "raw_gost_cp : THIS ONE STILL LEFT TO DO\n";
+}
 sub pwsafe {
 	if (defined $argsalt && length($argsalt)==32) { $salt = $argsalt; } else { $salt=randstr(32); }
 	my $digest = sha256($_[0],$salt);
@@ -1613,10 +1638,10 @@ sub django {
 	print "u$u-django:\$django\$\*1\*pbkdf2_sha256\$10000\$$salt\$", base64($pbkdf2->PBKDF2($salt, $_[0])), ":$u:0:$_[0]::\n";
 }
 sub django_scrypt {
-    require Crypt::Scrypt;
+    #require Crypt::Scrypt;
 	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(16); }
 
-	print "THIS ONE STILL TO DO\n";
+	print "django_scrypt : THIS ONE STILL TO DO\n";
 	print "u$u-scrypt:scrypt\$$h\$", uc unpack("H*", $salt), ":$u:0:", $_[0], "::\n";
 }
 sub aix_ssha1 {
