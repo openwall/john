@@ -151,42 +151,46 @@ http://openwall.info/wiki/john/GPU
 Currently John the Ripper supports OpenCL enabled devices for
 the following hashes:
 
-agilekeychain-OpenCL  1Password Agile Keychain PBKDF2-HMAC-SHA-1 AES
-bf-OpenCL             OpenBSD Blowfish
-des-OpenCL            Traditional DES
-dmg-OpenCL            Apple DMG PBKDF2-HMAC-SHA-1 3DES / AES
-encfs-OpenCL          EncFS PBKDF2 AES / Blowfish
-gpg-OpenCL            OpenPGP / GnuPG Secret Key
-keychain-OpenCL       Mac OS X Keychain PBKDF2-HMAC-SHA-1 3DES
-krb5pa-sha1-OpenCL    Kerberos 5 AS-REQ PreAuth etype 17/18 aes-cts-hmac-sha1-96
-md5crypt-OpenCL       md5crypt
-mscash2-OpenCL        M$ Cache Hash 2 (DCC2) PBKDF2-HMAC-SHA-1
-mysql-sha1-OpenCL     MySQL 4.1 double-SHA-1
-nt-OpenCL             NT MD4
-ntlmv2-OpenCL         NTLMv2 C/R MD4 HMAC-MD5
-odf-aes-OpenCL        ODF SHA-256 AES
-odf-OpenCL            ODF SHA-1 Blowfish
-office2007-OpenCL     Office 2007 SHA-1 AES
-office2010-OpenCL     Office 2010 SHA-1 AES
-office2013-OpenCL     Office 2013 SHA-512 AES
-phpass-OpenCL         phpass MD5
-pwsafe-OpenCL         Password Safe SHA-256
-rar-OpenCL            RAR3 SHA-1 AES
-raw-md4-OpenCL        Raw MD4
-raw-md5-OpenCL        Raw MD5
-raw-sha1-OpenCL       Raw SHA-1
-raw-sha256-OpenCL     Raw SHA-256 (pwlen < 32)
-raw-sha512-ng-OpenCL  Raw SHA-512 (pwlen < 32)
-raw-sha512-OpenCL     Raw SHA-512
-sha256crypt-OpenCL    sha256crypt
-sha512crypt-OpenCL    sha512crypt
-ssha-OpenCL           Netscape LDAP salted SHA-1
-strip-OpenCL          STRIP Password Manager PBKDF2-SHA1
-sxc-OpenCL            SXC SHA-1 Blowfish
-wpapsk-OpenCL         WPA-PSK PBKDF2-HMAC-SHA-1
-xsha512-ng-OpenCL     Mac OS X 10.7+ salted SHA-512 (pwlen < 32)
-xsha512-OpenCL        Mac OS X 10.7+ salted SHA-512
-zip-OpenCL            ZIP-AES PBKDF2-HMAC-SHA-1
+descrypt-opencl           traditional crypt(3)
+ssha-opencl               Netscape LDAP {SSHA}
+nt-opencl                 NT
+ntlmv2-opencl             NTLMv2 C/R
+agilekeychain-opencl      1Password Agile Keychain
+bcrypt-opencl             crypt(3) Blowfish
+blockchain-opencl         My Wallet
+md5crypt-opencl           crypt(3) $1$
+sha256crypt-opencl        crypt(3) $5$
+sha512crypt-opencl        crypt(3) $6$
+dmg-opencl                Apple DMG
+encfs-opencl              EncFS
+gpg-opencl                OpenPGP / GnuPG Secret Key
+keychain-opencl           Mac OS X Keychain
+keyring-opencl            GNOME Keyring
+krb5pa-sha1-opencl        Kerberos 5 AS-REQ Pre-Auth etype 17/18
+mscash2-opencl            M$ Cache Hash 2 (DCC2)
+mysql-sha1-opencl         MySQL 4.1
+ODF-opencl                ODF Blowfish
+ODF-AES-opencl            ODF AES
+office2007-opencl         Office 2007
+office2010-opencl         Office 2010
+office2013-opencl         Office 2013
+phpass-opencl
+pwsafe-opencl             Password Safe
+rar-opencl                RAR3
+Raw-MD4-opencl
+Raw-MD5-opencl
+Raw-SHA1-opencl
+Raw-SHA256-opencl
+Raw-SHA512-opencl
+Raw-SHA512-ng-opencl
+strip-opencl              STRIP Password Manager
+sxc-opencl                StarOffice .sxc
+WPAPSK-opencl             WPA/WPA2 PSK
+XSHA512-opencl            Mac OS X 10.7+
+XSHA512-ng-opencl         Mac OS X 10.7+
+zip-opencl                ZIP
+PBKDF2-HMAC-SHA256-opencl PBKDF2-HMAC-SHA256
+RAKP-opencl               IPMI 2.0 RAKP (RMCP+)
 
 
 ====================
