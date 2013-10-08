@@ -842,7 +842,7 @@ static void ldr_sort_salts(struct db_main *db)
 	 * to getting this method out to every format.
 	 */
 	if (db->salt_count < 2 ||
-		strncmp(db->format->params.label, "WPAPSK", 6))
+		strncasecmp(db->format->params.label, "wpapsk", 6))
 		return;
 
 	salt_sort_db = db;
