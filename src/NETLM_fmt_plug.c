@@ -115,6 +115,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
   char *pos;
 
   if (strncmp(ciphertext, "$NETLM$", 7)!=0) return 0;
+  if (strlen(ciphertext) < TOTAL_LENGTH) return 0;
   if (ciphertext[23] != '$') return 0;
 
   if (strncmp(&ciphertext[24 + 2 * SALT_SIZE],
