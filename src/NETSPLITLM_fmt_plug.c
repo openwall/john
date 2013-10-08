@@ -93,6 +93,7 @@ static int nethalflm_valid(char *ciphertext, struct fmt_main *self)
   char *pos;
 
   if (strncmp(ciphertext, "$NETHALFLM$", 11)!=0) return 0;
+  if (strlen(ciphertext) < TOTAL_LENGTH) return 0;
   if (ciphertext[27] != '$') return 0;
 
   if (strncmp(&ciphertext[28 + 2 * SALT_SIZE],
