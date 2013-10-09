@@ -25,6 +25,8 @@
 #include "options.h"
 #define FORMAT_LABEL		"blockchain-opencl"
 #define FORMAT_NAME		"blockchain My Wallet"
+#define FORMAT_TAG		"$blockchain$"
+#define TAG_LENGTH		12
 #define ALGORITHM_NAME		"PBKDF2-SHA1 AES OpenCL"
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
@@ -174,13 +176,33 @@ static void init(struct fmt_main *self)
 		fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
 }
 
-// XXX implement valid
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	if (strncmp(ciphertext,  "$blockchain$", 12) != 0)
+	char *ctcopy, *keeptr, *p;
+	int len;
+
+	if (strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH) != 0)
 		return 0;
 
+	ctcopy = strdup(ciphertext);
+	keeptr = ctcopy;
+	ctcopy += TAG_LENGTH;
+	if ((p = strtok(ctcopy, "$")) == NULL)
+		goto err;
+	len = atoi(p);
+	if(len > BIG_ENOUGH)
+		goto err;
+	if ((p = strtok(NULL, "$")) == NULL)
+		goto err;
+	if (strlen(p) != len * 2)
+		goto err;
+
+	MEM_FREE(keeptr);
 	return 1;
+
+err:
+	MEM_FREE(keeptr);
+	return 0;
 }
 
 static void *get_salt(char *ciphertext)
