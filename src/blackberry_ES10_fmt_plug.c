@@ -72,13 +72,42 @@ static void init(struct fmt_main *self)
 	                self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
-// XXX implement me!
+static int ishex(char *q)
+{
+        while (atoi16[ARCH_INDEX(*q)] != 0x7F)
+                q++;
+        return !*q;
+}
+
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	if (!strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LENGTH))
-		return 1;
-	else
+	char *ctcopy, *keeptr;
+	char *p;
+
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LENGTH) != 0)
 		return 0;
+
+	ctcopy = strdup(ciphertext);
+	keeptr = ctcopy;
+	ctcopy += FORMAT_TAG_LENGTH;
+
+	if ((p = strtok(ctcopy, "$")) == NULL) /* hash */
+		goto err;
+	if(strlen(p) != BINARY_SIZE * 2)
+		goto err;
+	if (!ishex(p))
+		goto err;
+	if ((p = strtok(NULL, "$")) == NULL) /* salt */
+		goto err;
+	if(strlen(p) > MAX_SALT_SIZE)
+		goto err;
+
+	MEM_FREE(keeptr);
+	return 1;
+
+err:
+	MEM_FREE(keeptr);
+	return 0;
 }
 
 static void *get_salt(char *ciphertext)
