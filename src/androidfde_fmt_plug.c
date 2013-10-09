@@ -45,23 +45,23 @@
 #ifdef _OPENMP
 static int omp_t = 1;
 #include <omp.h>
-#define OMP_SCALE               1
+#define OMP_SCALE           1
 #endif
 
-#define FORMAT_TAG 		"$fde$"
-#define TAG_LENGTH 		5
-#define FORMAT_LABEL		"fde"
-#define FORMAT_NAME		"Android FDE"
+#define FORMAT_TAG          "$fde$"
+#define TAG_LENGTH          5
+#define FORMAT_LABEL        "fde"
+#define FORMAT_NAME         "Android FDE"
 #ifdef MMX_COEF
 #define ALGORITHM_NAME      "PBKDF2-SHA1 " SHA1_N_STR MMX_TYPE
 #else
 #define ALGORITHM_NAME      "PBKDF2-SHA1 32/" ARCH_BITS_STR
 #endif
-#define BENCHMARK_COMMENT	""
-#define PLAINTEXT_LENGTH  	64
-#define BENCHMARK_LENGTH	-1
-#define BINARY_SIZE		0
-#define SALT_SIZE		sizeof(struct custom_salt)
+#define BENCHMARK_COMMENT   ""
+#define PLAINTEXT_LENGTH    64
+#define BENCHMARK_LENGTH    -1
+#define BINARY_SIZE         0
+#define SALT_SIZE           sizeof(struct custom_salt)
 #ifdef MMX_COEF
 #define MIN_KEYS_PER_CRYPT  SSE_GROUP_SZ_SHA1
 #define MAX_KEYS_PER_CRYPT  SSE_GROUP_SZ_SHA1
@@ -105,12 +105,47 @@ static void init(struct fmt_main *self)
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
-// FIXME implement this!
 static int valid(char *ciphertext, struct fmt_main *self)
 {
+	char *ctcopy, *keeptr;
+	int saltlen, keysize;
+	char *p;
+
 	if (strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH) != 0)
 		return 0;
+
+	ctcopy = strdup(ciphertext);
+	keeptr = ctcopy;
+	ctcopy += TAG_LENGTH;
+	if ((p = strtok(ctcopy, "$")) == NULL)
+		goto err;
+	saltlen = atoi(p);
+	if(saltlen > 16)			/* saltlen */
+		goto err;
+	if ((p = strtok(NULL, "$")) == NULL)	/* salt */
+		goto err;
+	if (strlen(p) != saltlen * 2)
+		goto err;
+	if ((p = strtok(NULL, "*$")) == NULL)	/* keysize */
+		goto err;
+	keysize = atoi(p);
+	if(keysize > 64)
+		goto err;
+	if ((p = strtok(NULL, "$")) == NULL)	/* key */
+		goto err;
+	if(strlen(p) != keysize * 2)
+		goto err;
+	if ((p = strtok(NULL, "$")) == NULL)	/* data */
+		goto err;
+	if(strlen(p) != 512 * 3 * 2)
+		goto err;
+
+	MEM_FREE(keeptr);
 	return 1;
+
+err:
+	MEM_FREE(keeptr);
+	return 0;
 }
 
 static void *get_salt(char *ciphertext)
