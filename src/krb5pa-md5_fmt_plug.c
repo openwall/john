@@ -81,6 +81,8 @@
 
 #define OMP_SCALE          1024
 
+#define HEXCHARS           "0123456789abcdefABCDEF"
+
 // Second and third plaintext will be replaced in init() under --encoding=utf8
 static struct fmt_tests tests[] = {
 	{"$mskrb5$john$JOHN.DOE.MS.COM$02E837D06B2AC76891F388D9CC36C67A$2A9785BF5036C45D3843490BF9C228E8C18653E10CE58D7F8EF119D2EF4F92B1803B1451", "fr2beesgr"},
@@ -244,13 +246,15 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 		// checksum
 		p = strchr(data, '$');
-		if (!p || p - data != 2 * CHECKSUM_SIZE)
+		if (!p || p - data != 2 * CHECKSUM_SIZE ||
+		    strspn(data, HEXCHARS) != p - data)
 			return 0;
 		data = p + 1;
 
 		// encrypted timestamp
 		p += strlen(data) + 1;
-		if (*p || p - data != TIMESTAMP_SIZE * 2)
+		if (*p || p - data != TIMESTAMP_SIZE * 2 ||
+		    strspn(data, HEXCHARS) != p - data)
 			return 0;
 
 		return 1;
@@ -277,7 +281,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 		// timestamp+checksum
 		p += strlen(data) + 1;
-		if (*p || p - data != (TIMESTAMP_SIZE + CHECKSUM_SIZE) * 2)
+		if (*p || p - data != (TIMESTAMP_SIZE + CHECKSUM_SIZE) * 2 ||
+		    strspn(data, HEXCHARS) != p - data)
 			return 0;
 
 		return 1;
