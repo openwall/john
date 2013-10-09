@@ -37,7 +37,7 @@ static int omp_t = 1;
 #define FORMAT_NAME		""
 #define FORMAT_TAG  		"$rar5$"
 #define TAG_LENGTH  		6
-#define ALGORITHM_NAME		"PBKDF2-SHA256 32/" ARCH_BITS_STR
+#define ALGORITHM_NAME		"(experimental) PBKDF2-SHA256 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	32
@@ -81,9 +81,46 @@ static void init(struct fmt_main *self)
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
+	char *ctcopy, *keeptr, *p;
+	int len;
+
 	if (strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH) != 0)
 		return 0;
+
+	ctcopy = strdup(ciphertext);
+	keeptr = ctcopy;
+	ctcopy += TAG_LENGTH;
+	if ((p = strtok(ctcopy, "$")) == NULL)
+		goto err;
+	len = atoi(p);
+	if(len > 32) // salt length
+		goto err;
+	if ((p = strtok(NULL, "$")) == NULL)
+		goto err;
+	if (strlen(p) != len * 2)
+		goto err;
+	if ((p = strtok(NULL, "$")) == NULL)
+		goto err;
+	len = atoi(p);
+	if(len > 32) // iv length
+		goto err;
+	if ((p = strtok(NULL, "$")) == NULL)
+		goto err;
+	if (strlen(p) != len * 2)
+		goto err;
+	if ((p = strtok(NULL, "*$")) == NULL) // iterations
+		goto err;
+	if ((p = strtok(NULL, "*$")) == NULL) // hash
+		goto err;
+	if(strlen(p) != BINARY_SIZE * 2)
+		goto err;
+
+	MEM_FREE(keeptr);
 	return 1;
+
+err:
+	MEM_FREE(keeptr);
+	return 0;
 }
 
 static void *get_salt(char *ciphertext)
