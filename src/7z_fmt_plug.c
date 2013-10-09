@@ -28,7 +28,9 @@
 
 #define FORMAT_LABEL		"7z"
 #define FORMAT_NAME		"7-Zip"
-#define ALGORITHM_NAME		"SHA256 32/" ARCH_BITS_STR
+#define FORMAT_TAG		"$7z$"
+#define TAG_LENGTH		4
+#define ALGORITHM_NAME		"(experimental) SHA256 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define BINARY_SIZE		0
@@ -87,13 +89,59 @@ static void init(struct fmt_main *self)
 	CRC32_Init(&crc);
 }
 
-// XXX implement valid
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	if (strncmp(ciphertext,  "$7z$", 4) != 0)
+	char *ctcopy, *keeptr, *p;
+	int len, type, NumCyclesPower;
+
+	if (strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH) != 0)
 		return 0;
 
+	ctcopy = strdup(ciphertext);
+	keeptr = ctcopy;
+	ctcopy += TAG_LENGTH;
+	if ((p = strtok(ctcopy, "$")) == NULL)
+		goto err;
+	type = atoi(p);
+	if (type != 0)
+		goto err;
+	if ((p = strtok(NULL, "$")) == NULL) /* NumCyclesPower */
+		goto err;
+	NumCyclesPower = atoi(p);
+	if (NumCyclesPower > 24)
+		goto err;
+	if ((p = strtok(NULL, "$")) == NULL) /* salt length */
+		goto err;
+	len = atoi(p);
+	if(len > 16) /* salt length */
+		goto err;
+	if ((p = strtok(NULL, "$")) == NULL) /* salt */
+		goto err;
+	if ((p = strtok(NULL, "$")) == NULL) /* iv length */
+		goto err;
+	len = atoi(p);
+	if ((p = strtok(NULL, "$")) == NULL) /* iv */
+		goto err;
+	if(len > 16) /* iv length */
+		goto err;
+	if ((p = strtok(NULL, "$")) == NULL) /* crc */
+		goto err;
+	if ((p = strtok(NULL, "$")) == NULL) /* data length */
+		goto err;
+	len = atoi(p);
+	if ((p = strtok(NULL, "$")) == NULL) /* unpacksize */
+		goto err;
+	if ((p = strtok(NULL, "$")) == NULL) /* data */
+		goto err;
+	if (strlen(p) != len * 2)
+		goto err;
+
+	MEM_FREE(keeptr);
 	return 1;
+
+err:
+	MEM_FREE(keeptr);
+	return 0;
 }
 
 static void *get_salt(char *ciphertext)
