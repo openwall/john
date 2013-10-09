@@ -74,6 +74,8 @@
 #define MIN(a, b)		(((a) > (b)) ? (b) : (a))
 #define MAX(a, b)		(((a) > (b)) ? (a) : (b))
 
+#define HEXCHARS           "0123456789abcdefABCDEF"
+
 static struct fmt_tests tests[] = {
 	{"$krb5pa$18$user1$EXAMPLE.COM$$2a0e68168d1eac344da458599c3a2b33ff326a061449fcbc242b212504e484d45903c6a16e2d593912f56c93883bf697b325193d62a8be9c", "openwall"},
 	{"$krb5pa$18$user1$EXAMPLE.COM$$a3918bd0381107feedec8db0022bdf3ac56e534ed54d13c62a7013a47713cfc31ef4e7e572f912fa4164f76b335e588bf29c2d17b11c5caa", "openwall"},
@@ -562,7 +564,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 
 	// 56 bytes (112 hex chars) encrypted timestamp + checksum
-	if (strlen(data) != 2 * (TIMESTAMP_SIZE + CHECKSUM_SIZE))
+	if (strlen(data) != 2 * (TIMESTAMP_SIZE + CHECKSUM_SIZE) ||
+	    strspn(data, HEXCHARS) != strlen(data))
 		return 0;
 
 	return 1;
