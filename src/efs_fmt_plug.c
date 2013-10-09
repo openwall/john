@@ -34,6 +34,8 @@
 #endif
 
 #define FORMAT_LABEL		"EFS"
+#define FORMAT_TAG		"$efs$"
+#define TAG_LENGTH		5
 #define FORMAT_NAME		""
 #define ALGORITHM_NAME		"PBKDF2-SHA1-crap 3DES 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
@@ -101,7 +103,6 @@ static void pbkdf2_sha1_shit(unsigned char *password, size_t plen,
 	}
 }
 
-
 #if defined (_OPENMP)
 static int omp_t = 1;
 #endif
@@ -133,15 +134,39 @@ static void init(struct fmt_main *self)
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
-// XXX implement me!
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	if (strncmp(ciphertext,  "$efs$", 5) != 0)
+	char *ctcopy, *keeptr, *p;
+
+	if (strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH) != 0)
 		return 0;
+
+	ctcopy = strdup(ciphertext);
+	keeptr = ctcopy;
+	ctcopy += TAG_LENGTH;
+	if ((p = strtok(ctcopy, "$")) == NULL)
+		goto err;
+	if (strlen(p) > 1024)
+		goto err;
+	if ((p = strtok(NULL, "$")) == NULL) /* iv */
+		goto err;
+	if (strlen(p) > 16 * 2) /* iv length */
+		goto err;
+	if ((p = strtok(NULL, "$")) == NULL) /* iterations */
+		goto err;
+	if ((p = strtok(NULL, "$")) == NULL) /* data */
+		goto err;
+	if (strlen(p) > 4096 * 2)
+		goto err;
+
+	MEM_FREE(keeptr);
 	return 1;
+
+err:
+	MEM_FREE(keeptr);
+	return 0;
 }
 
-// XXX implement me!
 static void *get_salt(char *ciphertext)
 {
 	char *ctcopy = strdup(ciphertext);
