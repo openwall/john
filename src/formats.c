@@ -134,9 +134,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 	int i, ntests, done, index, max, size;
 	void *binary, *salt;
 	int binary_align_warned = 0, salt_align_warned = 0;
-#ifdef DEBUG
-	int validkiller = 0;
-#endif
+	int dhirutest = 0;
 #ifndef BENCH_BUILD
 	int maxlength = 0;
 #endif
@@ -239,18 +237,33 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		if (format->methods.valid(ciphertext, format) != 1)
 			return "valid";
 
-#if !defined(BENCH_BUILD) && defined(DEBUG)
-		/* This defaults to disabled because it usually makes the
-		   format segfault as opposed to fail the test */
-		if (validkiller == 0) {
-			char *killer = strdup(ciphertext);
+#if !defined(BENCH_BUILD)
+		if (!dhirutest++ && strcmp(format->params.label, "dummy")) {
+			if (*ciphertext == '$') {
+				char *p, *k = strdup(ciphertext);
 
-			validkiller = 1;
-			for (i = strlen(killer) - 1; i > 0; i--) {
-				killer[i] = 0;
-				format->methods.valid(killer, format);
+				p = k + 1;
+				while (*p) {
+					if (*p++ == '$') {
+						*p = 0;
+						// $tag$ only
+						if (format->methods.valid(k, format)) {
+							sprintf(s_size, "promiscuos valid (%s)", k);
+							return s_size;
+						}
+						*p = '$';
+						while (*p)
+							*p++ = '$';
+						// $tag$$$$$$$$$$$$$$$$$$
+						if (format->methods.valid(k, format)) {
+							sprintf(s_size, "promiscuos valid");
+							return s_size;
+						}
+						break;
+					}
+				}
+				MEM_FREE(k);
 			}
-			MEM_FREE(killer);
 		}
 #endif
 
