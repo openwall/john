@@ -95,13 +95,21 @@ static void init(struct fmt_main *self)
 	                self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
-// XXX implement me!
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	if (!strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LENGTH))
-		return 1;
-	else
+	char *p;
+
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LENGTH) != 0)
 		return 0;
+
+	p = ciphertext + FORMAT_TAG_LENGTH;
+	if (*p != '0' || *(p + 1) != '$')
+		return 0;
+
+	if (strlen(p + 2) != REAL_BINARY_SIZE * 2)
+		return 0;
+
+	return 1;
 }
 
 static void *get_salt(char *ciphertext)
