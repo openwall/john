@@ -73,7 +73,7 @@ static struct custom_salt {
 	unsigned int cryptextlen;
 	unsigned char cryptext[CTLEN];
 	unsigned int expectedhmaclen;
-	unsigned char expectedhmac[CTLEN];
+	unsigned char expectedhmac[CTLEN]; // XXX this can't be that big
 	unsigned int hmacdatalen;
 	unsigned char hmacdata[CTLEN];
 } *cur_salt;
@@ -95,9 +95,81 @@ static void init(struct fmt_main *self)
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
+	char *ctcopy, *keeptr, *p;
+	int len;
+
 	if (strncmp(ciphertext,  "$cloudkeychain$", 15) != 0)
 		return 0;
+
+	ctcopy = strdup(ciphertext);
+	keeptr = ctcopy;
+	ctcopy += 15;
+	if ((p = strtok(ctcopy, "$")) == NULL)	/* salt length */
+		goto err;
+	len = atoi(p);
+	if(len > SALTLEN)
+		goto err;
+	if ((p = strtok(NULL, "$")) == NULL)	/* salt */
+		goto err;
+	if(strlen(p) != len * 2)
+		goto err;
+	if ((p = strtok(NULL, "$")) == NULL)	/* iterations */
+		goto err;
+	if ((p = strtok(NULL, "$")) == NULL)	/* masterkey length */
+		goto err;
+	len = atoi(p);
+	if(len > CTLEN)
+		goto err;
+	if ((p = strtok(NULL, "$")) == NULL)	/* masterkey */
+		goto err;
+	if(strlen(p) != len * 2)
+		goto err;
+	if ((p = strtok(NULL, "$")) == NULL)	/* plaintext length */
+		goto err;
+	if ((p = strtok(NULL, "$")) == NULL)	/* iv length */
+		goto err;
+	len = atoi(p);
+	if(len > IVLEN)
+		goto err;
+	if ((p = strtok(NULL, "$")) == NULL)	/* iv */
+		goto err;
+	if(strlen(p) != len * 2)
+		goto err;
+	if ((p = strtok(NULL, "$")) == NULL)	/* cryptext length */
+		goto err;
+	len = atoi(p);
+	if (len > CTLEN)
+		goto err;
+	if ((p = strtok(NULL, "$")) == NULL)	/* cryptext */
+		goto err;
+	if(strlen(p) != len * 2)
+		goto err;
+	if ((p = strtok(NULL, "$")) == NULL)	/* expectedhmac length */
+		goto err;
+	len = atoi(p);
+	if (len > CTLEN)
+		goto err;
+	if ((p = strtok(NULL, "$")) == NULL)	/* expectedhmac */
+		goto err;
+	if(strlen(p) != len * 2)
+		goto err;
+	if ((p = strtok(NULL, "$")) == NULL)	/* hmacdata length */
+		goto err;
+	len = atoi(p);
+	if (len > CTLEN)
+		goto err;
+	if ((p = strtok(NULL, "$")) == NULL)	/* hmacdata */
+		goto err;
+	if(strlen(p) != len * 2)
+		goto err;
+
+
+	MEM_FREE(keeptr);
 	return 1;
+
+err:
+	MEM_FREE(keeptr);
+	return 0;
 }
 
 static void *get_salt(char *ciphertext)
