@@ -141,7 +141,9 @@ static void init(struct fmt_main *self)
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	char *p, *q = NULL;;
+	char *p, *q = NULL;
+	int len;
+
 	p = ciphertext;
 
 	if (!strncmp(p, FORMAT_TAG, TAG_LENGTH))
@@ -157,10 +159,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if ((q - p - 1) < SALT_MIN_SIZE * 2)
 		return 0;
 
-	if (strspn(q, HEXCHARS) != BINARY_SIZE * 2)
+	len = strspn(q, HEXCHARS);
+	if (len != BINARY_SIZE * 2 || len != strlen(q))
 		return 0;
 
-	if (strspn(p, HEXCHARS) > SALT_MAX_SIZE * 2)
+	if (strspn(p, HEXCHARS) != q - p - 1)
 		return 0;
 
 	return 1;
