@@ -27,6 +27,9 @@
 
 #define FORMAT_LABEL		"Blockchain"
 #define FORMAT_NAME		"My Wallet"
+#define FORMAT_TAG		"$blockchain$"
+#define TAG_LENGTH		12
+
 #ifdef MMX_COEF
 #define ALGORITHM_NAME		"PBKDF2-SHA1 AES " SHA1_N_STR MMX_TYPE
 #else
@@ -40,8 +43,8 @@
 #define SALT_SIZE		sizeof(struct custom_salt)
 #define SALT_ALIGN		4
 #ifdef MMX_COEF
-#define MIN_KEYS_PER_CRYPT  SSE_GROUP_SZ_SHA1
-#define MAX_KEYS_PER_CRYPT  SSE_GROUP_SZ_SHA1
+#define MIN_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA1
+#define MAX_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA1
 #else
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
@@ -82,13 +85,33 @@ static void init(struct fmt_main *self)
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
-// XXX implement valid
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	if (strncmp(ciphertext,  "$blockchain$", 12) != 0)
+	char *ctcopy, *keeptr, *p;
+	int len;
+
+	if (strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH) != 0)
 		return 0;
 
+	ctcopy = strdup(ciphertext);
+	keeptr = ctcopy;
+	ctcopy += TAG_LENGTH;
+	if ((p = strtok(ctcopy, "$")) == NULL)
+		goto err;
+	len = atoi(p);
+	if(len > BIG_ENOUGH)
+		goto err;
+	if ((p = strtok(NULL, "$")) == NULL)
+		goto err;
+	if (strlen(p) != len * 2)
+		goto err;
+
+	MEM_FREE(keeptr);
 	return 1;
+
+err:
+	MEM_FREE(keeptr);
+	return 0;
 }
 
 static void *get_salt(char *ciphertext)
@@ -104,7 +127,7 @@ static void *get_salt(char *ciphertext)
 	} un;
 	struct custom_salt *cs = &(un._cs);
 
-	ctcopy += 12;
+	ctcopy += TAG_LENGTH;
 	p = strtok(ctcopy, "$");
 	cs->length = atoi(p);
 	p = strtok(NULL, "$");
