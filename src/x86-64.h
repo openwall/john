@@ -17,7 +17,11 @@
 #ifndef _JOHN_ARCH_H
 #define _JOHN_ARCH_H
 
+#ifdef __ILP32__
 #define ARCH_WORD			long long
+#else
+#define ARCH_WORD			long
+#endif
 #define ARCH_SIZE			8
 #define ARCH_BITS			64
 #define ARCH_BITS_LOG			6
