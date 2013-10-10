@@ -72,7 +72,9 @@
 #define CHECKSUM_SIZE      16
 #define KEY_SIZE           16
 #define BINARY_SIZE        CHECKSUM_SIZE
+#define BINARY_ALIGN       4
 #define SALT_SIZE          sizeof(struct salt_t)
+#define SALT_ALIGN         4
 #define TOTAL_LENGTH       (14 + 2 * (CHECKSUM_SIZE + TIMESTAMP_SIZE) + MAX_REALMLEN + MAX_USERLEN + MAX_SALTLEN)
 
 // these may be altered in init() if running OMP
@@ -374,7 +376,7 @@ static int cmp_all(void *binary, int count)
 #ifdef _OPENMP
 	for (index = 0; index < count; index++)
 #endif
-		if (!memcmp(binary, output[index], BINARY_SIZE))
+		if (*(ARCH_WORD_32*)binary == output[index][0])
 			return 1;
 	return 0;
 }
@@ -411,9 +413,9 @@ struct fmt_main fmt_mskrb5 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		sizeof(ARCH_WORD_32),
+		BINARY_ALIGN,
 		SALT_SIZE,
-		sizeof(ARCH_WORD_32),
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		0,
