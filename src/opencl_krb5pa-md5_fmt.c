@@ -8,25 +8,9 @@
  * 2. krbng2john.py ~/capture.pdml > krb5.in
  * 3. Run john on krb5.in
  *
- * Legacy input format:
- * user:$mskrb5$user$realm$checksum$timestamp
- *
- * New input format from krbpa2john.py (the above is still supported)
  * user:$krb5pa$etype$user$realm$salt$timestamp+checksum
  *
  * user, realm and salt are unused in this format.
- *
- * This attacks a known-plaintext vulnerability in AS_REQ pre-auth packets. The
- * known plaintext is a UTC timestamp in the format 20081120171510Z. Only if
- * this indicate a match we decrypt the whole timestamp and calculate our own
- * checksum to be really sure.
- *
- * The plaintext attack combined with re-using key setup was said to result in
- * more than 60% speedup. This was confirmed using John the Ripper and variants
- * of this code.
- *
- * http://www.ietf.org/rfc/rfc4757.txt
- * http://www.securiteam.com/windowsntfocus/5BP0H0A6KM.html
  *
  * This software is Copyright (c) 2013 magnum, and it is hereby released
  * to the general public under the following terms:  Redistribution and use in
@@ -359,10 +343,6 @@ static void init(struct fmt_main *self)
 	char build_opts[64];
 	char *encoding = options.encodingDef ?
 	    options.encodingDef : "ISO_8859_1";
-
-	// WTF?
-	//fprintf(stderr, "%s() top verb %d encdef %s utf8 %d\n", __FUNCTION__, options.verbosity, options.encodingDef, options.utf8);
-	//options.verbosity = 4;
 
 	if (options.utf8) {
 		max_len = self->params.plaintext_length = 3 * PLAINTEXT_LENGTH;
