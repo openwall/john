@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <ctype.h> /* for isprint() */
 
 #include "arch.h"
 #include "misc.h"
