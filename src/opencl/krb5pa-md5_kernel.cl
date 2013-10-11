@@ -1,8 +1,8 @@
 /*
- * NTLMv2
- * MD4 + 2 x HMAC-MD5, with Unicode conversion on GPU
+ * Kerberos 5 AS_REQ Pre-Auth etype 23
+ * MD4 + HMAC-MD5 + RC4, with Unicode conversion on GPU
  *
- * Copyright (c) 2012, magnum
+ * Copyright (c) 2013, magnum
  * This software is hereby released to the general public under
  * the following terms: Redistribution and use in source and binary
  * forms, with or without modification, are permitted.
@@ -418,6 +418,44 @@ __constant UTF16 CP1253[] = {
 
 #define md4_init(output)	md5_init(output)
 
+#define RC4_INT	uint
+
+#define swap_byte(a, b) {	  \
+		uint tmp = a; \
+		a = b; \
+		b = tmp; \
+	}
+
+/* NOTE hard-coded for length 16 */
+#define swap_state(n) {	  \
+		index2 = (key[index1] + state[(n)] + index2) & 255; \
+		swap_byte(state[(n)], state[index2]); \
+		index1 = (index1 + 1) & 15; \
+	}
+
+inline void rc4(const uint *key_w, MAYBE_CONSTANT uint *in_w, __global uchar *out /* , uint length */)
+{
+	RC4_INT state[256];
+	uchar *key = (uchar*)key_w;
+	MAYBE_CONSTANT uchar *in = (MAYBE_CONSTANT uchar*)in_w;
+	uint x;
+	uint y = 0;
+	uint index1 = 0;
+	uint index2 = 0;
+
+	for(x = 0; x < 256; x++)
+		state[x] = x;
+
+	for(x = 0; x < 256; x++)
+		swap_state(x);
+
+	for(x = 1; x <= 16; x++) {
+		y = (state[x] + y) & 255;
+		swap_byte(state[x], state[y]);
+		*out++ = *in++ ^ state[(state[x] + state[y]) & 255];
+	}
+}
+
 #define dump_stuff_msg(msg, x, size) {	  \
 		uint ii; \
 		printf("%s : ", msg); \
@@ -426,10 +464,9 @@ __constant UTF16 CP1253[] = {
 		printf("\n"); \
 	}
 
-
 #ifdef ENC_UTF_8
 
-__kernel void ntlmv2_nthash(const __global uchar *source,
+__kernel void krb5pa_md5_nthash(const __global uchar *source,
                             __global const uint *index,
                             __global uint *nthash)
 {
@@ -516,7 +553,7 @@ __kernel void ntlmv2_nthash(const __global uchar *source,
 
 #elif !defined(ENC_ISO_8859_1) && !defined(ENC_RAW)
 
-__kernel void ntlmv2_nthash(const __global uchar *password,
+__kernel void krb5pa_md5_nthash(const __global uchar *password,
                             __global const uint *index,
                             __global uint *nthash)
 {
@@ -547,7 +584,7 @@ __kernel void ntlmv2_nthash(const __global uchar *password,
 
 #else
 
-__kernel void ntlmv2_nthash(const __global uchar *password,
+__kernel void krb5pa_md5_nthash(const __global uchar *password,
                             __global const uint *index,
                             __global uint *nthash)
 {
@@ -578,16 +615,14 @@ __kernel void ntlmv2_nthash(const __global uchar *password,
 
 #endif /* encodings */
 
-__kernel void ntlmv2_final(const __global uint *nthash, MAYBE_CONSTANT uint *challenge, __global uint *result)
+__kernel void krb5pa_md5_final(const __global uint *nthash, MAYBE_CONSTANT uint *challenge, __global uchar *result)
 {
 	uint i;
 	uint gid = get_global_id(0);
-	uint gws = get_global_size(0);
 	uint block[16];
 	uint output[4], hash[4];
 	uint a, b, c, d;
-	MAYBE_CONSTANT uint *cp = challenge; /* identity[32].len,server_chal.client_chal[len] */
-	uint challenge_size;
+	MAYBE_CONSTANT uint *cp = challenge; /* checksum[16], timestamp[36] */
 
 	/* 1st HMAC */
 	md5_init(output);
@@ -598,18 +633,13 @@ __kernel void ntlmv2_final(const __global uint *nthash, MAYBE_CONSTANT uint *cha
 		block[i] = 0x36363636;
 	md5_block(block, output); /* md5_update(ipad, 64) */
 
-	/* Salt buffer is prepared with 0x80, zero-padding and length,
-	 * it can be one or two blocks */
-	for (i = 0; i < 16; i++)
-		block[i] = *cp++;
-	md5_block(block, output); /* md5_update(salt, saltlen), md5_final() */
-
-	if (cp[14]) { /* salt longer than 27 characters */
-		for (i = 0; i < 16; i++)
-			block[i] = *cp++;
-		md5_block(block, output); /* alternate final */
-	} else
-		cp += 16;
+	block[0] = 0x01;    /* little endian "one", 4 bytes */
+	block[1] = 0x80;
+	for (i = 2; i < 14; i++)
+		block[i] = 0;
+	block[14] = (64 + 4) << 3;
+	block[15] = 0;
+	md5_block(block, output); /* md5_update(one, 4), md5_final() */
 
 	for (i = 0; i < 4; i++)
 		hash[i] = output[i];
@@ -641,17 +671,14 @@ __kernel void ntlmv2_final(const __global uint *nthash, MAYBE_CONSTANT uint *cha
 		block[i] = 0x36363636;
 	md5_block(block, output); /* md5_update(ipad, 64) */
 
-	/* Challenge:  blocks (of MD5),
-	 * Server Challenge + Client Challenge (Blob) +
-	 * 0x80, null padded and len set in get_salt() */
-	challenge_size = *cp++;
-
-	/* At least this will not diverge */
-	while (challenge_size--) {
-		for (i = 0; i < 16; i++)
-			block[i] = *cp++;
-		md5_block(block, output); /* md5_update(challenge, len), md5_final() */
-	}
+	for (i = 0; i < 4; i++)
+		block[i] = *cp++; /* checksum, 16 bytes */
+	block[4] = 0x80;
+	for (i = 5; i < 14; i++)
+		block[i] = 0;
+	block[14] = (64 + 16) << 3;
+	block[15] = 0;
+	md5_block(block, output); /* md5_update(cs, 16), md5_final() */
 
 	for (i = 0; i < 4; i++)
 		block[i] = 0x5c5c5c5c ^ hash[i];
@@ -672,6 +699,5 @@ __kernel void ntlmv2_final(const __global uint *nthash, MAYBE_CONSTANT uint *cha
 	block[15] = 0;
 	md5_block(block, output); /* md5_update(hash, 16), md5_final() */
 
-	for (i = 0; i < 4; i++)
-		result[i * gws + gid] = output[i];
+	rc4(output, cp, &result[gid * 16]);
 }
