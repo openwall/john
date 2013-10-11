@@ -2,6 +2,9 @@
 
 /* Header structs taken from vilefault project */
 
+#pragma pack(push)  /* push current alignment to stack */
+#pragma pack(1)     /* set alignment to 1 byte boundary */
+ 
 typedef struct {
 	unsigned char filler1[48];
 	unsigned int kdf_iteration_count;
@@ -21,27 +24,50 @@ typedef struct {
 	unsigned char sig[8];
 	uint32_t version;
 	uint32_t enc_iv_size;
-	uint32_t unk1;
-	uint32_t unk2;
-	uint32_t unk3;
-	uint32_t unk4;
-	uint32_t unk5;
+	uint32_t encMode;
+	uint32_t encAlg;
+	uint32_t keyBits;
+	uint32_t prngalg;
+	uint32_t prngkeysize;
 	unsigned char uuid[16];
 	uint32_t blocksize;
 	uint64_t datasize;
 	uint64_t dataoffset;
-	uint8_t filler1[24];
-	uint32_t kdf_algorithm;
-	uint32_t kdf_prng_algorithm;
-	uint32_t kdf_iteration_count;
-	uint32_t kdf_salt_len;	/* in bytes */
-	uint8_t kdf_salt[32];
-	uint32_t blob_enc_iv_size;
-	uint8_t blob_enc_iv[32];
-	uint32_t blob_enc_key_bits;
-	uint32_t blob_enc_algorithm;
+	uint32_t keycount;
+} cencrypted_v2_header;
+
+typedef struct {
+	uint32_t header_type;
+	uint32_t unk1;
+	uint32_t header_offset;
+	uint32_t unk2;
+	uint32_t header_size;
+} cencrypted_v2_key_header_pointer;
+
+typedef struct {
+	uint32_t algorithm;
+	uint32_t prngalgo;
+	uint32_t itercount;
+	uint32_t salt_size;
+	unsigned char salt[32];
+	uint32_t iv_size;
+	unsigned char iv[32];
+	uint32_t blob_enc_keybits;
+	uint32_t blob_enc_algo;
 	uint32_t blob_enc_padding;
 	uint32_t blob_enc_mode;
-	uint32_t encrypted_keyblob_size;
-	uint8_t encrypted_keyblob[0x30];
-} cencrypted_v2_pwheader;
+	uint32_t keyblobsize;
+	unsigned char *keyblob;
+} cencrypted_v2_password_header;
+
+typedef struct {
+	uint32_t salt_size;
+	unsigned char salt[32];
+	uint32_t unk1;
+	uint32_t unk2;
+	uint32_t unk3;
+	uint32_t keyblobsize;
+	unsigned char keyblob[512];
+} cencrypted_v2_private_key_header;
+
+#pragma pack(pop)   /* restore original alignment from stack */

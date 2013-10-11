@@ -26,6 +26,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <sys/types.h>
 #include <arpa/inet.h>
 #include <openssl/evp.h>
@@ -44,7 +45,8 @@
 static int chunk_size;
 static int headerver;
 static cencrypted_v1_header header;
-static cencrypted_v2_pwheader header2;
+static cencrypted_v2_header header2;
+static cencrypted_v2_password_header v2_password_header;
 
 static void header_byteorder_fix(cencrypted_v1_header * hdr)
 {
@@ -55,21 +57,40 @@ static void header_byteorder_fix(cencrypted_v1_header * hdr)
 	hdr->len_integrity_key = htonl(hdr->len_integrity_key);
 }
 
-static void header2_byteorder_fix(cencrypted_v2_pwheader * pwhdr)
+static void header2_byteorder_fix(cencrypted_v2_header * header)
 {
-	pwhdr->blocksize = ntohl(pwhdr->blocksize);
-	pwhdr->datasize = ntohll(pwhdr->datasize);
-	pwhdr->dataoffset = ntohll(pwhdr->dataoffset);
-	pwhdr->kdf_algorithm = ntohl(pwhdr->kdf_algorithm);
-	pwhdr->kdf_prng_algorithm = ntohl(pwhdr->kdf_prng_algorithm);
-	pwhdr->kdf_iteration_count = ntohl(pwhdr->kdf_iteration_count);
-	pwhdr->kdf_salt_len = ntohl(pwhdr->kdf_salt_len);
-	pwhdr->blob_enc_iv_size = ntohl(pwhdr->blob_enc_iv_size);
-	pwhdr->blob_enc_key_bits = ntohl(pwhdr->blob_enc_key_bits);
-	pwhdr->blob_enc_algorithm = ntohl(pwhdr->blob_enc_algorithm);
-	pwhdr->blob_enc_padding = ntohl(pwhdr->blob_enc_padding);
-	pwhdr->blob_enc_mode = ntohl(pwhdr->blob_enc_mode);
-	pwhdr->encrypted_keyblob_size = ntohl(pwhdr->encrypted_keyblob_size);
+	header->version = ntohl(header->version);
+	header->enc_iv_size = ntohl(header->enc_iv_size);
+	header->encMode = ntohl(header->encMode);
+	header->encAlg = ntohl(header->encAlg);
+	header->keyBits = ntohl(header->keyBits);
+	header->prngalg = ntohl(header->prngalg);
+	header->prngkeysize = ntohl(header->prngkeysize);
+	header->blocksize = ntohl(header->blocksize);
+	header->datasize = ntohll(header->datasize);
+	header->dataoffset = ntohll(header->dataoffset);
+	header->keycount = ntohl(header->keycount);
+}
+
+static void v2_key_header_pointer_byteorder_fix(cencrypted_v2_key_header_pointer *key_header_pointer)
+{
+	key_header_pointer->header_type = ntohl(key_header_pointer->header_type);
+	key_header_pointer->header_offset = ntohl(key_header_pointer->header_offset);
+	key_header_pointer->header_size = ntohl(key_header_pointer->header_size);
+}
+
+static void v2_password_header_byteorder_fix(cencrypted_v2_password_header *password_header)
+{
+	password_header->algorithm = ntohl(password_header->algorithm);
+	password_header->prngalgo = ntohl(password_header->prngalgo);
+	password_header->itercount = ntohl(password_header->itercount);
+	password_header->salt_size = ntohl(password_header->salt_size);
+	password_header->iv_size = ntohl(password_header->iv_size);
+	password_header->blob_enc_keybits = ntohl(password_header->blob_enc_keybits);
+	password_header->blob_enc_algo = ntohl(password_header->blob_enc_algo);
+	password_header->blob_enc_padding = ntohl(password_header->blob_enc_padding);
+	password_header->blob_enc_mode = ntohl(password_header->blob_enc_mode);
+	password_header->keyblobsize = ntohl(password_header->keyblobsize);
 }
 
 static void print_hex(unsigned char *str, int len)
@@ -83,6 +104,7 @@ static void hash_plugin_parse_hash(char *filename)
 {
 	int fd;
 	char buf8[8];
+	uint32_t i = 0;
 	int64_t cno = 0;
 	int64_t data_size = 0;
 	int64_t count = 0;
@@ -156,15 +178,18 @@ static void hash_plugin_parse_hash(char *filename)
 	}
 	else {
 		strnzcpyn(path, filename, LARGE_ENOUGH);
-
+		if (!(name = basename(path)))
+		    name = path;
+		
 		if (lseek(fd, 0, SEEK_SET) < 0) {
 			fprintf(stderr, "Unable to seek in %s\n", filename);
 			return;
 		}
-		if (read(fd, &header2, sizeof(cencrypted_v2_pwheader)) < 1) {
+		if (read(fd, &header2, sizeof(cencrypted_v2_header)) < 1) {
 			fprintf(stderr, "%s is not a DMG file!\n", filename);
 			return;
 		}
+		
 		header2_byteorder_fix(&header2);
 
 		chunk_size = header2.blocksize;
@@ -172,62 +197,145 @@ static void hash_plugin_parse_hash(char *filename)
 			fprintf(stderr, "Unable to seek in %s\n", filename);
 			return;
 		}
-		cno = ((header2.datasize + 4095ULL) / 4096) - 2;
-		data_size = header2.datasize - cno * 4096ULL;
+
+		if(strstr(name, ".sparseimage")) {
+			// If this file is a sparseimage then we want one of the first chunks as the other chunks could be empty.
+			cno = 1;
+			data_size = 8192;
+		} else {
+			cno = ((header2.datasize + 4095ULL) / 4096) - 2;
+			data_size = header2.datasize - cno * 4096ULL;
+		}
+		
 		if (data_size < 0) {
 			fprintf(stderr, "%s is not a valid DMG file!\n", filename);
 			return;
 		}
-		if (header2.kdf_salt_len > 32) {
-			fprintf(stderr, "%s is not a valid DMG file, salt length is too long!\n", filename);
+		
+		bool password_header_found = false;		
+		for (i = 0; i < header2.keycount; i++) {
+						
+			// Seek to the start of the key header pointers offset by the current key which start immediately after the v2 header.
+			if (lseek(fd, (sizeof(cencrypted_v2_header) + (sizeof(cencrypted_v2_key_header_pointer)*i)), SEEK_SET) < 0) {
+				fprintf(stderr, "Unable to seek to header pointers in %s\n", filename);
+				return;
+			}
+			
+			// Read in the key header pointer
+			cencrypted_v2_key_header_pointer header_pointer;
+			count = read(fd, &header_pointer, sizeof(cencrypted_v2_key_header_pointer));
+			if (count < 1 || count != sizeof(cencrypted_v2_key_header_pointer)) {
+				fprintf(stderr, "Unable to read required data from %s\n", filename);
+				return;
+			}
+			
+			v2_key_header_pointer_byteorder_fix(&header_pointer);
+			
+			// We, currently, only care about the password key header. If it's not the password header type skip over it.
+			if (header_pointer.header_type != 1) {
+				continue;
+			}
+			
+			// Seek to where the password key header is in the file.
+			if (lseek(fd, header_pointer.header_offset, SEEK_SET) < 0) {
+				fprintf(stderr, "Unable to seek to password header in %s\n", filename);
+				return;
+			}
+			
+			// Read in the password key header but avoid reading anything into the keyblob.
+			count = read(fd, &v2_password_header, sizeof(cencrypted_v2_password_header) - sizeof(unsigned char *));
+			if (count < 1 || count != (sizeof(cencrypted_v2_password_header) - sizeof(unsigned char *))) {
+				fprintf(stderr, "Unable to read required data from %s\n", filename);
+				return;
+			}
+			
+			v2_password_header_byteorder_fix(&v2_password_header);
+			
+			// Allocate the keyblob memory
+			v2_password_header.keyblob = malloc(v2_password_header.keyblobsize);
+			
+			// Seek to the keyblob in the header
+			if (lseek(fd, header_pointer.header_offset + sizeof(cencrypted_v2_password_header) - sizeof(unsigned char *), SEEK_SET) < 0) {
+				fprintf(stderr, "Unable to seek to password header in %s\n", filename);
+				free(v2_password_header.keyblob);
+				return;
+			}
+			
+			// Read in the keyblob
+			count = read(fd, v2_password_header.keyblob, v2_password_header.keyblobsize);
+			if (count < 1 || count != (v2_password_header.keyblobsize)) {
+				fprintf(stderr, "Unable to read required data from %s\n", filename);
+				free(v2_password_header.keyblob);
+				return;
+			}
+			
+			password_header_found = true;
+			
+			// We onlt need one password header. Don't search any longer.
+			break;
+		}
+		
+		if (!password_header_found) {
+			fprintf(stderr, "Password header not found in %s\n", filename);
+			free(v2_password_header.keyblob);
 			return;
 		}
-		if (!(name = basename(path)))
-		    name = path;
+		
+		if (v2_password_header.salt_size > 32) {
+			fprintf(stderr, "%s is not a valid DMG file, salt length is too long!\n", filename);
+			free(v2_password_header.keyblob);
+			return;
+		}
 
 		fprintf(stderr, "%s (DMG v%d) successfully parsed, iterations "
 		        "count %u\n", name, headerver,
-		        header2.kdf_iteration_count);
+		        v2_password_header.itercount);
 
 		/* read starting chunk(s) */
 		chunk1 = (unsigned char *) malloc(data_size);
 		if (lseek(fd, header2.dataoffset + cno * 4096LL, SEEK_SET) < 0) {
 			fprintf(stderr, "Unable to seek in %s\n", filename);
 			free(chunk1);
+			free(v2_password_header.keyblob);
 			return;
 		}
 		count = read(fd, chunk1, data_size);
 		if (count < 1 || count != data_size) {
 			fprintf(stderr, "Unable to read required data from %s\n", filename);
 			free(chunk1);
+			free(v2_password_header.keyblob);
 			return;
 		}
 		/* read last chunk */
 		if (lseek(fd, header2.dataoffset, SEEK_SET) < 0) {
 			fprintf(stderr, "Unable to seek in %s\n", filename);
 			free(chunk1);
+			free(v2_password_header.keyblob);
 			return;
 		}
 		count = read(fd, chunk2, 4096);
 		if (count < 1 || count != 4096) {
 			fprintf(stderr, "Unable to read required data from %s\n", filename);
 			free(chunk1);
+			free(v2_password_header.keyblob);
 			return;
 		}
 
 		/* output hash */
-		printf("%s:$dmg$%d*%d*", name, headerver, header2.kdf_salt_len);
-		print_hex(header2.kdf_salt, header2.kdf_salt_len);
+		printf("%s:$dmg$%d*%d*", name, headerver, v2_password_header.salt_size);
+		print_hex(v2_password_header.salt, v2_password_header.salt_size);
 		printf("*32*");
-		print_hex(header2.blob_enc_iv, 32);
-		printf("*%d*", header2.encrypted_keyblob_size);
-		print_hex(header2.encrypted_keyblob, header2.encrypted_keyblob_size);
+		print_hex(v2_password_header.iv, 32);
+		printf("*%d*", v2_password_header.keyblobsize);
+		print_hex(v2_password_header.keyblob, v2_password_header.keyblobsize);
 		printf("*%d*%d*", (int)cno, (int)data_size);
 		print_hex(chunk1, data_size);
 		printf("*1*");
 		print_hex(chunk2, 4096);
-		printf("*%u::::%s\n", header2.kdf_iteration_count, filename);
+		printf("*%u::::%s\n", v2_password_header.itercount, filename);
+		
 		free(chunk1);
+		free(v2_password_header.keyblob);
 	}
 	close(fd);
 }

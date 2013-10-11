@@ -546,6 +546,15 @@ static int hash_plugin_check_hash(const char *password)
 			}
 		}
 
+		/* Apple is a pretty good indication */
+		if (_memmem(outbuf, cur_salt->data_size, (void*)"Apple", 5)) {
+#ifdef DMG_DEBUG
+			dump_strings(outbuf, cur_salt->data_size);
+			fprintf(stderr, "Apple found!\n");
+#endif
+			return 1;
+		}
+		
 		/* Handle VileFault sample images */
 		if (jtr_memmem(outbuf, cur_salt->data_size, (void*)"EFI PART", 8)) {
 #ifdef DMG_DEBUG
