@@ -342,29 +342,28 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	{
 		unsigned char K3[KEY_SIZE], cleartext[TIMESTAMP_SIZE];
 		HMACMD5Context ctx;
-		RC4_KEY key;
 		// key set up with K1 is stored in saved_ctx[i]
 
 		// K3 = HMAC-MD5(K1, CHECKSUM)
 		memcpy(&ctx, &saved_ctx[i], sizeof(ctx));
-		hmac_md5_update((unsigned char*)cur_salt->checksum, CHECKSUM_SIZE, &ctx);
+		hmac_md5_update((unsigned char*)cur_salt->checksum,
+		                CHECKSUM_SIZE, &ctx);
 		hmac_md5_final(K3, &ctx);
 
 		// Decrypt part of the timestamp with the derived key K3
-		RC4_set_key(&key, KEY_SIZE, K3);
-		RC4(&key, 16, cur_salt->timestamp, cleartext);
+		RC4_single(K3, KEY_SIZE, cur_salt->timestamp, 16, cleartext);
 
 		// Bail out unless we see known plaintext
 		if (cleartext[14] == '2' && cleartext[15] == '0') {
 			// Decrypt the rest of the timestamp
-			//RC4_set_key(&key, KEY_SIZE, K3);
-			RC4(&key, TIMESTAMP_SIZE - 16, &cur_salt->timestamp[16], &cleartext[16]);
+			RC4_single(K3, KEY_SIZE, cur_salt->timestamp,
+			           TIMESTAMP_SIZE, cleartext);
 			// create checksum K2 = HMAC-MD5(K1, plaintext)
 			memcpy(&ctx, &saved_ctx[i], sizeof(ctx));
 			hmac_md5_update(cleartext, TIMESTAMP_SIZE, &ctx);
 			hmac_md5_final((unsigned char*)output[i], &ctx);
 		} else {
-			memset((unsigned char*)output[i], 0, BINARY_SIZE);
+			output[i][0] = 0;
 		}
 	}
 	return count;

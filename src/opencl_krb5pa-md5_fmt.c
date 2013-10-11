@@ -541,7 +541,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			unsigned char K1[KEY_SIZE];
 			unsigned char K3[KEY_SIZE];
 			unsigned char plaintext[TIMESTAMP_SIZE];
-			RC4_KEY key;
 			const unsigned char one[] = { 1, 0, 0, 0 };
 			char *password;
 
@@ -556,15 +555,14 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			hmac_md5(K, (unsigned char*)&one, 4, K1);
 
 			// K3 = HMAC-MD5(K1, CHECKSUM)
-			hmac_md5(K1, (unsigned char*)salt->checksum, CHECKSUM_SIZE, K3);
+			hmac_md5(K1, (unsigned char*)salt->checksum,
+			         CHECKSUM_SIZE, K3);
 
 			// Decrypt the timestamp
-			RC4_set_key(&key, KEY_SIZE, K3);
-			RC4(&key, TIMESTAMP_SIZE, salt->timestamp, plaintext);
+			RC4_single(K3, KEY_SIZE, salt->timestamp,
+			           TIMESTAMP_SIZE, plaintext);
 			// create checksum K2 = HMAC-MD5(K1, plaintext)
 			hmac_md5(K1, plaintext, TIMESTAMP_SIZE, binary);
-		} else {
-			memset(binary, 0xcc, BINARY_SIZE);
 		}
 	}
 
