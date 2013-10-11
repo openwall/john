@@ -114,6 +114,7 @@ extern char *str_alloc_copy(char *src);
 extern void cleanup_tiny_memory();
 
 
+void dump_text(void *in, int len);
 void dump_stuff(void *x, unsigned int size);
 void dump_stuff_msg(void *msg, void *x, unsigned int size);
 void dump_stuff_noeol(void *x, unsigned int size);
