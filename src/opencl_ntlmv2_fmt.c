@@ -459,8 +459,8 @@ static void init(struct fmt_main *self)
 
 	// Current key_idx can only hold 26 bits of offset so
 	// we can't reliably use a GWS higher than 4.7M or so.
-	if (global_work_size > (1 << 26) * 4 / PLAINTEXT_LENGTH)
-		global_work_size = (1 << 26) * 4 / PLAINTEXT_LENGTH;
+	if (global_work_size > (1 << 26) * 4 / max_len)
+		global_work_size = (1 << 26) * 4 / max_len;
 
 	// Ensure GWS is multiple of LWS
 	global_work_size = global_work_size / local_work_size * local_work_size;
