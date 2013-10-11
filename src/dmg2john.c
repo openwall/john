@@ -27,7 +27,6 @@
 #include <alloca.h>
 #include <fcntl.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <sys/types.h>
 #include <arpa/inet.h>
 #include <openssl/evp.h>
@@ -178,10 +177,13 @@ static void hash_plugin_parse_hash(char *filename)
 		printf("*%u::::%s\n", header.kdf_iteration_count, filename);
 	}
 	else {
+		cencrypted_v2_key_header_pointer header_pointer;
+		int password_header_found = 0;
+
 		strnzcpyn(path, filename, LARGE_ENOUGH);
 		if (!(name = basename(path)))
 		    name = path;
-		
+
 		if (lseek(fd, 0, SEEK_SET) < 0) {
 			fprintf(stderr, "Unable to seek in %s\n", filename);
 			return;
@@ -190,7 +192,7 @@ static void hash_plugin_parse_hash(char *filename)
 			fprintf(stderr, "%s is not a DMG file!\n", filename);
 			return;
 		}
-		
+
 		header2_byteorder_fix(&header2);
 
 		chunk_size = header2.blocksize;
@@ -207,61 +209,59 @@ static void hash_plugin_parse_hash(char *filename)
 			cno = ((header2.datasize + 4095ULL) / 4096) - 2;
 			data_size = header2.datasize - cno * 4096ULL;
 		}
-		
+
 		if (data_size < 0) {
 			fprintf(stderr, "%s is not a valid DMG file!\n", filename);
 			return;
 		}
-		
-		bool password_header_found = false;		
+
 		for (i = 0; i < header2.keycount; i++) {
-						
+
 			// Seek to the start of the key header pointers offset by the current key which start immediately after the v2 header.
 			if (lseek(fd, (sizeof(cencrypted_v2_header) + (sizeof(cencrypted_v2_key_header_pointer)*i)), SEEK_SET) < 0) {
 				fprintf(stderr, "Unable to seek to header pointers in %s\n", filename);
 				return;
 			}
-			
+
 			// Read in the key header pointer
-			cencrypted_v2_key_header_pointer header_pointer;
 			count = read(fd, &header_pointer, sizeof(cencrypted_v2_key_header_pointer));
 			if (count < 1 || count != sizeof(cencrypted_v2_key_header_pointer)) {
 				fprintf(stderr, "Unable to read required data from %s\n", filename);
 				return;
 			}
-			
+
 			v2_key_header_pointer_byteorder_fix(&header_pointer);
-			
+
 			// We, currently, only care about the password key header. If it's not the password header type skip over it.
 			if (header_pointer.header_type != 1) {
 				continue;
 			}
-			
+
 			// Seek to where the password key header is in the file.
 			if (lseek(fd, header_pointer.header_offset, SEEK_SET) < 0) {
 				fprintf(stderr, "Unable to seek to password header in %s\n", filename);
 				return;
 			}
-			
+
 			// Read in the password key header but avoid reading anything into the keyblob.
 			count = read(fd, &v2_password_header, sizeof(cencrypted_v2_password_header) - sizeof(unsigned char *));
 			if (count < 1 || count != (sizeof(cencrypted_v2_password_header) - sizeof(unsigned char *))) {
 				fprintf(stderr, "Unable to read required data from %s\n", filename);
 				return;
 			}
-			
+
 			v2_password_header_byteorder_fix(&v2_password_header);
-			
+
 			// Allocate the keyblob memory
 			v2_password_header.keyblob = malloc(v2_password_header.keyblobsize);
-			
+
 			// Seek to the keyblob in the header
 			if (lseek(fd, header_pointer.header_offset + sizeof(cencrypted_v2_password_header) - sizeof(unsigned char *), SEEK_SET) < 0) {
 				fprintf(stderr, "Unable to seek to password header in %s\n", filename);
 				free(v2_password_header.keyblob);
 				return;
 			}
-			
+
 			// Read in the keyblob
 			count = read(fd, v2_password_header.keyblob, v2_password_header.keyblobsize);
 			if (count < 1 || count != (v2_password_header.keyblobsize)) {
@@ -269,19 +269,19 @@ static void hash_plugin_parse_hash(char *filename)
 				free(v2_password_header.keyblob);
 				return;
 			}
-			
-			password_header_found = true;
-			
-			// We onlt need one password header. Don't search any longer.
+
+			password_header_found = 1;
+
+			// We only need one password header. Don't search any longer.
 			break;
 		}
-		
+
 		if (!password_header_found) {
 			fprintf(stderr, "Password header not found in %s\n", filename);
 			free(v2_password_header.keyblob);
 			return;
 		}
-		
+
 		if (v2_password_header.salt_size > 32) {
 			fprintf(stderr, "%s is not a valid DMG file, salt length is too long!\n", filename);
 			free(v2_password_header.keyblob);
@@ -334,7 +334,7 @@ static void hash_plugin_parse_hash(char *filename)
 		printf("*1*");
 		print_hex(chunk2, 4096);
 		printf("*%u::::%s\n", v2_password_header.itercount, filename);
-		
+
 		free(chunk1);
 		free(v2_password_header.keyblob);
 	}

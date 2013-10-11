@@ -4,7 +4,7 @@
 
 #pragma pack(push)  /* push current alignment to stack */
 #pragma pack(1)     /* set alignment to 1 byte boundary */
- 
+
 typedef struct {
 	unsigned char filler1[48];
 	unsigned int kdf_iteration_count;

@@ -597,7 +597,7 @@ static int hash_plugin_check_hash(const char *password)
 #endif
 			return 1;
 		}
-		
+
 		/* Handle VileFault sample images */
 		if (_memmem(outbuf, cur_salt->data_size, (void*)"EFI PART", 8)) {
 #ifdef DMG_DEBUG
