@@ -171,8 +171,12 @@ static char *fmt_self_test_body(struct fmt_main *format,
 #endif
 
 #ifndef BENCH_BUILD
-	if (options.flags & FLG_NOTESTS)
+	if (options.flags & FLG_NOTESTS) {
+		format->private.initialized == 2;
+		format->methods.reset(NULL);
+		format->methods.clear_keys();
 		return NULL;
+	}
 #endif
 
 	if (format->params.plaintext_length < 1 ||
