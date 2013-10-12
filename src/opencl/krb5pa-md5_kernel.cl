@@ -418,7 +418,11 @@ __constant UTF16 CP1253[] = {
 
 #define md4_init(output)	md5_init(output)
 
+#if no_byte_addressable(DEVICE_INFO)
+#define RC4_INT	uint
+#else
 #define RC4_INT	uchar
+#endif
 
 #define swap_byte(a, b) {	  \
 		RC4_INT tmp = a; \
@@ -442,7 +446,7 @@ inline void rc4(const uint *key_w, MAYBE_CONSTANT uint *in_w,
 	uint y = 0;
 	uint index1 = 0;
 	uint index2 = 0;
-#if defined(APPLE) && gpu_nvidia(DEVICE_INFO) /* Driver bug */
+#if no_byte_addressable(DEVICE_INFO) || (defined(APPLE) && gpu_nvidia(DEVICE_INFO)) /* Driver bug */
 	RC4_INT state[256];
 
 	for (x = 0; x < 256; x++)
@@ -473,7 +477,11 @@ inline void rc4(const uint *key_w, MAYBE_CONSTANT uint *in_w,
 	for (x = 1; x <= 16 /* length */; x++) {
 		y = (state[x] + y) & 255;
 		swap_byte(state[x], state[y]);
+#if no_byte_addressable(DEVICE_INFO)
+		PUTCHAR(out, x - 1, *in++ ^ state[(state[x] + state[y]) & 255]);
+#else
 		*out++ = *in++ ^ state[(state[x] + state[y]) & 255];
+#endif
 	}
 }
 
