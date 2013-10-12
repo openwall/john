@@ -1,6 +1,6 @@
 The following changes were made between 1.7.9-jumbo-7 and 1.7.9-jumbo-8:
 
-magnum (708):
+magnum (713):
 	Add a "Section [%s] not found" before outputting the catch-all
 	  --list=?
 	Merge fix
@@ -1265,8 +1265,13 @@ magnum (708):
 	  I'm not sure there was a problem, just saw the dangerous definiton.
 	Change malloc() to mem_alloc() in a bunch of formats. The latter sits
 	  in memory.c and has error checking.
+	Update CHANGES-jumbo.git and CREDITS-jumbo
+	sapG: Add FMT_UTF8 even though we are not FMT_UNICODE.
+	Improve valid() in netlm, nethalflm and mssql12.
+	Improve valid() in krb5pa formats.
+	Explicitly state that wpapsk formats do support WPA and WPA2.
 
-Dhiru Kholia (334):
+Dhiru Kholia (335):
 	BONUS: pwsafe format also cracks Password Gorilla databases.
 	Integrate psk-crack (from ike-scan) into john.
 	Add support for cracking Nuked-Klan CMS hashes.
@@ -1606,6 +1611,7 @@ Dhiru Kholia (334):
 	fix crash in sxc format
 	fix crash in wbb3 format
 	fix crash in pdf format
+	clean up dmg stuff a bit
 
 Claudio André (157):
 	Improvement: pre-compute modulus values.
@@ -2170,6 +2176,15 @@ Michael Samuel (2):
 	  seeds that KDE Paste applet uses to generate passwords.
 	Add license notice to KDEPaste external mode.
 
+Costin Enache (2):
+	Fix for clock err in timers.
+	Silly bug in sunmd5 busted the rounds parsing.
+
+Julien Perrot (2):
+	add support for sips uri (with explicit port number)
+	adds support for sips uri (with explicit port number) when converting
+	  input from sipdump
+
 Tavis Ormandy (2):
 	Avoid useless roti operation for R75, minor syntax cleanup.
 	manually unroll the cmp_all loop a few times, as gcc refuses to do so.
@@ -2178,14 +2193,8 @@ bartavelle (Simon Marechal) (2):
 	sunmd5.hack.diff
 	Updated copyright information
 
-Julien Perrot (2):
-	add support for sips uri (with explicit port number)
-	adds support for sips uri (with explicit port number) when converting
-	  input from sipdump
-
-Costin Enache (2):
-	Fix for clock err in timers.
-	Silly bug in sunmd5 busted the rounds parsing.
+alexandru (1):
+	Default value for number of iterations
 
 tomrittervg (1):
 	fix typo in memory allocation check code
@@ -2193,15 +2202,20 @@ tomrittervg (1):
 Mat G (1):
 	New format: Fortigate (FortiOS)
 
-Camille Mougey (1):
-	New formats: KRB5-18 and KRB5-23
-
 Linus Lüssing (1):
 	MSCHAPv2: Add support for freeradius-wep-patch challenge/response
 	  format
 
-alexandru (1):
-	Default value for number of iterations
+Camille Mougey (1):
+	New formats: KRB5-18 and KRB5-23
+
+Michael Ledford (1):
+	Adds support for multiple keys existing in an encrypted DMG. When
+	  multiple keys are found it selects the first password key header.
+	  Adds support for DMG sparseimage files. Previously the first chunk
+	  selected could be empty. Now chunk number one is chosen for DMG
+	  sparseimage files and a new heuristic is added to the DMG format
+	  plugin to look for 'Apple'.
 
 
 The following changes were made between 1.7.9-jumbo-6 and 1.7.9-jumbo-7:
