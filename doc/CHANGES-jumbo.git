@@ -1,6 +1,6 @@
 The following changes were made between 1.7.9-jumbo-8 and 1.8.0-jumbo-1:
 
-magnum (743):
+magnum (795):
 	formats.c: Only check binary/salt alignment if not using fmt_default_*
 	formats.c: Deliberately use misaligned ciphertext in self test
 	formats.c canary for binary/salt buffers
@@ -1181,8 +1181,79 @@ magnum (743):
 	Change malloc() to mem_alloc() in a bunch of formats. The latter sits
 	  in memory.c and has error checking.
 	Align fix to CUDA md5crypt.
+	Update CHANGES-jumbo.git and CREDITS-jumbo.
+	Update CHANGES-jumbo.git (the unstable-jumbo part of it).
+	Add ?h mask. Hashcat defines it as [\xc0-\xff] but we use all 8-bit.
+	Mask mode: Add progress indicator and node/fork/MPI support.
+	Mask mode: Minor mods to get_progress().
+	Mask mode: Add support for restoring session.
+	Mask mode: A little faster node/fork splitting, avoiding modulo op.
+	Faster node/fork/MPI distribution for External mode. This changes the
+	  session file format so it will be incompatible, so until we get
+	  that sorted out it's ifdef'ed out and we use the core scheme.
+	Drop some contest edition artifacts from wordlist.c
+	External.c: Revise the "no modulo" node distribution patch so it
+	  doesn't break session file compatibility.
+	Mask.c: Change node distribution so it matches external's new one.
+	mask.c: Remove redundant initialization.
+	Fix UTF-8 bug in mscash2 introduced in 42912b39.
+	sapG: Add FMT_UTF8 even though we are not FMT_UNICODE.
+	RAKP formats: Improve valid().
+	Fix buffer overrun in KWallet.
+	Fix a bug in eleven formats where cmp_one() and/or cmp_exact()
+	  erroneously relied on cmp_all() having been called first. This
+	  is *not* always the case, when bitmaps are used we go directly
+	  to cmp_one(). This leads to FALSE POSITIVES but only likely for
+	  broken hashes that are uncrackable anyway so it wasn't that much
+	  of a problem.
+	Disable the "cmp_one() assumes cmp_all()" self-test. It needs to be
+	  replaced with something more reliable, or enabled manually at
+	  times.
+	Add FMT_OMP_BAD to nt2, md4/md5 and tweak Single mode performance for
+	  nt2.
+	Bugfix for RAKP formats.
+	Replace Dhiru's RAKP format with a new one based on hmac-sha1 so
+	  inherently SSE-aware. 3x speedup.
+	RAKP: Add OMP support.
+	Mute warning about lack of OMP support if format is OpenCL or CUDA.
+	Bugfix for 087fe65.
+	Allow use of alter_endianity() on archs that doesn't allow unaligned.
+	  This function was originally only for MMX/SSE2 archs.
+	Fix a bug in RAKP for interleaved SHA1. Dang, that was hard to nail.
+	  I literally had ONE BIT wrong %-)
+	RAKP: Optimization for "many salts". About 65% boost.
+	HMAC-SHA1 format: Optimizations and OMP support.
+	Add support for RAKP to pass_gen.pl
+	Fix bugs in pass_gen.pl HMAC generation for lengths over pad size.
+	RAKP formats: Minor fixes for very long usernames (salts).
+	HMAC-MD5: Optimizations and OMP support.
+	Changed SHA1_SSE_PARA to 2 for any gcc >= 4.5.4. Until now it was
+	  1 for gcc > 4.7.0 but that seems to be slightly worse.
+	pass_gen.pl: Fix b0rken whitespace (tabs vs spaces) most of which was
+	  my bad.
+	Revise format list in README-OPENCL, fixing issue #376.
+	Explicitly state that wpapsk formats do support WPA and WPA2. Also
+	  prevent future bugs when doing strcmp() of format.params.label.
+	Improve valid() in netlm, nethalflm and mssql12.
+	Activate a modified (and temporary) valid-killer self-test. Move a
+	  bunch of offending formats to unused.
+	Just because I used RAKP as a fool-proof example, it wasn't.
+	Improve valid() in krb5pa formats.
+	Chicken out on the ARCH_WORD change for X32 - make it conditional.
+	Never use DES BS assembler code for X32 (until it's fixed).
+	Minor tweaks to krb5pa-md5
+	UTF-8 bugfix for ntlmv2-opencl.
+	Add yet another debug function in memory.c, dump_text(ptr, len)
+	Bugfix for raw-sha1-opencl.
+	Include missing header for newly introduced isprint() in memory.c
+	krb5pa-md5-opencl format added.
+	Makefile bug, I used .c instead of .o which had strange results.
+	krb5pa-md5-opencl optimizations.
+	Some tweaks to RC4 to no avail.
+	krb5pa-md5-opencl: Support devices that can't do byte addressable
+	  store.
 
-Dhiru Kholia (226):
+Dhiru Kholia (252):
 	Add support for cracking KeePass 2.x files.
 	Get rid of BOM.
 	Add support for cracking PKCS #12 files.
@@ -1411,8 +1482,34 @@ Dhiru Kholia (226):
 	more KWallet fixes, thanks to gaganpreet!
 	fix math in kwallet format
 	commit broken MD5 format
+	get the build target right
+	building gpg2john explicitly is no longer required
+	fix typo in "bitcoin-qt" string
+	document steps required to crack bitcoin wallet files
+	add a note for building JtR-jumbo on FreeBSD
+	misc. ASAN related tweaks
+	fix stack-buffer-overflow detected by ASAN
+	use our standard license wording in 7z format
+	"fix" licensing in blockchain formats
+	remove a "critical" function from ecryptfs format
+	"fix" licensing in agilekeychain format
+	fix licensing in agilekeychain OpenCL format
+	fix licensing in LastPass format
+	fix licensing in cloudkeychain format
+	fix licensing in 1password2john.py utility
+	fix licensing in office2john.py utility
+	fix valid() in fde format
+	fix valid() in blackberry-es10 format
+	fix valid() in cloudkeychain format
+	fix valid() in blockchain format
+	fix valid() in blockchain-opencl format
+	fix valid() in rar5 format
+	fix valid() in eCryptfs format
+	fix valid() in 7z format
+	fix valid() in efs format
+	clean up dmg stuff a bit
 
-JimF (146):
+JimF (147):
 	get_source() supporting salts too. Added to crc32 and sapG.
 	raw-sha1_li: always store complete (repaired) hashes
 	Loads of minor fixes for Sparc (endianness, alignment)
@@ -1643,8 +1740,10 @@ JimF (146):
 	add some useful dynamic sub-formats
 	Better OMP for whirlpool. Use oSSL Whirlpool functions if oSSL
 	  version high enough (much faster)
+	pass_gen.pl, add a -tstall switch. If that switch is used, then
+	  it calls all of the functions, crypting 'password' with each.
 
-Claudio André (112):
+Claudio André (113):
 	Selectively pick stuff from Claudio's experimental tree.
 	Get some nt-opencl fixes from Claudio
 	Rebase on bleeding and copied 'my' formats.
@@ -1782,6 +1881,7 @@ Claudio André (112):
 	Follow naming convention specified at: a77b867.
 	Unify valid() and binary() for sha256crypt CPU and OpenCL formats.
 	Remove (old) debug code.
+	Remove fake multi-GPU support from sha256crypt.
 
 Sayantan Datta (37):
 	mscash2-opencl:added multi-gpu interfaces,bug fixes
@@ -1978,6 +2078,12 @@ Jeremi Gosney (4):
 	sse/xop implementation of raw-sha512
 	fixes for rawSHA512_ng format
 
+Costin Enache (3):
+	Fix for clock err in timers.
+	rules.c: Provide enough space for \xHEX encoded lines (worst case, ie.
+	  x4).
+	Silly bug in sunmd5 busted the rounds parsing.
+
 Michael Samuel (3):
 	Add External:KDEPaste. This takes advantage of CVE-2013-2120 to find
 	  seeds that KDE Paste applet uses to generate passwords.
@@ -1992,12 +2098,6 @@ Deepika Dutta (3):
 	Add MMX version of DES_bs_crypt_plain().
 	netntlm bitsliced conversion
 
-Costin Enache (3):
-	Fix for clock err in timers.
-	rules.c: Provide enough space for \xHEX encoded lines (worst case, ie.
-	  x4).
-	Silly bug in sunmd5 busted the rounds parsing.
-
 Aleksey Cherepanov (2):
 	add --skip-self-tests option
 	fix to repare build with defined BENCH_BUILD after add of
@@ -2007,26 +2107,37 @@ Harrison Neal (2):
 	Add OpenCL plugin for RAKP
 	Have RAKP OpenCL plugin be compiled and used
 
-Vlatko Kosturjak (1):
-	Expose markov stats file as "hidden" command line option
-	  (--mkv-stats=FILE)
-
 bartavelle (Simon Marechal) (1):
 	Updated copyright information
 
 Dániel Bali (1):
 	Add OpenCL target for Win32/Cygwin.
 
-Sergey V (1):
-	make blockchain-opencl non-plug
+Vlatko Kosturjak (1):
+	Expose markov stats file as "hidden" command line option
+	  (--mkv-stats=FILE)
 
 Lord_Rafa (1):
 	fixed the arm profile to compile in parallella
 
+Konrads Smelkovs (1):
+	Perl utility to convert AIX's /etc/security/passwd to JtR format
+
+Michael Ledford (1):
+	Adds support for multiple keys existing in an encrypted DMG. When
+	  multiple keys are found it selects the first password key header.
+	  Adds support for DMG sparseimage files. Previously the first chunk
+	  selected could be empty. Now chunk number one is chosen for DMG
+	  sparseimage files and a new heuristic is added to the DMG format
+	  plugin to look for 'Apple'.
+
+Sergey V (1):
+	make blockchain-opencl non-plug
+
 
 The following changes were made between 1.7.9-jumbo-7 and 1.7.9-jumbo-8:
 
-magnum (709):
+magnum (713):
 	Add a "Section [%s] not found" before outputting the catch-all
 	  --list=?
 	Merge fix
@@ -3292,8 +3403,12 @@ magnum (709):
 	Change malloc() to mem_alloc() in a bunch of formats. The latter sits
 	  in memory.c and has error checking.
 	Update CHANGES-jumbo.git and CREDITS-jumbo
+	sapG: Add FMT_UTF8 even though we are not FMT_UNICODE.
+	Improve valid() in netlm, nethalflm and mssql12.
+	Improve valid() in krb5pa formats.
+	Explicitly state that wpapsk formats do support WPA and WPA2.
 
-Dhiru Kholia (334):
+Dhiru Kholia (335):
 	BONUS: pwsafe format also cracks Password Gorilla databases.
 	Integrate psk-crack (from ike-scan) into john.
 	Add support for cracking Nuked-Klan CMS hashes.
@@ -3633,6 +3748,7 @@ Dhiru Kholia (334):
 	fix crash in sxc format
 	fix crash in wbb3 format
 	fix crash in pdf format
+	clean up dmg stuff a bit
 
 Claudio André (157):
 	Improvement: pre-compute modulus values.
@@ -4197,6 +4313,15 @@ Michael Samuel (2):
 	  seeds that KDE Paste applet uses to generate passwords.
 	Add license notice to KDEPaste external mode.
 
+Costin Enache (2):
+	Fix for clock err in timers.
+	Silly bug in sunmd5 busted the rounds parsing.
+
+Julien Perrot (2):
+	add support for sips uri (with explicit port number)
+	adds support for sips uri (with explicit port number) when converting
+	  input from sipdump
+
 Tavis Ormandy (2):
 	Avoid useless roti operation for R75, minor syntax cleanup.
 	manually unroll the cmp_all loop a few times, as gcc refuses to do so.
@@ -4205,14 +4330,8 @@ bartavelle (Simon Marechal) (2):
 	sunmd5.hack.diff
 	Updated copyright information
 
-Julien Perrot (2):
-	add support for sips uri (with explicit port number)
-	adds support for sips uri (with explicit port number) when converting
-	  input from sipdump
-
-Costin Enache (2):
-	Fix for clock err in timers.
-	Silly bug in sunmd5 busted the rounds parsing.
+alexandru (1):
+	Default value for number of iterations
 
 tomrittervg (1):
 	fix typo in memory allocation check code
@@ -4220,15 +4339,20 @@ tomrittervg (1):
 Mat G (1):
 	New format: Fortigate (FortiOS)
 
-Camille Mougey (1):
-	New formats: KRB5-18 and KRB5-23
-
 Linus Lüssing (1):
 	MSCHAPv2: Add support for freeradius-wep-patch challenge/response
 	  format
 
-alexandru (1):
-	Default value for number of iterations
+Camille Mougey (1):
+	New formats: KRB5-18 and KRB5-23
+
+Michael Ledford (1):
+	Adds support for multiple keys existing in an encrypted DMG. When
+	  multiple keys are found it selects the first password key header.
+	  Adds support for DMG sparseimage files. Previously the first chunk
+	  selected could be empty. Now chunk number one is chosen for DMG
+	  sparseimage files and a new heuristic is added to the DMG format
+	  plugin to look for 'Apple'.
 
 
 The following changes were made between 1.7.9-jumbo-6 and 1.7.9-jumbo-7:
