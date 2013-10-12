@@ -358,10 +358,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			// Decrypt the rest of the timestamp
 			RC4_single(K3, KEY_SIZE, cur_salt->timestamp,
 			           TIMESTAMP_SIZE, cleartext);
-			// create checksum K2 = HMAC-MD5(K1, plaintext)
-			memcpy(&ctx, &saved_ctx[i], sizeof(ctx));
-			hmac_md5_update(cleartext, TIMESTAMP_SIZE, &ctx);
-			hmac_md5_final((unsigned char*)output[i], &ctx);
+			if (cleartext[28] == 'Z') {
+				// create checksum K2 = HMAC-MD5(K1, plaintext)
+				memcpy(&ctx, &saved_ctx[i], sizeof(ctx));
+				hmac_md5_update(cleartext, TIMESTAMP_SIZE, &ctx);
+				hmac_md5_final((unsigned char*)output[i], &ctx);
+			}
 		} else {
 			output[i][0] = 0;
 		}
