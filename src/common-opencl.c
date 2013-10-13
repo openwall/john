@@ -703,7 +703,7 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
 	size_t max_group_size, wg_multiple, sumStartTime, sumEndTime;
 	cl_event benchEvent[2];
 	size_t gws;
-	int count;
+	int count, tidx = 0;
 
 	gws = global_work_size ? global_work_size : self->params.max_keys_per_crypt;
 
@@ -749,9 +749,22 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
 
 	self->methods.clear_keys();
 
-	// Set keys - first key from tests will be benchmarked
+	// Set keys - all keys from tests will be benchmarked and some
+	// will be permuted to force them unique
 	for (i = 0; i < self->params.max_keys_per_crypt; i++) {
-		self->methods.set_key(self->params.tests[0].plaintext, i);
+		union {
+			char c[PLAINTEXT_BUFFER_SIZE];
+			unsigned int w;
+		} uniq;
+		int len;
+		if (self->params.tests[tidx].plaintext == NULL)
+			tidx = 0;
+		len = strlen(self->params.tests[tidx].plaintext);
+		strncpy(uniq.c, self->params.tests[tidx++].plaintext,
+		    sizeof(uniq.c));
+		uniq.w ^= i;
+		uniq.c[len] = 0; // Do not change length
+		self->methods.set_key(uniq.c, i);
 	}
 	// Set salt
 	self->methods.set_salt(self->methods.salt(self->params.tests[0].

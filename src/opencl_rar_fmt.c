@@ -501,12 +501,28 @@ static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
 	cl_command_queue queue_prof;
 	cl_event Event[6];
 	cl_int ret_code;
-	int i /*, j, k*/ ;
+	int i, tidx = 0;
 
 	create_clobj(gws, self);
 	queue_prof = clCreateCommandQueue(context[ocl_gpu_id], devices[ocl_gpu_id], CL_QUEUE_PROFILING_ENABLE, &ret_code);
-	for (i = 0; i < gws; i++)
-		set_key(self->params.tests[0].plaintext, i);
+	// Set keys - all keys from tests will be benchmarked and some
+	// will be permuted to force them unique
+	self->methods.clear_keys();
+	for (i = 0; i < gws; i++) {
+		union {
+			char c[PLAINTEXT_BUFFER_SIZE];
+			unsigned int w;
+		} uniq;
+		int len;
+		if (self->params.tests[tidx].plaintext == NULL)
+			tidx = 0;
+		len = strlen(self->params.tests[tidx].plaintext);
+		strncpy(uniq.c, self->params.tests[tidx++].plaintext,
+		    sizeof(uniq.c));
+		uniq.w ^= i;
+		uniq.c[len] = 0;
+		self->methods.set_key(uniq.c, i);
+	}
 	cur_file = (rarfile*)get_salt(self->params.tests[0].ciphertext);
 	memcpy(saved_salt, cur_file->salt, 8);
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, cl_salt, CL_FALSE, 0, 8, saved_salt, 0, NULL, &Event[0]), "failed transferring salt");

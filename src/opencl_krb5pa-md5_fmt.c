@@ -179,12 +179,23 @@ static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
 
 	create_clobj(gws, self);
 
-	/* Use all available test vectors to set keys */
+	// Set keys - all keys from tests will be benchmarked and some
+	// will be permuted to force them unique
 	self->methods.clear_keys();
 	for (i = 0; i < gws; i++) {
-		if (tests[tidx].plaintext == NULL)
+		union {
+			char c[PLAINTEXT_BUFFER_SIZE];
+			unsigned int w;
+		} uniq;
+		int len;
+		if (self->params.tests[tidx].plaintext == NULL)
 			tidx = 0;
-		self->methods.set_key(tests[tidx++].plaintext, i);
+		len = strlen(self->params.tests[tidx].plaintext);
+		strncpy(uniq.c, self->params.tests[tidx++].plaintext,
+		    sizeof(uniq.c));
+		uniq.w ^= i;
+		uniq.c[len] = 0;
+		self->methods.set_key(uniq.c, i);
 	}
 
 	/* Emulate set_salt() */
@@ -384,7 +395,7 @@ static void init(struct fmt_main *self)
 
 	/* maxsize is the lowest figure from the three different kernels */
 	if (!local_work_size)
-#if 1
+#if 0
 		local_work_size = 64;
 #else
 	{
