@@ -418,14 +418,28 @@ __constant UTF16 CP1253[] = {
 
 #define md4_init(output)	md5_init(output)
 
-#if no_byte_addressable(DEVICE_INFO)
-#define RC4_INT	uint
-#else
-#define RC4_INT	uchar
+#if !no_byte_addressable(DEVICE_INFO)
+__constant uint rc4_iv[64] = { 0x03020100, 0x07060504, 0x0b0a0908, 0x0f0e0d0c,
+                                 0x13121110, 0x17161514, 0x1b1a1918, 0x1f1e1d1c,
+                                 0x23222120, 0x27262524, 0x2b2a2928, 0x2f2e2d2c,
+                                 0x33323130, 0x37363534, 0x3b3a3938, 0x3f3e3d3c,
+                                 0x43424140, 0x47464544, 0x4b4a4948, 0x4f4e4d4c,
+                                 0x53525150, 0x57565554, 0x5b5a5958, 0x5f5e5d5c,
+                                 0x63626160, 0x67666564, 0x6b6a6968, 0x6f6e6d6c,
+                                 0x73727170, 0x77767574, 0x7b7a7978, 0x7f7e7d7c,
+                                 0x83828180, 0x87868584, 0x8b8a8988, 0x8f8e8d8c,
+                                 0x93929190, 0x97969594, 0x9b9a9998, 0x9f9e9d9c,
+                                 0xa3a2a1a0, 0xa7a6a5a4, 0xabaaa9a8, 0xafaeadac,
+                                 0xb3b2b1b0, 0xb7b6b5b4, 0xbbbab9b8, 0xbfbebdbc,
+                                 0xc3c2c1c0, 0xc7c6c5c4, 0xcbcac9c8, 0xcfcecdcc,
+                                 0xd3d2d1d0, 0xd7d6d5d4, 0xdbdad9d8, 0xdfdedddc,
+                                 0xe3e2e1e0, 0xe7e6e5e4, 0xebeae9e8, 0xefeeedec,
+                                 0xf3f2f1f0, 0xf7f6f5f4, 0xfbfaf9f8, 0xfffefdfc
+};
 #endif
 
 #define swap_byte(a, b) {	  \
-		RC4_INT tmp = a; \
+		uchar tmp = a; \
 		a = b; \
 		b = tmp; \
 	}
@@ -434,54 +448,52 @@ __constant UTF16 CP1253[] = {
 #define swap_state(n) {	  \
 		index2 = (key[index1] + state[(n)] + index2) & 255; \
 		swap_byte(state[(n)], state[index2]); \
-		index1 = (index1 + 1) & 15 /* (length - 1) */; \
+		index1 = (index1 + 1) & 15 /* (& 15 == % length) */; \
 	}
 
-inline void rc4(const uint *key_w, MAYBE_CONSTANT uint *in_w,
-                __global uchar *out /*, uint length */)
+inline void rc4(const uint *key_w, MAYBE_CONSTANT uint *in,
+                __global uint *out /*, uint length */)
 {
-	uchar *key = (uchar*)key_w;
-	MAYBE_CONSTANT uchar *in = (MAYBE_CONSTANT uchar*)in_w;
+	const uchar *key = (uchar*)key_w;
 	uint x;
 	uint y = 0;
 	uint index1 = 0;
 	uint index2 = 0;
-#if no_byte_addressable(DEVICE_INFO) || (defined(APPLE) && gpu_nvidia(DEVICE_INFO)) /* Driver bug */
-	RC4_INT state[256];
+#if no_byte_addressable(DEVICE_INFO)
+	uint state[256];
 
 	for (x = 0; x < 256; x++)
 		state[x] = x;
 #else
-	uint statebuf[64] = { 0x03020100, 0x07060504, 0x0b0a0908, 0x0f0e0d0c,
-	                      0x13121110, 0x17161514, 0x1b1a1918, 0x1f1e1d1c,
-	                      0x23222120, 0x27262524, 0x2b2a2928, 0x2f2e2d2c,
-	                      0x33323130, 0x37363534, 0x3b3a3938, 0x3f3e3d3c,
-	                      0x43424140, 0x47464544, 0x4b4a4948, 0x4f4e4d4c,
-	                      0x53525150, 0x57565554, 0x5b5a5958, 0x5f5e5d5c,
-	                      0x63626160, 0x67666564, 0x6b6a6968, 0x6f6e6d6c,
-	                      0x73727170, 0x77767574, 0x7b7a7978, 0x7f7e7d7c,
-	                      0x83828180, 0x87868584, 0x8b8a8988, 0x8f8e8d8c,
-	                      0x93929190, 0x97969594, 0x9b9a9998, 0x9f9e9d9c,
-	                      0xa3a2a1a0, 0xa7a6a5a4, 0xabaaa9a8, 0xafaeadac,
-	                      0xb3b2b1b0, 0xb7b6b5b4, 0xbbbab9b8, 0xbfbebdbc,
-	                      0xc3c2c1c0, 0xc7c6c5c4, 0xcbcac9c8, 0xcfcecdcc,
-	                      0xd3d2d1d0, 0xd7d6d5d4, 0xdbdad9d8, 0xdfdedddc,
-	                      0xe3e2e1e0, 0xe7e6e5e4, 0xebeae9e8, 0xefeeedec,
-	                      0xf3f2f1f0, 0xf7f6f5f4, 0xfbfaf9f8, 0xfffefdfc };
-	uchar *state = (uchar*)statebuf;
-#endif
+	uint state_w[64];
+	uchar *state = (uchar*)state_w;
 
+	for (x = 0; x < 64; x++)
+		state_w[x] = rc4_iv[x];
+#endif
 	for (x = 0; x < 256; x++)
 		swap_state(x);
 
 	for (x = 1; x <= 16 /* length */; x++) {
+		uint xor_word;
+
 		y = (state[x] + y) & 255;
 		swap_byte(state[x], state[y]);
-#if no_byte_addressable(DEVICE_INFO)
-		PUTCHAR(out, x - 1, *in++ ^ state[(state[x] + state[y]) & 255]);
-#else
-		*out++ = *in++ ^ state[(state[x] + state[y]) & 255];
-#endif
+		xor_word = state[(state[x++] + state[y]) & 255];
+
+		y = (state[x] + y) & 255;
+		swap_byte(state[x], state[y]);
+		xor_word |= state[(state[x++] + state[y]) & 255] << 8;
+
+		y = (state[x] + y) & 255;
+		swap_byte(state[x], state[y]);
+		xor_word |= state[(state[x++] + state[y]) & 255] << 16;
+
+		y = (state[x] + y) & 255;
+		swap_byte(state[x], state[y]);
+		xor_word |= state[(state[x] + state[y]) & 255] << 24;
+
+		*out++ = *in++ ^ xor_word;
 	}
 }
 
@@ -496,8 +508,8 @@ inline void rc4(const uint *key_w, MAYBE_CONSTANT uint *in_w,
 #ifdef ENC_UTF_8
 
 __kernel void krb5pa_md5_nthash(const __global uchar *source,
-                            __global const uint *index,
-                            __global uint *nthash)
+                                __global const uint *index,
+                                __global uint *nthash)
 {
 	uint i;
 	uint gid = get_global_id(0);
@@ -583,8 +595,8 @@ __kernel void krb5pa_md5_nthash(const __global uchar *source,
 #elif !defined(ENC_ISO_8859_1) && !defined(ENC_RAW)
 
 __kernel void krb5pa_md5_nthash(const __global uchar *password,
-                            __global const uint *index,
-                            __global uint *nthash)
+                                __global const uint *index,
+                                __global uint *nthash)
 {
 	uint i;
 	uint gid = get_global_id(0);
@@ -644,14 +656,15 @@ __kernel void krb5pa_md5_nthash(const __global uchar *password,
 
 #endif /* encodings */
 
-__kernel void krb5pa_md5_final(const __global uint *nthash, MAYBE_CONSTANT uint *challenge, __global uchar *result)
+__kernel void krb5pa_md5_final(const __global uint *nthash,
+                               MAYBE_CONSTANT uint *salts,
+                               __global uint *result)
 {
 	uint i;
 	uint gid = get_global_id(0);
 	uint block[16];
 	uint output[4], hash[4];
 	uint a, b, c, d;
-	MAYBE_CONSTANT uint *cp = challenge; /* checksum[16], timestamp[36] */
 
 	/* 1st HMAC */
 	md5_init(output);
@@ -701,7 +714,7 @@ __kernel void krb5pa_md5_final(const __global uint *nthash, MAYBE_CONSTANT uint 
 	md5_block(block, output); /* md5_update(ipad, 64) */
 
 	for (i = 0; i < 4; i++)
-		block[i] = *cp++; /* checksum, 16 bytes */
+		block[i] = *salts++; /* checksum, 16 bytes */
 	block[4] = 0x80;
 	for (i = 5; i < 14; i++)
 		block[i] = 0;
@@ -728,5 +741,6 @@ __kernel void krb5pa_md5_final(const __global uint *nthash, MAYBE_CONSTANT uint 
 	block[15] = 0;
 	md5_block(block, output); /* md5_update(hash, 16), md5_final() */
 
-	rc4(output, cp, &result[gid * 16]);
+	/* output is our RC4 key. salts now point to encrypted timestamp. */
+	rc4(output, salts, &result[gid * 4]);
 }
