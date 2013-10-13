@@ -172,8 +172,8 @@ static char *fmt_self_test_body(struct fmt_main *format,
 
 #ifndef BENCH_BUILD
 	if (options.flags & FLG_NOTESTS) {
-		format->private.initialized == 2;
 		format->methods.reset(NULL);
+		format->private.initialized = 2;
 		format->methods.clear_keys();
 		return NULL;
 	}
