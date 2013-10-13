@@ -891,17 +891,30 @@ static cl_ulong gws_test(
 	size_t num, int show_details, unsigned int rounds, int sequential_id)
 {
 	cl_ulong startTime, endTime, runtime = 0, looptime = 0;
-	int i, count;
+	int i, count, tidx = 0;
 
 	// Prepare buffers.
 	create_clobj(num, self);
 
 	self->methods.clear_keys();
 
-	// Set keys (only the key[0] from tests will be benchmarked)
-	for (i = 0; i < num; i++)
-		self->methods.set_key(self->params.tests[0].plaintext, i);
-
+	// Set keys - all keys from tests will be benchmarked and some
+	// will be permuted to force them unique
+	for (i = 0; i < num; i++) {
+		union {
+			char c[PLAINTEXT_BUFFER_SIZE];
+			unsigned int w;
+		} uniq;
+		int len;
+		if (self->params.tests[tidx].plaintext == NULL)
+			tidx = 0;
+		len = strlen(self->params.tests[tidx].plaintext);
+		strncpy(uniq.c, self->params.tests[tidx++].plaintext,
+		    sizeof(uniq.c));
+		uniq.w ^= i;
+		uniq.c[len] = 0; // Do not change length
+		self->methods.set_key(uniq.c, i);
+	}
 	// Set salt
 	self->methods.set_salt(self->methods.salt(self->params.tests[0].ciphertext));
 
@@ -986,7 +999,7 @@ void opencl_find_best_lws(
 {
 	size_t gws;
 	cl_int ret_code;
-	int i, numloops, count;
+	int i, numloops, count, tidx = 0;
 	size_t my_work_group, optimal_work_group;
 	size_t max_group_size, wg_multiple, sumStartTime, sumEndTime;
 	cl_ulong startTime, endTime, kernelExecTimeNs = CL_ULONG_MAX;
@@ -1029,10 +1042,23 @@ void opencl_find_best_lws(
 
 	self->methods.clear_keys();
 
-	// Set keys (only the key[0] from tests will be benchmarked)
-	for (i = 0; i < self->params.max_keys_per_crypt; i++)
-		self->methods.set_key(self->params.tests[0].plaintext, i);
-
+	// Set keys - all keys from tests will be benchmarked and some
+	// will be permuted to force them unique
+	for (i = 0; i < self->params.max_keys_per_crypt; i++) {
+		union {
+			char c[PLAINTEXT_BUFFER_SIZE];
+			unsigned int w;
+		} uniq;
+		int len;
+		if (self->params.tests[tidx].plaintext == NULL)
+			tidx = 0;
+		len = strlen(self->params.tests[tidx].plaintext);
+		strncpy(uniq.c, self->params.tests[tidx++].plaintext,
+		    sizeof(uniq.c));
+		uniq.w ^= i;
+		uniq.c[len] = 0; // Do not change length
+		self->methods.set_key(uniq.c, i);
+	}
 	// Set salt
 	self->methods.set_salt(self->methods.salt(self->params.tests[0].ciphertext));
 
