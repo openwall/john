@@ -1893,6 +1893,25 @@ void listOpenCLdevices(void)
 			clGetDeviceInfo(devices[sequence_nr], CL_DRIVER_VERSION,
 				sizeof(dname), dname, NULL);
 			printf("\tDriver version:\t\t%s\n", dname);
+
+			clGetDeviceInfo(devices[sequence_nr],
+			    CL_DEVICE_PREFERRED_VECTOR_WIDTH_CHAR,
+			    sizeof(cl_uint), &entries, NULL);
+			printf("\tPreferred vector width:\tchar %d, ",
+			    entries);
+			clGetDeviceInfo(devices[sequence_nr],
+			    CL_DEVICE_PREFERRED_VECTOR_WIDTH_SHORT,
+			    sizeof(cl_uint), &entries, NULL);
+			printf("short %d, ", entries);
+			clGetDeviceInfo(devices[sequence_nr],
+			    CL_DEVICE_PREFERRED_VECTOR_WIDTH_INT,
+			    sizeof(cl_uint), &entries, NULL);
+			printf("int %d, ", entries);
+			clGetDeviceInfo(devices[sequence_nr],
+			    CL_DEVICE_PREFERRED_VECTOR_WIDTH_LONG,
+			    sizeof(cl_uint), &entries, NULL);
+			printf("long %d\n", entries);
+
 			clGetDeviceInfo(devices[sequence_nr], CL_DEVICE_GLOBAL_MEM_SIZE,
 				sizeof(cl_ulong), &long_entries, NULL);
 			clGetDeviceInfo(devices[sequence_nr],
