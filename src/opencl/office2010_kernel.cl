@@ -11,17 +11,15 @@
 
 #include "opencl_device_info.h"
 
-//#if (defined(VECTORIZE) || (!defined(SCALAR) && gpu_amd(DEVICE_INFO) && !amd_gcn(DEVICE_INFO)))
-#ifdef VECTORIZE
-#define MAYBE_VECTOR_UINT	uint4
-#ifndef VECTORIZE
-#define VECTORIZE
-#endif
+#define CONCAT(TYPE,WIDTH)	TYPE ## WIDTH
+#define VECTOR(x, y)		CONCAT(x, y)
+
+/* host code may pass -DV_WIDTH=2 or some other width */
+#if defined(V_WIDTH) && V_WIDTH > 1
+#define MAYBE_VECTOR_UINT	VECTOR(uint, V_WIDTH)
 #else
 #define MAYBE_VECTOR_UINT	uint
-#ifndef SCALAR
 #define SCALAR
-#endif
 #endif
 
 #if gpu_amd(DEVICE_INFO)
@@ -41,13 +39,6 @@ inline uint SWAP32(uint x)
 /* Office 2010/2013 */
 __constant uint InputBlockKey[] = { 0xfea7d276, 0x3b4b9e79 };
 __constant uint ValueBlockKey[] = { 0xd7aa0f6d, 0x3061344e };
-
-#ifdef SCALAR
-
-#define MAYBE_VECTOR_UINT	uint
-#else
-#define MAYBE_VECTOR_UINT	uint4
-#endif
 
 #define INIT_A			0x67452301
 #define INIT_B			0xefcdab89
@@ -399,8 +390,8 @@ __kernel void GenerateSHA1pwhash(
 		pwhash[gid * 6 + i] = output[i];
 	pwhash[gid * 6 + 5] = 0;
 #else
-		pwhash[(gid >> 2) * 4 * 6 + (gid & 3) + i * 4] = output[i];
-	pwhash[(gid >> 2) * 4 * 6 + (gid & 3) + 5 * 4] = 0;
+		pwhash[(gid / V_WIDTH) * 4 * 6 + (gid & (V_WIDTH - 1)) + i * 4] = output[i];
+	pwhash[(gid / V_WIDTH) * 4 * 6 + (gid & (V_WIDTH - 1)) + 5 * 4] = 0;
 #endif
 }
 
@@ -491,10 +482,18 @@ __kernel void Generate2010key(
 #ifdef SCALAR
 		key[gid * 32/4 + i] = SWAP32(output[i]);
 #else
-		key[gid * 4 * 32/4 + i] = SWAP32(output[i].s0);
-		key[(gid * 4 + 1) * 32/4 + i] = SWAP32(output[i].s1);
-		key[(gid * 4 + 2) * 32/4 + i] = SWAP32(output[i].s2);
-		key[(gid * 4 + 3) * 32/4 + i] = SWAP32(output[i].s3);
+		key[gid * V_WIDTH * 32/4 + i] = SWAP32(output[i].s0);
+		key[(gid * V_WIDTH + 1) * 32/4 + i] = SWAP32(output[i].s1);
+#if V_WIDTH > 2
+		key[(gid * V_WIDTH + 2) * 32/4 + i] = SWAP32(output[i].s2);
+		key[(gid * V_WIDTH + 3) * 32/4 + i] = SWAP32(output[i].s3);
+#endif
+#if V_WIDTH > 4
+		key[(gid * V_WIDTH + 4) * 32/4 + i] = SWAP32(output[i].s4);
+		key[(gid * V_WIDTH + 5) * 32/4 + i] = SWAP32(output[i].s5);
+		key[(gid * V_WIDTH + 6) * 32/4 + i] = SWAP32(output[i].s6);
+		key[(gid * V_WIDTH + 7) * 32/4 + i] = SWAP32(output[i].s7);
+#endif
 #endif
 	}
 	/* Final hash 2 */
@@ -514,10 +513,18 @@ __kernel void Generate2010key(
 #ifdef SCALAR
 		key[gid * 32/4 + 16/4 + i] = SWAP32(output[i]);
 #else
-		key[gid * 4 * 32/4 + 16/4 + i] = SWAP32(output[i].s0);
-		key[(gid * 4 + 1) * 32/4 + 16/4 + i] = SWAP32(output[i].s1);
-		key[(gid * 4 + 2) * 32/4 + 16/4 + i] = SWAP32(output[i].s2);
-		key[(gid * 4 + 3) * 32/4 + 16/4 + i] = SWAP32(output[i].s3);
+		key[gid * V_WIDTH * 32/4 + 16/4 + i] = SWAP32(output[i].s0);
+		key[(gid * V_WIDTH + 1) * 32/4 + 16/4 + i] = SWAP32(output[i].s1);
+#if V_WIDTH > 2
+		key[(gid * V_WIDTH + 2) * 32/4 + 16/4 + i] = SWAP32(output[i].s2);
+		key[(gid * V_WIDTH + 3) * 32/4 + 16/4 + i] = SWAP32(output[i].s3);
+#endif
+#if V_WIDTH > 4
+		key[(gid * V_WIDTH + 4) * 32/4 + 16/4 + i] = SWAP32(output[i].s4);
+		key[(gid * V_WIDTH + 5) * 32/4 + 16/4 + i] = SWAP32(output[i].s5);
+		key[(gid * V_WIDTH + 6) * 32/4 + 16/4 + i] = SWAP32(output[i].s6);
+		key[(gid * V_WIDTH + 7) * 32/4 + 16/4 + i] = SWAP32(output[i].s7);
+#endif
 #endif
 	}
 }
