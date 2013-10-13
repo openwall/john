@@ -3,6 +3,11 @@
  * Copyright (c) 2003,2006,2008,2010,2011 by Solar Designer
  *
  * ...with a trivial change in the jumbo patch, by Alain Espinosa.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ *
+ * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
 /*
@@ -253,10 +258,7 @@
 #elif defined(__GNUC__) && GCC_VERSION < 40504	// 4.5.4
 #define SHA1_SSE_PARA			1
 #define SHA1_N_STR			"4x"
-//#elif defined(__GNUC__) && GCC_VERSION >= 40800	// 4.8.0
-//#define SHA1_SSE_PARA			2
-//#define SHA1_N_STR			"8x"
-#elif defined(__GNUC__) && GCC_VERSION > 40700	// 4.7.0
+#elif !defined(JOHN_AVX) && defined(__GNUC__) && GCC_VERSION > 40700 // 4.7.0
 #define SHA1_SSE_PARA			1
 #define SHA1_N_STR			"4x"
 #else
