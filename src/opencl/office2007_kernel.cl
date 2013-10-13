@@ -13,17 +13,15 @@
 
 #include "opencl_device_info.h"
 
-//#if (defined(VECTORIZE) || (!defined(SCALAR) && gpu_amd(DEVICE_INFO) && !amd_gcn(DEVICE_INFO)))
-#ifdef VECTORIZE
-#define MAYBE_VECTOR_UINT	uint4
-#ifndef VECTORIZE
-#define VECTORIZE
-#endif
+#define CONCAT(TYPE,WIDTH)	TYPE ## WIDTH
+#define VECTOR(x, y)		CONCAT(x, y)
+
+/* host code may pass -DV_WIDTH=2 or some other width */
+#if defined(V_WIDTH) && V_WIDTH > 1
+#define MAYBE_VECTOR_UINT	VECTOR(uint, V_WIDTH)
 #else
 #define MAYBE_VECTOR_UINT	uint
-#ifndef SCALAR
 #define SCALAR
-#endif
 #endif
 
 #if gpu_amd(DEVICE_INFO)
@@ -390,8 +388,8 @@ __kernel void GenerateSHA1pwhash(
 		pwhash[gid * 6 + i] = output[i];
 	pwhash[gid * 6 + 5] = 0;
 #else
-		pwhash[(gid >> 2) * 4 * 6 + (gid & 3) + i * 4] = output[i];
-	pwhash[(gid >> 2) * 4 * 6 + (gid & 3) + 5 * 4] = 0;
+		pwhash[(gid / V_WIDTH) * 4 * 6 + (gid & (V_WIDTH - 1)) + i * 4] = output[i];
+	pwhash[(gid / V_WIDTH) * 4 * 6 + (gid & (V_WIDTH - 1)) + 5 * 4] = 0;
 #endif
 }
 
@@ -487,10 +485,18 @@ __kernel void Generate2007key(
 #ifdef SCALAR
 		key[gid * 4 + i] = SWAP32(output[i]);
 #else
-		key[gid * 4 * 4 + i] = SWAP32(output[i].s0);
-		key[(gid * 4 + 1) * 4 + i] = SWAP32(output[i].s1);
-		key[(gid * 4 + 2) * 4 + i] = SWAP32(output[i].s2);
-		key[(gid * 4 + 3) * 4 + i] = SWAP32(output[i].s3);
+		key[gid * V_WIDTH * 4 + i] = SWAP32(output[i].s0);
+		key[(gid * V_WIDTH + 1) * 4 + i] = SWAP32(output[i].s1);
+#if V_WIDTH > 2
+		key[(gid * V_WIDTH + 2) * 4 + i] = SWAP32(output[i].s2);
+		key[(gid * V_WIDTH + 3) * 4 + i] = SWAP32(output[i].s3);
+#endif
+#if V_WIDTH > 4
+		key[(gid * V_WIDTH + 4) * 4 + i] = SWAP32(output[i].s4);
+		key[(gid * V_WIDTH + 5) * 4 + i] = SWAP32(output[i].s5);
+		key[(gid * V_WIDTH + 6) * 4 + i] = SWAP32(output[i].s6);
+		key[(gid * V_WIDTH + 7) * 4 + i] = SWAP32(output[i].s7);
+#endif
 #endif
 	}
 }
