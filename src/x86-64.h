@@ -269,6 +269,9 @@
 #elif defined(__GNUC__) && GCC_VERSION < 40504	// 4.5.4
 #define SHA1_SSE_PARA			1
 #define SHA1_N_STR			"4x"
+#elif !defined(JOHN_AVX) && defined(__GNUC__) && GCC_VERSION > 40700 // 4.7.0
+#define SHA1_SSE_PARA			1
+#define SHA1_N_STR			"4x"
 #else
 #define SHA1_SSE_PARA			2
 #define SHA1_N_STR			"8x"
