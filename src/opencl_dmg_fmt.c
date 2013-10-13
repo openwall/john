@@ -678,6 +678,15 @@ static int hash_plugin_check_hash(unsigned char *derived_key)
 			}
 		}
 
+		/* Apple is a pretty good indication */
+		if (_memmem(outbuf, cur_salt->data_size, (void*)"Apple", 5)) {
+#ifdef DMG_DEBUG
+			dump_strings(outbuf, cur_salt->data_size);
+			fprintf(stderr, "Apple found!\n");
+#endif
+			return 1;
+		}
+
 		/* Handle VileFault sample images */
 		if (_memmem(outbuf, cur_salt->data_size, (void*)"EFI PART", 8)) {
 #ifdef DMG_DEBUG
@@ -786,7 +795,7 @@ struct fmt_main fmt_opencl_dmg = {
 #endif
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-#if DMG_DEBUG
+#ifdef DMG_DEBUG
 		FMT_NOT_EXACT |
 #endif
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
