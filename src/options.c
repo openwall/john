@@ -177,8 +177,7 @@ static struct opt_entry opt_list[] = {
 		OPT_FMT_ADD_LIST_MULTI, &options.gpu_devices},
 #endif
 #ifdef HAVE_OPENCL
-	{"request-vectorize", FLG_VECTORIZE, FLG_VECTORIZE, 0, FLG_SCALAR},
-	{"request-scalar", FLG_SCALAR, FLG_SCALAR, 0, FLG_VECTORIZE},
+	{"force-scalar", FLG_SCALAR, FLG_SCALAR},
 #endif
 	{"skip-self-tests", FLG_NOTESTS, FLG_NOTESTS},
 	{NULL}
@@ -355,8 +354,7 @@ void opt_print_hidden_usage(void)
 	puts("--plugin=NAME[,..]        load this (these) dynamic plugin(s)");
 #endif
 #ifdef HAVE_OPENCL
-	puts("--request-vectorize       request vectorized mode");
-	puts("--request-scalar          request non-vectorized mode");
+	puts("--force-scalar            force scalar mode");
 	puts("--platform=N              set OpenCL platform (deprecated)");
 #endif
 	puts("");

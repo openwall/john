@@ -126,14 +126,12 @@
 #define FLG_CRKSTAT			0x0000004000000000ULL
 /* Wordlist dupe suppression */
 #define FLG_DUPESUPP			0x0000008000000000ULL
-/* Request to vectorize */
-#define FLG_VECTORIZE			0x0000010000000000ULL
-/* Request to not vectorize */
-#define FLG_SCALAR			0x0000020000000000ULL
+/* Force scalar mode */
+#define FLG_SCALAR			0x0000010000000000ULL
 /* Reject printable binaries */
-#define FLG_REJECT_PRINTABLE		0x0000040000000000ULL
+#define FLG_REJECT_PRINTABLE		0x0000020000000000ULL
 /* Skip self tests */
-#define FLG_NOTESTS			0x0000080000000000ULL
+#define FLG_NOTESTS			0x0000040000000000ULL
 
 /*
  * Structure with option flags and all the parameters.

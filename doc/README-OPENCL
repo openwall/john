@@ -193,15 +193,14 @@ PBKDF2-HMAC-SHA256-opencl PBKDF2-HMAC-SHA256
 RAKP-opencl               IPMI 2.0 RAKP (RMCP+)
 
 
-====================
-Optional vectorizing
-====================
+=====================
+Vectorized processing
+=====================
 
-A few formats honour the --request-vector option. A vectorized format runs
-faster on some devices (notably pre-Tahiti AMD GPUs, and CPUs). If a format
-defaults to vectorizing, --request-scalar will disable it. There has been a
-lot of problems with vectorizing, possibly due to driver bugs so it's usually
-not the default. The following formats currently support optional vectorizing:
+A few formats will detect that your device runs better vectorized and obey
+that. A vectorized format runs faster on some devices (notably pre-GCN AMD
+GPUs, and CPUs). If a format defaults to vectorizing, --force-scalar will
+disable it. The following formats currently support vectorizing:
 
 krb5pa-sha1-OpenCL    Kerberos 5 AS-REQ PreAuth etype 17/18 aes-cts-hmac-sha1-96
 office2007-OpenCL     Office 2007 SHA-1 AES
