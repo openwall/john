@@ -151,64 +151,68 @@ http://openwall.info/wiki/john/GPU
 Currently John the Ripper supports OpenCL enabled devices for
 the following hashes:
 
-descrypt-opencl           traditional crypt(3)
-ssha-opencl               Netscape LDAP {SSHA}
-nt-opencl                 NT
-ntlmv2-opencl             NTLMv2 C/R
 agilekeychain-opencl      1Password Agile Keychain
 bcrypt-opencl             crypt(3) Blowfish
 blockchain-opencl         My Wallet
-md5crypt-opencl           crypt(3) $1$
-sha256crypt-opencl        crypt(3) $5$
-sha512crypt-opencl        crypt(3) $6$
+descrypt-opencl           traditional crypt(3)
 dmg-opencl                Apple DMG
 encfs-opencl              EncFS
 gpg-opencl                OpenPGP / GnuPG Secret Key
 keychain-opencl           Mac OS X Keychain
 keyring-opencl            GNOME Keyring
 krb5pa-sha1-opencl        Kerberos 5 AS-REQ Pre-Auth etype 17/18
+md5crypt-opencl           crypt(3) $1$
 mscash2-opencl            M$ Cache Hash 2 (DCC2)
 mysql-sha1-opencl         MySQL 4.1
-ODF-opencl                ODF Blowfish
+nt-opencl                 NT
+ntlmv2-opencl             NTLMv2 C/R
 ODF-AES-opencl            ODF AES
+ODF-opencl                ODF Blowfish
 office2007-opencl         Office 2007
 office2010-opencl         Office 2010
 office2013-opencl         Office 2013
-phpass-opencl
+PBKDF2-HMAC-SHA256-opencl PBKDF2-HMAC-SHA256
+phpass-opencl             PHPass
 pwsafe-opencl             Password Safe
+RAKP-opencl               IPMI 2.0 RAKP (RMCP+)
 rar-opencl                RAR3
-Raw-MD4-opencl
-Raw-MD5-opencl
-Raw-SHA1-opencl
-Raw-SHA256-opencl
-Raw-SHA512-opencl
-Raw-SHA512-ng-opencl
+Raw-MD4-opencl            MD4 (raw)
+Raw-MD5-opencl            MD5 (raw)
+Raw-SHA1-opencl           SHA-1 (raw)
+Raw-SHA256-opencl         SHA-256 (raw)
+Raw-SHA512-ng-opencl      SHA-512 (new version) (raw)
+Raw-SHA512-opencl         SHA-512 (raw)
+sha256crypt-opencl        crypt(3) $5$
+sha512crypt-opencl        crypt(3) $6$
+ssha-opencl               Netscape LDAP {SSHA}
 strip-opencl              STRIP Password Manager
 sxc-opencl                StarOffice .sxc
 WPAPSK-opencl             WPA/WPA2 PSK
+XSHA512-ng-opencl         Mac OS X 10.7+ (new version)
 XSHA512-opencl            Mac OS X 10.7+
-XSHA512-ng-opencl         Mac OS X 10.7+
 zip-opencl                ZIP
-PBKDF2-HMAC-SHA256-opencl PBKDF2-HMAC-SHA256
+
+
+==================
+Vectorized formats
+==================
+
+A few formats will ask your device if it runs better vectorized, and at what
+width, and act accordingly.  A vectorized format runs faster on such devices
+(notably CPUs, depending on driver, and pre-GCN AMD GPUs). If a format defaults
+to vectorizing, --force-scalar will disable it. This might be beneficial eg. if
+you get messages like  "kernel has register spilling. Lower performance is
+expected". Note that you may need to bump verbosity (eg. --verb=4) to see such
+messages. The following formats currently support vectorizing:
+
+krb5pa-sha1-opencl        Kerberos 5 AS-REQ Pre-Auth etype 17/18
+office2007-opencl         Office 2007
+office2010-opencl         Office 2010
+office2013-opencl         Office 2013
 RAKP-opencl               IPMI 2.0 RAKP (RMCP+)
+WPAPSK-opencl             WPA/WPA2 PSK
 
-
-=====================
-Vectorized processing
-=====================
-
-A few formats will detect that your device runs better vectorized and obey
-that. A vectorized format runs faster on some devices (notably pre-GCN AMD
-GPUs, and CPUs). If a format defaults to vectorizing, --force-scalar will
-disable it. The following formats currently support vectorizing:
-
-krb5pa-sha1-OpenCL    Kerberos 5 AS-REQ PreAuth etype 17/18 aes-cts-hmac-sha1-96
-office2007-OpenCL     Office 2007 SHA-1 AES
-office2010-OpenCL     Office 2010 SHA-1 AES
-office2013-OpenCL     Office 2013 SHA-512 AES
-wpapsk-OpenCL         WPA-PSK PBKDF2-HMAC-SHA-1
-
-When a format runs vectorized, it will show algorithm name as eg. [OpenCL 4x]
+When a format runs vectorized, it will show algorithm name eg. as [OpenCL 4x]
 as opposed to just [OpenCL].
 
 
