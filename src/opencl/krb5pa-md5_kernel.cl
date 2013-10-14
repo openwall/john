@@ -21,7 +21,7 @@
 #define MAYBE_CONSTANT __constant
 #endif
 
-/* Do not support full UTF-16 with wurrogate pairs */
+/* Do not support full UTF-16 with surrogate pairs */
 //#define UCS_2
 
 /* Unicode types */
