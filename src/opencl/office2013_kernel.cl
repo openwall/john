@@ -12,21 +12,19 @@
 
 #include "opencl_device_info.h"
 
-#if ! amd_gcn(DEVICE_INFO)
-    #define UNROLL
-#endif
+#define CONCAT(TYPE,WIDTH)	TYPE ## WIDTH
+#define VECTOR(x, y)		CONCAT(x, y)
 
-//#if (defined(VECTORIZE) || (!defined(SCALAR) && gpu_amd(DEVICE_INFO) && !amd_gcn(DEVICE_INFO)))
-#ifdef VECTORIZE
-#define MAYBE_VECTOR_ULONG	ulong4
-#ifndef VECTORIZE
-#define VECTORIZE
-#endif
+/* host code may pass -DV_WIDTH=2 or some other width */
+#if defined(V_WIDTH) && V_WIDTH > 1
+#define MAYBE_VECTOR_ULONG	VECTOR(ulong, V_WIDTH)
 #else
 #define MAYBE_VECTOR_ULONG	ulong
-#ifndef SCALAR
 #define SCALAR
 #endif
+
+#if !amd_gcn(DEVICE_INFO)
+#define UNROLL
 #endif
 
 /* Office 2010/2013 */
@@ -247,8 +245,8 @@ __kernel void GenerateSHA512pwhash(
 		pwhash[gid * 9 + i] = output[i];
 	pwhash[gid * 9 + 8] = 0;
 #else
-		pwhash[(gid >> 2) * 4 * 9 + (gid & 3) + i * 4] = output[i];
-	pwhash[(gid >> 2) * 4 * 9 + (gid & 3) + 8 * 4] = 0;
+		pwhash[(gid / V_WIDTH) * V_WIDTH * 9 + (gid & (V_WIDTH - 1)) + i * V_WIDTH] = output[i];
+	pwhash[(gid / V_WIDTH) * V_WIDTH * 9 + (gid & (V_WIDTH - 1)) + 8 * V_WIDTH] = 0;
 #endif
 }
 
@@ -347,10 +345,18 @@ __kernel void Generate2013key(
 #ifdef SCALAR
 		key[gid * 128/8 + i] = SWAP64(output[i]);
 #else
-		key[(gid * 4) * 128/8 + i] = SWAP64(output[i].s0);
-		key[(gid * 4 + 1) * 128/8 + i] = SWAP64(output[i].s1);
-		key[(gid * 4 + 2) * 128/8 + i] = SWAP64(output[i].s2);
-		key[(gid * 4 + 3) * 128/8 + i] = SWAP64(output[i].s3);
+		key[(gid * V_WIDTH) * 128/8 + i] = SWAP64(output[i].s0);
+		key[(gid * V_WIDTH + 1) * 128/8 + i] = SWAP64(output[i].s1);
+#if V_WIDTH > 2
+		key[(gid * V_WIDTH + 2) * 128/8 + i] = SWAP64(output[i].s2);
+		key[(gid * V_WIDTH + 3) * 128/8 + i] = SWAP64(output[i].s3);
+#endif
+#if V_WIDTH > 4
+		key[(gid * V_WIDTH + 4) * 128/8 + i] = SWAP64(output[i].s4);
+		key[(gid * V_WIDTH + 5) * 128/8 + i] = SWAP64(output[i].s5);
+		key[(gid * V_WIDTH + 6) * 128/8 + i] = SWAP64(output[i].s6);
+		key[(gid * V_WIDTH + 7) * 128/8 + i] = SWAP64(output[i].s7);
+#endif
 #endif
 	}
 
@@ -369,10 +375,26 @@ __kernel void Generate2013key(
 #ifdef SCALAR
 		key[gid * 128/8 + 64/8 + i] = SWAP64(output[i]);
 #else
-		key[(gid * 4) * 128/8 + 64/8 + i] = SWAP64(output[i].s0);
-		key[(gid * 4 + 1) * 128/8 + 64/8 + i] = SWAP64(output[i].s1);
-		key[(gid * 4 + 2) * 128/8 + 64/8 + i] = SWAP64(output[i].s2);
-		key[(gid * 4 + 3) * 128/8 + 64/8 + i] = SWAP64(output[i].s3);
+		key[(gid * V_WIDTH) * 128/8 + 64/8 + i] =
+			SWAP64(output[i].s0);
+		key[(gid * V_WIDTH + 1) * 128/8 + 64/8 + i] =
+			SWAP64(output[i].s1);
+#if V_WIDTH > 2
+		key[(gid * V_WIDTH + 2) * 128/8 + 64/8 + i] =
+			SWAP64(output[i].s2);
+		key[(gid * V_WIDTH + 3) * 128/8 + 64/8 + i] =
+			SWAP64(output[i].s3);
+#endif
+#if V_WIDTH > 4
+		key[(gid * V_WIDTH + 4) * 128/8 + 64/8 + i] =
+			SWAP64(output[i].s4);
+		key[(gid * V_WIDTH + 5) * 128/8 + 64/8 + i] =
+			SWAP64(output[i].s5);
+		key[(gid * V_WIDTH + 6) * 128/8 + 64/8 + i] =
+			SWAP64(output[i].s6);
+		key[(gid * V_WIDTH + 7) * 128/8 + 64/8 + i] =
+			SWAP64(output[i].s7);
+#endif
 #endif
 	}
 }

@@ -76,7 +76,7 @@ static struct custom_salt {
 } *cur_salt;
 
 static int *cracked, any_cracked;
-static int VF = 1;	/* Will be 4 when we run vectorized */
+static unsigned int v_width = 1;	/* Will be 4 when we run vectorized */
 
 static char *saved_key;	/* Password encoded in UCS-2 */
 static int *saved_len;	/* UCS-2 password length, in octets */
@@ -94,7 +94,7 @@ static void create_clobj(int gws, struct fmt_main *self)
 	int bench_len = strlen(tests[0].plaintext) * 2;
 
 	global_work_size = gws;
-	gws *= VF;
+	gws *= v_width;
 	self->params.max_keys_per_crypt = gws;
 
 	pinned_saved_key = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, UNICODE_LENGTH * gws, NULL, &ret_code);
@@ -184,8 +184,8 @@ static void done(void)
 
 static void clear_keys(void)
 {
-	memset(saved_key, 0, UNICODE_LENGTH * global_work_size * VF);
-	memset(saved_len, 0, sizeof(*saved_len) * global_work_size * VF);
+	memset(saved_key, 0, UNICODE_LENGTH * global_work_size * v_width);
+	memset(saved_len, 0, sizeof(*saved_len) * global_work_size * v_width);
 }
 
 static void set_key(char *key, int index)
@@ -253,7 +253,7 @@ static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
 	cl_event Event[6];
 	cl_int ret_code;
 	int i;
-	size_t scalar_gws = VF * gws;
+	size_t scalar_gws = v_width * gws;
 
 	create_clobj(gws, self);
 	queue_prof = clCreateCommandQueue(context[ocl_gpu_id], devices[ocl_gpu_id], CL_QUEUE_PROFILING_ENABLE, &ret_code);
@@ -355,7 +355,7 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 	int sha512perkey;
 	unsigned long long int MaxRunTime = cpu(device_info[ocl_gpu_id]) ? 1000000000ULL : 10000000000ULL;
 
-	max_gws = get_max_mem_alloc_size(ocl_gpu_id) / (UNICODE_LENGTH * VF);
+	max_gws = get_max_mem_alloc_size(ocl_gpu_id) / (UNICODE_LENGTH * v_width);
 
 	if (do_benchmark) {
 		fprintf(stderr, "Calculating best keys per crypt (GWS) for LWS=%zd and max. %llu s duration.\n\n", local_work_size, MaxRunTime / 1000000000UL);
@@ -369,13 +369,13 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 			break;
 
 		sha512perkey = cur_salt->spinCount + 4;
-		SHAspeed = sha512perkey * (1000000000UL * VF * num / run_time);
+		SHAspeed = sha512perkey * (1000000000UL * v_width * num / run_time);
 
 		if (run_time < min_time)
 			min_time = run_time;
 
 		if (do_benchmark)
-			fprintf(stderr, "gws %6d%8llu c/s%14u sha512/s%8.2f sec per crypt_all()", num, (1000000000ULL * VF * num / run_time), SHAspeed, (float)run_time / 1000000000.);
+			fprintf(stderr, "gws %6d%8llu c/s%14u sha512/s%8.2f sec per crypt_all()", num, (1000000000ULL * v_width * num / run_time), SHAspeed, (float)run_time / 1000000000.);
 
 		if (((float)run_time / (float)min_time) < ((float)SHAspeed / (float)bestSHAspeed)) {
 			if (do_benchmark)
@@ -403,24 +403,27 @@ static void init(struct fmt_main *self)
 {
 	cl_ulong maxsize, maxsize2;
 	char build_opts[64];
+	static char valgo[32] = "";
+
+	if (!(options.flags & FLG_SCALAR)) {
+		opencl_preinit();
+		clGetDeviceInfo(devices[ocl_gpu_id],
+		                CL_DEVICE_PREFERRED_VECTOR_WIDTH_LONG,
+		                sizeof(cl_uint), &v_width, NULL);
+		if (v_width > 1) {
+			/* Run vectorized kernel */
+			sprintf(valgo, ALGORITHM_NAME " %ux", v_width);
+			self->params.algorithm_name = valgo;
+		}
+	}
 
 	snprintf(build_opts, sizeof(build_opts),
-	         "-DHASH_LOOPS=%u -DUNICODE_LENGTH=%u %s",
+	         "-DHASH_LOOPS=%u -DUNICODE_LENGTH=%u -DV_WIDTH=%u",
 	         HASH_LOOPS,
 	         UNICODE_LENGTH,
-	         (options.flags & FLG_VECTORIZE) ? "-DVECTORIZE" :
-	         (options.flags & FLG_SCALAR) ? "-DSCALAR" : "");
+	         v_width);
 	opencl_init("$JOHN/kernels/office2013_kernel.cl", ocl_gpu_id,
-	                build_opts);
-
-	if ((options.flags & FLG_VECTORIZE) /*||
-	    ((!(options.flags & FLG_SCALAR)) &&
-	     gpu_amd(device_info[ocl_gpu_id]) &&
-	     !amd_gcn(device_info[ocl_gpu_id]))*/) {
-		/* Run vectorized code */
-		VF = 4;
-		self->params.algorithm_name = "OpenCL 4x";
-	}
+	            build_opts);
 
 	/* Read LWS/GWS prefs from config or environment */
 	opencl_get_user_preferences(OCL_CONFIG);
@@ -564,8 +567,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	int index;
 	size_t scalar_gws;
 
-	global_work_size = ((count + (VF * local_work_size - 1)) / (VF * local_work_size)) * local_work_size;
-	scalar_gws = global_work_size * VF;
+	global_work_size = ((count + (v_width * local_work_size - 1)) / (v_width * local_work_size)) * local_work_size;
+	scalar_gws = global_work_size * v_width;
 
 	if (any_cracked) {
 		memset(cracked, 0, global_work_size * sizeof(*cracked));
