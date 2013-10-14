@@ -4,11 +4,11 @@
  * - RAKP JtR plugin, (C) 2012 magnum, (C) 2013 Dhiru Kholia
  *
  * OpenCL RAKP JtR plugin (C) 2013 by Harrison Neal
- * Packed key buffer and other optimizations (c) magnum 2013
+ * Vectorizing, packed key buffer and other optimizations (c) magnum 2013
  *
  * Licensed under GPLv2
- * This program comes with ABSOLUTELY NO WARRANTY, neither expressed nor implied.
- * See the following for more information on the GPLv2 license:
+ * This program comes with ABSOLUTELY NO WARRANTY, neither expressed nor
+ * implied. See the following for more information on the GPLv2 license:
  * http://www.gnu.org/licenses/gpl-2.0.html
  */
 
@@ -42,8 +42,8 @@
 #define DIGEST_SIZE             20
 #define BINARY_SIZE             DIGEST_SIZE
 
-#define MIN_KEYS_PER_CRYPT      (1024*2048)
-#define MAX_KEYS_PER_CRYPT      MIN_KEYS_PER_CRYPT
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      (4 * 1024 * 1024)
 
 #define FORMAT_TAG              "$rakp$"
 #define TAG_LENGTH              (sizeof(FORMAT_TAG) - 1)
@@ -68,6 +68,7 @@ static unsigned int *keys;
 static unsigned int *idx;
 static ARCH_WORD_32 (*digest)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
 static unsigned int key_idx = 0;
+static unsigned int v_width = 1;	/* Vector width of kernel */
 
 #define MIN(a, b)               (((a) > (b)) ? (b) : (a))
 #define MAX(a, b)               (((a) > (b)) ? (a) : (b))
@@ -112,7 +113,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 static void clear_keys(void);
 static void set_key(char *key, int index);
 
-static void create_clobj(int kpc){
+static void create_clobj(int kpc)
+{
+	global_work_size = kpc;
+	kpc *= v_width;
+
 	keys = mem_alloc((PLAINTEXT_LENGTH + 1) * kpc);
 	idx = mem_alloc(sizeof(*idx) * kpc);
 	digest = mem_alloc(sizeof(*digest) * kpc);
@@ -144,11 +149,10 @@ static void create_clobj(int kpc){
 	HANDLE_CLERROR(
 		clSetKernelArg(crypt_kernel, 3, sizeof(digest_buffer), (void *) &digest_buffer),
 		"Error attaching digest_buffer to kernel");
-
-	global_work_size = kpc;
 }
 
-static void release_clobj(void){
+static void release_clobj(void)
+{
 	MEM_FREE(keys);
 	MEM_FREE(idx);
 	MEM_FREE(digest);
@@ -167,68 +171,29 @@ static void done(void)
 	HANDLE_CLERROR(clReleaseProgram(program[ocl_gpu_id]), "Error releasing program");
 }
 
-/*
-  this function could be used to calculated the best num
-  of keys per crypt for the given format
-*/
-
-static void find_best_kpc(void){
-	int num;
-	cl_event myEvent;
-	cl_ulong startTime, endTime, tmpTime;
-	int kernelExecTimeNs = INT_MAX;
-	cl_int ret_code;
-	int optimal_kpc=2048;
-	int i = 0;
-	cl_uint *tmpbuffer;
-
-	fprintf(stderr, "Calculating best keys per crypt, this will take a while ");
-	for( num=MAX_KEYS_PER_CRYPT; num >= 4096 ; num -= 4096){
-		release_clobj();
-		create_clobj(num);
-		advance_cursor();
-		queue_prof = clCreateCommandQueue( context[ocl_gpu_id], devices[ocl_gpu_id], CL_QUEUE_PROFILING_ENABLE, &ret_code);
-		clear_keys();
-		for (i=0; i < num; i++)
-			set_key(tests[0].plaintext, i);
-
-		clEnqueueWriteBuffer(queue[ocl_gpu_id], keys_buffer, CL_FALSE, 0, 4 * key_idx, keys, 0, NULL, NULL);
-		clEnqueueWriteBuffer(queue[ocl_gpu_id], idx_buffer, CL_FALSE, 0, 4 * global_work_size, idx, 0, NULL, NULL);
-
-		ret_code = clEnqueueNDRangeKernel( queue_prof, crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &myEvent);
-		if(ret_code != CL_SUCCESS){
-			fprintf(stderr, "Error %d\n",ret_code);
-			continue;
-		}
-		clFinish(queue_prof);
-		clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime, NULL);
-		clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END  , sizeof(cl_ulong), &endTime  , NULL);
-		tmpTime = endTime-startTime;
-		tmpbuffer = mem_alloc(sizeof(cl_uint) * num);
-		clEnqueueReadBuffer(queue_prof, digest_buffer, CL_TRUE, 0, sizeof(cl_uint) * num, tmpbuffer, 0, NULL, &myEvent);
-		clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime, NULL);
-		clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END  , sizeof(cl_ulong), &endTime  , NULL);
-		tmpTime = tmpTime + (endTime-startTime);
-		if( ((int)( ((float) (tmpTime) / num) * 10 )) <= kernelExecTimeNs) {
-			kernelExecTimeNs = ((int) (((float) (tmpTime) / num) * 10) ) ;
-			optimal_kpc = num;
-		}
-		MEM_FREE(tmpbuffer);
-		clReleaseCommandQueue(queue_prof);
-	}
-	fprintf(stderr, "Optimal keys per crypt %d\n(to avoid this test on next run do export GWS=%d)\n",optimal_kpc,optimal_kpc);
-	global_work_size = optimal_kpc;
-	release_clobj();
-	create_clobj(optimal_kpc);
-}
-
-static void init(struct fmt_main *self) {
+static void init(struct fmt_main *self)
+{
 	char *temp;
 	cl_ulong maxsize;
+	char build_opts[64];
+	static char valgo[32] = "";
+
+	if (!(options.flags & FLG_SCALAR)) {
+		opencl_preinit();
+		clGetDeviceInfo(devices[ocl_gpu_id],
+		                CL_DEVICE_PREFERRED_VECTOR_WIDTH_INT,
+		                sizeof(cl_uint), &v_width, NULL);
+		if (v_width > 1) {
+			/* Run vectorized kernel */
+			sprintf(valgo, ALGORITHM_NAME " %ux", v_width);
+			self->params.algorithm_name = valgo;
+		}
+	}
 
 	local_work_size = global_work_size = 0;
 
-	opencl_init("$JOHN/kernels/rakp_kernel.cl", ocl_gpu_id, NULL);
+	snprintf(build_opts, sizeof(build_opts), "-DV_WIDTH=%u", v_width);
+	opencl_init("$JOHN/kernels/rakp_kernel.cl", ocl_gpu_id, build_opts);
 
 	// create kernel to execute
 	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "rakp_kernel", &ret_code);
@@ -245,7 +210,7 @@ static void init(struct fmt_main *self) {
 	}
 
 	if (!local_work_size) {
-		create_clobj(MAX_KEYS_PER_CRYPT);
+		create_clobj(MAX_KEYS_PER_CRYPT / v_width);
 		opencl_find_best_workgroup(self);
 		release_clobj();
 	}
@@ -253,23 +218,19 @@ static void init(struct fmt_main *self) {
 	if ((temp = getenv("GWS")))
 		global_work_size = atoi(temp);
 	else
-		global_work_size = MAX_KEYS_PER_CRYPT;
+		global_work_size = MAX_KEYS_PER_CRYPT / v_width;
 
 	if (!global_work_size) {
-		// User chose to die of boredom
-		global_work_size = MAX_KEYS_PER_CRYPT;
-		create_clobj(MAX_KEYS_PER_CRYPT);
-		find_best_kpc();
-	} else {
-		create_clobj(global_work_size);
+		// FIXME: Should called shared find_best_gws
+		global_work_size = MAX_KEYS_PER_CRYPT / v_width;
 	}
 
 	if (options.verbosity > 2)
 		fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n",(int)local_work_size, (int)global_work_size);
 
-	self->params.max_keys_per_crypt = global_work_size;
-
-	self->params.min_keys_per_crypt = local_work_size;
+	create_clobj(global_work_size);
+	self->params.min_keys_per_crypt = local_work_size * v_width;
+	self->params.max_keys_per_crypt = global_work_size * v_width;
 }
 
 static void clear_keys(void)
@@ -368,7 +329,8 @@ static void set_salt(void *salt)
 	HANDLE_CLERROR(clFlush(queue[ocl_gpu_id]), "failed in clFlush");
 }
 
-static int cmp_all(void *binary, int count){
+static int cmp_all(void *binary, int count)
+{
 	int index = 0;
 	for (; index < count; index++) {
 		if (!memcmp(binary, digest[index], BINARY_SIZE)) {
@@ -378,7 +340,8 @@ static int cmp_all(void *binary, int count){
 	return 0;
 }
 
-static int cmp_one(void *binary, int index){
+static int cmp_one(void *binary, int index)
+{
 	return !memcmp(binary, digest[index], BINARY_SIZE);
 }
 
@@ -390,8 +353,10 @@ static int cmp_exact(char *source, int index)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
+	size_t scalar_gws;
 
-	global_work_size = (count + local_work_size - 1) / local_work_size * local_work_size;
+	global_work_size = ((count + v_width * local_work_size - 1) / (v_width * local_work_size)) * local_work_size;
+	scalar_gws = global_work_size * v_width;
 
 	if (key_idx) {
 		HANDLE_CLERROR(
@@ -399,7 +364,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			"Error updating contents of keys_buffer");
 
 		HANDLE_CLERROR(
-			clEnqueueWriteBuffer(queue[ocl_gpu_id], idx_buffer, CL_FALSE, 0, 4 * global_work_size, idx, 0, NULL, NULL),
+			clEnqueueWriteBuffer(queue[ocl_gpu_id], idx_buffer, CL_FALSE, 0, 4 * scalar_gws, idx, 0, NULL, NULL),
 			"Error updating contents of idx_buffer");
 	}
 
@@ -412,7 +377,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		"Error waiting for kernel to finish executing");
 
 	HANDLE_CLERROR(
-		clEnqueueReadBuffer(queue[ocl_gpu_id], digest_buffer, CL_TRUE, 0, BINARY_SIZE * global_work_size, digest, 0, NULL, NULL),
+		clEnqueueReadBuffer(queue[ocl_gpu_id], digest_buffer, CL_TRUE, 0, BINARY_SIZE * scalar_gws, digest, 0, NULL, NULL),
 		"Error reading results from digest_buffer");
 
 	return count;

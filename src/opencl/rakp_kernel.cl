@@ -1,16 +1,28 @@
 /*
-   Code largely based on OpenCL SHA1 kernel by Samuele Giovanni Tonon (C) 2011, magnum (C) 2012
-
-   OpenCL RAKP kernel (C) 2013 by Harrison Neal
-   Packed key buffer and other optimizations (c) magnum 2013
-
-   Licensed under GPLv2
-   This program comes with ABSOLUTELY NO WARRANTY, neither expressed nor implied.
-   See the following for more information on the GPLv2 license:
-   http://www.gnu.org/licenses/gpl-2.0.html
-*/
+ * Code largely based on OpenCL SHA1 kernel by Samuele Giovanni Tonon (C) 2011,
+ * magnum (C) 2012
+ *
+ * OpenCL RAKP kernel (C) 2013 by Harrison Neal
+ * Vectorizing, packed key buffer and other optimizations (c) magnum 2013
+ *
+ * Licensed under GPLv2
+ * This program comes with ABSOLUTELY NO WARRANTY, neither expressed nor
+ * implied. See the following for more information on the GPLv2 license:
+ * http://www.gnu.org/licenses/gpl-2.0.html
+ */
 
 #include "opencl_device_info.h"
+
+#define CONCAT(TYPE,WIDTH)	TYPE ## WIDTH
+#define VECTOR(x, y)		CONCAT(x, y)
+
+/* host code may pass -DV_WIDTH=2 or some other width */
+#if defined(V_WIDTH) && V_WIDTH > 1
+#define MAYBE_VECTOR_UINT	VECTOR(uint, V_WIDTH)
+#else
+#define MAYBE_VECTOR_UINT	uint
+#define SCALAR
+#endif
 
 #if gpu_amd(DEVICE_INFO)
 #define USE_BITSELECT
@@ -29,7 +41,7 @@ inline uint SWAP32(uint x)
 /* Macros for reading/writing chars from int32's */
 #define LASTCHAR_BE(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2] & (0xffffff00U << ((((index) & 3) ^ 3) << 3))) + ((val) << ((((index) & 3) ^ 3) << 3))
 
-#if no_byte_addressable(DEVICE_INFO)
+#if V_WIDTH > 1 || no_byte_addressable(DEVICE_INFO)
 /* 32-bit stores */
 #define PUTCHAR_BE(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2] & ~(0xffU << ((((index) & 3) ^ 3) << 3))) + ((val) << ((((index) & 3) ^ 3) << 3))
 #else
@@ -225,23 +237,70 @@ inline uint SWAP32(uint x)
 
 __kernel
 void rakp_kernel(
-	__constant	uint* salt,
-	__global	uint* keys,
-	__global const	uint* index,
-	__global	uint* digest
+	__constant      uint* salt,
+	__global const  uint* key_array,
+	__global const  uint* index,
+	__global        uint* digest
 ) {
-	uint W[16], K[16] = { 0 }, stage1[5], stage2[5];
-	uint temp, A, B, C, D, E;
+	MAYBE_VECTOR_UINT W[16], K[16] = { 0 }, stage1[5], stage2[5];
+	MAYBE_VECTOR_UINT temp, A, B, C, D, E;
 	uint gid = get_global_id(0);
 	uint i;
-	uint base = index[gid];
+	uint base = index[gid * V_WIDTH];
 	uint len = ((base & 63) + 3) / 4;
+	__global const uint *keys = key_array + (base >> 6);
 
-	keys += base >> 6;
-
+#ifdef SCALAR
 	for (i = 0; i < len; i++)
 		K[i] = SWAP32(keys[i]);
+#else
+	for (i = 0; i < len; i++)
+		K[i].s0 = SWAP32(keys[i]);
 
+	base = index[gid * V_WIDTH + 1];
+	len = ((base & 63) + 3) / 4;
+	keys = key_array + (base >> 6);
+	for (i = 0; i < len; i++)
+		K[i].s1 = SWAP32(keys[i]);
+#if V_WIDTH > 2
+	base = index[gid * V_WIDTH + 2];
+	len = ((base & 63) + 3) / 4;
+	keys = key_array + (base >> 6);
+	for (i = 0; i < len; i++)
+		K[i].s2 = SWAP32(keys[i]);
+
+	base = index[gid * V_WIDTH + 3];
+	len = ((base & 63) + 3) / 4;
+	keys = key_array + (base >> 6);
+	for (i = 0; i < len; i++)
+		K[i].s3 = SWAP32(keys[i]);
+#endif
+#if V_WIDTH > 4
+	base = index[gid * V_WIDTH + 4];
+	len = ((base & 63) + 3) / 4;
+	keys = key_array + (base >> 6);
+	for (i = 0; i < len; i++)
+		K[i].s4 = SWAP32(keys[i]);
+
+	base = index[gid * V_WIDTH + 5];
+	len = ((base & 63) + 3) / 4;
+	keys = key_array + (base >> 6);
+	for (i = 0; i < len; i++)
+		K[i].s5 = SWAP32(keys[i]);
+
+	base = index[gid * V_WIDTH + 6];
+	len = ((base & 63) + 3) / 4;
+	keys = key_array + (base >> 6);
+	for (i = 0; i < len; i++)
+		K[i].s6 = SWAP32(keys[i]);
+
+	base = index[gid * V_WIDTH + 7];
+	len = ((base & 63) + 3) / 4;
+	keys = key_array + (base >> 6);
+	for (i = 0; i < len; i++)
+		K[i].s7 = SWAP32(keys[i]);
+#endif
+#endif
 	sha1_init(stage1);
 
 	for (i = 0; i < 16; i++)
@@ -249,11 +308,11 @@ void rakp_kernel(
 	sha1_block(W, stage1);
 
 	for (i = 0; i < 16; i++)
-		W[i] = salt[i];
+		W[i] = *salt++;
 	sha1_block(W, stage1);
 
-	for (i = 16; i < 32; i++)
-		W[i-16] = salt[i];
+	for (i = 0; i < 16; i++)
+		W[i] = *salt++;
 	sha1_block(W, stage1);
 
 	sha1_init(stage2);
@@ -264,12 +323,29 @@ void rakp_kernel(
 
 	for (i = 0; i < 5; i++)
 		W[i] = stage1[i];
-	for (i = 5; i < 15; i++)
+	W[5] = 0x80000000;
+	for (i = 6; i < 15; i++)
 		W[i] = 0;
-	PUTCHAR_BE(W, 20, 0x80);
 	W[15] = 672; // (64 + 20) * 8
 	sha1_block(W, stage2);
 
 	for (i = 0; i < 5; i++)
-		digest[gid*5 + i] = stage2[i];
+	{
+#ifdef SCALAR
+		digest[gid * 5 + i] = stage2[i];
+#else
+		digest[(gid * V_WIDTH + 0) * 5 + i] = stage2[i].s0;
+		digest[(gid * V_WIDTH + 1) * 5 + i] = stage2[i].s1;
+#if V_WIDTH > 2
+		digest[(gid * V_WIDTH + 2) * 5 + i] = stage2[i].s2;
+		digest[(gid * V_WIDTH + 3) * 5 + i] = stage2[i].s3;
+#endif
+#if V_WIDTH > 4
+		digest[(gid * V_WIDTH + 4) * 5 + i] = stage2[i].s4;
+		digest[(gid * V_WIDTH + 5) * 5 + i] = stage2[i].s5;
+		digest[(gid * V_WIDTH + 6) * 5 + i] = stage2[i].s6;
+		digest[(gid * V_WIDTH + 7) * 5 + i] = stage2[i].s7;
+#endif
+#endif
+	}
 }
