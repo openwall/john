@@ -416,7 +416,7 @@ static void init(struct fmt_main *self)
 {
 	unsigned char usage[5];
 	char build_opts[128];
-	cl_ulong maxsize, maxsize2;
+	cl_ulong maxsize, maxsize2, max_mem;
 	static char valgo[32] = "";
 
 	if (!(options.flags & FLG_SCALAR)) {
@@ -493,6 +493,12 @@ static void init(struct fmt_main *self)
 
 	if (global_work_size < local_work_size)
 		global_work_size = local_work_size;
+
+	// Obey device limits
+	clGetDeviceInfo(devices[ocl_gpu_id], CL_DEVICE_MAX_MEM_ALLOC_SIZE,
+	        sizeof(max_mem), &max_mem, NULL);
+	while (global_work_size * v_width > max_mem / sizeof(pbkdf2_password))
+		global_work_size -= local_work_size;
 
 	if (options.verbosity > 2)
 		fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);

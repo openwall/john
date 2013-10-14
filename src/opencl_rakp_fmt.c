@@ -43,7 +43,7 @@
 #define BINARY_SIZE             DIGEST_SIZE
 
 #define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      (4 * 1024 * 1024)
+#define MAX_KEYS_PER_CRYPT      (2 * 1024 * 1024)
 
 #define FORMAT_TAG              "$rakp$"
 #define TAG_LENGTH              (sizeof(FORMAT_TAG) - 1)
@@ -174,7 +174,7 @@ static void done(void)
 static void init(struct fmt_main *self)
 {
 	char *temp;
-	cl_ulong maxsize;
+	cl_ulong max_lws, max_mem;
 	char build_opts[64];
 	static char valgo[32] = "";
 
@@ -200,12 +200,12 @@ static void init(struct fmt_main *self)
 	HANDLE_CLERROR(ret_code, "Error creating kernel");
 
 	/* Note: we ask for the kernels' max sizes, not the device's! */
-	HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize), &maxsize, NULL), "Error requesting max workgroup size");
+	HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(max_lws), &max_lws, NULL), "Error requesting max workgroup size");
 
 	if ((temp = getenv("LWS"))) {
 		local_work_size = atoi(temp);
 
-		while (local_work_size > maxsize)
+		while (local_work_size > max_lws)
 			local_work_size >>= 1;
 	}
 
@@ -221,9 +221,23 @@ static void init(struct fmt_main *self)
 		global_work_size = MAX_KEYS_PER_CRYPT / v_width;
 
 	if (!global_work_size) {
-		// FIXME: Should called shared find_best_gws
+		// FIXME: Should call shared find_best_gws
 		global_work_size = MAX_KEYS_PER_CRYPT / v_width;
 	}
+
+	// Obey device limits
+	clGetDeviceInfo(devices[ocl_gpu_id], CL_DEVICE_MAX_MEM_ALLOC_SIZE,
+	        sizeof(max_mem), &max_mem, NULL);
+	while (global_work_size * v_width > max_mem / PAD_SIZE)
+		global_work_size -= local_work_size;
+
+	// Current key_idx can only hold 26 bits of offset so
+	// we can't reliably use a GWS higher than 4.7M or so.
+	if (global_work_size * v_width > (1 << 26) * 4 / PAD_SIZE)
+		global_work_size = (1 << 26) * 4 / PAD_SIZE / v_width;
+
+	// Ensure GWS is multiple of LWS
+	global_work_size = global_work_size / local_work_size * local_work_size;
 
 	if (options.verbosity > 2)
 		fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n",(int)local_work_size, (int)global_work_size);
