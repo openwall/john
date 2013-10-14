@@ -11,16 +11,15 @@
 #include "opencl_device_info.h"
 #include "opencl_pbkdf2_hmac_sha1.h"
 
-#if (defined(VECTORIZE) || (!defined(SCALAR) && gpu_amd(DEVICE_INFO) && !amd_gcn(DEVICE_INFO)))
-#define MAYBE_VECTOR_UINT	uint4
-#ifndef VECTORIZE
-#define VECTORIZE
-#endif
+#define CONCAT(TYPE,WIDTH)	TYPE ## WIDTH
+#define VECTOR(x, y)		CONCAT(x, y)
+
+/* host code may pass -DV_WIDTH=2 or some other width */
+#if defined(V_WIDTH) && V_WIDTH > 1
+#define MAYBE_VECTOR_UINT	VECTOR(uint, V_WIDTH)
 #else
 #define MAYBE_VECTOR_UINT	uint
-#ifndef SCALAR
 #define SCALAR
-#endif
 #endif
 
 #if gpu_amd(DEVICE_INFO)
@@ -587,32 +586,7 @@ __kernel void pbkdf2_loop(__global pbkdf2_state *state)
 	MAYBE_VECTOR_UINT output[5];
 	MAYBE_VECTOR_UINT state_out[5];
 
-#ifdef VECTORIZE
-	for (i = 0; i < 5; i++) {
-		W[i].s0 = state[gid*4+0].W[i];
-		W[i].s1 = state[gid*4+1].W[i];
-		W[i].s2 = state[gid*4+2].W[i];
-		W[i].s3 = state[gid*4+3].W[i];
-	}
-	for (i = 0; i < 5; i++) {
-		ipad[i].s0 = state[gid*4+0].ipad[i];
-		ipad[i].s1 = state[gid*4+1].ipad[i];
-		ipad[i].s2 = state[gid*4+2].ipad[i];
-		ipad[i].s3 = state[gid*4+3].ipad[i];
-	}
-	for (i = 0; i < 5; i++) {
-		opad[i].s0 = state[gid*4+0].opad[i];
-		opad[i].s1 = state[gid*4+1].opad[i];
-		opad[i].s2 = state[gid*4+2].opad[i];
-		opad[i].s3 = state[gid*4+3].opad[i];
-	}
-	for (i = 0; i < 5; i++) {
-		state_out[i].s0 = state[gid*4+0].out[i];
-		state_out[i].s1 = state[gid*4+1].out[i];
-		state_out[i].s2 = state[gid*4+2].out[i];
-		state_out[i].s3 = state[gid*4+3].out[i];
-	}
-#else
+#ifdef SCALAR
 	for (i = 0; i < 5; i++)
 		W[i] = state[gid].W[i];
 	for (i = 0; i < 5; i++)
@@ -621,6 +595,63 @@ __kernel void pbkdf2_loop(__global pbkdf2_state *state)
 		opad[i] = state[gid].opad[i];
 	for (i = 0; i < 5; i++)
 		state_out[i] = state[gid].out[i];
+#else
+	for (i = 0; i < 5; i++) {
+		W[i].s0 = state[gid*V_WIDTH+0].W[i];
+		W[i].s1 = state[gid*V_WIDTH+1].W[i];
+#if V_WIDTH > 2
+		W[i].s2 = state[gid*V_WIDTH+2].W[i];
+		W[i].s3 = state[gid*V_WIDTH+3].W[i];
+#endif
+#if V_WIDTH > 4
+		W[i].s4 = state[gid*V_WIDTH+4].W[i];
+		W[i].s5 = state[gid*V_WIDTH+5].W[i];
+		W[i].s6 = state[gid*V_WIDTH+6].W[i];
+		W[i].s7 = state[gid*V_WIDTH+7].W[i];
+#endif
+	}
+	for (i = 0; i < 5; i++) {
+		ipad[i].s0 = state[gid*V_WIDTH+0].ipad[i];
+		ipad[i].s1 = state[gid*V_WIDTH+1].ipad[i];
+#if V_WIDTH > 2
+		ipad[i].s2 = state[gid*V_WIDTH+2].ipad[i];
+		ipad[i].s3 = state[gid*V_WIDTH+3].ipad[i];
+#endif
+#if V_WIDTH > 4
+		ipad[i].s4 = state[gid*V_WIDTH+4].ipad[i];
+		ipad[i].s5 = state[gid*V_WIDTH+5].ipad[i];
+		ipad[i].s6 = state[gid*V_WIDTH+6].ipad[i];
+		ipad[i].s7 = state[gid*V_WIDTH+7].ipad[i];
+#endif
+	}
+	for (i = 0; i < 5; i++) {
+		opad[i].s0 = state[gid*V_WIDTH+0].opad[i];
+		opad[i].s1 = state[gid*V_WIDTH+1].opad[i];
+#if V_WIDTH > 2
+		opad[i].s2 = state[gid*V_WIDTH+2].opad[i];
+		opad[i].s3 = state[gid*V_WIDTH+3].opad[i];
+#endif
+#if V_WIDTH > 4
+		opad[i].s4 = state[gid*V_WIDTH+4].opad[i];
+		opad[i].s5 = state[gid*V_WIDTH+5].opad[i];
+		opad[i].s6 = state[gid*V_WIDTH+6].opad[i];
+		opad[i].s7 = state[gid*V_WIDTH+7].opad[i];
+#endif
+	}
+	for (i = 0; i < 5; i++) {
+		state_out[i].s0 = state[gid*V_WIDTH+0].out[i];
+		state_out[i].s1 = state[gid*V_WIDTH+1].out[i];
+#if V_WIDTH > 2
+		state_out[i].s2 = state[gid*V_WIDTH+2].out[i];
+		state_out[i].s3 = state[gid*V_WIDTH+3].out[i];
+#endif
+#if V_WIDTH > 4
+		state_out[i].s4 = state[gid*V_WIDTH+4].out[i];
+		state_out[i].s5 = state[gid*V_WIDTH+5].out[i];
+		state_out[i].s6 = state[gid*V_WIDTH+6].out[i];
+		state_out[i].s7 = state[gid*V_WIDTH+7].out[i];
+#endif
+	}
 #endif
 
 	for (j = 0; j < HASH_LOOPS; j++) {
@@ -657,24 +688,40 @@ __kernel void pbkdf2_loop(__global pbkdf2_state *state)
 			state_out[i] ^= output[i];
 	}
 
-#ifdef VECTORIZE
-	for (i = 0; i < 5; i++) {
-		state[gid*4+0].W[i] = W[i].s0;
-		state[gid*4+1].W[i] = W[i].s1;
-		state[gid*4+2].W[i] = W[i].s2;
-		state[gid*4+3].W[i] = W[i].s3;
-	}
-	for (i = 0; i < 5; i++) {
-		state[gid*4+0].out[i] = state_out[i].s0;
-		state[gid*4+1].out[i] = state_out[i].s1;
-		state[gid*4+2].out[i] = state_out[i].s2;
-		state[gid*4+3].out[i] = state_out[i].s3;
-	}
-#else
+#ifdef SCALAR
 	for (i = 0; i < 5; i++)
 		state[gid].W[i] = W[i];
 	for (i = 0; i < 5; i++)
 		state[gid].out[i] = state_out[i];
+#else
+	for (i = 0; i < 5; i++) {
+		state[gid*V_WIDTH+0].W[i] = W[i].s0;
+		state[gid*V_WIDTH+1].W[i] = W[i].s1;
+#if V_WIDTH > 2
+		state[gid*V_WIDTH+2].W[i] = W[i].s2;
+		state[gid*V_WIDTH+3].W[i] = W[i].s3;
+#endif
+#if V_WIDTH > 4
+		state[gid*V_WIDTH+4].W[i] = W[i].s4;
+		state[gid*V_WIDTH+5].W[i] = W[i].s5;
+		state[gid*V_WIDTH+6].W[i] = W[i].s6;
+		state[gid*V_WIDTH+7].W[i] = W[i].s7;
+#endif
+	}
+	for (i = 0; i < 5; i++) {
+		state[gid*V_WIDTH+0].out[i] = state_out[i].s0;
+		state[gid*V_WIDTH+1].out[i] = state_out[i].s1;
+#if V_WIDTH > 2
+		state[gid*V_WIDTH+2].out[i] = state_out[i].s2;
+		state[gid*V_WIDTH+3].out[i] = state_out[i].s3;
+#endif
+#if V_WIDTH > 4
+		state[gid*V_WIDTH+4].out[i] = state_out[i].s4;
+		state[gid*V_WIDTH+5].out[i] = state_out[i].s5;
+		state[gid*V_WIDTH+6].out[i] = state_out[i].s6;
+		state[gid*V_WIDTH+7].out[i] = state_out[i].s7;
+#endif
+	}
 #endif
 }
 
