@@ -18,11 +18,12 @@ void mpi_teardown(void)
 	if (finalized++)
 		return;
 
-	if (nice(20) < 0)
-		fprintf(stderr, "nice() failed\n");
-
-	if (mpi_p > 1)
+	if (mpi_p > 1) {
+		/* Some MPI platforms hang on 100% CPU while waiting */
+		if (nice(20) < 0)
+			fprintf(stderr, "nice() failed\n");
 		MPI_Barrier(MPI_COMM_WORLD);
+	}
 
 	MPI_Finalize();
 }
