@@ -1,9 +1,9 @@
 /*
  * Copyright (c) 2012 Samuele Giovanni Tonon
  * samu at linuxasylum dot net, and
- * Copyright (c) 2012 magnum
+ * Copyright (c) 2012, 2013 magnum
  * This program comes with ABSOLUTELY NO WARRANTY; express or
- * implied .
+ * implied.
  * This is free software, and you are welcome to redistribute it
  * under certain conditions; as expressed here
  * http://www.gnu.org/licenses/gpl-2.0.html
@@ -49,12 +49,15 @@ static char *mysqlsha_plain;
 static int have_full_hashes;
 
 static struct fmt_tests tests[] = {
-	{"*0D3CED9BEC10A777AEC23CCC353A8C08A633045E", "abc"},
 	{"*5AD8F88516BD021DD43F171E2C785C69F8E54ADB", "tere"},
-	{"*2C905879F74F28F8570989947D06A8429FB943E6", "verysecretpassword"},
+	{"*2c905879f74f28f8570989947d06a8429fb943e6", "verysecretpassword"},
+	{"*A8A397146B1A5F8C8CF26404668EFD762A1B7B82", "________________________________"},
+	{"*F9F1470004E888963FB466A5452C9CBD9DF6239C", "12345678123456781234567812345678"},
 	{"*97CF7A3ACBE0CA58D5391AC8377B5D9AC11D46D9", "' OR 1 /*'"},
 	{"*2470C0C06DEE42FD1618BB99005ADCA2EC9D1E19", "password"},
 	{"*7534F9EAEE5B69A586D1E9C1ACE3E3F9F6FCC446", "5"},
+	{"*be1bdec0aa74b4dcb079943e70528096cca985f8", ""},
+	{"*0D3CED9BEC10A777AEC23CCC353A8C08A633045E", "abc"},
 	{"*18E70DF2758EE4C0BD954910E5808A686BC38C6A", "VAwJsrUcrchdG9"},
 	{"*440F91919FD39C01A9BC5EDB6E1FE626D2BFBA2F", "lMUXgJFc2rNnn"},
 	{"*171A78FB2E228A08B74A70FE7401C807B234D6C9", "TkUDsVJC"},
@@ -171,7 +174,17 @@ static int valid(char *ciphertext, struct fmt_main *self){
 	return 1;
 }
 
-static void init(struct fmt_main *self){
+static char *split(char *ciphertext, int index)
+{
+	static char out[CIPHERTEXT_LENGTH + 1];
+
+	strnzcpy(out, ciphertext, sizeof(out));
+	strupr(out);
+	return out;
+}
+
+static void init(struct fmt_main *self)
+{
 	char build_opts[64];
 	char *temp;
 	cl_ulong maxsize;
@@ -342,7 +355,7 @@ struct fmt_main fmt_opencl_mysqlsha1 = {
 		init,
 		fmt_default_prepare,
 		valid,
-		fmt_default_split,
+		split,
 		binary,
 		fmt_default_salt,
 		{
