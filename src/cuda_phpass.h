@@ -72,8 +72,8 @@ typedef struct {
 } phpass_password;
 
 typedef struct {
-	uint8_t salt[8];
 	uint32_t rounds;
+	uint8_t salt[8];
 } phpass_salt;
 
 typedef struct {

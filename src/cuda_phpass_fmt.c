@@ -23,6 +23,8 @@
 #define PLAINTEXT_LENGTH	15
 #define CIPHERTEXT_LENGTH	34	/// header = 3 | loopcnt = 1 | salt = 8 | ciphertext = 22
 #define BINARY_SIZE		16
+#define BINARY_ALIGN		1
+#define SALT_ALIGN		1
 #define MD5_DIGEST_LENGTH 	16
 
 #define MIN_KEYS_PER_CRYPT	THREADS
@@ -239,9 +241,9 @@ struct fmt_main fmt_cuda_phpass = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		0,

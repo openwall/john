@@ -82,7 +82,7 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 		out[i] = ciphertext[i];
 	out[i] = 0;
 	// lowercase salt as well as hash, encoding-aware
-	enc_strlwr(&out[6]);
+	enc_strlwr(&out[2]);
 	return out;
 }
 
