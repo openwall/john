@@ -1,6 +1,6 @@
 /*
  * This software is Copyright (c) 2012 Lukas Odzioba <ukasz at openwall.net>,
- * Copyright (c) 2012 Milen Rangelov and Copyright (c) 2012 magnum,
+ * Copyright (c) 2012 Milen Rangelov and Copyright (c) 2012-2013 magnum,
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -572,7 +572,9 @@ __kernel void pbkdf2_init(__global const pbkdf2_password *inbuffer,
 		state[gid].W[i] = state[gid].out[i];
 }
 
-__kernel void pbkdf2_loop(__global pbkdf2_state *state)
+__kernel
+__attribute__((vec_type_hint(MAYBE_VECTOR_UINT)))
+void pbkdf2_loop(__global pbkdf2_state *state)
 {
 	uint gid = get_global_id(0);
 	uint i, j;

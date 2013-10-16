@@ -395,7 +395,9 @@ __kernel void GenerateSHA1pwhash(
 #endif
 }
 
-__kernel void HashLoop(__global MAYBE_VECTOR_UINT *pwhash)
+__kernel
+__attribute__((vec_type_hint(MAYBE_VECTOR_UINT)))
+void HashLoop(__global MAYBE_VECTOR_UINT *pwhash)
 {
 	uint i, j;
 	MAYBE_VECTOR_UINT W[16];
@@ -430,7 +432,9 @@ __kernel void HashLoop(__global MAYBE_VECTOR_UINT *pwhash)
 	pwhash[gid * 6 + 5] += HASH_LOOPS;
 }
 
-__kernel void Generate2010key(
+__kernel
+__attribute__((vec_type_hint(MAYBE_VECTOR_UINT)))
+void Generate2010key(
 	__global MAYBE_VECTOR_UINT *pwhash,
 	__global uint *key,
 	__constant uint *spincount)

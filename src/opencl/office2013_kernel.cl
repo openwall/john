@@ -250,7 +250,9 @@ __kernel void GenerateSHA512pwhash(
 #endif
 }
 
-__kernel void HashLoop(__global MAYBE_VECTOR_ULONG *pwhash)
+__kernel
+__attribute__((vec_type_hint(MAYBE_VECTOR_ULONG)))
+void HashLoop(__global MAYBE_VECTOR_ULONG *pwhash)
 {
 	uint i, j;
 	MAYBE_VECTOR_ULONG block[16];
@@ -285,7 +287,9 @@ __kernel void HashLoop(__global MAYBE_VECTOR_ULONG *pwhash)
 	pwhash[gid * 9 + 8] += HASH_LOOPS;
 }
 
-__kernel void Generate2013key(
+__kernel
+__attribute__((vec_type_hint(MAYBE_VECTOR_ULONG)))
+void Generate2013key(
 	__global MAYBE_VECTOR_ULONG *pwhash,
 	__global ulong *key,
 	__constant uint *spincount)

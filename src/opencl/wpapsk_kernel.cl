@@ -709,7 +709,9 @@ __kernel void wpapsk_init(__global const wpapsk_password *inbuffer,
 		state[gid].W[i] = state[gid].out[i];
 }
 
-__kernel void wpapsk_loop(__global wpapsk_state *state)
+__kernel
+__attribute__((vec_type_hint(MAYBE_VECTOR_UINT)))
+void wpapsk_loop(__global wpapsk_state *state)
 {
 	uint gid = get_global_id(0);
 	uint i, j;

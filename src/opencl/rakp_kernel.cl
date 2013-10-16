@@ -236,6 +236,7 @@ inline uint SWAP32(uint x)
 	}
 
 __kernel
+__attribute__((vec_type_hint(MAYBE_VECTOR_UINT)))
 void rakp_kernel(
 	__constant      uint* salt,
 	__global const  uint* key_array,
