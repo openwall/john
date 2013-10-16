@@ -324,7 +324,10 @@ __kernel void mysqlsha1_crypt_kernel(__global const uchar *key,
 
 	key += base;
 
-	for (i = 0; i < len && i < PLAINTEXT_LENGTH; i++)
+	/* Work-around for self-tests not always calling set_key() like IRL */
+	len = (len > PLAINTEXT_LENGTH) ? 0 : len;
+
+	for (i = 0; i < len; i++)
 		PUTCHAR_BE(W, i, key[i]);
 	PUTCHAR_BE(W, i, 0x80);
 	W[15] = i << 3;

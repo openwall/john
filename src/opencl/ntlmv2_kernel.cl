@@ -442,7 +442,7 @@ __kernel void ntlmv2_nthash(const __global uchar *source,
 	const __global UTF8 *sourceEnd;
 	UTF16 *target = (UTF16*)block;
 	UTF16 *targetStart = target;
-	const UTF16 *targetEnd = &target[27];
+	const UTF16 *targetEnd = &target[PLAINTEXT_LENGTH];
 	UTF32 ch;
 	uint extraBytesToRead;
 
@@ -530,8 +530,11 @@ __kernel void ntlmv2_nthash(const __global uchar *password,
 
 	password += base;
 
+	/* Work-around for self-tests not always calling set_key() like IRL */
+	len = (len > PLAINTEXT_LENGTH) ? 0 : len;
+
 	/* Input buffer is in a 'codepage' encoding, without zero-termination */
-	for (i = 0; i < len && i < 27; i++)
+	for (i = 0; i < len; i++)
 		PUTSHORT(block, i, (password[i] < 0x80) ?
 		        password[i] : ENCODING[password[i] & 0x7f]);
 	PUTCHAR(block, 2 * i, 0x80);
@@ -561,9 +564,12 @@ __kernel void ntlmv2_nthash(const __global uchar *password,
 
 	password += base;
 
+	/* Work-around for self-tests not always calling set_key() like IRL */
+	len = (len > PLAINTEXT_LENGTH) ? 0 : len;
+
 	/* Input buffer is in ISO-8859-1 encoding, without zero-termination.
 	   we can just type-cast this to UTF16 */
-	for (i = 0; i < len && i < 27; i++)
+	for (i = 0; i < len; i++)
 		PUTCHAR(block, 2 * i, password[i]);
 	PUTCHAR(block, 2 * i, 0x80);
 	block[14] = i << 4;

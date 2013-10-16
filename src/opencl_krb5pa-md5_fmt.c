@@ -374,7 +374,8 @@ static void init(struct fmt_main *self)
 	}
 
 	snprintf(build_opts, sizeof(build_opts),
-	    "-DENC_%s -DENCODING=%s", encoding, encoding);
+	    "-DENC_%s -DENCODING=%s -DPLAINTEXT_LENGTH=%u",
+	         encoding, encoding, PLAINTEXT_LENGTH);
 	opencl_init("$JOHN/kernels/krb5pa-md5_kernel.cl", ocl_gpu_id, build_opts);
 
 	/* Read LWS/GWS prefs from config or environment */
