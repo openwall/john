@@ -246,6 +246,7 @@ void rakp_kernel(
 	MAYBE_VECTOR_UINT W[16], K[16] = { 0 }, stage1[5], stage2[5];
 	MAYBE_VECTOR_UINT temp, A, B, C, D, E;
 	uint gid = get_global_id(0);
+	uint gws = get_global_size(0);
 	uint i;
 	uint base = index[gid * V_WIDTH];
 	uint len = ((base & 63) + 3) / 4;
@@ -333,19 +334,19 @@ void rakp_kernel(
 	for (i = 0; i < 5; i++)
 	{
 #ifdef SCALAR
-		digest[gid * 5 + i] = stage2[i];
+		digest[i * gws + gid] = stage2[i];
 #else
-		digest[(gid * V_WIDTH + 0) * 5 + i] = stage2[i].s0;
-		digest[(gid * V_WIDTH + 1) * 5 + i] = stage2[i].s1;
+		digest[i * gws * V_WIDTH + gid * V_WIDTH + 0] = stage2[i].s0;
+		digest[i * gws * V_WIDTH + gid * V_WIDTH + 1] = stage2[i].s1;
 #if V_WIDTH > 2
-		digest[(gid * V_WIDTH + 2) * 5 + i] = stage2[i].s2;
-		digest[(gid * V_WIDTH + 3) * 5 + i] = stage2[i].s3;
+		digest[i * gws * V_WIDTH + gid * V_WIDTH + 2] = stage2[i].s2;
+		digest[i * gws * V_WIDTH + gid * V_WIDTH + 3] = stage2[i].s3;
 #endif
 #if V_WIDTH > 4
-		digest[(gid * V_WIDTH + 4) * 5 + i] = stage2[i].s4;
-		digest[(gid * V_WIDTH + 5) * 5 + i] = stage2[i].s5;
-		digest[(gid * V_WIDTH + 6) * 5 + i] = stage2[i].s6;
-		digest[(gid * V_WIDTH + 7) * 5 + i] = stage2[i].s7;
+		digest[i * gws * V_WIDTH + gid * V_WIDTH + 4] = stage2[i].s4;
+		digest[i * gws * V_WIDTH + gid * V_WIDTH + 5] = stage2[i].s5;
+		digest[i * gws * V_WIDTH + gid * V_WIDTH + 6] = stage2[i].s6;
+		digest[i * gws * V_WIDTH + gid * V_WIDTH + 7] = stage2[i].s7;
 #endif
 #endif
 	}

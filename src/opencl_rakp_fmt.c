@@ -39,8 +39,7 @@
 
 #define PLAINTEXT_LENGTH        (PAD_SIZE - 1) /* idx & 63 */
 
-#define DIGEST_SIZE             20
-#define BINARY_SIZE             DIGEST_SIZE
+#define BINARY_SIZE             20
 
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      (2 * 1024 * 1024)
@@ -66,9 +65,10 @@ cl_mem salt_buffer, keys_buffer, idx_buffer, digest_buffer;
 
 static unsigned int *keys;
 static unsigned int *idx;
-static ARCH_WORD_32 (*digest)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static ARCH_WORD_32 (*digest);
 static unsigned int key_idx = 0;
 static unsigned int v_width = 1;	/* Vector width of kernel */
+static int partial_output;
 
 #define MIN(a, b)               (((a) > (b)) ? (b) : (a))
 #define MAX(a, b)               (((a) > (b)) ? (a) : (b))
@@ -120,7 +120,7 @@ static void create_clobj(int kpc)
 
 	keys = mem_alloc((PLAINTEXT_LENGTH + 1) * kpc);
 	idx = mem_alloc(sizeof(*idx) * kpc);
-	digest = mem_alloc(sizeof(*digest) * kpc);
+	digest = mem_alloc(sizeof(*digest) * kpc * BINARY_SIZE);
 
 	salt_buffer = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, SALT_STORAGE_SIZE, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating salt_buffer out argument");
@@ -131,7 +131,7 @@ static void create_clobj(int kpc)
 	idx_buffer = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, 4 * kpc, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating idx_buffer out argument");
 
-	digest_buffer = clCreateBuffer(context[ocl_gpu_id], CL_MEM_WRITE_ONLY, DIGEST_SIZE * kpc, NULL, &ret_code);
+	digest_buffer = clCreateBuffer(context[ocl_gpu_id], CL_MEM_WRITE_ONLY, BINARY_SIZE * kpc, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating digest_buffer in argument");
 
 	HANDLE_CLERROR(
@@ -345,22 +345,33 @@ static void set_salt(void *salt)
 
 static int cmp_all(void *binary, int count)
 {
-	int index = 0;
-	for (; index < count; index++) {
-		if (!memcmp(binary, digest[index], BINARY_SIZE)) {
+	int index;
+
+	for (index = 0; index < count; index++)
+		if (digest[index] == ((unsigned int*)binary)[0])
 			return 1;
-		}
-	}
 	return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return !memcmp(binary, digest[index], BINARY_SIZE);
+	return (digest[index] == ((unsigned int*)binary)[0]);
 }
 
 static int cmp_exact(char *source, int index)
 {
+	ARCH_WORD_32 *b;
+	int i;
+
+	if (partial_output) {
+		HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], digest_buffer, CL_TRUE, 0, BINARY_SIZE * global_work_size * v_width, digest, 0, NULL, NULL), "failed reading results back");
+		partial_output = 0;
+	}
+	b = (ARCH_WORD_32*)binary(source);
+
+	for(i = 0; i < BINARY_SIZE / 4; i++)
+		if (digest[i * global_work_size * v_width + index] != b[i])
+			return 0;
 	return 1;
 }
 
@@ -391,19 +402,20 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		"Error waiting for kernel to finish executing");
 
 	HANDLE_CLERROR(
-		clEnqueueReadBuffer(queue[ocl_gpu_id], digest_buffer, CL_TRUE, 0, BINARY_SIZE * scalar_gws, digest, 0, NULL, NULL),
+		clEnqueueReadBuffer(queue[ocl_gpu_id], digest_buffer, CL_TRUE, 0, sizeof(cl_uint) * scalar_gws, digest, 0, NULL, NULL),
 		"Error reading results from digest_buffer");
+	partial_output = 1;
 
 	return count;
 }
 
-static int get_hash_0(int index) { return digest[index][0] & 0xf; }
-static int get_hash_1(int index) { return digest[index][0] & 0xff; }
-static int get_hash_2(int index) { return digest[index][0] & 0xfff; }
-static int get_hash_3(int index) { return digest[index][0] & 0xffff; }
-static int get_hash_4(int index) { return digest[index][0] & 0xfffff; }
-static int get_hash_5(int index) { return digest[index][0] & 0xffffff; }
-static int get_hash_6(int index) { return digest[index][0] & 0x7ffffff; }
+static int get_hash_0(int index) { return digest[index] & 0xf; }
+static int get_hash_1(int index) { return digest[index] & 0xff; }
+static int get_hash_2(int index) { return digest[index] & 0xfff; }
+static int get_hash_3(int index) { return digest[index] & 0xffff; }
+static int get_hash_4(int index) { return digest[index] & 0xfffff; }
+static int get_hash_5(int index) { return digest[index] & 0xffffff; }
+static int get_hash_6(int index) { return digest[index] & 0x7ffffff; }
 
 struct fmt_main fmt_opencl_rakp = {
 	{
