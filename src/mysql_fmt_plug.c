@@ -33,7 +33,7 @@
 #include "formats.h"
 
 #define FORMAT_LABEL			"mysql"
-#define FORMAT_NAME			"MySQL"
+#define FORMAT_NAME			"MySQL pre-4.1"
 #define ALGORITHM_NAME			"32/" ARCH_BITS_STR
 
 #define BENCHMARK_COMMENT		""
