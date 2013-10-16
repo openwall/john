@@ -353,7 +353,7 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 #ifndef CL_VERSION_1_1
 	HANDLE_CLERROR(clSetCommandQueueProperty(queue[ocl_gpu_id], CL_QUEUE_PROFILING_ENABLE, CL_TRUE, NULL), "Failed enabling profiling");
 #else /* clSetCommandQueueProperty() is deprecated */
-	cl_command_queue origQueue = origQueue = queue[ocl_gpu_id];
+	cl_command_queue origQueue = queue[ocl_gpu_id];
 	queue[ocl_gpu_id] = clCreateCommandQueue(context[ocl_gpu_id], devices[ocl_gpu_id], CL_QUEUE_PROFILING_ENABLE, &ret_code);
 	HANDLE_CLERROR(ret_code, "Failed enabling profiling");
 #endif
