@@ -44,11 +44,11 @@
 #define BENCHMARK_LENGTH		-1
 
 #define PLAINTEXT_LENGTH		27
-#define CIPHERTEXT_LENGTH		36
+#define CIPHERTEXT_LENGTH		32
 
 // Note: the ISO-8859-1 plaintexts will be replaced in init() if running UTF-8
 static struct fmt_tests tests[] = {
-	{"$NT$b7e4b9022cd45f275334bbdb83bb5be5", "John the Ripper"},
+	{"b7e4b9022cd45f275334bbdb83bb5be5", "John the Ripper"},
 	{"$NT$31d6cfe0d16ae931b73c59d7e0c089c0", ""},
 	{"$NT$31d6cfe0d16ae931b73c59d7e0c089c0", ""},
 	{"$NT$31d6cfe0d16ae931b73c59d7e0c089c0", ""},
@@ -286,7 +286,7 @@ static void fmt_NT_init(struct fmt_main *self)
 
 static char * nt_split(char *ciphertext, int index)
 {
-	static char out[37];
+	static char out[CIPHERTEXT_LENGTH + 4 + 1];
 
 	if (!strncmp(ciphertext, "$NT$", 4))
 		ciphertext += 4;
@@ -308,15 +308,15 @@ static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *pos;
 
-	if (strncmp(ciphertext, "$NT$", 4)!=0) return 0;
+	if (!strncmp(ciphertext, "$NT$", 4))
+		ciphertext += 4;
 
-        for (pos = &ciphertext[4]; atoi16[ARCH_INDEX(*pos)] != 0x7F; pos++);
+        for (pos = ciphertext; atoi16[ARCH_INDEX(*pos)] != 0x7F; pos++);
 
         if (!*pos && pos - ciphertext == CIPHERTEXT_LENGTH)
 		return 1;
         else
 		return 0;
-
 }
 
 // here to 'handle' the pwdump files:  user:uid:lmhash:ntlmhash:::
@@ -324,15 +324,10 @@ static int valid(char *ciphertext, struct fmt_main *self)
 static char *prepare(char *split_fields[10], struct fmt_main *self)
 {
 	static char out[33+5];
-	extern struct options_main options;
+
 	if (!valid(split_fields[1], self)) {
 		if (split_fields[3] && strlen(split_fields[3]) == 32) {
 			sprintf(out, "$NT$%s", split_fields[3]);
-			if (valid(out,self))
-				return out;
-		}
-		if (options.format && !strcmp(options.format, "nt") && strlen(split_fields[1]) == 32) {
-			sprintf(out, "$NT$%s", split_fields[1]);
 			if (valid(out,self))
 				return out;
 		}
@@ -350,7 +345,9 @@ static void *get_binary(char *ciphertext)
 	unsigned int i=0;
 	unsigned int temp;
 
-	ciphertext+=4;
+	if (!strncmp(ciphertext, "$NT$", 4))
+		ciphertext += 4;
+
 	for (; i<4; i++)
 	{
 		temp  = (atoi16[ARCH_INDEX(ciphertext[i*8+0])])<<4;

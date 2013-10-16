@@ -29,7 +29,7 @@
 #include "johnswap.h"
 
 #define FORMAT_LABEL			"mscash"
-#define FORMAT_NAME			"M$ Cache Hash MD4"
+#define FORMAT_NAME			"M$ Cache Hash (DCC) MD4"
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		0

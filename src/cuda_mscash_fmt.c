@@ -15,7 +15,7 @@
 #include "unicode.h"
 
 #define FORMAT_LABEL		"mscash-cuda"
-#define FORMAT_NAME		"M$ Cache Hash MD4"
+#define FORMAT_NAME		"M$ Cache Hash (DCC) MD4"
 #define ALGORITHM_NAME		"CUDA (inefficient, development use only)"
 #define MAX_CIPHERTEXT_LENGTH	(2 + 19*3 + 1 + 32)
 #define BENCHMARK_COMMENT	""
@@ -83,7 +83,7 @@ static char *split(char *ciphertext, int index)
 		out[i] = ciphertext[i];
 	out[i] = 0;
 	// lowercase salt as well as hash, encoding-aware
-	enc_strlwr(&out[6]);
+	enc_strlwr(&out[2]);
 	return out;
 }
 

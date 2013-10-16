@@ -32,7 +32,7 @@
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	23
-#define CIPHERTEXT_LENGTH	36
+#define CIPHERTEXT_LENGTH	32
 #define BINARY_SIZE		16
 #define SALT_SIZE		0
 
@@ -41,7 +41,7 @@
 #define MAX_KEYS_PER_CRYPT	MIN_KEYS_PER_CRYPT
 
 static struct fmt_tests tests[] = {
-	{"$NT$b7e4b9022cd45f275334bbdb83bb5be5", "John the Ripper"},
+	{"b7e4b9022cd45f275334bbdb83bb5be5", "John the Ripper"},
 	{"$NT$8bd6e4fb88e01009818749c5443ea712", "\xFC"},         // German u-diaeresis in ISO-8859-1
 	{"$NT$cc1260adb6985ca749f150c7e0b22063", "\xFC\xFC"},     // Two of the above
 	{"$NT$7a21990fcd3d759941e45c490f143d5f", "12345"},
@@ -214,7 +214,7 @@ static void init(struct fmt_main *self){
 
 static char *split(char *ciphertext, int index)
 {
-	static char out[37];
+	static char out[CIPHERTEXT_LENGTH + 4 + 1];
 
 	if (!strncmp(ciphertext, "$NT$", 4))
 		ciphertext += 4;
@@ -236,15 +236,32 @@ static int valid(char *ciphertext, struct fmt_main *self)
 {
         char *pos;
 
-	if (strncmp(ciphertext, "$NT$", 4)!=0) return 0;
+	if (!strncmp(ciphertext, "$NT$", 4))
+		ciphertext += 4;
 
-        for (pos = &ciphertext[4]; atoi16[ARCH_INDEX(*pos)] != 0x7F; pos++);
+        for (pos = ciphertext; atoi16[ARCH_INDEX(*pos)] != 0x7F; pos++);
 
         if (!*pos && pos - ciphertext == CIPHERTEXT_LENGTH)
 		return 1;
         else
 	return 0;
 
+}
+
+// here to 'handle' the pwdump files:  user:uid:lmhash:ntlmhash:::
+// Note, we address the user id inside loader.
+static char *prepare(char *split_fields[10], struct fmt_main *self)
+{
+	static char out[CIPHERTEXT_LENGTH + 4 + 1];
+
+	if (!valid(split_fields[1], self)) {
+		if (split_fields[3] && strlen(split_fields[3]) == 32) {
+			sprintf(out, "$NT$%s", split_fields[3]);
+			if (valid(out,self))
+				return out;
+		}
+	}
+	return split_fields[1];
 }
 
 static void *get_binary(char *ciphertext)
@@ -382,7 +399,7 @@ struct fmt_main fmt_opencl_NT = {
 		tests
 	}, {
 		init,
-		fmt_default_prepare,
+		prepare,
 		valid,
 		split,
 		get_binary,
