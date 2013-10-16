@@ -20,7 +20,7 @@
 #include "common-opencl.h"
 
 #define FORMAT_LABEL			"mysql-sha1-opencl"
-#define FORMAT_NAME			"MySQL 4.1 double-SHA-1"
+#define FORMAT_NAME			"MySQL 4.1+ double-SHA-1"
 #define ALGORITHM_NAME			"OpenCL (inefficient, development use only)"
 
 #define BENCHMARK_COMMENT		""
