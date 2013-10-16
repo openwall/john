@@ -68,7 +68,7 @@ static int crypt_all(int *pcount, struct db_salt *_salt);
 static int crypt_all_benchmark(int *pcount, struct db_salt *_salt);
 
 static struct fmt_tests tests[] = {
-	{"$MD4$6d78785c44ea8dfa178748b245d8c3ae", "magnum" },
+	{"6d78785c44ea8dfa178748b245d8c3ae", "magnum" },
 	{"$MD4$31d6cfe0d16ae931b73c59d7e0c089c0", "" },
 	{"$MD4$cafbb81fb64d9dd286bc851c4c6e0d21", "lolcode" },
 	{"$MD4$585028aa0f794af812ee3be8804eb14a", "123456" },

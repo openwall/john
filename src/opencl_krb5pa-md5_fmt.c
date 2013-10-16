@@ -65,6 +65,7 @@
 
 // Second and third plaintext will be replaced in init() under --encoding=utf8
 static struct fmt_tests tests[] = {
+	{"$krb5pa$23$user$realm$salt$afcbe07c32c3450b37d0f2516354570fe7d3e78f829e77cdc1718adf612156507181f7daeb03b6fbcfe91f8346f3c0ae7e8abfe5", "John"},
 	{"$mskrb5$john$JOHN.DOE.MS.COM$02E837D06B2AC76891F388D9CC36C67A$2A9785BF5036C45D3843490BF9C228E8C18653E10CE58D7F8EF119D2EF4F92B1803B1451", "fr2beesgr"},
 	{"$mskrb5$user1$EXAMPLE.COM$08b5adda3ab0add14291014f1d69d145$a28da154fa777a53e23059647682eee2eb6c1ada7fb5cad54e8255114270676a459bfe4a", "openwall"},
 	{"$mskrb5$hackme$EXAMPLE.NET$e3cdf70485f81a85f7b59a4c1d6910a3$6e2f6705551a76f84ec2c92a9dd0fef7b2c1d4ca35bf1b02423359a3ecaa19bdf07ed0da", "openwall@123"},
@@ -76,7 +77,6 @@ static struct fmt_tests tests[] = {
 #if PLAINTEXT_LENGTH >= 31
 	{"$mskrb5$$$334ef74dad191b71c43efaa16aa79d88$34ebbad639b2b5a230b7ec1d821594ed6739303ae6798994e72bd13d5e0e32fdafb65413", "VeryveryveryloooooooongPassword"},
 #endif
-	{"$krb5pa$23$user$realm$salt$afcbe07c32c3450b37d0f2516354570fe7d3e78f829e77cdc1718adf612156507181f7daeb03b6fbcfe91f8346f3c0ae7e8abfe5", "John"},
 	{NULL}
 };
 

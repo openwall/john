@@ -352,7 +352,7 @@ void listconf_parse_late(void)
 				while (format->params.tests[ntests++].ciphertext);
 				ntests--;
 			}
-			printf("%s\t%d\t%d\t%d\t%08x\t%d\t%s\t%s\t%s\t%d\t%d\t%d\n",
+			printf("%s\t%d\t%d\t%d\t%08x\t%d\t%s\t%s\t%s\t%d\t%d\t%d\t%.256s\n",
 			       format->params.label,
 			       format->params.plaintext_length,
 			       format->params.min_keys_per_crypt,
@@ -369,7 +369,13 @@ void listconf_parse_late(void)
 			       ((format->params.flags & FMT_DYNAMIC) && format->params.salt_size) ?
 			       // salts are handled internally within the format. We want to know the 'real' salt size
 			       // dynamic will alway set params.salt_size to 0 or sizeof a pointer.
-			       dynamic_real_salt_length(format) : format->params.salt_size);
+			       dynamic_real_salt_length(format) : format->params.salt_size,
+			       /*
+			        * ciphertext example will be silently truncated
+			        * to 256 characters here
+			        */
+			       format->params.tests ?
+			       format->params.tests[0].ciphertext : "");
 		} while ((format = format->next));
 		exit(0);
 	}
@@ -387,33 +393,44 @@ void listconf_parse_late(void)
 			 * attributes should be printed in the same sequence
 			 * as with format-details, but human-readable
 			 */
-			printf("Format label                    \t%s\n", format->params.label);
-			printf("Max. password length in bytes   \t%d\n", format->params.plaintext_length);
-			printf("Min. keys per crypt             \t%d\n", format->params.min_keys_per_crypt);
-			printf("Max. keys per crypt             \t%d\n", format->params.max_keys_per_crypt);
+			printf("Format label                         %s\n", format->params.label);
+			printf("Max. password length in bytes        %d\n", format->params.plaintext_length);
+			printf("Min. keys per crypt                  %d\n", format->params.min_keys_per_crypt);
+			printf("Max. keys per crypt                  %d\n", format->params.max_keys_per_crypt);
 			printf("Flags\n");
-			printf(" Case sensitive                 \t%s\n", (format->params.flags & FMT_CASE) ? "yes" : "no");
-			printf(" Supports 8-bit characters      \t%s\n", (format->params.flags & FMT_8_BIT) ? "yes" : "no");
-			printf(" Converts 8859-1 to UTF-16/UCS-2\t%s\n", (format->params.flags & FMT_UNICODE) ? "yes" : "no");
-			printf(" Honours --encoding=NAME        \t%s\n", (format->params.flags & FMT_UTF8) ? "yes" : "no");
-			printf(" False positives possible       \t%s\n", (format->params.flags & FMT_NOT_EXACT) ? "yes" : "no");
-			printf(" Uses a bitslice implementation \t%s\n", (format->params.flags & FMT_BS) ? "yes" : "no");
-			printf(" The split() method unifies case\t%s\n", (format->params.flags & FMT_SPLIT_UNIFIES_CASE) ? "yes" : "no");
-			printf(" A $dynamic$ format             \t%s\n", (format->params.flags & FMT_DYNAMIC) ? "yes" : "no");
+			printf(" Case sensitive                      %s\n", (format->params.flags & FMT_CASE) ? "yes" : "no");
+			printf(" Supports 8-bit characters           %s\n", (format->params.flags & FMT_8_BIT) ? "yes" : "no");
+			printf(" Converts 8859-1 to UTF-16/UCS-2     %s\n", (format->params.flags & FMT_UNICODE) ? "yes" : "no");
+			printf(" Honours --encoding=NAME             %s\n", (format->params.flags & FMT_UTF8) ? "yes" : "no");
+			printf(" False positives possible            %s\n", (format->params.flags & FMT_NOT_EXACT) ? "yes" : "no");
+			printf(" Uses a bitslice implementation      %s\n", (format->params.flags & FMT_BS) ? "yes" : "no");
+			printf(" The split() method unifies case     %s\n", (format->params.flags & FMT_SPLIT_UNIFIES_CASE) ? "yes" : "no");
+			printf(" A $dynamic$ format                  %s\n", (format->params.flags & FMT_DYNAMIC) ? "yes" : "no");
 #ifdef _OPENMP
-			printf(" Parallelized with OpenMP       \t%s\n", (format->params.flags & FMT_OMP) ? "yes" : "no");
+			printf(" Parallelized with OpenMP            %s\n", (format->params.flags & FMT_OMP) ? "yes" : "no");
 #endif
-			printf("Number of test cases for --test \t%d\n", ntests);
-			printf("Algorithm name                  \t%s\n", format->params.algorithm_name);
-			printf("Format name                     \t%s\n", format->params.format_name);
-			printf("Benchmark comment               \t%s\n", format->params.benchmark_comment[0] == ' ' ? &format->params.benchmark_comment[1] : format->params.benchmark_comment);
-			printf("Benchmark length                \t%d\n", format->params.benchmark_length);
-			printf("Binary size                     \t%d\n", format->params.binary_size);
-			printf("Salt size                       \t%d\n",
+			printf("Number of test cases for --test      %d\n", ntests);
+			printf("Algorithm name                       %s\n", format->params.algorithm_name);
+			printf("Format name                          %s\n", format->params.format_name);
+			printf("Benchmark comment                    %s\n", format->params.benchmark_comment[0] == ' ' ? &format->params.benchmark_comment[1] : format->params.benchmark_comment);
+			printf("Benchmark length                     %d\n", format->params.benchmark_length);
+			printf("Binary size                          %d\n", format->params.binary_size);
+			printf("Salt size                            %d\n",
 			       ((format->params.flags & FMT_DYNAMIC) && format->params.salt_size) ?
 			       // salts are handled internally within the format. We want to know the 'real' salt size/
 			       // dynamic will alway set params.salt_size to 0 or sizeof a pointer.
 			       dynamic_real_salt_length(format) : format->params.salt_size);
+			/*
+			 * The below should probably stay as last line of
+			 * output if adding more information.
+			 *
+			 * ciphertext example will be truncated to 512
+			 * characters here, with a notice.
+			 */
+			printf("Example ciphertext%s  %.512s\n",
+			       strlen(format->params.tests[0].ciphertext) > 512
+			       ? " (truncated here)" : "                 ",
+			       format->params.tests[0].ciphertext);
 			printf("\n");
 		} while ((format = format->next));
 		exit(0);

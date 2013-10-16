@@ -53,9 +53,9 @@
 #define MAX_KEYS_PER_CRYPT		1
 
 static struct fmt_tests tests[] = {
-	{"$keccak$0eab42de4c3ceb9235fc91acffe746b29c29a8c366b7c60e4e67c466f36a4304c00fa9caf9d87976ba469bcbe06713b435f091ef2769fb160cdab33d3670680e", ""},
+	{"0eab42de4c3ceb9235fc91acffe746b29c29a8c366b7c60e4e67c466f36a4304c00fa9caf9d87976ba469bcbe06713b435f091ef2769fb160cdab33d3670680e", ""},
 	{"$keccak$d135bb84d0439dbac432247ee573a23ea7d3c9deb2a968eb31d47c4fb45f1ef4422d6c531b5b9bd6f449ebcc449ea94d0a8f05f62130fda612da53c79659f609", "The quick brown fox jumps over the lazy dog"},
-	{"e4a7e8f5572f4853ef26a862f31687c249b1cd7922df2aac1f4348d8ceef944c74d1949e3465704a5f3f89fb53e0dcce3ea142c90af04c84cc7e548f144f8f0b", "abcd"},
+	{"$keccak$e4a7e8f5572f4853ef26a862f31687c249b1cd7922df2aac1f4348d8ceef944c74d1949e3465704a5f3f89fb53e0dcce3ea142c90af04c84cc7e548f144f8f0b", "abcd"},
 	{NULL}
 };
 
@@ -99,7 +99,7 @@ static char *split(char *ciphertext, int index, struct fmt_main *pFmt)
 	static char out[8 + CIPHERTEXT_LENGTH + 1];
 
 	if (!strncmp(ciphertext, "$keccak$", 8))
-		return ciphertext;
+		ciphertext += 8;
 
 	memcpy(out, "$keccak$", 8);
 	memcpy(out + 8, ciphertext, CIPHERTEXT_LENGTH + 1);

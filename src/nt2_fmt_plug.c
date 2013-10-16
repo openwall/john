@@ -38,7 +38,7 @@
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1
 
-#define CIPHERTEXT_LENGTH		36
+#define CIPHERTEXT_LENGTH		32
 
 #define DIGEST_SIZE			16
 #define BINARY_SIZE			16 // source()
@@ -84,7 +84,7 @@ static ARCH_WORD_32 crypt_key[DIGEST_SIZE / 4];
 
 // Note: the ISO-8859-1 plaintexts will be replaced in init() if running UTF-8
 static struct fmt_tests tests[] = {
-	{"$NT$b7e4b9022cd45f275334bbdb83bb5be5", "John the Ripper"},
+	{"b7e4b9022cd45f275334bbdb83bb5be5", "John the Ripper"},
 	{"$NT$31d6cfe0d16ae931b73c59d7e0c089c0", ""},
 	{"$NT$31d6cfe0d16ae931b73c59d7e0c089c0", ""},
 	{"$NT$31d6cfe0d16ae931b73c59d7e0c089c0", ""},
@@ -202,9 +202,10 @@ static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *pos;
 
-	if (strncmp(ciphertext, "$NT$", 4)!=0) return 0;
+	if (!strncmp(ciphertext, "$NT$", 4))
+		ciphertext += 4;
 
-	for (pos = &ciphertext[4]; atoi16[ARCH_INDEX(*pos)] != 0x7F; pos++);
+	for (pos = ciphertext; atoi16[ARCH_INDEX(*pos)] != 0x7F; pos++);
 
 	if (!*pos && pos - ciphertext == CIPHERTEXT_LENGTH)
 		return 1;
@@ -219,14 +220,8 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 	static char out[33+5];
 	extern struct options_main options;
 	if (!valid(split_fields[1], self)) {
-		if (strlen(split_fields[3]) == 32) {
+		if (split_fields[3] && strlen(split_fields[3]) == 32) {
 			sprintf(out, "$NT$%s", split_fields[3]);
-			if (valid(out,self))
-				return out;
-		}
-		if (options.format && !strcasecmp(options.format, FORMAT_LABEL)
-		    && strlen(split_fields[1]) == 32) {
-			sprintf(out, "$NT$%s", split_fields[1]);
 			if (valid(out,self))
 				return out;
 		}
@@ -666,7 +661,7 @@ static int get_hash_6(int index) { return ((ARCH_WORD_32*)crypt_key)[index] & 0x
 
 static char *source(char *source, void *binary)
 {
-	static char Buf[CIPHERTEXT_LENGTH + 1];
+	static char Buf[CIPHERTEXT_LENGTH + 4 + 1];
 	unsigned char *cpi;
 	char *cpo;
 	int i;

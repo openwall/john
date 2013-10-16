@@ -98,6 +98,7 @@ static const unsigned char transtable[] =
 
 // For backwards compatibility, we must support salts padded with spaces to a field width of 40
 static struct fmt_tests tests[] = {
+	{"DDIC$C94E2F7DD0178374", "DDIC"},
 	// While "X" and "U" are not valid SAP passwords, they might still occur
 	// if passwords longer than 8 characters are allowed, and if the CODVN B
 	// password is calculated and stored in addition to the CODVN F or
@@ -118,7 +119,6 @@ static struct fmt_tests tests[] = {
 	// {"------------$2CF190AF13E858A2", "-------"},
 	{"------------$058DE95926E00F32", "--+----"},
 	{"SAP*$7016BFF7C5472F1B", "MASTER"},
-	{"DDIC$C94E2F7DD0178374", "DDIC"},
 	// password DOLLAR$$$--- will be truncated to DOLLAR$$
 	{"DOLLAR$$$---$C3413C498C48EB67", "DOLLAR$$$---"},
 	{NULL}

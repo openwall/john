@@ -59,6 +59,7 @@
 #define MAX_KEYS_PER_CRYPT		1
 
 static struct fmt_tests tests[] = {
+	{"4e03657aea45a94fc7d47ba826c8d667c0d1e6e33a64a036ec44f58fa12d6c45", "abc"},
 	{"$keccak256$4e03657aea45a94fc7d47ba826c8d667c0d1e6e33a64a036ec44f58fa12d6c45", "abc"},
 	{NULL}
 };
@@ -103,7 +104,7 @@ static char *split(char *ciphertext, int index, struct fmt_main *pFmt)
 	static char out[TAG_LENGTH + CIPHERTEXT_LENGTH + 1];
 
 	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
-		return ciphertext;
+		ciphertext += TAG_LENGTH;
 
 	memcpy(out, FORMAT_TAG, TAG_LENGTH);
 	memcpy(out + TAG_LENGTH, ciphertext, CIPHERTEXT_LENGTH + 1);

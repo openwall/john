@@ -91,8 +91,7 @@ static const unsigned char theMagicArray[MAGIC_ARRAY_SIZE]=
 
 // For backwards compatibility, we must support salts padded with spaces to a field width of 40
 static struct fmt_tests tests[] = {
-	// FIXME: "X" and "u" are not valid SAP passwords, since they are shorter
-	//        than the minimum length of 3 characters
+	{"DDIC$6066CD3147915331EC4C602847D27A75EB3E8F0A", "DDIC"},
 	{"F           $646A0AD270DF651065669A45D171EDD62DFE39A1", "X"},
 	{"JOHNNY                                  $7D79B478E70CAAE63C41E0824EAB644B9070D10A", "CYBERPUNK"},
 	{"VAN$D15597367F24090F0A501962788E9F19B3604E73", "hauser"},
@@ -113,7 +112,6 @@ static struct fmt_tests tests[] = {
 	 "$B20D15C088481780CD44FCF2003AAAFBD9710C7C", "--+----"},
 #endif
 	{"SAP*                                $60A0F7E06D95BC9FB45F605BDF1F7B660E5D5D4E", "MaStEr"},
-	{"DDIC$6066CD3147915331EC4C602847D27A75EB3E8F0A", "DDIC"},
 	{"DOLLAR$$$---$E0180FD4542D8B6715E7D0D9EDE7E2D2E40C3D4D", "Dollar$$$---"},
 	{NULL}
 };
