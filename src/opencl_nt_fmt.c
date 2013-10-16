@@ -258,7 +258,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 static char *prepare(char *split_fields[10], struct fmt_main *self)
 {
 	static char out[33+5];
-	extern struct options_main options;
+
 	if (!valid(split_fields[1], self)) {
 		if (split_fields[3] && strlen(split_fields[3]) == 32) {
 			sprintf(out, "$NT$%s", split_fields[3]);
