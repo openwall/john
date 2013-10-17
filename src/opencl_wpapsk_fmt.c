@@ -19,6 +19,8 @@
 static cl_mem mem_in, mem_out, mem_salt, mem_state, pinned_in, pinned_out;
 static cl_kernel wpapsk_init, wpapsk_loop, wpapsk_pass2, wpapsk_final_md5, wpapsk_final_sha1;
 static unsigned int v_width = 1;	/* Vector width of kernel */
+static size_t key_buf_size;
+static unsigned int *inbuffer;
 
 #define JOHN_OCL_WPAPSK
 #include "wpapsk.h"
@@ -40,7 +42,9 @@ static unsigned int v_width = 1;	/* Vector width of kernel */
 #define MIN(a, b)		(((a) > (b)) ? (b) : (a))
 #define MAX(a, b)		(((a) > (b)) ? (a) : (b))
 
-extern wpapsk_password *inbuffer;
+//#define GETPOS(i, index)	(((index) % v_width) * 4 + ((i) & ~3U) * v_width + (((i) & 3) ^ 3) + index / v_width * 16 * 4 * v_width)
+#define GETPOS(i, index)	(((index) & (v_width - 1)) * 4 + ((i) & ~3U) * v_width + (((i) & 3) ^ 3) + (index >> (v_width >> 1)) * 16 * 4 * v_width)
+
 extern wpapsk_salt currentsalt;
 extern mic_t *mic;
 extern hccap_t hccap;
@@ -55,18 +59,18 @@ typedef struct {
 
 static void create_clobj(int gws, struct fmt_main *self)
 {
-	int i;
-
 	global_work_size = gws;
 	gws *= v_width;
 	self->params.max_keys_per_crypt = gws;
 
+	key_buf_size = 64 * gws;
+
 	/// Allocate memory
-	pinned_in = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, sizeof(wpapsk_password) * gws, NULL, &ret_code);
+	pinned_in = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, key_buf_size, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error allocating pinned in");
-	mem_in = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, sizeof(wpapsk_password) * gws, NULL, &ret_code);
+	mem_in = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, key_buf_size, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error allocating mem in");
-	inbuffer = clEnqueueMapBuffer(queue[ocl_gpu_id], pinned_in, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(wpapsk_password) * gws, 0, NULL, NULL, &ret_code);
+	inbuffer = clEnqueueMapBuffer(queue[ocl_gpu_id], pinned_in, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, key_buf_size, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory");
 
 	mem_state = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE, sizeof(wpapsk_state) * gws, NULL, &ret_code);
@@ -81,13 +85,6 @@ static void create_clobj(int gws, struct fmt_main *self)
 	HANDLE_CLERROR(ret_code, "Error allocating mem out");
 	mic = clEnqueueMapBuffer(queue[ocl_gpu_id], pinned_out, CL_TRUE, CL_MAP_READ, 0, sizeof(mic_t) * gws, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory");
-
-	/*
-	 * Zeroize the lengths in case crypt_all() is called with some keys still
-	 * not set.  This may happen during self-tests.
-	 */
-	for (i = 0; i < gws; i++)
-		inbuffer[i].length = strlen(tests[0].plaintext);
 
 	HANDLE_CLERROR(clSetKernelArg(wpapsk_init, 0, sizeof(mem_in), &mem_in), "Error while setting mem_in kernel argument");
 	HANDLE_CLERROR(clSetKernelArg(wpapsk_init, 1, sizeof(mem_salt), &mem_salt), "Error while setting mem_salt kernel argument");
@@ -134,7 +131,31 @@ static void done(void)
 	HANDLE_CLERROR(clReleaseProgram(program[ocl_gpu_id]), "Release Program");
 }
 
-static void set_key(char *key, int index);
+static void ocl_set_key(char *key, int index)
+{
+	int i;
+	int length = strlen(key);
+
+	for (i = 0; i < length; i++)
+		((char*)inbuffer)[GETPOS(i, index)] = key[i];
+}
+
+static char* ocl_get_key(int index)
+{
+	static char ret[PLAINTEXT_LENGTH + 1];
+	int i = 0;
+
+	while ((ret[i] = ((char*)inbuffer)[GETPOS(i, index)]))
+		i++;
+
+	return ret;
+}
+
+static void ocl_clear_keys(void) {
+	memset(inbuffer, 0, key_buf_size);
+	new_keys = 1;
+}
+
 static void *salt(char *ciphertext);
 static void set_salt(void *salt);
 
@@ -150,11 +171,11 @@ static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
 	create_clobj(gws, self);
 	queue_prof = clCreateCommandQueue(context[ocl_gpu_id], devices[ocl_gpu_id], CL_QUEUE_PROFILING_ENABLE, &ret_code);
 	for (i = 0; i < scalar_gws; i++)
-		set_key(tests[0].plaintext, i);
+		self->methods.set_key(tests[0].plaintext, i);
 	set_salt(salt(tests[0].ciphertext));
 
 	/// Copy data to gpu
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, mem_in, CL_FALSE, 0, sizeof(wpapsk_password) * scalar_gws, inbuffer, 0, NULL, &Event[0]), "Copy data to gpu");
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, mem_in, CL_FALSE, 0, 64 * scalar_gws, inbuffer, 0, NULL, &Event[0]), "Copy data to gpu");
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, mem_salt, CL_FALSE, 0, sizeof(wpapsk_salt), &currentsalt, 0, NULL, &Event[1]), "Copy setting to gpu");
 
 	/// Run kernels
@@ -410,7 +431,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	scalar_gws = global_work_size * v_width;
 
 	/// Copy data to gpu
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_in, CL_FALSE, 0, sizeof(wpapsk_password) * scalar_gws, inbuffer, 0, NULL, NULL), "Copy data to gpu");
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_in, CL_FALSE, 0, 64 * scalar_gws, inbuffer, 0, NULL, NULL), "Copy data to gpu");
 
 	/// Run kernel
 	if (new_keys || strcmp(last_ssid, hccap.essid)) {
@@ -452,7 +473,7 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
 	size_t scalar_gws = global_work_size * v_width;
 
 	/// Copy data to gpu
-	BENCH_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_in, CL_FALSE, 0, sizeof(wpapsk_password) * scalar_gws, inbuffer, 0, NULL, NULL), "Copy data to gpu");
+	BENCH_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_in, CL_FALSE, 0, 64 * scalar_gws, inbuffer, 0, NULL, NULL), "Copy data to gpu");
 
 	/// Run kernels, no iterations for fast enumeration
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], wpapsk_init, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "Run initial kernel");
@@ -503,9 +524,9 @@ struct fmt_main fmt_opencl_wpapsk = {
 		},
 		fmt_default_salt_hash,
 		set_salt,
-		set_key,
-		get_key,
-		clear_keys,
+		ocl_set_key,
+		ocl_get_key,
+		ocl_clear_keys,
 		crypt_all,
 		{
 			get_hash_0,

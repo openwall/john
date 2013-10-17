@@ -83,8 +83,8 @@ static struct fmt_tests tests[] = {
 static hccap_t hccap;			///structure with hccap data
 static wpapsk_salt currentsalt;		///structure for essid
 static mic_t *mic;			///table for MIC keys
-static wpapsk_password *inbuffer;	///table for candidate passwords
 #ifndef JOHN_OCL_WPAPSK
+static wpapsk_password *inbuffer;	///table for candidate passwords
 static wpapsk_hash *outbuffer;		///table for PMK calculated by GPU
 #endif
 static const char wpapsk_prefix[] = "$WPAPSK$";
@@ -306,6 +306,11 @@ static void set_salt(void *salt)
 	//Debug_hccap();
 }
 
+#ifndef JOHN_OCL_WPAPSK
+static void clear_keys(void) {
+	new_keys = 1;
+}
+
 #undef set_key
 static void set_key(char *key, int index)
 {
@@ -325,7 +330,6 @@ static char *get_key(int index)
 	return ret;
 }
 
-#ifndef JOHN_OCL_WPAPSK
 static void wpapsk_postprocess(int keys)
 {
 	int i;
@@ -447,10 +451,6 @@ static int cmp_one(void *binary, int index)
 static int cmp_exact(char *source, int count)
 {
 	return 1;
-}
-
-static void clear_keys(void) {
-	new_keys = 1;
 }
 
 #endif
