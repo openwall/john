@@ -81,7 +81,7 @@ GWS is the Global Work Size. For non-vectorized format it is the same as
 Keys Per Crypt, the number of keys that will be tried in a GPU call.
 - If you unset GWS, john will use a default work size, which depends on
   what format is used.
-- If GWS is set to 0 john will try to get the one best for
+- If GWS is set to 0 some formats will try to get the one best for
   your system, BEWARE it may take a couple of minutes.
 - GWS is highly dependent on your PCI-E bandwidth rate which at the
   moment is one of the biggest bottlenecks for OpenCL in john.
@@ -197,13 +197,14 @@ zip-opencl                ZIP
 Vectorized formats
 ==================
 
-A few formats will ask your device if it runs better vectorized, and at what
-width, and act accordingly.  A vectorized format runs faster on such devices
-(notably CPUs, depending on driver, and pre-GCN AMD GPUs). If a format defaults
-to vectorizing, --force-scalar will disable it. This might be beneficial eg. if
-you get messages like  "kernel has register spilling. Lower performance is
-expected". Note that you may need to bump verbosity (eg. --verb=4) to see such
-messages. The following formats currently support vectorizing:
+A few formats will ask your device if it runs better vectorized,  and at what
+width, and act accordingly.   A vectorized format runs faster on such devices
+(notably CPUs,  depending on driver,  and pre-GCN AMD GPUs).  However, a side
+effect might be register spilling which will just make it slower. If a format
+defaults  to vectorizing,  --force-scalar  will disable it.  You can also set
+ForceScalar = Y  in john.conf to disable it globally.
+
+The following formats currently support such vectorizing:
 
 krb5pa-sha1-opencl        Kerberos 5 AS-REQ Pre-Auth etype 17/18
 office2007-opencl         Office 2007
@@ -212,8 +213,8 @@ office2013-opencl         Office 2013
 RAKP-opencl               IPMI 2.0 RAKP (RMCP+)
 WPAPSK-opencl             WPA/WPA2 PSK
 
-When a format runs vectorized, it will show algorithm name eg. as [OpenCL 4x]
-as opposed to just [OpenCL].
+If/when a format runs vectorized, it will show algorithm name eg. as
+[OpenCL 4x] as opposed to just [OpenCL].
 
 
 =================

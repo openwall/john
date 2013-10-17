@@ -1112,6 +1112,9 @@ static void john_init(char *name, int argc, char **argv)
 		listconf_parse_late();
 
 #ifdef HAVE_OPENCL
+	if (cfg_get_bool(SECTION_OPTIONS, SUBSECTION_OPENCL, "ForceScalar", 0))
+		options.flags |= FLG_SCALAR;
+
 	ocl_gpu_id = -1;
 #endif
 
