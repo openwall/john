@@ -35,7 +35,7 @@
 #include "rc4.h"
 
 #define FORMAT_LABEL       "krb5pa-md5-opencl"
-#define FORMAT_NAME        "Kerberos 5 AS-REQ Pre-Auth etype 23 md4, rc4-hmac-md5"
+#define FORMAT_NAME        "Kerberos 5 AS-REQ Pre-Auth etype 23" /* md4, rc4-hmac-md5 */
 #define ALGORITHM_NAME     "MD4 HMAC-MD5 RC4 OpenCL"
 #define BENCHMARK_COMMENT  ""
 #define BENCHMARK_LENGTH   -1000
