@@ -740,13 +740,14 @@ void wpapsk_init(__global const wpapsk_password *inbuffer,
 	for (i = 0; i < 5; i++)
 		state[gid].opad[i].s2 = sc_state[i];
 
+#if V_WIDTH > 3
 	preproc(inbuffer[gid * V_WIDTH + 3].v, inbuffer[gid * V_WIDTH + 3].length, sc_state, 0x36363636);
 	for (i = 0; i < 5; i++)
 		state[gid].ipad[i].s3 = sc_state[i];
 	preproc(inbuffer[gid * V_WIDTH + 3].v, inbuffer[gid * V_WIDTH + 3].length, sc_state, 0x5c5c5c5c);
 	for (i = 0; i < 5; i++)
 		state[gid].opad[i].s3 = sc_state[i];
-#endif
+
 #if V_WIDTH > 4
 	preproc(inbuffer[gid * V_WIDTH + 4].v, inbuffer[gid * V_WIDTH + 4].length, sc_state, 0x36363636);
 	for (i = 0; i < 5; i++)
@@ -775,6 +776,64 @@ void wpapsk_init(__global const wpapsk_password *inbuffer,
 	preproc(inbuffer[gid * V_WIDTH + 7].v, inbuffer[gid * V_WIDTH + 7].length, sc_state, 0x5c5c5c5c);
 	for (i = 0; i < 5; i++)
 		state[gid].opad[i].s7 = sc_state[i];
+#if V_WIDTH > 8
+	preproc(inbuffer[gid * V_WIDTH + 8].v, inbuffer[gid * V_WIDTH + 8].length, sc_state, 0x36363636);
+	for (i = 0; i < 5; i++)
+		state[gid].ipad[i].s8 = sc_state[i];
+	preproc(inbuffer[gid * V_WIDTH + 8].v, inbuffer[gid * V_WIDTH + 8].length, sc_state, 0x5c5c5c5c);
+	for (i = 0; i < 5; i++)
+		state[gid].opad[i].s8 = sc_state[i];
+
+	preproc(inbuffer[gid * V_WIDTH + 9].v, inbuffer[gid * V_WIDTH + 9].length, sc_state, 0x36363636);
+	for (i = 0; i < 5; i++)
+		state[gid].ipad[i].s9 = sc_state[i];
+	preproc(inbuffer[gid * V_WIDTH + 9].v, inbuffer[gid * V_WIDTH + 9].length, sc_state, 0x5c5c5c5c);
+	for (i = 0; i < 5; i++)
+		state[gid].opad[i].s9 = sc_state[i];
+
+	preproc(inbuffer[gid * V_WIDTH + 10].v, inbuffer[gid * V_WIDTH + 10].length, sc_state, 0x36363636);
+	for (i = 0; i < 5; i++)
+		state[gid].ipad[i].sa = sc_state[i];
+	preproc(inbuffer[gid * V_WIDTH + 10].v, inbuffer[gid * V_WIDTH + 10].length, sc_state, 0x5c5c5c5c);
+	for (i = 0; i < 5; i++)
+		state[gid].opad[i].sa = sc_state[i];
+
+	preproc(inbuffer[gid * V_WIDTH + 11].v, inbuffer[gid * V_WIDTH + 11].length, sc_state, 0x36363636);
+	for (i = 0; i < 5; i++)
+		state[gid].ipad[i].sb = sc_state[i];
+	preproc(inbuffer[gid * V_WIDTH + 11].v, inbuffer[gid * V_WIDTH + 11].length, sc_state, 0x5c5c5c5c);
+	for (i = 0; i < 5; i++)
+		state[gid].opad[i].sb = sc_state[i];
+	preproc(inbuffer[gid * V_WIDTH + 12].v, inbuffer[gid * V_WIDTH + 12].length, sc_state, 0x36363636);
+	for (i = 0; i < 5; i++)
+		state[gid].ipad[i].sc = sc_state[i];
+	preproc(inbuffer[gid * V_WIDTH + 12].v, inbuffer[gid * V_WIDTH + 12].length, sc_state, 0x5c5c5c5c);
+	for (i = 0; i < 5; i++)
+		state[gid].opad[i].sc = sc_state[i];
+
+	preproc(inbuffer[gid * V_WIDTH + 13].v, inbuffer[gid * V_WIDTH + 13].length, sc_state, 0x36363636);
+	for (i = 0; i < 5; i++)
+		state[gid].ipad[i].sd = sc_state[i];
+	preproc(inbuffer[gid * V_WIDTH + 13].v, inbuffer[gid * V_WIDTH + 13].length, sc_state, 0x5c5c5c5c);
+	for (i = 0; i < 5; i++)
+		state[gid].opad[i].sd = sc_state[i];
+
+	preproc(inbuffer[gid * V_WIDTH + 14].v, inbuffer[gid * V_WIDTH + 14].length, sc_state, 0x36363636);
+	for (i = 0; i < 5; i++)
+		state[gid].ipad[i].se = sc_state[i];
+	preproc(inbuffer[gid * V_WIDTH + 14].v, inbuffer[gid * V_WIDTH + 14].length, sc_state, 0x5c5c5c5c);
+	for (i = 0; i < 5; i++)
+		state[gid].opad[i].se = sc_state[i];
+
+	preproc(inbuffer[gid * V_WIDTH + 15].v, inbuffer[gid * V_WIDTH + 15].length, sc_state, 0x36363636);
+	for (i = 0; i < 5; i++)
+		state[gid].ipad[i].sf = sc_state[i];
+	preproc(inbuffer[gid * V_WIDTH + 15].v, inbuffer[gid * V_WIDTH + 15].length, sc_state, 0x5c5c5c5c);
+	for (i = 0; i < 5; i++)
+		state[gid].opad[i].sf = sc_state[i];
+#endif
+#endif
+#endif
 #endif
 #endif
 	hmac_sha1(state[gid].out, state[gid].ipad, state[gid].opad, salt->salt, salt->length, 0x01);
@@ -1009,13 +1068,25 @@ void wpapsk_final_md5(__global wpapsk_state *state,
 		mic[gid * V_WIDTH + 1].keymic[i] = opad[i].s1;
 #if V_WIDTH > 2
 		mic[gid * V_WIDTH + 2].keymic[i] = opad[i].s2;
+#if V_WIDTH > 3
 		mic[gid * V_WIDTH + 3].keymic[i] = opad[i].s3;
-#endif
 #if V_WIDTH > 4
 		mic[gid * V_WIDTH + 4].keymic[i] = opad[i].s4;
 		mic[gid * V_WIDTH + 5].keymic[i] = opad[i].s5;
 		mic[gid * V_WIDTH + 6].keymic[i] = opad[i].s6;
 		mic[gid * V_WIDTH + 7].keymic[i] = opad[i].s7;
+#if V_WIDTH > 8
+		mic[gid * V_WIDTH + 8].keymic[i] = opad[i].s8;
+		mic[gid * V_WIDTH + 9].keymic[i] = opad[i].s9;
+		mic[gid * V_WIDTH + 10].keymic[i] = opad[i].sa;
+		mic[gid * V_WIDTH + 11].keymic[i] = opad[i].sb;
+		mic[gid * V_WIDTH + 12].keymic[i] = opad[i].sc;
+		mic[gid * V_WIDTH + 13].keymic[i] = opad[i].sd;
+		mic[gid * V_WIDTH + 14].keymic[i] = opad[i].se;
+		mic[gid * V_WIDTH + 15].keymic[i] = opad[i].sf;
+#endif
+#endif
+#endif
 #endif
 	}
 #endif
@@ -1100,13 +1171,25 @@ void wpapsk_final_sha1(__global wpapsk_state *state,
 		mic[gid * V_WIDTH + 1].keymic[i] = SWAP32(opad[i].s1);
 #if V_WIDTH > 2
 		mic[gid * V_WIDTH + 2].keymic[i] = SWAP32(opad[i].s2);
+#if V_WIDTH > 3
 		mic[gid * V_WIDTH + 3].keymic[i] = SWAP32(opad[i].s3);
-#endif
 #if V_WIDTH > 4
 		mic[gid * V_WIDTH + 4].keymic[i] = SWAP32(opad[i].s4);
 		mic[gid * V_WIDTH + 5].keymic[i] = SWAP32(opad[i].s5);
 		mic[gid * V_WIDTH + 6].keymic[i] = SWAP32(opad[i].s6);
 		mic[gid * V_WIDTH + 7].keymic[i] = SWAP32(opad[i].s7);
+#if V_WIDTH > 8
+		mic[gid * V_WIDTH + 8].keymic[i] = SWAP32(opad[i].s8);
+		mic[gid * V_WIDTH + 9].keymic[i] = SWAP32(opad[i].s9);
+		mic[gid * V_WIDTH + 10].keymic[i] = SWAP32(opad[i].sa);
+		mic[gid * V_WIDTH + 11].keymic[i] = SWAP32(opad[i].sb);
+		mic[gid * V_WIDTH + 12].keymic[i] = SWAP32(opad[i].sc);
+		mic[gid * V_WIDTH + 13].keymic[i] = SWAP32(opad[i].sd);
+		mic[gid * V_WIDTH + 14].keymic[i] = SWAP32(opad[i].se);
+		mic[gid * V_WIDTH + 15].keymic[i] = SWAP32(opad[i].sf);
+#endif
+#endif
+#endif
 #endif
 	}
 #endif

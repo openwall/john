@@ -601,13 +601,14 @@ void pbkdf2_init(__global const pbkdf2_password *inbuffer,
 	for (i = 0; i < 5; i++)
 		state[gid].opad[i].s2 = sc_state[i];
 
+#if V_WIDTH > 3
 	preproc(inbuffer[gid * V_WIDTH + 3].v, inbuffer[gid * V_WIDTH + 3].length, sc_state, 0x36363636);
 	for (i = 0; i < 5; i++)
 		state[gid].ipad[i].s3 = sc_state[i];
 	preproc(inbuffer[gid * V_WIDTH + 3].v, inbuffer[gid * V_WIDTH + 3].length, sc_state, 0x5c5c5c5c);
 	for (i = 0; i < 5; i++)
 		state[gid].opad[i].s3 = sc_state[i];
-#endif
+
 #if V_WIDTH > 4
 	preproc(inbuffer[gid * V_WIDTH + 4].v, inbuffer[gid * V_WIDTH + 4].length, sc_state, 0x36363636);
 	for (i = 0; i < 5; i++)
@@ -636,6 +637,64 @@ void pbkdf2_init(__global const pbkdf2_password *inbuffer,
 	preproc(inbuffer[gid * V_WIDTH + 7].v, inbuffer[gid * V_WIDTH + 7].length, sc_state, 0x5c5c5c5c);
 	for (i = 0; i < 5; i++)
 		state[gid].opad[i].s7 = sc_state[i];
+#if V_WIDTH > 8
+	preproc(inbuffer[gid * V_WIDTH + 8].v, inbuffer[gid * V_WIDTH + 8].length, sc_state, 0x36363636);
+	for (i = 0; i < 5; i++)
+		state[gid].ipad[i].s8 = sc_state[i];
+	preproc(inbuffer[gid * V_WIDTH + 8].v, inbuffer[gid * V_WIDTH + 8].length, sc_state, 0x5c5c5c5c);
+	for (i = 0; i < 5; i++)
+		state[gid].opad[i].s8 = sc_state[i];
+
+	preproc(inbuffer[gid * V_WIDTH + 9].v, inbuffer[gid * V_WIDTH + 9].length, sc_state, 0x36363636);
+	for (i = 0; i < 5; i++)
+		state[gid].ipad[i].s9 = sc_state[i];
+	preproc(inbuffer[gid * V_WIDTH + 9].v, inbuffer[gid * V_WIDTH + 9].length, sc_state, 0x5c5c5c5c);
+	for (i = 0; i < 5; i++)
+		state[gid].opad[i].s9 = sc_state[i];
+
+	preproc(inbuffer[gid * V_WIDTH + 10].v, inbuffer[gid * V_WIDTH + 10].length, sc_state, 0x36363636);
+	for (i = 0; i < 5; i++)
+		state[gid].ipad[i].sa = sc_state[i];
+	preproc(inbuffer[gid * V_WIDTH + 10].v, inbuffer[gid * V_WIDTH + 10].length, sc_state, 0x5c5c5c5c);
+	for (i = 0; i < 5; i++)
+		state[gid].opad[i].sa = sc_state[i];
+
+	preproc(inbuffer[gid * V_WIDTH + 11].v, inbuffer[gid * V_WIDTH + 11].length, sc_state, 0x36363636);
+	for (i = 0; i < 5; i++)
+		state[gid].ipad[i].sb = sc_state[i];
+	preproc(inbuffer[gid * V_WIDTH + 11].v, inbuffer[gid * V_WIDTH + 11].length, sc_state, 0x5c5c5c5c);
+	for (i = 0; i < 5; i++)
+		state[gid].opad[i].sb = sc_state[i];
+	preproc(inbuffer[gid * V_WIDTH + 12].v, inbuffer[gid * V_WIDTH + 12].length, sc_state, 0x36363636);
+	for (i = 0; i < 5; i++)
+		state[gid].ipad[i].sc = sc_state[i];
+	preproc(inbuffer[gid * V_WIDTH + 12].v, inbuffer[gid * V_WIDTH + 12].length, sc_state, 0x5c5c5c5c);
+	for (i = 0; i < 5; i++)
+		state[gid].opad[i].sc = sc_state[i];
+
+	preproc(inbuffer[gid * V_WIDTH + 13].v, inbuffer[gid * V_WIDTH + 13].length, sc_state, 0x36363636);
+	for (i = 0; i < 5; i++)
+		state[gid].ipad[i].sd = sc_state[i];
+	preproc(inbuffer[gid * V_WIDTH + 13].v, inbuffer[gid * V_WIDTH + 13].length, sc_state, 0x5c5c5c5c);
+	for (i = 0; i < 5; i++)
+		state[gid].opad[i].sd = sc_state[i];
+
+	preproc(inbuffer[gid * V_WIDTH + 14].v, inbuffer[gid * V_WIDTH + 14].length, sc_state, 0x36363636);
+	for (i = 0; i < 5; i++)
+		state[gid].ipad[i].se = sc_state[i];
+	preproc(inbuffer[gid * V_WIDTH + 14].v, inbuffer[gid * V_WIDTH + 14].length, sc_state, 0x5c5c5c5c);
+	for (i = 0; i < 5; i++)
+		state[gid].opad[i].se = sc_state[i];
+
+	preproc(inbuffer[gid * V_WIDTH + 15].v, inbuffer[gid * V_WIDTH + 15].length, sc_state, 0x36363636);
+	for (i = 0; i < 5; i++)
+		state[gid].ipad[i].sf = sc_state[i];
+	preproc(inbuffer[gid * V_WIDTH + 15].v, inbuffer[gid * V_WIDTH + 15].length, sc_state, 0x5c5c5c5c);
+	for (i = 0; i < 5; i++)
+		state[gid].opad[i].sf = sc_state[i];
+#endif
+#endif
+#endif
 #endif
 #endif
 	hmac_sha1(state[gid].out, state[gid].ipad, state[gid].opad, salt->salt, salt->length, 0x01);
@@ -728,13 +787,25 @@ void pbkdf2_pass2(MAYBE_CONSTANT pbkdf2_salt *salt,
 		out[gid * V_WIDTH + 1].dk[i] = SWAP32(state[gid].out[i].s1);
 #if V_WIDTH > 2
 		out[gid * V_WIDTH + 2].dk[i] = SWAP32(state[gid].out[i].s2);
+#if V_WIDTH > 3
 		out[gid * V_WIDTH + 3].dk[i] = SWAP32(state[gid].out[i].s3);
-#endif
 #if V_WIDTH > 4
 		out[gid * V_WIDTH + 4].dk[i] = SWAP32(state[gid].out[i].s4);
 		out[gid * V_WIDTH + 5].dk[i] = SWAP32(state[gid].out[i].s5);
 		out[gid * V_WIDTH + 6].dk[i] = SWAP32(state[gid].out[i].s6);
 		out[gid * V_WIDTH + 7].dk[i] = SWAP32(state[gid].out[i].s7);
+#if V_WIDTH > 8
+		out[gid * V_WIDTH + 8].dk[i] = SWAP32(state[gid].out[i].s8);
+		out[gid * V_WIDTH + 9].dk[i] = SWAP32(state[gid].out[i].s9);
+		out[gid * V_WIDTH + 10].dk[i] = SWAP32(state[gid].out[i].sa);
+		out[gid * V_WIDTH + 11].dk[i] = SWAP32(state[gid].out[i].sb);
+		out[gid * V_WIDTH + 12].dk[i] = SWAP32(state[gid].out[i].sc);
+		out[gid * V_WIDTH + 13].dk[i] = SWAP32(state[gid].out[i].sd);
+		out[gid * V_WIDTH + 14].dk[i] = SWAP32(state[gid].out[i].se);
+		out[gid * V_WIDTH + 15].dk[i] = SWAP32(state[gid].out[i].sf);
+#endif
+#endif
+#endif
 #endif
 	}
 #endif
@@ -763,13 +834,25 @@ void pbkdf2_final(__global pbkdf2_state *state,
 		out[gid * V_WIDTH + 1].dk[5 + i] = SWAP32(state[gid].out[i].s1);
 #if V_WIDTH > 2
 		out[gid * V_WIDTH + 2].dk[5 + i] = SWAP32(state[gid].out[i].s2);
+#if V_WIDTH > 3
 		out[gid * V_WIDTH + 3].dk[5 + i] = SWAP32(state[gid].out[i].s3);
-#endif
 #if V_WIDTH > 4
 		out[gid * V_WIDTH + 4].dk[5 + i] = SWAP32(state[gid].out[i].s4);
 		out[gid * V_WIDTH + 5].dk[5 + i] = SWAP32(state[gid].out[i].s5);
 		out[gid * V_WIDTH + 6].dk[5 + i] = SWAP32(state[gid].out[i].s6);
 		out[gid * V_WIDTH + 7].dk[5 + i] = SWAP32(state[gid].out[i].s7);
+#if V_WIDTH > 8
+		out[gid * V_WIDTH + 8].dk[5 + i] = SWAP32(state[gid].out[i].s8);
+		out[gid * V_WIDTH + 9].dk[5 + i] = SWAP32(state[gid].out[i].s9);
+		out[gid * V_WIDTH + 10].dk[5 + i] = SWAP32(state[gid].out[i].sa);
+		out[gid * V_WIDTH + 11].dk[5 + i] = SWAP32(state[gid].out[i].sb);
+		out[gid * V_WIDTH + 12].dk[5 + i] = SWAP32(state[gid].out[i].sc);
+		out[gid * V_WIDTH + 13].dk[5 + i] = SWAP32(state[gid].out[i].sd);
+		out[gid * V_WIDTH + 14].dk[5 + i] = SWAP32(state[gid].out[i].se);
+		out[gid * V_WIDTH + 15].dk[5 + i] = SWAP32(state[gid].out[i].sf);
+#endif
+#endif
+#endif
 #endif
 	}
 #endif

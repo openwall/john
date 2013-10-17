@@ -318,6 +318,7 @@ static void init(struct fmt_main *self)
 		clGetDeviceInfo(devices[ocl_gpu_id],
 		                CL_DEVICE_PREFERRED_VECTOR_WIDTH_INT,
 		                sizeof(cl_uint), &v_width, NULL);
+		v_width = options.v_width ? options.v_width : v_width;
 		if (v_width > 1) {
 			/* Run vectorized kernel */
 			sprintf(valgo, ALGORITHM_NAME " %ux", v_width);

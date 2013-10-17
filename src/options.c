@@ -171,13 +171,13 @@ static struct opt_entry opt_list[] = {
 #ifdef HAVE_OPENCL
 	{"platform", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
 		OPT_FMT_STR_ALLOC, &options.ocl_platform},
+	{"force-scalar", FLG_SCALAR, FLG_SCALAR},
+	{"force-vector-width", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
+		"%u", &options.v_width},
 #endif
 #if defined(HAVE_OPENCL) || defined(HAVE_CUDA)
 	{"devices", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
 		OPT_FMT_ADD_LIST_MULTI, &options.gpu_devices},
-#endif
-#ifdef HAVE_OPENCL
-	{"force-scalar", FLG_SCALAR, FLG_SCALAR},
 #endif
 	{"skip-self-tests", FLG_NOTESTS, FLG_NOTESTS},
 	{NULL}
@@ -354,7 +354,8 @@ void opt_print_hidden_usage(void)
 	puts("--plugin=NAME[,..]        load this (these) dynamic plugin(s)");
 #endif
 #ifdef HAVE_OPENCL
-	puts("--force-scalar            force scalar mode");
+	puts("--force-scalar            (OpenCL) force scalar mode");
+	puts("--force-vector-width=N    (OpenCL) force vector width N");
 	puts("--platform=N              set OpenCL platform (deprecated)");
 #endif
 	puts("");
@@ -626,6 +627,17 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 		exit(0);
 	}
 
+#ifdef HAVE_OPENCL
+	if (options.v_width)
+	if (options.v_width != 1 && options.v_width != 2 &&
+	    options.v_width != 3 && options.v_width != 4 &&
+	    options.v_width != 8 && options.v_width != 16) {
+		if (john_main_process)
+			fprintf(stderr, "Vector width must be one of"
+			        " 1, 2, 3, 4, 8 or 16\n");
+		error();
+	}
+#endif
 	/*
 	 * This line is not a bug - it extends the next conditional.
 	 * It's from commit 90a8caee.

@@ -271,12 +271,12 @@ void rakp_kernel(
 	for (i = 0; i < len; i++)
 		K[i].s2 = SWAP32(keys[i]);
 
+#if V_WIDTH > 3
 	base = index[gid * V_WIDTH + 3];
 	len = ((base & 63) + 3) / 4;
 	keys = key_array + (base >> 6);
 	for (i = 0; i < len; i++)
 		K[i].s3 = SWAP32(keys[i]);
-#endif
 #if V_WIDTH > 4
 	base = index[gid * V_WIDTH + 4];
 	len = ((base & 63) + 3) / 4;
@@ -301,6 +301,57 @@ void rakp_kernel(
 	keys = key_array + (base >> 6);
 	for (i = 0; i < len; i++)
 		K[i].s7 = SWAP32(keys[i]);
+#if V_WIDTH > 8
+	base = index[gid * V_WIDTH + 8];
+	len = ((base & 63) + 3) / 4;
+	keys = key_array + (base >> 6);
+	for (i = 0; i < len; i++)
+		K[i].s8 = SWAP32(keys[i]);
+
+	base = index[gid * V_WIDTH + 9];
+	len = ((base & 63) + 3) / 4;
+	keys = key_array + (base >> 6);
+	for (i = 0; i < len; i++)
+		K[i].s9 = SWAP32(keys[i]);
+
+	base = index[gid * V_WIDTH + 10];
+	len = ((base & 63) + 3) / 4;
+	keys = key_array + (base >> 6);
+	for (i = 0; i < len; i++)
+		K[i].sa = SWAP32(keys[i]);
+
+	base = index[gid * V_WIDTH + 11];
+	len = ((base & 63) + 3) / 4;
+	keys = key_array + (base >> 6);
+	for (i = 0; i < len; i++)
+		K[i].sb = SWAP32(keys[i]);
+
+	base = index[gid * V_WIDTH + 12];
+	len = ((base & 63) + 3) / 4;
+	keys = key_array + (base >> 6);
+	for (i = 0; i < len; i++)
+		K[i].sc = SWAP32(keys[i]);
+
+	base = index[gid * V_WIDTH + 13];
+	len = ((base & 63) + 3) / 4;
+	keys = key_array + (base >> 6);
+	for (i = 0; i < len; i++)
+		K[i].sd = SWAP32(keys[i]);
+
+	base = index[gid * V_WIDTH + 14];
+	len = ((base & 63) + 3) / 4;
+	keys = key_array + (base >> 6);
+	for (i = 0; i < len; i++)
+		K[i].se = SWAP32(keys[i]);
+
+	base = index[gid * V_WIDTH + 15];
+	len = ((base & 63) + 3) / 4;
+	keys = key_array + (base >> 6);
+	for (i = 0; i < len; i++)
+		K[i].sf = SWAP32(keys[i]);
+#endif
+#endif
+#endif
 #endif
 #endif
 	sha1_init(stage1);
@@ -332,22 +383,34 @@ void rakp_kernel(
 	sha1_block(W, stage2);
 
 	for (i = 0; i < 5; i++)
-	{
 #ifdef SCALAR
 		digest[i * gws + gid] = stage2[i];
 #else
+	{
 		digest[i * gws * V_WIDTH + gid * V_WIDTH + 0] = stage2[i].s0;
 		digest[i * gws * V_WIDTH + gid * V_WIDTH + 1] = stage2[i].s1;
 #if V_WIDTH > 2
 		digest[i * gws * V_WIDTH + gid * V_WIDTH + 2] = stage2[i].s2;
+#if V_WIDTH > 3
 		digest[i * gws * V_WIDTH + gid * V_WIDTH + 3] = stage2[i].s3;
-#endif
 #if V_WIDTH > 4
 		digest[i * gws * V_WIDTH + gid * V_WIDTH + 4] = stage2[i].s4;
 		digest[i * gws * V_WIDTH + gid * V_WIDTH + 5] = stage2[i].s5;
 		digest[i * gws * V_WIDTH + gid * V_WIDTH + 6] = stage2[i].s6;
 		digest[i * gws * V_WIDTH + gid * V_WIDTH + 7] = stage2[i].s7;
+#if V_WIDTH > 8
+		digest[i * gws * V_WIDTH + gid * V_WIDTH + 8] = stage2[i].s8;
+		digest[i * gws * V_WIDTH + gid * V_WIDTH + 9] = stage2[i].s9;
+		digest[i * gws * V_WIDTH + gid * V_WIDTH + 10] = stage2[i].sa;
+		digest[i * gws * V_WIDTH + gid * V_WIDTH + 11] = stage2[i].sb;
+		digest[i * gws * V_WIDTH + gid * V_WIDTH + 12] = stage2[i].sc;
+		digest[i * gws * V_WIDTH + gid * V_WIDTH + 13] = stage2[i].sd;
+		digest[i * gws * V_WIDTH + gid * V_WIDTH + 14] = stage2[i].se;
+		digest[i * gws * V_WIDTH + gid * V_WIDTH + 15] = stage2[i].sf;
+#endif
+#endif
 #endif
 #endif
 	}
+#endif
 }

@@ -390,8 +390,8 @@ __kernel void GenerateSHA1pwhash(
 		pwhash[gid * 6 + i] = output[i];
 	pwhash[gid * 6 + 5] = 0;
 #else
-		pwhash[(gid / V_WIDTH) * 4 * 6 + (gid & (V_WIDTH - 1)) + i * 4] = output[i];
-	pwhash[(gid / V_WIDTH) * 4 * 6 + (gid & (V_WIDTH - 1)) + 5 * 4] = 0;
+		pwhash[(gid / V_WIDTH) * 6 * V_WIDTH + (gid % V_WIDTH) + i * V_WIDTH] = output[i];
+	pwhash[(gid / V_WIDTH) * 6 * V_WIDTH + (gid % V_WIDTH) + 5 * V_WIDTH] = 0;
 #endif
 }
 
@@ -482,24 +482,37 @@ void Generate2010key(
 	sha1_block(W, output);
 
 	/* Endian-swap to output (we only use 16 bytes) */
-	for (i = 0; i < 4; i++) {
+	for (i = 0; i < 4; i++)
 #ifdef SCALAR
 		key[gid * 32/4 + i] = SWAP32(output[i]);
 #else
+	{
 		key[gid * V_WIDTH * 32/4 + i] = SWAP32(output[i].s0);
 		key[(gid * V_WIDTH + 1) * 32/4 + i] = SWAP32(output[i].s1);
 #if V_WIDTH > 2
 		key[(gid * V_WIDTH + 2) * 32/4 + i] = SWAP32(output[i].s2);
+#if V_WIDTH > 3
 		key[(gid * V_WIDTH + 3) * 32/4 + i] = SWAP32(output[i].s3);
-#endif
 #if V_WIDTH > 4
 		key[(gid * V_WIDTH + 4) * 32/4 + i] = SWAP32(output[i].s4);
 		key[(gid * V_WIDTH + 5) * 32/4 + i] = SWAP32(output[i].s5);
 		key[(gid * V_WIDTH + 6) * 32/4 + i] = SWAP32(output[i].s6);
 		key[(gid * V_WIDTH + 7) * 32/4 + i] = SWAP32(output[i].s7);
+#if V_WIDTH > 8
+		key[(gid * V_WIDTH + 8) * 32/4 + i] = SWAP32(output[i].s8);
+		key[(gid * V_WIDTH + 9) * 32/4 + i] = SWAP32(output[i].s9);
+		key[(gid * V_WIDTH + 10) * 32/4 + i] = SWAP32(output[i].sa);
+		key[(gid * V_WIDTH + 11) * 32/4 + i] = SWAP32(output[i].sb);
+		key[(gid * V_WIDTH + 12) * 32/4 + i] = SWAP32(output[i].sc);
+		key[(gid * V_WIDTH + 13) * 32/4 + i] = SWAP32(output[i].sd);
+		key[(gid * V_WIDTH + 14) * 32/4 + i] = SWAP32(output[i].se);
+		key[(gid * V_WIDTH + 15) * 32/4 + i] = SWAP32(output[i].sf);
+#endif
+#endif
 #endif
 #endif
 	}
+#endif
 	/* Final hash 2 */
 	for (i = 0; i < 5; i++)
 		W[i] = hash[i];
@@ -513,22 +526,35 @@ void Generate2010key(
 	sha1_block(W, output);
 
 	/* Endian-swap to output (we only use 16 bytes) */
-	for (i = 0; i < 4; i++) {
+	for (i = 0; i < 4; i++)
 #ifdef SCALAR
 		key[gid * 32/4 + 16/4 + i] = SWAP32(output[i]);
 #else
+	{
 		key[gid * V_WIDTH * 32/4 + 16/4 + i] = SWAP32(output[i].s0);
 		key[(gid * V_WIDTH + 1) * 32/4 + 16/4 + i] = SWAP32(output[i].s1);
 #if V_WIDTH > 2
 		key[(gid * V_WIDTH + 2) * 32/4 + 16/4 + i] = SWAP32(output[i].s2);
+#if V_WIDTH > 3
 		key[(gid * V_WIDTH + 3) * 32/4 + 16/4 + i] = SWAP32(output[i].s3);
-#endif
 #if V_WIDTH > 4
 		key[(gid * V_WIDTH + 4) * 32/4 + 16/4 + i] = SWAP32(output[i].s4);
 		key[(gid * V_WIDTH + 5) * 32/4 + 16/4 + i] = SWAP32(output[i].s5);
 		key[(gid * V_WIDTH + 6) * 32/4 + 16/4 + i] = SWAP32(output[i].s6);
 		key[(gid * V_WIDTH + 7) * 32/4 + 16/4 + i] = SWAP32(output[i].s7);
+#if V_WIDTH > 8
+		key[(gid * V_WIDTH + 8) * 32/4 + 16/4 + i] = SWAP32(output[i].s8);
+		key[(gid * V_WIDTH + 9) * 32/4 + 16/4 + i] = SWAP32(output[i].s9);
+		key[(gid * V_WIDTH + 10) * 32/4 + 16/4 + i] = SWAP32(output[i].sa);
+		key[(gid * V_WIDTH + 11) * 32/4 + 16/4 + i] = SWAP32(output[i].sb);
+		key[(gid * V_WIDTH + 12) * 32/4 + 16/4 + i] = SWAP32(output[i].sc);
+		key[(gid * V_WIDTH + 13) * 32/4 + 16/4 + i] = SWAP32(output[i].sd);
+		key[(gid * V_WIDTH + 14) * 32/4 + 16/4 + i] = SWAP32(output[i].se);
+		key[(gid * V_WIDTH + 15) * 32/4 + 16/4 + i] = SWAP32(output[i].sf);
+#endif
+#endif
 #endif
 #endif
 	}
+#endif
 }

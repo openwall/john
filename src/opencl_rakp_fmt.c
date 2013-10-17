@@ -120,7 +120,7 @@ static void create_clobj(int kpc)
 
 	keys = mem_alloc((PLAINTEXT_LENGTH + 1) * kpc);
 	idx = mem_alloc(sizeof(*idx) * kpc);
-	digest = mem_alloc(sizeof(*digest) * kpc * BINARY_SIZE);
+	digest = mem_alloc(kpc * BINARY_SIZE);
 
 	salt_buffer = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, SALT_STORAGE_SIZE, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating salt_buffer out argument");
@@ -176,13 +176,14 @@ static void init(struct fmt_main *self)
 	char *temp;
 	cl_ulong max_lws, max_mem;
 	char build_opts[64];
-	static char valgo[32] = "";
+	static char valgo[48] = "";
 
 	if (!(options.flags & FLG_SCALAR)) {
 		opencl_preinit();
 		clGetDeviceInfo(devices[ocl_gpu_id],
 		                CL_DEVICE_PREFERRED_VECTOR_WIDTH_INT,
 		                sizeof(cl_uint), &v_width, NULL);
+		v_width = options.v_width ? options.v_width : v_width;
 		if (v_width > 1) {
 			/* Run vectorized kernel */
 			sprintf(valgo, ALGORITHM_NAME " %ux", v_width);

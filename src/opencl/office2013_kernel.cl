@@ -361,6 +361,16 @@ void Generate2013key(
 		key[(gid * V_WIDTH + 6) * 128/8 + i] = SWAP64(output[i].s6);
 		key[(gid * V_WIDTH + 7) * 128/8 + i] = SWAP64(output[i].s7);
 #endif
+#if V_WIDTH > 8
+		key[(gid * V_WIDTH + 8) * 128/8 + i] = SWAP64(output[i].s8);
+		key[(gid * V_WIDTH + 9) * 128/8 + i] = SWAP64(output[i].s9);
+		key[(gid * V_WIDTH + 10) * 128/8 + i] = SWAP64(output[i].sa);
+		key[(gid * V_WIDTH + 11) * 128/8 + i] = SWAP64(output[i].sb);
+		key[(gid * V_WIDTH + 12) * 128/8 + i] = SWAP64(output[i].sc);
+		key[(gid * V_WIDTH + 13) * 128/8 + i] = SWAP64(output[i].sd);
+		key[(gid * V_WIDTH + 14) * 128/8 + i] = SWAP64(output[i].se);
+		key[(gid * V_WIDTH + 15) * 128/8 + i] = SWAP64(output[i].sf);
+#endif
 #endif
 	}
 
@@ -398,6 +408,24 @@ void Generate2013key(
 			SWAP64(output[i].s6);
 		key[(gid * V_WIDTH + 7) * 128/8 + 64/8 + i] =
 			SWAP64(output[i].s7);
+#endif
+#if V_WIDTH > 8
+		key[(gid * V_WIDTH + 8) * 128/8 + 64/8 + i] =
+			SWAP64(output[i].s8);
+		key[(gid * V_WIDTH + 9) * 128/8 + 64/8 + i] =
+			SWAP64(output[i].s9);
+		key[(gid * V_WIDTH + 10) * 128/8 + 64/8 + i] =
+			SWAP64(output[i].sa);
+		key[(gid * V_WIDTH + 11) * 128/8 + 64/8 + i] =
+			SWAP64(output[i].sb);
+		key[(gid * V_WIDTH + 12) * 128/8 + 64/8 + i] =
+			SWAP64(output[i].sc);
+		key[(gid * V_WIDTH + 13) * 128/8 + 64/8 + i] =
+			SWAP64(output[i].sd);
+		key[(gid * V_WIDTH + 14) * 128/8 + 64/8 + i] =
+			SWAP64(output[i].se);
+		key[(gid * V_WIDTH + 15) * 128/8 + 64/8 + i] =
+			SWAP64(output[i].sf);
 #endif
 #endif
 	}
