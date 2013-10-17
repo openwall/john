@@ -993,6 +993,15 @@ void opencl_init_auto_setup(
 	gws_limit = p_gws_limit;
 }
 
+/***
+ *
+ * Since opencl_find_best_gws() needs more event control (even more events) to work
+ * properly, opencl_find_best_workgroup() cannot be used by formats that are using it.
+ * Therefore, despite the fact that opencl_find_best_lws() does almost the same that
+ * opencl_find_best_workgroup() can do, it also handles the necessary event(s) and
+ * can do a proper crypt_all() execution analysis when shared GWS detection is used.
+ *
+ ***/
 void opencl_find_best_lws(
 	int show_details, size_t group_size_limit,
 	int sequential_id, cl_kernel crypt_kernel)
