@@ -128,7 +128,7 @@ static void create_clobj(int gws, struct fmt_main *self)
 	inbuffer = clEnqueueMapBuffer(queue[ocl_gpu_id], pinned_in, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(pbkdf2_password) * gws, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory");
 
-	mem_state = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE, sizeof(pbkdf2_state) * v_width * gws, NULL, &ret_code);
+	mem_state = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE, sizeof(pbkdf2_state) * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error allocating mem_state");
 
 	mem_salt = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(pbkdf2_salt), &currentsalt, &ret_code);
