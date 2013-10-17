@@ -30,15 +30,22 @@
 #define MAYBE_CONSTANT	__constant
 #endif
 
-#if gpu_nvidia(DEVICE_INFO) || amd_gcn(DEVICE_INFO)
+#ifdef SCALAR
+#define VSWAP32 SWAP32
+#else
+/* Vector-capable swap32() */
+inline MAYBE_VECTOR_UINT VSWAP32(MAYBE_VECTOR_UINT x)
+{
+	x = rotate(x, 16U);
+	return ((x & 0x00FF00FF) << 8) + ((x >> 8) & 0x00FF00FF);
+}
+#endif
+
 inline uint SWAP32(uint x)
 {
 	x = rotate(x, 16U);
 	return ((x & 0x00FF00FF) << 8) + ((x >> 8) & 0x00FF00FF);
 }
-#else
-#define SWAP32(a)	(as_uint(as_uchar4(a).wzyx))
-#endif
 
 typedef struct {
 	uint  length;
@@ -59,14 +66,14 @@ typedef struct {
 } wpapsk_salt;
 
 typedef struct {
-	uint W[5];
-	uint ipad[5];
-	uint opad[5];
-	uint out[5];
-	uint partial[5];
+	MAYBE_VECTOR_UINT W[5];
+	MAYBE_VECTOR_UINT ipad[5];
+	MAYBE_VECTOR_UINT opad[5];
+	MAYBE_VECTOR_UINT out[5];
+	MAYBE_VECTOR_UINT partial[5];
 } wpapsk_state;
 
-#if gpu_amd(DEVICE_INFO) || no_byte_addressable(DEVICE_INFO)
+#if gpu_amd(DEVICE_INFO) || no_byte_addressable(DEVICE_INFO) || !defined(SCALAR)
 #define PUTCHAR_BE(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2] & ~(0xffU << ((((index) & 3) ^ 3) << 3))) + ((val) << ((((index) & 3) ^ 3) << 3))
 #define XORCHAR_BE(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2]) ^ ((val) << ((((index) & 3) ^ 3) << 3))
 #else
@@ -533,7 +540,7 @@ typedef struct {
 /* NOTE: This version thrashes the input block! */
 #define md5_block(block, output)  \
 	{ \
-		uint a, b, c, d; \
+		MAYBE_VECTOR_UINT a, b, c, d; \
 		a = output[0]; \
 		b = output[1]; \
 		c = output[2]; \
@@ -625,7 +632,11 @@ typedef struct {
 	}
 
 inline void preproc(__global const uchar *key, uint keylen,
+#ifdef SCALAR
                     __global uint *state, uint padding)
+#else
+                    uint *state, uint padding)
+#endif
 {
 	uint i;
 	uint W[16];
@@ -648,18 +659,18 @@ inline void preproc(__global const uchar *key, uint keylen,
 		state[i] = output[i];
 }
 
-inline void hmac_sha1(__global uint *state,
-                      __global uint *ipad,
-                      __global uint *opad,
+inline void hmac_sha1(__global MAYBE_VECTOR_UINT *state,
+                      __global MAYBE_VECTOR_UINT *ipad,
+                      __global MAYBE_VECTOR_UINT *opad,
                       MAYBE_CONSTANT uchar *salt, uint saltlen, uchar add)
 {
 	uint i;
-	uint W[16];
-	uint output[5];
+	MAYBE_VECTOR_UINT W[16];
+	MAYBE_VECTOR_UINT output[5];
 #if !gpu_nvidia(DEVICE_INFO)
-	uint K;
+	MAYBE_VECTOR_UINT K;
 #endif
-	uint A, B, C, D, E, temp;
+	MAYBE_VECTOR_UINT A, B, C, D, E, temp;
 
 	for (i = 0; i < 5; i++)
 		output[i] = ipad[i];
@@ -693,16 +704,79 @@ inline void hmac_sha1(__global uint *state,
 		state[i] = output[i];
 }
 
-__kernel void wpapsk_init(__global const wpapsk_password *inbuffer,
-                          MAYBE_CONSTANT wpapsk_salt *salt,
-                          __global wpapsk_state *state)
+__kernel
+__attribute__((vec_type_hint(MAYBE_VECTOR_UINT)))
+void wpapsk_init(__global const wpapsk_password *inbuffer,
+                 MAYBE_CONSTANT wpapsk_salt *salt,
+                 __global wpapsk_state *state)
 {
 	uint gid = get_global_id(0);
 	uint i;
 
+#ifdef SCALAR
 	preproc(inbuffer[gid].v, inbuffer[gid].length, state[gid].ipad, 0x36363636);
 	preproc(inbuffer[gid].v, inbuffer[gid].length, state[gid].opad, 0x5c5c5c5c);
+#else
+	uint sc_state[5];
 
+	preproc(inbuffer[gid * V_WIDTH].v, inbuffer[gid * V_WIDTH].length, sc_state, 0x36363636);
+	for (i = 0; i < 5; i++)
+		state[gid].ipad[i].s0 = sc_state[i];
+	preproc(inbuffer[gid * V_WIDTH].v, inbuffer[gid * V_WIDTH].length, sc_state, 0x5c5c5c5c);
+	for (i = 0; i < 5; i++)
+		state[gid].opad[i].s0 = sc_state[i];
+
+	preproc(inbuffer[gid * V_WIDTH + 1].v, inbuffer[gid * V_WIDTH + 1].length, sc_state, 0x36363636);
+	for (i = 0; i < 5; i++)
+		state[gid].ipad[i].s1 = sc_state[i];
+	preproc(inbuffer[gid * V_WIDTH + 1].v, inbuffer[gid * V_WIDTH + 1].length, sc_state, 0x5c5c5c5c);
+	for (i = 0; i < 5; i++)
+		state[gid].opad[i].s1 = sc_state[i];
+#if V_WIDTH > 2
+	preproc(inbuffer[gid * V_WIDTH + 2].v, inbuffer[gid * V_WIDTH + 2].length, sc_state, 0x36363636);
+	for (i = 0; i < 5; i++)
+		state[gid].ipad[i].s2 = sc_state[i];
+	preproc(inbuffer[gid * V_WIDTH + 2].v, inbuffer[gid * V_WIDTH + 2].length, sc_state, 0x5c5c5c5c);
+	for (i = 0; i < 5; i++)
+		state[gid].opad[i].s2 = sc_state[i];
+
+	preproc(inbuffer[gid * V_WIDTH + 3].v, inbuffer[gid * V_WIDTH + 3].length, sc_state, 0x36363636);
+	for (i = 0; i < 5; i++)
+		state[gid].ipad[i].s3 = sc_state[i];
+	preproc(inbuffer[gid * V_WIDTH + 3].v, inbuffer[gid * V_WIDTH + 3].length, sc_state, 0x5c5c5c5c);
+	for (i = 0; i < 5; i++)
+		state[gid].opad[i].s3 = sc_state[i];
+#endif
+#if V_WIDTH > 4
+	preproc(inbuffer[gid * V_WIDTH + 4].v, inbuffer[gid * V_WIDTH + 4].length, sc_state, 0x36363636);
+	for (i = 0; i < 5; i++)
+		state[gid].ipad[i].s4 = sc_state[i];
+	preproc(inbuffer[gid * V_WIDTH + 4].v, inbuffer[gid * V_WIDTH + 4].length, sc_state, 0x5c5c5c5c);
+	for (i = 0; i < 5; i++)
+		state[gid].opad[i].s4 = sc_state[i];
+
+	preproc(inbuffer[gid * V_WIDTH + 5].v, inbuffer[gid * V_WIDTH + 5].length, sc_state, 0x36363636);
+	for (i = 0; i < 5; i++)
+		state[gid].ipad[i].s5 = sc_state[i];
+	preproc(inbuffer[gid * V_WIDTH + 5].v, inbuffer[gid * V_WIDTH + 5].length, sc_state, 0x5c5c5c5c);
+	for (i = 0; i < 5; i++)
+		state[gid].opad[i].s5 = sc_state[i];
+
+	preproc(inbuffer[gid * V_WIDTH + 6].v, inbuffer[gid * V_WIDTH + 6].length, sc_state, 0x36363636);
+	for (i = 0; i < 5; i++)
+		state[gid].ipad[i].s6 = sc_state[i];
+	preproc(inbuffer[gid * V_WIDTH + 6].v, inbuffer[gid * V_WIDTH + 6].length, sc_state, 0x5c5c5c5c);
+	for (i = 0; i < 5; i++)
+		state[gid].opad[i].s6 = sc_state[i];
+
+	preproc(inbuffer[gid * V_WIDTH + 7].v, inbuffer[gid * V_WIDTH + 7].length, sc_state, 0x36363636);
+	for (i = 0; i < 5; i++)
+		state[gid].ipad[i].s7 = sc_state[i];
+	preproc(inbuffer[gid * V_WIDTH + 7].v, inbuffer[gid * V_WIDTH + 7].length, sc_state, 0x5c5c5c5c);
+	for (i = 0; i < 5; i++)
+		state[gid].opad[i].s7 = sc_state[i];
+#endif
+#endif
 	hmac_sha1(state[gid].out, state[gid].ipad, state[gid].opad, salt->salt, salt->length, 0x01);
 
 	for (i = 0; i < 5; i++)
@@ -725,7 +799,6 @@ void wpapsk_loop(__global wpapsk_state *state)
 	MAYBE_VECTOR_UINT output[5];
 	MAYBE_VECTOR_UINT state_out[5];
 
-#ifdef SCALAR
 	for (i = 0; i < 5; i++)
 		W[i] = state[gid].W[i];
 	for (i = 0; i < 5; i++)
@@ -734,64 +807,6 @@ void wpapsk_loop(__global wpapsk_state *state)
 		opad[i] = state[gid].opad[i];
 	for (i = 0; i < 5; i++)
 		state_out[i] = state[gid].out[i];
-#else
-	for (i = 0; i < 5; i++) {
-		W[i].s0 = state[gid*V_WIDTH+0].W[i];
-		W[i].s1 = state[gid*V_WIDTH+1].W[i];
-#if V_WIDTH > 2
-		W[i].s2 = state[gid*V_WIDTH+2].W[i];
-		W[i].s3 = state[gid*V_WIDTH+3].W[i];
-#endif
-#if V_WIDTH > 4
-		W[i].s4 = state[gid*V_WIDTH+4].W[i];
-		W[i].s5 = state[gid*V_WIDTH+5].W[i];
-		W[i].s6 = state[gid*V_WIDTH+6].W[i];
-		W[i].s7 = state[gid*V_WIDTH+7].W[i];
-#endif
-	}
-	for (i = 0; i < 5; i++) {
-		ipad[i].s0 = state[gid*V_WIDTH+0].ipad[i];
-		ipad[i].s1 = state[gid*V_WIDTH+1].ipad[i];
-#if V_WIDTH > 2
-		ipad[i].s2 = state[gid*V_WIDTH+2].ipad[i];
-		ipad[i].s3 = state[gid*V_WIDTH+3].ipad[i];
-#endif
-#if V_WIDTH > 4
-		ipad[i].s4 = state[gid*V_WIDTH+4].ipad[i];
-		ipad[i].s5 = state[gid*V_WIDTH+5].ipad[i];
-		ipad[i].s6 = state[gid*V_WIDTH+6].ipad[i];
-		ipad[i].s7 = state[gid*V_WIDTH+7].ipad[i];
-#endif
-	}
-	for (i = 0; i < 5; i++) {
-		opad[i].s0 = state[gid*V_WIDTH+0].opad[i];
-		opad[i].s1 = state[gid*V_WIDTH+1].opad[i];
-#if V_WIDTH > 2
-		opad[i].s2 = state[gid*V_WIDTH+2].opad[i];
-		opad[i].s3 = state[gid*V_WIDTH+3].opad[i];
-#endif
-#if V_WIDTH > 4
-		opad[i].s4 = state[gid*V_WIDTH+4].opad[i];
-		opad[i].s5 = state[gid*V_WIDTH+5].opad[i];
-		opad[i].s6 = state[gid*V_WIDTH+6].opad[i];
-		opad[i].s7 = state[gid*V_WIDTH+7].opad[i];
-#endif
-	}
-	for (i = 0; i < 5; i++) {
-		state_out[i].s0 = state[gid*V_WIDTH+0].out[i];
-		state_out[i].s1 = state[gid*V_WIDTH+1].out[i];
-#if V_WIDTH > 2
-		state_out[i].s2 = state[gid*V_WIDTH+2].out[i];
-		state_out[i].s3 = state[gid*V_WIDTH+3].out[i];
-#endif
-#if V_WIDTH > 4
-		state_out[i].s4 = state[gid*V_WIDTH+4].out[i];
-		state_out[i].s5 = state[gid*V_WIDTH+5].out[i];
-		state_out[i].s6 = state[gid*V_WIDTH+6].out[i];
-		state_out[i].s7 = state[gid*V_WIDTH+7].out[i];
-#endif
-	}
-#endif
 
 	for (j = 0; j < HASH_LOOPS; j++) {
 		for (i = 0; i < 5; i++)
@@ -827,45 +842,16 @@ void wpapsk_loop(__global wpapsk_state *state)
 			state_out[i] ^= output[i];
 	}
 
-#ifdef SCALAR
 	for (i = 0; i < 5; i++)
 		state[gid].W[i] = W[i];
 	for (i = 0; i < 5; i++)
 		state[gid].out[i] = state_out[i];
-#else
-	for (i = 0; i < 5; i++) {
-		state[gid*V_WIDTH+0].W[i] = W[i].s0;
-		state[gid*V_WIDTH+1].W[i] = W[i].s1;
-#if V_WIDTH > 2
-		state[gid*V_WIDTH+2].W[i] = W[i].s2;
-		state[gid*V_WIDTH+3].W[i] = W[i].s3;
-#endif
-#if V_WIDTH > 4
-		state[gid*V_WIDTH+4].W[i] = W[i].s4;
-		state[gid*V_WIDTH+5].W[i] = W[i].s5;
-		state[gid*V_WIDTH+6].W[i] = W[i].s6;
-		state[gid*V_WIDTH+7].W[i] = W[i].s7;
-#endif
-	}
-	for (i = 0; i < 5; i++) {
-		state[gid*V_WIDTH+0].out[i] = state_out[i].s0;
-		state[gid*V_WIDTH+1].out[i] = state_out[i].s1;
-#if V_WIDTH > 2
-		state[gid*V_WIDTH+2].out[i] = state_out[i].s2;
-		state[gid*V_WIDTH+3].out[i] = state_out[i].s3;
-#endif
-#if V_WIDTH > 4
-		state[gid*V_WIDTH+4].out[i] = state_out[i].s4;
-		state[gid*V_WIDTH+5].out[i] = state_out[i].s5;
-		state[gid*V_WIDTH+6].out[i] = state_out[i].s6;
-		state[gid*V_WIDTH+7].out[i] = state_out[i].s7;
-#endif
-	}
-#endif
 }
 
-__kernel void wpapsk_pass2(MAYBE_CONSTANT wpapsk_salt *salt,
-                           __global wpapsk_state *state)
+__kernel
+__attribute__((vec_type_hint(MAYBE_VECTOR_UINT)))
+void wpapsk_pass2(MAYBE_CONSTANT wpapsk_salt *salt,
+                  __global wpapsk_state *state)
 {
 	uint gid = get_global_id(0);
 	uint i;
@@ -873,7 +859,7 @@ __kernel void wpapsk_pass2(MAYBE_CONSTANT wpapsk_salt *salt,
 	for (i = 0; i < 5; i++)
 		state[gid].partial[i] = state[gid].out[i];
 	for (i = 0; i < 5; i++)
-		state[gid].out[i] = SWAP32(state[gid].out[i]);
+		state[gid].out[i] = VSWAP32(state[gid].out[i]);
 
 	hmac_sha1(state[gid].out, state[gid].ipad, state[gid].opad, salt->salt, salt->length, 0x02);
 
@@ -881,19 +867,22 @@ __kernel void wpapsk_pass2(MAYBE_CONSTANT wpapsk_salt *salt,
 		state[gid].W[i] = state[gid].out[i];
 }
 
-inline void prf_512(const uint *key, MAYBE_CONSTANT uint *data, uint *ret)
+//__constant uchar *text = "Pairwise key expansion\0";
+//__constant uint text[6] = { 0x72696150, 0x65736977, 0x79656b20, 0x70786520, 0x69736e61, 0x00006e6f };
+__constant uint text[6] = { 0x50616972, 0x77697365, 0x206b6579, 0x20657870, 0x616e7369, 0x6f6e0000 };
+
+inline void prf_512(const MAYBE_VECTOR_UINT *key,
+                    MAYBE_CONSTANT uint *data,
+                    MAYBE_VECTOR_UINT *ret)
 {
-	//const uchar *text = "Pairwise key expansion\0";
-	//const uint text[6] = { 0x72696150, 0x65736977, 0x79656b20, 0x70786520, 0x69736e61, 0x00006e6f };
-	const uint text[6] = { 0x50616972, 0x77697365, 0x206b6579, 0x20657870, 0x616e7369, 0x6f6e0000 };
 	uint i;
-	uint W[16];
-	uint ipad[5];
-	uint opad[5];
+	MAYBE_VECTOR_UINT W[16];
+	MAYBE_VECTOR_UINT ipad[5];
+	MAYBE_VECTOR_UINT opad[5];
 #if !gpu_nvidia(DEVICE_INFO)
-	uint K;
+	MAYBE_VECTOR_UINT K;
 #endif
-	uint A, B, C, D, E, temp;
+	MAYBE_VECTOR_UINT A, B, C, D, E, temp;
 
 	// HMAC(EVP_sha1(), key, 32, (text.data), 100, ret, NULL);
 
@@ -952,15 +941,17 @@ inline void prf_512(const uint *key, MAYBE_CONSTANT uint *data, uint *ret)
 		ret[i] = opad[i];
 }
 
-__kernel void wpapsk_final_md5(__global wpapsk_state *state,
-                               MAYBE_CONSTANT wpapsk_salt *salt,
-                               __global mic_t *mic)
+__kernel
+__attribute__((vec_type_hint(MAYBE_VECTOR_UINT)))
+void wpapsk_final_md5(__global wpapsk_state *state,
+                      MAYBE_CONSTANT wpapsk_salt *salt,
+                      __global mic_t *mic)
 {
 	uint gid = get_global_id(0);
-	uint outbuffer[8];
-	uint prf[4];
-	uint W[16];
-	uint ipad[4], opad[4];
+	MAYBE_VECTOR_UINT outbuffer[8];
+	MAYBE_VECTOR_UINT prf[4];
+	MAYBE_VECTOR_UINT W[16];
+	MAYBE_VECTOR_UINT ipad[4], opad[4];
 	uint i, eapol_blocks;
 	MAYBE_CONSTANT uint *cp = salt->eapol;
 
@@ -976,7 +967,7 @@ __kernel void wpapsk_final_md5(__global wpapsk_state *state,
 	// prf is the key (16 bytes)
 	// eapol is the message (eapol_size blocks, already prepared with 0x80 and len)
 	for (i = 0; i < 4; i++)
-		W[i] = 0x36363636 ^ SWAP32(prf[i]);
+		W[i] = 0x36363636 ^ VSWAP32(prf[i]);
 	for (i = 4; i < 16; i++)
 		W[i] = 0x36363636;
 	md5_init(ipad);
@@ -994,7 +985,7 @@ __kernel void wpapsk_final_md5(__global wpapsk_state *state,
 	}
 
 	for (i = 0; i < 4; i++)
-		W[i] = 0x5c5c5c5c ^ SWAP32(prf[i]);
+		W[i] = 0x5c5c5c5c ^ VSWAP32(prf[i]);
 	for (i = 4; i < 16; i++)
 		W[i] = 0x5c5c5c5c;
 	md5_init(opad);
@@ -1010,25 +1001,44 @@ __kernel void wpapsk_final_md5(__global wpapsk_state *state,
 	md5_block(W, opad); /* md5_update(ipad, 16), md5_final() */
 
 	for (i = 0; i < 4; i++)
+#ifdef SCALAR
 		mic[gid].keymic[i] = opad[i];
+#else
+	{
+		mic[gid * V_WIDTH + 0].keymic[i] = opad[i].s0;
+		mic[gid * V_WIDTH + 1].keymic[i] = opad[i].s1;
+#if V_WIDTH > 2
+		mic[gid * V_WIDTH + 2].keymic[i] = opad[i].s2;
+		mic[gid * V_WIDTH + 3].keymic[i] = opad[i].s3;
+#endif
+#if V_WIDTH > 4
+		mic[gid * V_WIDTH + 4].keymic[i] = opad[i].s4;
+		mic[gid * V_WIDTH + 5].keymic[i] = opad[i].s5;
+		mic[gid * V_WIDTH + 6].keymic[i] = opad[i].s6;
+		mic[gid * V_WIDTH + 7].keymic[i] = opad[i].s7;
+#endif
+	}
+#endif
 }
 
-__kernel void wpapsk_final_sha1(__global wpapsk_state *state,
-                               MAYBE_CONSTANT wpapsk_salt *salt,
-                               __global mic_t *mic)
+__kernel
+__attribute__((vec_type_hint(MAYBE_VECTOR_UINT)))
+void wpapsk_final_sha1(__global wpapsk_state *state,
+                       MAYBE_CONSTANT wpapsk_salt *salt,
+                       __global mic_t *mic)
 {
-	uint outbuffer[8];
-	uint prf[4];
+	MAYBE_VECTOR_UINT outbuffer[8];
+	MAYBE_VECTOR_UINT prf[4];
 	uint gid = get_global_id(0);
-	uint W[16];
-	uint ipad[5];
-	uint opad[5];
+	MAYBE_VECTOR_UINT W[16];
+	MAYBE_VECTOR_UINT ipad[5];
+	MAYBE_VECTOR_UINT opad[5];
 	uint i, eapol_blocks;
 	MAYBE_CONSTANT uint *cp = salt->eapol;
 #if !gpu_nvidia(DEVICE_INFO)
-	uint K;
+	MAYBE_VECTOR_UINT K;
 #endif
-	uint A, B, C, D, E, temp;
+	MAYBE_VECTOR_UINT A, B, C, D, E, temp;
 
 	for (i = 0; i < 5; i++)
 		outbuffer[i] = state[gid].partial[i];
@@ -1082,5 +1092,22 @@ __kernel void wpapsk_final_sha1(__global wpapsk_state *state,
 
 	/* We only use 16 bytes */
 	for (i = 0; i < 4; i++)
+#ifdef SCALAR
 		mic[gid].keymic[i] = SWAP32(opad[i]);
+#else
+	{
+		mic[gid * V_WIDTH + 0].keymic[i] = SWAP32(opad[i].s0);
+		mic[gid * V_WIDTH + 1].keymic[i] = SWAP32(opad[i].s1);
+#if V_WIDTH > 2
+		mic[gid * V_WIDTH + 2].keymic[i] = SWAP32(opad[i].s2);
+		mic[gid * V_WIDTH + 3].keymic[i] = SWAP32(opad[i].s3);
+#endif
+#if V_WIDTH > 4
+		mic[gid * V_WIDTH + 4].keymic[i] = SWAP32(opad[i].s4);
+		mic[gid * V_WIDTH + 5].keymic[i] = SWAP32(opad[i].s5);
+		mic[gid * V_WIDTH + 6].keymic[i] = SWAP32(opad[i].s6);
+		mic[gid * V_WIDTH + 7].keymic[i] = SWAP32(opad[i].s7);
+#endif
+	}
+#endif
 }
