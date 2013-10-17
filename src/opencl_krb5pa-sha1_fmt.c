@@ -128,7 +128,7 @@ static void create_clobj(int gws, struct fmt_main *self)
 	inbuffer = clEnqueueMapBuffer(queue[ocl_gpu_id], pinned_in, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(pbkdf2_password) * gws, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory");
 
-	mem_state = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE, sizeof(pbkdf2_state) * gws, NULL, &ret_code);
+	mem_state = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE, sizeof(pbkdf2_state) * v_width * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error allocating mem_state");
 
 	mem_salt = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(pbkdf2_salt), &currentsalt, &ret_code);
@@ -216,19 +216,19 @@ static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, mem_salt, CL_FALSE, 0, sizeof(pbkdf2_salt), &currentsalt, 0, NULL, &Event[1]), "Copy setting to gpu");
 
 	/// Run kernels
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, pbkdf2_init, 1, NULL, &scalar_gws, &local_work_size, 0, NULL, &Event[2]), "Run initial kernel");
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, pbkdf2_init, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &Event[2]), "Run initial kernel");
 
 	//for (i = 0; i < ITERATIONS / HASH_LOOPS - 1; i++)
 	// warm-up run without measuring
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, pbkdf2_loop, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "Run loop kernel");
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, pbkdf2_loop, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &Event[3]), "Run loop kernel");
 
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, pbkdf2_pass2, 1, NULL, &scalar_gws, &local_work_size, 0, NULL, &Event[4]), "Run intermediate kernel");
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, pbkdf2_pass2, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &Event[4]), "Run intermediate kernel");
 
 	//for (i = 0; i < ITERATIONS / HASH_LOOPS; i++)
 	//	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, pbkdf2_loop, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "Run loop kernel (2nd)");
 
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, pbkdf2_final, 1, NULL, &scalar_gws, &local_work_size, 0, NULL, &Event[5]), "Run final kernel");
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, pbkdf2_final, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &Event[5]), "Run final kernel");
 
 	/// Read the result back
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue_prof, mem_out, CL_TRUE, 0, sizeof(pbkdf2_out) * scalar_gws, output, 0, NULL, &Event[6]), "Copy result back");
@@ -793,7 +793,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	}
 
 	/// Run kernel
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], pbkdf2_init, 1, NULL, &scalar_gws, &local_work_size, 0, NULL, firstEvent), "Run initial kernel");
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], pbkdf2_init, 1, NULL, &global_work_size, &local_work_size, 0, NULL, firstEvent), "Run initial kernel");
 
 	for (i = 0; i < ITERATIONS / HASH_LOOPS; i++) {
 		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], pbkdf2_loop, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "Run loop kernel");
@@ -801,7 +801,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		opencl_process_event();
 	}
 
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], pbkdf2_pass2, 1, NULL, &scalar_gws, &local_work_size, 0, NULL, NULL), "Run intermediate kernel");
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], pbkdf2_pass2, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "Run intermediate kernel");
 
 	for (i = 0; i < ITERATIONS / HASH_LOOPS; i++) {
 		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], pbkdf2_loop, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "Run loop kernel (2nd pass)");
@@ -809,7 +809,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		opencl_process_event();
 	}
 
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], pbkdf2_final, 1, NULL, &scalar_gws, &local_work_size, 0, NULL, lastEvent), "Run final kernel (SHA1)");
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], pbkdf2_final, 1, NULL, &global_work_size, &local_work_size, 0, NULL, lastEvent), "Run final kernel (SHA1)");
 	HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "Failed running final kernel");
 
 	/// Read the result back
@@ -886,7 +886,7 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
 	}
 
 	/// Run kernels, no iterations for fast enumeration
-	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], pbkdf2_init, 1, NULL, &scalar_gws, &local_work_size, 0, NULL, NULL), "Run initial kernel");
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], pbkdf2_init, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "Run initial kernel");
 
 	BENCH_CLERROR(clFinish(queue[ocl_gpu_id]), "Failed running kernel");
 

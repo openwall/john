@@ -9,7 +9,6 @@
  */
 
 #include "opencl_device_info.h"
-#include "opencl_pbkdf2_hmac_sha1.h"
 
 #define CONCAT(TYPE,WIDTH)	TYPE ## WIDTH
 #define VECTOR(x, y)		CONCAT(x, y)
@@ -22,21 +21,27 @@
 #define SCALAR
 #endif
 
+/* MAYBE_VECTOR_UINT need to be defined before this header */
+#include "opencl_pbkdf2_hmac_sha1.h"
+
 #if gpu_amd(DEVICE_INFO)
 #define USE_BITSELECT
 #endif
 
-#if gpu_nvidia(DEVICE_INFO) || amd_gcn(DEVICE_INFO)
+/* Workaround for problem seen with 9600GT */
+#if 0 //gpu_nvidia(DEVICE_INFO)
+#define MAYBE_CONSTANT	__global const
+#else
+#define MAYBE_CONSTANT	__constant
+#endif
+
 inline uint SWAP32(uint x)
 {
 	x = rotate(x, 16U);
 	return ((x & 0x00FF00FF) << 8) + ((x >> 8) & 0x00FF00FF);
 }
-#else
-#define SWAP32(a)	(as_uint(as_uchar4(a).wzyx))
-#endif
 
-#if gpu_amd(DEVICE_INFO) || no_byte_addressable(DEVICE_INFO)
+#if gpu_amd(DEVICE_INFO) || no_byte_addressable(DEVICE_INFO) || !defined(SCALAR)
 #define PUTCHAR_BE(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2] & ~(0xffU << ((((index) & 3) ^ 3) << 3))) + ((val) << ((((index) & 3) ^ 3) << 3))
 #define XORCHAR_BE(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2]) ^ ((val) << ((((index) & 3) ^ 3) << 3))
 #else
@@ -488,7 +493,11 @@ inline uint SWAP32(uint x)
 	}
 
 inline void preproc(__global const uchar *key, uint keylen,
+#ifdef SCALAR
                     __global uint *state, uint padding)
+#else
+                    uint *state, uint padding)
+#endif
 {
 	uint i;
 	uint W[16];
@@ -511,18 +520,18 @@ inline void preproc(__global const uchar *key, uint keylen,
 		state[i] = output[i];
 }
 
-inline void hmac_sha1(__global uint *state,
-                      __global uint *ipad,
-                      __global uint *opad,
-                      __constant uchar *salt, uint saltlen, uchar add)
+inline void hmac_sha1(__global MAYBE_VECTOR_UINT *state,
+                      __global MAYBE_VECTOR_UINT *ipad,
+                      __global MAYBE_VECTOR_UINT *opad,
+                      MAYBE_CONSTANT uchar *salt, uint saltlen, uchar add)
 {
 	uint i;
-	uint W[16];
-	uint output[5];
+	MAYBE_VECTOR_UINT W[16];
+	MAYBE_VECTOR_UINT output[5];
 #if !gpu_nvidia(DEVICE_INFO)
-	uint K;
+	MAYBE_VECTOR_UINT K;
 #endif
-	uint A, B, C, D, E, temp;
+	MAYBE_VECTOR_UINT A, B, C, D, E, temp;
 
 	for (i = 0; i < 5; i++)
 		output[i] = ipad[i];
@@ -556,16 +565,79 @@ inline void hmac_sha1(__global uint *state,
 		state[i] = output[i];
 }
 
-__kernel void pbkdf2_init(__global const pbkdf2_password *inbuffer,
-                          __constant pbkdf2_salt *salt,
-                          __global pbkdf2_state *state)
+__kernel
+__attribute__((vec_type_hint(MAYBE_VECTOR_UINT)))
+void pbkdf2_init(__global const pbkdf2_password *inbuffer,
+                 MAYBE_CONSTANT pbkdf2_salt *salt,
+                 __global pbkdf2_state *state)
 {
 	uint gid = get_global_id(0);
 	uint i;
 
+#ifdef SCALAR
 	preproc(inbuffer[gid].v, inbuffer[gid].length, state[gid].ipad, 0x36363636);
 	preproc(inbuffer[gid].v, inbuffer[gid].length, state[gid].opad, 0x5c5c5c5c);
+#else
+	uint sc_state[5];
 
+	preproc(inbuffer[gid * V_WIDTH].v, inbuffer[gid * V_WIDTH].length, sc_state, 0x36363636);
+	for (i = 0; i < 5; i++)
+		state[gid].ipad[i].s0 = sc_state[i];
+	preproc(inbuffer[gid * V_WIDTH].v, inbuffer[gid * V_WIDTH].length, sc_state, 0x5c5c5c5c);
+	for (i = 0; i < 5; i++)
+		state[gid].opad[i].s0 = sc_state[i];
+
+	preproc(inbuffer[gid * V_WIDTH + 1].v, inbuffer[gid * V_WIDTH + 1].length, sc_state, 0x36363636);
+	for (i = 0; i < 5; i++)
+		state[gid].ipad[i].s1 = sc_state[i];
+	preproc(inbuffer[gid * V_WIDTH + 1].v, inbuffer[gid * V_WIDTH + 1].length, sc_state, 0x5c5c5c5c);
+	for (i = 0; i < 5; i++)
+		state[gid].opad[i].s1 = sc_state[i];
+#if V_WIDTH > 2
+	preproc(inbuffer[gid * V_WIDTH + 2].v, inbuffer[gid * V_WIDTH + 2].length, sc_state, 0x36363636);
+	for (i = 0; i < 5; i++)
+		state[gid].ipad[i].s2 = sc_state[i];
+	preproc(inbuffer[gid * V_WIDTH + 2].v, inbuffer[gid * V_WIDTH + 2].length, sc_state, 0x5c5c5c5c);
+	for (i = 0; i < 5; i++)
+		state[gid].opad[i].s2 = sc_state[i];
+
+	preproc(inbuffer[gid * V_WIDTH + 3].v, inbuffer[gid * V_WIDTH + 3].length, sc_state, 0x36363636);
+	for (i = 0; i < 5; i++)
+		state[gid].ipad[i].s3 = sc_state[i];
+	preproc(inbuffer[gid * V_WIDTH + 3].v, inbuffer[gid * V_WIDTH + 3].length, sc_state, 0x5c5c5c5c);
+	for (i = 0; i < 5; i++)
+		state[gid].opad[i].s3 = sc_state[i];
+#endif
+#if V_WIDTH > 4
+	preproc(inbuffer[gid * V_WIDTH + 4].v, inbuffer[gid * V_WIDTH + 4].length, sc_state, 0x36363636);
+	for (i = 0; i < 5; i++)
+		state[gid].ipad[i].s4 = sc_state[i];
+	preproc(inbuffer[gid * V_WIDTH + 4].v, inbuffer[gid * V_WIDTH + 4].length, sc_state, 0x5c5c5c5c);
+	for (i = 0; i < 5; i++)
+		state[gid].opad[i].s4 = sc_state[i];
+
+	preproc(inbuffer[gid * V_WIDTH + 5].v, inbuffer[gid * V_WIDTH + 5].length, sc_state, 0x36363636);
+	for (i = 0; i < 5; i++)
+		state[gid].ipad[i].s5 = sc_state[i];
+	preproc(inbuffer[gid * V_WIDTH + 5].v, inbuffer[gid * V_WIDTH + 5].length, sc_state, 0x5c5c5c5c);
+	for (i = 0; i < 5; i++)
+		state[gid].opad[i].s5 = sc_state[i];
+
+	preproc(inbuffer[gid * V_WIDTH + 6].v, inbuffer[gid * V_WIDTH + 6].length, sc_state, 0x36363636);
+	for (i = 0; i < 5; i++)
+		state[gid].ipad[i].s6 = sc_state[i];
+	preproc(inbuffer[gid * V_WIDTH + 6].v, inbuffer[gid * V_WIDTH + 6].length, sc_state, 0x5c5c5c5c);
+	for (i = 0; i < 5; i++)
+		state[gid].opad[i].s6 = sc_state[i];
+
+	preproc(inbuffer[gid * V_WIDTH + 7].v, inbuffer[gid * V_WIDTH + 7].length, sc_state, 0x36363636);
+	for (i = 0; i < 5; i++)
+		state[gid].ipad[i].s7 = sc_state[i];
+	preproc(inbuffer[gid * V_WIDTH + 7].v, inbuffer[gid * V_WIDTH + 7].length, sc_state, 0x5c5c5c5c);
+	for (i = 0; i < 5; i++)
+		state[gid].opad[i].s7 = sc_state[i];
+#endif
+#endif
 	hmac_sha1(state[gid].out, state[gid].ipad, state[gid].opad, salt->salt, salt->length, 0x01);
 
 	for (i = 0; i < 5; i++)
@@ -588,7 +660,6 @@ void pbkdf2_loop(__global pbkdf2_state *state)
 	MAYBE_VECTOR_UINT output[5];
 	MAYBE_VECTOR_UINT state_out[5];
 
-#ifdef SCALAR
 	for (i = 0; i < 5; i++)
 		W[i] = state[gid].W[i];
 	for (i = 0; i < 5; i++)
@@ -597,64 +668,6 @@ void pbkdf2_loop(__global pbkdf2_state *state)
 		opad[i] = state[gid].opad[i];
 	for (i = 0; i < 5; i++)
 		state_out[i] = state[gid].out[i];
-#else
-	for (i = 0; i < 5; i++) {
-		W[i].s0 = state[gid*V_WIDTH+0].W[i];
-		W[i].s1 = state[gid*V_WIDTH+1].W[i];
-#if V_WIDTH > 2
-		W[i].s2 = state[gid*V_WIDTH+2].W[i];
-		W[i].s3 = state[gid*V_WIDTH+3].W[i];
-#endif
-#if V_WIDTH > 4
-		W[i].s4 = state[gid*V_WIDTH+4].W[i];
-		W[i].s5 = state[gid*V_WIDTH+5].W[i];
-		W[i].s6 = state[gid*V_WIDTH+6].W[i];
-		W[i].s7 = state[gid*V_WIDTH+7].W[i];
-#endif
-	}
-	for (i = 0; i < 5; i++) {
-		ipad[i].s0 = state[gid*V_WIDTH+0].ipad[i];
-		ipad[i].s1 = state[gid*V_WIDTH+1].ipad[i];
-#if V_WIDTH > 2
-		ipad[i].s2 = state[gid*V_WIDTH+2].ipad[i];
-		ipad[i].s3 = state[gid*V_WIDTH+3].ipad[i];
-#endif
-#if V_WIDTH > 4
-		ipad[i].s4 = state[gid*V_WIDTH+4].ipad[i];
-		ipad[i].s5 = state[gid*V_WIDTH+5].ipad[i];
-		ipad[i].s6 = state[gid*V_WIDTH+6].ipad[i];
-		ipad[i].s7 = state[gid*V_WIDTH+7].ipad[i];
-#endif
-	}
-	for (i = 0; i < 5; i++) {
-		opad[i].s0 = state[gid*V_WIDTH+0].opad[i];
-		opad[i].s1 = state[gid*V_WIDTH+1].opad[i];
-#if V_WIDTH > 2
-		opad[i].s2 = state[gid*V_WIDTH+2].opad[i];
-		opad[i].s3 = state[gid*V_WIDTH+3].opad[i];
-#endif
-#if V_WIDTH > 4
-		opad[i].s4 = state[gid*V_WIDTH+4].opad[i];
-		opad[i].s5 = state[gid*V_WIDTH+5].opad[i];
-		opad[i].s6 = state[gid*V_WIDTH+6].opad[i];
-		opad[i].s7 = state[gid*V_WIDTH+7].opad[i];
-#endif
-	}
-	for (i = 0; i < 5; i++) {
-		state_out[i].s0 = state[gid*V_WIDTH+0].out[i];
-		state_out[i].s1 = state[gid*V_WIDTH+1].out[i];
-#if V_WIDTH > 2
-		state_out[i].s2 = state[gid*V_WIDTH+2].out[i];
-		state_out[i].s3 = state[gid*V_WIDTH+3].out[i];
-#endif
-#if V_WIDTH > 4
-		state_out[i].s4 = state[gid*V_WIDTH+4].out[i];
-		state_out[i].s5 = state[gid*V_WIDTH+5].out[i];
-		state_out[i].s6 = state[gid*V_WIDTH+6].out[i];
-		state_out[i].s7 = state[gid*V_WIDTH+7].out[i];
-#endif
-	}
-#endif
 
 	for (j = 0; j < HASH_LOOPS; j++) {
 		for (i = 0; i < 5; i++)
@@ -690,53 +703,41 @@ void pbkdf2_loop(__global pbkdf2_state *state)
 			state_out[i] ^= output[i];
 	}
 
-#ifdef SCALAR
 	for (i = 0; i < 5; i++)
 		state[gid].W[i] = W[i];
 	for (i = 0; i < 5; i++)
 		state[gid].out[i] = state_out[i];
-#else
-	for (i = 0; i < 5; i++) {
-		state[gid*V_WIDTH+0].W[i] = W[i].s0;
-		state[gid*V_WIDTH+1].W[i] = W[i].s1;
-#if V_WIDTH > 2
-		state[gid*V_WIDTH+2].W[i] = W[i].s2;
-		state[gid*V_WIDTH+3].W[i] = W[i].s3;
-#endif
-#if V_WIDTH > 4
-		state[gid*V_WIDTH+4].W[i] = W[i].s4;
-		state[gid*V_WIDTH+5].W[i] = W[i].s5;
-		state[gid*V_WIDTH+6].W[i] = W[i].s6;
-		state[gid*V_WIDTH+7].W[i] = W[i].s7;
-#endif
-	}
-	for (i = 0; i < 5; i++) {
-		state[gid*V_WIDTH+0].out[i] = state_out[i].s0;
-		state[gid*V_WIDTH+1].out[i] = state_out[i].s1;
-#if V_WIDTH > 2
-		state[gid*V_WIDTH+2].out[i] = state_out[i].s2;
-		state[gid*V_WIDTH+3].out[i] = state_out[i].s3;
-#endif
-#if V_WIDTH > 4
-		state[gid*V_WIDTH+4].out[i] = state_out[i].s4;
-		state[gid*V_WIDTH+5].out[i] = state_out[i].s5;
-		state[gid*V_WIDTH+6].out[i] = state_out[i].s6;
-		state[gid*V_WIDTH+7].out[i] = state_out[i].s7;
-#endif
-	}
-#endif
 }
 
-__kernel void pbkdf2_pass2(__constant pbkdf2_salt *salt,
-                           __global pbkdf2_out *out,
-                           __global pbkdf2_state *state)
+__kernel
+__attribute__((vec_type_hint(MAYBE_VECTOR_UINT)))
+void pbkdf2_pass2(MAYBE_CONSTANT pbkdf2_salt *salt,
+                  __global pbkdf2_out *out,
+                  __global pbkdf2_state *state)
 {
 	uint gid = get_global_id(0);
 	uint i;
 
 	// First 20 bytes of output
 	for (i = 0; i < 5; i++)
+#ifdef SCALAR
 		out[gid].dk[i] = SWAP32(state[gid].out[i]);
+#else
+	{
+		out[gid * V_WIDTH + 0].dk[i] = SWAP32(state[gid].out[i].s0);
+		out[gid * V_WIDTH + 1].dk[i] = SWAP32(state[gid].out[i].s1);
+#if V_WIDTH > 2
+		out[gid * V_WIDTH + 2].dk[i] = SWAP32(state[gid].out[i].s2);
+		out[gid * V_WIDTH + 3].dk[i] = SWAP32(state[gid].out[i].s3);
+#endif
+#if V_WIDTH > 4
+		out[gid * V_WIDTH + 4].dk[i] = SWAP32(state[gid].out[i].s4);
+		out[gid * V_WIDTH + 5].dk[i] = SWAP32(state[gid].out[i].s5);
+		out[gid * V_WIDTH + 6].dk[i] = SWAP32(state[gid].out[i].s6);
+		out[gid * V_WIDTH + 7].dk[i] = SWAP32(state[gid].out[i].s7);
+#endif
+	}
+#endif
 
 	hmac_sha1(state[gid].out, state[gid].ipad, state[gid].opad, salt->salt, salt->length, 0x02);
 
@@ -744,13 +745,32 @@ __kernel void pbkdf2_pass2(__constant pbkdf2_salt *salt,
 		state[gid].W[i] = state[gid].out[i];
 }
 
-__kernel void pbkdf2_final(__global pbkdf2_state *state,
-                               __global pbkdf2_out *out)
+__kernel
+__attribute__((vec_type_hint(MAYBE_VECTOR_UINT)))
+void pbkdf2_final(__global pbkdf2_state *state,
+                  __global pbkdf2_out *out)
 {
 	uint gid = get_global_id(0);
 	uint i;
 
 	// Remaining 12 bytes of output
 	for (i = 0; i < 3; i++)
+#ifdef SCALAR
 		out[gid].dk[5 + i] = SWAP32(state[gid].out[i]);
+#else
+	{
+		out[gid * V_WIDTH + 0].dk[5 + i] = SWAP32(state[gid].out[i].s0);
+		out[gid * V_WIDTH + 1].dk[5 + i] = SWAP32(state[gid].out[i].s1);
+#if V_WIDTH > 2
+		out[gid * V_WIDTH + 2].dk[5 + i] = SWAP32(state[gid].out[i].s2);
+		out[gid * V_WIDTH + 3].dk[5 + i] = SWAP32(state[gid].out[i].s3);
+#endif
+#if V_WIDTH > 4
+		out[gid * V_WIDTH + 4].dk[5 + i] = SWAP32(state[gid].out[i].s4);
+		out[gid * V_WIDTH + 5].dk[5 + i] = SWAP32(state[gid].out[i].s5);
+		out[gid * V_WIDTH + 6].dk[5 + i] = SWAP32(state[gid].out[i].s6);
+		out[gid * V_WIDTH + 7].dk[5 + i] = SWAP32(state[gid].out[i].s7);
+#endif
+	}
+#endif
 }

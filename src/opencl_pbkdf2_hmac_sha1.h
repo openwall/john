@@ -32,11 +32,15 @@ typedef struct {
 	unsigned char salt[52];
 } pbkdf2_salt;
 
+#ifndef _OPENCL_COMPILER
+#define MAYBE_VECTOR_UINT unsigned int
+#endif
+
 typedef struct {
-	unsigned int W[5];
-	unsigned int ipad[5];
-	unsigned int opad[5];
-	unsigned int out[5];
+	MAYBE_VECTOR_UINT W[5];
+	MAYBE_VECTOR_UINT ipad[5];
+	MAYBE_VECTOR_UINT opad[5];
+	MAYBE_VECTOR_UINT out[5];
 } pbkdf2_state;
 
 #endif
