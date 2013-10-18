@@ -19,11 +19,6 @@
 #endif
 
 typedef struct {
-	unsigned int  length;
-	unsigned char v[PLAINTEXT_LENGTH + 1];
-} pbkdf2_password;
-
-typedef struct {
 	unsigned int dk[32 / sizeof(unsigned int)];
 } pbkdf2_out;
 

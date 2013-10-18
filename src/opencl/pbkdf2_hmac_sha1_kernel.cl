@@ -492,34 +492,6 @@ inline uint SWAP32(uint x)
 		printf("\n"); \
 	}
 
-inline void preproc(__global const uchar *key, uint keylen,
-#ifdef SCALAR
-                    __global uint *state, uint padding)
-#else
-                    uint *state, uint padding)
-#endif
-{
-	uint i;
-	uint W[16];
-	uint output[5];
-#if !gpu_nvidia(DEVICE_INFO)
-	uint K;
-#endif
-	uint A, B, C, D, E, temp;
-
-	for (i = 0; i < 16; i++)
-		W[i] = padding;
-
-	for (i = 0; i < keylen; i++)
-		XORCHAR_BE(W, i, key[i]);
-
-	sha1_init(output);
-	sha1_block(W, output);
-
-	for (i = 0; i < 5; i++)
-		state[i] = output[i];
-}
-
 inline void hmac_sha1(__global MAYBE_VECTOR_UINT *state,
                       __global MAYBE_VECTOR_UINT *ipad,
                       __global MAYBE_VECTOR_UINT *opad,
@@ -565,139 +537,41 @@ inline void hmac_sha1(__global MAYBE_VECTOR_UINT *state,
 		state[i] = output[i];
 }
 
+inline void preproc(__global const MAYBE_VECTOR_UINT *key,
+                    __global MAYBE_VECTOR_UINT *state, uint padding)
+{
+	uint i;
+	MAYBE_VECTOR_UINT W[16];
+	MAYBE_VECTOR_UINT output[5];
+#if !gpu_nvidia(DEVICE_INFO)
+	MAYBE_VECTOR_UINT K;
+#endif
+	MAYBE_VECTOR_UINT A, B, C, D, E, temp;
+
+	for (i = 0; i < 16; i++)
+		W[i] = key[i] ^ padding;
+
+	sha1_init(output);
+	sha1_block(W, output);
+
+	for (i = 0; i < 5; i++)
+		state[i] = output[i];
+}
+
 __kernel
 __attribute__((vec_type_hint(MAYBE_VECTOR_UINT)))
-void pbkdf2_init(__global const pbkdf2_password *inbuffer,
+void pbkdf2_init(__global const MAYBE_VECTOR_UINT *inbuffer,
                  MAYBE_CONSTANT pbkdf2_salt *salt,
                  __global pbkdf2_state *state)
 {
 	uint gid = get_global_id(0);
 	uint i;
 
-#ifdef SCALAR
-	preproc(inbuffer[gid].v, inbuffer[gid].length, state[gid].ipad, 0x36363636);
-	preproc(inbuffer[gid].v, inbuffer[gid].length, state[gid].opad, 0x5c5c5c5c);
-#else
-	uint sc_state[5];
+	preproc(&inbuffer[gid * 16], state[gid].ipad, 0x36363636);
+	preproc(&inbuffer[gid * 16], state[gid].opad, 0x5c5c5c5c);
 
-	preproc(inbuffer[gid * V_WIDTH].v, inbuffer[gid * V_WIDTH].length, sc_state, 0x36363636);
-	for (i = 0; i < 5; i++)
-		state[gid].ipad[i].s0 = sc_state[i];
-	preproc(inbuffer[gid * V_WIDTH].v, inbuffer[gid * V_WIDTH].length, sc_state, 0x5c5c5c5c);
-	for (i = 0; i < 5; i++)
-		state[gid].opad[i].s0 = sc_state[i];
-
-	preproc(inbuffer[gid * V_WIDTH + 1].v, inbuffer[gid * V_WIDTH + 1].length, sc_state, 0x36363636);
-	for (i = 0; i < 5; i++)
-		state[gid].ipad[i].s1 = sc_state[i];
-	preproc(inbuffer[gid * V_WIDTH + 1].v, inbuffer[gid * V_WIDTH + 1].length, sc_state, 0x5c5c5c5c);
-	for (i = 0; i < 5; i++)
-		state[gid].opad[i].s1 = sc_state[i];
-#if V_WIDTH > 2
-	preproc(inbuffer[gid * V_WIDTH + 2].v, inbuffer[gid * V_WIDTH + 2].length, sc_state, 0x36363636);
-	for (i = 0; i < 5; i++)
-		state[gid].ipad[i].s2 = sc_state[i];
-	preproc(inbuffer[gid * V_WIDTH + 2].v, inbuffer[gid * V_WIDTH + 2].length, sc_state, 0x5c5c5c5c);
-	for (i = 0; i < 5; i++)
-		state[gid].opad[i].s2 = sc_state[i];
-
-#if V_WIDTH > 3
-	preproc(inbuffer[gid * V_WIDTH + 3].v, inbuffer[gid * V_WIDTH + 3].length, sc_state, 0x36363636);
-	for (i = 0; i < 5; i++)
-		state[gid].ipad[i].s3 = sc_state[i];
-	preproc(inbuffer[gid * V_WIDTH + 3].v, inbuffer[gid * V_WIDTH + 3].length, sc_state, 0x5c5c5c5c);
-	for (i = 0; i < 5; i++)
-		state[gid].opad[i].s3 = sc_state[i];
-
-#if V_WIDTH > 4
-	preproc(inbuffer[gid * V_WIDTH + 4].v, inbuffer[gid * V_WIDTH + 4].length, sc_state, 0x36363636);
-	for (i = 0; i < 5; i++)
-		state[gid].ipad[i].s4 = sc_state[i];
-	preproc(inbuffer[gid * V_WIDTH + 4].v, inbuffer[gid * V_WIDTH + 4].length, sc_state, 0x5c5c5c5c);
-	for (i = 0; i < 5; i++)
-		state[gid].opad[i].s4 = sc_state[i];
-
-	preproc(inbuffer[gid * V_WIDTH + 5].v, inbuffer[gid * V_WIDTH + 5].length, sc_state, 0x36363636);
-	for (i = 0; i < 5; i++)
-		state[gid].ipad[i].s5 = sc_state[i];
-	preproc(inbuffer[gid * V_WIDTH + 5].v, inbuffer[gid * V_WIDTH + 5].length, sc_state, 0x5c5c5c5c);
-	for (i = 0; i < 5; i++)
-		state[gid].opad[i].s5 = sc_state[i];
-
-	preproc(inbuffer[gid * V_WIDTH + 6].v, inbuffer[gid * V_WIDTH + 6].length, sc_state, 0x36363636);
-	for (i = 0; i < 5; i++)
-		state[gid].ipad[i].s6 = sc_state[i];
-	preproc(inbuffer[gid * V_WIDTH + 6].v, inbuffer[gid * V_WIDTH + 6].length, sc_state, 0x5c5c5c5c);
-	for (i = 0; i < 5; i++)
-		state[gid].opad[i].s6 = sc_state[i];
-
-	preproc(inbuffer[gid * V_WIDTH + 7].v, inbuffer[gid * V_WIDTH + 7].length, sc_state, 0x36363636);
-	for (i = 0; i < 5; i++)
-		state[gid].ipad[i].s7 = sc_state[i];
-	preproc(inbuffer[gid * V_WIDTH + 7].v, inbuffer[gid * V_WIDTH + 7].length, sc_state, 0x5c5c5c5c);
-	for (i = 0; i < 5; i++)
-		state[gid].opad[i].s7 = sc_state[i];
-#if V_WIDTH > 8
-	preproc(inbuffer[gid * V_WIDTH + 8].v, inbuffer[gid * V_WIDTH + 8].length, sc_state, 0x36363636);
-	for (i = 0; i < 5; i++)
-		state[gid].ipad[i].s8 = sc_state[i];
-	preproc(inbuffer[gid * V_WIDTH + 8].v, inbuffer[gid * V_WIDTH + 8].length, sc_state, 0x5c5c5c5c);
-	for (i = 0; i < 5; i++)
-		state[gid].opad[i].s8 = sc_state[i];
-
-	preproc(inbuffer[gid * V_WIDTH + 9].v, inbuffer[gid * V_WIDTH + 9].length, sc_state, 0x36363636);
-	for (i = 0; i < 5; i++)
-		state[gid].ipad[i].s9 = sc_state[i];
-	preproc(inbuffer[gid * V_WIDTH + 9].v, inbuffer[gid * V_WIDTH + 9].length, sc_state, 0x5c5c5c5c);
-	for (i = 0; i < 5; i++)
-		state[gid].opad[i].s9 = sc_state[i];
-
-	preproc(inbuffer[gid * V_WIDTH + 10].v, inbuffer[gid * V_WIDTH + 10].length, sc_state, 0x36363636);
-	for (i = 0; i < 5; i++)
-		state[gid].ipad[i].sa = sc_state[i];
-	preproc(inbuffer[gid * V_WIDTH + 10].v, inbuffer[gid * V_WIDTH + 10].length, sc_state, 0x5c5c5c5c);
-	for (i = 0; i < 5; i++)
-		state[gid].opad[i].sa = sc_state[i];
-
-	preproc(inbuffer[gid * V_WIDTH + 11].v, inbuffer[gid * V_WIDTH + 11].length, sc_state, 0x36363636);
-	for (i = 0; i < 5; i++)
-		state[gid].ipad[i].sb = sc_state[i];
-	preproc(inbuffer[gid * V_WIDTH + 11].v, inbuffer[gid * V_WIDTH + 11].length, sc_state, 0x5c5c5c5c);
-	for (i = 0; i < 5; i++)
-		state[gid].opad[i].sb = sc_state[i];
-	preproc(inbuffer[gid * V_WIDTH + 12].v, inbuffer[gid * V_WIDTH + 12].length, sc_state, 0x36363636);
-	for (i = 0; i < 5; i++)
-		state[gid].ipad[i].sc = sc_state[i];
-	preproc(inbuffer[gid * V_WIDTH + 12].v, inbuffer[gid * V_WIDTH + 12].length, sc_state, 0x5c5c5c5c);
-	for (i = 0; i < 5; i++)
-		state[gid].opad[i].sc = sc_state[i];
-
-	preproc(inbuffer[gid * V_WIDTH + 13].v, inbuffer[gid * V_WIDTH + 13].length, sc_state, 0x36363636);
-	for (i = 0; i < 5; i++)
-		state[gid].ipad[i].sd = sc_state[i];
-	preproc(inbuffer[gid * V_WIDTH + 13].v, inbuffer[gid * V_WIDTH + 13].length, sc_state, 0x5c5c5c5c);
-	for (i = 0; i < 5; i++)
-		state[gid].opad[i].sd = sc_state[i];
-
-	preproc(inbuffer[gid * V_WIDTH + 14].v, inbuffer[gid * V_WIDTH + 14].length, sc_state, 0x36363636);
-	for (i = 0; i < 5; i++)
-		state[gid].ipad[i].se = sc_state[i];
-	preproc(inbuffer[gid * V_WIDTH + 14].v, inbuffer[gid * V_WIDTH + 14].length, sc_state, 0x5c5c5c5c);
-	for (i = 0; i < 5; i++)
-		state[gid].opad[i].se = sc_state[i];
-
-	preproc(inbuffer[gid * V_WIDTH + 15].v, inbuffer[gid * V_WIDTH + 15].length, sc_state, 0x36363636);
-	for (i = 0; i < 5; i++)
-		state[gid].ipad[i].sf = sc_state[i];
-	preproc(inbuffer[gid * V_WIDTH + 15].v, inbuffer[gid * V_WIDTH + 15].length, sc_state, 0x5c5c5c5c);
-	for (i = 0; i < 5; i++)
-		state[gid].opad[i].sf = sc_state[i];
-#endif
-#endif
-#endif
-#endif
-#endif
-	hmac_sha1(state[gid].out, state[gid].ipad, state[gid].opad, salt->salt, salt->length, 0x01);
+	hmac_sha1(state[gid].out, state[gid].ipad, state[gid].opad,
+	          salt->salt, salt->length, 0x01);
 
 	for (i = 0; i < 5; i++)
 		state[gid].W[i] = state[gid].out[i];
@@ -810,7 +684,8 @@ void pbkdf2_pass2(MAYBE_CONSTANT pbkdf2_salt *salt,
 	}
 #endif
 
-	hmac_sha1(state[gid].out, state[gid].ipad, state[gid].opad, salt->salt, salt->length, 0x02);
+	hmac_sha1(state[gid].out, state[gid].ipad, state[gid].opad,
+	          salt->salt, salt->length, 0x02);
 
 	for (i = 0; i < 5; i++)
 		state[gid].W[i] = state[gid].out[i];
