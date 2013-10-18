@@ -10,6 +10,17 @@
 
 #include "opencl_device_info.h"
 
+#define CONCAT(TYPE,WIDTH)	TYPE ## WIDTH
+#define VECTOR(x, y)		CONCAT(x, y)
+
+/* host code may pass -DV_WIDTH=2 or some other width */
+#if defined(V_WIDTH) && V_WIDTH > 1
+#define MAYBE_VECTOR_UINT	VECTOR(uint, V_WIDTH)
+#else
+#define MAYBE_VECTOR_UINT	uint
+#define SCALAR
+#endif
+
 #if gpu_amd(DEVICE_INFO)
 #define USE_BITSELECT
 #endif
@@ -426,6 +437,8 @@ __constant UTF16 CP1253[] = {
 		printf("\n"); \
 	}
 
+#define VEC_IN(INPUT, OUTPUT, INDEX, LEN)	  \
+	OUTPUT[(gid / V_WIDTH) * (LEN) * V_WIDTH + (gid % V_WIDTH) + (INDEX) * V_WIDTH] = INPUT[i]
 
 #ifdef ENC_UTF_8
 
@@ -511,7 +524,7 @@ __kernel void ntlmv2_nthash(const __global uchar *source,
 	md4_block(block, output);
 
 	for (i = 0; i < 4; i++)
-		nthash[gid * 4 + i] = output[i];
+		VEC_IN(output, nthash, i, 4);
 }
 
 #elif !defined(ENC_ISO_8859_1) && !defined(ENC_RAW)
@@ -545,7 +558,7 @@ __kernel void ntlmv2_nthash(const __global uchar *password,
 	md4_block(block, output);
 
 	for (i = 0; i < 4; i++)
-		nthash[gid * 4 + i] = output[i];
+		VEC_IN(output, nthash, i, 4);
 }
 
 #else
@@ -579,19 +592,21 @@ __kernel void ntlmv2_nthash(const __global uchar *password,
 	md4_block(block, output);
 
 	for (i = 0; i < 4; i++)
-		nthash[gid * 4 + i] = output[i];
+		VEC_IN(output, nthash, i, 4);
 }
 
 #endif /* encodings */
 
-__kernel void ntlmv2_final(const __global uint *nthash, MAYBE_CONSTANT uint *challenge, __global uint *result)
+__kernel
+__attribute__((vec_type_hint(MAYBE_VECTOR_UINT)))
+void ntlmv2_final(const __global MAYBE_VECTOR_UINT *nthash, MAYBE_CONSTANT uint *challenge, __global uint *result)
 {
 	uint i;
 	uint gid = get_global_id(0);
 	uint gws = get_global_size(0);
-	uint block[16];
-	uint output[4], hash[4];
-	uint a, b, c, d;
+	MAYBE_VECTOR_UINT block[16];
+	MAYBE_VECTOR_UINT output[4], hash[4];
+	MAYBE_VECTOR_UINT a, b, c, d;
 	uint challenge_size;
 
 	/* 1st HMAC */
@@ -679,5 +694,39 @@ __kernel void ntlmv2_final(const __global uint *nthash, MAYBE_CONSTANT uint *cha
 	md5_block(block, output); /* md5_update(hash, 16), md5_final() */
 
 	for (i = 0; i < 4; i++)
+#ifdef SCALAR
 		result[i * gws + gid] = output[i];
+#else
+
+#define VEC_OUT(NUM)	  \
+	result[i * gws * V_WIDTH + gid * V_WIDTH + 0x##NUM] = output[i].s##NUM
+
+	{
+
+		VEC_OUT(0);
+		VEC_OUT(1);
+#if V_WIDTH > 2
+		VEC_OUT(2);
+#if V_WIDTH > 3
+		VEC_OUT(3);
+#if V_WIDTH > 4
+		VEC_OUT(4);
+		VEC_OUT(5);
+		VEC_OUT(6);
+		VEC_OUT(7);
+#if V_WIDTH > 8
+		VEC_OUT(8);
+		VEC_OUT(9);
+		VEC_OUT(a);
+		VEC_OUT(b);
+		VEC_OUT(c);
+		VEC_OUT(d);
+		VEC_OUT(e);
+		VEC_OUT(f);
+#endif
+#endif
+#endif
+#endif
+	}
+#endif
 }

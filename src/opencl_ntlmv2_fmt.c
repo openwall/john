@@ -84,6 +84,7 @@ static size_t key_offset, idx_offset;
 static unsigned char *challenge;
 static int new_keys, partial_output;
 static int max_len = PLAINTEXT_LENGTH;
+static unsigned int v_width = 1;	/* Vector width of kernel */
 
 static cl_mem cl_saved_key, cl_saved_idx, cl_challenge, cl_nthash, cl_result;
 static cl_mem pinned_key, pinned_idx, pinned_result, pinned_salt;
@@ -93,6 +94,7 @@ static void create_clobj(int gws, struct fmt_main *self)
 {
 	global_work_size = gws;
 	self->params.max_keys_per_crypt = gws;
+	gws *= v_width;
 
 	pinned_key = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, max_len * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked buffer");
@@ -238,13 +240,14 @@ static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
 	cl_ulong startTime, endTime;
 	cl_event Event[5];
 	int i, tidx = 0;
+	size_t scalar_gws = v_width * gws;
 
 	create_clobj(gws, self);
 
 	// Set keys - all keys from tests will be benchmarked and some
 	// will be permuted to force them unique
 	self->methods.clear_keys();
-	for (i = 0; i < gws; i++) {
+	for (i = 0; i < scalar_gws; i++) {
 		union {
 			char c[PLAINTEXT_BUFFER_SIZE];
 			unsigned int w;
@@ -266,12 +269,12 @@ static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
 
 	/* Emulate crypt_all() */
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], cl_saved_key, CL_FALSE, key_offset, key_idx - key_offset, saved_key + key_offset, 0, NULL, &Event[0]), "Failed transferring keys");
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], cl_saved_idx, CL_FALSE, idx_offset, 4 * (global_work_size + 1) - idx_offset, saved_idx + (idx_offset / 4), 0, NULL, &Event[1]), "Failed transferring index");
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], ntlmv2_nthash, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &Event[2]), "running kernel");
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], cl_saved_idx, CL_FALSE, idx_offset, 4 * (scalar_gws + 1) - idx_offset, saved_idx + (idx_offset / 4), 0, NULL, &Event[1]), "Failed transferring index");
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], ntlmv2_nthash, 1, NULL, &scalar_gws, &local_work_size, 0, NULL, &Event[2]), "running kernel");
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &Event[3]), "running kernel");
 
 	/* Only benchmark partial transfer - that is what we optimize for */
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], cl_result, CL_TRUE, 0, 4 * gws, output, 0, NULL, &Event[4]), "failed in reading output back");
+	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], cl_result, CL_TRUE, 0, 4 * scalar_gws, output, 0, NULL, &Event[4]), "failed in reading output back");
 
 	HANDLE_CLERROR(clGetEventProfilingInfo(Event[0],
 	        CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime,
@@ -359,7 +362,7 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 #endif
 
 	/* Beware of device limits */
-	max_gws = MIN(get_max_mem_alloc_size(ocl_gpu_id) / max_len, get_global_memory_size(ocl_gpu_id) / (max_len + 16 + 16 + SALT_SIZE_MAX));
+	max_gws = MIN(get_max_mem_alloc_size(ocl_gpu_id) / max_len, get_global_memory_size(ocl_gpu_id) / (max_len + 16 + 16 + SALT_SIZE_MAX)) / v_width;
 
 	if (do_benchmark) {
 		fprintf(stderr, "Calculating best keys per crypt (GWS) for LWS=%zd and max. %llu s duration.\n\n", local_work_size, MaxRunTime / 1000000000UL);
@@ -372,13 +375,13 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 		if (!(run_time = gws_test(num, do_benchmark, self)))
 			break;
 
-		MD5speed = md5perkey * (1000000000. * num / run_time);
+		MD5speed = md5perkey * (1000000000. * num * v_width / run_time);
 
 		if (run_time < min_time)
 			min_time = run_time;
 
 		if (do_benchmark)
-			fprintf(stderr, "gws %6d %9.0f c/s %13.0f md5/s%8.2f sec per crypt_all()", num, (1000000000. * num / run_time), MD5speed, (double)run_time / 1000000000.);
+			fprintf(stderr, "gws %6d %9.0f c/s %13.0f md5/s%8.2f sec per crypt_all()", num, (1000000000. * num * v_width / run_time), MD5speed, (double)run_time / 1000000000.);
 
 		if (((double)run_time / (double)min_time) < (MD5speed / bestMD5speed)) {
 			if (do_benchmark)
@@ -414,15 +417,30 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 static void init(struct fmt_main *self)
 {
 	cl_ulong maxsize, maxsize2, max_mem;
-	char build_opts[64];
+	char build_opts[96];
 	char *encoding = options.encodingDef ? options.encodingDef : "ISO_8859_1";
+	static char valgo[32] = "";
+
+	if (!(options.flags & FLG_SCALAR)) {
+		opencl_preinit();
+		clGetDeviceInfo(devices[ocl_gpu_id],
+		                CL_DEVICE_PREFERRED_VECTOR_WIDTH_INT,
+		                sizeof(cl_uint), &v_width, NULL);
+		v_width = options.v_width ? options.v_width : v_width;
+		if (v_width > 1) {
+			/* Run vectorized kernel */
+			snprintf(valgo, sizeof(valgo),
+			         ALGORITHM_NAME " %ux", v_width);
+			self->params.algorithm_name = valgo;
+		}
+	}
 
 	if (options.utf8)
 		max_len = self->params.plaintext_length = 3 * PLAINTEXT_LENGTH;
 
 	snprintf(build_opts, sizeof(build_opts),
-	        "-DENC_%s -DENCODING=%s -DPLAINTEXT_LENGTH=%u",
-	         encoding, encoding, PLAINTEXT_LENGTH);
+	        "-DENC_%s -DENCODING=%s -DPLAINTEXT_LENGTH=%u -DV_WIDTH=%u",
+	         encoding, encoding, PLAINTEXT_LENGTH, v_width);
 	opencl_init("$JOHN/kernels/ntlmv2_kernel.cl", ocl_gpu_id, build_opts);
 
 	/* Read LWS/GWS prefs from config or environment */
@@ -446,7 +464,7 @@ static void init(struct fmt_main *self)
 		int temp = global_work_size;
 		local_work_size = maxsize;
 		global_work_size = global_work_size ? global_work_size : 512 * maxsize;
-		while (global_work_size > max_mem / ((max_len + 63) / 64 * 64))
+		while (global_work_size > max_mem / v_width * ((max_len + 63) / 64 * 64))
 			global_work_size -= local_work_size;
 		create_clobj(global_work_size, self);
 		opencl_find_best_workgroup_limit(self, maxsize, ocl_gpu_id, crypt_kernel);
@@ -466,7 +484,7 @@ static void init(struct fmt_main *self)
 		global_work_size = local_work_size;
 
 	// Obey device limits
-	while (global_work_size > max_mem / ((max_len + 63) / 64 * 64))
+	while (global_work_size > max_mem / v_width * ((max_len + 63) / 64 * 64))
 		global_work_size -= local_work_size;
 
 	// Ensure GWS is multiple of LWS
@@ -640,19 +658,21 @@ static void *get_binary(char *ciphertext)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
+	size_t scalar_gws;
 
 	/* Don't do more than requested */
-	global_work_size = ((count + (local_work_size - 1)) / local_work_size) * local_work_size;
+	global_work_size = ((count + (v_width * local_work_size - 1)) / (v_width * local_work_size)) * local_work_size;
+	scalar_gws = global_work_size * v_width;
 
 	if (new_keys) {
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], cl_saved_key, CL_FALSE, key_offset, key_idx - key_offset, saved_key + key_offset, 0, NULL, NULL), "Failed transferring keys");
-		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], cl_saved_idx, CL_FALSE, idx_offset, 4 * (global_work_size + 1) - idx_offset, saved_idx + (idx_offset / 4), 0, NULL, NULL), "Failed transferring index");
-		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], ntlmv2_nthash, 1, NULL, &global_work_size, &local_work_size, 0, NULL, firstEvent), "Failed running first kernel");
+		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], cl_saved_idx, CL_FALSE, idx_offset, 4 * (scalar_gws + 1) - idx_offset, saved_idx + (idx_offset / 4), 0, NULL, NULL), "Failed transferring index");
+		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], ntlmv2_nthash, 1, NULL, &scalar_gws, &local_work_size, 0, NULL, firstEvent), "Failed running first kernel");
 
 		new_keys = 0;
 	}
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, lastEvent), "Failed running second kernel");
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], cl_result, CL_TRUE, 0, 4 * global_work_size, output, 0, NULL, NULL), "failed reading results back");
+	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], cl_result, CL_TRUE, 0, 4 * scalar_gws, output, 0, NULL, NULL), "failed reading results back");
 
 	partial_output = 1;
 
@@ -680,13 +700,13 @@ static int cmp_exact(char *source, int index)
 	int i;
 
 	if (partial_output) {
-		HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], cl_result, CL_TRUE, 0, 16 * global_work_size, output, 0, NULL, NULL), "failed reading results back");
+		HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], cl_result, CL_TRUE, 0, 16 * v_width * global_work_size, output, 0, NULL, NULL), "failed reading results back");
 		partial_output = 0;
 	}
 	binary = (ARCH_WORD_32*)get_binary(source);
 
 	for(i = 0; i < DIGEST_SIZE / 4; i++)
-		if (output[i * global_work_size + index] != binary[i])
+		if (output[i * v_width * global_work_size + index] != binary[i])
 			return 0;
 	return 1;
 }
