@@ -932,27 +932,31 @@ void wpapsk_final_md5(__global wpapsk_state *state,
 #ifdef SCALAR
 		mic[gid].keymic[i] = opad[i];
 #else
+
+#define VEC_OUT(NUM)	  \
+		mic[gid * V_WIDTH + 0x##NUM].keymic[i] = opad[i].s##NUM
+
 	{
-		mic[gid * V_WIDTH + 0].keymic[i] = opad[i].s0;
-		mic[gid * V_WIDTH + 1].keymic[i] = opad[i].s1;
+		VEC_OUT(0);
+		VEC_OUT(1);
 #if V_WIDTH > 2
-		mic[gid * V_WIDTH + 2].keymic[i] = opad[i].s2;
+		VEC_OUT(2);
 #if V_WIDTH > 3
-		mic[gid * V_WIDTH + 3].keymic[i] = opad[i].s3;
+		VEC_OUT(3);
 #if V_WIDTH > 4
-		mic[gid * V_WIDTH + 4].keymic[i] = opad[i].s4;
-		mic[gid * V_WIDTH + 5].keymic[i] = opad[i].s5;
-		mic[gid * V_WIDTH + 6].keymic[i] = opad[i].s6;
-		mic[gid * V_WIDTH + 7].keymic[i] = opad[i].s7;
+		VEC_OUT(4);
+		VEC_OUT(5);
+		VEC_OUT(6);
+		VEC_OUT(7);
 #if V_WIDTH > 8
-		mic[gid * V_WIDTH + 8].keymic[i] = opad[i].s8;
-		mic[gid * V_WIDTH + 9].keymic[i] = opad[i].s9;
-		mic[gid * V_WIDTH + 10].keymic[i] = opad[i].sa;
-		mic[gid * V_WIDTH + 11].keymic[i] = opad[i].sb;
-		mic[gid * V_WIDTH + 12].keymic[i] = opad[i].sc;
-		mic[gid * V_WIDTH + 13].keymic[i] = opad[i].sd;
-		mic[gid * V_WIDTH + 14].keymic[i] = opad[i].se;
-		mic[gid * V_WIDTH + 15].keymic[i] = opad[i].sf;
+		VEC_OUT(8);
+		VEC_OUT(9);
+		VEC_OUT(a);
+		VEC_OUT(b);
+		VEC_OUT(c);
+		VEC_OUT(d);
+		VEC_OUT(e);
+		VEC_OUT(f);
 #endif
 #endif
 #endif
@@ -1035,27 +1039,32 @@ void wpapsk_final_sha1(__global wpapsk_state *state,
 #ifdef SCALAR
 		mic[gid].keymic[i] = SWAP32(opad[i]);
 #else
+
+#undef VEC_OUT
+#define VEC_OUT(NUM)	  \
+	mic[gid * V_WIDTH + 0x##NUM].keymic[i] = SWAP32(opad[i].s##NUM)
+
 	{
-		mic[gid * V_WIDTH + 0].keymic[i] = SWAP32(opad[i].s0);
-		mic[gid * V_WIDTH + 1].keymic[i] = SWAP32(opad[i].s1);
+		VEC_OUT(0);
+		VEC_OUT(1);
 #if V_WIDTH > 2
-		mic[gid * V_WIDTH + 2].keymic[i] = SWAP32(opad[i].s2);
+		VEC_OUT(2);
 #if V_WIDTH > 3
-		mic[gid * V_WIDTH + 3].keymic[i] = SWAP32(opad[i].s3);
+		VEC_OUT(3);
 #if V_WIDTH > 4
-		mic[gid * V_WIDTH + 4].keymic[i] = SWAP32(opad[i].s4);
-		mic[gid * V_WIDTH + 5].keymic[i] = SWAP32(opad[i].s5);
-		mic[gid * V_WIDTH + 6].keymic[i] = SWAP32(opad[i].s6);
-		mic[gid * V_WIDTH + 7].keymic[i] = SWAP32(opad[i].s7);
+		VEC_OUT(4);
+		VEC_OUT(5);
+		VEC_OUT(6);
+		VEC_OUT(7);
 #if V_WIDTH > 8
-		mic[gid * V_WIDTH + 8].keymic[i] = SWAP32(opad[i].s8);
-		mic[gid * V_WIDTH + 9].keymic[i] = SWAP32(opad[i].s9);
-		mic[gid * V_WIDTH + 10].keymic[i] = SWAP32(opad[i].sa);
-		mic[gid * V_WIDTH + 11].keymic[i] = SWAP32(opad[i].sb);
-		mic[gid * V_WIDTH + 12].keymic[i] = SWAP32(opad[i].sc);
-		mic[gid * V_WIDTH + 13].keymic[i] = SWAP32(opad[i].sd);
-		mic[gid * V_WIDTH + 14].keymic[i] = SWAP32(opad[i].se);
-		mic[gid * V_WIDTH + 15].keymic[i] = SWAP32(opad[i].sf);
+		VEC_OUT(8);
+		VEC_OUT(9);
+		VEC_OUT(a);
+		VEC_OUT(b);
+		VEC_OUT(c);
+		VEC_OUT(d);
+		VEC_OUT(e);
+		VEC_OUT(f);
 #endif
 #endif
 #endif

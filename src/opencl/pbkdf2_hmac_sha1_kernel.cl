@@ -656,27 +656,31 @@ void pbkdf2_pass2(MAYBE_CONSTANT pbkdf2_salt *salt,
 #ifdef SCALAR
 		out[gid].dk[i] = SWAP32(state[gid].out[i]);
 #else
+
+#define VEC_OUT(NUM)	  \
+	out[gid * V_WIDTH + 0x##NUM].dk[i] = SWAP32(state[gid].out[i].s##NUM)
+
 	{
-		out[gid * V_WIDTH + 0].dk[i] = SWAP32(state[gid].out[i].s0);
-		out[gid * V_WIDTH + 1].dk[i] = SWAP32(state[gid].out[i].s1);
+		VEC_OUT(0);
+		VEC_OUT(1);
 #if V_WIDTH > 2
-		out[gid * V_WIDTH + 2].dk[i] = SWAP32(state[gid].out[i].s2);
+		VEC_OUT(2);
 #if V_WIDTH > 3
-		out[gid * V_WIDTH + 3].dk[i] = SWAP32(state[gid].out[i].s3);
+		VEC_OUT(3);
 #if V_WIDTH > 4
-		out[gid * V_WIDTH + 4].dk[i] = SWAP32(state[gid].out[i].s4);
-		out[gid * V_WIDTH + 5].dk[i] = SWAP32(state[gid].out[i].s5);
-		out[gid * V_WIDTH + 6].dk[i] = SWAP32(state[gid].out[i].s6);
-		out[gid * V_WIDTH + 7].dk[i] = SWAP32(state[gid].out[i].s7);
+		VEC_OUT(4);
+		VEC_OUT(5);
+		VEC_OUT(6);
+		VEC_OUT(7);
 #if V_WIDTH > 8
-		out[gid * V_WIDTH + 8].dk[i] = SWAP32(state[gid].out[i].s8);
-		out[gid * V_WIDTH + 9].dk[i] = SWAP32(state[gid].out[i].s9);
-		out[gid * V_WIDTH + 10].dk[i] = SWAP32(state[gid].out[i].sa);
-		out[gid * V_WIDTH + 11].dk[i] = SWAP32(state[gid].out[i].sb);
-		out[gid * V_WIDTH + 12].dk[i] = SWAP32(state[gid].out[i].sc);
-		out[gid * V_WIDTH + 13].dk[i] = SWAP32(state[gid].out[i].sd);
-		out[gid * V_WIDTH + 14].dk[i] = SWAP32(state[gid].out[i].se);
-		out[gid * V_WIDTH + 15].dk[i] = SWAP32(state[gid].out[i].sf);
+		VEC_OUT(8);
+		VEC_OUT(9);
+		VEC_OUT(a);
+		VEC_OUT(b);
+		VEC_OUT(c);
+		VEC_OUT(d);
+		VEC_OUT(e);
+		VEC_OUT(f);
 #endif
 #endif
 #endif
@@ -704,27 +708,32 @@ void pbkdf2_final(__global pbkdf2_state *state,
 #ifdef SCALAR
 		out[gid].dk[5 + i] = SWAP32(state[gid].out[i]);
 #else
+
+#undef VEC_OUT
+#define VEC_OUT(NUM)	  \
+	out[gid * V_WIDTH + 0x##NUM].dk[5+i] = SWAP32(state[gid].out[i].s##NUM)
+
 	{
-		out[gid * V_WIDTH + 0].dk[5 + i] = SWAP32(state[gid].out[i].s0);
-		out[gid * V_WIDTH + 1].dk[5 + i] = SWAP32(state[gid].out[i].s1);
+		VEC_OUT(0);
+		VEC_OUT(1);
 #if V_WIDTH > 2
-		out[gid * V_WIDTH + 2].dk[5 + i] = SWAP32(state[gid].out[i].s2);
+		VEC_OUT(2);
 #if V_WIDTH > 3
-		out[gid * V_WIDTH + 3].dk[5 + i] = SWAP32(state[gid].out[i].s3);
+		VEC_OUT(3);
 #if V_WIDTH > 4
-		out[gid * V_WIDTH + 4].dk[5 + i] = SWAP32(state[gid].out[i].s4);
-		out[gid * V_WIDTH + 5].dk[5 + i] = SWAP32(state[gid].out[i].s5);
-		out[gid * V_WIDTH + 6].dk[5 + i] = SWAP32(state[gid].out[i].s6);
-		out[gid * V_WIDTH + 7].dk[5 + i] = SWAP32(state[gid].out[i].s7);
+		VEC_OUT(4);
+		VEC_OUT(5);
+		VEC_OUT(6);
+		VEC_OUT(7);
 #if V_WIDTH > 8
-		out[gid * V_WIDTH + 8].dk[5 + i] = SWAP32(state[gid].out[i].s8);
-		out[gid * V_WIDTH + 9].dk[5 + i] = SWAP32(state[gid].out[i].s9);
-		out[gid * V_WIDTH + 10].dk[5 + i] = SWAP32(state[gid].out[i].sa);
-		out[gid * V_WIDTH + 11].dk[5 + i] = SWAP32(state[gid].out[i].sb);
-		out[gid * V_WIDTH + 12].dk[5 + i] = SWAP32(state[gid].out[i].sc);
-		out[gid * V_WIDTH + 13].dk[5 + i] = SWAP32(state[gid].out[i].sd);
-		out[gid * V_WIDTH + 14].dk[5 + i] = SWAP32(state[gid].out[i].se);
-		out[gid * V_WIDTH + 15].dk[5 + i] = SWAP32(state[gid].out[i].sf);
+		VEC_OUT(8);
+		VEC_OUT(9);
+		VEC_OUT(a);
+		VEC_OUT(b);
+		VEC_OUT(c);
+		VEC_OUT(d);
+		VEC_OUT(e);
+		VEC_OUT(f);
 #endif
 #endif
 #endif
