@@ -235,6 +235,16 @@ inline uint SWAP32(uint x)
 		printf("\n"); \
 	}
 
+#define VEC_IN(NUM)	  \
+	base = index[gid * V_WIDTH + 0x##NUM]; \
+	len = ((base & 63) + 3) / 4; \
+	keys = key_array + (base >> 6); \
+	for (i = 0; i < len; i++) \
+		K[i].s##NUM = SWAP32(keys[i])
+
+#define VEC_OUT(NUM)	  \
+	digest[i * gws * V_WIDTH + gid * V_WIDTH + 0x##NUM] = stage2[i].s##NUM
+
 __kernel
 __attribute__((vec_type_hint(MAYBE_VECTOR_UINT)))
 void rakp_kernel(
@@ -259,96 +269,25 @@ void rakp_kernel(
 	for (i = 0; i < len; i++)
 		K[i].s0 = SWAP32(keys[i]);
 
-	base = index[gid * V_WIDTH + 1];
-	len = ((base & 63) + 3) / 4;
-	keys = key_array + (base >> 6);
-	for (i = 0; i < len; i++)
-		K[i].s1 = SWAP32(keys[i]);
+	VEC_IN(1);
 #if V_WIDTH > 2
-	base = index[gid * V_WIDTH + 2];
-	len = ((base & 63) + 3) / 4;
-	keys = key_array + (base >> 6);
-	for (i = 0; i < len; i++)
-		K[i].s2 = SWAP32(keys[i]);
-
+	VEC_IN(2);
 #if V_WIDTH > 3
-	base = index[gid * V_WIDTH + 3];
-	len = ((base & 63) + 3) / 4;
-	keys = key_array + (base >> 6);
-	for (i = 0; i < len; i++)
-		K[i].s3 = SWAP32(keys[i]);
+	VEC_IN(3);
 #if V_WIDTH > 4
-	base = index[gid * V_WIDTH + 4];
-	len = ((base & 63) + 3) / 4;
-	keys = key_array + (base >> 6);
-	for (i = 0; i < len; i++)
-		K[i].s4 = SWAP32(keys[i]);
-
-	base = index[gid * V_WIDTH + 5];
-	len = ((base & 63) + 3) / 4;
-	keys = key_array + (base >> 6);
-	for (i = 0; i < len; i++)
-		K[i].s5 = SWAP32(keys[i]);
-
-	base = index[gid * V_WIDTH + 6];
-	len = ((base & 63) + 3) / 4;
-	keys = key_array + (base >> 6);
-	for (i = 0; i < len; i++)
-		K[i].s6 = SWAP32(keys[i]);
-
-	base = index[gid * V_WIDTH + 7];
-	len = ((base & 63) + 3) / 4;
-	keys = key_array + (base >> 6);
-	for (i = 0; i < len; i++)
-		K[i].s7 = SWAP32(keys[i]);
+	VEC_IN(4);
+	VEC_IN(5);
+	VEC_IN(6);
+	VEC_IN(7);
 #if V_WIDTH > 8
-	base = index[gid * V_WIDTH + 8];
-	len = ((base & 63) + 3) / 4;
-	keys = key_array + (base >> 6);
-	for (i = 0; i < len; i++)
-		K[i].s8 = SWAP32(keys[i]);
-
-	base = index[gid * V_WIDTH + 9];
-	len = ((base & 63) + 3) / 4;
-	keys = key_array + (base >> 6);
-	for (i = 0; i < len; i++)
-		K[i].s9 = SWAP32(keys[i]);
-
-	base = index[gid * V_WIDTH + 10];
-	len = ((base & 63) + 3) / 4;
-	keys = key_array + (base >> 6);
-	for (i = 0; i < len; i++)
-		K[i].sa = SWAP32(keys[i]);
-
-	base = index[gid * V_WIDTH + 11];
-	len = ((base & 63) + 3) / 4;
-	keys = key_array + (base >> 6);
-	for (i = 0; i < len; i++)
-		K[i].sb = SWAP32(keys[i]);
-
-	base = index[gid * V_WIDTH + 12];
-	len = ((base & 63) + 3) / 4;
-	keys = key_array + (base >> 6);
-	for (i = 0; i < len; i++)
-		K[i].sc = SWAP32(keys[i]);
-
-	base = index[gid * V_WIDTH + 13];
-	len = ((base & 63) + 3) / 4;
-	keys = key_array + (base >> 6);
-	for (i = 0; i < len; i++)
-		K[i].sd = SWAP32(keys[i]);
-
-	base = index[gid * V_WIDTH + 14];
-	len = ((base & 63) + 3) / 4;
-	keys = key_array + (base >> 6);
-	for (i = 0; i < len; i++)
-		K[i].se = SWAP32(keys[i]);
-
-	base = index[gid * V_WIDTH + 15];
-	len = ((base & 63) + 3) / 4;
-	keys = key_array + (base >> 6);
-	for (i = 0; i < len; i++)
-		K[i].sf = SWAP32(keys[i]);
+	VEC_IN(8);
+	VEC_IN(9);
+	VEC_IN(a);
+	VEC_IN(b);
+	VEC_IN(c);
+	VEC_IN(d);
+	VEC_IN(e);
+	VEC_IN(f);
 #endif
 #endif
 #endif
@@ -387,26 +326,26 @@ void rakp_kernel(
 		digest[i * gws + gid] = stage2[i];
 #else
 	{
-		digest[i * gws * V_WIDTH + gid * V_WIDTH + 0] = stage2[i].s0;
-		digest[i * gws * V_WIDTH + gid * V_WIDTH + 1] = stage2[i].s1;
+		VEC_OUT(0);
+		VEC_OUT(1);
 #if V_WIDTH > 2
-		digest[i * gws * V_WIDTH + gid * V_WIDTH + 2] = stage2[i].s2;
+		VEC_OUT(2);
 #if V_WIDTH > 3
-		digest[i * gws * V_WIDTH + gid * V_WIDTH + 3] = stage2[i].s3;
+		VEC_OUT(3);
 #if V_WIDTH > 4
-		digest[i * gws * V_WIDTH + gid * V_WIDTH + 4] = stage2[i].s4;
-		digest[i * gws * V_WIDTH + gid * V_WIDTH + 5] = stage2[i].s5;
-		digest[i * gws * V_WIDTH + gid * V_WIDTH + 6] = stage2[i].s6;
-		digest[i * gws * V_WIDTH + gid * V_WIDTH + 7] = stage2[i].s7;
+		VEC_OUT(4);
+		VEC_OUT(5);
+		VEC_OUT(6);
+		VEC_OUT(7);
 #if V_WIDTH > 8
-		digest[i * gws * V_WIDTH + gid * V_WIDTH + 8] = stage2[i].s8;
-		digest[i * gws * V_WIDTH + gid * V_WIDTH + 9] = stage2[i].s9;
-		digest[i * gws * V_WIDTH + gid * V_WIDTH + 10] = stage2[i].sa;
-		digest[i * gws * V_WIDTH + gid * V_WIDTH + 11] = stage2[i].sb;
-		digest[i * gws * V_WIDTH + gid * V_WIDTH + 12] = stage2[i].sc;
-		digest[i * gws * V_WIDTH + gid * V_WIDTH + 13] = stage2[i].sd;
-		digest[i * gws * V_WIDTH + gid * V_WIDTH + 14] = stage2[i].se;
-		digest[i * gws * V_WIDTH + gid * V_WIDTH + 15] = stage2[i].sf;
+		VEC_OUT(8);
+		VEC_OUT(9);
+		VEC_OUT(a);
+		VEC_OUT(b);
+		VEC_OUT(c);
+		VEC_OUT(d);
+		VEC_OUT(e);
+		VEC_OUT(f);
 #endif
 #endif
 #endif
