@@ -464,7 +464,7 @@ static void init(struct fmt_main *self)
 		int temp = global_work_size;
 		local_work_size = maxsize;
 		global_work_size = global_work_size ? global_work_size : 512 * maxsize;
-		while (global_work_size > max_mem / v_width * ((max_len + 63) / 64 * 64))
+		while (global_work_size > max_mem / (v_width * (max_len + 63) / 64 * 64))
 			global_work_size -= local_work_size;
 		create_clobj(global_work_size, self);
 		opencl_find_best_workgroup_limit(self, maxsize, ocl_gpu_id, crypt_kernel);
@@ -484,7 +484,7 @@ static void init(struct fmt_main *self)
 		global_work_size = local_work_size;
 
 	// Obey device limits
-	while (global_work_size > max_mem / v_width * ((max_len + 63) / 64 * 64))
+	while (global_work_size > max_mem / (v_width * (max_len + 63) / 64 * 64))
 		global_work_size -= local_work_size;
 
 	// Ensure GWS is multiple of LWS
