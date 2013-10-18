@@ -630,11 +630,11 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 #ifdef HAVE_OPENCL
 	if (options.v_width)
 	if (options.v_width != 1 && options.v_width != 2 &&
-	    options.v_width != 3 && options.v_width != 4 &&
+	    /*options.v_width != 3 &&*/ options.v_width != 4 &&
 	    options.v_width != 8 && options.v_width != 16) {
 		if (john_main_process)
 			fprintf(stderr, "Vector width must be one of"
-			        " 1, 2, 3, 4, 8 or 16\n");
+			        " 1, 2, 4, 8 or 16\n");
 		error();
 	}
 #endif
