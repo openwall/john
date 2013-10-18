@@ -383,13 +383,17 @@ __kernel void GenerateSHA1pwhash(
 		sha1_block(W, output);
 	}
 
-	for (i = 0; i < 5; i++)
 #ifdef SCALAR
+	for (i = 0; i < 5; i++)
 		pwhash[gid * 6 + i] = output[i];
 	pwhash[gid * 6 + 5] = 0;
 #else
-		pwhash[(gid / V_WIDTH) * 6 * V_WIDTH + (gid % V_WIDTH) + i * V_WIDTH] = output[i];
-	pwhash[(gid / V_WIDTH) * 6 * V_WIDTH + (gid % V_WIDTH) + 5 * V_WIDTH] = 0;
+#define VEC_IN(VAL)	  \
+	pwhash[(gid / V_WIDTH) * 6 * V_WIDTH + (gid % V_WIDTH) + i * V_WIDTH] = (VAL)
+
+	for (i = 0; i < 5; i++)
+		VEC_IN(output[i]);
+	VEC_IN(0);
 #endif
 }
 
@@ -489,27 +493,32 @@ void Generate2007key(
 #ifdef SCALAR
 		key[gid * 4 + i] = SWAP32(output[i]);
 #else
+
+#define VEC_OUT(NUM)	  \
+	key[(gid * V_WIDTH + 0x##NUM) * 4 + i] = SWAP32(output[i].s##NUM)
+
 	{
-		key[gid * V_WIDTH * 4 + i] = SWAP32(output[i].s0);
-		key[(gid * V_WIDTH + 1) * 4 + i] = SWAP32(output[i].s1);
+
+		VEC_OUT(0);
+		VEC_OUT(1);
 #if V_WIDTH > 2
-		key[(gid * V_WIDTH + 2) * 4 + i] = SWAP32(output[i].s2);
+		VEC_OUT(2);
 #if V_WIDTH > 3
-		key[(gid * V_WIDTH + 3) * 4 + i] = SWAP32(output[i].s3);
+		VEC_OUT(3);
 #if V_WIDTH > 4
-		key[(gid * V_WIDTH + 4) * 4 + i] = SWAP32(output[i].s4);
-		key[(gid * V_WIDTH + 5) * 4 + i] = SWAP32(output[i].s5);
-		key[(gid * V_WIDTH + 6) * 4 + i] = SWAP32(output[i].s6);
-		key[(gid * V_WIDTH + 7) * 4 + i] = SWAP32(output[i].s7);
+		VEC_OUT(4);
+		VEC_OUT(5);
+		VEC_OUT(6);
+		VEC_OUT(7);
 #if V_WIDTH > 8
-		key[(gid * V_WIDTH + 8) * 4 + i] = SWAP32(output[i].s8);
-		key[(gid * V_WIDTH + 9) * 4 + i] = SWAP32(output[i].s9);
-		key[(gid * V_WIDTH + 10) * 4 + i] = SWAP32(output[i].sa);
-		key[(gid * V_WIDTH + 11) * 4 + i] = SWAP32(output[i].sb);
-		key[(gid * V_WIDTH + 12) * 4 + i] = SWAP32(output[i].sc);
-		key[(gid * V_WIDTH + 13) * 4 + i] = SWAP32(output[i].sd);
-		key[(gid * V_WIDTH + 14) * 4 + i] = SWAP32(output[i].se);
-		key[(gid * V_WIDTH + 15) * 4 + i] = SWAP32(output[i].sf);
+		VEC_OUT(8);
+		VEC_OUT(9);
+		VEC_OUT(a);
+		VEC_OUT(b);
+		VEC_OUT(c);
+		VEC_OUT(d);
+		VEC_OUT(e);
+		VEC_OUT(f);
 #endif
 #endif
 #endif
