@@ -43,7 +43,9 @@ static unsigned int *inbuffer;
 #define MAX(a, b)		(((a) > (b)) ? (a) : (b))
 
 //#define GETPOS(i, index)	(((index) % v_width) * 4 + ((i) & ~3U) * v_width + (((i) & 3) ^ 3) + index / v_width * 16 * 4 * v_width)
-#define GETPOS(i, index)	(((index) & (v_width - 1)) * 4 + ((i) & ~3U) * v_width + (((i) & 3) ^ 3) + (index >> (v_width >> 1)) * 16 * 4 * v_width)
+//#define GETPOS(i, index)	(((index) & (v_width - 1)) * 4 + ((i) & ~3U) * v_width + (((i) & 3) ^ 3) + (index >> (v_width >> 1)) * 16 * 4 * v_width)
+/* This handles all sizes except 3 */
+#define GETPOS(i, index)	(((index) & (v_width - 1)) * 4 + ((i) & ~3U) * v_width + (((i) & 3) ^ 3) + index / v_width * 16 * 4 * v_width)
 
 extern wpapsk_salt currentsalt;
 extern mic_t *mic;
@@ -131,7 +133,12 @@ static void done(void)
 	HANDLE_CLERROR(clReleaseProgram(program[ocl_gpu_id]), "Release Program");
 }
 
-static void ocl_set_key(char *key, int index)
+static void clear_keys(void) {
+	memset(inbuffer, 0, key_buf_size);
+	new_keys = 1;
+}
+
+static void set_key(char *key, int index)
 {
 	int i;
 	int length = strlen(key);
@@ -140,7 +147,7 @@ static void ocl_set_key(char *key, int index)
 		((char*)inbuffer)[GETPOS(i, index)] = key[i];
 }
 
-static char* ocl_get_key(int index)
+static char* get_key(int index)
 {
 	static char ret[PLAINTEXT_LENGTH + 1];
 	int i = 0;
@@ -149,11 +156,6 @@ static char* ocl_get_key(int index)
 		i++;
 
 	return ret;
-}
-
-static void ocl_clear_keys(void) {
-	memset(inbuffer, 0, key_buf_size);
-	new_keys = 1;
 }
 
 static void *salt(char *ciphertext);
@@ -172,10 +174,10 @@ static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
 	queue_prof = clCreateCommandQueue(context[ocl_gpu_id], devices[ocl_gpu_id], CL_QUEUE_PROFILING_ENABLE, &ret_code);
 	for (i = 0; i < scalar_gws; i++)
 		self->methods.set_key(tests[0].plaintext, i);
-	set_salt(salt(tests[0].ciphertext));
+	self->methods.set_salt(self->methods.salt(tests[0].ciphertext));
 
 	/// Copy data to gpu
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, mem_in, CL_FALSE, 0, 64 * scalar_gws, inbuffer, 0, NULL, &Event[0]), "Copy data to gpu");
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, mem_in, CL_FALSE, 0, key_buf_size, inbuffer, 0, NULL, &Event[0]), "Copy data to gpu");
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, mem_salt, CL_FALSE, 0, sizeof(wpapsk_salt), &currentsalt, 0, NULL, &Event[1]), "Copy setting to gpu");
 
 	/// Run kernels
@@ -329,7 +331,7 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *salt);
 static void init(struct fmt_main *self)
 {
 	char build_opts[128];
-	cl_ulong maxsize, maxsize2;
+	cl_ulong max_size, max_size2, max_mem;
 	static char valgo[32] = "";
 
 	assert(sizeof(hccap_t) == HCCAP_SIZE);
@@ -371,37 +373,37 @@ static void init(struct fmt_main *self)
 	HANDLE_CLERROR(ret_code, "Error creating kernel");
 
 	/* Note: we ask for the kernels' max sizes, not the device's! */
-	HANDLE_CLERROR(clGetKernelWorkGroupInfo(wpapsk_init, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize), &maxsize, NULL), "Query max work group size");
-	HANDLE_CLERROR(clGetKernelWorkGroupInfo(wpapsk_loop, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize2), &maxsize2, NULL), "Query max work group size");
-	if (maxsize2 < maxsize) maxsize = maxsize2;
-	HANDLE_CLERROR(clGetKernelWorkGroupInfo(wpapsk_pass2, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize2), &maxsize2, NULL), "Query max work group size");
-	if (maxsize2 < maxsize) maxsize = maxsize2;
-	HANDLE_CLERROR(clGetKernelWorkGroupInfo(wpapsk_final_md5, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize2), &maxsize2, NULL), "Query max work group size");
-	if (maxsize2 < maxsize) maxsize = maxsize2;
-	HANDLE_CLERROR(clGetKernelWorkGroupInfo(wpapsk_final_sha1, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize2), &maxsize2, NULL), "Query max work group size");
-	if (maxsize2 < maxsize) maxsize = maxsize2;
+	HANDLE_CLERROR(clGetKernelWorkGroupInfo(wpapsk_init, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(max_size), &max_size, NULL), "Query max work group size");
+	HANDLE_CLERROR(clGetKernelWorkGroupInfo(wpapsk_loop, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(max_size2), &max_size2, NULL), "Query max work group size");
+	if (max_size2 < max_size) max_size = max_size2;
+	HANDLE_CLERROR(clGetKernelWorkGroupInfo(wpapsk_pass2, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(max_size2), &max_size2, NULL), "Query max work group size");
+	if (max_size2 < max_size) max_size = max_size2;
+	HANDLE_CLERROR(clGetKernelWorkGroupInfo(wpapsk_final_md5, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(max_size2), &max_size2, NULL), "Query max work group size");
+	if (max_size2 < max_size) max_size = max_size2;
+	HANDLE_CLERROR(clGetKernelWorkGroupInfo(wpapsk_final_sha1, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(max_size2), &max_size2, NULL), "Query max work group size");
+	if (max_size2 < max_size) max_size = max_size2;
 
 	if (options.verbosity > 3)
-		fprintf(stderr, "Max LWS %d\n", (int)maxsize);
+		fprintf(stderr, "Max LWS %d\n", (int)max_size);
 
-	if (local_work_size > maxsize)
-		local_work_size = maxsize;
+	if (local_work_size > max_size)
+		local_work_size = max_size;
 
 	if (!local_work_size) {
 		if (cpu(device_info[ocl_gpu_id])) {
 			if (get_platform_vendor_id(platform_id) == DEV_INTEL)
-				local_work_size = MIN(maxsize, 8);
+				local_work_size = MIN(max_size, 8);
 			else
 				local_work_size = 1;
 		} else {
 			int temp = global_work_size;
 
-			local_work_size = maxsize;
+			local_work_size = max_size;
 			global_work_size = global_work_size ?
 				global_work_size : 8 * 1024;
 			create_clobj(global_work_size, self);
 			self->methods.crypt_all = crypt_all_benchmark;
-			opencl_find_best_workgroup_limit(self, maxsize, ocl_gpu_id, crypt_kernel);
+			opencl_find_best_workgroup_limit(self, max_size, ocl_gpu_id, crypt_kernel);
 			self->methods.crypt_all = crypt_all;
 			release_clobj();
 			global_work_size = temp;
@@ -416,6 +418,12 @@ static void init(struct fmt_main *self)
 
 	if (global_work_size < local_work_size)
 		global_work_size = local_work_size;
+
+	// Obey device limits
+	clGetDeviceInfo(devices[ocl_gpu_id], CL_DEVICE_MAX_MEM_ALLOC_SIZE,
+	        sizeof(max_mem), &max_mem, NULL);
+	while (global_work_size * v_width > max_mem / PLAINTEXT_LENGTH)
+		global_work_size -= local_work_size;
 
 	if (options.verbosity > 2)
 		fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
@@ -432,7 +440,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	scalar_gws = global_work_size * v_width;
 
 	/// Copy data to gpu
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_in, CL_FALSE, 0, 64 * scalar_gws, inbuffer, 0, NULL, NULL), "Copy data to gpu");
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_in, CL_FALSE, 0, key_buf_size, inbuffer, 0, NULL, NULL), "Copy data to gpu");
 
 	/// Run kernel
 	if (new_keys || strcmp(last_ssid, hccap.essid)) {
@@ -471,10 +479,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
-	size_t scalar_gws = global_work_size * v_width;
 
 	/// Copy data to gpu
-	BENCH_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_in, CL_FALSE, 0, 64 * scalar_gws, inbuffer, 0, NULL, NULL), "Copy data to gpu");
+	BENCH_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_in, CL_FALSE, 0, key_buf_size, inbuffer, 0, NULL, NULL), "Copy data to gpu");
 
 	/// Run kernels, no iterations for fast enumeration
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], wpapsk_init, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "Run initial kernel");
@@ -525,9 +532,9 @@ struct fmt_main fmt_opencl_wpapsk = {
 		},
 		fmt_default_salt_hash,
 		set_salt,
-		ocl_set_key,
-		ocl_get_key,
-		ocl_clear_keys,
+		set_key,
+		get_key,
+		clear_keys,
 		crypt_all,
 		{
 			get_hash_0,

@@ -1,6 +1,6 @@
 /*
  * This software is Copyright (c) 2012 Lukas Odzioba <ukasz at openwall.net>,
- * Copyright (c) 2012 Milen Rangelov and Copyright (c) 2012 magnum,
+ * Copyright (c) 2012 Milen Rangelov and Copyright (c) 2012-2013 magnum,
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
