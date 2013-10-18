@@ -415,7 +415,8 @@ static void init(struct fmt_main *self)
 		v_width = options.v_width ? options.v_width : v_width;
 		if (v_width > 1) {
 			/* Run vectorized kernel */
-			sprintf(valgo, ALGORITHM_NAME " %ux", v_width);
+			snprintf(valgo, sizeof(valgo),
+			         ALGORITHM_NAME " %ux", v_width);
 			self->params.algorithm_name = valgo;
 		}
 	}
