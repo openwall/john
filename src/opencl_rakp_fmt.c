@@ -42,7 +42,7 @@
 #define BINARY_SIZE             20
 
 #define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      (3 * 1024 * 1024)
+#define MAX_KEYS_PER_CRYPT      (3 * 512 * 1024)
 
 #define FORMAT_TAG              "$rakp$"
 #define TAG_LENGTH              (sizeof(FORMAT_TAG) - 1)
@@ -204,6 +204,8 @@ static void init(struct fmt_main *self)
 	/* Note: we ask for the kernel's max size, not the device's! */
 	maxsize = get_current_work_group_size(ocl_gpu_id, crypt_kernel);
 
+	max_mem = get_max_mem_alloc_size(ocl_gpu_id);
+
 	if ((temp = getenv("LWS"))) {
 		local_work_size = atoi(temp);
 
@@ -228,7 +230,6 @@ static void init(struct fmt_main *self)
 	}
 
 	// Obey device limits
-	max_mem = get_max_mem_alloc_size(ocl_gpu_id);
 	while (global_work_size * v_width > max_mem / PAD_SIZE)
 		global_work_size -= local_work_size;
 

@@ -643,6 +643,9 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 				        " 1, 2, 3, 4, 8 or 16\n");
 			error();
 		}
+		if (options.v_width == 3 && john_main_process)
+			fprintf(stderr, "Warning: vector width 3 is not "
+			        "expected to work well with all formats\n");
 	}
 #endif
 	/*
