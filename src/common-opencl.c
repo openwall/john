@@ -1028,7 +1028,7 @@ void opencl_find_best_lws(
 		else
 			wg_multiple = 1;
 	} else
-		wg_multiple = get_kernel_preferred_work_group_size(sequential_id, crypt_kernel);
+		wg_multiple = get_kernel_preferred_multiple(sequential_id, crypt_kernel);
 
 	max_group_size = get_current_work_group_size(sequential_id, crypt_kernel);
 
@@ -1529,7 +1529,7 @@ cl_uint get_max_compute_units(int sequential_id)
 	return size;
 }
 
-size_t get_kernel_preferred_work_group_size(int sequential_id, cl_kernel crypt_kernel)
+size_t get_kernel_preferred_multiple(int sequential_id, cl_kernel crypt_kernel)
 {
 	size_t size;
 

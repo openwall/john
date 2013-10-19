@@ -128,7 +128,7 @@ int get_platform_id(int sequential_id);
 int get_platform_vendor_id(int platform_id);
 int get_device_version(int sequential_id);
 int get_byte_addressable(int sequential_id);
-size_t get_kernel_preferred_work_group_size(int sequential_id, cl_kernel crypt_kernel);
+size_t get_kernel_preferred_multiple(int sequential_id, cl_kernel crypt_kernel);
 
 void opencl_get_user_preferences(char * format);
 
