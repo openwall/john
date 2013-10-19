@@ -42,7 +42,7 @@
 #define BINARY_SIZE             20
 
 #define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      (3 * 512 * 1024)
+#define MAX_KEYS_PER_CRYPT      (3 * 1024 * 1024)
 
 #define FORMAT_TAG              "$rakp$"
 #define TAG_LENGTH              (sizeof(FORMAT_TAG) - 1)
@@ -50,6 +50,7 @@
 #define BINARY_ALIGN            1
 #define SALT_ALIGN              1
 
+#define OCL_CONFIG              "rakp"
 #define HEXCHARS                "0123456789abcdef"
 
 #ifndef uint32_t
@@ -113,7 +114,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 static void clear_keys(void);
 static void set_key(char *key, int index);
 
-static void create_clobj(int kpc)
+static void create_clobj(int kpc, struct fmt_main *self)
 {
 	global_work_size = kpc;
 	kpc *= v_width;
@@ -149,6 +150,9 @@ static void create_clobj(int kpc)
 	HANDLE_CLERROR(
 		clSetKernelArg(crypt_kernel, 3, sizeof(digest_buffer), (void *) &digest_buffer),
 		"Error attaching digest_buffer to kernel");
+
+	self->params.min_keys_per_crypt = local_work_size * v_width;
+	self->params.max_keys_per_crypt = global_work_size * v_width;
 }
 
 static void release_clobj(void)
@@ -173,7 +177,6 @@ static void done(void)
 
 static void init(struct fmt_main *self)
 {
-	char *temp;
 	cl_ulong maxsize, max_mem;
 	char build_opts[64];
 	static char valgo[48] = "";
@@ -206,31 +209,34 @@ static void init(struct fmt_main *self)
 
 	max_mem = get_max_mem_alloc_size(ocl_gpu_id);
 
-	if ((temp = getenv("LWS"))) {
-		local_work_size = atoi(temp);
+	/* Read LWS/GWS prefs from config or environment */
+	opencl_get_user_preferences(OCL_CONFIG);
 
-		while (local_work_size > maxsize)
-			local_work_size >>= 1;
-	}
+	if (local_work_size > maxsize)
+		local_work_size = maxsize;
 
+	/* maxsize is the lowest figure from the three different kernels */
 	if (!local_work_size) {
-		create_clobj(MAX_KEYS_PER_CRYPT / v_width);
-		opencl_find_best_workgroup(self);
+		int temp = global_work_size;
+		local_work_size = maxsize;
+		global_work_size = global_work_size ? global_work_size : 512 * maxsize;
+		while (global_work_size > max_mem / (v_width * (PLAINTEXT_LENGTH + 63) / 64 * 64))
+			global_work_size -= local_work_size;
+		create_clobj(global_work_size, self);
+		opencl_find_best_workgroup_limit(self, maxsize, ocl_gpu_id, crypt_kernel);
 		release_clobj();
+		global_work_size = temp;
 	}
 
-	if ((temp = getenv("GWS")))
-		global_work_size = atoi(temp);
-	else
+	if (!global_work_size)
+		//find_best_gws(getenv("GWS") == NULL ? 0 : 1, self);
 		global_work_size = MAX_KEYS_PER_CRYPT / v_width;
 
-	if (!global_work_size) {
-		// FIXME: Should call shared find_best_gws
-		global_work_size = MAX_KEYS_PER_CRYPT / v_width;
-	}
+	if (global_work_size < local_work_size)
+		global_work_size = local_work_size;
 
 	// Obey device limits
-	while (global_work_size * v_width > max_mem / PAD_SIZE)
+	while (global_work_size > max_mem / (v_width * (PLAINTEXT_LENGTH + 63) / 64 * 64))
 		global_work_size -= local_work_size;
 
 	// Current key_idx can only hold 26 bits of offset so
@@ -244,9 +250,7 @@ static void init(struct fmt_main *self)
 	if (options.verbosity > 2)
 		fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n",(int)local_work_size, (int)global_work_size);
 
-	create_clobj(global_work_size);
-	self->params.min_keys_per_crypt = local_work_size * v_width;
-	self->params.max_keys_per_crypt = global_work_size * v_width;
+	create_clobj(global_work_size, self);
 }
 
 static void clear_keys(void)
