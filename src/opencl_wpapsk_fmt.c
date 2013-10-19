@@ -42,10 +42,10 @@ static unsigned int *inbuffer;
 #define MIN(a, b)		(((a) > (b)) ? (b) : (a))
 #define MAX(a, b)		(((a) > (b)) ? (a) : (b))
 
-//#define GETPOS(i, index)	(((index) % v_width) * 4 + ((i) & ~3U) * v_width + (((i) & 3) ^ 3) + index / v_width * 16 * 4 * v_width)
-//#define GETPOS(i, index)	(((index) & (v_width - 1)) * 4 + ((i) & ~3U) * v_width + (((i) & 3) ^ 3) + (index >> (v_width >> 1)) * 16 * 4 * v_width)
-/* This handles all sizes except 3 */
-#define GETPOS(i, index)	(((index) & (v_width - 1)) * 4 + ((i) & ~3U) * v_width + (((i) & 3) ^ 3) + index / v_width * 16 * 4 * v_width)
+/* This handles all sizes */
+#define GETPOS(i, index)	(((index) % v_width) * 4 + ((i) & ~3U) * v_width + (((i) & 3) ^ 3) + ((index) / v_width) * 64 * v_width)
+/* This is faster but can't handle size 3 */
+//#define GETPOS(i, index)	(((index) & (v_width - 1)) * 4 + ((i) & ~3U) * v_width + (((i) & 3) ^ 3) + ((index) / v_width) * 64 * v_width)
 
 extern wpapsk_salt currentsalt;
 extern mic_t *mic;
@@ -145,6 +145,7 @@ static void set_key(char *key, int index)
 
 	for (i = 0; i < length; i++)
 		((char*)inbuffer)[GETPOS(i, index)] = key[i];
+	new_keys = 1;
 }
 
 static char* get_key(int index)
@@ -440,7 +441,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	scalar_gws = global_work_size * v_width;
 
 	/// Copy data to gpu
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_in, CL_FALSE, 0, key_buf_size, inbuffer, 0, NULL, NULL), "Copy data to gpu");
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_in, CL_FALSE, 0, scalar_gws * 64, inbuffer, 0, NULL, NULL), "Copy data to gpu");
 
 	/// Run kernel
 	if (new_keys || strcmp(last_ssid, hccap.essid)) {

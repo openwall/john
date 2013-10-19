@@ -42,7 +42,7 @@
 #define BINARY_SIZE             20
 
 #define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      (2 * 1024 * 1024)
+#define MAX_KEYS_PER_CRYPT      (3 * 1024 * 1024)
 
 #define FORMAT_TAG              "$rakp$"
 #define TAG_LENGTH              (sizeof(FORMAT_TAG) - 1)
