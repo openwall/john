@@ -439,10 +439,10 @@ static void init(struct fmt_main *self)
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 
 	/* Note: we ask for the kernels' max sizes, not the device's! */
-	HANDLE_CLERROR(clGetKernelWorkGroupInfo(GenerateSHA512pwhash, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize), &maxsize, NULL), "Query max work group size");
-	HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize2), &maxsize2, NULL), "Query max work group size");
+	maxsize = get_current_work_group_size(ocl_gpu_id, GenerateSHA512pwhash);
+	maxsize2 = get_current_work_group_size(ocl_gpu_id, crypt_kernel);
 	if (maxsize2 < maxsize) maxsize = maxsize2;
-	HANDLE_CLERROR(clGetKernelWorkGroupInfo(Generate2013key, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize2), &maxsize2, NULL), "Query max work group size");
+	maxsize2 = get_current_work_group_size(ocl_gpu_id, Generate2013key);
 	if (maxsize2 < maxsize) maxsize = maxsize2;
 
 	/* maxsize is the lowest figure from the three different kernels */

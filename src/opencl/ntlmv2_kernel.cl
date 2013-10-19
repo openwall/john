@@ -438,7 +438,7 @@ __constant UTF16 CP1253[] = {
 	}
 
 #define VEC_IN(INPUT, OUTPUT, INDEX, LEN)	  \
-	OUTPUT[(gid / V_WIDTH) * (LEN) * V_WIDTH + (gid % V_WIDTH) + (INDEX) * V_WIDTH] = INPUT[i]
+	OUTPUT[(gid / V_WIDTH) * (LEN) * V_WIDTH + (gid % V_WIDTH) + (INDEX) * V_WIDTH] = INPUT[(INDEX)]
 
 #ifdef ENC_UTF_8
 

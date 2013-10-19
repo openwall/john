@@ -201,8 +201,7 @@ static void init(struct fmt_main *self)
 	// Obey device limits
 	if (local_work_size > get_current_work_group_size(ocl_gpu_id, crypt_kernel))
 		local_work_size = get_current_work_group_size(ocl_gpu_id, crypt_kernel);
-	clGetDeviceInfo(devices[ocl_gpu_id], CL_DEVICE_MAX_MEM_ALLOC_SIZE,
-	        sizeof(max_mem), &max_mem, NULL);
+	max_mem = get_max_mem_alloc_size(ocl_gpu_id);
 	while (global_work_size > MIN((1<<26)*4/56, max_mem / BUFSIZE))
 		global_work_size -= local_work_size;
 

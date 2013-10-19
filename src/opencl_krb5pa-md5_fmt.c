@@ -388,13 +388,13 @@ static void init(struct fmt_main *self)
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 
 	/* Note: we ask for the kernels' max sizes, not the device's! */
-	HANDLE_CLERROR(clGetKernelWorkGroupInfo(krb5pa_md5_nthash, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize), &maxsize, NULL), "Query max work group size");
-	HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize2), &maxsize2, NULL), "Query max work group size");
+	maxsize = get_current_work_group_size(ocl_gpu_id, krb5pa_md5_nthash);
+	maxsize2 = get_current_work_group_size(ocl_gpu_id, crypt_kernel);
 	if (maxsize2 < maxsize) maxsize = maxsize2;
-	clGetDeviceInfo(devices[ocl_gpu_id], CL_DEVICE_MAX_MEM_ALLOC_SIZE,
-	        sizeof(max_mem), &max_mem, NULL);
 
-	/* maxsize is the lowest figure from the three different kernels */
+	max_mem = get_max_mem_alloc_size(ocl_gpu_id);
+
+	/* maxsize is the lowest figure from the two kernels */
 	if (!local_work_size)
 #if 0
 		local_work_size = 64;

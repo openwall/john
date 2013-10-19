@@ -174,7 +174,7 @@ static void done(void)
 static void init(struct fmt_main *self)
 {
 	char *temp;
-	cl_ulong max_lws, max_mem;
+	cl_ulong maxsize, max_mem;
 	char build_opts[64];
 	static char valgo[48] = "";
 
@@ -201,13 +201,13 @@ static void init(struct fmt_main *self)
 	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "rakp_kernel", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel");
 
-	/* Note: we ask for the kernels' max sizes, not the device's! */
-	HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(max_lws), &max_lws, NULL), "Error requesting max workgroup size");
+	/* Note: we ask for the kernel's max size, not the device's! */
+	maxsize = get_current_work_group_size(ocl_gpu_id, crypt_kernel);
 
 	if ((temp = getenv("LWS"))) {
 		local_work_size = atoi(temp);
 
-		while (local_work_size > max_lws)
+		while (local_work_size > maxsize)
 			local_work_size >>= 1;
 	}
 
@@ -228,8 +228,7 @@ static void init(struct fmt_main *self)
 	}
 
 	// Obey device limits
-	clGetDeviceInfo(devices[ocl_gpu_id], CL_DEVICE_MAX_MEM_ALLOC_SIZE,
-	        sizeof(max_mem), &max_mem, NULL);
+	max_mem = get_max_mem_alloc_size(ocl_gpu_id);
 	while (global_work_size * v_width > max_mem / PAD_SIZE)
 		global_work_size -= local_work_size;
 
