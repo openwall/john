@@ -74,8 +74,10 @@ inline void sha512_block(sha512_ctx * ctx) {
         a = t1 + t2;
     }
 
-#ifdef UNROLL
+#if ! amd_gcn(DEVICE_INFO)
     #pragma unroll 16  // NVIDIA Compiler segfaults if i use: "#pragma unroll"
+#else
+    #pragma unroll 8
 #endif
     for (int i = 16; i < 80; i++) {
         w[i & 15] = sigma1(w[(i - 2) & 15]) + sigma0(w[(i - 15) & 15]) + w[(i - 16) & 15] + w[(i - 7) & 15];
