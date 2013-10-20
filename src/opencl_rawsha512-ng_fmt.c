@@ -128,7 +128,8 @@ static void crypt_one_x(int index, sha512_hash * hash) {
 }
 
 /* ------- Create and destroy necessary objects ------- */
-static void create_clobj(int gws, struct fmt_main * self) {
+static void create_clobj(size_t gws, struct fmt_main * self)
+{
 	int position = 0;
 
 	self->params.min_keys_per_crypt = self->params.max_keys_per_crypt = gws;

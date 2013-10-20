@@ -133,10 +133,10 @@ static void pwsafe_set_key(char *key, int index)
 }
 
 /* ------- Create and destroy necessary objects ------- */
-static void create_clobj(int gws, struct fmt_main * self)
+static void create_clobj(size_t gws, struct fmt_main * self)
 {
-	int in_size = (sizeof(pwsafe_pass) * gws);
-	int out_size = (sizeof(pwsafe_hash) * gws);
+	size_t in_size = (sizeof(pwsafe_pass) * gws);
+	size_t out_size = (sizeof(pwsafe_hash) * gws);
 
 	self->params.min_keys_per_crypt = self->params.max_keys_per_crypt = gws;
 

@@ -114,7 +114,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 static void clear_keys(void);
 static void set_key(char *key, int index);
 
-static void create_clobj(int kpc, struct fmt_main *self)
+static void create_clobj(size_t kpc, struct fmt_main *self)
 {
 	global_work_size = kpc;
 	kpc *= v_width;
@@ -175,7 +175,7 @@ static void done(void)
 	HANDLE_CLERROR(clReleaseProgram(program[ocl_gpu_id]), "Error releasing program");
 }
 
-static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
+static cl_ulong gws_test(size_t gws, int do_benchmark, struct fmt_main *self)
 {
 	cl_ulong startTime, endTime;
 	cl_event Event[4];

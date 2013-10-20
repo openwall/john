@@ -145,10 +145,10 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
-static void create_clobj(int gws, struct fmt_main *self)
+static void create_clobj(size_t gws, struct fmt_main *self)
 {
-	int in_size = (sizeof(crypt_md5_password) * gws);
-	int out_size = (sizeof(crypt_md5_hash) * gws);
+	size_t in_size = (sizeof(crypt_md5_password) * gws);
+	size_t out_size = (sizeof(crypt_md5_hash) * gws);
 
 	self->params.min_keys_per_crypt = self->params.max_keys_per_crypt = gws;
 

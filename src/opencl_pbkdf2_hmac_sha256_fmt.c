@@ -105,7 +105,7 @@ static cl_int cl_error;
 static cl_mem mem_in, mem_out, mem_salt, mem_state;
 static cl_kernel split_kernel;
 
-static void create_clobj(int kpc, struct fmt_main *self)
+static void create_clobj(size_t kpc, struct fmt_main *self)
 {
 #define CL_RO CL_MEM_READ_ONLY
 #define CL_WO CL_MEM_WRITE_ONLY

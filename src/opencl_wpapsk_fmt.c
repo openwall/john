@@ -59,7 +59,7 @@ typedef struct {
 	cl_uint partial[5];
 } wpapsk_state;
 
-static void create_clobj(int gws, struct fmt_main *self)
+static void create_clobj(size_t gws, struct fmt_main *self)
 {
 	global_work_size = gws;
 	gws *= v_width;
@@ -162,7 +162,7 @@ static char* get_key(int index)
 static void *salt(char *ciphertext);
 static void set_salt(void *salt);
 
-static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
+static cl_ulong gws_test(size_t gws, int do_benchmark, struct fmt_main *self)
 {
 	cl_ulong startTime, endTime;
 	cl_command_queue queue_prof;

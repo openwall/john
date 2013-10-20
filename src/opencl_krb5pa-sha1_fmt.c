@@ -120,7 +120,7 @@ static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
 
 static int new_keys;
 
-static void create_clobj(int gws, struct fmt_main *self)
+static void create_clobj(size_t gws, struct fmt_main *self)
 {
 	global_work_size = gws;
 	gws *= v_width;
@@ -193,7 +193,7 @@ static void done(void)
 	HANDLE_CLERROR(clReleaseProgram(program[ocl_gpu_id]), "Release Program");
 }
 
-static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
+static cl_ulong gws_test(size_t gws, int do_benchmark, struct fmt_main *self)
 {
 	cl_ulong startTime, endTime;
 	cl_command_queue queue_prof;

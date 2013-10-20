@@ -293,7 +293,7 @@ static void openssl_cleanup(void)
 }
 #endif
 
-static void create_clobj(int gws, struct fmt_main *self)
+static void create_clobj(size_t gws, struct fmt_main *self)
 {
 	int i;
 	int bench_len = strlen(self->params.tests[0].plaintext) * 2;
@@ -495,7 +495,7 @@ static void set_salt(void *salt)
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], cl_salt, CL_FALSE, 0, 8, saved_salt, 0, NULL, NULL), "failed in clEnqueueWriteBuffer saved_salt");
 }
 
-static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
+static cl_ulong gws_test(size_t gws, int do_benchmark, struct fmt_main *self)
 {
 	cl_ulong startTime, endTime;
 	cl_command_queue queue_prof;

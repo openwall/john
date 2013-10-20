@@ -91,7 +91,7 @@ static cl_mem cl_saved_key, cl_saved_len, cl_salt, cl_pwhash, cl_key;
 static cl_mem pinned_saved_key, pinned_saved_len, pinned_salt, pinned_key;
 static cl_kernel GenerateSHA1pwhash, Generate2007key;
 
-static void create_clobj(int gws, struct fmt_main *self)
+static void create_clobj(size_t gws, struct fmt_main *self)
 {
 	int i;
 	int bench_len = strlen(tests[0].plaintext) * 2;
@@ -247,7 +247,7 @@ static void set_salt(void *salt)
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], cl_salt, CL_FALSE, 0, SALT_LENGTH, saved_salt, 0, NULL, NULL), "failed in clEnqueueWriteBuffer saved_salt");
 }
 
-static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
+static cl_ulong gws_test(size_t gws, int do_benchmark, struct fmt_main *self)
 {
 	cl_ulong startTime, endTime;
 	cl_command_queue queue_prof;

@@ -89,7 +89,8 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
-static void create_clobj(int kpc, struct fmt_main *self) {
+static void create_clobj(size_t kpc, struct fmt_main *self)
+{
 	global_work_size = kpc;
 	self->params.min_keys_per_crypt = self->params.max_keys_per_crypt = kpc;
 	pinned_saved_keys = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, PLAINTEXT_LENGTH * kpc, NULL, &ret_code);
@@ -176,7 +177,7 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
     int kernelExecTimeNs = INT_MAX;
     cl_int ret_code;
     int optimal_kpc=2048;
-    int gws, i = 0;
+    size_t gws, i = 0;
     cl_uint *tmpbuffer;
     size_t maxgws = get_max_mem_alloc_size(ocl_gpu_id) / PLAINTEXT_LENGTH;
 
@@ -205,7 +206,7 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 	clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END  , sizeof(cl_ulong), &endTime  , NULL);
 	tmpTime = tmpTime + (endTime-startTime);
 	if (do_benchmark)
-		fprintf(stderr, "%10d %10llu c/s %-.2f us\n", gws, gws * 1000000000ULL / tmpTime, tmpTime / 1000.0);
+		fprintf(stderr, "%10zu %10llu c/s %-.2f us\n", gws, gws * 1000000000ULL / tmpTime, tmpTime / 1000.0);
 	if( ((int)( ((float) (tmpTime) / gws) * 10 )) <= kernelExecTimeNs) {
 		kernelExecTimeNs = ((int) (((float) (tmpTime) / gws) * 10) ) ;
 		optimal_kpc = gws;

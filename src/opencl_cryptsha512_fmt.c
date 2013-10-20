@@ -117,7 +117,8 @@ static size_t get_default_workgroup(){
 }
 
 /* ------- Create and destroy necessary objects ------- */
-static void create_clobj(int gws, struct fmt_main * self) {
+static void create_clobj(size_t gws, struct fmt_main * self)
+{
 	self->params.min_keys_per_crypt = self->params.max_keys_per_crypt = gws;
 
 	pinned_saved_keys = clCreateBuffer(context[ocl_gpu_id],

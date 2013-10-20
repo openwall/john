@@ -90,7 +90,7 @@ static cl_mem cl_saved_key, cl_saved_idx, cl_challenge, cl_nthash, cl_result;
 static cl_mem pinned_key, pinned_idx, pinned_result, pinned_salt;
 static cl_kernel ntlmv2_nthash;
 
-static void create_clobj(int gws, struct fmt_main *self)
+static void create_clobj(size_t gws, struct fmt_main *self)
 {
 	global_work_size = gws;
 	self->params.max_keys_per_crypt = gws;
@@ -235,7 +235,7 @@ static void set_salt(void *salt)
 	HANDLE_CLERROR(clFlush(queue[ocl_gpu_id]), "failed in clFlush");
 }
 
-static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
+static cl_ulong gws_test(size_t gws, int do_benchmark, struct fmt_main *self)
 {
 	cl_ulong startTime, endTime;
 	cl_event Event[5];
