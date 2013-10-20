@@ -231,8 +231,8 @@ static cl_ulong gws_test(size_t gws, int do_benchmark, struct fmt_main *self)
 	if (do_benchmark)
 		fprintf(stderr, "crypt %.2f ms, ", (double)(endTime-startTime)/1000000.);
 
-	/* 200 ms duration limit for GCN to avoid ASIC hangs */
-	if (amd_gcn(device_info[ocl_gpu_id]) && endTime - startTime > 200000000) {
+	/* 200 ms duration limit */
+	if (endTime - startTime > 200000000) {
 		if (do_benchmark)
 			fprintf(stderr, "exceeds 200 ms\n");
 		release_clobj();

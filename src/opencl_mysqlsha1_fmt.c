@@ -175,7 +175,7 @@ static cl_ulong gws_test(size_t gws, int do_benchmark, struct fmt_main *self)
 	if (do_benchmark)
 		fprintf(stderr, "crypt kernel %.2f ms, ", (double)((endTime - startTime)/1000000.));
 
-	/* 200 ms duration limit for GCN to avoid ASIC hangs */
+	/* 200 ms duration limit */
 	if (endTime - startTime > 200000000) {
 		if (do_benchmark)
 			fprintf(stderr, "- exceeds 200 ms\n");
