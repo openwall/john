@@ -92,7 +92,7 @@ typedef struct {
 } crypt_md5_hash;
 
 typedef struct {
-	uint buffer[16];
+	uint buffer[14];
 } md5_ctx;
 
 __constant uchar cl_md5_salt_prefix[] = "$1$";
@@ -128,7 +128,7 @@ inline void init_ctx(md5_ctx *ctx, uint *ctx_buflen)
 	uint i;
 	uint *buf = (uint*)ctx->buffer;
 
-	for (i = 0; i < 16; i++)
+	for (i = 0; i < sizeof(ctx->buffer) / 4; i++)
 		*buf++ = 0;
 	*ctx_buflen = 0;
 }
@@ -136,7 +136,8 @@ inline void init_ctx(md5_ctx *ctx, uint *ctx_buflen)
 inline void md5_digest(md5_ctx *ctx, uint *result, uint *ctx_buflen)
 {
 	uint len = *ctx_buflen;
-	uint x[16];
+	//uint x[14];
+	uint *x = ctx->buffer;
 	uint a;
 	uint b = 0xefcdab89;
 	uint c = 0x98badcfe;
@@ -144,8 +145,8 @@ inline void md5_digest(md5_ctx *ctx, uint *result, uint *ctx_buflen)
 
 	PUTCHAR(ctx->buffer, len, 0x80);
 
-	for (a = 0; a < 16; a++)
-		x[a] = ctx->buffer[a];
+	//for (a = 0; a < 14; a++)
+	//	x[a] = ctx->buffer[a];
 
 	len <<= 3;
 
