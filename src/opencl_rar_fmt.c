@@ -502,6 +502,7 @@ static cl_ulong gws_test(size_t gws, int do_benchmark, struct fmt_main *self)
 	cl_event Event[6];
 	cl_int ret_code;
 	int i, tidx = 0;
+	size_t *lws = local_work_size ? &local_work_size : NULL;
 
 	create_clobj(gws, self);
 	queue_prof = clCreateCommandQueue(context[ocl_gpu_id], devices[ocl_gpu_id], CL_QUEUE_PROFILING_ENABLE, &ret_code);
@@ -529,10 +530,10 @@ static cl_ulong gws_test(size_t gws, int do_benchmark, struct fmt_main *self)
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, cl_saved_key, CL_FALSE, 0, UNICODE_LENGTH * gws, saved_key, 0, NULL, NULL), "Failed transferring keys");
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, cl_saved_len, CL_FALSE, 0, sizeof(int) * gws, saved_len, 0, NULL, NULL), "Failed transferring lengths");
 
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, RarInit, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &Event[1]), "running kernel");
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &Event[3]), "running kernel");
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, RarInit, 1, NULL, &global_work_size, lws, 0, NULL, &Event[1]), "running kernel");
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, crypt_kernel, 1, NULL, &global_work_size, lws, 0, NULL, &Event[3]), "running kernel");
 
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, RarFinal, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &Event[4]), "running kernel");
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, RarFinal, 1, NULL, &global_work_size, lws, 0, NULL, &Event[4]), "running kernel");
 
 	HANDLE_CLERROR(clFinish(queue_prof), "Failed running kernel");
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue_prof, cl_aes_iv, CL_FALSE, 0, 16 * gws, aes_iv, 0, NULL, NULL), "Failed reading iv back");
@@ -574,7 +575,8 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 	int num;
 	cl_ulong run_time, min_time = CL_ULONG_MAX;
 	unsigned int SHAspeed, bestSHAspeed = 0, max_gws;
-	int optimal_gws = local_work_size;
+	int optimal_gws = get_kernel_preferred_multiple(ocl_gpu_id,
+	                                                crypt_kernel);
 	const int sha1perkey = (strlen(self->params.tests[0].plaintext) * 2 + 8 + 3) * 0x40000 / 64 + 16;
 	unsigned long long int MaxRunTime = cpu(device_info[ocl_gpu_id]) ? 1000000000 : 10000000000ULL;
 
@@ -585,7 +587,7 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 		fprintf(stderr, "Raw GPU speed figures including buffer transfers:\n");
 	}
 
-	for (num = local_work_size; max_gws; num *= 2) {
+	for (num = optimal_gws; max_gws; num *= 2) {
 		if (!do_benchmark)
 			advance_cursor();
 		if (!(run_time = gws_test(num, do_benchmark, self)))
@@ -612,7 +614,7 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 				break;
 			}
 
-			if (SHAspeed > bestSHAspeed * 1.01) {
+			if (SHAspeed > bestSHAspeed) {
 				if (do_benchmark)
 					fprintf(stderr, "+");
 				bestSHAspeed = SHAspeed;
@@ -655,6 +657,10 @@ static void init(struct fmt_main *self)
 	/* Read LWS/GWS prefs from config or environment */
 	opencl_get_user_preferences(OCL_CONFIG);
 
+	/* Enumerate GWS using *LWS=NULL (unless it was set explicitly) */
+	if (!global_work_size)
+		find_best_gws(getenv("GWS") == NULL ? 0 : 1, self);
+
 	/* Note: we ask for the kernels' max sizes, not the device's! */
 	maxsize = get_current_work_group_size(ocl_gpu_id, RarInit);
 	maxsize2 = get_current_work_group_size(ocl_gpu_id, crypt_kernel);
@@ -665,13 +671,9 @@ static void init(struct fmt_main *self)
 	if (!local_work_size) {
 		if (getenv("LWS")) {
 			/* LWS was explicitly set to 0 */
-			int tmp = global_work_size;
-			local_work_size = maxsize;
-			global_work_size = global_work_size ? global_work_size : 4 * maxsize;
 			create_clobj(global_work_size, self);
 			opencl_find_best_workgroup_limit(self, maxsize, ocl_gpu_id, crypt_kernel);
 			release_clobj();
-			global_work_size = tmp;
 		} else {
 			if (cpu(device_info[ocl_gpu_id])) {
 				if (get_platform_vendor_id(platform_id) == DEV_INTEL)
@@ -687,9 +689,6 @@ static void init(struct fmt_main *self)
 		local_work_size >>= 1;
 
 	self->params.min_keys_per_crypt = local_work_size;
-
-	if (!global_work_size)
-		find_best_gws(getenv("GWS") == NULL ? 0 : 1, self);
 
 	if (global_work_size < local_work_size)
 		global_work_size = local_work_size;

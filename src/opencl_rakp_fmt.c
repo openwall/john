@@ -181,6 +181,7 @@ static cl_ulong gws_test(size_t gws, int do_benchmark, struct fmt_main *self)
 	cl_event Event[4];
 	int i, tidx = 0;
 	size_t scalar_gws = v_width * gws;
+	size_t *lws = local_work_size ? &local_work_size : NULL;
 
 	create_clobj(gws, self);
 
@@ -208,7 +209,7 @@ static cl_ulong gws_test(size_t gws, int do_benchmark, struct fmt_main *self)
 	/* Emulate crypt_all() */
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], keys_buffer, CL_FALSE, 0, 4 * key_idx, keys, 0, NULL, &Event[0]), "Error updating contents of keys_buffer");
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], idx_buffer, CL_FALSE, 0, 4 * scalar_gws, idx, 0, NULL, &Event[1]), "Error updating contents of idx_buffer");
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &Event[2]), "running kernel");
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL, &global_work_size, lws, 0, NULL, &Event[2]), "running kernel");
 
 	/* Only benchmark partial transfer - that is what we optimize for */
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], digest_buffer, CL_TRUE, 0, sizeof(cl_uint) * scalar_gws, digest, 0, NULL, &Event[3]), "Error reading results from digest_buffer");
@@ -265,10 +266,10 @@ static cl_ulong gws_test(size_t gws, int do_benchmark, struct fmt_main *self)
 
 static void find_best_gws(int do_benchmark, struct fmt_main *self)
 {
-	int num;
+	int num, max_gws;
 	cl_ulong run_time, min_time = CL_ULONG_MAX;
 	double SHA1speed, bestSHA1speed = 0.0;
-	int optimal_gws = local_work_size, max_gws;
+	int optimal_gws = get_kernel_preferred_multiple(ocl_gpu_id, crypt_kernel);
 	const int sha1perkey = 5;
 	unsigned long long int MaxRunTime = 1000000000ULL;
 
@@ -289,7 +290,7 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 		fprintf(stderr, "Raw GPU speed figures including buffer transfers:\n");
 	}
 
-	for (num = local_work_size; num <= max_gws; num *= 2) {
+	for (num = optimal_gws; num <= max_gws; num *= 2) {
 		if (!do_benchmark)
 			advance_cursor();
 		if (!(run_time = gws_test(num, do_benchmark, self)))
@@ -309,7 +310,7 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 			bestSHA1speed = SHA1speed;
 			optimal_gws = num;
 		} else {
-			if (run_time < MaxRunTime && SHA1speed > (bestSHA1speed * 1.01)) {
+			if (run_time < MaxRunTime && SHA1speed > bestSHA1speed) {
 				if (do_benchmark)
 					fprintf(stderr, "+\n");
 				bestSHA1speed = SHA1speed;
@@ -353,43 +354,38 @@ static void init(struct fmt_main *self)
 	snprintf(build_opts, sizeof(build_opts), "-DV_WIDTH=%u", v_width);
 	opencl_init("$JOHN/kernels/rakp_kernel.cl", ocl_gpu_id, build_opts);
 
+	/* Read LWS/GWS prefs from config or environment */
+	opencl_get_user_preferences(OCL_CONFIG);
+
 	// create kernel to execute
 	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "rakp_kernel", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel");
 
+	/* Enumerate GWS using *LWS=NULL (unless it was set explicitly) */
+	if (!global_work_size)
+		find_best_gws(getenv("GWS") == NULL ? 0 : 1, self);
+
 	/* Note: we ask for the kernel's max size, not the device's! */
 	maxsize = get_current_work_group_size(ocl_gpu_id, crypt_kernel);
 
+	// Obey device limits
 	max_mem = get_max_mem_alloc_size(ocl_gpu_id);
-
-	/* Read LWS/GWS prefs from config or environment */
-	opencl_get_user_preferences(OCL_CONFIG);
+	while (global_work_size > max_mem /
+	       (v_width * (PLAINTEXT_LENGTH + 63) / 64 * 64))
+		global_work_size -= get_kernel_preferred_multiple(ocl_gpu_id,
+		                                                  crypt_kernel);
 
 	if (local_work_size > maxsize)
 		local_work_size = maxsize;
 
-	/* maxsize is the lowest figure from the three different kernels */
 	if (!local_work_size) {
-		int temp = global_work_size;
-		local_work_size = maxsize;
-		global_work_size = global_work_size ? global_work_size : 512 * maxsize;
-		while (global_work_size > max_mem / (v_width * (PLAINTEXT_LENGTH + 63) / 64 * 64))
-			global_work_size -= local_work_size;
 		create_clobj(global_work_size, self);
 		opencl_find_best_workgroup_limit(self, maxsize, ocl_gpu_id, crypt_kernel);
 		release_clobj();
-		global_work_size = temp;
 	}
-
-	if (!global_work_size)
-		find_best_gws(getenv("GWS") == NULL ? 0 : 1, self);
 
 	if (global_work_size < local_work_size)
 		global_work_size = local_work_size;
-
-	// Obey device limits
-	while (global_work_size > max_mem / (v_width * (PLAINTEXT_LENGTH + 63) / 64 * 64))
-		global_work_size -= local_work_size;
 
 	// Current key_idx can only hold 26 bits of offset so
 	// we can't reliably use a GWS higher than 4.7M or so.

@@ -201,6 +201,7 @@ static cl_ulong gws_test(size_t gws, int do_benchmark, struct fmt_main *self)
 	cl_int ret_code;
 	int i;
 	size_t scalar_gws = v_width * gws;
+	size_t *lws = local_work_size ? &local_work_size : NULL;
 
 	create_clobj(gws, self);
 	queue_prof = clCreateCommandQueue(context[ocl_gpu_id], devices[ocl_gpu_id], CL_QUEUE_PROFILING_ENABLE, &ret_code);
@@ -213,19 +214,19 @@ static cl_ulong gws_test(size_t gws, int do_benchmark, struct fmt_main *self)
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, mem_salt, CL_FALSE, 0, sizeof(pbkdf2_salt), &currentsalt, 0, NULL, &Event[1]), "Copy setting to gpu");
 
 	/// Run kernels
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, pbkdf2_init, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &Event[2]), "Run initial kernel");
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, pbkdf2_init, 1, NULL, &global_work_size, lws, 0, NULL, &Event[2]), "Run initial kernel");
 
 	//for (i = 0; i < ITERATIONS / HASH_LOOPS - 1; i++)
 	// warm-up run without measuring
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, pbkdf2_loop, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "Run loop kernel");
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, pbkdf2_loop, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &Event[3]), "Run loop kernel");
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, pbkdf2_loop, 1, NULL, &global_work_size, lws, 0, NULL, NULL), "Run loop kernel");
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, pbkdf2_loop, 1, NULL, &global_work_size, lws, 0, NULL, &Event[3]), "Run loop kernel");
 
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, pbkdf2_pass2, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &Event[4]), "Run intermediate kernel");
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, pbkdf2_pass2, 1, NULL, &global_work_size, lws, 0, NULL, &Event[4]), "Run intermediate kernel");
 
 	//for (i = 0; i < ITERATIONS / HASH_LOOPS; i++)
-	//	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, pbkdf2_loop, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "Run loop kernel (2nd)");
+	//	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, pbkdf2_loop, 1, NULL, &global_work_size, lws, 0, NULL, NULL), "Run loop kernel (2nd)");
 
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, pbkdf2_final, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &Event[5]), "Run final kernel");
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, pbkdf2_final, 1, NULL, &global_work_size, lws, 0, NULL, &Event[5]), "Run final kernel");
 
 	/// Read the result back
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue_prof, mem_out, CL_TRUE, 0, sizeof(pbkdf2_out) * scalar_gws, output, 0, NULL, &Event[6]), "Copy result back");
@@ -279,7 +280,8 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 	int num;
 	cl_ulong run_time, min_time = CL_ULONG_MAX;
 	unsigned int SHAspeed, bestSHAspeed = 0;
-	int optimal_gws = local_work_size;
+	int optimal_gws = get_kernel_preferred_multiple(ocl_gpu_id,
+	                                                crypt_kernel);
 	const int sha1perkey = 2 * ITERATIONS * 2 + 6;
 	unsigned long long int MaxRunTime = cpu(device_info[ocl_gpu_id]) ? 1000000000ULL : 10000000000ULL;
 
@@ -288,7 +290,7 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 		fprintf(stderr, "Raw GPU speed figures including buffer transfers:\n");
 	}
 
-	for (num = local_work_size; num; num *= 2) {
+	for (num = optimal_gws; num; num *= 2) {
 		if (!do_benchmark)
 			advance_cursor();
 		if (!(run_time = gws_test(num, do_benchmark, self)))
@@ -308,7 +310,7 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 			bestSHAspeed = SHAspeed;
 			optimal_gws = num;
 		} else {
-			if (run_time < MaxRunTime && SHAspeed > (bestSHAspeed * 1.01)) {
+			if (run_time < MaxRunTime && SHAspeed > bestSHAspeed) {
 				if (do_benchmark)
 					fprintf(stderr, "+\n");
 				bestSHAspeed = SHAspeed;
@@ -443,6 +445,10 @@ static void init(struct fmt_main *self)
 	pbkdf2_final = clCreateKernel(program[ocl_gpu_id], "pbkdf2_final", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel");
 
+	/* Enumerate GWS using *LWS=NULL (unless it was set explicitly) */
+	if (!global_work_size)
+		find_best_gws(getenv("GWS") == NULL ? 0 : 1, self);
+
 	/* Note: we ask for the kernels' max sizes, not the device's! */
 	maxsize = get_current_work_group_size(ocl_gpu_id, pbkdf2_init);
 	maxsize2 = get_current_work_group_size(ocl_gpu_id, pbkdf2_loop);
@@ -451,6 +457,12 @@ static void init(struct fmt_main *self)
 	if (maxsize2 < maxsize) maxsize = maxsize2;
 	maxsize2 = get_current_work_group_size(ocl_gpu_id, pbkdf2_final);
 	if (maxsize2 < maxsize) maxsize = maxsize2;
+
+	// Obey device limits
+	max_mem = get_max_mem_alloc_size(ocl_gpu_id);
+	while (global_work_size * v_width > max_mem / PLAINTEXT_LENGTH)
+		global_work_size -= get_kernel_preferred_multiple(ocl_gpu_id,
+		                                                  crypt_kernel);
 
 	if (options.verbosity > 3)
 		fprintf(stderr, "Max LWS %d\n", (int)maxsize);
@@ -465,32 +477,20 @@ static void init(struct fmt_main *self)
 			else
 				local_work_size = 1;
 		} else {
-			int temp = global_work_size;
-
-			local_work_size = maxsize;
-			global_work_size = global_work_size ?
-				global_work_size : 8 * 1024;
 			create_clobj(global_work_size, self);
 			self->methods.crypt_all = crypt_all_benchmark;
-			opencl_find_best_workgroup_limit(self, maxsize, ocl_gpu_id, crypt_kernel);
+			opencl_find_best_workgroup_limit(self, maxsize,
+			                                 ocl_gpu_id,
+			                                 crypt_kernel);
 			self->methods.crypt_all = crypt_all;
 			release_clobj();
-			global_work_size = temp;
 		}
 	}
 
 	self->params.min_keys_per_crypt = local_work_size;
 
-	if (!global_work_size)
-		find_best_gws(getenv("GWS") == NULL ? 0 : 1, self);
-
 	if (global_work_size < local_work_size)
 		global_work_size = local_work_size;
-
-	// Obey device limits
-	max_mem = get_max_mem_alloc_size(ocl_gpu_id);
-	while (global_work_size * v_width > max_mem / PLAINTEXT_LENGTH)
-		global_work_size -= local_work_size;
 
 	if (options.verbosity > 2)
 		fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);

@@ -254,6 +254,7 @@ static cl_ulong gws_test(size_t gws, int do_benchmark, struct fmt_main *self)
 	cl_int ret_code;
 	int i;
 	size_t scalar_gws = v_width * gws;
+	size_t *lws = local_work_size ? &local_work_size : NULL;
 
 	create_clobj(gws, self);
 	queue_prof = clCreateCommandQueue(context[ocl_gpu_id], devices[ocl_gpu_id], CL_QUEUE_PROFILING_ENABLE, &ret_code);
@@ -264,14 +265,14 @@ static cl_ulong gws_test(size_t gws, int do_benchmark, struct fmt_main *self)
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, cl_saved_key, CL_TRUE, 0, UNICODE_LENGTH * scalar_gws, saved_key, 0, NULL, &Event[0]), "Failed transferring keys");
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, cl_saved_len, CL_TRUE, 0, sizeof(int) * scalar_gws, saved_len, 0, NULL, &Event[1]), "Failed transferring lengths");
 
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, GenerateSHA512pwhash, 1, NULL, &scalar_gws, &local_work_size, 0, NULL, &Event[2]), "running kernel");
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, GenerateSHA512pwhash, 1, NULL, &scalar_gws, lws, 0, NULL, &Event[2]), "running kernel");
 
 	//for (i = 0; i < spincount / HASH_LOOPS - 1; i++)
 	// warm-up run without measuring
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "running kernel");
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &Event[3]), "running kernel");
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, crypt_kernel, 1, NULL, &global_work_size, lws, 0, NULL, NULL), "running kernel");
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, crypt_kernel, 1, NULL, &global_work_size, lws, 0, NULL, &Event[3]), "running kernel");
 
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, Generate2013key, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &Event[4]), "running kernel");
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, Generate2013key, 1, NULL, &global_work_size, lws, 0, NULL, &Event[4]), "running kernel");
 
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue_prof, cl_key, CL_TRUE, 0, 128 * scalar_gws, key, 0, NULL, &Event[5]), "failed in reading key back");
 
@@ -351,7 +352,8 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 	int num;
 	cl_ulong run_time, min_time = CL_ULONG_MAX;
 	unsigned int SHAspeed, bestSHAspeed = 0, max_gws;
-	int optimal_gws = local_work_size;
+	int optimal_gws = get_kernel_preferred_multiple(ocl_gpu_id,
+	                                                crypt_kernel);
 	int sha512perkey;
 	unsigned long long int MaxRunTime = cpu(device_info[ocl_gpu_id]) ? 1000000000ULL : 10000000000ULL;
 
@@ -362,7 +364,7 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 		fprintf(stderr, "Raw GPU speed figures including buffer transfers:\n");
 	}
 
-	for (num = local_work_size; max_gws; num *= 2) {
+	for (num = optimal_gws; max_gws; num *= 2) {
 		if (!do_benchmark)
 			advance_cursor();
 		if (!(run_time = gws_test(num, do_benchmark, self)))
@@ -383,7 +385,7 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 			bestSHAspeed = SHAspeed;
 			optimal_gws = num;
 		} else {
-			if (run_time < MaxRunTime && SHAspeed > (bestSHAspeed * 1.01)) {
+			if (run_time < MaxRunTime && SHAspeed > bestSHAspeed) {
 				if (do_benchmark)
 					fprintf(stderr, "+\n");
 				bestSHAspeed = SHAspeed;
@@ -401,7 +403,7 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 
 static void init(struct fmt_main *self)
 {
-	cl_ulong maxsize, maxsize2;
+	cl_ulong maxsize, maxsize2, max_mem;
 	char build_opts[64];
 	static char valgo[32] = "";
 
@@ -432,6 +434,10 @@ static void init(struct fmt_main *self)
 	Generate2013key = clCreateKernel(program[ocl_gpu_id], "Generate2013key", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 
+	/* Enumerate GWS using *LWS=NULL (unless it was set explicitly) */
+	if (!global_work_size)
+		find_best_gws(getenv("GWS") == NULL ? 0 : 1, self);
+
 	/* Note: we ask for the kernels' max sizes, not the device's! */
 	maxsize = get_current_work_group_size(ocl_gpu_id, GenerateSHA512pwhash);
 	maxsize2 = get_current_work_group_size(ocl_gpu_id, crypt_kernel);
@@ -439,17 +445,19 @@ static void init(struct fmt_main *self)
 	maxsize2 = get_current_work_group_size(ocl_gpu_id, Generate2013key);
 	if (maxsize2 < maxsize) maxsize = maxsize2;
 
+	// Obey device limits
+	max_mem = get_max_mem_alloc_size(ocl_gpu_id);
+	while (global_work_size * v_width > max_mem / PLAINTEXT_LENGTH)
+		global_work_size -= get_kernel_preferred_multiple(ocl_gpu_id,
+		                                                  crypt_kernel);
+
 	/* maxsize is the lowest figure from the three different kernels */
 	if (!local_work_size) {
 		if (getenv("LWS")) {
 			/* LWS was explicitly set to 0 */
-			int temp = global_work_size;
-			local_work_size = maxsize;
-			global_work_size = global_work_size ? global_work_size : 4 * maxsize;
 			create_clobj(global_work_size, self);
 			opencl_find_best_workgroup_limit(self, maxsize, ocl_gpu_id, crypt_kernel);
 			release_clobj();
-			global_work_size = temp;
 		} else {
 			if (cpu(device_info[ocl_gpu_id])) {
 				if (get_platform_vendor_id(platform_id) == DEV_INTEL)
@@ -465,9 +473,6 @@ static void init(struct fmt_main *self)
 		local_work_size >>= 1;
 
 	self->params.min_keys_per_crypt = local_work_size;
-
-	if (!global_work_size)
-		find_best_gws(getenv("GWS") == NULL ? 0 : 1, self);
 
 	if (global_work_size < local_work_size)
 		global_work_size = local_work_size;
