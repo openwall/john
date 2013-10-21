@@ -94,6 +94,13 @@ void opencl_preinit(void);
 /* Tear-down. Safe to call even if no device was used */
 void opencl_done(void);
 
+/*
+ * Returns preferred vector width for a given device. The --force-scalar
+ * or --force-vector-width=N options and the ForceScalar config option may
+ * affect the return value.
+ */
+cl_uint opencl_get_vector_width(int sequential_id, int size);
+
 /* Returns number of selected devices */
 int opencl_get_devices(void);
 

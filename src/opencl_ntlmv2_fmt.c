@@ -421,18 +421,12 @@ static void init(struct fmt_main *self)
 	char *encoding = options.encodingDef ? options.encodingDef : "ISO_8859_1";
 	static char valgo[32] = "";
 
-	if (!(options.flags & FLG_SCALAR)) {
-		opencl_preinit();
-		clGetDeviceInfo(devices[ocl_gpu_id],
-		                CL_DEVICE_PREFERRED_VECTOR_WIDTH_INT,
-		                sizeof(cl_uint), &v_width, NULL);
-		v_width = options.v_width ? options.v_width : v_width;
-		if (v_width > 1) {
-			/* Run vectorized kernel */
-			snprintf(valgo, sizeof(valgo),
-			         ALGORITHM_NAME " %ux", v_width);
-			self->params.algorithm_name = valgo;
-		}
+	if ((v_width = opencl_get_vector_width(ocl_gpu_id,
+	                                       sizeof(cl_int))) > 1) {
+		/* Run vectorized kernel */
+		snprintf(valgo, sizeof(valgo),
+		         ALGORITHM_NAME " %ux", v_width);
+		self->params.algorithm_name = valgo;
 	}
 
 	if (options.utf8)

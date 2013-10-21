@@ -468,6 +468,54 @@ void opencl_preinit(void)
 	}
 }
 
+cl_uint opencl_get_vector_width(int sequential_id, int size)
+{
+	cl_uint v_width;
+
+	/* --force-scalar option, or john.conf ForceScalar boolean */
+	if (options.flags & FLG_SCALAR)
+		return 1;
+
+	/* --force-vector-width=N */
+	if (options.v_width)
+		return options.v_width;
+
+	/* OK, we supply the real figure */
+	opencl_preinit();
+	switch(size) {
+	case sizeof(cl_char):
+		HANDLE_CLERROR(clGetDeviceInfo(devices[ocl_gpu_id],
+		                       CL_DEVICE_PREFERRED_VECTOR_WIDTH_CHAR,
+	                               sizeof(v_width), &v_width, NULL),
+	               "Error asking for char vector width");
+		break;
+	case sizeof(cl_short):
+		HANDLE_CLERROR(clGetDeviceInfo(devices[ocl_gpu_id],
+		                       CL_DEVICE_PREFERRED_VECTOR_WIDTH_SHORT,
+	                               sizeof(v_width), &v_width, NULL),
+	               "Error asking for long vector width");
+		break;
+	case sizeof(cl_int):
+		HANDLE_CLERROR(clGetDeviceInfo(devices[ocl_gpu_id],
+		                       CL_DEVICE_PREFERRED_VECTOR_WIDTH_INT,
+	                               sizeof(v_width), &v_width, NULL),
+	               "Error asking for int vector width");
+		break;
+	case sizeof(cl_long):
+		HANDLE_CLERROR(clGetDeviceInfo(devices[ocl_gpu_id],
+		                       CL_DEVICE_PREFERRED_VECTOR_WIDTH_LONG,
+	                               sizeof(v_width), &v_width, NULL),
+	               "Error asking for long vector width");
+		break;
+	default:
+		fprintf(stderr, "%s() called with unknown type\n",
+		        __FUNCTION__);
+		error();
+	}
+
+	return v_width;
+}
+
 void opencl_done()
 {
 	int i;
@@ -747,13 +795,11 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self,
 		else
 			wg_multiple = 1;
 	} else {
-		wg_multiple =
-			get_kernel_preferred_multiple(sequential_id,
-			                              crypt_kernel);
+		wg_multiple = get_kernel_preferred_multiple(sequential_id,
+		                                            crypt_kernel);
 	}
-	max_group_size =
-		get_current_work_group_size(sequential_id,
-		                            crypt_kernel);
+	max_group_size = get_current_work_group_size(sequential_id,
+	                                             crypt_kernel);
 
 	if (max_group_size > group_size_limit)
 		// Needed to deal (at least) with cryptsha512-opencl limits.
@@ -797,8 +843,8 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self,
 		self->methods.set_key(uniq.c, i);
 	}
 	// Set salt
-	self->methods.set_salt(self->methods.salt(self->params.tests[0].
-		ciphertext));
+	self->methods.set_salt(self->methods.salt(
+		                       self->params.tests[0].ciphertext));
 
 	// Warm-up run
 	local_work_size = wg_multiple;

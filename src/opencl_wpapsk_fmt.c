@@ -337,18 +337,12 @@ static void init(struct fmt_main *self)
 
 	assert(sizeof(hccap_t) == HCCAP_SIZE);
 
-	if (!(options.flags & FLG_SCALAR)) {
-		opencl_preinit();
-		clGetDeviceInfo(devices[ocl_gpu_id],
-		                CL_DEVICE_PREFERRED_VECTOR_WIDTH_INT,
-		                sizeof(cl_uint), &v_width, NULL);
-		v_width = options.v_width ? options.v_width : v_width;
-		if (v_width > 1) {
-			/* Run vectorized kernel */
-			snprintf(valgo, sizeof(valgo),
-			         ALGORITHM_NAME " %ux", v_width);
-			self->params.algorithm_name = valgo;
-		}
+	if ((v_width = opencl_get_vector_width(ocl_gpu_id,
+	                                       sizeof(cl_int))) > 1) {
+		/* Run vectorized kernel */
+		snprintf(valgo, sizeof(valgo),
+		         ALGORITHM_NAME " %ux", v_width);
+		self->params.algorithm_name = valgo;
 	}
 
 	snprintf(build_opts, sizeof(build_opts),
