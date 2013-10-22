@@ -206,6 +206,7 @@ ForceScalar = Y  in john.conf to disable it globally.
 
 The following formats currently support such vectorizing:
 
+encfs-opencl              EncFS
 krb5pa-sha1-opencl        Kerberos 5 AS-REQ Pre-Auth etype 17/18
 ntlmv2-opencl             NTLMv2 C/R
 office2007-opencl         Office 2007
