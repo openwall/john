@@ -29,7 +29,8 @@ static int omp_t = 1;
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	32
-#define CIPHERTEXT_LENGTH	40
+#define HEX_LENGTH		40
+#define CIPHERTEXT_LENGTH	90
 #define BINARY_SIZE		20
 #define BINARY_ALIGN		MEM_ALIGN_WORD
 #define SALT_SIZE		sizeof(struct custom_salt)
@@ -73,18 +74,28 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	q = strstr(ciphertext, "*");
 	if(!q)
 		return 0;
-	if (q - p != CIPHERTEXT_LENGTH)
+	if (q - p != HEX_LENGTH)
 		return 0;
 	while (atoi16[ARCH_INDEX(*p)] != 0x7F && p < q)
 		p++;
 	if (q - p != 0)
 		return 0;
-	if(strlen(p) < CIPHERTEXT_LENGTH)
+	if(strlen(p) < HEX_LENGTH)
 		return 0;
 	q = p + 1;
 	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
 		q++;
-	return !*q && q - p - 1 == CIPHERTEXT_LENGTH;
+	return !*q && q - p - 1 == HEX_LENGTH;
+}
+
+static char* split(char *ciphertext, int index, struct fmt_main *self)
+{
+	static char out[CIPHERTEXT_LENGTH + 1];
+
+	strncpy(out, ciphertext, sizeof(out));
+	strlwr(out);
+
+	return out;
 }
 
 static void *get_salt(char *ciphertext)
@@ -219,7 +230,7 @@ struct fmt_main fmt_mysqlna = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		0,
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_SPLIT_UNIFIES_CASE,
 		mysqlna_tests
 	}, {
 		init,
@@ -227,7 +238,7 @@ struct fmt_main fmt_mysqlna = {
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
-		fmt_default_split,
+		split,
 		get_binary,
 		get_salt,
 		fmt_default_source,
