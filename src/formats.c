@@ -427,12 +427,14 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		}
 
 		if (!(++current)->ciphertext) {
+#ifdef HAVE_OPENCL
 /* Jump straight to last index for OpenCL but always call set_key() */
 			if (strstr(format->params.label, "-opencl")) {
 				for (i = index + 1; i < max - 1; i++)
 				    format->methods.set_key(longcand(i, ml), i);
-				index = i;
-			}
+				index = max - 1;
+			} else
+#endif
 /* Jump straight to last index for non-bitslice DES */
 			if (!(format->params.flags & FMT_BS) &&
 			    (!strcmp(format->params.label, "descrypt") ||

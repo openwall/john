@@ -522,6 +522,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	/* Don't do more than requested */
 	global_work_size = (count + local_work_size - 1) / local_work_size * local_work_size;
 
+	/* Self-test cludge */
+	if (idx_offset > 4 * (global_work_size + 1))
+		idx_offset = 0;
+
 	if (new_keys) {
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], cl_saved_key, CL_FALSE, key_offset, key_idx - key_offset, saved_key + key_offset, 0, NULL, NULL), "Failed transferring keys");
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], cl_saved_idx, CL_FALSE, idx_offset, 4 * (global_work_size + 1) - idx_offset, saved_idx + (idx_offset / 4), 0, NULL, NULL), "Failed transferring index");
