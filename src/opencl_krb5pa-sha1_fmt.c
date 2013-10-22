@@ -46,6 +46,7 @@
 #include "unicode.h"
 #include "config.h"
 #include "common-opencl.h"
+#define OUTLEN 32
 #include "opencl_pbkdf2_hmac_sha1.h"
 #include "gladman_hmac.h"
 #include "loader.h"
@@ -69,8 +70,8 @@
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 
-#define ITERATIONS		4095
-#define HASH_LOOPS		105 /* Must be made from factors 3, 3, 5, 7, 13 */
+#define ITERATIONS		(4096 - 1)
+#define HASH_LOOPS		105 // Must be made from factors 3, 3, 5, 7, 13
 #define OCL_CONFIG		"krbng"
 
 #define MIN(a, b)		(((a) > (b)) ? (b) : (a))
@@ -96,7 +97,7 @@ static struct fmt_tests tests[] = {
 };
 
 static cl_mem mem_in, mem_out, mem_salt, mem_state, pinned_in, pinned_out;
-static cl_kernel pbkdf2_init, pbkdf2_loop, pbkdf2_pass2, pbkdf2_final;
+static cl_kernel pbkdf2_init, pbkdf2_loop, pbkdf2_final;
 static unsigned int v_width = 1;	/* Vector width of kernel */
 
 static struct custom_salt {
@@ -155,12 +156,9 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 
 	HANDLE_CLERROR(clSetKernelArg(pbkdf2_loop, 0, sizeof(mem_state), &mem_state), "Error while setting mem_state kernel argument");
 
-	HANDLE_CLERROR(clSetKernelArg(pbkdf2_pass2, 0, sizeof(mem_salt), &mem_salt), "Error while setting mem_salt kernel argument");
-	HANDLE_CLERROR(clSetKernelArg(pbkdf2_pass2, 1, sizeof(mem_out), &mem_out), "Error while setting mem_out kernel argument");
-	HANDLE_CLERROR(clSetKernelArg(pbkdf2_pass2, 2, sizeof(mem_state), &mem_state), "Error while setting mem_state kernel argument");
-
-	HANDLE_CLERROR(clSetKernelArg(pbkdf2_final, 0, sizeof(mem_state), &mem_state), "Error while setting mem_state kernel argument");
+	HANDLE_CLERROR(clSetKernelArg(pbkdf2_final, 0, sizeof(mem_salt), &mem_salt), "Error while setting mem_salt kernel argument");
 	HANDLE_CLERROR(clSetKernelArg(pbkdf2_final, 1, sizeof(mem_out), &mem_out), "Error while setting mem_out kernel argument");
+	HANDLE_CLERROR(clSetKernelArg(pbkdf2_final, 2, sizeof(mem_state), &mem_state), "Error while setting mem_state kernel argument");
 
 	crypt_out = mem_alloc(sizeof(*crypt_out) * gws);
 }
@@ -187,7 +185,6 @@ static void done(void)
 
 	HANDLE_CLERROR(clReleaseKernel(pbkdf2_init), "Release Kernel");
 	HANDLE_CLERROR(clReleaseKernel(pbkdf2_loop), "Release Kernel");
-	HANDLE_CLERROR(clReleaseKernel(pbkdf2_pass2), "Release Kernel");
 	HANDLE_CLERROR(clReleaseKernel(pbkdf2_final), "Release Kernel");
 
 	HANDLE_CLERROR(clReleaseProgram(program[ocl_gpu_id]), "Release Program");
@@ -221,7 +218,7 @@ static cl_ulong gws_test(size_t gws, int do_benchmark, struct fmt_main *self)
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, pbkdf2_loop, 1, NULL, &global_work_size, lws, 0, NULL, NULL), "Run loop kernel");
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, pbkdf2_loop, 1, NULL, &global_work_size, lws, 0, NULL, &Event[3]), "Run loop kernel");
 
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, pbkdf2_pass2, 1, NULL, &global_work_size, lws, 0, NULL, &Event[4]), "Run intermediate kernel");
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, pbkdf2_final, 1, NULL, &global_work_size, lws, 0, NULL, &Event[4]), "Run intermediate kernel");
 
 	//for (i = 0; i < ITERATIONS / HASH_LOOPS; i++)
 	//	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, pbkdf2_loop, 1, NULL, &global_work_size, lws, 0, NULL, NULL), "Run loop kernel (2nd)");
@@ -416,7 +413,7 @@ static void init(struct fmt_main *self)
 	unsigned char usage[5];
 	char build_opts[128];
 	cl_ulong maxsize, maxsize2, max_mem;
-	static char valgo[32] = "";
+	static char valgo[sizeof(ALGORITHM_NAME) + 8] = "";
 
 	if ((v_width = opencl_get_vector_width(ocl_gpu_id,
 	                                       sizeof(cl_int))) > 1) {
@@ -427,11 +424,12 @@ static void init(struct fmt_main *self)
 	}
 
 	snprintf(build_opts, sizeof(build_opts),
-	         "-DHASH_LOOPS=%u -DITERATIONS=%u "
+	         "-DHASH_LOOPS=%u -DITERATIONS=%u -DOUTLEN=%u "
 	         "-DPLAINTEXT_LENGTH=%u -DV_WIDTH=%u",
-	         HASH_LOOPS, ITERATIONS,
+	         HASH_LOOPS, ITERATIONS, OUTLEN,
 	         PLAINTEXT_LENGTH, v_width);
-	opencl_init("$JOHN/kernels/pbkdf2_hmac_sha1_kernel.cl", ocl_gpu_id, build_opts);
+	opencl_init("$JOHN/kernels/pbkdf2_hmac_sha1_kernel.cl", ocl_gpu_id,
+	            build_opts);
 
 	/* Read LWS/GWS prefs from config or environment */
 	opencl_get_user_preferences(OCL_CONFIG);
@@ -439,8 +437,6 @@ static void init(struct fmt_main *self)
 	crypt_kernel = pbkdf2_init = clCreateKernel(program[ocl_gpu_id], "pbkdf2_init", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel");
 	pbkdf2_loop = clCreateKernel(program[ocl_gpu_id], "pbkdf2_loop", &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating kernel");
-	pbkdf2_pass2 = clCreateKernel(program[ocl_gpu_id], "pbkdf2_pass2", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel");
 	pbkdf2_final = clCreateKernel(program[ocl_gpu_id], "pbkdf2_final", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel");
@@ -452,8 +448,6 @@ static void init(struct fmt_main *self)
 	/* Note: we ask for the kernels' max sizes, not the device's! */
 	maxsize = get_current_work_group_size(ocl_gpu_id, pbkdf2_init);
 	maxsize2 = get_current_work_group_size(ocl_gpu_id, pbkdf2_loop);
-	if (maxsize2 < maxsize) maxsize = maxsize2;
-	maxsize2 = get_current_work_group_size(ocl_gpu_id, pbkdf2_pass2);
 	if (maxsize2 < maxsize) maxsize = maxsize2;
 	maxsize2 = get_current_work_group_size(ocl_gpu_id, pbkdf2_final);
 	if (maxsize2 < maxsize) maxsize = maxsize2;
@@ -684,6 +678,7 @@ static void set_salt(void *salt)
 {
 	cur_salt = (struct custom_salt *)salt;
 	currentsalt.length = strlen((char*)cur_salt->salt);
+	currentsalt.iterations = ITERATIONS;
 	memcpy(currentsalt.salt, cur_salt->salt, currentsalt.length);
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_salt, CL_FALSE, 0, sizeof(pbkdf2_salt), &currentsalt, 0, NULL, NULL), "Copy setting to gpu");
 }
@@ -801,7 +796,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		opencl_process_event();
 	}
 
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], pbkdf2_pass2, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "Run intermediate kernel");
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], pbkdf2_final, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "Run intermediate kernel");
 
 	for (i = 0; i < ITERATIONS / HASH_LOOPS; i++) {
 		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], pbkdf2_loop, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "Run loop kernel (2nd pass)");
