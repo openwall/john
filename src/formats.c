@@ -321,6 +321,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 
 #ifndef BENCH_BUILD
 		if (maxlength == 0) {
+			int min = format->params.min_keys_per_crypt;
 			maxlength = 1;
 
 			/* Check that claimed max. length is actually supported:
@@ -334,8 +335,8 @@ static char *fmt_self_test_body(struct fmt_main *format,
 #if defined(HAVE_OPENCL) || defined(HAVE_CUDA)
 			advance_cursor();
 #endif
-			/* 2. Perform a crypt (just in case it matters) */
-			if (format->methods.crypt_all(&max, NULL) != max)
+			/* 2. Perform a limited crypt (in case it matters) */
+			if (format->methods.crypt_all(&min, NULL) != min)
 				return "crypt_all";
 
 #if defined(HAVE_OPENCL) || defined(HAVE_CUDA)
@@ -391,32 +392,6 @@ static char *fmt_self_test_body(struct fmt_main *format,
 			sprintf(s_size, "cmp_one(%d)", index);
 			return s_size;
 		}
-/*
- * When bitmap is used, cmp_all() is never called, so cmp_one() or
- * cmp_exact() MUST check the full hash - they can not rely on cmp_all()
- * having been called.
- *
- * This test currently gives false positives, excluded here.
- */
-#if 0 /* This test did its job but should be replaced with something better */
-		if (strcmp(format->params.label, "AFS"))
-		if (strcmp(format->params.label, "Raw-SHA1-Linkedin"))
-		if (strcmp(format->params.label, "Raw-SHA512-cuda"))
-		if (strcmp(format->params.label, "Raw-SHA512-opencl"))
-		if (strcmp(format->params.label, "xsha512-cuda"))
-		if (strcmp(format->params.label, "XSHA512-opencl"))
-		if (strcmp(format->params.label, "nt-opencl"))
-		if (format->params.binary_size > 4) {
-			void *tr_bin = mem_alloc(format->params.binary_size);
-			memcpy(tr_bin, binary, format->params.binary_size);
-			*(unsigned int*)tr_bin ^= 0x80000000;
-			if (format->methods.cmp_one(tr_bin, index)) {
-				sprintf(s_size, "cmp_one() assumes cmp_all()");
-				return s_size;
-			}
-			MEM_FREE(tr_bin);
-		}
-#endif
 		if (!format->methods.cmp_exact(ciphertext, index)) {
 			sprintf(s_size, "cmp_exact(%d)", index);
 			return s_size;
@@ -433,8 +408,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 
 /* 0 1 2 3 4 6 9 13 19 28 42 63 94 141 211 316 474 711 1066 ... */
 		if (index >= 2 && max > ntests) {
-			/* Always call set_key() even if skipping. Some
-			   formats depend on it. */
+/* Always call set_key() even if skipping. Some formats depend on it. */
 			for (i = index + 1;
 			     i < max && i < (index + (index >> 1)); i++)
 				format->methods.set_key(longcand(i, ml), i);
@@ -445,8 +419,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		if (index >= max) {
 			format->methods.clear_keys();
 			index = (max > 5 && max > ntests && done != 1) ? 5 : 0;
-			/* Always call set_key() even if skipping. Some
-			   formats depend on it. */
+/* Always call set_key() even if skipping. Some formats depend on it. */
 			if (index == 5)
 			for (i = 0; i < 5; i++)
 				fmt_set_key("", i);
@@ -454,6 +427,12 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		}
 
 		if (!(++current)->ciphertext) {
+/* Jump straight to last index for OpenCL but always call set_key() */
+			if (strstr(format->params.label, "-opencl")) {
+				for (i = index + 1; i < max - 1; i++)
+				    format->methods.set_key(longcand(i, ml), i);
+				index = i;
+			}
 /* Jump straight to last index for non-bitslice DES */
 			if (!(format->params.flags & FMT_BS) &&
 			    (!strcmp(format->params.label, "descrypt") ||
