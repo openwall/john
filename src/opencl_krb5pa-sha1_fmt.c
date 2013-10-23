@@ -625,8 +625,8 @@ static char* get_key(int index)
 	static char ret[PLAINTEXT_LENGTH + 1];
 	int i = 0;
 
-	while ((ret[i] = ((char*)inbuffer)[GETPOS(i, index)]) &&
-	       i < PLAINTEXT_LENGTH)
+	while (i < PLAINTEXT_LENGTH &&
+	       (ret[i] = ((char*)inbuffer)[GETPOS(i, index)]))
 		i++;
 	ret[i] = 0;
 
