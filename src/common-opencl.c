@@ -1705,8 +1705,15 @@ void get_compute_capability(int sequential_id, unsigned int *major,
 cl_uint get_processors_count(int sequential_id)
 {
 	cl_uint core_count = get_max_compute_units(sequential_id);
+	char dname[MAX_OCLINFO_STRING_LEN];
+
+	HANDLE_CLERROR(clGetDeviceInfo(devices[sequential_id],
+	                               CL_DEVICE_NAME,
+	                               sizeof(dname), dname, NULL),
+	               "Error querying CL_DEVICE_NAME");
 
 	cores_per_MP[sequential_id] = 0;
+
 	if (gpu_nvidia(device_info[sequential_id])) {
 #ifdef CL_DEVICE_COMPUTE_CAPABILITY_MAJOR_NV
 		unsigned int major = 0, minor = 0;
@@ -1726,15 +1733,8 @@ cl_uint get_processors_count(int sequential_id)
 		   much more clauses to be correct but it's a MESS:
 		   http://en.wikipedia.org/wiki/Comparison_of_Nvidia_graphics_processing_units
 
-		   Anything that not hits these will be listed as x8, right
-		   or wrong. Note that --list=cuda-devices will show the right
-		   figure even under OSX. */
-		char dname[MAX_OCLINFO_STRING_LEN];
-
-		HANDLE_CLERROR(clGetDeviceInfo(devices[sequential_id],
-		                               CL_DEVICE_NAME,
-		                               sizeof(dname), dname, NULL),
-		               "Error querying CL_DEVICE_NAME");
+		   Note that --list=cuda-devices will show the right figure
+		   even under OSX. */
 
 		// Kepler
 		if (strstr(dname, "GT 65") || strstr(dname, "GTX 65") ||
@@ -1744,15 +1744,16 @@ cl_uint get_processors_count(int sequential_id)
 			strstr(dname, "GT 69") || strstr(dname, "GTX 69"))
 			core_count *= (cores_per_MP[sequential_id] = 192);
 #endif
-	} else
-		if (gpu_amd(device_info[sequential_id])) {
+	} else if (gpu_amd(device_info[sequential_id])) {
 			// 16 thread proc * 5 SP
 			core_count *= (cores_per_MP[sequential_id] = (16 *
 			((amd_gcn(device_info[sequential_id]) ||
 			amd_vliw4(device_info[sequential_id])) ? 4 : 5)));
+	} else if (!strncmp(dname, "HD Graphics", 11)) {
+			core_count *= (cores_per_MP[sequential_id] = 1);
 	} else if (gpu(device_info[sequential_id]))
-			// Any other GPU
-			core_count *= (cores_per_MP[sequential_id] = 8);
+			// Any other GPU, if we don't know we wont guess
+			core_count *= (cores_per_MP[sequential_id] = 0);
 
 	return core_count;
 }
@@ -2154,7 +2155,7 @@ void listOpenCLdevices(void)
 			printf("\tParallel compute cores:\t%d\n", entries);
 
 			long_entries = get_processors_count(sequence_nr);
-			if (cores_per_MP[sequence_nr])
+			if (cores_per_MP[sequence_nr] > 1)
 				printf("\tStream processors:\t%llu "
 				       " (%d x %d)\n",
 				       (unsigned long long)long_entries,
