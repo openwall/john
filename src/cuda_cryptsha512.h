@@ -10,9 +10,13 @@
 #include "stdint.h"
 #include <stdbool.h>
 
+#ifdef __APPLE__
+#include "stdint.h"
+#else
 #define uint8_t  unsigned char
 #define uint32_t unsigned int
 #define uint64_t unsigned long long int
+#endif
 
 #define BLOCKS 14
 #define THREADS 128//set 256 on fermi

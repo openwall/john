@@ -7,9 +7,13 @@
 #ifndef _CUDA_SHA512_H
 #define _CUDA_SHA512_H
 
+#ifdef __APPLE__
+#include "stdint.h"
+#else
 #define uint8_t  unsigned char
 #define uint32_t unsigned int
 #define uint64_t unsigned long long int
+#endif
 
 #define BLOCKS 4096
 #define THREADS 128
@@ -66,4 +70,3 @@ typedef uint64_t sha512_hash[BINARY_SIZE / 8]; // up to 512 bits
 
 
 #endif
-

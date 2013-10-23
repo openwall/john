@@ -16,6 +16,7 @@
 #include <string.h>
 #include <assert.h>
 
+#include "stdint.h"
 #include "arch.h"
 #include "sha2.h"
 #include "cuda_xsha512.h"
