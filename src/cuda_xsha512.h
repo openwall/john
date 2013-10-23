@@ -8,10 +8,6 @@
 #ifndef _CUDA_XSHA512_H
 #define _CUDA_XSHA512_H
 
-#define uint8_t  unsigned char
-#define uint32_t unsigned int
-#define uint64_t unsigned long long int
-
 #define BLOCKS 4096
 #define THREADS 128
 #define KEYS_PER_CRYPT (BLOCKS*THREADS)

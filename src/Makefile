@@ -1464,7 +1464,7 @@ macosx-x86-64-gpu:
 		ASFLAGS="$(ASFLAGS) -m64 -DUNDERSCORES -DBSD -DALIGN_LOG" \
 		CFLAGS="$(CFLAGS) -m64 -I$(OCLROOT)/include -I$(CUDAPATH)/include -DBSD -DHAVE_CRYPT -DHAVE_OPENCL -DHAVE_CUDA -Wno-deprecated-declarations" \
 		LDFLAGS="$(LDFLAGS) -m64 -L$(CUDAPATH)/lib -lcudart -framework OpenCL" \
-		NVCC_FLAGS="$(NVCC_FLAGS) -m64 -ccbin=/usr/bin/llvm-gcc"
+		NVCC_FLAGS="$(NVCC_FLAGS) -m64 -ccbin=/usr/bin/llvm-gcc-4.2"
 	$(MKDIR) ../run/kernels/
 	$(CP_PRESERVE) opencl/*.cl ../run/kernels/
 	$(CP_PRESERVE) opencl_*.h ../run/kernels/
@@ -1485,7 +1485,7 @@ macosx-x86-64-native-gpu:
 		ASFLAGS="$(ASFLAGS) -march=native -DUNDERSCORES -DBSD -DALIGN_LOG" \
 		CFLAGS="$(CFLAGS) -march=native -I$(OCLROOT)/include -I$(CUDAPATH)/include -DHAVE_CRYPT -DHAVE_OPENCL -DHAVE_CUDA -Wno-deprecated-declarations" \
 		LDFLAGS="$(LDFLAGS) -march=native -L$(CUDAPATH)/lib -lcudart -framework OpenCL" \
-		NVCC_FLAGS="$(NVCC_FLAGS) -m64 -ccbin=/usr/bin/llvm-gcc"
+		NVCC_FLAGS="$(NVCC_FLAGS) -m64 -ccbin=/usr/bin/llvm-gcc-4.2"
 	$(MKDIR) ../run/kernels/
 	$(CP_PRESERVE) opencl/*.cl ../run/kernels/
 	$(CP_PRESERVE) opencl_*.h ../run/kernels/
@@ -1538,7 +1538,7 @@ macosx-x86-64-cuda:
 		CFLAGS="$(CFLAGS) -I$(CUDAPATH)/include -DBSD -DHAVE_CRYPT -DHAVE_CUDA -m64 -Wno-deprecated-declarations" \
 		ASFLAGS="$(ASFLAGS) -m64 -DUNDERSCORES -DBSD -DALIGN_LOG" \
 		LDFLAGS="$(LDFLAGS) -m64 -L$(CUDAPATH)/lib -lcudart" \
-		NVCC_FLAGS="$(NVCC_FLAGS) -m64 -ccbin=/usr/bin/llvm-gcc"
+		NVCC_FLAGS="$(NVCC_FLAGS) -m64 -ccbin=/usr/bin/llvm-gcc-4.2"
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)

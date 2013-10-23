@@ -14,6 +14,7 @@
 
 #include <string.h>
 
+#include "stdint.h"
 #include "arch.h"
 #include "sha2.h"
 #include "cuda_rawsha512.h"
