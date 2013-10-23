@@ -460,6 +460,10 @@ static int crypt_all(int *pcount, struct db_salt *_salt) {
 
 	gws = GET_MULTIPLE_BIGGER(count, local_work_size);
 
+	/* Self-test cludge */
+	if (offset > key_idx || offset > gws)
+		offset = 0;
+
 	//Send data to device.
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], pass_buffer, CL_FALSE,
 		sizeof(uint32_t) * offset,
