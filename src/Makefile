@@ -20,6 +20,8 @@ SED = sed
 NULL = /dev/null
 CPPFLAGS = -E
 SORT = sort
+NVCC = nvcc
+
 
 ## Uncomment the TWO lines below for MPI (can be used together with OMP as well)
 ## For experimental MPI_Barrier support, add -DJOHN_MPI_BARRIER too.
@@ -1394,7 +1396,9 @@ macosx-x86-64-gpu:
 		ASFLAGS="$(ASFLAGS) -m64 -DUNDERSCORES -DBSD -DALIGN_LOG" \
 		CFLAGS="$(CFLAGS) -m64 -I$(OCLROOT)/include -DBSD -DHAVE_CRYPT -DHAVE_OPENCL -DHAVE_CUDA -Wno-deprecated-declarations" \
 		LDFLAGS="$(LDFLAGS) -m64 -L$(CUDAPATH) -lcudart -framework OpenCL" \
-		NVCC_FLAGS="$(NVCC_FLAGS) -m64 -ccbin=/usr/bin/llvm-gcc"
+		NVCC="$(OCLROOT)/bin/$(NVCC)" \
+		NVCC_FLAGS="$(NVCC_FLAGS) -m64 -ccbin=$(CXX)" \
+		LD=$(CXX)
 	$(MKDIR) ../run/kernels/
 	$(CP_PRESERVE) opencl/*.cl ../run/kernels/
 	$(CP_PRESERVE) opencl_*.h ../run/kernels/
@@ -1427,7 +1431,9 @@ macosx-x86-64-cuda:
 		CFLAGS="$(CFLAGS) -DBSD -DHAVE_CRYPT -DHAVE_CUDA -m64 -Wno-deprecated-declarations" \
 		ASFLAGS="$(ASFLAGS) -m64 -DUNDERSCORES -DBSD -DALIGN_LOG" \
 		LDFLAGS="$(LDFLAGS) -m64 -L$(CUDAPATH) -lcudart" \
-		NVCC_FLAGS="$(NVCC_FLAGS) -m64 -ccbin=/usr/bin/llvm-gcc"
+		NVCC="$(OCLROOT)/bin/$(NVCC)" \
+		NVCC_FLAGS="$(NVCC_FLAGS) -m64 -ccbin=$(CXX)" \
+		LD=$(CXX)
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
@@ -1838,76 +1844,76 @@ para-bench32: $(PARA_BENCH_32_OBJS)
 	$(LD) $(PARA_BENCH_32_OBJS) $(LDFLAGS) -o para-bench
 
 cuda_common.o:	cuda/cuda_common.cuh cuda/cuda_common.cu
-	cd cuda; nvcc $(NVCC_FLAGS) cuda_common.cu -o ../cuda_common.o
+	cd cuda; $(NVCC) $(NVCC_FLAGS) cuda_common.cu -o ../cuda_common.o
 
 cuda_cryptmd5.o:  cuda_cryptmd5.h cuda/cryptmd5.cu cuda_common.o
-	cd cuda; nvcc $(NVCC_FLAGS) cryptmd5.cu -o ../cuda_cryptmd5.o
+	cd cuda; $(NVCC) $(NVCC_FLAGS) cryptmd5.cu -o ../cuda_cryptmd5.o
 
 cuda_cryptmd5_fmt.o: cuda_cryptmd5.o cuda_cryptmd5_fmt.c
 	$(CC)  $(CFLAGS) cuda_cryptmd5_fmt.c -o cuda_cryptmd5_fmt.o
 
 cuda_phpass.o:  cuda_phpass.h cuda/phpass.cu cuda_common.o
-	cd cuda; nvcc $(NVCC_FLAGS) phpass.cu -o ../cuda_phpass.o
+	cd cuda; $(NVCC) $(NVCC_FLAGS) phpass.cu -o ../cuda_phpass.o
 
 cuda_phpass_fmt.o: cuda_phpass.o cuda_phpass_fmt.c
 	$(CC)  $(CFLAGS) cuda_phpass_fmt.c -o cuda_phpass_fmt.o
 
 cuda_cryptsha256.o:  cuda_cryptsha256.h cuda/cryptsha256.cu cuda_common.o
-	cd cuda; nvcc $(NVCC_FLAGS) cryptsha256.cu -o ../cuda_cryptsha256.o
+	cd cuda; $(NVCC) $(NVCC_FLAGS) cryptsha256.cu -o ../cuda_cryptsha256.o
 
 cuda_cryptsha256_fmt.o: cuda_cryptsha256.o cuda_cryptsha256_fmt.c
 	$(CC)  $(CFLAGS) cuda_cryptsha256_fmt.c -o cuda_cryptsha256_fmt.o
 
 cuda_cryptsha512.o:  cuda_cryptsha512.h cuda/cryptsha512.cu cuda_common.o
-	cd cuda; nvcc $(NVCC_FLAGS) cryptsha512.cu -o ../cuda_cryptsha512.o
+	cd cuda; $(NVCC) $(NVCC_FLAGS) cryptsha512.cu -o ../cuda_cryptsha512.o
 
 cuda_cryptsha512_fmt.o: cuda_cryptsha512.o cuda_cryptsha512_fmt.c
 	$(CC)  $(CFLAGS) cuda_cryptsha512_fmt.c -o cuda_cryptsha512_fmt.o
 
 cuda_mscash2.o:  cuda_mscash2.h cuda/mscash2.cu cuda_common.o
-	cd cuda; nvcc $(NVCC_FLAGS) mscash2.cu -o ../cuda_mscash2.o
+	cd cuda; $(NVCC) $(NVCC_FLAGS) mscash2.cu -o ../cuda_mscash2.o
 
 cuda_mscash2_fmt.o: cuda_mscash2.o cuda_mscash2_fmt.c
 	$(CC)  $(CFLAGS) cuda_mscash2_fmt.c -o cuda_mscash2_fmt.o
 
 cuda_mscash.o:  cuda_mscash.h cuda/mscash.cu cuda_common.o
-	cd cuda; nvcc $(NVCC_FLAGS) mscash.cu -o ../cuda_mscash.o
+	cd cuda; $(NVCC) $(NVCC_FLAGS) mscash.cu -o ../cuda_mscash.o
 
 cuda_mscash_fmt.o: cuda_mscash.o cuda_mscash_fmt.c
 	$(CC)  $(CFLAGS) cuda_mscash_fmt.c -o cuda_mscash_fmt.o
 
 cuda_rawsha256.o:  cuda_rawsha256.h cuda/rawsha256.cu cuda_common.o
-	cd cuda; nvcc $(NVCC_FLAGS) -DSHA256 rawsha256.cu -o ../cuda_rawsha256.o
+	cd cuda; $(NVCC) $(NVCC_FLAGS) -DSHA256 rawsha256.cu -o ../cuda_rawsha256.o
 
 cuda_rawsha256_fmt.o: cuda_rawsha256.o cuda_rawsha256_fmt.c
 	$(CC)  $(CFLAGS) -DSHA256 cuda_rawsha256_fmt.c -o cuda_rawsha256_fmt.o
 
 cuda_rawsha224.o:  cuda_rawsha256.h cuda/rawsha256.cu cuda_common.o
-	cd cuda; nvcc $(NVCC_FLAGS) -DSHA224 rawsha256.cu -o ../cuda_rawsha224.o
+	cd cuda; $(NVCC) $(NVCC_FLAGS) -DSHA224 rawsha256.cu -o ../cuda_rawsha224.o
 
 cuda_rawsha224_fmt.o: cuda_rawsha224.o cuda_rawsha256_fmt.c
 	$(CC)  $(CFLAGS) -DSHA224 cuda_rawsha256_fmt.c -o cuda_rawsha224_fmt.o
 
 cuda_xsha512.o: cuda_xsha512.h cuda/xsha512.cu cuda_common.o
-	cd cuda; nvcc $(NVCC_FLAGS) xsha512.cu -o ../cuda_xsha512.o
+	cd cuda; $(NVCC) $(NVCC_FLAGS) xsha512.cu -o ../cuda_xsha512.o
 
 cuda_xsha512_fmt.o: cuda_xsha512.o cuda_xsha512_fmt.c
 	$(CC) $(CFLAGS) cuda_xsha512_fmt.c -o cuda_xsha512_fmt.o
 
 cuda_wpapsk.o:  cuda_wpapsk.h cuda/wpapsk.cu cuda_common.o
-	cd cuda; nvcc $(NVCC_FLAGS) wpapsk.cu -o ../cuda_wpapsk.o
+	cd cuda; $(NVCC) $(NVCC_FLAGS) wpapsk.cu -o ../cuda_wpapsk.o
 
 cuda_wpapsk_fmt.o: cuda_wpapsk.o cuda_wpapsk_fmt.c
 	$(CC)  $(CFLAGS) cuda_wpapsk_fmt.c -o cuda_wpapsk_fmt.o
 
 cuda_rawsha512.o: cuda_rawsha512.h cuda/rawsha512.cu cuda_common.o
-	cd cuda; nvcc $(NVCC_FLAGS) rawsha512.cu -o ../cuda_rawsha512.o
+	cd cuda; $(NVCC) $(NVCC_FLAGS) rawsha512.cu -o ../cuda_rawsha512.o
 
 cuda_rawsha512_fmt.o: cuda_rawsha512.o cuda_rawsha512_fmt.c
 	$(CC) $(CFLAGS) cuda_rawsha512_fmt.c -o cuda_rawsha512_fmt.o
 
 cuda_pwsafe.o: cuda_pwsafe.h cuda/pwsafe.cu cuda_common.o
-	cd cuda; nvcc $(NVCC_FLAGS) pwsafe.cu -o ../cuda_pwsafe.o
+	cd cuda; $(NVCC) $(NVCC_FLAGS) pwsafe.cu -o ../cuda_pwsafe.o
 
 cuda_pwsafe_fmt.o: cuda_pwsafe.o cuda_pwsafe_fmt.c
 	$(CC)  $(CFLAGS) cuda_pwsafe_fmt.c -o cuda_pwsafe_fmt.o
