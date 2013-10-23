@@ -30,8 +30,9 @@ SORT = sort
 OMPFLAGS =
 # gcc with OpenMP
 #OMPFLAGS = -fopenmp
+# gcc with OpenMP on 32-bit x86 with SSE2
 #OMPFLAGS = -fopenmp -msse2
-# OS X (llvm-gcc) with OpenMP
+# Mac OS X (llvm-gcc) with OpenMP
 #OMPFLAGS = -fopenmp -D_FORTIFY_SOURCE=0
 # Sun Studio with OpenMP (set the OMP_NUM_THREADS env var at runtime)
 #OMPFLAGS = -xopenmp
@@ -67,8 +68,9 @@ KRB5_LDFLAGS = `find 2>&1 /usr/include/ /usr/local/include/ -name "krb5.h" | gre
 # You could add "-gencode arch=compute_30,code=sm_30" too but that just
 # leads to regressions for Kepler cards, when it works at all.
 NVCC_FLAGS = -c -Xptxas -v -fmad=true -arch sm_10
-CUDAPATH = /usr/local/cuda/lib
-CUDA64PATH = /usr/local/cuda/lib64
+CUDAPATH = /usr/local/cuda
+NVCC = $(CUDAPATH)/bin/nvcc
+CCBIN_OSX = -ccbin=/usr/bin/llvm-gcc-4.2
 
 ifdef NVIDIA_CUDA
 OCLROOT = $(NVIDIA_CUDA)
@@ -400,9 +402,9 @@ linux-x86-64-gpu:
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) $(OCL_OBJS) $(CUDA_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
-		CFLAGS="$(CFLAGS) -I$(OCLROOT)/include -DHAVE_CRYPT -DHAVE_OPENCL -DHAVE_CUDA -DHAVE_DL -march=native" \
+		CFLAGS="$(CFLAGS) -I$(OCLROOT)/include -I$(CUDAPATH)/include -DHAVE_CRYPT -DHAVE_OPENCL -DHAVE_CUDA -DHAVE_DL -march=native" \
 		ASFLAGS="$(ASFLAGS) -march=native" \
-		LDFLAGS="$(LDFLAGS) -L$(OCLROOT)/lib/x86_64 -L$(OCLROOT)/lib64 -L$(CUDA64PATH) -lcrypt -lOpenCL -ldl -lcudart -march=native"
+		LDFLAGS="$(LDFLAGS) -L$(OCLROOT)/lib/x86_64 -L$(OCLROOT)/lib64 -L$(CUDAPATH)/lib64 -lcrypt -lOpenCL -ldl -lcudart -march=native"
 	$(MKDIR) ../run/kernels/
 	$(CP_PRESERVE) opencl/*.cl ../run/kernels/
 	$(CP_PRESERVE) opencl_*.h ../run/kernels/
@@ -432,9 +434,9 @@ linux-x86-64-cuda:
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) $(CUDA_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
-		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -DHAVE_DL -DHAVE_CUDA -march=native" \
+		CFLAGS="$(CFLAGS) -I$(CUDAPATH)/include -DHAVE_CRYPT -DHAVE_DL -DHAVE_CUDA -march=native" \
 		ASFLAGS="$(ASFLAGS) -march=native" \
-		LDFLAGS="$(LDFLAGS) -L$(CUDA64PATH) -lcrypt -ldl -lcudart -march=native"
+		LDFLAGS="$(LDFLAGS) -L$(CUDAPATH)/lib64 -lcrypt -ldl -lcudart -march=native"
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
@@ -634,8 +636,9 @@ linux-x86-gpu:
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) $(OCL_OBJS) $(CUDA_OBJS) c3_fmt.o x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
-		CFLAGS="$(CFLAGS) -I$(OCLROOT)/include -DHAVE_CRYPT -DHAVE_OPENCL -DHAVE_CUDA -DHAVE_DL -DUSING_ICC_S_FILE" \
-		LDFLAGS="$(LDFLAGS) -L$(OCLROOT)/lib/x86 -L$(OCLROOT)/lib -L$(CUDAPATH) -lcrypt -lOpenCL -ldl -lcudart"
+		CFLAGS="$(CFLAGS) -I$(OCLROOT)/include -I$(CUDAPATH)/include -DHAVE_CRYPT -DHAVE_OPENCL -DHAVE_CUDA -DHAVE_DL -DUSING_ICC_S_FILE -march=native" \
+		ASFLAGS="$(ASFLAGS) -march=native" \
+		LDFLAGS="$(LDFLAGS) -L$(OCLROOT)/lib/x86 -L$(OCLROOT)/lib -L$(CUDAPATH)/lib -lcrypt -lOpenCL -ldl -lcudart -march=native"
 	$(MKDIR) ../run/kernels/
 	$(CP_PRESERVE) opencl/*.cl ../run/kernels/
 	$(CP_PRESERVE) opencl_*.h ../run/kernels/
@@ -649,8 +652,9 @@ linux-x86-opencl:
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) $(OCL_OBJS) c3_fmt.o x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
-		CFLAGS="$(CFLAGS) -I$(OCLROOT)/include -DHAVE_CRYPT -DHAVE_OPENCL -DHAVE_DL -DUSING_ICC_S_FILE" \
-		LDFLAGS="$(LDFLAGS) -L$(OCLROOT)/lib/x86 -L$(OCLROOT)/lib -lcrypt -lOpenCL -ldl"
+		CFLAGS="$(CFLAGS) -I$(OCLROOT)/include -DHAVE_CRYPT -DHAVE_OPENCL -DHAVE_DL -DUSING_ICC_S_FILE -march=native" \
+		ASFLAGS="$(ASFLAGS) -march=native" \
+		LDFLAGS="$(LDFLAGS) -L$(OCLROOT)/lib/x86 -L$(OCLROOT)/lib -lcrypt -lOpenCL -ldl -march=native"
 	$(MKDIR) ../run/kernels/
 	$(CP_PRESERVE) opencl/*.cl ../run/kernels/
 	$(CP_PRESERVE) opencl_*.h ../run/kernels/
@@ -664,8 +668,9 @@ linux-x86-cuda:
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) $(CUDA_OBJS) c3_fmt.o x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
-		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -DHAVE_DL -DHAVE_CUDA -DUSING_ICC_S_FILE" \
-		LDFLAGS="$(LDFLAGS) -L$(CUDAPATH) -lcrypt -ldl -lcudart"
+		CFLAGS="$(CFLAGS) -I$(CUDAPATH)/include -DHAVE_CRYPT -DHAVE_DL -DHAVE_CUDA -DUSING_ICC_S_FILE -march=native" \
+		ASFLAGS="$(ASFLAGS) -march=native" \
+		LDFLAGS="$(LDFLAGS) -L$(CUDAPATH)/lib -lcrypt -ldl -lcudart -march=native"
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
@@ -1392,9 +1397,9 @@ macosx-x86-64-gpu:
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) $(OCL_OBJS) $(CUDA_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
 		ASFLAGS="$(ASFLAGS) -m64 -DUNDERSCORES -DBSD -DALIGN_LOG" \
-		CFLAGS="$(CFLAGS) -m64 -I$(OCLROOT)/include -DBSD -DHAVE_CRYPT -DHAVE_OPENCL -DHAVE_CUDA -Wno-deprecated-declarations" \
-		LDFLAGS="$(LDFLAGS) -m64 -L$(CUDAPATH) -lcudart -framework OpenCL" \
-		NVCC_FLAGS="$(NVCC_FLAGS) -m64 -ccbin=/usr/bin/llvm-gcc-4.2"
+		CFLAGS="$(CFLAGS) -m64 -I$(OCLROOT)/include -I$(CUDAPATH)/include -DBSD -DHAVE_CRYPT -DHAVE_OPENCL -DHAVE_CUDA -Wno-deprecated-declarations" \
+		LDFLAGS="$(LDFLAGS) -m64 -L$(CUDAPATH)/lib -lcudart -framework OpenCL" \
+		NVCC_FLAGS="$(NVCC_FLAGS) -m64 $(CCBIN_OSX)"
 	$(MKDIR) ../run/kernels/
 	$(CP_PRESERVE) opencl/*.cl ../run/kernels/
 	$(CP_PRESERVE) opencl_*.h ../run/kernels/
@@ -1424,10 +1429,10 @@ macosx-x86-64-cuda:
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) $(CUDA_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
-		CFLAGS="$(CFLAGS) -DBSD -DHAVE_CRYPT -DHAVE_CUDA -m64 -Wno-deprecated-declarations" \
+		CFLAGS="$(CFLAGS) -I$(CUDAPATH)/include -DBSD -DHAVE_CRYPT -DHAVE_CUDA -m64 -Wno-deprecated-declarations" \
 		ASFLAGS="$(ASFLAGS) -m64 -DUNDERSCORES -DBSD -DALIGN_LOG" \
-		LDFLAGS="$(LDFLAGS) -m64 -L$(CUDAPATH) -lcudart" \
-		NVCC_FLAGS="$(NVCC_FLAGS) -m64 -ccbin=/usr/bin/llvm-gcc-4.2"
+		LDFLAGS="$(LDFLAGS) -m64 -L$(CUDAPATH)/lib -lcudart" \
+		NVCC_FLAGS="$(NVCC_FLAGS) -m64 $(CCBIN_OSX)"
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
@@ -1838,76 +1843,76 @@ para-bench32: $(PARA_BENCH_32_OBJS)
 	$(LD) $(PARA_BENCH_32_OBJS) $(LDFLAGS) -o para-bench
 
 cuda_common.o:	cuda/cuda_common.cuh cuda/cuda_common.cu
-	cd cuda; nvcc $(NVCC_FLAGS) cuda_common.cu -o ../cuda_common.o
+	cd cuda; $(NVCC) $(NVCC_FLAGS) cuda_common.cu -o ../cuda_common.o
 
 cuda_cryptmd5.o:  cuda_cryptmd5.h cuda/cryptmd5.cu cuda_common.o
-	cd cuda; nvcc $(NVCC_FLAGS) cryptmd5.cu -o ../cuda_cryptmd5.o
+	cd cuda; $(NVCC) $(NVCC_FLAGS) cryptmd5.cu -o ../cuda_cryptmd5.o
 
 cuda_cryptmd5_fmt.o: cuda_cryptmd5.o cuda_cryptmd5_fmt.c
 	$(CC)  $(CFLAGS) cuda_cryptmd5_fmt.c -o cuda_cryptmd5_fmt.o
 
 cuda_phpass.o:  cuda_phpass.h cuda/phpass.cu cuda_common.o
-	cd cuda; nvcc $(NVCC_FLAGS) phpass.cu -o ../cuda_phpass.o
+	cd cuda; $(NVCC) $(NVCC_FLAGS) phpass.cu -o ../cuda_phpass.o
 
 cuda_phpass_fmt.o: cuda_phpass.o cuda_phpass_fmt.c
 	$(CC)  $(CFLAGS) cuda_phpass_fmt.c -o cuda_phpass_fmt.o
 
 cuda_cryptsha256.o:  cuda_cryptsha256.h cuda/cryptsha256.cu cuda_common.o
-	cd cuda; nvcc $(NVCC_FLAGS) cryptsha256.cu -o ../cuda_cryptsha256.o
+	cd cuda; $(NVCC) $(NVCC_FLAGS) cryptsha256.cu -o ../cuda_cryptsha256.o
 
 cuda_cryptsha256_fmt.o: cuda_cryptsha256.o cuda_cryptsha256_fmt.c
 	$(CC)  $(CFLAGS) cuda_cryptsha256_fmt.c -o cuda_cryptsha256_fmt.o
 
 cuda_cryptsha512.o:  cuda_cryptsha512.h cuda/cryptsha512.cu cuda_common.o
-	cd cuda; nvcc $(NVCC_FLAGS) cryptsha512.cu -o ../cuda_cryptsha512.o
+	cd cuda; $(NVCC) $(NVCC_FLAGS) cryptsha512.cu -o ../cuda_cryptsha512.o
 
 cuda_cryptsha512_fmt.o: cuda_cryptsha512.o cuda_cryptsha512_fmt.c
 	$(CC)  $(CFLAGS) cuda_cryptsha512_fmt.c -o cuda_cryptsha512_fmt.o
 
 cuda_mscash2.o:  cuda_mscash2.h cuda/mscash2.cu cuda_common.o
-	cd cuda; nvcc $(NVCC_FLAGS) mscash2.cu -o ../cuda_mscash2.o
+	cd cuda; $(NVCC) $(NVCC_FLAGS) mscash2.cu -o ../cuda_mscash2.o
 
 cuda_mscash2_fmt.o: cuda_mscash2.o cuda_mscash2_fmt.c
 	$(CC)  $(CFLAGS) cuda_mscash2_fmt.c -o cuda_mscash2_fmt.o
 
 cuda_mscash.o:  cuda_mscash.h cuda/mscash.cu cuda_common.o
-	cd cuda; nvcc $(NVCC_FLAGS) mscash.cu -o ../cuda_mscash.o
+	cd cuda; $(NVCC) $(NVCC_FLAGS) mscash.cu -o ../cuda_mscash.o
 
 cuda_mscash_fmt.o: cuda_mscash.o cuda_mscash_fmt.c
 	$(CC)  $(CFLAGS) cuda_mscash_fmt.c -o cuda_mscash_fmt.o
 
 cuda_rawsha256.o:  cuda_rawsha256.h cuda/rawsha256.cu cuda_common.o
-	cd cuda; nvcc $(NVCC_FLAGS) -DSHA256 rawsha256.cu -o ../cuda_rawsha256.o
+	cd cuda; $(NVCC) $(NVCC_FLAGS) -DSHA256 rawsha256.cu -o ../cuda_rawsha256.o
 
 cuda_rawsha256_fmt.o: cuda_rawsha256.o cuda_rawsha256_fmt.c
 	$(CC)  $(CFLAGS) -DSHA256 cuda_rawsha256_fmt.c -o cuda_rawsha256_fmt.o
 
 cuda_rawsha224.o:  cuda_rawsha256.h cuda/rawsha256.cu cuda_common.o
-	cd cuda; nvcc $(NVCC_FLAGS) -DSHA224 rawsha256.cu -o ../cuda_rawsha224.o
+	cd cuda; $(NVCC) $(NVCC_FLAGS) -DSHA224 rawsha256.cu -o ../cuda_rawsha224.o
 
 cuda_rawsha224_fmt.o: cuda_rawsha224.o cuda_rawsha256_fmt.c
 	$(CC)  $(CFLAGS) -DSHA224 cuda_rawsha256_fmt.c -o cuda_rawsha224_fmt.o
 
 cuda_xsha512.o: cuda_xsha512.h cuda/xsha512.cu cuda_common.o
-	cd cuda; nvcc $(NVCC_FLAGS) xsha512.cu -o ../cuda_xsha512.o
+	cd cuda; $(NVCC) $(NVCC_FLAGS) xsha512.cu -o ../cuda_xsha512.o
 
 cuda_xsha512_fmt.o: cuda_xsha512.o cuda_xsha512_fmt.c
 	$(CC) $(CFLAGS) cuda_xsha512_fmt.c -o cuda_xsha512_fmt.o
 
 cuda_wpapsk.o:  cuda_wpapsk.h cuda/wpapsk.cu cuda_common.o
-	cd cuda; nvcc $(NVCC_FLAGS) wpapsk.cu -o ../cuda_wpapsk.o
+	cd cuda; $(NVCC) $(NVCC_FLAGS) wpapsk.cu -o ../cuda_wpapsk.o
 
 cuda_wpapsk_fmt.o: cuda_wpapsk.o cuda_wpapsk_fmt.c
 	$(CC)  $(CFLAGS) cuda_wpapsk_fmt.c -o cuda_wpapsk_fmt.o
 
 cuda_rawsha512.o: cuda_rawsha512.h cuda/rawsha512.cu cuda_common.o
-	cd cuda; nvcc $(NVCC_FLAGS) rawsha512.cu -o ../cuda_rawsha512.o
+	cd cuda; $(NVCC) $(NVCC_FLAGS) rawsha512.cu -o ../cuda_rawsha512.o
 
 cuda_rawsha512_fmt.o: cuda_rawsha512.o cuda_rawsha512_fmt.c
 	$(CC) $(CFLAGS) cuda_rawsha512_fmt.c -o cuda_rawsha512_fmt.o
 
 cuda_pwsafe.o: cuda_pwsafe.h cuda/pwsafe.cu cuda_common.o
-	cd cuda; nvcc $(NVCC_FLAGS) pwsafe.cu -o ../cuda_pwsafe.o
+	cd cuda; $(NVCC) $(NVCC_FLAGS) pwsafe.cu -o ../cuda_pwsafe.o
 
 cuda_pwsafe_fmt.o: cuda_pwsafe.o cuda_pwsafe_fmt.c
 	$(CC)  $(CFLAGS) cuda_pwsafe_fmt.c -o cuda_pwsafe_fmt.o
