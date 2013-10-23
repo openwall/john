@@ -28,7 +28,7 @@
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1
 
-#define PLAINTEXT_LENGTH    	55 /* Max. is 55 with current kernel */
+#define PLAINTEXT_LENGTH		55 /* Max. is 55 with current kernel */
 #define BUFSIZE				((PLAINTEXT_LENGTH+3)/4*4)
 #define HASH_LENGTH			(2 * DIGEST_SIZE)
 #define CIPHERTEXT_LENGTH		(HASH_LENGTH + TAG_LENGTH)
@@ -264,8 +264,8 @@ static void fmt_rawsha1_init(struct fmt_main *self) {
 
 	// Current key_idx can only hold 26 bits of offset so
 	// we can't reliably use a GWS higher than 4.7M or so.
-	if (global_work_size > (1 << 26) * 4 / PLAINTEXT_LENGTH) {
-		global_work_size = (1 << 26) * 4 / PLAINTEXT_LENGTH;
+	if (global_work_size > (1 << 26) * 4 / BUFSIZE) {
+		global_work_size = (1 << 26) * 4 / BUFSIZE;
 		global_work_size = global_work_size / local_work_size *
 			local_work_size;
 	}
