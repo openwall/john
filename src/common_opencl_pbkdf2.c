@@ -128,12 +128,23 @@ static size_t max_lws() {
 
 static void find_best_gws(int jtrUniqDevNo, struct fmt_main *fmt) {
 
-	long int 		gds_size;
+	long int 		gds_size, device_gds_size;
 	static long double 	total_exec_time_inv;
 
-	total_exec_time_inv +=  globalObj[jtrUniqDevNo].exec_time_inv;
-	gds_size = (long int)(total_exec_time_inv * 163840);
-	gds_size = (gds_size / 8192 + 1 ) * 8192;
+	device_gds_size = (long int)globalObj[jtrUniqDevNo].exec_time_inv * 163840;
+	if (device_gds_size * sizeof(temp_buf) > get_max_mem_alloc_size(jtrUniqDevNo)) {
+		device_gds_size = ((get_max_mem_alloc_size(jtrUniqDevNo) / sizeof(temp_buf)) / 8192) * 8192;
+		gds_size = (long int)(total_exec_time_inv * 163840) + device_gds_size;
+		gds_size = (gds_size / 8192 - 1 ) * 8192;
+		total_exec_time_inv +=  globalObj[jtrUniqDevNo].exec_time_inv;
+	}
+
+	else {
+		total_exec_time_inv +=  globalObj[jtrUniqDevNo].exec_time_inv;
+		gds_size = (long int)(total_exec_time_inv * 163840);
+		gds_size = (gds_size / 8192 + 1 ) * 8192;
+	}
+
 	gds_size = (gds_size < (MAX_KEYS_PER_CRYPT - 8192)) ? gds_size : (MAX_KEYS_PER_CRYPT - 8192);
 	gds_size = (gds_size > 8192) ? gds_size : 8192;
 
@@ -141,12 +152,13 @@ static void find_best_gws(int jtrUniqDevNo, struct fmt_main *fmt) {
 		fprintf(stderr, "Optimal Global Work Size:%ld\n", gds_size);
 
 	fmt -> params.max_keys_per_crypt = gds_size;
-	fmt -> params.min_keys_per_crypt = max_lws();
+	fmt -> params.min_keys_per_crypt = gds_size;
 }
 
 size_t 	select_device(int jtrUniqDevNo, struct fmt_main *fmt) {
 	cl_int 		err;
 	const char  	*errMsg;
+	size_t	 	memAllocSz;
 
 	opencl_init("$JOHN/kernels/pbkdf2_kernel.cl", jtrUniqDevNo, NULL);
 
@@ -168,19 +180,25 @@ size_t 	select_device(int jtrUniqDevNo, struct fmt_main *fmt) {
 
 	errMsg = "Create Buffer FAILED";
 
-	globalObj[jtrUniqDevNo].gpu_buffer.pass_gpu = clCreateBuffer(context[jtrUniqDevNo], CL_MEM_READ_ONLY, 4 * MAX_KEYS_PER_CRYPT * sizeof(cl_uint), NULL, &err);
+	memAllocSz = 4 * MAX_KEYS_PER_CRYPT * sizeof(cl_uint);
+	memAllocSz = memAllocSz < get_max_mem_alloc_size(jtrUniqDevNo) ? memAllocSz : get_max_mem_alloc_size(jtrUniqDevNo) / 4 * 4;
+	globalObj[jtrUniqDevNo].gpu_buffer.pass_gpu = clCreateBuffer(context[jtrUniqDevNo], CL_MEM_READ_ONLY, memAllocSz, NULL, &err);
 	if (globalObj[jtrUniqDevNo].gpu_buffer.pass_gpu == (cl_mem)0)
 		HANDLE_CLERROR(err,errMsg );
 	globalObj[jtrUniqDevNo].gpu_buffer.salt_gpu = clCreateBuffer(context[jtrUniqDevNo], CL_MEM_READ_ONLY, (MAX_SALT_LENGTH / 2 + 1) * sizeof(cl_uint), NULL, &err);
 	if (globalObj[jtrUniqDevNo].gpu_buffer.salt_gpu == (cl_mem)0)
 		HANDLE_CLERROR(err, errMsg);
-	globalObj[jtrUniqDevNo].gpu_buffer.hash_out_gpu = clCreateBuffer(context[jtrUniqDevNo], CL_MEM_WRITE_ONLY, 4 * MAX_KEYS_PER_CRYPT * sizeof(cl_uint), NULL, &err);
+	globalObj[jtrUniqDevNo].gpu_buffer.hash_out_gpu = clCreateBuffer(context[jtrUniqDevNo], CL_MEM_WRITE_ONLY, memAllocSz, NULL, &err);
 	if (globalObj[jtrUniqDevNo].gpu_buffer.hash_out_gpu == (cl_mem)0)
 		HANDLE_CLERROR(err, errMsg);
-	globalObj[jtrUniqDevNo].gpu_buffer.temp_buf_gpu = clCreateBuffer(context[jtrUniqDevNo], CL_MEM_READ_WRITE, MAX_KEYS_PER_CRYPT * sizeof(temp_buf), NULL, &err);
+	memAllocSz = MAX_KEYS_PER_CRYPT * sizeof(temp_buf);
+	memAllocSz = memAllocSz < get_max_mem_alloc_size(jtrUniqDevNo) ? memAllocSz : get_max_mem_alloc_size(jtrUniqDevNo) / 4 * 4;
+	globalObj[jtrUniqDevNo].gpu_buffer.temp_buf_gpu = clCreateBuffer(context[jtrUniqDevNo], CL_MEM_READ_WRITE, memAllocSz, NULL, &err);
 	if (globalObj[jtrUniqDevNo].gpu_buffer.temp_buf_gpu == (cl_mem)0)
 		HANDLE_CLERROR(err, errMsg);
-	globalObj[jtrUniqDevNo].gpu_buffer.hmac_sha1_gpu = clCreateBuffer(context[jtrUniqDevNo], CL_MEM_READ_WRITE, 5 * MAX_KEYS_PER_CRYPT * sizeof(cl_uint), NULL, &err);
+	memAllocSz = 5 * MAX_KEYS_PER_CRYPT * sizeof(cl_uint);
+	memAllocSz = memAllocSz < get_max_mem_alloc_size(jtrUniqDevNo) ? memAllocSz : get_max_mem_alloc_size(jtrUniqDevNo) / 4 * 4;
+	globalObj[jtrUniqDevNo].gpu_buffer.hmac_sha1_gpu = clCreateBuffer(context[jtrUniqDevNo], CL_MEM_READ_WRITE, memAllocSz, NULL, &err);
 	if (globalObj[jtrUniqDevNo].gpu_buffer.temp_buf_gpu == (cl_mem)0)
 		HANDLE_CLERROR(err, errMsg);
 
@@ -227,7 +245,7 @@ size_t 	select_device(int jtrUniqDevNo, struct fmt_main *fmt) {
 			fprintf(stderr, "Global worksize (GWS) forced to %zu\n", global_work_size);
 
 		fmt -> params.max_keys_per_crypt = global_work_size;
-		fmt -> params.min_keys_per_crypt = max_lws();
+		fmt -> params.min_keys_per_crypt = global_work_size;
 	}
 
 	active_dev_ctr++;
