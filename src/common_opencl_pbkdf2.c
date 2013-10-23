@@ -152,13 +152,15 @@ static void find_best_gws(int jtrUniqDevNo, struct fmt_main *fmt) {
 		fprintf(stderr, "Optimal Global Work Size:%ld\n", gds_size);
 
 	fmt -> params.max_keys_per_crypt = gds_size;
-	fmt -> params.min_keys_per_crypt = gds_size;
+	fmt -> params.min_keys_per_crypt = max_lws();
 }
 
 size_t 	select_device(int jtrUniqDevNo, struct fmt_main *fmt) {
 	cl_int 		err;
 	const char  	*errMsg;
 	size_t	 	memAllocSz;
+
+	active_dev_ctr++;
 
 	opencl_init("$JOHN/kernels/pbkdf2_kernel.cl", jtrUniqDevNo, NULL);
 
@@ -245,10 +247,8 @@ size_t 	select_device(int jtrUniqDevNo, struct fmt_main *fmt) {
 			fprintf(stderr, "Global worksize (GWS) forced to %zu\n", global_work_size);
 
 		fmt -> params.max_keys_per_crypt = global_work_size;
-		fmt -> params.min_keys_per_crypt = global_work_size;
+		fmt -> params.min_keys_per_crypt = max_lws();
 	}
-
-	active_dev_ctr++;
 
 	return globalObj[jtrUniqDevNo].lws;
 }
