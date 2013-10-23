@@ -343,20 +343,12 @@ static void build_kernel(char * task) {
 	}
 }
 
-static void init(struct fmt_main * self) {
-	char * tmp_value;
-	char * task = "$JOHN/kernels/cryptsha512_kernel_DEFAULT.cl";
-
-	opencl_prepare_dev(ocl_gpu_id);
-	source_in_use = device_info[ocl_gpu_id];
-
-	if ((tmp_value = getenv("_TYPE")))
-		source_in_use = atoi(tmp_value);
-
-	if (_USE_GPU_SOURCE)
-		task = "$JOHN/kernels/cryptsha512_kernel_GPU.cl";
-
-	build_kernel(task);
+/* --
+  This function does the common part of auto-tune adjustments,
+  preparation and execution. It is shared code to be inserted
+  in each format files.
+-- */
+static void common_run_auto_tune(struct fmt_main * self) {
 
 	/* Read LWS/GWS prefs from config or environment */
 	opencl_get_user_preferences(OCL_CONFIG);
@@ -366,17 +358,6 @@ static void init(struct fmt_main * self) {
 
 	if (!local_work_size && !getenv("LWS"))
 		local_work_size = get_default_workgroup();
-
-	//Initialize openCL tuning (library) for this format.
-	opencl_init_auto_setup(STEP, HASH_LOOPS, ((_SPLIT_KERNEL_IN_USE) ? 7 : 3),
-		((_SPLIT_KERNEL_IN_USE) ? split_events : NULL),
-		warn, &multi_profilingEvent[1], self, create_clobj, release_clobj,
-		sizeof(sha512_password), 0);
-
-	self->methods.crypt_all = crypt_all_benchmark;
-
-	if (source_in_use != device_info[ocl_gpu_id])
-		fprintf(stderr, "Selected runtime id %d, source (%s)\n", source_in_use, task);
 
 	//Check if local_work_size is a valid number.
 	if (local_work_size > get_task_max_work_group_size()){
@@ -403,6 +384,35 @@ static void init(struct fmt_main * self) {
 		        local_work_size, global_work_size);
 	self->params.min_keys_per_crypt = local_work_size;
 	self->params.max_keys_per_crypt = global_work_size;
+}
+
+static void init(struct fmt_main * self) {
+	char * tmp_value;
+	char * task = "$JOHN/kernels/cryptsha512_kernel_DEFAULT.cl";
+
+	opencl_prepare_dev(ocl_gpu_id);
+	source_in_use = device_info[ocl_gpu_id];
+
+	if ((tmp_value = getenv("_TYPE")))
+		source_in_use = atoi(tmp_value);
+
+	if (_USE_GPU_SOURCE)
+		task = "$JOHN/kernels/cryptsha512_kernel_GPU.cl";
+
+	build_kernel(task);
+
+	//Initialize openCL tuning (library) for this format.
+	opencl_init_auto_setup(STEP, HASH_LOOPS, ((_SPLIT_KERNEL_IN_USE) ? 7 : 3),
+		((_SPLIT_KERNEL_IN_USE) ? split_events : NULL),
+		warn, &multi_profilingEvent[1], self, create_clobj, release_clobj,
+		sizeof(sha512_password), 0);
+
+	if (source_in_use != device_info[ocl_gpu_id])
+		fprintf(stderr, "Selected runtime id %d, source (%s)\n", source_in_use, task);
+
+	//Auto tune execution from shared/included code.
+	self->methods.crypt_all = crypt_all_benchmark;
+	common_run_auto_tune(self);
 	self->methods.crypt_all = crypt_all;
 }
 

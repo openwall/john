@@ -375,6 +375,49 @@ static void find_best_gws(struct fmt_main * self, int sequential_id) {
 	create_clobj(global_work_size, self);
 }
 
+/* --
+  This function does the common part of auto-tune adjustments,
+  preparation and execution. It is shared code to be inserted
+  in each format files.
+-- */
+static void common_run_auto_tune(struct fmt_main * self) {
+
+	/* Read LWS/GWS prefs from config or environment */
+	opencl_get_user_preferences(OCL_CONFIG);
+
+	if (!global_work_size && !getenv("GWS"))
+		global_work_size = get_task_max_size();
+
+	if (!local_work_size && !getenv("LWS"))
+		local_work_size = get_default_workgroup();
+
+	//Check if local_work_size is a valid number.
+	if (local_work_size > get_task_max_work_group_size()){
+		local_work_size = 0; //Force find a valid number.
+	}
+	self->params.max_keys_per_crypt = (global_work_size ? global_work_size: get_task_max_size());
+
+	if (!local_work_size) {
+		create_clobj(self->params.max_keys_per_crypt, self);
+		find_best_lws(self, ocl_gpu_id);
+		release_clobj();
+	}
+
+	if (global_work_size)
+		create_clobj(global_work_size, self);
+
+	else {
+		//user chose to die of boredom
+		find_best_gws(self, ocl_gpu_id);
+	}
+	if (options.verbosity > 2)
+		fprintf(stderr,
+		        "Local worksize (LWS) %zd, global worksize (GWS) %zd\n",
+		        local_work_size, global_work_size);
+	self->params.min_keys_per_crypt = local_work_size;
+	self->params.max_keys_per_crypt = global_work_size;
+}
+
 /* ------- Initialization  ------- */
 static void init(struct fmt_main * self) {
 	char * task = "$JOHN/kernels/sha512-ng_kernel.cl";
@@ -392,15 +435,6 @@ static void init(struct fmt_main * self) {
 	cmp_kernel = clCreateKernel(program[ocl_gpu_id], "kernel_cmp", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel_cmp. Double-check kernel name?");
 
-	/* Read LWS/GWS prefs from config or environment */
-	opencl_get_user_preferences(OCL_CONFIG);
-
-	if (!global_work_size && !getenv("GWS"))
-		global_work_size = get_task_max_size();
-
-	if (!local_work_size && !getenv("LWS"))
-		local_work_size = get_default_workgroup();
-
 	gws_limit = MIN((0xf << 22) * 4 / BUFFER_SIZE,
 			get_max_mem_alloc_size(ocl_gpu_id) / BUFFER_SIZE);
 
@@ -409,38 +443,13 @@ static void init(struct fmt_main * self) {
 		warn, &multi_profilingEvent[1], self, create_clobj, release_clobj,
 		BUFFER_SIZE, gws_limit);
 
-	self->methods.crypt_all = crypt_all_benchmark;
-
-	//Check if local_work_size is a valid number.
-	if (local_work_size > get_task_max_work_group_size()){
-		local_work_size = 0; //Force find a valid number.
-	}
-	self->params.max_keys_per_crypt = (global_work_size ? global_work_size: get_task_max_size());
-
-	if (!local_work_size) {
-		local_work_size = get_task_max_work_group_size();
-		create_clobj(self->params.max_keys_per_crypt, self);
-		find_best_lws(self, ocl_gpu_id);
-		release_clobj();
-	}
-
-	if (global_work_size)
-		create_clobj(global_work_size, self);
-
-	else {
-		//user chose to die of boredom
-		find_best_gws(self, ocl_gpu_id);
-	}
 	//Limit worksize using index limitation.
 	while (global_work_size > gws_limit)
 		global_work_size -= local_work_size;
 
-	if (options.verbosity > 2)
-		fprintf(stderr,
-		        "Local worksize (LWS) %zd, global worksize (GWS) %zd\n",
-		        local_work_size, global_work_size);
-	self->params.min_keys_per_crypt = local_work_size;
-	self->params.max_keys_per_crypt = global_work_size;
+	//Auto tune execution from shared/included code.
+	self->methods.crypt_all = crypt_all_benchmark;
+	common_run_auto_tune(self);
 	self->methods.crypt_all = crypt_all;
 }
 

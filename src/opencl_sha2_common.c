@@ -84,15 +84,8 @@ int common_salt_hash(void * salt, int salt_size, int salt_hash_size) {
 void common_find_best_lws(size_t group_size_limit,
 	int sequential_id, cl_kernel crypt_kernel) {
 
-	int show_details = 0;
-
-	if (getenv("DETAILS"))
-		show_details = 1;
-
 	//Call the default function.
-	opencl_find_best_lws(
-		show_details, group_size_limit, sequential_id, crypt_kernel
-	);
+	opencl_find_best_lws(group_size_limit, sequential_id, crypt_kernel);
 }
 
 /* --
@@ -102,12 +95,8 @@ void common_find_best_lws(size_t group_size_limit,
 void common_find_best_gws(int sequential_id, unsigned int rounds, int step,
 	unsigned long long int max_run_time) {
 
-	int show_speed = 0, show_details = 0;
+	int show_speed = 0;
 	char *tmp_value;
-
-	if (getenv("DETAILS")) {
-		show_details = 1;
-	}
 
 	if ((tmp_value = getenv("STEP"))) {
 		step = atoi(tmp_value);
@@ -116,6 +105,5 @@ void common_find_best_gws(int sequential_id, unsigned int rounds, int step,
 	step = GET_MULTIPLE(step, local_work_size);
 
 	//Call the default function.
-	opencl_find_best_gws(
-		step, show_speed, show_details, max_run_time, sequential_id, rounds);
+	opencl_find_best_gws(step, show_speed, max_run_time, sequential_id, rounds);
 }

@@ -170,15 +170,13 @@ void opencl_process_event(void);
 /*
  * Shared function to find 'the best' local work group size.
  *
- * - show_details: shows messages giving more detailed information.
  * - group_size_limit: the max work group size to be tested.
  *   Register pressure, __local memory usage, ..., will define the limiting value.
  * - sequential_id: the sequential number of the device in use.
  * - Your kernel (or main kernel) should be crypt_kernel.
  */
 void opencl_find_best_lws(
-	int show_details, size_t group_size_limit,
-	int sequential_id, cl_kernel crypt_kernel);
+	size_t group_size_limit, int sequential_id, cl_kernel crypt_kernel);
 
 /*
  * Shared function to find 'the best' global work group size (keys per crypt).
@@ -190,15 +188,12 @@ void opencl_find_best_lws(
  * - show_speep: shows the speed detail (like this):
  *   - gws:  16384      7068 c/s  35341675 rounds/s   2.318 sec per crypt_all()
  *   - and shows messages giving more detailed information.
- * - show_details: shows the time of execution for each part (like this):
- *   - pass xfer: 10.01 ms, crypt: 3.46 ms, result xfer: 1.84 ms
  * - max_run_time: maximum kernel runtime allowed (in ms).
  * - sequential_id: the sequential number of the device in use.
  * - rounds: the number of rounds used by the algorithm.
  *   For raw formats it should be 1. For sha512crypt it is 5000.
  */
-void opencl_find_best_gws(
-	int step, int show_speed, int show_details,
+void opencl_find_best_gws(int step, int show_speed,
 	unsigned long long int max_run_time, int sequential_id,
 	unsigned int rounds);
 
@@ -221,8 +216,11 @@ void opencl_find_best_gws(
  *               "failed in clEnqueueNDRangeKernel");
  *       }
  *
- * - p_warnings: array os strings to be used by show_details.
- *   - "salt xfer: "  ,  ", pass xfer: "  ,  ", crypt: ", ...
+ * - p_warnings: array of strings to be used to show the execution details.
+ *   The line like this:
+ *     - pass xfer: 10.01 ms, crypt: 3.46 ms, result xfer: 1.84 ms
+ *   So, an array like this have to be used:
+ *     - "salt xfer: "  ,  ", pass xfer: "  ,  ", crypt: ", ...
  * - p_to_profile_event: pointer to the main event to be profiled (in find_lws).
  * - p_self: a pointer to the format itself.
  * - p_create_clobj: function that (m)alloc all buffers needed by crypt_all.

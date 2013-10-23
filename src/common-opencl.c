@@ -977,8 +977,7 @@ static void release_profiling_events()
 }
 
 // Do the proper test using different global work sizes.
-static cl_ulong gws_test(
-	size_t num, int show_details, unsigned int rounds, int sequential_id)
+static cl_ulong gws_test(size_t num, unsigned int rounds, int sequential_id)
 {
 	cl_ulong startTime, endTime, runtime = 0, looptime = 0;
 	int i, count, tidx = 0;
@@ -1014,7 +1013,7 @@ static cl_ulong gws_test(
 	if (self->methods.crypt_all(&count, NULL) < 0) {
 		runtime = looptime = 0;
 
-		if (show_details)
+		if (options.verbosity > 3)
 			fprintf(stderr, " (error occured)");
 		release_profiling_events();
 		release_clobj();
@@ -1043,22 +1042,21 @@ static cl_ulong gws_test(
 		else
 			runtime += (endTime - startTime);
 
-		if (show_details)
+		if (options.verbosity > 3)
 			fprintf(stderr, "%s%.2f ms", warnings[i],
 			        (double)(endTime - startTime) / 1000000.);
-#if 0
+
 		/* 200 ms duration limit for GCN to avoid ASIC hangs */
 		if (amd_gcn(device_info[sequential_id]) &&
 		    (endTime - startTime) > 200000000) {
 			runtime = looptime = 0;
 
-			if (show_details)
+			if (options.verbosity > 4)
 				fprintf(stderr, " (exceeds 200 ms)");
 			break;
 		}
-#endif
 	}
-	if (show_details)
+	if (options.verbosity > 3)
 		fprintf(stderr, "\n");
 
 	if (split_events)
@@ -1105,8 +1103,7 @@ void opencl_init_auto_setup(
  * when shared GWS detection is used.
  */
 void opencl_find_best_lws(
-	int show_details, size_t group_size_limit,
-	int sequential_id, cl_kernel crypt_kernel)
+	size_t group_size_limit, int sequential_id, cl_kernel crypt_kernel)
 {
 	size_t gws;
 	cl_int ret_code;
@@ -1116,7 +1113,7 @@ void opencl_find_best_lws(
 	cl_ulong startTime, endTime, kernelExecTimeNs = CL_ULONG_MAX;
 	char config_string[128];
 
-	if (show_details)
+	if (options.verbosity > 3)
 		fprintf(stderr, "Max local worksize %zd, ", group_size_limit);
 
 	gws = global_work_size ?
@@ -1227,7 +1224,7 @@ void opencl_find_best_lws(
 			if (self->methods.crypt_all(&count, NULL) < 0) {
 				startTime = endTime = 0;
 
-				if (show_details)
+				if (options.verbosity > 3)
 					fprintf(stderr, " Error occured\n");
 				break;
 			}
@@ -1271,7 +1268,7 @@ void opencl_find_best_lws(
 	strcat(config_string, config_name);
 	strcat(config_string, LWS_CONFIG_NAME);
 
-	if (show_details) {
+	if (options.verbosity > 3) {
 		fprintf(stderr, "Optimal local worksize %zd\n",
 		        local_work_size);
 		fprintf(stderr, "(to avoid this test on next run, put \""
@@ -1281,8 +1278,7 @@ void opencl_find_best_lws(
 	}
 }
 
-void opencl_find_best_gws(
-	int step, int show_speed, int show_details,
+void opencl_find_best_gws(int step, int show_speed,
 	unsigned long long int max_run_time, int sequential_id,
 	unsigned int rounds)
 {
@@ -1295,7 +1291,7 @@ void opencl_find_best_gws(
 	if (duration_time)
 		max_run_time = duration_time;
 
-	if (show_details)
+	if (options.verbosity > 3)
 		fprintf(stderr, "Calculating best global worksize (GWS) for "
 			"LWS=%zd and max. %2.1f s duration.\n\n",
 			local_work_size, (float) max_run_time / 1000000000.);
@@ -1323,17 +1319,17 @@ void opencl_find_best_gws(
 		    (buffer_size * num * 1.2 >
 		     get_max_mem_alloc_size(ocl_gpu_id)))) {
 
-			if (show_details)
+			if (options.verbosity > 3)
 				fprintf(stderr, "Hardware resources "
 				        "fullfilled\n");
 			break;
 		}
 
-		if (!(run_time = gws_test(num, show_details, rounds,
+		if (!(run_time = gws_test(num, rounds,
 		                          sequential_id)))
 			break;
 
-		if (!show_speed && !show_details)
+		if (!show_speed && options.verbosity < 4)
 			advance_cursor();
 
 		speed = rounds * num / (run_time / 1000000000.);
@@ -1387,7 +1383,7 @@ void opencl_find_best_gws(
 	strcat(config_string, config_name);
 	strcat(config_string, GWS_CONFIG_NAME);
 
-	if (show_details) {
+	if (options.verbosity > 3) {
 		fprintf(stderr, "Optimal global worksize %zd\n",
 		        global_work_size);
 		fprintf(stderr, "(to avoid this test on next run, put \""
