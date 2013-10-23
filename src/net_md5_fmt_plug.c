@@ -21,11 +21,11 @@
 #define OMP_SCALE 2048 // XXX
 #endif
 
-#define FORMAT_LABEL            "RIPv2"
-#define FORMAT_NAME             ""
-#define FORMAT_TAG              "$ripv2$"
+#define FORMAT_LABEL            "net-md5"
+#define FORMAT_NAME             "\"Keyed MD5\" RIPv2, OSPF, BGP, SNMPv2"
+#define FORMAT_TAG              "$netmd5$"
 #define TAG_LENGTH              (sizeof(FORMAT_TAG) - 1)
-#define ALGORITHM_NAME          "RIPv2 MD5 32/" ARCH_BITS_STR
+#define ALGORITHM_NAME          "MD5 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        -1
 #define PLAINTEXT_LENGTH        16
@@ -37,14 +37,14 @@
 #define MAX_KEYS_PER_CRYPT      1
 #define HEXCHARS                "0123456789abcdef"
 
-static struct fmt_tests ripv2_tests[] = {
-	{"$ripv2$02020000ffff0003002c01145267d48d000000000000000000020000ac100100ffffff000000000000000001ffff0001$1e372a8a233c6556253a0909bc3dcce6", "quagga"},
-	{"$ripv2$02020000ffff0003002c01145267d48f000000000000000000020000ac100100ffffff000000000000000001ffff0001$ed9f940c3276afcc06d15babe8a1b61b", "quagga"},
+static struct fmt_tests tests[] = {
+	{FORMAT_TAG "02020000ffff0003002c01145267d48d000000000000000000020000ac100100ffffff000000000000000001ffff0001$1e372a8a233c6556253a0909bc3dcce6", "quagga"},
+	{FORMAT_TAG "02020000ffff0003002c01145267d48f000000000000000000020000ac100100ffffff000000000000000001ffff0001$ed9f940c3276afcc06d15babe8a1b61b", "quagga"},
 	/* XXX dude, change the password already! */
-	{"$ripv2$02020000ffff0003002c01145267d490000000000000000000020000ac100100ffffff000000000000000001ffff0001$c9f7763f80fcfcc2bbbca073be1f5df7", "quagga"},
-	{"$ripv2$02020000ffff0003002c01145267d49a000000000000000000020000ac100200ffffff000000000000000001ffff0001$3f6a72deeda200806230298af0797997", "quagga"},
-	{"$ripv2$02020000ffff0003002c01145267d49b000000000000000000020000ac100200ffffff000000000000000001ffff0001$b69184bacccc752cadf78cac455bd0de", "quagga"},
-	{"$ripv2$02020000ffff0003002c01145267d49d000000000000000000020000ac100100ffffff000000000000000001ffff0001$6442669c577e7662188865a54c105d0e", "quagga"},
+	{FORMAT_TAG "02020000ffff0003002c01145267d490000000000000000000020000ac100100ffffff000000000000000001ffff0001$c9f7763f80fcfcc2bbbca073be1f5df7", "quagga"},
+	{FORMAT_TAG "02020000ffff0003002c01145267d49a000000000000000000020000ac100200ffffff000000000000000001ffff0001$3f6a72deeda200806230298af0797997", "quagga"},
+	{FORMAT_TAG "02020000ffff0003002c01145267d49b000000000000000000020000ac100200ffffff000000000000000001ffff0001$b69184bacccc752cadf78cac455bd0de", "quagga"},
+	{FORMAT_TAG "02020000ffff0003002c01145267d49d000000000000000000020000ac100100ffffff000000000000000001ffff0001$6442669c577e7662188865a54c105d0e", "quagga"},
 	{NULL}
 };
 
@@ -159,6 +159,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	{
 		MD5_CTX ctx;
+
 		MD5_Init(&ctx);
 		MD5_Update(&ctx, cur_salt->salt, cur_salt->length);
 		MD5_Update(&ctx, saved_key[index], PLAINTEXT_LENGTH);
@@ -173,7 +174,7 @@ static int cmp_all(void *binary, int count)
 #ifdef _OPENMP
 	for (; index < count; index++)
 #endif
-		if (!memcmp(binary, crypt_out[index], BINARY_SIZE))
+		if (((ARCH_WORD_32*)binary)[0] == crypt_out[index][0])
 			return 1;
 	return 0;
 }
@@ -188,10 +189,10 @@ static int cmp_exact(char *source, int index)
 	return 1;
 }
 
-static void ripv2_set_key(char *key, int index)
+static void netmd5_set_key(char *key, int index)
 {
-	memset(saved_key[index], 0, PLAINTEXT_LENGTH);
-	strncpy(saved_key[index], key, PLAINTEXT_LENGTH);
+	/* strncpy will pad with zeros, which is needed */
+	strncpy(saved_key[index], key, sizeof(saved_key[0]));
 }
 
 static char *get_key(int index)
@@ -199,7 +200,7 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-struct fmt_main fmt_ripv2 = {
+struct fmt_main fmt_netmd5 = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,
@@ -215,7 +216,7 @@ struct fmt_main fmt_ripv2 = {
 		MAX_KEYS_PER_CRYPT,
 		0,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
-		ripv2_tests
+		tests
 	}, {
 		init,
 		fmt_default_done,
@@ -237,7 +238,7 @@ struct fmt_main fmt_ripv2 = {
 		},
 		fmt_default_salt_hash,
 		set_salt,
-		ripv2_set_key,
+		netmd5_set_key,
 		get_key,
 		fmt_default_clear_keys,
 		crypt_all,
