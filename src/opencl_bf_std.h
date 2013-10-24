@@ -9,7 +9,6 @@
 #include "arch.h"
 #include "common.h"
 #include "common-opencl.h"
-#include "opencl_bf_WGS.h"
 
 typedef unsigned int BF_word ;
 
@@ -33,7 +32,19 @@ typedef BF_word BF_binary[6] ;
  */
 
 /*
- * Parameters NUM_CHANNELS and WAVEFRONT_SIZE are kept to supprt legacy codes. Please don't change the parameters.
+ * (Local) work group size: Use trial and error to find best work group size.
+ * In any case it should not exceed 16.
+ *                  E.g. For 7970 set it 8.
+ *                       For 570  set it 4.
+ *
+ * This is now run-time configurable and autotuning (down) so the below
+ * is merely a default.
+ */
+#define DEFAULT_LWS		16
+
+/*
+ * Parameters NUM_CHANNELS and WAVEFRONT_SIZE are kept to supprt legacy codes.
+ * Please don't change the parameters.
  */
 #define NUM_CHANNELS                    1
 #define WAVEFRONT_SIZE                  1

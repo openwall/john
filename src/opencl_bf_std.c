@@ -414,8 +414,7 @@ void BF_clear_buffer() {
 static void find_best_gws(struct fmt_main *fmt) {
 	struct timeval 	start,end ;
 	double 		savetime, diff ;
-	long int 	count
-			= 2 * WORK_GROUP_SIZE ;
+	size_t	 	count = local_work_size;
 	double 		speed = 999999 ;
 	BF_salt 	random_salt ;
 
@@ -452,29 +451,50 @@ static void find_best_gws(struct fmt_main *fmt) {
 		speed = ((double)count) / savetime ;
 	} while (diff > 0.01) ;
 
-	if (options.verbosity > 2)
-		fprintf(stderr, "Optimal Global Work Size:%ld\n", count) ;
-
-	fmt -> params.max_keys_per_crypt = count ;
-	fmt -> params.min_keys_per_crypt = WORK_GROUP_SIZE ;
+	fmt->params.max_keys_per_crypt = global_work_size = count;
 }
 
 void BF_select_device(struct fmt_main *fmt) {
 	cl_int 		err;
 	const char 	*errMsg;
+	const int	lmem_per_th = ((1024 + 4) * sizeof(cl_uint) + 64);
+	char		buildopts[32];
+
 	BF_current_S = 	(unsigned int*)mem_alloc(BF_N * 1024 * sizeof(unsigned int)) ;
 	BF_current_P = 	(unsigned int*)mem_alloc(BF_N * 18 * sizeof(unsigned int)) ;
 	BF_init_key = 	(unsigned int*)mem_alloc(BF_N * 18 * sizeof(unsigned int)) ;
 	opencl_BF_out = (BF_binary*)mem_alloc(BF_N * sizeof(BF_binary)) ;
 
-	if ((CL_DEVICE_TYPE_CPU == get_device_type(ocl_gpu_id)) || amd_vliw5(device_info[ocl_gpu_id])) {
+	if (!local_work_size)
+		local_work_size = DEFAULT_LWS;
+
+	/* For GPU kernel, our use of local memory sets a limit for LWS.
+	   In extreme cases we even fallback to using CPU kernel. */
+	if ((get_device_type(ocl_gpu_id) != CL_DEVICE_TYPE_CPU) &&
+	    lmem_per_th < get_local_memory_size(ocl_gpu_id))
+		while (local_work_size >
+		       get_local_memory_size(ocl_gpu_id) / lmem_per_th)
+			local_work_size >>= 1;
+
+	if ((get_device_type(ocl_gpu_id) == CL_DEVICE_TYPE_CPU) ||
+	    amd_vliw5(device_info[ocl_gpu_id]) ||
+	    (get_local_memory_size(ocl_gpu_id) < local_work_size * lmem_per_th))
+	{
 	        if(CHANNEL_INTERLEAVE == 1)
-			 opencl_init("$JOHN/kernels/bf_cpu_kernel.cl", ocl_gpu_id, NULL) ;
-		else
-			fprintf(stderr, "Please set NUM_CHANNELS and WAVEFRONT_SIZE to 1 in opencl_bf_std.h") ;
+		        opencl_init("$JOHN/kernels/bf_cpu_kernel.cl",
+			             ocl_gpu_id, NULL);
+	        else {
+			fprintf(stderr, "Please set NUM_CHANNELS and "
+			        "WAVEFRONT_SIZE to 1 in opencl_bf_std.h");
+			error();
+	        }
 	}
-	else
-		 opencl_init("$JOHN/kernels/bf_kernel.cl", ocl_gpu_id, NULL) ;
+	else {
+		snprintf(buildopts, sizeof(buildopts),
+		         "-DWORK_GROUP_SIZE=%zu", local_work_size);
+		opencl_init("$JOHN/kernels/bf_kernel.cl",
+		            ocl_gpu_id, buildopts);
+	}
 
 	krnl[ocl_gpu_id] = clCreateKernel(program[ocl_gpu_id], "blowfish", &err) ;
 	if (err) {
@@ -515,15 +535,15 @@ void BF_select_device(struct fmt_main *fmt) {
 	HANDLE_CLERROR(clSetKernelArg(krnl[ocl_gpu_id], 4, sizeof(cl_mem), &buffers[ocl_gpu_id].BF_current_P_gpu), "Set Kernel Arg FAILED arg4");
 	HANDLE_CLERROR(clSetKernelArg(krnl[ocl_gpu_id], 6, sizeof(cl_mem), &buffers[ocl_gpu_id].S_box_gpu), "Set Kernel Arg FAILED arg6") ;
 
-	if (!global_work_size)	find_best_gws(fmt) ;
-	else {
-		if (options.verbosity > 3)
-			fprintf(stderr,
-			        "Global worksize (GWS) forced to %zu\n",
-			        global_work_size) ;
-		fmt -> params.max_keys_per_crypt = global_work_size ;
-		fmt -> params.min_keys_per_crypt = WORK_GROUP_SIZE  ;
-	}
+	fmt->params.min_keys_per_crypt = local_work_size;
+
+	if (global_work_size)
+		fmt->params.max_keys_per_crypt = global_work_size;
+	else
+		find_best_gws(fmt);
+
+	if (options.verbosity > 2)
+		fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
 }
 
 void opencl_BF_std_set_key(char *key, int index, int sign_extension_bug) {
@@ -550,7 +570,7 @@ void opencl_BF_std_set_key(char *key, int index, int sign_extension_bug) {
 void exec_bf(cl_uint *salt_api, cl_uint *BF_out, cl_uint rounds, int n) {
 	cl_event 	evnt ;
 	cl_int 		err ;
-	size_t 		N ,M = WORK_GROUP_SIZE ;
+	size_t 		N, M = local_work_size;
 	double 		temp ;
 	const char 	*errMsg ;
 

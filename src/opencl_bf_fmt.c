@@ -31,8 +31,10 @@
 #define SALT_SIZE			sizeof(BF_salt)
 #define SALT_ALIGN			4
 
-#define MIN_KEYS_PER_CRYPT		BF_N
+#define MIN_KEYS_PER_CRYPT		DEFAULT_LWS
 #define MAX_KEYS_PER_CRYPT		BF_N
+
+#define OCL_CONFIG			"bcrypt"
 
 static struct fmt_tests tests[] = {
 	{"$2a$05$CCCCCCCCCCCCCCCCCCCCC.E5YPO9kmyuRGyh0XouQYb4YMJKvyOeW",
@@ -93,17 +95,14 @@ static void done(void) {
 }
 
 static void init(struct fmt_main *self) {
-	char 	*conf ;
 	saved_key = mem_calloc(BF_N * sizeof(*saved_key)) ;
 	global_work_size = 0 ;
 
 	//Prepare OpenCL environment.
 	opencl_preinit();
 
-	if ((conf = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, GWS_CONFIG)))
-		global_work_size = atoi(conf) ;
-	if ((conf = getenv("GWS")))
-		global_work_size = atoi(conf) ;
+	// Check if specific LWS/GWS was requested
+	opencl_get_user_preferences(OCL_CONFIG);
 
 	// BF_select_device(platform,device);
 	//platform_id = get_platform_id(ocl_gpu_id);
