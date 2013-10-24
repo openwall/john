@@ -25,7 +25,6 @@ static cl_int err;
 static cl_mem index768_gpu, index96_gpu, opencl_DES_bs_data_gpu, B_gpu, cmp_out_gpu, loaded_hash_gpu;
 static int set_salt = 0;
 static   WORD current_salt;
-static size_t DES_local_work_size = WORK_GROUP_SIZE;
 static int *loaded_hash;
 static unsigned int *cmp_out, num_loaded_hash, min, max ;
 static int benchmark = 1;
@@ -142,20 +141,20 @@ static void find_best_gws(struct fmt_main *fmt)
 	int ccount;
 
 	gettimeofday(&start, NULL);
-	ccount = count * WORK_GROUP_SIZE * DES_BS_DEPTH;
+	ccount = count * local_work_size * DES_BS_DEPTH;
 	opencl_DES_bs_crypt_25(&ccount, NULL);
 	gettimeofday(&end, NULL);
 	savetime = (end.tv_sec - start.tv_sec) + (double)(end.tv_usec - start.tv_usec) / 1000000.000;
 	speed = ((double)count) / savetime;
 	do {
 		count *= 2;
-		if ((count * WORK_GROUP_SIZE) > MULTIPLIER) {
+		if ((count * local_work_size) > MULTIPLIER) {
 			count = count >> 1;
 			break;
 
 		}
 		gettimeofday(&start, NULL);
-		ccount = count * WORK_GROUP_SIZE * DES_BS_DEPTH;
+		ccount = count * local_work_size * DES_BS_DEPTH;
 		opencl_DES_bs_crypt_25(&ccount, NULL);
 		gettimeofday(&end, NULL);
 		savetime = (end.tv_sec - start.tv_sec) + (double)(end.tv_usec - start.tv_usec) / 1000000.000;
@@ -169,12 +168,11 @@ static void find_best_gws(struct fmt_main *fmt)
 		speed = ((double)count) / savetime;
 	} while(diff > 0.01);
 
-	if (options.verbosity > 3)
-		fprintf(stderr, "Optimal Global Work Size:%ld\n",
-		        count * WORK_GROUP_SIZE * DES_BS_DEPTH);
+	fmt -> params.max_keys_per_crypt = count * local_work_size * DES_BS_DEPTH;
+	fmt -> params.min_keys_per_crypt = local_work_size * DES_BS_DEPTH;
 
-	fmt -> params.max_keys_per_crypt = count * WORK_GROUP_SIZE * DES_BS_DEPTH;
-	fmt -> params.min_keys_per_crypt = WORK_GROUP_SIZE * DES_BS_DEPTH;
+	if (options.verbosity > 2)
+		fprintf(stderr, "Local worksize (LWS) %zu, Global worksize (GWS) %zu\n", local_work_size, count * local_work_size);
 }
 
 #if HARDCODE_SALT
@@ -354,23 +352,27 @@ void modify_src() {
 void DES_bs_select_device(struct fmt_main *fmt)
 {
 	init_dev();
-	if(!global_work_size)
+
+	if (!local_work_size)
+		local_work_size = WORK_GROUP_SIZE;
+
+	if (!global_work_size)
 		find_best_gws(fmt);
 	else {
-		if (options.verbosity > 3)
-			fprintf(stderr, "Global worksize (GWS) forced to %zu\n",
-			        global_work_size);
-		fmt -> params.max_keys_per_crypt = global_work_size;
-		fmt -> params.min_keys_per_crypt = WORK_GROUP_SIZE * DES_BS_DEPTH ;
+		if (options.verbosity > 2)
+			fprintf(stderr, "Local worksize (LWS) %zu, Global worksize (GWS) %zu\n", local_work_size, global_work_size);
+		fmt -> params.max_keys_per_crypt = global_work_size * DES_BS_DEPTH;
+		fmt -> params.min_keys_per_crypt = local_work_size * DES_BS_DEPTH;
 	}
 }
 #else
 
 void DES_bs_select_device(struct fmt_main *fmt)
 {
-	//char *env;
-	size_t max_lws;
 	const char *errMsg;
+
+	if (!local_work_size)
+		local_work_size = WORK_GROUP_SIZE;
 
 	opencl_init("$JOHN/kernels/DES_bs_kernel.cl", ocl_gpu_id, NULL);
 
@@ -380,17 +382,16 @@ void DES_bs_select_device(struct fmt_main *fmt)
 		return ;
 	}
 
-	/* Honour this for testing and --test=0 */
-	//if ((env = getenv("LWS")))
-	//	DES_local_work_size = atoi(env);
+	/* Cap LWS at kernel limit */
+	if (local_work_size >
+	    get_kernel_max_lws(ocl_gpu_id, krnl[ocl_gpu_id][0]))
+		local_work_size =
+			get_kernel_max_lws(ocl_gpu_id, krnl[ocl_gpu_id][0]);
 
-	/* Cap LWS at device limit... */
-	HANDLE_CLERROR(clGetKernelWorkGroupInfo(krnl[ocl_gpu_id][0], devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(max_lws), &max_lws, NULL), "Query max work group size");
 
 	/* ...but ensure GWS is still a multiple of LWS */
-	while (DES_local_work_size > max_lws)
-		DES_local_work_size >>= 1;
-	//fprintf(stderr, "Using LWS %zu\n", DES_local_work_size);
+	global_work_size = ((global_work_size + local_work_size - 1) /
+	                    local_work_size) * local_work_size;
 
 	errMsg = "Create Buffer FAILED.";
 	opencl_DES_bs_data_gpu = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE, MULTIPLIER * sizeof(opencl_DES_bs_transfer), NULL, &err);
@@ -430,11 +431,10 @@ void DES_bs_select_device(struct fmt_main *fmt)
 	if (!global_work_size)
 		find_best_gws(fmt);
 	else {
-		if (options.verbosity > 3)
-			fprintf(stderr, "Global worksize (GWS) forced to %zu\n",
-			        global_work_size);
-		fmt -> params.max_keys_per_crypt = global_work_size;
-		fmt -> params.min_keys_per_crypt = WORK_GROUP_SIZE * DES_BS_DEPTH ;
+		if (options.verbosity > 2)
+			fprintf(stderr, "Local worksize (LWS) %zu, Global worksize (GWS) %zu\n", local_work_size, global_work_size);
+		fmt -> params.max_keys_per_crypt = global_work_size * DES_BS_DEPTH;
+		fmt -> params.min_keys_per_crypt = local_work_size * DES_BS_DEPTH;
 	}
 }
 #endif
@@ -495,10 +495,10 @@ int opencl_DES_bs_crypt_25(int *pcount, struct db_salt *salt)
 
 	section = keys_count_multiple / DES_BS_DEPTH;
 
-	M = DES_local_work_size;
+	M = local_work_size;
 
-	if (section % DES_local_work_size != 0)
-		N = (section / DES_local_work_size + 1) * DES_local_work_size ;
+	if (section % local_work_size != 0)
+		N = (section / local_work_size + 1) * local_work_size ;
 	else
 		N = section;
 
@@ -618,10 +618,10 @@ int opencl_DES_bs_crypt_25(int *pcount, struct db_salt *salt)
 		keys_count_multiple = (keys_count / DES_BS_DEPTH + 1) * DES_BS_DEPTH;
 
 	section = keys_count_multiple / DES_BS_DEPTH;
-	M = DES_local_work_size;
+	M = local_work_size;
 
-	if (section % DES_local_work_size != 0)
-		N = (section / DES_local_work_size + 1) * DES_local_work_size ;
+	if (section % local_work_size != 0)
+		N = (section / local_work_size + 1) * local_work_size ;
 	else
 		N = section;
 

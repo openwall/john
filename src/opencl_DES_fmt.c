@@ -22,6 +22,8 @@
 #define CIPHERTEXT_LENGTH_1		13
 #define CIPHERTEXT_LENGTH_2		24
 
+#define OCL_CONFIG			"des"
+
 static struct fmt_tests tests[] = {
 	{"CCNf8Sbh3HDfQ", "U*U*U*U*"},
 	{"CCX.K.MFy4Ois", "U*U***U"},
@@ -48,20 +50,13 @@ static void init(struct fmt_main *pFmt)
 {
 	unsigned int i;
 
-	char *conf;
+	// Check if specific LWS/GWS was requested
+	opencl_get_user_preferences(OCL_CONFIG);
 
 	opencl_DES_bs_init_global_variables();
 
 	for(i=0;i<MULTIPLIER;i++)
 		opencl_DES_bs_init(0, DES_bs_cpt,i);
-
-	global_work_size = 0;
-
-	if ((conf = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, GWS_CONFIG)))
-		global_work_size = atoi(conf);
-
-	if ((conf = getenv("GWS")))
-		global_work_size = atoi(conf);
 
 	DES_bs_select_device(pFmt);
 }
