@@ -1,0 +1,18 @@
+language: c
+branches:
+  except:
+    gh-pages
+compiler:
+  - gcc
+  - clang
+env:
+  # Default build. Release.
+  - TARGET="linux-x86-64"
+  # Debug build
+matrix:
+  allow_failures:
+before_install:
+  - sudo apt-get update -qq
+  - sudo apt-get install debhelper libpcap-dev libssl-dev libnet1-dev libnss3-dev libnspr4-dev
+script:
+  - cd src && make $TARGET -j4 > /dev/null
