@@ -468,6 +468,10 @@ void BF_select_device(struct fmt_main *fmt) {
 	if (!local_work_size)
 		local_work_size = DEFAULT_LWS;
 
+	/* device max, regardless of kernel */
+	if (local_work_size > get_device_max_lws(ocl_gpu_id))
+		local_work_size = get_device_max_lws(ocl_gpu_id);
+
 	/* For GPU kernel, our use of local memory sets a limit for LWS.
 	   In extreme cases we even fallback to using CPU kernel. */
 	if ((get_device_type(ocl_gpu_id) != CL_DEVICE_TYPE_CPU) &&
@@ -501,6 +505,11 @@ void BF_select_device(struct fmt_main *fmt) {
 		fprintf(stderr, "Create Kernel blowfish FAILED\n") ;
 		return ;
 	}
+
+	/* This time we ask about max size for this very kernel */
+	if (local_work_size > get_kernel_max_lws(ocl_gpu_id, krnl[ocl_gpu_id]))
+		local_work_size =
+			get_kernel_max_lws(ocl_gpu_id, krnl[ocl_gpu_id]);
 
 	errMsg = "Create Buffer Failed" ;
 
@@ -597,6 +606,9 @@ void exec_bf(cl_uint *salt_api, cl_uint *BF_out, cl_uint rounds, int n) {
 		N = n/2 ;  ///Two hashes per crypt call for cpu
 	else
 		N = n ;
+
+	/* N has to be a multiple of M */
+	N = (N + M - 1) / M * M;
 
 	errMsg = "Copy data to device: Failed" ;
 
