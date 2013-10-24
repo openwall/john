@@ -12,17 +12,16 @@ self-test on big-endian CPUs):
 * Mozilla
 (x86 and x86-64 are little-endian, so they are not affected.)
 
-Many OpenCL formats fail at runtime on Mac OS X (whereas CUDA ones work
-fine).  We've seen these fail on Mac OS X 10.8.1: bf-opencl,
-mscash2-opencl, nt-opencl, raw-sha512-opencl, sha512crypt-opencl and
-xsha512-opencl.  We suspect that this may be caused by driver bugs.
-The same formats work fine on Linux using the same hardware (in fact
-they even work on OSX when using CPU device).
+Some OpenCL formats fail at runtime on Mac OS X (whereas CUDA ones work
+fine).  This is clearly caused by driver bugs and it affects nvidia and
+AMD devices as well as eg. the Intel HD4000 - but not the CPU device.
+The same formats usually work fine on Linux using the same hardware.
 
 OS X also has a problem with run-time compile of kernels that include
 header files. A workaround is to cd to the src directory and run each
 OpenCL format once. After that, the kernel binary is cached so you can
-move away from the src directory.
+move away from the src directory. This bug seems to be gone in OS X
+Mavericks (10.9).
 
 Some OpenCL-enabled formats (for "slow" hashes and non-hashes) may
 sometimes trigger "ASIC hang" errors as reported by AMD/ATI GPU drivers,
@@ -31,7 +30,7 @@ HD 7970 this problem is known to occur with sha512crypt-opencl, but is
 known not to occur with mscash2-opencl.  Our current understanding is
 that this has to do with OpenCL kernel running time and watchdog timers.
 We're working on reducing kernel run times to avoid such occurrences in
-the future.
+the future. Recent drivers don't seem to have this issue.
 
 All CUDA formats substantially benefit from compile-time tuning.
 README-CUDA includes some info on this.  In short, on GTX 400 series and
@@ -43,24 +42,21 @@ cuda_*.h files.  README-CUDA includes a handful of pre-tuned settings.
 It is not unusual to obtain e.g. a 3x speedup (compared to the generic
 defaults) with this sort of tuning.
 
-Some OpenCL formats benefit from compile-time tuning, too.  For example,
-bf-opencl is pre-tuned for HD 7970 cards, and will need to be re-tuned
-for other cards (adjust WORK_GROUP_SIZE in opencl_bf_std.h and
-opencl/bf_kernel.cl; you may also adjust MULTIPLIER).  In fact, on
-smaller GPUs this specific format might not work at all until
-WORK_GROUP_SIZE is reduced.  Most OpenCL formats may benefit from tuning
-of KEYS_PER_CRYPT, although higher values, while generally increasing
-the c/s rate, may create usability issues (more work lost on
-interrupted/restored sessions, less optimal order of candidate passwords
-being tested). Most formats allow run-time tuning using the environment
-variables LWS (local work size) and GWS (global work size, this
-corresponds to KEYS_PER_CRYPT). A few formats will also allow specifying
-such values per-format in john.conf under the [OpenCL] section.
+Some OpenCL formats benefit from run-time tuning, too.  Some OpenCL formats
+may benefit from tuning of "keys per crypt", although higher values, while
+generally increasing the c/s rate, may create usability issues (more work
+lost on interrupted/restored sessions, less optimal order of candidate
+passwords being tested). All formats allow run-time tuning using the
+environment variables LWS (local work size) and GWS (global work size,
+this corresponds to keys per crypt but there may be a factor involved).
+Most formats will also allow specifying such values per-format in john.conf
+under the [OpenCL] section.
 
 Even though wpapsk-cuda primarily use the GPU, it also does a (small,
 but not negligible) portion of the computation on CPU and thus it
 substantially benefits from OpenMP-enabled builds.  We intend to reduce
-its use of CPU in a future version.
+its use of CPU in a future version. The OpenCL version does all
+computation on GPU.
 
 Interrupting a cracking session that uses an ATI/AMD GPU with Ctrl-C
 often results in:
@@ -69,6 +65,7 @@ often results in:
 When this happens, the john.pot and .log files are not updated with
 latest cracked passwords.  To mitigate this, reduce the Save setting in
 john.conf from the default of 600 seconds to a lower value (e.g., 60).
+Recent drivers do not have this problem.
 
 With GPU-enabled formats (and sometimes with OpenMP on CPU as well), the
 number of candidate passwords being tested concurrently can be very
@@ -101,6 +98,6 @@ slower cracking (when the number of hashes per salt is large).  When
 this happens, the following message is printed:
 	Warning: excessive partial hash collisions detected
 	(cause: the "format" lacks proper binary_hash() function definitions)
-Known to be affected are: bfegg, dominosec, md5crypt-cuda, phpass-cuda.
+Known to be affected are: dominosec.
 Also theoretically present, but less likely to be triggered in practice,
 are similar issues in non-hash formats.
