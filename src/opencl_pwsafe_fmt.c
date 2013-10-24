@@ -179,15 +179,15 @@ static void find_best_lws(struct fmt_main * self, int sequential_id) {
 	//Call the default function.
 	cl_kernel tKernel = init_kernel;
 	size_t largest = 0;
-	size_t temp = get_current_work_group_size(ocl_gpu_id, init_kernel);
+	size_t temp = get_kernel_max_lws(ocl_gpu_id, init_kernel);
 	largest = temp;
-	temp = get_current_work_group_size(ocl_gpu_id, crypt_kernel);
+	temp = get_kernel_max_lws(ocl_gpu_id, crypt_kernel);
 	if(temp > largest)
 	{
 		largest = temp;
 		tKernel = crypt_kernel;
 	}
-	temp = get_current_work_group_size(ocl_gpu_id, finish_kernel);
+	temp = get_kernel_max_lws(ocl_gpu_id, finish_kernel);
 	if(temp > largest)
 	{
 		largest = temp;
@@ -245,10 +245,10 @@ static void init(struct fmt_main *self)
 
 	selected_gws = global_work_size;
 	/* Note: we ask for the kernels' max sizes, not the device's! */
-	maxsize = get_current_work_group_size(ocl_gpu_id, init_kernel);
-	maxsize = MIN(get_current_work_group_size(ocl_gpu_id, crypt_kernel),
+	maxsize = get_kernel_max_lws(ocl_gpu_id, init_kernel);
+	maxsize = MIN(get_kernel_max_lws(ocl_gpu_id, crypt_kernel),
 	              maxsize);
-	maxsize = MIN(get_current_work_group_size(ocl_gpu_id, finish_kernel),
+	maxsize = MIN(get_kernel_max_lws(ocl_gpu_id, finish_kernel),
 	              maxsize);
 
 	while (local_work_size > maxsize)

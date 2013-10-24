@@ -366,7 +366,7 @@ static void init(struct fmt_main *self)
 		find_best_gws(getenv("GWS") == NULL ? 0 : 1, self);
 
 	/* Note: we ask for the kernel's max size, not the device's! */
-	maxsize = get_current_work_group_size(ocl_gpu_id, crypt_kernel);
+	maxsize = get_kernel_max_lws(ocl_gpu_id, crypt_kernel);
 
 	// Obey device limits
 	max_mem = get_max_mem_alloc_size(ocl_gpu_id);

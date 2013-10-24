@@ -179,7 +179,7 @@ static void init(struct fmt_main *self){
 	HANDLE_CLERROR(ret_code,"Error creating kernel");
 
 	/* Note: we ask for the kernel's max size, not the device's! */
-	maxsize = get_current_work_group_size(ocl_gpu_id, crypt_kernel);
+	maxsize = get_kernel_max_lws(ocl_gpu_id, crypt_kernel);
 
 	while (local_work_size > maxsize)
 		local_work_size >>= 1;

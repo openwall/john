@@ -229,7 +229,7 @@ static int start_opencl_device(int sequential_id, int * err_type)
 	    sizeof(opencl_data), opencl_data, NULL),
 	    "Error querying DEVICE_NAME");
 
-	max_group_size = get_max_work_group_size(sequential_id);
+	max_group_size = get_device_max_lws(sequential_id);
 
 	// Get the platform properties
 	properties[0] = CL_CONTEXT_PLATFORM;
@@ -798,7 +798,7 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self,
 		wg_multiple = get_kernel_preferred_multiple(sequential_id,
 		                                            crypt_kernel);
 	}
-	max_group_size = get_current_work_group_size(sequential_id,
+	max_group_size = get_kernel_max_lws(sequential_id,
 	                                             crypt_kernel);
 
 	if (max_group_size > group_size_limit)
@@ -1131,7 +1131,7 @@ void opencl_find_best_lws(
 		wg_multiple = get_kernel_preferred_multiple(sequential_id,
 		                                            crypt_kernel);
 
-	max_group_size = get_current_work_group_size(sequential_id,
+	max_group_size = get_kernel_max_lws(sequential_id,
 	                                             crypt_kernel);
 
 	if (max_group_size > group_size_limit)
@@ -1619,7 +1619,7 @@ cl_ulong get_global_memory_size(int sequential_id)
 	return size;
 }
 
-size_t get_max_work_group_size(int sequential_id)
+size_t get_device_max_lws(int sequential_id)
 {
 	size_t max_group_size;
 
@@ -1645,7 +1645,7 @@ cl_ulong get_max_mem_alloc_size(int sequential_id)
 	return max_alloc_size;
 }
 
-size_t get_current_work_group_size(int sequential_id, cl_kernel crypt_kernel)
+size_t get_kernel_max_lws(int sequential_id, cl_kernel crypt_kernel)
 {
 	size_t max_group_size;
 

@@ -146,7 +146,7 @@ static void find_best_lws(struct fmt_main * self, int sequential_id) {
 
 	// Call the default function.
 	common_find_best_lws(
-		get_current_work_group_size(ocl_gpu_id, crypt_kernel),
+		get_kernel_max_lws(ocl_gpu_id, crypt_kernel),
 		sequential_id, crypt_kernel
 		);
 }
@@ -195,8 +195,8 @@ static void init(struct fmt_main *self)
 	global_work_size = selected_gws;
 
 	// Obey device limits
-	if (local_work_size > get_current_work_group_size(ocl_gpu_id, crypt_kernel))
-		local_work_size = get_current_work_group_size(ocl_gpu_id, crypt_kernel);
+	if (local_work_size > get_kernel_max_lws(ocl_gpu_id, crypt_kernel))
+		local_work_size = get_kernel_max_lws(ocl_gpu_id, crypt_kernel);
 	max_mem = get_max_mem_alloc_size(ocl_gpu_id);
 	while (global_work_size > MIN((1<<26)*4/56, max_mem / BUFSIZE))
 		global_work_size -= local_work_size;

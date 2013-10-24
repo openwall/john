@@ -124,9 +124,9 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
 cl_device_type get_device_type(int sequential_id);
 cl_ulong get_local_memory_size(int sequential_id);
 cl_ulong get_global_memory_size(int sequential_id);
-size_t get_max_work_group_size(int sequential_id);
+size_t get_device_max_lws(int sequential_id);
 cl_ulong get_max_mem_alloc_size(int sequential_id);
-size_t get_current_work_group_size(int sequential_id, cl_kernel crypt_kernel);
+size_t get_kernel_max_lws(int sequential_id, cl_kernel crypt_kernel);
 cl_uint get_max_compute_units(int sequential_id);
 cl_uint get_processors_count(int sequential_id);
 cl_uint get_processor_family(int sequential_id);

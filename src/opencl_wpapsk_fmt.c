@@ -374,14 +374,14 @@ static void init(struct fmt_main *self)
 		find_best_gws(getenv("GWS") == NULL ? 0 : 1, self);
 
 	/* Note: we ask for the kernels' max sizes, not the device's! */
-	maxsize = get_current_work_group_size(ocl_gpu_id, wpapsk_init);
-	maxsize2 = get_current_work_group_size(ocl_gpu_id, wpapsk_loop);
+	maxsize = get_kernel_max_lws(ocl_gpu_id, wpapsk_init);
+	maxsize2 = get_kernel_max_lws(ocl_gpu_id, wpapsk_loop);
 	if (maxsize2 < maxsize) maxsize = maxsize2;
-	maxsize2 = get_current_work_group_size(ocl_gpu_id, wpapsk_pass2);
+	maxsize2 = get_kernel_max_lws(ocl_gpu_id, wpapsk_pass2);
 	if (maxsize2 < maxsize) maxsize = maxsize2;
-	maxsize2 = get_current_work_group_size(ocl_gpu_id, wpapsk_final_md5);
+	maxsize2 = get_kernel_max_lws(ocl_gpu_id, wpapsk_final_md5);
 	if (maxsize2 < maxsize) maxsize = maxsize2;
-	maxsize2 = get_current_work_group_size(ocl_gpu_id, wpapsk_final_sha1);
+	maxsize2 = get_kernel_max_lws(ocl_gpu_id, wpapsk_final_sha1);
 	if (maxsize2 < maxsize) maxsize = maxsize2;
 
 	// Obey device limits

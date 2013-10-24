@@ -283,7 +283,7 @@ static void find_best_lws(struct fmt_main * self, int sequential_id) {
 
 	//Call the default function.
 	common_find_best_lws(
-		get_current_work_group_size(ocl_gpu_id, crypt_kernel),
+		get_kernel_max_lws(ocl_gpu_id, crypt_kernel),
 		sequential_id, crypt_kernel
 	);
 }
@@ -315,7 +315,7 @@ static void init(struct fmt_main *self)
 	HANDLE_CLERROR(ret_code, "Error while creating kernel");
 
 	/* Note: we ask for the kernel's max size, not the device's! */
-	maxsize = get_current_work_group_size(ocl_gpu_id, crypt_kernel);
+	maxsize = get_kernel_max_lws(ocl_gpu_id, crypt_kernel);
 
 	/* Read LWS/GWS prefs from config or environment */
 	opencl_get_user_preferences(OCL_CONFIG);
