@@ -1009,7 +1009,7 @@ static cl_ulong gws_test(size_t num, unsigned int rounds, int sequential_id)
 		self->methods.salt(self->params.tests[0].ciphertext));
 
 	// Timing run
-	count = self->params.max_keys_per_crypt;
+	count = num;
 	if (self->methods.crypt_all(&count, NULL) < 0) {
 		runtime = looptime = 0;
 
@@ -1177,7 +1177,7 @@ void opencl_find_best_lws(
 
 	// Warm-up run
 	local_work_size = wg_multiple;
-	count = self->params.max_keys_per_crypt;
+	count = global_work_size;
 	self->methods.crypt_all(&count, NULL);
 
 	// Activate events
@@ -1292,9 +1292,9 @@ void opencl_find_best_gws(int step, int show_speed,
 		max_run_time = duration_time;
 
 	if (options.verbosity > 3)
-		fprintf(stderr, "Calculating best global worksize (GWS) for "
-			"LWS=%zd and max. %2.1f s duration.\n\n",
-			local_work_size, (float) max_run_time / 1000000000.);
+		fprintf(stderr, "Calculating best global worksize (GWS); "
+			"max. %2.1f s duration.\n\n",
+			(float) max_run_time / 1000000000.);
 
 	if (show_speed)
 		fprintf(stderr, "Raw speed figures including buffer "
@@ -1963,7 +1963,7 @@ static char *human_format(size_t size)
 	return ret;
 }
 
-void listOpenCLdevices(void)
+void opencl_list_devices(void)
 {
 	char dname[MAX_OCLINFO_STRING_LEN];
 	cl_uint entries;

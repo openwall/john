@@ -144,6 +144,11 @@ static void create_clobj(size_t gws, struct fmt_main * self)
 			(void *) &hash_buffer), "Error setting argument 2");
 
 	if (_SPLIT_KERNEL_IN_USE) {
+		size_t temp_size = local_work_size;
+
+		if (!local_work_size)
+			temp_size = get_task_max_work_group_size();
+
 		//Set prepare kernel arguments
 		HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 0, sizeof(cl_mem),
 			(void *) &salt_buffer), "Error setting argument 0");
@@ -153,11 +158,12 @@ static void create_clobj(size_t gws, struct fmt_main * self)
 			(void *) &work_buffer), "Error setting argument 2");
 
 		if (_USE_LOCAL_SOURCE) {
+
 			HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 3,
-				sizeof(sha256_buffers) * local_work_size,
+				sizeof(sha256_buffers) * temp_size,
 				NULL), "Error setting argument 3");
 			HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 4,
-				sizeof(sha256_ctx) * local_work_size,
+				sizeof(sha256_ctx) * temp_size,
 				NULL), "Error setting argument 4");
 		}
 		//Set crypt kernel arguments
@@ -167,10 +173,10 @@ static void create_clobj(size_t gws, struct fmt_main * self)
 		if (_USE_LOCAL_SOURCE) {
 			//Fast working memory.
 			HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 4,
-				sizeof(sha256_buffers) * local_work_size,
+				sizeof(sha256_buffers) * temp_size,
 				NULL), "Error setting argument 4");
 			HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 5,
-				sizeof(sha256_ctx) * local_work_size,
+				sizeof(sha256_ctx) * temp_size,
 				NULL), "Error setting argument 5");
 		}
 		//Set final kernel arguments
@@ -186,10 +192,10 @@ static void create_clobj(size_t gws, struct fmt_main * self)
 		if (_USE_LOCAL_SOURCE) {
 			//Fast working memory.
 			HANDLE_CLERROR(clSetKernelArg(final_kernel, 4,
-				sizeof(sha256_buffers) * local_work_size,
+				sizeof(sha256_buffers) * temp_size,
 				NULL), "Error setting argument 4");
 			HANDLE_CLERROR(clSetKernelArg(final_kernel, 5,
-				sizeof(sha256_ctx) * local_work_size,
+				sizeof(sha256_ctx) * temp_size,
 				NULL), "Error setting argument 5");
 		}
 	}
@@ -350,7 +356,7 @@ static void build_kernel(char * task) {
 /* --
   This function does the common part of auto-tune adjustments,
   preparation and execution. It is shared code to be inserted
-  in each format files.
+  in each format file.
 -- */
 static void common_run_auto_tune(struct fmt_main * self) {
 
@@ -369,20 +375,15 @@ static void common_run_auto_tune(struct fmt_main * self) {
 	}
 	self->params.max_keys_per_crypt = (global_work_size ? global_work_size: get_task_max_size());
 
-	if (!local_work_size) {
-		local_work_size = get_task_max_work_group_size();
-		create_clobj(self->params.max_keys_per_crypt, self);
-		find_best_lws(self, ocl_gpu_id);
-		release_clobj();
-	}
-
-	if (global_work_size)
+	/* Enumerate GWS using *LWS=NULL (unless it was set explicitly) */
+	if (!global_work_size)
+		find_best_gws(self, ocl_gpu_id);
+	else
 		create_clobj(global_work_size, self);
 
-	else {
-		//user chose to die of boredom
-		find_best_gws(self, ocl_gpu_id);
-	}
+	if (!local_work_size)
+		find_best_lws(self, ocl_gpu_id);
+
 	if (options.verbosity > 2)
 		fprintf(stderr,
 		        "Local worksize (LWS) %zd, global worksize (GWS) %zd\n",
@@ -422,7 +423,6 @@ static void init(struct fmt_main * self) {
 	self->methods.crypt_all = crypt_all_benchmark;
 	common_run_auto_tune(self);
 	self->methods.crypt_all = crypt_all;
-
 }
 
 static void done(void) {
@@ -462,6 +462,7 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *_salt)
 	int count = *pcount;
 	int i;
 	size_t gws;
+	size_t *lws = local_work_size ? &local_work_size : NULL;
 
 	gws = GET_MULTIPLE_BIGGER(count, local_work_size);
 
@@ -474,21 +475,21 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *_salt)
 	//Enqueue the kernel
 	if (_SPLIT_KERNEL_IN_USE) {
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], prepare_kernel, 1, NULL,
-			&gws, &local_work_size, 0, NULL, &multi_profilingEvent[3]),
+			&gws, lws, 0, NULL, &multi_profilingEvent[3]),
 			"failed in clEnqueueNDRangeKernel I");
 
 		for (i = 0; i < 3; i++) {
 			BENCH_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL,
-				&gws, &local_work_size, 0, NULL,
+				&gws, lws, 0, NULL,
 				&multi_profilingEvent[split_events[i]]),  //1 ,4 ,5
 				"failed in clEnqueueNDRangeKernel");
 		}
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], final_kernel, 1, NULL,
-			&gws, &local_work_size, 0, NULL, &multi_profilingEvent[6]),
+			&gws, lws, 0, NULL, &multi_profilingEvent[6]),
 			"failed in clEnqueueNDRangeKernel II");
 	} else
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL,
-			&gws, &local_work_size, 0, NULL, &multi_profilingEvent[1]),
+			&gws, lws, 0, NULL, &multi_profilingEvent[1]),
 			"failed in clEnqueueNDRangeKernel");
 
 	//Read back hashes

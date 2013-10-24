@@ -165,6 +165,8 @@ static void create_clobj(size_t gws, struct fmt_main * self)
 	clSetKernelArg(finish_kernel, 0, sizeof(mem_in), &mem_in);
 	clSetKernelArg(finish_kernel, 1, sizeof(mem_out), &mem_out);
 	clSetKernelArg(finish_kernel, 2, sizeof(mem_salt), &mem_salt);
+
+	global_work_size = gws;
 }
 
 /* ------- Try to find the best configuration ------- */

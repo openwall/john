@@ -378,7 +378,7 @@ static void find_best_gws(struct fmt_main * self, int sequential_id) {
 /* --
   This function does the common part of auto-tune adjustments,
   preparation and execution. It is shared code to be inserted
-  in each format files.
+  in each format file.
 -- */
 static void common_run_auto_tune(struct fmt_main * self) {
 
@@ -397,19 +397,15 @@ static void common_run_auto_tune(struct fmt_main * self) {
 	}
 	self->params.max_keys_per_crypt = (global_work_size ? global_work_size: get_task_max_size());
 
-	if (!local_work_size) {
-		create_clobj(self->params.max_keys_per_crypt, self);
-		find_best_lws(self, ocl_gpu_id);
-		release_clobj();
-	}
-
-	if (global_work_size)
+	/* Enumerate GWS using *LWS=NULL (unless it was set explicitly) */
+	if (!global_work_size)
+		find_best_gws(self, ocl_gpu_id);
+	else
 		create_clobj(global_work_size, self);
 
-	else {
-		//user chose to die of boredom
-		find_best_gws(self, ocl_gpu_id);
-	}
+	if (!local_work_size)
+		find_best_lws(self, ocl_gpu_id);
+
 	if (options.verbosity > 2)
 		fprintf(stderr,
 		        "Local worksize (LWS) %zd, global worksize (GWS) %zd\n",
@@ -568,6 +564,7 @@ static void * get_full_binary(char *ciphertext) {
 static int crypt_all_benchmark(int *pcount, struct db_salt *_salt) {
 	int count = *pcount;
 	size_t gws;
+	size_t *lws = local_work_size ? &local_work_size : NULL;
 
 	gws = GET_MULTIPLE_BIGGER(count, local_work_size);
 
@@ -587,7 +584,7 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *_salt) {
 
 	//Enqueue the kernel
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL,
-			&gws, &local_work_size, 0, NULL, &multi_profilingEvent[1]),
+			&gws, lws, 0, NULL, &multi_profilingEvent[1]),
 			"failed in clEnqueueNDRangeKernel");
 
 	//Read back hashes
