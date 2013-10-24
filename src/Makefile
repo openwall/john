@@ -79,7 +79,7 @@ endif
 # leads to regressions for Kepler cards, when it works at all.
 NVCC_FLAGS = -c -Xptxas -v -fmad=true -arch sm_10
 CUDAPATH = /usr/local/cuda
-NVCC = $(CUDAPATH)/bin/nvcc
+NVCC = PATH=$(PATH):$(CUDAPATH)/bin/ nvcc
 CCBIN_OSX = -ccbin=/usr/bin/llvm-gcc-4.2
 
 ifdef NVIDIA_CUDA
