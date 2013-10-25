@@ -60,6 +60,9 @@ static size_t offset = 0, offset_idx = 0;
 static int crypt_all(int *pcount, struct db_salt *_salt);
 static int crypt_all_benchmark(int *pcount, struct db_salt *_salt);
 
+//This file contains auto-tuning routine(s). Have to included after formats definitions.
+#include "opencl_autotune.h"
+
 static struct fmt_tests raw_tests[] = {
 	{"b109f3bbbc244eb82441917ed06d618b9008dd09b3befd1b5e07394c706a8bb980b1d7785e5976ec049b46df5f1326af5a2ea6d103fd07c95385ffab0cacbc86", "password"},
 	{"$SHA512$fa585d89c851dd338a70dcf535aa2a92fee7836dd6aff1226583e88e0996293f16bc009c652826e0fc5c706695a03cddce372f139eff4d13959da6f1f5d3eabe", "12345678"},
@@ -373,45 +376,6 @@ static void find_best_gws(struct fmt_main * self, int sequential_id) {
 	);
 
 	create_clobj(global_work_size, self);
-}
-
-/* --
-  This function does the common part of auto-tune adjustments,
-  preparation and execution. It is shared code to be inserted
-  in each format file.
--- */
-static void common_run_auto_tune(struct fmt_main * self) {
-
-	/* Read LWS/GWS prefs from config or environment */
-	opencl_get_user_preferences(OCL_CONFIG);
-
-	if (!global_work_size && !getenv("GWS"))
-		global_work_size = get_task_max_size();
-
-	if (!local_work_size && !getenv("LWS"))
-		local_work_size = get_default_workgroup();
-
-	//Check if local_work_size is a valid number.
-	if (local_work_size > get_task_max_work_group_size()){
-		local_work_size = 0; //Force find a valid number.
-	}
-	self->params.max_keys_per_crypt = (global_work_size ? global_work_size: get_task_max_size());
-
-	/* Enumerate GWS using *LWS=NULL (unless it was set explicitly) */
-	if (!global_work_size)
-		find_best_gws(self, ocl_gpu_id);
-	else
-		create_clobj(global_work_size, self);
-
-	if (!local_work_size)
-		find_best_lws(self, ocl_gpu_id);
-
-	if (options.verbosity > 2)
-		fprintf(stderr,
-		        "Local worksize (LWS) %zd, global worksize (GWS) %zd\n",
-		        local_work_size, global_work_size);
-	self->params.min_keys_per_crypt = local_work_size;
-	self->params.max_keys_per_crypt = global_work_size;
 }
 
 /* ------- Initialization  ------- */

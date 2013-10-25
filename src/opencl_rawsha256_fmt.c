@@ -49,6 +49,9 @@ static size_t offset = 0, offset_idx = 0;
 static int crypt_all(int *pcount, struct db_salt *_salt);
 static int crypt_all_benchmark(int *pcount, struct db_salt *_salt);
 
+//This file contains auto-tuning routine(s). Have to included after formats definitions.
+#include "opencl_autotune.h"
+
 static struct fmt_tests tests[] = {
 	{"5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8", "password"},
 	{"$SHA256$ef797c8118f02dfb649607dd5d3f8c7623048c9c063d532cc95c5ed7a898a64f", "12345678"},
@@ -303,45 +306,6 @@ static void find_best_gws(struct fmt_main * self, int sequential_id) {
 	);
 
 	create_clobj(global_work_size, self);
-}
-
-/* --
-  This function does the common part of auto-tune adjustments,
-  preparation and execution. It is shared code to be inserted
-  in each format file.
--- */
-static void common_run_auto_tune(struct fmt_main * self) {
-
-	/* Read LWS/GWS prefs from config or environment */
-	opencl_get_user_preferences(OCL_CONFIG);
-
-	if (!global_work_size && !getenv("GWS"))
-		global_work_size = get_task_max_size();
-
-	if (!local_work_size && !getenv("LWS"))
-		local_work_size = get_default_workgroup();
-
-	//Check if local_work_size is a valid number.
-	if (local_work_size > get_task_max_work_group_size()){
-		local_work_size = 0; //Force find a valid number.
-	}
-	self->params.max_keys_per_crypt = (global_work_size ? global_work_size: get_task_max_size());
-
-	/* Enumerate GWS using *LWS=NULL (unless it was set explicitly) */
-	if (!global_work_size)
-		find_best_gws(self, ocl_gpu_id);
-	else
-		create_clobj(global_work_size, self);
-
-	if (!local_work_size)
-		find_best_lws(self, ocl_gpu_id);
-
-	if (options.verbosity > 2)
-		fprintf(stderr,
-		        "Local worksize (LWS) %zd, global worksize (GWS) %zd\n",
-		        local_work_size, global_work_size);
-	self->params.min_keys_per_crypt = local_work_size;
-	self->params.max_keys_per_crypt = global_work_size;
 }
 
 /* ------- Initialization  ------- */
