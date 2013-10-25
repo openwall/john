@@ -45,8 +45,8 @@ void DES_opencl_clean_all_buffer()
 	clReleaseMemObject(cmp_out_gpu);
 	clReleaseMemObject(loaded_hash_gpu);
 	for( i = 0; i < 4096; i++)
-		clReleaseKernel(krnl[ocl_gpu_id][i]);
-
+		if (krnl[ocl_gpu_id][i])
+			clReleaseKernel(krnl[ocl_gpu_id][i]);
 }
 
 void opencl_DES_reset(struct db_main *db) {
