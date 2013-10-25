@@ -66,7 +66,7 @@ void cuda_device_list()
 		exit(1);
 	}
 
-	printf("%d CUDA devices found:\n", devices);
+	printf("%d CUDA device%s found:\n", devices, devices > 1 ? "s" : "");
 	for (i = 0; i < devices; i++) {
 		cudaDeviceProp devProp;
 		int arch_sm[] = { 1, 8, 32, 192 };
