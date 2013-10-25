@@ -24,12 +24,16 @@
 #define FORMAT_LABEL            "net-md5"
 #define FORMAT_NAME             "\"Keyed MD5\" RIPv2, OSPF, BGP, SNMPv2"
 #define FORMAT_TAG              "$netmd5$"
+#define FORMAT_TAG_2            "$netmd5b$"
 #define TAG_LENGTH              (sizeof(FORMAT_TAG) - 1)
+#define TAG_LENGTH_2            (sizeof(FORMAT_TAG_2) - 1)
 #define ALGORITHM_NAME          "MD5 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        -1
-// RIPv2 truncates (or null pads) passwords to length 16
-#define PLAINTEXT_LENGTH        16
+
+// Linux Kernel says "#define TCP_MD5SIG_MAXKEYLEN 80"
+#define PLAINTEXT_LENGTH        80
+
 #define BINARY_SIZE             16
 #define BINARY_ALIGN            sizeof(ARCH_WORD_32)
 #define SALT_SIZE               sizeof(struct custom_salt)
@@ -53,6 +57,8 @@ static struct fmt_tests tests[] = {
 	{"$netmd5$0201002cac1001010000000000000002000001105267ff8fffffff00000a0201000000280000000000000000$445ecbb27272bd791a757a6c85856150", "abcdefghijklmnop"},
 	{FORMAT_TAG "0201002cac1001010000000000000002000001105267ff98ffffff00000a0201000000280000000000000000$d4c248b417b8cb1490e02c5e99eb0ad1", "abcdefghijklmnop"},
 	{FORMAT_TAG "0201002cac1001010000000000000002000001105267ffa2ffffff00000a0201000000280000000000000000$528d9bf98be8213482af7295307625bf", "abcdefghijklmnop"},
+	/* BGP TCP_MD5SIG hashes */
+	{"$netmd5b$c0a83814c0a838280006002800b3d10515f72762291b6878a010007300000000$eaf8d1f1da3f03c90b42709e9508fc73", "lolcats"},
 	{NULL}
 };
 
@@ -61,6 +67,7 @@ static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
 
 static struct custom_salt {
 	int length;
+	int type;  /* 1 implies BGP hashes */
 	unsigned char salt[1024]; // XXX but should be OK
 } *cur_salt;
 
@@ -85,7 +92,10 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	p = ciphertext;
 
-	if (!strncmp(p, FORMAT_TAG, TAG_LENGTH))
+	if (!strncmp(p, FORMAT_TAG_2, TAG_LENGTH_2))
+		p += TAG_LENGTH_2;
+
+	else if (!strncmp(p, FORMAT_TAG, TAG_LENGTH))
 		p += TAG_LENGTH;
 
 	q = strrchr(ciphertext, '$');
@@ -111,7 +121,12 @@ static void *get_salt(char *ciphertext)
 	int i, len;
 	memset(&cs, 0, SALT_SIZE);
 
-	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
+	if (!strncmp(ciphertext, FORMAT_TAG_2, TAG_LENGTH_2)) {
+		ciphertext += TAG_LENGTH_2;
+		cs.type = 1;
+	}
+
+	else if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
 		ciphertext += TAG_LENGTH;
 
 	len = (strrchr(ciphertext, '$') - ciphertext) / 2;
@@ -170,7 +185,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 		MD5_Init(&ctx);
 		MD5_Update(&ctx, cur_salt->salt, cur_salt->length);
-		MD5_Update(&ctx, saved_key[index], PLAINTEXT_LENGTH);
+
+		if (cur_salt->type == 1) /* handle BGP hashes */
+			MD5_Update(&ctx, saved_key[index], strlen(saved_key[index]));
+		else {
+			// RIPv2 truncates (or null pads) passwords to length 16
+			MD5_Update(&ctx, saved_key[index], 16);
+		}
 		MD5_Final((unsigned char*)crypt_out[index], &ctx);
 	}
 	return count;
