@@ -69,33 +69,49 @@ void cuda_device_list()
 	printf("%d CUDA devices found:\n", devices);
 	for (i = 0; i < devices; i++) {
 		cudaDeviceProp devProp;
-		int arch_cores_sm[] = { 1, 8, 32, 192 };
+		int arch_sm[] = { 1, 8, 32, 192 };
 
 		cudaGetDeviceProperties(&devProp, i);
 		printf("\nCUDA Device #%d\n", i);
 		printf("\tName:                          %s\n", devProp.name);
-		printf("\tType:                          %s\n",
-		       devProp.integrated ? "integrated" : "discrete");
+		printf("\tType:                          %s%s\n",
+		    devProp.integrated ? "integrated" : "discrete",
+		    devProp.tccDriver ? " (Tesla running tcc)" : "");
 		printf("\tCompute capability:            sm_%d%d\n",
 		    devProp.major, devProp.minor);
+
 		if (devProp.major <= 3)
 		printf("\tNumber of stream processors:   %d (%d x %d)\n",
-		       devProp.multiProcessorCount * arch_cores_sm[devProp.major],
-		       devProp.multiProcessorCount, arch_cores_sm[devProp.major]);
-		else
+		    devProp.multiProcessorCount * arch_sm[devProp.major],
+		    devProp.multiProcessorCount, arch_sm[devProp.major]);
+		else /* We need to populate the arch_sm[] above */
 		printf("\tNumber of multiprocessors:     %d\n",
 		    devProp.multiProcessorCount);
+
 		printf("\tClock rate:                    %d Mhz\n",
 		    devProp.clockRate / 1024);
+		printf("\tMemory clock rate (peak)       %d Mhz\n",
+		    devProp.memoryClockRate / 1024);
+		printf("\tMemory bus width               %d bits\n",
+		    devProp.memoryBusWidth);
+		printf("\tPeak memory bandwidth:         %u GB/s\n",
+		    2 * devProp.memoryClockRate *
+		    (devProp.memoryBusWidth / 8) /
+		    (1 << 20));
 		printf("\tTotal global memory:           %s%s\n",
-		    human_format(devProp.totalGlobalMem + 200000000),
+		    human_format(devProp.totalGlobalMem),
 		    devProp.ECCEnabled ? " (ECC)" : "");
 		printf("\tTotal shared memory per block: %s\n",
 		    human_format(devProp.sharedMemPerBlock));
 		printf("\tTotal constant memory:         %s\n",
 		    human_format(devProp.totalConstMem));
+
+		if (devProp.l2CacheSize)
 		printf("\tL2 cache size                  %s\n",
-		       human_format(devProp.l2CacheSize));
+		    human_format(devProp.l2CacheSize));
+		else
+		printf("\tL2 cache:                      No\n");
+
 		printf("\tKernel execution timeout:      %s\n",
 		    (devProp.kernelExecTimeoutEnabled ? "Yes" : "No"));
 		printf("\tConcurrent copy and execution: %s\n",
