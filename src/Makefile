@@ -379,6 +379,7 @@ default:
 	@echo "irix-mips32              IRIX, MIPS 32-bit"
 	@echo "dos-djgpp-x86-mmx        DOS, DJGPP, x86 with MMX"
 	@echo "dos-djgpp-x86-any        DOS, DJGPP, x86"
+	@echo "win64-mingw-x86-64       Win64, MinGW, x86-64 with SSE2 (best)"
 	@echo "win32-cygwin-x86-sse2[i] Win32, Cygwin, x86 with SSE2 (best)"
 	@echo "win32-cygwin-x86-opencl  Win32, Cygwin, x86 with SSE2 and OpenCL"
 	@echo "win32-cygwin-x86-mmx     Win32, Cygwin, x86 with MMX"
@@ -1789,6 +1790,24 @@ dos-djgpp-x86-any:
 		JOHN_OBJS="$(JOHN_OBJS) x86.o" \
 		CFLAGS="$(CFLAGS) -DNO_JOHN_BLD -mpreferred-stack-boundary=2" \
 		ASFLAGS="$(ASFLAGS) -DUNDERSCORES -DALIGN_LOG"
+
+win64-mingw-x86-64:
+	$(CP) x86-64.h arch.h
+	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
+	$(MAKE) $(PROJ_WIN32_MINGW) \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
+		CFLAGS="-c -static -Wall -Wdeclaration-after-statement -O2 -fomit-frame-pointer -I/usr/local/include $(OMPFLAGS) $(AMDAPP) $(JOHN_CFLAGS) -Wall -mpreferred-stack-boundary=4" \
+		LDFLAGS="-static -lssl -lcrypto -lwsock32 -lws2_32 -lgdi32 -lm -lpthread.dll -lz.dll $(OMPFLAGS)" \
+		ASFLAGS="$(ASFLAGS) -DUNDERSCORES" \
+		CPP=$(GCC) CC=$(GCC) LD=$(GCC) CXX=$(CXX)
+	@echo "Failing after this point just means some helper tools did not build:"
+	$(MAKE) $(PROJ_CXX) \
+	    CFLAGS="-c -static -Wall -Wdeclaration-after-statement -O2 -fomit-frame-pointer -I/usr/local/include $(HAVE_GMP) $(OMPFLAGS) $(AMDAPP) $(JOHN_CFLAGS) -Wall -mpreferred-stack-boundary=4" \
+	    CPP=$(GCC) CC=$(GCC) LD=$(GCC) CXX=$(CXX)
+	$(MAKE) $(PROJ_PCAP) \
+	    CFLAGS="-c -static -Wall -Wdeclaration-after-statement -O2 -fomit-frame-pointer -I/usr/local/include $(HAVE_GMP) $(OMPFLAGS) $(AMDAPP) $(JOHN_CFLAGS) -Wall -mpreferred-stack-boundary=4" \
+	    CPP=$(GCC) CC=$(GCC) LD=$(GCC) CXX=$(CXX)
+	@echo "All done"
 
 win32-cygwin-x86-sse2i:
 	$(CP) x86-sse.h arch.h
