@@ -1,13 +1,11 @@
 /*
-* This software is Copyright (c) 2012 Sayantan Datta <std2048 at gmail dot com>
-* and it is hereby released to the general public under the following terms :
-* Redistribution and use in source and binary forms, with or without modification, are permitted.
-* Based on S3nf implementation http://openwall.info/wiki/john/MSCash2
-* This format supports salts upto 19 characters.
-* Minor bugs in original S3nf implementation limits salts upto 8 characters.
-*
-* Note: When cracking in single mode keep set MAX_KEYS_PER_CRYPT equal to 65536 or less or use the cpu version instead.
-*/
+ * This software is Copyright (c) 2012 Sayantan Datta <std2048 at gmail dot com>
+ * with added proper Unicode support and other fixes (c) 2013 magnum,
+ * and it is hereby released to the general public under the following terms:
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ * Based on S3nf implementation http://openwall.info/wiki/john/MSCash2
+ */
 
 #include "formats.h"
 #include "common.h"
@@ -112,19 +110,21 @@ static void init(struct fmt_main *self) {
 }
 
 static void DCC(unsigned char *salt, unsigned int username_len, unsigned int *dcc_hash, unsigned int count) {
-	unsigned int 	i, id ;
+	unsigned int 	id ;
 	unsigned int 	buffer[64] ;
 	unsigned int 	nt_hash[69] ; // large enough to handle 128 byte user name (when we expand to that size).
 	unsigned int 	password_len;
 	MD4_CTX ctx;
 
 	for (id = 0; id < count; id++) {
-
-		password_len = strlen((const char*)key_host[id]) ;
-
-		// convert ASCII password to Unicode
-		for (i = 0; i <= password_len  >> 1; i++)
-			buffer[i] = key_host[id][2 * i] | (key_host[id][2 * i + 1] << 16) ;
+		/* Proper Unicode conversion from UTF-8 or codepage */
+		password_len = enc_to_utf16((UTF16*)buffer,
+		                            MAX_PLAINTEXT_LENGTH,
+		                            (UTF8*)key_host[id],
+		                            strlen((const char*)key_host[id]));
+		/* Handle truncation */
+		if (password_len < 0)
+			password_len = strlen16((UTF16*)buffer);
 
 		// generate MD4 hash of the password (NT hash)
 		MD4_Init(&ctx);
@@ -247,36 +247,34 @@ static void pbkdf2_iter0(unsigned int *input_dcc_hash,unsigned char *salt_buffer
 
 static int crypt_all(int *pcount, struct db_salt *salt) {
 	int 		count = *pcount ;
-	unsigned int 	i ;
+	unsigned int 	salt_len;
 #ifdef _DEBUG
 	struct timeval startc, endc, startg, endg ;
 	gettimeofday(&startc, NULL) ;
 #endif
-	unsigned char 	salt_unicode[(MAX_SALT_LENGTH << 1) + 1] ;
-	cl_uint 	salt_host[(MAX_SALT_LENGTH >> 1) + 1] ;
+	UTF16 salt_host[MAX_SALT_LENGTH + 1];
 
-	memset(salt_unicode, 0, (MAX_SALT_LENGTH << 1) + 1) ;
-	memset(salt_host, 0, ((MAX_SALT_LENGTH >> 1) + 1) * sizeof(cl_uint)) ;
+	memset(salt_host, 0, sizeof(salt_host));
 
-	if (currentsalt.length & 1 )
-		for (i = 0; i < (currentsalt.length >> 1) + 1; i++)
-			((unsigned int *)salt_unicode)[i] = currentsalt.username[2 * i] | (currentsalt.username[2 * i + 1] << 16) ;
-	else
-		for (i = 0; i < (currentsalt.length >> 1) ; i++)
-			((unsigned int *)salt_unicode)[i] = currentsalt.username[2 * i] | (currentsalt.username[2 * i + 1] << 16) ;
+	/* Proper Unicode conversion from UTF-8 or codepage */
+	salt_len = enc_to_utf16(salt_host,
+	                        MAX_SALT_LENGTH,
+	                        (UTF8*)currentsalt.username,
+	                        currentsalt.length);
+	/* Handle truncation */
+	if (salt_len < 0)
+		salt_len = strlen16(salt_host);
 
-	memcpy(salt_host, salt_unicode, (MAX_SALT_LENGTH << 1) + 1) ;
+	DCC((unsigned char*)salt_host, salt_len, dcc_hash_host, count) ;
 
-	DCC(salt_unicode, currentsalt.length, dcc_hash_host, count) ;
-
-	if(currentsalt.length > 22)
-		pbkdf2_iter0(dcc_hash_host,(unsigned char*)salt_host, (currentsalt.length << 1) , count);
+	if(salt_len > 22)
+		pbkdf2_iter0(dcc_hash_host,(unsigned char*)salt_host, (salt_len << 1) , count);
 
 #ifdef _DEBUG
 	gettimeofday(&startg, NULL) ;
 #endif
 	///defined in common_opencl_pbkdf2.c. Details provided in common_opencl_pbkdf2.h
-	pbkdf2_divide_work(dcc_hash_host, salt_host, currentsalt.length, dcc2_hash_host, hmac_sha1_out, count) ;
+	pbkdf2_divide_work(dcc_hash_host, (cl_uint*)salt_host, salt_len, dcc2_hash_host, hmac_sha1_out, count) ;
 
 #ifdef _DEBUG
 	gettimeofday(&endg, NULL);
@@ -391,7 +389,7 @@ struct fmt_main fmt_opencl_mscash2 = {
 		MAX_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		0,
-		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE,
+		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE | FMT_UTF8,
 		tests
 	},{
 		init,
