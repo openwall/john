@@ -89,15 +89,15 @@ void cuda_device_list()
 		    devProp.multiProcessorCount);
 
 		printf("\tClock rate:                    %d Mhz\n",
-		    devProp.clockRate / 1024);
+		    devProp.clockRate / 1000);
 		printf("\tMemory clock rate (peak)       %d Mhz\n",
-		    devProp.memoryClockRate / 1024);
+		    devProp.memoryClockRate / 1000);
 		printf("\tMemory bus width               %d bits\n",
 		    devProp.memoryBusWidth);
 		printf("\tPeak memory bandwidth:         %u GB/s\n",
 		    2 * devProp.memoryClockRate *
 		    (devProp.memoryBusWidth / 8) /
-		    (1 << 20));
+		    1000000);
 		printf("\tTotal global memory:           %s%s\n",
 		    human_format(devProp.totalGlobalMem),
 		    devProp.ECCEnabled ? " (ECC)" : "");
