@@ -39,9 +39,9 @@ static int get_progress(int *hundth_perc)
 	unsigned long long try, cand;
 	int i;
 
-	i = 0; cand = 1;
-	while (ctx.ranges[i].count)
-		cand *= ctx.ranges[i++].count;
+	cand = 1;
+	for (i = 0; i < ctx.count; i++)
+		cand *= ctx.ranges[i].count;
 
 	if (options.node_count)
 		cand /= options.node_count;
