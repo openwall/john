@@ -647,7 +647,7 @@ static void init(struct fmt_main *self)
 	self->params.benchmark_comment = " (1-16 characters)";
 #endif
 	/* We mimic the lengths of cRARk for comparisons */
-	if (gpu(device_info[ocl_gpu_id])) {
+	if (!cpu(device_info[ocl_gpu_id])) {
 #ifndef DEBUG
 		self->params.benchmark_comment = " (length 5)";
 #endif
