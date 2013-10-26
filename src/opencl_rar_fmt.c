@@ -81,9 +81,9 @@
 #define FORMAT_NAME		"RAR3"
 #define ALGORITHM_NAME		"SHA1 AES OpenCL"
 #ifdef DEBUG
-#define BENCHMARK_COMMENT	" (1-16 characters)"
+#define BENCHMARK_COMMENT	" (length 1-16)"
 #else
-#define BENCHMARK_COMMENT	" (4 characters)"
+#define BENCHMARK_COMMENT	" (length 4)"
 #endif
 #define BENCHMARK_LENGTH	-1
 
