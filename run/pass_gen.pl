@@ -18,7 +18,7 @@ use Digest::MD4 qw(md4 md4_hex md4_base64);
 use Digest::MD5 qw(md5 md5_hex md5_base64);
 use Digest::SHA qw(sha1 sha1_hex sha1_base64 sha224 sha224_hex sha224_base64 sha256 sha256_hex sha256_base64 sha384 sha384_hex sha384_base64 sha512 sha512_hex sha512_base64 );
 use Encode;
-use Switch 'Perl5', 'Perl6';
+#use Switch 'Perl5', 'Perl6';
 use POSIX;
 use Getopt::Long;
 use MIME::Base64;
@@ -845,16 +845,17 @@ sub mscash2 {
 	# max password length is 27 characters (in John)
 	# the algorithm lowercases the salt
 	my $user;
+	my $iter = 10240;
 	if (defined $argsalt) { $user = $argsalt; } else { $user = randusername(22); }
 	$salt = encode("UTF-16LE", lc($user));
 	my $pbkdf2 = Crypt::PBKDF2->new(
 		hash_class => 'HMACSHA1',
-		iterations => 10240,
+		iterations => $iter,
 		output_len => 16,
 		salt_len => length($salt),
 		);
 	# Crypt::PBKDF2 hex output is buggy, we do it ourselves!
-	print "$user:", unpack("H*", $pbkdf2->PBKDF2($salt,md4(md4(encode("UTF-16LE",$_[0])).$salt))),
+	print "$user:", '$DCC2$', "$iter#$user#", unpack("H*", $pbkdf2->PBKDF2($salt,md4(md4(encode("UTF-16LE",$_[0])).$salt))),
 	":$u:0:$_[0]:mscash2:\n";
 }
 sub lm {

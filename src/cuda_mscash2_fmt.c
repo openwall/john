@@ -42,7 +42,8 @@ static struct fmt_tests tests[] = {
 	{"$DCC2$10240#TEST2#c6758e5be7fc943d00b97972a8a97620", "test2"},	// salt is lowercased before hashing
 	{"$DCC2$10240#test3#360e51304a2d383ea33467ab0b639cc4", "test3"},
 	{"$DCC2$10240#test4#6f79ee93518306f071c47185998566ae", "test4"},
-
+// Non-standard iterations count
+//	{"$DCC2$10000#Twelve_chars#54236c670e185043c8016006c001e982", "magnum"},
 	{NULL}
 };
 
@@ -101,7 +102,9 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 {
 	char *cp;
 	int i;
-	if (!strncmp(split_fields[1], "$DCC2$", 6)) {
+
+	if (!strncmp(split_fields[1], "$DCC2$", 6) &&
+	    strchr(split_fields[1], '#') == strrchr(split_fields[1], '#')) {
 		if (valid(split_fields[1], self))
 			return split_fields[1];
 		// see if this is a form $DCC2$salt#hash.  If so, make it $DCC2$10240#salt#hash and retest (insert 10240# into the line).
