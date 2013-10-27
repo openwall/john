@@ -31,10 +31,23 @@
 
 #include "arch.h"
 
+/*
+ * Some broken systems don't offer section alignments larger than 4 bytes,
+ * while for the SSE code we need at least a 16 byte alignment.  ALIGN_FIX
+ * is here to work around this issue when we happen to get bad addresses.
+ */
+#ifndef ALIGN_FIX
 #ifdef ALIGN_LOG
 #define DO_ALIGN(log)			.align log
 #else
 #define DO_ALIGN(log)			.align 1 << log
+#endif
+#else
+#ifdef ALIGN_LOG
+#define DO_ALIGN(log)			.align log; .space ALIGN_FIX
+#else
+#define DO_ALIGN(log)			.align 1 << log; .space ALIGN_FIX
+#endif
 #endif
 
 #if DES_BS_ASM
