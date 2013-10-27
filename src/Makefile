@@ -1791,6 +1791,7 @@ dos-djgpp-x86-any:
 		CFLAGS="$(CFLAGS) -DNO_JOHN_BLD -mpreferred-stack-boundary=2" \
 		ASFLAGS="$(ASFLAGS) -DUNDERSCORES -DALIGN_LOG"
 
+# Try adding -DALIGN_FIX=8 to ASFLAGS if DEScrypt or NT segfaults.
 win64-mingw-x86-64:
 	$(CP) x86-64.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
@@ -1798,7 +1799,7 @@ win64-mingw-x86-64:
 		JOHN_OBJS="$(JOHN_OBJS) x86-64.o sse-intrinsics.o" \
 		CFLAGS="-c -static -Wall -Wdeclaration-after-statement -O2 -fomit-frame-pointer -I/usr/local/include $(OMPFLAGS) $(AMDAPP) $(JOHN_CFLAGS) -mpreferred-stack-boundary=4" \
 		LDFLAGS="-static -lssl -lcrypto -lwsock32 -lws2_32 -lgdi32 -lm -lpthread.dll -lz.dll $(OMPFLAGS)" \
-		ASFLAGS="$(ASFLAGS) -DALIGN_FIX=8" \
+		ASFLAGS="$(ASFLAGS)" \
 		CPP=$(GCC) CC=$(GCC) LD=$(GCC) CXX=$(CXX)
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX) \
