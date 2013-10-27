@@ -283,7 +283,7 @@ PROJ_WIN32_MINGW = ../run/john-mingw.exe \
 	../run/racf2john.exe ../run/mozilla2john.exe ../run/hccap2john.exe \
 	../run/pwsafe2john.exe ../run/raw2dyna.exe ../run/keepass2john.exe \
 	../run/pfx2john.exe ../run/keychain2john.exe ../run/keyring2john.exe \
-	../run/kwallet2john.exe ../run/putty2john john.local.conf
+	../run/kwallet2john.exe ../run/putty2john.exe john.local.conf
 PROJ_CXX = ../run/gpg2john
 PROJ_PCAP = ../run/SIPdump ../run/vncpcap2john
 default:
