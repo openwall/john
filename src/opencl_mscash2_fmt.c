@@ -37,7 +37,6 @@
 #define BENCHMARK_LENGTH	  -1
 #define MSCASH2_PREFIX            "$DCC2$"
 #define MAX_PLAINTEXT_LENGTH      125
-#define MAX_CIPHERTEXT_LENGTH     7 +7 + MAX_SALT_LENGTH + 32
 
 #define BINARY_SIZE               4
 #define BINARY_ALIGN              4
@@ -78,7 +77,7 @@ static unsigned char 	(*key_host)[MAX_PLAINTEXT_LENGTH + 1] ;
 static ms_cash2_salt 	currentsalt ;
 static cl_uint          *hmac_sha1_out ;
 
-extern int mscash2_valid(char *, int,  const char *, struct fmt_main *);
+extern int mscash2_valid(char *, int,  struct fmt_main *);
 extern char * mscash2_prepare(char **, struct fmt_main *);
 extern char * mscash2_split(char *, int, struct fmt_main *);
 
@@ -107,13 +106,21 @@ static void init(struct fmt_main *self) {
 		select_device(ocl_device_list[i], self) ;
 
 	warning() ;
+
+	if (options.utf8) {
+		self->params.plaintext_length *= 3;
+		if (self->params.plaintext_length > 125)
+			self->params.plaintext_length = 125;
+	}
 }
 
-static void DCC(unsigned char *salt, unsigned int username_len, unsigned int *dcc_hash, unsigned int count) {
-	unsigned int 	id ;
-	unsigned int 	buffer[64] ;
-	unsigned int 	nt_hash[69] ; // large enough to handle 128 byte user name (when we expand to that size).
-	unsigned int 	password_len;
+static void DCC(unsigned char *salt, unsigned int username_len,
+                unsigned int *dcc_hash, unsigned int count)
+{
+	unsigned int id ;
+	unsigned int buffer[64] ;
+	unsigned int nt_hash[69] ; // large enough to handle 128 byte user name (when we expand to that size).
+	int password_len;
 	MD4_CTX ctx;
 
 	for (id = 0; id < count; id++) {
@@ -150,7 +157,12 @@ static void done() {
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	return mscash2_valid(ciphertext, MAX_SALT_LENGTH, FORMAT_LABEL, self);
+	/* This version doesn't handle other iteration counts */
+	if (strncmp(ciphertext, "$DCC2$10240#", 12))
+		return 0;
+
+	/* The CPU version does */
+	return mscash2_valid(ciphertext, MAX_SALT_LENGTH, self);
 }
 
 static void *binary(char *ciphertext)
@@ -172,26 +184,21 @@ static void *binary(char *ciphertext)
 	return binary ;
 }
 
-static void *salt(char *ciphertext) {
-	static ms_cash2_salt 	salt ;
-	unsigned int 		length ;
-	char 			*pos ;
+static void *salt(char *ciphertext)
+{
+	static ms_cash2_salt salt;
+	char *pos = ciphertext + strlen(MSCASH2_PREFIX);
+	char *end = strrchr(ciphertext, '#');
+	int length = 0;
 
-	memset(&salt, 0, sizeof(salt)) ;
-	length = 0 ;
+	memset(&salt, 0, sizeof(salt));
 	pos = strchr(ciphertext, '#') + 1 ;
+	while (pos < end)
+		salt.username[length++] = *pos++;
+	salt.username[length] = 0;
+	salt.length = length;
 
-	while (*pos != '#') {
-		if (length == MAX_SALT_LENGTH)
-			return NULL ;
-
-		salt.username[length++] = *pos++ ;
-	      }
-
-	salt.username[length] = 0 ;
-	salt.length = length ;
-
-	return &salt ;
+	return &salt;
 }
 
 static void set_salt(void *salt) {
@@ -245,9 +252,10 @@ static void pbkdf2_iter0(unsigned int *input_dcc_hash,unsigned char *salt_buffer
 	}
 }
 
-static int crypt_all(int *pcount, struct db_salt *salt) {
-	int 		count = *pcount ;
-	unsigned int 	salt_len;
+static int crypt_all(int *pcount, struct db_salt *salt)
+{
+	int count = *pcount ;
+	int salt_len;
 #ifdef _DEBUG
 	struct timeval startc, endc, startg, endg ;
 	gettimeofday(&startc, NULL) ;

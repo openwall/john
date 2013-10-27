@@ -10,8 +10,6 @@
 #define NVIDIA
 #endif
 
-#define ITERATIONS                  10240
-
 #define SHA1_DIGEST_LENGTH          20
 
 #define INIT_SHA1_A                 0x67452301
@@ -783,4 +781,3 @@ void pbkdf2_postprocess(__global temp_buf *tmp,
 	PUT_WORD_32_BE(out[3], out_global, i) ;
 
 }
-
