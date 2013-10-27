@@ -32,7 +32,7 @@
 #include "arch.h"
 
 /*
- * Some broken systems don't offer section alignments larger than 4 bytes,
+ * Some broken systems don't offer section alignments larger than 8 bytes,
  * while for the SSE code we need at least a 16 byte alignment.  ALIGN_FIX
  * is here to work around this issue when we happen to get bad addresses.
  */
