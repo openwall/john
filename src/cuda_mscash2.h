@@ -361,9 +361,9 @@
 static const char mscash2_prefix[] = "$DCC2$";
 
 typedef struct {
-	uint8_t length;
-	uint8_t v[PLAINTEXT_LENGTH];
+	uint16_t v[PLAINTEXT_LENGTH];
 	uint32_t dcc_hash[4];
+	uint8_t length;
 } mscash2_password;
 
 typedef struct {
@@ -371,10 +371,10 @@ typedef struct {
 } mscash2_hash;
 
 typedef struct {
-	uint8_t length;
-	uint8_t salt[19];
-	uint8_t unicode_salt[64];
 	uint32_t rounds;
+	uint16_t salt[19];
+	uint8_t length;
+	uint8_t unicode_salt[64];
 } mscash2_salt;
 
 #endif

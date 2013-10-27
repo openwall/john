@@ -16,8 +16,9 @@
 
 #define FORMAT_LABEL		"mscash2-cuda"
 #define FORMAT_NAME		"M$ Cache Hash 2 (DCC2)"
-#define MAX_CIPHERTEXT_LENGTH    (8+5+19+32)
+#define MAX_CIPHERTEXT_LENGTH	(8 + 5 + 3 * MAX_SALT_LENGTH + 32)
 #define ALGORITHM_NAME		"PBKDF2-SHA1 CUDA"
+#define MAX_SALT_LENGTH		19
 
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
@@ -64,46 +65,24 @@ static void init(struct fmt_main *self)
 	check_mem_allocation(inbuffer, outbuffer);
 	//Initialize CUDA
 	cuda_init(cuda_gpu_id);
+
+	if (options.utf8) {
+		self->params.plaintext_length *= 3;
+		if (self->params.plaintext_length > 125)
+			self->params.plaintext_length = 125;
+	}
 }
+
+extern int mscash2_valid(char *ciphertext, int max_salt_length, struct fmt_main *self);
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-#ifdef _MSCASH2_DEBUG
-	printf("valid(%s)\n", ciphertext);
-#endif
-	int i, l = strlen(ciphertext), saltlength = 0;
-	if (strncmp(ciphertext, mscash2_prefix, strlen(mscash2_prefix)) != 0)
-		return 0;
-	if (l <= 32 || l > MAX_CIPHERTEXT_LENGTH)
-		return 0;
-	l -= 32;
-	if (ciphertext[l - 1] != '#')
-		return 0;
-	for (i = l; i < l + 32; i++)
-		if (atoi16[ARCH_INDEX(ciphertext[i])] == 0x7F)
-			return 0;
-
-	i = 6;
-	while (ciphertext[i] && ciphertext[i] != '#')
-		i++;
-	i++;
-	while (ciphertext[i] && ciphertext[i] != '#')
-		i++, saltlength++;
-
-	sscanf(&ciphertext[6], "%d", &i);
-	if (i >= 1 << 16)
+	/* This version doesn't handle other iteration counts */
+	if (strncmp(ciphertext, "$DCC2$10240#", 12))
 		return 0;
 
-	if (saltlength < 0 || saltlength > 19) {
-		static int warned = 0;
-
-		if (!ldr_in_pot)
-		if (!warned++)
-			fprintf(stderr, "%s: One or more hashes rejected due to salt length limitation\n", FORMAT_LABEL);
-
-		return 0;
-	}
-	return 1;
+	/* The CPU version does */
+	return mscash2_valid(ciphertext, MAX_SALT_LENGTH, self);
 }
 
 static char *split(char *ciphertext, int index, struct fmt_main *self)
@@ -169,27 +148,26 @@ static void *binary(char *ciphertext)
 static void *salt(char *ciphertext)
 {
 	static mscash2_salt salt;
+	UTF8 insalt[3 * MAX_SALT_LENGTH + 1];
 	char *pos = ciphertext + strlen(mscash2_prefix);
+	char *end = strrchr(ciphertext, '#');
 	int length = 0;
+
 	memset(&salt, 0, sizeof(salt));
 	salt.rounds = DEFAULT_ROUNDS;
 	sscanf(pos, "%d", &salt.rounds);
-	while (*pos++ != '#');
-	while (*pos != '#') {
-		if (length == 19)
-			return NULL;
-		salt.salt[length++] = *pos++;
-	}
+	pos = strchr(ciphertext, '#') + 1 ;
+	while (pos < end)
+		insalt[length++] = *pos++;
+	insalt[length] = 0;
+
+	enc_to_utf16(salt.salt, MAX_SALT_LENGTH, insalt, length);
 	salt.length = length;
+
 #ifdef _MSCASH2_DEBUG
-	int i;
-	printf("salt=");
-	for (i = 0; i < salt.length; i++)
-		putchar(salt.salt[i]);
-	puts("");
+	printf("salt=%s\n", utf16_to_enc(salt.salt));
 	printf("salt len=%d\n", salt.length);
 	printf("salt rounds=%d\n", salt.rounds);
-
 #endif
 	return &salt;
 }
@@ -201,21 +179,30 @@ static void set_salt(void *salt)
 
 static void set_key(char *key, int index)
 {
+	int length;
+
 #ifdef _MSCASH2_DEBUG
 	printf("set_key(%d) = [%s]\n", index, key);
 #endif
-	uint8_t length = strlen(key);
+	length = enc_to_utf16(inbuffer[index].v,
+	                      PLAINTEXT_LENGTH,
+	                      (UTF8*)key,
+	                      strlen(key));
+
+	if (length < 0)
+		length = strlen16(inbuffer[index].v);
+
 	inbuffer[index].length = length;
-	memcpy(inbuffer[index].v, key, MIN(length, PLAINTEXT_LENGTH));
 }
 
 static char *get_key(int index)
 {
-	static char ret[PLAINTEXT_LENGTH + 1];
+	UTF16 ret[PLAINTEXT_LENGTH + 1];
 	uint8_t length = inbuffer[index].length;
-	memcpy(ret, inbuffer[index].v, length);
-	ret[length] = '\0';
-	return ret;
+
+	memcpy(ret, inbuffer[index].v, 2 * length);
+	ret[length] = 0;
+	return (char*)utf16_to_enc(ret);
 }
 
 static int crypt_all(int *pcount, struct db_salt *salt)
@@ -318,7 +305,7 @@ struct fmt_main fmt_cuda_mscash2 = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		0,
-		FMT_CASE | FMT_8_BIT| FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE,
+		FMT_CASE | FMT_8_BIT| FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE | FMT_UTF8,
 		tests
 	}, {
 		init,

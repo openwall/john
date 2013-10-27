@@ -346,7 +346,7 @@ __host__ void mscash_cpu(mscash2_password * inbuffer, mscash2_hash * outbuffer,
 	uint32_t nt_hash[16];
 	uint8_t salt[64];
 	memset(salt, 0, 64);
-	uint8_t *username = host_salt->salt;
+	uint16_t *username = host_salt->salt;
 	uint32_t username_len = (uint32_t) host_salt->length;
 	int r = 0;
 	if (username_len % 2 == 1)
@@ -357,9 +357,9 @@ __host__ void mscash_cpu(mscash2_password * inbuffer, mscash2_hash * outbuffer,
 	memcpy(host_salt->unicode_salt, salt, 64);
 
 	for (idx = 0; idx < count; idx++) {
-
-		uint8_t *password = inbuffer[idx].v;
+		uint16_t *password = inbuffer[idx].v;
 		uint32_t password_len = inbuffer[idx].length;
+
 		memset(nt_hash, 0, 64);
 		memset(buffer, 0, 64);
 
