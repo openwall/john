@@ -215,7 +215,11 @@ int mscash2_valid(char *ciphertext, int max_salt_length, const char *format_labe
 	UTF16 realsalt[129];
 	int saltlen;
 
-	if (strncmp(ciphertext, "$DCC2$10240#", 12))
+	if (strncmp(ciphertext, "$DCC2$", 6))
+		return 0;
+
+	/* We demand an iteration count (after prepare()) */
+	if (strchr(ciphertext, '#') == strrchr(ciphertext, '#'))
 		return 0;
 
 	l = strlen(ciphertext);
