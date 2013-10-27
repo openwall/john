@@ -71,7 +71,7 @@
  * This version does several blocks at a time and
  * does not thrash the input buffer.
  */
-inline void sha1_mblock(uint *Win, __global uint *out, uint blocks)
+inline void sha1_mblock(uint *Win, uint *out, uint blocks)
 {
 	uint W[16], output[5];
 	uint A, B, C, D, E, temp;
@@ -405,10 +405,14 @@ inline void sha1_final(uint *W, uint *output, const uint tot_len)
 __kernel void RarInit(__global uint *OutputBuf, __global uint *round)
 {
 	uint gid = get_global_id(0);
-	__global uint *output = &OutputBuf[gid * 5];
+	uint gws = get_global_size(0);
+	uint i, output[5];
 
 	round[gid] = 0;
 	sha1_init(output);
+
+	for (i = 0; i < 5; i++)
+		OutputBuf[i * gws + gid] = output[i];
 }
 
 /* This kernel is called 16 times in a row */
@@ -421,12 +425,16 @@ __kernel void RarHashLoop(
 	__global uint *aes_iv)
 {
 	uint gid = get_global_id(0);
+	uint gws = get_global_size(0);
 	uint block[(UNICODE_LENGTH + 11) * 16];
-	__global uint *output = &OutputBuf[gid * 5];
+	uint output[5];
 	const uint pwlen = pw_len[gid];
 	const uint blocklen = pwlen + 11;
 	uint round = round_p[gid];
 	uint i, j;
+
+	for (i = 0; i < 5; i++)
+		output[i] = OutputBuf[i * gws + gid];
 
 	/* Copy to 64x buffer (always ends at SHA-1 block boundary) */
 	for (i = 0; i < 64; i++) {
@@ -476,6 +484,8 @@ __kernel void RarHashLoop(
 		sha1_mblock(block, output, blocklen);
 	}
 
+	for (i = 0; i < 5; i++)
+		OutputBuf[i * gws + gid] = output[i];
 	round_p[gid] = round;
 }
 
@@ -485,11 +495,12 @@ __kernel void RarFinal(
 	__global uint *aes_key)
 {
 	uint gid = get_global_id(0);
+	uint gws = get_global_size(0);
 	uint block[16], output[5];
 	uint i;
 
 	for (i = 0; i < 5; i++)
-		output[i] = OutputBuf[gid * 5 + i];
+		output[i] = OutputBuf[i * gws + gid];
 
 	/* This is always an empty block (except length) */
 	sha1_final(block, output, (pw_len[gid] + 8 + 3) * ROUNDS);
