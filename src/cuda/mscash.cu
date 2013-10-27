@@ -138,7 +138,7 @@ __device__ static void md4_crypt(uint32_t * output, uint32_t * nt_buffer)
 	output[3] = d + INIT_D;
 }
 
-__device__ void prepare_key(uint8_t * key, int length, uint32_t * nt_buffer)
+__device__ void prepare_key(uint16_t *key, int length, uint32_t *nt_buffer)
 {
 	int i = 0;
 	for (i = 0; i < 16; i++)
@@ -152,8 +152,8 @@ __device__ void prepare_key(uint8_t * key, int length, uint32_t * nt_buffer)
 	nt_buffer[14] = length << 4;
 }
 
-__device__ void prepare_login(uint8_t * login, int length,
-    uint32_t * login_buffer)
+__device__ void prepare_login(uint16_t *login, int length,
+    uint32_t *login_buffer)
 {
 	int i = 0;
 	for (i = 0; i < 12; i++)
@@ -172,10 +172,10 @@ __global__ void mscash_kernel(mscash_password * inbuffer,
     mscash_hash * outbuffer)
 {
 	uint32_t idx = blockIdx.x * blockDim.x + threadIdx.x;
-	uint8_t *login =(uint8_t*) cuda_salt[0].salt;
+	uint16_t *login = cuda_salt[0].salt;
 	uint8_t loginlength = cuda_salt[0].length;
 
-	uint8_t *password = inbuffer[idx].v;
+	uint16_t *password = inbuffer[idx].v;
 	uint8_t passwordlength = inbuffer[idx].length;
 
 	int i;

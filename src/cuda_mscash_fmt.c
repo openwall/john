@@ -60,6 +60,12 @@ static void init(struct fmt_main *self)
 	check_mem_allocation(inbuffer, outbuffer);
 	//Initialize CUDA
 	cuda_init(cuda_gpu_id);
+
+	if (options.utf8) {
+		self->params.plaintext_length *= 3;
+		if (self->params.plaintext_length > 125)
+			self->params.plaintext_length = 125;
+	}
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -119,17 +125,19 @@ static void *binary(char *ciphertext)
 static void *salt(char *ciphertext)
 {
 	static mscash_salt salt;
+	UTF8 insalt[SALT_LENGTH + 1];
 	char *pos = ciphertext + strlen(mscash_prefix);
+	char *end = strrchr(ciphertext, '#');
 	int length = 0;
+
 	memset(&salt, 0, sizeof(salt));
-	while (*pos != '#') {
-		if (length == SALT_LENGTH)
-			return NULL;
-		salt.salt[length++] = *pos++;
-	}
-	salt.salt[length] = 0;
-	enc_strlwr(salt.salt);
+	while (pos < end)
+		insalt[length++] = *pos++;
+	insalt[length] = 0;
+
+	enc_to_utf16(salt.salt, SALT_LENGTH, insalt, length);
 	salt.length = length;
+
 	return &salt;
 }
 
@@ -140,18 +148,27 @@ static void set_salt(void *salt)
 
 static void set_key(char *key, int index)
 {
-	uint8_t length = strlen(key);
+	int length;
+
+	length = enc_to_utf16(inbuffer[index].v,
+	                      PLAINTEXT_LENGTH,
+	                      (UTF8*)key,
+	                      strlen(key));
+
+	if (length < 0)
+		length = strlen16(inbuffer[index].v);
+
 	inbuffer[index].length = length;
-	memcpy(inbuffer[index].v, key, MIN(length, PLAINTEXT_LENGTH));
 }
 
 static char *get_key(int index)
 {
-	static char ret[PLAINTEXT_LENGTH + 1];
+	UTF16 ret[PLAINTEXT_LENGTH + 1];
 	uint8_t length = inbuffer[index].length;
-	memcpy(ret, inbuffer[index].v, length);
-	ret[length] = '\0';
-	return ret;
+
+	memcpy(ret, inbuffer[index].v, 2 * length);
+	ret[length] = 0;
+	return (char*)utf16_to_enc(ret);
 }
 
 static int crypt_all(int *pcount, struct db_salt *salt)
@@ -236,7 +253,7 @@ struct fmt_main fmt_cuda_mscash = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		0,
-		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE,
+		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE | FMT_UTF8,
 		tests
 	}, {
 		init,

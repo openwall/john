@@ -41,8 +41,8 @@
 static const char mscash_prefix[] = "M$";
 
 typedef struct {
+	uint16_t v[PLAINTEXT_LENGTH]; /* UTF-16 */
 	uint8_t length;
-	uint8_t v[PLAINTEXT_LENGTH];
 } mscash_password;
 
 typedef struct {
@@ -50,8 +50,8 @@ typedef struct {
 } mscash_hash;
 
 typedef struct {
+	uint16_t salt[SALT_LENGTH + 1];
 	uint8_t length;
-	char salt[SALT_LENGTH+1];
 } mscash_salt;
 
 #endif
