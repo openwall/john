@@ -193,9 +193,9 @@ static void decrypt_aes_cbc_essiv(unsigned char *src, unsigned char *dst,
 		SHA256_Init(&ctx);
 		SHA256_Update(&ctx, key, john_ntohl(cs->myphdr.keyBytes));
 		SHA256_Final(essivhash, &ctx);
-		bzero(sectorbuf, 16);
-		bzero(zeroiv, 16);
-		bzero(essiv, 16);
+		memset(sectorbuf, 0, 16);
+		memset(zeroiv, 0, 16);
+		memset(essiv, 0, 16);
 		memcpy(sectorbuf, &a, 4);
 		AES_set_encrypt_key(essivhash, 256, &aeskey);
 		AES_cbc_encrypt(sectorbuf, essiv, 16, &aeskey, zeroiv, AES_ENCRYPT);
