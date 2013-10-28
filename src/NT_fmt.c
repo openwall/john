@@ -96,7 +96,7 @@ static struct fmt_tests tests[] = {
 };
 
 #define BINARY_SIZE			16
-#define BINARY_ALIGN			MEM_ALIGN_WORD
+#define BINARY_ALIGN			sizeof(unsigned int)
 #define SALT_SIZE			0
 #define SALT_ALIGN			MEM_ALIGN_NONE
 
@@ -332,11 +332,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 
 static void *get_binary(char *ciphertext)
 {
-	static union {
-		unsigned long u64[BINARY_SIZE/sizeof(unsigned long)];
-		unsigned int u32[BINARY_SIZE/sizeof(unsigned int)];
-	} outbuf;
-	unsigned int *out = (unsigned int*)outbuf.u32;
+	static unsigned int out[BINARY_SIZE/sizeof(unsigned int)];
 	unsigned int i=0;
 	unsigned int temp;
 
