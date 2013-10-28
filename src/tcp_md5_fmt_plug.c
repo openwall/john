@@ -8,9 +8,10 @@
  * modification, are permitted.
  */
 
-#include "md5.h"
 #include <string.h>
+
 #include "arch.h"
+#include "md5.h"
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
@@ -28,7 +29,7 @@
 #define TAG_LENGTH              (sizeof(FORMAT_TAG) - 1)
 #define ALGORITHM_NAME          "MD5 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        -1
+#define BENCHMARK_LENGTH        0
 
 // Linux Kernel says "#define TCP_MD5SIG_MAXKEYLEN 80"
 #define PLAINTEXT_LENGTH        80
@@ -49,6 +50,7 @@ static struct fmt_tests tests[] = {
 };
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
+static int *saved_len;
 static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
 
 static struct custom_salt {
@@ -67,7 +69,10 @@ static void init(struct fmt_main *self)
 #endif
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
 		self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	saved_len = mem_calloc_tiny(sizeof(*saved_len) *
+		self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) *
+		self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -163,7 +168,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		MD5_Init(&ctx);
 		MD5_Update(&ctx, cur_salt->salt, cur_salt->length);
 
-		MD5_Update(&ctx, saved_key[index], strlen(saved_key[index]));
+		MD5_Update(&ctx, saved_key[index], saved_len[index]);
 		MD5_Final((unsigned char*)crypt_out[index], &ctx);
 	}
 	return count;
@@ -192,6 +197,8 @@ static int cmp_exact(char *source, int index)
 
 static void tcpmd5_set_key(char *key, int index)
 {
+	saved_len[index] = strlen(key);
+
 	/* strncpy will pad with zeros, which is needed */
 	strncpy(saved_key[index], key, sizeof(saved_key[0]));
 }

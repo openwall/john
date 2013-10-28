@@ -7,8 +7,9 @@
  * modification, are permitted.
  */
 
-#include "sha.h"
 #include <string.h>
+
+#include "sha.h"
 #include "arch.h"
 #include "misc.h"
 #include "common.h"
@@ -27,7 +28,7 @@
 #define TAG_LENGTH              (sizeof(FORMAT_TAG) - 1)
 #define ALGORITHM_NAME          "SHA1 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        -1
+#define BENCHMARK_LENGTH        0
 #define PLAINTEXT_LENGTH        16
 #define BINARY_SIZE             20
 #define BINARY_ALIGN            sizeof(ARCH_WORD_32)
@@ -38,7 +39,10 @@
 #define HEXCHARS                "0123456789abcdef"
 
 static struct fmt_tests tests[] = {
+/* Mockup test vectors. Both these lines should be deleted once we get some
+   real test vectors */
 	{FORMAT_TAG "02020000ffff0003002c01145267d48d000000000000000000020000ac100100ffffff000000000000000001ffff0001$7236e720eaebe9eb3954c53db5cc19224a6cfeb3", "quagga"},
+	{FORMAT_TAG "02020000ffff0003002c01145267d48d000000000000000000020000ac100100ffffff000000000000000001ffff0001$71893ac93cb5511937d4a7189d390d14d9e013fd", "magnum"},
 	{NULL}
 };
 

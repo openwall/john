@@ -7,9 +7,10 @@
  * modification, are permitted.
  */
 
-#include "md5.h"
 #include <string.h>
+
 #include "arch.h"
+#include "md5.h"
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
@@ -27,7 +28,7 @@
 #define TAG_LENGTH              (sizeof(FORMAT_TAG) - 1)
 #define ALGORITHM_NAME          "MD5 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        -1
+#define BENCHMARK_LENGTH        0
 // RIPv2 truncates (or null pads) passwords to length 16
 #define PLAINTEXT_LENGTH        16
 #define BINARY_SIZE             16
