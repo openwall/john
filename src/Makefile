@@ -1797,7 +1797,7 @@ win64-mingw-x86-64:
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ_WIN32_MINGW) \
 		JOHN_OBJS="$(JOHN_OBJS) x86-64.o sse-intrinsics.o" \
-		CFLAGS="-c -static -Wall -Wdeclaration-after-statement -O2 -fomit-frame-pointer -I/usr/local/include $(OMPFLAGS) $(AMDAPP) $(JOHN_CFLAGS) -mpreferred-stack-boundary=4" \
+		CFLAGS="-c -mstackrealign -static -Wall -Wdeclaration-after-statement -O2 -fomit-frame-pointer -I/usr/local/include $(OMPFLAGS) $(AMDAPP) $(JOHN_CFLAGS) -mpreferred-stack-boundary=4" \
 		LDFLAGS="-static -lssl -lcrypto -lwsock32 -lws2_32 -lgdi32 -lm -lpthread.dll -lz.dll $(OMPFLAGS)" \
 		ASFLAGS="$(ASFLAGS)" \
 		CPP=$(GCC) CC=$(GCC) LD=$(GCC) CXX=$(CXX)
@@ -2233,7 +2233,7 @@ john.com: john.asm
 
 ../run/john.exe: $(JOHN_OBJS)
 	$(LD) $(JOHN_OBJS) $(LDFLAGS) -lkernel32 -o ../run/john.exe
-	strip ../run/john.exe
+	# strip ../run/john.exe
 
 # this LD line removed from the ../run/john-mingw.exe rule (MinGW32 builds)
 # this change needed for full openssl linking, in 1.7.7-jumbo-6
@@ -2242,12 +2242,12 @@ john.com: john.asm
 
 ../run/john-mingw.exe: $(JOHN_OBJS)
 	$(LD) $(JOHN_OBJS) $(LDFLAGS) -lkernel32 -o ../run/john-mingw.exe
-	strip ../run/john-mingw.exe
+	# strip ../run/john-mingw.exe
 	cp ../run/john-mingw.exe ../run/john.exe
 
 ../run/unshadow.exe: symlink.c
 	$(CC) symlink.c -o ../run/unshadow.exe
-	strip ../run/unshadow.exe
+	# strip ../run/unshadow.exe
 
 ../run/unafs.exe: symlink.c
 	$(CC) symlink.c -o ../run/unafs.exe
