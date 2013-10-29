@@ -745,8 +745,8 @@ DO_SPACE(nptr(48))
 #define K(i)				nvec(i)(k_ptr)
 #define k(i)				nptr(i)(k_ptr)
 
-#define tmp1				%rcx
-#define tmp2				%r9 /* %rsi is non-volatile on win64 */
+#define tmp1				%r9  /* we already use %rcx on win64 */
+#define tmp2				%r10 /* %rsi is non-volatile on win64 */
 
 #define xor_E(i) \
 	movq E(i),tmp1; \
