@@ -31,10 +31,8 @@ typedef unsigned long long ARCH_WORD_64;
 #define is_aligned(PTR, CNT) ((((ARCH_WORD)(const void *)(PTR))&(CNT-1))==0)
 
 #ifdef __GNUC__
-#if __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 7)
-#define MAYBE_INLINE __attribute__((always_inline)) inline
-#elif __GNUC__ > 3 || (__GNUC__ == 3 && __GNUC_MINOR__ >= 1)
-#define MAYBE_INLINE __attribute__((always_inline))
+#if __GNUC__ > 3 || (__GNUC__ == 3 && __GNUC_MINOR__ >= 1)
+#define MAYBE_INLINE __attribute__((always_inline)) __inline__
 #else
 #define MAYBE_INLINE __inline__
 #endif
