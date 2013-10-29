@@ -1791,7 +1791,6 @@ dos-djgpp-x86-any:
 		CFLAGS="$(CFLAGS) -DNO_JOHN_BLD -mpreferred-stack-boundary=2" \
 		ASFLAGS="$(ASFLAGS) -DUNDERSCORES -DALIGN_LOG"
 
-# Try adding -DALIGN_FIX=8 to ASFLAGS if DEScrypt or NT segfaults.
 win64-mingw-x86-64:
 	$(CP) x86-64.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h

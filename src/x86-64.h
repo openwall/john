@@ -17,7 +17,7 @@
 #ifndef _JOHN_ARCH_H
 #define _JOHN_ARCH_H
 
-#if defined(__ILP32__) || defined(__MINGW64__)
+#if defined(__ILP32__) || defined(_WIN64)
 #define ARCH_WORD			long long
 #else
 #define ARCH_WORD			long

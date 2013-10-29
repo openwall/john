@@ -31,10 +31,55 @@
 
 #include "arch.h"
 
+#ifdef _WIN64
+/*
+ * MS use a different x64 calling convention than everyone else:
+ * Arguments: RCX, RDX, R8, R9 then stack right-to-left.
+ * Non-volatile: R12:R15, RBX, RBP, RDI, RSI, RSP, XMM6:XMM15
+ * Return: RAX.
+ */
+#define ARG1 %rcx
+#define PROLOGUE \
+	subq $(8+10*16), %rsp; \
+	movapd %xmm6, 0*16(%rsp); \
+	movapd %xmm7, 1*16(%rsp); \
+	movapd %xmm8, 2*16(%rsp); \
+	movapd %xmm9, 3*16(%rsp); \
+	movapd %xmm10, 4*16(%rsp); \
+	movapd %xmm11, 5*16(%rsp); \
+	movapd %xmm12, 6*16(%rsp); \
+	movapd %xmm13, 7*16(%rsp); \
+	movapd %xmm14, 8*16(%rsp); \
+	movapd %xmm15, 9*16(%rsp)
+#define EPILOGUE \
+	movapd 0*16(%rsp), %xmm6; \
+	movapd 1*16(%rsp), %xmm7; \
+	movapd 2*16(%rsp), %xmm8; \
+	movapd 3*16(%rsp), %xmm9; \
+	movapd 4*16(%rsp), %xmm10; \
+	movapd 5*16(%rsp), %xmm11; \
+	movapd 6*16(%rsp), %xmm12; \
+	movapd 7*16(%rsp), %xmm13; \
+	movapd 8*16(%rsp), %xmm14; \
+	movapd 9*16(%rsp), %xmm15; \
+	addq $(8+10*16), %rsp
+#else
+/*
+ * System V AMD64 ABI (followed by everybody else including linux-X32):
+ * Arguments: RDI, RSI, RDX, RCX, R8, R9 then stack right-to-left.
+ * Non-volatile: R12:R15, RBX, RBP
+ * Return: RAX.
+ */
+#define ARG1 %rdi
+#define PROLOGUE
+#define EPILOGUE
+#endif
+
 /*
  * Some broken systems don't offer section alignments larger than 8 bytes,
  * while for the SSE code we need at least a 16 byte alignment.  ALIGN_FIX
  * is here to work around this issue when we happen to get bad addresses.
+ * We haven't actually seen this on any 64-bit system as of yet.
  */
 #ifndef ALIGN_FIX
 #ifdef ALIGN_LOG
@@ -699,7 +744,7 @@ DO_SPACE(nptr(48))
 #define k(i)				nptr(i)(k_ptr)
 
 #define tmp1				%rcx
-#define tmp2				%rsi
+#define tmp2				%r9 /* %rsi is non-volatile on win64 */
 
 #define xor_E(i) \
 	movq E(i),tmp1; \
@@ -1030,6 +1075,7 @@ DES_bs_init_asm:
 DO_ALIGN(6)
 .globl DES_bs_crypt
 DES_bs_crypt:
+	PROLOGUE
 	cmpl $0,DES_bs_all_keys_changed(%rip)
 	jz DES_bs_crypt_body
 	pushq %rdi
@@ -1083,17 +1129,20 @@ DES_bs_crypt_swap:
 	movl $0x108,rounds_and_swapped
 	subl $1,iterations
 	jnz DES_bs_crypt_swap
+	EPILOGUE
 	ret
 DES_bs_crypt_next:
 	subq $nvec(0x300-48),k_ptr
 	movl $8,rounds_and_swapped
 	subl $1,iterations
 	jnz DES_bs_crypt_start
+	EPILOGUE
 	ret
 
 DO_ALIGN(6)
 .globl DES_bs_crypt_25
 DES_bs_crypt_25:
+	PROLOGUE
 	cmpl $0,DES_bs_all_keys_changed(%rip)
 	jnz DES_bs_finalize_keys_25
 DES_bs_crypt_25_body:
@@ -1145,6 +1194,7 @@ DES_bs_crypt_25_swap:
 	movl $0x108,rounds_and_swapped
 	subl $1,iterations
 	jnz DES_bs_crypt_25_swap
+	EPILOGUE
 	ret
 DES_bs_crypt_25_next:
 	subq $nvec(0x300-48),k_ptr
@@ -1214,7 +1264,8 @@ DES_bs_finalize_keys_expand_loop:
 DO_ALIGN(6)
 .globl DES_bs_crypt_LM
 DES_bs_crypt_LM:
-	movl (%rdi),%r8d
+	PROLOGUE
+	movl (ARG1),%r8d
 	movdqa mask01,%xmm7
 	movdqa mask02,%xmm8
 	leaq DES_bs_all_xkeys(%rip),v_ptr
@@ -1370,6 +1421,7 @@ DES_bs_crypt_LM_loop:
 	subl $1,rounds
 	jnz DES_bs_crypt_LM_loop
 	xchgq %r8,%rax
+	EPILOGUE
 	ret
 
 #define rounds				%eax
@@ -1377,6 +1429,7 @@ DES_bs_crypt_LM_loop:
 DO_ALIGN(6)
 .globl DES_bs_crypt_plain
 DES_bs_crypt_plain:
+	PROLOGUE
 	movdqa mask01,%xmm7
 	movdqa mask02,%xmm8
 	leaq DES_bs_all_xkeys(%rip),v_ptr
@@ -1561,6 +1614,7 @@ DES_bs_crypt_plain_loop:
 	S8(B(4), B(26), B(14), B(20))
 	subl $1,rounds
 	jnz DES_bs_crypt_plain_loop
+	EPILOGUE
 	ret
 #endif
 
@@ -1939,7 +1993,8 @@ const_stage3:
 DO_ALIGN(6)
 
 nt_crypt_all_x86_64:
-	movl (%rdi),%r8d
+	PROLOGUE
+	movl (ARG1),%r8d
 	movdqa const_stage2(%rip), t3
 	movdqa const_stage3(%rip), t4
 
@@ -1949,10 +2004,12 @@ nt_crypt_all_x86_64:
 	NT_CRYPT_BODY(3)
 
 	xchgq %r8,%rax
+	EPILOGUE
 	ret
 
 nt_crypt_all_8859_1_x86_64:
-	movl (%rdi),%r8d
+	PROLOGUE
+	movl (ARG1),%r8d
 	movdqa const_stage2(%rip), t3
 	movdqa const_stage3(%rip), t4
 
@@ -1962,6 +2019,7 @@ nt_crypt_all_8859_1_x86_64:
 	NT_CRYPT_BODY_8859_1(3)
 
 	xchgq %r8,%rax
+	EPILOGUE
 	ret
 
 #if defined(__ELF__) && defined(__linux__)
