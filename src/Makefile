@@ -25,6 +25,7 @@ SED = sed
 NULL = /dev/null
 CPPFLAGS = -E
 SORT = sort
+STRIP = strip
 
 ## Uncomment the line below for MPI (can be used together with OMP as well)
 ## For experimental MPI_Abort support, append -DJOHN_MPI_ABORT too.
@@ -380,11 +381,11 @@ default:
 	@echo "dos-djgpp-x86-mmx        DOS, DJGPP, x86 with MMX"
 	@echo "dos-djgpp-x86-any        DOS, DJGPP, x86"
 	@echo "win64-mingw-x86-64       Win64, MinGW, x86-64 with SSE2 (best)"
-	@echo "win32-cygwin-x86-sse2[i] Win32, Cygwin, x86 with SSE2 (best)"
+	@echo "win32-cygwin-x86-sse2[i] Win32, Cygwin, x86 with SSE2 (best if 32-bit)"
 	@echo "win32-cygwin-x86-opencl  Win32, Cygwin, x86 with SSE2 and OpenCL"
 	@echo "win32-cygwin-x86-mmx     Win32, Cygwin, x86 with MMX"
 	@echo "win32-cygwin-x86-any     Win32, Cygwin, x86"
-	@echo "win32-mingw-x86-sse2[i]  Win32, MinGW, x86 with SSE2 (best)"
+	@echo "win32-mingw-x86-sse2[i]  Win32, MinGW, x86 with SSE2 (best if 32-bit)"
 	@echo "win32-mingw-x86-mmx      Win32, MinGW, x86 with MMX"
 	@echo "win32-mingw-x86-any      Win32, MinGW, x86"
 	@echo "beos-x86-sse2            BeOS, x86 with SSE2 (best)"
@@ -1796,7 +1797,7 @@ win64-mingw-x86-64:
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ_WIN32_MINGW) \
 		JOHN_OBJS="$(JOHN_OBJS) x86-64.o sse-intrinsics.o" \
-		CFLAGS="-c -mstackrealign -static -Wall -Wdeclaration-after-statement -O2 -fomit-frame-pointer -I/usr/local/include $(OMPFLAGS) $(AMDAPP) $(JOHN_CFLAGS) -mpreferred-stack-boundary=4" \
+		CFLAGS="-c -static -Wall -Wdeclaration-after-statement -O2 -fomit-frame-pointer -I/usr/local/include $(OMPFLAGS) $(AMDAPP) $(JOHN_CFLAGS) -mpreferred-stack-boundary=4" \
 		LDFLAGS="-static -lssl -lcrypto -lwsock32 -lws2_32 -lgdi32 -lm -lpthread.dll -lz.dll $(OMPFLAGS)" \
 		ASFLAGS="$(ASFLAGS)" \
 		CPP=$(GCC) CC=$(GCC) LD=$(GCC) CXX=$(CXX)
@@ -2232,7 +2233,7 @@ john.com: john.asm
 
 ../run/john.exe: $(JOHN_OBJS)
 	$(LD) $(JOHN_OBJS) $(LDFLAGS) -lkernel32 -o ../run/john.exe
-	# strip ../run/john.exe
+	$(STRIP) ../run/john.exe
 
 # this LD line removed from the ../run/john-mingw.exe rule (MinGW32 builds)
 # this change needed for full openssl linking, in 1.7.7-jumbo-6
@@ -2241,82 +2242,82 @@ john.com: john.asm
 
 ../run/john-mingw.exe: $(JOHN_OBJS)
 	$(LD) $(JOHN_OBJS) $(LDFLAGS) -lkernel32 -o ../run/john-mingw.exe
-	# strip ../run/john-mingw.exe
+	$(STRIP) ../run/john-mingw.exe
 	cp ../run/john-mingw.exe ../run/john.exe
 
 ../run/unshadow.exe: symlink.c
 	$(CC) symlink.c -o ../run/unshadow.exe
-	# strip ../run/unshadow.exe
+	$(STRIP) ../run/unshadow.exe
 
 ../run/unafs.exe: symlink.c
 	$(CC) symlink.c -o ../run/unafs.exe
-	strip ../run/unafs.exe
+	$(STRIP) ../run/unafs.exe
 
 ../run/undrop.exe: symlink.c
 	$(CC) symlink.c -o ../run/undrop.exe
-	strip ../run/undrop.exe
+	$(STRIP) ../run/undrop.exe
 
 ../run/ssh2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/ssh2john.exe
-	strip ../run/ssh2john.exe
+	$(STRIP) ../run/ssh2john.exe
 
 ../run/putty2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/putty2john.exe
-	strip ../run/putty2john.exe
+	$(STRIP) ../run/putty2john.exe
 
 ../run/pfx2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/pfx2john.exe
-	strip ../run/pfx2john.exe
+	$(STRIP) ../run/pfx2john.exe
 
 ../run/keepass2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/keepass2john.exe
-	strip ../run/keepass2john.exe
+	$(STRIP) ../run/keepass2john.exe
 
 ../run/keyring2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/keyring2john.exe
-	strip ../run/keyring2john.exe
+	$(STRIP) ../run/keyring2john.exe
 
 ../run/rar2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/rar2john.exe
-	strip ../run/rar2john.exe
+	$(STRIP) ../run/rar2john.exe
 
 ../run/mozilla2john.exe: symlink.c
 ifdef HAVE_NSS
 	$(CC) symlink.c -o ../run/mozilla2john.exe
-	strip ../run/mozilla2john.exe
+	$(STRIP) ../run/mozilla2john.exe
 endif
 
 ../run/racf2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/racf2john.exe
-	strip ../run/racf2john.exe
+	$(STRIP) ../run/racf2john.exe
 
 ../run/keychain2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/keychain2john.exe
-	strip ../run/keychain2john.exe
+	$(STRIP) ../run/keychain2john.exe
 
 ../run/kwallet2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/kwallet2john.exe
-	strip ../run/kwallet2john.exe
+	$(STRIP) ../run/kwallet2john.exe
 
 ../run/pwsafe2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/pwsafe2john.exe
-	strip ../run/pwsafe2john.exe
+	$(STRIP) ../run/pwsafe2john.exe
 
 ../run/dmg2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/dmg2john.exe
-	strip ../run/dmg2john.exe
+	$(STRIP) ../run/dmg2john.exe
 
 ../run/zip2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/zip2john.exe
-	strip ../run/zip2john.exe
+	$(STRIP) ../run/zip2john.exe
 
 ../run/hccap2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/hccap2john.exe
-	strip ../run/hccap2john.exe
+	$(STRIP) ../run/hccap2john.exe
 
 ../run/unique.exe: symlink.c
 	$(CC) symlink.c -o ../run/unique.exe
-	strip ../run/unique.exe
+	$(STRIP) ../run/unique.exe
 
 ../run/genmkvpwd: $(GENMKVPWD_OBJS)
 	$(LD) $(GENMKVPWD_OBJS) $(LDFLAGS) -o ../run/genmkvpwd
