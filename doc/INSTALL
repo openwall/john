@@ -87,7 +87,7 @@ targets other than "generic" and since they typically use gcc, they are
 usually not affected by this potential problem.
 
 
-	Optimal build on OSX X (Jumbo specific)
+	Optimal build on OS X (Jumbo specific)
 
 Using OS X, you can install Xcode (free) and then its "command line tools"
 and after that the "macosx-x86-64" target should work fine. However, this
