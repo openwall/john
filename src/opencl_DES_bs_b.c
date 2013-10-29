@@ -571,27 +571,24 @@ int opencl_DES_bs_crypt_25(int *pcount, struct db_salt *salt)
 
 		HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], cmp_out_gpu, CL_TRUE, 0, (salt -> count) * sizeof(unsigned int), cmp_out, 0, NULL, NULL),"Write FAILED\n");
 
-		for (i = 0; i < salt->count ;i++) {
-			if(!cmp_out[i]) {
+		for (i = 0; i < salt->count; i++) {
+			if (!cmp_out[i]) {
 				cmp_out[i] = ~(unsigned int)0;
-				continue ;
+				continue;
 			}
-			cmp_out[i]--;
 			if (cmp_out[i] > max)
 				max = cmp_out[i];
-
-			if(cmp_out[i] < min)
+			cmp_out[i]--;
+			if (cmp_out[i] < min)
 				min = cmp_out[i];
-
 		}
 
-		if (max) {
+		if (max--) {
 			HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], B_gpu,CL_TRUE, 0, MULTIPLIER * 64 * sizeof(DES_bs_vector), B, 0, NULL, NULL),"Write FAILED\n");
 			clFinish(queue[ocl_gpu_id]);
-			return (max + 1)* DES_BS_DEPTH;
-		}
-
-		else return 0;
+			return (max + 1) * DES_BS_DEPTH;
+		} else
+			return 0;
 
 	}
 
@@ -671,29 +668,24 @@ int opencl_DES_bs_crypt_25(int *pcount, struct db_salt *salt)
 
 		HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], cmp_out_gpu, CL_TRUE, 0, (salt->count) * sizeof(unsigned int), cmp_out, 0, NULL, NULL), "Write FAILED\n");
 
-		for (i = 0; i < salt->count ;i++) {
-			if(!cmp_out[i]) {
+		for (i = 0; i < salt->count; i++) {
+			if (!cmp_out[i]) {
 				cmp_out[i] = ~(unsigned int)0;
-				continue ;
+				continue;
 			}
-			cmp_out[i]--;
 			if (cmp_out[i] > max)
 				max = cmp_out[i];
-
-			if(cmp_out[i] < min)
+			cmp_out[i]--;
+			if (cmp_out[i] < min)
 				min = cmp_out[i];
-
 		}
 
-
-		if(max) {
-
+		if (max--) {
 			HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], B_gpu, CL_TRUE, 0, MULTIPLIER * 64 * sizeof(DES_bs_vector), B, 0, NULL, NULL), "Write FAILED\n");
 			clFinish(queue[ocl_gpu_id]);
-			return (max + 1) * DES_BS_DEPTH ;
-		}
-
-		else return 0;
+			return (max + 1) * DES_BS_DEPTH;
+		} else
+			return 0;
 
 	}
 
