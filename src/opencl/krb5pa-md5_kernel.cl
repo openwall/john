@@ -438,11 +438,15 @@ __constant uint rc4_iv[64] = { 0x03020100, 0x07060504, 0x0b0a0908, 0x0f0e0d0c,
 };
 #endif
 
+#if 0
+#define swap_byte(a, b) (((a) ^= (b)), ((b) ^= (a)), ((a) ^= (b)))
+#else
 #define swap_byte(a, b) {	  \
 		uchar tmp = a; \
 		a = b; \
 		b = tmp; \
 	}
+#endif
 
 #define swap_state(n) {	  \
 		index2 = (key[index1] + state[(n)] + index2) & 255; \
