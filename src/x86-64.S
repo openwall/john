@@ -764,12 +764,12 @@ DO_SPACE(nptr(48))
 #define K(i)				nvec(i)(k_ptr)
 #define k(i)				nptr(i)(k_ptr)
 
-#define tmp1				%r9  /* we already use %rcx on win64 */
-#define tmp2				%r10 /* %rsi is non-volatile on win64 */
+#define tmp1				%r8 /* we already use %rcx on win64 */
+#define tmp2				%r9 /* %rsi is non-volatile on win64 */
 
 #ifdef __ILP32__
-#define tmp1p				%r9d
-#define tmp2p				%r10d
+#define tmp1p				%r8d
+#define tmp2p				%r9d
 #else
 #define tmp1p				tmp1
 #define tmp2p				tmp2
@@ -1293,7 +1293,7 @@ DO_ALIGN(6)
 .globl DES_bs_crypt_LM
 DES_bs_crypt_LM:
 	PROLOGUE
-	movl (ARG1),%r8d
+	movl (ARG1),%r10d
 	movdqa mask01,%xmm7
 	movdqa mask02,%xmm8
 	leaq DES_bs_all_xkeys(%rip),v_ptr
@@ -1448,7 +1448,7 @@ DES_bs_crypt_LM_loop:
 	S8(B(4), B(26), B(14), B(20))
 	subl $1,rounds
 	jnz DES_bs_crypt_LM_loop
-	xchgq %r8,%rax
+	xchgq %r10,%rax
 	EPILOGUE
 	ret
 
@@ -2022,7 +2022,7 @@ DO_ALIGN(6)
 
 nt_crypt_all_x86_64:
 	PROLOGUE
-	movl (ARG1),%r8d
+	movl (ARG1),%r10d
 	movdqa const_stage2(%rip), t3
 	movdqa const_stage3(%rip), t4
 
@@ -2031,13 +2031,13 @@ nt_crypt_all_x86_64:
 	NT_CRYPT_BODY(2)
 	NT_CRYPT_BODY(3)
 
-	xchgq %r8,%rax
+	xchgq %r10,%rax
 	EPILOGUE
 	ret
 
 nt_crypt_all_8859_1_x86_64:
 	PROLOGUE
-	movl (ARG1),%r8d
+	movl (ARG1),%r10d
 	movdqa const_stage2(%rip), t3
 	movdqa const_stage3(%rip), t4
 
@@ -2046,7 +2046,7 @@ nt_crypt_all_8859_1_x86_64:
 	NT_CRYPT_BODY_8859_1(2)
 	NT_CRYPT_BODY_8859_1(3)
 
-	xchgq %r8,%rax
+	xchgq %r10,%rax
 	EPILOGUE
 	ret
 
