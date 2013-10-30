@@ -39,11 +39,10 @@
  * MS use a different x64 calling convention than everyone else:
  * Arguments: RCX, RDX, R8, R9 then stack right-to-left.
  * Volatile: RAX, RCX, RDX, R8, R9, R10, R11, XMM0:XMM5
- * Non-volatile: R12:R15, RBX, RBP, RDI, RSI, XMM6:XMM15
+ * Non-volatile: RBX, RBP, RDI, R12:R15, RSI, XMM6:XMM15
  * Return: RAX.
  */
 #define ARG1				%rcx
-#define iterations			%ecx
 #define PROLOGUE \
 	subq $(8+10*16), %rsp; \
 	movapd %xmm6, 0*16(%rsp); \
@@ -80,7 +79,6 @@
  * Return: RAX.
  */
 #define ARG1				%rdi
-#define iterations			%edi
 #define PROLOGUE
 #define EPILOGUE
 #endif
@@ -1100,6 +1098,7 @@ DES_bs_init_asm:
 	movdqa %xmm0,mask80
 	ret
 
+#define iterations			%edi
 #define rounds_and_swapped		%eax
 
 DO_ALIGN(6)
