@@ -24,9 +24,12 @@
  *
  * Addition of single DES encryption with no salt by Deepika Dutta Mishra
  * <dipikadutta at gmail.com> in 2013, no rights reserved.
-
+ *
  * ...with changes in the jumbo patch, by Alain Espinosa (starting with a
- * comment further down this file) and magnum.
+ * comment further down this file).
+ *
+ * Various tweaks & fixes and support for Win64 and Linux-X32 ABIs by
+ * magnum 2010-2013.
  */
 
 #include "arch.h"
@@ -78,6 +81,15 @@
 #endif
 
 /*
+ * Throughout this file ARG1 is *pcount so it's 32-bit for X32, although
+ * using (%rdi) works fine too without any warning.
+ */
+//#ifdef __ILP32__
+//#undef ARG1
+//#define ARG1				%edi
+//#endif
+
+/*
  * Some broken systems don't offer section alignments larger than 8 bytes,
  * while for the SSE code we need at least a 16 byte alignment.  ALIGN_FIX
  * is here to work around this issue when we happen to get bad addresses.
@@ -117,7 +129,11 @@
 #endif
 
 /* Sun's assembler can't multiply, but at least it can add... */
+#ifdef __ILP32__
+#define nptr(n)				n+n+n+n
+#else
 #define nptr(n)				n+n+n+n+n+n+n+n
+#endif
 #define nvec(n)				n+n+n+n+n+n+n+n+n+n+n+n+n+n+n+n
 
 #ifdef BSD
@@ -748,22 +764,30 @@ DO_SPACE(nptr(48))
 #define tmp1				%r9  /* we already use %rcx on win64 */
 #define tmp2				%r10 /* %rsi is non-volatile on win64 */
 
+#ifdef __ILP32__
+#define tmp1p				%r9d
+#define tmp2p				%r10d
+#else
+#define tmp1p				tmp1
+#define tmp2p				tmp2
+#endif
+
 #define xor_E(i) \
-	movq E(i),tmp1; \
+	mov E(i),tmp1p; \
 	movdqa K(i),a1; \
-	movq E(i + 1),tmp2; \
+	mov E(i + 1),tmp2p; \
 	movdqa K(i + 1),a2; \
 	pxor (tmp1),a1; \
 	pxor (tmp2),a2; \
-	movq E(i + 2),tmp1; \
+	mov E(i + 2),tmp1p; \
 	movdqa K(i + 2),a3; \
-	movq E(i + 3),tmp2; \
+	mov E(i + 3),tmp2p; \
 	movdqa K(i + 3),a4; \
 	pxor (tmp1),a3; \
 	pxor (tmp2),a4; \
-	movq E(i + 4),tmp1; \
+	mov E(i + 4),tmp1p; \
 	movdqa K(i + 4),a5; \
-	movq E(i + 5),tmp2; \
+	mov E(i + 5),tmp2p; \
 	movdqa K(i + 5),a6; \
 	pxor (tmp1),a5; \
 	pxor (tmp2),a6
@@ -783,21 +807,21 @@ DO_SPACE(nptr(48))
 	pxor K(k6),a6
 
 #define xor_B_KS_p(b1, k1, b2, k2, b3, k3, b4, k4, b5, k5, b6, k6) \
-	movq k(k1),tmp1; \
-	movq k(k2),tmp2; \
+	mov k(k1),tmp1p; \
+	mov k(k2),tmp2p; \
 	movdqa B(b1),a1; \
 	movdqa B(b2),a2; \
 	pxor (tmp1),a1; \
-	movq k(k3),tmp1; \
+	mov k(k3),tmp1p; \
 	pxor (tmp2),a2; \
-	movq k(k4),tmp2; \
+	mov k(k4),tmp2p; \
 	movdqa B(b3),a3; \
 	movdqa B(b4),a4; \
 	pxor (tmp1),a3; \
-	movq k(k5),tmp1; \
+	mov k(k5),tmp1p; \
 	pxor (tmp2),a4; \
 	movdqa B(b5),a5; \
-	movq k(k6),tmp2; \
+	mov k(k6),tmp2p; \
 	movdqa B(b6),a6; \
 	pxor (tmp1),a5; \
 	pxor (tmp2),a6
@@ -1229,24 +1253,24 @@ DES_bs_finalize_keys_main_loop:
 	leaq DES_bs_all_KS_v(%rip),v_ptr
 	movl $0x60,iterations
 DES_bs_finalize_keys_expand_loop:
-	movq k(0),tmp1
-	movq k(1),tmp2
+	mov k(0),tmp1p
+	mov k(1),tmp2p
 	movdqa (tmp1),%xmm0
 	movdqa (tmp2),%xmm1
-	movq k(2),tmp1
-	movq k(3),tmp2
+	mov k(2),tmp1p
+	mov k(3),tmp2p
 	movdqa %xmm0,V(0)
 	movdqa %xmm1,V(1)
 	movdqa (tmp1),%xmm0
 	movdqa (tmp2),%xmm1
-	movq k(4),tmp1
-	movq k(5),tmp2
+	mov k(4),tmp1p
+	mov k(5),tmp2p
 	movdqa %xmm0,V(2)
 	movdqa %xmm1,V(3)
 	movdqa (tmp1),%xmm0
 	movdqa (tmp2),%xmm1
-	movq k(6),tmp1
-	movq k(7),tmp2
+	mov k(6),tmp1p
+	mov k(7),tmp2p
 	movdqa %xmm0,V(4)
 	movdqa %xmm1,V(5)
 	movdqa (tmp1),%xmm0

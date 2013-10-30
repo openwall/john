@@ -292,11 +292,12 @@ default:
 	@echo "	make clean SYSTEM"
 	@echo "where SYSTEM can be one of the following:"
 	@echo "([i] is an optional letter for pre-built intrinsics, eg. -sse2i vs -sse2):"
-	@echo "linux-x86-64-native      Linux, x86-64 'native' (all CPU features you've got)"
-	@echo "linux-x86-X32-native     Linux, X32-ABI 'native'"
-	@echo "linux-x86-64-gpu         Linux, x86-64 'native', CUDA and OpenCL"
-	@echo "linux-x86-64-opencl      Linux, x86-64 'native', OpenCL"
-	@echo "linux-x86-64-cuda        Linux, x86-64 'native', CUDA"
+	@echo "linux-x86-64-native      Linux, x86-64 (enabling all CPU features you've got)"
+	@echo "linux-X32-native         Linux, X32-ABI"
+#	@echo "linux-X32                Linux, X32-ABI SSE2 (for testing)"
+	@echo "linux-x86-64-gpu         Linux, x86-64 CUDA and OpenCL"
+	@echo "linux-x86-64-opencl      Linux, x86-64 OpenCL"
+	@echo "linux-x86-64-cuda        Linux, x86-64 CUDA"
 	@echo "linux-x86-64-avx         Linux, x86-64 with AVX (2011+ Intel CPUs)"
 	@echo "linux-x86-64-xop         Linux, x86-64 with AVX and XOP (2011+ AMD CPUs)"
 	@echo "linux-x86-64[i]          Linux, x86-64 with SSE2 (any x86-64 CPU)"
@@ -362,7 +363,7 @@ default:
 	@echo "tru64-alpha              Tru64 (Digital UNIX, OSF/1), Alpha"
 	@echo "aix-ppc32                AIX, PowerPC 32-bit"
 	@echo "macosx-x86-64            Mac OS X 10.5+, Xcode 3.0+, x86-64 with SSE2"
-	@echo "macosx-x86-64-native     Mac OS X 10.8+, real gcc, x86-64 'native' (best, see doc/INSTALL)"
+	@echo "macosx-x86-64-native     Mac OS X 10.8+, real gcc, x86-64, see doc/INSTALL (best)"
 #	@echo "macosx-x86-64-clang-debug Mac OS X 10.5+, Xcode 3.0+, x86-64 compiled with clang (with debugging options)
 	@echo "macosx-x86-64-gpu        Mac OS X 10.6+, x86-64 with SSE2, CUDA and OpenCL support"
 	@echo "macosx-x86-64-opencl     Mac OS X 10.6+, x86-64 with SSE2, OpenCL support"
@@ -480,7 +481,7 @@ linux-x86-64-native:
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
 
-linux-x86-X32-native:
+linux-X32-native:
 	$(LN) x86-64.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
@@ -488,6 +489,19 @@ linux-x86-X32-native:
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -DHAVE_DL -march=native -mx32" \
 		ASFLAGS="$(ASFLAGS) -march=native -mx32" \
 		LDFLAGS="$(LDFLAGS) -lcrypt -ldl -march=native -mx32"
+	@echo "Failing after this point just means some helper tools did not build:"
+	$(MAKE) $(PROJ_CXX)
+	$(MAKE) $(PROJ_PCAP)
+	@echo "All done"
+
+linux-X32:
+	$(LN) x86-64.h arch.h
+	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
+		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -DHAVE_DL -mx32" \
+		ASFLAGS="$(ASFLAGS) -mx32" \
+		LDFLAGS="$(LDFLAGS) -lcrypt -ldl -mx32"
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
