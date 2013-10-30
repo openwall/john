@@ -55,7 +55,7 @@ extern size_t select_default_device(struct fmt_main *) ;
  *                        Second set of four contains encrypted hash for second input key and so on...
  *  cl_uint num is the number of keys to be encrypted.
   */
-extern void pbkdf2_divide_work(cl_uint*, cl_uint*, cl_uint, cl_uint*, cl_uint*, cl_uint) ;
+extern void pbkdf2_divide_work(cl_uint*, cl_uint*, cl_uint, unsigned int, cl_uint*, cl_uint*, cl_uint) ;
 
 /*Clean all OpenCL GPU buffers.
  */

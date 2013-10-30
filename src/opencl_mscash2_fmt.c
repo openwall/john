@@ -48,6 +48,7 @@
 
 typedef struct {
 	unsigned int 	length ;
+	unsigned int 	iter_cnt;
 	unsigned char 	username[MAX_SALT_LENGTH + 1] ;
 } ms_cash2_salt ;
 
@@ -69,7 +70,7 @@ static struct fmt_tests tests[] = {
 	//MAX length salt with MAX length password
 	{"$DCC2$10240#12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678#5ba26de44bd3a369f43a1c72fba76d45", "12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"},
 // Non-standard iterations count
-//	{"$DCC2$10000#Twelve_chars#54236c670e185043c8016006c001e982", "magnum"},
+	{"$DCC2$10000#Twelve_chars#54236c670e185043c8016006c001e982", "magnum"},
 	{NULL}
 } ;
 
@@ -159,11 +160,6 @@ static void done() {
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	/* This version doesn't handle other iteration counts */
-	if (strncmp(ciphertext, "$DCC2$10240#", 12))
-		return 0;
-
-	/* The CPU version does */
 	return mscash2_valid(ciphertext, MAX_SALT_LENGTH, self);
 }
 
@@ -189,16 +185,19 @@ static void *binary(char *ciphertext)
 static void *salt(char *ciphertext)
 {
 	static ms_cash2_salt salt;
-	char *pos = ciphertext + strlen(MSCASH2_PREFIX);
+	char *pos = strchr(ciphertext, '#') + 1;
 	char *end = strrchr(ciphertext, '#');
 	int length = 0;
 
 	memset(&salt, 0, sizeof(salt));
-	pos = strchr(ciphertext, '#') + 1 ;
+
 	while (pos < end)
 		salt.username[length++] = *pos++;
 	salt.username[length] = 0;
 	salt.length = length;
+
+	end = strchr(ciphertext, '#');
+	salt.iter_cnt = strtol(ciphertext + strlen(MSCASH2_PREFIX), &end, 10);
 
 	return &salt;
 }
@@ -284,7 +283,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	gettimeofday(&startg, NULL) ;
 #endif
 	///defined in common_opencl_pbkdf2.c. Details provided in common_opencl_pbkdf2.h
-	pbkdf2_divide_work(dcc_hash_host, (cl_uint*)salt_host, salt_len, dcc2_hash_host, hmac_sha1_out, count) ;
+	pbkdf2_divide_work(dcc_hash_host, (cl_uint*)salt_host, salt_len, currentsalt.iter_cnt, dcc2_hash_host, hmac_sha1_out, count) ;
 
 #ifdef _DEBUG
 	gettimeofday(&endg, NULL);
