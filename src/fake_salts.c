@@ -94,7 +94,7 @@ void build_fake_salts_for_regen_lost(struct db_salt *salts) {
 		fake_salts[i].list = sp->list;
 		fake_salts[i].bitmap = sp->bitmap;	// 'bug' fix when we went to bitmap. Old code was not copying this.
 		ptr=mem_alloc_tiny(sizeof(char*), MEM_ALIGN_WORD);
-		*ptr = (unsigned long) (buf + (cp-buf));
+		*ptr = (size_t) (buf + (cp-buf));
 		fake_salts[i].salt = ptr;
 		cp = cp2;
 		sp = sp->next;

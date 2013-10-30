@@ -1340,16 +1340,16 @@ void opencl_find_best_gws(int step, int show_speed,
 		if (show_speed) {
 
 			if (rounds > 1)
-				fprintf(stderr, "gws: %9zu\t%10lu c/s%12u "
+				fprintf(stderr, "gws: %9zu\t%10llu c/s%12u "
 				        "rounds/s%8.3f sec per crypt_all()",
-					num, (long)(num / (run_time /
-					                    1000000000.)),
+				        num, (long long)(num / (run_time /
+				                                1000000000.)),
 				        speed, (float)run_time / 1000000000.);
 			else
-				fprintf(stderr, "gws: %9zu\t%10lu c/s %8.3f "
+				fprintf(stderr, "gws: %9zu\t%10llu c/s %8.3f "
 				        "ms per crypt_all()",
-					num, (long) (num / (run_time /
-					                    1000000000.)),
+				        num, (long long) (num / (run_time /
+				                                 1000000000.)),
 				        (float)run_time / 1000000.);
 		}
 

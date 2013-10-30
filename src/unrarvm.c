@@ -166,7 +166,7 @@ unsigned int rar_crc(unsigned int start_crc, void *addr, unsigned int size)
 
 	data = addr;
 #if ARCH_LITTLE_ENDIAN
-	while (size > 0 && ((long)data & 7))
+	while (size > 0 && ((size_t)data & 7))
 	{
 		start_crc = crc_tab[(unsigned char)(start_crc^data[0])]^(start_crc>>8);
 		size--;

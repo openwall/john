@@ -180,7 +180,7 @@ static int verify_passphrase(char *passphrase)
 	unsigned char testhash[20];
 	unsigned char buffer[0x10000]; // XXX respect the stack limits!
 	const char *t;
-	long fsize;
+	size_t fsize;
 	password2hash(passphrase, key, &key_size);
 	memcpy(buffer, cur_salt->ct, cur_salt->ctlen);
 
@@ -203,15 +203,15 @@ static int verify_passphrase(char *passphrase)
 
 	// strip the file size off
 	fsize = 0;
-	fsize |= ((long) (*t) << 24) & 0xff000000;
+	fsize |= ((size_t) (*t) << 24) & 0xff000000;
 	t++;
-	fsize |= ((long) (*t) << 16) & 0x00ff0000;
+	fsize |= ((size_t) (*t) << 16) & 0x00ff0000;
 	t++;
-	fsize |= ((long) (*t) << 8) & 0x0000ff00;
+	fsize |= ((size_t) (*t) << 8) & 0x0000ff00;
 	t++;
-	fsize |= (long) (*t) & 0x000000ff;
+	fsize |= (size_t) (*t) & 0x000000ff;
 	t++;
-	if (fsize < 0 || fsize > (long) (cur_salt->ctlen) - 8 - 4) {
+	if (fsize > (size_t) (cur_salt->ctlen) - 8 - 4) {
 		// file structure error
 		return -1;
 	}

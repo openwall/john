@@ -959,7 +959,7 @@ if(SSEi_flags & SSEi_FLAT_IN) {
 	SHA1_PARA_DO(i) e[i] = _mm_add_epi32( e[i], data[i*80+t] ); \
 	SHA1_PARA_DO(i) b[i] = _mm_roti_epi32(b[i], 30);
 
-void SSESHA1body(__m128i* data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, unsigned SSEi_flags)
+void SSESHA1body(__m128i* data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, unsigned int SSEi_flags)
 {
 	__m128i a[SHA1_SSE_PARA];
 	__m128i b[SHA1_SSE_PARA];
@@ -1979,7 +1979,7 @@ void SSESHA512body(__m128i* data, unsigned int *out, ARCH_WORD_32 *reload_state,
 	__m128i w[80], tmp1, tmp2;
 
 	if (SSEi_flags & SSEi_FLAT_IN) {
-		
+
 		if (SSEi_flags & SSEi_2BUF_INPUT) {
 			ARCH_WORD_64 (*saved_key)[32] = (ARCH_WORD_64(*)[32])data;
 			for (i = 0; i < 14; i += 2) {

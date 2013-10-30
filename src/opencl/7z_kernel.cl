@@ -327,8 +327,8 @@ inline void sevenzip_kdf(__global const unsigned char *password, int n_password,
 {
 	int i;
 	int len;
-	long rnds = (long) 1 << iterations;
-	long rnd;
+	unsigned int rnds = 1U << iterations;
+	unsigned int rnd;
 	unsigned char buffer[PLAINTEXT_LENGTH * 2];
 	unsigned char lkey[32];
         unsigned char temp[8] = { 0,0,0,0,0,0,0,0 };
