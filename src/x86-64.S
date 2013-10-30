@@ -39,7 +39,7 @@
  * MS use a different x64 calling convention than everyone else:
  * Arguments: RCX, RDX, R8, R9 then stack right-to-left.
  * Volatile: RAX, RCX, RDX, R8, R9, R10, R11, XMM0:XMM5
- * Non-volatile: RBX, RBP, RDI, R12:R15, RSI, XMM6:XMM15
+ * Non-volatile: RBX, RBP, RSI, RDI, R12:R15, XMM6:XMM15
  * Return: RAX.
  */
 #define ARG1				%rcx
@@ -55,9 +55,11 @@
 	movapd %xmm13, 7*16(%rsp); \
 	movapd %xmm14, 8*16(%rsp); \
 	movapd %xmm15, 9*16(%rsp); \
-	push %rdi
+	push %rdi; \
+	push %rsi
 
 #define EPILOGUE \
+	pop %rsi; \
 	pop %rdi; \
 	movapd 0*16(%rsp), %xmm6; \
 	movapd 1*16(%rsp), %xmm7; \
@@ -85,31 +87,17 @@
 
 /*
  * Throughout this file ARG1 is *pcount so it's 32-bit for X32, although
- * using (%rdi) works fine too without any warning.
+ * using (%rdi) works fine too without any warnings.
  */
-//#ifdef __ILP32__
-//#undef ARG1
-//#define ARG1				%edi
-//#endif
+#ifdef __ILP32__
+#undef ARG1
+#define ARG1				%edi
+#endif
 
-/*
- * Some broken systems don't offer section alignments larger than 8 bytes,
- * while for the SSE code we need at least a 16 byte alignment.  ALIGN_FIX
- * is here to work around this issue when we happen to get bad addresses.
- * We haven't actually seen this on any 64-bit system as of yet.
- */
-#ifndef ALIGN_FIX
 #ifdef ALIGN_LOG
 #define DO_ALIGN(log)			.align log
 #else
 #define DO_ALIGN(log)			.align 1 << log
-#endif
-#else
-#ifdef ALIGN_LOG
-#define DO_ALIGN(log)			.align log; .space ALIGN_FIX
-#else
-#define DO_ALIGN(log)			.align 1 << log; .space ALIGN_FIX
-#endif
 #endif
 
 #if DES_BS_ASM
@@ -121,6 +109,7 @@
 #define DES_bs_crypt_25			_DES_bs_crypt_25
 #define DES_bs_crypt_LM			_DES_bs_crypt_LM
 #define DES_bs_crypt_plain		_DES_bs_crypt_plain
+#define DES_bs_P			_DES_bs_P
 #endif
 
 #ifdef __sun
@@ -143,18 +132,6 @@
 .data
 #else
 .bss
-#endif
-
-#ifdef UNDERSCORES
-.globl _P
-DO_ALIGN(6)
-_P:
-DO_SPACE(nvec(64))
-#else
-.globl P
-DO_ALIGN(6)
-P:
-DO_SPACE(nvec(64))
 #endif
 
 .globl DES_bs_all
@@ -184,14 +161,15 @@ DO_SPACE(4)
 DES_bs_all_Ens:
 DO_SPACE(nptr(48))
 
+.globl DES_bs_P
+DO_ALIGN(6)
+DES_bs_P:
+DO_SPACE(nvec(64))
+
 #define E(i)				DES_bs_all_E+nptr(i)(%rip)
 #define B(i)				DES_bs_all_B+nvec(i)(%rip)
 #define tmp_at(i)			DES_bs_all_tmp+nvec(i)(%rip)
-#ifdef UNDERSCORES
-#define P(i)				_P+nvec(i)(%rip)
-#else
-#define P(i)				P+nvec(i)(%rip)
-#endif
+#define P(i)				DES_bs_P+nvec(i)(%rip)
 
 #define pnot				tmp_at(0)
 
@@ -764,12 +742,11 @@ DO_SPACE(nptr(48))
 #define K(i)				nvec(i)(k_ptr)
 #define k(i)				nptr(i)(k_ptr)
 
-#define tmp1				%r9  /* we already use %rcx on win64 */
-#define tmp2				%r10 /* %rsi is non-volatile on win64 */
-
+#define tmp1				%rcx
+#define tmp2				%rsi
 #ifdef __ILP32__
-#define tmp1p				%r9d
-#define tmp2p				%r10d
+#define tmp1p				%ecx
+#define tmp2p				%esi
 #else
 #define tmp1p				tmp1
 #define tmp2p				tmp2

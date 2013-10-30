@@ -76,7 +76,7 @@ typedef struct {
 } DES_bs_combined;
 
 //store plaintext//
-extern DES_bs_vector P[64];
+extern DES_bs_vector DES_bs_P[64];
 
 
 #if defined(_OPENMP) && !DES_BS_ASM

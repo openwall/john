@@ -1822,7 +1822,7 @@ void DES_bs_crypt_plain(int keys_count)
 
 
 #ifdef _OPENMP
-#pragma omp parallel for default(none) private(t) shared(n, DES_bs_all_p, keys_count,P)
+#pragma omp parallel for default(none) private(t) shared(n, DES_bs_all_p, keys_count, DES_bs_P)
 #endif
 	for_each_t(n) {
 			ARCH_WORD **k;
@@ -1840,7 +1840,7 @@ void DES_bs_crypt_plain(int keys_count)
 	#if DES_BS_VECTOR
                 for(index=0; index<DES_BS_VECTOR_SIZE; index++)
 	#endif
-			DES_bs_all.B[i]INDX = P[i]INDX;
+			DES_bs_all.B[i]INDX = DES_bs_P[i]INDX;
 	}
 
 #if DES_bs_mt
@@ -1949,6 +1949,6 @@ void DES_bs_generate_plaintext(unsigned char *plaintext)
 #if DES_BS_VECTOR
 		for(k=0; k<DES_BS_VECTOR_SIZE; k++)
 #endif
-			P[i]INDX = j;
+			DES_bs_P[i]INDX = j;
 		}
 }

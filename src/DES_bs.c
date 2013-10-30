@@ -43,7 +43,7 @@ DES_bs_combined CC_CACHE_ALIGN DES_bs_all;
 #endif
 
 #if !DES_BS_ASM
-DES_bs_vector P[64];
+DES_bs_vector DES_bs_P[64];
 #endif
 
 static unsigned char DES_LM_KP[56] = {
