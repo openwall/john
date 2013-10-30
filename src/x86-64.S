@@ -1207,6 +1207,7 @@ DES_bs_finalize_keys_25:
 	leaq DES_bs_crypt_25_body(%rip),tmp1
 	pushq tmp1
 DES_bs_finalize_keys:
+	PROLOGUE
 	movdqa mask01,%xmm7
 	movdqa mask02,%xmm8
 	leaq DES_bs_all_xkeys(%rip),v_ptr
@@ -1256,6 +1257,7 @@ DES_bs_finalize_keys_expand_loop:
 	addq $nvec(8),v_ptr
 	subl $1,iterations
 	jnz DES_bs_finalize_keys_expand_loop
+	EPILOGUE
 	ret
 
 #define ones				%xmm1
