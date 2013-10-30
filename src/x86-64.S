@@ -54,8 +54,11 @@
 	movapd %xmm12, 6*16(%rsp); \
 	movapd %xmm13, 7*16(%rsp); \
 	movapd %xmm14, 8*16(%rsp); \
-	movapd %xmm15, 9*16(%rsp)
+	movapd %xmm15, 9*16(%rsp); \
+	push %rdi
+
 #define EPILOGUE \
+	pop %rdi; \
 	movapd 0*16(%rsp), %xmm6; \
 	movapd 1*16(%rsp), %xmm7; \
 	movapd 2*16(%rsp), %xmm8; \
@@ -1231,7 +1234,6 @@ DES_bs_finalize_keys_25:
 	leaq DES_bs_crypt_25_body(%rip),tmp1
 	pushq tmp1
 DES_bs_finalize_keys:
-	PROLOGUE
 	movdqa mask01,%xmm7
 	movdqa mask02,%xmm8
 	leaq DES_bs_all_xkeys(%rip),v_ptr
@@ -1281,7 +1283,6 @@ DES_bs_finalize_keys_expand_loop:
 	addq $nvec(8),v_ptr
 	subl $1,iterations
 	jnz DES_bs_finalize_keys_expand_loop
-	EPILOGUE
 	ret
 
 #define ones				%xmm1
