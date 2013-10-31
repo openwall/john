@@ -57,17 +57,21 @@ void clean_all_buffer() {
 	 }
 }
 
-static void find_best_workgroup(int jtrUniqDevNo) {
+static void find_best_workgroup(int jtrUniqDevNo, unsigned int gpu_perf) {
         size_t 		 _lws=0;
 	cl_device_type 	 dTyp;
 	cl_command_queue cmdq;
 	cl_int 		 err;
+	unsigned int 	 max_kpc
+		       = get_max_mem_alloc_size(jtrUniqDevNo) / sizeof(temp_buf) < MAX_KEYS_PER_CRYPT ?
+			 ((get_max_mem_alloc_size(jtrUniqDevNo) / sizeof(temp_buf)) / 8192 - 1) * 8192 :
+			 MAX_KEYS_PER_CRYPT;
 	cl_uint 	 *dcc_hash_host
-		       = (cl_uint*)mem_alloc(4 * sizeof(cl_uint) * ((MAX_KEYS_PER_CRYPT < 65536) ? MAX_KEYS_PER_CRYPT : 65536));
+		       = (cl_uint*)mem_alloc(4 * sizeof(cl_uint) * ((max_kpc < 65536) ? max_kpc : 65536));
 	cl_uint 	 *dcc2_hash_host
-		       = (cl_uint*)mem_alloc(4 * sizeof(cl_uint) * ((MAX_KEYS_PER_CRYPT < 65536) ? MAX_KEYS_PER_CRYPT : 65536));
+		       = (cl_uint*)mem_alloc(4 * sizeof(cl_uint) * ((max_kpc < 65536) ? max_kpc : 65536));
 	cl_uint		*hmac_sha1_out
-		       = (cl_uint*)mem_alloc(5 * sizeof(cl_uint) * ((MAX_KEYS_PER_CRYPT < 65536) ? MAX_KEYS_PER_CRYPT : 65536));
+		       = (cl_uint*)mem_alloc(5 * sizeof(cl_uint) * ((max_kpc < 65536) ? max_kpc : 65536));
 	cl_uint salt_api[9], length = 10;
 
 	event_ctr = 0;
@@ -80,7 +84,7 @@ static void find_best_workgroup(int jtrUniqDevNo) {
 		globalObj[jtrUniqDevNo].lws = 16;
 
 	///Set Dummy DCC hash , unicode salt and ascii salt(username) length
-	memset(dcc_hash_host, 0xb5, 4 * sizeof(cl_uint) * ((MAX_KEYS_PER_CRYPT < 65536) ? MAX_KEYS_PER_CRYPT : 65536));
+	memset(dcc_hash_host, 0xb5, 4 * sizeof(cl_uint) * ((max_kpc < 65536) ? max_kpc : 65536));
 	memset(salt_api, 0xfe, 9 * sizeof(cl_uint));
 
 	cmdq = clCreateCommandQueue(context[jtrUniqDevNo], devices[jtrUniqDevNo], CL_QUEUE_PROFILING_ENABLE, &err);
@@ -92,17 +96,19 @@ static void find_best_workgroup(int jtrUniqDevNo) {
 	///Find best local work size
 	while (1) {
 		_lws = globalObj[jtrUniqDevNo].lws;
-		if (dTyp == CL_DEVICE_TYPE_CPU) {
+		if (dTyp == CL_DEVICE_TYPE_CPU)
 			exec_pbkdf2(dcc_hash_host, salt_api, length, 10240, dcc2_hash_host, 4096, jtrUniqDevNo, cmdq, hmac_sha1_out);
-			globalObj[jtrUniqDevNo].exec_time_inv = globalObj[jtrUniqDevNo].exec_time_inv / 16;
-		}
-		else {
-			exec_pbkdf2(dcc_hash_host, salt_api, length, 10240, dcc2_hash_host, ((MAX_KEYS_PER_CRYPT < 65536) ? MAX_KEYS_PER_CRYPT : 65536), jtrUniqDevNo, cmdq, hmac_sha1_out);
-			globalObj[jtrUniqDevNo].exec_time_inv *= ((MAX_KEYS_PER_CRYPT < 65536) ? MAX_KEYS_PER_CRYPT : 65536) / 65536;
-		}
+		else
+			exec_pbkdf2(dcc_hash_host, salt_api, length, 10240, dcc2_hash_host, (((max_kpc < 65536) ? max_kpc : 65536) / gpu_perf), jtrUniqDevNo, cmdq, hmac_sha1_out);
 
-		if (globalObj[jtrUniqDevNo].lws <= _lws) break;
+		if (globalObj[jtrUniqDevNo].lws <= _lws)
+			break;
 	}
+
+	if (dTyp == CL_DEVICE_TYPE_CPU)
+		globalObj[jtrUniqDevNo].exec_time_inv = globalObj[jtrUniqDevNo].exec_time_inv / 16;
+	else
+		globalObj[jtrUniqDevNo].exec_time_inv *= (((max_kpc < 65536) ? max_kpc : 65536) / (long double) gpu_perf) / 65536;
 
 	PROFILE = 0;
 
@@ -110,6 +116,53 @@ static void find_best_workgroup(int jtrUniqDevNo) {
 		fprintf(stderr, "Optimal Work Group Size:%d\n", (int)globalObj[jtrUniqDevNo].lws);
 		fprintf(stderr, "Kernel Execution Speed (Higher is better):%Lf\n", globalObj[jtrUniqDevNo].exec_time_inv);
 	}
+
+	MEM_FREE(dcc_hash_host);
+	MEM_FREE(dcc2_hash_host);
+	HANDLE_CLERROR(clReleaseCommandQueue(cmdq), "Release Command Queue:Failed");
+}
+
+static unsigned int quick_bechmark(int jtrUniqDevNo) {
+        cl_device_type 	 dTyp;
+	cl_command_queue cmdq;
+	cl_int 		 err;
+	cl_uint 	 *dcc_hash_host
+		       = (cl_uint*)mem_alloc(4 * sizeof(cl_uint) * 4096);
+	cl_uint 	 *dcc2_hash_host
+		       = (cl_uint*)mem_alloc(4 * sizeof(cl_uint) * 4096);
+	cl_uint		*hmac_sha1_out
+		       = (cl_uint*)mem_alloc(5 * sizeof(cl_uint) * 4096);
+	cl_uint salt_api[9], length = 10;
+
+	event_ctr = 0;
+
+	//HANDLE_CLERROR(clGetDeviceInfo(devices[jtrUniqDevNo], CL_DEVICE_TYPE, sizeof(cl_device_type), &dTyp, NULL), "Failed Device Info");
+	dTyp = get_device_type(jtrUniqDevNo);
+	if (dTyp == CL_DEVICE_TYPE_CPU)
+		globalObj[jtrUniqDevNo].lws = 1;
+	else
+		globalObj[jtrUniqDevNo].lws = 64;
+
+	///Set Dummy DCC hash , unicode salt and ascii salt(username) length
+	memset(dcc_hash_host, 0xb5, 4 * sizeof(cl_uint) * 4096);
+	memset(salt_api, 0xfe, 9 * sizeof(cl_uint));
+
+	cmdq = clCreateCommandQueue(context[jtrUniqDevNo], devices[jtrUniqDevNo], CL_QUEUE_PROFILING_ENABLE, &err);
+	HANDLE_CLERROR(err, "Error creating command queue");
+
+	PROFILE = 1;
+	kernelExecTimeNs = CL_ULONG_MAX;
+
+	exec_pbkdf2(dcc_hash_host, salt_api, length, 2048, dcc2_hash_host, 4096, jtrUniqDevNo, cmdq, hmac_sha1_out);
+
+	PROFILE = 0;
+
+	if (globalObj[jtrUniqDevNo].exec_time_inv < 15)
+		return 4;
+	else if (globalObj[jtrUniqDevNo].exec_time_inv < 25)
+		return 2;
+	else
+		return 1;
 
 	MEM_FREE(dcc_hash_host);
 	MEM_FREE(dcc2_hash_host);
@@ -222,7 +275,7 @@ size_t 	select_device(int jtrUniqDevNo, struct fmt_main *fmt) {
 	HANDLE_CLERROR(clSetKernelArg(globalObj[jtrUniqDevNo].krnl[3], 1, sizeof(cl_mem), &globalObj[jtrUniqDevNo].gpu_buffer.hash_out_gpu), "Set Kernel 3 Arg 1 :FAILED");
 
 	if (!local_work_size)
-		find_best_workgroup(jtrUniqDevNo);
+		find_best_workgroup(jtrUniqDevNo, quick_bechmark(jtrUniqDevNo));
 
 	else {
 		size_t 		maxsize, maxsize2;
