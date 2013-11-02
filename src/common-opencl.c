@@ -169,14 +169,14 @@ static char *include_source(char *pathname, int dev_id, char *options)
 {
 	static char include[PATH_BUFFER_SIZE];
 
-	sprintf(include, "-I %s %s %s%d %s %s", path_expand(pathname),
+	sprintf(include, "-I%s%s%s%d%s%s", path_expand(pathname),
 	        get_device_type(dev_id) == CL_DEVICE_TYPE_CPU ?
-	        "-DDEVICE_IS_CPU" : "",
-	        "-DDEVICE_INFO=", device_info[dev_id],
+	        " -DDEVICE_IS_CPU" : "",
+	        " -DDEVICE_INFO=", device_info[dev_id],
 #ifdef __APPLE__
-	        "-DAPPLE",
+	        " -DAPPLE",
 #else
-	        gpu_nvidia(device_info[dev_id]) ? "-cl-nv-verbose" : "",
+	        gpu_nvidia(device_info[dev_id]) ? " -cl-nv-verbose" : "",
 #endif
 	        OPENCLBUILDOPTIONS);
 
