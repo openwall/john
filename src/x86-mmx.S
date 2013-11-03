@@ -38,6 +38,7 @@
 #define DES_bs_crypt_25			_DES_bs_crypt_25
 #define DES_bs_crypt_LM			_DES_bs_crypt_LM
 #define DES_bs_crypt_plain		_DES_bs_crypt_plain
+#define DES_bs_P			_DES_bs_P
 #endif
 
 /*
@@ -77,17 +78,10 @@
 .bss
 #endif
 
-#ifdef UNDERSCORES
-.globl _P
+.globl DES_bs_P
 DO_ALIGN(5)
-_P:
+DES_bs_P:
 DO_SPACE(nvec(64))
-#else
-.globl P
-DO_ALIGN(5)
-P:
-DO_SPACE(nvec(64))
-#endif
 
 .globl DES_bs_all
 DO_ALIGN(5)
@@ -119,11 +113,7 @@ DO_SPACE(nptr(48))
 #define E(i)				DES_bs_all_E+nptr(i)
 #define B(i)				DES_bs_all_B+nvec(i)
 #define tmp_at(i)			DES_bs_all_tmp+nvec(i)
-#ifdef UNDERSCORES
-#define P(i)				_P+nvec(i)
-#else
-#define P(i)				P+nvec(i)
-#endif
+#define P(i)				DES_bs_P+nvec(i)
 #define pnot				tmp_at(0)
 
 #define S1(out1, out2, out3, out4) \
