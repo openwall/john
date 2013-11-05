@@ -86,7 +86,7 @@
 #endif
 #define BENCHMARK_LENGTH	-1
 
-#define PLAINTEXT_LENGTH	16
+#define PLAINTEXT_LENGTH	125
 #define UNICODE_LENGTH		(2 * PLAINTEXT_LENGTH)
 #define BINARY_SIZE		0
 #define BINARY_ALIGN		MEM_ALIGN_NONE
@@ -249,7 +249,12 @@ static void set_key(char *key, int index)
 	int plen;
 	UTF16 buf[PLAINTEXT_LENGTH + 1];
 
-	/* UTF-16LE encode the password, encoding aware */
+	/*
+	 * UTF-16LE encode the password, encoding aware
+	 *
+	 * We may get up to 125 octets of 8-bit input and that will
+	 * be converted to between 41 and 125 characters of UTF-16
+	 */
 	plen = enc_to_utf16(buf, PLAINTEXT_LENGTH, (UTF8*) key, strlen(key));
 
 	if (plen < 0)
