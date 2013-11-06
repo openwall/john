@@ -145,7 +145,7 @@ JOHN_OBJS = \
 	unrarcmd.o unrarfilter.o unrarhlp.o unrar.o unrarppm.o unrarvm.o \
 	rar_fmt.o rar2john.o \
 	rawSHA0_fmt.o \
-	zip_fmt.o zip2john.o gladman_hmac.o gladman_pwd2key.o \
+	zip2john.o gladman_hmac.o gladman_pwd2key.o \
 	racf2john.o \
 	keychain2john.o \
 	kwallet2john.o \
@@ -177,6 +177,8 @@ JOHN_OBJS = \
 	unafs.o \
 	undrop.o \
 	unique.o putty2john.o
+# broken:
+# zip_fmt.o
 
 OCL_OBJS = \
 	common-opencl.o common_opencl_pbkdf2.o opencl_mysqlsha1_fmt.o \
@@ -185,7 +187,7 @@ OCL_OBJS = \
 	opencl_cryptsha512_fmt.o opencl_mscash2_fmt.o opencl_wpapsk_fmt.o \
 	opencl_xsha512_fmt.o opencl_rawsha512_fmt.o opencl_bf_std.o \
 	opencl_bf_fmt.o opencl_pwsafe_fmt.o opencl_rawmd4_fmt.o \
-	opencl_keychain_fmt.o opencl_agilekeychain_fmt.o opencl_zip_fmt.o \
+	opencl_keychain_fmt.o opencl_agilekeychain_fmt.o \
 	opencl_encfs_fmt.o opencl_odf_fmt.o opencl_sxc_fmt.o opencl_gpg_fmt.o \
 	opencl_cryptsha256_fmt.o opencl_rawsha512-ng_fmt.o opencl_dmg_fmt.o \
 	opencl_DES_fmt.o opencl_DES_bs.o opencl_DES_bs_b.o opencl_strip_fmt.o \
@@ -195,7 +197,8 @@ OCL_OBJS = \
 	opencl_sha2_common.o opencl_blockchain_fmt.o \
 	opencl_pbkdf2_hmac_sha256_fmt.o opencl_rakp_fmt.o \
 	opencl_krb5pa-md5_fmt.o
-# opencl_keyring_fmt.o opencl_7z_fmt.o
+# broken:
+# opencl_keyring_fmt.o opencl_7z_fmt.o opencl_zip_fmt.o
 
 CUDA_OBJS = \
 	common-cuda.o cuda_common.o \
