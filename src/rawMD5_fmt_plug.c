@@ -16,7 +16,7 @@
 #include "formats.h"
 
 #ifdef _OPENMP
-#ifdef MMX_COEF_SHA512
+#ifdef MMX_COEF
 #define OMP_SCALE               1024
 #else
 #define OMP_SCALE				2048
@@ -255,14 +255,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	int count = *pcount;
 	int index = 0;
 
-#ifdef MMX_COEF
-	count = (count+NBKEYS-1)/NBKEYS;
-#endif
-
 #ifdef _OPENMP
+	int loops = (count + MAX_KEYS_PER_CRYPT - 1) / MAX_KEYS_PER_CRYPT;
+
 #pragma omp parallel for
+	for (index = 0; index < loops; index++)
 #endif
-	for (index = 0; index < count; index++)
 	{
 #if MMX_COEF
 		DO_MMX_MD5(saved_key[index], crypt_key[index]);
@@ -273,7 +271,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		MD5_Final((unsigned char *)crypt_key[index], &ctx);
 #endif
 	}
-	return *pcount;
+	return count;
 }
 
 static int cmp_all(void *binary, int count) {
