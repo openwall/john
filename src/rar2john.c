@@ -59,7 +59,6 @@
 #include "stdint.h"
 
 #define CHUNK_SIZE 4096
-#define LARGE_ENOUGH 8192
 
 /* Derived from unrar's encname.cpp */
 void DecodeFileName(unsigned char *Name, unsigned char *EncName, size_t EncSize,
@@ -152,10 +151,12 @@ static void process_file(const char *archive_name)
 	unsigned char *pos;
 	int diff;
 	int found = 0;
-	char path[LARGE_ENOUGH];
+	char path[PATH_BUFFER_SIZE];
+	char gecos[LINE_BUFFER_SIZE];
 
 	strnzcpy(path, archive_name, sizeof(path));
 	base_aname = basename(path);
+	gecos[0] = 0;
 
 	if (!(fp = fopen(archive_name, "rb"))) {
 		fprintf(stderr, "! %s: %s\n", archive_name, strerror(errno));
@@ -331,6 +332,10 @@ next_file_header:
 		} else
 			fprintf(stderr, "file name: %s\n", file_name);
 
+		/* We duplicate file name to the GECOS field, for single mode */
+		strncat(gecos, (char*)file_name, sizeof(gecos) - 1);
+		strncat(gecos, " ", sizeof(gecos) - 1);
+
 		/* salt processing */
 		if (file_header_head_flags & 0x400) {
 			ext_time_size -= 8;
@@ -386,15 +391,18 @@ next_file_header:
 		for (i = 0; i < 8; i++) { /* encode salt */
 			sprintf(&best[strlen(best)], "%c%c", itoa16[ARCH_INDEX(salt[i] >> 4)], itoa16[ARCH_INDEX(salt[i] & 0x0f)]);
 		}
+#ifdef DEBUG
 		fprintf(stderr, "salt: '%s'\n", best);
+#endif
 		sprintf(&best[strlen(best)], "*");
 		memcpy(file_crc, file_header_block + 16, 4);
 		for (i = 0; i < 4; i++) { /* encode file_crc */
 			sprintf(&best[strlen(best)], "%c%c", itoa16[ARCH_INDEX(file_crc[i] >> 4)], itoa16[ARCH_INDEX(file_crc[i] & 0x0f)]);
 		}
+#ifdef DEBUG
 		/* Minimal version needed to unpack this file */
 		fprintf(stderr, "! UNP_VER is %0.1f\n", (float)file_header_block[24] / 10.);
-
+#endif
 		/*
 		 * 0x30 - storing
 		 * 0x31 - fastest compression
@@ -416,9 +424,8 @@ next_file_header:
 		        (unsigned long long)file_header_pack_size,
 		        (unsigned long long)file_header_unp_size);
 
-		/* We duplicate file name to the GECOS field, for single mode */
 		/* If small enough, we store it inline */
-		if ((2 * file_header_pack_size) < (LINE_BUFFER_SIZE - strlen(best) - strlen((char*)file_name) - 16)) {
+		if ((2 * file_header_pack_size) < (LINE_BUFFER_SIZE - strlen(best) - strlen((char*)file_name) - PATH_BUFFER_SIZE)) {
 			char *p;
 			unsigned char s;
 			sprintf(&best[strlen(best)], "1*");
@@ -429,10 +436,9 @@ next_file_header:
 				*p++ = itoa16[s >> 4];
 				*p++ = itoa16[s & 0xf];
 			}
-			sprintf(p, "*%c%c:%d::%s", itoa16[file_header_block[25]>>4], itoa16[file_header_block[25]&0xf], type, file_name);
+			sprintf(p, "*%c%c:%d::", itoa16[file_header_block[25]>>4], itoa16[file_header_block[25]&0xf], type);
 		} else {
-			sprintf(&best[strlen(best)], "0*%s*%ld*%c%c:%d::%s", archive_name, pos, itoa16[file_header_block[25]>>4], itoa16[file_header_block[25]&0xf], type, file_name);
-
+			sprintf(&best[strlen(best)], "0*%s*%ld*%c%c:%d::", archive_name, pos, itoa16[file_header_block[25]>>4], itoa16[file_header_block[25]&0xf], type);
 			fseek(fp, file_header_pack_size, SEEK_CUR);
 		}
 		/* Keep looking for better candidates */
@@ -440,8 +446,9 @@ next_file_header:
 
 BailOut:
 		if (*best) {
-			puts(best);
 			fprintf(stderr, "Found a valid -p mode candidate in %s\n", base_aname);
+			strncat(best, gecos, sizeof(best) - 1);
+			puts(best);
 		} else
 			fprintf(stderr, "Did not find a valid encrypted candidate in %s\n", base_aname);
 	}
