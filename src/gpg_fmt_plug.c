@@ -199,6 +199,7 @@ static struct fmt_tests gpg_tests[] = {
 	{"$gpg$*1*348*1024*7fc751702c5b678089bbd667000172649b029906ed59ba163bb4418cf384f6e39d07cd4763f874f1afbdacf1ed33544321ad9e664d6428c1865b8ea7d9026b558cc1f9c139ca771c6ceca03d57af635fc9140a3f5d2bec7117a98e6561cbe7efedcee129cf7dc1de39a7b92b7d3e17f45c54bba8ce8b0c8eb73611af8f44d5551c101ebe3d7466e1ae393fbf928bb297de0ce7e64f180bc76c770e72ca5da0c27a3abaf208d51c831f9f9f885269d28aa73a93c2be0185cc71f99381635a8e7c4c48fbe77620bb19a829c62dfed5e9e088fad12ea99003117886715c88a2f9926580d47d99a7f2b38f518bc011051c57c6c6c407bf9944b279db8456a6a4d1d5811558aaf8c108c6157cbeb297d26ab407c8c5d6a0038374f903a93e78ba857d97dc71d709faf0824d7bf092a36c4df2932bb4fd2c967fcbeb296a4ee3f45e550de04e62371ed9874068d9025e0fcf136a823ef0af9ce24f7ed4cc8b*3*254*3*9*16*3a9305fd67934b258d749739a360a6dd*131072*316217f7c4782365", "openwall"},
 	/* DSA key */
 	{"$gpg$*17*42*1024*d974ae70cfbf8ab058b2e1d898add67ab1272535e8c4b9c5bd671adce22d08d5db941a60e0715b4f0c9d*3*254*2*3*8*a9e85673bb9199d8*11534336*71e35b85cddfe2af", "crackme"},
+	{"$gpg$*17*42*1024*002170c3c5778fdbeedd788a1eda3827ef7d6d73491c022d5b76d33ff70ccae8d243aab7e2f40afcb4a4*3*254*1*3*8*019e084555546803*65536*49afdb670acda6c6", "MD5-CAST5-openwall"},
 	{NULL}
 };
 
@@ -580,6 +581,7 @@ static void S2KItSaltedMD5Generator(char *password, unsigned char *key, int leng
 	int32_t n;
 
 	uint32_t numHashes = (length + MD5_DIGEST_LENGTH - 1) / MD5_DIGEST_LENGTH;
+	memcpy(keybuf, cur_salt->salt, 8);
 	// TODO: This is not very efficient with multiple hashes
 	for (i = 0; i < numHashes; i++) {
 		MD5_Init(&ctx);
