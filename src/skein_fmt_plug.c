@@ -1,4 +1,4 @@
-/* MD2 cracker patch for JtR. Hacked together during May of 2013 by Dhiru
+/* Skein cracker patch for JtR. Hacked together during April of 2013 by Dhiru
  * Kholia <dhiru at openwall.com>.
  *
  * This software is Copyright (c) 2013 Dhiru Kholia <dhiru at openwall.com> and
@@ -10,7 +10,7 @@
 
 #include <string.h>
 #include "arch.h"
-#include "sph_md2.h"
+#include "sph_skein.h"
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
@@ -22,23 +22,30 @@ static int omp_t = 1;
 #define OMP_SCALE               1 // FIXME
 #endif
 
-#define FORMAT_LABEL		"MD2"
+#define FORMAT_LABEL		"Skein"
 #define FORMAT_NAME		""
-#define FORMAT_TAG		"$md2$"
-#define TAG_LENGTH		5
-#define ALGORITHM_NAME		"MD2 32/" ARCH_BITS_STR
+#define FORMAT_TAG		"$skein$"
+#define TAG_LENGTH		7
+#define ALGORITHM_NAME		"Skein 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	125
-#define BINARY_SIZE		16
+#define BINARY_SIZE		64
+#define CMP_SIZE		28 // skein224
 #define SALT_SIZE		0
-#define BINARY_ALIGN		4
-#define SALT_ALIGN		1
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
+#define BINARY_ALIGN		4
+#define SALT_ALIGN		1
 
-static struct fmt_tests md2__tests[] = {
-	{"$md2$ab4f496bfb2a530b219ff33031fe06b0", "message digest"},
+static struct fmt_tests skein_256_tests[] = {
+	{"$skein$39CCC4554A8B31853B9DE7A1FE638A24CCE6B35A55F2431009E18780335D2621", ""},
+	{NULL}
+};
+
+static struct fmt_tests skein_512_tests[] = {
+	{"$skein$71b7bce6fe6452227b9ced6014249e5bf9a9754c3ad618ccc4e0aae16b316cc8ca698d864307ed3e80b6ef1570812ac5272dc409b5a012df2a579102f340617a", "\xff"},
+	{"$skein$BC5B4C50925519C290CC634277AE3D6257212395CBA733BBAD37A4AF0FA06AF41FCA7903D06564FEA7A2D3730DBDB80C1F85562DFCC070334EA4D1D9E72CBA7A", ""},
 	{NULL}
 };
 
@@ -58,7 +65,6 @@ static void init(struct fmt_main *self)
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
-// XXX fix me
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *p;
@@ -67,13 +73,16 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	if (!strncmp(p, FORMAT_TAG, TAG_LENGTH))
 		p += TAG_LENGTH;
-	if (strlen(p) != 32)
+	if (strlen(p) != 64 && strlen(p) != 128)
 		return 0;
 
+	while(*p)
+		if(atoi16[ARCH_INDEX(*p++)]==0x7f)
+			return 0;
 	return 1;
 }
 
-static void *get_binary(char *ciphertext)
+static void *get_binary_256(char *ciphertext)
 {
 	static union {
 		unsigned char c[32];
@@ -87,7 +96,31 @@ static void *get_binary(char *ciphertext)
 		p = strrchr(ciphertext, '$') + 1;
 	else
 		p = ciphertext;
-	for (i = 0; i < BINARY_SIZE; i++) {
+	for (i = 0; i < 32; i++) {
+		out[i] =
+		    (atoi16[ARCH_INDEX(*p)] << 4) |
+		    atoi16[ARCH_INDEX(p[1])];
+		p += 2;
+	}
+
+	return out;
+}
+
+static void *get_binary_512(char *ciphertext)
+{
+	static union {
+		unsigned char c[16];
+		ARCH_WORD dummy;
+	} buf;
+	unsigned char *out = buf.c;
+	char *p;
+	int i;
+
+	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
+		p = strrchr(ciphertext, '$') + 1;
+	else
+		p = ciphertext;
+	for (i = 0; i < 32; i++) {
 		out[i] =
 		    (atoi16[ARCH_INDEX(*p)] << 4) |
 		    atoi16[ARCH_INDEX(p[1])];
@@ -105,7 +138,7 @@ static int get_hash_4(int index) { return crypt_out[index][0] & 0xfffff; }
 static int get_hash_5(int index) { return crypt_out[index][0] & 0xffffff; }
 static int get_hash_6(int index) { return crypt_out[index][0] & 0x7ffffff; }
 
-static int crypt_all(int *pcount, struct db_salt *salt)
+static int crypt_256(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
 	int index = 0;
@@ -115,11 +148,30 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	for (index = 0; index < count; index++)
 #endif
 	{
-		sph_md2_context ctx;
+		sph_skein256_context ctx;
 
-		sph_md2_init(&ctx);
-		sph_md2(&ctx, saved_key[index], strlen(saved_key[index]));
-		sph_md2_close(&ctx, (unsigned char*)crypt_out[index]);
+		sph_skein256_init(&ctx);
+		sph_skein256(&ctx, saved_key[index], strlen(saved_key[index]));
+		sph_skein256_close(&ctx, (unsigned char*)crypt_out[index]);
+	}
+	return count;
+}
+
+static int crypt_512(int *pcount, struct db_salt *salt)
+{
+	int count = *pcount;
+	int index = 0;
+
+#ifdef _OPENMP
+#pragma omp parallel for
+	for (index = 0; index < count; index++)
+#endif
+	{
+		sph_skein512_context ctx;
+
+		sph_skein512_init(&ctx);
+		sph_skein512(&ctx, saved_key[index], strlen(saved_key[index]));
+		sph_skein512_close(&ctx, (unsigned char*)crypt_out[index]);
 	}
 	return count;
 }
@@ -130,14 +182,14 @@ static int cmp_all(void *binary, int count)
 #ifdef _OPENMP
 	for (; index < count; index++)
 #endif
-		if (!memcmp(binary, crypt_out[index], BINARY_SIZE))
+		if (!memcmp(binary, crypt_out[index], CMP_SIZE))
 			return 1;
 	return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return !memcmp(binary, crypt_out[index], BINARY_SIZE);
+	return !memcmp(binary, crypt_out[index], CMP_SIZE);
 }
 
 static int cmp_exact(char *source, int index)
@@ -145,7 +197,7 @@ static int cmp_exact(char *source, int index)
 	return 1;
 }
 
-static void md2_set_key(char *key, int index)
+static void skein_set_key(char *key, int index)
 {
 	int saved_key_length = strlen(key);
 	if (saved_key_length > PLAINTEXT_LENGTH)
@@ -159,10 +211,10 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-struct fmt_main fmt_md2_ = {
+struct fmt_main fmt_skein_256 = {
 	{
-		FORMAT_LABEL,
-		FORMAT_NAME,
+		"skein-256",
+		"Skein 256",
 		ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
@@ -170,12 +222,12 @@ struct fmt_main fmt_md2_ = {
 		BINARY_SIZE,
 		BINARY_ALIGN,
 		SALT_SIZE,
-		SALT_ALIGN,
+		BINARY_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		0,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
-		md2__tests
+		skein_256_tests
 	}, {
 		init,
 		fmt_default_done,
@@ -183,7 +235,7 @@ struct fmt_main fmt_md2_ = {
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
-		get_binary,
+		get_binary_256,
 		fmt_default_salt,
 		fmt_default_source,
 		{
@@ -197,10 +249,68 @@ struct fmt_main fmt_md2_ = {
 		},
 		fmt_default_salt_hash,
 		fmt_default_set_salt,
-		md2_set_key,
+		skein_set_key,
 		get_key,
 		fmt_default_clear_keys,
-		crypt_all,
+		crypt_256,
+		{
+			get_hash_0,
+			get_hash_1,
+			get_hash_2,
+			get_hash_3,
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
+		},
+		cmp_all,
+		cmp_one,
+		cmp_exact
+	}
+};
+
+
+struct fmt_main fmt_skein_512 = {
+	{
+		"skein-512",
+		"Skein 512",
+		ALGORITHM_NAME,
+		BENCHMARK_COMMENT,
+		BENCHMARK_LENGTH,
+		PLAINTEXT_LENGTH,
+		BINARY_SIZE,
+		BINARY_ALIGN,
+		SALT_SIZE,
+		SALT_ALIGN,
+		MIN_KEYS_PER_CRYPT,
+		MAX_KEYS_PER_CRYPT,
+		0,
+		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		skein_512_tests
+	}, {
+		init,
+		fmt_default_done,
+		fmt_default_reset,
+		fmt_default_prepare,
+		valid,
+		fmt_default_split,
+		get_binary_512,
+		fmt_default_salt,
+		fmt_default_source,
+		{
+			fmt_default_binary_hash_0,
+			fmt_default_binary_hash_1,
+			fmt_default_binary_hash_2,
+			fmt_default_binary_hash_3,
+			fmt_default_binary_hash_4,
+			fmt_default_binary_hash_5,
+			fmt_default_binary_hash_6
+		},
+		fmt_default_salt_hash,
+		fmt_default_set_salt,
+		skein_set_key,
+		get_key,
+		fmt_default_clear_keys,
+		crypt_512,
 		{
 			get_hash_0,
 			get_hash_1,

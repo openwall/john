@@ -58,7 +58,7 @@ static void init(struct fmt_main *self)
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
-// XXX fix me
+
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *p;
@@ -69,6 +69,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		p += TAG_LENGTH;
 	if (strlen(p) != 64)
 		return 0;
+	while(*p)
+		if(atoi16[ARCH_INDEX(*p++)]==0x7f)
+			return 0;
 
 	return 1;
 }

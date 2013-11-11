@@ -22,8 +22,6 @@ static int omp_t = 1;
 #define OMP_SCALE               1 // tuned on core i7
 #endif
 
-#define FORMAT_LABEL		"HAVAL"
-#define FORMAT_NAME		""
 #define FORMAT_TAG		"$haval$"
 #define TAG_LENGTH		7
 #define ALGORITHM_NAME		"32/" ARCH_BITS_STR
@@ -65,7 +63,6 @@ static void init(struct fmt_main *self)
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
-// XXX fix me
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *p;
@@ -77,6 +74,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (strlen(p) != 32 && strlen(p) != 64)
 		return 0;
 
+	while(*p)
+		if(atoi16[ARCH_INDEX(*p++)]==0x7f)
+			return 0;
 	return 1;
 }
 
