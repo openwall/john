@@ -481,7 +481,7 @@ static void init(struct fmt_main *self)
 		}
 	}
 
-	self->params.min_keys_per_crypt = local_work_size;
+	self->params.min_keys_per_crypt = local_work_size * v_width;
 
 	if (global_work_size < local_work_size)
 		global_work_size = local_work_size;

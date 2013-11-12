@@ -462,6 +462,7 @@ static void init(struct fmt_main *self)
 	if (!local_work_size) {
 		if (getenv("LWS")) {
 			/* LWS was explicitly set to 0 */
+			create_clobj(global_work_size, self);
 			opencl_find_best_workgroup_limit(self, maxsize,
 			                                 ocl_gpu_id,
 			                                 crypt_kernel);
@@ -480,7 +481,7 @@ static void init(struct fmt_main *self)
 	while (local_work_size > maxsize)
 		local_work_size >>= 1;
 
-	self->params.min_keys_per_crypt = local_work_size;
+	self->params.min_keys_per_crypt = local_work_size * v_width;
 
 	if (global_work_size < local_work_size)
 		global_work_size = local_work_size;
