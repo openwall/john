@@ -13,6 +13,9 @@
 #ifndef _COMMON_TUNE_H
 #define _COMMON_TUNE_H
 
+/* Macro for get a multiple of a given value */
+#define GET_MULTIPLE_BIGGER(dividend, divisor)	(local_work_size) ? (((dividend + divisor - 1) / divisor) * divisor) : (dividend)
+
 //Necessary definitions.
 static size_t get_task_max_size();
 static size_t get_default_workgroup();
@@ -59,5 +62,27 @@ static void common_run_auto_tune(struct fmt_main * self) {
 	self->params.min_keys_per_crypt = local_work_size;
 	self->params.max_keys_per_crypt = global_work_size;
 }
+
+/* Can be used to select a 'good' default gws size */
+size_t common_get_task_max_size(int multiplier, int keys_per_core_cpu,
+	int keys_per_core_gpu, cl_kernel crypt_kernel);
+
+/* Can be used to select a 'good' default lws size */
+size_t common_get_task_max_work_group_size(int use_local_memory,
+	int local_memory_size, cl_kernel crypt_kernel);
+
+/* --
+  This function could be used to calculated the best num
+  of keys per crypt for the given format
+-- */
+void common_find_best_gws(int sequential_id, unsigned int rounds, int step,
+	unsigned long long int max_run_time);
+
+/* --
+  This function could be used to calculated the best local
+  group size for the given format
+-- */
+void common_find_best_lws(size_t group_size_limit,
+	int sequential_id, cl_kernel crypt_kernel);
 
 #endif  /* _COMMON_TUNE_H */
