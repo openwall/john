@@ -1068,7 +1068,7 @@ static cl_ulong gws_test(size_t num, unsigned int rounds, int sequential_id)
 		else
 			runtime += (endTime - startTime);
 
-		if (options.verbosity > 3)
+		if (options.verbosity > 4)
 			fprintf(stderr, "%s%.2f ms", warnings[i],
 			        (double)(endTime - startTime) / 1000000.);
 
@@ -1082,7 +1082,7 @@ static cl_ulong gws_test(size_t num, unsigned int rounds, int sequential_id)
 			break;
 		}
 	}
-	if (options.verbosity > 3)
+	if (options.verbosity > 4)
 		fprintf(stderr, "\n");
 
 	if (split_events)
@@ -1306,9 +1306,8 @@ void opencl_find_best_lws(
 	}
 }
 
-void opencl_find_best_gws(int step, int show_speed,
-	unsigned long long int max_run_time, int sequential_id,
-	unsigned int rounds)
+void opencl_find_best_gws(int step, unsigned long long int max_run_time,
+                          int sequential_id, unsigned int rounds)
 {
 	size_t num = 0;
 	int optimal_gws = local_work_size;
@@ -1321,10 +1320,10 @@ void opencl_find_best_gws(int step, int show_speed,
 
 	if (options.verbosity > 3)
 		fprintf(stderr, "Calculating best global worksize (GWS); "
-			"max. %2.1f s duration.\n\n",
+			"max. %2.1f s duration.\n",
 			(float) max_run_time / 1000000000.);
 
-	if (show_speed)
+	if (options.verbosity > 4)
 		fprintf(stderr, "Raw speed figures including buffer "
 		        "transfers:\n");
 
@@ -1346,8 +1345,7 @@ void opencl_find_best_gws(int step, int show_speed,
 		if ((gws_limit && (num > gws_limit)) || ((gws_limit == 0) &&
 		    (buffer_size * num * 1.2 >
 		     get_max_mem_alloc_size(ocl_gpu_id)))) {
-
-			if (options.verbosity > 3)
+			if (options.verbosity > 4)
 				fprintf(stderr, "Hardware resources "
 				        "fullfilled\n");
 			break;
@@ -1357,7 +1355,7 @@ void opencl_find_best_gws(int step, int show_speed,
 		                          sequential_id)))
 			break;
 
-		if (!show_speed && options.verbosity < 4)
+		if (options.verbosity < 4)
 			advance_cursor();
 
 		speed = rounds * num / (run_time / 1000000000.);
@@ -1365,8 +1363,7 @@ void opencl_find_best_gws(int step, int show_speed,
 		if (run_time < min_time)
 			min_time = run_time;
 
-		if (show_speed) {
-
+		if (options.verbosity > 3) {
 			if (rounds > 1)
 				fprintf(stderr, "gws: %9zu\t%10llu c/s%12u "
 				        "rounds/s%8.3f sec per crypt_all()",
@@ -1382,19 +1379,18 @@ void opencl_find_best_gws(int step, int show_speed,
 		}
 
 		if (run_time > max_run_time) {
-
-			if (show_speed)
+			if (options.verbosity > 3)
 				fprintf(stderr, " - too slow\n");
 			break;
 		}
 
 		if (speed > (1.01 * best_speed)) {
-			if (show_speed)
+			if (options.verbosity > 3)
 				fprintf(stderr, "+");
 			best_speed = speed;
 			optimal_gws = num;
 		}
-		if (show_speed)
+		if (options.verbosity > 3)
 			fprintf(stderr, "\n");
 	}
 	// Release profiling queue and create new with profiling disabled
