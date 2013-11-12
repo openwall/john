@@ -162,7 +162,7 @@ static char* get_key(int index)
 static void *salt(char *ciphertext);
 static void set_salt(void *salt);
 
-static cl_ulong gws_test(size_t gws, int do_benchmark, struct fmt_main *self)
+static cl_ulong gws_test(size_t gws, struct fmt_main *self)
 {
 	cl_ulong startTime, endTime;
 	cl_command_queue queue_prof;
@@ -207,7 +207,7 @@ static cl_ulong gws_test(size_t gws, int do_benchmark, struct fmt_main *self)
 	HANDLE_CLERROR(clGetEventProfilingInfo(Event[1],
 			CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime,
 			NULL), "Failed to get profiling info");
-	if (do_benchmark)
+	if (options.verbosity > 3)
 		fprintf(stderr, "keys xfer %.2f us, ", (endTime-startTime)/1000.);
 
 	HANDLE_CLERROR(clGetEventProfilingInfo(Event[2],
@@ -216,7 +216,7 @@ static cl_ulong gws_test(size_t gws, int do_benchmark, struct fmt_main *self)
 	HANDLE_CLERROR(clGetEventProfilingInfo(Event[2],
 			CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime,
 			NULL), "Failed to get profiling info");
-	if (do_benchmark)
+	if (options.verbosity > 3)
 		fprintf(stderr, "1st kernel %.2f ms, ", (endTime-startTime)/1000000.);
 #endif
 
@@ -227,12 +227,12 @@ static cl_ulong gws_test(size_t gws, int do_benchmark, struct fmt_main *self)
 			CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime,
 			NULL), "Failed to get profiling info");
 
-	if (do_benchmark)
+	if (options.verbosity > 3)
 		fprintf(stderr, "loop kernel %.2f ms x %u = %.2f s, ", (endTime - startTime)/1000000., 2 * ITERATIONS/HASH_LOOPS, 2 * (ITERATIONS/HASH_LOOPS) * (endTime - startTime) / 1000000000.);
 
 	/* 200 ms duration limit */
 	if ((endTime - startTime) > 200000000) {
-		if (do_benchmark)
+		if (options.verbosity > 3)
 			fprintf(stderr, "- exceeds 200 ms\n");
 		clReleaseCommandQueue(queue_prof);
 		release_clobj();
@@ -246,7 +246,7 @@ static cl_ulong gws_test(size_t gws, int do_benchmark, struct fmt_main *self)
 	HANDLE_CLERROR(clGetEventProfilingInfo(Event[4],
 			CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime,
 			NULL), "Failed to get profiling info");
-	if (do_benchmark)
+	if (options.verbosity > 3)
 		fprintf(stderr, "pass2 kernel %.2f ms, ", (endTime-startTime)/1000000.);
 
 	HANDLE_CLERROR(clGetEventProfilingInfo(Event[5],
@@ -255,7 +255,7 @@ static cl_ulong gws_test(size_t gws, int do_benchmark, struct fmt_main *self)
 	HANDLE_CLERROR(clGetEventProfilingInfo(Event[5],
 			CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime,
 			NULL), "Failed to get profiling info");
-	if (do_benchmark)
+	if (options.verbosity > 3)
 		fprintf(stderr, "result xfer %.2f us\n", (endTime-startTime)/1000.);
 
 	HANDLE_CLERROR(clGetEventProfilingInfo(Event[6],
@@ -264,7 +264,7 @@ static cl_ulong gws_test(size_t gws, int do_benchmark, struct fmt_main *self)
 	HANDLE_CLERROR(clGetEventProfilingInfo(Event[6],
 			CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime,
 			NULL), "Failed to get profiling info");
-	if (do_benchmark)
+	if (options.verbosity > 3)
 		fprintf(stderr, "final kernel %.2f ms, ", (endTime-startTime)/1000000.);
 #endif
 
@@ -280,7 +280,7 @@ static cl_ulong gws_test(size_t gws, int do_benchmark, struct fmt_main *self)
 	return (endTime - startTime) * 2 * (ITERATIONS / HASH_LOOPS - 1);
 }
 
-static void find_best_gws(int do_benchmark, struct fmt_main *self)
+static void find_best_gws(struct fmt_main *self)
 {
 	int num;
 	cl_ulong run_time, min_time = CL_ULONG_MAX;
@@ -289,15 +289,13 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 	                                                crypt_kernel);
 	const int sha1perkey = 2 * ITERATIONS * 2 + 6 + 10;
 
-	if (do_benchmark) {
+	if (options.verbosity > 3) {
 		fprintf(stderr, "Calculating best keys per crypt (GWS) for LWS=%zd and max. 200ms duration.\n\n", local_work_size);
 		fprintf(stderr, "Raw GPU speed figures including buffer transfers:\n");
 	}
 
 	for (num = optimal_gws; num; num *= 2) {
-		if (!do_benchmark)
-			advance_cursor();
-		if (!(run_time = gws_test(num, do_benchmark, self)))
+		if (!(run_time = gws_test(num, self)))
 			break;
 
 		SHAspeed = sha1perkey * (1000000000UL * v_width * num / run_time);
@@ -305,23 +303,25 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 		if (run_time < min_time)
 			min_time = run_time;
 
-		if (do_benchmark)
+		if (options.verbosity > 3)
 			fprintf(stderr, "gws %6d%8llu c/s%14u sha1/s%8.2f sec per crypt_all()", num, (1000000000ULL * v_width * num / run_time), SHAspeed, (float)run_time / 1000000000.);
+		else
+			advance_cursor();
 
 		if (((float)run_time / (float)min_time) < ((float)SHAspeed / (float)bestSHAspeed)) {
-			if (do_benchmark)
+			if (options.verbosity > 3)
 				fprintf(stderr, "!\n");
 			bestSHAspeed = SHAspeed;
 			optimal_gws = num;
 		} else {
 			if (SHAspeed > (bestSHAspeed)) {
-				if (do_benchmark)
+				if (options.verbosity > 3)
 					fprintf(stderr, "+\n");
 				bestSHAspeed = SHAspeed;
 				optimal_gws = num;
 				continue;
 			}
-			if (do_benchmark)
+			if (options.verbosity > 3)
 				fprintf(stderr, "\n");
 		}
 	}
@@ -371,7 +371,7 @@ static void init(struct fmt_main *self)
 
 	/* Enumerate GWS using *LWS=NULL (unless it was set explicitly) */
 	if (!global_work_size)
-		find_best_gws(getenv("GWS") == NULL ? 0 : 1, self);
+		find_best_gws(self);
 
 	/* Note: we ask for the kernels' max sizes, not the device's! */
 	maxsize = get_kernel_max_lws(ocl_gpu_id, wpapsk_init);

@@ -171,7 +171,7 @@ static void done(void)
 
 static void *salt(char *ciphertext);
 
-static cl_ulong gws_test(size_t gws, int do_benchmark, struct fmt_main *self)
+static cl_ulong gws_test(size_t gws, struct fmt_main *self)
 {
 	cl_ulong startTime, endTime;
 	cl_event Event[5];
@@ -217,7 +217,7 @@ static cl_ulong gws_test(size_t gws, int do_benchmark, struct fmt_main *self)
 	HANDLE_CLERROR(clGetEventProfilingInfo(Event[1],
 	        CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime,
 	        NULL), "Failed to get profiling info");
-	if (do_benchmark)
+	if (options.verbosity > 3)
 		fprintf(stderr, "key xfer %.2f ms, ", (double)(endTime-startTime)/1000000.);
 
 	HANDLE_CLERROR(clGetEventProfilingInfo(Event[2],
@@ -226,12 +226,12 @@ static cl_ulong gws_test(size_t gws, int do_benchmark, struct fmt_main *self)
 	HANDLE_CLERROR(clGetEventProfilingInfo(Event[2],
 	        CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime,
 	        NULL), "Failed to get profiling info");
-	if (do_benchmark)
+	if (options.verbosity > 3)
 		fprintf(stderr, "krb5pa_md5_nthash %.2f ms, ", (double)(endTime-startTime)/1000000.);
 
 	/* 200 ms duration limit for GCN to avoid ASIC hangs */
 	if (amd_gcn(device_info[ocl_gpu_id]) && endTime - startTime > 200000000) {
-		if (do_benchmark)
+		if (options.verbosity > 3)
 			fprintf(stderr, "exceeds 200 ms\n");
 		release_clobj();
 		return 0;
@@ -243,12 +243,12 @@ static cl_ulong gws_test(size_t gws, int do_benchmark, struct fmt_main *self)
 	HANDLE_CLERROR(clGetEventProfilingInfo(Event[3],
 	        CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime,
 	        NULL), "Failed to get profiling info");
-	if (do_benchmark)
+	if (options.verbosity > 3)
 		fprintf(stderr, "final kernel %.2f ms, ", (double)((endTime - startTime)/1000000.));
 
 	/* 200 ms duration limit for GCN to avoid ASIC hangs */
 	if (amd_gcn(device_info[ocl_gpu_id]) && endTime - startTime > 200000000) {
-		if (do_benchmark)
+		if (options.verbosity > 3)
 			fprintf(stderr, "- exceeds 200 ms\n");
 		release_clobj();
 		return 0;
@@ -260,10 +260,10 @@ static cl_ulong gws_test(size_t gws, int do_benchmark, struct fmt_main *self)
 	HANDLE_CLERROR(clGetEventProfilingInfo(Event[4],
 	        CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime,
 	        NULL), "Failed to get profiling info");
-	if (do_benchmark)
+	if (options.verbosity > 3)
 		fprintf(stderr, "results xfer %.2f ms", (double)(endTime-startTime)/1000000.);
 
-	if (do_benchmark)
+	if (options.verbosity > 3)
 		fprintf(stderr, "\n");
 
 	HANDLE_CLERROR(clGetEventProfilingInfo(Event[0],
@@ -278,7 +278,7 @@ static cl_ulong gws_test(size_t gws, int do_benchmark, struct fmt_main *self)
 	return (endTime - startTime);
 }
 
-static void find_best_gws(int do_benchmark, struct fmt_main *self)
+static void find_best_gws(struct fmt_main *self)
 {
 	int num, max_gws;
 	cl_ulong run_time, min_time = CL_ULONG_MAX;
@@ -300,15 +300,13 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 	/* Beware of device limits */
 	max_gws = MIN(get_max_mem_alloc_size(ocl_gpu_id) / max_len, get_global_memory_size(ocl_gpu_id) / (max_len + 16 + BINARY_SIZE + SALT_SIZE));
 
-	if (do_benchmark) {
+	if (options.verbosity > 3) {
 		fprintf(stderr, "Calculating best keys per crypt (GWS) for LWS=%zd and max. %llu s duration.\n\n", local_work_size, MaxRunTime / 1000000000UL);
 		fprintf(stderr, "Raw GPU speed figures including buffer transfers:\n");
 	}
 
 	for (num = optimal_gws; num <= max_gws; num *= 2) {
-		if (!do_benchmark)
-			advance_cursor();
-		if (!(run_time = gws_test(num, do_benchmark, self)))
+		if (!(run_time = gws_test(num, self)))
 			break;
 
 		MD5speed = md5perkey * (1000000000. * num / run_time);
@@ -316,23 +314,25 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 		if (run_time < min_time)
 			min_time = run_time;
 
-		if (do_benchmark)
+		if (options.verbosity > 3)
 			fprintf(stderr, "gws %6d %9.0f c/s %13.0f md5/s%8.2f sec per crypt_all()", num, (1000000000. * num / run_time), MD5speed, (double)run_time / 1000000000.);
+		else
+			advance_cursor();
 
 		if (((double)run_time / (double)min_time) < (MD5speed / bestMD5speed)) {
-			if (do_benchmark)
+			if (options.verbosity > 3)
 				fprintf(stderr, "!\n");
 			bestMD5speed = MD5speed;
 			optimal_gws = num;
 		} else {
 			if (run_time < MaxRunTime && MD5speed > bestMD5speed) {
-				if (do_benchmark)
+				if (options.verbosity > 3)
 					fprintf(stderr, "+\n");
 				bestMD5speed = MD5speed;
 				optimal_gws = num;
 				continue;
 			}
-			if (do_benchmark)
+			if (options.verbosity > 3)
 				fprintf(stderr, "\n");
 			if (run_time >= MaxRunTime)
 				break;
@@ -391,7 +391,7 @@ static void init(struct fmt_main *self)
 
 	/* Enumerate GWS using *LWS=NULL (unless it was set explicitly) */
 	if (!global_work_size)
-		find_best_gws(getenv("GWS") == NULL ? 0 : 1, self);
+		find_best_gws(self);
 
 	/* Note: we ask for the kernels' max sizes, not the device's! */
 	maxsize = get_kernel_max_lws(ocl_gpu_id, krb5pa_md5_nthash);

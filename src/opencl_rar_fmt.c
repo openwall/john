@@ -495,7 +495,7 @@ static void set_salt(void *salt)
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], cl_salt, CL_FALSE, 0, 8, saved_salt, 0, NULL, NULL), "failed in clEnqueueWriteBuffer saved_salt");
 }
 
-static cl_ulong gws_test(size_t gws, int do_benchmark, struct fmt_main *self)
+static cl_ulong gws_test(size_t gws, struct fmt_main *self)
 {
 	cl_ulong startTime, endTime;
 	cl_command_queue queue_prof;
@@ -542,15 +542,15 @@ static cl_ulong gws_test(size_t gws, int do_benchmark, struct fmt_main *self)
 
 	clGetEventProfilingInfo(Event[1], CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime, NULL);
 	clGetEventProfilingInfo(Event[1], CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime, NULL);
-	if (do_benchmark)
+	if (options.verbosity > 3)
 		fprintf(stderr, "init %.2f ms\t", (float)((endTime - startTime)/1000000.));
 	clGetEventProfilingInfo(Event[3], CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime, NULL);
 	clGetEventProfilingInfo(Event[3], CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime, NULL);
-	if (do_benchmark)
+	if (options.verbosity > 3)
 		fprintf(stderr, "%.2f ms x %u = %.2f s\t", (float)((endTime - startTime)/1000000.), 16, (float)(16. * (endTime - startTime) / 1000000000.));
 	clGetEventProfilingInfo(Event[4], CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime, NULL);
 	clGetEventProfilingInfo(Event[4], CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime, NULL);
-	if (do_benchmark)
+	if (options.verbosity > 3)
 		fprintf(stderr, "final %.2f ms\n", (float)((endTime - startTime)/1000000.));
 
 	clGetEventProfilingInfo(Event[3], CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime, NULL);
@@ -562,7 +562,7 @@ static cl_ulong gws_test(size_t gws, int do_benchmark, struct fmt_main *self)
 	/* 200 ms duration limit for GCN to avoid ASIC hangs */
 	if (amd_gcn(device_info[ocl_gpu_id]) && endTime - startTime > 200000000)
 	{
-		if (do_benchmark)
+		if (options.verbosity > 3)
 			fprintf(stderr, "- exceeds 200 ms\n");
 		return 0;
 	}
@@ -570,7 +570,7 @@ static cl_ulong gws_test(size_t gws, int do_benchmark, struct fmt_main *self)
 	return 16 * (endTime - startTime);
 }
 
-static void find_best_gws(int do_benchmark, struct fmt_main *self)
+static void find_best_gws(struct fmt_main *self)
 {
 	int num;
 	cl_ulong run_time, min_time = CL_ULONG_MAX;
@@ -582,15 +582,13 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 
 	max_gws = get_max_mem_alloc_size(ocl_gpu_id) / (UNICODE_LENGTH + 8);
 
-	if (do_benchmark) {
+	if (options.verbosity > 3) {
 		fprintf(stderr, "Calculating best keys per crypt (GWS) for LWS=%zd and max. %llu s duration.\n\n", local_work_size, MaxRunTime / 1000000000UL);
 		fprintf(stderr, "Raw GPU speed figures including buffer transfers:\n");
 	}
 
 	for (num = optimal_gws; max_gws; num *= 2) {
-		if (!do_benchmark)
-			advance_cursor();
-		if (!(run_time = gws_test(num, do_benchmark, self)))
+		if (!(run_time = gws_test(num, self)))
 			break;
 
 		SHAspeed = sha1perkey * (1000000000UL * num / run_time);
@@ -598,29 +596,31 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 		if (run_time < min_time)
 			min_time = run_time;
 
-		if (do_benchmark)
+		if (options.verbosity > 3)
 			fprintf(stderr, "gws %6d\t%4llu c/s%14u sha1/s%8.3f sec per crypt_all()", num, (1000000000ULL * num / run_time), SHAspeed, (float)run_time / 1000000000.);
+		else
+			advance_cursor();
 
 		if (((float)run_time / (float)min_time) < ((float)SHAspeed / (float)bestSHAspeed)) {
-			if (do_benchmark)
+			if (options.verbosity > 3)
 				fprintf(stderr, "!\n");
 			bestSHAspeed = SHAspeed;
 			optimal_gws = num;
 		} else {
 
 			if (run_time > MaxRunTime) {
-				if (do_benchmark)
+				if (options.verbosity > 3)
 					fprintf(stderr, "\n");
 				break;
 			}
 
 			if (SHAspeed > bestSHAspeed) {
-				if (do_benchmark)
+				if (options.verbosity > 3)
 					fprintf(stderr, "+");
 				bestSHAspeed = SHAspeed;
 				optimal_gws = num;
 			}
-			if (do_benchmark)
+			if (options.verbosity > 3)
 				fprintf(stderr, "\n");
 		}
 	}
@@ -659,7 +659,7 @@ static void init(struct fmt_main *self)
 
 	/* Enumerate GWS using *LWS=NULL (unless it was set explicitly) */
 	if (!global_work_size)
-		find_best_gws(getenv("GWS") == NULL ? 0 : 1, self);
+		find_best_gws(self);
 
 	/* Note: we ask for the kernels' max sizes, not the device's! */
 	maxsize = get_kernel_max_lws(ocl_gpu_id, RarInit);
