@@ -52,8 +52,8 @@ void common_find_best_lws(size_t group_size_limit,
   Work-items that make up a work-group (also referred to
   as the size of the work-group)
 -- */
-static void find_best_lws(struct fmt_main * self, int sequential_id) {
-
+static void find_best_lws(struct fmt_main * self, int sequential_id)
+{
 	//Call the default function.
 	common_find_best_lws(
 		get_task_max_work_group_size(), sequential_id, crypt_kernel
@@ -65,8 +65,8 @@ static void find_best_lws(struct fmt_main * self, int sequential_id) {
   of keys per crypt for the given format
 -- */
 static void find_best_gws(struct fmt_main * self, int sequential_id, unsigned int rounds,
-	unsigned long long int max_run_time) {
-
+	unsigned long long int max_run_time)
+{
 	//Call the common function.
 	common_find_best_gws(
 		sequential_id, rounds, STEP, max_run_time
@@ -81,8 +81,8 @@ static void find_best_gws(struct fmt_main * self, int sequential_id, unsigned in
   in each format file.
 -- */
 static void common_run_auto_tune(struct fmt_main * self, unsigned int rounds,
-	unsigned long long int max_run_time) {
-
+	unsigned long long int max_run_time)
+{
 	/* Read LWS/GWS prefs from config or environment */
 	opencl_get_user_preferences(OCL_CONFIG);
 
