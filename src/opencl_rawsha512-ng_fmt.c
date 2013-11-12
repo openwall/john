@@ -343,41 +343,6 @@ static char * get_key(int index) {
 	return ret;
 }
 
-/* ------- Try to find the best configuration ------- */
-/* --
-  This function could be used to calculated the best num
-  for the workgroup
-  Work-items that make up a work-group (also referred to
-  as the size of the work-group)
-
-  For formats using __local
-  LWS should never be a big number since every work-item
-  uses about 400 bytes of local memory. Local memory
-  is usually 32 KB.
--- */
-static void find_best_lws(struct fmt_main * self, int sequential_id) {
-
-	//Call the default function.
-	common_find_best_lws(
-		get_task_max_work_group_size(), sequential_id, crypt_kernel
-	);
-}
-
-/* --
-  This function could be used to calculated the best num
-  of keys per crypt for the given format
--- */
-static void find_best_gws(struct fmt_main * self, int sequential_id) {
-
-	//Call the common function.
-	common_find_best_gws(
-		sequential_id, 1, STEP,
-		(cpu(device_info[ocl_gpu_id]) ? 500000000ULL : 1000000000ULL)
-	);
-
-	create_clobj(global_work_size, self);
-}
-
 /* ------- Initialization  ------- */
 static void init(struct fmt_main * self) {
 	char * task = "$JOHN/kernels/sha512-ng_kernel.cl";
@@ -409,7 +374,8 @@ static void init(struct fmt_main * self) {
 
 	//Auto tune execution from shared/included code.
 	self->methods.crypt_all = crypt_all_benchmark;
-	common_run_auto_tune(self);
+	common_run_auto_tune(self, 1,
+		(cpu(device_info[ocl_gpu_id]) ? 500000000ULL : 1000000000ULL));
 	self->methods.crypt_all = crypt_all;
 }
 
