@@ -149,25 +149,25 @@ static int valid(char *ciphertext, struct fmt_main *self)
 static void clear_keys(void);
 static void set_key(char *key, int index);
 
-static void create_clobj(size_t kpc, struct fmt_main *self)
+static void create_clobj(size_t gws, struct fmt_main *self)
 {
-	global_work_size = kpc;
-	kpc *= v_width;
+	global_work_size = gws;
+	gws *= v_width;
 
-	keys = mem_alloc((PLAINTEXT_LENGTH + 1) * kpc);
-	idx = mem_alloc(sizeof(*idx) * kpc);
-	digest = mem_alloc(kpc * BINARY_SIZE);
+	keys = mem_alloc((PLAINTEXT_LENGTH + 1) * gws);
+	idx = mem_alloc(sizeof(*idx) * gws);
+	digest = mem_alloc(gws * BINARY_SIZE);
 
 	salt_buffer = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, SALT_STORAGE_SIZE, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating salt_buffer out argument");
 
-	keys_buffer = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, (PLAINTEXT_LENGTH + 1) * kpc, NULL, &ret_code);
+	keys_buffer = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, (PLAINTEXT_LENGTH + 1) * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating keys_buffer out argument");
 
-	idx_buffer = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, 4 * kpc, NULL, &ret_code);
+	idx_buffer = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, 4 * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating idx_buffer out argument");
 
-	digest_buffer = clCreateBuffer(context[ocl_gpu_id], CL_MEM_WRITE_ONLY, BINARY_SIZE * kpc, NULL, &ret_code);
+	digest_buffer = clCreateBuffer(context[ocl_gpu_id], CL_MEM_WRITE_ONLY, BINARY_SIZE * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating digest_buffer in argument");
 
 	HANDLE_CLERROR(
