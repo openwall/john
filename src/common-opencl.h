@@ -34,6 +34,7 @@
 
 #define MAXGPUS	8
 #define MAX_PLATFORMS	8
+#define MAX_EVENTS 8
 #define SUBSECTION_OPENCL	":OpenCL"
 #define MAX_OCLINFO_STRING_LEN	2048
 
@@ -53,40 +54,39 @@ static inline cl_mem john_clCreateBuffer (int l, char *f,
 	                    __FILE__, a, b, c, d, e)
 #endif
 
-/* Common OpenCL variables */
-int ocl_gpu_id, platform_id;
-int ocl_device_list[MAXGPUS];
-
 typedef struct {
 	cl_platform_id			platform;
 	int				num_devices;
 } cl_platform;
 cl_platform platforms[MAX_PLATFORMS];
 
-cl_device_id devices[MAXGPUS];
-cl_context context[MAXGPUS];
-cl_program program[MAXGPUS];
-cl_command_queue queue[MAXGPUS];
-cl_int ret_code;
-cl_kernel crypt_kernel;
-size_t local_work_size;
-size_t global_work_size;
-size_t max_group_size;
+/* Common OpenCL variables */
+extern int ocl_gpu_id, platform_id;
+extern int ocl_device_list[MAXGPUS];
 
-char *kernel_source;
-void opencl_read_source(char *kernel_filename);
+extern cl_device_id devices[MAXGPUS];
+extern cl_context context[MAXGPUS];
+extern cl_program program[MAXGPUS];
+extern cl_command_queue queue[MAXGPUS];
+extern cl_int ret_code;
+extern cl_kernel crypt_kernel;
+extern size_t local_work_size;
+extern size_t global_work_size;
+extern size_t max_group_size;
+extern char *kernel_source;
 
-#define EVENTS 8
-cl_event *profilingEvent, *firstEvent, *lastEvent;
-cl_event multi_profilingEvent[EVENTS];
+extern cl_event *profilingEvent, *firstEvent, *lastEvent;
+extern cl_event multi_profilingEvent[MAX_EVENTS];
+
+extern int device_info[MAXGPUS];
+extern int cores_per_MP[MAXGPUS];
 
 #define LWS_CONFIG_NAME			"_LWS"
 #define GWS_CONFIG_NAME			"_GWS"
 #define DUR_CONFIG_NAME			"_MaxDuration"
 #define FALSE				0
 
-int device_info[MAXGPUS];
-int cores_per_MP[MAXGPUS];
+void opencl_read_source(char *kernel_filename);
 
 /* Passive init: enumerate platforms and devices and parse options */
 void opencl_preinit(void);

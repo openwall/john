@@ -36,6 +36,10 @@
 
 #define LOG_SIZE 1024*16
 
+/* Common OpenCL variables */
+int ocl_gpu_id, platform_id;
+int ocl_device_list[MAXGPUS];
+
 static char opencl_log[LOG_SIZE];
 static int kernel_loaded;
 static size_t program_size;
@@ -63,6 +67,24 @@ static void (*create_clobj)(size_t gws, struct fmt_main * self);
 static void (*release_clobj)(void);
 static const char * config_name;
 static size_t gws_limit;
+
+cl_device_id devices[MAXGPUS];
+cl_context context[MAXGPUS];
+cl_program program[MAXGPUS];
+cl_command_queue queue[MAXGPUS];
+cl_int ret_code;
+cl_kernel crypt_kernel;
+size_t local_work_size;
+size_t global_work_size;
+size_t max_group_size;
+
+char *kernel_source;
+
+cl_event *profilingEvent, *firstEvent, *lastEvent;
+cl_event multi_profilingEvent[MAX_EVENTS];
+
+int device_info[MAXGPUS];
+int cores_per_MP[MAXGPUS];
 
 void opencl_process_event(void)
 {
@@ -968,7 +990,7 @@ static void release_profiling_events()
 	int i;
 
 	// Release events
-	for (i = 0; i < EVENTS; i++) {
+	for (i = 0; i < MAX_EVENTS; i++) {
 		if (multi_profilingEvent[i])
 			HANDLE_CLERROR(clReleaseEvent(multi_profilingEvent[i]),
 			               "Failed in clReleaseEvent");
@@ -1077,7 +1099,7 @@ void opencl_init_auto_setup(
 	int i;
 
 	// Initialize events
-	for (i = 0; i < EVENTS; i++)
+	for (i = 0; i < MAX_EVENTS; i++)
 		multi_profilingEvent[i] = NULL;
 
 	// Get parameters
