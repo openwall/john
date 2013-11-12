@@ -257,7 +257,7 @@ struct options_main {
 #ifdef HAVE_OPENCL
 	char *ocl_platform;
 
-/* Force vector width of vectorizing-capable formats. Mostly for testing */
+/* Vector width of OpenCL kernel */
 	unsigned int v_width;
 #endif
 #if defined(HAVE_OPENCL) || defined(HAVE_CUDA)

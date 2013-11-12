@@ -269,9 +269,6 @@ static void init(struct fmt_main *self)
 	gws_limit = MIN((1 << 26) * 4 / PAD_SIZE / v_width,
 			get_max_mem_alloc_size(ocl_gpu_id) / (v_width * BUFFER_SIZE));
 
-	//Find a valid multiple
-	local_work_size = GET_MULTIPLE_BIGGER(local_work_size, v_width);
-
 	//Initialize openCL tuning (library) for this format.
 	opencl_init_auto_setup(STEP, 0, 4, NULL,
 		warn, &multi_profilingEvent[2], self, create_clobj, release_clobj,

@@ -73,6 +73,7 @@ extern cl_kernel crypt_kernel;
 extern size_t local_work_size;
 extern size_t global_work_size;
 extern size_t max_group_size;
+extern unsigned int opencl_v_width;
 extern char *kernel_source;
 
 extern cl_event *profilingEvent, *firstEvent, *lastEvent;
@@ -99,7 +100,7 @@ void opencl_done(void);
  * or --force-vector-width=N options and the ForceScalar config option may
  * affect the return value.
  */
-cl_uint opencl_get_vector_width(int sequential_id, int size);
+unsigned int opencl_get_vector_width(int sequential_id, int size);
 
 /* Returns number of selected devices */
 int opencl_get_devices(void);

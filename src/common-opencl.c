@@ -77,6 +77,7 @@ cl_kernel crypt_kernel;
 size_t local_work_size;
 size_t global_work_size;
 size_t max_group_size;
+unsigned int opencl_v_width = 1;
 
 char *kernel_source;
 
@@ -490,52 +491,53 @@ void opencl_preinit(void)
 	}
 }
 
-cl_uint opencl_get_vector_width(int sequential_id, int size)
+unsigned int opencl_get_vector_width(int sequential_id, int size)
 {
-	cl_uint v_width;
-
 	/* --force-scalar option, or john.conf ForceScalar boolean */
 	if (options.flags & FLG_SCALAR)
-		return 1;
+		options.v_width = 1;
 
 	/* --force-vector-width=N */
-	if (options.v_width)
-		return options.v_width;
+	if (options.v_width) {
+		opencl_v_width = options.v_width;
+	} else {
+		cl_uint v_width;
 
-	/* OK, we supply the real figure */
-	opencl_preinit();
-	switch(size) {
-	case sizeof(cl_char):
-		HANDLE_CLERROR(clGetDeviceInfo(devices[ocl_gpu_id],
-		                       CL_DEVICE_PREFERRED_VECTOR_WIDTH_CHAR,
-	                               sizeof(v_width), &v_width, NULL),
-	               "Error asking for char vector width");
-		break;
-	case sizeof(cl_short):
-		HANDLE_CLERROR(clGetDeviceInfo(devices[ocl_gpu_id],
-		                       CL_DEVICE_PREFERRED_VECTOR_WIDTH_SHORT,
-	                               sizeof(v_width), &v_width, NULL),
-	               "Error asking for long vector width");
-		break;
-	case sizeof(cl_int):
-		HANDLE_CLERROR(clGetDeviceInfo(devices[ocl_gpu_id],
-		                       CL_DEVICE_PREFERRED_VECTOR_WIDTH_INT,
-	                               sizeof(v_width), &v_width, NULL),
-	               "Error asking for int vector width");
-		break;
-	case sizeof(cl_long):
-		HANDLE_CLERROR(clGetDeviceInfo(devices[ocl_gpu_id],
-		                       CL_DEVICE_PREFERRED_VECTOR_WIDTH_LONG,
-	                               sizeof(v_width), &v_width, NULL),
-	               "Error asking for long vector width");
-		break;
-	default:
-		fprintf(stderr, "%s() called with unknown type\n",
-		        __FUNCTION__);
-		error();
+		/* OK, we supply the real figure */
+		opencl_preinit();
+		switch(size) {
+		case sizeof(cl_char):
+			HANDLE_CLERROR(clGetDeviceInfo(devices[ocl_gpu_id],
+			        CL_DEVICE_PREFERRED_VECTOR_WIDTH_CHAR,
+			        sizeof(v_width), &v_width, NULL),
+			        "Error asking for char vector width");
+			break;
+		case sizeof(cl_short):
+			HANDLE_CLERROR(clGetDeviceInfo(devices[ocl_gpu_id],
+			        CL_DEVICE_PREFERRED_VECTOR_WIDTH_SHORT,
+			        sizeof(v_width), &v_width, NULL),
+			        "Error asking for long vector width");
+			break;
+		case sizeof(cl_int):
+			HANDLE_CLERROR(clGetDeviceInfo(devices[ocl_gpu_id],
+			        CL_DEVICE_PREFERRED_VECTOR_WIDTH_INT,
+			        sizeof(v_width), &v_width, NULL),
+			        "Error asking for int vector width");
+			break;
+		case sizeof(cl_long):
+			HANDLE_CLERROR(clGetDeviceInfo(devices[ocl_gpu_id],
+			        CL_DEVICE_PREFERRED_VECTOR_WIDTH_LONG,
+			        sizeof(v_width), &v_width, NULL),
+			        "Error asking for long vector width");
+			break;
+		default:
+			fprintf(stderr, "%s() called with unknown type\n",
+			        __FUNCTION__);
+			error();
+		}
+		opencl_v_width = v_width;
 	}
-
-	return v_width;
+	return opencl_v_width;
 }
 
 void opencl_done()
@@ -805,8 +807,10 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self,
 	size_t gws;
 	int count, tidx = 0;
 
-	gws = global_work_size ?
-		global_work_size : self->params.max_keys_per_crypt;
+	/* Formats supporting vectorizing should have a default max keys per
+	   crypt that is a multiple of 2 and of 3 */
+	gws = global_work_size ? global_work_size :
+		self->params.max_keys_per_crypt / opencl_v_width;
 
 	if (get_device_version(sequential_id) < 110) {
 		if (get_device_type(sequential_id) == CL_DEVICE_TYPE_GPU)
@@ -1138,8 +1142,10 @@ void opencl_find_best_lws(
 	if (options.verbosity > 3)
 		fprintf(stderr, "Max local worksize %zd, ", group_size_limit);
 
-	gws = global_work_size ?
-		global_work_size : self->params.max_keys_per_crypt;
+	/* Formats supporting vectorizing should have a default max keys per
+	   crypt that is a multiple of 2 and of 3 */
+	gws = global_work_size ? global_work_size :
+		self->params.max_keys_per_crypt / opencl_v_width;
 
 	if (get_device_version(sequential_id) < 110) {
 		if (get_device_type(sequential_id) == CL_DEVICE_TYPE_GPU)
@@ -1199,7 +1205,7 @@ void opencl_find_best_lws(
 
 	// Warm-up run
 	local_work_size = wg_multiple;
-	count = global_work_size;
+	count = global_work_size * opencl_v_width;
 	self->methods.crypt_all(&count, NULL);
 
 	// Activate events
