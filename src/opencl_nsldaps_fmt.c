@@ -170,7 +170,7 @@ static void done(void)
 of keys per crypt for the given format
 */
 
-static void find_best_gws(int do_benchmark, struct fmt_main *self)
+static void find_best_gws(struct fmt_main *self)
 {
     cl_event myEvent;
     cl_ulong startTime, endTime, tmpTime;
@@ -205,7 +205,7 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 	clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime, NULL);
 	clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END  , sizeof(cl_ulong), &endTime  , NULL);
 	tmpTime = tmpTime + (endTime-startTime);
-	if (do_benchmark)
+	if (options.verbosity > 3)
 		fprintf(stderr, "%10zu %10llu c/s %-.2f us\n", gws, gws * 1000000000ULL / tmpTime, tmpTime / 1000.0);
 	if( ((int)( ((float) (tmpTime) / gws) * 10 )) <= kernelExecTimeNs) {
 		kernelExecTimeNs = ((int) (((float) (tmpTime) / gws) * 10) ) ;
@@ -251,7 +251,7 @@ static void fmt_ssha_init(struct fmt_main *self)
 		local_work_size >>= 1;
 
 	if (!global_work_size)
-		find_best_gws(getenv("GWS") == NULL ? 0 : 1, self);
+		find_best_gws(self);
 
 	if (global_work_size < local_work_size)
 		global_work_size = local_work_size;
