@@ -192,9 +192,6 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
  *   Zero: starting from 512 multiply it by 2 (512, 1024, 2048, 4096, ...).
  *   N > 0: starting from N, use N as step (N, 2N, 3N, 4N...).
  *   E.g. step=1024 (1024, 2048, 3072, 4096, ...).
- * - show_speep: shows the speed detail (like this):
- *   - gws:  16384      7068 c/s  35341675 rounds/s   2.318 sec per crypt_all()
- *   - and shows messages giving more detailed information.
  * - max_run_time: maximum kernel runtime allowed (in ms).
  * - sequential_id: the sequential number of the device in use.
  * - rounds: the number of rounds used by the algorithm.

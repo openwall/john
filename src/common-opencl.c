@@ -540,6 +540,7 @@ unsigned int opencl_get_vector_width(int sequential_id, int size)
 	return opencl_v_width;
 }
 
+/* Called by core after calling format's done() */
 void opencl_done()
 {
 	int i;
@@ -561,6 +562,10 @@ void opencl_done()
 	}
 	MEM_FREE(kernel_source);
 
+	/* Reset in case we load another format after this */
+	local_work_size = global_work_size = duration_time = 0;
+	opencl_v_width = 1;
+
 	opencl_initialized = 0;
 }
 
@@ -578,8 +583,6 @@ static char * opencl_get_config_name(char * format, char * config_name)
 void opencl_get_user_preferences(char * format)
 {
 	char * tmp_value;
-
-	local_work_size = global_work_size = duration_time = 0;
 
 	if (format)
 	if ((tmp_value = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL,

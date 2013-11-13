@@ -91,6 +91,9 @@ void fmt_done(struct fmt_main *format)
 	if (format->private.initialized) {
 		format->methods.done();
 		format->private.initialized = 0;
+#ifdef HAVE_OPENCL
+		opencl_done();
+#endif
 	}
 }
 
