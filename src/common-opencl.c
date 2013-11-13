@@ -1003,19 +1003,20 @@ static void release_profiling_events()
 }
 
 // Do the proper test using different global work sizes.
-static cl_ulong gws_test(size_t num, unsigned int rounds, int sequential_id)
+static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 {
 	cl_ulong startTime, endTime, runtime = 0, looptime = 0;
 	int i, count, tidx = 0;
+	size_t kpc = gws * opencl_v_width;
 
 	// Prepare buffers.
-	create_clobj(num, self);
+	create_clobj(gws, self);
 
 	self->methods.clear_keys();
 
 	// Set keys - all keys from tests will be benchmarked and some
 	// will be permuted to force them unique
-	for (i = 0; i < num; i++) {
+	for (i = 0; i < kpc; i++) {
 		union {
 			char c[PLAINTEXT_BUFFER_SIZE];
 			unsigned int w;
@@ -1035,7 +1036,7 @@ static cl_ulong gws_test(size_t num, unsigned int rounds, int sequential_id)
 		self->methods.salt(self->params.tests[0].ciphertext));
 
 	// Timing run
-	count = num;
+	count = kpc;
 	if (self->methods.crypt_all(&count, NULL) < 0) {
 		runtime = looptime = 0;
 
