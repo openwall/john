@@ -35,8 +35,8 @@
 #endif
 
 /* Macro for get a multiple of a given value */
-#define GET_MULTIPLE(dividend, divisor)		((local_work_size) ? ((dividend / divisor) * divisor) : (dividend))
-#define GET_MULTIPLE_BIGGER(dividend, divisor)	(local_work_size) ? (((dividend + divisor - 1) / divisor) * divisor) : (dividend)
+#define GET_MULTIPLE(dividend, divisor)		((divisor) ? ((dividend / divisor) * divisor) : (dividend))
+#define GET_MULTIPLE_BIGGER(dividend, divisor)	(divisor) ? (((dividend + divisor - 1) / divisor) * divisor) : (dividend)
 
 #define HASH_LOOPS              (7*3*2)
 #define TRANSFER_SIZE           (1024 * 64)

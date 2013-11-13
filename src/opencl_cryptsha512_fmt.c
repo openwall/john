@@ -337,7 +337,7 @@ static void init(struct fmt_main * self) {
 
 	//Auto tune execution from shared/included code.
 	self->methods.crypt_all = crypt_all_benchmark;
-	common_run_auto_tune(self, ROUNDS_DEFAULT,
+	common_run_auto_tune(self, ROUNDS_DEFAULT, 0,
 		(cpu(device_info[ocl_gpu_id]) ? 2000000000ULL : 7000000000ULL));
 	self->methods.crypt_all = crypt_all;
 }

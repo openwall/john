@@ -172,7 +172,7 @@ void opencl_process_event(void);
 	}
 
 /* Macro for get a multiple of a given value */
-#define GET_MULTIPLE(dividend, divisor)		((local_work_size) ? ((dividend / divisor) * divisor) : (dividend))
+#define GET_MULTIPLE(dividend, divisor)		((divisor) ? ((dividend / divisor) * divisor) : (dividend))
 
 /*
  * Shared function to find 'the best' local work group size.

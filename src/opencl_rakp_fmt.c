@@ -223,9 +223,6 @@ static void init(struct fmt_main *self)
 		         ALGORITHM_NAME " %ux", v_width);
 		self->params.algorithm_name = valgo;
 	}
-
-	local_work_size = global_work_size = 0;
-
 	snprintf(build_opts, sizeof(build_opts), "-DV_WIDTH=%u", v_width);
 	opencl_init("$JOHN/kernels/rakp_kernel.cl", ocl_gpu_id, build_opts);
 
@@ -250,7 +247,7 @@ static void init(struct fmt_main *self)
 
 	//Auto tune execution from shared/included code.
 	self->methods.crypt_all = crypt_all_benchmark;
-	common_run_auto_tune(self, 1,
+	common_run_auto_tune(self, 1, gws_limit,
 		(cpu(device_info[ocl_gpu_id]) ? 500000000ULL : 1000000000ULL));
 	self->methods.crypt_all = crypt_all;
 }

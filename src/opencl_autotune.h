@@ -13,9 +13,6 @@
 #ifndef _COMMON_TUNE_H
 #define _COMMON_TUNE_H
 
-/* Macro for get a multiple of a given value */
-#define GET_MULTIPLE_BIGGER(dividend, divisor)	(local_work_size) ? (((dividend + divisor - 1) / divisor) * divisor) : (dividend)
-
 //Necessary definitions. Each format have to have each one of them.
 static size_t get_task_max_size();
 static size_t get_default_workgroup();
@@ -81,7 +78,7 @@ static void find_best_gws(struct fmt_main * self, int sequential_id, unsigned in
   in each format file.
 -- */
 static void common_run_auto_tune(struct fmt_main * self, unsigned int rounds,
-	unsigned long long int max_run_time)
+	size_t gws_limit, unsigned long long int max_run_time)
 {
 	/* Read LWS/GWS prefs from config or environment */
 	opencl_get_user_preferences(OCL_CONFIG);
@@ -91,6 +88,9 @@ static void common_run_auto_tune(struct fmt_main * self, unsigned int rounds,
 
 	if (!local_work_size && !getenv("LWS"))
 		local_work_size = get_default_workgroup();
+
+	if (gws_limit && (global_work_size > gws_limit))
+		global_work_size = gws_limit;
 
 	//Check if local_work_size is a valid number.
 	if (local_work_size > get_task_max_work_group_size()){
@@ -107,6 +107,8 @@ static void common_run_auto_tune(struct fmt_main * self, unsigned int rounds,
 
 	if (!local_work_size)
 		find_best_lws(self, ocl_gpu_id);
+
+	global_work_size = GET_MULTIPLE(global_work_size, local_work_size);
 
 	if (options.verbosity > 2)
 		fprintf(stderr,
