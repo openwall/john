@@ -55,6 +55,7 @@
 #define HEXCHARS                "0123456789abcdef"
 
 #define STEP                    65536
+#define ROUNDS			5
 
 static const char * warn[] = {
         "pass xfer: ",  ", index xfer: ",  ", crypt: ",  ", result xfer: "
@@ -238,7 +239,7 @@ static void init(struct fmt_main *self)
 
 	//Auto tune execution from shared/included code.
 	self->methods.crypt_all = crypt_all_benchmark;
-	common_run_auto_tune(self, 1, gws_limit,
+	common_run_auto_tune(self, ROUNDS, gws_limit,
 		(cpu(device_info[ocl_gpu_id]) ? 500000000ULL : 1000000000ULL));
 	self->methods.crypt_all = crypt_all;
 }
