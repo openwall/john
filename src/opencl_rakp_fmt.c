@@ -55,8 +55,6 @@
 #define HEXCHARS                "0123456789abcdef"
 
 #define STEP                    65536
-#define KEYS_PER_CORE_CPU       65536
-#define KEYS_PER_CORE_GPU       512
 
 static const char * warn[] = {
         "pass xfer: ",  ", index xfer: ",  ", crypt: ",  ", result xfer: "
@@ -104,16 +102,12 @@ static size_t get_task_max_work_group_size()
 
 static size_t get_task_max_size()
 {
-	return common_get_task_max_size(1,
-		KEYS_PER_CORE_CPU, KEYS_PER_CORE_GPU, crypt_kernel);
+	return 0;
 }
 
 static size_t get_default_workgroup()
 {
-	if (cpu(device_info[ocl_gpu_id]))
-		return 1;
-	else
-		return 64;
+	return 0;
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -225,9 +219,6 @@ static void init(struct fmt_main *self)
 	}
 	snprintf(build_opts, sizeof(build_opts), "-DV_WIDTH=%u", v_width);
 	opencl_init("$JOHN/kernels/rakp_kernel.cl", ocl_gpu_id, build_opts);
-
-	/* Read LWS/GWS prefs from config or environment */
-	opencl_get_user_preferences(OCL_CONFIG);
 
 	// create kernel to execute
 	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "rakp_kernel", &ret_code);
