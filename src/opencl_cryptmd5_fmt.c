@@ -150,7 +150,7 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	size_t in_size = (sizeof(crypt_md5_password) * gws);
 	size_t out_size = (sizeof(crypt_md5_hash) * gws);
 
-	self->params.min_keys_per_crypt = self->params.max_keys_per_crypt = gws;
+	global_work_size = gws;
 
 	///Allocate memory on the GPU
 	mem_salt = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, saltsize, NULL, &ret_code);
