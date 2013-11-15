@@ -3,7 +3,8 @@
 #include <stdio.h>
 #include "feal8.h"
 
-#define EXPANDED_PWDLEN 57
+// #define EXPANDED_PWDLEN 57
+#define EXPANDED_PWDLEN 64  // PLAINTEXT_LENGTH
 #define META_KEYSCH_LEN 64
 #define HASH_LEN 28
 
