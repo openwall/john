@@ -71,7 +71,8 @@ static unsigned int key_idx = 0;
 #define OCL_CONFIG		"raw-sha1"
 
 // Shared auto-tune stuff
-#define STEP                    (512*1024)
+#define STEP                    0
+#define SEED                    65536
 #define ROUNDS			1
 
 static const char * warn[] = {
@@ -207,7 +208,7 @@ static void init(struct fmt_main *self) {
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 
 	//Initialize openCL tuning (library) for this format.
-	opencl_init_auto_setup(STEP, 0, 4, NULL, warn, &multi_profilingEvent[2],
+	opencl_init_auto_setup(SEED, 0, 4, NULL, warn, &multi_profilingEvent[2],
 	                       self, create_clobj, release_clobj,
 	                       BUFSIZE, 0);
 

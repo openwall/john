@@ -54,7 +54,8 @@
 #define OCL_CONFIG              "rakp"
 #define HEXCHARS                "0123456789abcdef"
 
-#define STEP                    65536
+#define STEP                    0
+#define SEED                    65536
 #define ROUNDS			5
 
 static const char * warn[] = {
@@ -229,9 +230,9 @@ static void init(struct fmt_main *self)
 			get_max_mem_alloc_size(ocl_gpu_id) / (v_width * BUFFER_SIZE));
 
 	//Initialize openCL tuning (library) for this format.
-	opencl_init_auto_setup(STEP, 0, 4, NULL,
-		warn, &multi_profilingEvent[2], self, create_clobj, release_clobj,
-		BUFFER_SIZE, gws_limit);
+	opencl_init_auto_setup(SEED, 0, 4, NULL, warn, &multi_profilingEvent[2],
+	                       self, create_clobj, release_clobj,
+	                       BUFFER_SIZE, gws_limit);
 
 	//Limit worksize using index limitation.
 	while (global_work_size > gws_limit)
