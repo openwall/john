@@ -267,7 +267,7 @@ def ProcessExtra50(f, ExtraSize, RawSize, HeaderType, PrevNextBlockPos):
                     len(Salt), Salt.encode("hex"),
                     len(InitV), InitV.encode("hex"),
                     len(PswCheck), PswCheck.encode("hex"))
-                sys.exit(-1)  # XXX
+                return  # XXX handle other "FieldType" values
 
 
 def read_rar5_header(f, PrevNextBlockPos=0):
@@ -447,8 +447,10 @@ def read_rar5_header(f, PrevNextBlockPos=0):
 if __name__ == "__main__":
     f = open(sys.argv[1], "rb")
     # check RAR5 magic
-    if f.read(8) != "\x52\x61\x72\x21\x1a\x07\x01\x00":
-        print "bad 1"
+    magic = f.read(8)
+    if magic != "\x52\x61\x72\x21\x1a\x07\x01\x00":
+        print "%s is not a RAR 5 file!" % sys.argv[1]
+        sys.exit(-1)
 
     NextBlockPos = 0
 
