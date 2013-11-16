@@ -3,16 +3,15 @@
 # References:
 #
 # http://code.activestate.com/recipes/426060/ (r4)
-# http://www.rarlab.com/rar/unrarsrc-5.0.3.tar.gz
+# http://www.rarlab.com/rar/unrarsrc-5.0.13.tar.gz
 #
-# TODO:
-#
-# 1. Currently, only "hp" mode RAR 5.0 files are handled.
-# 2. The parser is incomplete and needs to be extended.
+# TODO: Only files using "PSWCHECK" are supported!
+
 
 import sys
 import os
 import hashlib
+# import binascii
 
 
 class StringQueue(object):
@@ -20,12 +19,9 @@ class StringQueue(object):
         self.l_buffer = []
         self.s_buffer = ""
         self.write(data)
+        self.ReadPos = None
 
     def write(self, data):
-        # check type here, as wrong data type will cause error on self.read,
-        # which may be confusing.
-        if type(data) != type(""):
-            raise TypeError, "argument 1 must be string, not %s" % type(data).__name__
         # append data to list, no need to "".join just yet.
         self.l_buffer.append(data)
 
@@ -44,18 +40,19 @@ class StringQueue(object):
     def read(self, count=None):
         # if string doesnt have enough chars to satisfy caller, or caller is
         # requesting all data
-        if count > len(self.s_buffer) or count==None: self._build_str()
+        if count > len(self.s_buffer) or not count:
+            self._build_str()
         # if i don't have enough bytes to satisfy caller, return nothing.
-        if count > len(self.s_buffer): return ""
+        if count > len(self.s_buffer):
+            return ""
         # get data requested by caller
         result = self.s_buffer[:count]
         # remove requested data from string buffer
-        self.s_buffer = self.s_buffer[len(result):]
+        self.s_buffer = self.s_buffer[count:]
         return result
 
     def GetVSize(self):
-        """Return a number of unsigned chars in current variable length
-        integer."""
+        """Return a number of unsigned chars in current variable length integer."""
         size = 0
         data = self.s_buffer
         while size < len(data):
@@ -63,24 +60,27 @@ class StringQueue(object):
             if (ord(data[size]) & 0x80) == 0:
                 return size
 
-	assert(0)
+        assert(0)
 
-    def GetV(self):
+    def GetV(self, ReadPos=None):
         self._build_str()
         size = 0
         result = 0
         shift = 0
         data = self.s_buffer
+        self.ReadPos = ReadPos
         while size < len(data):
-            CurByte = ord(data[size]);
-	    result = result + (CurByte & 0x7f) << shift;
+            CurByte = ord(data[size])
+            result = result + ((CurByte & 0x7f) << shift)
             shift += 7
-            if ((ord(data[size]) & 0x80)==0):
+            if CurByte & 0x80 == 0:
                 self.s_buffer = self.s_buffer[size + 1:]
+                if self.ReadPos:
+                    self.ReadPos = self.ReadPos + size + 1
                 return result
             size = size + 1
 
-	assert(0)
+        assert(0)
 
     def Get1(self):
         self._build_str()
@@ -89,13 +89,33 @@ class StringQueue(object):
 
         return data
 
+    def Get2(self):
+        self._build_str()
+        b1 = ord(self.s_buffer[0])
+        b2 = ord(self.s_buffer[1])
+
+        self.s_buffer = self.s_buffer[2:]
+
+        return b1 + (b2 << 8)
+
+    def Get4(self):
+        self._build_str()
+        b1 = ord(self.s_buffer[0])
+        b2 = ord(self.s_buffer[1])
+        b3 = ord(self.s_buffer[2])
+        b4 = ord(self.s_buffer[3])
+
+        self.s_buffer = self.s_buffer[4:]
+
+        return b1 + (b2 << 8) + (b3 << 16) + (b4 << 24)
+
+
 # global constants
-SFXSize = 0;
+SFXSize = 0
 FirstReadSize = 7
 HFL_SKIPIFUNKNOWN = 0x0004
 HFL_EXTRA = 0x0001
 HFL_DATA = 0x0002
-HEAD_CRYPT = 0x04
 CRYPT_VERSION = 0
 CHFL_CRYPT_PSWCHECK = 0x0001
 CRYPT5_KDF_LG2_COUNT = 15
@@ -105,13 +125,86 @@ SIZE_PSWCHECK = 8
 SIZE_PSWCHECK_CSUM = 4
 SIZE_INITV = 16
 
+# RAR 5.0 header types.
+HEAD_MARK = 0x00
+HEAD_MAIN = 0x01
+HEAD_FILE = 0x02
+HEAD_SERVICE = 0x03
+HEAD_CRYPT = 0x04
+HEAD_ENDARC = 0x05
+HEAD_UNKNOWN = 0xff
+
+HFL_SPLITBEFORE = 0x0008
+HFL_SPLITAFTER = 0x0010
+HFL_CHILD = 0x0020
+HFL_INHERITED = 0x0040
+
+# RAR 5.0 main archive header specific flags.
+MHFL_VOLUME = 0x0001
+MHFL_VOLNUMBER = 0x0002
+MHFL_SOLID = 0x0004
+MHFL_PROTECT = 0x0008
+MHFL_LOCK = 0x0010
+
+#  RAR 5.0 file compression flags.
+FCI_ALGO_BIT0 = 0x0001
+FCI_ALGO_BIT1 = 0x0002
+FCI_ALGO_BIT2 = 0x0004
+FCI_ALGO_BIT3 = 0x0008
+FCI_ALGO_BIT4 = 0x0010
+FCI_ALGO_BIT5 = 0x0020
+FCI_SOLID = 0x0040
+FCI_METHOD_BIT0 = 0x0080
+FCI_METHOD_BIT1 = 0x0100
+FCI_METHOD_BIT2 = 0x0200
+FCI_DICT_BIT0 = 0x0400
+FCI_DICT_BIT1 = 0x0800
+FCI_DICT_BIT2 = 0x1000
+FCI_DICT_BIT3 = 0x2000
+
+# RAR 5.0 file header specific flags.
+FHFL_DIRECTORY = 0x0001
+FHFL_UTIME = 0x0002
+FHFL_CRC32 = 0x0004
+FHFL_UNPUNKNOWN = 0x0008
+
+# RAR 5.0 end of archive header specific flags.
+EHFL_NEXTVOLUME = 0x0001
+
+# RAR 5.0 archive encryption header specific flags.
+CHFL_CRYPT_PSWCHECK = 0x0001
+
+# HASH_TYPE
+HASH_NONE = 0
+HASH_RAR14 = 1
+HASH_CRC32 = 0
+HASH_BLAKE2 = 2
+
+#  File and service header extra field values.
+FHEXTRA_CRYPT = 0x01
+FHEXTRA_HASH = 0x02
+FHEXTRA_HTIME = 0x03
+FHEXTRA_VERSION = 0x04
+FHEXTRA_REDIR = 0x05
+FHEXTRA_UOWNER = 0x06
+FHEXTRA_SUBDATA = 0x07
+
+# Flags for FHEXTRA_CRYPT.
+FHEXTRA_CRYPT_PSWCHECK = 0x01
+FHEXTRA_CRYPT_HASHMAC = 0x02
+
+CRYPT5_KDF_LG2_COUNT = 15
+CRYPT5_KDF_LG2_COUNT_MAX = 24
+CRYPT_VERSION = 0
+
 # global variables
 Encrypted = False
 PswCheck = None
 salt = None
 iterations = None
-UsePswCheck = 0;
-CurBlockPos = 0;
+UsePswCheck = 0
+CurBlockPos = 0
+
 
 def FullHeaderSize(size):
     """Calculate the block size including encryption fields and padding if any"""
@@ -120,14 +213,66 @@ def FullHeaderSize(size):
         Size = ALIGN_VALUE(Size, CRYPT_BLOCK_SIZE)
         if Format == RARFMT50:
             pass
-            Size += SIZE_INITV;
+            Size += SIZE_INITV
     """
     return size
 
-buf = StringQueue()
-f = open(sys.argv[1], "rb")
 
-def read_rar5_header():
+def ProcessExtra50(f, ExtraSize, RawSize, HeaderType, PrevNextBlockPos):
+    ExtraStart = RawSize - ExtraSize
+    # print ExtraSize, RawSize, ExtraStart
+
+    f.seek(PrevNextBlockPos, 0)
+
+    buf = StringQueue()
+    buf.write(f.read(RawSize))
+    buf.read(ExtraStart)
+
+    buf._build_str()
+
+    while True:
+        FieldSize = buf.GetV(ExtraStart)
+        # print binascii.hexlify(buf.s_buffer)
+        # print FieldSize, buf.ReadPos
+        NextPos = buf.ReadPos + FieldSize
+        FieldType = buf.GetV(buf.ReadPos)
+        # print binascii.hexlify(buf.s_buffer)
+        # print "FieldType", FieldType
+
+        if HeaderType == HEAD_FILE or HeaderType == HEAD_SERVICE:
+
+            if FieldType == FHEXTRA_CRYPT:
+                # print binascii.hexlify(buf.s_buffer)
+                EncVersion = buf.GetV()
+                # print "EncVersion", EncVersion
+                Flags= buf.GetV()
+
+                # print "Flags", Flags
+                UsePswCheck = (Flags & FHEXTRA_CRYPT_PSWCHECK) != 0
+                if not UsePswCheck:
+                    assert 0, "UsePswCheck if OFF. We currently don't support such files"
+
+                UseHashKey = (Flags & FHEXTRA_CRYPT_HASHMAC) != 0
+                Lg2Count = buf.Get1()
+                # print "Lg2Count", Lg2Count
+
+                assert Lg2Count < CRYPT5_KDF_LG2_COUNT_MAX
+
+                Salt = buf.read( SIZE_SALT50)
+                InitV = buf.read(SIZE_INITV)
+
+                PswCheck = buf.read(SIZE_PSWCHECK)
+                print "%s:$rar5$%s$%s$%s$%s$%s$%s" % (
+                    os.path.basename(f.name),
+                    len(Salt), Salt.encode("hex"),
+                    len(InitV), InitV.encode("hex"),
+                    len(PswCheck), PswCheck.encode("hex"))
+                sys.exit(-1)  # XXX
+
+
+def read_rar5_header(f, PrevNextBlockPos=0):
+
+    buf = StringQueue()  # XXX
     global Encrypted
     global PswCheck
     global salt
@@ -142,16 +287,19 @@ def read_rar5_header():
         # cPswCheck = SetCryptKeys(false,CRYPT_RAR50,
         #        &Cmd->Password,CryptHead.Salt,
         #        HeadersInitV,CryptHead.Lg2Count,
-        #        NULL,PswCheck);
+        #        NULL,PswCheck)
         # Verify password validity.
-        print "%s:$rar5$%s$%s$%s$%s$%s$%s" % ( sys.argv[1],
-                len(salt), salt.encode("hex"),
-                len(HeadersInitV), HeadersInitV.encode("hex"),
-                len(PswCheck), PswCheck.encode("hex"))
+        print "%s:$rar5$%s$%s$%s$%s$%s$%s" % (
+            sys.argv[1],
+            len(salt), salt.encode("hex"),
+            len(HeadersInitV), HeadersInitV.encode("hex"),
+            len(PswCheck), PswCheck.encode("hex"))
         sys.exit(-1)
-    # some header
+    # Header size must not occupy more than 3 variable length integer bytes
+    # resulting in 2 MB maximum header size, so here we read 4 byte CRC32
+    # followed by 3 bytes or less of header size.
     buf.write(f.read(7))
-    stuff = buf.read(4)
+    HeadCRC = buf.read(4)
     SizeBytes = buf.GetVSize()
     # print "SizeBytes", SizeBytes
     BlockSize = buf.GetV()
@@ -160,27 +308,32 @@ def read_rar5_header():
     SizeToRead = SizeToRead - (FirstReadSize - SizeBytes - 4)
     # print "SizeToRead", SizeToRead
     HeaderSize = 4 + SizeBytes + BlockSize
+    # print "HeaderSize", HeaderSize, f.tell()
 
     # new stuff
     buf.write(f.read(SizeToRead))
-    # GetCRC50();
+    # GetCRC50()
     HeaderType = buf.GetV()
     # print "HeaderType", HeaderType
     Flags = buf.GetV()
     # print "Flags", Flags
     SkipIfUnknown = (Flags & HFL_SKIPIFUNKNOWN) != 0
-    HeadSize = HeaderSize;
-    CurHeaderType = HeaderType;
+    HeadSize = HeaderSize
+    CurHeaderType = HeaderType
     ExtraSize = 0
+    # handle ExtraSize and other stuff
     if (Flags & HFL_EXTRA) != 0:
         ExtraSize = buf.GetV()
+        # print "ExtraSize", ExtraSize
         if ExtraSize >= HeadSize:
-            assert 0, "RAR5 file type (-p mode?) not handled yet!"
-    DataSize = 0;
+            assert 0, "RAR5 (-p mode?) parsing is broken, please report this bug!"
+    DataSize = 0
     if (Flags & HFL_DATA) != 0:
         DataSize = buf.GetV()
+        # print "DataSize", DataSize
 
-    NextBlockPos = CurBlockPos + FullHeaderSize(HeadSize) + DataSize;
+    NextBlockPos = CurBlockPos + FullHeaderSize(HeadSize) + DataSize
+    # print ">>>", NextBlockPos, CurBlockPos, DataSize, FullHeaderSize(HeadSize)
 
     # check header type
     if HeaderType == HEAD_CRYPT:
@@ -189,7 +342,7 @@ def read_rar5_header():
         if CryptVersion>CRYPT_VERSION:
             print "bad 2"
         EncFlags = buf.GetV()
-        UsePswCheck = (EncFlags & CHFL_CRYPT_PSWCHECK)!=0
+        UsePswCheck = (EncFlags & CHFL_CRYPT_PSWCHECK) != 0
         Lg2Count = buf.Get1()
         # print "LG2CNT", Lg2Count
         iterations = Lg2Count
@@ -205,13 +358,104 @@ def read_rar5_header():
             digest = hashlib.sha256(PswCheck).digest()
             UsePswCheck = csum == digest[0:SIZE_PSWCHECK_CSUM]
             # print "UPC", UsePswCheck
-        Encrypted=1;
+        Encrypted = 1
+
+    elif HeaderType == HEAD_MAIN:
+        ArcFlags=buf.GetV();
+        # print "HEAD_MAIN ArcFlags", ArcFlags
+
+        Volume = (ArcFlags & MHFL_VOLUME) != 0
+        Solid = (ArcFlags & MHFL_SOLID) != 0
+        Locked = (ArcFlags & MHFL_LOCK) != 0
+        Protected = (ArcFlags & MHFL_PROTECT) != 0
+        Signed = False;
+        NewNumbering = True;
+
+        if ((ArcFlags & MHFL_VOLNUMBER)!=0):
+            VolNumber = buf.GetV();
+        else:
+          VolNumber=0
+
+        FirstVolume=Volume and VolNumber==0
+
+        if ExtraSize != 0:
+            pass
+            # print "ExtraSize != 0"
+            # ProcessExtra50(...)
+
+    elif HeaderType == HEAD_FILE or HeaderType == HEAD_SERVICE:
+        FileBlock = HeaderType == HEAD_FILE
+        LargeFile = True
+        PackSize = DataSize
+
+        # print "DataSize", DataSize
+        FileFlags = buf.GetV()
+        # print "FileFlags", FileFlags
+        UnpSize = buf.GetV();
+        # print "UnpSize", UnpSize
+        # UnknownUnpSize = (FileFlags and FHFL_UNPUNKNOWN) != 0
+
+        MaxSize = max(PackSize, UnpSize)
+
+        FileAttr = buf.GetV()
+        # print "FileAttr", FileAttr
+
+        if FileFlags & FHFL_UTIME != 0:
+            mtime = buf.Get4()
+
+        FileHashType = HASH_NONE
+        if FileFlags & FHFL_CRC32 != 0:
+            FileHashType = HASH_CRC32
+            FileHashCRC32 = buf.Get4()
+
+        # RedirType = FSREDIR_NONE
+        CompInfo = buf.GetV()
+        Method = (CompInfo>>7) & 7
+        UnpVer = CompInfo & 0x3f
+        HostOS = buf.GetV()
+        NameSize = buf.GetV()
+
+        # print "NameSize", NameSize
+        f.read(NameSize)
+        # print ">>>", f.tell(), NextBlockPos, PrevNextBlockPos
+
+        # Inherited =(Flags & HFL_INHERITED) != 0
+        # SplitBefore = (Flags and HFL_SPLITBEFORE) != 0
+        # SplitAfter = (Flags and HFL_SPLITAFTER) != 0
+        # SubBlock = (Flags and HFL_CHILD) != 0
+        # Solid = FileBlock and (CompInfo & FCI_SOLID) != 0
+        # Dir = (FileFlags & FHFL_DIRECTORY) != 0
+
+        # XXX code block
+        # hd->WinSize=hd->Dir ? 0:size_t(0x20000)<<((CompInfo>>10)&0xf);
+        # hd->CryptMethod=hd->Encrypted ? CRYPT_RAR50:CRYPT_NONE;
+        # char FileName[NM*4];
+        # size_t ReadNameSize=Min(NameSize,ASIZE(FileName)-1);
+        # Raw.GetB((byte *)FileName,ReadNameSize);
+        # FileName[ReadNameSize]=0;
+
+        # Should do it before converting names, because extra fields can
+        # affect name processing, like in case of NTFS streams.
+        if ExtraSize != 0:
+            ProcessExtra50(f, ExtraSize, HeadSize, HeaderType, PrevNextBlockPos)
+
+    elif HeaderType == HEAD_ENDARC:
+        return None, None
+
+    return HeaderType, NextBlockPos
 
 if __name__ == "__main__":
-    buf.write(f.read(8))
-    # check magic
-    if buf.read(8) != "\x52\x61\x72\x21\x1a\x07\x01\x00":
+    f = open(sys.argv[1], "rb")
+    # check RAR5 magic
+    if f.read(8) != "\x52\x61\x72\x21\x1a\x07\x01\x00":
         print "bad 1"
 
+    NextBlockPos = 0
+
     while(1):
-        read_rar5_header()
+        CurBlockPos = f.tell()
+        HeaderType, NextBlockPos = read_rar5_header(f, NextBlockPos)
+        if not NextBlockPos:
+            break
+        # print "NextBlockPos is", NextBlockPos, HeaderType, CurBlockPos
+        f.seek(NextBlockPos, 0)
