@@ -50,6 +50,9 @@ static int omp_t = 1;
 
 static struct fmt_tests rar5_tests[] = {
 	{"$rar5$16$37526a0922b4adcc32f8fed5d51bb6c8$16$8955617d9b801def51d734095bb8ecdb$8$9f0b23c98ebb3653", "password"},
+	/* "-p mode" test vectors */
+	{"$rar5$16$92373e6493111cf1f2443dcd82122af9$16$a3af5246dd171431ac823cc79567e77e$8$16015b087c86964b", "password"},
+	{"$rar5$16$92373e6493111cf1f2443dcd82122af9$16$011a3192b2f637d43deba9d0a08b7fa0$8$6862fcec47944d14", "openwall"},
 	{NULL}
 };
 
