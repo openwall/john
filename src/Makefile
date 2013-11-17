@@ -196,9 +196,9 @@ OCL_OBJS = \
 	opencl_krb5pa-sha1_fmt.o opencl_rar_fmt.o opencl_odf_aes_fmt.o \
 	opencl_sha2_common.o opencl_blockchain_fmt.o \
 	opencl_pbkdf2_hmac_sha256_fmt.o opencl_rakp_fmt.o \
-	opencl_krb5pa-md5_fmt.o
+	opencl_krb5pa-md5_fmt.o opencl_keyring_fmt.o
 # broken:
-# opencl_keyring_fmt.o opencl_7z_fmt.o opencl_zip_fmt.o
+# opencl_7z_fmt.o opencl_zip_fmt.o
 
 CUDA_OBJS = \
 	common-cuda.o cuda_common.o \

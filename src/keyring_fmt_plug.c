@@ -80,6 +80,17 @@ static void init(struct fmt_main *self)
 	cracked = mem_calloc_tiny(cracked_size, MEM_ALIGN_WORD);
 }
 
+static int looks_like_nice_int(char *p)
+{
+	// reasonability check + avoids atoi's UB
+	if (strlen(p) > 9)
+		return 0;
+	for (; *p; p++)
+		if (*p < '0' || *p > '9')
+			return 0;
+	return 1;
+}
+
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *keeptr, *p;
@@ -88,31 +99,45 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		return 0;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
+	if (keeptr == NULL)
+		goto err;
 	ctcopy += 9;
 	if ((p = strtok(ctcopy, "*")) == NULL)	/* salt */
 		goto err;
-	if(strlen(p) != SALTLEN * 2)
+	if (strlen(p) != SALTLEN * 2)
 		goto err;
+	while (*p)
+		if (atoi16[ARCH_INDEX(*p++)] == 0x7f)
+			goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* iterations */
+		goto err;
+	if (!looks_like_nice_int(p))
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* crypto size */
 		goto err;
+	if (!looks_like_nice_int(p))
+		goto err;
 	ctlen = atoi(p);
-	if ((p = strtok(NULL, "*")) == NULL)	/* inlined */
+	if ((p = strtok(NULL, "*")) == NULL)	/* inlined - unused? TODO */
+		goto err;
+	if (!looks_like_nice_int(p))
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* ciphertext */
 		goto err;
 	if (ctlen > LINE_BUFFER_SIZE)
 		goto err;
-	if(strlen(p) != ctlen * 2)
+	if (strlen(p) != ctlen * 2)
 		goto err;
-	if (strlen(p) < 32) /* this shouldn't happen for valid hashes */
+	if (strlen(p) < 32)	/* this shouldn't happen for valid hashes */
 		goto err;
+	while (*p)
+		if (atoi16[ARCH_INDEX(*p++)] == 0x7f)
+			goto err;
 
 	MEM_FREE(keeptr);
 	return 1;
 
-err:
+      err:
 	MEM_FREE(keeptr);
 	return 0;
 }
