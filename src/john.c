@@ -268,11 +268,31 @@ static int exit_status = 0;
 static void john_register_one(struct fmt_main *format)
 {
 	if (options.format) {
-		int len = strlen(options.format) - 1;
+		char *pos = strchr(options.format, '*');
 
-		if (options.format[len] == '*') {
-			// Wildcard, as in wpapsk*
-			if (strncasecmp(options.format, format->params.label, len)) return;
+		if (pos != strrchr(options.format, '*')) {
+			fprintf(stderr, "Only one wildcard allowed in format "
+			        "name\n");
+			error();
+		}
+		if (pos) {
+			// Wildcard, as in office*
+			if (strncasecmp(format->params.label, options.format,
+			                (int)(pos - options.format))) return;
+			// Trailer wildcard, as in *office or raw*ng
+			if (pos[1]) {
+				int wild_len = strlen(++pos);
+				int label_len = strlen(format->params.label);
+				const char *p;
+
+				if (wild_len > label_len)
+					return;
+
+				p = &format->params.label[label_len - wild_len];
+
+				if (strcasecmp(p, pos))
+					return;
+			}
 		}
 		else if (!strcasecmp(options.format, "dynamic")) {
 			if ( (format->params.flags & FMT_DYNAMIC) == 0) return;
