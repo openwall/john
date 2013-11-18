@@ -2165,7 +2165,14 @@ void opencl_list_devices(void)
 			                      sizeof(cl_ulong),
 			                      &long_entries, NULL);
 			if (ret == CL_SUCCESS && long_entries)
-				printf("\tMax clock (MHz) :\t%llu\n",
+				printf("\tMax clock (MHz):\t%llu\n",
+				       (unsigned long long) long_entries);
+			ret = clGetDeviceInfo(devices[sequence_nr],
+			                      CL_DEVICE_PROFILING_TIMER_RESOLUTION,
+			                      sizeof(cl_ulong),
+			                      &long_entries, NULL);
+			if (ret == CL_SUCCESS && long_entries)
+				printf("\tProfiling timer res.:\t%llu ns\n",
 				       (unsigned long long) long_entries);
 			clGetDeviceInfo(devices[sequence_nr],
 			                CL_DEVICE_MAX_WORK_GROUP_SIZE,
