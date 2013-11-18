@@ -41,24 +41,39 @@
 #define MAX_KEYS_PER_CRYPT      MIN_KEYS_PER_CRYPT
 
 #define OCL_CONFIG		"pwsafe"
-#define STEP                    256
+#define STEP                    0
+#define SEED                    256
 #define ROUNDS_DEFAULT          2048
 
-    static const char * warn[] = {
-        "pass xfer: "  ,  ", salt xfer: "  ,  ", init: "    ,  ", crypt: ",
-        " ("           ,  "/"              ,  "), final: "  ,  ", result xfer: "
+static const char * warn[] = {
+	"pass xfer: "  ,  ", init: "    ,  ", crypt: ",
+	" ("           ,  "/"              ,  "), final: "  ,  ", result xfer: "
 };
 
-extern void common_find_best_lws(size_t group_size_limit,
-	int sequential_id, cl_kernel crypt_kernel);
-extern void common_find_best_gws(int sequential_id, unsigned int rounds, int step,
-	unsigned long long int max_run_time);
+#include "opencl_autotune.h"
+
+/* ------- Helper functions ------- */
+static size_t get_task_max_work_group_size()
+{
+	return common_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
+}
+
+static size_t get_task_max_size()
+{
+	return 0;
+}
+
+static size_t get_default_workgroup()
+{
+	return 0;
+}
 
 # define SWAP32(n) \
     (((n) << 24) | (((n) & 0xff00) << 8) | (((n) >> 8) & 0xff00) | ((n) >> 24))
 
 static int new_keys;
-static int split_events[3] = { 3, 4, 5 };
+
+static int split_events[3] = { 2, 3, 4 };
 
 static int crypt_all(int *pcount, struct db_salt *_salt);
 static int crypt_all_benchmark(int *pcount, struct db_salt *_salt);
@@ -166,61 +181,13 @@ static void create_clobj(size_t gws, struct fmt_main * self)
 	clSetKernelArg(finish_kernel, 1, sizeof(mem_out), &mem_out);
 	clSetKernelArg(finish_kernel, 2, sizeof(mem_salt), &mem_salt);
 
+	self->params.min_keys_per_crypt = local_work_size;
+	self->params.max_keys_per_crypt = gws;
 	global_work_size = gws;
-}
-
-/* ------- Try to find the best configuration ------- */
-/* --
-  This function could be used to calculated the best num
-  for the workgroup
-  Work-items that make up a work-group (also referred to
-  as the size of the work-group)
--- */
-static void find_best_lws(struct fmt_main * self, int sequential_id) {
-
-	//Call the default function.
-	cl_kernel tKernel = init_kernel;
-	size_t largest = 0;
-	size_t temp = get_kernel_max_lws(ocl_gpu_id, init_kernel);
-	largest = temp;
-	temp = get_kernel_max_lws(ocl_gpu_id, crypt_kernel);
-	if(temp > largest)
-	{
-		largest = temp;
-		tKernel = crypt_kernel;
-	}
-	temp = get_kernel_max_lws(ocl_gpu_id, finish_kernel);
-	if(temp > largest)
-	{
-		largest = temp;
-		tKernel = finish_kernel;
-	}
-	common_find_best_lws(
-		largest,
-		sequential_id, tKernel
-	);
-}
-
-/* --
-  This function could be used to calculated the best num
-  of keys per crypt for the given format
--- */
-static void find_best_gws(struct fmt_main * self, int sequential_id) {
-
-	//Call the common function.
-	common_find_best_gws(
-		sequential_id, ROUNDS_DEFAULT, 0,
-		(cpu(device_info[ocl_gpu_id]) ? 500000000ULL : 2400000000ULL)
-	);
-
-	create_clobj(global_work_size, self);
 }
 
 static void init(struct fmt_main *self)
 {
-	cl_ulong maxsize;
-	size_t selected_gws;
-
 	opencl_init("$JOHN/kernels/pwsafe_kernel.cl", ocl_gpu_id, NULL);
 
 	init_kernel = clCreateKernel(program[ocl_gpu_id], KERNEL_INIT_NAME, &ret_code);
@@ -232,51 +199,16 @@ static void init(struct fmt_main *self)
 	finish_kernel = clCreateKernel(program[ocl_gpu_id], KERNEL_FINISH_NAME, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error while creating finish kernel");
 
-	/* Read LWS/GWS prefs from config or environment */
-	opencl_get_user_preferences(OCL_CONFIG);
-
-	if (!local_work_size && !getenv("LWS"))
-		local_work_size = cpu(device_info[ocl_gpu_id]) ? 1 : 64;
-
 	//Initialize openCL tuning (library) for this format.
-	opencl_init_auto_setup(STEP, ROUNDS_DEFAULT/8, 8, split_events,
-		warn, &multi_profilingEvent[3], self, create_clobj, release_clobj,
-		sizeof(pwsafe_pass), 0);
-
 	self->methods.crypt_all = crypt_all_benchmark;
+	opencl_init_auto_setup(SEED, ROUNDS_DEFAULT/8, 7, split_events,
+		warn, &multi_profilingEvent[3], self, create_clobj,
+	        release_clobj, sizeof(pwsafe_pass), 0);
 
-	selected_gws = global_work_size;
-	/* Note: we ask for the kernels' max sizes, not the device's! */
-	maxsize = get_kernel_max_lws(ocl_gpu_id, init_kernel);
-	maxsize = MIN(get_kernel_max_lws(ocl_gpu_id, crypt_kernel),
-	              maxsize);
-	maxsize = MIN(get_kernel_max_lws(ocl_gpu_id, finish_kernel),
-	              maxsize);
-
-	while (local_work_size > maxsize)
-		local_work_size >>= 1;
-
-	self->params.max_keys_per_crypt = (global_work_size ? global_work_size: MAX_KEYS_PER_CRYPT);
-
-	if (!local_work_size) {
-		create_clobj(self->params.max_keys_per_crypt, self);
-		find_best_lws(self, ocl_gpu_id);
-		release_clobj();
-	}
-	global_work_size = selected_gws;
-
-	if (global_work_size)
-		create_clobj(global_work_size, self);
-	else
-		//user chose to die of boredom
-		find_best_gws(self, ocl_gpu_id);
-
-	self->params.min_keys_per_crypt = local_work_size;
-	self->params.max_keys_per_crypt = global_work_size;
+	//Auto tune execution from shared/included code.
+	common_run_auto_tune(self, ROUNDS_DEFAULT, 0,
+		(cpu(device_info[ocl_gpu_id]) ? 500000000ULL : 1000000000ULL));
 	self->methods.crypt_all = crypt_all;
-
-	if (options.verbosity > 2)
-		fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -344,42 +276,42 @@ static void *get_salt(char *ciphertext)
 static void set_salt(void *salt)
 {
 	memcpy(host_salt, salt, SALT_SIZE);
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_salt,
+	        CL_FALSE, 0, saltsize, host_salt, 0, NULL, NULL),
+	        "Copy memsalt");
 }
 
 static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
 	int i;
-
-	global_work_size = (count + local_work_size - 1) / local_work_size * local_work_size;
+	size_t *lws = local_work_size ? &local_work_size : NULL;
 
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_in, CL_FALSE,
 		0, insize, host_pass, 0, NULL, &multi_profilingEvent[0]), "Copy memin");
-	BENCH_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_salt, CL_FALSE,
-		0, saltsize, host_salt, 0, NULL, &multi_profilingEvent[1]), "Copy memsalt");
 
 	///Run the init kernel
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], init_kernel, 1,
-		NULL, &global_work_size, &local_work_size,
-		0, NULL, &multi_profilingEvent[2]), "Set ND range");
+		NULL, &global_work_size, lws,
+		0, NULL, &multi_profilingEvent[1]), "Set ND range");
 
 	///Run split kernel
 	for(i = 0; i < 3; i++)
 	{
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1,
-			NULL, &global_work_size, &local_work_size,
-			0, NULL, &multi_profilingEvent[split_events[i]]), "Set ND range");  //3, 4, 5
+			NULL, &global_work_size, lws,
+			0, NULL, &multi_profilingEvent[split_events[i]]), "Set ND range");  // 2, 3, 4
 		BENCH_CLERROR(clFinish(queue[ocl_gpu_id]), "Error running loop kernel");
 		opencl_process_event();
 	}
 
 	///Run the finish kernel
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], finish_kernel, 1,
-		NULL, &global_work_size, &local_work_size,
-		0, NULL, &multi_profilingEvent[6]), "Set ND range");
+		NULL, &global_work_size, lws,
+		0, NULL, &multi_profilingEvent[5]), "Set ND range");
 
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], mem_out, CL_FALSE, 0,
-		outsize, host_hash, 0, NULL, &multi_profilingEvent[7]),
+		outsize, host_hash, 0, NULL, &multi_profilingEvent[6]),
 	    "Copy data back");
 
 	///Await completion of all the above
@@ -400,9 +332,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		HANDLE_CLERROR(clEnqueueWriteBuffer
 			(queue[ocl_gpu_id], mem_in, CL_FALSE, 0, insize, host_pass, 0, NULL,
 			NULL), "Copy memin");
-
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_salt, CL_FALSE,
-		0, saltsize, host_salt, 0, NULL, NULL), "Copy memsalt");
 
 	HANDLE_CLERROR(clEnqueueNDRangeKernel
 	    (queue[ocl_gpu_id], init_kernel, 1, NULL, &global_work_size, &local_work_size,

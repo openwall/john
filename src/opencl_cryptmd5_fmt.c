@@ -41,7 +41,8 @@
 #define MAX_KEYS_PER_CRYPT	1
 
 #define OCL_CONFIG		"md5crypt"
-#define STEP                    1024
+#define STEP                    0
+#define SEED                    1024
 #define ROUNDS_DEFAULT          1000
 
 static const char * warn[] = {
@@ -79,8 +80,6 @@ static const char apr1_salt_prefix[] = "$apr1$";
 //OpenCL variables:
 static cl_mem mem_in, mem_out, pinned_in, pinned_out, mem_salt;
 static int new_keys;
-static int crypt_all(int *pcount, struct db_salt *_salt);
-static int crypt_all_benchmark(int *pcount, struct db_salt *_salt);
 
 #define insize (sizeof(crypt_md5_password) * global_work_size)
 #define outsize (sizeof(crypt_md5_hash) * global_work_size)
@@ -295,13 +294,13 @@ static void find_best_lws(struct fmt_main * self, int sequential_id) {
 static void find_best_gws(struct fmt_main * self, int sequential_id) {
 
 	//Call the common function.
-	common_find_best_gws(
-		sequential_id, ROUNDS_DEFAULT, 0,
-		(cpu(device_info[ocl_gpu_id]) ? 1000000000ULL : 5000000000ULL)
-	);
+	common_find_best_gws(sequential_id, ROUNDS_DEFAULT, 0, 1000000000ULL);
 
 	create_clobj(global_work_size, self);
 }
+
+static int crypt_all(int *pcount, struct db_salt *salt);
+static int crypt_all_benchmark(int *pcount, struct db_salt *salt);
 
 static void init(struct fmt_main *self)
 {
@@ -321,7 +320,7 @@ static void init(struct fmt_main *self)
 	opencl_get_user_preferences(OCL_CONFIG);
 
 	//Initialize openCL tuning (library) for this format.
-	opencl_init_auto_setup(STEP, 0, 3, NULL,
+	opencl_init_auto_setup(SEED, 0, 3, NULL,
 		warn, &multi_profilingEvent[1], self, create_clobj, release_clobj,
 		sizeof(crypt_md5_password), 0);
 

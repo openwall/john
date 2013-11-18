@@ -51,7 +51,8 @@ static unsigned int key_idx = 0;
 #define MAX_KEYS_PER_CRYPT      (1024 * 2048)
 
 #define OCL_CONFIG             "rawmd5"
-#define STEP                    65536
+#define STEP                   0
+#define SEED                   1024
 
 static int have_full_hashes;
 
@@ -159,7 +160,7 @@ static void find_best_gws(struct fmt_main * self, int sequential_id) {
 
 	// Call the common function.
 	common_find_best_gws(
-		sequential_id, 1, 0,
+		sequential_id, 1, STEP,
 		(cpu(device_info[ocl_gpu_id]) ? 500000000ULL : 1000000000ULL)
 		);
 
@@ -178,7 +179,7 @@ static void init(struct fmt_main *self)
 	opencl_get_user_preferences(OCL_CONFIG);
 
 	// Initialize openCL tuning (library) for this format.
-	opencl_init_auto_setup(STEP, 0, 3, NULL, warn,
+	opencl_init_auto_setup(SEED, 0, 3, NULL, warn,
 	        &multi_profilingEvent[1], self, create_clobj,
 	        release_clobj, BUFSIZE, 0);
 	self->methods.crypt_all = crypt_all_benchmark;

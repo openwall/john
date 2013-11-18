@@ -283,7 +283,7 @@ static cl_ulong gws_test(size_t gws, struct fmt_main *self)
 	HANDLE_CLERROR(clGetEventProfilingInfo(Event[1],
 	        CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime,
 	        NULL), "Failed to get profiling info");
-	if (options.verbosity > 3)
+	if (options.verbosity > 4)
 		fprintf(stderr, "key xfer %.2f ms, ", (double)(endTime-startTime)/1000000.);
 
 	HANDLE_CLERROR(clGetEventProfilingInfo(Event[2],
@@ -292,12 +292,12 @@ static cl_ulong gws_test(size_t gws, struct fmt_main *self)
 	HANDLE_CLERROR(clGetEventProfilingInfo(Event[2],
 	        CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime,
 	        NULL), "Failed to get profiling info");
-	if (options.verbosity > 3)
+	if (options.verbosity > 4)
 		fprintf(stderr, "ntlmv2_nthash %.2f ms, ", (double)(endTime-startTime)/1000000.);
 
 	/* 200 ms duration limit */
 	if (endTime - startTime > 200000000) {
-		if (options.verbosity > 3)
+		if (options.verbosity > 4)
 			fprintf(stderr, "exceeds 200 ms\n");
 		release_clobj();
 		return 0;
@@ -309,12 +309,12 @@ static cl_ulong gws_test(size_t gws, struct fmt_main *self)
 	HANDLE_CLERROR(clGetEventProfilingInfo(Event[3],
 	        CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime,
 	        NULL), "Failed to get profiling info");
-	if (options.verbosity > 3)
+	if (options.verbosity > 4)
 		fprintf(stderr, "final kernel %.2f ms, ", (double)((endTime - startTime)/1000000.));
 
 	/* 200 ms duration limit for GCN to avoid ASIC hangs */
 	if (amd_gcn(device_info[ocl_gpu_id]) && endTime - startTime > 200000000) {
-		if (options.verbosity > 3)
+		if (options.verbosity > 4)
 			fprintf(stderr, "- exceeds 200 ms\n");
 		release_clobj();
 		return 0;
@@ -326,10 +326,10 @@ static cl_ulong gws_test(size_t gws, struct fmt_main *self)
 	HANDLE_CLERROR(clGetEventProfilingInfo(Event[4],
 	        CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime,
 	        NULL), "Failed to get profiling info");
-	if (options.verbosity > 3)
+	if (options.verbosity > 4)
 		fprintf(stderr, "results xfer %.2f ms", (double)(endTime-startTime)/1000000.);
 
-	if (options.verbosity > 3)
+	if (options.verbosity > 4)
 		fprintf(stderr, "\n");
 
 	HANDLE_CLERROR(clGetEventProfilingInfo(Event[0],
