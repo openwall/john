@@ -159,6 +159,7 @@ static void set_salt(void *salt)
 	cur_salt = (struct custom_salt *)salt;
 }
 
+#if 0
 static void generate_key_bytes(int nbytes, unsigned char *password, unsigned char *key)
 {
 	unsigned char digest[16] = {0};
@@ -188,31 +189,76 @@ static void generate_key_bytes(int nbytes, unsigned char *password, unsigned cha
 		nbytes -= size;
 	}
 }
+#endif
 
-static int check_padding_3des(unsigned char *out, int length)
+static inline void generate16key_bytes(unsigned char *password,
+                                       unsigned char *key)
+{
+	MD5_CTX ctx;
+
+	MD5_Init(&ctx);
+	MD5_Update(&ctx, password, strlen((const char*)password));
+
+	/* use first 8 bytes of salt */
+	MD5_Update(&ctx, cur_salt->salt, 8);
+
+	/* digest is keydata */
+	MD5_Final(key, &ctx);
+}
+
+static inline void generate24key_bytes(unsigned char *password,
+                                       unsigned char *key)
+{
+	unsigned char digest[16];
+	int len = strlen((const char*)password);
+	MD5_CTX ctx;
+
+	MD5_Init(&ctx);
+	MD5_Update(&ctx, password, len);
+
+	/* use first 8 bytes of salt */
+	MD5_Update(&ctx, cur_salt->salt, 8);
+
+	/* digest is keydata */
+	MD5_Final(key, &ctx);
+
+	MD5_Init(&ctx);
+	MD5_Update(&ctx, key, 16);
+	MD5_Update(&ctx, password, len);
+
+	/* use first 8 bytes of salt */
+	MD5_Update(&ctx, cur_salt->salt, 8);
+	MD5_Final(digest, &ctx);
+
+	/* 8 more bytes of keydata */
+	memcpy(&key[16], digest, 8);
+}
+
+static inline int check_padding_3des(unsigned char *out, int length)
 {
 	int pad;
 	int i;
 	int n;
-	unsigned char output[N] = {0};
+	unsigned char output[N];
 	int ul; /* useful length */
 	unsigned char *res = NULL;
 	unsigned char *p;
 	BIO * outfile;
 
-	// now check padding
+	// First check padding
 	pad = out[length - 1];
-	if(pad > 16) /* NOTE: is this check always valid? */
-		// "Bad padding byte. You probably have a wrong password"
+	if(pad > 16)
 		return -1;
 	n = length - pad;
 	for(i = n; i < length; i++)
 		if(out[i] != pad)
 			return -1;
+
 	/* check BER decoding, private key file contains:
 	 * RSAPrivateKey = { version = 0, n, e, d, p, q, d mod p-1, d mod q-1, q**-1 mod p }
 	 * DSAPrivateKey = { version = 0, p, q, g, y, x } */
 
+	memset(output, 0, N);
 	outfile = BIO_new(BIO_s_mem());
 	ASN1_parse(outfile, out, cur_salt->ctl, 0);
 	BIO_gets(outfile, (char*)output, N);
@@ -271,7 +317,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			DES_cblock key1, key2, key3;
 			DES_cblock ivec;
 			DES_key_schedule ks1, ks2, ks3;
-			generate_key_bytes(24, (unsigned char*)saved_key[index], key);
+			generate24key_bytes((unsigned char*)saved_key[index], key);
 			memset(out, 0, SAFETY_FACTOR);
 			memcpy(key1, key, 8);
 			memcpy(key2, key + 8, 8);
@@ -298,7 +344,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			memcpy(iv, cur_salt->salt, 16);
 			memset(out, 0, SAFETY_FACTOR);
 			memset(out + cur_salt->ctl - 32, 0, 32);
-			generate_key_bytes(16, (unsigned char*)saved_key[index], key);
+			generate16key_bytes((unsigned char*)saved_key[index], key);
 			AES_set_decrypt_key(key, 128, &akey);
 			// AES_cbc_encrypt(cur_salt->ct, out, cur_salt->ctl, &akey, iv, AES_DECRYPT);
 			// dirty hack!
