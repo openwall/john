@@ -378,18 +378,17 @@ int benchmark_all(void)
 	int ompt_start = omp_get_max_threads();
 #endif
 
-	if (!benchmark_time) {
-		if (john_main_process)
-		puts("Warning: doing quick benchmarking - "
-		    "the performance numbers will be inaccurate");
 #if defined(HAVE_OPENCL) || defined(HAVE_CUDA)
+	if (!benchmark_time) {
 		/* This will make the majority of OpenCL formats
 		   also do "quick" benchmarking. But if LWS or
 		   GWS was already set, we do not overwrite. */
 		setenv("LWS", "7", 0);
 		setenv("GWS", "49", 0);
-#endif
+		setenv("BLOCKS", "7", 0);
+		setenv("THREADS", "7", 0);
 	}
+#endif
 
 	total = failed = 0;
 #ifndef _JOHN_BENCH_TMP
@@ -431,7 +430,8 @@ int benchmark_all(void)
 #ifdef HAVE_MPI
 		if (john_main_process)
 #endif
-		printf("Benchmarking: %s%s%s%s [%s]%s... ",
+		printf("%s: %s%s%s%s [%s]%s... ",
+		    benchmark_time ? "Benchmarking" : "Testing",
 		    format->params.label,
 		    format->params.format_name[0] ? ", " : "",
 		    format->params.format_name,
@@ -514,7 +514,7 @@ int benchmark_all(void)
 #ifdef HAVE_MPI
 		if (john_main_process)
 #endif
-		puts("DONE");
+			puts(benchmark_time ? "DONE" : "PASS");
 #ifdef _OPENMP
 		// reset this in case format capped it (we may be testing more formats)
 		omp_set_num_threads(ompt_start);
@@ -532,12 +532,14 @@ int benchmark_all(void)
 #ifdef HAVE_MPI
 		if (john_main_process)
 #endif
+		if (benchmark_time)
 		printf("%s:\t%s c/s real, %s c/s virtual\n",
 			msg_m, s_real, s_virtual);
 #else
 #ifdef HAVE_MPI
 		if (john_main_process)
 #endif
+		if (benchmark_time)
 		printf("%s:\t%s c/s\n",
 			msg_m, s_real);
 #endif
@@ -546,6 +548,7 @@ int benchmark_all(void)
 #ifdef HAVE_MPI
 			if (john_main_process)
 #endif
+			if (benchmark_time)
 			putchar('\n');
 			goto next;
 		}
@@ -556,9 +559,11 @@ int benchmark_all(void)
 		if (john_main_process)
 #endif
 #if !defined(__DJGPP__) && !defined(__BEOS__) && !defined(__MINGW32__) && !defined (_MSC_VER)
+		if (benchmark_time)
 		printf("%s:\t%s c/s real, %s c/s virtual\n\n",
 			msg_1, s_real, s_virtual);
 #else
+		if (benchmark_time)
 		printf("%s:\t%s c/s\n\n",
 			msg_1, s_real);
 #endif
