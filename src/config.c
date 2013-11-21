@@ -405,6 +405,8 @@ static int cfg_process_directive_include_config(char *line, int number)
 {
 	char *p, *p2, *saved_fname;
 	char Name[PATH_BUFFER_SIZE];
+	int allow_missing;
+
 	// Ok, we are including a file.
 	if (!strncmp(line, ".include \"", 10)) {
 		p = &line[10];
@@ -440,9 +442,13 @@ static int cfg_process_directive_include_config(char *line, int number)
 #endif
 		return 1;
 	}
+
+	/* We silently allow a missing john.local.conf */
+	allow_missing = !strcmp(Name, "$JOHN/john.local.conf");
+
 	saved_fname = cfg_name;
 	cfg_recursion++;
-	cfg_init(Name, 0);
+	cfg_init(Name, allow_missing);
 	cfg_recursion--;
 	cfg_name = saved_fname;
 	return 0;
