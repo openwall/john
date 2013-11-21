@@ -337,7 +337,7 @@ extern "C" void gpu_pwpass(pwsafe_pass * host_in, pwsafe_salt * host_salt,
  pwsafe_pass *cuda_pass = NULL;  ///passwords
         pwsafe_salt *cuda_salt = NULL;  ///salt
         pwsafe_hash *cuda_hash = NULL;  ///hashes
-	int blocks = (count + THREADS - 1) / THREADS;
+	int blocks = (count + THREADS * GPUS - 1) / (THREADS * GPUS);
 
         ///Aloc memory and copy data to gpu
         cudaMalloc(&cuda_pass, PWSAFE_IN_SIZE);
@@ -415,4 +415,3 @@ extern "C" void gpu_pwpass(pwsafe_pass * host_in, pwsafe_salt * host_salt,
 	//puts("stage 3");
 #endif
 }
-
