@@ -332,8 +332,7 @@ extern "C" void gpu_pwpass(pwsafe_pass * host_in, pwsafe_salt * host_salt,
 {
 	unsigned int gpu=0;
 
-//#define _DEFAULT_
-#ifdef _DEFAULT_
+#if GPUS == 1
  pwsafe_pass *cuda_pass = NULL;  ///passwords
         pwsafe_salt *cuda_salt = NULL;  ///salt
         pwsafe_hash *cuda_hash = NULL;  ///hashes
@@ -363,7 +362,7 @@ extern "C" void gpu_pwpass(pwsafe_pass * host_in, pwsafe_salt * host_salt,
         cudaFree(cuda_hash);
 #else
 
-	int blocks = (count + THREADS - 1) / THREADS;
+	int blocks = (count + THREADS * GPUS - 1) / (THREADS * GPUS);
 	//int runtimeVersion=0;
 	//cudaRuntimeGetVersion(&runtimeVersion);
 	//printf("Cuda runtime: %d.%d\n",runtimeVersion/1000,(runtimeVersion%100)/10);
