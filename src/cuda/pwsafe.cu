@@ -330,12 +330,10 @@ __global__ void kernel_pwsafe(pwsafe_pass * in, pwsafe_salt * salt,
 extern "C" void gpu_pwpass(pwsafe_pass * host_in, pwsafe_salt * host_salt,
                            pwsafe_hash * host_out, int count)
 {
-	unsigned int gpu=0;
-
 #if GPUS == 1
- pwsafe_pass *cuda_pass = NULL;  ///passwords
-        pwsafe_salt *cuda_salt = NULL;  ///salt
-        pwsafe_hash *cuda_hash = NULL;  ///hashes
+	pwsafe_pass *cuda_pass = NULL;  ///passwords
+	pwsafe_salt *cuda_salt = NULL;  ///salt
+	pwsafe_hash *cuda_hash = NULL;  ///hashes
 	int blocks = (count + THREADS * GPUS - 1) / (THREADS * GPUS);
 
         ///Aloc memory and copy data to gpu
@@ -361,7 +359,7 @@ extern "C" void gpu_pwpass(pwsafe_pass * host_in, pwsafe_salt * host_salt,
         cudaFree(cuda_salt);
         cudaFree(cuda_hash);
 #else
-
+	unsigned int gpu = 0;
 	int blocks = (count + THREADS * GPUS - 1) / (THREADS * GPUS);
 	//int runtimeVersion=0;
 	//cudaRuntimeGetVersion(&runtimeVersion);
