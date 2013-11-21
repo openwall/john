@@ -43,7 +43,7 @@ static struct fmt_tests tests[] = {
 	{"$DCC2$10240#test3#360e51304a2d383ea33467ab0b639cc4", "test3"},
 	{"$DCC2$10240#test4#6f79ee93518306f071c47185998566ae", "test4"},
 // Non-standard iterations count
-//	{"$DCC2$10000#Twelve_chars#54236c670e185043c8016006c001e982", "magnum"},
+	{"$DCC2$10000#Twelve_chars#54236c670e185043c8016006c001e982", "magnum"},
 	{NULL}
 };
 
@@ -78,11 +78,6 @@ extern int mscash2_valid(char *ciphertext, int max_salt_length, struct fmt_main 
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	/* This version doesn't handle other iteration counts */
-	if (strncmp(ciphertext, "$DCC2$10240#", 12))
-		return 0;
-
-	/* The CPU version does */
 	return mscash2_valid(ciphertext, MAX_SALT_LENGTH, self);
 }
 
