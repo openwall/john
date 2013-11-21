@@ -311,7 +311,7 @@ static void *get_salt(char *_ciphertext)
 	unsigned char *ciphertext = (unsigned char *)_ciphertext;
 	static UTF16 out[130+1];
 	unsigned char input[128*3+1];
-	int utf16len, md4_size;
+	int iterations, utf16len, md4_size;
 
 	memset(out, 0, sizeof(out));
 
@@ -330,8 +330,8 @@ static void *get_salt(char *_ciphertext)
 	if (utf16len < 0)
 		utf16len = strlen16(&out[2]);
 	out[0] = utf16len << 1;
-	sscanf(&_ciphertext[6], "%d", &utf16len);
-	out[1] = utf16len;
+	sscanf(&_ciphertext[6], "%d", &iterations);
+	out[1] = iterations;
 	return out;
 }
 
