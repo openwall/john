@@ -74,59 +74,13 @@ static void init(struct fmt_main *self)
 	}
 }
 
-extern int mscash2_valid(char *ciphertext, int max_salt_length, struct fmt_main *self);
+extern int mscash2_valid(char *, int, struct fmt_main *);
+extern char * mscash2_prepare(char **, struct fmt_main *);
+extern char * mscash2_split(char *, int, struct fmt_main *);
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	return mscash2_valid(ciphertext, MAX_SALT_LENGTH, self);
-}
-
-static char *split(char *ciphertext, int index, struct fmt_main *self)
-{
-	static char out[MAX_CIPHERTEXT_LENGTH + 1];
-	int i = 0;
-	for (; i < MAX_CIPHERTEXT_LENGTH && ciphertext[i]; i++)
-		out[i] = ciphertext[i];
-	out[i] = 0;
-	// lowercase salt as well as hash, encoding-aware
-	enc_strlwr(&out[6]);
-	return out;
-}
-
-static char *prepare(char *split_fields[10], struct fmt_main *self)
-{
-	char *cp;
-	int i;
-
-	if (!strncmp(split_fields[1], "$DCC2$", 6) &&
-	    strchr(split_fields[1], '#') == strrchr(split_fields[1], '#')) {
-		if (valid(split_fields[1], self))
-			return split_fields[1];
-		// see if this is a form $DCC2$salt#hash.  If so, make it $DCC2$10240#salt#hash and retest (insert 10240# into the line).
-		cp = mem_alloc(strlen(split_fields[1]) + 7);
-		sprintf(cp, "$DCC2$10240#%s", &(split_fields[1][6]));
-		if (valid(cp, self)) {
-			char *cipher = str_alloc_copy(cp);
-			MEM_FREE(cp);
-			return cipher;
-		}
-		return split_fields[1];
-	}
-	if (!split_fields[0])
-		return split_fields[1];
-	// ONLY check, if this string split_fields[1], is ONLY a 32 byte hex string.
-	for (i = 0; i < 32; i++)
-		if (atoi16[ARCH_INDEX(split_fields[1][i])] == 0x7F)
-			return split_fields[1];
-	cp = mem_alloc(strlen(split_fields[0]) + strlen(split_fields[1]) + 14);
-	sprintf(cp, "$DCC2$10240#%s#%s", split_fields[0], split_fields[1]);
-	if (valid(cp, self)) {
-		char *cipher = str_alloc_copy(cp);
-		MEM_FREE(cp);
-		return cipher;
-	}
-	MEM_FREE(cp);
-	return split_fields[1];
 }
 
 static void *binary(char *ciphertext)
@@ -303,15 +257,15 @@ struct fmt_main fmt_cuda_mscash2 = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		0,
-		FMT_CASE | FMT_8_BIT| FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE | FMT_UTF8,
+		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE | FMT_UTF8,
 		tests
 	}, {
 		init,
 		done,
 		fmt_default_reset,
-		prepare,
+		mscash2_prepare,
 		valid,
-		split,
+		mscash2_split,
 		binary,
 		salt,
 		fmt_default_source,

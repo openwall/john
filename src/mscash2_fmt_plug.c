@@ -268,7 +268,9 @@ char *mscash2_prepare(char *split_fields[10], struct fmt_main *self)
 {
 	char *cp;
 	int i;
-	if (!strncmp(split_fields[1], "$DCC2$", 6)) {
+
+	if (!strncmp(split_fields[1], "$DCC2$", 6) &&
+	    strchr(split_fields[1], '#') == strrchr(split_fields[1], '#')) {
 		if (valid(split_fields[1], self))
 			return split_fields[1];
 		// see if this is a form $DCC2$salt#hash.  If so, make it $DCC2$10240#salt#hash and retest (insert 10240# into the line).
