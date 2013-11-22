@@ -474,7 +474,7 @@ static gpu_mem_buffer exec_pbkdf2(cl_uint *pass_api, cl_uint *salt_api, cl_uint 
 
 	HANDLE_CLERROR(clEnqueueWriteBuffer(cmdq, globalObj[jtrUniqDevNo].gpu_buffer.salt_gpu, CL_FALSE, 0, (MAX_SALT_LENGTH / 2 + 1) * sizeof(cl_uint), salt_api, 0, NULL, NULL ), "Copy data to gpu");
 
-	if(saltlen_api < 22)
+	if(saltlen_api < 23)
 		err = clEnqueueNDRangeKernel(cmdq, globalObj[jtrUniqDevNo].krnl[0], 1, NULL, &N, &M, 0, NULL, &evnt);
 	else
 		err = clEnqueueNDRangeKernel(cmdq, globalObj[jtrUniqDevNo].krnl[1], 1, NULL, &N, &M, 0, NULL, &evnt);
