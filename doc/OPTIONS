@@ -129,7 +129,7 @@ file format way).  =left is just that literal string "=left".
 Tests all of the compiled in hashing algorithms for proper operation and
 benchmarks them.  The "--format" option can be used to restrict this to
 a specific algorithm.  Using --test=0 will do a very quick self-test but
-will not produce usable speed figures.
+will not produce any speed figures.
 
 --users=[-]LOGIN|UID[,..]	[do not] load this (these) user(s)
 
@@ -280,7 +280,8 @@ you have to invoke John once for each hash type and you need to use this
 option to make John crack hashes of types other than the one it would
 autodetect by default. Mainly for test and list purposes, you can use
 group aliases "cpu", "gpu", "opencl" and "cuda" as a format name, or
-use a trailing wildcard, as in "--format=wpapsk*".
+use one wildcard, as in "--format=mysql-*", "--format=raw*ng" or
+"--format=*office".
 
 "--format=crypt" may or may not be supported in a given build of John.
 In default builds of John, this support is currently only included on
