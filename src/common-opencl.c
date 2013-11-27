@@ -647,13 +647,12 @@ static void dev_init(int sequential_id)
 	}
 }
 
-static char *include_source(char *pathname, int sequential_id, char *opts,
-                            int defaults)
+static char *include_source(char *pathname, int sequential_id, char *opts)
 {
 	static char include[PATH_BUFFER_SIZE];
 
-	sprintf(include, "-I %s %s%s%s%s%d %s %s", path_expand(pathname),
-	        defaults ? OPENCLBUILDOPTIONS " " : "",
+	sprintf(include, "-I %s %s %s%s%s%d %s %s", path_expand(pathname),
+	        OPENCLBUILDOPTIONS,
 #ifdef __APPLE__
 		"-DAPPLE ",
 #else
@@ -676,7 +675,6 @@ void opencl_build(int sequential_id, char *opts, int save, char * file_name,
 	cl_int build_code;
 	char * build_log; size_t log_size;
 	const char *srcptr[] = { kernel_source };
-	int stdopts = 1;
 
 	assert(kernel_loaded);
 	program[sequential_id] =
@@ -684,11 +682,8 @@ void opencl_build(int sequential_id, char *opts, int save, char * file_name,
 		                          NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error while creating program");
 
-	if (get_platform_vendor_id(get_platform_id(sequential_id)) == DEV_INTEL)
-		stdopts = 0;
-
 	build_code = clBuildProgram(program[sequential_id], 0, NULL,
-		include_source("$JOHN/kernels", sequential_id, opts, stdopts),
+		include_source("$JOHN/kernels", sequential_id, opts),
 		 NULL, NULL);
 
 	HANDLE_CLERROR(clGetProgramBuildInfo(program[sequential_id],

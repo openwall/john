@@ -38,7 +38,7 @@
 #define SUBSECTION_OPENCL	":OpenCL"
 #define MAX_OCLINFO_STRING_LEN	2048
 
-#define OPENCLBUILDOPTIONS "-cl-strict-aliasing -cl-mad-enable"
+#define OPENCLBUILDOPTIONS "-cl-mad-enable"
 
 #ifdef DEBUG_CL_ALLOC
 static inline cl_mem john_clCreateBuffer (int l, char *f,
