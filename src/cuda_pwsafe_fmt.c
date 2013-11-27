@@ -185,7 +185,6 @@ struct fmt_main fmt_cuda_pwsafe = {
 		DEFAULT_ALIGN,
 		KEYS_PER_CRYPT,
 		KEYS_PER_CRYPT,
-		0,
 		FMT_CASE | FMT_8_BIT,
 		pwsafe_tests
 	}, {

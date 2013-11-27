@@ -588,7 +588,6 @@ struct fmt_main fmt_trip = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		0,
 #if DES_BS && DES_bs_mt
 		FMT_OMP |
 #endif

@@ -242,7 +242,6 @@ struct fmt_main fmt_KRB5_kinit = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		0,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		kinit_tests
 	}, {

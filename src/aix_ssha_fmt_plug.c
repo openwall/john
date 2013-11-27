@@ -377,7 +377,6 @@ struct fmt_main fmt_aixssha1 = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		0,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		aixssha_tests1
 	}, {
@@ -434,7 +433,6 @@ struct fmt_main fmt_aixssha256 = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		0,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		aixssha_tests256
 	}, {
@@ -491,7 +489,6 @@ struct fmt_main fmt_aixssha512 = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		0,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		aixssha_tests512
 	}, {

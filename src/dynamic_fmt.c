@@ -54,7 +54,7 @@ static DYNAMIC_primitive_funcp _Funcs_1[] =
  *      should not be made to be 'too' much larger than needed.  This is an issue that needs
  *      to be looked into.  NOTE, we might want to go to 3 input buffers.  That way, we
  *      could make input buffer 1 be 128 bytes, input buffer2 256 and input buffer3 be
- *      512.  This would allow us to use a smaller buffer (buffer1), IF 128 bytes is
+ *      512.  This would allow us to use a smaller buffer (buffer1), IF 128 bytes is 
  *      enough, and hopefully reduce working set. But then have a double length buffer
  *      and a new quad length buffer IF we need them (for large hashes if there are multiple
  *      appended hashes).  This may add a BUNCH of extra functions.  NOTE, I have seen slowdowns
@@ -758,7 +758,7 @@ static void init(struct fmt_main *pFmt)
 	}
 #endif
 	if (!crypt_key_X86) {
-		// we have to align SIMD, since now we may load directly from these buffers (or save to them), in
+		// we have to align SIMD, since now we may load directly from these buffers (or save to them), in 
 		// large hash SIMD code (sha256, etc).  Also 1 larger in the array, since we might point 'extra'
 		// hashes past the end of our buffer to that value.
 		crypt_key_X86  = (MD5_OUT *)mem_calloc_tiny(sizeof(*crypt_key_X86)*((MAX_KEYS_PER_CRYPT_X86>>MD5_X2)+1),	MEM_ALIGN_SIMD);
@@ -1518,7 +1518,7 @@ static void crypt_all(int count)
 #endif
 				} else {
 					// calls 'old' code (ossl, sorry :(   We should FIND and remove any format
-					// written this way, if it is
+					// written this way, if it is 
 					__possMP_DynamicFunc__crypt2_md5();
 				}
 			} else {
@@ -2540,11 +2540,9 @@ static struct fmt_main fmt_Dynamic =
 #ifdef MMX_COEF
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		0,
 #else
 		MIN_KEYS_PER_CRYPT_X86,
 		MAX_KEYS_PER_CRYPT_X86,
-		0,
 #endif
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		dynamic_tests

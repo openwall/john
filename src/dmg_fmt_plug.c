@@ -638,7 +638,6 @@ struct fmt_main fmt_dmg = {
 		DEFAULT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		0,
 #ifdef DMG_DEBUG
 		FMT_NOT_EXACT |
 #endif

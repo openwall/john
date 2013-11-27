@@ -225,7 +225,6 @@ struct fmt_main fmt_snefru_256 = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		0,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		snefru_256_tests
 	}, {
@@ -283,7 +282,6 @@ struct fmt_main fmt_snefru_128 = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		0,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		snefru_128_tests
 	}, {

@@ -419,7 +419,6 @@ struct fmt_main fmt_ssh = {
 		DEFAULT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		0,
 #if defined(_OPENMP) && OPENSSL_VERSION_NUMBER >= 0x10000000
 		FMT_OMP |
 #endif
