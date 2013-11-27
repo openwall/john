@@ -26,7 +26,7 @@
 #ifdef __APPLE__
 #define OPENCLBUILDOPTIONS ""
 #else
-#define OPENCLBUILDOPTIONS "-cl-strict-aliasing -cl-mad-enable"
+#define OPENCLBUILDOPTIONS "-cl-mad-enable"
 #endif
 
 /* Comment if you do not want to see OpenCL warnings during kernel compilation.
