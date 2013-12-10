@@ -86,7 +86,6 @@ static int new_keys;
 #define saltsize (sizeof(crypt_md5_salt))
 
 static struct fmt_tests tests[] = {
-#ifdef DEBUG
 	{"$1$Btiy90iG$bGn4vzF3g1rIVGZ5odGIp/", "qwerty"},
 	{"$1$salt$c813W/s478KCzR0NnHx7j0", "qwerty"},
 	{"$1$salt$8LO.EVfsTf.HATV1Bd0ZP/", "john"},
@@ -102,9 +101,7 @@ static struct fmt_tests tests[] = {
 	{"$1$salt1234$wn0RbuDtbJlD1Q.X7.9wG/", "abcde"},
 	{"$1$salt1234$lzB83HS4FjzbcD4yMcjl01", "abcdef"},
 	{"$1$salt1234$bklJHN73KS04Kh6j6qPnr.", "abcdefg"},
-#endif
 	{"$1$salt1234$u4RMKGXG2b/Ud2rFmhqi70", "abcdefgh"},	//saltlen=8,passlen=8
-#ifdef DEBUG
 	{"$1$salt1234$QjP48HUerU7aUYc/aJnre1", "abcdefghi"},
 	{"$1$salt1234$9jmu9ldi9vNw.XDO3TahR.", "abcdefghij"},
 	{"$1$salt1234$d3.LnlDWfkTIej5Ef1sCU/", "abcdefghijk"},
@@ -128,9 +125,7 @@ static struct fmt_tests tests[] = {
 	//tests from MD5_fmt.c
 	{"$1$12345678$aIccj83HRDBo6ux1bVx7D1", "0123456789ABCDE"},
 	{"$apr1$Q6ZYh...$RV6ft2bZ8j.NGrxLYaJt9.", "test"},
-#endif
 	{"$1$12345678$f8QoJuo0DpBRfQSD0vglc1", "12345678"},
-#ifdef DEBUG
 	{"$1$$qRPK7m23GJusamGpoGLby/", ""},
 	{"$apr1$a2Jqm...$grFrwEgiQleDr0zR4Jx1b.", "15 chars is max"},
 	{"$1$$AuJCr07mI7DSew03TmBIv/", "no salt"},
@@ -140,7 +135,6 @@ static struct fmt_tests tests[] = {
 	{"$apr1$rBXqc...$NlXxN9myBOk95T0AyLAsJ0", "john"},
 	{"$apr1$Grpld/..$qp5GyjwM2dnA5Cdej9b411", "the"},
 	{"$apr1$GBx.D/..$yfVeeYFCIiEXInfRhBRpy/", "ripper"},
-#endif
 	{NULL}
 };
 

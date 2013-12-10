@@ -38,7 +38,6 @@ static crypt_md5_salt host_salt;			/** salt **/
 
 static struct fmt_tests tests[] = {
 	{"$1$Btiy90iG$bGn4vzF3g1rIVGZ5odGIp/", "qwerty"},
-#ifdef DEBUG //Special test cases.
 	{"$1$salt$c813W/s478KCzR0NnHx7j0", "qwerty"},
 	{"$1$salt$8LO.EVfsTf.HATV1Bd0ZP/", "john"},
 	{"$1$salt$TelRRxWBCxlpXmgAeB82R/", "openwall"},
@@ -90,7 +89,6 @@ static struct fmt_tests tests[] = {
 	{"$apr1$rBXqc...$NlXxN9myBOk95T0AyLAsJ0", "john"},
 	{"$apr1$Grpld/..$qp5GyjwM2dnA5Cdej9b411", "the"},
 	{"$apr1$GBx.D/..$yfVeeYFCIiEXInfRhBRpy/", "ripper"},
-#endif
 	{NULL}
 };
 
