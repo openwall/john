@@ -9,12 +9,21 @@ and Dhiru Kholia <dhiru at openwall.com>
 S7 protocol, is used for communication between Engineering Stations,
 SCADA, HMI & PLC and can be protected by password.
 
-Original PoC Authors: Alexander Timorin, Dmitry Sklyarov
+Original Authors: Alexander Timorin, Dmitry Sklyarov
+
 http://scadastrangelove.org
+
+__author__      = "Aleksandr Timorin"
+__copyright__   = "Copyright 2013, Positive Technologies"
+__license__     = "GNU GPL v3"
+__version__     = "1.2"
+__maintainer__  = "Aleksandr Timorin"
+__email__       = "atimorin@gmail.com"
+__status__      = "Development"
 
 """
 
-
+import os
 import logging
 l = logging.getLogger("scapy.runtime")
 l.setLevel(49)
@@ -29,13 +38,52 @@ except ImportError:
 
 
 def get_challenge_response(cfg_pcap_file):
+    found_something = False
+
+    # s7-1500_brute_offline.py code
+    #
+    # Offline password bruteforse based on challenge-response data, extracted
+    # from auth traffic dump file for Siemens S7-1500 PLC's.
+    #
+    # IMPORTANT:
+    #
+    # traffic dump should contains only traffic between plc and hmi/pc/etc.
+    # filter dump file before parse
+    result = {}
+    challenge = ''
+    response = ''
+
+    for packet in rdpcap(cfg_pcap_file):
+        try:
+            payload = packet.load.encode('hex')
+            # if payload[14:26]=='720200453200' and payload[46:52]=='100214' and abs(packet.len+14 - 138)<=1:
+            if payload[14:20]=='720200' and payload[46:52]=='100214' and abs(packet.len+14 - 138)<=1:
+                challenge = payload[52:92]
+            # elif payload[14:26]=='720200663100' and payload[64:70]=='100214'  and abs(packet.len+14 - 171)<=1:
+            elif payload[14:20]=='720200' and payload[64:70]=='100214'  and abs(packet.len+14 - 171)<=1:
+                response = payload[70:110]
+
+            if challenge and response:
+                result[challenge] = response
+                challenge = ''
+                response = ''
+        except:
+            pass
+
+    outcome = 0  # XXX we don't know this currently!
+    for c, r in result.items():
+        found_something = True  # overkill ;(
+        sys.stdout.write("%s:$siemens-s7$%s$%s$%s\n" % (os.path.basename(cfg_pcap_file),
+                                                        outcome, c, r))
+
+    # s7-1200_brute_offline.py stuff below
+    # try to find challenge packet
     r = rdpcap(cfg_pcap_file)
 
     lens = map(lambda x: x.len, r)
     pckt_lens = dict([(i, lens[i]) for i in range(0, len(lens))])
 
-    # try to find challenge packet
-    pckt_108 = 0  # challenge packet (from server)
+    pckt_108 = None  # challenge packet (from server)
     for (pckt_indx, pckt_len) in pckt_lens.items():
         if (pckt_len + 14 == 108 and
                 hexlify(r[pckt_indx].load)[14:24] == '7202002732'):
@@ -78,6 +126,9 @@ def get_challenge_response(cfg_pcap_file):
     challenge = None
     response = None
 
+    if not pckt_108 and found_something:
+        sys.exit(0)
+
     try:
         raw_challenge = hexlify(r[pckt_108].load)
     except (AttributeError):
@@ -87,8 +138,8 @@ def get_challenge_response(cfg_pcap_file):
         challenge = raw_challenge[52:92]
         # sys.stdout.write("found challenge: %s\n" % challenge)
     else:
-        sys.stderr.write("cannot find challenge for %s. exiting...\n"
-                % cfg_pcap_file)
+        sys.stderr.write("[-] cannot find challenge for %s. exiting...\n"
+                % os.path.basename(cfg_pcap_file))
         return
 
     raw_response = hexlify(r[pckt_141].load)
@@ -96,15 +147,15 @@ def get_challenge_response(cfg_pcap_file):
         response = raw_response[70:110]
         # sys.stdout.write("found  response: %s\n" % response)
     else:
-        sys.stderr.write("cannot find response for %s. exiting...\n"
-                % cfg_pcap_file)
+        sys.stderr.write("[-] cannot find response for %s. exiting...\n"
+                % os.path.basename(cfg_pcap_file))
         return
 
     if pckt_84:
         outcome = 1
     else:
         outcome = 0
-    sys.stdout.write("%s:$siemens-s7$%s$%s$%s\n" % (cfg_pcap_file,
+    sys.stdout.write("%s:$siemens-s7$%s$%s$%s\n" % (os.path.basename(cfg_pcap_file),
         outcome, challenge, response))
 
 
