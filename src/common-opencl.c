@@ -1863,7 +1863,7 @@ int get_platform_vendor_id(int platform_id)
 	HANDLE_CLERROR(
 		clGetPlatformInfo(platform[platform_id], CL_PLATFORM_NAME,
 				  sizeof(dname), dname, NULL),
-		"Error querying CL_DEVICE_VENDOR");
+		"Error querying CL_PLATFORM_NAME");
 
 	if (strstr(dname, "NVIDIA") != NULL)
 		return DEV_NVIDIA;
