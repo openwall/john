@@ -85,6 +85,10 @@ static void init(struct fmt_main *self)
 		    !strcasecmp(options.subformat, "md5")) {
 			self->params.benchmark_comment = " MD5";
 			salt = "$1$dXc3I7Rw$";
+		} else if (!strcasecmp(options.subformat, "sunmd5") ||
+		    !strcasecmp(options.subformat, "sun-md5")) {
+			self->params.benchmark_comment = " SunMD5";
+			salt = "$md5$rounds=904$Vc3VgyFx44iS8.Yu$dummy";
 		} else if ((!strcasecmp(options.subformat, "sha256crypt")) ||
 		           (!strcasecmp(options.subformat, "sha-256")) ||
 		           (!strcasecmp(options.subformat, "sha256"))) {
