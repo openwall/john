@@ -255,7 +255,8 @@ static char *fmt_self_test_body(struct fmt_main *format,
 			return "valid";
 
 #if !defined(BENCH_BUILD)
-		if (!dhirutest++ && strcmp(format->params.label, "dummy")) {
+		if (!dhirutest++ && strcmp(format->params.label, "dummy")
+		    && strcmp(format->params.label, "crypt")) {
 			if (*ciphertext == '$') {
 				char *p, *k = strdup(ciphertext);
 

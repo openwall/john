@@ -78,44 +78,48 @@ static struct crypt_data *crypt_data[MAX_THREADS];
 static void init(struct fmt_main *self)
 {
 	if (options.subformat) {
-		if (strcasecmp(options.subformat, "md5crypt")==0 ||
-		    strcasecmp(options.subformat, "md5")==0) {
+		int i;
+		char *salt = tests[0].ciphertext;
+
+		if (!strcasecmp(options.subformat, "md5crypt") ||
+		    !strcasecmp(options.subformat, "md5")) {
 			self->params.benchmark_comment = " MD5";
-			tests[0].ciphertext = "$1$dXc3I7Rw$ctlgjDdWJLMT.qwHsWhXR1";
-			tests[1].ciphertext = "$1$dXc3I7Rw$94JPyQc/eAgQ3MFMCoMF.0";
-			tests[2].ciphertext = "$1$dXc3I7Rw$is1mVIAEtAhIzSdfn5JOO0";
-			tests[3].ciphertext = "$1$eQT9Hwbt$XtuElNJD.eW5MN5UCWyTQ0";
-			tests[4].ciphertext = "$1$Eu.GHtia$CFkL/nE1BYTlEPiVx1VWX0";
-		} else if ((strcasecmp(options.subformat, "sha256crypt")==0) ||
-		           (strcasecmp(options.subformat, "sha-256")==0) ||
-		           (strcasecmp(options.subformat, "sha256")==0)) {
+			salt = "$1$dXc3I7Rw$";
+		} else if ((!strcasecmp(options.subformat, "sha256crypt")) ||
+		           (!strcasecmp(options.subformat, "sha-256")) ||
+		           (!strcasecmp(options.subformat, "sha256"))) {
 			self->params.benchmark_comment = " SHA-256 rounds=5000";
-			tests[0].ciphertext = "$5$LKO/Ute40T3FNF95$U0prpBQd4PloSGU0pnpM4z9wKn4vZ1.jsrzQfPqxph9";
-			tests[1].ciphertext = "$5$LKO/Ute40T3FNF95$fdgfoJEBoMajNxCv3Ru9LyQ0xZgv0OBMQoq80LQ/Qd.";
-			tests[2].ciphertext = "$5$LKO/Ute40T3FNF95$8Ry82xGnnPI/6HtFYnvPBTYgOL23sdMXn8C29aO.x/A";
-			tests[3].ciphertext = "$5$9mx1HkCz7G1xho50$O7V7YgleJKLUhcfk9pgzdh3RapEaWqMtEp9UUBAKIPA";
-			tests[4].ciphertext = "$5$kc7lRD1fpYg0g.IP$d7CMTcEqJyTXyeq8hTdu/jB/I6DGkoo62NXbHIR7S43";
-		} else if ((strcasecmp(options.subformat, "sha512crypt")==0) ||
-		           (strcasecmp(options.subformat, "sha-512")==0) ||
-		           (strcasecmp(options.subformat, "sha512")==0)) {
+			salt = "$5$LKO/Ute40T3FNF95$";
+		} else if ((!strcasecmp(options.subformat, "sha512crypt")) ||
+		           (!strcasecmp(options.subformat, "sha-512")) ||
+		           (!strcasecmp(options.subformat, "sha512"))) {
 			self->params.benchmark_comment = " SHA-512 rounds=5000";
-			tests[0].ciphertext = "$6$LKO/Ute40T3FNF95$6S/6T2YuOIHY0N3XpLKABJ3soYcXD9mB7uVbtEZDj/LNscVhZoZ9DEH.sBciDrMsHOWOoASbNLTypH/5X26gN0";
-			tests[1].ciphertext = "$6$LKO/Ute40T3FNF95$wK80cNqkiAUzFuVGxW6eFe8J.fSVI65MD5yEm8EjYMaJuDrhwe5XXpHDJpwF/kY.afsUs1LlgQAaOapVNbggZ1";
-			tests[2].ciphertext = "$6$LKO/Ute40T3FNF95$YS81pp1uhOHTgKLhSMtQCr2cDiUiN03Ud3gyD4ameviK1Zqz.w3oXsMgO6LrqmIEcG3hiqaUqHi/WEE2zrZqa/";
-			tests[3].ciphertext = "$6$OmBOuxFYBZCYAadG$WCckkSZok9xhp4U1shIZEV7CCVwQUwMVea7L3A77th6SaE9jOPupEMJB.z0vIWCDiN9WLh2m9Oszrj5G.gt330";
-			tests[4].ciphertext = "$6$ojWH1AiTee9x1peC$QVEnTvRVlPRhcLQCk/HnHaZmlGAAjCfrAN0FtOsOnUk5K5Bn/9eLHHiRzrTzaIKjW9NTLNIBUCtNVOowWS2mN.";
-		} else if ((strcasecmp(options.subformat, "bf")==0) ||
-		           (strcasecmp(options.subformat, "blowfish")==0) ||
-		           (strcasecmp(options.subformat, "bcrypt")==0)) {
+			salt = "$6$LKO/Ute40T3FNF95$";
+		} else if ((!strcasecmp(options.subformat, "bf")) ||
+		           (!strcasecmp(options.subformat, "blowfish")) ||
+		           (!strcasecmp(options.subformat, "bcrypt"))) {
 			self->params.benchmark_comment = " BF x32";
-			tests[0].ciphertext = "$2a$05$c92SVSfjeiCD6F2nAD6y0uBpJDjdRkt0EgeC4/31Rf2LUZbDRDE.O";
-			tests[1].ciphertext = "$2a$05$WY62Xk2TXZ7EvVDQ5fmjNu7b0GEzSzUXUh2cllxJwhtOeMtWV3Ujq";
-			tests[2].ciphertext = "$2a$05$Fa0iKV3E2SYVUlMknirWU.CFYGvJ67UwVKI1E2FP6XeLiZGcH3MJi";
-			tests[3].ciphertext = "$2a$05$.WRrXibc1zPgIdRXYfv.4uu6TD1KWf0VnHzq/0imhUhuxSxCyeBs2";
-			tests[4].ciphertext = "$2a$05$Otz9agnajgrAe0.kFVF9V.tzaStZ2s1s4ZWi/LY4sw2k/MTVFj/IO";
-		} else if (strcasecmp(options.subformat, "descrypt") &&
-		           strcasecmp(options.subformat, "des")) {
-			fprintf(stderr, "Subformat unknown to John. Currently supported: descrypt, md5crypt, bcrypt, sha256crypt, sha512crypt\n\n");
+			salt = "$2a$05$AD6y0uWY62Xk2TXZ";
+		} else if (!strcasecmp(options.subformat, "descrypt") ||
+		           !strcasecmp(options.subformat, "des")) {
+			salt = "CC";
+		} else {
+			char *p = mem_alloc_tiny(strlen(options.subformat) + 1,
+			                         MEM_ALIGN_NONE);
+			strcpy(p, " ");
+			strcat(p, options.subformat);
+			self->params.benchmark_comment = p;
+			salt = options.subformat;
+		}
+		for (i = 0; i < 5; i++)
+			tests[i].ciphertext =
+				strdup(crypt(tests[i].plaintext, salt));
+
+		if (strlen(tests[0].ciphertext) == 13 &&
+		    strcasecmp(options.subformat, "descrypt") &&
+		    strcasecmp(options.subformat, "des")) {
+			printf("%s not supported on this system\n",
+			       options.subformat);
 			error();
 		}
 	}
