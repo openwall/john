@@ -72,6 +72,7 @@ static void crk_help(void)
 		fprintf(stderr, "Send SIGUSR1 to mpirun for status\n");
 	else
 #endif
+	if (~options.flags & FLG_STDIN_CHK)
 	fprintf(stderr, "Press 'q' or Ctrl-C to abort, "
 	    "almost any other key for status\n");
 	printed = 1;
