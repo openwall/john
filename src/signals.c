@@ -147,23 +147,17 @@ static void sig_install_update(void)
 	sa.sa_handler = sig_handle_update;
 	sa.sa_flags = SA_RESTART;
 	sigaction(SIGHUP, &sa, NULL);
-#ifdef HAVE_MPI
 	sigaction(SIGUSR1, &sa, NULL);
-#endif /* HAVE_MPI */
 #else
 	signal(SIGHUP, sig_handle_update);
-#ifdef HAVE_MPI
 	signal(SIGUSR1, sig_handle_update);
-#endif /* HAVE_MPI */
 #endif
 }
 
 static void sig_remove_update(void)
 {
 	signal(SIGHUP, SIG_IGN);
-#ifdef HAVE_MPI
 	signal(SIGUSR1, SIG_DFL);
-#endif
 }
 
 void check_abort(int be_async_signal_safe)
