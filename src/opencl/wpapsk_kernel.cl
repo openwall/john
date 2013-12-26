@@ -19,7 +19,7 @@
 #define SCALAR
 #endif
 
-#if gpu_amd(DEVICE_INFO)
+#if gpu_amd(DEVICE_INFO) && __OPENCL_VERSION__ >= 110
 #define USE_BITSELECT
 #endif
 

@@ -60,7 +60,7 @@
 /* MAYBE_VECTOR_UINT need to be defined before this header */
 #include "opencl_pbkdf2_hmac_sha1.h"
 
-#if gpu_amd(DEVICE_INFO)
+#if gpu_amd(DEVICE_INFO) && __OPENCL_VERSION__ >= 110
 #define USE_BITSELECT
 #endif
 
