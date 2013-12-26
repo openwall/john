@@ -1003,6 +1003,7 @@ void key2john(Key &key,char *filename, const char *gecos) {
 		case SPEC_SALTED:
 			printf("*0*");
 			print_hex((unsigned char*)s2k.m_salt, 8);
+			break;
 
 		case SPEC_ITERATED_SALTED:
 			printf("*%d*", s2k.m_count);
