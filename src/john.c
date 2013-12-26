@@ -747,6 +747,11 @@ static void john_run(void)
 		}
 #endif
 
+		if (database.format->params.flags & FMT_NOT_EXACT)
+			fprintf(stderr, "Note: This format may emit false "
+			        "positives, so it will keep trying even "
+			        "after\nfinding a possible candidate.\n");
+
 		/* WPA-PSK and WoW both have min-length 8. Until the format
 		   struct can hold this information, we need this hack here. */
 		if (database.format->params.label &&
