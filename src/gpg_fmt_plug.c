@@ -208,6 +208,8 @@ static struct fmt_tests gpg_tests[] = {
 	{"$gpg$*17*42*1024*d974ae70cfbf8ab058b2e1d898add67ab1272535e8c4b9c5bd671adce22d08d5db941a60e0715b4f0c9d*3*254*2*3*8*a9e85673bb9199d8*11534336*71e35b85cddfe2af", "crackme"},
 	/* MD5-CAST5 salt-iter */
 	{"$gpg$*17*42*1024*002170c3c5778fdbeedd788a1eda3827ef7d6d73491c022d5b76d33ff70ccae8d243aab7e2f40afcb4a4*3*254*1*3*8*019e084555546803*65536*49afdb670acda6c6", "MD5-CAST5-openwall"},
+	/* gpg --s2k-mode 0 --gen-key*/
+	{"$gpg$*1*668*2048*98515325c60af7a5f9466fd3c51fb49e6001567145dba5bb60a23d3c108a86b83793617b63e3fdfd94a07886782feb555e92366aeecb172ad7614ad6a6bbf137aa75a1d44dc550485b2103d194c691f1bf44301fc0d337e00d2b319958f709b4ca0b5cb7af119931abd99dfb75650210fc66be32af0b3dddaf362ef3504ef76cda787b28e17bc173d9c4ff4829713c9ee5d5282df443c7fc112e79da47091cf671b87179b8ce900873321c180ebc45d11a95aaf27610231b6abf1f22f71fdddd694334a752662ae4d62de122f1ff2ba95ba5fab7e5a498edd389d014926dd91c1769bfdd00d65123a8ec3e31d70e0ffe04eb8ef69648b9895c4cd5afc1e0ec81fa032e1b17c876b30241d1f5464535dfd7cf13f31c1bc1aa6150070afb491cca8afe4af9df174a49d1b8ebffe65298fc85ada9cf1ec61db243792d878bf4fdb12592f1a493912340010b173b4ccd49be7f1bc3565e9bdc601c5ecb01253979f64282fb34970d1d7ad1d13987032cda00a74d1d3117393a0cee73c2303fe4c5ba3938959956abfde9f5f24a7590a8d2224c2f2ca2bbc699841bf23f04e9a2a2974dfdd091462b1e93f47b8e3fcd75009f2f50839b3720f33cabc41adf17b4353ec8bc997f449b5fe4f320b8bf0e5e392386e0ef9b665a3680405e7c022a37e2ebeb2c41294455d97783f22137d4051f07ea215f91fa417d378496f5930cbc13dd942249d265c3d4a36e1e1fbed147153f2c3e3d4a43bec4606fcba57e2e4783240062285757ba39e1cc01b8506314a438fb99306a2dbb0cae1dbb5410965a8342cffa4ffcae8e79198404507c4f8d39cc3979c3f407d5d91ed6335e069087a975221c78b02726f234e64ff746a5e814997bbaa11f2885c0d00f242dff3138ff2556d577c125765f0fd08dfa66795ba810e3bb90efcfd9f5c3cb643bdf*0*254*2*3*8*01942c062e4b5eb0", "openwall@12345"},
 	{NULL}
 };
 
@@ -314,6 +316,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	for(i = 0; i < strlen(p); i++)
 		if(atoi16[ARCH_INDEX(p[i])] == 0x7F)
 			goto err;
+	/* handle "SPEC_SIMPLE" correctly */
+	if (spec == 0) {
+		MEM_FREE(keeptr);
+		return 1;
+	}
 	if ((p = strtok(NULL, "*")) == NULL)	/* count */
 		goto err;
 	res = atoi(p);
@@ -656,12 +663,15 @@ static void *get_salt(char *ciphertext)
 		    atoi16[ARCH_INDEX(p[i * 2])] * 16 +
 		    atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	p = strtok(NULL, "*");
-	cs.count = atoi(p);
-	p = strtok(NULL, "*");
-	for (i = 0; i < 8; i++)
-		cs.salt[i] =
-		    atoi16[ARCH_INDEX(p[i * 2])] * 16 +
-		    atoi16[ARCH_INDEX(p[i * 2 + 1])];
+	/* handle "SPEC_SIMPLE" correctly */
+	if (cs.spec != 0) {
+		cs.count = atoi(p);
+		p = strtok(NULL, "*");
+		for (i = 0; i < 8; i++)
+			cs.salt[i] =
+			atoi16[ARCH_INDEX(p[i * 2])] * 16 +
+			atoi16[ARCH_INDEX(p[i * 2 + 1])];
+	}
 	MEM_FREE(keeptr);
 
 	// Set up the key generator
