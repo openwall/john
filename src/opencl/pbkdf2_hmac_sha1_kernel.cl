@@ -60,7 +60,7 @@
 /* MAYBE_VECTOR_UINT need to be defined before this header */
 #include "opencl_pbkdf2_hmac_sha1.h"
 
-#if gpu_amd(DEVICE_INFO) && __OPENCL_VERSION__ >= 110
+#if gpu_amd(DEVICE_INFO)
 #define USE_BITSELECT
 #endif
 
@@ -384,7 +384,6 @@ inline uint SWAP32(uint x)
 #else // Milen's SHA-1, faster for AMD
 
 #ifdef USE_BITSELECT
-#pragma OPENCL EXTENSION cl_amd_media_ops : enable
 #define F_00_19(bb, cc, dd) (bitselect((dd), (cc), (bb)))
 #define F_20_39(bb, cc, dd)  ((bb) ^ (cc) ^ (dd))
 #define F_40_59(bb, cc, dd) (bitselect((cc), (bb), ((dd)^(cc))))
