@@ -27,6 +27,7 @@
 #include <openssl/ripemd.h>
 #include <openssl/cast.h>
 #include <openssl/bn.h>
+#include <openssl/dsa.h>
 #ifdef _OPENMP
 #include <omp.h>
 #define OMP_SCALE               64
@@ -90,7 +91,8 @@ enum {
 enum {
 	PKA_UNKOWN = 0,
 	PKA_RSA_ENCSIGN = 1,
-	PKA_DSA = 17
+	PKA_DSA = 17,
+	PKA_EG = 20
 };
 
 enum {
@@ -127,6 +129,16 @@ static struct custom_salt {
 	int ivlen;
 	int count;
 	void (*s2kfun)(char *, unsigned char*, int);
+	unsigned char p[4096];
+	unsigned char q[4096];
+	unsigned char g[4096];
+	unsigned char y[4096];
+	unsigned char x[4096];
+	int pl;
+	int ql;
+	int gl;
+	int yl;
+	int xl;
 } *cur_salt;
 
 
@@ -210,6 +222,10 @@ static struct fmt_tests gpg_tests[] = {
 	{"$gpg$*17*42*1024*002170c3c5778fdbeedd788a1eda3827ef7d6d73491c022d5b76d33ff70ccae8d243aab7e2f40afcb4a4*3*254*1*3*8*019e084555546803*65536*49afdb670acda6c6", "MD5-CAST5-openwall"},
 	/* gpg --s2k-mode 0 --gen-key*/
 	{"$gpg$*1*668*2048*98515325c60af7a5f9466fd3c51fb49e6001567145dba5bb60a23d3c108a86b83793617b63e3fdfd94a07886782feb555e92366aeecb172ad7614ad6a6bbf137aa75a1d44dc550485b2103d194c691f1bf44301fc0d337e00d2b319958f709b4ca0b5cb7af119931abd99dfb75650210fc66be32af0b3dddaf362ef3504ef76cda787b28e17bc173d9c4ff4829713c9ee5d5282df443c7fc112e79da47091cf671b87179b8ce900873321c180ebc45d11a95aaf27610231b6abf1f22f71fdddd694334a752662ae4d62de122f1ff2ba95ba5fab7e5a498edd389d014926dd91c1769bfdd00d65123a8ec3e31d70e0ffe04eb8ef69648b9895c4cd5afc1e0ec81fa032e1b17c876b30241d1f5464535dfd7cf13f31c1bc1aa6150070afb491cca8afe4af9df174a49d1b8ebffe65298fc85ada9cf1ec61db243792d878bf4fdb12592f1a493912340010b173b4ccd49be7f1bc3565e9bdc601c5ecb01253979f64282fb34970d1d7ad1d13987032cda00a74d1d3117393a0cee73c2303fe4c5ba3938959956abfde9f5f24a7590a8d2224c2f2ca2bbc699841bf23f04e9a2a2974dfdd091462b1e93f47b8e3fcd75009f2f50839b3720f33cabc41adf17b4353ec8bc997f449b5fe4f320b8bf0e5e392386e0ef9b665a3680405e7c022a37e2ebeb2c41294455d97783f22137d4051f07ea215f91fa417d378496f5930cbc13dd942249d265c3d4a36e1e1fbed147153f2c3e3d4a43bec4606fcba57e2e4783240062285757ba39e1cc01b8506314a438fb99306a2dbb0cae1dbb5410965a8342cffa4ffcae8e79198404507c4f8d39cc3979c3f407d5d91ed6335e069087a975221c78b02726f234e64ff746a5e814997bbaa11f2885c0d00f242dff3138ff2556d577c125765f0fd08dfa66795ba810e3bb90efcfd9f5c3cb643bdf*0*254*2*3*8*01942c062e4b5eb0", "openwall@12345"},
+	/* gpg --s2k-mode 1 --gen-key, old GnuPG versions (e.g GnuPG 1.0.3), uses *new* hash format */
+	{"$gpg$*17*24*1024*b0d0b23529f968c0d05fa8caf38445c5bca5c2523ae6cc87*1*255*2*3*8*c5efc5bab719aa63*0*a0ccc71dedfce4d3*128*bb0ccf0f171fbb6438d94fdf24b749461c63902c4dca06f2d5580bca5837899431f1cbc7ccd56db8c9136a4ac7230a21eb6ab51a7c7a24fe23e99dd546eeb07cadb96372b0cb4a7dc2ba31e399d779e8ffa87f6f16c22ab54226a8a565550cfe98bee81001a810749327dca46f4ce7eb4f9726a00069026cb89f9533599cacdb*20*ec99ac865efa5aa7a9f1da411107e02e8e41daf5*128*16ed223362bb289889bf15c0ef3ce88b94892d57ea486f7cd63a1f8f83da3c28a6ee3879787c654c97e4824c75b0efd7f36db36947dfb8c9b1cfe0562c4e7d8b2b600973b9b379a1891200941b3a17361e49ccf157b0797a9d2f7535da0455c8d822b669ed6fc5fec56c71ad5df6fd9d4a4b67458b2e576a144ba2d0f49eff72*128*7991ba80eae8aa9d8adb38ae3c91fe771b7dc0a6f30fdc45d357acd5fcae1176245807972c39748880080d609f4c7e11a6c30d7ad144d848838e4ace2d9716c6e27edb6ef6ca453d7a8a3b0320fe721bc094e891b73f4515f3e34f52dfbf002108b0412bf54142b4d2c411fee99fd0b459de0a3825dc5be078b6e48d7aa5ceae", "wtf@123"},
+	/* gpg --s2k-mode 1 --gen-key, old GnuPG versions (e.g GnuPG 1.0.3), uses *new* hash format, ElGamal */
+	{"$gpg$*16*36*1024*0a4c2fb9d1ff24b817212a9cc0d3f2d84184a368ff3a04c337566812d037e5fe28933eaa*1*255*2*3*8*b312f3046fdb046c*0*a0ccc71dedfce4d3*128*f9235c132a796b0fd67f59567cf01dcf0a4ebbc8607a1033cefd2d52be40334e8cfba60737751b1bf16e36399340698656255917ca65f1f6f7806f05f686889ef7dc7030dd17dc9b45a1e1f01ab8d8a676d5a1759ac65bd1e2e50282f9926b44a156f7fea5e4ae5883e10f533efb9cd857efb84d23062f9741b4bd2ba70abcb3*1*05*128*e67deba19288e87c93829194698d10169e1f42eb43bba46b563037177ee09801a824fc9be2796fd24f4438c1a72f2e8587e6507ab1a408695a46709b87cc171366eef9ee86bd7935dd0ef6d4efdba738d7d8cb40dfe0f3dec996ebe2153fec9c091b5be0d31e398d8de75de4e346e299a07603242846b87f2b90ed82f9143786", "wtf@123"},
 	{NULL}
 };
 
@@ -672,6 +688,55 @@ static void *get_salt(char *ciphertext)
 			atoi16[ARCH_INDEX(p[i * 2])] * 16 +
 			atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	}
+	if (cs.spec == 1 && cs.pk_algorithm == 17) {
+		/* old hashes will crash!, "gpg --s2k-mode 1 --gen-key" */
+		p = strtok(NULL, "*");
+		cs.pl = atoi(p);
+		p = strtok(NULL, "*");
+		for (i = 0; i < strlen(p) / 2; i++)
+			cs.p[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16 +
+			atoi16[ARCH_INDEX(p[i * 2 + 1])];
+		p = strtok(NULL, "*");
+		cs.ql = atoi(p);
+		p = strtok(NULL, "*");
+		for (i = 0; i < strlen(p) / 2; i++)
+			cs.q[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16 +
+			atoi16[ARCH_INDEX(p[i * 2 + 1])];
+		p = strtok(NULL, "*");
+		cs.gl = atoi(p);
+		p = strtok(NULL, "*");
+		for (i = 0; i < strlen(p) / 2; i++)
+			cs.g[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16 +
+			atoi16[ARCH_INDEX(p[i * 2 + 1])];
+		p = strtok(NULL, "*");
+		cs.yl = atoi(p);
+		p = strtok(NULL, "*");
+		for (i = 0; i < strlen(p) / 2; i++)
+			cs.y[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16 +
+			atoi16[ARCH_INDEX(p[i * 2 + 1])];
+	}
+	if (cs.spec == 1 && cs.pk_algorithm == 16) {
+		/* ElGamal */
+		p = strtok(NULL, "*");
+		cs.pl = atoi(p);
+		p = strtok(NULL, "*");
+		for (i = 0; i < strlen(p) / 2; i++)
+			cs.p[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16 +
+			atoi16[ARCH_INDEX(p[i * 2 + 1])];
+		p = strtok(NULL, "*");
+		cs.gl = atoi(p);
+		p = strtok(NULL, "*");
+		for (i = 0; i < strlen(p) / 2; i++)
+			cs.g[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16 +
+			atoi16[ARCH_INDEX(p[i * 2 + 1])];
+		p = strtok(NULL, "*");
+		cs.yl = atoi(p);
+		p = strtok(NULL, "*");
+		for (i = 0; i < strlen(p) / 2; i++)
+			cs.y[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16 +
+			atoi16[ARCH_INDEX(p[i * 2 + 1])];
+	}
+
 	MEM_FREE(keeptr);
 
 	// Set up the key generator
@@ -748,6 +813,84 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
+// borrowed from "passe-partout" project
+static int check_dsa_secret_key(DSA *dsa)
+{
+	int error;
+	int rc = -1;
+	BIGNUM *res = BN_new();
+	BN_CTX *ctx = BN_CTX_new();
+	if (!res) {
+		fprintf(stderr, "failed to allocate result BN in check_dsa_secret_key()\n");
+		exit(-1);
+	}
+	if (!ctx) {
+		fprintf(stderr, "failed to allocate BN_CTX ctx in check_dsa_secret_key()\n");
+		exit(-1);
+	}
+
+	error = BN_mod_exp(res, dsa->g, dsa->priv_key, dsa->p, ctx);
+	if ( error == 0 ) {
+		goto freestuff;
+	}
+
+	rc = BN_cmp(res, dsa->pub_key);
+
+freestuff:
+
+	BN_CTX_free(ctx);
+	BN_free(res);
+	BN_free(dsa->g);
+	BN_free(dsa->q);
+	BN_free(dsa->p);
+	BN_free(dsa->pub_key);
+	BN_free(dsa->priv_key);
+
+	return rc;
+}
+
+typedef struct {
+	BIGNUM *p;          /* prime */
+	BIGNUM *g;          /* group generator */
+	BIGNUM *y;          /* g^x mod p */
+	BIGNUM *x;          /* secret exponent */
+} ElGamal_secret_key;
+
+// borrowed from GnuPG
+static int check_elg_secret_key(ElGamal_secret_key *elg)
+{
+	int error;
+	int rc = -1;
+	BIGNUM *res = BN_new();
+	BN_CTX *ctx = BN_CTX_new();
+	if (!res) {
+		fprintf(stderr, "failed to allocate result BN in check_elg_secret_key()\n");
+		exit(-1);
+	}
+	if (!ctx) {
+		fprintf(stderr, "failed to allocate BN_CTX ctx in chec_elg_secret_key()\n");
+		exit(-1);
+	}
+
+	error = BN_mod_exp(res, elg->g, elg->x, elg->p, ctx);
+	if ( error == 0 ) {
+		goto freestuff;
+	}
+
+	rc = BN_cmp(res, elg->y);
+
+freestuff:
+
+	BN_CTX_free(ctx);
+	BN_free(res);
+	BN_free(elg->g);
+	BN_free(elg->p);
+	BN_free(elg->y);
+	BN_free(elg->x);
+
+	return rc;
+}
+
 static int check(unsigned char *keydata, int ks)
 {
 	// Decrypt first data block in order to check the first two bits of
@@ -756,7 +899,7 @@ static int check(unsigned char *keydata, int ks)
 	unsigned char ivec[32];
 	unsigned char out[4096] = { 0 };
 	int tmp = 0;
-        uint32_t num_bits;
+	uint32_t num_bits;
 	int checksumOk;
 	int i;
 
@@ -828,11 +971,12 @@ static int check(unsigned char *keydata, int ks)
 				  SHA1_Update(&ctx, out, cur_salt->datalen - SHA_DIGEST_LENGTH);
 				  SHA1_Final(checksum, &ctx);
 				  if (memcmp(checksum, out + cur_salt->datalen - SHA_DIGEST_LENGTH, SHA_DIGEST_LENGTH) == 0) {
-					  checksumOk = 1;
+					  return 1;  /* we have a 20 byte verifier ;) */
 				  }
 			  } break;
 		case 0:
 		case 255: {
+				  // https://tools.ietf.org/html/rfc4880#section-3.7.2
 				  uint16_t sum = 0;
 				  for (i = 0; i < cur_salt->datalen - 2; i++) {
 					  sum += out[i];
@@ -845,11 +989,51 @@ static int check(unsigned char *keydata, int ks)
 			  break;
 	}
 	// If the checksum is ok, try to parse the first MPI of the private key
+	// Stop relying on checksum altogether, GnuPG ignores it (after
+	// documenting why though!)
 	if (checksumOk) {
 		BIGNUM *b = NULL;
 		uint32_t blen = (num_bits + 7) / 8;
+		int ret;
+		if (cur_salt->datalen == 24 && blen != 20)  /* verifier 1 */
+			return 0;
 		if (blen < cur_salt->datalen && ((b = BN_bin2bn(out + 2, blen, NULL)) != NULL)) {
-			BN_free(b);
+			char *str = BN_bn2hex(b);
+			DSA dsa;
+			ElGamal_secret_key elg;
+			if (strlen(str) != blen * 2) { /* verifier 2 */
+				free(str);
+				return 0;
+			}
+			free(str);
+
+			if (cur_salt->pk_algorithm == 17) { /* DSA check */
+				dsa.p = BN_bin2bn(cur_salt->p, cur_salt->pl, NULL);
+				// puts(BN_bn2hex(dsa.p));
+				dsa.q = BN_bin2bn(cur_salt->q, cur_salt->ql, NULL);
+				// puts(BN_bn2hex(dsa.q));
+				dsa.g = BN_bin2bn(cur_salt->g, cur_salt->gl, NULL);
+				// puts(BN_bn2hex(dsa.g));
+				dsa.priv_key = b;
+				dsa.pub_key = BN_bin2bn(cur_salt->y, cur_salt->yl, NULL);
+				// puts(BN_bn2hex(dsa.pub_key));
+				ret = check_dsa_secret_key(&dsa); /* verifier 3 */
+				if (ret != 0)
+					return 0;
+			}
+			if (cur_salt->pk_algorithm == 16) { /* ElGamal check */
+				elg.p = BN_bin2bn(cur_salt->p, cur_salt->pl, NULL);
+				// puts(BN_bn2hex(elg.p));
+				elg.g = BN_bin2bn(cur_salt->g, cur_salt->gl, NULL);
+				// puts(BN_bn2hex(elg.g));
+				elg.x = b;
+				// puts(BN_bn2hex(elg.x));
+				elg.y = BN_bin2bn(cur_salt->y, cur_salt->yl, NULL);
+				// puts(BN_bn2hex(elg.y));
+				ret = check_elg_secret_key(&elg); /* verifier 3 */
+				if (ret != 0)
+					return 0;
+			}
 			return 1;
 		}
 	}
