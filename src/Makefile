@@ -411,7 +411,6 @@ linux-x86-64-avx:
 		ASFLAGS="$(ASFLAGS) -mavx" \
 		LDFLAGS="$(LDFLAGS) -lcrypt -ldl"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
 
@@ -425,7 +424,6 @@ linux-x86-64-xop:
 		ASFLAGS="$(ASFLAGS) -mxop" \
 		LDFLAGS="$(LDFLAGS) -lcrypt -ldl"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
 
@@ -441,7 +439,6 @@ linux-x86-64-gpu:
 	$(CP_PRESERVE) opencl/*.cl ../run/kernels/
 	$(CP_PRESERVE) opencl_*.h ../run/kernels/
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
 
@@ -457,7 +454,6 @@ linux-x86-64-opencl:
 	$(CP_PRESERVE) opencl/*.cl ../run/kernels/
 	$(CP_PRESERVE) opencl_*.h ../run/kernels/
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
 
@@ -470,7 +466,6 @@ linux-x86-64-cuda:
 		ASFLAGS="$(ASFLAGS) -march=native" \
 		LDFLAGS="$(LDFLAGS) -L$(CUDAPATH)/lib64 -lcrypt -ldl -lcudart -march=native"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
 
@@ -483,7 +478,6 @@ linux-x86-64-native:
 		ASFLAGS="$(ASFLAGS) -march=native" \
 		LDFLAGS="$(LDFLAGS) -lcrypt -ldl -march=native"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
 
@@ -496,7 +490,6 @@ linux-X32-native:
 		ASFLAGS="$(ASFLAGS) -march=native -mx32" \
 		LDFLAGS="$(LDFLAGS) -lcrypt -ldl -march=native -mx32"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
 
@@ -509,7 +502,6 @@ linux-X32:
 		ASFLAGS="$(ASFLAGS) -mx32" \
 		LDFLAGS="$(LDFLAGS) -lcrypt -ldl -mx32"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
 
@@ -521,7 +513,6 @@ linux-x86-64:
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -DHAVE_DL" \
 		LDFLAGS="$(LDFLAGS) -lcrypt -ldl"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
 
@@ -533,7 +524,6 @@ linux-x86-64i:
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -DHAVE_DL -DUSING_ICC_S_FILE" \
 		LDFLAGS="$(LDFLAGS) -lcrypt -ldl"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
 
@@ -546,7 +536,6 @@ linux-x86-64-clang:
 		LDFLAGS="$(LDFLAGS) -lcrypt -ldl" \
 		CPP="clang" CC="clang" AS="clang" LD="clang" CXX="clang++"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX) CXX="clang++"
 	$(MAKE) $(PROJ_PCAP) CC="clang"
 	@echo "All done"
 
@@ -559,10 +548,6 @@ linux-x86-64-clang-debug:
 		LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz -lcrypt -ldl -faddress-sanitizer $(NSS_LDFLAGS) $(GMP_LDFLAGS) $(KRB5_LDFLAGS) $(JOHN_LDFLAGS)" \
 		CPP="clang" CC="clang" AS="clang" LD="clang" CXX="clang++"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX) \
-		CFLAGS="-Wall -Wdeclaration-after-statement -c -g -O1 -faddress-sanitizer -I/usr/include -msse2 -DDEBUG -DHAVE_CRYPT -DHAVE_DL $(HAVE_NSS) $(HAVE_GMP) $(HAVE_KRB5) $(JOHN_CFLAGS)" \
-		LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz -lcrypt -ldl -faddress-sanitizer $(NSS_LDFLAGS) $(GMP_LDFLAGS) $(KRB5_LDFLAGS) $(JOHN_LDFLAGS)" \
-		CPP="clang" CC="clang" AS="clang" LD="clang" CXX="clang++"
 	$(MAKE) $(PROJ_PCAP) \
 		CFLAGS="-Wall -Wdeclaration-after-statement -c -g -O1 -faddress-sanitizer -I/usr/include -msse2 -DDEBUG -DHAVE_CRYPT -DHAVE_DL $(HAVE_NSS) $(HAVE_GMP) $(HAVE_KRB5) $(JOHN_CFLAGS)" \
 		LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz -lcrypt -ldl -faddress-sanitizer $(NSS_LDFLAGS) $(GMP_LDFLAGS) $(KRB5_LDFLAGS) $(JOHN_LDFLAGS)" \
@@ -577,9 +562,6 @@ linux-x86-64-newgcc-debug:
 		CFLAGS="-Wall -Wdeclaration-after-statement -c -g -O1 -fsanitize=address -I/usr/include -msse2 -DDEBUG -DHAVE_CRYPT -DHAVE_DL $(HAVE_NSS) $(HAVE_GMP) $(HAVE_KRB5) $(JOHN_CFLAGS)" \
 		LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz -lcrypt -ldl -fsanitize=address $(NSS_LDFLAGS) $(GMP_LDFLAGS) $(KRB5_LDFLAGS) $(JOHN_LDFLAGS)"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX) \
-		CFLAGS="-Wall -Wdeclaration-after-statement -c -g -O1 -fsanitize=address -I/usr/include -msse2 -DDEBUG -DHAVE_CRYPT -DHAVE_DL $(HAVE_NSS) $(HAVE_GMP) $(HAVE_KRB5) $(JOHN_CFLAGS)" \
-		LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz -lcrypt -ldl -fsanitize=address $(NSS_LDFLAGS) $(GMP_LDFLAGS) $(KRB5_LDFLAGS) $(JOHN_LDFLAGS)"
 	$(MAKE) $(PROJ_PCAP) \
 		CFLAGS="-Wall -Wdeclaration-after-statement -c -g -O1 -fsanitize=address -I/usr/include -msse2 -DDEBUG -DHAVE_CRYPT -DHAVE_DL $(HAVE_NSS) $(HAVE_GMP) $(HAVE_KRB5) $(JOHN_CFLAGS)" \
 		LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz -lcrypt -ldl -fsanitize=address $(NSS_LDFLAGS) $(GMP_LDFLAGS) $(KRB5_LDFLAGS) $(JOHN_LDFLAGS)"
@@ -595,7 +577,6 @@ linux-x86-64-icc:
 		LDFLAGS="-lm -lssl -lcrypto -ipo -static-intel -lcrypt -ldl -lz $(ICCOMPFLAGS) -s $(NSS_LDFLAGS) $(GMP_LDFLAGS) $(KRB5_LDFLAGS) $(JOHN_LDFLAGS)" \
 		CPP="icc" CC="icc" AS="icc" LD="icc"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX) CPP="icc" CC="icc" AS="icc" LD="icc"
 	$(MAKE) $(PROJ_PCAP) CPP="icc" CC="icc" AS="icc" LD="icc"
 	@echo "All done"
 
@@ -608,7 +589,6 @@ linux-x86-64-32-native:
 		ASFLAGS="$(ASFLAGS) -m32 -msse2 -march=native" \
 		LDFLAGS="$(LDFLAGS) -m32 -lcrypt -ldl -march=native"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX) CFLAGS="$(CFLAGS) -m32"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
 	@echo "All done"
 
@@ -621,7 +601,6 @@ linux-x86-64-32-sse2:
 		ASFLAGS="$(ASFLAGS) -m32 -msse2" \
 		LDFLAGS="$(LDFLAGS) -m32 -lcrypt -ldl"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX) CFLAGS="$(CFLAGS) -m32"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
 	@echo "All done"
 
@@ -634,7 +613,6 @@ linux-x86-64-32-sse2asm:
 		ASFLAGS="$(ASFLAGS) -m32 -msse2" \
 		LDFLAGS="$(LDFLAGS) -m32 -lcrypt -ldl"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX) CFLAGS="$(CFLAGS) -m32"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
 	@echo "All done"
 
@@ -647,7 +625,6 @@ linux-x86-64-32-sse2i:
 		ASFLAGS="$(ASFLAGS) -m32 -msse2" \
 		LDFLAGS="$(LDFLAGS) -m32 -lcrypt -ldl"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX) CFLAGS="$(CFLAGS) -m32"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
 	@echo "All done"
 
@@ -660,7 +637,6 @@ linux-x86-64-32-mmx:
 		ASFLAGS="$(ASFLAGS) -m32" \
 		LDFLAGS="$(LDFLAGS) -m32 -lcrypt -ldl"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX) CFLAGS="$(CFLAGS) -m32"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
 	@echo "All done"
 
@@ -673,7 +649,6 @@ linux-x86-64-32-any:
 		ASFLAGS="$(ASFLAGS) -m32" \
 		LDFLAGS="$(LDFLAGS) -m32 -lcrypt -ldl"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX) CFLAGS="$(CFLAGS) -m32"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
 	@echo "All done"
 
@@ -687,7 +662,6 @@ linux-x86-avx:
 		ASFLAGS="$(ASFLAGS) -m32 -mavx" \
 		LDFLAGS="$(LDFLAGS) -m32 -lcrypt"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX) CFLAGS="$(CFLAGS) -m32"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
 	@echo "All done"
 
@@ -701,7 +675,6 @@ linux-x86-xop:
 		ASFLAGS="$(ASFLAGS) -m32 -mxop" \
 		LDFLAGS="$(LDFLAGS) -m32 -lcrypt"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX) CFLAGS="$(CFLAGS) -m32"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
 	@echo "All done"
 
@@ -717,7 +690,6 @@ linux-x86-gpu:
 	$(CP_PRESERVE) opencl/*.cl ../run/kernels/
 	$(CP_PRESERVE) opencl_*.h ../run/kernels/
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
 
@@ -733,7 +705,6 @@ linux-x86-opencl:
 	$(CP_PRESERVE) opencl/*.cl ../run/kernels/
 	$(CP_PRESERVE) opencl_*.h ../run/kernels/
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
 
@@ -746,7 +717,6 @@ linux-x86-cuda:
 		ASFLAGS="$(ASFLAGS) -march=native" \
 		LDFLAGS="$(LDFLAGS) -L$(CUDAPATH)/lib -lcrypt -ldl -lcudart -march=native"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
 
@@ -759,7 +729,6 @@ linux-x86-native:
 		ASFLAGS="$(ASFLAGS) -march=native" \
 		LDFLAGS="$(LDFLAGS) -lcrypt -ldl -march=native"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
 
@@ -772,7 +741,6 @@ linux-x86-sse2:
 		ASFLAGS="$(ASFLAGS) -msse2" \
 		LDFLAGS="$(LDFLAGS) -lcrypt -ldl"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
 
@@ -785,7 +753,6 @@ linux-x86-sse2i:
 		ASFLAGS="$(ASFLAGS) -msse2" \
 		LDFLAGS="$(LDFLAGS) -lcrypt -ldl"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
 
@@ -797,7 +764,6 @@ linux-x86-mmx:
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -DHAVE_DL" \
 		LDFLAGS="$(LDFLAGS) -lcrypt -ldl"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
 
@@ -809,7 +775,6 @@ linux-x86-any:
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -DHAVE_DL" \
 		LDFLAGS="$(LDFLAGS) -lcrypt -ldl"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
 
@@ -822,7 +787,6 @@ linux-x86-clang:
 		LDFLAGS="$(LDFLAGS) -lcrypt -ldl" \
 		CPP="clang" CC="clang" AS="clang" LD="clang" CXX="clang++"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX) CXX="clang++"
 	$(MAKE) $(PROJ_PCAP) CC="clang"
 	@echo "All done"
 
@@ -835,10 +799,6 @@ linux-x86-clang-debug:
 		LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz -lcrypt -ldl -faddress-sanitizer $(NSS_LDFLAGS) $(GMP_LDFLAGS) $(KRB5_LDFLAGS) $(JOHN_LDFLAGS)" \
 		CPP="clang" CC="clang" AS="clang" LD="clang" CXX="clang++"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX) \
-		CFLAGS="-Wall -Wdeclaration-after-statement -c -g -O1 -faddress-sanitizer -I/usr/include -msse2 -DDEBUG -DHAVE_CRYPT -DHAVE_DL $(HAVE_NSS) $(HAVE_GMP) $(HAVE_KRB5) $(OMPFLAGS) $(JOHN_CFLAGS)" \
-		LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz -lcrypt -ldl -faddress-sanitizer $(NSS_LDFLAGS) $(GMP_LDFLAGS) $(KRB5_LDFLAGS) $(JOHN_LDFLAGS)" \
-		CPP="clang" CC="clang" AS="clang" LD="clang" CXX="clang++"
 	$(MAKE) $(PROJ_PCAP) \
 		CFLAGS="-Wall -Wdeclaration-after-statement -c -g -O1 -faddress-sanitizer -I/usr/include -msse2 -DDEBUG -DHAVE_CRYPT -DHAVE_DL $(HAVE_NSS) $(HAVE_GMP) $(HAVE_KRB5) $(OMPFLAGS) $(JOHN_CFLAGS)" \
 		LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz -lcrypt -ldl -faddress-sanitizer $(NSS_LDFLAGS) $(GMP_LDFLAGS) $(KRB5_LDFLAGS) $(JOHN_LDFLAGS)" \
@@ -869,7 +829,6 @@ linux-alpha:
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -DHAVE_DL" \
 		LDFLAGS="$(LDFLAGS) -lcrypt -ldl"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
 
@@ -886,7 +845,6 @@ linux-alpha-ccc:
 		OPT_NORMAL="-fast" \
 		OPT_INLINE="-O2 -arch host"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX) CC=ccc
 	$(MAKE) $(PROJ_PCAP) CC=ccc
 	@echo "All done"
 
@@ -898,7 +856,6 @@ linux-sparc:
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -DHAVE_DL" \
 		LDFLAGS="$(LDFLAGS) -lcrypt -ldl"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
 
@@ -911,7 +868,6 @@ linux-ppc32-altivec:
 		LDFLAGS="$(LDFLAGS) -lcrypt -ldl" \
 		OPT_INLINE="-finline-functions -finline-limit=4000 -maltivec"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
 
@@ -923,7 +879,6 @@ linux-ppc32:
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -DHAVE_DL" \
 		LDFLAGS="$(LDFLAGS) -lcrypt -ldl"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
 
@@ -937,7 +892,6 @@ linux-ppc64-altivec:
 		LDFLAGS="$(LDFLAGS) -m64 -lcrypt -ldl" \
 		OPT_INLINE="-finline-functions -finline-limit=4000 -maltivec"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX) CFLAGS="$(CFLAGS) -m64"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m64"
 	@echo "All done"
 
@@ -950,7 +904,6 @@ linux-ppc64:
 		LDFLAGS="$(LDFLAGS) -m64 -lcrypt -ldl" \
 		OPT_INLINE="-finline-functions -finline-limit=4000"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX) CFLAGS="$(CFLAGS) -m64"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m64"
 	@echo "All done"
 
@@ -962,7 +915,6 @@ linux-ia64:
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -DHAVE_DL" \
 		LDFLAGS="$(LDFLAGS) -lcrypt -ldl"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
 
@@ -972,7 +924,6 @@ freebsd-x86-64:
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) x86-64.o sse-intrinsics.o"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
 
@@ -983,7 +934,6 @@ freebsd-x86-64i:
 		JOHN_OBJS="$(JOHN_OBJS) x86-64.o sse-intrinsics-64.o" \
 		CFLAGS="$(CFLAGS) -DUSING_ICC_S_FILE"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
 
@@ -994,7 +944,6 @@ freebsd-x86-sse2:
 		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
 		ASFLAGS="$(ASFLAGS) -DBSD"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
 
@@ -1006,7 +955,6 @@ freebsd-x86-sse2i:
 		CFLAGS="$(CFLAGS) -msse2 -DUSING_ICC_S_FILE" \
 		ASFLAGS="$(ASFLAGS) -msse2 -DBSD" \
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
 
@@ -1017,7 +965,6 @@ freebsd-x86-mmx:
 		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-mmx.o sha1-mmx.o md4-mmx.o md5-mmx.o" \
 		ASFLAGS="$(ASFLAGS) -DBSD"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
 
@@ -1028,7 +975,6 @@ freebsd-x86-any:
 		JOHN_OBJS="$(JOHN_OBJS) x86.o" \
 		ASFLAGS="$(ASFLAGS) -DBSD"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
 
@@ -1039,7 +985,6 @@ freebsd-x86-any-a.out:
 		JOHN_OBJS="$(JOHN_OBJS) x86.o" \
 		ASFLAGS="$(ASFLAGS) -DUNDERSCORES -DALIGN_LOG -DBSD"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
 
@@ -1049,7 +994,6 @@ freebsd-alpha:
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) alpha.o"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
 
@@ -1059,7 +1003,6 @@ openbsd-x86-64:
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) x86-64.o sse-intrinsics.o"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
 
@@ -1070,7 +1013,6 @@ openbsd-x86-64i:
 		JOHN_OBJS="$(JOHN_OBJS) x86-64.o sse-intrinsics-64.o" \
 		CFLAGS="$(CFLAGS) -DUSING_ICC_S_FILE"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
 
@@ -1081,7 +1023,6 @@ openbsd-x86-sse2:
 		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
 		ASFLAGS="$(ASFLAGS) -DBSD"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
 
@@ -1093,7 +1034,6 @@ openbsd-x86-sse2i:
 		CFLAGS="$(CFLAGS) -msse2 -DUSING_ICC_S_FILE" \
 		ASFLAGS="$(ASFLAGS) -msse2 -DBSD"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
 
@@ -1104,7 +1044,6 @@ openbsd-x86-mmx:
 		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-mmx.o sha1-mmx.o md4-mmx.o md5-mmx.o" \
 		ASFLAGS="$(ASFLAGS) -DBSD"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
 
@@ -1115,7 +1054,6 @@ openbsd-x86-any:
 		JOHN_OBJS="$(JOHN_OBJS) x86.o" \
 		ASFLAGS="$(ASFLAGS) -DBSD"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
 
@@ -1126,7 +1064,6 @@ openbsd-x86-any-a.out:
 		JOHN_OBJS="$(JOHN_OBJS) x86.o" \
 		ASFLAGS="$(ASFLAGS) -DUNDERSCORES -DALIGN_LOG -DBSD"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
 
@@ -1136,7 +1073,6 @@ openbsd-alpha:
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) alpha.o"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
 
@@ -1147,7 +1083,6 @@ openbsd-sparc64:
 		CFLAGS="$(CFLAGS) -m64 -mcpu=ultrasparc" \
 		LDFLAGS="$(LDFLAGS) -m64"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX) CFLAGS="$(CFLAGS) -m64 -mcpu=ultrasparc"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m64"
 	@echo "All done"
 
@@ -1156,7 +1091,6 @@ openbsd-sparc:
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ)
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
 
@@ -1165,7 +1099,6 @@ openbsd-ppc32:
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ)
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
 
@@ -1177,7 +1110,6 @@ openbsd-ppc64:
 		LDFLAGS="$(LDFLAGS) -m64" \
 		OPT_INLINE="-finline-functions -finline-limit=4000"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX) CFLAGS="$(CFLAGS) -m64"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m64"
 	@echo "All done"
 
@@ -1187,7 +1119,6 @@ openbsd-pa-risc:
 	$(MAKE) $(PROJ) \
 		CFLAGS="-c -Wall -O3 -fomit-frame-pointer"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
 
@@ -1196,7 +1127,6 @@ openbsd-vax:
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ)
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
 
@@ -1207,7 +1137,6 @@ netbsd-sparc64:
 		CFLAGS="$(CFLAGS) -m64 -mcpu=ultrasparc" \
 		LDFLAGS="$(LDFLAGS) -m64"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX) CFLAGS="$(CFLAGS) -m64 -mcpu=ultrasparc"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m64"
 	@echo "All done"
 
@@ -1216,7 +1145,6 @@ netbsd-vax:
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ)
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
 
@@ -1274,7 +1202,6 @@ solaris-sparc-gcc:
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT" \
 		LDFLAGS="$(LDFLAGS) $(LDFLAGS_SOLARIS)"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX) LDFLAGS="$(LDFLAGS) $(LDFLAGS_SOLARIS)"
 	$(MAKE) $(PROJ_PCAP) LDFLAGS="$(LDFLAGS) $(LDFLAGS_SOLARIS)"
 	@echo "All done"
 
@@ -1464,7 +1391,6 @@ macosx-x86-64-native:
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -march=native -Wno-deprecated-declarations" \
 		LDFLAGS="$(LDFLAGS) -march=native"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX) CFLAGS="$(CFLAGS) -march=native"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -march=native"
 	@echo "All done"
 
@@ -1477,7 +1403,6 @@ macosx-x86-64:
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -m64 -Wno-deprecated-declarations" \
 		LDFLAGS="$(LDFLAGS) -m64"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX) CFLAGS="$(CFLAGS) -m64"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m64"
 	@echo "All done"
 
@@ -1494,7 +1419,6 @@ macosx-x86-64-gpu:
 	$(CP_PRESERVE) opencl/*.cl ../run/kernels/
 	$(CP_PRESERVE) opencl_*.h ../run/kernels/
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
 
@@ -1515,7 +1439,6 @@ macosx-x86-64-native-gpu:
 	$(CP_PRESERVE) opencl/*.cl ../run/kernels/
 	$(CP_PRESERVE) opencl_*.h ../run/kernels/
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX) CFLAGS="$(CFLAGS) -march=native"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -march=native"
 	@echo "All done"
 
@@ -1535,7 +1458,6 @@ macosx-x86-64-native-opencl:
 	$(CP_PRESERVE) opencl/*.cl ../run/kernels/
 	$(CP_PRESERVE) opencl_*.h ../run/kernels/
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX) CFLAGS="$(CFLAGS) -march=native"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -march=native"
 	@echo "All done"
 
@@ -1551,7 +1473,6 @@ macosx-x86-64-opencl:
 	$(CP_PRESERVE) opencl/*.cl ../run/kernels/
 	$(CP_PRESERVE) opencl_*.h ../run/kernels/
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
 
@@ -1565,7 +1486,6 @@ macosx-x86-64-cuda:
 		LDFLAGS="$(LDFLAGS) -m64 -L$(CUDAPATH)/lib -lcudart" \
 		NVCC_FLAGS="$(NVCC_FLAGS) -m64 $(CCBIN_OSX)"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
 
@@ -1579,11 +1499,6 @@ macosx-x86-64-clang-debug:
 		LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz $(NSS_LDFLAGS) $(GMP_LDFLAGS) $(KRB5_LDFLAGS) $(JOHN_LDFLAGS)" \
 		CPP="clang" CC="clang" AS="clang" LD="clang" CXX="clang++"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX) \
-		ASFLAGS="$(ASFLAGS) -m64 -DUNDERSCORES -DBSD -DALIGN_LOG" \
-		CFLAGS="-Wall -Wdeclaration-after-statement -c -g -O1 -I/usr/include -I/usr/local/include -Wno-deprecated-declarations -DDEBUG -DHAVE_CRYPT -DBSD $(HAVE_NSS) $(HAVE_GMP) $(HAVE_KRB5) $(JOHN_CFLAGS)" \
-		LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz $(NSS_LDFLAGS) $(GMP_LDFLAGS) $(KRB5_LDFLAGS) $(JOHN_LDFLAGS)" \
-		CPP="clang" CC="clang" AS="clang" LD="clang" CXX="clang++"
 	$(MAKE) $(PROJ_PCAP) \
 		ASFLAGS="$(ASFLAGS) -m64 -DUNDERSCORES -DBSD -DALIGN_LOG" \
 		CFLAGS="-Wall -Wdeclaration-after-statement -c -g -O1 -I/usr/include -I/usr/local/include -Wno-deprecated-declarations -DDEBUG -DHAVE_CRYPT -DBSD $(HAVE_NSS) $(HAVE_GMP) $(HAVE_KRB5) $(JOHN_CFLAGS)" \
@@ -1600,7 +1515,6 @@ macosx-x86-sse2:
 		CFLAGS="$(CFLAGS) -m32 -Wno-deprecated-declarations" \
 		LDFLAGS="$(LDFLAGS) -m32"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX) CFLAGS="$(CFLAGS) -m32" LDFLAGS="$(LDFLAGS) -m32"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32" LDFLAGS="$(LDFLAGS) -m32"
 	@echo "All done"
 
@@ -1616,7 +1530,6 @@ macosx-x86-sse2-opencl:
 	$(CP_PRESERVE) opencl/*.cl ../run/kernels/
 	$(CP_PRESERVE) opencl_*.h ../run/kernels/
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX) CFLAGS="$(CFLAGS) -m32" LDFLAGS="$(LDFLAGS) -m32"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32" LDFLAGS="$(LDFLAGS) -m32"
 	@echo "All done"
 
@@ -1629,7 +1542,6 @@ macosx-x86-mmx:
 		CFLAGS="$(CFLAGS) -m32 -Wno-deprecated-declarations" \
 		LDFLAGS="$(LDFLAGS) -m32"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX) CFLAGS="$(CFLAGS) -m32" LDFLAGS="$(LDFLAGS) -m32"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32" LDFLAGS="$(LDFLAGS) -m32"
 	@echo "All done"
 
@@ -1823,9 +1735,6 @@ win64-mingw-x86-64:
 		ASFLAGS="$(ASFLAGS)" \
 		CPP=$(GCC) CC=$(GCC) LD=$(GCC) CXX=$(CXX)
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX) \
-	    CFLAGS="-c -static -Wall -Wdeclaration-after-statement -O2 -fomit-frame-pointer -I/usr/local/include $(HAVE_GMP) $(OMPFLAGS) $(AMDAPP) $(JOHN_CFLAGS) -Wall -mpreferred-stack-boundary=4" \
-	    CPP=$(GCC) CC=$(GCC) LD=$(GCC) CXX=$(CXX)
 	$(MAKE) $(PROJ_PCAP) \
 	    CFLAGS="-c -static -Wall -Wdeclaration-after-statement -O2 -fomit-frame-pointer -I/usr/local/include $(HAVE_GMP) $(OMPFLAGS) $(AMDAPP) $(JOHN_CFLAGS) -Wall -mpreferred-stack-boundary=4" \
 	    CPP=$(GCC) CC=$(GCC) LD=$(GCC) CXX=$(CXX)
@@ -1839,7 +1748,6 @@ win32-cygwin-x86-sse2i:
 		CFLAGS="$(CFLAGS) -Wall -mpreferred-stack-boundary=4 -msse2 -m32 -DUSING_ICC_S_FILE" \
 		ASFLAGS="$(ASFLAGS) -msse2 -m32 -DUNDERSCORES"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX) CFLAGS="$(CFLAGS) -m32"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
 	@echo "All done"
 
@@ -1851,7 +1759,6 @@ win32-cygwin-x86-sse2:
 		CFLAGS="$(CFLAGS) -mpreferred-stack-boundary=4 -msse2 -m32" \
 		ASFLAGS="$(ASFLAGS) -msse2 -m32 -DUNDERSCORES"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX) CFLAGS="$(CFLAGS) -m32"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
 	@echo "All done"
 
@@ -1867,7 +1774,6 @@ win32-cygwin-x86-opencl:
 	$(CP_PRESERVE) opencl/*.cl ../run/kernels/
 	$(CP_PRESERVE) opencl_*.h ../run/kernels/
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX) CFLAGS="$(CFLAGS) -m32"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
 	@echo "All done"
 
@@ -1879,7 +1785,6 @@ win32-cygwin-x86-mmx:
 		CFLAGS="$(CFLAGS) -mpreferred-stack-boundary=3" \
 		ASFLAGS="$(ASFLAGS) -DUNDERSCORES"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
 
@@ -1892,7 +1797,6 @@ win32-cygwin-x86-any:
 		CFLAGS_MAIN="$(CFLAGS) -O0" \
 		ASFLAGS="$(ASFLAGS) -DUNDERSCORES"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
 
@@ -1905,7 +1809,6 @@ win32-mingw-x86-sse2i:
 		LDFLAGS="$(LDFLAGS) -lpthread" \
 		ASFLAGS="$(ASFLAGS) -msse2 -m32  -DUNDERSCORES"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX) CFLAGS="$(CFLAGS) -m32"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
 	@echo "All done"
 
@@ -1919,9 +1822,6 @@ win32-mingw-x86-sse2:
 		ASFLAGS="$(ASFLAGS) -msse2 -m32 -DUNDERSCORES" \
 		CPP=$(GCC) CC=$(GCC) LD=$(GCC) CXX=$(CXX)
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX) \
-	    CFLAGS="-c -static -Wall -Wdeclaration-after-statement -O2 -fomit-frame-pointer -I/usr/local/include $(HAVE_GMP) $(OMPFLAGS) $(AMDAPP) $(JOHN_CFLAGS) -Wall -mpreferred-stack-boundary=4 -msse2 -m32" \
-	    CPP=$(GCC) CC=$(GCC) LD=$(GCC) CXX=$(CXX)
 	$(MAKE) $(PROJ_PCAP) \
 	    CFLAGS="-c -static -Wall -Wdeclaration-after-statement -O2 -fomit-frame-pointer -I/usr/local/include $(HAVE_GMP) $(OMPFLAGS) $(AMDAPP) $(JOHN_CFLAGS) -Wall -mpreferred-stack-boundary=4 -msse2 -m32" \
 	    CPP=$(GCC) CC=$(GCC) LD=$(GCC) CXX=$(CXX)
@@ -1936,7 +1836,6 @@ win32-mingw-x86-mmx:
 		LDFLAGS="$(LDFLAGS) -lpthread" \
 		ASFLAGS="$(ASFLAGS) -DUNDERSCORES"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX) CFLAGS="$(CFLAGS) -m32"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
 	@echo "All done"
 
@@ -1949,7 +1848,6 @@ win32-mingw-x86-any:
 		LDFLAGS="$(LDFLAGS) -lpthread" \
 		ASFLAGS="$(ASFLAGS) -DUNDERSCORES"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX) CFLAGS="$(CFLAGS) -m32"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
 	@echo "All done"
 
@@ -2490,7 +2388,7 @@ shell-completion: bash-completion zsh-completion
 
 clean:
 	$(RM) $(PROJ) $(PROJ_DOS) $(PROJ_WIN32) $(PROJ_WIN32_MINGW)
-	$(RM) $(PROJ_CXX) $(PROJ_PCAP)
+	$(RM) $(PROJ_PCAP)
 	$(RM) ../run/john.exe john-macosx-* *.o escrypt/*.o *.bak core
 	$(RM) ../run/kernels/*.cl ../run/kernels/*.h ../run/kernels/*.bin
 	$(RM) detect bench para-bench generic.h arch.h tmp.s
