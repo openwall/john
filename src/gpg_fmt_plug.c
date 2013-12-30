@@ -688,7 +688,7 @@ static void *get_salt(char *ciphertext)
 			atoi16[ARCH_INDEX(p[i * 2])] * 16 +
 			atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	}
-	if (cs.spec == 1 && cs.pk_algorithm == 17) {
+	if (cs.usage == 255 && cs.spec == 1 && cs.pk_algorithm == 17) {
 		/* old hashes will crash!, "gpg --s2k-mode 1 --gen-key" */
 		p = strtok(NULL, "*");
 		cs.pl = atoi(p);
@@ -715,7 +715,7 @@ static void *get_salt(char *ciphertext)
 			cs.y[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16 +
 			atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	}
-	if (cs.spec == 1 && cs.pk_algorithm == 16) {
+	if (cs.usage == 255 && cs.spec == 1 && cs.pk_algorithm == 16) {
 		/* ElGamal */
 		p = strtok(NULL, "*");
 		cs.pl = atoi(p);
