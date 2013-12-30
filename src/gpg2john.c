@@ -636,7 +636,7 @@ string_to_key(void)
 
 	switch (type) {
 	case 0:
-		printf("\tSimple string-to-key(s2k %d):\n", type);
+		// fprintf(stderr, "\tSimple string-to-key(s2k %d):\n", type);
 		// printf("\t");
 		m_spec = type;
 		// hash_algs(Getc());

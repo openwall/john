@@ -26,6 +26,7 @@
 #include <openssl/blowfish.h>
 #include <openssl/ripemd.h>
 #include <openssl/cast.h>
+#include <openssl/idea.h>
 #include <openssl/bn.h>
 #include <openssl/dsa.h>
 #ifdef _OPENMP
@@ -101,7 +102,8 @@ enum {
 	CIPHER_BLOWFISH = 4,
 	CIPHER_AES128 = 7,
 	CIPHER_AES192 = 8,
-	CIPHER_AES256 = 9
+	CIPHER_AES256 = 9,
+	CIPHER_IDEA = 1,
 };
 
 enum {
@@ -151,11 +153,14 @@ static uint32_t blockSize(char algorithm)
 			return CAST_BLOCK;
 		case CIPHER_BLOWFISH:
 			return BF_BLOCK;
+		case CIPHER_IDEA:
+			return 8; // XXX
 		case CIPHER_AES128:
 		case CIPHER_AES192:
 		case CIPHER_AES256:
 			return AES_BLOCK_SIZE;
-		default: break;
+		default:
+			break;
 	}
 	return 0;
 }
@@ -174,6 +179,8 @@ static uint32_t keySize(char algorithm)
 			return 24;
 		case CIPHER_AES256:
 			return 32;
+		case CIPHER_IDEA:
+			return 16;
 		default: break;
 	}
 	assert(0);
@@ -253,6 +260,7 @@ static int valid_cipher_algorithm(int cipher_algorithm)
 	  case CIPHER_AES128: return 1;
 	  case CIPHER_AES192: return 1;
 	  case CIPHER_AES256: return 1;
+	  case CIPHER_IDEA: return 1;
 	}
 	return 0;
 }
@@ -906,6 +914,12 @@ static int check(unsigned char *keydata, int ks)
 	// Quick Hack
 	memcpy(ivec, cur_salt->iv, blockSize(cur_salt->cipher_algorithm));
 	switch (cur_salt->cipher_algorithm) {
+		case CIPHER_IDEA: {
+					   IDEA_KEY_SCHEDULE iks;
+					   idea_set_encrypt_key(keydata, &iks);
+					   idea_cfb64_encrypt(cur_salt->data, out, 8, &iks, ivec, &tmp, IDEA_DECRYPT);
+				   }
+				   break;
 		case CIPHER_CAST5: {
 					   CAST_KEY ck;
 					   CAST_set_key(&ck, ks, keydata);
@@ -927,6 +941,7 @@ static int check(unsigned char *keydata, int ks)
 				    }
 				    break;
 		default:
+				    printf("(check) Unknown Cipher Algorithm %d ;(\n", cur_salt->cipher_algorithm);
 				    break;
 	}
 	num_bits = ((out[0] << 8) | out[1]);
@@ -937,6 +952,12 @@ static int check(unsigned char *keydata, int ks)
 	memcpy(ivec, cur_salt->iv, blockSize(cur_salt->cipher_algorithm));
 	tmp = 0;
 	switch (cur_salt->cipher_algorithm) {
+		case CIPHER_IDEA: {
+					   IDEA_KEY_SCHEDULE iks;
+					   idea_set_encrypt_key(keydata, &iks);
+					   idea_cfb64_encrypt(cur_salt->data, out, cur_salt->datalen, &iks, ivec, &tmp, IDEA_DECRYPT);
+				   }
+				   break;
 		case CIPHER_CAST5: {
 					   CAST_KEY ck;
 					   CAST_set_key(&ck, ks, keydata);
@@ -960,7 +981,6 @@ static int check(unsigned char *keydata, int ks)
 		default:
 				    break;
 	}
-
 	// Verify
 	checksumOk = 0;
 	switch (cur_salt->usage) {
@@ -970,9 +990,10 @@ static int check(unsigned char *keydata, int ks)
 				  SHA1_Init(&ctx);
 				  SHA1_Update(&ctx, out, cur_salt->datalen - SHA_DIGEST_LENGTH);
 				  SHA1_Final(checksum, &ctx);
-				  if (memcmp(checksum, out + cur_salt->datalen - SHA_DIGEST_LENGTH, SHA_DIGEST_LENGTH) == 0) {
+				  if (memcmp(checksum, out + cur_salt->datalen - SHA_DIGEST_LENGTH, SHA_DIGEST_LENGTH) == 0)
 					  return 1;  /* we have a 20 byte verifier ;) */
-				  }
+				  else
+					  return 0;
 			  } break;
 		case 0:
 		case 255: {
