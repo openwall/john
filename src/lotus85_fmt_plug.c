@@ -3,6 +3,9 @@
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
+ *
+ * Fixed the format to crack multiple hashes + added OMP support (Dhiru
+ * Kholia).
  */
 
 #include <stdio.h>
@@ -14,11 +17,13 @@
 
 #include "formats.h"
 #include "common.h"
+#ifdef _OPENMP
+#include <omp.h>
+#define OMP_SCALE               64  // XXX tune me!
+static int omp_t = 1;
+#endif
 
-
-/*
- * Plugin definition
- */
+/* Plugin definition */
 #define FORMAT_LABEL          "lotus85"
 #define FORMAT_NAME           "Lotus Notes/Domino 8.5"
 #define ALGORITHM_NAME        "8/" ARCH_BITS_STR
@@ -26,18 +31,16 @@
 #define BENCHMARK_LENGTH      -1
 #define PLAINTEXT_LENGTH      32
 #define CIPHERTEXT_LENGTH     0x64
-#define BINARY_SIZE           5
+#define BINARY_SIZE           5  // XXX probably should rename this!
 #define BINARY_ALIGN          1
-#define SALT_SIZE             0
+#define SALT_SIZE             sizeof(struct custom_salt)
 #define SALT_ALIGN            1
 #define MIN_KEYS_PER_CRYPT    1
 #define MAX_KEYS_PER_CRYPT    0x900
 
+#define LOTUS85_MAX_BLOB_SIZE 0x64
 
-
-/*
- * Globals
- */
+/* Globals */
 static const char LOTUS85_UNIQUE_STRING[] = "Lotus Notes Password Pad Uniquifier";
 
 static const char LOTUS85_BASE16_CHARSET[] = "0123456789ABCDEFabcdef";
@@ -78,6 +81,10 @@ static uint8_t ebits_to_num[256]=
 	0x29, 0x39, 0xb9, 0xe9, 0x4c, 0xff, 0x43, 0xab,
 };
 
+struct custom_salt {
+	uint8_t lotus85_user_blob[LOTUS85_MAX_BLOB_SIZE];
+	uint32_t lotus85_user_blob_len;
+} *cur_salt;
 
 /*
  * 5 bytes digest computed by the algorithm
@@ -87,19 +94,11 @@ static uint8_t ebits_to_num[256]=
 static uint8_t (*lotus85_last_binary_hash1)[BINARY_SIZE];
 static uint8_t (*lotus85_last_binary_hash2)[BINARY_SIZE];
 
-/* Plaintext passwords history requested by JTR engine */
+/* Plaintext passwords history requested by JtR engine */
 static char (*lotus85_saved_passwords)[CIPHERTEXT_LENGTH+1];
 
-/* Plaintext passwords history requested by JTR engine */
-#define LOTUS85_MAX_BLOB_SIZE 0x64
-static uint8_t lotus85_user_blob[LOTUS85_MAX_BLOB_SIZE];
-static uint32_t lotus85_user_blob_len;
 
-
-
-/*
- * Decipher user.id user blob
- */
+/* Decipher user.id user blob */
 static void decipher_userid_blob(uint8_t *ciphered_blob, uint32_t len, uint8_t *userid_key, uint8_t *deciphered_blob)
 {
 	RC2_KEY rc_key;
@@ -114,10 +113,7 @@ static void decipher_userid_blob(uint8_t *ciphered_blob, uint32_t len, uint8_t *
 	memmove(deciphered_blob, buf, len);
 }
 
-
-/*
- * Custom hash transformation function
- */
+/* Custom hash transformation function */
 static void custom_password_hash_trans(uint8_t *data, uint8_t *out, uint8_t *state)
 {
 	uint8_t buffer[48];
@@ -165,10 +161,7 @@ static void custom_password_hash_trans(uint8_t *data, uint8_t *out, uint8_t *sta
 	}
 }
 
-
-/*
- * Custom hash function
- */
+/* Custom hash function */
 static void custom_password_hash(const char *password, uint8_t *out)
 {
 	uint8_t block1[16], state[16], block2[16];
@@ -203,10 +196,7 @@ static void custom_password_hash(const char *password, uint8_t *out)
 	memmove(out, block2, sizeof(block2));
 }
 
-
-/*
- * Hash cste::password with sha1
- */
+/* Hash cste::password with sha1 */
 static void password_hash(const char *password, uint8_t *hash)
 {
 	SHA_CTX s_ctx;
@@ -222,10 +212,7 @@ static void password_hash(const char *password, uint8_t *hash)
 	memmove(hash, digest, sizeof(digest));
 }
 
-
-/*
- * Hash/checksum function used for key derivation from plaintext password
- */
+/* Hash/checksum function used for key derivation from plaintext password */
 static void compute_key_mac(uint8_t *key, size_t len, uint8_t *mac, size_t mac_len)
 {
 	size_t i, j, mlen=mac_len-1;
@@ -244,10 +231,7 @@ static void compute_key_mac(uint8_t *key, size_t len, uint8_t *mac, size_t mac_l
 	}
 }
 
-
-/*
- * Hash/checksum function used for digest storage
- */
+/* Hash/checksum function used for digest storage */
 static void compute_msg_mac(uint8_t *msg, size_t len, uint8_t *msg_mac)
 {
 	size_t i, j;
@@ -276,7 +260,6 @@ static void compute_msg_mac(uint8_t *msg, size_t len, uint8_t *msg_mac)
 	msg_mac[i] = c;
 }
 
-
 /*
  * Derive password to retrieve the RC2 secret key
  * used when deciphering user blob stored in user.id file
@@ -296,13 +279,15 @@ static void get_user_id_secret_key(const char *password, uint8_t *secret_key)
 	memmove(secret_key, mac, sizeof(mac));
 }
 
-
-
-/*
- * Plugin initialization
- */
+/* Plugin initialization */
 static void lotus85_init(struct fmt_main *self)
 {
+#if defined (_OPENMP)
+	omp_t = omp_get_max_threads();
+	self->params.min_keys_per_crypt *= omp_t;
+	omp_t *= OMP_SCALE;
+	self->params.max_keys_per_crypt *= omp_t;
+#endif
 	lotus85_saved_passwords = mem_calloc_tiny(
 		(CIPHERTEXT_LENGTH + 1) * self->params.max_keys_per_crypt,
 		MEM_ALIGN_CACHE);
@@ -314,10 +299,7 @@ static void lotus85_init(struct fmt_main *self)
 		MEM_ALIGN_CACHE);
 }
 
-
-/*
- * Check if given ciphertext (hash) format is valid
- */
+/* Check if given ciphertext (hash) format is valid */
 static int lotus85_valid(char *ciphertext,struct fmt_main *self)
 {
 	int i,len;
@@ -337,86 +319,77 @@ static int lotus85_valid(char *ciphertext,struct fmt_main *self)
 	return 1;
 }
 
-
-/*
- * Digest as string conversion to binary
- */
-static void *lotus85_binary(char *ciphertext)
+static void *get_salt(char *ciphertext)
 {
 	int i,len;
+	static struct custom_salt cs;
 
 	len = strlen(ciphertext) >> 1;
 
-	for (i=0;i<len;i++)
-	{
-		lotus85_user_blob[i] = (atoi16[ARCH_INDEX(ciphertext[i << 1])] << 4) + atoi16[ARCH_INDEX(ciphertext[(i << 1) + 1])];
-	}
+	for (i = 0; i < len; i++)
+		cs.lotus85_user_blob[i] = (atoi16[ARCH_INDEX(ciphertext[i << 1])] << 4) + atoi16[ARCH_INDEX(ciphertext[(i << 1) + 1])];
 
-	lotus85_user_blob_len = len;
+	cs.lotus85_user_blob_len = len;
 
-	return lotus85_user_blob;
+	return (void*)&cs;
 }
 
+static void set_salt(void *salt)
+{
+	cur_salt = (struct custom_salt *)salt;
+}
 
-/*
- * Set password at given index
- */
+/* Set password at given index */
 static void lotus85_set_key(char *key,int index)
 {
 	strnzcpy(lotus85_saved_passwords[index],key,strlen(key)+1);
 }
 
-
-/*
- * Return password at given index as string
- */
+/* Return password at given index as string */
 static char *lotus85_get_key(int index)
 {
 	return lotus85_saved_passwords[index];
 }
 
-
-/*
- * Main callback to compute lotus digest
- */
+/* Main callback to compute lotus digest */
 static int lotus85_crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
-	unsigned char user_key[8], deciphered_userid[LOTUS85_MAX_BLOB_SIZE];
-	int i;
+	int index = 0;
 
 	/* Compute digest for all given plaintext passwords */
-	for(i=0; i < count; i++)
+#ifdef _OPENMP
+#pragma omp parallel for
+	for (index = 0; index < count; index++)
+#endif
 	{
-		bzero(lotus85_last_binary_hash1[i], BINARY_SIZE);
-		bzero(lotus85_last_binary_hash2[i], BINARY_SIZE);
+		unsigned char user_key[8], deciphered_userid[LOTUS85_MAX_BLOB_SIZE];
+		bzero(lotus85_last_binary_hash1[index], BINARY_SIZE);
+		bzero(lotus85_last_binary_hash2[index], BINARY_SIZE);
 		bzero(user_key, sizeof(user_key));
 		bzero(deciphered_userid, sizeof(deciphered_userid));
 
 		/* Derive password and retrieve RC2 key */
-		get_user_id_secret_key(lotus85_saved_passwords[i], user_key);
+		get_user_id_secret_key(lotus85_saved_passwords[index], user_key);
 
 		/* Deciphered user blob stored in user.id file */
-		decipher_userid_blob(lotus85_user_blob, lotus85_user_blob_len, user_key, deciphered_userid);
+		decipher_userid_blob(cur_salt->lotus85_user_blob, cur_salt->lotus85_user_blob_len, user_key, deciphered_userid);
 
 		/* Store first deciphered digest */
-		memmove(lotus85_last_binary_hash1[i], deciphered_userid+lotus85_user_blob_len-BINARY_SIZE, BINARY_SIZE);
+		memcpy(lotus85_last_binary_hash1[index], deciphered_userid + cur_salt->lotus85_user_blob_len - BINARY_SIZE, BINARY_SIZE);
 
 		/* Compute digest of deciphered message */
-		compute_msg_mac(deciphered_userid, lotus85_user_blob_len-BINARY_SIZE, lotus85_last_binary_hash2[i]);
+		compute_msg_mac(deciphered_userid, cur_salt->lotus85_user_blob_len - BINARY_SIZE, lotus85_last_binary_hash2[index]);
 	}
 	return count;
 }
 
-
-/*
- * Check if one of last computed hashs match
- */
+/* Check if one of last computed hashs match */
 static int lotus85_cmp_all(void *binary,int count)
 {
 	int i;
 
-	for(i=0;i<count;i++)
+	for(i = 0; i < count; i++)
 	{
 		if(!memcmp(lotus85_last_binary_hash1[i],lotus85_last_binary_hash2[i],BINARY_SIZE))
 			return 1;
@@ -425,37 +398,26 @@ static int lotus85_cmp_all(void *binary,int count)
 	return 0;
 }
 
-
-/*
- * Check if last computed hash match
- */
+/* Check if last computed hash match */
 static int lotus85_cmp_one(void *binary,int index)
 {
 	return !memcmp(lotus85_last_binary_hash1[index],lotus85_last_binary_hash2[index],BINARY_SIZE);
 }
 
-
-/*
- * No ASCII ciphertext, thus returns true
- */
+/* No ASCII ciphertext, thus returns true */
 static int lotus85_cmp_exact(char *source,int index)
 {
 	return 1;
 }
 
-
-/*
- * No benchmark yet
- */
 static struct fmt_tests lotus85_tests[] =
 {
+	{"0040B2B17C344C236953F955B28E4865014034D1F664489D7F42B35FB6928A94DCFFEF7750CE029F94C83A582A80B4662D49B3FA45816143", "notesisterrible"},
+	{"CBCFC612FAE3154316223787C7CD29AD39BEDF4288FCDE310B32FD809C75F5FDC521667D5F6E7A047766F0E60952F7891593FFAF45AD0C15", "openwall"},
 	{NULL}
 };
 
-
-/*
- * JTR lotus 8.5 structure registration
- */
+/* JtR lotus 8.5 structure registration */
 struct fmt_main fmt_lotus_85 =
 {
 	{
@@ -465,13 +427,13 @@ struct fmt_main fmt_lotus_85 =
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
-		BINARY_SIZE,
+		0,
 		BINARY_ALIGN,
 		SALT_SIZE,
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT,
+		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		lotus85_tests
 	}, {
 		lotus85_init,
@@ -480,16 +442,16 @@ struct fmt_main fmt_lotus_85 =
 		fmt_default_prepare,
 		lotus85_valid,
 		fmt_default_split,
-		lotus85_binary,
-		fmt_default_salt,         /*  No salt                 */
+		fmt_default_binary,
+		get_salt,
 		fmt_default_source,
 		{
 			fmt_default_binary_hash,
 			fmt_default_binary_hash,
 			fmt_default_binary_hash
 		},
-		fmt_default_salt_hash,    /*  No salt                 */
-		fmt_default_set_salt,     /*  No salt                 */
+		fmt_default_salt_hash,
+		set_salt,
 		lotus85_set_key,          /*  Set plaintext password  */
 		lotus85_get_key,          /*  Get plaintext password  */
 		fmt_default_clear_keys,
