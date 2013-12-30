@@ -26,7 +26,7 @@
 #include <openssl/blowfish.h>
 #include <openssl/ripemd.h>
 #include <openssl/cast.h>
-#include <openssl/idea.h>
+#include "idea-JtR.h"
 #include <openssl/bn.h>
 #include <openssl/dsa.h>
 #ifdef _OPENMP
@@ -916,8 +916,8 @@ static int check(unsigned char *keydata, int ks)
 	switch (cur_salt->cipher_algorithm) {
 		case CIPHER_IDEA: {
 					   IDEA_KEY_SCHEDULE iks;
-					   idea_set_encrypt_key(keydata, &iks);
-					   idea_cfb64_encrypt(cur_salt->data, out, 8, &iks, ivec, &tmp, IDEA_DECRYPT);
+					   JtR_idea_set_encrypt_key(keydata, &iks);
+					   JtR_idea_cfb64_encrypt(cur_salt->data, out, 8, &iks, ivec, &tmp, IDEA_DECRYPT);
 				   }
 				   break;
 		case CIPHER_CAST5: {
@@ -954,8 +954,8 @@ static int check(unsigned char *keydata, int ks)
 	switch (cur_salt->cipher_algorithm) {
 		case CIPHER_IDEA: {
 					   IDEA_KEY_SCHEDULE iks;
-					   idea_set_encrypt_key(keydata, &iks);
-					   idea_cfb64_encrypt(cur_salt->data, out, cur_salt->datalen, &iks, ivec, &tmp, IDEA_DECRYPT);
+					   JtR_idea_set_encrypt_key(keydata, &iks);
+					   JtR_idea_cfb64_encrypt(cur_salt->data, out, cur_salt->datalen, &iks, ivec, &tmp, IDEA_DECRYPT);
 				   }
 				   break;
 		case CIPHER_CAST5: {
