@@ -95,8 +95,9 @@ static void listconf_list_help_options()
 
 static void listconf_list_method_names()
 {
-	puts("init, prepare, valid, split, binary, salt, binary_hash, salt_hash, set_salt,");
-	puts("set_key, get_key, clear_keys, crypt_all, get_hash, cmp_all, cmp_one, cmp_exact");
+	puts("init, done, reset, prepare, valid, split, binary, salt, source, binary_hash,");
+	puts("salt_hash, set_salt, set_key, get_key, clear_keys, crypt_all, get_hash,");
+	puts("cmp_all, cmp_one, cmp_exact");
 }
 
 static void listconf_list_build_info(void)
@@ -442,25 +443,41 @@ void listconf_parse_late(void)
 			int ShowIt = 1, i;
 			if (options.listconf[14] == '=' || options.listconf[14] == ':') {
 				ShowIt = 0;
-				if (!strcasecmp(&options.listconf[15], "set_key")   ||
-					!strcasecmp(&options.listconf[15], "get_key")   ||
-					!strcasecmp(&options.listconf[15], "crypt_all") ||
-					!strcasecmp(&options.listconf[15], "cmp_all")   ||
-					!strcasecmp(&options.listconf[15], "cmp_one")  ||
-					!strcasecmp(&options.listconf[15], "cmp_exact"))
+				if (!strcasecmp(&options.listconf[15], "valid")     ||
+				    !strcasecmp(&options.listconf[15], "set_key")   ||
+				    !strcasecmp(&options.listconf[15], "get_key")   ||
+				    !strcasecmp(&options.listconf[15], "crypt_all") ||
+				    !strcasecmp(&options.listconf[15], "cmp_all")   ||
+				    !strcasecmp(&options.listconf[15], "cmp_one")   ||
+				    !strcasecmp(&options.listconf[15], "cmp_exact"))
 					ShowIt = 1;
-				else if (strcasecmp(&options.listconf[15], "init") && strcasecmp(&options.listconf[15], "prepare") &&
-					strcasecmp(&options.listconf[15], "valid") && strcasecmp(&options.listconf[15], "split") &&
-					strcasecmp(&options.listconf[15], "binary") && strcasecmp(&options.listconf[15], "clear_keys") &&
-					strcasecmp(&options.listconf[15], "salt") && strcasecmp(&options.listconf[15], "get_hash") &&
-					strcasecmp(&options.listconf[15], "get_hash[0]") && strcasecmp(&options.listconf[15], "get_hash[1]") &&
-					strcasecmp(&options.listconf[15], "get_hash[2]") && strcasecmp(&options.listconf[15], "get_hash[3]") &&
-					strcasecmp(&options.listconf[15], "get_hash[4]") && strcasecmp(&options.listconf[15], "get_hash[5]") &&
-					strcasecmp(&options.listconf[15], "set_salt") && strcasecmp(&options.listconf[15], "binary_hash") &&
-					strcasecmp(&options.listconf[15], "binary_hash[0]") && strcasecmp(&options.listconf[15], "binary_hash[1]") &&
-					strcasecmp(&options.listconf[15], "binary_hash[2]") && strcasecmp(&options.listconf[15], "binary_hash[3]") &&
-					strcasecmp(&options.listconf[15], "binary_hash[3]") && strcasecmp(&options.listconf[15], "binary_hash[5]") &&
-					strcasecmp(&options.listconf[15], "salt_hash"))
+				else if (strcasecmp(&options.listconf[15], "init") &&
+				         strcasecmp(&options.listconf[15], "done") &&
+				         strcasecmp(&options.listconf[15], "reset") &&
+				         strcasecmp(&options.listconf[15], "prepare") &&
+				         strcasecmp(&options.listconf[15], "split") &&
+				         strcasecmp(&options.listconf[15], "binary") &&
+				         strcasecmp(&options.listconf[15], "clear_keys") &&
+				         strcasecmp(&options.listconf[15], "salt") &&
+					 strcasecmp(&options.listconf[15], "source") &&
+				         strcasecmp(&options.listconf[15], "get_hash") &&
+				         strcasecmp(&options.listconf[15], "get_hash[0]") &&
+					 strcasecmp(&options.listconf[15], "get_hash[1]") &&
+				         strcasecmp(&options.listconf[15], "get_hash[2]") &&
+				         strcasecmp(&options.listconf[15], "get_hash[3]") &&
+				         strcasecmp(&options.listconf[15], "get_hash[4]") &&
+				         strcasecmp(&options.listconf[15], "get_hash[5]") &&
+				         strcasecmp(&options.listconf[15], "get_hash[6]") &&
+				         strcasecmp(&options.listconf[15], "set_salt") &&
+				         strcasecmp(&options.listconf[15], "binary_hash") &&
+				         strcasecmp(&options.listconf[15], "binary_hash[0]") &&
+				         strcasecmp(&options.listconf[15], "binary_hash[1]") &&
+				         strcasecmp(&options.listconf[15], "binary_hash[2]") &&
+				         strcasecmp(&options.listconf[15], "binary_hash[3]") &&
+				         strcasecmp(&options.listconf[15], "binary_hash[4]") &&
+				         strcasecmp(&options.listconf[15], "binary_hash[5]") &&
+					 strcasecmp(&options.listconf[15], "binary_hash[6]") &&
+				         strcasecmp(&options.listconf[15], "salt_hash"))
 				{
 					fprintf(stderr, "Error, invalid option (invalid method name) %s\n", options.listconf);
 					fprintf(stderr, "Valid method names are:\n");
@@ -469,9 +486,13 @@ void listconf_parse_late(void)
 				}
 				if (format->methods.init != fmt_default_init && !strcasecmp(&options.listconf[15], "init"))
 					ShowIt = 1;
-				if (format->methods.prepare != fmt_default_prepare && !strcasecmp(&options.listconf[15], "prepare"))
+				if (format->methods.done != fmt_default_done && !strcasecmp(&options.listconf[15], "done"))
 					ShowIt = 1;
-				if (!strcasecmp(&options.listconf[15], "valid"))
+
+				if (format->methods.reset != fmt_default_reset && !strcasecmp(&options.listconf[15], "reset"))
+					ShowIt = 1;
+
+				if (format->methods.prepare != fmt_default_prepare && !strcasecmp(&options.listconf[15], "prepare"))
 					ShowIt = 1;
 				if (format->methods.split != fmt_default_split && !strcasecmp(&options.listconf[15], "split"))
 					ShowIt = 1;
@@ -479,9 +500,12 @@ void listconf_parse_late(void)
 					ShowIt = 1;
 				if (format->methods.salt != fmt_default_salt && !strcasecmp(&options.listconf[15], "salt"))
 					ShowIt = 1;
+
+				if (format->methods.source != fmt_default_source && !strcasecmp(&options.listconf[15], "source"))
+					ShowIt = 1;
 				if (format->methods.clear_keys != fmt_default_clear_keys && !strcasecmp(&options.listconf[15], "clear_keys"))
 					ShowIt = 1;
-				for (i = 0; i < 6; ++i) {
+				for (i = 0; i < PASSWORD_HASH_SIZES; ++i) {
 					char Buf[20];
 					sprintf(Buf, "get_hash[%d]", i);
 					if (format->methods.get_hash[i] && format->methods.get_hash[i] != fmt_default_get_hash && !strcasecmp(&options.listconf[15], Buf))
@@ -490,7 +514,7 @@ void listconf_parse_late(void)
 				if (format->methods.get_hash[0] && format->methods.get_hash[0] != fmt_default_get_hash && !strcasecmp(&options.listconf[15], "get_hash"))
 					ShowIt = 1;
 
-				for (i = 0; i < 6; ++i) {
+				for (i = 0; i < PASSWORD_HASH_SIZES; ++i) {
 					char Buf[20];
 					sprintf(Buf, "binary_hash[%d]", i);
 					if (format->methods.binary_hash[i] && format->methods.binary_hash[i] != fmt_default_binary_hash && !strcasecmp(&options.listconf[15], Buf))
@@ -517,7 +541,7 @@ void listconf_parse_late(void)
 					printf("\tbinary()\n");
 				if (format->methods.salt != fmt_default_salt)
 					printf("\tsalt()\n");
-				for (i = 0; i < 6; ++i)
+				for (i = 0; i < PASSWORD_HASH_SIZES; ++i)
 					if (format->methods.binary_hash[i] != fmt_default_binary_hash) {
 						if (format->methods.binary_hash[i])
 							printf("\t\tbinary_hash[%d]()\n", i);
@@ -534,7 +558,7 @@ void listconf_parse_late(void)
 				printf("\tget_key()\n");
 				if (format->methods.clear_keys != fmt_default_clear_keys)
 					printf("\tclear_keys()\n");
-				for (i = 0; i < 6; ++i)
+				for (i = 0; i < PASSWORD_HASH_SIZES; ++i)
 					if (format->methods.get_hash[i] != fmt_default_get_hash) {
 						if (format->methods.get_hash[i])
 							printf("\t\tget_hash[%d]()\n", i);

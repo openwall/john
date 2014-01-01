@@ -515,7 +515,7 @@ int usage() {
 	fprintf(stderr, "\t      to force the user to have the .zip file present\n");
 	fprintf(stderr, "\t  -nm DO not look for any magic file types in this zip.  If you know that\n");
 	fprintf(stderr, "\t      are files with one of the 'magic' extensions, but they are not the right\n");
-	fprintf(stderr, "\t      type files (some *.doc files that ARE NOT M$Office word documents), then\n");
+	fprintf(stderr, "\t      type files (some *.doc files that ARE NOT MS Office Word documents), then\n");
 	fprintf(stderr, "\t      this switch will keep them from being detected this way.  NOTE, that\n");
 	fprintf(stderr, "\t      the 'magic' logic will only be used in john, under certain situations.\n");
 	fprintf(stderr, "\t      Most of these situations are when there are only 'stored' files in the zip\n");

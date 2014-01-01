@@ -1,4 +1,4 @@
-/* Office 97-2003 cracker patch for JtR. Hacked together during May of
+/* MS Office 97-2003 cracker patch for JtR. Hacked together during May of
  * 2012 by Dhiru Kholia <dhiru.kholia at gmail.com>.
  *
  * This software is Copyright (c) 2012, Dhiru Kholia <dhiru.kholia at gmail.com>
@@ -29,7 +29,7 @@
 #endif
 
 #define FORMAT_LABEL		"oldoffice"
-#define FORMAT_NAME		"Office <= 2003"
+#define FORMAT_NAME		"MS Office <= 2003"
 #define ALGORITHM_NAME		"MD5/SHA1 RC4 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
