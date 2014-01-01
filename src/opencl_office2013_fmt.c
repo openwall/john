@@ -1,4 +1,4 @@
-/* Office 2013 cracker patch for JtR. Hacked together during March of 2012 by
+/* MS Office 2013 cracker patch for JtR. Hacked together during March of 2012 by
  * Dhiru Kholia <dhiru.kholia at gmail.com>
  *
  * This OpenCL format by magnum.
@@ -34,7 +34,7 @@
 #define HASH_LOOPS		64 /* Lower figure gives less X hogging */
 
 #define FORMAT_LABEL		"office2013-opencl"
-#define FORMAT_NAME		"Office 2013"
+#define FORMAT_NAME		"MA Office 2013"
 #define ALGORITHM_NAME		"SHA512 AES OpenCL"
 #define BENCHMARK_COMMENT	" (100,000 iterations)"
 #define BENCHMARK_LENGTH	-1

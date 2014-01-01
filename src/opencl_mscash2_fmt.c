@@ -30,7 +30,7 @@
 
 
 #define FORMAT_LABEL	           "mscash2-opencl"
-#define FORMAT_NAME		   "M$ Cache Hash 2 (DCC2)"
+#define FORMAT_NAME		   "MS Cache Hash 2 (DCC2)"
 #define KERNEL_NAME		   "PBKDF2"
 #define ALGORITHM_NAME		   "PBKDF2-SHA1 OpenCL"
 #define BENCHMARK_COMMENT	   ""
