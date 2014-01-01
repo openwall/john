@@ -25,6 +25,21 @@ to your ~./bashrc file:
 complete -F _john john-omp
 
 
+	Prerequisites
+
+The bash completion for john requires bash version >= 4,
+and extended pattern matching features enabled.
+If the command
+	shopt -p extglob
+prints
+	shopt -s extglob
+then the extended pattern matching features are enabled.
+If this command
+prints
+	shopt -u extglob
+then they are disabled.
+
+
 	Features
 
 The bash completion for unique does nothing for a non-jumbo build.
