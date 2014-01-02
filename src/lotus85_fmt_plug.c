@@ -105,7 +105,7 @@ static void decipher_userid_blob(uint8_t *ciphered_blob, uint32_t len, uint8_t *
 	uint8_t buf[LOTUS85_MAX_BLOB_SIZE+8],rc_iv[8];
 
 	memset(buf, 0x0, sizeof(buf));
-	bzero(rc_iv, sizeof(rc_iv));
+	memset(rc_iv, 0, sizeof(rc_iv));
 
 	RC2_set_key(&rc_key, 8, userid_key, 64);
 	RC2_cbc_encrypt(ciphered_blob, buf, len, &rc_key, rc_iv, RC2_DECRYPT);
@@ -120,7 +120,7 @@ static void custom_password_hash_trans(uint8_t *data, uint8_t *out, uint8_t *sta
 	size_t i, j;
 	uint8_t c;
 
-	bzero(buffer, sizeof(buffer));
+	memset(buffer, 0, sizeof(buffer));
 
 	memmove(buffer, state, 16);
 	memmove(buffer + 16, data, 16);
@@ -168,8 +168,8 @@ static void custom_password_hash(const char *password, uint8_t *out)
 	size_t len, rlen, block_pos = 0;
 
 	len = strlen(password);
-	bzero(state, sizeof(state));
-	bzero(block2, sizeof(block2));
+	memset(state, 0, sizeof(state));
+	memset(block2, 0, sizeof(block2));
 
 	while((block_pos + 15) < len)
 	{
@@ -268,8 +268,8 @@ static void get_user_id_secret_key(const char *password, uint8_t *secret_key)
 {
 	uint8_t key[16+20], mac[8];
 
-	bzero(key, sizeof(key));
-	bzero(mac, sizeof(mac));
+	memset(key, 0, sizeof(key));
+	memset(mac, 0, sizeof(mac));
 
 	custom_password_hash(password, key);
 	password_hash(password, key+16);
@@ -364,10 +364,10 @@ static int lotus85_crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	{
 		unsigned char user_key[8], deciphered_userid[LOTUS85_MAX_BLOB_SIZE];
-		bzero(lotus85_last_binary_hash1[index], BINARY_SIZE);
-		bzero(lotus85_last_binary_hash2[index], BINARY_SIZE);
-		bzero(user_key, sizeof(user_key));
-		bzero(deciphered_userid, sizeof(deciphered_userid));
+		memset(lotus85_last_binary_hash1[index], 0, BINARY_SIZE);
+		memset(lotus85_last_binary_hash2[index], 0, BINARY_SIZE);
+		memset(user_key, 0, sizeof(user_key));
+		memset(deciphered_userid, 0, sizeof(deciphered_userid));
 
 		/* Derive password and retrieve RC2 key */
 		get_user_id_secret_key(lotus85_saved_passwords[index], user_key);
