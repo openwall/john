@@ -1127,6 +1127,7 @@ static void john_init(char *name, int argc, char **argv)
 
 	john_register_all(); /* maybe restricted to one format by options */
 
+	common_init();
 	if ((options.subformat && !strcasecmp(options.subformat, "list")) ||
 	    options.listconf)
 		listconf_parse_late();
@@ -1138,7 +1139,6 @@ static void john_init(char *name, int argc, char **argv)
 	ocl_gpu_id = -1;
 #endif
 
-	common_init();
 	sig_init();
 
 	john_load();
