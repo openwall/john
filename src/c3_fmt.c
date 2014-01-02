@@ -86,8 +86,8 @@ static void init(struct fmt_main *self)
 		data->initialized = 0;
 #endif
 
-		if (strlen(options.subformat) < 2) {
-			fprintf(stderr, "Subformat unkown to John. Currently supported: descrypt, md5crypt, bcrypt, sha256crypt, sha512crypt, sun-md5\n\n");
+		if (!strcmp(options.subformat, "?")) {
+			fprintf(stderr, "Subformat may either be a verbatim salt, or: descrypt, md5crypt, bcrypt, sha256crypt, sha512crypt, sun-md5\n\n");
 			error();
 		} else if (!strcasecmp(options.subformat, "md5crypt") ||
 		    !strcasecmp(options.subformat, "md5")) {
@@ -132,7 +132,7 @@ static void init(struct fmt_main *self)
 #else
 			c = crypt(tests[i].plaintext, salt);
 #endif
-			if (c)
+			if (c && strlen(c) >= 7)
 				tests[i].ciphertext = strdup(c);
 			else {
 				printf("%s not supported on this system\n",
