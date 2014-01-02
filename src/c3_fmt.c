@@ -81,7 +81,10 @@ static void init(struct fmt_main *self)
 		int i;
 		char *salt = tests[0].ciphertext;
 
-		if (!strcasecmp(options.subformat, "md5crypt") ||
+		if (strlen(options.subformat) < 2) {
+			fprintf(stderr, "Subformat unkown to John. Currently supported: descrypt, md5crypt, bcrypt, sha256crypt, sha512crypt, sun-md5\n\n");
+			error();
+		} else if (!strcasecmp(options.subformat, "md5crypt") ||
 		    !strcasecmp(options.subformat, "md5")) {
 			self->params.benchmark_comment = " MD5";
 			salt = "$1$dXc3I7Rw$";
