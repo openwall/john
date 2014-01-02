@@ -111,7 +111,7 @@ static void init(struct fmt_main *self)
 		           !strcasecmp(options.subformat, "des")) {
 			salt = "CC";
 		} else {
-			char *p = mem_alloc_tiny(strlen(options.subformat) + 1,
+			char *p = mem_alloc_tiny(strlen(options.subformat) + 2,
 			                         MEM_ALIGN_NONE);
 			strcpy(p, " ");
 			strcat(p, options.subformat);
