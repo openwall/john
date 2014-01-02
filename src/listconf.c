@@ -70,8 +70,7 @@ static void listconf_list_options()
 	puts("formats, format-details, format-all-details, format-methods[:WHICH],");
 	// With "opencl-devices, cuda-devices, <conf section name>" added,
 	// the resulting line will get too long
-	// printf("sections, parameters:SECTION, list-data:SECTION, ");
-	puts("sections, parameters:SECTION, list-data:SECTION,");
+	puts("format-tests, sections, parameters:SECTION, list-data:SECTION,");
 #ifdef HAVE_OPENCL
 	printf("opencl-devices, ");
 #endif
@@ -575,6 +574,40 @@ void listconf_parse_late(void)
 				printf("\tcmp_exact()\n");
 				printf("\n\n");
 			}
+		} while ((format = format->next));
+		exit(0);
+	}
+	if (!strncasecmp(options.listconf, "format-tests", 12)) {
+		struct fmt_main *format;
+		format = fmt_list;
+		do {
+			int ntests = 0;
+
+			/*
+			 * fmt_init() and fmt_done() required for --encoding=
+			 * support, because some formats (like Raw-MD5u)
+			 * change their tests[] depending on the encoding.
+			 */
+			fmt_init(format);
+
+			if(format->params.tests) {
+				while (format->params.tests[ntests].ciphertext) {
+					/*
+					 * This should produce useful output for most
+					 * formats.
+					 * scrypt is the only exception, due to one
+					 * test with tabs and new lines in ciphertext
+					 * and password.
+					 */
+					printf("%s\t%d\t%s\t%s\n",
+					       format->params.label, ntests,
+					       format->params.tests[ntests].ciphertext,
+					       format->params.tests[ntests].plaintext);
+					ntests++;
+				}
+			}
+			fmt_done(format);
+
 		} while ((format = format->next));
 		exit(0);
 	}
