@@ -122,9 +122,10 @@ static void init(struct fmt_main *self)
 			tests[i].ciphertext =
 				strdup(crypt(tests[i].plaintext, salt));
 
-		if (strlen(tests[0].ciphertext) == 13 &&
+		if (!tests[0].ciphertext ||
+		    (strlen(tests[0].ciphertext) == 13 &&
 		    strcasecmp(options.subformat, "descrypt") &&
-		    strcasecmp(options.subformat, "des")) {
+		     strcasecmp(options.subformat, "des"))) {
 			printf("%s not supported on this system\n",
 			       options.subformat);
 			error();
