@@ -1025,6 +1025,9 @@ int dynamic_LOAD_PARSER_FUNCTIONS(int which, struct fmt_main *pFmt)
 	cnt = Count_Items("Test=");
 	cnt += Count_Items("TestU=");
 	cnt += Count_Items("TestA=");
+#ifdef DEBUG
+	cnt += Count_Items("TestD=");
+#endif
 #ifdef MMX_COEF
 	cnt += Count_Items("TestM=");
 #else
