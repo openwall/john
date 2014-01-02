@@ -80,6 +80,11 @@ static void init(struct fmt_main *self)
 	if (options.subformat) {
 		int i;
 		char *salt = tests[0].ciphertext;
+#if defined(_OPENMP) && defined(__GLIBC__)
+		struct crypt_data data;
+
+		data->initialized = 0;
+#endif
 
 		if (strlen(options.subformat) < 2) {
 			fprintf(stderr, "Subformat unkown to John. Currently supported: descrypt, md5crypt, bcrypt, sha256crypt, sha512crypt, sun-md5\n\n");
@@ -119,13 +124,26 @@ static void init(struct fmt_main *self)
 			salt = options.subformat;
 		}
 		for (i = 0; i < 5; i++)
-			tests[i].ciphertext =
-				strdup(crypt(tests[i].plaintext, salt));
+		{
+			char *c;
 
-		if (!tests[0].ciphertext ||
-		    (strlen(tests[0].ciphertext) == 13 &&
+#if defined(_OPENMP) && defined(__GLIBC__)
+			c = crypt_r(tests[i].plaintext, salt, &data);
+#else
+			c = crypt(tests[i].plaintext, salt);
+#endif
+			if (c)
+				tests[i].ciphertext = strdup(c);
+			else {
+				printf("%s not supported on this system\n",
+				       options.subformat);
+				error();
+			}
+		}
+
+		if (strlen(tests[0].ciphertext) == 13 &&
 		    strcasecmp(options.subformat, "descrypt") &&
-		     strcasecmp(options.subformat, "des"))) {
+		    strcasecmp(options.subformat, "des")) {
 			printf("%s not supported on this system\n",
 			       options.subformat);
 			error();
