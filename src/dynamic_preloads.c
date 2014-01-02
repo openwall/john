@@ -3478,14 +3478,14 @@ int IsOMP_Valid(int j) {
 	return 1;
 }
 
-// -1 is NOT valid  ( num > 5000 is 'hidden' values )
+// -1 is NOT valid  ( num >= 5000 is 'hidden' values )
 // 0 is valid, but NOT usable by this build (i.e. no SSE2)
 // 1 is valid.
 int dynamic_IS_VALID(int i)
 {
 	char Type[20];
 	sprintf(Type, "dynamic_%d", i);
-	if (i < 0 || i > 5000)
+	if (i < 0 || i >= 5000)
 		return -1;
 	if (i < 1000) {
 		int j,len;

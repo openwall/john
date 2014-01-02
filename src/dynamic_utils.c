@@ -66,7 +66,9 @@ void dynamic_DISPLAY_ALL_FORMATS()
 	for (i = 1000; i < 10000; ++i)
 	{
 		char *sz = dynamic_LOAD_PARSER_SIGNATURE(i);
-		if (sz && dynamic_IS_PARSER_VALID(i))
+		if (sz &&
+		    // dynamic_IS_PARSER_VALID(i)) // this would include "reserved" formats 
+		    dynamic_IS_VALID(i) == 1) // skip "reserved" formats 
 			printf ("UserFormat = dynamic_%d  type = %s\n", i, sz);
 	}
 }
