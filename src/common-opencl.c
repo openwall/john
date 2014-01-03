@@ -2231,7 +2231,7 @@ void opencl_list_devices(void)
 					&topo, NULL);
 				if (ret == CL_SUCCESS)
 					printf("\tPCI device topology:\t"
-					       "%02d:%02d.%d\n",
+					       "%02x:%02x.%x\n",
 					       topo.pcie.bus, topo.pcie.device,
 					       topo.pcie.function);
 			}

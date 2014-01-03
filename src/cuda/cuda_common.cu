@@ -128,7 +128,7 @@ void cuda_device_list()
 		    devProp.maxThreadsPerBlock);
 		printf("\tMax. resident threads per MP   %d\n",
 		    devProp.maxThreadsPerMultiProcessor);
-		printf("\tPCI device topology:           %02d:%02d.%d\n",
+		printf("\tPCI device topology:           %02x:%02x.%x\n",
 		    devProp.pciBusID, devProp.pciDeviceID, devProp.pciDomainID);
 		puts("");
 	}
