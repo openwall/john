@@ -404,7 +404,8 @@ int benchmark_all(void)
 /* Just test the encoding-aware formats if --encoding */
 		if ((!options.ascii && !options.iso8859_1) &&
 		    !(format->params.flags & FMT_UTF8)) {
-			if (options.format == NULL)
+			if (options.format == NULL ||
+			    strcasecmp(format->params.label, options.format))
 				continue;
 			else {
 				if (format->params.flags & FMT_UNICODE) {
