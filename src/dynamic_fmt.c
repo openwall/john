@@ -7341,11 +7341,15 @@ static int LoadOneFormat(int idx, struct fmt_main *pFmt)
 
 int dynamic_Register_formats(struct fmt_main **ptr)
 {
-	int count, i, idx, single=-1;
+	int count, i, idx, single=-1, wildcard = 0;
 	extern struct options_main options;
 
+	if (options.format && strstr(options.format, "*"))
+		wildcard = 1;
+
 	Dynamic_Load_itoa16_w2();
-	if (options.format && !strncmp(options.format, "dynamic_", 8))
+	if (!wildcard && options.format &&
+	    !strncmp(options.format, "dynamic_", 8))
 		sscanf(options.format, "dynamic_%d", &single);
 	if (options.format && options.subformat  && !strcmp(options.format, "dynamic") && !strncmp(options.subformat, "dynamic_", 8))
 		sscanf(options.subformat, "dynamic_%d", &single);
