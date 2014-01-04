@@ -92,7 +92,7 @@
 _john()
 {
 	local first cur options valopts compreplya compreplyb encodings formats format_classes
-	local subformats list dir cmd i ver ver1 ver2 ver3 prev words prefix option
+	local subformats list dir cmd cmd2 i ver ver1 ver2 ver3 prev words prefix option
 
 	# Without LC_ALL=C, [A-Z] match [a-z] (case "${cur}" in ... esac)
 	LC_ALL=C
@@ -129,6 +129,19 @@ _john()
 #	We need to make sure we run the correct program, not some other program
 #	called john which is located somewhere in $PATH
 	first="${COMP_WORDS[0]}"
+
+#	For Jumbo versions, we usually don't need version information,
+#	because we can use --list= instead.
+#	But for core John versions, hard coded lists are provided.
+#	These depend on the John version
+#	(External Modes, Incremental modes)
+	ver=`${first} 2>/dev/null|sed -n '/^John the Ripper password cracker, ver/ s#^John the Ripper password cracker, ver[a-z :]*\([0-9.]*\).*$#\1#p'`
+	ver1=`echo $ver|sed 's#^\([0-9]*\).*$#\1#'`
+	ver2=`echo $ver|sed 's#^[0-9]*.\([0-9]*\).*$#\1#'`
+	ver3=`echo $ver|sed 's#^[0-9]*.[0-9]*.\([0-9]*\).*$#\1#'`
+	if [[ "_${ver3}" == "_" ]] ; then
+		ver3=0
+	fi
 
 #	Most options are listed at the begin of the line, but the line with
 #	the --pipe option does have leading spaces, and --stdin is mentioned
@@ -410,13 +423,10 @@ _john()
 				list=`${first} --list=externals 2>/dev/null`
 			fi
 			if [[ $? -ne 0 ]] ; then
-				list="Filter_Alpha Filter_Digits Filter_Alnum Filter_LanMan LanMan Double Parallel Strip Keyboard"
-				ver=`${first} 2>/dev/null|sed -n '/^John the Ripper password cracker, ver/ s#^John the Ripper password cracker, ver[a-z :]*\([0-9.]*\).*$#\1#p'`
-				ver1=`echo $ver|sed 's#^\([0-9]*\).*$#\1#'`
-				ver2=`echo $ver|sed 's#^[0-9]*.\([0-9]*\).*$#\1#'`
-				ver3=`echo $ver|sed 's#^[0-9]*.[0-9]*.\([0-9]*\).*$#\1#'`
-				if [[ "_${ver3}" == "_" ]] ; then
-					ver3=0
+				list="Filter_Alpha Filter_Digits Filter_Alnum Double Parallel Strip Keyboard"
+				if [[ $ver1 -eq 1 && $ver2 -lt 8 ]] ; then
+					# Filter_LanMan renamed to Filter_LM_ASCII in 1.8
+					list="${list} Filter_LanMan LanMan"
 				fi
 				if [[ $ver1 -eq 1 && $ver2 -eq 7 ]] ; then
 					if [[ $ver3 -ge 3 ]] ; then
@@ -433,7 +443,7 @@ _john()
 					fi
 				else
 					if [[ $ver1 -gt 1 || $ver1 -eq 1 && ver2 -gt 7 ]] ; then
-						list="${list} DumbForce KnownForce DateTime Repeats Subsets AtLeast1-Simple AtLeast1-Generic Policy AppendLuhn AutoAbort AutoStatus"
+						list="${list} LM_ASCII Filter_LM_ASCII Filter_ASCII Filter_Lower Filter_LowerNum Filter_LowerSpace Filter_Upper Filter_UpperNum DumbForce KnownForce DateTime Repeats Subsets AtLeast1-Simple AtLeast1-Generic Policy AppendLuhn AutoAbort AutoStatus"
 					fi
 				fi
 				cur=${cur#*[=:]}
@@ -444,13 +454,19 @@ _john()
 			return 0
 			;;
 		--incremental)
+			# completion if __john_completion != 2
 			cmd=`echo ${COMP_LINE}|sed "s# ${cur}# --list=inc-modes #"`
 			list=`${cmd} 2>/dev/null`
 			if [[ $? -ne 0 ]] ; then
 				list=`${first} --list=inc-modes 2>/dev/null`
 			fi
 			if [[ $? -ne 0 ]] ; then
-				list="All Alpha Digits Alnum LanMan"
+				list="Alpha Digits Alnum"
+				if [[ ${ver1} -eq 1 && ${ver2} -le 7 ]] ; then
+					list="${list} All LanMan"
+				else
+					list="${list} ASCII LM_ASCII Lower LowerNum LowerSpace Upper UpperNum"
+				fi
 			fi
 			list=`echo "${list}"|sed 's# #\n#g'|sed "s#^\(.\)#${cur}=\1#"`
 			list="${list} ${cur}"
@@ -468,7 +484,13 @@ _john()
 				COMPREPLY=( $(compgen -W "${list}" -- ${cur}) )
 			else
 				cur=${cur#*[=:]}
-				COMPREPLY=( $(compgen -W "All Alpha Digits Alnum LanMan" -- ${cur}) )
+				list="Alpha Digits Alnum"
+				if [[ ${ver1} -eq 1 && ${ver2} -le 7 ]] ; then
+					list="${list} All LanMan"
+				else
+					list="${list} ASCII LM_ASCII Lower LowerNum LowerSpace Upper UpperNum"
+				fi
+				COMPREPLY=( $(compgen -W "${list}" -- ${cur}) )
 			fi
 			return 0
 			;;
@@ -489,6 +511,8 @@ _john()
 			return 0
 			;;
 		--markov)
+			# completion if __john_completion != 2
+			#
 			# Should I mention [MIN_LEVEL-] and [MIN_LENGTH-]?
 			# I think not all jumbo versions support these.
 			# How to find out whether --markov=MODE is supported?
@@ -506,12 +530,13 @@ _john()
 			# Just try completion for --markov=MODE
 			# for all [Markov:...] sections?
 			if [[ "${valopts}" == *--list=* ]] ; then
-				cur=`echo ${cur#*[=:]} | tr A-Z a-z`
+				cmd=`echo ${COMP_LINE}|sed "s# ${cur}# --list=Markov #"`
 				# Don't include subsection names which
 				# contain a ':' or which contain
 				# just '-' and digits
-				list=`${first} --list=Markov 2>/dev/null | sed 's#^.*:.*$##' | sed 's#^[-0-9]*$##'`
-				COMPREPLY=( $(compgen -W "${list}" -- ${cur}) )
+				list=`${cmd} 2>/dev/null | sed 's#^.*:.*$##' | sed 's#^[-0-9]*$##'`
+				cur=`echo ${cur#*[=:]} | tr A-Z a-z`
+				COMPREPLY=( $(compgen -W "${list} LEVEL[:START[:END[:LENGTH]]] MODE MODE:LEVEL[:START[:END[:LENGTH]]]" -- ${cur}) )
 				# no trailing space, just in case
 				# the user wants to add :LEVEL...
 				compopt -o nospace
@@ -667,6 +692,13 @@ _john()
 			return 0
 			;;
 		--list+(+(=|:)+([a-z_-]):|:+([a-z._-])=)*([A-Za-z0-9:._-]))
+			# --list=help:*
+			# --list=format-methods:*
+			# --list=list-data:*
+			# --list=parameters:*
+
+			cmd2=`echo ${COMP_LINE}|sed "s# ${cur}# #"`
+
 			cur=`echo ${cur#*[=:]} | tr A-Z a-z`
 			cmd=${cur%[=:]*}
 			prefix=""
@@ -677,12 +709,19 @@ _john()
 				cur=${cur#*[=:]}
 			fi
 			cur=${cur#*[=:]}
+
+			# --list=list-data:list.rules:si
+			#        |         |          |
+			#        |         |          +- cur
+			#        |         +------------ prefix
+			#        +-----------------------cmd
+
 			# Q&D fix, a general solution will take longer:
 			if [[ ( "_${cmd}" == _parameters || "_${cmd}" == _list-data ) && "_${prefix}" != "_" ]] ; then
 				# list subsection names
-				list=`${first} --list=${prefix} 2>/dev/null|sed 's#^.*\s.*$##'`
+				list=`${cmd2} --list=${prefix} 2>/dev/null|sed 's#^.*\s.*$##'`
 			else
-				list=`${first} --list=help:${cmd} 2>/dev/null |sed 's#,#\n#g'`
+				list=`${cmd2} --list=help:${cmd} 2>/dev/null |sed 's#,#\n#g'`
 			fi
 			if [[ $? -eq 0 ]] ; then
 				COMPREPLY=( $(compgen -W "${list}" -- ${cur}) )
@@ -690,13 +729,6 @@ _john()
 			return 0
 			;;
 		--list=*)
-			# in newer jumbo versions, there can be
-			# more than one option name starting with l...
-			if [[ "${cur#*l}" == [=:]* ]] ; then
-				if [[ `echo "${valopts}"|grep -c "^-*${cur%[=:]*}"` -ne 1 ]] ; then
-					return 0
-				fi
-			fi
 			cur=${cur#*[=:]}
 			# the --list=\? output changed, that's why a more
 			# complex regex is used to cover all cases.
