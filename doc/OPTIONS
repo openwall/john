@@ -278,10 +278,10 @@ John can't crack hashes of different types at the same time.  If you
 happen to get a password file that uses more than one hash type, then
 you have to invoke John once for each hash type and you need to use this
 option to make John crack hashes of types other than the one it would
-autodetect by default. Mainly for test and list purposes, you can use
-group aliases "cpu", "gpu", "opencl" and "cuda" as a format name, or
-use one wildcard, as in "--format=mysql-*", "--format=raw*ng" or
-"--format=*office".
+autodetect by default. Mainly for test and list purposes (see --list=WHAT),
+you can use group aliases "dynamic", "cpu", "gpu", "opencl" and "cuda"
+as a format name, or use one wildcard, as in "--format=mysql-*", 
+"--format=raw*ng" or "--format=*office".
 
 "--format=crypt" may or may not be supported in a given build of John.
 In default builds of John, this support is currently only included on
@@ -308,9 +308,6 @@ performance and in unnecessarily poor results (in terms of passwords
 cracked) for hashes of the "faster" types (as compared to the "slower"
 ones loaded for cracking at the same time).  So you are advised to use
 separate invocations of John, one per hash type.
-
---list=subformats		displays all the built-in dynamic formats,
-				and exits
 
 --save-memory=LEVEL		enable memory saving, at LEVEL 1..3
 
@@ -438,9 +435,10 @@ attacks in a row against slow hashes. Usually it is not needed. It affects
 --list=WHAT			list capabilities
 
 This option can be used to gain information about what rules, modes etc are
-available. Use --list=help for a list of valid arguments. For example, the now
-deprecated --subformat=LIST is now --list=subformats.
-The different variants of list externals may be worth mentioning:
+available. Use --list=help for a list of valid arguments.
+If information about formats is requested, a --format=[NAME|CLASS] option
+can be used in addition to --list=WHAT.
+If an additional option --config=FILE 
 
 --list=externals          list all external modes/filters
 --list=ext-modes          list external modes [has a generate()]
@@ -481,6 +479,13 @@ The different variants of list externals may be worth mentioning:
                           format.  If 'WHICH' is set, then this listing
                           will ONLY be formats which have the 'WHICH' format
                           overridden.
+--list=format-tests       list all format specific tests
+                          (format name, number, hash, password)
+                          If a format uses encoding specific tests, you can
+                          use --encoding=NAME as an additional option to see
+                          these encoding specific tests.
+--list=subformats	  all the built-in dynamic formats, and exits
+                          (replaces the now deprecated --subformat=LIST)
 
 --regen-lost-salts=type:hash_sz:mask
                           Finds passwords AND salts in a set of raw hashes.
