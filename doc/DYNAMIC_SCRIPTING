@@ -179,16 +179,16 @@ that they are WORKING, and what speed they are working:
 
 Here is MinGW build 'x86'
 
-john_x86 -test -for=$dynamic$ -sub=dynamic_1030
+john_x86 -test -form=dynamic_1030
 Benchmarking: dynamic_1030: md5($p.$p) [128x1 (MD5_Go)]... DONE
 Raw:    3530K c/s
 
-john_x86 -test -for=$dynamic$ -sub=dynamic_1031
+john_x86 -test -form=dynamic_1031
 Benchmarking: dynamic_1031: md5($s.md5($p).$p) [128x1 (MD5_Go)]... DONE
 Many salts:     1945K c/s
 Only one salt:  1890K c/s
 
-john_x86 -test -for=$dynamic$ -sub=dynamic_1032
+john_x86 -test -form=dynamic_1032
 Benchmarking: dynamic_1032: md5(md5($s).md5($p).$p) [128x1 (MD5_Go)]... DONE
 Many salts:     1016K c/s
 Only one salt:  1031K c/s
@@ -196,26 +196,26 @@ Only one salt:  1031K c/s
 
 Here is MinGW build of SSE2
 
-john_sse2 -test -for=$dynamic$ -sub=dynamic_1030
+john_sse2 -test -form=dynamic_1030
 Benchmarking: dynamic_1030: md5($p.$p) SSE2 [SSE2 32x4 (.S)]... DONE
 Raw:    7250K c/s
 
-john_sse2 -test -for=$dynamic$ -sub=dynamic_1031
+john_sse2 -test -form=dynamic_1031
 Benchmarking: dynamic_1031: md5($s.md5($p).$p) SSE2 [SSE2 32x4 (.S)]... DONE
 Many salts:     5065K c/s
 Only one salt:  4436K c/s
 
-john_sse2 -test -for=$dynamic$ -sub=dynamic_1032
+john_sse2 -test -form=dynamic_1032
 Benchmarking: dynamic_1032: md5(md5($s).md5($p).$p) SSE2 [SSE2 32x4 (.S)]... FAILED (get_hash[0](0))
 
 
 Here is some timings to check against:
 
-john_x86 -test -for=$dynamic$ -sub=dynamic_0
+john_x86 -test -form=dynamic_0
 Benchmarking:  dynamic_0: md5($p)  (raw-md5)  [128x1 (MD5_Go)]... DONE
 Raw:    4005K c/s
 
-john_sse2 -test -for=$dynamic$ -sub=dynamic_0
+john_sse2 -test -form=dynamic_0
 Benchmarking:  dynamic_0: md5($p)  (raw-md5)  SSE2 [SSE2 32x4 (.S)]... DONE
 Raw:    10740K c/s
 
@@ -278,22 +278,22 @@ Test=$dynamic_1042$042d1f15ed57929a2ac8ee4f0a924679$aabbccdd:test1
 
 Once the above changes have been done, here are the speeds:
 
-john_x86 -test=5 -for=$dynamic$ -sub=dynamic_1031
+john_x86 -test=5 -form=dynamic_1031
 Benchmarking: dynamic_1031: md5($s.md5($p).$p) [128x1 (MD5_Go)]... DONE
 Many salts:     2007K c/s
 Only one salt:  1913K c/s
 
-john_x86 -test=5 -for=$dynamic$ -sub=dynamic_1032
+john_x86 -test=5 -form=dynamic_1032
 Benchmarking: dynamic_1032: md5(md5($s).md5($p).$p) [128x1 (MD5_Go)]... DONE
 Many salts:     1052K c/s
 Only one salt:  1030K c/s
 
-john_x86 -test=5 -for=$dynamic$ -sub=dynamic_1042
+john_x86 -test=5 -form=dynamic_1042
 Benchmarking: dynamic_1042: md5(md5($s).md5($p).$p) [128x1 (MD5_Go)]... DONE
 Many salts:     1420K c/s
 Only one salt:  1372K c/s
 
-john_sse2 -test=5 -for=$dynamic$ -sub=dynamic_1042
+john_sse2 -test=5 -form=dynamic_1042
 Benchmarking: dynamic_1042: md5(md5($s).md5($p).$p) SSE2 [128x1 (MD5_Go)]... DONE
 Many salts:     1416K c/s
 Only one salt:  1372K c/s
@@ -320,12 +320,12 @@ Test=$dynamic_1052$042d1f15ed57929a2ac8ee4f0a924679$aabbccdd:test1
 
 Here are the benchmarks for the above format:
 
-john_x86 -test=5 -for=$dynamic$ -sub=dynamic_1052
+john_x86 -test=5 -form=dynamic_1052
 Benchmarking: dynamic_1052: md5(md5($s).md5($p).$p) [128x1 (MD5_Go)]... DONE
 Many salts:     2251K c/s
 Only one salt:  1369K c/s
 
-john_sse2 -test=5 -for=$dynamic$ -sub=dynamic_1052
+john_sse2 -test=5 -form=dynamic_1052
 Benchmarking: dynamic_1052: md5(md5($s).md5($p).$p) SSE2 [128x1 (MD5_Go)]... DONE
 Many salts:     2251K c/s
 Only one salt:  1369K c/s
@@ -401,7 +401,7 @@ Func=DynamicFunc__crypt_md5
 Func=DynamicFunc__X86toSSE_switch_output1
 Test=$dynamic_1062$042d1f15ed57929a2ac8ee4f0a924679$aabbccdd:test1
 
-john_sse2 -test=5 -for=$dynamic$ -sub=dynamic_1062
+john_sse2 -test=5 -form=dynamic_1062
 Benchmarking: dynamic_1062: md5(md5($s).md5($p).$p) SSE2 [SSE2 32x4 (.S)]... DONE
 Many salts:     1792K c/s
 Only one salt:  1715K c/s
