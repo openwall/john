@@ -15,7 +15,7 @@
 #include "unicode.h"
 
 #define FORMAT_LABEL		"mscash-cuda"
-#define FORMAT_NAME		"MS Cache Hash (DCC)"
+#define FORMAT_NAME		"M$ Cache Hash (DCC)"
 #define ALGORITHM_NAME		"MD4 CUDA (inefficient, development use only)"
 #define MAX_CIPHERTEXT_LENGTH	(2 + 19*3 + 1 + 32)
 #define BENCHMARK_COMMENT	""
@@ -59,7 +59,7 @@ static void init(struct fmt_main *self)
 	    (mscash_hash *) mem_alloc(MAX_KEYS_PER_CRYPT * sizeof(mscash_hash));
 	check_mem_allocation(inbuffer, outbuffer);
 	//Initialize CUDA
-	cuda_init(cuda_gpu_id);
+	cuda_init();
 
 	if (options.utf8) {
 		self->params.plaintext_length *= 3;

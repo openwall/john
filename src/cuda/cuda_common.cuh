@@ -14,7 +14,7 @@ void HandleError(cudaError_t err, const char *file, int line);
 extern "C"
 char *get_cuda_header_version();
 extern "C"
-void cuda_init(unsigned int cuda_gpu_id);
+void cuda_init();
 extern "C"
 void cuda_device_list();
 extern "C"

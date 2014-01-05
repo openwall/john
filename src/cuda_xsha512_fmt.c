@@ -85,7 +85,7 @@ static void init(struct fmt_main *self)
 	g_ext_key = mem_calloc(MAX_KEYS_PER_CRYPT * sizeof(xsha512_extend_key));
 	ghash = mem_calloc(MAX_KEYS_PER_CRYPT * sizeof(xsha512_hash));
 
-	cuda_init(cuda_gpu_id);
+	cuda_init();
 	cuda_xsha512_init();
 }
 
