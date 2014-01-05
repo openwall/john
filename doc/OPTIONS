@@ -485,6 +485,11 @@ If an additional option --config=FILE
                           If a format uses encoding specific tests, you can
                           use --encoding=NAME as an additional option to see
                           these encoding specific tests.
+                          If a ciphertext contains line feeds or the separator
+                          character (horizontal tab), just the format name and
+                          the test number are written. If the password contains
+                          line feeds, it will not be written.
+                          (A warning message is written to stderr in this case.)
 --list=subformats	  all the built-in dynamic formats, and exits
                           (replaces the now deprecated --subformat=LIST)
 
