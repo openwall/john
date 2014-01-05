@@ -404,8 +404,8 @@ These options limit the length of candidates that will be tried. In wordlist
 mode (after applying rules, if any), a word that is not within the requested
 limits will be rejected (not truncated). Most other modes also honour these
 settings. For example, you can fully exhaust a short keyspace with incremental
-mode with eg. -max-len=4 and then start a longer session for the rest with
--min-length=5, or use one core for lengths up to 8 and other cores for exact
+mode with eg. --max-len=4 and then start a longer session for the rest with
+--min-length=5, or use one core for lengths up to 8 and other cores for exact
 lengths of 9, 10 and so on.
 
 --max-run-time=N
