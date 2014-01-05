@@ -592,17 +592,48 @@ void listconf_parse_late(void)
 
 			if(format->params.tests) {
 				while (format->params.tests[ntests].ciphertext) {
+					int i;
+					int skip = 0;
+					/* 
+					 * defining a config variable ot allowing --field-separator-char=
+					 * with a fallback to either ':' or '\t' is probably overkill
+					 */
+					const char separator = '\t';
+
 					/*
-					 * This should produce useful output for most
-					 * formats.
-					 * scrypt is the only exception, due to one
-					 * test with tabs and new lines in ciphertext
+					 * one of the scrypt tests has tabs and new lines in ciphertext
 					 * and password.
 					 */
-					printf("%s\t%d\t%s\t%s\n",
-					       format->params.label, ntests,
-					       format->params.tests[ntests].ciphertext,
-					       format->params.tests[ntests].plaintext);
+					for (i = 0; format->params.tests[ntests].plaintext[i]; i++)
+						if (format->params.tests[ntests].plaintext[i] == '\x0a') {
+							skip = 1;
+							fprintf(stderr,
+							        "Test %s %d: plaintext contains line feed\n",
+							        format->params.label, ntests);
+							break;
+						}
+					for (i = 0; format->params.tests[ntests].ciphertext[i]; i++) {
+						if (format->params.tests[ntests].ciphertext[i] == '\x0a' ||
+						    format->params.tests[ntests].ciphertext[i] == separator) {
+							skip = 2;
+							fprintf(stderr,
+							        "Test %s %d: ciphertext contains line feed or separator character '%c'\n",
+							        format->params.label, ntests, separator);
+							break;
+						}
+					}
+					printf("%s%c%d",
+					       format->params.label, separator, ntests);
+					if (skip < 2) {
+						printf("%c%s",
+						       separator,
+						       format->params.tests[ntests].ciphertext);
+						if(!skip)
+							printf("%c%s",
+							       separator,
+							       format->params.tests[ntests].plaintext);
+					}
+					printf("\n");
 					ntests++;
 				}
 			}
