@@ -1,4 +1,10 @@
 /*
+* The software updates are Copyright (c) 2014 Muhammad Junaid Muzammil <mjunaidmuzammil at gmail dot com>,
+* and it is hereby released to the general public under the following terms:
+* Redistribution and use in source and binary forms, with or without
+* modification, are permitted.
+*/
+/*
 * This software is Copyright (c) 2011,2013 Lukas Odzioba <ukasz at openwall dot com>
 * and it is hereby released to the general public under the following terms:
 * Redistribution and use in source and binary forms, with or without modification, are permitted.
@@ -11,11 +17,14 @@
 /*
 * CUDA device id specified by -device parameter
 */
-int cuda_gpu_id;
+#define MAX_CUDA_DEVICES        8
+extern int cuda_gpu_id;
+extern int cuda_dev_list[MAX_CUDA_DEVICES];
+
 
 #define HANDLE_ERROR(err) (HandleError(err,__FILE__,__LINE__))
 extern char *get_cuda_header_version();
-extern void cuda_init(unsigned int cuda_gpu_id);
+extern void cuda_init();
 
 #define check_mem_allocation(inbuffer,outbuffer)\
     if(inbuffer==NULL){\
@@ -27,7 +36,7 @@ extern void cuda_init(unsigned int cuda_gpu_id);
       exit(1);\
     }
 
-extern void cuda_init(unsigned int cuda_gpu_id);
+extern void cuda_init();
 extern void advance_cursor();
 extern void cuda_device_list();
 

@@ -99,7 +99,7 @@ static void init(struct fmt_main *self)
 	    (phpass_crack *) mem_calloc(MAX_KEYS_PER_CRYPT * sizeof(phpass_crack));
 	check_mem_allocation(inbuffer, outbuffer);
 	///Initialize CUDA
-	cuda_init(cuda_gpu_id);
+	cuda_init();
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)

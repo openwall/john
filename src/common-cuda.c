@@ -1,7 +1,16 @@
+/*
+ The software updates are Copyright (c) 2014 Muhammad Junaid Muzammil <mjunaidmuzammil at gmail dot com>,
+ and it is hereby released to the general public under the following terms:
+ Redistribution and use in source and binary forms, with or without
+ modification, are permitted.
+*/
 #include <ctype.h>
 #include "cuda_common.h"
 #include "options.h"
 #include "john.h"
+
+int cuda_gpu_id;
+int cuda_dev_list[MAX_CUDA_DEVICES];
 
 #ifndef HAVE_OPENCL
 /* If we have OpenCL as well, we use its exact same function */
@@ -17,22 +26,38 @@ void advance_cursor()
 }
 #endif
 
-void cuda_init(unsigned int cuda_gpu_id)
+void cuda_init()
 {
 	int devices;
 	struct list_entry *current;
 
 	if ((current = options.gpu_devices->head)) {
-		if (current->next) {
-			fprintf(stderr, "Only one CUDA device supported.\n");
-			exit(1);
-		}
-		if (!isdigit(current->data[0])) {
-			fprintf(stderr, "Invalid CUDA device id \"%s\"\n",
-			        current->data);
-			exit(1);
-		}
-		cuda_gpu_id = atoi(current->data);
+                int n = 0;
+                if (!isdigit(current->data[0])) {
+                        fprintf(stderr, "Invalid CUDA device id \"%s\"\n",
+                                current->data);
+                        exit(1);
+                }
+                cuda_gpu_id = atoi(current->data);
+                do {
+                        int device_repeat = 0, i;
+                        int device_id = atoi(current->data);
+                        for(i = 0; i < n; i++) {
+                                if(cuda_dev_list[i] == device_id) {
+                                        fprintf(stderr, "Duplicate CUDA device id %d", device_id);
+                                        device_repeat = 1;
+                                }
+                        }
+                        if(device_repeat == 0) {
+                                cuda_dev_list[n++] = device_id;
+                        }
+
+                 } while ((current = current->next) && (n < MAX_CUDA_DEVICES));
+
+                if(n < MAX_CUDA_DEVICES) {
+                        cuda_dev_list[n] = -1;
+                }
+
 	} else
 		cuda_gpu_id = 0;
 

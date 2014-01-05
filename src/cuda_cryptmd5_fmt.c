@@ -109,7 +109,7 @@ static void init(struct fmt_main *self)
 	    sizeof(crypt_md5_crack));
 	check_mem_allocation(inbuffer, outbuffer);
 	///Initialize CUDA
-	cuda_init(cuda_gpu_id);
+	cuda_init();
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)

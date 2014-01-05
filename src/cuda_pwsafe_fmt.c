@@ -56,7 +56,7 @@ static void init(struct fmt_main *self)
         host_pass = mem_calloc(KEYS_PER_CRYPT * sizeof(pwsafe_pass));
         host_hash = mem_calloc(KEYS_PER_CRYPT * sizeof(pwsafe_hash));
         host_salt = mem_calloc(sizeof(pwsafe_salt));
-	cuda_init(cuda_gpu_id);
+	cuda_init();
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)

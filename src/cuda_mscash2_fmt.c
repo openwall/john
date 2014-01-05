@@ -65,7 +65,7 @@ static void init(struct fmt_main *self)
 	    (mscash2_hash *) mem_alloc(MAX_KEYS_PER_CRYPT*sizeof(mscash2_hash));
 	check_mem_allocation(inbuffer, outbuffer);
 	//Initialize CUDA
-	cuda_init(cuda_gpu_id);
+	cuda_init();
 
 	if (options.utf8) {
 		self->params.plaintext_length *= 3;
