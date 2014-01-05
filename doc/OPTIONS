@@ -470,6 +470,7 @@ If an additional option --config=FILE
                           -benchmark length
                           -binary size
                           -salt size
+                          -example ciphertext
                           (the individual columns are separated by [tab])
 --list=format-all-details list all the suported formats and their attributes
                           in the same sequence as with --list=format-details,
