@@ -1364,8 +1364,11 @@ SkipKeyLoadInit:;
 				goto Failed_Bailout;
 
 			C = PKZ_MULT(*b++,key2);
+#if 0
+			// https://github.com/magnumripper/JohnTheRipper/issues/467
 			if (C != (e>>8))
 				goto Failed_Bailout;
+#endif
 
 			// Now, update the key data (with that last byte.
 			key0.u = pkzip_crc32 (key0.u, C);
@@ -1384,9 +1387,12 @@ SkipKeyLoadInit:;
 			// First, we want to get the inflate CODE byte (the first one).
 
 			C = PKZ_MULT(*b++,key2);
+#if 0
+			// https://github.com/magnumripper/JohnTheRipper/issues/467
 			// Ok, if this is a code 3, we are done.
 			if ( (C & 6) == 6)
 				goto Failed_Bailout;
+#endif
 			SigChecked = 0;
 			if ( salt->H[cur_hash_idx].compType == 0) {
 				// handle a stored file.

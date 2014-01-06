@@ -312,6 +312,7 @@ static int LoadZipBlob(FILE *fp, zip_ptr *p, zip_file *zfp, const char *zip_fnam
 
 	// we only handle implode or store.
 	// 0x314 was seen at 2012 CMIYC ?? I have to look into that one.
+	fprintf(stderr, "ver %0x  ", version);
 	if ( (version == 0x14||version==0xA||version == 0x314) && (flags & 1) && (p->cmptype == 8 || p->cmptype == 0)) {
 		uint16_t extra_len_used = 0;
 		if (flags & 8) {
@@ -320,6 +321,7 @@ static int LoadZipBlob(FILE *fp, zip_ptr *p, zip_file *zfp, const char *zip_fnam
 				uint16_t efh_datasize = fget16(fp);
 				extra_len_used += 4 + efh_datasize;
 				fseek(fp, efh_datasize, SEEK_CUR);
+				fprintf(stderr, "efh %04x  ", efh_id);
 				//http://svn.assembla.com/svn/os2utils/unzip60f/proginfo/extrafld.txt
 				//http://emerge.hg.sourceforge.net/hgweb/emerge/emerge/diff/c2f208617d32/Source/unzip/proginfo/extrafld.txt
 				if (efh_id == 0x07c8 ||  // Info-ZIP Macintosh (old, J. Lee)
@@ -346,7 +348,7 @@ static int LoadZipBlob(FILE *fp, zip_ptr *p, zip_file *zfp, const char *zip_fnam
 
 		fprintf(stderr,
 			"%s->%s PKZIP Encr:%s%s cmplen=%d, decmplen=%d, crc=%X\n",
-			zip_fname, filename, zfp->two_byte_check?" 2b chk,":"", zfp->check_in_crc?"":" TS_chk,", p->cmp_len, p->decomp_len, p->crc);
+			jtr_basename(zip_fname), filename, zfp->two_byte_check?" 2b chk,":"", zfp->check_in_crc?"":" TS_chk,", p->cmp_len, p->decomp_len, p->crc);
 
 		p->hash_data = mem_alloc_tiny(p->cmp_len+1, MEM_ALIGN_WORD);
 		if (fread(p->hash_data, 1, p->cmp_len, fp) != p->cmp_len) {
