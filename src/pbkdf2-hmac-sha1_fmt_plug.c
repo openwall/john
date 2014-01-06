@@ -42,7 +42,7 @@
 
 #ifdef _OPENMP
 #include <omp.h>
-#define OMP_SCALE               1
+#define OMP_SCALE               64
 #endif
 
 #ifdef MMX_COEF
