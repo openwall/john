@@ -48,7 +48,7 @@ void cuda_init()
                                         device_repeat = 1;
                                 }
                         }
-                        if(device_repeat == 0) {
+                        if((device_repeat == 0) && (!isdigit(current->data[0]))) {
                                 cuda_dev_list[n++] = device_id;
                         }
 
