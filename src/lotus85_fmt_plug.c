@@ -36,9 +36,11 @@ static int omp_t = 1;
 #define SALT_SIZE             sizeof(struct custom_salt)
 #define SALT_ALIGN            1
 #define MIN_KEYS_PER_CRYPT    1
-#define MAX_KEYS_PER_CRYPT    0x900
+// #define MAX_KEYS_PER_CRYPT    0x900 // WTF?
+#define MAX_KEYS_PER_CRYPT    1
 
 #define LOTUS85_MAX_BLOB_SIZE 0x64
+#define LOTUS85_MIN_BLOB_SIZE 40 // XXX fictional value, but isn't this length fixed?
 
 /* Globals */
 static const char LOTUS85_UNIQUE_STRING[] = "Lotus Notes Password Pad Uniquifier";
@@ -95,7 +97,7 @@ static uint8_t (*lotus85_last_binary_hash1)[BINARY_SIZE];
 static uint8_t (*lotus85_last_binary_hash2)[BINARY_SIZE];
 
 /* Plaintext passwords history requested by JtR engine */
-static char (*lotus85_saved_passwords)[CIPHERTEXT_LENGTH+1];
+static char (*lotus85_saved_passwords)[PLAINTEXT_LENGTH+1];
 
 
 /* Decipher user.id user blob */
@@ -110,7 +112,7 @@ static void decipher_userid_blob(uint8_t *ciphered_blob, uint32_t len, uint8_t *
 	RC2_set_key(&rc_key, 8, userid_key, 64);
 	RC2_cbc_encrypt(ciphered_blob, buf, len, &rc_key, rc_iv, RC2_DECRYPT);
 
-	memmove(deciphered_blob, buf, len);
+	memcpy(deciphered_blob, buf, len);
 }
 
 /* Custom hash transformation function */
@@ -122,8 +124,8 @@ static void custom_password_hash_trans(uint8_t *data, uint8_t *out, uint8_t *sta
 
 	memset(buffer, 0, sizeof(buffer));
 
-	memmove(buffer, state, 16);
-	memmove(buffer + 16, data, 16);
+	memcpy(buffer, state, 16);
+	memcpy(buffer + 16, data, 16);
 
 	for(i=0;i<16;i+=4)
 	{
@@ -147,7 +149,7 @@ static void custom_password_hash_trans(uint8_t *data, uint8_t *out, uint8_t *sta
 		}
 	}
 
-	memmove(state, buffer, 16);
+	memcpy(state, buffer, 16);
 
 	c = out[15];
 
@@ -181,7 +183,7 @@ static void custom_password_hash(const char *password, uint8_t *out)
 	if(block_pos != len)
 	{
 		rlen = len - block_pos;
-		memmove(block1, password+block_pos, rlen);
+		memcpy(block1, password+block_pos, rlen);
 		memset(block1+rlen, 16-rlen, 16-rlen);
 		custom_password_hash_trans(block1, state, block2);
 	}
@@ -193,7 +195,7 @@ static void custom_password_hash(const char *password, uint8_t *out)
 
 	custom_password_hash_trans(state, state, block2);
 
-	memmove(out, block2, sizeof(block2));
+	memcpy(out, block2, sizeof(block2));
 }
 
 /* Hash cste::password with sha1 */
@@ -209,7 +211,7 @@ static void password_hash(const char *password, uint8_t *hash)
 
 	SHA1_Final(digest, &s_ctx);
 
-	memmove(hash, digest, sizeof(digest));
+	memcpy(hash, digest, sizeof(digest));
 }
 
 /* Hash/checksum function used for key derivation from plaintext password */
@@ -276,7 +278,7 @@ static void get_user_id_secret_key(const char *password, uint8_t *secret_key)
 
 	compute_key_mac(key, sizeof(key), mac, sizeof(mac));
 
-	memmove(secret_key, mac, sizeof(mac));
+	memcpy(secret_key, mac, sizeof(mac));
 }
 
 /* Plugin initialization */
@@ -289,7 +291,7 @@ static void lotus85_init(struct fmt_main *self)
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
 	lotus85_saved_passwords = mem_calloc_tiny(
-		(CIPHERTEXT_LENGTH + 1) * self->params.max_keys_per_crypt,
+		(PLAINTEXT_LENGTH + 1) * self->params.max_keys_per_crypt,
 		MEM_ALIGN_CACHE);
 	lotus85_last_binary_hash1 = mem_calloc_tiny(
 		BINARY_SIZE * self->params.max_keys_per_crypt,
@@ -306,10 +308,13 @@ static int lotus85_valid(char *ciphertext,struct fmt_main *self)
 
 	len = strlen(ciphertext);
 
-	if(len%2)
+	if(len % 2)
 		return 0;
 
 	if((len >> 1) > LOTUS85_MAX_BLOB_SIZE)
+		return 0;
+
+	if((len >> 1) < LOTUS85_MIN_BLOB_SIZE)
 		return 0;
 
 	for (i=0;i<len;i++)
@@ -360,8 +365,8 @@ static int lotus85_crypt_all(int *pcount, struct db_salt *salt)
 	/* Compute digest for all given plaintext passwords */
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
 #endif
+	for (index = 0; index < count; index++)
 	{
 		unsigned char user_key[8], deciphered_userid[LOTUS85_MAX_BLOB_SIZE];
 		memset(lotus85_last_binary_hash1[index], 0, BINARY_SIZE);
