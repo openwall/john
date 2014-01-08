@@ -1427,42 +1427,43 @@ signature_expiration_time(int len)
 public void
 exportable_certification(int len)
 {
-	printf("\t\tExportable - ");
-	if (Getc() == 0)
-		printf("No");
-	else
-		printf("Yes");
-	printf("\n");
+	// printf("\t\tExportable - ");
+	if (Getc() == 0);
+		// printf("No");
+	else;
+		// printf("Yes");
+	// printf("\n");
 }
 
 public void
 trust_signature(int len)
 {
-	printf("\t\tLevel - ");
-	dump(1);
-	printf("\n");
-	printf("\t\tAmount - ");
-	dump(1);
-	printf("\n");
+	// printf("\t\tLevel - ");
+	skip(1);
+	// printf("\n");
+	// printf("\t\tAmount - ");
+	skip(1);
+	// printf("\n");
 }
 
 public void
 regular_expression(int len)
 {
-	printf("\t\tRegex - ");
-	pdump(len);
-	printf("\n");
+	// printf("\t\tRegex - ");
+	// pdump(len);
+	skip(len);
+	// printf("\n");
 }
 
 public void
 revocable(int len)
 {
-	printf("\t\tRevocable - ");
-	if (Getc() == 0)
-		printf("No");
-	else
-		printf("Yes");
-	printf("\n");
+	// printf("\t\tRevocable - ");
+	if (Getc() == 0);
+		// printf("No");
+	else;
+		// printf("Yes");
+	// printf("\n");
 }
 
 public void
@@ -1636,10 +1637,10 @@ public void
 primary_user_id(int len)
 {
 	// printf("\t\tPrimary - ");
-	if (Getc() == 0)
-		printf("No");
-	else
-		printf("Yes");
+	if (Getc() == 0);
+		// printf("No");
+	else;
+		// printf("Yes");
 	// printf("\n");
 }
 
@@ -1783,7 +1784,7 @@ signature_multi_precision_integer(int pub, int len)
 		// printf("\t\t-> hash(DSA q bits)\n");
 		break;
 	default:
-		printf("\tUnknown signature(pub %d)\n", pub);
+		// printf("\tUnknown signature(pub %d)\n", pub);
 		skip(len);
 		break;
 	}
@@ -2064,7 +2065,7 @@ Secret_Key_Packet(int len)
 	default:
 		sym = s2k;
 		sym_algs(sym);
-		printf("\tSimple string-to-key for IDEA\n");
+		// printf("\tSimple string-to-key for IDEA\n"); // XXX
 		IV(iv_len(sym));
 		encrypted_Secret_Key(len - Getc_getlen(), NO);
 		break;
@@ -2083,7 +2084,11 @@ plain_Secret_Key(int len)
 		// multi_precision_integer("RSA p");
 		// multi_precision_integer("RSA q");
 		// multi_precision_integer("RSA u");
-		printf("\tChecksum - ");
+		give_multi_precision_integer(d, &d_bits);
+		give_multi_precision_integer(p, &p_bits);
+		give_multi_precision_integer(q, &q_bits);
+		give_multi_precision_integer(u, &u_bits);
+		// printf("\tChecksum - ");
 		skip(2);
 		// dump(2);
 		// printf("\n");
@@ -2097,6 +2102,10 @@ plain_Secret_Key(int len)
 			// multi_precision_integer("RSA p");
 			// multi_precision_integer("RSA q");
 			// multi_precision_integer("RSA u");
+			give_multi_precision_integer(d, &d_bits);
+			give_multi_precision_integer(p, &p_bits);
+			give_multi_precision_integer(q, &q_bits);
+			give_multi_precision_integer(u, &u_bits);
 			break;
 		case 16:
 		case 20:
@@ -2137,6 +2146,7 @@ encrypted_Secret_Key(int len, int sha1)
 	char *base;
 	strncpy(path, filename, sizeof(path));
 	base = basename(path);
+	// printf("Version is %d\n", VERSION);
 	switch (VERSION) {
 	case 2:
 	case 3:
@@ -2146,6 +2156,8 @@ encrypted_Secret_Key(int len, int sha1)
 		give_multi_precision_integer(p, &p_bits);
 		give_multi_precision_integer(q, &p_bits);
 		give_multi_precision_integer(u, &u_bits);
+		// printf("\tChecksum - "); // XXX
+		skip(2);
 		break;
 	case 4:
 		switch (PUBLIC) {
