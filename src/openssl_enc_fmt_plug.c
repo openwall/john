@@ -180,6 +180,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	p = q; q = strchr(p, '$');	// known-plaintext
 	if (!q)
 		return !strcmp(p, "0");
+	if(strlen(q) == 1)
+		return 0; 
 	q = q + 1;
 	if ((q - p - 1) != 1)
 		return 0;
