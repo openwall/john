@@ -31,6 +31,9 @@ from binascii import unhexlify
 from datetime import datetime
 try:
     import pylzma
+# To install pylzma on Ubuntu:
+# apt-get install python-pip python-dev
+# pip install pylzma # may do as non-root user in group staff
 except ImportError:
     pass
 from struct import pack, unpack
@@ -801,16 +804,16 @@ class Archive7z(Base):
                         # print flds.packed_indexes, flds.totalout
                         # XXX return can't be right
                         return
-                else:
-                    for idx in range(len(streams.packinfo.packsizes)):
-                        tmp = file.read(streams.packinfo.packsizes[idx])
-                        data += pylzma.decompress(props+tmp, maxlength=folder.unpacksizes[idx])
-
-                if folder.digestdefined:
-                    if not self.checkcrc(folder.crc, data[0:size]):
-                        raise FormatError('invalid block data')
-                    # XXX return can't be right
-                    return
+#               else:
+#                   for idx in range(len(streams.packinfo.packsizes)):
+#                       tmp = file.read(streams.packinfo.packsizes[idx])
+#                       data += pylzma.decompress(props+tmp, maxlength=folder.unpacksizes[idx])
+#
+#               if folder.digestdefined:
+#                   if not self.checkcrc(folder.crc, data[0:size]):
+#                       raise FormatError('invalid block data')
+#                   # XXX return can't be right
+#                   return
 
         # XXX this part is not done yet
         sys.stderr.write("%s : 7-Zip files without header encryption are *not* supported yet!\n" % (file.name))
