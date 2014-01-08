@@ -102,6 +102,7 @@ static void init(struct fmt_main *self)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *keeptr, *p;
+	int iterations;
 	if (strncmp(ciphertext, "$django$*", 9) != 0)
 		return 0;
 	ctcopy = strdup(ciphertext);
@@ -118,6 +119,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtok(NULL, "$")) == NULL)	/* iterations */
 		goto err;
+	iterations=atoi(p);
+	if (iterations <= 0 || iterations >= 2147483647 )
+		return 0;
 	if ((p = strtok(NULL, "$")) == NULL)	/* hash */
 		goto err;
 	if (strlen(p) > HASH_LENGTH)
