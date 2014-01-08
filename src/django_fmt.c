@@ -119,8 +119,10 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtok(NULL, "$")) == NULL)	/* iterations */
 		goto err;
+	if (strlen(p) > 10) // FIXME: strlen 10 still allows undefined behavior in atoi!
+		goto err;
 	iterations=atoi(p);
-	if (iterations <= 0 || iterations >= 2147483647 )
+	if (iterations <= 0 || iterations >= 2147483647 ) // FIXME: atoi undefined behavior
 		return 0;
 	if ((p = strtok(NULL, "$")) == NULL)	/* hash */
 		goto err;

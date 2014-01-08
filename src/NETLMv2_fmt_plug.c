@@ -168,6 +168,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
   for (; atoi16[ARCH_INDEX(*pos2)] != 0x7F; pos2++);
   if (pos2 - pos != CHALLENGE_LENGTH / 2)
     return 0;
+  if (pos2[0] != '\0')
+    return 0;
 
   return 1;
 }

@@ -426,12 +426,24 @@ static int valid(char *ciphertext, struct fmt_main *self)
 			goto error;
 		if (!(ptr = strtok(NULL, "*"))) /* pack_size */
 			goto error;
+		if (strlen(ptr) > 12) { // pack_size > 1 TB? Really?
+			fprintf(stderr, "pack_size > 1TB not supported (%s)\n", FORMAT_NAME);
+			goto error;
+		}
 		if ((plen = atoll(ptr)) < 16)
 			goto error;
+		//if (plen >= 9223372036854775807)	// FIXME: atoll undefined behavior
+		//	goto error;			// checked strlen(ptr) instead
 		if (!(ptr = strtok(NULL, "*"))) /* unp_size */
 			goto error;
+		if (strlen(ptr) > 12) {
+			fprintf(stderr, "unp_size > 1TB not supported (%s)\n", FORMAT_NAME);
+			goto error;
+		}
 		if ((ulen = atoll(ptr)) < 1)
 			goto error;
+		//if(ulen >= 9223372036854775807)	// FIXME: atoll undefined behavior
+		//	goto error;			// checked strlen(ptr) instead
 		if (!(ptr = strtok(NULL, "*"))) /* inlined */
 			goto error;
 		if (hexlen(ptr) != 1)
