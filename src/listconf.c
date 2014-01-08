@@ -599,7 +599,12 @@ void listconf_parse_late(void)
 					 * with a fallback to either ':' or '\t' is probably overkill
 					 */
 					const char separator = '\t';
+					char *ciphertext;
 
+					ciphertext = format->params.tests[ntests].ciphertext;
+					if( ciphertext[ 0] == '\0')
+						ciphertext = format->methods.prepare(format->params.tests[ntests].fields,
+						                                     format);
 					/*
 					 * one of the scrypt tests has tabs and new lines in ciphertext
 					 * and password.
@@ -612,9 +617,9 @@ void listconf_parse_late(void)
 							        format->params.label, ntests);
 							break;
 						}
-					for (i = 0; format->params.tests[ntests].ciphertext[i]; i++) {
-						if (format->params.tests[ntests].ciphertext[i] == '\x0a' ||
-						    format->params.tests[ntests].ciphertext[i] == separator) {
+					for (i = 0; ciphertext[i]; i++) {
+						if (ciphertext[i] == '\x0a' ||
+						    ciphertext[i] == separator) {
 							skip = 2;
 							fprintf(stderr,
 							        "Test %s %d: ciphertext contains line feed or separator character '%c'\n",
@@ -627,7 +632,7 @@ void listconf_parse_late(void)
 					if (skip < 2) {
 						printf("%c%s",
 						       separator,
-						       format->params.tests[ntests].ciphertext);
+						       ciphertext);
 						if(!skip)
 							printf("%c%s",
 							       separator,
