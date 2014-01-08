@@ -176,6 +176,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if (strlen(p) > SZ)
 		goto err;
+	if (!ishex(p))
+		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)
 		goto err;
 	if (strlen(p) > SZ)
