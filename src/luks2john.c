@@ -131,6 +131,9 @@ static int hash_plugin_parse_hash(char *filename)
 	fprintf(stderr, "Best keyslot [%d]: %d keyslot iterations, %d stripes, %d mkiterations\n", bestslot, ntohl(myphdr.keyblock[bestslot].passwordIterations),ntohl(myphdr.keyblock[bestslot].stripes),ntohl(myphdr.mkDigestIterations));
 	fprintf(stderr, "cipherbuf size : %d\n", afsize);
 	if (afsize * 2 < LINE_BUFFER_SIZE) {
+		/* base-64 encode cipherbuf */
+		BIO *bio, *b64;
+
 		cipherbuf = malloc(afsize);
 		fseek(myfile, ntohl(myphdr.keyblock[bestslot].keyMaterialOffset) * 512,
 		SEEK_SET);
@@ -146,8 +149,6 @@ static int hash_plugin_parse_hash(char *filename)
 		printf("$luks$1$%lu$", sizeof(myphdr));
 		print_hex((unsigned char *)&myphdr, sizeof(myphdr));
 		printf("$%d$", afsize);
-		/* base-64 encode cipherbuf */
-		BIO *bio, *b64;
 		b64 = BIO_new(BIO_f_base64());
 		bio = BIO_new_fp(stdout, BIO_NOCLOSE);
 		bio = BIO_push(b64, bio);
