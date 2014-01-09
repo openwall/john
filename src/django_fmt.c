@@ -122,7 +122,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (strlen(p) > 10) // FIXME: strlen 10 still allows undefined behavior in atoi!
 		goto err;
 	iterations=atoi(p);
-	if (iterations <= 0 || iterations >= 2147483647 ) // FIXME: atoi undefined behavior
+	if (iterations <= 0 || iterations >= INT_MAX ) // FIXME: atoi undefined behavior
 		goto err;
 	if ((p = strtok(NULL, "$")) == NULL)	/* salt */
 		goto err;

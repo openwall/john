@@ -143,7 +143,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if(strlen(p) > 10)	// FIXME: shouldn't long instead of int be allowed here?
 		goto err;
 	len = atoi(p);		// FIXME: undefined behavior
-	if (len >= 2147483647)	// FIXME: atoi() might return INT_MAX in case of overflow
+	if (len >= INT_MAX)	// FIXME: atoi() might return INT_MAX in case of overflow
 		goto err;
 	if (len < 0)
 		goto err;

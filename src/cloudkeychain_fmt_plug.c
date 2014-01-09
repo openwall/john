@@ -120,7 +120,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if(strlen(p) > 10)
 		goto err;
 	len = atoi(p);
-	if (len >= 2147483647)	// FIXME: overflow; undefined atopi() behavior
+	if (len >= INT_MAX)	// FIXME: overflow; undefined atopi() behavior
 		goto err;
 	if (len < 0) //	FIXME: <= 0?
 		goto err;

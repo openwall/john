@@ -379,7 +379,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (strlen(p) > 10)
 		goto err;
 	res = atoi(p);
-	if (res >= 2147483647)  // FIXME: overflow; atoi() undefined behavior
+	if (res >= INT_MAX)  // FIXME: overflow; atoi() undefined behavior
 		goto err;
 	if(res < 0)
 		goto err;
