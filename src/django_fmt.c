@@ -115,7 +115,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtok(NULL, "$")) == NULL)	/* algorithm */
 		goto err;
-	if (strncmp(p, "pbkdf2_sha256", 13) != 0)
+	if (strcmp(p, "pbkdf2_sha256") != 0)
 		goto err;
 	if ((p = strtok(NULL, "$")) == NULL)	/* iterations */
 		goto err;
@@ -123,8 +123,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	iterations=atoi(p);
 	if (iterations <= 0 || iterations >= 2147483647 ) // FIXME: atoi undefined behavior
-		return 0;
-	if ((p = strtok(NULL, "$")) == NULL)	/* hash */
+		goto err;
+	if ((p = strtok(NULL, "$")) == NULL)	/* salt */
+		goto err;
+	if (strlen(p) > (SALT_SIZE + 2) / 3 * 4)
+		goto err;
+	if ((p = strtok(NULL, "")) == NULL)	/* hash */
 		goto err;
 	if (strlen(p) > HASH_LENGTH)
 		goto err;
