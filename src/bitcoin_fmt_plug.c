@@ -113,16 +113,24 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += 9;
+
+	// FIXME: The author of the format could add some comments
+	//        explaining what each part of the hash means...
+
 	if ((p = strtok(ctcopy, "$")) == NULL)
 		goto err;
-	res = atoi(p);
+	if (strlen(p) > 10)	// FIXME: can > 10 safely be reduced to >= 10?
+		goto err;
+	res = atoi(p);	// FIXME: atoi: undefined behavior
 	if ((p = strtok(NULL, "$")) == NULL)
 		goto err;
 	if (strlen(p) != res || strlen(p) > SZ * 2)
 		goto err;
 	if ((p = strtok(NULL, "$")) == NULL)
 		goto err;
-	res = atoi(p);
+	if (strlen(p) > 10)
+		goto err;
+	res = atoi(p);	// FIXME: atoi: undefined behavior
 	if ((p = strtok(NULL, "$")) == NULL)
 		goto err;
 	if (strlen(p) != res || strlen(p) > SZ * 2)
@@ -131,8 +139,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtok(NULL, "$")) == NULL)
 		goto err;
+	if (strlen(p) > 10)	// FIXME: there's still the change of an overflow!
+		goto err;
 	// res = atoi(p); /* cry_rounds */
 	if ((p = strtok(NULL, "$")) == NULL)
+		goto err;
+	if (strlen(p) > 10)
 		goto err;
 	res = atoi(p); /* ckey_length */
 	if ((p = strtok(NULL, "$")) == NULL)
@@ -142,6 +154,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!ishex(p))
 		goto err;
 	if ((p = strtok(NULL, "$")) == NULL)
+		goto err;
+	if (strlen(p) > 10)
 		goto err;
 	res = atoi(p); /* public_key_length */
 	if ((p = strtok(NULL, "$")) == NULL)
