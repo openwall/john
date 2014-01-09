@@ -104,6 +104,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtok(NULL, "$")) == NULL)	/* iterations */
 		goto err;
+	if (strlen(p) > 10)	// FIXME: overflows/undefined behavior in atoi() still possible
+		goto err;
 	if ((p = strtok(NULL, "$")) == NULL)	/* data */
 		goto err;
 	if (strlen(p) > 50) /* not exact! */
