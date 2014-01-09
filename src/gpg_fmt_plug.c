@@ -390,6 +390,24 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	for (i = 0; i < strlen(p); i++)
 		if(atoi16[ARCH_INDEX(p[i])] == 0x7F)
 			goto err;
+	// FIXME: For some test vectors, there are no more fields,
+	//        for others, there are (and need to be checked)
+	//        I am just guessing based on the tests[]
+	while ((p = strtok(NULL, "*")) != NULL) {
+		if (strlen(p) > 10)
+			goto err;
+		res = atoi(p);
+		if (res >= INT_MAX)
+			goto err;
+		if (res < 0)
+			goto err;
+		if ((p = strtok(NULL, "*")) == NULL)
+			goto err;
+		if (p[ 0] == '\0')
+			goto err;
+		// FIXME: ishex() with correct length (2*res) ???
+	}
+
 	MEM_FREE(keeptr);
 	return 1;
 
