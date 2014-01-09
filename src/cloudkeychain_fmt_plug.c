@@ -106,8 +106,10 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy += 15;
 	if ((p = strtok(ctcopy, "$")) == NULL)	/* salt length */
 		goto err;
+	if (strlen(p) >= 10)
+		goto err;
 	len = atoi(p);
-	if(len > SALTLEN)
+	if(len < 0 || len > SALTLEN) // FIXME: is saltlen 0 allowed?
 		goto err;
 	if ((p = strtok(NULL, "$")) == NULL)	/* salt */
 		goto err;
@@ -115,10 +117,19 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtok(NULL, "$")) == NULL)	/* iterations */
 		goto err;
-	if ((p = strtok(NULL, "$")) == NULL)	/* masterkey length */
+	if(strlen(p) > 10)
 		goto err;
 	len = atoi(p);
-	if(len > CTLEN)
+	if (len >= INT_MAX)	// FIXME: overflow; undefined atopi() behavior
+		goto err;
+	if (len < 0) //	FIXME: <= 0?
+		goto err;
+	if ((p = strtok(NULL, "$")) == NULL)	/* masterkey length */
+		goto err;
+	if (strlen(p) >= 10)
+		goto err;
+	len = atoi(p);
+	if(len > CTLEN || len <= 0)	// FIXME: is 0 allowed?
 		goto err;
 	if ((p = strtok(NULL, "$")) == NULL)	/* masterkey */
 		goto err;
@@ -126,10 +137,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtok(NULL, "$")) == NULL)	/* plaintext length */
 		goto err;
+	// FIXME: is plaintext length integer?
 	if ((p = strtok(NULL, "$")) == NULL)	/* iv length */
 		goto err;
 	len = atoi(p);
-	if(len > IVLEN)
+	if(len > IVLEN || len < 0)	// FIXME: is 0 allowed?
 		goto err;
 	if ((p = strtok(NULL, "$")) == NULL)	/* iv */
 		goto err;
@@ -137,8 +149,10 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtok(NULL, "$")) == NULL)	/* cryptext length */
 		goto err;
+	if (strlen(p) >= 10)
+		goto err;
 	len = atoi(p);
-	if (len > CTLEN)
+	if (len > CTLEN || len < 0)	// FIXME: is 0 allowed?
 		goto err;
 	if ((p = strtok(NULL, "$")) == NULL)	/* cryptext */
 		goto err;
@@ -146,8 +160,10 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtok(NULL, "$")) == NULL)	/* expectedhmac length */
 		goto err;
+	if (strlen(p) >= 10)
+		goto err;
 	len = atoi(p);
-	if (len > CTLEN)
+	if (len > CTLEN || len < 0)	// FIXME: is 0 allowed?
 		goto err;
 	if ((p = strtok(NULL, "$")) == NULL)	/* expectedhmac */
 		goto err;
@@ -155,8 +171,10 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtok(NULL, "$")) == NULL)	/* hmacdata length */
 		goto err;
+	if (strlen(p) >= 10)
+		goto err;
 	len = atoi(p);
-	if (len > CTLEN)
+	if (len > CTLEN || len < 0)
 		goto err;
 	if ((p = strtok(NULL, "$")) == NULL)	/* hmacdata */
 		goto err;

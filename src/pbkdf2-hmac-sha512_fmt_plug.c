@@ -131,7 +131,10 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	keeptr = ctcopy;
 	if (!(ptr = strtok(ctcopy, ".")))
 		goto error;
-	if (!atoi(ptr))
+	if (strlen(ptr) >= 10)
+		goto error;
+	len = atoi(ptr);
+	if (len < 0 || len >= INT_MAX) // FIXME: atoi() undefined behavior
 		goto error;
 	if (!(ptr = strtok(NULL, ".")))
 		goto error;

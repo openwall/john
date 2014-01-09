@@ -314,8 +314,10 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* datalen */
 		goto err;
+	if (strlen(p) >= 10)
+		goto err;
 	res = atoi(p);
-	if (res > BIG_ENOUGH * 2)
+	if (res < 0 || res > BIG_ENOUGH * 2)
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* bits */
 		goto err;
@@ -328,8 +330,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 			goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* spec */
 		goto err;
+	if (strlen(p) >= 10)
+		goto err;
 	spec = atoi(p);
 	if ((p = strtok(NULL, "*")) == NULL)	/* usage */
+		goto err;
+	if (strlen(p) >= 10)
 		goto err;
 	res = atoi(p);
 	if(res != 0 && res != 254 && res != 255 && res != 1)
@@ -337,15 +343,21 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	if ((p = strtok(NULL, "*")) == NULL)	/* hash_algorithm */
 		goto err;
+	if (strlen(p) >= 10)
+		goto err;
 	res = atoi(p);
 	if(!valid_hash_algorithm(res, spec))
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* cipher_algorithm */
 		goto err;
+	if (strlen(p) >= 10)
+		goto err;
 	res = atoi(p);
 	if(!valid_cipher_algorithm(res))
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* ivlen */
+		goto err;
+	if (strlen(p) >= 10)
 		goto err;
 	res = atoi(p);
 	if (res != 8 && res != 16)
@@ -364,14 +376,18 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	}
 	if ((p = strtok(NULL, "*")) == NULL)	/* count */
 		goto err;
+	if (strlen(p) > 10)
+		goto err;
 	res = atoi(p);
+	if (res >= INT_MAX)  // FIXME: overflow; atoi() undefined behavior
+		goto err;
 	if(res < 0)
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* salt */
 		goto err;
 	if (strlen(p) != 8 * 2)
 		goto err;
-	for(i = 0; i < strlen(p); i++)
+	for (i = 0; i < strlen(p); i++)
 		if(atoi16[ARCH_INDEX(p[i])] == 0x7F)
 			goto err;
 	MEM_FREE(keeptr);
