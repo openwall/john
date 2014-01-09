@@ -61,7 +61,7 @@ extern void pbkdf2_divide_work(cl_uint*, cl_uint*, cl_uint, unsigned int, cl_uin
  */
 extern void clean_all_buffer(void) ;
 
-extern void warning(void) ;
+static void warning(void) ;
 
 /*IMPORTANT NOTE:
  *  1. Max Keys per crypt must be an integral multiple of 8192. Preferred multiple is 65536 for higher performance.
