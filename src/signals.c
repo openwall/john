@@ -147,17 +147,23 @@ static void sig_install_update(void)
 	sa.sa_handler = sig_handle_update;
 	sa.sa_flags = SA_RESTART;
 	sigaction(SIGHUP, &sa, NULL);
+#ifdef SIGUSR1
 	sigaction(SIGUSR1, &sa, NULL);
+#endif
 #else
 	signal(SIGHUP, sig_handle_update);
+#ifdef SIGUSR1
 	signal(SIGUSR1, sig_handle_update);
+#endif
 #endif
 }
 
 static void sig_remove_update(void)
 {
 	signal(SIGHUP, SIG_IGN);
+#ifdef SIGUSR1
 	signal(SIGUSR1, SIG_DFL);
+#endif
 }
 
 void check_abort(int be_async_signal_safe)

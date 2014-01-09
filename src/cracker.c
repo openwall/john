@@ -69,7 +69,11 @@ static void crk_help(void)
 		return;
 #ifdef HAVE_MPI
 	if (mpi_p > 1)
+#ifdef SIGUSR1
 		fprintf(stderr, "Send SIGUSR1 to mpirun for status\n");
+#else
+		fprintf(stderr, "Send SIGHUP to john process for status\n");
+#endif
 	else
 #endif
 	if (~options.flags & FLG_STDIN_CHK)
