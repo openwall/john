@@ -321,7 +321,7 @@ size_t select_default_device(struct fmt_main *fmt) {
 	return select_device(0, fmt);
 }
 
-void warning() {
+static void warning() {
 	double 		total_exec_time_inv=0;
 	int 		i;
 
