@@ -156,12 +156,18 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy += 10;
 	if ((p = strtok(ctcopy, "*")) == NULL)	/* version */
 		goto err;
+	if (strlen(p) != 1)
+		goto err;
 	version = atoi(p);
 	if (version != 1 && version != 2)
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* rounds */
 		goto err;
+	if (strlen(p) > 10)
+		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* offset */
+		goto err;
+	if (strlen(p) > 10)
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* final random seed */
 		goto err;
