@@ -61,7 +61,7 @@ static unsigned char y[4096];
 static unsigned char n[4096];
 // static unsigned char x[4096];
 static unsigned char m_data[4096];
-static unsigned char gecos[4096];
+static char gecos[4096];
 static unsigned char m_salt[64];
 static unsigned char iv[16];
 char *filename;
@@ -2145,10 +2145,34 @@ private void
 encrypted_Secret_Key(int len, int sha1)
 {
 	int used = 0;
-	static char path[8192];
-	char *base;
-	strncpy(path, filename, sizeof(path));
-	base = jtr_basename(path);
+	char *cp;
+	char login[4096];
+	char *gecos_remains = gecos;
+	const char *ext[] = {".gpg", ".pgp"};
+
+	/* Use base of filename as login as last resort */
+	/* /path/johndoe.gpg -> johndoe */
+	if (!gecos[0]) {
+		cp = strip_suffixes(jtr_basename(filename), ext, 2);
+		strncpy(gecos, cp, sizeof(gecos));
+	}
+
+	/* login field is Real Name part of user data */
+	strncpy(login, gecos, sizeof(login));
+
+	if ((cp = strchr(login, '(')))
+		memset(cp, 0, 1);
+	if ((cp = strrchr(login, '<')))
+		memset(cp, 0, 1);
+
+	/* gecos field is the rest of user data (comment, email) */
+	gecos_remains += strlen(login);
+
+	/* Ditch trailing spaces in login */
+	cp = &login[strlen(login) - 1];
+	while (cp > login && *cp == ' ')
+		*cp-- = 0;
+
 	// printf("Version is %d\n", VERSION);
 	switch (VERSION) {
 	case 2:
@@ -2171,20 +2195,20 @@ encrypted_Secret_Key(int len, int sha1)
 			give(len, m_data); // we can't break down the "data" further into fields
 			used += len;
 			m_algorithm = PUBLIC;  // Encrypted RSA
-			printf("%s:$gpg$*%d*%d*%d*", base, m_algorithm, len, n_bits);
+			printf("%s:$gpg$*%d*%d*%d*", login, m_algorithm, len, n_bits);
 			print_hex(m_data, len);
 			printf("*%d*%d*%d*%d*%d*", m_spec, m_usage, m_hashAlgorithm, m_cipherAlgorithm, bs);
 			print_hex(iv, bs);
 			printf("*%d*", m_count);
 			print_hex(m_salt, 8);
-			printf(":::%s::%s\n",gecos, path);
+			printf(":::%s::%s\n",gecos_remains, filename);
 			break;
 		case 16:
 		case 20:
 			m_algorithm = PUBLIC;  // Encrypted ElGamal
 			give(len, m_data);
 			used += len;
-			printf("%s:$gpg$*%d*%d*%d*", base, m_algorithm, len, key_bits);
+			printf("%s:$gpg$*%d*%d*%d*", login, m_algorithm, len, key_bits);
 			print_hex(m_data, len);
 			printf("*%d*%d*%d*%d*%d*", m_spec, m_usage, m_hashAlgorithm, m_cipherAlgorithm, bs);
 			print_hex(iv, bs);
@@ -2198,13 +2222,13 @@ encrypted_Secret_Key(int len, int sha1)
 				printf("*%d*", (y_bits + 7) / 8);
 				print_hex(y, (y_bits + 7) / 8);
 			}
-			printf(":::%s::%s\n",gecos, path);
+			printf(":::%s::%s\n",gecos_remains, filename);
 			break;
 		case 17:
 			m_algorithm = PUBLIC;  // Encrypted DSA
 			give(len, m_data);
 			used += len;
-			printf("%s:$gpg$*%d*%d*%d*", base, m_algorithm, len, key_bits);
+			printf("%s:$gpg$*%d*%d*%d*", login, m_algorithm, len, key_bits);
 			print_hex(m_data, len);
 			printf("*%d*%d*%d*%d*%d*", m_spec, m_usage, m_hashAlgorithm, m_cipherAlgorithm, bs);
 			print_hex(iv, bs);
@@ -2220,7 +2244,7 @@ encrypted_Secret_Key(int len, int sha1)
 				printf("*%d*", (y_bits + 7) / 8);
 				print_hex(y, (y_bits + 7) / 8);
 			}
-			printf(":::%s::%s\n",gecos, path);
+			printf(":::%s::%s\n",gecos_remains, filename);
 			break;
 		default:
 			printf("\tUnknown encrypted key(pub %d)\n", PUBLIC);
