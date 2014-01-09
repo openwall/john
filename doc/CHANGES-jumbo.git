@@ -1,6 +1,6 @@
 The following changes were made between 1.7.9-jumbo-7 and 1.7.9-jumbo-8:
 
-magnum (713):
+magnum (726):
 	Add a "Section [%s] not found" before outputting the catch-all
 	  --list=?
 	Merge fix
@@ -1270,8 +1270,23 @@ magnum (713):
 	Improve valid() in netlm, nethalflm and mssql12.
 	Improve valid() in krb5pa formats.
 	Explicitly state that wpapsk formats do support WPA and WPA2.
+	Update CHANGES-jumbo.git & CREDITS-jumbo
+	Merge recent change to DMG CPU format to OpenCL.
+	Use 8x for SIMD SHA-1, for gcc >= 4.7 if AVX or XOP.
+	Fix OSX build targets for CUDA for Xcode 5.0 and CUDA 5.
+	mysql-sha1 formats: SPLIT_UNIFIES_CASE bugfix and unify test vectors.
+	Better description of MySQL formats vs. versions.
+	Bugfixes from bleeding back-ported to unstable.
+	Fixes for building CUDA on OSX Mavericks.
+	Makefile CUDA: Add natural path to nvcc with an NVCC macro, and
+	  make the OSX -ccbin quirk a macro too.
+	CUDA fix for when nvcc is not in /usr/local/bin.
+	Drop -cl-strict-aliasing from OpenCL build options. It's deprecated.
+	Print a warning when FMT_NOT_EXACT.
+	pkzip: Bugfix for #467. Two early rejection tests had to be disabled.
+	  Hopefully they can be re-enabled by JimF after some tuning.
 
-Dhiru Kholia (335):
+Dhiru Kholia (336):
 	BONUS: pwsafe format also cracks Password Gorilla databases.
 	Integrate psk-crack (from ike-scan) into john.
 	Add support for cracking Nuked-Klan CMS hashes.
@@ -1612,6 +1627,7 @@ Dhiru Kholia (335):
 	fix crash in wbb3 format
 	fix crash in pdf format
 	clean up dmg stuff a bit
+	Start using Travis CI
 
 Claudio André (157):
 	Improvement: pre-compute modulus values.
@@ -2158,18 +2174,18 @@ rofl0r (6):
 	tcphdr.h: special-case endian.h for mac/bsd
 	timer.h: re-add sys/timeb.h to windows section
 
-Myrice (3):
-	Bug fixed: xsha512-cuda long password bug
-	rawsha512/xsha512-cuda change thread/block number for better
-	  performance
-	Add mask mode
-
 Deepika Dutta (3):
 	Add bit-sliced MSCHAPv2 implementation by Deepika. This is added as a
 	  new separate format: We now have mschapv2, mschapv2-bs and
 	  mschapv2-naive.
 	Add MMX version of DES_bs_crypt_plain().
 	netntlm bitsliced conversion
+
+Myrice (3):
+	Bug fixed: xsha512-cuda long password bug
+	rawsha512/xsha512-cuda change thread/block number for better
+	  performance
+	Add mask mode
 
 Michael Samuel (2):
 	Add External:KDEPaste. This takes advantage of CVE-2013-2120 to find
@@ -2193,6 +2209,10 @@ bartavelle (Simon Marechal) (2):
 	sunmd5.hack.diff
 	Updated copyright information
 
+Linus Lüssing (1):
+	MSCHAPv2: Add support for freeradius-wep-patch challenge/response
+	  format
+
 alexandru (1):
 	Default value for number of iterations
 
@@ -2202,12 +2222,8 @@ tomrittervg (1):
 Mat G (1):
 	New format: Fortigate (FortiOS)
 
-Linus Lüssing (1):
-	MSCHAPv2: Add support for freeradius-wep-patch challenge/response
-	  format
-
-Camille Mougey (1):
-	New formats: KRB5-18 and KRB5-23
+Diogo Ramos (1):
+	fix opencl kernel build on macosx
 
 Michael Ledford (1):
 	Adds support for multiple keys existing in an encrypted DMG. When
@@ -2216,6 +2232,9 @@ Michael Ledford (1):
 	  selected could be empty. Now chunk number one is chosen for DMG
 	  sparseimage files and a new heuristic is added to the DMG format
 	  plugin to look for 'Apple'.
+
+Camille Mougey (1):
+	New formats: KRB5-18 and KRB5-23
 
 
 The following changes were made between 1.7.9-jumbo-6 and 1.7.9-jumbo-7:
