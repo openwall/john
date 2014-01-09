@@ -29,6 +29,7 @@
 #include "idea-JtR.h"
 #include <openssl/bn.h>
 #include <openssl/dsa.h>
+#include <openssl/des.h>
 #ifdef _OPENMP
 #include <omp.h>
 #define OMP_SCALE               64
@@ -77,6 +78,8 @@ static int omp_t = 1;
 // Minimum number of bits when checking the first BN
 #define MIN_BN_BITS 64
 
+#define BIG_ENOUGH 8192
+
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static int *cracked;
 static int any_cracked;
@@ -104,6 +107,7 @@ enum {
 	CIPHER_AES192 = 8,
 	CIPHER_AES256 = 9,
 	CIPHER_IDEA = 1,
+	CIPHER_3DES = 2,
 };
 
 enum {
@@ -119,7 +123,7 @@ enum {
 
 static struct custom_salt {
 	int datalen;
-	unsigned char data[4096];
+	unsigned char data[BIG_ENOUGH * 2];
 	char spec;
 	char pk_algorithm;
 	char hash_algorithm;
@@ -131,19 +135,21 @@ static struct custom_salt {
 	int ivlen;
 	int count;
 	void (*s2kfun)(char *, unsigned char*, int);
-	unsigned char p[4096];
-	unsigned char q[4096];
-	unsigned char g[4096];
-	unsigned char y[4096];
-	unsigned char x[4096];
+	unsigned char p[BIG_ENOUGH];
+	unsigned char q[BIG_ENOUGH];
+	unsigned char g[BIG_ENOUGH];
+	unsigned char y[BIG_ENOUGH];
+	unsigned char x[BIG_ENOUGH];
+	unsigned char n[BIG_ENOUGH];
+	unsigned char d[BIG_ENOUGH];
 	int pl;
 	int ql;
 	int gl;
 	int yl;
 	int xl;
+	int nl;
+	int dl;
 } *cur_salt;
-
-
 
 // Returns the block size (in bytes) of a given cipher
 static uint32_t blockSize(char algorithm)
@@ -159,6 +165,8 @@ static uint32_t blockSize(char algorithm)
 		case CIPHER_AES192:
 		case CIPHER_AES256:
 			return AES_BLOCK_SIZE;
+		case CIPHER_3DES:
+			return 8;
 		default:
 			break;
 	}
@@ -181,6 +189,8 @@ static uint32_t keySize(char algorithm)
 			return 32;
 		case CIPHER_IDEA:
 			return 16;
+		case CIPHER_3DES:
+			return 24;
 		default: break;
 	}
 	assert(0);
@@ -233,6 +243,10 @@ static struct fmt_tests gpg_tests[] = {
 	{"$gpg$*17*24*1024*b0d0b23529f968c0d05fa8caf38445c5bca5c2523ae6cc87*1*255*2*3*8*c5efc5bab719aa63*0*a0ccc71dedfce4d3*128*bb0ccf0f171fbb6438d94fdf24b749461c63902c4dca06f2d5580bca5837899431f1cbc7ccd56db8c9136a4ac7230a21eb6ab51a7c7a24fe23e99dd546eeb07cadb96372b0cb4a7dc2ba31e399d779e8ffa87f6f16c22ab54226a8a565550cfe98bee81001a810749327dca46f4ce7eb4f9726a00069026cb89f9533599cacdb*20*ec99ac865efa5aa7a9f1da411107e02e8e41daf5*128*16ed223362bb289889bf15c0ef3ce88b94892d57ea486f7cd63a1f8f83da3c28a6ee3879787c654c97e4824c75b0efd7f36db36947dfb8c9b1cfe0562c4e7d8b2b600973b9b379a1891200941b3a17361e49ccf157b0797a9d2f7535da0455c8d822b669ed6fc5fec56c71ad5df6fd9d4a4b67458b2e576a144ba2d0f49eff72*128*7991ba80eae8aa9d8adb38ae3c91fe771b7dc0a6f30fdc45d357acd5fcae1176245807972c39748880080d609f4c7e11a6c30d7ad144d848838e4ace2d9716c6e27edb6ef6ca453d7a8a3b0320fe721bc094e891b73f4515f3e34f52dfbf002108b0412bf54142b4d2c411fee99fd0b459de0a3825dc5be078b6e48d7aa5ceae", "wtf@123"},
 	/* gpg --s2k-mode 1 --gen-key, old GnuPG versions (e.g GnuPG 1.0.3), uses *new* hash format, ElGamal */
 	{"$gpg$*16*36*1024*0a4c2fb9d1ff24b817212a9cc0d3f2d84184a368ff3a04c337566812d037e5fe28933eaa*1*255*2*3*8*b312f3046fdb046c*0*a0ccc71dedfce4d3*128*f9235c132a796b0fd67f59567cf01dcf0a4ebbc8607a1033cefd2d52be40334e8cfba60737751b1bf16e36399340698656255917ca65f1f6f7806f05f686889ef7dc7030dd17dc9b45a1e1f01ab8d8a676d5a1759ac65bd1e2e50282f9926b44a156f7fea5e4ae5883e10f533efb9cd857efb84d23062f9741b4bd2ba70abcb3*1*05*128*e67deba19288e87c93829194698d10169e1f42eb43bba46b563037177ee09801a824fc9be2796fd24f4438c1a72f2e8587e6507ab1a408695a46709b87cc171366eef9ee86bd7935dd0ef6d4efdba738d7d8cb40dfe0f3dec996ebe2153fec9c091b5be0d31e398d8de75de4e346e299a07603242846b87f2b90ed82f9143786", "wtf@123"},
+	/* gpg --homedir . --s2k-cipher-algo 3des --simple-sk-checksum --gen-key */
+	{"$gpg$*1*650*2048*13f86b7b625701ea33f1d9e3bfc64d70f696a8ae42fb40ba128ae248aabea98e5d1f1a2ffa10e7ead6fde1d0d652de653965098f770a20abe95fe253428dd39856b8ce84c28699164766c864b7ca61723f6f49be4d8304814a522dd7f2798580dead66a55da5203ead2e4499ec8ca6c08e13e7c6b117cfd9381fb32bdeb5d022bc21197f0c095a8e2153809f295194f5f07f55f3c547af1094cc077a1aace9005c7b57558ec4042a1f312b512861a7038d10377df6a98e03239568f556e1e3e2cd1578c621268c3f95b1a4c6ba54dc484fd9b31d561438c68c740f71d8f2ff30ca9747ea350d70a6d1cc6cbaf4f13ecbc366df574ea313859c687ef7c5dc132250aac0982462f7327d3b384c14bd02eec7c460088d3f4439ef8696dcc60f86479a4593259cb300c466f153bc59cea6a2604da1d55e0b02dd673f7b52005349a5356373f49640f26e77af2b94ff2705c7b476993e3ac0845d2c582b769a3e06e9024e518fbf6c459ee9b158f94a12ac65cd720113f88f7dd2af26466d271e67c1a79707e33d6d72189d6b566019720889706c23f66217d20bba7d7174c048e333322fa3fc8a56a176fb2fb14e4f2660dd657c98b91dc80885b26ad7ea30d8ed0e0a88f2467f266d4b0087039a7a502d7db91d2a1286173fbaa0b6781bfe4f4b12ebd28be9b11e26214a83aebbe6cb7bc95a27ebef8c6c20c62cf709d89feb389a577d6c9be9bf1bd4034309ceebbbc0f307ca378051a1e283afdb0dd8a6ad72d2bede3d0f96c30c49b5e0a8bce3e009c4f786258d3d4fa8e0ec35c9bbff056d3648f8d8a03c20edf79757cfb26b6f3682661492052118eb33a92d407c5d4aed72635dededbbf5b46894e9e045416fbab0d5d6f680dea8fa6df38e9dbe4587ab5e5ca77e85b969295fd30a*3*255*2*2*8*7ecb79e68cd01a71*65536*2355a3ead8a0a3c5*256*d7d5db86ab15ca6d9b9138e90d60b9d4697d9535f6f990a930a5cb250a6c367e90e24cd60b3165dd654786c7e94b18fe48760b7cd123e4fefc8a0ffa18ab9e81c9e0b63f7e925483b29c3e639ed02f195cfb5f24b89e5cd802f08f81b63b6602827a95bdbf720c4fe043affb195fb66e1bce7bad691317451038fd9dade9e3a6e0ce2eb9293258434a02cb9134789bed94dd71df0d82192e12c50c60d52005eb85ced465b8992dc1de0899442f7cf26ea676e9db9fa3e28ba98f498d7c63de69394030726e1b1651928f17fc7464a58a3a2c1a683737962282d90bcd781fdab03a85b0b4114c5fcb83777d5ded28bf895b65a322adf7b9a8007e4315f48e9131", "openwall"},
+	/* gpg --homedir . --s2k-cipher-algo 3des --simple-sk-checksum --gen-key */
+	{"$gpg$*1*650*2048*72624bb7243579c0c77cf1e64565251e0ac9d0dcb2f4b98fa54e1678ee4234409efe464a117b21aff978907cfbf19eb2547d44e3a2e6f7db5bfceb4af2391992f30ff55a292d0c011f05c3ab27a1a3fde1a9fd1fbf05c7e5d200f4b7941efe42b4c5dd8abee6ee3d57c4899e023399c8cfd8d9735e095857b71723ded660d9bd705dba9eb373fab976cd73569934d7dec08f9f0b8451ca15d21549dd4d09b3e7cf832645cdbcb4bac84a963c8d7bfde301fcba31d3e935bbb8a0db483583c8077ea16cfda128e1eef42588082c0038cd9f35bb77f82d138f75ba7640250c4dc49ab60f0ce138999ea6c267a256b3e5d0e0ef30fef9c943462fcb3f0df38f069a3b027e15f36bf353ca4c0340ea9e8963d49136fa47872e0fa62c75345d40b7fe794b676c5e5d9bf50f90f4465b68630fbf72e5c46721b4877c30f004cfc2cfd78903dcfa5893ce9bea86d4be7e933a2d41e55024fb6529a7197da2f4dff4ac7689666b27cad49d640d1fdde37801cf8285818884c41465afb450d6c4cb0de21211a7cafd86399398cc18492cf4b3810bbfe1c08f8b293d1c78ed3a4cfacf92d9633e86fc5591a94d514d7b45af4729c801d405645699201c4a8dea32a9098a86f5a3a7526b42676aa1179b47f070390b9c84b17fafc4a2607d3247b34fafae369f31a63e85a8179db35c9038b616fcaad621cd91bcbbe3e96b2fe09e18d0da0492b66dd9d106eb4617975dea8e9b00b9bdea1b0d9c0737dc168d83be812c91076a3c4430bdd289bec60e1b0c8b314a7886256d95ae01cb4246cae94daaa50ef2b7ed498089872e1296dd5679ea0bbfd6e4ff704124dabbddb572e38fa83fff143bf2946d3e563d7de8cc62e1d51900d3db28c9e80dc5b4b8662268d62141106c111597f38131830ecbea*3*255*2*2*8*b58b33e5bcc1d3cd*65536*2355a3ead8a0a3c5*256*bd18b0eeba7c8dd316d1a60f0828ed50aea29afa2eee307cdbbc5df3e641167136d9d659d67a412215fe577d999c4672ca4e6e0af006469b828868e334062d4b442785c616081ad9c758278564174e74d9a9bf17553b065717053d534cbc4eeb32b0f64a6b110b5f434878b6a05730ea6e5f317c84a41a3ddbe2d9ef9693c34b5e87515056395444198fba8e9542adf9276cb9147447d79f774b94a40f6ea32377f1da1ea9f40e08a9b678737fab7ee77b764a9ed7b36848ac77d5b60c0f5075fa5f130e215dab20401e944078a6d905fa54cb094bf967f1620105aaeba95d1db2925ea045e83808713f71c60ca5dfe9c20e895eb637e53dfa54629d71670971", "openwall"},
 	{NULL}
 };
 
@@ -261,6 +275,7 @@ static int valid_cipher_algorithm(int cipher_algorithm)
 	  case CIPHER_AES192: return 1;
 	  case CIPHER_AES256: return 1;
 	  case CIPHER_IDEA: return 1;
+	  case CIPHER_3DES: return 1;
 	}
 	return 0;
 }
@@ -272,6 +287,7 @@ static int valid_hash_algorithm(int hash_algorithm, int spec)
 	{
 	  case HASH_SHA1: return 1;
 	  case HASH_MD5: return 1;
+	  case 0: return 1; // http://www.ietf.org/rfc/rfc1991.txt
 	}
       if(spec == SPEC_ITERATED_SALTED)
 	switch(hash_algorithm)
@@ -299,7 +315,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if ((p = strtok(NULL, "*")) == NULL)	/* datalen */
 		goto err;
 	res = atoi(p);
-	if (res > 4096)
+	if (res > BIG_ENOUGH * 2)
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* bits */
 		goto err;
@@ -316,12 +332,13 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if ((p = strtok(NULL, "*")) == NULL)	/* usage */
 		goto err;
 	res = atoi(p);
-	if(res != 0 && res != 254 && res != 255)
+	if(res != 0 && res != 254 && res != 255 && res != 1)
 		goto err;
+
 	if ((p = strtok(NULL, "*")) == NULL)	/* hash_algorithm */
 		goto err;
 	res = atoi(p);
-	if(!valid_hash_algorithm(res,spec))
+	if(!valid_hash_algorithm(res, spec))
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* cipher_algorithm */
 		goto err;
@@ -688,7 +705,7 @@ static void *get_salt(char *ciphertext)
 		    atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	p = strtok(NULL, "*");
 	/* handle "SPEC_SIMPLE" correctly */
-	if (cs.spec != 0) {
+	if (cs.spec != 0 || cs.usage == 255) {
 		cs.count = atoi(p);
 		p = strtok(NULL, "*");
 		for (i = 0; i < 8; i++)
@@ -744,6 +761,15 @@ static void *get_salt(char *ciphertext)
 			cs.y[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16 +
 			atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	}
+	if (cs.usage == 255 && cs.pk_algorithm == 1) {
+		/* RSA */
+		p = strtok(NULL, "*");
+		cs.nl = atoi(p);
+		p = strtok(NULL, "*");
+		for (i = 0; i < strlen(p) / 2; i++)
+			cs.n[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16 +
+			atoi16[ARCH_INDEX(p[i * 2 + 1])];
+	}
 
 	MEM_FREE(keeptr);
 
@@ -793,7 +819,9 @@ static void *get_salt(char *ciphertext)
 					case HASH_MD5:
 						cs.s2kfun = S2KSimpleMD5Generator;
 						break;
-					default: break;
+					default:
+						cs.s2kfun = S2KSimpleSHA1Generator;  // WTF?
+						break;
 				}
 			}
 			break;
@@ -899,13 +927,70 @@ freestuff:
 	return rc;
 }
 
+typedef struct {
+	BIGNUM *p;
+	BIGNUM *q;
+	BIGNUM *n;
+} RSA_secret_key;
+
+// borrowed from GnuPG
+static int check_rsa_secret_key(RSA_secret_key *rsa)
+{
+	int error;
+	int rc = -1;
+	BIGNUM *res = BN_new();
+	BN_CTX *ctx = BN_CTX_new();
+	if (!res) {
+		fprintf(stderr, "failed to allocate result BN in check_rsa_secret_key()\n");
+		exit(-1);
+	}
+	if (!ctx) {
+		fprintf(stderr, "failed to allocate BN_CTX ctx in chec_rsa_secret_key()\n");
+		exit(-1);
+	}
+
+	error = BN_mul(res, rsa->p, rsa->q, ctx);
+	if ( error == 0 ) {
+		goto freestuff;
+	}
+
+	rc = BN_cmp(res, rsa->n);  // p * q == n
+
+freestuff:
+
+	BN_CTX_free(ctx);
+	BN_free(res);
+	BN_free(rsa->p);
+	BN_free(rsa->q);
+	BN_free(rsa->n);
+
+	return rc;
+}
+
+static int give_multi_precision_integer(unsigned char *buf, int len, int *key_bytes, unsigned char *out)
+{
+	int bytes;
+	int i;
+	int bits = buf[len] * 256;
+	len++;
+	bits += buf[len];
+	len++;
+	bytes = (bits + 7) / 8;
+	*key_bytes = bytes;
+
+	for (i = 0; i < bytes; i++)
+		out[i] = buf[len++];
+
+	return bytes + 2;
+}
+
 static int check(unsigned char *keydata, int ks)
 {
 	// Decrypt first data block in order to check the first two bits of
 	// the MPI. If they are correct, there's a good chance that the
 	// password is correct, too.
 	unsigned char ivec[32];
-	unsigned char out[4096] = { 0 };
+	unsigned char out[BIG_ENOUGH * 2] = { 0 };
 	int tmp = 0;
 	uint32_t num_bits;
 	int checksumOk;
@@ -940,6 +1025,22 @@ static int check(unsigned char *keydata, int ks)
 					    AES_cfb128_encrypt(cur_salt->data, out, AES_BLOCK_SIZE, &ck, ivec, &tmp, AES_DECRYPT);
 				    }
 				    break;
+		case CIPHER_3DES: {
+					  DES_cblock key1, key2, key3;
+					  DES_cblock divec;
+					  DES_key_schedule ks1, ks2, ks3;
+					  int num = 0;
+					  memcpy(key1, keydata + 0, 8);
+					  memcpy(key2, keydata + 8, 8);
+					  memcpy(key3, keydata + 16, 8);
+					  memcpy(divec, ivec, 8);
+					  DES_set_key((C_Block *)key1, &ks1);
+					  DES_set_key((C_Block *)key2, &ks2);
+					  DES_set_key((C_Block *)key3, &ks3);
+					  DES_ede3_cfb64_encrypt(cur_salt->data, out, 8, &ks1, &ks2, &ks3, &divec, &num, DES_DECRYPT);
+				    }
+				    break;
+
 		default:
 				    printf("(check) Unknown Cipher Algorithm %d ;(\n", cur_salt->cipher_algorithm);
 				    break;
@@ -976,6 +1077,21 @@ static int check(unsigned char *keydata, int ks)
 					    AES_KEY ck;
 					    AES_set_encrypt_key(keydata, ks * 8, &ck);
 					    AES_cfb128_encrypt(cur_salt->data, out, cur_salt->datalen, &ck, ivec, &tmp, AES_DECRYPT);
+				    }
+				    break;
+		case CIPHER_3DES: {
+					  DES_cblock key1, key2, key3;
+					  DES_cblock divec;
+					  DES_key_schedule ks1, ks2, ks3;
+					  int num = 0;
+					  memcpy(key1, keydata + 0, 8);
+					  memcpy(key2, keydata + 8, 8);
+					  memcpy(key3, keydata + 16, 8);
+					  memcpy(divec, ivec, 8);
+					  DES_set_key((C_Block *) key1, &ks1);
+					  DES_set_key((C_Block *) key2, &ks2);
+					  DES_set_key((C_Block *) key3, &ks3);
+					  DES_ede3_cfb64_encrypt(cur_salt->data, out, cur_salt->datalen, &ks1, &ks2, &ks3, &divec, &num, DES_DECRYPT);
 				    }
 				    break;
 		default:
@@ -1022,6 +1138,7 @@ static int check(unsigned char *keydata, int ks)
 			char *str = BN_bn2hex(b);
 			DSA dsa;
 			ElGamal_secret_key elg;
+			RSA_secret_key rsa;
 			if (strlen(str) != blen * 2) { /* verifier 2 */
 				free(str);
 				return 0;
@@ -1042,7 +1159,7 @@ static int check(unsigned char *keydata, int ks)
 				if (ret != 0)
 					return 0;
 			}
-			if (cur_salt->pk_algorithm == 16) { /* ElGamal check */
+			if (cur_salt->pk_algorithm == 16 || cur_salt->pk_algorithm == 20) { /* ElGamal check */
 				elg.p = BN_bin2bn(cur_salt->p, cur_salt->pl, NULL);
 				// puts(BN_bn2hex(elg.p));
 				elg.g = BN_bin2bn(cur_salt->g, cur_salt->gl, NULL);
@@ -1052,6 +1169,21 @@ static int check(unsigned char *keydata, int ks)
 				elg.y = BN_bin2bn(cur_salt->y, cur_salt->yl, NULL);
 				// puts(BN_bn2hex(elg.y));
 				ret = check_elg_secret_key(&elg); /* verifier 3 */
+				if (ret != 0)
+					return 0;
+			}
+			if (cur_salt->pk_algorithm == 1) { /* RSA check */
+				// http://www.ietf.org/rfc/rfc4880.txt
+				int length = 0;
+				length += give_multi_precision_integer(out, length, &cur_salt->dl, cur_salt->d);
+				length += give_multi_precision_integer(out, length, &cur_salt->pl, cur_salt->p);
+				length += give_multi_precision_integer(out, length, &cur_salt->ql, cur_salt->q);
+
+				rsa.n = BN_bin2bn(cur_salt->n, cur_salt->nl, NULL);
+				rsa.p = BN_bin2bn(cur_salt->p, cur_salt->pl, NULL);
+				rsa.q = BN_bin2bn(cur_salt->q, cur_salt->ql, NULL);
+
+				ret = check_rsa_secret_key(&rsa);
 				if (ret != 0)
 					return 0;
 			}
