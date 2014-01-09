@@ -251,8 +251,10 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		ciphertext = format->methods.prepare(current->fields, format);
 		if (!ciphertext || strlen(ciphertext) < 7)
 			return "prepare";
-		if (format->methods.valid(ciphertext, format) != 1)
-			return "valid";
+		if (format->methods.valid(ciphertext, format) != 1) {
+			snprintf(s_size, sizeof(s_size), "valid (%s)", ciphertext);
+			return s_size;
+		}
 
 #if !defined(BENCH_BUILD)
 		if (!dhirutest++ && strcmp(format->params.label, "dummy")

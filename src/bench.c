@@ -142,7 +142,7 @@ char *benchmark_format(struct fmt_main *format, int salts,
 {
 	static void *binary = NULL;
 	static int binary_size = 0;
-	static char s_error[64];
+	static char s_error[128];
 	char *TmpPW[1024];
 	int pw_mangled=0;
 	char *where;
@@ -165,7 +165,7 @@ char *benchmark_format(struct fmt_main *format, int salts,
 
 	if (!(current = format->params.tests)) return "FAILED (no data)";
 	if ((where = fmt_self_test(format))) {
-		sprintf(s_error, "FAILED (%s)\n", where);
+		snprintf(s_error, sizeof(s_error), "FAILED (%s)\n", where);
 		return s_error;
 	}
 	if (!current->ciphertext && !current->plaintext)  return "FAILED (no data)";
