@@ -109,17 +109,25 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy += 6;
 	if ((p = strtok(ctcopy, "*")) == NULL)	/* cipher type */
 		goto err;
+	if (strlen(p) != 1)
+		goto err;
 	res = atoi(p);
 	if (res != 0 && res != 1)
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* checksum type */
+		goto err;
+	if (strlen(p) != 1)
 		goto err;
 	res = atoi(p);
 	if (res != 0 && res != 1)
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* iterations */
 		goto err;
+	if (strlen(p) > 10) // FIXME: atoi() overflow still possible
+		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* key size */
+		goto err;
+	if (strlen(p) >= 10)
 		goto err;
 	res = atoi(p);
 	if (res != 16 && res != 32)
@@ -128,8 +136,10 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* iv length */
 		goto err;
+	if (strlen(p) >= 10)
+		goto err;
 	res = atoi(p);
-	if (res > 16)
+	if (res > 16 || res < 0)
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* iv */
 		goto err;
@@ -139,8 +149,10 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* salt length */
 		goto err;
+	if (strlen(p) >= 10)
+		goto err;
 	res = atoi(p);
-	if (res > 32)
+	if (res > 32 || res < 0)
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* salt */
 		goto err;
