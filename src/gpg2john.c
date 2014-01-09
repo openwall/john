@@ -37,6 +37,8 @@
 #include <libgen.h>
 #include <ctype.h>
 
+#include "misc.h"
+
 #define public extern
 #define private static
 
@@ -304,6 +306,7 @@ give_pdump(int len)
 	int i;
 	for (i = 0; i < len; i++)
 		gecos[i] = Getc();
+	gecos[i] = 0;
 }
 
 public void
@@ -2145,7 +2148,7 @@ encrypted_Secret_Key(int len, int sha1)
 	static char path[8192];
 	char *base;
 	strncpy(path, filename, sizeof(path));
-	base = basename(path);
+	base = jtr_basename(path);
 	// printf("Version is %d\n", VERSION);
 	switch (VERSION) {
 	case 2:
@@ -2174,7 +2177,7 @@ encrypted_Secret_Key(int len, int sha1)
 			print_hex(iv, bs);
 			printf("*%d*", m_count);
 			print_hex(m_salt, 8);
-			printf(":::%s::%s\n",gecos, base);
+			printf(":::%s::%s\n",gecos, path);
 			break;
 		case 16:
 		case 20:
@@ -2195,7 +2198,7 @@ encrypted_Secret_Key(int len, int sha1)
 				printf("*%d*", (y_bits + 7) / 8);
 				print_hex(y, (y_bits + 7) / 8);
 			}
-			printf(":::%s::%s\n",gecos, base);
+			printf(":::%s::%s\n",gecos, path);
 			break;
 		case 17:
 			m_algorithm = PUBLIC;  // Encrypted DSA
@@ -2217,7 +2220,7 @@ encrypted_Secret_Key(int len, int sha1)
 				printf("*%d*", (y_bits + 7) / 8);
 				print_hex(y, (y_bits + 7) / 8);
 			}
-			printf(":::%s::%s\n",gecos, base);
+			printf(":::%s::%s\n",gecos, path);
 			break;
 		default:
 			printf("\tUnknown encrypted key(pub %d)\n", PUBLIC);
