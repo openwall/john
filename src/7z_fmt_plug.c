@@ -102,33 +102,51 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy += TAG_LENGTH;
 	if ((p = strtok(ctcopy, "$")) == NULL)
 		goto err;
+	if (strlen(p) > 1)
+		goto err;
 	type = atoi(p);
 	if (type != 0)
 		goto err;
 	if ((p = strtok(NULL, "$")) == NULL) /* NumCyclesPower */
 		goto err;
+	if (strlen(p) > 2)
+		goto err;
 	NumCyclesPower = atoi(p);
-	if (NumCyclesPower > 24)
+	if (NumCyclesPower > 24 || NumCyclesPower < 0) // FIXME: 0 is probably not allowed
 		goto err;
 	if ((p = strtok(NULL, "$")) == NULL) /* salt length */
 		goto err;
+	if (strlen(p) > 2)
+		goto err;
 	len = atoi(p);
-	if(len > 16) /* salt length */
+	if(len > 16 || len < 0) /* salt length */	// FIXME: why is 0 allowed here?
 		goto err;
 	if ((p = strtok(NULL, "$")) == NULL) /* salt */
 		goto err;
 	if ((p = strtok(NULL, "$")) == NULL) /* iv length */
 		goto err;
+	if (strlen(p) > 2)
+		goto err;
 	len = atoi(p);
+	if(len < 0 || len > 16) /* iv length */
+		goto err;
 	if ((p = strtok(NULL, "$")) == NULL) /* iv */
 		goto err;
-	if(len > 16) /* iv length */
-		goto err;
+	// FIXME: ishex check missing, and p+(2*len) should be "0000..."
 	if ((p = strtok(NULL, "$")) == NULL) /* crc */
 		goto err;
+	// FIXME: anything known about min/max length and value of crc?
 	if ((p = strtok(NULL, "$")) == NULL) /* data length */
 		goto err;
-	len = atoi(p);
+	// FIXME: is data length really an integer, or can it be long?
+	//        as long as "len = atoi(p);" is used, max. length is <= 10
+	if(strlen(p) > 10)	// FIXME: shouldn't long instead of int be allowed here?
+		goto err;
+	len = atoi(p);		// FIXME: undefined behavior
+	if (len >= 2147483647)	// FIXME: atoi() might return INT_MAX in case of overflow
+		goto err;
+	if (len < 0)
+		goto err;
 	if ((p = strtok(NULL, "$")) == NULL) /* unpacksize */
 		goto err;
 	if ((p = strtok(NULL, "$")) == NULL) /* data */
