@@ -23,6 +23,9 @@ OpenCL format once. After that, the kernel binary is cached so you can
 move away from the src directory. This bug seems to be gone in OS X
 Mavericks (10.9).
 
+Intel's OCL SDK 1.5 CPU driver has problems with bfcrypt, mscash2 and
+rar. Use a newer version of the SDK.
+
 Some OpenCL-enabled formats (for "slow" hashes and non-hashes) may
 sometimes trigger "ASIC hang" errors as reported by AMD/ATI GPU drivers,
 requiring system reboot to re-gain access to the GPU.  For example, on
