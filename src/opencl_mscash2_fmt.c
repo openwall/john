@@ -110,7 +110,7 @@ static void init(struct fmt_main *self) {
 	for( i=0; i < opencl_get_devices(); i++)
 		select_device(ocl_device_list[i], self) ;
 
-	warning() ;
+	dcc2_warning() ;
 
 	if (options.utf8) {
 		self->params.plaintext_length *= 3;
