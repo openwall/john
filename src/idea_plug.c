@@ -619,13 +619,14 @@ void JtR_idea_cfb64_encrypt(const unsigned char *in, unsigned char *out,
  * [including the GNU Public Licence.]
  */
 
-const char *idea_options(void)
+/* const char *idea_options(void)
 	{
 	if (sizeof(short) != sizeof(IDEA_INT))
 		return("idea(int)");
 	else
 		return("idea(short)");
 	}
+*/
 
 void JtR_idea_ecb_encrypt(const unsigned char *in, unsigned char *out,
 	     IDEA_KEY_SCHEDULE *ks)

@@ -72,7 +72,7 @@ typedef struct idea_key_st
 	IDEA_INT data[9][6];
 	} IDEA_KEY_SCHEDULE;
 
-const char *idea_options(void);
+// const char *idea_options(void);
 void JtR_idea_ecb_encrypt(const unsigned char *in, unsigned char *out,
 	IDEA_KEY_SCHEDULE *ks);
 void JtR_idea_set_encrypt_key(const unsigned char *key, IDEA_KEY_SCHEDULE *ks);
