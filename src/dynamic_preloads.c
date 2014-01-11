@@ -1462,6 +1462,7 @@ MTL({"$dynamic_64$2841435ff3461552fce65aa11c0a6c417d89cf463745e0012f55d418edad9d
 };
 
 //	dynamic_65: SHA256(SHA256($p).$s)
+//	XenForo - Compelling Community Forum Software
 static DYNAMIC_primitive_funcp _Funcs_65[] =
 {
 	//MGF_INPUT_32_BYTE
@@ -1478,6 +1479,7 @@ static struct fmt_tests _Preloads_65[] =
 	{"$dynamic_65$9e59ea803f5f5c0f2b7adfcb82db9654343d821230b16e123f3cb913d91cf7fa$UX6Hg9Vq","test1"},
 	{"$dynamic_65$5adbcc923f2636175a4776b24ea15c8e4592c226985ebc68fb13ee1635df2fe8$mCp6NQxB","thatsworking"},
 	{"$dynamic_65$ee4553fd14a4df097398fa87209b4d741b33163d9623c627215d3e3e25622f23$HoTNEE6s","test3"},
+	{"$dynamic_65$ce8ebe06e45e2eeba1b19d315be040b2aa7bb862b8f65b2447d0b8207e914f60$dummysalt", "password"},
 MTL({"$dynamic_65$323b53767a6fbd464073b6d197aee9aa17e0f47195ec114be23dc5722a3183f9$12345678901234567890", "123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890"},)
 	{NULL}
 };
