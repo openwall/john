@@ -44,7 +44,7 @@ void cuda_init()
                         int device_id = atoi(current->data);
                         for(i = 0; i < n; i++) {
                                 if(cuda_dev_list[i] == device_id) {
-                                        fprintf(stderr, "Duplicate CUDA device id %d", device_id);
+                                        fprintf(stderr, "Duplicate CUDA device id %d\n", device_id);
                                         device_repeat = 1;
                                 }
                         }
@@ -56,6 +56,11 @@ void cuda_init()
 
                 if(n < MAX_CUDA_DEVICES) {
                         cuda_dev_list[n] = -1;
+                }
+                
+                else {
+/* GPU DEVICE LIMIT log as number of devices approach MAX_CUDA_DEVICES */                	
+                	fprintf(stderr, "Maximum GPU Device Limit %d Reached\n", MAX_CUDA_DEVICES);
                 }
 
 	} else
