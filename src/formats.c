@@ -131,7 +131,7 @@ static char *longcand(int index, int ml)
 static char *fmt_self_test_body(struct fmt_main *format,
     void *binary_copy, void *salt_copy)
 {
-	static char s_size[128];
+	static char s_size[100];
 	struct fmt_tests *current;
 	char *ciphertext, *plaintext;
 	int i, ntests, done, index, max, size;
@@ -252,7 +252,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		if (!ciphertext || strlen(ciphertext) < 7)
 			return "prepare";
 		if (format->methods.valid(ciphertext, format) != 1) {
-			snprintf(s_size, sizeof(s_size), "valid (%s)", ciphertext);
+			snprintf(s_size, sizeof(s_size) - 10, "valid (%s)", ciphertext);
 			return s_size;
 		}
 
