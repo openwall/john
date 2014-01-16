@@ -95,43 +95,43 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	gws *= v_width;
 	self->params.max_keys_per_crypt = gws;
 
-	pinned_saved_key = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, UNICODE_LENGTH * gws, NULL, &ret_code);
+	pinned_saved_key = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, UNICODE_LENGTH * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error allocating page-locked memory");
-	cl_saved_key = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, UNICODE_LENGTH * gws, NULL, &ret_code);
+	cl_saved_key = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, UNICODE_LENGTH * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error allocating device memory");
-	saved_key = (char*)clEnqueueMapBuffer(queue[ocl_gpu_id], pinned_saved_key, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, UNICODE_LENGTH * gws, 0, NULL, NULL, &ret_code);
+	saved_key = (char*)clEnqueueMapBuffer(queue[gpu_id], pinned_saved_key, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, UNICODE_LENGTH * gws, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_key");
 	memset(saved_key, 0, UNICODE_LENGTH * gws);
 
-	pinned_saved_len = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, sizeof(cl_int) * gws, NULL, &ret_code);
+	pinned_saved_len = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, sizeof(cl_int) * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error allocating page-locked memory");
-	cl_saved_len = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, sizeof(cl_int) * gws, NULL, &ret_code);
+	cl_saved_len = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, sizeof(cl_int) * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error allocating device memory");
-	saved_len = (int*)clEnqueueMapBuffer(queue[ocl_gpu_id], pinned_saved_len, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(cl_int) * gws, 0, NULL, NULL, &ret_code);
+	saved_len = (int*)clEnqueueMapBuffer(queue[gpu_id], pinned_saved_len, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(cl_int) * gws, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_len");
 	for (i = 0; i < gws; i++)
 		saved_len[i] = bench_len;
 
-	pinned_salt = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, SALT_LENGTH, NULL, &ret_code);
+	pinned_salt = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, SALT_LENGTH, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error allocating page-locked memory");
-	cl_salt = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, SALT_LENGTH, NULL, &ret_code);
+	cl_salt = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, SALT_LENGTH, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error allocating device memory");
-	saved_salt = (char*) clEnqueueMapBuffer(queue[ocl_gpu_id], pinned_salt, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, SALT_LENGTH, 0, NULL, NULL, &ret_code);
+	saved_salt = (char*) clEnqueueMapBuffer(queue[gpu_id], pinned_salt, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, SALT_LENGTH, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_salt");
 	memset(saved_salt, 0, SALT_LENGTH);
 
-	cl_pwhash = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE, sizeof(cl_uint) * 6 * gws, NULL, &ret_code);
+	cl_pwhash = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, sizeof(cl_uint) * 6 * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error allocating device state buffer");
 
-	pinned_key = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, 32 * gws, NULL, &ret_code);
+	pinned_key = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, 32 * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error allocating page-locked memory");
-	cl_key = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE, 32 * gws, NULL, &ret_code);
+	cl_key = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, 32 * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error allocating device memory");
-	key = (unsigned char*) clEnqueueMapBuffer(queue[ocl_gpu_id], pinned_key, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, 32 * gws, 0, NULL, NULL, &ret_code);
+	key = (unsigned char*) clEnqueueMapBuffer(queue[gpu_id], pinned_key, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, 32 * gws, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory verifier keys");
 	memset(key, 0, 32 * gws);
 
-	cl_spincount = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, sizeof(cl_int), &spincount, &ret_code);
+	cl_spincount = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, sizeof(cl_int), &spincount, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping spincount");
 
 	HANDLE_CLERROR(clSetKernelArg(GenerateSHA1pwhash, 0, sizeof(cl_mem), (void*)&cl_saved_key), "Error setting argument 0");
@@ -150,11 +150,11 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 
 static void release_clobj(void)
 {
-	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], pinned_key, key, 0, NULL, NULL), "Error Unmapping key");
-	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], pinned_saved_key, saved_key, 0, NULL, NULL), "Error Unmapping saved_key");
-	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], pinned_saved_len, saved_len, 0, NULL, NULL), "Error Unmapping saved_len");
-	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], pinned_salt, saved_salt, 0, NULL, NULL), "Error Unmapping saved_salt");
-	HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "Error releasing memory mappings");
+	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_key, key, 0, NULL, NULL), "Error Unmapping key");
+	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_saved_key, saved_key, 0, NULL, NULL), "Error Unmapping saved_key");
+	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_saved_len, saved_len, 0, NULL, NULL), "Error Unmapping saved_len");
+	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_salt, saved_salt, 0, NULL, NULL), "Error Unmapping saved_salt");
+	HANDLE_CLERROR(clFinish(queue[gpu_id]), "Error releasing memory mappings");
 
 	HANDLE_CLERROR(clReleaseMemObject(cl_spincount), "Release GPU buffer");
 	HANDLE_CLERROR(clReleaseMemObject(pinned_key), "Release GPU buffer");
@@ -177,7 +177,7 @@ static void done(void)
 	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
 	HANDLE_CLERROR(clReleaseKernel(GenerateSHA1pwhash), "Release kernel");
 	HANDLE_CLERROR(clReleaseKernel(Generate2010key), "Release kernel");
-	HANDLE_CLERROR(clReleaseProgram(program[ocl_gpu_id]), "Release Program");
+	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
 }
 
 static void clear_keys(void)
@@ -244,8 +244,8 @@ static void set_salt(void *salt)
 	cur_salt = (struct custom_salt *)salt;
 	memcpy(saved_salt, cur_salt->osalt, SALT_LENGTH);
 	spincount = cur_salt->spinCount;
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], cl_salt, CL_FALSE, 0, SALT_LENGTH, saved_salt, 0, NULL, NULL), "failed in clEnqueueWriteBuffer saved_salt");
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], cl_spincount, CL_FALSE, 0, 4, &spincount, 0, NULL, NULL), "failed in clEnqueueWriteBuffer spincount");
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_salt, CL_FALSE, 0, SALT_LENGTH, saved_salt, 0, NULL, NULL), "failed in clEnqueueWriteBuffer saved_salt");
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_spincount, CL_FALSE, 0, 4, &spincount, 0, NULL, NULL), "failed in clEnqueueWriteBuffer spincount");
 }
 
 static cl_ulong gws_test(size_t gws, struct fmt_main *self)
@@ -259,7 +259,7 @@ static cl_ulong gws_test(size_t gws, struct fmt_main *self)
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
 	create_clobj(gws, self);
-	queue_prof = clCreateCommandQueue(context[ocl_gpu_id], devices[ocl_gpu_id], CL_QUEUE_PROFILING_ENABLE, &ret_code);
+	queue_prof = clCreateCommandQueue(context[gpu_id], devices[gpu_id], CL_QUEUE_PROFILING_ENABLE, &ret_code);
 	for (i = 0; i < scalar_gws; i++)
 		set_key(tests[0].plaintext, i);
 	set_salt(get_salt(tests[0].ciphertext));
@@ -309,7 +309,7 @@ static cl_ulong gws_test(size_t gws, struct fmt_main *self)
 		fprintf(stderr, "loop kernel %.2f ms x %u = %.2f s, ", (endTime - startTime)/1000000., spincount/HASH_LOOPS, (spincount/HASH_LOOPS) * (endTime - startTime) / 1000000000.);
 
 	/* 200 ms duration limit for GCN to avoid ASIC hangs */
-	if (amd_gcn(device_info[ocl_gpu_id]) && (endTime - startTime) > 200000000) {
+	if (amd_gcn(device_info[gpu_id]) && (endTime - startTime) > 200000000) {
 		if (options.verbosity > 3)
 			fprintf(stderr, "- exceeds 200 ms\n");
 		clReleaseCommandQueue(queue_prof);
@@ -354,11 +354,11 @@ static void find_best_gws(struct fmt_main *self)
 	int num;
 	cl_ulong run_time, min_time = CL_ULONG_MAX;
 	unsigned int SHAspeed, bestSHAspeed = 0, max_gws;
-	int optimal_gws = get_kernel_preferred_multiple(ocl_gpu_id, crypt_kernel);
+	int optimal_gws = get_kernel_preferred_multiple(gpu_id, crypt_kernel);
 	int sha1perkey;
-	unsigned long long int MaxRunTime = cpu(device_info[ocl_gpu_id]) ? 1000000000ULL : 10000000000ULL;
+	unsigned long long int MaxRunTime = cpu(device_info[gpu_id]) ? 1000000000ULL : 10000000000ULL;
 
-	max_gws = get_max_mem_alloc_size(ocl_gpu_id) / (UNICODE_LENGTH * v_width);
+	max_gws = get_max_mem_alloc_size(gpu_id) / (UNICODE_LENGTH * v_width);
 
 	if (options.verbosity > 3) {
 		fprintf(stderr, "Calculating best keys per crypt (GWS) for LWS=%zd and max. %llu s duration.\n\n", local_work_size, MaxRunTime / 1000000000UL);
@@ -408,7 +408,7 @@ static void init(struct fmt_main *self)
 	char build_opts[64];
 	static char valgo[32] = "";
 
-	if ((v_width = opencl_get_vector_width(ocl_gpu_id,
+	if ((v_width = opencl_get_vector_width(gpu_id,
 	                                       sizeof(cl_int))) > 1) {
 		/* Run vectorized kernel */
 		snprintf(valgo, sizeof(valgo),
@@ -421,18 +421,18 @@ static void init(struct fmt_main *self)
 	         HASH_LOOPS,
 	         UNICODE_LENGTH,
 	         v_width);
-	opencl_init("$JOHN/kernels/office2010_kernel.cl", ocl_gpu_id,
+	opencl_init("$JOHN/kernels/office2010_kernel.cl", gpu_id,
 	            build_opts);
 
 	/* Read LWS/GWS prefs from config or environment */
 	opencl_get_user_preferences(OCL_CONFIG);
 
 	// create kernels to execute
-	GenerateSHA1pwhash = clCreateKernel(program[ocl_gpu_id], "GenerateSHA1pwhash", &ret_code);
+	GenerateSHA1pwhash = clCreateKernel(program[gpu_id], "GenerateSHA1pwhash", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
-	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "HashLoop", &ret_code);
+	crypt_kernel = clCreateKernel(program[gpu_id], "HashLoop", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
-	Generate2010key = clCreateKernel(program[ocl_gpu_id], "Generate2010key", &ret_code);
+	Generate2010key = clCreateKernel(program[gpu_id], "Generate2010key", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 
 	/* Enumerate GWS using *LWS=NULL (unless it was set explicitly) */
@@ -440,23 +440,23 @@ static void init(struct fmt_main *self)
 		find_best_gws(self);
 
 	/* Note: we ask for the kernels' max sizes, not the device's! */
-	maxsize = get_kernel_max_lws(ocl_gpu_id, GenerateSHA1pwhash);
-	maxsize2 = get_kernel_max_lws(ocl_gpu_id, crypt_kernel);
+	maxsize = get_kernel_max_lws(gpu_id, GenerateSHA1pwhash);
+	maxsize2 = get_kernel_max_lws(gpu_id, crypt_kernel);
 	if (maxsize2 < maxsize) maxsize = maxsize2;
-	maxsize2 = get_kernel_max_lws(ocl_gpu_id, Generate2010key);
+	maxsize2 = get_kernel_max_lws(gpu_id, Generate2010key);
 	if (maxsize2 < maxsize) maxsize = maxsize2;
 
 #if 0
 	/* Our use of local memory sets a limit for LWS */
-	maxsize2 = get_local_memory_size(ocl_gpu_id) / (24 * v_width);
+	maxsize2 = get_local_memory_size(gpu_id) / (24 * v_width);
 	while (maxsize > maxsize2)
 		maxsize >>= 1;
 #endif
 
 	// Obey device limits
-	max_mem = get_max_mem_alloc_size(ocl_gpu_id);
+	max_mem = get_max_mem_alloc_size(gpu_id);
 	while (global_work_size * v_width > max_mem / PLAINTEXT_LENGTH)
-		global_work_size -= get_kernel_preferred_multiple(ocl_gpu_id,
+		global_work_size -= get_kernel_preferred_multiple(gpu_id,
 		                                                  crypt_kernel);
 
 	/* maxsize is the lowest figure from the three different kernels */
@@ -464,10 +464,10 @@ static void init(struct fmt_main *self)
 		if (getenv("LWS")) {
 			/* LWS was explicitly set to 0 */
 			create_clobj(global_work_size, self);
-			opencl_find_best_workgroup_limit(self, maxsize, ocl_gpu_id, crypt_kernel);
+			opencl_find_best_workgroup_limit(self, maxsize, gpu_id, crypt_kernel);
 			release_clobj();
 		} else {
-			if (cpu(device_info[ocl_gpu_id])) {
+			if (cpu(device_info[gpu_id])) {
 				if (get_platform_vendor_id(platform_id) == DEV_INTEL)
 					local_work_size = MIN(maxsize, 8);
 				else
@@ -585,23 +585,23 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	}
 
 	if (new_keys) {
-		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], cl_saved_key, CL_FALSE, 0, UNICODE_LENGTH * scalar_gws, saved_key, 0, NULL, NULL), "failed in clEnqueueWriteBuffer saved_key");
-		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], cl_saved_len, CL_FALSE, 0, sizeof(int) * scalar_gws, saved_len, 0, NULL, NULL), "failed in clEnqueueWriteBuffer saved_len");
+		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_key, CL_FALSE, 0, UNICODE_LENGTH * scalar_gws, saved_key, 0, NULL, NULL), "failed in clEnqueueWriteBuffer saved_key");
+		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_len, CL_FALSE, 0, sizeof(int) * scalar_gws, saved_len, 0, NULL, NULL), "failed in clEnqueueWriteBuffer saved_len");
 		new_keys = 0;
 	}
 
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], GenerateSHA1pwhash, 1, NULL, &scalar_gws, &local_work_size, 0, NULL, firstEvent), "failed in clEnqueueNDRangeKernel");
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], GenerateSHA1pwhash, 1, NULL, &scalar_gws, &local_work_size, 0, NULL, firstEvent), "failed in clEnqueueNDRangeKernel");
 
 	for (index = 0; index < spincount / HASH_LOOPS; index++) {
-		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL, &gws, &local_work_size, 0, NULL, NULL), "failed in clEnqueueNDRangeKernel");
-		HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "Error running loop kernel");
+		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &gws, &local_work_size, 0, NULL, NULL), "failed in clEnqueueNDRangeKernel");
+		HANDLE_CLERROR(clFinish(queue[gpu_id]), "Error running loop kernel");
 		opencl_process_event();
 	}
 
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], Generate2010key, 1, NULL, &gws, &local_work_size, 0, NULL, lastEvent), "failed in clEnqueueNDRangeKernel");
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], Generate2010key, 1, NULL, &gws, &local_work_size, 0, NULL, lastEvent), "failed in clEnqueueNDRangeKernel");
 
 	// read back verifier keys
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], cl_key, CL_TRUE, 0, 32 * scalar_gws, key, 0, NULL, NULL), "failed in reading key back");
+	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_key, CL_TRUE, 0, 32 * scalar_gws, key, 0, NULL, NULL), "failed in reading key back");
 
 #ifdef _OPENMP
 #pragma omp parallel for

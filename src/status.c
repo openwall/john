@@ -48,6 +48,7 @@
 #ifdef HAVE_MPI
 #include "john-mpi.h"
 #endif
+#include "common-gpu.h"
 
 struct status_main status;
 unsigned int status_restored_time = 0;
@@ -433,4 +434,31 @@ void status_print(void)
 		status_print_stdout(s_percent);
 	else
 		status_print_cracking(s_percent);
+
+#if defined(HAVE_CUDA) || defined(HAVE_OPENCL)
+	if (!(options.flags & FLG_STDOUT)) {
+		int dev;
+		for (dev = 0; dev < MAX_GPU_DEVICES &&
+			     gpu_device_list[dev] != -1; dev++) {
+			if (dev_get_temp[dev]) {
+				int fan, temp, util;
+				char s_gpu[80];
+				int m, n;
+
+				fan = temp = util = -1;
+				//printf("gen %p, nvidia %p, amd %p\n", dev_get_temp[dev], nvidia_get_temp, amd_get_temp);
+				m = n = sprintf(s_gpu, "GPU %d (%d) ", dev, temp_dev_id[dev]);
+				dev_get_temp[dev](temp_dev_id[dev], &temp, &fan, &util);
+				if (fan >= 0)
+					n += sprintf(s_gpu + n, "fan %u%% ", fan);
+				if (temp >= 0)
+					n += sprintf(s_gpu + n, "temp %u" DEGC " ", temp);
+				if (util >= 0)
+					n += sprintf(s_gpu + n, "util %u%%", util);
+				if (n > m)
+					printf("%s\n", s_gpu);
+			}
+		}
+	}
+#endif
 }

@@ -14,17 +14,12 @@
 
 #include <cuda_runtime.h>
 
-/*
-* CUDA device id specified by -device parameter
-*/
-#define MAX_CUDA_DEVICES        8
-extern int cuda_gpu_id;
-extern int cuda_dev_list[MAX_CUDA_DEVICES];
-
+#include "common-gpu.h"
 
 #define HANDLE_ERROR(err) (HandleError(err,__FILE__,__LINE__))
 extern char *get_cuda_header_version();
 extern void cuda_init();
+extern void cuda_done(void);
 
 #define check_mem_allocation(inbuffer,outbuffer)\
     if(inbuffer==NULL){\
@@ -36,8 +31,6 @@ extern void cuda_init();
       exit(1);\
     }
 
-extern void cuda_init();
-extern void advance_cursor();
 extern void cuda_device_list();
 
 extern void HandleError(cudaError_t err, const char *file, int line);

@@ -8,6 +8,8 @@
 
 #include <stdio.h>
 #include <assert.h>
+
+#include "../common-gpu.h"
 #include "cuda.h"
 #include "cuda_common.cuh"
 
@@ -51,6 +53,15 @@ static char *human_format(size_t size)
 }
 
 extern "C"
+void nvidia_get_temp(int gpu_id, int *temp, int *fanspeed, int *util);
+
+extern "C"
+void nvidia_probe(void);
+
+extern "C"
+void *nvml_lib;
+
+extern "C"
 void cuda_device_list()
 {
 	int i, devices;
@@ -67,6 +78,7 @@ void cuda_device_list()
 	}
 
 	printf("%d CUDA device%s found:\n", devices, devices > 1 ? "s" : "");
+	nvidia_probe();
 	for (i = 0; i < devices; i++) {
 		cudaDeviceProp devProp;
 		int arch_sm[] = { 1, 8, 32, 192 };
@@ -130,6 +142,19 @@ void cuda_device_list()
 		    devProp.maxThreadsPerMultiProcessor);
 		printf("\tPCI device topology:           %02x:%02x.%x\n",
 		    devProp.pciBusID, devProp.pciDeviceID, devProp.pciDomainID);
+		if (nvml_lib) {
+			int fan, temp, util;
+
+			fan = temp = util = -1;
+
+			nvidia_get_temp(i, &temp, &fan, &util);
+			if (fan >= 0)
+				printf("\tFan speed:                     %d%%\n", fan);
+			if (temp >= 0)
+				printf("\tGPU temp:                      %d°C\n", temp);
+			if (util >= 0)
+				printf("\tUtilization:                   %d%%\n", util);
+		}
 		puts("");
 	}
 }

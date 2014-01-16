@@ -130,14 +130,14 @@ static void done(void)
 	release_clobj();
 
 	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
-	HANDLE_CLERROR(clReleaseProgram(program[ocl_gpu_id]), "Release Program");
+	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
 }
 
 static void copy_hash_back()
 {
     if (!hash_copy_back) {
-        HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], mem_out, CL_FALSE, 0,outsize, ghash, 0, NULL, NULL), "Copy data back");
-        HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "clFinish error");
+        HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_FALSE, 0,outsize, ghash, 0, NULL, NULL), "Copy data back");
+        HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish error");
         hash_copy_back = 1;
     }
 }
@@ -163,22 +163,22 @@ static void init(struct fmt_main *self)
 	cl_ulong maxsize;
 
 	opencl_init("$JOHN/kernels/xsha512_kernel.cl",
-	                ocl_gpu_id, NULL);
+	                gpu_id, NULL);
 
-	crypt_kernel = clCreateKernel(program[ocl_gpu_id], KERNEL_NAME, &ret_code);
+	crypt_kernel = clCreateKernel(program[gpu_id], KERNEL_NAME, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error while creating crypt_kernel");
 
 	/* Read LWS/GWS prefs from config or environment */
 	opencl_get_user_preferences(OCL_CONFIG);
 
 	if (!local_work_size)
-		local_work_size = cpu(device_info[ocl_gpu_id]) ? 1 : 64;
+		local_work_size = cpu(device_info[gpu_id]) ? 1 : 64;
 
 	if (!global_work_size)
 		global_work_size = MAX_KEYS_PER_CRYPT;
 
 	/* Note: we ask for the kernel's max size, not the device's! */
-	maxsize = get_kernel_max_lws(ocl_gpu_id, crypt_kernel);
+	maxsize = get_kernel_max_lws(gpu_id, crypt_kernel);
 
 	while (local_work_size > maxsize)
 		local_work_size >>= 1;
@@ -188,23 +188,23 @@ static void init(struct fmt_main *self)
 
 	///Allocate memory on the GPU
 	mem_salt =
-	    clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, SALT_SIZE, NULL,
+	    clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, SALT_SIZE, NULL,
 	    &ret_code);
 	HANDLE_CLERROR(ret_code, "Error while allocating memory for salt");
 	mem_in =
-	    clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, insize, NULL,
+	    clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, insize, NULL,
 	    &ret_code);
 	HANDLE_CLERROR(ret_code, "Error while allocating memory for passwords");
 	mem_out =
-	    clCreateBuffer(context[ocl_gpu_id], CL_MEM_WRITE_ONLY, outsize, NULL,
+	    clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, outsize, NULL,
 	    &ret_code);
 	HANDLE_CLERROR(ret_code, "Error while allocating memory for hashes");
 	mem_binary =
-	    clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, sizeof(uint64_t),
+	    clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, sizeof(uint64_t),
 	    NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error while allocating memory for binary");
 	mem_cmp =
-	    clCreateBuffer(context[ocl_gpu_id], CL_MEM_WRITE_ONLY,
+	    clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY,
 	    sizeof(uint32_t), NULL, &ret_code);
 	HANDLE_CLERROR(ret_code,
 	    "Error while allocating memory for cmp_all result");
@@ -216,7 +216,7 @@ static void init(struct fmt_main *self)
 
 	///Assign cmp kernel parameters
 	cmp_kernel =
-	    clCreateKernel(program[ocl_gpu_id], CMP_KERNEL_NAME, &ret_code);
+	    clCreateKernel(program[gpu_id], CMP_KERNEL_NAME, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error while creating cmp_kernel");
 	clSetKernelArg(cmp_kernel, 0, sizeof(mem_binary), &mem_binary);
 	clSetKernelArg(cmp_kernel, 1, sizeof(mem_out), &mem_out);
@@ -415,19 +415,19 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	///Copy data to GPU memory
 	if (xsha512_key_changed) {
 		HANDLE_CLERROR(clEnqueueWriteBuffer
-		    (queue[ocl_gpu_id], mem_in, CL_FALSE, 0, insize, gkey, 0, NULL,
+		    (queue[gpu_id], mem_in, CL_FALSE, 0, insize, gkey, 0, NULL,
 			NULL), "Copy memin");
 	}
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_salt, CL_FALSE,
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_salt, CL_FALSE,
 		0, SALT_SIZE, &gsalt, 0, NULL, NULL), "Copy memsalt");
 
 	///Run kernel
 	HANDLE_CLERROR(clEnqueueNDRangeKernel
-	    (queue[ocl_gpu_id], crypt_kernel, 1, NULL, &global_work_size, &local_work_size,
+	    (queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, &local_work_size,
 		0, NULL, profilingEvent), "Set ND range");
 
 	///Await completion of all the above
-	HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "clFinish error");
+	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish error");
 
 	/// Reset key to unchanged and hashes uncopy to host
 	xsha512_key_changed = 0;
@@ -441,21 +441,21 @@ static int cmp_all(void *binary, int count)
 	uint32_t result;
 
 	///Copy binary to GPU memory
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_binary,
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_binary,
 		CL_FALSE, 0, sizeof(uint64_t), ((uint64_t *) binary) + 3, 0,
 		NULL, NULL), "Copy mem_binary");
 
 	///Run kernel
 	HANDLE_CLERROR(clEnqueueNDRangeKernel
-	    (queue[ocl_gpu_id], cmp_kernel, 1, NULL, &global_work_size, &local_work_size,
+	    (queue[gpu_id], cmp_kernel, 1, NULL, &global_work_size, &local_work_size,
 		0, NULL, NULL), "Set ND range");
 
 	/// Copy result out
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], mem_cmp, CL_FALSE, 0,
+	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_cmp, CL_FALSE, 0,
 		sizeof(uint32_t), &result, 0, NULL, NULL), "Copy data back");
 
 	///Await completion of all the above
-	HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "clFinish error");
+	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish error");
 	return result;
 
 }

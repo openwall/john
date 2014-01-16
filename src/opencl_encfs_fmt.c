@@ -115,14 +115,14 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 
 	any_cracked = 0;
 
-	mem_in = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, key_buf_size, NULL, &ret_code);
+	mem_in = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, key_buf_size, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error allocating mem in");
-	mem_salt = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, sizeof(pbkdf2_salt), NULL, &ret_code);
+	mem_salt = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, sizeof(pbkdf2_salt), NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error allocating mem setting");
-	mem_out = clCreateBuffer(context[ocl_gpu_id], CL_MEM_WRITE_ONLY, sizeof(pbkdf2_out) * gws, NULL, &ret_code);
+	mem_out = clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, sizeof(pbkdf2_out) * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error allocating mem out");
 
-	mem_state = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE, sizeof(pbkdf2_state) * gws, NULL, &ret_code);
+	mem_state = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, sizeof(pbkdf2_state) * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error allocating mem_state");
 
 	HANDLE_CLERROR(clSetKernelArg(pbkdf2_init, 0, sizeof(mem_in), &mem_in), "Error while setting mem_in kernel argument");
@@ -152,7 +152,7 @@ static void done(void)
 	release_clobj();
 
 	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
-	HANDLE_CLERROR(clReleaseProgram(program[ocl_gpu_id]), "Release Program");
+	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
 }
 
 static cl_ulong gws_test(size_t gws, struct fmt_main *self)
@@ -166,7 +166,7 @@ static cl_ulong gws_test(size_t gws, struct fmt_main *self)
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
 	create_clobj(gws, self);
-	queue_prof = clCreateCommandQueue(context[ocl_gpu_id], devices[ocl_gpu_id], CL_QUEUE_PROFILING_ENABLE, &ret_code);
+	queue_prof = clCreateCommandQueue(context[gpu_id], devices[gpu_id], CL_QUEUE_PROFILING_ENABLE, &ret_code);
 	for (i = 0; i < scalar_gws; i++)
 		self->methods.set_key(tests[0].plaintext, i);
 	self->methods.set_salt(self->methods.salt(tests[0].ciphertext));
@@ -240,9 +240,9 @@ static void find_best_gws(struct fmt_main *self)
 	int num;
 	cl_ulong run_time, min_time = CL_ULONG_MAX;
 	unsigned int SHAspeed, bestSHAspeed = 0;
-	int optimal_gws = get_kernel_preferred_multiple(ocl_gpu_id,
+	int optimal_gws = get_kernel_preferred_multiple(gpu_id,
 	                                                crypt_kernel);
-	unsigned long long int MaxRunTime = cpu(device_info[ocl_gpu_id]) ? 5000000000ULL : 10000000000ULL;
+	unsigned long long int MaxRunTime = cpu(device_info[gpu_id]) ? 5000000000ULL : 10000000000ULL;
 #define sha1perkey (2 * (currentsalt.iterations) * ((currentsalt.outlen + 19) / 20))
 
 	if (options.verbosity > 3) {
@@ -439,7 +439,7 @@ static void init(struct fmt_main *self)
 	cl_ulong maxsize, maxsize2, max_mem;
 	static char valgo[sizeof(ALGORITHM_NAME) + 8] = "";
 
-	if ((v_width = opencl_get_vector_width(ocl_gpu_id,
+	if ((v_width = opencl_get_vector_width(gpu_id,
 	                                       sizeof(cl_int))) > 1) {
 		/* Run vectorized kernel */
 		snprintf(valgo, sizeof(valgo),
@@ -451,16 +451,16 @@ static void init(struct fmt_main *self)
 	         "-DHASH_LOOPS=%u -DOUTLEN=%u "
 	         "-DPLAINTEXT_LENGTH=%u -DV_WIDTH=%u",
 	         HASH_LOOPS, OUTLEN, PLAINTEXT_LENGTH, v_width);
-	opencl_init("$JOHN/kernels/pbkdf2_hmac_sha1_kernel.cl", ocl_gpu_id, build_opts);
+	opencl_init("$JOHN/kernels/pbkdf2_hmac_sha1_kernel.cl", gpu_id, build_opts);
 
 	/* Read LWS/GWS prefs from config or environment */
 	opencl_get_user_preferences(OCL_CONFIG);
 
-	crypt_kernel = pbkdf2_init = clCreateKernel(program[ocl_gpu_id], "pbkdf2_init", &ret_code);
+	crypt_kernel = pbkdf2_init = clCreateKernel(program[gpu_id], "pbkdf2_init", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel");
-	pbkdf2_loop = clCreateKernel(program[ocl_gpu_id], "pbkdf2_loop", &ret_code);
+	pbkdf2_loop = clCreateKernel(program[gpu_id], "pbkdf2_loop", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel");
-	pbkdf2_final = clCreateKernel(program[ocl_gpu_id], "pbkdf2_final", &ret_code);
+	pbkdf2_final = clCreateKernel(program[gpu_id], "pbkdf2_final", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel");
 
 	/* Enumerate GWS using *LWS=NULL (unless it was set explicitly) */
@@ -468,23 +468,23 @@ static void init(struct fmt_main *self)
 		find_best_gws(self);
 
 	/* Note: we ask for the kernels' max sizes, not the device's! */
-	maxsize = get_kernel_max_lws(ocl_gpu_id, pbkdf2_init);
-	maxsize2 = get_kernel_max_lws(ocl_gpu_id, pbkdf2_loop);
+	maxsize = get_kernel_max_lws(gpu_id, pbkdf2_init);
+	maxsize2 = get_kernel_max_lws(gpu_id, pbkdf2_loop);
 	if (maxsize2 < maxsize) maxsize = maxsize2;
-	maxsize2 = get_kernel_max_lws(ocl_gpu_id, pbkdf2_final);
+	maxsize2 = get_kernel_max_lws(gpu_id, pbkdf2_final);
 	if (maxsize2 < maxsize) maxsize = maxsize2;
 
 	// Obey device limits
-	max_mem = get_max_mem_alloc_size(ocl_gpu_id);
+	max_mem = get_max_mem_alloc_size(gpu_id);
 	while (global_work_size * v_width > max_mem / PLAINTEXT_LENGTH)
-		global_work_size -= get_kernel_preferred_multiple(ocl_gpu_id,
+		global_work_size -= get_kernel_preferred_multiple(gpu_id,
 		                                                  crypt_kernel);
 
 	if (local_work_size > maxsize)
 		local_work_size = maxsize;
 
 	if (!local_work_size) {
-		if (cpu(device_info[ocl_gpu_id])) {
+		if (cpu(device_info[gpu_id])) {
 			if (get_platform_vendor_id(platform_id) == DEV_INTEL)
 				local_work_size = MIN(maxsize, 8);
 			else
@@ -493,7 +493,7 @@ static void init(struct fmt_main *self)
 			create_clobj(global_work_size, self);
 			self->methods.crypt_all = crypt_all_benchmark;
 			opencl_find_best_workgroup_limit(self, maxsize,
-			                                 ocl_gpu_id,
+			                                 gpu_id,
 			                                 crypt_kernel);
 			self->methods.crypt_all = crypt_all;
 			release_clobj();
@@ -625,7 +625,7 @@ static void set_salt(void *salt)
 	currentsalt.length = cur_salt->saltLen;
 	currentsalt.iterations = cur_salt->iterations;
 	currentsalt.outlen = cur_salt->keySize + cur_salt->ivLength;
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_salt, CL_FALSE, 0, sizeof(pbkdf2_salt), &currentsalt, 0, NULL, NULL), "Copy salt to gpu");
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_salt, CL_FALSE, 0, sizeof(pbkdf2_salt), &currentsalt, 0, NULL, NULL), "Copy salt to gpu");
 }
 
 static void clear_keys(void) {
@@ -672,25 +672,25 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	/// Copy data to gpu
 	if (new_keys) {
-		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_in, CL_FALSE, 0, key_buf_size, inbuffer, 0, NULL, NULL), "Copy data to gpu");
+		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0, key_buf_size, inbuffer, 0, NULL, NULL), "Copy data to gpu");
 		new_keys = 0;
 	}
 
 	/// Run kernels
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], pbkdf2_init, 1, NULL, &global_work_size, &local_work_size, 0, NULL, firstEvent), "Run initial kernel");
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], pbkdf2_init, 1, NULL, &global_work_size, &local_work_size, 0, NULL, firstEvent), "Run initial kernel");
 
 	for (j = 0; j < ((currentsalt.outlen + 19) / 20); j++) {
 		for (i = 0; i < LOOP_COUNT; i++) {
-			HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], pbkdf2_loop, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "Run loop kernel");
-			HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "Error running loop kernel");
+			HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], pbkdf2_loop, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "Run loop kernel");
+			HANDLE_CLERROR(clFinish(queue[gpu_id]), "Error running loop kernel");
 			opencl_process_event();
 		}
 
-		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], pbkdf2_final, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "Run intermediate kernel");
+		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], pbkdf2_final, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "Run intermediate kernel");
 	}
 
 	/// Read the result back
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], mem_out, CL_TRUE, 0, sizeof(pbkdf2_out) * scalar_gws, output, 0, NULL, NULL), "Copy result back");
+	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0, sizeof(pbkdf2_out) * scalar_gws, output, 0, NULL, NULL), "Copy result back");
 
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -719,14 +719,14 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
 {
 	/// Run kernels, no iterations for fast enumeration
-	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], pbkdf2_init, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "Run initial kernel");
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], pbkdf2_init, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "Run initial kernel");
 
-	BENCH_CLERROR(clFinish(queue[ocl_gpu_id]), "Failed running kernel");
+	BENCH_CLERROR(clFinish(queue[gpu_id]), "Failed running kernel");
 
-	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], pbkdf2_loop, 1, NULL, &global_work_size, &local_work_size, 0, NULL, profilingEvent), "Run loop kernel");
-	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], pbkdf2_loop, 1, NULL, &global_work_size, &local_work_size, 0, NULL, profilingEvent), "Run loop kernel");
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], pbkdf2_loop, 1, NULL, &global_work_size, &local_work_size, 0, NULL, profilingEvent), "Run loop kernel");
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], pbkdf2_loop, 1, NULL, &global_work_size, &local_work_size, 0, NULL, profilingEvent), "Run loop kernel");
 
-	BENCH_CLERROR(clFinish(queue[ocl_gpu_id]), "Failed running loop kernel");
+	BENCH_CLERROR(clFinish(queue[gpu_id]), "Failed running loop kernel");
 
 	return *pcount;
 }

@@ -403,12 +403,12 @@ static void clean_gpu_buffer(gpu_buffer *pThis) {
 }
 
 void BF_clear_buffer() {
-	clean_gpu_buffer(&buffers[ocl_gpu_id]);
+	clean_gpu_buffer(&buffers[gpu_id]);
 	MEM_FREE(BF_current_S) ;
 	MEM_FREE(BF_current_P) ;
 	MEM_FREE(BF_init_key) ;
 	MEM_FREE(opencl_BF_out) ;
-	HANDLE_CLERROR(clReleaseKernel(krnl[ocl_gpu_id]), "Error releasing kernel") ;
+	HANDLE_CLERROR(clReleaseKernel(krnl[gpu_id]), "Error releasing kernel") ;
 }
 
 static void find_best_gws(struct fmt_main *fmt) {
@@ -469,24 +469,24 @@ void BF_select_device(struct fmt_main *fmt) {
 		local_work_size = DEFAULT_LWS;
 
 	/* device max, regardless of kernel */
-	if (local_work_size > get_device_max_lws(ocl_gpu_id))
-		local_work_size = get_device_max_lws(ocl_gpu_id);
+	if (local_work_size > get_device_max_lws(gpu_id))
+		local_work_size = get_device_max_lws(gpu_id);
 
 	/* For GPU kernel, our use of local memory sets a limit for LWS.
 	   In extreme cases we even fallback to using CPU kernel. */
-	if ((get_device_type(ocl_gpu_id) != CL_DEVICE_TYPE_CPU) &&
-	    lmem_per_th < get_local_memory_size(ocl_gpu_id))
+	if ((get_device_type(gpu_id) != CL_DEVICE_TYPE_CPU) &&
+	    lmem_per_th < get_local_memory_size(gpu_id))
 		while (local_work_size >
-		       get_local_memory_size(ocl_gpu_id) / lmem_per_th)
+		       get_local_memory_size(gpu_id) / lmem_per_th)
 			local_work_size >>= 1;
 
-	if ((get_device_type(ocl_gpu_id) == CL_DEVICE_TYPE_CPU) ||
-	    amd_vliw5(device_info[ocl_gpu_id]) ||
-	    (get_local_memory_size(ocl_gpu_id) < local_work_size * lmem_per_th))
+	if ((get_device_type(gpu_id) == CL_DEVICE_TYPE_CPU) ||
+	    amd_vliw5(device_info[gpu_id]) ||
+	    (get_local_memory_size(gpu_id) < local_work_size * lmem_per_th))
 	{
 	        if(CHANNEL_INTERLEAVE == 1)
 		        opencl_init("$JOHN/kernels/bf_cpu_kernel.cl",
-			             ocl_gpu_id, NULL);
+			             gpu_id, NULL);
 	        else {
 			fprintf(stderr, "Please set NUM_CHANNELS and "
 			        "WAVEFRONT_SIZE to 1 in opencl_bf_std.h");
@@ -497,52 +497,52 @@ void BF_select_device(struct fmt_main *fmt) {
 		snprintf(buildopts, sizeof(buildopts),
 		         "-DWORK_GROUP_SIZE=%zu", local_work_size);
 		opencl_init("$JOHN/kernels/bf_kernel.cl",
-		            ocl_gpu_id, buildopts);
+		            gpu_id, buildopts);
 	}
 
-	krnl[ocl_gpu_id] = clCreateKernel(program[ocl_gpu_id], "blowfish", &err) ;
+	krnl[gpu_id] = clCreateKernel(program[gpu_id], "blowfish", &err) ;
 	if (err) {
 		fprintf(stderr, "Create Kernel blowfish FAILED\n") ;
 		return ;
 	}
 
 	/* This time we ask about max size for this very kernel */
-	if (local_work_size > get_kernel_max_lws(ocl_gpu_id, krnl[ocl_gpu_id]))
+	if (local_work_size > get_kernel_max_lws(gpu_id, krnl[gpu_id]))
 		local_work_size =
-			get_kernel_max_lws(ocl_gpu_id, krnl[ocl_gpu_id]);
+			get_kernel_max_lws(gpu_id, krnl[gpu_id]);
 
 	errMsg = "Create Buffer Failed" ;
 
-	buffers[ocl_gpu_id].salt_gpu = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, 4 * sizeof(cl_uint), NULL, &err) ;
-	if ((buffers[ocl_gpu_id].salt_gpu == (cl_mem)0))
+	buffers[gpu_id].salt_gpu = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, 4 * sizeof(cl_uint), NULL, &err) ;
+	if ((buffers[gpu_id].salt_gpu == (cl_mem)0))
 		HANDLE_CLERROR(err, errMsg) ;
 
-	buffers[ocl_gpu_id].P_box_gpu = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY|CL_MEM_COPY_HOST_PTR, sizeof(cl_uint) * 18, P_box, &err) ;
-	if ((buffers[ocl_gpu_id].P_box_gpu == (cl_mem)0))
+	buffers[gpu_id].P_box_gpu = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY|CL_MEM_COPY_HOST_PTR, sizeof(cl_uint) * 18, P_box, &err) ;
+	if ((buffers[gpu_id].P_box_gpu == (cl_mem)0))
 		HANDLE_CLERROR(err, errMsg) ;
 
-	buffers[ocl_gpu_id].S_box_gpu = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY|CL_MEM_COPY_HOST_PTR, sizeof(cl_uint) * 1024, S_box, &err) ;
-	if ((buffers[ocl_gpu_id].S_box_gpu==(cl_mem)0))
+	buffers[gpu_id].S_box_gpu = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY|CL_MEM_COPY_HOST_PTR, sizeof(cl_uint) * 1024, S_box, &err) ;
+	if ((buffers[gpu_id].S_box_gpu==(cl_mem)0))
 		HANDLE_CLERROR(err, errMsg) ;
 
-	buffers[ocl_gpu_id].out_gpu = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE, BF_N * sizeof(cl_uint) * 2, NULL, &err) ;
-	if ((buffers[ocl_gpu_id].out_gpu == (cl_mem)0))
+	buffers[gpu_id].out_gpu = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, BF_N * sizeof(cl_uint) * 2, NULL, &err) ;
+	if ((buffers[gpu_id].out_gpu == (cl_mem)0))
 		HANDLE_CLERROR(err, errMsg) ;
 
-	buffers[ocl_gpu_id].BF_current_S_gpu = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE, BF_N * 1024 * sizeof(unsigned int), NULL, &err) ;
-	if ((buffers[ocl_gpu_id].BF_current_S_gpu == (cl_mem)0))
+	buffers[gpu_id].BF_current_S_gpu = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, BF_N * 1024 * sizeof(unsigned int), NULL, &err) ;
+	if ((buffers[gpu_id].BF_current_S_gpu == (cl_mem)0))
 		HANDLE_CLERROR(err, errMsg) ;
 
-	buffers[ocl_gpu_id].BF_current_P_gpu = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE, BF_N * sizeof(unsigned int) * 18, NULL, &err) ;
-	if ((buffers[ocl_gpu_id].BF_current_P_gpu==(cl_mem)0))
+	buffers[gpu_id].BF_current_P_gpu = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, BF_N * sizeof(unsigned int) * 18, NULL, &err) ;
+	if ((buffers[gpu_id].BF_current_P_gpu==(cl_mem)0))
 		HANDLE_CLERROR(err, errMsg) ;
 
-	HANDLE_CLERROR(clSetKernelArg(krnl[ocl_gpu_id], 0, sizeof(cl_mem), &buffers[ocl_gpu_id].salt_gpu), "Set Kernel Arg FAILED arg0") ;
-	HANDLE_CLERROR(clSetKernelArg(krnl[ocl_gpu_id], 1, sizeof(cl_mem), &buffers[ocl_gpu_id].P_box_gpu), "Set Kernel Arg FAILED arg1") ;
-	HANDLE_CLERROR(clSetKernelArg(krnl[ocl_gpu_id], 2, sizeof(cl_mem), &buffers[ocl_gpu_id].out_gpu), "Set Kernel Arg FAILED arg2") ;
-	HANDLE_CLERROR(clSetKernelArg(krnl[ocl_gpu_id], 3, sizeof(cl_mem), &buffers[ocl_gpu_id].BF_current_S_gpu), "Set Kernel Arg FAILED arg3") ;
-	HANDLE_CLERROR(clSetKernelArg(krnl[ocl_gpu_id], 4, sizeof(cl_mem), &buffers[ocl_gpu_id].BF_current_P_gpu), "Set Kernel Arg FAILED arg4");
-	HANDLE_CLERROR(clSetKernelArg(krnl[ocl_gpu_id], 6, sizeof(cl_mem), &buffers[ocl_gpu_id].S_box_gpu), "Set Kernel Arg FAILED arg6") ;
+	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id], 0, sizeof(cl_mem), &buffers[gpu_id].salt_gpu), "Set Kernel Arg FAILED arg0") ;
+	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id], 1, sizeof(cl_mem), &buffers[gpu_id].P_box_gpu), "Set Kernel Arg FAILED arg1") ;
+	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id], 2, sizeof(cl_mem), &buffers[gpu_id].out_gpu), "Set Kernel Arg FAILED arg2") ;
+	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id], 3, sizeof(cl_mem), &buffers[gpu_id].BF_current_S_gpu), "Set Kernel Arg FAILED arg3") ;
+	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id], 4, sizeof(cl_mem), &buffers[gpu_id].BF_current_P_gpu), "Set Kernel Arg FAILED arg4");
+	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id], 6, sizeof(cl_mem), &buffers[gpu_id].S_box_gpu), "Set Kernel Arg FAILED arg6") ;
 
 	fmt->params.min_keys_per_crypt = local_work_size;
 
@@ -604,7 +604,7 @@ void exec_bf(cl_uint *salt_api, cl_uint *BF_out, cl_uint rounds, int n) {
 	n = (n > BF_N)? BF_N: n ;
 	n = (n < (2*M))? 2*M: n ;
 
-	if (CL_DEVICE_TYPE_CPU == get_device_type(ocl_gpu_id))
+	if (CL_DEVICE_TYPE_CPU == get_device_type(gpu_id))
 		N = n/2 ;  ///Two hashes per crypt call for cpu
 	else
 		N = n ;
@@ -614,21 +614,21 @@ void exec_bf(cl_uint *salt_api, cl_uint *BF_out, cl_uint rounds, int n) {
 
 	errMsg = "Copy data to device: Failed" ;
 
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], buffers[ocl_gpu_id].salt_gpu, CL_TRUE, 0, 4 * sizeof(cl_uint), salt_api, 0, NULL, NULL ), errMsg) ;
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], buffers[ocl_gpu_id].BF_current_P_gpu, CL_TRUE, 0, BF_N*sizeof(unsigned int)*18, BF_init_key, 0, NULL, NULL ), errMsg) ;
-	HANDLE_CLERROR(clSetKernelArg(krnl[ocl_gpu_id], 5, sizeof(cl_uint), &rounds),"Set Kernel Arg FAILED arg5");
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffers[gpu_id].salt_gpu, CL_TRUE, 0, 4 * sizeof(cl_uint), salt_api, 0, NULL, NULL ), errMsg) ;
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffers[gpu_id].BF_current_P_gpu, CL_TRUE, 0, BF_N*sizeof(unsigned int)*18, BF_init_key, 0, NULL, NULL ), errMsg) ;
+	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id], 5, sizeof(cl_uint), &rounds),"Set Kernel Arg FAILED arg5");
 
-	err = clEnqueueNDRangeKernel(queue[ocl_gpu_id], krnl[ocl_gpu_id], 1, NULL, &N, &M, 0, NULL, &evnt) ;
+	err = clEnqueueNDRangeKernel(queue[gpu_id], krnl[gpu_id], 1, NULL, &N, &M, 0, NULL, &evnt) ;
 	HANDLE_CLERROR(err, "Enque Kernel Failed") ;
 
 	HANDLE_CLERROR(clWaitForEvents(1, &evnt), "Sync :FAILED") ;
 
 	errMsg = "Read data from device: Failed" ;
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], buffers[ocl_gpu_id].out_gpu, CL_FALSE, 0, 2 * BF_N * sizeof(cl_uint), BF_out, 0, NULL, NULL), errMsg) ;
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], buffers[ocl_gpu_id].BF_current_P_gpu, CL_FALSE, 0, BF_N * sizeof(unsigned int) * 18, BF_current_P, 0, NULL, NULL), errMsg)  ;
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], buffers[ocl_gpu_id].BF_current_S_gpu, CL_TRUE, 0, BF_N * 1024 * sizeof(unsigned int), BF_current_S, 0, NULL, NULL), errMsg) ;
+	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buffers[gpu_id].out_gpu, CL_FALSE, 0, 2 * BF_N * sizeof(cl_uint), BF_out, 0, NULL, NULL), errMsg) ;
+	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buffers[gpu_id].BF_current_P_gpu, CL_FALSE, 0, BF_N * sizeof(unsigned int) * 18, BF_current_P, 0, NULL, NULL), errMsg)  ;
+	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buffers[gpu_id].BF_current_S_gpu, CL_TRUE, 0, BF_N * 1024 * sizeof(unsigned int), BF_current_S, 0, NULL, NULL), errMsg) ;
 
-	HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "Finish Error") ;
+	HANDLE_CLERROR(clFinish(queue[gpu_id]), "Finish Error") ;
 }
 
 void opencl_BF_std_crypt(BF_salt *salt, int n)

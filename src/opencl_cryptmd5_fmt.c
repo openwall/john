@@ -146,21 +146,21 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	global_work_size = gws;
 
 	///Allocate memory on the GPU
-	mem_salt = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, saltsize, NULL, &ret_code);
+	mem_salt = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, saltsize, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error while allocating memory for salt");
 
-	pinned_in = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, in_size, NULL, &ret_code);
+	pinned_in = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, in_size, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error while allocating pinned memory for passwords");
-	mem_in = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, in_size, NULL, &ret_code);
+	mem_in = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, in_size, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error while allocating GPU memory for passwords");
-	inbuffer = clEnqueueMapBuffer(queue[ocl_gpu_id], pinned_in, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, in_size, 0, NULL, NULL, &ret_code);
+	inbuffer = clEnqueueMapBuffer(queue[gpu_id], pinned_in, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, in_size, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping password buffer");
 
-	pinned_out = clCreateBuffer(context[ocl_gpu_id], CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR, out_size, NULL, &ret_code);
+	pinned_out = clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR, out_size, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error while allocating pinned memory for hashes");
-	mem_out = clCreateBuffer(context[ocl_gpu_id], CL_MEM_WRITE_ONLY, out_size, NULL, &ret_code);
+	mem_out = clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, out_size, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error while allocating GPU memory for hashes");
-	outbuffer = clEnqueueMapBuffer(queue[ocl_gpu_id], pinned_out, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, out_size, 0, NULL, NULL, &ret_code);
+	outbuffer = clEnqueueMapBuffer(queue[gpu_id], pinned_out, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, out_size, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping results buffer");
 
 	///Assign kernel parameters
@@ -173,9 +173,9 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 
 static void release_clobj(void)
 {
-	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], pinned_in, inbuffer, 0, NULL, NULL), "Error Unmapping inbuffer");
-	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], pinned_out, outbuffer, 0, NULL, NULL), "Error Unmapping outbuffer");
-	HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "Error releasing memory mappings");
+	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_in, inbuffer, 0, NULL, NULL), "Error Unmapping inbuffer");
+	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_out, outbuffer, 0, NULL, NULL), "Error Unmapping outbuffer");
+	HANDLE_CLERROR(clFinish(queue[gpu_id]), "Error releasing memory mappings");
 
 	HANDLE_CLERROR(clReleaseMemObject(pinned_in), "Release pinned_in");
 	HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem_in");
@@ -189,7 +189,7 @@ static void done(void)
 	release_clobj();
 
 	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
-	HANDLE_CLERROR(clReleaseProgram(program[ocl_gpu_id]), "Release Program");
+	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
 }
 
 static int salt_hash(void *salt)
@@ -231,7 +231,7 @@ static void set_salt(void *salt)
 	host_salt.prefix = s[8];
 
 	//Author decision. I just keep this way.
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_salt, CL_FALSE, 0, saltsize, &host_salt, 0, NULL, NULL), "Copy memsalt");
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_salt, CL_FALSE, 0, saltsize, &host_salt, 0, NULL, NULL), "Copy memsalt");
 }
 
 static void *salt(char *ciphertext)
@@ -276,7 +276,7 @@ static void find_best_lws(struct fmt_main * self, int sequential_id) {
 
 	//Call the default function.
 	common_find_best_lws(
-		get_kernel_max_lws(ocl_gpu_id, crypt_kernel),
+		get_kernel_max_lws(gpu_id, crypt_kernel),
 		sequential_id, crypt_kernel
 	);
 }
@@ -301,14 +301,14 @@ static void init(struct fmt_main *self)
 	cl_ulong maxsize;
 	size_t selected_gws;
 
-	opencl_init("$JOHN/kernels/cryptmd5_kernel.cl", ocl_gpu_id, NULL);
+	opencl_init("$JOHN/kernels/cryptmd5_kernel.cl", gpu_id, NULL);
 
 	///Create Kernel
-	crypt_kernel = clCreateKernel(program[ocl_gpu_id], KERNEL_NAME, &ret_code);
+	crypt_kernel = clCreateKernel(program[gpu_id], KERNEL_NAME, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error while creating kernel");
 
 	/* Note: we ask for the kernel's max size, not the device's! */
-	maxsize = get_kernel_max_lws(ocl_gpu_id, crypt_kernel);
+	maxsize = get_kernel_max_lws(gpu_id, crypt_kernel);
 
 	/* Read LWS/GWS prefs from config or environment */
 	opencl_get_user_preferences(OCL_CONFIG);
@@ -329,7 +329,7 @@ static void init(struct fmt_main *self)
 
 	if (!local_work_size) {
 		create_clobj(self->params.max_keys_per_crypt, self);
-		find_best_lws(self, ocl_gpu_id);
+		find_best_lws(self, gpu_id);
 		release_clobj();
 	}
 	global_work_size = selected_gws;
@@ -338,7 +338,7 @@ static void init(struct fmt_main *self)
 		create_clobj(global_work_size, self);
 	else
 		//user chose to die of boredom
-		find_best_gws(self, ocl_gpu_id);
+		find_best_gws(self, gpu_id);
 
 	self->params.min_keys_per_crypt = local_work_size;
 	self->params.max_keys_per_crypt = global_work_size;
@@ -423,20 +423,20 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
 
 	///Copy data to GPU memory
 	if (new_keys)
-		BENCH_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_in, CL_FALSE,
+		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE,
 			0, insize, inbuffer, 0, NULL, &multi_profilingEvent[0]),
 			"Copy memin");
 
 	///Run kernel
-	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1,
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1,
 		NULL, &global_work_size, &local_work_size, 0, NULL, &multi_profilingEvent[1]),
 		"Set ND range");
-	BENCH_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], mem_out, CL_FALSE,
+	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_FALSE,
 		0, outsize, outbuffer, 0, NULL, &multi_profilingEvent[2]),
 		"Copy data back");
 
 	///Await completion of all the above
-	BENCH_CLERROR(clFinish(queue[ocl_gpu_id]), "clFinish error");
+	BENCH_CLERROR(clFinish(queue[gpu_id]), "clFinish error");
 
 	new_keys = 0;
 	return count;
@@ -450,20 +450,20 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	///Copy data to GPU memory
 	if (new_keys)
-		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_in, CL_FALSE,
+		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE,
 			0, insize, inbuffer, 0, NULL, NULL),
 			"Copy memin");
 
 	///Run kernel
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1,
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1,
 		NULL, &global_work_size, &local_work_size, 0, NULL, NULL),
 		"Set ND range");
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], mem_out, CL_FALSE,
+	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_FALSE,
 		0, outsize, outbuffer, 0, NULL, NULL),
 		"Copy data back");
 
 	///Await completion of all the above
-	HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "clFinish error");
+	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish error");
 
 	new_keys = 0;
 	return count;
