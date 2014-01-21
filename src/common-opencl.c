@@ -365,6 +365,17 @@ void opencl_preinit(void)
 {
 	char * device_list[MAXGPUS], string[10];
 	int n = 0;
+	char *env;
+
+	// Prefer COMPUTE over DISPLAY and lacking both, assume :0
+	env = getenv("COMPUTE");
+	if (env && *env)
+		setenv("DISPLAY", env, 1);
+	else {
+		env = getenv("DISPLAY");
+		if (!env || !*env)
+			setenv("DISPLAY", ":0", 1);
+	}
 
 	if (!opencl_initialized) {
 		device_list[0] = NULL;
