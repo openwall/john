@@ -22,6 +22,7 @@
 #include <sys/stat.h>
 #include <time.h>
 #include <signal.h>
+#include <stdlib.h>
 
 #include "options.h"
 #include "config.h"
