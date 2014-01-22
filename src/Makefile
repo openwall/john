@@ -901,8 +901,10 @@ freebsd-x86-sse2:
 	$(LN) x86-sse.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
+		CC=cc \
 		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
-		ASFLAGS="$(ASFLAGS) -DBSD"
+		CFLAGS="$(CFLAGS) -msse2" \
+		ASFLAGS="$(ASFLAGS) -DBSD -msse2"
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
