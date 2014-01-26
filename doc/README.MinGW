@@ -16,7 +16,8 @@ $ make win32-mingw-x86-sse2
 -------------
 
 $ sudo yum install mingw64-openssl mingw64-openssl-static \
-	mingw64-gcc mingw64-gcc-c++ -y
+	mingw64-gcc mingw64-gcc-c++ mingw64-winpthreads-static \
+	mingw64-zlib-static mingw64-libgomp -y
 
 $ export GCC=/usr/bin/x86_64-w64-mingw32-gcc
 $ export GXX=/usr/bin/x86_64-w64-mingw32-g++
