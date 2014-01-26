@@ -408,6 +408,8 @@ void listconf_parse_late(void)
 			printf(" A $dynamic$ format                  %s\n", (format->params.flags & FMT_DYNAMIC) ? "yes" : "no");
 #ifdef _OPENMP
 			printf(" Parallelized with OpenMP            %s\n", (format->params.flags & FMT_OMP) ? "yes" : "no");
+			if (format->params.flags & FMT_OMP)
+				printf("  Poor OpenMP scalability            %s\n", (format->params.flags & FMT_OMP_BAD) ? "yes" : "no");
 #endif
 			printf("Number of test vectors               %d\n", ntests);
 			printf("Algorithm name                       %s\n", format->params.algorithm_name);
