@@ -57,6 +57,7 @@ ahead of time.
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
+#include "params.h"
 #include "md5.h"
 #include "md4.h"
 #include "dynamic.h"
@@ -9766,7 +9767,7 @@ struct fmt_main *dynamic_THIN_FORMAT_LINK(struct fmt_main *pFmt, char *ciphertex
 	pFmt->methods.clear_keys = pFmtLocal->methods.clear_keys;
 	pFmt->methods.crypt_all  = pFmtLocal->methods.crypt_all;
 	pFmt->methods.prepare    = pFmtLocal->methods.prepare;
-	for (i = 0; i < 5; ++i)
+	for (i = 0; i < PASSWORD_HASH_SIZES; ++i)
 	{
 		pFmt->methods.binary_hash[i] = pFmtLocal->methods.binary_hash[i];
 		pFmt->methods.get_hash[i]    = pFmtLocal->methods.get_hash[i];
