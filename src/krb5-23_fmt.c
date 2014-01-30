@@ -228,6 +228,14 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
+static int get_hash_0(int index) { return ((ARCH_WORD_32*)crypt_out)[index] & 0xf; }
+static int get_hash_1(int index) { return ((ARCH_WORD_32*)crypt_out)[index] & 0xff; }
+static int get_hash_2(int index) { return ((ARCH_WORD_32*)crypt_out)[index] & 0xfff; }
+static int get_hash_3(int index) { return ((ARCH_WORD_32*)crypt_out)[index] & 0xffff; }
+static int get_hash_4(int index) { return ((ARCH_WORD_32*)crypt_out)[index] & 0xfffff; }
+static int get_hash_5(int index) { return ((ARCH_WORD_32*)crypt_out)[index] & 0xffffff; }
+static int get_hash_6(int index) { return ((ARCH_WORD_32*)crypt_out)[index] & 0x7ffffff; }
+
 struct fmt_main fmt_KRB5_kinit = {
 	{
 		FORMAT_LABEL,
@@ -255,11 +263,13 @@ struct fmt_main fmt_KRB5_kinit = {
 		fmt_default_salt,
 		fmt_default_source,
 		{
-		        fmt_default_binary_hash,
-			fmt_default_binary_hash,
-			fmt_default_binary_hash,
-			fmt_default_binary_hash,
-			fmt_default_binary_hash
+			fmt_default_binary_hash_0,
+			fmt_default_binary_hash_1,
+			fmt_default_binary_hash_2,
+			fmt_default_binary_hash_3,
+			fmt_default_binary_hash_4,
+			fmt_default_binary_hash_5,
+			fmt_default_binary_hash_6
 		},
 		fmt_default_salt_hash,
 		fmt_default_set_salt,
@@ -268,11 +278,13 @@ struct fmt_main fmt_KRB5_kinit = {
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-		        fmt_default_get_hash,
-			fmt_default_get_hash,
-			fmt_default_get_hash,
-			fmt_default_get_hash,
-			fmt_default_get_hash
+			get_hash_0,
+			get_hash_1,
+			get_hash_2,
+			get_hash_3,
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
 		},
 		cmp_all,
 		cmp_one,

@@ -47,7 +47,9 @@
 #define PLAINTEXT_LENGTH	64
 #define CIPHERTEXT_LENGTH	64
 #define BINARY_SIZE		32
+#define BINARY_ALIGN		4
 #define SALT_SIZE		CIPHERTEXT_LENGTH
+#define SALT_ALIGN		1
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 
@@ -258,6 +260,14 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
+static int get_hash_0(int index) { return ((ARCH_WORD_32*)crypt_out)[index] & 0xf; }
+static int get_hash_1(int index) { return ((ARCH_WORD_32*)crypt_out)[index] & 0xff; }
+static int get_hash_2(int index) { return ((ARCH_WORD_32*)crypt_out)[index] & 0xfff; }
+static int get_hash_3(int index) { return ((ARCH_WORD_32*)crypt_out)[index] & 0xffff; }
+static int get_hash_4(int index) { return ((ARCH_WORD_32*)crypt_out)[index] & 0xfffff; }
+static int get_hash_5(int index) { return ((ARCH_WORD_32*)crypt_out)[index] & 0xffffff; }
+static int get_hash_6(int index) { return ((ARCH_WORD_32*)crypt_out)[index] & 0x7ffffff; }
+
 struct fmt_main fmt_krb5_18 = {
 	{
 		FORMAT_LABEL,
@@ -267,9 +277,9 @@ struct fmt_main fmt_krb5_18 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		sizeof(ARCH_WORD_32),
+		BINARY_ALIGN,
 		SALT_SIZE,
-		sizeof(ARCH_WORD_32),
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
@@ -285,11 +295,13 @@ struct fmt_main fmt_krb5_18 = {
 		get_salt,
 		fmt_default_source,
 		{
-			fmt_default_binary_hash,
-			fmt_default_binary_hash,
-			fmt_default_binary_hash,
-			fmt_default_binary_hash,
-			fmt_default_binary_hash
+			fmt_default_binary_hash_0,
+			fmt_default_binary_hash_1,
+			fmt_default_binary_hash_2,
+			fmt_default_binary_hash_3,
+			fmt_default_binary_hash_4,
+			fmt_default_binary_hash_5,
+			fmt_default_binary_hash_6
 		},
 		fmt_default_salt_hash,
 		set_salt,
@@ -298,11 +310,13 @@ struct fmt_main fmt_krb5_18 = {
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-		        fmt_default_get_hash,
-			fmt_default_get_hash,
-			fmt_default_get_hash,
-			fmt_default_get_hash,
-			fmt_default_get_hash
+			get_hash_0,
+			get_hash_1,
+			get_hash_2,
+			get_hash_3,
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
 		},
 		cmp_all,
 		cmp_one,
