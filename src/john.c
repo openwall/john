@@ -192,7 +192,7 @@ extern struct fmt_main fmt_opencl_sxc;
 extern struct fmt_main fmt_opencl_wpapsk;
 extern struct fmt_main fmt_opencl_xsha512;
 extern struct fmt_main fmt_opencl_xsha512_ng;
-//extern struct fmt_main fmt_opencl_zip;
+extern struct fmt_main fmt_opencl_zip;
 extern struct fmt_main fmt_opencl_blockchain;
 extern struct fmt_main fmt_opencl_keyring;
 //extern struct fmt_main fmt_opencl_sevenzip;
@@ -218,7 +218,7 @@ extern struct fmt_main fmt_pfx;
 extern struct fmt_main fmt_rar;
 extern struct fmt_main fmt_ssh;
 extern struct fmt_main fmt_wpapsk;
-//extern struct fmt_main fmt_zip;
+extern struct fmt_main fmt_zip;
 
 #include "fmt_externs.h"
 
@@ -388,7 +388,7 @@ static void john_register_all(void)
 	john_register_one(&fmt_rar);
 	john_register_one(&fmt_ssh);
 	john_register_one(&fmt_wpapsk);
-//	john_register_one(&fmt_zip);
+	john_register_one(&fmt_zip);
 
 #ifdef HAVE_OPENCL
 	john_register_one(&fmt_opencl_DES);
@@ -430,7 +430,7 @@ static void john_register_all(void)
 	john_register_one(&fmt_opencl_wpapsk);
 	john_register_one(&fmt_opencl_xsha512);
 	john_register_one(&fmt_opencl_xsha512_ng);
-//	john_register_one(&fmt_opencl_zip);
+	john_register_one(&fmt_opencl_zip);
 	john_register_one(&fmt_opencl_pbkdf2_hmac_sha256);
 	john_register_one(&fmt_opencl_rakp);
 #endif
