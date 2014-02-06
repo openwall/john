@@ -86,6 +86,11 @@ static void init(struct fmt_main *self)
 		data.initialized = 0;
 #endif
 
+		if (!(options.flags & FLG_TEST_CHK)) {
+			fprintf(stderr, "\n%s: --subformat option is only for benchmark purposes\n", FORMAT_LABEL);
+			error();
+		}
+
 		if (!strcmp(options.subformat, "?")) {
 			fprintf(stderr, "Subformat may either be a verbatim salt, or: descrypt, md5crypt, bcrypt, sha256crypt, sha512crypt, sun-md5\n\n");
 			error();
