@@ -22,7 +22,9 @@
 
 #define PLAINTEXT_LENGTH   125
 #define BINARY_LENGTH      20
+#define BINARY_ALIGN       sizeof(ARCH_WORD)
 #define SALT_LENGTH        30
+#define SALT_ALIGN         1
 
 static ARCH_WORD global_crypt[BINARY_LENGTH / ARCH_SIZE + 1];
 static char global_key[PLAINTEXT_LENGTH + 1]; // set by set_key and used by get_get
@@ -79,9 +81,9 @@ static void _tobin(char* dst, char *src, unsigned int len)
 
 static void* binary(char *ciphertext)
 {
-  static char bin[BINARY_LENGTH];
+  static ARCH_WORD bin[(BINARY_LENGTH + sizeof(ARCH_WORD) - 1) / sizeof(ARCH_WORD)];
 
-  _tobin(bin, (char*)(ciphertext+65), sizeof(bin));
+  _tobin((char*)bin, (char*)(ciphertext+65), sizeof(bin));
 
   return bin;
 }
@@ -157,9 +159,9 @@ struct fmt_main fmt_EPI =
 		0, // benchmark length
 		PLAINTEXT_LENGTH,
 		BINARY_LENGTH,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_LENGTH,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		1,
 		1,
 		FMT_CASE | FMT_8_BIT, // flags XXX, these are just guesses
