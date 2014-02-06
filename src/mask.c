@@ -105,6 +105,12 @@ void do_mask_crack(struct db_main *db, char *mask)
 	char *word;
 	int my_words, their_words;
 
+	/* We do not yet support min/max-len */
+	if (options.force_minlength >= 0 || options.force_maxlength) {
+		fprintf(stderr, "Mask mode: --min-length and --max-length currently not supported\n");
+		error();
+	}
+
 	log_event("Proceeding with mask mode");
 
 	rpp_init_mask(&ctx, mask);
