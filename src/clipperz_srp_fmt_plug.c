@@ -105,8 +105,8 @@ typedef struct t_SRP_CTX {
 
 static SRP_CTX *pSRP_CTX;
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)[8];
-
+// BN_bn2bin sometimes tries to write 33 bytes, hence allow some padding!
+static ARCH_WORD_32 (*crypt_out)[8 + 1];
 
 static struct custom_salt {
 	unsigned char saved_salt[SZ];
