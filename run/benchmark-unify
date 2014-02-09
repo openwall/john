@@ -46,13 +46,13 @@
 sub parse
 {
 	chomp;
-	($name,$end) = /^Benchmarking: (.*[^ ]) +(\[.*\].*)$/;
+	# john-1.7.6-jumbo-12 still used md5_gen(n) instead of dynamic_n
+	s/^Benchmarking: +md5_gen\(([0-9]+)\):? +/Benchmarking: dynamic_$1: /;
+	s/^(Benchmarking: dynamic_[0-9]+):? ([^[]+)\[/$1 [$2/;
+	($name,$end) = /^Benchmarking: ([^\[]*[^ ]) +(\[.*\].*)$/;
 	if (defined($name) && defined($end)) {
-		$name =~ s/(dynamic_[0-9]+) /$1: /;
 		$name =~ s/\s+/ /g;
-		$name =~ s/\[/(/;
-		$name =~ s/\]/)/;
-
+		$end =~ s/\s+/ /g;
 		if (defined($renamed{$name})) {
 			$name = $renamed{$name};
 		}
@@ -96,25 +96,30 @@ while (<>) {
 # test vector has changed: (one 2048-bit RSA and one 1024-bit DSA key)
 #
 # For readability, please keep this list sorted by old format name
+# (ignoring case, so use sort -f or sort --ignore-case, please)
 __DATA__
 bf-opencl, OpenBSD Blowfish (x32)	bcrypt-opencl ("$2a$05", 32 iterations)
+BSDI DES (x725)	bsdicrypt, BSDI crypt(3) ("_J9..", 725 iterations)
+crypt-MD5	md5crypt
 DIGEST-MD5	DIGEST-MD5 C/R
-dynamic_20: Cisco PIX (MD5 salted)	dynamic_20: Cisco ASA (MD5 salted)
-dynamic_38: sha1($s.sha1($s.($p))) (Wolt3BB)	dynamic_38: sha1($s.sha1($s.sha1($p))) (Wolt3BB)
 Eggdrop	Eggdrop Blowfish
 EPiServer SID Hashes	EPiServer SID salted SHA-1
-FreeBSD MD5	crypt-MD5
-generic crypt(3)	generic crypt(3) DES
+FreeBSD MD5	md5crypt
+generic crypt(3)	crypt, generic crypt(3)
+generic crypt(3) DES	crypt, generic crypt(3)
 hmailserver	hMailServer salted SHA-256
 HTTP Digest access authentication	HTTP Digest access authentication MD5
 IPB2 MD5	Invision Power Board 2.x salted MD5
+Kerberos AFS DES	AFS, Kerberos AFS
 Kerberos v4 TGT	Kerberos v4 TGT DES
 Kerberos v5 TGT	Kerberos v5 TGT 3DES
 KRB5 aes256-cts-hmac-sha1-96	Kerberos 5 db etype 18 aes256-cts-hmac-sha1-96
 KRB5 arcfour-hmac	Kerberos 5 db etype 23 rc4-hmac
+LM DES	LM
 Lotus5	Lotus Notes/Domino 5
 M$ Cache Hash 2 (DCC2)	M$ Cache Hash 2 (DCC2) PBKDF2-HMAC-SHA-1
-M$ Cache Hash	M$ Cache Hash MD4
+M$ Cache Hash	M$ Cache Hash (DCC) MD4
+M$ Cache Hash MD4	M$ Cache Hash (DCC) MD4
 MediaWiki -- md5($s.'-'.md5($p))	MediaWiki md5($s.'-'.md5($p))
 More Secure Internet Password	Lotus Notes/Domino 6 More Secure Internet Password
 Mozilla SHA-1 3DES	Mozilla (key3.db) SHA-1 3DES
@@ -122,12 +127,15 @@ MS Kerberos 5 AS-REQ Pre-Auth	Kerberos 5 AS-REQ Pre-Auth etype 23 md4, rc4-hmac-
 MS Kerberos 5 AS-REQ Pre-Auth MD4 MD5 RC4	Kerberos 5 AS-REQ Pre-Auth etype 23 md4, rc4-hmac-md5
 MS-SQL05	MS SQL 2005 SHA-1
 MS-SQL	MS SQL SHA-1
-MYSQL_fast	MySQL
-MYSQL	MySQL
+MySQL 4.1 double-SHA-1	MySQL 4.1+ double-SHA-1
+MYSQL_fast	MySQL pre-4.1
+MySQL	MySQL pre-4.1
+MYSQL	MySQL pre-4.1
 Netscape LDAP SHA	Netscape LDAP SHA-1
 NT v2	NT MD4
 ODF SHA-1 Blowfish	ODF SHA-1 Blowfish / SHA-256 AES
 Office 2007/2010 SHA-1/AES	Office 2007/2010 (SHA-1) / 2013 (SHA-512), with AES
+OpenBSD Blowfish (x32)	bcrypt ("$2a$05", 32 iterations)
 Oracle 11g	Oracle 11g SHA-1
 Oracle	Oracle 10 DES
 PDF MD5 RC4	PDF MD5 SHA-2 RC4 / AES
@@ -141,4 +149,7 @@ Raw SHA	Raw SHA-0
 SAP BCODE	SAP CODVN B (BCODE)
 SAP CODVN G (PASSCODE)	SAP CODVN F/G (PASSCODE)
 sybasease	Sybase ASE salted SHA-256
+Traditional DES	descrypt, traditional crypt(3)
+Tripcode DES	tripcode
+WPA-PSK PBKDF2-HMAC-SHA-1	WPA/WPA2 PSK PBKDF2-HMAC-SHA-1
 zip	WinZip PBKDF2-HMAC-SHA-1
