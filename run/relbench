@@ -28,10 +28,6 @@
 # values will tend to deviate from 0.0 and 1.0, respectively.
 #
 
-$warned = 0;
-$onlyin1 = 0;
-$onlyin2 = 0;
-
 sub parse
 {
 	chomp;
@@ -43,7 +39,17 @@ sub parse
 		undef $kind; undef $real; undef $virtual;
 		return;
 	}
-	return if (/All \d+ tests have passed self-tests/);
+
+	if (/^(All|\d+ out of) \d+ (tests|formats)( have)? (passed self-tests|FAILED)/) {
+		($total) = /^All (\d+) (tests|formats)( have)? passed self-tests/;
+		if (!defined($total)) {
+			($failed, $total) =
+			    /^(\d+) out of (\d+) (tests|formats)( have)? FAILED/;
+		}
+		return;
+	}
+	return if /Benchmarking: .*\.\.\. FAILED/;
+
 	my $ok = 0;
 	if (defined($name)) {
 		($kind, $real, $reals, $virtual, $virtuals) =
@@ -65,10 +71,31 @@ sub parse
 			return;
 		}
 	} else {
-		($name) = /^\t?Benchmarking: (.+) \[.*\].* (DONE|Warning:.*)$/;
+		($name) = /^\t?Benchmarking: ([^\[]+) \[.*\].* (DONE|Warning:.*)$/;
 		$ok = defined($name);
 	}
 	print STDERR "Could not parse: $_\n" if (!$ok);
+}
+
+sub sort_benchmarks
+{
+	my $_;
+	$_ = "$a";
+	($name_a, $number_a, $benchmark_a) = /^(.*[^\d])(\d+):(.*)$/;
+	if(!defined($number_a)) {
+		$number_a = -1;
+		($name_a, $benchmark_a) = /^(.*):(.*)$/;
+	}
+	$_ = "$b";
+	($name_b, $number_b, $benchmark_b) = /^(.*[^\d])(\d+):(.*)$/;
+	if(!defined($number_b)) {
+		$number_b = -1;
+		($name_b, $benchmark_b) = /^(.*):(.*)$/;
+	}
+	if ($name_a ne $name_b) { return $name_a cmp $name_b }
+	elsif ($number_a != $number_b) { return $number_a <=> $number_b }
+	elsif ($benchmark_b eq "Short") { return 1 }
+	else { return $benchmark_a cmp $benchmark_b }
 }
 
 die "Usage: $0 [-v] BENCHMARK-FILE-1 BENCHMARK-FILE-2\n" if ($#ARGV != 1 && ($#ARGV != 2 || $ARGV[0] ne '-v'));
@@ -82,11 +109,30 @@ if ($#ARGV != 1) {
 	open(B2, '<' . $ARGV[1]) || die "Could not open file: $ARGV[1] ($!)";
 	$verbose = 0;
 }
+ 
+$warned = 0;
+$onlyin1 = 0;
+$onlyin2 = 0;
+$name1 = "";
+$name2 = "";
+$namesonlyin1 = 0;
+$namesonlyin2 = 0;
 
+$failed = 0;
+$total = 0; 
 $_ = '';
 parse();
 while (<B1>) {
 	parse();
+	if (defined($name) && $name ne $name1) {
+		$name1 = $name;
+		if(defined($n1{$name1})) {
+			$n1{$name1} += 1;
+		}
+		else {
+			$n1{$name1} = 1;
+		}
+	}
 	next unless (defined($id));
 	if(defined($b1r{$id})) {
 		print STDERR "More than one benchmark for $id in file 1\n";
@@ -99,11 +145,25 @@ while (<B1>) {
 		$b1v{$id} = $virtual;
 }	}
 close(B1);
+if($failed != 0) {
+	print "File 1: $failed out of $total tests have FAILED\n"
+}
 
+$failed = 0;
+$total = 0; 
 $_ = '';
 parse();
 while (<B2>) {
 	parse();
+	if (defined($name) && $name ne $name2) {
+		$name2 = $name;
+		if(defined($n2{$name2})) {
+			$n2{$name2} += 1;
+		}
+		else {
+			$n2{$name2} = 1;
+		}
+	}
 	next unless (defined($id));
 	if(defined($b2r{$id})) {
 		print STDERR "More than one benchmark for $id in file 2\n";
@@ -118,7 +178,25 @@ while (<B2>) {
 }
 close(B2);
 
-foreach $id (keys %b1r) {
+if($failed != 0) {
+	print "File 2: $failed out of $total tests have FAILED\n"
+}
+
+foreach $name (keys %n1) {
+	if (!defined($n2{$name})) {
+		$namesonlyin1 += 1;
+		next;
+	}
+}
+
+foreach $name (keys %n2) {
+	if (!defined($n1{$name})) {
+		$namesonlyin1 += 1;
+		next;
+	}
+}
+ 
+foreach $id (sort sort_benchmarks keys %b1r) {
 	if (!defined($b2r{$id})) {
 		print "Only in file 1: $id\n";
 		$onlyin1 += 1;
@@ -129,14 +207,14 @@ foreach $id (keys %b1r) {
 $minr = $maxr = $minv = $maxv = -1.0;
 $mr = $mv = 1.0;
 $n = 0;
-foreach $id (keys %b2r) {
+foreach $id (sort sort_benchmarks keys %b2r) {
 	if (!defined($b1r{$id})) {
 		print "Only in file 2: $id\n";
 		$onlyin2 += 1;
 		next;
 	}
 }
-foreach $id (keys %b2r) {
+foreach $id (sort sort_benchmarks keys %b2r) {
 	if (!defined($b1r{$id})) {
 		next;
 	}
@@ -155,7 +233,7 @@ foreach $id (keys %b2r) {
 		printf "Ratio:\t%.5f real, %.5f virtual\t$id\n", $kr, $kv;
 	}
 }
-if ($onlyin1 != 0 && $onlyin2 != 0) {
+if ($onlyin1 != 0 && $onlyin2 != 0 && $namesonlyin1 != 0 && $namesonlyin2 != 0) {
 	print STDERR "Converting the two benchmark files using benchmark-unify might\n";
 	print STDERR "increase the number of benchmarks which can be compared\n";
 }
