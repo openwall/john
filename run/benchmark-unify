@@ -46,13 +46,13 @@
 sub parse
 {
 	chomp;
-	($name,$end) = /^Benchmarking: (.*[^ ]) +(\[.*\].*)$/;
+	# john-1.7.6-jumbo-12 still used md5_gen(n) instead of dynamic_n
+	s/^Benchmarking: +md5_gen\(([0-9]+)\):? +/Benchmarking: dynamic_$1: /;
+	s/^(Benchmarking: dynamic_[0-9]+):? ([^[]+)\[/$1 [$2/;
+	($name,$end) = /^Benchmarking: ([^\[]*[^ ]) +(\[.*\].*)$/;
 	if (defined($name) && defined($end)) {
-		$name =~ s/(dynamic_[0-9]+) /$1: /;
 		$name =~ s/\s+/ /g;
-		$name =~ s/\[/(/;
-		$name =~ s/\]/)/;
-
+		$end =~ s/\s+/ /g;
 		if (defined($renamed{$name})) {
 			$name = $renamed{$name};
 		}
@@ -102,10 +102,6 @@ bf-opencl, OpenBSD Blowfish (x32)	bcrypt-opencl ("$2a$05", 32 iterations)
 BSDI DES (x725)	bsdicrypt, BSDI crypt(3) ("_J9..", 725 iterations)
 crypt-MD5	md5crypt
 DIGEST-MD5	DIGEST-MD5 C/R
-dynamic_20: Cisco ASA	dynamic_20: Cisco ASA (MD5 salted)
-dynamic_20: Cisco PIX	dynamic_20: Cisco ASA (MD5 salted)
-dynamic_20: Cisco PIX (MD5 salted)	dynamic_20: Cisco ASA (MD5 salted)
-dynamic_38: sha1($s.sha1($s.($p))) (Wolt3BB)	dynamic_38: sha1($s.sha1($s.sha1($p))) (Wolt3BB)
 Eggdrop	Eggdrop Blowfish
 EPiServer SID Hashes	EPiServer SID salted SHA-1
 FreeBSD MD5	md5crypt
