@@ -1237,7 +1237,9 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 				if (format)
 					chars = format->params.plaintext_length;
 				if (index < count - 1 && current &&
-				    (int)strlen(current->plaintext) != chars)
+				    (options.store_utf8 ?
+				     (int)strlen8((UTF8*)current->plaintext) :
+				     (int)strlen(current->plaintext)) != chars)
 					current = NULL;
 			}
 
