@@ -160,7 +160,7 @@ void rec_init(struct db_main *db, void (*save_mode)(FILE *file))
 
 void rec_save(void)
 {
-	int save_format, hund;
+	int save_format;
 #ifdef HAVE_MPI
 	int fake_fork;
 #endif
@@ -268,7 +268,7 @@ void rec_save(void)
 	    status.cands.hi,
 	    status.compat,
 	    status.pass,
-	    status_get_progress ? status_get_progress(&hund) : -1,
+	    status_get_progress ? (int)status_get_progress() : -1,
 	    rec_check);
 
 	if (rec_save_mode) rec_save_mode(rec_file);

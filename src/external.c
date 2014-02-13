@@ -95,15 +95,16 @@ void *f_filter = NULL;
 static struct cfg_list *ext_source;
 static struct cfg_line *ext_line;
 static int ext_pos;
-static int progress = -1;
+static double progress = -1;
 static int maxlen = PLAINTEXT_BUFFER_SIZE - 1;
 
-static int get_progress(int *hundth_perc)
+static double get_progress(void)
 {
 	// This is a dummy function just for getting the DONE
 	// timestamp from status.c - it will return -1 all
 	// the time except when a mode is finished
-	*hundth_perc = 0;
+	emms();
+
 	return progress;
 }
 

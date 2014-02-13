@@ -221,24 +221,14 @@ static int show_pwd(unsigned long long start)
 	return 0;
 }
 
-static int get_progress(int *hundth_perc)
+static double get_progress(void)
 {
-	unsigned long long lltmp;
-	unsigned hun;
-	int per;
+	emms();
 
 	if(gend == 0)
 		return 0;
 
-	lltmp = gidx;
-	lltmp -= gstart;
-	lltmp *= 10000;
-	lltmp /= (gend-gstart);
-
-	hun = (unsigned)lltmp;
-	per = (int)(hun/100);
-	*hundth_perc = (int)(hun-(per*100));
-	return per;
+	return (double)(gidx - gstart) / (gend - gstart) * 100.0;
 }
 
 void get_markov_options(struct db_main *db,

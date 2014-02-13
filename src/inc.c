@@ -35,33 +35,20 @@ extern struct fmt_main fmt_LM;
 extern struct fmt_main fmt_NETLM;
 extern struct fmt_main fmt_NETHALFLM;
 
-static unsigned long long cand;
+static double cand;
 
-static int get_progress(int *hundth_perc)
+static double get_progress(void)
 {
-	int hundredXpercent, percent;
-	unsigned long long try;
+	double try;
+
+	emms();
 
 	if (!cand)
 		return -1;
 
 	try = ((unsigned long long)status.cands.hi << 32) + status.cands.lo;
 
-	if (try > 1844674407370955ULL) {
-		*hundth_perc = percent = 99;
-	} else {
-		hundredXpercent = (int)((unsigned long long)(10000 * (try)) / (unsigned long long)cand);
-		percent = hundredXpercent / 100;
-		*hundth_perc = hundredXpercent - (percent*100);
-	}
-
-	// Due to uneven splitting we may get over 100% on some nodes
-	if (percent >= 100) {
-		percent = 100;
-		*hundth_perc = 0;
-	}
-
-	return percent;
+	return try / cand * 100.0;
 }
 
 typedef char (*char2_table)
@@ -627,10 +614,9 @@ void do_incremental_crack(struct db_main *db, char *mode)
 
 	for (pos = min_length; pos <= max_length; pos++)
 		cand += pow(real_count, pos);
-	if (options.node_count) {
-		cand *= options.node_max - options.node_min + 1;
-		cand /= options.node_count;
-	}
+	if (options.node_count)
+		cand *= (double)(options.node_max - options.node_min + 1) /
+			options.node_count;
 
 	if (!(db->format->params.flags & FMT_CASE) && is_mixedcase(allchars)) {
 		log_event("! Mixed-case charset, "
@@ -772,7 +758,7 @@ void do_incremental_crack(struct db_main *db, char *mode)
 			break;
 	}
 
-	// For reporting DONE after a no-ETA run
+	// For reporting DONE despite poor node distribution
 	if (!event_abort)
 		cand = ((unsigned long long)status.cands.hi << 32) +
 			status.cands.lo;

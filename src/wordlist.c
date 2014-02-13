@@ -64,7 +64,7 @@
 static int dist_rules;
 
 static FILE *word_file = NULL;
-static int progress = 0, hund_progress = 0;
+static double progress = 0;
 
 static int rec_rule;
 static long rec_pos; /* ftell(3) is defined to return a long */
@@ -295,26 +295,22 @@ static void fix_state(void)
 	}
 }
 
-static int get_progress(int *hundth_perc)
+static double get_progress(void)
 {
 	struct stat file_stat;
 	long pos;
-	int hundredXpercent, percent;
 
-	if (!word_file) {
-		*hundth_perc = hund_progress;
+	emms();
+
+	if (progress)
 		return progress;
-	}
 
-	if (word_file == stdin) {
-		*hundth_perc = 0;
+	if (!word_file || word_file == stdin)
 		return -1;
-	}
 
 	if (fstat(fileno(word_file), &file_stat)) pexit("fstat");
-	if (nWordFileLines) {
+	if (nWordFileLines)
 		pos = line_number;
-	}
 	else {
 		if ((pos = ftell(word_file)) < 0) {
 #ifdef __DJGPP__
@@ -326,18 +322,14 @@ static int get_progress(int *hundth_perc)
 		}
 	}
 
-	if (nWordFileLines) {
-		hundredXpercent = (int)((10000LL * (rule_number *
-		                  (long long)nWordFileLines + pos)) /
-		                  (rule_count * (long long)nWordFileLines));
-	} else {
-		hundredXpercent = (int)((10000LL * (rule_number *
-		                  (long long)file_stat.st_size + pos)) /
-		                  (rule_count * (long long)file_stat.st_size));
-	}
-	percent = hundredXpercent / 100;
-	*hundth_perc = hundredXpercent - (percent*100);
-	return percent;
+	if (nWordFileLines)
+		return ((100.0 * (rule_number *
+		                  (double)nWordFileLines + pos)) /
+		        (rule_count * (double)nWordFileLines));
+	else
+		return ((100.0 * (rule_number *
+		                  (double)file_stat.st_size + pos)) /
+		        (rule_count * (double)file_stat.st_size));
 }
 
 static char *dummy_rules_apply(char *word, char *rule, int split, char *last)
@@ -1207,9 +1199,7 @@ next_rule:
 	if (ferror(word_file)) pexit("fgets");
 
 	if (name) {
-		if (event_abort)
-			progress = get_progress(&hund_progress);
-		else
+		if (!event_abort)
 			progress = 100;
 
 		MEM_FREE(words);

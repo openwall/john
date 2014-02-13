@@ -28,7 +28,7 @@
 #include "config.h"
 #include "memdbg.h"
 
-static int progress = 0;
+static double progress = 0;
 static int rec_rule;
 
 static struct db_main *single_db;
@@ -60,17 +60,12 @@ static int restore_state(FILE *file)
 	return restore_rule_number();
 }
 
-static int get_progress(int *hundth)
+static double get_progress(void)
 {
-	if (progress) {
-		if (hundth)
-			*hundth = 0;
-		return progress;
-	}
+	emms();
 
-	if (hundth)
-		*hundth = (rule_number * 10000 / (rule_count + 1)) % 100;
-	return rule_number * 100 / (rule_count + 1);
+	return progress ? progress :
+		(double)rule_number / (rule_count + 1) * 100.0;
 }
 
 static void single_alloc_keys(struct db_keys **keys)

@@ -21,6 +21,15 @@
 
 #include "math.h"
 
+#if CPU_REQ && defined(__GNUC__) && defined(__i386__)
+/* ETA reporting would be wrong when cracking some hash types at least on a
+ * Pentium 3 without this... */
+#define emms() \
+	__asm__ __volatile__("emms");
+#else
+#define emms()
+#endif
+
 /*
  * Current status.
  */
@@ -36,7 +45,7 @@ struct status_main {
 
 extern struct status_main status;
 
-extern int (*status_get_progress)(int *hundth);
+extern double (*status_get_progress)(void);
 
 /*
  * Elapsed time of previous sessions and excess ticks (if any), in seconds.
@@ -48,7 +57,7 @@ extern unsigned int status_restored_time;
  * fields to zero. Always initializes the get_progress() handler (can be
  * NULL).
  */
-extern void status_init(int (*get_progress)(int*), int start);
+extern void status_init(double (*get_progress)(void), int start);
 
 /*
  * Checks the number of ticks elapsed since start_time and moves some excess

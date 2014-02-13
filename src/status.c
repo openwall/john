@@ -55,18 +55,8 @@ struct status_main status;
 unsigned int status_restored_time = 0;
 static char* timeFmt = NULL;
 static char* timeFmt24 = NULL;
-static double ETAthreshold = 0.05;
 static int showcand;
-int (*status_get_progress)(int *) = NULL;
-
-#if CPU_REQ && defined(__GNUC__) && defined(__i386__)
-/* ETA reporting would be wrong when cracking some hash types at least on a
- * Pentium 3 without this... */
-#define emms() \
-	__asm__ __volatile__("emms");
-#else
-#define emms()
-#endif
+double (*status_get_progress)(void) = NULL;
 
 static clock_t get_time(void)
 {
@@ -79,9 +69,8 @@ static clock_t get_time(void)
 #endif
 }
 
-void status_init(int (*get_progress)(int *), int start)
+void status_init(double (*get_progress)(void), int start)
 {
-	char *cfg_threshold;
 	if (start) {
 		if (!status_restored_time)
 			memset(&status, 0, sizeof(status));
@@ -95,10 +84,6 @@ void status_init(int (*get_progress)(int *), int start)
 
 	if (!(timeFmt24 = cfg_get_param(SECTION_OPTIONS, NULL, "TimeFormat24")))
 		timeFmt24 = "%H:%M:%S";
-
-	if ((cfg_threshold = cfg_get_param(SECTION_OPTIONS, NULL, "ETAthreshold")))
-		if ((ETAthreshold = atof(cfg_threshold)) < 0.01)
-			ETAthreshold = 0.01;
 
 	showcand = cfg_get_bool(SECTION_OPTIONS, NULL, "StatusShowCandidates", 0);
 
@@ -250,11 +235,11 @@ static char *status_get_cps(char *buffer, int64 *c, unsigned int c_ehi)
 	return buffer;
 }
 
-static char *status_get_ETA(char *percent, unsigned int secs_done)
+static char *status_get_ETA(double percent, unsigned int secs_done)
 {
 	static char s_ETA[128];
-	char *cp;
-	double sec_left, percent_left;
+	char ETA[128];
+	double sec_left;
 	time_t t_ETA;
 	struct tm *pTm;
 
@@ -264,29 +249,29 @@ static char *status_get_ETA(char *percent, unsigned int secs_done)
 	   work currently done and work left to do, and that the CPU
 	   utilization of work done and work to do will stay same
 	   which may not always be valid assumptions */
-	cp = percent;
-	while (cp && *cp && isspace(((unsigned char)(*cp))))
-		++cp;
-	if (!cp || *cp == 0 || !isdigit(((unsigned char)(*cp))) ||
-	    strstr(cp, "%") == NULL)
-		return "";  /* dont show ETA if no valid percentage. */
+	if (status.pass)
+		sprintf(s_ETA, " %d/3", status.pass);
+	else
+		s_ETA[0] = 0;
+
+	if (percent <= 0)
+		return s_ETA;  /* dont show ETA if no valid percentage. */
 	else
 	{
 		double chk;
-		percent_left = atof(percent);
+
 		t_ETA = time(NULL);
-		if (percent_left >= 100.0) {
+		if (percent >= 100.0) {
 			pTm = localtime(&t_ETA);
-			strcpy(s_ETA, " (");
-			strftime(&s_ETA[2], sizeof(s_ETA)-3, timeFmt, pTm);
-			strcat(s_ETA, ")");
+			strncat(s_ETA, " (", sizeof(s_ETA) - 1);
+			strftime(ETA, sizeof(ETA), timeFmt, pTm);
+			strncat(s_ETA, ETA, sizeof(s_ETA) - 1);
+			strncat(s_ETA, ")", sizeof(s_ETA) - 1);
 			return s_ETA;
 		}
-		if (percent_left == 0 || percent_left < ETAthreshold)
-			return "";  /* mute ETA if too little progress */
-		percent_left /= 100;
+		percent /= 100;
 		sec_left = secs_done;
-		sec_left /= percent_left;
+		sec_left /= percent;
 		sec_left -= secs_done;
 		/* Note, many localtime() will fault if given a time_t
 		   later than Jan 19, 2038 (i.e. 0x7FFFFFFFF). We
@@ -296,22 +281,25 @@ static char *status_get_ETA(char *percent, unsigned int secs_done)
 		chk = sec_left;
 		chk += t_ETA;
 		if (chk > 0x7FFFF000) { /* slightly less than 'max' 32 bit time_t, for safety */
-			strcpy(s_ETA, " (ETA: never)");
+			if (100 * (int)percent > 0)
+				strncat(s_ETA, " (ETA: never)",
+				        sizeof(s_ETA) - 1);
 			return s_ETA;
 		}
 		t_ETA += sec_left;
 		pTm = localtime(&t_ETA);
-		strcpy(s_ETA, " (ETA: ");
+		strncat(s_ETA, " (ETA: ", sizeof(s_ETA) - 1);
 		if (sec_left < 24 * 3600)
-			strftime(&s_ETA[7], sizeof(s_ETA)-10, timeFmt24, pTm);
+			strftime(ETA, sizeof(ETA), timeFmt24, pTm);
 		else
-			strftime(&s_ETA[7], sizeof(s_ETA)-10, timeFmt, pTm);
-		strcat(s_ETA, ")");
+			strftime(ETA, sizeof(ETA), timeFmt, pTm);
+		strncat(s_ETA, ETA, sizeof(s_ETA) - 1);
+		strncat(s_ETA, ")", sizeof(s_ETA) - 1);
 	}
 	return s_ETA;
 }
 
-static void status_print_cracking(char *percent)
+static void status_print_cracking(double percent)
 {
 	unsigned int time = status_get_time();
 	char *key1, key2[PLAINTEXT_BUFFER_SIZE];
@@ -321,6 +309,8 @@ static void status_print_cracking(char *percent)
 	char s[1024], *p;
 	char sc[32];
 	int n;
+	char progress_string[128];
+	char *eta_string;
 
 	key1 = NULL;
 	key2[0] = 0;
@@ -359,14 +349,25 @@ static void status_print_cracking(char *percent)
 		sprintf(sc, " %llup", cands);
 	}
 
+	eta_string = status_get_ETA(percent, time);
+
+	//fprintf(stderr, "Raw percent %f%%%s\n", percent, eta_string);
+	if ((int)(100 * percent) <= 0 && !strstr(eta_string, "ETA"))
+		strcpy(progress_string, eta_string);
+	else if (percent < 100.0)
+		sprintf(progress_string, "%.02f%%%s", percent, eta_string);
+	else if ((int)percent == 100)
+		sprintf(progress_string, "DONE%s", eta_string);
+	else
+		sprintf(progress_string, "N/A");
+
 	g.lo = status.guess_count; g.hi = 0;
 	n = sprintf(p,
-	    "%ug%s %u:%02u:%02u:%02u%.100s%s %.31sg/s ",
+	    "%ug%s %u:%02u:%02u:%02u %s %.31sg/s ",
 	    status.guess_count,
 	    showcand ? sc : "",
 	    time / 86400, time % 86400 / 3600, time % 3600 / 60, time % 60,
-	    strncmp(percent, " 100", 4) ? percent : " DONE",
-	    status_get_ETA(percent,time),
+	    progress_string,
 	    status_get_cps(s_gps, &g, 0));
 	if (n > 0)
 		p += n;
@@ -389,7 +390,7 @@ static void status_print_cracking(char *percent)
 	fwrite(s, p - s, 1, stderr);
 }
 
-static void status_print_stdout(char *percent)
+static void status_print_stdout(double percent)
 {
 	unsigned int time = status_get_time();
 	char *key;
@@ -401,39 +402,30 @@ static void status_print_stdout(char *percent)
 		key = crk_get_key1();
 
 	fprintf(stderr,
-	    "%sp %u:%02u:%02u:%02u%s%s %sp/s%s%s\n",
+	    "%sp %u:%02u:%02u:%02u %.02f%%%s %sp/s%s%s\n",
 	    status_get_c(s_p, &status.cands, 0),
 	    time / 86400, time % 86400 / 3600, time % 3600 / 60, time % 60,
-	    strncmp(percent, " 100", 4) ? percent : " DONE",
-	    status_get_ETA(percent,time),
+	    percent,
+	    status_get_ETA(percent, time),
 	    status_get_cps(s_pps, &status.cands, 0),
 	    key ? " " : "", key ? key : "");
 }
 
 void status_print(void)
 {
-	int percent_value, hund_percent = 0;
-	char s_percent[32];
+	double percent_value;
 
 	percent_value = -1;
 	if (options.flags & FLG_STATUS_CHK)
 		percent_value = status.progress;
 	else
 	if (status_get_progress)
-		percent_value = status_get_progress(&hund_percent);
-
-	s_percent[0] = 0;
-	if (percent_value >= 0 && hund_percent >= 0)
-		sprintf(s_percent, status.pass ? " %d.%02d%% %d/3" : " %d.%02d%%",
-		    percent_value, hund_percent, status.pass);
-	else
-	if (status.pass)
-		sprintf(s_percent, " %d/3", status.pass);
+		percent_value = status_get_progress();
 
 	if (options.flags & FLG_STDOUT)
-		status_print_stdout(s_percent);
+		status_print_stdout(percent_value);
 	else
-		status_print_cracking(s_percent);
+		status_print_cracking(percent_value);
 
 #if 0 //defined(HAVE_CUDA) || defined(HAVE_OPENCL)
 	if (!(options.flags & FLG_STDOUT)) {
