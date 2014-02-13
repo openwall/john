@@ -145,8 +145,6 @@ extern UTF8 * utf16_to_utf8_r (UTF8 *dst, int dst_len, const UTF16* source);
 extern UTF8 * utf16_to_enc (const UTF16* source);
 extern UTF8 * utf16_to_enc_r (UTF8 *dst, int dst_len, const UTF16* source);
 
-/* These were in smbencrypt.c before: */
-
 /* Return length (in characters) of a UTF-16 string */
 /* Number of octets is the result * sizeof(UTF16)  */
 extern unsigned int strlen16(const UTF16 * str);
@@ -154,6 +152,9 @@ extern unsigned int strlen16(const UTF16 * str);
 /* Return length (in characters) of a UTF-8 string */
 /* Will return a "truncated" length if fed with invalid data. */
 extern unsigned int strlen8(const UTF8 *source);
+
+/* Check if a string is valid UTF-8 */
+extern int valid_utf8(const UTF8 *source);
 
 /* Create an NT hash from a ISO-8859 or UTF-8 string (--encoding= aware) */
 extern int E_md4hash(const UTF8 * passwd, unsigned int len, unsigned char *p16);
