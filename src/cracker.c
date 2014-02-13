@@ -10,6 +10,7 @@
 
 #include <string.h>
 #include <assert.h>
+#include <signal.h>
 
 #include "arch.h"
 #include "misc.h"
@@ -68,7 +69,7 @@ static void crk_help(void)
 	if (!john_main_process || printed)
 		return;
 #ifdef HAVE_MPI
-	if (mpi_p > 1)
+	if (mpi_p > 1 || getenv("OMPI_COMM_WORLD_SIZE"))
 #ifdef SIGUSR1
 		fprintf(stderr, "Send SIGUSR1 to mpirun for status\n");
 #else
