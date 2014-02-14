@@ -42,9 +42,10 @@ static int get_progress(int *hundth_perc)
 	cand = 1;
 	for (i = 0; i < ctx.count; i++)
 		cand *= ctx.ranges[i].count;
-
-	if (options.node_count)
+	if (options.node_count) {
+		cand *= options.node_max - options.node_min + 1;
 		cand /= options.node_count;
+	}
 
 	try = ((unsigned long long)status.cands.hi << 32) + status.cands.lo;
 

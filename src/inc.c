@@ -615,8 +615,10 @@ void do_incremental_crack(struct db_main *db, char *mode)
 
 	for (pos = min_length; pos <= max_length; pos++)
 		cand += pow(real_count, pos);
-	if (options.node_count)
+	if (options.node_count) {
+		cand *= options.node_max - options.node_min + 1;
 		cand /= options.node_count;
+	}
 
 	if (!(db->format->params.flags & FMT_CASE) && is_mixedcase(allchars)) {
 		log_event("! Mixed-case charset, "
