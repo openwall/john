@@ -32,20 +32,12 @@ static struct rpp_context ctx, rec_ctx;
  * in the same way for all nodes (must be same size unsigned integer type).
  */
 static unsigned int seq, rec_seq;
+static unsigned long long cand;
 
 static int get_progress(int *hundth_perc)
 {
 	int hundredXpercent, percent;
-	unsigned long long try, cand;
-	int i;
-
-	cand = 1;
-	for (i = 0; i < ctx.count; i++)
-		cand *= ctx.ranges[i].count;
-	if (options.node_count) {
-		cand *= options.node_max - options.node_min + 1;
-		cand /= options.node_count;
-	}
+	unsigned long long try;
 
 	try = ((unsigned long long)status.cands.hi << 32) + status.cands.lo;
 
@@ -57,7 +49,7 @@ static int get_progress(int *hundth_perc)
 	if (!cand)
 		return -1;
 
-	if (try > 1844674407370955LL) {
+	if (try > 1844674407370955ULL) {
 		*hundth_perc = percent = 99;
 	} else {
 		hundredXpercent = (int)((unsigned long long)(10000 * (try)) / (unsigned long long)cand);
@@ -105,6 +97,7 @@ void do_mask_crack(struct db_main *db, char *mask)
 {
 	char *word;
 	int my_words, their_words;
+	int i;
 
 	/* We do not yet support min/max-len */
 	if (options.force_minlength >= 0 || options.force_maxlength) {
@@ -142,6 +135,14 @@ void do_mask_crack(struct db_main *db, char *mask)
 		}
 	}
 
+	cand = 1;
+	for (i = 0; i < ctx.count; i++)
+		cand *= ctx.ranges[i].count;
+	if (options.node_count) {
+		cand *= options.node_max - options.node_min + 1;
+		cand /= options.node_count;
+	}
+
 	while ((word = rpp_next(&ctx))) {
 		if (options.node_count) {
 			seq++;
@@ -159,6 +160,11 @@ void do_mask_crack(struct db_main *db, char *mask)
 			if (crk_process_key(word))
 				break;
 	}
+
+	// Ensure we report DONE
+	if (!event_abort)
+		cand = ((unsigned long long)status.cands.hi << 32) +
+			status.cands.lo;
 
 	crk_done();
 
