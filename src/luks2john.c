@@ -146,7 +146,7 @@ static int hash_plugin_parse_hash(char *filename)
 		}
 
 		fprintf(stderr, "Generating inlined hash!\n");
-		printf("$luks$1$%lu$", sizeof(myphdr));
+		printf("$luks$1$%zu$", sizeof(myphdr));
 		print_hex((unsigned char *)&myphdr, sizeof(myphdr));
 		printf("$%d$", afsize);
 		b64 = BIO_new(BIO_f_base64());
