@@ -39,9 +39,9 @@ static int omp_t = 1;
 #define PLAINTEXT_LENGTH	64
 #define CIPHERTEXT_LENGTH	22
 #define BINARY_SIZE		9 /* oh, well :P */
-#define BINARY_ALIGN		1
+#define BINARY_ALIGN		sizeof(ARCH_WORD_32)
 #define SALT_SIZE		5
-#define SALT_ALIGN		1
+#define SALT_ALIGN		sizeof(ARCH_WORD_32)
 
 #define DIGEST_SIZE		16
 #define BINARY_BUFFER_SIZE	(DIGEST_SIZE-SALT_SIZE)
@@ -185,10 +185,10 @@ static void init(struct fmt_main *self)
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
-struct cipher_binary_struct {
+static struct {
 	unsigned char salt[SALT_SIZE];
 	unsigned char hash[BINARY_BUFFER_SIZE];
-};
+} cipher_binary_struct;
 
 static void mdtransform(unsigned char state[16], unsigned char checksum[16], unsigned char block[16])
 {
@@ -370,16 +370,20 @@ static void decode(unsigned char *ascii_cipher, unsigned char *binary)
 
 static void *binary(char *ciphertext)
 {
-	static struct cipher_binary_struct cipher_binary_local;
-	decode((unsigned char*)ciphertext, (unsigned char*)&cipher_binary_local);
-	return (void*)cipher_binary_local.hash;
+	static ARCH_WORD_32 out[BINARY_SIZE / sizeof(ARCH_WORD_32) + 1];
+
+	decode((unsigned char*)ciphertext, (unsigned char*)&cipher_binary_struct);
+	memcpy(out, cipher_binary_struct.hash, BINARY_SIZE);
+	return (void*)out;
 }
 
 static void *salt(char *ciphertext)
 {
-	static struct cipher_binary_struct cipher_binary_local;
-	decode((unsigned char*)ciphertext, (unsigned char*)&cipher_binary_local);
-	return cipher_binary_local.salt;
+	static ARCH_WORD_32 out[SALT_SIZE / sizeof(ARCH_WORD_32) + 1];
+
+	decode((unsigned char*)ciphertext, (unsigned char*)&cipher_binary_struct);
+	memcpy(out, cipher_binary_struct.salt, SALT_SIZE);
+	return (void*)out;
 }
 
 static void set_salt(void *salt)
@@ -452,6 +456,28 @@ static int cmp_exact(char *source, int index)
 	return 1;
 }
 
+static int get_hash_0(int index) { return ((ARCH_WORD_32*)crypt_out)[index] & 0xF; }
+static int get_hash_1(int index) { return ((ARCH_WORD_32*)crypt_out)[index] & 0xFF; }
+static int get_hash_2(int index) { return ((ARCH_WORD_32*)crypt_out)[index] & 0xFFF; }
+static int get_hash_3(int index) { return ((ARCH_WORD_32*)crypt_out)[index] & 0xFFFF; }
+static int get_hash_4(int index) { return ((ARCH_WORD_32*)crypt_out)[index] & 0xFFFFF; }
+static int get_hash_5(int index) { return ((ARCH_WORD_32*)crypt_out)[index] & 0xFFFFFF; }
+static int get_hash_6(int index) { return ((ARCH_WORD_32*)crypt_out)[index] & 0x7FFFFFF; }
+
+static int binary_hash_0(void *binary) { return *(ARCH_WORD_32*)binary & 0xF; }
+static int binary_hash_1(void *binary) { return *(ARCH_WORD_32*)binary & 0xFF; }
+static int binary_hash_2(void *binary) { return *(ARCH_WORD_32*)binary & 0xFFF; }
+static int binary_hash_3(void *binary) { return *(ARCH_WORD_32*)binary & 0xFFFF; }
+static int binary_hash_4(void *binary) { return *(ARCH_WORD_32*)binary & 0xFFFFF; }
+static int binary_hash_5(void *binary) { return *(ARCH_WORD_32*)binary & 0xFFFFFF; }
+static int binary_hash_6(void *binary) { return *(ARCH_WORD_32*)binary & 0x7FFFFFF; }
+
+static int salt_hash(void *salt)
+{
+	//printf("salt %08x hash %03x\n", *(ARCH_WORD_32*)salt, *(ARCH_WORD_32*)salt & (SALT_HASH_SIZE - 1));
+	return *(ARCH_WORD_32*)salt & (SALT_HASH_SIZE - 1);
+}
+
 struct fmt_main fmt_DOMINOSEC = {
 	{
 		FORMAT_LABEL,
@@ -480,24 +506,28 @@ struct fmt_main fmt_DOMINOSEC = {
 		salt,
 		fmt_default_source,
 		{
-			fmt_default_binary_hash,
-			fmt_default_binary_hash,
-			fmt_default_binary_hash,
-			fmt_default_binary_hash,
-			fmt_default_binary_hash
+			binary_hash_0,
+			binary_hash_1,
+			binary_hash_2,
+			binary_hash_3,
+			binary_hash_4,
+			binary_hash_5,
+			binary_hash_6
 		},
-		fmt_default_salt_hash,
+		salt_hash,
 		set_salt,
 		set_key,
 		get_key,
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-			fmt_default_get_hash,
-			fmt_default_get_hash,
-			fmt_default_get_hash,
-			fmt_default_get_hash,
-			fmt_default_get_hash
+			get_hash_0,
+			get_hash_1,
+			get_hash_2,
+			get_hash_3,
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
 		},
 		cmp_all,
 		cmp_one,
