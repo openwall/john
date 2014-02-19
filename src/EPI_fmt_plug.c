@@ -24,7 +24,7 @@
 #define BINARY_LENGTH      20
 #define BINARY_ALIGN       sizeof(ARCH_WORD)
 #define SALT_LENGTH        30
-#define SALT_ALIGN         1
+#define SALT_ALIGN         4
 
 static ARCH_WORD global_crypt[BINARY_LENGTH / ARCH_SIZE + 1];
 static char global_key[PLAINTEXT_LENGTH + 1]; // set by set_key and used by get_get
@@ -90,9 +90,9 @@ static void* binary(char *ciphertext)
 
 static void* salt(char *ciphertext)
 {
-  static char salt[SALT_LENGTH];
+  static ARCH_WORD salt[(SALT_LENGTH + sizeof(ARCH_WORD) - 1) / sizeof(ARCH_WORD)];
 
-  _tobin(salt, (char*)(ciphertext+2), sizeof(salt));
+  _tobin((char*)salt, (char*)(ciphertext+2), sizeof(salt));
 
   return salt;
 }
@@ -142,10 +142,22 @@ static int cmp_one(void *binary, int index)
   return cmp_all(binary, 0);
 }
 
-// This functions job is done in cmp_all instead
 static int cmp_exact(char *source, int index)
 {
   return 1;
+}
+
+static int get_hash_0(int index) { return ((ARCH_WORD_32*)global_crypt)[index] & 0xF; }
+static int get_hash_1(int index) { return ((ARCH_WORD_32*)global_crypt)[index] & 0xFF; }
+static int get_hash_2(int index) { return ((ARCH_WORD_32*)global_crypt)[index] & 0xFFF; }
+static int get_hash_3(int index) { return ((ARCH_WORD_32*)global_crypt)[index] & 0xFFFF; }
+static int get_hash_4(int index) { return ((ARCH_WORD_32*)global_crypt)[index] & 0xFFFFF; }
+static int get_hash_5(int index) { return ((ARCH_WORD_32*)global_crypt)[index] & 0xFFFFFF; }
+static int get_hash_6(int index) { return ((ARCH_WORD_32*)global_crypt)[index] & 0x7FFFFFF; }
+
+static int salt_hash(void *salt)
+{
+	return *(ARCH_WORD_32*)salt & (SALT_HASH_SIZE - 1);
 }
 
 // Define john integration
@@ -177,25 +189,29 @@ struct fmt_main fmt_EPI =
 		binary,
 		salt,
 		fmt_default_source,
-		{ // binary_hash[3]
-			fmt_default_binary_hash,
-			fmt_default_binary_hash,
-			fmt_default_binary_hash,
-			fmt_default_binary_hash,
-			fmt_default_binary_hash
+		{
+			fmt_default_binary_hash_0,
+			fmt_default_binary_hash_1,
+			fmt_default_binary_hash_2,
+			fmt_default_binary_hash_3,
+			fmt_default_binary_hash_4,
+			fmt_default_binary_hash_5,
+			fmt_default_binary_hash_6
 		},
-		fmt_default_salt_hash,
+		salt_hash,
 		set_salt,
 		set_key,
 		get_key,
 		fmt_default_clear_keys,
 		crypt_all,
-		{ // get_hash[3]
-			fmt_default_get_hash,
-			fmt_default_get_hash,
-			fmt_default_get_hash,
-			fmt_default_get_hash,
-			fmt_default_get_hash
+		{
+			get_hash_0,
+			get_hash_1,
+			get_hash_2,
+			get_hash_3,
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
 		},
 		cmp_all,
 		cmp_one,
