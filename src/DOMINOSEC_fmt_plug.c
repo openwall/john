@@ -464,14 +464,6 @@ static int get_hash_4(int index) { return ((ARCH_WORD_32*)crypt_out)[index] & 0x
 static int get_hash_5(int index) { return ((ARCH_WORD_32*)crypt_out)[index] & 0xFFFFFF; }
 static int get_hash_6(int index) { return ((ARCH_WORD_32*)crypt_out)[index] & 0x7FFFFFF; }
 
-static int binary_hash_0(void *binary) { return *(ARCH_WORD_32*)binary & 0xF; }
-static int binary_hash_1(void *binary) { return *(ARCH_WORD_32*)binary & 0xFF; }
-static int binary_hash_2(void *binary) { return *(ARCH_WORD_32*)binary & 0xFFF; }
-static int binary_hash_3(void *binary) { return *(ARCH_WORD_32*)binary & 0xFFFF; }
-static int binary_hash_4(void *binary) { return *(ARCH_WORD_32*)binary & 0xFFFFF; }
-static int binary_hash_5(void *binary) { return *(ARCH_WORD_32*)binary & 0xFFFFFF; }
-static int binary_hash_6(void *binary) { return *(ARCH_WORD_32*)binary & 0x7FFFFFF; }
-
 static int salt_hash(void *salt)
 {
 	//printf("salt %08x hash %03x\n", *(ARCH_WORD_32*)salt, *(ARCH_WORD_32*)salt & (SALT_HASH_SIZE - 1));
@@ -506,13 +498,13 @@ struct fmt_main fmt_DOMINOSEC = {
 		salt,
 		fmt_default_source,
 		{
-			binary_hash_0,
-			binary_hash_1,
-			binary_hash_2,
-			binary_hash_3,
-			binary_hash_4,
-			binary_hash_5,
-			binary_hash_6
+			fmt_default_binary_hash_0,
+			fmt_default_binary_hash_1,
+			fmt_default_binary_hash_2,
+			fmt_default_binary_hash_3,
+			fmt_default_binary_hash_4,
+			fmt_default_binary_hash_5,
+			fmt_default_binary_hash_6
 		},
 		salt_hash,
 		set_salt,
