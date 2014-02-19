@@ -749,6 +749,10 @@ static void ldr_init_salts(struct db_main *db)
 			current -> sequential_id = ctr++;
 			tail = &current->next;
 		} while ((current = current->next));
+#ifdef DEBUG_HASH
+		if (ctr)
+			printf("salt hash %08x, %d salts\n", hash, ctr);
+#endif
 	}
 }
 
@@ -1057,6 +1061,12 @@ static void ldr_init_hash(struct db_main *db)
 
 		current->hash_size = size;
 		ldr_init_hash_for_salt(db, current);
+#ifdef DEBUG_HASH
+		if (current->hash_size > 0)
+			printf("salt %08x, binary hash size 0x%x (%d), num ciphertexts %d\n", *(unsigned int*)current->salt, password_hash_sizes[current->hash_size], current->hash_size, current->count);
+		else
+			printf("salt %08x, no binary hash, num ciphertexts %d\n", *(unsigned int*)current->salt, current->count);
+#endif
 	} while ((current = current->next));
 }
 
