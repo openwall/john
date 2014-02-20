@@ -121,6 +121,8 @@ static struct fmt_tests tests[] = {
 	{"SAP*$7016BFF7C5472F1B", "MASTER"},
 	// password DOLLAR$$$--- will be truncated to DOLLAR$$
 	{"DOLLAR$$$---$C3413C498C48EB67", "DOLLAR$$$---"},
+	// Trigger suspected over-run of sum20
+	{"12850413$1470EF2F683C956D", "46813230"},
 	{NULL}
 };
 
