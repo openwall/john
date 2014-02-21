@@ -27,6 +27,7 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <arpa/inet.h>
 #include <openssl/evp.h>
 #include <openssl/aes.h>
@@ -99,7 +100,7 @@ static void print_hex(unsigned char *str, int len)
 		printf("%02x", str[i]);
 }
 
-static void hash_plugin_parse_hash(char *filename)
+static void hash_plugin_parse_hash(char *in_filepath)
 {
 	int fd;
 	char buf8[8];
@@ -109,25 +110,68 @@ static void hash_plugin_parse_hash(char *filename)
 	int64_t count = 0;
 	unsigned char *chunk1 = NULL;
 	unsigned char chunk2[4096];
-	char path[LARGE_ENOUGH];
-	char *name = NULL;
+	char filepath[LARGE_ENOUGH];
+	char name[LARGE_ENOUGH];
+	char *filename;
+	int is_sparsebundle = 0;
 
+	int filepath_length = strnzcpyn(filepath, in_filepath, LARGE_ENOUGH);
+	
+	strnzcpyn(name, in_filepath, LARGE_ENOUGH);
+	if (!(filename = basename(name))) {
+	    filename = filepath;
+	}
+
+	if(strstr(filepath, ".sparsebundle")) {
+		// The filepath given indicates this is a sparsebundle
+		// A sparsebundle is simply a directory with contents.
+		// Let's check to see if that is the case.
+		struct stat file_stat;
+		if (stat(filepath, &file_stat) != 0) {
+			fprintf(stderr, "Can't stat file: %s\n", filename);
+			return;
+		}
+	
+		// Determine if the filepath given is a directory.
+		if (!(file_stat.st_mode & S_IFDIR)) {
+			fprintf(stderr, "%s claims to be a sparsebundle but isn't a directory\n", filename);
+			return;
+		}
+		
+		// Let's look to see if the token file exists.
+		fprintf(stderr, "filepath = %s path_length = %d\n", filepath, filepath_length);
+		if (filepath_length + 6 + 1 >= LARGE_ENOUGH) {
+			fprintf(stderr, "Can't create token path. Path too long.\n");
+			return;
+		}
+		
+		is_sparsebundle = 1;
+		
+		char *token_path = strnzcat(filepath, "/token", LARGE_ENOUGH);
+		strnzcpyn(filepath, token_path, LARGE_ENOUGH);
+		strnzcpyn(name, filepath, LARGE_ENOUGH);
+		if (!(filename = basename(name))) {
+		    filename = filepath;
+		}
+
+	}
+	
 	headerver = 0;
-	fd = open(filename, O_RDONLY);
+	fd = open(filepath, O_RDONLY);
 	if (fd < 0) {
 		fprintf(stderr, "Can't open file: %s\n", filename);
 		return;
 	}
+	
 	if (read(fd, buf8, 8) <= 0) {
 		fprintf(stderr, "%s is not a DMG file!\n", filename);
 		close(fd);
 		return;
 	}
+	
 	if (strncmp(buf8, "encrcdsa", 8) == 0) {
 		headerver = 2;
-	}
-
-	else {
+	} else {
 		if (lseek(fd, -8, SEEK_END) < 0) {
 			fprintf(stderr, "Unable to seek in %s\n", filename);
 			close(fd);
@@ -142,14 +186,14 @@ static void hash_plugin_parse_hash(char *filename)
 			headerver = 1;
 		}
 	}
+	
 	if (headerver == 0) {
 		fprintf(stderr, "%s is not an encrypted DMG file!\n", filename);
 		return;
 	}
+	
 	// fprintf(stderr, "Header version %d detected\n", headerver);
 	if (headerver == 1) {
-		strnzcpyn(path, filename, LARGE_ENOUGH);
-
 		if (lseek(fd, -sizeof(cencrypted_v1_header), SEEK_END) < 0) {
 			fprintf(stderr, "Unable to seek in %s\n", filename);
 			return;
@@ -159,9 +203,6 @@ static void hash_plugin_parse_hash(char *filename)
 			return;
 		}
 		header_byteorder_fix(&header);
-
-		if (!(name = basename(path)))
-		    name = path;
 
 		fprintf(stderr, "%s (DMG v%d) successfully parsed, iterations "
 		        "count %u\n", name, headerver,
@@ -174,14 +215,9 @@ static void hash_plugin_parse_hash(char *filename)
 		printf("*%d*", header.len_hmac_sha1_key);
 		print_hex(header.wrapped_hmac_sha1_key, header.len_hmac_sha1_key);
 		printf("*%u::::%s\n", header.kdf_iteration_count, filename);
-	}
-	else {
+	} else {
 		cencrypted_v2_key_header_pointer header_pointer;
 		int password_header_found = 0;
-
-		strnzcpyn(path, filename, LARGE_ENOUGH);
-		if (!(name = basename(path)))
-		    name = path;
 
 		if (lseek(fd, 0, SEEK_SET) < 0) {
 			fprintf(stderr, "Unable to seek in %s\n", filename);
@@ -195,12 +231,16 @@ static void hash_plugin_parse_hash(char *filename)
 		header2_byteorder_fix(&header2);
 
 		chunk_size = header2.blocksize;
-		if (lseek(fd, header2.dataoffset, SEEK_SET) < 0) {
-			fprintf(stderr, "Unable to seek in %s\n", filename);
-			return;
+		// If this is a sparsebundle then there is no data to seek
+		// to in this file so we skip over this particular check.
+		if (!is_sparsebundle) {
+			if (lseek(fd, header2.dataoffset, SEEK_SET) < 0) {
+				fprintf(stderr, "Unable to seek in %s\n", filename);
+				return;
+			}
 		}
 
-		if(strstr(name, ".sparseimage")) {
+		if(strstr(name, ".sparseimage") || is_sparsebundle) {
 			// If this file is a sparseimage then we want one of the first chunks as the other chunks could be empty.
 			cno = 1;
 			data_size = 8192;
@@ -290,6 +330,45 @@ static void hash_plugin_parse_hash(char *filename)
 		fprintf(stderr, "%s (DMG v%d) successfully parsed, iterations "
 		        "count %u\n", name, headerver,
 		        v2_password_header.itercount);
+
+		if (is_sparsebundle) {
+			// If this is a sparsebundle then we need to get the chunks
+			// of data out of 0 from the bands directory. Close the
+			// previous file and open bands/0
+			if (close(fd) != 0) {
+				fprintf(stderr, "Failed closing file %s\n", filename);
+				free(v2_password_header.keyblob);
+				return;
+			}
+
+			filepath_length = strnzcpyn(filepath, in_filepath, LARGE_ENOUGH);
+
+			strnzcpyn(name, in_filepath, LARGE_ENOUGH);
+
+			// See if we have enough room to append 'bands/0' to the path.
+			if (filepath_length + 8 + 1 >= LARGE_ENOUGH) {
+				fprintf(stderr, "Can't create bands path. Path too long.\n");
+				free(v2_password_header.keyblob);
+				return;
+			}
+
+			char *bands_path = strnzcat(filepath, "/bands/0", LARGE_ENOUGH);
+			strnzcpyn(filepath, bands_path, LARGE_ENOUGH);
+			strnzcpyn(name, filepath, LARGE_ENOUGH);
+			if (!(filename = basename(name))) {
+			    filename = filepath;
+			}
+
+			// Open the file for reading.
+			fd = open(filepath, O_RDONLY);
+			if (fd < 0) {
+				fprintf(stderr, "Can't open file: %s\n", filename);
+				return;
+			}
+			
+			// Since we are in a different file the we can ignore the dataoffset
+			header2.dataoffset = 0;
+		}
 
 		/* read starting chunk(s) */
 		chunk1 = (unsigned char *) malloc(data_size);
