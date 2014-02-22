@@ -116,7 +116,7 @@ static void hash_plugin_parse_hash(char *in_filepath)
 	int is_sparsebundle = 0;
 
 	int filepath_length = strnzcpyn(filepath, in_filepath, LARGE_ENOUGH);
-	
+
 	strnzcpyn(name, in_filepath, LARGE_ENOUGH);
 	if (!(filename = basename(name))) {
 	    filename = filepath;
@@ -132,22 +132,22 @@ static void hash_plugin_parse_hash(char *in_filepath)
 			fprintf(stderr, "Can't stat file: %s\n", filename);
 			return;
 		}
-	
+
 		// Determine if the filepath given is a directory.
 		if (!(file_stat.st_mode & S_IFDIR)) {
 			fprintf(stderr, "%s claims to be a sparsebundle but isn't a directory\n", filename);
 			return;
 		}
-		
+
 		// Let's look to see if the token file exists.
 		fprintf(stderr, "filepath = %s path_length = %d\n", filepath, filepath_length);
 		if (filepath_length + 6 + 1 >= LARGE_ENOUGH) {
 			fprintf(stderr, "Can't create token path. Path too long.\n");
 			return;
 		}
-		
+
 		is_sparsebundle = 1;
-		
+
 		token_path = strnzcat(filepath, "/token", LARGE_ENOUGH);
 		strnzcpyn(filepath, token_path, LARGE_ENOUGH);
 		strnzcpyn(name, filepath, LARGE_ENOUGH);
@@ -156,20 +156,20 @@ static void hash_plugin_parse_hash(char *in_filepath)
 		}
 
 	}
-	
+
 	headerver = 0;
 	fd = open(filepath, O_RDONLY);
 	if (fd < 0) {
 		fprintf(stderr, "Can't open file: %s\n", filename);
 		return;
 	}
-	
+
 	if (read(fd, buf8, 8) <= 0) {
 		fprintf(stderr, "%s is not a DMG file!\n", filename);
 		close(fd);
 		return;
 	}
-	
+
 	if (strncmp(buf8, "encrcdsa", 8) == 0) {
 		headerver = 2;
 	} else {
@@ -187,12 +187,12 @@ static void hash_plugin_parse_hash(char *in_filepath)
 			headerver = 1;
 		}
 	}
-	
+
 	if (headerver == 0) {
 		fprintf(stderr, "%s is not an encrypted DMG file!\n", filename);
 		return;
 	}
-	
+
 	// fprintf(stderr, "Header version %d detected\n", headerver);
 	if (headerver == 1) {
 		if (lseek(fd, -sizeof(cencrypted_v1_header), SEEK_END) < 0) {
@@ -367,7 +367,7 @@ static void hash_plugin_parse_hash(char *in_filepath)
 				fprintf(stderr, "Can't open file: %s\n", filename);
 				return;
 			}
-			
+
 			// Since we are in a different file the we can ignore the dataoffset
 			header2.dataoffset = 0;
 		}
