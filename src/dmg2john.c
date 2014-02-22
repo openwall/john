@@ -127,6 +127,7 @@ static void hash_plugin_parse_hash(char *in_filepath)
 		// A sparsebundle is simply a directory with contents.
 		// Let's check to see if that is the case.
 		struct stat file_stat;
+		char *token_path;
 		if (stat(filepath, &file_stat) != 0) {
 			fprintf(stderr, "Can't stat file: %s\n", filename);
 			return;
@@ -147,7 +148,7 @@ static void hash_plugin_parse_hash(char *in_filepath)
 		
 		is_sparsebundle = 1;
 		
-		char *token_path = strnzcat(filepath, "/token", LARGE_ENOUGH);
+		token_path = strnzcat(filepath, "/token", LARGE_ENOUGH);
 		strnzcpyn(filepath, token_path, LARGE_ENOUGH);
 		strnzcpyn(name, filepath, LARGE_ENOUGH);
 		if (!(filename = basename(name))) {
@@ -335,6 +336,7 @@ static void hash_plugin_parse_hash(char *in_filepath)
 			// If this is a sparsebundle then we need to get the chunks
 			// of data out of 0 from the bands directory. Close the
 			// previous file and open bands/0
+			char *bands_path;
 			if (close(fd) != 0) {
 				fprintf(stderr, "Failed closing file %s\n", filename);
 				free(v2_password_header.keyblob);
@@ -352,7 +354,7 @@ static void hash_plugin_parse_hash(char *in_filepath)
 				return;
 			}
 
-			char *bands_path = strnzcat(filepath, "/bands/0", LARGE_ENOUGH);
+			bands_path = strnzcat(filepath, "/bands/0", LARGE_ENOUGH);
 			strnzcpyn(filepath, bands_path, LARGE_ENOUGH);
 			strnzcpyn(name, filepath, LARGE_ENOUGH);
 			if (!(filename = basename(name))) {
