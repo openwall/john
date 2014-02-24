@@ -1,25 +1,55 @@
+/*
+ * This software is Copyright (c) 2013 Jim Fougeron jfoug AT cox dot net,
+ * Copyright (c) 2013 Dhiru Kholia <dhiru.kholia at gmail.com>
+ * and Copyright (c) 2014 magnum, and it is hereby released
+ * to the general public under the following terms:  Redistribution and use in
+ * source and binary forms, with or without modification, are permitted.
+ *
+ * magnum's notes:
+ * We seem to use WPA4way_s struct like this:
+ *   ssid[36]  is used for ESSID (network name)
+ *   essid[18] is used for BSSID (AP MAC address)
+ *   bssid[18] unused
+ *
+ * I find that very confusing. I would think we should rather ditch the
+ * ssid member and use the others like this:
+ *   essid[36] ESSID (network name)
+ *   bssid[18] BSSID (AP MAC address)
+ *
+ * ...then again, maybe I'm just confused?
+ */
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 
 #include "wpapcap2john.h"
 
+/*
+ * Max. number of handshakes we can collect from all files combined.
+ * Just bump this if you need more.
+ */
+#define MAX_HANDSHAKES	1000
+
 int GetNextPacket(FILE *in);
-int ProcessPacket();
+int ProcessPacket(const char *InFName);
 void HandleBeacon();
-void Handle4Way(int bIsQOS);
-void DumpKey(int idx, int one_three, int bIsQOS);
+void Handle4Way(int bIsQOS, const char *InFName);
+void DumpKey(int idx, int one_three, int bIsQOS, const char *InFName);
 
 uint32 start_t, start_u, cur_t, cur_u;
 pcaprec_hdr_t pkt_hdr;
 uint8 packet[65535];
 static int bROT;
-WPA4way_t wpa[1000];
-int nwpa=0;
-char cpItoa64[65] = "./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+WPA4way_t wpa[MAX_HANDSHAKES];
+int nwpa = 0;
+const char cpItoa64[64] =
+	"./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
-int Process(FILE *in, const char *InFName) {
+int Process(FILE *in, const char *InFName)
+{
 	pcap_hdr_t main_hdr;
+
 	if (fread(&main_hdr, 1, sizeof(pcap_hdr_t), in) != sizeof(pcap_hdr_t)) {
 		fprintf(stderr, "%s: Error, could not read enough bytes to get a common 'main' pcap header\n", InFName);
 		return 0;
@@ -41,13 +71,14 @@ int Process(FILE *in, const char *InFName) {
 	}
 
 	while (GetNextPacket(in)) {
-		if (!ProcessPacket())
+		if (!ProcessPacket(InFName))
 			return 1;
 	}
 	return 1;
 }
 
-int GetNextPacket(FILE *in) {
+int GetNextPacket(FILE *in)
+{
 	if (fread(&pkt_hdr, 1, sizeof(pkt_hdr), in) != sizeof(pkt_hdr)) return 0;
 	if(bROT) {
 		pkt_hdr.ts_sec = swap32u(pkt_hdr.ts_sec);
@@ -73,7 +104,8 @@ int GetNextPacket(FILE *in) {
 // reading packets (i.e. we have done what we want), we return 0, and
 // the program will exit gracefully.  It is not an error, it is just an
 // indication we have completed (or that the data we want is not here).
-int ProcessPacket() {
+int ProcessPacket(const char *InFName)
+{
 	// our data is in packet[] with pkt_hdr being the pcap packet header for this packet.
 	ether_frame_hdr_t *pkt = (ether_frame_hdr_t*)packet;
 	ether_frame_ctl_t *ctl = (ether_frame_ctl_t *)&pkt->frame_ctl;
@@ -99,18 +131,31 @@ int ProcessPacket() {
 		// in value.  We are running from an LE system, so should look for 0x8e88
 		p += 6;
 		if (*((uint16*)p) == 0x8e88)
-			Handle4Way(bQOS);	// this packet was a eapol packet.
+			Handle4Way(bQOS, InFName);	// this packet was a eapol packet.
 	}
 
 	return 1;
 }
 
-void to_bssid(char ssid[18], uint8 *p) {
+void to_bssid(char ssid[18], uint8 *p)
+{
 	sprintf(ssid, "%02X:%02X:%02X:%02X:%02X:%02X",p[0],p[1],p[2],p[3],p[4],p[5]);
 }
 
-void dump_stuff_noeol(void *x, unsigned int size) {
+void to_dashed(char ssid[18], uint8 *p)
+{
+	sprintf(ssid, "%02x-%02x-%02x-%02x-%02x-%02x",p[0],p[1],p[2],p[3],p[4],p[5]);
+}
+
+void to_compact(char ssid[18], uint8 *p)
+{
+	sprintf(ssid, "%02x%02x%02x%02x%02x%02x",p[0],p[1],p[2],p[3],p[4],p[5]);
+}
+
+void dump_stuff_noeol(void *x, unsigned int size)
+{
 	unsigned int i;
+
 	for(i=0;i<size;i++)
 	{
 		printf("%.2x", ((unsigned char*)x)[i]);
@@ -118,29 +163,35 @@ void dump_stuff_noeol(void *x, unsigned int size) {
 		printf(" ");
 	}
 }
+
 void dump_stuff(void* x, unsigned int size)
 {
 	dump_stuff_noeol(x,size);
 	printf("\n");
 }
+
 void dump_stuff_msg(void *msg, void *x, unsigned int size) {
 	printf("%s : ", (char *)msg);
 	dump_stuff(x, size);
 }
 
-void HandleBeacon() {
-	// addr1 should be broadcast
-	// addr2 is source addr (should be same as BSSID
-	// addr3 is BSSID (routers MAC)
+void HandleBeacon()
+{
 	ether_frame_hdr_t *pkt = (ether_frame_hdr_t*)packet;
 	int i;
 
 	ether_beacon_data_t *pDat = (ether_beacon_data_t*)&packet[sizeof(ether_frame_hdr_t)];
 	ether_beacon_tag_t *tag = pDat->tags;
-	// ok, walk the tags
 	uint8 *pFinal = &packet[pkt_hdr.incl_len];
 	char ssid[36];
 	char essid[18];
+
+	// addr1 should be broadcast
+	// addr2 is source addr (should be same as BSSID)
+	// addr3 is BSSID (routers MAC)
+
+	// ok, walk the tags
+
 	memset(ssid, 0, sizeof(ssid));
 	while (((uint8*)tag) < pFinal) {
 		char *x = (char*)tag;
@@ -160,24 +211,28 @@ void HandleBeacon() {
 		if (!strcmp(essid, wpa[i].essid) && !strcmp(ssid, wpa[i].ssid))
 			return;
 	}
-	if (nwpa==999) return;
 	strcpy(wpa[nwpa].ssid, ssid);
 	strcpy(wpa[nwpa].essid, essid);
-	++nwpa;
+	if (++nwpa >= MAX_HANDSHAKES) {
+		fprintf(stderr, "ERROR: Too many handshakes (%d)\n", MAX_HANDSHAKES);
+		exit(0);
+	}
 }
-void Handle4Way(int bIsQOS) {
+
+void Handle4Way(int bIsQOS, const char *InFName)
+{
 	ether_frame_hdr_t *pkt = (ether_frame_hdr_t*)packet;
 	int i, ess=-1;
 	uint8 orig_2[512];
 	uint8 *p = (uint8*)&packet[sizeof(ether_frame_hdr_t)];
 	ether_auto_802_1x_t *auth;
 	int msg = 0;
+	char essid[18];
 
 	// ok, first thing, find the beacon.  If we can NOT find the beacon, then
 	// do not proceed.  Also, if we find the becon, we may determine that
 	// we already HAVE fully cracked this
 
-	char essid[18];
 	to_bssid(essid, pkt->addr3);
 	for (i = 0; i < nwpa; ++i) {
 		if (!strcmp(essid, wpa[i].essid)) {
@@ -262,8 +317,8 @@ void Handle4Way(int bIsQOS) {
 			p += sizeof(ether_frame_hdr_t);
 			auth1 = (ether_auto_802_1x_t*)p;
 			if (auth1->replay_cnt == auth2->replay_cnt) {
-				fprintf (stderr, "Key1/Key2 hit (hopeful hit), for SSID:%s\n", wpa[ess].ssid);
-				DumpKey(ess, 1, bIsQOS);
+				fprintf (stderr, "Key1/Key2 hit (hopeful hit), for SSID:%s (%s)\n", wpa[ess].ssid, InFName);
+				DumpKey(ess, 1, bIsQOS, InFName);
 			}
 			// we no longer want to know about this packet 1.
 			if (wpa[ess].packet1) free(wpa[ess].packet1);  wpa[ess].packet1 = NULL;
@@ -284,8 +339,9 @@ void Handle4Way(int bIsQOS) {
 			p += sizeof(ether_frame_hdr_t);
 			auth2 = (ether_auto_802_1x_t*)p;
 			if (auth2->replay_cnt+1 == auth3->replay_cnt) {
-				fprintf (stderr, "Key2/Key3 hit (SURE hit), for SSID:%s\n", wpa[ess].ssid);
-				DumpKey(ess, 3, bIsQOS);
+				fprintf (stderr, "Key2/Key3 hit (SURE hit), for SSID:%s (%s)\n", wpa[ess].ssid, InFName);
+				DumpKey(ess, 3, bIsQOS, InFName);
+				wpa[ess].fully_cracked = 1;
 			}
 		}
 		// clear this, so we do not hit the same 3 packet and output exact same 2/3 combo.
@@ -293,6 +349,7 @@ void Handle4Way(int bIsQOS) {
 		if (wpa[ess].packet2) free(wpa[ess].packet2);  wpa[ess].packet2 = NULL;
 		if (wpa[ess].orig_2)  free(wpa[ess].orig_2);   wpa[ess].orig_2 = NULL;
 	}
+/*
 	if (msg == 4) {
 		if (wpa[ess].packet1) free(wpa[ess].packet1);  wpa[ess].packet1 = NULL;
 		if (wpa[ess].packet2) free(wpa[ess].packet2);  wpa[ess].packet2 = NULL;
@@ -300,6 +357,7 @@ void Handle4Way(int bIsQOS) {
 		if (wpa[ess].packet3) free(wpa[ess].packet3);  wpa[ess].packet3 = NULL;
 		if (wpa[ess].packet4) free(wpa[ess].packet4);  wpa[ess].packet4 = NULL;
 	}
+*/
 }
 
 // These 2 functions output data properly for JtR, in base-64 format. These
@@ -315,7 +373,8 @@ static void code_block(unsigned char *in, unsigned char b)
 		putchar(cpItoa64[((in[1] & 0x0f) << 2)]);
 }
 
-void DumpKey(int ess, int one_three, int bIsQOS) {
+void DumpKey(int ess, int one_three, int bIsQOS, const char *InFName)
+{
 	ether_auto_802_1x_t *auth13, *auth2;
 	uint8 *p = (uint8*)wpa[ess].packet2;
 	uint8 *pkt2 = p;
@@ -323,7 +382,9 @@ void DumpKey(int ess, int one_three, int bIsQOS) {
 	hccap_t	hccap;
 	int i;
 	uint8 *w;
-	fprintf (stderr, "Dumping key %d at time:  %d.%d\n", one_three, cur_t, cur_u);
+	char client_mac[18], ap_mac[18], gecos[13];
+
+	fprintf (stderr, "Dumping key %d at time:  %d.%d BSSID %s\n", one_three, cur_t, cur_u, wpa[ess].essid);
 	printf ("%s:$WPAPSK$%s#", wpa[ess].ssid, wpa[ess].ssid);
 	if (!wpa[ess].packet2) { printf ("ERROR, msg2 null\n"); return; }
 	if (bIsQOS)
@@ -366,8 +427,15 @@ void DumpKey(int ess, int one_three, int bIsQOS) {
 	for (i = 36; i + 3 < sizeof(hccap_t); i += 3)
 		code_block(&w[i], 1);
 	code_block(&w[i], 0);
-	printf("\n");
-	fprintf(stderr, "keyver=%d\n\n",hccap.keyver);
+	to_compact(gecos, hccap.mac1);
+	to_dashed(ap_mac, hccap.mac1);
+	to_dashed(client_mac, hccap.mac2);
+	printf(":%s:%s:%s::WPA", client_mac, ap_mac, gecos);
+	if (hccap.keyver > 1)
+		printf("%d", hccap.keyver);
+	printf(":%s\n", InFName);
+	fflush(stdout);
+	fprintf(stderr, "\n");
 }
 
 int main(int argc, char **argv)
@@ -377,7 +445,7 @@ int main(int argc, char **argv)
 
 	if (argc < 2)
 		return !!fprintf(stderr,
-		                 "Usage wpapcap2john pcap_filename[s]\n");
+		                 "Usage: %s <pcap_file[s]>\n", argv[0]);
 
 	for (i = 1; i < argc; i++) {
 		in = fopen(argv[i], "rb");
