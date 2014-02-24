@@ -83,6 +83,7 @@
 #include "misc.h"
 #include "config.h"
 #include "md4.h"
+#include "john.h"
 
 #if !defined(uint16) && !defined(HAVE_UINT16_FROM_RPC_RPC_H)
 #if (SIZEOF_SHORT == 4)
@@ -847,7 +848,8 @@ int initUnicode(int type) {
 	char *pos;
 	static char *req_enc;
 
-	if (UnicodeType == type && UnicodeInited == req_enc)
+	if (!options.node_count &&
+	    UnicodeType == type && UnicodeInited == req_enc)
 		return 0;
 
 	UnicodeType = type;
