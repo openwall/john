@@ -25,10 +25,9 @@
  *
  * http://lingrok.org/xref/syslinux/utils/isohybrid.c#apple_part_header
  * http://www.dubeyko.com/development/FileSystems/HFSPLUS/hexdumps/hfsplus_volume_header.html
- *
- * NOTE: format is marked as FMT_NOT_EXACT for testing purposes */
+ */
 
-//#define DMG_DEBUG
+//#define DMG_DEBUG		1
 #include <string.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -44,7 +43,7 @@
 #include "params.h"
 #include "common.h"
 #include "formats.h"
-#undef MMX_COEF
+#undef MMX_COEF // FIXME: This format should use SSE2
 #include "pbkdf2_hmac_sha1.h"
 #ifdef _OPENMP
 #include <omp.h>
@@ -445,8 +444,8 @@ static int hash_plugin_check_hash(const char *password)
 		unsigned char iv[20];
 		HMAC_CTX hmacsha1_ctx;
 		int mdlen;
-		unsigned char *r;
-		const char nulls[16] = { 0 };
+		//unsigned char *r;
+		const char nulls[8] = { 0 };
 
 		pbkdf2_sha1((const unsigned char*)password, strlen(password),
 		       cur_salt->salt, 20, cur_salt->iterations, derived_key, 32, 0);
@@ -475,22 +474,29 @@ static int hash_plugin_check_hash(const char *password)
 			AES_set_decrypt_key(aes_key_, 128 * 2, &aes_decrypt_key);
 		AES_cbc_encrypt(cur_salt->chunk, outbuf, cur_salt->data_size, &aes_decrypt_key, iv, AES_DECRYPT);
 
-		/* 16 consecutive nulls */
-		if (jtr_memmem(outbuf, cur_salt->data_size, (void*)nulls, 16)) {
+		/* 8 consecutive nulls */
+		if (jtr_memmem(outbuf, cur_salt->data_size, (void*)nulls, 8)) {
 #ifdef DMG_DEBUG
-			if (!bench_running)
+			if (!bench_running) {
+#if DMG_DEBUG > 1
 				dump_text(outbuf, cur_salt->data_size);
-			fprintf(stderr, "NULLS found!\n");
+#endif
+				fprintf(stderr, "NULLS found!\n\n");
+			}
 #endif
 			return 1;
 		}
 
+#if 0
 		/* </plist> is a pretty generic signature for Apple */
 		if (jtr_memmem(outbuf, cur_salt->data_size, (void*)"</plist>", 8)) {
 #ifdef DMG_DEBUG
-			if (!bench_running)
+			if (!bench_running) {
+#if DMG_DEBUG > 1
 				dump_text(outbuf, cur_salt->data_size);
-			fprintf(stderr, "</plist> found!\n");
+#endif
+				fprintf(stderr, "</plist> found!\n\n");
+			}
 #endif
 			return 1;
 		}
@@ -498,9 +504,12 @@ static int hash_plugin_check_hash(const char *password)
 		/* Journalled HFS+ */
 		if (jtr_memmem(outbuf, cur_salt->data_size, (void*)"jrnlhfs+", 8)) {
 #ifdef DMG_DEBUG
-			if (!bench_running)
+			if (!bench_running) {
+#if DMG_DEBUG > 1
 				dump_text(outbuf, cur_salt->data_size);
-			fprintf(stderr, "jrnlhfs+ found!\n");
+#endif
+				fprintf(stderr, "jrnlhfs+ found!\n\n");
+			}
 #endif
 			return 1;
 		}
@@ -513,34 +522,47 @@ static int hash_plugin_check_hash(const char *password)
 
 			if (HTONL(*u32Version) == 4) {
 #ifdef DMG_DEBUG
-			if (!bench_running)
-				dump_text(outbuf, cur_salt->data_size);
-				fprintf(stderr, "koly found!\n");
+				if (!bench_running) {
+#if DMG_DEBUG > 1
+					dump_text(outbuf, cur_salt->data_size);
+#endif
+					fprintf(stderr, "koly found!\n\n");
+				}
 #endif
 				return 1;
 			}
 		}
 
-		/* Apple is a pretty good indication */
-		if (jtr_memmem(outbuf, cur_salt->data_size, (void*)"Apple", 5)) {
+		/* Handle VileFault sample images */
+		if (jtr_memmem(outbuf, cur_salt->data_size, (void*)"EFI PART", 8)) {
 #ifdef DMG_DEBUG
-			if (!bench_running)
+			if (!bench_running) {
+#if DMG_DEBUG > 1
 				dump_text(outbuf, cur_salt->data_size);
-			fprintf(stderr, "Apple found!\n");
+#endif
+				fprintf(stderr, "EFI PART found!\n\n");
+			}
 #endif
 			return 1;
 		}
 
-		/* Handle VileFault sample images */
-		if (jtr_memmem(outbuf, cur_salt->data_size, (void*)"EFI PART", 8)) {
+		/* Apple is a good indication but it's short enough to
+		   produce false positives */
+		if (jtr_memmem(outbuf, cur_salt->data_size, (void*)"Apple", 5)) {
 #ifdef DMG_DEBUG
-			if (!bench_running)
+			if (!bench_running) {
+#if DMG_DEBUG > 1
 				dump_text(outbuf, cur_salt->data_size);
-			fprintf(stderr, "EFI PART found!\n");
+#endif
+				fprintf(stderr, "Apple found!\n\n");
+			}
 #endif
 			return 1;
 		}
+
+#endif /* 0 */
 		if (cur_salt->scp == 1) {
+			unsigned char outbuf2[4096 + 1]; // XXX verify jtr_memmem function!
 			int cno = 0;
 
 			HMAC_CTX_init(&hmacsha1_ctx);
@@ -553,16 +575,37 @@ static int hash_plugin_check_hash(const char *password)
 			else
 				AES_set_decrypt_key(aes_key_, 128 * 2, &aes_decrypt_key);
 
-			AES_cbc_encrypt(cur_salt->zchunk, outbuf, 4096, &aes_decrypt_key, iv, AES_DECRYPT);
-			if (jtr_memmem(outbuf, 4096, (void*)"Press any key to reboot", 23)) {
+			AES_cbc_encrypt(cur_salt->zchunk, outbuf2, 4096, &aes_decrypt_key, iv, AES_DECRYPT);
+			/* 8 consecutive nulls */
+			if (jtr_memmem(outbuf2, 4096, (void*)nulls, 8)) {
 #ifdef DMG_DEBUG
-				if (!bench_running)
-					dump_text(outbuf, 4096);
-				fprintf(stderr, "MS-DOS UDRW signature found!\n");
+				if (!bench_running) {
+#if DMG_DEBUG > 1
+					dump_text(outbuf, cur_salt->data_size);
+					fprintf(stderr, "2nd block:\n");
+					dump_text(outbuf2, 4096);
+#endif
+					fprintf(stderr, "NULLS found!\n\n");
+				}
 #endif
 				return 1;
 			}
-
+/* This test seem to be obsoleted by the 8xNULL test */
+#if 0
+			if (jtr_memmem(outbuf2, 4096, (void*)"Press any key to reboot", 23)) {
+#ifdef DMG_DEBUG
+				if (!bench_running) {
+#if DMG_DEBUG > 1
+					dump_text(outbuf, cur_salt->data_size);
+					fprintf(stderr, "2nd block:\n");
+					dump_text(outbuf2, 4096);
+#endif
+					fprintf(stderr, "MS-DOS UDRW signature found!\n\n");
+				}
+#endif
+				return 1;
+			}
+#endif /* 0 */
 		}
 	}
 	return 0;
@@ -571,6 +614,9 @@ static int hash_plugin_check_hash(const char *password)
 static void set_salt(void *salt)
 {
 	cur_salt = (struct custom_salt *)salt;
+#ifdef DMG_DEBUG
+	//fprintf(stderr, "Blob size is %d bytes\n", cur_salt->data_size);
+#endif
 }
 
 static void dmg_set_key(char *key, int index)
