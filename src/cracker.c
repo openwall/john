@@ -239,20 +239,29 @@ static int crk_process_guess(struct db_salt *salt, struct db_password *pw,
 		if (options.utf8)
 			utf8key = key;
 		else {
-			utf8key = (char*)enc_to_utf8_r(key, utf8buf_key, PLAINTEXT_BUFFER_SIZE);
+			utf8key = (char*)enc_to_utf8_r(key, utf8buf_key,
+			                               PLAINTEXT_BUFFER_SIZE);
 			// Double-check that the conversion was correct. Our
-			// fallback is to log, warn and use the original key instead.
-			utf8_to_enc_r((UTF8*)utf8key, tmp8, PLAINTEXT_BUFFER_SIZE);
+			// fallback is to log, warn and use the original key
+			// instead. If you see it, we have a bug.
+			utf8_to_enc_r((UTF8*)utf8key, tmp8,
+			              PLAINTEXT_BUFFER_SIZE);
 			if (strcmp(tmp8, key)) {
-				fprintf(stderr, "Warning, conversion failed %s -> %s -> %s - fallback to codepage\n", key, utf8key, tmp8);
-				log_event("Warning, conversion failed %s -> %s -> %s - fallback to codepage", key, utf8key, tmp8);
+				fprintf(stderr, "Warning, conversion failed %s"
+				        " -> %s -> %s - fallback to codepage\n",
+				        key, utf8key, tmp8);
+				log_event("Warning, conversion failed %s -> %s"
+				          " -> %s - fallback to codepage", key,
+				          utf8key, tmp8);
 				utf8key = key;
 			}
 		}
 		if (options.report_utf8) {
 			repkey = utf8key;
 			if (crk_db->options->flags & DB_LOGIN)
-				replogin = (char*)enc_to_utf8_r(pw->login, utf8login, PLAINTEXT_BUFFER_SIZE);
+				replogin = (char*)
+					enc_to_utf8_r(pw->login,
+					      utf8login, PLAINTEXT_BUFFER_SIZE);
 		}
 		if (options.store_utf8)
 			key = utf8key;
@@ -260,10 +269,11 @@ static int crk_process_guess(struct db_salt *salt, struct db_password *pw,
 
 	// Ok, FIX the salt  ONLY if -regen-lost-salts=X was used.
 	if (options.regen_lost_salts)
-			crk_guess_fixup_salt(pw->source, *(char**)(salt->salt));
+		crk_guess_fixup_salt(pw->source, *(char**)(salt->salt));
 
 	log_guess(crk_db->options->flags & DB_LOGIN ? replogin : "?",
-		dupe ? NULL : crk_methods.source(pw->source, pw->binary), repkey, key, crk_db->options->field_sep_char);
+	          dupe ? NULL : crk_methods.source(pw->source, pw->binary),
+	          repkey, key, crk_db->options->field_sep_char);
 
 	if (options.flags & FLG_CRKSTAT)
 		event_pending = event_status = 1;

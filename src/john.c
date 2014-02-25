@@ -118,7 +118,8 @@ extern struct fmt_main fmt_trip;
 extern struct fmt_main fmt_dummy;
 extern struct fmt_main fmt_NT;
 
-// can be done as a _plug format now. But I have not renamed the plugin file just yet.
+// can be done as a _plug format now. But I have not renamed the plugin file
+// just yet.
 extern struct fmt_main fmt_django;
 
 #if OPENSSL_VERSION_NUMBER >= 0x10001000
@@ -231,11 +232,9 @@ extern int unafs(int argc, char **argv);
 extern int unique(int argc, char **argv);
 extern int undrop(int argc, char **argv);
 #ifndef _MSC_VER
-/* XXX: What's wrong with having these along with MSC? Perhaps this restriction
- * was meant to apply to some of these only? Maybe SSH only?
- *
- * NOPE, most will not compile at all. They use libs, headers, and other features (and poor coding)
- * that simply will not build or link under VC. (Jim)
+/*
+ * MSC will not compile at all with these. They use libs, headers, and other
+ * features (and poor coding) that simply will not build or link under VC.
  */
 extern int ssh2john(int argc, char **argv);
 extern int pfx2john(int argc, char **argv);
@@ -312,7 +311,8 @@ static void john_register_one(struct fmt_main *format)
 		else if (!strcasecmp(options.format, "cuda")) {
 			if (!strstr(format->params.label, "-cuda")) return;
 		}
-		else if (strcasecmp(options.format, format->params.label)) return;
+		else if (strcasecmp(options.format, format->params.label))
+			return;
 	}
 
 	fmt_register(format);
@@ -325,7 +325,8 @@ static void john_register_all(void)
 
 	if (options.format) strlwr(options.format);
 
-	// NOTE, this MUST happen, before ANY format that links a 'thin' format to dynamic.
+	// NOTE, this MUST happen, before ANY format that links a 'thin' format
+	// to dynamic.
 	// Since gen(27) and gen(28) are MD5 and MD5a formats, we build the
 	// generic format first
 	cnt = dynamic_Register_formats(&selfs);
@@ -473,7 +474,8 @@ static void john_log_format(void)
 
 #ifdef HAVE_MPI
 	if (mpi_p > 1)
-		log_event("- MPI: Node %u/%u running on %s", mpi_id + 1, mpi_p, mpi_name);
+		log_event("- MPI: Node %u/%u running on %s",
+		          mpi_id + 1, mpi_p, mpi_name);
 #endif
 	/* make sure the format is properly initialized */
 #ifdef HAVE_OPENCL
@@ -951,18 +953,22 @@ static void john_load(void)
 
 		if (database.password_count) {
 			if (database.format->params.flags & FMT_UNICODE)
-				options.store_utf8 = cfg_get_bool(SECTION_OPTIONS,
+				options.store_utf8 =
+					cfg_get_bool(SECTION_OPTIONS,
 			        NULL, "UnicodeStoreUTF8", 0);
 			else
-				options.store_utf8 = cfg_get_bool(SECTION_OPTIONS,
+				options.store_utf8 =
+					cfg_get_bool(SECTION_OPTIONS,
 			        NULL, "CPstoreUTF8", 0);
 		}
 		if (!options.utf8) {
 			if (options.report_utf8 && options.log_passwords)
-				log_event("- Passwords in this logfile are UTF-8 encoded");
+				log_event("- Passwords in this logfile are "
+				          "UTF-8 encoded");
 
 			if (options.store_utf8)
-				log_event("- Passwords will be stored UTF-8 encoded in .pot file");
+				log_event("- Passwords will be stored UTF-8 "
+				          "encoded in .pot file");
 		}
 
 		total = database.password_count;
@@ -1167,7 +1173,8 @@ static void john_run(void)
 				error();
 			}
 			database.format->methods.reset(&database);
-			log_init(LOG_NAME, options.loader.activepot, options.session);
+			log_init(LOG_NAME, options.loader.activepot,
+			         options.session);
 			status_init(NULL, 1);
 			john_log_format();
 			if (idle_requested(database.format))
@@ -1457,7 +1464,8 @@ int main(int argc, char **argv)
 #else
 	if (getenv("OMPI_COMM_WORLD_SIZE"))
 	if (atoi(getenv("OMPI_COMM_WORLD_SIZE")) > 1) {
-		fprintf(stderr, "ERROR: Running under MPI, but this is NOT an MPI build of John.\n");
+		fprintf(stderr, "ERROR: Running under MPI, but this is NOT an"
+		        " MPI build of John.\n");
 		error();
 	}
 #endif
