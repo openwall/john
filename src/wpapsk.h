@@ -1,11 +1,12 @@
 /*
-* This software is Copyright (c) 2012 Lukas Odzioba <lukas dot odzioba at gmail dot com>
-* and it is hereby released to the general public under the following terms:
-* Redistribution and use in source and binary forms, with or without modification, are permitted.
-*
-* hccap format was introduced by oclHashcat-plus, and it is described here: http://hashcat.net/wiki/hccap
-* Code is based on  Aircrack-ng source
-*/
+ * This software is Copyright (c) 2012 Lukas Odzioba <lukas dot odzioba at gmail dot com>
+ * and Copyright (c) 2012-2014 magnum
+ * and it is hereby released to the general public under the following terms:
+ * Redistribution and use in source and binary forms, with or without modification, are permitted.
+ *
+ * hccap format was introduced by oclHashcat-plus, and it is described here: http://hashcat.net/wiki/hccap
+ * Code is based on  Aircrack-ng source
+ */
 #ifndef _WPAPSK_H
 #define _WPAPSK_H
 
@@ -17,7 +18,7 @@
 #include <assert.h>
 #include <openssl/hmac.h>
 
-#define HCCAP_SIZE		392
+#define HCCAP_SIZE		sizeof(hccap_t)
 
 #define BINARY_SIZE		sizeof(mic_t)
 #define BINARY_ALIGN		4
@@ -30,20 +31,20 @@
 /** if you want to change hccap_t structure is also defined in hccap2john.c **/
 typedef struct
 {
-  char          essid[36];
-  unsigned char mac1[6];
-  unsigned char mac2[6];
-  unsigned char nonce1[32];
-  unsigned char nonce2[32];
-  unsigned char eapol[256];
-  int           eapol_size;
-  int           keyver;
-  unsigned char keymic[16];
+	char          essid[36];
+	unsigned char mac1[6];
+	unsigned char mac2[6];
+	unsigned char nonce1[32];
+	unsigned char nonce2[32];
+	unsigned char eapol[256];
+	int           eapol_size;
+	int           keyver;
+	unsigned char keymic[16];
 } hccap_t;
 
 typedef struct
 {
-  unsigned char keymic[16];
+	unsigned char keymic[16];
 } mic_t;
 
 typedef struct {

@@ -1,6 +1,6 @@
 /*
  * This software is Copyright (c) 2012 Lukas Odzioba <ukasz at openwall.net>
- * and Copyright (c) 2012 magnum, and it is hereby released to the general
+ * and Copyright (c) 2012-2014 magnum, and it is hereby released to the general
  * public under the following terms: Redistribution and use in source and
  * binary forms, with or without modification, are permitted.
  *
@@ -336,8 +336,6 @@ static void init(struct fmt_main *self)
 	char build_opts[128];
 	cl_ulong maxsize, maxsize2, max_mem;
 	static char valgo[32] = "";
-
-	assert(sizeof(hccap_t) == HCCAP_SIZE);
 
 	if ((v_width = opencl_get_vector_width(ocl_gpu_id,
 	                                       sizeof(cl_int))) > 1) {
