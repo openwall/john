@@ -9,10 +9,28 @@ env:
   # Default build. Release.
   - TARGET="linux-x86-64"
   # Debug build
+
+env:
+  global:
+   # The next declaration is the encrypted COVERITY_SCAN_TOKEN, created
+   # via the "travis encrypt" command using the project repo's public key
+   - secure: "XaxopBhc+jphWdXgvFf4rRK6qvXuoKSQ0OgCjEQGd8WKPwuODYYtK15/A7VS9AWgLOejB0CcEmCFe3qGYesPWfru7B9zGZ8qSnGAnwGlFaP8O7ZLFJ5tWJjc0Ia8YBheGZ6rKl1QWf73f4LJ6c44RGdUKNoJl/SIfKiKs9UtRoE="
+
 matrix:
   allow_failures:
+
 before_install:
   - sudo apt-get update -qq
   - sudo apt-get install debhelper libpcap-dev libssl-dev libnet1-dev libnss3-dev libnspr4-dev
 script:
   - cd src && make $TARGET -j4 > /dev/null
+
+addons:
+  coverity_scan:
+    project:
+      name: "magnumripper/JohnTheRipper"
+      description: "http://openwall.com/john"
+    notification_email: john.magnum@hushmail.com
+    build_command_prepend:
+    build_command: "cd src && make $TARGET -j4 > /dev/null"
+    branch_pattern: coverity_scan
