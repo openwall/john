@@ -471,7 +471,7 @@ void DumpKey(int ess, int one_three, int bIsQOS)
 	printf(":%s:%s:%s::WPA", sta_mac, ap_mac, gecos);
 	if (hccap.keyver > 1)
 		printf("%d", hccap.keyver);
-	printf(":%s\n", InFName);
+	printf(":password %sverified:%s\n", (one_three == 1) ? "not " : "", InFName);
 	fflush(stdout);
 	fprintf(stderr, "\n");
 }
