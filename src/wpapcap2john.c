@@ -40,13 +40,15 @@ void DumpKey(int idx, int one_three, int bIsQOS);
 
 uint32 start_t, start_u, cur_t, cur_u;
 pcaprec_hdr_t pkt_hdr;
-uint8 packet[65535];
+uint8 full_packet[65535];
+uint8 *packet;
 static int bROT;
 WPA4way_t wpa[MAX_HANDSHAKES];
 int nwpa = 0;
 const char cpItoa64[64] =
 	"./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 const char *InFName;
+unsigned int link_type;
 
 int Process(FILE *in)
 {
@@ -67,8 +69,10 @@ int Process(FILE *in)
 		main_hdr.snaplen = swap32u(main_hdr.snaplen);
 		main_hdr.network = swap32u(main_hdr.network);
 	}
-	if (main_hdr.network != 105) {
-		fprintf(stderr, "%s: No 802.11 wireless traffic data\n", InFName);
+	link_type = main_hdr.network;
+	if (link_type != LINKTYPE_IEEE802_11 &&
+	    link_type != LINKTYPE_RADIOTAP_HDR) {
+		fprintf(stderr, "%s: No 802.11 wireless traffic data (network %d)\n", InFName, link_type);
 		return 0;
 	}
 
@@ -84,6 +88,7 @@ int GetNextPacket(FILE *in)
 	size_t read_size;
 
 	if (fread(&pkt_hdr, 1, sizeof(pkt_hdr), in) != sizeof(pkt_hdr)) return 0;
+
 	if(bROT) {
 		pkt_hdr.ts_sec = swap32u(pkt_hdr.ts_sec);
 		pkt_hdr.ts_usec = swap32u(pkt_hdr.ts_usec);
@@ -101,8 +106,7 @@ int GetNextPacket(FILE *in)
 	} else
 		cur_u = pkt_hdr.ts_usec-start_u;
 
-	read_size = fread(packet, 1, pkt_hdr.incl_len, in);
-
+	read_size = fread(full_packet, 1, pkt_hdr.incl_len, in);
 	if (read_size < pkt_hdr.incl_len)
 		fprintf(stderr, "%s: truncated last packet\n", InFName);
 
@@ -115,9 +119,18 @@ int GetNextPacket(FILE *in)
 // indication we have completed (or that the data we want is not here).
 int ProcessPacket()
 {
-	// our data is in packet[] with pkt_hdr being the pcap packet header for this packet.
 	ether_frame_hdr_t *pkt = (ether_frame_hdr_t*)packet;
 	ether_frame_ctl_t *ctl = (ether_frame_ctl_t *)&pkt->frame_ctl;
+
+	packet = full_packet;
+
+	/* Skip Radiotap header if present */
+	if (link_type == LINKTYPE_RADIOTAP_HDR)
+		packet += (((size_t)packet[1] << 8) | packet[2]);
+
+	// our data is in packet[] with pkt_hdr being the pcap packet header for this packet.
+	pkt = (ether_frame_hdr_t*)packet;
+	ctl = (ether_frame_ctl_t *)&pkt->frame_ctl;
 
 	if (ctl->type == 0 && ctl->subtype == 8) { // beacon  Type 0 is management, subtype 8 is beacon
 		HandleBeacon();
@@ -171,6 +184,10 @@ void HandleBeacon()
 	uint8 *pFinal = &packet[pkt_hdr.incl_len];
 	char ssid[36] = { 0 };
 	char essid[18];
+
+	/* Adjust length for Radiotap */
+	if (link_type == LINKTYPE_RADIOTAP_HDR)
+		pFinal -= (((size_t)packet[1] << 8) | packet[2]);
 
 	// addr1 should be broadcast
 	// addr2 is source addr (should be same as BSSID)

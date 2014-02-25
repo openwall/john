@@ -21,6 +21,9 @@ typedef   signed char      int8;
 // and do not load structures record by record.
 #pragma pack(1)
 
+#define LINKTYPE_IEEE802_11 105
+#define LINKTYPE_RADIOTAP_HDR 127
+
 // PCAP main file header
 typedef struct pcap_hdr_s {
 	uint32 magic_number;   /* magic number 0xA1B2C3D4 (or 0xD4C3B2A1 if file in BE format) */
