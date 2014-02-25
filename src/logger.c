@@ -204,11 +204,40 @@ void log_init(char *log_name, char *pot_name, char *session)
 	in_logger = 0;
 }
 
+static char *components(char *string, int len)
+{
+	static char out[16];
+	unsigned char *p = (unsigned char*)string;
+	unsigned char c;
+	int l, u, d, s, h;
+
+	l = u = d = s = h = 0;
+
+	while ((c = *p++)) {
+		if (c >= 'a' && c <= 'z')
+			l = 1;
+		else if (c >= 'A' && c <= 'Z')
+			u = 1;
+		else if (c >= '0' && c <= '9')
+			d = 1;
+		else if (c < 128)
+			s = 1;
+		else
+			h = 1;
+	}
+
+	sprintf(out, "L%d-%s%s%s%s%s", len, l ? "?l" : "", d ? "?d" : "",
+	        u ? "?u" : "", s ? "?s" : "", h ? "?h" : "");
+
+	return out;
+}
+
 void log_guess(char *login, char *ciphertext, char *rep_plain, char *store_plain, char field_sep)
 {
 	int count1, count2;
 	int len;
 	char spacer[] = "                ";
+	char *secret = "";
 
 	// This is because printf("%-16s") does not line up multibyte UTF-8.
 	// We need to count characters, not octets.
@@ -218,7 +247,10 @@ void log_guess(char *login, char *ciphertext, char *rep_plain, char *store_plain
 		len = strlen(rep_plain);
 	spacer[len > 16 ? 0 : 16 - len] = 0;
 
-	if (options.verbosity > 1)
+	if (options.secure) {
+		secret = components(rep_plain, len);
+		printf("%-16s (%s)\n", secret, login);
+	} else if (options.verbosity > 1)
 	printf("%s%s (%s)\n", rep_plain, spacer, login);
 
 	in_logger = 1;
@@ -227,8 +259,17 @@ void log_guess(char *login, char *ciphertext, char *rep_plain, char *store_plain
 		if (!strncmp(ciphertext, "$dynamic_", 9))
 			ciphertext = dynamic_FIX_SALT_TO_HEX(ciphertext);
 		if (strlen(ciphertext) + strlen(store_plain) <= LINE_BUFFER_SIZE - 3) {
-			count1 = (int)sprintf(pot.ptr,
-				"%s%c%s\n", ciphertext, field_sep, store_plain);
+			if (options.secure) {
+				secret = components(store_plain, len);
+				count1 = (int)sprintf(pot.ptr,
+				                      "%s%c%s\n",
+				                      ciphertext,
+				                      field_sep,
+				                      secret);
+			} else
+				count1 = (int)sprintf(pot.ptr,
+				                      "%s%c%s\n", ciphertext,
+				                      field_sep, store_plain);
 			if (count1 > 0) pot.ptr += count1;
 		}
 	}
@@ -240,6 +281,10 @@ void log_guess(char *login, char *ciphertext, char *rep_plain, char *store_plain
 			log.ptr += count1;
 			count2 = (int)sprintf(log.ptr, "+ Cracked %s", login);
 
+			if (options.secure)
+				count2 += (int)sprintf(log.ptr + count2,
+				                       ": %s", secret);
+			else
 			if (cfg_log_passwords)
 				count2 += (int)sprintf(log.ptr + count2,
 				                       ": %s", rep_plain);

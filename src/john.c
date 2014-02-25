@@ -961,7 +961,7 @@ static void john_load(void)
 					cfg_get_bool(SECTION_OPTIONS,
 			        NULL, "CPstoreUTF8", 0);
 		}
-		if (!options.utf8) {
+		if (!options.utf8 && !options.secure) {
 			if (options.report_utf8 && options.log_passwords)
 				log_event("- Passwords in this logfile are "
 				          "UTF-8 encoded");
@@ -1119,6 +1119,16 @@ static void john_init(char *name, int argc, char **argv)
 			cfg_init(CFG_FULL_NAME, 1);
 			cfg_init(CFG_ALT_NAME, 0);
 		}
+	}
+
+	if (cfg_get_bool(SECTION_OPTIONS, NULL, "SecureMode", 1))
+		options.secure = 1;
+
+	if (options.loader.activepot == NULL) {
+		if (options.secure)
+			options.loader.activepot = str_alloc_copy(SEC_POT_NAME);
+		else
+			options.loader.activepot = str_alloc_copy(POT_NAME);
 	}
 
 	/* This is --crack-status. We toggle here, so if it's enabled in

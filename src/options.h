@@ -267,6 +267,8 @@ struct options_main {
 	char *listconf;
 /* Verbosity level, 1-5. Three is normal, lower is more quiet. */
 	int verbosity;
+/* Secure mode. Do not output, log or store cracked passwords. */
+	int secure;
 };
 
 extern struct options_main options;

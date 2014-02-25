@@ -955,8 +955,8 @@ int initUnicode(int type) {
 	}
 
 #ifndef NOT_JOHN
-	options.log_passwords = cfg_get_bool(SECTION_OPTIONS,
-	    NULL, "LogCrackedPasswords", 0);
+	options.log_passwords = options.secure ||
+		cfg_get_bool(SECTION_OPTIONS, NULL, "LogCrackedPasswords", 0);
 	options.report_utf8 = cfg_get_bool(SECTION_OPTIONS,
 	    NULL, "AlwaysReportUTF8", 0);
 #endif

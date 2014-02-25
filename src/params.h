@@ -145,10 +145,12 @@
 #define CFG_PRIVATE_FULL_NAME		JOHN_PRIVATE_HOME "/john.conf"
 #define CFG_PRIVATE_ALT_NAME		JOHN_PRIVATE_HOME "/john.ini"
 #define POT_NAME			JOHN_PRIVATE_HOME "/john.pot"
+#define SEC_POT_NAME			JOHN_PRIVATE_HOME "/secure.pot"
 #define LOG_NAME			JOHN_PRIVATE_HOME "/john.log"
 #define RECOVERY_NAME			JOHN_PRIVATE_HOME "/john"
 #else
 #define POT_NAME			"$JOHN/john.pot"
+#define SEC_POT_NAME			"$JOHN/secure.pot"
 #define LOG_NAME			"$JOHN/john.log"
 #define RECOVERY_NAME			"$JOHN/john"
 #endif

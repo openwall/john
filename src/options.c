@@ -683,9 +683,6 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 		}
 	}
 
-	if (options.loader.activepot == NULL)
-		options.loader.activepot = str_alloc_copy(POT_NAME);
-
 	if (options.loader.activewordlistrules == NULL)
 		options.loader.activewordlistrules = str_alloc_copy(SUBSECTION_WORDLIST);
 
