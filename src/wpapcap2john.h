@@ -21,8 +21,17 @@ typedef   signed char      int8;
 // and do not load structures record by record.
 #pragma pack(1)
 
-#define LINKTYPE_IEEE802_11 105
-#define LINKTYPE_RADIOTAP_HDR 127
+// Borrowed from cap2hccap's pcap.h
+#define TCPDUMP_MAGIC           0xA1B2C3D4
+#define TCPDUMP_CIGAM           0xD4C3B2A1
+#define IVSONLY_MAGIC           "\xBF\xCA\x84\xD4"
+#define IVS2_MAGIC              "\xAE\x78\xD1\xFF"
+
+#define LINKTYPE_ETHERNET       1
+#define LINKTYPE_IEEE802_11     105
+#define LINKTYPE_PRISM_HEADER   119
+#define LINKTYPE_RADIOTAP_HDR   127
+#define LINKTYPE_PPI_HDR        192
 
 // PCAP main file header
 typedef struct pcap_hdr_s {

@@ -19,7 +19,6 @@
  * ...then again, maybe I'm just confused?
  */
 
-
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -61,7 +60,7 @@ int Process(FILE *in)
 	if (main_hdr.magic_number ==  0xa1b2c3d4) bROT = 0;
 	else if (main_hdr.magic_number ==  0xd4c3b2a1) bROT = 1;
 	else { fprintf(stderr, "%s: Error, Invalid pcap magic number, (not a pcap file!)\n", InFName);  return 0; }
-	if(bROT) {
+	if (bROT) {
 		main_hdr.magic_number = swap32u(main_hdr.magic_number);
 		main_hdr.version_major = swap16u(main_hdr.version_major);
 		main_hdr.version_minor = swap16u(main_hdr.version_minor);
@@ -71,7 +70,9 @@ int Process(FILE *in)
 	}
 	link_type = main_hdr.network;
 	if (link_type != LINKTYPE_IEEE802_11 &&
-	    link_type != LINKTYPE_RADIOTAP_HDR) {
+	    link_type != LINKTYPE_PRISM_HEADER &&
+	    link_type != LINKTYPE_RADIOTAP_HDR &&
+	    link_type != LINKTYPE_PPI_HDR) {
 		fprintf(stderr, "%s: No 802.11 wireless traffic data (network %d)\n", InFName, link_type);
 		return 0;
 	}
@@ -89,7 +90,7 @@ int GetNextPacket(FILE *in)
 
 	if (fread(&pkt_hdr, 1, sizeof(pkt_hdr), in) != sizeof(pkt_hdr)) return 0;
 
-	if(bROT) {
+	if (bROT) {
 		pkt_hdr.ts_sec = swap32u(pkt_hdr.ts_sec);
 		pkt_hdr.ts_usec = swap32u(pkt_hdr.ts_usec);
 		pkt_hdr.incl_len = swap32u(pkt_hdr.incl_len);
@@ -119,16 +120,60 @@ int GetNextPacket(FILE *in)
 // indication we have completed (or that the data we want is not here).
 int ProcessPacket()
 {
-	ether_frame_hdr_t *pkt = (ether_frame_hdr_t*)packet;
-	ether_frame_ctl_t *ctl = (ether_frame_ctl_t *)&pkt->frame_ctl;
+	ether_frame_hdr_t *pkt;
+	ether_frame_ctl_t *ctl;
+	unsigned int frame_skip = 0;
 
 	packet = full_packet;
 
-	/* Skip Radiotap header if present */
-	if (link_type == LINKTYPE_RADIOTAP_HDR)
-		packet += (((size_t)packet[1] << 8) | packet[2]);
+	// Skip Prism frame if present
+	if (link_type == LINKTYPE_PRISM_HEADER) {
+		if (packet[7] == 0x40)
+			frame_skip = 64;
+		else {
+			frame_skip = *(unsigned int*)&packet[4];
+#if !ARCH_LITTLE_ENDIAN
+			JOHNSWAP(frame_skip);
+#endif
+		}
+		if (frame_skip < 8 || frame_skip >= pkt_hdr.incl_len)
+			return 0;
+		packet += frame_skip;
+		pkt_hdr.incl_len -= frame_skip;
+	}
 
-	// our data is in packet[] with pkt_hdr being the pcap packet header for this packet.
+	// Skip Radiotap frame if present
+	if (link_type == LINKTYPE_RADIOTAP_HDR) {
+		frame_skip = *(unsigned short*)&packet[2];
+#if !ARCH_LITTLE_ENDIAN
+		JOHNSWAP(frame_skip);
+#endif
+		if (frame_skip == 0 || frame_skip >= pkt_hdr.incl_len)
+			return 0;
+		packet += frame_skip;
+		pkt_hdr.incl_len -= frame_skip;
+	}
+
+	// Skip PPI frame if present
+	if (link_type == LINKTYPE_PPI_HDR) {
+		frame_skip = *(unsigned short*)&packet[2];
+#if !ARCH_LITTLE_ENDIAN
+		JOHNSWAP(frame_skip);
+#endif
+		if( frame_skip <= 0 || frame_skip>= (int) pkt_hdr.incl_len )
+			return 0;
+
+		// Kismet logged broken PPI frames for a period
+		if (frame_skip == 24 && *(unsigned short*)&packet[8] == 2)
+			frame_skip = 32;
+
+		if (frame_skip == 0 || frame_skip >= pkt_hdr.incl_len)
+			return 0;
+		packet += frame_skip;
+		pkt_hdr.incl_len -= frame_skip;
+	}
+
+	// our data is in *packet with pkt_hdr being the pcap packet header for this packet.
 	pkt = (ether_frame_hdr_t*)packet;
 	ctl = (ether_frame_ctl_t *)&pkt->frame_ctl;
 
@@ -184,10 +229,6 @@ void HandleBeacon()
 	uint8 *pFinal = &packet[pkt_hdr.incl_len];
 	char ssid[36] = { 0 };
 	char essid[18];
-
-	/* Adjust length for Radiotap */
-	if (link_type == LINKTYPE_RADIOTAP_HDR)
-		pFinal -= (((size_t)packet[1] << 8) | packet[2]);
 
 	// addr1 should be broadcast
 	// addr2 is source addr (should be same as BSSID)
@@ -286,7 +327,7 @@ void Handle4Way(int bIsQOS)
 	// do not have valid 3 4's.  They 'may' be valid, but may also be a client with the wrong password.
 
 	if (msg == 1) {
-		if(wpa[ess].packet1) free(wpa[ess].packet1);
+		if (wpa[ess].packet1) free(wpa[ess].packet1);
 		wpa[ess].packet1 = (uint8 *)malloc(sizeof(uint8) * pkt_hdr.orig_len);
 		memcpy(wpa[ess].packet1, packet, pkt_hdr.orig_len);
 		if (wpa[ess].packet2) free(wpa[ess].packet2);  wpa[ess].packet2 = NULL;
@@ -323,7 +364,7 @@ void Handle4Way(int bIsQOS)
 			p += sizeof(ether_frame_hdr_t);
 			auth1 = (ether_auto_802_1x_t*)p;
 			if (auth1->replay_cnt == auth2->replay_cnt) {
-				fprintf (stderr, "Key1/Key2 hit (hopeful hit), for SSID:%s (%s)\n", wpa[ess].ssid, InFName);
+				fprintf (stderr, "\nKey1/Key2 hit (hopeful hit), for SSID:%s (%s)\n", wpa[ess].ssid, InFName);
 				DumpKey(ess, 1, bIsQOS);
 			}
 			// we no longer want to know about this packet 1.
@@ -345,7 +386,7 @@ void Handle4Way(int bIsQOS)
 			p += sizeof(ether_frame_hdr_t);
 			auth2 = (ether_auto_802_1x_t*)p;
 			if (auth2->replay_cnt+1 == auth3->replay_cnt) {
-				fprintf (stderr, "Key2/Key3 hit (SURE hit), for SSID:%s (%s)\n", wpa[ess].ssid, InFName);
+				fprintf (stderr, "\nKey2/Key3 hit (SURE hit), for SSID:%s (%s)\n", wpa[ess].ssid, InFName);
 				DumpKey(ess, 3, bIsQOS);
 				wpa[ess].fully_cracked = 1;
 			}
@@ -355,15 +396,6 @@ void Handle4Way(int bIsQOS)
 		if (wpa[ess].packet2) free(wpa[ess].packet2);  wpa[ess].packet2 = NULL;
 		if (wpa[ess].orig_2)  free(wpa[ess].orig_2);   wpa[ess].orig_2 = NULL;
 	}
-/*
-	if (msg == 4) {
-		if (wpa[ess].packet1) free(wpa[ess].packet1);  wpa[ess].packet1 = NULL;
-		if (wpa[ess].packet2) free(wpa[ess].packet2);  wpa[ess].packet2 = NULL;
-		if (wpa[ess].orig_2)  free(wpa[ess].orig_2);   wpa[ess].orig_2 = NULL;
-		if (wpa[ess].packet3) free(wpa[ess].packet3);  wpa[ess].packet3 = NULL;
-		if (wpa[ess].packet4) free(wpa[ess].packet4);  wpa[ess].packet4 = NULL;
-	}
-*/
 }
 
 // These 2 functions output data properly for JtR, in base-64 format. These
