@@ -129,32 +129,35 @@ static int hash_plugin_parse_hash(char *filename)
 	    ntohl(myphdr.keyblock[bestslot].stripes));
 
 	fprintf(stderr, "Best keyslot [%d]: %d keyslot iterations, %d stripes, %d mkiterations\n", bestslot, ntohl(myphdr.keyblock[bestslot].passwordIterations),ntohl(myphdr.keyblock[bestslot].stripes),ntohl(myphdr.mkDigestIterations));
-	fprintf(stderr, "cipherbuf size : %d\n", afsize);
+	fprintf(stderr, "Cipherbuf size: %d\n", afsize);
+
+	/* common handling */
+	cipherbuf = malloc(afsize);
+	fseek(myfile, ntohl(myphdr.keyblock[bestslot].keyMaterialOffset) * 512,
+	SEEK_SET);
+	readbytes = fread(cipherbuf, afsize, 1, myfile);
+	if (readbytes < 0) {
+		free(cipherbuf);
+		fclose(myfile);
+		goto bad;
+	}
+
 	if (afsize * 2 < LINE_BUFFER_SIZE) {
-		/* base-64 encode cipherbuf */
 		BIO *bio, *b64;
-
-		cipherbuf = malloc(afsize);
-		fseek(myfile, ntohl(myphdr.keyblock[bestslot].keyMaterialOffset) * 512,
-		SEEK_SET);
-		readbytes = fread(cipherbuf, afsize, 1, myfile);
-
-		if (readbytes < 0) {
-			free(cipherbuf);
-			fclose(myfile);
-			goto bad;
-		}
-
 		fprintf(stderr, "Generating inlined hash!\n");
 		printf("$luks$1$%zu$", sizeof(myphdr));
 		print_hex((unsigned char *)&myphdr, sizeof(myphdr));
 		printf("$%d$", afsize);
+		/* base-64 encode cipherbuf */
 		b64 = BIO_new(BIO_f_base64());
 		bio = BIO_new_fp(stdout, BIO_NOCLOSE);
 		bio = BIO_push(b64, bio);
 		BIO_set_flags(bio, BIO_FLAGS_BASE64_NO_NL);
 		BIO_write(bio, cipherbuf, afsize);
-		BIO_flush(bio);
+		if(BIO_flush(bio) <= 0) {
+			fprintf(stderr, "%s : BIO_flush failed ;(\n", filename);
+			return -3;
+		}
 		BIO_free_all(bio);
 		printf("$");
 		print_hex((unsigned char *)myphdr.mkDigest, LUKS_DIGESTSIZE);
@@ -163,9 +166,19 @@ static int hash_plugin_parse_hash(char *filename)
 		goto good;
 	}
 	else {
-		printf("$luks$0$%s$", filename);
+		FILE *fp = fopen("dump", "wb");  // XXX make me unpredictable!
+		fprintf(stderr, "Generating inlined hash with attached dump!\n");
+		printf("$luks$0$%lu$", sizeof(myphdr));
+		print_hex((unsigned char *)&myphdr, sizeof(myphdr));
+		printf("$%d$", afsize);
+
+		printf("%s$%s$", filename, "dump");
 		print_hex((unsigned char *)myphdr.mkDigest, LUKS_DIGESTSIZE);
 		printf("\n");
+
+		fwrite(cipherbuf, afsize, 1, fp);
+		fclose(fp);
+
 		goto good;
 	}
 

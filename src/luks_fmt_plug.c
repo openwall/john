@@ -108,6 +108,7 @@ static struct custom_salt {
 	unsigned char *cipherbuf;
 	int afsize;
 	int bestslot;
+	int bestiter;
 	char path[8192];
 } *cur_salt;
 
@@ -179,7 +180,7 @@ static int af_sectors(int blocksize, int blocknumbers)
 
 
 static void decrypt_aes_cbc_essiv(unsigned char *src, unsigned char *dst,
-    unsigned char *key, int startsector, int size, struct custom_salt *cs)
+    unsigned char *key, int size, struct custom_salt *cs)
 {
 	AES_KEY aeskey;
 	unsigned char essiv[16];
@@ -207,9 +208,7 @@ static void decrypt_aes_cbc_essiv(unsigned char *src, unsigned char *dst,
 static int hash_plugin_parse_hash(char *filename, struct custom_salt *cs, int is_critical)
 {
 	FILE *myfile;
-	int cnt;
 	int readbytes;
-	unsigned int bestiter = 0xFFFFFFFF;
 
 	myfile = fopen(filename, "rb");
 
@@ -218,43 +217,8 @@ static int hash_plugin_parse_hash(char *filename, struct custom_salt *cs, int is
 		return -1;
 	}
 
-	if (fread(&(cs->myphdr), sizeof(struct luks_phdr), 1, myfile) < 1) {
-		fprintf(stderr, "\n%s : file too small?\n", filename);
-		goto bad;
-	}
-
-	if (strcmp(cs->myphdr.magic, "LUKS\xba\xbe") != 0) {
-		fprintf(stderr, "\n%s : not a LUKS file / disk\n", filename);
-		goto bad;
-	}
-
-	if (strcmp(cs->myphdr.cipherName, "aes") != 0) {
-		fprintf(stderr, "\n%s : Only AES cipher supported. Used cipher: %s\n",
-			filename, cs->myphdr.cipherName);
-		goto bad;
-	}
-
-	for (cnt = 0; cnt < LUKS_NUMKEYS; cnt++) {
-		if ((john_ntohl(cs->myphdr.keyblock[cnt].passwordIterations) < bestiter)
-		    && (john_ntohl(cs->myphdr.keyblock[cnt].passwordIterations) > 1) &&
-		    (john_ntohl(cs->myphdr.keyblock[cnt].active) == 0x00ac71f3)) {
-			cs->bestslot = cnt;
-			bestiter =
-			    john_ntohl(cs->myphdr.keyblock[cnt].passwordIterations);
-		}
-	}
-	if (cs->bestslot == 2000) {
-		fprintf(stderr, "\n%s : unable to find a suitable slot\n",
-			filename);
-		goto bad;
-	}
-
-	cs->afsize =
-	    af_sectors(john_ntohl(cs->myphdr.keyBytes),
-	    john_ntohl(cs->myphdr.keyblock[cs->bestslot].stripes));
 	cs->cipherbuf = mem_alloc_tiny(cs->afsize, MEM_ALIGN_NONE);
-	fseek(myfile, john_ntohl(cs->myphdr.keyblock[cs->bestslot].keyMaterialOffset) * 512,
-	    SEEK_SET);
+	// printf(">>> %d\n", cs->afsize);
 	readbytes = fread(cs->cipherbuf, cs->afsize, 1, myfile);
 
 	if (readbytes < 0) {
@@ -263,13 +227,8 @@ static int hash_plugin_parse_hash(char *filename, struct custom_salt *cs, int is
 			filename);
 		goto bad;
 	}
-	/* printf("Best keyslot [%d]: %d keyslot iterations, %d stripes, %d mkiterations\n",
-		cs->bestslot,
-		john_ntohl(cs->myphdr.keyblock[cs->bestslot].passwordIterations),
-		john_ntohl(cs->myphdr.keyblock[cs->bestslot].stripes),
-		john_ntohl(cs->myphdr.mkDigestIterations)); */
-
 	return 0;
+
 bad:
 	fclose(myfile);
 	if (is_critical) {
@@ -340,6 +299,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		if ((p = strtok(NULL, "$")) == NULL)	/* mkDigest */
 			goto err;
 
+		return 1;
 		/* more tests */
 		if (hash_plugin_parse_hash(q, &cs, 0) != 0) {
 			MEM_FREE(cs.cipherbuf);
@@ -367,6 +327,7 @@ static void *get_salt(char *ciphertext)
 	unsigned char *out;
 	static struct custom_salt cs;
 	unsigned int bestiter = 0xFFFFFFFF;
+	size_t size;
 	ctcopy += 6;
 
 	out = (unsigned char*)&cs.myphdr;
@@ -374,40 +335,42 @@ static void *get_salt(char *ciphertext)
 	p = strtok(ctcopy, "$");
 	is_inlined = atoi(p);
 
-	if (is_inlined) {
-		size_t size;
-		p = strtok(NULL, "$");
-		res = atoi(p);
-		assert(res == sizeof(struct luks_phdr));
-		p = strtok(NULL, "$");
-		for (i = 0; i < res; i++) {
-			out[i] = (atoi16[ARCH_INDEX(*p)] << 4) | atoi16[ARCH_INDEX(p[1])];
-			p += 2;
-		}
-		p = strtok(NULL, "$");
-		res = atoi(p);
+	/* common handling */
+	p = strtok(NULL, "$");
+	res = atoi(p);
+	assert(res == sizeof(struct luks_phdr));
+	p = strtok(NULL, "$");
+	for (i = 0; i < res; i++) {
+		out[i] = (atoi16[ARCH_INDEX(*p)] << 4) | atoi16[ARCH_INDEX(p[1])];
+		p += 2;
+	}
+	p = strtok(NULL, "$");
+	res = atoi(p);
 
-		cs.afsize = af_sectors(john_ntohl(cs.myphdr.keyBytes),
-				john_ntohl(cs.myphdr.keyblock[cs.bestslot].stripes));
-		assert(res == cs.afsize);
+	cs.afsize = af_sectors(john_ntohl(cs.myphdr.keyBytes),
+			john_ntohl(cs.myphdr.keyblock[cs.bestslot].stripes));
+	assert(res == cs.afsize);
+
+	if (is_inlined) {
 		p = strtok(NULL, "$");
 		size = (strlen(p) + 20) / 4 * 3;
 		cs.cipherbuf = mem_alloc_tiny(size, MEM_ALIGN_NONE);
 		base64_decode(p, strlen(p), (char*)cs.cipherbuf);
-		for (cnt = 0; cnt < LUKS_NUMKEYS; cnt++) {
+	}
+	else {
+		p = strtok(NULL, "$");
+		p = strtok(NULL, "$");
+		strcpy(cs.path, p);
+		hash_plugin_parse_hash(cs.path, &cs, 1);
+	}
+	for (cnt = 0; cnt < LUKS_NUMKEYS; cnt++) {
 			if ((john_ntohl(cs.myphdr.keyblock[cnt].passwordIterations) < bestiter)
 			&& (john_ntohl(cs.myphdr.keyblock[cnt].passwordIterations) > 1) &&
 			(john_ntohl(cs.myphdr.keyblock[cnt].active) == 0x00ac71f3)) {
 				cs.bestslot = cnt;
-				bestiter =
+				cs.bestiter =
 				john_ntohl(cs.myphdr.keyblock[cnt].passwordIterations);
 			}
-		}
-	}
-	else {
-		p = strtok(NULL, "$");
-		strcpy(cs.path, p);
-		hash_plugin_parse_hash(cs.path, &cs, 1);
 	}
 	MEM_FREE(keeptr);
 	return (void *)&cs;
@@ -460,9 +423,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		unsigned char masterkeycandidate[255];
 		unsigned char *af_decrypted = mem_alloc(cur_salt->afsize + 20);
 		char *password = saved_key[index];
-		int iterations = john_ntohl(cur_salt->myphdr.keyblock[cur_salt->bestslot].passwordIterations);
-
+		int iterations = cur_salt->bestiter;
 		int dklen = john_ntohl(cur_salt->myphdr.keyBytes);
+
+		// printf("itertations %d %d %d\n", iterations, dklen, cur_salt->bestslot);
 
 		// Get pbkdf2 of the password to obtain decryption key
 		derive_key((const uint8_t*)password, strlen(password),
@@ -473,8 +437,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			dklen);
 
 		// Decrypt the blocksi
-		decrypt_aes_cbc_essiv(cur_salt->cipherbuf, af_decrypted, keycandidate,
-		john_ntohl(cur_salt->myphdr.keyblock[cur_salt->bestslot].keyMaterialOffset), cur_salt->afsize, cur_salt);
+		decrypt_aes_cbc_essiv(cur_salt->cipherbuf, af_decrypted, keycandidate, cur_salt->afsize, cur_salt);
 		// AFMerge the blocks
 		AF_merge(af_decrypted, masterkeycandidate, cur_salt->afsize,
 		john_ntohl(cur_salt->myphdr.keyblock[cur_salt->bestslot].stripes));
