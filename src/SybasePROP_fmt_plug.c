@@ -32,10 +32,10 @@ static int omp_t = 1;
 
 #define BLOCK_SIZE 8
 
-#define FORMAT_LABEL        "sybase-prop"
+#define FORMAT_LABEL        "Sybase-PROP"
 #define FORMAT_NAME         ""
 
-#define ALGORITHM_NAME      "Sybase PROP salted FEAL-8"
+#define ALGORITHM_NAME      "salted FEAL-8 32/" ARCH_BITS_STR
 
 #define BENCHMARK_COMMENT   ""
 #define BENCHMARK_LENGTH    0
@@ -50,7 +50,7 @@ static int omp_t = 1;
 #define BINARY_ALIGN        4
 #define SALT_SIZE           1  // see the definition of generate_hash, note "unsigned char seed" argument
 #define SALT_SIZE_HEX       2
-#define SALT_ALIGN          4  // XXX
+#define SALT_ALIGN          1
 
 #define MIN_KEYS_PER_CRYPT  1
 #define MAX_KEYS_PER_CRYPT  1
