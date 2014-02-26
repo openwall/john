@@ -1121,7 +1121,7 @@ static void john_init(char *name, int argc, char **argv)
 		}
 	}
 
-	if (cfg_get_bool(SECTION_OPTIONS, NULL, "SecureMode", 1))
+	if (cfg_get_bool(SECTION_OPTIONS, NULL, "SecureMode", 0))
 		options.secure = 1;
 
 	if (options.loader.activepot == NULL) {
