@@ -130,9 +130,6 @@ static void sig_handle_update(int signum)
 {
 	event_save = event_pending = 1;
 
-#ifdef HAVE_MPI
-	event_status = 1;
-#endif
 #ifndef SA_RESTART
 	sig_install_update();
 #endif
@@ -147,23 +144,14 @@ static void sig_install_update(void)
 	sa.sa_handler = sig_handle_update;
 	sa.sa_flags = SA_RESTART;
 	sigaction(SIGHUP, &sa, NULL);
-#ifdef SIGUSR1
-	sigaction(SIGUSR1, &sa, NULL);
-#endif
 #else
 	signal(SIGHUP, sig_handle_update);
-#ifdef SIGUSR1
-	signal(SIGUSR1, sig_handle_update);
-#endif
 #endif
 }
 
 static void sig_remove_update(void)
 {
 	signal(SIGHUP, SIG_IGN);
-#ifdef SIGUSR1
-	signal(SIGUSR1, SIG_DFL);
-#endif
 }
 
 void check_abort(int be_async_signal_safe)
@@ -328,10 +316,9 @@ static void sig_handle_timer(int signum)
 	}
 
 #ifndef HAVE_MPI
-	if (john_main_process) {
-#else
-	{
+	if (john_main_process)
 #endif
+	{
 		int c;
 #if OS_FORK
 		int new_abort = 0, new_status = 0;
@@ -352,7 +339,7 @@ static void sig_handle_timer(int signum)
 
 #if OS_FORK
 		if (new_abort || new_status)
-			signal_children(new_abort ? SIGTERM : SIGUSR2);
+			signal_children(new_abort ? SIGTERM : SIGUSR1);
 #endif
 	}
 
@@ -416,11 +403,11 @@ static void sig_remove_timer(void)
 	signal(SIGALRM, SIG_DFL);
 }
 
-#if OS_FORK
+#ifdef SIGUSR1
 static void sig_handle_status(int signum)
 {
 	event_status = event_pending = 1;
-	signal(SIGUSR2, sig_handle_status);
+	signal(SIGUSR1, sig_handle_status);
 }
 #endif
 
@@ -452,8 +439,8 @@ void sig_init(void)
 	sig_install_update();
 	sig_install_abort();
 	sig_install_timer();
-#if OS_FORK
-	signal(SIGUSR2, sig_handle_status);
+#ifdef SIGUSR1
+	signal(SIGUSR1, sig_handle_status);
 #endif
 }
 
