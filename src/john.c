@@ -1160,6 +1160,10 @@ static void john_init(char *name, int argc, char **argv)
 
 	john_load();
 
+	/* Start a resumed session by emitting a status line. */
+	if (rec_restored)
+		event_pending = event_status = 1;
+
 	if (options.encodingStr && options.encodingStr[0])
 		log_event("- %s input encoding enabled", options.encodingStr);
 }
