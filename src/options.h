@@ -248,6 +248,12 @@ struct options_main {
 /* Emit a status line every N seconds */
 	int status_interval;
 
+/* Reload every N seconds */
+	int reload_interval;
+
+/* Reload at every crack */
+	int reload_at_crack;
+
 /* Force dynamic format to always treat bare hashes as valid. If not set
    then dynamic format only uses bare hashes if -form=dynamic_xxx is used.
    If this is 'N', then original logic used.  If 'Y' or 'y' then we always

@@ -275,6 +275,11 @@ static int crk_process_guess(struct db_salt *salt, struct db_password *pw,
 	          dupe ? NULL : crk_methods.source(pw->source, pw->binary),
 	          repkey, key, crk_db->options->field_sep_char);
 
+#ifdef SIGUSR2
+	if (options.reload_at_crack)
+		raise(SIGUSR2);
+	else
+#endif
 	if (options.flags & FLG_CRKSTAT)
 		event_pending = event_status = 1;
 

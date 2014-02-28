@@ -65,11 +65,11 @@
 #include "john-mpi.h"
 #endif
 
-volatile int event_pending = 0;
+volatile int event_pending = 0, event_reload = 0;
 volatile int event_abort = 0, event_save = 0, event_status = 0;
 volatile int event_ticksafety = 0;
 
-volatile int timer_abort = -1, timer_status = -1;
+volatile int timer_reload = 0, timer_abort = 0, timer_status = 0;
 static int timer_save_interval, timer_save_value;
 static clock_t timer_ticksafety_interval, timer_ticksafety_value;
 
@@ -156,19 +156,12 @@ static void sig_remove_update(void)
 
 void check_abort(int be_async_signal_safe)
 {
-	unsigned int time;
-
 	if (!event_abort) return;
 
-#ifdef BENCH_BUILD
-	time = 0;
-#else
-	time = status_get_time();
-#endif
 	tty_done();
 
 	if (be_async_signal_safe) {
-		if (time < timer_abort) {
+		if (timer_abort >= 0) {
 			if (john_main_process)
 				write_loop(2, "Session aborted\n", 16);
 #if defined(HAVE_MPI) && defined(JOHN_MPI_ABORT)
@@ -183,7 +176,7 @@ void check_abort(int be_async_signal_safe)
 	}
 
 	if (john_main_process)
-		fprintf(stderr, "Session %s\n", (time < timer_abort) ?
+		fprintf(stderr, "Session %s\n", (timer_abort >= 0) ?
 		        "aborted" : "stopped (max run-time reached)");
 	error();
 }
@@ -271,7 +264,6 @@ static void sig_handle_timer(int signum)
 {
 	int saved_errno = errno;
 #ifndef BENCH_BUILD
-	unsigned int time;
 
 #if OS_TIMER
 	if (!--timer_save_value) {
@@ -279,32 +271,36 @@ static void sig_handle_timer(int signum)
 		event_save = event_pending = 1;
 	}
 
-	if (timer_abort > 0 || timer_status > 0) {
-		time = status_get_time();
-		if (time >= timer_abort) {
-			event_abort = event_pending = 1;
-			timer_abort = 0;
-		}
-
-		if (time >= timer_status) {
-			event_status = event_pending = 1;
-			timer_status += options.status_interval;
-		}
+	if (timer_abort && !--timer_abort) {
+		timer_abort = -1;
+		event_abort = event_pending = 1;
+	}
+	if (timer_status && !--timer_status) {
+		timer_status = options.status_interval;
+		event_status = event_pending = 1;
+	}
+	if (timer_reload && !--timer_reload) {
+		event_save = event_reload = event_pending = 1;
 	}
 #else /* no OS_TIMER */
-	time = status_get_time();
+	unsigned int time = status_get_time();
 
 	if (time >= timer_save_value) {
 		timer_save_value += timer_save_interval;
 		event_save = event_pending = 1;
 	}
 
-	if (time >= timer_abort)
+	if (timer_abort && time >= timer_abort) {
+		timer_abort = -1;
 		event_abort = event_pending = 1;
-
-	if (time >= timer_status) {
-		event_status = event_pending = 1;
+	}
+	if (timer_status && time >= timer_status) {
 		timer_status += options.status_interval;
+		event_status = event_pending = 1;
+	}
+	if (timer_reload && time >= timer_reload) {
+		timer_reload = 0;
+		event_save = event_reload = event_pending = 1;
 	}
 #endif /* OS_TIMER */
 #endif /* !BENCH_BUILD */
@@ -411,7 +407,19 @@ static void sig_handle_status(int signum)
 }
 #endif
 
-static void sig_done(void);
+#ifdef SIGUSR2
+static void sig_handle_reload(int signum)
+{
+#if OS_FORK
+	signal_children(SIGUSR2);
+#endif
+#ifdef HAVE_MPI
+	if (mpi_p == 1 && !getenv("OMPI_COMM_WORLD_SIZE"))
+#endif
+		event_save = event_reload = event_pending = 1;
+	signal(SIGUSR2, sig_handle_reload);
+}
+#endif
 
 void sig_init(void)
 {
@@ -442,6 +450,9 @@ void sig_init(void)
 #ifdef SIGUSR1
 	signal(SIGUSR1, sig_handle_status);
 #endif
+#ifdef SIGUSR2
+	signal(SIGUSR2, sig_handle_reload);
+#endif
 }
 
 void sig_init_child(void)
@@ -451,7 +462,7 @@ void sig_init_child(void)
 #endif
 }
 
-static void sig_done(void)
+void sig_done(void)
 {
 	sig_remove_update();
 	sig_remove_abort();

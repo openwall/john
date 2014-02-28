@@ -32,15 +32,19 @@
  */
 extern volatile int event_pending;	/* An event is pending */
 extern volatile int event_abort;	/* Abort requested */
+extern volatile int event_reload;	/* Restart requested */
 extern volatile int event_save;		/* Save the crash recovery file */
 extern volatile int event_status;	/* Status display requested */
 extern volatile int event_ticksafety;	/* System time in ticks may overflow */
 
-/* Zero if --max-run-time was reached */
+/* --max-run-time timer, zero if reached */
 extern volatile int timer_abort;
 
-/* Zero if --progress-every was reached */
+/* --progress-every timer */
 extern volatile int timer_status;
+
+/* --reload-every timer */
+extern volatile int timer_reload;
 
 #if !OS_TIMER
 /*
@@ -71,4 +75,8 @@ extern void sig_init_child(void);
  */
 extern void check_abort(int be_async_signal_safe);
 
+/*
+ * Reset signals and timers. Normally called via atexit() but not when execv().
+ */
+void sig_done(void);
 #endif
