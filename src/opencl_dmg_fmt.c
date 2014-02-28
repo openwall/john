@@ -533,6 +533,7 @@ static int hash_plugin_check_hash(unsigned char *derived_key)
 {
 	unsigned char hmacsha1_key_[20];
 	unsigned char aes_key_[32];
+	int ret = 0;
 
 	if (cur_salt->headerver == 1) {
 		if ((apple_des3_ede_unwrap_key1(cur_salt->wrapped_aes_key, cur_salt->len_wrapped_aes_key, derived_key) == 0) && (apple_des3_ede_unwrap_key1(cur_salt->wrapped_hmac_sha1_key, cur_salt->len_hmac_sha1_key, derived_key) == 0)) {
