@@ -6,7 +6,17 @@
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted. */
 
-//#define DMG_DEBUG		1
+/*
+ *  Debug levels:
+ *   1 show what "test" hits
+ *   2 dump printables from the decrypted blocks
+ *   3 dump hex from the decrypted blocks
+ *   4 dump decrypted blocks to files (will overwrite with no mercy):
+ *       dmg.debug.main   main block
+ *       dmg.debug        alternate block (if present, this is the start block)
+ */
+//#define DMG_DEBUG		2
+
 #include <string.h>
 #include <openssl/aes.h>
 #include <openssl/evp.h>
@@ -534,11 +544,14 @@ static int hash_plugin_check_hash(unsigned char *derived_key)
 		unsigned char TEMP1[sizeof(cur_salt->wrapped_hmac_sha1_key)];
 		int outlen, tmplen;
 		AES_KEY aes_decrypt_key;
-		unsigned char outbuf[8192 + 1];
+		unsigned char outbuf[8192 + 1]; // XXX verify jtr_memmem function!
+		unsigned char outbuf2[4096 + 1];
 		unsigned char iv[20];
 		HMAC_CTX hmacsha1_ctx;
 		int mdlen;
-		//unsigned char *r;
+#ifdef DMG_DEBUG
+		unsigned char *r;
+#endif
 		const char nulls[8] = { 0 };
 
 		EVP_CIPHER_CTX_init(&ctx);
@@ -567,93 +580,59 @@ static int hash_plugin_check_hash(unsigned char *derived_key)
 		/* 8 consecutive nulls */
 		if (jtr_memmem(outbuf, cur_salt->data_size, (void*)nulls, 8)) {
 #ifdef DMG_DEBUG
-			if (!bench_running) {
-#if DMG_DEBUG > 1
-				dump_text(outbuf, cur_salt->data_size);
-#endif
+			if (!bench_running)
 				fprintf(stderr, "NULLS found!\n\n");
-			}
 #endif
-			return 1;
+			ret = 1;
 		}
 
 /* These tests seem to be obsoleted by the 8xNULL test */
-#if 0
+#ifdef DMG_DEBUG
 		/* </plist> is a pretty generic signature for Apple */
 		if (jtr_memmem(outbuf, cur_salt->data_size, (void*)"</plist>", 8)) {
-#ifdef DMG_DEBUG
-			if (!bench_running) {
-#if DMG_DEBUG > 1
-				dump_text(outbuf, cur_salt->data_size);
-#endif
+			if (!bench_running)
 				fprintf(stderr, "</plist> found!\n\n");
-			}
-#endif
-			return 1;
+			ret = 1;
 		}
 
 		/* Journalled HFS+ */
 		if (jtr_memmem(outbuf, cur_salt->data_size, (void*)"jrnlhfs+", 8)) {
-#ifdef DMG_DEBUG
-			if (!bench_running) {
-#if DMG_DEBUG > 1
-				dump_text(outbuf, cur_salt->data_size);
-#endif
+			if (!bench_running)
 				fprintf(stderr, "jrnlhfs+ found!\n\n");
-			}
-#endif
-			return 1;
+			ret = 1;
 		}
 
-		/* Handle compressed DMG files, CMIYC 2012 and self-made samples.
-		   Is this test obsoleted by the </plist> one? */
-		r = jtr_memmem(outbuf, cur_salt->data_size, (void*)"koly", 4);
-		if (r) {
+		/* Handle compressed DMG files, CMIYC 2012 and self-made
+		   samples. Is this test obsoleted by the </plist> one? */
+		if ((r = jtr_memmem(outbuf, cur_salt->data_size, (void*)"koly", 4))) {
 			unsigned int *u32Version = (unsigned int *)(r + 4);
 
 			if (HTONL(*u32Version) == 4) {
-#ifdef DMG_DEBUG
-				if (!bench_running) {
-#if DMG_DEBUG > 1
-					dump_text(outbuf, cur_salt->data_size);
-#endif
+				if (!bench_running)
 					fprintf(stderr, "koly found!\n\n");
-				}
-#endif
-				return 1;
+				ret = 1;
 			}
 		}
 
 		/* Handle VileFault sample images */
 		if (jtr_memmem(outbuf, cur_salt->data_size, (void*)"EFI PART", 8)) {
-#ifdef DMG_DEBUG
-			if (!bench_running) {
-#if DMG_DEBUG > 1
-				dump_text(outbuf, cur_salt->data_size);
-#endif
+			if (!bench_running)
 				fprintf(stderr, "EFI PART found!\n\n");
-			}
-#endif
-			return 1;
+			ret = 1;
 		}
 
 		/* Apple is a good indication but it's short enough to
 		   produce false positives */
 		if (jtr_memmem(outbuf, cur_salt->data_size, (void*)"Apple", 5)) {
-#ifdef DMG_DEBUG
-			if (!bench_running) {
-#if DMG_DEBUG > 1
-				dump_text(outbuf, cur_salt->data_size);
-#endif
+			if (!bench_running)
 				fprintf(stderr, "Apple found!\n\n");
-			}
-#endif
-			return 1;
+			ret = 1;
 		}
 
-#endif /* 0 */
+#endif /* DMG_DEBUG */
+
+		/* Second buffer test. If present, *this* is the very first block of the DMG */
 		if (cur_salt->scp == 1) {
-			unsigned char outbuf2[4096 + 1];
 			int cno = 0;
 
 			HMAC_CTX_init(&hmacsha1_ctx);
@@ -665,41 +644,66 @@ static int hash_plugin_check_hash(unsigned char *derived_key)
 				AES_set_decrypt_key(aes_key_, 128, &aes_decrypt_key);
 			else
 				AES_set_decrypt_key(aes_key_, 128 * 2, &aes_decrypt_key);
-
 			AES_cbc_encrypt(cur_salt->zchunk, outbuf2, 4096, &aes_decrypt_key, iv, AES_DECRYPT);
+
 			/* 8 consecutive nulls */
 			if (jtr_memmem(outbuf2, 4096, (void*)nulls, 8)) {
 #ifdef DMG_DEBUG
-				if (!bench_running) {
-#if DMG_DEBUG > 1
-					dump_text(outbuf, cur_salt->data_size);
-					fprintf(stderr, "2nd block:\n");
-					dump_text(outbuf2, 4096);
+				if (!bench_running)
+					fprintf(stderr, "NULLS found in alternate block!\n\n");
 #endif
-					fprintf(stderr, "NULLS found!\n\n");
-				}
-#endif
-				return 1;
+				ret = 1;
 			}
-/* This test seem to be obsoleted by the 8xNULL test */
-#if 0
-			if (jtr_memmem(outbuf2, 4096, (void*)"Press any key to reboot", 23)) {
 #ifdef DMG_DEBUG
-				if (!bench_running) {
-#if DMG_DEBUG > 1
-					dump_text(outbuf, cur_salt->data_size);
-					fprintf(stderr, "2nd block:\n");
-					dump_text(outbuf2, 4096);
-#endif
-					fprintf(stderr, "MS-DOS UDRW signature found!\n\n");
-				}
-#endif
-				return 1;
+			/* This test seem to be obsoleted by the 8xNULL test */
+			if (jtr_memmem(outbuf2, 4096, (void*)"Press any key to reboot", 23)) {
+				if (!bench_running)
+					fprintf(stderr, "MS-DOS UDRW signature found in alternate block!\n\n");
+				ret = 1;
 			}
-#endif /* 0 */
+#endif /* DMG_DEBUG */
 		}
+
+
+#ifdef DMG_DEBUG
+		/* Write block as hex, strings or raw to a file. */
+		if (ret && !bench_running) {
+#if DMG_DEBUG == 4
+			int fd;
+
+			if ((fd = open("dmg.debug.main", O_RDWR | O_CREAT | O_TRUNC, 0660)) == -1)
+				perror("open()");
+			else {
+				if (flock(fd, LOCK_EX))
+					perror("flock()");
+				if ((write(fd, outbuf, cur_salt->data_size) == -1))
+					perror("write()");
+				if (cur_salt->scp == 1)
+					if ((write(fd, outbuf2, 4096) == -1))
+						perror("write()");
+				if (close(fd))
+					perror("close");
+			}
+#endif
+#if DMG_DEBUG == 3
+			dump_stuff(outbuf, cur_salt->data_size);
+			if (cur_salt->scp == 1) {
+				fprintf(stderr, "2nd block:\n");
+				dump_stuff(outbuf2, 4096);
+			}
+#endif
+#if DMG_DEBUG == 2
+			dump_text(outbuf, cur_salt->data_size);
+			if (cur_salt->scp == 1) {
+				fprintf(stderr, "2nd block:\n");
+				dump_text(outbuf2, 4096);
+			}
+#endif
+		}
+#endif /* DMG_DEBUG */
 	}
-	return 0;
+
+	return ret;
 }
 
 
