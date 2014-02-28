@@ -5,11 +5,9 @@
  * ...with changes in the jumbo patch, by JoMo-Kun and magnum
  */
 
-#define _POSIX_SOURCE /* for fileno(3) */
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
-#include <fcntl.h>
 
 #include "arch.h"
 #include "misc.h"
@@ -514,9 +512,6 @@ void do_incremental_crack(struct db_main *db, char *mode)
 
 	if (!(file = fopen(path_expand(charset), "rb")))
 		pexit("fopen: %s", path_expand(charset));
-
-	if (fcntl(fileno(file), F_SETFD, FD_CLOEXEC) == -1)
-		perror("fcntl");
 
 	header = (struct charset_header *)mem_alloc(sizeof(*header));
 

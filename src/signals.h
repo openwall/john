@@ -32,7 +32,7 @@
  */
 extern volatile int event_pending;	/* An event is pending */
 extern volatile int event_abort;	/* Abort requested */
-extern volatile int event_reload;	/* Restart requested */
+extern volatile int event_reload;	/* Reload of pot file requested */
 extern volatile int event_save;		/* Save the crash recovery file */
 extern volatile int event_status;	/* Status display requested */
 extern volatile int event_ticksafety;	/* System time in ticks may overflow */
@@ -75,8 +75,4 @@ extern void sig_init_child(void);
  */
 extern void check_abort(int be_async_signal_safe);
 
-/*
- * Reset signals and timers. Normally called via atexit() but not when execv().
- */
-void sig_done(void);
 #endif

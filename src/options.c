@@ -346,7 +346,7 @@ void opt_print_hidden_usage(void)
 	puts("                          always treat bare hashes as valid.");
 	puts("--progress-every=N        emit a status line every N seconds");
 	puts("--crack-status            emit a status line whenever a password is cracked");
-	puts("--reload-every=N          reload everything every N seconds");
+	puts("--reload-every=N          sync pot file every N seconds");
 	puts("--max-run-time=N          gracefully exit after this many seconds");
 	puts("--regen-lost-salts=N      regenerate lost salts (see doc/OPTIONS)");
 	puts("--mkv-stats=FILE          \"Markov\" stats file (see doc/MARKOV)");
@@ -628,19 +628,6 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 		listEncodings();
 		exit(0);
 	}
-
-	if (options.reload_interval && options.max_run_time) {
-		fprintf(stderr, "Error: --max-run-time and --reload-every is mutually exclusive\n");
-		error();
-	}
-
-#ifdef HAVE_MPI
-	if (options.reload_interval &&
-	    (mpi_p > 1 || getenv("OMPI_COMM_WORLD_SIZE"))) {
-		fprintf(stderr, "Error: --reload-every is not supported for MPI\n");
-		error();
-	}
-#endif
 
 #ifdef HAVE_OPENCL
 	if (options.v_width) {

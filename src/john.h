@@ -16,9 +16,6 @@
  */
 extern int john_main_process;
 
-/* Original argv */
-extern char **john_argv;
-
 #ifndef NEED_OS_FORK
 #define NEED_OS_FORK
 #include "os.h"
@@ -36,12 +33,6 @@ extern int john_child_count;
  * otherwise the pointer is NULL.)
  */
 extern int *john_child_pids;
-
-/*
- * Wait for all children to exit. Then, if the session file is open, close
- * and delete it unless event_abort is set.
- */
-extern void john_wait(void);
 #endif
 
 #endif

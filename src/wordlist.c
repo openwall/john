@@ -14,7 +14,6 @@
 #include <stdio.h>
 #include <sys/stat.h>
 #include "os.h"
-#include <fcntl.h>
 
 #if HAVE_UNISTD_H
 #include <unistd.h>
@@ -366,9 +365,6 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 		if (!(word_file = fopen(path_expand(name), "rb")))
 			pexit("fopen: %s", path_expand(name));
 		log_event("- Wordlist file: %.100s", path_expand(name));
-
-		if (fcntl(fileno(word_file), F_SETFD, FD_CLOEXEC) == -1)
-			perror("fcntl");
 
 		/* this will both get us the file length, and tell us
 		   of 'invalid' files (i.e. too big in Win32 or other

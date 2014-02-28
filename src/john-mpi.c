@@ -20,8 +20,8 @@ void mpi_teardown(void)
 
 	if (mpi_p > 1) {
 		/* Some MPI platforms hang on 100% CPU while waiting */
-		if (nice(20) < 0)
-			fprintf(stderr, "nice() failed\n");
+		if (nice(20) == -1)
+			perror("nice");
 		MPI_Barrier(MPI_COMM_WORLD);
 	}
 

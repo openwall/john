@@ -270,10 +270,10 @@ struct options_main {
 /* Emit a status line every N seconds */
 	int status_interval;
 
-/* Reload every N seconds */
+/* Resync pot file every N seconds */
 	int reload_interval;
 
-/* Reload at every crack */
+/* Send a resync trigger (to others) when new cracks are written to pot */
 	int reload_at_crack;
 
 /* Force dynamic format to always treat bare hashes as valid. If not set

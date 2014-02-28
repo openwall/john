@@ -6,11 +6,17 @@
  */
 
 #define NEED_OS_TIMER
+#define NEED_OS_FLOCK
 #include "os.h"
 
 #include <string.h>
 #include <assert.h>
 #include <signal.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/file.h>
+#include <fcntl.h>
+#include <errno.h>
 
 #include "arch.h"
 #include "misc.h"
@@ -32,6 +38,7 @@
 #ifdef HAVE_MPI
 #include "john-mpi.h"
 #endif
+#include "path.h"
 
 #ifdef index
 #undef index
@@ -46,6 +53,7 @@ static void (*crk_fix_state)(void);
 static struct db_keys *crk_guesses;
 static int64 *crk_timestamps;
 static char crk_stdout_key[PLAINTEXT_BUFFER_SIZE];
+long int crk_pot_pos;
 
 static void crk_dummy_set_salt(void *salt)
 {
@@ -216,8 +224,9 @@ static void crk_remove_hash(struct db_salt *salt, struct db_password *pw)
 	pw->binary = NULL;
 }
 
+/* If plaintext != NULL, index is ignored and plaintext is used instead */
 static int crk_process_guess(struct db_salt *salt, struct db_password *pw,
-	int index)
+                             int index, char *plaintext)
 {
 	UTF8 utf8buf_key[PLAINTEXT_BUFFER_SIZE + 1];
 	UTF8 utf8login[PLAINTEXT_BUFFER_SIZE + 1];
@@ -225,14 +234,14 @@ static int crk_process_guess(struct db_salt *salt, struct db_password *pw,
 	int dupe;
 	char *key, *utf8key, *repkey, *replogin;
 
-	if (index < crk_params.max_keys_per_crypt) {
+	if (!plaintext && index < crk_params.max_keys_per_crypt) {
 		dupe = !memcmp(&crk_timestamps[index],
 		               &status.crypts, sizeof(int64));
 		crk_timestamps[index] = status.crypts;
 	} else
 		dupe = 0;
 
-	repkey = key = crk_methods.get_key(index);
+	repkey = key = plaintext ? plaintext : crk_methods.get_key(index);
 	replogin = pw->login;
 
 	if (options.store_utf8 || options.report_utf8) {
@@ -271,25 +280,25 @@ static int crk_process_guess(struct db_salt *salt, struct db_password *pw,
 	if (options.regen_lost_salts)
 		crk_guess_fixup_salt(pw->source, *(char**)(salt->salt));
 
-	log_guess(crk_db->options->flags & DB_LOGIN ? replogin : "?",
-	          dupe ? NULL : crk_methods.source(pw->source, pw->binary),
-	          repkey, key, crk_db->options->field_sep_char);
+	/* If we got this crack from a pot sync, don't report or count */
+	if (!plaintext) {
+		log_guess(crk_db->options->flags & DB_LOGIN ? replogin : "?",
+		          dupe ?
+		          NULL : crk_methods.source(pw->source, pw->binary),
+		          repkey, key, crk_db->options->field_sep_char);
 
-#ifdef SIGUSR2
-	if (options.reload_at_crack)
-		raise(SIGUSR2);
-	else
-#endif
-	if (options.flags & FLG_CRKSTAT)
-		event_pending = event_status = 1;
+		if (options.flags & FLG_CRKSTAT)
+			event_pending = event_status = 1;
 
-	crk_db->guess_count++;
-	status.guess_count++;
+		crk_db->guess_count++;
+		status.guess_count++;
 
-	if (crk_guesses && !dupe) {
-		strnfcpy(crk_guesses->ptr, key, crk_params.plaintext_length);
-		crk_guesses->ptr += crk_params.plaintext_length;
-		crk_guesses->count++;
+		if (crk_guesses && !dupe) {
+			strnfcpy(crk_guesses->ptr, key,
+			         crk_params.plaintext_length);
+			crk_guesses->ptr += crk_params.plaintext_length;
+			crk_guesses->count++;
+		}
 	}
 
 	if (!(crk_params.flags & FMT_NOT_EXACT))
@@ -301,6 +310,127 @@ static int crk_process_guess(struct db_salt *salt, struct db_password *pw,
 	crk_init_salt();
 
 	return 0;
+}
+
+static char *crk_loaded_counts(void)
+{
+	static char s_loaded_counts[80];
+
+	if (crk_db->password_count == 0)
+		return "No remaining hashes";
+
+	if (crk_db->password_count == 1)
+		return "Remaining 1 hash";
+
+	sprintf(s_loaded_counts,
+		crk_db->salt_count > 1 ?
+		"Remaining %d hashes with %d different salts" :
+		"Remaining %d hashes with no different salts",
+		crk_db->password_count,
+		crk_db->salt_count);
+
+	return s_loaded_counts;
+}
+
+static int crk_remove_pot_entry(char *ciphertext, char *plain)
+{
+	struct db_salt *salt;
+	struct db_password *pw;
+	char *pot_salt;
+
+	pot_salt = crk_methods.salt(ciphertext);
+
+	salt = crk_db->salts;
+	do {
+		if (!memcmp(pot_salt, salt->salt,
+		            crk_params.salt_size)) {
+			pw = salt->list;
+			do {
+				char *source;
+
+				if (!pw->binary)
+					continue;
+
+				source = crk_methods.source(pw->source,
+				                            pw->binary);
+
+				if (!strcmp(source, ciphertext)) {
+					if (crk_process_guess(salt, pw, 0,
+					                      plain))
+						return 1;
+					else
+					if (!(crk_params.flags & FMT_NOT_EXACT))
+						break;
+				}
+			} while ((pw = pw->next));
+			break;
+		}
+	} while ((salt = salt->next));
+
+	return 0;
+}
+
+int crk_reload_pot(void)
+{
+	char line[LINE_BUFFER_SIZE];
+	int pot_fd;
+	FILE *pot_file;
+	int total = crk_db->password_count, others;
+
+	event_reload = 0;
+
+	if ((pot_fd =
+	     open(path_expand(options.loader.activepot), O_RDONLY)) == -1) {
+		if (errno != ENOENT)
+			perror("open potfile");
+		return 0;
+	}
+
+	if (flock(pot_fd, LOCK_SH) == -1)
+		pexit("flock: %s", options.loader.activepot);
+
+	if (!(pot_file = fdopen(pot_fd, "rb")))
+		pexit("fdopen: %s", options.loader.activepot);
+
+	if (crk_pot_pos && (fseek(pot_file, crk_pot_pos, SEEK_SET) == -1)) {
+		perror("fseek");
+		rewind(pot_file);
+		crk_pot_pos = 0;
+	}
+
+	while (fgetl(line, sizeof(line), pot_file)) {
+		char ciphertext[LINE_BUFFER_SIZE];
+		char *plain, *p;
+
+		strnzcpy(ciphertext, line, sizeof(ciphertext));
+		if (!(p = strchr(ciphertext, options.loader.field_sep_char)))
+			continue;
+		*p = 0;
+		plain = ++p;
+
+		if (crk_methods.valid(ciphertext, crk_db->format) &&
+		    crk_remove_pot_entry(ciphertext, plain))
+			break;
+	}
+
+	crk_pot_pos = ftell(pot_file);
+	fclose(pot_file);
+
+	others = total - crk_db->password_count;
+
+	if (!crk_db->password_count || others)
+		log_event("+ pot sync removed %d hashes; %s",
+		          others, crk_loaded_counts());
+
+	if (!crk_db->salts || (others && options.verbosity > 3)) {
+		if (options.node_count)
+			fprintf(stderr, "%u: %s\n",
+			        options.node_min, crk_loaded_counts());
+		else
+			fprintf(stderr, "%s\n", crk_loaded_counts());
+	}
+
+	return (!crk_db->salts);
 }
 
 static int crk_process_event(void)
@@ -360,7 +490,7 @@ static int crk_password_loop(struct db_salt *salt)
 			if (crk_methods.cmp_one(pw->binary, index))
 			if (crk_methods.cmp_exact(crk_methods.source(
 			    pw->source, pw->binary), index)) {
-				if (crk_process_guess(salt, pw, index))
+				if (crk_process_guess(salt, pw, index, NULL))
 					return 1;
 				else {
 					if (!(crk_params.flags & FMT_NOT_EXACT))
@@ -378,7 +508,7 @@ static int crk_password_loop(struct db_salt *salt)
 				if (crk_methods.cmp_one(pw->binary, index))
 				if (crk_methods.cmp_exact(crk_methods.source(
 				    pw->source, pw->binary), index))
-				if (crk_process_guess(salt, pw, index))
+				if (crk_process_guess(salt, pw, index, NULL))
 					return 1;
 			} while ((pw = pw->next_hash));
 		}
@@ -391,6 +521,9 @@ static int crk_salt_loop(void)
 {
 	int done;
 	struct db_salt *salt;
+
+	if (event_reload && crk_reload_pot())
+		return 1;
 
 	salt = crk_db->salts;
 	do {

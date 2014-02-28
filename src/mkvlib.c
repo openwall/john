@@ -3,10 +3,8 @@
  * Redistribution and use in source and binary forms, with or without modification, are permitted.
  */
 
-#define _POSIX_SOURCE /* for fileno(3) */
 #include <stdio.h>
 #include <string.h>
-#include <fcntl.h>
 
 #include "arch.h"
 #include "misc.h"
@@ -179,9 +177,6 @@ void init_probatables(char * filename)
 		fprintf(stderr, "could not open %s\n", filename);
 		error();
 	}
-
-	if (fcntl(fileno(fichier), F_SETFD, FD_CLOEXEC) == -1)
-		perror("fcntl");
 
 	first = mem_alloc( sizeof(unsigned char) * 256 );
 	ligne = mem_alloc(4096);

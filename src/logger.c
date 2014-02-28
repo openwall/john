@@ -34,6 +34,7 @@
 #include <errno.h>
 #include <stdarg.h>
 #include <string.h>
+#include <signal.h>
 
 #include "arch.h"
 #include "misc.h"
@@ -49,6 +50,7 @@
 #ifdef HAVE_MPI
 #include "john-mpi.h"
 #endif
+#include "cracker.h"
 
 static int cfg_beep;
 static int cfg_log_passwords;
@@ -97,6 +99,7 @@ static void log_file_init(struct log_file *f, char *name, int size)
 static void log_file_flush(struct log_file *f)
 {
 	int count;
+	long int pos_b4 = 0;
 
 	if (f->fd < 0) return;
 
@@ -109,11 +112,23 @@ static void log_file_flush(struct log_file *f)
 			pexit("flock(LOCK_EX)");
 	}
 #endif
+	if (f == &pot)
+		pos_b4 = (long int)lseek(f->fd, 0, SEEK_END);
+
 	if (write_loop(f->fd, f->buffer, count) < 0) pexit("write");
 	f->ptr = f->buffer;
+
+	if (f == &pot && pos_b4 == crk_pot_pos)
+		crk_pot_pos = (long int)lseek(f->fd, 0, SEEK_CUR);
 #if OS_FLOCK
 	if (flock(f->fd, LOCK_UN))
 		pexit("flock(LOCK_UN)");
+#endif
+#ifdef SIGUSR2
+	/* We don't actually send a sync trigger "at crack" but
+	   after it's actually written to the pot file */
+	if (f == &pot && options.reload_at_crack)
+		raise(SIGUSR2);
 #endif
 }
 

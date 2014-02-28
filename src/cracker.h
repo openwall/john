@@ -12,6 +12,9 @@
 
 #include "loader.h"
 
+/* Our last read position in pot file (during crack) */
+extern long int crk_pot_pos;
+
 /*
  * Initializes the cracker for a password database (should not be empty).
  * If fix_state() is not NULL, it will be called when key buffer becomes
@@ -47,4 +50,8 @@ extern char *crk_get_key2(void);
  */
 extern void crk_done(void);
 
+/*
+ * Check for and process new entries in pot file, written by other processes.
+ */
+extern int crk_reload_pot(void);
 #endif

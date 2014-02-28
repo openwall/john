@@ -17,7 +17,6 @@
 #endif
 
 #define NEED_OS_FLOCK
-#define NEED_OS_FORK
 #include "os.h"
 
 #include <stdio.h>
@@ -53,13 +52,9 @@ extern int ftruncate(int fd, size_t length);
 #include "status.h"
 #include "recovery.h"
 #include "john.h"
-#include "tty.h"
-#include "signals.h"
 #ifdef HAVE_MPI
 #include "john-mpi.h"
-#endif
-#ifdef HAVE_OPENCL
-#include "common-opencl.h"
+#include "signals.h"
 #endif
 
 char *rec_name = RECOVERY_NAME;
@@ -161,42 +156,6 @@ void rec_init(struct db_main *db, void (*save_mode)(FILE *file))
 	rec_save_mode = save_mode;
 }
 
-static void rec_reload(void)
-{
-	char *new_argv[3] = { NULL };
-
-	if (john_main_process)
-		fprintf(stderr, "- Reloading files -\n");
-
-	rec_done(-2);
-	rec_db->format->methods.done();
-#ifdef HAVE_OPENCL
-	if (!options.fork || john_main_process)
-		opencl_done();
-#endif
-	log_event("Reloading files");
-	log_done();
-#if OS_FORK
-	if (options.fork && john_main_process)
-		john_wait();
-#endif
-	sig_done();
-	if (john_main_process) {
-		tty_done();
-
-		new_argv[0] = john_argv[0];
-		new_argv[1] = mem_alloc(strlen(rec_name) + 16);
-		if (options.session)
-			sprintf(new_argv[1], "--restore=%s", options.session);
-		else
-			strcpy(new_argv[1], "--restore");
-		execv(john_argv[0], new_argv);
-		perror("execv");
-	}
-	/* Forked children just exit - mother process will re-fork */
-	exit(0);
-}
-
 void rec_save(void)
 {
 	int save_format, hund;
@@ -276,8 +235,6 @@ void rec_save(void)
 	if (!options.fork && fsync(rec_fd))
 		pexit("fsync");
 #endif
-	if (event_reload)
-		rec_reload();
 }
 
 /* See the comment in recovery.h on how the "save" parameter is used */

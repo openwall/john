@@ -258,7 +258,6 @@ extern int zip2john(int argc, char **argv);
 extern int gpg2john(int argc, char **argv);
 
 int john_main_process = 1;
-char **john_argv;
 #if OS_FORK
 int john_child_count = 0;
 int *john_child_pids = NULL;
@@ -767,7 +766,7 @@ static void john_set_mpi(void)
 }
 #endif
 
-void john_wait(void)
+static void john_wait(void)
 {
 	int waiting_for = john_child_count;
 
@@ -1091,9 +1090,6 @@ static void john_init(char *name, int argc, char **argv)
 
 		path_init(argv);
 	}
-
-	/* For recovery.c to be able to execv() the argv[0] we have now */
-	john_argv = argv;
 
 	status_init(NULL, 1);
 	if (argc < 2 ||

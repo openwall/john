@@ -128,7 +128,7 @@ static void sig_install_update(void);
 
 static void sig_handle_update(int signum)
 {
-	event_save = event_pending = 1;
+	event_reload = event_save = event_pending = 1;
 
 #ifndef SA_RESTART
 	sig_install_update();
@@ -219,9 +219,9 @@ static void sig_install_abort(void)
 #endif
 
 	signal(SIGINT, sig_handle_abort);
-#ifndef HAVE_MPI
+//#ifndef HAVE_MPI
 	signal(SIGTERM, sig_handle_abort);
-#endif
+//#endif
 #ifdef SIGXCPU
 	signal(SIGXCPU, sig_handle_abort);
 #endif
@@ -237,9 +237,9 @@ static void sig_remove_abort(void)
 #endif
 
 	signal(SIGINT, SIG_DFL);
-#ifndef HAVE_MPI
+//#ifndef HAVE_MPI
 	signal(SIGTERM, SIG_DFL);
-#endif
+//#endif
 #ifdef SIGXCPU
 	signal(SIGXCPU, SIG_DFL);
 #endif
@@ -268,7 +268,7 @@ static void sig_handle_timer(int signum)
 #if OS_TIMER
 	if (!--timer_save_value) {
 		timer_save_value = timer_save_interval;
-		event_save = event_pending = 1;
+		event_reload = event_save = event_pending = 1;
 	}
 
 	if (timer_abort && !--timer_abort) {
@@ -280,14 +280,15 @@ static void sig_handle_timer(int signum)
 		event_status = event_pending = 1;
 	}
 	if (timer_reload && !--timer_reload) {
-		event_save = event_reload = event_pending = 1;
+		timer_reload = options.reload_interval;
+		event_reload = 1;
 	}
 #else /* no OS_TIMER */
 	unsigned int time = status_get_time();
 
 	if (time >= timer_save_value) {
 		timer_save_value += timer_save_interval;
-		event_save = event_pending = 1;
+		event_reload = event_save = event_pending = 1;
 	}
 
 	if (timer_abort && time >= timer_abort) {
@@ -299,8 +300,8 @@ static void sig_handle_timer(int signum)
 		event_status = event_pending = 1;
 	}
 	if (timer_reload && time >= timer_reload) {
-		timer_reload = 0;
-		event_save = event_reload = event_pending = 1;
+		timer_reload += options.reload_interval;
+		event_reload = 1;
 	}
 #endif /* OS_TIMER */
 #endif /* !BENCH_BUILD */
@@ -399,27 +400,39 @@ static void sig_remove_timer(void)
 	signal(SIGALRM, SIG_DFL);
 }
 
-#ifdef SIGUSR1
 static void sig_handle_status(int signum)
 {
+	/* For cygwin and MPI, we save too here */
+	//event_save =
 	event_status = event_pending = 1;
-	signal(SIGUSR1, sig_handle_status);
+	signal(signum, sig_handle_status);
 }
-#endif
 
-#ifdef SIGUSR2
 static void sig_handle_reload(int signum)
 {
 #if OS_FORK
-	signal_children(SIGUSR2);
+	if (!event_reload) {
+		if (john_main_process)
+			signal_children(signum);
+		else
+			kill(getppid(), signum);
+	}
 #endif
 #ifdef HAVE_MPI
-	if (mpi_p == 1 && !getenv("OMPI_COMM_WORLD_SIZE"))
+	/*
+	 * This only works if 'mpirun' is parent, not 'orted'. We
+	 * might overcome that by using MPI_Isend() to the root node
+	 * which can MPI_Bcast() to the others. Though that would
+	 * need to happen elsewehere - this is a signal handler %-)
+	 */
+	if (!event_reload && mpi_p > 1)
+		kill(getppid(), signum);
 #endif
-		event_save = event_reload = event_pending = 1;
-	signal(SIGUSR2, sig_handle_reload);
+	event_reload = 1;
+	signal(signum, sig_handle_reload);
 }
-#endif
+
+static void sig_done(void);
 
 void sig_init(void)
 {
@@ -462,7 +475,7 @@ void sig_init_child(void)
 #endif
 }
 
-void sig_done(void)
+static void sig_done(void)
 {
 	sig_remove_update();
 	sig_remove_abort();
