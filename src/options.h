@@ -186,15 +186,37 @@ struct options_main {
 /* Configuration file name */
 	char *config;
 
-	char *showuncracked_str;
-	char *salt_param;
-	char field_sep_char;
+/* Can't use HAVE_WINDOWS_H here so the below need to be maintained */
+#if defined (_MSC_VER) || defined (__MINGW32__) || defined (__CYGWIN32__)
+/* if built for Win32, then the pipe/stdin is VERY slow.  We allow special
+ * processing to use the pipe command, but in a -pipe=sharedmemoryfilename
+ * so that the producer app, and JtR can be written to work properly with
+ * named shared memory, which is MUCH faster than using a pipe to xfer data
+ * between the 2 apps. */
+	char *sharedmemoryfilename;
+#endif
 
-/* This is a 'special' flag.  It causes john to add 'extra' code to search for some salted types, when we have */
-/* only the hashes.  The only type supported is PHPS (at this time.).  So PHPS will set this to a 1. OTherwise */
-/* it will always be zero.  LIKELY we will add the same type logic for the OSC (mscommerse) type, which has only */
-/* a 2 byte salt.  That will set this field to be a 2.  If we add other types, then we will have other values */
-/* which can be assigned to this variable.  This var is set by the undocummented --regen_lost_salts=# */
+/* Maximum size of a wordlist file to be 'preloaded' into memory  */
+	unsigned max_wordfile_memory;
+
+/* number of times fix_state_delay is called in wordfile.c before  any fseek()
+   is done. */
+	unsigned max_fix_state_delay;
+
+/* the wordlist rules section (default if none entered is Wordlist) */
+	char *activewordlistrules;
+
+/* the 'single' rules section (default if none entered is Single) */
+	char *activesinglerules;
+
+/* This is a 'special' flag.  It causes john to add 'extra' code to search for
+ * some salted types, when we have only the hashes.  The only type supported is
+ * PHPS (at this time.).  So PHPS will set this to a 1. OTherwise it will
+ * always be zero.  LIKELY we will add the same type logic for the OSC
+ * (mscommerse) type, which has only a 2 byte salt.  That will set this field
+ * to be a 2.  If we add other types, then we will have other values which can
+ * be assigned to this variable.  This var is set by the undocummented
+ * --regen_lost_salts=#   */
 	int regen_lost_salts;
 
 /* wordfile character encoding 'stuff' */
@@ -203,7 +225,7 @@ struct options_main {
 	char *encodingStr;
 /* A variant of same string, usable in #defines */
 	char *encodingDef;
-	int ascii;  // if NO other charset is used, we set this to 1.  This tells us to user 7 bit ASCII.
+	int ascii;
 	int utf8;
 	int iso8859_1;
 	int iso8859_2;

@@ -66,8 +66,6 @@ static struct rpp_context *rule_ctx;
 static char *word_file_str, **words;
 static unsigned int nWordFileLines;
 
-static struct db_main *_db;
-
 static void save_state(FILE *file)
 {
 	fprintf(file, "%d\n%ld\n%lu\n", rec_rule, rec_pos, rec_line);
@@ -141,7 +139,7 @@ static int fix_state_delay;
 
 static void fix_state(void)
 {
-	if (++fix_state_delay < _db->options->max_fix_state_delay)
+	if (++fix_state_delay < options.max_fix_state_delay)
 		return;
 	fix_state_delay=0;
 
@@ -215,7 +213,7 @@ static MAYBE_INLINE char *potword(char *line)
 {
 	char *p;
 
-	p = strchr(line, options.field_sep_char);
+	p = strchr(line, options.loader.field_sep_char);
 	return p ? p + 1 : line;
 }
 
@@ -331,14 +329,12 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 
 	log_event("Proceeding with wordlist mode");
 
-	_db = db;
-
 	length = db->format->params.plaintext_length;
 	if (options.force_maxlength && options.force_maxlength < length)
 		length = options.force_maxlength;
 
 	if (!mem_saving_level &&
-	    (dupeCheck || !db->options->max_wordfile_memory))
+	    (dupeCheck || !options.max_wordfile_memory))
 		forceLoad = 1;
 
 	/* If we did not give a name for loopback mode,
@@ -398,7 +394,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 				        "empty\n");
 			error();
 		}
-		if (file_len < db->options->max_wordfile_memory)
+		if (file_len < options.max_wordfile_memory)
 			forceLoad = 1;
 		/* If the file is < max_wordfile_memory, then we work from a
 		   memory map of the file. But this is disabled if we are also
@@ -411,8 +407,8 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 		if (!(options.flags & FLG_EXTERNAL_CHK) && !mem_saving_level)
 		if ((options.node_count > 1 &&
 		     file_len > options.node_count * (length * 100) &&
-		     ourshare < db->options->max_wordfile_memory) ||
-		    file_len < db->options->max_wordfile_memory || forceLoad) {
+		     ourshare < options.max_wordfile_memory) ||
+		    file_len < options.max_wordfile_memory || forceLoad) {
 			char *aep;
 
 			// Load only this node's share of words to memory
@@ -489,7 +485,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 					fprintf(stderr, "Warning: wordlist changed as we read it\n");
 				log_event("- loaded this node's share of wordfile %s into memory "
 				          "(%lu bytes of %lu, max_size=%u avg/node)",
-				          name, my_size, file_len, db->options->max_wordfile_memory);
+				          name, my_size, file_len, options.max_wordfile_memory);
 				if (john_main_process)
 					fprintf(stderr,"Each node loaded 1/%d "
 					        "of wordfile to memory (about "
@@ -502,7 +498,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 			}
 			else {
 				log_event("- loading wordfile %s into memory (%lu bytes, max_size=%u)",
-				          name, file_len, db->options->max_wordfile_memory);
+				          name, file_len, options.max_wordfile_memory);
 				if (options.node_count > 1 && john_main_process)
 					fprintf(stderr,"Each node loaded the whole wordfile to memory\n");
 				word_file_str = mem_alloc_tiny(file_len + LINE_BUFFER_SIZE + 1, MEM_ALIGN_NONE);
@@ -624,28 +620,28 @@ skip:
 		} else {
 			pipe_input = 1;
 #if HAVE_WINDOWS_H
-			if (db->options->sharedmemoryfilename != NULL) {
-				init_sharedmem(db->options->sharedmemoryfilename);
+			if (options.sharedmemoryfilename != NULL) {
+				init_sharedmem(options.sharedmemoryfilename);
 				rules_keep = rules;
 				max_pipe_words = IPC_MM_MAX_WORDS+2;
 				words = mem_alloc(max_pipe_words*sizeof(char*));
 				goto MEM_MAP_LOAD;
 			}
 #endif
-			if (db->options->max_wordfile_memory < 0x20000)
-				db->options->max_wordfile_memory = 0x20000;
+			if (options.max_wordfile_memory < 0x20000)
+				options.max_wordfile_memory = 0x20000;
 			if (length < 16)
-				max_pipe_words = (db->options->max_wordfile_memory/length);
+				max_pipe_words = (options.max_wordfile_memory/length);
 			else
-				max_pipe_words = (db->options->max_wordfile_memory/16);
+				max_pipe_words = (options.max_wordfile_memory/16);
 
-			word_file_str = mem_alloc_tiny(db->options->max_wordfile_memory, MEM_ALIGN_NONE);
+			word_file_str = mem_alloc_tiny(options.max_wordfile_memory, MEM_ALIGN_NONE);
 			words = mem_alloc(max_pipe_words * sizeof(char*));
 			rules_keep = rules;
 
 GRAB_NEXT_PIPE_LOAD:;
 #if HAVE_WINDOWS_H
-			if (db->options->sharedmemoryfilename != NULL)
+			if (options.sharedmemoryfilename != NULL)
 				goto MEM_MAP_LOAD;
 #endif
 			{
@@ -656,7 +652,7 @@ GRAB_NEXT_PIPE_LOAD:;
 				rules = rules_keep;
 				nWordFileLines = 0;
 				cpi = word_file_str;
-				cpe = (cpi + db->options->max_wordfile_memory) - (LINE_BUFFER_SIZE+1);
+				cpe = (cpi + options.max_wordfile_memory) - (LINE_BUFFER_SIZE+1);
 				while (nWordFileLines < max_pipe_words) {
 					if (!fgetl(cpi, LINE_BUFFER_SIZE, word_file)) {
 						pipe_input = 0;
@@ -725,7 +721,7 @@ SKIP_MEM_MAP_LOAD:;
 	}
 
 	if (rules) {
-		if (rpp_init(rule_ctx = &ctx, db->options->activewordlistrules)) {
+		if (rpp_init(rule_ctx = &ctx, options.activewordlistrules)) {
 			log_event("! No wordlist mode rules found");
 			if (john_main_process)
 				fprintf(stderr,

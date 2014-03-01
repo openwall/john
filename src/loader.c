@@ -701,7 +701,7 @@ static void ldr_load_pot_line(struct db_main *db, char *line)
 
 	if ((current = db->password_hash[hash]))
 	do {
-		if (db->options->regen_lost_salts)
+		if (options.regen_lost_salts)
 			ldr_pot_possible_fixup_salt(current->source, ciphertext);
 		if (!current->binary) /* already marked for removal */
 			continue;
@@ -913,7 +913,7 @@ static void ldr_remove_marked(struct db_main *db)
 					current_salt->list = current_pw->next;
 			} else {
 				last_pw = current_pw;
-				if (db->options->showuncracked) {
+				if (options.loader.showuncracked) {
 					if (!options.utf8 && options.report_utf8) {
 						UTF8 utf8login[PLAINTEXT_BUFFER_SIZE + 1];
 						enc_to_utf8_r(current_pw->login, utf8login, PLAINTEXT_BUFFER_SIZE);
@@ -1084,7 +1084,7 @@ void ldr_fix_database(struct db_main *db)
 
 	db->loaded = 1;
 
-	if (db->options->showuncracked)
+	if (options.loader.showuncracked)
 		exit(0);
 }
 

@@ -119,7 +119,7 @@ static void single_init(void)
 	while (key_count > 0xffff / length + 1)
 		key_count >>= 1;
 
-	if (rpp_init(rule_ctx, single_db->options->activesinglerules)) {
+	if (rpp_init(rule_ctx, options.activesinglerules)) {
 		log_event("! No \"single crack\" mode rules found");
 		if (john_main_process)
 			fprintf(stderr,

@@ -392,7 +392,7 @@ int benchmark_all(void)
 
 	total = failed = 0;
 #ifndef _JOHN_BENCH_TMP
-	options.field_sep_char = 31;
+	options.loader.field_sep_char = 31;
 #endif
 	if ((format = fmt_list))
 	do {

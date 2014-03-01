@@ -54,12 +54,12 @@
 #endif
 
 struct options_main options;
-static char *field_sep_char_string;
+static char *field_sep_char_str, *show_uncracked_str, *salts_str;
 
 static struct opt_entry opt_list[] = {
 	{"", FLG_PASSWD, 0, 0, 0, OPT_FMT_ADD_LIST, &options.passwd},
 	{"single", FLG_SINGLE_SET, FLG_CRACKING_CHK, 0, 0,
-		OPT_FMT_STR_ALLOC, &options.loader.activesinglerules},
+		OPT_FMT_STR_ALLOC, &options.activesinglerules},
 	{"wordlist", FLG_WORDLIST_SET, FLG_CRACKING_CHK,
 		0, 0, OPT_FMT_STR_ALLOC, &options.wordlist},
 	{"loopback", FLG_LOOPBACK_SET, FLG_CRACKING_CHK,
@@ -69,12 +69,12 @@ static struct opt_entry opt_list[] = {
 	{"stdin", FLG_STDIN_SET, FLG_CRACKING_CHK},
 #if HAVE_WINDOWS_H
 	{"pipe", FLG_PIPE_SET, FLG_CRACKING_CHK,
-		0, 0, OPT_FMT_STR_ALLOC, &options.loader.sharedmemoryfilename},
+		0, 0, OPT_FMT_STR_ALLOC, &options.sharedmemoryfilename},
 #else
 	{"pipe", FLG_PIPE_SET, FLG_CRACKING_CHK},
 #endif
 	{"rules", FLG_RULES, FLG_RULES, FLG_WORDLIST_CHK, FLG_STDIN_CHK,
-		OPT_FMT_STR_ALLOC, &options.loader.activewordlistrules},
+		OPT_FMT_STR_ALLOC, &options.activewordlistrules},
 	{"incremental", FLG_INC_SET, FLG_CRACKING_CHK,
 		0, 0, OPT_FMT_STR_ALLOC, &options.charset},
 	{"mask", FLG_MASK_SET, FLG_CRACKING_CHK,
@@ -102,7 +102,7 @@ static struct opt_entry opt_list[] = {
 		OPT_FMT_STR_ALLOC, &options.charset},
 	{"show", FLG_SHOW_SET, FLG_SHOW_CHK,
 		0, FLG_CRACKING_SUP | FLG_MAKECHR_CHK,
-		OPT_FMT_STR_ALLOC, &options.showuncracked_str},
+		OPT_FMT_STR_ALLOC, &show_uncracked_str},
 	{"test", FLG_TEST_SET, FLG_TEST_CHK,
 		0, ~FLG_TEST_SET & ~FLG_FORMAT & ~FLG_SAVEMEM & ~FLG_DYNFMT &
 		~OPT_REQ_PARAM & ~FLG_NOLOG, "%u", &benchmark_time},
@@ -113,7 +113,7 @@ static struct opt_entry opt_list[] = {
 	{"shells", FLG_NONE, 0, FLG_PASSWD, OPT_REQ_PARAM,
 		OPT_FMT_ADD_LIST_MULTI, &options.loader.shells},
 	{"salts", FLG_SALTS, FLG_SALTS, FLG_PASSWD, OPT_REQ_PARAM,
-		OPT_FMT_STR_ALLOC, &options.salt_param},
+		OPT_FMT_STR_ALLOC, &salts_str},
 	{"save-memory", FLG_SAVEMEM, FLG_SAVEMEM, 0, OPT_REQ_PARAM,
 		"%u", &mem_saving_level},
 	{"node", FLG_NODE, FLG_NODE, FLG_CRACKING_CHK, OPT_REQ_PARAM,
@@ -139,13 +139,13 @@ static struct opt_entry opt_list[] = {
 #endif
 	{"mem-file-size", FLG_NONE, FLG_NONE, FLG_WORDLIST_CHK, FLG_DUPESUPP |
 		FLG_SAVEMEM | FLG_STDIN_CHK | FLG_PIPE_CHK | OPT_REQ_PARAM,
-		"%u", &options.loader.max_wordfile_memory},
+		"%u", &options.max_wordfile_memory},
 	{"dupe-suppression", FLG_DUPESUPP, FLG_DUPESUPP, FLG_WORDLIST_CHK,
 		FLG_SAVEMEM | FLG_STDIN_CHK | FLG_PIPE_CHK},
 	{"fix-state-delay", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
-		"%u", &options.loader.max_fix_state_delay},
+		"%u", &options.max_fix_state_delay},
 	{"field-separator-char", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
-		OPT_FMT_STR_ALLOC, &field_sep_char_string},
+		OPT_FMT_STR_ALLOC, &field_sep_char_str},
 	{"config", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
 		OPT_FMT_STR_ALLOC, &options.config},
 	{"nolog", FLG_NOLOG, FLG_NOLOG},
@@ -371,10 +371,10 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 
 	memset(&options, 0, sizeof(options));
 
-	options.loader.field_sep_char = options.field_sep_char = ':';
-	options.loader.regen_lost_salts = options.regen_lost_salts = 0;
-	options.loader.max_fix_state_delay = 0;
-	options.loader.max_wordfile_memory = WORDLIST_BUFFER_DEFAULT;
+	options.loader.field_sep_char = ':';
+	options.regen_lost_salts = 0;
+	options.max_fix_state_delay = 0;
+	options.max_wordfile_memory = WORDLIST_BUFFER_DEFAULT;
 	options.force_maxkeys = options.force_maxlength = 0;
 	options.force_minlength = -1; options.reload_at_crack = 0;
 	options.max_run_time = options.status_interval = 0;
@@ -494,15 +494,14 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 		exit(0);
 	}
 
-	if (options.flags & FLG_SALTS)
-	{
+	if (options.flags & FLG_SALTS) {
 		int two_salts = 0;
-		if (sscanf(options.salt_param, "%d:%d", &options.loader.min_pps, &options.loader.max_pps) == 2)
+		if (sscanf(salts_str, "%d:%d", &options.loader.min_pps, &options.loader.max_pps) == 2)
 			two_salts = 1;
-		if (!two_salts && sscanf(options.salt_param, "%d,%d", &options.loader.min_pps, &options.loader.max_pps) == 2)
+		if (!two_salts && sscanf(salts_str, "%d,%d", &options.loader.min_pps, &options.loader.max_pps) == 2)
 			two_salts = 1;
 		if (!two_salts){
-			sscanf(options.salt_param, "%d", &options.loader.min_pps);
+			sscanf(salts_str, "%d", &options.loader.min_pps);
 			if (options.loader.min_pps < 0) {
 				options.loader.max_pps = -1 - options.loader.min_pps;
 				options.loader.min_pps = 0;
@@ -684,8 +683,8 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 		error();
 	}
 
-	if ( (options.flags & FLG_SHOW_SET) && options.showuncracked_str) {
-		if (!strcasecmp( options.showuncracked_str, "left"))  {
+	if ( (options.flags & FLG_SHOW_SET) && show_uncracked_str) {
+		if (!strcasecmp(show_uncracked_str, "left"))  {
 			options.loader.showuncracked = 1;
 			// Note we 'do' want the pot file to load normally, but during that load,
 			// we print out hashes left. At the end of the load, john exits.  However
@@ -699,11 +698,11 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 		}
 	}
 
-	if (options.loader.activewordlistrules == NULL)
-		options.loader.activewordlistrules = str_alloc_copy(SUBSECTION_WORDLIST);
+	if (options.activewordlistrules == NULL)
+		options.activewordlistrules = str_alloc_copy(SUBSECTION_WORDLIST);
 
-	if (options.loader.activesinglerules == NULL)
-		options.loader.activesinglerules = str_alloc_copy(SUBSECTION_SINGLE);
+	if (options.activesinglerules == NULL)
+		options.activesinglerules = str_alloc_copy(SUBSECTION_SINGLE);
 
 	if (options.dynamic_bare_hashes_always_valid == 'Y' || options.dynamic_bare_hashes_always_valid == 'y' ||
 		options.dynamic_bare_hashes_always_valid == '1' || options.dynamic_bare_hashes_always_valid == 't' || options.dynamic_bare_hashes_always_valid == 'T')
@@ -712,36 +711,35 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 		options.dynamic_bare_hashes_always_valid == '0' || options.dynamic_bare_hashes_always_valid == 'f' || options.dynamic_bare_hashes_always_valid == 'F')
 		options.dynamic_bare_hashes_always_valid = 'N';
 
-	options.loader.regen_lost_salts = options.regen_lost_salts = regen_lost_salt_parse_options();
+	options.regen_lost_salts = regen_lost_salt_parse_options();
 
-	if (field_sep_char_string != NULL)
-	{
-		if (!strcasecmp(field_sep_char_string, "tab")) // Literal tab or TAB will mean 0x09 tab character
-			field_sep_char_string = "\x09";
-		if (strlen(field_sep_char_string) == 1)
-			options.field_sep_char = *field_sep_char_string;
-		else if (field_sep_char_string[0] == '\\' && (field_sep_char_string[1]=='x'||field_sep_char_string[1]=='X'))
-		{
+	if (field_sep_char_str) {
+		if (!strcasecmp(field_sep_char_str, "tab")) // Literal tab or TAB will mean 0x09 tab character
+			field_sep_char_str = "\x09";
+		if (strlen(field_sep_char_str) == 1)
+			options.loader.field_sep_char = *field_sep_char_str;
+		else if (field_sep_char_str[0] == '\\' &&
+		         (field_sep_char_str[1]=='x' ||
+		          field_sep_char_str[1]=='X')) {
 			unsigned xTmp=0;
-			sscanf(&field_sep_char_string[2], "%x", &xTmp);
-			if (!xTmp || xTmp > 255)
-			{
+
+			sscanf(&field_sep_char_str[2], "%x", &xTmp);
+			if (!xTmp || xTmp > 255) {
 				if (john_main_process)
 					fprintf (stderr, "trying to use an "
 					         "invalid field separator char:"
 					         "  %s\n",
-					         field_sep_char_string);
+					         field_sep_char_str);
 				error();
 			}
-			options.field_sep_char = (char)xTmp;
+			options.loader.field_sep_char = (char)xTmp;
 		}
 
-		options.loader.field_sep_char = options.field_sep_char;
 		if (options.loader.field_sep_char != ':')
 			if (john_main_process)
 				fprintf (stderr, "using field sep char '%c' "
-				         "(0x%02x)\n", options.field_sep_char,
-				         options.field_sep_char);
+				         "(0x%02x)\n", options.loader.field_sep_char,
+				         options.loader.field_sep_char);
 	}
 
 	rec_argc = argc; rec_argv = argv;

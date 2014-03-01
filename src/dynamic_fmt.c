@@ -6699,7 +6699,7 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 	if (Setup->flags & MGF_ColonNOTValid)
 	{
 		extern struct options_main options;
-		if (options.field_sep_char == ':')
+		if (options.loader.field_sep_char == ':')
 		{
 			return 0;
 		}

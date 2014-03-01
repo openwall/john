@@ -132,7 +132,8 @@ struct db_salt {
 /* Number of passwords with this salt */
 	int count;
 
-/* Sequential id for a given salt. Sequential id does not change even if some salts are removed during cracking */
+/* Sequential id for a given salt. Sequential id does not change even if some
+ * salts are removed during cracking */
 	int sequential_id;
 
 /* Buffered keys, allocated for "single crack" mode only */
@@ -179,43 +180,14 @@ struct db_options {
 /* Requested passwords per salt */
 	int min_pps, max_pps;
 
-/* Maximum size of a wordlist file to be 'preloaded' into memory  */
-	unsigned max_wordfile_memory;
-
-/* number of times fix_state_delay is called in wordfile.c before  any fseek() is done. */
-	unsigned max_fix_state_delay;
-
-/* the wordlist rules section (default if none entered is Wordlist) */
-	char *activewordlistrules;
-
-/* the 'single' rules section (default if none entered is Single) */
-	char *activesinglerules;
-
-/* the pot file used (default if none entered is $JOHN/john.pot or JOHN_PRIVATE_HOME/john.pot
-   depending upon compile defines) */
+/* Pot file used (default is $JOHN/john.pot) */
 	char *activepot;
 
-/* if --show=left is used, this is set, and john dumps the non-cracked hashes and exits */
+/* if --show=left is used, john dumps the non-cracked hashes */
 	int showuncracked;
 
-/* by default will be ':', but -field-separator-char=c can over ride the default */
+/* Field separator (normally ':') */
 	char field_sep_char;
-
-/* This is a 'special' flag.  It causes john to add 'extra' code to search for some salted types, when we have */
-/* only the hashes.  This var is set by the undocummented --regen_lost_salts=[string] and code within fake_salts.c */
-	int regen_lost_salts;
-
-/* #if HAVE_WINDOWS_H  */
-/* NOTE, we can not use the HAVE_WINDOWS_H here.  We are in a header, and can not guarentee os.h */
-/* without causing os.h to not be able to be loaded later in the .c file.  Thus ANY time we */
-/* change the OS's that make up HAVE_WINDOWS_H, we will also need to change THIS define */
-#if defined (_MSC_VER) || defined (__MINGW32__) || defined (__CYGWIN32__)
-	/* if built for Win32, then the pipe/stdin is VERY slow.  We allow special processing */
-	/* to use the pipe command, but in a -pipe=sharedmemoryfilename so that the producer  */
-	/* app, and JtR can be written to work properly with named shared memory, which is    */
-	/* MUCH faster than using a pipe to xfer data between the 2 apps.                     */
-	char *sharedmemoryfilename;
-#endif
 };
 
 /*
