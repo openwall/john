@@ -166,7 +166,7 @@ static void rec_reload(void)
 	char *new_argv[3] = { NULL };
 
 	if (john_main_process)
-		puts("- Reloading files -");
+		fprintf(stderr, "- Reloading files -\n");
 
 	rec_done(-2);
 	rec_db->format->methods.done();
