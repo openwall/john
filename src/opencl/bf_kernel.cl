@@ -4,6 +4,7 @@
  * Redistribution and use in source and binary forms, with or without modification, are permitted.
  * Based on Solar Designer implementation of bf_std.c in jtr-v1.7.8
  */
+#include "opencl_device_info.h"
 
 #ifdef DEVICE_IS_CPU
 #define MAYBE_LOCAL
@@ -111,13 +112,23 @@
               Sptr[i + 7] = R0 ;					\
 	    }
 
-__kernel void blowfish(	constant uint *salt __attribute__((max_constant_size(16))),
-			constant uint *P_box __attribute__((max_constant_size(72))),
-			__global uint *BF_out,
-			__global uint *BF_current_S,
-			__global uint *BF_current_P_global,
-			uint rounds,
-			constant uint *S_box __attribute__((max_constant_size(4096)))  	)
+__kernel void blowfish(	constant uint *salt
+#if gpu_amd(DEVICE_INFO)
+	__attribute__((max_constant_size(16)))
+#endif
+	, constant uint *P_box
+#if gpu_amd(DEVICE_INFO)
+	__attribute__((max_constant_size(72)))
+#endif
+	, __global uint *BF_out,
+	__global uint *BF_current_S,
+	__global uint *BF_current_P_global,
+	uint rounds,
+	constant uint *S_box
+#if gpu_amd(DEVICE_INFO)
+	__attribute__((max_constant_size(4096)))
+#endif
+  	)
 {
 		int index = get_global_id(0) ;
 		int lid   = get_local_id(0) ;

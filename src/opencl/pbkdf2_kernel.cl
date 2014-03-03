@@ -550,7 +550,6 @@ inline void hmac_sha1(__private uint *istate, __private uint *ostate, __private 
 }
 
 #define init_preprocess() 					\
-	int lid = get_local_id(0) ;				\
 	int id = get_global_id(0) ;				\
 								\
 	int i, j ;						\
@@ -589,7 +588,9 @@ __kernel
 void pbkdf2_preprocess_short(	const __global unsigned int *pass_global,
 				const __global unsigned int *salt,
 				int usrlen,
-				__global temp_buf *tmp	) {
+				__global temp_buf *tmp	)
+{
+	int lid = get_local_id(0);
 
 	init_preprocess();
 

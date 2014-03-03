@@ -36,7 +36,7 @@ inline void sha512_block(sha512_ctx * ctx) {
 
     #pragma unroll
     for (int i = 0; i < 15; i++)
-        w[i] = SWAP64(ctx->buffer->mem_64[i]);
+        w[i] = SWAP64(ctx->buffer[i].mem_64[0]);
     w[15] = ctx->buffer[15].mem_64[0];
 
     #pragma unroll
@@ -120,7 +120,7 @@ void kernel_crypt_raw(__global   const uint32_t  * keys_buffer,
     //Clear the buffer.
     #pragma unroll
     for (uint32_t i = 0; i < 15; i++)
-        ctx.buffer->mem_64[i] = 0;
+        ctx.buffer[i].mem_64[0] = 0;
 
     //Get password.
     _memcpy(ctx.buffer->mem_32, keys_buffer, ctx.buflen);
@@ -154,7 +154,7 @@ void kernel_crypt_xsha(__constant sha512_salt     * salt,
     //Clear the buffer.
     #pragma unroll
     for (uint32_t i = 0; i < 15; i++)
-        ctx.buffer->mem_64[i] = 0;
+        ctx.buffer[i].mem_64[0] = 0;
 
     //Get salt information.
     ctx.buffer->mem_32[0] = salt->salt;

@@ -302,7 +302,7 @@ typedef struct{
 #define GET_BIT \
 	(unsigned int)*(unsigned char *)&b[0] >> idx
 
-inline void cmp( __private DES_bs_vector *B,
+inline void cmp( __private unsigned DES_bs_vector *B,
 	  __global int *binary,
 	  int num_loaded_hash,
 	  volatile __global uint *output,
@@ -310,8 +310,6 @@ inline void cmp( __private DES_bs_vector *B,
 
 
 	int value[2] , mask, i, bit;
-	int index, flag, depth, idx;
-	DES_bs_vector *b;
 
 
 	for(i = 0; i < num_loaded_hash; i++) {
@@ -866,10 +864,13 @@ inline void DES_bs_finalize_keys(unsigned int section,
 		B,4, 26, 14, 20);
 
 #if (HARDCODE_SALT & FULL_UNROLL)
-__kernel void DES_bs_25(constant uint *index768 __attribute__((max_constant_size(3072))),
-			__global int *index96 ,
-			__global DES_bs_transfer *DES_bs_all,
-			__global DES_bs_vector *B_global,
+__kernel void DES_bs_25(constant uint *index768
+#if gpu_amd(DEVICE_INFO)
+                        __attribute__((max_constant_size(3072)))
+#endif
+                        , __global int *index96 ,
+                        __global DES_bs_transfer *DES_bs_all,
+                        __global DES_bs_vector *B_global,
 			__global int *binary,
 			  int num_loaded_hash,
 			  volatile __global uint *output) {
@@ -972,13 +973,16 @@ finalize_keys:
 
 #define y48(p, q) vxorf(B[p]     , _local_K[q + local_offset_K])
 
-__kernel void DES_bs_25( constant uint *index768 __attribute__((max_constant_size(3072))),
-			  __global int *index96 ,
-			  __global DES_bs_transfer *DES_bs_all,
-			  __global DES_bs_vector *B_global,
-			  __global int *binary,
-			  int num_loaded_hash,
-			  volatile __global uint *output) {
+__kernel void DES_bs_25( constant uint *index768
+#if gpu_amd(DEVICE_INFO)
+                         __attribute__((max_constant_size(3072)))
+#endif
+                         , __global int *index96 ,
+                         __global DES_bs_transfer *DES_bs_all,
+                         __global DES_bs_vector *B_global,
+                         __global int *binary,
+                         int num_loaded_hash,
+                         volatile __global uint *output) {
 
 		unsigned int section = get_global_id(0), global_offset_B, local_offset_K;
 		unsigned int local_id = get_local_id(0);
@@ -1102,13 +1106,17 @@ finalize_keys:
 		rounds_and_swapped--;
 #endif
 
- __kernel void DES_bs_25_b( constant uint *index768 __attribute__((max_constant_size(3072))),
-			__global int *index96 ,
-			__global DES_bs_transfer *DES_bs_all,
-			__global DES_bs_vector *B_global,
-			__global int *binary,
-			int num_loaded_hash,
-			volatile __global uint *output)  {
+__kernel void DES_bs_25_b( constant uint *index768
+#if gpu_amd(DEVICE_INFO)
+                           __attribute__((max_constant_size(3072)))
+#endif
+                           , __global int *index96 ,
+                           __global DES_bs_transfer *DES_bs_all,
+                           __global DES_bs_vector *B_global,
+                           __global int *binary,
+                           int num_loaded_hash,
+                           volatile __global uint *output)
+{
 
 		unsigned int section = get_global_id(0), global_offset_B ,local_offset_K;
 		unsigned int local_id = get_local_id(0);

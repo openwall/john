@@ -338,7 +338,7 @@ inline void sha1_final( sha1_context *ctx, uchar output[20] )
 	uint32_t last, padn;
 	uint32_t bits;
 	uchar msglen[8];
-	const uchar sha1_padding[64] = {
+	uchar sha1_padding[64] = {
 		0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -353,7 +353,7 @@ inline void sha1_final( sha1_context *ctx, uchar output[20] )
 	last = ctx->total & 0x3F;
 	padn = ( last < 56 ) ? ( 56 - last ) : ( 120 - last );
 
-	sha1_update( ctx, (uchar *) sha1_padding, padn );
+	sha1_update( ctx, sha1_padding, padn );
 	sha1_update( ctx, msglen, 8 );
 
 	PUT_UINT_BE( ctx->state[0], output,  0 );

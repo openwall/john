@@ -89,7 +89,7 @@ inline void sha512_block(sha512_ctx * ctx) {
     #pragma unroll
 #endif
     for (int i = 0; i < 16; i++)
-        w[i] = SWAP64(ctx->buffer->mem_64[i]);
+        w[i] = SWAP64(ctx->buffer[i].mem_64[0]);
 
 #ifdef UNROLL
     #pragma unroll
@@ -255,7 +255,7 @@ inline void clear_ctx_buffer(sha512_ctx * ctx) {
     #pragma unroll
 #endif
     for (int i = 0; i < 16; i++)
-        ctx->buffer->mem_64[i] = 0;
+        ctx->buffer[i].mem_64[0] = 0;
 
     ctx->buflen = 0;
 }
