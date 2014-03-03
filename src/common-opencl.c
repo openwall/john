@@ -38,6 +38,15 @@
 
 #define LOG_SIZE 1024*16
 
+
+// If we are a release build, only output OpenCL build log if
+// there was a fatal error (or --verbosity was increased).
+#ifdef JTR_RELEASE_BUILD
+#define LOG_VERB 4
+#else
+#define LOG_VERB 3
+#endif
+
 /* Common OpenCL variables */
 int ocl_gpu_id, platform_id;
 int ocl_device_list[MAXGPUS];
@@ -721,7 +730,8 @@ void opencl_build(int sequential_id, char *opts, int save, char * file_name,
 		HANDLE_CLERROR (build_code, "clBuildProgram failed.");
 	}
 	// Nvidia may return a single '\n' that we ignore
-	else if (options.verbosity > 3 && strlen(build_log) > 1 && showLog)
+	else if (options.verbosity >= LOG_VERB && strlen(build_log) > 1 &&
+	         showLog)
 		fprintf(stderr, "Build log: %s\n", build_log);
 	MEM_FREE(build_log);
 
@@ -787,7 +797,7 @@ static void opencl_build_from_binary(int sequential_id)
 		HANDLE_CLERROR (build_code, "clBuildProgram failed.");
 	}
 	// Nvidia may return a single '\n' that we ignore
-	else if (options.verbosity > 3 && strlen(opencl_log) > 1)
+	else if (options.verbosity >= LOG_VERB && strlen(opencl_log) > 1)
 		fprintf(stderr, "Binary Build log: %s\n", opencl_log);
 }
 
