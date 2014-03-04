@@ -34,7 +34,7 @@
 
 #include "arch.h"
 
-#ifdef _WIN64
+#if defined (_WIN64) || defined (__CYGWIN64__)
 /*
  * MS use a different x64 calling convention than everyone else:
  * Arguments: RCX, RDX, R8, R9 then stack right-to-left.
