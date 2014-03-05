@@ -105,7 +105,7 @@ static void init(struct fmt_main *self) {
 	opencl_get_user_preferences(OCL_CONFIG);
 
 	// BF_select_device(platform,device);
-	//platform_id = get_platform_id(ocl_gpu_id);
+	//platform_id = get_platform_id(gpu_id);
         BF_select_device(self) ;
 	keys_mode = 'a' ;
 	sign_extension_bug = 0 ;

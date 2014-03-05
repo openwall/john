@@ -49,11 +49,11 @@ void clean_all_buffer() {
 	int 	i;
 
 	for (i = 0; i < active_dev_ctr; i++) {
-		clean_gpu_buffer(&globalObj[ocl_device_list[i]].gpu_buffer);
-		HANDLE_CLERROR(clReleaseKernel(globalObj[ocl_device_list[i]].krnl[0]), "Error releasing kernel pbkdf2_preprocess_short");
-		HANDLE_CLERROR(clReleaseKernel(globalObj[ocl_device_list[i]].krnl[1]), "Error releasing kernel pbkdf2_preprocess_long");
-		HANDLE_CLERROR(clReleaseKernel(globalObj[ocl_device_list[i]].krnl[2]), "Error releasing kernel pbkdf2_iter");
-		HANDLE_CLERROR(clReleaseKernel(globalObj[ocl_device_list[i]].krnl[3]), "Error releasing kernel pbkdf2_postprocess");
+		clean_gpu_buffer(&globalObj[gpu_device_list[i]].gpu_buffer);
+		HANDLE_CLERROR(clReleaseKernel(globalObj[gpu_device_list[i]].krnl[0]), "Error releasing kernel pbkdf2_preprocess_short");
+		HANDLE_CLERROR(clReleaseKernel(globalObj[gpu_device_list[i]].krnl[1]), "Error releasing kernel pbkdf2_preprocess_long");
+		HANDLE_CLERROR(clReleaseKernel(globalObj[gpu_device_list[i]].krnl[2]), "Error releasing kernel pbkdf2_iter");
+		HANDLE_CLERROR(clReleaseKernel(globalObj[gpu_device_list[i]].krnl[3]), "Error releasing kernel pbkdf2_postprocess");
 	 }
 }
 
@@ -174,8 +174,8 @@ static size_t max_lws() {
 	size_t 	max = 0;
 
 	for (i = 0; i < active_dev_ctr; ++i)
-		if (max < globalObj[ocl_device_list[i]].lws)
-			max = globalObj[ocl_device_list[i]].lws;
+		if (max < globalObj[gpu_device_list[i]].lws)
+			max = globalObj[gpu_device_list[i]].lws;
 
 	return max;
 }
@@ -326,11 +326,11 @@ void dcc2_warning() {
 	int 		i;
 
 	for (i = 0; i < active_dev_ctr; ++i)
-		total_exec_time_inv += globalObj[ocl_device_list[i]].exec_time_inv;
+		total_exec_time_inv += globalObj[gpu_device_list[i]].exec_time_inv;
 
 	for (i = 0; i < active_dev_ctr; ++i)
-		if (globalObj[ocl_device_list[i]].exec_time_inv / total_exec_time_inv < 0.01)
-			fprintf(stderr, "WARNING: Device %d is too slow and might cause degradation in performance.\n", ocl_device_list[i]);
+		if (globalObj[gpu_device_list[i]].exec_time_inv / total_exec_time_inv < 0.01)
+			fprintf(stderr, "WARNING: Device %d is too slow and might cause degradation in performance.\n", gpu_device_list[i]);
 }
 
 void pbkdf2_divide_work(cl_uint *pass_api, cl_uint *salt_api, cl_uint saltlen_api, unsigned int iter_cnt, cl_uint *hash_out_api, cl_uint *hmac_sha1_api, cl_uint num) {
@@ -354,11 +354,11 @@ void pbkdf2_divide_work(cl_uint *pass_api, cl_uint *salt_api, cl_uint saltlen_ap
 	if (num > 8192) {
 		///Calculates t0tal Kernel Execution Speed
 		for (i = 0; i < active_dev_ctr; ++i)
-			total_exec_time_inv += globalObj[ocl_device_list[i]].exec_time_inv;
+			total_exec_time_inv += globalObj[gpu_device_list[i]].exec_time_inv;
 
 		///Calculate work division ratio
 		for (i = 0; i < active_dev_ctr; ++i)
-			globalObj[ocl_device_list[i]].exec_time_inv /= total_exec_time_inv;
+			globalObj[gpu_device_list[i]].exec_time_inv /= total_exec_time_inv;
 
 		///Divide memory and work
 		for (i = 0; i < active_dev_ctr; ++i) {
@@ -368,7 +368,7 @@ void pbkdf2_divide_work(cl_uint *pass_api, cl_uint *salt_api, cl_uint saltlen_ap
 					work_part = (work_part / lws_max + 1) * lws_max;
 			}
 			else {
-				work_part = num * globalObj[ocl_device_list[i]].exec_time_inv;
+				work_part = num * globalObj[gpu_device_list[i]].exec_time_inv;
 				if (work_part % lws_max != 0)
 					work_part = (work_part / lws_max + 1) * lws_max;
 			}
@@ -382,7 +382,7 @@ void pbkdf2_divide_work(cl_uint *pass_api, cl_uint *salt_api, cl_uint saltlen_ap
 #endif
 
 			///call to exec_pbkdf2()
-			exec_pbkdf2(pass_api + 4 * work_offset, salt_api, saltlen_api, iter_cnt, hash_out_api + 4 * work_offset, work_part, ocl_device_list[i], queue[ocl_device_list[i]], hmac_sha1_api + 5 * work_offset);
+			exec_pbkdf2(pass_api + 4 * work_offset, salt_api, saltlen_api, iter_cnt, hash_out_api + 4 * work_offset, work_part, gpu_device_list[i], queue[gpu_device_list[i]], hmac_sha1_api + 5 * work_offset);
 			work_offset += work_part;
 
 #ifdef  _DEBUG
@@ -393,7 +393,7 @@ void pbkdf2_divide_work(cl_uint *pass_api, cl_uint *salt_api, cl_uint saltlen_ap
 
 		///Synchronize all kernels
 		for (i = active_dev_ctr - 1; i >= 0; --i)
-			HANDLE_CLERROR(clFlush(queue[ocl_device_list[i]]), "Flush Error");
+			HANDLE_CLERROR(clFlush(queue[gpu_device_list[i]]), "Flush Error");
 
 		for (i = 0; i < active_dev_ctr; ++i) {
 			while (1) {
@@ -416,7 +416,7 @@ void pbkdf2_divide_work(cl_uint *pass_api, cl_uint *salt_api, cl_uint saltlen_ap
 					work_part = (work_part / lws_max + 1) * lws_max;
 			}
 			else {
-				work_part = num * globalObj[ocl_device_list[i]].exec_time_inv;
+				work_part = num * globalObj[gpu_device_list[i]].exec_time_inv;
 				if (work_part % lws_max != 0)
 					work_part = (work_part / lws_max + 1) * lws_max;
 			}
@@ -430,8 +430,8 @@ void pbkdf2_divide_work(cl_uint *pass_api, cl_uint *salt_api, cl_uint saltlen_ap
 #endif
 
 			///Read results back from device
-			HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_device_list[i]],
-							   globalObj[ocl_device_list[i]].gpu_buffer.hash_out_gpu,
+			HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_device_list[i]],
+							   globalObj[gpu_device_list[i]].gpu_buffer.hash_out_gpu,
 							   CL_FALSE, 0,
 							   4 * work_part * sizeof(cl_uint),
 							   hash_out_api + 4 * work_offset,
@@ -447,14 +447,14 @@ void pbkdf2_divide_work(cl_uint *pass_api, cl_uint *salt_api, cl_uint saltlen_ap
 		}
 
 		for (i = 0; i < active_dev_ctr; ++i)
-			HANDLE_CLERROR(clFinish(queue[ocl_device_list[i]]), "Finish Error");
+			HANDLE_CLERROR(clFinish(queue[gpu_device_list[i]]), "Finish Error");
 
 	 }
 
 	 else {
-		exec_pbkdf2(pass_api, salt_api, saltlen_api, iter_cnt, hash_out_api, num, ocl_device_list[0], queue[ocl_device_list[0]], hmac_sha1_api);
-		HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_device_list[0]], globalObj[ocl_device_list[0]].gpu_buffer.hash_out_gpu, CL_FALSE, 0, 4*num*sizeof(cl_uint), hash_out_api, 0, NULL, NULL), "Write :FAILED");
-		HANDLE_CLERROR(clFinish(queue[ocl_device_list[0]]), "Finish Error");
+		exec_pbkdf2(pass_api, salt_api, saltlen_api, iter_cnt, hash_out_api, num, gpu_device_list[0], queue[gpu_device_list[0]], hmac_sha1_api);
+		HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_device_list[0]], globalObj[gpu_device_list[0]].gpu_buffer.hash_out_gpu, CL_FALSE, 0, 4*num*sizeof(cl_uint), hash_out_api, 0, NULL, NULL), "Write :FAILED");
+		HANDLE_CLERROR(clFinish(queue[gpu_device_list[0]]), "Finish Error");
 	}
 }
 

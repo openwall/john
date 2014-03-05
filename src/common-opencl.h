@@ -23,6 +23,7 @@
 #include <CL/cl_ext.h>
 #endif
 
+#include "common-gpu.h"
 #include "arch.h"
 #include "misc.h"
 #include "memory.h"
@@ -32,7 +33,6 @@
 #include "stdint.h"
 #include "opencl_device_info.h"
 
-#define MAXGPUS	8
 #define MAX_PLATFORMS	8
 #define MAX_EVENTS 8
 #define SUBSECTION_OPENCL	":OpenCL"
@@ -61,13 +61,12 @@ typedef struct {
 cl_platform platforms[MAX_PLATFORMS];
 
 /* Common OpenCL variables */
-extern int ocl_gpu_id, platform_id;
-extern int ocl_device_list[MAXGPUS];
+extern int platform_id;
 
-extern cl_device_id devices[MAXGPUS];
-extern cl_context context[MAXGPUS];
-extern cl_program program[MAXGPUS];
-extern cl_command_queue queue[MAXGPUS];
+extern cl_device_id devices[MAX_GPU_DEVICES];
+extern cl_context context[MAX_GPU_DEVICES];
+extern cl_program program[MAX_GPU_DEVICES];
+extern cl_command_queue queue[MAX_GPU_DEVICES];
 extern cl_int ret_code;
 extern cl_kernel crypt_kernel;
 extern size_t local_work_size;
@@ -79,8 +78,8 @@ extern char *kernel_source;
 extern cl_event *profilingEvent, *firstEvent, *lastEvent;
 extern cl_event multi_profilingEvent[MAX_EVENTS];
 
-extern int device_info[MAXGPUS];
-extern int cores_per_MP[MAXGPUS];
+extern int device_info[MAX_GPU_DEVICES];
+extern int cores_per_MP[MAX_GPU_DEVICES];
 
 #define LWS_CONFIG_NAME			"_LWS"
 #define GWS_CONFIG_NAME			"_GWS"
@@ -152,9 +151,6 @@ char *get_opencl_header_version(void);
 
 void handle_clerror(cl_int cl_error, const char *message, const char *file, int line);
 
-/* Progress indicator "spinning wheel" */
-void advance_cursor(void);
-
 /* List all available devices. For each one, shows a set of useful
  * hardware/software details */
 void opencl_list_devices(void);
@@ -213,7 +209,7 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
  *   Find best_gws will compute the split-kernel three times in order to get the 'real' runtime.
  *   Example:
  *       for (i = 0; i < 3; i++) {
- *           HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], main_kernel[ocl_gpu_id], 1, NULL,
+ *           HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], main_kernel[gpu_id], 1, NULL,
  *               &gws, &local_work_size, 0, NULL,
  *               &multi_profilingEvent[split_events[i]]),  //split_events contains: 2 ,5 ,6
  *               "failed in clEnqueueNDRangeKernel");

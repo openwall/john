@@ -154,16 +154,16 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	idx = mem_alloc(sizeof(*idx) * gws);
 	digest = mem_alloc(gws * BINARY_SIZE);
 
-	salt_buffer = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, SALT_STORAGE_SIZE, NULL, &ret_code);
+	salt_buffer = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, SALT_STORAGE_SIZE, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating salt_buffer out argument");
 
-	keys_buffer = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, (PLAINTEXT_LENGTH + 1) * gws, NULL, &ret_code);
+	keys_buffer = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, (PLAINTEXT_LENGTH + 1) * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating keys_buffer out argument");
 
-	idx_buffer = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, 4 * gws, NULL, &ret_code);
+	idx_buffer = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, 4 * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating idx_buffer out argument");
 
-	digest_buffer = clCreateBuffer(context[ocl_gpu_id], CL_MEM_WRITE_ONLY, BINARY_SIZE * gws, NULL, &ret_code);
+	digest_buffer = clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, BINARY_SIZE * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating digest_buffer in argument");
 
 	HANDLE_CLERROR(
@@ -203,7 +203,7 @@ static void done(void)
 	release_clobj();
 
 	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Error releasing kernel");
-	HANDLE_CLERROR(clReleaseProgram(program[ocl_gpu_id]), "Error releasing program");
+	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Error releasing program");
 }
 
 static void init(struct fmt_main *self)
@@ -212,7 +212,7 @@ static void init(struct fmt_main *self)
 	static char valgo[48] = "";
 	size_t gws_limit;
 
-	if ((v_width = opencl_get_vector_width(ocl_gpu_id,
+	if ((v_width = opencl_get_vector_width(gpu_id,
 	                                       sizeof(cl_int))) > 1) {
 		/* Run vectorized kernel */
 		snprintf(valgo, sizeof(valgo),
@@ -220,14 +220,14 @@ static void init(struct fmt_main *self)
 		self->params.algorithm_name = valgo;
 	}
 	snprintf(build_opts, sizeof(build_opts), "-DV_WIDTH=%u", v_width);
-	opencl_init("$JOHN/kernels/rakp_kernel.cl", ocl_gpu_id, build_opts);
+	opencl_init("$JOHN/kernels/rakp_kernel.cl", gpu_id, build_opts);
 
 	// create kernel to execute
-	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "rakp_kernel", &ret_code);
+	crypt_kernel = clCreateKernel(program[gpu_id], "rakp_kernel", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel");
 
 	gws_limit = MIN((1 << 26) * 4 / PAD_SIZE / v_width,
-			get_max_mem_alloc_size(ocl_gpu_id) / (v_width * BUFFER_SIZE));
+			get_max_mem_alloc_size(gpu_id) / (v_width * BUFFER_SIZE));
 
 	//Initialize openCL tuning (library) for this format.
 	opencl_init_auto_setup(SEED, 0, 4, NULL, warn, &multi_profilingEvent[2],
@@ -241,7 +241,7 @@ static void init(struct fmt_main *self)
 	//Auto tune execution from shared/included code.
 	self->methods.crypt_all = crypt_all_benchmark;
 	common_run_auto_tune(self, ROUNDS, gws_limit,
-		(cpu(device_info[ocl_gpu_id]) ? 500000000ULL : 1000000000ULL));
+		(cpu(device_info[gpu_id]) ? 500000000ULL : 1000000000ULL));
 	self->methods.crypt_all = crypt_all;
 }
 
@@ -336,9 +336,9 @@ static void *salt(char *ciphertext)
 static void set_salt(void *salt)
 {
 	HANDLE_CLERROR(
-		clEnqueueWriteBuffer(queue[ocl_gpu_id], salt_buffer, CL_FALSE, 0, sizeof(salt_storage), (void*) salt, 0, NULL, NULL),
+		clEnqueueWriteBuffer(queue[gpu_id], salt_buffer, CL_FALSE, 0, sizeof(salt_storage), (void*) salt, 0, NULL, NULL),
 		"Error updating contents of salt_buffer");
-	HANDLE_CLERROR(clFlush(queue[ocl_gpu_id]), "failed in clFlush");
+	HANDLE_CLERROR(clFlush(queue[gpu_id]), "failed in clFlush");
 }
 
 static int cmp_all(void *binary, int count)
@@ -362,7 +362,7 @@ static int cmp_exact(char *source, int index)
 	int i;
 
 	if (partial_output) {
-		HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], digest_buffer, CL_TRUE, 0, BINARY_SIZE * global_work_size * v_width, digest, 0, NULL, NULL), "failed reading results back");
+		HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], digest_buffer, CL_TRUE, 0, BINARY_SIZE * global_work_size * v_width, digest, 0, NULL, NULL), "failed reading results back");
 		partial_output = 0;
 	}
 	b = (ARCH_WORD_32*)binary(source);
@@ -383,24 +383,24 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	if (key_idx) {
 		HANDLE_CLERROR(
-			clEnqueueWriteBuffer(queue[ocl_gpu_id], keys_buffer, CL_FALSE, 0, 4 * key_idx, keys, 0, NULL, NULL),
+			clEnqueueWriteBuffer(queue[gpu_id], keys_buffer, CL_FALSE, 0, 4 * key_idx, keys, 0, NULL, NULL),
 			"Error updating contents of keys_buffer");
 
 		HANDLE_CLERROR(
-			clEnqueueWriteBuffer(queue[ocl_gpu_id], idx_buffer, CL_FALSE, 0, 4 * scalar_gws, idx, 0, NULL, NULL),
+			clEnqueueWriteBuffer(queue[gpu_id], idx_buffer, CL_FALSE, 0, 4 * scalar_gws, idx, 0, NULL, NULL),
 			"Error updating contents of idx_buffer");
 	}
 
 	HANDLE_CLERROR(
-		clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, profilingEvent),
+		clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, profilingEvent),
 		"Error beginning execution of the kernel");
 
 	HANDLE_CLERROR(
-		clFinish(queue[ocl_gpu_id]),
+		clFinish(queue[gpu_id]),
 		"Error waiting for kernel to finish executing");
 
 	HANDLE_CLERROR(
-		clEnqueueReadBuffer(queue[ocl_gpu_id], digest_buffer, CL_TRUE, 0, sizeof(cl_uint) * scalar_gws, digest, 0, NULL, NULL),
+		clEnqueueReadBuffer(queue[gpu_id], digest_buffer, CL_TRUE, 0, sizeof(cl_uint) * scalar_gws, digest, 0, NULL, NULL),
 		"Error reading results from digest_buffer");
 	partial_output = 1;
 
@@ -422,24 +422,24 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
 
 	if (key_idx) {
 		HANDLE_CLERROR(
-			clEnqueueWriteBuffer(queue[ocl_gpu_id], keys_buffer, CL_FALSE, 0, 4 * key_idx, keys, 0, NULL, &multi_profilingEvent[0]),
+			clEnqueueWriteBuffer(queue[gpu_id], keys_buffer, CL_FALSE, 0, 4 * key_idx, keys, 0, NULL, &multi_profilingEvent[0]),
 			"Error updating contents of keys_buffer");
 
 		HANDLE_CLERROR(
-			clEnqueueWriteBuffer(queue[ocl_gpu_id], idx_buffer, CL_FALSE, 0, 4 * scalar_gws, idx, 0, NULL, &multi_profilingEvent[1]),
+			clEnqueueWriteBuffer(queue[gpu_id], idx_buffer, CL_FALSE, 0, 4 * scalar_gws, idx, 0, NULL, &multi_profilingEvent[1]),
 			"Error updating contents of idx_buffer");
 	}
 
 	HANDLE_CLERROR(
-		clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL, &gws, lws, 0, NULL, &multi_profilingEvent[2]),
+		clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &gws, lws, 0, NULL, &multi_profilingEvent[2]),
 		"Error beginning execution of the kernel");
 
 	HANDLE_CLERROR(
-		clFinish(queue[ocl_gpu_id]),
+		clFinish(queue[gpu_id]),
 		"Error waiting for kernel to finish executing");
 
 	HANDLE_CLERROR(
-		clEnqueueReadBuffer(queue[ocl_gpu_id], digest_buffer, CL_TRUE, 0, sizeof(cl_uint) * scalar_gws, digest, 0, NULL, &multi_profilingEvent[3]),
+		clEnqueueReadBuffer(queue[gpu_id], digest_buffer, CL_TRUE, 0, sizeof(cl_uint) * scalar_gws, digest, 0, NULL, &multi_profilingEvent[3]),
 		"Error reading results from digest_buffer");
 	partial_output = 1;
 

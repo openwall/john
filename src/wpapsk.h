@@ -302,7 +302,7 @@ static void set_salt(void *salt)
 	insert_nonce(currentsalt.data + 12);
 	alter_endianity(currentsalt.data, 64 + 12);
 
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_salt, CL_FALSE, 0, sizeof(wpapsk_salt), &currentsalt, 0, NULL, NULL), "Copy setting to gpu");
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_salt, CL_FALSE, 0, sizeof(wpapsk_salt), &currentsalt, 0, NULL, NULL), "Copy setting to gpu");
 #endif
 	//Debug_hccap();
 }

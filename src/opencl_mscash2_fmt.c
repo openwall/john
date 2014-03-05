@@ -108,7 +108,7 @@ static void init(struct fmt_main *self) {
 	opencl_get_user_preferences(OCL_CONFIG);
 
 	for( i=0; i < opencl_get_devices(); i++)
-		select_device(ocl_device_list[i], self) ;
+		select_device(gpu_device_list[i], self) ;
 
 	dcc2_warning() ;
 

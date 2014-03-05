@@ -1,12 +1,13 @@
 README CUDA:
 
-CUDA support is tested under Linux and OSX. Recent Linux distributions (eg.
-Ubuntu 12.10) have OpenCL and CUDA drivers included. OSX will support OpenCL
+CUDA support is tested under Linux and OSX. Some recent Linux distributions
+have proprietry OpenCL and CUDA drivers included, for others (or for too new
+cards) you will have to install nvidia's drivers. OSX will support OpenCL
 natively but for using CUDA you need to download drivers from nvidia web site.
 
-If your device supports CUDA it very likely also supports OpenCL. The -cuda
-build targets will support CUDA only, while the -gpu build targets support
-both OpenCL and CUDA (thus the latter is recommended for most users).
+If your device supports CUDA it also supports OpenCL. The -cuda build targets
+will support CUDA only, while the -gpu build targets support both OpenCL and
+CUDA (thus the latter is recommended for nearly all users).
 
 If you have problems with JtR CUDA support:
   Please check that paths to yours CUDA library are proper in Makefile:
@@ -20,7 +21,7 @@ If you have problems with JtR CUDA support:
 Performance issues:
   If you have got Fermi or newer card change "-arch sm_10" to "-arch sm_20" in
   the NVCC_FLAGS (Makefile). If you have Kepler or newer, you can experiment
-  with using "-arch sm_30" as well but some formats may actually perform better
+  with using "-arch sm_30" as well but some formats actually perform better
   with sm_20.
 
   To get better performance you can experiment with THREADS and BLOCKS macros

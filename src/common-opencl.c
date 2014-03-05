@@ -48,8 +48,7 @@
 #endif
 
 /* Common OpenCL variables */
-int ocl_gpu_id, platform_id;
-int ocl_device_list[MAXGPUS];
+int platform_id;
 
 static char opencl_log[LOG_SIZE];
 static int kernel_loaded;
@@ -69,20 +68,20 @@ static int buffer_size;
 static int default_value;
 static int hash_loops;
 static unsigned long long int duration_time = 0;
-static const char ** warnings;
+static const char **warnings;
 static int number_of_events;
-static int * split_events;
-static cl_event * to_profile_event;
-static struct fmt_main * self;
-static void (*create_clobj)(size_t gws, struct fmt_main * self);
+static int *split_events;
+static cl_event *to_profile_event;
+static struct fmt_main *self;
+static void (*create_clobj)(size_t gws, struct fmt_main *self);
 static void (*release_clobj)(void);
-static const char * config_name;
+static const char *config_name;
 static size_t gws_limit;
 
-cl_device_id devices[MAXGPUS];
-cl_context context[MAXGPUS];
-cl_program program[MAXGPUS];
-cl_command_queue queue[MAXGPUS];
+cl_device_id devices[MAX_GPU_DEVICES];
+cl_context context[MAX_GPU_DEVICES];
+cl_program program[MAX_GPU_DEVICES];
+cl_command_queue queue[MAX_GPU_DEVICES];
 cl_int ret_code;
 cl_kernel crypt_kernel;
 size_t local_work_size;
@@ -95,8 +94,8 @@ char *kernel_source;
 cl_event *profilingEvent, *firstEvent, *lastEvent;
 cl_event multi_profilingEvent[MAX_EVENTS];
 
-int device_info[MAXGPUS];
-int cores_per_MP[MAXGPUS];
+int device_info[MAX_GPU_DEVICES];
+int cores_per_MP[MAX_GPU_DEVICES];
 
 void opencl_process_event(void)
 {
@@ -123,17 +122,6 @@ void opencl_process_event(void)
 				status_ticks_overflow_safety();
 			}
 		}
-	}
-}
-
-void advance_cursor()
-{
-	static int pos = 0;
-	char cursor[4] = { '/', '-', '\\', '|' };
-
-	if (john_main_process) {
-		fprintf(stderr, "%c\b", cursor[pos]);
-		pos = (pos + 1) % 4;
 	}
 }
 
@@ -171,7 +159,7 @@ int opencl_get_devices()
 {
 	int i = 0;
 
-	while (ocl_device_list[i++] != -1);
+	while (gpu_device_list[i++] != -1);
 
 	return --i;
 }
@@ -232,7 +220,7 @@ static void start_opencl_environment()
 		    CL_PLATFORM_NAME, sizeof(opencl_data), opencl_data, NULL),
 		    "Error querying PLATFORM_NAME");
 		HANDLE_CLERROR(clGetDeviceIDs(platforms[i].platform,
-		    CL_DEVICE_TYPE_ALL, MAXGPUS, &devices[device_pos],
+		    CL_DEVICE_TYPE_ALL, MAX_GPU_DEVICES, &devices[device_pos],
 		    &device_num), "No OpenCL device of that type exist");
 
 		// Save platform and devices information
@@ -251,13 +239,26 @@ static void start_opencl_environment()
 	devices[device_pos] = NULL;
 }
 
-static int start_opencl_device(int sequential_id, int * err_type)
+static int start_opencl_device(int sequential_id, int *err_type)
 {
 	cl_context_properties properties[3];
 	char opencl_data[LOG_SIZE];
+	static int amd = 0, nvidia = 0;
 
 	// Get the detailed information about the device.
 	opencl_get_dev_info(sequential_id);
+
+	// Map temp monitoring function to device id
+	if (gpu_nvidia(device_info[sequential_id])) {
+		temp_dev_id[sequential_id] = nvidia++;
+		dev_get_temp[sequential_id] = nvml_lib ? nvidia_get_temp : NULL;
+	} else if (gpu_amd(device_info[sequential_id])) {
+		temp_dev_id[sequential_id] = amd++;
+		dev_get_temp[sequential_id] = adl_lib ? amd_get_temp : NULL;
+	} else {
+		temp_dev_id[sequential_id] = sequential_id;
+		dev_get_temp[sequential_id] = NULL;
+	}
 
 	HANDLE_CLERROR(clGetDeviceInfo(devices[sequential_id], CL_DEVICE_NAME,
 	    sizeof(opencl_data), opencl_data, NULL),
@@ -319,14 +320,14 @@ static void add_device_to_list(int sequential_id)
 	}
 
 	for (i = 0; i < opencl_get_devices() && !found; i++) {
-		if (sequential_id == ocl_device_list[i])
+		if (sequential_id == gpu_device_list[i])
 			found = 1;
 	}
 	if (!found) {
 		// Only requested and working devices should be started.
 		if (start_opencl_device(sequential_id, &i)) {
-			ocl_device_list[opencl_get_devices() + 1] = -1;
-			ocl_device_list[opencl_get_devices()] = sequential_id;
+			gpu_device_list[opencl_get_devices() + 1] = -1;
+			gpu_device_list[opencl_get_devices()] = sequential_id;
 		} else
 			fprintf(stderr, "Device id %d not working correctly,"
 			        " skipping.\n", sequential_id);
@@ -338,12 +339,12 @@ static void add_device_type(cl_ulong device_type)
 	int i, j, sequence_nr = 0;
 	cl_uint device_num;
 	cl_ulong long_entries;
-	cl_device_id devices[MAXGPUS];
+	cl_device_id devices[MAX_GPU_DEVICES];
 
 	for (i = 0; platforms[i].platform; i++) {
 		// Get all devices of informed type.
 		HANDLE_CLERROR(clGetDeviceIDs(platforms[i].platform,
-			CL_DEVICE_TYPE_ALL, MAXGPUS, devices, &device_num),
+			CL_DEVICE_TYPE_ALL, MAX_GPU_DEVICES, devices, &device_num),
 			"No OpenCL device of that type exist");
 
 		for (j = 0; j < device_num; j++, sequence_nr++) {
@@ -355,11 +356,11 @@ static void add_device_type(cl_ulong device_type)
 	}
 }
 
-static void build_device_list(char * device_list[MAXGPUS])
+static void build_device_list(char *device_list[MAX_GPU_DEVICES])
 {
 	int n = 0;
 
-	while (device_list[n] && n < MAXGPUS) {
+	while (device_list[n] && n < MAX_GPU_DEVICES) {
 		if (!strcmp(device_list[n], "all"))
 			add_device_type(CL_DEVICE_TYPE_ALL);
 		else if (!strcmp(device_list[n], "cpu"))
@@ -374,7 +375,7 @@ static void build_device_list(char * device_list[MAXGPUS])
 
 void opencl_preinit(void)
 {
-	char * device_list[MAXGPUS], string[10];
+	char *device_list[MAX_GPU_DEVICES], string[10];
 	int n = 0;
 	char *env;
 
@@ -389,10 +390,12 @@ void opencl_preinit(void)
 	}
 
 	if (!opencl_initialized) {
+		nvidia_probe();
+		amd_probe();
 		device_list[0] = NULL;
 
-		ocl_device_list[0] = -1;
-		ocl_device_list[1] = -1;
+		gpu_device_list[0] = -1;
+		gpu_device_list[1] = -1;
 		start_opencl_environment();
 
 		if (options.ocl_platform) {
@@ -429,16 +432,16 @@ void opencl_preinit(void)
 					        " id %s\n", current->data);
 					exit(1);
 				}
-				ocl_gpu_id = get_sequential_id(
+				gpu_id = get_sequential_id(
 					atoi(current->data), platform_id);
 
-				if (ocl_gpu_id < 0) {
+				if (gpu_id < 0) {
 					fprintf(stderr, "Invalid OpenCL device"
 					        " id %s\n", current->data);
 					exit(1);
 				}
 			} else
-				ocl_gpu_id = get_sequential_id(0, platform_id);
+				gpu_id = get_sequential_id(0, platform_id);
 		} else {
 			struct list_entry *current;
 
@@ -450,7 +453,7 @@ void opencl_preinit(void)
 
 				device_list[n] = NULL;
 			} else {
-				ocl_gpu_id = -1;
+				gpu_id = -1;
 				platform_id = -1;
 			}
 		}
@@ -466,24 +469,24 @@ void opencl_preinit(void)
 				platform_id = atoi(devcfg);
 		}
 
-		if (!options.gpu_devices && ocl_gpu_id < 0) {
+		if (!options.gpu_devices && gpu_id < 0) {
 			char *devcfg;
 
 			if ((devcfg = cfg_get_param(SECTION_OPTIONS,
 			                            SUBSECTION_OPENCL,
 						    "Device"))) {
-				ocl_gpu_id = atoi(devcfg);
-				ocl_device_list[0] = ocl_gpu_id;
+				gpu_id = atoi(devcfg);
+				gpu_device_list[0] = gpu_id;
 			}
 		}
 
-		if (platform_id == -1 || ocl_gpu_id == -1) {
-			find_valid_opencl_device(&ocl_gpu_id, &platform_id);
-			ocl_gpu_id = get_sequential_id(ocl_gpu_id, platform_id);
+		if (platform_id == -1 || gpu_id == -1) {
+			find_valid_opencl_device(&gpu_id, &platform_id);
+			gpu_id = get_sequential_id(gpu_id, platform_id);
 		}
 
 		if (!device_list[0]) {
-			sprintf(string, "%d", ocl_gpu_id);
+			sprintf(string, "%d", gpu_id);
 			device_list[0] = string;
 			device_list[1] = NULL;
 		}
@@ -498,16 +501,16 @@ void opencl_preinit(void)
 		// Poor man's multi-device support
 		if (mpi_p > 1) {
 			// Pick device to use for this node
-			ocl_gpu_id =
-				ocl_device_list[mpi_id % opencl_get_devices()];
+			gpu_id =
+				gpu_device_list[mpi_id % opencl_get_devices()];
 
 			// Hide any other devices from list
-			ocl_device_list[0] = ocl_gpu_id;
-			ocl_device_list[1] = -1;
+			gpu_device_list[0] = gpu_id;
+			gpu_device_list[1] = -1;
 		} else
 #endif
-			ocl_gpu_id = ocl_device_list[0];
-		platform_id = get_platform_id(ocl_gpu_id);
+			gpu_id = gpu_device_list[0];
+		platform_id = get_platform_id(gpu_id);
 
 		opencl_initialized = 1;
 	}
@@ -529,25 +532,25 @@ unsigned int opencl_get_vector_width(int sequential_id, int size)
 		opencl_preinit();
 		switch(size) {
 		case sizeof(cl_char):
-			HANDLE_CLERROR(clGetDeviceInfo(devices[ocl_gpu_id],
+			HANDLE_CLERROR(clGetDeviceInfo(devices[gpu_id],
 			        CL_DEVICE_PREFERRED_VECTOR_WIDTH_CHAR,
 			        sizeof(v_width), &v_width, NULL),
 			        "Error asking for char vector width");
 			break;
 		case sizeof(cl_short):
-			HANDLE_CLERROR(clGetDeviceInfo(devices[ocl_gpu_id],
+			HANDLE_CLERROR(clGetDeviceInfo(devices[gpu_id],
 			        CL_DEVICE_PREFERRED_VECTOR_WIDTH_SHORT,
 			        sizeof(v_width), &v_width, NULL),
 			        "Error asking for long vector width");
 			break;
 		case sizeof(cl_int):
-			HANDLE_CLERROR(clGetDeviceInfo(devices[ocl_gpu_id],
+			HANDLE_CLERROR(clGetDeviceInfo(devices[gpu_id],
 			        CL_DEVICE_PREFERRED_VECTOR_WIDTH_INT,
 			        sizeof(v_width), &v_width, NULL),
 			        "Error asking for int vector width");
 			break;
 		case sizeof(cl_long):
-			HANDLE_CLERROR(clGetDeviceInfo(devices[ocl_gpu_id],
+			HANDLE_CLERROR(clGetDeviceInfo(devices[gpu_id],
 			        CL_DEVICE_PREFERRED_VECTOR_WIDTH_LONG,
 			        sizeof(v_width), &v_width, NULL),
 			        "Error asking for long vector width");
@@ -571,16 +574,16 @@ void opencl_done()
 		return;
 
 	for (i = 0; i < opencl_get_devices(); i++) {
-		if (queue[ocl_device_list[i]])
+		if (queue[gpu_device_list[i]])
 			HANDLE_CLERROR(clReleaseCommandQueue(
-				               queue[ocl_device_list[i]]),
+				               queue[gpu_device_list[i]]),
 			               "Release Queue");
-		queue[ocl_device_list[i]] = NULL;
-		if (context[ocl_device_list[i]])
+		queue[gpu_device_list[i]] = NULL;
+		if (context[gpu_device_list[i]])
 			HANDLE_CLERROR(clReleaseContext(
-				               context[ocl_device_list[i]]),
+				               context[gpu_device_list[i]]),
 			               "Release Context");
-		context[ocl_device_list[i]] = NULL;
+		context[gpu_device_list[i]] = NULL;
 	}
 	MEM_FREE(kernel_source);
 
@@ -591,7 +594,7 @@ void opencl_done()
 	opencl_initialized = 0;
 }
 
-static char * opencl_get_config_name(char * format, char * config_name)
+static char *opencl_get_config_name(char *format, char *config_name)
 {
 	static char full_name[128];
 
@@ -602,9 +605,9 @@ static char * opencl_get_config_name(char * format, char * config_name)
 	return full_name;
 }
 
-void opencl_get_user_preferences(char * format)
+void opencl_get_user_preferences(char *format)
 {
-	char * tmp_value;
+	char *tmp_value;
 
 	if (format)
 	if ((tmp_value = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL,
@@ -691,11 +694,11 @@ static char *include_source(char *pathname, int sequential_id, char *opts)
 	return include;
 }
 
-void opencl_build(int sequential_id, char *opts, int save, char * file_name,
+void opencl_build(int sequential_id, char *opts, int save, char *file_name,
                   int showLog)
 {
 	cl_int build_code;
-	char * build_log; size_t log_size;
+	char *build_log; size_t log_size;
 	const char *srcptr[] = { kernel_source };
 
 	assert(kernel_loaded);
@@ -811,7 +814,7 @@ static void opencl_build_from_binary(int sequential_id)
  */
 void opencl_find_best_workgroup(struct fmt_main *self)
 {
-	opencl_find_best_workgroup_limit(self, UINT_MAX, ocl_gpu_id,
+	opencl_find_best_workgroup_limit(self, UINT_MAX, gpu_id,
 	                                 crypt_kernel);
 }
 
@@ -1117,9 +1120,9 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 
 void opencl_init_auto_setup(
 	int p_default_value, int p_hash_loops, int p_number_of_events,
-	int * p_split_events, const char ** p_warnings,
-	cl_event * p_to_profile_event, struct fmt_main * p_self,
-	void (*p_create_clobj)(size_t gws, struct fmt_main * self),
+	int *p_split_events, const char **p_warnings,
+	cl_event *p_to_profile_event, struct fmt_main *p_self,
+	void (*p_create_clobj)(size_t gws, struct fmt_main *self),
 	void (*p_release_clobj)(void), int p_buffer_size, size_t p_gws_limit)
 {
 	int i;
@@ -1366,7 +1369,7 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
 		// to try now.
 		if ((gws_limit && (num > gws_limit)) || ((gws_limit == 0) &&
 		    (buffer_size * num * 1.2 >
-		     get_max_mem_alloc_size(ocl_gpu_id)))) {
+		     get_max_mem_alloc_size(gpu_id)))) {
 			if (options.verbosity > 4)
 				fprintf(stderr, "Hardware resources "
 				        "fullfilled\n");
@@ -1460,7 +1463,7 @@ static void opencl_get_dev_info(int sequential_id)
 static void find_valid_opencl_device(int *dev_id, int *platform_id)
 {
 	cl_platform_id platform[MAX_PLATFORMS];
-	cl_device_id devices[MAXGPUS];
+	cl_device_id devices[MAX_GPU_DEVICES];
 	cl_uint num_platforms, num_devices;
 	cl_ulong long_entries;
 	int i, d;
@@ -1475,7 +1478,7 @@ static void find_valid_opencl_device(int *dev_id, int *platform_id)
 		num_platforms = *platform_id + 1;
 
 	for (i = *platform_id; i < num_platforms; i++) {
-		clGetDeviceIDs(platform[i], CL_DEVICE_TYPE_ALL, MAXGPUS,
+		clGetDeviceIDs(platform[i], CL_DEVICE_TYPE_ALL, MAX_GPU_DEVICES,
 		               devices, &num_devices);
 
 		if (!num_devices)
@@ -1542,7 +1545,7 @@ void opencl_build_kernel(char *kernel_filename, int sequential_id, char *opts,
                          int warn) {
 	struct stat source_stat, bin_stat;
 	char dev_name[512], bin_name[512];
-	char * p;
+	char *p;
 	uint64_t startTime, runtime;
 
 	kernel_loaded = 0;
@@ -1614,7 +1617,7 @@ int opencl_prepare_dev(int sequential_id)
 	opencl_preinit();
 
 	if (sequential_id < 0)
-		sequential_id = ocl_gpu_id;
+		sequential_id = gpu_id;
 
 	profilingEvent = firstEvent = lastEvent = NULL;
 	if (!context[sequential_id])
@@ -2027,7 +2030,12 @@ void opencl_list_devices(void)
 		        " by the installed OpenCL driver.\n\n");
 	}
 
+	nvidia_probe();
+	amd_probe();
+
 	for (i = 0; platforms[i].platform; i++) {
+		int nvidia = 0, amd = 0;
+
 		/* Obtain information about platform */
 		clGetPlatformInfo(platforms[i].platform, CL_PLATFORM_NAME,
 			sizeof(dname), dname, NULL);
@@ -2046,6 +2054,7 @@ void opencl_list_devices(void)
 			cl_bool boolean;
 			char *p;
 			int ret;
+			int fan, temp, util;
 
 			clGetDeviceInfo(devices[sequence_nr], CL_DEVICE_NAME,
 			                sizeof(dname), dname, NULL);
@@ -2261,6 +2270,20 @@ void opencl_list_devices(void)
 					       topo.pcie.function);
 			}
 #endif
+			fan = temp = util = -1;
+			if (gpu_nvidia(device_info[sequence_nr])) {
+				if (nvml_lib)
+				nvidia_get_temp(nvidia++, &temp, &fan, &util);
+			} else if (gpu_amd(device_info[sequence_nr])) {
+				if (adl_lib)
+				amd_get_temp(amd++, &temp, &fan, &util);
+			}
+			if (fan >= 0)
+				printf("\tFan speed:\t\t%u%%\n", fan);
+			if (temp >= 0)
+				printf("\tTemperature:\t\t%u" DEGC "\n", temp);
+			if (util >= 0)
+				printf("\tUtilization:\t\t%u%%\n", util);
 			puts("");
 		}
 	}

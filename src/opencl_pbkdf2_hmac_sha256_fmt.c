@@ -112,7 +112,7 @@ static void create_clobj(size_t kpc, struct fmt_main *self)
 #define CL_RW CL_MEM_READ_WRITE
 
 #define CLCREATEBUFFER(_flags, _size, _string)\
-	clCreateBuffer(context[ocl_gpu_id], _flags, _size, NULL, &cl_error);\
+	clCreateBuffer(context[gpu_id], _flags, _size, NULL, &cl_error);\
 	HANDLE_CLERROR(cl_error, _string);
 
 #define CLKERNELARG(kernel, id, arg, msg)\
@@ -151,7 +151,7 @@ static void init(struct fmt_main *self)
 
         snprintf(build_opts, sizeof(build_opts), "-DHASH_LOOPS=%u", HASH_LOOPS);
         opencl_init("$JOHN/kernels/pbkdf2_hmac_sha256_kernel.cl",
-            ocl_gpu_id, build_opts);
+            gpu_id, build_opts);
 
 	/* Read LWS/GWS prefs from config or environment */
 	opencl_get_user_preferences(OCL_CONFIG);
@@ -168,17 +168,17 @@ static void init(struct fmt_main *self)
 		global_work_size = DEFAULT_GWS;
 	}
 	crypt_kernel =
-	    clCreateKernel(program[ocl_gpu_id], KERNEL_NAME, &cl_error);
+	    clCreateKernel(program[gpu_id], KERNEL_NAME, &cl_error);
 	HANDLE_CLERROR(cl_error, "Error creating crypt kernel");
 
 	split_kernel =
-	    clCreateKernel(program[ocl_gpu_id], SPLIT_KERNEL_NAME, &cl_error);
+	    clCreateKernel(program[gpu_id], SPLIT_KERNEL_NAME, &cl_error);
 	HANDLE_CLERROR(cl_error, "Error creating split kernel");
 
 	create_clobj(global_work_size, self);
 
 	/* Note: we ask for the kernel's max size, not the device's! */
-	maxsize = get_kernel_max_lws(ocl_gpu_id, crypt_kernel);
+	maxsize = get_kernel_max_lws(gpu_id, crypt_kernel);
 
 	while (local_work_size > maxsize)
 		local_work_size >>= 1;
@@ -209,7 +209,7 @@ static void done(void)
 	release_clobj();
 	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel 1");
 	HANDLE_CLERROR(clReleaseKernel(split_kernel), "Release kernel 2");
-	HANDLE_CLERROR(clReleaseProgram(program[ocl_gpu_id]),
+	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]),
 	    "Release Program");
 }
 
@@ -348,34 +348,34 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 
 	/// Copy data to gpu
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_in,
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in,
 		CL_FALSE, 0, global_work_size * sizeof(pass_t), host_pass, 0,
 		NULL, NULL), "Copy data to gpu");
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_salt,
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_salt,
 		CL_FALSE, 0, sizeof(salt_t), host_salt, 0, NULL, NULL),
 	    "Copy salt to gpu");
 
 	/// Run kernel
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel,
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel,
 		1, NULL, &global_work_size, &local_work_size, 0, NULL,
 		profilingEvent), "Run kernel");
-	HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "clFinish");
+	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish");
 
 
 	for(i = 0; i < loops; i++) {
-		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], split_kernel,
+		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], split_kernel,
 			1, NULL, &global_work_size, &local_work_size, 0, NULL,
 			profilingEvent), "Run split kernel");
-		HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "clFinish");
+		HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish");
 		opencl_process_event();
 	}
 	/// Read the result back
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], mem_out,
+	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out,
 		CL_FALSE, 0, global_work_size * sizeof(crack_t), host_crack, 0,
 		NULL, NULL), "Copy result back");
 
 	/// Await completion of all the above
-	HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "clFinish");
+	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish");
 	return count;
 }
 

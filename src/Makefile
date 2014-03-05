@@ -163,6 +163,7 @@ JOHN_OBJS = \
 	dummy.o \
 	NT_fmt.o \
 	gost.o \
+	common-gpu.o \
 	batch.o bench.o charset.o common.o compiler.o config.o cracker.o \
 	crc32.o external.o formats.o getopt.o idle.o inc.o john.o list.o \
 	loader.o logger.o mask.o math.o memory.o misc.o options.o params.o \

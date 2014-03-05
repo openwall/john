@@ -101,12 +101,12 @@ static void common_run_auto_tune(struct fmt_main * self, unsigned int rounds,
 
 	/* Enumerate GWS using *LWS=NULL (unless it was set explicitly) */
 	if (!global_work_size)
-		find_best_gws(self, ocl_gpu_id, rounds, max_run_time);
+		find_best_gws(self, gpu_id, rounds, max_run_time);
 	else
 		create_clobj(global_work_size, self);
 
 	if (!local_work_size)
-		find_best_lws(self, ocl_gpu_id);
+		find_best_lws(self, gpu_id);
 
 	global_work_size = GET_MULTIPLE(global_work_size, local_work_size);
 

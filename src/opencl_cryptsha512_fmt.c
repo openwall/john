@@ -94,13 +94,13 @@ static size_t get_task_max_work_group_size(){
 
 static size_t get_task_max_size(){
 
-	return common_get_task_max_size((amd_gcn(device_info[ocl_gpu_id]) ? 4 : 2),
+	return common_get_task_max_size((amd_gcn(device_info[gpu_id]) ? 4 : 2),
 		KEYS_PER_CORE_CPU, KEYS_PER_CORE_GPU, crypt_kernel);
 }
 
 static size_t get_safe_workgroup(){
 
-	if (cpu(device_info[ocl_gpu_id]))
+	if (cpu(device_info[gpu_id]))
 		return 1;
 
 	else
@@ -111,7 +111,7 @@ static size_t get_default_workgroup(){
 	size_t max_available;
 	max_available = get_task_max_work_group_size();
 
-	if (gpu_nvidia(device_info[ocl_gpu_id])) {
+	if (gpu_nvidia(device_info[gpu_id])) {
 		global_work_size = GET_MULTIPLE(global_work_size, max_available);
 		return max_available;
 
@@ -124,40 +124,40 @@ static void create_clobj(size_t gws, struct fmt_main * self)
 {
 	self->params.min_keys_per_crypt = self->params.max_keys_per_crypt = gws;
 
-	pinned_saved_keys = clCreateBuffer(context[ocl_gpu_id],
+	pinned_saved_keys = clCreateBuffer(context[gpu_id],
 			CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR,
 			sizeof(sha512_password) * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory pinned_saved_keys");
 
-	plaintext = (sha512_password *) clEnqueueMapBuffer(queue[ocl_gpu_id],
+	plaintext = (sha512_password *) clEnqueueMapBuffer(queue[gpu_id],
 			pinned_saved_keys, CL_TRUE, CL_MAP_WRITE, 0,
 			sizeof(sha512_password) * gws, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_plain");
 
-	pinned_partial_hashes = clCreateBuffer(context[ocl_gpu_id],
+	pinned_partial_hashes = clCreateBuffer(context[gpu_id],
 			CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR,
 			sizeof(sha512_hash) * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory pinned_partial_hashes");
 
-	calculated_hash = (sha512_hash *) clEnqueueMapBuffer(queue[ocl_gpu_id],
+	calculated_hash = (sha512_hash *) clEnqueueMapBuffer(queue[gpu_id],
 			pinned_partial_hashes, CL_TRUE, CL_MAP_READ, 0,
 			sizeof(sha512_hash) * gws, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory out_hashes");
 
 	// create arguments (buffers)
-	salt_buffer = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY,
+	salt_buffer = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY,
 			sizeof(sha512_salt), NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating salt_buffer out argument");
 
-	pass_buffer = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY,
+	pass_buffer = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY,
 			sizeof(sha512_password) * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_keys");
 
-	hash_buffer = clCreateBuffer(context[ocl_gpu_id], CL_MEM_WRITE_ONLY,
+	hash_buffer = clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY,
 			sizeof(sha512_hash) * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_out");
 
-	work_buffer = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE,
+	work_buffer = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE,
 			sizeof(sha512_buffers) * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating buffer argument work_area");
 
@@ -198,11 +198,11 @@ static void create_clobj(size_t gws, struct fmt_main * self)
 static void release_clobj(void) {
 	cl_int ret_code;
 
-	ret_code = clEnqueueUnmapMemObject(queue[ocl_gpu_id], pinned_partial_hashes,
+	ret_code = clEnqueueUnmapMemObject(queue[gpu_id], pinned_partial_hashes,
 			calculated_hash, 0, NULL, NULL);
 	HANDLE_CLERROR(ret_code, "Error Unmapping out_hashes");
 
-	ret_code = clEnqueueUnmapMemObject(queue[ocl_gpu_id], pinned_saved_keys,
+	ret_code = clEnqueueUnmapMemObject(queue[gpu_id], pinned_saved_keys,
 			plaintext, 0, NULL, NULL);
 	HANDLE_CLERROR(ret_code, "Error Unmapping saved_plain");
 
@@ -261,10 +261,10 @@ static void set_salt(void * salt_info) {
 	salt = salt_info;
 
 	//Send salt information to GPU.
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], salt_buffer, CL_FALSE, 0,
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], salt_buffer, CL_FALSE, 0,
 		sizeof(sha512_salt), salt, 0, NULL, NULL),
 		"failed in clEnqueueWriteBuffer salt_buffer");
-	HANDLE_CLERROR(clFlush(queue[ocl_gpu_id]), "failed in clFlush");
+	HANDLE_CLERROR(clFlush(queue[gpu_id]), "failed in clFlush");
 }
 
 static int salt_hash(void * salt) {
@@ -297,16 +297,16 @@ static char * get_key(int index) {
 /* ------- Initialization  ------- */
 static void build_kernel(char * task) {
 
-	opencl_build_kernel(task, ocl_gpu_id, NULL, 1);
+	opencl_build_kernel(task, gpu_id, NULL, 1);
 
 	// create kernel(s) to execute
-	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "kernel_crypt", &ret_code);
+	crypt_kernel = clCreateKernel(program[gpu_id], "kernel_crypt", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 
 	if (_SPLIT_KERNEL_IN_USE) {
-		prepare_kernel = clCreateKernel(program[ocl_gpu_id], "kernel_prepare", &ret_code);
+		prepare_kernel = clCreateKernel(program[gpu_id], "kernel_prepare", &ret_code);
 		HANDLE_CLERROR(ret_code, "Error creating kernel_prepare. Double-check kernel name?");
-		final_kernel = clCreateKernel(program[ocl_gpu_id], "kernel_final", &ret_code);
+		final_kernel = clCreateKernel(program[gpu_id], "kernel_final", &ret_code);
 		HANDLE_CLERROR(ret_code, "Error creating kernel_final. Double-check kernel name?");
 	}
 }
@@ -315,8 +315,8 @@ static void init(struct fmt_main * self) {
 	char * tmp_value;
 	char * task = "$JOHN/kernels/cryptsha512_kernel_DEFAULT.cl";
 
-	opencl_prepare_dev(ocl_gpu_id);
-	source_in_use = device_info[ocl_gpu_id];
+	opencl_prepare_dev(gpu_id);
+	source_in_use = device_info[gpu_id];
 
 	if ((tmp_value = getenv("_TYPE")))
 		source_in_use = atoi(tmp_value);
@@ -332,13 +332,13 @@ static void init(struct fmt_main * self) {
 		warn, &multi_profilingEvent[1], self, create_clobj, release_clobj,
 		sizeof(sha512_password), 0);
 
-	if (source_in_use != device_info[ocl_gpu_id])
+	if (source_in_use != device_info[gpu_id])
 		fprintf(stderr, "Selected runtime id %d, source (%s)\n", source_in_use, task);
 
 	//Auto tune execution from shared/included code.
 	self->methods.crypt_all = crypt_all_benchmark;
 	common_run_auto_tune(self, ROUNDS_DEFAULT, 0,
-		(cpu(device_info[ocl_gpu_id]) ? 2000000000ULL : 7000000000ULL));
+		(cpu(device_info[gpu_id]) ? 2000000000ULL : 7000000000ULL));
 	self->methods.crypt_all = crypt_all;
 }
 
@@ -351,7 +351,7 @@ static void done(void) {
 		HANDLE_CLERROR(clReleaseKernel(prepare_kernel), "Release kernel");
 		HANDLE_CLERROR(clReleaseKernel(final_kernel), "Release kernel");
 	}
-	HANDLE_CLERROR(clReleaseProgram(program[ocl_gpu_id]), "Release Program");
+	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
 }
 
 /* ------- Compare functins ------- */
@@ -384,37 +384,37 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *_salt) {
 
 	//Send data to device.
 	if (new_keys)
-		BENCH_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], pass_buffer, CL_FALSE, 0,
+		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], pass_buffer, CL_FALSE, 0,
 			sizeof(sha512_password) * gws, plaintext, 0, NULL, &multi_profilingEvent[0]),
 			"failed in clEnqueueWriteBuffer pass_buffer");
 
 	//Enqueue the kernel
 	if (_SPLIT_KERNEL_IN_USE) {
-		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], prepare_kernel, 1, NULL,
+		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], prepare_kernel, 1, NULL,
 			&gws, lws, 0, NULL, &multi_profilingEvent[3]),
 			"failed in clEnqueueNDRangeKernel I");
 
 		for (i = 0; i < 3; i++) {
-			BENCH_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL,
+			BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL,
 				&gws, lws, 0, NULL,
 				&multi_profilingEvent[split_events[i]]),  //1, 4, 5
 				"failed in clEnqueueNDRangeKernel");
 		}
-		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], final_kernel, 1, NULL,
+		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], final_kernel, 1, NULL,
 			&gws, lws, 0, NULL, &multi_profilingEvent[6]),
 			"failed in clEnqueueNDRangeKernel II");
 	} else
-		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL,
+		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL,
 			&gws, lws, 0, NULL, &multi_profilingEvent[1]),
 			"failed in clEnqueueNDRangeKernel");
 
 	//Read back hashes
-	BENCH_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], hash_buffer, CL_FALSE, 0,
+	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], hash_buffer, CL_FALSE, 0,
 			sizeof(sha512_hash) * gws, calculated_hash, 0, NULL, &multi_profilingEvent[2]),
 			"failed in reading data back");
 
 	//Do the work
-	BENCH_CLERROR(clFinish(queue[ocl_gpu_id]), "failed in clFinish");
+	BENCH_CLERROR(clFinish(queue[gpu_id]), "failed in clFinish");
 	new_keys = 0;
 
 	return count;
@@ -430,38 +430,38 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 
 	//Send data to device.
 	if (new_keys)
-		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], pass_buffer, CL_FALSE, 0,
+		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], pass_buffer, CL_FALSE, 0,
 			sizeof(sha512_password) * gws, plaintext, 0, NULL, NULL),
 			"failed in clEnqueueWriteBuffer pass_buffer");
 
 	//Enqueue the kernel
 	if (_SPLIT_KERNEL_IN_USE) {
-		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], prepare_kernel, 1, NULL,
+		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], prepare_kernel, 1, NULL,
 			&gws, &local_work_size, 0, NULL, NULL),
 			"failed in clEnqueueNDRangeKernel I");
 
 		for (i = 0; i < (salt->rounds / HASH_LOOPS); i++) {
-			HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL,
+			HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL,
 				&gws, &local_work_size, 0, NULL, NULL),
 				"failed in clEnqueueNDRangeKernel");
-			HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "Error running loop kernel");
+			HANDLE_CLERROR(clFinish(queue[gpu_id]), "Error running loop kernel");
 			opencl_process_event();
 		}
-		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], final_kernel, 1, NULL,
+		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], final_kernel, 1, NULL,
 			&gws, &local_work_size, 0, NULL, NULL),
 			"failed in clEnqueueNDRangeKernel II");
 	} else
-		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL,
+		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL,
 			&gws, &local_work_size, 0, NULL, NULL),
 			"failed in clEnqueueNDRangeKernel");
 
 	//Read back hashes
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], hash_buffer, CL_FALSE, 0,
+	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], hash_buffer, CL_FALSE, 0,
 			sizeof(sha512_hash) * gws, calculated_hash, 0, NULL, NULL),
 			"failed in reading data back");
 
 	//Do the work
-	HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "failed in clFinish");
+	HANDLE_CLERROR(clFinish(queue[gpu_id]), "failed in clFinish");
 	new_keys = 0;
 
 	return count;

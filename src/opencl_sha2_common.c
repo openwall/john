@@ -37,13 +37,13 @@ size_t common_get_task_max_work_group_size(int use_local_memory,
 	size_t max_available;
 
 	if (use_local_memory)
-		max_available = get_local_memory_size(ocl_gpu_id) /
+		max_available = get_local_memory_size(gpu_id) /
 			(local_memory_size);
 	else
-		max_available = get_device_max_lws(ocl_gpu_id);
+		max_available = get_device_max_lws(gpu_id);
 
-	if (max_available > get_kernel_max_lws(ocl_gpu_id, crypt_kernel))
-		return get_kernel_max_lws(ocl_gpu_id, crypt_kernel);
+	if (max_available > get_kernel_max_lws(gpu_id, crypt_kernel))
+		return get_kernel_max_lws(gpu_id, crypt_kernel);
 
 	return max_available;
 }
@@ -54,13 +54,13 @@ size_t common_get_task_max_size(int multiplier, int keys_per_core_cpu,
 {
 	size_t max_available;
 
-	max_available = get_max_compute_units(ocl_gpu_id);
+	max_available = get_max_compute_units(gpu_id);
 
-	if (cpu(device_info[ocl_gpu_id]))
+	if (cpu(device_info[gpu_id]))
 		return max_available * keys_per_core_cpu;
 	else
 		return max_available * multiplier * keys_per_core_gpu *
-			get_kernel_max_lws(ocl_gpu_id, crypt_kernel);
+			get_kernel_max_lws(gpu_id, crypt_kernel);
 }
 
 /*

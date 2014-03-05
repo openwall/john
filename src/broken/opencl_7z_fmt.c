@@ -107,7 +107,7 @@ static void done(void)
 	release_clobj();
 
 	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
-	HANDLE_CLERROR(clReleaseProgram(program[ocl_gpu_id]), "Release Program");
+	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
 }
 
 static void init(struct fmt_main *self)
@@ -123,23 +123,23 @@ static void init(struct fmt_main *self)
 	         "-DPLAINTEXT_LENGTH=%d",
 	         PLAINTEXT_LENGTH);
 	opencl_init("$JOHN/kernels/7z_kernel.cl",
-	                ocl_gpu_id, build_opts);
+	                gpu_id, build_opts);
 
 	if ((temp = getenv("LWS")))
 		local_work_size = atoi(temp);
 	else
-		local_work_size = cpu(device_info[ocl_gpu_id]) ? 1 : 64;
+		local_work_size = cpu(device_info[gpu_id]) ? 1 : 64;
 
 	if ((temp = getenv("GWS")))
 		global_work_size = atoi(temp);
 	else
 		global_work_size = MAX_KEYS_PER_CRYPT;
 
-	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "sevenzip", &cl_error);
+	crypt_kernel = clCreateKernel(program[gpu_id], "sevenzip", &cl_error);
 	HANDLE_CLERROR(cl_error, "Error creating kernel");
 
 	/* Note: we ask for the kernels' max sizes, not the device's! */
-	HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize), &maxsize, NULL), "Query max workgroup size");
+	HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize), &maxsize, NULL), "Query max workgroup size");
 
 	while (local_work_size > maxsize)
 		local_work_size >>= 1;
@@ -151,15 +151,15 @@ static void init(struct fmt_main *self)
 
 	/// Allocate memory
 	mem_in =
-	    clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, insize, NULL,
+	    clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, insize, NULL,
 	    &cl_error);
 	HANDLE_CLERROR(cl_error, "Error allocating mem in");
 	mem_setting =
-	    clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, settingsize,
+	    clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, settingsize,
 	    NULL, &cl_error);
 	HANDLE_CLERROR(cl_error, "Error allocating mem setting");
 	mem_out =
-	    clCreateBuffer(context[ocl_gpu_id], CL_MEM_WRITE_ONLY, outsize, NULL,
+	    clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, outsize, NULL,
 	    &cl_error);
 	HANDLE_CLERROR(cl_error, "Error allocating mem out");
 
@@ -332,24 +332,24 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	}
 
 	/// Copy data to gpu
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_in, CL_FALSE, 0,
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0,
 		insize, inbuffer, 0, NULL, NULL), "Copy data to gpu");
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_setting,
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_setting,
 		CL_FALSE, 0, settingsize, &currentsalt, 0, NULL, NULL),
 	    "Copy setting to gpu");
 
 	/// Run kernel
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1,
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1,
 		NULL, &global_work_size, &local_work_size, 0, NULL, profilingEvent),
 	    "Run kernel");
-	HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "clFinish");
+	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish");
 
 	/// Read the result back
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], mem_out, CL_FALSE, 0,
+	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_FALSE, 0,
 		outsize, outbuffer, 0, NULL, NULL), "Copy result back");
 
 	/// Await completion of all the above
-	HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "clFinish");
+	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish");
 
 #ifdef _OPENMP
 #pragma omp parallel for
