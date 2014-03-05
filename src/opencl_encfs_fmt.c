@@ -43,6 +43,9 @@
 #define uint16_t		unsigned short
 #define uint32_t		unsigned int
 
+#define MIN(a, b)		(((a) > (b)) ? (b) : (a))
+#define MAX(a, b)		(((a) > (b)) ? (a) : (b))
+
 /* This handles all widths */
 #define GETPOS(i, index)	(((index) % v_width) * 4 + ((i) & ~3U) * v_width + (((i) & 3) ^ 3) + ((index) / v_width) * 64 * v_width)
 
@@ -247,7 +250,7 @@ static void find_best_gws(struct fmt_main *self)
 		fprintf(stderr, "Raw GPU speed figures including buffer transfers:\n");
 	}
 
-	for (num = optimal_gws; num; num *= 2) {
+	for (num = MAX(local_work_size, optimal_gws); num; num *= 2) {
 		if (!(run_time = gws_test(num, self)))
 			break;
 

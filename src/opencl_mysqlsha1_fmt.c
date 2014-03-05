@@ -40,6 +40,9 @@
 
 #define OCL_CONFIG              "mysql-sha1"
 
+#define MIN(a, b)		(((a) > (b)) ? (b) : (a))
+#define MAX(a, b)		(((a) > (b)) ? (a) : (b))
+
 typedef struct {
 	unsigned int h0,h1,h2,h3,h4;
 } SHA_DEV_CTX;
@@ -235,7 +238,7 @@ static void find_best_gws(struct fmt_main *self)
 		fprintf(stderr, "Raw GPU speed figures including buffer transfers:\n");
 	}
 
-	for (num = optimal_gws; num <= max_gws; num *= 2) {
+	for (num = MAX(local_work_size, optimal_gws); num <= max_gws; num *= 2) {
 		if (!(run_time = gws_test(num, self)))
 			break;
 

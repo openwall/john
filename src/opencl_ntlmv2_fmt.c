@@ -371,7 +371,7 @@ static void find_best_gws(struct fmt_main *self)
 		fprintf(stderr, "Raw GPU speed figures including buffer transfers:\n");
 	}
 
-	for (num = optimal_gws; num <= max_gws; num *= 2) {
+	for (num = MAX(local_work_size, optimal_gws); num <= max_gws; num *= 2) {
 		if (!(run_time = gws_test(num, self)))
 			break;
 
