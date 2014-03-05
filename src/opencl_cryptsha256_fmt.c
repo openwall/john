@@ -84,7 +84,7 @@ static size_t get_task_max_work_group_size(){
 
 static size_t get_task_max_size(){
 
-	return common_get_task_max_size((amd_gcn(device_info[ocl_gpu_id]) ? 10 : 4),
+	return common_get_task_max_size((amd_gcn(device_info[ocl_gpu_id]) ? 10 : 1),
 		KEYS_PER_CORE_CPU, KEYS_PER_CORE_GPU, crypt_kernel);
 }
 
