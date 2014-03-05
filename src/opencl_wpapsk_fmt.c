@@ -394,6 +394,12 @@ static void init(struct fmt_main *self)
 	if (local_work_size > maxsize)
 		local_work_size = maxsize;
 
+/* Work around bug in OSX 10.9.2 */
+#ifdef __APPLE__
+	if (!local_work_size)
+		local_work_size = maxsize;
+#endif
+
 	if (!local_work_size) {
 		if (cpu(device_info[ocl_gpu_id])) {
 			if (get_platform_vendor_id(platform_id) == DEV_INTEL)
