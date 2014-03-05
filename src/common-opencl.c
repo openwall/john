@@ -1793,6 +1793,8 @@ cl_uint get_processors_count(int sequential_id)
 			amd_vliw4(device_info[sequential_id])) ? 4 : 5)));
 	} else if (!strncmp(dname, "HD Graphics", 11)) {
 			core_count *= (cores_per_MP[sequential_id] = 1);
+	} else if (!strncmp(dname, "Iris", 4)) {
+			core_count *= (cores_per_MP[sequential_id] = 1);
 	} else if (gpu(device_info[sequential_id]))
 			// Any other GPU, if we don't know we wont guess
 			core_count *= (cores_per_MP[sequential_id] = 0);
