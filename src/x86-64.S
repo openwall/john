@@ -42,7 +42,7 @@
  * Non-volatile: RBX, RBP, RSI, RDI, R12:R15, XMM6:XMM15
  * Return: RAX.
  */
-#define ARG1				%rcx
+#define ARG1				%rdi
 #define PROLOGUE \
 	subq $(8+10*16), %rsp; \
 	movapd %xmm6, 0*16(%rsp); \
@@ -56,7 +56,9 @@
 	movapd %xmm14, 8*16(%rsp); \
 	movapd %xmm15, 9*16(%rsp); \
 	push %rdi; \
-	push %rsi
+	push %rsi; \
+	movq %rcx, %rdi; \
+	movq %rdx, %rsi
 
 #define EPILOGUE \
 	pop %rsi; \
