@@ -202,7 +202,7 @@ static void init(struct fmt_main *self)
 	//Initialize openCL tuning (library) for this format.
 	self->methods.crypt_all = crypt_all_benchmark;
 	opencl_init_auto_setup(SEED, ROUNDS_DEFAULT/8, 7, split_events,
-		warn, &multi_profilingEvent[3], self, create_clobj,
+		warn, 3, self, create_clobj,
 	        release_clobj, sizeof(pwsafe_pass), 0);
 
 	//Auto tune execution from shared/included code.
@@ -288,19 +288,19 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE,
-		0, insize, host_pass, 0, NULL, &multi_profilingEvent[0]), "Copy memin");
+		0, insize, host_pass, 0, NULL, multi_profilingEvent[0]), "Copy memin");
 
 	///Run the init kernel
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], init_kernel, 1,
 		NULL, &global_work_size, lws,
-		0, NULL, &multi_profilingEvent[1]), "Set ND range");
+		0, NULL, multi_profilingEvent[1]), "Set ND range");
 
 	///Run split kernel
 	for(i = 0; i < 3; i++)
 	{
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1,
 			NULL, &global_work_size, lws,
-			0, NULL, &multi_profilingEvent[split_events[i]]), "Set ND range");  // 2, 3, 4
+			0, NULL, multi_profilingEvent[split_events[i]]), "Set ND range");  // 2, 3, 4
 		BENCH_CLERROR(clFinish(queue[gpu_id]), "Error running loop kernel");
 		opencl_process_event();
 	}
@@ -308,10 +308,10 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
 	///Run the finish kernel
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], finish_kernel, 1,
 		NULL, &global_work_size, lws,
-		0, NULL, &multi_profilingEvent[5]), "Set ND range");
+		0, NULL, multi_profilingEvent[5]), "Set ND range");
 
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_FALSE, 0,
-		outsize, host_hash, 0, NULL, &multi_profilingEvent[6]),
+		outsize, host_hash, 0, NULL, multi_profilingEvent[6]),
 	    "Copy data back");
 
 	///Await completion of all the above

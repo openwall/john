@@ -76,7 +76,7 @@ extern unsigned int opencl_v_width;
 extern char *kernel_source;
 
 extern cl_event *profilingEvent, *firstEvent, *lastEvent;
-extern cl_event multi_profilingEvent[MAX_EVENTS];
+extern cl_event *multi_profilingEvent[MAX_EVENTS];
 
 extern int device_info[MAX_GPU_DEVICES];
 extern int cores_per_MP[MAX_GPU_DEVICES];
@@ -211,7 +211,7 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
  *       for (i = 0; i < 3; i++) {
  *           HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], main_kernel[gpu_id], 1, NULL,
  *               &gws, &local_work_size, 0, NULL,
- *               &multi_profilingEvent[split_events[i]]),  //split_events contains: 2 ,5 ,6
+ *               multi_profilingEvent[split_events[i]]),  //split_events contains: 2 ,5 ,6
  *               "failed in clEnqueueNDRangeKernel");
  *       }
  *
@@ -220,7 +220,7 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
  *     - pass xfer: 10.01 ms, crypt: 3.46 ms, result xfer: 1.84 ms
  *   An array like this have to be used:
  *     - "pass xfer: "  ,  ", crypt: ", ", result xfer: "
- * - p_to_profile_event: pointer to the main event to be profiled (in find_lws).
+ * - p_to_profile_event: index of the main event to be profiled (in find_lws).
  * - p_self: a pointer to the format itself.
  * - p_create_clobj: function that (m)alloc all buffers needed by crypt_all.
  * - p_release_clobj: function that release all buffers needed by crypt_all.
@@ -232,7 +232,7 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
 void opencl_init_auto_setup(
 	int p_default_value, int p_hash_loops, int p_number_of_events,
 	int * p_split_events, const char ** p_warnings,
-	cl_event * p_to_profile_event, struct fmt_main * p_self,
+	int p_to_profile_event, struct fmt_main * p_self,
 	void (*p_create_clobj)(size_t gws, struct fmt_main * self),
 	void (*p_release_clobj)(void), int p_buffer_size, size_t p_gws_limit);
 

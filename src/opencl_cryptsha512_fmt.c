@@ -329,7 +329,7 @@ static void init(struct fmt_main * self) {
 	//Initialize openCL tuning (library) for this format.
 	opencl_init_auto_setup(STEP, HASH_LOOPS, ((_SPLIT_KERNEL_IN_USE) ? 7 : 3),
 		((_SPLIT_KERNEL_IN_USE) ? split_events : NULL),
-		warn, &multi_profilingEvent[1], self, create_clobj, release_clobj,
+		warn, 1, self, create_clobj, release_clobj,
 		sizeof(sha512_password), 0);
 
 	if (source_in_use != device_info[gpu_id])
@@ -385,32 +385,32 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *_salt) {
 	//Send data to device.
 	if (new_keys)
 		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], pass_buffer, CL_FALSE, 0,
-			sizeof(sha512_password) * gws, plaintext, 0, NULL, &multi_profilingEvent[0]),
+			sizeof(sha512_password) * gws, plaintext, 0, NULL, multi_profilingEvent[0]),
 			"failed in clEnqueueWriteBuffer pass_buffer");
 
 	//Enqueue the kernel
 	if (_SPLIT_KERNEL_IN_USE) {
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], prepare_kernel, 1, NULL,
-			&gws, lws, 0, NULL, &multi_profilingEvent[3]),
+			&gws, lws, 0, NULL, multi_profilingEvent[3]),
 			"failed in clEnqueueNDRangeKernel I");
 
 		for (i = 0; i < 3; i++) {
 			BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL,
 				&gws, lws, 0, NULL,
-				&multi_profilingEvent[split_events[i]]),  //1, 4, 5
+				multi_profilingEvent[split_events[i]]),  //1, 4, 5
 				"failed in clEnqueueNDRangeKernel");
 		}
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], final_kernel, 1, NULL,
-			&gws, lws, 0, NULL, &multi_profilingEvent[6]),
+			&gws, lws, 0, NULL, multi_profilingEvent[6]),
 			"failed in clEnqueueNDRangeKernel II");
 	} else
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL,
-			&gws, lws, 0, NULL, &multi_profilingEvent[1]),
+			&gws, lws, 0, NULL, multi_profilingEvent[1]),
 			"failed in clEnqueueNDRangeKernel");
 
 	//Read back hashes
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], hash_buffer, CL_FALSE, 0,
-			sizeof(sha512_hash) * gws, calculated_hash, 0, NULL, &multi_profilingEvent[2]),
+			sizeof(sha512_hash) * gws, calculated_hash, 0, NULL, multi_profilingEvent[2]),
 			"failed in reading data back");
 
 	//Do the work

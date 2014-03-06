@@ -58,7 +58,6 @@ static uint32_t key_idx = 0;
 static size_t offset = 0, offset_idx = 0;
 
 static int crypt_all(int *pcount, struct db_salt *_salt);
-static int crypt_all_benchmark(int *pcount, struct db_salt *_salt);
 
 //This file contains auto-tuning routine(s). Have to included after formats definitions.
 #include "opencl_autotune.h"
@@ -365,7 +364,7 @@ static void init(struct fmt_main * self) {
 
 	//Initialize openCL tuning (library) for this format.
 	opencl_init_auto_setup(STEP, 0, 4, NULL,
-		warn, &multi_profilingEvent[1], self, create_clobj, release_clobj,
+		warn, 1, self, create_clobj, release_clobj,
 		BUFFER_SIZE, gws_limit);
 
 	//Limit worksize using index limitation.
@@ -373,10 +372,8 @@ static void init(struct fmt_main * self) {
 		global_work_size -= local_work_size;
 
 	//Auto tune execution from shared/included code.
-	self->methods.crypt_all = crypt_all_benchmark;
 	common_run_auto_tune(self, 1, gws_limit,
 		(cpu(device_info[gpu_id]) ? 500000000ULL : 1000000000ULL));
-	self->methods.crypt_all = crypt_all;
 }
 
 static void init_x(struct fmt_main * self) {
@@ -491,47 +488,10 @@ static void * get_full_binary(char *ciphertext) {
 }
 
 /* ------- Crypt function ------- */
-static int crypt_all_benchmark(int *pcount, struct db_salt *_salt) {
-	int count = *pcount;
-	size_t gws;
-	size_t *lws = local_work_size ? &local_work_size : NULL;
-
-	gws = GET_MULTIPLE_BIGGER(count, local_work_size);
-
-	//Send data to device.
-	if (new_keys)
-		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], pass_buffer, CL_FALSE,
-			sizeof(uint32_t) * offset,
-			sizeof(uint32_t) * (key_idx - offset),
-			plaintext + offset, 0, NULL, &multi_profilingEvent[0]),
-			"failed in clEnqueueWriteBuffer pass_buffer");
-
-	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], idx_buffer, CL_FALSE,
-		sizeof(uint32_t) * offset,
-		sizeof(uint32_t) * (gws - offset),
-		saved_idx + offset, 0, NULL, &multi_profilingEvent[3]),
-		"failed in clEnqueueWriteBuffer idx_buffer");
-
-	//Enqueue the kernel
-	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL,
-			&gws, lws, 0, NULL, &multi_profilingEvent[1]),
-			"failed in clEnqueueNDRangeKernel");
-
-	//Read back hashes
-	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], hash_buffer, CL_FALSE, 0,
-			sizeof(uint32_t) * gws, calculated_hash, 0, NULL, &multi_profilingEvent[2]),
-			"failed in reading data back");
-
-	//Do the work
-	BENCH_CLERROR(clFinish(queue[gpu_id]), "failed in clFinish");
-	new_keys = 0;
-
-	return count;
-}
-
 static int crypt_all(int *pcount, struct db_salt *_salt) {
 	int count = *pcount;
 	size_t gws;
+	size_t *lws = local_work_size ? &local_work_size : NULL;
 
 	gws = GET_MULTIPLE_BIGGER(count, local_work_size);
 
@@ -544,23 +504,24 @@ static int crypt_all(int *pcount, struct db_salt *_salt) {
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], pass_buffer, CL_FALSE,
 			sizeof(uint32_t) * offset,
 			sizeof(uint32_t) * (key_idx - offset),
-			plaintext + offset, 0, NULL, NULL),
+			plaintext + offset, 0, NULL, multi_profilingEvent[0]),
 			"failed in clEnqueueWriteBuffer pass_buffer");
 
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], idx_buffer, CL_FALSE,
 		sizeof(uint32_t) * offset,
 		sizeof(uint32_t) * (gws - offset),
-		saved_idx + offset, 0, NULL, NULL),
+		saved_idx + offset, 0, NULL, multi_profilingEvent[3]),
 		"failed in clEnqueueWriteBuffer idx_buffer");
 
 	//Enqueue the kernel
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL,
-			&gws, &local_work_size, 0, NULL, NULL),
+			&gws, lws, 0, NULL, multi_profilingEvent[1]),
 			"failed in clEnqueueNDRangeKernel");
 
 	//Read back hashes
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], hash_buffer, CL_FALSE, 0,
-			sizeof(uint32_t) * gws, calculated_hash, 0, NULL, NULL),
+			sizeof(uint32_t) * gws, calculated_hash, 0,
+			NULL, multi_profilingEvent[2]),
 			"failed in reading data back");
 
 	//Do the work

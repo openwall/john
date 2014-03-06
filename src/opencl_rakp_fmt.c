@@ -84,7 +84,6 @@ static int partial_output;
 #define MAX(a, b)               (((a) > (b)) ? (a) : (b))
 
 static int crypt_all(int *pcount, struct db_salt *_salt);
-static int crypt_all_benchmark(int *pcount, struct db_salt *_salt);
 
 //This file contains auto-tuning routine(s). Have to included after other definitions.
 #include "opencl_autotune.h"
@@ -230,7 +229,7 @@ static void init(struct fmt_main *self)
 			get_max_mem_alloc_size(gpu_id) / (v_width * BUFFER_SIZE));
 
 	//Initialize openCL tuning (library) for this format.
-	opencl_init_auto_setup(SEED, 0, 4, NULL, warn, &multi_profilingEvent[2],
+	opencl_init_auto_setup(SEED, 0, 4, NULL, warn, 2,
 	                       self, create_clobj, release_clobj,
 	                       BUFFER_SIZE, gws_limit);
 
@@ -239,10 +238,8 @@ static void init(struct fmt_main *self)
 		global_work_size -= local_work_size;
 
 	//Auto tune execution from shared/included code.
-	self->methods.crypt_all = crypt_all_benchmark;
 	common_run_auto_tune(self, ROUNDS, gws_limit,
 		(cpu(device_info[gpu_id]) ? 500000000ULL : 1000000000ULL));
-	self->methods.crypt_all = crypt_all;
 }
 
 static void clear_keys(void)
@@ -377,40 +374,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
 	size_t scalar_gws;
-
-	global_work_size = ((count + v_width * local_work_size - 1) / (v_width * local_work_size)) * local_work_size;
-	scalar_gws = global_work_size * v_width;
-
-	if (key_idx) {
-		HANDLE_CLERROR(
-			clEnqueueWriteBuffer(queue[gpu_id], keys_buffer, CL_FALSE, 0, 4 * key_idx, keys, 0, NULL, NULL),
-			"Error updating contents of keys_buffer");
-
-		HANDLE_CLERROR(
-			clEnqueueWriteBuffer(queue[gpu_id], idx_buffer, CL_FALSE, 0, 4 * scalar_gws, idx, 0, NULL, NULL),
-			"Error updating contents of idx_buffer");
-	}
-
-	HANDLE_CLERROR(
-		clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, profilingEvent),
-		"Error beginning execution of the kernel");
-
-	HANDLE_CLERROR(
-		clFinish(queue[gpu_id]),
-		"Error waiting for kernel to finish executing");
-
-	HANDLE_CLERROR(
-		clEnqueueReadBuffer(queue[gpu_id], digest_buffer, CL_TRUE, 0, sizeof(cl_uint) * scalar_gws, digest, 0, NULL, NULL),
-		"Error reading results from digest_buffer");
-	partial_output = 1;
-
-	return count;
-}
-
-static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
-{
-	int count = *pcount;
-	size_t scalar_gws;
 	size_t gws;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
@@ -422,16 +385,16 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
 
 	if (key_idx) {
 		HANDLE_CLERROR(
-			clEnqueueWriteBuffer(queue[gpu_id], keys_buffer, CL_FALSE, 0, 4 * key_idx, keys, 0, NULL, &multi_profilingEvent[0]),
+			clEnqueueWriteBuffer(queue[gpu_id], keys_buffer, CL_FALSE, 0, 4 * key_idx, keys, 0, NULL, multi_profilingEvent[0]),
 			"Error updating contents of keys_buffer");
 
 		HANDLE_CLERROR(
-			clEnqueueWriteBuffer(queue[gpu_id], idx_buffer, CL_FALSE, 0, 4 * scalar_gws, idx, 0, NULL, &multi_profilingEvent[1]),
+			clEnqueueWriteBuffer(queue[gpu_id], idx_buffer, CL_FALSE, 0, 4 * scalar_gws, idx, 0, NULL, multi_profilingEvent[1]),
 			"Error updating contents of idx_buffer");
 	}
 
 	HANDLE_CLERROR(
-		clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &gws, lws, 0, NULL, &multi_profilingEvent[2]),
+		clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[2]),
 		"Error beginning execution of the kernel");
 
 	HANDLE_CLERROR(
@@ -439,7 +402,7 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
 		"Error waiting for kernel to finish executing");
 
 	HANDLE_CLERROR(
-		clEnqueueReadBuffer(queue[gpu_id], digest_buffer, CL_TRUE, 0, sizeof(cl_uint) * scalar_gws, digest, 0, NULL, &multi_profilingEvent[3]),
+		clEnqueueReadBuffer(queue[gpu_id], digest_buffer, CL_TRUE, 0, sizeof(cl_uint) * scalar_gws, digest, 0, NULL, multi_profilingEvent[3]),
 		"Error reading results from digest_buffer");
 	partial_output = 1;
 

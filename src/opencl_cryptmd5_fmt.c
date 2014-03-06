@@ -294,7 +294,6 @@ static void find_best_gws(struct fmt_main * self, int sequential_id) {
 }
 
 static int crypt_all(int *pcount, struct db_salt *salt);
-static int crypt_all_benchmark(int *pcount, struct db_salt *salt);
 
 static void init(struct fmt_main *self)
 {
@@ -315,10 +314,8 @@ static void init(struct fmt_main *self)
 
 	//Initialize openCL tuning (library) for this format.
 	opencl_init_auto_setup(SEED, 0, 3, NULL,
-		warn, &multi_profilingEvent[1], self, create_clobj, release_clobj,
+		warn, 1, self, create_clobj, release_clobj,
 		sizeof(crypt_md5_password), 0);
-
-	self->methods.crypt_all = crypt_all_benchmark;
 
 	selected_gws = global_work_size;
 
@@ -342,7 +339,6 @@ static void init(struct fmt_main *self)
 
 	self->params.min_keys_per_crypt = local_work_size;
 	self->params.max_keys_per_crypt = global_work_size;
-	self->methods.crypt_all = crypt_all;
 
 	if (options.verbosity > 2)
 		fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
@@ -415,33 +411,6 @@ static void *binary(char *ciphertext)
 	return (void *) b;
 }
 
-static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
-{
-	int count = *pcount;
-
-	global_work_size = (((count + local_work_size - 1) / local_work_size) * local_work_size);
-
-	///Copy data to GPU memory
-	if (new_keys)
-		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE,
-			0, insize, inbuffer, 0, NULL, &multi_profilingEvent[0]),
-			"Copy memin");
-
-	///Run kernel
-	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1,
-		NULL, &global_work_size, &local_work_size, 0, NULL, &multi_profilingEvent[1]),
-		"Set ND range");
-	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_FALSE,
-		0, outsize, outbuffer, 0, NULL, &multi_profilingEvent[2]),
-		"Copy data back");
-
-	///Await completion of all the above
-	BENCH_CLERROR(clFinish(queue[gpu_id]), "clFinish error");
-
-	new_keys = 0;
-	return count;
-}
-
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
@@ -451,15 +420,15 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	///Copy data to GPU memory
 	if (new_keys)
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE,
-			0, insize, inbuffer, 0, NULL, NULL),
+			0, insize, inbuffer, 0, NULL, multi_profilingEvent[0]),
 			"Copy memin");
 
 	///Run kernel
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1,
-		NULL, &global_work_size, &local_work_size, 0, NULL, NULL),
+		NULL, &global_work_size, &local_work_size, 0, NULL, multi_profilingEvent[1]),
 		"Set ND range");
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_FALSE,
-		0, outsize, outbuffer, 0, NULL, NULL),
+		0, outsize, outbuffer, 0, NULL, multi_profilingEvent[2]),
 		"Copy data back");
 
 	///Await completion of all the above
