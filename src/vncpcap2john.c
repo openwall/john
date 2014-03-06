@@ -23,129 +23,105 @@
  * 02111-1307 USA.
 */
 
-#include <cctype>
-#include <map>
-#include <fstream>
-#include <iostream>
+#define _BSD_SOURCE
+#define _GNU_SOURCE
+#include <stdbool.h>
 #include <stdio.h>
-#include <sstream>
-#include <stdexcept>
-#include <string>
-#include <vector>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 #include <arpa/inet.h>
 #include <netinet/if_ether.h>
 #include <netinet/in.h>
+#include <net/ethernet.h>
 
 #define __FAVOR_BSD
 #include <netinet/ip.h>
-#include <netinet/tcp.h>
 #include "tcphdr.h"
 #include <pcap.h>
+#define u_char unsigned char
 
-using namespace std;
-
-void print_hex(const unsigned char *str, int len)
-{
-	int i;
-	for (i = 0; i < len; ++i)
-		printf("%02X", str[i]);
-}
-
-class Packet_Reader {
-      public:
-	Packet_Reader(const std::string & filename);
-	~Packet_Reader();
-
-	bool kick();
-
-	 std::string payload() const {
-		return payload_str;
-	} std::string destination_address() const {
-		return dest_addr_str;
-	} std::string source_address() const {
-		return src_addr_str;
-      } private:
+struct Packet_Reader {
 	char pcap_errbuf[PCAP_ERRBUF_SIZE];
 	pcap_t *pcap_handle;
-
-	 std::string payload_str, dest_addr_str, src_addr_str;
+	char *payload_str, *dest_addr_str, *src_addr_str;
+	size_t payload_len;
 };
 
-Packet_Reader::Packet_Reader(const std::string & filename)
+int Packet_Reader_init(struct Packet_Reader* self, const char* filename)
 {
-	pcap_handle = pcap_open_offline(filename.c_str(), pcap_errbuf);
+	memset(self, 0, sizeof(*self));
+	self->pcap_handle = pcap_open_offline(filename, self->pcap_errbuf);
 
-	if (!pcap_handle)
-		throw std::runtime_error("Could not read pcap file " +
-	    std::string(pcap_errbuf));
+	if (!self->pcap_handle) return 0;
+	return 1;
 }
 
-Packet_Reader::~Packet_Reader()
+void Packet_Reader_get_error(struct Packet_Reader* self, char* out, size_t len) {
+	snprintf(out, len, "Could not read pcap file %s\n", self->pcap_errbuf);
+}
+
+void Packet_Reader_close(struct Packet_Reader* self)
 {
-	if (pcap_handle) {
-		pcap_close(pcap_handle);
-		pcap_handle = 0;
+	if (self->pcap_handle) {
+		pcap_close(self->pcap_handle);
+		self->pcap_handle = 0;
 	}
 }
 
-bool Packet_Reader::kick()
+_Bool Packet_Reader_kick(struct Packet_Reader* self)
 {
-	pcap_pkthdr header;
+	struct pcap_pkthdr header;
+	if(self->payload_str) free(self->payload_str);
+	if(self->src_addr_str) free(self->src_addr_str);
+	if(self->dest_addr_str) free(self->dest_addr_str);
 
-	payload_str = dest_addr_str = src_addr_str = "";	// reset
+	self->payload_str = self->dest_addr_str = self->src_addr_str = 0;	// reset
 
-	while (const u_char * packet = pcap_next(pcap_handle, &header)) {
+	const u_char * packet;
+	while ((packet = pcap_next(self->pcap_handle, &header))) {
 		if (header.len < sizeof(struct ether_header))
 			continue;
 
-		const struct ether_header *eptr =
-		    reinterpret_cast < const struct ether_header *>(packet);
+		const struct ether_header *eptr = (void*) packet;
 
 		if (ntohs(eptr->ether_type) != ETHERTYPE_IP)
 			continue;
 
-		if (header.len <
-		    sizeof(struct ether_header) + sizeof(struct ip))
+		if (header.len < sizeof(struct ether_header) + sizeof(struct ip))
 			continue;
 
-		const struct ip *ip_header =
-		    reinterpret_cast <
-		    const struct ip *>(packet + sizeof(ether_header));
+		const struct ip *ip_header = (void*)(packet + sizeof(struct ether_header));
 
 		size_t size_ip = 4 * ip_header->ip_hl;
 		if (size_ip < 20)
 			continue;	// bogus IP header
 
-		if (header.len <
-		    sizeof(struct ether_header) + size_ip + sizeof(struct tcp_hdr))
+		if (header.len < sizeof(struct ether_header) + size_ip + sizeof(struct tcp_hdr))
 			continue;
 
-		const struct tcp_hdr *tcp =
-		    reinterpret_cast <
-		    const struct tcp_hdr *>(packet + sizeof(ether_header) +
-		    size_ip);
+		const struct tcp_hdr *tcp = (void*) (packet + sizeof(struct ether_header) + size_ip);
 
 		size_t size_tcp = tcp->th_off * 4;
 
 		if (size_tcp < 20)
-			continue;	// bongus TCP header
+			continue;	// bogus TCP header
 
 		const u_char *payload_buf =
-		    packet + sizeof(ether_header) + size_ip + size_tcp;
+		    packet + sizeof(struct ether_header) + size_ip + size_tcp;
 		const size_t payload_len =
-		    header.len - (sizeof(ether_header) + size_ip + size_tcp);
+		    header.len - (sizeof(struct ether_header) + size_ip + size_tcp);
 
-		payload_str =
-		    std::string(reinterpret_cast < const char *>(payload_buf),
-		    payload_len);
+		self->payload_str = malloc(payload_len);
+		self->payload_len = payload_len;
+		memcpy(self->payload_str, payload_buf, payload_len);
 
-		std::ostringstream os1;
-		os1 << inet_ntoa(ip_header->ip_src) << "-" << ntohs(tcp->th_sport);
-		src_addr_str = os1.str();
+		char buf[512];
+		snprintf(buf, sizeof buf, "%s-%d", inet_ntoa(ip_header->ip_src), ntohs(tcp->th_sport));
+		self->src_addr_str = strdup(buf);
 
-		std::ostringstream os2;
-		os2 << inet_ntoa(ip_header->ip_dst) << "-" << ntohs(tcp->th_dport);
-		dest_addr_str = os2.str();
+		snprintf(buf, sizeof buf, "%s-%d", inet_ntoa(ip_header->ip_dst), ntohs(tcp->th_dport));
+		self->dest_addr_str = strdup(buf);
 
 		return true;	// sucessfully got a TCP packet of some kind (yay)
 	}
@@ -153,51 +129,60 @@ bool Packet_Reader::kick()
 	return false;		// all out of bits
 }
 
-class VNC_Auth_Reader {
-      public:
-	VNC_Auth_Reader(const std::string & filename):reader(filename) {
-	} bool find_next(std::string & id_out,
-	    std::string & challenge_out, std::string & response_out);
+char* obtain(char** src) {
+	if(!*src) return 0;
+	char *new = *src;
+	*src = 0;
+	return new;
+}
 
-      private:
-	Packet_Reader reader;
-};
-
-bool VNC_Auth_Reader::find_next(std::string & id_out,
-    std::string & challenge_out, std::string & response_out)
+int contains(const char* haystack, size_t len, const char* needle) {
+	size_t l = strlen(needle), i = 0;
+	while(i + l <= len) {
+		if(!memcmp(haystack + i, needle, l)) return 1;
+		i++;
+	}
+	return 0;
+}
+_Bool VNC_Auth_Reader_find_next(struct Packet_Reader* reader, char** id_out, char** challenge_out, char** response_out)
 {
-	while (reader.kick()) {
-		const std::string payload = reader.payload();
-
+	while (Packet_Reader_kick(reader)) {
+		if(!reader->payload_len) continue;
 		// This could be a lot smarter. It would be nice in particular
 		// to handle malformed streams and concurrent handshakes.
-		if (payload.find("RFB") != std::string::npos) {
-			const std::string from = reader.source_address();
-			const std::string to = reader.destination_address();
-			std::string challenge, response;
-			while (reader.kick())	// find the challenge
+		if (contains(reader->payload_str, reader->payload_len, "RFB")) {
+			char *from = obtain(&reader->src_addr_str);
+			char *to = obtain(&reader->dest_addr_str);
+			char *challenge, *response;
+			while (Packet_Reader_kick(reader))	// find the challenge
 			{
-				if (from == reader.source_address() &&
-				    to == reader.destination_address() &&
-				    reader.payload().size() == 16 &&
-				    reader.payload().find("VNCAUTH_") == std::string::npos) {
-					challenge = reader.payload();
+				if (reader->payload_len == 16 &&
+				    reader->src_addr_str && reader->dest_addr_str &&
+				    from && to &&
+				    !strcmp(from, reader->src_addr_str) &&
+				    !strcmp(to, reader->dest_addr_str) &&
+				    !contains(reader->payload_str, reader->payload_len, "VNCAUTH_")) {
+					challenge = obtain(&reader->payload_str);
 					break;
 				}
 			}
-			while (reader.kick())	// now find response
+			while (Packet_Reader_kick(reader))	// now find response
 			{
-				if (to == reader.source_address() &&
-				    from == reader.destination_address() &&
-				    reader.payload().size() == 16) {
-					response = reader.payload();
+				if (reader->payload_len == 16 &&
+				    reader->src_addr_str && reader->dest_addr_str &&
+				    from && to &&
+				    !strcmp(to, reader->src_addr_str) &&
+				    !strcmp(from, reader->dest_addr_str)) {
+					response = obtain(&reader->payload_str);
 					break;
 				}
 			}
-			if (challenge != "" && response != "") {
-				challenge_out = challenge;
-				response_out = response;
-				id_out = from + " to " + to;
+			if (challenge != 0 && response != 0) {
+				*challenge_out = challenge;
+				*response_out = response;
+				char buf[512];
+				snprintf(buf, sizeof buf, "%s to %s", from, to);
+				*id_out = strdup(buf);
 				return true;
 			}
 		}
@@ -205,48 +190,48 @@ bool VNC_Auth_Reader::find_next(std::string & id_out,
 	return false;
 }
 
-void attempt_crack(VNC_Auth_Reader & reader, std::istream & wordlist)
-{
-	std::map < std::string, std::string > challenge_to_id;
-	std::map < std::pair < std::string, std::string >,
-	    std::string > solutions;
-
-	std::string id, challenge, response;
-	while (reader.find_next(id, challenge, response)) {
-		solutions[std::make_pair(challenge, response)] = "";
-		challenge_to_id[challenge] = id;
+void makehex(char* in16, char* out33) {
+	unsigned char* in = (void*)in16;
+	size_t i = 0, j = 0;
+	static const char *htab = "0123456789ABCDEF";
+	for(;i<16 && in[i];i++,j+=2) {
+		out33[j] = htab[in[i] >> 4];
+		out33[j+1] = htab[in[i] & 0xf];
 	}
+	out33[j] = 0;
+}
 
-	for (std::map < std::pair < std::string, std::string >,
-			std::string >::iterator i = solutions.begin();
-			i != solutions.end(); ++i) {
-		if (!i->second.empty())
-			continue;
-		const std::string challenge = i->first.first;
-		const std::string response = i->first.second;
-		std::cout << challenge_to_id[challenge] << ":$vnc$*";
-		print_hex((const unsigned char*)challenge.c_str(), 16);
-		std::cout<<"*";
-		print_hex((const unsigned char*)response.c_str(), 16);
-		std::cout<<endl;
+void attempt_crack(struct Packet_Reader* reader)
+{
+	char *id, *challenge, *response;
+	while (VNC_Auth_Reader_find_next(reader, &id, &challenge, &response)) {
+		char hc[33],hr[33];
+		makehex(challenge, hc);
+		makehex(response, hr);
+		printf("%s:$vnc$*%s*%s\n", id, hc, hr);
+		free(id); free(challenge); free(response);
 	}
 }
 
 int main(int argc, char *argv[])
 {
-	try {
-		if (argc < 2) {
-			std::cerr << "Usage: " << argv[0] << " <pcapfiles>\n";
+	if (argc < 2) {
+		dprintf(2, "Usage: %s <pcapfiles>\n", argv[0]);
+		return 1;
+	}
+	int i = 1;
+	for(; i < argc; i++) {
+		struct Packet_Reader reader;
+		if(Packet_Reader_init(&reader, argv[i]))
+			attempt_crack(&reader);
+		else {
+			char buf[512];
+			Packet_Reader_get_error(&reader, buf, sizeof buf);
+			dprintf(2, "%s", buf);
+			Packet_Reader_close(&reader);
 			return 1;
 		}
-		for(int i = 1; i < argc; i++) {
-			VNC_Auth_Reader reader(argv[i]);
-			attempt_crack(reader, std::cin);
-		}
-	}
-	catch(std::exception & e) {
-		std::cout << e.what() << std::endl;
-		return 1;
+		Packet_Reader_close(&reader);
 	}
 	return 0;
 }
