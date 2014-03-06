@@ -386,9 +386,10 @@ int crk_reload_pot(void)
 		return 0;
 	}
 
+#if OS_FLOCK
 	if (flock(pot_fd, LOCK_SH) == -1)
 		pexit("flock: %s", options.loader.activepot);
-
+#endif
 	if (!(pot_file = fdopen(pot_fd, "rb")))
 		pexit("fdopen: %s", options.loader.activepot);
 
