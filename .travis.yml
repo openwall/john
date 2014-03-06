@@ -12,9 +12,9 @@ env:
 
 env:
   global:
-   # The next declaration is the encrypted COVERITY_SCAN_TOKEN, created
-   # via the "travis encrypt" command using the project repo's public key
-   - secure: "XaxopBhc+jphWdXgvFf4rRK6qvXuoKSQ0OgCjEQGd8WKPwuODYYtK15/A7VS9AWgLOejB0CcEmCFe3qGYesPWfru7B9zGZ8qSnGAnwGlFaP8O7ZLFJ5tWJjc0Ia8YBheGZ6rKl1QWf73f4LJ6c44RGdUKNoJl/SIfKiKs9UtRoE="
+   # The next declration is the encrypted COVERITY_SCAN_TOKEN, created
+   #   via the "travis encrypt" command using the project repo's public key
+   - secure: "FJ1/E5vVttd4+cFLQVdFt4rHNX28aGIvAWXduy6ZqQgZbfa0omsHcZXAq0t1qFz14ryTxEtxqY/aXw6OSG+t6a8OyrOi9jEdTIUpEDCyPvdZ299injPt1SiJRxzoDNo1CquwUE20y2pFOnTpVp6bIkH49o0oAxBijtb5fDj54KY="
 
 matrix:
   allow_failures:
