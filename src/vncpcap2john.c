@@ -183,8 +183,13 @@ _Bool VNC_Auth_Reader_find_next(struct Packet_Reader* reader, char** id_out, cha
 				char buf[512];
 				snprintf(buf, sizeof buf, "%s to %s", from, to);
 				*id_out = strdup(buf);
+				free(from); free(to);
 				return true;
+			} else {
+				free(challenge);
+				free(response);
 			}
+			free(from); free(to);
 		}
 	}
 	return false;
