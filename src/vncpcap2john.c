@@ -205,7 +205,7 @@ void makehex(char* in16, char* out33) {
 	unsigned char* in = (void*)in16;
 	size_t i = 0, j = 0;
 	static const char *htab = "0123456789ABCDEF";
-	for(;i<16 && in[i];i++,j+=2) {
+	for(;i<16;i++,j+=2) {
 		out33[j] = htab[in[i] >> 4];
 		out33[j+1] = htab[in[i] & 0xf];
 	}
