@@ -72,9 +72,9 @@ void Packet_Reader_close(struct Packet_Reader* self)
 _Bool Packet_Reader_kick(struct Packet_Reader* self)
 {
 	struct pcap_pkthdr header;
-	if(self->payload_str) free(self->payload_str);
-	if(self->src_addr_str) free(self->src_addr_str);
-	if(self->dest_addr_str) free(self->dest_addr_str);
+	free(self->payload_str);
+	free(self->src_addr_str);
+	free(self->dest_addr_str);
 
 	self->payload_str = self->dest_addr_str = self->src_addr_str = 0;	// reset
 
