@@ -22,6 +22,12 @@
  * Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
  * 02111-1307 USA.
 */
+/*
+ * Parts of this software are Copyright (c) 2014 rofl0r,
+ * and are hereby released to the general public under the following terms:
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ */
 
 #define _BSD_SOURCE
 #define _GNU_SOURCE
@@ -199,7 +205,7 @@ void makehex(char* in16, char* out33) {
 	unsigned char* in = (void*)in16;
 	size_t i = 0, j = 0;
 	static const char *htab = "0123456789ABCDEF";
-	for(;i<16 && in[i];i++,j+=2) {
+	for(;i<16;i++,j+=2) {
 		out33[j] = htab[in[i] >> 4];
 		out33[j+1] = htab[in[i] & 0xf];
 	}
