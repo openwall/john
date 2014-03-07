@@ -153,7 +153,7 @@ _Bool VNC_Auth_Reader_find_next(struct Packet_Reader* reader, char** id_out, cha
 		if (contains(reader->payload_str, reader->payload_len, "RFB")) {
 			char *from = obtain(&reader->src_addr_str);
 			char *to = obtain(&reader->dest_addr_str);
-			char *challenge, *response;
+			char *challenge = 0, *response = 0;
 			while (Packet_Reader_kick(reader))	// find the challenge
 			{
 				if (reader->payload_len == 16 &&
