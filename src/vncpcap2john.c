@@ -22,6 +22,12 @@
  * Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
  * 02111-1307 USA.
 */
+/*
+ * Parts of this software are Copyright (c) 2014 rofl0r,
+ * and are hereby released to the general public under the following terms:
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ */
 
 #define _BSD_SOURCE
 #define _GNU_SOURCE
