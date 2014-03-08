@@ -219,9 +219,7 @@ static void sig_install_abort(void)
 #endif
 
 	signal(SIGINT, sig_handle_abort);
-//#ifndef HAVE_MPI
 	signal(SIGTERM, sig_handle_abort);
-//#endif
 #ifdef SIGXCPU
 	signal(SIGXCPU, sig_handle_abort);
 #endif
@@ -237,9 +235,7 @@ static void sig_remove_abort(void)
 #endif
 
 	signal(SIGINT, SIG_DFL);
-//#ifndef HAVE_MPI
 	signal(SIGTERM, SIG_DFL);
-//#endif
 #ifdef SIGXCPU
 	signal(SIGXCPU, SIG_DFL);
 #endif
@@ -259,11 +255,15 @@ static void signal_children(int signum)
 #endif
 
 static void sig_install_timer(void);
+static void sig_handle_reload(int signum);
 
 static void sig_handle_timer(int signum)
 {
 	int saved_errno = errno;
 #ifndef BENCH_BUILD
+
+	if (!event_reload)
+		signal(SIGUSR2, sig_handle_reload);
 
 #if OS_TIMER
 	if (!--timer_save_value) {
@@ -402,8 +402,21 @@ static void sig_remove_timer(void)
 
 static void sig_handle_status(int signum)
 {
-	/* For cygwin and MPI, we save too here */
-	//event_save =
+	/* We currently disable --fork for Cygwin in os.h due to problems
+	   with proper session save when a job is aborted. This cludge
+	   could be a workaround: First press a key, then abort it after
+	   status line was printed. */
+#if OS_FORK && defined(__CYGWIN32__)
+	if (options.fork)
+		event_save = 1;
+#endif
+	/* Similar cludge for MPI. Only SIGUSR1 is supported for showing
+	   status because the fascist MPI daemons will send us a SIGKILL
+	   seconds after a SIGHUP and there's nothing we can do about it. */
+#ifdef HAVE_MPI
+	if (mpi_p > 1 || getenv("OMPI_COMM_WORLD_SIZE"))
+		event_save = 1;
+#endif
 	event_status = event_pending = 1;
 	signal(signum, sig_handle_status);
 }
@@ -411,7 +424,7 @@ static void sig_handle_status(int signum)
 static void sig_handle_reload(int signum)
 {
 #if OS_FORK
-	if (!event_reload) {
+	if (!event_reload && options.fork) {
 		if (john_main_process)
 			signal_children(signum);
 		else
@@ -419,17 +432,17 @@ static void sig_handle_reload(int signum)
 	}
 #endif
 #ifdef HAVE_MPI
-	/*
-	 * This only works if 'mpirun' is parent, not 'orted'. We
-	 * might overcome that by using MPI_Isend() to the root node
-	 * which can MPI_Bcast() to the others. Though that would
-	 * need to happen elsewehere - this is a signal handler %-)
-	 */
+	/* This only works reliably if 'mpirun' is parent, not 'orted'.
+	   We might overcome that by using MPI_Isend() to the root node
+	   which can MPI_Bcast() to the others. Though that would
+	   need to happen elsewehere - this is a signal handler %-)  */
 	if (!event_reload && mpi_p > 1)
 		kill(getppid(), signum);
 #endif
 	event_reload = 1;
-	signal(signum, sig_handle_reload);
+	/* Avoid loops from signalling ppid. We re-enable this signal
+	   in sig_handle_timer() */
+	signal(signum, SIG_IGN);
 }
 
 static void sig_done(void);

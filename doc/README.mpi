@@ -25,11 +25,18 @@ PRELUDE:
 COMPILING:
 ====================
     You must have an operational MPI environment prior to both compiling and
-    using the MPI version; configuring one is outside the scope of this
-    document but for a single, multi-core, host you don't need much
-    configuration. MPICH2 or OpenMPI does the job fine, for example. Most
-    testing of fullmpi is now made using the version of OpenMPI included
-    with latest Ubuntu.
+    using the MPI version. Configuring one is outside the scope of this
+    document but it's trivial. What is most important is that all nodes see
+    the same working directory - normally you'd use NFS but other alternatives
+    exist (file locking needs to be properly supported though). The nodes may
+    use different binaries if required (eg. compiled for different CPU archs)
+    as long as they are the exact same John version. But the config files
+    SHOULD be shared over the network, and the directory where session
+    (.rec) files and log files are created MUST be a shared network one.
+
+    For a single, multi-core, host you don't need much configuration. MPICH2
+    or OpenMPI does the job fine, for example. Most testing of MPI is now
+    made using the version of OpenMPI included with latest LTE Ubuntu.
 
     Debian/Ubuntu/Mint Linux example for installing OpenMPI:
     sudo apt-get install libopenmpi-dev openmpi-bin
