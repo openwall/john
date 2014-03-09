@@ -15,11 +15,13 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/file.h>
-#ifdef DEBUG
+#include <time.h>
+#if HAVE_SYS_TIMES_H
 #include <sys/times.h>
 #endif
 #include <fcntl.h>
 #include <errno.h>
+#include <unistd.h>
 
 #include "arch.h"
 #include "misc.h"
@@ -463,6 +465,59 @@ static void crk_mpi_probe(void)
 }
 #endif
 
+static void crk_poll_files(void)
+{
+	struct stat trigger_stat;
+
+	if (options.abort_file &&
+	    stat(path_expand(options.abort_file), &trigger_stat) == 0) {
+		if (!event_abort && john_main_process)
+			fprintf(stderr, "Abort file seen\n");
+		log_event("Abort file seen");
+		event_pending = event_abort = 1;
+	}
+	else if (options.pause_file &&
+	         stat(path_expand(options.pause_file), &trigger_stat) == 0) {
+#if !HAVE_SYS_TIMES_H
+		time_t end, start = clock();
+#else
+		struct tms buf;
+		time_t end, start = times(&buf);
+#endif
+
+		status_print();
+		if (john_main_process)
+			fprintf(stderr, "Pause file seen, going to sleep "
+			        "(session saved)\n");
+		log_event("Pause file seen, going to sleep");
+
+		/* Better save stuff before going to sleep */
+		rec_save();
+
+		do {
+			int s = 3;
+
+			do {
+				s = sleep(s);
+			} while (s);
+
+		} while (stat(path_expand(options.pause_file),
+		              &trigger_stat) == 0);
+
+		if (john_main_process)
+			fprintf(stderr, "Pause file removed, continuing\n");
+		log_event("Pause file removed, continuing");
+
+		/* Disregard pause time for stats */
+#if !HAVE_SYS_TIMES_H
+		end = clock();
+#else
+		end = times(&buf);
+#endif
+		status.start_time -= (start - end);
+	}
+}
+
 static int crk_process_event(void)
 {
 	event_pending = 0;
@@ -487,6 +542,11 @@ static int crk_process_event(void)
 	if (event_ticksafety) {
 		event_ticksafety = 0;
 		status_ticks_overflow_safety();
+	}
+
+	if (event_poll_files) {
+		event_poll_files = 0;
+		crk_poll_files();
 	}
 
 	return event_abort;

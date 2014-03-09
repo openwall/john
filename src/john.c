@@ -1152,6 +1152,8 @@ static void john_init(char *name, int argc, char **argv)
 		cfg_get_bool(SECTION_OPTIONS, NULL, "ReloadAtCrack", 1);
 	options.reload_at_save =
 		cfg_get_bool(SECTION_OPTIONS, NULL, "ReloadAtSave", 1);
+	options.abort_file = cfg_get_param(SECTION_OPTIONS, NULL, "AbortFile");
+	options.pause_file = cfg_get_param(SECTION_OPTIONS, NULL, "PauseFile");
 
 	if (options.loader.activepot == NULL) {
 		if (options.secure)
@@ -1199,6 +1201,8 @@ static void john_init(char *name, int argc, char **argv)
 
 static void john_run(void)
 {
+	struct stat trigger_stat;
+
 	if (options.flags & FLG_TEST_CHK)
 		exit_status = benchmark_all() ? 1 : 0;
 	else
@@ -1251,6 +1255,13 @@ static void john_run(void)
 					        "minimum length for format\n");
 				error();
 			}
+		}
+
+		if (stat(path_expand(options.abort_file), &trigger_stat) == 0) {
+			if (john_main_process)
+			fprintf(stderr, "Abort file %s present, "
+			        "refusing to start\n", options.abort_file);
+			error();
 		}
 
 		if (options.flags & FLG_SINGLE_CHK)

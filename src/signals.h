@@ -39,6 +39,7 @@ extern volatile int event_ticksafety;	/* System time in ticks may overflow */
 #ifdef HAVE_MPI
 extern volatile int event_mpiprobe;	/* MPI probe for messages requested */
 #endif
+extern volatile int event_poll_files;	/* Every 3 s, poll pause/abort files */
 
 /* --max-run-time timer, zero if reached */
 extern volatile int timer_abort;

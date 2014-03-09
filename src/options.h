@@ -276,6 +276,10 @@ struct options_main {
 /* Send a resync trigger (to others) when new cracks are written to pot */
 	int reload_at_crack;
 
+/* Pause/abort on trigger files */
+	char *pause_file;
+	char *abort_file;
+
 /* Force dynamic format to always treat bare hashes as valid. If not set
    then dynamic format only uses bare hashes if -form=dynamic_xxx is used.
    If this is 'N', then original logic used.  If 'Y' or 'y' then we always
