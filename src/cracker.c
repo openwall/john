@@ -423,7 +423,7 @@ int crk_reload_pot(void)
 		log_event("+ pot sync removed %d hashes; %s",
 		          others, crk_loaded_counts());
 
-	if (!crk_db->salts || (others && options.verbosity > 3)) {
+	if (others && options.verbosity > 3) {
 		if (options.node_count)
 			fprintf(stderr, "%u: %s\n",
 			        options.node_min, crk_loaded_counts());
@@ -434,9 +434,34 @@ int crk_reload_pot(void)
 	return (!crk_db->salts);
 }
 
+#ifdef HAVE_MPI
+static void crk_mpi_probe(void)
+{
+	static MPI_Status s;
+	int flag;
+
+	MPI_Iprobe(MPI_ANY_SOURCE, JOHN_MPI_RELOAD, MPI_COMM_WORLD, &flag, &s);
+	if (flag) {
+		static MPI_Request r;
+		char buf[16];
+
+		event_reload = 1;
+		MPI_Irecv(buf, 1, MPI_CHAR, MPI_ANY_SOURCE,
+		          JOHN_MPI_RELOAD, MPI_COMM_WORLD, &r);
+	}
+}
+#endif
+
 static int crk_process_event(void)
 {
 	event_pending = 0;
+
+#ifdef HAVE_MPI
+	if (event_mpiprobe) {
+		event_mpiprobe = 0;
+		crk_mpi_probe();
+	}
+#endif
 
 	if (event_save) {
 		event_save = 0;

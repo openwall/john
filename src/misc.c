@@ -38,10 +38,6 @@ void error(void)
 #ifndef _JOHN_MISC_NO_LOG
 	log_event("Terminating on error");
 	log_done();
-#if defined(HAVE_MPI) && defined(JOHN_MPI_ABORT)
-	if (mpi_p > 1)
-		MPI_Abort(MPI_COMM_WORLD,1);
-#endif
 #endif
 
 	exit(1);

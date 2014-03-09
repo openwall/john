@@ -37,6 +37,7 @@
 #include <sys/stat.h>
 #if OS_FORK
 #include <sys/wait.h>
+#include <signal.h>
 #endif
 
 #include "params.h"
@@ -770,6 +771,9 @@ static void john_wait(void)
 {
 	int waiting_for = john_child_count;
 
+	if (!database.password_count && !options.reload_at_crack)
+		raise(SIGUSR2);
+
 	log_event("Waiting for %d child%s to terminate",
 	    waiting_for, waiting_for == 1 ? "" : "ren");
 	fprintf(stderr, "Waiting for %d child%s to terminate\n",
@@ -805,12 +809,30 @@ static void john_wait(void)
 #ifdef HAVE_MPI
 static void john_mpi_wait(void)
 {
-	if (!database.password_count)
-		fprintf(stderr, "%d: All hashes cracked! Abort remaining"
-		        " nodes manually!\n", mpi_id + 1);
+	if (!database.password_count && !options.reload_at_crack) {
+		int i;
 
-	if (john_main_process)
+		for (i = 0; i < mpi_p; i++) {
+			if (i == mpi_id)
+				continue;
+			if (mpi_req[i] == NULL)
+				mpi_req[i] = mem_alloc_tiny(sizeof(MPI_Request),
+				                            MEM_ALIGN_WORD);
+			else
+				if (*mpi_req[i] != MPI_REQUEST_NULL)
+					continue;
+			MPI_Isend("r", 1, MPI_CHAR, i, JOHN_MPI_RELOAD,
+			          MPI_COMM_WORLD, mpi_req[i]);
+		}
+	}
+
+	if (john_main_process) {
+		log_event("Waiting for other node%s to terminate",
+		          mpi_p > 2 ? "s" : "");
+		fprintf(stderr, "Waiting for other node%s to terminate\n",
+		        mpi_p > 2 ? "s" : "");
 		mpi_teardown();
+	}
 
 /* Close and possibly remove our .rec file now */
 	rec_done(!event_abort ? -1 : -2);
@@ -1125,8 +1147,9 @@ static void john_init(char *name, int argc, char **argv)
 		}
 	}
 
-	if (cfg_get_bool(SECTION_OPTIONS, NULL, "SecureMode", 0))
-		options.secure = 1;
+	options.secure = cfg_get_bool(SECTION_OPTIONS, NULL, "SecureMode", 0);
+	options.reload_at_crack =
+		cfg_get_bool(SECTION_OPTIONS, NULL, "ReloadAtCrack", 1);
 
 	if (options.loader.activepot == NULL) {
 		if (options.secure)
@@ -1505,10 +1528,7 @@ int main(int argc, char **argv)
 		timer_abort = time + options.max_run_time;
 	if (options.status_interval)
 		timer_status = time + options.status_interval;
-	if (options.reload_interval == 1337) {
-		options.reload_interval = 0;
-		options.reload_at_crack = 1;
-	} else if (options.reload_interval)
+	if (options.reload_interval)
 		timer_reload = time + options.reload_interval;
 
 	john_run();

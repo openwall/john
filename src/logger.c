@@ -51,6 +51,7 @@
 #include "john-mpi.h"
 #endif
 #include "cracker.h"
+#include "signals.h"
 
 static int cfg_beep;
 static int cfg_log_passwords;
@@ -125,10 +126,32 @@ static void log_file_flush(struct log_file *f)
 		pexit("flock(LOCK_UN)");
 #endif
 #ifdef SIGUSR2
-	/* We don't actually send a sync trigger "at crack" but
-	   after it's actually written to the pot file */
-	if (f == &pot && options.reload_at_crack)
-		raise(SIGUSR2);
+	/* We don't really send a sync trigger "at crack" but
+	   after it's actually written to the pot file. That is, now. */
+	if (f == &pot && !event_abort && options.reload_at_crack) {
+#ifdef HAVE_MPI
+		if (mpi_p > 1) {
+			int i;
+
+			for (i = 0; i < mpi_p; i++) {
+				if (i == mpi_id)
+					continue;
+				if (mpi_req[i] == NULL)
+					mpi_req[i] = mem_alloc_tiny(
+						sizeof(MPI_Request),
+						MEM_ALIGN_WORD);
+				else
+					if (*mpi_req[i] != MPI_REQUEST_NULL)
+						continue;
+				MPI_Isend("r", 1, MPI_CHAR, i, JOHN_MPI_RELOAD,
+				          MPI_COMM_WORLD, mpi_req[i]);
+			}
+		} else
+#endif
+			raise(SIGUSR2);
+	}
+#else
+#warning SIGUSR2
 #endif
 }
 

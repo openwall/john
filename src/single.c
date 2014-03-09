@@ -483,7 +483,7 @@ static void single_run(void)
 				min = salt->keys->rule;
 		} while ((salt = salt->next));
 
-		if (single_db->salts && event_reload)
+		if (event_reload && single_db->salts)
 			crk_reload_pot();
 
 		rec_rule = min;

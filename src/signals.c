@@ -68,6 +68,7 @@
 volatile int event_pending = 0, event_reload = 0;
 volatile int event_abort = 0, event_save = 0, event_status = 0;
 volatile int event_ticksafety = 0;
+volatile int event_mpiprobe = 0;
 
 volatile int timer_reload = 0, timer_abort = 0, timer_status = 0;
 static int timer_save_interval, timer_save_value;
@@ -164,10 +165,6 @@ void check_abort(int be_async_signal_safe)
 		if (timer_abort >= 0) {
 			if (john_main_process)
 				write_loop(2, "Session aborted\n", 16);
-#if defined(HAVE_MPI) && defined(JOHN_MPI_ABORT)
-			if (mpi_p > 1)
-				MPI_Abort(MPI_COMM_WORLD,1);
-#endif
 		} else
 		if (john_main_process)
 			write_loop(2, "Session stopped (max run-time"
@@ -261,16 +258,18 @@ static void sig_handle_timer(int signum)
 {
 	int saved_errno = errno;
 #ifndef BENCH_BUILD
-
-	if (!event_reload)
+	if (!event_reload) {
+#ifdef HAVE_MPI
+		if (mpi_p > 1)
+			event_pending = event_mpiprobe = 1;
+#endif
 		signal(SIGUSR2, sig_handle_reload);
-
+	}
 #if OS_TIMER
 	if (!--timer_save_value) {
 		timer_save_value = timer_save_interval;
 		event_reload = event_save = event_pending = 1;
 	}
-
 	if (timer_abort && !--timer_abort) {
 		timer_abort = -1;
 		event_abort = event_pending = 1;
@@ -290,7 +289,6 @@ static void sig_handle_timer(int signum)
 		timer_save_value += timer_save_interval;
 		event_reload = event_save = event_pending = 1;
 	}
-
 	if (timer_abort && time >= timer_abort) {
 		timer_abort = -1;
 		event_abort = event_pending = 1;
@@ -431,15 +429,8 @@ static void sig_handle_reload(int signum)
 			kill(getppid(), signum);
 	}
 #endif
-#ifdef HAVE_MPI
-	/* This only works reliably if 'mpirun' is parent, not 'orted'.
-	   We might overcome that by using MPI_Isend() to the root node
-	   which can MPI_Bcast() to the others. Though that would
-	   need to happen elsewehere - this is a signal handler %-)  */
-	if (!event_reload && mpi_p > 1)
-		kill(getppid(), signum);
-#endif
-	event_reload = 1;
+	if (!event_abort)
+		event_reload = 1;
 	/* Avoid loops from signalling ppid. We re-enable this signal
 	   in sig_handle_timer() */
 	signal(signum, SIG_IGN);

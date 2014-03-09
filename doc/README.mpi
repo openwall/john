@@ -16,8 +16,8 @@ PRELUDE:
     patch was incorporated in the main tree.
 
     In 2013, core John got support for node/fork and MPI was unified with this
-    code. This meant significantly better QA and also better scaling in some
-    cases. Note that the new -fork option obsoletes MPI for use on a single
+    code. This means significantly better QA and also better scaling in some
+    cases. Note that the new -fork option deprecates MPI for use on a single
     host! MPI works exactly like -fork except you can span the processes over
     several remote hosts.
 
@@ -46,7 +46,6 @@ COMPILING:
 ----8<--------------8<--------------8<--------------8<--------------8<----------
 
 ## Uncomment the line below for MPI (can be used together with OMP as well)
-## For experimental MPI_Abort support, append -DJOHN_MPI_ABORT too.
 CC = mpicc -DHAVE_MPI
 
 ----8<--------------8<--------------8<--------------8<--------------8<----------
@@ -62,7 +61,7 @@ CC = mpicc -DHAVE_MPI
 USAGE:
 ====================
     Typical invocation is as follows (mpiexec is usually synonym to mpirun):
-        mpirun -np 4 -host host1 [-host host2...] ./john pwfile
+        mpirun -np 4 -host host1[,host2...] ./john pwfile
 
     The above will launch four parallel processes that will split the job in
     a more-or-less even fashion. If no -host is given, it will run all
@@ -164,6 +163,19 @@ USAGE:
 
     This will dump the status of each process as recorded in the .rec files.
 
+
+    You may send a USR2 signal to the parent MPI process (or to all individual
+    processes) for manually requesting a "pot file sync". All nodes will
+    re-read the pot file and stop attacking any hashes (and salts!) that some
+    other node (or independant job) had already cracked.  You can request to
+    periodically get such syncing using the option --reload=<seconds>, but
+    try to refrain from putting a too small number here, as the overhead just
+    may eat the gain. Using a number like 600 is probably sane. There is also
+    a john.conf option "ReloadAtCrack" that when enabled will make an MPI
+    node (or --fork process) signal to the others that they should resync.
+    Unless you have independant jobs running this should be enough.
+
+
 ====================
 MISC TIPS:
 ====================
@@ -180,14 +192,9 @@ CAVEATS:
     - Benchmark virtual c/s will appear inflated if launching more processes
       than cores available. It will basically indicate what the speed would be
       with that many real cores.
-    - There is no inter-process communication of cracked hashes yet. This means
-      that if one node cracks a hash, all other nodes will continue to waste
-      time on it. The current workaround is aborting and resuming the jobs
-      regularly. This also means that you may have to manually stop some or all
-      nodes after all hashes are cracked.
-    - Aborting a job using ctrl-c will often kill all nodes without updating
-      state files and logs. I have tried to mitigate this but it is still a
-      good idea to send a -USR1 to the parent before killing them. You should
+    - Aborting a job using ctrl-c may kill nodes without updating state
+      files and logs. I have tried to mitigate this but it is still a good
+      idea to send a -USR1 to the parent before killing them. You should
       lower the SAVE parameter in john.conf to 60 (seconds) if running MPI,
       this will be the maximum time of repeated work after resuming.
 
