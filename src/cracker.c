@@ -15,6 +15,9 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/file.h>
+#ifdef DEBUG
+#include <sys/times.h>
+#endif
 #include <fcntl.h>
 #include <errno.h>
 
@@ -376,9 +379,13 @@ int crk_reload_pot(void)
 	int pot_fd;
 	FILE *pot_file;
 	int total = crk_db->password_count, others;
+#ifdef DEBUG
+	clock_t start, end;
+	struct tms buffer;
 
+	start = times(&buffer);
 	event_reload = 0;
-
+#endif
 	if ((pot_fd =
 	     open(path_expand(options.loader.activepot), O_RDONLY)) == -1) {
 		if (errno != ENOENT)
@@ -400,10 +407,9 @@ int crk_reload_pot(void)
 	}
 
 	while (fgetl(line, sizeof(line), pot_file)) {
-		char ciphertext[LINE_BUFFER_SIZE];
+		char *ciphertext = line;
 		char *plain, *p;
 
-		strnzcpy(ciphertext, line, sizeof(ciphertext));
 		if (!(p = strchr(ciphertext, options.loader.field_sep_char)))
 			continue;
 		*p = 0;
@@ -430,6 +436,11 @@ int crk_reload_pot(void)
 		else
 			fprintf(stderr, "%s\n", crk_loaded_counts());
 	}
+
+#ifdef DEBUG
+	end = times(&buffer);
+	log_event("Node %d total time spent in pot sync: %lu ms", options.node_min, 1000UL*(end - start)/CLK_TCK);
+#endif
 
 	return (!crk_db->salts);
 }
