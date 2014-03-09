@@ -270,8 +270,8 @@ struct options_main {
 /* Emit a status line every N seconds */
 	int status_interval;
 
-/* Resync pot file every N seconds */
-	int reload_interval;
+/* Resync pot file when saving */
+	int reload_at_save;
 
 /* Send a resync trigger (to others) when new cracks are written to pot */
 	int reload_at_crack;

@@ -70,7 +70,7 @@ volatile int event_abort = 0, event_save = 0, event_status = 0;
 volatile int event_ticksafety = 0;
 volatile int event_mpiprobe = 0;
 
-volatile int timer_reload = 0, timer_abort = 0, timer_status = 0;
+volatile int timer_abort = 0, timer_status = 0;
 static int timer_save_interval, timer_save_value;
 static clock_t timer_ticksafety_interval, timer_ticksafety_value;
 
@@ -268,7 +268,8 @@ static void sig_handle_timer(int signum)
 #if OS_TIMER
 	if (!--timer_save_value) {
 		timer_save_value = timer_save_interval;
-		event_reload = event_save = event_pending = 1;
+		event_save = event_pending = 1;
+		event_reload = options.reload_at_save;
 	}
 	if (timer_abort && !--timer_abort) {
 		timer_abort = -1;
@@ -278,16 +279,13 @@ static void sig_handle_timer(int signum)
 		timer_status = options.status_interval;
 		event_status = event_pending = 1;
 	}
-	if (timer_reload && !--timer_reload) {
-		timer_reload = options.reload_interval;
-		event_reload = 1;
-	}
 #else /* no OS_TIMER */
 	unsigned int time = status_get_time();
 
 	if (time >= timer_save_value) {
 		timer_save_value += timer_save_interval;
-		event_reload = event_save = event_pending = 1;
+		event_save = event_pending = 1;
+		event_reload = options.reload_at_save;
 	}
 	if (timer_abort && time >= timer_abort) {
 		timer_abort = -1;
@@ -296,10 +294,6 @@ static void sig_handle_timer(int signum)
 	if (timer_status && time >= timer_status) {
 		timer_status += options.status_interval;
 		event_status = event_pending = 1;
-	}
-	if (timer_reload && time >= timer_reload) {
-		timer_reload += options.reload_interval;
-		event_reload = 1;
 	}
 #endif /* OS_TIMER */
 #endif /* !BENCH_BUILD */

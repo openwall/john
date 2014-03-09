@@ -1150,6 +1150,8 @@ static void john_init(char *name, int argc, char **argv)
 	options.secure = cfg_get_bool(SECTION_OPTIONS, NULL, "SecureMode", 0);
 	options.reload_at_crack =
 		cfg_get_bool(SECTION_OPTIONS, NULL, "ReloadAtCrack", 1);
+	options.reload_at_save =
+		cfg_get_bool(SECTION_OPTIONS, NULL, "ReloadAtSave", 1);
 
 	if (options.loader.activepot == NULL) {
 		if (options.secure)
@@ -1514,11 +1516,7 @@ int main(int argc, char **argv)
 #endif
 	john_init(name, argc, argv);
 
-	/*
-	 * Placed here to disregard load time.
-	 * The --reload-every=N option has a bonus provided only for experts
-	 * caring to read the source ;-)  Most users would misuse it anyway.
-	 */
+	/* Placed here to disregard load time. */
 #if OS_TIMER
 	time = 0;
 #else
@@ -1528,8 +1526,6 @@ int main(int argc, char **argv)
 		timer_abort = time + options.max_run_time;
 	if (options.status_interval)
 		timer_status = time + options.status_interval;
-	if (options.reload_interval)
-		timer_reload = time + options.reload_interval;
 
 	john_run();
 	john_done();

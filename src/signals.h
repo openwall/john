@@ -46,9 +46,6 @@ extern volatile int timer_abort;
 /* --progress-every timer */
 extern volatile int timer_status;
 
-/* --reload-every timer */
-extern volatile int timer_reload;
-
 #if !OS_TIMER
 /*
  * Timer emulation for systems with no setitimer(2).

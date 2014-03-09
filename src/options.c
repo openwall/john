@@ -161,8 +161,6 @@ static struct opt_entry opt_list[] = {
 		"%u", &options.max_run_time},
 	{"progress-every", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
 		"%u", &options.status_interval},
-	{"reload-every", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
-		"%u", &options.reload_interval},
 	{"regen-lost-salts", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
 		OPT_FMT_STR_ALLOC, &regen_salts_options},
 	{"bare-always-valid", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
@@ -346,7 +344,6 @@ void opt_print_hidden_usage(void)
 	puts("                          always treat bare hashes as valid.");
 	puts("--progress-every=N        emit a status line every N seconds");
 	puts("--crack-status            emit a status line whenever a password is cracked");
-	puts("--reload-every=N          sync pot file every N seconds");
 	puts("--max-run-time=N          gracefully exit after this many seconds");
 	puts("--regen-lost-salts=N      regenerate lost salts (see doc/OPTIONS)");
 	puts("--mkv-stats=FILE          \"Markov\" stats file (see doc/MARKOV)");
@@ -378,7 +375,7 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 	options.force_maxkeys = options.force_maxlength = 0;
 	options.force_minlength = -1; options.reload_at_crack = 0;
 	options.max_run_time = options.status_interval = 0;
-	options.reload_interval = options.dynamic_bare_hashes_always_valid = 0;
+	options.reload_at_save = options.dynamic_bare_hashes_always_valid = 0;
 	options.verbosity = 3;
 
 	list_init(&options.passwd);
