@@ -35,6 +35,7 @@
 #include "dynamic.h"
 #include "fake_salts.h"
 #include "john.h"
+#include "cracker.h"
 
 #ifdef HAVE_CRYPT
 extern struct fmt_main fmt_crypt;
@@ -85,6 +86,8 @@ static void read_file(struct db_main *db, char *name, int flags,
 		process_line(db, line);
 		check_abort(0);
 	}
+	if (name == options.loader.activepot)
+		crk_pot_pos = (long int)ftell(file);
 
 	if (ferror(file)) pexit("fgets");
 
