@@ -257,14 +257,13 @@ static void sig_handle_timer(int signum)
 {
 	int saved_errno = errno;
 #ifndef BENCH_BUILD
-	if (!event_reload) {
-#ifdef HAVE_MPI
-		if (mpi_p > 1)
-			event_pending = event_mpiprobe = 1;
-#endif
-	}
 	/* Some stuff only done every third second */
 	if ((timer_save_value & 3) == 3) {
+#ifdef HAVE_MPI
+		if (!event_reload && mpi_p > 1) {
+			event_pending = event_mpiprobe = 1;
+		}
+#endif
 		event_poll_files = event_pending = 1;
 		sig_install(sig_handle_reload, SIGUSR2);
 	}

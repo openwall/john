@@ -49,6 +49,10 @@
 #undef index
 #endif
 
+#ifdef DEBUG
+static clock_t salt_time = 0;
+#endif
+
 static struct db_main *crk_db;
 static struct fmt_params crk_params;
 static struct fmt_methods crk_methods;
@@ -166,6 +170,14 @@ static void crk_remove_salt(struct db_salt *salt)
 	while (*current != salt)
 		current = &(*current)->next;
 	*current = salt->next;
+
+	/* If we kept the salt_hash table, update it */
+	if (crk_db->salt_hash) {
+		int hash = crk_methods.salt_hash(salt->salt);
+
+		if (crk_db->salt_hash[hash] == salt)
+			crk_db->salt_hash[hash] = salt->next;
+	}
 }
 
 /*
@@ -343,30 +355,40 @@ static int crk_remove_pot_entry(char *ciphertext, char *plain)
 	struct db_password *pw;
 	char *pot_salt;
 	char *binary = crk_methods.binary(ciphertext);
+#ifdef DEBUG
+	struct tms buffer;
+	clock_t start = times(&buffer), end;
+#endif
 
 	pot_salt = crk_methods.salt(ciphertext);
 
-	salt = crk_db->salts;
+	/* Do we still have a hash table for salts? */
+	if (crk_db->salt_hash) {
+		salt = crk_db->salt_hash[crk_methods.salt_hash(pot_salt)];
+		if (!salt)
+			return 0;
+	} else
+		salt = crk_db->salts;
+
 	do {
 		if (!memcmp(pot_salt, salt->salt, crk_params.salt_size))
 			break;
 	} while ((salt = salt->next));
 
+#ifdef DEBUG
+	end = times(&buffer);
+	salt_time += (end - start);
+#endif
 	if (!salt)
 		return 0;
 
 	if (!salt->bitmap) {
-		//char *binary = crk_methods.binary(ciphertext);
-
 		pw = salt->list;
 		do {
 			char *source;
 
 			if (!pw->binary)
 				continue;
-
-			//if(memcmp(binary, pw->binary, crk_params.binary_size))
-			//	continue;
 
 			source = crk_methods.source(pw->source, pw->binary);
 
@@ -406,8 +428,9 @@ int crk_reload_pot(void)
 #ifdef DEBUG
 	struct tms buffer;
 	clock_t start = times(&buffer), end;
-#endif
 
+	salt_time = 0;
+#endif
 	event_reload = 0;
 
 	if (crk_params.flags & FMT_NOT_EXACT)
@@ -471,7 +494,7 @@ int crk_reload_pot(void)
 
 #ifdef DEBUG
 	end = times(&buffer);
-	log_event("Node %d total time spent in pot sync: %lu ms", options.node_min, 1000UL*(end - start)/CLK_TCK);
+	log_event("pot sync total time %lu ms of which %lu ms was finding salts", 1000UL*(end - start)/CLK_TCK, 1000UL * salt_time / CLK_TCK);
 #endif
 
 	return (!crk_db->salts);

@@ -1077,7 +1077,7 @@ void ldr_fix_database(struct db_main *db)
 {
 	ldr_init_salts(db);
 	MEM_FREE(db->password_hash);
-	MEM_FREE(db->salt_hash);
+	//MEM_FREE(db->salt_hash); /* Reused for pot file sync */
 
 	ldr_filter_salts(db);
 	ldr_remove_marked(db);
