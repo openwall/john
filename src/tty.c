@@ -87,16 +87,18 @@ int tty_getchar(void)
 {
 #if !defined(__DJGPP__) && !defined(__MINGW32__) && !defined (_MSC_VER)
 	int c;
-#ifdef __CYGWIN32__
+#if defined (__NOT_NEEDED_ANY_MORE___) && defined (__CYGWIN32__)
 	fd_set set;
 	struct timeval tv;
 #endif
 
 	if (tty_fd >= 0) {
-#ifdef __CYGWIN32__
+#if defined (__NOT_NEEDED_ANY_MORE___) && defined (__CYGWIN32__)
+#error "Should NOT get here"
 		FD_ZERO(&set); FD_SET(tty_fd, &set);
 		tv.tv_sec = 0; tv.tv_usec = 0;
 		if (select(tty_fd + 1, &set, NULL, NULL, &tv) <= 0)
+		//if (!(select(tty_fd + 1, &set, NULL, NULL, &tv) && FD_ISSET(tty_fd, &set)))
 			return -1;
 #endif
 		c = 0;
