@@ -40,8 +40,9 @@ extern volatile int event_ticksafety;	/* System time in ticks may overflow */
 extern volatile int event_mpiprobe;	/* MPI probe for messages requested */
 #endif
 extern volatile int event_poll_files;	/* Every 3 s, poll pause/abort files */
+extern volatile int aborted_by_timer;	/* Session was aborted by timer */
 
-/* --max-run-time timer, zero if reached */
+/* --max-run-time timer */
 extern volatile int timer_abort;
 
 /* --progress-every timer */

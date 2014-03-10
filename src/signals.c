@@ -73,6 +73,7 @@ volatile int event_mpiprobe = 0, event_poll_files = 0;
 volatile int timer_abort = 0, timer_status = 0;
 static int timer_save_interval, timer_save_value;
 static clock_t timer_ticksafety_interval, timer_ticksafety_value;
+volatile int aborted_by_timer = 0;
 
 #if !OS_TIMER
 
@@ -160,19 +161,19 @@ void check_abort(int be_async_signal_safe)
 	tty_done();
 
 	if (be_async_signal_safe) {
-		if (timer_abort >= 0) {
-			if (john_main_process)
+		if (john_main_process) {
+			if (aborted_by_timer)
+				write_loop(2, "Session stopped (max run-time"
+				           " reached)\n", 39);
+			else
 				write_loop(2, "Session aborted\n", 16);
-		} else
-		if (john_main_process)
-			write_loop(2, "Session stopped (max run-time"
-			           " reached)\n", 39);
+		}
 		_exit(1);
 	}
 
 	if (john_main_process)
-		fprintf(stderr, "Session %s\n", (timer_abort >= 0) ?
-		        "aborted" : "stopped (max run-time reached)");
+		fprintf(stderr, "Session %s\n", (aborted_by_timer) ?
+		        "stopped (max run-time reached)" : "aborted");
 	error();
 }
 
@@ -274,8 +275,9 @@ static void sig_handle_timer(int signum)
 		event_reload = options.reload_at_save;
 	}
 	if (timer_abort && !--timer_abort) {
-		timer_abort = -1;
-		event_abort = event_pending = 1;
+		aborted_by_timer = 1;
+		timer_abort = 3;
+		sig_handle_abort(0);
 	}
 	if (timer_status && !--timer_status) {
 		timer_status = options.status_interval;
@@ -290,8 +292,9 @@ static void sig_handle_timer(int signum)
 		event_reload = options.reload_at_save;
 	}
 	if (timer_abort && time >= timer_abort) {
-		timer_abort = -1;
-		event_abort = event_pending = 1;
+		aborted_by_timer = 1;
+		timer_abort += 3;
+		sig_handle_abort(0);
 	}
 	if (timer_status && time >= timer_status) {
 		timer_status += options.status_interval;

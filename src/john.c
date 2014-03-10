@@ -1231,6 +1231,14 @@ static void john_run(void)
 	if (options.flags & FLG_CRACKING_CHK) {
 		int remaining = database.password_count;
 
+		if (options.abort_file &&
+		    stat(path_expand(options.abort_file), &trigger_stat) == 0) {
+			if (john_main_process)
+			fprintf(stderr, "Abort file %s present, "
+			        "refusing to start\n", options.abort_file);
+			error();
+		}
+
 		if (!(options.flags & FLG_STDOUT)) {
 			char *where = fmt_self_test(database.format);
 			if (where) {
@@ -1274,14 +1282,6 @@ static void john_run(void)
 					        "minimum length for format\n");
 				error();
 			}
-		}
-
-		if (options.abort_file &&
-		    stat(path_expand(options.abort_file), &trigger_stat) == 0) {
-			if (john_main_process)
-			fprintf(stderr, "Abort file %s present, "
-			        "refusing to start\n", options.abort_file);
-			error();
 		}
 
 		if (options.flags & FLG_SINGLE_CHK)
@@ -1348,9 +1348,9 @@ static void john_done(void)
 	if ((options.flags & (FLG_CRACKING_CHK | FLG_STDOUT)) ==
 	    FLG_CRACKING_CHK) {
 		if (event_abort) {
-			log_event((timer_abort >= 0) ?
-			          "Session aborted" :
-			          "Session stopped (max run-time reached)");
+			log_event((aborted_by_timer) ?
+			          "Session stopped (max run-time reached)" :
+			          "Session aborted");
 			/* We have already printed to stderr from signals.c */
 		} else if (children_ok) {
 			log_event("Session completed");
