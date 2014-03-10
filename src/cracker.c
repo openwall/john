@@ -348,57 +348,51 @@ static int crk_remove_pot_entry(char *ciphertext, char *plain)
 
 	salt = crk_db->salts;
 	do {
-		if (memcmp(pot_salt, salt->salt,
-		            crk_params.salt_size))
-			continue;
-
-		if (!salt->bitmap) {
-			pw = salt->list;
-			do {
-				char *source;
-
-				if (!pw->binary)
-					continue;
-
-				source = crk_methods.source(pw->source,
-				                            pw->binary);
-
-				if (!strcmp(source, ciphertext)) {
-					if (crk_process_guess(salt, pw, 0,
-					                      plain))
-						return 1;
-					else
-					if (!(crk_params.flags & FMT_NOT_EXACT))
-						break;
-				}
-			} while ((pw = pw->next));
-			break; // Is this correct?
-		} else {
-			int hash;
-
-			hash = crk_methods.binary_hash[salt->hash_size](binary);
-			if (salt->bitmap[hash / (sizeof(*salt->bitmap) * 8)] &
-			    (1U << (hash % (sizeof(*salt->bitmap) * 8)))) {
-				char *source;
-
-				pw = salt->hash[hash >> PASSWORD_HASH_SHR];
-				do {
-					source = crk_methods.source(pw->source,
-					                            pw->binary);
-					if (!strcmp(source, ciphertext)) {
-						if (crk_process_guess(salt, pw,
-						                      0, plain))
-							return 1;
-						else
-						if (!(crk_params.flags &
-						      FMT_NOT_EXACT))
-							break;
-					}
-				} while ((pw = pw->next_hash));
-				break; // Is this correct?
-			}
-		}
+		if (!memcmp(pot_salt, salt->salt, crk_params.salt_size))
+			break;
 	} while ((salt = salt->next));
+
+	if (!salt)
+		return 0;
+
+	if (!salt->bitmap) {
+		//char *binary = crk_methods.binary(ciphertext);
+
+		pw = salt->list;
+		do {
+			char *source;
+
+			if (!pw->binary)
+				continue;
+
+			//if(memcmp(binary, pw->binary, crk_params.binary_size))
+			//	continue;
+
+			source = crk_methods.source(pw->source, pw->binary);
+
+			if (!strcmp(source, ciphertext))
+				return crk_process_guess(salt, pw, 0, plain);
+
+		} while ((pw = pw->next));
+	}
+	else {
+		int hash;
+
+		hash = crk_methods.binary_hash[salt->hash_size](binary);
+		if (!(salt->bitmap[hash / (sizeof(*salt->bitmap) * 8)] &
+		      (1U << (hash % (sizeof(*salt->bitmap) * 8)))))
+			return 0;
+
+		pw = salt->hash[hash >> PASSWORD_HASH_SHR];
+		do {
+			char *source;
+
+			source = crk_methods.source(pw->source, pw->binary);
+
+			if (!strcmp(source, ciphertext))
+				return crk_process_guess(salt, pw, 0, plain);
+		} while ((pw = pw->next_hash));
+	}
 
 	return 0;
 }
@@ -415,6 +409,10 @@ int crk_reload_pot(void)
 #endif
 
 	event_reload = 0;
+
+	if (crk_params.flags & FMT_NOT_EXACT)
+		return 0;
+
 	if ((pot_fd =
 	     open(path_expand(options.loader.activepot), O_RDONLY)) == -1) {
 		if (errno != ENOENT)
