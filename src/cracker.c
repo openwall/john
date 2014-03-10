@@ -342,13 +342,17 @@ static int crk_remove_pot_entry(char *ciphertext, char *plain)
 	struct db_salt *salt;
 	struct db_password *pw;
 	char *pot_salt;
+	char *binary = crk_methods.binary(ciphertext);
 
 	pot_salt = crk_methods.salt(ciphertext);
 
 	salt = crk_db->salts;
 	do {
-		if (!memcmp(pot_salt, salt->salt,
-		            crk_params.salt_size)) {
+		if (memcmp(pot_salt, salt->salt,
+		            crk_params.salt_size))
+			continue;
+
+		if (!salt->bitmap) {
 			pw = salt->list;
 			do {
 				char *source;
@@ -368,7 +372,31 @@ static int crk_remove_pot_entry(char *ciphertext, char *plain)
 						break;
 				}
 			} while ((pw = pw->next));
-			break;
+			break; // Is this correct?
+		} else {
+			int hash;
+
+			hash = crk_methods.binary_hash[salt->hash_size](binary);
+			if (salt->bitmap[hash / (sizeof(*salt->bitmap) * 8)] &
+			    (1U << (hash % (sizeof(*salt->bitmap) * 8)))) {
+				char *source;
+
+				pw = salt->hash[hash >> PASSWORD_HASH_SHR];
+				do {
+					source = crk_methods.source(pw->source,
+					                            pw->binary);
+					if (!strcmp(source, ciphertext)) {
+						if (crk_process_guess(salt, pw,
+						                      0, plain))
+							return 1;
+						else
+						if (!(crk_params.flags &
+						      FMT_NOT_EXACT))
+							break;
+					}
+				} while ((pw = pw->next_hash));
+				break; // Is this correct?
+			}
 		}
 	} while ((salt = salt->next));
 
