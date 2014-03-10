@@ -382,12 +382,11 @@ int crk_reload_pot(void)
 	FILE *pot_file;
 	int total = crk_db->password_count, others;
 #ifdef DEBUG
-	clock_t start, end;
 	struct tms buffer;
-
-	start = times(&buffer);
-	event_reload = 0;
+	clock_t start = times(&buffer), end;
 #endif
+
+	event_reload = 0;
 	if ((pot_fd =
 	     open(path_expand(options.loader.activepot), O_RDONLY)) == -1) {
 		if (errno != ENOENT)
@@ -423,7 +422,12 @@ int crk_reload_pot(void)
 	}
 
 	crk_pot_pos = ftell(pot_file);
-	fclose(pot_file);
+#if OS_FLOCK
+	if (flock(pot_fd, LOCK_UN))
+		perror("flock(LOCK_UN)");
+#endif
+	if (fclose(pot_file))
+		pexit("fclose");
 
 	others = total - crk_db->password_count;
 

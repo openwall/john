@@ -435,7 +435,7 @@ void status_print(void)
 	else
 		status_print_cracking(s_percent);
 
-#if defined(HAVE_CUDA) || defined(HAVE_OPENCL)
+#if 0 //defined(HAVE_CUDA) || defined(HAVE_OPENCL)
 	if (!(options.flags & FLG_STDOUT)) {
 		int dev;
 		for (dev = 0; dev < MAX_GPU_DEVICES &&

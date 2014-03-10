@@ -856,6 +856,47 @@ static char *john_loaded_counts(void)
 	return s_loaded_counts;
 }
 
+static void john_load_conf(void)
+{
+	if (options.loader.activepot == NULL) {
+		if (options.secure)
+			options.loader.activepot = str_alloc_copy(SEC_POT_NAME);
+		else
+			options.loader.activepot = str_alloc_copy(POT_NAME);
+	}
+
+	options.secure = cfg_get_bool(SECTION_OPTIONS, NULL, "SecureMode", 0);
+	options.reload_at_crack =
+		cfg_get_bool(SECTION_OPTIONS, NULL, "ReloadAtCrack", 1);
+	options.reload_at_save =
+		cfg_get_bool(SECTION_OPTIONS, NULL, "ReloadAtSave", 1);
+	options.abort_file = cfg_get_param(SECTION_OPTIONS, NULL, "AbortFile");
+	options.pause_file = cfg_get_param(SECTION_OPTIONS, NULL, "PauseFile");
+
+	/* This is --crack-status. We toggle here, so if it's enabled in
+	   john.conf, we can disable it using the command line option */
+	if (cfg_get_bool(SECTION_OPTIONS, NULL, "CrackStatus", 0))
+		options.flags ^= FLG_CRKSTAT;
+
+	initUnicode(UNICODE_UNICODE); /* Init the unicode system */
+
+#ifdef HAVE_OPENCL
+	if (cfg_get_bool(SECTION_OPTIONS, SUBSECTION_OPENCL, "ForceScalar", 0))
+		options.flags |= FLG_SCALAR;
+#endif
+
+	if (database.password_count) {
+		if (database.format->params.flags & FMT_UNICODE)
+			options.store_utf8 =
+				cfg_get_bool(SECTION_OPTIONS,
+				             NULL, "UnicodeStoreUTF8", 0);
+		else
+			options.store_utf8 =
+				cfg_get_bool(SECTION_OPTIONS,
+				             NULL, "CPstoreUTF8", 0);
+	}
+}
+
 static void john_load(void)
 {
 	struct list_entry *current;
@@ -1058,10 +1099,10 @@ static void john_load(void)
 		if (mpi_p > 1)
 			john_set_mpi();
 #endif
-		/* Re-init the unicode system. After resuming a forked or
+		/* Re-parse stuff from john.conf. After resuming a forked or
 		   MPI session, this is needed because the whole options
 		   struct is reset. */
-		initUnicode(UNICODE_UNICODE);
+		john_load_conf();
 	}
 }
 
@@ -1147,31 +1188,16 @@ static void john_init(char *name, int argc, char **argv)
 		}
 	}
 
-	options.secure = cfg_get_bool(SECTION_OPTIONS, NULL, "SecureMode", 0);
-	options.reload_at_crack =
-		cfg_get_bool(SECTION_OPTIONS, NULL, "ReloadAtCrack", 1);
-	options.reload_at_save =
-		cfg_get_bool(SECTION_OPTIONS, NULL, "ReloadAtSave", 1);
-	options.abort_file = cfg_get_param(SECTION_OPTIONS, NULL, "AbortFile");
-	options.pause_file = cfg_get_param(SECTION_OPTIONS, NULL, "PauseFile");
+#ifdef HAVE_OPENCL
+	gpu_id = -1;
+#endif
 
-	if (options.loader.activepot == NULL) {
-		if (options.secure)
-			options.loader.activepot = str_alloc_copy(SEC_POT_NAME);
-		else
-			options.loader.activepot = str_alloc_copy(POT_NAME);
-	}
-
-	/* This is --crack-status. We toggle here, so if it's enabled in
-	   john.conf, we can disable it using the command line option */
-	if (cfg_get_bool(SECTION_OPTIONS, NULL, "CrackStatus", 0))
-		options.flags ^= FLG_CRKSTAT;
+	/* Fetch configuration options from john.conf */
+	john_load_conf();
 
 #ifdef _OPENMP
 	john_omp_maybe_adjust_or_fallback(argv);
 #endif
-
-	initUnicode(UNICODE_UNICODE); /* Init the unicode system */
 
 	john_register_all(); /* maybe restricted to one format by options */
 
@@ -1179,13 +1205,6 @@ static void john_init(char *name, int argc, char **argv)
 	if ((options.subformat && !strcasecmp(options.subformat, "list")) ||
 	    options.listconf)
 		listconf_parse_late();
-
-#ifdef HAVE_OPENCL
-	if (cfg_get_bool(SECTION_OPTIONS, SUBSECTION_OPENCL, "ForceScalar", 0))
-		options.flags |= FLG_SCALAR;
-
-	gpu_id = -1;
-#endif
 
 	sig_init();
 
@@ -1257,7 +1276,8 @@ static void john_run(void)
 			}
 		}
 
-		if (stat(path_expand(options.abort_file), &trigger_stat) == 0) {
+		if (options.abort_file &&
+		    stat(path_expand(options.abort_file), &trigger_stat) == 0) {
 			if (john_main_process)
 			fprintf(stderr, "Abort file %s present, "
 			        "refusing to start\n", options.abort_file);

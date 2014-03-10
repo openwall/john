@@ -125,28 +125,26 @@ void sig_timer_emu_tick(void)
 
 #endif
 
-static void sig_install_update(void);
+static void sig_install(void *handler, int signum)
+{
+#ifdef SA_RESTART
+	struct sigaction sa;
+
+	memset(&sa, 0, sizeof(sa));
+	sa.sa_handler = handler;
+	sa.sa_flags = SA_RESTART;
+	sigaction(signum, &sa, NULL);
+#else
+	signal(signum, handler);
+#endif
+}
 
 static void sig_handle_update(int signum)
 {
 	event_reload = event_save = event_pending = 1;
 
 #ifndef SA_RESTART
-	sig_install_update();
-#endif
-}
-
-static void sig_install_update(void)
-{
-#ifdef SA_RESTART
-	struct sigaction sa;
-
-	memset(&sa, 0, sizeof(sa));
-	sa.sa_handler = sig_handle_update;
-	sa.sa_flags = SA_RESTART;
-	sigaction(SIGHUP, &sa, NULL);
-#else
-	signal(SIGHUP, sig_handle_update);
+	sig_install(sig_handle_update, signum);
 #endif
 }
 
@@ -263,10 +261,11 @@ static void sig_handle_timer(int signum)
 		if (mpi_p > 1)
 			event_pending = event_mpiprobe = 1;
 #endif
-		signal(SIGUSR2, sig_handle_reload);
 	}
+	/* Some stuff only done every third second */
 	if ((timer_save_value & 3) == 3) {
 		event_poll_files = event_pending = 1;
+		sig_install(sig_handle_reload, SIGUSR2);
 	}
 #if OS_TIMER
 	if (!--timer_save_value) {
@@ -413,7 +412,9 @@ static void sig_handle_status(int signum)
 		event_save = 1;
 #endif
 	event_status = event_pending = 1;
-	signal(signum, sig_handle_status);
+#ifndef SA_RESTART
+	sig_install(sig_handle_status, signum);
+#endif
 }
 
 static void sig_handle_reload(int signum)
@@ -458,14 +459,14 @@ void sig_init(void)
 
 	atexit(sig_done);
 
-	sig_install_update();
+	sig_install(sig_handle_update, SIGHUP);
 	sig_install_abort();
 	sig_install_timer();
 #ifdef SIGUSR1
-	signal(SIGUSR1, sig_handle_status);
+	sig_install(sig_handle_status, SIGUSR1);
 #endif
 #ifdef SIGUSR2
-	signal(SIGUSR2, sig_handle_reload);
+	sig_install(sig_handle_reload, SIGUSR2);
 #endif
 }
 
