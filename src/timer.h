@@ -20,7 +20,7 @@
 
 #include <time.h>
 
-#if defined (_MSC_VER) || defined (__MINGW32__)
+#if defined (_MSC_VER) || defined (__MINGW32__) || defined (__CYGWIN32__)
 #include <sys/timeb.h> /* for ftime(), which is not used */
 #undef MEM_FREE
 #include <windows.h>
@@ -66,10 +66,10 @@ double sTimer_GetSecs (sTimer *t);		// If timer is running returns elapsed;
 										// if stopped returns timed interval;
 										// if not started returns 0.0.
 
-extern double sm_HRTicksPerSec;	// HR Ticks per second
+extern double sm_HRTicksPerSec;	// HR Ticks per second (claimed)
 extern int sm_fGotHRTicksPerSec;	// Set if we have got the above
-extern double sm_hrPrecision;
-extern double sm_cPrecision;
+extern double sm_hrPrecision;	// HR Ticks per second (observed, best guess)
+extern double sm_cPrecision;	// clocks (ticks) per second (observed, best guess)
 
 //inline void sTimer_Start_noclear (sTimer *t)
 //{
