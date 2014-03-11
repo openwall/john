@@ -383,7 +383,10 @@ static int crk_remove_pot_entry(char *ciphertext, char *plain)
 		return 0;
 
 	if (!salt->bitmap) {
-		pw = salt->list;
+		/* How come we need this "if", is it a bug? Well this is "best
+		   effort" anyway - worst case is we miss to remove some
+		   entries during pot sync */
+		if ((pw = salt->list))
 		do {
 			char *source;
 
@@ -405,9 +408,13 @@ static int crk_remove_pot_entry(char *ciphertext, char *plain)
 		      (1U << (hash % (sizeof(*salt->bitmap) * 8)))))
 			return 0;
 
-		pw = salt->hash[hash >> PASSWORD_HASH_SHR];
+		/* We test here too for safety although no problem seen */
+		if ((pw = salt->hash[hash >> PASSWORD_HASH_SHR]))
 		do {
 			char *source;
+
+			if (!pw->binary)
+				continue;
 
 			source = crk_methods.source(pw->source, pw->binary);
 
@@ -494,7 +501,7 @@ int crk_reload_pot(void)
 
 #ifdef DEBUG
 	end = times(&buffer);
-	log_event("pot sync total time %lu ms of which %lu ms was finding salts", 1000UL*(end - start)/CLK_TCK, 1000UL * salt_time / CLK_TCK);
+	fprintf(stderr, "%d: potsync removed %d hashes in %lu ms (%lu ms finding salts); %s\n", options.node_min, others, 1000UL*(end - start)/CLK_TCK, 1000UL * salt_time / CLK_TCK, crk_loaded_counts());
 #endif
 
 	return (!crk_db->salts);
