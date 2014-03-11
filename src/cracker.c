@@ -2,7 +2,7 @@
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1996-2003,2006,2010-2013 by Solar Designer
  *
- * ...with a change in the jumbo patch, by JimF
+ * ...with heavy changes in the jumbo patch, by magnum & JimF
  */
 
 #define NEED_OS_TIMER

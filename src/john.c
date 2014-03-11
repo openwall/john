@@ -865,6 +865,20 @@ static void john_load_conf(void)
 			options.loader.activepot = str_alloc_copy(POT_NAME);
 	}
 
+	if (options.activewordlistrules == NULL)
+		if (!(options.activewordlistrules =
+		      cfg_get_param(SECTION_OPTIONS, NULL,
+		                    "BatchModeWordlistRules")))
+			options.activewordlistrules =
+				str_alloc_copy(SUBSECTION_WORDLIST);
+
+	if (options.activesinglerules == NULL)
+		if (!(options.activesinglerules =
+		      cfg_get_param(SECTION_OPTIONS, NULL,
+		                    "BatchModeSingleRules")))
+			options.activesinglerules =
+				str_alloc_copy(SUBSECTION_SINGLE);
+
 	options.secure = cfg_get_bool(SECTION_OPTIONS, NULL, "SecureMode", 0);
 	options.reload_at_crack =
 		cfg_get_bool(SECTION_OPTIONS, NULL, "ReloadAtCrack", 1);

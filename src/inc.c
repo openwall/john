@@ -426,16 +426,20 @@ void do_incremental_crack(struct db_main *db, char *mode)
 	int pos;
 
 	if (!mode) {
-		if (db->format == &fmt_LM)
-			mode = "LM_ASCII";
-		else if (db->format->params.label &&
-		         !strcmp(db->format->params.label, "netlm"))
-			mode = "LM_ASCII";
-		else if (db->format->params.label &&
-		         !strcmp(db->format->params.label, "nethalflm"))
-			mode = "LM_ASCII";
-		else
-			mode = "ASCII";
+		if (db->format == &fmt_LM) {
+			if (!(mode = cfg_get_param(SECTION_OPTIONS, NULL,
+			                           "BatchModeIncrementalLM")))
+				mode = "LM_ASCII";
+		} else if (db->format->params.label &&
+		           (!strcmp(db->format->params.label, "netlm") ||
+		            !strcmp(db->format->params.label, "nethalflm"))) {
+			if (!(mode = cfg_get_param(SECTION_OPTIONS, NULL,
+			                           "BatchModeIncrementalLM")))
+				mode = "LM_ASCII";
+		} else
+			if (!(mode = cfg_get_param(SECTION_OPTIONS, NULL,
+			                           "BatchModeIncremental")))
+				mode = "ASCII";
 	}
 
 	log_event("Proceeding with \"incremental\" mode: %.100s", mode);

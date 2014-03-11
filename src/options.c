@@ -682,12 +682,6 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 		}
 	}
 
-	if (options.activewordlistrules == NULL)
-		options.activewordlistrules = str_alloc_copy(SUBSECTION_WORDLIST);
-
-	if (options.activesinglerules == NULL)
-		options.activesinglerules = str_alloc_copy(SUBSECTION_SINGLE);
-
 	if (options.dynamic_bare_hashes_always_valid == 'Y' || options.dynamic_bare_hashes_always_valid == 'y' ||
 		options.dynamic_bare_hashes_always_valid == '1' || options.dynamic_bare_hashes_always_valid == 't' || options.dynamic_bare_hashes_always_valid == 'T')
 		options.dynamic_bare_hashes_always_valid = 'Y';
