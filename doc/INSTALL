@@ -112,3 +112,24 @@ UPDATE: It seems OS X 10.9 Mavericks (and on, hopefully) can build the
 -native target without any external tools or tricks. However, the above
 instructions (using a real gcc as opposed to Apple's llvm-based one) may
 still result in a slightly better performing build.
+
+
+	OpenSSL on OS X
+
+The native OpenSSL in OSX is older than your mother. Install a newer one
+like this (Homebrew example):
+
+  $ brew install openssl
+  $ ln -s /usr/local/opt/openssl /usr/local/ssl
+
+
+	CUDA on OS X
+
+Download CUDA from Nvidia and install it. If build errors out complaining
+about llvm-gcc not found, try this (Homebrew example):
+
+  $ brew install llvm-gcc-28
+  $ sudo \
+      ln -s /usr/local/Cellar/llvm-gcc28/2.8/bin/llvm-gcc /usr/bin/llvm-gcc-4.2
+
+After that you should be able to build with the default Makefile.
