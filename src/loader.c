@@ -36,6 +36,7 @@
 #include "fake_salts.h"
 #include "john.h"
 #include "cracker.h"
+#include "logger.h" /* Beware: log_init() happens after most functions here */
 
 #ifdef HAVE_CRYPT
 extern struct fmt_main fmt_crypt;
@@ -277,14 +278,17 @@ static int ldr_split_line(char **login, char **ciphertext,
 	if ((db_opts->flags & DB_WORDS) || db_opts->shells->head) {
 		/* Parse all fields */
 		for (i = 2; i < 10; i++)
-			fields[i] = ldr_get_field(&line, db_opts->field_sep_char);
+			fields[i] = ldr_get_field(&line,
+			                          db_opts->field_sep_char);
 	} else {
 		/* Parse some fields only */
 		for (i = 2; i < 4; i++)
-			fields[i] = ldr_get_field(&line, db_opts->field_sep_char);
+			fields[i] = ldr_get_field(&line,
+			                          db_opts->field_sep_char);
 		// Next line needed for l0phtcrack (in Jumbo)
 		for (; i < 6; i++)
-			fields[i] = ldr_get_field(&line, db_opts->field_sep_char);
+			fields[i] = ldr_get_field(&line,
+			                          db_opts->field_sep_char);
 		for (; i < 10; i++)
 			fields[i] = "/";
 	}
@@ -705,7 +709,8 @@ static void ldr_load_pot_line(struct db_main *db, char *line)
 	if ((current = db->password_hash[hash]))
 	do {
 		if (options.regen_lost_salts)
-			ldr_pot_possible_fixup_salt(current->source, ciphertext);
+			ldr_pot_possible_fixup_salt(current->source,
+			                            ciphertext);
 		if (!current->binary) /* already marked for removal */
 			continue;
 		if (memcmp(binary, current->binary, format->params.binary_size))
@@ -852,6 +857,8 @@ static void ldr_sort_salts(struct db_main *db)
 		strncasecmp(db->format->params.label, "wpapsk", 6))
 		return;
 
+	log_event("Sorting salts, for \"same salt\" emulation");
+
 	salt_sort_db = db;
 #ifndef DEBUG_SALT_SORT
 	ar = (salt_cmp_t *)mem_alloc(sizeof(salt_cmp_t)*db->salt_count);
@@ -872,7 +879,7 @@ static void ldr_sort_salts(struct db_main *db)
 	/* now we sort this array of pointers. */
 	qsort(ar, db->salt_count, sizeof(ar[0]), ldr_salt_cmp);
 
-	/* Clear salt hash table, if we still have one */
+	/* Reset salt hash table, if we still have one */
 	if (db->salt_hash) {
 		memset(db->salt_hash, 0,
 		       SALT_HASH_SIZE * sizeof(struct db_salt *));
@@ -906,6 +913,23 @@ static void ldr_sort_salts(struct db_main *db)
 }
 
 /*
+ * Emit the output for --show=left.
+ */
+static void ldr_show_left(struct db_main *db, struct db_password *pw)
+{
+	if (!options.utf8 && options.report_utf8) {
+		UTF8 utf8login[PLAINTEXT_BUFFER_SIZE + 1];
+
+		enc_to_utf8_r(pw->login, utf8login,
+		              PLAINTEXT_BUFFER_SIZE);
+		printf("%s%c%s\n", utf8login, db->options->field_sep_char,
+		       db->format->methods.source(pw->source, pw->binary));
+	} else
+		printf("%s%c%s\n", pw->login, db->options->field_sep_char,
+		       db->format->methods.source(pw->source, pw->binary));
+}
+
+/*
  * Remove the previously-cracked hashes marked with "binary = NULL" by
  * ldr_load_pot_line().
  */
@@ -930,14 +954,8 @@ static void ldr_remove_marked(struct db_main *db)
 					current_salt->list = current_pw->next;
 			} else {
 				last_pw = current_pw;
-				if (options.loader.showuncracked) {
-					if (!options.utf8 && options.report_utf8) {
-						UTF8 utf8login[PLAINTEXT_BUFFER_SIZE + 1];
-						enc_to_utf8_r(current_pw->login, utf8login, PLAINTEXT_BUFFER_SIZE);
-						printf("%s%c%s\n", utf8login, db->options->field_sep_char, db->format->methods.source(current_pw->source, current_pw->binary));
-					} else
-						printf("%s%c%s\n", current_pw->login, db->options->field_sep_char, db->format->methods.source(current_pw->source, current_pw->binary));
-				}
+				if (options.loader.showuncracked)
+					ldr_show_left(db, current_pw);
 			}
 		} while ((current_pw = current_pw->next));
 
@@ -1080,9 +1098,15 @@ static void ldr_init_hash(struct db_main *db)
 		ldr_init_hash_for_salt(db, current);
 #ifdef DEBUG_HASH
 		if (current->hash_size > 0)
-			printf("salt %08x, binary hash size 0x%x (%d), num ciphertexts %d\n", *(unsigned int*)current->salt, password_hash_sizes[current->hash_size], current->hash_size, current->count);
+			printf("salt %08x, binary hash size 0x%x (%d), "
+			       "num ciphertexts %d\n",
+			       *(unsigned int*)current->salt,
+			       password_hash_sizes[current->hash_size],
+			       current->hash_size, current->count);
 		else
-			printf("salt %08x, no binary hash, num ciphertexts %d\n", *(unsigned int*)current->salt, current->count);
+			printf("salt %08x, no binary hash, "
+			       "num ciphertexts %d\n",
+			       *(unsigned int*)current->salt, current->count);
 #endif
 	} while ((current = current->next));
 }
@@ -1223,14 +1247,16 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 	}
 
 	if (!options.utf8 && !options.store_utf8 && options.report_utf8) {
-		login = (char*)enc_to_utf8_r(login, utf8login, LINE_BUFFER_SIZE);
+		login = (char*)enc_to_utf8_r(login, utf8login,
+		                             LINE_BUFFER_SIZE);
 		enc_to_utf8_r(source, utf8source, LINE_BUFFER_SIZE);
 		strnzcpy(source, (char*)utf8source, sizeof(source));
 	}
 
 	if (!*ciphertext) {
 		found = 1;
-		if (show) printf("%s%cNO PASSWORD", login, db->options->field_sep_char);
+		if (show) printf("%s%cNO PASSWORD",
+		                 login, db->options->field_sep_char);
 
 		db->guess_count++;
 	} else
@@ -1286,7 +1312,8 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 		} else
 		if (current) {
 			found = 1;
-			if (show) printf("%s%c", login, db->options->field_sep_char);
+			if (show) printf("%s%c", login,
+			                 db->options->field_sep_char);
 			break;
 		}
 	}

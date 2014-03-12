@@ -23,6 +23,7 @@
 static void do_single_pass(struct db_main *db)
 {
 	do_single_crack(db);
+	db->options->flags &= ~DB_WORDS; /* Might speed up pot sync */
 }
 
 static void do_wordlist_pass(struct db_main *db)
