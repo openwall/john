@@ -387,6 +387,7 @@ default:
 	@echo "dos-djgpp-x86-mmx        DOS, DJGPP, x86 with MMX"
 	@echo "dos-djgpp-x86-any        DOS, DJGPP, x86"
 	@echo "win64-cygwin-x86-64      Win64, Cygwin, x86_64 with SSE2 (best)"
+	@echo "win64-cygwin-x86-64-opencl  Win64, Cygwin, x86_64 with OpenCL"
 	@echo "win64-mingw-x86-64       Win64, MinGW, x86-64 with SSE2 (best)"
 	@echo "win32-cygwin-x86-sse2[i] Win32, Cygwin, x86 with SSE2 (best if 32-bit)"
 	@echo "win32-cygwin-x86-opencl  Win32, Cygwin, x86 with SSE2 and OpenCL"
@@ -1731,13 +1732,29 @@ win64-cygwin-x86-64:
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ_WIN32) \
 		JOHN_OBJS="$(JOHN_OBJS) x86-64.o sse-intrinsics.o" \
-		CFLAGS="-c -static -Wall -Wdeclaration-after-statement -O2 -fomit-frame-pointer -I/usr/local/include -D__CYGWIN64__ -D__CYGWIN32__ $(OMPFLAGS) $(AMDAPP) $(JOHN_CFLAGS) -mpreferred-stack-boundary=4" \
-		LDFLAGS="-static -lssl -lcrypto -lwsock32 -lws2_32 -lgdi32 -lm -lpthread -lz $(OMPFLAGS)" \
+		CFLAGS="$(CFLAGS) -D__CYGWIN64__ -D__CYGWIN32__ -mpreferred-stack-boundary=4" \
 		ASFLAGS="$(ASFLAGS) -D__CYGWIN64__ -D__CYGWIN32__" \
 		CPP=$(GCC) CC=$(GCC) LD=$(GCC) CXX=$(CXX)
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_PCAP) \
-	    CFLAGS="-c -static -Wall -Wdeclaration-after-statement -O2 -fomit-frame-pointer -I/usr/local/include $(HAVE_GMP) $(OMPFLAGS) $(AMDAPP) $(JOHN_CFLAGS) -Wall -mpreferred-stack-boundary=4" \
+	    CFLAGS="$(CFLAGS) -D__CYGWIN64__ -D__CYGWIN32__ -mpreferred-stack-boundary=4" \
+	    CPP=$(GCC) CC=$(GCC) LD=$(GCC) CXX=$(CXX)
+	@echo "All done"
+
+win64-cygwin-x86-64-opencl:
+	$(CP) x86-64.h arch.h
+	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
+	$(MAKE) $(PROJ_WIN32) \
+		JOHN_OBJS="$(JOHN_OBJS) $(OCL_OBJS) x86-64.o sse-intrinsics.o" \
+		CFLAGS="$(CFLAGS) -I'$(OCLROOT)/include' -DHAVE_OPENCL -D__CYGWIN64__ -D__CYGWIN32__ -mpreferred-stack-boundary=4" \
+		ASFLAGS="$(ASFLAGS) -D__CYGWIN64__ -D__CYGWIN32__ " \
+		LDFLAGS="$(LDFLAGS) -L'$(OCLROOT)/lib/x86_64' -lOpenCL "
+	$(MKDIR) ../run/kernels/
+	$(CP_PRESERVE) opencl/*.cl ../run/kernels/
+	$(CP_PRESERVE) opencl_*.h ../run/kernels/
+	@echo "Failing after this point just means some helper tools did not build:"
+	$(MAKE) $(PROJ_PCAP) \
+	    CFLAGS="$(CFLAGS) -D__CYGWIN64__ -D__CYGWIN32__ -mpreferred-stack-boundary=4" \
 	    CPP=$(GCC) CC=$(GCC) LD=$(GCC) CXX=$(CXX)
 	@echo "All done"
 
