@@ -86,8 +86,17 @@ static void init(struct fmt_main *self)
 		data.initialized = 0;
 #endif
 
-		if (!(options.flags & FLG_TEST_CHK)) {
-			fprintf(stderr, "\n%s: --subformat option is only for benchmark purposes\n", FORMAT_LABEL);
+		/*
+		 * Allow
+		 * ./john --list=format-tests --format=crypt --subformat=md5crypt
+		 * in addition to
+		 * ./john --test --format=crypt --subformat=md5crypt
+		 *
+		 * That's why, don't require FLG_TEST_CHK to be set.
+		 */
+		if (options.flags & FLG_PASSWD) {
+			fprintf(stderr,
+			        "\n%s: --subformat option is only for --test or --list=format-tests\n", FORMAT_LABEL);
 			error();
 		}
 
@@ -140,7 +149,7 @@ static void init(struct fmt_main *self)
 			if (c && strlen(c) >= 7)
 				tests[i].ciphertext = strdup(c);
 			else {
-				printf("%s not supported on this system\n",
+				fprintf(stderr, "%s not supported on this system\n",
 				       options.subformat);
 				error();
 			}
@@ -149,7 +158,7 @@ static void init(struct fmt_main *self)
 		if (strlen(tests[0].ciphertext) == 13 &&
 		    strcasecmp(options.subformat, "descrypt") &&
 		    strcasecmp(options.subformat, "des")) {
-			printf("%s not supported on this system\n",
+			fprintf(stderr, "%s not supported on this system\n",
 			       options.subformat);
 			error();
 		}
