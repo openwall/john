@@ -137,8 +137,8 @@ static char *fmt_self_test_body(struct fmt_main *format,
 	int i, ntests, done, index, max, size;
 	void *binary, *salt;
 	int binary_align_warned = 0, salt_align_warned = 0;
-	int dhirutest = 0;
 #ifndef BENCH_BUILD
+	int dhirutest = 0;
 	int maxlength = 0;
 #endif
 	int ml;

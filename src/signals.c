@@ -56,7 +56,6 @@
 #include "tty.h"
 #include "options.h"
 #include "config.h"
-#include "options.h"
 #include "bench.h"
 #include "john.h"
 #include "status.h"
@@ -402,7 +401,7 @@ static void sig_handle_status(int signum)
 	   with proper session save when a job is aborted. This cludge
 	   could be a workaround: First press a key, then abort it after
 	   status line was printed. */
-#if OS_FORK && defined(__CYGWIN32__)
+#if OS_FORK && defined(__CYGWIN32__) && !defined(BENCH_BUILD)
 	if (options.fork)
 		event_save = 1;
 #endif
@@ -421,7 +420,7 @@ static void sig_handle_status(int signum)
 
 static void sig_handle_reload(int signum)
 {
-#if OS_FORK
+#if OS_FORK && !defined(BENCH_BUILD)
 	if (!event_reload && options.fork) {
 		if (john_main_process)
 			signal_children(signum);
