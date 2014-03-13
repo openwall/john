@@ -149,7 +149,7 @@ static void init(struct fmt_main *self)
 			if (c && strlen(c) >= 7)
 				tests[i].ciphertext = strdup(c);
 			else {
-				printf("%s not supported on this system\n",
+				fprintf(stderr, "%s not supported on this system\n",
 				       options.subformat);
 				error();
 			}
@@ -158,7 +158,7 @@ static void init(struct fmt_main *self)
 		if (strlen(tests[0].ciphertext) == 13 &&
 		    strcasecmp(options.subformat, "descrypt") &&
 		    strcasecmp(options.subformat, "des")) {
-			printf("%s not supported on this system\n",
+			fprintf(stderr, "%s not supported on this system\n",
 			       options.subformat);
 			error();
 		}
