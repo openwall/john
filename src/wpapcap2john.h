@@ -27,6 +27,9 @@ typedef   signed char      int8;
 #define IVSONLY_MAGIC           "\xBF\xCA\x84\xD4"
 #define IVS2_MAGIC              "\xAE\x78\xD1\xFF"
 
+#define IVS2_EXTENSION          "ivs"
+#define IVS2_VERSION             1
+
 #define LINKTYPE_ETHERNET       1
 #define LINKTYPE_IEEE802_11     105
 #define LINKTYPE_PRISM_HEADER   119
@@ -119,7 +122,7 @@ typedef struct ether_beacon_tag_s {
 } ether_beacon_tag_t;
 
 // This is the structure for a 802.11 control 'beacon' packet.
-// NOTE, we only use this packet to get the SSID.
+// NOTE, we only use this packet to get the ESSID.
 typedef struct ether_beacon_data_s {
 	uint32 time1;
 	uint32 time2;
@@ -168,9 +171,9 @@ static inline uint64 swap64u(uint64 v) {
 //   is some honey-pot router, looking for hackers. A real router is not going to give a
 //   msg3 unless the 4-way is going along fine.
 typedef struct WPA4way_s {
-	char ssid[36];
-	char essid[18];
+	char essid[36];
 	char bssid[18];
+	char sta[18];
 	uint8 *packet1;
 	uint8 *packet2;
 	uint8 *orig_2;
@@ -197,3 +200,47 @@ typedef struct
 	int           keyver;
 	unsigned char keymic[16];
 } hccap_t;
+
+//BSSID const. length of 6 bytes; can be together with all the other types
+#define IVS2_BSSID      0x0001
+
+//ESSID var. length; alone, or with BSSID
+#define IVS2_ESSID      0x0002
+
+//wpa structure, const. length; alone, or with BSSID
+#define IVS2_WPA        0x0004
+
+//IV+IDX+KEYSTREAM, var. length; alone or with BSSID
+#define IVS2_XOR        0x0008
+
+/* [IV+IDX][i][l][XOR_1]..[XOR_i][weight]                                                        *
+ * holds i possible keystreams for the same IV with a length of l for each keystream (l max 32)  *
+ * and an array "int weight[16]" at the end                                                      */
+#define IVS2_PTW        0x0010
+
+//unencrypted packet
+#define IVS2_CLR        0x0020
+
+struct ivs2_filehdr
+{
+    unsigned short version;
+};
+
+struct ivs2_pkthdr
+{
+    unsigned short  flags;
+    unsigned short  len;
+};
+
+// WPA handshake in ivs2 format
+struct ivs2_WPA_hdsk
+{
+    unsigned char stmac[6];                      /* supplicant MAC               */
+    unsigned char snonce[32];                    /* supplicant nonce             */
+    unsigned char anonce[32];                    /* authenticator nonce          */
+    unsigned char keymic[16];                    /* eapol frame MIC              */
+    unsigned char eapol[256];                    /* eapol frame contents         */
+    int eapol_size;                              /* eapol frame size             */
+    int keyver;                                  /* key version (TKIP / AES)     */
+    int state;                                   /* handshake completion         */
+};

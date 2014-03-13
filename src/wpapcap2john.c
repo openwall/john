@@ -4,19 +4,6 @@
  * and Copyright (c) 2014 magnum, and it is hereby released
  * to the general public under the following terms:  Redistribution and use in
  * source and binary forms, with or without modification, are permitted.
- *
- * magnum's notes:
- * We seem to use WPA4way_s struct like this:
- *   ssid[36]  is used for ESSID (network name)
- *   essid[18] is used for BSSID (AP MAC address)
- *   bssid[18] unused
- *
- * I find that very confusing. I would think we should rather ditch the
- * ssid member and use the others like this:
- *   essid[36] ESSID (network name)
- *   bssid[18] BSSID (AP MAC address)
- *
- * ...then again, maybe I'm just confused?
  */
 
 #include <stdio.h>
@@ -46,20 +33,222 @@ WPA4way_t wpa[MAX_HANDSHAKES];
 int nwpa = 0;
 const char cpItoa64[64] =
 	"./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-const char *InFName;
+const char *filename;
 unsigned int link_type;
+
+// These 2 functions output data properly for JtR, in base-64 format. These
+// were taken from hccap2john.c source, and modified for this project.
+static void code_block(unsigned char *in, unsigned char b)
+{
+	putchar(cpItoa64[in[0] >> 2]);
+	putchar(cpItoa64[((in[0] & 0x03) << 4) | (in[1] >> 4)]);
+	if (b) {
+		putchar(cpItoa64[((in[1] & 0x0f) << 2) | (in[2] >> 6)]);
+		putchar(cpItoa64[in[2] & 0x3f]);
+	} else
+		putchar(cpItoa64[((in[1] & 0x0f) << 2)]);
+}
+
+// Convert WPA handshakes from aircrack-ng (airodump-ng) IVS2 to John the Ripper format
+void to_bssid(char bssid[18], uint8 *p)
+{
+	sprintf(bssid, "%02X:%02X:%02X:%02X:%02X:%02X",
+	        p[0],p[1],p[2],p[3],p[4],p[5]);
+}
+
+void to_dashed(char bssid[18], uint8 *p)
+{
+	sprintf(bssid, "%02x-%02x-%02x-%02x-%02x-%02x",
+	        p[0],p[1],p[2],p[3],p[4],p[5]);
+}
+
+void to_compact(char bssid[18], uint8 *p)
+{
+	sprintf(bssid, "%02x%02x%02x%02x%02x%02x",
+	        p[0],p[1],p[2],p[3],p[4],p[5]);
+}
+
+int convert_ivs(FILE *f_in)
+{
+	struct ivs2_filehdr fivs2;
+	struct ivs2_pkthdr ivs2;
+	struct ivs2_WPA_hdsk *wivs2;
+	hccap_t hccap;
+	unsigned int i;
+	unsigned char buffer[66000];
+	size_t length, pos;
+	unsigned int pktlen;
+	unsigned char bssid[6];
+	int bssidFound = 0;
+	char essid[500];
+	int essidFound = 0;
+	unsigned char *p, *w;
+
+	fseek(f_in, 0, SEEK_END);
+	length = ftell(f_in);
+	fseek(f_in, 0, SEEK_SET);
+
+	if(fread(buffer, 1, 4, f_in) != 4) {
+		fprintf(stderr, "%s: fread file header failed\n", filename);
+		return(1);
+	}
+
+	if(memcmp(buffer, IVSONLY_MAGIC, 4) == 0) {
+		fprintf(stderr, "%s: old version .ivs file, no WPA2 handshakes\n", filename);
+		return(1);
+	}
+
+	if(memcmp(buffer, IVS2_MAGIC, 4) != 0) {
+		fprintf(stderr, "%s: not an .%s file\n", filename, IVS2_EXTENSION);
+		return(1);
+	}
+
+	if(fread(&fivs2, 1, sizeof(struct ivs2_filehdr), f_in) != (size_t) sizeof(struct ivs2_filehdr)) {
+		fprintf(stderr, "%s: fread file header failed", filename);
+		return(1);
+	}
+
+	if(fivs2.version > IVS2_VERSION) {
+		fprintf(stderr, "%s: wrong %s version: %d. Supported up to version %d.\n", filename, IVS2_EXTENSION, fivs2.version, IVS2_VERSION);
+		return(1);
+	}
+
+	pos = ftell(f_in);
+
+	while (pos < length) {
+		if (fread(&ivs2, 1, sizeof(struct ivs2_pkthdr), f_in) != sizeof(struct ivs2_pkthdr)) {
+			fprintf(stderr, "%s: Error reading header at pos %ld of %ld\n", filename, pos, length);
+			return 1;
+		}
+
+		pos +=  sizeof(struct ivs2_pkthdr);
+
+		pktlen = (unsigned int)ivs2.len;
+		if (pktlen+pos > length) {
+			fprintf(stderr, "%s: Invalid packet length %d at %ld\n", filename, pktlen, pos-sizeof(struct ivs2_pkthdr));
+			return 1;
+		}
+
+		if (fread(&buffer, 1, pktlen, f_in) != pktlen) {
+			fprintf(stderr, "%s: Error reading data (%d) at pos %ld of %ld\n", filename, pktlen, pos, length);
+			return 1;
+		}
+
+		// Show "packet" headers
+		// printf("%ld : %d - %02x\n", pos, pktlen, (unsigned int)ivs2.flags);
+
+		p = buffer;
+		if (ivs2.flags & IVS2_BSSID) {
+			memcpy(bssid, p, 6);
+			p += 6;
+
+			fprintf(stderr, "%s: bssid: %02x:%02x:%02x:%02x:%02x:%02x\n", filename, p[0], p[1], p[2], p[3], p[4], p[5]);
+			bssidFound = 1;
+		}
+		if (ivs2.flags & IVS2_ESSID) {
+			unsigned int ofs = (p - buffer);
+			unsigned int len = pktlen - ofs;
+
+			if (len <= 0 || len+1 > sizeof(essid)) {
+				printf("Invalid essid length (%d)\n", len);
+				return 1;
+			}
+
+			memcpy(essid, p, len);
+			essid[len] = 0;
+
+			essidFound = 1;
+
+			fprintf(stderr,"essid: '%s' (%d bytes)\n", essid, len);
+			p += len;
+		}
+
+		if (ivs2.flags & IVS2_WPA) {
+			int ofs = (p - buffer);
+			int len = pktlen - ofs;
+			char sta_mac[18], ap_mac[18], gecos[13];
+
+			if (len != sizeof(struct ivs2_WPA_hdsk)) {
+				fprintf(stderr, "%s: Invalid WPA handshake length (%d vs %d)\n", filename, len, (int)sizeof(struct ivs2_WPA_hdsk));
+				return 1;
+			}
+
+			if (!bssidFound) {
+				fprintf(stderr, "%s: Got WPA handshake but we don't have BSSID\n", filename);
+				return 1;
+			}
+
+			if (!essidFound) {
+				fprintf(stderr, "%s: Got WPA handshake but we don't have SSID\n", filename);
+				return 1;
+			}
+
+			wivs2 = (struct ivs2_WPA_hdsk*)p;
+
+			fprintf(stderr, "WPA handshake keyver=%d eapolSize=%d\n\n", wivs2->keyver, wivs2->eapol_size);
+
+			printf ("%s:$WPAPSK$%s#", essid, essid);
+
+			memset(&hccap, 0, sizeof(hccap_t));
+			hccap.keyver = wivs2->keyver;
+
+			memcpy(hccap.mac1, bssid, 6);
+			memcpy(hccap.mac2, wivs2->stmac, 6);
+
+			memcpy(hccap.nonce1, wivs2->snonce,32);
+			memcpy(hccap.nonce2, wivs2->anonce,32);
+			memcpy(hccap.keymic, wivs2->keymic, 16);
+			hccap.eapol_size = wivs2->eapol_size;
+			memcpy(hccap.eapol, wivs2->eapol, wivs2->eapol_size);
+
+			// print struct in base64 format
+			w = (unsigned char*)&hccap;
+			for (i=36; i+3 < sizeof(hccap_t); i += 3) {
+				code_block(&w[i], 1);
+			}
+			code_block(&w[i], 0);
+			to_compact(gecos, hccap.mac1);
+			to_dashed(ap_mac, hccap.mac1);
+			to_dashed(sta_mac, hccap.mac2);
+			printf(":%s:%s:%s::WPA", sta_mac, ap_mac, gecos);
+			if (hccap.keyver > 1)
+				printf("%d", hccap.keyver);
+			printf("::%s\n", filename);
+			fflush(stdout);
+
+			p += len;
+		}
+
+		if (p < buffer+pktlen) {
+			fprintf(stderr, "%s: Unable to parse all data, unsupported flag? (%02x)\n", filename, (int)ivs2.flags);
+		}
+
+		pos += pktlen;
+	}
+
+	return 0;
+}
 
 int Process(FILE *in)
 {
 	pcap_hdr_t main_hdr;
 
 	if (fread(&main_hdr, 1, sizeof(pcap_hdr_t), in) != sizeof(pcap_hdr_t)) {
-		fprintf(stderr, "%s: Error, could not read enough bytes to get a common 'main' pcap header\n", InFName);
+		fprintf(stderr, "%s: Error, could not read enough bytes to get a common 'main' pcap header\n", filename);
 		return 0;
 	}
-	if (main_hdr.magic_number ==  0xa1b2c3d4) bROT = 0;
-	else if (main_hdr.magic_number ==  0xd4c3b2a1) bROT = 1;
-	else { fprintf(stderr, "%s: Error, Invalid pcap magic number, (not a pcap file!)\n", InFName);  return 0; }
+	if (main_hdr.magic_number ==  0xa1b2c3d4)
+		bROT = 0;
+	else if (main_hdr.magic_number ==  0xd4c3b2a1)
+		bROT = 1;
+	else {
+		if (convert_ivs(in)) {
+			fprintf(stderr, "%s: not a pcap file\n", filename);
+			return 0;
+		}
+		return 1;
+	}
+
 	if (bROT) {
 		main_hdr.magic_number = swap32u(main_hdr.magic_number);
 		main_hdr.version_major = swap16u(main_hdr.version_major);
@@ -73,7 +262,7 @@ int Process(FILE *in)
 	    link_type != LINKTYPE_PRISM_HEADER &&
 	    link_type != LINKTYPE_RADIOTAP_HDR &&
 	    link_type != LINKTYPE_PPI_HDR) {
-		fprintf(stderr, "%s: No 802.11 wireless traffic data (network %d)\n", InFName, link_type);
+		fprintf(stderr, "%s: No 802.11 wireless traffic data (network %d)\n", filename, link_type);
 		return 0;
 	}
 
@@ -109,7 +298,7 @@ int GetNextPacket(FILE *in)
 
 	read_size = fread(full_packet, 1, pkt_hdr.incl_len, in);
 	if (read_size < pkt_hdr.incl_len)
-		fprintf(stderr, "%s: truncated last packet\n", InFName);
+		fprintf(stderr, "%s: truncated last packet\n", filename);
 
 	return (read_size == pkt_hdr.incl_len);
 }
@@ -160,7 +349,7 @@ int ProcessPacket()
 #if !ARCH_LITTLE_ENDIAN
 		JOHNSWAP(frame_skip);
 #endif
-		if( frame_skip <= 0 || frame_skip>= (int) pkt_hdr.incl_len )
+		if(frame_skip <= 0 || frame_skip>= (int) pkt_hdr.incl_len)
 			return 0;
 
 		// Kismet logged broken PPI frames for a period
@@ -185,7 +374,7 @@ int ProcessPacket()
 	if (ctl->type == 2) { // type 2 is data
 		uint8 *p = packet;
 		int bQOS = (ctl->subtype & 8) != 0;
-		if ( (ctl->toDS ^ ctl->fromDS) != 1)// eapol will ONLY be direct toDS or direct fromDS.
+		if ((ctl->toDS ^ ctl->fromDS) != 1)// eapol will ONLY be direct toDS or direct fromDS.
 			return 1;
 		// Ok, find out if this is a EAPOL packet or not.
 
@@ -204,21 +393,6 @@ int ProcessPacket()
 	return 1;
 }
 
-void to_bssid(char ssid[18], uint8 *p)
-{
-	sprintf(ssid, "%02X:%02X:%02X:%02X:%02X:%02X",p[0],p[1],p[2],p[3],p[4],p[5]);
-}
-
-void to_dashed(char ssid[18], uint8 *p)
-{
-	sprintf(ssid, "%02x-%02x-%02x-%02x-%02x-%02x",p[0],p[1],p[2],p[3],p[4],p[5]);
-}
-
-void to_compact(char ssid[18], uint8 *p)
-{
-	sprintf(ssid, "%02x%02x%02x%02x%02x%02x",p[0],p[1],p[2],p[3],p[4],p[5]);
-}
-
 void HandleBeacon()
 {
 	ether_frame_hdr_t *pkt = (ether_frame_hdr_t*)packet;
@@ -227,8 +401,8 @@ void HandleBeacon()
 	ether_beacon_data_t *pDat = (ether_beacon_data_t*)&packet[sizeof(ether_frame_hdr_t)];
 	ether_beacon_tag_t *tag = pDat->tags;
 	uint8 *pFinal = &packet[pkt_hdr.incl_len];
-	char ssid[36] = { 0 };
-	char essid[18];
+	char essid[36] = { 0 };
+	char bssid[18];
 
 	// addr1 should be broadcast
 	// addr2 is source addr (should be same as BSSID)
@@ -238,18 +412,18 @@ void HandleBeacon()
 
 	while (((uint8*)tag) < pFinal) {
 		char *x = (char*)tag;
-		if (tag->tagtype == 0 && tag->taglen < sizeof(ssid)) // ESSID
-			memcpy(ssid, tag->tag, tag->taglen);
+		if (tag->tagtype == 0 && tag->taglen < sizeof(essid))
+			memcpy(essid, tag->tag, tag->taglen);
 		x += tag->taglen + 2;
 		tag = (ether_beacon_tag_t *)x;
 	}
-	to_bssid(essid, pkt->addr3);
+	to_bssid(bssid, pkt->addr3);
 	for (i = 0; i < nwpa; ++i) {
-		if (!strcmp(essid, wpa[i].essid) && !strcmp(ssid, wpa[i].ssid))
+		if (!strcmp(bssid, wpa[i].bssid) && !strcmp(essid, wpa[i].essid))
 			return;
 	}
-	strcpy(wpa[nwpa].ssid, ssid);
 	strcpy(wpa[nwpa].essid, essid);
+	strcpy(wpa[nwpa].bssid, bssid);
 	if (++nwpa >= MAX_HANDSHAKES) {
 		fprintf(stderr, "ERROR: Too many handshakes (%d)\n", MAX_HANDSHAKES);
 		exit(EXIT_FAILURE);
@@ -264,15 +438,15 @@ void Handle4Way(int bIsQOS)
 	uint8 *p = (uint8*)&packet[sizeof(ether_frame_hdr_t)];
 	ether_auto_802_1x_t *auth;
 	int msg = 0;
-	char essid[18];
+	char bssid[18];
 
 	// ok, first thing, find the beacon.  If we can NOT find the beacon, then
 	// do not proceed.  Also, if we find the becon, we may determine that
 	// we already HAVE fully cracked this
 
-	to_bssid(essid, pkt->addr3);
+	to_bssid(bssid, pkt->addr3);
 	for (i = 0; i < nwpa; ++i) {
-		if (!strcmp(essid, wpa[i].essid)) {
+		if (!strcmp(bssid, wpa[i].bssid)) {
 			ess=i;
 			break;
 		}
@@ -338,7 +512,7 @@ void Handle4Way(int bIsQOS)
 	if (msg == 2) {
 		// Some sanitiy checks
 		if (pkt_hdr.orig_len < sizeof(ether_frame_hdr_t) + (bIsQOS ? 10 : 8)) {
-			fprintf(stderr, "%s: header len %u, wanted to subtract %zu, skipping packet\n", InFName, pkt_hdr.orig_len, sizeof(ether_frame_hdr_t) + (bIsQOS ? 10 : 8));
+			fprintf(stderr, "%s: header len %u, wanted to subtract %zu, skipping packet\n", filename, pkt_hdr.orig_len, sizeof(ether_frame_hdr_t) + (bIsQOS ? 10 : 8));
 			return;
 		}
 
@@ -364,7 +538,7 @@ void Handle4Way(int bIsQOS)
 			p += sizeof(ether_frame_hdr_t);
 			auth1 = (ether_auto_802_1x_t*)p;
 			if (auth1->replay_cnt == auth2->replay_cnt) {
-				fprintf (stderr, "\nKey1/Key2 hit (hopeful hit), for SSID:%s (%s)\n", wpa[ess].ssid, InFName);
+				fprintf (stderr, "\nKey1/Key2 hit (hopeful hit), for ESSID:%s (%s)\n", wpa[ess].essid, filename);
 				DumpKey(ess, 1, bIsQOS);
 			}
 			// we no longer want to know about this packet 1.
@@ -386,7 +560,7 @@ void Handle4Way(int bIsQOS)
 			p += sizeof(ether_frame_hdr_t);
 			auth2 = (ether_auto_802_1x_t*)p;
 			if (auth2->replay_cnt+1 == auth3->replay_cnt) {
-				fprintf (stderr, "\nKey2/Key3 hit (SURE hit), for SSID:%s (%s)\n", wpa[ess].ssid, InFName);
+				fprintf (stderr, "\nKey2/Key3 hit (SURE hit), for ESSID:%s (%s)\n", wpa[ess].essid, filename);
 				DumpKey(ess, 3, bIsQOS);
 				wpa[ess].fully_cracked = 1;
 			}
@@ -396,19 +570,6 @@ void Handle4Way(int bIsQOS)
 		if (wpa[ess].packet2) free(wpa[ess].packet2);  wpa[ess].packet2 = NULL;
 		if (wpa[ess].orig_2)  free(wpa[ess].orig_2);   wpa[ess].orig_2 = NULL;
 	}
-}
-
-// These 2 functions output data properly for JtR, in base-64 format. These
-// were taken from hccap2john.c source, and modified for this project.
-static void code_block(unsigned char *in, unsigned char b)
-{
-	putchar(cpItoa64[in[0] >> 2]);
-	putchar(cpItoa64[((in[0] & 0x03) << 4) | (in[1] >> 4)]);
-	if (b) {
-		putchar(cpItoa64[((in[1] & 0x0f) << 2) | (in[2] >> 6)]);
-		putchar(cpItoa64[in[2] & 0x3f]);
-	} else
-		putchar(cpItoa64[((in[1] & 0x0f) << 2)]);
 }
 
 void DumpKey(int ess, int one_three, int bIsQOS)
@@ -422,8 +583,8 @@ void DumpKey(int ess, int one_three, int bIsQOS)
 	uint8 *w;
 	char sta_mac[18], ap_mac[18], gecos[13];
 
-	fprintf (stderr, "Dumping key %d at time:  %d.%d BSSID %s\n", one_three, cur_t, cur_u, wpa[ess].essid);
-	printf ("%s:$WPAPSK$%s#", wpa[ess].ssid, wpa[ess].ssid);
+	fprintf (stderr, "Dumping key %d at time:  %d.%d BSSID %s\n", one_three, cur_t, cur_u, wpa[ess].bssid);
+	printf ("%s:$WPAPSK$%s#", wpa[ess].essid, wpa[ess].essid);
 	if (!wpa[ess].packet2) { printf ("ERROR, msg2 null\n"); return; }
 	if (bIsQOS)
 		p += 2;
@@ -471,7 +632,7 @@ void DumpKey(int ess, int one_three, int bIsQOS)
 	printf(":%s:%s:%s::WPA", sta_mac, ap_mac, gecos);
 	if (hccap.keyver > 1)
 		printf("%d", hccap.keyver);
-	printf(":password %sverified:%s\n", (one_three == 1) ? "not " : "", InFName);
+	printf(":password %sverified:%s\n", (one_three == 1) ? "not " : "", filename);
 	fflush(stdout);
 	fprintf(stderr, "\n");
 }
@@ -482,15 +643,22 @@ int main(int argc, char **argv)
 	int i;
 	char *base;
 
+	if (sizeof(struct ivs2_filehdr) != 2  || sizeof(struct ivs2_pkthdr) != 4 ||
+	    sizeof(struct ivs2_WPA_hdsk) != 356 || sizeof(hccap_t) != 356+36) {
+		fprintf(stderr, "Internal error: struct sizes wrong.\n");
+		return 2;
+	}
+
 	if (argc < 2)
 		return !!fprintf(stderr,
-		                 "Usage: %s <pcap_file[s]>\n", argv[0]);
+		                 "Converts PCAP or ISV2 files to JtR format\n"
+		                 "Usage: %s <file[s]>\n", argv[0]);
 
 	for (i = 1; i < argc; i++) {
-		in = fopen(InFName = argv[i], "rb");
+		in = fopen(filename = argv[i], "rb");
 		if (in) {
-			if ((base = strrchr(InFName, '/')))
-				InFName = ++base;
+			if ((base = strrchr(filename, '/')))
+				filename = ++base;
 			Process(in);
 			fclose(in);
 		} else
