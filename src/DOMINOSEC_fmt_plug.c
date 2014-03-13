@@ -456,13 +456,13 @@ static int cmp_exact(char *source, int index)
 	return 1;
 }
 
-static int get_hash_0(int index) { return ((ARCH_WORD_32*)crypt_out)[index] & 0xF; }
-static int get_hash_1(int index) { return ((ARCH_WORD_32*)crypt_out)[index] & 0xFF; }
-static int get_hash_2(int index) { return ((ARCH_WORD_32*)crypt_out)[index] & 0xFFF; }
-static int get_hash_3(int index) { return ((ARCH_WORD_32*)crypt_out)[index] & 0xFFFF; }
-static int get_hash_4(int index) { return ((ARCH_WORD_32*)crypt_out)[index] & 0xFFFFF; }
-static int get_hash_5(int index) { return ((ARCH_WORD_32*)crypt_out)[index] & 0xFFFFFF; }
-static int get_hash_6(int index) { return ((ARCH_WORD_32*)crypt_out)[index] & 0x7FFFFFF; }
+static int get_hash_0(int index) { return *(ARCH_WORD_32*)&crypt_out[index] & 0xF; }
+static int get_hash_1(int index) { return *(ARCH_WORD_32*)&crypt_out[index] & 0xFF; }
+static int get_hash_2(int index) { return *(ARCH_WORD_32*)&crypt_out[index] & 0xFFF; }
+static int get_hash_3(int index) { return *(ARCH_WORD_32*)&crypt_out[index] & 0xFFFF; }
+static int get_hash_4(int index) { return *(ARCH_WORD_32*)&crypt_out[index] & 0xFFFFF; }
+static int get_hash_5(int index) { return *(ARCH_WORD_32*)&crypt_out[index] & 0xFFFFFF; }
+static int get_hash_6(int index) { return *(ARCH_WORD_32*)&crypt_out[index] & 0x7FFFFFF; }
 
 static int salt_hash(void *salt)
 {
