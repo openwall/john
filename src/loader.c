@@ -1115,9 +1115,9 @@ void ldr_fix_database(struct db_main *db)
 {
 	ldr_init_salts(db);
 	MEM_FREE(db->password_hash);
-	if (db->format &&
-	    db->format->methods.salt_hash != fmt_default_salt_hash &&
-	    mem_saving_level < 2) /* Keep it for faster pot sync */
+	if (!db->format ||
+	    db->format->methods.salt_hash == fmt_default_salt_hash ||
+	    mem_saving_level >= 2) /* Otherwise kept for faster pot sync */
 		MEM_FREE(db->salt_hash);
 
 	ldr_filter_salts(db);
