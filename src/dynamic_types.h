@@ -49,14 +49,14 @@ typedef ARCH_WORD_32 MD5_word;
 typedef struct {
 	union {
 		double dummy;
-		MD5_word w[4];
+		MD5_word w[16/sizeof(MD5_word)];
 		char b[16];
 		unsigned char B[16];
 	}x1;
 #if MD5_X2
 	union {
 		double dummy2;
-		MD5_word w2[4];
+		MD5_word w2[16/sizeof(MD5_word)];
 		char b2[16];
 		unsigned char B2[16];
 	}x2;
@@ -66,14 +66,14 @@ typedef struct {
 typedef struct {
 	union {
 		double dummy;
-		MD5_word w[(PLAINTEXT_LENGTH_X86+EX_BUF_LEN)/4];
+		MD5_word w[(PLAINTEXT_LENGTH_X86+EX_BUF_LEN)/sizeof(MD5_word)];
 		char b[PLAINTEXT_LENGTH_X86+EX_BUF_LEN];
 		unsigned char B[PLAINTEXT_LENGTH_X86+EX_BUF_LEN];
 	}x1;
 #if MD5_X2
 	union {
 		double dummy2;
-		MD5_word w2[(PLAINTEXT_LENGTH_X86+EX_BUF_LEN)/4];
+		MD5_word w2[(PLAINTEXT_LENGTH_X86+EX_BUF_LEN)/sizeof(MD5_word)];
 		char b2[PLAINTEXT_LENGTH_X86+EX_BUF_LEN];
 		unsigned char B2[PLAINTEXT_LENGTH_X86+EX_BUF_LEN];
 	}x2;

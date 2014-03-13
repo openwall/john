@@ -2143,13 +2143,13 @@ void DynamicFunc__SHA384_crypt_input1_append_input2(DYNA_OMP_PARAMS) {
 #if (MD5_X2)
 		if (i & 1) {
 			SHA384_Update(&ctx, input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i]);
-			cpo = (unsigned char *)&(input_buf2_X86[i>>MD5_X2].x2.b2[total_len2_X86[i]]);
+			cpo = &(input_buf2_X86[i>>MD5_X2].x2.B2[total_len2_X86[i]]);
 		}
 		else
 #endif
 		{
 			SHA384_Update(&ctx, input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i]);
-			cpo = (unsigned char *)&(input_buf2_X86[i>>MD5_X2].x1.b[total_len2_X86[i]]);
+			cpo = &(input_buf2_X86[i>>MD5_X2].x1.B[total_len2_X86[i]]);
 		}
 		SHA384_Final(crypt_out, &ctx);
 		total_len2_X86[i] += large_hash_output(crypt_out, cpo, 48, tid);
@@ -2174,13 +2174,13 @@ void DynamicFunc__SHA512_crypt_input1_append_input2(DYNA_OMP_PARAMS) {
 #if (MD5_X2)
 		if (i & 1) {
 			SHA512_Update(&ctx, input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i]);
-			cpo = (unsigned char *)&(input_buf2_X86[i>>MD5_X2].x2.b2[total_len2_X86[i]]);
+			cpo = &(input_buf2_X86[i>>MD5_X2].x2.B2[total_len2_X86[i]]);
 		}
 		else
 #endif
 		{
 			SHA512_Update(&ctx, input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i]);
-			cpo = (unsigned char *)&(input_buf2_X86[i>>MD5_X2].x1.b[total_len2_X86[i]]);
+			cpo = &(input_buf2_X86[i>>MD5_X2].x1.B[total_len2_X86[i]]);
 		}
 		SHA512_Final(crypt_out, &ctx);
 		total_len2_X86[i] += large_hash_output(crypt_out, cpo, 64, tid);
@@ -2205,13 +2205,13 @@ void DynamicFunc__SHA384_crypt_input2_append_input1(DYNA_OMP_PARAMS) {
 #if (MD5_X2)
 		if (i & 1) {
 			SHA384_Update(&ctx, input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i]);
-			cpo = (unsigned char *)&(input_buf_X86[i>>MD5_X2].x2.b2[total_len_X86[i]]);
+			cpo = &(input_buf_X86[i>>MD5_X2].x2.B2[total_len_X86[i]]);
 		}
 		else
 #endif
 		{
 			SHA384_Update(&ctx, input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i]);
-			cpo = (unsigned char *)&(input_buf_X86[i>>MD5_X2].x1.b[total_len_X86[i]]);
+			cpo = &(input_buf_X86[i>>MD5_X2].x1.B[total_len_X86[i]]);
 		}
 		SHA384_Final(crypt_out, &ctx);
 		total_len_X86[i] += large_hash_output(crypt_out, cpo, 48, tid);
@@ -2236,13 +2236,13 @@ void DynamicFunc__SHA512_crypt_input2_append_input1(DYNA_OMP_PARAMS) {
 #if (MD5_X2)
 		if (i & 1) {
 			SHA512_Update(&ctx, input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i]);
-			cpo = (unsigned char *)&(input_buf_X86[i>>MD5_X2].x2.b2[total_len_X86[i]]);
+			cpo = &(input_buf_X86[i>>MD5_X2].x2.B2[total_len_X86[i]]);
 		}
 		else
 #endif
 		{
 			SHA512_Update(&ctx, input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i]);
-			cpo = (unsigned char *)&(input_buf_X86[i>>MD5_X2].x1.b[total_len_X86[i]]);
+			cpo = &(input_buf_X86[i>>MD5_X2].x1.B[total_len_X86[i]]);
 		}
 		SHA512_Final(crypt_out, &ctx);
 		total_len_X86[i] += large_hash_output(crypt_out, cpo, 64, tid);
@@ -2267,13 +2267,13 @@ void DynamicFunc__SHA384_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS){
 #if (MD5_X2)
 		if (i & 1) {
 			SHA384_Update(&ctx, input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i]);
-			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x2.b2;
+			cpo = input_buf_X86[i>>MD5_X2].x2.B2;
 		}
 		else
 #endif
 		{
 			SHA384_Update(&ctx, input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i]);
-			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x1.b;
+			cpo = input_buf_X86[i>>MD5_X2].x1.B;
 		}
 		SHA384_Final(crypt_out, &ctx);
 		total_len_X86[i] = large_hash_output(crypt_out, cpo, 48, tid);
@@ -2298,13 +2298,13 @@ void DynamicFunc__SHA512_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS){
 #if (MD5_X2)
 		if (i & 1) {
 			SHA512_Update(&ctx, input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i]);
-			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x2.b2;
+			cpo = input_buf_X86[i>>MD5_X2].x2.B2;
 		}
 		else
 #endif
 		{
 			SHA512_Update(&ctx, input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i]);
-			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x1.b;
+			cpo = input_buf_X86[i>>MD5_X2].x1.B;
 		}
 		SHA512_Final(crypt_out, &ctx);
 		total_len_X86[i] = large_hash_output(crypt_out, cpo, 64, tid);
@@ -2329,13 +2329,13 @@ void DynamicFunc__SHA384_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS){
 #if (MD5_X2)
 		if (i & 1) {
 			SHA384_Update(&ctx, input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i]);
-			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x2.b2;
+			cpo = input_buf2_X86[i>>MD5_X2].x2.B2;
 		}
 		else
 #endif
 		{
 			SHA384_Update(&ctx, input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i]);
-			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x1.b;
+			cpo = input_buf2_X86[i>>MD5_X2].x1.B;
 		}
 		SHA384_Final(crypt_out, &ctx);
 		total_len2_X86[i] = large_hash_output(crypt_out, cpo, 48, tid);
@@ -2360,13 +2360,13 @@ void DynamicFunc__SHA512_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS){
 #if (MD5_X2)
 		if (i & 1) {
 			SHA512_Update(&ctx, input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i]);
-			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x2.b2;
+			cpo = input_buf2_X86[i>>MD5_X2].x2.B2;
 		}
 		else
 #endif
 		{
 			SHA512_Update(&ctx, input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i]);
-			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x1.b;
+			cpo = input_buf2_X86[i>>MD5_X2].x1.B;
 		}
 		SHA512_Final(crypt_out, &ctx);
 		total_len2_X86[i] = large_hash_output(crypt_out, cpo, 64, tid);
@@ -2391,13 +2391,13 @@ void DynamicFunc__SHA384_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS){
 #if (MD5_X2)
 		if (i & 1) {
 			SHA384_Update(&ctx, input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i]);
-			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x2.b2;
+			cpo = input_buf_X86[i>>MD5_X2].x2.B2;
 		}
 		else
 #endif
 		{
 			SHA384_Update(&ctx, input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i]);
-			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x1.b;
+			cpo = input_buf_X86[i>>MD5_X2].x1.B;
 		}
 		SHA384_Final(crypt_out, &ctx);
 		total_len_X86[i] = large_hash_output(crypt_out, cpo, 48, tid);
@@ -2422,13 +2422,13 @@ void DynamicFunc__SHA512_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS){
 #if (MD5_X2)
 		if (i & 1) {
 			SHA512_Update(&ctx, input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i]);
-			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x2.b2;
+			cpo = input_buf_X86[i>>MD5_X2].x2.B2;
 		}
 		else
 #endif
 		{
 			SHA512_Update(&ctx, input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i]);
-			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x1.b;
+			cpo = input_buf_X86[i>>MD5_X2].x1.B;
 		}
 		SHA512_Final(crypt_out, &ctx);
 		total_len_X86[i] = large_hash_output(crypt_out, cpo, 64, tid);
@@ -2453,13 +2453,13 @@ void DynamicFunc__SHA384_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS){
 #if (MD5_X2)
 		if (i & 1) {
 			SHA384_Update(&ctx, input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i]);
-			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x2.b2;
+			cpo = input_buf2_X86[i>>MD5_X2].x2.B2;
 		}
 		else
 #endif
 		{
 			SHA384_Update(&ctx, input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i]);
-			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x1.b;
+			cpo = input_buf2_X86[i>>MD5_X2].x1.B;
 		}
 		SHA384_Final(crypt_out, &ctx);
 		total_len2_X86[i] = large_hash_output(crypt_out, cpo, 48, tid);
@@ -2484,13 +2484,13 @@ void DynamicFunc__SHA512_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS){
 #if (MD5_X2)
 		if (i & 1) {
 			SHA512_Update(&ctx, input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i]);
-			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x2.b2;
+			cpo = input_buf2_X86[i>>MD5_X2].x2.B2;
 		}
 		else
 #endif
 		{
 			SHA512_Update(&ctx, input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i]);
-			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x1.b;
+			cpo = input_buf2_X86[i>>MD5_X2].x1.B;
 		}
 		SHA512_Final(crypt_out, &ctx);
 		total_len2_X86[i] = large_hash_output(crypt_out, cpo, 64, tid);
@@ -2676,13 +2676,13 @@ void DynamicFunc__GOST_crypt_input1_append_input2(DYNA_OMP_PARAMS) {
 #if (MD5_X2)
 		if (i & 1) {
 			john_gost_update(&ctx, input_buf_X86[i>>MD5_X2].x2.B2, total_len_X86[i]);
-			cpo = (unsigned char *)&(input_buf2_X86[i>>MD5_X2].x2.B2[total_len2_X86[i]]);
+			cpo = &(input_buf2_X86[i>>MD5_X2].x2.B2[total_len2_X86[i]]);
 		}
 		else
 #endif
 		{
 			john_gost_update(&ctx, input_buf_X86[i>>MD5_X2].x1.B, total_len_X86[i]);
-			cpo = (unsigned char *)&(input_buf2_X86[i>>MD5_X2].x1.B[total_len2_X86[i]]);
+			cpo = &(input_buf2_X86[i>>MD5_X2].x1.B[total_len2_X86[i]]);
 		}
 		john_gost_final(&ctx, crypt_out);
 		total_len2_X86[i] += large_hash_output(crypt_out, cpo, 32, tid);
@@ -2707,13 +2707,13 @@ void DynamicFunc__GOST_crypt_input2_append_input1(DYNA_OMP_PARAMS) {
 #if (MD5_X2)
 		if (i & 1) {
 			john_gost_update(&ctx, input_buf2_X86[i>>MD5_X2].x2.B2, total_len2_X86[i]);
-			cpo = (unsigned char *)&(input_buf_X86[i>>MD5_X2].x2.b2[total_len_X86[i]]);
+			cpo = &(input_buf_X86[i>>MD5_X2].x2.B2[total_len_X86[i]]);
 		}
 		else
 #endif
 		{
 			john_gost_update(&ctx, input_buf2_X86[i>>MD5_X2].x1.B, total_len2_X86[i]);
-			cpo = (unsigned char *)&(input_buf_X86[i>>MD5_X2].x1.b[total_len_X86[i]]);
+			cpo = &(input_buf_X86[i>>MD5_X2].x1.B[total_len_X86[i]]);
 		}
 		john_gost_final(&ctx, crypt_out);
 		total_len_X86[i] += large_hash_output(crypt_out, cpo, 32, tid);
@@ -2738,13 +2738,13 @@ void DynamicFunc__GOST_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS) {
 #if (MD5_X2)
 		if (i & 1) {
 			john_gost_update(&ctx, input_buf_X86[i>>MD5_X2].x2.B2, total_len_X86[i]);
-			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x2.b2;
+			cpo = input_buf_X86[i>>MD5_X2].x2.B2;
 		}
 		else
 #endif
 		{
 			john_gost_update(&ctx, input_buf_X86[i>>MD5_X2].x1.B, total_len_X86[i]);
-			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x1.b;
+			cpo = input_buf_X86[i>>MD5_X2].x1.B;
 		}
 		john_gost_final(&ctx, crypt_out);
 		total_len_X86[i] = large_hash_output(crypt_out, cpo, 32, tid);
@@ -2769,13 +2769,13 @@ void DynamicFunc__GOST_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS) {
 #if (MD5_X2)
 		if (i & 1) {
 			john_gost_update(&ctx, input_buf2_X86[i>>MD5_X2].x2.B2, total_len2_X86[i]);
-			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x2.b2;
+			cpo = input_buf2_X86[i>>MD5_X2].x2.B2;
 		}
 		else
 #endif
 		{
 			john_gost_update(&ctx, input_buf2_X86[i>>MD5_X2].x1.B, total_len2_X86[i]);
-			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x1.b;
+			cpo = input_buf2_X86[i>>MD5_X2].x1.B;
 		}
 		john_gost_final(&ctx, crypt_out);
 		total_len2_X86[i] = large_hash_output(crypt_out, cpo, 32, tid);
@@ -2800,13 +2800,13 @@ void DynamicFunc__GOST_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS) {
 #if (MD5_X2)
 		if (i & 1) {
 			john_gost_update(&ctx, input_buf_X86[i>>MD5_X2].x2.B2, total_len_X86[i]);
-			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x2.b2;
+			cpo = input_buf2_X86[i>>MD5_X2].x2.B2;
 		}
 		else
 #endif
 		{
 			john_gost_update(&ctx, input_buf_X86[i>>MD5_X2].x1.B, total_len_X86[i]);
-			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x1.b;
+			cpo = input_buf2_X86[i>>MD5_X2].x1.B;
 		}
 		john_gost_final(&ctx, crypt_out);
 		total_len2_X86[i] = large_hash_output(crypt_out, cpo, 32, tid);
@@ -2831,13 +2831,13 @@ void DynamicFunc__GOST_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS) {
 #if (MD5_X2)
 		if (i & 1) {
 			john_gost_update(&ctx, input_buf2_X86[i>>MD5_X2].x2.B2, total_len2_X86[i]);
-			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x2.b2;
+			cpo = input_buf_X86[i>>MD5_X2].x2.B2;
 		}
 		else
 #endif
 		{
 			john_gost_update(&ctx, input_buf2_X86[i>>MD5_X2].x1.B, total_len2_X86[i]);
-			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x1.b;
+			cpo = input_buf_X86[i>>MD5_X2].x1.B;
 		}
 		john_gost_final(&ctx, crypt_out);
 		total_len_X86[i] = large_hash_output(crypt_out, cpo, 32, tid);
@@ -2945,13 +2945,13 @@ void DynamicFunc__WHIRLPOOL_crypt_input1_append_input2(DYNA_OMP_PARAMS) {
 #if (MD5_X2)
 		if (i & 1) {
 			WHIRLPOOL_Update(&ctx, input_buf_X86[i>>MD5_X2].x2.B2, total_len_X86[i]);
-			cpo = (unsigned char *)&(input_buf2_X86[i>>MD5_X2].x2.B2[total_len2_X86[i]]);
+			cpo = &(input_buf2_X86[i>>MD5_X2].x2.B2[total_len2_X86[i]]);
 		}
 		else
 #endif
 		{
 			WHIRLPOOL_Update(&ctx, input_buf_X86[i>>MD5_X2].x1.B, total_len_X86[i]);
-			cpo = (unsigned char *)&(input_buf2_X86[i>>MD5_X2].x1.B[total_len2_X86[i]]);
+			cpo = &(input_buf2_X86[i>>MD5_X2].x1.B[total_len2_X86[i]]);
 		}
 		WHIRLPOOL_Final(crypt_out, &ctx);
 		total_len2_X86[i] += large_hash_output(crypt_out, cpo, 64, tid);
@@ -2976,13 +2976,13 @@ void DynamicFunc__WHIRLPOOL_crypt_input2_append_input1(DYNA_OMP_PARAMS) {
 #if (MD5_X2)
 		if (i & 1) {
 			WHIRLPOOL_Update(&ctx, input_buf2_X86[i>>MD5_X2].x2.B2, total_len2_X86[i]);
-			cpo = (unsigned char *)&(input_buf_X86[i>>MD5_X2].x2.b2[total_len_X86[i]]);
+			cpo = &(input_buf_X86[i>>MD5_X2].x2.B2[total_len_X86[i]]);
 		}
 		else
 #endif
 		{
 			WHIRLPOOL_Update(&ctx, input_buf2_X86[i>>MD5_X2].x1.B, total_len2_X86[i]);
-			cpo = (unsigned char *)&(input_buf_X86[i>>MD5_X2].x1.b[total_len_X86[i]]);
+			cpo = &(input_buf_X86[i>>MD5_X2].x1.B[total_len_X86[i]]);
 		}
 		WHIRLPOOL_Final(crypt_out, &ctx);
 		total_len_X86[i] += large_hash_output(crypt_out, cpo, 64, tid);
@@ -3007,13 +3007,13 @@ void DynamicFunc__WHIRLPOOL_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS) {
 #if (MD5_X2)
 		if (i & 1) {
 			WHIRLPOOL_Update(&ctx, input_buf_X86[i>>MD5_X2].x2.B2, total_len_X86[i]);
-			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x2.b2;
+			cpo = input_buf_X86[i>>MD5_X2].x2.B2;
 		}
 		else
 #endif
 		{
 			WHIRLPOOL_Update(&ctx, input_buf_X86[i>>MD5_X2].x1.B, total_len_X86[i]);
-			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x1.b;
+			cpo = input_buf_X86[i>>MD5_X2].x1.B;
 		}
 		WHIRLPOOL_Final(crypt_out, &ctx);
 		total_len_X86[i] = large_hash_output(crypt_out, cpo, 64, tid);
@@ -3038,13 +3038,13 @@ void DynamicFunc__WHIRLPOOL_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS) {
 #if (MD5_X2)
 		if (i & 1) {
 			WHIRLPOOL_Update(&ctx, input_buf2_X86[i>>MD5_X2].x2.B2, total_len2_X86[i]);
-			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x2.b2;
+			cpo = input_buf2_X86[i>>MD5_X2].x2.B2;
 		}
 		else
 #endif
 		{
 			WHIRLPOOL_Update(&ctx, input_buf2_X86[i>>MD5_X2].x1.B, total_len2_X86[i]);
-			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x1.b;
+			cpo = input_buf2_X86[i>>MD5_X2].x1.B;
 		}
 		WHIRLPOOL_Final(crypt_out, &ctx);
 		total_len2_X86[i] = large_hash_output(crypt_out, cpo, 64, tid);
@@ -3069,13 +3069,13 @@ void DynamicFunc__WHIRLPOOL_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS) {
 #if (MD5_X2)
 		if (i & 1) {
 			WHIRLPOOL_Update(&ctx, input_buf_X86[i>>MD5_X2].x2.B2, total_len_X86[i]);
-			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x2.b2;
+			cpo = input_buf2_X86[i>>MD5_X2].x2.B2;
 		}
 		else
 #endif
 		{
 			WHIRLPOOL_Update(&ctx, input_buf_X86[i>>MD5_X2].x1.B, total_len_X86[i]);
-			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x1.b;
+			cpo = input_buf2_X86[i>>MD5_X2].x1.B;
 		}
 		WHIRLPOOL_Final(crypt_out, &ctx);
 		total_len2_X86[i] = large_hash_output(crypt_out, cpo, 64, tid);
@@ -3100,13 +3100,13 @@ void DynamicFunc__WHIRLPOOL_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS) {
 #if (MD5_X2)
 		if (i & 1) {
 			WHIRLPOOL_Update(&ctx, input_buf2_X86[i>>MD5_X2].x2.B2, total_len2_X86[i]);
-			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x2.b2;
+			cpo = input_buf_X86[i>>MD5_X2].x2.B2;
 		}
 		else
 #endif
 		{
 			WHIRLPOOL_Update(&ctx, input_buf2_X86[i>>MD5_X2].x1.B, total_len2_X86[i]);
-			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x1.b;
+			cpo = input_buf_X86[i>>MD5_X2].x1.B;
 		}
 		WHIRLPOOL_Final(crypt_out, &ctx);
 		total_len_X86[i] = large_hash_output(crypt_out, cpo, 64, tid);
@@ -3215,13 +3215,13 @@ void DynamicFunc__Tiger_crypt_input1_append_input2(DYNA_OMP_PARAMS) {
 #if (MD5_X2)
 		if (i & 1) {
 			sph_tiger(&ctx, input_buf_X86[i>>MD5_X2].x2.B2, total_len_X86[i]);
-			cpo = (unsigned char *)&(input_buf2_X86[i>>MD5_X2].x2.B2[total_len2_X86[i]]);
+			cpo = &(input_buf2_X86[i>>MD5_X2].x2.B2[total_len2_X86[i]]);
 		}
 		else
 #endif
 		{
 			sph_tiger(&ctx, input_buf_X86[i>>MD5_X2].x1.B, total_len_X86[i]);
-			cpo = (unsigned char *)&(input_buf2_X86[i>>MD5_X2].x1.B[total_len2_X86[i]]);
+			cpo = &(input_buf2_X86[i>>MD5_X2].x1.B[total_len2_X86[i]]);
 		}
 		sph_tiger_close(&ctx, crypt_out);
 		total_len2_X86[i] += large_hash_output(crypt_out, cpo, 24, tid);
@@ -3246,13 +3246,13 @@ void DynamicFunc__Tiger_crypt_input2_append_input1(DYNA_OMP_PARAMS) {
 #if (MD5_X2)
 		if (i & 1) {
 			sph_tiger(&ctx, input_buf2_X86[i>>MD5_X2].x2.B2, total_len2_X86[i]);
-			cpo = (unsigned char *)&(input_buf_X86[i>>MD5_X2].x2.b2[total_len_X86[i]]);
+			cpo = &(input_buf_X86[i>>MD5_X2].x2.B2[total_len_X86[i]]);
 		}
 		else
 #endif
 		{
 			sph_tiger(&ctx, input_buf2_X86[i>>MD5_X2].x1.B, total_len2_X86[i]);
-			cpo = (unsigned char *)&(input_buf_X86[i>>MD5_X2].x1.b[total_len_X86[i]]);
+			cpo = &(input_buf_X86[i>>MD5_X2].x1.B[total_len_X86[i]]);
 		}
 		sph_tiger_close(&ctx, crypt_out);
 		total_len_X86[i] += large_hash_output(crypt_out, cpo, 24, tid);
@@ -3277,13 +3277,13 @@ void DynamicFunc__Tiger_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS) {
 #if (MD5_X2)
 		if (i & 1) {
 			sph_tiger(&ctx, input_buf_X86[i>>MD5_X2].x2.B2, total_len_X86[i]);
-			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x2.b2;
+			cpo = input_buf_X86[i>>MD5_X2].x2.B2;
 		}
 		else
 #endif
 		{
 			sph_tiger(&ctx, input_buf_X86[i>>MD5_X2].x1.B, total_len_X86[i]);
-			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x1.b;
+			cpo = input_buf_X86[i>>MD5_X2].x1.B;
 		}
 		sph_tiger_close(&ctx, crypt_out);
 		total_len_X86[i] = large_hash_output(crypt_out, cpo, 24, tid);
@@ -3308,13 +3308,13 @@ void DynamicFunc__Tiger_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS) {
 #if (MD5_X2)
 		if (i & 1) {
 			sph_tiger(&ctx, input_buf2_X86[i>>MD5_X2].x2.B2, total_len2_X86[i]);
-			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x2.b2;
+			cpo = input_buf2_X86[i>>MD5_X2].x2.B2;
 		}
 		else
 #endif
 		{
 			sph_tiger(&ctx, input_buf2_X86[i>>MD5_X2].x1.B, total_len2_X86[i]);
-			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x1.b;
+			cpo = input_buf2_X86[i>>MD5_X2].x1.B;
 		}
 		sph_tiger_close(&ctx, crypt_out);
 		total_len2_X86[i] = large_hash_output(crypt_out, cpo, 24, tid);
@@ -3339,13 +3339,13 @@ void DynamicFunc__Tiger_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS) {
 #if (MD5_X2)
 		if (i & 1) {
 			sph_tiger(&ctx, input_buf_X86[i>>MD5_X2].x2.B2, total_len_X86[i]);
-			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x2.b2;
+			cpo = input_buf2_X86[i>>MD5_X2].x2.B2;
 		}
 		else
 #endif
 		{
 			sph_tiger(&ctx, input_buf_X86[i>>MD5_X2].x1.B, total_len_X86[i]);
-			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x1.b;
+			cpo = input_buf2_X86[i>>MD5_X2].x1.B;
 		}
 		sph_tiger_close(&ctx, crypt_out);
 		total_len2_X86[i] = large_hash_output(crypt_out, cpo, 24, tid);
@@ -3370,13 +3370,13 @@ void DynamicFunc__Tiger_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS) {
 #if (MD5_X2)
 		if (i & 1) {
 			sph_tiger(&ctx, input_buf2_X86[i>>MD5_X2].x2.B2, total_len2_X86[i]);
-			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x2.b2;
+			cpo = input_buf_X86[i>>MD5_X2].x2.B2;
 		}
 		else
 #endif
 		{
 			sph_tiger(&ctx, input_buf2_X86[i>>MD5_X2].x1.B, total_len2_X86[i]);
-			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x1.b;
+			cpo = input_buf_X86[i>>MD5_X2].x1.B;
 		}
 		sph_tiger_close(&ctx, crypt_out);
 		total_len_X86[i] = large_hash_output(crypt_out, cpo, 24, tid);
@@ -3484,13 +3484,13 @@ void DynamicFunc__RIPEMD128_crypt_input1_append_input2(DYNA_OMP_PARAMS) {
 #if (MD5_X2)
 		if (i & 1) {
 			sph_ripemd128(&ctx, input_buf_X86[i>>MD5_X2].x2.B2, total_len_X86[i]);
-			cpo = (unsigned char *)&(input_buf2_X86[i>>MD5_X2].x2.B2[total_len2_X86[i]]);
+			cpo = &(input_buf2_X86[i>>MD5_X2].x2.B2[total_len2_X86[i]]);
 		}
 		else
 #endif
 		{
 			sph_ripemd128(&ctx, input_buf_X86[i>>MD5_X2].x1.B, total_len_X86[i]);
-			cpo = (unsigned char *)&(input_buf2_X86[i>>MD5_X2].x1.B[total_len2_X86[i]]);
+			cpo = &(input_buf2_X86[i>>MD5_X2].x1.B[total_len2_X86[i]]);
 		}
 		sph_ripemd128_close(&ctx, crypt_out);
 		total_len2_X86[i] += large_hash_output(crypt_out, cpo, 16, tid);
@@ -3515,13 +3515,13 @@ void DynamicFunc__RIPEMD128_crypt_input2_append_input1(DYNA_OMP_PARAMS) {
 #if (MD5_X2)
 		if (i & 1) {
 			sph_ripemd128(&ctx, input_buf2_X86[i>>MD5_X2].x2.B2, total_len2_X86[i]);
-			cpo = (unsigned char *)&(input_buf_X86[i>>MD5_X2].x2.b2[total_len_X86[i]]);
+			cpo = &(input_buf_X86[i>>MD5_X2].x2.B2[total_len_X86[i]]);
 		}
 		else
 #endif
 		{
 			sph_ripemd128(&ctx, input_buf2_X86[i>>MD5_X2].x1.B, total_len2_X86[i]);
-			cpo = (unsigned char *)&(input_buf_X86[i>>MD5_X2].x1.b[total_len_X86[i]]);
+			cpo = &(input_buf_X86[i>>MD5_X2].x1.B[total_len_X86[i]]);
 		}
 		sph_ripemd128_close(&ctx, crypt_out);
 		total_len_X86[i] += large_hash_output(crypt_out, cpo, 16, tid);
@@ -3546,13 +3546,13 @@ void DynamicFunc__RIPEMD128_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS) {
 #if (MD5_X2)
 		if (i & 1) {
 			sph_ripemd128(&ctx, input_buf_X86[i>>MD5_X2].x2.B2, total_len_X86[i]);
-			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x2.b2;
+			cpo = input_buf_X86[i>>MD5_X2].x2.B2;
 		}
 		else
 #endif
 		{
 			sph_ripemd128(&ctx, input_buf_X86[i>>MD5_X2].x1.B, total_len_X86[i]);
-			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x1.b;
+			cpo = input_buf_X86[i>>MD5_X2].x1.B;
 		}
 		sph_ripemd128_close(&ctx, crypt_out);
 		total_len_X86[i] = large_hash_output(crypt_out, cpo, 16, tid);
@@ -3577,13 +3577,13 @@ void DynamicFunc__RIPEMD128_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS) {
 #if (MD5_X2)
 		if (i & 1) {
 			sph_ripemd128(&ctx, input_buf2_X86[i>>MD5_X2].x2.B2, total_len2_X86[i]);
-			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x2.b2;
+			cpo = input_buf2_X86[i>>MD5_X2].x2.B2;
 		}
 		else
 #endif
 		{
 			sph_ripemd128(&ctx, input_buf2_X86[i>>MD5_X2].x1.B, total_len2_X86[i]);
-			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x1.b;
+			cpo = input_buf2_X86[i>>MD5_X2].x1.B;
 		}
 		sph_ripemd128_close(&ctx, crypt_out);
 		total_len2_X86[i] = large_hash_output(crypt_out, cpo, 16, tid);
@@ -3608,13 +3608,13 @@ void DynamicFunc__RIPEMD128_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS) {
 #if (MD5_X2)
 		if (i & 1) {
 			sph_ripemd128(&ctx, input_buf_X86[i>>MD5_X2].x2.B2, total_len_X86[i]);
-			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x2.b2;
+			cpo = input_buf2_X86[i>>MD5_X2].x2.B2;
 		}
 		else
 #endif
 		{
 			sph_ripemd128(&ctx, input_buf_X86[i>>MD5_X2].x1.B, total_len_X86[i]);
-			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x1.b;
+			cpo = input_buf2_X86[i>>MD5_X2].x1.B;
 		}
 		sph_ripemd128_close(&ctx, crypt_out);
 		total_len2_X86[i] = large_hash_output(crypt_out, cpo, 16, tid);
@@ -3639,13 +3639,13 @@ void DynamicFunc__RIPEMD128_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS) {
 #if (MD5_X2)
 		if (i & 1) {
 			sph_ripemd128(&ctx, input_buf2_X86[i>>MD5_X2].x2.B2, total_len2_X86[i]);
-			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x2.b2;
+			cpo = input_buf_X86[i>>MD5_X2].x2.B2;
 		}
 		else
 #endif
 		{
 			sph_ripemd128(&ctx, input_buf2_X86[i>>MD5_X2].x1.B, total_len2_X86[i]);
-			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x1.b;
+			cpo = input_buf_X86[i>>MD5_X2].x1.B;
 		}
 		sph_ripemd128_close(&ctx, crypt_out);
 		total_len_X86[i] = large_hash_output(crypt_out, cpo, 16, tid);
@@ -3745,13 +3745,13 @@ void DynamicFunc__RIPEMD160_crypt_input1_append_input2(DYNA_OMP_PARAMS) {
 #if (MD5_X2)
 		if (i & 1) {
 			sph_ripemd160(&ctx, input_buf_X86[i>>MD5_X2].x2.B2, total_len_X86[i]);
-			cpo = (unsigned char *)&(input_buf2_X86[i>>MD5_X2].x2.B2[total_len2_X86[i]]);
+			cpo = &(input_buf2_X86[i>>MD5_X2].x2.B2[total_len2_X86[i]]);
 		}
 		else
 #endif
 		{
 			sph_ripemd160(&ctx, input_buf_X86[i>>MD5_X2].x1.B, total_len_X86[i]);
-			cpo = (unsigned char *)&(input_buf2_X86[i>>MD5_X2].x1.B[total_len2_X86[i]]);
+			cpo = &(input_buf2_X86[i>>MD5_X2].x1.B[total_len2_X86[i]]);
 		}
 		sph_ripemd160_close(&ctx, crypt_out);
 		total_len2_X86[i] += large_hash_output(crypt_out, cpo, 20, tid);
@@ -3776,13 +3776,13 @@ void DynamicFunc__RIPEMD160_crypt_input2_append_input1(DYNA_OMP_PARAMS) {
 #if (MD5_X2)
 		if (i & 1) {
 			sph_ripemd160(&ctx, input_buf2_X86[i>>MD5_X2].x2.B2, total_len2_X86[i]);
-			cpo = (unsigned char *)&(input_buf_X86[i>>MD5_X2].x2.b2[total_len_X86[i]]);
+			cpo = &(input_buf_X86[i>>MD5_X2].x2.B2[total_len_X86[i]]);
 		}
 		else
 #endif
 		{
 			sph_ripemd160(&ctx, input_buf2_X86[i>>MD5_X2].x1.B, total_len2_X86[i]);
-			cpo = (unsigned char *)&(input_buf_X86[i>>MD5_X2].x1.b[total_len_X86[i]]);
+			cpo = &(input_buf_X86[i>>MD5_X2].x1.B[total_len_X86[i]]);
 		}
 		sph_ripemd160_close(&ctx, crypt_out);
 		total_len_X86[i] += large_hash_output(crypt_out, cpo, 20, tid);
@@ -3807,13 +3807,13 @@ void DynamicFunc__RIPEMD160_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS) {
 #if (MD5_X2)
 		if (i & 1) {
 			sph_ripemd160(&ctx, input_buf_X86[i>>MD5_X2].x2.B2, total_len_X86[i]);
-			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x2.b2;
+			cpo = input_buf_X86[i>>MD5_X2].x2.B2;
 		}
 		else
 #endif
 		{
 			sph_ripemd160(&ctx, input_buf_X86[i>>MD5_X2].x1.B, total_len_X86[i]);
-			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x1.b;
+			cpo = input_buf_X86[i>>MD5_X2].x1.B;
 		}
 		sph_ripemd160_close(&ctx, crypt_out);
 		total_len_X86[i] = large_hash_output(crypt_out, cpo, 20, tid);
@@ -3838,13 +3838,13 @@ void DynamicFunc__RIPEMD160_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS) {
 #if (MD5_X2)
 		if (i & 1) {
 			sph_ripemd160(&ctx, input_buf2_X86[i>>MD5_X2].x2.B2, total_len2_X86[i]);
-			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x2.b2;
+			cpo = input_buf2_X86[i>>MD5_X2].x2.B2;
 		}
 		else
 #endif
 		{
 			sph_ripemd160(&ctx, input_buf2_X86[i>>MD5_X2].x1.B, total_len2_X86[i]);
-			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x1.b;
+			cpo = input_buf2_X86[i>>MD5_X2].x1.B;
 		}
 		sph_ripemd160_close(&ctx, crypt_out);
 		total_len2_X86[i] = large_hash_output(crypt_out, cpo, 20, tid);
@@ -3869,13 +3869,13 @@ void DynamicFunc__RIPEMD160_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS) {
 #if (MD5_X2)
 		if (i & 1) {
 			sph_ripemd160(&ctx, input_buf_X86[i>>MD5_X2].x2.B2, total_len_X86[i]);
-			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x2.b2;
+			cpo = input_buf2_X86[i>>MD5_X2].x2.B2;
 		}
 		else
 #endif
 		{
 			sph_ripemd160(&ctx, input_buf_X86[i>>MD5_X2].x1.B, total_len_X86[i]);
-			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x1.b;
+			cpo = input_buf2_X86[i>>MD5_X2].x1.B;
 		}
 		sph_ripemd160_close(&ctx, crypt_out);
 		total_len2_X86[i] = large_hash_output(crypt_out, cpo, 20, tid);
@@ -3900,13 +3900,13 @@ void DynamicFunc__RIPEMD160_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS) {
 #if (MD5_X2)
 		if (i & 1) {
 			sph_ripemd160(&ctx, input_buf2_X86[i>>MD5_X2].x2.B2, total_len2_X86[i]);
-			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x2.b2;
+			cpo = input_buf_X86[i>>MD5_X2].x2.B2;
 		}
 		else
 #endif
 		{
 			sph_ripemd160(&ctx, input_buf2_X86[i>>MD5_X2].x1.B, total_len2_X86[i]);
-			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x1.b;
+			cpo = input_buf_X86[i>>MD5_X2].x1.B;
 		}
 		sph_ripemd160_close(&ctx, crypt_out);
 		total_len_X86[i] = large_hash_output(crypt_out, cpo, 20, tid);
@@ -4013,13 +4013,13 @@ void DynamicFunc__RIPEMD256_crypt_input1_append_input2(DYNA_OMP_PARAMS) {
 #if (MD5_X2)
 		if (i & 1) {
 			sph_ripemd256(&ctx, input_buf_X86[i>>MD5_X2].x2.B2, total_len_X86[i]);
-			cpo = (unsigned char *)&(input_buf2_X86[i>>MD5_X2].x2.B2[total_len2_X86[i]]);
+			cpo = &(input_buf2_X86[i>>MD5_X2].x2.B2[total_len2_X86[i]]);
 		}
 		else
 #endif
 		{
 			sph_ripemd256(&ctx, input_buf_X86[i>>MD5_X2].x1.B, total_len_X86[i]);
-			cpo = (unsigned char *)&(input_buf2_X86[i>>MD5_X2].x1.B[total_len2_X86[i]]);
+			cpo = &(input_buf2_X86[i>>MD5_X2].x1.B[total_len2_X86[i]]);
 		}
 		sph_ripemd256_close(&ctx, crypt_out);
 		total_len2_X86[i] += large_hash_output(crypt_out, cpo, 32, tid);
@@ -4044,13 +4044,13 @@ void DynamicFunc__RIPEMD256_crypt_input2_append_input1(DYNA_OMP_PARAMS) {
 #if (MD5_X2)
 		if (i & 1) {
 			sph_ripemd256(&ctx, input_buf2_X86[i>>MD5_X2].x2.B2, total_len2_X86[i]);
-			cpo = (unsigned char *)&(input_buf_X86[i>>MD5_X2].x2.b2[total_len_X86[i]]);
+			cpo = &(input_buf_X86[i>>MD5_X2].x2.B2[total_len_X86[i]]);
 		}
 		else
 #endif
 		{
 			sph_ripemd256(&ctx, input_buf2_X86[i>>MD5_X2].x1.B, total_len2_X86[i]);
-			cpo = (unsigned char *)&(input_buf_X86[i>>MD5_X2].x1.b[total_len_X86[i]]);
+			cpo = &(input_buf_X86[i>>MD5_X2].x1.B[total_len_X86[i]]);
 		}
 		sph_ripemd256_close(&ctx, crypt_out);
 		total_len_X86[i] += large_hash_output(crypt_out, cpo, 32, tid);
@@ -4075,13 +4075,13 @@ void DynamicFunc__RIPEMD256_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS) {
 #if (MD5_X2)
 		if (i & 1) {
 			sph_ripemd256(&ctx, input_buf_X86[i>>MD5_X2].x2.B2, total_len_X86[i]);
-			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x2.b2;
+			cpo = input_buf_X86[i>>MD5_X2].x2.B2;
 		}
 		else
 #endif
 		{
 			sph_ripemd256(&ctx, input_buf_X86[i>>MD5_X2].x1.B, total_len_X86[i]);
-			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x1.b;
+			cpo = input_buf_X86[i>>MD5_X2].x1.B;
 		}
 		sph_ripemd256_close(&ctx, crypt_out);
 		total_len_X86[i] = large_hash_output(crypt_out, cpo, 32, tid);
@@ -4106,13 +4106,13 @@ void DynamicFunc__RIPEMD256_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS) {
 #if (MD5_X2)
 		if (i & 1) {
 			sph_ripemd256(&ctx, input_buf2_X86[i>>MD5_X2].x2.B2, total_len2_X86[i]);
-			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x2.b2;
+			cpo = input_buf2_X86[i>>MD5_X2].x2.B2;
 		}
 		else
 #endif
 		{
 			sph_ripemd256(&ctx, input_buf2_X86[i>>MD5_X2].x1.B, total_len2_X86[i]);
-			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x1.b;
+			cpo = input_buf2_X86[i>>MD5_X2].x1.B;
 		}
 		sph_ripemd256_close(&ctx, crypt_out);
 		total_len2_X86[i] = large_hash_output(crypt_out, cpo, 32, tid);
@@ -4137,13 +4137,13 @@ void DynamicFunc__RIPEMD256_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS) {
 #if (MD5_X2)
 		if (i & 1) {
 			sph_ripemd256(&ctx, input_buf_X86[i>>MD5_X2].x2.B2, total_len_X86[i]);
-			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x2.b2;
+			cpo = input_buf2_X86[i>>MD5_X2].x2.B2;
 		}
 		else
 #endif
 		{
 			sph_ripemd256(&ctx, input_buf_X86[i>>MD5_X2].x1.B, total_len_X86[i]);
-			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x1.b;
+			cpo = input_buf2_X86[i>>MD5_X2].x1.B;
 		}
 		sph_ripemd256_close(&ctx, crypt_out);
 		total_len2_X86[i] = large_hash_output(crypt_out, cpo, 32, tid);
@@ -4168,13 +4168,13 @@ void DynamicFunc__RIPEMD256_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS) {
 #if (MD5_X2)
 		if (i & 1) {
 			sph_ripemd256(&ctx, input_buf2_X86[i>>MD5_X2].x2.B2, total_len2_X86[i]);
-			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x2.b2;
+			cpo = input_buf_X86[i>>MD5_X2].x2.B2;
 		}
 		else
 #endif
 		{
 			sph_ripemd256(&ctx, input_buf2_X86[i>>MD5_X2].x1.B, total_len2_X86[i]);
-			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x1.b;
+			cpo = input_buf_X86[i>>MD5_X2].x1.B;
 		}
 		sph_ripemd256_close(&ctx, crypt_out);
 		total_len_X86[i] = large_hash_output(crypt_out, cpo, 32, tid);
@@ -4281,13 +4281,13 @@ void DynamicFunc__RIPEMD320_crypt_input1_append_input2(DYNA_OMP_PARAMS) {
 #if (MD5_X2)
 		if (i & 1) {
 			sph_ripemd320(&ctx, input_buf_X86[i>>MD5_X2].x2.B2, total_len_X86[i]);
-			cpo = (unsigned char *)&(input_buf2_X86[i>>MD5_X2].x2.B2[total_len2_X86[i]]);
+			cpo = &(input_buf2_X86[i>>MD5_X2].x2.B2[total_len2_X86[i]]);
 		}
 		else
 #endif
 		{
 			sph_ripemd320(&ctx, input_buf_X86[i>>MD5_X2].x1.B, total_len_X86[i]);
-			cpo = (unsigned char *)&(input_buf2_X86[i>>MD5_X2].x1.B[total_len2_X86[i]]);
+			cpo = &(input_buf2_X86[i>>MD5_X2].x1.B[total_len2_X86[i]]);
 		}
 		sph_ripemd320_close(&ctx, crypt_out);
 		total_len2_X86[i] += large_hash_output(crypt_out, cpo, 40, tid);
@@ -4312,13 +4312,13 @@ void DynamicFunc__RIPEMD320_crypt_input2_append_input1(DYNA_OMP_PARAMS) {
 #if (MD5_X2)
 		if (i & 1) {
 			sph_ripemd320(&ctx, input_buf2_X86[i>>MD5_X2].x2.B2, total_len2_X86[i]);
-			cpo = (unsigned char *)&(input_buf_X86[i>>MD5_X2].x2.b2[total_len_X86[i]]);
+			cpo = &(input_buf_X86[i>>MD5_X2].x2.B2[total_len_X86[i]]);
 		}
 		else
 #endif
 		{
 			sph_ripemd320(&ctx, input_buf2_X86[i>>MD5_X2].x1.B, total_len2_X86[i]);
-			cpo = (unsigned char *)&(input_buf_X86[i>>MD5_X2].x1.b[total_len_X86[i]]);
+			cpo = &(input_buf_X86[i>>MD5_X2].x1.B[total_len_X86[i]]);
 		}
 		sph_ripemd320_close(&ctx, crypt_out);
 		total_len_X86[i] += large_hash_output(crypt_out, cpo, 40, tid);
@@ -4343,13 +4343,13 @@ void DynamicFunc__RIPEMD320_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS) {
 #if (MD5_X2)
 		if (i & 1) {
 			sph_ripemd320(&ctx, input_buf_X86[i>>MD5_X2].x2.B2, total_len_X86[i]);
-			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x2.b2;
+			cpo = input_buf_X86[i>>MD5_X2].x2.B2;
 		}
 		else
 #endif
 		{
 			sph_ripemd320(&ctx, input_buf_X86[i>>MD5_X2].x1.B, total_len_X86[i]);
-			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x1.b;
+			cpo = input_buf_X86[i>>MD5_X2].x1.B;
 		}
 		sph_ripemd320_close(&ctx, crypt_out);
 		total_len_X86[i] = large_hash_output(crypt_out, cpo, 40, tid);
@@ -4374,13 +4374,13 @@ void DynamicFunc__RIPEMD320_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS) {
 #if (MD5_X2)
 		if (i & 1) {
 			sph_ripemd320(&ctx, input_buf2_X86[i>>MD5_X2].x2.B2, total_len2_X86[i]);
-			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x2.b2;
+			cpo = input_buf2_X86[i>>MD5_X2].x2.B2;
 		}
 		else
 #endif
 		{
 			sph_ripemd320(&ctx, input_buf2_X86[i>>MD5_X2].x1.B, total_len2_X86[i]);
-			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x1.b;
+			cpo = input_buf2_X86[i>>MD5_X2].x1.B;
 		}
 		sph_ripemd320_close(&ctx, crypt_out);
 		total_len2_X86[i] = large_hash_output(crypt_out, cpo, 40, tid);
@@ -4405,13 +4405,13 @@ void DynamicFunc__RIPEMD320_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS) {
 #if (MD5_X2)
 		if (i & 1) {
 			sph_ripemd320(&ctx, input_buf_X86[i>>MD5_X2].x2.B2, total_len_X86[i]);
-			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x2.b2;
+			cpo = input_buf2_X86[i>>MD5_X2].x2.B2;
 		}
 		else
 #endif
 		{
 			sph_ripemd320(&ctx, input_buf_X86[i>>MD5_X2].x1.B, total_len_X86[i]);
-			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x1.b;
+			cpo = input_buf2_X86[i>>MD5_X2].x1.B;
 		}
 		sph_ripemd320_close(&ctx, crypt_out);
 		total_len2_X86[i] = large_hash_output(crypt_out, cpo, 40, tid);
@@ -4436,13 +4436,13 @@ void DynamicFunc__RIPEMD320_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS) {
 #if (MD5_X2)
 		if (i & 1) {
 			sph_ripemd320(&ctx, input_buf2_X86[i>>MD5_X2].x2.B2, total_len2_X86[i]);
-			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x2.b2;
+			cpo = input_buf_X86[i>>MD5_X2].x2.B2;
 		}
 		else
 #endif
 		{
 			sph_ripemd320(&ctx, input_buf2_X86[i>>MD5_X2].x1.B, total_len2_X86[i]);
-			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x1.b;
+			cpo = input_buf_X86[i>>MD5_X2].x1.B;
 		}
 		sph_ripemd320_close(&ctx, crypt_out);
 		total_len_X86[i] = large_hash_output(crypt_out, cpo, 40, tid);

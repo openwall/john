@@ -54,7 +54,7 @@ static DYNAMIC_primitive_funcp _Funcs_1[] =
  *      should not be made to be 'too' much larger than needed.  This is an issue that needs
  *      to be looked into.  NOTE, we might want to go to 3 input buffers.  That way, we
  *      could make input buffer 1 be 128 bytes, input buffer2 256 and input buffer3 be
- *      512.  This would allow us to use a smaller buffer (buffer1), IF 128 bytes is 
+ *      512.  This would allow us to use a smaller buffer (buffer1), IF 128 bytes is
  *      enough, and hopefully reduce working set. But then have a double length buffer
  *      and a new quad length buffer IF we need them (for large hashes if there are multiple
  *      appended hashes).  This may add a BUNCH of extra functions.  NOTE, I have seen slowdowns
@@ -277,6 +277,13 @@ unsigned short *itoa16_w2=itoa16_w2_l;
 
 #define EFFECTIVE_MKPC (MAX_KEYS_PER_CRYPT > MAX_KEYS_PER_CRYPT_X86 ? MAX_KEYS_PER_CRYPT : MAX_KEYS_PER_CRYPT_X86)
 #define EFFECTIVE_MAX_LENGTH (PLAINTEXT_LENGTH > PLAINTEXT_LENGTH_X86 ? PLAINTEXT_LENGTH : PLAINTEXT_LENGTH_X86)
+
+// Used to compute length of each string to clean. This is needed, since we have to clean a little more than
+// just the length, IF we are cleaning strings that are in different endianity than native for the CPU.
+// This is seen on SHA224 (etc) on Intel, or MD5 of BE systems.  We still try to clean 'only' as much as
+// we need to, but that is usually MORE than what the length of the stored string is. 8 gives us 7 byte spill
+// over, plus 1 byte for the 0x80
+#define COMPUTE_EX_LEN(a) (a > sizeof(input_buf_X86[0].x1.b)-8) ? sizeof(input_buf_X86[0].x1.b) : a+8
 
 static char saved_key[EFFECTIVE_MKPC][EFFECTIVE_MAX_LENGTH + 1];
 static int saved_key_len[EFFECTIVE_MKPC];
@@ -647,10 +654,10 @@ static void __nonMP_DynamicFunc__clean_input() {
 		//if (total_len_X86[i]) {
 #if MD5_X2
 			if (i&1)
-				memset(input_buf_X86[i>>MD5_X2].x2.b2, 0, total_len_X86[i]+5);
+				memset(input_buf_X86[i>>MD5_X2].x2.b2, 0, COMPUTE_EX_LEN(total_len_X86[i]));
 			else
 #endif
-			memset(input_buf_X86[i>>MD5_X2].x1.b, 0, total_len_X86[i]+5);
+			memset(input_buf_X86[i>>MD5_X2].x1.b, 0, COMPUTE_EX_LEN(total_len_X86[i]));
 			total_len_X86[i] = 0;
 		//}
 	}
@@ -673,10 +680,10 @@ static void __nonMP_DynamicFunc__clean_input2() {
 		//if (total_len2_X86[i]) {
 #if MD5_X2
 			if (i&1)
-				memset(input_buf2_X86[i>>MD5_X2].x2.b2, 0, total_len2_X86[i]+5);
+				memset(input_buf2_X86[i>>MD5_X2].x2.b2, 0, COMPUTE_EX_LEN(total_len2_X86[i]));
 			else
 #endif
-			memset(input_buf2_X86[i>>MD5_X2].x1.b, 0, total_len2_X86[i]+5);
+			memset(input_buf2_X86[i>>MD5_X2].x1.b, 0, COMPUTE_EX_LEN(total_len2_X86[i]));
 			total_len2_X86[i] = 0;
 		//}
 	}
@@ -759,7 +766,7 @@ static void init(struct fmt_main *pFmt)
 	}
 #endif
 	if (!crypt_key_X86) {
-		// we have to align SIMD, since now we may load directly from these buffers (or save to them), in 
+		// we have to align SIMD, since now we may load directly from these buffers (or save to them), in
 		// large hash SIMD code (sha256, etc).  Also 1 larger in the array, since we might point 'extra'
 		// hashes past the end of our buffer to that value.
 		crypt_key_X86  = (MD5_OUT *)mem_calloc_tiny(sizeof(*crypt_key_X86)*((MAX_KEYS_PER_CRYPT_X86>>MD5_X2)+1),	MEM_ALIGN_SIMD);
@@ -1201,14 +1208,14 @@ key_cleaning:
 
 //		if(index==0) {
 			// we 'have' to use full clean here. NOTE 100% sure why, but 10 formats fail if we do not.
-//			DynamicFunc__clean_input_full();
+//			__nonMP_DynamicFunc__clean_input_full();
 //		}
 #if MD5_X2
 		if (index & 1)
-			strnzcpy(input_buf_X86[index>>MD5_X2].x2.b2, key, len+1);
+			memcpy(input_buf_X86[index>>MD5_X2].x2.b2, key, len);
 		else
 #endif
-			strnzcpy(input_buf_X86[index>>MD5_X2].x1.b, key, len+1);
+			memcpy(input_buf_X86[index>>MD5_X2].x1.b, key, len);
 		saved_key_len[index] = total_len_X86[index] = len;
 	}
 	else
@@ -1217,10 +1224,10 @@ key_cleaning:
 		if (len > 110 && !(fmt_Dynamic.params.flags & FMT_UNICODE))
 			len = 110;
 //		if(index==0) {
-//			DynamicFunc__clean_input();
+//			__nonMP_DynamicFunc__clean_input_full();
 //		}
 		keys_dirty = 1;
-		strnzcpy(((char*)(saved_key[index])), key, len+1);
+		memcpy(((char*)(saved_key[index])), key, len);
 		saved_key_len[index] = len;
 	}
 }
@@ -1519,7 +1526,7 @@ static void crypt_all(int count)
 #endif
 				} else {
 					// calls 'old' code (ossl, sorry :(   We should FIND and remove any format
-					// written this way, if it is 
+					// written this way, if it is
 					__possMP_DynamicFunc__crypt2_md5();
 				}
 			} else {
@@ -3210,10 +3217,10 @@ void DynamicFunc__clean_input(DYNA_OMP_PARAMS)
 	for (i = first; i < last; ++i) {
 #if MD5_X2
 			if (i&1)
-				memset(input_buf_X86[i>>MD5_X2].x2.b2, 0, total_len_X86[i]+5);
+				memset(input_buf_X86[i>>MD5_X2].x2.b2, 0, COMPUTE_EX_LEN(total_len_X86[i]));
 			else
 #endif
-			memset(input_buf_X86[i>>MD5_X2].x1.b, 0, total_len_X86[i]+5);
+			memset(input_buf_X86[i>>MD5_X2].x1.b, 0, COMPUTE_EX_LEN(total_len_X86[i]));
 			total_len_X86[i] = 0;
 	}
 #endif
@@ -3239,10 +3246,10 @@ void DynamicFunc__clean_input2(DYNA_OMP_PARAMS)
 	for (i = first; i < last; ++i) {
 #if MD5_X2
 			if (i&1)
-				memset(input_buf2_X86[i>>MD5_X2].x2.b2, 0, total_len2_X86[i]+5);
+				memset(input_buf2_X86[i>>MD5_X2].x2.b2, 0, COMPUTE_EX_LEN(total_len2_X86[i]));
 			else
 #endif
-			memset(input_buf2_X86[i>>MD5_X2].x1.b, 0, total_len2_X86[i]+5);
+			memset(input_buf2_X86[i>>MD5_X2].x1.b, 0, COMPUTE_EX_LEN(total_len2_X86[i]));
 			total_len2_X86[i] = 0;
 	}
 #endif
@@ -3266,10 +3273,10 @@ void DynamicFunc__clean_input_full(DYNA_OMP_PARAMS)
 	for (i = first; i < last; ++i) {
 #if MD5_X2
 			if (i&1)
-				memset(input_buf_X86[i>>MD5_X2].x2.b2, 0, total_len_X86[i]+5);
+				memset(input_buf_X86[i>>MD5_X2].x2.b2, 0, COMPUTE_EX_LEN(total_len_X86[i]));
 			else
 #endif
-			memset(input_buf_X86[i>>MD5_X2].x1.b, 0, total_len_X86[i]+5);
+			memset(input_buf_X86[i>>MD5_X2].x1.b, 0, COMPUTE_EX_LEN(total_len_X86[i]));
 			total_len_X86[i] = 0;
 	}
 #endif
@@ -3292,10 +3299,10 @@ void DynamicFunc__clean_input2_full(DYNA_OMP_PARAMS)
 	for (i = first; i < last; ++i) {
 #if MD5_X2
 			if (i&1)
-				memset(input_buf2_X86[i>>MD5_X2].x2.b2, 0, total_len2_X86[i]+5);
+				memset(input_buf2_X86[i>>MD5_X2].x2.b2, 0, COMPUTE_EX_LEN(total_len2_X86[i]));
 			else
 #endif
-			memset(input_buf2_X86[i>>MD5_X2].x1.b, 0, total_len2_X86[i]+5);
+			memset(input_buf2_X86[i>>MD5_X2].x1.b, 0, COMPUTE_EX_LEN(total_len2_X86[i]));
 			total_len2_X86[i] = 0;
 	}
 #endif
@@ -4021,10 +4028,10 @@ void DynamicFunc__set_input_len_100(DYNA_OMP_PARAMS)
 		unsigned char *cp;
 #if MD5_X2
 		if (j&1)
-			cp = &(input_buf_X86[j>>MD5_X2].x2.B2[total_len_X86[j]+1]);
+			cp = &(input_buf_X86[j>>MD5_X2].x2.B2[total_len_X86[j]]);
 		else
 #endif
-			cp = &(input_buf_X86[j>>MD5_X2].x1.B[total_len_X86[j]+1]);
+			cp = &(input_buf_X86[j>>MD5_X2].x1.B[total_len_X86[j]]);
 		while (*cp)
 			*cp++ = 0;
 		total_len_X86[j] = 100;
