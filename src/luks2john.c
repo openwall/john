@@ -168,7 +168,7 @@ static int hash_plugin_parse_hash(char *filename)
 	else {
 		FILE *fp = fopen("dump", "wb");  // XXX make me unpredictable!
 		fprintf(stderr, "Generating inlined hash with attached dump!\n");
-		printf("$luks$0$%lu$", sizeof(myphdr));
+		printf("$luks$0$%zu$", sizeof(myphdr));
 		print_hex((unsigned char *)&myphdr, sizeof(myphdr));
 		printf("$%d$", afsize);
 
