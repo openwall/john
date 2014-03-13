@@ -175,8 +175,12 @@ static void crk_remove_salt(struct db_salt *salt)
 	if (crk_db->salt_hash) {
 		int hash = crk_methods.salt_hash(salt->salt);
 
-		if (crk_db->salt_hash[hash] == salt)
-			crk_db->salt_hash[hash] = salt->next;
+		if (crk_db->salt_hash[hash] == salt) {
+			if (crk_methods.salt_hash(salt->next->salt) == hash)
+				crk_db->salt_hash[hash] = salt->next;
+			else
+				crk_db->salt_hash[hash] = NULL;
+		}
 	}
 }
 
@@ -241,9 +245,9 @@ static void crk_remove_hash(struct db_salt *salt, struct db_password *pw)
 	pw->binary = NULL;
 }
 
-/* If plaintext != NULL, index is ignored and plaintext is used instead */
+/* Negative index is not counted/reported (got it from pot sync) */
 static int crk_process_guess(struct db_salt *salt, struct db_password *pw,
-                             int index, char *plaintext)
+	int index)
 {
 	UTF8 utf8buf_key[PLAINTEXT_BUFFER_SIZE + 1];
 	UTF8 utf8login[PLAINTEXT_BUFFER_SIZE + 1];
@@ -251,17 +255,17 @@ static int crk_process_guess(struct db_salt *salt, struct db_password *pw,
 	int dupe;
 	char *key, *utf8key, *repkey, *replogin;
 
-	if (!plaintext && index < crk_params.max_keys_per_crypt) {
+	if (index >= 0 && index < crk_params.max_keys_per_crypt) {
 		dupe = !memcmp(&crk_timestamps[index],
 		               &status.crypts, sizeof(int64));
 		crk_timestamps[index] = status.crypts;
 	} else
 		dupe = 0;
 
-	repkey = key = plaintext ? plaintext : crk_methods.get_key(index);
+	repkey = key = index < 0 ? "" : crk_methods.get_key(index);
 	replogin = pw->login;
 
-	if (options.store_utf8 || options.report_utf8) {
+	if (index >= 0 && (options.store_utf8 || options.report_utf8)) {
 		if (options.utf8)
 			utf8key = key;
 		else {
@@ -298,7 +302,7 @@ static int crk_process_guess(struct db_salt *salt, struct db_password *pw,
 		crk_guess_fixup_salt(pw->source, *(char**)(salt->salt));
 
 	/* If we got this crack from a pot sync, don't report or count */
-	if (!plaintext) {
+	if (index >= 0) {
 		log_guess(crk_db->options->flags & DB_LOGIN ? replogin : "?",
 		          dupe ?
 		          NULL : crk_methods.source(pw->source, pw->binary),
@@ -349,11 +353,11 @@ static char *crk_loaded_counts(void)
 	return s_loaded_counts;
 }
 
-static int crk_remove_pot_entry(char *ciphertext, char *plain)
+static int crk_remove_pot_entry(char *ciphertext)
 {
 	struct db_salt *salt;
 	struct db_password *pw;
-	char *pot_salt;
+	void *pot_salt;
 	char *binary = crk_methods.binary(ciphertext);
 #ifdef DEBUG
 	struct tms buffer;
@@ -383,20 +387,14 @@ static int crk_remove_pot_entry(char *ciphertext, char *plain)
 		return 0;
 
 	if (!salt->bitmap) {
-		/* How come we need this "if", is it a bug? Well this is "best
-		   effort" anyway - worst case is we miss to remove some
-		   entries during pot sync */
-		if ((pw = salt->list))
+		pw = salt->list;
 		do {
 			char *source;
-
-			if (!pw->binary)
-				continue;
 
 			source = crk_methods.source(pw->source, pw->binary);
 
 			if (!strcmp(source, ciphertext)) {
-				if (crk_process_guess(salt, pw, 0, plain))
+				if (crk_process_guess(salt, pw, -1))
 					return 1;
 
 				if (!(crk_db->options->flags & DB_WORDS))
@@ -412,18 +410,14 @@ static int crk_remove_pot_entry(char *ciphertext, char *plain)
 		      (1U << (hash % (sizeof(*salt->bitmap) * 8)))))
 			return 0;
 
-		/* We test here too for safety although no problem seen */
-		if ((pw = salt->hash[hash >> PASSWORD_HASH_SHR]))
+		pw = salt->hash[hash >> PASSWORD_HASH_SHR];
 		do {
 			char *source;
-
-			if (!pw->binary)
-				continue;
 
 			source = crk_methods.source(pw->source, pw->binary);
 
 			if (!strcmp(source, ciphertext)) {
-				if (crk_process_guess(salt, pw, 0, plain))
+				if (crk_process_guess(salt, pw, -1))
 					return 1;
 
 				if (!(crk_db->options->flags & DB_WORDS))
@@ -475,16 +469,14 @@ int crk_reload_pot(void)
 	ldr_in_pot = 1; /* Mutes some warnings from valid() et al */
 
 	while (fgetl(line, sizeof(line), pot_file)) {
-		char *ciphertext = line;
-		char *plain, *p;
+		char *p, *ciphertext = line;
 
 		if (!(p = strchr(ciphertext, options.loader.field_sep_char)))
 			continue;
 		*p = 0;
-		plain = ++p;
 
 		if (crk_methods.valid(ciphertext, crk_db->format) &&
-		    crk_remove_pot_entry(ciphertext, plain))
+		    crk_remove_pot_entry(ciphertext))
 			break;
 	}
 
@@ -660,7 +652,7 @@ static int crk_password_loop(struct db_salt *salt)
 			if (crk_methods.cmp_one(pw->binary, index))
 			if (crk_methods.cmp_exact(crk_methods.source(
 			    pw->source, pw->binary), index)) {
-				if (crk_process_guess(salt, pw, index, NULL))
+				if (crk_process_guess(salt, pw, index))
 					return 1;
 				else {
 					if (!(crk_params.flags & FMT_NOT_EXACT))
@@ -678,7 +670,7 @@ static int crk_password_loop(struct db_salt *salt)
 				if (crk_methods.cmp_one(pw->binary, index))
 				if (crk_methods.cmp_exact(crk_methods.source(
 				    pw->source, pw->binary), index))
-				if (crk_process_guess(salt, pw, index, NULL))
+				if (crk_process_guess(salt, pw, index))
 					return 1;
 			} while ((pw = pw->next_hash));
 		}
