@@ -63,6 +63,7 @@ static struct db_keys *crk_guesses;
 static int64 *crk_timestamps;
 static char crk_stdout_key[PLAINTEXT_BUFFER_SIZE];
 long int crk_pot_pos;
+static int potcheck_salt_size;
 
 static void crk_dummy_set_salt(void *salt)
 {
@@ -154,6 +155,14 @@ void crk_init(struct db_main *db, void (*fix_state)(void),
 	crk_help();
 
 	idle_init(db->format);
+
+	/* Quirk for RAR. It will return a different salt each time
+	   get_salt() is called. Do we have more such formats? */
+	if (!strcmp(crk_params.label, "rar") ||
+	    !strncmp(crk_params.label, "rar-", 4))
+		potcheck_salt_size = 8;
+	else
+		potcheck_salt_size = crk_params.salt_size;
 }
 
 /*
@@ -375,7 +384,7 @@ static int crk_remove_pot_entry(char *ciphertext)
 		salt = crk_db->salts;
 
 	do {
-		if (!memcmp(pot_salt, salt->salt, crk_params.salt_size))
+		if (!memcmp(pot_salt, salt->salt, potcheck_salt_size))
 			break;
 	} while ((salt = salt->next));
 
