@@ -94,9 +94,7 @@
 #include "md5.h"
 #include "unicode.h"
 
-#ifdef DEBUG
 extern volatile int bench_running;
-#endif
 
 #ifndef uchar
 #define uchar unsigned char
@@ -977,7 +975,7 @@ static void *get_binary(char *ciphertext)
 
 	if (!binary) binary = mem_alloc_tiny(FULL_BINARY_SIZE, BINARY_ALIGN);
 
-	if (!warned && ++loaded > 100) {
+	if (!warned && !ldr_in_pot && !bench_running && ++loaded > 100) {
 		warned = 1;
 		fprintf(stderr, "%s: Note: slow loading. For short runs, try "
 		        "--format=%s-naive\ninstead. That version loads "
