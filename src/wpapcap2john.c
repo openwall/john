@@ -16,13 +16,13 @@
  * Max. number of handshakes we can collect from all files combined.
  * Just bump this if you need more.
  */
-#define MAX_HANDSHAKES	1000
+#define MAX_HANDSHAKES	10000
 
-int GetNextPacket(FILE *in);
-int ProcessPacket();
-void HandleBeacon();
-void Handle4Way(int bIsQOS);
-void DumpKey(int idx, int one_three, int bIsQOS);
+static int GetNextPacket(FILE *in);
+static int ProcessPacket();
+static void HandleBeacon();
+static void Handle4Way(int bIsQOS);
+static void DumpKey(int idx, int one_three, int bIsQOS);
 
 uint32 start_t, start_u, cur_t, cur_u;
 pcaprec_hdr_t pkt_hdr;
@@ -49,26 +49,26 @@ static void code_block(unsigned char *in, unsigned char b)
 		putchar(cpItoa64[((in[1] & 0x0f) << 2)]);
 }
 
-// Convert WPA handshakes from aircrack-ng (airodump-ng) IVS2 to John the Ripper format
-void to_bssid(char bssid[18], uint8 *p)
+static void to_bssid(char bssid[18], uint8 *p)
 {
 	sprintf(bssid, "%02X:%02X:%02X:%02X:%02X:%02X",
 	        p[0],p[1],p[2],p[3],p[4],p[5]);
 }
 
-void to_dashed(char bssid[18], uint8 *p)
+static void to_dashed(char bssid[18], uint8 *p)
 {
 	sprintf(bssid, "%02x-%02x-%02x-%02x-%02x-%02x",
 	        p[0],p[1],p[2],p[3],p[4],p[5]);
 }
 
-void to_compact(char bssid[18], uint8 *p)
+static void to_compact(char bssid[18], uint8 *p)
 {
 	sprintf(bssid, "%02x%02x%02x%02x%02x%02x",
 	        p[0],p[1],p[2],p[3],p[4],p[5]);
 }
 
-int convert_ivs(FILE *f_in)
+// Convert WPA handshakes from aircrack-ng (airodump-ng) IVS2 to JtR format
+static int convert_ivs(FILE *f_in)
 {
 	struct ivs2_filehdr fivs2;
 	struct ivs2_pkthdr ivs2;
@@ -229,7 +229,7 @@ int convert_ivs(FILE *f_in)
 	return 0;
 }
 
-int Process(FILE *in)
+static int Process(FILE *in)
 {
 	pcap_hdr_t main_hdr;
 
@@ -273,7 +273,7 @@ int Process(FILE *in)
 	return 1;
 }
 
-int GetNextPacket(FILE *in)
+static int GetNextPacket(FILE *in)
 {
 	size_t read_size;
 
@@ -307,7 +307,7 @@ int GetNextPacket(FILE *in)
 // reading packets (i.e. we have done what we want), we return 0, and
 // the program will exit gracefully.  It is not an error, it is just an
 // indication we have completed (or that the data we want is not here).
-int ProcessPacket()
+static int ProcessPacket()
 {
 	ether_frame_hdr_t *pkt;
 	ether_frame_ctl_t *ctl;
@@ -393,7 +393,7 @@ int ProcessPacket()
 	return 1;
 }
 
-void HandleBeacon()
+static void HandleBeacon()
 {
 	ether_frame_hdr_t *pkt = (ether_frame_hdr_t*)packet;
 	int i;
@@ -430,7 +430,7 @@ void HandleBeacon()
 	}
 }
 
-void Handle4Way(int bIsQOS)
+static void Handle4Way(int bIsQOS)
 {
 	ether_frame_hdr_t *pkt = (ether_frame_hdr_t*)packet;
 	int i, ess=-1;
@@ -572,7 +572,7 @@ void Handle4Way(int bIsQOS)
 	}
 }
 
-void DumpKey(int ess, int one_three, int bIsQOS)
+static void DumpKey(int ess, int one_three, int bIsQOS)
 {
 	ether_auto_802_1x_t *auth13, *auth2;
 	uint8 *p = (uint8*)wpa[ess].packet2;
