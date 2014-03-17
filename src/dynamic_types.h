@@ -280,7 +280,7 @@ typedef struct private_subformat_data
 #define MAX_KEYS_PER_CRYPT_X86	X86_BLOCK_LOOPS
 extern void MD5_Go2 (unsigned char *data, unsigned int len, unsigned char *result);
 #if MD5_X2 && (!MD5_ASM)
-#if (defined(_OPENMP)||defined(WAS_MMX_OPENMP))
+#if (defined(_OPENMP)||defined(WAS_OPENMP))
 #define MD5_body(x0, x1, out0, out1) \
 	MD5_body_for_thread(0, x0, x1, out0, out1)
 extern void MD5_body_for_thread(int t, MD5_word x[15], MD5_word x2[15], MD5_word out[4], MD5_word out2[4]);
@@ -299,7 +299,7 @@ extern void MD5_body(MD5_word x[15], MD5_word x2[15], MD5_word out[4], MD5_word 
 //#define DoMD5a2(A,L,C,D) do{MD5_body(A->x1.w,A->x2.w2,tmpOut.x1.w,tmpOut.x2.w2);MD5_swap2(tmpOut.x1.w,tmpOut.x2.w2,tmpOut.x1.w,tmpOut.x2.w2,4);memcpy(&(C->x1.b[D[0]]),tmpOut.x1.b,16);memcpy(&(C->x2.b2[D[1]]),tmpOut.x2.b2,16);}while(0)
 #endif
 #else
-#if (defined(_OPENMP)||defined(WAS_MMX_OPENMP)) && !MD5_ASM
+#if (defined(_OPENMP)||defined(WAS_OPENMP)) && !MD5_ASM
 #define MD5_body(x, out) \
 	MD5_body_for_thread(0, x, out)
 extern void MD5_body_for_thread(int t, ARCH_WORD_32 x[15], ARCH_WORD_32 out[4]);
@@ -325,7 +325,7 @@ extern void MD5_body(ARCH_WORD_32 x[15], ARCH_WORD_32 out[4]);
 #define MIN_KEYS_PER_CRYPT_X86	1
 #define MAX_KEYS_PER_CRYPT_X86	X86_BLOCK_LOOPS
 #if MD5_X2 && (!MD5_ASM)
-#if (defined(_OPENMP)||defined(WAS_MMX_OPENMP))
+#if (defined(_OPENMP)||defined(WAS_OPENMP))
 #define MD5_body(x0, x1, out0, out1) \
 	MD5_body_for_thread(0, x0, x1, out0, out1)
 extern void MD5_body_for_thread(int t, ARCH_WORD_32 x1[15], ARCH_WORD_32 x2[15], ARCH_WORD_32 out1[4], ARCH_WORD_32 out2[4]);
@@ -338,7 +338,7 @@ extern void MD5_body(ARCH_WORD_32 x1[15], ARCH_WORD_32 x2[15], ARCH_WORD_32 out1
 #define DoMD5a(A,L,C) do{MD5_body(A->x1.w,A->x2.w2,C->x1.w,C->x2.w2);}while(0)
 //#define DoMD5a2(A,L,C,D) do{MD5_body(A->x1.w,A->x2.w2,tmpOut.x1.w,tmpOut.x2.w2);MD5_swap(C->x1.w,C->x1.w,(D[0]+21)>>2);MD5_swap(C->x2.w2,C->x2.w2,(D[1]+21)>>2);MD5_swap(tmpOut.x1.w,tmpOut.x1.w,4);MD5_swap(tmpOut.x2.w2,tmpOut.x2.w2,4);memcpy(&(C->x1.b[D[0]]),tmpOut.x1.b,16);memcpy(&(C->x2.b2[D[1]]),tmpOut.x2.b2,16);MD5_swap(C->x1.w,C->x1.w,(D[0]+21)>>2);MD5_swap(C->x2.w2,C->x2.w2,(D[1]+21)>>2);}while(0)
 #else
-#if (defined(_OPENMP)||defined(WAS_MMX_OPENMP)) && !MD5_ASM
+#if (defined(_OPENMP)||defined(WAS_OPENMP)) && !MD5_ASM
 #define MD5_body(x, out) \
 	MD5_body_for_thread(0, x, out)
 extern void MD5_body_for_thread(int t, MD5_word x[15],MD5_word out[4]);

@@ -99,18 +99,19 @@ static DYNAMIC_primitive_funcp _Funcs_1[] =
 #include "arch.h"
 
 /* OMP code is b0rken - it assumes all PARA's are the same */
-#if defined(MMX_COEF) &&	  \
+#if defined(_OPENMP) && defined(MMX_COEF) &&	  \
 	(SHA1_SSE_PARA != MD5_SSE_PARA || \
 	SHA1_SSE_PARA != MD4_SSE_PARA || \
 	 MD4_SSE_PARA != MD5_SSE_PARA)
 #undef _OPENMP
+#define WAS_OPENMP
 #endif
 
 #if defined (MMX_COEF) && MMX_COEF==2 && defined (_OPENMP)
 // NO thread support for MMX.  Only OpenSSL (CTX model), or SSE intrinsics have
 // thread support.  The older md5_mmx.S/sha1_mmx.S files are NOT thread safe.
 #undef _OPENMP
-#define WAS_MMX_OPENMP
+#define WAS_OPENMP
 #endif
 #include "misc.h"
 #include "common.h"
@@ -2561,7 +2562,10 @@ static struct fmt_main fmt_Dynamic =
 		MIN_KEYS_PER_CRYPT_X86,
 		MAX_KEYS_PER_CRYPT_X86,
 #endif
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+#ifdef _OPENMP
+		FMT_OMP |
+#endif
+		FMT_CASE | FMT_8_BIT,
 		dynamic_tests
 	}, {
 		init,
