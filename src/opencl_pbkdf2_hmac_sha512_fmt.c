@@ -65,7 +65,7 @@ static struct fmt_tests tests[] = { /*
 
 {NULL}
 };
-#define DEBUG
+// #define DEBUG
 static pass_t *host_pass;			      /** plain ciphertexts **/
 static salt_t *host_salt;			      /** salt **/
 static crack_t *host_crack;			      /** cracked or no **/
