@@ -413,11 +413,6 @@ int benchmark_all(void)
 						printf("The %s format does not yet support encodings other than ISO-8859-1\n\n", format->params.label);
 					continue;
 				}
-				else {
-					if (john_main_process)
-						printf("The %s format does not use internal charset conversion (--encoding option).\n\n", format->params.label);
-					continue;
-				}
 			}
 		}
 #endif
@@ -439,7 +434,8 @@ int benchmark_all(void)
 		    format->params.benchmark_comment,
 		    format->params.algorithm_name,
 #ifndef _JOHN_BENCH_TMP
-			(options.utf8) ? " in UTF-8 mode" : "");
+			(options.utf8 && format->params.flags & FMT_UNICODE) ?
+		        " in UTF-8 mode" : "");
 #else
 			"");
 #endif
