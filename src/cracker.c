@@ -185,7 +185,8 @@ static void crk_remove_salt(struct db_salt *salt)
 		int hash = crk_methods.salt_hash(salt->salt);
 
 		if (crk_db->salt_hash[hash] == salt) {
-			if (crk_methods.salt_hash(salt->next->salt) == hash)
+			if (salt->next &&
+			    crk_methods.salt_hash(salt->next->salt) == hash)
 				crk_db->salt_hash[hash] = salt->next;
 			else
 				crk_db->salt_hash[hash] = NULL;
@@ -396,7 +397,7 @@ static int crk_remove_pot_entry(char *ciphertext)
 		return 0;
 
 	if (!salt->bitmap) {
-		pw = salt->list;
+		if ((pw = salt->list))
 		do {
 			char *source;
 
@@ -419,7 +420,7 @@ static int crk_remove_pot_entry(char *ciphertext)
 		      (1U << (hash % (sizeof(*salt->bitmap) * 8)))))
 			return 0;
 
-		pw = salt->hash[hash >> PASSWORD_HASH_SHR];
+		if ((pw = salt->hash[hash >> PASSWORD_HASH_SHR]))
 		do {
 			char *source;
 
