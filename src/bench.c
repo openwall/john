@@ -401,8 +401,8 @@ int benchmark_all(void)
 		if (!format->params.tests && format != fmt_list)
 			continue;
 
-/* Just test the encoding-aware formats if --encoding */
-		if ((!options.ascii && !options.iso8859_1) &&
+/* Just test the encoding-aware formats if --encoding was used explicitly */
+		if (options.encoding && !options.ascii && !options.iso8859_1 &&
 		    !(format->params.flags & FMT_UTF8)) {
 			if (options.format == NULL ||
 			    strcasecmp(format->params.label, options.format))
