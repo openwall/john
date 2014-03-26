@@ -217,7 +217,11 @@ static int validFolder(unsigned char *data)
 
 static int sevenzip_decrypt(unsigned char *derived_key, unsigned char *data)
 {
+#ifdef _MSC_VER
+	unsigned char *out;
+#else
 	unsigned char out[cur_salt->length];
+#endif
 	AES_KEY akey;
 	unsigned char iv[16];
 	union {
@@ -229,6 +233,10 @@ static int sevenzip_decrypt(unsigned char *derived_key, unsigned char *data)
 	CRC32_t crc;
 	int i;
 	int nbytes, margin;
+
+#ifdef _MSC_VER
+	out = malloc(cur_salt->length);
+#endif
 	memcpy(iv, cur_salt->iv, 16);
 
 	if(AES_set_decrypt_key(derived_key, 256, &akey) < 0) {
@@ -242,14 +250,21 @@ static int sevenzip_decrypt(unsigned char *derived_key, unsigned char *data)
 	margin = nbytes = cur_salt->length - cur_salt->unpacksize;
 	i = cur_salt->length - 1;
 	while (nbytes > 0) {
-		if (out[i] != 0)
+		if (out[i] != 0) {
+#ifdef _MSC_VER
+			free(out);
+#endif
 			return -1;
+		}
 		nbytes--;
 		i--;
 	}
 	if (margin > 7) {
 		// printf("valid padding test ;-)\n");
 		// print_hex(out, cur_salt->length);
+#ifdef _MSC_VER
+			free(out);
+#endif
 		return 0;
 	}
 
@@ -258,15 +273,25 @@ static int sevenzip_decrypt(unsigned char *derived_key, unsigned char *data)
 	CRC32_Update(&crc, out, cur_salt->unpacksize);
 	CRC32_Final(crc_out, crc);
 	ccrc =  _crc_out.crci; // computed CRC
-	if (ccrc == cur_salt->crc)
+	if (ccrc == cur_salt->crc) {
+#ifdef _MSC_VER
+		free(out);
+#endif
 		return 0;  // XXX don't be too eager!
+	}
 
 	// XXX test 2, "well-formed folder" test
 	if (validFolder(out)) {
 		printf("validFolder check ;-)\n");
+#ifdef _MSC_VER
+		free(out);
+#endif
 		return 0;
 	}
 
+#ifdef _MSC_VER
+	free(out);
+#endif
 	return -1;
 }
 

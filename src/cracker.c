@@ -14,14 +14,21 @@
 #include <signal.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#if HAVE_SYS_TIME_H
 #include <sys/file.h>
+#endif
 #include <time.h>
 #if HAVE_SYS_TIMES_H
 #include <sys/times.h>
 #endif
 #include <fcntl.h>
 #include <errno.h>
+#if HAVE_UNISTD_H
 #include <unistd.h>
+#endif
+#ifdef _MSC_VER
+#include <io.h> // open()
+#endif
 
 #include "arch.h"
 #include "misc.h"
@@ -64,6 +71,12 @@ static int64 *crk_timestamps;
 static char crk_stdout_key[PLAINTEXT_BUFFER_SIZE];
 long int crk_pot_pos;
 static int potcheck_salt_size;
+
+#ifdef _MSC_VER
+#undef MEM_FREE
+#include <Windows.h>
+int sleep(int i) {Sleep(1000*i); return 0;}
+#endif
 
 static void crk_dummy_set_salt(void *salt)
 {

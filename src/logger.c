@@ -151,7 +151,9 @@ static void log_file_flush(struct log_file *f)
 			raise(SIGUSR2);
 	}
 #else
+#ifndef _MSC_VER
 #warning SIGUSR2
+#endif
 #endif
 }
 
