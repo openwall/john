@@ -20,6 +20,13 @@
 /*
  * Runs the Regular expression cracker
  */
-void do_regex_crack(struct db_main *db, char *regex);
+#ifndef HAVE_REXGEN
+#define do_regex_crack_as_rules(a,word) crk_process_key(word)
+#else
+void do_regex_crack(struct db_main *db, const char *regex);
+int do_regex_crack_as_rules(const char *regex, const char *base_word);
+#endif
+
+
 
 #endif

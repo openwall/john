@@ -305,11 +305,8 @@ struct options_main {
 	int verbosity;
 /* Secure mode. Do not output, log or store cracked passwords. */
 	int secure;
-
-#if HAVE_REXGEN
 /* regular expression */
   char *regex;
-#endif /* HAVE_REXGEN */
 };
 
 extern struct options_main options;

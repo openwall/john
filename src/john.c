@@ -1325,7 +1325,7 @@ static void john_run(void)
 		else
 		if (options.flags & FLG_WORDLIST_CHK)
 			do_wordlist_crack(&database, options.wordlist,
-				(options.flags & FLG_RULES) != 0);
+				(options.flags & FLG_RULES) != 0, options.regex);
 #if HAVE_REXGEN
 		else
 		if (options.flags & FLG_REGEX_CHK)
