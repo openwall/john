@@ -168,11 +168,6 @@ struct options_main {
 /* Mask mode's mask */
 	char *mask;
 
-/* The non-default input character set (utf8, ansi, iso-8859-1, etc)
-   as given by the user (might be with/without dash and lower/upper case
-   or even an alias, like 'ansi' for ISO-8859-1) */
-	char *encoding;
-
 /* External mode or word filter name */
 	char *external;
 
@@ -222,37 +217,6 @@ struct options_main {
  * be assigned to this variable.  This var is set by the undocummented
  * --regen_lost_salts=#   */
 	int regen_lost_salts;
-
-/* wordfile character encoding 'stuff' */
-/* The canonical name of chosen encoding. User might have said 'koi8r' but
-   this string will be 'KOI8-R'. An empty string means default/old-style */
-	char *encodingStr;
-/* A variant of same string, usable in #defines */
-	char *encodingDef;
-	int ascii;
-	int utf8;
-	int iso8859_1;
-	int iso8859_2;
-	int iso8859_7;
-	int iso8859_15;
-	int koi8_r;
-	int cp437;
-	int cp737;
-	int cp850;
-	int cp852;
-	int cp858;
-	int cp866;
-	int cp1250;
-	int cp1251;
-	int cp1252;
-	int cp1253;
-
-/* Show/log/store UTF-8 regardless of input decoding */
-	int store_utf8;
-	int report_utf8;
-
-/* Write cracked passwords to log (default is just username) */
-	int log_passwords;
 
 #ifdef HAVE_DL
 /* List of dll files to load for additional formats */
@@ -310,6 +274,44 @@ struct options_main {
 };
 
 extern struct options_main options;
+
+/* "Persistant" options. Unlike the options struct above, this one is not
+   reset by the children upon resuming a session. That behavior gave me
+   gray hairs. */
+
+/* In general, an encoding of 0 (CP_UNDEF) means no conversion and we will
+   behave more or less like core John. */
+struct pers_opts {
+/* Currently initialized non-utf8 encoding */
+	int unicode_cp;
+
+/* Input encoding for word lists, and/or pot file clear-texts. */
+	int input_enc;
+
+/* True if input encoding was set from john.conf defaults. */
+	int default_enc;
+
+/* Output encoding. This must match what the hash origin used. An exception
+   is UTF-16 formats like NT, which can use any codepage (or UTF-8) if FMT_UTF8
+   is set, or ISO-8859-1 only if FMT_UTF8 is false. */
+	int hashed_enc;
+
+/* If different from hashed_enc, this is an intermediate encoding only
+   used within rules processing. This is only applicable for the case
+   "UTF-8 -> rules -> UTF-8". Since the rules engine can't do proper case
+   conversion etc. in UTF-8, we can pick this intermediate encoding (use
+   one that matches most input) but the double conversions may come with
+   a speed penalty. */
+	int intermediate_enc;
+
+/* Store UTF-8 in pot file. Default is no conversion. */
+	int store_utf8;
+
+/* Show/log/report UTF-8. Default is no conversion. */
+	int report_utf8;
+};
+
+extern struct pers_opts pers_opts;
 
 /*
  * Initializes the options structure.

@@ -46,6 +46,7 @@
 #include "cracker.h"
 #include "john.h"
 #include "memory.h"
+#include "unicode.h"
 #include "regex.h"
 
 static int dist_rules;
@@ -209,12 +210,41 @@ static char *dummy_rules_apply(char *word, char *rule, int split, char *last)
 	return word;
 }
 
-static MAYBE_INLINE char *potword(char *line)
+/*
+ * This function does two separate things (either or both) just to confuse you.
+ * 1. In case we're in loopback mode, skip ciphertext and field separator.
+ * 2. Convert to hashed encoding, if applicable.
+ *
+ * It does both within the existing buffer - i.e. "right aligned" to the
+ * original EOL (the end result is guaranteed to fit).
+ */
+static MAYBE_INLINE char *convert(char *line)
 {
 	char *p;
 
-	p = strchr(line, options.loader.field_sep_char);
-	return p ? p + 1 : line;
+	if ((options.flags & FLG_LOOPBACK_CHK) &&
+	    (p = strchr(line, options.loader.field_sep_char)))
+		line = p + 1;
+
+	if (pers_opts.input_enc != pers_opts.hashed_enc) {
+		UTF16 u16[PLAINTEXT_BUFFER_SIZE + 1];
+		char *cp, *s, *d;
+		char e;
+		int len;
+
+		len = strcspn(line, "\n\r");
+		e = line[len];
+		line[len] = 0;
+		utf8_to_utf16(u16, PLAINTEXT_BUFFER_SIZE, (UTF8*)line, len);
+		line[len] = e;
+		cp = utf16_to_cp(u16);
+		d = &line[len];
+		s = &cp[strlen(cp)];
+		while (s > cp)
+			*--d = *--s;
+		line = d;
+	}
+	return line;
 }
 
 static unsigned int hash_log, hash_size, hash_mask;
@@ -435,10 +465,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules, char *regex)
 					}
 					if (!strncmp(line, "#!comment", 9))
 						continue;
-					if (loopBack)
-						lp = potword(file_line);
-					else
-						lp = file_line;
+					lp = convert(file_line);
 					if (!rules) {
 						lp[length] = '\n';
 						lp[length + 1] = 0;
@@ -466,10 +493,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules, char *regex)
 					}
 					if (!strncmp(line, "#!comment", 9))
 						continue;
-					if (loopBack)
-						lp = potword(file_line);
-					else
-						lp = file_line;
+					lp = convert(file_line);
 					if (!rules) {
 						lp[length] = '\n';
 						lp[length + 1] = 0;
@@ -569,8 +593,8 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules, char *regex)
 					i--;
 					break;
 				}
-				if (loopBack && !myWordFileLines)
-					cp = potword(cp);
+				if (!myWordFileLines)
+					cp = convert(cp);
 				ep = cp;
 				while ((ep < aep) && *ep && *ep != '\n' && *ep != '\r') ep++;
 				ec = *ep;
@@ -890,10 +914,12 @@ SKIP_MEM_MAP_LOAD:;
 
 			if (line[0] != '#') {
 process_word:
-				if (loopBack)
-					memmove(line, potword(line),
-					        strlen(potword(line)) + 1);
-
+				if (pers_opts.input_enc != pers_opts.hashed_enc
+				    || loopBack) {
+					char *conv = convert(line);
+					int len = strlen(conv);
+					memmove(line, conv, len + 1);
+				}
 				if (!rules) {
 					if (minlength || maxlength) {
 						int len = strlen(line);

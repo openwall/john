@@ -61,7 +61,7 @@ static void init(struct fmt_main *self)
 	//Initialize CUDA
 	cuda_init();
 
-	if (options.utf8) {
+	if (pers_opts.hashed_enc == UTF_8) {
 		self->params.plaintext_length *= 3;
 		if (self->params.plaintext_length > 125)
 			self->params.plaintext_length = 125;

@@ -490,7 +490,7 @@ static void init(struct fmt_main *self)
 		fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
 	create_clobj(global_work_size, self);
 
-	if (options.utf8)
+	if (pers_opts.hashed_enc == UTF_8)
 		self->params.plaintext_length = MIN(125, 3 * PLAINTEXT_LENGTH);
 }
 

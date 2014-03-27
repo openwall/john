@@ -140,7 +140,7 @@ void DES_bs_init(int LM, int cpt)
 			DES_bs_all.pxkeys[index] =
 			    &DES_bs_all.xkeys.c[0][index & 7][index >> 3];
 
-		if (LM ==1) {
+		if (LM == 1) {
 			for (c = 0; c < 0x100; c++)
 #ifdef BENCH_BUILD
 			if (c >= 'a' && c <= 'z')
@@ -148,9 +148,10 @@ void DES_bs_init(int LM, int cpt)
 			else
 				DES_bs_all.E.u[c] = c;
 #else
-			DES_bs_all.E.u[c] = CP_up[c];
+				/* Codepage-aware uppercasing */
+				DES_bs_all.E.u[c] = CP_up[c];
 #endif
-		} else if(LM==0) {
+		} else if (LM == 0) {
 			for (index = 0; index < 48; index++)
 				DES_bs_all.Ens[index] =
 				    &DES_bs_all.B[DES_E[index]];

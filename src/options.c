@@ -54,7 +54,9 @@
 #endif
 
 struct options_main options;
+struct pers_opts pers_opts; /* Not reset after forked resume */
 static char *field_sep_char_str, *show_uncracked_str, *salts_str;
+static char *encoding_str, *hashed_enc_str, *intermediate_enc_str;
 
 static struct opt_entry opt_list[] = {
 	{"", FLG_PASSWD, 0, 0, 0, OPT_FMT_ADD_LIST, &options.passwd},
@@ -65,7 +67,11 @@ static struct opt_entry opt_list[] = {
 	{"loopback", FLG_LOOPBACK_SET, FLG_CRACKING_CHK,
 		0, 0, OPT_FMT_STR_ALLOC, &options.wordlist},
 	{"encoding", FLG_NONE, FLG_NONE,
-		0, 0, OPT_FMT_STR_ALLOC, &options.encoding},
+		0, 0, OPT_FMT_STR_ALLOC, &encoding_str},
+	{"hashed-encoding", FLG_NONE, FLG_NONE,
+		0, 0, OPT_FMT_STR_ALLOC, &hashed_enc_str},
+	{"intermediate-encoding", FLG_NONE, FLG_NONE,
+		0, 0, OPT_FMT_STR_ALLOC, &intermediate_enc_str},
 	{"stdin", FLG_STDIN_SET, FLG_CRACKING_CHK},
 #if HAVE_WINDOWS_H
 	{"pipe", FLG_PIPE_SET, FLG_CRACKING_CHK,
@@ -353,7 +359,7 @@ void opt_print_hidden_usage(void)
 	puts("--nolog                   disables creation and writing to john.log file");
 	puts("--log-stderr              log to screen instead of file");
 	puts("--bare-always-valid=C     if C is 'Y' or 'y', then the dynamic format will");
-	puts("                          always treat bare hashes as valid.");
+	puts("                          always treat bare hashes as valid");
 	puts("--progress-every=N        emit a status line every N seconds");
 	puts("--crack-status            emit a status line whenever a password is cracked");
 	puts("--max-run-time=N          gracefully exit after this many seconds");
@@ -362,6 +368,8 @@ void opt_print_hidden_usage(void)
 	puts("--reject-printable        reject printable binaries");
 	puts("--verbosity=N             change verbosity (1-5, default 3)");
 	puts("--skip-self-tests         skip self tests");
+	puts("--hashed-encoding=NAME    encoding used by format (see doc/ENCODING)");
+	puts("--intermediate-enc=NAME   encoding used in rules processing (see doc/ENCODING");
 #ifdef HAVE_DL
 	puts("--plugin=NAME[,..]        load this (these) dynamic plugin(s)");
 #endif
@@ -633,10 +641,27 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 	}
 #endif
 
-	if (options.encoding && !strcasecmp(options.encoding, "list")) {
+	/*
+	 * By default we are setup in 7 bit ascii mode (for rules) and
+	 * ISO-8859-1 codepage (for Unicode conversions).  We can change
+	 * that in john.conf or with the --encoding option.
+	 */
+	if ((encoding_str && !strcasecmp(encoding_str, "list")) ||
+	    (intermediate_enc_str &&
+	     !strcasecmp(intermediate_enc_str, "list")) ||
+	    (hashed_enc_str && !strcasecmp(hashed_enc_str, "list"))) {
 		listEncodings();
 		exit(0);
 	}
+
+	if (encoding_str)
+		pers_opts.input_enc = cp_name2id(encoding_str);
+
+	if (hashed_enc_str)
+		pers_opts.hashed_enc = cp_name2id(hashed_enc_str);
+
+	if (intermediate_enc_str)
+		pers_opts.intermediate_enc = cp_name2id(intermediate_enc_str);
 
 #ifdef HAVE_OPENCL
 	if (options.v_width) {
@@ -679,7 +704,7 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 		error();
 	}
 
-	if ( (options.flags & FLG_SHOW_SET) && show_uncracked_str) {
+	if ( (options.flags & FLG_SHOW_CHK) && show_uncracked_str) {
 		if (!strcasecmp(show_uncracked_str, "left"))  {
 			options.loader.showuncracked = 1;
 			// Note we 'do' want the pot file to load normally, but during that load,
@@ -704,7 +729,8 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 	options.regen_lost_salts = regen_lost_salt_parse_options();
 
 	if (field_sep_char_str) {
-		if (!strcasecmp(field_sep_char_str, "tab")) // Literal tab or TAB will mean 0x09 tab character
+		// Literal tab or TAB will mean 0x09 tab character
+		if (!strcasecmp(field_sep_char_str, "tab"))
 			field_sep_char_str = "\x09";
 		if (strlen(field_sep_char_str) == 1)
 			options.loader.field_sep_char = *field_sep_char_str;

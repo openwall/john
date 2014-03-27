@@ -188,6 +188,9 @@ struct db_options {
 
 /* Field separator (normally ':') */
 	char field_sep_char;
+
+/* Write cracked passwords to log (default is just username) */
+	int log_passwords;
 };
 
 /*

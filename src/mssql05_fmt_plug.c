@@ -152,14 +152,12 @@ static void init(struct fmt_main *self)
 #else
 	saved_key = mem_calloc_tiny(PLAINTEXT_LENGTH*2 + 1 + SALT_SIZE, MEM_ALIGN_WORD);
 #endif
-	if (options.utf8) {
+	if (pers_opts.hashed_enc == UTF_8) {
 		self->methods.set_key = set_key_utf8;
 		self->params.plaintext_length = MIN(125, PLAINTEXT_LENGTH * 3);
 	}
-	else if (options.iso8859_1 || options.ascii) {
-		; // do nothing
-	}
-	else {
+	else if (pers_opts.hashed_enc != ISO_8859_1 &&
+	         pers_opts.hashed_enc != ASCII) {
 		self->methods.set_key = set_key_CP;
 	}
 }

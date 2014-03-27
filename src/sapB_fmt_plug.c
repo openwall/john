@@ -21,6 +21,7 @@
 #include "common.h"
 #include "formats.h"
 #include "options.h"
+#include "unicode.h"
 #include "md5.h"
 
 #define FORMAT_LABEL			"sapb"
@@ -156,7 +157,7 @@ static void init(struct fmt_main *self)
 {
 	static int warned = 0;
 
-	if (options.utf8 && warned++ == 0)
+	if (pers_opts.hashed_enc == UTF_8 && warned++ == 0)
 		fprintf(stderr, "Warning: SAP-B format should never be UTF-8.\nConvert your input files to iso-8859-1 instead.\n");
 
 #if defined (_OPENMP) && (defined(MD5_SSE_PARA) || !defined(MMX_COEF))

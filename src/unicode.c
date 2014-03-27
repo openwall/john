@@ -119,7 +119,7 @@ static UTF8 CP_from_Unicode[0x10000];
 UTF8 CP_up[0x100];
 UTF8 CP_down[0x100];
 static int UnicodeType = -1;
-static char *UnicodeInited = "";
+static int UnicodeInited = 0;
 
 /*
  * This is used by single.c for determining that a character is a letter
@@ -403,7 +403,7 @@ inline
 int enc_to_utf16(UTF16 *dst, unsigned int maxdstlen, const UTF8 *src,
                  unsigned int srclen)
 {
-	if (!(options.utf8)) {
+	if (pers_opts.hashed_enc != UTF_8) {
 		int i, trunclen = (int)srclen;
 		if (trunclen > maxdstlen)
 			trunclen = maxdstlen;
@@ -427,6 +427,30 @@ int enc_to_utf16(UTF16 *dst, unsigned int maxdstlen, const UTF8 *src,
 	}
 }
 
+static inline int cp_to_utf16(UTF16 *dst, unsigned int maxdstlen,
+                              const UTF8 *src, unsigned int srclen)
+{
+	int i, trunclen = (int)srclen;
+
+	if (trunclen > maxdstlen)
+		trunclen = maxdstlen;
+
+	for (i = 0; i < trunclen; i++) {
+#if ARCH_LITTLE_ENDIAN
+		*dst++ = CP_to_Unicode[*src++];
+#else
+		UTF16 val = CP_to_Unicode[*src++];
+		SSVAL(dst, 0, val);
+		++dst;
+#endif
+	}
+	*dst = 0;
+	if (i < srclen)
+		return -i;
+	else
+		return i;
+}
+
 /* Convert from current codepage to UTF-16BE regardless of arch
  * NOTE, Solaris did not build properly with this function inlined. Thus
  * the inline was conditioned */
@@ -435,7 +459,7 @@ inline
 #endif
 int enc_to_utf16_be(UTF16 *dst, unsigned int maxdstlen, const UTF8 *src,
                     unsigned int srclen) {
-	if (!(options.utf8)) {
+	if (pers_opts.hashed_enc != UTF_8) {
 		int i, trunclen = (int)srclen;
 		if (trunclen > maxdstlen)
 			trunclen = maxdstlen;
@@ -511,11 +535,19 @@ inline unsigned int strlen8(const UTF8 *source)
  * mis-recognized as UTF-8:  The only non-ASCII characters in it would have
  * to be in sequences starting with either an accented letter or the
  * multiplication symbol and ending with a symbol.
+ *
+ * returns 0 if data is not valid UTF-8
+ * returns 1 if data is pure ASCII (which is obviously valid)
+ * returns >1 if data is valid and in fact contains UTF-8 sequences
+ *
+ * Actually in the last case, the return is the number of proper UTF-8
+ * sequences, so it can be used as a quality measure. A low number might be
+ * a false positive, a high number most probably isn't.
  */
 int valid_utf8(const UTF8 *source)
 {
 	UTF8 a;
-	int length;
+	int length, ret = 1;
 	const UTF8 *srcptr;
 
 	while (*source) {
@@ -554,8 +586,9 @@ int valid_utf8(const UTF8 *source)
 			return 0;
 
 		source += length;
+		ret++;
 	}
-	return 1;
+	return ret;
 }
 
 /*
@@ -792,7 +825,56 @@ char * utf8_to_enc_r (UTF8 *src, char* dst, int dstlen)
 	return dst;
 }
 
-// Convert UTF-16LE to UTF-8 or ISO-8859-1 depending on --encoding=utf8 flag.
+// Thread-safe conversion from codepage to UTF-8
+// This variant will never convert to/from UTF-8 but the initialized codepage.
+char *cp_to_utf8_r (char *src, char *dst, int dstlen)
+{
+	UTF16 tmp16[LINE_BUFFER_SIZE + 1];
+
+	cp_to_utf16(tmp16, LINE_BUFFER_SIZE, (unsigned char*)src,
+	             strlen(src));
+	return (char*)utf16_to_utf8_r((UTF8*)dst, dstlen, tmp16);
+}
+
+static inline UTF8 *utf16_to_cp_r (UTF8 *dst, int dst_len, const UTF16 *source) {
+	UTF8 *tgt = dst;
+	UTF8 *targetEnd = tgt + dst_len;
+
+	while (*source && tgt < targetEnd) {
+#if ARCH_LITTLE_ENDIAN
+		*tgt++ = CP_from_Unicode[*source++];
+#else
+		*tgt++ = CP_from_Unicode[(*source >> 8) | (UTF16)(*source << 8)];
+		source++;
+#endif
+	}
+	*tgt = 0;
+
+	return dst;
+}
+
+// Thread-safe conversion from UTF-8 to codepage
+// This variant will never convert to/from UTF-8 but the initialized codepage.
+char *utf8_to_cp_r (char *src, char* dst, int dstlen)
+{
+	UTF16 tmp16[LINE_BUFFER_SIZE + 1];
+
+	utf8_to_utf16(tmp16, LINE_BUFFER_SIZE, (UTF8*)src,
+	              strlen(src));
+	utf16_to_cp_r((UTF8*)dst, dstlen, tmp16);
+	return (char*)dst;
+}
+
+// Convert UTF-16LE to codepage.
+// This variant will never convert to/from UTF-8 but the initialized codepage.
+char *utf16_to_cp (const UTF16 *source) {
+	static UTF8 ret_Key[LINE_BUFFER_SIZE + 1];
+
+	utf16_to_cp_r(ret_Key, LINE_BUFFER_SIZE, source);
+	return (char*)ret_Key;
+}
+
+// Convert UTF-16LE to codepage.
 // This is not optimised as it's only used in get_key() as of now.
 // Non thread-safe version
 UTF8 *utf16_to_enc (const UTF16 *source) {
@@ -802,7 +884,7 @@ UTF8 *utf16_to_enc (const UTF16 *source) {
 
 // Thread-safe version
 UTF8 *utf16_to_enc_r (UTF8 *dst, int dst_len, const UTF16 *source) {
-	if (options.utf8)
+	if (pers_opts.hashed_enc == UTF_8)
 		return utf16_to_utf8_r(dst, dst_len, source);
 	else {
 		UTF8 *tgt = dst;
@@ -822,181 +904,200 @@ UTF8 *utf16_to_enc_r (UTF8 *dst, int dst_len, const UTF16 *source) {
 }
 
 void listEncodings(void) {
-	printf("utf-8, iso-8859-1 (or ansi)"
-	        ", iso-8859-2"
-	        ", iso-8859-7"
-	        ", iso-8859-15"
-	        ",\nkoi8-r"
-	        ", cp437"
-	        ", cp737"
-	        ", cp850"
-	        ", cp852"
-	        ", cp858"
-	        ", cp866"
-	        ", cp1250"
-	        ", cp1251"
-	        ",\ncp1252"
-	        ", cp1253"
+	printf("UTF-8, ISO-8859-1 (or ansi)"
+	        ", ISO-8859-2"
+	        ", ISO-8859-7"
+	        ", ISO-8859-15"
+	        ",\nKOI8-R"
+	        ", CP437"
+	        ", CP737"
+	        ", CP850"
+	        ", CP852"
+	        ", CP858"
+	        ", CP866"
+	        ", CP1250"
+	        ", CP1251"
+	        ",\nCP1252"
+	        ", CP1253"
 	        "\n");
 }
 
-/* Load the 'case-conversion' tables, and other translation table. */
-int initUnicode(int type) {
+static char *enc_name[CP_ARRAY] = { "UNDEF", "ASCII", "CP437", "CP737", "CP850",
+                                    "CP852", "CP858", "CP866", "CP1250",
+                                    "CP1251", "CP1252", "CP1253", "ISO-8859-1",
+                                    "ISO-8859-2", "ISO-8859-7", "ISO-8859-15",
+                                    "KOI8-R", "UTF-8" };
+
+/* Convert numerical encoding ID to canonical name */
+char *cp_id2name(int encoding)
+{
+	if (encoding >= 0 && encoding <= CP_ARRAY)
+		return enc_name[encoding];
+
+	fprintf(stderr, "ERROR: %s(%d)\n", __FUNCTION__, encoding);
+	exit(0);
+}
+
+/* Convert encoding name to numerical ID */
+int cp_name2id(char *encoding)
+{
+	char enc[16] = "";
+	char *d = enc;
+
+	if (!encoding || strlen(encoding) > sizeof(enc))
+		return CP_UNDEF;
+
+	/* Strip iso prefix */
+	if (!strncasecmp(encoding, "iso-", 4))
+		encoding += 4;
+	else if (!strncasecmp(encoding, "iso", 3))
+		encoding += 3;
+
+	/* Lowercase */
+	while (*encoding)
+	if (*encoding >= 'A' && *encoding <= 'Z')
+		*d++ = *encoding++ | 0x20;
+	else
+		*d++ = *encoding++;
+
+	/* Now parse this canonical format */
+	if (!strcmp(enc, "utf8") || !strcmp(enc, "utf-8"))
+		return UTF_8;
+	else
+	if (!strcmp(enc, "ansi") || !strcmp(enc, "8859-1"))
+		return ISO_8859_1;
+	else
+	if (!strcmp(enc, "8859-2"))
+		return ISO_8859_2;
+	else
+	if (!strcmp(enc, "8859-7"))
+		return ISO_8859_7;
+	else
+	if (!strcmp(enc, "8859-15"))
+		return ISO_8859_15;
+	else
+	if (!strcmp(enc, "koi8r") || !strcmp(enc, "koi-8r"))
+		return KOI8_R;
+	else
+	if (!strcmp(enc, "cp437"))
+		return CP437;
+	else
+	if (!strcmp(enc, "cp737"))
+		return CP737;
+	else
+	if (!strcmp(enc, "cp850"))
+		return CP850;
+	else
+	if (!strcmp(enc, "cp852"))
+		return CP852;
+	else
+	if (!strcmp(enc, "cp858"))
+		return CP858;
+	else
+	if (!strcmp(enc, "cp866"))
+		return CP866;
+	else
+	if (!strcmp(enc, "cp1250"))
+		return CP1250;
+	else
+	if (!strcmp(enc, "cp1251"))
+		return CP1251;
+	else
+	if (!strcmp(enc, "cp1252"))
+		return CP1252;
+	else
+	if (!strcmp(enc, "cp1253"))
+		return CP1253;
+	else
+	if (!strcmp(enc, "raw") || !strcmp(enc, "ascii"))
+		return ASCII;
+	else
+
+	listEncodings();
+	exit(0);
+}
+
+/* Load the 'case-conversion' and other translation tables. */
+void initUnicode(int type) {
 	unsigned i;
-	unsigned char *cpU, *cpL;
-	char *encTemp;
-	char *pos;
-	static char *req_enc;
+	unsigned char *cpU, *cpL, *Sep, *Letter;
+	unsigned char *pos;
+	int encoding;
 
-	if (!options.node_count &&
-	    UnicodeType == type && UnicodeInited == req_enc)
-		return 0;
+	if (!pers_opts.hashed_enc)
+		pers_opts.hashed_enc = pers_opts.input_enc;
 
-	UnicodeType = type;
+	if (!pers_opts.intermediate_enc)
+		pers_opts.intermediate_enc = pers_opts.hashed_enc;
 
-	options.utf8 = options.iso8859_1 = options.iso8859_2 = options.iso8859_7 =
-	  options.iso8859_15 = options.koi8_r = options.cp437 =
-	  options.cp737 = options.cp850 = options.cp852 = options.cp858 = options.cp866 =
-	  options.cp1251 = options.cp1250 = options.cp1252 = options.cp1253 = 0;
+	if (pers_opts.intermediate_enc != pers_opts.hashed_enc)
+		encoding = pers_opts.intermediate_enc;
+	else if (pers_opts.hashed_enc != pers_opts.input_enc)
+		encoding = pers_opts.hashed_enc;
+	else
+		encoding = pers_opts.input_enc;
 
-	/*
-	 * By default we are setup in 7 bit ascii mode (for rules) and
-	 * ISO-8859-1 codepage (for Unicode conversions).  We can change
-	 * that in john.conf or with the --encoding option.
-	 */
-	if (!(req_enc = options.encoding))
-		req_enc = cfg_get_param(SECTION_OPTIONS, NULL,
-		                        "DefaultEncoding");
+	if (encoding != UTF_8)
+		pers_opts.unicode_cp = encoding;
+	else
+		pers_opts.unicode_cp = ISO_8859_1;
 
-	options.ascii = 1;
-	options.encodingStr = "";
-	if (req_enc) {
-		// Ok, check a 'few' valid things for utf8
-		options.ascii = 0;
-		if (!strcasecmp(req_enc, "utf8")||!strcasecmp(req_enc, "utf-8")) {
-			options.utf8 = 1;
-			options.encodingStr = "UTF-8";
-			options.encodingDef = "UTF_8";
-		} else
-		if (!strcasecmp(req_enc, "ansi")||!strcasecmp(req_enc, "iso-8859-1")||!strcasecmp(req_enc, "8859-1")||!strcasecmp(req_enc, "iso8859-1")) {
-			options.iso8859_1 = 1;
-			options.encodingStr = "ISO-8859-1";
-			options.encodingDef = "ISO_8859_1";
-		} else
-		if (!strcasecmp(req_enc, "iso-8859-2")||!strcasecmp(req_enc, "8859-2")||!strcasecmp(req_enc, "iso8859-2")) {
-			options.iso8859_2 = 1;
-			options.encodingStr = "ISO-8859-2";
-			options.encodingDef = "ISO_8859_2";
-		} else
-		if (!strcasecmp(req_enc, "iso-8859-7")||!strcasecmp(req_enc, "8859-7")||!strcasecmp(req_enc, "iso8859-7")) {
-			options.iso8859_7 = 1;
-			options.encodingStr = "ISO-8859-7";
-			options.encodingDef = "ISO_8859_7";
-		} else
-		if (!strcasecmp(req_enc, "iso-8859-15")||!strcasecmp(req_enc, "8859-15")||!strcasecmp(req_enc, "iso8859-15")) {
-			options.iso8859_15 = 1;
-			options.encodingStr = "ISO-8859-15";
-			options.encodingDef = "ISO_8859_15";
-		} else
-		if (!strcasecmp(req_enc, "koi8-r")||!strcasecmp(req_enc, "koi8r")) {
-			options.koi8_r = 1;
-			options.encodingStr = "KOI8-R";
-			options.encodingDef = "KOI8_R";
-		} else
-		if (!strcasecmp(req_enc, "cp437")||!strcasecmp(req_enc, "cp-437")) {
-			options.cp437 = 1;
-			options.encodingDef = options.encodingStr = "CP437";
-		} else
-		if (!strcasecmp(req_enc, "cp737")||!strcasecmp(req_enc, "cp-737")) {
-			options.cp737 = 1;
-			options.encodingDef = options.encodingStr = "CP737";
-		} else
-		if (!strcasecmp(req_enc, "cp850")||!strcasecmp(req_enc, "cp-850")) {
-			options.cp850 = 1;
-			options.encodingDef = options.encodingStr = "CP850";
-		} else
-		if (!strcasecmp(req_enc, "cp852")||!strcasecmp(req_enc, "cp-852")) {
-			options.cp852 = 1;
-			options.encodingDef = options.encodingStr = "CP852";
-		} else
-		if (!strcasecmp(req_enc, "cp858")||!strcasecmp(req_enc, "cp-858")) {
-			options.cp858 = 1;
-			options.encodingDef = options.encodingStr = "CP858";
-		} else
-		if (!strcasecmp(req_enc, "cp866")||!strcasecmp(req_enc, "cp-866")) {
-			options.cp866 = 1;
-			options.encodingDef = options.encodingStr = "CP866";
-		} else
-		if (!strcasecmp(req_enc, "cp1250")||!strcasecmp(req_enc, "cp-1250")) {
-			options.cp1250 = 1;
-			options.encodingDef = options.encodingStr = "CP1250";
-		} else
-		if (!strcasecmp(req_enc, "cp1251")||!strcasecmp(req_enc, "cp-1251")) {
-			options.cp1251 = 1;
-			options.encodingDef = options.encodingStr = "CP1251";
-		} else
-		if (!strcasecmp(req_enc, "cp1252")||!strcasecmp(req_enc, "cp-1252")) {
-			options.cp1252 = 1;
-			options.encodingDef = options.encodingStr = "CP1252";
-		} else
-		if (!strcasecmp(req_enc, "cp1253")||!strcasecmp(req_enc, "cp-1253")) {
-			options.cp1253 = 1;
-			options.encodingDef = options.encodingStr = "CP1253";
-		} else
-		if (!strcasecmp(req_enc, "raw")||!strcasecmp(req_enc, "ascii")||!strcasecmp(req_enc, "default")) {
-			options.ascii = 1;
-			options.encodingStr = "raw";
-			options.encodingDef = "RAW";
-		} else {
-			fprintf (stderr, "Invalid encoding. ");
-			listEncodings();
-			error();
-		}
+	if (UnicodeType == type && UnicodeInited == pers_opts.unicode_cp)
+		return;
+
+	if (options.verbosity >= 5) {
+		fprintf(stderr, "%s(%s, %s/%s)\n", __FUNCTION__,
+		        type == 1 ? "MS_OLD" :
+		        type == 2 ? "MS_NEW" : "UNICODE",
+		        cp_id2name(encoding), cp_id2name(pers_opts.unicode_cp));
+		fprintf(stderr, "%s -> %s -> %s\n",
+		        cp_id2name(pers_opts.input_enc),
+		        cp_id2name(pers_opts.intermediate_enc),
+		        cp_id2name(pers_opts.hashed_enc));
 	}
 
-#ifndef NOT_JOHN
-	options.log_passwords = options.secure ||
-		cfg_get_bool(SECTION_OPTIONS, NULL, "LogCrackedPasswords", 0);
-	options.report_utf8 = cfg_get_bool(SECTION_OPTIONS,
-	    NULL, "AlwaysReportUTF8", 0);
-#endif
+	UnicodeType = type;
+	UnicodeInited = pers_opts.unicode_cp;
 	memset(ucs2_upcase, 0, sizeof(ucs2_upcase));
 	memset(ucs2_downcase, 0, sizeof(ucs2_downcase));
 
-	// If we are handling MSSQL format (the old upper case, then we MUST use arTo[UL]CDat_WinXP arrays,
-	// and NOTE use the multi-char stuff.
-
-	// I know this may 'not' be right, but for now, I will be doing all unicode in the
-	// MSSQL-2000 way.   When initUnicode gets called, we do not know what format we are 'testing'
-	// against. We may have to split up the initialzation into 2 parts.  One part done early, and
-	// the 2nd part done, when we know what format we are using.
-	// This is still TBD on how best to do it.
-	if (type==UNICODE_MS_OLD) {
-		if (options.ascii) {
-			// The 'proper' default encoding for mssql IS 8859-1 the test suite will have a TON of failures, unless this
-			// is set this way.  All of the data IN that test suite, was made using MSSQL.
-			options.ascii = 0;
-			options.iso8859_1 = 1;
-			options.encodingStr = "ISO-8859-1";
+// If we are handling MSSQL format (the old upper case, then we MUST use
+// arTo[UL]CDat_WinXP arrays, and NOTE use the multi-char stuff.
+// I know this may 'not' be right, but for now, I will be doing all unicode in
+// the MSSQL-2000 way. When initUnicode gets called, we do not know what format
+// we are 'testing' against. We may have to split up the initialzation into 2
+// parts.  One part done early, and the 2nd part done, when we know what format
+// we are using. This is still TBD on how best to do it.
+	if (type == UNICODE_MS_OLD) {
+		if (encoding == ASCII) {
+// The 'proper' default encoding for mssql IS CP1252. The test suite will have
+// a TON of failures, unless this is set this way.  All of the data IN that
+// test suite, was made using MSSQL.
+			UnicodeInited = encoding = CP1252;
 		}
 		for (i = 0; arToUCDat_WinXP[i]; i += 2)
 			ucs2_upcase[arToUCDat_WinXP[i]] = arToUCDat_WinXP[i+1];
 		for (i = 0; arToLCDat_WinXP[i]; i += 2)
-			ucs2_downcase[arToLCDat_WinXP[i]] = arToLCDat_WinXP[i+1];
+			ucs2_downcase[arToLCDat_WinXP[i]] =
+				arToLCDat_WinXP[i+1];
 
 		// Required for cp737, MSSQL_old
 		ucs2_upcase[0x03C2] = 0x03C2; //U+03C2 -> U+03A3 was not cased
-		ucs2_downcase[0x03A3] = 0x03A3; //U+03A3 -> U+03C2  was not cased
-	} else if (type==UNICODE_MS_NEW) {
+		ucs2_downcase[0x03A3] = 0x03A3; //U+03A3 -> U+03C2 was not cased
+	} else if (type == UNICODE_MS_NEW) {
 		for (i = 0; arToUCDat_WinVista[i]; i += 2)
-			ucs2_upcase[arToUCDat_WinVista[i]] = arToUCDat_WinVista[i+1];
+			ucs2_upcase[arToUCDat_WinVista[i]] =
+				arToUCDat_WinVista[i+1];
 		for (i = 0; arToLCDat_WinVista[i]; i += 2)
-			ucs2_downcase[arToLCDat_WinVista[i]] = arToLCDat_WinVista[i+1];
+			ucs2_downcase[arToLCDat_WinVista[i]] =
+				arToLCDat_WinVista[i+1];
 	} else {
 		for (i = 0; arToUCDat_UCData_txt[i]; i += 2)
-			ucs2_upcase[arToUCDat_UCData_txt[i]] = arToUCDat_UCData_txt[i+1];
+			ucs2_upcase[arToUCDat_UCData_txt[i]] =
+				arToUCDat_UCData_txt[i+1];
 		for (i = 0; arToLCDat_UCData_txt[i]; i += 2)
-			ucs2_downcase[arToLCDat_UCData_txt[i]] = arToLCDat_UCData_txt[i+1];
+			ucs2_downcase[arToLCDat_UCData_txt[i]] =
+				arToLCDat_UCData_txt[i+1];
 
 		// set a 1 for any 'multi-char' converts.
 		for (i = 0; uniMultiCase[i].Val; ++i)
@@ -1006,231 +1107,298 @@ int initUnicode(int type) {
 				ucs2_upcase[uniMultiCase[i].Val] = 1;
 	}
 
-	// Here we setup the 8-bit codepages we handle, and setup the mapping values into Unicode.
+// Here we setup the 8-bit codepages we handle, and setup the mapping values
+// into Unicode.
 	for (i = 0; i < 128; ++i) {
 		CP_to_Unicode[i] = i;
 	}
 	for (i = 128; i < 256; ++i) {
-		if (options.iso8859_2)
+		switch(encoding) {
+		case ISO_8859_2:
 			CP_to_Unicode[i] = ISO_8859_2_to_unicode_high128[i-128];
-		if (options.iso8859_7)
+			break;
+		case ISO_8859_7:
 			CP_to_Unicode[i] = ISO_8859_7_to_unicode_high128[i-128];
-		else if (options.iso8859_15)
-			CP_to_Unicode[i] = ISO_8859_15_to_unicode_high128[i-128];
-		else if (options.koi8_r)
+			break;
+		case ISO_8859_15:
+			CP_to_Unicode[i] =
+				ISO_8859_15_to_unicode_high128[i-128];
+			break;
+		case KOI8_R:
 			CP_to_Unicode[i] = KOI8_R_to_unicode_high128[i-128];
-		else if (options.cp437)
+			break;
+		case CP437:
 			CP_to_Unicode[i] = CP437_to_unicode_high128[i-128];
-		else if (options.cp737)
+			break;
+		case CP737:
 			CP_to_Unicode[i] = CP737_to_unicode_high128[i-128];
-		else if (options.cp850)
+			break;
+		case CP850:
 			CP_to_Unicode[i] = CP850_to_unicode_high128[i-128];
-		else if (options.cp852)
+			break;
+		case CP852:
 			CP_to_Unicode[i] = CP852_to_unicode_high128[i-128];
-		else if (options.cp858)
+			break;
+		case CP858:
 			CP_to_Unicode[i] = CP858_to_unicode_high128[i-128];
-		else if (options.cp866)
+			break;
+		case CP866:
 			CP_to_Unicode[i] = CP866_to_unicode_high128[i-128];
-		else if (options.cp1250)
+			break;
+		case CP1250:
 			CP_to_Unicode[i] = CP1250_to_unicode_high128[i-128];
-		else if (options.cp1251)
+			break;
+		case CP1251:
 			CP_to_Unicode[i] = CP1251_to_unicode_high128[i-128];
-		else if (options.cp1252)
+			break;
+		case CP1252:
 			CP_to_Unicode[i] = CP1252_to_unicode_high128[i-128];
-		else if (options.cp1253)
+			break;
+		case CP1253:
 			CP_to_Unicode[i] = CP1253_to_unicode_high128[i-128];
-		else
-			CP_to_Unicode[i] = ISO_8859_1_to_unicode_high128[i-128]; // 8859-1
+			break;
+		default: // 8859-1
+			CP_to_Unicode[i] = ISO_8859_1_to_unicode_high128[i-128];
+		}
 	}
 	for (i = 0; i < 0x10000; ++i)
 		CP_from_Unicode[i] = i;  // will truncate to lower 8 bits.
 	for (i = 0; i < 128; ++i) {
-		if (options.iso8859_2)
-			CP_from_Unicode[ISO_8859_2_to_unicode_high128[i]] = i+128;
-		if (options.iso8859_7)
-			CP_from_Unicode[ISO_8859_7_to_unicode_high128[i]] = i+128;
-		else if (options.iso8859_15)
-			CP_from_Unicode[ISO_8859_15_to_unicode_high128[i]] = i+128;
-		else if (options.koi8_r)
+		switch(encoding) {
+		case ISO_8859_2:
+			CP_from_Unicode[ISO_8859_2_to_unicode_high128[i]] =
+				i+128;
+			break;
+		case ISO_8859_7:
+			CP_from_Unicode[ISO_8859_7_to_unicode_high128[i]] =
+				i+128;
+			break;
+		case ISO_8859_15:
+			CP_from_Unicode[ISO_8859_15_to_unicode_high128[i]] =
+				i+128;
+			break;
+		case KOI8_R:
 			CP_from_Unicode[KOI8_R_to_unicode_high128[i]] = i+128;
-		else if (options.cp437)
+			break;
+		case CP437:
 			CP_from_Unicode[CP437_to_unicode_high128[i]] = i+128;
-		else if (options.cp737)
+			break;
+		case CP737:
 			CP_from_Unicode[CP737_to_unicode_high128[i]] = i+128;
-		else if (options.cp850)
+			break;
+		case CP850:
 			CP_from_Unicode[CP850_to_unicode_high128[i]] = i+128;
-		else if (options.cp852)
+			break;
+		case CP852:
 			CP_from_Unicode[CP852_to_unicode_high128[i]] = i+128;
-		else if (options.cp858)
+			break;
+		case CP858:
 			CP_from_Unicode[CP858_to_unicode_high128[i]] = i+128;
-		else if (options.cp866)
+			break;
+		case CP866:
 			CP_from_Unicode[CP866_to_unicode_high128[i]] = i+128;
-		else if (options.cp1250)
+			break;
+		case CP1250:
 			CP_from_Unicode[CP1250_to_unicode_high128[i]] = i+128;
-		else if (options.cp1251)
+			break;
+		case CP1251:
 			CP_from_Unicode[CP1251_to_unicode_high128[i]] = i+128;
-		else if (options.cp1252)
+			break;
+		case CP1252:
 			CP_from_Unicode[CP1252_to_unicode_high128[i]] = i+128;
-		else if (options.cp1253)
+			break;
+		case CP1253:
 			CP_from_Unicode[CP1253_to_unicode_high128[i]] = i+128;
-		else {
-			CP_from_Unicode[ISO_8859_1_to_unicode_high128[i]] = i+128;
+			break;
+		default:
+			CP_from_Unicode[ISO_8859_1_to_unicode_high128[i]] =
+				i+128;
 			if (!i)
 				CP_from_Unicode[0x39C] = 0xB5;
 		}
 	}
 
-	// first set ALL characters to have NO conversion.
+	// First set ALL characters to have NO conversion.
 	for (i = 0; i < 256; ++i)
 		CP_up[i] = CP_down[i] = i;
-	// standard case change for 7 bit characters (lower 128 bytes), for character sets.
-	for (i = 'a'; i <= 'z'; ++i)
-		CP_up[i] = (i^0x20);
-	for (i = 'A'; i <= 'Z'; ++i)
-		CP_down[i] = (i^0x20);
 
-	// now handle upper 128 byte values for casing.  CHARS_LOW_ONLY_xxxx is not needed.
-	if (options.iso8859_1) {
-		cpU = (unsigned char*)CHARS_UPPER_ISO_8859_1; cpL = (unsigned char*)CHARS_LOWER_ISO_8859_1;
-	} else if (options.iso8859_2) {
-		cpU = (unsigned char*)CHARS_UPPER_ISO_8859_2; cpL = (unsigned char*)CHARS_LOWER_ISO_8859_2;
-	} else if (options.iso8859_7) {
-		cpU = (unsigned char*)CHARS_UPPER_ISO_8859_7; cpL = (unsigned char*)CHARS_LOWER_ISO_8859_7;
-	} else if (options.iso8859_15) {
-		cpU = (unsigned char*)CHARS_UPPER_ISO_8859_15; cpL = (unsigned char*)CHARS_LOWER_ISO_8859_15;
-	} else if (options.koi8_r) {
-		cpU = (unsigned char*)CHARS_UPPER_KOI8_R; cpL = (unsigned char*)CHARS_LOWER_KOI8_R;
-	} else if (options.cp437) {
-		cpU = (unsigned char*)CHARS_UPPER_CP437; cpL = (unsigned char*)CHARS_LOWER_CP437;
-	} else if (options.cp737) {
-		cpU = (unsigned char*)CHARS_UPPER_CP737; cpL = (unsigned char*)CHARS_LOWER_CP737;
-	} else if (options.cp850) {
-		cpU = (unsigned char*)CHARS_UPPER_CP850; cpL = (unsigned char*)CHARS_LOWER_CP850;
-	} else if (options.cp852) {
-		cpU = (unsigned char*)CHARS_UPPER_CP852; cpL = (unsigned char*)CHARS_LOWER_CP852;
-	} else if (options.cp858) {
-		cpU = (unsigned char*)CHARS_UPPER_CP858; cpL = (unsigned char*)CHARS_LOWER_CP858;
-	} else if (options.cp866) {
-		cpU = (unsigned char*)CHARS_UPPER_CP866; cpL = (unsigned char*)CHARS_LOWER_CP866;
-	} else if (options.cp1250) {
-		cpU = (unsigned char*)CHARS_UPPER_CP1250; cpL = (unsigned char*)CHARS_LOWER_CP1250;
-	} else if (options.cp1251) {
-		cpU = (unsigned char*)CHARS_UPPER_CP1251; cpL = (unsigned char*)CHARS_LOWER_CP1251;
-	} else if (options.cp1252) {
-		cpU = (unsigned char*)CHARS_UPPER_CP1252; cpL = (unsigned char*)CHARS_LOWER_CP1252;
-	} else if (options.cp1253) {
-		cpU = (unsigned char*)CHARS_UPPER_CP1253; cpL = (unsigned char*)CHARS_LOWER_CP1253;
-	} else {  // old-style ASCII-only
-		cpU = (unsigned char*)""; cpL = (unsigned char*)"";
+	// Standard case change for 7 bit characters (lower 128 bytes),
+	// for character sets.
+	for (i = 'a'; i <= 'z'; ++i) {
+		CP_up[i] = (i ^ 0x20);
+		CP_down[i ^ 0x20] = (i);
 	}
+
+	// Original separator list from loader.c
+#define CP_issep \
+	"!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~\177"
+
+	// Now handle upper 128 byte values for casing.
+	// CHARS_LOW_ONLY_xxxx is not needed.
+	switch(encoding) {
+	case ISO_8859_1:
+		cpU = (unsigned char*)CHARS_UPPER_ISO_8859_1;
+		cpL = (unsigned char*)CHARS_LOWER_ISO_8859_1;
+		Sep = (unsigned char*)CP_issep CHARS_PUNCTUATION_ISO_8859_1
+			CHARS_SPECIALS_ISO_8859_1 CHARS_WHITESPACE_ISO_8859_1
+			CHARS_CONTROL_ISO_8859_1 CHARS_INVALID_ISO_8859_1;
+		Letter = (unsigned char*)CHARS_ALPHA_ISO_8859_1;
+		break;
+	case ISO_8859_2:
+		cpU = (unsigned char*)CHARS_UPPER_ISO_8859_2;
+		cpL = (unsigned char*)CHARS_LOWER_ISO_8859_2;
+		Sep = (unsigned char*)CP_issep CHARS_PUNCTUATION_ISO_8859_2
+			CHARS_SPECIALS_ISO_8859_2 CHARS_WHITESPACE_ISO_8859_2
+			CHARS_CONTROL_ISO_8859_2 CHARS_INVALID_ISO_8859_2;
+		Letter = (unsigned char*)CHARS_ALPHA_ISO_8859_2;
+		break;
+	case ISO_8859_7:
+		cpU = (unsigned char*)CHARS_UPPER_ISO_8859_7;
+		cpL = (unsigned char*)CHARS_LOWER_ISO_8859_7;
+		Sep = (unsigned char*)CP_issep CHARS_PUNCTUATION_ISO_8859_7
+			CHARS_SPECIALS_ISO_8859_7 CHARS_WHITESPACE_ISO_8859_7
+			CHARS_CONTROL_ISO_8859_7 CHARS_INVALID_ISO_8859_7;
+		Letter = (unsigned char*)CHARS_ALPHA_ISO_8859_7;
+		break;
+	case ISO_8859_15:
+		cpU = (unsigned char*)CHARS_UPPER_ISO_8859_15;
+		cpL = (unsigned char*)CHARS_LOWER_ISO_8859_15;
+		Sep = (unsigned char*)CP_issep CHARS_PUNCTUATION_ISO_8859_15
+			CHARS_SPECIALS_ISO_8859_15 CHARS_WHITESPACE_ISO_8859_15
+			CHARS_CONTROL_ISO_8859_15 CHARS_INVALID_ISO_8859_15;
+		Letter = (unsigned char*)CHARS_ALPHA_ISO_8859_15;
+		break;
+	case KOI8_R:
+		cpU = (unsigned char*)CHARS_UPPER_KOI8_R;
+		cpL = (unsigned char*)CHARS_LOWER_KOI8_R;
+		Sep = (unsigned char*)CP_issep CHARS_PUNCTUATION_KOI8_R
+			CHARS_SPECIALS_KOI8_R CHARS_WHITESPACE_KOI8_R
+			CHARS_CONTROL_KOI8_R CHARS_INVALID_KOI8_R;
+		Letter = (unsigned char*)CHARS_ALPHA_KOI8_R;
+		break;
+	case CP437:
+		cpU = (unsigned char*)CHARS_UPPER_CP437;
+		cpL = (unsigned char*)CHARS_LOWER_CP437;
+		Sep = (unsigned char*)CP_issep CHARS_PUNCTUATION_CP437
+			CHARS_SPECIALS_CP437 CHARS_WHITESPACE_CP437
+			CHARS_CONTROL_CP437 CHARS_INVALID_CP437;
+		Letter = (unsigned char*)CHARS_ALPHA_CP437;
+		break;
+	case CP737:
+		cpU = (unsigned char*)CHARS_UPPER_CP737;
+		cpL = (unsigned char*)CHARS_LOWER_CP737;
+		Sep = (unsigned char*)CP_issep CHARS_PUNCTUATION_CP737
+			CHARS_SPECIALS_CP737 CHARS_WHITESPACE_CP737
+			CHARS_CONTROL_CP737 CHARS_INVALID_CP737;
+		Letter = (unsigned char*)CHARS_ALPHA_CP737;
+		break;
+	case CP850:
+		cpU = (unsigned char*)CHARS_UPPER_CP850;
+		cpL = (unsigned char*)CHARS_LOWER_CP850;
+		Sep = (unsigned char*)CP_issep CHARS_PUNCTUATION_CP850
+			CHARS_SPECIALS_CP850 CHARS_WHITESPACE_CP850
+			CHARS_CONTROL_CP850 CHARS_INVALID_CP850;
+		Letter = (unsigned char*)CHARS_ALPHA_CP850;
+		break;
+	case CP852:
+		cpU = (unsigned char*)CHARS_UPPER_CP852;
+		cpL = (unsigned char*)CHARS_LOWER_CP852;
+		Sep = (unsigned char*)CP_issep CHARS_PUNCTUATION_CP852
+			CHARS_SPECIALS_CP852 CHARS_WHITESPACE_CP852
+			CHARS_CONTROL_CP852 CHARS_INVALID_CP852;
+		Letter = (unsigned char*)CHARS_ALPHA_CP852;
+		break;
+	case CP858:
+		cpU = (unsigned char*)CHARS_UPPER_CP858;
+		cpL = (unsigned char*)CHARS_LOWER_CP858;
+		Sep = (unsigned char*)CP_issep CHARS_PUNCTUATION_CP858
+			CHARS_SPECIALS_CP858 CHARS_WHITESPACE_CP858
+			CHARS_CONTROL_CP858 CHARS_INVALID_CP858;
+		Letter = (unsigned char*)CHARS_ALPHA_CP858;
+		break;
+	case CP866:
+		cpU = (unsigned char*)CHARS_UPPER_CP866;
+		cpL = (unsigned char*)CHARS_LOWER_CP866;
+		Sep = (unsigned char*)CP_issep CHARS_PUNCTUATION_CP866
+			CHARS_SPECIALS_CP866 CHARS_WHITESPACE_CP866
+			CHARS_CONTROL_CP866 CHARS_INVALID_CP866;
+		Letter = (unsigned char*)CHARS_ALPHA_CP866;
+		break;
+	case CP1250:
+		cpU = (unsigned char*)CHARS_UPPER_CP1250;
+		cpL = (unsigned char*)CHARS_LOWER_CP1250;
+		Sep = (unsigned char*)CP_issep CHARS_PUNCTUATION_CP1250
+			CHARS_SPECIALS_CP1250 CHARS_WHITESPACE_CP1250
+			CHARS_CONTROL_CP1250 CHARS_INVALID_CP1250;
+		Letter = (unsigned char*)CHARS_ALPHA_CP1250;
+		break;
+	case CP1251:
+		cpU = (unsigned char*)CHARS_UPPER_CP1251;
+		cpL = (unsigned char*)CHARS_LOWER_CP1251;
+		Sep = (unsigned char*)CP_issep CHARS_PUNCTUATION_CP1251
+			CHARS_SPECIALS_CP1251 CHARS_WHITESPACE_CP1251
+			CHARS_CONTROL_CP1251 CHARS_INVALID_CP1251;
+		Letter = (unsigned char*)CHARS_ALPHA_CP1251;
+		break;
+	case CP1252:
+		cpU = (unsigned char*)CHARS_UPPER_CP1252;
+		cpL = (unsigned char*)CHARS_LOWER_CP1252;
+		Sep = (unsigned char*)CP_issep CHARS_PUNCTUATION_CP1252
+			CHARS_SPECIALS_CP1252 CHARS_WHITESPACE_CP1252
+			CHARS_CONTROL_CP1252 CHARS_INVALID_CP1252;
+		Letter = (unsigned char*)CHARS_ALPHA_CP1252;
+		break;
+	case CP1253:
+		cpU = (unsigned char*)CHARS_UPPER_CP1253;
+		cpL = (unsigned char*)CHARS_LOWER_CP1253;
+		Sep = (unsigned char*)CP_issep CHARS_PUNCTUATION_CP1253
+			CHARS_SPECIALS_CP1253 CHARS_WHITESPACE_CP1253
+			CHARS_CONTROL_CP1253 CHARS_INVALID_CP1253;
+		Letter = (unsigned char*)CHARS_ALPHA_CP1253;
+		break;
+	default:
+		cpU = (unsigned char*)"";
+		cpL = (unsigned char*)"";
+		Sep = (unsigned char*)CP_issep;
+		Letter = (unsigned char*)"";
+	}
+
 	for (i = 0; cpU[i]; ++i) {
 		CP_down[(unsigned)cpU[i]] = cpL[i];
 		CP_up[(unsigned)cpL[i]] = cpU[i];
 	}
 
-	if (type==UNICODE_MS_OLD && options.cp850) {
-		// We 'do' have allow uc of U+0131 into U+0049  (but there is NO reverse of this
-		//CP_up[0xD5] = 0x49; (this is 'default' in encoding_data.h right now.
+	// CP_isSeparator[c] will return true if c is a separator
+	memset(CP_isSeparator, 0, sizeof(CP_isSeparator));
+	memset(CP_isSeparator, 1, 33);
+	for (pos = Sep; *pos; pos++)
+		CP_isSeparator[ARCH_INDEX(*pos)] = 1;
 
-		// for mssql, we HAVE to leave this one 100% alone!
+	// CP_isLetter[c] will return true if c is a letter
+	memset(CP_isLetter, 0, sizeof(CP_isLetter));
+	for (i = 'a'; i <= 'z'; i++)
+		CP_isLetter[i] = 1;
+	for (i = 'A'; i <= 'Z'; i++)
+		CP_isLetter[i] = 1;
+	for (pos = Letter; *pos; pos++)
+		CP_isLetter[ARCH_INDEX(*pos)] = 1;
+
+	if (type == UNICODE_MS_OLD && encoding == CP850) {
+// We 'do' have allow uc of U+0131 into U+0049 (but there is NO reverse of this
+// CP_up[0xD5] = 0x49; this is 'default' in encoding_data.h right now.
+
+// for mssql, we HAVE to leave this one 100% alone!
 		CP_up[0xD5] = 0xD5;
 	}
-	if (type==UNICODE_MS_OLD && options.cp737) {
+
+	if (type == UNICODE_MS_OLD && encoding == CP737) {
 		// Required for cp737, MSSQL_old
 		//ucs2_upcase[0x03C2] = 0x03C2; //U+03C2 -> U+03A3 was not cased
 		CP_up[0xAA] = 0xAA;
 		CP_down[0x91] = 0x91;
 	}
 
-	// CP_isSeparator[c] will return true if c is a separator
-	memset(CP_isSeparator, 0, sizeof(CP_isSeparator));
-
-	// Original separator list from loader.c
-#define CP_issep \
-	"!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~\177"
-
-	if (options.iso8859_1)
-		encTemp = CP_issep CHARS_PUNCTUATION_ISO_8859_1 CHARS_SPECIALS_ISO_8859_1 CHARS_WHITESPACE_ISO_8859_1 CHARS_CONTROL_ISO_8859_1 CHARS_INVALID_ISO_8859_1;
-	else if (options.iso8859_2 )
-		encTemp = CP_issep CHARS_PUNCTUATION_ISO_8859_2 CHARS_SPECIALS_ISO_8859_2 CHARS_WHITESPACE_ISO_8859_2 CHARS_CONTROL_ISO_8859_2 CHARS_INVALID_ISO_8859_2;
-	else if (options.iso8859_7 )
-		encTemp = CP_issep CHARS_PUNCTUATION_ISO_8859_7 CHARS_SPECIALS_ISO_8859_7 CHARS_WHITESPACE_ISO_8859_7 CHARS_CONTROL_ISO_8859_7 CHARS_INVALID_ISO_8859_7;
-	else if (options.iso8859_15)
-		encTemp = CP_issep CHARS_PUNCTUATION_ISO_8859_15 CHARS_SPECIALS_ISO_8859_15 CHARS_WHITESPACE_ISO_8859_15 CHARS_CONTROL_ISO_8859_15 CHARS_INVALID_ISO_8859_15;
-	else if (options.koi8_r)
-		encTemp = CP_issep CHARS_PUNCTUATION_KOI8_R CHARS_SPECIALS_KOI8_R CHARS_WHITESPACE_KOI8_R CHARS_CONTROL_KOI8_R CHARS_INVALID_KOI8_R;
-	else if (options.cp437)
-		encTemp = CP_issep CHARS_PUNCTUATION_CP437 CHARS_SPECIALS_CP437 CHARS_WHITESPACE_CP437 CHARS_CONTROL_CP437 CHARS_INVALID_CP437;
-	else if (options.cp737)
-		encTemp = CP_issep CHARS_PUNCTUATION_CP737 CHARS_SPECIALS_CP737 CHARS_WHITESPACE_CP737 CHARS_CONTROL_CP737 CHARS_INVALID_CP737;
-	else if (options.cp850)
-		encTemp = CP_issep CHARS_PUNCTUATION_CP850 CHARS_SPECIALS_CP850 CHARS_WHITESPACE_CP850 CHARS_CONTROL_CP850 CHARS_INVALID_CP850;
-	else if (options.cp852)
-		encTemp = CP_issep CHARS_PUNCTUATION_CP852 CHARS_SPECIALS_CP852 CHARS_WHITESPACE_CP852 CHARS_CONTROL_CP852 CHARS_INVALID_CP852;
-	else if (options.cp858)
-		encTemp = CP_issep CHARS_PUNCTUATION_CP858 CHARS_SPECIALS_CP858 CHARS_WHITESPACE_CP858 CHARS_CONTROL_CP858 CHARS_INVALID_CP858;
-	else if (options.cp866)
-		encTemp = CP_issep CHARS_PUNCTUATION_CP866 CHARS_SPECIALS_CP866 CHARS_WHITESPACE_CP866 CHARS_CONTROL_CP866 CHARS_INVALID_CP866;
-	else if (options.cp1250)
-		encTemp = CP_issep CHARS_PUNCTUATION_CP1250 CHARS_SPECIALS_CP1250 CHARS_WHITESPACE_CP1250 CHARS_CONTROL_CP1250 CHARS_INVALID_CP1250;
-	else if (options.cp1251)
-		encTemp = CP_issep CHARS_PUNCTUATION_CP1251 CHARS_SPECIALS_CP1251 CHARS_WHITESPACE_CP1251 CHARS_CONTROL_CP1251 CHARS_INVALID_CP1251;
-	else if (options.cp1252)
-		encTemp = CP_issep CHARS_PUNCTUATION_CP1252 CHARS_SPECIALS_CP1252 CHARS_WHITESPACE_CP1252 CHARS_CONTROL_CP1252 CHARS_INVALID_CP1252;
-	else if (options.cp1253)
-		encTemp = CP_issep CHARS_PUNCTUATION_CP1253 CHARS_SPECIALS_CP1253 CHARS_WHITESPACE_CP1253 CHARS_CONTROL_CP1253 CHARS_INVALID_CP1253;
-	else  // old-style ASCII-only
-		encTemp = CP_issep;
-
-	memset(CP_isSeparator, 1, 33);
-	for (pos = encTemp; *pos; pos++)
-		CP_isSeparator[ARCH_INDEX(*pos)] = 1;
-
-	// CP_isLetter[c] will return true if c is a letter
-	memset(CP_isLetter, 0, sizeof(CP_isLetter));
-
-	if (options.iso8859_1)
-		encTemp = CHARS_ALPHA_ISO_8859_1;
-	else if (options.iso8859_2)
-		encTemp = CHARS_ALPHA_ISO_8859_2;
-	else if (options.iso8859_7)
-		encTemp = CHARS_ALPHA_ISO_8859_7;
-	else if (options.iso8859_15)
-		encTemp = CHARS_ALPHA_ISO_8859_15;
-	else if (options.koi8_r)
-		encTemp = CHARS_ALPHA_KOI8_R;
-	else if (options.cp437)
-		encTemp = CHARS_ALPHA_CP437;
-	else if (options.cp737)
-		encTemp = CHARS_ALPHA_CP737;
-	else if (options.cp850)
-		encTemp = CHARS_ALPHA_CP850;
-	else if (options.cp852)
-		encTemp = CHARS_ALPHA_CP852;
-	else if (options.cp858)
-		encTemp = CHARS_ALPHA_CP858;
-	else if (options.cp866)
-		encTemp = CHARS_ALPHA_CP866;
-	else if (options.cp1250)
-		encTemp = CHARS_ALPHA_CP1250;
-	else if (options.cp1251)
-		encTemp = CHARS_ALPHA_CP1251;
-	else if (options.cp1252)
-		encTemp = CHARS_ALPHA_CP1252;
-	else if (options.cp1253)
-		encTemp = CHARS_ALPHA_CP1253;
-	else
-		encTemp = "";
-
-	for (i = 'a'; i <= 'z'; i++)
-		CP_isLetter[i] = 1;
-	for (i = 'A'; i <= 'Z'; i++)
-		CP_isLetter[i] = 1;
-	for (pos = encTemp; *pos; pos++)
-		CP_isLetter[ARCH_INDEX(*pos)] = 1;
-
-	UnicodeInited = req_enc;
-	return 0;
+	return;
 }
 
 /* single char conversion inlines. Inlines vs macros, so that we get type 'safety'           */
@@ -1334,7 +1502,7 @@ int enc_lc(UTF8 *dst, unsigned dst_len, const UTF8 *src, unsigned src_len) {
 	UTF16 tmp16[512+1], tmp16l[512+1]; // yes, short, but this is 'long enough' for john.
 	int utf16len, i;
 
-	if (!options.utf8) {
+	if (pers_opts.hashed_enc != UTF_8) {
 		if (dst_len <= src_len)
 			src_len = dst_len - 1;
 		for (i = 0; i < src_len; ++i) {
@@ -1371,7 +1539,7 @@ int enc_uc(UTF8 *dst, unsigned dst_len, const UTF8 *src, unsigned src_len) {
 	UTF16 tmp16[512+1], tmp16u[512+1]; // yes, short, but this is 'long enough' for john.
 	int utf16len, i;
 
-	if (!options.utf8) {
+	if (pers_opts.hashed_enc != UTF_8) {
 		int len;
 		if (dst_len < src_len)
 			src_len = dst_len;
@@ -1401,6 +1569,7 @@ int enc_uc(UTF8 *dst, unsigned dst_len, const UTF8 *src, unsigned src_len) {
 		*dst = 0;
 		return len;
 	}
+
 	utf16len = utf8_to_utf16(tmp16, 512, src, src_len);
 	if (utf16len <= 0)
 		goto ucFallback;

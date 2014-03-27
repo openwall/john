@@ -347,7 +347,7 @@ static void init(struct fmt_main *self)
 	init_locks();
 #endif /* _OPENMP */
 
-	if (options.utf8)
+	if (pers_opts.hashed_enc == UTF_8)
 		self->params.plaintext_length = MIN(125, 3 * PLAINTEXT_LENGTH);
 
 	unpack_data = mem_calloc_tiny(sizeof(unpack_data_t) * omp_t, MEM_ALIGN_WORD);

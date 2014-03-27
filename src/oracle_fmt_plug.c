@@ -169,8 +169,6 @@ static void init(struct fmt_main *self)
 {
 	unsigned char deskey[8];
 
-	initUnicode(UNICODE_UNICODE);
-
 	deskey[0] = 0x01;
 	deskey[1] = 0x23;
 	deskey[2] = 0x45;

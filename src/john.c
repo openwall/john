@@ -280,6 +280,7 @@ static void john_register_one(struct fmt_main *format)
 		char *pos = strchr(options.format, '*');
 
 		if (pos != strrchr(options.format, '*')) {
+			if (john_main_process)
 			fprintf(stderr, "Only one wildcard allowed in format "
 			        "name\n");
 			error();
@@ -863,6 +864,8 @@ static char *john_loaded_counts(void)
 
 static void john_load_conf(void)
 {
+	int intermediate, hashed;
+
 	if (options.loader.activepot == NULL) {
 		if (options.secure)
 			options.loader.activepot = str_alloc_copy(SEC_POT_NAME);
@@ -913,22 +916,100 @@ static void john_load_conf(void)
 	if (cfg_get_bool(SECTION_OPTIONS, NULL, "CrackStatus", 0))
 		options.flags ^= FLG_CRKSTAT;
 
-	initUnicode(UNICODE_UNICODE); /* Init the unicode system */
-
 #ifdef HAVE_OPENCL
 	if (cfg_get_bool(SECTION_OPTIONS, SUBSECTION_OPENCL, "ForceScalar", 0))
 		options.flags |= FLG_SCALAR;
 #endif
 
-	if (database.password_count) {
-		if (database.format->params.flags & FMT_UNICODE)
-			options.store_utf8 =
-				cfg_get_bool(SECTION_OPTIONS,
-				             NULL, "UnicodeStoreUTF8", 0);
-		else
-			options.store_utf8 =
-				cfg_get_bool(SECTION_OPTIONS,
-				             NULL, "CPstoreUTF8", 0);
+	options.loader.log_passwords = options.secure ||
+		cfg_get_bool(SECTION_OPTIONS, NULL, "LogCrackedPasswords", 0);
+
+	if (!pers_opts.input_enc && !(options.flags & FLG_TEST_CHK)) {
+		if ((options.flags & FLG_LOOPBACK_CHK) &&
+		    cfg_get_bool(SECTION_OPTIONS, NULL, "UnicodeStoreUTF8", 0))
+			pers_opts.input_enc = cp_name2id("UTF-8");
+		else {
+			pers_opts.input_enc =
+				cp_name2id(cfg_get_param(SECTION_OPTIONS, NULL,
+				                          "DefaultEncoding"));
+		}
+
+		/* Default to core John's behavior */
+		if (!pers_opts.input_enc)
+			pers_opts.input_enc = ASCII;
+
+		pers_opts.default_enc = 1;
+	}
+
+	/* Pre-init in case some format's prepare() needs it */
+	intermediate = pers_opts.intermediate_enc;
+	hashed = pers_opts.hashed_enc;
+	initUnicode(UNICODE_UNICODE);
+	pers_opts.intermediate_enc = intermediate;
+	pers_opts.hashed_enc = hashed;
+	pers_opts.unicode_cp = CP_UNDEF;
+}
+
+static void john_load_conf_db(void)
+{
+	if (!pers_opts.unicode_cp)
+		initUnicode(UNICODE_UNICODE);
+
+	pers_opts.report_utf8 = cfg_get_bool(SECTION_OPTIONS,
+	                                     NULL, "AlwaysReportUTF8", 0);
+
+	/* Unicode (UTF-16) formats may lack encoding support. We
+	   must stop the user from trying to use it because it will
+	   just result in false negatives. */
+	if (database.format && pers_opts.hashed_enc != ASCII &&
+	    pers_opts.hashed_enc != ISO_8859_1 &&
+	    database.format->params.flags & FMT_UNICODE &&
+	    !(database.format->params.flags & FMT_UTF8)) {
+		if (john_main_process)
+			fprintf(stderr, "This format does not yet support"
+			        " other encodings than ISO-8859-1\n");
+		error();
+	}
+
+	if (database.format && database.format->params.flags & FMT_UNICODE)
+		pers_opts.store_utf8 = cfg_get_bool(SECTION_OPTIONS,
+		                                  NULL, "UnicodeStoreUTF8", 0);
+	else
+		pers_opts.store_utf8 = cfg_get_bool(SECTION_OPTIONS,
+		                                  NULL, "CPstoreUTF8", 0);
+
+	if (!options.secure) {
+		if (pers_opts.report_utf8 && options.loader.log_passwords)
+			log_event("- Passwords in this logfile are "
+			          "UTF-8 encoded");
+
+		if (pers_opts.store_utf8)
+			log_event("- Passwords will be stored UTF-8 "
+			          "encoded in .pot file");
+	}
+
+	if (pers_opts.hashed_enc != pers_opts.input_enc &&
+	    pers_opts.input_enc != UTF_8) {
+		if (john_main_process)
+			fprintf(stderr, "Hash encoding can only be specified"
+			        " if input encoding is UTF-8\n");
+		exit(0);
+	}
+
+	if (options.verbosity > 2) {
+		if (pers_opts.default_enc && john_main_process)
+			fprintf(stderr, "Using default input encoding: %s\n",
+			        cp_id2name(pers_opts.input_enc));
+
+		if (pers_opts.hashed_enc != pers_opts.input_enc &&
+		    (!database.format ||
+		     !(database.format->params.flags & FMT_UNICODE))) {
+			log_event("- Target (hashed) encoding: %s",
+			          cp_id2name(pers_opts.hashed_enc));
+			if (john_main_process)
+				fprintf(stderr, "Target encoding: %s\n",
+				        cp_id2name(pers_opts.hashed_enc));
+		}
 	}
 }
 
@@ -1014,19 +1095,8 @@ static void john_load(void)
 			ldr_load_pw_file(&database, current->data);
 		} while ((current = current->next));
 
-		/* Unicode (UTF-16) formats may lack encoding support. We
-		   must stop the user from trying to use it because it will
-		   just result in false negatives. */
-		if (database.password_count &&
-		    !options.ascii && !options.iso8859_1 &&
-		    database.format->params.flags & FMT_UNICODE &&
-		    !(database.format->params.flags & FMT_UTF8)) {
-				if (john_main_process)
-				fprintf(stderr, "This format does not yet "
-				        "support other encodings than"
-				        " ISO-8859-1\n");
-				error();
-		}
+		/* Process configuration options that depend on db/format */
+		john_load_conf_db();
 
 		if ((options.flags & FLG_CRACKING_CHK) &&
 		    database.password_count) {
@@ -1052,26 +1122,6 @@ static void john_load(void)
 			// Tell External our max length
 			if (options.flags & FLG_EXTERNAL_CHK)
 				ext_init(options.external, &database);
-		}
-
-		if (database.password_count) {
-			if (database.format->params.flags & FMT_UNICODE)
-				options.store_utf8 =
-					cfg_get_bool(SECTION_OPTIONS,
-			        NULL, "UnicodeStoreUTF8", 0);
-			else
-				options.store_utf8 =
-					cfg_get_bool(SECTION_OPTIONS,
-			        NULL, "CPstoreUTF8", 0);
-		}
-		if (!options.utf8 && !options.secure) {
-			if (options.report_utf8 && options.log_passwords)
-				log_event("- Passwords in this logfile are "
-				          "UTF-8 encoded");
-
-			if (options.store_utf8)
-				log_event("- Passwords will be stored UTF-8 "
-				          "encoded in .pot file");
 		}
 
 		total = database.password_count;
@@ -1135,10 +1185,6 @@ static void john_load(void)
 		if (mpi_p > 1)
 			john_set_mpi();
 #endif
-		/* Re-parse stuff from john.conf. After resuming a forked or
-		   MPI session, this is needed because the whole options
-		   struct is reset. */
-		john_load_conf();
 	}
 }
 
@@ -1228,8 +1274,26 @@ static void john_init(char *name, int argc, char **argv)
 	gpu_id = -1;
 #endif
 
-	/* Fetch configuration options from john.conf */
+	/* Process configuration options that depend on cfg_init() */
 	john_load_conf();
+
+	/* Init the Unicode system */
+	if (pers_opts.intermediate_enc) {
+		if (pers_opts.intermediate_enc != pers_opts.input_enc &&
+		    pers_opts.input_enc != UTF_8) {
+			if (john_main_process)
+			fprintf(stderr, "Intermediate encoding can only be "
+			        "specified if input encoding is UTF-8\n");
+			exit(0);
+		}
+		if (pers_opts.hashed_enc &&
+		    pers_opts.hashed_enc != pers_opts.intermediate_enc) {
+			if (john_main_process)
+			fprintf(stderr, "Intermediate encoding can't be used "
+			        "with hashed encoding\n");
+			exit(0);
+		}
+	}
 
 #ifdef _OPENMP
 	john_omp_maybe_adjust_or_fallback(argv);
@@ -1246,12 +1310,16 @@ static void john_init(char *name, int argc, char **argv)
 
 	john_load();
 
+	if (!pers_opts.unicode_cp)
+		initUnicode(UNICODE_UNICODE);
+
 	/* Start a resumed session by emitting a status line. */
 	if (rec_restored)
 		event_pending = event_status = 1;
 
-	if (options.encodingStr && options.encodingStr[0])
-		log_event("- %s input encoding enabled", options.encodingStr);
+	if (pers_opts.hashed_enc != ASCII)
+		log_event("- %s input encoding enabled",
+		          cp_id2name(pers_opts.input_enc));
 }
 
 static void john_run(void)

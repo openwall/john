@@ -1,58 +1,80 @@
-This version of John is UTF-8 and codepage aware, using a new command line
-argument. In short, this means "my wordlists and input files are encoded in
-UTF-8" (or CP1252 etc). It does NOT mean you can feed John with eg. a UTF-8
-encoded wordlist when cracking LM. It DOES make John recognise national vowels,
-lower or upper case characters, etc. when specifying a codepage.
+This version of John is UTF-8 and codepage aware. This means that unlike
+"core John", this version can recognize national vowels, lower or upper
+case characters, etc. in most common encodings.
 
-Currently supported encodings: utf-8, iso-8859-1 (or ansi), iso-8859-2,
-iso-8859-7, iso-8859-15, koi8-r, cp437, cp737, cp850, cp852, cp858, cp866,
-cp1250, cp1251, cp1252 and cp1253. New encodings can be added with ease, using
-automated tools that rely on the Unicode Database (see Openwall wiki).
+By default, nothing of this is enabled and John Jumbo works just like Solar's
+"core John" a.k.a "John proper". If you only care about 7-bit ASCII passwords,
+you can stop reading now and move on to next document.
 
+The traditional behavior, and what is still happening if you don't specify any
+encodings, is that John will assume ISO-8859-1 when converting plaintexts or
+salts to UTF-16 (this happens to be very fast), and assume ASCII in most
+other cases. The rules engine will accept 8-bit candidates as-is, but it will
+not upper/lower-case them or recognise letters etc. And some truncation or
+insert operation might split a multi-byte UTF-8 character in the middle,
+resulting in meaningless garbage. Nearly all other password crackers has these
+limitations.
 
-Example usage:
-  john hashes.txt --wordlist:spanish.dic --encoding:iso-8859-1 --rules
+For proper function, it's imperative that you let John know about what
+encodings are involved. For example, if your wordlist is encoded in
+UTF-8, you need to use the "--encoding=UTF-8" option (unless you have set
+that as default in john.conf). But you also need to know what encoding the
+hashes was made from - for example, LM hashes are always made from a legacy
+MS-DOS codepage like CP850. This can be specified by using the option
+"--hashed-encoding=CP850". John will convert to/from Unicode as needed.
 
+Finally, there's the special case where both input (wordlist) and output (eg.
+hashes from a website) are UTF-8 but you want to use rules including eg. upper
+or lower-casing non-ASCII characters. In this case you can use an intermediate
+encoding (--intermediate-encoding option) and pick some codepage that can
+shelter as much of the needed input as possible. For US/Western Europe, any
+"Latin-1" codepage will do fine, eg. CP850, ISO-8859-1 or CP1252 (if you do
+this with a Unicode format like NT, it will silently be treated in another
+way internally for performance reasons but the outcome will be the same).
 
-The behaviour is a little different depending on whether the format use Unicode
-(UTF-16 or UCS-2) internally or not.
-
- * For Unicode formats (eg. NT, mssql, etc), you can pick any of the encodings
-   and the input candidates will be properly converted to UTF-16.
-
- * For non-Unicode formats (eg. DES, LM, MD5 etc), no actual conversion will
-   be made so you need to use an encoding that matches what the hashes were
-   made from. But you should still tell John about it so it can handle national
-   characters properly.
-
-You can convert your wordlists from/to a large number of formats, using for
-example iconv(1). It may be a good idea to include the encoding in the filename,
-eg. "greek.8859-7.dict" or "rockyou.utf8.lst".
-
-You can also convert on the fly, example:
-$ iconv < greek.8859-7.dict -f iso-8859-7 -t cp737 | ./john -pipe -enc:cp737 ...
-
-The traditional behavior, and what is still happening if you don't specify an
-encoding, is that John will assume ISO-8859-1 when converting plaintexts or
-salts to UTF-16 (this also happens to be very fast), and assume ASCII in most
-other cases (it will use 8-bit candidates as-is, but not upper/lower-case them
-or recognise letters etc).
+The limitation is if you use --hashed-encoding or --intermediate-encoding,
+the input encoding must be UTF-8. The recommended, and easiest, use is to
+un-comment all encoding parameters in john.conf and only use UTF-8 wordlists.
+This will work for most cases without too much impact on cracking speed
+and you will almost never have to give any command-line options.
 
 Some new reject rules and character classes are implemented, see doc/RULES.
-Note that UTF-8 is not handled well in rules. Some wordlist rules may cut
+If you use rules without --intermediate-encoding, some wordlist rules may cut
 UTF-8 multibyte sequences in the middle, resulting in garbage. You can reject
-such rules with -U to have them in use only when --encoding=utf8 is not used.
-
-Also, the recognition of non-ASCII characters for upper/lower-casing etc does
-not work with UTF-8 in Rules engine. Formats that internally uppercase
-it's plaintexts, like old MSSQL, will uppercase properly though.
+such rules with -U to have them in use only when UTF-8 is not used.
 
 Caveats:
-Beware of UTF-8 BOM's. They will cripple the first word in your wordlist.
+Beware of UTF-8 BOM's. They will cripple the first word in your wordlist or
+the first entry in your hashfile. Try to avoid using Windows tools that add
+them. This version does try to discard them though.
+
+
+Examples:
+1. LM hashes from Western Europe, using a UTF-8 wordlist:
+
+   ./john -form:lm -enc:utf8 -hashed:cp850 -wo:spanish.lst hashfile
+
+2. NT hashes, using a legacy Latin-1 wordlist. Since NT is a Unicode format,
+   you do not have to worry about "hashed encoding" at all and any input
+   encoding can be used:
+
+   ./john -form:nt -enc:ansi -wo:german.lst
+
+3. Some web hashes, using a UTF-8 wordlist and intermediate encoding:
+
+   ./john -form:raw-sha1 -enc:utf8 -interm=ansi -wo:french.lst
+
+
+Currently supported encodings:
+UTF-8, ISO-8859-1 (a.k.a ansi), ISO-8859-2, ISO-8859-7, ISO-8859-15, KOI8-R,
+CP437, CP737, CP850, CP852, CP858, CP866, CP1250, CP1251, CP1252, CP1253.
+New encodings can be added with ease, using automated tools that rely on the
+Unicode Database (see Openwall wiki, or just post a request on john-users
+mailing list).
 
 --
 
 These contributions to John are hereby placed in the public domain. In case
-that is not applicable, they are Copyright 2009, 2010, 2011 by magnum and
+that is not applicable, they are Copyright 2009-2014 by magnum and
 JimF and hereby released to the general public. Redistribution and use in
 source and binary forms, with or without modification, is permitted.

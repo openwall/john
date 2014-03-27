@@ -140,17 +140,12 @@ static void init(struct fmt_main *self)
 #else
 	saved_key = mem_calloc_tiny(PLAINTEXT_LENGTH*2 + 1 + SALT_SIZE, MEM_ALIGN_WORD);
 #endif
-	if (options.utf8) {
-		fmt_mssql.methods.set_key = set_key_enc;
+	if (pers_opts.hashed_enc == UTF_8)
 		fmt_mssql.params.plaintext_length = PLAINTEXT_LENGTH * 3;
-	}
-	else if (options.iso8859_1 || options.ascii) {
-		; // do nothing
-	}
-	else {
-		// this function made to handle both utf8 and 'codepage' encodings.
+
+	if (pers_opts.hashed_enc != ISO_8859_1 &&
+	    pers_opts.hashed_enc != ASCII)
 		fmt_mssql.methods.set_key = set_key_enc;
-	}
 }
 
 #ifdef MMX_COEF
@@ -355,6 +350,11 @@ static int salt_hash(void *salt)
 	return (*((ARCH_WORD_32 *)salt) >> 8) & (SALT_HASH_SIZE - 1);
 }
 
+static void done(void)
+{
+	initUnicode(UNICODE_UNICODE);
+}
+
 struct fmt_main fmt_mssql = {
 	{
 		FORMAT_LABEL,
@@ -373,7 +373,7 @@ struct fmt_main fmt_mssql = {
 		tests
 	}, {
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,

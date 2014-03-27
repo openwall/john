@@ -127,7 +127,7 @@ static void init(struct fmt_main *self)
 	output = mem_calloc_tiny(sizeof(*output) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	saved_ctx = mem_calloc_tiny(sizeof(*saved_ctx) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 
-	if (options.utf8) {
+	if (pers_opts.hashed_enc == UTF_8) {
 		tests[1].plaintext = "\xC3\xBC"; // German u-umlaut in UTF-8
 		tests[1].ciphertext = "$mskrb5$$$958db4ddb514a6cc8be1b1ccf82b0191$090408357a6f41852d17f3b4bb4634adfd388db1be64d3fe1a1d75ee4338d2a4aea387e5";
 		tests[2].plaintext = "\xC3\x9C\xC3\x9C"; // 2x uppercase of them

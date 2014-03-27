@@ -53,6 +53,7 @@
 #include "formats.h"
 #include "bench.h"
 #include "john.h"
+#include "unicode.h"
 
 #ifndef _JOHN_BENCH_TMP
 #include "options.h"
@@ -402,7 +403,8 @@ int benchmark_all(void)
 			continue;
 
 /* Just test the encoding-aware formats if --encoding was used explicitly */
-		if (options.encoding && !options.ascii && !options.iso8859_1 &&
+		if (!pers_opts.default_enc && pers_opts.hashed_enc != ASCII &&
+		    pers_opts.hashed_enc != ISO_8859_1 &&
 		    !(format->params.flags & FMT_UTF8)) {
 			if (options.format == NULL ||
 			    strcasecmp(format->params.label, options.format))
@@ -434,7 +436,8 @@ int benchmark_all(void)
 		    format->params.benchmark_comment,
 		    format->params.algorithm_name,
 #ifndef _JOHN_BENCH_TMP
-			(options.utf8 && format->params.flags & FMT_UNICODE) ?
+			(pers_opts.hashed_enc == UTF_8 &&
+			 format->params.flags & FMT_UNICODE) ?
 		        " in UTF-8 mode" : "");
 #else
 			"");
@@ -567,6 +570,10 @@ int benchmark_all(void)
 
 next:
 		fmt_done(format);
+
+		/* In case format changed it */
+		initUnicode(UNICODE_UNICODE);
+
 	} while ((format = format->next) && !event_abort);
 
 	if (failed && total > 1 && !event_abort)

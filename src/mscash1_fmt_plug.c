@@ -133,7 +133,7 @@ static void init(struct fmt_main *self)
 
 	new_key=1;
 
-	if (options.utf8) {
+	if (pers_opts.hashed_enc == UTF_8) {
 		fmt_mscash.methods.set_key = set_key_utf8;
 		fmt_mscash.methods.salt = get_salt_utf8;
 		fmt_mscash.params.plaintext_length = (PLAINTEXT_LENGTH * 3);
@@ -141,7 +141,7 @@ static void init(struct fmt_main *self)
 		tests[1].plaintext = "\xC3\xBC";         // German u-umlaut in UTF-8
 		tests[2].ciphertext = "M$user#9121790702dda0fa5d353014c334c2ce";
 		tests[2].plaintext = "\xe2\x82\xac\xe2\x82\xac"; // 2 x Euro signs
-	} else if (options.ascii || options.iso8859_1) {
+	} else if (pers_opts.hashed_enc == ASCII || pers_opts.hashed_enc == ISO_8859_1) {
 		tests[1].ciphertext = "M$\xFC#48f84e6f73d6d5305f6558a33fa2c9bb";
 		tests[1].plaintext = "\xFC";         // German u-umlaut in UTF-8
 		tests[2].ciphertext = "M$\xFC\xFC#593246a8335cf0261799bda2a2a9c623";

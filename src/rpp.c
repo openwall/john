@@ -10,6 +10,8 @@
 #include "config.h"
 #include "rpp.h"
 #include "common.h"
+#include "options.h"
+#include "encoding_data.h"
 
 int rpp_init(struct rpp_context *ctx, char *subsection)
 {
@@ -96,9 +98,11 @@ void rpp_process_rule(struct rpp_context *ctx)
 			}
 			/* fall through */
 		default:
-			if (c == 'x' && atoi16[*input] != 0x7f && atoi16[input[1]] != 0x7f) {
+			if (c == 'x' && atoi16[*input] != 0x7f &&
+			    atoi16[input[1]] != 0x7f) {
 				// handle hex char
-				*output++ = ((atoi16[*input]<<4)+atoi16[input[1]]);
+				*output++ =
+					((atoi16[*input]<<4)+atoi16[input[1]]);
 				input += 2;
 			} else
 				*output++ = c;
@@ -113,25 +117,448 @@ void rpp_process_rule(struct rpp_context *ctx)
 		saved_input = input + 1;
 		switch (*input) {
 		case 'l':
-			input = (unsigned char *)"[a-z]";
+			switch (pers_opts.hashed_enc) {
+			case CP437:
+				input = (unsigned char *)"[a-z"
+					CHARS_LOWER_CP437 CHARS_LOW_ONLY_CP437
+					"]";
+				break;
+			case CP737:
+				input = (unsigned char *)"[a-z"
+					CHARS_LOWER_CP737 CHARS_LOW_ONLY_CP737
+					"]";
+				break;
+			case CP850:
+				input = (unsigned char *)"[a-z"
+					CHARS_LOWER_CP850 CHARS_LOW_ONLY_CP850
+					"]";
+				break;
+			case CP852:
+				input = (unsigned char *)"[a-z"
+					CHARS_LOWER_CP852 CHARS_LOW_ONLY_CP852
+					"]";
+				break;
+			case CP858:
+				input = (unsigned char *)"[a-z"
+					CHARS_LOWER_CP858 CHARS_LOW_ONLY_CP858
+					"]";
+				break;
+			case CP866:
+				input = (unsigned char *)"[a-z"
+					CHARS_LOWER_CP866 CHARS_LOW_ONLY_CP866
+					"]";
+				break;
+			case CP1250:
+				input = (unsigned char *)"[a-z"
+					CHARS_LOWER_CP1250 CHARS_LOW_ONLY_CP1250
+					"]";
+				break;
+			case CP1251:
+				input = (unsigned char *)"[a-z"
+					CHARS_LOWER_CP1251 CHARS_LOW_ONLY_CP1251
+					"]";
+				break;
+			case CP1252:
+				input = (unsigned char *)"[a-z"
+					CHARS_LOWER_CP1252 CHARS_LOW_ONLY_CP1252
+					"]";
+				break;
+			case CP1253:
+				input = (unsigned char *)"[a-z"
+					CHARS_LOWER_CP1253 CHARS_LOW_ONLY_CP1253
+					"]";
+				break;
+			case ISO_8859_1:
+				input = (unsigned char *)"[a-z"
+					CHARS_LOWER_ISO_8859_1 CHARS_LOW_ONLY_ISO_8859_1
+					"]";
+				break;
+			case ISO_8859_2:
+				input = (unsigned char *)"[a-z"
+					CHARS_LOWER_ISO_8859_2 CHARS_LOW_ONLY_ISO_8859_2
+					"]";
+				break;
+			case ISO_8859_7:
+				input = (unsigned char *)"[a-z"
+					CHARS_LOWER_ISO_8859_7 CHARS_LOW_ONLY_ISO_8859_7
+					"]";
+				break;
+			case ISO_8859_15:
+				input = (unsigned char *)"[a-z"
+					CHARS_LOWER_ISO_8859_15 CHARS_LOW_ONLY_ISO_8859_15
+					"]";
+				break;
+			case KOI8_R:
+				input = (unsigned char *)"[a-z"
+					CHARS_LOWER_KOI8_R CHARS_LOW_ONLY_KOI8_R
+					"]";
+				break;
+			default:
+				input = (unsigned char *)"[a-z]";
+			}
 			break;
 		case 'u':
-			input = (unsigned char *)"[A-Z]";
+			switch (pers_opts.hashed_enc) {
+			case CP437:
+				input = (unsigned char *)"[A-Z"
+					CHARS_UPPER_CP437 CHARS_UP_ONLY_CP437
+					"]";
+				break;
+			case CP737:
+				input = (unsigned char *)"[A-Z"
+					CHARS_UPPER_CP737 CHARS_UP_ONLY_CP737
+					"]";
+				break;
+			case CP850:
+				input = (unsigned char *)"[A-Z"
+					CHARS_UPPER_CP850 CHARS_UP_ONLY_CP850
+					"]";
+				break;
+			case CP852:
+				input = (unsigned char *)"[A-Z"
+					CHARS_UPPER_CP852 CHARS_UP_ONLY_CP852
+					"]";
+				break;
+			case CP858:
+				input = (unsigned char *)"[A-Z"
+					CHARS_UPPER_CP858 CHARS_UP_ONLY_CP858
+					"]";
+				break;
+			case CP866:
+				input = (unsigned char *)"[A-Z"
+					CHARS_UPPER_CP866 CHARS_UP_ONLY_CP866
+					"]";
+				break;
+			case CP1250:
+				input = (unsigned char *)"[A-Z"
+					CHARS_UPPER_CP1250 CHARS_UP_ONLY_CP1250
+					"]";
+				break;
+			case CP1251:
+				input = (unsigned char *)"[A-Z"
+					CHARS_UPPER_CP1251 CHARS_UP_ONLY_CP1251
+					"]";
+				break;
+			case CP1252:
+				input = (unsigned char *)"[A-Z"
+					CHARS_UPPER_CP1252 CHARS_UP_ONLY_CP1252
+					"]";
+				break;
+			case CP1253:
+				input = (unsigned char *)"[A-Z"
+					CHARS_UPPER_CP1253 CHARS_UP_ONLY_CP1253
+					"]";
+				break;
+			case ISO_8859_1:
+				input = (unsigned char *)"[A-Z"
+					CHARS_UPPER_ISO_8859_1 CHARS_UP_ONLY_ISO_8859_1
+					"]";
+				break;
+			case ISO_8859_2:
+				input = (unsigned char *)"[A-Z"
+					CHARS_UPPER_ISO_8859_2 CHARS_UP_ONLY_ISO_8859_2
+					"]";
+				break;
+			case ISO_8859_7:
+				input = (unsigned char *)"[A-Z"
+					CHARS_UPPER_ISO_8859_7 CHARS_UP_ONLY_ISO_8859_7
+					"]";
+				break;
+			case ISO_8859_15:
+				input = (unsigned char *)"[A-Z"
+					CHARS_UPPER_ISO_8859_15 CHARS_UP_ONLY_ISO_8859_15
+					"]";
+				break;
+			case KOI8_R:
+				input = (unsigned char *)"[A-Z"
+					CHARS_UPPER_KOI8_R CHARS_UP_ONLY_KOI8_R
+					"]";
+				break;
+			default:
+				input = (unsigned char *)"[A-Z]";
+			}
 			break;
 		case 'd':
-			input = (unsigned char *)"[0-9]";
+			switch (pers_opts.hashed_enc) {
+			case CP437:
+				input = (unsigned char *)"[0-9"
+					CHARS_DIGITS_CP437 "]";
+				break;
+			case CP737:
+				input = (unsigned char *)"[0-9"
+					CHARS_DIGITS_CP737 "]";
+				break;
+			case CP850:
+				input = (unsigned char *)"[0-9"
+					CHARS_DIGITS_CP850 "]";
+				break;
+			case CP852:
+				input = (unsigned char *)"[0-9"
+					CHARS_DIGITS_CP852 "]";
+				break;
+			case CP858:
+				input = (unsigned char *)"[0-9"
+					CHARS_DIGITS_CP858 "]";
+				break;
+			case CP866:
+				input = (unsigned char *)"[0-9"
+					CHARS_DIGITS_CP866 "]";
+				break;
+			case CP1250:
+				input = (unsigned char *)"[0-9"
+					CHARS_DIGITS_CP1250 "]";
+				break;
+			case CP1251:
+				input = (unsigned char *)"[0-9"
+					CHARS_DIGITS_CP1251 "]";
+				break;
+			case CP1252:
+				input = (unsigned char *)"[0-9"
+					CHARS_DIGITS_CP1252 "]";
+				break;
+			case CP1253:
+				input = (unsigned char *)"[0-9"
+					CHARS_DIGITS_CP1253 "]";
+				break;
+			case ISO_8859_1:
+				input = (unsigned char *)"[0-9"
+					CHARS_DIGITS_ISO_8859_1 "]";
+				break;
+			case ISO_8859_2:
+				input = (unsigned char *)"[0-9"
+					CHARS_DIGITS_ISO_8859_2 "]";
+				break;
+			case ISO_8859_7:
+				input = (unsigned char *)"[0-9"
+					CHARS_DIGITS_ISO_8859_7 "]";
+				break;
+			case ISO_8859_15:
+				input = (unsigned char *)"[0-9"
+					CHARS_DIGITS_ISO_8859_15 "]";
+				break;
+			case KOI8_R:
+				input = (unsigned char *)"[0-9"
+					CHARS_DIGITS_KOI8_R "]";
+				break;
+			default:
+				input = (unsigned char *)"[0-9]";
+			}
 			break;
 		case 's':
-			input = (unsigned char *)"[ -/:-@[-`{-~]";
+			switch (pers_opts.hashed_enc) {
+			case CP437:
+				input = (unsigned char *)"[ -/:-@[-`{-~"
+					CHARS_PUNCTUATION_CP437
+					CHARS_SPECIALS_CP437
+					CHARS_WHITESPACE_CP437 "]";
+				break;
+			case CP737:
+				input = (unsigned char *)"[ -/:-@[-`{-~"
+					CHARS_PUNCTUATION_CP737
+					CHARS_SPECIALS_CP737
+					CHARS_WHITESPACE_CP737 "]";
+				break;
+			case CP850:
+				input = (unsigned char *)"[ -/:-@[-`{-~"
+					CHARS_PUNCTUATION_CP850
+					CHARS_SPECIALS_CP850
+					CHARS_WHITESPACE_CP850 "]";
+				break;
+			case CP852:
+				input = (unsigned char *)"[ -/:-@[-`{-~"
+					CHARS_PUNCTUATION_CP852
+					CHARS_SPECIALS_CP852
+					CHARS_WHITESPACE_CP852 "]";
+				break;
+			case CP858:
+				input = (unsigned char *)"[ -/:-@[-`{-~"
+					CHARS_PUNCTUATION_CP858
+					CHARS_SPECIALS_CP858
+					CHARS_WHITESPACE_CP858 "]";
+				break;
+			case CP866:
+				input = (unsigned char *)"[ -/:-@[-`{-~"
+					CHARS_PUNCTUATION_CP866
+					CHARS_SPECIALS_CP866
+					CHARS_WHITESPACE_CP866 "]";
+				break;
+			case CP1250:
+				input = (unsigned char *)"[ -/:-@[-`{-~"
+					CHARS_PUNCTUATION_CP1250
+					CHARS_SPECIALS_CP1250
+					CHARS_WHITESPACE_CP1250 "]";
+				break;
+			case CP1251:
+				input = (unsigned char *)"[ -/:-@[-`{-~"
+					CHARS_PUNCTUATION_CP1251
+					CHARS_SPECIALS_CP1251
+					CHARS_WHITESPACE_CP1251 "]";
+				break;
+			case CP1252:
+				input = (unsigned char *)"[ -/:-@[-`{-~"
+					CHARS_PUNCTUATION_CP1252
+					CHARS_SPECIALS_CP1252
+					CHARS_WHITESPACE_CP1252 "]";
+				break;
+			case CP1253:
+				input = (unsigned char *)"[ -/:-@[-`{-~"
+					CHARS_PUNCTUATION_CP1253
+					CHARS_SPECIALS_CP1253
+					CHARS_WHITESPACE_CP1253 "]";
+				break;
+			case ISO_8859_1:
+				input = (unsigned char *)"[ -/:-@[-`{-~"
+					CHARS_PUNCTUATION_ISO_8859_1
+					CHARS_SPECIALS_ISO_8859_1
+					CHARS_WHITESPACE_ISO_8859_1 "]";
+				break;
+			case ISO_8859_2:
+				input = (unsigned char *)"[ -/:-@[-`{-~"
+					CHARS_PUNCTUATION_ISO_8859_2
+					CHARS_SPECIALS_ISO_8859_2
+					CHARS_WHITESPACE_ISO_8859_2 "]";
+				break;
+			case ISO_8859_7:
+				input = (unsigned char *)"[ -/:-@[-`{-~"
+					CHARS_PUNCTUATION_ISO_8859_7
+					CHARS_SPECIALS_ISO_8859_7
+					CHARS_WHITESPACE_ISO_8859_7 "]";
+				break;
+			case ISO_8859_15:
+				input = (unsigned char *)"[ -/:-@[-`{-~"
+					CHARS_PUNCTUATION_ISO_8859_15
+					CHARS_SPECIALS_ISO_8859_15
+					CHARS_WHITESPACE_ISO_8859_15 "]";
+				break;
+			case KOI8_R:
+				input = (unsigned char *)"[ -/:-@[-`{-~"
+					CHARS_PUNCTUATION_KOI8_R
+					CHARS_SPECIALS_KOI8_R
+					CHARS_WHITESPACE_KOI8_R "]";
+				break;
+			default:
+				input = (unsigned char *)"[ -/:-@[-`{-~]";
+			}
 			break;
 		case 'h':
 			input = (unsigned char *)"[\x80-\xff]";
+			break;
+		case 'H':
+			input = (unsigned char *)"[\x01-\xff]";
 			break;
 		case 'a':
 			input = (unsigned char *)"[ -~]";
 			break;
 		case 'A':
-			input = (unsigned char *)"[\x20-\xff]";
+			switch (pers_opts.hashed_enc) {
+			case CP437:
+				input = (unsigned char *)"[ -"
+					CHARS_DIGITS_CP437
+					CHARS_PUNCTUATION_CP437
+					CHARS_SPECIALS_CP437 CHARS_ALPHA_CP437
+					CHARS_WHITESPACE_CP437 "]";
+				break;
+			case CP737:
+				input = (unsigned char *)"[ -"
+					CHARS_DIGITS_CP737
+					CHARS_PUNCTUATION_CP737
+					CHARS_SPECIALS_CP737 CHARS_ALPHA_CP737
+					CHARS_WHITESPACE_CP737 "]";
+				break;
+			case CP850:
+				input = (unsigned char *)"[\x20-\x7f"
+					CHARS_DIGITS_CP850
+					CHARS_PUNCTUATION_CP850
+					CHARS_SPECIALS_CP850 CHARS_ALPHA_CP850
+					CHARS_WHITESPACE_CP850 "]";
+				break;
+			case CP852:
+				input = (unsigned char *)"[ -"
+					CHARS_DIGITS_CP852
+					CHARS_PUNCTUATION_CP852
+					CHARS_SPECIALS_CP852 CHARS_ALPHA_CP852
+					CHARS_WHITESPACE_CP852 "]";
+				break;
+			case CP858:
+				input = (unsigned char *)"[ -"
+					CHARS_DIGITS_CP858
+					CHARS_PUNCTUATION_CP858
+					CHARS_SPECIALS_CP858 CHARS_ALPHA_CP858
+					CHARS_WHITESPACE_CP858 "]";
+				break;
+			case CP866:
+				input = (unsigned char *)"[\x20-\x7f"
+					CHARS_DIGITS_CP866
+					CHARS_PUNCTUATION_CP866
+					CHARS_SPECIALS_CP866 CHARS_ALPHA_CP866
+					CHARS_WHITESPACE_CP866 "]";
+				break;
+			case CP1250:
+				input = (unsigned char *)"[ -"
+					CHARS_DIGITS_CP1250
+					CHARS_PUNCTUATION_CP1250
+					CHARS_SPECIALS_CP1250 CHARS_ALPHA_CP1250
+					CHARS_WHITESPACE_CP1250 "]";
+				break;
+			case CP1251:
+				input = (unsigned char *)"[ -"
+					CHARS_DIGITS_CP1251
+					CHARS_PUNCTUATION_CP1251
+					CHARS_SPECIALS_CP1251 CHARS_ALPHA_CP1251
+					CHARS_WHITESPACE_CP1251 "]";
+				break;
+			case CP1252:
+				input = (unsigned char *)"[ -"
+					CHARS_DIGITS_CP1252
+					CHARS_PUNCTUATION_CP1252
+					CHARS_SPECIALS_CP1252 CHARS_ALPHA_CP1252
+					CHARS_WHITESPACE_CP1252 "]";
+				break;
+			case CP1253:
+				input = (unsigned char *)"[ -"
+					CHARS_DIGITS_CP1253
+					CHARS_PUNCTUATION_CP1253
+					CHARS_SPECIALS_CP1253 CHARS_ALPHA_CP1253
+					CHARS_WHITESPACE_CP1253 "]";
+				break;
+			case ISO_8859_1:
+				input = (unsigned char *)"[ -"
+					CHARS_DIGITS_ISO_8859_1
+					CHARS_PUNCTUATION_ISO_8859_1
+					CHARS_SPECIALS_ISO_8859_1 CHARS_ALPHA_ISO_8859_1
+					CHARS_WHITESPACE_ISO_8859_1 "]";
+				break;
+			case ISO_8859_2:
+				input = (unsigned char *)"[ -"
+					CHARS_DIGITS_ISO_8859_2
+					CHARS_PUNCTUATION_ISO_8859_2
+					CHARS_SPECIALS_ISO_8859_2 CHARS_ALPHA_ISO_8859_2
+					CHARS_WHITESPACE_ISO_8859_2 "]";
+				break;
+			case ISO_8859_7:
+				input = (unsigned char *)"[ -"
+					CHARS_DIGITS_ISO_8859_7
+					CHARS_PUNCTUATION_ISO_8859_7
+					CHARS_SPECIALS_ISO_8859_7 CHARS_ALPHA_ISO_8859_7
+					CHARS_WHITESPACE_ISO_8859_7 "]";
+				break;
+			case ISO_8859_15:
+				input = (unsigned char *)"[ -"
+					CHARS_DIGITS_ISO_8859_15
+					CHARS_PUNCTUATION_ISO_8859_15
+					CHARS_SPECIALS_ISO_8859_15 CHARS_ALPHA_ISO_8859_15
+					CHARS_WHITESPACE_ISO_8859_15 "]";
+				break;
+			case KOI8_R:
+				input = (unsigned char *)"[ -"
+					CHARS_DIGITS_KOI8_R
+					CHARS_PUNCTUATION_KOI8_R
+					CHARS_SPECIALS_KOI8_R CHARS_ALPHA_KOI8_R
+					CHARS_WHITESPACE_KOI8_R "]";
+				break;
+			default:
+				input = (unsigned char *)"[\x20-\xff]";
+			}
 			break;
 		default:
 			saved_input = NULL;
@@ -162,29 +589,36 @@ void rpp_process_rule(struct rpp_context *ctx)
 		while (*input && *input != ']')
 		switch (*input) {
 		case '\\':
-			if (input[1] == 'x' && atoi16[input[2]] != 0x7F && atoi16[input[3]] != 0x7F) {
-				rpp_add_char(range, c1 = ((atoi16[input[2]]<<4)+atoi16[input[3]]));
+			if (input[1] == 'x' && atoi16[input[2]] != 0x7F &&
+			    atoi16[input[3]] != 0x7F) {
+				rpp_add_char(range,
+				             c1 = ((atoi16[input[2]]<<4) +
+				                   atoi16[input[3]]));
 				input += 4;
 			} else
-				if (*++input) rpp_add_char(range, c1 = *input++);
+				if (*++input) rpp_add_char(range,
+				                           c1 = *input++);
 			break;
 
 		case '-':
 			if ((c2 = *++input)) {
 				input++;
 				if (c2 == '\\') {
-					if (input[0] == 'x' && atoi16[input[1]] != 0x7F && atoi16[input[2]] != 0x7F) {
-						c2 = ((atoi16[input[1]]<<4)+atoi16[input[2]]);
+					if (input[0] == 'x' &&
+					    atoi16[input[1]] != 0x7F &&
+					    atoi16[input[2]] != 0x7F) {
+						c2 = ((atoi16[input[1]]<<4) +
+						      atoi16[input[2]]);
 						input += 3;
 					}
 				}
 				if (c1 && range->count) {
 					if (c1 > c2)
 						for (c = c1 - 1; c >= c2; c--)
-							rpp_add_char(range, c);
+						rpp_add_char(range, c);
 					else
 						for (c = c1; c < c2; c++)
-							rpp_add_char(range, c + 1);
+						rpp_add_char(range, c + 1);
 				}
 			}
 			c1 = c2;

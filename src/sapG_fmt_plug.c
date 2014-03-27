@@ -151,7 +151,9 @@ static void init(struct fmt_main *self)
 	// in UTF-8 mode.
 	initUnicode(UNICODE_MS_NEW);
 
-	if (!options.utf8 && !(options.flags & FLG_TEST_CHK) && warned++ == 0)
+	if (pers_opts.hashed_enc != UTF_8 &&
+	    !(options.flags & FLG_TEST_CHK) &&
+	    warned++ == 0)
 		fprintf(stderr, "Warning: SAP-F/G format should always be UTF-8.\nConvert your input files to UTF-8 and use --encoding=utf8\n");
 
 #if defined (_OPENMP) && (defined(SHA1_SSE_PARA) || !defined(MMX_COEF))
@@ -719,6 +721,11 @@ static int salt_hash(void *salt)
 	return hash & (SALT_HASH_SIZE - 1);
 }
 
+static void done(void)
+{
+	initUnicode(UNICODE_UNICODE);
+}
+
 struct fmt_main fmt_sapG = {
 	{
 		FORMAT_LABEL,
@@ -740,7 +747,7 @@ struct fmt_main fmt_sapG = {
 		tests
 	}, {
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,

@@ -20,6 +20,8 @@
 #include "rules.h"
 #include "options.h"
 #include "john.h"
+#include "unicode.h"
+#include "encoding_data.h"
 
 /*
  * Error codes.
@@ -143,12 +145,10 @@ static struct {
 #define CHARS_DIGITS \
 	"0123456789"
 #define CHARS_CONTROL_ASCII \
-	"\x01\x02\x03\x04\x05\x06\x07\x08\x0A\x0B\x0C\x0D\x0E\x0F\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1A\x1B\x1C\x1D\x1E\x1F\x7F"
+	"\x01\x02\x03\x04\x05\x06\x07\x08\x0A\x0B\x0C\x0D\x0E\x0F\x10" \
+	"\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1A\x1B\x1C\x1D\x1E\x1F\x7F"
 #define CHARS_CONTROL_ASCII_EXTENDED \
 	"\x84\x85\x88\x8D\x8E\x8F\x90\x96\x97\x98\x9A\x9B\x9C\x9D\x9E\x9F"
-
-// get the uppercase/lowercase and other data for 'non-standard' encodings.
-#include "encoding_data.h"
 
 static char *conv_source = CONV_SOURCE;
 static char *conv_shift, *conv_invert, *conv_vowels, *conv_right, *conv_left;
@@ -351,7 +351,8 @@ static void rules_init_classes(void)
 		char user_class_num[] = "0";
 		char *user_class;
 		user_class_num[0] = i;
-		if ((user_class = cfg_get_param("UserClasses", NULL, user_class_num))) {
+		if ((user_class = cfg_get_param("UserClasses", NULL,
+		                                user_class_num))) {
 			if ((user_class = userclass_expand(user_class)))
 				rules_init_class(i, user_class);
 			else {
@@ -364,203 +365,316 @@ static void rules_init_classes(void)
 		}
 	}
 
-	if (options.iso8859_1) {
+	switch(pers_opts.intermediate_enc) {
+	case ISO_8859_1:
 		rules_init_class('v', CHARS_VOWELS CHARS_VOWELS_ISO_8859_1);
-		rules_init_class('c', CHARS_CONSONANTS CHARS_CONSONANTS_ISO_8859_1);
-		rules_init_class('w', CHARS_WHITESPACE CHARS_WHITESPACE_ISO_8859_1);
-		rules_init_class('p', CHARS_PUNCTUATION CHARS_PUNCTUATION_ISO_8859_1);
+		rules_init_class('c', CHARS_CONSONANTS
+		                 CHARS_CONSONANTS_ISO_8859_1);
+		rules_init_class('w', CHARS_WHITESPACE
+		                 CHARS_WHITESPACE_ISO_8859_1);
+		rules_init_class('p', CHARS_PUNCTUATION
+		                 CHARS_PUNCTUATION_ISO_8859_1);
 		rules_init_class('s', CHARS_SPECIALS CHARS_SPECIALS_ISO_8859_1);
-		rules_init_class('l', CHARS_LOWER CHARS_LOWER_ISO_8859_1 CHARS_LOW_ONLY_ISO_8859_1);
-		rules_init_class('u', CHARS_UPPER CHARS_UPPER_ISO_8859_1 CHARS_UP_ONLY_ISO_8859_1);
+		rules_init_class('l', CHARS_LOWER CHARS_LOWER_ISO_8859_1
+		                 CHARS_LOW_ONLY_ISO_8859_1);
+		rules_init_class('u', CHARS_UPPER CHARS_UPPER_ISO_8859_1
+		                 CHARS_UP_ONLY_ISO_8859_1);
 		rules_init_class('d', CHARS_DIGITS CHARS_DIGITS_ISO_8859_1);
-		rules_init_class('a', CHARS_LOWER CHARS_UPPER CHARS_ALPHA_ISO_8859_1);
-		rules_init_class('x', CHARS_LOWER CHARS_UPPER CHARS_ALPHA_ISO_8859_1 CHARS_DIGITS CHARS_DIGITS_ISO_8859_1);
-		rules_init_class('o', CHARS_CONTROL_ASCII CHARS_CONTROL_ISO_8859_1);
+		rules_init_class('a', CHARS_LOWER CHARS_UPPER
+		                 CHARS_ALPHA_ISO_8859_1);
+		rules_init_class('x', CHARS_LOWER CHARS_UPPER
+		                 CHARS_ALPHA_ISO_8859_1 CHARS_DIGITS
+		                 CHARS_DIGITS_ISO_8859_1);
+		rules_init_class('o', CHARS_CONTROL_ASCII
+		                 CHARS_CONTROL_ISO_8859_1);
 		rules_init_class('Y', CHARS_INVALID_ISO_8859_1);
-	} else if (options.iso8859_2) {
-		rules_init_class('v', CHARS_VOWELS CHARS_VOWELS_ISO_8859_2);
-		rules_init_class('c', CHARS_CONSONANTS CHARS_CONSONANTS_ISO_8859_2);
-		rules_init_class('w', CHARS_WHITESPACE CHARS_WHITESPACE_ISO_8859_2);
-		rules_init_class('p', CHARS_PUNCTUATION CHARS_PUNCTUATION_ISO_8859_2);
-		rules_init_class('s', CHARS_SPECIALS CHARS_SPECIALS_ISO_8859_2);
-		rules_init_class('l', CHARS_LOWER CHARS_LOWER_ISO_8859_2 CHARS_LOW_ONLY_ISO_8859_2);
-		rules_init_class('u', CHARS_UPPER CHARS_UPPER_ISO_8859_2 CHARS_UP_ONLY_ISO_8859_2);
+		break;
+	case ISO_8859_2:
+		rules_init_class('v', CHARS_VOWELS
+		                 CHARS_VOWELS_ISO_8859_2);
+		rules_init_class('c', CHARS_CONSONANTS
+		                 CHARS_CONSONANTS_ISO_8859_2);
+		rules_init_class('w', CHARS_WHITESPACE
+		                 CHARS_WHITESPACE_ISO_8859_2);
+		rules_init_class('p', CHARS_PUNCTUATION
+		                 CHARS_PUNCTUATION_ISO_8859_2);
+		rules_init_class('s', CHARS_SPECIALS
+		                 CHARS_SPECIALS_ISO_8859_2);
+		rules_init_class('l', CHARS_LOWER CHARS_LOWER_ISO_8859_2
+		                 CHARS_LOW_ONLY_ISO_8859_2);
+		rules_init_class('u', CHARS_UPPER CHARS_UPPER_ISO_8859_2
+		                 CHARS_UP_ONLY_ISO_8859_2);
 		rules_init_class('d', CHARS_DIGITS CHARS_DIGITS_ISO_8859_2);
-		rules_init_class('a', CHARS_LOWER CHARS_UPPER CHARS_ALPHA_ISO_8859_2);
-		rules_init_class('x', CHARS_LOWER CHARS_UPPER CHARS_ALPHA_ISO_8859_2 CHARS_DIGITS  CHARS_DIGITS_ISO_8859_2);
-		rules_init_class('o', CHARS_CONTROL_ASCII CHARS_CONTROL_ISO_8859_2);
+		rules_init_class('a', CHARS_LOWER CHARS_UPPER
+		                 CHARS_ALPHA_ISO_8859_2);
+		rules_init_class('x', CHARS_LOWER CHARS_UPPER
+		                 CHARS_ALPHA_ISO_8859_2 CHARS_DIGITS
+		                 CHARS_DIGITS_ISO_8859_2);
+		rules_init_class('o', CHARS_CONTROL_ASCII
+		                 CHARS_CONTROL_ISO_8859_2);
 		rules_init_class('Y', CHARS_INVALID_ISO_8859_2);
-	} else if (options.iso8859_7) {
+		break;
+	case ISO_8859_7:
 		rules_init_class('v', CHARS_VOWELS CHARS_VOWELS_ISO_8859_7);
-		rules_init_class('c', CHARS_CONSONANTS CHARS_CONSONANTS_ISO_8859_7);
-		rules_init_class('w', CHARS_WHITESPACE CHARS_WHITESPACE_ISO_8859_7);
-		rules_init_class('p', CHARS_PUNCTUATION CHARS_PUNCTUATION_ISO_8859_7);
-		rules_init_class('s', CHARS_SPECIALS CHARS_SPECIALS_ISO_8859_7);
-		rules_init_class('l', CHARS_LOWER CHARS_LOWER_ISO_8859_7 CHARS_LOW_ONLY_ISO_8859_7);
-		rules_init_class('u', CHARS_UPPER CHARS_UPPER_ISO_8859_7 CHARS_UP_ONLY_ISO_8859_7);
+		rules_init_class('c', CHARS_CONSONANTS
+		                 CHARS_CONSONANTS_ISO_8859_7);
+		rules_init_class('w', CHARS_WHITESPACE
+		                 CHARS_WHITESPACE_ISO_8859_7);
+		rules_init_class('p', CHARS_PUNCTUATION
+		                 CHARS_PUNCTUATION_ISO_8859_7);
+		rules_init_class('s', CHARS_SPECIALS
+		                 CHARS_SPECIALS_ISO_8859_7);
+		rules_init_class('l', CHARS_LOWER CHARS_LOWER_ISO_8859_7
+		                 CHARS_LOW_ONLY_ISO_8859_7);
+		rules_init_class('u', CHARS_UPPER CHARS_UPPER_ISO_8859_7
+		                 CHARS_UP_ONLY_ISO_8859_7);
 		rules_init_class('d', CHARS_DIGITS CHARS_DIGITS_ISO_8859_7);
-		rules_init_class('a', CHARS_LOWER CHARS_UPPER CHARS_ALPHA_ISO_8859_7);
-		rules_init_class('x', CHARS_LOWER CHARS_UPPER CHARS_ALPHA_ISO_8859_7 CHARS_DIGITS  CHARS_DIGITS_ISO_8859_7);
-		rules_init_class('o', CHARS_CONTROL_ASCII CHARS_CONTROL_ISO_8859_7);
+		rules_init_class('a', CHARS_LOWER CHARS_UPPER
+		                 CHARS_ALPHA_ISO_8859_7);
+		rules_init_class('x', CHARS_LOWER CHARS_UPPER
+		                 CHARS_ALPHA_ISO_8859_7 CHARS_DIGITS
+		                 CHARS_DIGITS_ISO_8859_7);
+		rules_init_class('o', CHARS_CONTROL_ASCII
+		                 CHARS_CONTROL_ISO_8859_7);
 		rules_init_class('Y', CHARS_INVALID_ISO_8859_7);
-	} else if (options.iso8859_15) {
+		break;
+	case ISO_8859_15:
 		rules_init_class('v', CHARS_VOWELS CHARS_VOWELS_ISO_8859_15);
-		rules_init_class('c', CHARS_CONSONANTS CHARS_CONSONANTS_ISO_8859_15);
-		rules_init_class('w', CHARS_WHITESPACE CHARS_WHITESPACE_ISO_8859_15);
-		rules_init_class('p', CHARS_PUNCTUATION CHARS_PUNCTUATION_ISO_8859_15);
-		rules_init_class('s', CHARS_SPECIALS CHARS_SPECIALS_ISO_8859_15);
-		rules_init_class('l', CHARS_LOWER CHARS_LOWER_ISO_8859_15 CHARS_LOW_ONLY_ISO_8859_15);
-		rules_init_class('u', CHARS_UPPER CHARS_UPPER_ISO_8859_15 CHARS_UP_ONLY_ISO_8859_15);
+		rules_init_class('c', CHARS_CONSONANTS
+		                 CHARS_CONSONANTS_ISO_8859_15);
+		rules_init_class('w', CHARS_WHITESPACE
+		                 CHARS_WHITESPACE_ISO_8859_15);
+		rules_init_class('p', CHARS_PUNCTUATION
+		                 CHARS_PUNCTUATION_ISO_8859_15);
+		rules_init_class('s', CHARS_SPECIALS
+		                 CHARS_SPECIALS_ISO_8859_15);
+		rules_init_class('l', CHARS_LOWER CHARS_LOWER_ISO_8859_15
+		                 CHARS_LOW_ONLY_ISO_8859_15);
+		rules_init_class('u', CHARS_UPPER CHARS_UPPER_ISO_8859_15
+		                 CHARS_UP_ONLY_ISO_8859_15);
 		rules_init_class('d', CHARS_DIGITS CHARS_DIGITS_ISO_8859_15);
-		rules_init_class('a', CHARS_LOWER CHARS_UPPER CHARS_ALPHA_ISO_8859_15);
-		rules_init_class('x', CHARS_LOWER CHARS_UPPER CHARS_ALPHA_ISO_8859_15 CHARS_DIGITS  CHARS_DIGITS_ISO_8859_15);
-		rules_init_class('o', CHARS_CONTROL_ASCII CHARS_CONTROL_ISO_8859_15);
+		rules_init_class('a', CHARS_LOWER CHARS_UPPER
+		                 CHARS_ALPHA_ISO_8859_15);
+		rules_init_class('x', CHARS_LOWER CHARS_UPPER
+		                 CHARS_ALPHA_ISO_8859_15 CHARS_DIGITS
+		                 CHARS_DIGITS_ISO_8859_15);
+		rules_init_class('o', CHARS_CONTROL_ASCII
+		                 CHARS_CONTROL_ISO_8859_15);
 		rules_init_class('Y', CHARS_INVALID_ISO_8859_15);
-	} else if (options.koi8_r) {
+		break;
+	case KOI8_R:
 		rules_init_class('v', CHARS_VOWELS CHARS_VOWELS_KOI8_R);
 		rules_init_class('c', CHARS_CONSONANTS CHARS_CONSONANTS_KOI8_R);
 		rules_init_class('w', CHARS_WHITESPACE CHARS_WHITESPACE_KOI8_R);
-		rules_init_class('p', CHARS_PUNCTUATION CHARS_PUNCTUATION_KOI8_R);
+		rules_init_class('p', CHARS_PUNCTUATION
+		                 CHARS_PUNCTUATION_KOI8_R);
 		rules_init_class('s', CHARS_SPECIALS CHARS_SPECIALS_KOI8_R);
-		rules_init_class('l', CHARS_LOWER CHARS_LOWER_KOI8_R CHARS_LOW_ONLY_KOI8_R);
-		rules_init_class('u', CHARS_UPPER CHARS_UPPER_KOI8_R CHARS_UP_ONLY_KOI8_R);
+		rules_init_class('l', CHARS_LOWER CHARS_LOWER_KOI8_R
+		                 CHARS_LOW_ONLY_KOI8_R);
+		rules_init_class('u', CHARS_UPPER CHARS_UPPER_KOI8_R
+		                 CHARS_UP_ONLY_KOI8_R);
 		rules_init_class('d', CHARS_DIGITS CHARS_DIGITS_KOI8_R);
-		rules_init_class('a', CHARS_LOWER CHARS_UPPER CHARS_ALPHA_KOI8_R);
-		rules_init_class('x', CHARS_LOWER CHARS_UPPER CHARS_ALPHA_KOI8_R CHARS_DIGITS CHARS_DIGITS_KOI8_R);
+		rules_init_class('a', CHARS_LOWER CHARS_UPPER
+		                 CHARS_ALPHA_KOI8_R);
+		rules_init_class('x', CHARS_LOWER CHARS_UPPER CHARS_ALPHA_KOI8_R
+		                 CHARS_DIGITS CHARS_DIGITS_KOI8_R);
 		rules_init_class('o', CHARS_CONTROL_ASCII CHARS_CONTROL_KOI8_R);
 		rules_init_class('Y', CHARS_INVALID_KOI8_R);
-	} else if (options.cp437) {
+		break;
+	case CP437:
 		rules_init_class('v', CHARS_VOWELS CHARS_VOWELS_CP437);
 		rules_init_class('c', CHARS_CONSONANTS CHARS_CONSONANTS_CP437);
 		rules_init_class('w', CHARS_WHITESPACE CHARS_WHITESPACE_CP437);
-		rules_init_class('p', CHARS_PUNCTUATION CHARS_PUNCTUATION_CP437);
+		rules_init_class('p', CHARS_PUNCTUATION
+		                 CHARS_PUNCTUATION_CP437);
 		rules_init_class('s', CHARS_SPECIALS CHARS_SPECIALS_CP437);
-		rules_init_class('l', CHARS_LOWER CHARS_LOWER_CP437 CHARS_LOW_ONLY_CP437);
-		rules_init_class('u', CHARS_UPPER CHARS_UPPER_CP437 CHARS_UP_ONLY_CP437);
+		rules_init_class('l', CHARS_LOWER CHARS_LOWER_CP437
+		                 CHARS_LOW_ONLY_CP437);
+		rules_init_class('u', CHARS_UPPER CHARS_UPPER_CP437
+		                 CHARS_UP_ONLY_CP437);
 		rules_init_class('d', CHARS_DIGITS CHARS_DIGITS_CP437);
-		rules_init_class('a', CHARS_LOWER CHARS_UPPER CHARS_ALPHA_CP437);
-		rules_init_class('x', CHARS_LOWER CHARS_UPPER CHARS_ALPHA_CP437 CHARS_DIGITS  CHARS_DIGITS_CP437);
+		rules_init_class('a', CHARS_LOWER CHARS_UPPER
+		                 CHARS_ALPHA_CP437);
+		rules_init_class('x', CHARS_LOWER CHARS_UPPER CHARS_ALPHA_CP437
+		                 CHARS_DIGITS CHARS_DIGITS_CP437);
 		rules_init_class('o', CHARS_CONTROL_ASCII CHARS_CONTROL_CP437);
 		rules_init_class('Y', CHARS_INVALID_CP437);
-	} else if (options.cp737) {
+		break;
+	case CP737:
 		rules_init_class('v', CHARS_VOWELS CHARS_VOWELS_CP737);
 		rules_init_class('c', CHARS_CONSONANTS CHARS_CONSONANTS_CP737);
 		rules_init_class('w', CHARS_WHITESPACE CHARS_WHITESPACE_CP737);
-		rules_init_class('p', CHARS_PUNCTUATION CHARS_PUNCTUATION_CP737);
+		rules_init_class('p', CHARS_PUNCTUATION
+		                 CHARS_PUNCTUATION_CP737);
 		rules_init_class('s', CHARS_SPECIALS CHARS_SPECIALS_CP737);
-		rules_init_class('l', CHARS_LOWER CHARS_LOWER_CP737 CHARS_LOW_ONLY_CP737);
-		rules_init_class('u', CHARS_UPPER CHARS_UPPER_CP737 CHARS_UP_ONLY_CP737);
+		rules_init_class('l', CHARS_LOWER CHARS_LOWER_CP737
+		                 CHARS_LOW_ONLY_CP737);
+		rules_init_class('u', CHARS_UPPER CHARS_UPPER_CP737
+		                 CHARS_UP_ONLY_CP737);
 		rules_init_class('d', CHARS_DIGITS CHARS_DIGITS_CP737);
-		rules_init_class('a', CHARS_LOWER CHARS_UPPER CHARS_ALPHA_CP737);
-		rules_init_class('x', CHARS_LOWER CHARS_UPPER CHARS_ALPHA_CP737 CHARS_DIGITS  CHARS_DIGITS_CP737);
+		rules_init_class('a', CHARS_LOWER CHARS_UPPER
+		                 CHARS_ALPHA_CP737);
+		rules_init_class('x', CHARS_LOWER CHARS_UPPER CHARS_ALPHA_CP737
+		                 CHARS_DIGITS CHARS_DIGITS_CP737);
 		rules_init_class('o', CHARS_CONTROL_ASCII CHARS_CONTROL_CP737);
 		rules_init_class('Y', CHARS_INVALID_CP737);
-	} else if (options.cp850) {
+		break;
+	case CP850:
 		// NOTE, we need to deal with U+0131 (dottless I)
 		rules_init_class('v', CHARS_VOWELS CHARS_VOWELS_CP850);
 		rules_init_class('c', CHARS_CONSONANTS CHARS_CONSONANTS_CP850);
 		rules_init_class('w', CHARS_WHITESPACE CHARS_WHITESPACE_CP850);
-		rules_init_class('p', CHARS_PUNCTUATION CHARS_PUNCTUATION_CP850);
+		rules_init_class('p', CHARS_PUNCTUATION
+		                 CHARS_PUNCTUATION_CP850);
 		rules_init_class('s', CHARS_SPECIALS CHARS_SPECIALS_CP850);
-		rules_init_class('l', CHARS_LOWER CHARS_LOWER_CP850 CHARS_LOW_ONLY_CP850);
-		rules_init_class('u', CHARS_UPPER CHARS_UPPER_CP850 CHARS_UP_ONLY_CP850);
+		rules_init_class('l', CHARS_LOWER CHARS_LOWER_CP850
+		                 CHARS_LOW_ONLY_CP850);
+		rules_init_class('u', CHARS_UPPER CHARS_UPPER_CP850
+		                 CHARS_UP_ONLY_CP850);
 		rules_init_class('d', CHARS_DIGITS CHARS_DIGITS_CP850);
-		rules_init_class('a', CHARS_LOWER CHARS_UPPER CHARS_ALPHA_CP850);
-		rules_init_class('x', CHARS_LOWER CHARS_UPPER CHARS_ALPHA_CP850 CHARS_DIGITS  CHARS_DIGITS_CP850);
+		rules_init_class('a', CHARS_LOWER CHARS_UPPER
+		                 CHARS_ALPHA_CP850);
+		rules_init_class('x', CHARS_LOWER CHARS_UPPER
+		                 CHARS_ALPHA_CP850 CHARS_DIGITS
+		                 CHARS_DIGITS_CP850);
 		rules_init_class('o', CHARS_CONTROL_ASCII CHARS_CONTROL_CP850);
 		rules_init_class('Y', CHARS_INVALID_CP850);
-	} else if (options.cp852) {
+		break;
+	case CP852:
 		rules_init_class('v', CHARS_VOWELS CHARS_VOWELS_CP852);
 		rules_init_class('c', CHARS_CONSONANTS CHARS_CONSONANTS_CP852);
 		rules_init_class('w', CHARS_WHITESPACE CHARS_WHITESPACE_CP852);
-		rules_init_class('p', CHARS_PUNCTUATION CHARS_PUNCTUATION_CP852);
+		rules_init_class('p', CHARS_PUNCTUATION
+		                 CHARS_PUNCTUATION_CP852);
 		rules_init_class('s', CHARS_SPECIALS CHARS_SPECIALS_CP852);
-		rules_init_class('l', CHARS_LOWER CHARS_LOWER_CP852 CHARS_LOW_ONLY_CP852);
-		rules_init_class('u', CHARS_UPPER CHARS_UPPER_CP852 CHARS_UP_ONLY_CP852);
+		rules_init_class('l', CHARS_LOWER CHARS_LOWER_CP852
+		                 CHARS_LOW_ONLY_CP852);
+		rules_init_class('u', CHARS_UPPER CHARS_UPPER_CP852
+		                 CHARS_UP_ONLY_CP852);
 		rules_init_class('d', CHARS_DIGITS CHARS_DIGITS_CP852);
-		rules_init_class('a', CHARS_LOWER CHARS_UPPER CHARS_ALPHA_CP852);
-		rules_init_class('x', CHARS_LOWER CHARS_UPPER CHARS_ALPHA_CP852 CHARS_DIGITS  CHARS_DIGITS_CP852);
+		rules_init_class('a', CHARS_LOWER CHARS_UPPER
+		                 CHARS_ALPHA_CP852);
+		rules_init_class('x', CHARS_LOWER CHARS_UPPER CHARS_ALPHA_CP852
+		                 CHARS_DIGITS CHARS_DIGITS_CP852);
 		rules_init_class('o', CHARS_CONTROL_ASCII CHARS_CONTROL_CP852);
 		rules_init_class('Y', CHARS_INVALID_CP852);
-	} else if (options.cp858) {
+		break;
+	case CP858:
 		rules_init_class('v', CHARS_VOWELS CHARS_VOWELS_CP858);
 		rules_init_class('c', CHARS_CONSONANTS CHARS_CONSONANTS_CP858);
 		rules_init_class('w', CHARS_WHITESPACE CHARS_WHITESPACE_CP858);
-		rules_init_class('p', CHARS_PUNCTUATION CHARS_PUNCTUATION_CP858);
+		rules_init_class('p', CHARS_PUNCTUATION
+		                 CHARS_PUNCTUATION_CP858);
 		rules_init_class('s', CHARS_SPECIALS CHARS_SPECIALS_CP858);
-		rules_init_class('l', CHARS_LOWER CHARS_LOWER_CP858 CHARS_LOW_ONLY_CP858);
-		rules_init_class('u', CHARS_UPPER CHARS_UPPER_CP858 CHARS_UP_ONLY_CP858);
+		rules_init_class('l', CHARS_LOWER CHARS_LOWER_CP858
+		                 CHARS_LOW_ONLY_CP858);
+		rules_init_class('u', CHARS_UPPER CHARS_UPPER_CP858
+		                 CHARS_UP_ONLY_CP858);
 		rules_init_class('d', CHARS_DIGITS CHARS_DIGITS_CP858);
-		rules_init_class('a', CHARS_LOWER CHARS_UPPER CHARS_ALPHA_CP858);
-		rules_init_class('x', CHARS_LOWER CHARS_UPPER CHARS_ALPHA_CP858 CHARS_DIGITS  CHARS_DIGITS_CP858);
+		rules_init_class('a', CHARS_LOWER CHARS_UPPER
+		                 CHARS_ALPHA_CP858);
+		rules_init_class('x', CHARS_LOWER CHARS_UPPER CHARS_ALPHA_CP858
+		                 CHARS_DIGITS CHARS_DIGITS_CP858);
 		rules_init_class('o', CHARS_CONTROL_ASCII CHARS_CONTROL_CP858);
 		rules_init_class('Y', CHARS_INVALID_CP858);
-	} else if (options.cp866) {
+		break;
+	case CP866:
 		rules_init_class('v', CHARS_VOWELS CHARS_VOWELS_CP866);
 		rules_init_class('c', CHARS_CONSONANTS CHARS_CONSONANTS_CP866);
 		rules_init_class('w', CHARS_WHITESPACE CHARS_WHITESPACE_CP866);
-		rules_init_class('p', CHARS_PUNCTUATION CHARS_PUNCTUATION_CP866);
+		rules_init_class('p', CHARS_PUNCTUATION
+		                 CHARS_PUNCTUATION_CP866);
 		rules_init_class('s', CHARS_SPECIALS CHARS_SPECIALS_CP866);
-		rules_init_class('l', CHARS_LOWER CHARS_LOWER_CP866 CHARS_LOW_ONLY_CP866);
-		rules_init_class('u', CHARS_UPPER CHARS_UPPER_CP866 CHARS_UP_ONLY_CP866);
+		rules_init_class('l', CHARS_LOWER CHARS_LOWER_CP866
+		                 CHARS_LOW_ONLY_CP866);
+		rules_init_class('u', CHARS_UPPER CHARS_UPPER_CP866
+		                 CHARS_UP_ONLY_CP866);
 		rules_init_class('d', CHARS_DIGITS CHARS_DIGITS_CP866);
-		rules_init_class('a', CHARS_LOWER CHARS_UPPER CHARS_ALPHA_CP866);
-		rules_init_class('x', CHARS_LOWER CHARS_UPPER CHARS_ALPHA_CP866 CHARS_DIGITS  CHARS_DIGITS_CP866);
+		rules_init_class('a', CHARS_LOWER CHARS_UPPER
+		                 CHARS_ALPHA_CP866);
+		rules_init_class('x', CHARS_LOWER CHARS_UPPER CHARS_ALPHA_CP866
+		                 CHARS_DIGITS CHARS_DIGITS_CP866);
 		rules_init_class('o', CHARS_CONTROL_ASCII CHARS_CONTROL_CP866);
 		rules_init_class('Y', CHARS_INVALID_CP866);
-	} else if (options.cp1250) {
+		break;
+	case CP1250:
 		rules_init_class('v', CHARS_VOWELS CHARS_VOWELS_CP1250);
 		rules_init_class('c', CHARS_CONSONANTS CHARS_CONSONANTS_CP1250);
 		rules_init_class('w', CHARS_WHITESPACE CHARS_WHITESPACE_CP1250);
-		rules_init_class('p', CHARS_PUNCTUATION CHARS_PUNCTUATION_CP1250);
+		rules_init_class('p', CHARS_PUNCTUATION
+		                 CHARS_PUNCTUATION_CP1250);
 		rules_init_class('s', CHARS_SPECIALS CHARS_SPECIALS_CP1250);
-		rules_init_class('l', CHARS_LOWER CHARS_LOWER_CP1250 CHARS_LOW_ONLY_CP1250);
-		rules_init_class('u', CHARS_UPPER CHARS_UPPER_CP1250 CHARS_UP_ONLY_CP1250);
+		rules_init_class('l', CHARS_LOWER CHARS_LOWER_CP1250
+		                 CHARS_LOW_ONLY_CP1250);
+		rules_init_class('u', CHARS_UPPER CHARS_UPPER_CP1250
+		                 CHARS_UP_ONLY_CP1250);
 		rules_init_class('d', CHARS_DIGITS CHARS_DIGITS_CP1250);
-		rules_init_class('a', CHARS_LOWER CHARS_UPPER CHARS_ALPHA_CP1250);
-		rules_init_class('x', CHARS_LOWER CHARS_UPPER CHARS_ALPHA_CP1250 CHARS_DIGITS  CHARS_DIGITS_CP1250);
+		rules_init_class('a', CHARS_LOWER CHARS_UPPER
+		                 CHARS_ALPHA_CP1250);
+		rules_init_class('x', CHARS_LOWER CHARS_UPPER CHARS_ALPHA_CP1250
+		                 CHARS_DIGITS CHARS_DIGITS_CP1250);
 		rules_init_class('o', CHARS_CONTROL_ASCII CHARS_CONTROL_CP1250);
 		rules_init_class('Y', CHARS_INVALID_CP1250);
-	} else if (options.cp1251) {
+		break;
+	case CP1251:
 		rules_init_class('v', CHARS_VOWELS CHARS_VOWELS_CP1251);
 		rules_init_class('c', CHARS_CONSONANTS CHARS_CONSONANTS_CP1251);
 		rules_init_class('w', CHARS_WHITESPACE CHARS_WHITESPACE_CP1251);
-		rules_init_class('p', CHARS_PUNCTUATION CHARS_PUNCTUATION_CP1251);
+		rules_init_class('p', CHARS_PUNCTUATION
+		                 CHARS_PUNCTUATION_CP1251);
 		rules_init_class('s', CHARS_SPECIALS CHARS_SPECIALS_CP1251);
-		rules_init_class('l', CHARS_LOWER CHARS_LOWER_CP1251 CHARS_LOW_ONLY_CP1251);
-		rules_init_class('u', CHARS_UPPER CHARS_UPPER_CP1251 CHARS_UP_ONLY_CP1251);
+		rules_init_class('l', CHARS_LOWER CHARS_LOWER_CP1251
+		                 CHARS_LOW_ONLY_CP1251);
+		rules_init_class('u', CHARS_UPPER CHARS_UPPER_CP1251
+		                 CHARS_UP_ONLY_CP1251);
 		rules_init_class('d', CHARS_DIGITS CHARS_DIGITS_CP1251);
-		rules_init_class('a', CHARS_LOWER CHARS_UPPER CHARS_ALPHA_CP1251);
-		rules_init_class('x', CHARS_LOWER CHARS_UPPER CHARS_ALPHA_CP1251 CHARS_DIGITS  CHARS_DIGITS_CP1251);
+		rules_init_class('a', CHARS_LOWER CHARS_UPPER
+		                 CHARS_ALPHA_CP1251);
+		rules_init_class('x', CHARS_LOWER CHARS_UPPER
+		                 CHARS_ALPHA_CP1251 CHARS_DIGITS
+		                 CHARS_DIGITS_CP1251);
 		rules_init_class('o', CHARS_CONTROL_ASCII CHARS_CONTROL_CP1251);
 		rules_init_class('Y', CHARS_INVALID_CP1251);
-	} else if (options.cp1252) {
+		break;
+	case CP1252:
 		rules_init_class('v', CHARS_VOWELS CHARS_VOWELS_CP1252);
 		rules_init_class('c', CHARS_CONSONANTS CHARS_CONSONANTS_CP1252);
 		rules_init_class('w', CHARS_WHITESPACE CHARS_WHITESPACE_CP1252);
-		rules_init_class('p', CHARS_PUNCTUATION CHARS_PUNCTUATION_CP1252);
+		rules_init_class('p', CHARS_PUNCTUATION
+		                 CHARS_PUNCTUATION_CP1252);
 		rules_init_class('s', CHARS_SPECIALS CHARS_SPECIALS_CP1252);
-		rules_init_class('l', CHARS_LOWER CHARS_LOWER_CP1252 CHARS_LOW_ONLY_CP1252);
-		rules_init_class('u', CHARS_UPPER CHARS_UPPER_CP1252 CHARS_UP_ONLY_CP1252);
+		rules_init_class('l', CHARS_LOWER CHARS_LOWER_CP1252
+		                 CHARS_LOW_ONLY_CP1252);
+		rules_init_class('u', CHARS_UPPER CHARS_UPPER_CP1252
+		                 CHARS_UP_ONLY_CP1252);
 		rules_init_class('d', CHARS_DIGITS CHARS_DIGITS_CP1252);
-		rules_init_class('a', CHARS_LOWER CHARS_UPPER CHARS_ALPHA_CP1252);
-		rules_init_class('x', CHARS_LOWER CHARS_UPPER CHARS_ALPHA_CP1252 CHARS_DIGITS  CHARS_DIGITS_CP1252);
+		rules_init_class('a', CHARS_LOWER CHARS_UPPER
+		                 CHARS_ALPHA_CP1252);
+		rules_init_class('x', CHARS_LOWER CHARS_UPPER CHARS_ALPHA_CP1252
+		                 CHARS_DIGITS CHARS_DIGITS_CP1252);
 		rules_init_class('o', CHARS_CONTROL_ASCII CHARS_CONTROL_CP1252);
 		rules_init_class('Y', CHARS_INVALID_CP1252);
-	} else if (options.cp1253) {
+		break;
+	case CP1253:
 		rules_init_class('v', CHARS_VOWELS CHARS_VOWELS_CP1253);
 		rules_init_class('c', CHARS_CONSONANTS CHARS_CONSONANTS_CP1253);
 		rules_init_class('w', CHARS_WHITESPACE CHARS_WHITESPACE_CP1253);
-		rules_init_class('p', CHARS_PUNCTUATION CHARS_PUNCTUATION_CP1253);
+		rules_init_class('p', CHARS_PUNCTUATION
+		                 CHARS_PUNCTUATION_CP1253);
 		rules_init_class('s', CHARS_SPECIALS CHARS_SPECIALS_CP1253);
-		rules_init_class('l', CHARS_LOWER CHARS_LOWER_CP1253 CHARS_LOW_ONLY_CP1253);
-		rules_init_class('u', CHARS_UPPER CHARS_UPPER_CP1253 CHARS_UP_ONLY_CP1253);
+		rules_init_class('l', CHARS_LOWER CHARS_LOWER_CP1253
+		                 CHARS_LOW_ONLY_CP1253);
+		rules_init_class('u', CHARS_UPPER CHARS_UPPER_CP1253
+		                 CHARS_UP_ONLY_CP1253);
 		rules_init_class('d', CHARS_DIGITS CHARS_DIGITS_CP1253);
-		rules_init_class('a', CHARS_LOWER CHARS_UPPER CHARS_ALPHA_CP1253);
-		rules_init_class('x', CHARS_LOWER CHARS_UPPER CHARS_ALPHA_CP1253 CHARS_DIGITS  CHARS_DIGITS_CP1253);
+		rules_init_class('a', CHARS_LOWER CHARS_UPPER
+		                 CHARS_ALPHA_CP1253);
+		rules_init_class('x', CHARS_LOWER CHARS_UPPER CHARS_ALPHA_CP1253
+		                 CHARS_DIGITS CHARS_DIGITS_CP1253);
 		rules_init_class('o', CHARS_CONTROL_ASCII CHARS_CONTROL_CP1253);
 		rules_init_class('Y', CHARS_INVALID_CP1253);
-	} else {
+		break;
+	default:
 		rules_init_class('v', CHARS_VOWELS);
 		rules_init_class('c', CHARS_CONSONANTS);
 		rules_init_class('w', CHARS_WHITESPACE);
@@ -571,12 +685,13 @@ static void rules_init_classes(void)
 		rules_init_class('d', CHARS_DIGITS);
 		rules_init_class('a', CHARS_LOWER CHARS_UPPER);
 		rules_init_class('x', CHARS_LOWER CHARS_UPPER CHARS_DIGITS);
-		if (options.utf8) {
+		if (pers_opts.intermediate_enc == UTF_8) {
 			rules_init_class('Y', CHARS_INVALID_UTF8);
 			rules_init_class('o', CHARS_CONTROL_ASCII);
 		} else {
 			rules_init_class('Y', "");
-			rules_init_class('o', CHARS_CONTROL_ASCII CHARS_CONTROL_ASCII_EXTENDED);
+			rules_init_class('o', CHARS_CONTROL_ASCII
+			                 CHARS_CONTROL_ASCII_EXTENDED);
 		}
 	}
 }
@@ -601,104 +716,228 @@ static void rules_init_convs(void)
 	conv_right = rules_init_conv(conv_source, CONV_RIGHT);
 	conv_left = rules_init_conv(conv_source, CONV_LEFT);
 
-	if (options.iso8859_1) {
-		conv_source = CONV_SOURCE CHARS_LOWER_ISO_8859_1 CHARS_UPPER_ISO_8859_1;
-		conv_shift = rules_init_conv(conv_source, CONV_SHIFT CHARS_UPPER_ISO_8859_1 CHARS_LOWER_ISO_8859_1);
-		conv_invert = rules_init_conv(conv_source, CONV_INVERT CHARS_UPPER_ISO_8859_1 CHARS_LOWER_ISO_8859_1);
-		conv_tolower = rules_init_conv(CHARS_UPPER CHARS_UPPER_ISO_8859_1, CHARS_LOWER CHARS_LOWER_ISO_8859_1);
-		conv_toupper = rules_init_conv(CHARS_LOWER CHARS_LOWER_ISO_8859_1, CHARS_UPPER CHARS_UPPER_ISO_8859_1);
-	} else if (options.iso8859_2) {
-		conv_source = CONV_SOURCE CHARS_LOWER_ISO_8859_2 CHARS_UPPER_ISO_8859_2;
-		conv_shift = rules_init_conv(conv_source, CONV_SHIFT CHARS_UPPER_ISO_8859_2 CHARS_LOWER_ISO_8859_2);
-		conv_invert = rules_init_conv(conv_source, CONV_INVERT CHARS_UPPER_ISO_8859_2 CHARS_LOWER_ISO_8859_2);
-		conv_tolower = rules_init_conv(CHARS_UPPER CHARS_UPPER_ISO_8859_2, CHARS_LOWER CHARS_LOWER_ISO_8859_2);
-		conv_toupper = rules_init_conv(CHARS_LOWER CHARS_LOWER_ISO_8859_2, CHARS_UPPER CHARS_UPPER_ISO_8859_2);
-	} else if (options.iso8859_7) {
-		conv_source = CONV_SOURCE CHARS_LOWER_ISO_8859_7 CHARS_UPPER_ISO_8859_7;
-		conv_shift = rules_init_conv(conv_source, CONV_SHIFT CHARS_UPPER_ISO_8859_7 CHARS_LOWER_ISO_8859_7);
-		conv_invert = rules_init_conv(conv_source, CONV_INVERT CHARS_UPPER_ISO_8859_7 CHARS_LOWER_ISO_8859_7);
-		conv_tolower = rules_init_conv(CHARS_UPPER CHARS_UPPER_ISO_8859_7, CHARS_LOWER CHARS_LOWER_ISO_8859_7);
-		conv_toupper = rules_init_conv(CHARS_LOWER CHARS_LOWER_ISO_8859_7, CHARS_UPPER CHARS_UPPER_ISO_8859_7);
-		// *** WARNING, char at 0xC0 U+0390 (ΐ -> Ϊ́) needs to be looked into.  Single to multi-byte conversion
-		// *** WARNING, char at 0xE0 U+03B0 (ΰ -> Ϋ́) needs to be looked into.  Single to multi-byte conversion
-	} else if (options.iso8859_15) {
-		conv_source = CONV_SOURCE CHARS_LOWER_ISO_8859_15 CHARS_UPPER_ISO_8859_15;
-		conv_shift = rules_init_conv(conv_source, CONV_SHIFT CHARS_UPPER_ISO_8859_15 CHARS_LOWER_ISO_8859_15);
-		conv_invert = rules_init_conv(conv_source, CONV_INVERT CHARS_UPPER_ISO_8859_15 CHARS_LOWER_ISO_8859_15);
-		conv_tolower = rules_init_conv(CHARS_UPPER CHARS_UPPER_ISO_8859_15, CHARS_LOWER CHARS_LOWER_ISO_8859_15);
-		conv_toupper = rules_init_conv(CHARS_LOWER CHARS_LOWER_ISO_8859_15, CHARS_UPPER CHARS_UPPER_ISO_8859_15);
-	} else if (options.koi8_r) {
+	switch(pers_opts.intermediate_enc) {
+	case ISO_8859_1:
+		conv_source = CONV_SOURCE CHARS_LOWER_ISO_8859_1
+			CHARS_UPPER_ISO_8859_1;
+		conv_shift = rules_init_conv(conv_source, CONV_SHIFT
+		                             CHARS_UPPER_ISO_8859_1
+		                             CHARS_LOWER_ISO_8859_1);
+		conv_invert = rules_init_conv(conv_source, CONV_INVERT
+		                              CHARS_UPPER_ISO_8859_1
+		                              CHARS_LOWER_ISO_8859_1);
+		conv_tolower = rules_init_conv(CHARS_UPPER
+		                               CHARS_UPPER_ISO_8859_1,
+		                               CHARS_LOWER
+		                               CHARS_LOWER_ISO_8859_1);
+		conv_toupper = rules_init_conv(CHARS_LOWER
+		                               CHARS_LOWER_ISO_8859_1,
+		                               CHARS_UPPER
+		                               CHARS_UPPER_ISO_8859_1);
+		break;
+	case ISO_8859_2:
+		conv_source = CONV_SOURCE CHARS_LOWER_ISO_8859_2
+			CHARS_UPPER_ISO_8859_2;
+		conv_shift = rules_init_conv(conv_source, CONV_SHIFT
+		                             CHARS_UPPER_ISO_8859_2
+		                             CHARS_LOWER_ISO_8859_2);
+		conv_invert = rules_init_conv(conv_source, CONV_INVERT
+		                              CHARS_UPPER_ISO_8859_2
+		                              CHARS_LOWER_ISO_8859_2);
+		conv_tolower = rules_init_conv(CHARS_UPPER
+		                               CHARS_UPPER_ISO_8859_2,
+		                               CHARS_LOWER
+		                               CHARS_LOWER_ISO_8859_2);
+		conv_toupper = rules_init_conv(CHARS_LOWER
+		                               CHARS_LOWER_ISO_8859_2,
+		                               CHARS_UPPER
+		                               CHARS_UPPER_ISO_8859_2);
+		break;
+	case ISO_8859_7:
+		conv_source = CONV_SOURCE CHARS_LOWER_ISO_8859_7
+			CHARS_UPPER_ISO_8859_7;
+		conv_shift = rules_init_conv(conv_source, CONV_SHIFT
+		                             CHARS_UPPER_ISO_8859_7
+		                             CHARS_LOWER_ISO_8859_7);
+		conv_invert = rules_init_conv(conv_source, CONV_INVERT
+		                              CHARS_UPPER_ISO_8859_7
+		                              CHARS_LOWER_ISO_8859_7);
+		conv_tolower = rules_init_conv(CHARS_UPPER
+		                               CHARS_UPPER_ISO_8859_7,
+		                               CHARS_LOWER
+		                               CHARS_LOWER_ISO_8859_7);
+		conv_toupper = rules_init_conv(CHARS_LOWER
+		                               CHARS_LOWER_ISO_8859_7,
+		                               CHARS_UPPER
+		                               CHARS_UPPER_ISO_8859_7);
+		break;
+	case ISO_8859_15:
+		conv_source = CONV_SOURCE CHARS_LOWER_ISO_8859_15
+			CHARS_UPPER_ISO_8859_15;
+		conv_shift = rules_init_conv(conv_source, CONV_SHIFT
+		                             CHARS_UPPER_ISO_8859_15
+		                             CHARS_LOWER_ISO_8859_15);
+		conv_invert = rules_init_conv(conv_source, CONV_INVERT
+		                              CHARS_UPPER_ISO_8859_15
+		                              CHARS_LOWER_ISO_8859_15);
+		conv_tolower = rules_init_conv(CHARS_UPPER
+		                               CHARS_UPPER_ISO_8859_15,
+		                               CHARS_LOWER
+		                               CHARS_LOWER_ISO_8859_15);
+		conv_toupper = rules_init_conv(CHARS_LOWER
+		                               CHARS_LOWER_ISO_8859_15,
+		                               CHARS_UPPER
+		                               CHARS_UPPER_ISO_8859_15);
+		break;
+	case KOI8_R:
 		conv_source = CONV_SOURCE CHARS_LOWER_KOI8_R CHARS_UPPER_KOI8_R;
-		conv_shift = rules_init_conv(conv_source, CONV_SHIFT CHARS_UPPER_KOI8_R CHARS_LOWER_KOI8_R);
-		conv_invert = rules_init_conv(conv_source, CONV_INVERT CHARS_UPPER_KOI8_R CHARS_LOWER_KOI8_R);
-		conv_tolower = rules_init_conv(CHARS_UPPER CHARS_UPPER_KOI8_R, CHARS_LOWER CHARS_LOWER_KOI8_R);
-		conv_toupper = rules_init_conv(CHARS_LOWER CHARS_LOWER_KOI8_R, CHARS_UPPER CHARS_UPPER_KOI8_R);
-	} else if (options.cp437) {
+		conv_shift = rules_init_conv(conv_source, CONV_SHIFT
+		                             CHARS_UPPER_KOI8_R
+		                             CHARS_LOWER_KOI8_R);
+		conv_invert = rules_init_conv(conv_source, CONV_INVERT
+		                              CHARS_UPPER_KOI8_R
+		                              CHARS_LOWER_KOI8_R);
+		conv_tolower = rules_init_conv(CHARS_UPPER CHARS_UPPER_KOI8_R,
+		                               CHARS_LOWER CHARS_LOWER_KOI8_R);
+		conv_toupper = rules_init_conv(CHARS_LOWER CHARS_LOWER_KOI8_R,
+		                               CHARS_UPPER CHARS_UPPER_KOI8_R);
+		break;
+	case CP437:
 		conv_source = CONV_SOURCE CHARS_LOWER_CP437 CHARS_UPPER_CP437;
-		conv_shift = rules_init_conv(conv_source, CONV_SHIFT CHARS_UPPER_CP437 CHARS_LOWER_CP437);
-		conv_invert = rules_init_conv(conv_source, CONV_INVERT CHARS_UPPER_CP437 CHARS_LOWER_CP437);
-		conv_tolower = rules_init_conv(CHARS_UPPER CHARS_UPPER_CP437, CHARS_LOWER CHARS_LOWER_CP437);
-		conv_toupper = rules_init_conv(CHARS_LOWER CHARS_LOWER_CP437, CHARS_UPPER CHARS_UPPER_CP437);
-	} else if (options.cp737) {
+		conv_shift = rules_init_conv(conv_source, CONV_SHIFT
+		                             CHARS_UPPER_CP437
+		                             CHARS_LOWER_CP437);
+		conv_invert = rules_init_conv(conv_source, CONV_INVERT
+		                              CHARS_UPPER_CP437
+		                              CHARS_LOWER_CP437);
+		conv_tolower = rules_init_conv(CHARS_UPPER CHARS_UPPER_CP437,
+		                               CHARS_LOWER CHARS_LOWER_CP437);
+		conv_toupper = rules_init_conv(CHARS_LOWER CHARS_LOWER_CP437,
+		                               CHARS_UPPER CHARS_UPPER_CP437);
+		break;
+	case CP737:
 		conv_source = CONV_SOURCE CHARS_LOWER_CP737 CHARS_UPPER_CP737;
-		conv_shift = rules_init_conv(conv_source, CONV_SHIFT CHARS_UPPER_CP737 CHARS_LOWER_CP737);
-		conv_invert = rules_init_conv(conv_source, CONV_INVERT CHARS_UPPER_CP737 CHARS_LOWER_CP737);
-		conv_tolower = rules_init_conv(CHARS_UPPER CHARS_UPPER_CP737, CHARS_LOWER CHARS_LOWER_CP737);
-		conv_toupper = rules_init_conv(CHARS_LOWER CHARS_LOWER_CP737, CHARS_UPPER CHARS_UPPER_CP737);
-	} else if (options.cp850) {
+		conv_shift = rules_init_conv(conv_source, CONV_SHIFT
+		                             CHARS_UPPER_CP737
+		                             CHARS_LOWER_CP737);
+		conv_invert = rules_init_conv(conv_source, CONV_INVERT
+		                              CHARS_UPPER_CP737
+		                              CHARS_LOWER_CP737);
+		conv_tolower = rules_init_conv(CHARS_UPPER CHARS_UPPER_CP737,
+		                               CHARS_LOWER CHARS_LOWER_CP737);
+		conv_toupper = rules_init_conv(CHARS_LOWER CHARS_LOWER_CP737,
+		                               CHARS_UPPER CHARS_UPPER_CP737);
+		break;
+	case CP850:
 		conv_source = CONV_SOURCE CHARS_LOWER_CP850 CHARS_UPPER_CP850;
-		conv_shift = rules_init_conv(conv_source, CONV_SHIFT CHARS_UPPER_CP850 CHARS_LOWER_CP850);
-		conv_invert = rules_init_conv(conv_source, CONV_INVERT CHARS_UPPER_CP850 CHARS_LOWER_CP850);
-		conv_tolower = rules_init_conv(CHARS_UPPER CHARS_UPPER_CP850, CHARS_LOWER CHARS_LOWER_CP850);
-		conv_toupper = rules_init_conv(CHARS_LOWER CHARS_LOWER_CP850, CHARS_UPPER CHARS_UPPER_CP850);
-		// Ok, we need to handle upcasing of 0xD5.  This is U+0131 and upcases to U+0049  (undotted low i upcases to normal I).
-		// but there is NO low case into U+131, so we have to handle this, after setup of all the 'normal' shit.
+		conv_shift = rules_init_conv(conv_source, CONV_SHIFT
+		                             CHARS_UPPER_CP850
+		                             CHARS_LOWER_CP850);
+		conv_invert = rules_init_conv(conv_source, CONV_INVERT
+		                              CHARS_UPPER_CP850
+		                              CHARS_LOWER_CP850);
+		conv_tolower = rules_init_conv(CHARS_UPPER CHARS_UPPER_CP850,
+		                               CHARS_LOWER CHARS_LOWER_CP850);
+		conv_toupper = rules_init_conv(CHARS_LOWER CHARS_LOWER_CP850,
+		                               CHARS_UPPER CHARS_UPPER_CP850);
+// Ok, we need to handle upcasing of 0xD5. This is U+0131 and upcases to U+0049
+// (undotted low i upcases to normal I).
+// but there is NO low case into U+131, so we have to handle this, after setup
+// of all the 'normal' shit.
 		conv_toupper[0xD5] = 0x49;
-	} else if (options.cp852) {
+		break;
+	case CP852:
 		conv_source = CONV_SOURCE CHARS_LOWER_CP852 CHARS_UPPER_CP852;
-		conv_shift = rules_init_conv(conv_source, CONV_SHIFT CHARS_UPPER_CP852 CHARS_LOWER_CP852);
-		conv_invert = rules_init_conv(conv_source, CONV_INVERT CHARS_UPPER_CP852 CHARS_LOWER_CP852);
-		conv_tolower = rules_init_conv(CHARS_UPPER CHARS_UPPER_CP852, CHARS_LOWER CHARS_LOWER_CP852);
-		conv_toupper = rules_init_conv(CHARS_LOWER CHARS_LOWER_CP852, CHARS_UPPER CHARS_UPPER_CP852);
-	} else if (options.cp858) {
+		conv_shift = rules_init_conv(conv_source, CONV_SHIFT
+		                             CHARS_UPPER_CP852
+		                             CHARS_LOWER_CP852);
+		conv_invert = rules_init_conv(conv_source, CONV_INVERT
+		                              CHARS_UPPER_CP852
+		                              CHARS_LOWER_CP852);
+		conv_tolower = rules_init_conv(CHARS_UPPER CHARS_UPPER_CP852,
+		                               CHARS_LOWER CHARS_LOWER_CP852);
+		conv_toupper = rules_init_conv(CHARS_LOWER CHARS_LOWER_CP852,
+		                               CHARS_UPPER CHARS_UPPER_CP852);
+		break;
+	case CP858:
 		conv_source = CONV_SOURCE CHARS_LOWER_CP858 CHARS_UPPER_CP858;
-		conv_shift = rules_init_conv(conv_source, CONV_SHIFT CHARS_UPPER_CP858 CHARS_LOWER_CP858);
-		conv_invert = rules_init_conv(conv_source, CONV_INVERT CHARS_UPPER_CP858 CHARS_LOWER_CP858);
-		conv_tolower = rules_init_conv(CHARS_UPPER CHARS_UPPER_CP858, CHARS_LOWER CHARS_LOWER_CP858);
-		conv_toupper = rules_init_conv(CHARS_LOWER CHARS_LOWER_CP858, CHARS_UPPER CHARS_UPPER_CP858);
-	} else if (options.cp866) {
+		conv_shift = rules_init_conv(conv_source, CONV_SHIFT
+		                             CHARS_UPPER_CP858
+		                             CHARS_LOWER_CP858);
+		conv_invert = rules_init_conv(conv_source, CONV_INVERT
+		                              CHARS_UPPER_CP858
+		                              CHARS_LOWER_CP858);
+		conv_tolower = rules_init_conv(CHARS_UPPER CHARS_UPPER_CP858,
+		                               CHARS_LOWER CHARS_LOWER_CP858);
+		conv_toupper = rules_init_conv(CHARS_LOWER CHARS_LOWER_CP858,
+		                               CHARS_UPPER CHARS_UPPER_CP858);
+		break;
+	case CP866:
 		conv_source = CONV_SOURCE CHARS_LOWER_CP866 CHARS_UPPER_CP866;
-		conv_shift = rules_init_conv(conv_source, CONV_SHIFT CHARS_UPPER_CP866 CHARS_LOWER_CP866);
-		conv_invert = rules_init_conv(conv_source, CONV_INVERT CHARS_UPPER_CP866 CHARS_LOWER_CP866);
-		conv_tolower = rules_init_conv(CHARS_UPPER CHARS_UPPER_CP866, CHARS_LOWER CHARS_LOWER_CP866);
-		conv_toupper = rules_init_conv(CHARS_LOWER CHARS_LOWER_CP866, CHARS_UPPER CHARS_UPPER_CP866);
-	} else if (options.cp1250) {
+		conv_shift = rules_init_conv(conv_source, CONV_SHIFT
+		                             CHARS_UPPER_CP866
+		                             CHARS_LOWER_CP866);
+		conv_invert = rules_init_conv(conv_source, CONV_INVERT
+		                              CHARS_UPPER_CP866
+		                              CHARS_LOWER_CP866);
+		conv_tolower = rules_init_conv(CHARS_UPPER CHARS_UPPER_CP866,
+		                               CHARS_LOWER CHARS_LOWER_CP866);
+		conv_toupper = rules_init_conv(CHARS_LOWER CHARS_LOWER_CP866,
+		                               CHARS_UPPER CHARS_UPPER_CP866);
+		break;
+	case CP1250:
 		conv_source = CONV_SOURCE CHARS_LOWER_CP1250 CHARS_UPPER_CP1250;
-		conv_shift = rules_init_conv(conv_source, CONV_SHIFT CHARS_UPPER_CP1250 CHARS_LOWER_CP1250);
-		conv_invert = rules_init_conv(conv_source, CONV_INVERT CHARS_UPPER_CP1250 CHARS_LOWER_CP1250);
-		conv_tolower = rules_init_conv(CHARS_UPPER CHARS_UPPER_CP1250, CHARS_LOWER CHARS_LOWER_CP1250);
-		conv_toupper = rules_init_conv(CHARS_LOWER CHARS_LOWER_CP1250, CHARS_UPPER CHARS_UPPER_CP1250);
-	} else if (options.cp1251) {
+		conv_shift = rules_init_conv(conv_source, CONV_SHIFT
+		                             CHARS_UPPER_CP1250
+		                             CHARS_LOWER_CP1250);
+		conv_invert = rules_init_conv(conv_source, CONV_INVERT
+		                              CHARS_UPPER_CP1250
+		                              CHARS_LOWER_CP1250);
+		conv_tolower = rules_init_conv(CHARS_UPPER CHARS_UPPER_CP1250,
+		                               CHARS_LOWER CHARS_LOWER_CP1250);
+		conv_toupper = rules_init_conv(CHARS_LOWER CHARS_LOWER_CP1250,
+		                               CHARS_UPPER CHARS_UPPER_CP1250);
+		break;
+	case CP1251:
 		conv_source = CONV_SOURCE CHARS_LOWER_CP1251 CHARS_UPPER_CP1251;
-		conv_shift = rules_init_conv(conv_source, CONV_SHIFT CHARS_UPPER_CP1251 CHARS_LOWER_CP1251);
-		conv_invert = rules_init_conv(conv_source, CONV_INVERT CHARS_UPPER_CP1251 CHARS_LOWER_CP1251);
-		conv_tolower = rules_init_conv(CHARS_UPPER CHARS_UPPER_CP1251, CHARS_LOWER CHARS_LOWER_CP1251);
-		conv_toupper = rules_init_conv(CHARS_LOWER CHARS_LOWER_CP1251, CHARS_UPPER CHARS_UPPER_CP1251);
-	} else if (options.cp1252) {
+		conv_shift = rules_init_conv(conv_source, CONV_SHIFT
+		                             CHARS_UPPER_CP1251
+		                             CHARS_LOWER_CP1251);
+		conv_invert = rules_init_conv(conv_source, CONV_INVERT
+		                              CHARS_UPPER_CP1251
+		                              CHARS_LOWER_CP1251);
+		conv_tolower = rules_init_conv(CHARS_UPPER CHARS_UPPER_CP1251,
+		                               CHARS_LOWER CHARS_LOWER_CP1251);
+		conv_toupper = rules_init_conv(CHARS_LOWER CHARS_LOWER_CP1251,
+		                               CHARS_UPPER CHARS_UPPER_CP1251);
+		break;
+	case CP1252:
 		conv_source = CONV_SOURCE CHARS_LOWER_CP1252 CHARS_UPPER_CP1252;
-		conv_shift = rules_init_conv(conv_source, CONV_SHIFT CHARS_UPPER_CP1252 CHARS_LOWER_CP1252);
-		conv_invert = rules_init_conv(conv_source, CONV_INVERT CHARS_UPPER_CP1252 CHARS_LOWER_CP1252);
-		conv_tolower = rules_init_conv(CHARS_UPPER CHARS_UPPER_CP1252, CHARS_LOWER CHARS_LOWER_CP1252);
-		conv_toupper = rules_init_conv(CHARS_LOWER CHARS_LOWER_CP1252, CHARS_UPPER CHARS_UPPER_CP1252);
-	} else if (options.cp1253) {
+		conv_shift = rules_init_conv(conv_source, CONV_SHIFT
+		                             CHARS_UPPER_CP1252
+		                             CHARS_LOWER_CP1252);
+		conv_invert = rules_init_conv(conv_source, CONV_INVERT
+		                              CHARS_UPPER_CP1252
+		                              CHARS_LOWER_CP1252);
+		conv_tolower = rules_init_conv(CHARS_UPPER CHARS_UPPER_CP1252,
+		                               CHARS_LOWER CHARS_LOWER_CP1252);
+		conv_toupper = rules_init_conv(CHARS_LOWER CHARS_LOWER_CP1252,
+		                               CHARS_UPPER CHARS_UPPER_CP1252);
+		break;
+	case CP1253:
 		conv_source = CONV_SOURCE CHARS_LOWER_CP1253 CHARS_UPPER_CP1253;
-		conv_shift = rules_init_conv(conv_source, CONV_SHIFT CHARS_UPPER_CP1253 CHARS_LOWER_CP1253);
-		conv_invert = rules_init_conv(conv_source, CONV_INVERT CHARS_UPPER_CP1253 CHARS_LOWER_CP1253);
-		conv_tolower = rules_init_conv(CHARS_UPPER CHARS_UPPER_CP1253, CHARS_LOWER CHARS_LOWER_CP1253);
-		conv_toupper = rules_init_conv(CHARS_LOWER CHARS_LOWER_CP1253, CHARS_UPPER CHARS_UPPER_CP1253);
-		// *** WARNING, char at 0xC0 U+0390 (ΐ -> Ϊ́) needs to be looked into.  Single to multi-byte conversion
-		// *** WARNING, char at 0xE0 U+03B0 (ΰ -> Ϋ́) needs to be looked into.  Single to multi-byte conversion
-	} else {
+		conv_shift = rules_init_conv(conv_source, CONV_SHIFT
+		                             CHARS_UPPER_CP1253
+		                             CHARS_LOWER_CP1253);
+		conv_invert = rules_init_conv(conv_source, CONV_INVERT
+		                              CHARS_UPPER_CP1253
+		                              CHARS_LOWER_CP1253);
+		conv_tolower = rules_init_conv(CHARS_UPPER CHARS_UPPER_CP1253,
+		                               CHARS_LOWER CHARS_LOWER_CP1253);
+		conv_toupper = rules_init_conv(CHARS_LOWER CHARS_LOWER_CP1253,
+		                               CHARS_UPPER CHARS_UPPER_CP1253);
+		break;
+	default:
 		conv_shift = rules_init_conv(conv_source, CONV_SHIFT);
 		conv_invert = rules_init_conv(conv_source, CONV_INVERT);
 		conv_tolower = rules_init_conv(CHARS_UPPER, CHARS_LOWER);
@@ -783,7 +1022,8 @@ char *rules_reject(char *rule, int split, char *last, struct db_main *db)
 				rules_errno = RULES_ERROR_END;
 				return NULL;
 			}
-			if (rules_vars[ARCH_INDEX(RULE)] <= db->format->params.plaintext_length ) continue;
+			if (rules_vars[ARCH_INDEX(RULE)] <=
+			    db->format->params.plaintext_length ) continue;
 			return NULL;
 
 		case '\0':
@@ -792,16 +1032,20 @@ char *rules_reject(char *rule, int split, char *last, struct db_main *db)
 
 		case 'u':
 			if (!db) continue;
-			if (options.utf8) continue;
+			if (pers_opts.intermediate_enc == UTF_8) continue;
 			return NULL;
 
 		case 'U':
 			if (!db) continue;
-			if (!(options.utf8)) continue;
+			if (pers_opts.intermediate_enc != UTF_8) continue;
 			return NULL;
 
-			/* This inner case was added to handle things like this, which ARE seen in the wild: */
-			/* -[:c] other_rule_stuff    This case will chew up the -[.....] items, handling them in proper method, just like stand alone -c -:, etc */
+/*
+ * This inner case was added to handle things like this, which ARE seen in the
+ * wild:
+ * -[:c] other_rule_stuff    This case will chew up the -[.....] items,
+ * handling them in proper method, just like stand alone -c -:, etc
+ */
 		case '[':
 		do {
 			switch (*rule) {
@@ -810,12 +1054,14 @@ char *rules_reject(char *rule, int split, char *last, struct db_main *db)
 
 			case 'c':
 				if (!db) continue;
-				if (db->format->params.flags & FMT_CASE) continue;
+				if (db->format->params.flags & FMT_CASE)
+					continue;
 				return NULL;
 
 			case '8':
 				if (!db) continue;
-				if (db->format->params.flags & FMT_8_BIT) continue;
+				if (db->format->params.flags & FMT_8_BIT)
+					continue;
 				return NULL;
 
 			case 's':
@@ -833,7 +1079,9 @@ char *rules_reject(char *rule, int split, char *last, struct db_main *db)
 					rules_errno = RULES_ERROR_END;
 					return NULL;
 				}
-				if (rules_vars[ARCH_INDEX(RULE)] <= db->format->params.plaintext_length ) continue;
+				if (rules_vars[ARCH_INDEX(RULE)] <=
+				    db->format->params.plaintext_length )
+					continue;
 				return NULL;
 
 			case '\0':
@@ -842,16 +1090,19 @@ char *rules_reject(char *rule, int split, char *last, struct db_main *db)
 
 			case 'u':
 				if (!db) continue;
-				if (options.utf8) continue;
+				if (pers_opts.intermediate_enc == UTF_8)
+					continue;
 				return NULL;
 
 			case 'U':
 				if (!db) continue;
-				if (!(options.utf8)) continue;
+				if (pers_opts.intermediate_enc != UTF_8)
+					continue;
 				return NULL;
 
 			case ']':
-				++rule; // skip the ']', since we are not dropping down to the while clause.
+// skip the ']', since we are not dropping down to the while clause.
+				++rule;
 				goto EndPP;
 
 			default:
@@ -880,11 +1131,31 @@ accept:
 	return out_rule;
 }
 
-char *rules_apply(char *word, char *rule, int split, char *last)
+static char* rules_cp_to_utf8(char *in)
 {
-	char *in, *alt, *memory = word;
+	static char out[PLAINTEXT_BUFFER_SIZE + 1];
+
+	if (pers_opts.intermediate_enc != UTF_8 &&
+	    pers_opts.intermediate_enc != pers_opts.hashed_enc)
+		return cp_to_utf8_r(in, out, PLAINTEXT_BUFFER_SIZE);
+
+	return in;
+}
+
+char *rules_apply(char *word_in, char *rule, int split, char *last)
+{
+	char cpword[PLAINTEXT_BUFFER_SIZE + 1];
+	char *word;
+	char *in, *alt, *memory;
 	int length;
 	int which;
+
+	if (pers_opts.intermediate_enc != UTF_8 &&
+	    pers_opts.intermediate_enc != pers_opts.hashed_enc)
+		memory = word = utf8_to_cp_r(word_in, cpword,
+		                             PLAINTEXT_BUFFER_SIZE);
+	else
+		memory = word = word_in;
 
 	in = buffer[0];
 	if (in == last)
@@ -1491,18 +1762,18 @@ out_OK:
 			length = rules_max_length;
 		if (length >= ARCH_SIZE - 1) {
 			if (*(ARCH_WORD *)in != *(ARCH_WORD *)last)
-				return in;
+				return rules_cp_to_utf8(in);
 			if (strcmp(&in[ARCH_SIZE - 1], &last[ARCH_SIZE - 1]))
-				return in;
+				return rules_cp_to_utf8(in);
 			return NULL;
 		}
 		if (last[length])
-			return in;
+			return rules_cp_to_utf8(in);
 		if (memcmp(in, last, length))
-			return in;
+			return rules_cp_to_utf8(in);
 		return NULL;
 	}
-	return in;
+	return rules_cp_to_utf8(in);
 
 out_which:
 	if (which == 1) {
@@ -1582,40 +1853,50 @@ static void rules_normalize_add_line(char *line, int id)
 	entry->id = id;
 
 	if (rules_tmp_dup_removal.tail)
-		rules_tmp_dup_removal.tail = rules_tmp_dup_removal.tail->next = entry;
+		rules_tmp_dup_removal.tail =
+			rules_tmp_dup_removal.tail->next = entry;
 	else
-		rules_tmp_dup_removal.tail = rules_tmp_dup_removal.head = entry;
+		rules_tmp_dup_removal.tail =
+			rules_tmp_dup_removal.head = entry;
 }
-static void rules_load_normalized_list(struct cfg_line *pLine) {
+
+static void rules_load_normalized_list(struct cfg_line *pLine)
+{
 	while (pLine) {
 		if (pLine->data) {
-			/* this call will 'reduce' the rule by stripping no-op's */
-
-			// NOTE, this rule (in Wordlist) returns false (6, ie "Unknown rule reject flag")
-			// -[:c] <* >2 !?A \p1[lc] M [PI]  It does not like the -[:c] without a DB ?
+/*
+ * this call will 'reduce' the rule by stripping no-op's. NOTE, this rule
+ * (in Wordlist) returns false (6, ie "Unknown rule reject flag")
+ * -[:c] <* >2 !?A \p1[lc] M [PI]  It does not like the -[:c] without a DB ?
+ */
 			char *rule = rules_reject(pLine->data, -1, NULL, NULL);
 			if (rule) {
 				rules_normalize_add_line(rule, pLine->id);
 				++rules_tmp_dup_removal_cnt;
 			}
 			else {
-				rules_normalize_add_line(pLine->data, pLine->id);
+				rules_normalize_add_line(pLine->data,
+				                         pLine->id);
 				++rules_tmp_dup_removal_cnt;
 			}
 		}
 		pLine = pLine->next;
 	}
 }
-static struct cfg_line * rules_remove_rule(struct cfg_line *pStart, int id, int log) {
+
+static
+struct cfg_line* rules_remove_rule(struct cfg_line *pStart, int id, int log)
+{
 	struct cfg_line *plast = NULL;
 	struct cfg_line *p = pStart;
 	while (p) {
 		if (p->id == id) {
-			/* note we have no way to remove the first element, BUT we never should see */
-			/* the first element as being a dupe anyway, so we always should be able to */
-			/* have plast 'set' before we find it                                       */
+/* note we have no way to remove the first element, BUT we never should see */
+/* the first element as being a dupe anyway, so we always should be able to */
+/* have plast 'set' before we find it                                       */
 			if (plast) plast->next = p->next;
-			if (log) log_event("- duplicate rule removed at line %d: %.100s", p->number, p->data);
+			if (log) log_event("- duplicate rule removed at line"
+			                   " %d: %.100s", p->number, p->data);
 			return plast;
 		}
 		plast = p;
@@ -1623,6 +1904,7 @@ static struct cfg_line * rules_remove_rule(struct cfg_line *pStart, int id, int 
 	}
 	return pStart;
 }
+
 static int Hash(struct cfg_line *pLine) {
 	unsigned int hash, extra;
 	unsigned char *p;
@@ -1660,11 +1942,13 @@ out:
 }
 
 /* this function is NOT O(n^2)  It is fast, using a hash table */
-int rules_remove_dups(struct cfg_line *pLines, int log) {
+int rules_remove_dups(struct cfg_line *pLines, int log)
+{
 	int cur=0, removed=0;
 	struct cfg_line *p1;
 
-	/* reset the dupe removal data.  NOTE this function CAN be called multiple times in a single run of john */
+	/* reset the dupe removal data.  NOTE this function CAN be called
+	   multiple times in a single run of john */
 	rules_tmp_dup_removal.head = rules_tmp_dup_removal.tail = NULL;
 	rules_tmp_dup_removal_cnt = 0;
 
@@ -1677,11 +1961,11 @@ int rules_remove_dups(struct cfg_line *pLines, int log) {
 	HASH_SIZE     = (1<<HASH_LOG);
 	HASH_LOG_HALF = (HASH_LOG>>1);
 	HASH_MASK     = (HASH_SIZE-1);
-//	fprintf(stderr, "HASH_LOG = %u  HASH_SIZE = %u, starting rules cnt = %u\n", HASH_LOG, HASH_SIZE, rules_tmp_dup_removal_cnt);
 
 	pHashTbl = mem_alloc(sizeof(struct HashPtr)*HASH_SIZE);
 	memset(pHashTbl, 0, sizeof(struct HashPtr)*HASH_SIZE);
-	pHashDat = mem_alloc(sizeof(struct HashPtr) * rules_tmp_dup_removal_cnt);
+	pHashDat =
+		mem_alloc(sizeof(struct HashPtr) * rules_tmp_dup_removal_cnt);
 
 	p1 = rules_tmp_dup_removal.head;
 	while (p1) {
@@ -1692,13 +1976,15 @@ int rules_remove_dups(struct cfg_line *pLines, int log) {
 			pHashDat[cur++].pLine = p1;
 		}
 		else {
-			// walk the chain, looking for this line. If we find it, then we do NOT add this line.
+			// walk the chain, looking for this line. If we find it,
+			// then we do NOT add this line.
 			struct HashPtr *p = pHashTbl[hashId].pNext;
 			int bGood = 1;
 			for (;;) {
 				if (!strcmp(p1->data, p->pLine->data)) {
 					bGood = 0;
-					pLines = rules_remove_rule(pLines, p1->id, log);
+					pLines = rules_remove_rule(pLines,
+					                           p1->id, log);
 					++removed;
 					break;
 				}
@@ -1737,8 +2023,8 @@ int rules_count(struct rpp_context *start, int split)
 	count2 = rules_remove_dups(start->input, 1);
 	if (count2) {
 		count2 = rules_check(start, split);
-		log_event("- %d preprocessed word mangling rules were reduced by dropping %d rules", count1, count1-count2);
-//		fprintf(stderr, "%d preprocessed word mangling rules were reduced by dropping %d rules\n", count1, count1-count2);
+		log_event("- %d preprocessed word mangling rules were reduced "
+		          "by dropping %d rules", count1, count1-count2);
 		count1 = count2;
 	}
 

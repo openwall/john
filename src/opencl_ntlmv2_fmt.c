@@ -420,8 +420,6 @@ static void init(struct fmt_main *self)
 {
 	cl_ulong maxsize, maxsize2, max_mem;
 	char build_opts[96];
-	char *encoding = options.encodingDef ?
-		options.encodingDef : "ISO_8859_1";
 	static char valgo[32] = "";
 
 	if ((v_width = opencl_get_vector_width(gpu_id,
@@ -432,12 +430,12 @@ static void init(struct fmt_main *self)
 		self->params.algorithm_name = valgo;
 	}
 
-	if (options.utf8)
+	if (pers_opts.hashed_enc == UTF_8)
 		max_len = self->params.plaintext_length = 3 * PLAINTEXT_LENGTH;
 
 	snprintf(build_opts, sizeof(build_opts),
-	        "-DENC_%s -DENCODING=%s -DPLAINTEXT_LENGTH=%u -DV_WIDTH=%u",
-	         encoding, encoding, PLAINTEXT_LENGTH, v_width);
+	        "-D%s -DPLAINTEXT_LENGTH=%u -DV_WIDTH=%u",
+	         cp_id2name(pers_opts.hashed_enc), PLAINTEXT_LENGTH, v_width);
 	opencl_init("$JOHN/kernels/ntlmv2_kernel.cl", gpu_id, build_opts);
 
 	/* Read LWS/GWS prefs from config or environment */

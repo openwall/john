@@ -272,8 +272,8 @@ static void crk_remove_hash(struct db_salt *salt, struct db_password *pw)
 static int crk_process_guess(struct db_salt *salt, struct db_password *pw,
 	int index)
 {
-	UTF8 utf8buf_key[PLAINTEXT_BUFFER_SIZE + 1];
-	UTF8 utf8login[PLAINTEXT_BUFFER_SIZE + 1];
+	char utf8buf_key[PLAINTEXT_BUFFER_SIZE + 1];
+	char utf8login[PLAINTEXT_BUFFER_SIZE + 1];
 	char tmp8[PLAINTEXT_BUFFER_SIZE + 1];
 	int dupe;
 	char *key, *utf8key, *repkey, *replogin;
@@ -288,17 +288,17 @@ static int crk_process_guess(struct db_salt *salt, struct db_password *pw,
 	repkey = key = index < 0 ? "" : crk_methods.get_key(index);
 	replogin = pw->login;
 
-	if (index >= 0 && (options.store_utf8 || options.report_utf8)) {
-		if (options.utf8)
+	if (index >= 0 && (pers_opts.store_utf8 || pers_opts.report_utf8)) {
+		if (pers_opts.hashed_enc == UTF_8)
 			utf8key = key;
 		else {
-			utf8key = (char*)enc_to_utf8_r(key, utf8buf_key,
-			                               PLAINTEXT_BUFFER_SIZE);
+			utf8key = cp_to_utf8_r(key, utf8buf_key,
+			                       PLAINTEXT_BUFFER_SIZE);
 			// Double-check that the conversion was correct. Our
 			// fallback is to log, warn and use the original key
 			// instead. If you see it, we have a bug.
-			utf8_to_enc_r((UTF8*)utf8key, tmp8,
-			              PLAINTEXT_BUFFER_SIZE);
+			utf8_to_cp_r(utf8key, tmp8,
+			             PLAINTEXT_BUFFER_SIZE);
 			if (strcmp(tmp8, key)) {
 				fprintf(stderr, "Warning, conversion failed %s"
 				        " -> %s -> %s - fallback to codepage\n",
@@ -309,14 +309,13 @@ static int crk_process_guess(struct db_salt *salt, struct db_password *pw,
 				utf8key = key;
 			}
 		}
-		if (options.report_utf8) {
+		if (pers_opts.report_utf8) {
 			repkey = utf8key;
-			if (crk_db->options->flags & DB_LOGIN)
-				replogin = (char*)
-					enc_to_utf8_r(pw->login,
+			if (pers_opts.hashed_enc != UTF_8)
+				replogin = cp_to_utf8_r(pw->login,
 					      utf8login, PLAINTEXT_BUFFER_SIZE);
 		}
-		if (options.store_utf8)
+		if (pers_opts.store_utf8)
 			key = utf8key;
 	}
 

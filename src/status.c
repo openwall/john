@@ -314,7 +314,7 @@ static void status_print_cracking(char *percent)
 {
 	unsigned int time = status_get_time();
 	char *key1, key2[PLAINTEXT_BUFFER_SIZE];
-	UTF8 t1buf[PLAINTEXT_BUFFER_SIZE + 1];
+	char t1buf[PLAINTEXT_BUFFER_SIZE + 1];
 	int64 g;
 	char s_gps[32], s_pps[32], s_crypts_ps[32], s_combs_ps[32];
 	char s[1024], *p;
@@ -330,13 +330,12 @@ static void status_print_cracking(char *percent)
 			strnzcpy(key2, key, sizeof(key2));
 		key1 = crk_get_key1();
 
-		if (options.report_utf8 && !options.utf8) {
-			UTF8 t2buf[PLAINTEXT_BUFFER_SIZE + 1];
+		if (pers_opts.report_utf8 && pers_opts.hashed_enc != UTF_8) {
+			char t2buf[PLAINTEXT_BUFFER_SIZE + 1];
 			char *t;
-			key1 = (char*)enc_to_utf8_r(key1, t1buf,
-			                            PLAINTEXT_BUFFER_SIZE);
-			t = (char*)enc_to_utf8_r(key2, t2buf,
-			                         PLAINTEXT_BUFFER_SIZE);
+
+			key1 = cp_to_utf8_r(key1, t1buf, PLAINTEXT_BUFFER_SIZE);
+			t = cp_to_utf8_r(key2, t2buf, PLAINTEXT_BUFFER_SIZE);
 			strnzcpy(key2, t, sizeof(key2));
 		}
 	}

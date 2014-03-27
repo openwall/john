@@ -44,42 +44,39 @@
 #ifndef _CONVERTUTF_H
 #define _CONVERTUTF_H
 
-#ifdef NOT_JOHN
-struct opts {
-	char *encoding;
-	char *encodingStr;
-	char *encodingDef;
-	int ascii;
-	int utf8;
-	int iso8859_1;
-	int iso8859_2;
-	int iso8859_7;
-	int iso8859_15;
-	int koi8_r;
-	int cp437;
-	int cp737;
-	int cp850;
-	int cp852;
-	int cp858;
-	int cp866;
-	int cp1250;
-	int cp1251;
-	int cp1252;
-	int cp1253;
-	int cp1254;
-	int cp1255;
-	int cp1256;
-} options;
-#include "params.h"
-#else
 #include "options.h"
-#endif
+#include "common.h"
 
 #ifdef _MSC_VER
 #define inline _inline
 #endif
 
-#include "common.h"
+/* Load the 'case-conversion' tables. */
+#define UNICODE_MS_OLD  1
+#define UNICODE_MS_NEW  2
+#define UNICODE_UNICODE 3
+
+/* Arbitrary CP-to-integer mapping, for switches, arrays etc. */
+#define AUTO           -1 /* try to auto-detect UTF-8 */
+#define CP_UNDEF        0
+#define ASCII           1
+#define CP437           2
+#define CP737           3
+#define CP850           4
+#define CP852           5
+#define CP858           6
+#define CP866           7
+#define CP1250          8
+#define CP1251          9
+#define CP1252          10
+#define CP1253          11
+#define ISO_8859_1      12
+#define ISO_8859_2      13
+#define ISO_8859_7      14
+#define ISO_8859_15     15
+#define KOI8_R          16
+#define UTF_8           17
+#define CP_ARRAY        18 /* always highest, may specify array sizes */
 
 typedef ARCH_WORD_32 UTF32;	/* at least 32 bits */
 typedef unsigned short UTF16;	/* at least 16 bits */
@@ -145,6 +142,12 @@ extern UTF8 * utf16_to_utf8_r (UTF8 *dst, int dst_len, const UTF16* source);
 extern UTF8 * utf16_to_enc (const UTF16* source);
 extern UTF8 * utf16_to_enc_r (UTF8 *dst, int dst_len, const UTF16* source);
 
+// Even after initializing for UTF-8 we still have some codepage that
+// we can opt to convert to/from.
+extern char *utf16_to_cp (const UTF16* source);
+extern char *utf8_to_cp_r (char *src, char* dst, int dstlen);
+extern char *cp_to_utf8_r (char *src, char* dst, int dstlen);
+
 /* Return length (in characters) of a UTF-16 string */
 /* Number of octets is the result * sizeof(UTF16)  */
 extern unsigned int strlen16(const UTF16 * str);
@@ -159,13 +162,8 @@ extern int valid_utf8(const UTF8 *source);
 /* Create an NT hash from a ISO-8859 or UTF-8 string (--encoding= aware) */
 extern int E_md4hash(const UTF8 * passwd, unsigned int len, unsigned char *p16);
 
-/* Load the 'case-conversion' tables. */
-#define UNICODE_MS_OLD	1
-#define UNICODE_MS_NEW	2
-#define UNICODE_UNICODE	3
-
 extern void listEncodings(void);
-extern int initUnicode(int type);
+extern void initUnicode(int type);
 extern UTF16 ucs2_upcase[0x10000];   /* NOTE, for multi-char converts, we put a 1 into these */
 extern UTF16 ucs2_downcase[0x10000]; /* array. The 1 is not valid, just an indicator to check the multi-char */
 
@@ -213,6 +211,9 @@ extern UTF8  CP_down[0x100];
 extern UTF8 CP_isLetter[0x100];
 extern UTF8 CP_isSeparator[0x100];
 
+// Conversion between encoding names and integer id
+extern char *cp_id2name(int encoding);
+extern int cp_name2id(char *encoding);
 //
 // NOTE! Please read the comments in formats.h for FMT_UNICODE and FMT_UTF8
 //
