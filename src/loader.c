@@ -1113,6 +1113,8 @@ static void ldr_init_hash(struct db_main *db)
 
 void ldr_fix_database(struct db_main *db)
 {
+	int total = db->password_count;
+
 	ldr_init_salts(db);
 	MEM_FREE(db->password_hash);
 	if (!db->format ||
@@ -1128,8 +1130,15 @@ void ldr_fix_database(struct db_main *db)
 
 	db->loaded = 1;
 
-	if (options.loader.showuncracked)
+	if (options.loader.showuncracked) {
+		if (john_main_process)
+			printf("%s%d password hash%s cracked, %d left\n",
+			       db->password_count ? "\n" : "",
+			       db->password_count,
+			       db->password_count != 1 ? "es" : "",
+			       total - db->password_count);
 		exit(0);
+	}
 }
 
 static int ldr_cracked_hash(char *ciphertext)
