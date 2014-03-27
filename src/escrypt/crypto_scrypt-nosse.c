@@ -207,7 +207,6 @@ smix(uint8_t * B, size_t r, uint64_t N, uint32_t * V, uint32_t * XY)
 		blkxor(Y, &V[j * (32 * r)], 128 * r);
 		blockmix_salsa8(Y, X, Z, r);
 	}
-
 	/* 10: B' <-- X */
 	for (k = 0; k < 32 * r; k++)
 		le32enc(&B[4 * k], X[k]);
@@ -267,7 +266,7 @@ escrypt_kdf(escrypt_local_t * local,
 		errno = ENOMEM;
 		return -1;
 	}
-	XY_size = (size_t)256 * r;
+	XY_size = (size_t)256 * r + 64;
 	need += XY_size;
 	if (need < XY_size) {
 		errno = ENOMEM;

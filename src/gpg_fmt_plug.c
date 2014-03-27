@@ -1174,10 +1174,10 @@ static int check(unsigned char *keydata, int ks)
 			ElGamal_secret_key elg;
 			RSA_secret_key rsa;
 			if (strlen(str) != blen * 2) { /* verifier 2 */
-				free(str);
+				OPENSSL_free(str);
 				return 0;
 			}
-			free(str);
+			OPENSSL_free(str);
 
 			if (cur_salt->pk_algorithm == 17) { /* DSA check */
 				dsa.p = BN_bin2bn(cur_salt->p, cur_salt->pl, NULL);
