@@ -85,6 +85,10 @@ static struct opt_entry opt_list[] = {
 		0, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.mkv_stats},
 	{"external", FLG_EXTERNAL_SET, FLG_EXTERNAL_CHK,
 		0, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.external},
+#if HAVE_REXGEN
+	{"regex", FLG_REGEX_SET, FLG_REGEX_CHK,
+	0, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.regex},
+#endif
 	{"stdout", FLG_STDOUT, FLG_STDOUT,
 		FLG_CRACKING_SUP, FLG_SINGLE_CHK | FLG_BATCH_CHK,
 		"%u", &options.length},
@@ -201,6 +205,13 @@ static struct opt_entry opt_list[] = {
 #define JOHN_USAGE_FORK ""
 #endif
 
+#if HAVE_REXGEN
+#define JOHN_USAGE_REGEX \
+"--regex=REGEX             regular expression mode\n"
+#else
+#define JOHN_USAGE_REGEX ""
+#endif
+
 #define JOHN_USAGE \
 "John the Ripper password cracker, version " JOHN_VERSION _MP_VERSION " [" JOHN_BLD "]\n" \
 "Copyright (c) 1996-2013 by " JOHN_COPYRIGHT "\n" \
@@ -219,6 +230,7 @@ static struct opt_entry opt_list[] = {
 "--mask=MASK               mask mode using MASK\n" \
 "--markov[=OPTIONS]        \"Markov\" mode (see doc/MARKOV)\n" \
 "--external=MODE           external mode or word filter\n" \
+JOHN_USAGE_REGEX \
 "--stdout[=LENGTH]         just output candidate passwords [cut at LENGTH]\n" \
 "--restore[=NAME]          restore an interrupted session [called NAME]\n" \
 "--session=NAME            give a new session the NAME\n" \

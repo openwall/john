@@ -79,6 +79,9 @@ static int john_omp_threads_new;
 #ifdef HAVE_MPI
 #include "john-mpi.h"
 #endif
+#if HAVE_REXGEN
+#include "regex.h"
+#endif /* HAVE_REXGEN */
 
 #include <openssl/opensslv.h>
 #include "unicode.h"
@@ -1307,6 +1310,11 @@ static void john_run(void)
 		if (options.flags & FLG_WORDLIST_CHK)
 			do_wordlist_crack(&database, options.wordlist,
 				(options.flags & FLG_RULES) != 0);
+#if HAVE_REXGEN
+		else
+		if (options.flags & FLG_REGEX_CHK)
+			do_regex_crack(&database, options.regex);
+#endif /* HAVE_REXGEN */
 		else
 		if (options.flags & FLG_INC_CHK)
 			do_incremental_crack(&database, options.charset);

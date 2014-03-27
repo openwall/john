@@ -96,13 +96,17 @@ AMDAPP = -DAMDAPPSDK
 OCLROOT = $(ATISTREAMSDKROOT)
 endif
 
-CFLAGS = -c -Wall -Wdeclaration-after-statement -O2 -fomit-frame-pointer -I/usr/local/include $(HAVE_NSS) $(HAVE_GMP) $(HAVE_KRB5) $(OMPFLAGS) $(AMDAPP) $(JOHN_CFLAGS) $(RELEASE_BLD)
+# Uncomment for rexgen cracking mode
+#REXGEN_FLAGS=-DHAVE_REXGEN=1
+#REXGEN_LDFLAGS=-llibrexgen
+
+CFLAGS = -c -Wall -Wdeclaration-after-statement -O2 -fomit-frame-pointer -I/usr/local/include $(REXGEN_FLAGS) $(HAVE_NSS) $(HAVE_GMP) $(HAVE_KRB5) $(OMPFLAGS) $(AMDAPP) $(JOHN_CFLAGS) $(RELEASE_BLD)
 # -DHAVE_SKEY
 # CFLAGS for use on the main john.c file only
 CFLAGS_MAIN = $(CFLAGS)
 ASFLAGS = -c $(OMPFLAGS) $(JOHN_ASFLAGS)
 LDFLAGS = -s -L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz \
-	$(OMPFLAGS) $(NSS_LDFLAGS) $(GMP_LDFLAGS) $(KRB5_LDFLAGS) $(JOHN_LDFLAGS)
+	$(OMPFLAGS) $(NSS_LDFLAGS) $(GMP_LDFLAGS) $(KRB5_LDFLAGS) $(JOHN_LDFLAGS) $(REXGEN_LDFLAGS)
 # -lskey
 LDFLAGS_SOLARIS = -lrt -lnsl -lsocket -lm -lz -lcrypto -lssl
 LDFLAGS_MKV = -s -lm
@@ -176,6 +180,7 @@ JOHN_OBJS = \
 	unshadow.o \
 	unafs.o \
 	undrop.o \
+	regex.o \
 	unique.o putty2john.o gpg2john.o
 
 OCL_OBJS = \

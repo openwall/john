@@ -132,6 +132,10 @@
 #define FLG_REJECT_PRINTABLE		0x0000020000000000ULL
 /* Skip self tests */
 #define FLG_NOTESTS			0x0000040000000000ULL
+#if HAVE_REXGEN
+#define FLG_REGEX_CHK			0x0000080000000000ULL
+#define FLG_REGEX_SET			(FLG_REGEX_CHK | FLG_CRACKING_SET)
+#endif /* HAVE_REXGEN */
 
 /*
  * Structure with option flags and all the parameters.
@@ -301,6 +305,11 @@ struct options_main {
 	int verbosity;
 /* Secure mode. Do not output, log or store cracked passwords. */
 	int secure;
+
+#if HAVE_REXGEN
+/* regular expression */
+  char *regex;
+#endif /* HAVE_REXGEN */
 };
 
 extern struct options_main options;
