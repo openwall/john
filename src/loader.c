@@ -1131,12 +1131,13 @@ void ldr_fix_database(struct db_main *db)
 	db->loaded = 1;
 
 	if (options.loader.showuncracked) {
+		total -= db->password_count;
 		if (john_main_process)
 			printf("%s%d password hash%s cracked, %d left\n",
-			       db->password_count ? "\n" : "",
-			       db->password_count,
-			       db->password_count != 1 ? "es" : "",
-			       total - db->password_count);
+			       total ? "\n" : "",
+			       total,
+			       total != 1 ? "es" : "",
+			       db->password_count);
 		exit(0);
 	}
 }
