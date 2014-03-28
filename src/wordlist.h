@@ -21,6 +21,6 @@
  * Runs the wordlist cracker reading words from the supplied file name, or
  * stdin if name is NULL.
  */
-extern void do_wordlist_crack(struct db_main *db, char *name, int rules, char *rexgen);
+extern void do_wordlist_crack(struct db_main *db, char *name, int rules, char *regex);
 
 #endif
