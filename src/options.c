@@ -86,8 +86,8 @@ static struct opt_entry opt_list[] = {
 	{"external", FLG_EXTERNAL_SET, FLG_EXTERNAL_CHK,
 		0, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.external},
 #if HAVE_REXGEN
-	{"regex", FLG_REGEX_SET, FLG_REGEX_CHK,
-	0, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.regex},
+	{"rexgen", FLG_REGEX_SET, FLG_REGEX_CHK,
+	0, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.rexgen},
 #endif
 	{"stdout", FLG_STDOUT, FLG_STDOUT,
 		FLG_CRACKING_SUP, FLG_SINGLE_CHK | FLG_BATCH_CHK,
@@ -207,7 +207,7 @@ static struct opt_entry opt_list[] = {
 
 #if HAVE_REXGEN
 #define JOHN_USAGE_REGEX \
-"--regex=REGEX             regular expression mode\n"
+"--rexgen=REGEX             regular expression mode\n"
 #else
 #define JOHN_USAGE_REGEX ""
 #endif

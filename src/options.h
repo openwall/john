@@ -306,7 +306,7 @@ struct options_main {
 /* Secure mode. Do not output, log or store cracked passwords. */
 	int secure;
 /* regular expression */
-  char *regex;
+  char *rexgen;
 };
 
 extern struct options_main options;

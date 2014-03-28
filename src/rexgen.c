@@ -61,7 +61,7 @@ const char *callback() {
 	return NULL;
 }
 
-int do_regex_crack_as_rules(const char *regex, const char *base_word) {
+int do_rexgen_crack_as_rules(const char *rexgen, const char *base_word) {
 	c_simplestring_ptr buffer = c_simplestring_new();
 	c_iterator_ptr iter = NULL;
 	charset encoding = CHARSET_UTF8;
@@ -75,7 +75,7 @@ int do_regex_crack_as_rules(const char *regex, const char *base_word) {
 		rexgen_setlocale();
 	}
 	strcpy(BaseWord, base_word);
-	iter = c_regex_iterator_cb(regex, ignore_case, encoding, randomize, callback);
+	iter = c_rexgen_iterator_cb(rexgen, ignore_case, encoding, randomize, callback);
 	while (c_iterator_next(iter)) {
 		c_iterator_value(iter, buffer);
 		word = c_simplestring_getptr(buffer);
@@ -93,7 +93,7 @@ int do_regex_crack_as_rules(const char *regex, const char *base_word) {
 	return 0;
 }
 
-void do_regex_crack(struct db_main *db, const char *regex) {
+void do_rexgen_crack(struct db_main *db, const char *rexgen) {
 	c_simplestring_ptr buffer = c_simplestring_new();
 	c_iterator_ptr iter = NULL;
 	charset encoding = CHARSET_UTF8;
@@ -103,7 +103,7 @@ void do_regex_crack(struct db_main *db, const char *regex) {
 
 	rexgen_setlocale();
 	crk_init(db, fix_state, NULL);
-	iter = c_regex_iterator_cb(regex, ignore_case, encoding, randomize, callback);
+	iter = c_rexgen_iterator_cb(rexgen, ignore_case, encoding, randomize, callback);
 	while (c_iterator_next(iter)) {
 		c_iterator_value(iter, buffer);
 		word = c_simplestring_getptr(buffer);

@@ -46,7 +46,7 @@
 #include "cracker.h"
 #include "john.h"
 #include "memory.h"
-#include "regex.h"
+#include "rexgen.h"
 
 static int dist_rules;
 
@@ -297,7 +297,7 @@ static MAYBE_INLINE int wbuf_unique(char *line)
 	return 1;
 }
 
-void do_wordlist_crack(struct db_main *db, char *name, int rules, char *regex)
+void do_wordlist_crack(struct db_main *db, char *name, int rules, char *rexgen)
 {
 	union {
 		char buffer[2][LINE_BUFFER_SIZE + CACHE_BANK_SHIFT];
@@ -328,14 +328,14 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules, char *regex)
 		options.force_minlength : 0;
 
 	log_event("Proceeding with wordlist mode");
-	if (regex) {
-		if (!strstr(regex, "\\0")) {
+	if (rexgen) {
+		if (!strstr(rexgen, "\\0")) {
 			// if there is NO 'baseword' contained within the rexgen, then we do not
-			// run the regex do_regex_crack_as_rules() function, since it does nothing
+			// run the rexgen do_rexgen_crack_as_rules() function, since it does nothing
 			// with our word.
-			regex = NULL;
+			rexgen = NULL;
 		} else {
-			log_event("Running rexgen 'rules' in our wordlist. The rexgen string is: %s", regex);
+			log_event("Running rexgen 'rules' in our wordlist. The rexgen string is: %s", rexgen);
 		}
 	}
 
@@ -876,7 +876,7 @@ SKIP_MEM_MAP_LOAD:;
 				last = word;
 
 				if (ext_filter(word))
-				if (regex!=NULL?do_regex_crack_as_rules(regex, word):crk_process_key(word)) {
+				if (rexgen!=NULL?do_rexgen_crack_as_rules(rexgen, word):crk_process_key(word)) {
 					rules = 0;
 					pipe_input = 0;
 					break;
@@ -912,7 +912,7 @@ process_word:
 					strcpy(last, word);
 
 					if (ext_filter(word))
-					if (regex!=NULL?do_regex_crack_as_rules(regex, word):crk_process_key(word)) {
+					if (rexgen!=NULL?do_rexgen_crack_as_rules(rexgen, word):crk_process_key(word)) {
 						rules = 0;
 						pipe_input = 0;
 						break;
