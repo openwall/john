@@ -59,7 +59,7 @@ static long rec_pos; /* ftell(3) is defined to return a long */
 static unsigned long rec_line;
 
 static int rule_number, rule_count;
-static unsigned long line_number;
+static unsigned long line_number, loop_line_no;
 static int length;
 static struct rpp_context *rule_ctx;
 
@@ -778,6 +778,7 @@ SKIP_MEM_MAP_LOAD:;
 
 	rule_number = 0;
 	line_number = 0;
+	loop_line_no = 0;
 
 	if (init_once) {
 		init_once = 0;
@@ -848,6 +849,8 @@ SKIP_MEM_MAP_LOAD:;
 
 	if (prerule)
 	do {
+		struct list_entry *joined;
+
 		if (rules) {
 			if (dist_rules) {
 				int for_node =
@@ -875,6 +878,38 @@ SKIP_MEM_MAP_LOAD:;
 				goto next_rule;
 			}
 		}
+
+		/* Process loopback LM passwords that were put together
+		   at start of session */
+		if (loopBack)
+		if (rule)
+		if ((joined = db->plaintexts->head))
+		do {
+			if (options.node_count && !myWordFileLines)
+			if (!dist_rules) {
+				int for_node = loop_line_no %
+					options.node_count + 1;
+				int skip = for_node < options.node_min
+					|| for_node > options.node_max;
+				if (skip) {
+					loop_line_no++;
+					continue;
+				}
+			}
+			loop_line_no++;
+			if ((word = apply(joined->data, rule, -1, last))) {
+				last = word;
+
+				if (ext_filter(word))
+				if (regex ?
+				    do_regex_crack_as_rules(regex, word) :
+				    crk_process_key(word)) {
+					rules = 0;
+					pipe_input = 0;
+					break;
+				}
+			}
+		} while ((joined = joined->next));
 
 		if (rule && nWordFileLines)
 		while (line_number < nWordFileLines) {

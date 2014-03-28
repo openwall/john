@@ -1146,6 +1146,35 @@ static void john_load(void)
 			build_fake_salts_for_regen_lost(database.salts);
 	}
 
+	/* Nefarious hack and memory leak. Among other problems, we'd want
+	   ldr_drop_database() after this, but it's built with mem_alloc_tiny()
+	   so it's not trivial. Works like a champ though. */
+	if (options.flags & FLG_LOOPBACK_CHK &&
+	    database.format != &fmt_LM) {
+		struct db_main loop_db;
+		struct fmt_main *save_list = fmt_list;
+
+		fmt_list = &fmt_LM;
+
+		options.loader.flags |= DB_CRACKED;
+		ldr_init_database(&loop_db, &options.loader);
+
+		loop_db.options->activepot = options.wordlist ?
+			options.wordlist : options.loader.activepot;
+		ldr_show_pot_file(&loop_db, loop_db.options->activepot);
+
+		loop_db.options->flags |= DB_PLAINTEXTS;
+
+		if ((current = options.passwd->head))
+		do {
+			ldr_show_pw_file(&loop_db, current->data);
+		} while ((current = current->next));
+
+		database.plaintexts = loop_db.plaintexts;
+		options.loader.flags &= ~DB_CRACKED;
+		fmt_list = save_list;
+	}
+
 #ifdef _OPENMP
 	john_omp_show_info();
 #endif

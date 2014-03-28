@@ -64,6 +64,33 @@ Examples:
 
    ./john -form:raw-sha1 -enc:utf8 -interm=ansi -wo:french.lst
 
+4. Using the recommended john.conf settings mentioned above:
+
+   $ ../run/john test -form:lm -single
+   Using default input encoding: UTF-8
+   Target encoding: CP850
+   Loaded 3 password hashes with no different salts (LM [DES 128/128 AVX-16])
+   Press 'q' or Ctrl-C to abort, almost any other key for status
+   GEN              (Kübelwagen:2)
+   KÜBELWA          (Kübelwagen:1)
+   MÜLLER           (Müller)
+   3g 0:00:00:00 DONE (2014-03-28 20:48) 300.0g/s 12800p/s 12800c/s 38400C/s
+   Warning: passwords printed above might be partial
+   Use the "--show" option to display all of the cracked passwords reliably
+   Session completed
+
+   $ ../run/john test -form:nt -loopback
+   Rules engine using CP850 for Unicode
+   Loaded 2 password hashes with no different salts (NT [MD4 128/128 SSE2-16])
+   Assembling cracked LM halves for loopback
+   Loop-back mode: Reading candidates from pot file $JOHN/john.pot
+   Press 'q' or Ctrl-C to abort, almost any other key for status
+   Kübelwagen       (Kübelwagen)
+   müller           (Müller)
+   2g 0:00:00:00 DONE (2014-03-28 20:48) 200.0g/s 3200p/s 3200c/s 6400C/s
+   Use the "--show" option to display all of the cracked passwords reliably
+   Session completed
+
 
 Currently supported encodings:
 UTF-8, ISO-8859-1 (a.k.a ansi), ISO-8859-2, ISO-8859-7, ISO-8859-15, KOI8-R,

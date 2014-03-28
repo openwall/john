@@ -1333,7 +1333,7 @@ void ldr_show_pot_file(struct db_main *db, char *name)
 
 static void ldr_show_pw_line(struct db_main *db, char *line)
 {
-	int show;
+	int show, loop;
 	char source[LINE_BUFFER_SIZE];
 	struct fmt_main *format;
 	char *(*split)(char *ciphertext, int index, struct fmt_main *self);
@@ -1345,6 +1345,7 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 	struct db_cracked *current;
 	char utf8login[LINE_BUFFER_SIZE + 1];
 	char utf8source[LINE_BUFFER_SIZE + 1];
+	char joined[PLAINTEXT_BUFFER_SIZE + 1] = "";
 
 	format = NULL;
 	count = ldr_split_line(&login, &ciphertext, &gecos, &home,
@@ -1355,6 +1356,9 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 	if (!fmt_list->next && !format) return;
 
 	show = !(db->options->flags & DB_PLAINTEXTS);
+
+	if (options.flags & FLG_LOOPBACK_CHK)
+		show = !(loop = 1);
 
 	if (format) {
 		split = format->methods.split;
@@ -1413,7 +1417,7 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 
 		if (pass) {
 			chars = 0;
-			if (show) {
+			if (show || loop) {
 				if (format)
 					chars = format->params.plaintext_length;
 				if (index < count - 1 && current &&
@@ -1426,12 +1430,14 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 			if (current) {
 				if (show) {
 					printf("%s", current->plaintext);
+				} else if (loop) {
+					strcat(joined, current->plaintext);
 				} else
 					list_add(db->plaintexts,
 						current->plaintext);
 
 				db->guess_count++;
-			} else
+			} else if (!loop)
 			while (chars--)
 				putchar('?');
 		} else
@@ -1449,7 +1455,22 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 		else
 			putchar('\n');
 	}
+	else if (found && loop) {
+		static int print = 1;
 
+		if (print) {
+			fprintf(stderr,
+			        "Assembling cracked LM halves for loopback\n");
+			print = 0;
+		}
+
+		/* list_add_unique is O(n^2) so we may skip dupe-checking */
+		if (db->password_count < 0x10000)
+			list_add_unique(db->plaintexts,
+			                ldr_conv(enc_strlwr(joined)));
+		else
+			list_add(db->plaintexts, ldr_conv(enc_strlwr(joined)));
+	}
 	if (format || found) db->password_count += count;
 }
 
