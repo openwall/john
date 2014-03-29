@@ -997,7 +997,8 @@ static void john_load_conf_db(void)
 	}
 
 	if (options.verbosity > 2) {
-		if (pers_opts.default_enc && john_main_process)
+		if (pers_opts.default_enc && john_main_process &&
+		    pers_opts.input_enc != ASCII)
 			fprintf(stderr, "Using default input encoding: %s\n",
 			        cp_id2name(pers_opts.input_enc));
 
