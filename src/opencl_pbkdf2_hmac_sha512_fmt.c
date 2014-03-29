@@ -168,7 +168,19 @@ static void done(void)
 
 static int valid(char *ciphertext, struct fmt_main *pFmt)
 {
-	return !strncmp(ciphertext, FMT_PREFIX, strlen(FMT_PREFIX));
+	char *c = ciphertext;
+
+	if (strncmp(ciphertext, FMT_PREFIX, strlen(FMT_PREFIX)))
+		return 0;
+
+	c += strlen(FMT_PREFIX);
+	c++;
+	c = strchr(c, '.') + 1;
+	c = strchr(c, '.') + 1;
+	if (strlen(c) < 128)
+		return 0;
+
+	return 1;
 }
 
 static void *binary(char *ciphertext)
@@ -176,12 +188,13 @@ static void *binary(char *ciphertext)
 	static uint8_t ret[128];
 	int i = 0;
 	char *p,*c = ciphertext;
+
 	c += strlen(FMT_PREFIX);
 	c++;
 	c = strchr(c, '.') + 1;
 	c = strchr(c, '.') + 1;
 	p = c + 128;
-	assert(strlen(c) == 128);
+
 	while (c < p) {
 		ret[i++] = atoi16[tolower(c[0])] * 16 + atoi16[tolower(c[1])];
 		c += 2;
@@ -222,7 +235,7 @@ static void *get_salt(char *ciphertext)
 	}
 
 	c += 1;			// step over '.' between salt and hash
-	assert(strlen(c) == 128);	//dlugosc hasha
+	assert(strlen(c) >= 128);	//dlugosc hasha
 	salt.length = saltlen;
 	//p = c + 128;		// end of ciphertext
 	//dest = (uint8_t *) salt.hash;
@@ -432,4 +445,3 @@ struct fmt_main fmt_opencl_pbkdf2_hmac_sha512 = {
 		    cmp_one,
 	    cmp_exact}
 };
-
