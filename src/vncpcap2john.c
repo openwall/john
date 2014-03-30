@@ -78,18 +78,28 @@ void Packet_Reader_close(struct Packet_Reader* self)
 _Bool Packet_Reader_kick(struct Packet_Reader* self)
 {
 	struct pcap_pkthdr header;
+	const u_char * packet;
+	const struct ether_header *eptr;
+	const struct ip *ip_header;
+
 	free(self->payload_str);
 	free(self->src_addr_str);
 	free(self->dest_addr_str);
 
 	self->payload_str = self->dest_addr_str = self->src_addr_str = 0;	// reset
 
-	const u_char * packet;
 	while ((packet = pcap_next(self->pcap_handle, &header))) {
+		const struct tcp_hdr *tcp;
+		size_t size_ip;
+		size_t size_tcp;
+		const u_char *payload_buf;
+		size_t payload_len;
+		char buf[512];
+
 		if (header.len < sizeof(struct ether_header))
 			continue;
 
-		const struct ether_header *eptr = (void*) packet;
+		eptr = (void*) packet;
 
 		if (ntohs(eptr->ether_type) != ETHERTYPE_IP)
 			continue;
@@ -97,32 +107,31 @@ _Bool Packet_Reader_kick(struct Packet_Reader* self)
 		if (header.len < sizeof(struct ether_header) + sizeof(struct ip))
 			continue;
 
-		const struct ip *ip_header = (void*)(packet + sizeof(struct ether_header));
+		ip_header = (void*)(packet + sizeof(struct ether_header));
 
-		size_t size_ip = 4 * ip_header->ip_hl;
+		size_ip = 4 * ip_header->ip_hl;
 		if (size_ip < 20)
 			continue;	// bogus IP header
 
 		if (header.len < sizeof(struct ether_header) + size_ip + sizeof(struct tcp_hdr))
 			continue;
 
-		const struct tcp_hdr *tcp = (void*) (packet + sizeof(struct ether_header) + size_ip);
+		tcp = (void*) (packet + sizeof(struct ether_header) + size_ip);
 
-		size_t size_tcp = tcp->th_off * 4;
+		size_tcp = tcp->th_off * 4;
 
 		if (size_tcp < 20)
 			continue;	// bogus TCP header
 
-		const u_char *payload_buf =
+		payload_buf =
 		    packet + sizeof(struct ether_header) + size_ip + size_tcp;
-		const size_t payload_len =
+		payload_len =
 		    header.len - (sizeof(struct ether_header) + size_ip + size_tcp);
 
 		self->payload_str = malloc(payload_len);
 		self->payload_len = payload_len;
 		memcpy(self->payload_str, payload_buf, payload_len);
 
-		char buf[512];
 		snprintf(buf, sizeof buf, "%s-%d", inet_ntoa(ip_header->ip_src), ntohs(tcp->th_sport));
 		self->src_addr_str = strdup(buf);
 
@@ -136,8 +145,10 @@ _Bool Packet_Reader_kick(struct Packet_Reader* self)
 }
 
 char* obtain(char** src) {
+	char *new;
+
 	if(!*src) return 0;
-	char *new = *src;
+	new = *src;
 	*src = 0;
 	return new;
 }
@@ -184,9 +195,10 @@ _Bool VNC_Auth_Reader_find_next(struct Packet_Reader* reader, char** id_out, cha
 				}
 			}
 			if (challenge != 0 && response != 0) {
+				char buf[512];
+
 				*challenge_out = challenge;
 				*response_out = response;
-				char buf[512];
 				snprintf(buf, sizeof buf, "%s to %s", from, to);
 				*id_out = strdup(buf);
 				free(from); free(to);
@@ -226,11 +238,12 @@ void attempt_crack(struct Packet_Reader* reader)
 
 int main(int argc, char *argv[])
 {
+	int i = 1;
+
 	if (argc < 2) {
 		dprintf(2, "Usage: %s <pcapfiles>\n", argv[0]);
 		return 1;
 	}
-	int i = 1;
 	for(; i < argc; i++) {
 		struct Packet_Reader reader;
 		if(Packet_Reader_init(&reader, argv[i]))

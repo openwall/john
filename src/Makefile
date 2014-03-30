@@ -2314,8 +2314,8 @@ endif
 ../run/SIPdump: SIPdump.o
 	$(LD) SIPdump.o $(LDFLAGS) -lpcap -o ../run/SIPdump
 
-../run/vncpcap2john: vncpcap2john.c
-	$(CC) -Wall vncpcap2john.c -lpcap -o ../run/vncpcap2john
+../run/vncpcap2john: vncpcap2john.o
+	$(CC) -Wall vncpcap2john.o -lpcap -o ../run/vncpcap2john
 
 ../run/uaf2john: uaf2john.o uaf_encode_plug.o
 	$(LD) $(LDFLAGS) uaf2john.o uaf_encode_plug.o -o ../run/uaf2john
