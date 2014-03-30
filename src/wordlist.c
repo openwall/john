@@ -885,8 +885,7 @@ SKIP_MEM_MAP_LOAD:;
 		if (rule)
 		if ((joined = db->plaintexts->head))
 		do {
-			if (options.node_count && !myWordFileLines)
-			if (!dist_rules) {
+			if (options.node_count && !dist_rules) {
 				int for_node = loop_line_no %
 					options.node_count + 1;
 				int skip = for_node < options.node_min
