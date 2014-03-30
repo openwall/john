@@ -151,7 +151,7 @@ static void init(struct fmt_main *self)
 	// in UTF-8 mode.
 	initUnicode(UNICODE_MS_NEW);
 
-	if (pers_opts.hashed_enc != UTF_8 &&
+	if (pers_opts.target_enc != UTF_8 &&
 	    !(options.flags & FLG_TEST_CHK) &&
 	    warned++ == 0)
 		fprintf(stderr, "Warning: SAP-F/G format should always be UTF-8.\nConvert your input files to UTF-8 and use --encoding=utf8\n");

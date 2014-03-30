@@ -56,7 +56,7 @@
 struct options_main options;
 struct pers_opts pers_opts; /* Not reset after forked resume */
 static char *field_sep_char_str, *show_uncracked_str, *salts_str;
-static char *encoding_str, *hashed_enc_str, *intermediate_enc_str;
+static char *encoding_str, *target_enc_str, *intermediate_enc_str;
 
 static struct opt_entry opt_list[] = {
 	{"", FLG_PASSWD, 0, 0, 0, OPT_FMT_ADD_LIST, &options.passwd},
@@ -68,8 +68,8 @@ static struct opt_entry opt_list[] = {
 		0, 0, OPT_FMT_STR_ALLOC, &options.wordlist},
 	{"encoding", FLG_NONE, FLG_NONE,
 		0, 0, OPT_FMT_STR_ALLOC, &encoding_str},
-	{"hashed-encoding", FLG_NONE, FLG_NONE,
-		0, 0, OPT_FMT_STR_ALLOC, &hashed_enc_str},
+	{"target-encoding", FLG_NONE, FLG_NONE,
+		0, 0, OPT_FMT_STR_ALLOC, &target_enc_str},
 	{"intermediate-encoding", FLG_NONE, FLG_NONE,
 		0, 0, OPT_FMT_STR_ALLOC, &intermediate_enc_str},
 	{"stdin", FLG_STDIN_SET, FLG_CRACKING_CHK},
@@ -368,7 +368,7 @@ void opt_print_hidden_usage(void)
 	puts("--reject-printable        reject printable binaries");
 	puts("--verbosity=N             change verbosity (1-5, default 3)");
 	puts("--skip-self-tests         skip self tests");
-	puts("--hashed-encoding=NAME    encoding used by format (see doc/ENCODING)");
+	puts("--target-encoding=NAME    encoding used by format (see doc/ENCODING)");
 	puts("--intermediate-enc=NAME   encoding used in rules processing (see doc/ENCODING");
 #ifdef HAVE_DL
 	puts("--plugin=NAME[,..]        load this (these) dynamic plugin(s)");
@@ -649,7 +649,7 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 	if ((encoding_str && !strcasecmp(encoding_str, "list")) ||
 	    (intermediate_enc_str &&
 	     !strcasecmp(intermediate_enc_str, "list")) ||
-	    (hashed_enc_str && !strcasecmp(hashed_enc_str, "list"))) {
+	    (target_enc_str && !strcasecmp(target_enc_str, "list"))) {
 		listEncodings();
 		exit(0);
 	}
@@ -657,8 +657,8 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 	if (encoding_str)
 		pers_opts.input_enc = cp_name2id(encoding_str);
 
-	if (hashed_enc_str)
-		pers_opts.hashed_enc = cp_name2id(hashed_enc_str);
+	if (target_enc_str)
+		pers_opts.target_enc = cp_name2id(target_enc_str);
 
 	if (intermediate_enc_str)
 		pers_opts.intermediate_enc = cp_name2id(intermediate_enc_str);

@@ -259,19 +259,21 @@ static void ldr_set_encoding(struct fmt_main *format)
 {
 	static int print_once = 1;
 
-	if (pers_opts.default_enc && !pers_opts.hashed_enc &&
+	if (pers_opts.default_enc && !pers_opts.target_enc &&
 	    (!strcasecmp(format->params.label, "LM") ||
 	     !strcasecmp(format->params.label, "netlm") ||
 	     !strcasecmp(format->params.label, "nethalflm"))) {
-		pers_opts.hashed_enc =
+		pers_opts.target_enc =
 			cp_name2id(cfg_get_param(SECTION_OPTIONS, NULL,
 			                         "DefaultMSCodepage"));
-		if (!pers_opts.hashed_enc)
-			pers_opts.hashed_enc = pers_opts.input_enc;
+		if (pers_opts.target_enc)
+			pers_opts.default_target_enc = 1;
+		else
+			pers_opts.target_enc = pers_opts.input_enc;
 	} else if (pers_opts.intermediate_enc &&
 	           (format->params.flags & FMT_UNICODE) &&
 	           (format->params.flags & FMT_UTF8)) {
-		pers_opts.hashed_enc = pers_opts.intermediate_enc;
+		pers_opts.target_enc = pers_opts.intermediate_enc;
 	}
 
 	if ((options.flags & FLG_SHOW_CHK) || options.loader.showuncracked) {
@@ -280,7 +282,7 @@ static void ldr_set_encoding(struct fmt_main *format)
 	}
 
 	/* john.conf alternative for --intermediate-encoding */
-	if ((!pers_opts.hashed_enc || pers_opts.hashed_enc == UTF_8) &&
+	if ((!pers_opts.target_enc || pers_opts.target_enc == UTF_8) &&
 	    !pers_opts.intermediate_enc) {
 		pers_opts.intermediate_enc =
 			cp_name2id(cfg_get_param(SECTION_OPTIONS, NULL,
@@ -288,19 +290,19 @@ static void ldr_set_encoding(struct fmt_main *format)
 	}
 
 	/* Performance opportunity - avoid unneccessary conversions */
-	if ((!pers_opts.hashed_enc || pers_opts.hashed_enc == UTF_8) &&
+	if ((!pers_opts.target_enc || pers_opts.target_enc == UTF_8) &&
 	    pers_opts.intermediate_enc && pers_opts.intermediate_enc != UTF_8) {
 		if ((format->params.flags & FMT_UNICODE) &&
 		    (format->params.flags & FMT_UTF8)) {
-			pers_opts.hashed_enc = pers_opts.intermediate_enc;
+			pers_opts.target_enc = pers_opts.intermediate_enc;
 			if (print_once)
 			log_event("- Rules engine using %s for Unicode",
-			          cp_id2name(pers_opts.hashed_enc));
+			          cp_id2name(pers_opts.target_enc));
 			if (john_main_process && options.verbosity > 2 &&
 				print_once)
 				fprintf(stderr, "Rules engine using %s for "
 				        "Unicode\n",
-				        cp_id2name(pers_opts.hashed_enc));
+				        cp_id2name(pers_opts.target_enc));
 		} else if (print_once) {
 			log_event("- Rules engine using %s as intermediate "
 			          "encoding for Unicode",
@@ -552,7 +554,7 @@ static int ldr_split_line(char **login, char **ciphertext,
 
 static char* ldr_conv(char *word)
 {
-	if (pers_opts.input_enc == UTF_8 && pers_opts.hashed_enc != UTF_8) {
+	if (pers_opts.input_enc == UTF_8 && pers_opts.target_enc != UTF_8) {
 		static char u8[PLAINTEXT_BUFFER_SIZE + 1];
 
 		word = utf8_to_cp_r(word, u8, PLAINTEXT_BUFFER_SIZE);
@@ -1030,7 +1032,7 @@ static void ldr_sort_salts(struct db_main *db)
  */
 static void ldr_show_left(struct db_main *db, struct db_password *pw)
 {
-	if (pers_opts.hashed_enc != UTF_8 && pers_opts.report_utf8)
+	if (pers_opts.target_enc != UTF_8 && pers_opts.report_utf8)
 	{
 		char utf8login[PLAINTEXT_BUFFER_SIZE + 1];
 
@@ -1375,7 +1377,7 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 		unify = 0;
 	}
 
-	if (pers_opts.hashed_enc != UTF_8 &&
+	if (pers_opts.target_enc != UTF_8 &&
 	    !pers_opts.store_utf8 && pers_opts.report_utf8) {
 		login = cp_to_utf8_r(login, utf8login, LINE_BUFFER_SIZE);
 		cp_to_utf8_r(source, utf8source, LINE_BUFFER_SIZE);

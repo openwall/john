@@ -213,7 +213,7 @@ static char *dummy_rules_apply(char *word, char *rule, int split, char *last)
 /*
  * This function does two separate things (either or both) just to confuse you.
  * 1. In case we're in loopback mode, skip ciphertext and field separator.
- * 2. Convert to hashed encoding, if applicable.
+ * 2. Convert to target encoding, if applicable.
  *
  * It does both within the existing buffer - i.e. "right aligned" to the
  * original EOL (the end result is guaranteed to fit).
@@ -226,7 +226,7 @@ static MAYBE_INLINE char *convert(char *line)
 	    (p = strchr(line, options.loader.field_sep_char)))
 		line = p + 1;
 
-	if (pers_opts.input_enc != pers_opts.hashed_enc) {
+	if (pers_opts.input_enc != pers_opts.target_enc) {
 		UTF16 u16[PLAINTEXT_BUFFER_SIZE + 1];
 		char *cp, *s, *d;
 		char e;
@@ -948,7 +948,7 @@ SKIP_MEM_MAP_LOAD:;
 
 			if (line[0] != '#') {
 process_word:
-				if (pers_opts.input_enc != pers_opts.hashed_enc
+				if (pers_opts.input_enc != pers_opts.target_enc
 				    || loopBack) {
 					char *conv = convert(line);
 					int len = strlen(conv);

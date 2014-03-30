@@ -864,7 +864,7 @@ static char *john_loaded_counts(void)
 
 static void john_load_conf(void)
 {
-	int intermediate, hashed;
+	int intermediate, target;
 
 	if (options.loader.activepot == NULL) {
 		if (options.secure)
@@ -943,10 +943,10 @@ static void john_load_conf(void)
 
 	/* Pre-init in case some format's prepare() needs it */
 	intermediate = pers_opts.intermediate_enc;
-	hashed = pers_opts.hashed_enc;
+	target = pers_opts.target_enc;
 	initUnicode(UNICODE_UNICODE);
 	pers_opts.intermediate_enc = intermediate;
-	pers_opts.hashed_enc = hashed;
+	pers_opts.target_enc = target;
 	pers_opts.unicode_cp = CP_UNDEF;
 }
 
@@ -961,8 +961,8 @@ static void john_load_conf_db(void)
 	/* Unicode (UTF-16) formats may lack encoding support. We
 	   must stop the user from trying to use it because it will
 	   just result in false negatives. */
-	if (database.format && pers_opts.hashed_enc != ASCII &&
-	    pers_opts.hashed_enc != ISO_8859_1 &&
+	if (database.format && pers_opts.target_enc != ASCII &&
+	    pers_opts.target_enc != ISO_8859_1 &&
 	    database.format->params.flags & FMT_UNICODE &&
 	    !(database.format->params.flags & FMT_UTF8)) {
 		if (john_main_process)
@@ -988,10 +988,10 @@ static void john_load_conf_db(void)
 			          "encoded in .pot file");
 	}
 
-	if (pers_opts.hashed_enc != pers_opts.input_enc &&
+	if (pers_opts.target_enc != pers_opts.input_enc &&
 	    pers_opts.input_enc != UTF_8) {
 		if (john_main_process)
-			fprintf(stderr, "Hash encoding can only be specified"
+			fprintf(stderr, "Target encoding can only be specified"
 			        " if input encoding is UTF-8\n");
 		exit(0);
 	}
@@ -1002,14 +1002,20 @@ static void john_load_conf_db(void)
 			fprintf(stderr, "Using default input encoding: %s\n",
 			        cp_id2name(pers_opts.input_enc));
 
-		if (pers_opts.hashed_enc != pers_opts.input_enc &&
+		if (pers_opts.target_enc != pers_opts.input_enc &&
 		    (!database.format ||
 		     !(database.format->params.flags & FMT_UNICODE))) {
-			log_event("- Target (hashed) encoding: %s",
-			          cp_id2name(pers_opts.hashed_enc));
-			if (john_main_process)
-				fprintf(stderr, "Target encoding: %s\n",
-				        cp_id2name(pers_opts.hashed_enc));
+			log_event("- Target encoding: %s",
+			          cp_id2name(pers_opts.target_enc));
+			if (john_main_process) {
+				if (pers_opts.default_target_enc)
+					fprintf(stderr, "Using default target "
+					        "encoding: %s\n",
+					      cp_id2name(pers_opts.target_enc));
+				else
+					fprintf(stderr, "Target encoding: %s\n",
+					      cp_id2name(pers_opts.target_enc));
+			}
 		}
 	}
 }
@@ -1316,11 +1322,11 @@ static void john_init(char *name, int argc, char **argv)
 			        "specified if input encoding is UTF-8\n");
 			exit(0);
 		}
-		if (pers_opts.hashed_enc &&
-		    pers_opts.hashed_enc != pers_opts.intermediate_enc) {
+		if (pers_opts.target_enc &&
+		    pers_opts.target_enc != pers_opts.intermediate_enc) {
 			if (john_main_process)
 			fprintf(stderr, "Intermediate encoding can't be used "
-			        "with hashed encoding\n");
+			        "with target encoding\n");
 			exit(0);
 		}
 	}
@@ -1347,7 +1353,7 @@ static void john_init(char *name, int argc, char **argv)
 	if (rec_restored)
 		event_pending = event_status = 1;
 
-	if (pers_opts.hashed_enc != ASCII)
+	if (pers_opts.target_enc != ASCII)
 		log_event("- %s input encoding enabled",
 		          cp_id2name(pers_opts.input_enc));
 }

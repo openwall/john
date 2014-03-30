@@ -136,11 +136,11 @@ static void init(struct fmt_main *self)
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	key_length = mem_calloc_tiny(sizeof(*key_length) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	if (pers_opts.hashed_enc == UTF_8)
+	if (pers_opts.target_enc == UTF_8)
 		self->params.plaintext_length = MIN(125, PLAINTEXT_LENGTH * 3);
 
-	if (pers_opts.hashed_enc != ISO_8859_1 &&
-	         pers_opts.hashed_enc != ASCII)
+	if (pers_opts.target_enc != ISO_8859_1 &&
+	         pers_opts.target_enc != ASCII)
 		self->methods.set_key = set_key_enc;
 }
 

@@ -88,7 +88,7 @@ static void init(struct fmt_main *self)
 	crypt_out = mem_alloc_tiny(sizeof(*crypt_out) *
 		self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 
-	if (pers_opts.hashed_enc == UTF_8)
+	if (pers_opts.target_enc == UTF_8)
 		fmt_SybaseASE.params.plaintext_length = 125;
 }
 

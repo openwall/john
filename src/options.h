@@ -288,15 +288,16 @@ struct pers_opts {
 /* Input encoding for word lists, and/or pot file clear-texts. */
 	int input_enc;
 
-/* True if input encoding was set from john.conf defaults. */
+/* True if encoding was set from john.conf defaults. */
 	int default_enc;
+	int default_target_enc;
 
 /* Output encoding. This must match what the hash origin used. An exception
    is UTF-16 formats like NT, which can use any codepage (or UTF-8) if FMT_UTF8
    is set, or ISO-8859-1 only if FMT_UTF8 is false. */
-	int hashed_enc;
+	int target_enc;
 
-/* If different from hashed_enc, this is an intermediate encoding only
+/* If different from target_enc, this is an intermediate encoding only
    used within rules processing. This is only applicable for the case
    "UTF-8 -> rules -> UTF-8". Since the rules engine can't do proper case
    conversion etc. in UTF-8, we can pick this intermediate encoding (use

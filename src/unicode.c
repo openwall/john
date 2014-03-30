@@ -403,7 +403,7 @@ inline
 int enc_to_utf16(UTF16 *dst, unsigned int maxdstlen, const UTF8 *src,
                  unsigned int srclen)
 {
-	if (pers_opts.hashed_enc != UTF_8) {
+	if (pers_opts.target_enc != UTF_8) {
 		int i, trunclen = (int)srclen;
 		if (trunclen > maxdstlen)
 			trunclen = maxdstlen;
@@ -459,7 +459,7 @@ inline
 #endif
 int enc_to_utf16_be(UTF16 *dst, unsigned int maxdstlen, const UTF8 *src,
                     unsigned int srclen) {
-	if (pers_opts.hashed_enc != UTF_8) {
+	if (pers_opts.target_enc != UTF_8) {
 		int i, trunclen = (int)srclen;
 		if (trunclen > maxdstlen)
 			trunclen = maxdstlen;
@@ -884,7 +884,7 @@ UTF8 *utf16_to_enc (const UTF16 *source) {
 
 // Thread-safe version
 UTF8 *utf16_to_enc_r (UTF8 *dst, int dst_len, const UTF16 *source) {
-	if (pers_opts.hashed_enc == UTF_8)
+	if (pers_opts.target_enc == UTF_8)
 		return utf16_to_utf8_r(dst, dst_len, source);
 	else {
 		UTF8 *tgt = dst;
@@ -1024,16 +1024,16 @@ void initUnicode(int type) {
 	unsigned char *pos;
 	int encoding;
 
-	if (!pers_opts.hashed_enc)
-		pers_opts.hashed_enc = pers_opts.input_enc;
+	if (!pers_opts.target_enc)
+		pers_opts.target_enc = pers_opts.input_enc;
 
 	if (!pers_opts.intermediate_enc)
-		pers_opts.intermediate_enc = pers_opts.hashed_enc;
+		pers_opts.intermediate_enc = pers_opts.target_enc;
 
-	if (pers_opts.intermediate_enc != pers_opts.hashed_enc)
+	if (pers_opts.intermediate_enc != pers_opts.target_enc)
 		encoding = pers_opts.intermediate_enc;
-	else if (pers_opts.hashed_enc != pers_opts.input_enc)
-		encoding = pers_opts.hashed_enc;
+	else if (pers_opts.target_enc != pers_opts.input_enc)
+		encoding = pers_opts.target_enc;
 	else
 		encoding = pers_opts.input_enc;
 
@@ -1053,7 +1053,7 @@ void initUnicode(int type) {
 		fprintf(stderr, "%s -> %s -> %s\n",
 		        cp_id2name(pers_opts.input_enc),
 		        cp_id2name(pers_opts.intermediate_enc),
-		        cp_id2name(pers_opts.hashed_enc));
+		        cp_id2name(pers_opts.target_enc));
 	}
 
 	UnicodeType = type;
@@ -1502,7 +1502,7 @@ int enc_lc(UTF8 *dst, unsigned dst_len, const UTF8 *src, unsigned src_len) {
 	UTF16 tmp16[512+1], tmp16l[512+1]; // yes, short, but this is 'long enough' for john.
 	int utf16len, i;
 
-	if (pers_opts.hashed_enc != UTF_8) {
+	if (pers_opts.target_enc != UTF_8) {
 		if (dst_len <= src_len)
 			src_len = dst_len - 1;
 		for (i = 0; i < src_len; ++i) {
@@ -1539,7 +1539,7 @@ int enc_uc(UTF8 *dst, unsigned dst_len, const UTF8 *src, unsigned src_len) {
 	UTF16 tmp16[512+1], tmp16u[512+1]; // yes, short, but this is 'long enough' for john.
 	int utf16len, i;
 
-	if (pers_opts.hashed_enc != UTF_8) {
+	if (pers_opts.target_enc != UTF_8) {
 		int len;
 		if (dst_len < src_len)
 			src_len = dst_len;

@@ -673,7 +673,7 @@ int dynamic_LOAD_PARSER_FUNCTIONS_LoadLINE(struct cfg_line *_line)
 	if (c == 't' && !strncasecmp(Line, "TestU=", 6))
 	{
 		char *cp;
-		if (pers_opts.hashed_enc != UTF_8)
+		if (pers_opts.target_enc != UTF_8)
 			return 1;
 		cp = convert_old_name_if_needed(&Line[6]);
 		cp = GetFld(&(pSetup->pPreloads[nPreloadCnt].ciphertext), cp);
@@ -701,7 +701,7 @@ int dynamic_LOAD_PARSER_FUNCTIONS_LoadLINE(struct cfg_line *_line)
 	if (c == 't' && !strncasecmp(Line, "TestA=", 6))
 	{
 		char *cp;
-		if (pers_opts.hashed_enc == UTF_8)
+		if (pers_opts.target_enc == UTF_8)
 			return 1;
 		cp = convert_old_name_if_needed(&Line[6]);
 		cp = GetFld(&(pSetup->pPreloads[nPreloadCnt].ciphertext), cp);
@@ -731,7 +731,7 @@ int dynamic_LOAD_PARSER_FUNCTIONS_LoadLINE(struct cfg_line *_line)
 	{
 #ifdef MMX_COEF
 		char *cp;
-		if (pers_opts.hashed_enc == UTF_8)
+		if (pers_opts.target_enc == UTF_8)
 			return 1;
 		cp = convert_old_name_if_needed(&Line[6]);
 		cp = GetFld(&(pSetup->pPreloads[nPreloadCnt].ciphertext), cp);
@@ -762,7 +762,7 @@ int dynamic_LOAD_PARSER_FUNCTIONS_LoadLINE(struct cfg_line *_line)
 	{
 #ifndef MMX_COEF
 		char *cp;
-		if (pers_opts.hashed_enc == UTF_8)
+		if (pers_opts.target_enc == UTF_8)
 			return 1;
 		cp = convert_old_name_if_needed(&Line[6]);
 		cp = GetFld(&(pSetup->pPreloads[nPreloadCnt].ciphertext), cp);
@@ -793,7 +793,7 @@ int dynamic_LOAD_PARSER_FUNCTIONS_LoadLINE(struct cfg_line *_line)
 	{
 #ifdef DEBUG
 		char *cp;
-		if (pers_opts.hashed_enc == UTF_8)
+		if (pers_opts.target_enc == UTF_8)
 			return 1;
 		cp = convert_old_name_if_needed(&Line[6]);
 		cp = GetFld(&(pSetup->pPreloads[nPreloadCnt].ciphertext), cp);

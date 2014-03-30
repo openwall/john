@@ -140,11 +140,11 @@ static void init(struct fmt_main *self)
 #else
 	saved_key = mem_calloc_tiny(PLAINTEXT_LENGTH*2 + 1 + SALT_SIZE, MEM_ALIGN_WORD);
 #endif
-	if (pers_opts.hashed_enc == UTF_8)
+	if (pers_opts.target_enc == UTF_8)
 		fmt_mssql.params.plaintext_length = PLAINTEXT_LENGTH * 3;
 
-	if (pers_opts.hashed_enc != ISO_8859_1 &&
-	    pers_opts.hashed_enc != ASCII)
+	if (pers_opts.target_enc != ISO_8859_1 &&
+	    pers_opts.target_enc != ASCII)
 		fmt_mssql.methods.set_key = set_key_enc;
 }
 

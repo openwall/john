@@ -112,7 +112,7 @@ static void init(struct fmt_main *self) {
 
 	dcc2_warning() ;
 
-	if (pers_opts.hashed_enc == UTF_8) {
+	if (pers_opts.target_enc == UTF_8) {
 		self->params.plaintext_length *= 3;
 		if (self->params.plaintext_length > 125)
 			self->params.plaintext_length = 125;

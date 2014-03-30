@@ -333,7 +333,7 @@ static void init(struct fmt_main *self)
 	cracked = mem_calloc_tiny(sizeof(*cracked) *
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 
-	if (pers_opts.hashed_enc == UTF_8)
+	if (pers_opts.target_enc == UTF_8)
 		self->params.plaintext_length = MIN(125, PLAINTEXT_LENGTH * 3);
 }
 

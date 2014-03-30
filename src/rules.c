@@ -1136,7 +1136,7 @@ static char* rules_cp_to_utf8(char *in)
 	static char out[PLAINTEXT_BUFFER_SIZE + 1];
 
 	if (pers_opts.intermediate_enc != UTF_8 &&
-	    pers_opts.intermediate_enc != pers_opts.hashed_enc)
+	    pers_opts.intermediate_enc != pers_opts.target_enc)
 		return cp_to_utf8_r(in, out, PLAINTEXT_BUFFER_SIZE);
 
 	return in;
@@ -1151,7 +1151,7 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 	int which;
 
 	if (pers_opts.intermediate_enc != UTF_8 &&
-	    pers_opts.intermediate_enc != pers_opts.hashed_enc)
+	    pers_opts.intermediate_enc != pers_opts.target_enc)
 		memory = word = utf8_to_cp_r(word_in, cpword,
 		                             PLAINTEXT_BUFFER_SIZE);
 	else

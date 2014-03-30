@@ -138,7 +138,7 @@ static void init(struct fmt_main *self)
 #if MMX_COEF
 	int i;
 #endif
-	if (pers_opts.hashed_enc == UTF_8) {
+	if (pers_opts.target_enc == UTF_8) {
 		/* This avoids an if clause for every set_key */
 		self->methods.set_key = set_key_utf8;
 #if MMX_COEF
@@ -154,7 +154,7 @@ static void init(struct fmt_main *self)
 		tests[4].plaintext = "\xE2\x82\xAC\xE2\x82\xAC";
 		tests[4].ciphertext = "$NT$682467b963bb4e61943e170a04f7db46";
 	} else {
-		if (pers_opts.hashed_enc != ASCII && pers_opts.hashed_enc != ISO_8859_1) {
+		if (pers_opts.target_enc != ASCII && pers_opts.target_enc != ISO_8859_1) {
 			/* This avoids an if clause for every set_key */
 			self->methods.set_key = set_key_CP;
 		}

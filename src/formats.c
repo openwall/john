@@ -202,7 +202,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 #ifndef BENCH_BUILD
 	/* UTF-8 bodge in reverse. Otherwise we will get truncated keys back
 	   from the max-length self-test */
-	if ((pers_opts.hashed_enc == UTF_8) &&
+	if ((pers_opts.target_enc == UTF_8) &&
 	    (format->params.flags & FMT_UTF8) &&
 	    (format->params.flags & FMT_UNICODE))
 		ml /= 3;

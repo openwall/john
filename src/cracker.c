@@ -289,7 +289,7 @@ static int crk_process_guess(struct db_salt *salt, struct db_password *pw,
 	replogin = pw->login;
 
 	if (index >= 0 && (pers_opts.store_utf8 || pers_opts.report_utf8)) {
-		if (pers_opts.hashed_enc == UTF_8)
+		if (pers_opts.target_enc == UTF_8)
 			utf8key = key;
 		else {
 			utf8key = cp_to_utf8_r(key, utf8buf_key,
@@ -311,7 +311,7 @@ static int crk_process_guess(struct db_salt *salt, struct db_password *pw,
 		}
 		if (pers_opts.report_utf8) {
 			repkey = utf8key;
-			if (pers_opts.hashed_enc != UTF_8)
+			if (pers_opts.target_enc != UTF_8)
 				replogin = cp_to_utf8_r(pw->login,
 					      utf8login, PLAINTEXT_BUFFER_SIZE);
 		}
