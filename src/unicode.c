@@ -922,17 +922,33 @@ void listEncodings(void) {
 	        "\n");
 }
 
-static char *enc_name[CP_ARRAY] = { "UNDEF", "ASCII", "CP437", "CP737", "CP850",
-                                    "CP852", "CP858", "CP866", "CP1250",
-                                    "CP1251", "CP1252", "CP1253", "ISO-8859-1",
-                                    "ISO-8859-2", "ISO-8859-7", "ISO-8859-15",
-                                    "KOI8-R", "UTF-8" };
+static char *enc_name[] = { "UNDEF", "ASCII", "CP437", "CP737", "CP850",
+                            "CP852", "CP858", "CP866", "CP1250",
+                            "CP1251", "CP1252", "CP1253", "ISO-8859-1",
+                            "ISO-8859-2", "ISO-8859-7", "ISO-8859-15",
+                            "KOI8-R", "UTF-8" };
 
 /* Convert numerical encoding ID to canonical name */
 char *cp_id2name(int encoding)
 {
 	if (encoding >= 0 && encoding <= CP_ARRAY)
 		return enc_name[encoding];
+
+	fprintf(stderr, "ERROR: %s(%d)\n", __FUNCTION__, encoding);
+	exit(0);
+}
+
+static char *enc_macro[] = { "UNDEF", "ASCII", "CP437", "CP737", "CP850",
+                             "CP852", "CP858", "CP866", "CP1250",
+                             "CP1251", "CP1252", "CP1253", "ISO_8859_1",
+                             "ISO_8859_2", "ISO_8859_7", "ISO_8859_15",
+                             "KOI8_R", "UTF_8" };
+
+/* Convert numerical encoding ID to name that can be used in macros */
+char *cp_id2macro(int encoding)
+{
+	if (encoding >= 0 && encoding <= CP_ARRAY)
+		return enc_macro[encoding];
 
 	fprintf(stderr, "ERROR: %s(%d)\n", __FUNCTION__, encoding);
 	exit(0);
@@ -1023,6 +1039,12 @@ void initUnicode(int type) {
 	unsigned char *cpU, *cpL, *Sep, *Letter;
 	unsigned char *pos;
 	int encoding;
+
+	/* Default to core John's behavior */
+	if (!pers_opts.input_enc) {
+		pers_opts.input_enc = ASCII;
+		pers_opts.default_enc = 1;
+	}
 
 	if (!pers_opts.target_enc)
 		pers_opts.target_enc = pers_opts.input_enc;

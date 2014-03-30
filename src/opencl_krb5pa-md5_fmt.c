@@ -375,7 +375,7 @@ static void init(struct fmt_main *self)
 
 	snprintf(build_opts, sizeof(build_opts),
 	         "-D%s -DPLAINTEXT_LENGTH=%u",
-	         cp_id2name(pers_opts.target_enc), PLAINTEXT_LENGTH);
+	         cp_id2macro(pers_opts.target_enc), PLAINTEXT_LENGTH);
 	opencl_init("$JOHN/kernels/krb5pa-md5_kernel.cl", gpu_id, build_opts);
 
 	/* Read LWS/GWS prefs from config or environment */

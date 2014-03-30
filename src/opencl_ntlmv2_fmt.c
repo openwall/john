@@ -435,7 +435,7 @@ static void init(struct fmt_main *self)
 
 	snprintf(build_opts, sizeof(build_opts),
 	        "-D%s -DPLAINTEXT_LENGTH=%u -DV_WIDTH=%u",
-	         cp_id2name(pers_opts.target_enc), PLAINTEXT_LENGTH, v_width);
+	         cp_id2macro(pers_opts.target_enc), PLAINTEXT_LENGTH, v_width);
 	opencl_init("$JOHN/kernels/ntlmv2_kernel.cl", gpu_id, build_opts);
 
 	/* Read LWS/GWS prefs from config or environment */

@@ -212,8 +212,9 @@ extern UTF8 CP_isLetter[0x100];
 extern UTF8 CP_isSeparator[0x100];
 
 // Conversion between encoding names and integer id
-extern char *cp_id2name(int encoding);
 extern int cp_name2id(char *encoding);
+extern char *cp_id2name(int encoding);
+extern char *cp_id2macro(int encoding);
 //
 // NOTE! Please read the comments in formats.h for FMT_UNICODE and FMT_UTF8
 //
