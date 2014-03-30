@@ -303,7 +303,8 @@ static void ldr_set_encoding(struct fmt_main *format)
 				fprintf(stderr, "Rules engine using %s for "
 				        "Unicode\n",
 				        cp_id2name(pers_opts.target_enc));
-		} else if (print_once) {
+		} else if (pers_opts.input_enc == UTF_8 &&
+		           pers_opts.target_enc == UTF_8 && print_once) {
 			log_event("- Rules engine using %s as intermediate "
 			          "encoding for Unicode",
 			          cp_id2name(pers_opts.intermediate_enc));
