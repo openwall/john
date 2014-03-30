@@ -24,8 +24,6 @@
 /*
  * Core Option flags bitmasks (low 32 bits):
  */
-/* Some option that doesn't have its own flag is specified */
-#define FLG_NONE			0x00000000
 /* An action requested */
 #define FLG_ACTION			0x00000001
 /* Password files specified */
@@ -34,6 +32,8 @@
 #define FLG_PWD_SUP			0x00000004
 /* An option requires password files */
 #define FLG_PWD_REQ			(0x00000008 | FLG_PWD_SUP)
+/* Some option that doesn't have its own flag is specified */
+#define FLG_NONE			0x00000010
 /* A cracking mode enabled */
 #define FLG_CRACKING_CHK		0x00000020
 #define FLG_CRACKING_SUP		0x00000040
@@ -128,14 +128,34 @@
 #define FLG_DUPESUPP			0x0000008000000000ULL
 /* Force scalar mode */
 #define FLG_SCALAR			0x0000010000000000ULL
+#define FLG_VECTOR			0x0000020000000000ULL
 /* Reject printable binaries */
-#define FLG_REJECT_PRINTABLE		0x0000020000000000ULL
+#define FLG_REJECT_PRINTABLE		0x0000040000000000ULL
 /* Skip self tests */
-#define FLG_NOTESTS			0x0000040000000000ULL
-#if HAVE_REXGEN
-#define FLG_REGEX_CHK			0x0000080000000000ULL
+#define FLG_NOTESTS			0x0000080000000000ULL
+/* Regex cracking mode */
+#define FLG_REGEX_CHK			0x0000100000000000ULL
 #define FLG_REGEX_SET			(FLG_REGEX_CHK | FLG_CRACKING_SET)
-#endif /* HAVE_REXGEN */
+/* Encodings. You can only give one of --intermediate-enc or --target-enc */
+#define FLG_INPUT_ENC			0x0000200000000000ULL
+#define FLG_SECOND_ENC			0x0000400000000000ULL
+/* Old Jumbo options. They can do without the flags but options parsing
+   would not catch duplicate options, leading to undefined behavior. */
+#define FLG_POT				0x0000800000000000ULL
+#define FLG_SUBFORMAT			0x0001000000000000ULL
+#define FLG_MEM_FILE_SIZE		0x0002000000000000ULL
+#define FLG_FIELDSEP			0x0004000000000000ULL
+#define FLG_CONFIG			0x0008000000000000ULL
+#define FLG_MKPC			0x0010000000000000ULL
+#define FLG_MINLEN			0x0020000000000000ULL
+#define FLG_MAXLEN			0x0040000000000000ULL
+#define FLG_MAXRUN			0x0080000000000000ULL
+#define FLG_PROGRESS			0x0100000000000000ULL
+#define FLG_REGEN			0x0200000000000000ULL
+#define FLG_BARE			0x0400000000000000ULL
+#define FLG_VERBOSITY			0x0800000000000000ULL
+#define FLG_PLATFORM			0x1000000000000000ULL
+#define FLG_DEVICE			0x2000000000000000ULL
 
 /*
  * Structure with option flags and all the parameters.
