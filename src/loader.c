@@ -282,6 +282,7 @@ static void ldr_set_encoding(struct fmt_main *format)
 	}
 
 	/* john.conf alternative for --intermediate-encoding */
+	if (options.flags & FLG_RULES)
 	if ((!pers_opts.target_enc || pers_opts.target_enc == UTF_8) &&
 	    !pers_opts.intermediate_enc) {
 		pers_opts.intermediate_enc =
@@ -290,8 +291,8 @@ static void ldr_set_encoding(struct fmt_main *format)
 	}
 
 	/* Performance opportunity - avoid unneccessary conversions */
-	if ((!pers_opts.target_enc || pers_opts.target_enc == UTF_8) &&
-	    pers_opts.intermediate_enc && pers_opts.intermediate_enc != UTF_8) {
+	if (pers_opts.intermediate_enc && pers_opts.intermediate_enc != UTF_8 &&
+	    (!pers_opts.target_enc || pers_opts.target_enc == UTF_8)) {
 		if ((format->params.flags & FMT_UNICODE) &&
 		    (format->params.flags & FMT_UTF8)) {
 			pers_opts.target_enc = pers_opts.intermediate_enc;
