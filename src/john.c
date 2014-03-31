@@ -866,6 +866,21 @@ static void john_load_conf(void)
 {
 	int intermediate, target;
 
+	if (!(options.flags & FLG_VERBOSITY)) {
+		options.verbosity = cfg_get_int(SECTION_OPTIONS, NULL,
+		                                "Verbosity");
+
+		if (options.verbosity == -1)
+			options.verbosity = 3;
+
+		if (options.verbosity < 1 || options.verbosity > 5) {
+			if (john_main_process)
+				fprintf(stderr, "Invalid verbosity "
+				        "level in config file, use 1-5\n");
+			error();
+		}
+	}
+
 	if (options.loader.activepot == NULL) {
 		if (options.secure)
 			options.loader.activepot = str_alloc_copy(SEC_POT_NAME);

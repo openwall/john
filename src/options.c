@@ -545,7 +545,8 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 		}
 	}
 
-	if (options.verbosity < 1 || options.verbosity > 5) {
+	if (options.flags & FLG_VERBOSITY &&
+	    (options.verbosity < 1 || options.verbosity > 5)) {
 		if (john_main_process)
 			fprintf(stderr, "Invalid --verbosity level, use 1-5\n");
 		error();
