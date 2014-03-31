@@ -933,6 +933,7 @@ static void john_load_conf(void)
 				cp_name2id(cfg_get_param(SECTION_OPTIONS, NULL,
 				                          "DefaultEncoding"));
 		}
+		pers_opts.default_enc = pers_opts.input_enc;
 	}
 
 	/* Pre-init in case some format's prepare() needs it */
