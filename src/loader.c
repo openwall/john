@@ -78,6 +78,9 @@ static void read_file(struct db_main *db, char *name, int flags,
 	char line_buf[LINE_BUFFER_SIZE], *line;
 	int warn = cfg_get_bool(SECTION_OPTIONS, NULL, "WarnEncoding", 0);
 
+	if (!john_main_process)
+		warn = 0;
+
 	if (flags & RF_ALLOW_DIR) {
 		if (stat(name, &file_stat)) {
 			if (flags & RF_ALLOW_MISSING)
@@ -1463,7 +1466,8 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 		static int print = 1;
 
 		if (print) {
-			fprintf(stderr,
+			if (john_main_process)
+				fprintf(stderr,
 			        "Assembling cracked LM halves for loopback\n");
 			print = 0;
 		}
