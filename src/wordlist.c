@@ -397,16 +397,11 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules, char *regex)
 		char *cp, csearch;
 		int ourshare = 0;
 
-		if (loopBack) {
-			if (john_main_process)
-				fprintf(stderr, "Loop-back mode: Reading "
-				        "candidates from pot file %s\n", name);
-			log_event("- Using loop-back mode:");
-		}
-
 		if (!(word_file = fopen(path_expand(name), "rb")))
 			pexit("fopen: %s", path_expand(name));
-		log_event("- Wordlist file: %.100s", path_expand(name));
+		log_event("- %s file: %.100s",
+		          loopBack ? "Loopback pot" : "Wordlist",
+		          path_expand(name));
 		log_event("- Rules: %.100s", options.activewordlistrules);
 
 		/* this will both get us the file length, and tell us
