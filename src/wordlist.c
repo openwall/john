@@ -357,7 +357,8 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules, char *regex)
 	int minlength = (options.force_minlength >= 0) ?
 		options.force_minlength : 0;
 
-	log_event("Proceeding with wordlist mode");
+	log_event("Proceeding with %s mode",
+	          loopBack ? "loopback" : "wordlist");
 	if (regex) {
 		if (!strstr(regex, "\\0")) {
 			// if there is NO 'baseword' contained within the rexgen, then we do not
@@ -406,6 +407,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules, char *regex)
 		if (!(word_file = fopen(path_expand(name), "rb")))
 			pexit("fopen: %s", path_expand(name));
 		log_event("- Wordlist file: %.100s", path_expand(name));
+		log_event("- Rules: %.100s", options.activewordlistrules);
 
 		/* this will both get us the file length, and tell us
 		   of 'invalid' files (i.e. too big in Win32 or other
