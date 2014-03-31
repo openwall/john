@@ -902,7 +902,7 @@ static void john_load_conf(void)
 	if (options.activesinglerules == NULL)
 		if (!(options.activesinglerules =
 		      cfg_get_param(SECTION_OPTIONS, NULL,
-		                    "BatchModeSingleRules")))
+		                    "SingleRules")))
 			options.activesinglerules =
 				str_alloc_copy(SUBSECTION_SINGLE);
 
@@ -1010,26 +1010,24 @@ static void john_load_conf_db(void)
 		exit(0);
 	}
 
-	if (options.verbosity > 2) {
-		if (pers_opts.default_enc && john_main_process &&
-		    pers_opts.input_enc != ASCII)
-			fprintf(stderr, "Using default input encoding: %s\n",
-			        cp_id2name(pers_opts.input_enc));
+	if (pers_opts.default_enc && john_main_process &&
+	    pers_opts.input_enc != ASCII)
+		fprintf(stderr, "Using default input encoding: %s\n",
+		        cp_id2name(pers_opts.input_enc));
 
-		if (pers_opts.target_enc != pers_opts.input_enc &&
-		    (!database.format ||
-		     !(database.format->params.flags & FMT_UNICODE))) {
-			log_event("- Target encoding: %s",
-			          cp_id2name(pers_opts.target_enc));
-			if (john_main_process) {
-				if (pers_opts.default_target_enc)
-					fprintf(stderr, "Using default target "
-					        "encoding: %s\n",
-					      cp_id2name(pers_opts.target_enc));
-				else
-					fprintf(stderr, "Target encoding: %s\n",
-					      cp_id2name(pers_opts.target_enc));
-			}
+	if (pers_opts.target_enc != pers_opts.input_enc &&
+	    (!database.format ||
+	     !(database.format->params.flags & FMT_UNICODE))) {
+		log_event("- Target encoding: %s",
+		          cp_id2name(pers_opts.target_enc));
+		if (john_main_process) {
+			if (pers_opts.default_target_enc)
+				fprintf(stderr, "Using default target "
+				        "encoding: %s\n",
+				        cp_id2name(pers_opts.target_enc));
+			else
+				fprintf(stderr, "Target encoding: %s\n",
+				        cp_id2name(pers_opts.target_enc));
 		}
 	}
 }

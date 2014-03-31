@@ -28,6 +28,7 @@
 #include "cracker.h"
 #include "john.h"
 #include "options.h"
+#include "unicode.h"
 
 extern struct fmt_main fmt_LM;
 extern struct fmt_main fmt_NETLM;
@@ -428,17 +429,21 @@ void do_incremental_crack(struct db_main *db, char *mode)
 	if (!mode) {
 		if (db->format == &fmt_LM) {
 			if (!(mode = cfg_get_param(SECTION_OPTIONS, NULL,
-			                           "BatchModeIncrementalLM")))
+			                           "DefaultIncrementalLM")))
 				mode = "LM_ASCII";
 		} else if (db->format->params.label &&
 		           (!strcmp(db->format->params.label, "netlm") ||
 		            !strcmp(db->format->params.label, "nethalflm"))) {
 			if (!(mode = cfg_get_param(SECTION_OPTIONS, NULL,
-			                           "BatchModeIncrementalLM")))
+			                           "DefaultIncrementalLM")))
 				mode = "LM_ASCII";
+		} else if (pers_opts.target_enc == UTF_8) {
+			if (!(mode = cfg_get_param(SECTION_OPTIONS, NULL,
+			                           "DefaultIncrementalUTF8")))
+				mode = "ASCII";
 		} else
 			if (!(mode = cfg_get_param(SECTION_OPTIONS, NULL,
-			                           "BatchModeIncremental")))
+			                           "DefaultIncremental")))
 				mode = "ASCII";
 	}
 
