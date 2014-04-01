@@ -512,7 +512,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules, char *regex)
 				if (nWordFileLines != myWordFileLines)
 					fprintf(stderr, "Warning: wordlist changed as we read it\n");
 				log_event("- loaded this node's share of wordfile %s into memory "
-				          "(%lu bytes of %lu, max_size=%u avg/node)",
+				          "(%lu bytes of %lu, max_size=%zu avg/node)",
 				          name, my_size, file_len, options.max_wordfile_memory);
 				if (john_main_process)
 					fprintf(stderr,"Each node loaded 1/%d "
@@ -525,7 +525,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules, char *regex)
 				file_len = my_size;
 			}
 			else {
-				log_event("- loading wordfile %s into memory (%lu bytes, max_size=%u)",
+				log_event("- loading wordfile %s into memory (%lu bytes, max_size=%zu)",
 				          name, file_len, options.max_wordfile_memory);
 				if (options.node_count > 1 && john_main_process)
 					fprintf(stderr,"Each node loaded the whole wordfile to memory\n");
@@ -680,7 +680,7 @@ GRAB_NEXT_PIPE_LOAD:;
 				rules = rules_keep;
 				nWordFileLines = 0;
 				cpi = word_file_str;
-				cpe = (cpi + options.max_wordfile_memory) - (LINE_BUFFER_SIZE+1);
+				cpe = (cpi + options.max_wordfile_memory) - (LINE_BUFFER_SIZE + 1);
 				while (nWordFileLines < max_pipe_words) {
 					if (!fgetl(cpi, LINE_BUFFER_SIZE, word_file)) {
 						pipe_input = 0;

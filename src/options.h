@@ -216,11 +216,11 @@ struct options_main {
 #endif
 
 /* Maximum size of a wordlist file to be 'preloaded' into memory  */
-	unsigned max_wordfile_memory;
+	size_t max_wordfile_memory;
 
 /* number of times fix_state_delay is called in wordfile.c before  any fseek()
    is done. */
-	unsigned max_fix_state_delay;
+	unsigned int max_fix_state_delay;
 
 /* the wordlist rules section (default if none entered is Wordlist) */
 	char *activewordlistrules;
