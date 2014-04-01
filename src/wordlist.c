@@ -900,7 +900,7 @@ SKIP_MEM_MAP_LOAD:;
 				if (regex ?
 				    do_regex_crack_as_rules(regex, word) :
 				    crk_process_key(word)) {
-					rules = 0;
+					rule = rules = 0;
 					pipe_input = 0;
 					break;
 				}

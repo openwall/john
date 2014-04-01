@@ -1189,6 +1189,15 @@ static void john_load(void)
 			ldr_show_pw_file(&loop_db, current->data);
 		} while ((current = current->next));
 
+		if (loop_db.plaintexts->count) {
+			log_event("- Reassembled %d split passwords for "
+			          "loopback", loop_db.plaintexts->count);
+			if (john_main_process && options.verbosity > 3)
+				fprintf(stderr,
+				        "Reassembled %d split passwords for "
+				        "loopback\n",
+				        loop_db.plaintexts->count);
+		}
 		database.plaintexts = loop_db.plaintexts;
 		options.loader.flags &= ~DB_CRACKED;
 		fmt_list = save_list;

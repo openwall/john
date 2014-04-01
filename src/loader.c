@@ -1444,7 +1444,8 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 						current->plaintext);
 
 				db->guess_count++;
-			} else if (!loop)
+			} else
+			if (!loop)
 			while (chars--)
 				putchar('?');
 		} else
@@ -1462,22 +1463,14 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 		else
 			putchar('\n');
 	}
-	else if (found && loop) {
-		static int print = 1;
+	else if (*joined && found && loop) {
+		char *plain = ldr_conv(enc_strlwr(joined));
 
-		if (print) {
-			if (john_main_process)
-				fprintf(stderr,
-			        "Assembling cracked LM halves for loopback\n");
-			print = 0;
-		}
-
-		/* list_add_unique is O(n^2) so we may skip dupe-checking */
-		if (db->password_count < 0x10000)
-			list_add_unique(db->plaintexts,
-			                ldr_conv(enc_strlwr(joined)));
-		else
-			list_add(db->plaintexts, ldr_conv(enc_strlwr(joined)));
+		/* list_add_unique is O(n^2) */
+		if (db->plaintexts->count < 0x10000)
+			list_add_unique(db->plaintexts, plain);
+		else if (strcmp(db->plaintexts->tail->data, plain))
+			list_add(db->plaintexts, plain);
 	}
 	if (format || found) db->password_count += count;
 }
