@@ -58,8 +58,8 @@ static struct fmt_tests o5logon_tests[] = {
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static int *cracked, any_cracked;
 
-static EVP_CIPHER_CTX evp_ctx;
-static const EVP_CIPHER *evp_cipher;
+static EVP_CIPHER_CTX *evp_ctx;
+static const EVP_CIPHER **evp_cipher;
 
 static struct custom_salt {
 	char unsigned salt[SALT_LENGTH]; /* AUTH_VFR_DATA */
@@ -68,6 +68,8 @@ static struct custom_salt {
 
 static void init(struct fmt_main *self)
 {
+	int i;
+
 #ifdef _OPENMP
 	omp_t = omp_get_max_threads();
 	self->params.min_keys_per_crypt *= omp_t;
@@ -79,9 +81,17 @@ static void init(struct fmt_main *self)
 	cracked = mem_calloc_tiny(sizeof(*cracked) *
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 
-	EVP_CIPHER_CTX_init(&evp_ctx);
-	EVP_CIPHER_CTX_set_padding(&evp_ctx, 0);
-	evp_cipher = EVP_aes_192_cbc();
+	evp_ctx = mem_calloc_tiny(sizeof(*evp_ctx) *
+			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	evp_cipher = mem_calloc_tiny(sizeof(*evp_cipher) *
+			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+
+	for (i = 0; i < self->params.max_keys_per_crypt; i++) {
+		EVP_CIPHER_CTX_init(&evp_ctx[i]);
+		EVP_CIPHER_CTX_set_padding(&evp_ctx[i], 0);
+
+		evp_cipher[i] = EVP_aes_192_cbc();
+	}
 }
 
 static int ishex(char *q)
@@ -178,13 +188,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		SHA1_Final(key, &ctx);
 
 		// Mod: use EVP routines
-		EVP_DecryptInit(&evp_ctx, evp_cipher, key, iv);
-		EVP_DecryptUpdate(&evp_ctx, pt, &evp_len, cur_salt->ct + 32, 16);
+		EVP_DecryptInit(&evp_ctx[index], evp_cipher[index], key, iv);
+		EVP_DecryptUpdate(&evp_ctx[index], pt, &evp_len, cur_salt->ct + 32, 16);
 		if (!memcmp(pt + 8, "\x08\x08\x08\x08\x08\x08\x08\x08", 8))
 			any_cracked = cracked[index] = 1;
-	}
 
-	EVP_CIPHER_CTX_cleanup(&evp_ctx);
+		EVP_CIPHER_CTX_cleanup(&evp_ctx[index]);
+	}
 
 	return count;
 }
