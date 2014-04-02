@@ -1364,7 +1364,7 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 
 	show = !(db->options->flags & DB_PLAINTEXTS);
 
-	if (loop = options.flags & FLG_LOOPBACK_CHK)
+	if ((loop = (options.flags & FLG_LOOPBACK_CHK)))
 		show = 0;
 
 	if (format) {
