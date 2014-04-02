@@ -262,7 +262,7 @@ static void ldr_set_encoding(struct fmt_main *format)
 {
 	static int print_once = 1;
 
-	if (pers_opts.default_enc && !pers_opts.target_enc &&
+	if ((!pers_opts.target_enc || pers_opts.default_target_enc) &&
 	    (!strcasecmp(format->params.label, "LM") ||
 	     !strcasecmp(format->params.label, "netlm") ||
 	     !strcasecmp(format->params.label, "nethalflm"))) {
