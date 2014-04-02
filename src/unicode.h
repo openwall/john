@@ -78,6 +78,17 @@
 #define UTF_8           17
 #define CP_ARRAY        18 /* always highest, may specify array sizes */
 
+#define CP_DOS          1
+#define CP_WIN          2
+#define CP_ISO          3
+
+#define CP_DOS_LO       2
+#define CP_DOS_HI       7
+#define CP_WIN_LO	8
+#define CP_WIN_HI	11
+#define CP_ISO_LO	12
+#define CP_ISO_HI	15
+
 typedef ARCH_WORD_32 UTF32;	/* at least 32 bits */
 typedef unsigned short UTF16;	/* at least 16 bits */
 typedef unsigned char UTF8;	/* typically 8 bits */

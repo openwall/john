@@ -842,9 +842,12 @@ static inline UTF8 *utf16_to_cp_r (UTF8 *dst, int dst_len, const UTF16 *source) 
 
 	while (*source && tgt < targetEnd) {
 #if ARCH_LITTLE_ENDIAN
-		*tgt++ = CP_from_Unicode[*source++];
+		if ((*tgt = CP_from_Unicode[*source++]))
+			tgt++;
 #else
-		*tgt++ = CP_from_Unicode[(*source >> 8) | (UTF16)(*source << 8)];
+		if ((*tgt = CP_from_Unicode[(*source >> 8) |
+		                            (UTF16)(*source << 8)]))
+			tgt++;
 		source++;
 #endif
 	}
@@ -886,21 +889,8 @@ UTF8 *utf16_to_enc (const UTF16 *source) {
 UTF8 *utf16_to_enc_r (UTF8 *dst, int dst_len, const UTF16 *source) {
 	if (pers_opts.target_enc == UTF_8)
 		return utf16_to_utf8_r(dst, dst_len, source);
-	else {
-		UTF8 *tgt = dst;
-		UTF8 *targetEnd = tgt + dst_len;
-
-		while (*source && tgt < targetEnd) {
-#if ARCH_LITTLE_ENDIAN
-			*tgt++ = CP_from_Unicode[*source++];
-#else
-			*tgt++ = CP_from_Unicode[(*source >> 8) | (UTF16)(*source << 8)];
-			source++;
-#endif
-		}
-		*tgt = 0;
-	}
-	return dst;
+	else
+		return utf16_to_cp_r(dst, dst_len, source);
 }
 
 void listEncodings(void) {
@@ -1031,6 +1021,18 @@ int cp_name2id(char *encoding)
 
 	listEncodings();
 	exit(0);
+}
+
+int cp_class(int encoding)
+{
+	if (encoding >= CP_DOS_LO && encoding <= CP_DOS_HI)
+		return CP_DOS;
+	else if (encoding >= CP_WIN_LO && encoding <= CP_WIN_HI)
+		return CP_WIN;
+	else if (encoding >= CP_ISO_LO && encoding <= CP_ISO_HI)
+		return CP_ISO;
+	else
+		return CP_UNDEF;
 }
 
 /* Load the 'case-conversion' and other translation tables. */
@@ -1183,8 +1185,41 @@ void initUnicode(int type) {
 			CP_to_Unicode[i] = ISO_8859_1_to_unicode_high128[i-128];
 		}
 	}
-	for (i = 0; i < 0x10000; ++i)
-		CP_from_Unicode[i] = i;  // will truncate to lower 8 bits.
+	memset(CP_from_Unicode, 0, sizeof(CP_from_Unicode));
+	for (i = 0; i < 128; ++i)
+		CP_from_Unicode[i] = i;
+
+	/* Best-effort conversion hack */
+	for (i = 0; i < 128; ++i) {
+		switch (cp_class(encoding)) {
+
+		case CP_DOS:
+		CP_from_Unicode[CP437_to_unicode_high128[i]] = i+128;
+		CP_from_Unicode[CP737_to_unicode_high128[i]] = i+128;
+		CP_from_Unicode[CP850_to_unicode_high128[i]] = i+128;
+		CP_from_Unicode[CP852_to_unicode_high128[i]] = i+128;
+		CP_from_Unicode[CP858_to_unicode_high128[i]] = i+128;
+		CP_from_Unicode[CP866_to_unicode_high128[i]] = i+128;
+		break;
+
+		case CP_WIN:
+		CP_from_Unicode[CP1250_to_unicode_high128[i]] = i+128;
+		CP_from_Unicode[CP1251_to_unicode_high128[i]] = i+128;
+		CP_from_Unicode[CP1252_to_unicode_high128[i]] = i+128;
+		CP_from_Unicode[CP1253_to_unicode_high128[i]] = i+128;
+		break;
+
+		default:
+		CP_from_Unicode[ISO_8859_1_to_unicode_high128[i]] = i+128;
+		CP_from_Unicode[ISO_8859_2_to_unicode_high128[i]] = i+128;
+		CP_from_Unicode[ISO_8859_7_to_unicode_high128[i]] = i+128;
+		CP_from_Unicode[ISO_8859_15_to_unicode_high128[i]] = i+128;
+		CP_from_Unicode[KOI8_R_to_unicode_high128[i]] = i+128;
+
+		}
+	}
+
+	/* Now our actual selected codepage */
 	for (i = 0; i < 128; ++i) {
 		switch(encoding) {
 		case ISO_8859_2:
