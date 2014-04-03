@@ -897,6 +897,31 @@ int salt_compare(const void *x, const void *y)
 }
 
 /*
+ * dyna compare is required, to get all the shortest
+ * salt strings first, then the next longer, then the
+ * next, and finally the longest.  Without this change
+ * there are many dyna formats which will miss finding
+ * hashes, because old dirty salt information gets left
+ * over, blowing the next runs.  There are many formats
+ * which try to not clear buffers if they do not need
+ * to, BUT this only works if salts are taken shortest
+ * to longest.  This sort builds the list of salts that way
+ */
+int salt_compare_dyna(const void *x, const void *y)
+{
+	/* this is all that is needed in dyna salt_compare().
+	   Dyna is a pointer to a string, NOT the actual string.
+	   The first 2 bytes of string are length (base 8 ascii) */
+	const char *X = *((const char**)x);
+	const char *Y = *((const char**)y);
+	if (*X<*Y) return -1;
+	if (*X>*Y) return 1;
+	if (X[1]<Y[1]) return -1;
+	if (X[1]>Y[1]) return 1;
+	return 0;
+}
+
+/*
  * This was done as a structure to allow more data to be
  * placed into it, beyond just the simple pointer. The
  * pointer is really all that is needed.  However, when
@@ -942,7 +967,12 @@ static int ldr_salt_cmp(const void *x, const void *y) {
 	int cmp = salt_compare(X->p->salt, Y->p->salt);
 	return cmp;
 }
-
+static int ldr_salt_cmp_dyna(const void *x, const void *y) {
+	salt_cmp_t *X = (salt_cmp_t *)x;
+	salt_cmp_t *Y = (salt_cmp_t *)y;
+	int cmp = salt_compare_dyna(X->p->salt, Y->p->salt);
+	return cmp;
+}
 /*
  * If there are more than 1 salt, AND the format exports a salt_compare
  * function, then we reorder the salt array, into the order the format
@@ -955,7 +985,15 @@ static int ldr_salt_cmp(const void *x, const void *y) {
  * different salts, but  * which have the exact same ESSID will not
  * have to perform the very costly PBKDF2.  The format is designed
  * to work that way, IFF the salts come to it in the right order.
- * This function gets them into that order
+ * This function gets them into that order.
+ * A later bug was found in dynamic (hopefully not in other formats
+ * also), where some formats, like md5(md5($p).$s) would fail, if
+ * there were salt of varying length, within the same input file.
+ * the longer salts would leave stale data, which would cause
+ * subsquent shorter salt values to produce wrong hash. But if
+ * we sort the salts based on salt string length, this issue
+ * goes away, and things work properly.  This function now handles
+ * the dynamic type also, to correct this performance design choice.
  */
 static void ldr_sort_salts(struct db_main *db)
 {
@@ -974,7 +1012,8 @@ static void ldr_sort_salts(struct db_main *db)
 	 * to getting this method out to every format.
 	 */
 	if (db->salt_count < 2 ||
-		strncasecmp(db->format->params.label, "wpapsk", 6))
+		(strncasecmp(db->format->params.label, "wpapsk", 6) &&
+		 strncasecmp(db->format->params.label, "dynamic_", 8)))
 		return;
 
 	log_event("Sorting salts, for \"same salt\" emulation");
@@ -997,7 +1036,10 @@ static void ldr_sort_salts(struct db_main *db)
 	}
 
 	/* now we sort this array of pointers. */
-	qsort(ar, db->salt_count, sizeof(ar[0]), ldr_salt_cmp);
+	if (!strncasecmp(db->format->params.label, "wpapsk", 6))
+		qsort(ar, db->salt_count, sizeof(ar[0]), ldr_salt_cmp);
+	else /* it is dynamic_x right now */
+		qsort(ar, db->salt_count, sizeof(ar[0]), ldr_salt_cmp_dyna);
 
 	/* Reset salt hash table, if we still have one */
 	if (db->salt_hash) {

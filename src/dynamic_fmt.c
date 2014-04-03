@@ -6919,8 +6919,13 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 			// means any salt from 1 to 12 is 'valid'.
 			if (Setup->SaltLen > -2)
 				curdat.dynamic_FIXED_SALT_SIZE = -1;
-			else
+			else {
 				curdat.dynamic_FIXED_SALT_SIZE = Setup->SaltLen;
+#if !defined (MMX_COEF)
+				// for non-sse, we limit ourselves to 110 bytes, not 55.  So, we can add 55 to this value
+				curdat.dynamic_FIXED_SALT_SIZE -= 55;
+#endif
+			}
 		}
 	}
 

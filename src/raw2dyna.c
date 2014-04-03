@@ -17,6 +17,7 @@ int dyna_num=12;
 int hash_len=32;
 int all_hex=0;
 int leading_salt=0;
+int recurse;
 char salt_sep=':';
 int salt_len=5;
 char itoa16[16] = "0123456789abcdef";
@@ -24,6 +25,7 @@ int atoi16[256];
 int simple_to_from_hex=0;
 char *raw_str=NULL; // used for simple hex convert
 
+int find_items(char *Buf, char **cph, char **cps, char *usr_id);
 void ParseOptions(int argc, char **argv);
 char *GetSalt(char*);
 int simple_convert();
@@ -48,7 +50,8 @@ usage %s [options] < input > output\n\
 
 void Setup() {
 	int i;
-	memset(atoi16, 0x7F, sizeof(atoi16));
+	for (i = 0; i < 256; ++i)
+		atoi16[i] = 0x7F;
 	for (i = 0; i < 10; ++i)
 		atoi16[i+'0'] = i;
 	atoi16['a'] = atoi16['A'] = 10;
@@ -60,7 +63,7 @@ void Setup() {
 }
 
 int main(int argc, char **argv) {
-	char Buf[256], *cps, *cph;
+	char Buf[1024], *cps, *cph, usr_id[512];;
 
 	Setup();
 	ParseOptions(argc, argv);
@@ -77,16 +80,23 @@ int main(int argc, char **argv) {
 	FGETS(Buf, sizeof(Buf), stdin);
 	while (!feof(stdin)) {
 		strtok(Buf, "\r\n");
+		strcpy(usr_id, ":");
 		if (!leading_salt) {
-			cph = Buf;
-			cps = &Buf[hash_len];
-			if (salt_sep && *cps == salt_sep) ++cps;
+			recurse=0;
+			if (!find_items(Buf, &cph, &cps, usr_id)) {
+				fprintf (stderr, "invalid line:   %s\n", Buf);
+				FGETS(Buf, sizeof(Buf), stdin);
+				continue;
+			}
+			if (recurse > 1) {
+				fprintf (stderr, "multiple recurse line (usrid may be wrong):   %s\n", Buf);
+			}
 		} else {
 			cps = Buf;
 			cph = &Buf[leading_salt];
-			if (salt_sep && *cph == salt_sep) {*cph++ = 0;}
+			if (*cph == salt_sep) {*cph++ = 0;}
 		}
-		printf("$dynamic_%d$%*.*s$%s\n", dyna_num, hash_len,hash_len, cph, GetSalt(cps));
+		printf("%s$dynamic_%d$%*.*s$%s\n", usr_id, dyna_num, hash_len,hash_len, cph, GetSalt(cps));
 		FGETS(Buf, sizeof(Buf), stdin);
 	}
 	return 0;
@@ -152,4 +162,37 @@ int simple_convert() {
 		}
 	}
 	return 0;
+}
+
+// Ok, handle these 2 cases:
+// raw_hash:salt              // end result:    :$dynamic_x$raw_hash$fixed_salt
+// user_id:raw_hash:salt      // end result:    user_id:$dynamic_x$raw_hash$fixed_salt
+
+int find_items(char *Buf, char **cph, char **cps, char *usr_id) {
+	int istype1=1;
+	char *usr_ptr;
+	*cph = Buf;
+	*cps = &Buf[hash_len];
+	if (*(*cps) == salt_sep) {
+		// Ok, could be type 1.
+		int x=0;
+		while(x < hash_len && istype1) {
+			if (atoi16[(unsigned)((unsigned char)(Buf[x]))] == 0x7f)
+				istype1 = 0;
+			++x;
+		}
+		if (istype1) {
+			++(*cps);
+			return 1;
+		}
+	}
+	// We did not find a type 1.  Now look for type 2  (user):raw_hash:raw_salt
+	usr_ptr = Buf;
+	while (*usr_ptr && *usr_ptr != salt_sep)
+		++usr_ptr;
+	if (*usr_ptr == 0)
+		return 0;
+	sprintf(usr_id, "%*.*s:", (usr_ptr-Buf), (usr_ptr-Buf), Buf);
+	++recurse;
+	return find_items(++usr_ptr, cph, cps, usr_id);
 }
