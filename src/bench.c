@@ -55,7 +55,7 @@
 #include "john.h"
 #include "unicode.h"
 
-#ifndef _JOHN_BENCH_TMP
+#ifndef BENCH_BUILD
 #include "options.h"
 #endif
 
@@ -392,12 +392,12 @@ int benchmark_all(void)
 #endif
 
 	total = failed = 0;
-#ifndef _JOHN_BENCH_TMP
+#ifndef BENCH_BUILD
 	options.loader.field_sep_char = 31;
 #endif
 	if ((format = fmt_list))
 	do {
-#ifndef _JOHN_BENCH_TMP
+#ifndef BENCH_BUILD
 /* Silently skip formats for which we have no tests, unless forced */
 		if (!format->params.tests && format != fmt_list)
 			continue;
@@ -435,7 +435,7 @@ int benchmark_all(void)
 		    format->params.format_name,
 		    format->params.benchmark_comment,
 		    format->params.algorithm_name,
-#ifndef _JOHN_BENCH_TMP
+#ifndef BENCH_BUILD
 			(pers_opts.target_enc == UTF_8 &&
 			 format->params.flags & FMT_UNICODE) ?
 		        " in UTF-8 mode" : "");
@@ -571,9 +571,10 @@ int benchmark_all(void)
 next:
 		fmt_done(format);
 
+#ifndef BENCH_BUILD
 		/* In case format changed it */
 		initUnicode(UNICODE_UNICODE);
-
+#endif
 	} while ((format = format->next) && !event_abort);
 
 	if (failed && total > 1 && !event_abort)

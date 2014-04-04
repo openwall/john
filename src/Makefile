@@ -2356,7 +2356,7 @@ miscnl.o: misc.c
 	$(CC) $(CFLAGS) $(OPT_NORMAL) -D_JOHN_MISC_NO_LOG misc.c -o miscnl.o
 
 bench-t.o: bench.c
-	$(CC) $(CFLAGS) $(OPT_NORMAL) -D_JOHN_BENCH_TMP bench.c -o bench-t.o
+	$(CC) $(CFLAGS) $(OPT_NORMAL) -DBENCH_BUILD bench.c -o bench-t.o
 
 *_fmt_plug.c: Makefile john.c
 	@
