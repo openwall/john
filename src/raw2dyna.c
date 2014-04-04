@@ -192,7 +192,7 @@ int find_items(char *Buf, char **cph, char **cps, char *usr_id) {
 		++usr_ptr;
 	if (*usr_ptr == 0)
 		return 0;
-	sprintf(usr_id, "%*.*s:", (usr_ptr-Buf), (usr_ptr-Buf), Buf);
+	sprintf(usr_id, "%*.*s:", (int)(usr_ptr-Buf), (int)(usr_ptr-Buf), Buf);
 	++recurse;
 	return find_items(++usr_ptr, cph, cps, usr_id);
 }
