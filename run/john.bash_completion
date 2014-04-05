@@ -579,7 +579,7 @@ _john()
 			COMPREPLY=( $(compgen -W "COUNT -COUNT" -- ${cur}) )
 			return 0
 			;;
-		--encoding=*)
+		--encoding=*|--intermediate-enc=*|--target-encoding=*)
 			# --encoding=LIST wrote to stderr in the past
 			list=`${first} --list=\? 2>/dev/null|sed 's#\(,\)\?\( or\)\?[ ]*[<].*$##; s#,##g'`
 			if [[ "_${list}" == *encoding* ]] ; then
