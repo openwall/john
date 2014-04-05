@@ -762,6 +762,17 @@ _john()
 			fi
 			return 0
 			;;
+		--bare-always-valid=*)
+			# --bare-always-valid=Y
+			cur=${cur#*[=:]}
+			COMPREPLY=( $(compgen -W "Y" -- ${cur}) )
+			return 0
+			;;
+		--verbosity=*)
+			cur=${cur#*[=:]}
+			COMPREPLY=( $(compgen -W "1 2 3 4 5" -- ${cur}) )
+			return 0
+			;;
 		-*+(=|:))
 			return 0;
 			;;
