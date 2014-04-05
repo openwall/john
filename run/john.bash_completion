@@ -601,7 +601,7 @@ _john()
 			COMPREPLY=( $(compgen -W "${encodings}" -- ${cur}) )
 			return 0
 			;;
-		--pot=*)
+		--pot=*|--loopback=*)
 			# if --pot= is used, john always looks for
 			# the file in $PWD (tested with system-wide
 			# and local builds of john)
@@ -622,12 +622,6 @@ _john()
 			cur=${cur#*[=:]}
 			__expand_tilde_by_ref cur 2>/dev/null
 			_filedir '@(conf|ini)'
-			return 0
-			;;
-		--loopback=*)
-			cur=${cur#*[=:]}
-			__expand_tilde_by_ref cur 2>/dev/null
-			_filedir "pot"
 			return 0
 			;;
 		--save-memory=*)
