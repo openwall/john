@@ -381,7 +381,9 @@ _john()
 			done
 			return 0
 			;;
-		--wordlist=*)
+		--wordlist=*|--mkv-stats=*)
+			# as long as Markov stats files can have any name,
+			# I can just reuse the --wordlist= logig for --mkv-stats=*
 			cur=${cur#*[=:]}
 			 __expand_tilde_by_ref cur 2>/dev/null
 			_filedir
@@ -579,7 +581,7 @@ _john()
 			COMPREPLY=( $(compgen -W "COUNT -COUNT" -- ${cur}) )
 			return 0
 			;;
-		--encoding=*)
+		--encoding=*|--intermediate-enc=*|--target-encoding=*)
 			# --encoding=LIST wrote to stderr in the past
 			list=`${first} --list=\? 2>/dev/null|sed 's#\(,\)\?\( or\)\?[ ]*[<].*$##; s#,##g'`
 			if [[ "_${list}" == *encoding* ]] ; then
@@ -601,7 +603,7 @@ _john()
 			COMPREPLY=( $(compgen -W "${encodings}" -- ${cur}) )
 			return 0
 			;;
-		--pot=*)
+		--pot=*|--loopback=*)
 			# if --pot= is used, john always looks for
 			# the file in $PWD (tested with system-wide
 			# and local builds of john)
@@ -622,12 +624,6 @@ _john()
 			cur=${cur#*[=:]}
 			__expand_tilde_by_ref cur 2>/dev/null
 			_filedir '@(conf|ini)'
-			return 0
-			;;
-		--loopback=*)
-			cur=${cur#*[=:]}
-			__expand_tilde_by_ref cur 2>/dev/null
-			_filedir "pot"
 			return 0
 			;;
 		--save-memory=*)
@@ -764,6 +760,17 @@ _john()
 					compopt -o nospace
 				fi
 			fi
+			return 0
+			;;
+		--bare-always-valid=*)
+			# --bare-always-valid=Y
+			cur=${cur#*[=:]}
+			COMPREPLY=( $(compgen -W "Y" -- ${cur}) )
+			return 0
+			;;
+		--verbosity=*)
+			cur=${cur#*[=:]}
+			COMPREPLY=( $(compgen -W "1 2 3 4 5" -- ${cur}) )
 			return 0
 			;;
 		-*+(=|:))
