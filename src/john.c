@@ -1346,8 +1346,8 @@ static void john_init(char *name, int argc, char **argv)
 		if (pers_opts.target_enc &&
 		    pers_opts.target_enc != pers_opts.intermediate_enc) {
 			if (john_main_process)
-			fprintf(stderr, "Intermediate encoding can't be used "
-			        "with target encoding\n");
+			fprintf(stderr, "BUG: Intermediate encoding is "
+			        "different from target encoding\n");
 			exit(0);
 		}
 	}
