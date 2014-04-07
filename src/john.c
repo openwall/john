@@ -1041,16 +1041,15 @@ static void john_load_conf_db(void)
 		}
 	}
 
-	if (pers_opts.intermediate_enc != pers_opts.target_enc) {
-		if (pers_opts.intermediate_enc != UTF_8) {
+	if (pers_opts.input_enc != pers_opts.intermediate_enc) {
+		if (pers_opts.intermediate_enc == pers_opts.target_enc) {
 			log_event("- Rules engine using %s for Unicode",
 			          cp_id2name(pers_opts.intermediate_enc));
 			if (john_main_process)
 				fprintf(stderr, "Rules engine using %s for "
 				        "Unicode\n",
 				        cp_id2name(pers_opts.intermediate_enc));
-		} else if (pers_opts.input_enc == UTF_8 &&
-		           pers_opts.target_enc == UTF_8) {
+		} else {
 			log_event("- Rules engine using %s as intermediate "
 			          "encoding for Unicode",
 			          cp_id2name(pers_opts.intermediate_enc));
