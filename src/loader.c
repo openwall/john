@@ -260,23 +260,24 @@ static int ldr_check_shells(struct list_main *list, char *shell)
 
 static void ldr_set_encoding(struct fmt_main *format)
 {
-	static int print_once = 1;
-
 	if ((!pers_opts.target_enc || pers_opts.default_target_enc) &&
-	    (!strcasecmp(format->params.label, "LM") ||
-	     !strcasecmp(format->params.label, "netlm") ||
-	     !strcasecmp(format->params.label, "nethalflm"))) {
-		pers_opts.target_enc =
-			cp_name2id(cfg_get_param(SECTION_OPTIONS, NULL,
-			                         "DefaultMSCodepage"));
-		if (pers_opts.target_enc)
-			pers_opts.default_target_enc = 1;
-		else
-			pers_opts.target_enc = pers_opts.input_enc;
-	} else if (pers_opts.intermediate_enc &&
-	           (format->params.flags & FMT_UNICODE) &&
-	           (format->params.flags & FMT_UTF8)) {
-		pers_opts.target_enc = pers_opts.intermediate_enc;
+	    !pers_opts.intermediate_enc) {
+		if (!strcasecmp(format->params.label, "LM") ||
+		    !strcasecmp(format->params.label, "netlm") ||
+		    !strcasecmp(format->params.label, "nethalflm")) {
+			pers_opts.target_enc =
+				cp_name2id(cfg_get_param(SECTION_OPTIONS,
+				                         NULL,
+				                         "DefaultMSCodepage"));
+			if (pers_opts.target_enc)
+				pers_opts.default_target_enc = 1;
+			else
+				pers_opts.target_enc = pers_opts.input_enc;
+		} else if (pers_opts.intermediate_enc &&
+		           (format->params.flags & FMT_UNICODE) &&
+		           (format->params.flags & FMT_UTF8)) {
+			pers_opts.target_enc = pers_opts.intermediate_enc;
+		}
 	}
 
 	if ((options.flags & FLG_SHOW_CHK) || options.loader.showuncracked) {
@@ -285,7 +286,7 @@ static void ldr_set_encoding(struct fmt_main *format)
 	}
 
 	/* john.conf alternative for --intermediate-encoding */
-	if (options.flags & (FLG_RULES | FLG_BATCH_CHK))
+	if (options.flags & (FLG_RULES | FLG_SINGLE_CHK | FLG_BATCH_CHK))
 	if ((!pers_opts.target_enc || pers_opts.target_enc == UTF_8) &&
 	    !pers_opts.intermediate_enc) {
 		pers_opts.intermediate_enc =
@@ -297,29 +298,10 @@ static void ldr_set_encoding(struct fmt_main *format)
 	if (pers_opts.intermediate_enc && pers_opts.intermediate_enc != UTF_8 &&
 	    (!pers_opts.target_enc || pers_opts.target_enc == UTF_8)) {
 		if ((format->params.flags & FMT_UNICODE) &&
-		    (format->params.flags & FMT_UTF8)) {
+		    (format->params.flags & FMT_UTF8))
 			pers_opts.target_enc = pers_opts.intermediate_enc;
-			if (print_once)
-			log_event("- Rules engine using %s for Unicode",
-			          cp_id2name(pers_opts.target_enc));
-			if (john_main_process && options.verbosity > 2 &&
-				print_once)
-				fprintf(stderr, "Rules engine using %s for "
-				        "Unicode\n",
-				        cp_id2name(pers_opts.target_enc));
-		} else if (pers_opts.input_enc == UTF_8 &&
-		           pers_opts.target_enc == UTF_8 && print_once) {
-			log_event("- Rules engine using %s as intermediate "
-			          "encoding for Unicode",
-			          cp_id2name(pers_opts.intermediate_enc));
-			if (john_main_process)
-				fprintf(stderr, "Rules engine using %s as "
-				        "intermediate encoding for Unicode\n",
-				        cp_id2name(pers_opts.intermediate_enc));
-		}
 	}
 
-	print_once = 0;
 	initUnicode(UNICODE_UNICODE);
 }
 
@@ -783,7 +765,7 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 		}
 
 		if (db->options->flags & DB_LOGIN) {
-			if (login != no_username)
+			if (login != no_username && index == 0)
 				login = ldr_conv(login);
 
 			if (count >= 2 && count <= 9) {
@@ -1406,7 +1388,7 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 
 	show = !(db->options->flags & DB_PLAINTEXTS);
 
-	if ((loop = (options.flags & FLG_LOOPBACK_CHK)))
+	if ((loop = (options.flags & FLG_LOOPBACK_CHK) ? 1 : 0))
 		show = 0;
 
 	if (format) {

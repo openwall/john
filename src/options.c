@@ -72,10 +72,9 @@ static struct opt_entry opt_list[] = {
 	{"input-encoding", FLG_INPUT_ENC, FLG_INPUT_ENC,
 		0, 0, OPT_FMT_STR_ALLOC, &encoding_str},
 	{"intermediate-encoding", FLG_SECOND_ENC, FLG_SECOND_ENC,
-		FLG_RULES, 0, OPT_FMT_STR_ALLOC,
-		&intermediate_enc_str},
+		0, 0, OPT_FMT_STR_ALLOC, &intermediate_enc_str},
 	{"target-encoding", FLG_SECOND_ENC, FLG_SECOND_ENC,
-		0, 0, OPT_FMT_STR_ALLOC, &target_enc_str},
+		0, FLG_STDOUT, OPT_FMT_STR_ALLOC, &target_enc_str},
 	{"stdin", FLG_STDIN_SET, FLG_CRACKING_CHK},
 #if HAVE_WINDOWS_H
 	{"pipe", FLG_PIPE_SET, FLG_CRACKING_CHK,
@@ -97,7 +96,7 @@ static struct opt_entry opt_list[] = {
 		0, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.external},
 #if HAVE_REXGEN
 	{"regex", FLG_REGEX_SET, FLG_REGEX_CHK,
-	0, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.regex},
+		0, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.regex},
 #endif
 	{"stdout", FLG_STDOUT, FLG_STDOUT,
 		FLG_CRACKING_SUP, FLG_SINGLE_CHK | FLG_BATCH_CHK,
@@ -668,6 +667,13 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 
 	if (intermediate_enc_str)
 		pers_opts.intermediate_enc = cp_name2id(intermediate_enc_str);
+
+	if (pers_opts.input_enc && pers_opts.input_enc != UTF_8) {
+		if (!pers_opts.target_enc)
+			pers_opts.target_enc = pers_opts.input_enc;
+		if (!pers_opts.intermediate_enc)
+			pers_opts.intermediate_enc = pers_opts.input_enc;
+	}
 
 #ifdef HAVE_OPENCL
 	if (options.v_width) {

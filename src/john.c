@@ -906,19 +906,19 @@ static void john_load_conf(void)
 			options.activesinglerules =
 				str_alloc_copy(SUBSECTION_SINGLE);
 
-	if ((options.flags & FLG_WORDLIST_CHK) &&
-	    !(options.flags & FLG_RULES)) {
-		if ((options.activewordlistrules =
-		     cfg_get_param(SECTION_OPTIONS, NULL,
-		                   "WordlistRules")))
-			options.flags |= FLG_RULES;
-	}
-
 	if ((options.flags & FLG_LOOPBACK_CHK) &&
 	    !(options.flags & FLG_RULES)) {
 		if ((options.activewordlistrules =
 		     cfg_get_param(SECTION_OPTIONS, NULL,
 		                   "LoopbackRules")))
+			options.flags |= FLG_RULES;
+	}
+
+	if ((options.flags & FLG_WORDLIST_CHK) &&
+	    !(options.flags & FLG_RULES)) {
+		if ((options.activewordlistrules =
+		     cfg_get_param(SECTION_OPTIONS, NULL,
+		                   "WordlistRules")))
 			options.flags |= FLG_RULES;
 	}
 
@@ -966,6 +966,16 @@ static void john_load_conf(void)
 
 static void john_load_conf_db(void)
 {
+	if (options.flags & FLG_STDOUT) {
+		/* john.conf alternative for --intermediate-encoding */
+		if (!pers_opts.intermediate_enc &&
+		    pers_opts.target_enc == UTF_8 && options.flags &
+		    (FLG_RULES | FLG_SINGLE_CHK | FLG_BATCH_CHK))
+			pers_opts.intermediate_enc = cp_name2id(
+				cfg_get_param(SECTION_OPTIONS, NULL,
+				              "DefaultIntermediateEncoding"));
+	}
+
 	if (!pers_opts.unicode_cp)
 		initUnicode(UNICODE_UNICODE);
 
@@ -1030,6 +1040,26 @@ static void john_load_conf_db(void)
 				        cp_id2name(pers_opts.target_enc));
 		}
 	}
+
+	if (pers_opts.intermediate_enc != pers_opts.target_enc) {
+		if (pers_opts.intermediate_enc != UTF_8) {
+			log_event("- Rules engine using %s for Unicode",
+			          cp_id2name(pers_opts.intermediate_enc));
+			if (john_main_process)
+				fprintf(stderr, "Rules engine using %s for "
+				        "Unicode\n",
+				        cp_id2name(pers_opts.intermediate_enc));
+		} else if (pers_opts.input_enc == UTF_8 &&
+		           pers_opts.target_enc == UTF_8) {
+			log_event("- Rules engine using %s as intermediate "
+			          "encoding for Unicode",
+			          cp_id2name(pers_opts.intermediate_enc));
+			if (john_main_process)
+				fprintf(stderr, "Rules engine using %s as "
+				        "intermediate encoding for Unicode\n",
+				        cp_id2name(pers_opts.intermediate_enc));
+		}
+	}
 }
 
 static void john_load(void)
@@ -1071,6 +1101,9 @@ static void john_load(void)
 		dummy_format.params.flags = FMT_CASE | FMT_8_BIT;
 		dummy_format.params.label = "stdout";
 		dummy_format.methods.clear_keys = &fmt_default_clear_keys;
+
+		pers_opts.target_enc = pers_opts.input_enc;
+		john_load_conf_db();
 	}
 
 	if (options.flags & FLG_PASSWD) {
@@ -1334,24 +1367,6 @@ static void john_init(char *name, int argc, char **argv)
 	/* Process configuration options that depend on cfg_init() */
 	john_load_conf();
 
-	/* Init the Unicode system */
-	if (pers_opts.intermediate_enc) {
-		if (pers_opts.intermediate_enc != pers_opts.input_enc &&
-		    pers_opts.input_enc != UTF_8) {
-			if (john_main_process)
-			fprintf(stderr, "Intermediate encoding can only be "
-			        "specified if input encoding is UTF-8\n");
-			exit(0);
-		}
-		if (pers_opts.target_enc &&
-		    pers_opts.target_enc != pers_opts.intermediate_enc) {
-			if (john_main_process)
-			fprintf(stderr, "BUG: Intermediate encoding is "
-			        "different from target encoding\n");
-			exit(0);
-		}
-	}
-
 #ifdef _OPENMP
 	john_omp_maybe_adjust_or_fallback(argv);
 #endif
@@ -1366,6 +1381,24 @@ static void john_init(char *name, int argc, char **argv)
 	sig_init();
 
 	john_load();
+
+	/* Init the Unicode system */
+	if (pers_opts.intermediate_enc) {
+		if (pers_opts.intermediate_enc != pers_opts.input_enc &&
+		    pers_opts.input_enc != UTF_8) {
+			if (john_main_process)
+			fprintf(stderr, "Intermediate encoding can only be "
+			        "specified if input encoding is UTF-8\n");
+			exit(0);
+		}
+		if (pers_opts.target_enc && pers_opts.target_enc != UTF_8 &&
+		    pers_opts.target_enc != pers_opts.intermediate_enc) {
+			if (john_main_process)
+			fprintf(stderr, "BUG: Intermediate encoding is "
+			        "different from target encoding\n");
+			exit(0);
+		}
+	}
 
 	if (!pers_opts.unicode_cp)
 		initUnicode(UNICODE_UNICODE);

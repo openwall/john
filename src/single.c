@@ -120,11 +120,11 @@ static void single_init(void)
 		key_count >>= 1;
 
 	if (rpp_init(rule_ctx, options.activesinglerules)) {
-		log_event("! No \"single crack\" mode rules found");
+		log_event("! No \"%s\" mode rules found",
+		          options.activesinglerules);
 		if (john_main_process)
-			fprintf(stderr,
-			    "No \"single crack\" mode rules found in %s\n",
-			    cfg_name);
+			fprintf(stderr, "No \"%s\" mode rules found in %s\n",
+			        options.activesinglerules, cfg_name);
 		error();
 	}
 

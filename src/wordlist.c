@@ -750,11 +750,12 @@ SKIP_MEM_MAP_LOAD:;
 
 	if (rules) {
 		if (rpp_init(rule_ctx = &ctx, options.activewordlistrules)) {
-			log_event("! No wordlist mode rules found");
+			log_event("! No \"%s\" mode rules found",
+			          options.activewordlistrules);
 			if (john_main_process)
 				fprintf(stderr,
-				    "No wordlist mode rules found in %s\n",
-				    cfg_name);
+				        "No \"%s\" mode rules found in %s\n",
+				        options.activewordlistrules, cfg_name);
 			error();
 		}
 
