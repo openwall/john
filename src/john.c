@@ -1155,6 +1155,7 @@ static void john_load(void)
 		} else
 		if (database.password_count < total) {
 			log_event("Remaining %s", john_loaded_counts());
+			if (john_main_process)
 			printf("Remaining %s\n", john_loaded_counts());
 		}
 
