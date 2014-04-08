@@ -1267,8 +1267,13 @@ static void john_load(void)
 		}
 
 #if OS_FORK
-		if (options.fork)
+		if (options.fork) {
+			/*
+			 * flush before forking, to avoid multple log entries
+			 */
+			log_flush();
 			john_fork();
+		}
 #endif
 #ifdef HAVE_MPI
 		if (mpi_p > 1)
@@ -1443,10 +1448,18 @@ static void john_run(void)
 			log_init(LOG_NAME, options.loader.activepot,
 			         options.session);
 			status_init(NULL, 1);
-			john_log_format();
-			if (idle_requested(database.format))
-				log_event("- Configured to use otherwise idle "
-					"processor cycles only");
+			if (john_main_process) {
+				john_log_format();
+				if (idle_requested(database.format))
+					log_event("- Configured to use otherwise idle "
+					          "processor cycles only");
+				/*
+				 * flush log entries to make sure they appear
+				 * before the "Proceeding with ... mode" entries
+				 * of other processes
+				 */
+				log_flush();
+			}
 		}
 		tty_init(options.flags & FLG_STDIN_CHK);
 
