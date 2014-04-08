@@ -39,7 +39,7 @@ static int omp_t = 1;
 #include "sha2.h"
 
 #define FORMAT_LABEL			"mssql12"
-#define FORMAT_NAME			"MS SQL 2012"
+#define FORMAT_NAME			"MS SQL 2012/2014"
 #if ARCH_BITS >= 64
 #define ALGORITHM_NAME                  "SHA512 64/" ARCH_BITS_STR " " SHA2_LIB
 #else
