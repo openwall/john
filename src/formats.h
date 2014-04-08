@@ -15,6 +15,8 @@
 #include "params.h"
 #include "misc.h"
 
+#define FMT_MAIN_VERSION 11	/* change if structure fmt_main changes */
+
 struct fmt_main;
 
 /*
@@ -263,7 +265,6 @@ struct fmt_private {
 /*
  * A structure to keep a list of supported ciphertext formats.
  */
-#define FMT_MAIN_VERSION 11		/* change if structure changes */
 struct fmt_main {
 	struct fmt_params params;
 	struct fmt_methods methods;
