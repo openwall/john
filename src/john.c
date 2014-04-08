@@ -1236,7 +1236,7 @@ static void john_load(void)
 #if OS_FORK
 		if (options.fork) {
 			/*
-			 * flush before forking, to avoid multple log entires
+			 * flush before forking, to avoid multple log entries
 			 */
 			log_flush();
 			john_fork();
