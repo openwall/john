@@ -30,7 +30,7 @@
 #define RAW_FORMAT_LABEL		"Raw-SHA512-ng-opencl"
 #define RAW_FORMAT_NAME			"(pwlen < " PLAINTEXT_TEXT ")"
 #define X_FORMAT_LABEL			"XSHA512-ng-opencl"
-#define X_FORMAT_NAME			"Mac OS X 10.7+ salted (pwlen < " PLAINTEXT_TEXT ")"
+#define X_FORMAT_NAME			"Mac OS X 10.7 salted (pwlen < " PLAINTEXT_TEXT ")"
 
 #define ALGORITHM_NAME			"SHA512 OpenCL (inefficient, development use mostly)"
 
