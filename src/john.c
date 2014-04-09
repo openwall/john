@@ -1045,7 +1045,8 @@ static void john_load_conf_db(void)
 		if (pers_opts.intermediate_enc == pers_opts.target_enc) {
 			log_event("- Rules engine using %s for Unicode",
 			          cp_id2name(pers_opts.intermediate_enc));
-			if (john_main_process)
+			if (john_main_process &&
+			    (database.format->params.flags & FMT_UNICODE))
 				fprintf(stderr, "Rules engine using %s for "
 				        "Unicode\n",
 				        cp_id2name(pers_opts.intermediate_enc));
@@ -1098,6 +1099,8 @@ static void john_load(void)
 		memset(&dummy_format, 0, sizeof(dummy_format));
 		dummy_format.params.plaintext_length = options.length;
 		dummy_format.params.flags = FMT_CASE | FMT_8_BIT;
+		if (pers_opts.report_utf8)
+			dummy_format.params.flags |= FMT_UTF8;
 		dummy_format.params.label = "stdout";
 		dummy_format.methods.clear_keys = &fmt_default_clear_keys;
 
