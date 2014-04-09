@@ -1020,11 +1020,13 @@ static void john_load_conf_db(void)
 		exit(0);
 	}
 
+	if (!(options.flags & FLG_SHOW_CHK) && !options.loader.showuncracked)
 	if (pers_opts.default_enc && john_main_process &&
 	    pers_opts.input_enc != ASCII)
 		fprintf(stderr, "Using default input encoding: %s\n",
 		        cp_id2name(pers_opts.input_enc));
 
+	if (!(options.flags & FLG_SHOW_CHK) && !options.loader.showuncracked)
 	if (pers_opts.target_enc != pers_opts.input_enc &&
 	    (!database.format ||
 	     !(database.format->params.flags & FMT_UNICODE))) {
@@ -1041,6 +1043,7 @@ static void john_load_conf_db(void)
 		}
 	}
 
+	if (!(options.flags & FLG_SHOW_CHK) && !options.loader.showuncracked)
 	if (pers_opts.input_enc != pers_opts.intermediate_enc) {
 		if (pers_opts.intermediate_enc == pers_opts.target_enc) {
 			log_event("- Rules engine using %s for Unicode",
