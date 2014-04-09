@@ -728,6 +728,10 @@ struct fmt_main fmt_sha1_ng = {
         .min_keys_per_crypt = 4,
         .max_keys_per_crypt = SHA1_PARALLEL_HASH,
         .flags              = FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP,
+#if FMT_MAIN_VERSION > 11
+	.tunable_cost_name  = {
+	},
+#endif
         .tests              = sha1_fmt_tests,
     },
     .methods                = {
@@ -739,6 +743,10 @@ struct fmt_main fmt_sha1_ng = {
         .split              = sha1_fmt_split,
         .binary             = sha1_fmt_binary,
         .salt               = fmt_default_salt,
+#if FMT_MAIN_VERSION > 11
+	.tunable_cost_value = {
+	},
+#endif
         .source             = fmt_default_source,
         .salt_hash          = fmt_default_salt_hash,
         .set_salt           = fmt_default_set_salt,

@@ -57,6 +57,9 @@ struct options_main options;
 struct pers_opts pers_opts; /* Not reset after forked resume */
 static char *field_sep_char_str, *show_uncracked_str, *salts_str;
 static char *encoding_str, *target_enc_str, *intermediate_enc_str;
+#if FMT_MAIN_VERSION > 11
+static char *costs_str;
+#endif
 
 static struct opt_entry opt_list[] = {
 	{"", FLG_PASSWD, 0, 0, 0, OPT_FMT_ADD_LIST, &options.passwd},
@@ -194,6 +197,11 @@ static struct opt_entry opt_list[] = {
 		OPT_FMT_ADD_LIST_MULTI, &options.gpu_devices},
 #endif
 	{"skip-self-tests", FLG_NOTESTS, FLG_NOTESTS},
+#if FMT_MAIN_VERSION > 11
+	{"costs", FLG_COSTS, FLG_COSTS, FLG_PASSWD, OPT_REQ_PARAM,
+                OPT_FMT_STR_ALLOC, &costs_str},
+
+#endif
 	{NULL}
 };
 
@@ -358,6 +366,11 @@ void opt_print_hidden_usage(void)
 	puts("--mkpc=N                  request a lower max. keys per crypt");
 	puts("--min-length=N            request a minimum candidate length");
 	puts("--max-length=N            request a maximum candidate length");
+#if FMT_MAIN_VERSION > 11
+	puts("--costs=[-]C[:M][,...]    load salts with[out] cost value Cn [to Mn] for");
+	puts("                          tunable cost parameters, see doc/OPTIONS");
+	puts("				(comma separated list of values/ranges per param.");
+#endif
 	puts("--field-separator-char=C  use 'C' instead of the ':' in input and pot files");
 	puts("--fix-state-delay=N       performance tweak, see doc/OPTIONS");
 	puts("--nolog                   disables creation and writing to john.log file");
@@ -514,6 +527,92 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 #endif
 		exit(0);
 	}
+#if FMT_MAIN_VERSION > 11
+	if (options.flags & FLG_COSTS) {
+		/*
+		 * costs_str: [-]COST1[:MAX1][,[-]COST2[:MAX2]][...,[-]COSTn[:MAXn]]
+		 *            but not --costs=,2:9 or --costs=,-99
+		 *            istead use --costs=:,2:9 or --costs=:,-99
+		 *            if you want to specify values for the 2nd cost param.
+		 */
+		int i;
+		char *range[FMT_TUNABLE_COSTS];
+		char *dummy;
+
+		for( i = 0; i < FMT_TUNABLE_COSTS; i++) {
+			if (i)
+				range[i] = strtok(NULL, ",");
+			else
+				range[i] = strtok(costs_str, ",");
+
+			options.loader.min_cost[i] = 0;
+			options.loader.max_cost[i] = UINT_MAX;
+		}
+		dummy = strtok(NULL, ",");
+		if (dummy) {
+			if (john_main_process)
+				fprintf(stderr, "max. %d different tunable cost parameters"
+				                " supported\n", FMT_TUNABLE_COSTS);
+			error();
+		}	
+		for( i = 0; i < FMT_TUNABLE_COSTS; i++) {
+			int negative;
+			int two_values;
+
+			if (range[i] == NULL)
+				break;
+			if (range[i][0] == '-') {
+				negative = 1;
+				range[i]++;
+			}
+			else {
+				negative = 0;
+			}
+			if (range[i][0] != '\0') {
+				two_values = 0;
+				if (sscanf(range[i], "%u:%u",
+				           &options.loader.min_cost[i], &options.loader.max_cost[i]) == 2)
+					two_values = 1;
+				if (two_values && negative) {
+					if (john_main_process)
+						fprintf(stderr, "Usage of negative --cost is not valid"
+						                " for cost range (min:max)\n");
+					error();
+				}
+				if (!two_values)
+					sscanf(range[i], "%u", &options.loader.min_cost[i]);
+					if (negative && options.loader.min_cost[i] == 0) {
+						if (john_main_process)
+							fprintf(stderr, "Usage of negative --cost is not valid"
+							                " for value 0\n");
+						error();
+					}
+				if (!two_values) {
+					if (negative) {
+						options.loader.max_cost[i] = options.loader.min_cost[i] - 1;
+						options.loader.min_cost[i] = 0;
+					}
+					else {
+						options.loader.max_cost[i] = UINT_MAX;
+					}
+				}
+				if (options.loader.max_cost[i] < options.loader.min_cost[i]) {
+					if (john_main_process)
+						fprintf(stderr, "Max. cost value must be >= min. cost value\n");
+					error();
+				}
+			}
+		}
+	}
+	else {
+		int i;
+
+		for( i = 0; i < FMT_TUNABLE_COSTS; i++) {
+			options.loader.min_cost[i] = 0;
+			options.loader.max_cost[i] = UINT_MAX;
+		}
+	}
+#endif
 
 	if (options.flags & FLG_SALTS) {
 		int two_salts = 0;

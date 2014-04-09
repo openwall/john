@@ -160,6 +160,27 @@ loaded where there are more than MAX salts.  This is so that if you
 have run --salts=25 and then later can run --salts=10:24 and none of
 the hashes that were already done from the --salts=25 will be re-done.
 
+--costs=[-]Cn[:Mn][,...]	load salts with[out] cost value Cn [to Mn]
+				for tunable cost parameters
+				(comma separated values/ranges per param.)
+
+The option --cost= can be used to crack only hashes with similar
+tunable costs, to avoid a slowdown caused by expensive cost parameter
+settings of some hashes if there are other hashes which are less
+expensive to compute.
+This feature allows you to focus on salts with lower cost values first.
+For formats with different tunable costs, you can specify a comma
+separated list of values/ranges.
+ --cost=-2 (cost of first cost parameter must be smaller than 2)
+ --cost=2,10:20 (cost of 1st parameter is >= 2, of 2nd between 10 and 20)
+ --cost=:,10:20 (first cost parameter ignored, 2nd between 10 and 20)
+ --cost=:,-3 (first cost parameter ignored, 2nd smaller than 3)
+Very few formats have more than one tunable cost parameter.
+(All saltless hashes and several salted hashes don't have tunable cost
+parameters. For these, a dummy cost of 1 is reported.)
+The --list=format-details and --list=format-all-details options will
+list the tunable cost parameters supported by a given format.
+
 --pot=NAME			pot filename to use
 
 By default, john will use john.pot.  This override allows using a different

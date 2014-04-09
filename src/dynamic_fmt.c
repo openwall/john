@@ -2569,6 +2569,10 @@ static struct fmt_main fmt_Dynamic =
 		FMT_OMP |
 #endif
 		FMT_CASE | FMT_8_BIT,
+#if FMT_MAIN_VERSION > 11
+		{
+		},
+#endif
 		dynamic_tests
 	}, {
 		init,
@@ -2582,6 +2586,10 @@ static struct fmt_main fmt_Dynamic =
 		binary,
 		salt,
 #if FMT_MAIN_VERSION > 9
+#if FMT_MAIN_VERSION > 11
+		{
+		},
+#endif
 		fmt_default_source,
 #endif
 		{
@@ -7505,6 +7513,12 @@ struct fmt_main *dynamic_THIN_FORMAT_LINK(struct fmt_main *pFmt, char *ciphertex
 	pFmt->methods.cmp_one    = pFmtLocal->methods.cmp_one;
 	pFmt->methods.cmp_exact  = pFmtLocal->methods.cmp_exact;
 #if FMT_MAIN_VERSION > 9
+#if FMT_MAIN_VERSION > 11
+	for (i = 0; i < FMT_TUNABLE_COSTS; ++i) {
+		pFmt->methods.tunable_cost_value[i] = pFmtLocal->methods.tunable_cost_value[i];
+		pFmt->params.tunable_cost_name[i] = pFmtLocal->params.tunable_cost_name[i];
+	}
+#endif
 	pFmt->methods.source     = pFmtLocal->methods.source;
 #endif
 	pFmt->methods.set_salt   = pFmtLocal->methods.set_salt;

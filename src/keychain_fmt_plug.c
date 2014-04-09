@@ -255,6 +255,10 @@ struct fmt_main fmt_keychain = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_NOT_EXACT,
+#if FMT_MAIN_VERSION > 11
+		{
+		},
+#endif
 		keychain_tests
 	}, {
 		init,
@@ -265,6 +269,10 @@ struct fmt_main fmt_keychain = {
 		fmt_default_split,
 		fmt_default_binary,
 		get_salt,
+#if FMT_MAIN_VERSION > 11
+		{
+		},
+#endif
 		fmt_default_source,
 		{
 			fmt_default_binary_hash

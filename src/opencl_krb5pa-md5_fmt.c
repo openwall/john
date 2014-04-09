@@ -735,6 +735,10 @@ struct fmt_main fmt_opencl_krb5pa_md5 = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE | FMT_UTF8,
+#if FMT_MAIN_VERSION > 11
+		{
+		},
+#endif
 		tests
 	}, {
 		init,
@@ -745,6 +749,10 @@ struct fmt_main fmt_opencl_krb5pa_md5 = {
 		split,
 		binary,
 		salt,
+#if FMT_MAIN_VERSION > 11
+		{
+		},
+#endif
 		fmt_default_source,
 		{
 			fmt_default_binary_hash_0,

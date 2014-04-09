@@ -256,6 +256,10 @@ struct fmt_main fmt_zip = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT*BASE_SCALE,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_NOT_EXACT,   /*ldr_remove_hash(crk_db, salt, pw);*/
+#if FMT_MAIN_VERSION > 11
+		{
+		},
+#endif
 		zip_tests
 	}, {
 		init,
@@ -266,6 +270,10 @@ struct fmt_main fmt_zip = {
 		fmt_default_split,
 		fmt_default_binary,
 		get_salt,
+#if FMT_MAIN_VERSION > 11
+		{
+		},
+#endif
 		fmt_default_source,
 		{
 			fmt_default_binary_hash

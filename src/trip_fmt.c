@@ -596,6 +596,10 @@ struct fmt_main fmt_trip = {
 #else
 		FMT_CASE,
 #endif
+#if FMT_MAIN_VERSION > 11
+		{
+		},
+#endif
 		tests
 	}, {
 		init,
@@ -606,6 +610,10 @@ struct fmt_main fmt_trip = {
 		fmt_default_split,
 		get_binary,
 		fmt_default_salt,
+#if FMT_MAIN_VERSION > 11
+		{
+		},
+#endif
 		fmt_default_source,
 		{
 			binary_hash_0,
