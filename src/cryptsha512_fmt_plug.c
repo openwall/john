@@ -305,6 +305,17 @@ static int salt_hash(void *salt)
 	return hash & (SALT_HASH_SIZE - 1);
 }
 
+#if FMT_MAIN_VERSION > 11
+/* iteration count as tunable cost parameter */
+static unsigned int sha512crypt_iterations(void *salt)
+{
+	struct saltstruct *sha512crypt_salt;
+
+	sha512crypt_salt = salt;
+	return (unsigned int)sha512crypt_salt->rounds;
+}
+#endif
+
 struct fmt_main fmt_cryptsha512 = {
 	{
 		FORMAT_LABEL,
@@ -322,6 +333,7 @@ struct fmt_main fmt_cryptsha512 = {
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 #if FMT_MAIN_VERSION > 11
 		{
+			"iteration count",
 		},
 #endif
 		tests
@@ -336,6 +348,7 @@ struct fmt_main fmt_cryptsha512 = {
 		get_salt,
 #if FMT_MAIN_VERSION > 11
 		{
+			sha512crypt_iterations,
 		},
 #endif
 		fmt_default_source,

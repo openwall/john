@@ -312,6 +312,17 @@ static int cmp_exact(char *source, int count)
 	return 1;
 }
 
+#if FMT_MAIN_VERSION > 11
+/* iteration count as tunable cost parameter */
+static unsigned int iteration_count(void *salt)
+{
+	crypt_sha256_salt *sha256crypt_salt;
+
+	sha256crypt_salt = salt;
+	return (unsigned int)sha256crypt_salt->rounds;
+}
+#endif
+
 struct fmt_main fmt_cuda_cryptsha256 = {
 	{
 		FORMAT_LABEL,
@@ -329,6 +340,7 @@ struct fmt_main fmt_cuda_cryptsha256 = {
 		FMT_CASE | FMT_8_BIT,
 #if FMT_MAIN_VERSION > 11
 		{
+			"iteration count",
 		},
 #endif
 		tests
@@ -343,6 +355,7 @@ struct fmt_main fmt_cuda_cryptsha256 = {
 		salt,
 #if FMT_MAIN_VERSION > 11
 		{
+			iteration_count,
 		},
 #endif
 		fmt_default_source,
