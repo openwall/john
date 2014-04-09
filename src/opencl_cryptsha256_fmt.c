@@ -490,6 +490,16 @@ static int get_hash_4(int index) { return calculated_hash[index].v[0] & 0xfffff;
 static int get_hash_5(int index) { return calculated_hash[index].v[0] & 0xffffff; }
 static int get_hash_6(int index) { return calculated_hash[index].v[0] & 0x7ffffff; }
 
+#if FMT_MAIN_VERSION > 11
+static unsigned int iteration_count(void *salt)
+{
+	sha256_salt *sha256crypt_salt;
+	sha256crypt_salt = salt;
+	return (unsigned int)sha256crypt_salt->rounds;
+}
+#endif
+
+
 /* ------- Format structure ------- */
 struct fmt_main fmt_opencl_cryptsha256 = {
 	{
@@ -508,6 +518,7 @@ struct fmt_main fmt_opencl_cryptsha256 = {
 		FMT_CASE | FMT_8_BIT,
 #if FMT_MAIN_VERSION > 11
 		{
+			"iteration count",
 		},
 #endif
 		tests
@@ -522,6 +533,7 @@ struct fmt_main fmt_opencl_cryptsha256 = {
 		get_salt,
 #if FMT_MAIN_VERSION > 11
 		{
+			iteration_count,
 		},
 #endif
 		fmt_default_source,

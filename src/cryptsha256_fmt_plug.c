@@ -910,6 +910,16 @@ static int cmp_exact(char *source, int index)
 	return 1;
 }
 
+#if FMT_MAIN_VERSION > 11
+static unsigned int iteration_count(void *salt)
+{
+	struct saltstruct *sha256crypt_salt;
+
+	sha256crypt_salt = salt;
+	return (unsigned int)sha256crypt_salt->rounds;
+}
+#endif
+
 // Public domain hash function by DJ Bernstein
 // We are hashing the entire struct
 static int salt_hash(void *salt)
@@ -941,6 +951,7 @@ struct fmt_main fmt_cryptsha256 = {
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 #if FMT_MAIN_VERSION > 11
 		{
+			"iteration count",
 		},
 #endif
 		tests
@@ -955,6 +966,7 @@ struct fmt_main fmt_cryptsha256 = {
 		get_salt,
 #if FMT_MAIN_VERSION > 11
 		{
+			iteration_count,
 		},
 #endif
 		fmt_default_source,

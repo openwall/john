@@ -870,6 +870,16 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	}
 	return count;
 }
+#if FMT_MAIN_VERSION > 11
+/*
+ * the number of iterations is the sum of a "basic round count" (4096) and 
+ * a configurable "per-user round count"; we report the sum as cost
+ */
+unsigned int sunmd5_cost(void *salt)
+{
+	return (unsigned int) (BASIC_ROUND_COUNT + getrounds(salt));
+}
+#endif
 
 struct fmt_main fmt_sunmd5 = {
 	{
@@ -888,6 +898,11 @@ struct fmt_main fmt_sunmd5 = {
 		FMT_CASE | FMT_8_BIT,
 #if FMT_MAIN_VERSION > 11
 		{
+			/*
+			 * sum of a "basic round count" (4096) and
+			 * a configurable "per-user round count"
+			 */
+			"iteration count",
 		},
 #endif
 		tests
@@ -902,6 +917,7 @@ struct fmt_main fmt_sunmd5 = {
 		salt,
 #if FMT_MAIN_VERSION > 11
 		{
+			sunmd5_cost,
 		},
 #endif
 		fmt_default_source,
