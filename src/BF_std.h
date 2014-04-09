@@ -17,6 +17,7 @@
 
 #include "arch.h"
 #include "common.h"
+#include "formats.h"
 
 typedef ARCH_WORD_32 BF_word;
 
@@ -87,6 +88,14 @@ extern void BF_std_crypt_exact(int index);
  * Returns the salt for BF_std_crypt().
  */
 extern void *BF_std_get_salt(char *ciphertext);
+
+#if FMT_MAIN_VERSION > 11
+/*
+ * Returns the number of iterations for a given salt,
+ * this is BF's tunable cost parameter
+ */
+extern unsigned int BF_iteration_count(void *salt);
+#endif
 
 /*
  * Converts an ASCII ciphertext to binary.

@@ -542,6 +542,73 @@ static int cmp_exact(char *source, int index)
 {
 	return 1;
 }
+#if FMT_MAIN_VERSION > 11
+/*
+ * For generic crypt(3), the algorithm is returned as the first "tunable cost":
+ * 0: unknown (shouldn't happen
+ * 1: descrypt
+ * 2: md5crypt
+ * 3: sunmd5
+ * 4: bcrypt
+ * 5: sha256crypt
+ * 6: sha512crypt
+ * New subformats should be added to the end of the list.
+ * Otherwise, restored sessions might contine cracking different hashes
+ * if the (not yet implemented) option --cost= had been used
+ * when starting that session.
+ */
+static unsigned int c3_subformat_algorithm(void *salt)
+{
+	char *c3_salt;
+
+	c3_salt = salt;
+
+	if (!c3_salt[0] || !c3_salt[1] )
+		return 0;
+	if (!c3_salt[2])
+		return 1;
+	if (c3_salt[0] != '$')
+		return 0;
+	if (c3_salt[1] == '1')
+		return 2;
+	if (c3_salt[1] == 'm')
+		return 3;
+	if (c3_salt[1] == '2' && c3_salt[2] == 'a')
+		return 4;
+	if (c3_salt[1] == '5')
+		return 5;
+	if (c3_salt[1] == '6')
+		return 6;
+
+	return 0;
+}
+
+#if 1
+/* work in progress */
+static unsigned int  c3_algorithm_specific_cost1(void *salt)
+{
+	unsigned int algorithm;
+
+	algorithm =  c3_subformat_algorithm(salt);
+#if 0
+	if(algorithm < 3)
+		/* no tunable cost parameters */
+		return 1;
+
+	/*
+	 * TODO: return algorithm specific cost value
+	 * sunmd5: iteration count
+	 * bcrypt: iteration count
+	 * etc.
+	 * alternatively: measure run time for crypt() with
+	 * sample hash using the current salt?
+	 */
+	return 1;	
+#endif
+	return algorithm; // temp. dummy value to test --costs=
+}
+#endif
+#endif
 
 struct fmt_main fmt_crypt = {
 	{
@@ -558,6 +625,19 @@ struct fmt_main fmt_crypt = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
+#if FMT_MAIN_VERSION > 11
+		{
+			/*
+			 * use algorithm as first tunable cost:
+			 * (0: unknown)
+			 * descrypt, md5crypt, sunmd5, bcrypt, sha512crypt, sha256crypt
+			 */
+			"algorithm [1:descrypt/2:md5crypt/3:sunmd5/4:bcrypt/5:sha256crypt/6:sha512crypt]",
+#if 1
+			"DUMMY algorithm specific tunable cost", // FIXME
+#endif
+		},
+#endif
 		tests
 	}, {
 		init,
@@ -568,6 +648,14 @@ struct fmt_main fmt_crypt = {
 		fmt_default_split,
 		binary,
 		salt,
+#if FMT_MAIN_VERSION > 11
+		{
+			c3_subformat_algorithm,
+#if 1
+			c3_algorithm_specific_cost1
+#endif
+		},
+#endif
 		fmt_default_source,
 		{
 			binary_hash_0,

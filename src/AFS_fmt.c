@@ -454,6 +454,10 @@ struct fmt_main fmt_AFS = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
+#if FMT_MAIN_VERSION > 11
+		{
+		},
+#endif
 		tests
 	}, {
 		init,
@@ -464,6 +468,10 @@ struct fmt_main fmt_AFS = {
 		fmt_default_split,
 		get_binary,
 		salt,
+#if FMT_MAIN_VERSION > 11
+		{
+		},
+#endif
 		fmt_default_source,
 		{
 			binary_hash_0,

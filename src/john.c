@@ -1107,6 +1107,9 @@ static void john_load(void)
 
 	if (options.flags & FLG_PASSWD) {
 		int total;
+#if FMT_MAIN_VERSION > 11
+		int i;
+#endif
 
 		if (options.flags & FLG_SHOW_CHK) {
 			options.loader.flags |= DB_CRACKED;
@@ -1190,7 +1193,21 @@ static void john_load(void)
 			if (john_main_process)
 			printf("Remaining %s\n", john_loaded_counts());
 		}
-
+#if FMT_MAIN_VERSION > 11
+		for (i = 0; i < FMT_TUNABLE_COSTS; i++) {
+			if (database.min_cost[i] < database.max_cost[i]) {
+				log_event("Loaded hashes with cost %d (%s)"
+				          " varying from %u to %u",
+				          i+1, database.format->params.tunable_cost_name[i],
+				          database.min_cost[i], database.max_cost[i]);
+				if (john_main_process)
+					printf("Loaded hashes with cost %d (%s)"
+					       " varying from %u to %u\n",
+					       i+1, database.format->params.tunable_cost_name[i],
+					        database.min_cost[i], database.max_cost[i]);
+			}
+		}
+#endif
 		if ((options.flags & FLG_PWD_REQ) && !database.salts) exit(0);
 
 		if (options.regen_lost_salts)

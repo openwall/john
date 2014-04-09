@@ -103,7 +103,11 @@ struct fmt_main fmt_asaMD5 = {
 		// setup the labeling and stuff. NOTE the max and min crypts are set to 1
 		// here, but will be reset within our init() function.
 		FORMAT_LABEL, FORMAT_NAME, ALGORITHM_NAME, BENCHMARK_COMMENT, BENCHMARK_LENGTH,
-		12, BINARY_SIZE, DEFAULT_ALIGN, SALT_SIZE, DEFAULT_ALIGN, 1, 1, FMT_CASE | FMT_8_BIT, tests
+		12, BINARY_SIZE, DEFAULT_ALIGN, SALT_SIZE, DEFAULT_ALIGN, 1, 1, FMT_CASE | FMT_8_BIT,
+#if FMT_MAIN_VERSION > 11
+		{ },
+#endif
+		tests
 	},
 	{
 		/* All we setup here, is the pointer to valid, and the pointer to init */

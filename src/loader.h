@@ -138,6 +138,11 @@ struct db_salt {
 
 /* Buffered keys, allocated for "single crack" mode only */
 	struct db_keys *keys;
+
+#if FMT_MAIN_VERSION > 11
+/* Tunable costs */
+	unsigned int cost[FMT_TUNABLE_COSTS];
+#endif
 };
 
 /*
@@ -180,6 +185,12 @@ struct db_options {
 /* Requested passwords per salt */
 	int min_pps, max_pps;
 
+#if FMT_MAIN_VERSION > 11
+/* Requested cost values */
+	unsigned int min_cost[FMT_TUNABLE_COSTS];
+	unsigned int max_cost[FMT_TUNABLE_COSTS];
+#endif
+
 /* Pot file used (default is $JOHN/john.pot) */
 	char *activepot;
 
@@ -221,6 +232,12 @@ struct db_main {
 
 /* Number of salts, passwords and guesses */
 	int salt_count, password_count, guess_count;
+
+#if FMT_MAIN_VERSION > 11
+/* min. and max. tunable costs */
+	unsigned int min_cost[FMT_TUNABLE_COSTS];
+	unsigned int max_cost[FMT_TUNABLE_COSTS];
+#endif
 
 /* Ciphertext format */
 	struct fmt_main *format;

@@ -603,6 +603,9 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 	struct db_password *current_pw, *last_pw;
 	struct list_main *words;
 	size_t pw_size, salt_size;
+#if FMT_MAIN_VERSION > 11
+	int i;
+#endif
 
 	count = ldr_split_line(&login, &ciphertext, &gecos, &home,
 		NULL, &db->format, db->options, line);
@@ -717,6 +720,15 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 			current_salt->salt = mem_alloc_copy(salt,
 				format->params.salt_size,
 				format->params.salt_align);
+
+#if FMT_MAIN_VERSION > 11
+			for (i = 0; i < FMT_TUNABLE_COSTS; ++i) {
+				if (format->methods.tunable_cost_value[i] == NULL)
+					current_salt->cost[i] = 1;
+				else
+					current_salt->cost[i] = format->methods.tunable_cost_value[i](current_salt->salt);
+			}
+#endif
 
 			current_salt->index = fmt_dummy_hash;
 			current_salt->bitmap = NULL;
@@ -1146,6 +1158,47 @@ static void ldr_filter_salts(struct db_main *db)
 	} while ((current = current->next));
 }
 
+#if FMT_MAIN_VERSION > 11
+/*
+ * check if cost values for a particular salt match
+ * what has been requested with the --costs= option
+ */
+static int ldr_cost_ok(struct db_salt *salt, unsigned int *min_cost, unsigned int *max_cost)
+{
+	int i;
+
+	for (i = 0; i < FMT_TUNABLE_COSTS; i++) {
+		if (salt->cost[i] < min_cost[i] || salt->cost[i] > max_cost[i])
+			return 0;
+	}
+	return 1;
+}
+
+
+/*
+ * Remove salts with too low or too high value for a particular tunable cost
+ */
+static void ldr_filter_costs(struct db_main *db)
+{
+	struct db_salt *current, *last;
+
+	last = NULL;
+	if ((current = db->salts))
+	do {
+		if (!ldr_cost_ok(current, db->options->min_cost,
+		                          db->options->max_cost)) {
+			if (last)
+				last->next = current->next;
+			else
+				db->salts = current->next;
+			db->salt_count--;
+			db->password_count -= current->count;
+		} else
+			last = current;
+	} while ((current = current->next));
+}
+#endif
+
 /*
  * Allocate memory for and initialize the hash table for this salt if needed.
  * Also initialize salt->count (the number of password hashes for this salt).
@@ -1256,6 +1309,32 @@ static void ldr_init_hash(struct db_main *db)
 	} while ((current = current->next));
 }
 
+#if FMT_MAIN_VERSION > 11
+/*
+ * compute cost ranges after all unneeded salts have been removed
+ */
+static void ldr_cost_ranges(struct db_main *db)
+{
+	int i;
+	struct db_salt *current;
+
+	for (i = 0; i < FMT_TUNABLE_COSTS; ++i) {
+		db->min_cost[i] = UINT_MAX;
+		db->max_cost[i] = 0;
+	}
+
+	if ((current = db->salts))
+	do {
+		for (i = 0; i < FMT_TUNABLE_COSTS; ++i) {
+			if (current->cost[i] < db->min_cost[i])
+				db->min_cost[i] = current->cost[i];
+			if (current->cost[i] > db->max_cost[i])
+				db->max_cost[i] = current->cost[i];
+		}
+	} while ((current = current->next));
+}
+#endif
+
 void ldr_fix_database(struct db_main *db)
 {
 	int total = db->password_count;
@@ -1268,7 +1347,13 @@ void ldr_fix_database(struct db_main *db)
 		MEM_FREE(db->salt_hash);
 
 	ldr_filter_salts(db);
+#if FMT_MAIN_VERSION > 11
+	ldr_filter_costs(db);
+#endif
 	ldr_remove_marked(db);
+#if FMT_MAIN_VERSION > 11
+	ldr_cost_ranges(db);
+#endif
 	ldr_sort_salts(db);
 
 	ldr_init_hash(db);

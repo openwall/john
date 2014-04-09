@@ -80,6 +80,10 @@ struct fmt_main fmt_cuda_wpapsk = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_OMP,
+#if FMT_MAIN_VERSION > 11
+		{
+		},
+#endif
 		tests
 	}, {
 		init,
@@ -90,6 +94,10 @@ struct fmt_main fmt_cuda_wpapsk = {
 		fmt_default_split,
 		binary,
 		salt,
+#if FMT_MAIN_VERSION > 11
+		{
+		},
+#endif
 		fmt_default_source,
 		{
 			binary_hash_0,

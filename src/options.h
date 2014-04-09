@@ -158,7 +158,7 @@
 #define FLG_DEVICE			0x2000000000000000ULL
 
 /* Tunable cost ranges requested */
-#define FLG_COST			0x4000000000000000ULL
+#define FLG_COSTS			0x4000000000000000ULL
 
 /*
  * Structure with option flags and all the parameters.

@@ -272,6 +272,10 @@ struct fmt_main fmt_NS = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
+#if FMT_MAIN_VERSION > 11
+		{
+		},
+#endif
 		tests
 	}, {
 		NS_init,
@@ -282,6 +286,10 @@ struct fmt_main fmt_NS = {
 		fmt_default_split,
 		(void *(*)(char *))get_binary,
 		(void *(*)(char *))get_salt,
+#if FMT_MAIN_VERSION > 11
+		{
+		},
+#endif
 		fmt_default_source,
 		{
 			fmt_default_binary_hash_0,

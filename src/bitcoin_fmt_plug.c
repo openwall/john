@@ -315,6 +315,10 @@ struct fmt_main fmt_bitcoin = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_OMP,
+#if FMT_MAIN_VERSION > 11
+		{
+		},
+#endif
 		bitcoin_tests
 	}, {
 		init,
@@ -326,6 +330,10 @@ struct fmt_main fmt_bitcoin = {
 		fmt_default_binary,
 		get_salt,
 #if FMT_MAIN_VERSION > 9
+#if FMT_MAIN_VERSION > 11
+		{
+		},
+#endif
 		fmt_default_source,
 #endif
 		{

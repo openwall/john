@@ -696,6 +696,10 @@ struct fmt_main fmt_dmg = {
 		FMT_NOT_EXACT |
 #endif
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
+#if FMT_MAIN_VERSION > 11
+		{
+		},
+#endif
 		dmg_tests
 	}, {
 		init,
@@ -706,6 +710,10 @@ struct fmt_main fmt_dmg = {
 		fmt_default_split,
 		fmt_default_binary,
 		get_salt,
+#if FMT_MAIN_VERSION > 11
+		{
+		},
+#endif
 		fmt_default_source,
 		{
 			fmt_default_binary_hash

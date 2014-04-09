@@ -15,7 +15,12 @@
 #include "params.h"
 #include "misc.h"
 
-#define FMT_MAIN_VERSION 11	/* change if structure fmt_main changes */
+/* 
+ * For now, you can just revert FMT_MAIN_VERSION to 11
+ * in case of any problem with the new additions
+ * (tunable cost parameters)
+ */
+#define FMT_MAIN_VERSION 12	/* change if structure fmt_main changes */
 
 struct fmt_main;
 
@@ -23,6 +28,14 @@ struct fmt_main;
  * Default alignment (used unless known)
  */
 #define DEFAULT_ALIGN MEM_ALIGN_WORD
+
+#if FMT_MAIN_VERSION > 11
+/*
+ * Just in case some formats use an even higher number of different
+ * tunable cost parameters
+ */
+#define FMT_TUNABLE_COSTS	2
+#endif
 
 /*
  * Some format methods accept pointers to these, yet we can't just include
@@ -122,6 +135,17 @@ struct fmt_params {
 /* Properties of this format */
 	unsigned int flags;
 
+#if FMT_MAIN_VERSION > 11
+/* 
+ * Descriptions (names) of tunable cost parameters for this format
+ *
+ * These names shouldn't contain ',', because ", " is used
+ * as a separator when listing tunable cost parameters
+ * in --list=format-details and --list=format-all-details
+ */
+	char *tunable_cost_name[FMT_TUNABLE_COSTS];
+#endif
+
 /* Some passwords to test the methods for correct operation (or NULL for no
  * self test, and no benchmark), terminated with a NULL ciphertext. */
 	struct fmt_tests *tests;
@@ -180,6 +204,23 @@ struct fmt_methods {
 
 /* Converts an ASCII salt to its internal representation */
 	void *(*salt)(char *ciphertext);
+
+#if FMT_MAIN_VERSION > 11
+/*
+ * These functions return the value of a tunable cost parameter
+ * for a given salt.
+ * The sequence of tunable costs parameters has to match the sequence
+ * of their descriptions in tunable_cost_name[FMT_TUNABLE_COSTS].
+ * The format implementation has to decide which tunable cost parameters
+ * are most significant for CPU time and/or memory requirements.
+ * If possible, the reported values should be linear to the real cost,
+ * even if in the format the parameter is the dual logarithm of the real cost,
+ * e.g., the real iteration count is 2^(t_cost) for parameter t_cost.
+ *
+ * If a function is NULL, john assumes a default cost value of 1
+ */
+	unsigned int (*tunable_cost_value[FMT_TUNABLE_COSTS])(void *salt);
+#endif
 
 /* Reconstructs the ASCII ciphertext from its binary (saltless only).
  * Alternatively, in the simplest case simply returns "source" as-is. */

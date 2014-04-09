@@ -94,9 +94,13 @@ static void listconf_list_help_options()
 
 static void listconf_list_method_names()
 {
-	puts("init, done, reset, prepare, valid, split, binary, salt, source, binary_hash,");
-	puts("salt_hash, set_salt, set_key, get_key, clear_keys, crypt_all, get_hash,");
-	puts("cmp_all, cmp_one, cmp_exact");
+#if FMT_MAIN_VERSION > 11
+	puts("init, done, reset, prepare, valid, split, binary, salt, tunable_cost_value,");
+#else
+	puts("init, done, reset, prepare, valid, split, binary, salt,");
+#endif
+	puts("source, binary_hash, salt_hash, set_salt, set_key, get_key, clear_keys,");
+	puts("crypt_all, get_hash, cmp_all, cmp_one, cmp_exact");
 }
 
 static void listconf_list_build_info(void)
@@ -115,6 +119,9 @@ static void listconf_list_build_info(void)
 #endif
 	printf("$JOHN is %s\n", path_expand("$JOHN/"));
 	printf("Format interface version: %d\n", FMT_MAIN_VERSION);
+#if FMT_MAIN_VERSION > 11
+	printf("Max. number of reported tunable costs: %d\n", FMT_TUNABLE_COSTS);
+#endif
 	puts("Rec file version: " RECOVERY_V);
 	puts("Charset file version: " CHARSET_V);
 	printf("CHARSET_MIN: %d (0x%02x)\n", CHARSET_MIN, CHARSET_MIN);
@@ -251,6 +258,26 @@ void listconf_parse_early(void)
 #endif
 }
 
+#if FMT_MAIN_VERSION > 11
+/* 
+ * List names of tunable cost parameters
+ * Separator differs for --list=format-all-details (", ")
+ * and --list=format-details (",")
+ */
+void list_tunable_cost_names(struct fmt_main *format, char *separator)
+{
+	int i;
+
+	for (i = 0; i < FMT_TUNABLE_COSTS; ++i) {
+		if(format->params.tunable_cost_name[i]) {
+			if (i)
+				printf("%s", separator);
+			printf("%s", format->params.tunable_cost_name[i]);
+		}
+	}
+}
+#endif
+
 void listconf_parse_late(void)
 {
 	if ((options.subformat && !strcasecmp(options.subformat, "list")) ||
@@ -352,7 +379,7 @@ void listconf_parse_late(void)
 				while (format->params.tests[ntests++].ciphertext);
 				ntests--;
 			}
-			printf("%s\t%d\t%d\t%d\t%08x\t%d\t%s\t%s\t%s\t%d\t%d\t%d\t%.256s\n",
+			printf("%s\t%d\t%d\t%d\t%08x\t%d\t%s\t%s\t%s\t%d\t%d\t%d",
 			       format->params.label,
 			       format->params.plaintext_length,
 			       format->params.min_keys_per_crypt,
@@ -369,7 +396,20 @@ void listconf_parse_late(void)
 			       ((format->params.flags & FMT_DYNAMIC) && format->params.salt_size) ?
 			       // salts are handled internally within the format. We want to know the 'real' salt size
 			       // dynamic will alway set params.salt_size to 0 or sizeof a pointer.
-			       dynamic_real_salt_length(format) : format->params.salt_size,
+			       dynamic_real_salt_length(format) : format->params.salt_size);
+#if FMT_MAIN_VERSION > 11
+			printf("\t");
+			list_tunable_cost_names(format, ",");
+#endif
+			/* 
+			 * Since the example ciphertext should be the last line in the
+			 * --list=format-all-details output, it should also be the last column
+			 * here.
+			 * Even if this means tools processing --list=format-details output
+			 * have to check the number of columns if they want to use the example 
+			 * ciphertext.
+			 */
+			printf("\t%.256s\n",
 			       /*
 			        * ciphertext example will be silently truncated
 			        * to 256 characters here
@@ -422,6 +462,12 @@ void listconf_parse_late(void)
 			       // salts are handled internally within the format. We want to know the 'real' salt size/
 			       // dynamic will alway set params.salt_size to 0 or sizeof a pointer.
 			       dynamic_real_salt_length(format) : format->params.salt_size);
+#if FMT_MAIN_VERSION > 11
+			printf("Tunable cost parameters              ");
+			list_tunable_cost_names(format, ", ");
+			printf("\n");
+#endif
+
 			/*
 			 * The below should probably stay as last line of
 			 * output if adding more information.
@@ -461,6 +507,16 @@ void listconf_parse_late(void)
 				         strcasecmp(&options.listconf[15], "binary") &&
 				         strcasecmp(&options.listconf[15], "clear_keys") &&
 				         strcasecmp(&options.listconf[15], "salt") &&
+#if FMT_MAIN_VERSION > 11
+				         strcasecmp(&options.listconf[15], "tunable_cost_value") &&
+				         strcasecmp(&options.listconf[15], "tunable_cost_value[0]") &&
+#if FMT_TUNABLE_COSTS > 1
+				         strcasecmp(&options.listconf[15], "tunable_cost_value[1]") &&
+#if FMT_TUNABLE_COSTS > 2
+				         strcasecmp(&options.listconf[15], "tunable_cost_value[2]") &&
+#endif
+#endif
+#endif
 					 strcasecmp(&options.listconf[15], "source") &&
 				         strcasecmp(&options.listconf[15], "get_hash") &&
 				         strcasecmp(&options.listconf[15], "get_hash[0]") &&
@@ -503,6 +559,17 @@ void listconf_parse_late(void)
 				if (format->methods.salt != fmt_default_salt && !strcasecmp(&options.listconf[15], "salt"))
 					ShowIt = 1;
 
+#if FMT_MAIN_VERSION > 11
+				for (i = 0; i < FMT_TUNABLE_COSTS; ++i) {
+					char Buf[30];
+					sprintf(Buf, "tunable_cost_value[%d]", i);
+					if (format->methods.tunable_cost_value[i] && !strcasecmp(&options.listconf[15], Buf))
+						ShowIt = 1;
+				}
+				if (format->methods.tunable_cost_value[0] && !strcasecmp(&options.listconf[15], "tunable_cost_value"))
+					ShowIt = 1;
+#endif
+
 				if (format->methods.source != fmt_default_source && !strcasecmp(&options.listconf[15], "source"))
 					ShowIt = 1;
 				if (format->methods.clear_keys != fmt_default_clear_keys && !strcasecmp(&options.listconf[15], "clear_keys"))
@@ -543,6 +610,15 @@ void listconf_parse_late(void)
 					printf("\tbinary()\n");
 				if (format->methods.salt != fmt_default_salt)
 					printf("\tsalt()\n");
+#if FMT_MAIN_VERSION > 11
+				for (i = 0; i < FMT_TUNABLE_COSTS; ++i)
+					/*
+					 * Here, a NULL value serves as default,
+					 * so any existing function should be printed
+					 */
+					if (format->methods.tunable_cost_value[i])
+						printf("\t\ttunable_cost_value[%d]()\n", i);
+#endif
 				for (i = 0; i < PASSWORD_HASH_SIZES; ++i)
 					if (format->methods.binary_hash[i] != fmt_default_binary_hash) {
 						if (format->methods.binary_hash[i])
