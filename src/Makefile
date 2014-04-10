@@ -60,6 +60,9 @@ HAVE_GMP = `find 2>&1 /usr/include /usr/local/include -name "gmp.h" | grep -q "g
 GMP_LDFLAGS = `find 2>&1 /usr/include /usr/local/include -name "gmp.h" | grep -q "gmp.h" && echo -lgmp`
 HAVE_KRB5 = `find 2>&1 /usr/include/ /usr/local/include/ -name "krb5.h" | grep -q "krb5.h" && echo -DHAVE_KRB5`
 KRB5_LDFLAGS = `find 2>&1 /usr/include/ /usr/local/include/ -name "krb5.h" | grep -q "krb5.h" && echo -lk5crypto -lkrb5`
+REXGEN_FLAGS = `find 2>&1 /usr/include/librexgen/api/c /usr/local/include/librexgen/api/c -name "librexgen.h" | grep -q "librexgen.h" && echo -DHAVE_REXGEN=1`
+REXGEN_LDFLAGS = `find 2>&1 /usr/lib/ /usr/local/lib/ -name "liblibrexgen*.a" | grep -q "liblibrexgen" && echo -llibrexgen`
+REXGEN_LDFLAGS += `find 2>&1 /usr/lib/ /usr/local/lib/ -name "librexgen*.a" | grep -q "librexgen" && echo -lrexgen`
 endif
 
 # Uncomment the below if you have GMP library installed (faster wowsrp format)
@@ -95,10 +98,6 @@ ifdef ATISTREAMSDKROOT
 AMDAPP = -DAMDAPPSDK
 OCLROOT = $(ATISTREAMSDKROOT)
 endif
-
-# Uncomment for rexgen cracking mode
-#REXGEN_FLAGS=-DHAVE_REXGEN=1
-#REXGEN_LDFLAGS=-llibrexgen
 
 CFLAGS = -c -Wall -Wdeclaration-after-statement -O2 -fomit-frame-pointer -I/usr/local/include $(REXGEN_FLAGS) $(HAVE_NSS) $(HAVE_GMP) $(HAVE_KRB5) $(OMPFLAGS) $(AMDAPP) $(JOHN_CFLAGS) $(RELEASE_BLD)
 # -DHAVE_SKEY

@@ -78,7 +78,8 @@ int do_regex_crack_as_rules(const char *regex, const char *base_word) {
 	iter = c_regex_iterator_cb(regex, ignore_case, encoding, randomize, callback);
 	while (c_iterator_next(iter)) {
 		c_iterator_value(iter, buffer);
-		word = c_simplestring_getptr(buffer);
+		c_simplestring_terminate(buffer);
+		word = c_simplestring_bufferaddress(buffer);
 		if (ext_filter((char*)word)) {
 			if (crk_process_key((char*)word)) {
 				c_simplestring_delete(buffer);
@@ -106,7 +107,8 @@ void do_regex_crack(struct db_main *db, const char *regex) {
 	iter = c_regex_iterator_cb(regex, ignore_case, encoding, randomize, callback);
 	while (c_iterator_next(iter)) {
 		c_iterator_value(iter, buffer);
-		word = c_simplestring_getptr(buffer);
+		c_simplestring_terminate(buffer);
+		word = c_simplestring_bufferaddress(buffer);
 		if (ext_filter((char*)word)) {
 			crk_process_key((char*)word);
 		}
