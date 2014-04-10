@@ -831,7 +831,7 @@ void *BF_std_get_salt(char *ciphertext)
 }
 
 #if FMT_MAIN_VERSION > 11
-/* For BF, the tunable cost parameter is the iteratioon count */
+/* For BF, the tunable cost parameter is the iteration count */
 unsigned int BF_iteration_count(void *salt)
 {
 	BF_salt *bf_salt;

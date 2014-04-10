@@ -296,6 +296,16 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
+#if FMT_MAIN_VERSION
+static unsigned int iteration_count(void *salt)
+{
+	struct custom_salt *my_salt;
+
+	my_salt = salt;
+	return (unsigned int)my_salt->cry_rounds;
+}
+#endif
+
 struct fmt_main fmt_bitcoin = {
 	{
 		FORMAT_LABEL,
@@ -317,6 +327,7 @@ struct fmt_main fmt_bitcoin = {
 		FMT_CASE | FMT_OMP,
 #if FMT_MAIN_VERSION > 11
 		{
+			"iteration count",
 		},
 #endif
 		bitcoin_tests
@@ -332,6 +343,7 @@ struct fmt_main fmt_bitcoin = {
 #if FMT_MAIN_VERSION > 9
 #if FMT_MAIN_VERSION > 11
 		{
+			iteration_count,
 		},
 #endif
 		fmt_default_source,

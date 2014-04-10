@@ -381,6 +381,16 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
+#if FMT_MAIN_VERSION > 11
+static unsigned int iteration_count(void *salt)
+{
+	struct custom_salt *my_salt;
+
+	my_salt = salt;
+	return (unsigned int)my_salt->iterations;
+}
+#endif
+
 struct fmt_main fmt_cloud_keychain = {
 	{
 		FORMAT_LABEL,
@@ -398,6 +408,7 @@ struct fmt_main fmt_cloud_keychain = {
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_NOT_EXACT,
 #if FMT_MAIN_VERSION > 11
 		{
+			"iteration count",
 		},
 #endif
 		cloud_keychain_tests
@@ -412,6 +423,7 @@ struct fmt_main fmt_cloud_keychain = {
 		get_salt,
 #if FMT_MAIN_VERSION > 11
 		{
+			iteration_count,
 		},
 #endif
 		fmt_default_source,

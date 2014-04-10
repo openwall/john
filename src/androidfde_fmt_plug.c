@@ -79,15 +79,11 @@ static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static int *cracked;
 
 static struct custom_salt {
-	int loaded;
-	unsigned char *cipherbuf;
 	int keysize;
-	int iterations;
 	int saltlen;
 	unsigned char data[512 * 3];
 	unsigned char salt[16];
 	unsigned char mkey[64];
-	unsigned char iv[16];
 
 } *cur_salt;
 

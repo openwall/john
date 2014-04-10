@@ -54,7 +54,6 @@ static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
 
 static struct custom_salt {
-	int iterations;
 	char unsigned salt[MAX_SALT_SIZE + 1];
 } *cur_salt;
 

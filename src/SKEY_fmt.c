@@ -216,6 +216,50 @@ skey_cmp_exact(char *source, int count)
 	return (1);	/* XXX - fallthrough from skey_cmp_one() */
 }
 
+#if FMT_MAIN_VERSION > 11
+/*
+ * report hash type as first tunable cost, even though the iteration count
+ * might be more important with regard to CPU time
+ */
+static unsigned int skey_hash_type(void *salt)
+{
+	struct skey_salt_st my_salt;
+
+	my_salt = salt;
+	/*
+	 * An empty string (like in the first test hash) meaning MD4
+	 * is just my assumtion based on some googling.
+	 * Older implementations apparently only supported MD4, MD5, and SHA1,
+	 * while newer only support MD5, SHA1, and RMD160.
+	 * If I am wrong, and "" means MD5, the cost difference
+	 * hopefully isn't that big.
+	 * The alternative would be to report "" as 0 (unknown), but that would
+	 * pretend MD4 cost is similar to the cost of a new hash type.
+	 * This seems to be more unlikely than MD4 cost being similar to MD5.
+	 */ 
+	if (my_salt->type[0] == '\0' || (!strcasecmp(my_salt->type, "md4")))
+		return (unsigned int) 1;
+	else if (!strcasecmp(my_salt->type, "md5"))
+		return (unsigned int) 2;
+	else if (!strcasecmp(my_salt->type, "sha1"))
+		return (unsigned int) 3;
+	else if (!strcasecmp(my_salt->type, "rmd160"))
+		return (unsigned int) 4;
+	else	/* unknown */
+		return (unsigned int) 0;
+}
+
+/* iteration count as 2nd tunable cost */
+static unsigned int skey_iteration_count)void *salt)
+{
+	struct skey_salt_st *my_salt;
+
+	my_salt = salt;
+	return (unsigned int) my_salt->num;
+}
+
+#endif
+
 struct fmt_main fmt_SKEY = {
 	{
 		FORMAT_LABEL,
@@ -233,6 +277,8 @@ struct fmt_main fmt_SKEY = {
 		FMT_CASE | FMT_8_BIT,
 #if FMT_MAIN_VERSION > 11
 		{
+			"hash type [1:MD4 2:MD5 3:SHA1 4:RMD160]",
+			"iteration count",
 		},
 #endif
 		skey_tests
@@ -247,6 +293,8 @@ struct fmt_main fmt_SKEY = {
 		skey_salt,
 #if FMT_MAIN_VERSION > 11
 		{
+			skey_hash_type,
+			skey_iteration_count,
 		},
 #endif
 		fmt_default_source,
