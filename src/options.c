@@ -369,7 +369,7 @@ void opt_print_hidden_usage(void)
 #if FMT_MAIN_VERSION > 11
 	puts("--costs=[-]C[:M][,...]    load salts with[out] cost value Cn [to Mn] for");
 	puts("                          tunable cost parameters, see doc/OPTIONS");
-	puts("				(comma separated list of values/ranges per param.");
+	puts("                          (comma separated list of values/ranges per param.)");
 #endif
 	puts("--field-separator-char=C  use 'C' instead of the ':' in input and pot files");
 	puts("--fix-state-delay=N       performance tweak, see doc/OPTIONS");
@@ -554,7 +554,7 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 				fprintf(stderr, "max. %d different tunable cost parameters"
 				                " supported\n", FMT_TUNABLE_COSTS);
 			error();
-		}	
+		}
 		for( i = 0; i < FMT_TUNABLE_COSTS; i++) {
 			int negative;
 			int two_values;
