@@ -390,6 +390,16 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
+#if FMT_MAIN_VERSION > 11
+static unsigned int iteration_count(void *salt)
+{
+	struct custom_salt *my_salt;
+
+	my_salt = salt;
+	return (unsigned int)(1 << my_salt->NumCyclesPower);
+}
+#endif
+
 struct fmt_main fmt_sevenzip = {
 	{
 		FORMAT_LABEL,
@@ -407,6 +417,7 @@ struct fmt_main fmt_sevenzip = {
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_NOT_EXACT | FMT_UNICODE | FMT_UTF8,
 #if FMT_MAIN_VERSION > 11
 		{
+			"iteration count",
 		},
 #endif
 		sevenzip_tests
@@ -421,6 +432,7 @@ struct fmt_main fmt_sevenzip = {
 		get_salt,
 #if FMT_MAIN_VERSION > 11
 		{
+			iteration_count,
 		},
 #endif
 		fmt_default_source,
