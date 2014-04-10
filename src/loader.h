@@ -136,13 +136,14 @@ struct db_salt {
  * salts are removed during cracking */
 	int sequential_id;
 
-/* Buffered keys, allocated for "single crack" mode only */
-	struct db_keys *keys;
-
 #if FMT_MAIN_VERSION > 11
 /* Tunable costs */
 	unsigned int cost[FMT_TUNABLE_COSTS];
 #endif
+
+/* Buffered keys, allocated for "single crack" mode only */
+/* THIS MUST BE LAST IN THE STRUCT */
+	struct db_keys *keys;
 };
 
 /*
