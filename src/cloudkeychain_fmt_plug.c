@@ -408,7 +408,7 @@ struct fmt_main fmt_cloud_keychain = {
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_NOT_EXACT,
 #if FMT_MAIN_VERSION > 11
 		{
-			"iteration_count",
+			"iteration count",
 		},
 #endif
 		cloud_keychain_tests
