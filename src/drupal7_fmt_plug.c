@@ -236,6 +236,12 @@ static int salt_hash(void *salt)
 	return *((ARCH_WORD_32 *)salt) & 0x3FF;
 }
 
+#if FMT_MAIN_VERSION > 11
+static unsigned int iteration_count(void *salt)
+{
+	return (unsigned int) 1 << (atoi64[ARCH_INDEX(((char*)salt)[8])]);
+}
+#endif
 struct fmt_main fmt_drupal7 = {
 	{
 		FORMAT_LABEL,
@@ -254,6 +260,7 @@ struct fmt_main fmt_drupal7 = {
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 #if FMT_MAIN_VERSION > 11
 		{
+			"iteration count",
 		},
 #endif
 		tests
@@ -268,6 +275,7 @@ struct fmt_main fmt_drupal7 = {
 		salt,
 #if FMT_MAIN_VERSION > 11
 		{
+			iteration_count,
 		},
 #endif
 		fmt_default_source,
