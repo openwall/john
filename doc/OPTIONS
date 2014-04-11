@@ -173,8 +173,8 @@ For formats with different tunable costs, you can specify a comma
 separated list of values/ranges.
  --cost=-2 (cost of first cost parameter must be smaller than 2)
  --cost=2,10:20 (cost of 1st parameter is >= 2, of 2nd between 10 and 20)
- --cost=:,10:20 (first cost parameter ignored, 2nd between 10 and 20)
- --cost=:,-3 (first cost parameter ignored, 2nd smaller than 3)
+ --cost=0,10:20 (first cost parameter ignored, 2nd between 10 and 20)
+ --cost=0,-3 (first cost parameter ignored, 2nd smaller than 3)
 Very few formats have more than one tunable cost parameter.
 (All saltless hashes and several salted hashes don't have tunable cost
 parameters. For these, a dummy cost of 1 is reported.)
