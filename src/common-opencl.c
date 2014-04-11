@@ -662,13 +662,13 @@ static void dev_init(int sequential_id)
 			len--;
 		opencl_log[len] = '\0';
 
-		if (options.verbosity > 2)
+		if (options.verbosity >= 2)
 			fprintf(stderr, "Device %d: %s (%s)\n",
 			        sequential_id, device_name, opencl_log);
 	} else
 #endif
 	{
-		if (options.verbosity > 2)
+		if (options.verbosity >= 2)
 			fprintf(stderr, "Device %d: %s\n",
 			        sequential_id, device_name);
 	}
