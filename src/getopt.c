@@ -26,6 +26,8 @@ static char *opt_errors[] = {
 	"Invalid options combination or duplicate option"
 };
 
+static char *completed, *completed_param;
+
 static char *opt_find(struct opt_entry *list, char *opt,
 	struct opt_entry **entry)
 {
@@ -59,7 +61,11 @@ static char *opt_find(struct opt_entry *list, char *opt,
 		} while ((++list)->name);
 
 		if ((*entry = found))
+		{
+			completed = found->name;
+			completed_param = param;
 			return param;
+		}
 		else
 			return NULL;
 	} else {
@@ -89,6 +95,8 @@ static int opt_process_one(struct opt_entry *list, opt_flags *flg, char *opt)
 {
 	char *param;
 	struct opt_entry *entry;
+
+	completed = NULL;
 
 	param = opt_find(list, opt, &entry);
 	if (!entry) return OPT_ERROR_UNKNOWN;
@@ -149,5 +157,15 @@ void opt_check(struct opt_entry *list, opt_flags flg, char **argv)
 		if (john_main_process)
 			fprintf(stderr, "%s: \"%s\"\n", opt_errors[res], *opt);
 		error();
+	}
+	/* Alter **argv to reflect to full option names */
+	else if (*opt[0] == '-') {
+		int len = strlen(completed) + 2 + 1;
+		if (completed_param)
+			len += strlen(completed_param) + 1;
+		*opt = mem_alloc_tiny(len, MEM_ALIGN_NONE);
+		sprintf(*opt, "--%s%s%s", completed,
+		        completed_param ? "=" : "",
+		        completed_param ? completed_param : "");
 	}
 }

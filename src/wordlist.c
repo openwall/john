@@ -383,7 +383,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules, char *regex)
 	if (loopBack) {
 		dupeCheck = 1;
 		if (!name)
-			name = options.loader.activepot;
+			name = options.wordlist = options.loader.activepot;
 	}
 
 	/* If we did not give a name for wordlist mode,
@@ -391,7 +391,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules, char *regex)
 	if (!name && !(options.flags & (FLG_STDIN_CHK | FLG_PIPE_CHK)))
 	if (!(name = cfg_get_param(SECTION_OPTIONS, NULL, "Wordlist")))
 	if (!(name = cfg_get_param(SECTION_OPTIONS, NULL, "Wordfile")))
-		name = WORDLIST_NAME;
+		name = options.wordlist = WORDLIST_NAME;
 
 	if (name) {
 		char *cp, csearch;
