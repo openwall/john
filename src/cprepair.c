@@ -11,15 +11,15 @@
 
 #include "unicode.h"
 
-// gcc -DNOT_JOHN -D_JOHN_MISC_NO_LOG -O3 -s cprepair.c unicode.c misc.c -o ../run/cprepair
+// gcc -Wall -O3 -s -DNOT_JOHN -D_JOHN_MISC_NO_LOG cprepair.c unicode.c misc.c -o ../run/cprepair
 
 static int sup, debug, noguess, potfile;
-static char *inv_cp, *val_cp;
+static int inv_cp, val_cp;
 struct options_main options;
 struct pers_opts pers_opts;
 
 #undef LINE_BUFFER_SIZE
-#define LINE_BUFFER_SIZE 0x30000
+#define LINE_BUFFER_SIZE 0x10000
 
 #define valid_utf8 _validut8
 
@@ -116,7 +116,7 @@ static void usage(char *name, int retcode)
 static int process_file(char *name)
 {
 	FILE *fh;
-	char orig[LINE_BUFFER_SIZE + 1];
+	char orig[3 * LINE_BUFFER_SIZE + 1];
 
 	if (!strcmp(name, "-")) {
 		fh = stdin;
@@ -132,22 +132,22 @@ static int process_file(char *name)
 		if (fgets(orig, sizeof(orig) - 1, fh)) {
 			int len = -1;
 			UTF16 u16[LINE_BUFFER_SIZE + 1];
-			UTF8 u8buf[LINE_BUFFER_SIZE + 1], *u8;
+			UTF8 u8buf[3 * LINE_BUFFER_SIZE + 1], *u8;
 			char *out, *p, *plain, *convin;
 
 			if ((p = strchr(orig, '\n'))) {
 				*p++ = 0;
 				len = (int)(p - orig);
-				if (len > LINE_BUFFER_SIZE) {
-					len = LINE_BUFFER_SIZE;
+				if (len > 3 * LINE_BUFFER_SIZE) {
+					len = 3 * LINE_BUFFER_SIZE;
 					orig[len] = 0;
 				}
 			}
 			if ((p = strchr(orig, '\r'))) {
 				*p++ = 0;
 				len = (int)(p - orig);
-				if (len > LINE_BUFFER_SIZE) {
-					len = LINE_BUFFER_SIZE;
+				if (len > 3 * LINE_BUFFER_SIZE) {
+					len = 3 * LINE_BUFFER_SIZE;
 					orig[len] = 0;
 				}
 			}
@@ -172,12 +172,11 @@ static int process_file(char *name)
 					pers_opts.input_enc =
 						pers_opts.intermediate_enc =
 						pers_opts.target_enc =
-						cp_name2id(inv_cp);
+						inv_cp;
 					initUnicode(0);
 
 					enc_to_utf16(u16, sizeof(u16), (UTF8*)convin, len);
-					out = (char*)utf16_to_utf8_r(u8buf, sizeof(u8buf),
-					                      u16);
+					out = (char*)utf16_to_utf8_r(u8buf, sizeof(u8buf), u16);
 					if (debug && strcmp(convin, out)) {
 						if (debug > 1)
 							printf("has %sASCII letters, enc is guessed %s: ",
@@ -187,12 +186,13 @@ static int process_file(char *name)
 					}
 				}
 			} else {
-				utf8_to_utf16(u16, sizeof(u16), (UTF8*)convin, len);
+				utf8_to_utf16(u16, sizeof(u16),
+				              (UTF8*)convin, len);
 				if (valid_ansi(u16)) {
 					pers_opts.input_enc =
 						pers_opts.intermediate_enc =
 						pers_opts.target_enc =
-						cp_name2id(val_cp);
+						val_cp;
 					initUnicode(0);
 					u8 = utf16_to_enc_r(u8buf,
 					                    sizeof(u8buf), u16);
@@ -206,7 +206,7 @@ static int process_file(char *name)
 					printf("%s => ", convin);
 			}
 			if (!sup || strcmp(convin, out)) {
-				if (potfile) {
+				if (potfile && plain > orig) {
 					*--plain = 0;
 					printf("%s:%s\n", orig, out);
 				} else
@@ -238,10 +238,10 @@ int main(int argc, char **argv)
 			noguess = 1;
 			break;
 		case 'i':
-			inv_cp = strdup(optarg);
+			inv_cp = cp_name2id(optarg);
 			break;
 		case 'v':
-			val_cp = strdup(optarg);
+			val_cp = cp_name2id(optarg);
 			break;
 		case 'l':
 			puts("Supported encodings:");
@@ -260,10 +260,10 @@ int main(int argc, char **argv)
 	argv += optind;
 
 	if (!val_cp)
-		val_cp = "cp1252";
+		val_cp = CP1252;
 
 	if (!inv_cp)
-		inv_cp = "cp1252";
+		inv_cp = CP1252;
 
 	if (argc == 0)
 		return process_file("-");

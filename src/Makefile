@@ -2331,10 +2331,8 @@ endif
 	ln -s john ../run/keystore2john
 
 ../run/cprepair: cprepair.c unicode.c unicode.h options.h misc.h misc.c
-	gcc -DNOT_JOHN -D_JOHN_MISC_NO_LOG -O3 -s cprepair.c unicode.c misc.c -o ../run/cprepair
-
-cprepair: cprepair.c unicode.c misc.c
-	gcc -DNOT_JOHN -D_JOHN_MISC_NO_LOG -O3 -s cprepair.c unicode.c misc.c -o ../run/cprepair
+	gcc -Wall -O3 -s -DNOT_JOHN -D_JOHN_MISC_NO_LOG cprepair.c unicode.c \
+	misc.c -o ../run/cprepair
 
 ../run/tgtsnarf: tgtsnarf.o
 	$(LD) tgtsnarf.o $(LDFLAGS) -o ../run/tgtsnarf
