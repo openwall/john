@@ -19,7 +19,6 @@
  */
 
 #include <string.h>
-#include <openssl/aes.h>
 #include <assert.h>
 #include <errno.h>
 
@@ -30,6 +29,7 @@
 #include "formats.h"
 #include "params.h"
 #include "options.h"
+#include "aes/aes.h"
 
 /* ---- Start OpenCL Modifications ---- */
 
@@ -66,6 +66,9 @@ static struct custom_salt {
 	char unsigned salt[((SALT_LENGTH + 3)/4)*4]; /* AUTH_VFR_DATA */
 	char unsigned ct[CIPHERTEXT_LENGTH]; /* AUTH_SESSKEY */
 } cur_salt;
+
+// AESNI Modification: function pointer to OpenSSL or AES-NI function
+static aes_fptr_cbc aesFunc;
 
 /* ---- Start OpenCL Modifications ---- */
 
@@ -195,6 +198,8 @@ static void init(struct fmt_main *self)
 /* ---- Start OpenCL Modifications ---- */
 
         size_t gws_limit;
+
+	aesFunc = get_AES_dec192_CBC();
 
 	cracked = NULL;
 
@@ -350,18 +355,20 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	for (index = 0; index < count; index++)
 	{
 		unsigned char key[24];
-		unsigned char pt[48];
+		unsigned char pt[16];
 		unsigned char iv[16];
-		AES_KEY akey;
+		// AES removed (done below)
 		// SHA1 removed (done above)
 
 		memcpy(key, &sha1_hashes[index*5], 20);
 		memset(&key[20], 0, 4);
+
 		memcpy(iv, cur_salt.ct + 16, 16);
 
-		AES_set_decrypt_key(key, 192, &akey);
-		AES_cbc_encrypt(cur_salt.ct + 32, pt + 32, 16, &akey, iv, AES_DECRYPT);
-		if (!memcmp(pt + 40, "\x08\x08\x08\x08\x08\x08\x08\x08", 8))
+		// Using AES function:
+		// in (cipher), out (plain), key, block count, iv
+		aesFunc(cur_salt.ct + 32, pt, key, 1, iv);
+		if (!memcmp(pt + 8, "\x08\x08\x08\x08\x08\x08\x08\x08", 8))
 			any_cracked = cracked[index] = 1;
 	}
 

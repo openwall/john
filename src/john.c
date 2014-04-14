@@ -209,7 +209,6 @@ extern struct fmt_main fmt_opencl_pbkdf2_hmac_sha256;
 extern struct fmt_main fmt_opencl_pbkdf2_hmac_sha512;
 extern struct fmt_main fmt_opencl_rakp;
 extern struct fmt_main fmt_opencl_o5logon;
-extern struct fmt_main fmt_opencl_o5logon_aesni;
 #endif
 #ifdef HAVE_CUDA
 extern struct fmt_main fmt_cuda_cryptmd5;
@@ -448,7 +447,6 @@ static void john_register_all(void)
 	john_register_one(&fmt_opencl_pbkdf2_hmac_sha512);
 	john_register_one(&fmt_opencl_rakp);
 	john_register_one(&fmt_opencl_o5logon);
-	john_register_one(&fmt_opencl_o5logon_aesni);
 #endif
 
 #ifdef HAVE_CUDA

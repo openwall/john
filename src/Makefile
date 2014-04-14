@@ -199,7 +199,7 @@ OCL_OBJS = \
 	opencl_sha2_common.o opencl_autotune.o opencl_blockchain_fmt.o \
 	opencl_pbkdf2_hmac_sha256_fmt.o opencl_rakp_fmt.o \
 	opencl_krb5pa-md5_fmt.o opencl_keyring_fmt.o opencl_pbkdf2_hmac_sha512_fmt.o \
-	opencl_o5logon_fmt.o opencl_aesni_o5logon_fmt.o
+	opencl_o5logon_fmt.o
 # broken:
 # opencl_7z_fmt.o
 
