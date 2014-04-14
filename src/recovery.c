@@ -164,6 +164,7 @@ void rec_save(void)
 	int fake_fork;
 #endif
 	int add_argc = 0, add_enc = 1, add_2nd_enc = 1;
+	int add_mkv_stats = (options.mkv_stats ? 1 : 0);
 	long size;
 	char **opt;
 
@@ -196,9 +197,11 @@ void rec_save(void)
 		else if (!strncmp(*opt, "--intermediate-encoding", 23) ||
 		         !strncmp(*opt, "--target-encoding", 17))
 			add_2nd_enc = 0;
+		else if (!strncmp(*opt, "--mkv-stats", 11))
+			add_mkv_stats = 0;
 	}
 
-	add_argc = add_enc + add_2nd_enc;
+	add_argc = add_enc + add_2nd_enc + add_mkv_stats;
 #ifdef HAVE_MPI
 	add_argc += fake_fork;
 #endif
@@ -235,6 +238,7 @@ void rec_save(void)
 	if (add_enc)
 		fprintf(rec_file, "--input-encoding=%s\n",
 		        cp_id2name(pers_opts.input_enc));
+
 	if (add_2nd_enc && pers_opts.input_enc == UTF_8 &&
 	    pers_opts.target_enc == UTF_8)
 		fprintf(rec_file, "--intermediate-encoding=%s\n",
@@ -242,6 +246,9 @@ void rec_save(void)
 	else if (add_2nd_enc)
 		fprintf(rec_file, "--target-encoding=%s\n",
 		        cp_id2name(pers_opts.target_enc));
+
+	if (add_mkv_stats)
+		fprintf(rec_file, "--mkv-stats=%s\n", options.mkv_stats);
 #ifdef HAVE_MPI
 	if (fake_fork)
 		fprintf(rec_file, "--fork=%d\n", mpi_p);

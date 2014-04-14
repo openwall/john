@@ -93,8 +93,9 @@ static struct opt_entry opt_list[] = {
 		0, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.mask},
 	{"markov", FLG_MKV_SET, FLG_CRACKING_CHK,
 		0, 0, OPT_FMT_STR_ALLOC, &options.mkv_param},
-	{"mkv-stats", FLG_MKV_SET, FLG_CRACKING_CHK,
-		0, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.mkv_stats},
+	{"mkv-stats", FLG_MKV_STATS, FLG_MKV_STATS,
+		FLG_MKV_SET, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC,
+		&options.mkv_stats},
 	{"external", FLG_EXTERNAL_SET, FLG_EXTERNAL_CHK,
 		0, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.external},
 #if HAVE_REXGEN

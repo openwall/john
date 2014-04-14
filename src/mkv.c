@@ -470,6 +470,9 @@ void get_markov_options(struct db_main *db,
 		sprintf(options.mkv_param, "%s:%d-%d:%d-%d", mode,
 		        minlevel, level, minlen, maxlen);
 	}
+
+	if (!options.mkv_stats)
+		options.mkv_stats = *statfile;
 }
 
 void get_markov_start_end(char *start_token, char *end_token,
