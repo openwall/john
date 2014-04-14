@@ -9,8 +9,12 @@
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted. */
 
+/*
+ * Modifications (c) 2014 Harrison Neal, released under the same terms
+ * as the original.
+ */
+
 #include <string.h>
-#include <openssl/aes.h>
 #include <assert.h>
 #include <errno.h>
 
@@ -21,6 +25,7 @@
 #include "formats.h"
 #include "params.h"
 #include "options.h"
+#include "aes/aes.h"
 #ifdef _OPENMP
 static int omp_t = 1;
 #include <omp.h>
@@ -57,6 +62,8 @@ static struct custom_salt {
 	char unsigned ct[CIPHERTEXT_LENGTH]; /* AUTH_SESSKEY */
 } *cur_salt;
 
+static aes_fptr_cbc aesFunc;
+
 static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
@@ -69,6 +76,8 @@ static void init(struct fmt_main *self)
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	cracked = mem_calloc_tiny(sizeof(*cracked) *
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+
+	aesFunc = get_AES_dec192_CBC();
 }
 
 static int ishex(char *q)
@@ -143,28 +152,32 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		memset(cracked, 0, sizeof(*cracked) * count);
 		any_cracked = 0;
 	}
+
 #ifdef _OPENMP
 #pragma omp parallel for
 	for (index = 0; index < count; index++)
 #endif
 	{
 		unsigned char key[24];
-		unsigned char pt[48];
+		unsigned char pt[16];
 		unsigned char iv[16];
-		AES_KEY akey;
+
+		// No longer using AES key here.
+
 		SHA_CTX ctx;
 
 		memset(&key[20], 0, 4);
-		memcpy(iv, cur_salt->ct + 16, 16);
-
 		SHA1_Init(&ctx);
 		SHA1_Update(&ctx, saved_key[index], strlen(saved_key[index]));
 		SHA1_Update(&ctx, cur_salt->salt, 10);
 		SHA1_Final(key, &ctx);
 
-		AES_set_decrypt_key(key, 192, &akey);
-		AES_cbc_encrypt(cur_salt->ct + 32, pt + 32, 16, &akey, iv, AES_DECRYPT);
-		if (!memcmp(pt + 40, "\x08\x08\x08\x08\x08\x08\x08\x08", 8))
+		memcpy(iv, cur_salt->ct + 16, 16);
+
+		// Using AES function:
+		// in (cipher), out (plain), key, block count, iv
+		aesFunc(cur_salt->ct + 32, pt, key, 1, iv);
+		if (!memcmp(pt + 8, "\x08\x08\x08\x08\x08\x08\x08\x08", 8))
 			any_cracked = cracked[index] = 1;
 	}
 	return count;

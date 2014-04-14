@@ -105,7 +105,7 @@ CFLAGS = -c -Wall -Wdeclaration-after-statement -O2 -fomit-frame-pointer -I/usr/
 CFLAGS_MAIN = $(CFLAGS)
 ASFLAGS = -c $(OMPFLAGS) $(JOHN_ASFLAGS)
 LDFLAGS = -s -L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz \
-	$(OMPFLAGS) $(NSS_LDFLAGS) $(GMP_LDFLAGS) $(KRB5_LDFLAGS) $(JOHN_LDFLAGS) $(REXGEN_LDFLAGS)
+	$(OMPFLAGS) $(NSS_LDFLAGS) $(GMP_LDFLAGS) $(KRB5_LDFLAGS) $(JOHN_LDFLAGS) $(REXGEN_LDFLAGS) aes/aes.a
 # -lskey
 LDFLAGS_SOLARIS = -lrt -lnsl -lsocket -lm -lz -lcrypto -lssl
 LDFLAGS_MKV = -s -lm
@@ -199,7 +199,7 @@ OCL_OBJS = \
 	opencl_sha2_common.o opencl_autotune.o opencl_blockchain_fmt.o \
 	opencl_pbkdf2_hmac_sha256_fmt.o opencl_rakp_fmt.o \
 	opencl_krb5pa-md5_fmt.o opencl_keyring_fmt.o opencl_pbkdf2_hmac_sha512_fmt.o \
-	opencl_o5logon_fmt.o opencl_aesni_o5logon_fmt.o
+	opencl_o5logon_fmt.o
 # broken:
 # opencl_7z_fmt.o
 
@@ -414,7 +414,8 @@ linux-x86-64-avx:
 		CFLAGS_MAIN="$(CFLAGS) -DJOHN_AVX -DHAVE_CRYPT -DHAVE_DL" \
 		CFLAGS="$(CFLAGS) -mavx -DHAVE_CRYPT -DHAVE_DL" \
 		ASFLAGS="$(ASFLAGS) -mavx" \
-		LDFLAGS="$(LDFLAGS) -lcrypt -ldl"
+		LDFLAGS="$(LDFLAGS) -lcrypt -ldl" \
+		AESNI_ARCH=64
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
@@ -427,7 +428,8 @@ linux-x86-64-xop:
 		CFLAGS_MAIN="$(CFLAGS) -DJOHN_XOP -DHAVE_CRYPT -DHAVE_DL" \
 		CFLAGS="$(CFLAGS) -mxop -DHAVE_CRYPT -DHAVE_DL" \
 		ASFLAGS="$(ASFLAGS) -mxop" \
-		LDFLAGS="$(LDFLAGS) -lcrypt -ldl"
+		LDFLAGS="$(LDFLAGS) -lcrypt -ldl" \
+		AESNI_ARCH=64
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
@@ -439,7 +441,8 @@ linux-x86-64-gpu:
 		JOHN_OBJS="$(JOHN_OBJS) $(OCL_OBJS) $(CUDA_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
 		CFLAGS="$(CFLAGS) -I$(OCLROOT)/include -I$(CUDAPATH)/include -DHAVE_CRYPT -DHAVE_OPENCL -DHAVE_CUDA -DHAVE_DL -march=native" \
 		ASFLAGS="$(ASFLAGS) -march=native" \
-		LDFLAGS="$(LDFLAGS) -L$(OCLROOT)/lib/x86_64 -L$(OCLROOT)/lib64 -L$(CUDAPATH)/lib64 -lcrypt -lOpenCL -ldl -lcudart -march=native"
+		LDFLAGS="$(LDFLAGS) -L$(OCLROOT)/lib/x86_64 -L$(OCLROOT)/lib64 -L$(CUDAPATH)/lib64 -lcrypt -lOpenCL -ldl -lcudart -march=native" \
+		AESNI_ARCH=64
 	$(MKDIR) ../run/kernels/
 	$(CP_PRESERVE) opencl/*.cl ../run/kernels/
 	$(CP_PRESERVE) opencl_*.h ../run/kernels/
@@ -454,7 +457,8 @@ linux-x86-64-opencl:
 		JOHN_OBJS="$(JOHN_OBJS) $(OCL_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
 		CFLAGS="$(CFLAGS) -I$(OCLROOT)/include -DHAVE_CRYPT -DHAVE_OPENCL -DHAVE_DL -march=native" \
 		ASFLAGS="$(ASFLAGS) -march=native" \
-		LDFLAGS="$(LDFLAGS) -L$(OCLROOT)/lib/x86_64 -L$(OCLROOT)/lib64 -lcrypt -lOpenCL -ldl -march=native"
+		LDFLAGS="$(LDFLAGS) -L$(OCLROOT)/lib/x86_64 -L$(OCLROOT)/lib64 -lcrypt -lOpenCL -ldl -march=native" \
+		AESNI_ARCH=64
 	$(MKDIR) ../run/kernels/
 	$(CP_PRESERVE) opencl/*.cl ../run/kernels/
 	$(CP_PRESERVE) opencl_*.h ../run/kernels/
@@ -469,7 +473,8 @@ linux-x86-64-cuda:
 		JOHN_OBJS="$(JOHN_OBJS) $(CUDA_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
 		CFLAGS="$(CFLAGS) -I$(CUDAPATH)/include -DHAVE_CRYPT -DHAVE_DL -DHAVE_CUDA -march=native" \
 		ASFLAGS="$(ASFLAGS) -march=native" \
-		LDFLAGS="$(LDFLAGS) -L$(CUDAPATH)/lib64 -lcrypt -ldl -lcudart -march=native"
+		LDFLAGS="$(LDFLAGS) -L$(CUDAPATH)/lib64 -lcrypt -ldl -lcudart -march=native" \
+		AESNI_ARCH=64
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
@@ -481,7 +486,8 @@ linux-x86-64-native:
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -DHAVE_DL -march=native" \
 		ASFLAGS="$(ASFLAGS) -march=native" \
-		LDFLAGS="$(LDFLAGS) -lcrypt -ldl -march=native"
+		LDFLAGS="$(LDFLAGS) -lcrypt -ldl -march=native" \
+		AESNI_ARCH=64
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
@@ -493,7 +499,8 @@ linux-X32-native:
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -DHAVE_DL -march=native -mx32" \
 		ASFLAGS="$(ASFLAGS) -march=native -mx32" \
-		LDFLAGS="$(LDFLAGS) -lcrypt -ldl -march=native -mx32"
+		LDFLAGS="$(LDFLAGS) -lcrypt -ldl -march=native -mx32" \
+		AESNI_ARCH=86
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
@@ -505,7 +512,8 @@ linux-X32:
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -DHAVE_DL -mx32" \
 		ASFLAGS="$(ASFLAGS) -mx32" \
-		LDFLAGS="$(LDFLAGS) -lcrypt -ldl -mx32"
+		LDFLAGS="$(LDFLAGS) -lcrypt -ldl -mx32" \
+		AESNI_ARCH=86
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
@@ -516,7 +524,8 @@ linux-x86-64:
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -DHAVE_DL" \
-		LDFLAGS="$(LDFLAGS) -lcrypt -ldl"
+		LDFLAGS="$(LDFLAGS) -lcrypt -ldl" \
+		AESNI_ARCH=64
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
@@ -527,7 +536,8 @@ linux-x86-64i:
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o sse-intrinsics-64.o" \
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -DHAVE_DL -DUSING_ICC_S_FILE" \
-		LDFLAGS="$(LDFLAGS) -lcrypt -ldl"
+		LDFLAGS="$(LDFLAGS) -lcrypt -ldl" \
+		AESNI_ARCH=64
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
@@ -539,7 +549,8 @@ linux-x86-64-clang:
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
 		CFLAGS="-Wall -c -O2 -I/usr/include -msse2 -DHAVE_CRYPT -DHAVE_DL $(HAVE_NSS) $(HAVE_GMP) $(HAVE_KRB5) $(JOHN_CFLAGS)" \
 		LDFLAGS="$(LDFLAGS) -lcrypt -ldl" \
-		CPP="clang" CC="clang" AS="clang" LD="clang" CXX="clang++"
+		CPP="clang" CC="clang" AS="clang" LD="clang" CXX="clang++" \
+		AESNI_ARCH=64
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_PCAP) CC="clang"
 	@echo "All done"
@@ -551,7 +562,8 @@ linux-x86-64-clang-debug:
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
 		CFLAGS="-Wall -Wdeclaration-after-statement -c -g -O1 -faddress-sanitizer -I/usr/include -msse2 -DDEBUG -DHAVE_CRYPT -DHAVE_DL $(HAVE_NSS) $(HAVE_GMP) $(HAVE_KRB5) $(JOHN_CFLAGS)" \
 		LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz -lcrypt -ldl -faddress-sanitizer $(NSS_LDFLAGS) $(GMP_LDFLAGS) $(KRB5_LDFLAGS) $(JOHN_LDFLAGS)" \
-		CPP="clang" CC="clang" AS="clang" LD="clang" CXX="clang++"
+		CPP="clang" CC="clang" AS="clang" LD="clang" CXX="clang++" \
+		AESNI_ARCH=64
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_PCAP) \
 		CFLAGS="-Wall -Wdeclaration-after-statement -c -g -O1 -faddress-sanitizer -I/usr/include -msse2 -DDEBUG -DHAVE_CRYPT -DHAVE_DL $(HAVE_NSS) $(HAVE_GMP) $(HAVE_KRB5) $(JOHN_CFLAGS)" \
@@ -565,7 +577,8 @@ linux-x86-64-newgcc-debug:
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
 		CFLAGS="-Wall -Wdeclaration-after-statement -c -g -O1 -fsanitize=address -I/usr/include -msse2 -DDEBUG -DHAVE_CRYPT -DHAVE_DL $(HAVE_NSS) $(HAVE_GMP) $(HAVE_KRB5) $(JOHN_CFLAGS)" \
-		LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz -lcrypt -ldl -fsanitize=address $(NSS_LDFLAGS) $(GMP_LDFLAGS) $(KRB5_LDFLAGS) $(JOHN_LDFLAGS)"
+		LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz -lcrypt -ldl -fsanitize=address $(NSS_LDFLAGS) $(GMP_LDFLAGS) $(KRB5_LDFLAGS) $(JOHN_LDFLAGS)" \
+		AESNI_ARCH=64
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_PCAP) \
 		CFLAGS="-Wall -Wdeclaration-after-statement -c -g -O1 -fsanitize=address -I/usr/include -msse2 -DDEBUG -DHAVE_CRYPT -DHAVE_DL $(HAVE_NSS) $(HAVE_GMP) $(HAVE_KRB5) $(JOHN_CFLAGS)" \
@@ -580,7 +593,8 @@ linux-x86-64-icc:
 		CFLAGS="-c -fast -O2 -I/usr/include -static-intel -DHAVE_CRYPT -DHAVE_DL $(ICCOMPFLAGS) $(HAVE_NSS) $(HAVE_GMP) $(HAVE_KRB5) $(JOHN_CFLAGS)" \
 		ASFLAGS="-c -xHost $(JOHN_ASFLAGS)" \
 		LDFLAGS="-lm -lssl -lcrypto -ipo -static-intel -lcrypt -ldl -lz $(ICCOMPFLAGS) -s $(NSS_LDFLAGS) $(GMP_LDFLAGS) $(KRB5_LDFLAGS) $(JOHN_LDFLAGS)" \
-		CPP="icc" CC="icc" AS="icc" LD="icc"
+		CPP="icc" CC="icc" AS="icc" LD="icc" \
+		AESNI_ARCH=64
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_PCAP) CPP="icc" CC="icc" AS="icc" LD="icc"
 	@echo "All done"
@@ -592,7 +606,8 @@ linux-x86-64-32-native:
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
 		CFLAGS="$(CFLAGS) -m32 -msse2 -DHAVE_CRYPT -DHAVE_DL -march=native" \
 		ASFLAGS="$(ASFLAGS) -m32 -msse2 -march=native" \
-		LDFLAGS="$(LDFLAGS) -m32 -lcrypt -ldl -march=native"
+		LDFLAGS="$(LDFLAGS) -m32 -lcrypt -ldl -march=native" \
+		AESNI_ARCH=86
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
 	@echo "All done"
@@ -604,7 +619,8 @@ linux-x86-64-32-sse2:
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
 		CFLAGS="$(CFLAGS) -m32 -msse2 -DHAVE_CRYPT -DHAVE_DL" \
 		ASFLAGS="$(ASFLAGS) -m32 -msse2" \
-		LDFLAGS="$(LDFLAGS) -m32 -lcrypt -ldl"
+		LDFLAGS="$(LDFLAGS) -m32 -lcrypt -ldl" \
+		AESNI_ARCH=86
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
 	@echo "All done"
@@ -616,7 +632,8 @@ linux-x86-64-32-sse2asm:
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o" \
 		CFLAGS="$(CFLAGS) -m32 -msse2 -DHAVE_CRYPT -DHAVE_DL -DJOHN_DISABLE_INTRINSICS" \
 		ASFLAGS="$(ASFLAGS) -m32 -msse2" \
-		LDFLAGS="$(LDFLAGS) -m32 -lcrypt -ldl"
+		LDFLAGS="$(LDFLAGS) -m32 -lcrypt -ldl" \
+		AESNI_ARCH=86
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
 	@echo "All done"
@@ -628,7 +645,8 @@ linux-x86-64-32-sse2i:
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics-32.o" \
 		CFLAGS="$(CFLAGS) -m32 -msse2 -DHAVE_CRYPT -DHAVE_DL -DUSING_ICC_S_FILE" \
 		ASFLAGS="$(ASFLAGS) -m32 -msse2" \
-		LDFLAGS="$(LDFLAGS) -m32 -lcrypt -ldl"
+		LDFLAGS="$(LDFLAGS) -m32 -lcrypt -ldl" \
+		AESNI_ARCH=86
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
 	@echo "All done"
@@ -640,7 +658,8 @@ linux-x86-64-32-mmx:
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o x86-mmx.o sha1-mmx.o md4-mmx.o md5-mmx.o" \
 		CFLAGS="$(CFLAGS) -m32 -DHAVE_CRYPT -DHAVE_DL" \
 		ASFLAGS="$(ASFLAGS) -m32" \
-		LDFLAGS="$(LDFLAGS) -m32 -lcrypt -ldl"
+		LDFLAGS="$(LDFLAGS) -m32 -lcrypt -ldl" \
+		AESNI_ARCH=86
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
 	@echo "All done"
@@ -652,7 +671,8 @@ linux-x86-64-32-any:
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o" \
 		CFLAGS="$(CFLAGS) -m32 -DHAVE_CRYPT -DHAVE_DL" \
 		ASFLAGS="$(ASFLAGS) -m32" \
-		LDFLAGS="$(LDFLAGS) -m32 -lcrypt -ldl"
+		LDFLAGS="$(LDFLAGS) -m32 -lcrypt -ldl" \
+		AESNI_ARCH=86
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
 	@echo "All done"
@@ -665,7 +685,8 @@ linux-x86-avx:
 		CFLAGS_MAIN="$(CFLAGS) -m32 -DJOHN_AVX -DHAVE_CRYPT" \
 		CFLAGS="$(CFLAGS) -m32 -mavx -DHAVE_CRYPT" \
 		ASFLAGS="$(ASFLAGS) -m32 -mavx" \
-		LDFLAGS="$(LDFLAGS) -m32 -lcrypt"
+		LDFLAGS="$(LDFLAGS) -m32 -lcrypt" \
+		AESNI_ARCH=86
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
 	@echo "All done"
@@ -678,7 +699,8 @@ linux-x86-xop:
 		CFLAGS_MAIN="$(CFLAGS) -m32 -DJOHN_XOP -DHAVE_CRYPT" \
 		CFLAGS="$(CFLAGS) -m32 -mxop -DHAVE_CRYPT" \
 		ASFLAGS="$(ASFLAGS) -m32 -mxop" \
-		LDFLAGS="$(LDFLAGS) -m32 -lcrypt"
+		LDFLAGS="$(LDFLAGS) -m32 -lcrypt" \
+		AESNI_ARCH=86
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
 	@echo "All done"
@@ -690,7 +712,8 @@ linux-x86-gpu:
 		JOHN_OBJS="$(JOHN_OBJS) $(OCL_OBJS) $(CUDA_OBJS) c3_fmt.o x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
 		CFLAGS="$(CFLAGS) -I$(OCLROOT)/include -I$(CUDAPATH)/include -DHAVE_CRYPT -DHAVE_OPENCL -DHAVE_CUDA -DHAVE_DL -DUSING_ICC_S_FILE -march=native" \
 		ASFLAGS="$(ASFLAGS) -march=native" \
-		LDFLAGS="$(LDFLAGS) -L$(OCLROOT)/lib/x86 -L$(OCLROOT)/lib -L$(CUDAPATH)/lib -lcrypt -lOpenCL -ldl -lcudart -march=native"
+		LDFLAGS="$(LDFLAGS) -L$(OCLROOT)/lib/x86 -L$(OCLROOT)/lib -L$(CUDAPATH)/lib -lcrypt -lOpenCL -ldl -lcudart -march=native" \
+		AESNI_ARCH=86
 	$(MKDIR) ../run/kernels/
 	$(CP_PRESERVE) opencl/*.cl ../run/kernels/
 	$(CP_PRESERVE) opencl_*.h ../run/kernels/
@@ -705,7 +728,8 @@ linux-x86-opencl:
 		JOHN_OBJS="$(JOHN_OBJS) $(OCL_OBJS) c3_fmt.o x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
 		CFLAGS="$(CFLAGS) -I$(OCLROOT)/include -DHAVE_CRYPT -DHAVE_OPENCL -DHAVE_DL -DUSING_ICC_S_FILE -march=native" \
 		ASFLAGS="$(ASFLAGS) -march=native" \
-		LDFLAGS="$(LDFLAGS) -L$(OCLROOT)/lib/x86 -L$(OCLROOT)/lib -lcrypt -lOpenCL -ldl -march=native"
+		LDFLAGS="$(LDFLAGS) -L$(OCLROOT)/lib/x86 -L$(OCLROOT)/lib -lcrypt -lOpenCL -ldl -march=native" \
+		AESNI_ARCH=86
 	$(MKDIR) ../run/kernels/
 	$(CP_PRESERVE) opencl/*.cl ../run/kernels/
 	$(CP_PRESERVE) opencl_*.h ../run/kernels/
@@ -720,7 +744,8 @@ linux-x86-cuda:
 		JOHN_OBJS="$(JOHN_OBJS) $(CUDA_OBJS) c3_fmt.o x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
 		CFLAGS="$(CFLAGS) -I$(CUDAPATH)/include -DHAVE_CRYPT -DHAVE_DL -DHAVE_CUDA -DUSING_ICC_S_FILE -march=native" \
 		ASFLAGS="$(ASFLAGS) -march=native" \
-		LDFLAGS="$(LDFLAGS) -L$(CUDAPATH)/lib -lcrypt -ldl -lcudart -march=native"
+		LDFLAGS="$(LDFLAGS) -L$(CUDAPATH)/lib -lcrypt -ldl -lcudart -march=native" \
+		AESNI_ARCH=86
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
@@ -732,7 +757,8 @@ linux-x86-native:
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -DHAVE_DL -march=native" \
 		ASFLAGS="$(ASFLAGS) -march=native" \
-		LDFLAGS="$(LDFLAGS) -lcrypt -ldl -march=native"
+		LDFLAGS="$(LDFLAGS) -lcrypt -ldl -march=native" \
+		AESNI_ARCH=86
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
@@ -744,7 +770,8 @@ linux-x86-sse2:
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
 		CFLAGS="$(CFLAGS) -msse2 -DHAVE_CRYPT -DHAVE_DL" \
 		ASFLAGS="$(ASFLAGS) -msse2" \
-		LDFLAGS="$(LDFLAGS) -lcrypt -ldl"
+		LDFLAGS="$(LDFLAGS) -lcrypt -ldl" \
+		AESNI_ARCH=86
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
@@ -756,7 +783,8 @@ linux-x86-sse2i:
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics-32.o" \
 		CFLAGS="$(CFLAGS) -msse2 -DHAVE_CRYPT -DHAVE_DL -DUSING_ICC_S_FILE" \
 		ASFLAGS="$(ASFLAGS) -msse2" \
-		LDFLAGS="$(LDFLAGS) -lcrypt -ldl"
+		LDFLAGS="$(LDFLAGS) -lcrypt -ldl" \
+		AESNI_ARCH=86
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
@@ -767,7 +795,8 @@ linux-x86-mmx:
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o x86-mmx.o sha1-mmx.o md4-mmx.o md5-mmx.o" \
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -DHAVE_DL" \
-		LDFLAGS="$(LDFLAGS) -lcrypt -ldl"
+		LDFLAGS="$(LDFLAGS) -lcrypt -ldl" \
+		AESNI_ARCH=86
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
@@ -778,7 +807,8 @@ linux-x86-any:
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o" \
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -DHAVE_DL" \
-		LDFLAGS="$(LDFLAGS) -lcrypt -ldl"
+		LDFLAGS="$(LDFLAGS) -lcrypt -ldl" \
+		AESNI_ARCH=86
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
@@ -790,7 +820,8 @@ linux-x86-clang:
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
 		CFLAGS="-Wall -c -O2 -I/usr/include -msse2 -DHAVE_CRYPT -DHAVE_DL $(HAVE_NSS) $(HAVE_GMP) $(HAVE_KRB5) $(OMPFLAGS) $(JOHN_CFLAGS)" \
 		LDFLAGS="$(LDFLAGS) -lcrypt -ldl" \
-		CPP="clang" CC="clang" AS="clang" LD="clang" CXX="clang++"
+		CPP="clang" CC="clang" AS="clang" LD="clang" CXX="clang++" \
+		AESNI_ARCH=86
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_PCAP) CC="clang"
 	@echo "All done"
@@ -802,7 +833,8 @@ linux-x86-clang-debug:
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
 		CFLAGS="-Wall -Wdeclaration-after-statement -c -g -O1 -faddress-sanitizer -I/usr/include -msse2 -DDEBUG -DHAVE_CRYPT -DHAVE_DL $(HAVE_NSS) $(HAVE_GMP) $(HAVE_KRB5) $(OMPFLAGS) $(JOHN_CFLAGS)" \
 		LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz -lcrypt -ldl -faddress-sanitizer $(NSS_LDFLAGS) $(GMP_LDFLAGS) $(KRB5_LDFLAGS) $(JOHN_LDFLAGS)" \
-		CPP="clang" CC="clang" AS="clang" LD="clang" CXX="clang++"
+		CPP="clang" CC="clang" AS="clang" LD="clang" CXX="clang++" \
+		AESNI_ARCH=86
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_PCAP) \
 		CFLAGS="-Wall -Wdeclaration-after-statement -c -g -O1 -faddress-sanitizer -I/usr/include -msse2 -DDEBUG -DHAVE_CRYPT -DHAVE_DL $(HAVE_NSS) $(HAVE_GMP) $(HAVE_KRB5) $(OMPFLAGS) $(JOHN_CFLAGS)" \
@@ -2030,7 +2062,16 @@ common_opencl_pbkdf2.o: common_opencl_pbkdf2.h common_opencl_pbkdf2.c
 opencl_mscash2_fmt.o: common_opencl_pbkdf2.h common_opencl_pbkdf2.o opencl_mscash2_fmt.c
 	$(CC)  $(CFLAGS) opencl_mscash2_fmt.c -o opencl_mscash2_fmt.o
 
-../run/john: $(JOHN_OBJS)
+SUBDIRS = aes
+
+.PHONY: subdirs $(SUBDIRS)
+
+subdirs: $(SUBDIRS)
+
+$(SUBDIRS):
+	$(MAKE) -C $@ all
+
+../run/john: $(JOHN_OBJS) $(SUBDIRS)
 	$(LD) $(JOHN_OBJS) $(LDFLAGS) -o ../run/john
 
 ../run/unshadow: ../run/john
@@ -2195,7 +2236,7 @@ john.com: john.asm
 # other peoples cygwin builds.
 #	$(LD) $(JOHN_OBJS) -lkernel32 -lcrypto -o ../run/john.exe
 
-../run/john.exe: $(JOHN_OBJS)
+../run/john.exe: $(JOHN_OBJS) $(SUBDIRS)
 	$(LD) $(JOHN_OBJS) $(LDFLAGS) -lkernel32 -o ../run/john.exe
 	$(STRIP) ../run/john.exe
 
@@ -2440,6 +2481,7 @@ clean:
 	$(RM) cuda/*.o cuda/*~ *~
 	$(RM) fmt_registers.h fmt_externs.h john_build_rule.h
 	$(CP) $(NULL) Makefile.dep
+	make -C aes clean
 
 
 # These are mostly for internal use.
