@@ -915,6 +915,14 @@ int salt_compare_dyna(const void *x, const void *y)
 	return 0;
 }
 
+/* Default: Most used salts first */
+int salt_compare_num(int a, int b)
+{
+	if (a > b) return -1;
+	if (a < b) return 1;
+	return 0;
+}
+
 /*
  * This was done as a structure to allow more data to be
  * placed into it, beyond just the simple pointer. The
@@ -967,6 +975,12 @@ static int ldr_salt_cmp_dyna(const void *x, const void *y) {
 	int cmp = salt_compare_dyna(X->p->salt, Y->p->salt);
 	return cmp;
 }
+static int ldr_salt_cmp_num(const void *x, const void *y) {
+	salt_cmp_t *X = (salt_cmp_t *)x;
+	salt_cmp_t *Y = (salt_cmp_t *)y;
+	int cmp = salt_compare_num(X->p->count, Y->p->count);
+	return cmp;
+}
 /*
  * If there are more than 1 salt, AND the format exports a salt_compare
  * function, then we reorder the salt array, into the order the format
@@ -998,19 +1012,10 @@ static void ldr_sort_salts(struct db_main *db)
 #else
 	salt_cmp_t ar[100];  /* array is easier to debug in VC */
 #endif
-	/*
-	 * NOTE, later we will use a new format method (salt_compare) to
-	 * determine when to do this sorting.  For now, we will compute
-	 * when (based on format name), and we have the salt_compare()
-	 * in this file, so that we can utilize this functionality prior
-	 * to getting this method out to every format.
-	 */
-	if (db->salt_count < 2 ||
-		(strncasecmp(db->format->params.label, "wpapsk", 6) &&
-		 strncasecmp(db->format->params.label, "dynamic_", 8)))
+	if (db->salt_count < 2)
 		return;
 
-	log_event("Sorting salts, for \"same salt\" emulation");
+	log_event("Sorting salts, for performance");
 
 	salt_sort_db = db;
 #ifndef DEBUG_SALT_SORT
@@ -1029,11 +1034,20 @@ static void ldr_sort_salts(struct db_main *db)
 		s = s->next;
 	}
 
+	/*
+	 * NOTE, later we will use a new format method (salt_compare) to
+	 * determine when to do this sorting.  For now, we will compute
+	 * when (based on format name), and we have the salt_compare()
+	 * in this file, so that we can utilize this functionality prior
+	 * to getting this method out to every format.
+	 */
 	/* now we sort this array of pointers. */
 	if (!strncasecmp(db->format->params.label, "wpapsk", 6))
 		qsort(ar, db->salt_count, sizeof(ar[0]), ldr_salt_cmp);
-	else /* it is dynamic_x right now */
+	else if (!strncasecmp(db->format->params.label, "dynamic_", 8))
 		qsort(ar, db->salt_count, sizeof(ar[0]), ldr_salt_cmp_dyna);
+	else /* Most used salt first */
+		qsort(ar, db->salt_count, sizeof(ar[0]), ldr_salt_cmp_num);
 
 	/* Reset salt hash table, if we still have one */
 	if (db->salt_hash) {
