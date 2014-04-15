@@ -1,6 +1,6 @@
 cprepair is a tool that reads br0ken files that may either contain text
-accidentally encoded to UTF-8 twice (last time assuming ISO-8859-1), and/or is
-a mix of correct UTF-8 and a legacy codepage - and tries to output fixed data.
+accidentally encoded to UTF-8 twice, and/or is a mix of correct UTF-8 and a
+legacy codepage - and tries to output fixed data.
 
 Usage:
 ./cprepair <INFILE >OUTFILE
