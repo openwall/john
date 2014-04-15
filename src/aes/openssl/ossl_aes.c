@@ -1,4 +1,5 @@
 #include <openssl/aes.h>
+#include <stddef.h>
 
 static inline void aes_key_mgmt(AES_KEY *akey, unsigned char *key, unsigned int key_length, int direction) {
 	if (direction == AES_ENCRYPT) {
