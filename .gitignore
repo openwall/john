@@ -44,6 +44,7 @@ run/unshadow
 run/vncpcap2john
 run/wpapcap2john
 run/zip2john
+src/aes/aes.a
 src/arch.h
 src/fmt_externs.h
 src/fmt_registers.h
