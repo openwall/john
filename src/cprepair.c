@@ -135,7 +135,7 @@ static void usage(char *name, int retcode)
 	printf("Codepage repair (c) magnum 2014\nUsage: %s [options] [file] [...]\n", name);
 	puts("\nOptions:");
 	puts(" -i <cp>   Codepage to use for 8-bit input");
-	puts(" -f <cp>   Alternate codepage when no ASCII chars seen");
+	puts(" -f <cp>   Alternate codepage when no ASCII letters (a-z, A-Z) seen");
 	puts(" -n        Do not guess (leave 8-bit as-is)");
 	puts(" -s        Suppress lines that does not need fixing.");
 	puts(" -l        List supported encodings.");
