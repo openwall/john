@@ -460,7 +460,21 @@ void get_markov_options(struct db_main *db,
 	*mkv_maxlen = maxlen;
 	*mkv_minlevel = minlevel;
 	*mkv_level = level;
+
+	/* Save some stuff we might have got from john.conf so we can
+	   resume even if it changes */
+	if (!mkv_param) {
+		int len = strlen(mode) + 1 + 4 * 4 + 1;
+
+		options.mkv_param = mem_alloc_tiny(len, MEM_ALIGN_NONE);
+		sprintf(options.mkv_param, "%s:%d-%d:%d-%d", mode,
+		        minlevel, level, minlen, maxlen);
+	}
+
+	if (!options.mkv_stats)
+		options.mkv_stats = *statfile;
 }
+
 void get_markov_start_end(char *start_token, char *end_token,
                           unsigned long long mkv_max,
                           unsigned long long *mkv_start, unsigned long long *mkv_end)

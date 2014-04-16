@@ -445,6 +445,8 @@ void do_incremental_crack(struct db_main *db, char *mode)
 			if (!(mode = cfg_get_param(SECTION_OPTIONS, NULL,
 			                           "DefaultIncremental")))
 				mode = "ASCII";
+
+		options.charset = mode;
 	}
 
 	log_event("Proceeding with \"incremental\" mode: %.100s", mode);

@@ -52,6 +52,7 @@ extern int ftruncate(int fd, size_t length);
 #include "status.h"
 #include "recovery.h"
 #include "john.h"
+#include "unicode.h"
 #ifdef HAVE_MPI
 #include "john-mpi.h"
 #include "signals.h"
@@ -162,6 +163,8 @@ void rec_save(void)
 #ifdef HAVE_MPI
 	int fake_fork;
 #endif
+	int add_argc = 0, add_enc = 1, add_2nd_enc = 1;
+	int add_mkv_stats = (options.mkv_stats ? 1 : 0);
 	long size;
 	char **opt;
 
@@ -180,27 +183,72 @@ void rec_save(void)
 
 #ifdef HAVE_MPI
 	fake_fork = (mpi_p > 1);
+#endif
 	opt = rec_argv;
-	while (*++opt)
-		if (!strncmp(*opt, "-fork", 5) || !strncmp(*opt, "--fork", 6))
+	while (*++opt) {
+#ifdef HAVE_MPI
+		if (!strncmp(*opt, "--fork", 6))
 			fake_fork = 0;
+		else
 #endif
+		if (!strncmp(*opt, "--encoding", 10) ||
+			!strncmp(*opt, "--input-encoding", 16))
+			add_enc = 0;
+		else if (!strncmp(*opt, "--intermediate-encoding", 23) ||
+		         !strncmp(*opt, "--target-encoding", 17))
+			add_2nd_enc = 0;
+		else if (!strncmp(*opt, "--mkv-stats", 11))
+			add_mkv_stats = 0;
+	}
 
-	fprintf(rec_file, RECOVERY_V "\n%d\n",
-#ifndef HAVE_MPI
-	    rec_argc + (save_format ? 1 : 0));
-#else
-	    rec_argc + (save_format ? 1 : 0) + (fake_fork ? 1 : 0));
+	add_argc = add_enc + add_2nd_enc + add_mkv_stats;
+#ifdef HAVE_MPI
+	add_argc += fake_fork;
 #endif
+	fprintf(rec_file, RECOVERY_V "\n%d\n",
+		rec_argc + (save_format ? 1 : 0) + add_argc);
 
 	opt = rec_argv;
 	while (*++opt)
-		fprintf(rec_file, "%s\n", *opt);
+	{
+		/* Add defaults as if they were actually on **argv */
+		if (options.wordlist &&
+		    !(strcmp(*opt, "--wordlist") && strcmp(*opt, "--loopback")))
+			fprintf(rec_file, "%s=%s\n", *opt, options.wordlist);
+		else if (!strcmp(*opt, "--rules"))
+			fprintf(rec_file, "%s=%s\n", *opt,
+			        options.activewordlistrules);
+		else if (!strcmp(*opt, "--single"))
+			fprintf(rec_file, "%s=%s\n", *opt,
+			        options.activesinglerules);
+		else if (!strcmp(*opt, "--incremental"))
+			fprintf(rec_file, "%s=%s\n", *opt,
+			        options.charset);
+		else if (!strcmp(*opt, "--markov"))
+			fprintf(rec_file, "%s=%s\n", *opt,
+			        options.mkv_param);
+		else
+			fprintf(rec_file, "%s\n", *opt);
+	}
 
 	if (save_format)
 		fprintf(rec_file, "--format=%s\n",
 		    rec_db->format->params.label);
 
+	if (add_enc)
+		fprintf(rec_file, "--input-encoding=%s\n",
+		        cp_id2name(pers_opts.input_enc));
+
+	if (add_2nd_enc && pers_opts.input_enc == UTF_8 &&
+	    pers_opts.target_enc == UTF_8)
+		fprintf(rec_file, "--intermediate-encoding=%s\n",
+		        cp_id2name(pers_opts.intermediate_enc));
+	else if (add_2nd_enc)
+		fprintf(rec_file, "--target-encoding=%s\n",
+		        cp_id2name(pers_opts.target_enc));
+
+	if (add_mkv_stats)
+		fprintf(rec_file, "--mkv-stats=%s\n", options.mkv_stats);
 #ifdef HAVE_MPI
 	if (fake_fork)
 		fprintf(rec_file, "--fork=%d\n", mpi_p);

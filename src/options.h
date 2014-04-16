@@ -156,9 +156,11 @@
 #define FLG_VERBOSITY			0x0800000000000000ULL
 #define FLG_PLATFORM			0x1000000000000000ULL
 #define FLG_DEVICE			0x2000000000000000ULL
-
 /* Tunable cost ranges requested */
 #define FLG_COSTS			0x4000000000000000ULL
+/* Markov stats */
+#define FLG_MKV_STATS			0x8000000000000000ULL
+/* Gee we're out of flags again */
 
 /*
  * Structure with option flags and all the parameters.
