@@ -1,14 +1,17 @@
 GCCV44 := $(shell expr `gcc -dumpversion` \>= 4.4)
 YASM := $(shell which yasm)
+UNAME := $(shell gcc -dumpmachine)
 
 AESIN = aes.o openssl/ossl_aes.o
 SUBDIRS = openssl
 ifeq "$(GCCV44)" "1"
 	ifneq "$(YASM)" ""
-		ifdef AESNI_ARCH
-			AESIN += aesni/*.o
-			SUBDIRS += aesni
-			AESNI_DEC = -DAESNI_IN_USE=1
+		ifneq (, $(findstring linux, $(UNAME)))
+			ifdef AESNI_ARCH
+				AESIN += aesni/*.o
+				SUBDIRS += aesni
+				AESNI_DEC = -DAESNI_IN_USE=1
+			endif
 		endif
 	endif
 endif

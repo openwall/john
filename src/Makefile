@@ -2238,7 +2238,7 @@ john.com: john.asm
 #	$(LD) $(JOHN_OBJS) -lkernel32 -lcrypto -o ../run/john.exe
 
 ../run/john.exe: $(JOHN_OBJS) $(SUBDIRS)
-	$(LD) $(JOHN_OBJS) $(LDFLAGS) -lkernel32 -o ../run/john.exe
+	$(LD) $(JOHN_OBJS) $(LDFLAGS) aes/aes.a -lkernel32 -o ../run/john.exe
 	$(STRIP) ../run/john.exe
 
 # this LD line removed from the ../run/john-mingw.exe rule (MinGW32 builds)
@@ -2247,7 +2247,7 @@ john.com: john.asm
 #	$(LD) $(JOHN_OBJS) $(LDFLAGS) -lkernel32 -o ../run/john-mingw.exe
 
 ../run/john-mingw.exe: $(JOHN_OBJS)
-	$(LD) $(JOHN_OBJS) $(LDFLAGS) -lkernel32 -o ../run/john-mingw.exe
+	$(LD) $(JOHN_OBJS) $(LDFLAGS) aes/aes.a -lkernel32 -o ../run/john-mingw.exe
 	$(STRIP) ../run/john-mingw.exe
 	cp ../run/john-mingw.exe ../run/john.exe
 
