@@ -178,8 +178,7 @@ struct fmt_main fmt_EPI =
 		1,
 		FMT_CASE | FMT_8_BIT, // flags XXX, these are just guesses
 #if FMT_MAIN_VERSION > 11
-		{
-		},
+		{ NULL },
 #endif
 		global_tests
 	},
@@ -193,8 +192,7 @@ struct fmt_main fmt_EPI =
 		binary,
 		salt,
 #if FMT_MAIN_VERSION > 11
-		{
-		},
+		{ NULL },
 #endif
 		fmt_default_source,
 		{

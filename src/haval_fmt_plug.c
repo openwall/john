@@ -225,8 +225,7 @@ struct fmt_main fmt_haval_256_3 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 #if FMT_MAIN_VERSION > 11
-		{
-		},
+		{ NULL },
 #endif
 		haval_256_3_tests
 	}, {
@@ -239,8 +238,7 @@ struct fmt_main fmt_haval_256_3 = {
 		get_binary_256,
 		fmt_default_salt,
 #if FMT_MAIN_VERSION > 11
-		{
-		},
+		{ NULL },
 #endif
 		fmt_default_source,
 		{
@@ -290,8 +288,7 @@ struct fmt_main fmt_haval_128_4 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 #if FMT_MAIN_VERSION > 11
-		{
-		},
+		{ NULL },
 #endif
 		haval_128_4_tests
 	}, {
@@ -304,8 +301,7 @@ struct fmt_main fmt_haval_128_4 = {
 		get_binary_128,
 		fmt_default_salt,
 #if FMT_MAIN_VERSION > 11
-		{
-		},
+		{ NULL },
 #endif
 		fmt_default_source,
 		{

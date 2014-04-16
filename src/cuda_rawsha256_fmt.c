@@ -238,8 +238,7 @@ struct fmt_main FMT_MAIN = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
 #if FMT_MAIN_VERSION > 11
-		{
-		},
+		{ NULL },
 #endif
 		TESTS
 	}, {
@@ -252,8 +251,7 @@ struct fmt_main FMT_MAIN = {
 		binary,
 		fmt_default_salt,
 #if FMT_MAIN_VERSION > 11
-		{
-		},
+		{ NULL },
 #endif
 		fmt_default_source,
 		{

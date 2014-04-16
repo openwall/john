@@ -227,8 +227,7 @@ struct fmt_main fmt_skein_256 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 #if FMT_MAIN_VERSION > 11
-		{
-		},
+		{ NULL },
 #endif
 		skein_256_tests
 	}, {
@@ -241,8 +240,7 @@ struct fmt_main fmt_skein_256 = {
 		get_binary_256,
 		fmt_default_salt,
 #if FMT_MAIN_VERSION > 11
-		{
-		},
+		{ NULL },
 #endif
 		fmt_default_source,
 		{
@@ -292,8 +290,7 @@ struct fmt_main fmt_skein_512 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 #if FMT_MAIN_VERSION > 11
-		{
-		},
+		{ NULL },
 #endif
 		skein_512_tests
 	}, {
@@ -306,8 +303,7 @@ struct fmt_main fmt_skein_512 = {
 		get_binary_512,
 		fmt_default_salt,
 #if FMT_MAIN_VERSION > 11
-		{
-		},
+		{ NULL },
 #endif
 		fmt_default_source,
 		{

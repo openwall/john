@@ -596,8 +596,7 @@ struct fmt_main fmt_krb5pa = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP,
 #if FMT_MAIN_VERSION > 11
-		{
-		},
+		{ NULL },
 #endif
 		tests
 	}, {
@@ -610,8 +609,7 @@ struct fmt_main fmt_krb5pa = {
 		get_binary,
 		get_salt,
 #if FMT_MAIN_VERSION > 11
-		{
-		},
+		{ NULL },
 #endif
 		fmt_default_source,
 		{

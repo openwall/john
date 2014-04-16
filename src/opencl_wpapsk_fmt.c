@@ -508,8 +508,7 @@ struct fmt_main fmt_opencl_wpapsk = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE,
 #if FMT_MAIN_VERSION > 11
-		{
-		},
+		{ NULL },
 #endif
 		tests
 	}, {
@@ -522,8 +521,7 @@ struct fmt_main fmt_opencl_wpapsk = {
 		binary,
 		salt,
 #if FMT_MAIN_VERSION > 11
-		{
-		},
+		{ NULL },
 #endif
 		fmt_default_source,
 		{

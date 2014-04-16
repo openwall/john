@@ -252,8 +252,7 @@ struct fmt_main fmt_KRB5_kinit = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 #if FMT_MAIN_VERSION > 11
-		{
-		},
+		{ NULL },
 #endif
 		kinit_tests
 	}, {
@@ -266,8 +265,7 @@ struct fmt_main fmt_KRB5_kinit = {
 		get_binary,
 		fmt_default_salt,
 #if FMT_MAIN_VERSION > 11
-		{
-		},
+		{ NULL },
 #endif
 		fmt_default_source,
 		{

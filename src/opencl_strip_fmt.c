@@ -380,8 +380,7 @@ struct fmt_main fmt_opencl_strip = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_NOT_EXACT,
 #if FMT_MAIN_VERSION > 11
-		{
-		},
+		{ NULL },
 #endif
 		strip_tests
 	}, {
@@ -394,8 +393,7 @@ struct fmt_main fmt_opencl_strip = {
 		fmt_default_binary,
 		get_salt,
 #if FMT_MAIN_VERSION > 11
-		{
-		},
+		{ NULL },
 #endif
 		fmt_default_source,
 		{

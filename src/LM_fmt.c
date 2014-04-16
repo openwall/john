@@ -213,8 +213,7 @@ struct fmt_main fmt_LM = {
 #endif
 		FMT_8_BIT | FMT_BS | FMT_SPLIT_UNIFIES_CASE,
 #if FMT_MAIN_VERSION > 11
-		{
-		},
+		{ NULL },
 #endif
 		tests
 	}, {
@@ -227,8 +226,7 @@ struct fmt_main fmt_LM = {
 		binary,
 		fmt_default_salt,
 #if FMT_MAIN_VERSION > 11
-		{
-		},
+		{ NULL },
 #endif
 		source,
 		{

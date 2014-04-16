@@ -340,8 +340,7 @@ struct fmt_main fmt_opencl_rawMD4 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
 #if FMT_MAIN_VERSION > 11
-		{
-		},
+		{ NULL },
 #endif
 		tests
 	}, {
@@ -354,8 +353,7 @@ struct fmt_main fmt_opencl_rawMD4 = {
 		get_binary,
 		fmt_default_salt,
 #if FMT_MAIN_VERSION > 11
-		{
-		},
+		{ NULL },
 #endif
 		fmt_default_source,
 		{

@@ -784,8 +784,7 @@ struct fmt_main fmt_opencl_dmg = {
 #endif
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 #if FMT_MAIN_VERSION > 11
-		{
-		},
+		{ NULL },
 #endif
 		dmg_tests
 	}, {
@@ -798,8 +797,7 @@ struct fmt_main fmt_opencl_dmg = {
 		fmt_default_binary,
 		get_salt,
 #if FMT_MAIN_VERSION > 11
-		{
-		},
+		{ NULL },
 #endif
 		fmt_default_source,
 		{

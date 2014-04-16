@@ -273,8 +273,7 @@ struct fmt_main fmt_cuda_rawsha512 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
 #if FMT_MAIN_VERSION > 11
-		{
-		},
+		{ NULL },
 #endif
 		tests
 	}, {
@@ -287,8 +286,7 @@ struct fmt_main fmt_cuda_rawsha512 = {
 		get_binary,
 		fmt_default_salt,
 #if FMT_MAIN_VERSION > 11
-		{
-		},
+		{ NULL },
 #endif
 		fmt_default_source,
 		{

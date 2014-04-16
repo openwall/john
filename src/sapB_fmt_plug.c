@@ -684,8 +684,7 @@ struct fmt_main fmt_sapB = {
 #endif
 		FMT_8_BIT,
 #if FMT_MAIN_VERSION > 11
-		{
-		},
+		{ NULL },
 #endif
 		tests
 	}, {
@@ -698,8 +697,7 @@ struct fmt_main fmt_sapB = {
 		binary,
 		get_salt,
 #if FMT_MAIN_VERSION > 11
-		{
-		},
+		{ NULL },
 #endif
 		fmt_default_source,
 		{

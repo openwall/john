@@ -277,8 +277,7 @@ struct fmt_main fmt_dragonfly3_32 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 #if FMT_MAIN_VERSION > 11
-		{
-		},
+		{ NULL },
 #endif
 		tests_32
 	}, {
@@ -291,8 +290,7 @@ struct fmt_main fmt_dragonfly3_32 = {
 		get_binary,
 		get_salt_32,
 #if FMT_MAIN_VERSION > 11
-		{
-		},
+		{ NULL },
 #endif
 		fmt_default_source,
 		{
@@ -341,8 +339,7 @@ struct fmt_main fmt_dragonfly3_64 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 #if FMT_MAIN_VERSION > 11
-		{
-		},
+		{ NULL },
 #endif
 		tests_64
 	}, {
@@ -355,8 +352,7 @@ struct fmt_main fmt_dragonfly3_64 = {
 		get_binary,
 		get_salt_64,
 #if FMT_MAIN_VERSION > 11
-		{
-		},
+		{ NULL },
 #endif
 		fmt_default_source,
 		{

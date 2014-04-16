@@ -169,8 +169,7 @@ struct fmt_main fmt_opencl_DES = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_BS,
 #if FMT_MAIN_VERSION > 11
-		{
-		},
+		{ NULL },
 #endif
 		tests
 	}, {
@@ -186,8 +185,7 @@ struct fmt_main fmt_opencl_DES = {
 
 		salt,
 #if FMT_MAIN_VERSION > 11
-		{
-		},
+		{ NULL },
 #endif
 		fmt_default_source,
 		{

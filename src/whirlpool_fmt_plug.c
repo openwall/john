@@ -234,7 +234,7 @@ struct fmt_main fmt_whirlpool_0 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 #if FMT_MAIN_VERSION > 11
-		{
+		{ NULL
 		},
 #endif
 		whirlpool_0_tests
@@ -248,7 +248,7 @@ struct fmt_main fmt_whirlpool_0 = {
 		get_binary,
 		fmt_default_salt,
 #if FMT_MAIN_VERSION > 11
-		{
+		{ NULL
 		},
 #endif
 		fmt_default_source,
@@ -299,7 +299,7 @@ struct fmt_main fmt_whirlpool_1 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 #if FMT_MAIN_VERSION > 11
-		{
+		{ NULL
 		},
 #endif
 		whirlpool_1_tests
@@ -313,7 +313,7 @@ struct fmt_main fmt_whirlpool_1 = {
 		get_binary,
 		fmt_default_salt,
 #if FMT_MAIN_VERSION > 11
-		{
+		{ NULL
 		},
 #endif
 		fmt_default_source,
@@ -363,8 +363,7 @@ struct fmt_main fmt_whirlpool = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 #if FMT_MAIN_VERSION > 11
-		{
-		},
+		{ NULL },
 #endif
 		whirlpool_tests
 	}, {
@@ -377,8 +376,7 @@ struct fmt_main fmt_whirlpool = {
 		get_binary,
 		fmt_default_salt,
 #if FMT_MAIN_VERSION > 11
-		{
-		},
+		{ NULL },
 #endif
 		fmt_default_source,
 		{
