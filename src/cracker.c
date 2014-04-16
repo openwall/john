@@ -205,6 +205,11 @@ static void crk_remove_salt(struct db_salt *salt)
 				crk_db->salt_hash[hash] = NULL;
 		}
 	}
+#ifdef DEBUG
+	if (options.verbosity >= 2 && crk_params.binary_size &&
+	    crk_db->salt_count < crk_db->password_count)
+		log_event("- got rid of a salt, %d left", crk_db->salt_count);
+#endif
 }
 
 /*
