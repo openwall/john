@@ -89,6 +89,11 @@
 #define CP_ISO_LO	12
 #define CP_ISO_HI	15
 
+/* Rexgen library header might have defined this (empty) */
+#ifdef UTF32
+#undef UTF32
+#endif
+
 typedef ARCH_WORD_32 UTF32;	/* at least 32 bits */
 typedef unsigned short UTF16;	/* at least 16 bits */
 typedef unsigned char UTF8;	/* typically 8 bits */
