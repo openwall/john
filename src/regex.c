@@ -9,7 +9,9 @@
  * Author if this file is Jan Starke <jan.starke@outofbed.org>
  */
 
-#ifdef HAVE_REXGEN
+#include "regex.h"
+
+#if HAVE_REXGEN
 
 #include "loader.h"
 #include "logger.h"
@@ -24,12 +26,8 @@
 #define UNICODE
 #define _UNICODE
 
-#include <librexgen/api/c/librexgen.h>
-#include <librexgen/version.h>
-
 static void fix_state(void) {
 }
-
 
 static void rexgen_setlocale() {
 	const char* defaultLocale = "en_US.UTF8";
@@ -76,10 +74,15 @@ int do_regex_crack_as_rules(const char *regex, const char *base_word) {
 	}
 	strcpy(BaseWord, base_word);
 	iter = c_regex_iterator_cb(regex, ignore_case, encoding, randomize, callback);
+	if (!iter) {
+		fprintf(stderr, "Error, invalid regex expression.  John exiting now\n");
+		exit(1);
+	}
 	while (c_iterator_next(iter)) {
 		c_iterator_value(iter, buffer);
 		c_simplestring_terminate(buffer);
 		word = c_simplestring_bufferaddress(buffer);
+		c_simplestring_clear(buffer);
 		if (ext_filter((char*)word)) {
 			if (crk_process_key((char*)word)) {
 				c_simplestring_delete(buffer);
@@ -87,7 +90,6 @@ int do_regex_crack_as_rules(const char *regex, const char *base_word) {
 				return 1;
 			}
 		}
-		c_simplestring_clear(buffer);
 	}
 	c_simplestring_delete(buffer);
 	c_iterator_delete(iter);
@@ -105,14 +107,18 @@ void do_regex_crack(struct db_main *db, const char *regex) {
 	rexgen_setlocale();
 	crk_init(db, fix_state, NULL);
 	iter = c_regex_iterator_cb(regex, ignore_case, encoding, randomize, callback);
+	if (!iter) {
+		fprintf(stderr, "Error, invalid regex expression.  John exiting now\n");
+		exit(1);
+	}
 	while (c_iterator_next(iter)) {
 		c_iterator_value(iter, buffer);
 		c_simplestring_terminate(buffer);
 		word = c_simplestring_bufferaddress(buffer);
+		c_simplestring_clear(buffer);
 		if (ext_filter((char*)word)) {
 			crk_process_key((char*)word);
 		}
-		c_simplestring_clear(buffer);
 	}
 	c_simplestring_delete(buffer);
 	c_iterator_delete(iter);
@@ -120,5 +126,7 @@ void do_regex_crack(struct db_main *db, const char *regex) {
 }
 
 #else
+#ifndef _MSC_VER
 #warning Notice: rexgen cracking mode disabled, uncomment HAVE_REXGEN in Makefile if you have the rexgen library installed.
+#endif
 #endif /* HAVE_REXGEN */

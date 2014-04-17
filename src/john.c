@@ -79,9 +79,7 @@ static int john_omp_threads_new;
 #ifdef HAVE_MPI
 #include "john-mpi.h"
 #endif
-#if HAVE_REXGEN
 #include "regex.h"
-#endif /* HAVE_REXGEN */
 
 #include <openssl/opensslv.h>
 #include "unicode.h"

@@ -33,6 +33,7 @@
 #include "dynamic.h"
 #include "unicode.h"
 #include "fake_salts.h"
+#include "regex.h"
 #ifdef HAVE_MPI
 #include "john-mpi.h"
 #ifdef _OPENMP
