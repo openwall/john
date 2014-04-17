@@ -16,8 +16,12 @@
 #define _JOHN_REGEX_H
 
 #if HAVE_REXGEN
+  #ifndef UNICODE
   #define UNICODE
+  #endif
+  #ifndef _UNICODE
   #define _UNICODE
+  #endif
 	#if defined(_WIN32)
 		/* librexgen fux this up for Win32 builds. We have coded JtR to use sprintf_s, and not _snprintf. They ARE different */
 		#undef  snprintf
