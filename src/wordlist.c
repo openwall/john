@@ -361,10 +361,10 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules, char *regex)
 	          loopBack ? "loopback" : "wordlist");
 	if (regex) {
 		if (!strstr(regex, "\\0")) {
-			// if there is NO 'baseword' contained within the rexgen, then we do not
-			// run the regex do_regex_crack_as_rules() function, since it does nothing
-			// with our word.
-			regex = NULL;
+			fprintf(stderr,
+			        "--regex need to contain \"\\0\" in combination"
+			        " with wordist\n");
+			exit(0);
 		} else {
 			log_event("Running rexgen 'rules' in our wordlist. The rexgen string is: %s", regex);
 		}
@@ -402,7 +402,9 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules, char *regex)
 		log_event("- %s file: %.100s",
 		          loopBack ? "Loopback pot" : "Wordlist",
 		          path_expand(name));
-		log_event("- Rules: %.100s", options.activewordlistrules);
+		if (options.activewordlistrules)
+			log_event("- Rules: %.100s",
+			          options.activewordlistrules);
 
 		/* this will both get us the file length, and tell us
 		   of 'invalid' files (i.e. too big in Win32 or other
