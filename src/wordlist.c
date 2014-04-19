@@ -359,16 +359,18 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules, char *regex)
 
 	log_event("Proceeding with %s mode",
 	          loopBack ? "loopback" : "wordlist");
+
+	if (options.activewordlistrules)
+		log_event("- Rules: %.100s", options.activewordlistrules);
+
 	if (regex) {
 		if (!strstr(regex, "\\0")) {
 			fprintf(stderr,
 			        "--regex need to contain \"\\0\" in combination"
 			        " with wordist\n");
 			exit(0);
-		} else {
-			log_event("- Rexgen applied to words (after rules): %s",
-			          regex);
-		}
+		} else
+			log_event("- Rexgen (after rules): %s", regex);
 	}
 
 	length = db->format->params.plaintext_length;
@@ -403,9 +405,6 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules, char *regex)
 		log_event("- %s file: %.100s",
 		          loopBack ? "Loopback pot" : "Wordlist",
 		          path_expand(name));
-		if (options.activewordlistrules)
-			log_event("- Rules: %.100s",
-			          options.activewordlistrules);
 
 		/* this will both get us the file length, and tell us
 		   of 'invalid' files (i.e. too big in Win32 or other
