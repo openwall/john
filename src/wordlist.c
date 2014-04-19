@@ -366,7 +366,8 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules, char *regex)
 			        " with wordist\n");
 			exit(0);
 		} else {
-			log_event("Running rexgen 'rules' in our wordlist. The rexgen string is: %s", regex);
+			log_event("- Rexgen applied to words (after rules): %s",
+			          regex);
 		}
 	}
 
