@@ -24,6 +24,7 @@
 #include <omp.h>
 #define OMP_SCALE               1
 #endif
+#include "memdbg.h"
 
 #define FORMAT_LABEL		"KeePass"
 #define FORMAT_NAME		""

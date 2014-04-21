@@ -23,10 +23,6 @@
 #include <stdio.h>
 #if HAVE_UNISTD_H
 #include <unistd.h>
-#else
-#define CRTDBG_MAP_ALLOC
-#include <stdlib.h>
-#include <crtdbg.h>
 #endif
 #include <errno.h>
 #include <string.h>
@@ -109,6 +105,7 @@ static int john_omp_threads_new;
 #define _MP_VERSION ""
 #endif
 #endif
+#include "memdbg.h"
 
 #if CPU_DETECT
 extern int CPU_detect(void);
@@ -1617,16 +1614,6 @@ int main(int argc, char **argv)
 	char *name;
 	unsigned int time;
 
-#ifdef _MSC_VER
-   // Send all reports to STDOUT
-   _CrtSetReportMode( _CRT_WARN, _CRTDBG_MODE_FILE );
-   _CrtSetReportFile( _CRT_WARN, _CRTDBG_FILE_STDOUT );
-   _CrtSetReportMode( _CRT_ERROR, _CRTDBG_MODE_FILE );
-   _CrtSetReportFile( _CRT_ERROR, _CRTDBG_FILE_STDOUT );
-   _CrtSetReportMode( _CRT_ASSERT, _CRTDBG_MODE_FILE );
-   _CrtSetReportFile( _CRT_ASSERT, _CRTDBG_FILE_STDOUT );
-#endif
-
 #ifdef __DJGPP__
 	if (--argc <= 0) return 1;
 	if ((name = strrchr(argv[0], '/')))
@@ -1791,9 +1778,7 @@ int main(int argc, char **argv)
 	john_run();
 	john_done();
 
-#ifdef _MSC_VER
-	_CrtDumpMemoryLeaks();
-#endif
+	MEMDBG_PROGRAM_EXIT_CHECKS(stderr);
 
 	return exit_status;
 }

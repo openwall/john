@@ -27,6 +27,7 @@
 #include "options.h"
 #include "john.h"
 #include "mkv.h"
+#include "memdbg.h"
 
 #if defined (__MINGW32__) || defined (_MSC_VER)
 // Later versions of MSVC can handle %lld but some older

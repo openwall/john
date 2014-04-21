@@ -25,6 +25,7 @@
 
 #include "unrar.h"
 #include "unrarcmd.h"
+#include "memdbg.h"
 
 void rar_cmd_array_init(rar_cmd_array_t *cmd_a)
 {

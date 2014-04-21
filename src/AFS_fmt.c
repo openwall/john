@@ -16,6 +16,7 @@
 #include "DES_std.h"
 #include "common.h"
 #include "formats.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL			"AFS"
 #define FORMAT_NAME			"Kerberos AFS"

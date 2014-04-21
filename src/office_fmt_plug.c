@@ -23,6 +23,7 @@
 #include "sha.h"
 #include "sha2.h"
 #include "johnswap.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL		"Office"
 #define FORMAT_NAME		"2007/2010 (SHA-1) / 2013 (SHA-512), with AES"

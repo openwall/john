@@ -35,6 +35,8 @@
 
 #include "sph_md2.h"
 
+#include "memdbg.h"
+
 /*
  * The MD2 magic table.
  */

@@ -25,6 +25,7 @@ static int omp_t = 1;
 #include <omp.h>
 #define OMP_SCALE               256
 #endif
+#include "memdbg.h"
 
 #define FORMAT_LABEL		"Whirpool"
 #define FORMAT_NAME		""

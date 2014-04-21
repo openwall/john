@@ -28,6 +28,7 @@
 
 #include "sha.h"
 #include "base64.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL			"Salted-SHA1"
 #define FORMAT_NAME			""

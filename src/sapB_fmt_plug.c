@@ -47,6 +47,8 @@ static unsigned int omp_t = 1;
 #endif
 #endif
 
+#include "memdbg.h"
+
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		0
 

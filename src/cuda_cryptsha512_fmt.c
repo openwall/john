@@ -4,12 +4,14 @@
 * Redistribution and use in source and binary forms, with or without modification, are permitted.
 */
 #include <string.h>
+
 #include "arch.h"
 #include "formats.h"
 #include "common.h"
 #include "misc.h"
 #include "cuda_cryptsha512.h"
 #include "cuda_common.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL		"sha512crypt-cuda"
 #define FORMAT_NAME		"crypt(3) $6$"

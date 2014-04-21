@@ -37,6 +37,7 @@
 #include "gladman_fileenc.h"
 #include "filevault.h"
 #include "misc.h"
+#include "memdbg.h"
 
 #define ntohll(x) (((uint64_t) ntohl((x) >> 32)) | (((uint64_t) ntohl((uint32_t) ((x) & 0xFFFFFFFF))) << 32))
 

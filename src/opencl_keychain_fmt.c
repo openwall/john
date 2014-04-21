@@ -18,6 +18,7 @@
 #include "misc.h"
 #include "options.h"
 #include "common-opencl.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL		"keychain-opencl"
 #define FORMAT_NAME		"Mac OS X Keychain"

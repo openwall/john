@@ -21,6 +21,7 @@ static int omp_t = 1;
 #include <omp.h>
 #define OMP_SCALE               1 // XXX
 #endif
+#include "memdbg.h"
 
 #define FORMAT_TAG		"$ripemd$"
 #define TAG_LENGTH		8

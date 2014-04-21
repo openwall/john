@@ -18,6 +18,21 @@
 #include "md5.h"
 #include "common.h"
 #include "formats.h"
+#include "sse-intrinsics.h"
+
+#if defined(_OPENMP) && (defined (MD5_SSE_PARA) || !defined(MMX_COEF))
+#include <omp.h>
+static unsigned int omp_t = 1;
+#ifdef MD5_SSE_PARA
+#define OMP_SCALE			256
+#else
+#define OMP_SCALE			256
+#endif
+#else
+#define omp_t				1
+#endif
+
+#include "memdbg.h"
 
 #define FORMAT_LABEL			"ipb2"
 #define FORMAT_NAME			"Invision Power Board 2.x"
@@ -27,7 +42,6 @@
 #elif defined(MMX_COEF)
 #define NBKEYS				MMX_COEF
 #endif
-#include "sse-intrinsics.h"
 #define ALGORITHM_NAME			"MD5 " MD5_ALGORITHM_NAME
 
 #define BENCHMARK_COMMENT		""
@@ -52,18 +66,6 @@
 #else
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
-#endif
-
-#if defined(_OPENMP) && (defined (MD5_SSE_PARA) || !defined(MMX_COEF))
-#include <omp.h>
-static unsigned int omp_t = 1;
-#ifdef MD5_SSE_PARA
-#define OMP_SCALE			256
-#else
-#define OMP_SCALE			256
-#endif
-#else
-#define omp_t				1
 #endif
 
 static struct fmt_tests tests[] = {

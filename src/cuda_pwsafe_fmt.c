@@ -11,6 +11,7 @@
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
+
 #include "arch.h"
 #include "misc.h"
 #include "common.h"
@@ -21,6 +22,8 @@
 #include "memory.h"
 #include "cuda_pwsafe.h"
 #include "cuda_common.h"
+#include "memdbg.h"
+
 #define FORMAT_LABEL            "pwsafe-cuda"
 #define FORMAT_NAME             "Password Safe"
 #define ALGORITHM_NAME          "SHA256 CUDA"

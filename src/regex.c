@@ -22,6 +22,7 @@
 #include "john.h"
 #include "external.h"
 #include <locale.h>
+#include "memdbg.h"
 
 #define UNICODE
 #define _UNICODE

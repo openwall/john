@@ -44,6 +44,7 @@
 #include "config.h"
 #include "md5.h"
 #include "dynamic.h"
+#include "memdbg.h"
 
 void dynamic_DISPLAY_ALL_FORMATS()
 {

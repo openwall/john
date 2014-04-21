@@ -28,6 +28,7 @@
 #include "params.h"
 #include "common.h"
 #include "johnswap.h"
+#include "memdbg.h"
 
 static const unsigned char padding[128] = { 0x80, 0 /* 0,0,0,0.... */ };
 

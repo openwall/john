@@ -15,6 +15,7 @@
 
 #include "stdint.h"
 #include "misc.h"
+#include "memdbg.h"
 
 #define KWMAGIC 			"KWALLET\n\r\0\r\n"
 #define KWMAGIC_LEN 			12
@@ -158,5 +159,6 @@ int kwallet2john(int argc, char **argv)
 	for (i = 1; i < argc; i++)
 		process_file(argv[i]);
 
+	MEMDBG_PROGRAM_EXIT_CHECKS(stderr);
 	return 0;
 }

@@ -15,6 +15,11 @@
 #include "DES_std.h"
 #include "common.h"
 #include "formats.h"
+#if DES_BS
+#include "DES_bs.h"
+#endif
+
+#include "memdbg.h"
 
 #define FORMAT_LABEL			"tripcode"
 #define FORMAT_NAME			""
@@ -36,8 +41,6 @@ static struct fmt_tests tests[] = {
 };
 
 #if DES_BS
-
-#include "DES_bs.h"
 
 #define ALGORITHM_NAME			DES_BS_ALGORITHM_NAME
 

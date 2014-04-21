@@ -17,6 +17,7 @@
 #include <stdio.h>
 
 #include "misc.h"
+#include "memdbg.h"
 
 static void print_help()
 {

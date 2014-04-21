@@ -15,11 +15,13 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include "blowfish.h"
 #include "bf_tab.h"		/* P-box P-array, S-box */
 #include "memory.h"
 #include "johnswap.h"
+#include "memdbg.h"
 
 /* #define S(x,i) (bf_S[i][x.w.byte##i]) */
 #define S0(x) (bf_S[0][x.w.byte0])
@@ -28,8 +30,6 @@
 #define S3(x) (bf_S[3][x.w.byte3])
 #define bf_F(x) (((S0(x) + S1(x)) ^ S2(x)) + S3(x))
 #define ROUND(a,b,n) (a.word ^= bf_F(b) ^ bf_P[n])
-
-#include <time.h>
 
 static void blowfish_encipher(UWORD_32bits *bf_P, UWORD_32bits bf_S[][256], UWORD_32bits * xl, UWORD_32bits * xr)
 {

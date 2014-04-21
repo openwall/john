@@ -43,6 +43,7 @@
 #include "formats.h"
 #include "md5.h"
 #include "dynamic.h"
+#include "memdbg.h"
 
 // This set of defines will turn on testing of the MAX_LENGTH hashes. Some of them can cause changes in
 // the self test speeds. Thus, we can turn them on, to make sure that the formats ARE handling max length

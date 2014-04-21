@@ -23,6 +23,7 @@
 #include "loader.h"
 #include "external.h"
 #include "charset.h"
+#include "memdbg.h"
 
 typedef unsigned int (*char_counters)
 	[CHARSET_SIZE + 1][CHARSET_SIZE + 1][CHARSET_SIZE];

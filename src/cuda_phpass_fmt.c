@@ -4,12 +4,14 @@
 * Redistribution and use in source and binary forms, with or without modification, are permitted.
 */
 #include <string.h>
+
 #include "arch.h"
 #include "formats.h"
 #include "common.h"
 #include "misc.h"
 #include "cuda_phpass.h"
 #include "cuda_common.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL		"phpass-cuda"
 #define FORMAT_NAME		""

@@ -31,6 +31,7 @@ static int omp_t = 1;
 #include <omp.h>
 #define OMP_SCALE               512 // tuned on core i7
 #endif
+#include "memdbg.h"
 
 #define FORMAT_LABEL		"o5logon"
 #define FORMAT_NAME		"Oracle O5LOGON protocol"

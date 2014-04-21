@@ -37,6 +37,7 @@
 #include "sysendian.h"
 
 #include "crypto_scrypt.h"
+#include "../memdbg.h"
 
 static void
 blkcpy(uint8_t * dest, const uint8_t * src, size_t len)

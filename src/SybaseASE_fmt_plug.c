@@ -38,6 +38,7 @@
 #ifdef _OPENMP
 #include <omp.h>
 #endif
+#include "memdbg.h"
 
 #define FORMAT_LABEL        "sybasease"
 #define FORMAT_NAME         "Sybase ASE"

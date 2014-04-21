@@ -27,6 +27,7 @@
 #include <openssl/des.h>
 
 #include "KRB4_std.h"
+#include "memdbg.h"
 
 #ifndef des_fixup_key_parity
 #define des_fixup_key_parity	des_set_odd_parity

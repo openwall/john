@@ -23,6 +23,7 @@
 #include <omp.h>
 #define OMP_SCALE               64
 #endif
+#include "memdbg.h"
 
 #define FORMAT_LABEL        "PDF"
 #define FORMAT_NAME         ""
@@ -590,6 +591,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	for (index = 0; index < count; index++)
 #endif
 	{
+#if !defined(_OPENMP) && defined (__CYGWIN32__) && defined (MEMDBG_ON)
+		static  /* work around for some 'unknown' bug in cygwin gcc when using memdbg.h code. I have NO explanation, JimF. */
+#endif
 		unsigned char output[32];
 		pdf_compute_user_password((unsigned char*)saved_key[index], output);
 		if (crypt_out->R == 2 || crypt_out->R == 5 || crypt_out->R == 6)

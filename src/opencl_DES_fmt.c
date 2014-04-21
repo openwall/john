@@ -11,6 +11,8 @@
 #include "common.h"
 #include "formats.h"
 #include "config.h"
+#include "opencl_DES_bs.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL			"descrypt-opencl"
 #define FORMAT_NAME			"traditional crypt(3)"
@@ -33,8 +35,6 @@ static struct fmt_tests tests[] = {
 	{"..X8NBuQ4l6uQ", ""},
 	{NULL}
 };
-
-#include "opencl_DES_bs.h"
 
 #define ALGORITHM_NAME			DES_BS_OPENCL_ALGORITHM_NAME
 

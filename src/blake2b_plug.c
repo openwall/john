@@ -36,6 +36,7 @@
 #endif
 
 #include "blake2b-round.h"
+#include "memdbg.h"
 
 ALIGN( 64 ) static const uint64_t blake2b_IV[8] =
 {

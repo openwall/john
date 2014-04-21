@@ -26,6 +26,7 @@ static int omp_t = 1;
 #include <omp.h>
 #define OMP_SCALE               64
 #endif
+#include "memdbg.h"
 
 #define FORMAT_LABEL		"keystore"
 #define FORMAT_NAME		"Java KeyStore"

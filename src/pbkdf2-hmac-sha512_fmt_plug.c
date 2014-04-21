@@ -64,6 +64,8 @@ static int omp_t = 1;
 #define OMP_SCALE               1
 #endif
 
+#include "memdbg.h"
+
 #define PAD_SIZE                128
 #define PLAINTEXT_LENGTH        125
 

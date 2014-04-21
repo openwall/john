@@ -26,6 +26,7 @@
 #include "misc.h"
 #define OUTLEN (32 + 16)
 #include "opencl_pbkdf2_hmac_sha1.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL		"encfs-opencl"
 #define FORMAT_NAME		"EncFS"

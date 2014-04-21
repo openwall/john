@@ -24,6 +24,7 @@ static int omp_t = 1;
 #include <omp.h>
 #define OMP_SCALE               128
 #endif
+#include "memdbg.h"
 
 #define FORMAT_LABEL		"Siemens-S7"
 #define FORMAT_NAME		""

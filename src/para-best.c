@@ -25,6 +25,7 @@
 #include "common.h"
 #include "formats.h"
 #include "bench.h"
+#include "memdbg.h"
 
 extern struct fmt_main fmt_rawMD4, fmt_rawMD5, fmt_MD5, fmt_rawSHA1;
 

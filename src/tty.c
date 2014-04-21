@@ -39,6 +39,7 @@ extern int tcsetattr(int fd, int actions, struct termios *termios_p);
 #endif /* !defined __MINGW32__ */
 
 #include "tty.h"
+#include "memdbg.h"
 
 #if !defined(__DJGPP__) && !defined(__MINGW32__) && !defined (_MSC_VER)
 static int tty_fd = -1;

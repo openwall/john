@@ -34,6 +34,7 @@
 #include <string.h>
 
 #include "sph_tiger.h"
+#include "memdbg.h"
 
 #if SPH_64
 

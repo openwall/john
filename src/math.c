@@ -10,6 +10,7 @@
 
 #include "arch.h"
 #include "math.h"
+#include "memdbg.h"
 
 void add32to64(int64 *dst, unsigned int src)
 {

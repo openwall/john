@@ -12,6 +12,7 @@
 #else
 #include <unistd.h>
 #endif
+#include "memdbg.h"
 
 int dyna_num=12;
 int hash_len=32;
@@ -99,6 +100,7 @@ int main(int argc, char **argv) {
 		printf("%s$dynamic_%d$%*.*s$%s\n", usr_id, dyna_num, hash_len,hash_len, cph, GetSalt(cps));
 		FGETS(Buf, sizeof(Buf), stdin);
 	}
+	MEMDBG_PROGRAM_EXIT_CHECKS(stderr);
 	return 0;
 }
 

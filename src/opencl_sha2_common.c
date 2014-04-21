@@ -9,6 +9,8 @@
  * http://www.gnu.org/licenses/gpl-2.0.html
  */
 
+#include "memdbg.h"
+
 /*
  * Public domain hash function by DJ Bernstein
  * We are hashing almost the entire struct

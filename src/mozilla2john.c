@@ -20,6 +20,7 @@
 #include "sha.h"
 #include "lowpbe.h"
 #include "KeyDBCracker.h"
+#include "memdbg.h"
 
 static SHA_CTX pctx;
 static SECItem saltItem;

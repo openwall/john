@@ -26,6 +26,7 @@
 #include "md5.h"
 #include "aligned.h"
 #include "sse-intrinsics.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL            "HMAC-MD5"
 #define FORMAT_NAME             ""

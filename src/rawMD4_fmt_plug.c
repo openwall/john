@@ -26,6 +26,7 @@
 #include <omp.h>
 #endif
 #include "sse-intrinsics.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL			"Raw-MD4"
 #define FORMAT_NAME			""

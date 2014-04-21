@@ -28,6 +28,7 @@
 #include "unrar.h"
 #include "unrarvm.h"
 #include "unrarcmd.h"
+#include "memdbg.h"
 
 #ifndef MIN
 #define MIN(a, b)	(((a) < (b)) ? (a) : (b))

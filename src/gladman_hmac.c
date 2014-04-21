@@ -35,6 +35,7 @@
 
 #include <string.h>		/* for mem*() prototypes */
 #include "gladman_hmac.h"
+#include "memdbg.h"
 
 #if defined(__cplusplus)
 extern "C"

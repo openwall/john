@@ -42,6 +42,7 @@
 #include <secerr.h>
 #include "mozilla_des.h"
 #include "alghmac.h"
+#include "memdbg.h"
 
 unsigned char *computeKey(struct NSSPKCS5PBEParameter * pbe_param, const unsigned char *pwdHash, SECItem *pkcs5_pfxpbe, SECItem *secPreHash)
 {

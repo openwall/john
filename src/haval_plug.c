@@ -40,6 +40,7 @@
 #include <string.h>
 
 #include "sph_haval.h"
+#include "memdbg.h"
 
 #if SPH_SMALL_FOOTPRINT && !defined SPH_SMALL_FOOTPRINT_HAVAL
 #define SPH_SMALL_FOOTPRINT_HAVAL   1

@@ -28,6 +28,8 @@ static int omp_t = 1;
 #define OMP_SCALE               1 // tuned on core i7
 #endif
 
+#include "memdbg.h"
+
 #define SIZE_SALT50 16
 #define SIZE_PSWCHECK 8
 #define SIZE_PSWCHECK_CSUM 4

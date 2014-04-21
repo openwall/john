@@ -58,6 +58,7 @@
 #include "common.h"
 #include "arch.h"
 #include "params.h"
+#include "memdbg.h"
 
 static void process_file(const char *filename)
 {

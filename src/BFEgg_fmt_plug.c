@@ -15,6 +15,7 @@ static int omp_t = 1;
 #include <omp.h>
 #define OMP_SCALE               4 // FIXME
 #endif
+#include "memdbg.h"
 
 #define FORMAT_LABEL			"bfegg"
 #define FORMAT_NAME			"Eggdrop"

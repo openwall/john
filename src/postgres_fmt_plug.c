@@ -28,6 +28,7 @@ static int omp_t = 1;
 #include "formats.h"
 #include "params.h"
 #include "options.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL            "postgres"
 #define FORMAT_NAME             "PostgreSQL C/R"

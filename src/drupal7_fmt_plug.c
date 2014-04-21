@@ -21,6 +21,11 @@
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
+#ifdef _OPENMP
+#include <omp.h>
+#define OMP_SCALE			8
+#endif
+#include "memdbg.h"
 
 #define FORMAT_LABEL			"Drupal7"
 #define FORMAT_NAME			"$S$"
@@ -52,11 +57,6 @@ static struct fmt_tests tests[] = {
 	{"$S$C6x2r.aW5Nkg7st6/u.IKWjTerHXscjPtu4spwhCVZlP89UKcbb/", "NEW_TEMP_PASSWORD"},
 	{NULL}
 };
-
-#ifdef _OPENMP
-#include <omp.h>
-#define OMP_SCALE			8
-#endif
 
 static unsigned char *cursalt;
 static unsigned loopCnt;

@@ -33,6 +33,7 @@
 #include "hmacmd5.h"
 #include "md4.h"
 #include "rc4.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL       "krb5pa-md5-opencl"
 #define FORMAT_NAME        "Kerberos 5 AS-REQ Pre-Auth etype 23" /* md4, rc4-hmac-md5 */

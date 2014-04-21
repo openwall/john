@@ -53,6 +53,7 @@
 #ifdef HAVE_OPENCL
 #include "common-opencl.h"
 #endif
+#include "memdbg.h"
 
 struct options_main options;
 struct pers_opts pers_opts; /* Not reset after forked resume */

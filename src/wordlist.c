@@ -48,6 +48,7 @@
 #include "memory.h"
 #include "unicode.h"
 #include "regex.h"
+#include "memdbg.h"
 
 static int dist_rules;
 

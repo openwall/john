@@ -183,7 +183,10 @@ extern char *strupr(char *s);
 #define bzero(a,b) memset(a,0,b)
 #define strlwr _strlwr
 #define strupr _strupr
+#include "memdbg_defines.h"
+#ifndef MEMDBG_ON
 #define strdup _strdup
+#endif
 #define strncasecmp _strnicmp
 #define strcasecmp _stricmp
 #define alloca _alloca

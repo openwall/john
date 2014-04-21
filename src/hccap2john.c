@@ -23,6 +23,7 @@
 #include <errno.h>
 #include <assert.h>
 #include "common.h"
+#include "memdbg.h"
 
 #define HCCAP_SIZE		sizeof(hccap_t)
 typedef struct

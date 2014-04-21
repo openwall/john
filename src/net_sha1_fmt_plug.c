@@ -21,6 +21,7 @@
 #include <omp.h>
 #define OMP_SCALE 2048 // XXX
 #endif
+#include "memdbg.h"
 
 #define FORMAT_LABEL            "net-sha1"
 #define FORMAT_NAME             "\"Keyed SHA1\" RIPv2, OSPF, BGP, SNMPv2"

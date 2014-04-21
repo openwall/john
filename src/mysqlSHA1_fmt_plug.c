@@ -41,6 +41,8 @@
 #include "common.h"
 #include "formats.h"
 #include "sha.h"
+#include "johnswap.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL			"mysql-sha1"
 #define FORMAT_NAME			"MySQL 4.1+"
@@ -60,7 +62,6 @@
 
 #ifdef MMX_COEF
 
-#include "johnswap.h"
 #define MIN_KEYS_PER_CRYPT		NBKEYS
 #define MAX_KEYS_PER_CRYPT		NBKEYS
 #define GETPOS(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3) )*MMX_COEF + (3-((i)&3)) + (index>>(MMX_COEF>>1))*SHA_BUF_SIZ*4*MMX_COEF ) //for endianity conversion

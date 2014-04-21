@@ -19,6 +19,7 @@
 #include "common-opencl.h"
 #include "gladman_fileenc.h"
 #include "options.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL		"zip-opencl"
 #define FORMAT_NAME		"ZIP"

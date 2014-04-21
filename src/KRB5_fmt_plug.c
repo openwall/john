@@ -37,6 +37,7 @@
 #include "formats.h"    // needed for format structs
 #include "memory.h"
 #include "KRB5_std.h"
+#include "memdbg.h"
 
 
 // defines                                                  // {{{

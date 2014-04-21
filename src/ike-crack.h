@@ -53,7 +53,7 @@
 #include "md5.h"
 #include <openssl/sha.h>
 #include "memory.h"
-
+#include "memdbg.h"
 /* Defines */
 
 #define MAXLINE 255		/* Max line length for input files */

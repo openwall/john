@@ -17,6 +17,11 @@
 #include "stdint.h"
 #define PBKDF2_HMAC_SHA1_ALSO_INCLUDE_CTX 1
 #include "pbkdf2_hmac_sha1.h"
+#ifdef _OPENMP
+#include <omp.h>
+#define OMP_SCALE               64
+#endif
+#include "memdbg.h"
 
 #define FORMAT_LABEL            "PBKDF2-HMAC-SHA1"
 #define FORMAT_NAME             ""
@@ -39,11 +44,6 @@
 
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        -1
-
-#ifdef _OPENMP
-#include <omp.h>
-#define OMP_SCALE               64
-#endif
 
 #ifdef MMX_COEF
 #define MIN_KEYS_PER_CRYPT      MMX_COEF

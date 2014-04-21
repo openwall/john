@@ -31,6 +31,7 @@
 #include <omp.h>
 #endif
 #include "sse-intrinsics.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL		"Raw-SHA512"
 #define FORMAT_NAME		""

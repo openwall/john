@@ -9,20 +9,24 @@
  *
  */
 
-#include "sha2.h"
-
 #define _GNU_SOURCE
 #include <string.h>
-
-#include "arch.h"
-#include "params.h"
-#include "common.h"
-#include "formats.h"
-
 #ifdef _OPENMP
 #define OMP_SCALE			16
 #include <omp.h>
 #endif
+
+#include "arch.h"
+#include "sha2.h"
+#include "params.h"
+#include "common.h"
+#include "formats.h"
+// these MUST be defined prior to loading cryptsha512_valid.h
+#define BINARY_SIZE			64
+#define SALT_LENGTH			16
+#define CIPHERTEXT_LENGTH		86
+#include "cryptsha512_common.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL			"sha512crypt"
 
@@ -33,18 +37,13 @@
 #endif
 
 #define PLAINTEXT_LENGTH		125
-#define CIPHERTEXT_LENGTH		86
 
-#define BINARY_SIZE			64
 #define BINARY_ALIGN			4
-#define SALT_LENGTH			16
 #define SALT_SIZE			sizeof(struct saltstruct)
 #define SALT_ALIGN			4
 
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
-
-#include "cryptsha512_common.h"
 
 static struct fmt_tests tests[] = {
 	{"$6$LKO/Ute40T3FNF95$6S/6T2YuOIHY0N3XpLKABJ3soYcXD9mB7uVbtEZDj/LNscVhZoZ9DEH.sBciDrMsHOWOoASbNLTypH/5X26gN0", "U*U*U*U*"},

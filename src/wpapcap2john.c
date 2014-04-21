@@ -11,6 +11,7 @@
 #include <stdlib.h>
 
 #include "wpapcap2john.h"
+#include "memdbg.h"
 
 /*
  * Max. number of handshakes we can collect from all files combined.

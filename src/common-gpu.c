@@ -23,6 +23,8 @@
 #include "common-gpu.h"
 #include "john.h"
 
+#include "memdbg.h"
+
 /* These are shared between OpenCL and CUDA */
 int gpu_id;
 int gpu_device_list[MAX_GPU_DEVICES];

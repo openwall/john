@@ -24,6 +24,7 @@ static int omp_t = 1;
 #include <omp.h>
 #define OMP_SCALE               1
 #endif
+#include "memdbg.h"
 
 typedef struct sip_salt_t {
 	int static_hash_data_len, dynamic_hash_data_len;

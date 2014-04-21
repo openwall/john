@@ -46,6 +46,7 @@ userName2:$B$107$dd494cb03ac1c5b8f8d2dddafca2f7a6:1552:0::emailaddress@gmail.com
 #include "formats.h"
 #include "dynamic.h"
 #include "options.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL		"MediaWiki"
 #define FORMAT_NAME		"" /* md5($s.'-'.md5($p)) */

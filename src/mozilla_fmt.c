@@ -42,6 +42,7 @@
 #include <omp.h>
 #define OMP_SCALE               32
 #endif
+#include "memdbg.h"
 
 #define FORMAT_LABEL		"Mozilla"
 #define FORMAT_NAME		"key3.db"

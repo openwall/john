@@ -27,6 +27,7 @@
 #include "md5.h"
 #include "common.h"
 #include "formats.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL		"dmd5"
 #define FORMAT_NAME		"DIGEST-MD5 C/R"

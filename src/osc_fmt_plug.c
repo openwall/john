@@ -26,6 +26,7 @@
 #include "formats.h"
 #include "dynamic.h"
 #include "options.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL		"osc"
 #define FORMAT_NAME		"osCommerce" /* md5($salt.$pass) */

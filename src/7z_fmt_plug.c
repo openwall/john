@@ -25,6 +25,7 @@
 #include "sha2.h"
 #include "crc32.h"
 #include "unicode.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL		"7z"
 #define FORMAT_NAME		"7-Zip"

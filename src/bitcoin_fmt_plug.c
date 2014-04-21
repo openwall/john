@@ -28,6 +28,7 @@
 #define OMP_SCALE               1
 static int omp_t = 1;
 #endif
+#include "memdbg.h"
 
 #define FORMAT_LABEL		"Bitcoin"
 #define FORMAT_NAME		""

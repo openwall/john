@@ -32,6 +32,7 @@
  */
 
 #include <string.h>
+#include <openssl/des.h>
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -41,9 +42,9 @@
 #include "formats.h"
 #include "options.h"
 #include "memory.h"
-
 #include "sha.h"
-#include <openssl/des.h>
+#include "unicode.h"
+#include "memdbg.h"
 
 #ifndef uchar
 #define uchar unsigned char
@@ -108,8 +109,6 @@ static uchar (*saved_key)[21];
 static uchar (*output)[BINARY_SIZE];
 static uchar *challenge;
 static int keys_prepared;
-
-#include "unicode.h"
 
 static void init(struct fmt_main *self)
 {

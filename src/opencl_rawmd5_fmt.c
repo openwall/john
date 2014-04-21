@@ -18,6 +18,7 @@
 #include "common-opencl.h"
 #include "config.h"
 #include "options.h"
+#include "memdbg.h"
 
 #define PLAINTEXT_LENGTH    55 /* Max. is 55 with current kernel */
 #define BUFSIZE             ((PLAINTEXT_LENGTH+3)/4*4)

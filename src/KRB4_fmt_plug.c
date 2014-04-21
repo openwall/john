@@ -42,6 +42,7 @@
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
+#include "memdbg.h"
 
 #define TGT_LENGTH		16	/* 2 des_cblock's */
 

@@ -24,6 +24,7 @@
 #include "sha.h"
 #include "johnswap.h"
 #include "sse-intrinsics.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL            "RAKP"
 #define FORMAT_NAME             ""

@@ -21,6 +21,7 @@ static int omp_t = 1;
 #include <omp.h>
 #define OMP_SCALE               1 // tuned on core i7
 #endif
+#include "memdbg.h"
 
 #define FORMAT_TAG		"$haval$"
 #define TAG_LENGTH		7

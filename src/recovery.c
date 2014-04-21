@@ -57,6 +57,7 @@ extern int ftruncate(int fd, size_t length);
 #include "john-mpi.h"
 #include "signals.h"
 #endif
+#include "memdbg.h"
 
 char *rec_name = RECOVERY_NAME;
 int rec_name_completed = 0;

@@ -3,6 +3,8 @@
 #include "feal8.h"
 #include <stdio.h>
 
+#include "memdbg.h"
+
 void Decrypt(ByteType * Cipher, ByteType * Plain, struct JtR_FEAL8_CTX *ctx)
 /*
      Decrypt a block, using the last key set.

@@ -20,6 +20,7 @@
 #include <fcntl.h>
 #include "memory.h"
 #include "misc.h"
+#include "memdbg.h"
 
 #define smalloc(z) safemalloc(z,1)
 #define snmalloc safemalloc

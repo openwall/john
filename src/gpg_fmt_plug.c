@@ -46,6 +46,7 @@
 #include "sha.h"
 #include "sha2.h"
 #include "stdint.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL        "gpg"
 #define FORMAT_NAME         "OpenPGP / GnuPG Secret Key"

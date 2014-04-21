@@ -18,6 +18,17 @@
 #define _uaf_hash_
 #include "uaf_encode_plug.c"
 
+#ifdef VMS
+#	include <ssdef.h>
+#else
+#	define SS$_ABORT	44
+#	define SS$_BADPARAM     20
+#	define SS$_NORMAL	1
+#	define __SSDEF_LOADED	1
+#endif
+
+#include "memdbg.h"
+
 /***************************************************************************/
 /*
 
@@ -60,15 +71,6 @@ Comments:	The overall speed of this routine is not great.  This is
 		program, please send me e-mail at the above address.
 
 */
-
-#ifdef VMS
-#	include <ssdef.h>
-#else
-#	define SS$_ABORT	44
-#	define SS$_BADPARAM     20
-#	define SS$_NORMAL	1
-#	define __SSDEF_LOADED	1
-#endif
 
 typedef struct dsc$descriptor_s string;
 

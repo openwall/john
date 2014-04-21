@@ -39,6 +39,8 @@
 #define OMP_SCALE               1
 #endif
 
+#include "memdbg.h"
+
 #define FORMAT_LABEL		"nk"
 #define FORMAT_NAME		"Nuked-Klan CMS"
 #define ALGORITHM_NAME		"SHA1 MD5 32/" ARCH_BITS_STR

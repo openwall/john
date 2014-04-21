@@ -50,6 +50,7 @@
 #include <omp.h>
 #define OMP_SCALE               4
 #endif
+#include "memdbg.h"
 
 #define FORMAT_LABEL		"EPiServer"
 #define FORMAT_NAME		""

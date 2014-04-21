@@ -44,6 +44,7 @@
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL		"skey"
 #define FORMAT_NAME		"S/Key"

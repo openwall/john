@@ -22,6 +22,7 @@
 #include <omp.h>
 #define OMP_SCALE               2 // tuned on core i7
 #endif
+#include "memdbg.h"
 
 #define FORMAT_LABEL		"sxc"
 #define FORMAT_NAME		"StarOffice .sxc"

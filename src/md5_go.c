@@ -35,6 +35,7 @@
 #include "arch.h"
 #include "common.h"
 #include "md5_go.h"
+#include "memdbg.h"
 
 #define MD5_out MD5_out_go
 #define MD5_bitswapped_out MD5_bitswapped_out_go

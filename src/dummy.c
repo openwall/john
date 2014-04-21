@@ -12,6 +12,7 @@
 
 #include "common.h"
 #include "formats.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL			"dummy"
 #define FORMAT_NAME			""

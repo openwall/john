@@ -10,6 +10,7 @@
 #include "common.h"
 #include "formats.h"
 #include "md4.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL			"md4-gen"
 #define FORMAT_NAME			"Generic salted MD4"

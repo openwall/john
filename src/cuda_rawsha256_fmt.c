@@ -6,12 +6,14 @@
 * SHA256 definition is used to distinguish between them.
 */
 #include <string.h>
+
 #include "arch.h"
 #include "formats.h"
 #include "common.h"
 #include "misc.h"
 #include "cuda_common.h"
 #include "cuda_rawsha256.h"
+#include "memdbg.h"
 
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1	/// Raw benchmark

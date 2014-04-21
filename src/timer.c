@@ -17,6 +17,7 @@
 
 #include "timer.h"
 #include <stdio.h>
+#include "memdbg.h"
 
 double sm_HRTicksPerSec=0.0;	// HR Ticks per second
 int sm_fGotHRTicksPerSec=0;	// Set if we have got the above

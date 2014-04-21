@@ -19,6 +19,7 @@
 #include "formats.h"
 #include "sha.h"
 #include "common-opencl.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL            "mysql-sha1-opencl"
 #define FORMAT_NAME             "MySQL 4.1+"

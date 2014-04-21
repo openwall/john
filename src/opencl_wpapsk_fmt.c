@@ -24,6 +24,7 @@ static unsigned int *inbuffer;
 
 #define JOHN_OCL_WPAPSK
 #include "wpapsk.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL		"wpapsk-opencl"
 #define FORMAT_NAME		"WPA/WPA2 PSK"

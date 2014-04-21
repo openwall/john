@@ -37,6 +37,7 @@
 #include "md5.h"
 #include "common.h"
 #include "formats.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL			"md5ns"
 #define FORMAT_NAME			"Netscreen"

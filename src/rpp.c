@@ -12,6 +12,7 @@
 #include "common.h"
 #include "options.h"
 #include "encoding_data.h"
+#include "memdbg.h"
 
 int rpp_init(struct rpp_context *ctx, char *subsection)
 {

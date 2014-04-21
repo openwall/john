@@ -15,6 +15,11 @@
 #include "DES_std.h"
 #include "DES_bs.h"
 #include "unicode.h"
+#if DES_bs_mt
+#include <omp.h>
+#include <assert.h>
+#endif
+#include "memdbg.h"
 
 #if DES_BS_VECTOR
 #define DEPTH				[depth]
@@ -32,8 +37,6 @@
 #endif
 
 #if DES_bs_mt
-#include <omp.h>
-#include <assert.h>
 int DES_bs_min_kpc, DES_bs_max_kpc;
 static int DES_bs_n_alloc;
 int DES_bs_nt = 0;

@@ -37,6 +37,7 @@
 #include "john.h"
 #include "cracker.h"
 #include "logger.h" /* Beware: log_init() happens after most functions here */
+#include "memdbg.h"
 
 #ifdef HAVE_CRYPT
 extern struct fmt_main fmt_crypt;

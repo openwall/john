@@ -64,6 +64,13 @@
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
+#ifdef _OPENMP
+#include <omp.h>
+#include <pthread.h>
+#define OMP_SCALE		32
+static pthread_mutex_t *lockarray;
+#endif
+
 #include "crc32.h"
 #include "misc.h"
 #include "common.h"
@@ -74,8 +81,8 @@
 #include "johnswap.h"
 #include "unrar.h"
 #include "common-opencl.h"
-
 #include "config.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL		"rar-opencl"
 #define FORMAT_NAME		"RAR3"
@@ -100,13 +107,6 @@
 
 #define MIN(a, b)		(((a) > (b)) ? (b) : (a))
 #define MAX(a, b)		(((a) > (b)) ? (a) : (b))
-
-#ifdef _OPENMP
-#include <omp.h>
-#include <pthread.h>
-#define OMP_SCALE		32
-static pthread_mutex_t *lockarray;
-#endif
 
 static int omp_t = 1;
 static unsigned char *saved_salt;

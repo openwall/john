@@ -14,6 +14,7 @@
 #include "misc.h"
 #include "params.h"
 #include "memory.h"
+#include "memdbg.h"
 
 struct shadow_entry {
 	struct shadow_entry *next;

@@ -71,6 +71,8 @@
 
 #include "dynamic_types.h"
 
+#include "memdbg.h"
+
 #define m_count m_Dynamic_Count
 extern int m_count;
 

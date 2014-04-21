@@ -12,6 +12,7 @@
 
 #include "options.h"
 #include "opencl_DES_bs.h"
+#include "memdbg.h"
 
 #define LOG_SIZE 1024*16
 

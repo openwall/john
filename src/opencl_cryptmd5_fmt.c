@@ -16,6 +16,7 @@
 #include "config.h"
 #include "common-opencl.h"
 #include "options.h"
+#include "memdbg.h"
 
 #define uint32_t unsigned int
 #define uint8_t unsigned char

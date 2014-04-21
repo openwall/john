@@ -6,6 +6,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include "memdbg.h"
 
 void base64_unmap(char *in_block) {
   int i;

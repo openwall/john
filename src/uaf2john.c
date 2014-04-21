@@ -87,6 +87,7 @@
 
 #include "uaf_encode.h"
 #include "uaf_raw.h"
+#include "memdbg.h"
 
 /*
  * Define function, primarily used on non-VMS systems, to extract UAF data

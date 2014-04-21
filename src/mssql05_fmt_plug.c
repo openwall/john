@@ -28,6 +28,7 @@
 #include "unicode.h"
 #include "sha.h"
 #include "johnswap.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL			"mssql05"
 #define FORMAT_NAME			"MS SQL 2005"

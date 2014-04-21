@@ -19,6 +19,7 @@
 #include "options.h"
 #include "opencl_cryptsha256.h"
 #include "cryptsha256_common.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL			"sha256crypt-opencl"
 #define ALGORITHM_NAME			"SHA256 OpenCL"

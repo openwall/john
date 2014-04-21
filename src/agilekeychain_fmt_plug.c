@@ -26,6 +26,7 @@
 #include <omp.h>
 #define OMP_SCALE               1 // tuned on core i7
 #endif
+#include "memdbg.h"
 
 #define FORMAT_LABEL		"agilekeychain"
 #define FORMAT_NAME		"1Password Agile Keychain"

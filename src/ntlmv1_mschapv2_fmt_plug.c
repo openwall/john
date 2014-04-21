@@ -93,6 +93,7 @@
 #include "md4.h"
 #include "md5.h"
 #include "unicode.h"
+#include "memdbg.h"
 
 extern volatile int bench_running;
 

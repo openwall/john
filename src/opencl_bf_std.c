@@ -14,6 +14,7 @@
 #include "common.h"
 #include "options.h"
 #include "opencl_bf_std.h"
+#include "memdbg.h"
 
 /* Number of Blowfish rounds, this is also hardcoded into a few places */
 #define BF_ROUNDS			16

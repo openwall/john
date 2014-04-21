@@ -10,6 +10,7 @@
 #include "common.h"
 #include "formats.h"
 #include "dynamic.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL            "asa-md5"
 #define FORMAT_NAME             "Cisco ASA"

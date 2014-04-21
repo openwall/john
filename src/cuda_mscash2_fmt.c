@@ -5,6 +5,7 @@
 * Based on S3nf implementation http://openwall.info/wiki/john/MSCash2
 */
 #include <string.h>
+
 #include "arch.h"
 #include "formats.h"
 #include "common.h"
@@ -13,6 +14,7 @@
 #include "cuda_mscash2.h"
 #include "cuda_common.h"
 #include "loader.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL		"mscash2-cuda"
 #define FORMAT_NAME		"MS Cache Hash 2 (DCC2)"

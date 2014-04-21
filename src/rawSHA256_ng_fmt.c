@@ -40,6 +40,7 @@
 #include "common.h"
 #include "formats.h"
 #include "aligned.h"
+#include "memdbg.h"
 
 #if defined __XOP__
 #define SIMD_TYPE                 "XOP"

@@ -44,6 +44,7 @@
 #  endif
 #endif
 #include "sse-intrinsics.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL		"wpapsk"
 #define FORMAT_NAME		"WPA/WPA2 PSK"

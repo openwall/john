@@ -168,6 +168,8 @@ ALIGN(32) const UINT64 rot_39_41[2] = {39, 41};
 
 #include "KeccakF-1600-unrolling.macros"
 
+#include "memdbg.h"
+
 void KeccakPermutationOnWords(UINT64 *state)
 {
 #if (Unrolling != 24)

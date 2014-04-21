@@ -20,6 +20,7 @@
 #include "sha.h"
 #include "base64.h"
 #include "common-opencl.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL			"ssha-opencl"
 #define FORMAT_NAME			"Netscape LDAP {SSHA}"

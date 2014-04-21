@@ -8,6 +8,11 @@
 #include "misc.h"
 #include "formats.h"
 #include "common.h"
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
+#include "memdbg.h"
 
 /*preprocessor constants that John The Ripper likes*/
 #define FORMAT_LABEL                   "lotus5"
@@ -69,10 +74,6 @@ static const unsigned char lotus_magic_table[256] = {
 /*Some more JTR variables*/
 static ARCH_WORD_32 (*crypt_key)[BINARY_SIZE / 4];
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-
-#ifdef _OPENMP
-#include <omp.h>
-#endif
 
 static void init(struct fmt_main *self)
 {

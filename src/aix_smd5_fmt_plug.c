@@ -10,6 +10,12 @@
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
+#ifdef _OPENMP
+static int omp_t = 1;
+#include <omp.h>
+#define OMP_SCALE               16 // tuned on i7 w/HT
+#endif
+
 #include "md5.h"
 #include "arch.h"
 #include "misc.h"
@@ -17,11 +23,7 @@
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-#ifdef _OPENMP
-static int omp_t = 1;
-#include <omp.h>
-#define OMP_SCALE               16 // tuned on i7 w/HT
-#endif
+#include "memdbg.h"
 
 #define FORMAT_LABEL		"aix-smd5"
 #define FORMAT_NAME		"AIX LPA {smd5} (modified crypt-md5)"

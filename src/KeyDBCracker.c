@@ -21,6 +21,7 @@
 
 #ifdef HAVE_NSS
 #include "KeyDBCracker.h"
+#include "memdbg.h"	// Must be last included header
 
 /*
   What may go wrong ????

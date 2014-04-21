@@ -5,13 +5,15 @@
 * Redistribution and use in source and binary forms, with or without modification, are permitted.
 */
 #include <string.h>
-#include "arch.h"
 #include <assert.h>
+
+#include "arch.h"
 #include "formats.h"
 #include "common.h"
 #include "misc.h"
 #include "cuda_wpapsk.h"
 #include "cuda_common.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL		"wpapsk-cuda"
 #define FORMAT_NAME		"WPA/WPA2 PSK"

@@ -74,6 +74,8 @@
 #define OMP_LOOPS			1
 #endif
 
+#include "memdbg.h"
+
 #define ITERATIONS			10240
 static unsigned iteration_cnt =	(ITERATIONS); /* this will get changed at runtime, salt loading */
 

@@ -26,6 +26,7 @@
 #include "config.h"
 #include "options.h"
 #include "opencl_rawsha512-ng.h"
+#include "memdbg.h"
 
 #define RAW_FORMAT_LABEL		"Raw-SHA512-ng-opencl"
 #define RAW_FORMAT_NAME			"(pwlen < " PLAINTEXT_TEXT ")"

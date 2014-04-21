@@ -45,6 +45,7 @@
 #define OMP_SCALE               4 // tuned on core i7
 static int omp_t = 1;
 #endif
+#include "memdbg.h"
 
 #define FORMAT_LABEL		"Django"
 #define FORMAT_NAME		""

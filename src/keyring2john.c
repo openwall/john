@@ -15,6 +15,7 @@
 #include "stdint.h"
 #include "memory.h"
 #include "misc.h"
+#include "memdbg.h"
 
 #define KEYRING_FILE_HEADER "GnomeKeyring\n\r\0\n"
 #define KEYRING_FILE_HEADER_LEN 16
@@ -235,6 +236,8 @@ int keyring2john(int argc, char **argv)
 		return usage();
 	for (; i < argc; i++)
 		process_file(argv[i]);
+
+	MEMDBG_PROGRAM_EXIT_CHECKS(stderr);
 
 	return 0;
 }

@@ -30,6 +30,8 @@
 static int omp_t = 1;
 #endif
 
+#include "memdbg.h"
+
 #define BLOCK_SIZE 8
 
 #define FORMAT_LABEL        "Sybase-PROP"

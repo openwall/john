@@ -9,6 +9,7 @@
 #include "params.h"
 #include "common.h"
 #include "formats.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL			"xsha512"
 #define FORMAT_NAME			"Mac OS X 10.7"

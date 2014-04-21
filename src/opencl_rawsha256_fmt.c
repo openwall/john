@@ -22,6 +22,7 @@
 #include "options.h"
 #include "opencl_rawsha256.h"
 #include "rawSHA256_common.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL			"Raw-SHA256-opencl"
 #define FORMAT_NAME			""

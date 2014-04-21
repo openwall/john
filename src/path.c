@@ -31,6 +31,8 @@ static char *user_home_path = NULL;
 static int user_home_length;
 #endif
 
+#include "memdbg.h"
+
 void path_init(char **argv)
 {
 #if JOHN_SYSTEMWIDE

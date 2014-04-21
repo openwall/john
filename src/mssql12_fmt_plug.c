@@ -37,6 +37,7 @@ static int omp_t = 1;
 #include "options.h"
 #include "unicode.h"
 #include "sha2.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL			"mssql12"
 #define FORMAT_NAME			"MS SQL 2012/2014"

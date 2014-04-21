@@ -36,6 +36,8 @@
 #include "sse-intrinsics.h"
 #include "johnswap.h"
 
+#include "memdbg.h"
+
 // This format is easy to test (during developement) of SHA384 and SHA512.  We have a single
 // #define that if uncommented, will 'morph' this format into sha384.  It will not work on
 // both hash types at the same time, but it CAN flip back and forth in an instant.  The format_label

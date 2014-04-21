@@ -24,6 +24,7 @@ static int omp_t = 1;
 #include <omp.h>
 #define OMP_SCALE               64
 #endif
+#include "memdbg.h"
 #ifndef UAI$M_PWDMIX
 #define UAI$M_PWDMIX 0x2000000
 #endif

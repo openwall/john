@@ -109,7 +109,7 @@ LDFLAGS = -s -L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz \
 	$(OMPFLAGS) $(NSS_LDFLAGS) $(GMP_LDFLAGS) $(KRB5_LDFLAGS) $(JOHN_LDFLAGS) $(REXGEN_LDFLAGS)
 # -lskey
 LDFLAGS_SOLARIS = -lrt -lnsl -lsocket -lm -lz -lcrypto -lssl
-LDFLAGS_MKV = -s -lm
+LDFLAGS_MKV = -s -lm $(OMPFLAGS)
 OPT_NORMAL = -funroll-loops
 # Remove the "-Os" if you're using an ancient version of gcc
 OPT_INLINE = -Os -funroll-loops -finline-functions
@@ -181,7 +181,7 @@ JOHN_OBJS = \
 	unafs.o \
 	undrop.o \
 	regex.o \
-	unique.o putty2john.o gpg2john.o
+	unique.o putty2john.o gpg2john.o memdbg.o
 
 OCL_OBJS = \
 	common-opencl.o common_opencl_pbkdf2.o opencl_mysqlsha1_fmt.o \
@@ -241,7 +241,7 @@ BENCH_OBJS = \
 	$(BENCH_MD5_OBJS_DEPEND) \
 	$(BENCH_BF_OBJS_DEPEND) \
 	bench-t.o best.o common.o config_g.o formats_g.o math.o memory.o \
-	miscnl.o params.o path.o signals_g.o tty.o
+	miscnl.o params.o path.o signals_g.o tty.o memdbg.o
 
 PARA_BENCH_32_OBJS = \
 	bench-t.o para-best.o common.o config_g.o formats_g.o math.o memory.o \
@@ -253,10 +253,10 @@ PARA_BENCH_OBJS = \
 	miscnl.o params.o path.o signals_g.o tty.o $(BENCH_PARA_DEPEND)
 
 BENCH_PARA_DEPEND = \
-	sse-intrinsics.o rawMD4_fmt_plug.o rawMD5_fmt_plug.o rawSHA1_fmt_plug.o MD5_fmt.o MD5_std.o
+	sse-intrinsics.o rawMD4_fmt_plug.o rawMD5_fmt_plug.o rawSHA1_fmt_plug.o MD5_fmt.o MD5_std.o memdbg.o
 
 GENMKVPWD_OBJS = \
-	genmkvpwd.o mkvlib.o memory.o miscnl.o path.o
+	genmkvpwd.o mkvlib.o memory.o miscnl.o path.o memdbg.o
 
 PROJ = ../run/john ../run/unshadow ../run/unafs ../run/unique ../run/undrop \
 	../run/ssh2john ../run/rar2john ../run/zip2john \
@@ -1833,6 +1833,30 @@ win32-cygwin-x86-sse2:
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
 	@echo "All done"
 
+win32-cygwin-x86-sse4:
+	$(CP) x86-sse.h arch.h
+	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
+	$(MAKE) $(PROJ_WIN32) \
+		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
+		CFLAGS="$(CFLAGS) -mpreferred-stack-boundary=4 -msse4 -m32" \
+		ASFLAGS="$(ASFLAGS) -msse4 -m32 -DUNDERSCORES"
+	@echo "Failing after this point just means some helper tools did not build:"
+	$(MAKE) $(PROJ_CXX) CFLAGS="$(CFLAGS) -m32"
+	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
+	@echo "All done"
+
+win32-cygwin-x86-ssse3:
+	$(CP) x86-sse.h arch.h
+	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
+	$(MAKE) $(PROJ_WIN32) \
+		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
+		CFLAGS="$(CFLAGS) -mpreferred-stack-boundary=4 -mssse3 -m32" \
+		ASFLAGS="$(ASFLAGS) -mssse3 -m32 -DUNDERSCORES"
+	@echo "Failing after this point just means some helper tools did not build:"
+	$(MAKE) $(PROJ_CXX) CFLAGS="$(CFLAGS) -m32"
+	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
+	@echo "All done"
+
 win32-cygwin-x86-opencl:
 	$(CP) x86-sse.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
@@ -2336,37 +2360,37 @@ endif
 	$(LD) $(GENMKVPWD_OBJS) $(LDFLAGS_MKV) -o ../run/genmkvpwd.exe
 
 ../run/mkvcalcproba: mkvcalcproba.o
-	$(LD) mkvcalcproba.o $(LDFLAGS) -o ../run/mkvcalcproba
+	$(LD) mkvcalcproba.o memdbg.o $(LDFLAGS) -o ../run/mkvcalcproba
 
 ../run/mkvcalcproba.exe: mkvcalcproba.o
-	$(LD) mkvcalcproba.o $(LDFLAGS_MKV) -o ../run/mkvcalcproba.exe
+	$(LD) mkvcalcproba.o memdbg.o $(LDFLAGS_MKV) -o ../run/mkvcalcproba.exe
 
 ../run/calc_stat: calc_stat.o
-	$(LD) calc_stat.o $(LDFLAGS) -o ../run/calc_stat
+	$(LD) calc_stat.o memdbg.o $(LDFLAGS) -o ../run/calc_stat
 
 ../run/calc_stat.exe: calc_stat.o
-	$(LD) calc_stat.o $(LDFLAGS_MKV) -o ../run/calc_stat.exe
+	$(LD) calc_stat.o memdbg.o $(LDFLAGS_MKV) -o ../run/calc_stat.exe
 
 ../run/raw2dyna: raw2dyna.o
-	$(LD) raw2dyna.o $(LDFLAGS) -o ../run/raw2dyna
+	$(LD) raw2dyna.o memdbg.o $(LDFLAGS) -o ../run/raw2dyna
 
 ../run/raw2dyna.exe: raw2dyna.o
-	$(LD) raw2dyna.o $(LDFLAGS) -o ../run/raw2dyna.exe
+	$(LD) raw2dyna.o memdbg.o $(LDFLAGS) -o ../run/raw2dyna.exe
 
 ../run/SIPdump: SIPdump.o
-	$(LD) SIPdump.o $(LDFLAGS) -lpcap -o ../run/SIPdump
+	$(LD) SIPdump.o memdbg.o $(LDFLAGS) -lpcap -o ../run/SIPdump
 
 ../run/vncpcap2john: vncpcap2john.o
-	$(CC) -Wall vncpcap2john.o -lpcap -o ../run/vncpcap2john
+	$(CC) -Wall vncpcap2john.o memdbg.o -lpcap -o ../run/vncpcap2john
 
 ../run/uaf2john: uaf2john.o uaf_encode_plug.o
-	$(LD) $(LDFLAGS) uaf2john.o uaf_encode_plug.o -o ../run/uaf2john
+	$(LD) $(LDFLAGS) uaf2john.o uaf_encode_plug.o memdbg.o -o ../run/uaf2john
 
 ../run/wpapcap2john: wpapcap2john.o
-	$(LD) $(LDFLAGS) wpapcap2john.o -o ../run/wpapcap2john
+	$(LD) $(LDFLAGS) wpapcap2john.o memdbg.o -o ../run/wpapcap2john
 
 ../run/luks2john: luks2john.o
-	$(LD) ${LDFLAGS} luks2john.o -s -lcrypto -lssl -o ../run/luks2john
+	$(LD) ${LDFLAGS} luks2john.o -s -lcrypto -lssl memdbg.o -o ../run/luks2john
 
 ../run/keystore2john: ../run/john
 	$(RM) ../run/keystore2john
@@ -2377,7 +2401,7 @@ endif
 	misc.c -o ../run/cprepair
 
 ../run/tgtsnarf: tgtsnarf.o
-	$(LD) tgtsnarf.o $(LDFLAGS) -o ../run/tgtsnarf
+	$(LD) tgtsnarf.o memdbg.o $(LDFLAGS) -o ../run/tgtsnarf
 
 # Inlining the S-boxes produces faster code as long as they fit in the cache.
 DES_bs_b.o: DES_bs_b.c sboxes.c nonstd.c sboxes-s.c

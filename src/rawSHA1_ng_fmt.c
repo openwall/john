@@ -1,12 +1,14 @@
 #include "arch.h"
-#if defined(__SSE2__)
+#if defined(__SSE2__) && !defined (_MSC_VER)
+
 
 #ifndef _GNU_SOURCE
 # define _GNU_SOURCE
 #endif
 
 #include <string.h>
-#include <stdbool.h>
+#include "stdbool.h"
+#include "stdint.h"
 #include <emmintrin.h>
 
 #ifdef __SSE4_1__
@@ -26,6 +28,8 @@
 #include "formats.h"
 #include "memory.h"
 #include "sha.h"
+#include "johnswap.h"
+#include "memdbg.h"
 
 //
 // Alternative SSE2 optimised raw SHA-1 implementation for John The Ripper.

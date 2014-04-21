@@ -43,6 +43,7 @@ extern void cuda_device_list();
 #ifdef HAVE_OPENCL
 #include "common-opencl.h"
 #endif
+#include "memdbg.h"
 
 #ifdef HAVE_MPI
 #ifdef _OPENMP

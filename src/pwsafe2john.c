@@ -22,6 +22,7 @@
 #include <assert.h>
 #include "stdint.h"
 #include "misc.h"
+#include "memdbg.h"
 
 static char *magic = "PWS3";
 

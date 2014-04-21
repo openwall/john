@@ -34,6 +34,7 @@
 #ifdef HAVE_MPI
 #include "john-mpi.h"
 #endif
+#include "memdbg.h"
 
 void error(void)
 {

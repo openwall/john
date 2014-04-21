@@ -24,6 +24,8 @@
 #include <omp.h>
 #endif
 
+#include "memdbg.h"
+
 #define FORMAT_TAG		"$keccak256$"
 #define TAG_LENGTH		11
 

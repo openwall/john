@@ -32,6 +32,7 @@
 #include "common-opencl.h"
 #include "options.h"
 #include "sha2.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL		"gpg-opencl"
 #define FORMAT_NAME		"OpenPGP / GnuPG Secret Key"

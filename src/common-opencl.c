@@ -35,6 +35,7 @@
 #ifdef HAVE_MPI
 #include "john-mpi.h"
 #endif
+#include "memdbg.h"
 
 #define LOG_SIZE 1024*16
 
@@ -587,7 +588,8 @@ void opencl_done()
 			               "Release Context");
 		context[gpu_device_list[i]] = NULL;
 	}
-	MEM_FREE(kernel_source);
+	if (kernel_source) libc_free(kernel_source);
+	kernel_source = NULL;
 
 	/* Reset in case we load another format after this */
 	local_work_size = global_work_size = duration_time = 0;
@@ -1540,8 +1542,9 @@ void opencl_read_source(char *kernel_filename)
 	fseek(fp, 0, SEEK_END);
 	source_size = ftell(fp);
 	fseek(fp, 0, SEEK_SET);
-	MEM_FREE(kernel_source);
-	kernel_source = mem_calloc(source_size + 1);
+	if (kernel_source)	libc_free(kernel_source);
+	kernel_source = NULL;
+	kernel_source = libc_calloc(source_size + 1);
 	read_size = fread(kernel_source, sizeof(char), source_size, fp);
 	if (read_size != source_size)
 		fprintf(stderr,

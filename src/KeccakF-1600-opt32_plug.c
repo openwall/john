@@ -16,6 +16,7 @@ http://creativecommons.org/publicdomain/zero/1.0/
 #include <string.h>
 #include "KeccakF-1600-opt32-settings.h"
 #include "KeccakF-1600-interface.h"
+#include "memdbg.h"
 
 typedef unsigned char UINT8;
 typedef unsigned short UINT16;

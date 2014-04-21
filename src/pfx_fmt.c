@@ -32,6 +32,7 @@
 #include "formats.h"
 #include "params.h"
 #include "misc.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL        "PFX"
 #define FORMAT_NAME         "PKCS12 (.pfx, .p12)"

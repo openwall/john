@@ -52,6 +52,9 @@
 #include "hmacmd5.h"
 
 #include "unicode.h"
+#include "byteorder.h"
+
+#include "memdbg.h"
 
 #ifndef uchar
 #define uchar unsigned char
@@ -118,8 +121,6 @@ static int keys_prepared;
 #define int16 short
 #endif /* SIZEOF_SHORT != 4 */
 #endif
-
-#include "byteorder.h"
 
 static void init(struct fmt_main *self)
 {

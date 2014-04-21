@@ -23,6 +23,8 @@
 #include "misc.h"
 #include "common-opencl.h"
 #include "options.h"
+#include "memdbg.h"
+
 #define FORMAT_LABEL		"blockchain-opencl"
 #define FORMAT_NAME		"blockchain My Wallet"
 #define FORMAT_TAG		"$blockchain$"

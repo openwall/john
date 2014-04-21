@@ -56,6 +56,7 @@
 #include "options.h"
 #include "md5.h"
 #include "unicode.h"
+#include "memdbg.h"
 
 #ifndef uchar
 #define uchar unsigned char

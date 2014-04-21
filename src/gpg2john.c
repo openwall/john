@@ -36,14 +36,41 @@
 #include <stdlib.h>
 #include <libgen.h>
 #include <ctype.h>
+#include <strings.h>
+#include <stdarg.h>
 
-#include "misc.h"
+#ifdef HAVE_UNIXLIB_LOCAL_H
+#include <unixlib/local.h>
+int __riscosify_control = __RISCOSIFY_NO_PROCESS;
+#define PATH_SEPC '.'
+#else  /* HAVE_UNIXLIB_LOCAL_H */
+#define PATH_SEPC '/'
+#endif /* HAVE_UNIXLIB_LOCAL_H */
 
 #define public extern
 #define private static
 
 typedef char * string;
 typedef unsigned char byte;
+
+#define HAVE_LIBZ 1
+
+#ifdef HAVE_LIBZ
+#include <zlib.h>
+private int inflate_gzip(byte *, unsigned int);
+private z_stream z;
+#endif  /* HAVE_LIBZ */
+
+// #define HAVE_LIBBZ2 1
+
+#ifdef HAVE_LIBBZ2  // XXX ask the team about this
+#include <bzlib.h>
+private int inflate_bzip2(byte *, unsigned int);
+private bz_stream bz;
+#endif  /* HAVE_LIBBZ2 */
+
+#include "misc.h"
+#include "memdbg.h"	// Must be last included header
 
 #define YES 1
 #define NO  0
@@ -210,9 +237,6 @@ public void image_attribute(int);
 /*
  * pgpdump.c
  */
-
-#include <stdarg.h>
-
 int aflag;
 int dflag;
 int gflag;
@@ -221,14 +245,6 @@ int lflag;
 int mflag;
 int pflag;
 int uflag;
-
-#ifdef HAVE_UNIXLIB_LOCAL_H
-#include <unixlib/local.h>
-int __riscosify_control = __RISCOSIFY_NO_PROCESS;
-#define PATH_SEPC '.'
-#else  /* HAVE_UNIXLIB_LOCAL_H */
-#define PATH_SEPC '/'
-#endif /* HAVE_UNIXLIB_LOCAL_H */
 
 public void
 warning(const string fmt, ...)
@@ -2302,32 +2318,12 @@ encrypted_Secret_Key(int len, int sha1)
 /*
  * buffer.c
  */
-
-#include <ctype.h>
-#include <strings.h>
-
 typedef char * cast_t;
 
 private int line_not_blank(byte *);
 private int read_binary(byte *, unsigned int);
 private int read_radix64(byte *, unsigned int);
 private int decode_radix64(byte *, unsigned int);
-
-#define HAVE_LIBZ 1
-
-#ifdef HAVE_LIBZ
-#include <zlib.h>
-private int inflate_gzip(byte *, unsigned int);
-private z_stream z;
-#endif  /* HAVE_LIBZ */
-
-// #define HAVE_LIBBZ2 1
-
-#ifdef HAVE_LIBBZ2  // XXX ask the team about this
-#include <bzlib.h>
-private int inflate_bzip2(byte *, unsigned int);
-private bz_stream bz;
-#endif  /* HAVE_LIBBZ2 */
 
 #define NUL '\0'
 #define CR  '\r'

@@ -26,6 +26,7 @@
 #include "sha.h"
 #include "johnswap.h"
 #include "sse-intrinsics.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL            "HMAC-SHA1"
 #define FORMAT_NAME             ""

@@ -28,6 +28,7 @@ typedef unsigned int ARCH_WORD_32;
 #elif HAVE_CUDA
 #include "cuda_common.h"
 #endif
+#include "memdbg.h"
 
 struct fmt_main *fmt_list = NULL;
 static struct fmt_main **fmt_tail = &fmt_list;
@@ -173,6 +174,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 	if (format->private.initialized == 2)
 		return NULL;
 #endif
+	MemDbg_Validate_msg(MEMDBG_VALIDATE_DEEPEST, "\nAt start of self-test:");
 
 #ifndef BENCH_BUILD
 	if (options.flags & FLG_NOTESTS) {
@@ -469,6 +471,8 @@ static char *fmt_self_test_body(struct fmt_main *format,
 
 	format->methods.clear_keys();
 	format->private.initialized = 2;
+
+	MemDbg_Validate_msg(MEMDBG_VALIDATE_DEEPEST, "At end of self-test:");
 
 	return NULL;
 }

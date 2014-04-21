@@ -79,6 +79,8 @@ struct dsc$descriptor_s {
 #include "uaf_raw.h"
 #include "uaf_encode.h"
 #include <pthread.h>
+#include "memdbg.h"
+
 /*
  * Declare static globals that don't change once initialized as well as
  * pthread objects used to sychronize access and/or initialization.

@@ -23,6 +23,8 @@
 
 #include "crypto_scrypt.h"
 
+#include "../memdbg.h"
+
 #define BYTES2CHARS(bytes) \
 	((((bytes) * 8) + 5) / 6)
 

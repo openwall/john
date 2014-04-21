@@ -6,6 +6,7 @@
  * Based on Alain Espinosa implementation http://openwall.info/wiki/john/MSCash
  */
 #include <string.h>
+
 #include "arch.h"
 #include "formats.h"
 #include "common.h"
@@ -13,6 +14,7 @@
 #include "cuda_mscash.h"
 #include "cuda_common.h"
 #include "unicode.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL		"mscash-cuda"
 #define FORMAT_NAME		"MS Cache Hash (DCC)"

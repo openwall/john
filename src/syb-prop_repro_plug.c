@@ -1,4 +1,5 @@
 #include "syb-prop_repro.h"
+#include "memdbg.h"
 
 static unsigned char joke[] =
     "Q:Whydidtheflydanceonthejar?A:Becausethelidsaidtwisttoopen.HaHa!";

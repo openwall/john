@@ -10,6 +10,7 @@
 #include "params.h"
 #include "common.h"
 #include "formats.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL			"sha1-gen"
 #define FORMAT_NAME			"Generic salted SHA-1"

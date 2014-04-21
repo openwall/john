@@ -36,6 +36,7 @@
 #include "common.h"
 #include "formats.h"
 #include "johnswap.h"
+#include "memdbg.h"
 
 #if defined __XOP__
 #define SIMD_TYPE                 "XOP"

@@ -29,6 +29,7 @@
 #include "unicode.h"
 #include "memory.h"
 #include "johnswap.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL			"nt2" /* Should be nt-ng now */
 #define FORMAT_NAME			"NT"

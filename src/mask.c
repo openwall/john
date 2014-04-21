@@ -24,6 +24,8 @@
 #include "john.h"
 #include "mask.h"
 
+#include "memdbg.h"
+
 static struct rpp_context ctx, rec_ctx;
 
 /*

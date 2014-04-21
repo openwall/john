@@ -44,6 +44,7 @@
 #include <assert.h>
 #include "stdint.h"
 #include "misc.h"
+#include "memdbg.h"
 
 #define SALTLEN 20
 #define IVLEN 8

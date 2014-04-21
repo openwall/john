@@ -25,6 +25,7 @@
 #include "unicode.h"
 
 #include <openssl/des.h>
+#include "memdbg.h"
 
 #ifndef uchar
 #define uchar unsigned char

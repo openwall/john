@@ -25,6 +25,7 @@
 #include <openssl/blowfish.h>
 #include <openssl/aes.h>
 #include "pbkdf2_hmac_sha1.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL		"ODF"
 #define FORMAT_NAME		""

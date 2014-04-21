@@ -32,6 +32,7 @@
 #define OMP_SCALE               16
 static int omp_t = 1;
 #endif
+#include "memdbg.h"
 #define BASE_SCALE             96
 
 /* From gladman_fileenc.h */

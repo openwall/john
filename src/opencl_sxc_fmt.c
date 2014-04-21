@@ -22,6 +22,7 @@
 #include "common.h"
 #include "formats.h"
 #include "common-opencl.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL		"sxc-opencl"
 #define FORMAT_NAME		"StarOffice .sxc"

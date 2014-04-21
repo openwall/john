@@ -25,6 +25,7 @@
 #include "misc.h"
 #include "common-opencl.h"
 #include "options.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL		"agilekeychain-opencl"
 #define FORMAT_NAME		"1Password Agile Keychain"

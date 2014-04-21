@@ -23,6 +23,7 @@
 #include "sha2.h"
 #include "md5.h"
 #include "stdint.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL		"keyring-opencl"
 #define FORMAT_NAME		"GNOME Keyring"

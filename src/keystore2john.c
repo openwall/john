@@ -54,9 +54,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-
 #include "stdint.h"
 #include "misc.h"
+#include "memdbg.h"
 
 #define N 819200
 
@@ -217,6 +217,6 @@ int keystore2john(int argc, char **argv)
                 exit(-1);
         }
         process_file(argv[1]);
-
+	MEMDBG_PROGRAM_EXIT_CHECKS(stderr);
 	return 0;
 }

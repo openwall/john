@@ -28,6 +28,7 @@
 #include "unicode.h"
 #include "common-opencl.h"
 #include "config.h"
+#include "memdbg.h"
 
 #define PLAINTEXT_LENGTH	51
 #define UNICODE_LENGTH		104 /* In octets, including 0x80 */

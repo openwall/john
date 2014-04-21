@@ -16,6 +16,10 @@
 #include "BF_std.h"
 #include "common.h"
 #include "formats.h"
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+#include "memdbg.h"
 
 #define FORMAT_LABEL			"bcrypt"
 #define FORMAT_NAME			""
@@ -88,8 +92,6 @@ static int sign_extension_bug;
 static BF_salt saved_salt;
 
 #ifdef _OPENMP
-#include <omp.h>
-
 struct fmt_main fmt_BF;
 #endif
 

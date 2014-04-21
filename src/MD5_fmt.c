@@ -23,6 +23,7 @@
 #define OMP_SCALE			4
 #include <omp.h>
 #endif
+#include "memdbg.h"
 
 #define FORMAT_LABEL			"md5crypt"
 #define FORMAT_NAME			"crypt(3) $1$"

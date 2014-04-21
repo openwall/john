@@ -19,7 +19,7 @@
 #include "common_opencl_pbkdf2.h"
 #include "loader.h"
 #include "config.h"
-
+#include "memdbg.h"
 
 #define INIT_MD4_A                  0x67452301
 #define INIT_MD4_B                  0xefcdab89

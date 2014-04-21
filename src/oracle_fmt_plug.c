@@ -17,6 +17,7 @@
 #include "common.h"
 #include "formats.h"
 #include "unicode.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL			"oracle"
 #define FORMAT_NAME			"Oracle 10"

@@ -26,6 +26,7 @@
 #include "options.h"
 #include "unicode.h"
 #include "sha.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL			"mssql"
 #define FORMAT_NAME			"MS SQL"

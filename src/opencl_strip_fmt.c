@@ -20,6 +20,7 @@
 #include "common.h"
 #include "misc.h"
 #include "common-opencl.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL		"strip-opencl"
 #define FORMAT_NAME		"STRIP Password Manager"

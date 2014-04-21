@@ -24,6 +24,7 @@
 #include <omp.h>
 #define OMP_SCALE               1 // tuned on core i7
 #endif
+#include "memdbg.h"
 
 #define FORMAT_LABEL		"Blockchain"
 #define FORMAT_NAME		"My Wallet"

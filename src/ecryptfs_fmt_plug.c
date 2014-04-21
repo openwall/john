@@ -30,6 +30,7 @@ static int omp_t = 1;
 #include <omp.h>
 #define OMP_SCALE               8 // XXX
 #endif
+#include "memdbg.h"
 
 #define FORMAT_TAG 		"$ecryptfs$"
 #define FORMAT_TAG_LENGTH	10
@@ -278,4 +279,3 @@ struct fmt_main fmt_ecryptfs1 = {
 		cmp_exact
 	}
 };
-

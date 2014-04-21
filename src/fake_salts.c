@@ -25,6 +25,7 @@
 #include "memory.h"
 #include "options.h"
 #include "fake_salts.h"
+#include "memdbg.h"
 
 // global data  (Options loading uses this variable).
 char *regen_salts_options;

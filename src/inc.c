@@ -29,6 +29,7 @@
 #include "john.h"
 #include "options.h"
 #include "unicode.h"
+#include "memdbg.h"
 
 extern struct fmt_main fmt_LM;
 extern struct fmt_main fmt_NETLM;

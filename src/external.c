@@ -28,6 +28,7 @@
 #include "john.h"
 #include "external.h"
 #include "options.h"
+#include "memdbg.h"
 
 static char int_word[PLAINTEXT_BUFFER_SIZE];
 static char rec_word[PLAINTEXT_BUFFER_SIZE];

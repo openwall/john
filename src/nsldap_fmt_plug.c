@@ -23,6 +23,7 @@
 #include "formats.h"
 #include "sha.h"
 #include "base64.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL			"nsldap"
 #define FORMAT_NAME			"Netscape LDAP {SHA}"

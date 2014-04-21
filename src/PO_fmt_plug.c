@@ -30,6 +30,7 @@
 #include "common.h"
 #include "formats.h"
 #include "md5_go.h"
+#include "memdbg.h"
 
 typedef ARCH_WORD_32 MD5_word;
 typedef MD5_word MD5_binary[4];

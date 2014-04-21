@@ -27,6 +27,7 @@
 
 #include "arch.h"
 #include "md4.h"
+#include "memdbg.h"
 
 /*
  * The basic MD4 functions.

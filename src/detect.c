@@ -13,6 +13,7 @@
  */
 
 #include <stdio.h>
+#include "memdbg.h"
 
 int main(int argc, char **argv)
 {

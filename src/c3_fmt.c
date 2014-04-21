@@ -37,6 +37,10 @@
 #include "formats.h"
 #include "loader.h"
 #include "john.h"
+#ifdef HAVE_MPI
+#include "john-mpi.h"
+#endif
+#include "memdbg.h"
 
 #define FORMAT_LABEL			"crypt"
 #define FORMAT_NAME			"generic crypt(3)"

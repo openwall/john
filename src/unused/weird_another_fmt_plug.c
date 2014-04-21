@@ -8,21 +8,23 @@
  * Algorithm : md5(md5(t)+md5(e)+md5(s)+md5(t)) for "test" */
 
 #include <unistd.h>
-#include "md5.h"
-#include <string.h>
-#include <assert.h>
-#include <errno.h>
-#include "arch.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
 #ifdef _OPENMP
 static int omp_t = 1;
 #include <omp.h>
 #define OMP_SCALE               64
 #endif
+#include <string.h>
+#include <assert.h>
+#include <errno.h>
+
+#include "arch.h"
+#include "md5.h"
+#include "misc.h"
+#include "common.h"
+#include "formats.h"
+#include "params.h"
+#include "options.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL		"weird"
 #define FORMAT_NAME		"weird md5(md5(t)+md5(e)+md5(s)+md5(t)) for \"test\""

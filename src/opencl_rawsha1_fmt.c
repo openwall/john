@@ -20,6 +20,7 @@
 #include "johnswap.h"
 #include "common-opencl.h"
 #include "options.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL			"Raw-SHA1-opencl"
 #define FORMAT_NAME			""

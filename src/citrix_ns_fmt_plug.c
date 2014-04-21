@@ -32,12 +32,6 @@
 
 #include <string.h>
 
-#include "arch.h"
-#include "misc.h"
-#include "formats.h"
-#include "options.h"
-#include "johnswap.h"
-
 #ifdef _OPENMP
 #ifdef MMX_COEF
 #define OMP_SCALE                       1024
@@ -47,16 +41,21 @@
 #include <omp.h>
 #endif
 
+#include "arch.h"
+#include "misc.h"
+#include "formats.h"
+#include "options.h"
+#include "johnswap.h"
+
 #ifdef SHA1_SSE_PARA
 #define NBKEYS  (MMX_COEF * SHA1_SSE_PARA)
 #elif MMX_COEF
 #define NBKEYS  MMX_COEF
 #endif
 #include "sse-intrinsics.h"
-
 #include "common.h"
-
 #include "sha.h"
+#include "memdbg.h"	// Must be last included header
 
 #define FORMAT_LABEL                    "Citrix_NS10"
 #define FORMAT_NAME                     "Netscaler 10"

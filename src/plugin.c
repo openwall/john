@@ -25,6 +25,8 @@
 #endif
 
 #include "plugin.h"
+#include "memdbg.h"
+
 /*
  * Scan fmt_list and look for duplicate format name, which confuses --test.
  * Return 1 if duplicate.

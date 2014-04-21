@@ -52,6 +52,8 @@
 
 #include "md5.h"
 #include "hmacmd5.h"
+#include "byteorder.h"
+#include "memdbg.h"
 
 #ifndef uchar
 #define uchar unsigned char
@@ -111,8 +113,6 @@ static unsigned char *challenge;
 #define int16 short
 #endif /* SIZEOF_SHORT != 4 */
 #endif
-
-#include "byteorder.h"
 
 static void init(struct fmt_main *self)
 {

@@ -30,6 +30,7 @@
 #endif
 #include <omp.h>
 #endif
+#include "memdbg.h"
 
 #define FORMAT_LABEL            "Raw-SHA224"
 #define FORMAT_NAME             ""

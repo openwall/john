@@ -77,6 +77,8 @@ static struct {
 
 #endif
 
+#include "memdbg.h"
+
 #if DES_BS && DES_bs_mt
 struct fmt_main fmt_DES;
 #endif

@@ -8,6 +8,10 @@
  */
 
 #include <string.h>
+#ifdef _OPENMP
+#include <omp.h>
+#define OMP_SCALE 2048 // XXX
+#endif
 
 #include "arch.h"
 #include "md5.h"
@@ -16,11 +20,7 @@
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-
-#ifdef _OPENMP
-#include <omp.h>
-#define OMP_SCALE 2048 // XXX
-#endif
+#include "memdbg.h"
 
 #define FORMAT_LABEL            "net-md5"
 #define FORMAT_NAME             "\"Keyed MD5\" RIPv2, OSPF, BGP, SNMPv2"

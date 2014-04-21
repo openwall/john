@@ -42,6 +42,7 @@
 
 #include "arch.h"
 #include "mozilla_des.h"
+#include "memdbg.h"
 
 //#define USE_INDEXING 1
 

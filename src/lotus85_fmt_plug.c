@@ -15,13 +15,15 @@
 #include <openssl/sha.h>
 #include <openssl/rc2.h>
 
-#include "formats.h"
-#include "common.h"
 #ifdef _OPENMP
 #include <omp.h>
 #define OMP_SCALE               64  // XXX tune me!
 static int omp_t = 1;
 #endif
+
+#include "formats.h"
+#include "common.h"
+#include "memdbg.h"
 
 /* Plugin definition */
 #define FORMAT_LABEL          "lotus85"

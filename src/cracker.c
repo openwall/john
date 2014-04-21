@@ -51,6 +51,7 @@
 #include "john-mpi.h"
 #endif
 #include "path.h"
+#include "memdbg.h"
 
 #ifdef index
 #undef index

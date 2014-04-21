@@ -9,6 +9,10 @@
  */
 
 #include <string.h>
+#ifdef _OPENMP
+#include <omp.h>
+#define OMP_SCALE 2048 // XXX
+#endif
 
 #include "arch.h"
 #include "md5.h"
@@ -17,11 +21,7 @@
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-
-#ifdef _OPENMP
-#include <omp.h>
-#define OMP_SCALE 2048 // XXX
-#endif
+#include "memdbg.h"
 
 #define FORMAT_LABEL            "tcp-md5"
 #define FORMAT_NAME             "TCP MD5 Signatures, BGP"

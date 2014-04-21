@@ -44,6 +44,8 @@
 #include "arch.h"
 #include "snefru.h"
 
+#include "memdbg.h"
+
 #define SNEFRU_NUMBER_OF_ROUNDS 8
 
 /* SNEFRU lookup table (S-Box) */

@@ -50,6 +50,7 @@
 #include "opencl_pbkdf2_hmac_sha1.h"
 #include "gladman_hmac.h"
 #include "loader.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL		"krb5pa-sha1-opencl"
 #define FORMAT_NAME		"Kerberos 5 AS-REQ Pre-Auth etype 17/18" /* aes-cts-hmac-sha1-96 */

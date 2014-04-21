@@ -22,6 +22,7 @@ static int omp_t = 1;
 #include <omp.h>
 #define OMP_SCALE               1 // So slow a format, a multiplier is NOT needed
 #endif
+#include "memdbg.h"
 
 #define FORMAT_LABEL		"django-scrypt"
 #define FORMAT_NAME		""

@@ -22,6 +22,7 @@
 #include "common.h"
 #include "sha2.h"
 #include "base64.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL                    "SSHA512"
 #define FORMAT_NAME                     "LDAP"

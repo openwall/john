@@ -27,6 +27,7 @@
 #include "formats.h"
 #include "path.h"
 #include "common-opencl.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL		"nt-opencl"
 #define FORMAT_NAME		"NT"

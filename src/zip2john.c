@@ -68,6 +68,7 @@
 #include "misc.h"
 #include "formats.h"
 #include "stdint.h"
+#include "memdbg.h"
 
 #define LARGE_ENOUGH 8192
 
@@ -561,5 +562,6 @@ int zip2john(int argc, char **argv)
 		process_file(argv[i]);
 
 	cleanup_tiny_memory();
+	MEMDBG_PROGRAM_EXIT_CHECKS(stderr);
 	return 0;
 }

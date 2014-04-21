@@ -19,6 +19,7 @@
 #include "formats.h"
 
 #include "sha.h"
+#include "memdbg.h"
 
 #define PLAINTEXT_LENGTH   125
 #define BINARY_LENGTH      20

@@ -67,6 +67,7 @@
 #ifdef _OPENMP
 #include <omp.h>
 #endif /* _OPENMP */
+#include "memdbg.h"
 
 long clk_tck = 0;
 
@@ -374,6 +375,8 @@ int benchmark_all(void)
 	struct bench_results results_1, results_m;
 	char s_real[64], s_virtual[64];
 	unsigned int total, failed;
+	MEMDBG_HANDLE memHand;
+
 #ifdef _OPENMP
 	int ompt;
 	int ompt_start = omp_get_max_threads();
@@ -397,6 +400,7 @@ int benchmark_all(void)
 #endif
 	if ((format = fmt_list))
 	do {
+		memHand = MEMDBG_getSnapshot(0);
 #ifndef BENCH_BUILD
 /* Silently skip formats for which we have no tests, unless forced */
 		if (!format->params.tests && format != fmt_list)
@@ -570,6 +574,7 @@ int benchmark_all(void)
 
 next:
 		fmt_done(format);
+		MEMDBG_checkSnapshot_possible_exit_on_error(memHand, 0);
 
 #ifndef BENCH_BUILD
 		/* In case format changed it */

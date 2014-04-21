@@ -34,6 +34,7 @@
 #include "params.h"
 #include "memory.h"
 #include "misc.h"
+#include "memdbg.h"
 
 const char *extension[]={".kdbx"};
 
@@ -346,6 +347,6 @@ int keepass2john(int argc, char **argv)
 	for(i = 1; i < argc; i++) {
 		process_database(argv[i]);
 	}
-
+	MEMDBG_PROGRAM_EXIT_CHECKS(stderr);
 	return 0;
 }

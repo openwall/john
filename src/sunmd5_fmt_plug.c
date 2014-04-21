@@ -36,6 +36,7 @@
 #include "memory.h"
 #include "md5.h"
 #include "sse-intrinsics.h"
+#include "memdbg.h"
 
 /*
  * these 2 are for testing non-MMX mode. if we

@@ -29,6 +29,7 @@ static int omp_t = 1;
 #include <omp.h>
 #define OMP_SCALE               4
 #endif
+#include "memdbg.h"
 
 /* 64 is the actual maximum used by Truecrypt software as of version 7.1a */
 #define PLAINTEXT_LENGTH	64

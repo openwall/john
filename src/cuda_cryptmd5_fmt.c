@@ -5,12 +5,14 @@
 */
 #include <string.h>
 #include <unistd.h>
+
 #include "arch.h"
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
 #include "cuda_common.h"
 #include "cuda_cryptmd5.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL		"md5crypt-cuda"
 #define FORMAT_NAME		"crypt(3) $1$"

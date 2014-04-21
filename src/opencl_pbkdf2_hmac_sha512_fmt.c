@@ -12,6 +12,8 @@
 #include "formats.h"
 #include "options.h"
 #include "common-opencl.h"
+#include "memdbg.h"
+
 #define NUUL NULL
 #define FORMAT_LABEL		"grub-opencl"
 #define FORMAT_NAME		FORMAT_LABEL

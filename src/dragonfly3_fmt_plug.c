@@ -24,6 +24,7 @@
 #define OMP_SCALE			256
 #include <omp.h>
 #endif
+#include "memdbg.h"
 
 #define FORMAT_LABEL_32			"dragonfly3-32"
 #define FORMAT_LABEL_64			"dragonfly3-64"

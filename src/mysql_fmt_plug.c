@@ -31,6 +31,7 @@
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL			"mysql"
 #define FORMAT_NAME			"MySQL pre-4.1"

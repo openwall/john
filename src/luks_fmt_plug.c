@@ -46,6 +46,7 @@ static int omp_t = 1;
 #include <omp.h>
 #define OMP_SCALE               1
 #endif
+#include "memdbg.h"
 
 #define LUKS_MAGIC_L        6
 #define LUKS_CIPHERNAME_L   32
@@ -237,6 +238,7 @@ bad:
 	}
 	return -1;
 }
+
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];

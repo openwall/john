@@ -59,6 +59,8 @@
 #include "sse-intrinsics-load-flags.h"
 #include "aligned.h"
 
+#include "memdbg.h"
+
 #if defined (_MSC_VER) && !defined (_M_X64)
 /* These are slow, but the F'n 32 bit compiler will not build these intrinsics.
    Only the 64-bit (Win64) MSVC compiler has these as intrinsics. These slow

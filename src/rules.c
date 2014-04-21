@@ -22,6 +22,7 @@
 #include "john.h"
 #include "unicode.h"
 #include "encoding_data.h"
+#include "memdbg.h"
 
 /*
  * Error codes.

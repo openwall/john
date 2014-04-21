@@ -67,6 +67,12 @@
 
 #include "idea-JtR.h"
 
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+
+#include "memdbg.h"
+
 /* crypto/idea/idea_lcl.h */
 /* Copyright (C) 1995-1998 Eric Young (eay@cryptsoft.com)
  * All rights reserved.
@@ -806,10 +812,6 @@ void JtR_idea_ofb64_encrypt(const unsigned char *in, unsigned char *out,
  * copied and put under another distribution licence
  * [including the GNU Public Licence.]
  */
-
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
 
 #ifdef IDEATEST
 unsigned char k[16]={

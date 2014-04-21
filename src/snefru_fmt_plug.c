@@ -22,6 +22,8 @@ static int omp_t = 1;
 #define OMP_SCALE               1 // FIXME
 #endif
 
+#include "memdbg.h"
+
 #define FORMAT_TAG		"$snefru$"
 #define TAG_LENGTH		8
 #define ALGORITHM_NAME		"32/" ARCH_BITS_STR

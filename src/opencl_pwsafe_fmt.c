@@ -22,6 +22,7 @@
 #include "base64.h"
 #include "common-opencl.h"
 #include "memory.h"
+#include "memdbg.h"
 
 #define uint8_t                         unsigned char
 #define uint32_t                        unsigned int

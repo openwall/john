@@ -103,13 +103,15 @@ void main() {
 //#define FMT_OMP 0
 // Well, I tried by turning of OMP, but the run still failed.  So, I will simply
 // leave OMP on, but turn off SSE in an OMP build, until I get this figured out.
-#undef MMX_COEF_SHA256
+//#undef MMX_COEF_SHA256
 #endif
 
 #ifdef _OPENMP
 #define OMP_SCALE			8
 #include <omp.h>
 #endif
+
+#include "memdbg.h"
 
 // NOTE, in SSE mode, even if NOT in OMP, we may need to scale, quite a bit, due to needing
 // to 'group' passwords differently, so that we have lengths which 'share' the same number
@@ -130,7 +132,7 @@ void main() {
 // then let the threads go on ALL data, without caring about the length, since each thread will only
 // be working on passwords in a single MMX buffer that all match, at any given moment.
 //
-//#undef MMX_COEF_SHA256
+#undef MMX_COEF_SHA256
 #ifdef MMX_COEF_SHA256
 #ifdef _OPENMP
 #define MMX_COEF_SCALE      (128/MMX_COEF_SHA256)
@@ -635,6 +637,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				MixOrder[tot_todo++] = count;
 		}
 	}
+	printf ("tot_todo=%d count+5*MMX_COEF_SHA256=%d\n", tot_todo, count+5*MMX_COEF_SHA256);
 #else
 	// no need to mix. just run them one after the next, in any order.
 	MixOrder = mem_alloc(sizeof(int)*count);

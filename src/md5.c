@@ -28,6 +28,7 @@
 
 #include "arch.h"
 #include "md5.h"
+#include "memdbg.h"
 
 /*
  * The basic MD5 functions.

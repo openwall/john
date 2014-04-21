@@ -29,6 +29,7 @@
 #include "sha.h"
 #include "base64.h"
 #include "sse-intrinsics.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL		"Fortigate"
 #define FORMAT_NAME             "FortiOS"

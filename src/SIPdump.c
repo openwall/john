@@ -25,6 +25,7 @@
 #include <arpa/inet.h>
 #include <pcap.h>
 #include "SIPdump.h"
+#include "memdbg.h"
 
 #define SIP_LINE_LEN   1024	/* Maximum length of SIP protocol lines */
 #define SIP_METHOD_LEN   32	/* Maximum length of SIP method string  */

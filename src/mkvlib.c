@@ -12,6 +12,7 @@
 #include "memory.h"
 #include "mkvlib.h"
 #include "path.h"
+#include "memdbg.h"
 
 unsigned char * proba1;
 unsigned char * proba2;

@@ -11,6 +11,7 @@
 #include "cuda_common.h"
 #include "options.h"
 #include "john.h"
+#include "memdbg.h"
 
 void cuda_init()
 {

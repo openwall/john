@@ -31,6 +31,7 @@
 #include "options.h"
 #include "misc.h"
 #include "common-opencl.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL		"dmg-opencl"
 #define FORMAT_NAME		"Apple DMG"

@@ -42,6 +42,7 @@
 #include <string.h>
 #include <ctype.h>
 #include "memory.h"
+#include "memdbg.h"
 
 #define VERSION		"1.2"
 #define TGT_LENGTH	16

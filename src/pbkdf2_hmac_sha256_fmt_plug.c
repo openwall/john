@@ -18,6 +18,7 @@
 #include <omp.h>
 #define OMP_SCALE		24
 #endif
+#include "memdbg.h"
 
 #define FORMAT_LABEL		"PBKDF2-HMAC-SHA256"
 #define FORMAT_NAME		""
@@ -679,4 +680,3 @@ struct fmt_main fmt_pbkdf2_hmac_sha256 = {
 		cmp_exact
 	}
 };
-

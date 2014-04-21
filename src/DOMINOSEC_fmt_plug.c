@@ -28,6 +28,7 @@ static int omp_t = 1;
 #include <omp.h>
 #define OMP_SCALE               32
 #endif
+#include "memdbg.h"
 
 #define FORMAT_LABEL		"dominosec"
 #define FORMAT_NAME		"Lotus Notes/Domino 6 More Secure Internet Password"

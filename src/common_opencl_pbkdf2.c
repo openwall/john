@@ -11,6 +11,7 @@
 #include "common_opencl_pbkdf2.h"
 #include "memory.h"
 #include "options.h"
+#include "memdbg.h"
 
 typedef struct {
 	cl_kernel	krnl[4];

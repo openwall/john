@@ -33,6 +33,7 @@
 #include "params.h"
 #include <openssl/bio.h>
 #include <openssl/evp.h>
+#include "memdbg.h"
 
 #define LUKS_MAGIC_L        6
 #define LUKS_CIPHERNAME_L   32

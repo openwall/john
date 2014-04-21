@@ -16,6 +16,7 @@
 #include "formats.h"
 #include "options.h"
 #include "common-opencl.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL		"PBKDF2-HMAC-SHA256-opencl"
 #define FORMAT_NAME		"OpenCL"

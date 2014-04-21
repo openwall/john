@@ -30,6 +30,7 @@
 #include "config.h"
 #include "unicode.h"
 #include "loader.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL            "ntlmv2-opencl"
 #define FORMAT_NAME             "NTLMv2 C/R"

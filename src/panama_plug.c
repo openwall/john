@@ -35,6 +35,8 @@
 
 #include "sph_panama.h"
 
+#include "memdbg.h"
+
 #define LVAR17(b)  sph_u32 \
 	b ## 0, b ## 1, b ## 2, b ## 3, b ## 4, b ## 5, \
 	b ## 6, b ## 7, b ## 8, b ## 9, b ## 10, b ## 11, \

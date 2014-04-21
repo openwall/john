@@ -16,6 +16,7 @@
 #include "list.h"
 #include "getopt.h"
 #include "john.h"
+#include "memdbg.h"
 
 static char *opt_errors[] = {
 	NULL,	/* No error */

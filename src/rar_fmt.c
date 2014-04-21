@@ -110,6 +110,8 @@
 static pthread_mutex_t *lockarray;
 #endif
 
+#include "memdbg.h"
+
 static int omp_t = 1;
 static unsigned char *saved_salt;
 static unsigned char *saved_key;
