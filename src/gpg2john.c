@@ -69,6 +69,30 @@ private int inflate_bzip2(byte *, unsigned int);
 private bz_stream bz;
 #endif  /* HAVE_LIBBZ2 */
 
+#if TIME_WITH_SYS_TIME
+# include <sys/time.h>
+# include <time.h>
+#else
+# if HAVE_SYS_TIME_H
+#  include <sys/time.h>
+# else
+#  include <time.h>
+# endif
+#endif
+
+#if HAVE_STRUCT_TM_TM_ZONE
+# define tm_zone(tm) (tm->tm_zone)
+#elif HAVE_TZNAME
+# define tm_zone(tm) (tzname[tm->tm_isdst])
+#elif __MINGW32__
+# define tm_zone(tm) (tzname[tm->tm_isdst])
+#else
+# ifndef tzname  /* For SGI. */
+  extern string tzname[]; /* RS6000 and others reject char **tzname. */
+# endif
+# define tm_zone(tm) (tzname[tm->tm_isdst])
+#endif
+
 #include "misc.h"
 #include "memdbg.h"	// Must be last included header
 
@@ -341,31 +365,6 @@ kdump(int len)
 /*
  * types.c
  */
-
-
-#if TIME_WITH_SYS_TIME
-# include <sys/time.h>
-# include <time.h>
-#else
-# if HAVE_SYS_TIME_H
-#  include <sys/time.h>
-# else
-#  include <time.h>
-# endif
-#endif
-
-#if HAVE_STRUCT_TM_TM_ZONE
-# define tm_zone(tm) (tm->tm_zone)
-#elif HAVE_TZNAME
-# define tm_zone(tm) (tzname[tm->tm_isdst])
-#elif __MINGW32__
-# define tm_zone(tm) (tzname[tm->tm_isdst])
-#else
-# ifndef tzname  /* For SGI. */
-  extern string tzname[]; /* RS6000 and others reject char **tzname. */
-# endif
-# define tm_zone(tm) (tzname[tm->tm_isdst])
-#endif
 
 private void time4_base(string, time_t *);
 private time_t key_creation_time = 0;
