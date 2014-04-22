@@ -10,6 +10,7 @@
 #include <unistd.h>
 
 #include "unicode.h"
+#include "memdbg.h"
 
 // gcc -Wall -O3 -s -DNOT_JOHN -D_JOHN_MISC_NO_LOG cprepair.c unicode.c misc.c -o ../run/cprepair
 
