@@ -62,8 +62,7 @@ HAVE_KRB5 = `find 2>&1 /usr/include/ /usr/local/include/ -name "krb5.h" | grep -
 KRB5_LDFLAGS = `find 2>&1 /usr/include/ /usr/local/include/ -name "krb5.h" | grep -q "krb5.h" && echo -lk5crypto -lkrb5`
 REXGEN_FLAGS = `find 2>&1 /usr/include/librexgen/api/c /usr/local/include/librexgen/api/c -name "librexgen.h" | grep -q "librexgen.h" && echo -DHAVE_REXGEN=1`
 REXGEN_LDFLAGS = `find 2>&1 /usr/lib/ /usr/local/lib/ -name "liblibrexgen*.a" | grep -q "liblibrexgen" && echo -llibrexgen`
-REXGEN_LDFLAGS += `find 2>&1 /usr/lib/ /usr/local/lib/ -name "librexgen*.a" | grep -q "librexgen" && echo -lrexgen`
-REXGEN_LDFLAGS += `find 2>&1 /usr/lib/ /usr/local/lib/ -name "librexgen*.dylib" | grep -q "librexgen" && echo -lrexgen`
+REXGEN_LDFLAGS += `find 2>&1 /usr/lib/ /usr/local/lib/ -name "librexgen*.a" -o -name "librexgen*.so" -o -name "librexgen*.dylib" | grep -q "librexgen" && echo -lrexgen`
 endif
 
 # Uncomment the below if you have GMP library installed (faster wowsrp format)
