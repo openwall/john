@@ -228,7 +228,7 @@ static struct opt_entry opt_list[] = {
 
 #if HAVE_REXGEN
 #define JOHN_USAGE_REGEX \
-	"--regex=REGEXPR           regular expression mode (see README.librexgen)\n"
+	"--regex=REGEXPR           regular expression mode (see doc/README.librexgen)\n"
 #else
 #define JOHN_USAGE_REGEX ""
 #endif
@@ -389,7 +389,7 @@ void opt_print_hidden_usage(void)
 	puts("--verbosity=N             change verbosity (1-5, default 3)");
 	puts("--skip-self-tests         skip self tests");
 	puts("--target-encoding=NAME    encoding used by format (see doc/ENCODING)");
-	puts("--intermediate-enc=NAME   encoding used in rules processing (see doc/ENCODING");
+	puts("--intermediate-enc=NAME   encoding used in rules processing (see doc/ENCODING)");
 #ifdef HAVE_DL
 	puts("--plugin=NAME[,..]        load this (these) dynamic plugin(s)");
 #endif
