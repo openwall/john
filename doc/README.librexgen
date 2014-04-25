@@ -5,7 +5,7 @@ jan.starke@outofbed.org   The regex.c code in JtR by JimF, Spring 2014.
 First off, see the section at the bottom of this document about how to obtain
 build and install librexgen.
 
-Usage within JtR: --rexgen[=option=option2=option3]=expression
+Usage within JtR: --regex[=option=option2=option3]=expression
 
 The current options we have are:
     case      will tell librexgen to do case insensitive work
@@ -37,10 +37,10 @@ The current options we have are:
 Currently, rexgen can be used stand alone, OR with wordlist and rules.
 There are plans to also add this to single mode at some time.
 
-The command line switch for stand along is --rexgen[=case]=expression
+The command line switch for stand along is --regex[=case]=expression
 The expression is a stand along rexex expression.  If the optional
 =case is there, then the expression is handled in a case insensitive
-manner (case mangling).  So using:  --rexgen=case=pass  would use these:
+manner (case mangling).  So using:  --regex=case=pass  would use these:
 PASS
 PASs
 PaSS
