@@ -228,7 +228,7 @@ static struct opt_entry opt_list[] = {
 
 #if HAVE_REXGEN
 #define JOHN_USAGE_REGEX \
-"--regex=REGEX             regular expression mode\n"
+	"--regex=REGEXPR           regular expression mode (see README.librexgen)\n"
 #else
 #define JOHN_USAGE_REGEX ""
 #endif

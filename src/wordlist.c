@@ -328,7 +328,7 @@ static MAYBE_INLINE int wbuf_unique(char *line)
 	return 1;
 }
 
-void do_wordlist_crack(struct db_main *db, char *name, int rules, char *regex)
+void do_wordlist_crack(struct db_main *db, char *name, int rules)
 {
 	union {
 		char buffer[2][LINE_BUFFER_SIZE + CACHE_BANK_SHIFT];
@@ -357,6 +357,9 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules, char *regex)
 	int maxlength = options.force_maxlength;
 	int minlength = (options.force_minlength >= 0) ?
 		options.force_minlength : 0;
+	char *regex_alpha = 0;
+	int regex_case = 0;
+	char *regex = options.regex;
 
 	log_event("Proceeding with %s mode",
 	          loopBack ? "loopback" : "wordlist");
@@ -364,15 +367,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules, char *regex)
 	if (options.activewordlistrules)
 		log_event("- Rules: %.100s", options.activewordlistrules);
 
-	if (regex) {
-		if (!strstr(regex, "\\0")) {
-			fprintf(stderr,
-			        "--regex need to contain \"\\0\" in combination"
-			        " with wordist\n");
-			exit(0);
-		} else
-			log_event("- Rexgen (after rules): %s", regex);
-	}
+	regex = prepare_regex(regex, &regex_case, &regex_alpha);
 
 	length = db->format->params.plaintext_length;
 	if (options.force_maxlength && options.force_maxlength < length)
@@ -902,7 +897,7 @@ SKIP_MEM_MAP_LOAD:;
 
 				if (ext_filter(word))
 				if (regex ?
-				    do_regex_crack_as_rules(regex, word) :
+				    do_regex_crack_as_rules(regex, word, regex_case, regex_alpha) :
 				    crk_process_key(word)) {
 					rule = NULL;
 					rules = 0;
@@ -936,7 +931,9 @@ SKIP_MEM_MAP_LOAD:;
 				last = word;
 
 				if (ext_filter(word))
-				if (regex!=NULL?do_regex_crack_as_rules(regex, word):crk_process_key(word)) {
+				if (regex!=NULL ?
+					do_regex_crack_as_rules(regex, word, regex_case, regex_alpha) :
+				    crk_process_key(word)) {
 					rules = 0;
 					pipe_input = 0;
 					break;
@@ -974,7 +971,9 @@ process_word:
 					strcpy(last, word);
 
 					if (ext_filter(word))
-					if (regex!=NULL?do_regex_crack_as_rules(regex, word):crk_process_key(word)) {
+					if (regex != NULL ?
+						do_regex_crack_as_rules(regex, word, regex_case, regex_alpha) :
+						crk_process_key(word)) {
 						rules = 0;
 						pipe_input = 0;
 						break;

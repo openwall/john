@@ -1511,7 +1511,7 @@ static void john_run(void)
 		else
 		if (options.flags & FLG_WORDLIST_CHK)
 			do_wordlist_crack(&database, options.wordlist,
-				(options.flags & FLG_RULES) != 0, options.regex);
+				(options.flags & FLG_RULES) != 0);
 #if HAVE_REXGEN
 		else
 		if (options.flags & FLG_REGEX_CHK)
@@ -1592,6 +1592,8 @@ static void john_done(void)
 			exit_status = 1;
 		}
 		fmt_done(database.format);
+		/* this may not be the correct place to free this, it likely can be freed much earlier, but it works here */
+		MEM_FREE(database.salt_hash);
 	}
 	log_done();
 #ifdef HAVE_OPENCL

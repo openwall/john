@@ -18,14 +18,18 @@
 #include "status.h"
 #include "recovery.h"
 #include "options.h"
+#include "config.h"
 #include "cracker.h"
 #include "john.h"
 #include "external.h"
 #include <locale.h>
+#include <ctype.h>
 #include "memdbg.h"
 
 #define UNICODE
 #define _UNICODE
+
+char *rexgen_alphabets[256];
 
 static void fix_state(void) {
 }
@@ -60,23 +64,98 @@ const char *callback() {
 	return NULL;
 }
 
-int do_regex_crack_as_rules(const char *regex, const char *base_word) {
+void SetupAlpha(const char *regex_alpha)
+{
+	int i;
+	struct cfg_list *list;
+
+	// first off, set 'normal' strings for each char (i.e. 'a' outputs "a")
+	for (i = 0; i < 256; ++i) {
+		char *cp = (char*)mem_alloc_tiny(2,1);
+		*cp = i;
+		cp[1] = 0;
+		rexgen_alphabets[i] = cp;
+	}
+	// we have to escape these (they are regex 'special' chars), so when we SEE them in code, we output them exactly as we see them
+	rexgen_alphabets[(unsigned char)('[')] = str_alloc_copy("(\\[)");
+	rexgen_alphabets[(unsigned char)(']')] = str_alloc_copy("(\\])");
+	rexgen_alphabets[(unsigned char)('(')] = str_alloc_copy("(\\()");
+	rexgen_alphabets[(unsigned char)(')')] = str_alloc_copy("(\\))");
+	rexgen_alphabets[(unsigned char)('{')] = str_alloc_copy("(\\{)");
+	rexgen_alphabets[(unsigned char)('}')] = str_alloc_copy("(\\})");
+	rexgen_alphabets[(unsigned char)('|')] = str_alloc_copy("(\\|)");
+	// Now add the replacements from john.conf file.
+	if ((list = cfg_get_list("list.rexgen.alpha", (char*) (&regex_alpha[5])))) {
+		struct cfg_line *x = list->head;
+		while (x) {
+			if (x->data && x->data[1] == '=')
+				rexgen_alphabets[(unsigned char)(x->data[0])] = str_alloc_copy(&(x->data[2]));
+			x = x->next;
+		}
+	}
+}
+
+int do_regex_crack_as_rules(const char *regex, const char *base_word, int regex_case, const char *regex_alpha) {
 	c_simplestring_ptr buffer = c_simplestring_new();
 	c_iterator_ptr iter = NULL;
 	charset encoding = CHARSET_UTF8;
-	int ignore_case = 0;
 	int randomize = 0;
 	const char* word;
 	static int bFirst=1;
+	static int bALPHA=0;
 
 	if (bFirst) {
 		bFirst = 0;
 		rexgen_setlocale();
+		if (regex_alpha && !strncmp(regex_alpha, "alpha", 5)) {
+			bALPHA = 1;
+			SetupAlpha(regex_alpha);
+		}
 	}
+
+	if (bALPHA) {
+		// Ok, we do our own elete of the word,
+		static char Buf[4096];
+		char *cp = Buf;
+		const char *cpi = base_word;
+		while (*cpi) {
+			cp += strnzcpyn (cp, rexgen_alphabets[(unsigned char)(*cpi)], 100);
+			++cpi;
+			if (cp - Buf > sizeof(Buf)-101)
+				break;
+		}
+		*cp = 0;
+		printf ("buf=%s\n", Buf);
+		if (*regex == 0)
+			regex = Buf;
+		else {
+			static char final_Buf[16384];
+			int len = strlen(Buf)+1;
+			cpi = regex;
+			cp = final_Buf;
+			while (*cpi) {
+				if (*cpi == '\\' && cpi[1] == '0') {
+					cp += strnzcpyn (cp, Buf, len);
+					cpi += 2;
+				} else
+					*cp++ = *cpi++;
+
+			}
+			regex = final_Buf;
+		}
+	}
+
 	strcpy(BaseWord, base_word);
-	iter = c_regex_iterator_cb(regex, ignore_case, encoding, randomize, callback);
+	if (!regex[0]) {
+		if (ext_filter("")) {
+			if (crk_process_key(""))
+				return 1;
+		}
+		return 0;
+	}
+	iter = c_regex_iterator_cb(regex, regex_case, encoding, randomize, callback);
 	if (!iter) {
-		fprintf(stderr, "Error, invalid regex expression.  John exiting now\n");
+		fprintf(stderr, "Error, invalid regex expression.  John exiting now  base_word=%s  Regex= %s\n", base_word, regex);
 		exit(1);
 	}
 	while (c_iterator_next(iter)) {
@@ -124,6 +203,60 @@ void do_regex_crack(struct db_main *db, const char *regex) {
 	c_simplestring_delete(buffer);
 	c_iterator_delete(iter);
 	crk_done();
+}
+
+
+char *prepare_regex(char *regex, int *bCase, char **regex_alpha) {
+	char *cp, *cp2;
+	if (!regex || !bCase || !regex_alpha) {
+		log_event("- NO Rexgen used");
+		return 0;
+	}
+	cp = str_alloc_copy(regex);
+	cp2 = cp;
+	while (*cp2) {
+		if (isupper((unsigned char)(*cp2)))
+			*cp2 = tolower((unsigned char)(*cp2));
+		++cp2;
+	}
+	*bCase = 0;
+	*regex_alpha = NULL;
+
+	if ((cp2 = strstr(cp, "case=")) != NULL) {
+		// found case option.  Set case and remove it.
+		*bCase = 1;
+		memmove(&regex[cp2-cp], &regex[cp2-cp+5], strlen(&regex[cp2-cp+4]));
+		memmove(cp2, &cp2[5], strlen(&cp2[4]));
+	}
+
+	cp2 = strstr(cp, "alpha:");
+	if (!cp2)
+		cp2 = strstr(cp, "alpha=");
+	if (cp2 != NULL) {
+		// found case option.  Set case and remove it.
+		int i;
+		*regex_alpha =  str_alloc_copy(cp2);
+		for (i = 1; (*regex_alpha)[i] && (*regex_alpha)[i] != '='; ++i)
+		{
+		}
+		if ((*regex_alpha)[i] == '=') {
+			(*regex_alpha)[i] = 0;
+		}
+		memmove(&regex[cp2-cp], &regex[cp2-cp+i], strlen(&regex[cp2-cp+i-1]));
+		memmove(cp2, &cp2[i], strlen(&cp2[i-1]));
+	}
+
+	if (*regex == '=')
+		++regex;
+	if (!strstr(regex, "\\0") && !(*regex_alpha)) {
+		fprintf(stderr,
+		        "--regex need to contain \"\\0\" in combination"
+		        " with wordist, or an alpha option\n");
+		exit(0);
+	} else {
+		log_event("- Rexgen (after rules): %s", regex);
+	}
+	return regex;
 }
 
 #else
