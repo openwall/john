@@ -2082,6 +2082,19 @@ sub dynamic_compile {
 			$dynamic_args==1300 && do {$fmt='md5(md5_raw($p))';	last SWITCH; };
 			$dynamic_args==1350 && do {$fmt='md5(md5($s.$p).$c1.$s),saltlen=2,const1=:';	last SWITCH; };
 
+			$dynamic_args==2000 && do {$fmt='md5($p)';					last SWITCH; };
+			$dynamic_args==2001 && do {$fmt='md5($p.$s),saltlen=32';	last SWITCH; };
+			$dynamic_args==2002 && do {$fmt='md5(md5($p))';				last SWITCH; };
+			$dynamic_args==2003 && do {$fmt='md5(md5(md5($p)))';		last SWITCH; };
+			$dynamic_args==2004 && do {$fmt='md5($s.$p),saltlen=2';		last SWITCH; };
+			$dynamic_args==2005 && do {$fmt='md5($s.$p.$s)';			last SWITCH; };
+			$dynamic_args==2006 && do {$fmt='md5(md5($p).$s)';			last SWITCH; };
+			$dynamic_args==2008 && do {$fmt='md5(md5($s).$p)';			last SWITCH; };
+			$dynamic_args==2009 && do {$fmt='md5($s.md5($p))';			last SWITCH; };
+			$dynamic_args==2010 && do {$fmt='md5($s.md5($s.$p))';		last SWITCH; };
+			$dynamic_args==2011 && do {$fmt='md5($s.md5($p.$s))';		last SWITCH; };
+			$dynamic_args==2014 && do {$fmt='md5($s.md5($p).$s)';		last SWITCH; };
+
 			return $func;
 		}
 		# allow the generic compiler to handle these types.
