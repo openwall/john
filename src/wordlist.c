@@ -359,7 +359,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 		options.force_minlength : 0;
 	char *regex_alpha = 0;
 	int regex_case = 0;
-	char *regex = options.regex;
+	char *regex = 0;
 
 	log_event("Proceeding with %s mode",
 	          loopBack ? "loopback" : "wordlist");
@@ -367,7 +367,13 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 	if (options.activewordlistrules)
 		log_event("- Rules: %.100s", options.activewordlistrules);
 
-	regex = prepare_regex(regex, &regex_case, &regex_alpha);
+#if HAVE_REXGEN
+	regex = prepare_regex(options.regex, &regex_case, &regex_alpha);
+#else
+	/* quiet stupid unused warnings */
+	regex_case = regex_case;
+	regex = regex_alpha;
+#endif
 
 	length = db->format->params.plaintext_length;
 	if (options.force_maxlength && options.force_maxlength < length)
