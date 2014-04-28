@@ -14,7 +14,7 @@
  * - user:$krb18$REALMname$hash
  * - user:REALMname$hash
  */
-#ifdef HAVE_KRB5
+#if defined (HAVE_KRB5) && !defined(__CYGWIN__)
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
