@@ -1228,7 +1228,11 @@ next_rule:
 
 		MEM_FREE(words);
 		if (mem_map)
+#if HAVE_WINDOWS_H
+			munmap(mem_map, file_len);
+#else
 			munmap(mem_map, (file_len + 16) & ~15UL);
+#endif
 		map_pos = map_end = NULL;
 		if (fclose(word_file))
 			pexit("fclose");
