@@ -2,6 +2,9 @@
  *
  * Author: Mike Frysinger <vapier@gentoo.org>
  * Placed into the public domain
+ *
+ * File edited by JimF, for proper integration into JtR
+ * edits placed into public domain.
  */
 
 /* References:
@@ -41,15 +44,20 @@
 
 static void *mmap(void *start, size_t length, int prot, int flags, int fd, off_t offset)
 {
+	DWORD flProtect;
+	off_t end;
+	HANDLE mmap_fd, h;
+	DWORD dwDesiredAccess;
+	void *ret;
+
 	if (prot & ~(PROT_READ | PROT_WRITE | PROT_EXEC))
-		return MAP_FAILED;
+		return 0;
 	if (fd == -1) {
 		if (!(flags & MAP_ANON) || offset)
-			return MAP_FAILED;
+			return 0;
 	} else if (flags & MAP_ANON)
-		return MAP_FAILED;
+		return 0;
 
-	DWORD flProtect;
 	if (prot & PROT_WRITE) {
 		if (prot & PROT_EXEC)
 			flProtect = PAGE_EXECUTE_READWRITE;
@@ -63,17 +71,20 @@ static void *mmap(void *start, size_t length, int prot, int flags, int fd, off_t
 	} else
 		flProtect = PAGE_READONLY;
 
-	off_t end = length + offset;
-	HANDLE mmap_fd, h;
+	end = length + offset;
 	if (fd == -1)
 		mmap_fd = INVALID_HANDLE_VALUE;
 	else
 		mmap_fd = (HANDLE)_get_osfhandle(fd);
-	h = CreateFileMapping(mmap_fd, NULL, flProtect, DWORD_HI(end), DWORD_LO(end), NULL);
-	if (h == NULL)
-		return MAP_FAILED;
+	//h = CreateFileMapping(mmap_fd, NULL, flProtect, DWORD_HI(end), DWORD_LO(end), NULL);
+	h = CreateFileMapping(mmap_fd, NULL, flProtect, 0, 0, NULL);
+	if (h == NULL) {
+        /* we will log this at some time, once I know PROPER fixes */
+		DWORD x = GetLastError();
+		fprintf(stderr, "Error, CreateFileMapping failed, Error code %x\n", x);
+		return 0;
+	}
 
-	DWORD dwDesiredAccess;
 	if (prot & PROT_WRITE)
 		dwDesiredAccess = FILE_MAP_WRITE;
 	else
@@ -82,10 +93,15 @@ static void *mmap(void *start, size_t length, int prot, int flags, int fd, off_t
 		dwDesiredAccess |= FILE_MAP_EXECUTE;
 	if (flags & MAP_PRIVATE)
 		dwDesiredAccess |= FILE_MAP_COPY;
-	void *ret = MapViewOfFile(h, dwDesiredAccess, DWORD_HI(offset), DWORD_LO(offset), length);
-	if (ret == NULL) {
+
+	//ret = MapViewOfFile(h, dwDesiredAccess, DWORD_HI(offset), DWORD_LO(offset), length);
+	ret = MapViewOfFile(h, dwDesiredAccess, 0, 0, length);
+	if (ret == NULL)  {
+		/* we will log this at some time, once I know PROPER fixes */
+		DWORD x = GetLastError();
+		fprintf(stderr, "Error, MapViewOfFile failed, Error code %x\n", x);
 		CloseHandle(h);
-		ret = MAP_FAILED;
+		ret = 0;
 	}
 	return ret;
 }

@@ -27,12 +27,14 @@
 #include "win32_memmap.h"
 #ifndef __CYGWIN32__
 #include "mmap-windows.c"
+#else
+#include <sys/mman.h>
 #endif
 #undef MEM_FREE
 #else
 #include <sys/mman.h>
 #endif
-#include <sys/errno.h>
+#include <errno.h>
 
 #ifdef __SSE2__
 #include <emmintrin.h>
@@ -568,10 +570,17 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 		log_event("- memory mapping wordlist (%lu bytes)", file_len);
 		/* We map at least one byte extra and with 16 byte
 		   alignment (this will be zero-filled when read)
-		   so we can search it with SSE instructions */
+		   so we can search it with SSE instructions
+		   NOTE, this fails on Win32, using MapViewOfFile, it MUST know the size */
+#if HAVE_WINDOWS_H
+		mem_map = mmap(NULL, file_len,
+		               PROT_READ, MAP_SHARED,
+		               fileno(word_file), 0);
+#else
 		mem_map = mmap(NULL, (file_len + 16) & ~15UL,
 		               PROT_READ, MAP_SHARED,
 		               fileno(word_file), 0);
+#endif
 		if (!mem_map) {
 			log_event("- memory mapping failed (%s) - we'll do"
 			          " without it.", strerror(errno));
