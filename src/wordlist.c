@@ -61,12 +61,6 @@
 #include "regex.h"
 #include "memdbg.h"
 
-/* Dhiru may have bumped this to Petabytes */
-#if LINE_BUFFER_SIZE > 0x10000
-#undef LINE_BUFFER_SIZE
-#define LINE_BUFFER_SIZE	0x10000
-#endif
-
 static int dist_rules;
 
 static FILE *word_file = NULL;
@@ -82,7 +76,7 @@ static int length;
 static struct rpp_context *rule_ctx;
 
 // used for memory map of file
-static char *mem_map, *map_pos, *map_end;
+static char *mem_map, *map_pos, *map_end, *map_scan_end;
 
 // used for file in 'memory buffer' mode (ready to use array)
 static char *word_file_str, **words;
@@ -114,17 +108,14 @@ static MAYBE_INLINE char *mgetl(char *res)
 #if defined(__SSE2__) && !defined(__APPLE__)
 
 	/* 16 chars at a time with known remainder. */
-	__m128i zero = _mm_setzero_si128();
 	__m128i cx16 = _mm_set1_epi8('\n');
 
 	if (map_pos >= map_end)
 		return NULL;
 
-	while(1) {
+	while (map_pos < map_scan_end && pos < res + LINE_BUFFER_SIZE - 17) {
 		__m128i x = _mm_loadu_si128((__m128i const *)map_pos);
-		unsigned int u = _mm_movemask_epi8(_mm_cmpeq_epi8(zero, x));
-		unsigned int v = _mm_movemask_epi8(_mm_cmpeq_epi8(cx16, x))
-			& ~u & (u - 1);
+		unsigned int v = _mm_movemask_epi8(_mm_cmpeq_epi8(cx16, x));
 
 		_mm_storeu_si128((__m128i*)pos, x);
 		if (v) {
@@ -137,19 +128,15 @@ static MAYBE_INLINE char *mgetl(char *res)
 			pos += r;
 			break;
 		}
-		if (u) {
-#ifdef __GNUC__
-			unsigned int r = __builtin_ctz(u);
-#else
-			unsigned int r = ffs(u) - 1;
-#endif
-			map_pos += r;
-			pos += r;
-			break;
-		}
 		map_pos += 16;
 		pos += 16;
 	}
+
+	if (*map_pos != '\n')
+	while (map_pos < map_end && pos < res + LINE_BUFFER_SIZE - 1 &&
+	       *map_pos != '\n')
+		*pos++ = *map_pos++;
+
 	map_pos++;
 
 #elif ARCH_SIZE >= 8 && ARCH_ALLOWS_UNALIGNED /* Eight chars at a time */
@@ -162,21 +149,25 @@ static MAYBE_INLINE char *mgetl(char *res)
 	if (map_pos >= map_end)
 		return NULL;
 
-	while (!(((*ss - 0x0101010101010101) & ~*ss) & 0x8080808080808080) &&
+	while (map_pos < map_scan_end &&
+	       (char*)dd < res + LINE_BUFFER_SIZE - 9 &&
 	       !((((*ss ^ 0x0a0a0a0a0a0a0a0a) - 0x0101010101010101) &
 	          ~(*ss ^ 0x0a0a0a0a0a0a0a0a)) & 0x8080808080808080))
 		*dd++ = *ss++;
 
 	s = (unsigned int*)ss;
 	d = (unsigned int*)dd;
-	while (!(((*s - 0x01010101) & ~*s) & 0x80808080) &&
-	       !((((*s ^ 0x0a0a0a0a) - 0x01010101) &
-	          ~(*s ^ 0x0a0a0a0a)) & 0x80808080))
+	if (map_pos < map_scan_end &&
+	    (char*)d < res + LINE_BUFFER_SIZE - 5 &&
+	    !((((*s ^ 0x0a0a0a0a) - 0x01010101) &
+	       ~(*s ^ 0x0a0a0a0a)) & 0x80808080))
 		*d++ = *s++;
 
 	map_pos = (char*)s;
 	pos = (char*)d;
-	while (*map_pos && *map_pos != '\n')
+
+	while (map_pos < map_end && pos < res + LINE_BUFFER_SIZE - 1 &&
+	       *map_pos != '\n')
 		*pos++ = *map_pos++;
 	map_pos++;
 
@@ -188,13 +179,16 @@ static MAYBE_INLINE char *mgetl(char *res)
 	if (map_pos >= map_end)
 		return NULL;
 
-	while (!(((*s - 0x01010101) & ~*s) & 0x80808080) &&
+	while (map_pos < map_scan_end &&
+	       (char*)d < res + LINE_BUFFER_SIZE - 5 &&
 	       !((((*s ^ 0x0a0a0a0a) - 0x01010101) &
 	          ~(*s ^ 0x0a0a0a0a)) & 0x80808080))
 		*d++ = *s++;
+
 	map_pos = (char*)s;
 	pos = (char*)d;
-	while (*map_pos && *map_pos != '\n')
+	while (map_pos < map_end && pos < res + LINE_BUFFER_SIZE - 1 &&
+	       *map_pos != '\n')
 		*pos++ = *map_pos++;
 	map_pos++;
 
@@ -203,7 +197,8 @@ static MAYBE_INLINE char *mgetl(char *res)
 	if (map_pos >= map_end)
 		return NULL;
 
-	while (*map_pos && *map_pos != '\n')
+	while (map_pos < map_end && pos < res + LINE_BUFFER_SIZE - 1 &&
+	       *map_pos != '\n')
 		*pos++ = *map_pos++;
 	map_pos++;
 
@@ -568,25 +563,16 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 		}
 
 		log_event("- memory mapping wordlist (%lu bytes)", file_len);
-		/* We map at least one byte extra and with 16 byte
-		   alignment (this will be zero-filled when read)
-		   so we can search it with SSE instructions
-		   NOTE, this fails on Win32, using MapViewOfFile, it MUST know the size */
-#if HAVE_WINDOWS_H
 		mem_map = mmap(NULL, file_len,
 		               PROT_READ, MAP_SHARED,
 		               fileno(word_file), 0);
-#else
-		mem_map = mmap(NULL, (file_len + 16) & ~15UL,
-		               PROT_READ, MAP_SHARED,
-		               fileno(word_file), 0);
-#endif
-		if (!mem_map) {
-			log_event("- memory mapping failed (%s) - we'll do"
-			          " without it.", strerror(errno));
-		} else {
+		if (!mem_map)
+			log_event("- memory mapping failed (%s) - but we'll do"
+			          "fine without it.", strerror(errno));
+		else {
 			map_pos = mem_map;
 			map_end = mem_map + file_len;
+			map_scan_end = map_end - 16;
 		}
 
 		ourshare = options.node_count ?
@@ -1228,11 +1214,7 @@ next_rule:
 
 		MEM_FREE(words);
 		if (mem_map)
-#if HAVE_WINDOWS_H
 			munmap(mem_map, file_len);
-#else
-			munmap(mem_map, (file_len + 16) & ~15UL);
-#endif
 		map_pos = map_end = NULL;
 		if (fclose(word_file))
 			pexit("fclose");
