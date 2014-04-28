@@ -25,9 +25,18 @@
 
 #if HAVE_WINDOWS_H
 #include "win32_memmap.h"
-#undef MEM_FREE
+#ifndef __CYGWIN32__
+#include "mmap-windows.c"
 #endif
+#undef MEM_FREE
+#else
+#include <sys/mman.h>
+#endif
+#include <sys/errno.h>
 
+#ifdef __SSE2__
+#include <emmintrin.h>
+#endif
 #include "arch.h"
 #include "misc.h"
 #include "math.h"
@@ -50,6 +59,12 @@
 #include "regex.h"
 #include "memdbg.h"
 
+/* Dhiru may have bumped this to Petabytes */
+#if LINE_BUFFER_SIZE > 0x10000
+#undef LINE_BUFFER_SIZE
+#define LINE_BUFFER_SIZE	0x10000
+#endif
+
 static int dist_rules;
 
 static FILE *word_file = NULL;
@@ -64,7 +79,10 @@ static unsigned long line_number, loop_line_no;
 static int length;
 static struct rpp_context *rule_ctx;
 
-// used for file in 'memory map' mode
+// used for memory map of file
+static char *mem_map, *map_pos, *map_end;
+
+// used for file in 'memory buffer' mode (ready to use array)
 static char *word_file_str, **words;
 static unsigned int nWordFileLines;
 
@@ -86,6 +104,120 @@ static int restore_rule_number(void)
 	return 0;
 }
 
+/* Like fgetl() but for the memory-mapped file. */
+static MAYBE_INLINE char *mgetl(char *res)
+{
+	char *pos = res;
+
+#if defined(__SSE2__) && !defined(__APPLE__)
+
+	/* 16 chars at a time with known remainder. */
+	__m128i zero = _mm_setzero_si128();
+	__m128i cx16 = _mm_set1_epi8('\n');
+
+	if (map_pos >= map_end)
+		return NULL;
+
+	while(1) {
+		__m128i x = _mm_loadu_si128((__m128i const *)map_pos);
+		unsigned int u = _mm_movemask_epi8(_mm_cmpeq_epi8(zero, x));
+		unsigned int v = _mm_movemask_epi8(_mm_cmpeq_epi8(cx16, x))
+			& ~u & (u - 1);
+
+		_mm_storeu_si128((__m128i*)pos, x);
+		if (v) {
+#ifdef __GNUC__
+			unsigned int r = __builtin_ctz(v);
+#else
+			unsigned int r = ffs(v) - 1;
+#endif
+			map_pos += r;
+			pos += r;
+			break;
+		}
+		if (u) {
+#ifdef __GNUC__
+			unsigned int r = __builtin_ctz(u);
+#else
+			unsigned int r = ffs(u) - 1;
+#endif
+			map_pos += r;
+			pos += r;
+			break;
+		}
+		map_pos += 16;
+		pos += 16;
+	}
+	map_pos++;
+
+#elif ARCH_SIZE >= 8 && ARCH_ALLOWS_UNALIGNED /* Eight chars at a time */
+
+	unsigned long long *ss = (unsigned long long*)map_pos;
+	unsigned long long *dd = (unsigned long long*)pos;
+	unsigned int *s = (unsigned int*)map_pos;
+	unsigned int *d = (unsigned int*)pos;
+
+	if (map_pos >= map_end)
+		return NULL;
+
+	while (!(((*ss - 0x0101010101010101) & ~*ss) & 0x8080808080808080) &&
+	       !((((*ss ^ 0x0a0a0a0a0a0a0a0a) - 0x0101010101010101) &
+	          ~(*ss ^ 0x0a0a0a0a0a0a0a0a)) & 0x8080808080808080))
+		*dd++ = *ss++;
+
+	s = (unsigned int*)ss;
+	d = (unsigned int*)dd;
+	while (!(((*s - 0x01010101) & ~*s) & 0x80808080) &&
+	       !((((*s ^ 0x0a0a0a0a) - 0x01010101) &
+	          ~(*s ^ 0x0a0a0a0a)) & 0x80808080))
+		*d++ = *s++;
+
+	map_pos = (char*)s;
+	pos = (char*)d;
+	while (*map_pos && *map_pos != '\n')
+		*pos++ = *map_pos++;
+	map_pos++;
+
+#elif ARCH_ALLOWS_UNALIGNED /* Four chars at a time */
+
+	unsigned int *s = (unsigned int*)map_pos;
+	unsigned int *d = (unsigned int*)pos;
+
+	if (map_pos >= map_end)
+		return NULL;
+
+	while (!(((*s - 0x01010101) & ~*s) & 0x80808080) &&
+	       !((((*s ^ 0x0a0a0a0a) - 0x01010101) &
+	          ~(*s ^ 0x0a0a0a0a)) & 0x80808080))
+		*d++ = *s++;
+	map_pos = (char*)s;
+	pos = (char*)d;
+	while (*map_pos && *map_pos != '\n')
+		*pos++ = *map_pos++;
+	map_pos++;
+
+#else /* One char at a time */
+
+	if (map_pos >= map_end)
+		return NULL;
+
+	while (*map_pos && *map_pos != '\n')
+		*pos++ = *map_pos++;
+	map_pos++;
+
+#endif
+
+	/* Replace LF with NULL */
+	*pos = 0;
+
+	/* Handle CRLF too */
+	if (pos > res)
+	if (*--pos == '\r')
+		*pos = 0;
+
+	return res;
+}
+
 static MAYBE_INLINE int skip_lines(unsigned long n, char *line)
 {
 	if (n) {
@@ -93,7 +225,8 @@ static MAYBE_INLINE int skip_lines(unsigned long n, char *line)
 
 		if (!nWordFileLines)
 		do {
-			if (!fgetl(line, LINE_BUFFER_SIZE, word_file))
+			if (mem_map ? !mgetl(line) :
+			    !fgetl(line, LINE_BUFFER_SIZE, word_file))
 				return 1;
 		} while (--n);
 	}
@@ -127,8 +260,12 @@ static int restore_state(FILE *file)
 
 	if (word_file == stdin) {
 		restore_line_number();
-	} else {
-		if (!nWordFileLines)
+	} else
+	if (!nWordFileLines) {
+		if (mem_map) {
+			char line[LINE_BUFFER_SIZE];
+			skip_lines(rec_line, line);
+		} else
 		if (fseek(word_file, rec_pos, SEEK_SET))
 			pexit("fseek");
 		line_number = rec_line;
@@ -351,7 +488,6 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 	int forceLoad = 0;
 	int dupeCheck = (options.flags & FLG_DUPESUPP) ? 1 : 0;
 	int loopBack = (options.flags & FLG_LOOPBACK_CHK) ? 1 : 0;
-	char file_line[LINE_BUFFER_SIZE];
 	long my_size = 0;
 	unsigned int myWordFileLines = 0;
 	int maxlength = options.force_maxlength;
@@ -379,10 +515,6 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 	if (options.force_maxlength && options.force_maxlength < length)
 		length = options.force_maxlength;
 
-	if (!mem_saving_level &&
-	    (dupeCheck || !options.max_wordfile_memory))
-		forceLoad = 1;
-
 	/* If we did not give a name for loopback mode,
 	   we use the active pot file */
 	if (loopBack) {
@@ -390,6 +522,10 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 		if (!name)
 			name = options.wordlist = options.loader.activepot;
 	}
+
+	if (!mem_saving_level &&
+	    (dupeCheck || !options.max_wordfile_memory))
+		forceLoad = 1;
 
 	/* If we did not give a name for wordlist mode,
 	   we use the "batch mode" one from john.conf */
@@ -411,137 +547,157 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 		/* this will both get us the file length, and tell us
 		   of 'invalid' files (i.e. too big in Win32 or other
 		   32 bit OS's.  A file between 2gb and 4gb returns
-		   a negative number.  NOTE john craps out on files
-		   this big.  The file needs cut before running through
-		   through john */
+		   a negative number. */
 		fseek(word_file, 0, SEEK_END);
 		file_len = ftell(word_file);
 		fseek(word_file, 0, SEEK_SET);
-		if (file_len < 0)
-		{
+		if (file_len < 0) {
 			if (john_main_process)
 				fprintf(stderr, "Error, dictionary file is too"
 				        " large for john to read (probably a "
 				        "32 bit OS issue)\n");
 			error();
 		}
-		if (file_len == 0)
-		{
+		if (file_len == 0) {
 			if (john_main_process)
 				fprintf(stderr, "Error, dictionary file is "
 				        "empty\n");
 			error();
 		}
-		if (file_len < options.max_wordfile_memory)
-			forceLoad = 1;
-		/* If the file is < max_wordfile_memory, then we work from a
-		   memory map of the file. But this is disabled if we are also
-		   using an external filter, as a modification of a word could
-		   trash the buffer. It's also disabled by --save-mem=N */
+
+		log_event("- memory mapping wordlist (%lu bytes)", file_len);
+		/* We map at least one byte extra and with 16 byte
+		   alignment (this will be zero-filled when read)
+		   so we can search it with SSE instructions */
+		mem_map = mmap(NULL, (file_len + 16) & ~15UL,
+		               PROT_READ, MAP_SHARED,
+		               fileno(word_file), 0);
+		if (!mem_map) {
+			log_event("- memory mapping failed (%s) - we'll do"
+			          " without it.", strerror(errno));
+		} else {
+			map_pos = mem_map;
+			map_end = mem_map + file_len;
+		}
+
 		ourshare = options.node_count ?
 			(file_len / options.node_count) *
 			(options.node_max - options.node_min + 1)
 			: file_len;
+
+		if (ourshare < options.max_wordfile_memory)
+			forceLoad = 1;
+
+		/* If it's worth it we make a ready-to-use buffer with the
+		   (possibly converted) contents ready to use as an array.
+		   Disabled for external filter - it would trash the buffer. */
 		if (!(options.flags & FLG_EXTERNAL_CHK) && !mem_saving_level)
-		if ((options.node_count > 1 &&
+		if (dupeCheck || options.flags & FLG_RULES)
+		if (forceLoad || (options.node_count > 1 &&
 		     file_len > options.node_count * (length * 100) &&
-		     ourshare < options.max_wordfile_memory) ||
-		    file_len < options.max_wordfile_memory || forceLoad) {
+		     ourshare < options.max_wordfile_memory)) {
 			char *aep;
 
 			// Load only this node's share of words to memory
-			if (options.node_count > 1 &&
-			    (file_len > options.node_count * (length * 100)
-			     && forceLoad)) {
+			if (mem_map && options.node_count > 1 &&
+			    (file_len > options.node_count * (length * 100))) {
 				/* Check net size for our share. */
 				for (nWordFileLines = 0;; ++nWordFileLines) {
 					char *lp;
-					if (!fgets(file_line, sizeof(file_line),
-					           word_file))
-					{
-						if (ferror(word_file))
-							pexit("fgets");
-						else
-							break;
-					}
+					int for_node = nWordFileLines %
+						options.node_count + 1;
+					int skip =
+						for_node < options.node_min ||
+						for_node > options.node_max;
+
+					if (!mgetl(line))
+						break;
 					if (!strncmp(line, "#!comment", 9))
 						continue;
-					lp = convert(file_line);
-					if (!rules) {
-						lp[length] = '\n';
-						lp[length + 1] = 0;
-					}
-					{
-						int for_node = nWordFileLines % options.node_count + 1;
-						int skip = for_node < options.node_min ||
-						    for_node > options.node_max;
-						if (!skip)
-							my_size += strlen(lp);
-					}
+					lp = convert(line);
+					if (!rules)
+						lp[length] = 0;
+					if (!skip)
+						my_size += strlen(lp) + 1;
 				}
-				fseek(word_file, 0, SEEK_SET);
+				map_pos = mem_map;
 
 				// Now copy just our share to memory
-				word_file_str = mem_alloc_tiny(my_size + LINE_BUFFER_SIZE + 1, MEM_ALIGN_NONE);
+				word_file_str =
+					mem_alloc_tiny(my_size +
+					               LINE_BUFFER_SIZE + 1,
+					               MEM_ALIGN_NONE);
 				i = 0;
 				for (myWordFileLines = 0;; ++myWordFileLines) {
 					char *lp;
-					if (!fgets(file_line, sizeof(file_line), word_file)) {
-						if (ferror(word_file))
-							pexit("fgets");
-						else
-							break;
-					}
+					int for_node = myWordFileLines %
+						options.node_count + 1;
+					int skip =
+						for_node < options.node_min ||
+						for_node > options.node_max;
+
+					if (!mgetl(line))
+						break;
 					if (!strncmp(line, "#!comment", 9))
 						continue;
-					lp = convert(file_line);
-					if (!rules) {
-						lp[length] = '\n';
-						lp[length + 1] = 0;
-					}
-					{
-						int for_node = myWordFileLines % options.node_count + 1;
-						int skip = for_node < options.node_min ||
-						    for_node > options.node_max;
-						if (!skip) {
-							strcpy(&word_file_str[i], lp);
-							i += (int)strlen(lp);
-						}
+					lp = convert(line);
+					if (!rules)
+						lp[length] = 0;
+					if (!skip) {
+						strcpy(&word_file_str[i], lp);
+						i += strlen(lp);
+						word_file_str[i++] = '\n';
 					}
 					if (i > my_size) {
-						fprintf(stderr, "Error: wordlist grew as we read it - aborting\n");
+						fprintf(stderr,
+						        "Error: wordlist grew "
+						        "as we read it - "
+						        "aborting\n");
 						error();
 					}
 				}
 				if (nWordFileLines != myWordFileLines)
-					fprintf(stderr, "Warning: wordlist changed as we read it\n");
-				log_event("- loaded this node's share of wordfile %s into memory "
-				          "(%lu bytes of %lu, max_size=%zu avg/node)",
-				          name, my_size, file_len, options.max_wordfile_memory);
+				fprintf(stderr, "Warning: wordlist changed as"
+				        " we read it\n");
+				log_event("- loaded this node's share of "
+				          "wordfile %s into memory "
+				          "(%lu bytes of %lu, max_size=%zu"
+				          " avg/node)", name, my_size, file_len,
+				          options.max_wordfile_memory);
 				if (john_main_process)
-					fprintf(stderr,"Each node loaded 1/%d "
-					        "of wordfile to memory (about "
-					        "%lu %s/node)\n",
+				fprintf(stderr,"Each node loaded 1/%d "
+				        "of wordfile to memory (about "
+				        "%lu %s/node)\n",
 				        options.node_count,
-				        my_size > 1<<23 ? my_size >> 20 : my_size >> 10,
+				        my_size > 1<<23 ?
+				        my_size >> 20 : my_size >> 10,
 				        my_size > 1<<23 ? "MB" : "KB");
-				aep = word_file_str + my_size;
 				file_len = my_size;
 			}
 			else {
-				log_event("- loading wordfile %s into memory (%lu bytes, max_size=%zu)",
-				          name, file_len, options.max_wordfile_memory);
+				log_event("- loading wordfile %s into memory "
+				          "(%lu bytes, max_size=%zu)",
+				          name, file_len,
+				          options.max_wordfile_memory);
 				if (options.node_count > 1 && john_main_process)
-					fprintf(stderr,"Each node loaded the whole wordfile to memory\n");
-				word_file_str = mem_alloc_tiny(file_len + LINE_BUFFER_SIZE + 1, MEM_ALIGN_NONE);
-				if (fread(word_file_str, 1, file_len, word_file) != file_len) {
+				fprintf(stderr,"Each node loaded the whole "
+				        "wordfile to memory\n");
+				word_file_str =
+					mem_alloc_tiny(file_len +
+					               LINE_BUFFER_SIZE + 1,
+					               MEM_ALIGN_NONE);
+				if (fread(word_file_str, 1, file_len,
+				          word_file) != file_len) {
 					if (ferror(word_file))
 						pexit("fread");
-					fprintf(stderr, "fread: Unexpected EOF\n");
+					fprintf(stderr,
+					        "fread: Unexpected EOF\n");
 					error();
 				}
 				if (memchr(word_file_str, 0, file_len)) {
-					fprintf(stderr, "Error: wordlist contains NULL bytes - aborting\n");
+					fprintf(stderr,
+					        "Error: wordlist contains NULL"
+					        " bytes - aborting\n");
 					error();
 				}
 			}
@@ -555,11 +711,14 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 				cp = memchr(word_file_str, csearch, file_len);
 			}
 			for (nWordFileLines = 0; cp; ++nWordFileLines)
-				cp = memchr(&cp[1], csearch, file_len - (cp - word_file_str) - 1);
+				cp = memchr(&cp[1], csearch, file_len -
+				            (cp - word_file_str) - 1);
 			if (aep[-1] != csearch)
 				++nWordFileLines;
-			words = mem_alloc( (nWordFileLines+1) * sizeof(char*));
-			log_event("- wordfile had %u lines and required %lu bytes for index.", nWordFileLines, (unsigned long)(nWordFileLines * sizeof(char*)));
+			words = mem_alloc((nWordFileLines + 1) * sizeof(char*));
+			log_event("- wordfile had %u lines and required %zu"
+			          " bytes for index.", nWordFileLines,
+			          (nWordFileLines * sizeof(char*)));
 
 			i = 0;
 			cp = word_file_str;
@@ -574,10 +733,11 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 					hash_log++;
 				hash_size = (1 << hash_log);
 				hash_mask = (hash_size - 1);
-				log_event("- dupe suppression: hash size %u, temporarily allocating %zd bytes",
-				          hash_size,
-				          (hash_size * sizeof(unsigned int)) +
-				          (nWordFileLines * sizeof(element_st)));
+				log_event("- dupe suppression: hash size %u, "
+					"temporarily allocating %zd bytes",
+					hash_size,
+					(hash_size * sizeof(unsigned int)) +
+					(nWordFileLines * sizeof(element_st)));
 				buffer.hash = mem_alloc(hash_size *
 				                        sizeof(unsigned int));
 				buffer.data = mem_alloc(nWordFileLines *
@@ -585,19 +745,26 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 				memset(buffer.hash, 0xff, hash_size *
 				       sizeof(unsigned int));
 			}
+
 			do
 			{
 				char *ep, ec;
 				if (i > nWordFileLines) {
-					fprintf(stderr, "Warning: wordlist contains inconsequent newlines, some words may be skipped\n");
-					log_event("- Warning: wordlist contains inconsequent newlines, some words may be skipped");
+					fprintf(stderr, "Warning: wordlist "
+					        "contains inconsequent "
+					        "newlines, some words may be "
+					        "skipped\n");
+					log_event("- Warning: wordlist contains"
+					          " inconsequent newlines, some"
+					          " words may be skipped");
 					i--;
 					break;
 				}
 				if (!myWordFileLines)
 					cp = convert(cp);
 				ep = cp;
-				while ((ep < aep) && *ep && *ep != '\n' && *ep != '\r') ep++;
+				while ((ep < aep) && *ep && *ep != '\n' && *ep != '\r')
+					ep++;
 				ec = *ep;
 				*ep = 0;
 				if (strncmp(cp, "#!comment", 9)) {
@@ -948,7 +1115,8 @@ SKIP_MEM_MAP_LOAD:;
 		}
 
 		else if (rule)
-		while (fgetl(line, LINE_BUFFER_SIZE, word_file)) {
+		while (mem_map ? mgetl(line) :
+		       fgetl(line, LINE_BUFFER_SIZE, word_file)) {
 			line_number++;
 
 			if (line[0] != '#') {
@@ -1020,10 +1188,13 @@ next_rule:
 			}
 
 			line_number = 0;
-			if (!nWordFileLines && word_file != stdin)
-			if (fseek(word_file, 0, SEEK_SET))
-				pexit("fseek");
-
+			if (!nWordFileLines && word_file != stdin) {
+				if (mem_map)
+					map_pos = mem_map;
+				else
+				if (fseek(word_file, 0, SEEK_SET))
+					pexit("fseek");
+			}
 			if (their_words &&
 			    skip_lines(options.node_min - 1, line))
 				break;
@@ -1047,7 +1218,11 @@ next_rule:
 			progress = 100;
 
 		MEM_FREE(words);
-		if (fclose(word_file)) pexit("fclose");
+		if (mem_map)
+			munmap(mem_map, (file_len + 16) & ~15UL);
+		map_pos = map_end = NULL;
+		if (fclose(word_file))
+			pexit("fclose");
 		word_file = NULL;
 	}
 }
