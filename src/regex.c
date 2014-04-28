@@ -209,7 +209,8 @@ void do_regex_crack(struct db_main *db, const char *regex) {
 char *prepare_regex(char *regex, int *bCase, char **regex_alpha) {
 	char *cp, *cp2;
 	if (!regex || !bCase || !regex_alpha) {
-		log_event("- NO Rexgen used");
+		if (options.verbosity >= 4)
+			log_event("- NO Rexgen used");
 		return 0;
 	}
 	cp = str_alloc_copy(regex);
