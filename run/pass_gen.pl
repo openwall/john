@@ -66,7 +66,7 @@ my @funcs = (qw(DES BigCrypt BSDI MD5_1 MD5_a BF BFx BFegg RawMD5 RawMD5u
 		episerver_sha1 episerver_sha256 hmailserver ike keepass
 		keychain nukedclan pfx racf radmin rawsha0 sip SybaseASE vnc
 		wbb3 wpapsk sunmd5 wow_srp django_scrypt aix_ssha1 aix_ssha256
-		aix_ssha512 pbkdf2_hmac_sha512 rakp));
+		aix_ssha512 pbkdf2_hmac_sha512 rakp osc formspring));
 
 # todo: ike keychain pfx racf sip vnc wpapsk
 
@@ -75,6 +75,7 @@ my @chrAsciiText=('a'..'z','A'..'Z');
 my @chrAsciiTextLo=('a'..'z');
 my @chrAsciiTextHi=('A'..'Z');
 my @chrAsciiTextNum=('a'..'z','A'..'Z','0'..'9');
+my @chrAsciiNum=('0'..'9');
 my @chrAsciiTextNumUnder=('a'..'z','A'..'Z','0'..'9','_');
 my @chrHexHiLo=('0'..'9','a'..'f','A'..'F');
 my @chrHexLo=('0'..'9','a'..'f');
@@ -272,6 +273,16 @@ sub tst_all
 #############################################################################
 # used to get salts.  Call with randstr(count[,array of valid chars] );   array is 'optional'  Default is AsciiText (UPloCase,  nums, _ )
 #############################################################################
+sub randnum
+{
+	my @chr = defined($_[1]) ? @{$_[1]} : @chrAsciiNum;
+	my $s;
+	foreach (1..$_[0]) {
+		$s.=$chr[rand @chr];
+	}
+	return $s;
+}
+
 sub randstr
 {
 	my @chr = defined($_[1]) ? @{$_[1]} : @chrAsciiTextNum;
@@ -883,6 +894,14 @@ sub rawmd4 {
 sub mediawiki {
 	if (defined $argsalt) { $salt = $argsalt; } else { $salt = randstr(8); }
 	print "u$u-mediawiki:\$B\$" . $salt . "\$" . md5_hex($salt . "-" . md5_hex($_[0])) . ":$u:0:$_[0]::\n";
+}
+sub osc {
+	if (defined $argsalt and length($argsalt)==2) { $salt = $argsalt; } else { $salt = randstr(2); }
+	print "u$u-osc:\$OSC\$" . saltToHex(2) . "\$" . md5_hex($salt. $_[0]) . ":$u:0:$_[0]::\n";
+}
+sub formspring {
+	if (defined $argsalt and length($argsalt)==2) { $salt = $argsalt; } else { $salt = randnum(2); }
+	print "u$u-formspring:" . sha256_hex($salt. $_[0]) . "\$$salt:$u:0:$_[0]::\n";
 }
 sub phpass {
 	require Authen::Passphrase::PHPass;
