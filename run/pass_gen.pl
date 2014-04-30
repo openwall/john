@@ -1145,7 +1145,7 @@ sub _hmacmd5 {
 }
 sub hmac_md5 {
 	# now uses _hmacmd5 instead of being done inline.
-	$salt = randstr(32);
+	if (defined $argsalt) { $salt = $argsalt; } else { $salt = randstr(32); }
 	my $bin = _hmacmd5($_[0], $salt);
 	print "u$u-hmacMD5:$salt#", binToHex($bin), ":$u:0:$_[0]::\n";
 }
@@ -1166,27 +1166,27 @@ sub _hmac_shas {
 	return $func->($opad,$func->($ipad,$data));
 }
 sub hmac_sha1 {
-	$salt = randstr(24);
+	if (defined $argsalt) { $salt = $argsalt; } else { $salt = randstr(24); }
 	my $bin = _hmac_shas(\&sha1, 64, $_[0], $salt);
 	print "u$u-hmacSHA1:$salt#", binToHex($bin), ":$u:0:$_[0]::\n";
 }
 sub hmac_sha224 {
-	$salt = randstr(32);
+	if (defined $argsalt) { $salt = $argsalt; } else { $salt = randstr(32); }
 	my $bin = _hmac_shas(\&sha224, 64, $_[0], $salt);
 	print "u$u-hmacSHA224:$salt#", binToHex($bin), ":$u:0:$_[0]::\n";
 }
 sub hmac_sha256 {
-	$salt = randstr(32);
+	if (defined $argsalt) { $salt = $argsalt; } else { $salt = randstr(32); }
 	my $bin = _hmac_shas(\&sha256, 64, $_[0], $salt);
 	print "u$u-hmacSHA256:$salt#", binToHex($bin), ":$u:0:$_[0]::\n";
 }
 sub hmac_sha384 {
-	$salt = randstr(32);
+	if (defined $argsalt) { $salt = $argsalt; } else { $salt = randstr(32); }
 	my $bin = _hmac_shas(\&sha384, 128, $_[0], $salt);
 	print "u$u-hmacSHA384:$salt#", binToHex($bin), ":$u:0:$_[0]::\n";
 }
 sub hmac_sha512 {
-	$salt = randstr(32);
+	if (defined $argsalt) { $salt = $argsalt; } else { $salt = randstr(32); }
 	my $bin = _hmac_shas(\&sha512, 128, $_[0], $salt);
 	print "u$u-hmacSHA512:$salt#", binToHex($bin), ":$u:0:$_[0]::\n";
 }
