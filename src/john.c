@@ -16,6 +16,8 @@
  * see doc/LICENSE.
  */
 
+#include "autoconfig.h"
+
 #define NEED_OS_FORK
 #define NEED_OS_TIMER
 #include "os.h"
@@ -153,7 +155,7 @@ extern struct fmt_main fmt_SKEY;
 extern struct fmt_main fmt_mozilla;
 extern int mozilla2john(int argc, char **argv);
 #endif
-#if defined (HAVE_KRB5) && !defined(__CYGWIN__)
+#if HAVE_LIBKRB5 && HAVE_LIBK5CRYPTO
 extern struct fmt_main fmt_krb5_18;
 extern struct fmt_main fmt_KRB5_kinit;
 #endif
@@ -382,7 +384,7 @@ static void john_register_all(void)
 #ifdef HAVE_NSS
 	john_register_one(&fmt_mozilla);
 #endif
-#if defined (HAVE_KRB5) && !defined(__CYGWIN__)
+#if HAVE_LIBKRB5 && HAVE_LIBK5CRYPTO
 	john_register_one(&fmt_krb5_18);
 	john_register_one(&fmt_KRB5_kinit);
 #endif
@@ -1516,7 +1518,7 @@ static void john_run(void)
 		else
 		if (options.flags & FLG_REGEX_CHK)
 			do_regex_crack(&database, options.regex);
-#endif /* HAVE_REXGEN */
+#endif
 		else
 		if (options.flags & FLG_INC_CHK)
 			do_incremental_crack(&database, options.charset);

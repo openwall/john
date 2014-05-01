@@ -27,6 +27,7 @@
  * GMP exponentation (faster) is optional, and controled with HAVE_GMP in Makefile
  */
 
+#include "autoconfig.h"
 #include <string.h>
 #include "sha.h"
 #include "sha2.h"
@@ -36,7 +37,7 @@
 #include "common.h"
 #include "formats.h"
 #include "unicode.h" /* For encoding-aware uppercasing */
-#ifdef HAVE_GMP
+#ifdef HAVE_LIBGMP
 #include "gmp.h"
 #define EXP_STR " GMP-exp"
 #else
@@ -82,7 +83,7 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
-#ifdef HAVE_GMP
+#ifdef HAVE_LIBGMP
 typedef struct t_SRP_CTX {
 	mpz_t z_mod, z_base, z_exp, z_rop;
 } SRP_CTX;
@@ -115,7 +116,7 @@ static void init(struct fmt_main *self)
 	pSRP_CTX = mem_calloc_tiny(sizeof(*pSRP_CTX) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 
 	for (i = 0; i < self->params.max_keys_per_crypt; ++i) {
-#ifdef HAVE_GMP
+#ifdef HAVE_LIBGMP
 		mpz_init_set_str(pSRP_CTX[i].z_mod, "112624315653284427036559548610503669920632123929604336254260115573677366691719", 10);
 		mpz_init_set_str(pSRP_CTX[i].z_base, "47", 10);
 		mpz_init_set_str(pSRP_CTX[i].z_exp, "1", 10);
@@ -309,7 +310,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		SHA1_Final(Tmp, &ctx);
 		// Ok, now Tmp is v
 
-#ifdef HAVE_GMP
+#ifdef HAVE_LIBGMP
 #if 1
 		// Speed, 17194/s
 	{

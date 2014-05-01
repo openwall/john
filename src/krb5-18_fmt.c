@@ -14,7 +14,9 @@
  * - user:$krb18$REALMname$hash
  * - user:REALMname$hash
  */
-#if defined (HAVE_KRB5) && !defined(__CYGWIN__)
+#include "autoconfig.h"
+
+#if HAVE_LIBKRB5 && HAVE_LIBK5CRYPTO
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
@@ -330,8 +332,4 @@ struct fmt_main fmt_krb5_18 = {
 		cmp_exact,
 	}
 };
-#else
-#ifdef __GNUC__
-#warning Note: krb5-18 format disabled, un-comment HAVE_KRB5 in Makefile if you have MIT Kerberos 5 libs and headers installed.
-#endif
 #endif

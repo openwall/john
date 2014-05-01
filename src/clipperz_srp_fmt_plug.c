@@ -42,13 +42,14 @@
  * n = 125617018995153554710546479714086468244499594888726646874671447258204721048803
  * g = 2 */
 
+#include "autoconfig.h"
 #include <string.h>
 #include "sha2.h"
 #include "arch.h"
 #include "params.h"
 #include "common.h"
 #include "formats.h"
-#ifdef HAVE_GMP
+#ifdef HAVE_LIBGMP
 #include "gmp.h"
 #define EXP_STR " GMP-exp"
 #else
@@ -93,7 +94,7 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
-#ifdef HAVE_GMP
+#ifdef HAVE_LIBGMP
 typedef struct t_SRP_CTX {
 	mpz_t z_mod, z_base, z_exp, z_rop;
 } SRP_CTX;
@@ -129,7 +130,7 @@ static void init(struct fmt_main *self)
 	pSRP_CTX = mem_calloc_tiny(sizeof(*pSRP_CTX) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 
 	for (i = 0; i < self->params.max_keys_per_crypt; ++i) {
-#ifdef HAVE_GMP
+#ifdef HAVE_LIBGMP
 		mpz_init_set_str(pSRP_CTX[i].z_mod, "125617018995153554710546479714086468244499594888726646874671447258204721048803", 10);
 		mpz_init_set_str(pSRP_CTX[i].z_base, "2", 10);
 		mpz_init_set_str(pSRP_CTX[i].z_exp, "1", 10);
@@ -309,7 +310,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		SHA256_Update(&ctx, Tmp, 32);
 		SHA256_Final(Tmp, &ctx);
 
-#ifdef HAVE_GMP
+#ifdef HAVE_LIBGMP
 #if 1
 		// Speed, 17194/s
 	{

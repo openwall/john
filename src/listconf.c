@@ -6,6 +6,8 @@
  * modification, are permitted.
  */
 
+#include "autoconfig.h"
+
 #ifndef _MSC_VER
 #include <strings.h>
 #endif
@@ -26,7 +28,7 @@
 //#include "nssutil.h"
 #include "nspr.h"
 #endif
-#ifdef HAVE_GMP
+#ifdef HAVE_LIBGMP
 #include "gmp.h"
 #endif
 

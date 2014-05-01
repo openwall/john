@@ -15,7 +15,10 @@
 #ifndef _JOHN_REGEX_H
 #define _JOHN_REGEX_H
 
-#if HAVE_REXGEN
+#include "autoconfig.h"
+
+#if HAVE_LIBREXGEN || defined HAVE_LIBLIBREXGEN
+  #define HAVE_REXGEN 1
   #ifndef UNICODE
   #define UNICODE
   #endif
