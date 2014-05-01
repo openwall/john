@@ -221,10 +221,10 @@ void dump_text(void *in, int len)
 	unsigned char *p = (unsigned char*)in;
 
 	while (len--) {
-		fputc(isprint(*p) ? *p : '.', stderr);
+		fputc(isprint(*p) ? *p : '.', stdout);
 		p++;
 	}
-	fputc('\n', stderr);
+	fputc('\n', stdout);
 }
 
 void dump_stuff_noeol(void *x, unsigned int size)
