@@ -44,8 +44,11 @@ run/unshadow
 run/vncpcap2john
 run/wpapcap2john
 run/zip2john
+Makefile
 src/aes/aes.a
+src/autoconfig.h
 src/arch.h
+src/config.status
 src/fmt_externs.h
 src/fmt_registers.h
 src/generic.h
