@@ -15,6 +15,8 @@
 #ifndef _JOHN_OS_H
 #define _JOHN_OS_H
 
+#include "autoconfig.h"
+
 #ifdef NEED_OS_TIMER
 
 #if defined(__CYGWIN32__) || defined(__BEOS__) || defined(__MINGW32__) || defined(_MSC_VER) /* || (defined(AMDAPPSDK) && defined(HAVE_OPENCL)) */
@@ -63,46 +65,45 @@
 
 #endif
 
+/* NOTE, most of these HAVE_HEADER stuff are done in autoconfigure.h
+ * But we have kept 'some' of this here, mostly due to MSVC not being
+ * able to run autoconf or ./configure, so the header file 'may' not
+ * be built properly for VC
+ */
 #if defined (_MSC_VER)
+#undef HAVE_UNISTD_H
 #define HAVE_UNISTD_H		0
-#else
-#define HAVE_UNISTD_H		1
 #endif
 
 #if defined (_MSC_VER)
+#undef HAVE_SYS_TIME_H
 #define HAVE_SYS_TIME_H		0
-#else
-#define HAVE_SYS_TIME_H		1
 #endif
 
 #if defined (_MSC_VER)
+#undef HAVE_SYS_FILE_H
 #define HAVE_SYS_FILE_H		0
-#else
-#define HAVE_SYS_FILE_H		1
 #endif
 
 #if defined (__MINGW32__) || defined (_MSC_VER)
+#undef HAVE_SYS_TIMES_H
 #define HAVE_SYS_TIMES_H	0
-#else
-#define HAVE_SYS_TIMES_H	1
 #endif
 
 #if defined (__DJGPP__)
+#undef HAVE_DOS_H
 #define HAVE_DOS_H			1
-#else
-#define HAVE_DOS_H			0
+#endif
+
+#if defined (_MSC_VER)
+#undef HAVE_STRINGS_H
+#define HAVE_STRINGS_H		0
 #endif
 
 #if defined (_MSC_VER) || defined(__CYGWIN32__) || defined(__MINGW32__)
 #define HAVE_WINDOWS_H		1
 #else
 #define HAVE_WINDOWS_H		0
-#endif
-
-#if defined (_MSC_VER)
-#define HAVE_STRINGS_H		0
-#else
-#define HAVE_STRINGS_H		1
 #endif
 
 

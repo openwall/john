@@ -39,7 +39,7 @@
 #include "logger.h" /* Beware: log_init() happens after most functions here */
 #include "memdbg.h"
 
-#ifdef HAVE_CRYPT
+#ifdef HAVE_LIBCRYPT
 extern struct fmt_main fmt_crypt;
 #endif
 
@@ -449,7 +449,7 @@ static int ldr_split_line(char **login, char **ciphertext,
 				continue;
 			if (alt->params.flags & FMT_WARNED)
 				continue;
-#ifdef HAVE_CRYPT
+#ifdef HAVE_LIBCRYPT
 			if (alt == &fmt_crypt &&
 #ifdef __sun
 			    strncmp(*ciphertext, "$md5$", 5) &&
@@ -484,7 +484,7 @@ static int ldr_split_line(char **login, char **ciphertext,
 		char *prepared;
 		int valid;
 
-#ifdef HAVE_CRYPT
+#ifdef HAVE_LIBCRYPT
 /*
  * Only probe for support by the current system's crypt(3) if this is forced
  * from the command-line or/and if the hash encoding string looks like one of
@@ -840,11 +840,11 @@ static void ldr_load_pot_line(struct db_main *db, char *line)
 void ldr_load_pot_file(struct db_main *db, char *name)
 {
 	if (db->format && !(db->format->params.flags & FMT_NOT_EXACT)) {
-#ifdef HAVE_CRYPT
+#ifdef HAVE_LIBCRYPT
 		ldr_in_pot = 1;
 #endif
 		read_file(db, name, RF_ALLOW_MISSING, ldr_load_pot_line);
-#ifdef HAVE_CRYPT
+#ifdef HAVE_LIBCRYPT
 		ldr_in_pot = 0;
 #endif
 	}
@@ -1451,11 +1451,11 @@ static void ldr_show_pot_line(struct db_main *db, char *line)
 
 void ldr_show_pot_file(struct db_main *db, char *name)
 {
-#ifdef HAVE_CRYPT
+#ifdef HAVE_LIBCRYPT
 	ldr_in_pot = 1;
 #endif
 	read_file(db, name, RF_ALLOW_MISSING, ldr_show_pot_line);
-#ifdef HAVE_CRYPT
+#ifdef HAVE_LIBCRYPT
 	ldr_in_pot = 0;
 #endif
 }

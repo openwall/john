@@ -24,7 +24,7 @@
  * v is the 'verifier' value (256 bit value).
  *
  * Added OMP.  Added 'default' oSSL BigNum exponentiation.
- * GMP exponentation (faster) is optional, and controled with HAVE_GMP in Makefile
+ * GMP exponentation (faster) is optional, and controled with HAVE_LIBGMP in autoconfig.h
  */
 
 #include "autoconfig.h"

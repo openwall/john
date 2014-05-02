@@ -116,7 +116,7 @@ extern int CPU_detect(void);
 extern struct fmt_main fmt_DES, fmt_BSDI, fmt_MD5, fmt_BF;
 extern struct fmt_main fmt_scrypt;
 extern struct fmt_main fmt_AFS, fmt_LM;
-#ifdef HAVE_CRYPT
+#ifdef HAVE_LIBCRYPT
 extern struct fmt_main fmt_crypt;
 #endif
 extern struct fmt_main fmt_trip;
@@ -460,11 +460,11 @@ static void john_register_all(void)
 	john_register_one(&fmt_cuda_wpapsk);
 	john_register_one(&fmt_cuda_xsha512);
 #endif
-#ifdef HAVE_CRYPT
+#ifdef HAVE_LIBCRYPT
 	john_register_one(&fmt_crypt);
 #endif
 
-#ifdef HAVE_DL
+#ifdef HAVE_LIBDL
 	if (options.fmt_dlls)
 	register_dlls ( options.fmt_dlls,
 		cfg_get_param(SECTION_OPTIONS, NULL, "plugin"),

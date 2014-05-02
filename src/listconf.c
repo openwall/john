@@ -164,7 +164,6 @@ static void listconf_list_build_info(void)
 	printf("\n");
 #endif
 #ifdef __GNU_MP_VERSION
-	// print GMP version info if HAVE_GMP has been set in Makefile
 	printf("GMP library version: %d.%d.%d",
 	       __GNU_MP_VERSION, __GNU_MP_VERSION_MINOR, __GNU_MP_VERSION_PATCHLEVEL);
 	/* version strings prior to 4.3.0 did omit the patch level when it was 0 */

@@ -10,6 +10,8 @@
  *
  * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
+#include "autoconfig.h"
+#if HAVE_LIBCRYPT
 
 #define _XOPEN_SOURCE 4 /* for crypt(3) */
 #define _XOPEN_SOURCE_EXTENDED
@@ -690,3 +692,5 @@ struct fmt_main fmt_crypt = {
 		cmp_exact
 	}
 };
+
+#endif // HAVE_LIBCRYPT

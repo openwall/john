@@ -12,7 +12,8 @@
  *    modifications, are permitted.
  */
 
-#ifdef HAVE_DL
+#include "autoconfig.h"
+#ifdef HAVE_LIBDL
 
 #include <stdio.h>
 #include <unistd.h>

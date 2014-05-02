@@ -35,8 +35,3 @@ all: aes.a
 clean:
 	find . -iname \*.a -exec rm {} \;
 	find . -iname \*.o -exec rm {} \;
-
-distclean: clean
-	/bin/rm -f Makefile
-	/bin/rm -f aesni/Makefile
-	/bin/rm -f openssl/Makefile

@@ -9,33 +9,12 @@
 #
 # There's ABSOLUTELY NO WARRANTY, express or implied.
 #
-# This file converted into autoconf format by Jim Fougeron and
-# others, in 2014. That is still a work in progress.
-#
 
-SHELL = /bin/sh
-VPATH = @srcdir@
-
-subdirs = aes escrypt
-top_srcdir = @top_srcdir@
-srcdir = @srcdir@
-prefix = @prefix@
-exec_prefix = @exec_prefix@
-bindir = $(exec_prefix)/bin
-infodir = $(prefix)/info
-libdir = $(prefix)/lib/gnudl
-mandir = $(prefix)/man/man1
-
-CC = @CC@
-CXX = @CXX@
-AS = @CC@
-LD = @CC@
-CPP = @CC@
-#INSTALL = @INSTALL@
-# these are set lower. We may 'set them' initiall, and then we += this stuff.
-# as we develop, and remove ALL of the self checking code and move it to configure,
-# we will also move this code back to top, since it will be fully set from configure script.
-
+CC = gcc
+CXX = g++
+AS = $(CC)
+LD = $(CC)
+CPP = $(CC)
 CP = cp
 CP_PRESERVE = cp -p
 LN = ln -f -s
@@ -44,6 +23,7 @@ MKDIR = mkdir -p
 TR = tr
 SED = sed
 NULL = /dev/null
+CPPFLAGS = -E
 SORT = sort
 STRIP = strip
 
@@ -72,6 +52,29 @@ HAVE_NSS = $(NSS_CFLAGS) `pkg-config 2>/dev/null --exists nss && echo -DHAVE_NSS
 NSS_LDFLAGS = `pkg-config 2>/dev/null --libs nss`
 endif
 
+# Try to auto-detect GMP and KRB5 libs. The grep is needed in case some of the
+# paths does not exist, because find will return false even though finding a
+# file. If these hacks do not work, comment them out and see next sections.
+ifndef RELEASE_BLD
+HAVE_GMP = `find 2>&1 /usr/include /usr/local/include -name "gmp.h" | grep -q "gmp.h" && echo -DHAVE_GMP`
+GMP_LDFLAGS = `find 2>&1 /usr/include /usr/local/include -name "gmp.h" | grep -q "gmp.h" && echo -lgmp`
+HAVE_KRB5 = `find 2>&1 /usr/include/ /usr/local/include/ -name "krb5.h" | grep -q "krb5.h" && echo -DHAVE_KRB5`
+KRB5_LDFLAGS = `find 2>&1 /usr/include/ /usr/local/include/ -name "krb5.h" | grep -q "krb5.h" && echo -lk5crypto -lkrb5`
+REXGEN_FLAGS = `find 2>&1 /usr/include/librexgen/api/c /usr/local/include/librexgen/api/c -name "librexgen.h" | grep -q "librexgen.h" && echo -DHAVE_REXGEN=1`
+REXGEN_LDFLAGS = `find 2>&1 /usr/lib/ /usr/local/lib/ -name "liblibrexgen*.a" | grep -q "liblibrexgen" && echo -llibrexgen`
+REXGEN_LDFLAGS += `find 2>&1 /usr/lib/ /usr/local/lib/ -name "librexgen*.a" -o -name "librexgen*.so" -o -name "librexgen*.dylib" | grep -q "librexgen" && echo -lrexgen`
+endif
+
+# Uncomment the below if you have GMP library installed (faster wowsrp format)
+# in case the auto-detection does not work.
+#HAVE_GMP = -DHAVE_GMP
+#GMP_LDFLAGS = -lgmp
+
+# Uncomment the below if you have KRB5 library installed (krb5-18/23 formats)
+# in case the auto-detection does not work.
+#HAVE_KRB5 = -DHAVE_KRB5
+#KRB5_LDFLAGS = -lk5crypto -lkrb5
+
 # CUDA settings. Instead of "-arch sm_10" you could use sm_20 or sm_30 or
 # -gencode arch=compute_10,code=sm_10 -gencode arch=compute_20,code=sm_21
 # but that leads to problems on GTX Titan.
@@ -96,24 +99,19 @@ AMDAPP = -DAMDAPPSDK
 OCLROOT = $(ATISTREAMSDKROOT)
 endif
 
-CFLAGS = -c -Wall -Wdeclaration-after-statement -O2 -fomit-frame-pointer -I/usr/local/include $(REXGEN_FLAGS) $(HAVE_NSS) $(HAVE_KRB5) $(OMPFLAGS) $(AMDAPP) $(JOHN_CFLAGS) $(RELEASE_BLD)
+CFLAGS = -c -Wall -Wdeclaration-after-statement -O2 -fomit-frame-pointer -I/usr/local/include $(REXGEN_FLAGS) $(HAVE_NSS) $(HAVE_GMP) $(HAVE_KRB5) $(OMPFLAGS) $(AMDAPP) $(JOHN_CFLAGS) $(RELEASE_BLD)
 # -DHAVE_SKEY
 # CFLAGS for use on the main john.c file only
 CFLAGS_MAIN = $(CFLAGS)
 ASFLAGS = -c $(OMPFLAGS) $(JOHN_ASFLAGS)
-LDFLAGS = -s -L/usr/local/lib -L/usr/local/ssl/lib \
+LDFLAGS = -s -L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz \
 	$(OMPFLAGS) $(NSS_LDFLAGS) $(GMP_LDFLAGS) $(KRB5_LDFLAGS) $(JOHN_LDFLAGS) $(REXGEN_LDFLAGS)
 # -lskey
-LDFLAGS_SOLARIS = -lrt -lnsl -lsocket
-LDFLAGS_MKV = -s $(OMPFLAGS)
+LDFLAGS_SOLARIS = -lrt -lnsl -lsocket -lm -lz -lcrypto -lssl
+LDFLAGS_MKV = -s -lm $(OMPFLAGS)
 OPT_NORMAL = -funroll-loops
 # Remove the "-Os" if you're using an ancient version of gcc
 OPT_INLINE = -Os -funroll-loops -finline-functions
-
-CPPFLAGS += @CPPFLAGS@
-CFLAGS += $(CPPFLAGS) @CFLAGS@
-LIBS += @LIBS@
-LDFLAGS += @LDFLAGS@ $(LIBS)
 
 # Works with Solaris make, and GNU make
 PLUGFORMATS_SRCS: sh =echo *_plug.c
@@ -182,7 +180,6 @@ JOHN_OBJS = \
 	unafs.o \
 	undrop.o \
 	regex.o \
-	c3_fmt.o \
 	unique.o putty2john.o gpg2john.o memdbg.o
 
 OCL_OBJS = \
@@ -268,8 +265,7 @@ PROJ = ../run/john ../run/unshadow ../run/unafs ../run/unique ../run/undrop \
 	../run/keychain2john ../run/keyring2john ../run/kwallet2john \
 	../run/dmg2john ../run/putty2john john.local.conf ../run/uaf2john \
 	../run/truecrypt_volume2john ../run/keystore2john ../run/wpapcap2john \
-	../run/gpg2john ../run/cprepair
-#	../run/gpg2john ../run/luks2john ../run/cprepair
+	../run/gpg2john ../run/luks2john ../run/cprepair
 PROJ_DOS = ../run/john.bin ../run/john.com \
 	../run/unshadow.com ../run/unafs.com ../run/unique.com \
 	../run/undrop.com \
@@ -414,11 +410,11 @@ linux-x86-64-avx:
 	$(LN) x86-64.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86-64.o sse-intrinsics.o" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
 		CFLAGS_MAIN="$(CFLAGS) -DJOHN_AVX -DHAVE_CRYPT -DHAVE_DL" \
 		CFLAGS="$(CFLAGS) -mavx -DHAVE_CRYPT -DHAVE_DL" \
 		ASFLAGS="$(ASFLAGS) -mavx" \
-		LDFLAGS="$(LDFLAGS)" \
+		LDFLAGS="$(LDFLAGS) -lcrypt -ldl" \
 		AESNI_ARCH=64
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_PCAP)
@@ -428,11 +424,11 @@ linux-x86-64-xop:
 	$(LN) x86-64.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86-64.o sse-intrinsics.o" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
 		CFLAGS_MAIN="$(CFLAGS) -DJOHN_XOP -DHAVE_CRYPT -DHAVE_DL" \
 		CFLAGS="$(CFLAGS) -mxop -DHAVE_CRYPT -DHAVE_DL" \
 		ASFLAGS="$(ASFLAGS) -mxop" \
-		LDFLAGS="$(LDFLAGS)" \
+		LDFLAGS="$(LDFLAGS) -lcrypt -ldl" \
 		AESNI_ARCH=64
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_PCAP)
@@ -442,10 +438,10 @@ linux-x86-64-gpu:
 	$(LN) x86-64.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) $(OCL_OBJS) $(CUDA_OBJS) x86-64.o sse-intrinsics.o" \
+		JOHN_OBJS="$(JOHN_OBJS) $(OCL_OBJS) $(CUDA_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
 		CFLAGS="$(CFLAGS) -I$(OCLROOT)/include -I$(CUDAPATH)/include -DHAVE_CRYPT -DHAVE_OPENCL -DHAVE_CUDA -DHAVE_DL -march=native" \
 		ASFLAGS="$(ASFLAGS) -march=native" \
-		LDFLAGS="$(LDFLAGS) -L$(OCLROOT)/lib/x86_64 -L$(OCLROOT)/lib64 -L$(CUDAPATH)/lib64 -lOpenCL -lcudart -march=native" \
+		LDFLAGS="$(LDFLAGS) -L$(OCLROOT)/lib/x86_64 -L$(OCLROOT)/lib64 -L$(CUDAPATH)/lib64 -lcrypt -lOpenCL -ldl -lcudart -march=native" \
 		AESNI_ARCH=64
 	$(MKDIR) ../run/kernels/
 	$(CP_PRESERVE) opencl/*.cl ../run/kernels/
@@ -458,10 +454,10 @@ linux-x86-64-opencl:
 	$(LN) x86-64.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) $(OCL_OBJS) x86-64.o sse-intrinsics.o" \
+		JOHN_OBJS="$(JOHN_OBJS) $(OCL_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
 		CFLAGS="$(CFLAGS) -I$(OCLROOT)/include -DHAVE_CRYPT -DHAVE_OPENCL -DHAVE_DL -march=native" \
 		ASFLAGS="$(ASFLAGS) -march=native" \
-		LDFLAGS="$(LDFLAGS) -L$(OCLROOT)/lib/x86_64 -L$(OCLROOT)/lib64 -lOpenCL -march=native" \
+		LDFLAGS="$(LDFLAGS) -L$(OCLROOT)/lib/x86_64 -L$(OCLROOT)/lib64 -lcrypt -lOpenCL -ldl -march=native" \
 		AESNI_ARCH=64
 	$(MKDIR) ../run/kernels/
 	$(CP_PRESERVE) opencl/*.cl ../run/kernels/
@@ -474,10 +470,10 @@ linux-x86-64-cuda:
 	$(LN) x86-64.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) $(CUDA_OBJS) x86-64.o sse-intrinsics.o" \
+		JOHN_OBJS="$(JOHN_OBJS) $(CUDA_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
 		CFLAGS="$(CFLAGS) -I$(CUDAPATH)/include -DHAVE_CRYPT -DHAVE_DL -DHAVE_CUDA -march=native" \
 		ASFLAGS="$(ASFLAGS) -march=native" \
-		LDFLAGS="$(LDFLAGS) -L$(CUDAPATH)/lib64 -lcudart -march=native" \
+		LDFLAGS="$(LDFLAGS) -L$(CUDAPATH)/lib64 -lcrypt -ldl -lcudart -march=native" \
 		AESNI_ARCH=64
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_PCAP)
@@ -487,10 +483,10 @@ linux-x86-64-native:
 	$(LN) x86-64.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86-64.o sse-intrinsics.o" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -DHAVE_DL -march=native" \
 		ASFLAGS="$(ASFLAGS) -march=native" \
-		LDFLAGS="$(LDFLAGS) -march=native" \
+		LDFLAGS="$(LDFLAGS) -lcrypt -ldl -march=native" \
 		AESNI_ARCH=64
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_PCAP)
@@ -500,10 +496,10 @@ linux-X32-native:
 	$(LN) x86-64.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86-64.o sse-intrinsics.o" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -DHAVE_DL -march=native -mx32" \
 		ASFLAGS="$(ASFLAGS) -march=native -mx32" \
-		LDFLAGS="$(LDFLAGS) -march=native -mx32" \
+		LDFLAGS="$(LDFLAGS) -lcrypt -ldl -march=native -mx32" \
 		AESNI_ARCH=86
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_PCAP)
@@ -513,10 +509,10 @@ linux-X32:
 	$(LN) x86-64.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86-64.o sse-intrinsics.o" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -DHAVE_DL -mx32" \
 		ASFLAGS="$(ASFLAGS) -mx32" \
-		LDFLAGS="$(LDFLAGS) -mx32" \
+		LDFLAGS="$(LDFLAGS) -lcrypt -ldl -mx32" \
 		AESNI_ARCH=86
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_PCAP)
@@ -526,9 +522,9 @@ linux-x86-64:
 	$(LN) x86-64.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86-64.o sse-intrinsics.o" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -DHAVE_DL" \
-		LDFLAGS="$(LDFLAGS)" \
+		LDFLAGS="$(LDFLAGS) -lcrypt -ldl" \
 		AESNI_ARCH=64
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_PCAP)
@@ -538,9 +534,9 @@ linux-x86-64i:
 	$(LN) x86-64.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86-64.o sse-intrinsics-64.o" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o sse-intrinsics-64.o" \
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -DHAVE_DL -DUSING_ICC_S_FILE" \
-		LDFLAGS="$(LDFLAGS)" \
+		LDFLAGS="$(LDFLAGS) -lcrypt -ldl" \
 		AESNI_ARCH=64
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_PCAP)
@@ -550,9 +546,9 @@ linux-x86-64-clang:
 	$(LN) x86-64.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86-64.o sse-intrinsics.o" \
-		CFLAGS="-Wall -c -O2 -I/usr/include -msse2 -DHAVE_CRYPT -DHAVE_DL $(HAVE_NSS) $(HAVE_KRB5) $(JOHN_CFLAGS)" \
-		LDFLAGS="$(LDFLAGS)" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
+		CFLAGS="-Wall -c -O2 -I/usr/include -msse2 -DHAVE_CRYPT -DHAVE_DL $(HAVE_NSS) $(HAVE_GMP) $(HAVE_KRB5) $(JOHN_CFLAGS)" \
+		LDFLAGS="$(LDFLAGS) -lcrypt -ldl" \
 		CPP="clang" CC="clang" AS="clang" LD="clang" CXX="clang++" \
 		AESNI_ARCH=64
 	@echo "Failing after this point just means some helper tools did not build:"
@@ -563,15 +559,15 @@ linux-x86-64-clang-debug:
 	$(LN) x86-64.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86-64.o sse-intrinsics.o" \
-		CFLAGS="-Wall -Wdeclaration-after-statement -c -g -O1 -faddress-sanitizer -I/usr/include -msse2 -DDEBUG -DHAVE_CRYPT -DHAVE_DL $(HAVE_NSS) $(HAVE_KRB5) $(JOHN_CFLAGS)" \
-		LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib -faddress-sanitizer $(NSS_LDFLAGS) $(GMP_LDFLAGS) $(KRB5_LDFLAGS) $(JOHN_LDFLAGS)" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
+		CFLAGS="-Wall -Wdeclaration-after-statement -c -g -O1 -faddress-sanitizer -I/usr/include -msse2 -DDEBUG -DHAVE_CRYPT -DHAVE_DL $(HAVE_NSS) $(HAVE_GMP) $(HAVE_KRB5) $(JOHN_CFLAGS)" \
+		LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz -lcrypt -ldl -faddress-sanitizer $(NSS_LDFLAGS) $(GMP_LDFLAGS) $(KRB5_LDFLAGS) $(JOHN_LDFLAGS)" \
 		CPP="clang" CC="clang" AS="clang" LD="clang" CXX="clang++" \
 		AESNI_ARCH=64
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_PCAP) \
-		CFLAGS="-Wall -Wdeclaration-after-statement -c -g -O1 -faddress-sanitizer -I/usr/include -msse2 -DDEBUG -DHAVE_CRYPT -DHAVE_DL $(HAVE_NSS) $(HAVE_KRB5) $(JOHN_CFLAGS)" \
-		LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib -faddress-sanitizer $(NSS_LDFLAGS) $(GMP_LDFLAGS) $(KRB5_LDFLAGS) $(JOHN_LDFLAGS)" \
+		CFLAGS="-Wall -Wdeclaration-after-statement -c -g -O1 -faddress-sanitizer -I/usr/include -msse2 -DDEBUG -DHAVE_CRYPT -DHAVE_DL $(HAVE_NSS) $(HAVE_GMP) $(HAVE_KRB5) $(JOHN_CFLAGS)" \
+		LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz -lcrypt -ldl -faddress-sanitizer $(NSS_LDFLAGS) $(GMP_LDFLAGS) $(KRB5_LDFLAGS) $(JOHN_LDFLAGS)" \
 		CPP="clang" CC="clang" AS="clang" LD="clang" CXX="clang++"
 	@echo "All done"
 
@@ -579,24 +575,24 @@ linux-x86-64-newgcc-debug:
 	$(LN) x86-64.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86-64.o sse-intrinsics.o" \
-		CFLAGS="-Wall -Wdeclaration-after-statement -c -g -O1 -fsanitize=address -I/usr/include -msse2 -DDEBUG -DHAVE_CRYPT -DHAVE_DL $(HAVE_NSS) $(HAVE_KRB5) $(JOHN_CFLAGS)" \
-		LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib -fsanitize=address $(NSS_LDFLAGS) $(GMP_LDFLAGS) $(KRB5_LDFLAGS) $(JOHN_LDFLAGS)" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
+		CFLAGS="-Wall -Wdeclaration-after-statement -c -g -O1 -fsanitize=address -I/usr/include -msse2 -DDEBUG -DHAVE_CRYPT -DHAVE_DL $(HAVE_NSS) $(HAVE_GMP) $(HAVE_KRB5) $(JOHN_CFLAGS)" \
+		LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz -lcrypt -ldl -fsanitize=address $(NSS_LDFLAGS) $(GMP_LDFLAGS) $(KRB5_LDFLAGS) $(JOHN_LDFLAGS)" \
 		AESNI_ARCH=64
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_PCAP) \
-		CFLAGS="-Wall -Wdeclaration-after-statement -c -g -O1 -fsanitize=address -I/usr/include -msse2 -DDEBUG -DHAVE_CRYPT -DHAVE_DL $(HAVE_NSS) $(HAVE_KRB5) $(JOHN_CFLAGS)" \
-		LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib -fsanitize=address $(NSS_LDFLAGS) $(GMP_LDFLAGS) $(KRB5_LDFLAGS) $(JOHN_LDFLAGS)"
+		CFLAGS="-Wall -Wdeclaration-after-statement -c -g -O1 -fsanitize=address -I/usr/include -msse2 -DDEBUG -DHAVE_CRYPT -DHAVE_DL $(HAVE_NSS) $(HAVE_GMP) $(HAVE_KRB5) $(JOHN_CFLAGS)" \
+		LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz -lcrypt -ldl -fsanitize=address $(NSS_LDFLAGS) $(GMP_LDFLAGS) $(KRB5_LDFLAGS) $(JOHN_LDFLAGS)"
 	@echo "All done"
 
 linux-x86-64-icc:
 	$(LN) x86-64.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86-64.o sse-intrinsics.o" \
-		CFLAGS="-c -fast -O2 -I/usr/include -static-intel -DHAVE_CRYPT -DHAVE_DL $(ICCOMPFLAGS) $(HAVE_NSS) $(HAVE_KRB5) $(JOHN_CFLAGS)" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
+		CFLAGS="-c -fast -O2 -I/usr/include -static-intel -DHAVE_CRYPT -DHAVE_DL $(ICCOMPFLAGS) $(HAVE_NSS) $(HAVE_GMP) $(HAVE_KRB5) $(JOHN_CFLAGS)" \
 		ASFLAGS="-c -xHost $(JOHN_ASFLAGS)" \
-		LDFLAGS="-ipo -static-intel $(ICCOMPFLAGS) -s $(NSS_LDFLAGS) $(GMP_LDFLAGS) $(KRB5_LDFLAGS) $(JOHN_LDFLAGS)" \
+		LDFLAGS="-lm -lssl -lcrypto -ipo -static-intel -lcrypt -ldl -lz $(ICCOMPFLAGS) -s $(NSS_LDFLAGS) $(GMP_LDFLAGS) $(KRB5_LDFLAGS) $(JOHN_LDFLAGS)" \
 		CPP="icc" CC="icc" AS="icc" LD="icc" \
 		AESNI_ARCH=64
 	@echo "Failing after this point just means some helper tools did not build:"
@@ -607,10 +603,10 @@ linux-x86-64-32-native:
 	$(LN) x86-sse.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
 		CFLAGS="$(CFLAGS) -m32 -msse2 -DHAVE_CRYPT -DHAVE_DL -march=native" \
 		ASFLAGS="$(ASFLAGS) -m32 -msse2 -march=native" \
-		LDFLAGS="$(LDFLAGS) -m32 -march=native" \
+		LDFLAGS="$(LDFLAGS) -m32 -lcrypt -ldl -march=native" \
 		AESNI_ARCH=86
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
@@ -620,10 +616,10 @@ linux-x86-64-32-sse2:
 	$(LN) x86-sse.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
 		CFLAGS="$(CFLAGS) -m32 -msse2 -DHAVE_CRYPT -DHAVE_DL" \
 		ASFLAGS="$(ASFLAGS) -m32 -msse2" \
-		LDFLAGS="$(LDFLAGS) -m32" \
+		LDFLAGS="$(LDFLAGS) -m32 -lcrypt -ldl" \
 		AESNI_ARCH=86
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
@@ -633,10 +629,10 @@ linux-x86-64-32-sse2asm:
 	$(LN) x86-sse.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o" \
 		CFLAGS="$(CFLAGS) -m32 -msse2 -DHAVE_CRYPT -DHAVE_DL -DJOHN_DISABLE_INTRINSICS" \
 		ASFLAGS="$(ASFLAGS) -m32 -msse2" \
-		LDFLAGS="$(LDFLAGS) -m32" \
+		LDFLAGS="$(LDFLAGS) -m32 -lcrypt -ldl" \
 		AESNI_ARCH=86
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
@@ -646,10 +642,10 @@ linux-x86-64-32-sse2i:
 	$(LN) x86-sse.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics-32.o" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics-32.o" \
 		CFLAGS="$(CFLAGS) -m32 -msse2 -DHAVE_CRYPT -DHAVE_DL -DUSING_ICC_S_FILE" \
 		ASFLAGS="$(ASFLAGS) -m32 -msse2" \
-		LDFLAGS="$(LDFLAGS) -m32" \
+		LDFLAGS="$(LDFLAGS) -m32 -lcrypt -ldl" \
 		AESNI_ARCH=86
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
@@ -659,10 +655,10 @@ linux-x86-64-32-mmx:
 	$(LN) x86-mmx.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-mmx.o sha1-mmx.o md4-mmx.o md5-mmx.o" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o x86-mmx.o sha1-mmx.o md4-mmx.o md5-mmx.o" \
 		CFLAGS="$(CFLAGS) -m32 -DHAVE_CRYPT -DHAVE_DL" \
 		ASFLAGS="$(ASFLAGS) -m32" \
-		LDFLAGS="$(LDFLAGS) -m32" \
+		LDFLAGS="$(LDFLAGS) -m32 -lcrypt -ldl" \
 		AESNI_ARCH=86
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
@@ -672,10 +668,10 @@ linux-x86-64-32-any:
 	$(LN) x86-any.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86.o" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o" \
 		CFLAGS="$(CFLAGS) -m32 -DHAVE_CRYPT -DHAVE_DL" \
 		ASFLAGS="$(ASFLAGS) -m32" \
-		LDFLAGS="$(LDFLAGS) -m32" \
+		LDFLAGS="$(LDFLAGS) -m32 -lcrypt -ldl" \
 		AESNI_ARCH=86
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
@@ -685,11 +681,11 @@ linux-x86-avx:
 	$(LN) x86-sse.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
 		CFLAGS_MAIN="$(CFLAGS) -m32 -DJOHN_AVX -DHAVE_CRYPT" \
 		CFLAGS="$(CFLAGS) -m32 -mavx -DHAVE_CRYPT" \
 		ASFLAGS="$(ASFLAGS) -m32 -mavx" \
-		LDFLAGS="$(LDFLAGS) -m32 " \
+		LDFLAGS="$(LDFLAGS) -m32 -lcrypt" \
 		AESNI_ARCH=86
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
@@ -699,11 +695,11 @@ linux-x86-xop:
 	$(LN) x86-sse.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
 		CFLAGS_MAIN="$(CFLAGS) -m32 -DJOHN_XOP -DHAVE_CRYPT" \
 		CFLAGS="$(CFLAGS) -m32 -mxop -DHAVE_CRYPT" \
 		ASFLAGS="$(ASFLAGS) -m32 -mxop" \
-		LDFLAGS="$(LDFLAGS) -m32 " \
+		LDFLAGS="$(LDFLAGS) -m32 -lcrypt" \
 		AESNI_ARCH=86
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
@@ -713,10 +709,10 @@ linux-x86-gpu:
 	$(LN) x86-sse.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) $(OCL_OBJS) $(CUDA_OBJS) x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
+		JOHN_OBJS="$(JOHN_OBJS) $(OCL_OBJS) $(CUDA_OBJS) c3_fmt.o x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
 		CFLAGS="$(CFLAGS) -I$(OCLROOT)/include -I$(CUDAPATH)/include -DHAVE_CRYPT -DHAVE_OPENCL -DHAVE_CUDA -DHAVE_DL -DUSING_ICC_S_FILE -march=native" \
 		ASFLAGS="$(ASFLAGS) -march=native" \
-		LDFLAGS="$(LDFLAGS) -L$(OCLROOT)/lib/x86 -L$(OCLROOT)/lib -L$(CUDAPATH)/lib -lOpenCL -lcudart -march=native" \
+		LDFLAGS="$(LDFLAGS) -L$(OCLROOT)/lib/x86 -L$(OCLROOT)/lib -L$(CUDAPATH)/lib -lcrypt -lOpenCL -ldl -lcudart -march=native" \
 		AESNI_ARCH=86
 	$(MKDIR) ../run/kernels/
 	$(CP_PRESERVE) opencl/*.cl ../run/kernels/
@@ -729,10 +725,10 @@ linux-x86-opencl:
 	$(LN) x86-sse.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) $(OCL_OBJS) x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
+		JOHN_OBJS="$(JOHN_OBJS) $(OCL_OBJS) c3_fmt.o x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
 		CFLAGS="$(CFLAGS) -I$(OCLROOT)/include -DHAVE_CRYPT -DHAVE_OPENCL -DHAVE_DL -DUSING_ICC_S_FILE -march=native" \
 		ASFLAGS="$(ASFLAGS) -march=native" \
-		LDFLAGS="$(LDFLAGS) -L$(OCLROOT)/lib/x86 -L$(OCLROOT)/lib -lOpenCL -march=native" \
+		LDFLAGS="$(LDFLAGS) -L$(OCLROOT)/lib/x86 -L$(OCLROOT)/lib -lcrypt -lOpenCL -ldl -march=native" \
 		AESNI_ARCH=86
 	$(MKDIR) ../run/kernels/
 	$(CP_PRESERVE) opencl/*.cl ../run/kernels/
@@ -745,10 +741,10 @@ linux-x86-cuda:
 	$(LN) x86-sse.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) $(CUDA_OBJS) x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
+		JOHN_OBJS="$(JOHN_OBJS) $(CUDA_OBJS) c3_fmt.o x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
 		CFLAGS="$(CFLAGS) -I$(CUDAPATH)/include -DHAVE_CRYPT -DHAVE_DL -DHAVE_CUDA -DUSING_ICC_S_FILE -march=native" \
 		ASFLAGS="$(ASFLAGS) -march=native" \
-		LDFLAGS="$(LDFLAGS) -L$(CUDAPATH)/lib -lcudart -march=native" \
+		LDFLAGS="$(LDFLAGS) -L$(CUDAPATH)/lib -lcrypt -ldl -lcudart -march=native" \
 		AESNI_ARCH=86
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_PCAP)
@@ -758,10 +754,10 @@ linux-x86-native:
 	$(LN) x86-sse.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -DHAVE_DL -march=native" \
 		ASFLAGS="$(ASFLAGS) -march=native" \
-		LDFLAGS="$(LDFLAGS) -march=native" \
+		LDFLAGS="$(LDFLAGS) -lcrypt -ldl -march=native" \
 		AESNI_ARCH=86
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_PCAP)
@@ -771,10 +767,10 @@ linux-x86-sse2:
 	$(LN) x86-sse.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
 		CFLAGS="$(CFLAGS) -msse2 -DHAVE_CRYPT -DHAVE_DL" \
 		ASFLAGS="$(ASFLAGS) -msse2" \
-		LDFLAGS="$(LDFLAGS)" \
+		LDFLAGS="$(LDFLAGS) -lcrypt -ldl" \
 		AESNI_ARCH=86
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_PCAP)
@@ -784,10 +780,10 @@ linux-x86-sse2i:
 	$(LN) x86-sse.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics-32.o" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics-32.o" \
 		CFLAGS="$(CFLAGS) -msse2 -DHAVE_CRYPT -DHAVE_DL -DUSING_ICC_S_FILE" \
 		ASFLAGS="$(ASFLAGS) -msse2" \
-		LDFLAGS="$(LDFLAGS)" \
+		LDFLAGS="$(LDFLAGS) -lcrypt -ldl" \
 		AESNI_ARCH=86
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_PCAP)
@@ -797,9 +793,9 @@ linux-x86-mmx:
 	$(LN) x86-mmx.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-mmx.o sha1-mmx.o md4-mmx.o md5-mmx.o" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o x86-mmx.o sha1-mmx.o md4-mmx.o md5-mmx.o" \
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -DHAVE_DL" \
-		LDFLAGS="$(LDFLAGS)" \
+		LDFLAGS="$(LDFLAGS) -lcrypt -ldl" \
 		AESNI_ARCH=86
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_PCAP)
@@ -809,9 +805,9 @@ linux-x86-any:
 	$(LN) x86-any.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86.o" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o" \
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -DHAVE_DL" \
-		LDFLAGS="$(LDFLAGS)" \
+		LDFLAGS="$(LDFLAGS) -lcrypt -ldl" \
 		AESNI_ARCH=86
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_PCAP)
@@ -821,9 +817,9 @@ linux-x86-clang:
 	$(LN) x86-sse.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
-		CFLAGS="-Wall -c -O2 -I/usr/include -msse2 -DHAVE_CRYPT -DHAVE_DL $(HAVE_NSS) $(HAVE_KRB5) $(OMPFLAGS) $(JOHN_CFLAGS)" \
-		LDFLAGS="$(LDFLAGS)" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
+		CFLAGS="-Wall -c -O2 -I/usr/include -msse2 -DHAVE_CRYPT -DHAVE_DL $(HAVE_NSS) $(HAVE_GMP) $(HAVE_KRB5) $(OMPFLAGS) $(JOHN_CFLAGS)" \
+		LDFLAGS="$(LDFLAGS) -lcrypt -ldl" \
 		CPP="clang" CC="clang" AS="clang" LD="clang" CXX="clang++" \
 		AESNI_ARCH=86
 	@echo "Failing after this point just means some helper tools did not build:"
@@ -834,15 +830,15 @@ linux-x86-clang-debug:
 	$(LN) x86-sse.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
-		CFLAGS="-Wall -Wdeclaration-after-statement -c -g -O1 -faddress-sanitizer -I/usr/include -msse2 -DDEBUG -DHAVE_CRYPT -DHAVE_DL $(HAVE_NSS) $(HAVE_KRB5) $(OMPFLAGS) $(JOHN_CFLAGS)" \
-		LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib -faddress-sanitizer $(NSS_LDFLAGS) $(GMP_LDFLAGS) $(KRB5_LDFLAGS) $(JOHN_LDFLAGS)" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
+		CFLAGS="-Wall -Wdeclaration-after-statement -c -g -O1 -faddress-sanitizer -I/usr/include -msse2 -DDEBUG -DHAVE_CRYPT -DHAVE_DL $(HAVE_NSS) $(HAVE_GMP) $(HAVE_KRB5) $(OMPFLAGS) $(JOHN_CFLAGS)" \
+		LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz -lcrypt -ldl -faddress-sanitizer $(NSS_LDFLAGS) $(GMP_LDFLAGS) $(KRB5_LDFLAGS) $(JOHN_LDFLAGS)" \
 		CPP="clang" CC="clang" AS="clang" LD="clang" CXX="clang++" \
 		AESNI_ARCH=86
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_PCAP) \
-		CFLAGS="-Wall -Wdeclaration-after-statement -c -g -O1 -faddress-sanitizer -I/usr/include -msse2 -DDEBUG -DHAVE_CRYPT -DHAVE_DL $(HAVE_NSS) $(HAVE_KRB5) $(OMPFLAGS) $(JOHN_CFLAGS)" \
-		LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib -faddress-sanitizer $(NSS_LDFLAGS) $(GMP_LDFLAGS) $(KRB5_LDFLAGS) $(JOHN_LDFLAGS)" \
+		CFLAGS="-Wall -Wdeclaration-after-statement -c -g -O1 -faddress-sanitizer -I/usr/include -msse2 -DDEBUG -DHAVE_CRYPT -DHAVE_DL $(HAVE_NSS) $(HAVE_GMP) $(HAVE_KRB5) $(OMPFLAGS) $(JOHN_CFLAGS)" \
+		LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz -lcrypt -ldl -faddress-sanitizer $(NSS_LDFLAGS) $(GMP_LDFLAGS) $(KRB5_LDFLAGS) $(JOHN_LDFLAGS)" \
 		CPP="clang" CC="clang" AS="clang" LD="clang" CXX="clang++"
 	@echo "All done"
 
@@ -850,25 +846,25 @@ linux-arm32le-neon:
 	$(LN) arm32le.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS)" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o" \
 		CFLAGS="$(CFLAGS) -mfpu=neon -DHAVE_CRYPT" \
-		LDFLAGS="$(LDFLAGS) "
+		LDFLAGS="$(LDFLAGS) -lcrypt"
 
 linux-arm32le:
 	$(LN) arm32le.h arch.h
 	echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS)" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o" \
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT" \
-		LDFLAGS="$(LDFLAGS) "
+		LDFLAGS="$(LDFLAGS) -lcrypt"
 
 linux-alpha:
 	$(LN) alpha.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) alpha.o" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o alpha.o" \
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -DHAVE_DL" \
-		LDFLAGS="$(LDFLAGS)"
+		LDFLAGS="$(LDFLAGS) -lcrypt -ldl"
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
@@ -879,10 +875,10 @@ linux-alpha-ccc:
 	$(LN) alpha.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) alpha.o" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o alpha.o" \
 		CC=ccc \
 		CFLAGS="-c -Wf,-switch,noil_schedule -DHAVE_CRYPT -DHAVE_DL" \
-		LDFLAGS="$(LDFLAGS)" \
+		LDFLAGS="$(LDFLAGS) -lcrypt -ldl" \
 		OPT_NORMAL="-fast" \
 		OPT_INLINE="-O2 -arch host"
 	@echo "Failing after this point just means some helper tools did not build:"
@@ -893,9 +889,9 @@ linux-sparc:
 	$(LN) sparc32.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) " \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o" \
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -DHAVE_DL" \
-		LDFLAGS="$(LDFLAGS)"
+		LDFLAGS="$(LDFLAGS) -lcrypt -ldl"
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
@@ -904,9 +900,9 @@ linux-ppc32-altivec:
 	$(LN) ppc32alt.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) " \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o" \
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -DHAVE_DL" \
-		LDFLAGS="$(LDFLAGS)" \
+		LDFLAGS="$(LDFLAGS) -lcrypt -ldl" \
 		OPT_INLINE="-finline-functions -finline-limit=4000 -maltivec"
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_PCAP)
@@ -916,9 +912,9 @@ linux-ppc32:
 	$(LN) ppc32.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) " \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o" \
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -DHAVE_DL" \
-		LDFLAGS="$(LDFLAGS)"
+		LDFLAGS="$(LDFLAGS) -lcrypt -ldl"
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
@@ -928,9 +924,9 @@ linux-ppc64-altivec:
 	$(LN) ppc64alt.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) " \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o" \
 		CFLAGS="$(CFLAGS) -m64 -DHAVE_CRYPT -DHAVE_DL" \
-		LDFLAGS="$(LDFLAGS) -m64" \
+		LDFLAGS="$(LDFLAGS) -m64 -lcrypt -ldl" \
 		OPT_INLINE="-finline-functions -finline-limit=4000 -maltivec"
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m64"
@@ -940,9 +936,9 @@ linux-ppc64:
 	$(LN) ppc64.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) " \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o" \
 		CFLAGS="$(CFLAGS) -m64 -DHAVE_CRYPT -DHAVE_DL" \
-		LDFLAGS="$(LDFLAGS) -m64" \
+		LDFLAGS="$(LDFLAGS) -m64 -lcrypt -ldl" \
 		OPT_INLINE="-finline-functions -finline-limit=4000"
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m64"
@@ -952,9 +948,9 @@ linux-ia64:
 	$(LN) ia64.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) " \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o" \
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -DHAVE_DL" \
-		LDFLAGS="$(LDFLAGS)"
+		LDFLAGS="$(LDFLAGS) -lcrypt -ldl"
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_PCAP)
 	@echo "All done"
@@ -1196,7 +1192,7 @@ solaris-sparc64-cc:
 	$(LN) sparc64.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) " \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o" \
 		CC=cc \
 		CFLAGS="-c -fast -xarch=native64 -DHAVE_CRYPT $(OMPFLAGS)" \
 		LDFLAGS="-s -xarch=native64 $(OMPFLAGS) -lc $(LDFLAGS_SOLARIS) $(JOHN_LDFLAGS)" \
@@ -1208,7 +1204,7 @@ solaris-sparc64-gcc:
 	$(LN) sparc64.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) " \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o" \
 		CFLAGS="$(CFLAGS) -m64 -mcpu=ultrasparc -DHAVE_CRYPT" \
 		LDFLAGS="$(LDFLAGS) -m64 $(LDFLAGS_SOLARIS) $(JOHN_LDFLAGS)"
 
@@ -1217,7 +1213,7 @@ solaris-sparcv9-cc:
 	$(LN) sparc32.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) " \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o" \
 		CC=cc \
 		CFLAGS="-c -xO4 -xarch=v8plusa -xchip=ultra -DHAVE_CRYPT $(OMPFLAGS)" \
 		LDFLAGS="-s $(OMPFLAGS) -lc $(LDFLAGS_SOLARIS) $(JOHN_LDFLAGS)" \
@@ -1229,7 +1225,7 @@ solaris-sparcv8-cc:
 	$(LN) sparc32.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) " \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o" \
 		CC=cc \
 		CFLAGS="-c -xO4 -xarch=v8 -DHAVE_CRYPT $(OMPFLAGS)" \
 		LDFLAGS="-s $(OMPFLAGS) -lc $(LDFLAGS_SOLARIS) $(JOHN_LDFLAGS)" \
@@ -1241,7 +1237,7 @@ solaris-sparc-gcc:
 	$(LN) sparc32.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) " \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o" \
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT" \
 		LDFLAGS="$(LDFLAGS) $(LDFLAGS_SOLARIS)"
 	@echo "Failing after this point just means some helper tools did not build:"
@@ -1253,7 +1249,7 @@ solaris-x86-64-cc:
 	$(LN) x86-64.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86-64.o sse-intrinsics.o" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
 		CC=cc \
 		CFLAGS="-c -fast -xarch=native64 -DHAVE_CRYPT $(OMPFLAGS)" \
 		ASFLAGS="-c -xarch=native64 $(OMPFLAGS) $(JOHN_ASFLAGS)" \
@@ -1266,7 +1262,7 @@ solaris-x86-64-gcc:
 	$(LN) x86-64.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86-64.o sse-intrinsics.o" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
 		CFLAGS="$(CFLAGS) -m64 -DHAVE_CRYPT" \
 		ASFLAGS="$(ASFLAGS) -m64" \
 		LDFLAGS="$(LDFLAGS) -m64 $(LDFLAGS_SOLARIS)"
@@ -1276,7 +1272,7 @@ solaris-x86-64i-gcc:
 	$(LN) x86-64.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86-64.o sse-intrinsics-64.o" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o sse-intrinsics-64.o" \
 		CFLAGS="$(CFLAGS) -m64 -DHAVE_CRYPT -DUSING_ICC_S_FILE" \
 		ASFLAGS="$(ASFLAGS) -m64" \
 		LDFLAGS="$(LDFLAGS) -m64 $(LDFLAGS_SOLARIS)"
@@ -1286,7 +1282,7 @@ solaris-x86-sse2-cc:
 	$(LN) x86-sse.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) solaris-x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o solaris-x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o" \
 		CC=cc \
 		CFLAGS="-c -fast -xarch=native -DHAVE_CRYPT $(OMPFLAGS) -DJOHN_DISABLE_INTRINSICS" \
 		ASFLAGS="-c -xarch=native $(OMPFLAGS) $(JOHN_ASFLAGS)" \
@@ -1299,7 +1295,7 @@ solaris-x86-sse2-gcc:
 	$(LN) x86-sse.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) solaris-x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o solaris-x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT" \
 		LDFLAGS="$(LDFLAGS) $(LDFLAGS_SOLARIS)"
 
@@ -1308,7 +1304,7 @@ solaris-x86-sse2i-gcc:
 	$(LN) x86-sse.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) solaris-x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics-32.o" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o solaris-x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics-32.o" \
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -msse2 -DUSING_ICC_S_FILE" \
 		ASFLAGS="$(ASFLAGS) -msse2" \
 		LDFLAGS="$(LDFLAGS) $(LDFLAGS_SOLARIS)"
@@ -1318,7 +1314,7 @@ solaris-x86-mmx-cc:
 	$(LN) x86-mmx.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) solaris-x86.o x86-mmx.o sha1-mmx.o md4-mmx.o md5-mmx.o" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o solaris-x86.o x86-mmx.o sha1-mmx.o md4-mmx.o md5-mmx.o" \
 		CC=cc \
 		CFLAGS="-c -fast -xarch=native -DHAVE_CRYPT $(OMPFLAGS)" \
 		ASFLAGS="-c -xarch=native $(OMPFLAGS) $(JOHN_ASFLAGS)" \
@@ -1331,7 +1327,7 @@ solaris-x86-mmx-gcc:
 	$(LN) x86-mmx.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) solaris-x86.o x86-mmx.o sha1-mmx.o md4-mmx.o md5-mmx.o" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o solaris-x86.o x86-mmx.o sha1-mmx.o md4-mmx.o md5-mmx.o" \
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT" \
 		LDFLAGS="$(LDFLAGS) $(LDFLAGS_SOLARIS)"
 
@@ -1341,7 +1337,7 @@ solaris-x86-any-cc:
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
 		SHELL=/bin/sh \
-		JOHN_OBJS="$(JOHN_OBJS) solaris-x86.o" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o solaris-x86.o" \
 		CC=cc \
 		CFLAGS="-c -xO4 -DHAVE_CRYPT $(OMPFLAGS)" \
 		ASFLAGS="-c $(OMPFLAGS) $(JOHN_ASFLAGS)" \
@@ -1355,7 +1351,7 @@ solaris-x86-any-gcc:
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
 		SHELL=/bin/sh \
-		JOHN_OBJS="$(JOHN_OBJS) solaris-x86.o" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o solaris-x86.o" \
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT" \
 		LDFLAGS="$(LDFLAGS) -lc $(LDFLAGS_SOLARIS)"
 
@@ -1429,7 +1425,7 @@ macosx-x86-64-native:
 	$(LN) x86-64.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86-64.o sse-intrinsics.o" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
 		ASFLAGS="$(ASFLAGS) -march=native -DUNDERSCORES -DBSD -DALIGN_LOG" \
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -march=native -Wno-deprecated-declarations" \
 		LDFLAGS="$(LDFLAGS) -march=native"
@@ -1441,7 +1437,7 @@ macosx-x86-64:
 	$(LN) x86-64.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86-64.o sse-intrinsics.o" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
 		ASFLAGS="$(ASFLAGS) -m64 -DUNDERSCORES -DBSD -DALIGN_LOG" \
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -m64 -Wno-deprecated-declarations" \
 		LDFLAGS="$(LDFLAGS) -m64"
@@ -1453,7 +1449,7 @@ macosx-x86-64-gpu:
 	$(LN) x86-64.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) $(OCL_OBJS) $(CUDA_OBJS) x86-64.o sse-intrinsics.o" \
+		JOHN_OBJS="$(JOHN_OBJS) $(OCL_OBJS) $(CUDA_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
 		ASFLAGS="$(ASFLAGS) -m64 -DUNDERSCORES -DBSD -DALIGN_LOG" \
 		CFLAGS="$(CFLAGS) -m64 -I$(OCLROOT)/include -I$(CUDAPATH)/include -DBSD -DHAVE_CRYPT -DHAVE_OPENCL -DHAVE_CUDA -Wno-deprecated-declarations" \
 		LDFLAGS="$(LDFLAGS) -m64 -L$(CUDAPATH)/lib -lcudart -framework OpenCL" \
@@ -1473,7 +1469,7 @@ macosx-x86-64-native-gpu:
 	$(LN) x86-64.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) $(OCL_OBJS) $(CUDA_OBJS) x86-64.o sse-intrinsics.o" \
+		JOHN_OBJS="$(JOHN_OBJS) $(OCL_OBJS) $(CUDA_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
 		ASFLAGS="$(ASFLAGS) -march=native -DUNDERSCORES -DBSD -DALIGN_LOG" \
 		CFLAGS="$(CFLAGS) -march=native -I$(OCLROOT)/include -I$(CUDAPATH)/include -DHAVE_CRYPT -DHAVE_OPENCL -DHAVE_CUDA -Wno-deprecated-declarations" \
 		LDFLAGS="$(LDFLAGS) -march=native -L$(CUDAPATH)/lib -lcudart -framework OpenCL" \
@@ -1493,7 +1489,7 @@ macosx-x86-64-native-opencl:
 	$(LN) x86-64.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) $(OCL_OBJS) x86-64.o sse-intrinsics.o" \
+		JOHN_OBJS="$(JOHN_OBJS) $(OCL_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
 		ASFLAGS="$(ASFLAGS) -march=native -DUNDERSCORES -DBSD -DALIGN_LOG" \
 		CFLAGS="$(CFLAGS) -march=native -I$(OCLROOT)/include -DHAVE_CRYPT -DHAVE_OPENCL -Wno-deprecated-declarations" \
 		LDFLAGS="$(LDFLAGS) -march=native -framework OpenCL"
@@ -1508,7 +1504,7 @@ macosx-x86-64-opencl:
 	$(LN) x86-64.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) $(OCL_OBJS) x86-64.o sse-intrinsics.o" \
+		JOHN_OBJS="$(JOHN_OBJS) $(OCL_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
 		ASFLAGS="$(ASFLAGS) -m64 -DUNDERSCORES -DBSD -DALIGN_LOG" \
 		CFLAGS="$(CFLAGS) -m64 -I$(OCLROOT)/include -DBSD -DHAVE_CRYPT -DHAVE_OPENCL -Wno-deprecated-declarations" \
 		LDFLAGS="$(LDFLAGS) -m64 -framework OpenCL"
@@ -1523,7 +1519,7 @@ macosx-x86-64-cuda:
 	$(LN) x86-64.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) $(CUDA_OBJS) x86-64.o sse-intrinsics.o" \
+		JOHN_OBJS="$(JOHN_OBJS) $(CUDA_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
 		CFLAGS="$(CFLAGS) -I$(CUDAPATH)/include -DBSD -DHAVE_CRYPT -DHAVE_CUDA -m64 -Wno-deprecated-declarations" \
 		ASFLAGS="$(ASFLAGS) -m64 -DUNDERSCORES -DBSD -DALIGN_LOG" \
 		LDFLAGS="$(LDFLAGS) -m64 -L$(CUDAPATH)/lib -lcudart" \
@@ -1536,16 +1532,16 @@ macosx-x86-64-clang-debug:
 	$(LN) x86-64.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86-64.o sse-intrinsics.o" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
 		ASFLAGS="$(ASFLAGS) -m64 -DUNDERSCORES -DBSD -DALIGN_LOG" \
-		CFLAGS="-Wall -Wdeclaration-after-statement -c -g -O1 -I/usr/include -I/usr/local/include -Wno-deprecated-declarations -DDEBUG -DHAVE_CRYPT -DBSD $(HAVE_NSS) $(HAVE_KRB5) $(JOHN_CFLAGS)" \
-		LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib $(NSS_LDFLAGS) $(GMP_LDFLAGS) $(KRB5_LDFLAGS) $(JOHN_LDFLAGS)" \
+		CFLAGS="-Wall -Wdeclaration-after-statement -c -g -O1 -I/usr/include -I/usr/local/include -Wno-deprecated-declarations -DDEBUG -DHAVE_CRYPT -DBSD $(HAVE_NSS) $(HAVE_GMP) $(HAVE_KRB5) $(JOHN_CFLAGS)" \
+		LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz $(NSS_LDFLAGS) $(GMP_LDFLAGS) $(KRB5_LDFLAGS) $(JOHN_LDFLAGS)" \
 		CPP="clang" CC="clang" AS="clang" LD="clang" CXX="clang++"
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_PCAP) \
 		ASFLAGS="$(ASFLAGS) -m64 -DUNDERSCORES -DBSD -DALIGN_LOG" \
-		CFLAGS="-Wall -Wdeclaration-after-statement -c -g -O1 -I/usr/include -I/usr/local/include -Wno-deprecated-declarations -DDEBUG -DHAVE_CRYPT -DBSD $(HAVE_NSS) $(HAVE_KRB5) $(JOHN_CFLAGS)" \
-		LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib $(NSS_LDFLAGS) $(GMP_LDFLAGS) $(KRB5_LDFLAGS) $(JOHN_LDFLAGS)" \
+		CFLAGS="-Wall -Wdeclaration-after-statement -c -g -O1 -I/usr/include -I/usr/local/include -Wno-deprecated-declarations -DDEBUG -DHAVE_CRYPT -DBSD $(HAVE_NSS) $(HAVE_GMP) $(HAVE_KRB5) $(JOHN_CFLAGS)" \
+		LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz $(NSS_LDFLAGS) $(GMP_LDFLAGS) $(KRB5_LDFLAGS) $(JOHN_LDFLAGS)" \
 		CPP="clang" CC="clang" AS="clang" LD="clang" CXX="clang++"
 	@echo "All done"
 
@@ -1565,7 +1561,7 @@ macosx-x86-sse2-opencl:
 	$(LN) x86-sse.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) $(OCL_OBJS) x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
+		JOHN_OBJS="$(JOHN_OBJS) $(OCL_OBJS) c3_fmt.o x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
 		ASFLAGS="$(ASFLAGS) -m32 -DUNDERSCORES -DBSD -DALIGN_LOG" \
 		CFLAGS="$(CFLAGS) -m32 -I$(OCLROOT)/include -DBSD -DHAVE_CRYPT -DHAVE_OPENCL -Wno-deprecated-declarations" \
 		LDFLAGS="$(LDFLAGS) -m32 -framework OpenCL"
@@ -1805,12 +1801,12 @@ win64-mingw-x86-64:
 	$(MAKE) $(PROJ_WIN32_MINGW) \
 		JOHN_OBJS="$(JOHN_OBJS) x86-64.o sse-intrinsics.o" \
 		CFLAGS="-c -static -Wall -Wdeclaration-after-statement -O2 -fomit-frame-pointer -I/usr/local/include $(OMPFLAGS) $(AMDAPP) $(JOHN_CFLAGS) -mpreferred-stack-boundary=4" \
-		LDFLAGS="-static -lwsock32 -lws2_32 -lgdi32 -lpthread $(OMPFLAGS)" \
+		LDFLAGS="-static -lssl -lcrypto -lwsock32 -lws2_32 -lgdi32 -lm -lpthread -lz $(OMPFLAGS)" \
 		ASFLAGS="$(ASFLAGS)" \
 		CPP=$(GCC) CC=$(GCC) LD=$(GCC) CXX=$(CXX)
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_PCAP) \
-	    CFLAGS="-c -static -Wall -Wdeclaration-after-statement -O2 -fomit-frame-pointer -I/usr/local/include $(OMPFLAGS) $(AMDAPP) $(JOHN_CFLAGS) -Wall -mpreferred-stack-boundary=4" \
+	    CFLAGS="-c -static -Wall -Wdeclaration-after-statement -O2 -fomit-frame-pointer -I/usr/local/include $(HAVE_GMP) $(OMPFLAGS) $(AMDAPP) $(JOHN_CFLAGS) -Wall -mpreferred-stack-boundary=4" \
 	    CPP=$(GCC) CC=$(GCC) LD=$(GCC) CXX=$(CXX)
 	@echo "All done"
 
@@ -1916,12 +1912,12 @@ win32-mingw-x86-sse2:
 	$(MAKE) $(PROJ_WIN32_MINGW) \
 		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
 		CFLAGS="-c -static -Wall -Wdeclaration-after-statement -O2 -fomit-frame-pointer -I/usr/local/include $(OMPFLAGS) $(AMDAPP) $(JOHN_CFLAGS) -Wall -mpreferred-stack-boundary=4 -msse2 -m32" \
-		LDFLAGS="-static -lwsock32 -lwst -lws2_32 -lgdi32 -lpthread.dll -lz.dll $(OMPFLAGS)" \
+		LDFLAGS="-static -lssl -lcrypto -lwsock32 -lwst -lws2_32 -lgdi32 -lm -lpthread.dll -lz.dll $(OMPFLAGS)" \
 		ASFLAGS="$(ASFLAGS) -msse2 -m32 -DUNDERSCORES" \
 		CPP=$(GCC) CC=$(GCC) LD=$(GCC) CXX=$(CXX)
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE) $(PROJ_PCAP) \
-	    CFLAGS="-c -static -Wall -Wdeclaration-after-statement -O2 -fomit-frame-pointer -I/usr/local/include $(OMPFLAGS) $(AMDAPP) $(JOHN_CFLAGS) -Wall -mpreferred-stack-boundary=4 -msse2 -m32" \
+	    CFLAGS="-c -static -Wall -Wdeclaration-after-statement -O2 -fomit-frame-pointer -I/usr/local/include $(HAVE_GMP) $(OMPFLAGS) $(AMDAPP) $(JOHN_CFLAGS) -Wall -mpreferred-stack-boundary=4 -msse2 -m32" \
 	    CPP=$(GCC) CC=$(GCC) LD=$(GCC) CXX=$(CXX)
 	@echo "All done"
 
@@ -2258,9 +2254,20 @@ john.local.conf:
 john.com: john.asm
 	@echo Use Borland TASM/TLINK to make JOHN.COM
 
+# this LD line removed from the ../run/john.exe rule (Cygwin builds)
+# this change needed for full openssl linking, in 1.7.7-jumbo-6
+# this comment should stay for a jumbo or 2, to make sure this does not break
+# other peoples cygwin builds.
+#	$(LD) $(JOHN_OBJS) -lkernel32 -lcrypto -o ../run/john.exe
+
 ../run/john.exe: $(JOHN_OBJS) $(SUBDIRS)
 	$(LD) $(JOHN_OBJS) $(LDFLAGS) aes/aes.a -lkernel32 -o ../run/john.exe
 	$(STRIP) ../run/john.exe
+
+# this LD line removed from the ../run/john-mingw.exe rule (MinGW32 builds)
+# this change needed for full openssl linking, in 1.7.7-jumbo-6
+#	$(LD) $(JOHN_OBJS) -lkernel32 -leay32 -o ../run/john-mingw.exe
+#	$(LD) $(JOHN_OBJS) $(LDFLAGS) -lkernel32 -o ../run/john-mingw.exe
 
 ../run/john-mingw.exe: $(JOHN_OBJS)
 	$(LD) $(JOHN_OBJS) $(LDFLAGS) aes/aes.a -lkernel32 -o ../run/john-mingw.exe
@@ -2381,9 +2388,8 @@ endif
 ../run/wpapcap2john: wpapcap2john.o
 	$(LD) $(LDFLAGS) wpapcap2john.o memdbg.o -o ../run/wpapcap2john
 
-# busted with autoconf, I DO NOT knwo why, -lcrypto and -lssl are there.
-#../run/luks2john: luks2john.o
-#	$(LD) -lcrypto ${LDFLAGS} luks2john.o -s memdbg.o -o ../run/luks2john
+../run/luks2john: luks2john.o
+	$(LD) ${LDFLAGS} luks2john.o -s -lcrypto -lssl memdbg.o -o ../run/luks2john
 
 ../run/keystore2john: ../run/john
 	$(RM) ../run/keystore2john
@@ -2500,11 +2506,8 @@ clean:
 	$(RM) cuda/*.o cuda/*~ *~
 	$(RM) fmt_registers.h fmt_externs.h john_build_rule.h
 	$(CP) $(NULL) Makefile.dep
-#	make -C aes clean
-	@for dir in ${subdirs}; do \
-	  (cd $$dir && make clean) \
-	  || case "$(MFLAGS)" in *k*) fail=yes;; *) exit 1;; esac; \
-	done && test -z "$$fail"
+	make -C aes clean
+
 
 # These are mostly for internal use.
 charsets: ../run/ascii.chr ../run/alpha.chr ../run/lowernum.chr ../run/uppernum.chr ../run/lowerspace.chr ../run/lower.chr ../run/upper.chr ../run/digits.chr ../run/alnum.chr ../run/lanman.chr ../run/lm_ascii.chr ../run/alnumspace.chr ../run/latin1.chr ../run/utf8.chr
@@ -2569,83 +2572,5 @@ sse-intrinsics-32.S:
 	icc -m32 -S -o sse-intrinsics-32.S sse-intrinsics.c -O2 -fno-builtin -fno-verbose-asm -openmp -DUSING_ICC_S_FILE $(JOHN_CFLAGS) -Wall
 	perl sse2i_winfix.pl sse-intrinsics-32.S sse-intrinsics-win32.S
 	mv sse-intrinsics-win32.S sse-intrinsics-32.S
-
-## automatic re-running of configure if the ocnfigure.in file has changed
-#${srcdir}/configure: configure.in aclocal.m4
-${srcdir}/configure: configure.in
-	cd ${srcdir} && autoconf && make clean
-
-# autoheader might not change autoconfig.h.in, so touch a stamp file
-${srcdir}/autoconfig.h.in: autoconfig-stamp-h.in
-${srcdir}/autoconfig-stamp-h.in: configure.in aclocal.m4
-		cd ${srcdir} && autoheader
-		echo "timestamp from Makefile" > ${srcdir}/autoconfig-stamp-h.in
-
-autoconfig.h: autoconfig-stamp-h
-autoconfig-stamp-h: autoconfig.h.in config.status
-	./config.status
-Makefile: Makefile.in config.status
-	./config.status
-config.status: configure
-	./config.status --recheck
-
-all:
-	@for dir in ${subdirs}; do \
-	  (cd $$dir && $(MAKE) all) \
-	  || case "$(MFLAGS)" in *k*) fail=yes;; *) exit 1;; esac; \
-	done && test -z "$$fail"
-
-distclean: clean
-	$(RM) -rf autom4te.cache
-	@for dir in ${subdirs}; do \
-	  (cd $$dir && $(MAKE) distclean) \
-	  || case "$(MFLAGS)" in *k*) fail=yes;; *) exit 1;; esac; \
-	done && test -z "$$fail"
-	$(RM) -f Makefile autoconfig.h config.status config.cache config.log autoconfig-stamp-h
-
-# a rule to make snapshots  (NOTE, still to be done for JtR)
-snapshot: $(SOURCES) $(DOCS) $(OTHERFILES)
-	@echo
-	@echo "->Note: The version for now is hacked into Makefile.in as"
-	@echo "->" $(VERS)
-	@echo
-	@echo "->copying all release files to the directory " xyplot-$(VERS)
-	@echo
-	tar cf - $(SOURCES) $(DOCS) $(OTHERFILES) | gzip > xyplot-$(VERS).tar.gz
-	-mkdir xyplot-$(VERS)
-	gzcat xyplot-$(VERS).tar.gz | (cd xyplot-$(VERS); tar xf -)
-	/bin/rm -f xyplot-$(VERS).tar.gz
-	@echo
-	@echo "->making the compressed tar file " xyplot-$(VERS).tar.gz
-	@echo
-	tar cf - xyplot-$(VERS) | gzip > xyplot-$(VERS).tar.gz
-	@echo
-#	@echo "->placing the snapshot for anonymous ftp in " $(FTPDIR)
-#	@echo
-#	rcp xyplot-$(VERS).tar.gz $(FTPDIR)
-	echo "->removnig the temporary directory " xyplot-$(VERS)
-	/bin/rm -rf xyplot-$(VERS)             # remove the old directory
-
-#install:
-#	@for dir in ${subdirs}; do \
-#	  (cd $$dir && $(MAKE) install) \
-#	  || case "$(MFLAGS)" in *k*) fail=yes;; *) exit 1;; esac; \
-#	done && test -z "$$fail"
-
-# TBD JtR
-#install: all
-#	$(top_srcdir)/mkinstalldirs $(bindir)
-#	$(top_srcdir)/mkinstalldirs $(libdir)
-#	$(INSTALL) xyplot $(bindir)
-#	$(INSTALL) xyps $(bindir)
-#	$(INSTALL) xyug $(bindir)
-#	$(INSTALL) xypost $(libdir)
-
-# TBD JtR
-uninstall:
-	-/bin/rm -f $(bindir)/xyplot
-	-/bin/rm -f $(bindir)/xyps
-	-/bin/rm -f $(bindir)/xyug
-	-/bin/rm -f $(libdir)/xypost
 
 include Makefile.dep

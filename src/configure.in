@@ -18,60 +18,49 @@ dnl END JIM's BLOCK OF STUFF
 
 # Checks for programs.
 AC_PROG_CC
-AC_PROG_CXX
 AC_PROG_LN_S
+AC_PROG_CXX
 AC_PROG_MAKE_SET
 AC_PROG_CPP
 
 # Checks for libraries.
-# FIXME: Replace `main' with a function in `-lOpenCL':
-AC_CHECK_LIB([OpenCL], [main])
-# FIXME: Replace `main' with a function in `-lc':
-AC_CHECK_LIB([c], [main], [] , [echo "JtR can NOT be build without libc being installed" ; exit 1])
-# FIXME: Replace `main' with a function in `-lcrypt':
-AC_CHECK_LIB([crypt], [main])
-# FIXME: Replace `main' with a function in `-lcrypto':
-AC_CHECK_LIB([crypto], [main])
+################################################
+#  NOTE, be VERY careful of spaces around the comma's in the AC_CHECK_LIB. Best to not have any.
+#  If there are space, then often that will get a lib to NOT be added to @LIBS@ and cause linkage problems.
+################################################
+AC_CHECK_LIB(c,printf,,[echo "JtR can NOT be build without libc being installed" ; exit 1])
+AC_CHECK_LIB([ssl],[SSL_library_init],[],[echo "JtR can NOT be build without libssl being installed" ; exit 1])
+AC_CHECK_LIB([crypto],[MD5_Update],[],[echo "JtR can NOT be build without libssl/libcrypto being installed" ; exit 1])
+AC_CHECK_LIB([m],[sqrt],[],[echo "JtR can NOT be build without libm being installed" ; exit 1])
+AC_CHECK_LIB([z],[deflate],[],[echo "JtR can NOT be build without libz being installed" ; exit 1])
+AC_CHECK_LIB([crypt],[encrypt])
+AC_CHECK_LIB([k5crypto],[krb5_c_string_to_key_with_params],[],[echo "   ****" && echo "   NOTE: Installing MIT krb5 library enables several extra formats" && echo "   ****" ])
+AC_CHECK_LIB([krb5],[krb5_c_string_to_key_with_params])
+AC_CHECK_LIB([gmp],[__gmpz_init],[],[echo "   ****" && echo "   NOTE: Installing libgmp will speed up some hash formats" && echo "   ****" ])
+AC_CHECK_LIB([gdi32],[main])
+AC_CHECK_LIB([kernel32],[main])
+AC_CHECK_LIB([ws2_32],[main])
+AC_CHECK_LIB([wsock32],[main])
+AC_CHECK_LIB([dl],[dlopen])
+AC_CHECK_LIB([rexgen],[c_regex_iterator_cb],[],[echo "   ****" && echo "   NOTE: Installing librexgen installs a powerful new wordlist most" && echo "   ****" ])
+AC_CHECK_LIB([librexgen],[c_regex_iterator_cb])
+
 # FIXME: Replace `main' with a function in `-lcudart':
-AC_CHECK_LIB([cudart], [main])
-# FIXME: Replace `main' with a function in `-ldl':
-AC_CHECK_LIB([dl], [main])
-# FIXME: Replace `main' with a function in `-lgdi32':
-AC_CHECK_LIB([gdi32], [main])
-# FIXME: Replace `main' with a function in `-lk5crypto':
-AC_CHECK_LIB([k5crypto], [krb5_c_string_to_key_with_params])
-# FIXME: Replace `main' with a function in `-lkrb5':
-AC_CHECK_LIB([krb5], [krb5_c_string_to_key_with_params])
-# FIXME: Replace `main' with a function in `-lgmp':
-AC_CHECK_LIB([gmp], [main])
-# FIXME: Replace `main' with a function in `-lrexgen':
-AC_CHECK_LIB([rexgen], [main])
-# FIXME: Replace `main' with a function in `-llibrexgen':
-AC_CHECK_LIB([librexgen], [main])
-# FIXME: Replace `main' with a function in `-lkernel32':
-AC_CHECK_LIB([kernel32], [main])
-# FIXME: Replace `main' with a function in `-lm':
-AC_CHECK_LIB([m], [main], [] , [echo "JtR can NOT be build without libm being installed" ; exit 1])
+AC_CHECK_LIB([cudart],[main])
+# FIXME: Replace `main' with a function in `-lOpenCL':
+AC_CHECK_LIB([OpenCL],[main])
 # FIXME: Replace `main' with a function in `-lnsl':
-AC_CHECK_LIB([nsl], [main])
+AC_CHECK_LIB([nsl],[main])
 # FIXME: Replace `main' with a function in `-lpcap':
-AC_CHECK_LIB([pcap], [main])
+AC_CHECK_LIB([pcap],[main])
 # FIXME: Replace `main' with a function in `-lpthread':
-AC_CHECK_LIB([pthread], [main])
+AC_CHECK_LIB([pthread],[main])
 # FIXME: Replace `main' with a function in `-lrt':
-AC_CHECK_LIB([rt], [main])
+AC_CHECK_LIB([rt],[main])
 # FIXME: Replace `main' with a function in `-lsocket':
-AC_CHECK_LIB([socket], [main])
-# FIXME: Replace `main' with a function in `-lssl':
-AC_CHECK_LIB([ssl], [main], [] , [echo "JtR can NOT be build without libssl being installed" ; exit 1])
-# FIXME: Replace `main' with a function in `-lws2_32':
-AC_CHECK_LIB([ws2_32], [main])
-# FIXME: Replace `main' with a function in `-lwsock32':
-AC_CHECK_LIB([wsock32], [main])
+AC_CHECK_LIB([socket],[main])
 # FIXME: Replace `main' with a function in `-lwst':
-AC_CHECK_LIB([wst], [main])
-# FIXME: Replace `main' with a function in `-lz':
-AC_CHECK_LIB([z], [main])
+AC_CHECK_LIB([wst],[main])
 
 # Checks for header files.
 AC_CHECK_HEADERS([OS.h arpa/inet.h fcntl.h limits.h locale.h netdb.h netinet/in.h stddef.h stdint.h stdlib.h string.h strings.h sys/file.h sys/param.h sys/socket.h sys/time.h sys/timeb.h termios.h unistd.h wchar.h])
@@ -103,4 +92,4 @@ AC_CONFIG_FILES([Makefile
                  aes/aesni/Makefile
                  aes/openssl/Makefile
                  escrypt/Makefile])
-AC_OUTPUT
+AC_OUTPUT(,echo "timestamp from configure.in" > autoconfig-stamp-h & echo "I want to echo something")

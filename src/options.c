@@ -152,7 +152,7 @@ static struct opt_entry opt_list[] = {
 		OPT_FMT_STR_ALLOC, &options.subformat},
 	{"list", FLG_NONE, 0, 0, OPT_REQ_PARAM,
 		OPT_FMT_STR_ALLOC, &options.listconf},
-#ifdef HAVE_DL
+#ifdef HAVE_LIBDL
 	{"plugin", FLG_DYNFMT, 0, 0, OPT_REQ_PARAM,
 		OPT_FMT_ADD_LIST_MULTI,	&options.fmt_dlls},
 #endif
@@ -390,7 +390,7 @@ void opt_print_hidden_usage(void)
 	puts("--skip-self-tests         skip self tests");
 	puts("--target-encoding=NAME    encoding used by format (see doc/ENCODING)");
 	puts("--intermediate-enc=NAME   encoding used in rules processing (see doc/ENCODING)");
-#ifdef HAVE_DL
+#ifdef HAVE_LIBDL
 	puts("--plugin=NAME[,..]        load this (these) dynamic plugin(s)");
 #endif
 #ifdef HAVE_OPENCL
@@ -424,7 +424,7 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 	list_init(&options.loader.users);
 	list_init(&options.loader.groups);
 	list_init(&options.loader.shells);
-#ifdef HAVE_DL
+#ifdef HAVE_LIBDL
 	list_init(&options.fmt_dlls);
 #endif
 #if defined(HAVE_OPENCL) || defined(HAVE_CUDA)

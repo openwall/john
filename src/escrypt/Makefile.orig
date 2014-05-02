@@ -45,6 +45,3 @@ crypto_scrypt-nosse.o: scrypt_platform.c
 
 clean:
 	$(RM) $(PROJ) $(OBJS_TESTS) $(OBJS_RM)
-
-distclean: clean
-	/bin/rm -f Makefile
