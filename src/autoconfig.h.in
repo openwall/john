@@ -69,9 +69,6 @@
 /* Define to 1 if you have the `krb5' library (-lkrb5). */
 #undef HAVE_LIBKRB5
 
-/* Define to 1 if you have the `librexgen' library (-llibrexgen). */
-#undef HAVE_LIBLIBREXGEN
-
 /* Define to 1 if you have the `m' library (-lm). */
 #undef HAVE_LIBM
 
@@ -86,9 +83,6 @@
 
 /* Define to 1 if you have the `pthread' library (-lpthread). */
 #undef HAVE_LIBPTHREAD
-
-/* Define to 1 if you have the `rexgen' library (-lrexgen). */
-#undef HAVE_LIBREXGEN
 
 /* Define to 1 if you have the `rt' library (-lrt). */
 #undef HAVE_LIBRT
@@ -145,11 +139,17 @@
 /* Define to 1 if you have the <netdb.h> header file. */
 #undef HAVE_NETDB_H
 
+/* Define to 1 if you have the <netinet/if_ether.h> header file. */
+#undef HAVE_NETINET_IF_ETHER_H
+
 /* Define to 1 if you have the <netinet/in.h> header file. */
 #undef HAVE_NETINET_IN_H
 
 /* Define to 1 if you have the <OS.h> header file. */
 #undef HAVE_OS_H
+
+/* Define to 1 if you have the <pcap.h> header file. */
+#undef HAVE_PCAP_H
 
 /* Define to 1 if you have the `pow' function. */
 #undef HAVE_POW
@@ -239,6 +239,9 @@
 /* Define to 1 if you have the <sys/timeb.h> header file. */
 #undef HAVE_SYS_TIMEB_H
 
+/* Define to 1 if you have the <sys/times.h> header file. */
+#undef HAVE_SYS_TIMES_H
+
 /* Define to 1 if you have the <sys/time.h> header file. */
 #undef HAVE_SYS_TIME_H
 
@@ -250,6 +253,9 @@
 
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
+
+/* Define to 1 if you have the <unixlib/local.h> header file. */
+#undef HAVE_UNIXLIB_LOCAL_H
 
 /* Define to 1 if you have the `vfork' function. */
 #undef HAVE_VFORK

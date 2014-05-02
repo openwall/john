@@ -34,7 +34,7 @@ AC_CHECK_LIB([crypto],[MD5_Update],[],[echo "JtR can NOT be build without libssl
 AC_CHECK_LIB([m],[sqrt],[],[echo "JtR can NOT be build without libm being installed" ; exit 1])
 AC_CHECK_LIB([z],[deflate],[],[echo "JtR can NOT be build without libz being installed" ; exit 1])
 AC_CHECK_LIB([crypt],[encrypt])
-AC_CHECK_LIB([k5crypto],[krb5_c_string_to_key_with_params],[],[echo "   ****" && echo "   NOTE: Installing MIT krb5 library enables several extra formats" && echo "   ****" ])
+AC_CHECK_LIB([k5crypto],[krb5_c_string_to_key_with_params],[],[echo "   ****" && echo "   NOTE: Installing MIT krb5 (k5crypto) library enables several extra formats" && echo "   ****" ])
 AC_CHECK_LIB([krb5],[krb5_c_string_to_key_with_params])
 AC_CHECK_LIB([gmp],[__gmpz_init],[],[echo "   ****" && echo "   NOTE: Installing libgmp will speed up some hash formats" && echo "   ****" ])
 AC_CHECK_LIB([gdi32],[main])
@@ -42,9 +42,7 @@ AC_CHECK_LIB([kernel32],[main])
 AC_CHECK_LIB([ws2_32],[main])
 AC_CHECK_LIB([wsock32],[main])
 AC_CHECK_LIB([dl],[dlopen])
-AC_CHECK_LIB([rexgen],[c_regex_iterator_cb],[],[echo "   ****" && echo "   NOTE: Installing librexgen installs a powerful new wordlist most" && echo "   ****" ])
-AC_CHECK_LIB([librexgen],[c_regex_iterator_cb])
-
+AC_SEARCH_LIBS([c_regex_iterator_cb],[rexgen librexgen],[],[echo "   ****" && echo "   NOTE: Installing librexgen installs a powerful new wordlist most" && echo "   ****" ])
 # FIXME: Replace `main' with a function in `-lcudart':
 AC_CHECK_LIB([cudart],[main])
 # FIXME: Replace `main' with a function in `-lOpenCL':
@@ -63,7 +61,7 @@ AC_CHECK_LIB([socket],[main])
 AC_CHECK_LIB([wst],[main])
 
 # Checks for header files.
-AC_CHECK_HEADERS([OS.h arpa/inet.h fcntl.h limits.h locale.h netdb.h netinet/in.h stddef.h stdint.h stdlib.h string.h strings.h sys/file.h sys/param.h sys/socket.h sys/time.h sys/timeb.h termios.h unistd.h wchar.h])
+AC_CHECK_HEADERS([OS.h arpa/inet.h sys/times.h fcntl.h limits.h locale.h netdb.h netinet/in.h stddef.h stdint.h stdlib.h string.h strings.h sys/file.h sys/param.h sys/socket.h sys/time.h sys/timeb.h termios.h unistd.h wchar.h unixlib/local.h netinet/if_ether.h pcap.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_CHECK_HEADER_STDBOOL

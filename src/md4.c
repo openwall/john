@@ -21,7 +21,7 @@
  * http://openwall.info/wiki/people/solar/software/public-domain-source-code/md4
  */
 
-#ifndef HAVE_OPENSSL
+#ifndef HAVE_LIBSSL
 
 #include <string.h>
 

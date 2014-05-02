@@ -7,6 +7,9 @@
  *
  * gcc -Wall SIPdump.c -o SIPdump -lpcap */
 
+#include "autoconfig.h"
+#if HAVE_PCAP_H
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -875,3 +878,9 @@ static int pcap_dloff(pcap_t * pd)
 	}
 	return (offset);
 }
+#else
+  #ifndef _MSC_VER
+  #warning SIPdump not able to build, without pcap being installed.
+  #endif
+int main() { printf("Sorry, no pcap lib, so SIPdump was not built\n"); return 1; }
+#endif

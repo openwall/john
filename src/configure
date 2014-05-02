@@ -3886,7 +3886,7 @@ _ACEOF
   LIBS="-lk5crypto $LIBS"
 
 else
-  echo "   ****" && echo "   NOTE: Installing MIT krb5 library enables several extra formats" && echo "   ****"
+  echo "   ****" && echo "   NOTE: Installing MIT krb5 (k5crypto) library enables several extra formats" && echo "   ****"
 fi
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for krb5_c_string_to_key_with_params in -lkrb5" >&5
@@ -4182,13 +4182,12 @@ _ACEOF
 
 fi
 
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for c_regex_iterator_cb in -lrexgen" >&5
-$as_echo_n "checking for c_regex_iterator_cb in -lrexgen... " >&6; }
-if ${ac_cv_lib_rexgen_c_regex_iterator_cb+:} false; then :
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing c_regex_iterator_cb" >&5
+$as_echo_n "checking for library containing c_regex_iterator_cb... " >&6; }
+if ${ac_cv_search_c_regex_iterator_cb+:} false; then :
   $as_echo_n "(cached) " >&6
 else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lrexgen  $LIBS"
+  ac_func_search_save_LIBS=$LIBS
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
@@ -4207,73 +4206,39 @@ return c_regex_iterator_cb ();
   return 0;
 }
 _ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_rexgen_c_regex_iterator_cb=yes
-else
-  ac_cv_lib_rexgen_c_regex_iterator_cb=no
+for ac_lib in '' rexgen librexgen; do
+  if test -z "$ac_lib"; then
+    ac_res="none required"
+  else
+    ac_res=-l$ac_lib
+    LIBS="-l$ac_lib  $ac_func_search_save_LIBS"
+  fi
+  if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_search_c_regex_iterator_cb=$ac_res
 fi
 rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
+    conftest$ac_exeext
+  if ${ac_cv_search_c_regex_iterator_cb+:} false; then :
+  break
 fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_rexgen_c_regex_iterator_cb" >&5
-$as_echo "$ac_cv_lib_rexgen_c_regex_iterator_cb" >&6; }
-if test "x$ac_cv_lib_rexgen_c_regex_iterator_cb" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBREXGEN 1
-_ACEOF
+done
+if ${ac_cv_search_c_regex_iterator_cb+:} false; then :
 
-  LIBS="-lrexgen $LIBS"
+else
+  ac_cv_search_c_regex_iterator_cb=no
+fi
+rm conftest.$ac_ext
+LIBS=$ac_func_search_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_search_c_regex_iterator_cb" >&5
+$as_echo "$ac_cv_search_c_regex_iterator_cb" >&6; }
+ac_res=$ac_cv_search_c_regex_iterator_cb
+if test "$ac_res" != no; then :
+  test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
 
 else
   echo "   ****" && echo "   NOTE: Installing librexgen installs a powerful new wordlist most" && echo "   ****"
 fi
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for c_regex_iterator_cb in -llibrexgen" >&5
-$as_echo_n "checking for c_regex_iterator_cb in -llibrexgen... " >&6; }
-if ${ac_cv_lib_librexgen_c_regex_iterator_cb+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-llibrexgen  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char c_regex_iterator_cb ();
-int
-main ()
-{
-return c_regex_iterator_cb ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_librexgen_c_regex_iterator_cb=yes
-else
-  ac_cv_lib_librexgen_c_regex_iterator_cb=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_librexgen_c_regex_iterator_cb" >&5
-$as_echo "$ac_cv_lib_librexgen_c_regex_iterator_cb" >&6; }
-if test "x$ac_cv_lib_librexgen_c_regex_iterator_cb" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBLIBREXGEN 1
-_ACEOF
-
-  LIBS="-llibrexgen $LIBS"
-
-fi
-
 
 # FIXME: Replace `main' with a function in `-lcudart':
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lcudart" >&5
@@ -4857,7 +4822,7 @@ fi
 done
 
 
-for ac_header in OS.h arpa/inet.h fcntl.h limits.h locale.h netdb.h netinet/in.h stddef.h stdint.h stdlib.h string.h strings.h sys/file.h sys/param.h sys/socket.h sys/time.h sys/timeb.h termios.h unistd.h wchar.h
+for ac_header in OS.h arpa/inet.h sys/times.h fcntl.h limits.h locale.h netdb.h netinet/in.h stddef.h stdint.h stdlib.h string.h strings.h sys/file.h sys/param.h sys/socket.h sys/time.h sys/timeb.h termios.h unistd.h wchar.h unixlib/local.h netinet/if_ether.h pcap.h
 do :
   as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
 ac_fn_c_check_header_mongrel "$LINENO" "$ac_header" "$as_ac_Header" "$ac_includes_default"

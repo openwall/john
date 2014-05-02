@@ -29,6 +29,9 @@
  * modification, are permitted.
  */
 
+#include "autoconfig.h"
+#if HAVE_NETINET_IF_ETHER_H && HAVE_PCAP_H
+
 #define _BSD_SOURCE
 #define _GNU_SOURCE
 #include <stdbool.h>
@@ -262,3 +265,9 @@ int main(int argc, char *argv[])
 	MEMDBG_PROGRAM_EXIT_CHECKS(stderr);
 	return 0;
 }
+#else
+  #ifndef _MSC_VER
+  #warning cncpcap2john not able to build, without pcap being installed.
+  #endif
+int main() { printf("Sorry, no pcap lib, so vncpcap2john was not built\n"); return 1; }
+#endif
