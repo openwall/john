@@ -585,7 +585,7 @@ PACKAGE_STRING='john 1.8.0.bleeding'
 PACKAGE_BUGREPORT='noone@dev.null'
 PACKAGE_URL=''
 
-ac_unique_file="configure.in"
+ac_unique_file="configure.ac"
 # Factoring default headers for most tests.
 ac_includes_default="\
 #include <stdio.h>
@@ -9005,7 +9005,7 @@ $as_echo "$as_me: executing $ac_file commands" >&6;}
 
 
   case $ac_file$ac_mode in
-    "default":C) echo "timestamp from configure.in" > autoconfig-stamp-h & echo "I want to echo something" ;;
+    "default":C) echo "timestamp from configure.ac" > autoconfig-stamp-h & echo "I want to echo something" ;;
 
   esac
 done # for ac_tag

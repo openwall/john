@@ -2737,12 +2737,12 @@ sse-intrinsics-32.S:
 	mv sse-intrinsics-win32.S sse-intrinsics-32.S
 
 ## automatic re-running of configure if the ocnfigure.in file has changed
-configure: configure.in
+configure: configure.ac
 	autoconf
 
 # autoheader might not change autoconfig.h.in, so touch a stamp file
 autoconfig.h.in: autoconfig-stamp-h.in
-autoconfig-stamp-h.in: configure.in aclocal.m4
+autoconfig-stamp-h.in: configure.ac aclocal.m4
 		autoheader
 		echo "timestamp from Makefile" > autoconfig-stamp-h.in
 

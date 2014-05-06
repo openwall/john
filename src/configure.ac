@@ -4,7 +4,7 @@
 AC_PREREQ([2.69])
 AC_INIT([john], [1.8.0.bleeding], [noone@dev.null])
 ##  AM_INIT_AUTOMAKE([foreign subdir-objects])
-AC_CONFIG_SRCDIR([configure.in])
+AC_CONFIG_SRCDIR([configure.ac])
 AC_CONFIG_HEADERS([autoconfig.h])
 
 # include our extra macro code
@@ -145,4 +145,4 @@ AC_CONFIG_FILES([Makefile
                  aes/aesni/Makefile
                  aes/openssl/Makefile
                  escrypt/Makefile])
-AC_OUTPUT(,echo "timestamp from configure.in" > autoconfig-stamp-h & echo "I want to echo something")
+AC_OUTPUT(,echo "timestamp from configure.ac" > autoconfig-stamp-h & echo "I want to echo something")
