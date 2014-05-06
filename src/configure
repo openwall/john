@@ -634,6 +634,8 @@ CC_CPU
 LIBOBJS
 EGREP
 GREP
+HAVE_OPENCL
+HAVE_CUDA
 HAVE_MPI
 MPICC
 OPENMP_CFLAGS
@@ -6644,9 +6646,8 @@ fi
 
 
 ####################################
-# still left to do
+# CUDA
 ####################################
-# FIXME: Replace `main' with a function in `-lcudart':
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lcudart" >&5
 $as_echo_n "checking for main in -lcudart... " >&6; }
 if ${ac_cv_lib_cudart_main+:} false; then :
@@ -6686,7 +6687,14 @@ _ACEOF
 
 fi
 
-# FIXME: Replace `main' with a function in `-lOpenCL':
+if test x${ac_cv_lib_cudart_main} = "xyes"; then :
+  HAVE_CUDA=1
+
+fi
+
+####################################
+# OpenCL
+####################################
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lOpenCL" >&5
 $as_echo_n "checking for main in -lOpenCL... " >&6; }
 if ${ac_cv_lib_OpenCL_main+:} false; then :
@@ -6726,6 +6734,10 @@ _ACEOF
 
 fi
 
+if test x${ac_cv_lib_OpenCL_main} = "xyes"; then :
+  HAVE_OPENCL=1
+
+fi
 
 # Checks for header files.
 

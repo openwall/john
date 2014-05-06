@@ -288,6 +288,23 @@ else
 PROJ_PCAP =
 endif
 
+WITH_CUDA=@HAVE_CUDA@
+ifdef WITH_CUDA
+CFLAGS += -I$(CUDAPATH)/include -DHAVE_CUDA
+CFLAGS_MAIN += -I$(CUDAPATH)/include -DHAVE_CUDA
+LDFLAGS += -L$(CUDAPATH)/lib -L$(CUDAPATH)/lib@CPU_BIT_STR@
+JOHN_OBJS += $(CUDA_OBJS)
+ifeq (,$(wildcard $(CCBIN_OSX)))
+NVCC_FLAGS += @CPU_BITS@ $(CCBIN_OSX)
+endif
+endif
+
+WITH_OPENCL=@HAVE_OPENCL@
+ifdef WITH_OPENCL
+CFLAGS += -DHAVE_OPENCL
+JOHN_OBJS += $(OCL_OBJS)
+endif
+
 #########################################################
 # this is what ./configure && make
 # gets you. NOTE, we have to do the link in ./configure.

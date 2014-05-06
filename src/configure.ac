@@ -329,12 +329,16 @@ AX_PROG_CC_MPI([test x"$with_mpi" != xno],[use_mpi=yes] [AC_SUBST(HAVE_MPI,[-DHA
 ])
 
 ####################################
-# still left to do
+# CUDA
 ####################################
-# FIXME: Replace `main' with a function in `-lcudart':
 AC_CHECK_LIB([cudart],[main])
-# FIXME: Replace `main' with a function in `-lOpenCL':
+AS_IF(test x${ac_cv_lib_cudart_main} = "xyes",[AC_SUBST(HAVE_CUDA,1)])
+
+####################################
+# OpenCL
+####################################
 AC_CHECK_LIB([OpenCL],[main])
+AS_IF(test x${ac_cv_lib_OpenCL_main} = "xyes",[AC_SUBST(HAVE_OPENCL,1)])
 
 # Checks for header files.
 AC_CHECK_HEADERS([OS.h arpa/inet.h sys/times.h fcntl.h limits.h locale.h netdb.h netinet/in.h stddef.h stdint.h stdlib.h string.h strings.h sys/file.h sys/param.h sys/socket.h sys/time.h sys/timeb.h termios.h unistd.h wchar.h unixlib/local.h netinet/if_ether.h pcap.h])
