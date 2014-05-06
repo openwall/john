@@ -145,4 +145,4 @@ AC_CONFIG_FILES([Makefile
                  aes/aesni/Makefile
                  aes/openssl/Makefile
                  escrypt/Makefile])
-AC_OUTPUT(,echo "timestamp from configure.ac" > autoconfig-stamp-h & echo "I want to echo something")
+AC_OUTPUT(,echo "timestamp from configure.ac" > autoconfig-stamp-h & echo "Done! Makefile generated.")

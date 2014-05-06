@@ -9005,7 +9005,7 @@ $as_echo "$as_me: executing $ac_file commands" >&6;}
 
 
   case $ac_file$ac_mode in
-    "default":C) echo "timestamp from configure.ac" > autoconfig-stamp-h & echo "I want to echo something" ;;
+    "default":C) echo "timestamp from configure.ac" > autoconfig-stamp-h & echo "Done! Makefile generated." ;;
 
   esac
 done # for ac_tag
