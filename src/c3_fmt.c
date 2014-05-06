@@ -11,7 +11,7 @@
  * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 #include "autoconfig.h"
-#if HAVE_LIBCRYPT
+#if HAVE_CRYPT
 
 #define _XOPEN_SOURCE 4 /* for crypt(3) */
 #define _XOPEN_SOURCE_EXTENDED
@@ -23,8 +23,8 @@
 #ifndef _MSC_VER
 #include <strings.h>
 #endif
-#include <crypt.h>
 #if defined(_OPENMP) && defined(__GLIBC__)
+#include <crypt.h>
 #include <omp.h> /* for omp_get_thread_num() */
 #else
 #include <unistd.h>
@@ -609,7 +609,7 @@ static unsigned int  c3_algorithm_specific_cost1(void *salt)
 	 * alternatively: measure run time for crypt() with
 	 * sample hash using the current salt?
 	 */
-	return 1;	
+	return 1;
 #endif
 	return algorithm; // temp. dummy value to test --costs=
 }
@@ -693,4 +693,4 @@ struct fmt_main fmt_crypt = {
 	}
 };
 
-#endif // HAVE_LIBCRYPT
+#endif // HAVE_CRYPT

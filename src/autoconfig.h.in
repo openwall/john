@@ -40,7 +40,7 @@
 #undef HAVE_ISASCII
 
 /* Define to 1 if you have the `crypt' library (-lcrypt). */
-#undef HAVE_LIBCRYPT
+#undef HAVE_CRYPT
 
 /* Define to 1 if you have the `crypto' library (-lcrypto). */
 #undef HAVE_LIBCRYPTO

@@ -55,7 +55,7 @@ AC_CHECK_LIB([ssl],[SSL_library_init],[],[AC_MSG_FAILURE(JtR can NOT be build wi
 AC_CHECK_LIB([crypto],[MD5_Update],[],[AC_MSG_FAILURE(JtR can NOT be build without libssl/libcrypto being installed,1)])
 AC_CHECK_LIB([m],[sqrt],[],[AC_MSG_FAILURE(JtR can NOT be build without libm being installed,1)])
 AC_CHECK_LIB([z],[deflate],[],[AC_MSG_FAILURE(JtR can NOT be build without libz being installed,1)])
-AC_SEARCH_LIBS([crypt],[crypt],[AC_DEFINE(HAVE_LIBCRYPT,1,[Define to 1 if you have the `crypt' library (-lcrypt).])])
+AC_SEARCH_LIBS([crypt],[crypt],[AC_DEFINE(HAVE_CRYPT,1,[Define to 1 if you have the `crypt' library (-lcrypt).])])
 AC_CHECK_LIB([k5crypto],[krb5_c_string_to_key_with_params],[],[AC_MSG_WARN(Installing MIT krb5/k5crypto/ library enables several extra formats,1)] )
 AC_CHECK_LIB([krb5],[krb5_c_string_to_key_with_params])
 AC_CHECK_LIB([gmp],[__gmpz_init],[],[AC_MSG_WARN(Installing libgmp will speed up some hash formats" && echo "   ****" )])
