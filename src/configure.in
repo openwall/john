@@ -82,7 +82,8 @@ AC_CACHE_SAVE
 ##################################
 # check for NSS
 ##################################
-PKG_CHECK_MODULES([NSS], [nss], AC_SUBST(HAVE_NSS,[-DHAVE_NSS]) )
+PKG_CHECK_MODULES([NSS], [nss], AC_SUBST(HAVE_NSS,[-DHAVE_NSS]),
+        AC_MSG_WARN(NSS not found - Mozilla format will be omitted.))
 
 ##################################
 # check for openMP
