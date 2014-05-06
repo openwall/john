@@ -39,9 +39,6 @@
 /* Define to 1 if you have the `isascii' function. */
 #undef HAVE_ISASCII
 
-/* Define to 1 if you have the `c' library (-lc). */
-#undef HAVE_LIBC
-
 /* Define to 1 if you have the `crypt' library (-lcrypt). */
 #undef HAVE_LIBCRYPT
 
@@ -53,9 +50,6 @@
 
 /* Define to 1 if you have the `dl' library (-ldl). */
 #undef HAVE_LIBDL
-
-/* Define to 1 if you have the `gdi32' library (-lgdi32). */
-#undef HAVE_LIBGDI32
 
 /* Define to 1 if you have the `gmp' library (-lgmp). */
 #undef HAVE_LIBGMP
@@ -69,6 +63,9 @@
 /* Define to 1 if you have the `krb5' library (-lkrb5). */
 #undef HAVE_LIBKRB5
 
+/* Define to 1 if you have the `lws2_32' library (-llws2_32). */
+#undef HAVE_LIBLWS2_32
+
 /* Define to 1 if you have the `m' library (-lm). */
 #undef HAVE_LIBM
 
@@ -78,11 +75,11 @@
 /* Define to 1 if you have the `OpenCL' library (-lOpenCL). */
 #undef HAVE_LIBOPENCL
 
-/* Define to 1 if you have the `pcap' library (-lpcap). */
-#undef HAVE_LIBPCAP
-
 /* Define to 1 if you have the `pthread' library (-lpthread). */
 #undef HAVE_LIBPTHREAD
+
+/* Define to 1 if you have the `rexgen' library (-lrexgen). */
+#undef HAVE_LIBREXGEN
 
 /* Define to 1 if you have the `rt' library (-lrt). */
 #undef HAVE_LIBRT
@@ -92,9 +89,6 @@
 
 /* Define to 1 if you have the `ssl' library (-lssl). */
 #undef HAVE_LIBSSL
-
-/* Define to 1 if you have the `ws2_32' library (-lws2_32). */
-#undef HAVE_LIBWS2_32
 
 /* Define to 1 if you have the `wsock32' library (-lwsock32). */
 #undef HAVE_LIBWSOCK32

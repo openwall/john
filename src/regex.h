@@ -17,7 +17,7 @@
 
 #include "autoconfig.h"
 
-#if HAVE_LIBREXGEN || defined HAVE_LIBLIBREXGEN
+#if HAVE_LIBREXGEN
   #define HAVE_REXGEN 1
   #ifndef UNICODE
   #define UNICODE

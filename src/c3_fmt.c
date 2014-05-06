@@ -23,8 +23,8 @@
 #ifndef _MSC_VER
 #include <strings.h>
 #endif
-#if defined(_OPENMP) && defined(__GLIBC__)
 #include <crypt.h>
+#if defined(_OPENMP) && defined(__GLIBC__)
 #include <omp.h> /* for omp_get_thread_num() */
 #else
 #include <unistd.h>

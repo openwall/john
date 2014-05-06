@@ -1292,10 +1292,10 @@ static void john_load(void)
 			log_flush();
 			john_fork();
 		}
-#endif
 #ifdef HAVE_MPI
 		if (mpi_p > 1)
 			john_set_mpi();
+#endif
 #endif
 	}
 }
