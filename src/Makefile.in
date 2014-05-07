@@ -75,23 +75,24 @@ AMDAPP = -DAMDAPPSDK
 OCLROOT = $(ATISTREAMSDKROOT)
 endif
 
-CFLAGS = -c -Wall -Wdeclaration-after-statement -O2 -fomit-frame-pointer -I/usr/local/include $(AMDAPP) $(JOHN_CFLAGS) $(RELEASE_BLD)
 # -DHAVE_SKEY
-# CFLAGS for use on the main john.c file only
-CFLAGS_MAIN = $(CFLAGS)
-ASFLAGS = -c @OPENMP_CFLAGS@ $(JOHN_ASFLAGS) @HAVE_MPI@
-LDFLAGS = -g $(JOHN_LDFLAGS)
 # -lskey
-LDFLAGS_SOLARIS = -lrt -lnsl -lsocket
-LDFLAGS_MKV = -g @OPENMP_CFLAGS@
+
+CPPFLAGS += @CPPFLAGS@
+CFLAGSX = @CPU_BITS@ $(CPPFLAGS) -c -Wall -Wdeclaration-after-statement -O2 @CFLAGS@ @HAVE_NSS@ @NSS_CFLAGS@ @OPENMP_CFLAGS@ @HAVE_MPI@ -fomit-frame-pointer -I/usr/local/include $(AMDAPP) $(JOHN_CFLAGS) $(RELEASE_BLD)
+# CFLAGS for use on the main john.c file only
+CFLAGS_MAIN = @CC_MAIN_CPU@ $(CFLAGSX)
+CFLAGS = @CC_CPU@ $(CFLAGSX)
+ASFLAGS = @CC_CPU@ @CPU_BITS@ -c @OPENMP_CFLAGS@ $(JOHN_ASFLAGS) @HAVE_MPI@ @EXTRA_AS_FLAGS@
+LIBS = @LIBS@ @NSS_LIBS@
+LDFLAGS = @CPU_BITS@ -g $(JOHN_LDFLAGS) @LDFLAGS@ $(LIBS) @OPENMP_CFLAGS@ @HAVE_MPI@
+#
 OPT_NORMAL = -funroll-loops
 # Remove the "-Os" if you're using an ancient version of gcc
 OPT_INLINE = -Os -funroll-loops -finline-functions
-
-CPPFLAGS += @CPPFLAGS@
-CFLAGS += $(CPPFLAGS) @CFLAGS@ @HAVE_NSS@ @NSS_CFLAGS@ @OPENMP_CFLAGS@ @HAVE_MPI@
-LIBS += @LIBS@ @NSS_LIBS@
-LDFLAGS += @LDFLAGS@ $(LIBS) @OPENMP_CFLAGS@ @HAVE_MPI@
+#
+LDFLAGS_SOLARIS = -lrt -lnsl -lsocket
+LDFLAGS_MKV = -g @OPENMP_CFLAGS@
 
 # Works with Solaris make, and GNU make
 PLUGFORMATS_SRCS: sh =echo *_plug.c
@@ -286,7 +287,33 @@ else
 PROJ_PCAP =
 endif
 
+#########################################################
+# this is what ./configure && make
+# gets you. NOTE, we have to do the link in ./configure.
+#   ** DONE $(LN) x86-sse.h arch.h or $(LN) x86-64 arch.h
+# for now, in my testing, this is hard coded to x86-32.h
+# NOTE, we also need to add extra .o file's some how.
+#  ** DONE x86-64.o sse-intrinsics.o for 64 bit
+#  ** DONE x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o  for 32 bit:
+#
+# for ssexi builds:
+# x86-64.o sse-intrinsics-64.o for 64 bit
+# x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics-32.o  for 32 bit:
+#   and add -DUSING_ICC_S_FILE to CFLAGS
+#
+#  also need to figure out -DUNDERSCORES and add to ASFLAGS
+#  also need to figure out -mpreferred-stack-boundary=4 and add (or whatever the stack size is)
+#########################################################
 default:
+	@echo "#define JOHN_BLD" '"'@JOHN_BUILD_LABEL@'"' > john_build_rule.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) @CC_ASM_OBJ@" \
+		AESNI_ARCH=@CPU_BIT_STR@
+ifdef WITH_PCAP
+	$(MAKE) $(PROJ_PCAP)
+endif
+
+fat_info:
 	@echo "To build John the Ripper, type:"
 	@echo "	make clean SYSTEM"
 	@echo "where SYSTEM can be one of the following:"
@@ -1984,6 +2011,33 @@ ifdef WITH_PCAP
 endif
 	@echo "All done"
 
+win32-cygwin-x86-xop:
+	$(CP) x86-sse.h arch.h
+	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
+	$(MAKE) $(PROJ_WIN32) \
+		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
+		CFLAGS_MAIN="$(CFLAGS) -DJOHN_XOP" \
+		CFLAGS="$(CFLAGS) -mpreferred-stack-boundary=4 -mxop -m32" \
+		ASFLAGS="$(ASFLAGS) -mxop -m32 -DUNDERSCORES"
+	@echo "Failing after this point just means some helper tools did not build:"
+ifdef WITH_PCAP
+	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
+endif
+	@echo "All done"
+
+win32-cygwin-x86-avx:
+	$(CP) x86-sse.h arch.h
+	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
+	$(MAKE) $(PROJ_WIN32) \
+		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
+		CFLAGS="$(CFLAGS) -mpreferred-stack-boundary=4 -mavx -m32" \
+		ASFLAGS="$(ASFLAGS) -mavx -m32 -DUNDERSCORES"
+	@echo "Failing after this point just means some helper tools did not build:"
+ifdef WITH_PCAP
+	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
+endif
+	@echo "All done"
+
 win32-cygwin-x86-sse4:
 	$(CP) x86-sse.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
@@ -2736,7 +2790,7 @@ sse-intrinsics-32.S:
 	perl sse2i_winfix.pl sse-intrinsics-32.S sse-intrinsics-win32.S
 	mv sse-intrinsics-win32.S sse-intrinsics-32.S
 
-## automatic re-running of configure if the ocnfigure.in file has changed
+## automatic re-running of configure if the configure.ac file has changed
 configure: configure.ac
 	autoconf
 

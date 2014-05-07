@@ -6,6 +6,12 @@
 /* Define to 1 if you have the `atexit' function. */
 #undef HAVE_ATEXIT
 
+/* enable if compiling for AVX archetecture */
+#undef HAVE_AVX
+
+/* Define to 1 if you have the `crypt' library (-lcrypt). */
+#undef HAVE_CRYPT
+
 /* Define to 1 if you have the `endpwent' function. */
 #undef HAVE_ENDPWENT
 
@@ -38,9 +44,6 @@
 
 /* Define to 1 if you have the `isascii' function. */
 #undef HAVE_ISASCII
-
-/* Define to 1 if you have the `crypt' library (-lcrypt). */
-#undef HAVE_CRYPT
 
 /* Define to 1 if you have the `crypto' library (-lcrypto). */
 #undef HAVE_LIBCRYPTO
@@ -170,6 +173,15 @@
 /* Define to 1 if you have the `socket' function. */
 #undef HAVE_SOCKET
 
+/* enable if compiling for SSE2 archetecture */
+#undef HAVE_SSE2
+
+/* enable if compiling for SSE4.1 archetecture */
+#undef HAVE_SSE4_1
+
+/* enable if compiling for SSSE3 archetecture */
+#undef HAVE_SSSE3
+
 /* Define to 1 if you have the <stddef.h> header file. */
 #undef HAVE_STDDEF_H
 
@@ -265,6 +277,9 @@
 
 /* Define to 1 if `vfork' works. */
 #undef HAVE_WORKING_VFORK
+
+/* enable if compiling for XOP archetecture */
+#undef HAVE_XOP
 
 /* Define to 1 if the system has the type `_Bool'. */
 #undef HAVE__BOOL

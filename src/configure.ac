@@ -29,14 +29,35 @@ dnl    AC_CHECK_LIB (library, function, [action-if-found], [action-if-not-found]
 dnl    AC_SEARCH_LIBS (function, search-libs, [action-if-found], [action-if-not-found], [other-libraries])
 dnl    AC_SUBST(ac_variable_name)
 dnl    AC_DEFINE(ac_variable_name)
+dnl    AC_RUN_IFELSE(input, [action-if-true], [action-if-false], [action-if-cross-compiling])
+dnl    AC_MSG_WARN(message)
+dnl    AC_MSG_FAILURE(message)
+dnl    AC_MSG_ERROR(message)
+dnl    AC_MSG_CHECKING(message)
+dnl    AC_MSG_RESULT(message)   (if we use msg_checking, we should use result to tell what happened).
+dnl    AC_CHECK_SIZEOF (type-or-expr, [unused], [includes = ‘AC_INCLUDES_DEFAULT’])
+dnl    AC_ARG_ENABLE([opencl], [AC_HELP_STRING([--disable-opencl], [do not use OpenCL])], [disable_opencl=$enableval], [disable_opencl='yes'])
+dnl    AC_ARG_WITH(omp, [AS_HELP_STRING([--with-omp],[compile with OpenMP (multi-thread) support. If none is found, OMP is not used. Default: auto])],,with_omp=auto)
+dnl    gcc -dM -E - < /dev/null
+dnl
+dnl  guide to easy to do autoconf:  http://www.galassi.org/mark/mydocs/autoconf_tutorial_2.html#SEC2
+dnl
+dnl  TODO:
+dnl    AC_C_BIGENDIAN ([action-if-true], [action-if-false], [action-if-unknown], [action-if-universal])
+dnl    AC_C_INLINE
+dnl        If the C compiler supports the keyword inline, do nothing. Otherwise define inline
+dnl        to __inline__ or __inline if it accepts one of those, otherwise define inline to be
+empty.
+
+dnl
 
 LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib "
 
 dnl END JIM's BLOCK OF STUFF
 
 # setup options
-AC_ARG_WITH(omp, [AS_HELP_STRING([--with-omp],[compile with OpenMP (multi-thread) support. If none is found, OMP is not used. Default: auto])],,with_omp=auto)
 AC_ARG_WITH(mpi, [AS_HELP_STRING([--with-mpi],[compile with MPI (parallelization) support. If none is found, MPI is not used. Default: auto])],,[with_mpi=auto])
+AC_ARG_WITH(icc-asm, [AS_HELP_STRING([--with-icc-asm],[Use ICC pre-built asm files for intrisic SIMD code Default: no])],,[with_icc_asm=no])
 
 # Checks for programs.
 AC_PROG_CC([gcc cc icc ])
@@ -45,6 +66,204 @@ AC_PROG_CXX
 AC_PROG_MAKE_SET
 AC_PROG_CPP
 AC_CACHE_SAVE
+
+#############################################################################
+# CPU test code.  We start with SSE2, then SSSE3, then SSE4, ... until we fail
+# whatever the last one is, we use it.  NOTE, if AVX fails we still DO test XOP
+# since one is intel, one is AMD.  At the very end of configure, we set gcc
+# back to whatever the 'best' was.  During running in configure, $CC gets reset
+# so the results of our tests must be remembered, and reset just before exit.
+#############################################################################
+#test SSE2
+AC_MSG_CHECKING([for SSE2])
+CC_BACKUP=$CC
+CPU_STR="Unk"
+CPU_NOTFOUND=0
+CC="$CC_BACKUP -msse2"
+AC_RUN_IFELSE(
+  [
+  AC_LANG_SOURCE(
+	dnl this simple test.  If we can include <emmintrin.h> and link, and it returns 0, then all is well.
+	[[#include <emmintrin.h>
+      int main() { __m64 t; *((long long*)&t)=1; t = _mm_mul_su32(t,t); if (*((long long*)&t)==88) return 1; exit(0); }]]
+  )]
+  ,[CPU_BEST_FLAGS="-msse2"]dnl
+   [CPU_STR="SSE2"]
+   [AC_DEFINE([HAVE_SSE2], 1, [enable if compiling for SSE2 archetecture])] dnl
+   [AC_MSG_RESULT([yes])]
+  ,[CPU_NOTFOUND="1"]
+   [AC_MSG_RESULT(no)]
+  )
+AS_IF([test x"$CPU_NOTFOUND" = "x0"],
+[
+CC="$CC_BACKUP -mssse3"
+CPU_NOTFOUND=0
+AC_MSG_CHECKING([for SSSE3])
+AC_RUN_IFELSE(
+  [
+  AC_LANG_SOURCE(
+	[[#include <tmmintrin.h>
+      int main() { __m64 t; *((long long*)&t)=1; t = _mm_abs_pi16(t); if (*((long long*)&t)==88) return 1; exit(0); }]]
+  )]
+  ,[CPU_BEST_FLAGS="-mssse3"]dnl
+   [CPU_STR="SSSE3"]
+   [AC_DEFINE([HAVE_SSSE3], 1, [enable if compiling for SSSE3 archetecture])] dnl
+   [AC_MSG_RESULT([yes])]
+  ,[CPU_NOTFOUND=1]
+   [AC_MSG_RESULT([no])]
+  )
+]
+)
+AS_IF([test x"$CPU_NOTFOUND" = "x0"],
+[
+CC="$CC_BACKUP -msse4.1"
+CPU_NOTFOUND=0
+AC_MSG_CHECKING([for SSE4.1])
+AC_RUN_IFELSE(
+  [
+  AC_LANG_SOURCE(
+	[[#include <smmintrin.h>
+      int main() { __m128d t; *((long long*)&t)=1; _mm_round_pd(t,1); if (*((long long*)&t)==88) return 1; exit(0); }]]
+  )]
+  ,[CPU_BEST_FLAGS="-msse4.1"]dnl
+   [CPU_STR="SSE4.1"]
+   [AC_DEFINE([HAVE_SSE4_1], 1, [enable if compiling for SSE4.1 archetecture])] dnl
+   [AC_MSG_RESULT([yes])]
+  ,[CPU_NOTFOUND=1]
+   [AC_MSG_RESULT([no])]
+  )
+]
+)
+
+AS_IF([test x"$CPU_NOTFOUND" = "x0"],
+[
+CC="$CC_BACKUP -mavx"
+AC_MSG_CHECKING([for AVX])
+AC_RUN_IFELSE(
+  [
+  AC_LANG_SOURCE(
+	[[#include <immintrin.h>
+      int main() { __m256d t; *((long long*)&t)=1; t = _mm256_movedup_pd(t); if (*((long long*)&t)==88) return 1; exit(0); }]]
+  )]
+  ,[CPU_BEST_FLAGS="-mavx"]dnl
+   [CPU_STR="AVX"]
+   [CPU_BEST_FLAGS_MAIN="-DJOHN_AVX"]
+   [AC_DEFINE([HAVE_AVX], 1, [enable if compiling for AVX archetecture])] dnl
+   [AC_MSG_RESULT([yes])]
+  ,[AC_MSG_RESULT([no])]
+  )
+]
+)
+AS_IF([test x"$CPU_NOTFOUND" = "x0"],
+[
+CC="$CC_BACKUP -mxop"
+AC_MSG_CHECKING([for XOP])
+AC_RUN_IFELSE(
+  [
+  AC_LANG_SOURCE(
+	[[#include <x86intrin.h>
+      #include <stdio.h>
+      int main() { __m128i t; *((long long*)&t)=1; t= _mm_roti_epi32(t,5); if (*((long long*)&t)==88) return 1; exit(0); }]]
+  )]
+  ,[CPU_BEST_FLAGS="-mxop"]dnl
+   [CPU_STR="XOP"]
+   [CPU_BEST_FLAGS_MAIN="-DJOHN_XOP"]
+   [AC_DEFINE([HAVE_XOP], 1, [enable if compiling for XOP archetecture])] dnl
+   [AC_MSG_RESULT([yes])]
+  ,[AC_MSG_RESULT([no])]
+  )
+]
+)
+CC="$CC_BACKUP"
+#############################################################################
+# End of JtR CPU test code.  The 'best' found should be in $CPU_BEST
+#############################################################################
+
+#############################################################################
+# 32 vs 64 bit CPU test code.  Sets these items:
+#  -msse2 (or whatever)
+#  AESNI=64 (CPU_BIT_STR)  Build type also uses this
+#  set ARCH_LINK file
+#  sets the extra ASM object.
+#  Will later set @USE_ICC_ASM@
+#############################################################################
+#test 32 vs 64 bit.  Also handle icc asm intrinsics [Also handle X32]
+AC_MSG_CHECKING([for 32/64 bit])
+CC="$CC_BACKUP -march=native"
+# with_icc_asm
+#AS_IF([test x"$with_icc_asm" != "xno"],
+
+AC_RUN_IFELSE(
+  [
+  AC_LANG_SOURCE(
+	[[int main() {
+	#if defined(__x86_64) || defined(__x86_64__) || defined(__amd64) || defined (__amd64__) || defined(_LP64) || defined(_M_IX86) || \
+	    defined(_M_AMD64) || defined(_M_IA64) || defined(_M_X64) || defined (__ILP32__) || defined(__LLP64__) || defined (WIN64)
+	exit(0);
+	#endif
+	exit(1);}]]
+  )]
+  ,[CPU_BITS="-m64"]dnl
+   [CPU_BIT_STR="64"]
+   [CC_ASM_OBJ="x86-64.o sse-intrinsics.o"]
+   [ARCH_LINK="x86-64.h"]
+   [AC_MSG_RESULT([64-bit])]
+  ,[CPU_BITS="-m32"]dnl
+   [CPU_BIT_STR="32"]
+   [CC_ASM_OBJ="x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o"]
+   [ARCH_LINK="x86-sse.h"]
+   [AC_MSG_RESULT([32-bit])]
+  )
+CC="$CC_BACKUP"
+#############################################################################
+# End of JtR 32/64 bit test code.
+#############################################################################
+
+#############################################################################
+# ASM_MAGIC code.  Here we add certain 'magic' values. Things like
+#  -DUNDERSCORES -DBSD -DALIGN_LOG   (for macosx-x86-*)
+#  -DUNDERSCORES -DALIGN_LOG for (dos-djgpp-x86-*)
+#  -DUNDERSCORES for cygwin / MinGW / VC
+#############################################################################
+#test 32 vs 64 bit.  Also handle icc asm intrinsics [Also handle X32]
+EXTRA_AS_FLAGS=
+AC_MSG_CHECKING([for extra ASFLAGS])
+CC="$CC_BACKUP"
+AC_RUN_IFELSE(
+  [
+  AC_LANG_SOURCE(
+	[[int main() {
+	#if defined(__CYGWIN__) || defined(__MINGW32__) || defined(_MSCVER)
+	exit(0);
+	#endif
+	exit(1);}]]
+  )]
+  ,[EXTRA_AS_FLAGS+="-DUNDERSCORES"])
+AC_RUN_IFELSE(
+  [
+  AC_LANG_SOURCE(
+	[[int main() {
+	#if defined(__APPLE__) && defined(__MACH__)
+	exit(0);
+	#endif
+	exit(1);}]]
+  )]
+  ,[EXTRA_AS_FLAGS+="-DUNDERSCORES -DBSD -DALIGN_LOG"])
+AC_RUN_IFELSE(
+  [
+  AC_LANG_SOURCE(
+	[[int main() {
+	#if defined(__DJGPP__)
+	exit(0);
+	#endif
+	exit(1);}]]
+  )]
+  ,[EXTRA_AS_FLAGS+="-DUNDERSCORES -DALIGN_LOG"])
+AC_MSG_RESULT([$EXTRA_AS_FLAGS])
+CC="$CC_BACKUP"
+#############################################################################
+# End of JtR ASM_MAGIC code
+#############################################################################
 
 # Checks for libraries.
 ################################################
@@ -86,12 +305,18 @@ PKG_CHECK_MODULES([NSS], [nss], AC_SUBST(HAVE_NSS,[-DHAVE_NSS]),
         AC_MSG_WARN(NSS not found - Mozilla format will be omitted.))
 
 ##################################
-# check for openMP
+# check for openMP  (NOTE, AC_OPENMP does pretty much everything we were doing before)
 ##################################
-AS_IF([test x"$with_omp" = "xauto"],[AX_OPENMP(AC_SUBST(OPENMP_CFLAGS,${ax_cv_c_openmp}))])
-AS_IF([test x"$with_omp" = "xyes"],
-    [AX_OPENMP([AC_SUBST(OPENMP_CFLAGS,${ax_cv_c_openmp})],
-              [AC_MSG_FAILURE([OMP requested, but could not use OMP.])])])
+#   Here iis with --disable-omp method.
+#AC_ARG_ENABLE([openmp], [AS_HELP_STRING([--disable-openmp],[do not use OpenMP])],[disable_openmp=$enableval],[disable_openmp='yes'])
+#   Here is the --with-omp method
+#AC_ARG_WITH(openmp, [AS_HELP_STRING([--with-openmp],[compile with OpenMP (multi-thread) support. If none is found, OMP is not used. Default: auto])],,with_openmp=auto)
+#   Here are the test cases for --with-xxx processing.
+#AS_IF([test x"$with_openmp" = "xauto"],[AX_OPENMP(AC_SUBST(OPENMP_CFLAGS,${ax_cv_c_openmp}))])
+#AS_IF([test x"$with_openmp" = "xyes"],
+#    [AX_OPENMP([AC_SUBST(OPENMP_CFLAGS,${ax_cv_c_openmp})],
+#              [AC_MSG_FAILURE([OMP requested, but could not use OMP.])])])
+AC_OPENMP
 
 ##################################
 # check for MPI
@@ -140,9 +365,21 @@ AC_FUNC_REALLOC
 AC_CHECK_FUNCS([atexit endpwent floor ftruncate gethostbyname gettimeofday inet_ntoa isascii memchr memmove memset mkdir munmap pow rmdir select setenv setlocale socket strcasecmp strchr strcspn strdup strerror strncasecmp strrchr strspn strstr strtol strtoul])
 AC_CACHE_SAVE
 
+AC_SUBST(CC_CPU,[$CPU_BEST_FLAGS])
+AC_SUBST(CC_MAIN_CPU,[$CPU_BEST_FLAGS_MAIN])
+AC_SUBST(CC_ASM_OBJ,[$CC_ASM_OBJ])
+AC_SUBST(CPU_BITS,[$CPU_BITS])
+AC_SUBST(CPU_BIT_STR,[$CPU_BIT_STR])
+AC_SUBST(EXTRA_AS_FLAGS,[$EXTRA_AS_FLAGS])
+
+AC_SUBST(JOHN_BUILD_LABEL,["${CPU_BIT_STR}-bit ${CPU_STR}-autoconf"])
+
+# build proper 'link' to the arch file (based on bit only, for 32 bit, we may want different ones, and for other CPU's we need different ones)
+AC_CONFIG_LINKS([arch.h:$ARCH_LINK])
+
 AC_CONFIG_FILES([Makefile
                  aes/Makefile
                  aes/aesni/Makefile
                  aes/openssl/Makefile
                  escrypt/Makefile])
-AC_OUTPUT(,echo "timestamp from configure.ac" > autoconfig-stamp-h & echo "Done! Makefile generated.")
+AC_OUTPUT(,echo "timestamp from configure.in" > autoconfig-stamp-h & echo "I want to echo something")

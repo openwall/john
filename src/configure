@@ -624,6 +624,13 @@ ac_includes_default="\
 
 ac_header_list=
 ac_subst_vars='LTLIBOBJS
+JOHN_BUILD_LABEL
+EXTRA_AS_FLAGS
+CPU_BIT_STR
+CPU_BITS
+CC_ASM_OBJ
+CC_MAIN_CPU
+CC_CPU
 LIBOBJS
 EGREP
 GREP
@@ -691,8 +698,9 @@ SHELL'
 ac_subst_files=''
 ac_user_opts='
 enable_option_checking
-with_omp
 with_mpi
+with_icc_asm
+enable_openmp
 '
       ac_precious_vars='build_alias
 host_alias
@@ -1317,13 +1325,19 @@ if test -n "$ac_init_help"; then
    esac
   cat <<\_ACEOF
 
+Optional Features:
+  --disable-option-checking  ignore unrecognized --enable/--with options
+  --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
+  --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
+  --disable-openmp        do not use OpenMP
+
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
-  --with-omp              compile with OpenMP (multi-thread) support. If none
-                          is found, OMP is not used. Default: auto
   --with-mpi              compile with MPI (parallelization) support. If none
                           is found, MPI is not used. Default: auto
+  --with-icc-asm          Use ICC pre-built asm files for intrisic SIMD code
+                          Default: no
 
 Some influential environment variables:
   CC          C compiler command
@@ -1538,6 +1552,48 @@ fi
 
 } # ac_fn_c_try_cpp
 
+# ac_fn_c_try_run LINENO
+# ----------------------
+# Try to link conftest.$ac_ext, and return whether this succeeded. Assumes
+# that executables *can* be run.
+ac_fn_c_try_run ()
+{
+  as_lineno=${as_lineno-"$1"} as_lineno_stack=as_lineno_stack=$as_lineno_stack
+  if { { ac_try="$ac_link"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval ac_try_echo="\"\$as_me:${as_lineno-$LINENO}: $ac_try_echo\""
+$as_echo "$ac_try_echo"; } >&5
+  (eval "$ac_link") 2>&5
+  ac_status=$?
+  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; } && { ac_try='./conftest$ac_exeext'
+  { { case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval ac_try_echo="\"\$as_me:${as_lineno-$LINENO}: $ac_try_echo\""
+$as_echo "$ac_try_echo"; } >&5
+  (eval "$ac_try") 2>&5
+  ac_status=$?
+  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; }; }; then :
+  ac_retval=0
+else
+  $as_echo "$as_me: program exited with status $ac_status" >&5
+       $as_echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+       ac_retval=$ac_status
+fi
+  rm -rf conftest.dSYM conftest_ipa8_conftest.oo
+  eval $as_lineno_stack; ${as_lineno_stack:+:} unset as_lineno
+  as_fn_set_status $ac_retval
+
+} # ac_fn_c_try_run
+
 # ac_fn_c_try_link LINENO
 # -----------------------
 # Try to link conftest.$ac_ext, and return whether this succeeded.
@@ -1674,48 +1730,6 @@ fi
   eval $as_lineno_stack; ${as_lineno_stack:+:} unset as_lineno
 
 } # ac_fn_c_check_header_mongrel
-
-# ac_fn_c_try_run LINENO
-# ----------------------
-# Try to link conftest.$ac_ext, and return whether this succeeded. Assumes
-# that executables *can* be run.
-ac_fn_c_try_run ()
-{
-  as_lineno=${as_lineno-"$1"} as_lineno_stack=as_lineno_stack=$as_lineno_stack
-  if { { ac_try="$ac_link"
-case "(($ac_try" in
-  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
-  *) ac_try_echo=$ac_try;;
-esac
-eval ac_try_echo="\"\$as_me:${as_lineno-$LINENO}: $ac_try_echo\""
-$as_echo "$ac_try_echo"; } >&5
-  (eval "$ac_link") 2>&5
-  ac_status=$?
-  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
-  test $ac_status = 0; } && { ac_try='./conftest$ac_exeext'
-  { { case "(($ac_try" in
-  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
-  *) ac_try_echo=$ac_try;;
-esac
-eval ac_try_echo="\"\$as_me:${as_lineno-$LINENO}: $ac_try_echo\""
-$as_echo "$ac_try_echo"; } >&5
-  (eval "$ac_try") 2>&5
-  ac_status=$?
-  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
-  test $ac_status = 0; }; }; then :
-  ac_retval=0
-else
-  $as_echo "$as_me: program exited with status $ac_status" >&5
-       $as_echo "$as_me: failed program was:" >&5
-sed 's/^/| /' conftest.$ac_ext >&5
-
-       ac_retval=$ac_status
-fi
-  rm -rf conftest.dSYM conftest_ipa8_conftest.oo
-  eval $as_lineno_stack; ${as_lineno_stack:+:} unset as_lineno
-  as_fn_set_status $ac_retval
-
-} # ac_fn_c_try_run
 
 # ac_fn_c_check_header_compile LINENO HEADER VAR INCLUDES
 # -------------------------------------------------------
@@ -2996,25 +3010,27 @@ ac_config_headers="$ac_config_headers autoconfig.h"
 
 
 
+empty.
+
 
 LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib "
 
 
 # setup options
 
-# Check whether --with-omp was given.
-if test "${with_omp+set}" = set; then :
-  withval=$with_omp;
-else
-  with_omp=auto
-fi
-
-
 # Check whether --with-mpi was given.
 if test "${with_mpi+set}" = set; then :
   withval=$with_mpi;
 else
   with_mpi=auto
+fi
+
+
+# Check whether --with-icc-asm was given.
+if test "${with_icc_asm+set}" = set; then :
+  withval=$with_icc_asm;
+else
+  with_icc_asm=no
 fi
 
 
@@ -4200,12 +4216,369 @@ $as_echo "$as_me: not updating unwritable cache $cache_file" >&6;}
 fi
 rm -f confcache
 
+#############################################################################
+# CPU test code.  We start with SSE2, then SSSE3, then SSE4, ... until we fail
+# whatever the last one is, we use it.  NOTE, if AVX fails we still DO test XOP
+# since one is intel, one is AMD.  At the very end of configure, we set gcc
+# back to whatever the 'best' was.  During running in configure, $CC gets reset
+# so the results of our tests must be remembered, and reset just before exit.
+#############################################################################
+#test SSE2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for SSE2" >&5
+$as_echo_n "checking for SSE2... " >&6; }
+CC_BACKUP=$CC
+CPU_STR="Unk"
+CPU_NOTFOUND=0
+CC="$CC_BACKUP -msse2"
+
+if test "$cross_compiling" = yes; then :
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "cannot run test program while cross compiling
+See \`config.log' for more details" "$LINENO" 5; }
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+	#include <emmintrin.h>
+      int main() { __m64 t; *((long long*)&t)=1; t = _mm_mul_su32(t,t); if (*((long long*)&t)==88) return 1; exit(0); }
+
+
+_ACEOF
+if ac_fn_c_try_run "$LINENO"; then :
+  CPU_BEST_FLAGS="-msse2"   CPU_STR="SSE2"
+
+$as_echo "#define HAVE_SSE2 1" >>confdefs.h
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+
+else
+  CPU_NOTFOUND="1"
+   { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+
+fi
+rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
+  conftest.$ac_objext conftest.beam conftest.$ac_ext
+fi
+
+if test x"$CPU_NOTFOUND" = "x0"; then :
+
+CC="$CC_BACKUP -mssse3"
+CPU_NOTFOUND=0
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for SSSE3" >&5
+$as_echo_n "checking for SSSE3... " >&6; }
+if test "$cross_compiling" = yes; then :
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "cannot run test program while cross compiling
+See \`config.log' for more details" "$LINENO" 5; }
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+  #include <tmmintrin.h>
+      int main() { __m64 t; *((long long*)&t)=1; t = _mm_abs_pi16(t); if (*((long long*)&t)==88) return 1; exit(0); }
+
+
+_ACEOF
+if ac_fn_c_try_run "$LINENO"; then :
+  CPU_BEST_FLAGS="-mssse3"   CPU_STR="SSSE3"
+
+$as_echo "#define HAVE_SSSE3 1" >>confdefs.h
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+
+else
+  CPU_NOTFOUND=1
+   { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+
+fi
+rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
+  conftest.$ac_objext conftest.beam conftest.$ac_ext
+fi
+
+
+
+fi
+if test x"$CPU_NOTFOUND" = "x0"; then :
+
+CC="$CC_BACKUP -msse4.1"
+CPU_NOTFOUND=0
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for SSE4.1" >&5
+$as_echo_n "checking for SSE4.1... " >&6; }
+if test "$cross_compiling" = yes; then :
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "cannot run test program while cross compiling
+See \`config.log' for more details" "$LINENO" 5; }
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+  #include <smmintrin.h>
+      int main() { __m128d t; *((long long*)&t)=1; _mm_round_pd(t,1); if (*((long long*)&t)==88) return 1; exit(0); }
+
+
+_ACEOF
+if ac_fn_c_try_run "$LINENO"; then :
+  CPU_BEST_FLAGS="-msse4.1"   CPU_STR="SSE4.1"
+
+$as_echo "#define HAVE_SSE4_1 1" >>confdefs.h
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+
+else
+  CPU_NOTFOUND=1
+   { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+
+fi
+rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
+  conftest.$ac_objext conftest.beam conftest.$ac_ext
+fi
+
+
+
+fi
+
+if test x"$CPU_NOTFOUND" = "x0"; then :
+
+CC="$CC_BACKUP -mavx"
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for AVX" >&5
+$as_echo_n "checking for AVX... " >&6; }
+if test "$cross_compiling" = yes; then :
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "cannot run test program while cross compiling
+See \`config.log' for more details" "$LINENO" 5; }
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+  #include <immintrin.h>
+      int main() { __m256d t; *((long long*)&t)=1; t = _mm256_movedup_pd(t); if (*((long long*)&t)==88) return 1; exit(0); }
+
+
+_ACEOF
+if ac_fn_c_try_run "$LINENO"; then :
+  CPU_BEST_FLAGS="-mavx"   CPU_STR="AVX"
+   CPU_BEST_FLAGS_MAIN="-DJOHN_AVX"
+
+$as_echo "#define HAVE_AVX 1" >>confdefs.h
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+
+fi
+rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
+  conftest.$ac_objext conftest.beam conftest.$ac_ext
+fi
+
+
+
+fi
+if test x"$CPU_NOTFOUND" = "x0"; then :
+
+CC="$CC_BACKUP -mxop"
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for XOP" >&5
+$as_echo_n "checking for XOP... " >&6; }
+if test "$cross_compiling" = yes; then :
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "cannot run test program while cross compiling
+See \`config.log' for more details" "$LINENO" 5; }
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+  #include <x86intrin.h>
+      #include <stdio.h>
+      int main() { __m128i t; *((long long*)&t)=1; t= _mm_roti_epi32(t,5); if (*((long long*)&t)==88) return 1; exit(0); }
+
+
+_ACEOF
+if ac_fn_c_try_run "$LINENO"; then :
+  CPU_BEST_FLAGS="-mxop"   CPU_STR="XOP"
+   CPU_BEST_FLAGS_MAIN="-DJOHN_XOP"
+
+$as_echo "#define HAVE_XOP 1" >>confdefs.h
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+
+fi
+rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
+  conftest.$ac_objext conftest.beam conftest.$ac_ext
+fi
+
+
+
+fi
+CC="$CC_BACKUP"
+#############################################################################
+# End of JtR CPU test code.  The 'best' found should be in $CPU_BEST
+#############################################################################
+
+#############################################################################
+# 32 vs 64 bit CPU test code.  Sets these items:
+#  -msse2 (or whatever)
+#  AESNI=64 (CPU_BIT_STR)  Build type also uses this
+#  set ARCH_LINK file
+#  sets the extra ASM object.
+#  Will later set @USE_ICC_ASM@
+#############################################################################
+#test 32 vs 64 bit.  Also handle icc asm intrinsics [Also handle X32]
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for 32/64 bit" >&5
+$as_echo_n "checking for 32/64 bit... " >&6; }
+CC="$CC_BACKUP -march=native"
+# with_icc_asm
+#AS_IF([test x"$with_icc_asm" != "xno"],
+
+if test "$cross_compiling" = yes; then :
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "cannot run test program while cross compiling
+See \`config.log' for more details" "$LINENO" 5; }
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+  int main() {
+	#if defined(__x86_64) || defined(__x86_64__) || defined(__amd64) || defined (__amd64__) || defined(_LP64) || defined(_M_IX86) || \
+	    defined(_M_AMD64) || defined(_M_IA64) || defined(_M_X64) || defined (__ILP32__) || defined(__LLP64__) || defined (WIN64)
+	exit(0);
+	#endif
+	exit(1);}
+
+
+_ACEOF
+if ac_fn_c_try_run "$LINENO"; then :
+  CPU_BITS="-m64"   CPU_BIT_STR="64"
+   CC_ASM_OBJ="x86-64.o sse-intrinsics.o"
+   ARCH_LINK="x86-64.h"
+   { $as_echo "$as_me:${as_lineno-$LINENO}: result: 64-bit" >&5
+$as_echo "64-bit" >&6; }
+
+else
+  CPU_BITS="-m32"   CPU_BIT_STR="32"
+   CC_ASM_OBJ="x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o"
+   ARCH_LINK="x86-sse.h"
+   { $as_echo "$as_me:${as_lineno-$LINENO}: result: 32-bit" >&5
+$as_echo "32-bit" >&6; }
+
+fi
+rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
+  conftest.$ac_objext conftest.beam conftest.$ac_ext
+fi
+
+CC="$CC_BACKUP"
+#############################################################################
+# End of JtR 32/64 bit test code.
+#############################################################################
+
+#############################################################################
+# ASM_MAGIC code.  Here we add certain 'magic' values. Things like
+#  -DUNDERSCORES -DBSD -DALIGN_LOG   (for macosx-x86-*)
+#  -DUNDERSCORES -DALIGN_LOG for (dos-djgpp-x86-*)
+#  -DUNDERSCORES for cygwin / MinGW / VC
+#############################################################################
+#test 32 vs 64 bit.  Also handle icc asm intrinsics [Also handle X32]
+EXTRA_AS_FLAGS=
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for extra ASFLAGS" >&5
+$as_echo_n "checking for extra ASFLAGS... " >&6; }
+CC="$CC_BACKUP"
+if test "$cross_compiling" = yes; then :
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "cannot run test program while cross compiling
+See \`config.log' for more details" "$LINENO" 5; }
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+  int main() {
+	#if defined(__CYGWIN__) || defined(__MINGW32__) || defined(_MSCVER)
+	exit(0);
+	#endif
+	exit(1);}
+
+
+_ACEOF
+if ac_fn_c_try_run "$LINENO"; then :
+  EXTRA_AS_FLAGS+="-DUNDERSCORES"
+fi
+rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
+  conftest.$ac_objext conftest.beam conftest.$ac_ext
+fi
+
+if test "$cross_compiling" = yes; then :
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "cannot run test program while cross compiling
+See \`config.log' for more details" "$LINENO" 5; }
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+  int main() {
+	#if defined(__APPLE__) && defined(__MACH__)
+	exit(0);
+	#endif
+	exit(1);}
+
+
+_ACEOF
+if ac_fn_c_try_run "$LINENO"; then :
+  EXTRA_AS_FLAGS+="-DUNDERSCORES -DBSD -DALIGN_LOG"
+fi
+rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
+  conftest.$ac_objext conftest.beam conftest.$ac_ext
+fi
+
+if test "$cross_compiling" = yes; then :
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "cannot run test program while cross compiling
+See \`config.log' for more details" "$LINENO" 5; }
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+  int main() {
+	#if defined(__DJGPP__)
+	exit(0);
+	#endif
+	exit(1);}
+
+
+_ACEOF
+if ac_fn_c_try_run "$LINENO"; then :
+  EXTRA_AS_FLAGS+="-DUNDERSCORES -DALIGN_LOG"
+fi
+rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
+  conftest.$ac_objext conftest.beam conftest.$ac_ext
+fi
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $EXTRA_AS_FLAGS" >&5
+$as_echo "$EXTRA_AS_FLAGS" >&6; }
+CC="$CC_BACKUP"
+#############################################################################
+# End of JtR ASM_MAGIC code
+#############################################################################
+
 # Checks for libraries.
 ################################################
 #  NOTE, be VERY careful of spaces around the comma's in the AC_CHECK_LIB. Best to not have any.
 #  If there are space, then often that will get a lib to NOT be added to @LIBS@ and cause linkage problems.
 ################################################
-
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for SSL_library_init in -lssl" >&5
 $as_echo_n "checking for SSL_library_init in -lssl... " >&6; }
 if ${ac_cv_lib_ssl_SSL_library_init+:} false; then :
@@ -5344,141 +5717,83 @@ $as_echo "yes" >&6; }
 fi
 
 ##################################
-# check for openMP
+# check for openMP  (NOTE, AC_OPENMP does pretty much everything we were doing before)
 ##################################
-if test x"$with_omp" = "xauto"; then :
+#   Here iis with --disable-omp method.
+#AC_ARG_ENABLE([openmp], [AS_HELP_STRING([--disable-openmp],[do not use OpenMP])],[disable_openmp=$enableval],[disable_openmp='yes'])
+#   Here is the --with-omp method
+#AC_ARG_WITH(openmp, [AS_HELP_STRING([--with-openmp],[compile with OpenMP (multi-thread) support. If none is found, OMP is not used. Default: auto])],,with_openmp=auto)
+#   Here are the test cases for --with-xxx processing.
+#AS_IF([test x"$with_openmp" = "xauto"],[AX_OPENMP(AC_SUBST(OPENMP_CFLAGS,${ax_cv_c_openmp}))])
+#AS_IF([test x"$with_openmp" = "xyes"],
+#    [AX_OPENMP([AC_SUBST(OPENMP_CFLAGS,${ax_cv_c_openmp})],
+#              [AC_MSG_FAILURE([OMP requested, but could not use OMP.])])])
 
+  OPENMP_CFLAGS=
+  # Check whether --enable-openmp was given.
+if test "${enable_openmp+set}" = set; then :
+  enableval=$enable_openmp;
+fi
 
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for OpenMP flag of C compiler" >&5
-$as_echo_n "checking for OpenMP flag of C compiler... " >&6; }
-if ${ax_cv_c_openmp+:} false; then :
+  if test "$enable_openmp" != no; then
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $CC option to support OpenMP" >&5
+$as_echo_n "checking for $CC option to support OpenMP... " >&6; }
+if ${ac_cv_prog_c_openmp+:} false; then :
   $as_echo_n "(cached) " >&6
 else
-  saveCFLAGS=$CFLAGS
-ax_cv_c_openmp=unknown
-# Flags to try:  -fopenmp (gcc), -openmp (icc), -mp (SGI & PGI),
-#                -xopenmp (Sun), -omp (Tru64), -qsmp=omp (AIX), none
-ax_openmp_flags="-fopenmp -openmp -mp -xopenmp -omp -qsmp=omp none"
-if test "x$OPENMP_CFLAGS" != x; then
-  ax_openmp_flags="$OPENMP_CFLAGS $ax_openmp_flags"
-fi
-for ax_openmp_flag in $ax_openmp_flags; do
-  case $ax_openmp_flag in
-    none) CFLAGS=$saveC ;;
-    *) CFLAGS="$saveCFLAGS $ax_openmp_flag" ;;
-  esac
   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
-#ifdef __cplusplus
-extern "C"
+
+#ifndef _OPENMP
+ choke me
 #endif
-void omp_set_num_threads(int);
-int
-main ()
-{
-const int N = 100000;
-  int i, arr[N];
+#include <omp.h>
+int main () { return omp_get_num_threads (); }
 
-  omp_set_num_threads(2);
-
-  #pragma omp parallel for
-  for (i = 0; i < N; i++) {
-    arr[i] = i;
-  }
-  ;
-  return 0;
-}
 _ACEOF
 if ac_fn_c_try_link "$LINENO"; then :
-  ax_cv_c_openmp=$ax_openmp_flag; break
+  ac_cv_prog_c_openmp='none needed'
+else
+  ac_cv_prog_c_openmp='unsupported'
+																	  for ac_option in -fopenmp -xopenmp -openmp -mp -omp -qsmp=omp -homp \
+                           -Popenmp --openmp; do
+	    ac_save_CFLAGS=$CFLAGS
+	    CFLAGS="$CFLAGS $ac_option"
+	    cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#ifndef _OPENMP
+ choke me
+#endif
+#include <omp.h>
+int main () { return omp_get_num_threads (); }
+
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_prog_c_openmp=$ac_option
 fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
-done
-CFLAGS=$saveCFLAGS
-
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ax_cv_c_openmp" >&5
-$as_echo "$ax_cv_c_openmp" >&6; }
-if test "x$ax_cv_c_openmp" = "xunknown"; then
-  :
-else
-  if test "x$ax_cv_c_openmp" != "xnone"; then
-    OPENMP_CFLAGS=$ax_cv_c_openmp
-  fi
-  OPENMP_CFLAGS=${ax_cv_c_openmp}
-
-fi
-
-fi
-if test x"$with_omp" = "xyes"; then :
-
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for OpenMP flag of C compiler" >&5
-$as_echo_n "checking for OpenMP flag of C compiler... " >&6; }
-if ${ax_cv_c_openmp+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  saveCFLAGS=$CFLAGS
-ax_cv_c_openmp=unknown
-# Flags to try:  -fopenmp (gcc), -openmp (icc), -mp (SGI & PGI),
-#                -xopenmp (Sun), -omp (Tru64), -qsmp=omp (AIX), none
-ax_openmp_flags="-fopenmp -openmp -mp -xopenmp -omp -qsmp=omp none"
-if test "x$OPENMP_CFLAGS" != x; then
-  ax_openmp_flags="$OPENMP_CFLAGS $ax_openmp_flags"
-fi
-for ax_openmp_flag in $ax_openmp_flags; do
-  case $ax_openmp_flag in
-    none) CFLAGS=$saveC ;;
-    *) CFLAGS="$saveCFLAGS $ax_openmp_flag" ;;
-  esac
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-void omp_set_num_threads(int);
-int
-main ()
-{
-const int N = 100000;
-  int i, arr[N];
-
-  omp_set_num_threads(2);
-
-  #pragma omp parallel for
-  for (i = 0; i < N; i++) {
-    arr[i] = i;
-  }
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ax_cv_c_openmp=$ax_openmp_flag; break
+	    CFLAGS=$ac_save_CFLAGS
+	    if test "$ac_cv_prog_c_openmp" != unsupported; then
+	      break
+	    fi
+	  done
 fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
-done
-CFLAGS=$saveCFLAGS
-
 fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ax_cv_c_openmp" >&5
-$as_echo "$ax_cv_c_openmp" >&6; }
-if test "x$ax_cv_c_openmp" = "xunknown"; then
-  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
-$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error $? "OMP requested, but could not use OMP.
-See \`config.log' for more details" "$LINENO" 5; }
-else
-  if test "x$ax_cv_c_openmp" != "xnone"; then
-    OPENMP_CFLAGS=$ax_cv_c_openmp
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_prog_c_openmp" >&5
+$as_echo "$ac_cv_prog_c_openmp" >&6; }
+    case $ac_cv_prog_c_openmp in #(
+      "none needed" | unsupported)
+	;; #(
+      *)
+	OPENMP_CFLAGS=$ac_cv_prog_c_openmp ;;
+    esac
   fi
-  OPENMP_CFLAGS=${ax_cv_c_openmp}
 
-fi
 
-fi
 
 ##################################
 # check for MPI
@@ -7717,6 +8032,26 @@ $as_echo "$as_me: not updating unwritable cache $cache_file" >&6;}
 fi
 rm -f confcache
 
+CC_CPU=$CPU_BEST_FLAGS
+
+CC_MAIN_CPU=$CPU_BEST_FLAGS_MAIN
+
+CC_ASM_OBJ=$CC_ASM_OBJ
+
+CPU_BITS=$CPU_BITS
+
+CPU_BIT_STR=$CPU_BIT_STR
+
+EXTRA_AS_FLAGS=$EXTRA_AS_FLAGS
+
+
+JOHN_BUILD_LABEL="${CPU_BIT_STR}-bit ${CPU_STR}-autoconf"
+
+
+# build proper 'link' to the arch file (based on bit only, for 32 bit, we may want different ones, and for other CPU's we need different ones)
+ac_config_links="$ac_config_links arch.h:$ARCH_LINK"
+
+
 ac_config_files="$ac_config_files Makefile aes/Makefile aes/aesni/Makefile aes/openssl/Makefile escrypt/Makefile"
 
 ac_config_commands="$ac_config_commands default"
@@ -8254,6 +8589,7 @@ cat >>$CONFIG_STATUS <<_ACEOF || ac_write_fail=1
 # Files that config.status was made for.
 config_files="$ac_config_files"
 config_headers="$ac_config_headers"
+config_links="$ac_config_links"
 config_commands="$ac_config_commands"
 
 _ACEOF
@@ -8283,6 +8619,9 @@ $config_files
 
 Configuration headers:
 $config_headers
+
+Configuration links:
+$config_links
 
 Configuration commands:
 $config_commands
@@ -8415,6 +8754,7 @@ for ac_config_target in $ac_config_targets
 do
   case $ac_config_target in
     "autoconfig.h") CONFIG_HEADERS="$CONFIG_HEADERS autoconfig.h" ;;
+    "arch.h") CONFIG_LINKS="$CONFIG_LINKS arch.h:$ARCH_LINK" ;;
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
     "aes/Makefile") CONFIG_FILES="$CONFIG_FILES aes/Makefile" ;;
     "aes/aesni/Makefile") CONFIG_FILES="$CONFIG_FILES aes/aesni/Makefile" ;;
@@ -8434,6 +8774,7 @@ done
 if $ac_need_defaults; then
   test "${CONFIG_FILES+set}" = set || CONFIG_FILES=$config_files
   test "${CONFIG_HEADERS+set}" = set || CONFIG_HEADERS=$config_headers
+  test "${CONFIG_LINKS+set}" = set || CONFIG_LINKS=$config_links
   test "${CONFIG_COMMANDS+set}" = set || CONFIG_COMMANDS=$config_commands
 fi
 
@@ -8731,7 +9072,7 @@ cat >>$CONFIG_STATUS <<\_ACEOF || ac_write_fail=1
 fi # test -n "$CONFIG_HEADERS"
 
 
-eval set X "  :F $CONFIG_FILES  :H $CONFIG_HEADERS    :C $CONFIG_COMMANDS"
+eval set X "  :F $CONFIG_FILES  :H $CONFIG_HEADERS  :L $CONFIG_LINKS  :C $CONFIG_COMMANDS"
 shift
 for ac_tag
 do
@@ -8997,7 +9338,38 @@ $as_echo X"$_am_arg" |
 	  }
 	  s/.*/./; q'`/stamp-h$_am_stamp_count
  ;;
+  :L)
+  #
+  # CONFIG_LINK
+  #
 
+  if test "$ac_source" = "$ac_file" && test "$srcdir" = '.'; then
+    :
+  else
+    # Prefer the file from the source tree if names are identical.
+    if test "$ac_source" = "$ac_file" || test ! -r "$ac_source"; then
+      ac_source=$srcdir/$ac_source
+    fi
+
+    { $as_echo "$as_me:${as_lineno-$LINENO}: linking $ac_source to $ac_file" >&5
+$as_echo "$as_me: linking $ac_source to $ac_file" >&6;}
+
+    if test ! -r "$ac_source"; then
+      as_fn_error $? "$ac_source: file not found" "$LINENO" 5
+    fi
+    rm -f "$ac_file"
+
+    # Try a relative symlink, then a hard link, then a copy.
+    case $ac_source in
+    [\\/$]* | ?:[\\/]* ) ac_rel_source=$ac_source ;;
+	*) ac_rel_source=$ac_top_build_prefix$ac_source ;;
+    esac
+    ln -s "$ac_rel_source" "$ac_file" 2>/dev/null ||
+      ln "$ac_source" "$ac_file" 2>/dev/null ||
+      cp -p "$ac_source" "$ac_file" ||
+      as_fn_error $? "cannot link or copy $ac_source to $ac_file" "$LINENO" 5
+  fi
+ ;;
   :C)  { $as_echo "$as_me:${as_lineno-$LINENO}: executing $ac_file commands" >&5
 $as_echo "$as_me: executing $ac_file commands" >&6;}
  ;;
@@ -9005,7 +9377,7 @@ $as_echo "$as_me: executing $ac_file commands" >&6;}
 
 
   case $ac_file$ac_mode in
-    "default":C) echo "timestamp from configure.ac" > autoconfig-stamp-h & echo "Done! Makefile generated." ;;
+    "default":C) echo "timestamp from configure.in" > autoconfig-stamp-h & echo "I want to echo something" ;;
 
   esac
 done # for ac_tag
