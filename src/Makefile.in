@@ -283,6 +283,7 @@ PROJ_WIN32_MINGW = ../run/john-mingw.exe \
 WITH_PCAP=@HAVE_PCAP@
 ifdef WITH_PCAP
 PROJ_PCAP = ../run/SIPdump ../run/vncpcap2john
+LDFLAGS += -lpcap
 else
 PROJ_PCAP =
 endif
