@@ -3010,8 +3010,6 @@ ac_config_headers="$ac_config_headers autoconfig.h"
 
 
 
-empty.
-
 
 LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib "
 
@@ -4240,7 +4238,7 @@ else
   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
-	#include <emmintrin.h>
+  	#include <emmintrin.h>
       int main() { __m64 t; *((long long*)&t)=1; t = _mm_mul_su32(t,t); if (*((long long*)&t)==88) return 1; exit(0); }
 
 
@@ -5755,7 +5753,7 @@ if ac_fn_c_try_link "$LINENO"; then :
   ac_cv_prog_c_openmp='none needed'
 else
   ac_cv_prog_c_openmp='unsupported'
-																	  for ac_option in -fopenmp -xopenmp -openmp -mp -omp -qsmp=omp -homp \
+	  	  	  	  	  	  	                                	  	  	  	  	  	  for ac_option in -fopenmp -xopenmp -openmp -mp -omp -qsmp=omp -homp \
                            -Popenmp --openmp; do
 	    ac_save_CFLAGS=$CFLAGS
 	    CFLAGS="$CFLAGS $ac_option"

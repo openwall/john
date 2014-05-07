@@ -46,9 +46,7 @@ dnl  TODO:
 dnl    AC_C_BIGENDIAN ([action-if-true], [action-if-false], [action-if-unknown], [action-if-universal])
 dnl    AC_C_INLINE
 dnl        If the C compiler supports the keyword inline, do nothing. Otherwise define inline
-dnl        to __inline__ or __inline if it accepts one of those, otherwise define inline to be
-empty.
-
+dnl        to __inline__ or __inline if it accepts one of those, otherwise define inline to be empty.
 dnl
 
 LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib "
