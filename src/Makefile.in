@@ -329,6 +329,11 @@ default:
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) @CC_ASM_OBJ@" \
 		AESNI_ARCH=@CPU_BIT_STR@
+ifdef WITH_OPENCL
+	$(MKDIR) ../run/kernels/
+	$(CP_PRESERVE) opencl/*.cl ../run/kernels/
+	$(CP_PRESERVE) opencl_*.h ../run/kernels/
+endif
 ifdef WITH_PCAP
 	$(MAKE) $(PROJ_PCAP)
 endif
