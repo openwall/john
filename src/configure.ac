@@ -12,6 +12,7 @@ AC_CONFIG_HEADERS([autoconfig.h])
 m4_include([m4/pkg.m4])
 m4_include([m4/ax_openmp.m4])
 m4_include([m4/ax_opencl.m4])
+m4_include([m4/ax_pthread.m4])
 m4_include([m4/ax_prog_cc_mpi.m4])
 
 
@@ -338,8 +339,7 @@ AS_IF(test x${ac_cv_lib_cudart_main} = "xyes",[AC_SUBST(HAVE_CUDA,1)])
 ####################################
 # OpenCL
 ####################################
-AC_CHECK_LIB([OpenCL],[main])
-AS_IF(test x${ac_cv_lib_OpenCL_main} = "xyes",[AC_SUBST(HAVE_OPENCL,1)])
+AX_OPENCL(C)
 
 # Checks for header files.
 AC_CHECK_HEADERS([OS.h arpa/inet.h sys/times.h fcntl.h limits.h locale.h netdb.h netinet/in.h stddef.h stdint.h stdlib.h string.h strings.h sys/file.h sys/param.h sys/socket.h sys/time.h sys/timeb.h termios.h unistd.h wchar.h unixlib/local.h netinet/if_ether.h pcap.h])

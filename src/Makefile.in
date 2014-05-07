@@ -79,7 +79,7 @@ endif
 # -lskey
 
 CPPFLAGS += @CPPFLAGS@
-CFLAGSX = @CPU_BITS@ $(CPPFLAGS) -c -Wall -Wdeclaration-after-statement -O2 @CFLAGS@ @HAVE_NSS@ @NSS_CFLAGS@ @OPENMP_CFLAGS@ @HAVE_MPI@ -fomit-frame-pointer -I/usr/local/include $(AMDAPP) $(JOHN_CFLAGS) $(RELEASE_BLD)
+CFLAGSX = @CPU_BITS@ $(CPPFLAGS) -c -Wall -Wdeclaration-after-statement @CFLAGS@ @HAVE_NSS@ @NSS_CFLAGS@ @OPENMP_CFLAGS@ @HAVE_MPI@ -fomit-frame-pointer -I/usr/local/include $(AMDAPP) $(JOHN_CFLAGS) $(RELEASE_BLD)
 # CFLAGS for use on the main john.c file only
 CFLAGS_MAIN = @CC_MAIN_CPU@ $(CFLAGSX)
 CFLAGS = @CC_CPU@ $(CFLAGSX)
@@ -299,9 +299,11 @@ NVCC_FLAGS += @CPU_BITS@ $(CCBIN_OSX)
 endif
 endif
 
-WITH_OPENCL=@HAVE_OPENCL@
+WITH_OPENCL=@CL_LIBS@
 ifdef WITH_OPENCL
-CFLAGS += -DHAVE_OPENCL
+CFLAGS += -DHAVE_OPENCL @CL_CFLAGS@
+CFLAGS_MAIN += -DHAVE_OPENCL @CL_CFLAGS@
+LDFLAGS += @CL_LIBS@
 JOHN_OBJS += $(OCL_OBJS)
 endif
 
