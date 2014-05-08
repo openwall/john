@@ -59,7 +59,7 @@ STRIP = strip
 NVCC_FLAGS = -c -Xptxas -v -fmad=true -arch sm_10
 CUDAPATH = /usr/local/cuda
 NVCC = PATH=$(PATH):$(CUDAPATH)/bin/ nvcc
-CCBIN_OSX = -ccbin=/usr/bin/llvm-gcc-4.2
+CCBIN_OSX = /usr/bin/llvm-gcc-4.2
 
 ifdef NVIDIA_CUDA
 OCLROOT = $(NVIDIA_CUDA)
@@ -294,8 +294,8 @@ CFLAGS += -I$(CUDAPATH)/include -DHAVE_CUDA
 CFLAGS_MAIN += -I$(CUDAPATH)/include -DHAVE_CUDA
 LDFLAGS += -L$(CUDAPATH)/lib -L$(CUDAPATH)/lib@CPU_BIT_STR@
 JOHN_OBJS += $(CUDA_OBJS)
-ifeq (,$(wildcard $(CCBIN_OSX)))
-NVCC_FLAGS += @CPU_BITS@ $(CCBIN_OSX)
+ifneq ($(wildcard $(CCBIN_OSX)),)
+NVCC_FLAGS += @CPU_BITS@ -ccbin=$(CCBIN_OSX)
 endif
 endif
 
