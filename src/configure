@@ -4727,8 +4727,8 @@ $as_echo_n "checking for extra ASFLAGS... " >&6; }
 CC="$CC_BACKUP"
 
 # this test also detects JUST the underscore issue, and is generic as long as strings and grep exist
-if echo "int long_ident;" > conftest.c && ${CC} -c conftest.c && strings conftest.${OBJEXT} | ${GREP} _long_ident > conftest.out; then :
-  EXTRA_AS_FLAGS+="-DUNDERSCORES"
+if echo "int long_ident;" > conftest.c && ${CC} -c conftest.c && strings - conftest.${OBJEXT} | ${GREP} _long_ident > conftest.out; then :
+  EXTRA_AS_FLAGS+="-DUNDERSCORES "
 fi
 
 if test "$cross_compiling" = yes; then :

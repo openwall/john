@@ -263,8 +263,8 @@ AC_MSG_CHECKING([for extra ASFLAGS])
 CC="$CC_BACKUP"
 
 # this test also detects JUST the underscore issue, and is generic as long as strings and grep exist
-AS_IF([echo "int long_ident;" > conftest.c && ${CC} -c conftest.c && strings conftest.${OBJEXT} | ${GREP} _long_ident > conftest.out],
-      [EXTRA_AS_FLAGS+="-DUNDERSCORES"])
+AS_IF([echo "int long_ident;" > conftest.c && ${CC} -c conftest.c && strings - conftest.${OBJEXT} | ${GREP} _long_ident > conftest.out],
+      [EXTRA_AS_FLAGS+="-DUNDERSCORES "])
 
 AC_RUN_IFELSE(
   [
@@ -302,7 +302,7 @@ CC="$CC_BACKUP"
 AC_RUN_IFELSE(
   [
   AC_LANG_SOURCE(
-	[[int main() { 
+	[[int main() {
 	char Buf[20]; *((int*)(&Buf[1])) = 1; *((int*)(&Buf[2])) = 1; *((int*)(&Buf[3])) = 1; exit(0);}]]
   )]
   ,[ALLOWS_UNALIGNED="1"]
