@@ -229,13 +229,13 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-static int get_hash_0(int index) { return ((ARCH_WORD_32*)crypt_out)[index] & 0xf; }
-static int get_hash_1(int index) { return ((ARCH_WORD_32*)crypt_out)[index] & 0xff; }
-static int get_hash_2(int index) { return ((ARCH_WORD_32*)crypt_out)[index] & 0xfff; }
-static int get_hash_3(int index) { return ((ARCH_WORD_32*)crypt_out)[index] & 0xffff; }
-static int get_hash_4(int index) { return ((ARCH_WORD_32*)crypt_out)[index] & 0xfffff; }
-static int get_hash_5(int index) { return ((ARCH_WORD_32*)crypt_out)[index] & 0xffffff; }
-static int get_hash_6(int index) { return ((ARCH_WORD_32*)crypt_out)[index] & 0x7ffffff; }
+static int get_hash_0(int index) { return *((ARCH_WORD_32*)&crypt_out[index]) & 0xf; }
+static int get_hash_1(int index) { return *((ARCH_WORD_32*)&crypt_out[index]) & 0xff; }
+static int get_hash_2(int index) { return *((ARCH_WORD_32*)&crypt_out[index]) & 0xfff; }
+static int get_hash_3(int index) { return *((ARCH_WORD_32*)&crypt_out[index]) & 0xffff; }
+static int get_hash_4(int index) { return *((ARCH_WORD_32*)&crypt_out[index]) & 0xfffff; }
+static int get_hash_5(int index) { return *((ARCH_WORD_32*)&crypt_out[index]) & 0xffffff; }
+static int get_hash_6(int index) { return *((ARCH_WORD_32*)&crypt_out[index]) & 0x7ffffff; }
 
 struct fmt_main fmt_KRB5_kinit = {
 	{
