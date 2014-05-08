@@ -343,7 +343,7 @@ ifdef WITH_PCAP
 	$(MAKE) $(PROJ_PCAP)
 endif
 
-fat_info:
+help:
 	@echo "To build John the Ripper, type:"
 	@echo "	make clean SYSTEM"
 	@echo "where SYSTEM can be one of the following:"
