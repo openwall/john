@@ -338,12 +338,10 @@ AC_CHECK_LIB([z],[deflate],[],[AC_MSG_FAILURE(JtR can NOT be build without libz 
 AC_SEARCH_LIBS([crypt],[crypt],[AC_DEFINE(HAVE_CRYPT,1,[Define to 1 if you have the `crypt' library (-lcrypt).])])
 AC_CHECK_LIB([k5crypto],[krb5_c_string_to_key_with_params],[],[AC_MSG_WARN(Installing MIT krb5/k5crypto/ library enables several extra formats,1)] )
 AC_CHECK_LIB([krb5],[krb5_c_string_to_key_with_params])
-AC_CHECK_LIB([gmp],[__gmpz_init],[],[AC_MSG_WARN(Installing libgmp will speed up some hash formats" && echo "   ****" )])
+AC_CHECK_LIB([gmp],[__gmpz_init],[],[AC_MSG_WARN(Installing libgmp will speed up some hash formats)])
 AC_CHECK_LIB([kernel32],[main])
 AC_CHECK_LIB([dl],[dlopen])
-AC_SEARCH_LIBS([c_regex_iterator_cb],[rexgen librexgen],
-               [AC_DEFINE(HAVE_LIBREXGEN,1,[Define to 1 if you have the `rexgen' library (-lrexgen).])],
-			   [AC_MSG_WARN(Installing librexgen installs a powerful new wordlist most)])
+AC_SEARCH_LIBS([c_regex_iterator_cb],[rexgen librexgen],[AC_DEFINE(HAVE_LIBREXGEN,1,[Define to 1 if you have the `rexgen' library (-lrexgen).])],[AC_MSG_WARN(Installing librexgen would enable a powerful new wordlist mode)])
 AC_CHECK_LIB([nsl],[main])
 AC_CHECK_LIB([pthread],[main])
 AC_CHECK_LIB([rt],[main])
