@@ -279,13 +279,13 @@ PROJ_WIN32_MINGW = ../run/john-mingw.exe \
 	../run/kwallet2john.exe ../run/putty2john.exe john.local.conf \
 	../run/gpg2john.exe
 
-
 WITH_PCAP=@HAVE_PCAP@
 ifdef WITH_PCAP
 PROJ_PCAP = ../run/SIPdump ../run/vncpcap2john
-LDFLAGS += -lpcap
+PROJ_PCAP_WIN32 = ../run/SIPdump.exe ../run/vncpcap2john.exe
 else
 PROJ_PCAP =
+PROJ_PCAP_WIN32 =
 endif
 
 WITH_CUDA=@HAVE_CUDA@
@@ -327,7 +327,7 @@ endif
 default:
 	@echo "#define JOHN_BLD" '"'@JOHN_BUILD_LABEL@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) @CC_ASM_OBJ@" \
+		JOHN_OBJS="$(JOHN_OBJS) @CC_ASM_OBJS@" \
 		AESNI_ARCH=@CPU_BIT_STR@
 ifdef WITH_OPENCL
 	$(MKDIR) ../run/kernels/
@@ -2738,11 +2738,14 @@ shell-completion: bash-completion zsh-completion
 
 clean:
 	$(RM) $(PROJ) $(PROJ_DOS) $(PROJ_WIN32) $(PROJ_WIN32_MINGW)
-	$(RM) $(PROJ_PCAP)
+	$(RM) $(PROJ_PCAP) $(PROJ_PCAP_WIN32)
 	$(RM) ../run/john.exe john-macosx-* *.o escrypt/*.o *.bak core
 	$(RM) ../run/kernels/*.cl ../run/kernels/*.h ../run/kernels/*.bin
-	$(RM) detect bench para-bench generic.h arch.h tmp.s
+	$(RM) detect bench para-bench generic.h tmp.s
 	$(RM) cuda/*.o cuda/*~ *~
+#	arch.h now only cleaned up in distclean
+#	$(RM) arch.h
+#	later we may also want to NOT clean these (fmt_registers.h fmt_externs.h john_build_rule.h), if built in the ./configure run
 	$(RM) fmt_registers.h fmt_externs.h john_build_rule.h
 	$(CP) $(NULL) Makefile.dep
 #	make -C aes clean
@@ -2846,6 +2849,10 @@ distclean: clean
 	  || case "$(MFLAGS)" in *k*) fail=yes;; *) exit 1;; esac; \
 	done && test -z "$$fail"
 	$(RM) -f Makefile autoconfig.h config.status config.cache config.log autoconfig-stamp-h stamp-h1 ../run/john.log
+#	moved from older clean target.
+	$(RM) arch.h
+#	We may later also 'move' the creation of these 3 into configure. If we do, we only smoke them on distclean
+#	$(RM) fmt_registers.h fmt_externs.h john_build_rule.h
 
 # a rule to make snapshots  (NOTE, still to be done for JtR)
 snapshot: $(SOURCES) $(DOCS) $(OTHERFILES)

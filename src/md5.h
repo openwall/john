@@ -16,6 +16,8 @@
 /* this needs to be defined no matter if building with HAVE_LIBSSL or not */
 typedef unsigned int MD5_u32plus;
 
+#include "arch.h"
+
 #ifdef HAVE_LIBSSL
 #include <openssl/md5.h>
 

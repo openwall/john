@@ -1,5 +1,17 @@
 /* autoconfig.h.in.  Generated from configure.ac by autoheader.  */
 
+/* Define if building universal (internal helper macro) */
+#undef AC_APPLE_UNIVERSAL_BUILD
+
+/* "Enable if CPU allows unaligned memory access" */
+#undef ARCH_ALLOWS_UNALIGNED
+
+/* "Enable if CPU is > 32 bit (NOTE, this should not be enabled!)" */
+#undef ARCH_INT_GT_32
+
+/* "Enable if CPU is LITTLE ENDIAN arch" */
+#undef ARCH_LITTLE_ENDIAN
+
 /* Define to 1 if you have the <arpa/inet.h> header file. */
 #undef HAVE_ARPA_INET_H
 
@@ -320,6 +332,18 @@
 
 /* Define to 1 if you have the ANSI C header files. */
 #undef STDC_HEADERS
+
+/* Define WORDS_BIGENDIAN to 1 if your processor stores words with the most
+   significant byte first (like Motorola and SPARC, unlike Intel). */
+#if defined AC_APPLE_UNIVERSAL_BUILD
+# if defined __BIG_ENDIAN__
+#  define WORDS_BIGENDIAN 1
+# endif
+#else
+# ifndef WORDS_BIGENDIAN
+#  undef WORDS_BIGENDIAN
+# endif
+#endif
 
 /* Define this for the OpenCL Accelerator */
 #undef _OPENCL

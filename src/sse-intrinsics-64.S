@@ -8362,7 +8362,7 @@ md5cryptsse:
         movl      %r10d, 4608(%rsp,%rdx,4)
         movl      %r10d, 5376(%rsp,%rdx,4)
 ..___tag_value_md5cryptsse.36:
-        call      john_MD5_Init
+        call      MD5_Init
 ..___tag_value_md5cryptsse.37:
 ..B3.157:
         movl      %ebp, %ebp
@@ -8370,7 +8370,7 @@ md5cryptsse:
         movq      %rbp, %rdx
         movq      6880(%rsp), %rsi
 ..___tag_value_md5cryptsse.38:
-        call      john_MD5_Update
+        call      MD5_Update
 ..___tag_value_md5cryptsse.39:
 ..B3.158:
         cmpl      $2, 6872(%rsp)
@@ -8380,7 +8380,7 @@ md5cryptsse:
         lea       6496(%rsp), %rdi
         movl      $3, %edx
 ..___tag_value_md5cryptsse.40:
-        call      john_MD5_Update
+        call      MD5_Update
 ..___tag_value_md5cryptsse.41:
         jmp       ..B3.162
 ..B3.160:
@@ -8391,53 +8391,53 @@ md5cryptsse:
         lea       6496(%rsp), %rdi
         movl      $6, %edx
 ..___tag_value_md5cryptsse.42:
-        call      john_MD5_Update
+        call      MD5_Update
 ..___tag_value_md5cryptsse.43:
 ..B3.162:
         movq      6864(%rsp), %rsi
         lea       6496(%rsp), %rdi
         movq      6840(%rsp), %rdx
 ..___tag_value_md5cryptsse.44:
-        call      john_MD5_Update
+        call      MD5_Update
 ..___tag_value_md5cryptsse.45:
 ..B3.163:
         lea       6144(%rsp), %rdi
 ..___tag_value_md5cryptsse.46:
-        call      john_MD5_Init
+        call      MD5_Init
 ..___tag_value_md5cryptsse.47:
 ..B3.164:
         movq      %rbp, %rdx
         lea       6144(%rsp), %rdi
         movq      6880(%rsp), %rsi
 ..___tag_value_md5cryptsse.48:
-        call      john_MD5_Update
+        call      MD5_Update
 ..___tag_value_md5cryptsse.49:
 ..B3.165:
         movq      6864(%rsp), %rsi
         lea       6144(%rsp), %rdi
         movq      6840(%rsp), %rdx
 ..___tag_value_md5cryptsse.50:
-        call      john_MD5_Update
+        call      MD5_Update
 ..___tag_value_md5cryptsse.51:
 ..B3.166:
         movq      %rbp, %rdx
         lea       6144(%rsp), %rdi
         movq      6880(%rsp), %rsi
 ..___tag_value_md5cryptsse.52:
-        call      john_MD5_Update
+        call      MD5_Update
 ..___tag_value_md5cryptsse.53:
 ..B3.167:
         lea       6800(%rsp), %rdi
         lea       6144(%rsp), %rsi
 ..___tag_value_md5cryptsse.54:
-        call      john_MD5_Final
+        call      MD5_Final
 ..___tag_value_md5cryptsse.55:
 ..B3.168:
         movq      %rbp, %rdx
         lea       6496(%rsp), %rdi
         lea       6800(%rsp), %rsi
 ..___tag_value_md5cryptsse.56:
-        call      john_MD5_Update
+        call      MD5_Update
 ..___tag_value_md5cryptsse.57:
 ..B3.169:
         movl      %r15d, %r15d
@@ -8454,7 +8454,7 @@ md5cryptsse:
         lea       6496(%rsp), %rdi
         movl      $1, %edx
 ..___tag_value_md5cryptsse.58:
-        call      john_MD5_Update
+        call      MD5_Update
 ..___tag_value_md5cryptsse.59:
         jmp       ..B3.174
 ..B3.173:
@@ -8462,7 +8462,7 @@ md5cryptsse:
         lea       6496(%rsp), %rdi
         movl      $1, %edx
 ..___tag_value_md5cryptsse.60:
-        call      john_MD5_Update
+        call      MD5_Update
 ..___tag_value_md5cryptsse.61:
 ..B3.174:
         shrl      $1, %r12d
@@ -8472,7 +8472,7 @@ md5cryptsse:
         lea       6800(%rsp), %rdi
         lea       6496(%rsp), %rsi
 ..___tag_value_md5cryptsse.62:
-        call      john_MD5_Final
+        call      MD5_Final
 ..___tag_value_md5cryptsse.63:
 ..B3.177:
         shll      $4, %r13d

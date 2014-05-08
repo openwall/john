@@ -5,7 +5,7 @@
 AC_PREREQ([2.68])
 AC_INIT([john], [1.8.0.bleeding], [noone@dev.null])
 ##  AM_INIT_AUTOMAKE([foreign subdir-objects])
-AC_CONFIG_SRCDIR([configure.ac])
+AC_CONFIG_SRCDIR([john.c])
 AC_CONFIG_HEADERS([autoconfig.h])
 
 # include our extra macro code
@@ -50,6 +50,14 @@ dnl    AC_C_INLINE
 dnl        If the C compiler supports the keyword inline, do nothing. Otherwise define inline
 dnl        to __inline__ or __inline if it accepts one of those, otherwise define inline to be empty.
 dnl
+dnl     AC_REQUIRE([AC_CANONICAL_HOST])[]dnl
+dnl       case $host_os in
+dnl         *cygwin* ) CYGWIN=yes;;
+dnl                * ) CYGWIN=no;;
+dnl       esac
+dnl
+dnl     use $EXEEXT and $OBJEXT  for exe and obj extension.  Set by AC_PROC_CC
+dnl
 
 LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib "
 
@@ -62,6 +70,7 @@ AC_ARG_WITH(icc-asm, [AS_HELP_STRING([--with-icc-asm],[Use ICC pre-built asm fil
 # Checks for programs.
 AC_PROG_CC([gcc cc icc ])
 AC_PROG_LN_S
+AC_PROG_GREP
 AC_PROG_CXX
 AC_PROG_MAKE_SET
 AC_PROG_CPP
@@ -191,9 +200,8 @@ CC="$CC_BACKUP"
 AC_MSG_CHECKING([for 32/64 bit])
 CC="$CC_BACKUP -march=native"
 # with_icc_asm
-#AS_IF([test x"$with_icc_asm" != "xno"],
-
-AC_RUN_IFELSE(
+AS_IF([test x"$with_icc_asm" != "xno"],
+[AC_RUN_IFELSE(
   [
   AC_LANG_SOURCE(
 	[[int main() {
@@ -205,15 +213,40 @@ AC_RUN_IFELSE(
   )]
   ,[CPU_BITS="-m64"]dnl
    [CPU_BIT_STR="64"]
-   [CC_ASM_OBJ="x86-64.o sse-intrinsics.o"]
+   [CC_ASM_OBJS="x86-64.o sse-intrinsics-64.o"]
+   [ARCH_LINK="x86-64.h"]
+   [CFLAGS+=" -DUSING_ICC_S_FILE"]
+   [AC_MSG_RESULT([64-bit])]
+  ,[CPU_BITS="-m32"]dnl
+   [CPU_BIT_STR="32"]
+   [CC_ASM_OBJS="x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics-32.o"]
+   [ARCH_LINK="x86-sse.h"]
+   [CFLAGS+=" -DUSING_ICC_S_FILE"]
+   [AC_MSG_RESULT([32-bit])]
+   )]
+,
+[AC_RUN_IFELSE(
+  [
+  AC_LANG_SOURCE(
+	[[int main() {
+	#if defined(__x86_64) || defined(__x86_64__) || defined(__amd64) || defined (__amd64__) || defined(_LP64) || defined(_M_IX86) || \
+	    defined(_M_AMD64) || defined(_M_IA64) || defined(_M_X64) || defined (__ILP32__) || defined(__LLP64__) || defined (WIN64)
+	exit(0);
+	#endif
+	exit(1);}]]
+  )]
+  ,[CPU_BITS="-m64"]dnl
+   [CPU_BIT_STR="64"]
+   [CC_ASM_OBJS="x86-64.o sse-intrinsics.o"]
    [ARCH_LINK="x86-64.h"]
    [AC_MSG_RESULT([64-bit])]
   ,[CPU_BITS="-m32"]dnl
    [CPU_BIT_STR="32"]
-   [CC_ASM_OBJ="x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o"]
+   [CC_ASM_OBJS="x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o"]
    [ARCH_LINK="x86-sse.h"]
    [AC_MSG_RESULT([32-bit])]
-  )
+  )]
+ )
 CC="$CC_BACKUP"
 #############################################################################
 # End of JtR 32/64 bit test code.
@@ -225,20 +258,14 @@ CC="$CC_BACKUP"
 #  -DUNDERSCORES -DALIGN_LOG for (dos-djgpp-x86-*)
 #  -DUNDERSCORES for cygwin / MinGW / VC
 #############################################################################
-#test 32 vs 64 bit.  Also handle icc asm intrinsics [Also handle X32]
 EXTRA_AS_FLAGS=
 AC_MSG_CHECKING([for extra ASFLAGS])
 CC="$CC_BACKUP"
-AC_RUN_IFELSE(
-  [
-  AC_LANG_SOURCE(
-	[[int main() {
-	#if defined(__CYGWIN__) || defined(__MINGW32__) || defined(_MSCVER)
-	exit(0);
-	#endif
-	exit(1);}]]
-  )]
-  ,[EXTRA_AS_FLAGS+="-DUNDERSCORES"])
+
+# this test also detects JUST the underscore issue, and is generic as long as strings and grep exist
+AS_IF([echo "int long_ident;" > conftest.c && ${CC} -c conftest.c && strings conftest.${OBJEXT} | ${GREP} _long_ident > conftest.out],
+      [EXTRA_AS_FLAGS+="-DUNDERSCORES"])
+
 AC_RUN_IFELSE(
   [
   AC_LANG_SOURCE(
@@ -248,27 +275,61 @@ AC_RUN_IFELSE(
 	#endif
 	exit(1);}]]
   )]
-  ,[EXTRA_AS_FLAGS+="-DUNDERSCORES -DBSD -DALIGN_LOG"])
+  ,[EXTRA_AS_FLAGS+="-DBSD -DALIGN_LOG"])
+#AC_RUN_IFELSE(
+#  [
+#  AC_LANG_SOURCE(
+#	[[int main() {
+#	#if defined(__DJGPP__)
+#	exit(0);
+#	#endif
+#	exit(1);}]]
+#  )]
+#  ,[EXTRA_AS_FLAGS+="-DALIGN_LOG"])
+AC_MSG_RESULT([$EXTRA_AS_FLAGS])
+CC="$CC_BACKUP"
+
+#############################################################################
+# End of JtR ASM_MAGIC code
+#############################################################################
+
+#############################################################################
+# check for unaligned memory access. being allowed
+#############################################################################
+#
+AC_MSG_CHECKING([for unaligned memory access])
+CC="$CC_BACKUP"
 AC_RUN_IFELSE(
   [
   AC_LANG_SOURCE(
-	[[int main() {
-	#if defined(__DJGPP__)
-	exit(0);
-	#endif
-	exit(1);}]]
+	[[int main() { 
+	char Buf[20]; *((int*)(&Buf[1])) = 1; *((int*)(&Buf[2])) = 1; *((int*)(&Buf[3])) = 1; exit(0);}]]
   )]
-  ,[EXTRA_AS_FLAGS+="-DUNDERSCORES -DALIGN_LOG"])
-AC_MSG_RESULT([$EXTRA_AS_FLAGS])
+  ,[ALLOWS_UNALIGNED="1"]
+   [AC_MSG_RESULT([allowed])]
+  ,[ALLOWS_UNALIGNED="0"]
+   [AC_MSG_RESULT([NOT allowed])]
+  )
 CC="$CC_BACKUP"
 #############################################################################
-# End of JtR ASM_MAGIC code
+# End of JtR 32/64 bit test code.
+#############################################################################
+
+#############################################################################
+# Check for LE/BE CPU
+#############################################################################
+AC_C_BIGENDIAN#([ARCH_LE=0], [ARCH_LE=1], [action-if-unknown], [action-if-universal])
+#############################################################################
+# END Check for LE/BE CPU
 #############################################################################
 
 # Checks for libraries.
 ################################################
 #  NOTE, be VERY careful of spaces around the comma's in the AC_CHECK_LIB. Best to not have any.
 #  If there are space, then often that will get a lib to NOT be added to @LIBS@ and cause linkage problems.
+#  also note, if action if found is specified, the -llibname will NOT get appended to LIBS. So it has to be
+#  done by 'hand'.  Look at PCAP, where "LIBS += -lpcap" was added. This could also be done by skipping the
+#  modified default action, and doing an AS_IF on the next line.
 ################################################
 AC_CHECK_LIB([ssl],[SSL_library_init],[],[AC_MSG_FAILURE(JtR can NOT be build without libssl being installed,1)])
 AC_CHECK_LIB([crypto],[MD5_Update],[],[AC_MSG_FAILURE(JtR can NOT be build without libssl/libcrypto being installed,1)])
@@ -292,7 +353,8 @@ AC_CHECK_LIB([wsock32],[main])
 AC_CHECK_LIB([lws2_32],[main])
 AC_CHECK_LIB([wst],[main])
 # in makefile, we need to know if building extra pcap items.
-AC_CHECK_LIB([pcap],[main],[AC_SUBST(HAVE_PCAP,1)])
+AC_CHECK_LIB([pcap],[main], [AC_SUBST(HAVE_PCAP,"1")] [LIBS+="-lpcap"])
+
 
 AC_CACHE_SAVE
 
@@ -368,14 +430,24 @@ AC_FUNC_REALLOC
 AC_CHECK_FUNCS([atexit endpwent floor ftruncate gethostbyname gettimeofday inet_ntoa isascii memchr memmove memset mkdir munmap pow rmdir select setenv setlocale socket strcasecmp strchr strcspn strdup strerror strncasecmp strrchr strspn strstr strtol strtoul])
 AC_CACHE_SAVE
 
-AC_SUBST(CC_CPU,[$CPU_BEST_FLAGS])
-AC_SUBST(CC_MAIN_CPU,[$CPU_BEST_FLAGS_MAIN])
-AC_SUBST(CC_ASM_OBJ,[$CC_ASM_OBJ])
-AC_SUBST(CPU_BITS,[$CPU_BITS])
-AC_SUBST(CPU_BIT_STR,[$CPU_BIT_STR])
-AC_SUBST(EXTRA_AS_FLAGS,[$EXTRA_AS_FLAGS])
+AC_SUBST([CC_CPU],[${CPU_BEST_FLAGS}])
+AC_SUBST([CC_MAIN_CPU],[${CPU_BEST_FLAGS_MAIN}])
+AC_SUBST([CC_ASM_OBJS],[${CC_ASM_OBJS}])
+AC_SUBST([CPU_BITS],[${CPU_BITS}])
+AC_SUBST([CPU_BIT_STR],[${CPU_BIT_STR}])
+AC_SUBST([EXTRA_AS_FLAGS],[${EXTRA_AS_FLAGS}])
+AC_SUBST([JOHN_BUILD_LABEL],["${CPU_BIT_STR}-bit ${CPU_STR}-autoconf"])
 
-AC_SUBST(JOHN_BUILD_LABEL,["${CPU_BIT_STR}-bit ${CPU_STR}-autoconf"])
+AS_IF([test "x${ALLOWS_UNALIGNED}" = "x1"],
+   [AC_DEFINE([ARCH_ALLOWS_UNALIGNED], 1, ["Enable if CPU allows unaligned memory access"])],
+   [AC_DEFINE([ARCH_ALLOWS_UNALIGNED], 0, ["Enable if CPU allows unaligned memory access"])])
+
+AS_IF([test "x${WORDS_BIGENDIAN}" = "x"],
+   [AC_DEFINE([ARCH_LITTLE_ENDIAN], 1, ["Enable if CPU is LITTLE ENDIAN arch"])],
+   [AC_DEFINE([ARCH_LITTLE_ENDIAN], 0, ["Enable if CPU is LITTLE ENDIAN arch"])])
+
+#ARCH_INT_GT_32  I thought this was 1 for 64 bit builds, but current arch.h seem broken
+AC_DEFINE([ARCH_INT_GT_32], 0, ["Enable if CPU is > 32 bit (NOTE, this should not be enabled!)"])
 
 # build proper 'link' to the arch file (based on bit only, for 32 bit, we may want different ones, and for other CPU's we need different ones)
 AC_CONFIG_LINKS([arch.h:$ARCH_LINK])
