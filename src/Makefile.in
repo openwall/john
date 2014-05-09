@@ -285,6 +285,9 @@ endif
 ifdef WITH_PCAP
 	$(MAKE) $(PROJ_PCAP)
 endif
+#########################################################
+## This is the 'END' of the main default make target.
+#########################################################
 
 help:
 	@echo "The 'older' fat makefile can be done with make --file=Makefile.orig [target]"
