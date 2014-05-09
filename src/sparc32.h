@@ -15,14 +15,20 @@
 #ifndef _JOHN_ARCH_H
 #define _JOHN_ARCH_H
 
+/* load the file that contains a LOT of what this file used to contain.
+ * As things get MOVED into autoconfig.h, they will be commented out of
+ * this file with //ac , so we can keep track of progress
+ */
+#include "autoconfig.h"
+
 #define ARCH_WORD			long
 #define ARCH_SIZE			4
 #define ARCH_BITS			32
 #define ARCH_BITS_LOG			5
 #define ARCH_BITS_STR			"32"
-#define ARCH_LITTLE_ENDIAN		0
-#define ARCH_INT_GT_32			0
-#define ARCH_ALLOWS_UNALIGNED		0
+//ac #define ARCH_LITTLE_ENDIAN		0
+//ac #define ARCH_INT_GT_32			0
+//ac #define ARCH_ALLOWS_UNALIGNED		0
 #define ARCH_INDEX(x)			((unsigned int)(unsigned char)(x))
 
 #define CPU_DETECT			0
