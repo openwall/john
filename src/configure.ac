@@ -331,10 +331,10 @@ AC_C_BIGENDIAN#([ARCH_LE=0], [ARCH_LE=1], [action-if-unknown], [action-if-univer
 #  done by 'hand'.  Look at PCAP, where "LIBS += -lpcap" was added. This could also be done by skipping the
 #  modified default action, and doing an AS_IF on the next line.
 ################################################
-AC_CHECK_LIB([ssl],[SSL_library_init],[],[AC_MSG_FAILURE(JtR can NOT be build without libssl being installed,1)])
-AC_CHECK_LIB([crypto],[MD5_Update],[],[AC_MSG_FAILURE(JtR can NOT be build without libssl/libcrypto being installed,1)])
-AC_CHECK_LIB([m],[sqrt],[],[AC_MSG_FAILURE(JtR can NOT be build without libm being installed,1)])
-AC_CHECK_LIB([z],[deflate],[],[AC_MSG_FAILURE(JtR can NOT be build without libz being installed,1)])
+AC_CHECK_LIB([ssl],[SSL_library_init],[],[AC_MSG_FAILURE(JtR requires libssl being installed,1)])
+AC_CHECK_LIB([crypto],[MD5_Update],[],[AC_MSG_FAILURE(JtR requires libssl/libcrypto being installed,1)])
+AC_CHECK_LIB([m],[sqrt],[],[AC_MSG_FAILURE(JtR requires libm being installed,1)])
+AC_CHECK_LIB([z],[deflate],[],[AC_MSG_FAILURE(JtR requires libz being installed,1)])
 AC_SEARCH_LIBS([crypt],[crypt],[AC_DEFINE(HAVE_CRYPT,1,[Define to 1 if you have the `crypt' library (-lcrypt).])])
 AC_CHECK_LIB([k5crypto],[krb5_c_string_to_key_with_params],[],[AC_MSG_WARN(Installing MIT krb5/k5crypto/ library enables several extra formats,1)] )
 AC_CHECK_LIB([krb5],[krb5_c_string_to_key_with_params])
@@ -351,8 +351,7 @@ AC_CHECK_LIB([wsock32],[main])
 AC_CHECK_LIB([lws2_32],[main])
 AC_CHECK_LIB([wst],[main])
 # in makefile, we need to know if building extra pcap items.
-AC_CHECK_LIB([pcap],[main], [AC_SUBST(HAVE_PCAP,"1")] [LIBS+="-lpcap"])
-
+AC_CHECK_LIB([pcap],[pcap_compile], [AC_SUBST(HAVE_PCAP,"1")] [LIBS+="-lpcap"])
 
 AC_CACHE_SAVE
 
@@ -393,7 +392,7 @@ AX_PROG_CC_MPI([test x"$with_mpi" != xno],[use_mpi=yes] [AC_SUBST(HAVE_MPI,[-DHA
 ####################################
 # CUDA
 ####################################
-AC_CHECK_LIB([cudart],[main])
+AC_CHECK_LIB([cudart],[cudaGetDeviceCount])
 AS_IF(test x${ac_cv_lib_cudart_main} = "xyes",[AC_SUBST(HAVE_CUDA,1)])
 
 ####################################

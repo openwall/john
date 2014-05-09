@@ -5296,7 +5296,7 @@ _ACEOF
 else
   { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error 1 "JtR can NOT be build without libssl being installed
+as_fn_error 1 "JtR requires libssl being installed
 See \`config.log' for more details" "$LINENO" 5; }
 fi
 
@@ -5346,7 +5346,7 @@ _ACEOF
 else
   { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error 1 "JtR can NOT be build without libssl/libcrypto being installed
+as_fn_error 1 "JtR requires libssl/libcrypto being installed
 See \`config.log' for more details" "$LINENO" 5; }
 fi
 
@@ -5396,7 +5396,7 @@ _ACEOF
 else
   { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error 1 "JtR can NOT be build without libm being installed
+as_fn_error 1 "JtR requires libm being installed
 See \`config.log' for more details" "$LINENO" 5; }
 fi
 
@@ -5446,7 +5446,7 @@ _ACEOF
 else
   { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error 1 "JtR can NOT be build without libz being installed
+as_fn_error 1 "JtR requires libz being installed
 See \`config.log' for more details" "$LINENO" 5; }
 fi
 
@@ -6069,9 +6069,9 @@ _ACEOF
 fi
 
 # in makefile, we need to know if building extra pcap items.
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lpcap" >&5
-$as_echo_n "checking for main in -lpcap... " >&6; }
-if ${ac_cv_lib_pcap_main+:} false; then :
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for pcap_compile in -lpcap" >&5
+$as_echo_n "checking for pcap_compile in -lpcap... " >&6; }
+if ${ac_cv_lib_pcap_pcap_compile+:} false; then :
   $as_echo_n "(cached) " >&6
 else
   ac_check_lib_save_LIBS=$LIBS
@@ -6079,31 +6079,36 @@ LIBS="-lpcap  $LIBS"
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
-
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char pcap_compile ();
 int
 main ()
 {
-return main ();
+return pcap_compile ();
   ;
   return 0;
 }
 _ACEOF
 if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_pcap_main=yes
+  ac_cv_lib_pcap_pcap_compile=yes
 else
-  ac_cv_lib_pcap_main=no
+  ac_cv_lib_pcap_pcap_compile=no
 fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
 LIBS=$ac_check_lib_save_LIBS
 fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_pcap_main" >&5
-$as_echo "$ac_cv_lib_pcap_main" >&6; }
-if test "x$ac_cv_lib_pcap_main" = xyes; then :
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_pcap_pcap_compile" >&5
+$as_echo "$ac_cv_lib_pcap_pcap_compile" >&6; }
+if test "x$ac_cv_lib_pcap_pcap_compile" = xyes; then :
   HAVE_PCAP="1"
  LIBS+="-lpcap"
 fi
-
 
 
 cat >confcache <<\_ACEOF
@@ -7320,9 +7325,9 @@ fi
 ####################################
 # CUDA
 ####################################
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lcudart" >&5
-$as_echo_n "checking for main in -lcudart... " >&6; }
-if ${ac_cv_lib_cudart_main+:} false; then :
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for cudaGetDeviceCount in -lcudart" >&5
+$as_echo_n "checking for cudaGetDeviceCount in -lcudart... " >&6; }
+if ${ac_cv_lib_cudart_cudaGetDeviceCount+:} false; then :
   $as_echo_n "(cached) " >&6
 else
   ac_check_lib_save_LIBS=$LIBS
@@ -7330,27 +7335,33 @@ LIBS="-lcudart  $LIBS"
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
-
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char cudaGetDeviceCount ();
 int
 main ()
 {
-return main ();
+return cudaGetDeviceCount ();
   ;
   return 0;
 }
 _ACEOF
 if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_cudart_main=yes
+  ac_cv_lib_cudart_cudaGetDeviceCount=yes
 else
-  ac_cv_lib_cudart_main=no
+  ac_cv_lib_cudart_cudaGetDeviceCount=no
 fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
 LIBS=$ac_check_lib_save_LIBS
 fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_cudart_main" >&5
-$as_echo "$ac_cv_lib_cudart_main" >&6; }
-if test "x$ac_cv_lib_cudart_main" = xyes; then :
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_cudart_cudaGetDeviceCount" >&5
+$as_echo "$ac_cv_lib_cudart_cudaGetDeviceCount" >&6; }
+if test "x$ac_cv_lib_cudart_cudaGetDeviceCount" = xyes; then :
   cat >>confdefs.h <<_ACEOF
 #define HAVE_LIBCUDART 1
 _ACEOF
