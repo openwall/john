@@ -93,9 +93,8 @@ AC_RUN_IFELSE(
   [
   AC_LANG_SOURCE(
 	[[#include <emmintrin.h>
-	  #include <stdio.h>
-	  #include <string.h>
-      int main(){__m64 t;memset(&t,0,sizeof(t));t=_mm_mul_su32(t,t);if(*((long*)&t)==88)printf("foo");else printf("bar");exit(0);exit(0);}]]
+      #include <stdio.h>
+      int main(){__m128i t;*((long long*)&t)=1;t=_mm_slli_si128(t,7);if((*(unsigned*)&t)==88)printf(".");exit(0);}]]
   )]
   ,[CPU_BEST_FLAGS="-msse2"]dnl
    [CPU_STR="SSE2"]
@@ -113,9 +112,8 @@ AC_RUN_IFELSE(
   [
   AC_LANG_SOURCE(
 	[[#include <tmmintrin.h>
-	  #include <stdio.h>
-	  #include <string.h>
-      int main(){__m64 t;memset(&t,0,sizeof(t));t=_mm_abs_pi16(t);if(*((long*)&t)==88)printf("foo");else printf("bar");exit(0);}]]
+      #include <stdio.h>
+      int main(){__m128i t;*((long long*)&t)=1;t=_mm_shuffle_epi8(t,t);if((*(unsigned*)&t)==88)printf(".");exit(0);}]]
   )]
   ,[CPU_BEST_FLAGS="-mssse3"]dnl
    [CPU_STR="SSSE3"]
@@ -135,9 +133,8 @@ AC_RUN_IFELSE(
   [
   AC_LANG_SOURCE(
 	[[#include <smmintrin.h>
-	  #include <stdio.h>
-	  #include <string.h>
-      int main(){__m128d t;memset(&t,0,sizeof(t));_mm_round_pd(t,1);if(*((long*)&t)==88)printf("foo");else printf("bar");exit(0);}]]
+      #include <stdio.h>
+      int main(){__m128d t;*((long long*)&t)=1;t=_mm_round_pd(t,1);if((*(long long*)&t)==88)printf(".");exit(0);}]]
   )]
   ,[CPU_BEST_FLAGS="-msse4.1"]dnl
    [CPU_STR="SSE4.1"]
@@ -157,9 +154,8 @@ AC_RUN_IFELSE(
   [
   AC_LANG_SOURCE(
 	[[#include <immintrin.h>
-	  #include <stdio.h>
-	  #include <string.h>
-      int main(){__m256d t;memset(&t,0,sizeof(t));t=_mm256_movedup_pd(t);if(*((long*)&t)==88)printf("foo");else printf("bar");exit(0);}]]
+      #include <stdio.h>
+      int main(){__m256d t;*((long long*)&t)=1;t=_mm256_movedup_pd(t);if((*(long long*)&t)==88)printf(".");exit(0);}]]
   )]
   ,[CPU_BEST_FLAGS="-mavx"]dnl
    [CPU_STR="AVX"]
@@ -177,10 +173,9 @@ AC_MSG_CHECKING([for XOP])
 AC_RUN_IFELSE(
   [
   AC_LANG_SOURCE(
-	[[#include <x86intrin.h>
+	[[#include <intrin.h>
       #include <stdio.h>
-	  #include <string.h>
-      int main(){__m128i t;memset(&t,0,sizeof(t));t=_mm_roti_epi32(t,5);if(*((long*)&t)==88)printf("foo");else printf("bar");exit(0);}]]
+      int main(){__m128i t;*((long long*)&t)=1;t=_mm_roti_epi32(t,5);if((*(long long*)&t)==88)printf(".");exit(0);}]]
   )]
   ,[CPU_BEST_FLAGS="-mxop"]dnl
    [CPU_STR="XOP"]
@@ -311,7 +306,7 @@ AC_RUN_IFELSE(
   [
   AC_LANG_SOURCE(
 	[[#include <stdio.h>
-	int main(){char c[20];*((int*)(&c[1]))=1;*((int*)(&c[2]))=1;*((int*)(&c[3]))=1;if(c[2]==4)printf("foo");else printf("bar");exit(0);}]]
+	int main(){char c[20];*((int*)(&c[1]))=1;*((int*)(&c[2]))=1;*((int*)(&c[3]))=1;if(c[2]==88)printf("foobar");exit(0);}]]
   )]
   ,[ALLOWS_UNALIGNED="1"]
    [AC_MSG_RESULT([allowed])]
