@@ -22,7 +22,7 @@
 
 #include <stdio.h>
 #include "arch.h"
-#define FORCE_GENERIC_SHA2
+#define FORCE_GENERIC_SHA2 1
 #include "sha2.h"
 
 #include "params.h"
@@ -62,7 +62,7 @@ static const unsigned char padding[128] = { 0x80, 0 /* 0,0,0,0.... */ };
 /*********************************************************************/
 /*********************************************************************/
 
-void sha256_hash_block(sha256_ctx *ctx, const unsigned char data[64], int perform_endian_swap)
+void jtr_sha256_hash_block(jtr_sha256_ctx *ctx, const unsigned char data[64], int perform_endian_swap)
 {
 	ARCH_WORD_32 A, B, C, D, E, F, G, H, tmp, W[16];
 #if ARCH_LITTLE_ENDIAN
@@ -160,7 +160,7 @@ void sha256_hash_block(sha256_ctx *ctx, const unsigned char data[64], int perfor
 	ctx->h[7] += H;
 }
 
-void sha256_init(sha256_ctx *ctx, int bIs256) {
+void jtr_sha256_init(jtr_sha256_ctx *ctx, int bIs256) {
 	ctx->total = 0;
 	if ((ctx->bIs256 = bIs256)) {
 		// SHA-256 IV
@@ -185,7 +185,7 @@ void sha256_init(sha256_ctx *ctx, int bIs256) {
 	}
 }
 
-void sha256_update(sha256_ctx *ctx, const void *_input, int ilenlft)
+void jtr_sha256_update(jtr_sha256_ctx *ctx, const void *_input, int ilenlft)
 {
 	int left, fill;
 	const unsigned char *input;
@@ -202,7 +202,7 @@ void sha256_update(sha256_ctx *ctx, const void *_input, int ilenlft)
 	if(left && ilenlft >= fill)
 	{
 		memcpy(ctx->buffer + left, input, fill);
-		sha256_hash_block(ctx, ctx->buffer, 1);
+		jtr_sha256_hash_block(ctx, ctx->buffer, 1);
 		input += fill;
 		ilenlft  -= fill;
 		left = 0;
@@ -210,7 +210,7 @@ void sha256_update(sha256_ctx *ctx, const void *_input, int ilenlft)
 
 	while(ilenlft >= 0x40)
 	{
-		sha256_hash_block(ctx, input, 1);
+		jtr_sha256_hash_block(ctx, input, 1);
 		input += 0x40;
 		ilenlft  -= 0x40;
 	}
@@ -219,7 +219,7 @@ void sha256_update(sha256_ctx *ctx, const void *_input, int ilenlft)
 		memcpy(ctx->buffer + left, input, ilenlft);
 }
 
-void sha256_final(void *_output, sha256_ctx *ctx)
+void jtr_sha256_final(void *_output, jtr_sha256_ctx *ctx)
 {
 	ARCH_WORD_32 last, padcnt;
 	ARCH_WORD_32 bits;
@@ -236,8 +236,8 @@ void sha256_final(void *_output, sha256_ctx *ctx)
 	last = ctx->total & 0x3F;
 	padcnt = (last < 56) ? (56 - last) : (120 - last);
 
-	sha256_update(ctx, (unsigned char *) padding, padcnt);
-	sha256_update(ctx, m.mlen, 8);
+	jtr_sha256_update(ctx, (unsigned char *) padding, padcnt);
+	jtr_sha256_update(ctx, m.mlen, 8);
 
 	// the SHA2_GENERIC_DO_NOT_BUILD_ALIGNED == 1 is to force build on
 	// required aligned systems without doing the alignment checking.
@@ -359,7 +359,7 @@ static const ARCH_WORD_64 K[80] =
 	0x5FCB6FAB3AD6FAECULL,  0x6C44198C4A475817ULL
 };
 
-void sha512_hash_block(sha512_ctx *ctx, const unsigned char data[128], int perform_endian_swap)
+void jtr_sha512_hash_block(jtr_sha512_ctx *ctx, const unsigned char data[128], int perform_endian_swap)
 {
 	ARCH_WORD_64 A, B, C, D, E, F, G, H, tmp, W[80];
 	int i;
@@ -479,7 +479,7 @@ void sha512_hash_block(sha512_ctx *ctx, const unsigned char data[128], int perfo
 	ctx->h[7] += H;
 }
 
-void sha512_init(sha512_ctx *ctx, int bIs512)
+void jtr_sha512_init(jtr_sha512_ctx *ctx, int bIs512)
 {
 	ctx->total = 0;
 	if((ctx->bIs512 = bIs512))
@@ -508,7 +508,7 @@ void sha512_init(sha512_ctx *ctx, int bIs512)
 	}
 }
 
-void sha512_update(sha512_ctx *ctx, const void *_input, int ilenlft)
+void jtr_sha512_update(jtr_sha512_ctx *ctx, const void *_input, int ilenlft)
 {
 	int fill, left;
 	const unsigned char *input;
@@ -524,7 +524,7 @@ void sha512_update(sha512_ctx *ctx, const void *_input, int ilenlft)
 	if(left && ilenlft >= fill)
 	{
 		memcpy(ctx->buffer + left, input, fill);
-		sha512_hash_block(ctx, ctx->buffer, 1);
+		jtr_sha512_hash_block(ctx, ctx->buffer, 1);
 		input += fill;
 		ilenlft  -= fill;
 		left = 0;
@@ -532,7 +532,7 @@ void sha512_update(sha512_ctx *ctx, const void *_input, int ilenlft)
 
 	while(ilenlft >= 128)
 	{
-		sha512_hash_block(ctx, input, 1);
+		jtr_sha512_hash_block(ctx, input, 1);
 		input += 128;
 		ilenlft  -= 128;
 	}
@@ -541,7 +541,7 @@ void sha512_update(sha512_ctx *ctx, const void *_input, int ilenlft)
 		memcpy(ctx->buffer + left, input, ilenlft);
 }
 
-void sha512_final(void *_output, sha512_ctx *ctx)
+void jtr_sha512_final(void *_output, jtr_sha512_ctx *ctx)
 {
 	ARCH_WORD_32 last, padcnt;
 	ARCH_WORD_64 bits;
@@ -558,8 +558,8 @@ void sha512_final(void *_output, sha512_ctx *ctx)
 	last = ctx->total & 0x7F;
 	padcnt = (last < 112) ? (112 - last) : (240 - last);
 
-	sha512_update(ctx, (unsigned char *) padding, padcnt);
-	sha512_update(ctx, m.mlen, 16);
+	jtr_sha512_update(ctx, (unsigned char *) padding, padcnt);
+	jtr_sha512_update(ctx, m.mlen, 16);
 
 	if (!output) return;
 

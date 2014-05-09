@@ -751,6 +751,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			   burn CPU cycles.  */
 			LoadCryptStruct(&crypt_struct, MixOrder[index+idx], idx, p_bytes, s_bytes);
 		}
+
 		//dump_stuff(&crypt_struct, 2*64*8*BLKS);
 		idx = 0;
 #ifdef MMX_COEF_SHA256
@@ -801,7 +802,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			// calling with 64 byte, or 128 byte always, will force the update to properly crypt the data.
 			// NOTE the data is fully formed. It ends in a 0x80, is padded with nulls, AND has bit appended.
 			SHA256_Update(&ctx, crypt_struct.bufs[0][idx], crypt_struct.datlen[idx]);
-
 //			if (times == 1) {
 //				printf("SHA1 : #%d\n", cnt);
 //				dump_stuff(ctx.h, 32);
@@ -812,7 +812,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef JTR_INC_COMMON_CRYPTO_SHA2
 			SHA256_Final(crypt_struct.cptr[0][idx], &ctx);
 #else // !defined JTR_INC_COMMON_CRYPTO_SHA2, so it is oSSL, or generic
-#if ARCH_LITTLE_ENDIAN == 1
+#if ARCH_LITTLE_ENDIAN
 			{
 				int j;
 				ARCH_WORD_32 *o = (ARCH_WORD_32 *)crypt_struct.cptr[0][idx];
@@ -820,7 +820,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 					*o++ = JOHNSWAP(ctx.h[j]);
 			}
 #else
-			memcpy(crypt_struct.cptr[idx], ctx.h, BINARY_SIZE);
+			memcpy(crypt_struct.cptr[0][idx], ctx.h, BINARY_SIZE);
 #endif
 #endif
 			if (++idx == 42)
@@ -836,7 +836,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef JTR_INC_COMMON_CRYPTO_SHA2
 		SHA256_Final((unsigned char*)crypt_out[MixOrder[index]], &ctx);
 #else
-#if ARCH_LITTLE_ENDIAN == 1
+#if ARCH_LITTLE_ENDIAN
 		{
 			int j;
 			ARCH_WORD_32 *o = (ARCH_WORD_32 *)crypt_out[MixOrder[index]];

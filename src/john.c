@@ -47,6 +47,7 @@ static int john_omp_threads_new;
 #endif
 
 #include "arch.h"
+#include "openssl_local_overrides.h"
 #include "misc.h"
 #include "path.h"
 #include "memory.h"
@@ -127,7 +128,7 @@ extern struct fmt_main fmt_NT;
 // just yet.
 extern struct fmt_main fmt_django;
 
-#if OPENSSL_VERSION_NUMBER >= 0x10001000
+#if OPENSSL_VERSION_NUMBER >= 0x10001000 && !HAVE_NO_SSL_EVP_aes
 extern struct fmt_main fmt_truecrypt;
 extern struct fmt_main fmt_truecrypt_sha512;
 extern struct fmt_main fmt_truecrypt_whirlpool;
@@ -371,7 +372,7 @@ static void john_register_all(void)
 	john_register_one(&fmt_rawSHA0);
 	john_register_one(&fmt_django);
 
-#if OPENSSL_VERSION_NUMBER >= 0x10001000
+#if OPENSSL_VERSION_NUMBER >= 0x10001000 && !HAVE_NO_SSL_EVP_aes
 	john_register_one(&fmt_truecrypt);
 	john_register_one(&fmt_truecrypt_sha512);
 	john_register_one(&fmt_truecrypt_whirlpool);

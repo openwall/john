@@ -28,7 +28,7 @@ static int omp_t = 1;
 #define CIPHERTEXT_LENGTH		13
 
 #define BINARY_SIZE			7
-#define BINARY_ALIGN			1
+#define BINARY_ALIGN			4
 #define SALT_SIZE			0
 #define SALT_ALIGN			1
 

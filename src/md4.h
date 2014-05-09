@@ -8,7 +8,7 @@
  * See md4.c for more information.
  */
 
- #include "arch.h"
+#include "arch.h"
 
 #ifdef HAVE_LIBSSL
 #include <openssl/md4.h>

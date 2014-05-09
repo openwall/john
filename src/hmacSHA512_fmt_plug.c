@@ -35,7 +35,7 @@ static int omp_t = 1;
 
 #define PAD_SIZE			128
 #define BINARY_SIZE			(512/8)
-#define BINARY_ALIGN			1
+#define BINARY_ALIGN			4
 #define SALT_SIZE			PAD_SIZE
 #define SALT_ALIGN			1
 #define CIPHERTEXT_LENGTH		(SALT_SIZE + 1 + BINARY_SIZE * 2)

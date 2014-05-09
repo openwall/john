@@ -39,7 +39,9 @@ static int omp_t = 1;
 #define PLAINTEXT_LENGTH		32
 #define CIPHERTEXT_LENGTH		UAF_ENCODE_SIZE
 #define BINARY_SIZE			8
+#define BINARY_ALIGN		4
 #define SALT_SIZE			sizeof(struct uaf_hash_info)
+#define SALT_ALIGN			4
 
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
@@ -92,7 +94,7 @@ static void fmt_vms_init ( struct fmt_main *self )
 	/* Init bin 2 hex table for faster conversions later */
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, sizeof(uaf_qword));
 	uaf_init ( );
 }
 
@@ -228,9 +230,9 @@ struct fmt_main fmt_VMS = {
 		BENCHMARK_LENGTH,		/* .benchmark_length (pwd break len) */
 		PLAINTEXT_LENGTH,		/* .plaintext_lenght (max) */
 		BINARY_SIZE,			/* .binary_size (quadword) */
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,			/* .salt_size (word) */
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,

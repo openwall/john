@@ -760,13 +760,23 @@ static void init(struct fmt_main *pFmt)
 #ifdef _OPENMP
 	m_ompt = omp_get_max_threads();
 	mem_calloc_tiny(1, MEM_ALIGN_WORD); // throw this one away, to get our allocations memory aligned
+#if ARCH_ALLOWS_UNALIGNED
 	md5_unicode_convert = (int*)mem_calloc_tiny(sizeof(int)*m_ompt, MEM_ALIGN_NONE);
 	eLargeOut = (eLargeOut_t*)mem_calloc_tiny(sizeof(eLargeOut_t)*m_ompt, MEM_ALIGN_NONE);
+#else
+	md5_unicode_convert = (int*)mem_calloc_tiny(sizeof(int)*m_ompt, MEM_ALIGN_WORD);
+	eLargeOut = (eLargeOut_t*)mem_calloc_tiny(sizeof(eLargeOut_t)*m_ompt, MEM_ALIGN_WORD);
+#endif
 	for (i = 0; i < m_ompt; ++i)
 		eLargeOut[i] = eBase16;
 #else
+#if ARCH_ALLOWS_UNALIGNED
 	md5_unicode_convert = (int*)mem_calloc_tiny(sizeof(int), MEM_ALIGN_NONE);
 	eLargeOut = (eLargeOut_t*)mem_calloc_tiny(sizeof(eLargeOut_t), MEM_ALIGN_NONE);
+#else
+	md5_unicode_convert = (int*)mem_calloc_tiny(sizeof(int), MEM_ALIGN_WORD);
+	eLargeOut = (eLargeOut_t*)mem_calloc_tiny(sizeof(eLargeOut_t), MEM_ALIGN_WORD);
+#endif
 	eLargeOut[0] = eBase16;
 #endif
 #ifdef MMX_COEF
