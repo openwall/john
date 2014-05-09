@@ -10,7 +10,6 @@ AC_CONFIG_HEADERS([autoconfig.h])
 
 # include our extra macro code
 m4_include([m4/pkg.m4])
-m4_include([m4/ax_openmp.m4])
 m4_include([m4/ax_opencl.m4])
 m4_include([m4/ax_pthread.m4])
 m4_include([m4/ax_prog_cc_mpi.m4])
@@ -63,9 +62,14 @@ LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib "
 
 dnl END JIM's BLOCK OF STUFF
 
-# setup options
-AC_ARG_WITH(mpi, [AS_HELP_STRING([--with-mpi],[compile with MPI (parallelization) support. If none is found, MPI is not used. Default: auto])],,[with_mpi=auto])
-AC_ARG_WITH(icc-asm, [AS_HELP_STRING([--with-icc-asm],[Use ICC pre-built asm files for intrisic SIMD code Default: no])],,[with_icc_asm=no])
+# Packages
+AC_ARG_WITH(icc-asm, [AS_HELP_STRING([--with-icc-asm],[Use ICC pre-built asm files for intrisic SIMD code. Default: no])],,[with_icc_asm=no])
+
+# Features
+# We define "--disable-FEATURE" because default is "auto".
+# NOTE: OpenMP and OpenCL are defined in their respective macro file
+AC_ARG_ENABLE([mpi], [AC_HELP_STRING([--disable-mpi], [do not use MPI])], , [enable_mpi=$enableval], [enable_mpi=auto])
+AC_ARG_ENABLE([cuda], [AC_HELP_STRING([--disable-cuda], [do not use CUDA])], [enable_cuda=$enableval], [enable_cuda=auto])
 
 # Checks for programs.
 AC_PROG_CC([gcc cc icc ])
@@ -297,7 +301,7 @@ CC="$CC_BACKUP"
 #############################################################################
 
 #############################################################################
-# check for unaligned memory access. being allowed
+# check for unaligned memory access being allowed
 #############################################################################
 #
 AC_MSG_CHECKING([for unaligned memory access])
@@ -364,49 +368,41 @@ AC_CHECK_LIB([pcap],[pcap_compile], [AC_SUBST(HAVE_PCAP,"1")] [LIBS+="-lpcap"])
 
 AC_CACHE_SAVE
 
+#################
 # check packages:
+#################
 
-##################################
 # check for NSS
-##################################
 PKG_CHECK_MODULES([NSS], [nss], AC_SUBST(HAVE_NSS,[-DHAVE_NSS]),
         AC_MSG_WARN(NSS not found - Mozilla format will be omitted.))
 
-##################################
-# check for openMP  (NOTE, AC_OPENMP does pretty much everything we were doing before)
-##################################
-#   Here iis with --disable-omp method.
-#AC_ARG_ENABLE([openmp], [AS_HELP_STRING([--disable-openmp],[do not use OpenMP])],[disable_openmp=$enableval],[disable_openmp='yes'])
-#   Here is the --with-omp method
-#AC_ARG_WITH(openmp, [AS_HELP_STRING([--with-openmp],[compile with OpenMP (multi-thread) support. If none is found, OMP is not used. Default: auto])],,with_openmp=auto)
-#   Here are the test cases for --with-xxx processing.
-#AS_IF([test x"$with_openmp" = "xauto"],[AX_OPENMP(AC_SUBST(OPENMP_CFLAGS,${ax_cv_c_openmp}))])
-#AS_IF([test x"$with_openmp" = "xyes"],
-#    [AX_OPENMP([AC_SUBST(OPENMP_CFLAGS,${ax_cv_c_openmp})],
-#              [AC_MSG_FAILURE([OMP requested, but could not use OMP.])])])
+# check for openMP (enable/disable handled within the macro)
 AC_OPENMP
 
-##################################
 # check for MPI
-##################################
-AX_PROG_CC_MPI([test x"$with_mpi" != xno],[use_mpi=yes] [AC_SUBST(HAVE_MPI,[-DHAVE_MPI])],[
-  use_mpi=no
-  if test x"$with_mpi" = xyes; then
-    AC_MSG_FAILURE([MPI compiler requested, but could not use MPI.])
-  else
-    AC_MSG_WARN([No MPI compiler found, won't use MPI.])
-  fi
+AX_PROG_CC_MPI([test x"$enable_mpi" != "xno"], [AC_SUBST(HAVE_MPI,[-DHAVE_MPI])],[
+   if test x"$enable_mpi" = "xyes"; then
+     AC_MSG_FAILURE([No MPI compiler found])
+   elif test x"$enable_mpi" != "xno"; then
+     AC_MSG_NOTICE([No MPI compiler found, disabling MPI])
+   fi
 ])
 
-####################################
-# CUDA
-####################################
-AC_CHECK_LIB([cudart],[cudaGetDeviceCount])
-AS_IF(test x${ac_cv_lib_cudart_main} = "xyes",[AC_SUBST(HAVE_CUDA,1)])
+# Check for CUDA. According to the guru's we should not try to be clever
+# with finding directories. If they are not present in normal paths, user
+# is supposed to supply them with eg. ./configure LDFLAGS=/usr/local/cuda/lib
+if test x"$enable_cuda" != "xno"; then
+   AC_CHECK_LIB([cudart],[cudaGetDeviceCount],AC_SUBST(HAVE_CUDA,1),[
+   if test x${enable_cuda} = yes; then
+      AC_MSG_FAILURE([CUDA not found])
+   elif test x"$enable_cuda" != "xno"; then
+      AC_MSG_NOTICE([No CUDA found, disabling])
+   fi
+   ])
+fi
 
-####################################
-# OpenCL
-####################################
+# Check for OpenCL (enable/disable handled within the macro)
+# I'm not sure 'C' is the proper argument, but it fails without it (magnum).
 AX_OPENCL(C)
 
 # Checks for header files.
