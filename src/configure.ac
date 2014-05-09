@@ -10,7 +10,6 @@ AC_CONFIG_HEADERS([autoconfig.h])
 
 # include our extra macro code
 m4_include([m4/pkg.m4])
-m4_include([m4/ax_openmp.m4])
 m4_include([m4/ax_opencl.m4])
 m4_include([m4/ax_pthread.m4])
 m4_include([m4/ax_prog_cc_mpi.m4])
