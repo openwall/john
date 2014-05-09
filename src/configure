@@ -4429,8 +4429,10 @@ else
   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
-  	#include <emmintrin.h>
-      int main() { __m64 t; *((long long*)&t)=1; t = _mm_mul_su32(t,t); if (*((long long*)&t)==88) return 1; exit(0); }
+  #include <emmintrin.h>
+	  #include <stdio.h>
+	  #include <string.h>
+      int main(){__m64 t;memset(&t,0,sizeof(t));t=_mm_mul_su32(t,t);if(*((long*)&t)==88)printf("foo");else printf("bar");exit(0);exit(0);}
 
 
 _ACEOF
@@ -4467,7 +4469,9 @@ else
 /* end confdefs.h.  */
 
   #include <tmmintrin.h>
-      int main() { __m64 t; *((long long*)&t)=1; t = _mm_abs_pi16(t); if (*((long long*)&t)==88) return 1; exit(0); }
+	  #include <stdio.h>
+	  #include <string.h>
+      int main(){__m64 t;memset(&t,0,sizeof(t));t=_mm_abs_pi16(t);if(*((long*)&t)==88)printf("foo");else printf("bar");exit(0);}
 
 
 _ACEOF
@@ -4507,7 +4511,9 @@ else
 /* end confdefs.h.  */
 
   #include <smmintrin.h>
-      int main() { __m128d t; *((long long*)&t)=1; _mm_round_pd(t,1); if (*((long long*)&t)==88) return 1; exit(0); }
+	  #include <stdio.h>
+	  #include <string.h>
+      int main(){__m128d t;memset(&t,0,sizeof(t));_mm_round_pd(t,1);if(*((long*)&t)==88)printf("foo");else printf("bar");exit(0);}
 
 
 _ACEOF
@@ -4547,7 +4553,9 @@ else
 /* end confdefs.h.  */
 
   #include <immintrin.h>
-      int main() { __m256d t; *((long long*)&t)=1; t = _mm256_movedup_pd(t); if (*((long long*)&t)==88) return 1; exit(0); }
+	  #include <stdio.h>
+	  #include <string.h>
+      int main(){__m256d t;memset(&t,0,sizeof(t));t=_mm256_movedup_pd(t);if(*((long*)&t)==88)printf("foo");else printf("bar");exit(0);}
 
 
 _ACEOF
@@ -4587,7 +4595,8 @@ else
 
   #include <x86intrin.h>
       #include <stdio.h>
-      int main() { __m128i t; *((long long*)&t)=1; t= _mm_roti_epi32(t,5); if (*((long long*)&t)==88) return 1; exit(0); }
+	  #include <string.h>
+      int main(){__m128i t;memset(&t,0,sizeof(t));t=_mm_roti_epi32(t,5);if(*((long*)&t)==88)printf("foo");else printf("bar");exit(0);}
 
 
 _ACEOF
@@ -4640,8 +4649,8 @@ else
 /* end confdefs.h.  */
 
   int main() {
-	#if defined(__x86_64) || defined(__x86_64__) || defined(__amd64) || defined (__amd64__) || defined(_LP64) || defined(_M_IX86) || \
-	    defined(_M_AMD64) || defined(_M_IA64) || defined(_M_X64) || defined (__ILP32__) || defined(__LLP64__) || defined (WIN64)
+	#if defined(__x86_64)||defined(__x86_64__)||defined(__amd64)||defined(__amd64__)||defined(_LP64)||defined(_M_IX86)||\
+	    defined(_M_AMD64)||defined(_M_IA64)||defined(_M_X64)||defined(__ILP32__)||defined(__LLP64__)||defined(WIN64)
 	exit(0);
 	#endif
 	exit(1);}
@@ -4681,8 +4690,8 @@ else
 /* end confdefs.h.  */
 
   int main() {
-	#if defined(__x86_64) || defined(__x86_64__) || defined(__amd64) || defined (__amd64__) || defined(_LP64) || defined(_M_IX86) || \
-	    defined(_M_AMD64) || defined(_M_IA64) || defined(_M_X64) || defined (__ILP32__) || defined(__LLP64__) || defined (WIN64)
+	#if defined(__x86_64)||defined(__x86_64__)||defined(__amd64)||defined(__amd64__)||defined(_LP64)||defined(_M_IX86)||\
+	    defined(_M_AMD64)||defined(_M_IA64)||defined(_M_X64)||defined(__ILP32__)||defined(__LLP64__)||defined(WIN64)
 	exit(0);
 	#endif
 	exit(1);}
@@ -4789,8 +4798,8 @@ else
   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
-  int main() {
-	char Buf[20]; *((int*)(&Buf[1])) = 1; *((int*)(&Buf[2])) = 1; *((int*)(&Buf[3])) = 1; exit(0);}
+  #include <stdio.h>
+	int main(){char c[20];*((int*)(&c[1]))=1;*((int*)(&c[2]))=1;*((int*)(&c[3]))=1;if(c[2]==4)printf("foo");else printf("bar");exit(0);}
 
 
 _ACEOF
@@ -5237,7 +5246,7 @@ $as_echo "#define AC_APPLE_UNIVERSAL_BUILD 1" >>confdefs.h
      as_fn_error $? "unknown endianness
  presetting ac_cv_c_bigendian=no (or yes) will help" "$LINENO" 5 ;;
  esac
-#([ARCH_LE=0], [ARCH_LE=1], [action-if-unknown], [action-if-universal])
+  #([ARCH_LE=0], [ARCH_LE=1], [action-if-unknown], [action-if-universal])
 #############################################################################
 # END Check for LE/BE CPU
 #############################################################################
@@ -5250,6 +5259,9 @@ $as_echo "#define AC_APPLE_UNIVERSAL_BUILD 1" >>confdefs.h
 #  done by 'hand'.  Look at PCAP, where "LIBS += -lpcap" was added. This could also be done by skipping the
 #  modified default action, and doing an AS_IF on the next line.
 ################################################
+#
+##### Note, for next 2(ssl and crypto), we probably should use pkg-config openssl (--cflags and --libs)
+#
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for SSL_library_init in -lssl" >&5
 $as_echo_n "checking for SSL_library_init in -lssl... " >&6; }
 if ${ac_cv_lib_ssl_SSL_library_init+:} false; then :
@@ -5350,6 +5362,9 @@ as_fn_error 1 "JtR requires libssl/libcrypto being installed
 See \`config.log' for more details" "$LINENO" 5; }
 fi
 
+#################
+# libz is found in pkg-config --switch zlib
+#################
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for sqrt in -lm" >&5
 $as_echo_n "checking for sqrt in -lm... " >&6; }
 if ${ac_cv_lib_m_sqrt+:} false; then :
@@ -9271,13 +9286,13 @@ $as_echo "#define ARCH_ALLOWS_UNALIGNED 0" >>confdefs.h
 
 fi
 
-if test "x${WORDS_BIGENDIAN}" = "x"; then :
+if test "x${ac_cv_c_bigendian}" = "xyes"; then :
 
-$as_echo "#define ARCH_LITTLE_ENDIAN 1" >>confdefs.h
+$as_echo "#define ARCH_LITTLE_ENDIAN 0" >>confdefs.h
 
 else
 
-$as_echo "#define ARCH_LITTLE_ENDIAN 0" >>confdefs.h
+$as_echo "#define ARCH_LITTLE_ENDIAN 1" >>confdefs.h
 
 fi
 

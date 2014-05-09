@@ -92,9 +92,10 @@ CC="$CC_BACKUP -msse2"
 AC_RUN_IFELSE(
   [
   AC_LANG_SOURCE(
-	dnl this simple test.  If we can include <emmintrin.h> and link, and it returns 0, then all is well.
 	[[#include <emmintrin.h>
-      int main() { __m64 t; *((long long*)&t)=1; t = _mm_mul_su32(t,t); if (*((long long*)&t)==88) return 1; exit(0); }]]
+	  #include <stdio.h>
+	  #include <string.h>
+      int main(){__m64 t;memset(&t,0,sizeof(t));t=_mm_mul_su32(t,t);if(*((long*)&t)==88)printf("foo");else printf("bar");exit(0);exit(0);}]]
   )]
   ,[CPU_BEST_FLAGS="-msse2"]dnl
    [CPU_STR="SSE2"]
@@ -112,7 +113,9 @@ AC_RUN_IFELSE(
   [
   AC_LANG_SOURCE(
 	[[#include <tmmintrin.h>
-      int main() { __m64 t; *((long long*)&t)=1; t = _mm_abs_pi16(t); if (*((long long*)&t)==88) return 1; exit(0); }]]
+	  #include <stdio.h>
+	  #include <string.h>
+      int main(){__m64 t;memset(&t,0,sizeof(t));t=_mm_abs_pi16(t);if(*((long*)&t)==88)printf("foo");else printf("bar");exit(0);}]]
   )]
   ,[CPU_BEST_FLAGS="-mssse3"]dnl
    [CPU_STR="SSSE3"]
@@ -132,7 +135,9 @@ AC_RUN_IFELSE(
   [
   AC_LANG_SOURCE(
 	[[#include <smmintrin.h>
-      int main() { __m128d t; *((long long*)&t)=1; _mm_round_pd(t,1); if (*((long long*)&t)==88) return 1; exit(0); }]]
+	  #include <stdio.h>
+	  #include <string.h>
+      int main(){__m128d t;memset(&t,0,sizeof(t));_mm_round_pd(t,1);if(*((long*)&t)==88)printf("foo");else printf("bar");exit(0);}]]
   )]
   ,[CPU_BEST_FLAGS="-msse4.1"]dnl
    [CPU_STR="SSE4.1"]
@@ -152,7 +157,9 @@ AC_RUN_IFELSE(
   [
   AC_LANG_SOURCE(
 	[[#include <immintrin.h>
-      int main() { __m256d t; *((long long*)&t)=1; t = _mm256_movedup_pd(t); if (*((long long*)&t)==88) return 1; exit(0); }]]
+	  #include <stdio.h>
+	  #include <string.h>
+      int main(){__m256d t;memset(&t,0,sizeof(t));t=_mm256_movedup_pd(t);if(*((long*)&t)==88)printf("foo");else printf("bar");exit(0);}]]
   )]
   ,[CPU_BEST_FLAGS="-mavx"]dnl
    [CPU_STR="AVX"]
@@ -172,7 +179,8 @@ AC_RUN_IFELSE(
   AC_LANG_SOURCE(
 	[[#include <x86intrin.h>
       #include <stdio.h>
-      int main() { __m128i t; *((long long*)&t)=1; t= _mm_roti_epi32(t,5); if (*((long long*)&t)==88) return 1; exit(0); }]]
+	  #include <string.h>
+      int main(){__m128i t;memset(&t,0,sizeof(t));t=_mm_roti_epi32(t,5);if(*((long*)&t)==88)printf("foo");else printf("bar");exit(0);}]]
   )]
   ,[CPU_BEST_FLAGS="-mxop"]dnl
    [CPU_STR="XOP"]
@@ -205,8 +213,8 @@ AS_IF([test x"$with_icc_asm" != "xno"],
   [
   AC_LANG_SOURCE(
 	[[int main() {
-	#if defined(__x86_64) || defined(__x86_64__) || defined(__amd64) || defined (__amd64__) || defined(_LP64) || defined(_M_IX86) || \
-	    defined(_M_AMD64) || defined(_M_IA64) || defined(_M_X64) || defined (__ILP32__) || defined(__LLP64__) || defined (WIN64)
+	#if defined(__x86_64)||defined(__x86_64__)||defined(__amd64)||defined(__amd64__)||defined(_LP64)||defined(_M_IX86)||\
+	    defined(_M_AMD64)||defined(_M_IA64)||defined(_M_X64)||defined(__ILP32__)||defined(__LLP64__)||defined(WIN64)
 	exit(0);
 	#endif
 	exit(1);}]]
@@ -229,8 +237,8 @@ AS_IF([test x"$with_icc_asm" != "xno"],
   [
   AC_LANG_SOURCE(
 	[[int main() {
-	#if defined(__x86_64) || defined(__x86_64__) || defined(__amd64) || defined (__amd64__) || defined(_LP64) || defined(_M_IX86) || \
-	    defined(_M_AMD64) || defined(_M_IA64) || defined(_M_X64) || defined (__ILP32__) || defined(__LLP64__) || defined (WIN64)
+	#if defined(__x86_64)||defined(__x86_64__)||defined(__amd64)||defined(__amd64__)||defined(_LP64)||defined(_M_IX86)||\
+	    defined(_M_AMD64)||defined(_M_IA64)||defined(_M_X64)||defined(__ILP32__)||defined(__LLP64__)||defined(WIN64)
 	exit(0);
 	#endif
 	exit(1);}]]
@@ -302,8 +310,8 @@ CC="$CC_BACKUP"
 AC_RUN_IFELSE(
   [
   AC_LANG_SOURCE(
-	[[int main() {
-	char Buf[20]; *((int*)(&Buf[1])) = 1; *((int*)(&Buf[2])) = 1; *((int*)(&Buf[3])) = 1; exit(0);}]]
+	[[#include <stdio.h>
+	int main(){char c[20];*((int*)(&c[1]))=1;*((int*)(&c[2]))=1;*((int*)(&c[3]))=1;if(c[2]==4)printf("foo");else printf("bar");exit(0);}]]
   )]
   ,[ALLOWS_UNALIGNED="1"]
    [AC_MSG_RESULT([allowed])]
@@ -318,7 +326,7 @@ CC="$CC_BACKUP"
 #############################################################################
 # Check for LE/BE CPU
 #############################################################################
-AC_C_BIGENDIAN#([ARCH_LE=0], [ARCH_LE=1], [action-if-unknown], [action-if-universal])
+AC_C_BIGENDIAN  #([ARCH_LE=0], [ARCH_LE=1], [action-if-unknown], [action-if-universal])
 #############################################################################
 # END Check for LE/BE CPU
 #############################################################################
@@ -331,8 +339,14 @@ AC_C_BIGENDIAN#([ARCH_LE=0], [ARCH_LE=1], [action-if-unknown], [action-if-univer
 #  done by 'hand'.  Look at PCAP, where "LIBS += -lpcap" was added. This could also be done by skipping the
 #  modified default action, and doing an AS_IF on the next line.
 ################################################
+#
+##### Note, for next 2(ssl and crypto), we probably should use pkg-config openssl (--cflags and --libs)
+#
 AC_CHECK_LIB([ssl],[SSL_library_init],[],[AC_MSG_FAILURE(JtR requires libssl being installed,1)])
 AC_CHECK_LIB([crypto],[MD5_Update],[],[AC_MSG_FAILURE(JtR requires libssl/libcrypto being installed,1)])
+#################
+# libz is found in pkg-config --switch zlib
+#################
 AC_CHECK_LIB([m],[sqrt],[],[AC_MSG_FAILURE(JtR requires libm being installed,1)])
 AC_CHECK_LIB([z],[deflate],[],[AC_MSG_FAILURE(JtR requires libz being installed,1)])
 AC_SEARCH_LIBS([crypt],[crypt],[AC_DEFINE(HAVE_CRYPT,1,[Define to 1 if you have the `crypt' library (-lcrypt).])])
@@ -439,9 +453,9 @@ AS_IF([test "x${ALLOWS_UNALIGNED}" = "x1"],
    [AC_DEFINE([ARCH_ALLOWS_UNALIGNED], 1, ["Enable if CPU allows unaligned memory access"])],
    [AC_DEFINE([ARCH_ALLOWS_UNALIGNED], 0, ["Enable if CPU allows unaligned memory access"])])
 
-AS_IF([test "x${WORDS_BIGENDIAN}" = "x"],
-   [AC_DEFINE([ARCH_LITTLE_ENDIAN], 1, ["Enable if CPU is LITTLE ENDIAN arch"])],
-   [AC_DEFINE([ARCH_LITTLE_ENDIAN], 0, ["Enable if CPU is LITTLE ENDIAN arch"])])
+AS_IF([test "x${ac_cv_c_bigendian}" = "xyes"],
+   [AC_DEFINE([ARCH_LITTLE_ENDIAN], 0, ["Enable if CPU is LITTLE ENDIAN arch"])],
+   [AC_DEFINE([ARCH_LITTLE_ENDIAN], 1, ["Enable if CPU is LITTLE ENDIAN arch"])])
 
 #ARCH_INT_GT_32  I thought this was 1 for 64 bit builds, but current arch.h seem broken
 AC_DEFINE([ARCH_INT_GT_32], 0, ["Enable if CPU is > 32 bit (NOTE, this should not be enabled!)"])
