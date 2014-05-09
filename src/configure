@@ -4469,7 +4469,7 @@ else
 
   #include <tmmintrin.h>
       #include <stdio.h>
-      int main(){__m128i t;*((long long*)&t)=1;t=_mm_shuffle_epi8(t,t);if((*(unsigned*)&t)==1)printf(".");exit(0);}
+      int main(){__m128i t;*((long long*)&t)=1;t=_mm_shuffle_epi8(t,t);if((*(unsigned*)&t)==88)printf(".");exit(0);}
 
 
 _ACEOF
@@ -4794,7 +4794,7 @@ else
 /* end confdefs.h.  */
 
   #include <stdio.h>
-	int main(){char c[20];*((int*)(&c[1]))=1;*((int*)(&c[2]))=1;*((int*)(&c[3]))=1;if(c[2]==4)printf("","foo");else printf("","bar");exit(0);}
+	int main(){char c[20];*((int*)(&c[1]))=1;*((int*)(&c[2]))=1;*((int*)(&c[3]))=1;if(c[2]==88)printf("foobar");exit(0);}
 
 
 _ACEOF
