@@ -456,6 +456,8 @@ AS_IF([test "x${ac_cv_c_bigendian}" = "xyes"],
 AC_DEFINE([ARCH_INT_GT_32], 0, ["Enable if CPU is > 32 bit (NOTE, this should not be enabled!)"])
 
 # build proper 'link' to the arch file (based on bit only, for 32 bit, we may want different ones, and for other CPU's we need different ones)
+# note, we remove it first.
+AS_IF([rm -f arch.h])
 AC_CONFIG_LINKS([arch.h:$ARCH_LINK])
 
 AC_CONFIG_FILES([Makefile

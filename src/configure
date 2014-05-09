@@ -9297,6 +9297,10 @@ $as_echo "#define ARCH_INT_GT_32 0" >>confdefs.h
 
 
 # build proper 'link' to the arch file (based on bit only, for 32 bit, we may want different ones, and for other CPU's we need different ones)
+# note, we remove it first.
+if rm -f arch.h; then :
+
+fi
 ac_config_links="$ac_config_links arch.h:$ARCH_LINK"
 
 
