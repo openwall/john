@@ -31,7 +31,7 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <openssl/aes.h>
-#include "sha2.h"
+
 #include <string.h>
 #include "arch.h"
 #include "misc.h"
@@ -40,8 +40,11 @@
 #include "params.h"
 #include "options.h"
 #include "memory.h"
-#undef MMX_COEF // FIXME
+//#undef MMX_COEF // FIXME
+#define PBKDF2_HMAC_SHA1_ALSO_INCLUDE_CTX
 #include "pbkdf2_hmac_sha1.h"
+// NOTE, this format FAILS for generic sha2.  It could be due to interaction between openssl/aes and generic sha2 code.
+#include "sha2.h"
 #ifdef _OPENMP
 static int omp_t = 1;
 #include <omp.h>
