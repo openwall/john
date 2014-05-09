@@ -714,8 +714,9 @@ SHELL'
 ac_subst_files=''
 ac_user_opts='
 enable_option_checking
-with_mpi
 with_icc_asm
+enable_mpi
+enable_cuda
 enable_openmp
 enable_opencl
 '
@@ -1350,15 +1351,15 @@ Optional Features:
   --disable-option-checking  ignore unrecognized --enable/--with options
   --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
+  --disable-mpi           do not use MPI
+  --disable-cuda          do not use CUDA
   --disable-openmp        do not use OpenMP
   --disable-opencl        do not use OpenCL
 
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
-  --with-mpi              compile with MPI (parallelization) support. If none
-                          is found, MPI is not used. Default: auto
-  --with-icc-asm          Use ICC pre-built asm files for intrisic SIMD code
+  --with-icc-asm          Use ICC pre-built asm files for intrisic SIMD code.
                           Default: no
 
 Some influential environment variables:
@@ -3142,21 +3143,31 @@ ac_config_headers="$ac_config_headers autoconfig.h"
 LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib "
 
 
-# setup options
-
-# Check whether --with-mpi was given.
-if test "${with_mpi+set}" = set; then :
-  withval=$with_mpi;
-else
-  with_mpi=auto
-fi
-
+# Packages
 
 # Check whether --with-icc-asm was given.
 if test "${with_icc_asm+set}" = set; then :
   withval=$with_icc_asm;
 else
   with_icc_asm=no
+fi
+
+
+# Features
+# We define "--disable-FEATURE" because default is "auto".
+# NOTE: OpenMP and OpenCL are defined in their respective macro file
+# Check whether --enable-mpi was given.
+if test "${enable_mpi+set}" = set; then :
+  enableval=$enable_mpi;
+else
+  enable_mpi=$enableval
+fi
+
+# Check whether --enable-cuda was given.
+if test "${enable_cuda+set}" = set; then :
+  enableval=$enable_cuda; enable_cuda=$enableval
+else
+  enable_cuda=auto
 fi
 
 
@@ -4778,7 +4789,7 @@ CC="$CC_BACKUP"
 #############################################################################
 
 #############################################################################
-# check for unaligned memory access. being allowed
+# check for unaligned memory access being allowed
 #############################################################################
 #
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for unaligned memory access" >&5
@@ -6207,11 +6218,11 @@ $as_echo "$as_me: not updating unwritable cache $cache_file" >&6;}
 fi
 rm -f confcache
 
+#################
 # check packages:
+#################
 
-##################################
 # check for NSS
-##################################
 
 
 
@@ -6403,18 +6414,7 @@ $as_echo "yes" >&6; }
 
 fi
 
-##################################
-# check for openMP  (NOTE, AC_OPENMP does pretty much everything we were doing before)
-##################################
-#   Here iis with --disable-omp method.
-#AC_ARG_ENABLE([openmp], [AS_HELP_STRING([--disable-openmp],[do not use OpenMP])],[disable_openmp=$enableval],[disable_openmp='yes'])
-#   Here is the --with-omp method
-#AC_ARG_WITH(openmp, [AS_HELP_STRING([--with-openmp],[compile with OpenMP (multi-thread) support. If none is found, OMP is not used. Default: auto])],,with_openmp=auto)
-#   Here are the test cases for --with-xxx processing.
-#AS_IF([test x"$with_openmp" = "xauto"],[AX_OPENMP(AC_SUBST(OPENMP_CFLAGS,${ax_cv_c_openmp}))])
-#AS_IF([test x"$with_openmp" = "xyes"],
-#    [AX_OPENMP([AC_SUBST(OPENMP_CFLAGS,${ax_cv_c_openmp})],
-#              [AC_MSG_FAILURE([OMP requested, but could not use OMP.])])])
+# check for openMP (enable/disable handled within the macro)
 
   OPENMP_CFLAGS=
   # Check whether --enable-openmp was given.
@@ -6482,15 +6482,13 @@ $as_echo "$ac_cv_prog_c_openmp" >&6; }
 
 
 
-##################################
 # check for MPI
-##################################
 
 
 
     { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether to compile using MPI" >&5
 $as_echo_n "checking whether to compile using MPI... " >&6; }
-    if test x"$with_mpi" != xno; then
+    if test x"$enable_mpi" != "xno"; then
       _ax_prog_cc_mpi_mpi_wanted=yes
     else
       _ax_prog_cc_mpi_mpi_wanted=no
@@ -7308,23 +7306,22 @@ fi
 # Finally, execute ACTION-IF-FOUND/ACTION-IF-NOT-FOUND:
 if test x"$_ax_prog_cc_mpi_mpi_found" = xyes; then :
 
-        use_mpi=yes HAVE_MPI=-DHAVE_MPI
+        HAVE_MPI=-DHAVE_MPI
 
         :
 
 else
 
 
-  use_mpi=no
-  if test x"$with_mpi" = xyes; then
-    { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+   if test x"$enable_mpi" = "xyes"; then
+     { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error $? "MPI compiler requested, but could not use MPI.
+as_fn_error $? "No MPI compiler found
 See \`config.log' for more details" "$LINENO" 5; }
-  else
-    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: No MPI compiler found, won't use MPI." >&5
-$as_echo "$as_me: WARNING: No MPI compiler found, won't use MPI." >&2;}
-  fi
+   elif test x"$enable_mpi" != "xno"; then
+     { $as_echo "$as_me:${as_lineno-$LINENO}: No MPI compiler found, disabling MPI" >&5
+$as_echo "$as_me: No MPI compiler found, disabling MPI" >&6;}
+   fi
 
         :
 
@@ -7332,10 +7329,11 @@ fi
 
 
 
-####################################
-# CUDA
-####################################
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for cudaGetDeviceCount in -lcudart" >&5
+# Check for CUDA. According to the guru's we should not try to be clever
+# with finding directories. If they are not present in normal paths, user
+# is supposed to supply them with eg. ./configure LDFLAGS=/usr/local/cuda/lib
+if test x"$enable_cuda" != "xno"; then
+   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for cudaGetDeviceCount in -lcudart" >&5
 $as_echo_n "checking for cudaGetDeviceCount in -lcudart... " >&6; }
 if ${ac_cv_lib_cudart_cudaGetDeviceCount+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -7372,22 +7370,26 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_cudart_cudaGetDeviceCount" >&5
 $as_echo "$ac_cv_lib_cudart_cudaGetDeviceCount" >&6; }
 if test "x$ac_cv_lib_cudart_cudaGetDeviceCount" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBCUDART 1
-_ACEOF
-
-  LIBS="-lcudart $LIBS"
-
-fi
-
-if test x${ac_cv_lib_cudart_main} = "xyes"; then :
   HAVE_CUDA=1
 
+else
+
+   if test x${enable_cuda} = yes; then
+      { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "CUDA not found
+See \`config.log' for more details" "$LINENO" 5; }
+   elif test x"$enable_cuda" != "xno"; then
+      { $as_echo "$as_me:${as_lineno-$LINENO}: No CUDA found, disabling" >&5
+$as_echo "$as_me: No CUDA found, disabling" >&6;}
+   fi
+
 fi
 
-####################################
-# OpenCL
-####################################
+fi
+
+# Check for OpenCL (enable/disable handled within the macro)
+# I'm not sure 'C' is the proper argument, but it fails without it (magnum).
 ac_aux_dir=
 for ac_dir in "$srcdir" "$srcdir/.." "$srcdir/../.."; do
   if test -f "$ac_dir/install-sh"; then
