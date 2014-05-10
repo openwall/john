@@ -6057,7 +6057,7 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_pcap_pcap_compile" >&5
 $as_echo "$ac_cv_lib_pcap_pcap_compile" >&6; }
 if test "x$ac_cv_lib_pcap_pcap_compile" = xyes; then :
-  HAVE_PCAP="1"
+  HAVE_PCAP=-DHAVE_PCAP
  LIBS+="-lpcap"
 fi
 

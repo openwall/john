@@ -30,7 +30,7 @@
  */
 
 #include "autoconfig.h"
-#if HAVE_NETINET_IF_ETHER_H && HAVE_PCAP_H
+#if HAVE_NETINET_IF_ETHER_H && HAVE_PCAP
 
 #define _BSD_SOURCE
 #define _GNU_SOURCE

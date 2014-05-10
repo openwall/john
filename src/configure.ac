@@ -364,7 +364,7 @@ AC_CHECK_LIB([wsock32],[main])
 AC_CHECK_LIB([lws2_32],[main])
 AC_CHECK_LIB([wst],[main])
 # in makefile, we need to know if building extra pcap items.
-AC_CHECK_LIB([pcap],[pcap_compile], [AC_SUBST(HAVE_PCAP,"1")] [LIBS+="-lpcap"])
+AC_CHECK_LIB([pcap],[pcap_compile], [AC_SUBST(HAVE_PCAP,[-DHAVE_PCAP])] [LIBS+="-lpcap"])
 
 AC_CACHE_SAVE
 

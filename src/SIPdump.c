@@ -7,8 +7,7 @@
  *
  * gcc -Wall SIPdump.c -o SIPdump -lpcap */
 
-#include "autoconfig.h"
-#if HAVE_PCAP_H
+#if HAVE_PCAP
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
