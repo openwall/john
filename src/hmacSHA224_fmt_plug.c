@@ -199,7 +199,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 static void *binary(char *ciphertext)
 {
-	static unsigned char realcipher[BINARY_SIZE];
+	static union toalign {
+		unsigned char c[BINARY_SIZE];
+		ARCH_WORD_32 a[1];
+	} a;
+	unsigned char *realcipher = a.c;
 	int i,pos;
 
 	for(i=strlen(ciphertext);ciphertext[i]!='#';i--); // allow # in salt

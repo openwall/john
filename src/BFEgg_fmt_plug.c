@@ -88,7 +88,11 @@ void init(struct fmt_main *self) {
 /* The base64 is flawed - we just mimic flaws from the original code */
 static void *binary(char *ciphertext)
 {
-	static char out[BINARY_SIZE];
+	static union toalign {
+		unsigned char c[BINARY_SIZE];
+		ARCH_WORD_32 a[1];
+	} a;
+	unsigned char *out = a.c;
 	ARCH_WORD_32 value;
 	char *pos;
 
