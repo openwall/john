@@ -6058,7 +6058,7 @@ fi
 $as_echo "$ac_cv_lib_pcap_pcap_compile" >&6; }
 if test "x$ac_cv_lib_pcap_pcap_compile" = xyes; then :
   HAVE_PCAP=-DHAVE_PCAP
- LIBS+="-lpcap"
+ LIBS+="-lpcap "
 fi
 
 
@@ -7301,7 +7301,7 @@ fi
 $as_echo "$ac_cv_lib_cudart_cudaGetDeviceCount" >&6; }
 if test "x$ac_cv_lib_cudart_cudaGetDeviceCount" = xyes; then :
   HAVE_CUDA=1
-
+ LIBS+="-lcudart "
 else
 
    if test x${enable_cuda} = yes; then

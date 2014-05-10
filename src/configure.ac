@@ -364,7 +364,7 @@ AC_CHECK_LIB([wsock32],[main])
 AC_CHECK_LIB([lws2_32],[main])
 AC_CHECK_LIB([wst],[main])
 # in makefile, we need to know if building extra pcap items.
-AC_CHECK_LIB([pcap],[pcap_compile], [AC_SUBST(HAVE_PCAP,[-DHAVE_PCAP])] [LIBS+="-lpcap"])
+AC_CHECK_LIB([pcap],[pcap_compile], [AC_SUBST(HAVE_PCAP,[-DHAVE_PCAP])] [LIBS+="-lpcap "])
 
 AC_CACHE_SAVE
 
@@ -392,7 +392,7 @@ AX_PROG_CC_MPI([test x"$enable_mpi" != "xno"], [AC_SUBST(HAVE_MPI,[-DHAVE_MPI])]
 # with finding directories. If they are not present in normal paths, user
 # is supposed to supply them with eg. ./configure LDFLAGS=/usr/local/cuda/lib
 if test x"$enable_cuda" != "xno"; then
-   AC_CHECK_LIB([cudart],[cudaGetDeviceCount],AC_SUBST(HAVE_CUDA,1),[
+   AC_CHECK_LIB([cudart],[cudaGetDeviceCount],AC_SUBST(HAVE_CUDA,1) [LIBS+="-lcudart "],[
    if test x${enable_cuda} = yes; then
       AC_MSG_FAILURE([CUDA not found])
    elif test x"$enable_cuda" != "xno"; then
