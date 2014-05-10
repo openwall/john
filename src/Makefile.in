@@ -282,9 +282,6 @@ ifdef WITH_OPENCL
 	$(CP_PRESERVE) opencl/*.cl ../run/kernels/
 	$(CP_PRESERVE) opencl_*.h ../run/kernels/
 endif
-ifdef WITH_PCAP
-	$(MAKE) $(PROJ_PCAP)
-endif
 #########################################################
 ## This is the 'END' of the main default make target.
 #########################################################
