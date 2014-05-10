@@ -472,7 +472,7 @@ void opencl_preinit(void)
 				platform_id = atoi(devcfg);
 		}
 
-		if (!options.gpu_devices && gpu_id < 0) {
+		if (!options.gpu_devices->head && gpu_id < 0) {
 			char *devcfg;
 
 			if ((devcfg = cfg_get_param(SECTION_OPTIONS,
