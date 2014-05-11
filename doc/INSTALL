@@ -43,21 +43,41 @@ build.
 	Compiling the sources on a Unix-like system.
 
 Enter the directory into which you extracted the source code
-distribution of John.  Enter the "src" subdirectory and invoke "make"
-to obtain a list of operating systems for which specific support
-exists:
-
+distribution of John.  Enter the "src" subdirectory.
 	cd src
-	make
 
-Note the make target for your system and type:
+This version of Jumbo has autoconf - that is, it supports the very common
+chain of:
+	./configure && make
 
-	make clean SYSTEM
+You might want to add "-s" to make, for suppressing normal output and just
+print warnings and errors. For a multi-core host you can also add eg. "-j4"
+for using 4 cores in parallel when building. This can be written together,
+as in:
+	./configure && make -sj4
+
+./configure should find and enable any extra stuff you have, including OMP,
+MPI, OpenCL, CUDA and extra libraries mentioned above. If something is
+missing, it's likely installed in a non-standard location so you'd need to
+pass parameters:
+	./configure LDFLAGS=-L/opt/lib CFLAGS=-I/opt/include && make
+
+You can also disable certain features you don't want, eg:
+	./configure --disable-openmp --disable-mpi && make
+
+If you have problems with the autoconf feature, you can revert to the
+legacy Makefile like this:
+	make -f Makefile.orig
+
+You'll get a list of operating systems for which specific support
+exists. Note the make target for your system and type:
+
+	make -f Makefile.orig clean SYSTEM
 
 where SYSTEM is the appropriate make target.  Alternatively, if your
 system is not listed, use:
 
-	make clean generic
+	make -f Makefile.orig clean generic
 
 If everything goes well, this will create the executables for John and
 its related utilities under "../run/".  You can change directory to
@@ -88,6 +108,9 @@ usually not affected by this potential problem.
 
 
 	Optimal build on OS X (Jumbo specific)
+
+[This section is not yet updated for "autoconf" as mentioned above. On the
+other hand, autoconf is likely to do fine without it]
 
 Using OS X, you can install Xcode (free) and then its "command line tools"
 and after that the "macosx-x86-64" target should work fine. However, this
