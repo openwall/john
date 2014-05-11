@@ -539,7 +539,7 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 		 *            if you want to specify values for the 2nd cost param.
 		 */
 		int i;
-		char *range[FMT_TUNABLE_COSTS];
+		char *range[FMT_TUNABLE_COSTS] = { 0 };
 		char *dummy;
 
 		for( i = 0; i < FMT_TUNABLE_COSTS; i++) {
