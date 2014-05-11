@@ -118,6 +118,19 @@ appear in the charset file.  Just list all those characters here and
 they will be added, but considered the least probable.
 
 
+	Temporarily disabling formats
+
+If you have problems with some format(s) and just want to disable them,
+you can add them to john.conf (or john.local.conf) by adding them as
+booleans to a [Disabled:Formats] section, set as true:
+
+[Disabled:Formats]
+LM = Y
+
+A disabled format will not be auto-selected for test or cracking, but
+can still be selected explicitly. Entries are case insensitive.
+
+
 	"include" syntax within the john.conf file.
 
 At version 1.7.8-jumbo6 (and later), include syntax was added to john.conf

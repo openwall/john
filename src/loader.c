@@ -36,6 +36,7 @@
 #include "fake_salts.h"
 #include "john.h"
 #include "cracker.h"
+#include "config.h"
 #include "logger.h" /* Beware: log_init() happens after most functions here */
 #include "memdbg.h"
 
@@ -449,6 +450,10 @@ static int ldr_split_line(char **login, char **ciphertext,
 				continue;
 			if (alt->params.flags & FMT_WARNED)
 				continue;
+			/* Format disabled in john.conf */
+			if (cfg_get_bool(SECTION_DISABLED, SUBSECTION_FORMATS,
+			                 alt->params.label, 0))
+				continue;
 #ifdef HAVE_CRYPT
 			if (alt == &fmt_crypt &&
 #ifdef __sun
@@ -483,6 +488,12 @@ static int ldr_split_line(char **login, char **ciphertext,
 	do {
 		char *prepared;
 		int valid;
+
+		/* Format disabled in john.conf, unless forced */
+		if (alt != fmt_list &&
+		    cfg_get_bool(SECTION_DISABLED, SUBSECTION_FORMATS,
+		                 alt->params.label, 0))
+			continue;
 
 #ifdef HAVE_CRYPT
 /*
