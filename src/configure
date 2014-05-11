@@ -9239,9 +9239,39 @@ $as_echo "#define ARCH_LITTLE_ENDIAN 1" >>confdefs.h
 
 fi
 
-#ARCH_INT_GT_32  I thought this was 1 for 64 bit builds, but current arch.h seem broken
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for 'int' larger than 32-bit" >&5
+$as_echo_n "checking for 'int' larger than 32-bit... " >&6; }
+if test "$cross_compiling" = yes; then :
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "cannot run test program while cross compiling
+See \`config.log' for more details" "$LINENO" 5; }
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+int main() {
+	#if sizeof(int) > 4
+	exit(0);
+	#endif
+	exit(1);}
+
+_ACEOF
+if ac_fn_c_try_run "$LINENO"; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+
+$as_echo "#define ARCH_INT_GT_32 1" >>confdefs.h
+
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
 
 $as_echo "#define ARCH_INT_GT_32 0" >>confdefs.h
+
+fi
+rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
+  conftest.$ac_objext conftest.beam conftest.$ac_ext
+fi
 
 
 # build proper 'link' to the arch file (based on bit only, for 32 bit, we may want different ones, and for other CPU's we need different ones)

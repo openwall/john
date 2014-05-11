@@ -450,8 +450,20 @@ AS_IF([test "x${ac_cv_c_bigendian}" = "xyes"],
    [AC_DEFINE([ARCH_LITTLE_ENDIAN], 0, ["Enable if CPU is LITTLE ENDIAN arch"])],
    [AC_DEFINE([ARCH_LITTLE_ENDIAN], 1, ["Enable if CPU is LITTLE ENDIAN arch"])])
 
-#ARCH_INT_GT_32  I thought this was 1 for 64 bit builds, but current arch.h seem broken
-AC_DEFINE([ARCH_INT_GT_32], 0, ["Enable if CPU is > 32 bit (NOTE, this should not be enabled!)"])
+AC_MSG_CHECKING([for 'int' larger than 32-bit])
+AC_RUN_IFELSE(
+  [AC_LANG_SOURCE(
+	[[int main() {
+	#if sizeof(int) > 4
+	exit(0);
+	#endif
+	exit(1);}]]
+  )],
+  [AC_MSG_RESULT(yes)]
+  AC_DEFINE([ARCH_INT_GT_32], 1, ["Enable if sizeof(int) > 4"]),
+  [AC_MSG_RESULT(no)]
+  AC_DEFINE([ARCH_INT_GT_32], 0, ["Enable if sizeof(int) > 4"]),
+)
 
 # build proper 'link' to the arch file (based on bit only, for 32 bit, we may want different ones, and for other CPU's we need different ones)
 # note, we remove it first.
