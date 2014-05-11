@@ -75,7 +75,7 @@ endif
 # -lskey
 
 CPPFLAGS += @CPPFLAGS@
-CFLAGSX = @CPU_BITS@ $(CPPFLAGS) -c -Wall -Wdeclaration-after-statement @CFLAGS@ @HAVE_NSS@ @NSS_CFLAGS@ @OPENMP_CFLAGS@ @HAVE_MPI@ -fomit-frame-pointer -I/usr/local/include $(AMDAPP) $(JOHN_CFLAGS) $(RELEASE_BLD)
+CFLAGSX = @CPU_BITS@ -DAC_BUILT $(CPPFLAGS) -c -Wall -Wdeclaration-after-statement @CFLAGS@ @HAVE_NSS@ @NSS_CFLAGS@ @OPENMP_CFLAGS@ @HAVE_MPI@ -fomit-frame-pointer -I/usr/local/include $(AMDAPP) $(JOHN_CFLAGS) $(RELEASE_BLD)
 # CFLAGS for use on the main john.c file only
 CFLAGS_MAIN = @CC_MAIN_CPU@ $(CFLAGSX)
 CFLAGS = @CC_CPU@ $(CFLAGSX)
@@ -202,31 +202,19 @@ CUDA_OBJS = \
 GENMKVPWD_OBJS = \
 	genmkvpwd.o mkvlib.o memory.o miscnl.o path.o memdbg.o
 
-PROJ = ../run/john ../run/unshadow ../run/unafs ../run/unique ../run/undrop \
-	../run/ssh2john ../run/rar2john ../run/zip2john \
-	../run/genmkvpwd ../run/mkvcalcproba ../run/calc_stat \
-	../run/tgtsnarf ../run/racf2john ../run/mozilla2john ../run/hccap2john \
-	../run/pwsafe2john ../run/raw2dyna ../run/keepass2john ../run/pfx2john \
-	../run/keychain2john ../run/keyring2john ../run/kwallet2john \
-	../run/dmg2john ../run/putty2john john.local.conf ../run/uaf2john \
-	../run/truecrypt_volume2john ../run/keystore2john ../run/wpapcap2john \
-	../run/gpg2john ../run/cprepair ../run/luks2john
-
-# keep these inline with PROJ, so that we can rm these in the clean target
-PROJ_EXE =.exe ../run/john.exe ../run/unshadow.exe ../run/unafs.exe ../run/unique.exe ../run/undrop.exe \
-	../run/ssh2john.exe ../run/rar2john.exe ../run/zip2john.exe \
-	../run/genmkvpwd.exe ../run/mkvcalcproba.exe ../run/calc_stat.exe \
-	../run/tgtsnarf.exe ../run/racf2john.exe ../run/mozilla2john.exe ../run/hccap2john.exe \
-	../run/pwsafe2john.exe ../run/raw2dyna.exe ../run/keepass2john.exe ../run/pfx2john.exe \
-	../run/keychain2john.exe ../run/keyring2john.exe ../run/kwallet2john.exe \
-	../run/dmg2john.exe ../run/putty2john john.local.conf.exe ../run/uaf2john.exe \
-	../run/truecrypt_volume2john.exe ../run/keystore2john.exe ../run/wpapcap2john.exe \
-	../run/gpg2john.exe ../run/cprepair.exe ../run/luks2john.exe
+PROJ = ../run/john@EXE_EXT@ ../run/unshadow@EXE_EXT@ ../run/unafs@EXE_EXT@ ../run/unique@EXE_EXT@ ../run/undrop@EXE_EXT@ \
+	../run/ssh2john@EXE_EXT@ ../run/rar2john@EXE_EXT@ ../run/zip2john@EXE_EXT@ \
+	../run/genmkvpwd@EXE_EXT@ ../run/mkvcalcproba@EXE_EXT@ ../run/calc_stat@EXE_EXT@ \
+	../run/tgtsnarf@EXE_EXT@ ../run/racf2john@EXE_EXT@ ../run/mozilla2john@EXE_EXT@ ../run/hccap2john@EXE_EXT@ \
+	../run/pwsafe2john@EXE_EXT@ ../run/raw2dyna@EXE_EXT@ ../run/keepass2john@EXE_EXT@ ../run/pfx2john@EXE_EXT@ \
+	../run/keychain2john@EXE_EXT@ ../run/keyring2john@EXE_EXT@ ../run/kwallet2john@EXE_EXT@ \
+	../run/dmg2john@EXE_EXT@ ../run/putty2john@EXE_EXT@ john.local.conf ../run/uaf2john@EXE_EXT@ \
+	../run/truecrypt_volume2john@EXE_EXT@ ../run/keystore2john@EXE_EXT@ ../run/wpapcap2john@EXE_EXT@ \
+	../run/gpg2john@EXE_EXT@ ../run/cprepair@EXE_EXT@ ../run/luks2john@EXE_EXT@
 
 WITH_PCAP=@HAVE_PCAP@
 ifdef WITH_PCAP
 PROJ += ../run/SIPdump ../run/vncpcap2john
-PROJ_EXE = ../run/SIPdump.exe ../run/vncpcap2john.exe
 endif
 
 WITH_CUDA=@HAVE_CUDA@
@@ -270,7 +258,6 @@ endif
 #  also need to figure out -DUNDERSCORES and add to ASFLAGS
 #  also need to figure out -mpreferred-stack-boundary=4 and add (or whatever the stack size is)
 #
-#  TBD: NOTE, for cygwin/mingw, we want to use PROJ_EXE, not proj.
 #########################################################
 default:
 	@echo "#define JOHN_BLD" '"'@JOHN_BUILD_LABEL@'"' > john_build_rule.h
@@ -282,6 +269,9 @@ ifdef WITH_OPENCL
 	$(CP_PRESERVE) opencl/*.cl ../run/kernels/
 	$(CP_PRESERVE) opencl_*.h ../run/kernels/
 endif
+	@echo
+	@echo Make process completed.
+	
 #########################################################
 ## This is the 'END' of the main default make target.
 #########################################################
@@ -379,7 +369,33 @@ subdirs: $(SUBDIRS)
 $(SUBDIRS):
 	$(MAKE) -C $@ all
 
-../run/john: $(JOHN_OBJS) $(SUBDIRS)
+# Inlining the S-boxes produces faster code as long as they fit in the cache.
+DES_bs_b.o: DES_bs_b.c sboxes.c nonstd.c sboxes-s.c
+	$(CC) $(CFLAGS) $(OPT_INLINE) DES_bs_b.c
+
+# TBD  (plug building will be put into configure.ac, so this
+# target will likely disappear soon
+*_fmt_plug.c: Makefile john.c
+	@
+
+miscnl.o: misc.c
+	$(CC) $(CFLAGS) $(OPT_NORMAL) -D_JOHN_MISC_NO_LOG misc.c -o miscnl.o
+
+# This must not be specified with path because "make clean" would delete it.
+john.local.conf:
+	[ -f ../run/john.local.conf ] || touch ../run/john.local.conf
+
+###############################################################################
+#  Process targets.  Note, these are *nix targets, but also work fine under
+#  cygwin.  The only problem with cygwin, is that the ln -s will NOT generate
+#  a valid exe which can be run under native Win32 cmd shell (same for mingw)
+#  If a use wants that behavior, then the @EXE_EXT@ needs to be set to .exe
+#  and the later group of exe targets will be used, and will use symlink.c and
+#  not simply do a ln -s.  This will be done in configure, with something like
+#  --enable-exe-ext=.exe   or something like that.  By default, it is set to
+#  to empty, and the 'normal' target path (with ln -s) will be used.
+###############################################################################
+../run/john@EXE_EXT@: $(JOHN_OBJS) $(SUBDIRS)
 	$(LD) $(JOHN_OBJS) $(LDFLAGS) aes/aes.a -o ../run/john
 
 ../run/unshadow: ../run/john
@@ -460,23 +476,21 @@ endif
 	$(RM) ../run/truecrypt_volume2john
 	ln -s john ../run/truecrypt_volume2john
 
+../run/keystore2john: ../run/john
+	$(RM) ../run/keystore2john
+	ln -s john ../run/keystore2john
+
 ../run/unique: ../run/john
 	$(RM) ../run/unique
 	ln -s john ../run/unique
 
-# This must not be specified with path because "make clean" would delete it.
-john.local.conf:
-	[ -f ../run/john.local.conf ] || touch ../run/john.local.conf
-
-../run/john.exe: $(JOHN_OBJS) $(SUBDIRS)
-	$(LD) $(JOHN_OBJS) $(LDFLAGS) aes/aes.a -lkernel32 -o ../run/john.exe
-	$(STRIP) ../run/john.exe
-
-../run/john-mingw.exe: $(JOHN_OBJS)
-	$(LD) $(JOHN_OBJS) $(LDFLAGS) aes/aes.a -lkernel32 -o ../run/john-mingw.exe
-	$(STRIP) ../run/john-mingw.exe
-	cp ../run/john-mingw.exe ../run/john.exe
-
+#####################################################################
+# These targets MUST match ALL of the john targets that use ln -s
+# These are built for Win32, so that we have a 'native' symlink back
+# to the john exe.  The john exe is still built fat, but there is no
+# workable ln -s, so we have built a 'symlink.c' file. It works in
+# a limited way, like symlink.
+#####################################################################
 ../run/unshadow.exe: symlink.c
 	$(CC) symlink.c -o ../run/unshadow.exe
 	$(STRIP) ../run/unshadow.exe
@@ -509,6 +523,14 @@ john.local.conf:
 	$(CC) symlink.c -o ../run/keyring2john.exe
 	$(STRIP) ../run/keyring2john.exe
 
+../run/zip2john.exe: symlink.c
+	$(CC) symlink.c -o ../run/zip2john.exe
+	$(STRIP) ../run/zip2john.exe
+
+../run/gpg2john.exe: symlink.c
+	$(CC) symlink.c -o ../run/gpg2john.exe
+	$(STRIP) ../run/gpg2john.exe
+
 ../run/rar2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/rar2john.exe
 	$(STRIP) ../run/rar2john.exe
@@ -539,83 +561,61 @@ endif
 	$(CC) symlink.c -o ../run/dmg2john.exe
 	$(STRIP) ../run/dmg2john.exe
 
-../run/zip2john.exe: symlink.c
-	$(CC) symlink.c -o ../run/zip2john.exe
-	$(STRIP) ../run/zip2john.exe
-
-../run/gpg2john.exe: symlink.c
-	$(CC) symlink.c -o ../run/gpg2john.exe
-	$(STRIP) ../run/gpg2john.exe
-
 ../run/hccap2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/hccap2john.exe
 	$(STRIP) ../run/hccap2john.exe
+
+../run/truecrypt_volume2john.exe: symlink.c
+	$(CC) symlink.c -o ../run/truecrypt_volume2john.exe
+	$(STRIP) ../run/truecrypt_volume2john.exe
+
+../run/keystore2john.exe: symlink.c
+	$(CC) symlink.c -o ../run/keystore2john.exe
+	$(STRIP) ../run/keystore2john.exe
 
 ../run/unique.exe: symlink.c
 	$(CC) symlink.c -o ../run/unique.exe
 	$(STRIP) ../run/unique.exe
 
-../run/genmkvpwd: $(GENMKVPWD_OBJS)
+########################################################
+# Not linked to symlink for a .exe file, so simply make
+# single targets, using the EXE_EXT macro
+########################################################
+../run/genmkvpwd@EXE_EXT@: $(GENMKVPWD_OBJS)
 	$(LD) $(GENMKVPWD_OBJS) $(LDFLAGS) -o ../run/genmkvpwd
 
-../run/genmkvpwd.exe: $(GENMKVPWD_OBJS)
-	$(LD) $(GENMKVPWD_OBJS) $(LDFLAGS_MKV) -o ../run/genmkvpwd.exe
-
-../run/mkvcalcproba: mkvcalcproba.o
+../run/mkvcalcproba@EXE_EXT@: mkvcalcproba.o
 	$(LD) mkvcalcproba.o memdbg.o $(LDFLAGS) -o ../run/mkvcalcproba
 
-../run/mkvcalcproba.exe: mkvcalcproba.o
-	$(LD) mkvcalcproba.o memdbg.o $(LDFLAGS_MKV) -o ../run/mkvcalcproba.exe
-
-../run/calc_stat: calc_stat.o
+../run/calc_stat@EXE_EXT@: calc_stat.o
 	$(LD) calc_stat.o memdbg.o $(LDFLAGS) -o ../run/calc_stat
 
-../run/calc_stat.exe: calc_stat.o
-	$(LD) calc_stat.o memdbg.o $(LDFLAGS_MKV) -o ../run/calc_stat.exe
-
-../run/raw2dyna: raw2dyna.o
+../run/raw2dyna@EXE_EXT@: raw2dyna.o
 	$(LD) raw2dyna.o memdbg.o $(LDFLAGS) -o ../run/raw2dyna
 
-../run/raw2dyna.exe: raw2dyna.o
-	$(LD) raw2dyna.o memdbg.o $(LDFLAGS) -o ../run/raw2dyna.exe
-
-../run/SIPdump: SIPdump.o
+../run/SIPdump@EXE_EXT@: SIPdump.o
 	$(LD) SIPdump.o memdbg.o $(LDFLAGS) -o ../run/SIPdump
 
-../run/vncpcap2john: vncpcap2john.o
+../run/vncpcap2john@EXE_EXT@: vncpcap2john.o
 	$(CC) -Wall vncpcap2john.o memdbg.o $(LDFLAGS) -o ../run/vncpcap2john
 
-../run/uaf2john: uaf2john.o uaf_encode_plug.o
+../run/uaf2john@EXE_EXT@: uaf2john.o uaf_encode_plug.o
 	$(LD) $(LDFLAGS) uaf2john.o uaf_encode_plug.o memdbg.o -o ../run/uaf2john
 
-../run/wpapcap2john: wpapcap2john.o
+../run/wpapcap2john@EXE_EXT@: wpapcap2john.o
 	$(LD) $(LDFLAGS) wpapcap2john.o memdbg.o -o ../run/wpapcap2john
 
-# busted with autoconf, I DO NOT knwo why, -lcrypto and -lssl are there.
-../run/luks2john: luks2john.o
+# Requires extra -lcrypto and -lssl aftger luks2john.o.  Not sure why, link fails without that change
+../run/luks2john@EXE_EXT@: luks2john.o
 	$(LD) ${LDFLAGS} luks2john.o -s -lcrypto -lssl memdbg.o -o ../run/luks2john
 
-../run/keystore2john: ../run/john
-	$(RM) ../run/keystore2john
-	ln -s john ../run/keystore2john
-
-../run/cprepair: cprepair.c unicode.c unicode.h options.h misc.h misc.c \
+../run/cprepair@EXE_EXT@: cprepair.c unicode.c unicode.h options.h misc.h misc.c \
 	memdbg.h memdbg.c
 	gcc -Wall -O3 -s -DNOT_JOHN -D_JOHN_MISC_NO_LOG cprepair.c unicode.c \
 	misc.c memdbg.c -o ../run/cprepair
 
-../run/tgtsnarf: tgtsnarf.o
+../run/tgtsnarf@EXE_EXT@: tgtsnarf.o
 	$(LD) tgtsnarf.o memdbg.o $(LDFLAGS) -o ../run/tgtsnarf
-
-# Inlining the S-boxes produces faster code as long as they fit in the cache.
-DES_bs_b.o: DES_bs_b.c sboxes.c nonstd.c sboxes-s.c
-	$(CC) $(CFLAGS) $(OPT_INLINE) DES_bs_b.c
-
-*_fmt_plug.c: Makefile john.c
-	@
-
-miscnl.o: misc.c
-	$(CC) $(CFLAGS) $(OPT_NORMAL) -D_JOHN_MISC_NO_LOG misc.c -o miscnl.o
 
 ##########################################################
 # TBD:  This code should be done by the run of configure
@@ -684,8 +684,11 @@ shell-completion: bash-completion zsh-completion
 	@echo "You should have bash and zsh completion now"
 
 clean:
-	$(RM) $(PROJ) $(PROJ_EXE)
-	$(RM) ../run/john.exe john-macosx-* *.o escrypt/*.o *.bak core
+	$(RM) $(PROJ)
+	@for exe in ${PROJ}; do \
+	  ($(RM) $$exe.exe) \
+	done
+	$(RM) john-macosx-* *.o escrypt/*.o *.bak core
 	$(RM) ../run/kernels/*.cl ../run/kernels/*.h ../run/kernels/*.bin
 	$(RM) detect bench para-bench generic.h tmp.s
 	$(RM) cuda/*.o cuda/*~ *~
@@ -777,19 +780,20 @@ configure: configure.ac
 else
 configure: configure.ac
 	@echo skipping autoconf
+	@touch configure
 endif
 
 # autoheader might not change autoconfig.h.in, so touch a stamp file
 ifeq ($(CONFIG_MAINT), 1)
-autoconfig.h.in: autoconfig-stamp-h.in
-autoconfig-stamp-h.in: configure.ac aclocal.m4
+autoconfig.h.in: autoconfig-stamp-h
+autoconfig-stamp-h-in: configure.ac aclocal.m4
 	autoheader
-	echo "timestamp from Makefile" > autoconfig-stamp-h.in
+	echo "timestamp from Makefile" > autoconfig-stamp-h-in
 else
-autoconfig.h.in: autoconfig-stamp-h.in
-autoconfig-stamp-h.in: configure.ac aclocal.m4
+autoconfig.h.in: autoconfig-stamp-h
+autoconfig-stamp-h-in: configure.ac aclocal.m4
 	@echo skipping autoheader
-	echo "timestamp from Makefile" > autoconfig-stamp-h.in
+	echo "timestamp from Makefile" > autoconfig-stamp-h-in
 endif
 
 ifeq ($(CONFIG_MAINT), 1)
@@ -800,6 +804,10 @@ else
 autoconfig.h: autoconfig-stamp-h
 autoconfig-stamp-h: autoconfig.h.in config.status
 	@echo skipping ./config.status
+	@touch config.status
+	@touch autoconfig.h.in
+	@touch autoconfig-stamp-h
+	@touch autoconfig.h
 endif
 
 ifeq ($(CONFIG_MAINT), 1)

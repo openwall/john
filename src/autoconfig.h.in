@@ -63,9 +63,6 @@
 /* Define to 1 if you have the `crypto' library (-lcrypto). */
 #undef HAVE_LIBCRYPTO
 
-/* Define to 1 if you have the `cudart' library (-lcudart). */
-#undef HAVE_LIBCUDART
-
 /* Define to 1 if you have the `dl' library (-ldl). */
 #undef HAVE_LIBDL
 

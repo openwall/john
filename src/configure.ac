@@ -64,7 +64,7 @@ dnl END JIM's BLOCK OF STUFF
 
 # Packages
 AC_ARG_WITH(icc-asm, [AS_HELP_STRING([--with-icc-asm],[Use ICC pre-built asm files for intrisic SIMD code. Default: no])],,[with_icc_asm=no])
-
+AC_ARG_WITH(exe-ext, [AS_HELP_STRING([--with-exe-ext],[For Cygwin and MinGW. Set to .exe to allow stand alone symlink exe files. Default is 'empty'])],,[with_exe_ext=""])
 # Features
 # We define "--disable-FEATURE" because default is "auto".
 # NOTE: OpenMP and OpenCL are defined in their respective macro file
@@ -404,6 +404,8 @@ fi
 # Check for OpenCL (enable/disable handled within the macro)
 # I'm not sure 'C' is the proper argument, but it fails without it (magnum).
 AX_OPENCL(C)
+
+AS_IF([test x"$with_exe_ext" != "x"], AC_SUBST([EXE_EXT], [${with_exe_ext}]) [echo executable extension: ${with_exe_ext}] )
 
 # Checks for header files.
 AC_CHECK_HEADERS([OS.h arpa/inet.h sys/times.h fcntl.h limits.h locale.h netdb.h netinet/in.h stddef.h stdint.h stdlib.h string.h strings.h sys/file.h sys/param.h sys/socket.h sys/time.h sys/timeb.h termios.h unistd.h wchar.h unixlib/local.h netinet/if_ether.h pcap.h])

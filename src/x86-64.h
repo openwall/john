@@ -21,7 +21,9 @@
  * As things get MOVED into autoconfig.h, they will be commented out of
  * this file with //ac , so we can keep track of progress
  */
+#if AC_BUILT
 #include "autoconfig.h"
+#endif
 
 #if defined(__ILP32__) || defined(_WIN64) || defined (__LLP64__) || \
 	(defined(__SIZE_OF_LONG__) && __SIZEOF_LONG__ == 4)
@@ -33,9 +35,13 @@
 #define ARCH_BITS			64
 #define ARCH_BITS_LOG			6
 #define ARCH_BITS_STR			"64"
-//ac #define ARCH_LITTLE_ENDIAN		1
-//ac #define ARCH_INT_GT_32			0
-//ac #define ARCH_ALLOWS_UNALIGNED		1
+
+#if !AC_BUILT
+#define ARCH_LITTLE_ENDIAN		1
+#define ARCH_INT_GT_32			0
+#define ARCH_ALLOWS_UNALIGNED		1
+#endif
+
 #define ARCH_INDEX(x)			((unsigned int)(unsigned char)(x))
 
 #define CPU_DETECT			0

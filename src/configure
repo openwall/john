@@ -632,6 +632,7 @@ CC_ASM_OBJS
 CC_MAIN_CPU
 CC_CPU
 LIBOBJS
+EXE_EXT
 CL_LIBS
 CL_CFLAGS
 PTHREAD_CFLAGS
@@ -715,6 +716,7 @@ ac_subst_files=''
 ac_user_opts='
 enable_option_checking
 with_icc_asm
+with_exe_ext
 enable_mpi
 enable_cuda
 enable_openmp
@@ -1361,6 +1363,8 @@ Optional Packages:
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
   --with-icc-asm          Use ICC pre-built asm files for intrisic SIMD code.
                           Default: no
+  --with-exe-ext          For Cygwin and MinGW. Set to .exe to allow stand
+                          alone symlink exe files. Default is 'empty'
 
 Some influential environment variables:
   CC          C compiler command
@@ -3082,6 +3086,13 @@ else
   with_icc_asm=no
 fi
 
+
+# Check whether --with-exe-ext was given.
+if test "${with_exe_ext+set}" = set; then :
+  withval=$with_exe_ext;
+else
+  with_exe_ext=""
+fi
 
 # Features
 # We define "--disable-FEATURE" because default is "auto".
@@ -8144,6 +8155,11 @@ fi
 
 
 
+
+if test x"$with_exe_ext" != "x"; then :
+  EXE_EXT=${with_exe_ext}
+ echo executable extension: ${with_exe_ext}
+fi
 
 # Checks for header files.
 for ac_header in OS.h arpa/inet.h sys/times.h fcntl.h limits.h locale.h netdb.h netinet/in.h stddef.h stdint.h stdlib.h string.h strings.h sys/file.h sys/param.h sys/socket.h sys/time.h sys/timeb.h termios.h unistd.h wchar.h unixlib/local.h netinet/if_ether.h pcap.h

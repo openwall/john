@@ -24,7 +24,9 @@
  * As things get MOVED into autoconfig.h, they will be commented out of
  * this file with //ac , so we can keep track of progress
  */
+#if AC_BUILT
 #include "autoconfig.h"
+#endif
 
 #if defined (_MSC_VER) && !defined (_OPENMP)
 #define __SSE2__
@@ -39,9 +41,13 @@
 #define ARCH_BITS			32
 #define ARCH_BITS_LOG			5
 #define ARCH_BITS_STR			"32"
-//ac #define ARCH_LITTLE_ENDIAN		1
-//ac #define ARCH_INT_GT_32			0
-//ac #define ARCH_ALLOWS_UNALIGNED		1
+
+#if !AC_BUILT
+#define ARCH_LITTLE_ENDIAN		1
+#define ARCH_INT_GT_32			0
+#define ARCH_ALLOWS_UNALIGNED		1
+#endif
+
 #define ARCH_INDEX(x)			((unsigned int)(unsigned char)(x))
 
 #define CPU_DETECT			1
