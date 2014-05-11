@@ -271,7 +271,7 @@ ifdef WITH_OPENCL
 endif
 	@echo
 	@echo Make process completed.
-	
+
 #########################################################
 ## This is the 'END' of the main default make target.
 #########################################################
@@ -768,9 +768,8 @@ sse-intrinsics-32.S:
 	mv sse-intrinsics-win32.S sse-intrinsics-32.S
 
 #######################################################################
-## NOTE, auto re-running configure will ONLY happen, IF the user has ##
-## CONFIG_MAINT=1 environment variable. otherwise, it simply echos   ##
-## a small message on screen (which will likely be removed sometime  ##
+## NOTE, auto re-building configure will ONLY happen IF the user has ##
+## CONFIG_MAINT=1 environment variable.  Beware.                     ##
 #######################################################################
 
 ## automatic re-running of configure if the configure.ac file has changed
@@ -779,7 +778,6 @@ configure: configure.ac
 	autoconf
 else
 configure: configure.ac
-	@echo skipping autoconf
 	@touch configure
 endif
 
@@ -792,7 +790,6 @@ autoconfig-stamp-h-in: configure.ac aclocal.m4
 else
 autoconfig.h.in: autoconfig-stamp-h
 autoconfig-stamp-h-in: configure.ac aclocal.m4
-	@echo skipping autoheader
 	echo "timestamp from Makefile" > autoconfig-stamp-h-in
 endif
 
@@ -803,7 +800,6 @@ autoconfig-stamp-h: autoconfig.h.in config.status
 else
 autoconfig.h: autoconfig-stamp-h
 autoconfig-stamp-h: autoconfig.h.in config.status
-	@echo skipping ./config.status
 	@touch config.status
 	@touch autoconfig.h.in
 	@touch autoconfig-stamp-h
@@ -813,17 +809,11 @@ endif
 ifeq ($(CONFIG_MAINT), 1)
 Makefile: Makefile.in config.status
 	./config.status
-else
-Makefile: Makefile.in config.status
-	@echo skipping ./config.status
 endif
 
 ifeq ($(CONFIG_MAINT), 1)
 config.status: configure
 	./config.status --recheck
-else
-config.status: configure
-	@echo skipping ./config.status --recheck
 endif
 
 all:
