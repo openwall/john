@@ -67,15 +67,16 @@
 
 #ifdef NEED_OS_FORK
 
-#if defined(__DJGPP__) || defined(__CYGWIN32__) || defined(_MSC_VER) || defined(__MINGW32__)
-#define OS_FORK				0
-#else
+#ifdef HAVE_WORKING_FORK
 #define OS_FORK				1
+#else
+#define OS_FORK				0
 #endif
 
 #endif
 
-/* NOTE, most of these HAVE_HEADER stuff are done in autoconfigure.h
+/*
+ * NOTE, most of these HAVE_HEADER stuff are done in autoconfig.h
  * But we have kept 'some' of this here, mostly due to MSVC not being
  * able to run autoconf or ./configure, so the header file 'may' not
  * be built properly for VC

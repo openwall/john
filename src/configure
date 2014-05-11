@@ -3077,6 +3077,9 @@ ac_config_headers="$ac_config_headers autoconfig.h"
 LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib "
 
 
+# We might want to use this
+#AC_USE_SYSTEM_EXTENSIONS
+
 # Packages
 
 # Check whether --with-icc-asm was given.

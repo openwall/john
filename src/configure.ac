@@ -62,6 +62,9 @@ LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib "
 
 dnl END JIM's BLOCK OF STUFF
 
+# We might want to use this
+#AC_USE_SYSTEM_EXTENSIONS
+
 # Packages
 AC_ARG_WITH(icc-asm, [AS_HELP_STRING([--with-icc-asm],[Use ICC pre-built asm files for intrisic SIMD code. Default: no])],,[with_icc_asm=no])
 AC_ARG_WITH(exe-ext, [AS_HELP_STRING([--with-exe-ext],[For Cygwin and MinGW. Set to .exe to allow stand alone symlink exe files. Default is 'empty'])],,[with_exe_ext=""])

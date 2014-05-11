@@ -27,11 +27,11 @@
 #include "win32_memmap.h"
 #ifndef __CYGWIN32__
 #include "mmap-windows.c"
-#else
+#elif defined HAVE_MMAP
 #include <sys/mman.h>
 #endif
 #undef MEM_FREE
-#else
+#elif defined(HAVE_MMAP)
 #include <sys/mman.h>
 #endif
 #include <errno.h>
@@ -562,6 +562,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 			error();
 		}
 
+#ifdef HAVE_MMAP
 		log_event("- memory mapping wordlist (%lu bytes)", file_len);
 		mem_map = mmap(NULL, file_len,
 		               PROT_READ, MAP_SHARED,
@@ -574,6 +575,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 			map_end = mem_map + file_len;
 			map_scan_end = map_end - 16;
 		}
+#endif
 
 		ourshare = options.node_count ?
 			(file_len / options.node_count) *
@@ -1213,9 +1215,11 @@ next_rule:
 			progress = 100;
 
 		MEM_FREE(words);
+#ifdef HAVE_MMAP
 		if (mem_map)
 			munmap(mem_map, file_len);
 		map_pos = map_end = NULL;
+#endif
 		if (fclose(word_file))
 			pexit("fclose");
 		word_file = NULL;
