@@ -10,7 +10,12 @@
  *
  * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
+ 
+#if AC_BUILT
+/* load autoconf to know if we have the HAVE_CRYPT set */
 #include "autoconfig.h"
+#endif
+
 #if HAVE_CRYPT
 
 #define _XOPEN_SOURCE 4 /* for crypt(3) */

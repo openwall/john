@@ -4,7 +4,10 @@
 #ifndef _JOHN_PLUGIN_H
 #define _JOHN_PLUGIN_H
 
+#if AC_BUILT
 #include "autoconfig.h"
+#endif
+
 #ifdef HAVE_LIBDL
 
 #include "list.h"

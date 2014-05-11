@@ -29,7 +29,15 @@
  * modification, are permitted.
  */
 
+#if AC_BUILT
+/* need to know if HAVE_PCAP_H is set, for autoconfig build */
 #include "autoconfig.h"
+#else
+/* on a legacy build, we do not KNOW if pcap is installed.  We just run, and make will fail if it is not there */
+#define HAVE_NETINET_IF_ETHER_H
+#define HAVE_PCAP_H
+#endif
+
 #if HAVE_NETINET_IF_ETHER_H && HAVE_PCAP_H
 
 #define _BSD_SOURCE

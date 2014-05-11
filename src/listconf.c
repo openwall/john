@@ -6,7 +6,11 @@
  * modification, are permitted.
  */
 
+#if AC_BUILT
+/* need to know if HAVE_LIBGMP is set, for autoconfig build */
 #include "autoconfig.h"
+#endif
+
 
 #ifndef _MSC_VER
 #include <strings.h>

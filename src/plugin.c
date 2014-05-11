@@ -12,7 +12,11 @@
  *    modifications, are permitted.
  */
 
+#if AC_BUILT
+/* need to know if HAVE_LIBDL is set, for autoconfig build */
 #include "autoconfig.h"
+#endif
+
 #ifdef HAVE_LIBDL
 
 #include <stdio.h>

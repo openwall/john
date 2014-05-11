@@ -16,7 +16,10 @@
  * see doc/LICENSE.
  */
 
+#if AC_BUILT
+/* need to know if DHAVE_LIBKRB5 HAVE_LIBK5CRYPTO and HAVE_LIBDL is set, for autoconfig build */
 #include "autoconfig.h"
+#endif
 
 #define NEED_OS_FORK
 #define NEED_OS_TIMER

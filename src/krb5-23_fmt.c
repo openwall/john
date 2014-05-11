@@ -13,7 +13,11 @@
  * - user:$krb23$hash
  * - user:hash
  */
+#if AC_BUILT
+/* need to know if DHAVE_LIBKRB5 HAVE_LIBK5CRYPTO and HAVE_LIBDL is set, for autoconfig build */
 #include "autoconfig.h"
+#endif
+
 
 #if HAVE_LIBKRB5 && HAVE_LIBK5CRYPTO
 #include <string.h>

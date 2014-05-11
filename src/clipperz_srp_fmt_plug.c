@@ -42,7 +42,11 @@
  * n = 125617018995153554710546479714086468244499594888726646874671447258204721048803
  * g = 2 */
 
+#if AC_BUILT
+/* need to know if HAVE_LIBGMP is set, for autoconfig build */
 #include "autoconfig.h"
+#endif
+
 #include <string.h>
 #include "sha2.h"
 #include "arch.h"

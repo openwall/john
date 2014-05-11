@@ -24,7 +24,7 @@ aes.o: aes.c aes.h aes_func.h
 subdirs: $(SUBDIRS)
 
 $(SUBDIRS):
-	$(MAKE) -C $@ all
+	$(MAKE) -f Makefile.orig -C $@ all
 
 aes.a: $(SUBDIRS) aes.o
 	ar -r $@ $(AESIN)

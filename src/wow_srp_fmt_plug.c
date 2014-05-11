@@ -27,7 +27,11 @@
  * GMP exponentation (faster) is optional, and controled with HAVE_LIBGMP in autoconfig.h
  */
 
+#if AC_BUILT
+/* we need to know if HAVE_LIBGMP is defined */
 #include "autoconfig.h"
+#endif
+
 #include <string.h>
 #include "sha.h"
 #include "sha2.h"

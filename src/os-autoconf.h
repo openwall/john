@@ -6,20 +6,26 @@
  * modification, are permitted.
  *
  * There's ABSOLUTELY NO WARRANTY, express or implied.
+ *
+ * This is the stripped down os.h file, we use in an autoconf build.
+ * os.h will simply include this file, if building with autoconf.
+ * We have removed the items from here, which are computed during
+ * the call to ./configure.  NOTE, over time, this fill will be
+ * reduced more and more, and likely will go away at some time.
+ * when that happens, the os.h will simply be used for non autoconf
+ * builds (i.e. make -f Makefile.orig )
  */
 
 /*
  * OS-specific parameters.
  */
 
-#ifndef _JOHN_OS_H
-#define _JOHN_OS_H
+#ifndef _JOHN_OS_AUTOCONF_H
+#define _JOHN_OS_AUTOCONF_H
 
-#if AC_BUILT
-/* include a stripped down os.h, AFTER it includes autoconf.h */
-#include "os-autoconf.h"
-#else
-/* for non autoconf build (i.e. make -f Makefile.orig) we use the original os.h code. */
+#ifdef AC_BUILT
+
+#include "autoconfig.h"
 
 #ifdef NEED_OS_TIMER
 
@@ -69,34 +75,39 @@
 
 #endif
 
+/* NOTE, most of these HAVE_HEADER stuff are done in autoconfigure.h
+ * But we have kept 'some' of this here, mostly due to MSVC not being
+ * able to run autoconf or ./configure, so the header file 'may' not
+ * be built properly for VC
+ */
 #if defined (_MSC_VER)
+#undef HAVE_UNISTD_H
 #define HAVE_UNISTD_H		0
-#else
-#define HAVE_UNISTD_H		1
 #endif
 
 #if defined (_MSC_VER)
+#undef HAVE_SYS_TIME_H
 #define HAVE_SYS_TIME_H		0
-#else
-#define HAVE_SYS_TIME_H		1
 #endif
 
 #if defined (_MSC_VER)
+#undef HAVE_SYS_FILE_H
 #define HAVE_SYS_FILE_H		0
-#else
-#define HAVE_SYS_FILE_H		1
 #endif
 
 #if defined (__MINGW32__) || defined (_MSC_VER)
+#undef HAVE_SYS_TIMES_H
 #define HAVE_SYS_TIMES_H	0
-#else
-#define HAVE_SYS_TIMES_H	1
 #endif
 
 #if defined (__DJGPP__)
+#undef HAVE_DOS_H
 #define HAVE_DOS_H			1
-#else
-#define HAVE_DOS_H			0
+#endif
+
+#if defined (_MSC_VER)
+#undef HAVE_STRINGS_H
+#define HAVE_STRINGS_H		0
 #endif
 
 #if defined (_MSC_VER) || defined(__CYGWIN32__) || defined(__MINGW32__)
@@ -104,13 +115,6 @@
 #else
 #define HAVE_WINDOWS_H		0
 #endif
-
-#if defined (_MSC_VER)
-#define HAVE_STRINGS_H		0
-#else
-#define HAVE_STRINGS_H		1
-#endif
-
 
 #endif
 

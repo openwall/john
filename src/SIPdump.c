@@ -7,7 +7,14 @@
  *
  * gcc -Wall SIPdump.c -o SIPdump -lpcap */
 
+#if AC_BUILT
+/* need to know if HAVE_PCAP_H is set, for autoconfig build */
 #include "autoconfig.h"
+#else
+/* on a legacy build, we do not KNOW if pcap is installed.  We just run, and make will fail if it is not there */
+#define HAVE_PCAP_H
+#endif
+
 #if HAVE_PCAP_H
 #include <stdio.h>
 #include <string.h>

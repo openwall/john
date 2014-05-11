@@ -15,7 +15,9 @@
 #ifndef _JOHN_REGEX_H
 #define _JOHN_REGEX_H
 
+#if AC_BUILT
 #include "autoconfig.h"
+#endif
 
 #if HAVE_LIBREXGEN
   #define HAVE_REXGEN 1

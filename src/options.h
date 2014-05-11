@@ -17,7 +17,10 @@
 #ifndef _JOHN_OPTIONS_H
 #define _JOHN_OPTIONS_H
 
+#if AC_BUILT
 #include "autoconfig.h"
+#endif
+
 #include "list.h"
 #include "loader.h"
 #include "getopt.h"
