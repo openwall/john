@@ -839,6 +839,7 @@ distclean: clean
 	  || case "$(MFLAGS)" in *k*) fail=yes;; *) exit 1;; esac; \
 	done && test -z "$$fail"
 	$(RM) -f Makefile autoconfig.h config.status config.cache config.log autoconfig-stamp-h stamp-h1 ../run/john.log
+	$(LN) Makefile.stub Makefile
 #	moved from older clean target.
 	$(RM) arch.h
 #	We may later also 'move' the creation of these 3 into configure. If we do, we only smoke them on distclean
