@@ -108,6 +108,8 @@ AC_CACHE_SAVE
 #test SSE2
 AC_MSG_CHECKING([for SSE2])
 CC_BACKUP=$CC
+CFLAGS_BACKUP=$CFLAGS
+CFLAGS=-O0
 CPU_STR="Unk"
 CPU_NOTFOUND=0
 CC="$CC_BACKUP -msse2"
@@ -209,6 +211,7 @@ AC_RUN_IFELSE(
 ]
 )
 CC="$CC_BACKUP"
+CFLAGS="$CFLAGS_BACKUP"
 #############################################################################
 # End of JtR CPU test code.  The 'best' found should be in $CPU_BEST
 #############################################################################

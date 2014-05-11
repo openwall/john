@@ -4376,6 +4376,8 @@ rm -f confcache
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for SSE2" >&5
 $as_echo_n "checking for SSE2... " >&6; }
 CC_BACKUP=$CC
+CFLAGS_BACKUP=$CFLAGS
+CFLAGS=-O0
 CPU_STR="Unk"
 CPU_NOTFOUND=0
 CC="$CC_BACKUP -msse2"
@@ -4576,6 +4578,7 @@ fi
 
 fi
 CC="$CC_BACKUP"
+CFLAGS="$CFLAGS_BACKUP"
 #############################################################################
 # End of JtR CPU test code.  The 'best' found should be in $CPU_BEST
 #############################################################################
