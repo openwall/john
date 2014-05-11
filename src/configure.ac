@@ -232,7 +232,8 @@ AS_IF([test x"$with_icc_asm" != "xno"],
 [AC_RUN_IFELSE(
   [
   AC_LANG_SOURCE(
-	[[int main() {
+	[[#include <stdlib.h>
+	int main() {
 	#if defined(__x86_64)||defined(__x86_64__)||defined(__amd64)||defined(__amd64__)||defined(_LP64)||defined(_M_IX86)||\
 	    defined(_M_AMD64)||defined(_M_IA64)||defined(_M_X64)||defined(__ILP32__)||defined(__LLP64__)||defined(WIN64)
 	exit(0);
@@ -256,7 +257,8 @@ AS_IF([test x"$with_icc_asm" != "xno"],
 [AC_RUN_IFELSE(
   [
   AC_LANG_SOURCE(
-	[[int main() {
+	[[#include <stdlib.h>
+	int main() {
 	#if defined(__x86_64)||defined(__x86_64__)||defined(__amd64)||defined(__amd64__)||defined(_LP64)||defined(_M_IX86)||\
 	    defined(_M_AMD64)||defined(_M_IA64)||defined(_M_X64)||defined(__ILP32__)||defined(__LLP64__)||defined(WIN64)
 	exit(0);
@@ -297,7 +299,8 @@ AS_IF([echo "int long_ident;" > conftest.c && ${CC} -c conftest.c && strings - c
 AC_RUN_IFELSE(
   [
   AC_LANG_SOURCE(
-	[[int main() {
+	[[#include <stdlib.h>
+	int main() {
 	#if defined(__APPLE__) && defined(__MACH__)
 	exit(0);
 	#endif
@@ -307,7 +310,8 @@ AC_RUN_IFELSE(
 #AC_RUN_IFELSE(
 #  [
 #  AC_LANG_SOURCE(
-#	[[int main() {
+#	[[#include <stdlib.h>
+#	int main() {
 #	#if defined(__DJGPP__)
 #	exit(0);
 #	#endif
@@ -331,6 +335,7 @@ AC_RUN_IFELSE(
   [
   AC_LANG_SOURCE(
 	[[#include <stdio.h>
+	#include <stdlib.h>
 	int main(){char c[20];*((int*)(&c[1]))=1;*((int*)(&c[2]))=1;*((int*)(&c[3]))=1;if(c[2]==88)printf("foobar");exit(0);}]]
   )]
   ,[ALLOWS_UNALIGNED="1"]
@@ -423,12 +428,12 @@ if test x"$enable_cuda" != "xno"; then
 fi
 
 # Check for OpenCL (enable/disable handled within the macro)
-# I'm not sure 'C' is the proper argument, but it fails without it (magnum).
 AX_OPENCL(C)
 
 AS_IF([test x"$with_exe_ext" != "x"], AC_SUBST([EXE_EXT], [${with_exe_ext}]) [echo executable extension: ${with_exe_ext}] )
 
 # Checks for header files.
+# Eg. if arpa/inet.h is found, the below will define HAVE_ARPA_INET_H
 AC_CHECK_HEADERS([OS.h arpa/inet.h sys/times.h fcntl.h limits.h locale.h netdb.h netinet/in.h stddef.h stdint.h stdlib.h string.h strings.h sys/file.h sys/param.h sys/socket.h sys/time.h sys/timeb.h termios.h unistd.h wchar.h unixlib/local.h netinet/if_ether.h pcap.h])
 AC_CACHE_SAVE
 
@@ -474,7 +479,8 @@ AS_IF([test "x${ac_cv_c_bigendian}" = "xyes"],
 AC_MSG_CHECKING([for 'int' larger than 32-bit])
 AC_RUN_IFELSE(
   [AC_LANG_SOURCE(
-	[[int main() {
+	[[#include <stdlib.h>
+	int main() {
 	#if sizeof(int) > 4
 	exit(0);
 	#endif
