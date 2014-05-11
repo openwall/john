@@ -364,7 +364,7 @@ static void build_device_list(char *device_list[MAX_GPU_DEVICES])
 	int n = 0;
 
 	while (device_list[n] && n < MAX_GPU_DEVICES) {
-		int len = MIN(strlen(device_list[n]), 3);
+		int len = MAX(strlen(device_list[n]), 3);
 		if (!strcmp(device_list[n], "all"))
 			add_device_type(CL_DEVICE_TYPE_ALL);
 		else if (!strcmp(device_list[n], "cpu"))
