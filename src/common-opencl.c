@@ -39,6 +39,8 @@
 
 #define LOG_SIZE 1024*16
 
+#define MIN(a, b)		(((a) > (b)) ? (b) : (a))
+#define MAX(a, b)		(((a) > (b)) ? (a) : (b))
 
 // If we are a release build, only output OpenCL build log if
 // there was a fatal error (or --verbosity was increased).
@@ -362,12 +364,21 @@ static void build_device_list(char *device_list[MAX_GPU_DEVICES])
 	int n = 0;
 
 	while (device_list[n] && n < MAX_GPU_DEVICES) {
+		int len = MIN(strlen(device_list[n]), 3);
 		if (!strcmp(device_list[n], "all"))
 			add_device_type(CL_DEVICE_TYPE_ALL);
 		else if (!strcmp(device_list[n], "cpu"))
 			add_device_type(CL_DEVICE_TYPE_CPU);
 		else if (!strcmp(device_list[n], "gpu"))
 			add_device_type(CL_DEVICE_TYPE_GPU);
+		else if (!strncmp(device_list[n], "accelerator", len))
+			add_device_type(CL_DEVICE_TYPE_ACCELERATOR);
+		else if (!isdigit(device_list[n][0])) {
+			fprintf(stderr, "Error: --device must be numerical, "
+			        "or one of \"all\", \"cpu\", \"gpu\" and\n"
+			        "\"accelerator\".\n");
+			exit(1);
+		}
 		else
 			add_device_to_list(atoi(device_list[n]));
 		n++;
@@ -1512,7 +1523,8 @@ static void find_valid_opencl_device(int *dev_id, int *platform_id)
 				*platform_id = i;
 				*dev_id = d;
 			}
-			if (long_entries & CL_DEVICE_TYPE_GPU) {
+			if (long_entries &
+			    (CL_DEVICE_TYPE_GPU | CL_DEVICE_TYPE_ACCELERATOR)) {
 				*platform_id = i;
 				*dev_id = d;
 				return;
