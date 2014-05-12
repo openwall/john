@@ -62,5 +62,6 @@ src/john_build_rule.h
 src/memdbg_defines.h
 src/para-bench
 src/stamp-h1
+src/Makefile
 
 test/
