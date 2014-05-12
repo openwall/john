@@ -123,6 +123,9 @@ fi
 AC_ARG_WITH(icc-asm, [AS_HELP_STRING([--with-icc-asm],[Use ICC pre-built asm files for intrisic SIMD code. Default: no])],,[with_icc_asm=no])
 AC_ARG_WITH(exe-ext, [AS_HELP_STRING([--with-exe-ext],[For Cygwin and MinGW. Set to .exe to allow stand alone symlink exe files. Default is 'empty'])],,[with_exe_ext=""])
 
+# Cludge for endian (if not auto detected)
+AC_ARG_WITH(endian, [AS_HELP_STRING([--with-endian=little|big],[Set endianness for target])],,[endian=unknown])
+
 # Define Features. OpenMP and OpenCL are defined in their respective macros.
 # We define "--disable-FEATURE" when default is "auto".
 # MPI is not "auto" because its network usage might scare people:
@@ -143,14 +146,16 @@ AX_PROG_CC_MPI([test x"$enable_mpi" != "xno"], [AC_SUBST(HAVE_MPI,[-DHAVE_MPI])]
    elif test x"$enable_mpi" != "xno"; then
      AC_MSG_NOTICE([No MPI compiler found, disabling MPI])
    fi
-   AC_PROG_CC([gcc cc icc])
+   AC_PROG_CC([gcc cc icc ccc])
 ])
 
-# We now know if this is a cross compile
-if test ${enable_native_tests}${cross_compiling} = autoyes; then
-   enable_native_tests=no
-else
-   enable_native_tests=yes
+# At this point we know whether this is a cross compile
+if test ${enable_native_tests} = auto; then
+   if test ${cross_compiling} = yes; then
+      enable_native_tests=no
+   else
+      enable_native_tests=yes
+   fi
 fi
 
 # Checks for programs.
@@ -177,17 +182,56 @@ AC_CHECK_SIZEOF([int *])
 AC_CHECK_SIZEOF([long long *])
 AC_CHECK_SIZEOF([void *])
 
-# NOTE, later, we will probably do this by parsing the host or target to figure out
-# the system, then have a switch statement, based upon the system, calling the proper
-# AX_JTR_cputype_SPECIAL_LOGIC function (and of course have to write macros for each
-# environment.  We probaby should fall back to calling make -f Makefile.orig clean generic
-# or failing with an echo of that message, for any environment we do not handle.
-
+# NOTE, later, we will probably do this by parsing the host or target to figure
+# out the system, then have a switch statement, based upon the system, calling
+# the proper AX_JTR_cputype_SPECIAL_LOGIC function (and of course have to write
+# macros for each environment.  We probaby should fall back to calling
+# make -f Makefile.orig clean generic or failing with an echo of that message,
+# for any environment we do not handle.
 if test x${enable_native_tests} = xyes; then
    AX_JTR_X86_SPECIAL_LOGIC
 else
+# Available arch.h's:
+# alpha.h
+# arm32le.h (mfpu=neon)
+# ia64.h
+# mips32.h
+# mips64.h
+# pa-risc.h
+# ppc32.h
+# ppc32alt.h (-maltivec)
+# ppc64.h (-m64)
+# ppc64alt.h (-maltivec -faltivec)
+# sparc32.h
+# sparc64.h (-m64 -mcpu=ultrasparc) (-xarch=native64)
+# vax.h
+# x86-64.h (-mx32, -m64)
+# x86-any.h
+# x86-mmx.h (currently busted)
+# x86-sse.h
+#
+# See http://ftp.netbsd.org/pub/NetBSD/NetBSD-release-6/src/external/bsd/pcc/dist/pcc/configure.ac for many alternatives
+#
    CC_BACKUP=$CC
+   case "$target_cpu" in
+     armeb) ARCH_LINK=arm32le.h endian=big ;;
+     arm*) ARCH_LINK=arm32le.h endian=little ;;
+     i?86) ARCH_LINK=x86-any.h endian=little ;;
+     #m68k*) ARCH_LINK=m68k endian=big ;;
+     mipseb) ARCH_LINK=mips32.h endian=big ;;
+     mips*) ARCH_LINK=mips32.h endian=little ;;
+     #pdp10) ARCH_LINK=pdp10 endian=little ;;
+     powerpc) ARCH_LINK=ppc32.h endian=big ;;
+     sparc64) ARCH_LINK=sparc64.h endian=big ;;
+     vax) ARCH_LINK=vax.h endian=little ;;
+     x86_64) ARCH_LINK=x86-64.h endian=little ;;
+     *)
+        AC_MSG_FAILURE([No support for ${target_cpu} yet, please report])
+        ;;
+     esac
 fi
+AC_MSG_NOTICE([Using ${ARCH_LINK} for arch.h])
+
 #############################################################################
 # Check for unaligned memory access being allowed
 #############################################################################
@@ -214,7 +258,12 @@ CC="$CC_BACKUP"
 #############################################################################
 # Check for LE/BE CPU
 #############################################################################
-AC_C_BIGENDIAN  #([ARCH_LE=0], [ARCH_LE=1], [action-if-unknown], [action-if-universal])
+if test ${endian} = unknown; then
+  AC_C_BIGENDIAN  #([ARCH_LE=0], [ARCH_LE=1], [action-if-unknown], [action-if-universal])
+else
+  AC_MSG_NOTICE([Endian is established as ${endian}])
+fi
+
 #############################################################################
 # END Check for LE/BE CPU
 #############################################################################
@@ -339,7 +388,8 @@ AS_IF([test $ac_cv_sizeof_int -gt 4],
    [AC_DEFINE([ARCH_INT_GT_32], 1, ["Enable if sizeof(int) > 4"])],
    [AC_DEFINE([ARCH_INT_GT_32], 0, ["Enable if sizeof(int) > 4"])])
 
-# build proper 'link' to the arch file (based on bit only, for 32 bit, we may want different ones, and for other CPU's we need different ones)
+# build proper 'link' to the arch file (based on bit only, for 32 bit, we may
+# want different ones, and for other CPU's we need different ones)
 # note, we remove it first.
 AS_IF([rm -f arch.h])
 AC_CONFIG_LINKS([arch.h:$ARCH_LINK])

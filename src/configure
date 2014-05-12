@@ -724,6 +724,7 @@ enable_option_checking
 with_arch
 with_icc_asm
 with_exe_ext
+with_endian
 enable_mpi
 enable_cuda
 enable_nss
@@ -1378,6 +1379,8 @@ Optional Packages:
                           Default: no
   --with-exe-ext          For Cygwin and MinGW. Set to .exe to allow stand
                           alone symlink exe files. Default is 'empty'
+  --with-endian=little|big
+                          Set endianness for target
 
 Some influential environment variables:
   MPICC       MPI C compiler command
@@ -3446,6 +3449,16 @@ else
 fi
 
 
+# Cludge for endian (if not auto detected)
+
+# Check whether --with-endian was given.
+if test "${with_endian+set}" = set; then :
+  withval=$with_endian;
+else
+  endian=unknown
+fi
+
+
 # Define Features. OpenMP and OpenCL are defined in their respective macros.
 # We define "--disable-FEATURE" when default is "auto".
 # MPI is not "auto" because its network usage might scare people:
@@ -4722,7 +4735,7 @@ ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 if test -n "$ac_tool_prefix"; then
-  for ac_prog in gcc cc icc
+  for ac_prog in gcc cc icc ccc
   do
     # Extract the first word of "$ac_tool_prefix$ac_prog", so it can be a program name with args.
 set dummy $ac_tool_prefix$ac_prog; ac_word=$2
@@ -4766,7 +4779,7 @@ fi
 fi
 if test -z "$CC"; then
   ac_ct_CC=$CC
-  for ac_prog in gcc cc icc
+  for ac_prog in gcc cc icc ccc
 do
   # Extract the first word of "$ac_prog", so it can be a program name with args.
 set dummy $ac_prog; ac_word=$2
@@ -5129,11 +5142,13 @@ fi
 
 
 
-# We now know if this is a cross compile
-if test ${enable_native_tests}${cross_compiling} = autoyes; then
-   enable_native_tests=no
-else
-   enable_native_tests=yes
+# At this point we know whether this is a cross compile
+if test ${enable_native_tests} = auto; then
+   if test ${cross_compiling} = yes; then
+      enable_native_tests=no
+   else
+      enable_native_tests=yes
+   fi
 fi
 
 # Checks for programs.
@@ -6383,12 +6398,12 @@ _ACEOF
 
 
 
-# NOTE, later, we will probably do this by parsing the host or target to figure out
-# the system, then have a switch statement, based upon the system, calling the proper
-# AX_JTR_cputype_SPECIAL_LOGIC function (and of course have to write macros for each
-# environment.  We probaby should fall back to calling make -f Makefile.orig clean generic
-# or failing with an echo of that message, for any environment we do not handle.
-
+# NOTE, later, we will probably do this by parsing the host or target to figure
+# out the system, then have a switch statement, based upon the system, calling
+# the proper AX_JTR_cputype_SPECIAL_LOGIC function (and of course have to write
+# macros for each environment.  We probaby should fall back to calling
+# make -f Makefile.orig clean generic or failing with an echo of that message,
+# for any environment we do not handle.
 if test x${enable_native_tests} = xyes; then
 
 CC_BACKUP=$CC
@@ -6602,10 +6617,12 @@ fi
 CC="$CC_BACKUP"
 CFLAGS="$CFLAGS_BACKUP"
 
+# Achtung, M4 porn, NSFW!
 # If we're not cross compiling, check for -march=native and add it too
 if test x${cross_compiling} = xno; then
    { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether compiler understands -march=native" >&5
 $as_echo_n "checking whether compiler understands -march=native... " >&6; }
+   CC="$CC_BACKUP -march=native"
    if test "$cross_compiling" = yes; then :
   { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
@@ -6623,12 +6640,97 @@ $as_echo "yes" >&6; }
 else
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
+     # or -xarch=native64
+     { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether compiler understands -xarch=native64" >&5
+$as_echo_n "checking whether compiler understands -xarch=native64... " >&6; }
+      CC="$CC_BACKUP -xarch=native64"
+      if test "$cross_compiling" = yes; then :
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "cannot run test program while cross compiling
+See \`config.log' for more details" "$LINENO" 5; }
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+int main() { return 0; }
+_ACEOF
+if ac_fn_c_try_run "$LINENO"; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+        CPU_BEST_FLAGS="-xarch=native64 $CPU_BEST_FLAGS"
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+        # or -xarch=native
+        { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether compiler understands -xarch=native" >&5
+$as_echo_n "checking whether compiler understands -xarch=native... " >&6; }
+         CC="$CC_BACKUP -xarch=native"
+         if test "$cross_compiling" = yes; then :
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "cannot run test program while cross compiling
+See \`config.log' for more details" "$LINENO" 5; }
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+int main() { return 0; }
+_ACEOF
+if ac_fn_c_try_run "$LINENO"; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+           CPU_BEST_FLAGS="-xarch=native $CPU_BEST_FLAGS"
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+           # or "-arch host"
+           { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether compiler understands -arch host" >&5
+$as_echo_n "checking whether compiler understands -arch host... " >&6; }
+            CC="$CC_BACKUP -arch host"
+            if test "$cross_compiling" = yes; then :
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "cannot run test program while cross compiling
+See \`config.log' for more details" "$LINENO" 5; }
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+int main() { return 0; }
+_ACEOF
+if ac_fn_c_try_run "$LINENO"; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+              CPU_BEST_FLAGS="-arch host $CPU_BEST_FLAGS"
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
 
 fi
 rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
   conftest.$ac_objext conftest.beam conftest.$ac_ext
 fi
 
+
+
+fi
+rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
+  conftest.$ac_objext conftest.beam conftest.$ac_ext
+fi
+
+
+
+fi
+rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
+  conftest.$ac_objext conftest.beam conftest.$ac_ext
+fi
+
+
+
+fi
+rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
+  conftest.$ac_objext conftest.beam conftest.$ac_ext
+fi
+
+   CC="$CC_BACKUP"
 fi
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for 32/64 bit" >&5
@@ -6756,8 +6858,51 @@ fi
 $as_echo "$EXTRA_AS_FLAGS" >&6; }
 CC="$CC_BACKUP"
 else
+# Available arch.h's:
+# alpha.h
+# arm32le.h (mfpu=neon)
+# ia64.h
+# mips32.h
+# mips64.h
+# pa-risc.h
+# ppc32.h
+# ppc32alt.h (-maltivec)
+# ppc64.h (-m64)
+# ppc64alt.h (-maltivec -faltivec)
+# sparc32.h
+# sparc64.h (-m64 -mcpu=ultrasparc) (-xarch=native64)
+# vax.h
+# x86-64.h (-mx32, -m64)
+# x86-any.h
+# x86-mmx.h (currently busted)
+# x86-sse.h
+#
+# See http://ftp.netbsd.org/pub/NetBSD/NetBSD-release-6/src/external/bsd/pcc/dist/pcc/configure.ac for many alternatives
+#
    CC_BACKUP=$CC
+   case "$target_cpu" in
+     armeb) ARCH_LINK=arm32le.h endian=big ;;
+     arm*) ARCH_LINK=arm32le.h endian=little ;;
+     i?86) ARCH_LINK=x86-any.h endian=little ;;
+     #m68k*) ARCH_LINK=m68k endian=big ;;
+     mipseb) ARCH_LINK=mips32.h endian=big ;;
+     mips*) ARCH_LINK=mips32.h endian=little ;;
+     #pdp10) ARCH_LINK=pdp10 endian=little ;;
+     powerpc) ARCH_LINK=ppc32.h endian=big ;;
+     sparc64) ARCH_LINK=sparc64.h endian=big ;;
+     vax) ARCH_LINK=vax.h endian=little ;;
+     x86_64) ARCH_LINK=x86-64.h endian=little ;;
+     *)
+        { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "No support for ${target_cpu} yet, please report
+See \`config.log' for more details" "$LINENO" 5; }
+        ;;
+     esac
 fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: Using ${ARCH_LINK} for arch.h" >&5
+$as_echo "$as_me: Using ${ARCH_LINK} for arch.h" >&6;}
+
 #############################################################################
 # Check for unaligned memory access being allowed
 #############################################################################
@@ -6803,7 +6948,8 @@ CC="$CC_BACKUP"
 #############################################################################
 # Check for LE/BE CPU
 #############################################################################
- { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether byte ordering is bigendian" >&5
+if test ${endian} = unknown; then
+   { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether byte ordering is bigendian" >&5
 $as_echo_n "checking whether byte ordering is bigendian... " >&6; }
 if ${ac_cv_c_bigendian+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -7027,6 +7173,11 @@ $as_echo "#define AC_APPLE_UNIVERSAL_BUILD 1" >>confdefs.h
  presetting ac_cv_c_bigendian=no (or yes) will help" "$LINENO" 5 ;;
  esac
   #([ARCH_LE=0], [ARCH_LE=1], [action-if-unknown], [action-if-universal])
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: Endian is established as ${endian}" >&5
+$as_echo "$as_me: Endian is established as ${endian}" >&6;}
+fi
+
 #############################################################################
 # END Check for LE/BE CPU
 #############################################################################
@@ -10170,7 +10321,8 @@ $as_echo "#define ARCH_INT_GT_32 0" >>confdefs.h
 
 fi
 
-# build proper 'link' to the arch file (based on bit only, for 32 bit, we may want different ones, and for other CPU's we need different ones)
+# build proper 'link' to the arch file (based on bit only, for 32 bit, we may
+# want different ones, and for other CPU's we need different ones)
 # note, we remove it first.
 if rm -f arch.h; then :
 

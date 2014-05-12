@@ -155,15 +155,48 @@ AC_RUN_IFELSE(
 CC="$CC_BACKUP"
 CFLAGS="$CFLAGS_BACKUP"
 
+# Achtung, M4 porn, NSFW!
 # If we're not cross compiling, check for -march=native and add it too
 if test x${cross_compiling} = xno; then
    AC_MSG_CHECKING([whether compiler understands -march=native])
+   CC="$CC_BACKUP -march=native"
    AC_RUN_IFELSE(
      [AC_LANG_SOURCE([int main() { return 0; }])],
      [AC_MSG_RESULT(yes)]
      [CPU_BEST_FLAGS="-march=native $CPU_BEST_FLAGS"],
      [AC_MSG_RESULT(no)]
+     # or -xarch=native64
+     [AC_MSG_CHECKING([whether compiler understands -xarch=native64])
+      CC="$CC_BACKUP -xarch=native64"
+      AC_RUN_IFELSE(
+        [AC_LANG_SOURCE([int main() { return 0; }])],
+        [AC_MSG_RESULT(yes)]
+        [CPU_BEST_FLAGS="-xarch=native64 $CPU_BEST_FLAGS"],
+        [AC_MSG_RESULT(no)]
+        # or -xarch=native
+        [AC_MSG_CHECKING([whether compiler understands -xarch=native])
+         CC="$CC_BACKUP -xarch=native"
+         AC_RUN_IFELSE(
+           [AC_LANG_SOURCE([int main() { return 0; }])],
+           [AC_MSG_RESULT(yes)]
+           [CPU_BEST_FLAGS="-xarch=native $CPU_BEST_FLAGS"],
+           [AC_MSG_RESULT(no)]
+           # or "-arch host"
+           [AC_MSG_CHECKING([whether compiler understands -arch host])
+            CC="$CC_BACKUP -arch host"
+            AC_RUN_IFELSE(
+              [AC_LANG_SOURCE([int main() { return 0; }])],
+              [AC_MSG_RESULT(yes)]
+              [CPU_BEST_FLAGS="-arch host $CPU_BEST_FLAGS"],
+              [AC_MSG_RESULT(no)]
+            )
+           ]
+         )
+        ]
+      )
+     ]
    )
+   CC="$CC_BACKUP"
 fi
 
 AC_MSG_CHECKING([for 32/64 bit])
