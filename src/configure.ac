@@ -183,7 +183,7 @@ AC_RUN_IFELSE(
   [
   AC_LANG_SOURCE(
 	[[#include <stdio.h>
-	#include <stdlib.h>
+	extern void exit(int);
 	int main(){char c[20];*((int*)(&c[1]))=1;*((int*)(&c[2]))=1;*((int*)(&c[3]))=1;if(c[2]==88)printf("foobar");exit(0);}]]
   )]
   ,[ALLOWS_UNALIGNED="1"]

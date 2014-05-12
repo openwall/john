@@ -55,6 +55,7 @@ AC_RUN_IFELSE(
   AC_LANG_SOURCE(
 	[[#include <emmintrin.h>
       #include <stdio.h>
+      extern void exit(int);
       int main(){__m128i t;*((long long*)&t)=1;t=_mm_slli_si128(t,7);if((*(unsigned*)&t)==88)printf(".");exit(0);}]]
   )]
   ,[CPU_BEST_FLAGS="-msse2"] dnl
@@ -74,6 +75,7 @@ AC_RUN_IFELSE(
   AC_LANG_SOURCE(
 	[[#include <tmmintrin.h>
       #include <stdio.h>
+      extern void exit(int);
       int main(){__m128i t;*((long long*)&t)=1;t=_mm_shuffle_epi8(t,t);if((*(unsigned*)&t)==88)printf(".");exit(0);}]]
   )]
   ,[CPU_BEST_FLAGS="-mssse3"]dnl
@@ -95,6 +97,7 @@ AC_RUN_IFELSE(
   AC_LANG_SOURCE(
 	[[#include <smmintrin.h>
       #include <stdio.h>
+      extern void exit(int);
       int main(){__m128d t;*((long long*)&t)=1;t=_mm_round_pd(t,1);if((*(long long*)&t)==88)printf(".");exit(0);}]]
   )]
   ,[CPU_BEST_FLAGS="-msse4.1"]dnl
@@ -116,6 +119,7 @@ AC_RUN_IFELSE(
   AC_LANG_SOURCE(
 	[[#include <immintrin.h>
       #include <stdio.h>
+      extern void exit(int);
       int main(){__m256d t;*((long long*)&t)=1;t=_mm256_movedup_pd(t);if((*(long long*)&t)==88)printf(".");exit(0);}]]
   )]
   ,[CPU_BEST_FLAGS="-mavx"]dnl
@@ -136,6 +140,7 @@ AC_RUN_IFELSE(
   AC_LANG_SOURCE(
 	[[#include <intrin.h>
       #include <stdio.h>
+      extern void exit(int);
       int main(){__m128i t;*((long long*)&t)=1;t=_mm_roti_epi32(t,5);if((*(long long*)&t)==88)printf(".");exit(0);}]]
   )]
   ,[CPU_BEST_FLAGS="-mxop"]dnl
@@ -167,7 +172,7 @@ AS_IF([test x"$with_icc_asm" != "xno"],
 [AC_RUN_IFELSE(
   [
   AC_LANG_SOURCE(
-	[[#include <stdlib.h>
+	[[extern void exit(int);
 	int main() {
 	#if defined(__x86_64)||defined(__x86_64__)||defined(__amd64)||defined(__amd64__)||defined(_LP64)||defined(_M_IX86)||\
 	    defined(_M_AMD64)||defined(_M_IA64)||defined(_M_X64)||defined(__ILP32__)||defined(__LLP64__)||defined(WIN64)
@@ -192,7 +197,7 @@ AS_IF([test x"$with_icc_asm" != "xno"],
 [AC_RUN_IFELSE(
   [
   AC_LANG_SOURCE(
-	[[#include <stdlib.h>
+	[[extern void exit(int);
 	int main() {
 	#if defined(__x86_64)||defined(__x86_64__)||defined(__amd64)||defined(__amd64__)||defined(_LP64)||defined(_M_IX86)||\
 	    defined(_M_AMD64)||defined(_M_IA64)||defined(_M_X64)||defined(__ILP32__)||defined(__LLP64__)||defined(WIN64)
@@ -223,7 +228,7 @@ AS_IF([echo "int long_ident;" > conftest.c && ${CC} -c conftest.c && strings - c
 AC_RUN_IFELSE(
   [
   AC_LANG_SOURCE(
-	[[#include <stdlib.h>
+	[[extern void exit(int);
 	int main() {
 	#if defined(__APPLE__) && defined(__MACH__)
 	exit(0);

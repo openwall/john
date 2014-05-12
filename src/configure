@@ -6245,6 +6245,7 @@ else
 
   #include <emmintrin.h>
       #include <stdio.h>
+      extern void exit(int);
       int main(){__m128i t;*((long long*)&t)=1;t=_mm_slli_si128(t,7);if((*(unsigned*)&t)==88)printf(".");exit(0);}
 
 
@@ -6283,6 +6284,7 @@ else
 
   #include <tmmintrin.h>
       #include <stdio.h>
+      extern void exit(int);
       int main(){__m128i t;*((long long*)&t)=1;t=_mm_shuffle_epi8(t,t);if((*(unsigned*)&t)==88)printf(".");exit(0);}
 
 
@@ -6324,6 +6326,7 @@ else
 
   #include <smmintrin.h>
       #include <stdio.h>
+      extern void exit(int);
       int main(){__m128d t;*((long long*)&t)=1;t=_mm_round_pd(t,1);if((*(long long*)&t)==88)printf(".");exit(0);}
 
 
@@ -6365,6 +6368,7 @@ else
 
   #include <immintrin.h>
       #include <stdio.h>
+      extern void exit(int);
       int main(){__m256d t;*((long long*)&t)=1;t=_mm256_movedup_pd(t);if((*(long long*)&t)==88)printf(".");exit(0);}
 
 
@@ -6405,6 +6409,7 @@ else
 
   #include <intrin.h>
       #include <stdio.h>
+      extern void exit(int);
       int main(){__m128i t;*((long long*)&t)=1;t=_mm_roti_epi32(t,5);if((*(long long*)&t)==88)printf(".");exit(0);}
 
 
@@ -6474,7 +6479,7 @@ else
   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
-  #include <stdlib.h>
+  extern void exit(int);
 	int main() {
 	#if defined(__x86_64)||defined(__x86_64__)||defined(__amd64)||defined(__amd64__)||defined(_LP64)||defined(_M_IX86)||\
 	    defined(_M_AMD64)||defined(_M_IA64)||defined(_M_X64)||defined(__ILP32__)||defined(__LLP64__)||defined(WIN64)
@@ -6516,7 +6521,7 @@ else
   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
-  #include <stdlib.h>
+  extern void exit(int);
 	int main() {
 	#if defined(__x86_64)||defined(__x86_64__)||defined(__amd64)||defined(__amd64__)||defined(_LP64)||defined(_M_IX86)||\
 	    defined(_M_AMD64)||defined(_M_IA64)||defined(_M_X64)||defined(__ILP32__)||defined(__LLP64__)||defined(WIN64)
@@ -6566,7 +6571,7 @@ else
   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
-  #include <stdlib.h>
+  extern void exit(int);
 	int main() {
 	#if defined(__APPLE__) && defined(__MACH__)
 	exit(0);
@@ -6603,7 +6608,7 @@ else
 /* end confdefs.h.  */
 
   #include <stdio.h>
-	#include <stdlib.h>
+	extern void exit(int);
 	int main(){char c[20];*((int*)(&c[1]))=1;*((int*)(&c[2]))=1;*((int*)(&c[3]))=1;if(c[2]==88)printf("foobar");exit(0);}
 
 
