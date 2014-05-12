@@ -98,6 +98,21 @@ AC_PROG_MAKE_SET
 AC_PROG_CPP
 AC_CACHE_SAVE
 
+AC_CHECK_SIZEOF([char])
+AC_CHECK_SIZEOF([unsigned char])
+AC_CHECK_SIZEOF([short])
+AC_CHECK_SIZEOF([unsigned short])
+AC_CHECK_SIZEOF([int])
+AC_CHECK_SIZEOF([unsigned])
+AC_CHECK_SIZEOF([unsigned int])
+AC_CHECK_SIZEOF([long])
+AC_CHECK_SIZEOF([long long])
+AC_CHECK_SIZEOF([double])
+AC_CHECK_SIZEOF([long double])
+AC_CHECK_SIZEOF([int *])
+AC_CHECK_SIZEOF([long long *])
+AC_CHECK_SIZEOF([void *])
+
 #############################################################################
 # CPU test code.  We start with SSE2, then SSSE3, then SSE4, ... until we fail
 # whatever the last one is, we use it.  NOTE, if AVX fails we still DO test XOP
@@ -484,21 +499,9 @@ AS_IF([test "x${ac_cv_c_bigendian}" = "xyes"],
    [AC_DEFINE([ARCH_LITTLE_ENDIAN], 0, ["Enable if CPU is LITTLE ENDIAN arch"])],
    [AC_DEFINE([ARCH_LITTLE_ENDIAN], 1, ["Enable if CPU is LITTLE ENDIAN arch"])])
 
-AC_MSG_CHECKING([for 'int' larger than 32-bit])
-AC_RUN_IFELSE(
-  [AC_LANG_SOURCE(
-	[[#include <stdlib.h>
-	int main() {
-	#if sizeof(int) > 4
-	exit(0);
-	#endif
-	exit(1);}]]
-  )],
-  [AC_MSG_RESULT(yes)]
-  AC_DEFINE([ARCH_INT_GT_32], 1, ["Enable if sizeof(int) > 4"]),
-  [AC_MSG_RESULT(no)]
-  AC_DEFINE([ARCH_INT_GT_32], 0, ["Enable if sizeof(int) > 4"]),
-)
+AS_IF([test $ac_cv_sizeof_int -gt 4], 
+   [AC_DEFINE([ARCH_INT_GT_32], 1, ["Enable if sizeof(int) > 4"])],
+   [AC_DEFINE([ARCH_INT_GT_32], 0, ["Enable if sizeof(int) > 4"])])
 
 # build proper 'link' to the arch file (based on bit only, for 32 bit, we may want different ones, and for other CPU's we need different ones)
 # note, we remove it first.
