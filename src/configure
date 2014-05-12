@@ -3255,10 +3255,54 @@ ac_config_headers="$ac_config_headers autoconfig.h"
 
 
 
-
 # And one inline. This one is needed by ax_opencl.m4 but has been replaced by
 # generic macros. Rather than hack ax_opencl.m4 we include this here (the
 # original has been obsoleted by AX_COMPILER_VENDOR or something like that)
+
+# Copyright (C) 2014 Jim Fougeron, for John Ripper project.
+# This file put into public domain. unlimited permission to
+# copy and/or distribute it, with or without modifications,
+# as long as this notice is preserved.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY, to the extent permitted by law; without
+# even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+# PARTICULAR PURPOSE.
+#
+# this code will probe test many flavors of intel CPU's looking
+# for different CPU instruction abilities. It does not use the
+# CPUID instructions, instead actually issuing instructions that
+# are known to be only processable by specific CPU types, and
+# simply doing the instruction, and returning 0.  If the cpu
+# instruction can NOT be done, then the test will CORE, and
+# we know that those CPU instructions are NOT handled.  Once
+# we hit a bad test, we are done, since the CPU will not have
+# instructions above that level.  The exception is XOP vs AVX.
+# there may not always be a 100% follow through on those types,
+# since one of them was built by Intel, the other by AMD. When
+# we detect SSE4, we simply perform the final tests, without
+# worrying about failed results.  But if we had failed at SSE4
+# then we would know the CPU has SSE3 (or SSSE3), and nothing
+# further. If there is no SSE4, then there will never be a need
+# to test for AVX or XOP.  This CPU simply does not have them.
+#
+#############################################################################
+# CPU test code.  We start with SSE2, then SSSE3, then SSE4, ... until we fail
+# whatever the last one is, we use it.  NOTE, if AVX fails we still DO test XOP
+# since one is intel, one is AMD.  At the very end of configure, we set gcc
+# back to whatever the 'best' was.  During running in configure, $CC gets reset
+# so the results of our tests must be remembered, and reset just before exit.
+#############################################################################
+#
+#
+#############################################################################
+# ASM_MAGIC code.  Here we add certain 'magic' values. Things like
+#  -DUNDERSCORES -DBSD -DALIGN_LOG   (for macosx-x86-*)
+#  -DUNDERSCORES -DALIGN_LOG for (dos-djgpp-x86-*)
+#  -DUNDERSCORES for cygwin / MinGW / VC
+#############################################################################
+#
+
 
 
 
@@ -3311,9 +3355,6 @@ fi
 
 LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib "
 
-
-# We might want to use this
-#AC_USE_SYSTEM_EXTENSIONS
 
 # Packages
 
@@ -5256,22 +5297,21 @@ _ACEOF
 
 
 
-#############################################################################
-# CPU test code.  We start with SSE2, then SSSE3, then SSE4, ... until we fail
-# whatever the last one is, we use it.  NOTE, if AVX fails we still DO test XOP
-# since one is intel, one is AMD.  At the very end of configure, we set gcc
-# back to whatever the 'best' was.  During running in configure, $CC gets reset
-# so the results of our tests must be remembered, and reset just before exit.
-#############################################################################
-#test SSE2
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for SSE2" >&5
-$as_echo_n "checking for SSE2... " >&6; }
+# NOTE, later, we will probably do this by parsing the host or target to figure out
+# the system, then have a switch statement, based upon the system, calling the proper
+# AX_JTR_cputype_SPECIAL_LOGIC function (and of course have to write macros for each
+# environment.  We probaby should fall back to calling make -f Makefile.orig clean generic
+# or failing with an echo of that message, for any environment we do not handle.
+
+
 CC_BACKUP=$CC
 CFLAGS_BACKUP=$CFLAGS
 CFLAGS=-O0
 CPU_STR="Unk"
 CPU_NOTFOUND=0
 CC="$CC_BACKUP -msse2"
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for SSE2" >&5
+$as_echo_n "checking for SSE2... " >&6; }
 if test "$cross_compiling" = yes; then :
   { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
@@ -5288,7 +5328,7 @@ else
 
 _ACEOF
 if ac_fn_c_try_run "$LINENO"; then :
-  CPU_BEST_FLAGS="-msse2"   CPU_STR="SSE2"
+  CPU_BEST_FLAGS="-msse2"    CPU_STR="SSE2"
 
 $as_echo "#define HAVE_SSE2 1" >>confdefs.h
     { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
@@ -5498,18 +5538,7 @@ rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
 fi
 
 fi
-#############################################################################
-# End of CPU feature tests.  The 'best' found should be in $CPU_BEST_FLAGS
-#############################################################################
 
-#############################################################################
-# 32 vs 64 bit CPU test code.  Sets these items:
-#  AESNI=64 (CPU_BIT_STR)  Build type also uses this
-#  set ARCH_LINK file
-#  sets the extra ASM object.
-#  Will later set @USE_ICC_ASM@
-#############################################################################
-#test 32 vs 64 bit.  Also handle icc asm intrinsics [Also handle X32]
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for 32/64 bit" >&5
 $as_echo_n "checking for 32/64 bit... " >&6; }
 # with_icc_asm
@@ -5596,22 +5625,12 @@ fi
 
 
 fi
-#############################################################################
-# End of JtR 32/64 bit test code.
-#############################################################################
 
-#############################################################################
-# ASM_MAGIC code.  Here we add certain 'magic' values. Things like
-#  -DUNDERSCORES -DBSD -DALIGN_LOG   (for macosx-x86-*)
-#  -DUNDERSCORES -DALIGN_LOG for (dos-djgpp-x86-*)
-#  -DUNDERSCORES for cygwin / MinGW / VC
-#############################################################################
 EXTRA_AS_FLAGS=
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for extra ASFLAGS" >&5
 $as_echo_n "checking for extra ASFLAGS... " >&6; }
 CC="$CC_BACKUP"
 
-# this test also detects JUST the underscore issue, and is generic as long as strings and grep exist
 if echo "int long_ident;" > conftest.c && ${CC} -c conftest.c && strings - conftest.${OBJEXT} | ${GREP} _long_ident > conftest.out; then :
   EXTRA_AS_FLAGS+=" -DUNDERSCORES"
 fi
@@ -5641,24 +5660,9 @@ rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
   conftest.$ac_objext conftest.beam conftest.$ac_ext
 fi
 
-#AC_RUN_IFELSE(
-#  [
-#  AC_LANG_SOURCE(
-#	[[#include <stdlib.h>
-#	int main() {
-#	#if defined(__DJGPP__)
-#	exit(0);
-#	#endif
-#	exit(1);}]]
-#  )]
-#  ,[EXTRA_AS_FLAGS+=" -DALIGN_LOG"])
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $EXTRA_AS_FLAGS" >&5
 $as_echo "$EXTRA_AS_FLAGS" >&6; }
 CC="$CC_BACKUP"
-
-#############################################################################
-# End of JtR ASM_MAGIC code
-#############################################################################
 
 #############################################################################
 # check for unaligned memory access being allowed
