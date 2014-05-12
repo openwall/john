@@ -112,17 +112,30 @@ if test -n "$ATISTREAMSDKROOT"; then
    fi
 fi
 
+# Must be run early
+AC_USE_SYSTEM_EXTENSIONS
+
 # Packages
 AC_ARG_WITH(icc-asm, [AS_HELP_STRING([--with-icc-asm],[Use ICC pre-built asm files for intrisic SIMD code. Default: no])],,[with_icc_asm=no])
 AC_ARG_WITH(exe-ext, [AS_HELP_STRING([--with-exe-ext],[For Cygwin and MinGW. Set to .exe to allow stand alone symlink exe files. Default is 'empty'])],,[with_exe_ext=""])
+
 # Features
 # We define "--disable-FEATURE" because default is "auto".
 # NOTE: OpenMP and OpenCL are defined in their respective macro file
-AC_ARG_ENABLE([mpi], [AC_HELP_STRING([--disable-mpi], [do not use MPI])], , [enable_mpi=$enableval], [enable_mpi=auto])
-AC_ARG_ENABLE([cuda], [AC_HELP_STRING([--disable-cuda], [do not use CUDA])], [enable_cuda=$enableval], [enable_cuda=auto])
+AC_ARG_ENABLE([mpi], [AC_HELP_STRING([--disable-mpi], [Do not use MPI])], [enable_mpi=$enableval], [enable_mpi=auto])
+AC_ARG_ENABLE([cuda], [AC_HELP_STRING([--disable-cuda], [Do not use CUDA])], [enable_cuda=$enableval], [enable_cuda=auto])
+
+# check for MPI. Only if MPI not found/wanted: Check for CC
+AX_PROG_CC_MPI([test x"$enable_mpi" != "xno"], [AC_SUBST(HAVE_MPI,[-DHAVE_MPI])],[
+   if test x"$enable_mpi" = "xyes"; then
+     AC_MSG_FAILURE([No MPI compiler found])
+   elif test x"$enable_mpi" != "xno"; then
+     AC_MSG_NOTICE([No MPI compiler found, disabling MPI])
+   fi
+   AC_PROG_CC([gcc cc icc])
+])
 
 # Checks for programs.
-AC_PROG_CC([gcc cc icc ])
 AC_PROG_LN_S
 AC_PROG_GREP
 AC_PROG_CXX
@@ -130,6 +143,7 @@ AC_PROG_MAKE_SET
 AC_PROG_CPP
 AC_CACHE_SAVE
 
+# Cross-compile compliant size checks
 AC_CHECK_SIZEOF([char])
 AC_CHECK_SIZEOF([unsigned char])
 AC_CHECK_SIZEOF([short])
@@ -232,15 +246,6 @@ PKG_CHECK_MODULES([NSS], [nss], AC_SUBST(HAVE_NSS,[-DHAVE_NSS]),
 
 # check for openMP (enable/disable handled within the macro)
 AC_OPENMP
-
-# check for MPI
-AX_PROG_CC_MPI([test x"$enable_mpi" != "xno"], [AC_SUBST(HAVE_MPI,[-DHAVE_MPI])],[
-   if test x"$enable_mpi" = "xyes"; then
-     AC_MSG_FAILURE([No MPI compiler found])
-   elif test x"$enable_mpi" != "xno"; then
-     AC_MSG_NOTICE([No MPI compiler found, disabling MPI])
-   fi
-])
 
 # Check for CUDA. According to the guru's we should not try to be clever
 # with finding directories. If they are not present in normal paths, user
