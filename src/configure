@@ -4579,13 +4579,41 @@ fi
 fi
 CC="$CC_BACKUP"
 CFLAGS="$CFLAGS_BACKUP"
+
+# If we're not cross compiling, check for -march=native and add it too
+if test x${cross_compiling} = xno; then
+   { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether compiler understands -march=native" >&5
+$as_echo_n "checking whether compiler understands -march=native... " >&6; }
+   if test "$cross_compiling" = yes; then :
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "cannot run test program while cross compiling
+See \`config.log' for more details" "$LINENO" 5; }
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+int main() { return 0; }
+_ACEOF
+if ac_fn_c_try_run "$LINENO"; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+     CPU_BEST_FLAGS="-march=native $CPU_BEST_FLAGS"
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+
+fi
+rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
+  conftest.$ac_objext conftest.beam conftest.$ac_ext
+fi
+
+fi
 #############################################################################
-# End of JtR CPU test code.  The 'best' found should be in $CPU_BEST
+# End of CPU feature tests.  The 'best' found should be in $CPU_BEST_FLAGS
 #############################################################################
 
 #############################################################################
 # 32 vs 64 bit CPU test code.  Sets these items:
-#  -msse2 (or whatever)
 #  AESNI=64 (CPU_BIT_STR)  Build type also uses this
 #  set ARCH_LINK file
 #  sets the extra ASM object.
@@ -4594,7 +4622,6 @@ CFLAGS="$CFLAGS_BACKUP"
 #test 32 vs 64 bit.  Also handle icc asm intrinsics [Also handle X32]
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for 32/64 bit" >&5
 $as_echo_n "checking for 32/64 bit... " >&6; }
-CC="$CC_BACKUP -march=native"
 # with_icc_asm
 if test x"$with_icc_asm" != "xno"; then :
   if test "$cross_compiling" = yes; then :
@@ -4679,7 +4706,6 @@ fi
 
 
 fi
-CC="$CC_BACKUP"
 #############################################################################
 # End of JtR 32/64 bit test code.
 #############################################################################
@@ -4697,7 +4723,7 @@ CC="$CC_BACKUP"
 
 # this test also detects JUST the underscore issue, and is generic as long as strings and grep exist
 if echo "int long_ident;" > conftest.c && ${CC} -c conftest.c && strings - conftest.${OBJEXT} | ${GREP} _long_ident > conftest.out; then :
-  EXTRA_AS_FLAGS+="-DUNDERSCORES "
+  EXTRA_AS_FLAGS+=" -DUNDERSCORES"
 fi
 
 if test "$cross_compiling" = yes; then :
@@ -4719,7 +4745,7 @@ else
 
 _ACEOF
 if ac_fn_c_try_run "$LINENO"; then :
-  EXTRA_AS_FLAGS+="-DBSD -DALIGN_LOG"
+  EXTRA_AS_FLAGS+=" -DBSD -DALIGN_LOG"
 fi
 rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
   conftest.$ac_objext conftest.beam conftest.$ac_ext
@@ -4735,7 +4761,7 @@ fi
 #	#endif
 #	exit(1);}]]
 #  )]
-#  ,[EXTRA_AS_FLAGS+="-DALIGN_LOG"])
+#  ,[EXTRA_AS_FLAGS+=" -DALIGN_LOG"])
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $EXTRA_AS_FLAGS" >&5
 $as_echo "$EXTRA_AS_FLAGS" >&6; }
 CC="$CC_BACKUP"
@@ -6085,7 +6111,7 @@ fi
 $as_echo "$ac_cv_lib_pcap_pcap_compile" >&6; }
 if test "x$ac_cv_lib_pcap_pcap_compile" = xyes; then :
   HAVE_PCAP=-DHAVE_PCAP
- LIBS+="-lpcap "
+ LIBS+=" -lpcap"
 fi
 
 
@@ -7328,7 +7354,7 @@ fi
 $as_echo "$ac_cv_lib_cudart_cudaGetDeviceCount" >&6; }
 if test "x$ac_cv_lib_cudart_cudaGetDeviceCount" = xyes; then :
   HAVE_CUDA=1
- LIBS+="-lcudart "
+ LIBS+=" -lcudart"
 else
 
    if test x${enable_cuda} = yes; then

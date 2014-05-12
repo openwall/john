@@ -75,13 +75,13 @@ endif
 # -lskey
 
 CPPFLAGS += @CPPFLAGS@
-CFLAGSX = @CPU_BITS@ -DAC_BUILT $(CPPFLAGS) -c -Wall -Wdeclaration-after-statement @CFLAGS@ @HAVE_NSS@ @NSS_CFLAGS@ @OPENMP_CFLAGS@ @HAVE_MPI@ -fomit-frame-pointer -I/usr/local/include $(AMDAPP) $(JOHN_CFLAGS) $(RELEASE_BLD)
+CFLAGSX = @CPU_BITS@ -DAC_BUILT $(CPPFLAGS) -c -Wall -Wdeclaration-after-statement @CFLAGS@ @HAVE_NSS@ @NSS_CFLAGS@ @OPENMP_CFLAGS@ @HAVE_MPI@ -fomit-frame-pointer -I/usr/local/include $(AMDAPP) $(RELEASE_BLD)
 # CFLAGS for use on the main john.c file only
 CFLAGS_MAIN = @CC_MAIN_CPU@ $(CFLAGSX)
 CFLAGS = @CC_CPU@ $(CFLAGSX)
-ASFLAGS = @CC_CPU@ @CPU_BITS@ -c @OPENMP_CFLAGS@ $(JOHN_ASFLAGS) @HAVE_MPI@ @EXTRA_AS_FLAGS@
+ASFLAGS = @CC_CPU@ @CPU_BITS@ -c @OPENMP_CFLAGS@ @HAVE_MPI@ @EXTRA_AS_FLAGS@
 LIBS = @LIBS@ @NSS_LIBS@
-LDFLAGS = @CPU_BITS@ -g $(JOHN_LDFLAGS) @LDFLAGS@ $(LIBS) @OPENMP_CFLAGS@ @HAVE_MPI@
+LDFLAGS = @CPU_BITS@ -g @LDFLAGS@ $(LIBS) @OPENMP_CFLAGS@ @HAVE_MPI@
 LDFLAGS_MKV = -g @OPENMP_CFLAGS@
 #
 OPT_NORMAL = -funroll-loops
@@ -759,11 +759,11 @@ clean-intrinsics:
 
 sse-intrinsics-64.S:
 	$(LN) x86-64.h arch.h
-	icc -S -o sse-intrinsics-64.S sse-intrinsics.c -O2 -fno-builtin -fno-verbose-asm -openmp -DUSING_ICC_S_FILE $(JOHN_CFLAGS) -Wall
+	icc -S -o sse-intrinsics-64.S sse-intrinsics.c -O2 -fno-builtin -fno-verbose-asm -openmp -DUSING_ICC_S_FILE -Wall
 
 sse-intrinsics-32.S:
 	$(LN) x86-sse.h arch.h
-	icc -m32 -S -o sse-intrinsics-32.S sse-intrinsics.c -O2 -fno-builtin -fno-verbose-asm -openmp -DUSING_ICC_S_FILE $(JOHN_CFLAGS) -Wall
+	icc -m32 -S -o sse-intrinsics-32.S sse-intrinsics.c -O2 -fno-builtin -fno-verbose-asm -openmp -DUSING_ICC_S_FILE -Wall
 	perl sse2i_winfix.pl sse-intrinsics-32.S sse-intrinsics-win32.S
 	mv sse-intrinsics-win32.S sse-intrinsics-32.S
 

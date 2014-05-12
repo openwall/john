@@ -212,13 +212,23 @@ AC_RUN_IFELSE(
 )
 CC="$CC_BACKUP"
 CFLAGS="$CFLAGS_BACKUP"
+
+# If we're not cross compiling, check for -march=native and add it too
+if test x${cross_compiling} = xno; then
+   AC_MSG_CHECKING([whether compiler understands -march=native])
+   AC_RUN_IFELSE(
+     [AC_LANG_SOURCE([int main() { return 0; }])],
+     [AC_MSG_RESULT(yes)]
+     [CPU_BEST_FLAGS="-march=native $CPU_BEST_FLAGS"],
+     [AC_MSG_RESULT(no)]
+   )
+fi
 #############################################################################
-# End of JtR CPU test code.  The 'best' found should be in $CPU_BEST
+# End of CPU feature tests.  The 'best' found should be in $CPU_BEST_FLAGS
 #############################################################################
 
 #############################################################################
 # 32 vs 64 bit CPU test code.  Sets these items:
-#  -msse2 (or whatever)
 #  AESNI=64 (CPU_BIT_STR)  Build type also uses this
 #  set ARCH_LINK file
 #  sets the extra ASM object.
@@ -226,7 +236,6 @@ CFLAGS="$CFLAGS_BACKUP"
 #############################################################################
 #test 32 vs 64 bit.  Also handle icc asm intrinsics [Also handle X32]
 AC_MSG_CHECKING([for 32/64 bit])
-CC="$CC_BACKUP -march=native"
 # with_icc_asm
 AS_IF([test x"$with_icc_asm" != "xno"],
 [AC_RUN_IFELSE(
@@ -277,7 +286,6 @@ AS_IF([test x"$with_icc_asm" != "xno"],
    [AC_MSG_RESULT([32-bit])]
   )]
  )
-CC="$CC_BACKUP"
 #############################################################################
 # End of JtR 32/64 bit test code.
 #############################################################################
@@ -294,7 +302,7 @@ CC="$CC_BACKUP"
 
 # this test also detects JUST the underscore issue, and is generic as long as strings and grep exist
 AS_IF([echo "int long_ident;" > conftest.c && ${CC} -c conftest.c && strings - conftest.${OBJEXT} | ${GREP} _long_ident > conftest.out],
-      [EXTRA_AS_FLAGS+="-DUNDERSCORES "])
+      [EXTRA_AS_FLAGS+=" -DUNDERSCORES"])
 
 AC_RUN_IFELSE(
   [
@@ -306,7 +314,7 @@ AC_RUN_IFELSE(
 	#endif
 	exit(1);}]]
   )]
-  ,[EXTRA_AS_FLAGS+="-DBSD -DALIGN_LOG"])
+  ,[EXTRA_AS_FLAGS+=" -DBSD -DALIGN_LOG"])
 #AC_RUN_IFELSE(
 #  [
 #  AC_LANG_SOURCE(
@@ -317,7 +325,7 @@ AC_RUN_IFELSE(
 #	#endif
 #	exit(1);}]]
 #  )]
-#  ,[EXTRA_AS_FLAGS+="-DALIGN_LOG"])
+#  ,[EXTRA_AS_FLAGS+=" -DALIGN_LOG"])
 AC_MSG_RESULT([$EXTRA_AS_FLAGS])
 CC="$CC_BACKUP"
 
@@ -390,7 +398,7 @@ AC_CHECK_LIB([wsock32],[main])
 AC_CHECK_LIB([lws2_32],[main])
 AC_CHECK_LIB([wst],[main])
 # in makefile, we need to know if building extra pcap items.
-AC_CHECK_LIB([pcap],[pcap_compile], [AC_SUBST(HAVE_PCAP,[-DHAVE_PCAP])] [LIBS+="-lpcap "])
+AC_CHECK_LIB([pcap],[pcap_compile], [AC_SUBST(HAVE_PCAP,[-DHAVE_PCAP])] [LIBS+=" -lpcap"])
 
 AC_CACHE_SAVE
 
@@ -418,7 +426,7 @@ AX_PROG_CC_MPI([test x"$enable_mpi" != "xno"], [AC_SUBST(HAVE_MPI,[-DHAVE_MPI])]
 # with finding directories. If they are not present in normal paths, user
 # is supposed to supply them with eg. ./configure LDFLAGS=/usr/local/cuda/lib
 if test x"$enable_cuda" != "xno"; then
-   AC_CHECK_LIB([cudart],[cudaGetDeviceCount],AC_SUBST(HAVE_CUDA,1) [LIBS+="-lcudart "],[
+   AC_CHECK_LIB([cudart],[cudaGetDeviceCount],AC_SUBST(HAVE_CUDA,1) [LIBS+=" -lcudart"],[
    if test x${enable_cuda} = yes; then
       AC_MSG_FAILURE([CUDA not found])
    elif test x"$enable_cuda" != "xno"; then
