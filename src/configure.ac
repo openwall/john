@@ -129,7 +129,12 @@ AC_ARG_WITH(exe-ext, [AS_HELP_STRING([--with-exe-ext],[For Cygwin and MinGW. Set
 AC_ARG_ENABLE([mpi], [AC_HELP_STRING([--enable-mpi], [Use MPI])], [enable_mpi=$enableval], [enable_mpi=no])
 AC_ARG_ENABLE([cuda], [AC_HELP_STRING([--disable-cuda], [Do not use CUDA])], [enable_cuda=$enableval], [enable_cuda=auto])
 AC_ARG_ENABLE([nss], [AC_HELP_STRING([--disable-nss], [Do not use NSS/NSPR])], [enable_nss=$enableval], [enable_nss=auto])
+AC_ARG_ENABLE([native-tests], [AC_HELP_STRING([--disable-native-tests], [Do not use test build system for target features])], [enable_native_tests=$enableval], [enable_native_tests=auto])
 
+####### Actual tests start here #######
+
+# Support cross compile
+AC_CANONICAL_SYSTEM
 
 # Check for MPI. Only if MPI not found/wanted: Check for CC.
 AX_PROG_CC_MPI([test x"$enable_mpi" != "xno"], [AC_SUBST(HAVE_MPI,[-DHAVE_MPI])],[
@@ -140,6 +145,13 @@ AX_PROG_CC_MPI([test x"$enable_mpi" != "xno"], [AC_SUBST(HAVE_MPI,[-DHAVE_MPI])]
    fi
    AC_PROG_CC([gcc cc icc])
 ])
+
+# We now know if this is a cross compile
+if test ${enable_native_tests}${cross_compiling} = autoyes; then
+   enable_native_tests=no
+else
+   enable_native_tests=yes
+fi
 
 # Checks for programs.
 AC_PROG_LN_S
@@ -171,8 +183,11 @@ AC_CHECK_SIZEOF([void *])
 # environment.  We probaby should fall back to calling make -f Makefile.orig clean generic
 # or failing with an echo of that message, for any environment we do not handle.
 
-AX_JTR_X86_SPECIAL_LOGIC
-
+if test x${enable_native_tests} = xyes; then
+   AX_JTR_X86_SPECIAL_LOGIC
+else
+   CC_BACKUP=$CC
+fi
 #############################################################################
 # Check for unaligned memory access being allowed
 #############################################################################
@@ -246,11 +261,12 @@ AC_CACHE_SAVE
 # Check packages:
 #################
 
-# Check for NSS. This test is not working for cross-compiles so you may have
-# to add --disable-nss for that.
+# Check for NSS (unless disabled, or cross compiling)
 if test x"$enable_nss" != "xno"; then
-   PKG_CHECK_MODULES([NSS], [nss], AC_SUBST(HAVE_NSS,[-DHAVE_NSS]),
-      AC_MSG_WARN(NSS not found - Mozilla format will be omitted.))
+   if test x${enable_native_tests} != xyes; then
+      PKG_CHECK_MODULES([NSS], [nss], AC_SUBST(HAVE_NSS,[-DHAVE_NSS]),
+         AC_MSG_WARN(NSS not found - Mozilla format will be omitted.))
+   fi
 fi
 
 # Check for openMP (enable/disable handled within the macro).
