@@ -57,20 +57,6 @@ CUDAPATH = /usr/local/cuda
 NVCC = PATH=$(PATH):$(CUDAPATH)/bin/ nvcc
 CCBIN_OSX = /usr/bin/llvm-gcc-4.2
 
-ifdef NVIDIA_CUDA
-OCLROOT = $(NVIDIA_CUDA)
-else
-OCLROOT = /usr/local/cuda
-endif
-ifdef AMDAPPSDKROOT
-AMDAPP = -DAMDAPPSDK
-OCLROOT = $(AMDAPPSDKROOT)
-endif
-ifdef ATISTREAMSDKROOT
-AMDAPP = -DAMDAPPSDK
-OCLROOT = $(ATISTREAMSDKROOT)
-endif
-
 # -DHAVE_SKEY
 # -lskey
 

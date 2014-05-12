@@ -17,10 +17,6 @@ m4_include([m4/ax_lang_compiler_ms.m4])
 m4_include([m4/ax_jtr_x86_logic.m4])
 
 
-dnl Most of these things are boiler plate (from autoscan);
-dnl but here's some of my stuff
-dnl BEGIN JIM's BLOCK OF STUFF
-dnl
 dnl  If you want to pass these into your Makefile.in templates, use
 dnl    AC_SUBST(ac_variable_name)
 dnl  then they'll be available as substitution variables (eg., @ac_variable_name@)
@@ -70,9 +66,51 @@ if test -d "../.git"; then
   fi
 fi
 
-LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib "
+if test -d /usr/local/lib; then
+   LDFLAGS+=" -L/usr/local/lib"
+fi
+if test -d /usr/local/include; then
+   CFLAGS+=" -I/usr/local/include"
+fi
+if test -d /usr/local/ssl/lib; then
+   LDFLAGS+=" -L/usr/local/ssl/lib"
+fi
+if test -d /usr/local/ssl/include; then
+   CFLAGS+=" -I/usr/local/ssl/include"
+fi
 
-dnl END JIM's BLOCK OF STUFF
+if test -n "$NVIDIA_CUDA"; then
+   if test -d "$NVIDIA_CUDA/include"; then
+      CFLAGS+=" -I$NVIDIA_CUDA/include"
+   fi
+   if test -d "$NVIDIA_CUDA/lib"; then
+      LDFLAGS+=" -L$NVIDIA_CUDA/lib"
+   fi
+else
+   if test -d "/usr/local/cuda/include"; then
+      CFLAGS+=" -I/usr/local/cuda/include"
+   fi
+   if test -d "/usr/local/cuda/lib"; then
+      LDFLAGS+=" -L/usr/local/cuda/lib"
+   fi
+fi
+
+if test -n "$AMDAPPSDKROOT"; then
+   if test -d "$AMDAPPSDKROOT/include"; then
+      CFLAGS+=" -I$AMDAPPSDKROOT/include"
+   fi
+   if test -d "$AMDAPPSDKROOT/lib"; then
+      LDFLAGS+=" -L$AMDAPPSDKROOT/lib"
+   fi
+fi
+if test -n "$ATISTREAMSDKROOT"; then
+   if test -d "$ATISTREAMSDKROOT/include"; then
+      CFLAGS+=" -I$ATISTREAMSDKROOT/include"
+   fi
+   if test -d "$ATISTREAMSDKROOT/lib"; then
+      LDFLAGS+=" -L$ATISTREAMSDKROOT/lib"
+   fi
+fi
 
 # Packages
 AC_ARG_WITH(icc-asm, [AS_HELP_STRING([--with-icc-asm],[Use ICC pre-built asm files for intrisic SIMD code. Default: no])],,[with_icc_asm=no])
