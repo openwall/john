@@ -55,6 +55,7 @@ src/autoconfig.h
 src/autom4te.cache/
 src/config.status
 src/configure.scan
+src/config.cache
 src/fmt_externs.h
 src/fmt_registers.h
 src/generic.h
@@ -62,6 +63,5 @@ src/john_build_rule.h
 src/memdbg_defines.h
 src/para-bench
 src/stamp-h1
-src/Makefile
 
 test/
