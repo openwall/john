@@ -112,20 +112,31 @@ if test -n "$ATISTREAMSDKROOT"; then
    fi
 fi
 
+# Shorthand: -with-arch=-m32 will add '-m32' to CFLAGS, ASFLAGS and LDFLAGS.
+AC_ARG_WITH(arch, [AS_HELP_STRING([--with-arch=opt],[Add 'opt' to CFLAGS, LDFLAGS and ASFLAGS (eg. -m32).])],,[with_arch=""])
+
+if test x${with_arch} != x; then
+   CFLAGS+=" ${with_arch}"
+   LDFLAGS+=" ${with_arch}"
+   ASFLAGS+=" ${with_arch}"
+fi
+
 # Must be run early
 AC_USE_SYSTEM_EXTENSIONS
 
-# Packages
+# Define Packages.
 AC_ARG_WITH(icc-asm, [AS_HELP_STRING([--with-icc-asm],[Use ICC pre-built asm files for intrisic SIMD code. Default: no])],,[with_icc_asm=no])
 AC_ARG_WITH(exe-ext, [AS_HELP_STRING([--with-exe-ext],[For Cygwin and MinGW. Set to .exe to allow stand alone symlink exe files. Default is 'empty'])],,[with_exe_ext=""])
 
-# Features
-# We define "--disable-FEATURE" because default is "auto".
-# NOTE: OpenMP and OpenCL are defined in their respective macro file
-AC_ARG_ENABLE([mpi], [AC_HELP_STRING([--disable-mpi], [Do not use MPI])], [enable_mpi=$enableval], [enable_mpi=auto])
+# Define Features. OpenMP and OpenCL are defined in their respective macros.
+# We define "--disable-FEATURE" when default is "auto".
+# MPI is not "auto" because its network usage might scare people:
+AC_ARG_ENABLE([mpi], [AC_HELP_STRING([--enable-mpi], [Use MPI])], [enable_mpi=$enableval], [enable_mpi=no])
 AC_ARG_ENABLE([cuda], [AC_HELP_STRING([--disable-cuda], [Do not use CUDA])], [enable_cuda=$enableval], [enable_cuda=auto])
+AC_ARG_ENABLE([nss], [AC_HELP_STRING([--disable-nss], [Do not use NSS/NSPR])], [enable_nss=$enableval], [enable_nss=auto])
 
-# check for MPI. Only if MPI not found/wanted: Check for CC
+
+# Check for MPI. Only if MPI not found/wanted: Check for CC.
 AX_PROG_CC_MPI([test x"$enable_mpi" != "xno"], [AC_SUBST(HAVE_MPI,[-DHAVE_MPI])],[
    if test x"$enable_mpi" = "xyes"; then
      AC_MSG_FAILURE([No MPI compiler found])
@@ -168,7 +179,7 @@ AC_CHECK_SIZEOF([void *])
 AX_JTR_X86_SPECIAL_LOGIC
 
 #############################################################################
-# check for unaligned memory access being allowed
+# Check for unaligned memory access being allowed
 #############################################################################
 #
 AC_MSG_CHECKING([for unaligned memory access])
@@ -237,16 +248,17 @@ AC_CHECK_LIB([pcap],[pcap_compile], [AC_SUBST(HAVE_PCAP,[-DHAVE_PCAP])] [LIBS+="
 AC_CACHE_SAVE
 
 #################
-# check packages:
+# Check packages:
 #################
 
-# check for NSS - first run AC_CHECK_LIB to satisfy cross compiles. Only
-# then, it's reasonable to use PKG_CHECK_MODULES
-AC_CHECK_LIB([nss],[nsspkcs5_CipherData],
-   [PKG_CHECK_MODULES([NSS], [nss], AC_SUBST(HAVE_NSS,[-DHAVE_NSS]))],
-   AC_MSG_WARN(NSS not found - Mozilla format will be omitted.))
+# Check for NSS. This test is not working for cross-compiles so you may have
+# to add --disable-nss for that.
+if test x"$enable_nss" != "xno"; then
+   PKG_CHECK_MODULES([NSS], [nss], AC_SUBST(HAVE_NSS,[-DHAVE_NSS]),
+      AC_MSG_WARN(NSS not found - Mozilla format will be omitted.))
+fi
 
-# check for openMP (enable/disable handled within the macro)
+# Check for openMP (enable/disable handled within the macro).
 AC_OPENMP
 
 # Check for CUDA. According to the guru's we should not try to be clever

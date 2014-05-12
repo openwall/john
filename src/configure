@@ -717,10 +717,12 @@ SHELL'
 ac_subst_files=''
 ac_user_opts='
 enable_option_checking
+with_arch
 with_icc_asm
 with_exe_ext
 enable_mpi
 enable_cuda
+enable_nss
 enable_openmp
 enable_opencl
 '
@@ -1355,14 +1357,16 @@ Optional Features:
   --disable-option-checking  ignore unrecognized --enable/--with options
   --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
-  --disable-mpi           Do not use MPI
+  --enable-mpi            Use MPI
   --disable-cuda          Do not use CUDA
+  --disable-nss           Do not use NSS/NSPR
   --disable-openmp        do not use OpenMP
   --disable-opencl        do not use OpenCL
 
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
+  --with-arch=opt         Add 'opt' to CFLAGS, LDFLAGS and ASFLAGS (eg. -m32).
   --with-icc-asm          Use ICC pre-built asm files for intrisic SIMD code.
                           Default: no
   --with-exe-ext          For Cygwin and MinGW. Set to .exe to allow stand
@@ -3400,6 +3404,22 @@ if test -n "$ATISTREAMSDKROOT"; then
    fi
 fi
 
+# Shorthand: -with-arch=-m32 will add '-m32' to CFLAGS, ASFLAGS and LDFLAGS.
+
+# Check whether --with-arch was given.
+if test "${with_arch+set}" = set; then :
+  withval=$with_arch;
+else
+  with_arch=""
+fi
+
+
+if test x${with_arch} != x; then
+   CFLAGS+=" ${with_arch}"
+   LDFLAGS+=" ${with_arch}"
+   ASFLAGS+=" ${with_arch}"
+fi
+
 # Must be run early
 # expand $ac_aux_dir to an absolute path
 am_aux_dir=`cd $ac_aux_dir && pwd`
@@ -4712,7 +4732,7 @@ $as_echo "$ac_cv_safe_to_define___extensions__" >&6; }
 
 
 
-# Packages
+# Define Packages.
 
 # Check whether --with-icc-asm was given.
 if test "${with_icc_asm+set}" = set; then :
@@ -4730,14 +4750,14 @@ else
 fi
 
 
-# Features
-# We define "--disable-FEATURE" because default is "auto".
-# NOTE: OpenMP and OpenCL are defined in their respective macro file
+# Define Features. OpenMP and OpenCL are defined in their respective macros.
+# We define "--disable-FEATURE" when default is "auto".
+# MPI is not "auto" because its network usage might scare people:
 # Check whether --enable-mpi was given.
 if test "${enable_mpi+set}" = set; then :
   enableval=$enable_mpi; enable_mpi=$enableval
 else
-  enable_mpi=auto
+  enable_mpi=no
 fi
 
 # Check whether --enable-cuda was given.
@@ -4747,8 +4767,16 @@ else
   enable_cuda=auto
 fi
 
+# Check whether --enable-nss was given.
+if test "${enable_nss+set}" = set; then :
+  enableval=$enable_nss; enable_nss=$enableval
+else
+  enable_nss=auto
+fi
 
-# check for MPI. Only if MPI not found/wanted: Check for CC
+
+
+# Check for MPI. Only if MPI not found/wanted: Check for CC.
 
 
 
@@ -7419,7 +7447,7 @@ $as_echo "$EXTRA_AS_FLAGS" >&6; }
 CC="$CC_BACKUP"
 
 #############################################################################
-# check for unaligned memory access being allowed
+# Check for unaligned memory access being allowed
 #############################################################################
 #
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for unaligned memory access" >&5
@@ -8653,11 +8681,12 @@ fi
 rm -f confcache
 
 #################
-# check packages:
+# Check packages:
 #################
 
-# check for NSS - first run AC_CHECK_LIB to satisfy cross compiles. Only
-# then, it's reasonable to use PKG_CHECK_MODULES
+# Check for NSS. This test is not working for cross-compiles so you may have
+# to add --disable-nss for that.
+if test x"$enable_nss" != "xno"; then
 
 
 
@@ -8778,43 +8807,6 @@ $as_echo "no" >&6; }
 	fi
 
 fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for nsspkcs5_CipherData in -lnss" >&5
-$as_echo_n "checking for nsspkcs5_CipherData in -lnss... " >&6; }
-if ${ac_cv_lib_nss_nsspkcs5_CipherData+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lnss  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char nsspkcs5_CipherData ();
-int
-main ()
-{
-return nsspkcs5_CipherData ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_nss_nsspkcs5_CipherData=yes
-else
-  ac_cv_lib_nss_nsspkcs5_CipherData=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_nss_nsspkcs5_CipherData" >&5
-$as_echo "$ac_cv_lib_nss_nsspkcs5_CipherData" >&6; }
-if test "x$ac_cv_lib_nss_nsspkcs5_CipherData" = xyes; then :
 
 pkg_failed=no
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for NSS" >&5
@@ -8870,30 +8862,13 @@ fi
 	# Put the nasty error message in config.log where it belongs
 	echo "$NSS_PKG_ERRORS" >&5
 
-	as_fn_error $? "Package requirements (nss) were not met:
-
-$NSS_PKG_ERRORS
-
-Consider adjusting the PKG_CONFIG_PATH environment variable if you
-installed software in a non-standard prefix.
-
-Alternatively, you may set the environment variables NSS_CFLAGS
-and NSS_LIBS to avoid the need to call pkg-config.
-See the pkg-config man page for more details.
-" "$LINENO" 5
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+                { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: NSS not found - Mozilla format will be omitted." >&5
+$as_echo "$as_me: WARNING: NSS not found - Mozilla format will be omitted." >&2;}
 elif test $pkg_failed = untried; then
-	{ { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
-$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error $? "The pkg-config script could not be found or is too old.  Make sure it
-is in your PATH or set the PKG_CONFIG environment variable to the full
-path to pkg-config.
-
-Alternatively, you may set the environment variables NSS_CFLAGS
-and NSS_LIBS to avoid the need to call pkg-config.
-See the pkg-config man page for more details.
-
-To get pkg-config, see <http://pkg-config.freedesktop.org/>.
-See \`config.log' for more details" "$LINENO" 5; }
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: NSS not found - Mozilla format will be omitted." >&5
+$as_echo "$as_me: WARNING: NSS not found - Mozilla format will be omitted." >&2;}
 else
 	NSS_CFLAGS=$pkg_cv_NSS_CFLAGS
 	NSS_LIBS=$pkg_cv_NSS_LIBS
@@ -8902,13 +8877,9 @@ $as_echo "yes" >&6; }
 	HAVE_NSS=-DHAVE_NSS
 
 fi
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: NSS not found - Mozilla format will be omitted." >&5
-$as_echo "$as_me: WARNING: NSS not found - Mozilla format will be omitted." >&2;}
 fi
 
-
-# check for openMP (enable/disable handled within the macro)
+# Check for openMP (enable/disable handled within the macro).
 
   OPENMP_CFLAGS=
   # Check whether --enable-openmp was given.
