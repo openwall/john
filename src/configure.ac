@@ -73,6 +73,15 @@ dnl
 dnl     use $EXEEXT and $OBJEXT  for exe and obj extension.  Set by AC_PROC_CC
 dnl
 
+# Fugly workaround for .gitignore refusing to ignore Makefile since it is
+# a managed file (the stub). The result of this is a *local* workaround.
+if test -d "../.git"; then
+  AC_CHECK_PROG([HAVE_GIT], [git], [yes], [no])
+  if test x${HAVE_GIT} = xyes; then
+     git update-index --assume-unchanged Makefile
+  fi
+fi
+
 LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib "
 
 dnl END JIM's BLOCK OF STUFF
@@ -499,7 +508,7 @@ AS_IF([test "x${ac_cv_c_bigendian}" = "xyes"],
    [AC_DEFINE([ARCH_LITTLE_ENDIAN], 0, ["Enable if CPU is LITTLE ENDIAN arch"])],
    [AC_DEFINE([ARCH_LITTLE_ENDIAN], 1, ["Enable if CPU is LITTLE ENDIAN arch"])])
 
-AS_IF([test $ac_cv_sizeof_int -gt 4], 
+AS_IF([test $ac_cv_sizeof_int -gt 4],
    [AC_DEFINE([ARCH_INT_GT_32], 1, ["Enable if sizeof(int) > 4"])],
    [AC_DEFINE([ARCH_INT_GT_32], 0, ["Enable if sizeof(int) > 4"])])
 
