@@ -121,9 +121,6 @@ if test x${with_arch} != x; then
    ASFLAGS+=" ${with_arch}"
 fi
 
-# Must be run early
-AC_USE_SYSTEM_EXTENSIONS
-
 # Define Packages.
 AC_ARG_WITH(icc-asm, [AS_HELP_STRING([--with-icc-asm],[Use ICC pre-built asm files for intrisic SIMD code. Default: no])],,[with_icc_asm=no])
 AC_ARG_WITH(exe-ext, [AS_HELP_STRING([--with-exe-ext],[For Cygwin and MinGW. Set to .exe to allow stand alone symlink exe files. Default is 'empty'])],,[with_exe_ext=""])
@@ -145,6 +142,9 @@ AX_PROG_CC_MPI([test x"$enable_mpi" != "xno"], [AC_SUBST(HAVE_MPI,[-DHAVE_MPI])]
    fi
    AC_PROG_CC([gcc cc icc])
 ])
+
+# Must be run early, but not before MPI test.
+AC_USE_SYSTEM_EXTENSIONS
 
 # Checks for programs.
 AC_PROG_LN_S
