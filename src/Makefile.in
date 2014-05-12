@@ -60,14 +60,15 @@ CCBIN_OSX = /usr/bin/llvm-gcc-4.2
 # -DHAVE_SKEY
 # -lskey
 
+# @CPU_BITS@ left out
 CPPFLAGS += @CPPFLAGS@
-CFLAGSX = @CPU_BITS@ -DAC_BUILT $(CPPFLAGS) -c -Wall -Wdeclaration-after-statement @CFLAGS@ @HAVE_NSS@ @NSS_CFLAGS@ @OPENMP_CFLAGS@ @HAVE_MPI@ -fomit-frame-pointer -I/usr/local/include $(AMDAPP) $(RELEASE_BLD)
+CFLAGSX = -DAC_BUILT $(CPPFLAGS) -c -Wall -Wdeclaration-after-statement @CFLAGS@ @HAVE_NSS@ @NSS_CFLAGS@ @OPENMP_CFLAGS@ @HAVE_MPI@ -fomit-frame-pointer -I/usr/local/include $(AMDAPP) $(RELEASE_BLD)
 # CFLAGS for use on the main john.c file only
 CFLAGS_MAIN = @CC_MAIN_CPU@ $(CFLAGSX)
 CFLAGS = @CC_CPU@ $(CFLAGSX)
-ASFLAGS = @CC_CPU@ @CPU_BITS@ -c @OPENMP_CFLAGS@ @HAVE_MPI@ @EXTRA_AS_FLAGS@
+ASFLAGS = @ASFLAGS@ @CC_CPU@ -c @OPENMP_CFLAGS@ @HAVE_MPI@ @EXTRA_AS_FLAGS@
 LIBS = @LIBS@ @NSS_LIBS@
-LDFLAGS = @CPU_BITS@ -g @LDFLAGS@ $(LIBS) @OPENMP_CFLAGS@ @HAVE_MPI@
+LDFLAGS = -g @LDFLAGS@ $(LIBS) @OPENMP_CFLAGS@ @HAVE_MPI@
 LDFLAGS_MKV = -g @OPENMP_CFLAGS@
 #
 OPT_NORMAL = -funroll-loops

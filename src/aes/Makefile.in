@@ -1,3 +1,11 @@
+CC = @CC@
+CXX = @CXX@
+AS = @CC@
+LD = @CC@
+CPP = @CC@
+CFLAGS = @CFLAGS@
+ASFLAGS = @ASFLAGS@ -c @EXTRA_AS_FLAGS@
+LDFLAGS = @LDFLAGS@
 GCCV44 := $(shell expr `gcc -dumpversion` \>= 4.4)
 YASM := $(shell which yasm)
 UNAME := $(shell gcc -dumpmachine)

@@ -240,9 +240,11 @@ AC_CACHE_SAVE
 # check packages:
 #################
 
-# check for NSS
-PKG_CHECK_MODULES([NSS], [nss], AC_SUBST(HAVE_NSS,[-DHAVE_NSS]),
-        AC_MSG_WARN(NSS not found - Mozilla format will be omitted.))
+# check for NSS - first run AC_CHECK_LIB to satisfy cross compiles. Only
+# then, it's reasonable to use PKG_CHECK_MODULES
+AC_CHECK_LIB([nss],[nsspkcs5_CipherData],
+   [PKG_CHECK_MODULES([NSS], [nss], AC_SUBST(HAVE_NSS,[-DHAVE_NSS]))],
+   AC_MSG_WARN(NSS not found - Mozilla format will be omitted.))
 
 # check for openMP (enable/disable handled within the macro)
 AC_OPENMP
@@ -298,6 +300,7 @@ AC_SUBST([CC_MAIN_CPU],[${CPU_BEST_FLAGS_MAIN}])
 AC_SUBST([CC_ASM_OBJS],[${CC_ASM_OBJS}])
 AC_SUBST([CPU_BITS],[${CPU_BITS}])
 AC_SUBST([CPU_BIT_STR],[${CPU_BIT_STR}])
+AC_SUBST([ASFLAGS],[${ASFLAGS}])
 AC_SUBST([EXTRA_AS_FLAGS],[${EXTRA_AS_FLAGS}])
 AC_SUBST([JOHN_BUILD_LABEL],["${CPU_BIT_STR}-bit ${CPU_STR}-autoconf"])
 
@@ -323,4 +326,4 @@ AC_CONFIG_FILES([Makefile
                  aes/aesni/Makefile
                  aes/openssl/Makefile
                  escrypt/Makefile])
-AC_OUTPUT(,echo "timestamp from configure.in" > autoconfig-stamp-h & echo "Done - Makefile generated.")
+AC_OUTPUT(,echo "timestamp from configure.in" > autoconfig-stamp-h & echo "Done - Makefile generated. Now run 'make clean && make'")

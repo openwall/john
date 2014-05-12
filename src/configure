@@ -626,6 +626,7 @@ ac_header_list=
 ac_subst_vars='LTLIBOBJS
 JOHN_BUILD_LABEL
 EXTRA_AS_FLAGS
+ASFLAGS
 CPU_BIT_STR
 CPU_BITS
 CC_ASM_OBJS
@@ -8655,7 +8656,8 @@ rm -f confcache
 # check packages:
 #################
 
-# check for NSS
+# check for NSS - first run AC_CHECK_LIB to satisfy cross compiles. Only
+# then, it's reasonable to use PKG_CHECK_MODULES
 
 
 
@@ -8776,6 +8778,43 @@ $as_echo "no" >&6; }
 	fi
 
 fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for nsspkcs5_CipherData in -lnss" >&5
+$as_echo_n "checking for nsspkcs5_CipherData in -lnss... " >&6; }
+if ${ac_cv_lib_nss_nsspkcs5_CipherData+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lnss  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char nsspkcs5_CipherData ();
+int
+main ()
+{
+return nsspkcs5_CipherData ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_nss_nsspkcs5_CipherData=yes
+else
+  ac_cv_lib_nss_nsspkcs5_CipherData=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_nss_nsspkcs5_CipherData" >&5
+$as_echo "$ac_cv_lib_nss_nsspkcs5_CipherData" >&6; }
+if test "x$ac_cv_lib_nss_nsspkcs5_CipherData" = xyes; then :
 
 pkg_failed=no
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for NSS" >&5
@@ -8831,13 +8870,30 @@ fi
 	# Put the nasty error message in config.log where it belongs
 	echo "$NSS_PKG_ERRORS" >&5
 
-	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-                { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: NSS not found - Mozilla format will be omitted." >&5
-$as_echo "$as_me: WARNING: NSS not found - Mozilla format will be omitted." >&2;}
+	as_fn_error $? "Package requirements (nss) were not met:
+
+$NSS_PKG_ERRORS
+
+Consider adjusting the PKG_CONFIG_PATH environment variable if you
+installed software in a non-standard prefix.
+
+Alternatively, you may set the environment variables NSS_CFLAGS
+and NSS_LIBS to avoid the need to call pkg-config.
+See the pkg-config man page for more details.
+" "$LINENO" 5
 elif test $pkg_failed = untried; then
-	{ $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: NSS not found - Mozilla format will be omitted." >&5
-$as_echo "$as_me: WARNING: NSS not found - Mozilla format will be omitted." >&2;}
+	{ { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "The pkg-config script could not be found or is too old.  Make sure it
+is in your PATH or set the PKG_CONFIG environment variable to the full
+path to pkg-config.
+
+Alternatively, you may set the environment variables NSS_CFLAGS
+and NSS_LIBS to avoid the need to call pkg-config.
+See the pkg-config man page for more details.
+
+To get pkg-config, see <http://pkg-config.freedesktop.org/>.
+See \`config.log' for more details" "$LINENO" 5; }
 else
 	NSS_CFLAGS=$pkg_cv_NSS_CFLAGS
 	NSS_LIBS=$pkg_cv_NSS_LIBS
@@ -8846,6 +8902,11 @@ $as_echo "yes" >&6; }
 	HAVE_NSS=-DHAVE_NSS
 
 fi
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: NSS not found - Mozilla format will be omitted." >&5
+$as_echo "$as_me: WARNING: NSS not found - Mozilla format will be omitted." >&2;}
+fi
+
 
 # check for openMP (enable/disable handled within the macro)
 
@@ -10888,6 +10949,8 @@ CPU_BITS=${CPU_BITS}
 
 CPU_BIT_STR=${CPU_BIT_STR}
 
+ASFLAGS=${ASFLAGS}
+
 EXTRA_AS_FLAGS=${EXTRA_AS_FLAGS}
 
 JOHN_BUILD_LABEL="${CPU_BIT_STR}-bit ${CPU_STR}-autoconf"
@@ -12257,7 +12320,7 @@ $as_echo "$as_me: executing $ac_file commands" >&6;}
 
 
   case $ac_file$ac_mode in
-    "default":C) echo "timestamp from configure.in" > autoconfig-stamp-h & echo "Done - Makefile generated." ;;
+    "default":C) echo "timestamp from configure.in" > autoconfig-stamp-h & echo "Done - Makefile generated. Now run 'make clean && make'" ;;
 
   esac
 done # for ac_tag
