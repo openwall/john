@@ -6794,62 +6794,63 @@ CC_BACKUP=$CC
 
 # Check for -march=native and add it to CPU_BEST_FLAGS
 # This should be rewritten for aestethical reasons and readability
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether compiler understands -march=native" >&5
+if test "x$cross_compiling" = "xno"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether compiler understands -march=native" >&5
 $as_echo_n "checking whether compiler understands -march=native... " >&6; }
-CC="$CC_BACKUP -march=native"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+  CC="$CC_BACKUP -march=native"
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 int main() { return 0; }
 _ACEOF
 if ac_fn_c_try_link "$LINENO"; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
-  CPU_BEST_FLAGS="-march=native $CPU_BEST_FLAGS"
+    CPU_BEST_FLAGS="-march=native $CPU_BEST_FLAGS"
 else
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
-  # or -xarch=native64
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether compiler understands -xarch=native64" >&5
+    # or -xarch=native64
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether compiler understands -xarch=native64" >&5
 $as_echo_n "checking whether compiler understands -xarch=native64... " >&6; }
-   CC="$CC_BACKUP -xarch=native64"
-   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+     CC="$CC_BACKUP -xarch=native64"
+     cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 int main() { return 0; }
 _ACEOF
 if ac_fn_c_try_link "$LINENO"; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
-     CPU_BEST_FLAGS="-xarch=native64 $CPU_BEST_FLAGS"
+       CPU_BEST_FLAGS="-xarch=native64 $CPU_BEST_FLAGS"
 else
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
-     # or -xarch=native
-     { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether compiler understands -xarch=native" >&5
+       # or -xarch=native
+       { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether compiler understands -xarch=native" >&5
 $as_echo_n "checking whether compiler understands -xarch=native... " >&6; }
-      CC="$CC_BACKUP -xarch=native"
-      cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+	CC="$CC_BACKUP -xarch=native"
+	cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 int main() { return 0; }
 _ACEOF
 if ac_fn_c_try_link "$LINENO"; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
-        CPU_BEST_FLAGS="-xarch=native $CPU_BEST_FLAGS"
+	  CPU_BEST_FLAGS="-xarch=native $CPU_BEST_FLAGS"
 else
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
-        # or "-arch host"
-        { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether compiler understands -arch host" >&5
+	  # or "-arch host"
+	  { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether compiler understands -arch host" >&5
 $as_echo_n "checking whether compiler understands -arch host... " >&6; }
-         CC="$CC_BACKUP -arch host"
-         cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+	   CC="$CC_BACKUP -arch host"
+	   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 int main() { return 0; }
 _ACEOF
 if ac_fn_c_try_link "$LINENO"; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
-           CPU_BEST_FLAGS="-arch host $CPU_BEST_FLAGS"
+	     CPU_BEST_FLAGS="-arch host $CPU_BEST_FLAGS"
 else
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
@@ -6872,7 +6873,8 @@ rm -f core conftest.err conftest.$ac_objext \
 fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
-CC="$CC_BACKUP"
+  CC="$CC_BACKUP"
+fi
 
 # TODO: Change this to NOT be x86-specific, we should just check 32/64
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for 32/64 bit" >&5
