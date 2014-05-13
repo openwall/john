@@ -213,7 +213,7 @@ case "$target_cpu" in
   armeb) ARCH_LINK=arm32le.h endian=big ;;
   arm*) ARCH_LINK=arm32le.h endian=little ;;
   ia64) ARCH_LINK=ia64.h endian=little ;;
-  i?86) ARCH_LINK=x86-any.h endian=little ;;
+  i?86) ARCH_LINK=x86-sse.h endian=little ;;
   m68k*) ARCH_LINK=autoconf_arch.h endian=big ;;
   mipseb) ARCH_LINK=mips32.h endian=big ;;
   mips*) ARCH_LINK=mips32.h endian=little ;;
