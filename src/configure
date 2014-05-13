@@ -6876,15 +6876,14 @@ rm -f core conftest.err conftest.$ac_objext \
   CC="$CC_BACKUP"
 fi
 
-# TODO: Change this to NOT be x86-specific, we should just check 32/64
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for 32/64 bit" >&5
 $as_echo_n "checking for 32/64 bit... " >&6; }
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 extern void exit(int);
 	int main() {
-	#if defined(__x86_64)||defined(__x86_64__)||defined(__amd64)||defined(__amd64__)||defined(_LP64)||defined(_M_IX86)||\
-	    defined(_M_AMD64)||defined(_M_IA64)||defined(_M_X64)||defined(__ILP32__)||defined(__LLP64__)||defined(WIN64)
+	#if defined(__x86_64)||defined(__x86_64__)||defined(__amd64)||defined(__amd64__)||defined(_LP64)||defined(__LP64__)||\
+	    defined(_M_IX86)||defined(_M_AMD64)||defined(_M_IA64)||defined(_M_X64)||defined(__LLP64__)||defined(WIN64)
 	exit(0);}
         #else
         BORK!

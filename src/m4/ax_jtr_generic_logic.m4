@@ -52,14 +52,13 @@ if test "x$cross_compiling" = "xno"; then
   CC="$CC_BACKUP"
 fi
 
-# TODO: Change this to NOT be x86-specific, we should just check 32/64
 AC_MSG_CHECKING([for 32/64 bit])
 AC_LINK_IFELSE(
    [AC_LANG_SOURCE(
 	[extern void exit(int);
 	int main() {
-	#if defined(__x86_64)||defined(__x86_64__)||defined(__amd64)||defined(__amd64__)||defined(_LP64)||defined(_M_IX86)||\
-	    defined(_M_AMD64)||defined(_M_IA64)||defined(_M_X64)||defined(__ILP32__)||defined(__LLP64__)||defined(WIN64)
+	#if defined(__x86_64)||defined(__x86_64__)||defined(__amd64)||defined(__amd64__)||defined(_LP64)||defined(__LP64__)||\
+	    defined(_M_IX86)||defined(_M_AMD64)||defined(_M_IA64)||defined(_M_X64)||defined(__LLP64__)||defined(WIN64)
 	exit(0);}
         #else
         BORK!
