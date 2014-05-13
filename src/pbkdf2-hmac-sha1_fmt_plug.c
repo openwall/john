@@ -192,6 +192,11 @@ static void *get_binary(char *ciphertext)
 			atoi16[ARCH_INDEX(p[1])];
 		p += 2;
 	}
+#if !ARCH_LITTLE_ENDIAN
+	for (i = 0; i < BINARY_SIZE/4; ++i) {
+		((ARCH_WORD_32*)out)[i] = JOHNSWAP(((ARCH_WORD_32*)out)[i]);
+	}
+#endif
 	return out;
 }
 
@@ -283,6 +288,11 @@ static int cmp_exact(char *source, int index)
 			atoi16[ARCH_INDEX(p[1])];
 		p += 2;
 	}
+#if !ARCH_LITTLE_ENDIAN
+	for (i = 0; i < BINARY_SIZE/4; ++i) {
+		((ARCH_WORD_32*)binary)[i] = JOHNSWAP(((ARCH_WORD_32*)binary)[i]);
+	}
+#endif
 	pbkdf2_sha1((const unsigned char*)(saved_key[index]),
 	            strlen(saved_key[index]),
 	            cur_salt->salt, cur_salt->length,
