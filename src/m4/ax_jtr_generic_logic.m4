@@ -55,16 +55,19 @@ fi
 AC_MSG_CHECKING([for 32/64 bit])
 AC_LINK_IFELSE(
    [AC_LANG_SOURCE(
-	[extern void exit(int);
-	int main() {
-	#if defined(__x86_64)||defined(__x86_64__)||defined(__amd64)||defined(__amd64__)||defined(_LP64)||defined(__LP64__)||\
-	    defined(_M_IX86)||defined(_M_AMD64)||defined(_M_IA64)||defined(_M_X64)||defined(__LLP64__)||defined(WIN64)
-	exit(0);}
-        #else
-        BORK!
-	#endif
-	]
-  )]
+      [extern void exit(int);
+      int main() {
+      #if defined(_LP64) || defined(__LP64__) || defined(_LLP64) || defined(__LLP64__) || \
+        defined(__x86_64) || defined(__x86_64__) || defined(__amd64) || defined(__amd64__) || \
+        defined(_M_AMD64) || defined(_M_X64) || defined(WIN64) || \
+        defined(__IA64__) || defined(__ia64) || defined(_M_IA64) || \
+        defined(__aarch64__) || defined(__ppc64__)
+          exit(0);}
+      #else
+          BORK!
+      #endif
+      ]
+   )]
   ,[CPU_BITS="-m64"]
    [CPU_BIT_STR="64"]
    [AC_MSG_RESULT([64-bit])]
