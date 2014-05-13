@@ -76,14 +76,8 @@ OPT_NORMAL = -funroll-loops
 OPT_INLINE = -Os -funroll-loops -finline-functions
 #
 
-##########################################################
-# TBD:  This code should be done by the run of configure
-##########################################################
-
-# Works with Solaris make, and GNU make
-PLUGFORMATS_SRCS: sh =echo *_plug.c
-PLUGFORMATS_SRCS += $(wildcard *_plug.c)
-PLUGFORMATS_OBJS = $(PLUGFORMATS_SRCS:.c=.o)
+PLUGFORMATS_SRCS = @PLUGFORMATS_SRCS@
+PLUGFORMATS_OBJS = @PLUGFORMATS_OBJS@
 
 JOHN_OBJS = \
 	john-mpi.o \
@@ -247,7 +241,6 @@ endif
 #
 #########################################################
 default:
-	@echo "#define JOHN_BLD" '"'@JOHN_BUILD_LABEL@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) @CC_ASM_OBJS@" \
 		AESNI_ARCH=@CPU_BIT_STR@
@@ -362,8 +355,8 @@ DES_bs_b.o: DES_bs_b.c sboxes.c nonstd.c sboxes-s.c
 
 # TBD  (plug building will be put into configure.ac, so this
 # target will likely disappear soon
-*_fmt_plug.c: Makefile john.c
-	@
+#*_fmt_plug.c: Makefile john.c
+#	@
 
 miscnl.o: misc.c
 	$(CC) $(CFLAGS) $(OPT_NORMAL) -D_JOHN_MISC_NO_LOG misc.c -o miscnl.o
@@ -604,16 +597,7 @@ endif
 ../run/tgtsnarf@EXE_EXT@: tgtsnarf.o
 	$(LD) tgtsnarf.o memdbg.o $(LDFLAGS) -o ../run/tgtsnarf
 
-##########################################################
-# TBD:  This code should be done by the run of configure
-##########################################################
-fmt_externs.h: $(PLUGFORMATS_SRCS) Makefile *_fmt_plug.c
-	LC_ALL=C $(SED) -n 's/^\(struct fmt_main [^ ]*\) =.*/extern \1;/p' *_fmt_plug.c | LC_ALL=C $(SORT) > fmt_externs.h
-
-fmt_registers.h: $(PLUGFORMATS_SRCS) Makefile *_fmt_plug.c
-	LC_ALL=C $(SED) -n 's/^struct fmt_main \([^ ]*\) =.*/john_register_one(\&\1);/p' *_fmt_plug.c | LC_ALL=C $(SORT) > fmt_registers.h
-
-john.o: john.c fmt_externs.h fmt_registers.h
+john.o: john.c
 	$(CC) $(CFLAGS_MAIN) $(OPT_NORMAL) -O0 $*.c
 
 .c.o:
@@ -679,12 +663,7 @@ clean:
 	$(RM) ../run/kernels/*.cl ../run/kernels/*.h ../run/kernels/*.bin
 	$(RM) detect bench para-bench generic.h tmp.s
 	$(RM) cuda/*.o cuda/*~ *~
-#	arch.h now only cleaned up in distclean
-#	$(RM) arch.h
-#	later we may also want to NOT clean these (fmt_registers.h fmt_externs.h john_build_rule.h), if built in the ./configure run
-	$(RM) fmt_registers.h fmt_externs.h john_build_rule.h
 	$(CP) $(NULL) Makefile.dep
-#	make -C aes clean
 	@for dir in ${subdirs}; do \
 	  (cd $$dir && make clean) \
 	  || case "$(MFLAGS)" in *k*) fail=yes;; *) exit 1;; esac; \
@@ -817,10 +796,8 @@ distclean: clean
 	done && test -z "$$fail"
 	$(RM) -f Makefile autoconfig.h config.status config.cache config.log autoconfig-stamp-h stamp-h1 ../run/john.log
 	$(LN) Makefile.stub Makefile
-#	moved from older clean target.
 	$(RM) arch.h
-#	We may later also 'move' the creation of these 3 into configure. If we do, we only smoke them on distclean
-#	$(RM) fmt_registers.h fmt_externs.h john_build_rule.h
+	$(RM) fmt_registers.h fmt_externs.h john_build_rule.h
 
 # a rule to make snapshots  (NOTE, still to be done for JtR)
 snapshot: $(SOURCES) $(DOCS) $(OTHERFILES)

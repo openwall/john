@@ -161,10 +161,13 @@ fi
 # Checks for programs.
 AC_PROG_LN_S
 AC_PROG_GREP
+AC_PROG_SED
 AC_PROG_CXX
 AC_PROG_MAKE_SET
 AC_PROG_CPP
 AC_CACHE_SAVE
+# I wish sort was a 'standard' autocheck
+AC_PATH_PROG([SORT], [sort])
 
 # Cross-compile compliant size checks
 AC_CHECK_SIZEOF([char])
@@ -393,6 +396,23 @@ AS_IF([test $ac_cv_sizeof_int -gt 4],
 # note, we remove it first.
 AS_IF([rm -f arch.h])
 AC_CONFIG_LINKS([arch.h:$ARCH_LINK])
+
+##########################################################
+# Code  to create @PLUGFORMAT_SRCS@ @PLUGFORMATS_OBJS@
+# and fmt_externs.h fmt_registers.h and john_buildrule.h
+# moved from Makefile.in to here.
+##########################################################
+AC_SUBST([PLUGFORMATS_SRCS],[`echo *_plug.c`])
+AC_SUBST([PLUGFORMATS_OBJS],[`echo *_plug.c | sed "s/\.c/.o/g"`])
+echo "configure: creating ./fmt_externs.h"
+LC_ALL=C ${SED} -n 's/^\(struct fmt_main [[^ ]]*\) =.*/extern \1;/p' *_fmt_plug.c | LC_ALL=C ${SORT} > fmt_externs.h
+echo "configure: creating ./fmt_registers.h"
+LC_ALL=C ${SED} -n 's/^struct fmt_main \([[^ ]]*\) =.*/john_register_one(\&\1);/p' *_fmt_plug.c | LC_ALL=C ${SORT} > fmt_registers.h
+echo "configure: creating ./john_build_rule.h"
+echo "#define JOHN_BLD \"${CPU_BIT_STR}-bit ${CPU_STR}-autoconf\"" > john_build_rule.h
+########################################################
+# End of plugin and build_rules generation code
+########################################################
 
 AC_CONFIG_FILES([Makefile
                  aes/Makefile
