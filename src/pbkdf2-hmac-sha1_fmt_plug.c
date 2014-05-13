@@ -193,7 +193,7 @@ static void *get_binary(char *ciphertext)
 		p += 2;
 	}
 #if !ARCH_LITTLE_ENDIAN
-	for (i = 0; i < BINARY_SIZE/4; ++i) {
+	for (i = 0; i < len/sizeof(ARCH_WORD_32); ++i) {
 		((ARCH_WORD_32*)out)[i] = JOHNSWAP(((ARCH_WORD_32*)out)[i]);
 	}
 #endif
@@ -289,7 +289,7 @@ static int cmp_exact(char *source, int index)
 		p += 2;
 	}
 #if !ARCH_LITTLE_ENDIAN
-	for (i = 0; i < BINARY_SIZE/4; ++i) {
+	for (i = 0; i < len/sizeof(ARCH_WORD_32); ++i) {
 		((ARCH_WORD_32*)binary)[i] = JOHNSWAP(((ARCH_WORD_32*)binary)[i]);
 	}
 #endif
