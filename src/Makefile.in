@@ -353,11 +353,6 @@ $(SUBDIRS):
 DES_bs_b.o: DES_bs_b.c sboxes.c nonstd.c sboxes-s.c
 	$(CC) $(CFLAGS) $(OPT_INLINE) DES_bs_b.c
 
-# TBD  (plug building will be put into configure.ac, so this
-# target will likely disappear soon
-#*_fmt_plug.c: Makefile john.c
-#	@
-
 miscnl.o: misc.c
 	$(CC) $(CFLAGS) $(OPT_NORMAL) -D_JOHN_MISC_NO_LOG misc.c -o miscnl.o
 
