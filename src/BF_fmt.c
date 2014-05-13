@@ -83,6 +83,8 @@ static struct fmt_tests tests[] = {
 		"\x55\xaa\xff\x55\xaa\xff\x55\xaa\xff\x55\xaa\xff"
 		"\x55\xaa\xff\x55\xaa\xff\x55\xaa\xff\x55\xaa\xff"
 		"\x55\xaa\xff\x55\xaa\xff\x55\xaa\xff\x55\xaa\xff"},
+	{"$2b$05$XXXXXXXXXXXXXXXXXXXXXOAcXxm9kjPGEMsLznoKqmqw7tc8WCx4a",
+		"U*U*U"},
 	{NULL}
 };
 
@@ -120,6 +122,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *pos;
 
 	if (strncmp(ciphertext, "$2a$", 4) &&
+	    strncmp(ciphertext, "$2b$", 4) &&
 	    strncmp(ciphertext, "$2x$", 4) &&
 	    strncmp(ciphertext, "$2y$", 4))
 		return 0;

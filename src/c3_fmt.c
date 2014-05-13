@@ -312,6 +312,7 @@ static void *salt(char *ciphertext)
 		else
 		if (length == 60 &&
 		    (!strncmp(ciphertext, "$2a$", 4) ||
+		    !strncmp(ciphertext, "$2b$", 4) ||
 		    !strncmp(ciphertext, "$2x$", 4) ||
 		    !strncmp(ciphertext, "$2y$", 4)))
 			cut = 29;
