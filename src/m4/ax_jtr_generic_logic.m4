@@ -74,7 +74,7 @@ AC_LINK_IFELSE(
 
 case "$target_cpu" in
    x86_64)
-      if test x"$with_icc_asm" != "xyes"; then
+      if test x"$with_icc_asm" = "xyes"; then
          [CFLAGS+=" -DUSING_ICC_S_FILE"]
          [CC_ASM_OBJS="x86-64.o sse-intrinsics-64.o"]
       else
@@ -82,7 +82,7 @@ case "$target_cpu" in
       fi
    ;;
    i?86)
-      if test x"$with_icc_asm" != "xyes"; then
+      if test x"$with_icc_asm" = "xyes"; then
          [CFLAGS+=" -DUSING_ICC_S_FILE"]
          [CC_ASM_OBJS="x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics-32.o"]
       else
