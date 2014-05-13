@@ -214,10 +214,10 @@ case "$target_cpu" in
   arm*) ARCH_LINK=arm32le.h endian=little ;;
   ia64) ARCH_LINK=ia64.h endian=little ;;
   i?86) ARCH_LINK=x86-any.h endian=little ;;
-  #m68k*) ARCH_LINK=xxxx endian=big ;;
+  m68k*) ARCH_LINK=autoconf_arch.h endian=big ;;
   mipseb) ARCH_LINK=mips32.h endian=big ;;
   mips*) ARCH_LINK=mips32.h endian=little ;;
-  #pdp*) ARCH_LINK=xxxx endian=little ;;
+  pdp*) ARCH_LINK=autoconf_arch.h endian=little ;;
   powerpcle) ARCH_LINK=ppc32.h endian=little ;;
   powerpc*) ARCH_LINK=ppc32.h endian=big ;;
   sparc64) ARCH_LINK=sparc64.h endian=big ;;
@@ -226,7 +226,7 @@ case "$target_cpu" in
   x86_64) ARCH_LINK=x86-64.h endian=little ;;
   *)
      AC_MSG_WARN([Uncertain support for ${target}, please report!])
-     ARCH_LINK=ia64.h # I just picked one without ASM nor other specials
+     ARCH_LINK=autoconf_arch.h
      ;;
 esac
 AC_MSG_RESULT([${ARCH_LINK}])
