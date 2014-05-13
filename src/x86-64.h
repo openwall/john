@@ -23,8 +23,7 @@
  */
 #if AC_BUILT
 #include "autoconfig.h"
-#endif
-
+#else
 #if defined(__ILP32__) || defined(_WIN64) || defined (__LLP64__) || \
 	(defined(__SIZE_OF_LONG__) && __SIZEOF_LONG__ == 4)
 #define ARCH_WORD			long long
@@ -35,8 +34,6 @@
 #define ARCH_BITS			64
 #define ARCH_BITS_LOG			6
 #define ARCH_BITS_STR			"64"
-
-#if !AC_BUILT
 #define ARCH_LITTLE_ENDIAN		1
 #define ARCH_INT_GT_32			0
 #define ARCH_ALLOWS_UNALIGNED		1

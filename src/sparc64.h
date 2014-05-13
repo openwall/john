@@ -21,15 +21,12 @@
  */
 #if AC_BUILT
 #include "autoconfig.h"
-#endif
-
+#else
 #define ARCH_WORD			long
 #define ARCH_SIZE			8
 #define ARCH_BITS			64
 #define ARCH_BITS_LOG			6
 #define ARCH_BITS_STR			"64"
-
-#if !AC_BUILT
 #define ARCH_LITTLE_ENDIAN		0
 #define ARCH_INT_GT_32			0
 #define ARCH_ALLOWS_UNALIGNED		0

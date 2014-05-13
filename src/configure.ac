@@ -3,7 +3,7 @@
 
 # Travis CI only has 2.68
 AC_PREREQ([2.68])
-AC_INIT([john], [1.8.0.bleeding], [noone@dev.null])
+AC_INIT([john], [1.8.0.bleeding], [john-users mailing list at openwall.com])
 ##  AM_INIT_AUTOMAKE([foreign subdir-objects])
 AC_CONFIG_SRCDIR([john.c])
 AC_CONFIG_HEADERS([autoconfig.h])
@@ -15,6 +15,7 @@ m4_include([m4/ax_pthread.m4])
 m4_include([m4/ax_prog_cc_mpi.m4])
 m4_include([m4/ax_lang_compiler_ms.m4])
 m4_include([m4/ax_jtr_x86_logic.m4])
+m4_include([m4/ax_jtr_generic_logic.m4])
 
 
 dnl  If you want to pass these into your Makefile.in templates, use
@@ -34,7 +35,7 @@ dnl    AC_MSG_FAILURE(message)
 dnl    AC_MSG_ERROR(message)
 dnl    AC_MSG_CHECKING(message)
 dnl    AC_MSG_RESULT(message)   (if we use msg_checking, we should use result to tell what happened).
-dnl    AC_CHECK_SIZEOF (type-or-expr, [unused], [includes = ‘AC_INCLUDES_DEFAULT’])
+dnl    AC_CHECK_SIZEOF (type-or-expr, [unused], [includes = 'AC_INCLUDES_DEFAULT'])
 dnl    AC_ARG_ENABLE([opencl], [AC_HELP_STRING([--disable-opencl], [do not use OpenCL])], [disable_opencl=$enableval], [disable_opencl='yes'])
 dnl    AC_ARG_WITH(omp, [AS_HELP_STRING([--with-omp],[compile with OpenMP (multi-thread) support. If none is found, OMP is not used. Default: auto])],,with_omp=auto)
 dnl    gcc -dM -E - < /dev/null
@@ -185,20 +186,11 @@ AC_CHECK_SIZEOF([int *])
 AC_CHECK_SIZEOF([long long *])
 AC_CHECK_SIZEOF([void *])
 
-# NOTE, later, we will probably do this by parsing the host or target to figure
-# out the system, then have a switch statement, based upon the system, calling
-# the proper AX_JTR_cputype_SPECIAL_LOGIC function (and of course have to write
-# macros for each environment.  We probaby should fall back to calling
-# make -f Makefile.orig clean generic or failing with an echo of that message,
-# for any environment we do not handle.
-if test x${enable_native_tests} = xyes; then
-   AX_JTR_X86_SPECIAL_LOGIC
-else
 # Available arch.h's:
 # alpha.h
-# arm32le.h (mfpu=neon)
+# arm32le.h (mfpu=neon) (we may override the "le")
 # ia64.h
-# mips32.h
+# mips32.h (we may override the BE defined within it)
 # mips64.h
 # pa-risc.h
 # ppc32.h
@@ -215,25 +207,39 @@ else
 #
 # See http://ftp.netbsd.org/pub/NetBSD/NetBSD-release-6/src/external/bsd/pcc/dist/pcc/configure.ac for many alternatives
 #
-   CC_BACKUP=$CC
-   case "$target_cpu" in
-     armeb) ARCH_LINK=arm32le.h endian=big ;;
-     arm*) ARCH_LINK=arm32le.h endian=little ;;
-     i?86) ARCH_LINK=x86-any.h endian=little ;;
-     #m68k*) ARCH_LINK=m68k endian=big ;;
-     mipseb) ARCH_LINK=mips32.h endian=big ;;
-     mips*) ARCH_LINK=mips32.h endian=little ;;
-     #pdp10) ARCH_LINK=pdp10 endian=little ;;
-     powerpc) ARCH_LINK=ppc32.h endian=big ;;
-     sparc64) ARCH_LINK=sparc64.h endian=big ;;
-     vax) ARCH_LINK=vax.h endian=little ;;
-     x86_64) ARCH_LINK=x86-64.h endian=little ;;
-     *)
-        AC_MSG_FAILURE([No support for ${target_cpu} yet, please report])
-        ;;
-     esac
-fi
-AC_MSG_NOTICE([Using ${ARCH_LINK} for arch.h])
+AC_MSG_CHECKING([for arch.h alternative])
+case "$target_cpu" in
+  alpha*) ARCH_LINK=alpha.h endian=little ;;
+  armeb) ARCH_LINK=arm32le.h endian=big ;;
+  arm*) ARCH_LINK=arm32le.h endian=little ;;
+  ia64) ARCH_LINK=ia64.h endian=little ;;
+  i?86) ARCH_LINK=x86-any.h endian=little ;;
+  #m68k*) ARCH_LINK=xxxx endian=big ;;
+  mipseb) ARCH_LINK=mips32.h endian=big ;;
+  mips*) ARCH_LINK=mips32.h endian=little ;;
+  #pdp*) ARCH_LINK=xxxx endian=little ;;
+  powerpcle) ARCH_LINK=ppc32.h endian=little ;;
+  powerpc*) ARCH_LINK=ppc32.h endian=big ;;
+  sparc64) ARCH_LINK=sparc64.h endian=big ;;
+  sparc*) ARCH_LINK=sparc32.h endian=big ;;
+  vax*) ARCH_LINK=vax.h endian=little ;;
+  x86_64) ARCH_LINK=x86-64.h endian=little ;;
+  *)
+     AC_MSG_WARN([Uncertain support for ${target}, please report!])
+     ARCH_LINK=ia64.h # I just picked one without ASM nor other specials
+     ;;
+esac
+AC_MSG_RESULT([${ARCH_LINK}])
+
+# NOTE, later, we will probably do this by parsing the host or target to figure
+# out the system, then have a switch statement, based upon the system, calling
+# the proper AX_JTR_cputype_SPECIAL_LOGIC function (and of course have to write
+# macros for each environment.  We probaby should fall back to calling
+# make -f Makefile.orig clean generic or failing with an echo of that message,
+# for any environment we do not handle.
+CPU_STR="$target_cpu"
+AX_JTR_X86_SPECIAL_LOGIC
+AX_JTR_GENERIC_LOGIC
 
 #############################################################################
 # Check for unaligned memory access being allowed
@@ -261,10 +267,18 @@ CC="$CC_BACKUP"
 #############################################################################
 # Check for LE/BE CPU
 #############################################################################
-if test ${endian} = unknown; then
-  AC_C_BIGENDIAN  #([ARCH_LE=0], [ARCH_LE=1], [action-if-unknown], [action-if-universal])
+if test "x$endian" = "xunknown"; then
+  AC_C_BIGENDIAN([endian=big], [endian=little])
 else
-  AC_MSG_NOTICE([Endian is established as ${endian}])
+  AC_MSG_CHECKING([for byte ordering according to target triple])
+  AC_MSG_RESULT([${endian}])
+fi
+if test "x$endian" = "xbig"; then
+   AC_DEFINE([ARCH_LITTLE_ENDIAN], 0, ["Enable if CPU is LITTLE ENDIAN arch"])
+elif test "x$endian" = "xlittle"; then
+   AC_DEFINE([ARCH_LITTLE_ENDIAN], 1, ["Enable if CPU is LITTLE ENDIAN arch"])
+else
+   AC_MSG_FAILURE([Could not determine endianity. Supply '--with-endian=little|big' and re-run])
 fi
 
 #############################################################################
@@ -383,13 +397,22 @@ AS_IF([test "x${ALLOWS_UNALIGNED}" = "x1"],
    [AC_DEFINE([ARCH_ALLOWS_UNALIGNED], 1, ["Enable if CPU allows unaligned memory access"])],
    [AC_DEFINE([ARCH_ALLOWS_UNALIGNED], 0, ["Enable if CPU allows unaligned memory access"])])
 
-AS_IF([test "x${ac_cv_c_bigendian}" = "xyes"],
-   [AC_DEFINE([ARCH_LITTLE_ENDIAN], 0, ["Enable if CPU is LITTLE ENDIAN arch"])],
-   [AC_DEFINE([ARCH_LITTLE_ENDIAN], 1, ["Enable if CPU is LITTLE ENDIAN arch"])])
-
 AS_IF([test $ac_cv_sizeof_int -gt 4],
    [AC_DEFINE([ARCH_INT_GT_32], 1, ["Enable if sizeof(int) > 4"])],
    [AC_DEFINE([ARCH_INT_GT_32], 0, ["Enable if sizeof(int) > 4"])])
+
+AS_IF([[test ${CPU_BIT_STR} -eq 64] && [test ${ac_cv_sizeof_long} -eq 4]],
+   [AC_DEFINE([ARCH_WORD], [long long], ["Type with native size"])],
+   [AC_DEFINE([ARCH_WORD], [long], ["Type with native size"])])
+
+AS_IF([test ${CPU_BIT_STR} -eq 64],
+   [AC_DEFINE([ARCH_SIZE], 8, ["Native CPU width"])],
+   [AC_DEFINE([ARCH_SIZE], 4, ["Native CPU width"])])
+AC_DEFINE_UNQUOTED([ARCH_BITS], [$CPU_BIT_STR], ["Native CPU width, bits"])
+AS_IF([test ${CPU_BIT_STR} -eq 64],
+   [AC_DEFINE([ARCH_BITS_LOG], 6, ["Native CPU width, log"])],
+   [AC_DEFINE([ARCH_BITS_LOG], 5, ["Native CPU width, log"])])
+AC_DEFINE_UNQUOTED([ARCH_BITS_STR], ["$CPU_BIT_STR"], ["Native CPU width, string"])
 
 # build proper 'link' to the arch file (based on bit only, for 32 bit, we may
 # want different ones, and for other CPU's we need different ones)
