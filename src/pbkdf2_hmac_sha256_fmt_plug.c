@@ -30,7 +30,7 @@
 #define MAX_KEYS_PER_CRYPT	2
 
 #define BINARY_ALIGN		4
-#define SALT_ALIGN		1
+#define SALT_ALIGN		4
 
 #define uint8_t			unsigned char
 #define uint16_t		unsigned short
