@@ -8233,7 +8233,7 @@ rm -f confcache
 
 # Check for NSS (unless disabled, or cross compiling)
 if test x"$enable_nss" != "xno"; then
-   if test x${enable_native_tests} != xyes; then
+   if test x${enable_native_tests} = xyes; then
 
 
 

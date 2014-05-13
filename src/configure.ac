@@ -329,7 +329,7 @@ AC_CACHE_SAVE
 
 # Check for NSS (unless disabled, or cross compiling)
 if test x"$enable_nss" != "xno"; then
-   if test x${enable_native_tests} != xyes; then
+   if test x${enable_native_tests} = xyes; then
       PKG_CHECK_MODULES([NSS], [nss], AC_SUBST(HAVE_NSS,[-DHAVE_NSS]),
          AC_MSG_WARN(NSS not found - Mozilla format will be omitted.))
    fi
