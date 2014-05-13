@@ -10,7 +10,7 @@ CC_BACKUP=$CC
 
 # Check for -march=native and add it to CPU_BEST_FLAGS
 # This should be rewritten for aestethical reasons and readability
-if test "x$cross_compiling" = "xno"; then
+if test x${enable_native_tests} = xyes; then
   AC_MSG_CHECKING([whether compiler understands -march=native])
   CC="$CC_BACKUP -march=native"
   AC_LINK_IFELSE(

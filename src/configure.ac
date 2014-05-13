@@ -151,8 +151,9 @@ AX_PROG_CC_MPI([test x"$enable_mpi" != "xno"], [AC_SUBST(HAVE_MPI,[-DHAVE_MPI])]
 ])
 
 # At this point we know whether this is a cross compile
+# Don't test for $cross_compiling = yes, because it might be 'maybe'.
 if test ${enable_native_tests} = auto; then
-   if test ${cross_compiling} = yes; then
+   if test x${cross_compiling} != xno; then
       enable_native_tests=no
    else
       enable_native_tests=yes
