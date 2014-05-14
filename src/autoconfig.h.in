@@ -33,7 +33,7 @@
 /* Define to 1 if you have the `atexit' function. */
 #undef HAVE_ATEXIT
 
-/* enable if compiling for AVX archetecture */
+/* enable if compiling for AVX architecture */
 #undef HAVE_AVX
 
 /* Define to 1 if you have the <CL/cl.h> header file. */
@@ -206,13 +206,13 @@
 /* Define to 1 if you have the `socket' function. */
 #undef HAVE_SOCKET
 
-/* enable if compiling for SSE2 archetecture */
+/* enable if compiling for SSE2 architecture */
 #undef HAVE_SSE2
 
-/* enable if compiling for SSE4.1 archetecture */
+/* enable if compiling for SSE4.1 architecture */
 #undef HAVE_SSE4_1
 
-/* enable if compiling for SSSE3 archetecture */
+/* enable if compiling for SSSE3 architecture */
 #undef HAVE_SSSE3
 
 /* Define to 1 if you have the <stddef.h> header file. */
@@ -314,7 +314,7 @@
 /* Define to 1 if `vfork' works. */
 #undef HAVE_WORKING_VFORK
 
-/* enable if compiling for XOP archetecture */
+/* enable if compiling for XOP architecture */
 #undef HAVE_XOP
 
 /* Define to 1 if the system has the type `_Bool'. */

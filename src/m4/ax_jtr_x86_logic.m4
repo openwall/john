@@ -58,7 +58,7 @@ if test x${enable_native_tests} = xyes; then
     )]
     ,[CPU_BEST_FLAGS="-msse2"] dnl
      [CPU_STR="SSE2"]
-     [AC_DEFINE([HAVE_SSE2], 1, [enable if compiling for SSE2 archetecture])] dnl
+     [AC_DEFINE([HAVE_SSE2], 1, [enable if compiling for SSE2 architecture])] dnl
      [AC_MSG_RESULT([yes])]
     ,[CPU_NOTFOUND="1"]
      [AC_MSG_RESULT(no)]
@@ -78,7 +78,7 @@ if test x${enable_native_tests} = xyes; then
     )]
     ,[CPU_BEST_FLAGS="-mssse3"]dnl
      [CPU_STR="SSSE3"]
-     [AC_DEFINE([HAVE_SSSE3], 1, [enable if compiling for SSSE3 archetecture])] dnl
+     [AC_DEFINE([HAVE_SSSE3], 1, [enable if compiling for SSSE3 architecture])] dnl
      [AC_MSG_RESULT([yes])]
     ,[CPU_NOTFOUND=1]
      [AC_MSG_RESULT([no])]
@@ -100,7 +100,7 @@ if test x${enable_native_tests} = xyes; then
     )]
     ,[CPU_BEST_FLAGS="-msse4.1"]dnl
      [CPU_STR="SSE4.1"]
-     [AC_DEFINE([HAVE_SSE4_1], 1, [enable if compiling for SSE4.1 archetecture])] dnl
+     [AC_DEFINE([HAVE_SSE4_1], 1, [enable if compiling for SSE4.1 architecture])] dnl
      [AC_MSG_RESULT([yes])]
     ,[CPU_NOTFOUND=1]
      [AC_MSG_RESULT([no])]
@@ -123,7 +123,7 @@ if test x${enable_native_tests} = xyes; then
     ,[CPU_BEST_FLAGS="-mavx"]dnl
      [CPU_STR="AVX"]
      [CPU_BEST_FLAGS_MAIN="-DJOHN_AVX"]
-     [AC_DEFINE([HAVE_AVX], 1, [enable if compiling for AVX archetecture])] dnl
+     [AC_DEFINE([HAVE_AVX], 1, [enable if compiling for AVX architecture])] dnl
      [AC_MSG_RESULT([yes])]
     ,[AC_MSG_RESULT([no])]
     )
@@ -144,7 +144,7 @@ if test x${enable_native_tests} = xyes; then
     ,[CPU_BEST_FLAGS="-mxop"]dnl
      [CPU_STR="XOP"]
      [CPU_BEST_FLAGS_MAIN="-DJOHN_XOP"]
-     [AC_DEFINE([HAVE_XOP], 1, [enable if compiling for XOP archetecture])] dnl
+     [AC_DEFINE([HAVE_XOP], 1, [enable if compiling for XOP architecture])] dnl
      [AC_MSG_RESULT([yes])]
     ,[AC_MSG_RESULT([no])]
     )
