@@ -62,12 +62,12 @@ CCBIN_OSX = /usr/bin/llvm-gcc-4.2
 
 # @CPU_BITS@ left out
 CPPFLAGS += @CPPFLAGS@
-CFLAGSX = -DAC_BUILT $(CPPFLAGS) -c -Wall -Wdeclaration-after-statement @CFLAGS@ @HAVE_NSS@ @NSS_CFLAGS@ @OPENMP_CFLAGS@ @HAVE_MPI@ -fomit-frame-pointer -I/usr/local/include $(AMDAPP) $(RELEASE_BLD)
+CFLAGSX = -DAC_BUILT $(CPPFLAGS) -c -Wall -Wdeclaration-after-statement @CFLAGS@ @HAVE_NSS@ @NSS_CFLAGS@ @OPENSSL_CFLAGS@ @OPENMP_CFLAGS@ @HAVE_MPI@ -fomit-frame-pointer -I/usr/local/include $(AMDAPP) $(RELEASE_BLD)
 # CFLAGS for use on the main john.c file only
 CFLAGS_MAIN = @CC_MAIN_CPU@ $(CFLAGSX)
 CFLAGS = @CC_CPU@ $(CFLAGSX)
 ASFLAGS = @ASFLAGS@ @CC_CPU@ -c @OPENMP_CFLAGS@ @HAVE_MPI@ @EXTRA_AS_FLAGS@
-LIBS = @LIBS@ @NSS_LIBS@
+LIBS = @LIBS@ @NSS_LIBS@ @OPENSSL_LIBS@ 
 LDFLAGS = -g @LDFLAGS@ $(LIBS) @OPENMP_CFLAGS@ @HAVE_MPI@
 LDFLAGS_MKV = -g @OPENMP_CFLAGS@
 #
