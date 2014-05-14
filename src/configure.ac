@@ -312,7 +312,10 @@ if test x${enable_native_tests} = xyes && test x$PKG_CONFIG != xno; then
 else
    AC_CHECK_HEADER([openssl/opensslv.h],
    [AC_CHECK_LIB([ssl],[SSL_library_init],
-      [AC_CHECK_LIB([crypto],[MD5_Update],[],
+      [AC_CHECK_LIB([crypto],[MD5_Update],
+         [AC_DEFINE(HAVE_LIBSSL,1,[Define to 1 if you have the `ssl' library (-lssl).])]
+         [AC_DEFINE(HAVE_LIBCRYPTO,1,[Define to 1 if you have the `crypto' library (-lcrypto).])]
+         [LIBS="-lssl -lcrypto $LIBS"],
          [AC_MSG_FAILURE(JtR requires libssl/libcrypto being installed,1)])],
       [AC_MSG_FAILURE(JtR requires libssl being installed,1)])])
 fi

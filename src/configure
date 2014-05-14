@@ -7802,12 +7802,13 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_crypto_MD5_Update" >&5
 $as_echo "$ac_cv_lib_crypto_MD5_Update" >&6; }
 if test "x$ac_cv_lib_crypto_MD5_Update" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBCRYPTO 1
-_ACEOF
 
-  LIBS="-lcrypto $LIBS"
+$as_echo "#define HAVE_LIBSSL 1" >>confdefs.h
 
+
+$as_echo "#define HAVE_LIBCRYPTO 1" >>confdefs.h
+
+         LIBS="-lssl -lcrypto $LIBS"
 else
   { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
