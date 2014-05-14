@@ -325,7 +325,8 @@ AC_CHECK_LIB([z],[deflate],[],[AC_MSG_FAILURE(JtR requires libz being installed,
 AC_SEARCH_LIBS([crypt],[crypt],[AC_DEFINE(HAVE_CRYPT,1,[Define to 1 if you have the `crypt' library (-lcrypt).])])
 AC_CHECK_LIB([k5crypto],[krb5_c_string_to_key_with_params],[],[AC_MSG_WARN(Installing MIT krb5/k5crypto/ library enables several extra formats,1)] )
 AC_CHECK_LIB([krb5],[krb5_c_string_to_key_with_params])
-AC_CHECK_HEADERS([gmp.h] [gmp/gmp.h],[AC_CHECK_LIB([gmp],[__gmpz_init])] [break])
+AC_CHECK_HEADERS([gmp.h] [gmp/gmp.h],
+  [AC_CHECK_LIB([gmp],[__gmpz_init])] [break])
 AS_IF([test x$ac_cv_lib_gmp___gmpz_init != xyes], [AC_MSG_WARN(Installing libgmp will speed up some hash formats)])
 AC_CHECK_LIB([kernel32],[main])
 AC_CHECK_LIB([dl],[dlopen])
@@ -339,7 +340,11 @@ AC_CHECK_LIB([wsock32],[main])
 AC_CHECK_LIB([lws2_32],[main])
 AC_CHECK_LIB([wst],[main])
 # in makefile, we need to know if building extra pcap items.
-AC_CHECK_LIB([pcap],[pcap_compile], [AC_SUBST(HAVE_PCAP,[-DHAVE_PCAP])] [LIBS+=" -lpcap"])
+AC_CHECK_HEADER([pcap.h],
+  [AC_CHECK_LIB([pcap],[pcap_compile],
+    [AC_SUBST(HAVE_PCAP,[-DHAVE_PCAP])] [LIBS+=" -lpcap"],
+    [AC_MSG_WARN([You need pcap library to build some helper tools (but john itself will be built!)])])],
+  [AC_MSG_WARN([You need pcap headers to build some helper tools (but john itself will be built!)])])
 
 # Check for non-standard variations we can handle
 AC_CHECK_HEADER([openssl/whrlpool.h],,[AC_DEFINE([HAVE_NO_SSL_WHIRLPOOL], 1, ["Define if your OpenSSL is built without Whirlpool support"])])

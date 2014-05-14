@@ -8562,7 +8562,9 @@ _ACEOF
 fi
 
 # in makefile, we need to know if building extra pcap items.
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for pcap_compile in -lpcap" >&5
+ac_fn_c_check_header_mongrel "$LINENO" "pcap.h" "ac_cv_header_pcap_h" "$ac_includes_default"
+if test "x$ac_cv_header_pcap_h" = xyes; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for pcap_compile in -lpcap" >&5
 $as_echo_n "checking for pcap_compile in -lpcap... " >&6; }
 if ${ac_cv_lib_pcap_pcap_compile+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -8601,7 +8603,16 @@ $as_echo "$ac_cv_lib_pcap_pcap_compile" >&6; }
 if test "x$ac_cv_lib_pcap_pcap_compile" = xyes; then :
   HAVE_PCAP=-DHAVE_PCAP
  LIBS+=" -lpcap"
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: You need pcap library to build some helper tools (but john itself will be built!)" >&5
+$as_echo "$as_me: WARNING: You need pcap library to build some helper tools (but john itself will be built!)" >&2;}
 fi
+
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: You need pcap headers to build some helper tools (but john itself will be built!)" >&5
+$as_echo "$as_me: WARNING: You need pcap headers to build some helper tools (but john itself will be built!)" >&2;}
+fi
+
 
 
 # Check for non-standard variations we can handle
