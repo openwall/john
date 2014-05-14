@@ -34,6 +34,7 @@
 
 AC_DEFUN([AX_JTR_X86_SPECIAL_LOGIC], [
 CC_BACKUP=$CC
+CFLAGS_BACKUP=$CFLAGS
 
 #############################################################################
 # CPU test code.  We start with SSE2, then SSSE3, then SSE4, ... until we fail
@@ -42,9 +43,8 @@ CC_BACKUP=$CC
 # back to whatever the 'best' was.  During running in configure, $CC gets reset
 # so the results of our tests must be remembered, and reset just before exit.
 #############################################################################
+CFLAGS="$CFLAGS -O0"
 if test x${enable_native_tests} = xyes; then
-  CFLAGS_BACKUP=$CFLAGS
-  CFLAGS="$CFLAGS -O0"
   CPU_NOTFOUND=0
   CC="$CC_BACKUP -msse2"
   AC_MSG_CHECKING([for SSE2])
@@ -151,8 +151,140 @@ if test x${enable_native_tests} = xyes; then
     )
   ]
   )
+
+else
+
+  ##########################################
+  # cross-compile versions of the same tests
+  ##########################################
   CC="$CC_BACKUP"
-  CFLAGS="$CFLAGS_BACKUP"
+  CPU_NOTFOUND=0
+  AC_MSG_CHECKING([for MMX])
+  AC_LINK_IFELSE(
+     [AC_LANG_SOURCE(
+	[extern void exit(int);
+	int main() {
+	#if defined(__MMX__)
+	    exit(0);}
+	#else
+	    BORK!
+	#endif
+	]
+     )]
+    ,[CPU_BEST_FLAGS="-mmmx"] dnl
+     [CPU_STR="MMX"]
+     dnl[AS_IF([test y$ARCH_LINK = yx86-any.h], [ARCH_LINK=x86-mmx.h])]
+     [AC_MSG_RESULT([yes])]
+    ,[CPU_NOTFOUND="1"]
+     [AC_MSG_RESULT(no)]
+  )
+  if test x"$CPU_NOTFOUND" = "x0"; then
+    AC_MSG_CHECKING([for SSE2])
+    AC_LINK_IFELSE(
+       [AC_LANG_SOURCE(
+	  [extern void exit(int);
+	  int main() {
+	  #if defined(__SSE2__)
+	      exit(0);}
+	  #else
+	      BORK!
+	  #endif
+	  ]
+       )]
+      ,[CPU_BEST_FLAGS="-msse2"] dnl
+       [CPU_STR="SSE2"]
+       [AS_IF([test y$ARCH_LINK = yx86-any.h], [ARCH_LINK=x86-sse.h])]
+       [AC_DEFINE([HAVE_SSE2], 1, [enable if compiling for SSE2 architecture])] dnl
+       [AC_MSG_RESULT([yes])]
+      ,[CPU_NOTFOUND="1"]
+       [AC_MSG_RESULT(no)]
+    )
+  fi
+  if test x"$CPU_NOTFOUND" = "x0"; then
+    AC_MSG_CHECKING([for SSSE3])
+    AC_LINK_IFELSE(
+       [AC_LANG_SOURCE(
+	  [extern void exit(int);
+	  int main() {
+	  #if defined(__SSSE3__)
+	      exit(0);}
+	  #else
+	      BORK!
+	  #endif
+	  ]
+       )]
+      ,[CPU_BEST_FLAGS="-mssse3"] dnl
+       [CPU_STR="SSSE3"]
+       [AC_DEFINE([HAVE_SSSE3], 1, [enable if compiling for SSSE3 architecture])] dnl
+       [AC_MSG_RESULT([yes])]
+      ,[CPU_NOTFOUND="1"]
+       [AC_MSG_RESULT(no)]
+    )
+  fi
+  if test x"$CPU_NOTFOUND" = "x0"; then
+    AC_MSG_CHECKING([for SSE4.1])
+    AC_LINK_IFELSE(
+       [AC_LANG_SOURCE(
+	  [extern void exit(int);
+	  int main() {
+	  #if defined(__SSE4_1__)
+	      exit(0);}
+	  #else
+	      BORK!
+	  #endif
+	  ]
+       )]
+      ,[CPU_BEST_FLAGS="-msse4.1"] dnl
+       [CPU_STR="SSE4.1"]
+       [AC_DEFINE([HAVE_SSE4_1], 1, [enable if compiling for SSE4.1 architecture])] dnl
+       [AC_MSG_RESULT([yes])]
+      ,[CPU_NOTFOUND="1"]
+       [AC_MSG_RESULT(no)]
+    )
+  fi
+  if test x"$CPU_NOTFOUND" = "x0"; then
+    AC_MSG_CHECKING([for AVX])
+    AC_LINK_IFELSE(
+       [AC_LANG_SOURCE(
+	  [extern void exit(int);
+	  int main() {
+	  #if defined(__AVX__)
+	      exit(0);}
+	  #else
+	      BORK!
+	  #endif
+	  ]
+       )]
+      ,[CPU_BEST_FLAGS="-mAVX"] dnl
+       [CPU_STR="AVX"]
+       [AC_DEFINE([HAVE_AVX], 1, [enable if compiling for AVX architecture])] dnl
+       [AC_MSG_RESULT([yes])]
+      ,[CPU_NOTFOUND="1"]
+       [AC_MSG_RESULT(no)]
+    )
+  fi
+  if test x"$CPU_NOTFOUND" = "x0"; then
+    AC_MSG_CHECKING([for XOP])
+    AC_LINK_IFELSE(
+       [AC_LANG_SOURCE(
+	  [extern void exit(int);
+	  int main() {
+	  #if defined(__XOP__)
+	      exit(0);}
+	  #else
+	      BORK!
+	  #endif
+	  ]
+       )]
+      ,[CPU_BEST_FLAGS="-mXOP"] dnl
+       [CPU_STR="XOP"]
+       [AC_DEFINE([HAVE_XOP], 1, [enable if compiling for XOP architecture])] dnl
+       [AC_MSG_RESULT([yes])]
+      ,[CPU_NOTFOUND="1"]
+       [AC_MSG_RESULT(no)]
+    )
+  fi
+
 fi
 
 CC="$CC_BACKUP"

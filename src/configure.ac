@@ -116,6 +116,8 @@ AC_ARG_WITH(arch, [AS_HELP_STRING([--with-arch=opt],[Add 'opt' to CFLAGS, LDFLAG
 
 if test x${with_arch} != x; then
    CFLAGS+=" ${with_arch}"
+   CPPFLAGS+=" ${with_arch}"
+   CXXFLAGS+=" ${with_arch}"
    LDFLAGS+=" ${with_arch}"
    ASFLAGS+=" ${with_arch}"
 fi
