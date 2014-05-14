@@ -466,7 +466,9 @@ static void single_run(void)
 
 		min = rule_number;
 
-		salt = single_db->salts;
+		/* pot reload might have removed the salt */
+		if (!(salt = single_db->salts))
+			return;
 		do {
 			if (!salt->list)
 				continue;
