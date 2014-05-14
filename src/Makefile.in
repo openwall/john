@@ -67,7 +67,7 @@ CFLAGSX = -DAC_BUILT $(CPPFLAGS) -c -Wall -Wdeclaration-after-statement @CFLAGS@
 CFLAGS_MAIN = @CC_MAIN_CPU@ $(CFLAGSX)
 CFLAGS = @CC_CPU@ $(CFLAGSX)
 ASFLAGS = @ASFLAGS@ @CC_CPU@ -c @OPENMP_CFLAGS@ @HAVE_MPI@ @EXTRA_AS_FLAGS@
-LIBS = @LIBS@ @NSS_LIBS@ @OPENSSL_LIBS@ 
+LIBS = @LIBS@ @NSS_LIBS@ @OPENSSL_LIBS@
 LDFLAGS = -g @LDFLAGS@ $(LIBS) @OPENMP_CFLAGS@ @HAVE_MPI@
 LDFLAGS_MKV = -g @OPENMP_CFLAGS@
 #
@@ -258,6 +258,12 @@ endif
 
 help:
 	@echo "The 'older' fat makefile can be done with make --file=Makefile.orig [target]"
+
+# Digital/Compaq's cc and make use the .S suffix for a different purpose...
+digipaq-alpha.o: alpha.S
+	$(CPP) $(CPPFLAGS) alpha.S > tmp.s
+	$(AS) $(ASFLAGS) tmp.s -o digipaq-alpha.o
+	$(RM) tmp.s
 
 cuda_common.o:	cuda/cuda_common.cuh cuda/cuda_common.cu
 	cd cuda; $(NVCC) $(NVCC_FLAGS) cuda_common.cu -o ../cuda_common.o
