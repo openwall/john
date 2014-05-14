@@ -17,7 +17,6 @@ m4_include([m4/ax_lang_compiler_ms.m4])
 m4_include([m4/ax_jtr_x86_logic.m4])
 m4_include([m4/ax_jtr_generic_logic.m4])
 
-
 dnl  If you want to pass these into your Makefile.in templates, use
 dnl    AC_SUBST(ac_variable_name)
 dnl  then they'll be available as substitution variables (eg., @ac_variable_name@)
@@ -174,6 +173,12 @@ AC_CACHE_SAVE
 # I wish sort was a 'standard' autocheck
 AC_PATH_PROG([SORT], [sort])
 
+# Check if we have this at all
+PKG_PROG_PKG_CONFIG
+if test "x$PKG_CONFIG" = x ; then
+    PKG_CONFIG=no
+fi
+
 # Cross-compile compliant size checks
 AC_CHECK_SIZEOF([char])
 AC_CHECK_SIZEOF([unsigned char])
@@ -299,7 +304,7 @@ fi
 #  modified default action, and doing an AS_IF on the next line.
 ################################################
 
-if test x${enable_native_tests} = xyes; then
+if test x${enable_native_tests} = xyes && test x$PKG_CONFIG != xno; then
    PKG_CHECK_MODULES([OPENSSL], [openssl],
      AC_DEFINE(HAVE_LIBCRYPTO,1,[Define to 1 if you have the `crypto' library (-lcrypto).])
 	 AC_DEFINE(HAVE_LIBSSL,1,[Define to 1 if you have the `ssl' library (-lssl).]),
