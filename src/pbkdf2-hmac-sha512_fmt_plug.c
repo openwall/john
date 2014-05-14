@@ -236,7 +236,7 @@ static void *get_binary(char *ciphertext)
 {
 	static union {
 		unsigned char c[MAX_BINARY_SIZE];
-		ARCH_WORD dummy;
+		ARCH_WORD_64 dummy;
 	} buf;
 	unsigned char *out = buf.c;
 	char *p;
