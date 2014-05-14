@@ -46,6 +46,7 @@ CFLAGS_BACKUP=$CFLAGS
 CFLAGS="$CFLAGS -O0"
 if test x${enable_native_tests} = xyes; then
   CPU_NOTFOUND=0
+  AVX_NOTFOUND=0
   CC="$CC_BACKUP -msse2"
   AC_MSG_CHECKING([for SSE2])
   AC_RUN_IFELSE(
@@ -108,7 +109,6 @@ if test x${enable_native_tests} = xyes; then
     )
   ]
   )
-
   AS_IF([test x"$CPU_NOTFOUND" = "x0"],
   [
   CC="$CC_BACKUP -mavx"
@@ -125,6 +125,28 @@ if test x${enable_native_tests} = xyes; then
      [CPU_STR="AVX"]
      [CPU_BEST_FLAGS_MAIN="-DJOHN_AVX"]
      [AC_DEFINE([HAVE_AVX], 1, [enable if compiling for AVX architecture])] dnl
+     [AC_MSG_RESULT([yes])]
+    ,[AVX_NOTFOUND=1]
+	 [AC_MSG_RESULT([no])]
+    )
+  ]
+  )
+  AS_IF([test x"$AVX_NOTFOUND" = "x0"],
+  [
+  CC="$CC_BACKUP -mavx2"
+  AC_MSG_CHECKING([for AVX2])
+  AC_RUN_IFELSE(
+    [
+    AC_LANG_SOURCE(
+	  [[#include <immintrin.h>
+        #include <stdio.h>
+        extern void exit(int);
+        int main(){__m256i t, t1;*((long long*)&t)=1;t1=t;t=_mm256_mul_epi32(t1,t);if((*(long long*)&t)==88)printf(".");exit(0);}]]
+    )]
+    ,[CPU_BEST_FLAGS="-mavx2"]dnl
+     [CPU_STR="AVX2"]
+     [CPU_BEST_FLAGS_MAIN="-DJOHN_AVX2"]
+     [AC_DEFINE([HAVE_AVX2], 1, [enable if compiling for AVX2 architecture])] dnl
      [AC_MSG_RESULT([yes])]
     ,[AC_MSG_RESULT([no])]
     )

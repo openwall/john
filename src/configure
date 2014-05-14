@@ -6580,6 +6580,7 @@ CFLAGS_BACKUP=$CFLAGS
 CFLAGS="$CFLAGS -O0"
 if test x${enable_native_tests} = xyes; then
   CPU_NOTFOUND=0
+  AVX_NOTFOUND=0
   CC="$CC_BACKUP -msse2"
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for SSE2" >&5
 $as_echo_n "checking for SSE2... " >&6; }
@@ -6703,7 +6704,6 @@ fi
 
 
 fi
-
   if test x"$CPU_NOTFOUND" = "x0"; then :
 
   CC="$CC_BACKUP -mavx"
@@ -6730,6 +6730,48 @@ if ac_fn_c_try_run "$LINENO"; then :
      CPU_BEST_FLAGS_MAIN="-DJOHN_AVX"
 
 $as_echo "#define HAVE_AVX 1" >>confdefs.h
+      { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+
+else
+  AVX_NOTFOUND=1
+	 { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+
+fi
+rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
+  conftest.$ac_objext conftest.beam conftest.$ac_ext
+fi
+
+
+
+fi
+  if test x"$AVX_NOTFOUND" = "x0"; then :
+
+  CC="$CC_BACKUP -mavx2"
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for AVX2" >&5
+$as_echo_n "checking for AVX2... " >&6; }
+  if test "$cross_compiling" = yes; then :
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "cannot run test program while cross compiling
+See \`config.log' for more details" "$LINENO" 5; }
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+    #include <immintrin.h>
+        #include <stdio.h>
+        extern void exit(int);
+        int main(){__m256i t, t1;*((long long*)&t)=1;t1=t;t=_mm256_mul_epi32(t1,t);if((*(long long*)&t)==88)printf(".");exit(0);}
+
+
+_ACEOF
+if ac_fn_c_try_run "$LINENO"; then :
+  CPU_BEST_FLAGS="-mavx2"     CPU_STR="AVX2"
+     CPU_BEST_FLAGS_MAIN="-DJOHN_AVX2"
+
+$as_echo "#define HAVE_AVX2 1" >>confdefs.h
       { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 
