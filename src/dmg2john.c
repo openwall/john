@@ -39,7 +39,9 @@
 #include "misc.h"
 #include "memdbg.h"
 
+#ifndef ntohll
 #define ntohll(x) (((uint64_t) ntohl((x) >> 32)) | (((uint64_t) ntohl((uint32_t) ((x) & 0xFFFFFFFF))) << 32))
+#endif
 
 #define LARGE_ENOUGH 8192
 
