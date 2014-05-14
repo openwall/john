@@ -58,6 +58,7 @@ if test x${enable_native_tests} = xyes; then
     )]
     ,[CPU_BEST_FLAGS="-msse2"] dnl
      [CPU_STR="SSE2"]
+     [AS_IF([test y$ARCH_LINK = yx86-any.h], [ARCH_LINK=x86-sse.h])]
      [AC_DEFINE([HAVE_SSE2], 1, [enable if compiling for SSE2 architecture])] dnl
      [AC_MSG_RESULT([yes])]
     ,[CPU_NOTFOUND="1"]

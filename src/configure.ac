@@ -154,6 +154,7 @@ AX_PROG_CC_MPI([test x"$enable_mpi" != "xno"], [AC_SUBST(HAVE_MPI,[-DHAVE_MPI])]
 # Don't test for $cross_compiling = yes, because it might be 'maybe'.
 if test ${enable_native_tests} = auto; then
    if test x${cross_compiling} != xno; then
+      AC_MSG_NOTICE([This is a cross-compile; all native tests disabled])
       enable_native_tests=no
    else
       enable_native_tests=yes
@@ -191,7 +192,7 @@ AC_CHECK_SIZEOF([void *])
 # alpha.h
 # arm32le.h (mfpu=neon) (we may override the "le")
 # ia64.h
-# mips32.h (we may override the BE defined within it)
+# mips32.h (we override the BE defined within it)
 # mips64.h
 # pa-risc.h
 # ppc32.h
@@ -208,13 +209,12 @@ AC_CHECK_SIZEOF([void *])
 #
 # See http://ftp.netbsd.org/pub/NetBSD/NetBSD-release-6/src/external/bsd/pcc/dist/pcc/configure.ac for many alternatives
 #
-AC_MSG_CHECKING([for arch.h alternative])
 case "$target_cpu" in
   alpha*) ARCH_LINK=alpha.h endian=little ;;
   armeb) ARCH_LINK=arm32le.h endian=big ;;
   arm*) ARCH_LINK=arm32le.h endian=little ;;
   ia64) ARCH_LINK=ia64.h endian=little ;;
-  i?86) ARCH_LINK=x86-sse.h endian=little ;;
+  i?86) ARCH_LINK=x86-any.h endian=little ;;
   m68k*) ARCH_LINK=autoconf_arch.h endian=big ;;
   mipseb) ARCH_LINK=mips32.h endian=big ;;
   mips*) ARCH_LINK=mips32.h endian=little ;;
@@ -230,7 +230,6 @@ case "$target_cpu" in
      ARCH_LINK=autoconf_arch.h
      ;;
 esac
-AC_MSG_RESULT([${ARCH_LINK}])
 
 # NOTE, later, we will probably do this by parsing the host or target to figure
 # out the system, then have a switch statement, based upon the system, calling
@@ -240,6 +239,8 @@ AC_MSG_RESULT([${ARCH_LINK}])
 # for any environment we do not handle.
 CPU_STR="$target_cpu"
 AX_JTR_X86_SPECIAL_LOGIC
+AC_MSG_CHECKING([for arch.h alternative])
+AC_MSG_RESULT([${ARCH_LINK}])
 AX_JTR_GENERIC_LOGIC
 
 #############################################################################

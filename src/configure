@@ -5148,6 +5148,8 @@ fi
 # Don't test for $cross_compiling = yes, because it might be 'maybe'.
 if test ${enable_native_tests} = auto; then
    if test x${cross_compiling} != xno; then
+      { $as_echo "$as_me:${as_lineno-$LINENO}: This is a cross-compile; all native tests disabled" >&5
+$as_echo "$as_me: This is a cross-compile; all native tests disabled" >&6;}
       enable_native_tests=no
    else
       enable_native_tests=yes
@@ -6515,7 +6517,7 @@ _ACEOF
 # alpha.h
 # arm32le.h (mfpu=neon) (we may override the "le")
 # ia64.h
-# mips32.h (we may override the BE defined within it)
+# mips32.h (we override the BE defined within it)
 # mips64.h
 # pa-risc.h
 # ppc32.h
@@ -6532,14 +6534,12 @@ _ACEOF
 #
 # See http://ftp.netbsd.org/pub/NetBSD/NetBSD-release-6/src/external/bsd/pcc/dist/pcc/configure.ac for many alternatives
 #
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for arch.h alternative" >&5
-$as_echo_n "checking for arch.h alternative... " >&6; }
 case "$target_cpu" in
   alpha*) ARCH_LINK=alpha.h endian=little ;;
   armeb) ARCH_LINK=arm32le.h endian=big ;;
   arm*) ARCH_LINK=arm32le.h endian=little ;;
   ia64) ARCH_LINK=ia64.h endian=little ;;
-  i?86) ARCH_LINK=x86-sse.h endian=little ;;
+  i?86) ARCH_LINK=x86-any.h endian=little ;;
   m68k*) ARCH_LINK=autoconf_arch.h endian=big ;;
   mipseb) ARCH_LINK=mips32.h endian=big ;;
   mips*) ARCH_LINK=mips32.h endian=little ;;
@@ -6556,8 +6556,6 @@ $as_echo "$as_me: WARNING: Uncertain support for ${target}, please report!" >&2;
      ARCH_LINK=autoconf_arch.h
      ;;
 esac
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: ${ARCH_LINK}" >&5
-$as_echo "${ARCH_LINK}" >&6; }
 
 # NOTE, later, we will probably do this by parsing the host or target to figure
 # out the system, then have a switch statement, based upon the system, calling
@@ -6601,6 +6599,9 @@ else
 _ACEOF
 if ac_fn_c_try_run "$LINENO"; then :
   CPU_BEST_FLAGS="-msse2"      CPU_STR="SSE2"
+     if test y$ARCH_LINK = yx86-any.h; then :
+  ARCH_LINK=x86-sse.h
+fi
 
 $as_echo "#define HAVE_SSE2 1" >>confdefs.h
       { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
@@ -6790,6 +6791,10 @@ fi
 CC="$CC_BACKUP"
 CFLAGS="$CFLAGS_BACKUP"
 
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for arch.h alternative" >&5
+$as_echo_n "checking for arch.h alternative... " >&6; }
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: ${ARCH_LINK}" >&5
+$as_echo "${ARCH_LINK}" >&6; }
 
 CC_BACKUP=$CC
 
