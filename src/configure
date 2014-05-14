@@ -7726,7 +7726,9 @@ $as_echo "#define HAVE_LIBSSL 1" >>confdefs.h
 
 fi
 else
-   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for SSL_library_init in -lssl" >&5
+   ac_fn_c_check_header_mongrel "$LINENO" "openssl/opensslv.h" "ac_cv_header_openssl_opensslv_h" "$ac_includes_default"
+if test "x$ac_cv_header_openssl_opensslv_h" = xyes; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for SSL_library_init in -lssl" >&5
 $as_echo_n "checking for SSL_library_init in -lssl... " >&6; }
 if ${ac_cv_lib_ssl_SSL_library_init+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -7763,20 +7765,7 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_ssl_SSL_library_init" >&5
 $as_echo "$ac_cv_lib_ssl_SSL_library_init" >&6; }
 if test "x$ac_cv_lib_ssl_SSL_library_init" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBSSL 1
-_ACEOF
-
-  LIBS="-lssl $LIBS"
-
-else
-  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
-$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error 1 "JtR requires libssl being installed
-See \`config.log' for more details" "$LINENO" 5; }
-fi
-
-   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for MD5_Update in -lcrypto" >&5
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for MD5_Update in -lcrypto" >&5
 $as_echo_n "checking for MD5_Update in -lcrypto... " >&6; }
 if ${ac_cv_lib_crypto_MD5_Update+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -7825,6 +7814,16 @@ $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
 as_fn_error 1 "JtR requires libssl/libcrypto being installed
 See \`config.log' for more details" "$LINENO" 5; }
 fi
+
+else
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error 1 "JtR requires libssl being installed
+See \`config.log' for more details" "$LINENO" 5; }
+fi
+
+fi
+
 
 fi
 
@@ -8708,8 +8707,7 @@ rm -f confcache
 #################
 
 # Check for NSS (unless disabled, or cross compiling)
-if test x"$enable_nss" != "xno"; then
-   if test x${enable_native_tests} = xyes; then
+if test x"$enable_nss" != "xno" && test x$PKG_CONFIG != xno; then
 
 pkg_failed=no
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for NSS" >&5
@@ -8780,7 +8778,6 @@ $as_echo "yes" >&6; }
 	HAVE_NSS=-DHAVE_NSS
 
 fi
-   fi
 fi
 
 # Check for openMP (enable/disable handled within the macro).

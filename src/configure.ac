@@ -310,8 +310,11 @@ if test x${enable_native_tests} = xyes && test x$PKG_CONFIG != xno; then
 	 AC_DEFINE(HAVE_LIBSSL,1,[Define to 1 if you have the `ssl' library (-lssl).]),
 	 AC_MSG_FAILURE(JtR requires OpenSSL being installed,1))
 else
-   AC_CHECK_LIB([ssl],[SSL_library_init],[],[AC_MSG_FAILURE(JtR requires libssl being installed,1)])
-   AC_CHECK_LIB([crypto],[MD5_Update],[],[AC_MSG_FAILURE(JtR requires libssl/libcrypto being installed,1)])
+   AC_CHECK_HEADER([openssl/opensslv.h],
+   [AC_CHECK_LIB([ssl],[SSL_library_init],
+      [AC_CHECK_LIB([crypto],[MD5_Update],[],
+         [AC_MSG_FAILURE(JtR requires libssl/libcrypto being installed,1)])],
+      [AC_MSG_FAILURE(JtR requires libssl being installed,1)])])
 fi
 
 #################
@@ -348,11 +351,9 @@ AC_CACHE_SAVE
 #################
 
 # Check for NSS (unless disabled, or cross compiling)
-if test x"$enable_nss" != "xno"; then
-   if test x${enable_native_tests} = xyes; then
+if test x"$enable_nss" != "xno" && test x$PKG_CONFIG != xno; then
       PKG_CHECK_MODULES([NSS], [nss], AC_SUBST(HAVE_NSS,[-DHAVE_NSS]),
          AC_MSG_WARN(NSS not found - Mozilla format will be omitted.))
-   fi
 fi
 
 # Check for openMP (enable/disable handled within the macro).
