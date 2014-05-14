@@ -48,6 +48,7 @@ if test x${enable_native_tests} = xyes; then
   CPU_NOTFOUND=0
   AVX_NOTFOUND=0
   CC="$CC_BACKUP -msse2"
+  AC_MSG_NOTICE([Testing native ${build_cpu} build CPU features])
   AC_MSG_CHECKING([for SSE2])
   AC_RUN_IFELSE(
     [
@@ -181,6 +182,7 @@ else
   ##########################################
   CC="$CC_BACKUP"
   CPU_NOTFOUND=0
+  AC_MSG_NOTICE([Checking enabled ${host_cpu} host CPU features])
   AC_MSG_CHECKING([for MMX])
   AC_LINK_IFELSE(
      [AC_LANG_SOURCE(
@@ -286,27 +288,6 @@ else
     )
   fi
   if test x"$CPU_NOTFOUND" = "x0"; then
-    AC_MSG_CHECKING([for XOP])
-    AC_LINK_IFELSE(
-       [AC_LANG_SOURCE(
-	  [extern void exit(int);
-	  int main() {
-	  #if defined(__XOP__)
-	      exit(0);}
-	  #else
-	      BORK!
-	  #endif
-	  ]
-       )]
-      ,[CPU_BEST_FLAGS="-mxop"] dnl
-       [CPU_STR="XOP"]
-       [AC_DEFINE([HAVE_XOP], 1, [enable if compiling for XOP architecture])] dnl
-       [AC_MSG_RESULT([yes])]
-      ,[CPU_NOTFOUND="1"]
-       [AC_MSG_RESULT(no)]
-    )
-  fi
-  if test x"$CPU_NOTFOUND" = "x0"; then
     AC_MSG_CHECKING([for AVX2])
     AC_LINK_IFELSE(
        [AC_LANG_SOURCE(
@@ -323,8 +304,27 @@ else
        [CPU_STR="AVX2"]
        [AC_DEFINE([HAVE_AVX2], 1, [enable if compiling for AVX2 architecture])] dnl
        [AC_MSG_RESULT([yes])]
-      ,[CPU_NOTFOUND="1"]
-       [AC_MSG_RESULT(no)]
+      ,[AC_MSG_RESULT(no)]
+    )
+  fi
+  if test x"$CPU_NOTFOUND" = "x0"; then
+    AC_MSG_CHECKING([for XOP])
+    AC_LINK_IFELSE(
+       [AC_LANG_SOURCE(
+	  [extern void exit(int);
+	  int main() {
+	  #if defined(__XOP__)
+	      exit(0);}
+	  #else
+	      BORK!
+	  #endif
+	  ]
+       )]
+      ,[CPU_BEST_FLAGS="-mxop"] dnl
+       [CPU_STR="XOP"]
+       [AC_DEFINE([HAVE_XOP], 1, [enable if compiling for XOP architecture])] dnl
+       [AC_MSG_RESULT([yes])]
+      ,[AC_MSG_RESULT(no)]
     )
   fi
 

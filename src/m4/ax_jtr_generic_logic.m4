@@ -76,7 +76,7 @@ AC_LINK_IFELSE(
    [AC_MSG_RESULT([32-bit])]
 )
 
-case "$target_cpu" in
+case "$host_cpu" in
    x86_64)
       if test x"$with_icc_asm" = "xyes"; then
          [CFLAGS+=" -DUSING_ICC_S_FILE"]

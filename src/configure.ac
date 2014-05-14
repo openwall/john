@@ -140,7 +140,7 @@ AC_ARG_ENABLE([native-tests], [AC_HELP_STRING([--disable-native-tests], [Do not 
 ####### Actual tests start here #######
 
 # Support cross compile
-AC_CANONICAL_SYSTEM
+AC_CANONICAL_HOST
 
 # Check for MPI. Only if MPI not found/wanted: Check for CC.
 AX_PROG_CC_MPI([test x"$enable_mpi" != "xno"], [AC_SUBST(HAVE_MPI,[-DHAVE_MPI])],[
@@ -211,7 +211,7 @@ AC_CHECK_SIZEOF([void *])
 #
 # See http://ftp.netbsd.org/pub/NetBSD/NetBSD-release-6/src/external/bsd/pcc/dist/pcc/configure.ac for many alternatives
 #
-case "$target_cpu" in
+case "$host_cpu" in
   alpha*) ARCH_LINK=alpha.h endian=little ;;
   armeb) ARCH_LINK=arm32le.h endian=big ;;
   arm*) ARCH_LINK=arm32le.h endian=little ;;
@@ -239,7 +239,7 @@ esac
 # macros for each environment.  We probaby should fall back to calling
 # make -f Makefile.orig clean generic or failing with an echo of that message,
 # for any environment we do not handle.
-CPU_STR="$target_cpu"
+CPU_STR="$host_cpu"
 AX_JTR_X86_SPECIAL_LOGIC
 AC_MSG_CHECKING([for arch.h alternative])
 AC_MSG_RESULT([${ARCH_LINK}])
