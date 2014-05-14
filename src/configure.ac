@@ -298,23 +298,17 @@ fi
 #  done by 'hand'.  Look at PCAP, where "LIBS += -lpcap" was added. This could also be done by skipping the
 #  modified default action, and doing an AS_IF on the next line.
 ################################################
-#
-##### Note, for next 2(ssl and crypto), we probably should use pkg-config openssl (--cflags and --libs)
-#
-#AC_CHECK_LIB([ssl],[SSL_library_init],[],[AC_MSG_FAILURE(JtR requires libssl being installed,1)])
-#AC_CHECK_LIB([crypto],[MD5_Update],[],[AC_MSG_FAILURE(JtR requires libssl/libcrypto being installed,1)])
-#
-# the above 2 AC_CHECK_LIB calls left in for now, till we see how the PKG_CHECK_MODULES works out.
-# Check for oSSL(!!!! unless disabled, or cross compiling !!!  We have to figure out how to do this for cross compile, OR require they 
-# provide LIBS and CFLAGS for ossl on the target system)
+
 if test x${enable_native_tests} = xyes; then
    PKG_CHECK_MODULES([OPENSSL], [openssl],
      AC_DEFINE(HAVE_LIBCRYPTO,1,[Define to 1 if you have the `crypto' library (-lcrypto).])
 	 AC_DEFINE(HAVE_LIBSSL,1,[Define to 1 if you have the `ssl' library (-lssl).]),
 	 AC_MSG_FAILURE(JtR requires OpenSSL being installed,1))
 else
-   AC_MSG_FAILURE(Magnum, what do you think here!,1)
+   AC_CHECK_LIB([ssl],[SSL_library_init],[],[AC_MSG_FAILURE(JtR requires libssl being installed,1)])
+   AC_CHECK_LIB([crypto],[MD5_Update],[],[AC_MSG_FAILURE(JtR requires libssl/libcrypto being installed,1)])
 fi
+
 #################
 # libz is found in pkg-config --switch zlib
 #################

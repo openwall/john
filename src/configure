@@ -7521,15 +7521,7 @@ fi
 #  done by 'hand'.  Look at PCAP, where "LIBS += -lpcap" was added. This could also be done by skipping the
 #  modified default action, and doing an AS_IF on the next line.
 ################################################
-#
-##### Note, for next 2(ssl and crypto), we probably should use pkg-config openssl (--cflags and --libs)
-#
-#AC_CHECK_LIB([ssl],[SSL_library_init],[],[AC_MSG_FAILURE(JtR requires libssl being installed,1)])
-#AC_CHECK_LIB([crypto],[MD5_Update],[],[AC_MSG_FAILURE(JtR requires libssl/libcrypto being installed,1)])
-#
-# the above 2 AC_CHECK_LIB calls left in for now, till we see how the PKG_CHECK_MODULES works out.
-# Check for oSSL(!!!! unless disabled, or cross compiling !!!  We have to figure out how to do this for cross compile, OR require they
-# provide LIBS and CFLAGS for ossl on the target system)
+
 if test x${enable_native_tests} = xyes; then
 
 
@@ -7730,11 +7722,108 @@ $as_echo "#define HAVE_LIBSSL 1" >>confdefs.h
 
 fi
 else
-   { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for SSL_library_init in -lssl" >&5
+$as_echo_n "checking for SSL_library_init in -lssl... " >&6; }
+if ${ac_cv_lib_ssl_SSL_library_init+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lssl  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char SSL_library_init ();
+int
+main ()
+{
+return SSL_library_init ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_ssl_SSL_library_init=yes
+else
+  ac_cv_lib_ssl_SSL_library_init=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_ssl_SSL_library_init" >&5
+$as_echo "$ac_cv_lib_ssl_SSL_library_init" >&6; }
+if test "x$ac_cv_lib_ssl_SSL_library_init" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBSSL 1
+_ACEOF
+
+  LIBS="-lssl $LIBS"
+
+else
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error what do you think here! "Magnum
+as_fn_error 1 "JtR requires libssl being installed
 See \`config.log' for more details" "$LINENO" 5; }
 fi
+
+   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for MD5_Update in -lcrypto" >&5
+$as_echo_n "checking for MD5_Update in -lcrypto... " >&6; }
+if ${ac_cv_lib_crypto_MD5_Update+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lcrypto  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char MD5_Update ();
+int
+main ()
+{
+return MD5_Update ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_crypto_MD5_Update=yes
+else
+  ac_cv_lib_crypto_MD5_Update=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_crypto_MD5_Update" >&5
+$as_echo "$ac_cv_lib_crypto_MD5_Update" >&6; }
+if test "x$ac_cv_lib_crypto_MD5_Update" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBCRYPTO 1
+_ACEOF
+
+  LIBS="-lcrypto $LIBS"
+
+else
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error 1 "JtR requires libssl/libcrypto being installed
+See \`config.log' for more details" "$LINENO" 5; }
+fi
+
+fi
+
 #################
 # libz is found in pkg-config --switch zlib
 #################
