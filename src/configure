@@ -6938,7 +6938,7 @@ extern void exit(int);
 
 _ACEOF
 if ac_fn_c_try_link "$LINENO"; then :
-  CPU_BEST_FLAGS="-mAVX"        CPU_STR="AVX"
+  CPU_BEST_FLAGS="-mavx"        CPU_STR="AVX"
 
 $as_echo "#define HAVE_AVX 1" >>confdefs.h
         { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
@@ -6970,9 +6970,41 @@ extern void exit(int);
 
 _ACEOF
 if ac_fn_c_try_link "$LINENO"; then :
-  CPU_BEST_FLAGS="-mXOP"        CPU_STR="XOP"
+  CPU_BEST_FLAGS="-mxop"        CPU_STR="XOP"
 
 $as_echo "#define HAVE_XOP 1" >>confdefs.h
+        { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+
+else
+  CPU_NOTFOUND="1"
+       { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+  fi
+  if test x"$CPU_NOTFOUND" = "x0"; then
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for AVX2" >&5
+$as_echo_n "checking for AVX2... " >&6; }
+    cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+extern void exit(int);
+	  int main() {
+	  #if defined(__AVX2__)
+	      exit(0);}
+	  #else
+	      BORK!
+	  #endif
+
+
+
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  CPU_BEST_FLAGS="-mavx2"        CPU_STR="AVX2"
+
+$as_echo "#define HAVE_AVX2 1" >>confdefs.h
         { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 

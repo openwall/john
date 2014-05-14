@@ -255,7 +255,7 @@ else
 	  #endif
 	  ]
        )]
-      ,[CPU_BEST_FLAGS="-mAVX"] dnl
+      ,[CPU_BEST_FLAGS="-mavx"] dnl
        [CPU_STR="AVX"]
        [AC_DEFINE([HAVE_AVX], 1, [enable if compiling for AVX architecture])] dnl
        [AC_MSG_RESULT([yes])]
@@ -276,9 +276,30 @@ else
 	  #endif
 	  ]
        )]
-      ,[CPU_BEST_FLAGS="-mXOP"] dnl
+      ,[CPU_BEST_FLAGS="-mxop"] dnl
        [CPU_STR="XOP"]
        [AC_DEFINE([HAVE_XOP], 1, [enable if compiling for XOP architecture])] dnl
+       [AC_MSG_RESULT([yes])]
+      ,[CPU_NOTFOUND="1"]
+       [AC_MSG_RESULT(no)]
+    )
+  fi
+  if test x"$CPU_NOTFOUND" = "x0"; then
+    AC_MSG_CHECKING([for AVX2])
+    AC_LINK_IFELSE(
+       [AC_LANG_SOURCE(
+	  [extern void exit(int);
+	  int main() {
+	  #if defined(__AVX2__)
+	      exit(0);}
+	  #else
+	      BORK!
+	  #endif
+	  ]
+       )]
+      ,[CPU_BEST_FLAGS="-mavx2"] dnl
+       [CPU_STR="AVX2"]
+       [AC_DEFINE([HAVE_AVX2], 1, [enable if compiling for AVX2 architecture])] dnl
        [AC_MSG_RESULT([yes])]
       ,[CPU_NOTFOUND="1"]
        [AC_MSG_RESULT(no)]

@@ -36,6 +36,9 @@
 /* enable if compiling for AVX architecture */
 #undef HAVE_AVX
 
+/* enable if compiling for AVX2 architecture */
+#undef HAVE_AVX2
+
 /* Define to 1 if you have the <CL/cl.h> header file. */
 #undef HAVE_CL_CL_H
 
