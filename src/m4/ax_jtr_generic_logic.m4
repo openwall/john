@@ -76,9 +76,11 @@ AC_LINK_IFELSE(
    [AC_MSG_RESULT([32-bit])]
 )
 
+# At this point we know the arch and CPU width so we can pick details. Most
+# "special stuff" from old fat Makefile should go here.
 case "$host_cpu" in
    x86_64)
-      if test x"$with_icc_asm" = "xyes"; then
+      if test "x$with_icc_asm" = "xyes"; then
          [CFLAGS+=" -DUSING_ICC_S_FILE"]
          [CC_ASM_OBJS="x86-64.o sse-intrinsics-64.o"]
       else
@@ -86,11 +88,13 @@ case "$host_cpu" in
       fi
    ;;
    i?86)
-      if test x"$with_icc_asm" = "xyes"; then
-         [CFLAGS+=" -DUSING_ICC_S_FILE"]
-         [CC_ASM_OBJS="x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics-32.o"]
+      if test "y$ARCH_LINK" = "yx86-any.h"; then
+        [CC_ASM_OBJS="x86.o"]
+      elif test "x$with_icc_asm" = "xyes"; then
+        [CFLAGS+=" -DUSING_ICC_S_FILE"]
+        [CC_ASM_OBJS="x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics-32.o"]
       else
-         [CC_ASM_OBJS="x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o"]
+        [CC_ASM_OBJS="x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o"]
       fi
    ;;
    alpha*dec*)
