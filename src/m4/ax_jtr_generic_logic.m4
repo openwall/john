@@ -93,6 +93,7 @@ case "$host_cpu" in
          [CC_ASM_OBJS="x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o"]
       fi
    ;;
+
 esac
 
 #############################################################################
