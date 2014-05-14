@@ -28,7 +28,7 @@
 #define inline
 #endif
 
-inline void *rar_malloc(size_t size);
-inline void *rar_realloc2(void *ptr, size_t size);
+extern void *rar_malloc(size_t size);
+extern void *rar_realloc2(void *ptr, size_t size);
 
 #endif /* __UNRARHLP_H */
