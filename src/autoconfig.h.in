@@ -175,6 +175,9 @@
 /* Define to 1 if you have the <netinet/in.h> header file. */
 #undef HAVE_NETINET_IN_H
 
+/* "Define if your OpenSSL is built without Whirlpool support" */
+#undef HAVE_NO_SSL_WHIRLPOOL
+
 /* Define to 1 if you have the <OpenCL/cl.h> header file. */
 #undef HAVE_OPENCL_CL_H
 

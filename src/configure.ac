@@ -339,6 +339,9 @@ AC_CHECK_LIB([wst],[main])
 # in makefile, we need to know if building extra pcap items.
 AC_CHECK_LIB([pcap],[pcap_compile], [AC_SUBST(HAVE_PCAP,[-DHAVE_PCAP])] [LIBS+=" -lpcap"])
 
+# Check for non-standard variations we can handle
+AC_CHECK_HEADER([openssl/whrlpool.h],,[AC_DEFINE([HAVE_NO_SSL_WHIRLPOOL], 1, ["Define if your OpenSSL is built without Whirlpool support"])])
+
 AC_CACHE_SAVE
 
 #################

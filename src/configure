@@ -8512,6 +8512,18 @@ if test "x$ac_cv_lib_pcap_pcap_compile" = xyes; then :
 fi
 
 
+# Check for non-standard variations we can handle
+ac_fn_c_check_header_mongrel "$LINENO" "openssl/whrlpool.h" "ac_cv_header_openssl_whrlpool_h" "$ac_includes_default"
+if test "x$ac_cv_header_openssl_whrlpool_h" = xyes; then :
+
+else
+
+$as_echo "#define HAVE_NO_SSL_WHIRLPOOL 1" >>confdefs.h
+
+fi
+
+
+
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
 # tests run on this system so they can be shared between configure
