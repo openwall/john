@@ -33,7 +33,11 @@
 #include "nspr.h"
 #endif
 #ifdef HAVE_LIBGMP
+#if HAVE_GMP_GMP_H
+#include "gmp/gmp.h"
+#else
 #include "gmp.h"
+#endif
 #endif
 
 #ifdef NO_JOHN_BLD
@@ -265,7 +269,7 @@ void listconf_parse_early(void)
 }
 
 #if FMT_MAIN_VERSION > 11
-/* 
+/*
  * List names of tunable cost parameters
  * Separator differs for --list=format-all-details (", ")
  * and --list=format-details (",")
@@ -407,12 +411,12 @@ void listconf_parse_late(void)
 			printf("\t");
 			list_tunable_cost_names(format, ",");
 #endif
-			/* 
+			/*
 			 * Since the example ciphertext should be the last line in the
 			 * --list=format-all-details output, it should also be the last column
 			 * here.
 			 * Even if this means tools processing --list=format-details output
-			 * have to check the number of columns if they want to use the example 
+			 * have to check the number of columns if they want to use the example
 			 * ciphertext.
 			 */
 			printf("\t%.256s\n",

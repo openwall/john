@@ -54,7 +54,11 @@
 #include "common.h"
 #include "formats.h"
 #ifdef HAVE_LIBGMP
+#if HAVE_GMP_GMP_H
+#include "gmp/gmp.h"
+#else
 #include "gmp.h"
+#endif
 #define EXP_STR " GMP-exp"
 #else
 #include <openssl/bn.h>

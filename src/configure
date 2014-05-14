@@ -7989,7 +7989,15 @@ _ACEOF
 
 fi
 
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for __gmpz_init in -lgmp" >&5
+for ac_header in gmp.h gmp/gmp.h
+do :
+  as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
+ac_fn_c_check_header_mongrel "$LINENO" "$ac_header" "$as_ac_Header" "$ac_includes_default"
+if eval test \"x\$"$as_ac_Header"\" = x"yes"; then :
+  cat >>confdefs.h <<_ACEOF
+#define `$as_echo "HAVE_$ac_header" | $as_tr_cpp` 1
+_ACEOF
+ { $as_echo "$as_me:${as_lineno-$LINENO}: checking for __gmpz_init in -lgmp" >&5
 $as_echo_n "checking for __gmpz_init in -lgmp... " >&6; }
 if ${ac_cv_lib_gmp___gmpz_init+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -8033,14 +8041,15 @@ _ACEOF
   LIBS="-lgmp $LIBS"
 
 fi
-
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Installing libgmp will speed up some hash formats" >&5
-$as_echo "$as_me: WARNING: Installing libgmp will speed up some hash formats" >&2;}
+ break
 fi
 
 done
 
+if test x$ac_cv_lib_gmp___gmpz_init != xyes; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Installing libgmp will speed up some hash formats" >&5
+$as_echo "$as_me: WARNING: Installing libgmp will speed up some hash formats" >&2;}
+fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lkernel32" >&5
 $as_echo_n "checking for main in -lkernel32... " >&6; }
 if ${ac_cv_lib_kernel32_main+:} false; then :
