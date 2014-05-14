@@ -29,7 +29,6 @@
 #include "sha2.h"
 #include "johnswap.h"
 #include "stdint.h"
-#define PBKDF2_HMAC_SHA256_ALSO_INCLUDE_CTX
 #include "pbkdf2_hmac_sha256.h"
 
 #define FORMAT_LABEL            "PBKDF2-HMAC-SHA256"
