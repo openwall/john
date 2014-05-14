@@ -169,9 +169,13 @@ AC_PROG_SED
 AC_PROG_CXX
 AC_PROG_MAKE_SET
 AC_PROG_CPP
+AC_PROG_MKDIR_P
 AC_CACHE_SAVE
 # I wish sort was a 'standard' autocheck
 AC_PATH_PROG([SORT], [sort])
+AC_PATH_PROG([YASM], [yasm])
+AC_PATH_PROG([AR], [ar])
+AC_PATH_PROG([FIND], [find])
 
 # Check if we have this at all
 PKG_PROG_PKG_CONFIG

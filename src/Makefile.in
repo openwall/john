@@ -10,8 +10,24 @@
 # There's ABSOLUTELY NO WARRANTY, express or implied.
 #
 # This file converted into autoconf format by Jim Fougeron and
-# others, in 2014. That is still a work in progress.
+# magnum, in 2014. That is still a work in progress.
 #
+
+CC = @CC@
+CXX = @CXX@
+AS = @CC@
+LD = @CC@
+CPP = @CC@
+CP = cp
+CP_PRESERVE = cp -p
+LN = @LN_S@
+RM = rm -f
+MKDIR = @MKDIR_P@
+TR = tr
+SED = @SED@
+NULL = /dev/null
+SORT = @SORT@
+STRIP = strip
 
 SHELL = /bin/sh
 VPATH = @srcdir@
@@ -25,27 +41,6 @@ bindir = $(exec_prefix)/bin
 infodir = $(prefix)/info
 libdir = $(prefix)/lib/gnudl
 mandir = $(prefix)/man/man1
-
-CC = @CC@
-CXX = @CXX@
-AS = @CC@
-LD = @CC@
-CPP = @CC@
-#INSTALL = @INSTALL@
-# these are set lower. We may 'set them' initiall, and then we += this stuff.
-# as we develop, and remove ALL of the self checking code and move it to configure,
-# we will also move this code back to top, since it will be fully set from configure script.
-
-CP = cp
-CP_PRESERVE = cp -p
-LN = ln -f -s
-RM = rm -f
-MKDIR = mkdir -p
-TR = tr
-SED = sed
-NULL = /dev/null
-SORT = sort
-STRIP = strip
 
 # CUDA settings. Instead of "-arch sm_10" you could use sm_20 or sm_30 or
 # -gencode arch=compute_10,code=sm_10 -gencode arch=compute_20,code=sm_21

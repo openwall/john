@@ -6,8 +6,10 @@ CPP = @CC@
 CFLAGS = @CFLAGS@
 ASFLAGS = @ASFLAGS@ -c @EXTRA_AS_FLAGS@
 LDFLAGS = @LDFLAGS@
+YASM = @YASM@
+AR = @AR@
+FIND = @FIND@
 GCCV44 := $(shell expr `gcc -dumpversion` \>= 4.4)
-YASM := $(shell which yasm)
 UNAME := $(shell gcc -dumpmachine)
 
 AESIN = aes.o openssl/ossl_aes.o
@@ -35,14 +37,14 @@ $(SUBDIRS):
 	$(MAKE) -C $@ all
 
 aes.a: $(SUBDIRS) aes.o
-	ar -r $@ $(AESIN)
+	$(AR) -r $@ $(AESIN)
 
 default: aes.a
 all: aes.a
 
 clean:
-	find . -iname \*.a -exec rm {} \;
-	find . -iname \*.o -exec rm {} \;
+	$(FIND) . -iname \*.a -exec rm {} \;
+	$(FIND) . -iname \*.o -exec rm {} \;
 
 distclean: clean
 	/bin/rm -f Makefile
