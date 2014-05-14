@@ -407,7 +407,7 @@ int benchmark_all(void)
 			continue;
 
 /* Format disabled in john.conf, unless forced */
-		if (format != fmt_list &&
+		if (fmt_list->next &&
 		    cfg_get_bool(SECTION_DISABLED, SUBSECTION_FORMATS,
 		                 format->params.label, 0))
 			continue;

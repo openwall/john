@@ -490,7 +490,7 @@ static int ldr_split_line(char **login, char **ciphertext,
 		int valid;
 
 		/* Format disabled in john.conf, unless forced */
-		if (alt != fmt_list &&
+		if (fmt_list->next &&
 		    cfg_get_bool(SECTION_DISABLED, SUBSECTION_FORMATS,
 		                 alt->params.label, 0))
 			continue;
