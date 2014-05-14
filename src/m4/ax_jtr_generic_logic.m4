@@ -109,18 +109,15 @@ CFLAGS="$CFLAGS -O0"
 AS_IF([echo "int long_ident;" > conftest.c && ${CC} -c conftest.c && strings - conftest.${OBJEXT} | ${GREP} _long_ident > conftest.out],
       [EXTRA_AS_FLAGS+=" -DUNDERSCORES"])
 
-AC_LINK_IFELSE(
-  [
-  AC_LANG_SOURCE(
+AC_LINK_IFELSE([AC_LANG_SOURCE(
 	[[extern void exit(int);
 	int main() {
 	#if defined(__APPLE__) && defined(__MACH__)
-	exit(0);}
-        #else
-	BORK!
+        exit(0);
+    #else
+        BORK!
 	#endif
-        ]]
-  )]
+	}]])]
   ,[EXTRA_AS_FLAGS+=" -DBSD -DALIGN_LOG"])
 AC_MSG_RESULT([$EXTRA_AS_FLAGS])
 
