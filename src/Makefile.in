@@ -661,7 +661,7 @@ clean:
 	$(RM) cuda/*.o cuda/*~ *~
 	$(CP) $(NULL) Makefile.dep
 	@for dir in ${subdirs}; do \
-	  (cd $$dir && make clean) \
+	  (cd $$dir && $(MAKE) clean) \
 	  || case "$(MFLAGS)" in *k*) fail=yes;; *) exit 1;; esac; \
 	done && test -z "$$fail"
 

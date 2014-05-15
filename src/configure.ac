@@ -505,9 +505,14 @@ else
    using_omp=no
 fi
 
+if test "x$host_cpu" != "x$CPU_STR"; then
+   host_cpu="$host_cpu $CPU_STR"
+fi
+
+echo
+echo "Configured for building John the Ripper Jumbo:"
 echo
 echo "Target CPU ....................... ${host_cpu}, ${CPU_BIT_STR}-bit"
-echo "CPU features ..................... ${CPU_STR}"
 echo "Target OS ........................ ${host_os}"
 echo "Legacy arch header ............... ${ARCH_LINK}"
 echo "OpenMP support ................... ${using_omp}"
