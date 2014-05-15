@@ -16,12 +16,12 @@
 # OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 # SUCH DAMAGE.
 
-CC = gcc
-LD = $(CC)
-RM = rm -f
-CFLAGS = -Wall -march=native -O2 -fomit-frame-pointer
+CC = @GCC@
+LD = @LD@
+RM = /bin/rm -f
+CFLAGS = @CFLAGS@
 #CFLAGS = -Wall -O2 -fomit-frame-pointer
-LDFLAGS = -s
+LDFLAGS = @LDFLAGS@
 
 PROJ = tests
 OBJS_TESTS = crypto_scrypt-best.o crypto_scrypt-common.o sha256.o tests.o
@@ -47,4 +47,4 @@ clean:
 	$(RM) $(PROJ) $(OBJS_TESTS) $(OBJS_RM)
 
 distclean: clean
-	/bin/rm -f Makefile
+	$(RM) Makefile

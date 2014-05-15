@@ -4,10 +4,10 @@ RDTSC = $(ASM_DIR)/do_rdtsc.s
 YASM = @YASM@
 
 iaesx.o: $(IAES)
-	$(YASM) -D__linux__ -g dwarf2 -f elf$(AESNI_ARCH) $(IAES) -o $@
+	$(YASM) -D__@AESNI_OS@__ @YASM_OPTIONS@ $(IAES) -o $@
 
 rdtsc.o: $(RDTSC)
-	$(YASM) -D__linux__ -g dwarf2 -f elf$(AESNI_ARCH) $(RDTSC) -o $@
+	$(YASM) -D__@AESNI_OS@__ @YASM_OPTIONS@ $(RDTSC) -o $@
 
 aesni.o: iaes_asm_interface.h  iaesni.h  intel_aes.c
 	$(CC) $(CFLAGS) -c intel_aes.c -o $@

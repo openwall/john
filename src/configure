@@ -624,8 +624,11 @@ ac_includes_default="\
 
 ac_header_list=
 ac_subst_vars='LTLIBOBJS
+HOST_OS
 PLUGFORMATS_OBJS
 PLUGFORMATS_SRCS
+YASM_OPTIONS
+AESNI_OS
 JOHN_BUILD_LABEL
 EXTRA_AS_FLAGS
 ASFLAGS
@@ -10916,6 +10919,15 @@ cat >>confdefs.h <<_ACEOF
 _ACEOF
 
 
+case "${host_os}" in
+      linux*) aesni_os=linux aesni_options="-g dwarf2 -f elf${CPU_BIT_STR}" ;;
+   *) aesni_os="" aesni_options="" ;;
+esac
+AESNI_OS=$aesni_os
+
+YASM_OPTIONS=$aesni_options
+
+
 # build proper 'link' to the arch file (based on bit only, for 32 bit, we may
 # want different ones, and for other CPU's we need different ones)
 # note, we remove it first.
@@ -10943,6 +10955,8 @@ echo "#define JOHN_BLD \"${CPU_BIT_STR}-bit ${CPU_STR}-autoconf\"" > john_build_
 ########################################################
 # End of plugin and build_rules generation code
 ########################################################
+
+HOST_OS=$host_os
 
 ac_config_files="$ac_config_files Makefile aes/Makefile aes/aesni/Makefile aes/openssl/Makefile escrypt/Makefile"
 
@@ -12317,8 +12331,7 @@ $as_echo "$as_me: WARNING: unrecognized options: $ac_unrecognized_opts" >&2;}
 fi
 
 
-# Stupid reverse bool
-if test x${no_cl} = xyes; then
+if test x${CL_LIBS} = x; then
    using_cl=no
 else
    using_cl=yes

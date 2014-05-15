@@ -184,7 +184,7 @@ PROJ = ../run/john@EXE_EXT@ ../run/unshadow@EXE_EXT@ ../run/unafs@EXE_EXT@ ../ru
 	../run/tgtsnarf@EXE_EXT@ ../run/racf2john@EXE_EXT@ ../run/mozilla2john@EXE_EXT@ ../run/hccap2john@EXE_EXT@ \
 	../run/pwsafe2john@EXE_EXT@ ../run/raw2dyna@EXE_EXT@ ../run/keepass2john@EXE_EXT@ ../run/pfx2john@EXE_EXT@ \
 	../run/keychain2john@EXE_EXT@ ../run/keyring2john@EXE_EXT@ ../run/kwallet2john@EXE_EXT@ \
-	../run/dmg2john@EXE_EXT@ ../run/putty2john@EXE_EXT@ john.local.conf ../run/uaf2john@EXE_EXT@ \
+	../run/dmg2john@EXE_EXT@ ../run/putty2john@EXE_EXT@ ../run/uaf2john@EXE_EXT@ \
 	../run/truecrypt_volume2john@EXE_EXT@ ../run/keystore2john@EXE_EXT@ ../run/wpapcap2john@EXE_EXT@ \
 	../run/gpg2john@EXE_EXT@ ../run/cprepair@EXE_EXT@ ../run/luks2john@EXE_EXT@
 
@@ -357,10 +357,6 @@ DES_bs_b.o: DES_bs_b.c sboxes.c nonstd.c sboxes-s.c
 miscnl.o: misc.c
 	$(CC) $(CFLAGS) $(OPT_NORMAL) -D_JOHN_MISC_NO_LOG misc.c -o miscnl.o
 
-# This must not be specified with path because "make clean" would delete it.
-john.local.conf:
-	[ -f ../run/john.local.conf ] || touch ../run/john.local.conf
-
 ###############################################################################
 #  Process targets.  Note, these are *nix targets, but also work fine under
 #  cygwin.  The only problem with cygwin, is that the ln -s will NOT generate
@@ -376,89 +372,89 @@ john.local.conf:
 
 ../run/unshadow: ../run/john
 	$(RM) ../run/unshadow
-	ln -s john ../run/unshadow
+	$(LN) john ../run/unshadow
 
 ../run/unafs: ../run/john
 	$(RM) ../run/unafs
-	ln -s john ../run/unafs
+	$(LN) john ../run/unafs
 
 ../run/undrop: ../run/john
 	$(RM) ../run/undrop
-	ln -s john ../run/undrop
+	$(LN) john ../run/undrop
 
 ../run/ssh2john: ../run/john
 	$(RM) ../run/ssh2john
-	ln -s john ../run/ssh2john
+	$(LN) john ../run/ssh2john
 
 ../run/putty2john: ../run/john
 	$(RM) ../run/putty2john
-	ln -s john ../run/putty2john
+	$(LN) john ../run/putty2john
 
 ../run/pfx2john: ../run/john
 	$(RM) ../run/pfx2john
-	ln -s john ../run/pfx2john
+	$(LN) john ../run/pfx2john
 
 ../run/keepass2john: ../run/john
 	$(RM) ../run/keepass2john
-	ln -s john ../run/keepass2john
+	$(LN) john ../run/keepass2john
 
 ../run/keyring2john: ../run/john
 	$(RM) ../run/keyring2john
-	ln -s john ../run/keyring2john
+	$(LN) john ../run/keyring2john
 
 ../run/zip2john: ../run/john
 	$(RM) ../run/zip2john
-	ln -s john ../run/zip2john
+	$(LN) john ../run/zip2john
 
 ../run/gpg2john: ../run/john
 	$(RM) ../run/gpg2john
-	ln -s john ../run/gpg2john
+	$(LN) john ../run/gpg2john
 
 ../run/rar2john: ../run/john
 	$(RM) ../run/rar2john
-	ln -s john ../run/rar2john
+	$(LN) john ../run/rar2john
 
 ../run/mozilla2john: ../run/john
 ifdef HAVE_NSS
 	$(RM) ../run/mozilla2john
-	ln -s john ../run/mozilla2john
+	$(LN) john ../run/mozilla2john
 endif
 
 ../run/racf2john: ../run/john
 	$(RM) ../run/racf2john
-	ln -s john ../run/racf2john
+	$(LN) john ../run/racf2john
 
 ../run/keychain2john: ../run/john
 	$(RM) ../run/keychain2john
-	ln -s john ../run/keychain2john
+	$(LN) john ../run/keychain2john
 
 ../run/kwallet2john: ../run/john
 	$(RM) ../run/kwallet2john
-	ln -s john ../run/kwallet2john
+	$(LN) john ../run/kwallet2john
 
 ../run/pwsafe2john: ../run/john
 	$(RM) ../run/pwsafe2john
-	ln -s john ../run/pwsafe2john
+	$(LN) john ../run/pwsafe2john
 
 ../run/dmg2john: ../run/john
 	$(RM) ../run/dmg2john
-	ln -s john ../run/dmg2john
+	$(LN) john ../run/dmg2john
 
 ../run/hccap2john: ../run/john
 	$(RM) ../run/hccap2john
-	ln -s john ../run/hccap2john
+	$(LN) john ../run/hccap2john
 
 ../run/truecrypt_volume2john: ../run/john
 	$(RM) ../run/truecrypt_volume2john
-	ln -s john ../run/truecrypt_volume2john
+	$(LN) john ../run/truecrypt_volume2john
 
 ../run/keystore2john: ../run/john
 	$(RM) ../run/keystore2john
-	ln -s john ../run/keystore2john
+	$(LN) john ../run/keystore2john
 
 ../run/unique: ../run/john
 	$(RM) ../run/unique
-	ln -s john ../run/unique
+	$(LN) john ../run/unique
 
 #####################################################################
 # These targets MUST match ALL of the john targets that use ln -s
@@ -583,11 +579,11 @@ endif
 
 # Requires extra -lcrypto and -lssl aftger luks2john.o.  Not sure why, link fails without that change
 ../run/luks2john@EXE_EXT@: luks2john.o
-	$(LD) ${LDFLAGS} luks2john.o -s -lcrypto -lssl memdbg.o -o ../run/luks2john
+	$(LD) ${LDFLAGS} luks2john.o -lcrypto -lssl memdbg.o -o ../run/luks2john
 
 ../run/cprepair@EXE_EXT@: cprepair.c unicode.c unicode.h options.h misc.h misc.c \
 	memdbg.h memdbg.c
-	gcc -Wall -O3 -s -DNOT_JOHN -D_JOHN_MISC_NO_LOG cprepair.c unicode.c \
+	gcc -Wall -O3 -DNOT_JOHN -D_JOHN_MISC_NO_LOG cprepair.c unicode.c \
 	misc.c memdbg.c -o ../run/cprepair
 
 ../run/tgtsnarf@EXE_EXT@: tgtsnarf.o
@@ -806,7 +802,7 @@ snapshot: $(SOURCES) $(DOCS) $(OTHERFILES)
 	tar cf - $(SOURCES) $(DOCS) $(OTHERFILES) | gzip > xyplot-$(VERS).tar.gz
 	-mkdir xyplot-$(VERS)
 	gzcat xyplot-$(VERS).tar.gz | (cd xyplot-$(VERS); tar xf -)
-	/bin/rm -f xyplot-$(VERS).tar.gz
+	$(RM) xyplot-$(VERS).tar.gz
 	@echo
 	@echo "->making the compressed tar file " xyplot-$(VERS).tar.gz
 	@echo
@@ -835,9 +831,9 @@ snapshot: $(SOURCES) $(DOCS) $(OTHERFILES)
 
 # TBD JtR
 uninstall:
-	-/bin/rm -f $(bindir)/xyplot
-	-/bin/rm -f $(bindir)/xyps
-	-/bin/rm -f $(bindir)/xyug
-	-/bin/rm -f $(libdir)/xypost
+	-$(RM) $(bindir)/xyplot
+	-$(RM) $(bindir)/xyps
+	-$(RM) $(bindir)/xyug
+	-$(RM) $(libdir)/xypost
 
 include Makefile.dep

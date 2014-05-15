@@ -459,6 +459,14 @@ AS_IF([test ${CPU_BIT_STR} -eq 64],
    [AC_DEFINE([ARCH_BITS_LOG], 5, ["Native CPU width, log"])])
 AC_DEFINE_UNQUOTED([ARCH_BITS_STR], ["$CPU_BIT_STR"], ["Native CPU width, string"])
 
+case "${host_os}" in
+   dnl darwin*) aesni_os=darwin aesni_options="--prefix=_ -f macho${CPU_BIT_STR}" ;;
+   linux*) aesni_os=linux aesni_options="-g dwarf2 -f elf${CPU_BIT_STR}" ;;
+   *) aesni_os="" aesni_options="" ;;
+esac
+AC_SUBST([AESNI_OS],[$aesni_os])
+AC_SUBST([YASM_OPTIONS],[$aesni_options])
+
 # build proper 'link' to the arch file (based on bit only, for 32 bit, we may
 # want different ones, and for other CPU's we need different ones)
 # note, we remove it first.
@@ -482,6 +490,7 @@ echo "#define JOHN_BLD \"${CPU_BIT_STR}-bit ${CPU_STR}-autoconf\"" > john_build_
 # End of plugin and build_rules generation code
 ########################################################
 
+AC_SUBST([HOST_OS],[$host_os])
 AC_CONFIG_FILES([Makefile
                  aes/Makefile
                  aes/aesni/Makefile
@@ -489,8 +498,7 @@ AC_CONFIG_FILES([Makefile
                  escrypt/Makefile])
 AC_OUTPUT(,echo "timestamp from configure.in" > autoconfig-stamp-h)
 
-# Stupid reverse bool
-if test x${no_cl} = xyes; then
+if test x${CL_LIBS} = x; then
    using_cl=no
 else
    using_cl=yes
