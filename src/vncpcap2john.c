@@ -35,10 +35,9 @@
 #else
 /* on a legacy build, we do not KNOW if pcap is installed.  We just run, and make will fail if it is not there */
 #define HAVE_NETINET_IF_ETHER_H 1
+#define HAVE_NET_ETHERNET_H 1
 #define HAVE_PCAP_H 1
 #endif
-
-#if HAVE_NETINET_IF_ETHER_H && HAVE_PCAP_H
 
 #define _BSD_SOURCE
 #define _GNU_SOURCE
@@ -48,9 +47,16 @@
 #include <string.h>
 #include <unistd.h>
 #include <arpa/inet.h>
+#include <net/if.h>
 #include <netinet/if_ether.h>
 #include <netinet/in.h>
+#if HAVE_NET_ETHERNET_H
 #include <net/ethernet.h>
+#elif HAVE_SYS_ETHERNET_H
+#include <sys/ethernet.h>
+#else
+#include <sys/types.h>
+#endif
 
 #define __FAVOR_BSD
 #include <netinet/ip.h>
@@ -254,7 +260,7 @@ int main(int argc, char *argv[])
 	int i = 1;
 
 	if (argc < 2) {
-		dprintf(2, "Usage: %s <pcapfiles>\n", argv[0]);
+		fprintf(stderr, "Usage: %s <pcapfiles>\n", argv[0]);
 		return 1;
 	}
 	for(; i < argc; i++) {
@@ -264,7 +270,7 @@ int main(int argc, char *argv[])
 		else {
 			char buf[512];
 			Packet_Reader_get_error(&reader, buf, sizeof buf);
-			dprintf(2, "%s", buf);
+			fprintf(stderr, "%s", buf);
 			Packet_Reader_close(&reader);
 			return 1;
 		}
@@ -273,4 +279,3 @@ int main(int argc, char *argv[])
 	MEMDBG_PROGRAM_EXIT_CHECKS(stderr);
 	return 0;
 }
-#endif

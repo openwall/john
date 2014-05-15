@@ -403,7 +403,11 @@ AS_IF([test x"$with_exe_ext" != "x"], AC_SUBST([EXE_EXT], [${with_exe_ext}]) [ec
 
 # Checks for header files.
 # Eg. if arpa/inet.h is found, the below will define HAVE_ARPA_INET_H
-AC_CHECK_HEADERS([OS.h arpa/inet.h sys/times.h fcntl.h limits.h locale.h netdb.h netinet/in.h stddef.h stdint.h stdlib.h string.h strings.h sys/file.h sys/param.h sys/socket.h sys/time.h sys/timeb.h termios.h unistd.h wchar.h unixlib/local.h netinet/if_ether.h pcap.h intrin.h])
+AC_CHECK_HEADERS([OS.h arpa/inet.h sys/times.h fcntl.h limits.h locale.h netdb.h netinet/in.h stddef.h stdint.h stdlib.h string.h strings.h sys/file.h sys/param.h sys/socket.h sys/time.h sys/timeb.h termios.h unistd.h wchar.h unixlib/local.h net/ethernet.h sys/ethernet.h net/if.h pcap.h intrin.h])
+AC_CHECK_HEADERS([netinet/if_ether.h], [], [],
+[#if HAVE_NET_IF_H
+#include <net/if.h>
+#endif])
 AC_CACHE_SAVE
 
 # Checks for typedefs, structures, and compiler characteristics.
