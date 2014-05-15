@@ -4481,9 +4481,12 @@ void DynamicFunc__PHPassCrypt(DYNA_OMP_PARAMS)
 #endif
 	//dump_stuff_msg("crypt0", crypt_key_X86[0].x1.w, 16);
 	//dump_stuff_msg("crypt1", crypt_key_X86[0].x2.w2, 16);
+	//{ 	static int x=0; if (++x == 2) 	exit(0); }
 #else
 	// little endian can use 'original' crypt function.
 	DynamicFunc__crypt_md5(DYNA_OMP_PARAMSd);
+	//dump_stuff_msg("crypt0", crypt_key_X86[0].x1.w, 16);
+	//{ 	static int x=0; if (++x == 8) 	exit(0); }
 #endif
 }
 void DynamicFunc__POCrypt(DYNA_OMP_PARAMS)
