@@ -323,7 +323,7 @@ static int ProcessPacket()
 		else {
 			frame_skip = *(unsigned int*)&packet[4];
 #if !ARCH_LITTLE_ENDIAN
-			JOHNSWAP(frame_skip);
+			frame_skip = JOHNSWAP(frame_skip);
 #endif
 		}
 		if (frame_skip < 8 || frame_skip >= pkt_hdr.incl_len)
@@ -336,7 +336,7 @@ static int ProcessPacket()
 	if (link_type == LINKTYPE_RADIOTAP_HDR) {
 		frame_skip = *(unsigned short*)&packet[2];
 #if !ARCH_LITTLE_ENDIAN
-		JOHNSWAP(frame_skip);
+		frame_skip = JOHNSWAP(frame_skip);
 #endif
 		if (frame_skip == 0 || frame_skip >= pkt_hdr.incl_len)
 			return 0;
@@ -348,7 +348,7 @@ static int ProcessPacket()
 	if (link_type == LINKTYPE_PPI_HDR) {
 		frame_skip = *(unsigned short*)&packet[2];
 #if !ARCH_LITTLE_ENDIAN
-		JOHNSWAP(frame_skip);
+		frame_skip = JOHNSWAP(frame_skip);
 #endif
 		if(frame_skip <= 0 || frame_skip>= (int) pkt_hdr.incl_len)
 			return 0;
