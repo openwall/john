@@ -501,7 +501,7 @@ AC_CONFIG_FILES([Makefile
                  escrypt/Makefile])
 AC_OUTPUT(,echo "timestamp from configure.in" > autoconfig-stamp-h)
 
-if test x${CL_LIBS} = x; then
+if test "x${CL_LIBS}" = x; then
    using_cl=no
 else
    using_cl=yes

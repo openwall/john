@@ -12334,7 +12334,7 @@ $as_echo "$as_me: WARNING: unrecognized options: $ac_unrecognized_opts" >&2;}
 fi
 
 
-if test x${CL_LIBS} = x; then
+if test "x${CL_LIBS}" = x; then
    using_cl=no
 else
    using_cl=yes
