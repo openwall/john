@@ -28,10 +28,11 @@
 ; ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 %macro linux_setup 0
-%ifdef __linux__
+;; Needed for OSX too. Who does not need this?
+;; %ifdef __linux__
 	mov rcx, rdi
 	mov rdx, rsi
-%endif
+;; %endif
 %endmacro
 
 %macro inversekey 1

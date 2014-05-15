@@ -3,7 +3,7 @@
 
 # Travis CI only has 2.68
 AC_PREREQ([2.68])
-AC_INIT([john], [1.8.0.bleeding], [john-users mailing list at openwall.com])
+AC_INIT([john], [1.8.0-bleeding-jumbo], [john-users mailing list at openwall.com])
 ##  AM_INIT_AUTOMAKE([foreign subdir-objects])
 AC_CONFIG_SRCDIR([john.c])
 AC_CONFIG_HEADERS([autoconfig.h])
@@ -55,7 +55,7 @@ dnl       esac
 dnl
 dnl     use $EXEEXT and $OBJEXT  for exe and obj extension.  Set by AC_PROC_CC
 
-# Fugly workaround for .gitignore refusing to ignore Makefile since it is
+# Workaround for .gitignore refusing to ignore Makefile since it is
 # a managed file (the stub). The result of this is a *local* workaround.
 if test -d "../.git"; then
   AC_CHECK_PROG([HAVE_GIT], [git], [yes], [no])
@@ -110,7 +110,7 @@ if test -n "$ATISTREAMSDKROOT"; then
    fi
 fi
 
-# Shorthand: -with-arch=-m32 will add '-m32' to CFLAGS, ASFLAGS and LDFLAGS.
+# Shorthand: -with-arch=-m32 will add '-m32' to CFLAGS, ASFLAGS, LDFLAGS etc.
 AC_ARG_WITH(arch, [AS_HELP_STRING([--with-arch=opt],[Add 'opt' to CFLAGS, LDFLAGS and ASFLAGS (eg. -m32).])],,[with_arch=""])
 
 if test x${with_arch} != x; then
@@ -467,7 +467,7 @@ aesni_os=""
 aesni_options="DISABLED"
 if test "x${ac_cv_path_YASM}" != x && test ${cpu_family} = intel; then
   case "${host_os}" in
-     dnl darwin*) aesni_os=darwin aesni_options="--prefix=_ -f macho${CPU_BIT_STR}" ;;
+     darwin*) aesni_os=darwin aesni_options="--prefix=_ -f macho${CPU_BIT_STR}" ;;
      linux*) aesni_os=linux aesni_options="-g dwarf2 -f elf${CPU_BIT_STR}" ;;
   esac
 fi
