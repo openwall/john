@@ -274,6 +274,9 @@ static int sevenzip_decrypt(unsigned char *derived_key, unsigned char *data)
 	CRC32_Update(&crc, out, cur_salt->unpacksize);
 	CRC32_Final(crc_out, crc);
 	ccrc =  _crc_out.crci; // computed CRC
+#if !ARCH_LITTLE_ENDIAN
+	ccrc = JOHNSWAP(ccrc);
+#endif
 	if (ccrc == cur_salt->crc) {
 #ifdef _MSC_VER
 		free(out);
