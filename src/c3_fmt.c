@@ -10,7 +10,7 @@
  *
  * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
- 
+
 #if AC_BUILT
 /* load autoconf to know if we have the HAVE_CRYPT set */
 #include "autoconfig.h"
@@ -511,7 +511,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
  * reasonable).  Overall, this code is reasonable to use for SHA-crypt and
  * SunMD5 hashes, which are not yet supported by non-jumbo John natively.
  */
-#pragma omp parallel for default(none) private(index) shared(warned, count, crypt_out, saved_key, saved_salt, stderr)
+#pragma omp parallel for /* default(none) private(index) shared(warned, count, crypt_out, saved_key, saved_salt, stderr) or __iob */
 #endif
 	for (index = 0; index < count; index++) {
 		char *hash = crypt(saved_key[index], saved_salt);
