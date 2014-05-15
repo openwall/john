@@ -20,10 +20,6 @@
 #ifndef _JOHN_ARCH_H
 #define _JOHN_ARCH_H
 
-/* load the file that contains a LOT of what this file used to contain.
- * As things get MOVED into autoconfig.h, they will be commented out of
- * this file with //ac , so we can keep track of progress
- */
 #if AC_BUILT
 #include "autoconfig.h"
 #else
