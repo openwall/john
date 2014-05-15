@@ -10919,10 +10919,13 @@ cat >>confdefs.h <<_ACEOF
 _ACEOF
 
 
-case "${host_os}" in
-      linux*) aesni_os=linux aesni_options="-g dwarf2 -f elf${CPU_BIT_STR}" ;;
-   *) aesni_os="" aesni_options="" ;;
-esac
+aesni_os=""
+aesni_options="DISABLED"
+if test ${cpu_family} = intel; then
+  case "${host_os}" in
+          linux*) aesni_os=linux aesni_options="-g dwarf2 -f elf${CPU_BIT_STR}" ;;
+  esac
+fi
 AESNI_OS=$aesni_os
 
 YASM_OPTIONS=$aesni_options

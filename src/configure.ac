@@ -459,11 +459,14 @@ AS_IF([test ${CPU_BIT_STR} -eq 64],
    [AC_DEFINE([ARCH_BITS_LOG], 5, ["Native CPU width, log"])])
 AC_DEFINE_UNQUOTED([ARCH_BITS_STR], ["$CPU_BIT_STR"], ["Native CPU width, string"])
 
-case "${host_os}" in
-   dnl darwin*) aesni_os=darwin aesni_options="--prefix=_ -f macho${CPU_BIT_STR}" ;;
-   linux*) aesni_os=linux aesni_options="-g dwarf2 -f elf${CPU_BIT_STR}" ;;
-   *) aesni_os="" aesni_options="" ;;
-esac
+aesni_os=""
+aesni_options="DISABLED"
+if test ${cpu_family} = intel; then
+  case "${host_os}" in
+     dnl darwin*) aesni_os=darwin aesni_options="--prefix=_ -f macho${CPU_BIT_STR}" ;;
+     linux*) aesni_os=linux aesni_options="-g dwarf2 -f elf${CPU_BIT_STR}" ;;
+  esac
+fi
 AC_SUBST([AESNI_OS],[$aesni_os])
 AC_SUBST([YASM_OPTIONS],[$aesni_options])
 
