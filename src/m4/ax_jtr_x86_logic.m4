@@ -48,7 +48,7 @@ if test x${enable_native_tests} = xyes; then
   CPU_NOTFOUND=0
   AVX_NOTFOUND=0
   CC="$CC_BACKUP -msse2"
-  AC_MSG_NOTICE([Testing native ${build_cpu} build CPU features])
+  AC_MSG_NOTICE([Testing build host's native CPU features])
   AC_MSG_CHECKING([for SSE2])
   AC_RUN_IFELSE(
     [

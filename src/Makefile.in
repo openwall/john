@@ -238,7 +238,7 @@ endif
 default:
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) @CC_ASM_OBJS@" \
-		AESNI_ARCH=@CPU_BIT_STR@
+		AESNI_ARCH=@AESNI_ARCH@
 ifdef WITH_OPENCL
 	$(MKDIR) ../run/kernels/
 	$(CP_PRESERVE) opencl/*.cl ../run/kernels/

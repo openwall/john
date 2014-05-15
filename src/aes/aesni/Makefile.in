@@ -10,7 +10,7 @@ rdtsc.o: $(RDTSC)
 	$(YASM) -D__@AESNI_OS@__ @YASM_OPTIONS@ $(RDTSC) -o $@
 
 aesni.o: iaes_asm_interface.h  iaesni.h  intel_aes.c
-	$(CC) $(CFLAGS) -c intel_aes.c -o $@
+	$(CC) $(CFLAGS) -m@CPU_BIT_STR@ -c intel_aes.c -o $@
 
 all: iaesx.o rdtsc.o aesni.o
 

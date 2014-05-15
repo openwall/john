@@ -110,10 +110,10 @@ if test -n "$ATISTREAMSDKROOT"; then
    fi
 fi
 
-# Shorthand: -with-arch=-m32 will add '-m32' to CFLAGS, ASFLAGS, LDFLAGS etc.
-AC_ARG_WITH(arch, [AS_HELP_STRING([--with-arch=opt],[Add 'opt' to CFLAGS, LDFLAGS and ASFLAGS (eg. -m32).])],,[with_arch=""])
+# Shorthand: -with-arch=-m32 will add '-m32' to CFLAGS, LDFLAGS etc.
+AC_ARG_WITH(arch, [AS_HELP_STRING([--with-arch=opt],[Add 'opt' to CFLAGS, LDFLAGS etc. (eg. -m32).])],,[with_arch=""])
 
-if test x${with_arch} != x; then
+if test "x${with_arch}" != x; then
    CFLAGS+=" ${with_arch}"
    CPPFLAGS+=" ${with_arch}"
    CXXFLAGS+=" ${with_arch}"
@@ -463,12 +463,20 @@ AS_IF([test ${CPU_BIT_STR} -eq 64],
    [AC_DEFINE([ARCH_BITS_LOG], 5, ["Native CPU width, log"])])
 AC_DEFINE_UNQUOTED([ARCH_BITS_STR], ["$CPU_BIT_STR"], ["Native CPU width, string"])
 
+if test "$CPU_BIT_STR" = "32"; then
+   aesni_arch="86"
+else
+   aesni_arch="64"
+fi
+AC_SUBST([AESNI_ARCH],[$aesni_arch])
+
 aesni_os=""
 aesni_options="DISABLED"
-if test "x${ac_cv_path_YASM}" != x && test ${cpu_family} = intel; then
-  case "${host_os}" in
-     darwin*) aesni_os=darwin aesni_options="--prefix=_ -f macho${CPU_BIT_STR}" ;;
-     linux*) aesni_os=linux aesni_options="-g dwarf2 -f elf${CPU_BIT_STR}" ;;
+if test "x${ac_cv_path_YASM}" != x; then
+  case "${host}" in
+     x86_64*darwin*) aesni_os=darwin aesni_options="--prefix=_ -f macho${CPU_BIT_STR}" ;;
+     i?86*darwin*) aesni_os=darwin aesni_options="-f macho${CPU_BIT_STR}" ;;
+     *86*linux*) aesni_os=linux aesni_options="-g dwarf2 -f elf${CPU_BIT_STR}" ;;
   esac
 fi
 AC_SUBST([AESNI_OS],[$aesni_os])

@@ -629,6 +629,7 @@ PLUGFORMATS_OBJS
 PLUGFORMATS_SRCS
 YASM_OPTIONS
 AESNI_OS
+AESNI_ARCH
 JOHN_BUILD_LABEL
 EXTRA_AS_FLAGS
 ASFLAGS
@@ -1383,7 +1384,7 @@ Optional Features:
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
-  --with-arch=opt         Add 'opt' to CFLAGS, LDFLAGS and ASFLAGS (eg. -m32).
+  --with-arch=opt         Add 'opt' to CFLAGS, LDFLAGS etc. (eg. -m32).
   --with-icc-asm          Use ICC pre-built asm files for intrisic SIMD code.
                           Default: no
   --with-exe-ext          For Cygwin and MinGW. Set to .exe to allow stand
@@ -3426,7 +3427,7 @@ if test -n "$ATISTREAMSDKROOT"; then
    fi
 fi
 
-# Shorthand: -with-arch=-m32 will add '-m32' to CFLAGS, ASFLAGS, LDFLAGS etc.
+# Shorthand: -with-arch=-m32 will add '-m32' to CFLAGS, LDFLAGS etc.
 
 # Check whether --with-arch was given.
 if test "${with_arch+set}" = set; then :
@@ -3436,7 +3437,7 @@ else
 fi
 
 
-if test x${with_arch} != x; then
+if test "x${with_arch}" != x; then
    CFLAGS+=" ${with_arch}"
    CPPFLAGS+=" ${with_arch}"
    CXXFLAGS+=" ${with_arch}"
@@ -6841,8 +6842,8 @@ if test x${enable_native_tests} = xyes; then
   CPU_NOTFOUND=0
   AVX_NOTFOUND=0
   CC="$CC_BACKUP -msse2"
-  { $as_echo "$as_me:${as_lineno-$LINENO}: Testing native ${build_cpu} build CPU features" >&5
-$as_echo "$as_me: Testing native ${build_cpu} build CPU features" >&6;}
+  { $as_echo "$as_me:${as_lineno-$LINENO}: Testing build host's native CPU features" >&5
+$as_echo "$as_me: Testing build host's native CPU features" >&6;}
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for SSE2" >&5
 $as_echo_n "checking for SSE2... " >&6; }
   if test "$cross_compiling" = yes; then :
@@ -10934,12 +10935,21 @@ cat >>confdefs.h <<_ACEOF
 _ACEOF
 
 
+if test "$CPU_BIT_STR" = "32"; then
+   aesni_arch="86"
+else
+   aesni_arch="64"
+fi
+AESNI_ARCH=$aesni_arch
+
+
 aesni_os=""
 aesni_options="DISABLED"
-if test "x${ac_cv_path_YASM}" != x && test ${cpu_family} = intel; then
-  case "${host_os}" in
-     darwin*) aesni_os=darwin aesni_options="--prefix=_ -f macho${CPU_BIT_STR}" ;;
-     linux*) aesni_os=linux aesni_options="-g dwarf2 -f elf${CPU_BIT_STR}" ;;
+if test "x${ac_cv_path_YASM}" != x; then
+  case "${host}" in
+     x86_64*darwin*) aesni_os=darwin aesni_options="--prefix=_ -f macho${CPU_BIT_STR}" ;;
+     i?86*darwin*) aesni_os=darwin aesni_options="-f macho${CPU_BIT_STR}" ;;
+     *86*linux*) aesni_os=linux aesni_options="-g dwarf2 -f elf${CPU_BIT_STR}" ;;
   esac
 fi
 AESNI_OS=$aesni_os
