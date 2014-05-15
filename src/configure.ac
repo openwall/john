@@ -142,14 +142,17 @@ AC_ARG_ENABLE([native-tests], [AC_HELP_STRING([--disable-native-tests], [Do not 
 AC_CANONICAL_HOST
 
 # Check for MPI. Only if MPI not found/wanted: Check for CC.
-AX_PROG_CC_MPI([test x"$enable_mpi" != "xno"], [AC_SUBST(HAVE_MPI,[-DHAVE_MPI])],[
-   if test x"$enable_mpi" = "xyes"; then
+using_mpi=no
+AX_PROG_CC_MPI([test x"$enable_mpi" != "xno"],
+  [AC_SUBST(HAVE_MPI,[-DHAVE_MPI])]
+  [using_mpi=yes],
+  [if test x"$enable_mpi" = "xyes"; then
      AC_MSG_FAILURE([No MPI compiler found])
    elif test x"$enable_mpi" != "xno"; then
      AC_MSG_NOTICE([No MPI compiler found, disabling MPI])
    fi
-   AC_PROG_CC([gcc cc icc ccc])
-])
+   AC_PROG_CC([gcc cc icc ccc]) ]
+)
 
 # At this point we know whether this is a cross compile
 # Don't test for $cross_compiling = yes, because it might be 'maybe'.
@@ -337,7 +340,12 @@ AC_CHECK_HEADERS([gmp.h] [gmp/gmp.h],
 AS_IF([test x$ac_cv_lib_gmp___gmpz_init != xyes], [AC_MSG_WARN(Installing libgmp will speed up some hash formats)])
 AC_CHECK_LIB([kernel32],[main])
 AC_CHECK_LIB([dl],[dlopen])
-AC_SEARCH_LIBS([c_regex_iterator_cb],[rexgen librexgen],[AC_DEFINE(HAVE_LIBREXGEN,1,[Define to 1 if you have the `rexgen' library (-lrexgen).])],[AC_MSG_WARN(Installing librexgen would enable a powerful new wordlist mode)])
+using_rexgen=no
+AC_CHECK_HEADER([regex.h],
+  [AC_SEARCH_LIBS([c_regex_iterator_cb],[rexgen librexgen],
+    [LIBS+=" -lrexgen"] using_rexgen=yes
+    [AC_DEFINE(HAVE_LIBREXGEN,1,[Define to 1 if you have the `rexgen' library (-lrexgen).])])],
+  [AC_MSG_WARN(Installing librexgen would enable a powerful new wordlist mode)])
 AC_CHECK_LIB([nsl],[main])
 AC_CHECK_LIB([pthread],[main])
 AC_CHECK_LIB([rt],[main])
@@ -363,9 +371,12 @@ AC_CACHE_SAVE
 #################
 
 # Check for NSS (unless disabled, or cross compiling)
+using_nss=no
 if test x"$enable_nss" != "xno" && test x$PKG_CONFIG != xno; then
-      PKG_CHECK_MODULES([NSS], [nss], AC_SUBST(HAVE_NSS,[-DHAVE_NSS]),
-         AC_MSG_WARN(NSS not found - Mozilla format will be omitted.))
+   PKG_CHECK_MODULES([NSS], [nss],
+      using_nss=yes
+      AC_SUBST(HAVE_NSS,[-DHAVE_NSS]),
+      AC_MSG_WARN(NSS not found - Mozilla format will be omitted.))
 fi
 
 # Check for openMP (enable/disable handled within the macro).
@@ -374,8 +385,9 @@ AC_OPENMP
 # Check for CUDA. According to the guru's we should not try to be clever
 # with finding directories. If they are not present in normal paths, user
 # is supposed to supply them with eg. ./configure LDFLAGS=/usr/local/cuda/lib
+using_cuda=no
 if test x"$enable_cuda" != "xno"; then
-   AC_CHECK_LIB([cudart],[cudaGetDeviceCount],AC_SUBST(HAVE_CUDA,1) [LIBS+=" -lcudart"],[
+   AC_CHECK_LIB([cudart],[cudaGetDeviceCount],using_cuda=yes AC_SUBST(HAVE_CUDA,1) [LIBS+=" -lcudart"],[
    if test x${enable_cuda} = yes; then
       AC_MSG_FAILURE([CUDA not found])
    elif test x"$enable_cuda" != "xno"; then
@@ -475,4 +487,35 @@ AC_CONFIG_FILES([Makefile
                  aes/aesni/Makefile
                  aes/openssl/Makefile
                  escrypt/Makefile])
-AC_OUTPUT(,echo "timestamp from configure.in" > autoconfig-stamp-h & echo "Done - Makefile generated. Now run 'make clean && make'")
+AC_OUTPUT(,echo "timestamp from configure.in" > autoconfig-stamp-h)
+
+# Stupid reverse bool
+if test x${no_cl} = xyes; then
+   using_cl=no
+else
+   using_cl=yes
+fi
+
+# Hard to get proper info from AC_OPENMP. If it's enabled with no special
+# options, we might list it as disabled
+if test "x$ac_cv_prog_c_openmp" != "x" &&
+   test "x$ac_cv_prog_c_openmp" != "xunsupported"; then
+   using_omp=yes
+else
+   using_omp=no
+fi
+
+echo
+echo "Target CPU ....................... ${host_cpu}, ${CPU_BIT_STR}-bit"
+echo "CPU features ..................... ${CPU_STR}"
+echo "Target OS ........................ ${host_os}"
+echo "Legacy arch header ............... ${ARCH_LINK}"
+echo "OpenMP support ................... ${using_omp}"
+echo "OpenMPI support .................. ${using_mpi}"
+echo "OpenCL support ................... ${using_cl}"
+echo "CUDA support ..................... ${using_cuda}"
+echo "Rexgen support ................... ${using_rexgen}"
+echo "GMP support (performance)......... ${ac_cv_lib_gmp___gmpz_init}"
+echo "NSS support (Mozilla format)...... ${using_nss}"
+echo
+echo "Configure finished.  Do 'make -s' to compile."

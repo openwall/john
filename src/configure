@@ -3606,6 +3606,7 @@ case $host_os in *\ *) host_os=`echo "$host_os" | sed 's/ /-/g'`;; esac
 
 
 # Check for MPI. Only if MPI not found/wanted: Check for CC.
+using_mpi=no
 # expand $ac_aux_dir to an absolute path
 am_aux_dir=`cd $ac_aux_dir && pwd`
 
@@ -4685,12 +4686,12 @@ if test x"$_ax_prog_cc_mpi_mpi_found" = xyes; then :
 
         HAVE_MPI=-DHAVE_MPI
 
+  using_mpi=yes
         :
 
 else
 
-
-   if test x"$enable_mpi" = "xyes"; then
+        if test x"$enable_mpi" = "xyes"; then
      { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
 as_fn_error $? "No MPI compiler found
@@ -8402,7 +8403,10 @@ _ACEOF
 
 fi
 
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing c_regex_iterator_cb" >&5
+using_rexgen=no
+ac_fn_c_check_header_mongrel "$LINENO" "regex.h" "ac_cv_header_regex_h" "$ac_includes_default"
+if test "x$ac_cv_header_regex_h" = xyes; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing c_regex_iterator_cb" >&5
 $as_echo_n "checking for library containing c_regex_iterator_cb... " >&6; }
 if ${ac_cv_search_c_regex_iterator_cb+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -8455,13 +8459,17 @@ $as_echo "$ac_cv_search_c_regex_iterator_cb" >&6; }
 ac_res=$ac_cv_search_c_regex_iterator_cb
 if test "$ac_res" != no; then :
   test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
+  LIBS+=" -lrexgen" using_rexgen=yes
 
 $as_echo "#define HAVE_LIBREXGEN 1" >>confdefs.h
+
+fi
 
 else
   { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Installing librexgen would enable a powerful new wordlist mode" >&5
 $as_echo "$as_me: WARNING: Installing librexgen would enable a powerful new wordlist mode" >&2;}
 fi
+
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lnsl" >&5
 $as_echo_n "checking for main in -lnsl... " >&6; }
@@ -8894,6 +8902,7 @@ rm -f confcache
 #################
 
 # Check for NSS (unless disabled, or cross compiling)
+using_nss=no
 if test x"$enable_nss" != "xno" && test x$PKG_CONFIG != xno; then
 
 pkg_failed=no
@@ -8962,7 +8971,8 @@ else
 	NSS_LIBS=$pkg_cv_NSS_LIBS
         { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
-	HAVE_NSS=-DHAVE_NSS
+	using_nss=yes
+      HAVE_NSS=-DHAVE_NSS
 
 fi
 fi
@@ -9038,6 +9048,7 @@ $as_echo "$ac_cv_prog_c_openmp" >&6; }
 # Check for CUDA. According to the guru's we should not try to be clever
 # with finding directories. If they are not present in normal paths, user
 # is supposed to supply them with eg. ./configure LDFLAGS=/usr/local/cuda/lib
+using_cuda=no
 if test x"$enable_cuda" != "xno"; then
    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for cudaGetDeviceCount in -lcudart" >&5
 $as_echo_n "checking for cudaGetDeviceCount in -lcudart... " >&6; }
@@ -9076,7 +9087,7 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_cudart_cudaGetDeviceCount" >&5
 $as_echo "$ac_cv_lib_cudart_cudaGetDeviceCount" >&6; }
 if test "x$ac_cv_lib_cudart_cudaGetDeviceCount" = xyes; then :
-  HAVE_CUDA=1
+  using_cuda=yes HAVE_CUDA=1
  LIBS+=" -lcudart"
 else
 
@@ -12266,7 +12277,7 @@ $as_echo "$as_me: executing $ac_file commands" >&6;}
 
 
   case $ac_file$ac_mode in
-    "default":C) echo "timestamp from configure.in" > autoconfig-stamp-h & echo "Done - Makefile generated. Now run 'make clean && make'" ;;
+    "default":C) echo "timestamp from configure.in" > autoconfig-stamp-h ;;
 
   esac
 done # for ac_tag
@@ -12305,3 +12316,34 @@ if test -n "$ac_unrecognized_opts" && test "$enable_option_checking" != no; then
 $as_echo "$as_me: WARNING: unrecognized options: $ac_unrecognized_opts" >&2;}
 fi
 
+
+# Stupid reverse bool
+if test x${no_cl} = xyes; then
+   using_cl=no
+else
+   using_cl=yes
+fi
+
+# Hard to get proper info from AC_OPENMP. If it's enabled with no special
+# options, we might list it as disabled
+if test "x$ac_cv_prog_c_openmp" != "x" &&
+   test "x$ac_cv_prog_c_openmp" != "xunsupported"; then
+   using_omp=yes
+else
+   using_omp=no
+fi
+
+echo
+echo "Target CPU ....................... ${host_cpu}, ${CPU_BIT_STR}-bit"
+echo "CPU features ..................... ${CPU_STR}"
+echo "Target OS ........................ ${host_os}"
+echo "Legacy arch header ............... ${ARCH_LINK}"
+echo "OpenMP support ................... ${using_omp}"
+echo "OpenMPI support .................. ${using_mpi}"
+echo "OpenCL support ................... ${using_cl}"
+echo "CUDA support ..................... ${using_cuda}"
+echo "Rexgen support ................... ${using_rexgen}"
+echo "GMP support (performance)......... ${ac_cv_lib_gmp___gmpz_init}"
+echo "NSS support (Mozilla format)...... ${using_nss}"
+echo
+echo "Configure finished.  Do 'make -s' to compile."
