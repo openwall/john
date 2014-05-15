@@ -461,7 +461,7 @@ AC_DEFINE_UNQUOTED([ARCH_BITS_STR], ["$CPU_BIT_STR"], ["Native CPU width, string
 
 aesni_os=""
 aesni_options="DISABLED"
-if test ${cpu_family} = intel; then
+if test "x${ac_cv_path_YASM}" != x && test ${cpu_family} = intel; then
   case "${host_os}" in
      dnl darwin*) aesni_os=darwin aesni_options="--prefix=_ -f macho${CPU_BIT_STR}" ;;
      linux*) aesni_os=linux aesni_options="-g dwarf2 -f elf${CPU_BIT_STR}" ;;
@@ -469,6 +469,11 @@ if test ${cpu_family} = intel; then
 fi
 AC_SUBST([AESNI_OS],[$aesni_os])
 AC_SUBST([YASM_OPTIONS],[$aesni_options])
+if test "x$aesni_options" != xDISABLED; then
+   using_aesni="run-time detection"
+else
+   using_aesni="depends on OpenSSL"
+fi
 
 # build proper 'link' to the arch file (based on bit only, for 32 bit, we may
 # want different ones, and for other CPU's we need different ones)
@@ -520,18 +525,23 @@ if test "x$host_cpu" != "x$CPU_STR"; then
    host_cpu="$host_cpu $CPU_STR"
 fi
 
-echo
-echo "Configured for building John the Ripper Jumbo:"
-echo
-echo "Target CPU ....................... ${host_cpu}, ${CPU_BIT_STR}-bit"
-echo "Target OS ........................ ${host_os}"
-echo "Legacy arch header ............... ${ARCH_LINK}"
-echo "OpenMP support ................... ${using_omp}"
-echo "OpenMPI support .................. ${using_mpi}"
-echo "OpenCL support ................... ${using_cl}"
-echo "CUDA support ..................... ${using_cuda}"
-echo "Rexgen support ................... ${using_rexgen}"
-echo "GMP support (performance)......... ${ac_cv_lib_gmp___gmpz_init}"
-echo "NSS support (Mozilla format)...... ${using_nss}"
-echo
-echo "Configure finished.  Do 'make -s' to compile."
+cat <<EOF
+dnl =======================================================================
+
+Configured for building John the Ripper Jumbo:
+
+Target CPU .................................. ${host_cpu}, ${CPU_BIT_STR}-bit
+Target OS ................................... ${host_os}
+Legacy arch header .......................... ${ARCH_LINK}
+OpenMP support .............................. ${using_omp}
+OpenMPI support ............................. ${using_mpi}
+OpenCL support .............................. ${using_cl}
+CUDA support ................................ ${using_cuda}
+Rexgen support .............................. ${using_rexgen}
+GMP support (performance).................... ${ac_cv_lib_gmp___gmpz_init}
+NSS support (Mozilla format)................. ${using_nss}
+AES-NI support .............................. ${using_aesni}
+
+Configure finished.  Do 'make -s' to compile.
+EOF
+dnl =======================================================================
