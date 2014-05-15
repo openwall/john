@@ -403,7 +403,7 @@ AS_IF([test x"$with_exe_ext" != "x"], AC_SUBST([EXE_EXT], [${with_exe_ext}]) [ec
 
 # Checks for header files.
 # Eg. if arpa/inet.h is found, the below will define HAVE_ARPA_INET_H
-AC_CHECK_HEADERS([OS.h arpa/inet.h sys/times.h fcntl.h limits.h locale.h netdb.h netinet/in.h stddef.h stdint.h stdlib.h string.h strings.h sys/file.h sys/param.h sys/socket.h sys/time.h sys/timeb.h termios.h unistd.h wchar.h unixlib/local.h netinet/if_ether.h pcap.h])
+AC_CHECK_HEADERS([OS.h arpa/inet.h sys/times.h fcntl.h limits.h locale.h netdb.h netinet/in.h stddef.h stdint.h stdlib.h string.h strings.h sys/file.h sys/param.h sys/socket.h sys/time.h sys/timeb.h termios.h unistd.h wchar.h unixlib/local.h netinet/if_ether.h pcap.h intrin.h])
 AC_CACHE_SAVE
 
 # Checks for typedefs, structures, and compiler characteristics.
@@ -471,8 +471,10 @@ AC_SUBST([AESNI_OS],[$aesni_os])
 AC_SUBST([YASM_OPTIONS],[$aesni_options])
 if test "x$aesni_options" != xDISABLED; then
    using_aesni="run-time detection"
-else
+elif test ${cpu_family} = intel; then
    using_aesni="depends on OpenSSL"
+else
+   using_aesni=no
 fi
 
 # build proper 'link' to the arch file (based on bit only, for 32 bit, we may
@@ -506,6 +508,10 @@ AC_CONFIG_FILES([Makefile
                  escrypt/Makefile])
 AC_OUTPUT(,echo "timestamp from configure.in" > autoconfig-stamp-h)
 
+########################################################
+#    ONLY _COSMETICAL_ OUTPUT STUFF BELOW THIS LINE
+########################################################
+
 if test "x${CL_LIBS}" = x; then
    using_cl=no
 else
@@ -513,7 +519,7 @@ else
 fi
 
 # Hard to get proper info from AC_OPENMP. If it's enabled with no special
-# options, we might list it as disabled
+# options needed, we might end up listing it as disabled
 if test "x$ac_cv_prog_c_openmp" != "x" &&
    test "x$ac_cv_prog_c_openmp" != "xunsupported"; then
    using_omp=yes

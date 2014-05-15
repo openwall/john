@@ -9801,7 +9801,7 @@ fi
 
 # Checks for header files.
 # Eg. if arpa/inet.h is found, the below will define HAVE_ARPA_INET_H
-for ac_header in OS.h arpa/inet.h sys/times.h fcntl.h limits.h locale.h netdb.h netinet/in.h stddef.h stdint.h stdlib.h string.h strings.h sys/file.h sys/param.h sys/socket.h sys/time.h sys/timeb.h termios.h unistd.h wchar.h unixlib/local.h netinet/if_ether.h pcap.h
+for ac_header in OS.h arpa/inet.h sys/times.h fcntl.h limits.h locale.h netdb.h netinet/in.h stddef.h stdint.h stdlib.h string.h strings.h sys/file.h sys/param.h sys/socket.h sys/time.h sys/timeb.h termios.h unistd.h wchar.h unixlib/local.h netinet/if_ether.h pcap.h intrin.h
 do :
   as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
 ac_fn_c_check_header_mongrel "$LINENO" "$ac_header" "$as_ac_Header" "$ac_includes_default"
@@ -10932,8 +10932,10 @@ YASM_OPTIONS=$aesni_options
 
 if test "x$aesni_options" != xDISABLED; then
    using_aesni="run-time detection"
-else
+elif test ${cpu_family} = intel; then
    using_aesni="depends on OpenSSL"
+else
+   using_aesni=no
 fi
 
 # build proper 'link' to the arch file (based on bit only, for 32 bit, we may
@@ -12339,6 +12341,10 @@ $as_echo "$as_me: WARNING: unrecognized options: $ac_unrecognized_opts" >&2;}
 fi
 
 
+########################################################
+#    ONLY _COSMETICAL_ OUTPUT STUFF BELOW THIS LINE
+########################################################
+
 if test "x${CL_LIBS}" = x; then
    using_cl=no
 else
@@ -12346,7 +12352,7 @@ else
 fi
 
 # Hard to get proper info from AC_OPENMP. If it's enabled with no special
-# options, we might list it as disabled
+# options needed, we might end up listing it as disabled
 if test "x$ac_cv_prog_c_openmp" != "x" &&
    test "x$ac_cv_prog_c_openmp" != "xunsupported"; then
    using_omp=yes
