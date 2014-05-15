@@ -475,7 +475,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 	char *(*apply)(char *word, char *rule, int split, char *last) = NULL;
 	int dist_switch;
 	unsigned long my_words, their_words, my_words_left;
-	long file_len;
+	long file_len = 0;
 	int i, pipe_input = 0, max_pipe_words = 0, rules_keep = 0;
 	int init_once = 1;
 #if HAVE_WINDOWS_H
