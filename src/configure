@@ -8463,7 +8463,7 @@ $as_echo "$ac_cv_search_c_regex_iterator_cb" >&6; }
 ac_res=$ac_cv_search_c_regex_iterator_cb
 if test "$ac_res" != no; then :
   test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
-  LIBS+=" -lrexgen" using_rexgen=yes
+   using_rexgen=yes
 
 $as_echo "#define HAVE_LIBREXGEN 1" >>confdefs.h
 

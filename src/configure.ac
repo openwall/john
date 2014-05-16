@@ -343,7 +343,7 @@ AC_CHECK_LIB([dl],[dlopen])
 using_rexgen=no
 AC_CHECK_HEADER([regex.h],
   [AC_SEARCH_LIBS([c_regex_iterator_cb],[rexgen librexgen],
-    [LIBS+=" -lrexgen"] using_rexgen=yes
+    [] using_rexgen=yes
     [AC_DEFINE(HAVE_LIBREXGEN,1,[Define to 1 if you have the `rexgen' library (-lrexgen).])])],
   [AC_MSG_WARN(Installing librexgen would enable a powerful new wordlist mode)])
 AC_CHECK_LIB([nsl],[main])
