@@ -7036,7 +7036,11 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 		pFmt->params.max_keys_per_crypt = 96*4;
 #endif
 #else
+#if ARCH_LITTLE_ENDIAN
 		pFmt->params.max_keys_per_crypt = 96;
+#else
+		pFmt->params.max_keys_per_crypt = 2;
+#endif
 #if MD5_X2
 		pFmt->params.algorithm_name = "32/" ARCH_BITS_STR " 48x2  (MD5_body)";
 #else
