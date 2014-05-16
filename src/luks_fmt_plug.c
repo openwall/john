@@ -206,7 +206,11 @@ static void decrypt_aes_cbc_essiv(unsigned char *src, unsigned char *dst,
 		memset(sectorbuf, 0, 16);
 		memset(zeroiv, 0, 16);
 		memset(essiv, 0, 16);
+#if ARCH_LITTLE_ENDIAN
 		memcpy(sectorbuf, &a, 4);
+#else
+		{ int b = JOHNSWAP(a); memcpy(sectorbuf, &b, 4); }
+#endif
 		AES_set_encrypt_key(essivhash, 256, &aeskey);
 		AES_cbc_encrypt(sectorbuf, essiv, 16, &aeskey, zeroiv, AES_ENCRYPT);
 		AES_set_decrypt_key(key, john_ntohl(cs->myphdr.keyBytes)*8, &aeskey);
