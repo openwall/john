@@ -215,7 +215,11 @@ static void *get_salt(char *ciphertext)
 
 static void *get_binary(char *ciphertext)
 {
-	static char ret[BINARY_SIZE];
+	static union {
+		char c[BINARY_SIZE];
+		ARCH_WORD dummy;
+	} buf;
+	char *ret = buf.c;
 	char *c = ciphertext;
 #if !ARCH_LITTLE_ENDIAN
 	int i;
