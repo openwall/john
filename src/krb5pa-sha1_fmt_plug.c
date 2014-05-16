@@ -48,6 +48,7 @@ static int omp_t = 1;
 #include "options.h"
 #include "common.h"
 #include "unicode.h"
+#include "johnswap.h"
 #include "gladman_fileenc.h"
 #include "pbkdf2_hmac_sha1.h"
 #include "loader.h"
@@ -507,6 +508,14 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		pbkdf2_sha1((const unsigned char*)saved_key[index], len[0],
 		       cur_salt->salt,strlen((char*)cur_salt->salt),
 		       4096, tkey[0], 32, 0);
+#if !ARCH_LITTLE_ENDIAN
+		{
+			int i;
+			for (i = 0; i < 32/sizeof(ARCH_WORD_32); ++i) {
+				((ARCH_WORD_32*)tkey[0])[i] = JOHNSWAP(((ARCH_WORD_32*)tkey[0])[i]);
+			}
+		}
+#endif
 #endif
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
 			// generate 128 bits from 40 bits of "kerberos" string

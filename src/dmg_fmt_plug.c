@@ -51,6 +51,7 @@
 #include "arch.h"
 #include "misc.h"
 #include "params.h"
+#include "johnswap.h"
 #include "common.h"
 #include "formats.h"
 #undef MMX_COEF // FIXME: This format should use SSE2
@@ -445,6 +446,14 @@ static int hash_plugin_check_hash(const char *password)
 	if (cur_salt->headerver == 1) {
 		pbkdf2_sha1((const unsigned char*)password, strlen(password),
 		       cur_salt->salt, 20, cur_salt->iterations, derived_key, 32, 0);
+#if !ARCH_LITTLE_ENDIAN
+		{
+			int i;
+			for (i = 0; i < 32/sizeof(ARCH_WORD_32); ++i) {
+				((ARCH_WORD_32*)derived_key)[i] = JOHNSWAP(((ARCH_WORD_32*)derived_key)[i]);
+			}
+		}
+#endif
 		if ((apple_des3_ede_unwrap_key1(cur_salt->wrapped_aes_key, cur_salt->len_wrapped_aes_key, derived_key) == 0) && (apple_des3_ede_unwrap_key1(cur_salt->wrapped_hmac_sha1_key, cur_salt->len_hmac_sha1_key, derived_key) == 0)) {
 			return 1;
 		}
@@ -466,7 +475,14 @@ static int hash_plugin_check_hash(const char *password)
 
 		pbkdf2_sha1((const unsigned char*)password, strlen(password),
 		       cur_salt->salt, 20, cur_salt->iterations, derived_key, 32, 0);
-
+#if !ARCH_LITTLE_ENDIAN
+		{
+			int i;
+			for (i = 0; i < 32/sizeof(ARCH_WORD_32); ++i) {
+				((ARCH_WORD_32*)derived_key)[i] = JOHNSWAP(((ARCH_WORD_32*)derived_key)[i]);
+			}
+		}
+#endif
 		EVP_CIPHER_CTX_init(&ctx);
 		EVP_DecryptInit_ex(&ctx, EVP_des_ede3_cbc(), NULL, derived_key, cur_salt->iv);
 		if (!EVP_DecryptUpdate(&ctx, TEMP1, &outlen,

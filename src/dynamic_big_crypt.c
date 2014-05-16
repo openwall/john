@@ -18,6 +18,7 @@
  */
 
 #include "arch.h"
+#include "openssl_local_overrides.h"
 
 /* OMP code is b0rken - it assumes all PARA's are the same */
 #if defined(_OPENMP) && defined(MMX_COEF) &&	  \
@@ -55,7 +56,7 @@
 #include "johnswap.h"
 #include "sse-intrinsics.h"
 
-#if OPENSSL_VERSION_NUMBER >= 0x10000000
+#if OPENSSL_VERSION_NUMBER >= 0x10000000 && !HAVE_NO_SSL_WHIRLPOOL
 #include "openssl/whrlpool.h"
 #else
 // on my 32 bit cygwin builds, this code is about 4x slower than the oSSL code.

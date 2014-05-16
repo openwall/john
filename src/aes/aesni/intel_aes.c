@@ -41,6 +41,7 @@ extern "C" {
 #include <stdio.h>
 #include <string.h>
 
+#include "../../autoconfig.h"
 
 void intel_AES_enc128(UCHAR *plainText,UCHAR *cipherText,UCHAR *key,size_t numBlocks)
 {
@@ -260,7 +261,7 @@ void intel_AES_encdec128_CTR(UCHAR *in,UCHAR *out,UCHAR *key,size_t numBlocks,UC
 
 
 
-#ifndef __linux__
+#if HAVE_INTRIN_H
 
 #include <intrin.h>
 

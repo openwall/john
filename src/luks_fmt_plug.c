@@ -31,6 +31,7 @@
 #include <sys/types.h>
 #include <openssl/aes.h>
 #include "sha.h"
+#include "sha2.h"
 #include <string.h>
 #include "arch.h"
 #include "misc.h"
@@ -64,15 +65,22 @@ static int omp_t = 1;
 #define PLAINTEXT_LENGTH  	125
 #define BENCHMARK_LENGTH	-1
 #define BINARY_SIZE		LUKS_DIGESTSIZE
+#define BINARY_ALIGN		4
 #define SALT_SIZE		sizeof(struct custom_salt)
+#define SALT_ALIGN			4
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 
+#if ARCH_LITTLE_ENDIAN
 #define john_htonl(x) ((((x)>>24) & 0xffL) | (((x)>>8) & 0xff00L) | \
 		(((x)<<8) & 0xff0000L) | (((x)<<24) & 0xff000000L))
 
 #define john_ntohl(x) ((((x)>>24) & 0xffL) | (((x)>>8) & 0xff00L) | \
 		(((x)<<8) & 0xff0000L) | (((x)<<24) & 0xff000000L))
+#else
+#define john_htonl(x) (x)
+#define john_ntohl(x) (x)
+#endif
 
 static struct fmt_tests luks_tests[] = {
 #ifndef _MSC_VER
@@ -198,7 +206,11 @@ static void decrypt_aes_cbc_essiv(unsigned char *src, unsigned char *dst,
 		memset(sectorbuf, 0, 16);
 		memset(zeroiv, 0, 16);
 		memset(essiv, 0, 16);
+#if ARCH_LITTLE_ENDIAN
 		memcpy(sectorbuf, &a, 4);
+#else
+		{ int b = JOHNSWAP(a); memcpy(sectorbuf, &b, 4); }
+#endif
 		AES_set_encrypt_key(essivhash, 256, &aeskey);
 		AES_cbc_encrypt(sectorbuf, essiv, 16, &aeskey, zeroiv, AES_ENCRYPT);
 		AES_set_decrypt_key(key, john_ntohl(cs->myphdr.keyBytes)*8, &aeskey);
@@ -245,6 +257,7 @@ static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
 
 static void init(struct fmt_main *self)
 {
+//	extern struct fmt_main fmt_luks;
 #ifdef _OPENMP
 	omp_t = omp_get_max_threads();
 	self->params.min_keys_per_crypt *= omp_t;
@@ -254,6 +267,9 @@ static void init(struct fmt_main *self)
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	
+//	 This printf will 'help' debug a system that truncates that monster hash, but does not cause compiler to die.
+//	printf ("length=%d end=%s\n", strlen(fmt_luks.params.tests[0].ciphertext), &((fmt_luks.params.tests[0].ciphertext)[strlen(fmt_luks.params.tests[0].ciphertext)-30]));
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -351,6 +367,7 @@ static void *get_salt(char *ciphertext)
 
 	cs.afsize = af_sectors(john_ntohl(cs.myphdr.keyBytes),
 			john_ntohl(cs.myphdr.keyblock[cs.bestslot].stripes));
+
 	assert(res == cs.afsize);
 
 	if (is_inlined) {
@@ -500,9 +517,9 @@ struct fmt_main fmt_luks = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,

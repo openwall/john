@@ -944,7 +944,7 @@ void ppm_cleanup(ppm_data_t *ppm_data)
 {
 	sub_allocator_stop_sub_allocator(&ppm_data->sub_alloc);
 	sub_allocator_start_sub_allocator(&ppm_data->sub_alloc, 1);
-	start_model_rare(ppm_data, 2);
+	start_model_rare(ppm_data, 2);     // This line HANGS the compiler on sparc
 }
 
 int ppm_decode_init(ppm_data_t *ppm_data, const unsigned char **fd, unpack_data_t *unpack_data, int *EscChar)
@@ -985,7 +985,7 @@ int ppm_decode_init(ppm_data_t *ppm_data, const unsigned char **fd, unpack_data_
 		    sub_allocator_stop_sub_allocator(&ppm_data->sub_alloc);
 		    return 0;
 		}
-		if (!start_model_rare(ppm_data, max_order)) {
+		if (!start_model_rare(ppm_data, max_order)) {      // This line HANGS the compiler on sparc
 		    sub_allocator_stop_sub_allocator(&ppm_data->sub_alloc);
 		    return 0;
 		}
@@ -1037,7 +1037,8 @@ int ppm_decode_char(ppm_data_t *ppm_data, const unsigned char **fd, unpack_data_
 	if (!ppm_data->order_fall && (unsigned char *) ppm_data->found_state->successor > ppm_data->sub_alloc.ptext) {
 		ppm_data->min_context = ppm_data->max_context = ppm_data->found_state->successor;
 	} else {
-		if(!update_model(ppm_data)) {
+	
+		if(!update_model(ppm_data)) {   // This line HANGS the compiler on sparc
 		    //rar_dbgmsg("unrar: ppm_decode_char: update_model failed\n");
 		    return -1;
 		}

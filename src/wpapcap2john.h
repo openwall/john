@@ -15,6 +15,7 @@ typedef   signed short     int16;
 typedef unsigned char      uint8;
 typedef   signed char      int8;
 
+#include "arch.h"
 #include "johnswap.h"
 
 // All data structures MUST be byte aligned, since we work on 'raw' data in structures

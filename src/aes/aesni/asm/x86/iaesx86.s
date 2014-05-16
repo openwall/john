@@ -3,28 +3,28 @@
 
 ; Copyright (c) 2010, Intel Corporation
 ; All rights reserved.
-; 
-; Redistribution and use in source and binary forms, with or without 
+;
+; Redistribution and use in source and binary forms, with or without
 ; modification, are permitted provided that the following conditions are met:
-; 
-;     * Redistributions of source code must retain the above copyright notice, 
+;
+;     * Redistributions of source code must retain the above copyright notice,
 ;       this list of conditions and the following disclaimer.
-;     * Redistributions in binary form must reproduce the above copyright notice, 
-;       this list of conditions and the following disclaimer in the documentation 
+;     * Redistributions in binary form must reproduce the above copyright notice,
+;       this list of conditions and the following disclaimer in the documentation
 ;       and/or other materials provided with the distribution.
-;     * Neither the name of Intel Corporation nor the names of its contributors 
-;       may be used to endorse or promote products derived from this software 
+;     * Neither the name of Intel Corporation nor the names of its contributors
+;       may be used to endorse or promote products derived from this software
 ;       without specific prior written permission.
-; 
-; THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
-; ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED 
-; WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
-; IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, 
-; INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, 
-; BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
-; DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF 
-; LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE 
-; OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
+;
+; THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+; ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+; WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+; IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+; INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+; BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+; DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+; LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+; OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ; ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
@@ -183,24 +183,24 @@
 
 
 %macro key_expansion_1_192 1
-		;; Assumes the xmm3 includes all zeros at this point. 
-        pshufd xmm2, xmm2, 11111111b        
-        shufps xmm3, xmm1, 00010000b        
-        pxor xmm1, xmm3        
+		;; Assumes the xmm3 includes all zeros at this point.
+        pshufd xmm2, xmm2, 11111111b
+        shufps xmm3, xmm1, 00010000b
+        pxor xmm1, xmm3
         shufps xmm3, xmm1, 10001100b
-        pxor xmm1, xmm3        
-		pxor xmm1, xmm2		
-		movdqu [edx+%1], xmm1			
+        pxor xmm1, xmm3
+		pxor xmm1, xmm2
+		movdqu [edx+%1], xmm1
 %endmacro
 
 ; Calculate w10 and w11 using calculated w9 and known w4-w5
-%macro key_expansion_2_192 1				
+%macro key_expansion_2_192 1
 		movdqa xmm5, xmm4
 		pslldq xmm5, 4
 		shufps xmm6, xmm1, 11110000b
 		pxor xmm6, xmm5
 		pxor xmm4, xmm6
-		pshufd xmm7, xmm4, 00001110b 
+		pshufd xmm7, xmm4, 00001110b
 		movdqu [edx+%1], xmm7
 %endmacro
 
@@ -265,7 +265,7 @@ key_expansion256:
 
     movdqu [edx], xmm1
     add edx, 0x10
-    
+
     aeskeygenassist xmm4, xmm1, 0
     pshufd xmm2, xmm4, 010101010b
 
@@ -286,7 +286,7 @@ key_expansion256:
 
 
 align 16
-key_expansion128: 
+key_expansion128:
     pshufd xmm2, xmm2, 0xFF;
     movdqu xmm3, xmm1
     pshufb xmm3, xmm5
@@ -299,7 +299,7 @@ key_expansion128:
 
     ; storing the result in the key schedule array
     movdqu [edx], xmm1
-    add edx, 0x10                    
+    add edx, 0x10
     ret
 
 
@@ -351,41 +351,41 @@ _iEncExpandKey192:
 	mov edx,[esp-4+12]		;ctx
 
         movq xmm7, [ecx+16]	; loading the AES key
-        movq [edx+16], xmm7  ; Storing key in memory where all key expansion 
+        movq [edx+16], xmm7  ; Storing key in memory where all key expansion
         pshufd xmm4, xmm7, 01001111b
         movdqu xmm1, [ecx]	; loading the AES key
-        movdqu [edx], xmm1  ; Storing key in memory where all key expansion 
-			
-        pxor xmm3, xmm3		; Set xmm3 to be all zeros. Required for the key_expansion. 
-        pxor xmm6, xmm6		; Set xmm3 to be all zeros. Required for the key_expansion. 
+        movdqu [edx], xmm1  ; Storing key in memory where all key expansion
 
-        aeskeygenassist xmm2, xmm4, 0x1     ; Complete round key 1 and generate round key 2 
+        pxor xmm3, xmm3		; Set xmm3 to be all zeros. Required for the key_expansion.
+        pxor xmm6, xmm6		; Set xmm3 to be all zeros. Required for the key_expansion.
+
+        aeskeygenassist xmm2, xmm4, 0x1     ; Complete round key 1 and generate round key 2
         key_expansion_1_192 24
-	key_expansion_2_192 40				
+	key_expansion_2_192 40
 
         aeskeygenassist xmm2, xmm4, 0x2     ; Generate round key 3 and part of round key 4
         key_expansion_1_192 48
-	key_expansion_2_192 64				
+	key_expansion_2_192 64
 
         aeskeygenassist xmm2, xmm4, 0x4     ; Complete round key 4 and generate round key 5
         key_expansion_1_192 72
 	key_expansion_2_192 88
-		
+
         aeskeygenassist xmm2, xmm4, 0x8     ; Generate round key 6 and part of round key 7
         key_expansion_1_192 96
 	key_expansion_2_192 112
-		
-        aeskeygenassist xmm2, xmm4, 0x10     ; Complete round key 7 and generate round key 8 
+
+        aeskeygenassist xmm2, xmm4, 0x10     ; Complete round key 7 and generate round key 8
         key_expansion_1_192 120
-	key_expansion_2_192 136				
+	key_expansion_2_192 136
 
         aeskeygenassist xmm2, xmm4, 0x20     ; Generate round key 9 and part of round key 10
         key_expansion_1_192 144
-	key_expansion_2_192 160				
+	key_expansion_2_192 160
 
         aeskeygenassist xmm2, xmm4, 0x40     ; Complete round key 10 and generate round key 11
         key_expansion_1_192 168
-	key_expansion_2_192 184				
+	key_expansion_2_192 184
 
         aeskeygenassist xmm2, xmm4, 0x80     ; Generate round key 12
         key_expansion_1_192 192
@@ -402,12 +402,12 @@ global _iDecExpandKey128
 _iDecExpandKey128:
 	push DWORD [esp+8]
 	push DWORD [esp+8]
-	
+
 	call _iEncExpandKey128
 	add esp,8
 
 	mov edx,[esp-4+12]		;ctx
-	
+
 	inversekey	[edx + 1*16]
 	inversekey	[edx + 2*16]
 	inversekey	[edx + 3*16]
@@ -428,12 +428,12 @@ global _iDecExpandKey192
 _iDecExpandKey192:
 	push DWORD [esp+8]
 	push DWORD [esp+8]
-	
+
 	call _iEncExpandKey192
 	add esp,8
 
 	mov edx,[esp-4+12]		;ctx
-	
+
 	inversekey	[edx + 1*16]
 	inversekey	[edx + 2*16]
 	inversekey	[edx + 3*16]
@@ -456,12 +456,12 @@ global _iDecExpandKey256
 _iDecExpandKey256:
 	push DWORD [esp+8]
 	push DWORD [esp+8]
-	
+
 	call _iEncExpandKey256
 	add esp, 8
 
 	mov edx, [esp-4+12]		;expanded key
-	
+
 	inversekey	[edx + 1*16]
 	inversekey	[edx + 2*16]
 	inversekey	[edx + 3*16]
@@ -477,10 +477,10 @@ _iDecExpandKey256:
 	inversekey	[edx + 13*16]
 
 	ret
-	
 
-	
-	
+
+
+
 align 16
 global _iEncExpandKey256
 _iEncExpandKey256:
@@ -491,26 +491,26 @@ _iEncExpandKey256:
     movdqu xmm1, [ecx]    ; loading the key
     movdqu xmm3, [ecx+16]
     movdqu [edx], xmm1  ; Storing key in memory where all key schedule will be stored
-    movdqu [edx+16], xmm3 
-    
+    movdqu [edx+16], xmm3
+
     add edx,32
 
     movdqa xmm5, [shuffle_mask]  ; this mask is used by key_expansion
 
-    aeskeygenassist xmm2, xmm3, 0x1     ; 
+    aeskeygenassist xmm2, xmm3, 0x1     ;
     call key_expansion256
-    aeskeygenassist xmm2, xmm3, 0x2     ; 
+    aeskeygenassist xmm2, xmm3, 0x2     ;
     call key_expansion256
-    aeskeygenassist xmm2, xmm3, 0x4     ; 
+    aeskeygenassist xmm2, xmm3, 0x4     ;
     call key_expansion256
-    aeskeygenassist xmm2, xmm3, 0x8     ; 
+    aeskeygenassist xmm2, xmm3, 0x8     ;
     call key_expansion256
-    aeskeygenassist xmm2, xmm3, 0x10    ; 
+    aeskeygenassist xmm2, xmm3, 0x10    ;
     call key_expansion256
-    aeskeygenassist xmm2, xmm3, 0x20    ; 
+    aeskeygenassist xmm2, xmm3, 0x20    ;
     call key_expansion256
-    aeskeygenassist xmm2, xmm3, 0x40    ; 
-;    call key_expansion256 
+    aeskeygenassist xmm2, xmm3, 0x40    ;
+;    call key_expansion256
 
     pshufd xmm2, xmm2, 011111111b
 
@@ -527,32 +527,32 @@ _iEncExpandKey256:
 
 
 	ret
-	
-	
-	
-	
-	
+
+
+
+
+
 
 align 16
 global _iDec128
 _iDec128:
 	mov ecx,[esp-4+8]
-	
+
 	push esi
 	push edi
 	push ebp
 	mov ebp,esp
-	
+
 	sub esp,16*16
 	and esp,0xfffffff0
-	
+
 	mov eax,[ecx+16] ; numblocks
 	mov esi,[ecx]
 	mov edi,[ecx+4]
 	mov ecx,[ecx+8]
 
 	sub edi,esi
-	
+
 	test eax,eax
 	jz end_dec128
 
@@ -561,7 +561,7 @@ _iDec128:
 
 	test	ecx,0xf
 	jz		lp128decfour
-	
+
 	copy_round_keys esp,ecx,0
 	copy_round_keys esp,ecx,1
 	copy_round_keys esp,ecx,2
@@ -573,12 +573,12 @@ _iDec128:
 	copy_round_keys esp,ecx,8
 	copy_round_keys esp,ecx,9
 	copy_round_keys esp,ecx,10
-	mov ecx,esp	
-	
+	mov ecx,esp
+
 
 align 16
 lp128decfour:
-	
+
 	test eax,eax
 	jz end_dec128
 
@@ -597,7 +597,7 @@ lp128decfour:
 	aesdec4 [ecx+2*16]
 	aesdec4 [ecx+1*16]
 	aesdeclast4 [ecx+0*16]
-	
+
 	sub eax,4
 	store4 esi+edi-(16*4)
 	jmp lp128decfour
@@ -631,7 +631,7 @@ end_dec128:
 	pop ebp
 	pop edi
 	pop esi
-	
+
 	ret
 
 
@@ -640,22 +640,22 @@ align 16
 global _iDec128_CBC
 _iDec128_CBC:
 	mov ecx,[esp-4+8]
-	
+
 	push esi
 	push edi
 	push ebp
 	mov ebp,esp
 	sub esp,16*16
 	and esp,0xfffffff0
-	
+
 	mov eax,[ecx+12]
 	movdqu xmm5,[eax]	;iv
-	
+
 	mov eax,[ecx+16] ; numblocks
 	mov esi,[ecx]
 	mov edi,[ecx+4]
 	mov ecx,[ecx+8]
-	
+
 	sub edi,esi
 
 	test eax,eax
@@ -666,7 +666,7 @@ _iDec128_CBC:
 
 	test	ecx,0xf
 	jz		lp128decfour_CBC
-	
+
 	copy_round_keys esp,ecx,0
 	copy_round_keys esp,ecx,1
 	copy_round_keys esp,ecx,2
@@ -678,12 +678,12 @@ _iDec128_CBC:
 	copy_round_keys esp,ecx,8
 	copy_round_keys esp,ecx,9
 	copy_round_keys esp,ecx,10
-	mov ecx,esp	
+	mov ecx,esp
 
 
 align 16
 lp128decfour_CBC:
-	
+
 	test eax,eax
 	jz end_dec128_CBC
 
@@ -702,7 +702,7 @@ lp128decfour_CBC:
 	aesdec4 [ecx+2*16]
 	aesdec4 [ecx+1*16]
 	aesdeclast4 [ecx+0*16]
-	
+
 	pxor	xmm0,xmm5
 	movdqu	xmm4,[esi- 16*4 + 0*16]
 	pxor	xmm1,xmm4
@@ -711,7 +711,7 @@ lp128decfour_CBC:
 	movdqu	xmm4,[esi- 16*4 + 2*16]
 	pxor	xmm3,xmm4
 	movdqu	xmm5,[esi- 16*4 + 3*16]
-	
+
 	sub eax,4
 	store4 esi+edi-(16*4)
 	jmp lp128decfour_CBC
@@ -734,10 +734,10 @@ lp128decsingle_CBC:
 	aesdec1_u  [ecx+2*16]
 	aesdec1_u  [ecx+1*16]
 	aesdeclast1_u [ecx+0*16]
-	
+
 	pxor	xmm0,xmm5
 	movdqa	xmm5,xmm1
-	
+
 	add esi, 16
 	movdqu  [edi+esi - 16], xmm0
 	dec eax
@@ -753,7 +753,7 @@ end_dec128_CBC:
 	mov ecx,[esp-4+8]   ; first arg
 	mov ecx,[ecx+12]
 	movdqu	[ecx],xmm5 ; store last iv for chaining
-	
+
 	ret
 
 
@@ -765,20 +765,20 @@ align 16
 global _iDec192
 _iDec192:
 	mov ecx,[esp-4+8]
-	
+
 	push esi
 	push edi
 	push ebp
 	mov ebp,esp
-	
+
 	sub esp,16*16
 	and esp,0xfffffff0
-	
+
 	mov eax,[ecx+16] ; numblocks
 	mov esi,[ecx]
 	mov edi,[ecx+4]
 	mov ecx,[ecx+8]
-	
+
 	sub edi,esi
 
 	test eax,eax
@@ -789,7 +789,7 @@ _iDec192:
 
 	test	ecx,0xf
 	jz		lp192decfour
-	
+
 	copy_round_keys esp,ecx,0
 	copy_round_keys esp,ecx,1
 	copy_round_keys esp,ecx,2
@@ -803,12 +803,12 @@ _iDec192:
 	copy_round_keys esp,ecx,10
 	copy_round_keys esp,ecx,11
 	copy_round_keys esp,ecx,12
-	mov ecx,esp	
+	mov ecx,esp
 
 
 align 16
 lp192decfour:
-	
+
 	test eax,eax
 	jz end_dec192
 
@@ -829,7 +829,7 @@ lp192decfour:
 	aesdec4 [ecx+2*16]
 	aesdec4 [ecx+1*16]
 	aesdeclast4 [ecx+0*16]
-	
+
 	sub eax,4
 	store4 esi+edi-(16*4)
 	jmp lp192decfour
@@ -866,7 +866,7 @@ end_dec192:
 	pop ebp
 	pop edi
 	pop esi
-	
+
 	ret
 
 
@@ -874,23 +874,23 @@ align 16
 global _iDec192_CBC
 _iDec192_CBC:
 	mov ecx,[esp-4+8]
-	
+
 	push esi
 	push edi
 	push ebp
 	mov ebp,esp
-	
+
 	sub esp,16*16
 	and esp,0xfffffff0
 
 	mov eax,[ecx+12]
 	movdqu xmm5,[eax]	;iv
-	
+
 	mov eax,[ecx+16] ; numblocks
 	mov esi,[ecx]
 	mov edi,[ecx+4]
 	mov ecx,[ecx+8]
-	
+
 	sub edi,esi
 
 	test eax,eax
@@ -901,7 +901,7 @@ _iDec192_CBC:
 
 	test	ecx,0xf
 	jz		lp192decfour_CBC
-	
+
 	copy_round_keys esp,ecx,0
 	copy_round_keys esp,ecx,1
 	copy_round_keys esp,ecx,2
@@ -915,11 +915,11 @@ _iDec192_CBC:
 	copy_round_keys esp,ecx,10
 	copy_round_keys esp,ecx,11
 	copy_round_keys esp,ecx,12
-	mov ecx,esp	
+	mov ecx,esp
 
 align 16
 lp192decfour_CBC:
-	
+
 	test eax,eax
 	jz end_dec192_CBC
 
@@ -940,7 +940,7 @@ lp192decfour_CBC:
 	aesdec4 [ecx+2*16]
 	aesdec4 [ecx+1*16]
 	aesdeclast4 [ecx+0*16]
-	
+
 	pxor	xmm0,xmm5
 	movdqu	xmm4,[esi- 16*4 + 0*16]
 	pxor	xmm1,xmm4
@@ -949,7 +949,7 @@ lp192decfour_CBC:
 	movdqu	xmm4,[esi- 16*4 + 2*16]
 	pxor	xmm3,xmm4
 	movdqu	xmm5,[esi- 16*4 + 3*16]
-	
+
 	sub eax,4
 	store4 esi+edi-(16*4)
 	jmp lp192decfour_CBC
@@ -974,10 +974,10 @@ lp192decsingle_CBC:
 	aesdec1_u [ecx+2*16]
 	aesdec1_u [ecx+1*16]
 	aesdeclast1_u [ecx+0*16]
-	
+
 	pxor	xmm0,xmm5
 	movdqa	xmm5,xmm1
-	
+
 	add esi, 16
 	movdqu  [edi+esi - 16], xmm0
 	dec eax
@@ -994,7 +994,7 @@ end_dec192_CBC:
 	mov ecx,[esp-4+8]
 	mov ecx,[ecx+12]
 	movdqu	[ecx],xmm5 ; store last iv for chaining
-	
+
 	ret
 
 
@@ -1005,12 +1005,12 @@ align 16
 global _iDec256
 _iDec256:
 	mov ecx, [esp-4+8]
-	
+
 	push esi
 	push edi
 	push ebp
 	mov ebp,esp
-	
+
 	sub esp,16*16
 	and esp,0xfffffff0
 
@@ -1018,19 +1018,19 @@ _iDec256:
 	mov esi,[ecx]
 	mov edi,[ecx+4]
 	mov ecx,[ecx+8]
-	
+
 	sub edi,esi
 
 
 	test eax,eax
 	jz end_dec256
-	
+
 	cmp eax,4
 	jl lp256dec
 
 	test	ecx,0xf
 	jz	lp256dec4
-	
+
 	copy_round_keys esp,ecx,0
 	copy_round_keys esp,ecx,1
 	copy_round_keys esp,ecx,2
@@ -1046,16 +1046,16 @@ _iDec256:
 	copy_round_keys esp,ecx,12
 	copy_round_keys esp,ecx,13
 	copy_round_keys esp,ecx,14
-	mov ecx,esp	
-	
+	mov ecx,esp
+
 	align 16
 lp256dec4:
 	test eax,eax
 	jz end_dec256
-	
+
 	cmp eax,4
 	jl lp256dec
-	
+
 	load_and_xor4 esi,[ecx+14*16]
 	add esi, 4*16
 	aesdec4 [ecx+13*16]
@@ -1075,8 +1075,8 @@ lp256dec4:
 
 	store4 esi+edi-16*4
 	sub eax,4
-	jmp lp256dec4	
-	
+	jmp lp256dec4
+
 	align 16
 lp256dec:
 
@@ -1111,7 +1111,7 @@ end_dec256:
 	pop ebp
 	pop edi
 	pop esi
-	
+
 	ret
 
 
@@ -1121,23 +1121,23 @@ align 16
 global _iDec256_CBC
 _iDec256_CBC:
 	mov ecx,[esp-4+8]
-	
+
 	push esi
 	push edi
 	push ebp
 	mov ebp,esp
-	
+
 	sub esp,16*16
 	and esp,0xfffffff0
 
 	mov eax,[ecx+12]
 	movdqu xmm5,[eax]	;iv
-	
+
 	mov eax,[ecx+16] ; numblocks
 	mov esi,[ecx]
 	mov edi,[ecx+4]
 	mov ecx,[ecx+8]
-	
+
 	sub edi,esi
 
 	test eax,eax
@@ -1148,7 +1148,7 @@ _iDec256_CBC:
 
 	test	ecx,0xf
 	jz	lp256decfour_CBC
-	
+
 	copy_round_keys esp,ecx,0
 	copy_round_keys esp,ecx,1
 	copy_round_keys esp,ecx,2
@@ -1164,11 +1164,11 @@ _iDec256_CBC:
 	copy_round_keys esp,ecx,12
 	copy_round_keys esp,ecx,13
 	copy_round_keys esp,ecx,14
-	mov ecx,esp	
+	mov ecx,esp
 
 align 16
 lp256decfour_CBC:
-	
+
 	test eax,eax
 	jz end_dec256_CBC
 
@@ -1191,7 +1191,7 @@ lp256decfour_CBC:
 	aesdec4 [ecx+2*16]
 	aesdec4 [ecx+1*16]
 	aesdeclast4 [ecx+0*16]
-	
+
 	pxor	xmm0,xmm5
 	movdqu	xmm4,[esi- 16*4 + 0*16]
 	pxor	xmm1,xmm4
@@ -1200,7 +1200,7 @@ lp256decfour_CBC:
 	movdqu	xmm4,[esi- 16*4 + 2*16]
 	pxor	xmm3,xmm4
 	movdqu	xmm5,[esi- 16*4 + 3*16]
-	
+
 	sub eax,4
 	store4 esi+edi-(16*4)
 	jmp lp256decfour_CBC
@@ -1227,10 +1227,10 @@ lp256decsingle_CBC:
 	aesdec1_u  [ecx+2*16]
 	aesdec1_u  [ecx+1*16]
 	aesdeclast1_u  [ecx+0*16]
-	
+
 	pxor	xmm0,xmm5
 	movdqa	xmm5,xmm1
-	
+
 	add esi, 16
 	movdqu  [edi+esi - 16], xmm0
 	dec eax
@@ -1247,7 +1247,7 @@ end_dec256_CBC:
 	mov ecx,[esp-4+8]  ; first arg
 	mov ecx,[ecx+12]
 	movdqu	[ecx],xmm5 ; store last iv for chaining
-	
+
 	ret
 
 
@@ -1262,12 +1262,12 @@ align 16
 global _iEnc128
 _iEnc128:
 	mov ecx,[esp-4+8]
-	
+
 	push esi
 	push edi
 	push ebp
 	mov ebp,esp
-	
+
 	sub esp,16*16
 	and esp,0xfffffff0
 
@@ -1275,18 +1275,18 @@ _iEnc128:
 	mov esi,[ecx]
 	mov edi,[ecx+4]
 	mov ecx,[ecx+8]
-	
+
 	sub edi,esi
 
 	test eax,eax
 	jz end_enc128
-	
+
 	cmp eax,4
 	jl lp128encsingle
 
 	test	ecx,0xf
 	jz		lpenc128four
-	
+
 	copy_round_keys esp,ecx,0
 	copy_round_keys esp,ecx,1
 	copy_round_keys esp,ecx,2
@@ -1298,16 +1298,16 @@ _iEnc128:
 	copy_round_keys esp,ecx,8
 	copy_round_keys esp,ecx,9
 	copy_round_keys esp,ecx,10
-	mov ecx,esp	
+	mov ecx,esp
 
 
-	align 16	
-	
+	align 16
+
 lpenc128four:
-	
+
 	test eax,eax
 	jz end_enc128
-	
+
 	cmp eax,4
 	jl lp128encsingle
 
@@ -1323,11 +1323,11 @@ lpenc128four:
 	aesenc4	[ecx+8*16]
 	aesenc4	[ecx+9*16]
 	aesenclast4	[ecx+10*16]
-	
+
 	store4 esi+edi-16*4
 	sub eax,4
 	jmp lpenc128four
-	
+
 	align 16
 lp128encsingle:
 
@@ -1338,7 +1338,7 @@ lp128encsingle:
 	aesenc1_u  [ecx+1*16]
 	aesenc1_u  [ecx+2*16]
 	aesenc1_u  [ecx+3*16]
-	aesenc1_u  [ecx+4*16]     
+	aesenc1_u  [ecx+4*16]
 	aesenc1_u  [ecx+5*16]
 	aesenc1_u  [ecx+6*16]
 	aesenc1_u  [ecx+7*16]
@@ -1357,7 +1357,7 @@ end_enc128:
 	pop ebp
 	pop edi
 	pop esi
-	
+
 	ret
 
 
@@ -1365,12 +1365,12 @@ align 16
 global _iEnc128_CTR
 _iEnc128_CTR:
 	mov ecx,[esp-4+8]
-	
+
 	push esi
 	push edi
 	push ebp
 	mov ebp,esp
-	
+
 	sub esp,16*16
 	and esp,0xfffffff0
 
@@ -1382,18 +1382,18 @@ _iEnc128_CTR:
 	mov esi,[ecx]
 	mov edi,[ecx+4]
 	mov ecx,[ecx+8]
-	
+
 	sub edi,esi
 
 	test eax,eax
 	jz end_encctr128
-	
+
 	cmp eax,4
 	jl lp128encctrsingle
 
 	test	ecx,0xf
 	jz		lpencctr128four
-	
+
 	copy_round_keys esp,ecx,0
 	copy_round_keys esp,ecx,1
 	copy_round_keys esp,ecx,2
@@ -1405,16 +1405,16 @@ _iEnc128_CTR:
 	copy_round_keys esp,ecx,8
 	copy_round_keys esp,ecx,9
 	copy_round_keys esp,ecx,10
-	mov ecx,esp	
+	mov ecx,esp
 
 
-	align 16	
-	
+	align 16
+
 lpencctr128four:
-	
+
 	test eax,eax
 	jz end_encctr128
-	
+
 	cmp eax,4
 	jl lp128encctrsingle
 
@@ -1431,11 +1431,11 @@ lpencctr128four:
 	aesenc4	[ecx+9*16]
 	aesenclast4	[ecx+10*16]
 	xor_with_input4 esi-(4*16)
-	
+
 	store4 esi+edi-16*4
 	sub eax,4
 	jmp lpencctr128four
-	
+
 	align 16
 lp128encctrsingle:
 
@@ -1448,7 +1448,7 @@ lp128encctrsingle:
 	aesenc1_u [ecx+1*16]
 	aesenc1_u [ecx+2*16]
 	aesenc1_u [ecx+3*16]
-	aesenc1_u [ecx+4*16]     
+	aesenc1_u [ecx+4*16]
 	aesenc1_u [ecx+5*16]
 	aesenc1_u [ecx+6*16]
 	aesenc1_u [ecx+7*16]
@@ -1472,7 +1472,7 @@ end_encctr128:
 	mov ecx,[esp-4+8]  ; first arg
 	mov ecx,[ecx+12]
 	movdqu	[ecx],xmm5 ; store last counter for chaining
-	
+
 	ret
 
 
@@ -1480,12 +1480,12 @@ align 16
 global _iEnc192_CTR
 _iEnc192_CTR:
 	mov ecx,[esp-4+8]
-	
+
 	push esi
 	push edi
 	push ebp
 	mov ebp,esp
-	
+
 	sub esp,16*16
 	and esp,0xfffffff0
 
@@ -1497,18 +1497,18 @@ _iEnc192_CTR:
 	mov esi,[ecx]
 	mov edi,[ecx+4]
 	mov ecx,[ecx+8]
-	
+
 	sub edi,esi
 
 	test eax,eax
 	jz end_encctr192
-	
+
 	cmp eax,4
 	jl lp192encctrsingle
 
 	test	ecx,0xf
 	jz lpencctr192four
-	
+
 	copy_round_keys esp,ecx,0
 	copy_round_keys esp,ecx,1
 	copy_round_keys esp,ecx,2
@@ -1522,16 +1522,16 @@ _iEnc192_CTR:
 	copy_round_keys esp,ecx,10
 	copy_round_keys esp,ecx,11
 	copy_round_keys esp,ecx,12
-	mov ecx,esp	
+	mov ecx,esp
 
 
-	align 16	
-	
+	align 16
+
 lpencctr192four:
-	
+
 	test eax,eax
 	jz end_encctr192
-	
+
 	cmp eax,4
 	jl lp192encctrsingle
 
@@ -1550,11 +1550,11 @@ lpencctr192four:
 	aesenc4	[ecx+11*16]
 	aesenclast4	[ecx+12*16]
 	xor_with_input4 esi-(4*16)
-	
+
 	store4 esi+edi-16*4
 	sub eax,4
 	jmp lpencctr192four
-	
+
 	align 16
 lp192encctrsingle:
 
@@ -1567,7 +1567,7 @@ lp192encctrsingle:
 	aesenc1_u  [ecx+1*16]
 	aesenc1_u  [ecx+2*16]
 	aesenc1_u  [ecx+3*16]
-	aesenc1_u  [ecx+4*16]     
+	aesenc1_u  [ecx+4*16]
 	aesenc1_u  [ecx+5*16]
 	aesenc1_u  [ecx+6*16]
 	aesenc1_u  [ecx+7*16]
@@ -1594,7 +1594,7 @@ end_encctr192:
 	mov ecx,[esp-4+8]  ; first arg
 	mov ecx,[ecx+12]
 	movdqu	[ecx],xmm5 ; store last counter for chaining
-	
+
 	ret
 
 
@@ -1602,12 +1602,12 @@ align 16
 global _iEnc256_CTR
 _iEnc256_CTR:
 	mov ecx,[esp-4+8]
-	
+
 	push esi
 	push edi
 	push ebp
 	mov ebp,esp
-	
+
 	sub esp,16*16
 	and esp,0xfffffff0
 
@@ -1620,18 +1620,18 @@ _iEnc256_CTR:
 	mov esi,[ecx]
 	mov edi,[ecx+4]
 	mov ecx,[ecx+8]
-	
+
 	sub edi,esi
 
 	test eax,eax
 	jz end_encctr256
-	
+
 	cmp eax,4
 	jl lp256encctrsingle
 
 	test	ecx,0xf
 	jz	lpencctr256four
-	
+
 	copy_round_keys esp,ecx,0
 	copy_round_keys esp,ecx,1
 	copy_round_keys esp,ecx,2
@@ -1647,16 +1647,16 @@ _iEnc256_CTR:
 	copy_round_keys esp,ecx,12
 	copy_round_keys esp,ecx,13
 	copy_round_keys esp,ecx,14
-	mov ecx,esp	
+	mov ecx,esp
 
 
-	align 16	
-	
+	align 16
+
 lpencctr256four:
-	
+
 	test eax,eax
 	jz end_encctr256
-	
+
 	cmp eax,4
 	jl lp256encctrsingle
 
@@ -1677,13 +1677,13 @@ lpencctr256four:
 	aesenc4	[ecx+13*16]
 	aesenclast4	[ecx+14*16]
 	xor_with_input4 esi-(4*16)
-	
+
 	store4 esi+edi-16*4
 	sub eax,4
 	jmp lpencctr256four
-	
+
 	align 16
-	
+
 lp256encctrsingle:
 
 	movdqa	xmm0,xmm5
@@ -1695,7 +1695,7 @@ lp256encctrsingle:
 	aesenc1_u  [ecx+1*16]
 	aesenc1_u  [ecx+2*16]
 	aesenc1_u  [ecx+3*16]
-	aesenc1_u  [ecx+4*16]     
+	aesenc1_u  [ecx+4*16]
 	aesenc1_u  [ecx+5*16]
 	aesenc1_u  [ecx+6*16]
 	aesenc1_u  [ecx+7*16]
@@ -1724,7 +1724,7 @@ end_encctr256:
 	mov ecx,[esp-4+8]  ; first arg
 	mov ecx,[ecx+12]
 	movdqu	[ecx],xmm5 ; store last counter for chaining
-	
+
 	ret
 
 
@@ -1736,18 +1736,18 @@ align 16
 global _iEnc128_CBC
 _iEnc128_CBC:
 	mov ecx,[esp-4+8]
-	
+
 	push esi
 	push edi
 	push ebp
 	mov ebp,esp
-	
+
 	sub esp,16*16
 	and esp,0xfffffff0
 
 	mov	eax,[ecx+12]
-	movdqu xmm1,[eax]	;iv	
-	
+	movdqu xmm1,[eax]	;iv
+
 	mov eax,[ecx+16] ; numblocks
 	mov esi,[ecx]
 	mov edi,[ecx+4]
@@ -1756,7 +1756,7 @@ _iEnc128_CBC:
 
 	test	ecx,0xf
 	jz		lp128encsingle_CBC
-	
+
 	copy_round_keys esp,ecx,0
 	copy_round_keys esp,ecx,1
 	copy_round_keys esp,ecx,2
@@ -1768,10 +1768,10 @@ _iEnc128_CBC:
 	copy_round_keys esp,ecx,8
 	copy_round_keys esp,ecx,9
 	copy_round_keys esp,ecx,10
-	mov ecx,esp	
+	mov ecx,esp
 
-	align 16	
-	
+	align 16
+
 lp128encsingle_CBC:
 
 	movdqu xmm0, [esi]
@@ -1782,7 +1782,7 @@ lp128encsingle_CBC:
 	aesenc1  [ecx+1*16]
 	aesenc1  [ecx+2*16]
 	aesenc1  [ecx+3*16]
-	aesenc1  [ecx+4*16]     
+	aesenc1  [ecx+4*16]
 	aesenc1  [ecx+5*16]
 	aesenc1  [ecx+6*16]
 	aesenc1  [ecx+7*16]
@@ -1803,7 +1803,7 @@ lp128encsingle_CBC:
 	mov ecx,[esp-4+8]  ; first arg
 	mov ecx,[ecx+12]
 	movdqu	[ecx],xmm1 ; store last iv for chaining
-	
+
 	ret
 
 
@@ -1811,18 +1811,18 @@ align 16
 global _iEnc192_CBC
 _iEnc192_CBC:
 	mov ecx,[esp-4+8]  ; first arg
-	
+
 	push esi
 	push edi
 	push ebp
 	mov ebp,esp
-	
+
 	sub esp,16*16
 	and esp,0xfffffff0
 
 	mov	eax,[ecx+12]
-	movdqu xmm1,[eax]	;iv	
-	
+	movdqu xmm1,[eax]	;iv
+
 	mov eax,[ecx+16] ; numblocks
 	mov esi,[ecx]
 	mov edi,[ecx+4]
@@ -1831,7 +1831,7 @@ _iEnc192_CBC:
 
 	test	ecx,0xf
 	jz		lp192encsingle_CBC
-	
+
 	copy_round_keys esp,ecx,0
 	copy_round_keys esp,ecx,1
 	copy_round_keys esp,ecx,2
@@ -1845,10 +1845,10 @@ _iEnc192_CBC:
 	copy_round_keys esp,ecx,10
 	copy_round_keys esp,ecx,11
 	copy_round_keys esp,ecx,12
-	mov ecx,esp	
+	mov ecx,esp
 
-	align 16	
-	
+	align 16
+
 lp192encsingle_CBC:
 
 	movdqu xmm0, [esi]
@@ -1859,7 +1859,7 @@ lp192encsingle_CBC:
 	aesenc1  [ecx+1*16]
 	aesenc1  [ecx+2*16]
 	aesenc1  [ecx+3*16]
-	aesenc1  [ecx+4*16]     
+	aesenc1  [ecx+4*16]
 	aesenc1  [ecx+5*16]
 	aesenc1  [ecx+6*16]
 	aesenc1  [ecx+7*16]
@@ -1882,25 +1882,25 @@ lp192encsingle_CBC:
 	mov ecx,[esp-4+8]  ; first arg
 	mov ecx,[ecx+12]
 	movdqu	[ecx],xmm1 ; store last iv for chaining
-	
+
 	ret
 
 align 16
 global _iEnc256_CBC
 _iEnc256_CBC:
 	mov ecx,[esp-4+8]  ; first arg
-	
+
 	push esi
 	push edi
 	push ebp
 	mov ebp,esp
-	
+
 	sub esp,16*16
 	and esp,0xfffffff0
 
 	mov	eax,[ecx+12]
-	movdqu xmm1,[eax]	;iv	
-	
+	movdqu xmm1,[eax]	;iv
+
 	mov eax,[ecx+16] ; numblocks
 	mov esi,[ecx]
 	mov edi,[ecx+4]
@@ -1909,7 +1909,7 @@ _iEnc256_CBC:
 
 	test	ecx,0xf
 	jz		lp256encsingle_CBC
-	
+
 	copy_round_keys esp,ecx,0
 	copy_round_keys esp,ecx,1
 	copy_round_keys esp,ecx,2
@@ -1925,10 +1925,10 @@ _iEnc256_CBC:
 	copy_round_keys esp,ecx,12
 	copy_round_keys esp,ecx,13
 	copy_round_keys esp,ecx,14
-	mov ecx,esp	
+	mov ecx,esp
 
-	align 16	
-	
+	align 16
+
 lp256encsingle_CBC:
 
 ;abab
@@ -1940,7 +1940,7 @@ lp256encsingle_CBC:
 	aesenc1 [ecx+1*16]
 	aesenc1 [ecx+2*16]
 	aesenc1 [ecx+3*16]
-	aesenc1 [ecx+4*16]     
+	aesenc1 [ecx+4*16]
 	aesenc1 [ecx+5*16]
 	aesenc1 [ecx+6*16]
 	aesenc1 [ecx+7*16]
@@ -1965,7 +1965,7 @@ lp256encsingle_CBC:
 	mov ecx,[esp-4+8]
 	mov ecx,[ecx+12]
 	movdqu	[ecx],xmm1 ; store last iv for chaining
-	
+
 	ret
 
 
@@ -1976,12 +1976,12 @@ align 16
 global _iEnc192
 _iEnc192:
 	mov ecx,[esp-4+8]
-	
+
 	push esi
 	push edi
 	push ebp
 	mov ebp,esp
-	
+
 	sub esp,16*16
 	and esp,0xfffffff0
 
@@ -1989,18 +1989,18 @@ _iEnc192:
 	mov esi,[ecx]
 	mov edi,[ecx+4]
 	mov ecx,[ecx+8]
-	
+
 	sub edi,esi
 
 	test eax,eax
 	jz end_enc192
-	
+
 	cmp eax,4
 	jl lp192encsingle
 
 	test	ecx,0xf
 	jz		lpenc192four
-	
+
 	copy_round_keys esp,ecx,0
 	copy_round_keys esp,ecx,1
 	copy_round_keys esp,ecx,2
@@ -2014,15 +2014,15 @@ _iEnc192:
 	copy_round_keys esp,ecx,10
 	copy_round_keys esp,ecx,11
 	copy_round_keys esp,ecx,12
-	mov ecx,esp	
+	mov ecx,esp
 
-	align 16	
-	
+	align 16
+
 lpenc192four:
-	
+
 	test eax,eax
 	jz end_enc192
-	
+
 	cmp eax,4
 	jl lp192encsingle
 
@@ -2040,11 +2040,11 @@ lpenc192four:
 	aesenc4	[ecx+10*16]
 	aesenc4	[ecx+11*16]
 	aesenclast4	[ecx+12*16]
-	
+
 	store4 esi+edi-16*4
 	sub eax,4
 	jmp lpenc192four
-	
+
 	align 16
 lp192encsingle:
 
@@ -2055,7 +2055,7 @@ lp192encsingle:
 	aesenc1_u [ecx+1*16]
 	aesenc1_u [ecx+2*16]
 	aesenc1_u [ecx+3*16]
-	aesenc1_u [ecx+4*16]     
+	aesenc1_u [ecx+4*16]
 	aesenc1_u [ecx+5*16]
 	aesenc1_u [ecx+6*16]
 	aesenc1_u [ecx+7*16]
@@ -2076,7 +2076,7 @@ end_enc192:
 	pop ebp
 	pop edi
 	pop esi
-	
+
 	ret
 
 
@@ -2086,12 +2086,12 @@ align 16
 global _iEnc256
 _iEnc256:
 	mov ecx,[esp-4+8]
-	
+
 	push esi
 	push edi
 	push ebp
 	mov ebp,esp
-	
+
 	sub esp,16*16
 	and esp,0xfffffff0
 
@@ -2099,8 +2099,8 @@ _iEnc256:
 	mov esi,[ecx]
 	mov edi,[ecx+4]
 	mov ecx,[ecx+8]
-	
-	sub edi,esi	
+
+	sub edi,esi
 
 	test eax,eax
 	jz end_enc256
@@ -2110,7 +2110,7 @@ _iEnc256:
 
 	test	ecx,0xf
 	jz	lp256enc4
-	
+
 	copy_round_keys esp,ecx,0
 	copy_round_keys esp,ecx,1
 	copy_round_keys esp,ecx,2
@@ -2126,12 +2126,12 @@ _iEnc256:
 	copy_round_keys esp,ecx,12
 	copy_round_keys esp,ecx,13
 	copy_round_keys esp,ecx,14
-	mov ecx,esp	
+	mov ecx,esp
 
 
 
 	align 16
-	
+
 lp256enc4:
 	test eax,eax
 	jz end_enc256
@@ -2160,7 +2160,7 @@ lp256enc4:
 	store4  esi+edi-16*4
 	sub eax,4
 	jmp lp256enc4
-	
+
 	align 16
 lp256enc:
 
@@ -2195,5 +2195,5 @@ end_enc256:
 	pop ebp
 	pop edi
 	pop esi
-	
+
 	ret

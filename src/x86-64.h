@@ -17,6 +17,9 @@
 #ifndef _JOHN_ARCH_H
 #define _JOHN_ARCH_H
 
+#if AC_BUILT
+#include "autoconfig.h"
+#else
 #if defined(__ILP32__) || defined(_WIN64) || defined (__LLP64__) || \
 	(defined(__SIZE_OF_LONG__) && __SIZEOF_LONG__ == 4)
 #define ARCH_WORD			long long
@@ -30,6 +33,8 @@
 #define ARCH_LITTLE_ENDIAN		1
 #define ARCH_INT_GT_32			0
 #define ARCH_ALLOWS_UNALIGNED		1
+#endif
+
 #define ARCH_INDEX(x)			((unsigned int)(unsigned char)(x))
 
 #define CPU_DETECT			0

@@ -110,7 +110,7 @@ static void *get_binary_256(char *ciphertext)
 static void *get_binary_512(char *ciphertext)
 {
 	static union {
-		unsigned char c[16];
+		unsigned char c[32];
 		ARCH_WORD dummy;
 	} buf;
 	unsigned char *out = buf.c;

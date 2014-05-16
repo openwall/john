@@ -31,7 +31,7 @@ static int omp_t = 1;
 
 #define PAD_SIZE			64
 #define BINARY_SIZE			(256/8)
-#define BINARY_ALIGN			1
+#define BINARY_ALIGN			4
 #define SALT_SIZE			1024
 #define SALT_ALIGN			1
 #define CIPHERTEXT_LENGTH		(SALT_SIZE + 1 + BINARY_SIZE * 2)
@@ -206,7 +206,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 static void *binary(char *ciphertext)
 {
-	static unsigned char realcipher[BINARY_SIZE];
+	static union toalign {
+		unsigned char c[BINARY_SIZE];
+		ARCH_WORD_32 a[1];
+	} a;
+	unsigned char *realcipher = a.c;
 	int i,pos;
 
 	for(i=strlen(ciphertext);ciphertext[i]!='#';i--); // allow # in salt

@@ -44,7 +44,7 @@
 #define BINARY_ALIGN			1
 
 #define SALT_SIZE			(sizeof(PKZ_SALT*))
-#define SALT_ALIGN			1
+#define SALT_ALIGN			4
 
 #define MIN_KEYS_PER_CRYPT		1
 /* max keys allows 256 words per thread on a 16 thread OMP build */
@@ -515,7 +515,11 @@ static void set_salt(void *_salt) {
 static void *get_salt(char *ciphertext)
 {
 	/* NOTE, almost NO error checking at all in this function.  Proper error checking done in valid() */
-	static unsigned char salt_p[8];
+	static union alignment {
+		unsigned char c[8];
+		ARCH_WORD_32 a[1];
+	} a;
+	unsigned char *salt_p = a.c;
 	PKZ_SALT *salt;
 	long offset=0;
 	u32 offex;

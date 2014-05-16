@@ -32,6 +32,7 @@
 
 #include <string.h>
 #include <openssl/opensslv.h>
+#include "openssl_local_overrides.h"
 
 #if OPENSSL_VERSION_NUMBER >= 0x00908000 && !defined(FORCE_GENERIC_SHA2)
 

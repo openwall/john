@@ -18,6 +18,7 @@
 #include "formats.h"
 #include "params.h"
 #include "options.h"
+#include "johnswap.h"
 #include "pbkdf2_hmac_sha1.h"
 #include <openssl/aes.h>
 #ifdef _OPENMP
@@ -208,6 +209,14 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			strlen(saved_key[index]),
 			cur_salt->data, 16,
 			10, master, 32, 0);
+#if !ARCH_LITTLE_ENDIAN
+		{
+			int i;
+			for (i = 0; i < 32/sizeof(ARCH_WORD_32); ++i) {
+				((ARCH_WORD_32*)master)[i] = JOHNSWAP(((ARCH_WORD_32*)master)[i]);
+			}
+		}
+#endif
 		if(blockchain_decrypt(master, cur_salt->data) == 0)
 			cracked[index] = 1;
 		else

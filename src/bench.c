@@ -54,6 +54,7 @@
 #include "bench.h"
 #include "john.h"
 #include "unicode.h"
+#include "config.h"
 
 #ifndef BENCH_BUILD
 #include "options.h"
@@ -61,7 +62,6 @@
 
 #ifdef HAVE_MPI
 #include "john-mpi.h"
-#include "config.h"
 #endif /* HAVE_MPI */
 
 #ifdef _OPENMP
@@ -404,6 +404,12 @@ int benchmark_all(void)
 #ifndef BENCH_BUILD
 /* Silently skip formats for which we have no tests, unless forced */
 		if (!format->params.tests && format != fmt_list)
+			continue;
+
+/* Format disabled in john.conf, unless forced */
+		if (fmt_list->next &&
+		    cfg_get_bool(SECTION_DISABLED, SUBSECTION_FORMATS,
+		                 format->params.label, 0))
 			continue;
 
 /* Just test the encoding-aware formats if --encoding was used explicitly */

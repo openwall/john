@@ -11,6 +11,13 @@
  * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
+#if AC_BUILT
+/* load autoconf to know if we have the HAVE_CRYPT set */
+#include "autoconfig.h"
+#endif
+
+#if HAVE_CRYPT
+
 #define _XOPEN_SOURCE 4 /* for crypt(3) */
 #define _XOPEN_SOURCE_EXTENDED
 #define _XOPEN_VERSION 4
@@ -505,7 +512,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
  * reasonable).  Overall, this code is reasonable to use for SHA-crypt and
  * SunMD5 hashes, which are not yet supported by non-jumbo John natively.
  */
-#pragma omp parallel for default(none) private(index) shared(warned, count, crypt_out, saved_key, saved_salt, stderr)
+#pragma omp parallel for /* default(none) private(index) shared(warned, count, crypt_out, saved_key, saved_salt, stderr) or __iob */
 #endif
 	for (index = 0; index < count; index++) {
 		char *hash = crypt(saved_key[index], saved_salt);
@@ -608,7 +615,7 @@ static unsigned int  c3_algorithm_specific_cost1(void *salt)
 	 * alternatively: measure run time for crypt() with
 	 * sample hash using the current salt?
 	 */
-	return 1;	
+	return 1;
 #endif
 	return algorithm; // temp. dummy value to test --costs=
 }
@@ -691,3 +698,5 @@ struct fmt_main fmt_crypt = {
 		cmp_exact
 	}
 };
+
+#endif // HAVE_CRYPT

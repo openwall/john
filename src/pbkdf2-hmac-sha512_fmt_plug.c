@@ -236,7 +236,7 @@ static void *get_binary(char *ciphertext)
 {
 	static union {
 		unsigned char c[MAX_BINARY_SIZE];
-		ARCH_WORD dummy;
+		ARCH_WORD_64 dummy;
 	} buf;
 	unsigned char *out = buf.c;
 	char *p;
@@ -252,6 +252,11 @@ static void *get_binary(char *ciphertext)
 			atoi16[ARCH_INDEX(p[1])];
 		p += 2;
 	}
+#if !ARCH_LITTLE_ENDIAN
+	for (i = 0; i < len/sizeof(ARCH_WORD_64); ++i) {
+		((ARCH_WORD_64*)out)[i] = JOHNSWAP64(((ARCH_WORD_64*)out)[i]);
+	}
+#endif
 	return out;
 }
 
@@ -337,6 +342,11 @@ static int cmp_exact(char *source, int index)
 		binary[i++] = (atoi16[ARCH_INDEX(*p)] << 4) | atoi16[ARCH_INDEX(p[1])];
 		p += 2;
 	}
+#if !ARCH_LITTLE_ENDIAN
+	for (i = 0; i < len/sizeof(ARCH_WORD_64); ++i) {
+		((ARCH_WORD_64*)binary)[i] = JOHNSWAP64(((ARCH_WORD_64*)binary)[i]);
+	}
+#endif
 	pbkdf2_sha512((const unsigned char*)(saved_key[index]), strlen(saved_key[index]),
 			cur_salt->salt, cur_salt->length,
 			cur_salt->rounds, crypt, len, 0);

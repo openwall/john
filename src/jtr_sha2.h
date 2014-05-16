@@ -52,21 +52,29 @@ typedef struct
 	unsigned int num,md_len;    // UNUSED but here to be compatible with oSSL
 	unsigned int total;         // number of bytes processed
 	int bIs256;                 // if 1 SHA256, else SHA224
-} sha256_ctx;
+} jtr_sha256_ctx;
 
-extern void sha256_init   (sha256_ctx *ctx, int bIs256);
-extern void sha256_update (sha256_ctx *ctx, const void *input, int len);
-extern void sha256_final  (void *output, sha256_ctx *ctx);
+extern void jtr_sha256_init   (jtr_sha256_ctx *ctx, int bIs256);
+extern void jtr_sha256_update (jtr_sha256_ctx *ctx, const void *input, int len);
+extern void jtr_sha256_final  (void *output, jtr_sha256_ctx *ctx);
 // Low level function, exposed, so we can keep from doing swapping, IF we have already swapped the memory.
-extern void sha256_hash_block(sha256_ctx *ctx, const unsigned char data[64], int perform_endian_swap);
+extern void jtr_sha256_hash_block(jtr_sha256_ctx *ctx, const unsigned char data[64], int perform_endian_swap);
 
-#define SHA256_CTX           sha256_ctx
-#define SHA224_Init(a)       sha256_init(a,0)
-#define SHA256_Init(a)       sha256_init(a,1)
-#define SHA224_Update(a,b,c) sha256_update(a,b,c)
-#define SHA256_Update(a,b,c) sha256_update(a,b,c)
-#define SHA224_Final(a,b)    sha256_final(a,b)
-#define SHA256_Final(a,b)    sha256_final(a,b)
+#undef SHA256_CTX
+#undef SHA224_Init
+#undef SHA256_Init
+#undef SHA224_Update
+#undef SHA256_Update
+#undef SHA224_Final
+#undef SHA256_Final
+
+#define SHA256_CTX           jtr_sha256_ctx
+#define SHA224_Init(a)       jtr_sha256_init(a,0)
+#define SHA256_Init(a)       jtr_sha256_init(a,1)
+#define SHA224_Update(a,b,c) jtr_sha256_update(a,b,c)
+#define SHA256_Update(a,b,c) jtr_sha256_update(a,b,c)
+#define SHA224_Final(a,b)    jtr_sha256_final(a,b)
+#define SHA256_Final(a,b)    jtr_sha256_final(a,b)
 
 // Does sha512 and sha384
 typedef struct
@@ -77,21 +85,29 @@ typedef struct
 	unsigned int num,md_len;    // UNUSED but here to be compatible with oSSL
 	unsigned int total;         // number of bytes processed
 	int bIs512;                 // if 1 SHA512, else SHA384
-} sha512_ctx;
+} jtr_sha512_ctx;
 
-extern void sha512_init(sha512_ctx *ctx, int bIs512);
-extern void sha512_update(sha512_ctx *ctx, const void *input, int len);
-extern void sha512_final(void *output, sha512_ctx *ctx);
+extern void jtr_sha512_init(jtr_sha512_ctx *ctx, int bIs512);
+extern void jtr_sha512_update(jtr_sha512_ctx *ctx, const void *input, int len);
+extern void jtr_sha512_final(void *output, jtr_sha512_ctx *ctx);
 // Low level function, exposed, so we can keep from doing swapping, IF we have already swapped the memory.
-extern void sha512_hash_block(sha512_ctx *ctx, const unsigned char data[128], int perform_endian_swap);
+extern void jtr_sha512_hash_block(jtr_sha512_ctx *ctx, const unsigned char data[128], int perform_endian_swap);
 
-#define SHA512_CTX           sha512_ctx
-#define SHA384_Init(a)       sha512_init(a,0)
-#define SHA512_Init(a)       sha512_init(a,1)
-#define SHA512_Update(a,b,c) sha512_update(a,b,c)
-#define SHA384_Update(a,b,c) sha512_update(a,b,c)
-#define SHA512_Final(a,b)    sha512_final(a,b)
-#define SHA384_Final(a,b)    sha512_final(a,b)
+#undef SHA512_CTX
+#undef SHA384_Init
+#undef SHA512_Init
+#undef SHA512_Update
+#undef SHA384_Update
+#undef SHA512_Final
+#undef SHA384_Final
+
+#define SHA512_CTX           jtr_sha512_ctx
+#define SHA384_Init(a)       jtr_sha512_init(a,0)
+#define SHA512_Init(a)       jtr_sha512_init(a,1)
+#define SHA512_Update(a,b,c) jtr_sha512_update(a,b,c)
+#define SHA384_Update(a,b,c) jtr_sha512_update(a,b,c)
+#define SHA512_Final(a,b)    jtr_sha512_final(a,b)
+#define SHA384_Final(a,b)    jtr_sha512_final(a,b)
 
 #if ARCH_LITTLE_ENDIAN
 #define OUTBE32(n,b,i) do { (b)[i] = ((n)>>24); (b)[i+1] = ((n)>>16); (b)[i+2] = ((n)>>8); (b)[i+3] = (n); } while(0)

@@ -22,12 +22,9 @@
  * http://openwall.info/wiki/people/solar/software/public-domain-source-code/md5
  */
 
-#ifndef HAVE_OPENSSL
-
-#include <string.h>
-
-#include "arch.h"
 #include "md5.h"
+#ifndef HAVE_LIBSSL
+#include <string.h>
 #include "memdbg.h"
 
 /*

@@ -15,6 +15,12 @@
 #ifndef _JOHN_OS_H
 #define _JOHN_OS_H
 
+#if AC_BUILT
+/* include a stripped down os.h, AFTER it includes autoconf.h */
+#include "os-autoconf.h"
+#else
+/* for non autoconf build (i.e. make -f Makefile.orig) we use the original os.h code. */
+
 #ifdef NEED_OS_TIMER
 
 #if defined(__CYGWIN32__) || defined(__BEOS__) || defined(__MINGW32__) || defined(_MSC_VER) /* || (defined(AMDAPPSDK) && defined(HAVE_OPENCL)) */
@@ -105,5 +111,7 @@
 #define HAVE_STRINGS_H		1
 #endif
 
+
+#endif
 
 #endif

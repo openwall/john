@@ -760,13 +760,23 @@ static void init(struct fmt_main *pFmt)
 #ifdef _OPENMP
 	m_ompt = omp_get_max_threads();
 	mem_calloc_tiny(1, MEM_ALIGN_WORD); // throw this one away, to get our allocations memory aligned
+#if ARCH_ALLOWS_UNALIGNED
 	md5_unicode_convert = (int*)mem_calloc_tiny(sizeof(int)*m_ompt, MEM_ALIGN_NONE);
 	eLargeOut = (eLargeOut_t*)mem_calloc_tiny(sizeof(eLargeOut_t)*m_ompt, MEM_ALIGN_NONE);
+#else
+	md5_unicode_convert = (int*)mem_calloc_tiny(sizeof(int)*m_ompt, MEM_ALIGN_WORD);
+	eLargeOut = (eLargeOut_t*)mem_calloc_tiny(sizeof(eLargeOut_t)*m_ompt, MEM_ALIGN_WORD);
+#endif
 	for (i = 0; i < m_ompt; ++i)
 		eLargeOut[i] = eBase16;
 #else
+#if ARCH_ALLOWS_UNALIGNED
 	md5_unicode_convert = (int*)mem_calloc_tiny(sizeof(int), MEM_ALIGN_NONE);
 	eLargeOut = (eLargeOut_t*)mem_calloc_tiny(sizeof(eLargeOut_t), MEM_ALIGN_NONE);
+#else
+	md5_unicode_convert = (int*)mem_calloc_tiny(sizeof(int), MEM_ALIGN_WORD);
+	eLargeOut = (eLargeOut_t*)mem_calloc_tiny(sizeof(eLargeOut_t), MEM_ALIGN_WORD);
+#endif
 	eLargeOut[0] = eBase16;
 #endif
 #ifdef MMX_COEF
@@ -4471,9 +4481,12 @@ void DynamicFunc__PHPassCrypt(DYNA_OMP_PARAMS)
 #endif
 	//dump_stuff_msg("crypt0", crypt_key_X86[0].x1.w, 16);
 	//dump_stuff_msg("crypt1", crypt_key_X86[0].x2.w2, 16);
+	//{ 	static int x=0; if (++x == 2) 	exit(0); }
 #else
 	// little endian can use 'original' crypt function.
 	DynamicFunc__crypt_md5(DYNA_OMP_PARAMSd);
+	//dump_stuff_msg("crypt0", crypt_key_X86[0].x1.w, 16);
+	//{ 	static int x=0; if (++x == 8) 	exit(0); }
 #endif
 }
 void DynamicFunc__POCrypt(DYNA_OMP_PARAMS)
@@ -7023,7 +7036,11 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 		pFmt->params.max_keys_per_crypt = 96*4;
 #endif
 #else
+#if ARCH_LITTLE_ENDIAN
 		pFmt->params.max_keys_per_crypt = 96;
+#else
+		pFmt->params.max_keys_per_crypt = 2;
+#endif
 #if MD5_X2
 		pFmt->params.algorithm_name = "32/" ARCH_BITS_STR " 48x2  (MD5_body)";
 #else

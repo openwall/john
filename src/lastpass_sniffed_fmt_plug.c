@@ -190,6 +190,15 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		pbkdf2_sha256((unsigned char*)saved_key[index], strlen(saved_key[index]), (unsigned char*)cur_salt->username, strlen((char*)cur_salt->username), cur_salt->iterations, (unsigned char*)key,32,0);
 		//pbkdf2_sha256_x((unsigned char*)saved_key[index], strlen(saved_key[index]), (unsigned char*)cur_salt->username, strlen((char*)cur_salt->username), cur_salt->iterations, (unsigned char*)key);
 
+#if !ARCH_LITTLE_ENDIAN
+		{
+			int i;
+			for (i = 0; i < 8; ++i) {
+				key[i] = JOHNSWAP(key[i]);
+			}
+		}
+#endif
+
 		if(AES_set_decrypt_key((const unsigned char *)key, 256, &akey) < 0) {
 			fprintf(stderr, "AES_set_decrypt_key failed in crypt!\n");
 		}

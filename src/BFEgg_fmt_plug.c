@@ -28,7 +28,7 @@ static int omp_t = 1;
 #define CIPHERTEXT_LENGTH		13
 
 #define BINARY_SIZE			7
-#define BINARY_ALIGN			1
+#define BINARY_ALIGN			4
 #define SALT_SIZE			0
 #define SALT_ALIGN			1
 
@@ -88,7 +88,11 @@ void init(struct fmt_main *self) {
 /* The base64 is flawed - we just mimic flaws from the original code */
 static void *binary(char *ciphertext)
 {
-	static char out[BINARY_SIZE];
+	static union toalign {
+		unsigned char c[BINARY_SIZE];
+		ARCH_WORD_32 a[1];
+	} a;
+	unsigned char *out = a.c;
 	ARCH_WORD_32 value;
 	char *pos;
 

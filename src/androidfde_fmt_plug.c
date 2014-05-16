@@ -31,7 +31,7 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <openssl/aes.h>
-#include "sha2.h"
+
 #include <string.h>
 #include "arch.h"
 #include "misc.h"
@@ -42,6 +42,8 @@
 #include "memory.h"
 #undef MMX_COEF // FIXME
 #include "pbkdf2_hmac_sha1.h"
+// NOTE, this format FAILS for generic sha2.  It could be due to interaction between openssl/aes and generic sha2 code.
+#include "sha2.h"
 #ifdef _OPENMP
 static int omp_t = 1;
 #include <omp.h>
@@ -225,6 +227,14 @@ int hash_plugin_check_hash(char *password)
 		2000,
 		keycandidate,
 		cur_salt->keysize + 16, 0);
+#if !ARCH_LITTLE_ENDIAN
+	{
+		int i;
+		for (i = 0; i < (cur_salt->keysize + 16)/sizeof(ARCH_WORD_32); ++i) {
+			((ARCH_WORD_32*)keycandidate)[i] = JOHNSWAP(((ARCH_WORD_32*)keycandidate)[i]);
+		}
+	}
+#endif
 
 	AES_set_decrypt_key(keycandidate, cur_salt->keysize*8, &aeskey);
 	AES_cbc_encrypt(cur_salt->mkey, keycandidate2, 16, &aeskey, keycandidate+16, AES_DECRYPT);
@@ -241,6 +251,13 @@ int hash_plugin_check_hash(char *password)
 	memcpy(&v3,decrypted2+0x3c,2);
 	memcpy(&v4,decrypted2+0x4c,2);
 	memcpy(&v5,decrypted2+0x48,4);
+#if !ARCH_LITTLE_ENDIAN
+	v1 = JOHNSWAP(v1);
+	v2 = JOHNSWAP(v2);
+	v3 = JOHNSWAP(v3);
+	v4 = JOHNSWAP(v4);
+	v5 = JOHNSWAP(v5);
+#endif
 	if ((v1<5)&&(v2<4)&&(v3<5)&&(v4<2)&&(v5<5)) {
 	    return 1;
 	}

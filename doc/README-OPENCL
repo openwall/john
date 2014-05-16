@@ -29,20 +29,34 @@ known issues.
 OpenCL won't:
 - improve your speed on very short runs (due to longer startup).
 - work well in single mode due to using large sets of password (but some
-  formats now handle this quite well by adopting work sizes).
+  formats now handle this better by adopting work sizes).
 
 
 ====================
 COMPILING:
 ====================
 
+The new autoconf (./configure) should find your OpenCL installation and
+enable it. If it doesn't, you may need to pass some parameters about where
+it's located, eg.
+    ./configure LDFLAGS=-L/opt/AMDAPP/lib CFLAGS=-I/opt/AMDAPP/include
+    make -s
+
+To build without OpenCL, use:
+    ./configure --disable-opencl
+    make -s
+
+As a last resort, you can use the legacy Makefile:
+    make -sf Makefile.orig linux-x86-64-opencl
+
+
 ATI/AMD suggest you to use ATISTREAMSDKROOT env variable to
 provide where you have installed their SDK root.
 nvidia simply install it in /usr/local/nvidia .
 
-Makefile assume you have $ATISTREAMSDKROOT set up to point
-to your ATI installation or you have $NVIDIA_CUDA pointing to
-nvidia installation.
+The legacy Makefile assumes you have $ATISTREAMSDKROOT set up to point
+to your ATI installation or you have $NVIDIA_CUDA pointing to nvidia
+installation.
 
 If in doubt do a
 
@@ -53,11 +67,6 @@ to locate your path to the includes and libOpenCL.
 Adjust NVIDIA_CUDA or ATISTREAMSDKROOT to your needs and
 if something is still wrong (but it shouldn't) send
 an email to john-users@lists.openwall.com for help.
-
-If you use an old AMD/ATI driver and get problems with signals or
-ctrl-c, with messages about "semaphore" and/or "sem_wait() failed",
-remove the comments from line 20 of os.h (so the last two ifdefs get
-into play) and rebuild.
 
 
 ====================
@@ -123,12 +132,12 @@ Currently only mscash2-OpenCL support multiple devices by itself. However,
 All other formats can use it together with MPI or the --fork option. For
 example, let's say you have four GPU cards in your local host:
 
-$ ./john -fork=4 -dev=gpu -format=(...)
+$ ./john -fork=4 -dev=gpu,acc -format=(...)
 
 The above will fork to four processes and each process will use a different
-GPU device. For this to happen, the "-dev" option (--device) is mandatory
-and instead of -dev=gpu (use all GPUs) you could specify them yourself, eg.
--dev=0,1,5,6.
+GPU or Accelerator device. For this to happen, the "-dev" option (--device)
+is mandatory and instead of -dev=gpu,acc (use all GPUs and accelerators) you
+could specify them yourself, eg. -dev=0,1,5,6.
 
 Or maybe you have two cards in a remote host called alpha and one card in
 a host called bravo. Build with MPI support and use this variant of the above:
@@ -151,46 +160,49 @@ http://openwall.info/wiki/john/GPU
 Currently John the Ripper supports OpenCL enabled devices for
 the following hashes:
 
-agilekeychain-opencl      1Password Agile Keychain
-bcrypt-opencl             crypt(3) Blowfish
-blockchain-opencl         My Wallet
-descrypt-opencl           traditional crypt(3)
-dmg-opencl                Apple DMG
-encfs-opencl              EncFS
-gpg-opencl                OpenPGP / GnuPG Secret Key
-keychain-opencl           Mac OS X Keychain
-keyring-opencl            GNOME Keyring
-krb5pa-sha1-opencl        Kerberos 5 AS-REQ Pre-Auth etype 17/18
-md5crypt-opencl           crypt(3) $1$
-mscash2-opencl            M$ Cache Hash 2 (DCC2)
-mysql-sha1-opencl         MySQL 4.1
-nt-opencl                 NT
-ntlmv2-opencl             NTLMv2 C/R
-ODF-AES-opencl            ODF AES
-ODF-opencl                ODF Blowfish
-office2007-opencl         Office 2007
-office2010-opencl         Office 2010
-office2013-opencl         Office 2013
-PBKDF2-HMAC-SHA256-opencl PBKDF2-HMAC-SHA256
-phpass-opencl             PHPass
-pwsafe-opencl             Password Safe
-RAKP-opencl               IPMI 2.0 RAKP (RMCP+)
-rar-opencl                RAR3
-Raw-MD4-opencl            MD4 (raw)
-Raw-MD5-opencl            MD5 (raw)
-Raw-SHA1-opencl           SHA-1 (raw)
-Raw-SHA256-opencl         SHA-256 (raw)
-Raw-SHA512-ng-opencl      SHA-512 (new version) (raw)
-Raw-SHA512-opencl         SHA-512 (raw)
-sha256crypt-opencl        crypt(3) $5$
-sha512crypt-opencl        crypt(3) $6$
-ssha-opencl               Netscape LDAP {SSHA}
-strip-opencl              STRIP Password Manager
-sxc-opencl                StarOffice .sxc
-WPAPSK-opencl             WPA/WPA2 PSK
-XSHA512-ng-opencl         Mac OS X 10.7+ (new version)
-XSHA512-opencl            Mac OS X 10.7+
-zip-opencl                ZIP
+agilekeychain-opencl       1Password Agile Keychain
+bcrypt-opencl              bcrypt
+blockchain-opencl          blockchain My Wallet
+descrypt-opencl            traditional crypt(3)
+dmg-opencl                 Apple DMG
+encfs-opencl               EncFS
+gpg-opencl                 OpenPGP / GnuPG Secret Key
+grub-opencl                GRUB2 / OS X 10.8+
+keychain-opencl            Mac OS X Keychain
+keyring-opencl             GNOME Keyring
+krb5pa-md5-opencl          Kerberos 5 AS-REQ Pre-Auth etype 23
+krb5pa-sha1-opencl         Kerberos 5 AS-REQ Pre-Auth etype 17/18
+md5crypt-opencl            crypt(3) $1$
+mscash2-opencl             MS Cache Hash 2 (DCC2)
+mysql-sha1-opencl          MySQL 4.1+
+nt-opencl                  NT
+ntlmv2-opencl              NTLMv2 C/R
+o5logon-opencl             Oracle O5LOGON protocol w/ OpenCL SHA1
+ODF-AES-opencl             Open Document Format (AES)
+ODF-opencl                 Open Document Format (Blowfish)
+office2007-opencl          MS Office 2007
+office2010-opencl          MS Office 2010
+office2013-opencl          MS Office 2013
+PBKDF2-HMAC-SHA256-opencl
+phpass-opencl              PHPass MD5
+pwsafe-opencl              Password Safe
+RAKP-opencl                IPMI 2.0 RAKP (RMCP+)
+rar-opencl                 RAR3
+Raw-MD4-opencl
+Raw-MD5-opencl
+Raw-SHA1-opencl
+Raw-SHA256-opencl
+Raw-SHA512-ng-opencl       (pwlen < 55)
+Raw-SHA512-opencl
+sha256crypt-opencl         crypt(3) $5$
+sha512crypt-opencl         crypt(3) $6$
+ssha-opencl                Netscape LDAP {SSHA}
+strip-opencl               STRIP Password Manager
+sxc-opencl                 StarOffice .sxc
+wpapsk-opencl              WPA/WPA2 PSK
+XSHA512-ng-opencl          Mac OS X 10.7 salted (pwlen < 55)
+XSHA512-opencl             Mac OS X 10.7+
+zip-opencl                 ZIP
 
 
 ==================

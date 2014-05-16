@@ -219,7 +219,7 @@ static void *get_binary(char *ciphertext)
 {
 	static union {
 		unsigned char c[LARGEST_BINARY_SIZE];
-		ARCH_WORD_32 dummy;
+		ARCH_WORD_64 dummy;
 	} out;
 	ARCH_WORD_32 value;
 	char *pos = strrchr(ciphertext, '$') + 1;
@@ -240,7 +240,23 @@ static void *get_binary(char *ciphertext)
 		out.c[i++] = value >> 8;
 		out.c[i++] = value;
 	}
-
+	
+#if !ARCH_LITTLE_ENDIAN
+	{
+		// we need to know if we are using sha1 or sha256  OR a 64 bit (sha384/512)
+		int j;
+		if (!strncasecmp(ciphertext, "{ssha512}", 9)) {
+			for (j = 0; j < 3; ++j) { // we only need 20 bytes -2
+				((ARCH_WORD_64*)out.c)[j] = JOHNSWAP64(((ARCH_WORD_64*)out.c)[j]);
+			}
+		} else {
+			//for (j = 0; j*sizeof(ARCH_WORD_32) < i; ++j) {
+			for (j = 0; j < 5; ++j) {
+				((ARCH_WORD_32*)out.c)[j] = JOHNSWAP(((ARCH_WORD_32*)out.c)[j]);
+			}
+		}
+	}
+#endif
 	return (void *)out.c;
 }
 
@@ -334,15 +350,18 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 static int cmp_all(void *binary, int count)
 {
 	int index = 0;
-	for (; index < count; index++)
-		if (!memcmp(binary, crypt_out[index], CMP_SIZE))
+	//dump_stuff_msg("\nbinary   ", binary, CMP_SIZE);
+	for (; index < count; index++) {
+		//dump_stuff_msg("crypt_out", crypt_out[index], CMP_SIZE);
+		if (!memcmp(binary, crypt_out[index], CMP_SIZE-2))
 			return 1;
+	}
 	return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return !memcmp(binary, crypt_out[index], CMP_SIZE);
+	return !memcmp(binary, crypt_out[index], CMP_SIZE-2);
 }
 
 static int cmp_exact(char *source, int index)

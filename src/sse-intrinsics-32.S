@@ -7,9 +7,9 @@
 #define SSEmd4body                          _SSEmd4body
 #define SSEmd5body                          _SSEmd5body
 #define SSEmd5body__0                       _SSEmd5body__0
-#define john_MD5_Final                      _john_MD5_Final
-#define john_MD5_Init                       _john_MD5_Init
-#define john_MD5_Update                     _john_MD5_Update
+#define MD5_Final                      		_MD5_Final
+#define MD5_Init                       		_MD5_Init
+#define MD5_Update                     		_MD5_Update
 #define md5cryptsse                         _md5cryptsse
 #define memcpy                              _memcpy
 #define memset                              _memset
@@ -10813,14 +10813,14 @@ md5cryptsse:
         movl      %eax, 5600(%ecx,%edx,4)
         lea       6156(%esp), %edx
         pushl     %edx
-        call      john_MD5_Init
+        call      MD5_Init
 ..B3.270:
         addl      $12, %esp
         pushl     %ebx
         pushl     6772(%esp)
         lea       6156(%esp), %eax
         pushl     %eax
-        call      john_MD5_Update
+        call      MD5_Update
 ..B3.271:
         cmpl      $2, 8540(%esp)
         jne       ..B3.273
@@ -10830,7 +10830,7 @@ md5cryptsse:
         pushl     $.L_2__STRING.1
         lea       6156(%esp), %eax
         pushl     %eax
-        call      john_MD5_Update
+        call      MD5_Update
         jmp       ..B3.275
 ..B3.273:
         cmpl      $1, 8540(%esp)
@@ -10841,47 +10841,47 @@ md5cryptsse:
         pushl     $.L_2__STRING.2
         lea       6156(%esp), %eax
         pushl     %eax
-        call      john_MD5_Update
+        call      MD5_Update
 ..B3.275:
         addl      $12, %esp
         pushl     8452(%esp)
         pushl     8524(%esp)
         lea       6156(%esp), %eax
         pushl     %eax
-        call      john_MD5_Update
+        call      MD5_Update
 ..B3.276:
         addl      $4, %esp
         lea       6308(%esp), %eax
         pushl     %eax
-        call      john_MD5_Init
+        call      MD5_Init
 ..B3.277:
         addl      $12, %esp
         pushl     %ebx
         pushl     6772(%esp)
         lea       6308(%esp), %eax
         pushl     %eax
-        call      john_MD5_Update
+        call      MD5_Update
 ..B3.278:
         addl      $12, %esp
         pushl     8452(%esp)
         pushl     8524(%esp)
         lea       6308(%esp), %eax
         pushl     %eax
-        call      john_MD5_Update
+        call      MD5_Update
 ..B3.279:
         addl      $12, %esp
         pushl     %ebx
         pushl     6772(%esp)
         lea       6308(%esp), %eax
         pushl     %eax
-        call      john_MD5_Update
+        call      MD5_Update
 ..B3.280:
         addl      $8, %esp
         lea       6304(%esp), %eax
         pushl     %eax
         lea       6920(%esp), %edx
         pushl     %edx
-        call      john_MD5_Final
+        call      MD5_Final
 ..B3.281:
         addl      $12, %esp
         pushl     %ebx
@@ -10889,7 +10889,7 @@ md5cryptsse:
         pushl     %eax
         lea       6156(%esp), %edx
         pushl     %edx
-        call      john_MD5_Update
+        call      MD5_Update
 ..B3.282:
         movl      6764(%esp), %eax
         testl     %ebx, %ebx
@@ -10906,14 +10906,14 @@ md5cryptsse:
         pushl     $1
         pushl     $.L_2__STRING.3
         pushl     %edi
-        call      john_MD5_Update
+        call      MD5_Update
         jmp       ..B3.287
 ..B3.286:
         addl      $12, %esp
         pushl     $1
         pushl     %esi
         pushl     %edi
-        call      john_MD5_Update
+        call      MD5_Update
 ..B3.287:
         shrl      $1, %ebx
         testl     %ebx, %ebx
@@ -10924,7 +10924,7 @@ md5cryptsse:
         pushl     %eax
         lea       6920(%esp), %edx
         pushl     %edx
-        call      john_MD5_Final
+        call      MD5_Final
 ..B3.290:
         movl      6744(%esp), %ecx
         lea       6544(%esp), %eax
