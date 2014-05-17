@@ -192,9 +192,6 @@ struct db_options {
 	unsigned int max_cost[FMT_TUNABLE_COSTS];
 #endif
 
-/* Pot file used (default is $JOHN/john.pot) */
-	char *activepot;
-
 /* if --show=left is used, john dumps the non-cracked hashes */
 	int showuncracked;
 

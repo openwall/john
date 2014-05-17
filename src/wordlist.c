@@ -489,8 +489,8 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 	log_event("Proceeding with %s mode",
 	          loopBack ? "loopback" : "wordlist");
 
-	if (options.activewordlistrules)
-		log_event("- Rules: %.100s", options.activewordlistrules);
+	if (pers_opts.activewordlistrules)
+		log_event("- Rules: %.100s", pers_opts.activewordlistrules);
 
 #if HAVE_REXGEN
 	regex = prepare_regex(options.regex, &regex_case, &regex_alpha);
@@ -509,7 +509,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 	if (loopBack) {
 		dupeCheck = 1;
 		if (!name)
-			name = options.wordlist = options.loader.activepot;
+			name = options.wordlist = pers_opts.activepot;
 	}
 
 	if (!mem_saving_level &&
@@ -907,13 +907,13 @@ SKIP_MEM_MAP_LOAD:;
 	}
 
 	if (rules) {
-		if (rpp_init(rule_ctx = &ctx, options.activewordlistrules)) {
+		if (rpp_init(rule_ctx = &ctx, pers_opts.activewordlistrules)) {
 			log_event("! No \"%s\" mode rules found",
-			          options.activewordlistrules);
+			          pers_opts.activewordlistrules);
 			if (john_main_process)
 				fprintf(stderr,
 				        "No \"%s\" mode rules found in %s\n",
-				        options.activewordlistrules, cfg_name);
+				        pers_opts.activewordlistrules, cfg_name);
 			error();
 		}
 

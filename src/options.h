@@ -227,12 +227,6 @@ struct options_main {
    is done. */
 	unsigned int max_fix_state_delay;
 
-/* the wordlist rules section (default if none entered is Wordlist) */
-	char *activewordlistrules;
-
-/* the 'single' rules section (default if none entered is Single) */
-	char *activesinglerules;
-
 /* This is a 'special' flag.  It causes john to add 'extra' code to search for
  * some salted types, when we have only the hashes.  The only type supported is
  * PHPS (at this time.).  So PHPS will set this to a 1. OTherwise it will
@@ -335,6 +329,15 @@ struct pers_opts {
 
 /* Show/log/report UTF-8. Default is no conversion. */
 	int report_utf8;
+
+/* Pot file used (default is $JOHN/john.pot) */
+	char *activepot;
+
+/* the wordlist rules section (default if none entered is Wordlist) */
+	char *activewordlistrules;
+
+/* the 'single' rules section (default if none entered is Single) */
+	char *activesinglerules;
 };
 
 extern struct pers_opts pers_opts;

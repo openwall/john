@@ -475,7 +475,7 @@ int crk_reload_pot(void)
 		return 0;
 
 	if ((pot_fd =
-	     open(path_expand(options.loader.activepot), O_RDONLY)) == -1) {
+	     open(path_expand(pers_opts.activepot), O_RDONLY)) == -1) {
 		if (errno != ENOENT)
 			perror("open potfile");
 		return 0;
@@ -483,10 +483,10 @@ int crk_reload_pot(void)
 
 #if OS_FLOCK
 	if (flock(pot_fd, LOCK_SH) == -1)
-		pexit("flock: %s", options.loader.activepot);
+		pexit("flock: %s", pers_opts.activepot);
 #endif
 	if (!(pot_file = fdopen(pot_fd, "rb")))
-		pexit("fdopen: %s", options.loader.activepot);
+		pexit("fdopen: %s", pers_opts.activepot);
 
 	if (crk_pot_pos && (fseek(pot_file, crk_pot_pos, SEEK_SET) == -1)) {
 		perror("fseek");

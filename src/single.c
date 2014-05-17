@@ -115,12 +115,12 @@ static void single_init(void)
 	while (key_count > 0xffff / length + 1)
 		key_count >>= 1;
 
-	if (rpp_init(rule_ctx, options.activesinglerules)) {
+	if (rpp_init(rule_ctx, pers_opts.activesinglerules)) {
 		log_event("! No \"%s\" mode rules found",
-		          options.activesinglerules);
+		          pers_opts.activesinglerules);
 		if (john_main_process)
 			fprintf(stderr, "No \"%s\" mode rules found in %s\n",
-			        options.activesinglerules, cfg_name);
+			        pers_opts.activesinglerules, cfg_name);
 		error();
 	}
 

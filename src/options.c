@@ -66,7 +66,7 @@ static char *costs_str;
 static struct opt_entry opt_list[] = {
 	{"", FLG_PASSWD, 0, 0, 0, OPT_FMT_ADD_LIST, &options.passwd},
 	{"single", FLG_SINGLE_SET, FLG_CRACKING_CHK, 0, 0,
-		OPT_FMT_STR_ALLOC, &options.activesinglerules},
+		OPT_FMT_STR_ALLOC, &pers_opts.activesinglerules},
 	{"wordlist", FLG_WORDLIST_SET, FLG_CRACKING_CHK,
 		0, 0, OPT_FMT_STR_ALLOC, &options.wordlist},
 	{"loopback", FLG_LOOPBACK_SET, FLG_CRACKING_CHK,
@@ -88,7 +88,7 @@ static struct opt_entry opt_list[] = {
 	{"pipe", FLG_PIPE_SET, FLG_CRACKING_CHK},
 #endif
 	{"rules", FLG_RULES, FLG_RULES, FLG_WORDLIST_CHK, FLG_STDIN_CHK,
-		OPT_FMT_STR_ALLOC, &options.activewordlistrules},
+		OPT_FMT_STR_ALLOC, &pers_opts.activewordlistrules},
 	{"incremental", FLG_INC_SET, FLG_CRACKING_CHK,
 		0, 0, OPT_FMT_STR_ALLOC, &options.charset},
 	{"mask", FLG_MASK_SET, FLG_CRACKING_CHK,
@@ -143,7 +143,7 @@ static struct opt_entry opt_list[] = {
 		"%u", &options.fork},
 #endif
 	{"pot", FLG_POT, FLG_POT, 0, OPT_REQ_PARAM,
-	    OPT_FMT_STR_ALLOC, &options.loader.activepot},
+	    OPT_FMT_STR_ALLOC, &pers_opts.activepot},
 	{"format", FLG_FORMAT, FLG_FORMAT,
 		0, FLG_STDOUT | OPT_REQ_PARAM,
 		OPT_FMT_STR_ALLOC, &options.format},

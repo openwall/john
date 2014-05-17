@@ -878,30 +878,30 @@ static void john_load_conf(void)
 		}
 	}
 
-	if (options.loader.activepot == NULL) {
+	if (pers_opts.activepot == NULL) {
 		if (options.secure)
-			options.loader.activepot = str_alloc_copy(SEC_POT_NAME);
+			pers_opts.activepot = str_alloc_copy(SEC_POT_NAME);
 		else
-			options.loader.activepot = str_alloc_copy(POT_NAME);
+			pers_opts.activepot = str_alloc_copy(POT_NAME);
 	}
 
-	if (options.activewordlistrules == NULL)
-		if (!(options.activewordlistrules =
+	if (pers_opts.activewordlistrules == NULL)
+		if (!(pers_opts.activewordlistrules =
 		      cfg_get_param(SECTION_OPTIONS, NULL,
 		                    "BatchModeWordlistRules")))
-			options.activewordlistrules =
+			pers_opts.activewordlistrules =
 				str_alloc_copy(SUBSECTION_WORDLIST);
 
-	if (options.activesinglerules == NULL)
-		if (!(options.activesinglerules =
+	if (pers_opts.activesinglerules == NULL)
+		if (!(pers_opts.activesinglerules =
 		      cfg_get_param(SECTION_OPTIONS, NULL,
 		                    "SingleRules")))
-			options.activesinglerules =
+			pers_opts.activesinglerules =
 				str_alloc_copy(SUBSECTION_SINGLE);
 
 	if ((options.flags & FLG_LOOPBACK_CHK) &&
 	    !(options.flags & FLG_RULES)) {
-		if ((options.activewordlistrules =
+		if ((pers_opts.activewordlistrules =
 		     cfg_get_param(SECTION_OPTIONS, NULL,
 		                   "LoopbackRules")))
 			options.flags |= FLG_RULES;
@@ -909,7 +909,7 @@ static void john_load_conf(void)
 
 	if ((options.flags & FLG_WORDLIST_CHK) &&
 	    !(options.flags & FLG_RULES)) {
-		if ((options.activewordlistrules =
+		if ((pers_opts.activewordlistrules =
 		     cfg_get_param(SECTION_OPTIONS, NULL,
 		                   "WordlistRules")))
 			options.flags |= FLG_RULES;
@@ -1074,7 +1074,7 @@ static void john_load(void)
 		ldr_init_database(&database, &options.loader);
 
 		if (options.flags & FLG_PASSWD) {
-			ldr_show_pot_file(&database, options.loader.activepot);
+			ldr_show_pot_file(&database, pers_opts.activepot);
 
 			database.options->flags |= DB_PLAINTEXTS;
 			if ((current = options.passwd->head))
@@ -1083,7 +1083,7 @@ static void john_load(void)
 			} while ((current = current->next));
 		} else {
 			database.options->flags |= DB_PLAINTEXTS;
-			ldr_show_pot_file(&database, options.loader.activepot);
+			ldr_show_pot_file(&database, pers_opts.activepot);
 		}
 
 		return;
@@ -1114,7 +1114,7 @@ static void john_load(void)
 			options.loader.flags |= DB_CRACKED;
 			ldr_init_database(&database, &options.loader);
 
-			ldr_show_pot_file(&database, options.loader.activepot);
+			ldr_show_pot_file(&database, pers_opts.activepot);
 
 			if ((current = options.passwd->head))
 			do {
@@ -1178,7 +1178,7 @@ static void john_load(void)
 		}
 
 		total = database.password_count;
-		ldr_load_pot_file(&database, options.loader.activepot);
+		ldr_load_pot_file(&database, pers_opts.activepot);
 		ldr_fix_database(&database);
 
 		if (!database.password_count) {
@@ -1226,9 +1226,9 @@ static void john_load(void)
 		options.loader.flags |= DB_CRACKED;
 		ldr_init_database(&loop_db, &options.loader);
 
-		loop_db.options->activepot = options.wordlist ?
-			options.wordlist : options.loader.activepot;
-		ldr_show_pot_file(&loop_db, loop_db.options->activepot);
+		pers_opts.activepot = options.wordlist ?
+			options.wordlist : pers_opts.activepot;
+		ldr_show_pot_file(&loop_db, pers_opts.activepot);
 
 		loop_db.options->flags |= DB_PLAINTEXTS;
 
@@ -1461,7 +1461,7 @@ static void john_run(void)
 				error();
 			}
 			database.format->methods.reset(&database);
-			log_init(LOG_NAME, options.loader.activepot,
+			log_init(LOG_NAME, pers_opts.activepot,
 			         options.session);
 			status_init(NULL, 1);
 			if (john_main_process) {

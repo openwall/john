@@ -127,7 +127,7 @@ static void read_file(struct db_main *db, char *name, int flags,
 		process_line(db, line);
 		check_abort(0);
 	}
-	if (name == options.loader.activepot)
+	if (name == pers_opts.activepot)
 		crk_pot_pos = (long int)ftell(file);
 
 	if (ferror(file)) pexit("fgets");

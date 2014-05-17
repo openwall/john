@@ -218,10 +218,10 @@ void rec_save(void)
 			fprintf(rec_file, "%s=%s\n", *opt, options.wordlist);
 		else if (!strcmp(*opt, "--rules"))
 			fprintf(rec_file, "%s=%s\n", *opt,
-			        options.activewordlistrules);
+			        pers_opts.activewordlistrules);
 		else if (!strcmp(*opt, "--single"))
 			fprintf(rec_file, "%s=%s\n", *opt,
-			        options.activesinglerules);
+			        pers_opts.activesinglerules);
 		else if (!strcmp(*opt, "--incremental"))
 			fprintf(rec_file, "%s=%s\n", *opt,
 			        options.charset);
