@@ -28,7 +28,8 @@
 #define BINARY_ALIGN            4
 #define SALT_SIZE               0
 #define SALT_ALIGN              1
-#define STEP                    65536
+#define STEP			0
+#define SEED			1024
 
 #define KEYS_PER_CORE_CPU       65536
 #define KEYS_PER_CORE_GPU       512

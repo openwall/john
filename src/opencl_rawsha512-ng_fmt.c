@@ -92,18 +92,14 @@ static size_t get_task_max_work_group_size(){
 	return common_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
 }
 
-static size_t get_task_max_size(){
-
-	return common_get_task_max_size(1,
-		KEYS_PER_CORE_CPU, KEYS_PER_CORE_GPU, crypt_kernel);
+static size_t get_task_max_size()
+{
+	return 0;
 }
 
-static size_t get_default_workgroup(){
-
-	if (cpu(device_info[gpu_id]))
-		return 1;
-	else
-		return 64;
+static size_t get_default_workgroup()
+{
+	return 0;
 }
 
 static void crypt_one(int index, sha512_hash * hash) {
@@ -363,7 +359,7 @@ static void init(struct fmt_main * self) {
 			get_max_mem_alloc_size(gpu_id) / BUFFER_SIZE);
 
 	//Initialize openCL tuning (library) for this format.
-	opencl_init_auto_setup(STEP, 0, 4, NULL,
+	opencl_init_auto_setup(SEED, 0, 4, NULL,
 		warn, 1, self, create_clobj, release_clobj,
 		BUFFER_SIZE, gws_limit);
 
