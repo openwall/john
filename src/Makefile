@@ -2380,7 +2380,7 @@ endif
 	$(LD) SIPdump.o memdbg.o $(LDFLAGS) -lpcap -o ../run/SIPdump
 
 ../run/vncpcap2john: vncpcap2john.o
-	$(CC) -Wall vncpcap2john.o memdbg.o -lpcap -o ../run/vncpcap2john
+	$(CC) -Wall vncpcap2john.o memdbg.o $(LDFLAGS) -lpcap -o ../run/vncpcap2john
 
 ../run/uaf2john: uaf2john.o uaf_encode_plug.o
 	$(LD) $(LDFLAGS) uaf2john.o uaf_encode_plug.o memdbg.o -o ../run/uaf2john
