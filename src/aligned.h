@@ -12,17 +12,13 @@
 #ifndef _JTR_ALIGNED_H_
 #define _JTR_ALIGNED_H_
 
-#include "arch.h"
-
 #if defined(__GNUC__)
 #define ALIGN(n) __attribute__ ((aligned(n)))
 #elif defined(_MSC_VER)
 #define ALIGN(n) __declspec(align(n))
 #else
 #define ALIGN(n)
-#if !ARCH_ALLOWS_UNALIGNED
-#error  We MUST figure out how to make the ALIGN macro work on this archecture  (in aligned.h)
 #endif
-#endif
+
 
 #endif
