@@ -1,5 +1,19 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
+#
+# This file is part of John the Ripper password cracker,
+# Copyright (c) 1996-2014 by Solar Designer
+#
+# ...with changes in the jumbo patch, by various authors
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted.
+#
+# There's ABSOLUTELY NO WARRANTY, express or implied.
+#
+# This file converted into autoconf format by JimF and
+# magnum, in 2014. That is still a work in progress.
+#
 
 # Travis CI only has 2.68
 AC_PREREQ([2.68])
@@ -16,6 +30,7 @@ m4_include([m4/ax_prog_cc_mpi.m4])
 m4_include([m4/ax_lang_compiler_ms.m4])
 m4_include([m4/ax_jtr_x86_logic.m4])
 m4_include([m4/ax_jtr_generic_logic.m4])
+m4_include([m4/ax_jtr_utility_macros.m4])
 
 dnl  If you want to pass these into your Makefile.in templates, use
 dnl    AC_SUBST(ac_variable_name)
@@ -64,52 +79,6 @@ if test -d "../.git"; then
   fi
 fi
 
-if test -d /usr/local/lib; then
-   LDFLAGS+=" -L/usr/local/lib"
-fi
-if test -d /usr/local/include; then
-   CFLAGS+=" -I/usr/local/include"
-fi
-if test -d /usr/local/ssl/lib; then
-   LDFLAGS+=" -L/usr/local/ssl/lib"
-fi
-if test -d /usr/local/ssl/include; then
-   CFLAGS+=" -I/usr/local/ssl/include"
-fi
-
-if test -n "$NVIDIA_CUDA"; then
-   if test -d "$NVIDIA_CUDA/include"; then
-      CFLAGS+=" -I$NVIDIA_CUDA/include"
-   fi
-   if test -d "$NVIDIA_CUDA/lib"; then
-      LDFLAGS+=" -L$NVIDIA_CUDA/lib"
-   fi
-else
-   if test -d "/usr/local/cuda/include"; then
-      CFLAGS+=" -I/usr/local/cuda/include"
-   fi
-   if test -d "/usr/local/cuda/lib"; then
-      LDFLAGS+=" -L/usr/local/cuda/lib"
-   fi
-fi
-
-if test -n "$AMDAPPSDKROOT"; then
-   if test -d "$AMDAPPSDKROOT/include"; then
-      CFLAGS+=" -I$AMDAPPSDKROOT/include"
-   fi
-   if test -d "$AMDAPPSDKROOT/lib"; then
-      LDFLAGS+=" -L$AMDAPPSDKROOT/lib"
-   fi
-fi
-if test -n "$ATISTREAMSDKROOT"; then
-   if test -d "$ATISTREAMSDKROOT/include"; then
-      CFLAGS+=" -I$ATISTREAMSDKROOT/include"
-   fi
-   if test -d "$ATISTREAMSDKROOT/lib"; then
-      LDFLAGS+=" -L$ATISTREAMSDKROOT/lib"
-   fi
-fi
-
 # Shorthand: -with-arch=-m32 will add '-m32' to CFLAGS, LDFLAGS etc.
 AC_ARG_WITH(arch, [AS_HELP_STRING([--with-arch=opt],[Add 'opt' to CFLAGS, LDFLAGS etc. (eg. -m32).])],,[with_arch=""])
 
@@ -137,6 +106,39 @@ AC_ARG_ENABLE([nss], [AC_HELP_STRING([--disable-nss], [Do not use NSS/NSPR])], [
 AC_ARG_ENABLE([native-tests], [AC_HELP_STRING([--disable-native-tests], [Do not use test build system for target features])], [enable_native_tests=$enableval], [enable_native_tests=auto])
 
 ####### Actual tests start here #######
+
+###
+# Here we call setting up many -I in CFLAGS, and -L in
+# LDFLAGS for 'normal' paths, IF we find them.
+###
+AC_JTR_SET_NORMAL_INCLUDES
+AC_JTR_SET_CUDA_INCLUDES
+AC_JTR_SET_OPENCL_INCLUDES
+
+###
+# check compiler switches here.  OPT_NORMAL, then
+#  OPT_INLINE, then extra CFLAGS are checked.
+###
+CFLAGS_EX=""
+# first fill out JtR's OPT_NORMAL= value
+AC_JTR_FLAG_CHECK([-funroll-loops])
+OPT_NORMAL_V=${CFLAGS_EX}
+AC_SUBST([OPT_NORMAL_FLAGS],[${OPT_NORMAL_V}])
+
+# now fill in extras for JtR's OPT_INLINE= value
+CFLAGS_EX=""
+AC_JTR_FLAG_CHECK([-Os])
+AC_JTR_FLAG_CHECK([-funroll-loops])
+AC_JTR_FLAG_CHECK([-finline-functions])
+AC_SUBST([OPT_INLINE_FLAGS],[${CFLAGS_EX}])
+
+# now fill out CFLAGS
+CFLAGS_EX=""
+AC_JTR_FLAG_CHECK([-O2])
+AC_JTR_FLAG_CHECK([-Wall])
+AC_JTR_FLAG_CHECK([-Wdeclaration-after-statement])
+AC_JTR_FLAG_CHECK([-fomit-frame-pointer])
+AC_SUBST([CFLAGS_EXTRA],[${CFLAGS_EX}])
 
 # Support cross compile
 AC_CANONICAL_HOST
@@ -258,6 +260,18 @@ AC_MSG_CHECKING([for arch.h alternative])
 AC_MSG_RESULT([${ARCH_LINK}])
 AX_JTR_GENERIC_LOGIC
 
+###########################
+# now that we have 64 bit vs 32 bit, we do some additional checks for OpenCL libs, since
+# Win32/64 installs in different libs, and may not link back to 'base'.  This linkage
+# is put after the $amd/lib dir, so it should not affect a system where this is already
+# set as ln -s files.  NOTE, there may be others like this which need 32/64 bit special settings
+###########################
+if test ${CPU_BIT_STR} == "64" -a -d "$AMDAPPSDKROOT/lib/x86_64"; then
+   LDFLAGS+=" -L$AMDAPPSDKROOT/lib/x86_64"
+fi
+if test  ${CPU_BIT_STR} == "32" -a -d "$AMDAPPSDKROOT/lib/x86"; then
+   LDFLAGS+=" -L$AMDAPPSDKROOT/lib/x86"
+fi
 #############################################################################
 # Check for unaligned memory access being allowed
 #############################################################################
@@ -532,8 +546,10 @@ fi
 
 # Hard to get proper info from AC_OPENMP. If it's enabled with no special
 # options needed, we might end up listing it as disabled
-if test "x$ac_cv_prog_c_openmp" != "x" &&
-   test "x$ac_cv_prog_c_openmp" != "xunsupported"; then
+if test "x$ac_cv_prog_c_openmp" != "x" -a 
+        "x$enable_openmp" != "xno" -a 
+		"x$ac_cv_prog_c_openmp" != "xunsupported";
+   then
    using_omp=yes
 else
    using_omp=no
@@ -541,6 +557,11 @@ fi
 
 if test "x$host_cpu" != "x$CPU_STR"; then
    host_cpu="$host_cpu $CPU_STR"
+fi
+
+# reports of GMP showing up blank. This should fix this.
+if test "x$ac_cv_lib_gmp___gmpz_init" == "x"; then
+   ac_cv_lib_gmp___gmpz_init=no
 fi
 
 cat <<EOF

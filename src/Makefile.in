@@ -1,6 +1,6 @@
 #
 # This file is part of John the Ripper password cracker,
-# Copyright (c) 1996-2013 by Solar Designer
+# Copyright (c) 1996-2014 by Solar Designer
 #
 # ...with changes in the jumbo patch, by various authors
 #
@@ -9,7 +9,7 @@
 #
 # There's ABSOLUTELY NO WARRANTY, express or implied.
 #
-# This file converted into autoconf format by Jim Fougeron and
+# This file converted into autoconf format by JimF and
 # magnum, in 2014. That is still a work in progress.
 #
 
@@ -57,7 +57,7 @@ CCBIN_OSX = /usr/bin/llvm-gcc-4.2
 
 # @CPU_BITS@ left out
 CPPFLAGS += @CPPFLAGS@
-CFLAGSX = -DAC_BUILT $(CPPFLAGS) -c -Wall -Wdeclaration-after-statement @CFLAGS@ @HAVE_NSS@ @NSS_CFLAGS@ @OPENSSL_CFLAGS@ @OPENMP_CFLAGS@ @HAVE_MPI@ -fomit-frame-pointer -I/usr/local/include $(AMDAPP) $(RELEASE_BLD)
+CFLAGSX = -DAC_BUILT $(CPPFLAGS) -c @CFLAGS@ @CFLAGS_EXTRA@ @HAVE_NSS@ @NSS_CFLAGS@ @OPENSSL_CFLAGS@ @OPENMP_CFLAGS@ @HAVE_MPI@ $(RELEASE_BLD)
 # CFLAGS for use on the main john.c file only
 CFLAGS_MAIN = @CC_MAIN_CPU@ $(CFLAGSX)
 CFLAGS = @CC_CPU@ $(CFLAGSX)
@@ -66,9 +66,8 @@ LIBS = @LIBS@ @NSS_LIBS@ @OPENSSL_LIBS@
 LDFLAGS = -g @LDFLAGS@ $(LIBS) @OPENMP_CFLAGS@ @HAVE_MPI@
 LDFLAGS_MKV = -g @OPENMP_CFLAGS@
 #
-OPT_NORMAL = -funroll-loops
-# Remove the "-Os" if you're using an ancient version of gcc
-OPT_INLINE = -Os -funroll-loops -finline-functions
+OPT_NORMAL = @OPT_NORMAL_FLAGS@
+OPT_INLINE = @OPT_INLINE_FLAGS@
 #
 
 PLUGFORMATS_SRCS = @PLUGFORMATS_SRCS@
