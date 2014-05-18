@@ -32,7 +32,8 @@
 #define SALT_SIZE_X             4
 #define SALT_ALIGN_RAW          1
 #define SALT_ALIGN_X            4
-#define STEP                    65536
+#define STEP			0
+#define SEED			1024
 
 #define KEYS_PER_CORE_CPU       65536
 #define KEYS_PER_CORE_GPU       512
