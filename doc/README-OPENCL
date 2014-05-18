@@ -140,6 +140,10 @@ as one process on bravo. In this case, the "-dev=gpu" option will be
 enumerated on each host so if GPUs are devices 1 & 3 on alpha but device 0 on
 bravo, that is not a problem.
 
+If for some reason you want to run eg. two processes on each GPU, just double
+the -fork argument or the MPI number of hosts (using -np option to mpirun).
+The device list will round-robin.
+
 
 ====================
 Supported formats:
