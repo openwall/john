@@ -640,13 +640,13 @@ CC_MAIN_CPU
 CC_CPU
 LIBOBJS
 EXE_EXT
+HAVE_CUDA
 CL_LIBS
 CL_CFLAGS
 PTHREAD_CFLAGS
 PTHREAD_LIBS
 PTHREAD_CC
 ax_pthread_config
-HAVE_CUDA
 OPENMP_CFLAGS
 NSS_LIBS
 NSS_CFLAGS
@@ -8497,12 +8497,24 @@ CFLAGS="$CFLAGS_BACKUP"
 # is put after the $amd/lib dir, so it should not affect a system where this is already
 # set as ln -s files.  NOTE, there may be others like this which need 32/64 bit special settings
 ###########################
-if test $CPU_BIT_STR = 64 -a -d "$AMDAPPSDKROOT/lib/x86_64" ; then
-   LDFLAGS+=" -L$AMDAPPSDKROOT/lib/x86_64"
+if test $CPU_BIT_STR = 64; then
+   if -d "$AMDAPPSDKROOT/lib/x86_64" ; then
+      LDFLAGS+=" -L$AMDAPPSDKROOT/lib/x86_64"
+   fi
+   if test -n "$NVIDIA_CUDA"; then
+      if test -d "$NVIDIA_CUDA/lib64"; then
+	 LDFLAGS+=" -L$NVIDIA_CUDA/lib64"
+      fi
+   else
+      if test -d "/usr/local/cuda/lib64"; then
+	 LDFLAGS+=" -L/usr/local/cuda/lib64"
+      fi
+   fi
 fi
 if test  $CPU_BIT_STR = 32 -a -d "$AMDAPPSDKROOT/lib/x86" ; then
    LDFLAGS+=" -L$AMDAPPSDKROOT/lib/x86"
 fi
+
 #############################################################################
 # Check for unaligned memory access being allowed
 #############################################################################
@@ -10076,66 +10088,6 @@ $as_echo "$ac_cv_prog_c_openmp" >&6; }
 
 
 
-# Check for CUDA. According to the guru's we should not try to be clever
-# with finding directories. If they are not present in normal paths, user
-# is supposed to supply them with eg. ./configure LDFLAGS=/usr/local/cuda/lib
-using_cuda=no
-if test "x$enable_cuda" != "xno"; then
-   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for cudaGetDeviceCount in -lcudart" >&5
-$as_echo_n "checking for cudaGetDeviceCount in -lcudart... " >&6; }
-if ${ac_cv_lib_cudart_cudaGetDeviceCount+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lcudart  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char cudaGetDeviceCount ();
-int
-main ()
-{
-return cudaGetDeviceCount ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_cudart_cudaGetDeviceCount=yes
-else
-  ac_cv_lib_cudart_cudaGetDeviceCount=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_cudart_cudaGetDeviceCount" >&5
-$as_echo "$ac_cv_lib_cudart_cudaGetDeviceCount" >&6; }
-if test "x$ac_cv_lib_cudart_cudaGetDeviceCount" = xyes; then :
-  using_cuda=yes HAVE_CUDA=1
- LIBS+=" -lcudart"
-else
-
-   if test "x$enable_cuda" = yes; then
-      { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
-$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error $? "CUDA not found
-See \`config.log' for more details" "$LINENO" 5; }
-   elif test "x$enable_cuda" != "xno"; then
-      { $as_echo "$as_me:${as_lineno-$LINENO}: No CUDA found, disabling" >&5
-$as_echo "$as_me: No CUDA found, disabling" >&6;}
-   fi
-
-fi
-
-fi
-
 # Check for OpenCL (enable/disable handled within the macro)
 
 
@@ -10822,6 +10774,63 @@ fi
 
 
 
+# Check for CUDA, including headers.
+using_cuda=no
+if test "x$enable_cuda" != "xno"; then
+   ac_fn_c_check_header_mongrel "$LINENO" "cuda.h" "ac_cv_header_cuda_h" "$ac_includes_default"
+if test "x$ac_cv_header_cuda_h" = xyes; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for cudaGetDeviceCount in -lcudart" >&5
+$as_echo_n "checking for cudaGetDeviceCount in -lcudart... " >&6; }
+if ${ac_cv_lib_cudart_cudaGetDeviceCount+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lcudart  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char cudaGetDeviceCount ();
+int
+main ()
+{
+return cudaGetDeviceCount ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_cudart_cudaGetDeviceCount=yes
+else
+  ac_cv_lib_cudart_cudaGetDeviceCount=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_cudart_cudaGetDeviceCount" >&5
+$as_echo "$ac_cv_lib_cudart_cudaGetDeviceCount" >&6; }
+if test "x$ac_cv_lib_cudart_cudaGetDeviceCount" = xyes; then :
+  using_cuda=yes HAVE_CUDA=1
+ LIBS+=" -lcudart"
+fi
+
+fi
+
+
+   if test "x$using_cuda" != xyes -a "x$enable_cuda" = xyes; then
+      { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "CUDA not found
+See \`config.log' for more details" "$LINENO" 5; }
+   fi
+fi
+
 if test "x$with_exe_ext" != "x"; then :
   EXE_EXT=${with_exe_ext}
  echo executable extension: ${with_exe_ext}
@@ -10845,8 +10854,9 @@ done
 for ac_header in netinet/if_ether.h
 do :
   ac_fn_c_check_header_compile "$LINENO" "netinet/if_ether.h" "ac_cv_header_netinet_if_ether_h" "#if HAVE_NET_IF_H
-#include <net/if.h>
-#endif
+   #include <net/if.h>
+   #endif
+
 "
 if test "x$ac_cv_header_netinet_if_ether_h" = xyes; then :
   cat >>confdefs.h <<_ACEOF

@@ -266,12 +266,24 @@ AX_JTR_GENERIC_LOGIC
 # is put after the $amd/lib dir, so it should not affect a system where this is already
 # set as ln -s files.  NOTE, there may be others like this which need 32/64 bit special settings
 ###########################
-if test $CPU_BIT_STR = 64 -a -d "$AMDAPPSDKROOT/lib/x86_64" ; then
-   LDFLAGS+=" -L$AMDAPPSDKROOT/lib/x86_64"
+if test $CPU_BIT_STR = 64; then
+   if -d "$AMDAPPSDKROOT/lib/x86_64" ; then
+      LDFLAGS+=" -L$AMDAPPSDKROOT/lib/x86_64"
+   fi
+   if test -n "$NVIDIA_CUDA"; then
+      if test -d "$NVIDIA_CUDA/lib64"; then
+	 LDFLAGS+=" -L$NVIDIA_CUDA/lib64"
+      fi
+   else
+      if test -d "/usr/local/cuda/lib64"; then
+	 LDFLAGS+=" -L/usr/local/cuda/lib64"
+      fi
+   fi
 fi
 if test  $CPU_BIT_STR = 32 -a -d "$AMDAPPSDKROOT/lib/x86" ; then
    LDFLAGS+=" -L$AMDAPPSDKROOT/lib/x86"
 fi
+
 #############################################################################
 # Check for unaligned memory access being allowed
 #############################################################################
@@ -397,22 +409,17 @@ fi
 # Check for openMP (enable/disable handled within the macro).
 AC_OPENMP
 
-# Check for CUDA. According to the guru's we should not try to be clever
-# with finding directories. If they are not present in normal paths, user
-# is supposed to supply them with eg. ./configure LDFLAGS=/usr/local/cuda/lib
-using_cuda=no
-if test "x$enable_cuda" != "xno"; then
-   AC_CHECK_LIB([cudart],[cudaGetDeviceCount],using_cuda=yes AC_SUBST(HAVE_CUDA,1) [LIBS+=" -lcudart"],[
-   if test "x$enable_cuda" = yes; then
-      AC_MSG_FAILURE([CUDA not found])
-   elif test "x$enable_cuda" != "xno"; then
-      AC_MSG_NOTICE([No CUDA found, disabling])
-   fi
-   ])
-fi
-
 # Check for OpenCL (enable/disable handled within the macro)
 AX_OPENCL(C)
+
+# Check for CUDA, including headers.
+using_cuda=no
+if test "x$enable_cuda" != "xno"; then
+   AC_CHECK_HEADER([cuda.h],[AC_CHECK_LIB([cudart],[cudaGetDeviceCount],using_cuda=yes AC_SUBST(HAVE_CUDA,1) [LIBS+=" -lcudart"])])
+   if test "x$using_cuda" != xyes -a "x$enable_cuda" = xyes; then
+      AC_MSG_FAILURE([CUDA not found])
+   fi
+fi
 
 AS_IF([test "x$with_exe_ext" != "x"], AC_SUBST([EXE_EXT], [${with_exe_ext}]) [echo executable extension: ${with_exe_ext}] )
 
@@ -420,9 +427,10 @@ AS_IF([test "x$with_exe_ext" != "x"], AC_SUBST([EXE_EXT], [${with_exe_ext}]) [ec
 # Eg. if arpa/inet.h is found, the below will define HAVE_ARPA_INET_H
 AC_CHECK_HEADERS([OS.h arpa/inet.h sys/times.h fcntl.h limits.h locale.h netdb.h netinet/in.h stddef.h stdint.h stdlib.h string.h strings.h sys/file.h sys/param.h sys/socket.h sys/time.h sys/timeb.h termios.h unistd.h wchar.h unixlib/local.h net/ethernet.h sys/ethernet.h net/if.h pcap.h intrin.h])
 AC_CHECK_HEADERS([netinet/if_ether.h], [], [],
-[#if HAVE_NET_IF_H
-#include <net/if.h>
-#endif])
+   [#if HAVE_NET_IF_H
+   #include <net/if.h>
+   #endif
+])
 AC_CACHE_SAVE
 
 # Checks for typedefs, structures, and compiler characteristics.
