@@ -29,64 +29,82 @@ AC_DEFUN([AC_JTR_FLAG_CHECK],
 # @synopsis SET_NORMAL_INCLUDES
 # @summary check and set many normal include paths
 AC_DEFUN([AC_JTR_SET_NORMAL_INCLUDES],
-[[
+[
+  AC_MSG_CHECKING([additional paths])
+  ADD_LDFLAGS=""
+  ADD_CFLAGS=""
 if test -d /usr/local/lib; then
-   LDFLAGS+=" -L/usr/local/lib"
+   ADD_LDFLAGS+=" -L/usr/local/lib"
 fi
 if test -d /usr/local/include; then
-   CFLAGS+=" -I/usr/local/include"
+   ADD_CFLAGS+=" -I/usr/local/include"
 fi
 if test -d /usr/local/ssl/lib; then
-   LDFLAGS+=" -L/usr/local/ssl/lib"
+   ADD_LDFLAGS+=" -L/usr/local/ssl/lib"
 fi
 if test -d /usr/local/ssl/include; then
-   CFLAGS+=" -I/usr/local/ssl/include"
+   ADD_CFLAGS+=" -I/usr/local/ssl/include"
 fi
-]])
+AC_MSG_RESULT([\"$ADD_CFLAGS\" and \"$ADD_LDFLAGS\"])
+LDFLAGS+="$ADD_LDFLAGS"
+CFLAGS+="$ADD_CFLAGS"
+])
 
 # @synopsis AC_JTR_SET_CUDA_INCLUDES
 # @summary check and set many normal include paths
 AC_DEFUN([AC_JTR_SET_CUDA_INCLUDES],
-[[
+[
+  AC_MSG_CHECKING([additional paths for CUDA])
+  ADD_LDFLAGS=""
+  ADD_CFLAGS=""
 if test -z "$NVIDIA_CUDA"; then
    NVIDIA_CUDA=/usr/local/cuda
 fi
 if test -d "$NVIDIA_CUDA/include"; then
-   CFLAGS+=" -I$NVIDIA_CUDA/include"
+   ADD_CFLAGS+=" -I$NVIDIA_CUDA/include"
 fi
 if test $CPU_BIT_STR = 64 -a -d "$NVIDIA_CUDA/lib64"; then
-   LDFLAGS+=" -L$NVIDIA_CUDA/lib64"
+   ADD_LDFLAGS+=" -L$NVIDIA_CUDA/lib64"
 elif test -d "$NVIDIA_CUDA/lib"; then
-   LDFLAGS+=" -L$NVIDIA_CUDA/lib"
+   ADD_LDFLAGS+=" -L$NVIDIA_CUDA/lib"
 fi
-]])
+AC_MSG_RESULT([\"$ADD_CFLAGS\" and \"$ADD_LDFLAGS\"])
+LDFLAGS+="$ADD_LDFLAGS"
+CFLAGS+="$ADD_CFLAGS"
+])
 
 # @synopsis AC_JTR_SET_OPENCL_INCLUDES
 # @summary check and set many normal include paths
 AC_DEFUN([AC_JTR_SET_OPENCL_INCLUDES],
-[[
+[
+  AC_MSG_CHECKING([additional paths for OpenCL])
+  ADD_LDFLAGS=""
+  ADD_CFLAGS=""
 if test -n "$AMDAPPSDKROOT"; then
    if test -d "$AMDAPPSDKROOT/include"; then
-      CFLAGS+=" -I$AMDAPPSDKROOT/include"
+      ADD_CFLAGS+=" -I$AMDAPPSDKROOT/include"
    fi
    if test $CPU_BIT_STR = 64 -a -d "$AMDAPPSDKROOT/lib/x86_64" ; then
-      LDFLAGS+=" -L$AMDAPPSDKROOT/lib/x86_64"
+      ADD_LDFLAGS+=" -L$AMDAPPSDKROOT/lib/x86_64"
    elif test  $CPU_BIT_STR = 32 -a -d "$AMDAPPSDKROOT/lib/x86" ; then
-      LDFLAGS+=" -L$AMDAPPSDKROOT/lib/x86"
+      ADD_LDFLAGS+=" -L$AMDAPPSDKROOT/lib/x86"
    elif test -d "$AMDAPPSDKROOT/lib"; then
-      LDFLAGS+=" -L$AMDAPPSDKROOT/lib"
+      ADD_LDFLAGS+=" -L$AMDAPPSDKROOT/lib"
    fi
 fi
 if test -n "$ATISTREAMSDKROOT"; then
    if test -d "$ATISTREAMSDKROOT/include"; then
-      CFLAGS+=" -I$ATISTREAMSDKROOT/include"
+      ADD_CFLAGS+=" -I$ATISTREAMSDKROOT/include"
    fi
    if test $CPU_BIT_STR = 64 -a -d "$ATISTREAMSDKROOT/lib/x86_64" ; then
-      LDFLAGS+=" -L$ATISTREAMSDKROOT/lib/x86_64"
+      ADD_LDFLAGS+=" -L$ATISTREAMSDKROOT/lib/x86_64"
    elif test  $CPU_BIT_STR = 32 -a -d "$ATISTREAMSDKROOT/lib/x86" ; then
-      LDFLAGS+=" -L$ATISTREAMSDKROOT/lib/x86"
+      ADD_LDFLAGS+=" -L$ATISTREAMSDKROOT/lib/x86"
    elif test -d "$ATISTREAMSDKROOT/lib"; then
-      LDFLAGS+=" -L$ATISTREAMSDKROOT/lib"
+      ADD_LDFLAGS+=" -L$ATISTREAMSDKROOT/lib"
    fi
 fi
-]])
+AC_MSG_RESULT([\"$ADD_CFLAGS\" and \"$ADD_LDFLAGS\"])
+LDFLAGS+="$ADD_LDFLAGS"
+CFLAGS+="$ADD_CFLAGS"
+])

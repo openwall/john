@@ -259,13 +259,11 @@ AC_MSG_RESULT([${ARCH_LINK}])
 AX_JTR_GENERIC_LOGIC
 
 ###########################
-# now that we have 64 bit vs 32 bit, we do some additional checks for OpenCL libs, since
-# Win32/64 installs in different libs, and may not link back to 'base'.  This linkage
-# is put after the $amd/lib dir, so it should not affect a system where this is already
-# set as ln -s files.  NOTE, there may be others like this which need 32/64 bit special settings
+# now that we have 64 bit vs 32 bit, we do some additional checks for OpenCL
+# and CUDA libs. TODO: This may result in dupes but these are benign.
 ###########################
-AC_JTR_SET_CUDA_INCLUDES
 AC_JTR_SET_OPENCL_INCLUDES
+AC_JTR_SET_CUDA_INCLUDES
 
 #############################################################################
 # Check for unaligned memory access being allowed
