@@ -3365,7 +3365,6 @@ ac_config_headers="$ac_config_headers autoconfig.h"
 
 
 
-
 # Workaround for .gitignore refusing to ignore Makefile since it is
 # a managed file (the stub). The result of this is a *local* workaround.
 if test -d "../.git"; then
@@ -3407,7 +3406,7 @@ $as_echo "no" >&6; }
 fi
 
 
-  if test x${HAVE_GIT} = xyes; then
+  if test "x$HAVE_GIT" = xyes; then
      git update-index --assume-unchanged Makefile
   fi
 fi
@@ -3422,7 +3421,7 @@ else
 fi
 
 
-if test "x${with_arch}" != x; then
+if test "x$with_arch" != x; then
    CFLAGS+=" ${with_arch}"
    CPPFLAGS+=" ${with_arch}"
    CXXFLAGS+=" ${with_arch}"
@@ -4839,7 +4838,7 @@ using_mpi=no
 
     { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether to compile using MPI" >&5
 $as_echo_n "checking whether to compile using MPI... " >&6; }
-    if test x"$enable_mpi" != "xno"; then
+    if test "x$enable_mpi" != "xno"; then
       _ax_prog_cc_mpi_mpi_wanted=yes
     else
       _ax_prog_cc_mpi_mpi_wanted=no
@@ -5664,12 +5663,12 @@ if test x"$_ax_prog_cc_mpi_mpi_found" = xyes; then :
 
 else
 
-        if test x"$enable_mpi" = "xyes"; then
+        if test "x$enable_mpi" = "xyes"; then
      { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
 as_fn_error $? "No MPI compiler found
 See \`config.log' for more details" "$LINENO" 5; }
-   elif test x"$enable_mpi" != "xno"; then
+   elif test "x$enable_mpi" != "xno"; then
      { $as_echo "$as_me:${as_lineno-$LINENO}: No MPI compiler found, disabling MPI" >&5
 $as_echo "$as_me: No MPI compiler found, disabling MPI" >&6;}
    fi
@@ -6088,8 +6087,8 @@ fi
 
 # At this point we know whether this is a cross compile
 # Don't test for $cross_compiling = yes, because it might be 'maybe'.
-if test ${enable_native_tests} = auto; then
-   if test x${cross_compiling} != xno; then
+if test "x$enable_native_tests" = xauto; then
+   if test "x$cross_compiling" != xno; then
       { $as_echo "$as_me:${as_lineno-$LINENO}: This is a cross-compile; all native tests disabled" >&5
 $as_echo "$as_me: This is a cross-compile; all native tests disabled" >&6;}
       enable_native_tests=no
@@ -7794,7 +7793,7 @@ esac
 # make -f Makefile.orig clean generic or failing with an echo of that message,
 # for any environment we do not handle.
 CPU_STR="$host_cpu"
-if test x$cpu_family = xintel; then :
+if test "x$cpu_family" = xintel; then :
 
 CC_BACKUP=$CC
 CFLAGS_BACKUP=$CFLAGS
@@ -7807,7 +7806,7 @@ CFLAGS_BACKUP=$CFLAGS
 # so the results of our tests must be remembered, and reset just before exit.
 #############################################################################
 CFLAGS="$CFLAGS -O0"
-if test x${enable_native_tests} = xyes; then
+if test "x$enable_native_tests" = xyes; then
   CPU_NOTFOUND=0
   AVX_NOTFOUND=0
   CC="$CC_BACKUP -msse2"
@@ -7851,7 +7850,7 @@ rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
   conftest.$ac_objext conftest.beam conftest.$ac_ext
 fi
 
-  if test x"$CPU_NOTFOUND" = "x0"; then :
+  if test "x$CPU_NOTFOUND" = "x0"; then :
 
   CC="$CC_BACKUP -mssse3"
   CPU_NOTFOUND=0
@@ -7893,7 +7892,7 @@ fi
 
 
 fi
-  if test x"$CPU_NOTFOUND" = "x0"; then :
+  if test "x$CPU_NOTFOUND" = "x0"; then :
 
   CC="$CC_BACKUP -msse4.1"
   CPU_NOTFOUND=0
@@ -7935,7 +7934,7 @@ fi
 
 
 fi
-  if test x"$CPU_NOTFOUND" = "x0"; then :
+  if test "x$CPU_NOTFOUND" = "x0"; then :
 
   CC="$CC_BACKUP -mavx"
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for AVX" >&5
@@ -7977,7 +7976,7 @@ fi
 
 
 fi
-  if test x"$AVX_NOTFOUND" = "x0"; then :
+  if test "x$AVX_NOTFOUND" = "x0"; then :
 
   CC="$CC_BACKUP -mavx2"
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for AVX2" >&5
@@ -8018,7 +8017,7 @@ fi
 
 
 fi
-  if test x"$CPU_NOTFOUND" = "x0"; then :
+  if test "x$CPU_NOTFOUND" = "x0"; then :
 
   CC="$CC_BACKUP -mxop"
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for XOP" >&5
@@ -8097,7 +8096,7 @@ $as_echo "no" >&6; }
 fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
-  if test x"$CPU_NOTFOUND" = "x0"; then
+  if test "x$CPU_NOTFOUND" = "x0"; then
     { $as_echo "$as_me:${as_lineno-$LINENO}: checking for SSE2" >&5
 $as_echo_n "checking for SSE2... " >&6; }
     cat confdefs.h - <<_ACEOF >conftest.$ac_ext
@@ -8132,7 +8131,7 @@ fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
   fi
-  if test x"$CPU_NOTFOUND" = "x0"; then
+  if test "x$CPU_NOTFOUND" = "x0"; then
     { $as_echo "$as_me:${as_lineno-$LINENO}: checking for SSSE3" >&5
 $as_echo_n "checking for SSSE3... " >&6; }
     cat confdefs.h - <<_ACEOF >conftest.$ac_ext
@@ -8164,7 +8163,7 @@ fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
   fi
-  if test x"$CPU_NOTFOUND" = "x0"; then
+  if test "x$CPU_NOTFOUND" = "x0"; then
     { $as_echo "$as_me:${as_lineno-$LINENO}: checking for SSE4.1" >&5
 $as_echo_n "checking for SSE4.1... " >&6; }
     cat confdefs.h - <<_ACEOF >conftest.$ac_ext
@@ -8196,7 +8195,7 @@ fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
   fi
-  if test x"$CPU_NOTFOUND" = "x0"; then
+  if test "x$CPU_NOTFOUND" = "x0"; then
     { $as_echo "$as_me:${as_lineno-$LINENO}: checking for AVX" >&5
 $as_echo_n "checking for AVX... " >&6; }
     cat confdefs.h - <<_ACEOF >conftest.$ac_ext
@@ -8228,7 +8227,7 @@ fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
   fi
-  if test x"$CPU_NOTFOUND" = "x0"; then
+  if test "x$CPU_NOTFOUND" = "x0"; then
     { $as_echo "$as_me:${as_lineno-$LINENO}: checking for AVX2" >&5
 $as_echo_n "checking for AVX2... " >&6; }
     cat confdefs.h - <<_ACEOF >conftest.$ac_ext
@@ -8259,7 +8258,7 @@ fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
   fi
-  if test x"$CPU_NOTFOUND" = "x0"; then
+  if test "x$CPU_NOTFOUND" = "x0"; then
     { $as_echo "$as_me:${as_lineno-$LINENO}: checking for XOP" >&5
 $as_echo_n "checking for XOP... " >&6; }
     cat confdefs.h - <<_ACEOF >conftest.$ac_ext
@@ -8306,7 +8305,7 @@ CC_BACKUP=$CC
 
 # Check for -march=native and add it to CPU_BEST_FLAGS
 # This should be rewritten for aestethical reasons and readability
-if test x${enable_native_tests} = xyes; then
+if test "x$enable_native_tests" = xyes; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether compiler understands -march=native" >&5
 $as_echo_n "checking whether compiler understands -march=native... " >&6; }
   CC="$CC_BACKUP -march=native"
@@ -8807,7 +8806,7 @@ fi
 #  modified default action, and doing an AS_IF on the next line.
 ################################################
 
-if test x${enable_native_tests} = xyes -a x$PKG_CONFIG != xno; then
+if test "x$enable_native_tests" = xyes -a "x$PKG_CONFIG" != xno; then
 
 pkg_failed=no
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for OPENSSL" >&5
@@ -9300,7 +9299,7 @@ fi
 
 done
 
-if test x$ac_cv_lib_gmp___gmpz_init != xyes; then :
+if test "x$ac_cv_lib_gmp___gmpz_init" != xyes; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Installing libgmp will speed up some hash formats" >&5
 $as_echo "$as_me: WARNING: Installing libgmp will speed up some hash formats" >&2;}
 fi
@@ -9888,7 +9887,7 @@ rm -f confcache
 
 # Check for NSS (unless disabled, or cross compiling)
 using_nss=no
-if test x"$enable_nss" != "xno" -a x$PKG_CONFIG != xno; then
+if test "x$enable_nss" != "xno" -a "x$PKG_CONFIG" != xno; then
 
 pkg_failed=no
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for NSS" >&5
@@ -10034,7 +10033,7 @@ $as_echo "$ac_cv_prog_c_openmp" >&6; }
 # with finding directories. If they are not present in normal paths, user
 # is supposed to supply them with eg. ./configure LDFLAGS=/usr/local/cuda/lib
 using_cuda=no
-if test x"$enable_cuda" != "xno"; then
+if test "x$enable_cuda" != "xno"; then
    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for cudaGetDeviceCount in -lcudart" >&5
 $as_echo_n "checking for cudaGetDeviceCount in -lcudart... " >&6; }
 if ${ac_cv_lib_cudart_cudaGetDeviceCount+:} false; then :
@@ -10076,12 +10075,12 @@ if test "x$ac_cv_lib_cudart_cudaGetDeviceCount" = xyes; then :
  LIBS+=" -lcudart"
 else
 
-   if test x${enable_cuda} = yes; then
+   if test "x$enable_cuda" = yes; then
       { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
 as_fn_error $? "CUDA not found
 See \`config.log' for more details" "$LINENO" 5; }
-   elif test x"$enable_cuda" != "xno"; then
+   elif test "x$enable_cuda" != "xno"; then
       { $as_echo "$as_me:${as_lineno-$LINENO}: No CUDA found, disabling" >&5
 $as_echo "$as_me: No CUDA found, disabling" >&6;}
    fi
@@ -10776,7 +10775,7 @@ fi
 
 
 
-if test x"$with_exe_ext" != "x"; then :
+if test "x$with_exe_ext" != "x"; then :
   EXE_EXT=${with_exe_ext}
  echo executable extension: ${with_exe_ext}
 fi
@@ -11857,7 +11856,7 @@ EXTRA_AS_FLAGS=${EXTRA_AS_FLAGS}
 JOHN_BUILD_LABEL="${CPU_BIT_STR}-bit ${CPU_STR}-autoconf"
 
 
-if test "x${ALLOWS_UNALIGNED}" = "x1"; then :
+if test "x$ALLOWS_UNALIGNED" = "x1"; then :
 
 $as_echo "#define ARCH_ALLOWS_UNALIGNED 1" >>confdefs.h
 
@@ -11877,7 +11876,7 @@ $as_echo "#define ARCH_INT_GT_32 0" >>confdefs.h
 
 fi
 
-if test ${CPU_BIT_STR} -eq 64 && test ${ac_cv_sizeof_long} -eq 4; then :
+if test "$CPU_BIT_STR" -eq 64 && test "$ac_cv_sizeof_long" -eq 4; then :
 
 $as_echo "#define ARCH_WORD long long" >>confdefs.h
 
@@ -11887,7 +11886,7 @@ $as_echo "#define ARCH_WORD long" >>confdefs.h
 
 fi
 
-if test ${CPU_BIT_STR} -eq 64; then :
+if test "$CPU_BIT_STR" -eq 64; then :
 
 $as_echo "#define ARCH_SIZE 8" >>confdefs.h
 
@@ -11901,7 +11900,7 @@ cat >>confdefs.h <<_ACEOF
 #define ARCH_BITS $CPU_BIT_STR
 _ACEOF
 
-if test ${CPU_BIT_STR} -eq 64; then :
+if test "$CPU_BIT_STR" -eq 64; then :
 
 $as_echo "#define ARCH_BITS_LOG 6" >>confdefs.h
 
@@ -11926,8 +11925,8 @@ AESNI_ARCH=$aesni_arch
 
 aesni_os=""
 aesni_options="DISABLED"
-if test "x${ac_cv_path_YASM}" != x; then
-  case "${host}" in
+if test "x$ac_cv_path_YASM" != x; then
+  case "$host" in
      x86_64*darwin*) aesni_os=darwin aesni_options="--prefix=_ -f macho${CPU_BIT_STR}" ;;
      i?86*darwin*) aesni_os=darwin aesni_options="-f macho${CPU_BIT_STR}" ;;
      *86*linux*) aesni_os=linux aesni_options="-g dwarf2 -f elf${CPU_BIT_STR}" ;;
@@ -11939,7 +11938,7 @@ YASM_OPTIONS=$aesni_options
 
 if test "x$aesni_options" != xDISABLED; then
    using_aesni="run-time detection"
-elif test ${cpu_family} = intel; then
+elif test "$cpu_family" = intel; then
    using_aesni="depends on OpenSSL"
 else
    using_aesni=no
@@ -13360,18 +13359,18 @@ fi
 
 # Hard to get proper info from AC_OPENMP. If it's enabled with no special
 # options needed, we might end up listing it as disabled
-if test x$ac_cv_prog_c_openmp != x -a  x$enable_openmp != xno -a  x$ac_cv_prog_c_openmp != xunsupported ; then
+if test "x$ac_cv_prog_c_openmp" != x -a  "x$enable_openmp" != xno -a "x$ac_cv_prog_c_openmp" != xunsupported ; then
    using_omp=yes
 else
    using_omp=no
 fi
 
-if test x$host_cpu != x$CPU_STR ; then
+if test "x$host_cpu" != "x$CPU_STR" ; then
    host_cpu="$host_cpu $CPU_STR"
 fi
 
 # reports of GMP showing up blank. This should fix this.
-if test x$ac_cv_lib_gmp___gmpz_init = x ; then
+if test "x$ac_cv_lib_gmp___gmpz_init" = x ; then
    ac_cv_lib_gmp___gmpz_init=no
 fi
 

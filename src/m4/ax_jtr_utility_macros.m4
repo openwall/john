@@ -7,29 +7,29 @@
 #
 
 
-# @synopsis AC_JTR_FLAG_CHECK [compiler flags]                                        
+# @synopsis AC_JTR_FLAG_CHECK [compiler flags]
 # @summary check whether compiler supports given
 #          C flags or not. The var CFLAGS_EX is
 #          added to with each 'valid' command.
-AC_DEFUN([AC_JTR_FLAG_CHECK],                                                            
-[dnl                                                                                  
+AC_DEFUN([AC_JTR_FLAG_CHECK],
+[dnl
   AC_MSG_CHECKING([if $CC supports $1])
   AC_LANG_PUSH([C])
-  ac_saved_cflags="$CFLAGS"                                                       
-  CFLAGS="-Werror $1"                                                               
-  AC_COMPILE_IFELSE([AC_LANG_PROGRAM([])],                                            
+  ac_saved_cflags="$CFLAGS"
+  CFLAGS="-Werror $1"
+  AC_COMPILE_IFELSE([AC_LANG_PROGRAM([])],
     [AC_MSG_RESULT([yes])]
-	[CFLAGS_EX+=" $1"]                                                           
-    ,[AC_MSG_ERROR([no])]                                                              
-  )                                                                                   
-  CFLAGS="$ac_saved_cflags"                                                       
+	[CFLAGS_EX+=" $1"]
+    ,[AC_MSG_ERROR([no])]
+  )
+  CFLAGS="$ac_saved_cflags"
   AC_LANG_POP([C])
 ])
 
-# @synopsis SET_NORMAL_INCLUDES                                       
-# @summary check and set many normal include paths                  
-AC_DEFUN([AC_JTR_SET_NORMAL_INCLUDES],                                                            
-[[                                                                                
+# @synopsis SET_NORMAL_INCLUDES
+# @summary check and set many normal include paths
+AC_DEFUN([AC_JTR_SET_NORMAL_INCLUDES],
+[[
 if test -d /usr/local/lib; then
    LDFLAGS+=" -L/usr/local/lib"
 fi
@@ -44,10 +44,10 @@ if test -d /usr/local/ssl/include; then
 fi
 ]])
 
-# @synopsis AC_JTR_SET_CUDA_INCLUDES                                       
-# @summary check and set many normal include paths                  
-AC_DEFUN([AC_JTR_SET_CUDA_INCLUDES],                                                            
-[[                                                                                
+# @synopsis AC_JTR_SET_CUDA_INCLUDES
+# @summary check and set many normal include paths
+AC_DEFUN([AC_JTR_SET_CUDA_INCLUDES],
+[[
 if test -n "$NVIDIA_CUDA"; then
    if test -d "$NVIDIA_CUDA/include"; then
       CFLAGS+=" -I$NVIDIA_CUDA/include"
@@ -65,10 +65,10 @@ else
 fi
 ]])
 
-# @synopsis AC_JTR_SET_OPENCL_INCLUDES                                       
-# @summary check and set many normal include paths                  
-AC_DEFUN([AC_JTR_SET_OPENCL_INCLUDES],                                                            
-[[                                                                                
+# @synopsis AC_JTR_SET_OPENCL_INCLUDES
+# @summary check and set many normal include paths
+AC_DEFUN([AC_JTR_SET_OPENCL_INCLUDES],
+[[
 if test -n "$AMDAPPSDKROOT"; then
    if test -d "$AMDAPPSDKROOT/include"; then
       CFLAGS+=" -I$AMDAPPSDKROOT/include"
@@ -86,4 +86,3 @@ if test -n "$ATISTREAMSDKROOT"; then
    fi
 fi
 ]])
-

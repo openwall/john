@@ -74,7 +74,7 @@ dnl     use $EXEEXT and $OBJEXT  for exe and obj extension.  Set by AC_PROC_CC
 # a managed file (the stub). The result of this is a *local* workaround.
 if test -d "../.git"; then
   AC_CHECK_PROG([HAVE_GIT], [git], [yes], [no])
-  if test x${HAVE_GIT} = xyes; then
+  if test "x$HAVE_GIT" = xyes; then
      git update-index --assume-unchanged Makefile
   fi
 fi
@@ -82,7 +82,7 @@ fi
 # Shorthand: -with-arch=-m32 will add '-m32' to CFLAGS, LDFLAGS etc.
 AC_ARG_WITH(arch, [AS_HELP_STRING([--with-arch=opt],[Add 'opt' to CFLAGS, LDFLAGS etc. (eg. -m32).])],,[with_arch=""])
 
-if test "x${with_arch}" != x; then
+if test "x$with_arch" != x; then
    CFLAGS+=" ${with_arch}"
    CPPFLAGS+=" ${with_arch}"
    CXXFLAGS+=" ${with_arch}"
@@ -145,12 +145,12 @@ AC_CANONICAL_HOST
 
 # Check for MPI. Only if MPI not found/wanted: Check for CC.
 using_mpi=no
-AX_PROG_CC_MPI([test x"$enable_mpi" != "xno"],
+AX_PROG_CC_MPI([test "x$enable_mpi" != "xno"],
   [AC_SUBST(HAVE_MPI,[-DHAVE_MPI])]
   [using_mpi=yes],
-  [if test x"$enable_mpi" = "xyes"; then
+  [if test "x$enable_mpi" = "xyes"; then
      AC_MSG_FAILURE([No MPI compiler found])
-   elif test x"$enable_mpi" != "xno"; then
+   elif test "x$enable_mpi" != "xno"; then
      AC_MSG_NOTICE([No MPI compiler found, disabling MPI])
    fi
    AC_PROG_CC([gcc cc icc ccc]) ]
@@ -158,8 +158,8 @@ AX_PROG_CC_MPI([test x"$enable_mpi" != "xno"],
 
 # At this point we know whether this is a cross compile
 # Don't test for $cross_compiling = yes, because it might be 'maybe'.
-if test ${enable_native_tests} = auto; then
-   if test x${cross_compiling} != xno; then
+if test "x$enable_native_tests" = xauto; then
+   if test "x$cross_compiling" != xno; then
       AC_MSG_NOTICE([This is a cross-compile; all native tests disabled])
       enable_native_tests=no
    else
@@ -255,7 +255,7 @@ esac
 # make -f Makefile.orig clean generic or failing with an echo of that message,
 # for any environment we do not handle.
 CPU_STR="$host_cpu"
-AS_IF([test x$cpu_family = xintel], [AX_JTR_X86_SPECIAL_LOGIC])
+AS_IF([test "x$cpu_family" = xintel], [AX_JTR_X86_SPECIAL_LOGIC])
 AC_MSG_CHECKING([for arch.h alternative])
 AC_MSG_RESULT([${ARCH_LINK}])
 AX_JTR_GENERIC_LOGIC
@@ -325,7 +325,7 @@ fi
 #  modified default action, and doing an AS_IF on the next line.
 ################################################
 
-if test x${enable_native_tests} = xyes -a x$PKG_CONFIG != xno; then
+if test "x$enable_native_tests" = xyes -a "x$PKG_CONFIG" != xno; then
    PKG_CHECK_MODULES([OPENSSL], [openssl],
      AC_DEFINE(HAVE_LIBCRYPTO,1,[Define to 1 if you have the `crypto' library (-lcrypto).])
 	 AC_DEFINE(HAVE_LIBSSL,1,[Define to 1 if you have the `ssl' library (-lssl).]),
@@ -351,7 +351,7 @@ AC_CHECK_LIB([k5crypto],[krb5_c_string_to_key_with_params],[],[AC_MSG_WARN(Insta
 AC_CHECK_LIB([krb5],[krb5_c_string_to_key_with_params])
 AC_CHECK_HEADERS([gmp.h] [gmp/gmp.h],
   [AC_CHECK_LIB([gmp],[__gmpz_init])] [break])
-AS_IF([test x$ac_cv_lib_gmp___gmpz_init != xyes], [AC_MSG_WARN(Installing libgmp will speed up some hash formats)])
+AS_IF([test "x$ac_cv_lib_gmp___gmpz_init" != xyes], [AC_MSG_WARN(Installing libgmp will speed up some hash formats)])
 AC_CHECK_LIB([kernel32],[main])
 AC_CHECK_LIB([dl],[dlopen])
 using_rexgen=no
@@ -386,7 +386,7 @@ AC_CACHE_SAVE
 
 # Check for NSS (unless disabled, or cross compiling)
 using_nss=no
-if test x"$enable_nss" != "xno" -a x$PKG_CONFIG != xno; then
+if test "x$enable_nss" != "xno" -a "x$PKG_CONFIG" != xno; then
    PKG_CHECK_MODULES([NSS], [nss],
       using_nss=yes
       AC_SUBST(HAVE_NSS,[-DHAVE_NSS]),
@@ -400,11 +400,11 @@ AC_OPENMP
 # with finding directories. If they are not present in normal paths, user
 # is supposed to supply them with eg. ./configure LDFLAGS=/usr/local/cuda/lib
 using_cuda=no
-if test x"$enable_cuda" != "xno"; then
+if test "x$enable_cuda" != "xno"; then
    AC_CHECK_LIB([cudart],[cudaGetDeviceCount],using_cuda=yes AC_SUBST(HAVE_CUDA,1) [LIBS+=" -lcudart"],[
-   if test x${enable_cuda} = yes; then
+   if test "x$enable_cuda" = yes; then
       AC_MSG_FAILURE([CUDA not found])
-   elif test x"$enable_cuda" != "xno"; then
+   elif test "x$enable_cuda" != "xno"; then
       AC_MSG_NOTICE([No CUDA found, disabling])
    fi
    ])
@@ -413,7 +413,7 @@ fi
 # Check for OpenCL (enable/disable handled within the macro)
 AX_OPENCL(C)
 
-AS_IF([test x"$with_exe_ext" != "x"], AC_SUBST([EXE_EXT], [${with_exe_ext}]) [echo executable extension: ${with_exe_ext}] )
+AS_IF([test "x$with_exe_ext" != "x"], AC_SUBST([EXE_EXT], [${with_exe_ext}]) [echo executable extension: ${with_exe_ext}] )
 
 # Checks for header files.
 # Eg. if arpa/inet.h is found, the below will define HAVE_ARPA_INET_H
@@ -456,7 +456,7 @@ AC_SUBST([ASFLAGS],[${ASFLAGS}])
 AC_SUBST([EXTRA_AS_FLAGS],[${EXTRA_AS_FLAGS}])
 AC_SUBST([JOHN_BUILD_LABEL],["${CPU_BIT_STR}-bit ${CPU_STR}-autoconf"])
 
-AS_IF([test "x${ALLOWS_UNALIGNED}" = "x1"],
+AS_IF([test "x$ALLOWS_UNALIGNED" = "x1"],
    [AC_DEFINE([ARCH_ALLOWS_UNALIGNED], 1, ["Enable if CPU allows unaligned memory access"])],
    [AC_DEFINE([ARCH_ALLOWS_UNALIGNED], 0, ["Enable if CPU allows unaligned memory access"])])
 
@@ -464,15 +464,15 @@ AS_IF([test $ac_cv_sizeof_int -gt 4],
    [AC_DEFINE([ARCH_INT_GT_32], 1, ["Enable if sizeof(int) > 4"])],
    [AC_DEFINE([ARCH_INT_GT_32], 0, ["Enable if sizeof(int) > 4"])])
 
-AS_IF([[test ${CPU_BIT_STR} -eq 64] && [test ${ac_cv_sizeof_long} -eq 4]],
+AS_IF([[test "$CPU_BIT_STR" -eq 64] && [test "$ac_cv_sizeof_long" -eq 4]],
    [AC_DEFINE([ARCH_WORD], [long long], ["Type with native size"])],
    [AC_DEFINE([ARCH_WORD], [long], ["Type with native size"])])
 
-AS_IF([test ${CPU_BIT_STR} -eq 64],
+AS_IF([test "$CPU_BIT_STR" -eq 64],
    [AC_DEFINE([ARCH_SIZE], 8, ["Native CPU width"])],
    [AC_DEFINE([ARCH_SIZE], 4, ["Native CPU width"])])
 AC_DEFINE_UNQUOTED([ARCH_BITS], [$CPU_BIT_STR], ["Native CPU width, bits"])
-AS_IF([test ${CPU_BIT_STR} -eq 64],
+AS_IF([test "$CPU_BIT_STR" -eq 64],
    [AC_DEFINE([ARCH_BITS_LOG], 6, ["Native CPU width, log"])],
    [AC_DEFINE([ARCH_BITS_LOG], 5, ["Native CPU width, log"])])
 AC_DEFINE_UNQUOTED([ARCH_BITS_STR], ["$CPU_BIT_STR"], ["Native CPU width, string"])
@@ -486,8 +486,8 @@ AC_SUBST([AESNI_ARCH],[$aesni_arch])
 
 aesni_os=""
 aesni_options="DISABLED"
-if test "x${ac_cv_path_YASM}" != x; then
-  case "${host}" in
+if test "x$ac_cv_path_YASM" != x; then
+  case "$host" in
      x86_64*darwin*) aesni_os=darwin aesni_options="--prefix=_ -f macho${CPU_BIT_STR}" ;;
      i?86*darwin*) aesni_os=darwin aesni_options="-f macho${CPU_BIT_STR}" ;;
      *86*linux*) aesni_os=linux aesni_options="-g dwarf2 -f elf${CPU_BIT_STR}" ;;
@@ -497,7 +497,7 @@ AC_SUBST([AESNI_OS],[$aesni_os])
 AC_SUBST([YASM_OPTIONS],[$aesni_options])
 if test "x$aesni_options" != xDISABLED; then
    using_aesni="run-time detection"
-elif test ${cpu_family} = intel; then
+elif test "$cpu_family" = intel; then
    using_aesni="depends on OpenSSL"
 else
    using_aesni=no
@@ -546,18 +546,18 @@ fi
 
 # Hard to get proper info from AC_OPENMP. If it's enabled with no special
 # options needed, we might end up listing it as disabled
-if test x$ac_cv_prog_c_openmp != x -a  x$enable_openmp != xno -a  x$ac_cv_prog_c_openmp != xunsupported ; then
+if test "x$ac_cv_prog_c_openmp" != x -a  "x$enable_openmp" != xno -a "x$ac_cv_prog_c_openmp" != xunsupported ; then
    using_omp=yes
 else
    using_omp=no
 fi
 
-if test x$host_cpu != x$CPU_STR ; then
+if test "x$host_cpu" != "x$CPU_STR" ; then
    host_cpu="$host_cpu $CPU_STR"
 fi
 
 # reports of GMP showing up blank. This should fix this.
-if test x$ac_cv_lib_gmp___gmpz_init = x ; then
+if test "x$ac_cv_lib_gmp___gmpz_init" = x ; then
    ac_cv_lib_gmp___gmpz_init=no
 fi
 

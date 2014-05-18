@@ -44,7 +44,7 @@ CFLAGS_BACKUP=$CFLAGS
 # so the results of our tests must be remembered, and reset just before exit.
 #############################################################################
 CFLAGS="$CFLAGS -O0"
-if test x${enable_native_tests} = xyes; then
+if test "x$enable_native_tests" = xyes; then
   CPU_NOTFOUND=0
   AVX_NOTFOUND=0
   CC="$CC_BACKUP -msse2"
@@ -66,7 +66,7 @@ if test x${enable_native_tests} = xyes; then
     ,[CPU_NOTFOUND="1"]
      [AC_MSG_RESULT(no)]
     )
-  AS_IF([test x"$CPU_NOTFOUND" = "x0"],
+  AS_IF([test "x$CPU_NOTFOUND" = "x0"],
   [
   CC="$CC_BACKUP -mssse3"
   CPU_NOTFOUND=0
@@ -88,7 +88,7 @@ if test x${enable_native_tests} = xyes; then
     )
   ]
   )
-  AS_IF([test x"$CPU_NOTFOUND" = "x0"],
+  AS_IF([test "x$CPU_NOTFOUND" = "x0"],
   [
   CC="$CC_BACKUP -msse4.1"
   CPU_NOTFOUND=0
@@ -110,7 +110,7 @@ if test x${enable_native_tests} = xyes; then
     )
   ]
   )
-  AS_IF([test x"$CPU_NOTFOUND" = "x0"],
+  AS_IF([test "x$CPU_NOTFOUND" = "x0"],
   [
   CC="$CC_BACKUP -mavx"
   AC_MSG_CHECKING([for AVX])
@@ -132,7 +132,7 @@ if test x${enable_native_tests} = xyes; then
     )
   ]
   )
-  AS_IF([test x"$AVX_NOTFOUND" = "x0"],
+  AS_IF([test "x$AVX_NOTFOUND" = "x0"],
   [
   CC="$CC_BACKUP -mavx2"
   AC_MSG_CHECKING([for AVX2])
@@ -153,7 +153,7 @@ if test x${enable_native_tests} = xyes; then
     )
   ]
   )
-  AS_IF([test x"$CPU_NOTFOUND" = "x0"],
+  AS_IF([test "x$CPU_NOTFOUND" = "x0"],
   [
   CC="$CC_BACKUP -mxop"
   AC_MSG_CHECKING([for XOP])
@@ -202,7 +202,7 @@ else
     ,[CPU_NOTFOUND="1"]
      [AC_MSG_RESULT(no)]
   )
-  if test x"$CPU_NOTFOUND" = "x0"; then
+  if test "x$CPU_NOTFOUND" = "x0"; then
     AC_MSG_CHECKING([for SSE2])
     AC_LINK_IFELSE(
        [AC_LANG_SOURCE(
@@ -224,7 +224,7 @@ else
        [AC_MSG_RESULT(no)]
     )
   fi
-  if test x"$CPU_NOTFOUND" = "x0"; then
+  if test "x$CPU_NOTFOUND" = "x0"; then
     AC_MSG_CHECKING([for SSSE3])
     AC_LINK_IFELSE(
        [AC_LANG_SOURCE(
@@ -245,7 +245,7 @@ else
        [AC_MSG_RESULT(no)]
     )
   fi
-  if test x"$CPU_NOTFOUND" = "x0"; then
+  if test "x$CPU_NOTFOUND" = "x0"; then
     AC_MSG_CHECKING([for SSE4.1])
     AC_LINK_IFELSE(
        [AC_LANG_SOURCE(
@@ -266,7 +266,7 @@ else
        [AC_MSG_RESULT(no)]
     )
   fi
-  if test x"$CPU_NOTFOUND" = "x0"; then
+  if test "x$CPU_NOTFOUND" = "x0"; then
     AC_MSG_CHECKING([for AVX])
     AC_LINK_IFELSE(
        [AC_LANG_SOURCE(
@@ -287,7 +287,7 @@ else
        [AC_MSG_RESULT(no)]
     )
   fi
-  if test x"$CPU_NOTFOUND" = "x0"; then
+  if test "x$CPU_NOTFOUND" = "x0"; then
     AC_MSG_CHECKING([for AVX2])
     AC_LINK_IFELSE(
        [AC_LANG_SOURCE(
@@ -307,7 +307,7 @@ else
       ,[AC_MSG_RESULT(no)]
     )
   fi
-  if test x"$CPU_NOTFOUND" = "x0"; then
+  if test "x$CPU_NOTFOUND" = "x0"; then
     AC_MSG_CHECKING([for XOP])
     AC_LINK_IFELSE(
        [AC_LANG_SOURCE(
