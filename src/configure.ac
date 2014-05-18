@@ -538,7 +538,7 @@ AC_OUTPUT(,echo "timestamp from configure.in" > autoconfig-stamp-h)
 #    ONLY _COSMETICAL_ OUTPUT STUFF BELOW THIS LINE
 ########################################################
 
-if test x$CL_LIBS = x; then
+if test "x$CL_LIBS" = x; then
    using_cl=no
 else
    using_cl=yes
