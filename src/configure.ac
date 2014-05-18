@@ -266,10 +266,10 @@ AX_JTR_GENERIC_LOGIC
 # is put after the $amd/lib dir, so it should not affect a system where this is already
 # set as ln -s files.  NOTE, there may be others like this which need 32/64 bit special settings
 ###########################
-if test $CPU_BIT_STR == 64 -a -d "$AMDAPPSDKROOT/lib/x86_64" ; then
+if test $CPU_BIT_STR = 64 -a -d "$AMDAPPSDKROOT/lib/x86_64" ; then
    LDFLAGS+=" -L$AMDAPPSDKROOT/lib/x86_64"
 fi
-if test  $CPU_BIT_STR == 32 -a -d "$AMDAPPSDKROOT/lib/x86" ; then
+if test  $CPU_BIT_STR = 32 -a -d "$AMDAPPSDKROOT/lib/x86" ; then
    LDFLAGS+=" -L$AMDAPPSDKROOT/lib/x86"
 fi
 #############################################################################
@@ -325,7 +325,7 @@ fi
 #  modified default action, and doing an AS_IF on the next line.
 ################################################
 
-if test x${enable_native_tests} = xyes && test x$PKG_CONFIG != xno; then
+if test x${enable_native_tests} = xyes -a x$PKG_CONFIG != xno; then
    PKG_CHECK_MODULES([OPENSSL], [openssl],
      AC_DEFINE(HAVE_LIBCRYPTO,1,[Define to 1 if you have the `crypto' library (-lcrypto).])
 	 AC_DEFINE(HAVE_LIBSSL,1,[Define to 1 if you have the `ssl' library (-lssl).]),
@@ -386,7 +386,7 @@ AC_CACHE_SAVE
 
 # Check for NSS (unless disabled, or cross compiling)
 using_nss=no
-if test x"$enable_nss" != "xno" && test x$PKG_CONFIG != xno; then
+if test x"$enable_nss" != "xno" -a x$PKG_CONFIG != xno; then
    PKG_CHECK_MODULES([NSS], [nss],
       using_nss=yes
       AC_SUBST(HAVE_NSS,[-DHAVE_NSS]),
@@ -557,7 +557,7 @@ if test x$host_cpu != x$CPU_STR ; then
 fi
 
 # reports of GMP showing up blank. This should fix this.
-if test x$ac_cv_lib_gmp___gmpz_init == x ; then
+if test x$ac_cv_lib_gmp___gmpz_init = x ; then
    ac_cv_lib_gmp___gmpz_init=no
 fi
 
