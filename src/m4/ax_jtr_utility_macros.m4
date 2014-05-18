@@ -48,20 +48,16 @@ fi
 # @summary check and set many normal include paths
 AC_DEFUN([AC_JTR_SET_CUDA_INCLUDES],
 [[
-if test -n "$NVIDIA_CUDA"; then
-   if test -d "$NVIDIA_CUDA/include"; then
-      CFLAGS+=" -I$NVIDIA_CUDA/include"
-   fi
-   if test -d "$NVIDIA_CUDA/lib"; then
-      LDFLAGS+=" -L$NVIDIA_CUDA/lib"
-   fi
-else
-   if test -d "/usr/local/cuda/include"; then
-      CFLAGS+=" -I/usr/local/cuda/include"
-   fi
-   if test -d "/usr/local/cuda/lib"; then
-      LDFLAGS+=" -L/usr/local/cuda/lib"
-   fi
+if test -z "$NVIDIA_CUDA"; then
+   NVIDIA_CUDA=/usr/local/cuda
+fi
+if test -d "$NVIDIA_CUDA/include"; then
+   CFLAGS+=" -I$NVIDIA_CUDA/include"
+fi
+if test $CPU_BIT_STR = 64 -a -d "$NVIDIA_CUDA/lib64"; then
+   LDFLAGS+=" -L$NVIDIA_CUDA/lib64"
+elif test -d "$NVIDIA_CUDA/lib"; then
+   LDFLAGS+=" -L$NVIDIA_CUDA/lib"
 fi
 ]])
 
@@ -73,7 +69,11 @@ if test -n "$AMDAPPSDKROOT"; then
    if test -d "$AMDAPPSDKROOT/include"; then
       CFLAGS+=" -I$AMDAPPSDKROOT/include"
    fi
-   if test -d "$AMDAPPSDKROOT/lib"; then
+   if test $CPU_BIT_STR = 64 -a -d "$AMDAPPSDKROOT/lib/x86_64" ; then
+      LDFLAGS+=" -L$AMDAPPSDKROOT/lib/x86_64"
+   elif test  $CPU_BIT_STR = 32 -a -d "$AMDAPPSDKROOT/lib/x86" ; then
+      LDFLAGS+=" -L$AMDAPPSDKROOT/lib/x86"
+   elif test -d "$AMDAPPSDKROOT/lib"; then
       LDFLAGS+=" -L$AMDAPPSDKROOT/lib"
    fi
 fi
@@ -81,7 +81,11 @@ if test -n "$ATISTREAMSDKROOT"; then
    if test -d "$ATISTREAMSDKROOT/include"; then
       CFLAGS+=" -I$ATISTREAMSDKROOT/include"
    fi
-   if test -d "$ATISTREAMSDKROOT/lib"; then
+   if test $CPU_BIT_STR = 64 -a -d "$ATISTREAMSDKROOT/lib/x86_64" ; then
+      LDFLAGS+=" -L$ATISTREAMSDKROOT/lib/x86_64"
+   elif test  $CPU_BIT_STR = 32 -a -d "$ATISTREAMSDKROOT/lib/x86" ; then
+      LDFLAGS+=" -L$ATISTREAMSDKROOT/lib/x86"
+   elif test -d "$ATISTREAMSDKROOT/lib"; then
       LDFLAGS+=" -L$ATISTREAMSDKROOT/lib"
    fi
 fi

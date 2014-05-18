@@ -112,8 +112,6 @@ AC_ARG_ENABLE([native-tests], [AC_HELP_STRING([--disable-native-tests], [Do not 
 # LDFLAGS for 'normal' paths, IF we find them.
 ###
 AC_JTR_SET_NORMAL_INCLUDES
-AC_JTR_SET_CUDA_INCLUDES
-AC_JTR_SET_OPENCL_INCLUDES
 
 ###
 # check compiler switches here.  OPT_NORMAL, then
@@ -266,23 +264,8 @@ AX_JTR_GENERIC_LOGIC
 # is put after the $amd/lib dir, so it should not affect a system where this is already
 # set as ln -s files.  NOTE, there may be others like this which need 32/64 bit special settings
 ###########################
-if test $CPU_BIT_STR = 64; then
-   if -d "$AMDAPPSDKROOT/lib/x86_64" ; then
-      LDFLAGS+=" -L$AMDAPPSDKROOT/lib/x86_64"
-   fi
-   if test -n "$NVIDIA_CUDA"; then
-      if test -d "$NVIDIA_CUDA/lib64"; then
-	 LDFLAGS+=" -L$NVIDIA_CUDA/lib64"
-      fi
-   else
-      if test -d "/usr/local/cuda/lib64"; then
-	 LDFLAGS+=" -L/usr/local/cuda/lib64"
-      fi
-   fi
-fi
-if test  $CPU_BIT_STR = 32 -a -d "$AMDAPPSDKROOT/lib/x86" ; then
-   LDFLAGS+=" -L$AMDAPPSDKROOT/lib/x86"
-fi
+AC_JTR_SET_CUDA_INCLUDES
+AC_JTR_SET_OPENCL_INCLUDES
 
 #############################################################################
 # Check for unaligned memory access being allowed

@@ -3510,41 +3510,6 @@ if test -d /usr/local/ssl/include; then
 fi
 
 
-if test -n "$NVIDIA_CUDA"; then
-   if test -d "$NVIDIA_CUDA/include"; then
-      CFLAGS+=" -I$NVIDIA_CUDA/include"
-   fi
-   if test -d "$NVIDIA_CUDA/lib"; then
-      LDFLAGS+=" -L$NVIDIA_CUDA/lib"
-   fi
-else
-   if test -d "/usr/local/cuda/include"; then
-      CFLAGS+=" -I/usr/local/cuda/include"
-   fi
-   if test -d "/usr/local/cuda/lib"; then
-      LDFLAGS+=" -L/usr/local/cuda/lib"
-   fi
-fi
-
-
-if test -n "$AMDAPPSDKROOT"; then
-   if test -d "$AMDAPPSDKROOT/include"; then
-      CFLAGS+=" -I$AMDAPPSDKROOT/include"
-   fi
-   if test -d "$AMDAPPSDKROOT/lib"; then
-      LDFLAGS+=" -L$AMDAPPSDKROOT/lib"
-   fi
-fi
-if test -n "$ATISTREAMSDKROOT"; then
-   if test -d "$ATISTREAMSDKROOT/include"; then
-      CFLAGS+=" -I$ATISTREAMSDKROOT/include"
-   fi
-   if test -d "$ATISTREAMSDKROOT/lib"; then
-      LDFLAGS+=" -L$ATISTREAMSDKROOT/lib"
-   fi
-fi
-
-
 ###
 # check compiler switches here.  OPT_NORMAL, then
 #  OPT_INLINE, then extra CFLAGS are checked.
@@ -8497,23 +8462,45 @@ CFLAGS="$CFLAGS_BACKUP"
 # is put after the $amd/lib dir, so it should not affect a system where this is already
 # set as ln -s files.  NOTE, there may be others like this which need 32/64 bit special settings
 ###########################
-if test $CPU_BIT_STR = 64; then
-   if -d "$AMDAPPSDKROOT/lib/x86_64" ; then
+
+if test -z "$NVIDIA_CUDA"; then
+   NVIDIA_CUDA=/usr/local/cuda
+fi
+if test -d "$NVIDIA_CUDA/include"; then
+   CFLAGS+=" -I$NVIDIA_CUDA/include"
+fi
+if test $CPU_BIT_STR = 64 -a -d "$NVIDIA_CUDA/lib64"; then
+   LDFLAGS+=" -L$NVIDIA_CUDA/lib64"
+elif test -d "$NVIDIA_CUDA/lib"; then
+   LDFLAGS+=" -L$NVIDIA_CUDA/lib"
+fi
+
+
+if test -n "$AMDAPPSDKROOT"; then
+   if test -d "$AMDAPPSDKROOT/include"; then
+      CFLAGS+=" -I$AMDAPPSDKROOT/include"
+   fi
+   if test $CPU_BIT_STR = 64 -a -d "$AMDAPPSDKROOT/lib/x86_64" ; then
       LDFLAGS+=" -L$AMDAPPSDKROOT/lib/x86_64"
-   fi
-   if test -n "$NVIDIA_CUDA"; then
-      if test -d "$NVIDIA_CUDA/lib64"; then
-	 LDFLAGS+=" -L$NVIDIA_CUDA/lib64"
-      fi
-   else
-      if test -d "/usr/local/cuda/lib64"; then
-	 LDFLAGS+=" -L/usr/local/cuda/lib64"
-      fi
+   elif test  $CPU_BIT_STR = 32 -a -d "$AMDAPPSDKROOT/lib/x86" ; then
+      LDFLAGS+=" -L$AMDAPPSDKROOT/lib/x86"
+   elif test -d "$AMDAPPSDKROOT/lib"; then
+      LDFLAGS+=" -L$AMDAPPSDKROOT/lib"
    fi
 fi
-if test  $CPU_BIT_STR = 32 -a -d "$AMDAPPSDKROOT/lib/x86" ; then
-   LDFLAGS+=" -L$AMDAPPSDKROOT/lib/x86"
+if test -n "$ATISTREAMSDKROOT"; then
+   if test -d "$ATISTREAMSDKROOT/include"; then
+      CFLAGS+=" -I$ATISTREAMSDKROOT/include"
+   fi
+   if test $CPU_BIT_STR = 64 -a -d "$ATISTREAMSDKROOT/lib/x86_64" ; then
+      LDFLAGS+=" -L$ATISTREAMSDKROOT/lib/x86_64"
+   elif test  $CPU_BIT_STR = 32 -a -d "$ATISTREAMSDKROOT/lib/x86" ; then
+      LDFLAGS+=" -L$ATISTREAMSDKROOT/lib/x86"
+   elif test -d "$ATISTREAMSDKROOT/lib"; then
+      LDFLAGS+=" -L$ATISTREAMSDKROOT/lib"
+   fi
 fi
+
 
 #############################################################################
 # Check for unaligned memory access being allowed
