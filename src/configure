@@ -9303,6 +9303,53 @@ if test "x$ac_cv_lib_gmp___gmpz_init" != xyes; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Installing libgmp will speed up some hash formats" >&5
 $as_echo "$as_me: WARNING: Installing libgmp will speed up some hash formats" >&2;}
 fi
+ac_fn_c_check_header_mongrel "$LINENO" "skey.h" "ac_cv_header_skey_h" "$ac_includes_default"
+if test "x$ac_cv_header_skey_h" = xyes; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for skey_set_algorithm in -lskey" >&5
+$as_echo_n "checking for skey_set_algorithm in -lskey... " >&6; }
+if ${ac_cv_lib_skey_skey_set_algorithm+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lskey  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char skey_set_algorithm ();
+int
+main ()
+{
+return skey_set_algorithm ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_skey_skey_set_algorithm=yes
+else
+  ac_cv_lib_skey_skey_set_algorithm=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_skey_skey_set_algorithm" >&5
+$as_echo "$ac_cv_lib_skey_skey_set_algorithm" >&6; }
+if test "x$ac_cv_lib_skey_skey_set_algorithm" = xyes; then :
+
+$as_echo "#define HAVE_SKEY 1" >>confdefs.h
+ LIBS+=" -lskey"
+fi
+
+fi
+
+
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lkernel32" >&5
 $as_echo_n "checking for main in -lkernel32... " >&6; }
 if ${ac_cv_lib_kernel32_main+:} false; then :
@@ -13374,6 +13421,10 @@ if test "x$ac_cv_lib_gmp___gmpz_init" = x ; then
    ac_cv_lib_gmp___gmpz_init=no
 fi
 
+if test "x$ac_cv_lib_skey_skey_set_algorithm" = x ; then
+   ac_cv_lib_skey_skey_set_algorithm=no
+fi
+
 cat <<EOF
 
 Configured for building John the Ripper Jumbo:
@@ -13386,8 +13437,9 @@ OpenMPI support ............................. ${using_mpi}
 OpenCL support .............................. ${using_cl}
 CUDA support ................................ ${using_cuda}
 Rexgen support .............................. ${using_rexgen}
-GMP support (performance).................... ${ac_cv_lib_gmp___gmpz_init}
-NSS support (Mozilla format)................. ${using_nss}
+GMP support (performance) ................... ${ac_cv_lib_gmp___gmpz_init}
+NSS support (Mozilla format) ................ ${using_nss}
+SKEY support (skey format) .................. ${ac_cv_lib_skey_skey_set_algorithm}
 AES-NI support .............................. ${using_aesni}
 
 Configure finished.  Do 'make -s' to compile.

@@ -352,6 +352,7 @@ AC_CHECK_LIB([krb5],[krb5_c_string_to_key_with_params])
 AC_CHECK_HEADERS([gmp.h] [gmp/gmp.h],
   [AC_CHECK_LIB([gmp],[__gmpz_init])] [break])
 AS_IF([test "x$ac_cv_lib_gmp___gmpz_init" != xyes], [AC_MSG_WARN(Installing libgmp will speed up some hash formats)])
+AC_CHECK_HEADER([skey.h], [AC_CHECK_LIB([skey],[skey_set_algorithm],AC_DEFINE([HAVE_SKEY],1,[Define to 1 if you have skey library and headers]) [LIBS+=" -lskey"])])
 AC_CHECK_LIB([kernel32],[main])
 AC_CHECK_LIB([dl],[dlopen])
 using_rexgen=no
@@ -561,6 +562,10 @@ if test "x$ac_cv_lib_gmp___gmpz_init" = x ; then
    ac_cv_lib_gmp___gmpz_init=no
 fi
 
+if test "x$ac_cv_lib_skey_skey_set_algorithm" = x ; then
+   ac_cv_lib_skey_skey_set_algorithm=no
+fi
+
 cat <<EOF
 dnl =======================================================================
 
@@ -574,8 +579,9 @@ OpenMPI support ............................. ${using_mpi}
 OpenCL support .............................. ${using_cl}
 CUDA support ................................ ${using_cuda}
 Rexgen support .............................. ${using_rexgen}
-GMP support (performance).................... ${ac_cv_lib_gmp___gmpz_init}
-NSS support (Mozilla format)................. ${using_nss}
+GMP support (performance) ................... ${ac_cv_lib_gmp___gmpz_init}
+NSS support (Mozilla format) ................ ${using_nss}
+SKEY support (skey format) .................. ${ac_cv_lib_skey_skey_set_algorithm}
 AES-NI support .............................. ${using_aesni}
 
 Configure finished.  Do 'make -s' to compile.

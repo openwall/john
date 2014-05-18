@@ -224,6 +224,9 @@
 /* Define to 1 if you have the `setlocale' function. */
 #undef HAVE_SETLOCALE
 
+/* Define to 1 if you have skey library and headers */
+#undef HAVE_SKEY
+
 /* Define to 1 if you have the `socket' function. */
 #undef HAVE_SOCKET
 
