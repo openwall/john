@@ -356,8 +356,4 @@ struct fmt_main fmt_mozilla = {
 		cmp_exact
 	}
 };
-#else
-#ifdef __GNUC__
-#warning Note: Mozilla format disabled, un-comment HAVE_NSS in Makefile if you have NSS installed.
-#endif
 #endif
