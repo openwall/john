@@ -41,17 +41,13 @@ COMPILING:
     Debian/Ubuntu/Mint Linux example for installing OpenMPI:
     sudo apt-get install libopenmpi-dev openmpi-bin
 
-    To enable MPI in John, un-comment the line in Makefile as shown here:
+    The new autconf (./configure) system does not build MPI unless told so.
+    It should detect and enable MPI if it's installed properly and you supply
+    the "--enable-mpi" option. Normally this should do:
+        ./configure --enable-mpi
 
-----8<--------------8<--------------8<--------------8<--------------8<----------
-
-## Uncomment the line below for MPI (can be used together with OMP as well)
-CC = mpicc -DHAVE_MPI
-
-----8<--------------8<--------------8<--------------8<--------------8<----------
-
-    Note that this works just fine together with OMP enabled as well.
-    When MPI is in use (with more than one process), OMP is (by default)
+    Note that MPI works just fine together with OpenMP (a.k.a OMP) enabled
+    as well.  When MPI is in use (with more than one process), OMP is
     automatically disabled. Advanced users may want to change this setting
     (change MPIOMPmutex to N in john.conf) and start one MPI node per
     multi-core host, letting OMP do the rest. Warnings are printed; these

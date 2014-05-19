@@ -17,6 +17,10 @@
 #ifndef _JOHN_OPTIONS_H
 #define _JOHN_OPTIONS_H
 
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
+
 #include "list.h"
 #include "loader.h"
 #include "getopt.h"
@@ -237,7 +241,7 @@ struct options_main {
  * --regen_lost_salts=#   */
 	int regen_lost_salts;
 
-#ifdef HAVE_DL
+#ifdef HAVE_LIBDL
 /* List of dll files to load for additional formats */
 	struct list_main *fmt_dlls;
 #endif

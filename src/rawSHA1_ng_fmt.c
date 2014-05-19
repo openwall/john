@@ -577,7 +577,7 @@ static inline int _mm_testz_epi32 (__m128i __X)
 }
 
 #else
-# warning not using optimized sse4.1 compare because -msse4 was not specified
+//# warning not using optimized sse4.1 compare because -msse4 was not specified
 static inline int _mm_testz_epi32 (__m128i __X)
 {
     uint32_t __aligned_16 words[4];

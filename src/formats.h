@@ -15,13 +15,17 @@
 #include "params.h"
 #include "misc.h"
 
-/* 
+/*
  * For now, you can just revert FMT_MAIN_VERSION to 11
  * in case of any problem with the new additions
  * (tunable cost parameters)
  */
 #define FMT_MAIN_VERSION 12	/* change if structure fmt_main changes */
 
+/*
+ * fmt_main is declared for real further down this file, but we refer to it in
+ * function prototypes in fmt_methods.
+ */
 struct fmt_main;
 
 /*
@@ -136,7 +140,7 @@ struct fmt_params {
 	unsigned int flags;
 
 #if FMT_MAIN_VERSION > 11
-/* 
+/*
  * Descriptions (names) of tunable cost parameters for this format
  *
  * These names shouldn't contain ',', because ", " is used
@@ -150,12 +154,6 @@ struct fmt_params {
  * self test, and no benchmark), terminated with a NULL ciphertext. */
 	struct fmt_tests *tests;
 };
-
-/*
- * fmt_main is declared for real further down this file, but we refer to it in
- * function prototypes in fmt_methods.
- */
-struct fmt_main;
 
 /*
  * Functions to implement a cracking algorithm.

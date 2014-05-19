@@ -8,7 +8,9 @@
  * See md4.c for more information.
  */
 
-#ifdef HAVE_OPENSSL
+#include "arch.h"
+
+#ifdef HAVE_LIBSSL
 #include <openssl/md4.h>
 #elif !defined(_MD4_H)
 #define _MD4_H

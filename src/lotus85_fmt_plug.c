@@ -36,7 +36,7 @@ static int omp_t = 1;
 #define BINARY_SIZE           5  // XXX probably should rename this!
 #define BINARY_ALIGN          1
 #define SALT_SIZE             sizeof(struct custom_salt)
-#define SALT_ALIGN            1
+#define SALT_ALIGN            4
 #define MIN_KEYS_PER_CRYPT    1
 // #define MAX_KEYS_PER_CRYPT    0x900 // WTF?
 #define MAX_KEYS_PER_CRYPT    1

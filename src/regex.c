@@ -260,8 +260,4 @@ char *prepare_regex(char *regex, int *bCase, char **regex_alpha) {
 	return regex;
 }
 
-#else
-#ifndef _MSC_VER
-#warning Notice: rexgen cracking mode disabled, uncomment HAVE_REXGEN in Makefile if you have the rexgen library installed.
-#endif
 #endif /* HAVE_REXGEN */

@@ -118,7 +118,7 @@ static int convert_ivs(FILE *f_in)
 
 	while (pos < length) {
 		if (fread(&ivs2, 1, sizeof(struct ivs2_pkthdr), f_in) != sizeof(struct ivs2_pkthdr)) {
-			fprintf(stderr, "%s: Error reading header at pos %ld of %ld\n", filename, pos, length);
+			fprintf(stderr, "%s: Error reading header at pos %zu of %zu\n", filename, pos, length);
 			return 1;
 		}
 
@@ -126,12 +126,12 @@ static int convert_ivs(FILE *f_in)
 
 		pktlen = (unsigned int)ivs2.len;
 		if (pktlen+pos > length) {
-			fprintf(stderr, "%s: Invalid packet length %d at %ld\n", filename, pktlen, pos-sizeof(struct ivs2_pkthdr));
+			fprintf(stderr, "%s: Invalid packet length %u at %zu\n", filename, pktlen, pos-sizeof(struct ivs2_pkthdr));
 			return 1;
 		}
 
 		if (fread(&buffer, 1, pktlen, f_in) != pktlen) {
-			fprintf(stderr, "%s: Error reading data (%d) at pos %ld of %ld\n", filename, pktlen, pos, length);
+			fprintf(stderr, "%s: Error reading data (%u) at pos %zu of %zu\n", filename, pktlen, pos, length);
 			return 1;
 		}
 
@@ -323,7 +323,7 @@ static int ProcessPacket()
 		else {
 			frame_skip = *(unsigned int*)&packet[4];
 #if !ARCH_LITTLE_ENDIAN
-			JOHNSWAP(frame_skip);
+			frame_skip = JOHNSWAP(frame_skip);
 #endif
 		}
 		if (frame_skip < 8 || frame_skip >= pkt_hdr.incl_len)
@@ -336,7 +336,7 @@ static int ProcessPacket()
 	if (link_type == LINKTYPE_RADIOTAP_HDR) {
 		frame_skip = *(unsigned short*)&packet[2];
 #if !ARCH_LITTLE_ENDIAN
-		JOHNSWAP(frame_skip);
+		frame_skip = JOHNSWAP(frame_skip);
 #endif
 		if (frame_skip == 0 || frame_skip >= pkt_hdr.incl_len)
 			return 0;
@@ -348,7 +348,7 @@ static int ProcessPacket()
 	if (link_type == LINKTYPE_PPI_HDR) {
 		frame_skip = *(unsigned short*)&packet[2];
 #if !ARCH_LITTLE_ENDIAN
-		JOHNSWAP(frame_skip);
+		frame_skip = JOHNSWAP(frame_skip);
 #endif
 		if(frame_skip <= 0 || frame_skip>= (int) pkt_hdr.incl_len)
 			return 0;

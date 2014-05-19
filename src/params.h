@@ -169,6 +169,8 @@
 #define SECTION_INC			"Incremental:"
 #define SECTION_EXT			"List.External:"
 #define SECTION_MARKOV			"Markov:"
+#define SECTION_DISABLED		"Disabled:"
+#define SUBSECTION_FORMATS		"Formats"
 
 /*
  * Number of different password hash table sizes.

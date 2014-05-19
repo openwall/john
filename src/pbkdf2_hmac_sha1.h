@@ -17,7 +17,6 @@
 #if 1
 
 #include <string.h>
-#include "arch.h"
 #include "sha.h"
 #include "stdint.h"
 #include "sse-intrinsics.h"

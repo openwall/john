@@ -1,0 +1,14 @@
+CC = @CC@
+CXX = @CXX@
+AS = @CC@
+LD = @CC@
+CPP = @CC@
+CFLAGS = @CFLAGS@
+ASFLAGS = @ASFLAGS@ -c @EXTRA_AS_FLAGS@
+LDFLAGS = @LDFLAGS@
+
+ossl_aes.o: ossl_aes.c ossl_aes.h
+	$(CC) $(CFLAGS) -c ossl_aes.c -o $@
+
+default: ossl_aes.o
+all: ossl_aes.o
