@@ -8737,8 +8737,52 @@ if ac_fn_c_try_link "$LINENO"; then :
 fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $EXTRA_AS_FLAGS" >&5
-$as_echo "$EXTRA_AS_FLAGS" >&6; }
+
+if test "x$EXTRA_AS_FLAGS" = x; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: None needed" >&5
+$as_echo "None needed" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: ${EXTRA_AS_FLAGS}" >&5
+$as_echo "${EXTRA_AS_FLAGS}" >&6; }
+fi
+
+#############################################################################
+# Extra code for cygwin64 test.  We need to add __CYGWIN64__ and __CYGWIN32__
+# to CFLAGS AND to ASFLAGS, since cygwin64 does not do this for us (damn them)
+#############################################################################
+if test "x$CPU_BIT_STR" = x64; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking if cygwin64" >&5
+$as_echo_n "checking if cygwin64... " >&6; }
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+extern void exit(int);
+     int main() {
+     #if defined(__CYGWIN__)
+         exit(0);}
+     #else
+         BORK!
+     #endif
+
+
+
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+   EXTRA_AS_FLAGS+=" -D__CYGWIN64__ -D__CYGWIN32__"
+   # CFLAG_EXTRA was already defined (early in configure.ac).  We append to it, and AC_SUBST it again.
+   CFLAGS_EX+=" -D__CYGWIN64__ -D__CYGWIN32__"
+   CFLAGS_EXTRA=${CFLAGS_EX}
+
+
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+fi
 
 CC="$CC_BACKUP"
 CFLAGS="$CFLAGS_BACKUP"

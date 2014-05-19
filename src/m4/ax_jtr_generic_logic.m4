@@ -129,7 +129,33 @@ AC_LINK_IFELSE([AC_LANG_SOURCE(
 	#endif
 	}]])]
   ,[EXTRA_AS_FLAGS+=" -DBSD -DALIGN_LOG"])
-AC_MSG_RESULT([$EXTRA_AS_FLAGS])
+
+AS_IF([test "x$EXTRA_AS_FLAGS" = x],[AC_MSG_RESULT([None needed])],[AC_MSG_RESULT([${EXTRA_AS_FLAGS}])])
+
+#############################################################################
+# Extra code for cygwin64 test.  We need to add __CYGWIN64__ and __CYGWIN32__
+# to CFLAGS AND to ASFLAGS, since cygwin64 does not do this for us (damn them)
+#############################################################################
+AS_IF([test "x$CPU_BIT_STR" = x64],
+AC_MSG_CHECKING([if cygwin64])
+[AC_LINK_IFELSE(
+   [AC_LANG_SOURCE(
+      [[extern void exit(int);
+     int main() {
+     #if defined(__CYGWIN__)
+         exit(0);}
+     #else
+         BORK!
+     #endif
+      ]]
+   )]
+   ,[AC_MSG_RESULT([yes])]
+   [EXTRA_AS_FLAGS+=" -D__CYGWIN64__ -D__CYGWIN32__"]
+   # CFLAG_EXTRA was already defined (early in configure.ac).  We append to it, and AC_SUBST it again.
+   [CFLAGS_EX+=" -D__CYGWIN64__ -D__CYGWIN32__"]
+   AC_SUBST([CFLAGS_EXTRA],[${CFLAGS_EX}])
+   ,[AC_MSG_RESULT([no])]
+)])
 
 CC="$CC_BACKUP"
 CFLAGS="$CFLAGS_BACKUP"
