@@ -85,7 +85,7 @@ AC_ARG_WITH(arch, [AS_HELP_STRING([--with-arch=opt],[Add 'opt' to CFLAGS, LDFLAG
 if test "x$with_arch" != x; then
    CFLAGS+=" ${with_arch}"
    CPPFLAGS+=" ${with_arch}"
-   CXXFLAGS+=" ${with_arch}"
+   #CXXFLAGS+=" ${with_arch}"
    LDFLAGS+=" ${with_arch}"
    ASFLAGS+=" ${with_arch}"
 fi
@@ -195,7 +195,7 @@ fi
 AC_PROG_LN_S
 AC_PROG_GREP
 AC_PROG_SED
-AC_PROG_CXX
+#AC_PROG_CXX
 AC_PROG_MAKE_SET
 AC_PROG_CPP
 AC_PROG_MKDIR_P
@@ -213,20 +213,20 @@ if test "x$PKG_CONFIG" = x ; then
 fi
 
 # Cross-compile compliant size checks
-AC_CHECK_SIZEOF([char])
-AC_CHECK_SIZEOF([unsigned char])
+#AC_CHECK_SIZEOF([char])
+#AC_CHECK_SIZEOF([unsigned char])
 AC_CHECK_SIZEOF([short])
-AC_CHECK_SIZEOF([unsigned short])
+#AC_CHECK_SIZEOF([unsigned short])
 AC_CHECK_SIZEOF([int])
-AC_CHECK_SIZEOF([unsigned])
-AC_CHECK_SIZEOF([unsigned int])
+#AC_CHECK_SIZEOF([unsigned])
+#AC_CHECK_SIZEOF([unsigned int])
 AC_CHECK_SIZEOF([long])
-AC_CHECK_SIZEOF([long long])
-AC_CHECK_SIZEOF([double])
-AC_CHECK_SIZEOF([long double])
-AC_CHECK_SIZEOF([int *])
-AC_CHECK_SIZEOF([long long *])
-AC_CHECK_SIZEOF([void *])
+#AC_CHECK_SIZEOF([long long])
+#AC_CHECK_SIZEOF([double])
+#AC_CHECK_SIZEOF([long double])
+#AC_CHECK_SIZEOF([int *])
+#AC_CHECK_SIZEOF([long long *])
+#AC_CHECK_SIZEOF([void *])
 
 # Available arch.h's:
 # alpha.h
@@ -420,8 +420,9 @@ fi
 AS_IF([test "x$with_exe_ext" != x], AC_SUBST([EXE_EXT], [${with_exe_ext}]) [echo executable extension: ${with_exe_ext}] )
 
 # Checks for header files.
-# Eg. if arpa/inet.h is found, the below will define HAVE_ARPA_INET_H
-AC_CHECK_HEADERS([OS.h arpa/inet.h sys/times.h fcntl.h limits.h locale.h netdb.h netinet/in.h stddef.h stdint.h stdlib.h string.h strings.h sys/file.h sys/param.h sys/socket.h sys/time.h sys/timeb.h termios.h unistd.h wchar.h unixlib/local.h net/ethernet.h sys/ethernet.h net/if.h pcap.h intrin.h])
+# Eg. if sys/times.h is found, the below will define HAVE_SYS_TIMES_H
+AC_CHECK_HEADERS([stdint.h sys/times.h strings.h sys/file.h sys/time.h unistd.h unixlib/local.h net/ethernet.h sys/ethernet.h net/if.h pcap.h intrin.h])
+# OS.h arpa/inet.h fcntl.h limits.h locale.h netdb.h netinet/in.h stddef.h stdlib.h string.h sys/param.h sys/socket.h sys/timeb.h termios.h wchar.h
 AC_CHECK_HEADERS([netinet/if_ether.h], [], [],
 [#if HAVE_NET_IF_H
 #include <net/if.h>
@@ -444,12 +445,12 @@ AC_TYPE_UINT8_T
 AC_CHECK_TYPES([ptrdiff_t])
 
 # Checks for library functions.
-AC_FUNC_ERROR_AT_LINE
+#AC_FUNC_ERROR_AT_LINE
 AC_FUNC_FORK
-AC_FUNC_MALLOC
+#AC_FUNC_MALLOC
 AC_FUNC_MMAP
-AC_FUNC_REALLOC
-AC_CHECK_FUNCS([atexit endpwent floor ftruncate gethostbyname gettimeofday inet_ntoa isascii memchr memmove memset mkdir munmap pow rmdir select setenv setlocale socket strcasecmp strchr strcspn strdup strerror strncasecmp strrchr strspn strstr strtol strtoul])
+#AC_FUNC_REALLOC
+#AC_CHECK_FUNCS([atexit endpwent floor ftruncate gethostbyname gettimeofday inet_ntoa isascii memchr memmove memset mkdir munmap pow rmdir select setenv setlocale socket strcasecmp strchr strcspn strdup strerror strncasecmp strrchr strspn strstr strtol strtoul])
 AC_CACHE_SAVE
 
 AC_SUBST([CC_CPU],[${CPU_BEST_FLAGS}])
