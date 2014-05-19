@@ -34,6 +34,7 @@
 #include "sha2.h"
 #include <string.h>
 #include "arch.h"
+#include "johnswap.h"
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
@@ -267,7 +268,7 @@ static void init(struct fmt_main *self)
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	
+
 //	 This printf will 'help' debug a system that truncates that monster hash, but does not cause compiler to die.
 //	printf ("length=%d end=%s\n", strlen(fmt_luks.params.tests[0].ciphertext), &((fmt_luks.params.tests[0].ciphertext)[strlen(fmt_luks.params.tests[0].ciphertext)-30]));
 }

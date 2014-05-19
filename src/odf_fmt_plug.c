@@ -15,6 +15,7 @@
 #endif
 
 #include "arch.h"
+#include "johnswap.h"
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
@@ -306,7 +307,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			for (i = 0; i < cur_salt->key_size/sizeof(ARCH_WORD_32); ++i) {
 				((ARCH_WORD_32*)key[0])[i] = JOHNSWAP(((ARCH_WORD_32*)key[0])[i]);
 			}
-#endif				 
+#endif
 #endif
 			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
 				bf_ivec_pos = 0;
@@ -346,7 +347,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			for (i = 0; i < cur_salt->key_size/sizeof(ARCH_WORD_32); ++i) {
 				((ARCH_WORD_32*)key[0])[i] = JOHNSWAP(((ARCH_WORD_32*)key[0])[i]);
 			}
-#endif				 
+#endif
 #endif
 			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
 				memcpy(iv, cur_salt->iv, 32);

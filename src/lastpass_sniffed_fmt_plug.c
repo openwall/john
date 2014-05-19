@@ -12,6 +12,7 @@
 #include <string.h>
 #include <errno.h>
 #include "arch.h"
+#include "johnswap.h"
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
