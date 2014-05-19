@@ -801,6 +801,8 @@ snapshot: $(SOURCES) $(DOCS) $(OTHERFILES)
 	echo "->removnig the temporary directory " xyplot-$(VERS)
 	/bin/rm -rf xyplot-$(VERS)             # remove the old directory
 
+install: default
+
 #install:
 #	@for dir in ${subdirs}; do \
 #	  (cd $$dir && $(MAKE) install) \

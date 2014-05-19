@@ -7,6 +7,21 @@ all: default
 install: default
 
 default:
-	@echo "A normal build is now \"./configure && make\"."
 	@echo "For listing legacy builds, use \"make -f Makefile.orig\"."
-	@echo "For using legacy Makefile, use \"make -f Makefile.orig <target>\"."
+	@echo "For using legacy Makefile, use \"make -sf Makefile.orig <target>\"."
+	@echo
+	@echo "A normal build is now \"./configure && make -s\"."
+	@echo
+
+# Unfortunately these does not work due to the @EXE_EXT@ shite
+#clean:
+#	$(MAKE) -f Makefile.in $@
+#
+#distclean:
+#	$(MAKE) -f Makefile.in $@
+
+# Better than nothing :-/
+clean:
+	$(MAKE) -f Makefile.orig $@
+
+distclean: clean
