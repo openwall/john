@@ -12,6 +12,12 @@ self-test on big-endian CPUs):
 * Mozilla
 (x86 and x86-64 are little-endian, so they are not affected.)
 
+Some Sparc problems may be compiler bugs and can be worked around using
+"-fno-builtin-memcpy -fno-builtin-memset". Some Sparc compilers hang
+when compiling unrarppm.c - this can be worked around using -O0 (perhaps
+-O1?) when compiling that file. That was seen with gcc 3.4.6.
+
+
 Some OpenCL formats fail at runtime on Mac OS X (whereas CUDA ones work
 fine).  This is clearly caused by driver bugs and it affects nvidia and
 AMD devices as well as eg. the Intel HD4000 - but not the CPU device.
