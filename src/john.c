@@ -175,6 +175,7 @@ extern struct fmt_main fmt_opencl_gpg;
 extern struct fmt_main fmt_opencl_keychain;
 extern struct fmt_main fmt_opencl_krb5pa_md5;
 extern struct fmt_main fmt_opencl_krb5pa_sha1;
+extern struct fmt_main fmt_opencl_1otus5;
 extern struct fmt_main fmt_opencl_mscash2;
 extern struct fmt_main fmt_opencl_mysqlsha1;
 extern struct fmt_main fmt_opencl_odf;
@@ -415,6 +416,7 @@ static void john_register_all(void)
 	john_register_one(&fmt_opencl_keyring);
 	john_register_one(&fmt_opencl_krb5pa_md5);
 	john_register_one(&fmt_opencl_krb5pa_sha1);
+	john_register_one(&fmt_opencl_1otus5);
 	john_register_one(&fmt_opencl_mscash2);
 	john_register_one(&fmt_opencl_mysqlsha1);
 	john_register_one(&fmt_opencl_odf);
