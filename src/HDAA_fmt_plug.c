@@ -128,7 +128,7 @@ static unsigned int *crypt_key;
 #else
 
 static int (*saved_len);
-static unsigned char (*crypt_key)[BINARY_SIZE + 1];
+static unsigned char (*crypt_key)[BINARY_SIZE];
 
 #endif
 
