@@ -45,9 +45,16 @@ fi
 if test -d /usr/local/ssl/include; then
    ADD_CFLAGS+=" -I/usr/local/ssl/include"
 fi
-AC_MSG_RESULT([\"$ADD_CFLAGS\" and \"$ADD_LDFLAGS\"])
+case "x${ADD_CFLAGS}x${ADD_LDFLAGS}" in
+     "xx") cond_and="no" ;;
+     "xx*") cond_and="" ;;
+     "x*x") cond_and="" ;;
+     *) cond_and="and" ;;
+esac
+AC_MSG_RESULT([${ADD_CFLAGS}${cond_and}${ADD_LDFLAGS}])
 LDFLAGS+="$ADD_LDFLAGS"
 CFLAGS+="$ADD_CFLAGS"
+CPPFLAGS+="$ADD_CFLAGS"
 ])
 
 # @synopsis AC_JTR_SET_CUDA_INCLUDES
@@ -68,9 +75,16 @@ if test $CPU_BIT_STR = 64 -a -d "$NVIDIA_CUDA/lib64"; then
 elif test -d "$NVIDIA_CUDA/lib"; then
    ADD_LDFLAGS+=" -L$NVIDIA_CUDA/lib"
 fi
-AC_MSG_RESULT([\"$ADD_CFLAGS\" and \"$ADD_LDFLAGS\"])
+case "x${ADD_CFLAGS}x${ADD_LDFLAGS}" in
+     "xx") cond_and="no" ;;
+     "xx*") cond_and="" ;;
+     "x*x") cond_and="" ;;
+     *) cond_and=" and" ;;
+esac
+AC_MSG_RESULT([${ADD_CFLAGS}${cond_and}${ADD_LDFLAGS}])
 LDFLAGS+="$ADD_LDFLAGS"
 CFLAGS+="$ADD_CFLAGS"
+CPPFLAGS+="$ADD_CFLAGS"
 ])
 
 # @synopsis AC_JTR_SET_OPENCL_INCLUDES
@@ -104,7 +118,14 @@ if test -n "$ATISTREAMSDKROOT"; then
       ADD_LDFLAGS+=" -L$ATISTREAMSDKROOT/lib"
    fi
 fi
-AC_MSG_RESULT([\"$ADD_CFLAGS\" and \"$ADD_LDFLAGS\"])
+case "x${ADD_CFLAGS}x${ADD_LDFLAGS}" in
+     "xx") cond_and="no" ;;
+     "xx*") cond_and="" ;;
+     "x*x") cond_and="" ;;
+     *) cond_and=" and" ;;
+esac
+AC_MSG_RESULT([${ADD_CFLAGS}${cond_and}${ADD_LDFLAGS}])
 LDFLAGS+="$ADD_LDFLAGS"
 CFLAGS+="$ADD_CFLAGS"
+CPPFLAGS+="$ADD_CFLAGS"
 ])

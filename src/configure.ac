@@ -17,7 +17,7 @@
 
 # Travis CI only has 2.68
 AC_PREREQ([2.68])
-AC_INIT([john], [1.8.0-bleeding-jumbo], [john-users mailing list at openwall.com])
+AC_INIT([john], [1.8.0.2-bleeding-jumbo], [john-users mailing list at openwall.com])
 ##  AM_INIT_AUTOMAKE([foreign subdir-objects])
 AC_CONFIG_SRCDIR([john.c])
 AC_CONFIG_HEADERS([autoconfig.h])
