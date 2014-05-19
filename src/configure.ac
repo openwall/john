@@ -557,6 +557,12 @@ else
    using_omp=no
 fi
 
+if test "x$ac_cv_search_crypt" != xno; then
+   using_crypt=yes
+else
+   using_crypt=no
+fi
+
 if test "x$host_cpu" != "x$CPU_STR" ; then
    host_cpu="$host_cpu $CPU_STR"
 fi
@@ -593,6 +599,7 @@ Fork support ................................ ${ac_cv_func_fork_works}
 OpenMP support .............................. ${using_omp}
 OpenCL support .............................. ${using_cl}
 CUDA support ................................ ${using_cuda}
+Generic crypt(3) mode ....................... ${using_crypt}
 
 Optional libraries found:
 Rexgen (extra cracking mode) ................ ${using_rexgen}
