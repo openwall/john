@@ -367,10 +367,7 @@ AC_CHECK_LIB([m],[sqrt],[],[AC_MSG_FAILURE(JtR requires libm being installed,1)]
 AC_CHECK_LIB([z],[deflate],[],[AC_MSG_FAILURE(JtR requires libz being installed,1)])
 AC_SEARCH_LIBS([crypt],[crypt],[AC_DEFINE(HAVE_CRYPT,1,[Define to 1 if you have the `crypt' library (-lcrypt).])])
 AC_CHECK_HEADER([krb5.h],AC_CHECK_LIB([k5crypto],[krb5_c_string_to_key_with_params]) AC_CHECK_LIB([krb5],[krb5_c_string_to_key_with_params]))
-AS_IF([test "x$ac_cv_lib_krb5_krb5_c_string_to_key_with_params" != xyes], [AC_MSG_WARN([Installing MIT krb5/k5crypto libraries would enable krb5-18 and krb5-23 formats.])])
-AC_CHECK_HEADERS([gmp.h] [gmp/gmp.h],
-  [AC_CHECK_LIB([gmp],[__gmpz_init])] [break])
-AS_IF([test "x$ac_cv_lib_gmp___gmpz_init" != xyes], [AC_MSG_WARN([Installing libgmp would speed up some hash formats.])])
+AC_CHECK_HEADERS([gmp.h] [gmp/gmp.h], [AC_CHECK_LIB([gmp],[__gmpz_init])] [break])
 AC_CHECK_HEADER([skey.h], [AC_CHECK_LIB([skey],[skey_set_algorithm],AC_DEFINE([HAVE_SKEY],1,[Define to 1 if you have skey library and headers]) [LIBS+=" -lskey"])])
 AC_CHECK_LIB([kernel32],[main])
 AC_CHECK_LIB([dl],[dlopen])
@@ -378,8 +375,7 @@ using_rexgen=no
 AC_CHECK_HEADER([regex.h],
   [AC_SEARCH_LIBS([c_regex_iterator_cb],[rexgen librexgen],
     using_rexgen=yes
-    [AC_DEFINE(HAVE_LIBREXGEN,1,[Define to 1 if you have the `rexgen' library (-lrexgen).])])],
-  [AC_MSG_WARN([Installing librexgen would enable a powerful new wordlist mode.])])
+    [AC_DEFINE(HAVE_LIBREXGEN,1,[Define to 1 if you have the `rexgen' library (-lrexgen).])])])
 AC_CHECK_LIB([nsl],[main])
 AC_CHECK_LIB([pthread],[main])
 AC_CHECK_LIB([rt],[main])
@@ -389,10 +385,7 @@ AC_CHECK_LIB([wsock32],[main])
 AC_CHECK_LIB([lws2_32],[main])
 AC_CHECK_LIB([wst],[main])
 # in makefile, we need to know if building extra pcap items.
-AC_CHECK_HEADER([pcap.h],
-  [AC_CHECK_LIB([pcap],[pcap_compile],
-    [AC_SUBST(HAVE_PCAP,[-DHAVE_PCAP])] [LIBS+=" -lpcap"])])
-AS_IF([test "x$ac_cv_lib_pcap_pcap_compile" != xyes],[AC_MSG_WARN([You need pcap library and headers to build some helper tools (but john itself will be built!)])])
+AC_CHECK_HEADER([pcap.h],[AC_CHECK_LIB([pcap],[pcap_compile],[AC_SUBST(HAVE_PCAP,[-DHAVE_PCAP])] [LIBS+=" -lpcap"])])
 
 # Check for non-standard variations we can handle
 AC_CHECK_HEADER([openssl/whrlpool.h],,[AC_DEFINE([HAVE_NO_SSL_WHIRLPOOL], 1, ["Define if your OpenSSL is built without Whirlpool support"])])
@@ -406,10 +399,7 @@ AC_CACHE_SAVE
 # Check for NSS (unless disabled, or cross compiling)
 using_nss=no
 if test "x$enable_nss" != xno -a "x$PKG_CONFIG" != xno; then
-   PKG_CHECK_MODULES([NSS], [nss],
-      using_nss=yes
-      AC_SUBST(HAVE_NSS,[-DHAVE_NSS]),
-      AC_MSG_WARN([Installing NSS/NSPR would enable Mozilla format.]))
+   PKG_CHECK_MODULES([NSS], [nss], using_nss=yes AC_SUBST(HAVE_NSS,[-DHAVE_NSS]))
 fi
 
 # Check for openMP (enable/disable handled within the macro).
@@ -598,17 +588,21 @@ AES-NI support .............................. ${using_aesni}
 Target OS ................................... ${host_os}
 Cross compiling ............................. ${cross_compiling}
 Legacy arch header .......................... ${ARCH_LINK}
-OpenMPI support ............................. ${using_mpi}
+OpenMPI support (default disabled) .......... ${using_mpi}
 Fork support ................................ ${ac_cv_func_fork_works}
 OpenMP support .............................. ${using_omp}
 OpenCL support .............................. ${using_cl}
 CUDA support ................................ ${using_cuda}
-Rexgen support (extra cracking mode) ........ ${using_rexgen}
-GMP support (performance) ................... ${ac_cv_lib_gmp___gmpz_init}
-NSS support (Mozilla format) ................ ${using_nss}
-SKEY support (skey format) .................. ${ac_cv_lib_skey_skey_set_algorithm}
-MIT Kerberos5 support (krb5-18/23 formats) .. ${ac_cv_lib_krb5_krb5_c_string_to_key_with_params}
-PCAP support (vncpcap2john and SIPdump) ..... ${ac_cv_lib_pcap_pcap_compile}
+
+Optional libraries found:
+Rexgen (extra cracking mode) ................ ${using_rexgen}
+GMP (performance) ........................... ${ac_cv_lib_gmp___gmpz_init}
+NSS/NSPR (Mozilla format) ................... ${using_nss}
+SKEY (skey format) .......................... ${ac_cv_lib_skey_skey_set_algorithm}
+MIT Kerberos5 (krb5-18/23 formats) .......... ${ac_cv_lib_krb5_krb5_c_string_to_key_with_params}
+PCAP (vncpcap2john and SIPdump) ............. ${ac_cv_lib_pcap_pcap_compile}
+
+Install missing libraries to get any needed features that were omitted.
 
 Configure finished.  Do 'make -s' to compile.
 EOF

@@ -9607,10 +9607,6 @@ fi
 fi
 
 
-if test "x$ac_cv_lib_krb5_krb5_c_string_to_key_with_params" != xyes; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Installing MIT krb5/k5crypto libraries would enable krb5-18 and krb5-23 formats." >&5
-$as_echo "$as_me: WARNING: Installing MIT krb5/k5crypto libraries would enable krb5-18 and krb5-23 formats." >&2;}
-fi
 for ac_header in gmp.h gmp/gmp.h
 do :
   as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
@@ -9668,10 +9664,6 @@ fi
 
 done
 
-if test "x$ac_cv_lib_gmp___gmpz_init" != xyes; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Installing libgmp would speed up some hash formats." >&5
-$as_echo "$as_me: WARNING: Installing libgmp would speed up some hash formats." >&2;}
-fi
 ac_fn_c_check_header_mongrel "$LINENO" "skey.h" "ac_cv_header_skey_h" "$ac_includes_default"
 if test "x$ac_cv_header_skey_h" = xyes; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for skey_set_algorithm in -lskey" >&5
@@ -9865,9 +9857,6 @@ $as_echo "#define HAVE_LIBREXGEN 1" >>confdefs.h
 
 fi
 
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Installing librexgen would enable a powerful new wordlist mode." >&5
-$as_echo "$as_me: WARNING: Installing librexgen would enable a powerful new wordlist mode." >&2;}
 fi
 
 
@@ -10192,10 +10181,6 @@ fi
 fi
 
 
-if test "x$ac_cv_lib_pcap_pcap_compile" != xyes; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: You need pcap library and headers to build some helper tools (but john itself will be built!)" >&5
-$as_echo "$as_me: WARNING: You need pcap library and headers to build some helper tools (but john itself will be built!)" >&2;}
-fi
 
 # Check for non-standard variations we can handle
 ac_fn_c_check_header_mongrel "$LINENO" "openssl/whrlpool.h" "ac_cv_header_openssl_whrlpool_h" "$ac_includes_default"
@@ -10357,20 +10342,36 @@ fi
 	# Put the nasty error message in config.log where it belongs
 	echo "$NSS_PKG_ERRORS" >&5
 
-	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-                { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Installing NSS/NSPR would enable Mozilla format." >&5
-$as_echo "$as_me: WARNING: Installing NSS/NSPR would enable Mozilla format." >&2;}
+	as_fn_error $? "Package requirements (nss) were not met:
+
+$NSS_PKG_ERRORS
+
+Consider adjusting the PKG_CONFIG_PATH environment variable if you
+installed software in a non-standard prefix.
+
+Alternatively, you may set the environment variables NSS_CFLAGS
+and NSS_LIBS to avoid the need to call pkg-config.
+See the pkg-config man page for more details.
+" "$LINENO" 5
 elif test $pkg_failed = untried; then
-	{ $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Installing NSS/NSPR would enable Mozilla format." >&5
-$as_echo "$as_me: WARNING: Installing NSS/NSPR would enable Mozilla format." >&2;}
+	{ { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "The pkg-config script could not be found or is too old.  Make sure it
+is in your PATH or set the PKG_CONFIG environment variable to the full
+path to pkg-config.
+
+Alternatively, you may set the environment variables NSS_CFLAGS
+and NSS_LIBS to avoid the need to call pkg-config.
+See the pkg-config man page for more details.
+
+To get pkg-config, see <http://pkg-config.freedesktop.org/>.
+See \`config.log' for more details" "$LINENO" 5; }
 else
 	NSS_CFLAGS=$pkg_cv_NSS_CFLAGS
 	NSS_LIBS=$pkg_cv_NSS_LIBS
         { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
-	using_nss=yes
-      HAVE_NSS=-DHAVE_NSS
+	using_nss=yes HAVE_NSS=-DHAVE_NSS
 
 fi
 fi
@@ -13807,17 +13808,21 @@ AES-NI support .............................. ${using_aesni}
 Target OS ................................... ${host_os}
 Cross compiling ............................. ${cross_compiling}
 Legacy arch header .......................... ${ARCH_LINK}
-OpenMPI support ............................. ${using_mpi}
+OpenMPI support (default disabled) .......... ${using_mpi}
 Fork support ................................ ${ac_cv_func_fork_works}
 OpenMP support .............................. ${using_omp}
 OpenCL support .............................. ${using_cl}
 CUDA support ................................ ${using_cuda}
-Rexgen support (extra cracking mode) ........ ${using_rexgen}
-GMP support (performance) ................... ${ac_cv_lib_gmp___gmpz_init}
-NSS support (Mozilla format) ................ ${using_nss}
-SKEY support (skey format) .................. ${ac_cv_lib_skey_skey_set_algorithm}
-MIT Kerberos5 support (krb5-18/23 formats) .. ${ac_cv_lib_krb5_krb5_c_string_to_key_with_params}
-PCAP support (vncpcap2john and SIPdump) ..... ${ac_cv_lib_pcap_pcap_compile}
+
+Optional libraries found:
+Rexgen (extra cracking mode) ................ ${using_rexgen}
+GMP (performance) ........................... ${ac_cv_lib_gmp___gmpz_init}
+NSS/NSPR (Mozilla format) ................... ${using_nss}
+SKEY (skey format) .......................... ${ac_cv_lib_skey_skey_set_algorithm}
+MIT Kerberos5 (krb5-18/23 formats) .......... ${ac_cv_lib_krb5_krb5_c_string_to_key_with_params}
+PCAP (vncpcap2john and SIPdump) ............. ${ac_cv_lib_pcap_pcap_compile}
+
+Install missing libraries to get any needed features that were omitted.
 
 Configure finished.  Do 'make -s' to compile.
 EOF
