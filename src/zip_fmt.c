@@ -166,7 +166,7 @@ static void *get_salt(char *ciphertext)
 		passverify[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16 +
 		    atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	MEM_FREE(copy_mem);
-	
+
 	return (void*)salt;
 }
 
@@ -216,17 +216,18 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		 * We 'have' to dump 4 bytes of pdw_ver, because for BE systems, we need to swap a 4 byte int, AND the bytes we need are
 		 * the top ones.  Yes, we only need 2 bytes, BUT this causes ZERO performance impact, even on LE systems.
 		 */
-		unsigned char pwd_ver[4];
+		unsigned int pwd_ver;
 		/* derive the password verifier */
 		/* NOTE this one skips, possibly many bytes and pbkdf2 hashes, only does 1 pbkdf2 limb where the 2 bytes are */
 		pbkdf2_sha1((unsigned char *)saved_key[index],
 		       strlen(saved_key[index]), saved_salt, SALT_LENGTH(mode),
-		       KEYING_ITERATIONS, pwd_ver, 4, 2 * KEY_LENGTH(mode));
+		       KEYING_ITERATIONS, (unsigned char*)&pwd_ver, 4,
+		            2 * KEY_LENGTH(mode));
 #if !ARCH_LITTLE_ENDIAN
 		/* swap the single 32 bit word. Finding this bug, when we only grabbed 2 bytes, was sort of hard. */
-		((ARCH_WORD_32*)pwd_ver)[0] = JOHNSWAP(((ARCH_WORD_32*)pwd_ver)[0]);
-#endif			   
-		cracked[index] = !memcmp(pwd_ver, passverify, 2);
+		pwd_ver = JOHNSWAP(pwd_ver);
+#endif
+		cracked[index] = !memcmp(&pwd_ver, passverify, 2);
 #endif
 	}
 	return count;
