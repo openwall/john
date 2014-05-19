@@ -49,7 +49,7 @@ case "x${ADD_CFLAGS}x${ADD_LDFLAGS}" in
      "xx") cond_and="no" ;;
      "xx*") cond_and="" ;;
      "x*x") cond_and="" ;;
-     *) cond_and="and" ;;
+     *) cond_and=" and" ;;
 esac
 AC_MSG_RESULT([${ADD_CFLAGS}${cond_and}${ADD_LDFLAGS}])
 LDFLAGS+="$ADD_LDFLAGS"

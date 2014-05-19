@@ -3516,7 +3516,7 @@ case "x${ADD_CFLAGS}x${ADD_LDFLAGS}" in
      "xx") cond_and="no" ;;
      "xx*") cond_and="" ;;
      "x*x") cond_and="" ;;
-     *) cond_and="and" ;;
+     *) cond_and=" and" ;;
 esac
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: ${ADD_CFLAGS}${cond_and}${ADD_LDFLAGS}" >&5
 $as_echo "${ADD_CFLAGS}${cond_and}${ADD_LDFLAGS}" >&6; }
