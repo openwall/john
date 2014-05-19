@@ -307,7 +307,7 @@
 
 #define BF_ASM				0
 #define BF_SCALE			1
-#define BF_X2				1
+#define BF_X2				3
 
 #define NT_X86_64
 

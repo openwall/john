@@ -35,7 +35,9 @@ typedef struct {
  */
 typedef BF_word BF_binary[6];
 
-#if BF_X2
+#if BF_X2 == 3
+#define BF_Nmin				3
+#elif BF_X2
 #define BF_Nmin				2
 #else
 #define BF_Nmin				1
@@ -43,7 +45,7 @@ typedef BF_word BF_binary[6];
 
 #if defined(_OPENMP) && !BF_ASM
 #define BF_cpt				3
-#define BF_mt				192
+#define BF_mt				256
 #define BF_N				(BF_Nmin * BF_mt)
 #else
 #define BF_mt				1
@@ -60,7 +62,9 @@ extern BF_binary BF_out[BF_N];
  */
 extern unsigned char BF_atoi64[0x80];
 
-#if BF_X2
+#if BF_X2 == 3
+#define BF_ALGORITHM_NAME		"Blowfish 32/" ARCH_BITS_STR " X3"
+#elif BF_X2
 #define BF_ALGORITHM_NAME		"Blowfish 32/" ARCH_BITS_STR " X2"
 #else
 #define BF_ALGORITHM_NAME		"Blowfish 32/" ARCH_BITS_STR
