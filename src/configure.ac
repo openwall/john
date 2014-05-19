@@ -107,6 +107,22 @@ AC_ARG_ENABLE([native-tests], [AC_HELP_STRING([--disable-native-tests], [Do not 
 
 ####### Actual tests start here #######
 
+# Support cross compile
+AC_CANONICAL_HOST
+
+# Check for MPI. Only if MPI not found/wanted: Check for CC.
+using_mpi=no
+AX_PROG_CC_MPI([test "x$enable_mpi" != xno],
+  [AC_SUBST(HAVE_MPI,[-DHAVE_MPI])]
+  [using_mpi=yes],
+  [if test "x$enable_mpi" = xyes; then
+     AC_MSG_FAILURE([No MPI compiler found])
+   elif test "x$enable_mpi" != xno; then
+     AC_MSG_NOTICE([No MPI compiler found, disabling MPI])
+   fi
+   AC_PROG_CC([gcc cc icc ccc]) ]
+)
+
 ###
 # Here we call setting up many -I in CFLAGS, and -L in
 # LDFLAGS for 'normal' paths, IF we find them.
@@ -152,7 +168,6 @@ AS_IF([test "x$JTR_FLAG_CHECK_WORKS" = xyes],
 
    # now fill out CFLAGS
    CFLAGS_EX=""
-   AC_JTR_FLAG_CHECK([-O2], 1)
    AC_JTR_FLAG_CHECK([-Wall], 1)
    AC_JTR_FLAG_CHECK([-Wdeclaration-after-statement], 1)
    AC_JTR_FLAG_CHECK([-fomit-frame-pointer], 1)
@@ -163,22 +178,6 @@ AS_IF([test "x$JTR_FLAG_CHECK_WORKS" = xyes],
    AC_MSG_NOTICE([Unable to validate $CC command line arguments. Defaulting to -O2. CFLAGS may need to be passed to ./configure for proper build])
    AC_SUBST([CFLAGS_EXTRA],[-O2])
 ])
-
-# Support cross compile
-AC_CANONICAL_HOST
-
-# Check for MPI. Only if MPI not found/wanted: Check for CC.
-using_mpi=no
-AX_PROG_CC_MPI([test "x$enable_mpi" != xno],
-  [AC_SUBST(HAVE_MPI,[-DHAVE_MPI])]
-  [using_mpi=yes],
-  [if test "x$enable_mpi" = xyes; then
-     AC_MSG_FAILURE([No MPI compiler found])
-   elif test "x$enable_mpi" != xno; then
-     AC_MSG_NOTICE([No MPI compiler found, disabling MPI])
-   fi
-   AC_PROG_CC([gcc cc icc ccc]) ]
-)
 
 # At this point we know whether this is a cross compile
 # Don't test for $cross_compiling = yes, because it might be 'maybe'.
