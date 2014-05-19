@@ -41,13 +41,10 @@ COMPILING:
     Debian/Ubuntu/Mint Linux example for installing OpenMPI:
     sudo apt-get install libopenmpi-dev openmpi-bin
 
-    The new autconf (./configure) system should detect and enable MPI if
-    it's installed properly. If not, you might need to pass some parameter
-    to ./configure. Normally this should do:
-        ./configure CC=mpicc
-
-    If you want to disable MPI for your build:
-        ./configure --disable-mpi
+    The new autconf (./configure) system does not build MPI unless told so.
+    It should detect and enable MPI if it's installed properly and you supply
+    the "--enable-mpi" option. Normally this should do:
+        ./configure --enable-mpi
 
     Note that MPI works just fine together with OpenMP (a.k.a OMP) enabled
     as well.  When MPI is in use (with more than one process), OMP is
