@@ -9191,7 +9191,9 @@ $as_echo "#define HAVE_CRYPT 1" >>confdefs.h
 
 fi
 
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for krb5_c_string_to_key_with_params in -lk5crypto" >&5
+ac_fn_c_check_header_mongrel "$LINENO" "krb5.h" "ac_cv_header_krb5_h" "$ac_includes_default"
+if test "x$ac_cv_header_krb5_h" = xyes; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for krb5_c_string_to_key_with_params in -lk5crypto" >&5
 $as_echo_n "checking for krb5_c_string_to_key_with_params in -lk5crypto... " >&6; }
 if ${ac_cv_lib_k5crypto_krb5_c_string_to_key_with_params+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -9234,12 +9236,8 @@ _ACEOF
 
   LIBS="-lk5crypto $LIBS"
 
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Installing MIT krb5/k5crypto/ library enables several extra formats" >&5
-$as_echo "$as_me: WARNING: Installing MIT krb5/k5crypto/ library enables several extra formats" >&2;}
 fi
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for krb5_c_string_to_key_with_params in -lkrb5" >&5
+ { $as_echo "$as_me:${as_lineno-$LINENO}: checking for krb5_c_string_to_key_with_params in -lkrb5" >&5
 $as_echo_n "checking for krb5_c_string_to_key_with_params in -lkrb5... " >&6; }
 if ${ac_cv_lib_krb5_krb5_c_string_to_key_with_params+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -9284,6 +9282,13 @@ _ACEOF
 
 fi
 
+fi
+
+
+if test "x$ac_cv_lib_krb5_krb5_c_string_to_key_with_params" != xyes; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Installing MIT krb5/k5crypto libraries would enable krb5-18 and krb5-23 formats." >&5
+$as_echo "$as_me: WARNING: Installing MIT krb5/k5crypto libraries would enable krb5-18 and krb5-23 formats." >&2;}
+fi
 for ac_header in gmp.h gmp/gmp.h
 do :
   as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
@@ -9342,8 +9347,8 @@ fi
 done
 
 if test "x$ac_cv_lib_gmp___gmpz_init" != xyes; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Installing libgmp will speed up some hash formats" >&5
-$as_echo "$as_me: WARNING: Installing libgmp will speed up some hash formats" >&2;}
+  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Installing libgmp would speed up some hash formats." >&5
+$as_echo "$as_me: WARNING: Installing libgmp would speed up some hash formats." >&2;}
 fi
 ac_fn_c_check_header_mongrel "$LINENO" "skey.h" "ac_cv_header_skey_h" "$ac_includes_default"
 if test "x$ac_cv_header_skey_h" = xyes; then :
@@ -9539,8 +9544,8 @@ $as_echo "#define HAVE_LIBREXGEN 1" >>confdefs.h
 fi
 
 else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Installing librexgen would enable a powerful new wordlist mode" >&5
-$as_echo "$as_me: WARNING: Installing librexgen would enable a powerful new wordlist mode" >&2;}
+  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Installing librexgen would enable a powerful new wordlist mode." >&5
+$as_echo "$as_me: WARNING: Installing librexgen would enable a powerful new wordlist mode." >&2;}
 fi
 
 
@@ -9860,17 +9865,15 @@ $as_echo "$ac_cv_lib_pcap_pcap_compile" >&6; }
 if test "x$ac_cv_lib_pcap_pcap_compile" = xyes; then :
   HAVE_PCAP=-DHAVE_PCAP
  LIBS+=" -lpcap"
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: You need pcap library to build some helper tools (but john itself will be built!)" >&5
-$as_echo "$as_me: WARNING: You need pcap library to build some helper tools (but john itself will be built!)" >&2;}
 fi
 
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: You need pcap headers to build some helper tools (but john itself will be built!)" >&5
-$as_echo "$as_me: WARNING: You need pcap headers to build some helper tools (but john itself will be built!)" >&2;}
 fi
 
 
+if test "x$ac_cv_lib_pcap_pcap_compile" != xyes; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: You need pcap library and headers to build some helper tools (but john itself will be built!)" >&5
+$as_echo "$as_me: WARNING: You need pcap library and headers to build some helper tools (but john itself will be built!)" >&2;}
+fi
 
 # Check for non-standard variations we can handle
 ac_fn_c_check_header_mongrel "$LINENO" "openssl/whrlpool.h" "ac_cv_header_openssl_whrlpool_h" "$ac_includes_default"
@@ -10034,11 +10037,11 @@ fi
 
 	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
-                { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: NSS not found - Mozilla format will be omitted." >&5
-$as_echo "$as_me: WARNING: NSS not found - Mozilla format will be omitted." >&2;}
+                { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Installing NSS/NSPR would enable Mozilla format." >&5
+$as_echo "$as_me: WARNING: Installing NSS/NSPR would enable Mozilla format." >&2;}
 elif test $pkg_failed = untried; then
-	{ $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: NSS not found - Mozilla format will be omitted." >&5
-$as_echo "$as_me: WARNING: NSS not found - Mozilla format will be omitted." >&2;}
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Installing NSS/NSPR would enable Mozilla format." >&5
+$as_echo "$as_me: WARNING: Installing NSS/NSPR would enable Mozilla format." >&2;}
 else
 	NSS_CFLAGS=$pkg_cv_NSS_CFLAGS
 	NSS_LIBS=$pkg_cv_NSS_LIBS
@@ -13456,31 +13459,43 @@ if test "x$host_cpu" != "x$CPU_STR" ; then
    host_cpu="$host_cpu $CPU_STR"
 fi
 
-# reports of GMP showing up blank. This should fix this.
+# Ensure reports of tests does not show up blank:
+if test "x$ac_cv_func_fork_works" = x ; then
+   ac_cv_func_fork_works=no
+fi
 if test "x$ac_cv_lib_gmp___gmpz_init" = x ; then
    ac_cv_lib_gmp___gmpz_init=no
 fi
-
 if test "x$ac_cv_lib_skey_skey_set_algorithm" = x ; then
    ac_cv_lib_skey_skey_set_algorithm=no
+fi
+if test "x$ac_cv_lib_krb5_krb5_c_string_to_key_with_params" = x; then
+   ac_cv_lib_krb5_krb5_c_string_to_key_with_params=no
+fi
+if test "x$ac_cv_lib_pcap_pcap_compile" = x ; then
+   ac_cv_lib_pcap_pcap_compile=no
 fi
 
 cat <<EOF
 
-Configured for building John the Ripper Jumbo:
+Configured for building John the Ripper ${PACKAGE_VERSION}:
 
 Target CPU .................................. ${host_cpu}, ${CPU_BIT_STR}-bit
+AES-NI support .............................. ${using_aesni}
 Target OS ................................... ${host_os}
+Cross compiling ............................. ${cross_compiling}
 Legacy arch header .......................... ${ARCH_LINK}
-OpenMP support .............................. ${using_omp}
 OpenMPI support ............................. ${using_mpi}
+Fork support ................................ ${ac_cv_func_fork_works}
+OpenMP support .............................. ${using_omp}
 OpenCL support .............................. ${using_cl}
 CUDA support ................................ ${using_cuda}
-Rexgen support .............................. ${using_rexgen}
+Rexgen support (extra cracking mode) ........ ${using_rexgen}
 GMP support (performance) ................... ${ac_cv_lib_gmp___gmpz_init}
 NSS support (Mozilla format) ................ ${using_nss}
 SKEY support (skey format) .................. ${ac_cv_lib_skey_skey_set_algorithm}
-AES-NI support .............................. ${using_aesni}
+MIT Kerberos5 support (krb5-18/23 formats) .. ${ac_cv_lib_krb5_krb5_c_string_to_key_with_params}
+PCAP support (vncpcap2john and SIPdump) ..... ${ac_cv_lib_pcap_pcap_compile}
 
 Configure finished.  Do 'make -s' to compile.
 EOF
