@@ -117,38 +117,64 @@ AC_JTR_SET_NORMAL_INCLUDES
 # check compiler switches here.  OPT_NORMAL, then
 #  OPT_INLINE, then extra CFLAGS are checked.
 ###
+#
+# first test a totally BOGUS command line switch, to make sure that the
+# detection logic actually detects BAD command switches
 CFLAGS_EX=""
-# first fill out JtR's OPT_NORMAL= value
-AC_JTR_FLAG_CHECK([-funroll-loops])
-OPT_NORMAL_V=${CFLAGS_EX}
-AC_SUBST([OPT_NORMAL_FLAGS],[${OPT_NORMAL_V}])
+AC_JTR_FLAG_CHECK([-WFOO_BAR_SWITCH_NOT_VALID], 0)
+# note, check message must be done after the first call to AC_JTR_FLAG_CHECK. Since this is
+# the first macro that will use $CC, a lot of messages will happen.  We need to make that first
+# macro 'call', so that those messages are output, THEN we make our checking message.
+AC_MSG_CHECKING([arg check macro with $CC])
+AC_JTR_FLAG_CHECK([-fFOO_BAR_SWITCH_NOT_VALID], 0)
+AC_JTR_FLAG_CHECK([-mFOO_BAR_SWITCH_NOT_VALID], 0)
+AC_JTR_FLAG_CHECK([-m666], 0)
+AS_IF([test "x${CFLAGS_EX}" = x], 
+   [AC_MSG_RESULT([yes])]
+   JTR_FLAG_CHECK_WORKS=yes
+   ,[AC_MSG_RESULT([no])])
 
-# now fill in extras for JtR's OPT_INLINE= value
-CFLAGS_EX=""
-AC_JTR_FLAG_CHECK([-Os])
-AC_JTR_FLAG_CHECK([-funroll-loops])
-AC_JTR_FLAG_CHECK([-finline-functions])
-AC_SUBST([OPT_INLINE_FLAGS],[${CFLAGS_EX}])
+# Now, we only do option checking, IF this worked, i.e. that option was not detected as valid
+AS_IF([test "x$JTR_FLAG_CHECK_WORKS" = xyes],
+[
+   CFLAGS_EX=""
+   # first fill out JtR's OPT_NORMAL= value
+   AC_JTR_FLAG_CHECK([-funroll-loops], 1)
+   OPT_NORMAL_V=${CFLAGS_EX}
+   AC_SUBST([OPT_NORMAL_FLAGS],[${OPT_NORMAL_V}])
 
-# now fill out CFLAGS
-CFLAGS_EX=""
-AC_JTR_FLAG_CHECK([-O2])
-AC_JTR_FLAG_CHECK([-Wall])
-AC_JTR_FLAG_CHECK([-Wdeclaration-after-statement])
-AC_JTR_FLAG_CHECK([-fomit-frame-pointer])
-AC_SUBST([CFLAGS_EXTRA],[${CFLAGS_EX}])
+   # now fill in extras for JtR's OPT_INLINE= value
+   CFLAGS_EX=""
+   AC_JTR_FLAG_CHECK([-Os], 1)
+   AC_JTR_FLAG_CHECK([-funroll-loops], 0)
+   AC_JTR_FLAG_CHECK([-finline-functions], 1)
+   AC_SUBST([OPT_INLINE_FLAGS],[${CFLAGS_EX}])
+
+   # now fill out CFLAGS
+   CFLAGS_EX=""
+   AC_JTR_FLAG_CHECK([-O2], 1)
+   AC_JTR_FLAG_CHECK([-Wall], 1)
+   AC_JTR_FLAG_CHECK([-Wdeclaration-after-statement], 1)
+   AC_JTR_FLAG_CHECK([-fomit-frame-pointer], 1)
+   AC_SUBST([CFLAGS_EXTRA],[${CFLAGS_EX}])
+
+],[
+   # since the 'test' failed, I guess we just do the bone stock fall back to using -O2
+   AC_MSG_NOTICE([Unable to validate $CC command line arguments. Defaulting to -O2. CFLAGS may need to be passed to ./configure for proper build])
+   AC_SUBST([CFLAGS_EXTRA],[-O2])
+])
 
 # Support cross compile
 AC_CANONICAL_HOST
 
 # Check for MPI. Only if MPI not found/wanted: Check for CC.
 using_mpi=no
-AX_PROG_CC_MPI([test "x$enable_mpi" != "xno"],
+AX_PROG_CC_MPI([test "x$enable_mpi" != xno],
   [AC_SUBST(HAVE_MPI,[-DHAVE_MPI])]
   [using_mpi=yes],
-  [if test "x$enable_mpi" = "xyes"; then
+  [if test "x$enable_mpi" = xyes; then
      AC_MSG_FAILURE([No MPI compiler found])
-   elif test "x$enable_mpi" != "xno"; then
+   elif test "x$enable_mpi" != xno; then
      AC_MSG_NOTICE([No MPI compiler found, disabling MPI])
    fi
    AC_PROG_CC([gcc cc icc ccc]) ]
@@ -351,7 +377,7 @@ AC_CHECK_LIB([dl],[dlopen])
 using_rexgen=no
 AC_CHECK_HEADER([regex.h],
   [AC_SEARCH_LIBS([c_regex_iterator_cb],[rexgen librexgen],
-    [] using_rexgen=yes
+    using_rexgen=yes
     [AC_DEFINE(HAVE_LIBREXGEN,1,[Define to 1 if you have the `rexgen' library (-lrexgen).])])],
   [AC_MSG_WARN([Installing librexgen would enable a powerful new wordlist mode.])])
 AC_CHECK_LIB([nsl],[main])
@@ -379,7 +405,7 @@ AC_CACHE_SAVE
 
 # Check for NSS (unless disabled, or cross compiling)
 using_nss=no
-if test "x$enable_nss" != "xno" -a "x$PKG_CONFIG" != xno; then
+if test "x$enable_nss" != xno -a "x$PKG_CONFIG" != xno; then
    PKG_CHECK_MODULES([NSS], [nss],
       using_nss=yes
       AC_SUBST(HAVE_NSS,[-DHAVE_NSS]),
@@ -394,21 +420,21 @@ AX_OPENCL(C)
 
 # Check for CUDA, including headers.
 using_cuda=no
-if test "x$enable_cuda" != "xno"; then
+if test "x$enable_cuda" != xno; then
    AC_CHECK_HEADER([cuda.h],[AC_CHECK_LIB([cudart],[cudaGetDeviceCount],using_cuda=yes AC_SUBST(HAVE_CUDA,1) [LIBS+=" -lcudart"])])
    if test "x$using_cuda" != xyes -a "x$enable_cuda" = xyes; then
       AC_MSG_FAILURE([CUDA not found])
    fi
 fi
 
-AS_IF([test "x$with_exe_ext" != "x"], AC_SUBST([EXE_EXT], [${with_exe_ext}]) [echo executable extension: ${with_exe_ext}] )
+AS_IF([test "x$with_exe_ext" != x], AC_SUBST([EXE_EXT], [${with_exe_ext}]) [echo executable extension: ${with_exe_ext}] )
 
 # Checks for header files.
 # Eg. if arpa/inet.h is found, the below will define HAVE_ARPA_INET_H
 AC_CHECK_HEADERS([OS.h arpa/inet.h sys/times.h fcntl.h limits.h locale.h netdb.h netinet/in.h stddef.h stdint.h stdlib.h string.h strings.h sys/file.h sys/param.h sys/socket.h sys/time.h sys/timeb.h termios.h unistd.h wchar.h unixlib/local.h net/ethernet.h sys/ethernet.h net/if.h pcap.h intrin.h])
 AC_CHECK_HEADERS([netinet/if_ether.h], [], [],
-   [#if HAVE_NET_IF_H
-   #include <net/if.h>
+[#if HAVE_NET_IF_H
+#include <net/if.h>
    #endif
 ])
 AC_CACHE_SAVE
@@ -445,7 +471,7 @@ AC_SUBST([ASFLAGS],[${ASFLAGS}])
 AC_SUBST([EXTRA_AS_FLAGS],[${EXTRA_AS_FLAGS}])
 AC_SUBST([JOHN_BUILD_LABEL],["${CPU_BIT_STR}-bit ${CPU_STR}-autoconf"])
 
-AS_IF([test "x$ALLOWS_UNALIGNED" = "x1"],
+AS_IF([test "x$ALLOWS_UNALIGNED" = x1],
    [AC_DEFINE([ARCH_ALLOWS_UNALIGNED], 1, ["Enable if CPU allows unaligned memory access"])],
    [AC_DEFINE([ARCH_ALLOWS_UNALIGNED], 0, ["Enable if CPU allows unaligned memory access"])])
 

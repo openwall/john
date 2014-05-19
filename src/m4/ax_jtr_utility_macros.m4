@@ -13,14 +13,14 @@
 #          added to with each 'valid' command.
 AC_DEFUN([AC_JTR_FLAG_CHECK],
 [dnl
-  AC_MSG_CHECKING([if $CC supports $1])
+  AS_IF([test "$2" = 1], [AC_MSG_CHECKING([if $CC supports $1])])
   AC_LANG_PUSH([C])
   ac_saved_cflags="$CFLAGS"
   CFLAGS="-Werror $1"
   AC_COMPILE_IFELSE([AC_LANG_PROGRAM([])],
-    [AC_MSG_RESULT([yes])]
+    [AS_IF([test "$2" = 1], [AC_MSG_RESULT([yes])])]
 	[CFLAGS_EX+=" $1"]
-    ,[AC_MSG_ERROR([no])]
+    ,[AS_IF([test "$2" = 1], [AC_MSG_RESULT([no])])]
   )
   CFLAGS="$ac_saved_cflags"
   AC_LANG_POP([C])
