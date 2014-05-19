@@ -207,6 +207,9 @@
 /* Define to 1 if `vfork' works. */
 #undef HAVE_WORKING_VFORK
 
+/* Define to 1 if you have the <x86intrin.h> header file. */
+#undef HAVE_X86INTRIN_H
+
 /* enable if compiling for XOP architecture */
 #undef HAVE_XOP
 

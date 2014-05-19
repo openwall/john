@@ -6763,6 +6763,19 @@ CFLAGS_BACKUP=$CFLAGS
 #############################################################################
 CFLAGS="$CFLAGS -O0"
 if test "x$enable_native_tests" = xyes; then
+  for ac_header in intrin.h x86intrin.h
+do :
+  as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
+ac_fn_c_check_header_mongrel "$LINENO" "$ac_header" "$as_ac_Header" "$ac_includes_default"
+if eval test \"x\$"$as_ac_Header"\" = x"yes"; then :
+  cat >>confdefs.h <<_ACEOF
+#define `$as_echo "HAVE_$ac_header" | $as_tr_cpp` 1
+_ACEOF
+
+fi
+
+done
+
   CPU_NOTFOUND=0
   AVX_NOTFOUND=0
   CC="$CC_BACKUP -msse2"
@@ -6987,7 +7000,11 @@ else
   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
-    #include <intrin.h>
+    #if HAVE_INTRIN_H
+	#include <intrin.h>
+	#elif HAVE_X86INTRIN_H
+	#include <x86intrin.h>
+	#endif
 	#include <stdio.h>
 	extern void exit(int);
 	int main(){__m128i t;*((long long*)&t)=1;t=_mm_roti_epi32(t,5);if((*(long long*)&t)==88)printf(".");exit(0);}
@@ -9877,7 +9894,7 @@ fi
 
 # Checks for header files.
 # Eg. if sys/times.h is found, the below will define HAVE_SYS_TIMES_H
-for ac_header in stdint.h sys/times.h strings.h sys/file.h sys/time.h unistd.h unixlib/local.h net/ethernet.h sys/ethernet.h net/if.h pcap.h intrin.h
+for ac_header in stdint.h sys/times.h strings.h sys/file.h sys/time.h unistd.h unixlib/local.h net/ethernet.h sys/ethernet.h net/if.h pcap.h
 do :
   as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
 ac_fn_c_check_header_mongrel "$LINENO" "$ac_header" "$as_ac_Header" "$ac_includes_default"

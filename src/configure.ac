@@ -420,7 +420,7 @@ AS_IF([test "x$with_exe_ext" != x], AC_SUBST([EXE_EXT], [${with_exe_ext}]) [echo
 
 # Checks for header files.
 # Eg. if sys/times.h is found, the below will define HAVE_SYS_TIMES_H
-AC_CHECK_HEADERS([stdint.h sys/times.h strings.h sys/file.h sys/time.h unistd.h unixlib/local.h net/ethernet.h sys/ethernet.h net/if.h pcap.h intrin.h])
+AC_CHECK_HEADERS([stdint.h sys/times.h strings.h sys/file.h sys/time.h unistd.h unixlib/local.h net/ethernet.h sys/ethernet.h net/if.h pcap.h])
 # OS.h arpa/inet.h fcntl.h limits.h locale.h netdb.h netinet/in.h stddef.h stdlib.h string.h sys/param.h sys/socket.h sys/timeb.h termios.h wchar.h
 AC_CHECK_HEADERS([netinet/if_ether.h], [], [],
 [#if HAVE_NET_IF_H
