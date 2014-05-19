@@ -398,7 +398,7 @@ AC_CACHE_SAVE
 # Check for NSS (unless disabled, or cross compiling)
 using_nss=no
 if test "x$enable_nss" != xno -a "x$PKG_CONFIG" != xno; then
-   PKG_CHECK_MODULES([NSS], [nss], using_nss=yes AC_SUBST(HAVE_NSS,[-DHAVE_NSS]))
+   PKG_CHECK_MODULES([NSS], [nss], using_nss=yes AC_SUBST(HAVE_NSS,[-DHAVE_NSS]),:)
 fi
 
 # Check for openMP (enable/disable handled within the macro).
