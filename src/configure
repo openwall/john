@@ -654,6 +654,7 @@ HAVE_NSS
 HAVE_PCAP
 OPENSSL_LIBS
 OPENSSL_CFLAGS
+NVIDIA_CUDA
 EGREP
 PKG_CONFIG_LIBDIR
 PKG_CONFIG_PATH
@@ -8838,16 +8839,20 @@ CPPFLAGS+="$ADD_CFLAGS"
 $as_echo_n "checking additional paths for CUDA... " >&6; }
   ADD_LDFLAGS=""
   ADD_CFLAGS=""
-if test -z "$NVIDIA_CUDA"; then
-   NVIDIA_CUDA=/usr/local/cuda
+if test -n "$NVIDIA_CUDA"; then
+   CUDAPATH="$NVIDIA_CUDA"
+else
+   CUDAPATH=/usr/local/cuda
 fi
-if test -d "$NVIDIA_CUDA/include"; then
-   ADD_CFLAGS+=" -I$NVIDIA_CUDA/include"
+NVIDIA_CUDA="$CUDAPATH"
+
+if test -d "$CUDAPATH/include"; then
+   ADD_CFLAGS+=" -I$CUDAPATH/include"
 fi
-if test $CPU_BIT_STR = 64 -a -d "$NVIDIA_CUDA/lib64"; then
-   ADD_LDFLAGS+=" -L$NVIDIA_CUDA/lib64"
-elif test -d "$NVIDIA_CUDA/lib"; then
-   ADD_LDFLAGS+=" -L$NVIDIA_CUDA/lib"
+if test $CPU_BIT_STR = 64 -a -d "$CUDAPATH/lib64"; then
+   ADD_LDFLAGS+=" -L$CUDAPATH/lib64"
+elif test -d "$CUDAPATH/lib"; then
+   ADD_LDFLAGS+=" -L$CUDAPATH/lib"
 fi
 case "x${ADD_CFLAGS}x${ADD_LDFLAGS}" in
      "xx") cond_and="no" ;;
@@ -11166,7 +11171,7 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_cudart_cudaGetDeviceCount" >&5
 $as_echo "$ac_cv_lib_cudart_cudaGetDeviceCount" >&6; }
 if test "x$ac_cv_lib_cudart_cudaGetDeviceCount" = xyes; then :
-  using_cuda=yes HAVE_CUDA=1
+  using_cuda=yes HAVE_CUDA=-DHAVE_CUDA
  LIBS+=" -lcudart"
 fi
 

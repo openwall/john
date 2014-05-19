@@ -64,16 +64,19 @@ AC_DEFUN([AC_JTR_SET_CUDA_INCLUDES],
   AC_MSG_CHECKING([additional paths for CUDA])
   ADD_LDFLAGS=""
   ADD_CFLAGS=""
-if test -z "$NVIDIA_CUDA"; then
-   NVIDIA_CUDA=/usr/local/cuda
+if test -n "$NVIDIA_CUDA"; then
+   CUDAPATH="$NVIDIA_CUDA"
+else
+   CUDAPATH=/usr/local/cuda
 fi
-if test -d "$NVIDIA_CUDA/include"; then
-   ADD_CFLAGS+=" -I$NVIDIA_CUDA/include"
+AC_SUBST([NVIDIA_CUDA],["$CUDAPATH"])
+if test -d "$CUDAPATH/include"; then
+   ADD_CFLAGS+=" -I$CUDAPATH/include"
 fi
-if test $CPU_BIT_STR = 64 -a -d "$NVIDIA_CUDA/lib64"; then
-   ADD_LDFLAGS+=" -L$NVIDIA_CUDA/lib64"
-elif test -d "$NVIDIA_CUDA/lib"; then
-   ADD_LDFLAGS+=" -L$NVIDIA_CUDA/lib"
+if test $CPU_BIT_STR = 64 -a -d "$CUDAPATH/lib64"; then
+   ADD_LDFLAGS+=" -L$CUDAPATH/lib64"
+elif test -d "$CUDAPATH/lib"; then
+   ADD_LDFLAGS+=" -L$CUDAPATH/lib"
 fi
 case "x${ADD_CFLAGS}x${ADD_LDFLAGS}" in
      "xx") cond_and="no" ;;

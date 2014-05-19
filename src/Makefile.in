@@ -42,25 +42,16 @@ infodir = $(prefix)/info
 libdir = $(prefix)/lib/gnudl
 mandir = $(prefix)/man/man1
 
-########
-# This section commented out, until Magnum can validate we do not need it.  I am
-# not going to scrap it (yet), but I think configure should handle ALL of this,
-# I am just not 100% sure it is all done right now.
-########
-#   # CUDA settings. Instead of "-arch sm_10" you could use sm_20 or sm_30 or
-#   # -gencode arch=compute_10,code=sm_10 -gencode arch=compute_20,code=sm_21
-#   # but that leads to problems on GTX Titan.
-#   # You could add "-gencode arch=compute_30,code=sm_30" too but that just
-#   # leads to regressions for Kepler cards, when it works at all.
-#   NVCC_FLAGS = -c -Xptxas -v -fmad=true -arch sm_10
-#   CUDAPATH = /usr/local/cuda
-#   NVCC = PATH=$(PATH):$(CUDAPATH)/bin/ nvcc
-#   CCBIN_OSX = /usr/bin/llvm-gcc-4.2
-########
+# CUDA settings. Instead of "-arch sm_10" you could use sm_20 or sm_30 or
+# -gencode arch=compute_10,code=sm_10 -gencode arch=compute_20,code=sm_21
+# but that leads to problems on GTX Titan.
+# You could add "-gencode arch=compute_30,code=sm_30" too but that just
+# leads to regressions for Kepler cards, when it works at all.
+NVCC_FLAGS = -c -Xptxas -v -fmad=true -arch sm_10
 
 # @CPU_BITS@ left out
 CPPFLAGS += @CPPFLAGS@
-CFLAGSX = -DAC_BUILT $(CPPFLAGS) -c @CFLAGS@ @CFLAGS_EXTRA@ @HAVE_NSS@ @NSS_CFLAGS@ @OPENSSL_CFLAGS@ @OPENMP_CFLAGS@ @HAVE_MPI@ $(RELEASE_BLD)
+CFLAGSX = -DAC_BUILT $(CPPFLAGS) -c @CFLAGS@ @CFLAGS_EXTRA@ @HAVE_CUDA@ @HAVE_NSS@ @NSS_CFLAGS@ @OPENSSL_CFLAGS@ @OPENMP_CFLAGS@ @HAVE_MPI@ $(RELEASE_BLD)
 # CFLAGS for use on the main john.c file only
 CFLAGS_MAIN = @CC_MAIN_CPU@ $(CFLAGSX)
 CFLAGS = @CC_CPU@ $(CFLAGSX)
@@ -197,18 +188,12 @@ endif
 
 WITH_CUDA=@HAVE_CUDA@
 ifdef WITH_CUDA
-CFLAGS += -I$(CUDAPATH)/include -DHAVE_CUDA
-CFLAGS_MAIN += -I$(CUDAPATH)/include -DHAVE_CUDA
-ifneq ($(wildcard $(CUDAPATH)/lib),)
-LDFLAGS += -L$(CUDAPATH)/lib
-endif
-ifneq ($(wildcard $(CUDAPATH)/lib@CPU_BIT_STR@),)
-LDFLAGS += -L$(CUDAPATH)/lib@CPU_BIT_STR@
-endif
-JOHN_OBJS += $(CUDA_OBJS)
+NVCC = PATH=$(PATH):%NVIDIA_CUDA%/bin/ nvcc
+CCBIN_OSX = /usr/bin/llvm-gcc-4.2
 ifneq ($(wildcard $(CCBIN_OSX)),)
 NVCC_FLAGS += @CPU_BITS@ -ccbin=$(CCBIN_OSX)
 endif
+JOHN_OBJS += $(CUDA_OBJS)
 endif
 
 WITH_OPENCL=@CL_LIBS@

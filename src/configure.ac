@@ -129,7 +129,7 @@ AC_MSG_CHECKING([arg check macro with $CC])
 AC_JTR_FLAG_CHECK([-fFOO_BAR_SWITCH_NOT_VALID], 0)
 AC_JTR_FLAG_CHECK([-mFOO_BAR_SWITCH_NOT_VALID], 0)
 AC_JTR_FLAG_CHECK([-m666], 0)
-AS_IF([test "x${CFLAGS_EX}" = x], 
+AS_IF([test "x${CFLAGS_EX}" = x],
    [AC_MSG_RESULT([yes])]
    JTR_FLAG_CHECK_WORKS=yes
    ,[AC_MSG_RESULT([no])])
@@ -421,7 +421,7 @@ AX_OPENCL(C)
 # Check for CUDA, including headers.
 using_cuda=no
 if test "x$enable_cuda" != xno; then
-   AC_CHECK_HEADER([cuda.h],[AC_CHECK_LIB([cudart],[cudaGetDeviceCount],using_cuda=yes AC_SUBST(HAVE_CUDA,1) [LIBS+=" -lcudart"])])
+   AC_CHECK_HEADER([cuda.h],[AC_CHECK_LIB([cudart],[cudaGetDeviceCount],using_cuda=yes AC_SUBST([HAVE_CUDA],[-DHAVE_CUDA]) [LIBS+=" -lcudart"])])
    if test "x$using_cuda" != xyes -a "x$enable_cuda" = xyes; then
       AC_MSG_FAILURE([CUDA not found])
    fi
