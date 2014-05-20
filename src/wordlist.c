@@ -308,10 +308,11 @@ static double get_progress(void)
 	if (!word_file || word_file == stdin)
 		return -1;
 
-	if (fstat(fileno(word_file), &file_stat)) pexit("fstat");
 	if (nWordFileLines)
 		pos = line_number;
 	else {
+		if (fstat(fileno(word_file), &file_stat))
+			pexit("fstat");
 		if ((pos = ftell(word_file)) < 0) {
 #ifdef __DJGPP__
 			if (pos != -1)
@@ -324,11 +325,11 @@ static double get_progress(void)
 
 	if (nWordFileLines)
 		return ((100.0 * (rule_number *
-		                  (double)nWordFileLines + pos)) /
+		                  (double)nWordFileLines) + pos) /
 		        (rule_count * (double)nWordFileLines));
 	else
 		return ((100.0 * (rule_number *
-		                  (double)file_stat.st_size + pos)) /
+		                  (double)file_stat.st_size) + pos) /
 		        (rule_count * (double)file_stat.st_size));
 }
 
