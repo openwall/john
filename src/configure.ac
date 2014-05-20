@@ -175,8 +175,7 @@ AS_IF([test "x$JTR_FLAG_CHECK_WORKS" = xyes],
 
 ],[
    # since the 'test' failed, I guess we just do the bone stock fall back to using -O2
-   AC_MSG_NOTICE([Unable to validate $CC command line arguments. Defaulting to -O2. CFLAGS may need to be passed to ./configure for proper build])
-   AC_SUBST([CFLAGS_EXTRA],[-O2])
+   AC_MSG_NOTICE([Unable to validate $CC command line arguments. CFLAGS may need to be passed to ./configure for proper build])
 ])
 
 # At this point we know whether this is a cross compile

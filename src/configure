@@ -5642,10 +5642,8 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 else
 
    # since the 'test' failed, I guess we just do the bone stock fall back to using -O2
-   { $as_echo "$as_me:${as_lineno-$LINENO}: Unable to validate $CC command line arguments. Defaulting to -O2. CFLAGS may need to be passed to ./configure for proper build" >&5
-$as_echo "$as_me: Unable to validate $CC command line arguments. Defaulting to -O2. CFLAGS may need to be passed to ./configure for proper build" >&6;}
-   CFLAGS_EXTRA=-O2
-
+   { $as_echo "$as_me:${as_lineno-$LINENO}: Unable to validate $CC command line arguments. CFLAGS may need to be passed to ./configure for proper build" >&5
+$as_echo "$as_me: Unable to validate $CC command line arguments. CFLAGS may need to be passed to ./configure for proper build" >&6;}
 
 fi
 
