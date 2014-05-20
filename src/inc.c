@@ -48,7 +48,7 @@ static double get_progress(void)
 
 	try = ((unsigned long long)status.cands.hi << 32) + status.cands.lo;
 
-	return try / cand * 100.0;
+	return 100.0 * try / cand;
 }
 
 typedef char (*char2_table)

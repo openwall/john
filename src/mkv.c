@@ -228,7 +228,7 @@ static double get_progress(void)
 	if(gend == 0)
 		return 0;
 
-	return (double)(gidx - gstart) / (gend - gstart) * 100.0;
+	return 100.0 * (gidx - gstart) / (gend - gstart);
 }
 
 void get_markov_options(struct db_main *db,

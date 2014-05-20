@@ -47,7 +47,7 @@ static double get_progress(void)
 	if (!cand)
 		return -1;
 
-	return 100.0 * (try / cand);
+	return 100.0 * try / cand;
 }
 
 static void save_state(FILE *file)
