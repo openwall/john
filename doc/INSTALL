@@ -61,7 +61,11 @@ OpenCL, CUDA and extra libraries mentioned above. The only exception is MPI
 which needs the "--enable-mpi" option to be supplied to configure. If something
 is missing, it's likely installed in a non-standard location so you'd need to
 pass parameters:
-	./configure LDFLAGS=-L/opt/lib CFLAGS=-I/opt/include && make
+	./configure LDFLAGS=-L/opt/lib CFLAGS="-O2 -I/opt/include" && make
+
+NOTE! If you pass CFLAGS like above, you probably also want to add "-O2"
+since it (and "-g") will only be added automatically provided CFLAGS start
+out empty. This is a feature of the autoconf macros, not specific to JtR.
 
 You can also disable certain features you don't want, eg:
 	./configure --disable-openmp && make
