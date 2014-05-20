@@ -297,8 +297,8 @@ static void fix_state(void)
 
 static double get_progress(void)
 {
-	struct stat file_stat;
-	long pos;
+	size_t size;
+	size_t pos;
 
 	emms();
 
@@ -308,11 +308,18 @@ static double get_progress(void)
 	if (!word_file || word_file == stdin)
 		return -1;
 
-	if (nWordFileLines)
+	if (nWordFileLines) {
 		pos = line_number;
-	else {
+		size = nWordFileLines;
+	} else if (mem_map) {
+		pos = map_pos - mem_map;
+		size = map_end - mem_map;
+	} else {
+		struct stat file_stat;
+
 		if (fstat(fileno(word_file), &file_stat))
 			pexit("fstat");
+		size = file_stat.st_size;
 		if ((pos = ftell(word_file)) < 0) {
 #ifdef __DJGPP__
 			if (pos != -1)
@@ -322,15 +329,8 @@ static double get_progress(void)
 				pexit("ftell");
 		}
 	}
-
-	if (nWordFileLines)
-		return ((100.0 * (rule_number *
-		                  (double)nWordFileLines) + pos) /
-		        (rule_count * (double)nWordFileLines));
-	else
-		return ((100.0 * (rule_number *
-		                  (double)file_stat.st_size) + pos) /
-		        (rule_count * (double)file_stat.st_size));
+	return (100.0 * ((rule_number * (double)size) + pos) /
+	        (rule_count * (double)size));
 }
 
 static char *dummy_rules_apply(char *word, char *rule, int split, char *last)
