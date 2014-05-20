@@ -45,7 +45,6 @@ CFLAGS_BACKUP=$CFLAGS
 #############################################################################
 CFLAGS="$CFLAGS -O0"
 if test "x$enable_native_tests" = xyes; then
-  AC_CHECK_HEADERS([intrin.h x86intrin.h])
   CPU_NOTFOUND=0
   AVX_NOTFOUND=0
   CC="$CC_BACKUP -msse2"
@@ -161,11 +160,7 @@ if test "x$enable_native_tests" = xyes; then
   AC_RUN_IFELSE(
     [
     AC_LANG_SOURCE(
-	  [[#if HAVE_INTRIN_H
-	#include <intrin.h>
-	#elif HAVE_X86INTRIN_H
-	#include <x86intrin.h>
-	#endif
+	  [[#include <x86intrin.h>
 	#include <stdio.h>
 	extern void exit(int);
 	int main(){__m128i t;*((long long*)&t)=1;t=_mm_roti_epi32(t,5);if((*(long long*)&t)==88)printf(".");exit(0);}]]

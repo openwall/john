@@ -51,9 +51,6 @@
 /* Define to 1 if you have the <gmp.h> header file. */
 #undef HAVE_GMP_H
 
-/* Define to 1 if you have the <intrin.h> header file. */
-#undef HAVE_INTRIN_H
-
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
 
@@ -206,9 +203,6 @@
 
 /* Define to 1 if `vfork' works. */
 #undef HAVE_WORKING_VFORK
-
-/* Define to 1 if you have the <x86intrin.h> header file. */
-#undef HAVE_X86INTRIN_H
 
 /* enable if compiling for XOP architecture */
 #undef HAVE_XOP
