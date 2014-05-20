@@ -15,9 +15,13 @@
  * Thanks to Solar for asking to add support for bitcoin wallet files.
  */
 
+#include "arch.h"
+#include <openssl/evp.h>
+#if (AC_BUILT && HAVE_EVP_SHA512) || \
+	(!AC_BUILT && OPENSSL_VERSION_NUMBER >= 0x0090708f)
+
 #include <openssl/evp.h>
 #include <string.h>
-#include "arch.h"
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
@@ -366,3 +370,5 @@ struct fmt_main fmt_bitcoin = {
 		cmp_exact
 	}
 };
+
+#endif

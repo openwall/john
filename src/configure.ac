@@ -392,9 +392,12 @@ AC_CHECK_LIB([wst],[main])
 # in makefile, we need to know if building extra pcap items.
 AC_CHECK_HEADER([pcap.h],[AC_CHECK_LIB([pcap],[pcap_compile],[AC_SUBST(HAVE_PCAP,[-DHAVE_PCAP])] [LIBS+=" -lpcap"])])
 
-# Check for non-standard variations we can handle
-AC_CHECK_HEADER([openssl/whrlpool.h],,[AC_DEFINE([HAVE_NO_SSL_WHIRLPOOL], 1, ["Define if your OpenSSL is built without Whirlpool support"])])
-
+# Check for variations we can handle
+# We need these two AC_CHECK_LIB for the following AC_CHECK_FUNCS to work -
+# PKG_CHECK_MODULES did not do the trick (but perhaps this is fixable)
+AC_CHECK_LIB([ssl], [SSL_library_init])
+AC_CHECK_LIB([crypto], [RC4])
+AC_CHECK_FUNCS([EVP_aes_256_xts SHA256 WHIRLPOOL AES_encrypt EVP_sha512])
 AC_CACHE_SAVE
 
 #################

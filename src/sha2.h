@@ -31,12 +31,13 @@
 #define _JOHN_SHA2_h
 
 #include <string.h>
+#include "arch.h"
 #include <openssl/opensslv.h>
 #include "openssl_local_overrides.h"
 
-#if OPENSSL_VERSION_NUMBER >= 0x00908000 && !defined(FORCE_GENERIC_SHA2)
+#if (AC_BUILT && HAVE_SHA256 && !FORCE_GENERIC_SHA2) ||	  \
+    (!AC_BUILT && OPENSSL_VERSION_NUMBER >= 0x00908000 && !FORCE_GENERIC_SHA2)
 
-#include "arch.h"
 #if defined(__APPLE__) && defined(__MACH__) && defined(__MAC_OS_X_VERSION_MIN_REQUIRED) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070 && !defined(FORCE_OPENSSL_SHA2) && !defined(MMX_COEF)
 /* Mitigate CommonCrypto name clashes */
 #include "md4.h"

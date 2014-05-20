@@ -27,6 +27,9 @@
 /* "Type with native size" */
 #undef ARCH_WORD
 
+/* Define to 1 if you have the `AES_encrypt' function. */
+#undef HAVE_AES_ENCRYPT
+
 /* enable if compiling for AVX architecture */
 #undef HAVE_AVX
 
@@ -38,6 +41,12 @@
 
 /* Define to 1 if you have the `crypt' library (-lcrypt). */
 #undef HAVE_CRYPT
+
+/* Define to 1 if you have the `EVP_aes_256_xts' function. */
+#undef HAVE_EVP_AES_256_XTS
+
+/* Define to 1 if you have the `EVP_sha512' function. */
+#undef HAVE_EVP_SHA512
 
 /* Define to 1 if you have the `fork' function. */
 #undef HAVE_FORK
@@ -120,9 +129,6 @@
 /* Define to 1 if you have the <net/if.h> header file. */
 #undef HAVE_NET_IF_H
 
-/* "Define if your OpenSSL is built without Whirlpool support" */
-#undef HAVE_NO_SSL_WHIRLPOOL
-
 /* Define to 1 if you have the <OpenCL/cl.h> header file. */
 #undef HAVE_OPENCL_CL_H
 
@@ -137,6 +143,9 @@
 
 /* Define to 1 if the system has the type `ptrdiff_t'. */
 #undef HAVE_PTRDIFF_T
+
+/* Define to 1 if you have the `SHA256' function. */
+#undef HAVE_SHA256
 
 /* Define to 1 if you have skey library and headers */
 #undef HAVE_SKEY
@@ -194,6 +203,9 @@
 
 /* Define to 1 if you have the <vfork.h> header file. */
 #undef HAVE_VFORK_H
+
+/* Define to 1 if you have the `WHIRLPOOL' function. */
+#undef HAVE_WHIRLPOOL
 
 /* Define to 1 if you have the <windows.h> header file. */
 #undef HAVE_WINDOWS_H

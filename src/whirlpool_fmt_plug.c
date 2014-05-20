@@ -18,7 +18,8 @@
 #include "params.h"
 #include "options.h"
 #include <openssl/opensslv.h>
-#if OPENSSL_VERSION_NUMBER >= 0x10000000 && !HAVE_NO_SSL_WHIRLPOOL
+#if (AC_BUILT && HAVE_WHIRLPOOL) ||	\
+   (!AC_BUILT && OPENSSL_VERSION_NUMBER >= 0x10000000 && !HAVE_NO_SSL_WHIRLPOOL)
 #include "openssl/whrlpool.h"
 #endif
 #ifdef _OPENMP
@@ -168,9 +169,10 @@ static int crypt_2(int *pcount, struct db_salt *salt)
 	for (index = 0; index < count; index++)
 #endif
 	{
-#if OPENSSL_VERSION_NUMBER >= 0x10000000 && !HAVE_NO_SSL_WHIRLPOOL
+#if (AC_BUILT && HAVE_WHIRLPOOL) ||	\
+   (!AC_BUILT && OPENSSL_VERSION_NUMBER >= 0x10000000 && !HAVE_NO_SSL_WHIRLPOOL)
 		WHIRLPOOL_CTX ctx;
-		
+
 		WHIRLPOOL_Init(&ctx);
 		WHIRLPOOL_Update(&ctx, saved_key[index], strlen(saved_key[index]));
 		WHIRLPOOL_Final((unsigned char*)crypt_out[index], &ctx);

@@ -131,12 +131,16 @@ extern struct fmt_main fmt_NT;
 // just yet.
 extern struct fmt_main fmt_django;
 
-#if OPENSSL_VERSION_NUMBER >= 0x10001000 && !HAVE_NO_SSL_EVP_aes
+#if (AC_BUILT && HAVE_EVP_AES_256_XTS) ||	  \
+    (!AC_BUILT && OPENSSL_VERSION_NUMBER >= 0x10001000 && !HAVE_NO_SSL_EVP_aes)
 extern struct fmt_main fmt_truecrypt;
 extern struct fmt_main fmt_truecrypt_sha512;
 extern struct fmt_main fmt_truecrypt_whirlpool;
 #endif
-
+#if (AC_BUILT && HAVE_EVP_SHA512) || \
+	(!AC_BUILT && OPENSSL_VERSION_NUMBER >= 0x0090708f)
+extern struct fmt_main fmt_bitcoin;
+#endif
 #ifdef __SSE2__
 extern struct fmt_main fmt_rawSHA256_ng;
 extern struct fmt_main fmt_rawSHA512_ng;
@@ -376,10 +380,16 @@ static void john_register_all(void)
 	john_register_one(&fmt_rawSHA0);
 	john_register_one(&fmt_django);
 
-#if OPENSSL_VERSION_NUMBER >= 0x10001000 && !HAVE_NO_SSL_EVP_aes
+#if (AC_BUILT && HAVE_EVP_AES_256_XTS) ||	  \
+    (!AC_BUILT && OPENSSL_VERSION_NUMBER >= 0x10001000 && !HAVE_NO_SSL_EVP_aes)
 	john_register_one(&fmt_truecrypt);
 	john_register_one(&fmt_truecrypt_sha512);
 	john_register_one(&fmt_truecrypt_whirlpool);
+#endif
+
+#if (AC_BUILT && HAVE_EVP_SHA512) || \
+	(!AC_BUILT && OPENSSL_VERSION_NUMBER >= 0x0090708f)
+	john_register_one(&fmt_bitcoin);
 #endif
 
 #if defined (__SSE2__) && !defined(_MSC_VER)
