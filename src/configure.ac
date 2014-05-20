@@ -598,6 +598,10 @@ fi
 if test "x$ac_cv_lib_pcap_pcap_compile" = x ; then
    ac_cv_lib_pcap_pcap_compile=no
 fi
+if test $(echo "$CFLAGS" | ${GREP} -c -- -O) -eq 0; then
+   echo
+   AC_MSG_WARN([No recognized optimization option present in CFLAGS])
+fi
 
 cat <<EOF
 dnl =======================================================================
