@@ -282,6 +282,13 @@ AC_MSG_CHECKING([for arch.h alternative])
 AC_MSG_RESULT([${ARCH_LINK}])
 AX_JTR_GENERIC_LOGIC
 
+# Set a variable detecting x86-64 w/ X32 ABI
+if test "x$ax_intel_x32" = xyes; then
+   using_x32=" X32 ABI"
+else
+   using_x32=""
+fi
+
 ###########################
 # now that we have 64 bit vs 32 bit, we do some additional checks for OpenCL
 # and CUDA libs. TODO: This may result in dupes but these are benign.
@@ -458,7 +465,7 @@ AC_SUBST([CPU_BITS],[${CPU_BITS}])
 AC_SUBST([CPU_BIT_STR],[${CPU_BIT_STR}])
 AC_SUBST([ASFLAGS],[${ASFLAGS}])
 AC_SUBST([EXTRA_AS_FLAGS],[${EXTRA_AS_FLAGS}])
-AC_SUBST([JOHN_BUILD_LABEL],["${CPU_BIT_STR}-bit ${CPU_STR}-autoconf"])
+AC_SUBST([JOHN_BUILD_LABEL],["${CPU_BIT_STR}-bit${using_x32} ${CPU_STR}-autoconf"])
 
 AS_IF([test "x$ALLOWS_UNALIGNED" = x1],
    [AC_DEFINE([ARCH_ALLOWS_UNALIGNED], 1, ["Enable if CPU allows unaligned memory access"])],
@@ -488,14 +495,23 @@ else
 fi
 AC_SUBST([AESNI_ARCH],[$aesni_arch])
 
+#
+# TODO: If X32, we need to check for a new enough yasm that understands the
+# "-f elfx32" output format. If it doesn't, disable AES-NI.
+#
+
 aesni_os=""
 aesni_options="DISABLED"
 if test "x$ac_cv_path_YASM" != x; then
-  case "$host" in
-     x86_64*darwin*) aesni_os=darwin aesni_options="--prefix=_ -f macho${CPU_BIT_STR}" ;;
-     i?86*darwin*) aesni_os=darwin aesni_options="-f macho${CPU_BIT_STR}" ;;
-     *86*linux*) aesni_os=linux aesni_options="-g dwarf2 -f elf${CPU_BIT_STR}" ;;
-  esac
+   if test "x$ax_intel_x32" = xyes; then
+      : #aesni_os=linux aesni_options="-g dwarf2 -f elfx32"
+   else
+      case "$host" in
+	 x86_64*darwin*) aesni_os=darwin aesni_options="--prefix=_ -f macho${CPU_BIT_STR}" ;;
+	 i?86*darwin*) aesni_os=darwin aesni_options="-f macho${CPU_BIT_STR}" ;;
+	 *86*linux*) aesni_os=linux aesni_options="-g dwarf2 -f elf${CPU_BIT_STR}" ;;
+      esac
+   fi
 fi
 AC_SUBST([AESNI_OS],[$aesni_os])
 AC_SUBST([YASM_OPTIONS],[$aesni_options])
@@ -525,7 +541,7 @@ LC_ALL=C ${SED} -n 's/^\(struct fmt_main [[^ ]]*\) =.*/extern \1;/p' *_fmt_plug.
 echo "configure: creating ./fmt_registers.h"
 LC_ALL=C ${SED} -n 's/^struct fmt_main \([[^ ]]*\) =.*/john_register_one(\&\1);/p' *_fmt_plug.c | LC_ALL=C ${SORT} > fmt_registers.h
 echo "configure: creating ./john_build_rule.h"
-echo "#define JOHN_BLD \"${CPU_BIT_STR}-bit ${CPU_STR}-autoconf\"" > john_build_rule.h
+echo "#define JOHN_BLD \"${CPU_BIT_STR}-bit${using_x32} ${CPU_STR}-autoconf\"" > john_build_rule.h
 ########################################################
 # End of plugin and build_rules generation code
 ########################################################
@@ -588,7 +604,7 @@ dnl =======================================================================
 
 Configured for building John the Ripper ${PACKAGE_VERSION}:
 
-Target CPU .................................. ${host_cpu}, ${CPU_BIT_STR}-bit
+Target CPU .................................. ${host_cpu}, ${CPU_BIT_STR}-bit${using_x32}
 AES-NI support .............................. ${using_aesni}
 Target OS ................................... ${host_os}
 Cross compiling ............................. ${cross_compiling}

@@ -7451,9 +7451,9 @@ fi
 # Extra code for cygwin64 test.  We need to add __CYGWIN64__ and __CYGWIN32__
 # to CFLAGS AND to ASFLAGS, since cygwin64 does not do this for us (damn them)
 #############################################################################
-if test "x$CPU_BIT_STR" = x64; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking if cygwin64" >&5
-$as_echo_n "checking if cygwin64... " >&6; }
+if test "x$cpu_family" = xintel -a "x$CPU_BIT_STR" = x64; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for cygwin64" >&5
+$as_echo_n "checking for cygwin64... " >&6; }
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 extern void exit(int);
@@ -7470,6 +7470,7 @@ _ACEOF
 if ac_fn_c_try_link "$LINENO"; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
+   ax_intel_x32=no
    EXTRA_AS_FLAGS+=" -D__CYGWIN64__ -D__CYGWIN32__"
    # CFLAG_EXTRA was already defined (early in configure.ac).  We append to it, and AC_SUBST it again.
    CFLAGS_EX+=" -D__CYGWIN64__ -D__CYGWIN32__"
@@ -7485,9 +7486,49 @@ rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
 fi
 
+#############################################################################
+# Extra code for X32 ABI test.  We need this for dynamic AES-NI support.
+#############################################################################
+if test "x$cpu_family" = xintel -a "x$ax_intel_x32" != xno; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for X32 ABI" >&5
+$as_echo_n "checking for X32 ABI... " >&6; }
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+extern void exit(int);
+     int main() {
+     #if defined(__x86_64__) && defined(__ILP32__)
+         exit(0);}
+     #else
+         BORK!
+     #endif
+
+
+
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+   ax_intel_x32=yes
+
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+fi
+
 CC="$CC_BACKUP"
 CFLAGS="$CFLAGS_BACKUP"
 
+
+# Set a variable detecting x86-64 w/ X32 ABI
+if test "x$ax_intel_x32" = xyes; then
+   using_x32=" X32 ABI"
+else
+   using_x32=""
+fi
 
 ###########################
 # now that we have 64 bit vs 32 bit, we do some additional checks for OpenCL
@@ -10771,7 +10812,7 @@ ASFLAGS=${ASFLAGS}
 
 EXTRA_AS_FLAGS=${EXTRA_AS_FLAGS}
 
-JOHN_BUILD_LABEL="${CPU_BIT_STR}-bit ${CPU_STR}-autoconf"
+JOHN_BUILD_LABEL="${CPU_BIT_STR}-bit${using_x32} ${CPU_STR}-autoconf"
 
 
 if test "x$ALLOWS_UNALIGNED" = x1; then :
@@ -10841,14 +10882,23 @@ fi
 AESNI_ARCH=$aesni_arch
 
 
+#
+# TODO: If X32, we need to check for a new enough yasm that understands the
+# "-f elfx32" output format. If it doesn't, disable AES-NI.
+#
+
 aesni_os=""
 aesni_options="DISABLED"
 if test "x$ac_cv_path_YASM" != x; then
-  case "$host" in
-     x86_64*darwin*) aesni_os=darwin aesni_options="--prefix=_ -f macho${CPU_BIT_STR}" ;;
-     i?86*darwin*) aesni_os=darwin aesni_options="-f macho${CPU_BIT_STR}" ;;
-     *86*linux*) aesni_os=linux aesni_options="-g dwarf2 -f elf${CPU_BIT_STR}" ;;
-  esac
+   if test "x$ax_intel_x32" = xyes; then
+      : #aesni_os=linux aesni_options="-g dwarf2 -f elfx32"
+   else
+      case "$host" in
+	 x86_64*darwin*) aesni_os=darwin aesni_options="--prefix=_ -f macho${CPU_BIT_STR}" ;;
+	 i?86*darwin*) aesni_os=darwin aesni_options="-f macho${CPU_BIT_STR}" ;;
+	 *86*linux*) aesni_os=linux aesni_options="-g dwarf2 -f elf${CPU_BIT_STR}" ;;
+      esac
+   fi
 fi
 AESNI_OS=$aesni_os
 
@@ -10885,7 +10935,7 @@ LC_ALL=C ${SED} -n 's/^\(struct fmt_main [^ ]*\) =.*/extern \1;/p' *_fmt_plug.c 
 echo "configure: creating ./fmt_registers.h"
 LC_ALL=C ${SED} -n 's/^struct fmt_main \([^ ]*\) =.*/john_register_one(\&\1);/p' *_fmt_plug.c | LC_ALL=C ${SORT} > fmt_registers.h
 echo "configure: creating ./john_build_rule.h"
-echo "#define JOHN_BLD \"${CPU_BIT_STR}-bit ${CPU_STR}-autoconf\"" > john_build_rule.h
+echo "#define JOHN_BLD \"${CPU_BIT_STR}-bit${using_x32} ${CPU_STR}-autoconf\"" > john_build_rule.h
 ########################################################
 # End of plugin and build_rules generation code
 ########################################################
@@ -12314,7 +12364,7 @@ cat <<EOF
 
 Configured for building John the Ripper ${PACKAGE_VERSION}:
 
-Target CPU .................................. ${host_cpu}, ${CPU_BIT_STR}-bit
+Target CPU .................................. ${host_cpu}, ${CPU_BIT_STR}-bit${using_x32}
 AES-NI support .............................. ${using_aesni}
 Target OS ................................... ${host_os}
 Cross compiling ............................. ${cross_compiling}

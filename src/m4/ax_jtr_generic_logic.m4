@@ -136,8 +136,8 @@ AS_IF([test "x$EXTRA_AS_FLAGS" = x],[AC_MSG_RESULT([None needed])],[AC_MSG_RESUL
 # Extra code for cygwin64 test.  We need to add __CYGWIN64__ and __CYGWIN32__
 # to CFLAGS AND to ASFLAGS, since cygwin64 does not do this for us (damn them)
 #############################################################################
-AS_IF([test "x$CPU_BIT_STR" = x64],
-AC_MSG_CHECKING([if cygwin64])
+AS_IF([test "x$cpu_family" = xintel -a "x$CPU_BIT_STR" = x64],
+AC_MSG_CHECKING([for cygwin64])
 [AC_LINK_IFELSE(
    [AC_LANG_SOURCE(
       [[extern void exit(int);
@@ -150,10 +150,32 @@ AC_MSG_CHECKING([if cygwin64])
       ]]
    )]
    ,[AC_MSG_RESULT([yes])]
+   [ax_intel_x32=no]
    [EXTRA_AS_FLAGS+=" -D__CYGWIN64__ -D__CYGWIN32__"]
    # CFLAG_EXTRA was already defined (early in configure.ac).  We append to it, and AC_SUBST it again.
    [CFLAGS_EX+=" -D__CYGWIN64__ -D__CYGWIN32__"]
    AC_SUBST([CFLAGS_EXTRA],[${CFLAGS_EX}])
+   ,[AC_MSG_RESULT([no])]
+)])
+
+#############################################################################
+# Extra code for X32 ABI test.  We need this for dynamic AES-NI support.
+#############################################################################
+AS_IF([test "x$cpu_family" = xintel -a "x$ax_intel_x32" != xno],
+AC_MSG_CHECKING([for X32 ABI])
+[AC_LINK_IFELSE(
+   [AC_LANG_SOURCE(
+      [[extern void exit(int);
+     int main() {
+     #if defined(__x86_64__) && defined(__ILP32__)
+         exit(0);}
+     #else
+         BORK!
+     #endif
+      ]]
+   )]
+   ,[AC_MSG_RESULT([yes])]
+   [ax_intel_x32=yes]
    ,[AC_MSG_RESULT([no])]
 )])
 
