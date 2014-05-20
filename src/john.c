@@ -1228,6 +1228,7 @@ static void john_load(void)
 	    database.format != &fmt_LM) {
 		struct db_main loop_db;
 		struct fmt_main *save_list = fmt_list;
+		char *save_pot = pers_opts.activepot;
 
 		fmt_list = &fmt_LM;
 
@@ -1256,6 +1257,7 @@ static void john_load(void)
 		}
 		database.plaintexts = loop_db.plaintexts;
 		options.loader.flags &= ~DB_CRACKED;
+		pers_opts.activepot = save_pot;
 		fmt_list = save_list;
 	}
 
