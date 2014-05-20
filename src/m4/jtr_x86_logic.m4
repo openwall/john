@@ -32,7 +32,7 @@
 # TODO: Ultimately we should not depend on any predefined stuff in arch.h
 # at all
 
-AC_DEFUN([AX_JTR_X86_SPECIAL_LOGIC], [
+AC_DEFUN([JTR_X86_SPECIAL_LOGIC], [
 CC_BACKUP=$CC
 CFLAGS_BACKUP=$CFLAGS
 

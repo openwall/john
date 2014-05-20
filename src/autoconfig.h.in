@@ -39,6 +39,9 @@
 /* Define to 1 if you have the <CL/cl.h> header file. */
 #undef HAVE_CL_CL_H
 
+/* Define to 1 if you have the CommonCrypto library. */
+#undef HAVE_COMMONCRYPTO
+
 /* Define to 1 if you have the `crypt' library (-lcrypt). */
 #undef HAVE_CRYPT
 

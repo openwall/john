@@ -1,43 +1,36 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# This file is part of John the Ripper password cracker,
-# Copyright (c) 1996-2014 by Solar Designer
-#
-# ...with changes in the jumbo patch, by various authors
-#
+# This file is Copyright (c) 2014 by JimF and magnum.
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted.
 #
 # There's ABSOLUTELY NO WARRANTY, express or implied.
 #
-# This file converted into autoconf format by JimF and
-# magnum, in 2014. That is still a work in progress.
-#
 
-# Travis CI only has 2.68
-AC_PREREQ([2.68])
-AC_INIT([john], [1.8.0.2-bleeding-jumbo], [john-users mailing list at openwall.com])
+AC_PREREQ([2.69])
+AC_INIT([john], [1.8.0.2-bleeding-jumbo],[john-users mailing list at openwall.com])
 ##  AM_INIT_AUTOMAKE([foreign subdir-objects])
 AC_CONFIG_SRCDIR([john.c])
 AC_CONFIG_HEADERS([autoconfig.h])
 
-# include our extra macro code
+# Include our extra macro code
 m4_include([m4/pkg.m4])
 m4_include([m4/ax_opencl.m4])
 m4_include([m4/ax_pthread.m4])
 m4_include([m4/ax_prog_cc_mpi.m4])
 m4_include([m4/ax_lang_compiler_ms.m4])
-m4_include([m4/ax_jtr_x86_logic.m4])
-m4_include([m4/ax_jtr_generic_logic.m4])
-m4_include([m4/ax_jtr_utility_macros.m4])
+m4_include([m4/jtr_x86_logic.m4])
+m4_include([m4/jtr_generic_logic.m4])
+m4_include([m4/jtr_utility_macros.m4])
 
 dnl  If you want to pass these into your Makefile.in templates, use
 dnl    AC_SUBST(ac_variable_name)
-dnl  then they'll be available as substitution variables (eg., @ac_variable_name@)
+dnl  they'll be available as substitution variables (eg., @ac_variable_name@)
 dnl
 dnl  If you want to go farther and create cpp macro definitions in autoconfig.h
 dnl    AC_DEFINE(ac_variable_name)
+dnl
 dnl  macros:
 dnl    AC_CHECK_LIB (library, function, [action-if-found], [action-if-not-found], [other-libraries])
 dnl    AC_SEARCH_LIBS (function, search-libs, [action-if-found], [action-if-not-found], [other-libraries])
@@ -52,12 +45,11 @@ dnl    AC_MSG_RESULT(message)   (if we use msg_checking, we should use result to
 dnl    AC_CHECK_SIZEOF (type-or-expr, [unused], [includes = 'AC_INCLUDES_DEFAULT'])
 dnl    AC_ARG_ENABLE([opencl], [AC_HELP_STRING([--disable-opencl], [do not use OpenCL])], [disable_opencl=$enableval], [disable_opencl='yes'])
 dnl    AC_ARG_WITH(omp, [AS_HELP_STRING([--with-omp],[compile with OpenMP (multi-thread) support. If none is found, OMP is not used. Default: auto])],,with_omp=auto)
-dnl    gcc -dM -E - < /dev/null
+dnl    gcc -dM -E - < /dev/null [-march=native] # list all macros
 dnl
 dnl  guide to easy to do autoconf:  http://www.galassi.org/mark/mydocs/autoconf_tutorial_2.html#SEC2
 dnl
 dnl  TODO:
-dnl    AC_C_BIGENDIAN ([action-if-true], [action-if-false], [action-if-unknown], [action-if-universal])
 dnl    AC_C_INLINE
 dnl        If the C compiler supports the keyword inline, do nothing. Otherwise define inline
 dnl        to __inline__ or __inline if it accepts one of those, otherwise define inline to be empty.
@@ -83,11 +75,11 @@ fi
 AC_ARG_WITH(arch, [AS_HELP_STRING([--with-arch=opt],[Add 'opt' to CFLAGS, LDFLAGS etc. (eg. -m32).])],,[with_arch=""])
 
 if test "x$with_arch" != x; then
-   CFLAGS+=" ${with_arch}"
-   CPPFLAGS+=" ${with_arch}"
-   #CXXFLAGS+=" ${with_arch}"
-   LDFLAGS+=" ${with_arch}"
-   ASFLAGS+=" ${with_arch}"
+   JTR_LIST_ADD(CFLAGS, "$with_arch")
+   JTR_LIST_ADD(CPPFLAGS, "$with_arch")
+   #JTR_LIST_ADD(CXXFLAGS, "$with_arch")
+   JTR_LIST_ADD(LDFLAGS, "$with_arch")
+   JTR_LIST_ADD(ASFLAGS, "$with_arch")
 fi
 
 # Define Packages.
@@ -95,12 +87,12 @@ AC_ARG_WITH(icc-asm, [AS_HELP_STRING([--with-icc-asm],[Use ICC pre-built asm fil
 AC_ARG_WITH(exe-ext, [AS_HELP_STRING([--with-exe-ext],[For Cygwin and MinGW. Set to .exe to allow stand alone symlink exe files. Default is 'empty'])],,[with_exe_ext=""])
 
 # Cludge for endian (if not auto detected)
-AC_ARG_WITH(endian, [AS_HELP_STRING([--with-endian=little|big],[Set endianness for target])],,[endian=unknown])
+AC_ARG_WITH(endian, [AS_HELP_STRING([--with-endian=little|big],[Set endianness for target if it doesn't detect properly])],,[endian=unknown])
 
 # Define Features. OpenMP and OpenCL are defined in their respective macros.
 # We define "--disable-FEATURE" when default is "auto".
 # MPI is not "auto" because its network usage might scare people:
-AC_ARG_ENABLE([mpi], [AC_HELP_STRING([--enable-mpi], [Use MPI])], [enable_mpi=$enableval], [enable_mpi=no])
+AC_ARG_ENABLE([mpi], [AC_HELP_STRING([--enable-mpi], [Use OpenMPI])], [enable_mpi=$enableval], [enable_mpi=no])
 AC_ARG_ENABLE([cuda], [AC_HELP_STRING([--disable-cuda], [Do not use CUDA])], [enable_cuda=$enableval], [enable_cuda=auto])
 AC_ARG_ENABLE([nss], [AC_HELP_STRING([--disable-nss], [Do not use NSS/NSPR])], [enable_nss=$enableval], [enable_nss=auto])
 AC_ARG_ENABLE([native-tests], [AC_HELP_STRING([--disable-native-tests], [Do not use test build system for target features])], [enable_native_tests=$enableval], [enable_native_tests=auto])
@@ -127,7 +119,7 @@ AX_PROG_CC_MPI([test "x$enable_mpi" != xno],
 # Here we call setting up many -I in CFLAGS, and -L in
 # LDFLAGS for 'normal' paths, IF we find them.
 ###
-AC_JTR_SET_NORMAL_INCLUDES
+JTR_SET_NORMAL_INCLUDES
 
 ###
 # check compiler switches here.  OPT_NORMAL, then
@@ -137,14 +129,14 @@ AC_JTR_SET_NORMAL_INCLUDES
 # first test a totally BOGUS command line switch, to make sure that the
 # detection logic actually detects BAD command switches
 CFLAGS_EX=""
-AC_JTR_FLAG_CHECK([-WFOO_BAR_SWITCH_NOT_VALID], 0)
-# note, check message must be done after the first call to AC_JTR_FLAG_CHECK. Since this is
+JTR_FLAG_CHECK([-WFOO_BAR_SWITCH_NOT_VALID], 0)
+# note, check message must be done after the first call to JTR_FLAG_CHECK. Since this is
 # the first macro that will use $CC, a lot of messages will happen.  We need to make that first
 # macro 'call', so that those messages are output, THEN we make our checking message.
 AC_MSG_CHECKING([arg check macro with $CC])
-AC_JTR_FLAG_CHECK([-fFOO_BAR_SWITCH_NOT_VALID], 0)
-AC_JTR_FLAG_CHECK([-mFOO_BAR_SWITCH_NOT_VALID], 0)
-AC_JTR_FLAG_CHECK([-m666], 0)
+JTR_FLAG_CHECK([-fFOO_BAR_SWITCH_NOT_VALID], 0)
+JTR_FLAG_CHECK([-mFOO_BAR_SWITCH_NOT_VALID], 0)
+JTR_FLAG_CHECK([-m666], 0)
 AS_IF([test "x${CFLAGS_EX}" = x],
    [AC_MSG_RESULT([yes])]
    JTR_FLAG_CHECK_WORKS=yes
@@ -155,26 +147,24 @@ AS_IF([test "x$JTR_FLAG_CHECK_WORKS" = xyes],
 [
    CFLAGS_EX=""
    # first fill out JtR's OPT_NORMAL= value
-   AC_JTR_FLAG_CHECK([-funroll-loops], 1)
+   JTR_FLAG_CHECK([-funroll-loops], 1)
    OPT_NORMAL_V=${CFLAGS_EX}
    AC_SUBST([OPT_NORMAL_FLAGS],[${OPT_NORMAL_V}])
 
    # now fill in extras for JtR's OPT_INLINE= value
    CFLAGS_EX=""
-   AC_JTR_FLAG_CHECK([-Os], 1)
-   AC_JTR_FLAG_CHECK([-funroll-loops], 0)
-   AC_JTR_FLAG_CHECK([-finline-functions], 1)
+   JTR_FLAG_CHECK([-Os], 1)
+   JTR_FLAG_CHECK([-funroll-loops], 0)
+   JTR_FLAG_CHECK([-finline-functions], 1)
    AC_SUBST([OPT_INLINE_FLAGS],[${CFLAGS_EX}])
 
    # now fill out CFLAGS
    CFLAGS_EX=""
-   AC_JTR_FLAG_CHECK([-Wall], 1)
-   AC_JTR_FLAG_CHECK([-Wdeclaration-after-statement], 1)
-   AC_JTR_FLAG_CHECK([-fomit-frame-pointer], 1)
+   JTR_FLAG_CHECK([-Wall], 1)
+   JTR_FLAG_CHECK([-Wdeclaration-after-statement], 1)
+   JTR_FLAG_CHECK([-fomit-frame-pointer], 1)
    AC_SUBST([CFLAGS_EXTRA],[${CFLAGS_EX}])
-
-],[
-   # since the 'test' failed, I guess we just do the bone stock fall back to using -O2
+],[dnl
    AC_MSG_NOTICE([Unable to validate $CC command line arguments. CFLAGS may need to be passed to ./configure for proper build])
 ])
 
@@ -198,7 +188,6 @@ AC_PROG_MAKE_SET
 AC_PROG_CPP
 AC_PROG_MKDIR_P
 AC_CACHE_SAVE
-# I wish sort was a 'standard' autocheck
 AC_PATH_PROG([SORT], [sort])
 AC_PATH_PROG([YASM], [yasm])
 AC_PATH_PROG([AR], [ar])
@@ -242,7 +231,7 @@ AC_CHECK_SIZEOF([long])
 # vax.h
 # x86-64.h (-mx32, -m64)
 # x86-any.h
-# x86-mmx.h (currently busted)
+# x86-mmx.h (currently busted in many formats)
 # x86-sse.h
 #
 # See http://ftp.netbsd.org/pub/NetBSD/NetBSD-release-6/src/external/bsd/pcc/dist/pcc/configure.ac for many alternatives
@@ -272,15 +261,15 @@ esac
 
 # NOTE, later, we will probably do this by parsing the host or target to figure
 # out the system, then have a switch statement, based upon the system, calling
-# the proper AX_JTR_cputype_SPECIAL_LOGIC function (and of course have to write
+# the proper JTR_cputype_SPECIAL_LOGIC function (and of course have to write
 # macros for each environment.  We probaby should fall back to calling
 # make -f Makefile.orig clean generic or failing with an echo of that message,
 # for any environment we do not handle.
 CPU_STR="$host_cpu"
-AS_IF([test "x$cpu_family" = xintel], [AX_JTR_X86_SPECIAL_LOGIC])
+AS_IF([test "x$cpu_family" = xintel], [JTR_X86_SPECIAL_LOGIC])
 AC_MSG_CHECKING([for arch.h alternative])
 AC_MSG_RESULT([${ARCH_LINK}])
-AX_JTR_GENERIC_LOGIC
+JTR_GENERIC_LOGIC
 
 # Set a variable detecting x86-64 w/ X32 ABI
 if test "x$ax_intel_x32" = xyes; then
@@ -288,13 +277,6 @@ if test "x$ax_intel_x32" = xyes; then
 else
    using_x32=""
 fi
-
-###########################
-# now that we have 64 bit vs 32 bit, we do some additional checks for OpenCL
-# and CUDA libs. TODO: This may result in dupes but these are benign.
-###########################
-AC_JTR_SET_OPENCL_INCLUDES
-AC_JTR_SET_CUDA_INCLUDES
 
 #############################################################################
 # Check for unaligned memory access being allowed
@@ -315,9 +297,6 @@ AC_RUN_IFELSE(
    [AC_MSG_RESULT([NOT allowed])]
   )
 CC="$CC_BACKUP"
-#############################################################################
-# End of JtR 32/64 bit test code.
-#############################################################################
 
 #############################################################################
 # Check for LE/BE CPU
@@ -342,12 +321,20 @@ fi
 
 # Checks for libraries.
 ################################################
-#  NOTE, be VERY careful of spaces around the comma's in the AC_CHECK_LIB. Best to not have any.
-#  If there are space, then often that will get a lib to NOT be added to @LIBS@ and cause linkage problems.
-#  also note, if action if found is specified, the -llibname will NOT get appended to LIBS. So it has to be
-#  done by 'hand'.  Look at PCAP, where "LIBS += -lpcap" was added. This could also be done by skipping the
-#  modified default action, and doing an AS_IF on the next line.
+#  NOTE, be VERY careful of spaces around the comma's in the AC_CHECK_LIB. Best
+# to not have any.  If there are space, then often that will get a lib to NOT
+# be added to @LIBS@ and cause linkage problems.  Also note, if action if found
+# is specified, the -llibname will NOT get appended to LIBS. So it has to be
+# done by 'hand'.  Look at PCAP, where -lpcap" was added to LIBS. This could
+# also be done by skipping the modified default action, and doing an AS_IF on
+# the next line.
 ################################################
+
+AC_CHECK_HEADER([CommonCrypto/CommonDigest.h],
+   [AC_CHECK_LIB([System], [CCKeyDerivationPBKDF],
+      [AC_CHECK_LIB([System], [CCCryptorCreate],[AC_DEFINE(HAVE_COMMONCRYPTO,1,[Define to 1 if you have the CommonCrypto library.])],,-lcrypto)]dnl
+   )]dnl
+)
 
 if test "x$enable_native_tests" = xyes -a "x$PKG_CONFIG" != xno; then
    PKG_CHECK_MODULES([OPENSSL], [openssl],
@@ -373,7 +360,7 @@ AC_CHECK_LIB([z],[deflate],[],[AC_MSG_FAILURE(JtR requires libz being installed,
 AC_SEARCH_LIBS([crypt],[crypt],[AC_DEFINE(HAVE_CRYPT,1,[Define to 1 if you have the `crypt' library (-lcrypt).])])
 AC_CHECK_HEADER([krb5.h],AC_CHECK_LIB([k5crypto],[krb5_c_string_to_key_with_params]) AC_CHECK_LIB([krb5],[krb5_c_string_to_key_with_params]))
 AC_CHECK_HEADERS([gmp.h] [gmp/gmp.h], [AC_CHECK_LIB([gmp],[__gmpz_init])] [break])
-AC_CHECK_HEADER([skey.h], [AC_CHECK_LIB([skey],[skey_set_algorithm],AC_DEFINE([HAVE_SKEY],1,[Define to 1 if you have skey library and headers]) [LIBS+=" -lskey"])])
+AC_CHECK_HEADER([skey.h], [AC_CHECK_LIB([skey],[skey_set_algorithm],AC_DEFINE([HAVE_SKEY],1,[Define to 1 if you have skey library and headers]) [JTR_LIST_ADD(LIBS, "-lskey")])])
 AC_CHECK_LIB([kernel32],[main])
 AC_CHECK_LIB([dl],[dlopen])
 using_rexgen=no
@@ -390,7 +377,7 @@ AC_CHECK_LIB([wsock32],[main])
 AC_CHECK_LIB([lws2_32],[main])
 AC_CHECK_LIB([wst],[main])
 # in makefile, we need to know if building extra pcap items.
-AC_CHECK_HEADER([pcap.h],[AC_CHECK_LIB([pcap],[pcap_compile],[AC_SUBST(HAVE_PCAP,[-DHAVE_PCAP])] [LIBS+=" -lpcap"])])
+AC_CHECK_HEADER([pcap.h],[AC_CHECK_LIB([pcap],[pcap_compile],[AC_SUBST(HAVE_PCAP,[-DHAVE_PCAP])] [JTR_LIST_ADD(LIBS, "-lpcap")])])
 
 # Check for variations we can handle
 # We need these two AC_CHECK_LIB for the following AC_CHECK_FUNCS to work -
@@ -414,12 +401,14 @@ fi
 AC_OPENMP
 
 # Check for OpenCL (enable/disable handled within the macro)
+JTR_SET_OPENCL_INCLUDES
 AX_OPENCL(C)
 
 # Check for CUDA, including headers.
 using_cuda=no
 if test "x$enable_cuda" != xno; then
-   AC_CHECK_HEADER([cuda.h],[AC_CHECK_LIB([cudart],[cudaGetDeviceCount],using_cuda=yes AC_SUBST([HAVE_CUDA],[-DHAVE_CUDA]) [LIBS+=" -lcudart"])])
+   JTR_SET_CUDA_INCLUDES
+   AC_CHECK_HEADER([cuda.h],[AC_CHECK_LIB([cudart],[cudaGetDeviceCount],using_cuda=yes AC_SUBST([HAVE_CUDA],[-DHAVE_CUDA]) [JTR_LIST_ADD(LIBS, "-lcudart")])])
    if test "x$using_cuda" != xyes -a "x$enable_cuda" = xyes; then
       AC_MSG_FAILURE([CUDA not found])
    fi

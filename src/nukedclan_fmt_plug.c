@@ -15,18 +15,20 @@
  * Modified by JimF, Jul 2012.  About 6x speed improvements.
  */
 
-#if defined(__APPLE__) && defined(__MACH__) && \
-	defined(__MAC_OS_X_VERSION_MIN_REQUIRED) && \
-	__MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
+#include "arch.h"
+#if HAVE_COMMONCRYPTO ||	  \
+	(!AC_BUILT && defined(__APPLE__) && defined(__MACH__) && \
+	 defined(__MAC_OS_X_VERSION_MIN_REQUIRED) && \
+	 __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070)
 #define COMMON_DIGEST_FOR_OPENSSL
+#include "md5.h"
 #include <CommonCrypto/CommonDigest.h>
 #else
+#include "md5.h"
 #include "sha.h"
 #endif
 
-#include "md5.h"
 #include <string.h>
-#include "arch.h"
 #include "misc.h"
 #include "common.h"
 #include "formats.h"

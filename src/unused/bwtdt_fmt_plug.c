@@ -17,9 +17,11 @@
  * for the CMIYC 2013 contest. magnum thinks it should be moved to unused/
  */
 
-#if defined(__APPLE__) && defined(__MACH__) && \
-	defined(__MAC_OS_X_VERSION_MIN_REQUIRED) && \
-	__MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
+#include "arch.h"
+#if HAVE_COMMONCRYPTO ||	  \
+	(!AC_BUILT && defined(__APPLE__) && defined(__MACH__) && \
+	 defined(__MAC_OS_X_VERSION_MIN_REQUIRED) && \
+	 __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070)
 #define COMMON_DIGEST_FOR_OPENSSL
 #include <CommonCrypto/CommonDigest.h>
 #else
@@ -30,7 +32,6 @@
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
-#include "arch.h"
 #include "misc.h"
 #include "common.h"
 #include "formats.h"

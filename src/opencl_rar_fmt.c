@@ -43,17 +43,12 @@
 #include "arch.h"
 #include <openssl/engine.h>
 #include <openssl/evp.h>
-#if defined(__APPLE__) && defined(__MACH__)
-#ifdef __MAC_OS_X_VERSION_MIN_REQUIRED
-#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
+#if HAVE_COMMONCRYPTO ||	  \
+	(!AC_BUILT && defined(__APPLE__) && defined(__MACH__) && \
+	 defined(__MAC_OS_X_VERSION_MIN_REQUIRED) && \
+	 __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070)
 #define COMMON_DIGEST_FOR_OPENSSL
 #include <CommonCrypto/CommonDigest.h>
-#else
-#include <openssl/sha.h>
-#endif
-#else
-#include <openssl/sha.h>
-#endif
 #else
 #include <openssl/sha.h>
 #endif

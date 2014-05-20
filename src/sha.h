@@ -4,7 +4,10 @@
 #include <openssl/opensslv.h>
 
 #include "arch.h"
-#if defined(__APPLE__) && defined(__MACH__) && defined(__MAC_OS_X_VERSION_MIN_REQUIRED) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070 && !defined(MMX_COEF)
+#if !defined(MMX_COEF) && (HAVE_COMMONCRYPTO ||	  \
+	(!AC_BUILT && defined(__APPLE__) && defined(__MACH__) && \
+	 defined(__MAC_OS_X_VERSION_MIN_REQUIRED) && \
+	 __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070))
 /* Mitigate CommonCrypto name clashes */
 #include "md4.h"
 #include "md5.h"

@@ -641,6 +641,7 @@ CC_MAIN_CPU
 CC_CPU
 EXE_EXT
 HAVE_CUDA
+NVIDIA_CUDA
 CL_LIBS
 CL_CFLAGS
 PTHREAD_CFLAGS
@@ -654,7 +655,6 @@ HAVE_NSS
 HAVE_PCAP
 OPENSSL_LIBS
 OPENSSL_CFLAGS
-NVIDIA_CUDA
 EGREP
 PKG_CONFIG_LIBDIR
 PKG_CONFIG_PATH
@@ -1372,7 +1372,7 @@ Optional Features:
   --disable-option-checking  ignore unrecognized --enable/--with options
   --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
-  --enable-mpi            Use MPI
+  --enable-mpi            Use OpenMPI
   --disable-cuda          Do not use CUDA
   --disable-nss           Do not use NSS/NSPR
   --disable-native-tests  Do not use test build system for target features
@@ -1388,7 +1388,8 @@ Optional Packages:
   --with-exe-ext          For Cygwin and MinGW. Set to .exe to allow stand
                           alone symlink exe files. Default is 'empty'
   --with-endian=little|big
-                          Set endianness for target
+                          Set endianness for target if it doesn't detect
+                          properly
 
 Some influential environment variables:
   MPICC       MPI C compiler command
@@ -2570,7 +2571,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 ac_config_headers="$ac_config_headers autoconfig.h"
 
 
-# include our extra macro code
+# Include our extra macro code
 # generated automatically by aclocal 1.14 -*- Autoconf -*-
 
 # Copyright (C) 1996-2013 Free Software Foundation, Inc.
@@ -3300,7 +3301,11 @@ ac_config_headers="$ac_config_headers autoconfig.h"
 #
 
 
-# @synopsis AC_JTR_FLAG_CHECK [compiler flags]
+# JTR_LIST_ADD(variable, value(s))
+# Add space separated value(s) to variable unless already present.
+
+
+# @synopsis JTR_FLAG_CHECK [compiler flags]
 # @summary check whether compiler supports given
 #          C flags or not. The var CFLAGS_EX is
 #          added to with each 'valid' command.
@@ -3308,13 +3313,14 @@ ac_config_headers="$ac_config_headers autoconfig.h"
 
 # @synopsis SET_NORMAL_INCLUDES
 # @summary check and set many normal include paths
+# This might be a Bad Idea[tm] if cross compiling.
 
 
-# @synopsis AC_JTR_SET_CUDA_INCLUDES
+# @synopsis JTR_SET_CUDA_INCLUDES
 # @summary check and set many normal include paths
 
 
-# @synopsis AC_JTR_SET_OPENCL_INCLUDES
+# @synopsis JTR_SET_OPENCL_INCLUDES
 # @summary check and set many normal include paths
 
 
@@ -3377,11 +3383,79 @@ fi
 
 
 if test "x$with_arch" != x; then
-   CFLAGS+=" ${with_arch}"
-   CPPFLAGS+=" ${with_arch}"
-   #CXXFLAGS+=" ${with_arch}"
-   LDFLAGS+=" ${with_arch}"
-   ASFLAGS+=" ${with_arch}"
+
+   if test "x$CFLAGS" = "x"; then
+      CFLAGS="$(echo "$with_arch")"
+   elif test -n "$(echo "$with_arch")"; then
+      for i in "$with_arch"; do
+         jtr_list_add_dupe=0
+         for j in $CFLAGS; do
+            if test "x$i" = "x$j"; then
+               jtr_list_add_dupe=1
+               break
+            fi
+         done
+         if test $jtr_list_add_dupe = 0; then
+            CFLAGS="$CFLAGS $i"
+         fi
+      done
+   fi
+
+
+   if test "x$CPPFLAGS" = "x"; then
+      CPPFLAGS="$(echo "$with_arch")"
+   elif test -n "$(echo "$with_arch")"; then
+      for i in "$with_arch"; do
+         jtr_list_add_dupe=0
+         for j in $CPPFLAGS; do
+            if test "x$i" = "x$j"; then
+               jtr_list_add_dupe=1
+               break
+            fi
+         done
+         if test $jtr_list_add_dupe = 0; then
+            CPPFLAGS="$CPPFLAGS $i"
+         fi
+      done
+   fi
+
+   #JTR_LIST_ADD(CXXFLAGS, "$with_arch")
+
+   if test "x$LDFLAGS" = "x"; then
+      LDFLAGS="$(echo "$with_arch")"
+   elif test -n "$(echo "$with_arch")"; then
+      for i in "$with_arch"; do
+         jtr_list_add_dupe=0
+         for j in $LDFLAGS; do
+            if test "x$i" = "x$j"; then
+               jtr_list_add_dupe=1
+               break
+            fi
+         done
+         if test $jtr_list_add_dupe = 0; then
+            LDFLAGS="$LDFLAGS $i"
+         fi
+      done
+   fi
+
+
+   if test "x$ASFLAGS" = "x"; then
+      ASFLAGS="$(echo "$with_arch")"
+   elif test -n "$(echo "$with_arch")"; then
+      for i in "$with_arch"; do
+         jtr_list_add_dupe=0
+         for j in $ASFLAGS; do
+            if test "x$i" = "x$j"; then
+               jtr_list_add_dupe=1
+               break
+            fi
+         done
+         if test $jtr_list_add_dupe = 0; then
+            ASFLAGS="$ASFLAGS $i"
+         fi
+      done
+   fi
+
 fi
 
 # Define Packages.
@@ -5085,9 +5159,59 @@ case "x${ADD_CFLAGS}x${ADD_LDFLAGS}" in
 esac
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: ${ADD_CFLAGS}${cond_and}${ADD_LDFLAGS}" >&5
 $as_echo "${ADD_CFLAGS}${cond_and}${ADD_LDFLAGS}" >&6; }
-LDFLAGS+="$ADD_LDFLAGS"
-CFLAGS+="$ADD_CFLAGS"
-CPPFLAGS+="$ADD_CFLAGS"
+
+   if test "x$LDFLAGS" = "x"; then
+      LDFLAGS="$(echo "$ADD_LDFLAGS")"
+   elif test -n "$(echo "$ADD_LDFLAGS")"; then
+      for i in "$ADD_LDFLAGS"; do
+         jtr_list_add_dupe=0
+         for j in $LDFLAGS; do
+            if test "x$i" = "x$j"; then
+               jtr_list_add_dupe=1
+               break
+            fi
+         done
+         if test $jtr_list_add_dupe = 0; then
+            LDFLAGS="$LDFLAGS $i"
+         fi
+      done
+   fi
+
+
+   if test "x$CFLAGS" = "x"; then
+      CFLAGS="$(echo "$ADD_CFLAGS")"
+   elif test -n "$(echo "$ADD_CFLAGS")"; then
+      for i in "$ADD_CFLAGS"; do
+         jtr_list_add_dupe=0
+         for j in $CFLAGS; do
+            if test "x$i" = "x$j"; then
+               jtr_list_add_dupe=1
+               break
+            fi
+         done
+         if test $jtr_list_add_dupe = 0; then
+            CFLAGS="$CFLAGS $i"
+         fi
+      done
+   fi
+
+
+   if test "x$CPPFLAGS" = "x"; then
+      CPPFLAGS="$(echo "$ADD_CFLAGS")"
+   elif test -n "$(echo "$ADD_CFLAGS")"; then
+      for i in "$ADD_CFLAGS"; do
+         jtr_list_add_dupe=0
+         for j in $CPPFLAGS; do
+            if test "x$i" = "x$j"; then
+               jtr_list_add_dupe=1
+               break
+            fi
+         done
+         if test $jtr_list_add_dupe = 0; then
+            CPPFLAGS="$CPPFLAGS $i"
+         fi
+      done
+   fi
 
 
 ###
@@ -5144,7 +5268,7 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-# note, check message must be done after the first call to AC_JTR_FLAG_CHECK. Since this is
+# note, check message must be done after the first call to JTR_FLAG_CHECK. Since this is
 # the first macro that will use $CC, a lot of messages will happen.  We need to make that first
 # macro 'call', so that those messages are output, THEN we make our checking message.
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking arg check macro with $CC" >&5
@@ -5638,11 +5762,8 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
    CFLAGS_EXTRA=${CFLAGS_EX}
 
 
-
 else
-
-   # since the 'test' failed, I guess we just do the bone stock fall back to using -O2
-   { $as_echo "$as_me:${as_lineno-$LINENO}: Unable to validate $CC command line arguments. CFLAGS may need to be passed to ./configure for proper build" >&5
+     { $as_echo "$as_me:${as_lineno-$LINENO}: Unable to validate $CC command line arguments. CFLAGS may need to be passed to ./configure for proper build" >&5
 $as_echo "$as_me: Unable to validate $CC command line arguments. CFLAGS may need to be passed to ./configure for proper build" >&6;}
 
 fi
@@ -6099,7 +6220,6 @@ $as_echo "$as_me: not updating unwritable cache $cache_file" >&6;}
   fi
 fi
 rm -f confcache
-# I wish sort was a 'standard' autocheck
 # Extract the first word of "sort", so it can be a program name with args.
 set dummy sort; ac_word=$2
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
@@ -6711,7 +6831,7 @@ _ACEOF
 # vax.h
 # x86-64.h (-mx32, -m64)
 # x86-any.h
-# x86-mmx.h (currently busted)
+# x86-mmx.h (currently busted in many formats)
 # x86-sse.h
 #
 # See http://ftp.netbsd.org/pub/NetBSD/NetBSD-release-6/src/external/bsd/pcc/dist/pcc/configure.ac for many alternatives
@@ -6742,7 +6862,7 @@ esac
 
 # NOTE, later, we will probably do this by parsing the host or target to figure
 # out the system, then have a switch statement, based upon the system, calling
-# the proper AX_JTR_cputype_SPECIAL_LOGIC function (and of course have to write
+# the proper JTR_cputype_SPECIAL_LOGIC function (and of course have to write
 # macros for each environment.  We probaby should fall back to calling
 # make -f Makefile.orig clean generic or failing with an echo of that message,
 # for any environment we do not handle.
@@ -7341,6 +7461,7 @@ rm -f core conftest.err conftest.$ac_objext \
   CC="$CC_BACKUP"
 fi
 
+# Cross compile compliant 32/64 bit test code.
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for 32/64 bit" >&5
 $as_echo_n "checking for 32/64 bit... " >&6; }
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
@@ -7381,7 +7502,24 @@ rm -f core conftest.err conftest.$ac_objext \
 case "$host_cpu" in
    x86_64)
       if test "x$with_icc_asm" = "xyes"; then
-         CFLAGS+=" -DUSING_ICC_S_FILE"
+
+   if test "x$CFLAGS" = "x"; then
+      CFLAGS="$(echo "-DUSING_ICC_S_FILE")"
+   elif test -n "$(echo "-DUSING_ICC_S_FILE")"; then
+      for i in "-DUSING_ICC_S_FILE"; do
+         jtr_list_add_dupe=0
+         for j in $CFLAGS; do
+            if test "x$i" = "x$j"; then
+               jtr_list_add_dupe=1
+               break
+            fi
+         done
+         if test $jtr_list_add_dupe = 0; then
+            CFLAGS="$CFLAGS $i"
+         fi
+      done
+   fi
+
          CC_ASM_OBJS="x86-64.o sse-intrinsics-64.o"
       else
          CC_ASM_OBJS="x86-64.o sse-intrinsics.o"
@@ -7391,7 +7529,24 @@ case "$host_cpu" in
       if test "y$ARCH_LINK" = "yx86-any.h"; then
         CC_ASM_OBJS="x86.o"
       elif test "x$with_icc_asm" = "xyes"; then
-        CFLAGS+=" -DUSING_ICC_S_FILE"
+
+   if test "x$CFLAGS" = "x"; then
+      CFLAGS="$(echo "-DUSING_ICC_S_FILE")"
+   elif test -n "$(echo "-DUSING_ICC_S_FILE")"; then
+      for i in "-DUSING_ICC_S_FILE"; do
+         jtr_list_add_dupe=0
+         for j in $CFLAGS; do
+            if test "x$i" = "x$j"; then
+               jtr_list_add_dupe=1
+               break
+            fi
+         done
+         if test $jtr_list_add_dupe = 0; then
+            CFLAGS="$CFLAGS $i"
+         fi
+      done
+   fi
+
         CC_ASM_OBJS="x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics-32.o"
       else
         CC_ASM_OBJS="x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o"
@@ -7418,7 +7573,24 @@ CC="$CC_BACKUP"
 CFLAGS_BACKUP=$CFLAGS
 CFLAGS="$CFLAGS -O0"
 if echo "int long_ident;" > conftest.c && ${CC} -c conftest.c && strings - conftest.${OBJEXT} | ${GREP} _long_ident > conftest.out; then :
-  EXTRA_AS_FLAGS+=" -DUNDERSCORES"
+
+   if test "x$EXTRA_AS_FLAGS" = "x"; then
+      EXTRA_AS_FLAGS="$(echo "-DUNDERSCORES")"
+   elif test -n "$(echo "-DUNDERSCORES")"; then
+      for i in "-DUNDERSCORES"; do
+         jtr_list_add_dupe=0
+         for j in $EXTRA_AS_FLAGS; do
+            if test "x$i" = "x$j"; then
+               jtr_list_add_dupe=1
+               break
+            fi
+         done
+         if test $jtr_list_add_dupe = 0; then
+            EXTRA_AS_FLAGS="$EXTRA_AS_FLAGS $i"
+         fi
+      done
+   fi
+
 fi
 
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
@@ -7434,7 +7606,24 @@ extern void exit(int);
 
 _ACEOF
 if ac_fn_c_try_link "$LINENO"; then :
-  EXTRA_AS_FLAGS+=" -DBSD -DALIGN_LOG"
+
+   if test "x$EXTRA_AS_FLAGS" = "x"; then
+      EXTRA_AS_FLAGS="$(echo "-DBSD -DALIGN_LOG")"
+   elif test -n "$(echo "-DBSD -DALIGN_LOG")"; then
+      for i in "-DBSD -DALIGN_LOG"; do
+         jtr_list_add_dupe=0
+         for j in $EXTRA_AS_FLAGS; do
+            if test "x$i" = "x$j"; then
+               jtr_list_add_dupe=1
+               break
+            fi
+         done
+         if test $jtr_list_add_dupe = 0; then
+            EXTRA_AS_FLAGS="$EXTRA_AS_FLAGS $i"
+         fi
+      done
+   fi
+
 fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
@@ -7471,9 +7660,43 @@ if ac_fn_c_try_link "$LINENO"; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
    ax_intel_x32=no
-   EXTRA_AS_FLAGS+=" -D__CYGWIN64__ -D__CYGWIN32__"
+
+   if test "x$EXTRA_AS_FLAGS" = "x"; then
+      EXTRA_AS_FLAGS="$(echo "-D__CYGWIN64__ -D__CYGWIN32__")"
+   elif test -n "$(echo "-D__CYGWIN64__ -D__CYGWIN32__")"; then
+      for i in "-D__CYGWIN64__ -D__CYGWIN32__"; do
+         jtr_list_add_dupe=0
+         for j in $EXTRA_AS_FLAGS; do
+            if test "x$i" = "x$j"; then
+               jtr_list_add_dupe=1
+               break
+            fi
+         done
+         if test $jtr_list_add_dupe = 0; then
+            EXTRA_AS_FLAGS="$EXTRA_AS_FLAGS $i"
+         fi
+      done
+   fi
+
    # CFLAG_EXTRA was already defined (early in configure.ac).  We append to it, and AC_SUBST it again.
-   CFLAGS_EX+=" -D__CYGWIN64__ -D__CYGWIN32__"
+
+   if test "x$CFLAGS_EX" = "x"; then
+      CFLAGS_EX="$(echo "-D__CYGWIN64__ -D__CYGWIN32__")"
+   elif test -n "$(echo "-D__CYGWIN64__ -D__CYGWIN32__")"; then
+      for i in "-D__CYGWIN64__ -D__CYGWIN32__"; do
+         jtr_list_add_dupe=0
+         for j in $CFLAGS_EX; do
+            if test "x$i" = "x$j"; then
+               jtr_list_add_dupe=1
+               break
+            fi
+         done
+         if test $jtr_list_add_dupe = 0; then
+            CFLAGS_EX="$CFLAGS_EX $i"
+         fi
+      done
+   fi
+
    CFLAGS_EXTRA=${CFLAGS_EX}
 
 
@@ -7530,84 +7753,6 @@ else
    using_x32=""
 fi
 
-###########################
-# now that we have 64 bit vs 32 bit, we do some additional checks for OpenCL
-# and CUDA libs. TODO: This may result in dupes but these are benign.
-###########################
-
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking additional paths for OpenCL" >&5
-$as_echo_n "checking additional paths for OpenCL... " >&6; }
-  ADD_LDFLAGS=""
-  ADD_CFLAGS=""
-if test -n "$AMDAPPSDKROOT"; then
-   if test -d "$AMDAPPSDKROOT/include"; then
-      ADD_CFLAGS+=" -I$AMDAPPSDKROOT/include"
-   fi
-   if test $CPU_BIT_STR = 64 -a -d "$AMDAPPSDKROOT/lib/x86_64" ; then
-      ADD_LDFLAGS+=" -L$AMDAPPSDKROOT/lib/x86_64"
-   elif test  $CPU_BIT_STR = 32 -a -d "$AMDAPPSDKROOT/lib/x86" ; then
-      ADD_LDFLAGS+=" -L$AMDAPPSDKROOT/lib/x86"
-   elif test -d "$AMDAPPSDKROOT/lib"; then
-      ADD_LDFLAGS+=" -L$AMDAPPSDKROOT/lib"
-   fi
-fi
-if test -n "$ATISTREAMSDKROOT"; then
-   if test -d "$ATISTREAMSDKROOT/include"; then
-      ADD_CFLAGS+=" -I$ATISTREAMSDKROOT/include"
-   fi
-   if test $CPU_BIT_STR = 64 -a -d "$ATISTREAMSDKROOT/lib/x86_64" ; then
-      ADD_LDFLAGS+=" -L$ATISTREAMSDKROOT/lib/x86_64"
-   elif test  $CPU_BIT_STR = 32 -a -d "$ATISTREAMSDKROOT/lib/x86" ; then
-      ADD_LDFLAGS+=" -L$ATISTREAMSDKROOT/lib/x86"
-   elif test -d "$ATISTREAMSDKROOT/lib"; then
-      ADD_LDFLAGS+=" -L$ATISTREAMSDKROOT/lib"
-   fi
-fi
-case "x${ADD_CFLAGS}x${ADD_LDFLAGS}" in
-     "xx") cond_and="no" ;;
-     "xx*") cond_and="" ;;
-     "x*x") cond_and="" ;;
-     *) cond_and=" and" ;;
-esac
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: ${ADD_CFLAGS}${cond_and}${ADD_LDFLAGS}" >&5
-$as_echo "${ADD_CFLAGS}${cond_and}${ADD_LDFLAGS}" >&6; }
-LDFLAGS+="$ADD_LDFLAGS"
-CFLAGS+="$ADD_CFLAGS"
-CPPFLAGS+="$ADD_CFLAGS"
-
-
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking additional paths for CUDA" >&5
-$as_echo_n "checking additional paths for CUDA... " >&6; }
-  ADD_LDFLAGS=""
-  ADD_CFLAGS=""
-if test -n "$NVIDIA_CUDA"; then
-   CUDAPATH="$NVIDIA_CUDA"
-else
-   CUDAPATH=/usr/local/cuda
-fi
-NVIDIA_CUDA="$CUDAPATH"
-
-if test -d "$CUDAPATH/include"; then
-   ADD_CFLAGS+=" -I$CUDAPATH/include"
-fi
-if test $CPU_BIT_STR = 64 -a -d "$CUDAPATH/lib64"; then
-   ADD_LDFLAGS+=" -L$CUDAPATH/lib64"
-elif test -d "$CUDAPATH/lib"; then
-   ADD_LDFLAGS+=" -L$CUDAPATH/lib"
-fi
-case "x${ADD_CFLAGS}x${ADD_LDFLAGS}" in
-     "xx") cond_and="no" ;;
-     "xx*") cond_and="" ;;
-     "x*x") cond_and="" ;;
-     *) cond_and=" and" ;;
-esac
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: ${ADD_CFLAGS}${cond_and}${ADD_LDFLAGS}" >&5
-$as_echo "${ADD_CFLAGS}${cond_and}${ADD_LDFLAGS}" >&6; }
-LDFLAGS+="$ADD_LDFLAGS"
-CFLAGS+="$ADD_CFLAGS"
-CPPFLAGS+="$ADD_CFLAGS"
-
-
 #############################################################################
 # Check for unaligned memory access being allowed
 #############################################################################
@@ -7646,9 +7791,6 @@ rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
 fi
 
 CC="$CC_BACKUP"
-#############################################################################
-# End of JtR 32/64 bit test code.
-#############################################################################
 
 #############################################################################
 # Check for LE/BE CPU
@@ -7904,12 +8046,101 @@ fi
 
 # Checks for libraries.
 ################################################
-#  NOTE, be VERY careful of spaces around the comma's in the AC_CHECK_LIB. Best to not have any.
-#  If there are space, then often that will get a lib to NOT be added to @LIBS@ and cause linkage problems.
-#  also note, if action if found is specified, the -llibname will NOT get appended to LIBS. So it has to be
-#  done by 'hand'.  Look at PCAP, where "LIBS += -lpcap" was added. This could also be done by skipping the
-#  modified default action, and doing an AS_IF on the next line.
+#  NOTE, be VERY careful of spaces around the comma's in the AC_CHECK_LIB. Best
+# to not have any.  If there are space, then often that will get a lib to NOT
+# be added to @LIBS@ and cause linkage problems.  Also note, if action if found
+# is specified, the -llibname will NOT get appended to LIBS. So it has to be
+# done by 'hand'.  Look at PCAP, where -lpcap" was added to LIBS. This could
+# also be done by skipping the modified default action, and doing an AS_IF on
+# the next line.
 ################################################
+
+ac_fn_c_check_header_mongrel "$LINENO" "CommonCrypto/CommonDigest.h" "ac_cv_header_CommonCrypto_CommonDigest_h" "$ac_includes_default"
+if test "x$ac_cv_header_CommonCrypto_CommonDigest_h" = xyes; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for CCKeyDerivationPBKDF in -lSystem" >&5
+$as_echo_n "checking for CCKeyDerivationPBKDF in -lSystem... " >&6; }
+if ${ac_cv_lib_System_CCKeyDerivationPBKDF+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lSystem  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char CCKeyDerivationPBKDF ();
+int
+main ()
+{
+return CCKeyDerivationPBKDF ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_System_CCKeyDerivationPBKDF=yes
+else
+  ac_cv_lib_System_CCKeyDerivationPBKDF=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_System_CCKeyDerivationPBKDF" >&5
+$as_echo "$ac_cv_lib_System_CCKeyDerivationPBKDF" >&6; }
+if test "x$ac_cv_lib_System_CCKeyDerivationPBKDF" = xyes; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for CCCryptorCreate in -lSystem" >&5
+$as_echo_n "checking for CCCryptorCreate in -lSystem... " >&6; }
+if ${ac_cv_lib_System_CCCryptorCreate+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lSystem -lcrypto $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char CCCryptorCreate ();
+int
+main ()
+{
+return CCCryptorCreate ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_System_CCCryptorCreate=yes
+else
+  ac_cv_lib_System_CCCryptorCreate=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_System_CCCryptorCreate" >&5
+$as_echo "$ac_cv_lib_System_CCCryptorCreate" >&6; }
+if test "x$ac_cv_lib_System_CCCryptorCreate" = xyes; then :
+
+$as_echo "#define HAVE_COMMONCRYPTO 1" >>confdefs.h
+
+fi
+
+fi
+
+fi
+
+
 
 if test "x$enable_native_tests" = xyes -a "x$PKG_CONFIG" != xno; then
 
@@ -8446,7 +8677,24 @@ $as_echo "$ac_cv_lib_skey_skey_set_algorithm" >&6; }
 if test "x$ac_cv_lib_skey_skey_set_algorithm" = xyes; then :
 
 $as_echo "#define HAVE_SKEY 1" >>confdefs.h
- LIBS+=" -lskey"
+
+   if test "x$LIBS" = "x"; then
+      LIBS="$(echo "-lskey")"
+   elif test -n "$(echo "-lskey")"; then
+      for i in "-lskey"; do
+         jtr_list_add_dupe=0
+         for j in $LIBS; do
+            if test "x$i" = "x$j"; then
+               jtr_list_add_dupe=1
+               break
+            fi
+         done
+         if test $jtr_list_add_dupe = 0; then
+            LIBS="$LIBS $i"
+         fi
+      done
+   fi
+
 fi
 
 fi
@@ -8916,7 +9164,24 @@ fi
 $as_echo "$ac_cv_lib_pcap_pcap_compile" >&6; }
 if test "x$ac_cv_lib_pcap_pcap_compile" = xyes; then :
   HAVE_PCAP=-DHAVE_PCAP
- LIBS+=" -lpcap"
+
+   if test "x$LIBS" = "x"; then
+      LIBS="$(echo "-lpcap")"
+   elif test -n "$(echo "-lpcap")"; then
+      for i in "-lpcap"; do
+         jtr_list_add_dupe=0
+         for j in $LIBS; do
+            if test "x$i" = "x$j"; then
+               jtr_list_add_dupe=1
+               break
+            fi
+         done
+         if test $jtr_list_add_dupe = 0; then
+            LIBS="$LIBS $i"
+         fi
+      done
+   fi
+
 fi
 
 fi
@@ -9260,6 +9525,97 @@ $as_echo "$ac_cv_prog_c_openmp" >&6; }
 
 
 # Check for OpenCL (enable/disable handled within the macro)
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking additional paths for OpenCL" >&5
+$as_echo_n "checking additional paths for OpenCL... " >&6; }
+  ADD_LDFLAGS=""
+  ADD_CFLAGS=""
+if test -n "$AMDAPPSDKROOT"; then
+   if test -d "$AMDAPPSDKROOT/include"; then
+      ADD_CFLAGS+=" -I$AMDAPPSDKROOT/include"
+   fi
+   if test $CPU_BIT_STR = 64 -a -d "$AMDAPPSDKROOT/lib/x86_64" ; then
+      ADD_LDFLAGS+=" -L$AMDAPPSDKROOT/lib/x86_64"
+   elif test  $CPU_BIT_STR = 32 -a -d "$AMDAPPSDKROOT/lib/x86" ; then
+      ADD_LDFLAGS+=" -L$AMDAPPSDKROOT/lib/x86"
+   elif test -d "$AMDAPPSDKROOT/lib"; then
+      ADD_LDFLAGS+=" -L$AMDAPPSDKROOT/lib"
+   fi
+fi
+if test -n "$ATISTREAMSDKROOT"; then
+   if test -d "$ATISTREAMSDKROOT/include"; then
+      ADD_CFLAGS+=" -I$ATISTREAMSDKROOT/include"
+   fi
+   if test $CPU_BIT_STR = 64 -a -d "$ATISTREAMSDKROOT/lib/x86_64" ; then
+      ADD_LDFLAGS+=" -L$ATISTREAMSDKROOT/lib/x86_64"
+   elif test  $CPU_BIT_STR = 32 -a -d "$ATISTREAMSDKROOT/lib/x86" ; then
+      ADD_LDFLAGS+=" -L$ATISTREAMSDKROOT/lib/x86"
+   elif test -d "$ATISTREAMSDKROOT/lib"; then
+      ADD_LDFLAGS+=" -L$ATISTREAMSDKROOT/lib"
+   fi
+fi
+case "x${ADD_CFLAGS}x${ADD_LDFLAGS}" in
+     "xx") cond_and="no" ;;
+     "xx*") cond_and="" ;;
+     "x*x") cond_and="" ;;
+     *) cond_and=" and" ;;
+esac
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: ${ADD_CFLAGS}${cond_and}${ADD_LDFLAGS}" >&5
+$as_echo "${ADD_CFLAGS}${cond_and}${ADD_LDFLAGS}" >&6; }
+
+   if test "x$LDFLAGS" = "x"; then
+      LDFLAGS="$(echo "$ADD_LDFLAGS")"
+   elif test -n "$(echo "$ADD_LDFLAGS")"; then
+      for i in "$ADD_LDFLAGS"; do
+         jtr_list_add_dupe=0
+         for j in $LDFLAGS; do
+            if test "x$i" = "x$j"; then
+               jtr_list_add_dupe=1
+               break
+            fi
+         done
+         if test $jtr_list_add_dupe = 0; then
+            LDFLAGS="$LDFLAGS $i"
+         fi
+      done
+   fi
+
+
+   if test "x$CFLAGS" = "x"; then
+      CFLAGS="$(echo "$ADD_CFLAGS")"
+   elif test -n "$(echo "$ADD_CFLAGS")"; then
+      for i in "$ADD_CFLAGS"; do
+         jtr_list_add_dupe=0
+         for j in $CFLAGS; do
+            if test "x$i" = "x$j"; then
+               jtr_list_add_dupe=1
+               break
+            fi
+         done
+         if test $jtr_list_add_dupe = 0; then
+            CFLAGS="$CFLAGS $i"
+         fi
+      done
+   fi
+
+
+   if test "x$CPPFLAGS" = "x"; then
+      CPPFLAGS="$(echo "$ADD_CFLAGS")"
+   elif test -n "$(echo "$ADD_CFLAGS")"; then
+      for i in "$ADD_CFLAGS"; do
+         jtr_list_add_dupe=0
+         for j in $CPPFLAGS; do
+            if test "x$i" = "x$j"; then
+               jtr_list_add_dupe=1
+               break
+            fi
+         done
+         if test $jtr_list_add_dupe = 0; then
+            CPPFLAGS="$CPPFLAGS $i"
+         fi
+      done
+   fi
+
 
 
 ac_ext=c
@@ -9948,6 +10304,88 @@ fi
 # Check for CUDA, including headers.
 using_cuda=no
 if test "x$enable_cuda" != xno; then
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking additional paths for CUDA" >&5
+$as_echo_n "checking additional paths for CUDA... " >&6; }
+  ADD_LDFLAGS=""
+  ADD_CFLAGS=""
+if test -n "$NVIDIA_CUDA"; then
+   CUDAPATH="$NVIDIA_CUDA"
+else
+   CUDAPATH=/usr/local/cuda
+fi
+NVIDIA_CUDA="$CUDAPATH"
+
+if test -d "$CUDAPATH/include"; then
+   ADD_CFLAGS+=" -I$CUDAPATH/include"
+fi
+if test $CPU_BIT_STR = 64 -a -d "$CUDAPATH/lib64"; then
+   ADD_LDFLAGS+=" -L$CUDAPATH/lib64"
+elif test -d "$CUDAPATH/lib"; then
+   ADD_LDFLAGS+=" -L$CUDAPATH/lib"
+fi
+case "x${ADD_CFLAGS}x${ADD_LDFLAGS}" in
+     "xx") cond_and="no" ;;
+     "xx*") cond_and="" ;;
+     "x*x") cond_and="" ;;
+     *) cond_and=" and" ;;
+esac
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: ${ADD_CFLAGS}${cond_and}${ADD_LDFLAGS}" >&5
+$as_echo "${ADD_CFLAGS}${cond_and}${ADD_LDFLAGS}" >&6; }
+
+   if test "x$LDFLAGS" = "x"; then
+      LDFLAGS="$(echo "$ADD_LDFLAGS")"
+   elif test -n "$(echo "$ADD_LDFLAGS")"; then
+      for i in "$ADD_LDFLAGS"; do
+         jtr_list_add_dupe=0
+         for j in $LDFLAGS; do
+            if test "x$i" = "x$j"; then
+               jtr_list_add_dupe=1
+               break
+            fi
+         done
+         if test $jtr_list_add_dupe = 0; then
+            LDFLAGS="$LDFLAGS $i"
+         fi
+      done
+   fi
+
+
+   if test "x$CFLAGS" = "x"; then
+      CFLAGS="$(echo "$ADD_CFLAGS")"
+   elif test -n "$(echo "$ADD_CFLAGS")"; then
+      for i in "$ADD_CFLAGS"; do
+         jtr_list_add_dupe=0
+         for j in $CFLAGS; do
+            if test "x$i" = "x$j"; then
+               jtr_list_add_dupe=1
+               break
+            fi
+         done
+         if test $jtr_list_add_dupe = 0; then
+            CFLAGS="$CFLAGS $i"
+         fi
+      done
+   fi
+
+
+   if test "x$CPPFLAGS" = "x"; then
+      CPPFLAGS="$(echo "$ADD_CFLAGS")"
+   elif test -n "$(echo "$ADD_CFLAGS")"; then
+      for i in "$ADD_CFLAGS"; do
+         jtr_list_add_dupe=0
+         for j in $CPPFLAGS; do
+            if test "x$i" = "x$j"; then
+               jtr_list_add_dupe=1
+               break
+            fi
+         done
+         if test $jtr_list_add_dupe = 0; then
+            CPPFLAGS="$CPPFLAGS $i"
+         fi
+      done
+   fi
+
    ac_fn_c_check_header_mongrel "$LINENO" "cuda.h" "ac_cv_header_cuda_h" "$ac_includes_default"
 if test "x$ac_cv_header_cuda_h" = xyes; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for cudaGetDeviceCount in -lcudart" >&5
@@ -9988,7 +10426,24 @@ fi
 $as_echo "$ac_cv_lib_cudart_cudaGetDeviceCount" >&6; }
 if test "x$ac_cv_lib_cudart_cudaGetDeviceCount" = xyes; then :
   using_cuda=yes HAVE_CUDA=-DHAVE_CUDA
- LIBS+=" -lcudart"
+
+   if test "x$LIBS" = "x"; then
+      LIBS="$(echo "-lcudart")"
+   elif test -n "$(echo "-lcudart")"; then
+      for i in "-lcudart"; do
+         jtr_list_add_dupe=0
+         for j in $LIBS; do
+            if test "x$i" = "x$j"; then
+               jtr_list_add_dupe=1
+               break
+            fi
+         done
+         if test $jtr_list_add_dupe = 0; then
+            LIBS="$LIBS $i"
+         fi
+      done
+   fi
+
 fi
 
 fi
