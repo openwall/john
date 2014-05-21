@@ -214,12 +214,12 @@ void alter_endianity_w64(void *x, unsigned int count);
 #if (ARCH_LITTLE_ENDIAN==0)
 #define alter_endianity_to_BE(a,b)
 #define alter_endianity_to_BE64(a,b)
-#define alter_endianity_to_LE(a,word32_cnt) do{ \
+#define alter_endianity_to_LE(ptr,word32_cnt) do{ \
     int i; \
     for (i=0;i<word32_cnt; i++) \
         ((ARCH_WORD_32*)ptr)[i] = JOHNSWAP(((ARCH_WORD_32*)ptr)[i]); \
 }while(0)
-#define alter_endianity_to_LE64(a,word64_cnt) do{ \
+#define alter_endianity_to_LE64(ptr,word64_cnt) do{ \
     int i; \
     for (i=0;i<word64_cnt; i++) \
         ((ARCH_WORD_64*)ptr)[i] = JOHNSWAP64(((ARCH_WORD_64*)ptr)[i]); \

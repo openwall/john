@@ -27,6 +27,7 @@
 #include "options.h"
 #include "unicode.h"
 #include "aligned.h"
+#include "johnswap.h"
 #include "memdbg.h"
 
 //Init values
@@ -102,6 +103,7 @@ static struct fmt_tests tests[] = {
 #define SALT_ALIGN			MEM_ALIGN_NONE
 
 #if !ARCH_LITTLE_ENDIAN
+#undef ROTATE_LEFT
 #define ROTATE_LEFT(x, n) (x) = (((x)<<(n))|((unsigned int)(x)>>(32-(n))))
 static void swap(unsigned int *x, unsigned int *y, int count)
 {
