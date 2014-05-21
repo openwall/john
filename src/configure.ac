@@ -590,7 +590,9 @@ fi
 if test "x$ac_cv_lib_pcap_pcap_compile" = x ; then
    ac_cv_lib_pcap_pcap_compile=no
 fi
-if test $(echo "$CFLAGS" | ${GREP} -c -- -O) -eq 0; then
+if test -n "$EGREP" &&
+   test $(echo "$CFLAGS" | ${EGREP} -c -- "-x?O") -eq 0 &&
+   test $(echo "$CFLAGS" | ${GREP} -c -- "-fast\b") -eq 0; then
    echo
    AC_MSG_WARN([No recognized optimization option present in CFLAGS])
 fi
