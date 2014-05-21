@@ -731,7 +731,6 @@ SHELL'
 ac_subst_files=''
 ac_user_opts='
 enable_option_checking
-with_arch
 with_icc_asm
 with_exe_ext
 with_endian
@@ -1384,7 +1383,6 @@ Optional Features:
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
-  --with-arch=opt         Add 'opt' to CFLAGS, LDFLAGS etc. (eg. -m32).
   --with-icc-asm          Use ICC pre-built asm files for intrisic SIMD code.
                           Default: no
   --with-exe-ext          For Cygwin and MinGW. Set to .exe to allow stand
@@ -3374,79 +3372,6 @@ fi
   if test "x$HAVE_GIT" = xyes; then
      git update-index --assume-unchanged Makefile
   fi
-fi
-
-# Shorthand: -with-arch=-m32 will add '-m32' to CFLAGS, LDFLAGS etc.
-
-# Check whether --with-arch was given.
-if test "${with_arch+set}" = set; then :
-  withval=$with_arch;
-else
-  with_arch=""
-fi
-
-
-if test "x$with_arch" != x; then
-
-   for i in $with_arch; do
-      jtr_list_add_dupe=0
-      for j in $CFLAGS; do
-         if test "x$i" = "x$j"; then
-            jtr_list_add_dupe=1
-            break
-         fi
-      done
-      if test $jtr_list_add_dupe = 0; then
-         CFLAGS="$CFLAGS $i"
-         jtr_list_add_result="$jtr_list_add_print $i"
-      fi
-   done
-
-
-   for i in $with_arch; do
-      jtr_list_add_dupe=0
-      for j in $CPPFLAGS; do
-         if test "x$i" = "x$j"; then
-            jtr_list_add_dupe=1
-            break
-         fi
-      done
-      if test $jtr_list_add_dupe = 0; then
-         CPPFLAGS="$CPPFLAGS $i"
-         jtr_list_add_result="$jtr_list_add_print $i"
-      fi
-   done
-
-
-   for i in $with_arch; do
-      jtr_list_add_dupe=0
-      for j in $LDFLAGS; do
-         if test "x$i" = "x$j"; then
-            jtr_list_add_dupe=1
-            break
-         fi
-      done
-      if test $jtr_list_add_dupe = 0; then
-         LDFLAGS="$LDFLAGS $i"
-         jtr_list_add_result="$jtr_list_add_print $i"
-      fi
-   done
-
-
-   for i in $with_arch; do
-      jtr_list_add_dupe=0
-      for j in $ASFLAGS; do
-         if test "x$i" = "x$j"; then
-            jtr_list_add_dupe=1
-            break
-         fi
-      done
-      if test $jtr_list_add_dupe = 0; then
-         ASFLAGS="$ASFLAGS $i"
-         jtr_list_add_result="$jtr_list_add_print $i"
-      fi
-   done
-
 fi
 
 # Define Packages.

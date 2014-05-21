@@ -71,17 +71,6 @@ if test -d "../.git"; then
   fi
 fi
 
-# Shorthand: -with-arch=-m32 will add '-m32' to CFLAGS, LDFLAGS etc.
-AC_ARG_WITH(arch, [AS_HELP_STRING([--with-arch=opt],[Add 'opt' to CFLAGS, LDFLAGS etc. (eg. -m32).])],,[with_arch=""])
-
-if test "x$with_arch" != x; then
-   JTR_LIST_ADD(CFLAGS, [$with_arch])
-   JTR_LIST_ADD(CPPFLAGS, [$with_arch])
-   dnl JTR_LIST_ADD(CXXFLAGS, [$with_arch])
-   JTR_LIST_ADD(LDFLAGS, [$with_arch])
-   JTR_LIST_ADD(ASFLAGS, [$with_arch])
-fi
-
 # Define Packages.
 AC_ARG_WITH(icc-asm, [AS_HELP_STRING([--with-icc-asm],[Use ICC pre-built asm files for intrisic SIMD code. Default: no])],,[with_icc_asm=no])
 AC_ARG_WITH(exe-ext, [AS_HELP_STRING([--with-exe-ext],[For Cygwin and MinGW. Set to .exe to allow stand alone symlink exe files. Default is 'empty'])],,[with_exe_ext=""])
