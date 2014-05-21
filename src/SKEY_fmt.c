@@ -32,6 +32,7 @@
   ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#include "arch.h"
 #ifdef HAVE_SKEY
 
 #include <stdio.h>
@@ -40,7 +41,6 @@
 #include <ctype.h>
 #include <skey.h>
 
-#include "arch.h"
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
@@ -237,7 +237,7 @@ static unsigned int skey_hash_type(void *salt)
 	 * The alternative would be to report "" as 0 (unknown), but that would
 	 * pretend MD4 cost is similar to the cost of a new hash type.
 	 * This seems to be more unlikely than MD4 cost being similar to MD5.
-	 */ 
+	 */
 	if (my_salt->type[0] == '\0' || (!strcasecmp(my_salt->type, "md4")))
 		return (unsigned int) 1;
 	else if (!strcasecmp(my_salt->type, "md5"))
