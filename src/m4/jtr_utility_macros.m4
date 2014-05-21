@@ -10,22 +10,18 @@
 # JTR_LIST_ADD(variable, value(s))
 # Add space separated value(s) to variable unless already present.
 AC_DEFUN([JTR_LIST_ADD], [
-   if test "x$$1" = "x"; then
-      $1="$(echo $2)"
-   elif test -n "$(echo $2)"; then
-      for i in $2; do
-         jtr_list_add_dupe=0
-         for j in $$1; do
-            if test "x$i" = "x$j"; then
-               jtr_list_add_dupe=1
-               break
-            fi
-         done
-         if test $jtr_list_add_dupe = 0; then
-            $1="$$1 $i"
+   for i in $2; do
+      jtr_list_add_dupe=0
+      for j in $$1; do
+         if test "x$i" = "x$j"; then
+            jtr_list_add_dupe=1
+            break
          fi
       done
-   fi
+      if test $jtr_list_add_dupe = 0; then
+         $1="$$1 $i"
+      fi
+   done
 ])
 
 # @synopsis JTR_FLAG_CHECK [compiler flags]
@@ -74,9 +70,9 @@ case "x${ADD_CFLAGS}x${ADD_LDFLAGS}" in
      *) cond_and=" and" ;;
 esac
 AC_MSG_RESULT([${ADD_CFLAGS}${cond_and}${ADD_LDFLAGS}])
-JTR_LIST_ADD(LDFLAGS, "$ADD_LDFLAGS")
-JTR_LIST_ADD(CFLAGS, "$ADD_CFLAGS")
-JTR_LIST_ADD(CPPFLAGS, "$ADD_CFLAGS")dnl  NOT a typo
+JTR_LIST_ADD(LDFLAGS, [$ADD_LDFLAGS])
+JTR_LIST_ADD(CFLAGS, [$ADD_CFLAGS])
+JTR_LIST_ADD(CPPFLAGS, [$ADD_CFLAGS])dnl  NOT a typo
 ])
 
 # @synopsis JTR_SET_CUDA_INCLUDES
@@ -107,9 +103,9 @@ case "x${ADD_CFLAGS}x${ADD_LDFLAGS}" in
      *) cond_and=" and" ;;
 esac
 AC_MSG_RESULT([${ADD_CFLAGS}${cond_and}${ADD_LDFLAGS}])
-JTR_LIST_ADD(LDFLAGS, "$ADD_LDFLAGS")
-JTR_LIST_ADD(CFLAGS, "$ADD_CFLAGS")
-JTR_LIST_ADD(CPPFLAGS, "$ADD_CFLAGS")dnl  NOT a typo
+JTR_LIST_ADD(LDFLAGS, [$ADD_LDFLAGS])
+JTR_LIST_ADD(CFLAGS, [$ADD_CFLAGS])
+JTR_LIST_ADD(CPPFLAGS, [$ADD_CFLAGS])dnl  NOT a typo
 ])
 
 # @synopsis JTR_SET_OPENCL_INCLUDES
@@ -150,7 +146,7 @@ case "x${ADD_CFLAGS}x${ADD_LDFLAGS}" in
      *) cond_and=" and" ;;
 esac
 AC_MSG_RESULT([${ADD_CFLAGS}${cond_and}${ADD_LDFLAGS}])
-JTR_LIST_ADD(LDFLAGS, "$ADD_LDFLAGS")
-JTR_LIST_ADD(CFLAGS, "$ADD_CFLAGS")
-JTR_LIST_ADD(CPPFLAGS, "$ADD_CFLAGS")dnl  NOT a typo
+JTR_LIST_ADD(LDFLAGS, [$ADD_LDFLAGS])
+JTR_LIST_ADD(CFLAGS, [$ADD_CFLAGS])
+JTR_LIST_ADD(CPPFLAGS, [$ADD_CFLAGS])dnl  NOT a typo
 ])

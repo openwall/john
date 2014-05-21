@@ -3384,77 +3384,61 @@ fi
 
 if test "x$with_arch" != x; then
 
-   if test "x$CFLAGS" = "x"; then
-      CFLAGS="$(echo "$with_arch")"
-   elif test -n "$(echo "$with_arch")"; then
-      for i in "$with_arch"; do
-         jtr_list_add_dupe=0
-         for j in $CFLAGS; do
-            if test "x$i" = "x$j"; then
-               jtr_list_add_dupe=1
-               break
-            fi
-         done
-         if test $jtr_list_add_dupe = 0; then
-            CFLAGS="$CFLAGS $i"
+   for i in $with_arch; do
+      jtr_list_add_dupe=0
+      for j in $CFLAGS; do
+         if test "x$i" = "x$j"; then
+            jtr_list_add_dupe=1
+            break
          fi
       done
-   fi
+      if test $jtr_list_add_dupe = 0; then
+         CFLAGS="$CFLAGS $i"
+      fi
+   done
 
 
-   if test "x$CPPFLAGS" = "x"; then
-      CPPFLAGS="$(echo "$with_arch")"
-   elif test -n "$(echo "$with_arch")"; then
-      for i in "$with_arch"; do
-         jtr_list_add_dupe=0
-         for j in $CPPFLAGS; do
-            if test "x$i" = "x$j"; then
-               jtr_list_add_dupe=1
-               break
-            fi
-         done
-         if test $jtr_list_add_dupe = 0; then
-            CPPFLAGS="$CPPFLAGS $i"
+   for i in $with_arch; do
+      jtr_list_add_dupe=0
+      for j in $CPPFLAGS; do
+         if test "x$i" = "x$j"; then
+            jtr_list_add_dupe=1
+            break
          fi
       done
-   fi
+      if test $jtr_list_add_dupe = 0; then
+         CPPFLAGS="$CPPFLAGS $i"
+      fi
+   done
 
-   #JTR_LIST_ADD(CXXFLAGS, "$with_arch")
+   #JTR_LIST_ADD(CXXFLAGS, [$with_arch])
 
-   if test "x$LDFLAGS" = "x"; then
-      LDFLAGS="$(echo "$with_arch")"
-   elif test -n "$(echo "$with_arch")"; then
-      for i in "$with_arch"; do
-         jtr_list_add_dupe=0
-         for j in $LDFLAGS; do
-            if test "x$i" = "x$j"; then
-               jtr_list_add_dupe=1
-               break
-            fi
-         done
-         if test $jtr_list_add_dupe = 0; then
-            LDFLAGS="$LDFLAGS $i"
+   for i in $with_arch; do
+      jtr_list_add_dupe=0
+      for j in $LDFLAGS; do
+         if test "x$i" = "x$j"; then
+            jtr_list_add_dupe=1
+            break
          fi
       done
-   fi
+      if test $jtr_list_add_dupe = 0; then
+         LDFLAGS="$LDFLAGS $i"
+      fi
+   done
 
 
-   if test "x$ASFLAGS" = "x"; then
-      ASFLAGS="$(echo "$with_arch")"
-   elif test -n "$(echo "$with_arch")"; then
-      for i in "$with_arch"; do
-         jtr_list_add_dupe=0
-         for j in $ASFLAGS; do
-            if test "x$i" = "x$j"; then
-               jtr_list_add_dupe=1
-               break
-            fi
-         done
-         if test $jtr_list_add_dupe = 0; then
-            ASFLAGS="$ASFLAGS $i"
+   for i in $with_arch; do
+      jtr_list_add_dupe=0
+      for j in $ASFLAGS; do
+         if test "x$i" = "x$j"; then
+            jtr_list_add_dupe=1
+            break
          fi
       done
-   fi
+      if test $jtr_list_add_dupe = 0; then
+         ASFLAGS="$ASFLAGS $i"
+      fi
+   done
 
 fi
 
@@ -5160,58 +5144,46 @@ esac
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: ${ADD_CFLAGS}${cond_and}${ADD_LDFLAGS}" >&5
 $as_echo "${ADD_CFLAGS}${cond_and}${ADD_LDFLAGS}" >&6; }
 
-   if test "x$LDFLAGS" = "x"; then
-      LDFLAGS="$(echo "$ADD_LDFLAGS")"
-   elif test -n "$(echo "$ADD_LDFLAGS")"; then
-      for i in "$ADD_LDFLAGS"; do
-         jtr_list_add_dupe=0
-         for j in $LDFLAGS; do
-            if test "x$i" = "x$j"; then
-               jtr_list_add_dupe=1
-               break
-            fi
-         done
-         if test $jtr_list_add_dupe = 0; then
-            LDFLAGS="$LDFLAGS $i"
+   for i in $ADD_LDFLAGS; do
+      jtr_list_add_dupe=0
+      for j in $LDFLAGS; do
+         if test "x$i" = "x$j"; then
+            jtr_list_add_dupe=1
+            break
          fi
       done
-   fi
+      if test $jtr_list_add_dupe = 0; then
+         LDFLAGS="$LDFLAGS $i"
+      fi
+   done
 
 
-   if test "x$CFLAGS" = "x"; then
-      CFLAGS="$(echo "$ADD_CFLAGS")"
-   elif test -n "$(echo "$ADD_CFLAGS")"; then
-      for i in "$ADD_CFLAGS"; do
-         jtr_list_add_dupe=0
-         for j in $CFLAGS; do
-            if test "x$i" = "x$j"; then
-               jtr_list_add_dupe=1
-               break
-            fi
-         done
-         if test $jtr_list_add_dupe = 0; then
-            CFLAGS="$CFLAGS $i"
+   for i in $ADD_CFLAGS; do
+      jtr_list_add_dupe=0
+      for j in $CFLAGS; do
+         if test "x$i" = "x$j"; then
+            jtr_list_add_dupe=1
+            break
          fi
       done
-   fi
+      if test $jtr_list_add_dupe = 0; then
+         CFLAGS="$CFLAGS $i"
+      fi
+   done
 
 
-   if test "x$CPPFLAGS" = "x"; then
-      CPPFLAGS="$(echo "$ADD_CFLAGS")"
-   elif test -n "$(echo "$ADD_CFLAGS")"; then
-      for i in "$ADD_CFLAGS"; do
-         jtr_list_add_dupe=0
-         for j in $CPPFLAGS; do
-            if test "x$i" = "x$j"; then
-               jtr_list_add_dupe=1
-               break
-            fi
-         done
-         if test $jtr_list_add_dupe = 0; then
-            CPPFLAGS="$CPPFLAGS $i"
+   for i in $ADD_CFLAGS; do
+      jtr_list_add_dupe=0
+      for j in $CPPFLAGS; do
+         if test "x$i" = "x$j"; then
+            jtr_list_add_dupe=1
+            break
          fi
       done
-   fi
+      if test $jtr_list_add_dupe = 0; then
+         CPPFLAGS="$CPPFLAGS $i"
+      fi
+   done
 
 
 ###
@@ -7503,22 +7475,18 @@ case "$host_cpu" in
    x86_64)
       if test "x$with_icc_asm" = "xyes"; then
 
-   if test "x$CFLAGS" = "x"; then
-      CFLAGS="$(echo "-DUSING_ICC_S_FILE")"
-   elif test -n "$(echo "-DUSING_ICC_S_FILE")"; then
-      for i in "-DUSING_ICC_S_FILE"; do
-         jtr_list_add_dupe=0
-         for j in $CFLAGS; do
-            if test "x$i" = "x$j"; then
-               jtr_list_add_dupe=1
-               break
-            fi
-         done
-         if test $jtr_list_add_dupe = 0; then
-            CFLAGS="$CFLAGS $i"
+   for i in -DUSING_ICC_S_FILE; do
+      jtr_list_add_dupe=0
+      for j in $CFLAGS; do
+         if test "x$i" = "x$j"; then
+            jtr_list_add_dupe=1
+            break
          fi
       done
-   fi
+      if test $jtr_list_add_dupe = 0; then
+         CFLAGS="$CFLAGS $i"
+      fi
+   done
 
          CC_ASM_OBJS="x86-64.o sse-intrinsics-64.o"
       else
@@ -7530,22 +7498,18 @@ case "$host_cpu" in
         CC_ASM_OBJS="x86.o"
       elif test "x$with_icc_asm" = "xyes"; then
 
-   if test "x$CFLAGS" = "x"; then
-      CFLAGS="$(echo "-DUSING_ICC_S_FILE")"
-   elif test -n "$(echo "-DUSING_ICC_S_FILE")"; then
-      for i in "-DUSING_ICC_S_FILE"; do
-         jtr_list_add_dupe=0
-         for j in $CFLAGS; do
-            if test "x$i" = "x$j"; then
-               jtr_list_add_dupe=1
-               break
-            fi
-         done
-         if test $jtr_list_add_dupe = 0; then
-            CFLAGS="$CFLAGS $i"
+   for i in -DUSING_ICC_S_FILE; do
+      jtr_list_add_dupe=0
+      for j in $CFLAGS; do
+         if test "x$i" = "x$j"; then
+            jtr_list_add_dupe=1
+            break
          fi
       done
-   fi
+      if test $jtr_list_add_dupe = 0; then
+         CFLAGS="$CFLAGS $i"
+      fi
+   done
 
         CC_ASM_OBJS="x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics-32.o"
       else
@@ -7574,22 +7538,18 @@ CFLAGS_BACKUP=$CFLAGS
 CFLAGS="$CFLAGS -O0"
 if echo "int long_ident;" > conftest.c && ${CC} -c conftest.c && strings - conftest.${OBJEXT} | ${GREP} _long_ident > conftest.out; then :
 
-   if test "x$EXTRA_AS_FLAGS" = "x"; then
-      EXTRA_AS_FLAGS="$(echo "-DUNDERSCORES")"
-   elif test -n "$(echo "-DUNDERSCORES")"; then
-      for i in "-DUNDERSCORES"; do
-         jtr_list_add_dupe=0
-         for j in $EXTRA_AS_FLAGS; do
-            if test "x$i" = "x$j"; then
-               jtr_list_add_dupe=1
-               break
-            fi
-         done
-         if test $jtr_list_add_dupe = 0; then
-            EXTRA_AS_FLAGS="$EXTRA_AS_FLAGS $i"
+   for i in -DUNDERSCORES; do
+      jtr_list_add_dupe=0
+      for j in $EXTRA_AS_FLAGS; do
+         if test "x$i" = "x$j"; then
+            jtr_list_add_dupe=1
+            break
          fi
       done
-   fi
+      if test $jtr_list_add_dupe = 0; then
+         EXTRA_AS_FLAGS="$EXTRA_AS_FLAGS $i"
+      fi
+   done
 
 fi
 
@@ -7607,22 +7567,18 @@ extern void exit(int);
 _ACEOF
 if ac_fn_c_try_link "$LINENO"; then :
 
-   if test "x$EXTRA_AS_FLAGS" = "x"; then
-      EXTRA_AS_FLAGS="$(echo "-DBSD -DALIGN_LOG")"
-   elif test -n "$(echo "-DBSD -DALIGN_LOG")"; then
-      for i in "-DBSD -DALIGN_LOG"; do
-         jtr_list_add_dupe=0
-         for j in $EXTRA_AS_FLAGS; do
-            if test "x$i" = "x$j"; then
-               jtr_list_add_dupe=1
-               break
-            fi
-         done
-         if test $jtr_list_add_dupe = 0; then
-            EXTRA_AS_FLAGS="$EXTRA_AS_FLAGS $i"
+   for i in -DBSD -DALIGN_LOG; do
+      jtr_list_add_dupe=0
+      for j in $EXTRA_AS_FLAGS; do
+         if test "x$i" = "x$j"; then
+            jtr_list_add_dupe=1
+            break
          fi
       done
-   fi
+      if test $jtr_list_add_dupe = 0; then
+         EXTRA_AS_FLAGS="$EXTRA_AS_FLAGS $i"
+      fi
+   done
 
 fi
 rm -f core conftest.err conftest.$ac_objext \
@@ -7661,41 +7617,33 @@ if ac_fn_c_try_link "$LINENO"; then :
 $as_echo "yes" >&6; }
    ax_intel_x32=no
 
-   if test "x$EXTRA_AS_FLAGS" = "x"; then
-      EXTRA_AS_FLAGS="$(echo "-D__CYGWIN64__ -D__CYGWIN32__")"
-   elif test -n "$(echo "-D__CYGWIN64__ -D__CYGWIN32__")"; then
-      for i in "-D__CYGWIN64__ -D__CYGWIN32__"; do
-         jtr_list_add_dupe=0
-         for j in $EXTRA_AS_FLAGS; do
-            if test "x$i" = "x$j"; then
-               jtr_list_add_dupe=1
-               break
-            fi
-         done
-         if test $jtr_list_add_dupe = 0; then
-            EXTRA_AS_FLAGS="$EXTRA_AS_FLAGS $i"
+   for i in -D__CYGWIN64__ -D__CYGWIN32__; do
+      jtr_list_add_dupe=0
+      for j in $EXTRA_AS_FLAGS; do
+         if test "x$i" = "x$j"; then
+            jtr_list_add_dupe=1
+            break
          fi
       done
-   fi
+      if test $jtr_list_add_dupe = 0; then
+         EXTRA_AS_FLAGS="$EXTRA_AS_FLAGS $i"
+      fi
+   done
 
    # CFLAG_EXTRA was already defined (early in configure.ac).  We append to it, and AC_SUBST it again.
 
-   if test "x$CFLAGS_EX" = "x"; then
-      CFLAGS_EX="$(echo "-D__CYGWIN64__ -D__CYGWIN32__")"
-   elif test -n "$(echo "-D__CYGWIN64__ -D__CYGWIN32__")"; then
-      for i in "-D__CYGWIN64__ -D__CYGWIN32__"; do
-         jtr_list_add_dupe=0
-         for j in $CFLAGS_EX; do
-            if test "x$i" = "x$j"; then
-               jtr_list_add_dupe=1
-               break
-            fi
-         done
-         if test $jtr_list_add_dupe = 0; then
-            CFLAGS_EX="$CFLAGS_EX $i"
+   for i in -D__CYGWIN64__ -D__CYGWIN32__; do
+      jtr_list_add_dupe=0
+      for j in $CFLAGS_EX; do
+         if test "x$i" = "x$j"; then
+            jtr_list_add_dupe=1
+            break
          fi
       done
-   fi
+      if test $jtr_list_add_dupe = 0; then
+         CFLAGS_EX="$CFLAGS_EX $i"
+      fi
+   done
 
    CFLAGS_EXTRA=${CFLAGS_EX}
 
@@ -8678,22 +8626,18 @@ if test "x$ac_cv_lib_skey_skey_set_algorithm" = xyes; then :
 
 $as_echo "#define HAVE_SKEY 1" >>confdefs.h
 
-   if test "x$LIBS" = "x"; then
-      LIBS="$(echo "-lskey")"
-   elif test -n "$(echo "-lskey")"; then
-      for i in "-lskey"; do
-         jtr_list_add_dupe=0
-         for j in $LIBS; do
-            if test "x$i" = "x$j"; then
-               jtr_list_add_dupe=1
-               break
-            fi
-         done
-         if test $jtr_list_add_dupe = 0; then
-            LIBS="$LIBS $i"
+   for i in -lskey; do
+      jtr_list_add_dupe=0
+      for j in $LIBS; do
+         if test "x$i" = "x$j"; then
+            jtr_list_add_dupe=1
+            break
          fi
       done
-   fi
+      if test $jtr_list_add_dupe = 0; then
+         LIBS="$LIBS $i"
+      fi
+   done
 
 fi
 
@@ -9165,22 +9109,18 @@ $as_echo "$ac_cv_lib_pcap_pcap_compile" >&6; }
 if test "x$ac_cv_lib_pcap_pcap_compile" = xyes; then :
   HAVE_PCAP=-DHAVE_PCAP
 
-   if test "x$LIBS" = "x"; then
-      LIBS="$(echo "-lpcap")"
-   elif test -n "$(echo "-lpcap")"; then
-      for i in "-lpcap"; do
-         jtr_list_add_dupe=0
-         for j in $LIBS; do
-            if test "x$i" = "x$j"; then
-               jtr_list_add_dupe=1
-               break
-            fi
-         done
-         if test $jtr_list_add_dupe = 0; then
-            LIBS="$LIBS $i"
+   for i in -lpcap; do
+      jtr_list_add_dupe=0
+      for j in $LIBS; do
+         if test "x$i" = "x$j"; then
+            jtr_list_add_dupe=1
+            break
          fi
       done
-   fi
+      if test $jtr_list_add_dupe = 0; then
+         LIBS="$LIBS $i"
+      fi
+   done
 
 fi
 
@@ -9563,58 +9503,46 @@ esac
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: ${ADD_CFLAGS}${cond_and}${ADD_LDFLAGS}" >&5
 $as_echo "${ADD_CFLAGS}${cond_and}${ADD_LDFLAGS}" >&6; }
 
-   if test "x$LDFLAGS" = "x"; then
-      LDFLAGS="$(echo "$ADD_LDFLAGS")"
-   elif test -n "$(echo "$ADD_LDFLAGS")"; then
-      for i in "$ADD_LDFLAGS"; do
-         jtr_list_add_dupe=0
-         for j in $LDFLAGS; do
-            if test "x$i" = "x$j"; then
-               jtr_list_add_dupe=1
-               break
-            fi
-         done
-         if test $jtr_list_add_dupe = 0; then
-            LDFLAGS="$LDFLAGS $i"
+   for i in $ADD_LDFLAGS; do
+      jtr_list_add_dupe=0
+      for j in $LDFLAGS; do
+         if test "x$i" = "x$j"; then
+            jtr_list_add_dupe=1
+            break
          fi
       done
-   fi
+      if test $jtr_list_add_dupe = 0; then
+         LDFLAGS="$LDFLAGS $i"
+      fi
+   done
 
 
-   if test "x$CFLAGS" = "x"; then
-      CFLAGS="$(echo "$ADD_CFLAGS")"
-   elif test -n "$(echo "$ADD_CFLAGS")"; then
-      for i in "$ADD_CFLAGS"; do
-         jtr_list_add_dupe=0
-         for j in $CFLAGS; do
-            if test "x$i" = "x$j"; then
-               jtr_list_add_dupe=1
-               break
-            fi
-         done
-         if test $jtr_list_add_dupe = 0; then
-            CFLAGS="$CFLAGS $i"
+   for i in $ADD_CFLAGS; do
+      jtr_list_add_dupe=0
+      for j in $CFLAGS; do
+         if test "x$i" = "x$j"; then
+            jtr_list_add_dupe=1
+            break
          fi
       done
-   fi
+      if test $jtr_list_add_dupe = 0; then
+         CFLAGS="$CFLAGS $i"
+      fi
+   done
 
 
-   if test "x$CPPFLAGS" = "x"; then
-      CPPFLAGS="$(echo "$ADD_CFLAGS")"
-   elif test -n "$(echo "$ADD_CFLAGS")"; then
-      for i in "$ADD_CFLAGS"; do
-         jtr_list_add_dupe=0
-         for j in $CPPFLAGS; do
-            if test "x$i" = "x$j"; then
-               jtr_list_add_dupe=1
-               break
-            fi
-         done
-         if test $jtr_list_add_dupe = 0; then
-            CPPFLAGS="$CPPFLAGS $i"
+   for i in $ADD_CFLAGS; do
+      jtr_list_add_dupe=0
+      for j in $CPPFLAGS; do
+         if test "x$i" = "x$j"; then
+            jtr_list_add_dupe=1
+            break
          fi
       done
-   fi
+      if test $jtr_list_add_dupe = 0; then
+         CPPFLAGS="$CPPFLAGS $i"
+      fi
+   done
 
 
 
@@ -10333,58 +10261,46 @@ esac
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: ${ADD_CFLAGS}${cond_and}${ADD_LDFLAGS}" >&5
 $as_echo "${ADD_CFLAGS}${cond_and}${ADD_LDFLAGS}" >&6; }
 
-   if test "x$LDFLAGS" = "x"; then
-      LDFLAGS="$(echo "$ADD_LDFLAGS")"
-   elif test -n "$(echo "$ADD_LDFLAGS")"; then
-      for i in "$ADD_LDFLAGS"; do
-         jtr_list_add_dupe=0
-         for j in $LDFLAGS; do
-            if test "x$i" = "x$j"; then
-               jtr_list_add_dupe=1
-               break
-            fi
-         done
-         if test $jtr_list_add_dupe = 0; then
-            LDFLAGS="$LDFLAGS $i"
+   for i in $ADD_LDFLAGS; do
+      jtr_list_add_dupe=0
+      for j in $LDFLAGS; do
+         if test "x$i" = "x$j"; then
+            jtr_list_add_dupe=1
+            break
          fi
       done
-   fi
+      if test $jtr_list_add_dupe = 0; then
+         LDFLAGS="$LDFLAGS $i"
+      fi
+   done
 
 
-   if test "x$CFLAGS" = "x"; then
-      CFLAGS="$(echo "$ADD_CFLAGS")"
-   elif test -n "$(echo "$ADD_CFLAGS")"; then
-      for i in "$ADD_CFLAGS"; do
-         jtr_list_add_dupe=0
-         for j in $CFLAGS; do
-            if test "x$i" = "x$j"; then
-               jtr_list_add_dupe=1
-               break
-            fi
-         done
-         if test $jtr_list_add_dupe = 0; then
-            CFLAGS="$CFLAGS $i"
+   for i in $ADD_CFLAGS; do
+      jtr_list_add_dupe=0
+      for j in $CFLAGS; do
+         if test "x$i" = "x$j"; then
+            jtr_list_add_dupe=1
+            break
          fi
       done
-   fi
+      if test $jtr_list_add_dupe = 0; then
+         CFLAGS="$CFLAGS $i"
+      fi
+   done
 
 
-   if test "x$CPPFLAGS" = "x"; then
-      CPPFLAGS="$(echo "$ADD_CFLAGS")"
-   elif test -n "$(echo "$ADD_CFLAGS")"; then
-      for i in "$ADD_CFLAGS"; do
-         jtr_list_add_dupe=0
-         for j in $CPPFLAGS; do
-            if test "x$i" = "x$j"; then
-               jtr_list_add_dupe=1
-               break
-            fi
-         done
-         if test $jtr_list_add_dupe = 0; then
-            CPPFLAGS="$CPPFLAGS $i"
+   for i in $ADD_CFLAGS; do
+      jtr_list_add_dupe=0
+      for j in $CPPFLAGS; do
+         if test "x$i" = "x$j"; then
+            jtr_list_add_dupe=1
+            break
          fi
       done
-   fi
+      if test $jtr_list_add_dupe = 0; then
+         CPPFLAGS="$CPPFLAGS $i"
+      fi
+   done
 
    ac_fn_c_check_header_mongrel "$LINENO" "cuda.h" "ac_cv_header_cuda_h" "$ac_includes_default"
 if test "x$ac_cv_header_cuda_h" = xyes; then :
@@ -10427,22 +10343,18 @@ $as_echo "$ac_cv_lib_cudart_cudaGetDeviceCount" >&6; }
 if test "x$ac_cv_lib_cudart_cudaGetDeviceCount" = xyes; then :
   using_cuda=yes HAVE_CUDA=-DHAVE_CUDA
 
-   if test "x$LIBS" = "x"; then
-      LIBS="$(echo "-lcudart")"
-   elif test -n "$(echo "-lcudart")"; then
-      for i in "-lcudart"; do
-         jtr_list_add_dupe=0
-         for j in $LIBS; do
-            if test "x$i" = "x$j"; then
-               jtr_list_add_dupe=1
-               break
-            fi
-         done
-         if test $jtr_list_add_dupe = 0; then
-            LIBS="$LIBS $i"
+   for i in -lcudart; do
+      jtr_list_add_dupe=0
+      for j in $LIBS; do
+         if test "x$i" = "x$j"; then
+            jtr_list_add_dupe=1
+            break
          fi
       done
-   fi
+      if test $jtr_list_add_dupe = 0; then
+         LIBS="$LIBS $i"
+      fi
+   done
 
 fi
 

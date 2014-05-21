@@ -82,7 +82,7 @@ AC_LINK_IFELSE(
 case "$host_cpu" in
    x86_64)
       if test "x$with_icc_asm" = "xyes"; then
-         JTR_LIST_ADD(CFLAGS, "-DUSING_ICC_S_FILE")
+         JTR_LIST_ADD(CFLAGS, [-DUSING_ICC_S_FILE])
          [CC_ASM_OBJS="x86-64.o sse-intrinsics-64.o"]
       else
          [CC_ASM_OBJS="x86-64.o sse-intrinsics.o"]
@@ -92,7 +92,7 @@ case "$host_cpu" in
       if test "y$ARCH_LINK" = "yx86-any.h"; then
         [CC_ASM_OBJS="x86.o"]
       elif test "x$with_icc_asm" = "xyes"; then
-        JTR_LIST_ADD(CFLAGS, "-DUSING_ICC_S_FILE")
+        JTR_LIST_ADD(CFLAGS, [-DUSING_ICC_S_FILE])
         [CC_ASM_OBJS="x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics-32.o"]
       else
         [CC_ASM_OBJS="x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o"]
@@ -118,7 +118,7 @@ CC="$CC_BACKUP"
 CFLAGS_BACKUP=$CFLAGS
 CFLAGS="$CFLAGS -O0"
 AS_IF([echo "int long_ident;" > conftest.c && ${CC} -c conftest.c && strings - conftest.${OBJEXT} | ${GREP} _long_ident > conftest.out],
-      [JTR_LIST_ADD(EXTRA_AS_FLAGS, "-DUNDERSCORES")])
+      [JTR_LIST_ADD(EXTRA_AS_FLAGS, [-DUNDERSCORES])])
 
 AC_LINK_IFELSE([AC_LANG_SOURCE(
 	[[extern void exit(int);
@@ -129,7 +129,7 @@ AC_LINK_IFELSE([AC_LANG_SOURCE(
         BORK!
 	#endif
 	}]])]
-  ,[JTR_LIST_ADD(EXTRA_AS_FLAGS, "-DBSD -DALIGN_LOG")])
+  ,[JTR_LIST_ADD(EXTRA_AS_FLAGS, [-DBSD -DALIGN_LOG])])
 
 AS_IF([test "x$EXTRA_AS_FLAGS" = x],[AC_MSG_RESULT([None needed])],[AC_MSG_RESULT([${EXTRA_AS_FLAGS}])])
 
@@ -152,9 +152,9 @@ AC_MSG_CHECKING([for cygwin64])
    )]
    ,[AC_MSG_RESULT([yes])]
    [ax_intel_x32=no]
-   [JTR_LIST_ADD(EXTRA_AS_FLAGS, "-D__CYGWIN64__ -D__CYGWIN32__")]
+   [JTR_LIST_ADD(EXTRA_AS_FLAGS, [-D__CYGWIN64__ -D__CYGWIN32__])]
    # CFLAG_EXTRA was already defined (early in configure.ac).  We append to it, and AC_SUBST it again.
-   [JTR_LIST_ADD(CFLAGS_EX, "-D__CYGWIN64__ -D__CYGWIN32__")]
+   [JTR_LIST_ADD(CFLAGS_EX, [-D__CYGWIN64__ -D__CYGWIN32__])]
    AC_SUBST([CFLAGS_EXTRA],[${CFLAGS_EX}])
    ,[AC_MSG_RESULT([no])]
 )])

@@ -75,11 +75,11 @@ fi
 AC_ARG_WITH(arch, [AS_HELP_STRING([--with-arch=opt],[Add 'opt' to CFLAGS, LDFLAGS etc. (eg. -m32).])],,[with_arch=""])
 
 if test "x$with_arch" != x; then
-   JTR_LIST_ADD(CFLAGS, "$with_arch")
-   JTR_LIST_ADD(CPPFLAGS, "$with_arch")
-   #JTR_LIST_ADD(CXXFLAGS, "$with_arch")
-   JTR_LIST_ADD(LDFLAGS, "$with_arch")
-   JTR_LIST_ADD(ASFLAGS, "$with_arch")
+   JTR_LIST_ADD(CFLAGS, [$with_arch])
+   JTR_LIST_ADD(CPPFLAGS, [$with_arch])
+   #JTR_LIST_ADD(CXXFLAGS, [$with_arch])
+   JTR_LIST_ADD(LDFLAGS, [$with_arch])
+   JTR_LIST_ADD(ASFLAGS, [$with_arch])
 fi
 
 # Define Packages.
@@ -360,7 +360,7 @@ AC_CHECK_LIB([z],[deflate],[],[AC_MSG_FAILURE(JtR requires libz being installed,
 AC_SEARCH_LIBS([crypt],[crypt],[AC_DEFINE(HAVE_CRYPT,1,[Define to 1 if you have the `crypt' library (-lcrypt).])])
 AC_CHECK_HEADER([krb5.h],AC_CHECK_LIB([k5crypto],[krb5_c_string_to_key_with_params]) AC_CHECK_LIB([krb5],[krb5_c_string_to_key_with_params]))
 AC_CHECK_HEADERS([gmp.h] [gmp/gmp.h], [AC_CHECK_LIB([gmp],[__gmpz_init])] [break])
-AC_CHECK_HEADER([skey.h], [AC_CHECK_LIB([skey],[skey_set_algorithm],AC_DEFINE([HAVE_SKEY],1,[Define to 1 if you have skey library and headers]) [JTR_LIST_ADD(LIBS, "-lskey")])])
+AC_CHECK_HEADER([skey.h], [AC_CHECK_LIB([skey],[skey_set_algorithm],AC_DEFINE([HAVE_SKEY],1,[Define to 1 if you have skey library and headers]) [JTR_LIST_ADD(LIBS, [-lskey])])])
 AC_CHECK_LIB([kernel32],[main])
 AC_CHECK_LIB([dl],[dlopen])
 using_rexgen=no
@@ -377,7 +377,7 @@ AC_CHECK_LIB([wsock32],[main])
 AC_CHECK_LIB([lws2_32],[main])
 AC_CHECK_LIB([wst],[main])
 # in makefile, we need to know if building extra pcap items.
-AC_CHECK_HEADER([pcap.h],[AC_CHECK_LIB([pcap],[pcap_compile],[AC_SUBST(HAVE_PCAP,[-DHAVE_PCAP])] [JTR_LIST_ADD(LIBS, "-lpcap")])])
+AC_CHECK_HEADER([pcap.h],[AC_CHECK_LIB([pcap],[pcap_compile],[AC_SUBST(HAVE_PCAP,[-DHAVE_PCAP])] [JTR_LIST_ADD(LIBS, [-lpcap])])])
 
 # Check for variations we can handle
 # We need these two AC_CHECK_LIB for the following AC_CHECK_FUNCS to work -
@@ -408,7 +408,7 @@ AX_OPENCL(C)
 using_cuda=no
 if test "x$enable_cuda" != xno; then
    JTR_SET_CUDA_INCLUDES
-   AC_CHECK_HEADER([cuda.h],[AC_CHECK_LIB([cudart],[cudaGetDeviceCount],using_cuda=yes AC_SUBST([HAVE_CUDA],[-DHAVE_CUDA]) [JTR_LIST_ADD(LIBS, "-lcudart")])])
+   AC_CHECK_HEADER([cuda.h],[AC_CHECK_LIB([cudart],[cudaGetDeviceCount],using_cuda=yes AC_SUBST([HAVE_CUDA],[-DHAVE_CUDA]) [JTR_LIST_ADD(LIBS, [-lcudart])])])
    if test "x$using_cuda" != xyes -a "x$enable_cuda" = xyes; then
       AC_MSG_FAILURE([CUDA not found])
    fi
