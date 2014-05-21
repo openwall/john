@@ -540,7 +540,7 @@ unsigned int opencl_get_vector_width(int sequential_id, int size)
 	if (options.v_width) {
 		opencl_v_width = options.v_width;
 	} else {
-		cl_uint v_width;
+		cl_uint v_width = 0;
 
 		/* OK, we supply the real figure */
 		opencl_preinit();

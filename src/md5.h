@@ -12,6 +12,9 @@
  * http://openwall.info/wiki/people/solar/software/public-domain-source-code/md5
  */
 
+#if !defined(_MD5_H)
+#define _MD5_H
+
 /* Any 32-bit or wider unsigned integer data type will do */
 /* this needs to be defined no matter if building with HAVE_LIBSSL or not */
 typedef unsigned int MD5_u32plus;
@@ -21,8 +24,7 @@ typedef unsigned int MD5_u32plus;
 #ifdef HAVE_LIBSSL
 #include <openssl/md5.h>
 
-#elif !defined(_MD5_H)
-#define _MD5_H
+#else
 
 #define MD5_Init john_MD5_Init
 #define MD5_Update john_MD5_Update
@@ -39,7 +41,7 @@ extern void MD5_Init(MD5_CTX *ctx);
 extern void MD5_Update(MD5_CTX *ctx, void *data, unsigned long size);
 extern void MD5_PreFinal(MD5_CTX *ctx);
 extern void MD5_Final(unsigned char *result, MD5_CTX *ctx);
-#endif
+#endif /* HAVE_OPENSSL */
 
 /* Now, the MMX code is NOT dependent upon the HAVE_LIBSSL */
 
@@ -70,5 +72,6 @@ extern int mdfivemmx_nosizeupdate(unsigned char *out, unsigned char *in, int n) 
 extern int mdfivemmx_noinit_sizeupdate(unsigned char *out, unsigned char *in, int n) __attribute__((regparm(3)));
 extern int mdfivemmx_noinit_nosizeupdate(unsigned char *out, unsigned char *in, int n) __attribute__((regparm(3)));
 extern int mdfivemmx_noinit_uniformsizeupdate(unsigned char *out, unsigned char *in, int n) __attribute__((regparm(3)));
-#endif
-#endif
+#endif /* _MSC_VER */
+#endif /* MMX_COEF */
+#endif /* _MD5_H */

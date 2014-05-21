@@ -515,27 +515,27 @@ void BF_select_device(struct fmt_main *fmt) {
 	errMsg = "Create Buffer Failed" ;
 
 	buffers[gpu_id].salt_gpu = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, 4 * sizeof(cl_uint), NULL, &err) ;
-	if ((buffers[gpu_id].salt_gpu == (cl_mem)0))
+	if (buffers[gpu_id].salt_gpu == (cl_mem)0)
 		HANDLE_CLERROR(err, errMsg) ;
 
 	buffers[gpu_id].P_box_gpu = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY|CL_MEM_COPY_HOST_PTR, sizeof(cl_uint) * 18, P_box, &err) ;
-	if ((buffers[gpu_id].P_box_gpu == (cl_mem)0))
+	if (buffers[gpu_id].P_box_gpu == (cl_mem)0)
 		HANDLE_CLERROR(err, errMsg) ;
 
 	buffers[gpu_id].S_box_gpu = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY|CL_MEM_COPY_HOST_PTR, sizeof(cl_uint) * 1024, S_box, &err) ;
-	if ((buffers[gpu_id].S_box_gpu==(cl_mem)0))
+	if (buffers[gpu_id].S_box_gpu==(cl_mem)0)
 		HANDLE_CLERROR(err, errMsg) ;
 
 	buffers[gpu_id].out_gpu = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, BF_N * sizeof(cl_uint) * 2, NULL, &err) ;
-	if ((buffers[gpu_id].out_gpu == (cl_mem)0))
+	if (buffers[gpu_id].out_gpu == (cl_mem)0)
 		HANDLE_CLERROR(err, errMsg) ;
 
 	buffers[gpu_id].BF_current_S_gpu = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, BF_N * 1024 * sizeof(unsigned int), NULL, &err) ;
-	if ((buffers[gpu_id].BF_current_S_gpu == (cl_mem)0))
+	if (buffers[gpu_id].BF_current_S_gpu == (cl_mem)0)
 		HANDLE_CLERROR(err, errMsg) ;
 
 	buffers[gpu_id].BF_current_P_gpu = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, BF_N * sizeof(unsigned int) * 18, NULL, &err) ;
-	if ((buffers[gpu_id].BF_current_P_gpu==(cl_mem)0))
+	if (buffers[gpu_id].BF_current_P_gpu==(cl_mem)0)
 		HANDLE_CLERROR(err, errMsg) ;
 
 	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id], 0, sizeof(cl_mem), &buffers[gpu_id].salt_gpu), "Set Kernel Arg FAILED arg0") ;

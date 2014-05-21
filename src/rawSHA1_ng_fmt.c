@@ -193,6 +193,7 @@ static struct fmt_tests sha1_fmt_tests[] = {
     { NULL, NULL }
 };
 
+/* unused
 static inline uint32_t __attribute__((const)) rotateright(uint32_t value, uint8_t count)
 {
     register uint32_t result;
@@ -204,6 +205,7 @@ static inline uint32_t __attribute__((const)) rotateright(uint32_t value, uint8_
 
     return result;
 }
+*/
 
 static inline uint32_t __attribute__((const)) rotateleft(uint32_t value, uint8_t count)
 {

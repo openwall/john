@@ -298,7 +298,7 @@ static void fix_state(void)
 static double get_progress(void)
 {
 	size_t size;
-	size_t pos;
+	long pos;
 
 	emms();
 
