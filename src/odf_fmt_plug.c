@@ -322,7 +322,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		else {
 			SHA256_CTX ctx;
 			AES_KEY akey;
-	        unsigned char iv[32];
+			unsigned char iv[16];
 			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
 				SHA256_Init(&ctx);
 				SHA256_Update(&ctx, (unsigned char *)saved_key[index+i], strlen(saved_key[index+i]));
@@ -350,7 +350,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 #endif
 			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
-				memcpy(iv, cur_salt->iv, 32);
+				memcpy(iv, cur_salt->iv, 16);
 				memset(&akey, 0, sizeof(AES_KEY));
 				if(AES_set_decrypt_key(key[i], 256, &akey) < 0) {
 					fprintf(stderr, "AES_set_decrypt_key failed!\n");
