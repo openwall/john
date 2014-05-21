@@ -28,6 +28,10 @@
 #ifndef _MSC_VER
 #include <strings.h>
 #endif
+#ifdef __CYGWIN__
+// shuts up many warnings.
+#include <crypt.h>
+#endif
 #if defined(_OPENMP) && defined(__GLIBC__)
 #include <crypt.h>
 #include <omp.h> /* for omp_get_thread_num() */

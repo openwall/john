@@ -127,7 +127,7 @@ int uaf_extract_from_raw(void *rec_vp, int rec_len,
 	 * Fill in acct struct.
 	 */
 	for (i = 0; (i < 31) && (rec->username[i] != ' '); i++) {
-		acct->username[i] = toupper(rec->username[i]);
+		acct->username[i] = toupper(((unsigned char)(rec->username[i])));
 	}
 	acct->username[i] = '\0';
 	if (i > 12) {

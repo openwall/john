@@ -230,7 +230,7 @@ upcase(char *string)
   char *p;
 
   for (p = string; *p != '\0'; p++)
-    *p = toupper(*p);
+    *p = toupper(((unsigned char)(*p)));
 
   return (string);
 }
