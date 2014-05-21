@@ -77,7 +77,7 @@ AC_ARG_WITH(arch, [AS_HELP_STRING([--with-arch=opt],[Add 'opt' to CFLAGS, LDFLAG
 if test "x$with_arch" != x; then
    JTR_LIST_ADD(CFLAGS, [$with_arch])
    JTR_LIST_ADD(CPPFLAGS, [$with_arch])
-   #JTR_LIST_ADD(CXXFLAGS, [$with_arch])
+   dnl JTR_LIST_ADD(CXXFLAGS, [$with_arch])
    JTR_LIST_ADD(LDFLAGS, [$with_arch])
    JTR_LIST_ADD(ASFLAGS, [$with_arch])
 fi
@@ -115,11 +115,22 @@ AX_PROG_CC_MPI([test "x$enable_mpi" != xno],
    AC_PROG_CC([gcc cc icc ccc]) ]
 )
 
+# At this point we know whether this is a cross compile
+# Don't test for $cross_compiling = yes, because it might be 'maybe'.
+if test "x$enable_native_tests" = xauto; then
+   if test "x$cross_compiling" != xno; then
+      AC_MSG_NOTICE([This is a cross-compile; all native tests disabled])
+      enable_native_tests=no
+   else
+      enable_native_tests=yes
+   fi
+fi
+
 ###
 # Here we call setting up many -I in CFLAGS, and -L in
 # LDFLAGS for 'normal' paths, IF we find them.
 ###
-JTR_SET_NORMAL_INCLUDES
+AS_IF([test "x$cross_compiling" = xno], [JTR_SET_NORMAL_INCLUDES])
 
 ###
 # check compiler switches here.  OPT_NORMAL, then
@@ -168,22 +179,12 @@ AS_IF([test "x$JTR_FLAG_CHECK_WORKS" = xyes],
    AC_MSG_NOTICE([Unable to validate $CC command line arguments. CFLAGS may need to be passed to ./configure for proper build])
 ])
 
-# At this point we know whether this is a cross compile
-# Don't test for $cross_compiling = yes, because it might be 'maybe'.
-if test "x$enable_native_tests" = xauto; then
-   if test "x$cross_compiling" != xno; then
-      AC_MSG_NOTICE([This is a cross-compile; all native tests disabled])
-      enable_native_tests=no
-   else
-      enable_native_tests=yes
-   fi
-fi
-
 # Checks for programs.
 AC_PROG_LN_S
 AC_PROG_GREP
+AC_PROG_EGREP
 AC_PROG_SED
-#AC_PROG_CXX
+dnl AC_PROG_CXX
 AC_PROG_MAKE_SET
 AC_PROG_CPP
 AC_PROG_MKDIR_P
@@ -200,20 +201,20 @@ if test "x$PKG_CONFIG" = x ; then
 fi
 
 # Cross-compile compliant size checks
-#AC_CHECK_SIZEOF([char])
-#AC_CHECK_SIZEOF([unsigned char])
+AC_CHECK_SIZEOF([char])
+AC_CHECK_SIZEOF([unsigned char])
 AC_CHECK_SIZEOF([short])
-#AC_CHECK_SIZEOF([unsigned short])
+AC_CHECK_SIZEOF([unsigned short])
 AC_CHECK_SIZEOF([int])
-#AC_CHECK_SIZEOF([unsigned])
-#AC_CHECK_SIZEOF([unsigned int])
+AC_CHECK_SIZEOF([unsigned])
+AC_CHECK_SIZEOF([unsigned int])
 AC_CHECK_SIZEOF([long])
-#AC_CHECK_SIZEOF([long long])
-#AC_CHECK_SIZEOF([double])
-#AC_CHECK_SIZEOF([long double])
-#AC_CHECK_SIZEOF([int *])
-#AC_CHECK_SIZEOF([long long *])
-#AC_CHECK_SIZEOF([void *])
+AC_CHECK_SIZEOF([long long])
+AC_CHECK_SIZEOF([double])
+AC_CHECK_SIZEOF([long double])
+AC_CHECK_SIZEOF([int *])
+AC_CHECK_SIZEOF([long long *])
+AC_CHECK_SIZEOF([void *])
 
 # Available arch.h's:
 # alpha.h
@@ -254,7 +255,7 @@ case "$host_cpu" in
   vax*) ARCH_LINK=vax.h endian=little ;;
   x86_64) ARCH_LINK=x86-64.h endian=little cpu_family=intel ;;
   *)
-     AC_MSG_WARN([Uncertain support for ${target}, please report!])
+     AC_MSG_WARN([Uncertain support for ${host}, please report!])
      ARCH_LINK=autoconf_arch.h
      ;;
 esac
@@ -280,23 +281,26 @@ fi
 
 #############################################################################
 # Check for unaligned memory access being allowed
+# TODO: Needs fix for cross compile (we can infer it from $host_cpu)
 #############################################################################
-#
-AC_MSG_CHECKING([for unaligned memory access])
-CC="$CC_BACKUP"
-AC_RUN_IFELSE(
-  [
-  AC_LANG_SOURCE(
-	[[#include <stdio.h>
-	extern void exit(int);
-	int main(){char c[20];*((int*)(&c[1]))=1;*((int*)(&c[2]))=1;*((int*)(&c[3]))=1;if(c[2]==88)printf("foobar");exit(0);}]]
-  )]
-  ,[ALLOWS_UNALIGNED="1"]
-   [AC_MSG_RESULT([allowed])]
-  ,[ALLOWS_UNALIGNED="0"]
-   [AC_MSG_RESULT([NOT allowed])]
-  )
-CC="$CC_BACKUP"
+AC_MSG_CHECKING([for unaligned memory access allowed])
+if test "x$cross_compiling" = xno; then
+   AC_RUN_IFELSE(dnl
+     [dnl
+     AC_LANG_SOURCE(dnl
+           [[#include <stdio.h>
+           extern void exit(int);
+           int main(){char c[20];*((int*)(&c[1]))=1;*((int*)(&c[2]))=1;*((int*)(&c[3]))=1;if(c[2]==88)printf("foobar");exit(0);}]]
+     )]
+     ,[ALLOWS_UNALIGNED="1"]
+      [AC_MSG_RESULT([yes])]
+     ,[ALLOWS_UNALIGNED="0"]
+      [AC_MSG_RESULT([no])]
+   )
+else
+   ALLOWS_UNALIGNED="0"
+   AC_MSG_RESULT([unknown])
+fi
 
 #############################################################################
 # Check for LE/BE CPU
@@ -316,12 +320,9 @@ else
 fi
 
 #############################################################################
-# END Check for LE/BE CPU
-#############################################################################
-
 # Checks for libraries.
-################################################
-#  NOTE, be VERY careful of spaces around the comma's in the AC_CHECK_LIB. Best
+#
+# NOTE, be VERY careful of spaces around the comma's in the AC_CHECK_LIB. Best
 # to not have any.  If there are space, then often that will get a lib to NOT
 # be added to @LIBS@ and cause linkage problems.  Also note, if action if found
 # is specified, the -llibname will NOT get appended to LIBS. So it has to be
@@ -329,7 +330,6 @@ fi
 # also be done by skipping the modified default action, and doing an AS_IF on
 # the next line.
 ################################################
-
 AC_CHECK_HEADER([CommonCrypto/CommonDigest.h],
    [AC_CHECK_LIB([System], [CCKeyDerivationPBKDF],
       [AC_CHECK_LIB([System], [CCCryptorCreate],[AC_DEFINE(HAVE_COMMONCRYPTO,1,[Define to 1 if you have the CommonCrypto library.])],,-lcrypto)]dnl
@@ -339,8 +339,8 @@ AC_CHECK_HEADER([CommonCrypto/CommonDigest.h],
 if test "x$enable_native_tests" = xyes -a "x$PKG_CONFIG" != xno; then
    PKG_CHECK_MODULES([OPENSSL], [openssl],
      AC_DEFINE(HAVE_LIBCRYPTO,1,[Define to 1 if you have the `crypto' library (-lcrypto).])
-	 AC_DEFINE(HAVE_LIBSSL,1,[Define to 1 if you have the `ssl' library (-lssl).]),
-	 AC_MSG_FAILURE(JtR requires OpenSSL being installed,1))
+         AC_DEFINE(HAVE_LIBSSL,1,[Define to 1 if you have the `ssl' library (-lssl).]),
+         AC_MSG_FAILURE(JtR requires OpenSSL being installed,1))
 else
    AC_CHECK_HEADER([openssl/opensslv.h],
    [AC_CHECK_LIB([ssl],[SSL_library_init],
@@ -360,7 +360,8 @@ AC_CHECK_LIB([z],[deflate],[],[AC_MSG_FAILURE(JtR requires libz being installed,
 AC_SEARCH_LIBS([crypt],[crypt],[AC_DEFINE(HAVE_CRYPT,1,[Define to 1 if you have the `crypt' library (-lcrypt).])])
 AC_CHECK_HEADER([krb5.h],AC_CHECK_LIB([k5crypto],[krb5_c_string_to_key_with_params]) AC_CHECK_LIB([krb5],[krb5_c_string_to_key_with_params]))
 AC_CHECK_HEADERS([gmp.h] [gmp/gmp.h], [AC_CHECK_LIB([gmp],[__gmpz_init])] [break])
-AC_CHECK_HEADER([skey.h], [AC_CHECK_LIB([skey],[skey_set_algorithm],AC_DEFINE([HAVE_SKEY],1,[Define to 1 if you have skey library and headers]) [JTR_LIST_ADD(LIBS, [-lskey])])])
+AC_CHECK_HEADER([skey.h], [AC_CHECK_LIB([skey],[skey_set_algorithm],
+                          AC_DEFINE([HAVE_SKEY],1,[Define to 1 if you have skey library and headers]) [JTR_LIST_ADD(LIBS, [-lskey])])])
 AC_CHECK_LIB([kernel32],[main])
 AC_CHECK_LIB([dl],[dlopen])
 using_rexgen=no
@@ -377,11 +378,13 @@ AC_CHECK_LIB([wsock32],[main])
 AC_CHECK_LIB([lws2_32],[main])
 AC_CHECK_LIB([wst],[main])
 # in makefile, we need to know if building extra pcap items.
-AC_CHECK_HEADER([pcap.h],[AC_CHECK_LIB([pcap],[pcap_compile],[AC_SUBST(HAVE_PCAP,[-DHAVE_PCAP])] [JTR_LIST_ADD(LIBS, [-lpcap])])])
+AC_CHECK_HEADER([pcap.h],[AC_CHECK_LIB([pcap],[pcap_compile],
+        [AC_SUBST(HAVE_PCAP,[-DHAVE_PCAP])] [JTR_LIST_ADD(LIBS, [-lpcap])])])
 
 # Check for variations we can handle
 # We need these two AC_CHECK_LIB for the following AC_CHECK_FUNCS to work -
 # PKG_CHECK_MODULES did not do the trick (but perhaps this is fixable)
+AC_HEADER_TIME
 AC_CHECK_LIB([ssl], [SSL_library_init])
 AC_CHECK_LIB([crypto], [RC4])
 AC_CHECK_FUNCS([EVP_aes_256_xts SHA256 WHIRLPOOL AES_encrypt EVP_sha512])
@@ -401,14 +404,15 @@ fi
 AC_OPENMP
 
 # Check for OpenCL (enable/disable handled within the macro)
-JTR_SET_OPENCL_INCLUDES
+AS_IF([test "x$cross_compiling" = xno], [JTR_SET_OPENCL_INCLUDES])
 AX_OPENCL(C)
 
 # Check for CUDA, including headers.
 using_cuda=no
 if test "x$enable_cuda" != xno; then
-   JTR_SET_CUDA_INCLUDES
-   AC_CHECK_HEADER([cuda.h],[AC_CHECK_LIB([cudart],[cudaGetDeviceCount],using_cuda=yes AC_SUBST([HAVE_CUDA],[-DHAVE_CUDA]) [JTR_LIST_ADD(LIBS, [-lcudart])])])
+   AS_IF([test "x$cross_compiling" = xno], [JTR_SET_CUDA_INCLUDES])
+   AC_CHECK_HEADER([cuda.h],[AC_CHECK_LIB([cudart],[cudaGetDeviceCount],using_cuda=yes
+        AC_SUBST([HAVE_CUDA],[-DHAVE_CUDA]) [JTR_LIST_ADD(LIBS, [-lcudart])])])
    if test "x$using_cuda" != xyes -a "x$enable_cuda" = xyes; then
       AC_MSG_FAILURE([CUDA not found])
    fi
@@ -418,8 +422,11 @@ AS_IF([test "x$with_exe_ext" != x], AC_SUBST([EXE_EXT], [${with_exe_ext}]) [echo
 
 # Checks for header files.
 # Eg. if sys/times.h is found, the below will define HAVE_SYS_TIMES_H
-AC_CHECK_HEADERS([stdint.h sys/times.h strings.h sys/file.h sys/time.h unistd.h unixlib/local.h net/ethernet.h sys/ethernet.h net/if.h pcap.h])
-# OS.h arpa/inet.h fcntl.h limits.h locale.h netdb.h netinet/in.h stddef.h stdlib.h string.h sys/param.h sys/socket.h sys/timeb.h termios.h wchar.h
+AC_CHECK_HEADERS([OS.h arpa/inet.h fcntl.h limits.h locale.h net/ethernet.h dnl
+                  net/if.h netdb.h netinet/in.h pcap.h stddef.h stdint.h dnl
+                  stdlib.h string.h strings.h sys/ethernet.h sys/file.h dnl
+                  sys/param.h sys/socket.h sys/time.h sys/timeb.h dnl
+                  sys/times.h termios.h unistd.h unixlib/local.h wchar.h ])
 AC_CHECK_HEADERS([netinet/if_ether.h], [], [],
 [#if HAVE_NET_IF_H
 #include <net/if.h>
@@ -442,12 +449,16 @@ AC_TYPE_UINT8_T
 AC_CHECK_TYPES([ptrdiff_t])
 
 # Checks for library functions.
-#AC_FUNC_ERROR_AT_LINE
+AC_FUNC_ERROR_AT_LINE
 AC_FUNC_FORK
-#AC_FUNC_MALLOC
+AC_FUNC_MALLOC
 AC_FUNC_MMAP
-#AC_FUNC_REALLOC
-#AC_CHECK_FUNCS([atexit endpwent floor ftruncate gethostbyname gettimeofday inet_ntoa isascii memchr memmove memset mkdir munmap pow rmdir select setenv setlocale socket strcasecmp strchr strcspn strdup strerror strncasecmp strrchr strspn strstr strtol strtoul])
+AC_FUNC_REALLOC
+#AC_CHECK_FUNCS([atexit endpwent floor ftruncate gethostbyname gettimeofday dnl
+#                inet_ntoa isascii memchr memmove memset mkdir munmap pow dnl
+#                rmdir select setenv setlocale socket strcasecmp strchr dnl
+#                strcspn strdup strerror strncasecmp strrchr strspn strstr dnl
+#                strtol strtoul])
 AC_CACHE_SAVE
 
 AC_SUBST([CC_CPU],[${CPU_BEST_FLAGS}])
@@ -488,10 +499,8 @@ fi
 AC_SUBST([AESNI_ARCH],[$aesni_arch])
 
 #
-# TODO: If X32, we need to check for a new enough yasm that understands the
+# TODO: For X32 we need to check for a new enough yasm that understands the
 # "-f elfx32" output format. If it doesn't, disable AES-NI.
-#
-
 aesni_os=""
 aesni_options="DISABLED"
 if test "x$ac_cv_path_YASM" != x; then
@@ -499,9 +508,18 @@ if test "x$ac_cv_path_YASM" != x; then
       : #aesni_os=linux aesni_options="-g dwarf2 -f elfx32"
    else
       case "$host" in
-	 x86_64*darwin*) aesni_os=darwin aesni_options="--prefix=_ -f macho${CPU_BIT_STR}" ;;
-	 i?86*darwin*) aesni_os=darwin aesni_options="-f macho${CPU_BIT_STR}" ;;
-	 *86*linux*) aesni_os=linux aesni_options="-g dwarf2 -f elf${CPU_BIT_STR}" ;;
+         x86_64*darwin*)
+                aesni_os=darwin
+                aesni_options="--prefix=_ -f macho${CPU_BIT_STR}"
+         ;;
+         i?86*darwin*)
+                aesni_os=darwin
+                aesni_options="-f macho${CPU_BIT_STR}"
+         ;;
+         *86*linux*)
+                aesni_os=linux
+                aesni_options="-g dwarf2 -f elf${CPU_BIT_STR}"
+         ;;
       esac
    fi
 fi
@@ -549,7 +567,6 @@ AC_OUTPUT(,echo "timestamp from configure.in" > autoconfig-stamp-h)
 ########################################################
 #    ONLY _COSMETICAL_ OUTPUT STUFF BELOW THIS LINE
 ########################################################
-
 if test "x$CL_LIBS" = x; then
    using_cl=no
 else
@@ -558,7 +575,8 @@ fi
 
 # Hard to get proper info from AC_OPENMP. If it's enabled with no special
 # options needed, we might end up listing it as disabled
-if test "x$ac_cv_prog_c_openmp" != x -a  "x$enable_openmp" != xno -a "x$ac_cv_prog_c_openmp" != xunsupported ; then
+if test "x$ac_cv_prog_c_openmp" != x -a  "x$enable_openmp" != xno -a dnl
+        "x$ac_cv_prog_c_openmp" != xunsupported ; then
    using_omp=yes
 else
    using_omp=no

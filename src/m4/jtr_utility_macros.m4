@@ -20,8 +20,14 @@ AC_DEFUN([JTR_LIST_ADD], [
       done
       if test $jtr_list_add_dupe = 0; then
          $1="$$1 $i"
+         jtr_list_add_result="$jtr_list_add_print $i"
       fi
    done
+])
+
+AC_DEFUN([JTR_LIST_ADD_RESULT], [
+   AS_IF([test -z "$jtr_list_add_result"],AC_MSG_RESULT([none]),AC_MSG_RESULT([$jtr_list_add_result]))
+   jtr_list_add_result=""
 ])
 
 # @synopsis JTR_FLAG_CHECK [compiler flags]
@@ -36,7 +42,7 @@ AC_DEFUN([JTR_FLAG_CHECK],
   CFLAGS="-Werror $1"
   AC_COMPILE_IFELSE([AC_LANG_PROGRAM([])],
     [AS_IF([test "$2" = 1], [AC_MSG_RESULT([yes])])]
-	[CFLAGS_EX+=" $1"]
+      [CFLAGS_EX+=" $1"]
     ,[AS_IF([test "$2" = 1], [AC_MSG_RESULT([no])])]
   )
   CFLAGS="$ac_saved_cflags"
@@ -63,90 +69,75 @@ fi
 if test -d /usr/local/ssl/include; then
    ADD_CFLAGS+=" -I/usr/local/ssl/include"
 fi
-case "x${ADD_CFLAGS}x${ADD_LDFLAGS}" in
-     "xx") cond_and="no" ;;
-     "xx*") cond_and="" ;;
-     "x*x") cond_and="" ;;
-     *) cond_and=" and" ;;
-esac
-AC_MSG_RESULT([${ADD_CFLAGS}${cond_and}${ADD_LDFLAGS}])
+jtr_list_add_result=""
 JTR_LIST_ADD(LDFLAGS, [$ADD_LDFLAGS])
 JTR_LIST_ADD(CFLAGS, [$ADD_CFLAGS])
-JTR_LIST_ADD(CPPFLAGS, [$ADD_CFLAGS])dnl  NOT a typo
+JTR_LIST_ADD(CPPFLAGS, [$ADD_CFLAGS]) dnl  NOT a typo
+JTR_LIST_ADD_RESULT
 ])
 
 # @synopsis JTR_SET_CUDA_INCLUDES
 # @summary check and set many normal include paths
 AC_DEFUN([JTR_SET_CUDA_INCLUDES],
 [
-  AC_MSG_CHECKING([additional paths for CUDA])
-  ADD_LDFLAGS=""
-  ADD_CFLAGS=""
-if test -n "$NVIDIA_CUDA"; then
-   CUDAPATH="$NVIDIA_CUDA"
-else
-   CUDAPATH=/usr/local/cuda
-fi
-AC_SUBST([NVIDIA_CUDA],["$CUDAPATH"])
-if test -d "$CUDAPATH/include"; then
-   ADD_CFLAGS+=" -I$CUDAPATH/include"
-fi
-if test $CPU_BIT_STR = 64 -a -d "$CUDAPATH/lib64"; then
-   ADD_LDFLAGS+=" -L$CUDAPATH/lib64"
-elif test -d "$CUDAPATH/lib"; then
-   ADD_LDFLAGS+=" -L$CUDAPATH/lib"
-fi
-case "x${ADD_CFLAGS}x${ADD_LDFLAGS}" in
-     "xx") cond_and="no" ;;
-     "xx*") cond_and="" ;;
-     "x*x") cond_and="" ;;
-     *) cond_and=" and" ;;
-esac
-AC_MSG_RESULT([${ADD_CFLAGS}${cond_and}${ADD_LDFLAGS}])
-JTR_LIST_ADD(LDFLAGS, [$ADD_LDFLAGS])
-JTR_LIST_ADD(CFLAGS, [$ADD_CFLAGS])
-JTR_LIST_ADD(CPPFLAGS, [$ADD_CFLAGS])dnl  NOT a typo
+   AC_MSG_CHECKING([additional paths for CUDA])
+   ADD_LDFLAGS=""
+   ADD_CFLAGS=""
+   if test -n "$NVIDIA_CUDA"; then
+      CUDAPATH="$NVIDIA_CUDA"
+   else
+      CUDAPATH=/usr/local/cuda
+   fi
+   AC_SUBST([NVIDIA_CUDA],["$CUDAPATH"])
+   if test -d "$CUDAPATH/include"; then
+      ADD_CFLAGS+=" -I$CUDAPATH/include"
+   fi
+   if test $CPU_BIT_STR = 64 -a -d "$CUDAPATH/lib64"; then
+      ADD_LDFLAGS+=" -L$CUDAPATH/lib64"
+   elif test -d "$CUDAPATH/lib"; then
+      ADD_LDFLAGS+=" -L$CUDAPATH/lib"
+   fi
+   jtr_list_add_result=""
+   JTR_LIST_ADD(LDFLAGS, [$ADD_LDFLAGS])
+   JTR_LIST_ADD(CFLAGS, [$ADD_CFLAGS])
+   JTR_LIST_ADD(CPPFLAGS, [$ADD_CFLAGS]) dnl  NOT a typo
+   JTR_LIST_ADD_RESULT
 ])
 
 # @synopsis JTR_SET_OPENCL_INCLUDES
 # @summary check and set many normal include paths
 AC_DEFUN([JTR_SET_OPENCL_INCLUDES],
 [
-  AC_MSG_CHECKING([additional paths for OpenCL])
-  ADD_LDFLAGS=""
-  ADD_CFLAGS=""
-if test -n "$AMDAPPSDKROOT"; then
-   if test -d "$AMDAPPSDKROOT/include"; then
-      ADD_CFLAGS+=" -I$AMDAPPSDKROOT/include"
+   AC_MSG_CHECKING([additional paths for OpenCL])
+   ADD_LDFLAGS=""
+   ADD_CFLAGS=""
+   if test -n "$AMDAPPSDKROOT"; then
+      if test -d "$AMDAPPSDKROOT/include"; then
+         ADD_CFLAGS+=" -I$AMDAPPSDKROOT/include"
+      fi
+      if test $CPU_BIT_STR = 64 -a -d "$AMDAPPSDKROOT/lib/x86_64" ; then
+         ADD_LDFLAGS+=" -L$AMDAPPSDKROOT/lib/x86_64"
+      elif test  $CPU_BIT_STR = 32 -a -d "$AMDAPPSDKROOT/lib/x86" ; then
+         ADD_LDFLAGS+=" -L$AMDAPPSDKROOT/lib/x86"
+      elif test -d "$AMDAPPSDKROOT/lib"; then
+         ADD_LDFLAGS+=" -L$AMDAPPSDKROOT/lib"
+      fi
    fi
-   if test $CPU_BIT_STR = 64 -a -d "$AMDAPPSDKROOT/lib/x86_64" ; then
-      ADD_LDFLAGS+=" -L$AMDAPPSDKROOT/lib/x86_64"
-   elif test  $CPU_BIT_STR = 32 -a -d "$AMDAPPSDKROOT/lib/x86" ; then
-      ADD_LDFLAGS+=" -L$AMDAPPSDKROOT/lib/x86"
-   elif test -d "$AMDAPPSDKROOT/lib"; then
-      ADD_LDFLAGS+=" -L$AMDAPPSDKROOT/lib"
+   if test -n "$ATISTREAMSDKROOT"; then
+      if test -d "$ATISTREAMSDKROOT/include"; then
+         ADD_CFLAGS+=" -I$ATISTREAMSDKROOT/include"
+      fi
+      if test $CPU_BIT_STR = 64 -a -d "$ATISTREAMSDKROOT/lib/x86_64" ; then
+         ADD_LDFLAGS+=" -L$ATISTREAMSDKROOT/lib/x86_64"
+      elif test  $CPU_BIT_STR = 32 -a -d "$ATISTREAMSDKROOT/lib/x86" ; then
+         ADD_LDFLAGS+=" -L$ATISTREAMSDKROOT/lib/x86"
+      elif test -d "$ATISTREAMSDKROOT/lib"; then
+         ADD_LDFLAGS+=" -L$ATISTREAMSDKROOT/lib"
+      fi
    fi
-fi
-if test -n "$ATISTREAMSDKROOT"; then
-   if test -d "$ATISTREAMSDKROOT/include"; then
-      ADD_CFLAGS+=" -I$ATISTREAMSDKROOT/include"
-   fi
-   if test $CPU_BIT_STR = 64 -a -d "$ATISTREAMSDKROOT/lib/x86_64" ; then
-      ADD_LDFLAGS+=" -L$ATISTREAMSDKROOT/lib/x86_64"
-   elif test  $CPU_BIT_STR = 32 -a -d "$ATISTREAMSDKROOT/lib/x86" ; then
-      ADD_LDFLAGS+=" -L$ATISTREAMSDKROOT/lib/x86"
-   elif test -d "$ATISTREAMSDKROOT/lib"; then
-      ADD_LDFLAGS+=" -L$ATISTREAMSDKROOT/lib"
-   fi
-fi
-case "x${ADD_CFLAGS}x${ADD_LDFLAGS}" in
-     "xx") cond_and="no" ;;
-     "xx*") cond_and="" ;;
-     "x*x") cond_and="" ;;
-     *) cond_and=" and" ;;
-esac
-AC_MSG_RESULT([${ADD_CFLAGS}${cond_and}${ADD_LDFLAGS}])
-JTR_LIST_ADD(LDFLAGS, [$ADD_LDFLAGS])
-JTR_LIST_ADD(CFLAGS, [$ADD_CFLAGS])
-JTR_LIST_ADD(CPPFLAGS, [$ADD_CFLAGS])dnl  NOT a typo
+   jtr_list_add_result=""
+   JTR_LIST_ADD(LDFLAGS, [$ADD_LDFLAGS])
+   JTR_LIST_ADD(CFLAGS, [$ADD_CFLAGS])
+   JTR_LIST_ADD(CPPFLAGS, [$ADD_CFLAGS]) dnl  NOT a typo
+   JTR_LIST_ADD_RESULT
 ])

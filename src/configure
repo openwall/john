@@ -624,7 +624,6 @@ ac_includes_default="\
 
 ac_header_list=
 ac_subst_vars='LTLIBOBJS
-LIBOBJS
 HOST_OS
 PLUGFORMATS_OBJS
 PLUGFORMATS_SRCS
@@ -639,6 +638,7 @@ CPU_BITS
 CC_ASM_OBJS
 CC_MAIN_CPU
 CC_CPU
+LIBOBJS
 EXE_EXT
 HAVE_CUDA
 NVIDIA_CUDA
@@ -655,7 +655,6 @@ HAVE_NSS
 HAVE_PCAP
 OPENSSL_LIBS
 OPENSSL_CFLAGS
-EGREP
 PKG_CONFIG_LIBDIR
 PKG_CONFIG_PATH
 PKG_CONFIG
@@ -667,6 +666,7 @@ MKDIR_P
 CPP
 SET_MAKE
 SED
+EGREP
 GREP
 LN_S
 CFLAGS_EXTRA
@@ -3305,6 +3305,8 @@ ac_config_headers="$ac_config_headers autoconfig.h"
 # Add space separated value(s) to variable unless already present.
 
 
+
+
 # @synopsis JTR_FLAG_CHECK [compiler flags]
 # @summary check whether compiler supports given
 #          C flags or not. The var CFLAGS_EX is
@@ -3394,6 +3396,7 @@ if test "x$with_arch" != x; then
       done
       if test $jtr_list_add_dupe = 0; then
          CFLAGS="$CFLAGS $i"
+         jtr_list_add_result="$jtr_list_add_print $i"
       fi
    done
 
@@ -3408,10 +3411,10 @@ if test "x$with_arch" != x; then
       done
       if test $jtr_list_add_dupe = 0; then
          CPPFLAGS="$CPPFLAGS $i"
+         jtr_list_add_result="$jtr_list_add_print $i"
       fi
    done
 
-   #JTR_LIST_ADD(CXXFLAGS, [$with_arch])
 
    for i in $with_arch; do
       jtr_list_add_dupe=0
@@ -3423,6 +3426,7 @@ if test "x$with_arch" != x; then
       done
       if test $jtr_list_add_dupe = 0; then
          LDFLAGS="$LDFLAGS $i"
+         jtr_list_add_result="$jtr_list_add_print $i"
       fi
    done
 
@@ -3437,6 +3441,7 @@ if test "x$with_arch" != x; then
       done
       if test $jtr_list_add_dupe = 0; then
          ASFLAGS="$ASFLAGS $i"
+         jtr_list_add_result="$jtr_list_add_print $i"
       fi
    done
 
@@ -5114,10 +5119,23 @@ fi
 
 
 
+# At this point we know whether this is a cross compile
+# Don't test for $cross_compiling = yes, because it might be 'maybe'.
+if test "x$enable_native_tests" = xauto; then
+   if test "x$cross_compiling" != xno; then
+      { $as_echo "$as_me:${as_lineno-$LINENO}: This is a cross-compile; all native tests disabled" >&5
+$as_echo "$as_me: This is a cross-compile; all native tests disabled" >&6;}
+      enable_native_tests=no
+   else
+      enable_native_tests=yes
+   fi
+fi
+
 ###
 # Here we call setting up many -I in CFLAGS, and -L in
 # LDFLAGS for 'normal' paths, IF we find them.
 ###
+if test "x$cross_compiling" = xno; then :
 
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking additional paths" >&5
 $as_echo_n "checking additional paths... " >&6; }
@@ -5135,14 +5153,7 @@ fi
 if test -d /usr/local/ssl/include; then
    ADD_CFLAGS+=" -I/usr/local/ssl/include"
 fi
-case "x${ADD_CFLAGS}x${ADD_LDFLAGS}" in
-     "xx") cond_and="no" ;;
-     "xx*") cond_and="" ;;
-     "x*x") cond_and="" ;;
-     *) cond_and=" and" ;;
-esac
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: ${ADD_CFLAGS}${cond_and}${ADD_LDFLAGS}" >&5
-$as_echo "${ADD_CFLAGS}${cond_and}${ADD_LDFLAGS}" >&6; }
+jtr_list_add_result=""
 
    for i in $ADD_LDFLAGS; do
       jtr_list_add_dupe=0
@@ -5154,6 +5165,7 @@ $as_echo "${ADD_CFLAGS}${cond_and}${ADD_LDFLAGS}" >&6; }
       done
       if test $jtr_list_add_dupe = 0; then
          LDFLAGS="$LDFLAGS $i"
+         jtr_list_add_result="$jtr_list_add_print $i"
       fi
    done
 
@@ -5168,6 +5180,7 @@ $as_echo "${ADD_CFLAGS}${cond_and}${ADD_LDFLAGS}" >&6; }
       done
       if test $jtr_list_add_dupe = 0; then
          CFLAGS="$CFLAGS $i"
+         jtr_list_add_result="$jtr_list_add_print $i"
       fi
    done
 
@@ -5182,9 +5195,21 @@ $as_echo "${ADD_CFLAGS}${cond_and}${ADD_LDFLAGS}" >&6; }
       done
       if test $jtr_list_add_dupe = 0; then
          CPPFLAGS="$CPPFLAGS $i"
+         jtr_list_add_result="$jtr_list_add_print $i"
       fi
    done
 
+   if test -z "$jtr_list_add_result"; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: none" >&5
+$as_echo "none" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $jtr_list_add_result" >&5
+$as_echo "$jtr_list_add_result" >&6; }
+fi
+   jtr_list_add_result=""
+
+
+fi
 
 ###
 # check compiler switches here.  OPT_NORMAL, then
@@ -5222,7 +5247,7 @@ if ac_fn_c_try_compile "$LINENO"; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 fi
-	CFLAGS_EX+=" -WFOO_BAR_SWITCH_NOT_VALID"
+      CFLAGS_EX+=" -WFOO_BAR_SWITCH_NOT_VALID"
 
 else
   if test "0" = 1; then :
@@ -5273,7 +5298,7 @@ if ac_fn_c_try_compile "$LINENO"; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 fi
-	CFLAGS_EX+=" -fFOO_BAR_SWITCH_NOT_VALID"
+      CFLAGS_EX+=" -fFOO_BAR_SWITCH_NOT_VALID"
 
 else
   if test "0" = 1; then :
@@ -5319,7 +5344,7 @@ if ac_fn_c_try_compile "$LINENO"; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 fi
-	CFLAGS_EX+=" -mFOO_BAR_SWITCH_NOT_VALID"
+      CFLAGS_EX+=" -mFOO_BAR_SWITCH_NOT_VALID"
 
 else
   if test "0" = 1; then :
@@ -5365,7 +5390,7 @@ if ac_fn_c_try_compile "$LINENO"; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 fi
-	CFLAGS_EX+=" -m666"
+      CFLAGS_EX+=" -m666"
 
 else
   if test "0" = 1; then :
@@ -5426,7 +5451,7 @@ if ac_fn_c_try_compile "$LINENO"; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 fi
-	CFLAGS_EX+=" -funroll-loops"
+      CFLAGS_EX+=" -funroll-loops"
 
 else
   if test "1" = 1; then :
@@ -5478,7 +5503,7 @@ if ac_fn_c_try_compile "$LINENO"; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 fi
-	CFLAGS_EX+=" -Os"
+      CFLAGS_EX+=" -Os"
 
 else
   if test "1" = 1; then :
@@ -5524,7 +5549,7 @@ if ac_fn_c_try_compile "$LINENO"; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 fi
-	CFLAGS_EX+=" -funroll-loops"
+      CFLAGS_EX+=" -funroll-loops"
 
 else
   if test "0" = 1; then :
@@ -5570,7 +5595,7 @@ if ac_fn_c_try_compile "$LINENO"; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 fi
-	CFLAGS_EX+=" -finline-functions"
+      CFLAGS_EX+=" -finline-functions"
 
 else
   if test "1" = 1; then :
@@ -5621,7 +5646,7 @@ if ac_fn_c_try_compile "$LINENO"; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 fi
-	CFLAGS_EX+=" -Wall"
+      CFLAGS_EX+=" -Wall"
 
 else
   if test "1" = 1; then :
@@ -5667,7 +5692,7 @@ if ac_fn_c_try_compile "$LINENO"; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 fi
-	CFLAGS_EX+=" -Wdeclaration-after-statement"
+      CFLAGS_EX+=" -Wdeclaration-after-statement"
 
 else
   if test "1" = 1; then :
@@ -5713,7 +5738,7 @@ if ac_fn_c_try_compile "$LINENO"; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 fi
-	CFLAGS_EX+=" -fomit-frame-pointer"
+      CFLAGS_EX+=" -fomit-frame-pointer"
 
 else
   if test "1" = 1; then :
@@ -5738,18 +5763,6 @@ else
      { $as_echo "$as_me:${as_lineno-$LINENO}: Unable to validate $CC command line arguments. CFLAGS may need to be passed to ./configure for proper build" >&5
 $as_echo "$as_me: Unable to validate $CC command line arguments. CFLAGS may need to be passed to ./configure for proper build" >&6;}
 
-fi
-
-# At this point we know whether this is a cross compile
-# Don't test for $cross_compiling = yes, because it might be 'maybe'.
-if test "x$enable_native_tests" = xauto; then
-   if test "x$cross_compiling" != xno; then
-      { $as_echo "$as_me:${as_lineno-$LINENO}: This is a cross-compile; all native tests disabled" >&5
-$as_echo "$as_me: This is a cross-compile; all native tests disabled" >&6;}
-      enable_native_tests=no
-   else
-      enable_native_tests=yes
-   fi
 fi
 
 # Checks for programs.
@@ -5827,6 +5840,73 @@ $as_echo "$ac_cv_path_GREP" >&6; }
  GREP="$ac_cv_path_GREP"
 
 
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for egrep" >&5
+$as_echo_n "checking for egrep... " >&6; }
+if ${ac_cv_path_EGREP+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if echo a | $GREP -E '(a|b)' >/dev/null 2>&1
+   then ac_cv_path_EGREP="$GREP -E"
+   else
+     if test -z "$EGREP"; then
+  ac_path_EGREP_found=false
+  # Loop through the user's path and test for each of PROGNAME-LIST
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH$PATH_SEPARATOR/usr/xpg4/bin
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_prog in egrep; do
+    for ac_exec_ext in '' $ac_executable_extensions; do
+      ac_path_EGREP="$as_dir/$ac_prog$ac_exec_ext"
+      as_fn_executable_p "$ac_path_EGREP" || continue
+# Check for GNU ac_path_EGREP and select it if it is found.
+  # Check for GNU $ac_path_EGREP
+case `"$ac_path_EGREP" --version 2>&1` in
+*GNU*)
+  ac_cv_path_EGREP="$ac_path_EGREP" ac_path_EGREP_found=:;;
+*)
+  ac_count=0
+  $as_echo_n 0123456789 >"conftest.in"
+  while :
+  do
+    cat "conftest.in" "conftest.in" >"conftest.tmp"
+    mv "conftest.tmp" "conftest.in"
+    cp "conftest.in" "conftest.nl"
+    $as_echo 'EGREP' >> "conftest.nl"
+    "$ac_path_EGREP" 'EGREP$' < "conftest.nl" >"conftest.out" 2>/dev/null || break
+    diff "conftest.out" "conftest.nl" >/dev/null 2>&1 || break
+    as_fn_arith $ac_count + 1 && ac_count=$as_val
+    if test $ac_count -gt ${ac_path_EGREP_max-0}; then
+      # Best one so far, save it but keep looking for a better one
+      ac_cv_path_EGREP="$ac_path_EGREP"
+      ac_path_EGREP_max=$ac_count
+    fi
+    # 10*(2^10) chars as input seems more than enough
+    test $ac_count -gt 10 && break
+  done
+  rm -f conftest.in conftest.tmp conftest.nl conftest.out;;
+esac
+
+      $ac_path_EGREP_found && break 3
+    done
+  done
+  done
+IFS=$as_save_IFS
+  if test -z "$ac_cv_path_EGREP"; then
+    as_fn_error $? "no acceptable egrep could be found in $PATH$PATH_SEPARATOR/usr/xpg4/bin" "$LINENO" 5
+  fi
+else
+  ac_cv_path_EGREP=$EGREP
+fi
+
+   fi
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_path_EGREP" >&5
+$as_echo "$ac_cv_path_EGREP" >&6; }
+ EGREP="$ac_cv_path_EGREP"
+
+
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for a sed that does not truncate output" >&5
 $as_echo_n "checking for a sed that does not truncate output... " >&6; }
 if ${ac_cv_path_SED+:} false; then :
@@ -5896,7 +5976,6 @@ $as_echo "$ac_cv_path_SED" >&6; }
  SED="$ac_cv_path_SED"
   rm -f conftest.sed
 
-#AC_PROG_CXX
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether ${MAKE-make} sets \$(MAKE)" >&5
 $as_echo_n "checking whether ${MAKE-make} sets \$(MAKE)... " >&6; }
 set x ${MAKE-make}
@@ -6479,75 +6558,6 @@ if test "x$PKG_CONFIG" = x ; then
 fi
 
 # Cross-compile compliant size checks
-#AC_CHECK_SIZEOF([char])
-#AC_CHECK_SIZEOF([unsigned char])
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for egrep" >&5
-$as_echo_n "checking for egrep... " >&6; }
-if ${ac_cv_path_EGREP+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  if echo a | $GREP -E '(a|b)' >/dev/null 2>&1
-   then ac_cv_path_EGREP="$GREP -E"
-   else
-     if test -z "$EGREP"; then
-  ac_path_EGREP_found=false
-  # Loop through the user's path and test for each of PROGNAME-LIST
-  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH$PATH_SEPARATOR/usr/xpg4/bin
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-    for ac_prog in egrep; do
-    for ac_exec_ext in '' $ac_executable_extensions; do
-      ac_path_EGREP="$as_dir/$ac_prog$ac_exec_ext"
-      as_fn_executable_p "$ac_path_EGREP" || continue
-# Check for GNU ac_path_EGREP and select it if it is found.
-  # Check for GNU $ac_path_EGREP
-case `"$ac_path_EGREP" --version 2>&1` in
-*GNU*)
-  ac_cv_path_EGREP="$ac_path_EGREP" ac_path_EGREP_found=:;;
-*)
-  ac_count=0
-  $as_echo_n 0123456789 >"conftest.in"
-  while :
-  do
-    cat "conftest.in" "conftest.in" >"conftest.tmp"
-    mv "conftest.tmp" "conftest.in"
-    cp "conftest.in" "conftest.nl"
-    $as_echo 'EGREP' >> "conftest.nl"
-    "$ac_path_EGREP" 'EGREP$' < "conftest.nl" >"conftest.out" 2>/dev/null || break
-    diff "conftest.out" "conftest.nl" >/dev/null 2>&1 || break
-    as_fn_arith $ac_count + 1 && ac_count=$as_val
-    if test $ac_count -gt ${ac_path_EGREP_max-0}; then
-      # Best one so far, save it but keep looking for a better one
-      ac_cv_path_EGREP="$ac_path_EGREP"
-      ac_path_EGREP_max=$ac_count
-    fi
-    # 10*(2^10) chars as input seems more than enough
-    test $ac_count -gt 10 && break
-  done
-  rm -f conftest.in conftest.tmp conftest.nl conftest.out;;
-esac
-
-      $ac_path_EGREP_found && break 3
-    done
-  done
-  done
-IFS=$as_save_IFS
-  if test -z "$ac_cv_path_EGREP"; then
-    as_fn_error $? "no acceptable egrep could be found in $PATH$PATH_SEPARATOR/usr/xpg4/bin" "$LINENO" 5
-  fi
-else
-  ac_cv_path_EGREP=$EGREP
-fi
-
-   fi
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_path_EGREP" >&5
-$as_echo "$ac_cv_path_EGREP" >&6; }
- EGREP="$ac_cv_path_EGREP"
-
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ANSI C header files" >&5
 $as_echo_n "checking for ANSI C header files... " >&6; }
@@ -6682,6 +6692,72 @@ done
 # version HP92453-01 B.11.11.23709.GP, which incorrectly rejects
 # declarations like `int a3[[(sizeof (unsigned char)) >= 0]];'.
 # This bug is HP SR number 8606223364.
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking size of char" >&5
+$as_echo_n "checking size of char... " >&6; }
+if ${ac_cv_sizeof_char+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if ac_fn_c_compute_int "$LINENO" "(long int) (sizeof (char))" "ac_cv_sizeof_char"        "$ac_includes_default"; then :
+
+else
+  if test "$ac_cv_type_char" = yes; then
+     { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error 77 "cannot compute sizeof (char)
+See \`config.log' for more details" "$LINENO" 5; }
+   else
+     ac_cv_sizeof_char=0
+   fi
+fi
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_sizeof_char" >&5
+$as_echo "$ac_cv_sizeof_char" >&6; }
+
+
+
+cat >>confdefs.h <<_ACEOF
+#define SIZEOF_CHAR $ac_cv_sizeof_char
+_ACEOF
+
+
+# The cast to long int works around a bug in the HP C Compiler
+# version HP92453-01 B.11.11.23709.GP, which incorrectly rejects
+# declarations like `int a3[[(sizeof (unsigned char)) >= 0]];'.
+# This bug is HP SR number 8606223364.
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking size of unsigned char" >&5
+$as_echo_n "checking size of unsigned char... " >&6; }
+if ${ac_cv_sizeof_unsigned_char+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if ac_fn_c_compute_int "$LINENO" "(long int) (sizeof (unsigned char))" "ac_cv_sizeof_unsigned_char"        "$ac_includes_default"; then :
+
+else
+  if test "$ac_cv_type_unsigned_char" = yes; then
+     { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error 77 "cannot compute sizeof (unsigned char)
+See \`config.log' for more details" "$LINENO" 5; }
+   else
+     ac_cv_sizeof_unsigned_char=0
+   fi
+fi
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_sizeof_unsigned_char" >&5
+$as_echo "$ac_cv_sizeof_unsigned_char" >&6; }
+
+
+
+cat >>confdefs.h <<_ACEOF
+#define SIZEOF_UNSIGNED_CHAR $ac_cv_sizeof_unsigned_char
+_ACEOF
+
+
+# The cast to long int works around a bug in the HP C Compiler
+# version HP92453-01 B.11.11.23709.GP, which incorrectly rejects
+# declarations like `int a3[[(sizeof (unsigned char)) >= 0]];'.
+# This bug is HP SR number 8606223364.
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking size of short" >&5
 $as_echo_n "checking size of short... " >&6; }
 if ${ac_cv_sizeof_short+:} false; then :
@@ -6711,7 +6787,39 @@ cat >>confdefs.h <<_ACEOF
 _ACEOF
 
 
-#AC_CHECK_SIZEOF([unsigned short])
+# The cast to long int works around a bug in the HP C Compiler
+# version HP92453-01 B.11.11.23709.GP, which incorrectly rejects
+# declarations like `int a3[[(sizeof (unsigned char)) >= 0]];'.
+# This bug is HP SR number 8606223364.
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking size of unsigned short" >&5
+$as_echo_n "checking size of unsigned short... " >&6; }
+if ${ac_cv_sizeof_unsigned_short+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if ac_fn_c_compute_int "$LINENO" "(long int) (sizeof (unsigned short))" "ac_cv_sizeof_unsigned_short"        "$ac_includes_default"; then :
+
+else
+  if test "$ac_cv_type_unsigned_short" = yes; then
+     { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error 77 "cannot compute sizeof (unsigned short)
+See \`config.log' for more details" "$LINENO" 5; }
+   else
+     ac_cv_sizeof_unsigned_short=0
+   fi
+fi
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_sizeof_unsigned_short" >&5
+$as_echo "$ac_cv_sizeof_unsigned_short" >&6; }
+
+
+
+cat >>confdefs.h <<_ACEOF
+#define SIZEOF_UNSIGNED_SHORT $ac_cv_sizeof_unsigned_short
+_ACEOF
+
+
 # The cast to long int works around a bug in the HP C Compiler
 # version HP92453-01 B.11.11.23709.GP, which incorrectly rejects
 # declarations like `int a3[[(sizeof (unsigned char)) >= 0]];'.
@@ -6745,8 +6853,72 @@ cat >>confdefs.h <<_ACEOF
 _ACEOF
 
 
-#AC_CHECK_SIZEOF([unsigned])
-#AC_CHECK_SIZEOF([unsigned int])
+# The cast to long int works around a bug in the HP C Compiler
+# version HP92453-01 B.11.11.23709.GP, which incorrectly rejects
+# declarations like `int a3[[(sizeof (unsigned char)) >= 0]];'.
+# This bug is HP SR number 8606223364.
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking size of unsigned" >&5
+$as_echo_n "checking size of unsigned... " >&6; }
+if ${ac_cv_sizeof_unsigned+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if ac_fn_c_compute_int "$LINENO" "(long int) (sizeof (unsigned))" "ac_cv_sizeof_unsigned"        "$ac_includes_default"; then :
+
+else
+  if test "$ac_cv_type_unsigned" = yes; then
+     { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error 77 "cannot compute sizeof (unsigned)
+See \`config.log' for more details" "$LINENO" 5; }
+   else
+     ac_cv_sizeof_unsigned=0
+   fi
+fi
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_sizeof_unsigned" >&5
+$as_echo "$ac_cv_sizeof_unsigned" >&6; }
+
+
+
+cat >>confdefs.h <<_ACEOF
+#define SIZEOF_UNSIGNED $ac_cv_sizeof_unsigned
+_ACEOF
+
+
+# The cast to long int works around a bug in the HP C Compiler
+# version HP92453-01 B.11.11.23709.GP, which incorrectly rejects
+# declarations like `int a3[[(sizeof (unsigned char)) >= 0]];'.
+# This bug is HP SR number 8606223364.
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking size of unsigned int" >&5
+$as_echo_n "checking size of unsigned int... " >&6; }
+if ${ac_cv_sizeof_unsigned_int+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if ac_fn_c_compute_int "$LINENO" "(long int) (sizeof (unsigned int))" "ac_cv_sizeof_unsigned_int"        "$ac_includes_default"; then :
+
+else
+  if test "$ac_cv_type_unsigned_int" = yes; then
+     { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error 77 "cannot compute sizeof (unsigned int)
+See \`config.log' for more details" "$LINENO" 5; }
+   else
+     ac_cv_sizeof_unsigned_int=0
+   fi
+fi
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_sizeof_unsigned_int" >&5
+$as_echo "$ac_cv_sizeof_unsigned_int" >&6; }
+
+
+
+cat >>confdefs.h <<_ACEOF
+#define SIZEOF_UNSIGNED_INT $ac_cv_sizeof_unsigned_int
+_ACEOF
+
+
 # The cast to long int works around a bug in the HP C Compiler
 # version HP92453-01 B.11.11.23709.GP, which incorrectly rejects
 # declarations like `int a3[[(sizeof (unsigned char)) >= 0]];'.
@@ -6780,12 +6952,204 @@ cat >>confdefs.h <<_ACEOF
 _ACEOF
 
 
-#AC_CHECK_SIZEOF([long long])
-#AC_CHECK_SIZEOF([double])
-#AC_CHECK_SIZEOF([long double])
-#AC_CHECK_SIZEOF([int *])
-#AC_CHECK_SIZEOF([long long *])
-#AC_CHECK_SIZEOF([void *])
+# The cast to long int works around a bug in the HP C Compiler
+# version HP92453-01 B.11.11.23709.GP, which incorrectly rejects
+# declarations like `int a3[[(sizeof (unsigned char)) >= 0]];'.
+# This bug is HP SR number 8606223364.
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking size of long long" >&5
+$as_echo_n "checking size of long long... " >&6; }
+if ${ac_cv_sizeof_long_long+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if ac_fn_c_compute_int "$LINENO" "(long int) (sizeof (long long))" "ac_cv_sizeof_long_long"        "$ac_includes_default"; then :
+
+else
+  if test "$ac_cv_type_long_long" = yes; then
+     { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error 77 "cannot compute sizeof (long long)
+See \`config.log' for more details" "$LINENO" 5; }
+   else
+     ac_cv_sizeof_long_long=0
+   fi
+fi
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_sizeof_long_long" >&5
+$as_echo "$ac_cv_sizeof_long_long" >&6; }
+
+
+
+cat >>confdefs.h <<_ACEOF
+#define SIZEOF_LONG_LONG $ac_cv_sizeof_long_long
+_ACEOF
+
+
+# The cast to long int works around a bug in the HP C Compiler
+# version HP92453-01 B.11.11.23709.GP, which incorrectly rejects
+# declarations like `int a3[[(sizeof (unsigned char)) >= 0]];'.
+# This bug is HP SR number 8606223364.
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking size of double" >&5
+$as_echo_n "checking size of double... " >&6; }
+if ${ac_cv_sizeof_double+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if ac_fn_c_compute_int "$LINENO" "(long int) (sizeof (double))" "ac_cv_sizeof_double"        "$ac_includes_default"; then :
+
+else
+  if test "$ac_cv_type_double" = yes; then
+     { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error 77 "cannot compute sizeof (double)
+See \`config.log' for more details" "$LINENO" 5; }
+   else
+     ac_cv_sizeof_double=0
+   fi
+fi
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_sizeof_double" >&5
+$as_echo "$ac_cv_sizeof_double" >&6; }
+
+
+
+cat >>confdefs.h <<_ACEOF
+#define SIZEOF_DOUBLE $ac_cv_sizeof_double
+_ACEOF
+
+
+# The cast to long int works around a bug in the HP C Compiler
+# version HP92453-01 B.11.11.23709.GP, which incorrectly rejects
+# declarations like `int a3[[(sizeof (unsigned char)) >= 0]];'.
+# This bug is HP SR number 8606223364.
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking size of long double" >&5
+$as_echo_n "checking size of long double... " >&6; }
+if ${ac_cv_sizeof_long_double+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if ac_fn_c_compute_int "$LINENO" "(long int) (sizeof (long double))" "ac_cv_sizeof_long_double"        "$ac_includes_default"; then :
+
+else
+  if test "$ac_cv_type_long_double" = yes; then
+     { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error 77 "cannot compute sizeof (long double)
+See \`config.log' for more details" "$LINENO" 5; }
+   else
+     ac_cv_sizeof_long_double=0
+   fi
+fi
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_sizeof_long_double" >&5
+$as_echo "$ac_cv_sizeof_long_double" >&6; }
+
+
+
+cat >>confdefs.h <<_ACEOF
+#define SIZEOF_LONG_DOUBLE $ac_cv_sizeof_long_double
+_ACEOF
+
+
+# The cast to long int works around a bug in the HP C Compiler
+# version HP92453-01 B.11.11.23709.GP, which incorrectly rejects
+# declarations like `int a3[[(sizeof (unsigned char)) >= 0]];'.
+# This bug is HP SR number 8606223364.
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking size of int *" >&5
+$as_echo_n "checking size of int *... " >&6; }
+if ${ac_cv_sizeof_int_p+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if ac_fn_c_compute_int "$LINENO" "(long int) (sizeof (int *))" "ac_cv_sizeof_int_p"        "$ac_includes_default"; then :
+
+else
+  if test "$ac_cv_type_int_p" = yes; then
+     { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error 77 "cannot compute sizeof (int *)
+See \`config.log' for more details" "$LINENO" 5; }
+   else
+     ac_cv_sizeof_int_p=0
+   fi
+fi
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_sizeof_int_p" >&5
+$as_echo "$ac_cv_sizeof_int_p" >&6; }
+
+
+
+cat >>confdefs.h <<_ACEOF
+#define SIZEOF_INT_P $ac_cv_sizeof_int_p
+_ACEOF
+
+
+# The cast to long int works around a bug in the HP C Compiler
+# version HP92453-01 B.11.11.23709.GP, which incorrectly rejects
+# declarations like `int a3[[(sizeof (unsigned char)) >= 0]];'.
+# This bug is HP SR number 8606223364.
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking size of long long *" >&5
+$as_echo_n "checking size of long long *... " >&6; }
+if ${ac_cv_sizeof_long_long_p+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if ac_fn_c_compute_int "$LINENO" "(long int) (sizeof (long long *))" "ac_cv_sizeof_long_long_p"        "$ac_includes_default"; then :
+
+else
+  if test "$ac_cv_type_long_long_p" = yes; then
+     { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error 77 "cannot compute sizeof (long long *)
+See \`config.log' for more details" "$LINENO" 5; }
+   else
+     ac_cv_sizeof_long_long_p=0
+   fi
+fi
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_sizeof_long_long_p" >&5
+$as_echo "$ac_cv_sizeof_long_long_p" >&6; }
+
+
+
+cat >>confdefs.h <<_ACEOF
+#define SIZEOF_LONG_LONG_P $ac_cv_sizeof_long_long_p
+_ACEOF
+
+
+# The cast to long int works around a bug in the HP C Compiler
+# version HP92453-01 B.11.11.23709.GP, which incorrectly rejects
+# declarations like `int a3[[(sizeof (unsigned char)) >= 0]];'.
+# This bug is HP SR number 8606223364.
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking size of void *" >&5
+$as_echo_n "checking size of void *... " >&6; }
+if ${ac_cv_sizeof_void_p+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if ac_fn_c_compute_int "$LINENO" "(long int) (sizeof (void *))" "ac_cv_sizeof_void_p"        "$ac_includes_default"; then :
+
+else
+  if test "$ac_cv_type_void_p" = yes; then
+     { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error 77 "cannot compute sizeof (void *)
+See \`config.log' for more details" "$LINENO" 5; }
+   else
+     ac_cv_sizeof_void_p=0
+   fi
+fi
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_sizeof_void_p" >&5
+$as_echo "$ac_cv_sizeof_void_p" >&6; }
+
+
+
+cat >>confdefs.h <<_ACEOF
+#define SIZEOF_VOID_P $ac_cv_sizeof_void_p
+_ACEOF
+
+
 
 # Available arch.h's:
 # alpha.h
@@ -6826,8 +7190,8 @@ case "$host_cpu" in
   vax*) ARCH_LINK=vax.h endian=little ;;
   x86_64) ARCH_LINK=x86-64.h endian=little cpu_family=intel ;;
   *)
-     { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Uncertain support for ${target}, please report!" >&5
-$as_echo "$as_me: WARNING: Uncertain support for ${target}, please report!" >&2;}
+     { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Uncertain support for ${host}, please report!" >&5
+$as_echo "$as_me: WARNING: Uncertain support for ${host}, please report!" >&2;}
      ARCH_LINK=autoconf_arch.h
      ;;
 esac
@@ -7485,6 +7849,7 @@ case "$host_cpu" in
       done
       if test $jtr_list_add_dupe = 0; then
          CFLAGS="$CFLAGS $i"
+         jtr_list_add_result="$jtr_list_add_print $i"
       fi
    done
 
@@ -7508,6 +7873,7 @@ case "$host_cpu" in
       done
       if test $jtr_list_add_dupe = 0; then
          CFLAGS="$CFLAGS $i"
+         jtr_list_add_result="$jtr_list_add_print $i"
       fi
    done
 
@@ -7548,6 +7914,7 @@ if echo "int long_ident;" > conftest.c && ${CC} -c conftest.c && strings - conft
       done
       if test $jtr_list_add_dupe = 0; then
          EXTRA_AS_FLAGS="$EXTRA_AS_FLAGS $i"
+         jtr_list_add_result="$jtr_list_add_print $i"
       fi
    done
 
@@ -7577,6 +7944,7 @@ if ac_fn_c_try_link "$LINENO"; then :
       done
       if test $jtr_list_add_dupe = 0; then
          EXTRA_AS_FLAGS="$EXTRA_AS_FLAGS $i"
+         jtr_list_add_result="$jtr_list_add_print $i"
       fi
    done
 
@@ -7627,6 +7995,7 @@ $as_echo "yes" >&6; }
       done
       if test $jtr_list_add_dupe = 0; then
          EXTRA_AS_FLAGS="$EXTRA_AS_FLAGS $i"
+         jtr_list_add_result="$jtr_list_add_print $i"
       fi
    done
 
@@ -7642,6 +8011,7 @@ $as_echo "yes" >&6; }
       done
       if test $jtr_list_add_dupe = 0; then
          CFLAGS_EX="$CFLAGS_EX $i"
+         jtr_list_add_result="$jtr_list_add_print $i"
       fi
    done
 
@@ -7703,12 +8073,12 @@ fi
 
 #############################################################################
 # Check for unaligned memory access being allowed
+# TODO: Needs fix for cross compile (we can infer it from $host_cpu)
 #############################################################################
-#
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for unaligned memory access" >&5
-$as_echo_n "checking for unaligned memory access... " >&6; }
-CC="$CC_BACKUP"
-if test "$cross_compiling" = yes; then :
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for unaligned memory access allowed" >&5
+$as_echo_n "checking for unaligned memory access allowed... " >&6; }
+if test "x$cross_compiling" = xno; then
+   if test "$cross_compiling" = yes; then :
   { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
 as_fn_error $? "cannot run test program while cross compiling
@@ -7716,29 +8086,32 @@ See \`config.log' for more details" "$LINENO" 5; }
 else
   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
-
-  #include <stdio.h>
-	extern void exit(int);
-	int main(){char c[20];*((int*)(&c[1]))=1;*((int*)(&c[2]))=1;*((int*)(&c[3]))=1;if(c[2]==88)printf("foobar");exit(0);}
+                     #include <stdio.h>
+           extern void exit(int);
+           int main(){char c[20];*((int*)(&c[1]))=1;*((int*)(&c[2]))=1;*((int*)(&c[3]))=1;if(c[2]==88)printf("foobar");exit(0);}
 
 
 _ACEOF
 if ac_fn_c_try_run "$LINENO"; then :
   ALLOWS_UNALIGNED="1"
-   { $as_echo "$as_me:${as_lineno-$LINENO}: result: allowed" >&5
-$as_echo "allowed" >&6; }
+      { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
 
 else
   ALLOWS_UNALIGNED="0"
-   { $as_echo "$as_me:${as_lineno-$LINENO}: result: NOT allowed" >&5
-$as_echo "NOT allowed" >&6; }
+      { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
 
 fi
 rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
   conftest.$ac_objext conftest.beam conftest.$ac_ext
 fi
 
-CC="$CC_BACKUP"
+else
+   ALLOWS_UNALIGNED="0"
+   { $as_echo "$as_me:${as_lineno-$LINENO}: result: unknown" >&5
+$as_echo "unknown" >&6; }
+fi
 
 #############################################################################
 # Check for LE/BE CPU
@@ -7989,12 +8362,9 @@ See \`config.log' for more details" "$LINENO" 5; }
 fi
 
 #############################################################################
-# END Check for LE/BE CPU
-#############################################################################
-
 # Checks for libraries.
-################################################
-#  NOTE, be VERY careful of spaces around the comma's in the AC_CHECK_LIB. Best
+#
+# NOTE, be VERY careful of spaces around the comma's in the AC_CHECK_LIB. Best
 # to not have any.  If there are space, then often that will get a lib to NOT
 # be added to @LIBS@ and cause linkage problems.  Also note, if action if found
 # is specified, the -llibname will NOT get appended to LIBS. So it has to be
@@ -8002,7 +8372,6 @@ fi
 # also be done by skipping the modified default action, and doing an AS_IF on
 # the next line.
 ################################################
-
 ac_fn_c_check_header_mongrel "$LINENO" "CommonCrypto/CommonDigest.h" "ac_cv_header_CommonCrypto_CommonDigest_h" "$ac_includes_default"
 if test "x$ac_cv_header_CommonCrypto_CommonDigest_h" = xyes; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for CCKeyDerivationPBKDF in -lSystem" >&5
@@ -8636,6 +9005,7 @@ $as_echo "#define HAVE_SKEY 1" >>confdefs.h
       done
       if test $jtr_list_add_dupe = 0; then
          LIBS="$LIBS $i"
+         jtr_list_add_result="$jtr_list_add_print $i"
       fi
    done
 
@@ -9119,6 +9489,7 @@ if test "x$ac_cv_lib_pcap_pcap_compile" = xyes; then :
       done
       if test $jtr_list_add_dupe = 0; then
          LIBS="$LIBS $i"
+         jtr_list_add_result="$jtr_list_add_print $i"
       fi
    done
 
@@ -9131,6 +9502,41 @@ fi
 # Check for variations we can handle
 # We need these two AC_CHECK_LIB for the following AC_CHECK_FUNCS to work -
 # PKG_CHECK_MODULES did not do the trick (but perhaps this is fixable)
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether time.h and sys/time.h may both be included" >&5
+$as_echo_n "checking whether time.h and sys/time.h may both be included... " >&6; }
+if ${ac_cv_header_time+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include <sys/types.h>
+#include <sys/time.h>
+#include <time.h>
+
+int
+main ()
+{
+if ((struct tm *) 0)
+return 0;
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+  ac_cv_header_time=yes
+else
+  ac_cv_header_time=no
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_header_time" >&5
+$as_echo "$ac_cv_header_time" >&6; }
+if test $ac_cv_header_time = yes; then
+
+$as_echo "#define TIME_WITH_SYS_TIME 1" >>confdefs.h
+
+fi
+
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for SSL_library_init in -lssl" >&5
 $as_echo_n "checking for SSL_library_init in -lssl... " >&6; }
 if ${ac_cv_lib_ssl_SSL_library_init+:} false; then :
@@ -9465,43 +9871,37 @@ $as_echo "$ac_cv_prog_c_openmp" >&6; }
 
 
 # Check for OpenCL (enable/disable handled within the macro)
+if test "x$cross_compiling" = xno; then :
 
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking additional paths for OpenCL" >&5
+   { $as_echo "$as_me:${as_lineno-$LINENO}: checking additional paths for OpenCL" >&5
 $as_echo_n "checking additional paths for OpenCL... " >&6; }
-  ADD_LDFLAGS=""
-  ADD_CFLAGS=""
-if test -n "$AMDAPPSDKROOT"; then
-   if test -d "$AMDAPPSDKROOT/include"; then
-      ADD_CFLAGS+=" -I$AMDAPPSDKROOT/include"
+   ADD_LDFLAGS=""
+   ADD_CFLAGS=""
+   if test -n "$AMDAPPSDKROOT"; then
+      if test -d "$AMDAPPSDKROOT/include"; then
+         ADD_CFLAGS+=" -I$AMDAPPSDKROOT/include"
+      fi
+      if test $CPU_BIT_STR = 64 -a -d "$AMDAPPSDKROOT/lib/x86_64" ; then
+         ADD_LDFLAGS+=" -L$AMDAPPSDKROOT/lib/x86_64"
+      elif test  $CPU_BIT_STR = 32 -a -d "$AMDAPPSDKROOT/lib/x86" ; then
+         ADD_LDFLAGS+=" -L$AMDAPPSDKROOT/lib/x86"
+      elif test -d "$AMDAPPSDKROOT/lib"; then
+         ADD_LDFLAGS+=" -L$AMDAPPSDKROOT/lib"
+      fi
    fi
-   if test $CPU_BIT_STR = 64 -a -d "$AMDAPPSDKROOT/lib/x86_64" ; then
-      ADD_LDFLAGS+=" -L$AMDAPPSDKROOT/lib/x86_64"
-   elif test  $CPU_BIT_STR = 32 -a -d "$AMDAPPSDKROOT/lib/x86" ; then
-      ADD_LDFLAGS+=" -L$AMDAPPSDKROOT/lib/x86"
-   elif test -d "$AMDAPPSDKROOT/lib"; then
-      ADD_LDFLAGS+=" -L$AMDAPPSDKROOT/lib"
+   if test -n "$ATISTREAMSDKROOT"; then
+      if test -d "$ATISTREAMSDKROOT/include"; then
+         ADD_CFLAGS+=" -I$ATISTREAMSDKROOT/include"
+      fi
+      if test $CPU_BIT_STR = 64 -a -d "$ATISTREAMSDKROOT/lib/x86_64" ; then
+         ADD_LDFLAGS+=" -L$ATISTREAMSDKROOT/lib/x86_64"
+      elif test  $CPU_BIT_STR = 32 -a -d "$ATISTREAMSDKROOT/lib/x86" ; then
+         ADD_LDFLAGS+=" -L$ATISTREAMSDKROOT/lib/x86"
+      elif test -d "$ATISTREAMSDKROOT/lib"; then
+         ADD_LDFLAGS+=" -L$ATISTREAMSDKROOT/lib"
+      fi
    fi
-fi
-if test -n "$ATISTREAMSDKROOT"; then
-   if test -d "$ATISTREAMSDKROOT/include"; then
-      ADD_CFLAGS+=" -I$ATISTREAMSDKROOT/include"
-   fi
-   if test $CPU_BIT_STR = 64 -a -d "$ATISTREAMSDKROOT/lib/x86_64" ; then
-      ADD_LDFLAGS+=" -L$ATISTREAMSDKROOT/lib/x86_64"
-   elif test  $CPU_BIT_STR = 32 -a -d "$ATISTREAMSDKROOT/lib/x86" ; then
-      ADD_LDFLAGS+=" -L$ATISTREAMSDKROOT/lib/x86"
-   elif test -d "$ATISTREAMSDKROOT/lib"; then
-      ADD_LDFLAGS+=" -L$ATISTREAMSDKROOT/lib"
-   fi
-fi
-case "x${ADD_CFLAGS}x${ADD_LDFLAGS}" in
-     "xx") cond_and="no" ;;
-     "xx*") cond_and="" ;;
-     "x*x") cond_and="" ;;
-     *) cond_and=" and" ;;
-esac
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: ${ADD_CFLAGS}${cond_and}${ADD_LDFLAGS}" >&5
-$as_echo "${ADD_CFLAGS}${cond_and}${ADD_LDFLAGS}" >&6; }
+   jtr_list_add_result=""
 
    for i in $ADD_LDFLAGS; do
       jtr_list_add_dupe=0
@@ -9513,6 +9913,7 @@ $as_echo "${ADD_CFLAGS}${cond_and}${ADD_LDFLAGS}" >&6; }
       done
       if test $jtr_list_add_dupe = 0; then
          LDFLAGS="$LDFLAGS $i"
+         jtr_list_add_result="$jtr_list_add_print $i"
       fi
    done
 
@@ -9527,6 +9928,7 @@ $as_echo "${ADD_CFLAGS}${cond_and}${ADD_LDFLAGS}" >&6; }
       done
       if test $jtr_list_add_dupe = 0; then
          CFLAGS="$CFLAGS $i"
+         jtr_list_add_result="$jtr_list_add_print $i"
       fi
    done
 
@@ -9541,9 +9943,21 @@ $as_echo "${ADD_CFLAGS}${cond_and}${ADD_LDFLAGS}" >&6; }
       done
       if test $jtr_list_add_dupe = 0; then
          CPPFLAGS="$CPPFLAGS $i"
+         jtr_list_add_result="$jtr_list_add_print $i"
       fi
    done
 
+   if test -z "$jtr_list_add_result"; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: none" >&5
+$as_echo "none" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $jtr_list_add_result" >&5
+$as_echo "$jtr_list_add_result" >&6; }
+fi
+   jtr_list_add_result=""
+
+
+fi
 
 
 ac_ext=c
@@ -10232,34 +10646,28 @@ fi
 # Check for CUDA, including headers.
 using_cuda=no
 if test "x$enable_cuda" != xno; then
+   if test "x$cross_compiling" = xno; then :
 
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking additional paths for CUDA" >&5
+   { $as_echo "$as_me:${as_lineno-$LINENO}: checking additional paths for CUDA" >&5
 $as_echo_n "checking additional paths for CUDA... " >&6; }
-  ADD_LDFLAGS=""
-  ADD_CFLAGS=""
-if test -n "$NVIDIA_CUDA"; then
-   CUDAPATH="$NVIDIA_CUDA"
-else
-   CUDAPATH=/usr/local/cuda
-fi
-NVIDIA_CUDA="$CUDAPATH"
+   ADD_LDFLAGS=""
+   ADD_CFLAGS=""
+   if test -n "$NVIDIA_CUDA"; then
+      CUDAPATH="$NVIDIA_CUDA"
+   else
+      CUDAPATH=/usr/local/cuda
+   fi
+   NVIDIA_CUDA="$CUDAPATH"
 
-if test -d "$CUDAPATH/include"; then
-   ADD_CFLAGS+=" -I$CUDAPATH/include"
-fi
-if test $CPU_BIT_STR = 64 -a -d "$CUDAPATH/lib64"; then
-   ADD_LDFLAGS+=" -L$CUDAPATH/lib64"
-elif test -d "$CUDAPATH/lib"; then
-   ADD_LDFLAGS+=" -L$CUDAPATH/lib"
-fi
-case "x${ADD_CFLAGS}x${ADD_LDFLAGS}" in
-     "xx") cond_and="no" ;;
-     "xx*") cond_and="" ;;
-     "x*x") cond_and="" ;;
-     *) cond_and=" and" ;;
-esac
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: ${ADD_CFLAGS}${cond_and}${ADD_LDFLAGS}" >&5
-$as_echo "${ADD_CFLAGS}${cond_and}${ADD_LDFLAGS}" >&6; }
+   if test -d "$CUDAPATH/include"; then
+      ADD_CFLAGS+=" -I$CUDAPATH/include"
+   fi
+   if test $CPU_BIT_STR = 64 -a -d "$CUDAPATH/lib64"; then
+      ADD_LDFLAGS+=" -L$CUDAPATH/lib64"
+   elif test -d "$CUDAPATH/lib"; then
+      ADD_LDFLAGS+=" -L$CUDAPATH/lib"
+   fi
+   jtr_list_add_result=""
 
    for i in $ADD_LDFLAGS; do
       jtr_list_add_dupe=0
@@ -10271,6 +10679,7 @@ $as_echo "${ADD_CFLAGS}${cond_and}${ADD_LDFLAGS}" >&6; }
       done
       if test $jtr_list_add_dupe = 0; then
          LDFLAGS="$LDFLAGS $i"
+         jtr_list_add_result="$jtr_list_add_print $i"
       fi
    done
 
@@ -10285,6 +10694,7 @@ $as_echo "${ADD_CFLAGS}${cond_and}${ADD_LDFLAGS}" >&6; }
       done
       if test $jtr_list_add_dupe = 0; then
          CFLAGS="$CFLAGS $i"
+         jtr_list_add_result="$jtr_list_add_print $i"
       fi
    done
 
@@ -10299,9 +10709,21 @@ $as_echo "${ADD_CFLAGS}${cond_and}${ADD_LDFLAGS}" >&6; }
       done
       if test $jtr_list_add_dupe = 0; then
          CPPFLAGS="$CPPFLAGS $i"
+         jtr_list_add_result="$jtr_list_add_print $i"
       fi
    done
 
+   if test -z "$jtr_list_add_result"; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: none" >&5
+$as_echo "none" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $jtr_list_add_result" >&5
+$as_echo "$jtr_list_add_result" >&6; }
+fi
+   jtr_list_add_result=""
+
+
+fi
    ac_fn_c_check_header_mongrel "$LINENO" "cuda.h" "ac_cv_header_cuda_h" "$ac_includes_default"
 if test "x$ac_cv_header_cuda_h" = xyes; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for cudaGetDeviceCount in -lcudart" >&5
@@ -10341,7 +10763,8 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_cudart_cudaGetDeviceCount" >&5
 $as_echo "$ac_cv_lib_cudart_cudaGetDeviceCount" >&6; }
 if test "x$ac_cv_lib_cudart_cudaGetDeviceCount" = xyes; then :
-  using_cuda=yes HAVE_CUDA=-DHAVE_CUDA
+  using_cuda=yes
+        HAVE_CUDA=-DHAVE_CUDA
 
    for i in -lcudart; do
       jtr_list_add_dupe=0
@@ -10353,6 +10776,7 @@ if test "x$ac_cv_lib_cudart_cudaGetDeviceCount" = xyes; then :
       done
       if test $jtr_list_add_dupe = 0; then
          LIBS="$LIBS $i"
+         jtr_list_add_result="$jtr_list_add_print $i"
       fi
    done
 
@@ -10376,7 +10800,7 @@ fi
 
 # Checks for header files.
 # Eg. if sys/times.h is found, the below will define HAVE_SYS_TIMES_H
-for ac_header in stdint.h sys/times.h strings.h sys/file.h sys/time.h unistd.h unixlib/local.h net/ethernet.h sys/ethernet.h net/if.h pcap.h
+for ac_header in OS.h arpa/inet.h fcntl.h limits.h locale.h net/ethernet.h                   net/if.h netdb.h netinet/in.h pcap.h stddef.h stdint.h                   stdlib.h string.h strings.h sys/ethernet.h sys/file.h                   sys/param.h sys/socket.h sys/time.h sys/timeb.h                   sys/times.h termios.h unistd.h unixlib/local.h wchar.h
 do :
   as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
 ac_fn_c_check_header_mongrel "$LINENO" "$ac_header" "$as_ac_Header" "$ac_includes_default"
@@ -10389,7 +10813,6 @@ fi
 
 done
 
-# OS.h arpa/inet.h fcntl.h limits.h locale.h netdb.h netinet/in.h stddef.h stdlib.h string.h sys/param.h sys/socket.h sys/timeb.h termios.h wchar.h
 for ac_header in netinet/if_ether.h
 do :
   ac_fn_c_check_header_compile "$LINENO" "netinet/if_ether.h" "ac_cv_header_netinet_if_ether_h" "#if HAVE_NET_IF_H
@@ -10743,7 +11166,41 @@ fi
 
 
 # Checks for library functions.
-#AC_FUNC_ERROR_AT_LINE
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for error_at_line" >&5
+$as_echo_n "checking for error_at_line... " >&6; }
+if ${ac_cv_lib_error_at_line+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include <error.h>
+int
+main ()
+{
+error_at_line (0, 0, "", 0, "an error occurred");
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_error_at_line=yes
+else
+  ac_cv_lib_error_at_line=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_error_at_line" >&5
+$as_echo "$ac_cv_lib_error_at_line" >&6; }
+if test $ac_cv_lib_error_at_line = no; then
+  case " $LIBOBJS " in
+  *" error.$ac_objext "* ) ;;
+  *) LIBOBJS="$LIBOBJS error.$ac_objext"
+ ;;
+esac
+
+fi
+
 ac_fn_c_check_type "$LINENO" "pid_t" "ac_cv_type_pid_t" "$ac_includes_default"
 if test "x$ac_cv_type_pid_t" = xyes; then :
 
@@ -10968,7 +11425,73 @@ $as_echo "#define HAVE_WORKING_FORK 1" >>confdefs.h
 
 fi
 
-#AC_FUNC_MALLOC
+for ac_header in stdlib.h
+do :
+  ac_fn_c_check_header_mongrel "$LINENO" "stdlib.h" "ac_cv_header_stdlib_h" "$ac_includes_default"
+if test "x$ac_cv_header_stdlib_h" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_STDLIB_H 1
+_ACEOF
+
+fi
+
+done
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for GNU libc compatible malloc" >&5
+$as_echo_n "checking for GNU libc compatible malloc... " >&6; }
+if ${ac_cv_func_malloc_0_nonnull+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if test "$cross_compiling" = yes; then :
+  ac_cv_func_malloc_0_nonnull=no
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#if defined STDC_HEADERS || defined HAVE_STDLIB_H
+# include <stdlib.h>
+#else
+char *malloc ();
+#endif
+
+int
+main ()
+{
+return ! malloc (0);
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_run "$LINENO"; then :
+  ac_cv_func_malloc_0_nonnull=yes
+else
+  ac_cv_func_malloc_0_nonnull=no
+fi
+rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
+  conftest.$ac_objext conftest.beam conftest.$ac_ext
+fi
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_func_malloc_0_nonnull" >&5
+$as_echo "$ac_cv_func_malloc_0_nonnull" >&6; }
+if test $ac_cv_func_malloc_0_nonnull = yes; then :
+
+$as_echo "#define HAVE_MALLOC 1" >>confdefs.h
+
+else
+  $as_echo "#define HAVE_MALLOC 0" >>confdefs.h
+
+   case " $LIBOBJS " in
+  *" malloc.$ac_objext "* ) ;;
+  *) LIBOBJS="$LIBOBJS malloc.$ac_objext"
+ ;;
+esac
+
+
+$as_echo "#define malloc rpl_malloc" >>confdefs.h
+
+fi
+
+
 
 
 
@@ -11170,8 +11693,78 @@ $as_echo "#define HAVE_MMAP 1" >>confdefs.h
 fi
 rm -f conftest.mmap conftest.txt
 
-#AC_FUNC_REALLOC
-#AC_CHECK_FUNCS([atexit endpwent floor ftruncate gethostbyname gettimeofday inet_ntoa isascii memchr memmove memset mkdir munmap pow rmdir select setenv setlocale socket strcasecmp strchr strcspn strdup strerror strncasecmp strrchr strspn strstr strtol strtoul])
+for ac_header in stdlib.h
+do :
+  ac_fn_c_check_header_mongrel "$LINENO" "stdlib.h" "ac_cv_header_stdlib_h" "$ac_includes_default"
+if test "x$ac_cv_header_stdlib_h" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_STDLIB_H 1
+_ACEOF
+
+fi
+
+done
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for GNU libc compatible realloc" >&5
+$as_echo_n "checking for GNU libc compatible realloc... " >&6; }
+if ${ac_cv_func_realloc_0_nonnull+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if test "$cross_compiling" = yes; then :
+  ac_cv_func_realloc_0_nonnull=no
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#if defined STDC_HEADERS || defined HAVE_STDLIB_H
+# include <stdlib.h>
+#else
+char *realloc ();
+#endif
+
+int
+main ()
+{
+return ! realloc (0, 0);
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_run "$LINENO"; then :
+  ac_cv_func_realloc_0_nonnull=yes
+else
+  ac_cv_func_realloc_0_nonnull=no
+fi
+rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
+  conftest.$ac_objext conftest.beam conftest.$ac_ext
+fi
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_func_realloc_0_nonnull" >&5
+$as_echo "$ac_cv_func_realloc_0_nonnull" >&6; }
+if test $ac_cv_func_realloc_0_nonnull = yes; then :
+
+$as_echo "#define HAVE_REALLOC 1" >>confdefs.h
+
+else
+  $as_echo "#define HAVE_REALLOC 0" >>confdefs.h
+
+   case " $LIBOBJS " in
+  *" realloc.$ac_objext "* ) ;;
+  *) LIBOBJS="$LIBOBJS realloc.$ac_objext"
+ ;;
+esac
+
+
+$as_echo "#define realloc rpl_realloc" >>confdefs.h
+
+fi
+
+
+#AC_CHECK_FUNCS([atexit endpwent floor ftruncate gethostbyname gettimeofday dnl
+#                inet_ntoa isascii memchr memmove memset mkdir munmap pow dnl
+#                rmdir select setenv setlocale socket strcasecmp strchr dnl
+#                strcspn strdup strerror strncasecmp strrchr strspn strstr dnl
+#                strtol strtoul])
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
 # tests run on this system so they can be shared between configure
@@ -11343,10 +11936,8 @@ AESNI_ARCH=$aesni_arch
 
 
 #
-# TODO: If X32, we need to check for a new enough yasm that understands the
+# TODO: For X32 we need to check for a new enough yasm that understands the
 # "-f elfx32" output format. If it doesn't, disable AES-NI.
-#
-
 aesni_os=""
 aesni_options="DISABLED"
 if test "x$ac_cv_path_YASM" != x; then
@@ -11354,9 +11945,18 @@ if test "x$ac_cv_path_YASM" != x; then
       : #aesni_os=linux aesni_options="-g dwarf2 -f elfx32"
    else
       case "$host" in
-	 x86_64*darwin*) aesni_os=darwin aesni_options="--prefix=_ -f macho${CPU_BIT_STR}" ;;
-	 i?86*darwin*) aesni_os=darwin aesni_options="-f macho${CPU_BIT_STR}" ;;
-	 *86*linux*) aesni_os=linux aesni_options="-g dwarf2 -f elf${CPU_BIT_STR}" ;;
+         x86_64*darwin*)
+                aesni_os=darwin
+                aesni_options="--prefix=_ -f macho${CPU_BIT_STR}"
+         ;;
+         i?86*darwin*)
+                aesni_os=darwin
+                aesni_options="-f macho${CPU_BIT_STR}"
+         ;;
+         *86*linux*)
+                aesni_os=linux
+                aesni_options="-g dwarf2 -f elf${CPU_BIT_STR}"
+         ;;
       esac
    fi
 fi
@@ -12778,7 +13378,6 @@ fi
 ########################################################
 #    ONLY _COSMETICAL_ OUTPUT STUFF BELOW THIS LINE
 ########################################################
-
 if test "x$CL_LIBS" = x; then
    using_cl=no
 else
@@ -12787,7 +13386,7 @@ fi
 
 # Hard to get proper info from AC_OPENMP. If it's enabled with no special
 # options needed, we might end up listing it as disabled
-if test "x$ac_cv_prog_c_openmp" != x -a  "x$enable_openmp" != xno -a "x$ac_cv_prog_c_openmp" != xunsupported ; then
+if test "x$ac_cv_prog_c_openmp" != x -a  "x$enable_openmp" != xno -a         "x$ac_cv_prog_c_openmp" != xunsupported ; then
    using_omp=yes
 else
    using_omp=no

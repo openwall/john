@@ -39,6 +39,7 @@
 #include <strings.h>
 #include <stdarg.h>
 
+#include "arch.h"
 #ifdef HAVE_UNIXLIB_LOCAL_H
 #include <unixlib/local.h>
 int __riscosify_control = __RISCOSIFY_NO_PROCESS;

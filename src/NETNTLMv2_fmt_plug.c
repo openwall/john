@@ -43,6 +43,7 @@
 #include <omp.h>
 #endif
 
+#include "arch.h"
 #include "misc.h"
 #include "common.h"
 #include "formats.h"

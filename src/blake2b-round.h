@@ -14,6 +14,8 @@
 #ifndef __BLAKE2B_ROUND_H__
 #define __BLAKE2B_ROUND_H__
 
+#include "arch.h"
+
 #define LOAD(p)  _mm_load_si128( (__m128i *)(p) )
 #define STORE(p,r) _mm_store_si128((__m128i *)(p), r)
 

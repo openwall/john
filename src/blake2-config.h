@@ -14,6 +14,8 @@
 #ifndef __BLAKE2_CONFIG_H__
 #define __BLAKE2_CONFIG_H__
 
+#include "arch.h"
+
 // These don't work everywhere
 #if defined(__SSE2__) && !defined(HAVE_SSE2)
 #define HAVE_SSE2	1

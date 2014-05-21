@@ -12,9 +12,10 @@
  *    modifications, are permitted.
  *** */
 
-#if defined (HAVE_CUDA) || defined (HAVE_OPENCL)
 #ifndef _COMMON_GPU_H
 #define _COMMON_GPU_H
+
+#if defined (HAVE_CUDA) || defined (HAVE_OPENCL)
 
 extern void *nvml_lib;
 extern void *adl_lib;
@@ -115,5 +116,6 @@ extern void (*dev_get_temp[MAX_GPU_DEVICES]) (int, int *, int *, int *);
 /* Map OpenCL device number to ADL/NVML device number */
 extern unsigned int temp_dev_id[MAX_GPU_DEVICES];
 
+#endif /* defined (HAVE_CUDA) || defined (HAVE_OPENCL) */
+
 #endif /* _COMMON_GPU_H */
-#endif /* HAVE_ */
