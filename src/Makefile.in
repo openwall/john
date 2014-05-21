@@ -175,16 +175,20 @@ GENMKVPWD_OBJS = \
 PROJ = ../run/john@EXE_EXT@ ../run/unshadow@EXE_EXT@ ../run/unafs@EXE_EXT@ ../run/unique@EXE_EXT@ ../run/undrop@EXE_EXT@ \
 	../run/ssh2john@EXE_EXT@ ../run/rar2john@EXE_EXT@ ../run/zip2john@EXE_EXT@ \
 	../run/genmkvpwd@EXE_EXT@ ../run/mkvcalcproba@EXE_EXT@ ../run/calc_stat@EXE_EXT@ \
-	../run/tgtsnarf@EXE_EXT@ ../run/racf2john@EXE_EXT@ ../run/mozilla2john@EXE_EXT@ ../run/hccap2john@EXE_EXT@ \
+	../run/tgtsnarf@EXE_EXT@ ../run/racf2john@EXE_EXT@ ../run/hccap2john@EXE_EXT@ \
 	../run/pwsafe2john@EXE_EXT@ ../run/raw2dyna@EXE_EXT@ ../run/keepass2john@EXE_EXT@ ../run/pfx2john@EXE_EXT@ \
 	../run/keychain2john@EXE_EXT@ ../run/keyring2john@EXE_EXT@ ../run/kwallet2john@EXE_EXT@ \
 	../run/dmg2john@EXE_EXT@ ../run/putty2john@EXE_EXT@ ../run/uaf2john@EXE_EXT@ \
 	../run/truecrypt_volume2john@EXE_EXT@ ../run/keystore2john@EXE_EXT@ ../run/wpapcap2john@EXE_EXT@ \
 	../run/gpg2john@EXE_EXT@ ../run/cprepair@EXE_EXT@ ../run/luks2john@EXE_EXT@
 
+ifdef HAVE_NSS
+PROJ += ../run/mozilla2john@EXE_EXT@
+endif
+
 WITH_PCAP=@HAVE_PCAP@
 ifdef WITH_PCAP
-PROJ += ../run/SIPdump ../run/vncpcap2john
+PROJ += ../run/SIPdump@EXE_EXT@ ../run/vncpcap2john@EXE_EXT@
 endif
 
 WITH_CUDA=@HAVE_CUDA@
@@ -803,6 +807,7 @@ snapshot: $(SOURCES) $(DOCS) $(OTHERFILES)
 	/bin/rm -rf xyplot-$(VERS)             # remove the old directory
 
 install: default
+	$(STRIP) -S $(PROJ)
 
 #install:
 #	@for dir in ${subdirs}; do \
