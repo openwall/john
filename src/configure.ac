@@ -95,6 +95,7 @@ AC_ARG_WITH(endian, [AS_HELP_STRING([--with-endian=little|big],[Set endianness f
 AC_ARG_ENABLE([mpi], [AC_HELP_STRING([--enable-mpi], [Use OpenMPI])], [enable_mpi=$enableval], [enable_mpi=no])
 AC_ARG_ENABLE([cuda], [AC_HELP_STRING([--disable-cuda], [Do not use CUDA])], [enable_cuda=$enableval], [enable_cuda=auto])
 AC_ARG_ENABLE([nss], [AC_HELP_STRING([--disable-nss], [Do not use NSS/NSPR])], [enable_nss=$enableval], [enable_nss=auto])
+AC_ARG_ENABLE([pcap], [AC_HELP_STRING([--disable-pcap], [Do not build helpers depending on PCAP])], [enable_pcap=$enableval], [enable_pcap=auto])
 AC_ARG_ENABLE([native-tests], [AC_HELP_STRING([--disable-native-tests], [Do not use test build system for target features])], [enable_native_tests=$enableval], [enable_native_tests=auto])
 
 ####### Actual tests start here #######
@@ -383,9 +384,12 @@ AC_CHECK_LIB([wsock32],[main])
 AC_CHECK_LIB([lws2_32],[main])
 AC_CHECK_LIB([wst],[main])
 # in makefile, we need to know if building extra pcap items.
-AC_CHECK_HEADER([pcap.h],[AC_CHECK_LIB([pcap],[pcap_compile],
+if test "x$enable_pcap" != xno ; then
+  AC_CHECK_HEADER([pcap.h],[AC_CHECK_LIB([pcap],[pcap_compile],
         [AC_SUBST(HAVE_PCAP,[-DHAVE_PCAP])] [JTR_LIST_ADD(LIBS, [-lpcap])])])
-
+else
+  AC_MSG_NOTICE([PCAP check disabled])
+fi
 # Check for variations we can handle
 # We need these two AC_CHECK_LIB for the following AC_CHECK_FUNCS to work -
 # PKG_CHECK_MODULES did not do the trick (but perhaps this is fixable)

@@ -738,6 +738,7 @@ with_endian
 enable_mpi
 enable_cuda
 enable_nss
+enable_pcap
 enable_native_tests
 enable_openmp
 enable_opencl
@@ -1375,6 +1376,7 @@ Optional Features:
   --enable-mpi            Use OpenMPI
   --disable-cuda          Do not use CUDA
   --disable-nss           Do not use NSS/NSPR
+  --disable-pcap          Do not build helpers depending on PCAP
   --disable-native-tests  Do not use test build system for target features
   --disable-openmp        do not use OpenMP
   --disable-opencl        do not use OpenCL
@@ -3497,6 +3499,13 @@ if test "${enable_nss+set}" = set; then :
   enableval=$enable_nss; enable_nss=$enableval
 else
   enable_nss=auto
+fi
+
+# Check whether --enable-pcap was given.
+if test "${enable_pcap+set}" = set; then :
+  enableval=$enable_pcap; enable_pcap=$enableval
+else
+  enable_pcap=auto
 fi
 
 # Check whether --enable-native-tests was given.
@@ -9488,7 +9497,8 @@ _ACEOF
 fi
 
 # in makefile, we need to know if building extra pcap items.
-ac_fn_c_check_header_mongrel "$LINENO" "pcap.h" "ac_cv_header_pcap_h" "$ac_includes_default"
+if test "x$enable_pcap" != xno ; then
+  ac_fn_c_check_header_mongrel "$LINENO" "pcap.h" "ac_cv_header_pcap_h" "$ac_includes_default"
 if test "x$ac_cv_header_pcap_h" = xyes; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for pcap_compile in -lpcap" >&5
 $as_echo_n "checking for pcap_compile in -lpcap... " >&6; }
@@ -9548,7 +9558,10 @@ fi
 fi
 
 
-
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: PCAP check disabled" >&5
+$as_echo "$as_me: PCAP check disabled" >&6;}
+fi
 # Check for variations we can handle
 # We need these two AC_CHECK_LIB for the following AC_CHECK_FUNCS to work -
 # PKG_CHECK_MODULES did not do the trick (but perhaps this is fixable)
