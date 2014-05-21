@@ -224,9 +224,9 @@ skey_cmp_exact(char *source, int count)
  */
 static unsigned int skey_hash_type(void *salt)
 {
-	struct skey_salt_st my_salt;
+	struct skey_salt_st *my_salt;
 
-	my_salt = salt;
+	my_salt = (struct skey_salt_st*)salt;
 	/*
 	 * An empty string (like in the first test hash) meaning MD4
 	 * is just my assumtion based on some googling.
@@ -251,11 +251,11 @@ static unsigned int skey_hash_type(void *salt)
 }
 
 /* iteration count as 2nd tunable cost */
-static unsigned int skey_iteration_count)void *salt)
+static unsigned int skey_iteration_count(void *salt)
 {
 	struct skey_salt_st *my_salt;
 
-	my_salt = salt;
+	my_salt = (struct skey_salt_st*)salt;
 	return (unsigned int) my_salt->num;
 }
 
