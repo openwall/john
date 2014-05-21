@@ -133,7 +133,9 @@ static hccap_t *decode_hccap(char *ciphertext)
 	dst[1] =
 	    (atoi64[ARCH_INDEX(cap[1])] << 4) |
 	    (atoi64[ARCH_INDEX(cap[2])] >> 2);
-	memcpy(&hccap.mac1,tbuf,sizeof(hccap_t)-36);
+	/* This emits warnings on some compilers */
+	//memcpy(&hccap.mac1,tbuf,sizeof(hccap_t)-36);
+	memcpy(((char*)&hccap) + 36, tbuf, sizeof(hccap_t) - 36);
 
 #if !ARCH_LITTLE_ENDIAN
 	hccap.eapol_size = JOHNSWAP(hccap.eapol_size);
