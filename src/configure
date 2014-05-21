@@ -5076,16 +5076,16 @@ $as_echo_n "checking additional paths... " >&6; }
   ADD_LDFLAGS=""
   ADD_CFLAGS=""
 if test -d /usr/local/lib; then
-   ADD_LDFLAGS+=" -L/usr/local/lib"
+   ADD_LDFLAGS="$ADD_LDFLAGS -L/usr/local/lib"
 fi
 if test -d /usr/local/include; then
-   ADD_CFLAGS+=" -I/usr/local/include"
+   ADD_CFLAGS="$ADD_CFLAGS -I/usr/local/include"
 fi
 if test -d /usr/local/ssl/lib; then
-   ADD_LDFLAGS+=" -L/usr/local/ssl/lib"
+   ADD_LDFLAGS="$ADD_LDFLAGS -L/usr/local/ssl/lib"
 fi
 if test -d /usr/local/ssl/include; then
-   ADD_CFLAGS+=" -I/usr/local/ssl/include"
+   ADD_CFLAGS="$ADD_CFLAGS -I/usr/local/ssl/include"
 fi
 jtr_list_add_result=""
 
@@ -5181,7 +5181,7 @@ if ac_fn_c_try_compile "$LINENO"; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 fi
-      CFLAGS_EX+=" -WFOO_BAR_SWITCH_NOT_VALID"
+      CFLAGS_EX="$CFLAGS_EX -WFOO_BAR_SWITCH_NOT_VALID"
 
 else
   if test "0" = 1; then :
@@ -5232,7 +5232,7 @@ if ac_fn_c_try_compile "$LINENO"; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 fi
-      CFLAGS_EX+=" -fFOO_BAR_SWITCH_NOT_VALID"
+      CFLAGS_EX="$CFLAGS_EX -fFOO_BAR_SWITCH_NOT_VALID"
 
 else
   if test "0" = 1; then :
@@ -5278,7 +5278,7 @@ if ac_fn_c_try_compile "$LINENO"; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 fi
-      CFLAGS_EX+=" -mFOO_BAR_SWITCH_NOT_VALID"
+      CFLAGS_EX="$CFLAGS_EX -mFOO_BAR_SWITCH_NOT_VALID"
 
 else
   if test "0" = 1; then :
@@ -5324,7 +5324,7 @@ if ac_fn_c_try_compile "$LINENO"; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 fi
-      CFLAGS_EX+=" -m666"
+      CFLAGS_EX="$CFLAGS_EX -m666"
 
 else
   if test "0" = 1; then :
@@ -5385,7 +5385,7 @@ if ac_fn_c_try_compile "$LINENO"; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 fi
-      CFLAGS_EX+=" -funroll-loops"
+      CFLAGS_EX="$CFLAGS_EX -funroll-loops"
 
 else
   if test "1" = 1; then :
@@ -5437,7 +5437,7 @@ if ac_fn_c_try_compile "$LINENO"; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 fi
-      CFLAGS_EX+=" -Os"
+      CFLAGS_EX="$CFLAGS_EX -Os"
 
 else
   if test "1" = 1; then :
@@ -5483,7 +5483,7 @@ if ac_fn_c_try_compile "$LINENO"; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 fi
-      CFLAGS_EX+=" -funroll-loops"
+      CFLAGS_EX="$CFLAGS_EX -funroll-loops"
 
 else
   if test "0" = 1; then :
@@ -5529,7 +5529,7 @@ if ac_fn_c_try_compile "$LINENO"; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 fi
-      CFLAGS_EX+=" -finline-functions"
+      CFLAGS_EX="$CFLAGS_EX -finline-functions"
 
 else
   if test "1" = 1; then :
@@ -5580,7 +5580,7 @@ if ac_fn_c_try_compile "$LINENO"; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 fi
-      CFLAGS_EX+=" -Wall"
+      CFLAGS_EX="$CFLAGS_EX -Wall"
 
 else
   if test "1" = 1; then :
@@ -5626,7 +5626,7 @@ if ac_fn_c_try_compile "$LINENO"; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 fi
-      CFLAGS_EX+=" -Wdeclaration-after-statement"
+      CFLAGS_EX="$CFLAGS_EX -Wdeclaration-after-statement"
 
 else
   if test "1" = 1; then :
@@ -5672,7 +5672,7 @@ if ac_fn_c_try_compile "$LINENO"; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 fi
-      CFLAGS_EX+=" -fomit-frame-pointer"
+      CFLAGS_EX="$CFLAGS_EX -fomit-frame-pointer"
 
 else
   if test "1" = 1; then :
@@ -5719,7 +5719,7 @@ if ac_fn_c_try_compile "$LINENO"; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 fi
-      CFLAGS_EX+=" -Wno-deprecated-declarations"
+      CFLAGS_EX="$CFLAGS_EX -Wno-deprecated-declarations"
 
 else
   if test "1" = 1; then :
@@ -9867,26 +9867,26 @@ $as_echo_n "checking additional paths for OpenCL... " >&6; }
    ADD_CFLAGS=""
    if test -n "$AMDAPPSDKROOT"; then
       if test -d "$AMDAPPSDKROOT/include"; then
-         ADD_CFLAGS+=" -I$AMDAPPSDKROOT/include"
+         ADD_CFLAGS="$ADD_CFLAGS -I$AMDAPPSDKROOT/include"
       fi
       if test $CPU_BIT_STR = 64 -a -d "$AMDAPPSDKROOT/lib/x86_64" ; then
-         ADD_LDFLAGS+=" -L$AMDAPPSDKROOT/lib/x86_64"
+         ADD_LDFLAGS="$ADD_LDFLAGS -L$AMDAPPSDKROOT/lib/x86_64"
       elif test  $CPU_BIT_STR = 32 -a -d "$AMDAPPSDKROOT/lib/x86" ; then
-         ADD_LDFLAGS+=" -L$AMDAPPSDKROOT/lib/x86"
+         ADD_LDFLAGS="$ADD_LDFLAGS -L$AMDAPPSDKROOT/lib/x86"
       elif test -d "$AMDAPPSDKROOT/lib"; then
-         ADD_LDFLAGS+=" -L$AMDAPPSDKROOT/lib"
+         ADD_LDFLAGS="$ADD_LDFLAGS -L$AMDAPPSDKROOT/lib"
       fi
    fi
    if test -n "$ATISTREAMSDKROOT"; then
       if test -d "$ATISTREAMSDKROOT/include"; then
-         ADD_CFLAGS+=" -I$ATISTREAMSDKROOT/include"
+         ADD_CFLAGS="ADD_CFLAGS -I$ATISTREAMSDKROOT/include"
       fi
       if test $CPU_BIT_STR = 64 -a -d "$ATISTREAMSDKROOT/lib/x86_64" ; then
-         ADD_LDFLAGS+=" -L$ATISTREAMSDKROOT/lib/x86_64"
+         ADD_LDFLAGS="$ADD_LDFLAGS -L$ATISTREAMSDKROOT/lib/x86_64"
       elif test  $CPU_BIT_STR = 32 -a -d "$ATISTREAMSDKROOT/lib/x86" ; then
-         ADD_LDFLAGS+=" -L$ATISTREAMSDKROOT/lib/x86"
+         ADD_LDFLAGS="$ADD_LDFLAGS -L$ATISTREAMSDKROOT/lib/x86"
       elif test -d "$ATISTREAMSDKROOT/lib"; then
-         ADD_LDFLAGS+=" -L$ATISTREAMSDKROOT/lib"
+         ADD_LDFLAGS="$ADD_LDFLAGS -L$ATISTREAMSDKROOT/lib"
       fi
    fi
    jtr_list_add_result=""
@@ -10648,12 +10648,12 @@ $as_echo_n "checking additional paths for CUDA... " >&6; }
    NVIDIA_CUDA="$CUDAPATH"
 
    if test -d "$CUDAPATH/include"; then
-      ADD_CFLAGS+=" -I$CUDAPATH/include"
+      ADD_CFLAGS="$ADD_CFLAGS -I$CUDAPATH/include"
    fi
    if test $CPU_BIT_STR = 64 -a -d "$CUDAPATH/lib64"; then
-      ADD_LDFLAGS+=" -L$CUDAPATH/lib64"
+      ADD_LDFLAGS="$ADD_LDFLAGS -L$CUDAPATH/lib64"
    elif test -d "$CUDAPATH/lib"; then
-      ADD_LDFLAGS+=" -L$CUDAPATH/lib"
+      ADD_LDFLAGS="$ADD_LDFLAGS -L$CUDAPATH/lib"
    fi
    jtr_list_add_result=""
 
