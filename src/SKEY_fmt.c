@@ -8,6 +8,8 @@
   Copyright (c) 2000 Dug Song <dugsong@monkey.org>
   All rights reserved, all wrongs reversed.
 
+  Updated to a working state in JtR 2014 (c) magnum 2014
+
   Redistribution and use in source and binary forms, with or without
   modification, are permitted provided that the following conditions
   are met:
@@ -53,7 +55,9 @@
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	32
 #define BINARY_SIZE		0
+#define BINARY_ALIGN		1
 #define SALT_SIZE		sizeof(struct skey_salt_st)
+#define SALT_ALIGN		4
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 
@@ -73,7 +77,7 @@ static struct skey_salt_st {
 	unsigned char	hash[SKEY_BINKEY_SIZE];
 } saved_salt;
 static unsigned char	saved_key[SKEY_BINKEY_SIZE];
-static char	saved_pass[PLAINTEXT_LENGTH];
+static char	saved_pass[PLAINTEXT_LENGTH + 1];
 
 static int
 skey_valid(char *ciphertext, struct fmt_main *self)
@@ -154,7 +158,7 @@ skey_salt(char *ciphertext)
 	if ((p = strtok(NULL, " \t")) == NULL)
 		return (NULL);
 
-	strnzcpy(salt.seed, p, sizeof(salt.seed) - 1);
+	strnzcpy(salt.seed, p, sizeof(salt.seed));
 
 	if ((p = strtok(NULL, " \t")) == NULL)
 		return (NULL);
@@ -173,7 +177,7 @@ skey_set_salt(void *salt)
 static void
 skey_set_key(char *key, int index)
 {
-	strnzcpy(saved_pass, key, sizeof(saved_pass) - 1);
+	strnzcpy(saved_pass, key, sizeof(saved_pass));
 	hex_decode(key, saved_key, sizeof(saved_key));
 }
 
@@ -258,7 +262,6 @@ static unsigned int skey_iteration_count(void *salt)
 	my_salt = (struct skey_salt_st*)salt;
 	return (unsigned int) my_salt->num;
 }
-
 #endif
 
 struct fmt_main fmt_SKEY = {
@@ -270,9 +273,9 @@ struct fmt_main fmt_SKEY = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
