@@ -12,7 +12,13 @@
 #include "autoconfig.h"
 #else
 /* on a legacy build, we do not KNOW if pcap is installed.  We just run, and make will fail if it is not there */
-#define HAVE_PCAP_H	1
+#define HAVE_PCAP_H 1
+#define HAVE_SYS_SOCKET_H 1
+#define HAVE_SYS_TYPES_H 1
+#define HAVE_NETINET_IN_SYSTM_H 1
+#define HAVE_NETINET_IN_SYSTM_H 1
+#define HAVE_NETINET_IN_H 1
+#define HAVE_NETINET_IP_H 1
 #endif
 
 #if HAVE_PCAP_H
@@ -21,10 +27,25 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <errno.h>
-#include <sys/types.h>
+#if HAVE_SYS_SOCKET_H
 #include <sys/socket.h>
+#endif
+#if HAVE_SYS_TYPES_H
+#include <sys/types.h>
+#endif
 #include <netinet/in.h>
+#if HAVE_NETINET_IN_SYSTM_H
+#include <netinet/in_systm.h>
+#endif
+#if HAVE_NETINET_IN_SYSTM_H
+#include <netinet/in_systm.h>
+#endif
+#if HAVE_NETINET_IN_H
+#include <netinet/in.h>
+#endif
+#if HAVE_NETINET_IP_H
 #include <netinet/ip.h>
+#endif
 #include <netinet/ip6.h>
 #define __FAVOR_BSD
 #include <netinet/tcp.h>
@@ -32,7 +53,11 @@
 #include "tcphdr.h"
 
 #include <arpa/inet.h>
+#if HAVE_PCAP_H
 #include <pcap.h>
+#elif HAVE_PCAP_PCAP_H
+#include <pcap/pcap.h>
+#endif
 #include "SIPdump.h"
 #include "memdbg.h"
 

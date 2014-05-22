@@ -9423,9 +9423,15 @@ fi
 
 # in makefile, we need to know if building extra pcap items.
 if test "x$enable_pcap" != xno ; then
-  ac_fn_c_check_header_mongrel "$LINENO" "pcap.h" "ac_cv_header_pcap_h" "$ac_includes_default"
-if test "x$ac_cv_header_pcap_h" = xyes; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for pcap_compile in -lpcap" >&5
+  for ac_header in pcap.h pcap/pcap.h
+do :
+  as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
+ac_fn_c_check_header_mongrel "$LINENO" "$ac_header" "$as_ac_Header" "$ac_includes_default"
+if eval test \"x\$"$as_ac_Header"\" = x"yes"; then :
+  cat >>confdefs.h <<_ACEOF
+#define `$as_echo "HAVE_$ac_header" | $as_tr_cpp` 1
+_ACEOF
+ { $as_echo "$as_me:${as_lineno-$LINENO}: checking for pcap_compile in -lpcap" >&5
 $as_echo_n "checking for pcap_compile in -lpcap... " >&6; }
 if ${ac_cv_lib_pcap_pcap_compile+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -9480,8 +9486,10 @@ if test "x$ac_cv_lib_pcap_pcap_compile" = xyes; then :
 
 fi
 
+        break
 fi
 
+done
 
 else
   { $as_echo "$as_me:${as_lineno-$LINENO}: PCAP check disabled" >&5
@@ -10820,7 +10828,7 @@ fi
 
 # Checks for header files.
 # Eg. if sys/times.h is found, the below will define HAVE_SYS_TIMES_H
-for ac_header in OS.h arpa/inet.h crypt.h fcntl.h limits.h locale.h                   net/ethernet.h netdb.h netinet/in.h pcap.h stddef.h                   stdint.h stdlib.h string.h strings.h sys/ethernet.h                   sys/file.h sys/param.h sys/socket.h sys/time.h sys/timeb.h                   sys/times.h sys/types.h termios.h unistd.h unixlib/local.h                   wchar.h
+for ac_header in OS.h arpa/inet.h crypt.h fcntl.h limits.h locale.h                   net/ethernet.h netdb.h netinet/in.h netinet/in_systm.h                   stddef.h stdint.h stdlib.h string.h strings.h                   sys/ethernet.h sys/file.h sys/param.h sys/socket.h                   sys/time.h sys/timeb.h sys/times.h sys/types.h termios.h                   unistd.h unixlib/local.h wchar.h
 do :
   as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
 ac_fn_c_check_header_mongrel "$LINENO" "$ac_header" "$as_ac_Header" "$ac_includes_default"
@@ -10836,7 +10844,8 @@ done
 # Quirks for Solaris and OpenBSD
 for ac_header in net/if.h
 do :
-  ac_fn_c_check_header_compile "$LINENO" "net/if.h" "ac_cv_header_net_if_h" "#ifdef HAVE_SYS_SOCKET_H
+  ac_fn_c_check_header_compile "$LINENO" "net/if.h" "ac_cv_header_net_if_h" "
+#ifdef HAVE_SYS_SOCKET_H
 #include <sys/socket.h>
 #endif
 #ifdef HAVE_SYS_TYPES_H
@@ -10855,8 +10864,15 @@ done
 
 for ac_header in net/if_arp.h
 do :
-  ac_fn_c_check_header_compile "$LINENO" "net/if_arp.h" "ac_cv_header_net_if_arp_h" "#ifdef HAVE_SYS_SOCKET_H
+  ac_fn_c_check_header_compile "$LINENO" "net/if_arp.h" "ac_cv_header_net_if_arp_h" "
+#ifdef HAVE_SYS_SOCKET_H
 #include <sys/socket.h>
+#endif
+#ifdef HAVE_SYS_TYPES_H
+#include <sys/types.h>
+#endif
+#ifdef HAVE_NET_IF_H
+#include <net/if.h>
 #endif
 
 "
@@ -10871,7 +10887,8 @@ done
 
 for ac_header in netinet/if_ether.h
 do :
-  ac_fn_c_check_header_compile "$LINENO" "netinet/if_ether.h" "ac_cv_header_netinet_if_ether_h" "#ifdef HAVE_SYS_SOCKET_H
+  ac_fn_c_check_header_compile "$LINENO" "netinet/if_ether.h" "ac_cv_header_netinet_if_ether_h" "
+#ifdef HAVE_SYS_SOCKET_H
 #include <sys/socket.h>
 #endif
 #ifdef HAVE_ARPA_INET_H
@@ -10883,7 +10900,7 @@ do :
 #ifdef HAVE_NET_IF_ARP_H
 #include <net/if_arp.h>
 #endif
-#if HAVE_NET_IF_H
+#ifdef HAVE_NET_IF_H
 #include <net/if.h>
 #endif
 
@@ -10891,6 +10908,29 @@ do :
 if test "x$ac_cv_header_netinet_if_ether_h" = xyes; then :
   cat >>confdefs.h <<_ACEOF
 #define HAVE_NETINET_IF_ETHER_H 1
+_ACEOF
+
+fi
+
+done
+
+for ac_header in netinet/ip.h
+do :
+  ac_fn_c_check_header_compile "$LINENO" "netinet/ip.h" "ac_cv_header_netinet_ip_h" "
+#ifdef HAVE_SYS_TYPES_H
+#include <sys/types.h>
+#endif
+#ifdef HAVE_NETINET_IN_SYSTM_H
+#include <netinet/in_systm.h>
+#endif
+#ifdef HAVE_NETINET_IN_H
+#include <netinet/in.h>
+#endif
+
+"
+if test "x$ac_cv_header_netinet_ip_h" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_NETINET_IP_H 1
 _ACEOF
 
 fi
