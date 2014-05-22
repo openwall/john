@@ -13,15 +13,32 @@
 #define _POSIX_SOURCE /* for fileno(3) */
 #include <stdio.h>
 #include <sys/stat.h>
+
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
+
 #include "os.h"
 
 #if HAVE_UNISTD_H
 #include <unistd.h>
 #endif
-#if HAVE_STRINGS_H
-#include <strings.h>
+
+#if !AC_BUILT
+# include <string.h>
+# ifndef _MSC_VER
+#  include <strings.h>
+# endif
+#else
+# if STRING_WITH_STRINGS
+#  include <string.h>
+#  include <strings.h>
+# elif HAVE_STRING_H
+#  include <string.h>
+# elif HAVE_STRINGS_H
+#  include <strings.h>
+# endif
 #endif
-#include <string.h>
 
 #if HAVE_WINDOWS_H
 #include "win32_memmap.h"

@@ -32,12 +32,27 @@
  */
 
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
 #include <libgen.h>
 #include <ctype.h>
-#include <strings.h>
 #include <stdarg.h>
+
+#if !AC_BUILT
+# include <string.h>
+# ifndef _MSC_VER
+#  include <strings.h>
+# endif
+#else
+# include "autoconfig.h"
+# if STRING_WITH_STRINGS
+#  include <string.h>
+#  include <strings.h>
+# elif HAVE_STRING_H
+#  include <string.h>
+# elif HAVE_STRINGS_H
+#  include <strings.h>
+# endif
+#endif
 
 #include "arch.h"
 #ifdef HAVE_UNIXLIB_LOCAL_H
