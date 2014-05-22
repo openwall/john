@@ -1,5 +1,46 @@
-#include <openssl/aes.h>
 #include <stddef.h>
+#include <string.h>
+
+// NOTE, we need to handle this for non-AC built. I am sure there is some openssl version
+// to check in that case. I do not know it, so for now, I will only deal with AC builds
+#if HAVE_AES_ENCRYPT
+
+#include <openssl/aes.h>
+
+#else
+
+/*
+ * this code copied from oSSL newer version. This is ALL we do, so it
+ * has been pared down here.
+ */
+#define AES_ENCRYPT	1
+#define AES_DECRYPT	0
+/* Because array size can't be a const in C, the following two are macros.
+   Both sizes are in bytes. */
+#define AES_MAXNR 14
+#define AES_BLOCK_SIZE 16
+typedef struct aes_key_st {
+    unsigned int rd_key[4 *(AES_MAXNR + 1)];
+    int rounds;
+} AES_KEY;
+typedef void (*block128_f)(const unsigned char in[16], unsigned char out[16], const void *key);
+
+#include "ossl_aes_crypto.c"
+
+// ignore the FIPS crap.
+static void AES_cbc_encrypt(const unsigned char *in, unsigned char *out, size_t len, const AES_KEY *key, unsigned char *ivec, const int enc) {
+	if (enc) CRYPTO_cbc128_encrypt(in,out,len,key,ivec,(block128_f)AES_encrypt);
+	else CRYPTO_cbc128_decrypt(in,out,len,key,ivec,(block128_f)AES_decrypt);
+}
+#define AES_set_encrypt_key(a,b,c)   private_AES_set_encrypt_key(a,b,c)
+#define AES_set_decrypt_key(a,b,c)   private_AES_set_decrypt_key(a,b,c)
+
+/*
+ * This is the end of the oSSL code
+ */
+
+
+#endif
 
 static inline void aes_key_mgmt(AES_KEY *akey, unsigned char *key, unsigned int key_length, int direction) {
 	if (direction == AES_ENCRYPT) {
