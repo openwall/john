@@ -581,6 +581,10 @@ if test "x$ac_cv_path_YASM" != x; then
                 aesni_os=linux
                 aesni_options="-g dwarf2 -f elf${CPU_BIT_STR}"
          ;;
+         *86*cygwin*)
+                aesni_os=cygwin
+                aesni_options="-f win${CPU_BIT_STR}"
+         ;;
       esac
    fi
 fi

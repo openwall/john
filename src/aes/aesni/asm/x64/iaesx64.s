@@ -30,9 +30,10 @@
 %macro linux_setup 0
 ;; Needed for OSX too. Who does not need this?
 ;; %ifdef __linux__
+%ifndef __cygwin__
 	mov rcx, rdi
 	mov rdx, rsi
-;; %endif
+%endif
 %endmacro
 
 %macro inversekey 1

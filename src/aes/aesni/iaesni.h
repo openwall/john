@@ -60,7 +60,7 @@ int check_for_aes_instructions(void);
 
 #define ROUND_KEYS_UNALIGNED_TESTING
 
-#ifdef __linux__
+#if defined (__linux__) || defined (__CYGWIN__)
 
 #ifdef ROUND_KEYS_UNALIGNED_TESTING
 
