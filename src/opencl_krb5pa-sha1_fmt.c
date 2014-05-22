@@ -32,7 +32,6 @@
  * released under same terms as above
  */
 
-#include <openssl/aes.h>
 #include <errno.h>
 #include <string.h>
 #include <stdlib.h>
@@ -45,6 +44,7 @@
 #include "common.h"
 #include "unicode.h"
 #include "config.h"
+#include "aes/aes.h"
 #include "common-opencl.h"
 #define OUTLEN 32
 #include "opencl_pbkdf2_hmac_sha1.h"

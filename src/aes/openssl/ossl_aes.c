@@ -28,13 +28,11 @@ typedef void (*block128_f)(const unsigned char in[16], unsigned char out[16], co
 #include "ossl_aes_crypto.c"
 
 // ignore the FIPS crap.
-static void AES_cbc_encrypt(const unsigned char *in, unsigned char *out, size_t len, const AES_KEY *key, unsigned char *ivec, const int enc) {
+void JTR_AES_cbc_encrypt(const unsigned char *in, unsigned char *out, size_t len, const AES_KEY *key, unsigned char *ivec, const int enc) {
 	if (enc) CRYPTO_cbc128_encrypt(in,out,len,key,ivec,(block128_f)AES_encrypt);
 	else CRYPTO_cbc128_decrypt(in,out,len,key,ivec,(block128_f)AES_decrypt);
 }
-#define AES_set_encrypt_key(a,b,c)   private_AES_set_encrypt_key(a,b,c)
-#define AES_set_decrypt_key(a,b,c)   private_AES_set_decrypt_key(a,b,c)
-
+#define AES_cbc_encrypt JTR_AES_cbc_encrypt
 /*
  * This is the end of the oSSL code
  */
@@ -67,3 +65,23 @@ OSSL_CBC_FUNC(256)
 #undef OSSL_CBC_FUNC
 
 // There are other AES functions that could be implemented here.
+
+// Here are the 'low level' ones (some)  These are tied in with aes/aes.h
+#undef AES_encrypt
+void JTR_AES_encrypt(const unsigned char *in, unsigned char *out, const AES_KEY *key) {
+	AES_encrypt(in, out, key);
+}
+#undef AES_decrypt
+void JTR_AES_decrypt(const unsigned char *in, unsigned char *out, const AES_KEY *key) {
+	AES_decrypt(in, out, key);
+}
+
+#undef AES_set_encrypt_key
+void JTR_AES_set_encrypt_key(const unsigned char *userKey, const int bits, AES_KEY *key) {
+	AES_set_encrypt_key(userKey, bits, key);
+}
+
+#undef AES_set_decrypt_key
+void JTR_AES_set_decrypt_key(const unsigned char *userKey, const int bits, AES_KEY *key) {
+	AES_set_decrypt_key(userKey, bits, key);
+}

@@ -8,7 +8,6 @@
 
 #include "sha2.h"
 
-#include <openssl/aes.h>
 #include <string.h>
 #include "stdint.h"
 #include <assert.h>
@@ -20,6 +19,7 @@
 #include "params.h"
 #include "options.h"
 #include "base64.h"
+#include "aes/aes.h"
 #ifdef _OPENMP
 #include <omp.h>
 #define OMP_SCALE               1

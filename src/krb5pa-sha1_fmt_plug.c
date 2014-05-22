@@ -32,7 +32,6 @@
  * released under same terms as above
  */
 
-#include <openssl/aes.h>
 #include <errno.h>
 #include <string.h>
 #include <stdlib.h>
@@ -49,6 +48,7 @@ static int omp_t = 1;
 #include "common.h"
 #include "unicode.h"
 #include "johnswap.h"
+#include "aes/aes.h"
 #include "gladman_fileenc.h"
 #include "pbkdf2_hmac_sha1.h"
 #include "loader.h"
