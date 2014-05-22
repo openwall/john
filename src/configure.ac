@@ -383,6 +383,7 @@ fi
 # We need these two AC_CHECK_LIB for the following AC_CHECK_FUNCS to work -
 # PKG_CHECK_MODULES did not do the trick (but perhaps this is fixable)
 AC_HEADER_TIME
+ACX_HEADER_STRING
 AC_CHECK_LIB([ssl], [SSL_library_init])
 AC_CHECK_LIB([crypto], [RC4])
 AC_CHECK_FUNCS([EVP_aes_256_xts SHA256 WHIRLPOOL AES_encrypt EVP_sha512])
@@ -420,11 +421,12 @@ AS_IF([test "x$with_exe_ext" != x], AC_SUBST([EXE_EXT], [${with_exe_ext}]) [echo
 
 # Checks for header files.
 # Eg. if sys/times.h is found, the below will define HAVE_SYS_TIMES_H
-AC_CHECK_HEADERS([OS.h arpa/inet.h fcntl.h limits.h locale.h net/ethernet.h dnl
-                  net/if.h netdb.h netinet/in.h pcap.h stddef.h stdint.h dnl
-                  stdlib.h string.h strings.h sys/ethernet.h sys/file.h dnl
-                  sys/param.h sys/socket.h sys/time.h sys/timeb.h dnl
-                  sys/times.h termios.h unistd.h unixlib/local.h wchar.h ])
+AC_CHECK_HEADERS([OS.h arpa/inet.h crypt.h fcntl.h limits.h locale.h dnl
+                  net/ethernet.h net/if.h netdb.h netinet/in.h pcap.h dnl
+                  stddef.h stdint.h stdlib.h string.h strings.h dnl
+                  sys/ethernet.h sys/file.h sys/param.h sys/socket.h dnl
+                  sys/time.h sys/timeb.h sys/times.h termios.h unistd.h dnl
+                  unixlib/local.h wchar.h])
 AC_CHECK_HEADERS([netinet/if_ether.h], [], [],
 [#if HAVE_NET_IF_H
 #include <net/if.h>

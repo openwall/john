@@ -3298,8 +3298,6 @@ ac_config_headers="$ac_config_headers autoconfig.h"
 # modifications, are permitted.
 #
 # Here are contained numerous utility macros
-#
-
 
 # JTR_LIST_ADD(variable, value(s))
 # Add space separated value(s) to variable unless already present.
@@ -3324,6 +3322,8 @@ ac_config_headers="$ac_config_headers autoconfig.h"
 
 # @synopsis JTR_SET_OPENCL_INCLUDES
 # @summary check and set many normal include paths
+
+
 
 
 
@@ -9525,6 +9525,38 @@ $as_echo "#define TIME_WITH_SYS_TIME 1" >>confdefs.h
 
 fi
 
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether string.h and strings.h may both be included" >&5
+$as_echo_n "checking whether string.h and strings.h may both be included... " >&6; }
+if ${gcc_cv_header_string+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include <string.h>
+#include <strings.h>
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+  gcc_cv_header_string=yes
+else
+  gcc_cv_header_string=no
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $gcc_cv_header_string" >&5
+$as_echo "$gcc_cv_header_string" >&6; }
+if test $gcc_cv_header_string = yes; then
+
+$as_echo "#define STRING_WITH_STRINGS 1" >>confdefs.h
+
+fi
+
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for SSL_library_init in -lssl" >&5
 $as_echo_n "checking for SSL_library_init in -lssl... " >&6; }
 if ${ac_cv_lib_ssl_SSL_library_init+:} false; then :
@@ -10788,7 +10820,7 @@ fi
 
 # Checks for header files.
 # Eg. if sys/times.h is found, the below will define HAVE_SYS_TIMES_H
-for ac_header in OS.h arpa/inet.h fcntl.h limits.h locale.h net/ethernet.h                   net/if.h netdb.h netinet/in.h pcap.h stddef.h stdint.h                   stdlib.h string.h strings.h sys/ethernet.h sys/file.h                   sys/param.h sys/socket.h sys/time.h sys/timeb.h                   sys/times.h termios.h unistd.h unixlib/local.h wchar.h
+for ac_header in OS.h arpa/inet.h crypt.h fcntl.h limits.h locale.h                   net/ethernet.h net/if.h netdb.h netinet/in.h pcap.h                   stddef.h stdint.h stdlib.h string.h strings.h                   sys/ethernet.h sys/file.h sys/param.h sys/socket.h                   sys/time.h sys/timeb.h sys/times.h termios.h unistd.h                   unixlib/local.h wchar.h
 do :
   as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
 ac_fn_c_check_header_mongrel "$LINENO" "$ac_header" "$as_ac_Header" "$ac_includes_default"

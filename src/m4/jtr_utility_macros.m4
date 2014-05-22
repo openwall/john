@@ -4,8 +4,6 @@
 # modifications, are permitted.
 #
 # Here are contained numerous utility macros
-#
-
 
 # JTR_LIST_ADD(variable, value(s))
 # Add space separated value(s) to variable unless already present.
@@ -140,4 +138,25 @@ AC_DEFUN([JTR_SET_OPENCL_INCLUDES],
    JTR_LIST_ADD(CFLAGS, [$ADD_CFLAGS])
    JTR_LIST_ADD(CPPFLAGS, [$ADD_CFLAGS]) dnl  NOT a typo
    JTR_LIST_ADD_RESULT
+])
+
+dnl @synopsis ACX_HEADER_STRING
+dnl @summary See whether we can include both string.h and strings.h.
+dnl @usage:
+dnl #if STRING_WITH_STRINGS
+dnl #include <string.h>
+dnl #include <strings.h>
+dnl #elif HAVE_STRING_H
+dnl #include <string.h>
+dnl #elif HAVE_STRINGS_H
+dnl #include <strings.h>
+dnl #endif
+AC_DEFUN([ACX_HEADER_STRING],
+[AC_CACHE_CHECK([whether string.h and strings.h may both be included],
+  gcc_cv_header_string,
+[AC_TRY_COMPILE([#include <string.h>
+#include <strings.h>], , gcc_cv_header_string=yes, gcc_cv_header_string=no)])
+if test $gcc_cv_header_string = yes; then
+  AC_DEFINE(STRING_WITH_STRINGS, 1, [Define if you can safely include both <string.h> and <strings.h>.])
+fi
 ])
