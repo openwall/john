@@ -34,7 +34,6 @@
 #endif
 #if defined(_OPENMP) && defined(__GLIBC__)
 #include <crypt.h>
-#include <omp.h> /* for omp_get_thread_num() */
 #else
 #include <unistd.h>
 #endif
@@ -53,6 +52,9 @@
 #endif
 #if HAVE_UNISTD_H
 #include <unistd.h>
+#endif
+#if defined(_OPENMP)
+#include <omp.h> /* for omp_get_thread_num() */
 #endif
 
 #include "options.h"
