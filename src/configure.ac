@@ -177,7 +177,7 @@ AS_IF([test "x$JTR_FLAG_CHECK_WORKS" = xyes],
 # Checks for programs.
 AC_PROG_LN_S
 AC_PROG_GREP
-AC_PROG_EGREP
+dnl AC_PROG_EGREP Do not trust this one
 AC_PROG_SED
 dnl AC_PROG_CXX
 AC_PROG_MAKE_SET
@@ -652,8 +652,8 @@ fi
 if test "x$ac_cv_lib_pcap_pcap_compile" = x ; then
    ac_cv_lib_pcap_pcap_compile=no
 fi
-if test -n "$EGREP" &&
-   test $(echo "$CFLAGS" | ${EGREP} -c -- "-x?O") -eq 0 &&
+if test $(echo "$CFLAGS" | ${GREP} -c -- "-O") -eq 0 &&
+   test $(echo "$CFLAGS" | ${GREP} -c -- "-xO") -eq 0 &&
    test $(echo "$CFLAGS" | ${GREP} -c -- "-fast\b") -eq 0; then
    echo
    AC_MSG_WARN([No recognized optimization option present in CFLAGS])
