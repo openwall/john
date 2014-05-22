@@ -36,14 +36,16 @@
 /* on a legacy build, we do not KNOW if pcap is installed.  We just run, and make will fail if it is not there */
 #define HAVE_SYS_SOCKET_H 1
 #define HAVE_ARPA_INET_H 1
-#define HAVE_SYS_TYPES_H 1
-#define HAVE_NET_IF_ARP_H 1
+#define HAVE_SYS_TYPES_H 0
+#define HAVE_NET_IF_ARP_H 0
 #define HAVE_NET_IF_H 1
+#define HAVE_NETINET_IF_ETHER_H 1
 #define HAVE_NETINET_IN_H 1
 #define HAVE_NET_ETHERNET_H 1
-#define HAVE_NETINET_IN_SYSTM_H 1
+#define HAVE_NETINET_IN_SYSTM_H 0
 #define HAVE_NETINET_IP_H 1
 #define HAVE_PCAP_H 1
+#define HAVE_PCAP_PCAP_H 0
 #endif
 
 #define _BSD_SOURCE
@@ -68,7 +70,9 @@
 #if HAVE_NET_IF_H
 #include <net/if.h>
 #endif
+#if HAVE_NETINET_IF_ETHER_H
 #include <netinet/if_ether.h>
+#endif
 #if HAVE_NETINET_IN_H
 #include <netinet/in.h>
 #endif

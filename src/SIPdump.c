@@ -14,10 +14,9 @@
 /* on a legacy build, we do not KNOW if pcap is installed.  We just run, and make will fail if it is not there */
 #define HAVE_PCAP_H 1
 #define HAVE_SYS_SOCKET_H 1
-#define HAVE_SYS_TYPES_H 1
-#define HAVE_NETINET_IN_SYSTM_H 1
-#define HAVE_NETINET_IN_SYSTM_H 1
-#define HAVE_NETINET_IN_H 1
+#define HAVE_SYS_TYPES_H 0
+#define HAVE_NETINET_IN_SYSTM_H 0
+#define HAVE_NETINET_IN_H 0
 #define HAVE_NETINET_IP_H 1
 #endif
 
@@ -34,9 +33,6 @@
 #include <sys/types.h>
 #endif
 #include <netinet/in.h>
-#if HAVE_NETINET_IN_SYSTM_H
-#include <netinet/in_systm.h>
-#endif
 #if HAVE_NETINET_IN_SYSTM_H
 #include <netinet/in_systm.h>
 #endif
