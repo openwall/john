@@ -1,0 +1,52 @@
+== How to install on Ubuntu
+
+=== Install pre-requisites
+
+==== Required stuff
+
+    sudo apt-get install build-essential libssl-dev
+
+==== Recommended (extra formats and performance)
+
+    sudo apt-get install yasm libgmp-dev libpcap-dev libnss3-dev libkrb5-dev pkg-config
+
+==== If you have an NVIDIA GPU (CUDA and OpenCL support)
+
+    sudo apt-get install nvidia-cuda-toolkit nvidia-opencl-dev
+
+==== If you have an AMD GPU (or want to use CPU as OpenCL device)
+
+    sudo apt-get install fglrx-updates-dev
+
+==== Optional MPI support
+
+    sudo apt-get install libopenmpi-dev openmpi-bin
+
+==== Optional REXGEN support (additional cracking modes)
+
+    sudo apt-get install subversion cmake bison flex
+    mkdir ~/src && cd ~/src
+    svn checkout http://rexgen.googlecode.com/svn/trunk/ rexgen
+    cd rexgen/src
+    mkdir build && cd build
+    cmake ..
+    make && sudo make install
+
+
+=== Clone latest bleeding-edge Jumbo and build
+
+==== Clone GIT repo
+
+    cd ~/src
+    git clone git://github.com/magnumripper/JohnTheRipper -b bleeding-jumbo john
+
+==== Build
+
+    cd ~/src/john/src
+    # For MPI, use './configure --enable-mpi' below
+    ./configure && make -s clean && make -sj4
+
+
+=== Test your build
+
+    $ ../run/john --test=0 --format=cpu
