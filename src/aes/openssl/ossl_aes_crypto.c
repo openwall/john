@@ -54,7 +54,10 @@ typedef unsigned char u8;
 #define MAXNR   14
 
 /* This controls loop-unrolling in aes_core.c */
-#undef FULL_UNROLL
+/* with full_unroll, I get about same speed, for native oSSL 1.0 AES     */
+/* as I do for this code.  So I have left FULL_UNROLL defined by default */
+//#undef FULL_UNROLL
+#define FULL_UNROLL
 
 /*
 Te0[x] = S [x].[02, 01, 01, 03];
