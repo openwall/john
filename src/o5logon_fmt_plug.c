@@ -67,6 +67,7 @@ static aes_fptr_cbc aesFunc;
 
 static void init(struct fmt_main *self)
 {
+	char *Buf;
 #ifdef _OPENMP
 	omp_t = omp_get_max_threads();
 	self->params.min_keys_per_crypt *= omp_t;
@@ -79,6 +80,9 @@ static void init(struct fmt_main *self)
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 
 	aesFunc = get_AES_dec192_CBC();
+	Buf = mem_alloc_tiny(128, 1);
+	sprintf(Buf, "%s %s", self->params.algorithm_name, get_AES_type_string());
+	self->params.algorithm_name=Buf;
 }
 
 static int ishex(char *q)

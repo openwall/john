@@ -12,6 +12,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include "../autoconfig.h"
 
 // Input, output, key, number of blocks
 typedef void (*aes_fptr_vanilla)(unsigned char *, unsigned char *, unsigned char *, size_t);
@@ -25,6 +26,9 @@ typedef void (*aes_fptr_ctr)(unsigned char *, unsigned char *, unsigned char *, 
 #include "aes_func.h"
 
 #undef FUNC
+
+extern int using_aes_asm();
+extern const char *get_AES_type_string();
 
 #if HAVE_AES_ENCRYPT
 
@@ -60,6 +64,5 @@ extern void JTR_AES_cbc_encrypt(const unsigned char *in, unsigned char *out, siz
 #define AES_cbc_encrypt(a,b,c,d,e,f) JTR_AES_cbc_encrypt(a,b,c,d,e,f)
 
 // probably need to also do AES_cbc_decrypt, but will wait until someone 'needs' it.
-
 
 #endif
