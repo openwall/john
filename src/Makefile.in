@@ -575,7 +575,7 @@ endif
 
 ../run/cprepair@EXE_EXT@: cprepair.c unicode.c unicode.h options.h misc.h misc.c \
 	memdbg.h memdbg.c
-	gcc -Wall -O3 -DNOT_JOHN -D_JOHN_MISC_NO_LOG cprepair.c unicode.c \
+	gcc -Wall -O3 @CFLAGS_EXTRA@ -DNOT_JOHN -D_JOHN_MISC_NO_LOG cprepair.c unicode.c \
 	misc.c memdbg.c -o ../run/cprepair
 
 ../run/tgtsnarf@EXE_EXT@: tgtsnarf.o
