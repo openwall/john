@@ -383,11 +383,24 @@ fi
 # Check for variations we can handle
 # We need these two AC_CHECK_LIB for the following AC_CHECK_FUNCS to work -
 # PKG_CHECK_MODULES did not do the trick (but perhaps this is fixable)
+#
+# NOTE, this does NOT work if pkg-config loaded the right oSSL, BUT they are in
+# non-standard locations!!!
+# I will try to get this working  (Now working, adding $OPENSSL_LIBS and $OPENSSL_CFLAGS
+# ALSO, I save and restore existing LIBS and CFLAGS, so this code does not pollute our configure run.
+#
 AC_HEADER_TIME
 ACX_HEADER_STRING
+LIBS_ORIG="$LIBS"
+CFLAGS_ORIG="$CFLAGS"
 AC_CHECK_LIB([ssl], [SSL_library_init])
 AC_CHECK_LIB([crypto], [RC4])
+LIBS="$OPENSSL_LIBS $LIBS"
+CFLAGS="$OPENSSL_CFLAGS $CFLAGS"
 AC_CHECK_FUNCS([EVP_aes_256_xts SHA256 WHIRLPOOL AES_encrypt EVP_sha512])
+LIBS="$LIBS_ORIG"
+CFLAGS="$CFLAGS_ORIG"
+
 AC_CACHE_SAVE
 
 #################

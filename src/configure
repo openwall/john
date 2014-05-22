@@ -9452,6 +9452,12 @@ fi
 # Check for variations we can handle
 # We need these two AC_CHECK_LIB for the following AC_CHECK_FUNCS to work -
 # PKG_CHECK_MODULES did not do the trick (but perhaps this is fixable)
+#
+# NOTE, this does NOT work if pkg-config loaded the right oSSL, BUT they are in
+# non-standard locations!!!
+# I will try to get this working  (Now working, adding $OPENSSL_LIBS and $OPENSSL_CFLAGS
+# ALSO, I save and restore existing LIBS and CFLAGS, so this code does not pollute our configure run.
+#
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether time.h and sys/time.h may both be included" >&5
 $as_echo_n "checking whether time.h and sys/time.h may both be included... " >&6; }
 if ${ac_cv_header_time+:} false; then :
@@ -9519,6 +9525,8 @@ $as_echo "#define STRING_WITH_STRINGS 1" >>confdefs.h
 
 fi
 
+LIBS_ORIG="$LIBS"
+CFLAGS_ORIG="$CFLAGS"
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for SSL_library_init in -lssl" >&5
 $as_echo_n "checking for SSL_library_init in -lssl... " >&6; }
 if ${ac_cv_lib_ssl_SSL_library_init+:} false; then :
@@ -9609,6 +9617,8 @@ _ACEOF
 
 fi
 
+LIBS="$OPENSSL_LIBS $LIBS"
+CFLAGS="$OPENSSL_CFLAGS $CFLAGS"
 for ac_func in EVP_aes_256_xts SHA256 WHIRLPOOL AES_encrypt EVP_sha512
 do :
   as_ac_var=`$as_echo "ac_cv_func_$ac_func" | $as_tr_sh`
@@ -9620,6 +9630,9 @@ _ACEOF
 
 fi
 done
+
+LIBS="$LIBS_ORIG"
+CFLAGS="$CFLAGS_ORIG"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
