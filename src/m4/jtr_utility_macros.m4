@@ -61,6 +61,21 @@ fi
 if test -d /usr/local/include; then
    ADD_CFLAGS="$ADD_CFLAGS -I/usr/local/include"
 fi
+jtr_list_add_result=""
+JTR_LIST_ADD(LDFLAGS, [$ADD_LDFLAGS])
+JTR_LIST_ADD(CFLAGS, [$ADD_CFLAGS])
+JTR_LIST_ADD(CPPFLAGS, [$ADD_CFLAGS]) dnl  NOT a typo
+JTR_LIST_ADD_RESULT
+])
+
+# @synopsis SET_NORMAL_SSL_INCLUDES
+# @summary check and set many normal include paths for oSSL
+# This might be a Bad Idea[tm] if cross compiling.
+AC_DEFUN([JTR_SET_NORMAL_SSL_INCLUDES],
+[
+  AC_MSG_CHECKING([additional paths])
+  ADD_LDFLAGS=""
+  ADD_CFLAGS=""
 if test -d /usr/local/ssl/lib; then
    ADD_LDFLAGS="$ADD_LDFLAGS -L/usr/local/ssl/lib"
 fi

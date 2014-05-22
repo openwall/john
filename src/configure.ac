@@ -130,12 +130,11 @@ AS_IF([test "x$cross_compiling" = xno], [JTR_SET_NORMAL_INCLUDES])
 # first test a totally BOGUS command line switch, to make sure that the
 # detection logic actually detects BAD command switches
 CFLAGS_EX=""
-JTR_FLAG_CHECK([-WFOO_BAR_SWITCH_NOT_VALID], 0)
+JTR_FLAG_CHECK([-fFOO_BAR_SWITCH_NOT_VALID], 0)
 # note, check message must be done after the first call to JTR_FLAG_CHECK. Since this is
 # the first macro that will use $CC, a lot of messages will happen.  We need to make that first
 # macro 'call', so that those messages are output, THEN we make our checking message.
 AC_MSG_CHECKING([arg check macro with $CC])
-JTR_FLAG_CHECK([-fFOO_BAR_SWITCH_NOT_VALID], 0)
 JTR_FLAG_CHECK([-mFOO_BAR_SWITCH_NOT_VALID], 0)
 JTR_FLAG_CHECK([-m666], 0)
 AS_IF([test "x${CFLAGS_EX}" = x],
@@ -337,6 +336,7 @@ if test "x$enable_native_tests" = xyes -a "x$PKG_CONFIG" != xno; then
          AC_DEFINE(HAVE_LIBSSL,1,[Define to 1 if you have the `ssl' library (-lssl).]),
          AC_MSG_FAILURE(JtR requires OpenSSL being installed,1))
 else
+#   JTR_SET_NORMAL_SSL_INCLUDES   # MAGNUM, what do you think about putting this here (this is the -I and -L for /usr/local/ssl stuff
    AC_CHECK_HEADER([openssl/opensslv.h],
    [AC_CHECK_LIB([ssl],[SSL_library_init],
       [AC_CHECK_LIB([crypto],[MD5_Update],
@@ -495,9 +495,13 @@ AC_CHECK_TYPES([ptrdiff_t])
 # Checks for library functions.
 AC_FUNC_ERROR_AT_LINE
 AC_FUNC_FORK
-AC_FUNC_MALLOC
 AC_FUNC_MMAP
-AC_FUNC_REALLOC
+
+# until we write a rpl_malloc replacement, we CAN NOT look for AC_FUNC_MALLOC.
+#AC_FUNC_MALLOC
+# we need a rpl_realloc before using this one.
+#AC_FUNC_REALLOC
+
 #AC_CHECK_FUNCS([atexit endpwent floor ftruncate gethostbyname gettimeofday dnl
 #                inet_ntoa isascii memchr memmove memset mkdir munmap pow dnl
 #                rmdir select setenv setlocale socket strcasecmp strchr dnl
