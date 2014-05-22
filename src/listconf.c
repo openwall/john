@@ -79,6 +79,11 @@ extern void cuda_device_list();
 #define _MP_VERSION ""
 #endif
 #endif
+#ifdef DEBUG
+#define DEBUG_STRING "-dbg"
+#else
+#define DEBUG_STRING ""
+#endif
 
 /*
  * FIXME: Should all the listconf_list_*() functions get an additional stream
@@ -130,8 +135,8 @@ static void listconf_list_build_info(void)
 #ifdef __GNU_MP_VERSION
 	int gmp_major, gmp_minor, gmp_patchlevel;
 #endif
-	puts("Version: " JOHN_VERSION);
-	puts("Build: " JOHN_BLD _MP_VERSION);
+	puts("Version: " JOHN_VERSION _MP_VERSION DEBUG_STRING);
+	puts("Build: " JOHN_BLD);
 	printf("Arch: %d-bit %s\n", ARCH_BITS,
 	       ARCH_LITTLE_ENDIAN ? "LE" : "BE");
 #if JOHN_SYSTEMWIDE

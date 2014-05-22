@@ -395,6 +395,10 @@ int benchmark_all(void)
 #endif
 
 	total = failed = 0;
+#ifdef DEBUG
+	if (!benchmark_time)
+	puts("NOTE: This is a debug build, figures might be lower than normal");
+#endif
 #ifndef BENCH_BUILD
 	options.loader.field_sep_char = 31;
 #endif

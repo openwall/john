@@ -48,6 +48,11 @@
 #else
 #define _MP_VERSION ""
 #endif
+#ifdef DEBUG
+#define DEBUG_STRING "-dbg"
+#else
+#define DEBUG_STRING ""
+#endif
 #define _PER_NODE ""
 #endif
 #ifdef HAVE_OPENCL
@@ -234,7 +239,7 @@ static struct opt_entry opt_list[] = {
 #endif
 
 #define JOHN_USAGE \
-"John the Ripper password cracker, version " JOHN_VERSION _MP_VERSION " [" JOHN_BLD "]\n" \
+"John the Ripper password cracker, version " JOHN_VERSION _MP_VERSION DEBUG_STRING " [" JOHN_BLD "]\n" \
 "Copyright (c) 1996-2013 by " JOHN_COPYRIGHT "\n" \
 "Homepage: http://www.openwall.com/john/\n" \
 "\n" \
