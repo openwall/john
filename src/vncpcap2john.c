@@ -81,7 +81,7 @@
 #elif HAVE_SYS_ETHERNET_H
 #include <sys/ethernet.h>
 #else
-#include <sys/types.h>
+#include "cygwin/ethernet.h"
 #endif
 
 #define __FAVOR_BSD
@@ -97,6 +97,7 @@
 #elif HAVE_PCAP_PCAP_H
 #include <pcap/pcap.h>
 #endif
+
 #define u_char unsigned char
 
 #include "memdbg.h"
