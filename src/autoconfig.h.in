@@ -157,6 +157,9 @@
 /* Define to 1 if you have the <net/ethernet.h> header file. */
 #undef HAVE_NET_ETHERNET_H
 
+/* Define to 1 if you have the <net/if_arp.h> header file. */
+#undef HAVE_NET_IF_ARP_H
+
 /* Define to 1 if you have the <net/if.h> header file. */
 #undef HAVE_NET_IF_H
 

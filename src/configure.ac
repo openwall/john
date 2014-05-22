@@ -422,15 +422,41 @@ AS_IF([test "x$with_exe_ext" != x], AC_SUBST([EXE_EXT], [${with_exe_ext}]) [echo
 # Checks for header files.
 # Eg. if sys/times.h is found, the below will define HAVE_SYS_TIMES_H
 AC_CHECK_HEADERS([OS.h arpa/inet.h crypt.h fcntl.h limits.h locale.h dnl
-                  net/ethernet.h net/if.h netdb.h netinet/in.h pcap.h dnl
-                  stddef.h stdint.h stdlib.h string.h strings.h dnl
-                  sys/ethernet.h sys/file.h sys/param.h sys/socket.h dnl
-                  sys/time.h sys/timeb.h sys/times.h termios.h unistd.h dnl
-                  unixlib/local.h wchar.h])
-AC_CHECK_HEADERS([netinet/if_ether.h], [], [],
-[#if HAVE_NET_IF_H
+                  net/ethernet.h netdb.h netinet/in.h pcap.h stddef.h dnl
+                  stdint.h stdlib.h string.h strings.h sys/ethernet.h dnl
+                  sys/file.h sys/param.h sys/socket.h sys/time.h sys/timeb.h dnl
+                  sys/times.h sys/types.h termios.h unistd.h unixlib/local.h dnl
+                  wchar.h])
+# Quirks for Solaris and OpenBSD
+AC_CHECK_HEADERS([net/if.h], [], [],[dnl
+#ifdef HAVE_SYS_SOCKET_H
+#include <sys/socket.h>
+#endif
+#ifdef HAVE_SYS_TYPES_H
+#include <sys/types.h>
+#endif
+])
+AC_CHECK_HEADERS([net/if_arp.h], [], [],[dnl
+#ifdef HAVE_SYS_SOCKET_H
+#include <sys/socket.h>
+#endif
+])
+AC_CHECK_HEADERS([netinet/if_ether.h], [], [],[dnl
+#ifdef HAVE_SYS_SOCKET_H
+#include <sys/socket.h>
+#endif
+#ifdef HAVE_ARPA_INET_H
+#include <arpa/inet.h>
+#endif
+#ifdef HAVE_SYS_TYPES_H
+#include <sys/types.h>
+#endif
+#ifdef HAVE_NET_IF_ARP_H
+#include <net/if_arp.h>
+#endif
+#if HAVE_NET_IF_H
 #include <net/if.h>
-   #endif
+#endif
 ])
 AC_CACHE_SAVE
 
