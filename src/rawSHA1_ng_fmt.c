@@ -559,7 +559,7 @@ static int sha1_fmt_crypt_all(int *pcount, struct db_salt *salt)
 
 #if defined(__SSE4_1__)
 
-# if !defined(__INTEL_COMPILER) && !defined(__clang__)
+# if !defined(__INTEL_COMPILER) && !defined(__clang__) && !defined(__llvm__)
 // This intrinsic is not always available in GCC, so define it here.
 static inline int _mm_testz_si128 (__m128i __M, __m128i __V)
 {

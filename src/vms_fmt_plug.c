@@ -153,7 +153,7 @@ static char *fmt_vms_split(char *ciphertext, int index, struct fmt_main *pFmt)
  * Save salt for producing ciphertext from it and saved keys at next crypt call.
  */
 
-struct uaf_hash_info *cur_salt;
+static struct uaf_hash_info *cur_salt;
 
 void VMS_std_set_salt ( void *salt )
 {

@@ -85,7 +85,7 @@ static uint8_t ebits_to_num[256]=
 	0x29, 0x39, 0xb9, 0xe9, 0x4c, 0xff, 0x43, 0xab,
 };
 
-struct custom_salt {
+static struct custom_salt {
 	uint8_t lotus85_user_blob[LOTUS85_MAX_BLOB_SIZE];
 	uint32_t lotus85_user_blob_len;
 } *cur_salt;
