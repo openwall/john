@@ -138,7 +138,7 @@ AC_DEFUN([JTR_SET_OPENCL_INCLUDES],
    fi
    if test -n "$ATISTREAMSDKROOT"; then
       if test -d "$ATISTREAMSDKROOT/include"; then
-         ADD_CFLAGS="ADD_CFLAGS -I$ATISTREAMSDKROOT/include"
+         ADD_CFLAGS="$ADD_CFLAGS -I$ATISTREAMSDKROOT/include"
       fi
       if test $CPU_BIT_STR = 64 -a -d "$ATISTREAMSDKROOT/lib/x86_64" ; then
          ADD_LDFLAGS="$ADD_LDFLAGS -L$ATISTREAMSDKROOT/lib/x86_64"
