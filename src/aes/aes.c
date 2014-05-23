@@ -17,9 +17,9 @@
 
 #if HAVE_AES_ENCRYPT
 #include "openssl/ossl_aes.h"
-const char *get_AES_type_string() { if (using_aes_asm()) return "Intel-AES"; return "OpenSSL"; }
+const char *get_AES_type_string() { if (using_aes_asm()) return "AES-NI"; return "AES-oSSL"; }
 #else
-const char *get_AES_type_string() { if (using_aes_asm()) return "Intel-AES"; return "JtR Internal"; }
+const char *get_AES_type_string() { if (using_aes_asm()) return "AES-NI"; return "AES-JtR"; }
 #endif
 
 
