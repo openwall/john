@@ -358,12 +358,10 @@ miscnl.o: misc.c
 ###############################################################################
 #  Process targets.  Note, these are *nix targets, but also work fine under
 #  cygwin.  The only problem with cygwin, is that the ln -s will NOT generate
-#  a valid exe which can be run under native Win32 cmd shell (same for mingw)
-#  If a use wants that behavior, then the @EXE_EXT@ needs to be set to .exe
-#  and the later group of exe targets will be used, and will use symlink.c and
-#  not simply do a ln -s.  This will be done in configure, with something like
-#  --enable-exe-ext=.exe   or something like that.  By default, it is set to
-#  to empty, and the 'normal' target path (with ln -s) will be used.
+#  a valid exe which can be run under native Win32 cmd shell
+#  If a use wants that behavior, then run configure, with --enable-ln-s
+#  By default, it is set to cygwin will use the .EXE symlink.c building,
+#  where the macro EXE_EXT is .exe.  Mingw builds always set EXE_EXT to .exe
 ###############################################################################
 ../run/john@EXE_EXT@: $(JOHN_OBJS) $(SUBDIRS)
 	$(LD) $(JOHN_OBJS) $(LDFLAGS) aes/aes.a -o ../run/john
@@ -459,7 +457,8 @@ endif
 # These are built for Win32, so that we have a 'native' symlink back
 # to the john exe.  The john exe is still built fat, but there is no
 # workable ln -s, so we have built a 'symlink.c' file. It works in
-# a limited way, like symlink.
+# a limited way, like symlink. Mingw and default cygwin use these.
+# cygwin can override this within ./configure using --enable-ln-s
 #####################################################################
 ../run/unshadow.exe: symlink.c
 	$(CC) symlink.c -o ../run/unshadow.exe

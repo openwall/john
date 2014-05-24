@@ -73,8 +73,6 @@ fi
 
 # Define Packages.
 AC_ARG_WITH(icc-asm, [AS_HELP_STRING([--with-icc-asm],[Use ICC pre-built asm files for intrisic SIMD code. Default: no])],,[with_icc_asm=no])
-AC_ARG_WITH(exe-ext, [AS_HELP_STRING([--with-exe-ext],[For Cygwin and MinGW. Set to .exe to allow stand alone symlink exe files. Default is 'empty'])],,[with_exe_ext=""])
-
 # Cludge for endian (if not auto detected)
 AC_ARG_WITH(endian, [AS_HELP_STRING([--with-endian=little|big],[Set endianness for target if it doesn't detect properly])],,[endian=unknown])
 
@@ -86,6 +84,7 @@ AC_ARG_ENABLE([cuda], [AC_HELP_STRING([--disable-cuda], [Do not use CUDA])], [en
 AC_ARG_ENABLE([nss], [AC_HELP_STRING([--disable-nss], [Do not use NSS/NSPR])], [enable_nss=$enableval], [enable_nss=auto])
 AC_ARG_ENABLE([pcap], [AC_HELP_STRING([--disable-pcap], [Do not build helpers depending on PCAP])], [enable_pcap=$enableval], [enable_pcap=auto])
 AC_ARG_ENABLE([native-tests], [AC_HELP_STRING([--disable-native-tests], [Do not use test build system for target features])], [enable_native_tests=$enableval], [enable_native_tests=auto])
+AC_ARG_ENABLE([ln-s], [AS_HELP_STRING([--enable-ln-s],[Use ln -s vs symlink.c wrappers (Cygwin only)])], [enable_ln_s=$enableval], [enable_ln_s=no])
 
 ####### Actual tests start here #######
 
@@ -431,7 +430,13 @@ if test "x$enable_cuda" != xno; then
    fi
 fi
 
-AS_IF([test "x$with_exe_ext" != x], AC_SUBST([EXE_EXT], [${with_exe_ext}]) [echo executable extension: ${with_exe_ext}] )
+# check for using .exe or -ln -s for cygwin/mingw builds only.  Default uses symlink.c and exe. cygwin can use --enable-ln-s to override this with ln -s
+case "$host_os" in
+  cygwin*) AS_IF([test "x$enable_ln_s" != xno], [echo "checking for *2john helper type... ln -s"] ,AC_SUBST([EXE_EXT], [.exe]) [echo "checking for *2john helper type... .exe (symlink.c)"] ) ;;
+  mingw*)
+     AC_SUBST([EXE_EXT], [.exe])
+	 [echo "checking for *2john helper type... .exe (symlink.c)"] ;;
+esac
 
 # Checks for header files.
 # Eg. if sys/times.h is found, the below will define HAVE_SYS_TIMES_H

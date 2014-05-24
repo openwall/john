@@ -732,13 +732,13 @@ ac_subst_files=''
 ac_user_opts='
 enable_option_checking
 with_icc_asm
-with_exe_ext
 with_endian
 enable_mpi
 enable_cuda
 enable_nss
 enable_pcap
 enable_native_tests
+enable_ln_s
 enable_openmp
 enable_opencl
 '
@@ -1377,6 +1377,7 @@ Optional Features:
   --disable-nss           Do not use NSS/NSPR
   --disable-pcap          Do not build helpers depending on PCAP
   --disable-native-tests  Do not use test build system for target features
+  --enable-ln-s           Use ln -s vs symlink.c wrappers (Cygwin only)
   --disable-openmp        do not use OpenMP
   --disable-opencl        do not use OpenCL
 
@@ -1385,8 +1386,6 @@ Optional Packages:
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
   --with-icc-asm          Use ICC pre-built asm files for intrisic SIMD code.
                           Default: no
-  --with-exe-ext          For Cygwin and MinGW. Set to .exe to allow stand
-                          alone symlink exe files. Default is 'empty'
   --with-endian=little|big
                           Set endianness for target if it doesn't detect
                           properly
@@ -3388,15 +3387,6 @@ else
   with_icc_asm=no
 fi
 
-
-# Check whether --with-exe-ext was given.
-if test "${with_exe_ext+set}" = set; then :
-  withval=$with_exe_ext;
-else
-  with_exe_ext=""
-fi
-
-
 # Cludge for endian (if not auto detected)
 
 # Check whether --with-endian was given.
@@ -3443,6 +3433,13 @@ if test "${enable_native_tests+set}" = set; then :
   enableval=$enable_native_tests; enable_native_tests=$enableval
 else
   enable_native_tests=auto
+fi
+
+# Check whether --enable-ln-s was given.
+if test "${enable_ln_s+set}" = set; then :
+  enableval=$enable_ln_s; enable_ln_s=$enableval
+else
+  enable_ln_s=no
 fi
 
 
@@ -10788,10 +10785,19 @@ See \`config.log' for more details" "$LINENO" 5; }
    fi
 fi
 
-if test "x$with_exe_ext" != x; then :
-  EXE_EXT=${with_exe_ext}
- echo executable extension: ${with_exe_ext}
-fi
+# check for using .exe or -ln -s for cygwin/mingw builds only.  Default uses symlink.c and exe. cygwin can use --enable-ln-s to override this with ln -s
+case "$host_os" in
+  cygwin*) if test "x$enable_ln_s" != xno; then :
+  echo "checking for *2john helper type... ln -s"
+else
+  EXE_EXT=.exe
+ echo "checking for *2john helper type... .exe (symlink.c)"
+fi ;;
+  mingw*)
+     EXE_EXT=.exe
+
+	 echo "checking for *2john helper type... .exe (symlink.c)" ;;
+esac
 
 # Checks for header files.
 # Eg. if sys/times.h is found, the below will define HAVE_SYS_TIMES_H
