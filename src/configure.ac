@@ -420,15 +420,7 @@ AS_IF([test "x$cross_compiling" = xno], [JTR_SET_OPENCL_INCLUDES])
 AX_OPENCL(C)
 
 # Check for CUDA, including headers.
-using_cuda=no
-if test "x$enable_cuda" != xno; then
-   AS_IF([test "x$cross_compiling" = xno], [JTR_SET_CUDA_INCLUDES])
-   AC_CHECK_HEADER([cuda.h],[AC_CHECK_LIB([cudart],[cudaGetDeviceCount],using_cuda=yes
-        AC_SUBST([HAVE_CUDA],[-DHAVE_CUDA]) [JTR_LIST_ADD(LIBS, [-lcudart])])])
-   if test "x$using_cuda" != xyes -a "x$enable_cuda" = xyes; then
-      AC_MSG_FAILURE([CUDA not found])
-   fi
-fi
+JTR_CUDA
 
 # check for using .exe or -ln -s for cygwin/mingw builds only.  Default uses symlink.c and exe. cygwin can use --enable-ln-s to override this with ln -s
 case "$host_os" in

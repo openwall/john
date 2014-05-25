@@ -117,6 +117,28 @@ AC_DEFUN([JTR_SET_CUDA_INCLUDES],
    JTR_LIST_ADD_RESULT
 ])
 
+AC_DEFUN([JTR_CUDA],
+[
+  using_cuda=no
+  if test "x$enable_cuda" != xno; then
+     AS_IF([test "x$cross_compiling" = xno], [JTR_SET_CUDA_INCLUDES])
+     AC_PATH_PROG([NVCC], [nvcc], [], [$PATH$PATH_SEPARATOR$CUDAPATH])
+     AC_PATH_PROG([NVCC_GCC],[llvm-gcc-4.2], [], [$PATH$PATH_SEPARATOR$CUDAPATH])
+     AS_IF([test "x$NVCC" != "x"],
+	[AC_CHECK_HEADER([cuda.h], [AC_CHECK_LIB([cudart],[cudaGetDeviceCount],
+				   [using_cuda=yes]
+				   [AC_SUBST([HAVE_CUDA],[-DHAVE_CUDA])]
+				   [AC_SUBST([NVCC],["$NVCC"])]
+				   [AC_SUBST([NVCC_GCC],["$NVCC_GCC"])]
+				   [JTR_LIST_ADD(LIBS, [-lcudart])])
+				   ])]
+     )
+     if test "x$using_cuda" != xyes -a "x$enable_cuda" = xyes; then
+	AC_MSG_FAILURE([Could not find all required CUDA components])
+     fi
+  fi
+])
+
 # @synopsis JTR_SET_OPENCL_INCLUDES
 # @summary check and set many normal include paths
 AC_DEFUN([JTR_SET_OPENCL_INCLUDES],

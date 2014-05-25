@@ -641,6 +641,8 @@ CC_CPU
 LIBOBJS
 EXE_EXT
 HAVE_CUDA
+NVCC_GCC
+NVCC
 NVIDIA_CUDA
 CL_LIBS
 CL_CFLAGS
@@ -3322,6 +3324,8 @@ ac_config_headers="$ac_config_headers autoconfig.h"
 
 # @synopsis JTR_SET_CUDA_INCLUDES
 # @summary check and set many normal include paths
+
+
 
 
 # @synopsis JTR_SET_OPENCL_INCLUDES
@@ -10636,9 +10640,10 @@ fi
 
 
 # Check for CUDA, including headers.
-using_cuda=no
-if test "x$enable_cuda" != xno; then
-   if test "x$cross_compiling" = xno; then :
+
+  using_cuda=no
+  if test "x$enable_cuda" != xno; then
+     if test "x$cross_compiling" = xno; then :
 
    { $as_echo "$as_me:${as_lineno-$LINENO}: checking additional paths for CUDA" >&5
 $as_echo_n "checking additional paths for CUDA... " >&6; }
@@ -10716,7 +10721,88 @@ fi
 
 
 fi
-   ac_fn_c_check_header_mongrel "$LINENO" "cuda.h" "ac_cv_header_cuda_h" "$ac_includes_default"
+     # Extract the first word of "nvcc", so it can be a program name with args.
+set dummy nvcc; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_path_NVCC+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  case $NVCC in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_NVCC="$NVCC" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH$PATH_SEPARATOR$CUDAPATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_path_NVCC="$as_dir/$ac_word$ac_exec_ext"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+  ;;
+esac
+fi
+NVCC=$ac_cv_path_NVCC
+if test -n "$NVCC"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $NVCC" >&5
+$as_echo "$NVCC" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+     # Extract the first word of "llvm-gcc-4.2", so it can be a program name with args.
+set dummy llvm-gcc-4.2; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_path_NVCC_GCC+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  case $NVCC_GCC in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_NVCC_GCC="$NVCC_GCC" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH$PATH_SEPARATOR$CUDAPATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_path_NVCC_GCC="$as_dir/$ac_word$ac_exec_ext"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+  ;;
+esac
+fi
+NVCC_GCC=$ac_cv_path_NVCC_GCC
+if test -n "$NVCC_GCC"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $NVCC_GCC" >&5
+$as_echo "$NVCC_GCC" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+     if test "x$NVCC" != "x"; then :
+  ac_fn_c_check_header_mongrel "$LINENO" "cuda.h" "ac_cv_header_cuda_h" "$ac_includes_default"
 if test "x$ac_cv_header_cuda_h" = xyes; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for cudaGetDeviceCount in -lcudart" >&5
 $as_echo_n "checking for cudaGetDeviceCount in -lcudart... " >&6; }
@@ -10756,7 +10842,12 @@ fi
 $as_echo "$ac_cv_lib_cudart_cudaGetDeviceCount" >&6; }
 if test "x$ac_cv_lib_cudart_cudaGetDeviceCount" = xyes; then :
   using_cuda=yes
-        HAVE_CUDA=-DHAVE_CUDA
+				   HAVE_CUDA=-DHAVE_CUDA
+
+				   NVCC="$NVCC"
+
+				   NVCC_GCC="$NVCC_GCC"
+
 
    for i in -lcudart; do
       jtr_list_add_dupe=0
@@ -10774,16 +10865,20 @@ if test "x$ac_cv_lib_cudart_cudaGetDeviceCount" = xyes; then :
 
 fi
 
+
 fi
 
 
-   if test "x$using_cuda" != xyes -a "x$enable_cuda" = xyes; then
-      { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+
+fi
+     if test "x$using_cuda" != xyes -a "x$enable_cuda" = xyes; then
+	{ { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error $? "CUDA not found
+as_fn_error $? "Could not find all required CUDA components
 See \`config.log' for more details" "$LINENO" 5; }
-   fi
-fi
+     fi
+  fi
+
 
 # check for using .exe or -ln -s for cygwin/mingw builds only.  Default uses symlink.c and exe. cygwin can use --enable-ln-s to override this with ln -s
 case "$host_os" in

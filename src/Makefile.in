@@ -193,9 +193,9 @@ endif
 
 WITH_CUDA=@HAVE_CUDA@
 ifdef WITH_CUDA
-NVCC = PATH=$(PATH):@NVIDIA_CUDA@/bin/ nvcc
-CCBIN_OSX = /usr/bin/llvm-gcc-4.2
-ifneq ($(wildcard $(CCBIN_OSX)),)
+NVCC = @NVCC@
+CCBIN_OSX = @NVCC_GCC@
+ifdef $(CCBIN_OSX)
 NVCC_FLAGS += @CPU_BITS@ -ccbin=$(CCBIN_OSX)
 endif
 JOHN_OBJS += $(CUDA_OBJS)
