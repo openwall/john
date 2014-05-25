@@ -14,7 +14,7 @@
 #include <signal.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#if HAVE_SYS_TIME_H
+#if HAVE_SYS_FILE_H
 #include <sys/file.h>
 #endif
 #include <time.h>
