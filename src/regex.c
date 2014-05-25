@@ -184,6 +184,10 @@ void do_regex_crack(struct db_main *db, const char *regex) {
 	int randomize = 0;
 	const char* word;
 
+	if (john_main_process)
+		fprintf(stderr, "Warning: regex mode currently can't be "
+		        "resumed if aborted\n");
+
 	rexgen_setlocale();
 	crk_init(db, fix_state, NULL);
 	iter = c_regex_iterator_cb(regex, ignore_case, encoding, randomize, callback);
