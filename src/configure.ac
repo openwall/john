@@ -148,14 +148,14 @@ AS_IF([test "x$JTR_FLAG_CHECK_WORKS" = xyes],
    # first fill out JtR's OPT_NORMAL= value
    JTR_FLAG_CHECK([-funroll-loops], 1)
    OPT_NORMAL_V=${CFLAGS_EX}
-   AC_SUBST([OPT_NORMAL_FLAGS],[${OPT_NORMAL_V}])
+   AC_SUBST([OPT_NORMAL_FLAGS],["${OPT_NORMAL_V}"])
 
    # now fill in extras for JtR's OPT_INLINE= value
    CFLAGS_EX=""
    JTR_FLAG_CHECK([-Os], 1)
    JTR_FLAG_CHECK([-funroll-loops], 0)
    JTR_FLAG_CHECK([-finline-functions], 1)
-   AC_SUBST([OPT_INLINE_FLAGS],[${CFLAGS_EX}])
+   AC_SUBST([OPT_INLINE_FLAGS],["${CFLAGS_EX}"])
 
    # now fill out CFLAGS
    CFLAGS_EX=""
@@ -167,7 +167,7 @@ AS_IF([test "x$JTR_FLAG_CHECK_WORKS" = xyes],
    # clang warnings
    #JTR_FLAG_CHECK([-Wno-format-extra-args], 1)
    #JTR_FLAG_CHECK([-Wno-unneeded-internal-declaration], 1)
-   AC_SUBST([CFLAGS_EXTRA],[${CFLAGS_EX}])
+   AC_SUBST([CFLAGS_EXTRA],["${CFLAGS_EXTRA} ${CFLAGS_EX}"])
 ],[dnl
    AC_MSG_NOTICE([Unable to validate $CC command line arguments. CFLAGS may need to be passed to ./configure for proper build])
 ])
@@ -527,13 +527,13 @@ AC_FUNC_MMAP
 #                strtol strtoul])
 AC_CACHE_SAVE
 
-AC_SUBST([CC_CPU],[${CPU_BEST_FLAGS}])
-AC_SUBST([CC_MAIN_CPU],[${CPU_BEST_FLAGS_MAIN}])
-AC_SUBST([CC_ASM_OBJS],[${CC_ASM_OBJS}])
-AC_SUBST([CPU_BITS],[${CPU_BITS}])
-AC_SUBST([CPU_BIT_STR],[${CPU_BIT_STR}])
-AC_SUBST([ASFLAGS],[${ASFLAGS}])
-AC_SUBST([EXTRA_AS_FLAGS],[${EXTRA_AS_FLAGS}])
+AC_SUBST([CC_CPU],["${CPU_BEST_FLAGS}"])
+AC_SUBST([CC_MAIN_CPU],["${CPU_BEST_FLAGS_MAIN}"])
+AC_SUBST([CC_ASM_OBJS],["${CC_ASM_OBJS}"])
+AC_SUBST([CPU_BITS],["${CPU_BITS}"])
+AC_SUBST([CPU_BIT_STR],["${CPU_BIT_STR}"])
+AC_SUBST([ASFLAGS],["${ASFLAGS}"])
+AC_SUBST([EXTRA_AS_FLAGS],["${EXTRA_AS_FLAGS}"])
 AC_SUBST([JOHN_BUILD_LABEL],["${CPU_BIT_STR}-bit${using_x32} ${CPU_STR}-autoconf"])
 
 AS_IF([test "x$ALLOWS_UNALIGNED" = x1],
@@ -562,7 +562,7 @@ if test "$CPU_BIT_STR" = "32"; then
 else
    aesni_arch="64"
 fi
-AC_SUBST([AESNI_ARCH],[$aesni_arch])
+AC_SUBST([AESNI_ARCH],["$aesni_arch"])
 
 #
 # TODO: For X32 we need to check for a new enough yasm that understands the
@@ -593,8 +593,8 @@ if test "x$ac_cv_path_YASM" != x; then
       esac
    fi
 fi
-AC_SUBST([AESNI_OS],[$aesni_os])
-AC_SUBST([YASM_OPTIONS],[$aesni_options])
+AC_SUBST([AESNI_OS],["$aesni_os"])
+AC_SUBST([YASM_OPTIONS],["$aesni_options"])
 if test "x$aesni_options" != xDISABLED; then
    using_aesni="run-time detection"
 elif test "$cpu_family" = intel; then
@@ -626,7 +626,7 @@ echo "#define JOHN_BLD \"${CPU_BIT_STR}-bit${using_x32} ${CPU_STR}-autoconf\"" >
 # End of plugin and build_rules generation code
 ########################################################
 
-AC_SUBST([HOST_OS],[$host_os])
+AC_SUBST([HOST_OS],["$host_os"])
 AC_CONFIG_FILES([Makefile
                  aes/Makefile
                  aes/aesni/Makefile

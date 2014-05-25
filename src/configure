@@ -5354,7 +5354,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
    OPT_NORMAL_V=${CFLAGS_EX}
-   OPT_NORMAL_FLAGS=${OPT_NORMAL_V}
+   OPT_NORMAL_FLAGS="${OPT_NORMAL_V}"
 
 
    # now fill in extras for JtR's OPT_INLINE= value
@@ -5497,7 +5497,7 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-   OPT_INLINE_FLAGS=${CFLAGS_EX}
+   OPT_INLINE_FLAGS="${CFLAGS_EX}"
 
 
    # now fill out CFLAGS
@@ -5690,7 +5690,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
    # clang warnings
    #JTR_FLAG_CHECK([-Wno-format-extra-args], 1)
    #JTR_FLAG_CHECK([-Wno-unneeded-internal-declaration], 1)
-   CFLAGS_EXTRA=${CFLAGS_EX}
+   CFLAGS_EXTRA="${CFLAGS_EXTRA} ${CFLAGS_EX}"
 
 
 else
@@ -11804,19 +11804,19 @@ $as_echo "$as_me: not updating unwritable cache $cache_file" >&6;}
 fi
 rm -f confcache
 
-CC_CPU=${CPU_BEST_FLAGS}
+CC_CPU="${CPU_BEST_FLAGS}"
 
-CC_MAIN_CPU=${CPU_BEST_FLAGS_MAIN}
+CC_MAIN_CPU="${CPU_BEST_FLAGS_MAIN}"
 
-CC_ASM_OBJS=${CC_ASM_OBJS}
+CC_ASM_OBJS="${CC_ASM_OBJS}"
 
-CPU_BITS=${CPU_BITS}
+CPU_BITS="${CPU_BITS}"
 
-CPU_BIT_STR=${CPU_BIT_STR}
+CPU_BIT_STR="${CPU_BIT_STR}"
 
-ASFLAGS=${ASFLAGS}
+ASFLAGS="${ASFLAGS}"
 
-EXTRA_AS_FLAGS=${EXTRA_AS_FLAGS}
+EXTRA_AS_FLAGS="${EXTRA_AS_FLAGS}"
 
 JOHN_BUILD_LABEL="${CPU_BIT_STR}-bit${using_x32} ${CPU_STR}-autoconf"
 
@@ -11885,7 +11885,7 @@ if test "$CPU_BIT_STR" = "32"; then
 else
    aesni_arch="64"
 fi
-AESNI_ARCH=$aesni_arch
+AESNI_ARCH="$aesni_arch"
 
 
 #
@@ -11917,9 +11917,9 @@ if test "x$ac_cv_path_YASM" != x; then
       esac
    fi
 fi
-AESNI_OS=$aesni_os
+AESNI_OS="$aesni_os"
 
-YASM_OPTIONS=$aesni_options
+YASM_OPTIONS="$aesni_options"
 
 if test "x$aesni_options" != xDISABLED; then
    using_aesni="run-time detection"
@@ -11957,7 +11957,7 @@ echo "#define JOHN_BLD \"${CPU_BIT_STR}-bit${using_x32} ${CPU_STR}-autoconf\"" >
 # End of plugin and build_rules generation code
 ########################################################
 
-HOST_OS=$host_os
+HOST_OS="$host_os"
 
 ac_config_files="$ac_config_files Makefile aes/Makefile aes/aesni/Makefile aes/openssl/Makefile escrypt/Makefile"
 
