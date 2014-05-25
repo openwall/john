@@ -48,6 +48,9 @@
 #if defined(__APPLE__) && !defined(_DARWIN_C_SOURCE)
 #define _DARWIN_C_SOURCE /* for LOCK_EX */
 #endif
+#ifdef __FreeBSD__
+#define __BSD_VISIBLE
+#endif
 #include <sys/file.h>
 #ifdef LOCK_EX
 #define OS_FLOCK			1
