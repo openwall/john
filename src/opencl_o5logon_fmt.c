@@ -38,7 +38,7 @@
 /* ---- End OpenCL Modifications ---- */
 
 #define FORMAT_LABEL		"o5logon-opencl"
-#define FORMAT_NAME		"Oracle O5LOGON protocol w/ OpenCL SHA1"
+#define FORMAT_NAME		"Oracle O5LOGON protocol"
 #define ALGORITHM_NAME		"OpenCL-SHA1 AES 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
