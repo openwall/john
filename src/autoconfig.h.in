@@ -96,9 +96,6 @@
 /* Define to 1 if you have the `krb5' library (-lkrb5). */
 #undef HAVE_LIBKRB5
 
-/* Define to 1 if you have the `lws2_32' library (-llws2_32). */
-#undef HAVE_LIBLWS2_32
-
 /* Define to 1 if you have the `m' library (-lm). */
 #undef HAVE_LIBM
 
@@ -119,6 +116,9 @@
 
 /* Define to 1 if you have the `ssl' library (-lssl). */
 #undef HAVE_LIBSSL
+
+/* Define to 1 if you have the `ws2_32' library (-lws2_32). */
+#undef HAVE_LIBWS2_32
 
 /* Define to 1 if you have the `wsock32' library (-lwsock32). */
 #undef HAVE_LIBWSOCK32

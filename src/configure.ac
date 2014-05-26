@@ -351,17 +351,17 @@ else
       [AC_MSG_RESULT([$OPENSSL_CFLAGS $OPENSSL_LIBS])],
       [test "x$cross_compiling" = xno],
       [JTR_SET_NORMAL_SSL_INCLUDES([/usr/local/ssl])]
-   )
-   AC_CHECK_HEADER([openssl/opensslv.h],
-      [AC_CHECK_LIB([ssl],[SSL_library_init],
-         [AC_CHECK_LIB([crypto],[MD5_Update],
-            [AC_DEFINE(HAVE_LIBSSL,1,[Define to 1 if you have the `ssl' library (-lssl).])]
-            [AC_DEFINE(HAVE_LIBCRYPTO,1,[Define to 1 if you have the `crypto' library (-lcrypto).])]
-            [LIBS="-lssl -lcrypto $LIBS"],
-            [AC_MSG_FAILURE(JtR requires libssl/libcrypto being installed,1)])],
-         [AC_MSG_FAILURE(JtR requires libssl being installed,1)]
-      )],
-      [AC_MSG_FAILURE(JtR requires OpenSSL headers being installed,1)]
+      [AC_CHECK_HEADER([openssl/opensslv.h],
+	 [AC_CHECK_LIB([ssl],[SSL_library_init],
+	    [AC_CHECK_LIB([crypto],[MD5_Update],
+	       [AC_DEFINE(HAVE_LIBSSL,1,[Define to 1 if you have the `ssl' library (-lssl).])]
+	       [AC_DEFINE(HAVE_LIBCRYPTO,1,[Define to 1 if you have the `crypto' library (-lcrypto).])]
+	       [LIBS="-lssl -lcrypto $LIBS"],
+	       [AC_MSG_FAILURE(JtR requires libssl/libcrypto being installed,1)])],
+	    [AC_MSG_FAILURE(JtR requires libssl being installed,1)]
+	 )],
+	 [AC_MSG_FAILURE(JtR requires OpenSSL headers being installed,1)]
+      )]
    )
 fi
 
@@ -388,7 +388,7 @@ AC_CHECK_LIB([rt],[main])
 AC_CHECK_LIB([socket],[main])
 # mingw stuff from older makefile rules.
 AC_CHECK_LIB([wsock32],[main])
-AC_CHECK_LIB([lws2_32],[main])
+AC_CHECK_LIB([ws2_32],[main])
 AC_CHECK_LIB([wst],[main])
 # in makefile, we need to know if building extra pcap items.
 if test "x$enable_pcap" != xno ; then

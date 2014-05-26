@@ -8648,9 +8648,7 @@ fi
    jtr_list_add_result=""
 
 
-
-fi
-   ac_fn_c_check_header_mongrel "$LINENO" "openssl/opensslv.h" "ac_cv_header_openssl_opensslv_h" "$ac_includes_default"
+      ac_fn_c_check_header_mongrel "$LINENO" "openssl/opensslv.h" "ac_cv_header_openssl_opensslv_h" "$ac_includes_default"
 if test "x$ac_cv_header_openssl_opensslv_h" = xyes; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for SSL_library_init in -lssl" >&5
 $as_echo_n "checking for SSL_library_init in -lssl... " >&6; }
@@ -8732,7 +8730,7 @@ $as_echo "#define HAVE_LIBSSL 1" >>confdefs.h
 
 $as_echo "#define HAVE_LIBCRYPTO 1" >>confdefs.h
 
-            LIBS="-lssl -lcrypto $LIBS"
+	       LIBS="-lssl -lcrypto $LIBS"
 else
   { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
@@ -8757,6 +8755,8 @@ See \`config.log' for more details" "$LINENO" 5; }
 fi
 
 
+
+fi
 fi
 
 #################
@@ -9477,13 +9477,13 @@ _ACEOF
 
 fi
 
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -llws2_32" >&5
-$as_echo_n "checking for main in -llws2_32... " >&6; }
-if ${ac_cv_lib_lws2_32_main+:} false; then :
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lws2_32" >&5
+$as_echo_n "checking for main in -lws2_32... " >&6; }
+if ${ac_cv_lib_ws2_32_main+:} false; then :
   $as_echo_n "(cached) " >&6
 else
   ac_check_lib_save_LIBS=$LIBS
-LIBS="-llws2_32  $LIBS"
+LIBS="-lws2_32  $LIBS"
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
@@ -9497,22 +9497,22 @@ return main ();
 }
 _ACEOF
 if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_lws2_32_main=yes
+  ac_cv_lib_ws2_32_main=yes
 else
-  ac_cv_lib_lws2_32_main=no
+  ac_cv_lib_ws2_32_main=no
 fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
 LIBS=$ac_check_lib_save_LIBS
 fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_lws2_32_main" >&5
-$as_echo "$ac_cv_lib_lws2_32_main" >&6; }
-if test "x$ac_cv_lib_lws2_32_main" = xyes; then :
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_ws2_32_main" >&5
+$as_echo "$ac_cv_lib_ws2_32_main" >&6; }
+if test "x$ac_cv_lib_ws2_32_main" = xyes; then :
   cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBLWS2_32 1
+#define HAVE_LIBWS2_32 1
 _ACEOF
 
-  LIBS="-llws2_32 $LIBS"
+  LIBS="-lws2_32 $LIBS"
 
 fi
 
