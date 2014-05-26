@@ -650,9 +650,9 @@ PTHREAD_LIBS
 PTHREAD_CC
 ax_pthread_config
 OPENMP_CFLAGS
+HAVE_NSS
 NSS_LIBS
 NSS_CFLAGS
-HAVE_NSS
 HAVE_PCAP
 OPENSSL_LIBS
 OPENSSL_CFLAGS
@@ -9622,15 +9622,10 @@ else
   { $as_echo "$as_me:${as_lineno-$LINENO}: PCAP check disabled" >&5
 $as_echo "$as_me: PCAP check disabled" >&6;}
 fi
+
+####################################
 # Check for variations we can handle
-# We need these two AC_CHECK_LIB for the following AC_CHECK_FUNCS to work -
-# PKG_CHECK_MODULES did not do the trick (but perhaps this is fixable)
-#
-# NOTE, this does NOT work if pkg-config loaded the right oSSL, BUT they are in
-# non-standard locations!!!
-# I will try to get this working  (Now working, adding $OPENSSL_LIBS and $OPENSSL_CFLAGS
-# ALSO, I save and restore existing LIBS and CFLAGS, so this code does not pollute our configure run.
-#
+####################################
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether time.h and sys/time.h may both be included" >&5
 $as_echo_n "checking whether time.h and sys/time.h may both be included... " >&6; }
 if ${ac_cv_header_time+:} false; then :
@@ -9698,6 +9693,7 @@ $as_echo "#define STRING_WITH_STRINGS 1" >>confdefs.h
 
 fi
 
+# Check missing stuff in OpenSSL (too old, or disabled features)
 LIBS_ORIG="$LIBS"
 CFLAGS_ORIG="$CFLAGS"
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for SSL_library_init in -lssl" >&5
@@ -9897,9 +9893,10 @@ rm -f confcache
 # Check packages:
 #################
 
-# Check for NSS (unless disabled, or cross compiling)
+# Check for NSS
 using_nss=no
-if test "x$enable_nss" != xno -a "x$PKG_CONFIG" != xno; then
+if test "x$enable_nss" != xno; then :
+  if test "x$PKG_CONFIG" != xno; then :
 
 pkg_failed=no
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for NSS" >&5
@@ -9968,6 +9965,52 @@ $as_echo "yes" >&6; }
 	using_nss=yes HAVE_NSS=-DHAVE_NSS
 
 fi
+else
+  if test "x${NSS_CFLAGS}${NSS_LIBS}" != "x"; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking supplied paths for NSS" >&5
+$as_echo_n "checking supplied paths for NSS... " >&6; }
+
+   for i in $NSS_CFLAGS; do
+      jtr_list_add_dupe=0
+      for j in $CFLAGS; do
+         if test "x$i" = "x$j"; then
+            jtr_list_add_dupe=1
+            break
+         fi
+      done
+      if test $jtr_list_add_dupe = 0; then
+         CFLAGS="$CFLAGS $i"
+         jtr_list_add_result="$jtr_list_add_result $i"
+      fi
+   done
+
+
+   for i in $NSS_LIBS; do
+      jtr_list_add_dupe=0
+      for j in $LDFLAGS; do
+         if test "x$i" = "x$j"; then
+            jtr_list_add_dupe=1
+            break
+         fi
+      done
+      if test $jtr_list_add_dupe = 0; then
+         LDFLAGS="$LDFLAGS $i"
+         jtr_list_add_result="$jtr_list_add_result $i"
+      fi
+   done
+
+	 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $NSS_CFLAGS $NSS_LIBS" >&5
+$as_echo "$NSS_CFLAGS $NSS_LIBS" >&6; }
+         using_nss=yes
+
+fi
+      { $as_echo "$as_me:${as_lineno-$LINENO}: checking for NSS" >&5
+$as_echo_n "checking for NSS... " >&6; }
+      { $as_echo "$as_me:${as_lineno-$LINENO}: result: $using_nss" >&5
+$as_echo "$using_nss" >&6; }
+
+fi
+
 fi
 
 # Check for openMP (enable/disable handled within the macro).

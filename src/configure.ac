@@ -395,17 +395,13 @@ if test "x$enable_pcap" != xno ; then
 else
   AC_MSG_NOTICE([PCAP check disabled])
 fi
+
+####################################
 # Check for variations we can handle
-# We need these two AC_CHECK_LIB for the following AC_CHECK_FUNCS to work -
-# PKG_CHECK_MODULES did not do the trick (but perhaps this is fixable)
-#
-# NOTE, this does NOT work if pkg-config loaded the right oSSL, BUT they are in
-# non-standard locations!!!
-# I will try to get this working  (Now working, adding $OPENSSL_LIBS and $OPENSSL_CFLAGS
-# ALSO, I save and restore existing LIBS and CFLAGS, so this code does not pollute our configure run.
-#
+####################################
 AC_HEADER_TIME
 ACX_HEADER_STRING
+# Check missing stuff in OpenSSL (too old, or disabled features)
 LIBS_ORIG="$LIBS"
 CFLAGS_ORIG="$CFLAGS"
 AC_CHECK_LIB([ssl], [SSL_library_init])
@@ -422,11 +418,22 @@ AC_CACHE_SAVE
 # Check packages:
 #################
 
-# Check for NSS (unless disabled, or cross compiling)
+# Check for NSS
 using_nss=no
-if test "x$enable_nss" != xno -a "x$PKG_CONFIG" != xno; then
-   PKG_CHECK_MODULES([NSS], [nss], using_nss=yes AC_SUBST(HAVE_NSS,[-DHAVE_NSS]),:)
-fi
+AS_IF([test "x$enable_nss" != xno],
+   [AS_IF([test "x$PKG_CONFIG" != xno],
+      [PKG_CHECK_MODULES([NSS], [nss], using_nss=yes [AC_SUBST(HAVE_NSS,[-DHAVE_NSS])],:)],
+      [AS_IF([test "x${NSS_CFLAGS}${NSS_LIBS}" != "x"],
+	 [AC_MSG_CHECKING([supplied paths for NSS])]
+	 [JTR_LIST_ADD(CFLAGS, [$NSS_CFLAGS])]
+	 [JTR_LIST_ADD(LDFLAGS, [$NSS_LIBS])]
+	 [AC_MSG_RESULT([$NSS_CFLAGS $NSS_LIBS])]
+         using_nss=yes
+      )]
+      [AC_MSG_CHECKING([for NSS])]
+      [AC_MSG_RESULT([$using_nss])]
+   )]
+)
 
 # Check for openMP (enable/disable handled within the macro).
 AC_OPENMP
