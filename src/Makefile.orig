@@ -961,7 +961,8 @@ freebsd-x86-64:
 	$(LN) x86-64.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE_ORIG) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86-64.o sse-intrinsics.o"
+		JOHN_OBJS="$(JOHN_OBJS) x86-64.o sse-intrinsics.o" \
+		CFLAGS="$(CFLAGS) -D__BSD_VISIBLE
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE_ORIG) $(PROJ_PCAP)
 	@echo "All done"
@@ -971,7 +972,7 @@ freebsd-x86-64i:
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE_ORIG) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) x86-64.o sse-intrinsics-64.o" \
-		CFLAGS="$(CFLAGS) -DUSING_ICC_S_FILE"
+		CFLAGS="$(CFLAGS) -D__BSD_VISIBLE -DUSING_ICC_S_FILE"
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE_ORIG) $(PROJ_PCAP)
 	@echo "All done"
@@ -982,7 +983,7 @@ freebsd-x86-sse2:
 	$(MAKE_ORIG) $(PROJ) \
 		CC=cc \
 		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
-		CFLAGS="$(CFLAGS) -msse2" \
+		CFLAGS="$(CFLAGS) -D__BSD_VISIBLE -msse2" \
 		ASFLAGS="$(ASFLAGS) -DBSD -msse2"
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE_ORIG) $(PROJ_PCAP)
@@ -993,7 +994,7 @@ freebsd-x86-sse2i:
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE_ORIG) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics-32.o" \
-		CFLAGS="$(CFLAGS) -msse2 -DUSING_ICC_S_FILE" \
+		CFLAGS="$(CFLAGS) -msse2 -D__BSD_VISIBLE -DUSING_ICC_S_FILE" \
 		ASFLAGS="$(ASFLAGS) -msse2 -DBSD" \
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE_ORIG) $(PROJ_PCAP)
@@ -1004,6 +1005,7 @@ freebsd-x86-mmx:
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE_ORIG) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-mmx.o sha1-mmx.o md4-mmx.o md5-mmx.o" \
+		CFLAGS="$(CFLAGS) -D__BSD_VISIBLE \
 		ASFLAGS="$(ASFLAGS) -DBSD"
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE_ORIG) $(PROJ_PCAP)
@@ -1014,6 +1016,7 @@ freebsd-x86-any:
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE_ORIG) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) x86.o" \
+		CFLAGS="$(CFLAGS) -D__BSD_VISIBLE \
 		ASFLAGS="$(ASFLAGS) -DBSD"
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE_ORIG) $(PROJ_PCAP)
@@ -1024,6 +1027,7 @@ freebsd-x86-any-a.out:
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE_ORIG) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) x86.o" \
+		CFLAGS="$(CFLAGS) -D__BSD_VISIBLE \
 		ASFLAGS="$(ASFLAGS) -DUNDERSCORES -DALIGN_LOG -DBSD"
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE_ORIG) $(PROJ_PCAP)

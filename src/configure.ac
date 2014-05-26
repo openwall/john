@@ -22,6 +22,7 @@ m4_include([m4/ax_prog_cc_mpi.m4])
 m4_include([m4/ax_lang_compiler_ms.m4])
 m4_include([m4/jtr_x86_logic.m4])
 m4_include([m4/jtr_generic_logic.m4])
+m4_include([m4/jtr_systems_specific_logic.m4])
 m4_include([m4/jtr_utility_macros.m4])
 
 dnl  If you want to pass these into your Makefile.in templates, use
@@ -268,6 +269,7 @@ AS_IF([test "x$cpu_family" = xintel], [JTR_X86_SPECIAL_LOGIC])
 AC_MSG_CHECKING([for arch.h alternative])
 AC_MSG_RESULT([${ARCH_LINK}])
 JTR_GENERIC_LOGIC
+JTR_SYSTEMS_SPECIFIC_LOGIC
 
 # Set a variable detecting x86-64 w/ X32 ABI
 if test "x$ax_intel_x32" = xyes; then
@@ -435,14 +437,6 @@ AX_OPENCL(C)
 
 # Check for CUDA, including headers.
 JTR_CUDA
-
-# check for using .exe or -ln -s for cygwin/mingw builds only.  Default uses symlink.c and exe. cygwin can use --enable-ln-s to override this with ln -s
-case "$host_os" in
-  cygwin*) AS_IF([test "x$enable_ln_s" != xno], [echo "checking for *2john helper type... ln -s"] ,AC_SUBST([EXE_EXT], [.exe]) [echo "checking for *2john helper type... .exe (symlink.c)"] ) ;;
-  mingw*)
-     AC_SUBST([EXE_EXT], [.exe])
-	 [echo "checking for *2john helper type... .exe (symlink.c)"] ;;
-esac
 
 # Checks for header files.
 # Eg. if sys/times.h is found, the below will define HAVE_SYS_TIMES_H

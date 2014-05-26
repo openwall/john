@@ -639,7 +639,6 @@ CC_ASM_OBJS
 CC_MAIN_CPU
 CC_CPU
 LIBOBJS
-EXE_EXT
 HAVE_CUDA
 NVIDIA_CUDA
 NVCC_GCC
@@ -657,6 +656,7 @@ HAVE_NSS
 HAVE_PCAP
 OPENSSL_LIBS
 OPENSSL_CFLAGS
+EXE_EXT
 EGREP
 PKG_CONFIG_LIBDIR
 PKG_CONFIG_PATH
@@ -3297,6 +3297,15 @@ ac_config_headers="$ac_config_headers autoconfig.h"
 
 
 # This file is Copyright (C) 2014 magnum,
+# and is hereby released to the general public under the following terms:
+# Redistribution and use in source and binary forms, with or without
+# modifications, are permitted.
+#
+# All tests in this file are supposed to be cross compile compliant
+#
+
+
+# This file is Copyright (C) 2014 JimF,
 # and is hereby released to the general public under the following terms:
 # Redistribution and use in source and binary forms, with or without
 # modifications, are permitted.
@@ -7915,71 +7924,6 @@ $as_echo "${EXTRA_AS_FLAGS}" >&6; }
 fi
 
 #############################################################################
-# Extra code for cygwin64 test.  We need to add __CYGWIN64__ and __CYGWIN32__
-# to CFLAGS AND to ASFLAGS, since cygwin64 does not do this for us (damn them)
-#############################################################################
-if test "x$cpu_family" = xintel -a "x$CPU_BIT_STR" = x64; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for cygwin64" >&5
-$as_echo_n "checking for cygwin64... " >&6; }
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-extern void exit(int);
-     int main() {
-     #if defined(__CYGWIN__)
-         exit(0);}
-     #else
-         BORK!
-     #endif
-
-
-
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-$as_echo "yes" >&6; }
-   ax_intel_x32=no
-
-   for i in -D__CYGWIN64__ -D__CYGWIN32__; do
-      jtr_list_add_dupe=0
-      for j in $EXTRA_AS_FLAGS; do
-         if test "x$i" = "x$j"; then
-            jtr_list_add_dupe=1
-            break
-         fi
-      done
-      if test $jtr_list_add_dupe = 0; then
-         EXTRA_AS_FLAGS="$EXTRA_AS_FLAGS $i"
-         jtr_list_add_result="$jtr_list_add_result $i"
-      fi
-   done
-
-
-   for i in -D__CYGWIN64__ -D__CYGWIN32__; do
-      jtr_list_add_dupe=0
-      for j in $CFLAGS_EX; do
-         if test "x$i" = "x$j"; then
-            jtr_list_add_dupe=1
-            break
-         fi
-      done
-      if test $jtr_list_add_dupe = 0; then
-         CFLAGS_EX="$CFLAGS_EX $i"
-         jtr_list_add_result="$jtr_list_add_result $i"
-      fi
-   done
-
-   CFLAGS_EXTRA="$CFLAGS_EXTRA $CFLAGS_EX"
-
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-fi
-
-#############################################################################
 # Extra code for X32 ABI test.  We need this for dynamic AES-NI support.
 #############################################################################
 if test "x$cpu_family" = xintel -a "x$ax_intel_x32" != xno; then :
@@ -8011,6 +7955,108 @@ fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
 fi
+
+CC="$CC_BACKUP"
+CFLAGS="$CFLAGS_BACKUP"
+
+
+CC_BACKUP=$CC
+
+#############################################################################
+# check for using .exe or -ln -s for cygwin/mingw builds only.  Default uses
+# symlink.c and exe. cygwin can use --enable-ln-s to override this with ln -s
+#############################################################################
+case "$host_os" in
+  cygwin*)
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for *2john helper type" >&5
+$as_echo_n "checking for *2john helper type... " >&6; }
+	if test "x$enable_ln_s" != "xno"; then
+	  { $as_echo "$as_me:${as_lineno-$LINENO}: result: ln -s" >&5
+$as_echo "ln -s" >&6; }
+	else
+	  EXE_EXT=.exe
+
+	  { $as_echo "$as_me:${as_lineno-$LINENO}: result: .exe (symlink.c)" >&5
+$as_echo ".exe (symlink.c)" >&6; }
+	fi
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for cygwin64" >&5
+$as_echo_n "checking for cygwin64... " >&6; }
+	if test "x$CPU_BIT_STR" = "x64"; then
+	  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+	  ax_intel_x32=no
+
+   for i in -D__CYGWIN64__ -D__CYGWIN32__; do
+      jtr_list_add_dupe=0
+      for j in $EXTRA_AS_FLAGS; do
+         if test "x$i" = "x$j"; then
+            jtr_list_add_dupe=1
+            break
+         fi
+      done
+      if test $jtr_list_add_dupe = 0; then
+         EXTRA_AS_FLAGS="$EXTRA_AS_FLAGS $i"
+         jtr_list_add_result="$jtr_list_add_result $i"
+      fi
+   done
+
+
+   for i in -D__CYGWIN64__ -D__CYGWIN32__; do
+      jtr_list_add_dupe=0
+      for j in $CFLAGS_EX; do
+         if test "x$i" = "x$j"; then
+            jtr_list_add_dupe=1
+            break
+         fi
+      done
+      if test $jtr_list_add_dupe = 0; then
+         CFLAGS_EX="$CFLAGS_EX $i"
+         jtr_list_add_result="$jtr_list_add_result $i"
+      fi
+   done
+
+	  CFLAGS_EXTRA="$CFLAGS_EXTRA $CFLAGS_EX"
+	else
+	  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+	fi
+	;;
+  mingw*)
+     EXE_EXT=.exe
+
+	 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for *2john helper type" >&5
+$as_echo_n "checking for *2john helper type... " >&6; }
+	 { $as_echo "$as_me:${as_lineno-$LINENO}: result: .exe (symlink.c)" >&5
+$as_echo ".exe (symlink.c)" >&6; };;
+esac
+
+#############################################################################
+# Correct behavior for freebsd requires -D__BSD_VISIBLE to be in cflags
+#############################################################################
+case "$host_os" in
+  freebsd*)
+
+   for i in -D__BSD_VISIBLE; do
+      jtr_list_add_dupe=0
+      for j in $CFLAGS_EX; do
+         if test "x$i" = "x$j"; then
+            jtr_list_add_dupe=1
+            break
+         fi
+      done
+      if test $jtr_list_add_dupe = 0; then
+         CFLAGS_EX="$CFLAGS_EX $i"
+         jtr_list_add_result="$jtr_list_add_result $i"
+      fi
+   done
+
+    CFLAGS_EXTRA="$CFLAGS_EXTRA $CFLAGS_EX"
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for FreeBSD" >&5
+$as_echo_n "checking for FreeBSD... " >&6; }
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+	;;
+esac
 
 CC="$CC_BACKUP"
 CFLAGS="$CFLAGS_BACKUP"
@@ -11006,20 +11052,6 @@ See \`config.log' for more details" "$LINENO" 5; }
      fi
   fi
 
-
-# check for using .exe or -ln -s for cygwin/mingw builds only.  Default uses symlink.c and exe. cygwin can use --enable-ln-s to override this with ln -s
-case "$host_os" in
-  cygwin*) if test "x$enable_ln_s" != xno; then :
-  echo "checking for *2john helper type... ln -s"
-else
-  EXE_EXT=.exe
- echo "checking for *2john helper type... .exe (symlink.c)"
-fi ;;
-  mingw*)
-     EXE_EXT=.exe
-
-	 echo "checking for *2john helper type... .exe (symlink.c)" ;;
-esac
 
 # Checks for header files.
 # Eg. if sys/times.h is found, the below will define HAVE_SYS_TIMES_H
