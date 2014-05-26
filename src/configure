@@ -3359,7 +3359,7 @@ ac_config_headers="$ac_config_headers autoconfig.h"
 
 # Workaround for .gitignore refusing to ignore Makefile since it is
 # a managed file (the stub). The result of this is a *local* workaround.
-if test -d "../.git"; then
+if test -d "../.git"; then :
   # Extract the first word of "git", so it can be a program name with args.
 set dummy git; ac_word=$2
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
@@ -3398,9 +3398,11 @@ $as_echo "no" >&6; }
 fi
 
 
-  if test "x$HAVE_GIT" = xyes; then
-     git update-index --assume-unchanged Makefile
-  fi
+  if test "x$HAVE_GIT" = xyes; then :
+  git update-index --assume-unchanged Makefile
+
+fi
+
 fi
 
 # Define precious variables. They get included in --help and need no AC_SUBST
@@ -4657,21 +4659,21 @@ if test x"$_ax_prog_cc_mpi_mpi_found" = xyes; then :
 
         HAVE_MPI=-DHAVE_MPI
 
-  using_mpi=yes
+   using_mpi=yes
         :
 
 else
 
-        if test "x$enable_mpi" = xyes; then
-     { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+        if test "x$enable_mpi" = xyes; then :
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
 as_fn_error $? "No MPI compiler found
 See \`config.log' for more details" "$LINENO" 5; }
-   elif test "x$enable_mpi" != xno; then
-     { $as_echo "$as_me:${as_lineno-$LINENO}: No MPI compiler found, disabling MPI" >&5
+elif test "x$enable_mpi" != xno; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: No MPI compiler found, disabling MPI" >&5
 $as_echo "$as_me: No MPI compiler found, disabling MPI" >&6;}
-   fi
-   ac_ext=c
+fi
+     ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
 ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
@@ -5075,6 +5077,7 @@ ac_cpp='$CPP $CPPFLAGS'
 ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
 
 
 
@@ -8725,7 +8728,7 @@ $as_echo "#define HAVE_LIBSSL 1" >>confdefs.h
 
 $as_echo "#define HAVE_LIBCRYPTO 1" >>confdefs.h
 
-	    LIBS="-lssl -lcrypto $LIBS"
+            LIBS="-lssl -lcrypto $LIBS"
 else
   { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
@@ -9999,7 +10002,7 @@ $as_echo_n "checking supplied paths for NSS... " >&6; }
       fi
    done
 
-	 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $NSS_CFLAGS $NSS_LIBS" >&5
+         { $as_echo "$as_me:${as_lineno-$LINENO}: result: $NSS_CFLAGS $NSS_LIBS" >&5
 $as_echo "$NSS_CFLAGS $NSS_LIBS" >&6; }
          using_nss=yes
 

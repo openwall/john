@@ -65,12 +65,12 @@ dnl     use $EXEEXT and $OBJEXT  for exe and obj extension.  Set by AC_PROC_CC
 
 # Workaround for .gitignore refusing to ignore Makefile since it is
 # a managed file (the stub). The result of this is a *local* workaround.
-if test -d "../.git"; then
-  AC_CHECK_PROG([HAVE_GIT], [git], [yes], [no])
-  if test "x$HAVE_GIT" = xyes; then
-     git update-index --assume-unchanged Makefile
-  fi
-fi
+AS_IF([test -d "../.git"],
+  [AC_CHECK_PROG([HAVE_GIT], [git], [yes], [no])]
+  [AS_IF([test "x$HAVE_GIT" = xyes],
+     [git update-index --assume-unchanged Makefile]
+  )]
+)
 
 # Define precious variables. They get included in --help and need no AC_SUBST
 AC_ARG_VAR([CFLAGS_EXTRA], [additional CFLAGS for -Woptions and other things, not used during ./configure but put in resulting Makefile])
@@ -99,14 +99,14 @@ AC_CANONICAL_HOST
 # Check for MPI. Only if MPI not found/wanted: Check for CC.
 using_mpi=no
 AX_PROG_CC_MPI([test "x$enable_mpi" != xno],
-  [AC_SUBST(HAVE_MPI,[-DHAVE_MPI])]
-  [using_mpi=yes],
-  [if test "x$enable_mpi" = xyes; then
-     AC_MSG_FAILURE([No MPI compiler found])
-   elif test "x$enable_mpi" != xno; then
-     AC_MSG_NOTICE([No MPI compiler found, disabling MPI])
-   fi
-   AC_PROG_CC([gcc cc icc ccc]) ]
+   [AC_SUBST(HAVE_MPI,[-DHAVE_MPI])]
+   [using_mpi=yes],
+   [AS_IF([test "x$enable_mpi" = xyes],
+     [AC_MSG_FAILURE([No MPI compiler found])],
+     [test "x$enable_mpi" != xno],
+     [AC_MSG_NOTICE([No MPI compiler found, disabling MPI])])
+     AC_PROG_CC([gcc cc icc ccc])
+   ]
 )
 
 # At this point we know whether this is a cross compile
@@ -352,10 +352,10 @@ else
    AC_CHECK_HEADER([openssl/opensslv.h],
       [AC_CHECK_LIB([ssl],[SSL_library_init],
          [AC_CHECK_LIB([crypto],[MD5_Update],
-	    [AC_DEFINE(HAVE_LIBSSL,1,[Define to 1 if you have the `ssl' library (-lssl).])]
-	    [AC_DEFINE(HAVE_LIBCRYPTO,1,[Define to 1 if you have the `crypto' library (-lcrypto).])]
-	    [LIBS="-lssl -lcrypto $LIBS"],
-	    [AC_MSG_FAILURE(JtR requires libssl/libcrypto being installed,1)])],
+            [AC_DEFINE(HAVE_LIBSSL,1,[Define to 1 if you have the `ssl' library (-lssl).])]
+            [AC_DEFINE(HAVE_LIBCRYPTO,1,[Define to 1 if you have the `crypto' library (-lcrypto).])]
+            [LIBS="-lssl -lcrypto $LIBS"],
+            [AC_MSG_FAILURE(JtR requires libssl/libcrypto being installed,1)])],
          [AC_MSG_FAILURE(JtR requires libssl being installed,1)]
       )],
       [AC_MSG_FAILURE(JtR requires OpenSSL headers being installed,1)]
@@ -424,10 +424,10 @@ AS_IF([test "x$enable_nss" != xno],
    [AS_IF([test "x$PKG_CONFIG" != xno],
       [PKG_CHECK_MODULES([NSS], [nss], using_nss=yes [AC_SUBST(HAVE_NSS,[-DHAVE_NSS])],:)],
       [AS_IF([test "x${NSS_CFLAGS}${NSS_LIBS}" != "x"],
-	 [AC_MSG_CHECKING([supplied paths for NSS])]
-	 [JTR_LIST_ADD(CFLAGS, [$NSS_CFLAGS])]
-	 [JTR_LIST_ADD(LDFLAGS, [$NSS_LIBS])]
-	 [AC_MSG_RESULT([$NSS_CFLAGS $NSS_LIBS])]
+         [AC_MSG_CHECKING([supplied paths for NSS])]
+         [JTR_LIST_ADD(CFLAGS, [$NSS_CFLAGS])]
+         [JTR_LIST_ADD(LDFLAGS, [$NSS_LIBS])]
+         [AC_MSG_RESULT([$NSS_CFLAGS $NSS_LIBS])]
          using_nss=yes
       )]
       [AC_MSG_CHECKING([for NSS])]
