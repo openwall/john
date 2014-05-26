@@ -335,19 +335,29 @@ AC_CHECK_HEADER([CommonCrypto/CommonDigest.h],
 
 if test "x$enable_native_tests" = xyes -a "x$PKG_CONFIG" != xno; then
    PKG_CHECK_MODULES([OPENSSL], [openssl],
-     AC_DEFINE(HAVE_LIBCRYPTO,1,[Define to 1 if you have the `crypto' library (-lcrypto).])
+      AC_DEFINE(HAVE_LIBCRYPTO,1,[Define to 1 if you have the `crypto' library (-lcrypto).])
          AC_DEFINE(HAVE_LIBSSL,1,[Define to 1 if you have the `ssl' library (-lssl).]),
          AC_MSG_FAILURE(JtR requires OpenSSL being installed,1))
 else
-#   JTR_SET_NORMAL_SSL_INCLUDES   # MAGNUM, what do you think about putting this here (this is the -I and -L for /usr/local/ssl stuff
+   AS_IF([test "x${OPENSSL_CFLAGS}${OPENSSL_LIBS}" != "x"],
+      [AC_MSG_CHECKING([supplied paths for OpenSSL])]
+      [JTR_LIST_ADD(CFLAGS, [$OPENSSL_CFLAGS])]
+      [JTR_LIST_ADD(LDFLAGS, [$OPENSSL_LIBS])]
+      [AC_MSG_RESULT([$OPENSSL_CFLAGS $OPENSSL_LIBS])],
+      [test "x$cross_compiling" = xno],
+      [JTR_SET_NORMAL_SSL_INCLUDES([/usr/local/ssl])]
+   )
    AC_CHECK_HEADER([openssl/opensslv.h],
-   [AC_CHECK_LIB([ssl],[SSL_library_init],
-      [AC_CHECK_LIB([crypto],[MD5_Update],
-         [AC_DEFINE(HAVE_LIBSSL,1,[Define to 1 if you have the `ssl' library (-lssl).])]
-         [AC_DEFINE(HAVE_LIBCRYPTO,1,[Define to 1 if you have the `crypto' library (-lcrypto).])]
-         [LIBS="-lssl -lcrypto $LIBS"],
-         [AC_MSG_FAILURE(JtR requires libssl/libcrypto being installed,1)])],
-      [AC_MSG_FAILURE(JtR requires libssl being installed,1)])])
+      [AC_CHECK_LIB([ssl],[SSL_library_init],
+         [AC_CHECK_LIB([crypto],[MD5_Update],
+	    [AC_DEFINE(HAVE_LIBSSL,1,[Define to 1 if you have the `ssl' library (-lssl).])]
+	    [AC_DEFINE(HAVE_LIBCRYPTO,1,[Define to 1 if you have the `crypto' library (-lcrypto).])]
+	    [LIBS="-lssl -lcrypto $LIBS"],
+	    [AC_MSG_FAILURE(JtR requires libssl/libcrypto being installed,1)])],
+         [AC_MSG_FAILURE(JtR requires libssl being installed,1)]
+      )],
+      [AC_MSG_FAILURE(JtR requires OpenSSL headers being installed,1)]
+   )
 fi
 
 #################

@@ -68,19 +68,19 @@ JTR_LIST_ADD(CFLAGS, [$ADD_CFLAGS])
 JTR_LIST_ADD_RESULT
 ])
 
-# @synopsis SET_NORMAL_SSL_INCLUDES
-# @summary check and set many normal include paths for oSSL
+# @synopsis SET_NORMAL_SSL_INCLUDES(base path)
+# @summary check and set include/library paths for OpenSSL
 # This might be a Bad Idea[tm] if cross compiling.
 AC_DEFUN([JTR_SET_NORMAL_SSL_INCLUDES],
 [
-  AC_MSG_CHECKING([additional paths])
+  AC_MSG_CHECKING([additional paths for OpenSSL])
   ADD_LDFLAGS=""
   ADD_CFLAGS=""
-if test -d /usr/local/ssl/lib; then
-   ADD_LDFLAGS="$ADD_LDFLAGS -L/usr/local/ssl/lib"
+if test -d $1/lib; then
+   ADD_LDFLAGS="$ADD_LDFLAGS -L$1/lib"
 fi
-if test -d /usr/local/ssl/include; then
-   ADD_CFLAGS="$ADD_CFLAGS -I/usr/local/ssl/include"
+if test -d $1/include; then
+   ADD_CFLAGS="$ADD_CFLAGS -I$1/include"
 fi
 JTR_LIST_ADD(CPPFLAGS, [$ADD_CFLAGS]) # no typo here
 jtr_list_add_result=""

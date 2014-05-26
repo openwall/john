@@ -3329,8 +3329,8 @@ ac_config_headers="$ac_config_headers autoconfig.h"
 # This might be a Bad Idea[tm] if cross compiling.
 
 
-# @synopsis SET_NORMAL_SSL_INCLUDES
-# @summary check and set many normal include paths for oSSL
+# @synopsis SET_NORMAL_SSL_INCLUDES(base path)
+# @summary check and set include/library paths for OpenSSL
 # This might be a Bad Idea[tm] if cross compiling.
 
 
@@ -8491,7 +8491,112 @@ $as_echo "#define HAVE_LIBSSL 1" >>confdefs.h
 
 fi
 else
-#   JTR_SET_NORMAL_SSL_INCLUDES   # MAGNUM, what do you think about putting this here (this is the -I and -L for /usr/local/ssl stuff
+   if test "x${OPENSSL_CFLAGS}${OPENSSL_LIBS}" != "x"; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking supplied paths for OpenSSL" >&5
+$as_echo_n "checking supplied paths for OpenSSL... " >&6; }
+
+   for i in $OPENSSL_CFLAGS; do
+      jtr_list_add_dupe=0
+      for j in $CFLAGS; do
+         if test "x$i" = "x$j"; then
+            jtr_list_add_dupe=1
+            break
+         fi
+      done
+      if test $jtr_list_add_dupe = 0; then
+         CFLAGS="$CFLAGS $i"
+         jtr_list_add_result="$jtr_list_add_result $i"
+      fi
+   done
+
+
+   for i in $OPENSSL_LIBS; do
+      jtr_list_add_dupe=0
+      for j in $LDFLAGS; do
+         if test "x$i" = "x$j"; then
+            jtr_list_add_dupe=1
+            break
+         fi
+      done
+      if test $jtr_list_add_dupe = 0; then
+         LDFLAGS="$LDFLAGS $i"
+         jtr_list_add_result="$jtr_list_add_result $i"
+      fi
+   done
+
+      { $as_echo "$as_me:${as_lineno-$LINENO}: result: $OPENSSL_CFLAGS $OPENSSL_LIBS" >&5
+$as_echo "$OPENSSL_CFLAGS $OPENSSL_LIBS" >&6; }
+elif test "x$cross_compiling" = xno; then :
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking additional paths for OpenSSL" >&5
+$as_echo_n "checking additional paths for OpenSSL... " >&6; }
+  ADD_LDFLAGS=""
+  ADD_CFLAGS=""
+if test -d /usr/local/ssl/lib; then
+   ADD_LDFLAGS="$ADD_LDFLAGS -L/usr/local/ssl/lib"
+fi
+if test -d /usr/local/ssl/include; then
+   ADD_CFLAGS="$ADD_CFLAGS -I/usr/local/ssl/include"
+fi
+
+   for i in $ADD_CFLAGS; do
+      jtr_list_add_dupe=0
+      for j in $CPPFLAGS; do
+         if test "x$i" = "x$j"; then
+            jtr_list_add_dupe=1
+            break
+         fi
+      done
+      if test $jtr_list_add_dupe = 0; then
+         CPPFLAGS="$CPPFLAGS $i"
+         jtr_list_add_result="$jtr_list_add_result $i"
+      fi
+   done
+ # no typo here
+jtr_list_add_result=""
+
+   for i in $ADD_LDFLAGS; do
+      jtr_list_add_dupe=0
+      for j in $LDFLAGS; do
+         if test "x$i" = "x$j"; then
+            jtr_list_add_dupe=1
+            break
+         fi
+      done
+      if test $jtr_list_add_dupe = 0; then
+         LDFLAGS="$LDFLAGS $i"
+         jtr_list_add_result="$jtr_list_add_result $i"
+      fi
+   done
+
+
+   for i in $ADD_CFLAGS; do
+      jtr_list_add_dupe=0
+      for j in $CFLAGS; do
+         if test "x$i" = "x$j"; then
+            jtr_list_add_dupe=1
+            break
+         fi
+      done
+      if test $jtr_list_add_dupe = 0; then
+         CFLAGS="$CFLAGS $i"
+         jtr_list_add_result="$jtr_list_add_result $i"
+      fi
+   done
+
+
+   if test -z "$jtr_list_add_result"; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: none" >&5
+$as_echo "none" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $jtr_list_add_result" >&5
+$as_echo "$jtr_list_add_result" >&6; }
+fi
+   jtr_list_add_result=""
+
+
+
+fi
    ac_fn_c_check_header_mongrel "$LINENO" "openssl/opensslv.h" "ac_cv_header_openssl_opensslv_h" "$ac_includes_default"
 if test "x$ac_cv_header_openssl_opensslv_h" = xyes; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for SSL_library_init in -lssl" >&5
@@ -8574,7 +8679,7 @@ $as_echo "#define HAVE_LIBSSL 1" >>confdefs.h
 
 $as_echo "#define HAVE_LIBCRYPTO 1" >>confdefs.h
 
-         LIBS="-lssl -lcrypto $LIBS"
+	    LIBS="-lssl -lcrypto $LIBS"
 else
   { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
@@ -8587,7 +8692,14 @@ else
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
 as_fn_error 1 "JtR requires libssl being installed
 See \`config.log' for more details" "$LINENO" 5; }
+
 fi
+
+else
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error 1 "JtR requires OpenSSL headers being installed
+See \`config.log' for more details" "$LINENO" 5; }
 
 fi
 
