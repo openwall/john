@@ -71,6 +71,10 @@ if test -d "../.git"; then
   fi
 fi
 
+# Define precious variables. They get included in --help and need no AC_SUBST
+AC_ARG_VAR([CFLAGS_EXTRA], [additional CFLAGS for -Woptions and other things, not used during ./configure but put in resulting Makefile])
+AC_ARG_VAR([YASM], [full pathname of yasm (for optional AES-NI support)])
+
 # Define Packages.
 AC_ARG_WITH(icc-asm, [AS_HELP_STRING([--with-icc-asm],[Use ICC pre-built asm files for intrisic SIMD code. Default: no])],,[with_icc_asm=no])
 # Cludge for endian (if not auto detected)
@@ -167,7 +171,7 @@ AS_IF([test "x$JTR_FLAG_CHECK_WORKS" = xyes],
    # clang warnings
    #JTR_FLAG_CHECK([-Wno-format-extra-args], 1)
    #JTR_FLAG_CHECK([-Wno-unneeded-internal-declaration], 1)
-   AC_SUBST([CFLAGS_EXTRA],["${CFLAGS_EXTRA} ${CFLAGS_EX}"])
+   CFLAGS_EXTRA="$CFLAGS_EXTRA $CFLAGS_EX"
 ],[dnl
    AC_MSG_NOTICE([Unable to validate $CC command line arguments. CFLAGS may need to be passed to ./configure for proper build])
 ])

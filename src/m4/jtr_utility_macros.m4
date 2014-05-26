@@ -93,6 +93,7 @@ JTR_LIST_ADD_RESULT
 # @summary check and set many normal include paths
 AC_DEFUN([JTR_SET_CUDA_INCLUDES],
 [
+   AC_ARG_VAR([NVIDIA_CUDA], [base path of CUDA installation])
    AC_MSG_CHECKING([additional paths for CUDA])
    ADD_LDFLAGS=""
    ADD_CFLAGS=""
@@ -119,6 +120,8 @@ AC_DEFUN([JTR_SET_CUDA_INCLUDES],
 
 AC_DEFUN([JTR_CUDA],
 [
+  AC_ARG_VAR([NVCC], [full pathname of CUDA compiler])
+  AC_ARG_VAR([NVCC_GCC], [full pathname of CUDA compiler's gcc backend])
   using_cuda=no
   if test "x$enable_cuda" != xno; then
      AS_IF([test "x$cross_compiling" = xno], [JTR_SET_CUDA_INCLUDES])
@@ -128,8 +131,6 @@ AC_DEFUN([JTR_CUDA],
 	[AC_CHECK_HEADER([cuda.h], [AC_CHECK_LIB([cudart],[cudaGetDeviceCount],
 				   [using_cuda=yes]
 				   [AC_SUBST([HAVE_CUDA],[-DHAVE_CUDA])]
-				   [AC_SUBST([NVCC],["$NVCC"])]
-				   [AC_SUBST([NVCC_GCC],["$NVCC_GCC"])]
 				   [JTR_LIST_ADD(LIBS, [-lcudart])])
 				   ])]
      )

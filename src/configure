@@ -641,9 +641,9 @@ CC_CPU
 LIBOBJS
 EXE_EXT
 HAVE_CUDA
+NVIDIA_CUDA
 NVCC_GCC
 NVCC
-NVIDIA_CUDA
 CL_LIBS
 CL_CFLAGS
 PTHREAD_CFLAGS
@@ -663,7 +663,6 @@ PKG_CONFIG_PATH
 PKG_CONFIG
 FIND
 AR
-YASM
 SORT
 MKDIR_P
 CPP
@@ -671,7 +670,6 @@ SET_MAKE
 SED
 GREP
 LN_S
-CFLAGS_EXTRA
 OPT_INLINE_FLAGS
 OPT_NORMAL_FLAGS
 HAVE_MPI
@@ -691,6 +689,8 @@ build_os
 build_vendor
 build_cpu
 build
+YASM
+CFLAGS_EXTRA
 HAVE_GIT
 target_alias
 host_alias
@@ -747,6 +747,8 @@ enable_opencl
       ac_precious_vars='build_alias
 host_alias
 target_alias
+CFLAGS_EXTRA
+YASM
 MPICC
 CC
 CFLAGS
@@ -760,7 +762,10 @@ PKG_CONFIG_LIBDIR
 OPENSSL_CFLAGS
 OPENSSL_LIBS
 NSS_CFLAGS
-NSS_LIBS'
+NSS_LIBS
+NVCC
+NVCC_GCC
+NVIDIA_CUDA'
 
 
 # Initialize some variables set by options.
@@ -1393,6 +1398,10 @@ Optional Packages:
                           properly
 
 Some influential environment variables:
+  CFLAGS_EXTRA
+              additional CFLAGS for -Woptions and other things, not used
+              during ./configure but put in resulting Makefile
+  YASM        full pathname of yasm (for optional AES-NI support)
   MPICC       MPI C compiler command
   CC          C compiler command
   CFLAGS      C compiler flags
@@ -1413,6 +1422,9 @@ Some influential environment variables:
               linker flags for OPENSSL, overriding pkg-config
   NSS_CFLAGS  C compiler flags for NSS, overriding pkg-config
   NSS_LIBS    linker flags for NSS, overriding pkg-config
+  NVCC        full pathname of CUDA compiler
+  NVCC_GCC    full pathname of CUDA compiler's gcc backend
+  NVIDIA_CUDA base path of CUDA installation
 
 Use these variables to override the choices made by `configure' or to help
 it to find libraries and programs with nonstandard names/locations.
@@ -3381,6 +3393,10 @@ fi
      git update-index --assume-unchanged Makefile
   fi
 fi
+
+# Define precious variables. They get included in --help and need no AC_SUBST
+
+
 
 # Define Packages.
 
@@ -5695,8 +5711,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
    # clang warnings
    #JTR_FLAG_CHECK([-Wno-format-extra-args], 1)
    #JTR_FLAG_CHECK([-Wno-unneeded-internal-declaration], 1)
-   CFLAGS_EXTRA="${CFLAGS_EXTRA} ${CFLAGS_EX}"
-
+   CFLAGS_EXTRA="$CFLAGS_EXTRA $CFLAGS_EX"
 
 else
      { $as_echo "$as_me:${as_lineno-$LINENO}: Unable to validate $CC command line arguments. CFLAGS may need to be passed to ./configure for proper build" >&5
@@ -7938,7 +7953,6 @@ $as_echo "yes" >&6; }
       fi
    done
 
-   # CFLAG_EXTRA was already defined (early in configure.ac).  We append to it, and AC_SUBST it again.
 
    for i in -D__CYGWIN64__ -D__CYGWIN32__; do
       jtr_list_add_dupe=0
@@ -7954,8 +7968,7 @@ $as_echo "yes" >&6; }
       fi
    done
 
-   CFLAGS_EXTRA=${CFLAGS_EX}
-
+   CFLAGS_EXTRA="$CFLAGS_EXTRA $CFLAGS_EX"
 
 else
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
@@ -10643,9 +10656,12 @@ fi
 
 # Check for CUDA, including headers.
 
+
+
   using_cuda=no
   if test "x$enable_cuda" != xno; then
      if test "x$cross_compiling" = xno; then :
+
 
    { $as_echo "$as_me:${as_lineno-$LINENO}: checking additional paths for CUDA" >&5
 $as_echo_n "checking additional paths for CUDA... " >&6; }
@@ -10846,10 +10862,6 @@ $as_echo "$ac_cv_lib_cudart_cudaGetDeviceCount" >&6; }
 if test "x$ac_cv_lib_cudart_cudaGetDeviceCount" = xyes; then :
   using_cuda=yes
 				   HAVE_CUDA=-DHAVE_CUDA
-
-				   NVCC="$NVCC"
-
-				   NVCC_GCC="$NVCC_GCC"
 
 
    for i in -lcudart; do

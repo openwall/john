@@ -153,9 +153,8 @@ AC_MSG_CHECKING([for cygwin64])
    ,[AC_MSG_RESULT([yes])]
    [ax_intel_x32=no]
    [JTR_LIST_ADD(EXTRA_AS_FLAGS, [-D__CYGWIN64__ -D__CYGWIN32__])]
-   # CFLAG_EXTRA was already defined (early in configure.ac).  We append to it, and AC_SUBST it again.
    [JTR_LIST_ADD(CFLAGS_EX, [-D__CYGWIN64__ -D__CYGWIN32__])]
-   AC_SUBST([CFLAGS_EXTRA],[${CFLAGS_EX}])
+   CFLAGS_EXTRA="$CFLAGS_EXTRA $CFLAGS_EX"
    ,[AC_MSG_RESULT([no])]
 )])
 
