@@ -18,7 +18,7 @@ AC_DEFUN([JTR_LIST_ADD], [
       done
       if test $jtr_list_add_dupe = 0; then
          $1="$$1 $i"
-         jtr_list_add_result="$jtr_list_add_print $i"
+         jtr_list_add_result="$jtr_list_add_result $i"
       fi
    done
 ])
@@ -61,10 +61,10 @@ fi
 if test -d /usr/local/include; then
    ADD_CFLAGS="$ADD_CFLAGS -I/usr/local/include"
 fi
+JTR_LIST_ADD(CPPFLAGS, [$ADD_CFLAGS]) # no typo here
 jtr_list_add_result=""
 JTR_LIST_ADD(LDFLAGS, [$ADD_LDFLAGS])
 JTR_LIST_ADD(CFLAGS, [$ADD_CFLAGS])
-JTR_LIST_ADD(CPPFLAGS, [$ADD_CFLAGS]) dnl  NOT a typo
 JTR_LIST_ADD_RESULT
 ])
 
@@ -82,10 +82,10 @@ fi
 if test -d /usr/local/ssl/include; then
    ADD_CFLAGS="$ADD_CFLAGS -I/usr/local/ssl/include"
 fi
+JTR_LIST_ADD(CPPFLAGS, [$ADD_CFLAGS]) # no typo here
 jtr_list_add_result=""
 JTR_LIST_ADD(LDFLAGS, [$ADD_LDFLAGS])
 JTR_LIST_ADD(CFLAGS, [$ADD_CFLAGS])
-JTR_LIST_ADD(CPPFLAGS, [$ADD_CFLAGS]) dnl  NOT a typo
 JTR_LIST_ADD_RESULT
 ])
 
@@ -110,10 +110,10 @@ AC_DEFUN([JTR_SET_CUDA_INCLUDES],
    elif test -d "$CUDAPATH/lib"; then
       ADD_LDFLAGS="$ADD_LDFLAGS -L$CUDAPATH/lib"
    fi
+   JTR_LIST_ADD(CPPFLAGS, [$ADD_CFLAGS]) # no typo here
    jtr_list_add_result=""
    JTR_LIST_ADD(LDFLAGS, [$ADD_LDFLAGS])
    JTR_LIST_ADD(CFLAGS, [$ADD_CFLAGS])
-   JTR_LIST_ADD(CPPFLAGS, [$ADD_CFLAGS]) dnl  NOT a typo
    JTR_LIST_ADD_RESULT
 ])
 
@@ -170,10 +170,10 @@ AC_DEFUN([JTR_SET_OPENCL_INCLUDES],
          ADD_LDFLAGS="$ADD_LDFLAGS -L$ATISTREAMSDKROOT/lib"
       fi
    fi
+   JTR_LIST_ADD(CPPFLAGS, [$ADD_CFLAGS]) # no typo here
    jtr_list_add_result=""
    JTR_LIST_ADD(LDFLAGS, [$ADD_LDFLAGS])
    JTR_LIST_ADD(CFLAGS, [$ADD_CFLAGS])
-   JTR_LIST_ADD(CPPFLAGS, [$ADD_CFLAGS]) dnl  NOT a typo
    JTR_LIST_ADD_RESULT
 ])
 

@@ -5087,6 +5087,21 @@ fi
 if test -d /usr/local/include; then
    ADD_CFLAGS="$ADD_CFLAGS -I/usr/local/include"
 fi
+
+   for i in $ADD_CFLAGS; do
+      jtr_list_add_dupe=0
+      for j in $CPPFLAGS; do
+         if test "x$i" = "x$j"; then
+            jtr_list_add_dupe=1
+            break
+         fi
+      done
+      if test $jtr_list_add_dupe = 0; then
+         CPPFLAGS="$CPPFLAGS $i"
+         jtr_list_add_result="$jtr_list_add_result $i"
+      fi
+   done
+ # no typo here
 jtr_list_add_result=""
 
    for i in $ADD_LDFLAGS; do
@@ -5099,7 +5114,7 @@ jtr_list_add_result=""
       done
       if test $jtr_list_add_dupe = 0; then
          LDFLAGS="$LDFLAGS $i"
-         jtr_list_add_result="$jtr_list_add_print $i"
+         jtr_list_add_result="$jtr_list_add_result $i"
       fi
    done
 
@@ -5114,24 +5129,10 @@ jtr_list_add_result=""
       done
       if test $jtr_list_add_dupe = 0; then
          CFLAGS="$CFLAGS $i"
-         jtr_list_add_result="$jtr_list_add_print $i"
+         jtr_list_add_result="$jtr_list_add_result $i"
       fi
    done
 
-
-   for i in $ADD_CFLAGS; do
-      jtr_list_add_dupe=0
-      for j in $CPPFLAGS; do
-         if test "x$i" = "x$j"; then
-            jtr_list_add_dupe=1
-            break
-         fi
-      done
-      if test $jtr_list_add_dupe = 0; then
-         CPPFLAGS="$CPPFLAGS $i"
-         jtr_list_add_result="$jtr_list_add_print $i"
-      fi
-   done
 
    if test -z "$jtr_list_add_result"; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: none" >&5
@@ -7787,7 +7788,7 @@ case "$host_cpu" in
       done
       if test $jtr_list_add_dupe = 0; then
          CFLAGS="$CFLAGS $i"
-         jtr_list_add_result="$jtr_list_add_print $i"
+         jtr_list_add_result="$jtr_list_add_result $i"
       fi
    done
 
@@ -7811,7 +7812,7 @@ case "$host_cpu" in
       done
       if test $jtr_list_add_dupe = 0; then
          CFLAGS="$CFLAGS $i"
-         jtr_list_add_result="$jtr_list_add_print $i"
+         jtr_list_add_result="$jtr_list_add_result $i"
       fi
    done
 
@@ -7852,7 +7853,7 @@ if echo "int long_ident;" > conftest.c && ${CC} -c conftest.c && strings - conft
       done
       if test $jtr_list_add_dupe = 0; then
          EXTRA_AS_FLAGS="$EXTRA_AS_FLAGS $i"
-         jtr_list_add_result="$jtr_list_add_print $i"
+         jtr_list_add_result="$jtr_list_add_result $i"
       fi
    done
 
@@ -7882,7 +7883,7 @@ if ac_fn_c_try_link "$LINENO"; then :
       done
       if test $jtr_list_add_dupe = 0; then
          EXTRA_AS_FLAGS="$EXTRA_AS_FLAGS $i"
-         jtr_list_add_result="$jtr_list_add_print $i"
+         jtr_list_add_result="$jtr_list_add_result $i"
       fi
    done
 
@@ -7933,7 +7934,7 @@ $as_echo "yes" >&6; }
       done
       if test $jtr_list_add_dupe = 0; then
          EXTRA_AS_FLAGS="$EXTRA_AS_FLAGS $i"
-         jtr_list_add_result="$jtr_list_add_print $i"
+         jtr_list_add_result="$jtr_list_add_result $i"
       fi
    done
 
@@ -7949,7 +7950,7 @@ $as_echo "yes" >&6; }
       done
       if test $jtr_list_add_dupe = 0; then
          CFLAGS_EX="$CFLAGS_EX $i"
-         jtr_list_add_result="$jtr_list_add_print $i"
+         jtr_list_add_result="$jtr_list_add_result $i"
       fi
    done
 
@@ -8944,7 +8945,7 @@ $as_echo "#define HAVE_SKEY 1" >>confdefs.h
       done
       if test $jtr_list_add_dupe = 0; then
          LIBS="$LIBS $i"
-         jtr_list_add_result="$jtr_list_add_print $i"
+         jtr_list_add_result="$jtr_list_add_result $i"
       fi
    done
 
@@ -9435,7 +9436,7 @@ if test "x$ac_cv_lib_pcap_pcap_compile" = xyes; then :
       done
       if test $jtr_list_add_dupe = 0; then
          LIBS="$LIBS $i"
-         jtr_list_add_result="$jtr_list_add_print $i"
+         jtr_list_add_result="$jtr_list_add_result $i"
       fi
    done
 
@@ -9897,6 +9898,21 @@ $as_echo_n "checking additional paths for OpenCL... " >&6; }
          ADD_LDFLAGS="$ADD_LDFLAGS -L$ATISTREAMSDKROOT/lib"
       fi
    fi
+
+   for i in $ADD_CFLAGS; do
+      jtr_list_add_dupe=0
+      for j in $CPPFLAGS; do
+         if test "x$i" = "x$j"; then
+            jtr_list_add_dupe=1
+            break
+         fi
+      done
+      if test $jtr_list_add_dupe = 0; then
+         CPPFLAGS="$CPPFLAGS $i"
+         jtr_list_add_result="$jtr_list_add_result $i"
+      fi
+   done
+ # no typo here
    jtr_list_add_result=""
 
    for i in $ADD_LDFLAGS; do
@@ -9909,7 +9925,7 @@ $as_echo_n "checking additional paths for OpenCL... " >&6; }
       done
       if test $jtr_list_add_dupe = 0; then
          LDFLAGS="$LDFLAGS $i"
-         jtr_list_add_result="$jtr_list_add_print $i"
+         jtr_list_add_result="$jtr_list_add_result $i"
       fi
    done
 
@@ -9924,24 +9940,10 @@ $as_echo_n "checking additional paths for OpenCL... " >&6; }
       done
       if test $jtr_list_add_dupe = 0; then
          CFLAGS="$CFLAGS $i"
-         jtr_list_add_result="$jtr_list_add_print $i"
+         jtr_list_add_result="$jtr_list_add_result $i"
       fi
    done
 
-
-   for i in $ADD_CFLAGS; do
-      jtr_list_add_dupe=0
-      for j in $CPPFLAGS; do
-         if test "x$i" = "x$j"; then
-            jtr_list_add_dupe=1
-            break
-         fi
-      done
-      if test $jtr_list_add_dupe = 0; then
-         CPPFLAGS="$CPPFLAGS $i"
-         jtr_list_add_result="$jtr_list_add_print $i"
-      fi
-   done
 
    if test -z "$jtr_list_add_result"; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: none" >&5
@@ -10664,6 +10666,21 @@ $as_echo_n "checking additional paths for CUDA... " >&6; }
    elif test -d "$CUDAPATH/lib"; then
       ADD_LDFLAGS="$ADD_LDFLAGS -L$CUDAPATH/lib"
    fi
+
+   for i in $ADD_CFLAGS; do
+      jtr_list_add_dupe=0
+      for j in $CPPFLAGS; do
+         if test "x$i" = "x$j"; then
+            jtr_list_add_dupe=1
+            break
+         fi
+      done
+      if test $jtr_list_add_dupe = 0; then
+         CPPFLAGS="$CPPFLAGS $i"
+         jtr_list_add_result="$jtr_list_add_result $i"
+      fi
+   done
+ # no typo here
    jtr_list_add_result=""
 
    for i in $ADD_LDFLAGS; do
@@ -10676,7 +10693,7 @@ $as_echo_n "checking additional paths for CUDA... " >&6; }
       done
       if test $jtr_list_add_dupe = 0; then
          LDFLAGS="$LDFLAGS $i"
-         jtr_list_add_result="$jtr_list_add_print $i"
+         jtr_list_add_result="$jtr_list_add_result $i"
       fi
    done
 
@@ -10691,24 +10708,10 @@ $as_echo_n "checking additional paths for CUDA... " >&6; }
       done
       if test $jtr_list_add_dupe = 0; then
          CFLAGS="$CFLAGS $i"
-         jtr_list_add_result="$jtr_list_add_print $i"
+         jtr_list_add_result="$jtr_list_add_result $i"
       fi
    done
 
-
-   for i in $ADD_CFLAGS; do
-      jtr_list_add_dupe=0
-      for j in $CPPFLAGS; do
-         if test "x$i" = "x$j"; then
-            jtr_list_add_dupe=1
-            break
-         fi
-      done
-      if test $jtr_list_add_dupe = 0; then
-         CPPFLAGS="$CPPFLAGS $i"
-         jtr_list_add_result="$jtr_list_add_print $i"
-      fi
-   done
 
    if test -z "$jtr_list_add_result"; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: none" >&5
@@ -10859,7 +10862,7 @@ if test "x$ac_cv_lib_cudart_cudaGetDeviceCount" = xyes; then :
       done
       if test $jtr_list_add_dupe = 0; then
          LIBS="$LIBS $i"
-         jtr_list_add_result="$jtr_list_add_print $i"
+         jtr_list_add_result="$jtr_list_add_result $i"
       fi
    done
 
