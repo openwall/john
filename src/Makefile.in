@@ -595,53 +595,45 @@ john.o: john.c
 .S.o:
 	$(AS) $(ASFLAGS) $*.S
 
-check:
-	../run/john --make_check
+check: default
+	../run/john --test=0 --verbosity=2
 
 depend:
 	makedepend -fMakefile.dep -Y *.c 2>> /dev/null
 
-test:
+test: default
 	cd ../test && perl jtrts.pl -q
 
-test_full:
+test_full: default
 	cd ../test && perl jtrts.pl -q -type full
 
-test_utf8:
+test_utf8: default
 	cd ../test && perl jtrts.pl -q -type utf-8
 
-test_verbose:
+test_verbose: default
 	cd ../test && perl jtrts.pl
 
-test_full_verbose:
+test_full_verbose: default
 	cd ../test && perl jtrts.pl -type full
 
-test_utf8_verbose:
+test_utf8_verbose: default
 	cd ../test && perl jtrts.pl -type utf-8
 
 bash-completion:
-	@echo
-	@echo NOTE: Administrative priviledges required for this make target.
 	[ -d /etc/bash_completion.d ] && $(CP) ../run/john.bash_completion /etc/bash_completion.d/ || true
 	[ -d /usr/local/etc/bash_completion.d ] && $(CP) ../run/john.bash_completion /usr/local/etc/bash_completion.d/ || true
 	[ -d /opt/local/etc/bash_completion.d ] && $(CP) ../run/john.bash_completion /opt/local/etc/bash_completion.d/ || true
-	@echo
 	@echo Bash-completion for JtR opportunistically installed.
 	@echo Source \". ../run/john.bash_completion\" or logout/login to activate the changes
 
 zsh-completion:
-	@echo
-	@echo NOTE: Administrative priviledges required for this make target.
 	[ -d /usr/share/zsh/functions/Completion/Unix ] && $(CP) ../run/john.zsh_completion /usr/share/zsh/functions/Completion/Unix/_john || true
 	[ -d /usr/share/zsh/site-functions ] && $(CP) ../run/john.zsh_completion /usr/share/zsh/site-functions/_john || true
 	[ -d /usr/local/share/zsh/site-functions ] && $(CP) ../run/john.zsh_completion /usr/local/share/zsh/site-functions/_john || true
-	@echo
 	@echo zsh-completion for JtR opportunistically installed.
 	@echo Source \". ../run/john.zsh_completion\" or logout/login to activate the changes
 
 shell-completion: bash-completion zsh-completion
-	@echo
-	@echo "You should have bash and zsh completion now"
 
 clean:
 	$(RM) $(PROJ)
@@ -811,7 +803,8 @@ snapshot: $(SOURCES) $(DOCS) $(OTHERFILES)
 	echo "->removnig the temporary directory " xyplot-$(VERS)
 	/bin/rm -rf xyplot-$(VERS)             # remove the old directory
 
-install: default
+install: default shell-completion
+	@echo Stripping executables.
 	$(STRIP) $(PROJ)
 
 #install:
