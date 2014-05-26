@@ -273,7 +273,7 @@ JTR_SYSTEMS_SPECIFIC_LOGIC
 
 # Set a variable detecting x86-64 w/ X32 ABI
 if test "x$ax_intel_x32" = xyes; then
-   using_x32=" X32 ABI"
+   using_x32=", X32 ABI"
 else
    using_x32=""
 fi
@@ -283,7 +283,7 @@ fi
 # TODO: Needs fix for cross compile (we can infer it from $host_cpu)
 #############################################################################
 AC_MSG_CHECKING([for unaligned memory access allowed])
-if test "x$cross_compiling" = xno; then
+if test "x$enable_native_tests" = xyes; then
    AC_RUN_IFELSE(dnl
      [dnl
      AC_LANG_SOURCE(dnl
@@ -296,9 +296,12 @@ if test "x$cross_compiling" = xno; then
      ,[ALLOWS_UNALIGNED="0"]
       [AC_MSG_RESULT([no])]
    )
+elif test "x$cpu_family" = xintel; then
+   ALLOWS_UNALIGNED="1"
+   AC_MSG_RESULT([yes])
 else
    ALLOWS_UNALIGNED="0"
-   AC_MSG_RESULT([unknown])
+   AC_MSG_RESULT([unknown, assuming no])
 fi
 
 #############################################################################
@@ -691,13 +694,18 @@ if test $(echo "$CFLAGS" | ${GREP} -c -- "-O") -eq 0 &&
    echo
    AC_MSG_WARN([No recognized optimization option present in CFLAGS])
 fi
+if test "x$endian" = "big"; then
+   using_endian="BE"
+else
+   using_endian="LE"
+fi
 
 cat <<EOF
 dnl =======================================================================
 
 Configured for building John the Ripper ${PACKAGE_VERSION}:
 
-Target CPU .................................. ${host_cpu}, ${CPU_BIT_STR}-bit${using_x32}
+Target CPU .................................. ${host_cpu}, ${CPU_BIT_STR}-bit ${using_endian}${using_x32}
 AES-NI support .............................. ${using_aesni}
 Target OS ................................... ${host_os}
 Cross compiling ............................. ${cross_compiling}

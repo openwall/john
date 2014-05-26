@@ -8067,7 +8067,7 @@ CFLAGS="$CFLAGS_BACKUP"
 
 # Set a variable detecting x86-64 w/ X32 ABI
 if test "x$ax_intel_x32" = xyes; then
-   using_x32=" X32 ABI"
+   using_x32=", X32 ABI"
 else
    using_x32=""
 fi
@@ -8078,7 +8078,7 @@ fi
 #############################################################################
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for unaligned memory access allowed" >&5
 $as_echo_n "checking for unaligned memory access allowed... " >&6; }
-if test "x$cross_compiling" = xno; then
+if test "x$enable_native_tests" = xyes; then
    if test "$cross_compiling" = yes; then :
   { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
@@ -8108,10 +8108,14 @@ rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
   conftest.$ac_objext conftest.beam conftest.$ac_ext
 fi
 
+elif test "x$cpu_family" = xintel; then
+   ALLOWS_UNALIGNED="1"
+   { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
 else
    ALLOWS_UNALIGNED="0"
-   { $as_echo "$as_me:${as_lineno-$LINENO}: result: unknown" >&5
-$as_echo "unknown" >&6; }
+   { $as_echo "$as_me:${as_lineno-$LINENO}: result: unknown, assuming no" >&5
+$as_echo "unknown, assuming no" >&6; }
 fi
 
 #############################################################################
@@ -13682,12 +13686,17 @@ if test $(echo "$CFLAGS" | ${GREP} -c -- "-O") -eq 0 &&
    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: No recognized optimization option present in CFLAGS" >&5
 $as_echo "$as_me: WARNING: No recognized optimization option present in CFLAGS" >&2;}
 fi
+if test "x$endian" = "big"; then
+   using_endian="BE"
+else
+   using_endian="LE"
+fi
 
 cat <<EOF
 
 Configured for building John the Ripper ${PACKAGE_VERSION}:
 
-Target CPU .................................. ${host_cpu}, ${CPU_BIT_STR}-bit${using_x32}
+Target CPU .................................. ${host_cpu}, ${CPU_BIT_STR}-bit ${using_endian}${using_x32}
 AES-NI support .............................. ${using_aesni}
 Target OS ................................... ${host_os}
 Cross compiling ............................. ${cross_compiling}
