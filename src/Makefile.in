@@ -186,16 +186,16 @@ ifdef HAVE_NSS
 PROJ += ../run/mozilla2john@EXE_EXT@
 endif
 
-WITH_PCAP=@HAVE_PCAP@
+WITH_PCAP = @HAVE_PCAP@
 ifdef WITH_PCAP
 PROJ += ../run/SIPdump@EXE_EXT@ ../run/vncpcap2john@EXE_EXT@
 endif
 
-WITH_CUDA=@HAVE_CUDA@
+WITH_CUDA = @HAVE_CUDA@
 ifdef WITH_CUDA
 NVCC = @NVCC@
 CCBIN_OSX = @NVCC_GCC@
-ifdef $(CCBIN_OSX)
+ifdef CCBIN_OSX
 NVCC_FLAGS += @CPU_BITS@ -ccbin=$(CCBIN_OSX)
 endif
 JOHN_OBJS += $(CUDA_OBJS)
