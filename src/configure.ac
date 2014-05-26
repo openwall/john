@@ -712,7 +712,7 @@ Optional libraries found:
 Rexgen (extra cracking mode) ................ ${using_rexgen}
 GMP (performance) ........................... ${ac_cv_lib_gmp___gmpz_init}
 NSS/NSPR (Mozilla format) ................... ${using_nss}
-SKEY (skey format) .......................... ${ac_cv_lib_skey_skey_set_algorithm}
+S/Key (skey format) ......................... ${ac_cv_lib_skey_skey_set_algorithm}
 MIT Kerberos5 (krb5-18/23 formats) .......... ${ac_cv_lib_krb5_krb5_c_string_to_key_with_params}
 PCAP (vncpcap2john and SIPdump) ............. ${ac_cv_lib_pcap_pcap_compile}
 

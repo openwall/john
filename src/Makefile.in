@@ -812,7 +812,7 @@ snapshot: $(SOURCES) $(DOCS) $(OTHERFILES)
 	/bin/rm -rf xyplot-$(VERS)             # remove the old directory
 
 install: default
-	$(STRIP) -S $(PROJ)
+	$(STRIP) $(PROJ)
 
 #install:
 #	@for dir in ${subdirs}; do \
