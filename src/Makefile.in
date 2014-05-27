@@ -194,9 +194,9 @@ endif
 WITH_CUDA = @HAVE_CUDA@
 ifdef WITH_CUDA
 NVCC = @NVCC@
-CCBIN_OSX = @NVCC_GCC@
-ifdef CCBIN_OSX
-NVCC_FLAGS += @CPU_BITS@ -ccbin=$(CCBIN_OSX)
+CCBIN = @NVCC_GCC@
+ifdef CCBIN
+NVCC_FLAGS += @CPU_BITS@ -ccbin=$(CCBIN)
 endif
 JOHN_OBJS += $(CUDA_OBJS)
 endif
