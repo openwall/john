@@ -653,6 +653,7 @@ OPENMP_CFLAGS
 HAVE_NSS
 NSS_LIBS
 NSS_CFLAGS
+PCAP_LIB
 HAVE_PCAP
 OPENSSL_LIBS
 OPENSSL_CFLAGS
@@ -8376,9 +8377,7 @@ fi
 # to not have any.  If there are space, then often that will get a lib to NOT
 # be added to @LIBS@ and cause linkage problems.  Also note, if action if found
 # is specified, the -llibname will NOT get appended to LIBS. So it has to be
-# done by 'hand'.  Look at PCAP, where -lpcap" was added to LIBS. This could
-# also be done by skipping the modified default action, and doing an AS_IF on
-# the next line.
+# done by 'hand'.
 ################################################
 ac_fn_c_check_header_mongrel "$LINENO" "CommonCrypto/CommonDigest.h" "ac_cv_header_CommonCrypto_CommonDigest_h" "$ac_includes_default"
 if test "x$ac_cv_header_CommonCrypto_CommonDigest_h" = xyes; then :
@@ -9606,20 +9605,7 @@ fi
 $as_echo "$ac_cv_lib_pcap_pcap_compile" >&6; }
 if test "x$ac_cv_lib_pcap_pcap_compile" = xyes; then :
   HAVE_PCAP=-DHAVE_PCAP
-
-   for i in -lpcap; do
-      jtr_list_add_dupe=0
-      for j in $LIBS; do
-         if test "x$i" = "x$j"; then
-            jtr_list_add_dupe=1
-            break
-         fi
-      done
-      if test $jtr_list_add_dupe = 0; then
-         LIBS="$LIBS $i"
-         jtr_list_add_result="$jtr_list_add_result $i"
-      fi
-   done
+ PCAP_LIB=-lpcap
 
 fi
 

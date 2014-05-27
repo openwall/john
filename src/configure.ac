@@ -328,9 +328,7 @@ fi
 # to not have any.  If there are space, then often that will get a lib to NOT
 # be added to @LIBS@ and cause linkage problems.  Also note, if action if found
 # is specified, the -llibname will NOT get appended to LIBS. So it has to be
-# done by 'hand'.  Look at PCAP, where -lpcap" was added to LIBS. This could
-# also be done by skipping the modified default action, and doing an AS_IF on
-# the next line.
+# done by 'hand'.
 ################################################
 AC_CHECK_HEADER([CommonCrypto/CommonDigest.h],
    [AC_CHECK_LIB([System], [CCKeyDerivationPBKDF],
@@ -393,7 +391,7 @@ AC_CHECK_LIB([wst],[main])
 # in makefile, we need to know if building extra pcap items.
 if test "x$enable_pcap" != xno ; then
   AC_CHECK_HEADERS([pcap.h pcap/pcap.h],[AC_CHECK_LIB([pcap],[pcap_compile],
-        [AC_SUBST(HAVE_PCAP,[-DHAVE_PCAP])] [JTR_LIST_ADD(LIBS, [-lpcap])])]
+        [AC_SUBST(HAVE_PCAP,[-DHAVE_PCAP])] [AC_SUBST(PCAP_LIB, [-lpcap])])]
         [break])
 else
   AC_MSG_NOTICE([PCAP check disabled])
