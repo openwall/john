@@ -48,12 +48,12 @@
 #else
 #define _MP_VERSION ""
 #endif
+#define _PER_NODE ""
+#endif
 #ifdef DEBUG
 #define DEBUG_STRING "-dbg"
 #else
 #define DEBUG_STRING ""
-#endif
-#define _PER_NODE ""
 #endif
 #ifdef HAVE_OPENCL
 #include "common-opencl.h"
