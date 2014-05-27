@@ -102,9 +102,6 @@
 /* Define to 1 if you have the `nsl' library (-lnsl). */
 #undef HAVE_LIBNSL
 
-/* Define to 1 if you have the `pthread' library (-lpthread). */
-#undef HAVE_LIBPTHREAD
-
 /* Define to 1 if you have the `rexgen' library (-lrexgen). */
 #undef HAVE_LIBREXGEN
 

@@ -639,22 +639,30 @@ CC_ASM_OBJS
 CC_MAIN_CPU
 CC_CPU
 LIBOBJS
+CUDA_LIBS
 HAVE_CUDA
 NVIDIA_CUDA
 NVCC_GCC
 NVCC
 CL_LIBS
 CL_CFLAGS
-PTHREAD_CFLAGS
-PTHREAD_LIBS
-PTHREAD_CC
-ax_pthread_config
 OPENMP_CFLAGS
 HAVE_NSS
 NSS_LIBS
 NSS_CFLAGS
-PCAP_LIB
+PCAP_LIBS
 HAVE_PCAP
+PTHREAD_CFLAGS
+PTHREAD_LIBS
+PTHREAD_CC
+ax_pthread_config
+REXGEN_LIBS
+SKEY_LIBS
+GMP_LIBS
+KRB5_LIBS
+CRYPT_LIBS
+Z_LIBS
+M_LIBS
 OPENSSL_LIBS
 OPENSSL_CFLAGS
 EXE_EXT
@@ -8424,7 +8432,7 @@ if ${ac_cv_lib_System_CCCryptorCreate+:} false; then :
   $as_echo_n "(cached) " >&6
 else
   ac_check_lib_save_LIBS=$LIBS
-LIBS="-lSystem -lcrypto $LIBS"
+LIBS="-lSystem  $LIBS"
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
@@ -8560,21 +8568,6 @@ $as_echo_n "checking supplied paths for OpenSSL... " >&6; }
       done
       if test $jtr_list_add_dupe = 0; then
          CFLAGS="$CFLAGS $i"
-         jtr_list_add_result="$jtr_list_add_result $i"
-      fi
-   done
-
-
-   for i in $OPENSSL_LIBS; do
-      jtr_list_add_dupe=0
-      for j in $LDFLAGS; do
-         if test "x$i" = "x$j"; then
-            jtr_list_add_dupe=1
-            break
-         fi
-      done
-      if test $jtr_list_add_dupe = 0; then
-         LDFLAGS="$LDFLAGS $i"
          jtr_list_add_result="$jtr_list_add_result $i"
       fi
    done
@@ -8732,7 +8725,7 @@ $as_echo "#define HAVE_LIBSSL 1" >>confdefs.h
 
 $as_echo "#define HAVE_LIBCRYPTO 1" >>confdefs.h
 
-	       LIBS="-lssl -lcrypto $LIBS"
+	       OPENSSL_LIBS="-lssl -lcrypto"
 else
   { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
@@ -8801,11 +8794,9 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_m_sqrt" >&5
 $as_echo "$ac_cv_lib_m_sqrt" >&6; }
 if test "x$ac_cv_lib_m_sqrt" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBM 1
-_ACEOF
 
-  LIBS="-lm $LIBS"
+$as_echo "#define HAVE_LIBM 1" >>confdefs.h
+ M_LIBS=-lm
 
 else
   { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
@@ -8851,11 +8842,9 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_z_deflate" >&5
 $as_echo "$ac_cv_lib_z_deflate" >&6; }
 if test "x$ac_cv_lib_z_deflate" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBZ 1
-_ACEOF
 
-  LIBS="-lz $LIBS"
+$as_echo "#define HAVE_LIBZ 1" >>confdefs.h
+ Z_LIBS=-lz
 
 else
   { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
@@ -8864,6 +8853,8 @@ as_fn_error 1 "JtR requires libz being installed
 See \`config.log' for more details" "$LINENO" 5; }
 fi
 
+BACKUP_LIBS="$LIBS"
+LIBS=""
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing crypt" >&5
 $as_echo_n "checking for library containing crypt... " >&6; }
 if ${ac_cv_search_crypt+:} false; then :
@@ -8922,6 +8913,9 @@ $as_echo "#define HAVE_CRYPT 1" >>confdefs.h
 
 fi
 
+CRYPT_LIBS=$LIBS
+
+LIBS="$BACKUP_LIBS"
 ac_fn_c_check_header_mongrel "$LINENO" "krb5.h" "ac_cv_header_krb5_h" "$ac_includes_default"
 if test "x$ac_cv_header_krb5_h" = xyes; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for krb5_c_string_to_key_with_params in -lk5crypto" >&5
@@ -8961,11 +8955,8 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_k5crypto_krb5_c_string_to_key_with_params" >&5
 $as_echo "$ac_cv_lib_k5crypto_krb5_c_string_to_key_with_params" >&6; }
 if test "x$ac_cv_lib_k5crypto_krb5_c_string_to_key_with_params" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBK5CRYPTO 1
-_ACEOF
 
-  LIBS="-lk5crypto $LIBS"
+$as_echo "#define HAVE_LIBK5CRYPTO 1" >>confdefs.h
 
 fi
  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for krb5_c_string_to_key_with_params in -lkrb5" >&5
@@ -9005,11 +8996,9 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_krb5_krb5_c_string_to_key_with_params" >&5
 $as_echo "$ac_cv_lib_krb5_krb5_c_string_to_key_with_params" >&6; }
 if test "x$ac_cv_lib_krb5_krb5_c_string_to_key_with_params" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBKRB5 1
-_ACEOF
 
-  LIBS="-lkrb5 $LIBS"
+$as_echo "#define HAVE_LIBKRB5 1" >>confdefs.h
+ KRB5_LIBS="-lkrb5 -lk5crypto"
 
 fi
 
@@ -9061,11 +9050,9 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_gmp___gmpz_init" >&5
 $as_echo "$ac_cv_lib_gmp___gmpz_init" >&6; }
 if test "x$ac_cv_lib_gmp___gmpz_init" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBGMP 1
-_ACEOF
 
-  LIBS="-lgmp $LIBS"
+$as_echo "#define HAVE_LIBGMP 1" >>confdefs.h
+ GMP_LIBS=-lgmp
 
 fi
  break
@@ -9114,20 +9101,7 @@ $as_echo "$ac_cv_lib_skey_skey_set_algorithm" >&6; }
 if test "x$ac_cv_lib_skey_skey_set_algorithm" = xyes; then :
 
 $as_echo "#define HAVE_SKEY 1" >>confdefs.h
-
-   for i in -lskey; do
-      jtr_list_add_dupe=0
-      for j in $LIBS; do
-         if test "x$i" = "x$j"; then
-            jtr_list_add_dupe=1
-            break
-         fi
-      done
-      if test $jtr_list_add_dupe = 0; then
-         LIBS="$LIBS $i"
-         jtr_list_add_result="$jtr_list_add_result $i"
-      fi
-   done
+ SKEY_LIBS=-lskey
 
 fi
 
@@ -9219,6 +9193,8 @@ _ACEOF
 fi
 
 using_rexgen=no
+BACKUP_LIBS="$LIBS"
+LIBS=""
 ac_fn_c_check_header_mongrel "$LINENO" "librexgen/api/c/librexgen.h" "ac_cv_header_librexgen_api_c_librexgen_h" "$ac_includes_default"
 if test "x$ac_cv_header_librexgen_api_c_librexgen_h" = xyes; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing c_regex_iterator_cb" >&5
@@ -9283,6 +9259,9 @@ fi
 fi
 
 
+REXGEN_LIBS=$LIBS
+
+LIBS="$BACKUP_LIBS"
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lnsl" >&5
 $as_echo_n "checking for main in -lnsl... " >&6; }
 if ${ac_cv_lib_nsl_main+:} false; then :
@@ -9322,850 +9301,6 @@ _ACEOF
 
 fi
 
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lpthread" >&5
-$as_echo_n "checking for main in -lpthread... " >&6; }
-if ${ac_cv_lib_pthread_main+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lpthread  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-
-int
-main ()
-{
-return main ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_pthread_main=yes
-else
-  ac_cv_lib_pthread_main=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_pthread_main" >&5
-$as_echo "$ac_cv_lib_pthread_main" >&6; }
-if test "x$ac_cv_lib_pthread_main" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBPTHREAD 1
-_ACEOF
-
-  LIBS="-lpthread $LIBS"
-
-fi
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lrt" >&5
-$as_echo_n "checking for main in -lrt... " >&6; }
-if ${ac_cv_lib_rt_main+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lrt  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-
-int
-main ()
-{
-return main ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_rt_main=yes
-else
-  ac_cv_lib_rt_main=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_rt_main" >&5
-$as_echo "$ac_cv_lib_rt_main" >&6; }
-if test "x$ac_cv_lib_rt_main" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBRT 1
-_ACEOF
-
-  LIBS="-lrt $LIBS"
-
-fi
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lsocket" >&5
-$as_echo_n "checking for main in -lsocket... " >&6; }
-if ${ac_cv_lib_socket_main+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lsocket  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-
-int
-main ()
-{
-return main ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_socket_main=yes
-else
-  ac_cv_lib_socket_main=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_socket_main" >&5
-$as_echo "$ac_cv_lib_socket_main" >&6; }
-if test "x$ac_cv_lib_socket_main" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBSOCKET 1
-_ACEOF
-
-  LIBS="-lsocket $LIBS"
-
-fi
-
-# mingw stuff from older makefile rules.
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lwsock32" >&5
-$as_echo_n "checking for main in -lwsock32... " >&6; }
-if ${ac_cv_lib_wsock32_main+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lwsock32  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-
-int
-main ()
-{
-return main ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_wsock32_main=yes
-else
-  ac_cv_lib_wsock32_main=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_wsock32_main" >&5
-$as_echo "$ac_cv_lib_wsock32_main" >&6; }
-if test "x$ac_cv_lib_wsock32_main" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBWSOCK32 1
-_ACEOF
-
-  LIBS="-lwsock32 $LIBS"
-
-fi
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lws2_32" >&5
-$as_echo_n "checking for main in -lws2_32... " >&6; }
-if ${ac_cv_lib_ws2_32_main+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lws2_32  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-
-int
-main ()
-{
-return main ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_ws2_32_main=yes
-else
-  ac_cv_lib_ws2_32_main=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_ws2_32_main" >&5
-$as_echo "$ac_cv_lib_ws2_32_main" >&6; }
-if test "x$ac_cv_lib_ws2_32_main" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBWS2_32 1
-_ACEOF
-
-  LIBS="-lws2_32 $LIBS"
-
-fi
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lwst" >&5
-$as_echo_n "checking for main in -lwst... " >&6; }
-if ${ac_cv_lib_wst_main+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lwst  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-
-int
-main ()
-{
-return main ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_wst_main=yes
-else
-  ac_cv_lib_wst_main=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_wst_main" >&5
-$as_echo "$ac_cv_lib_wst_main" >&6; }
-if test "x$ac_cv_lib_wst_main" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBWST 1
-_ACEOF
-
-  LIBS="-lwst $LIBS"
-
-fi
-
-# in makefile, we need to know if building extra pcap items.
-if test "x$enable_pcap" != xno ; then
-  for ac_header in pcap.h pcap/pcap.h
-do :
-  as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
-ac_fn_c_check_header_mongrel "$LINENO" "$ac_header" "$as_ac_Header" "$ac_includes_default"
-if eval test \"x\$"$as_ac_Header"\" = x"yes"; then :
-  cat >>confdefs.h <<_ACEOF
-#define `$as_echo "HAVE_$ac_header" | $as_tr_cpp` 1
-_ACEOF
- { $as_echo "$as_me:${as_lineno-$LINENO}: checking for pcap_compile in -lpcap" >&5
-$as_echo_n "checking for pcap_compile in -lpcap... " >&6; }
-if ${ac_cv_lib_pcap_pcap_compile+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lpcap  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char pcap_compile ();
-int
-main ()
-{
-return pcap_compile ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_pcap_pcap_compile=yes
-else
-  ac_cv_lib_pcap_pcap_compile=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_pcap_pcap_compile" >&5
-$as_echo "$ac_cv_lib_pcap_pcap_compile" >&6; }
-if test "x$ac_cv_lib_pcap_pcap_compile" = xyes; then :
-  HAVE_PCAP=-DHAVE_PCAP
- PCAP_LIB=-lpcap
-
-fi
-
-        break
-fi
-
-done
-
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: PCAP check disabled" >&5
-$as_echo "$as_me: PCAP check disabled" >&6;}
-fi
-
-####################################
-# Check for variations we can handle
-####################################
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether time.h and sys/time.h may both be included" >&5
-$as_echo_n "checking whether time.h and sys/time.h may both be included... " >&6; }
-if ${ac_cv_header_time+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-#include <sys/types.h>
-#include <sys/time.h>
-#include <time.h>
-
-int
-main ()
-{
-if ((struct tm *) 0)
-return 0;
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_compile "$LINENO"; then :
-  ac_cv_header_time=yes
-else
-  ac_cv_header_time=no
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_header_time" >&5
-$as_echo "$ac_cv_header_time" >&6; }
-if test $ac_cv_header_time = yes; then
-
-$as_echo "#define TIME_WITH_SYS_TIME 1" >>confdefs.h
-
-fi
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether string.h and strings.h may both be included" >&5
-$as_echo_n "checking whether string.h and strings.h may both be included... " >&6; }
-if ${gcc_cv_header_string+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-#include <string.h>
-#include <strings.h>
-int
-main ()
-{
-
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_compile "$LINENO"; then :
-  gcc_cv_header_string=yes
-else
-  gcc_cv_header_string=no
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $gcc_cv_header_string" >&5
-$as_echo "$gcc_cv_header_string" >&6; }
-if test $gcc_cv_header_string = yes; then
-
-$as_echo "#define STRING_WITH_STRINGS 1" >>confdefs.h
-
-fi
-
-# Check missing stuff in OpenSSL (too old, or disabled features)
-LIBS_ORIG="$LIBS"
-CFLAGS_ORIG="$CFLAGS"
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for SSL_library_init in -lssl" >&5
-$as_echo_n "checking for SSL_library_init in -lssl... " >&6; }
-if ${ac_cv_lib_ssl_SSL_library_init+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lssl  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char SSL_library_init ();
-int
-main ()
-{
-return SSL_library_init ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_ssl_SSL_library_init=yes
-else
-  ac_cv_lib_ssl_SSL_library_init=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_ssl_SSL_library_init" >&5
-$as_echo "$ac_cv_lib_ssl_SSL_library_init" >&6; }
-if test "x$ac_cv_lib_ssl_SSL_library_init" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBSSL 1
-_ACEOF
-
-  LIBS="-lssl $LIBS"
-
-fi
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for RC4 in -lcrypto" >&5
-$as_echo_n "checking for RC4 in -lcrypto... " >&6; }
-if ${ac_cv_lib_crypto_RC4+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lcrypto  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char RC4 ();
-int
-main ()
-{
-return RC4 ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_crypto_RC4=yes
-else
-  ac_cv_lib_crypto_RC4=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_crypto_RC4" >&5
-$as_echo "$ac_cv_lib_crypto_RC4" >&6; }
-if test "x$ac_cv_lib_crypto_RC4" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBCRYPTO 1
-_ACEOF
-
-  LIBS="-lcrypto $LIBS"
-
-fi
-
-LIBS="$OPENSSL_LIBS $LIBS"
-CFLAGS="$OPENSSL_CFLAGS $CFLAGS"
-for ac_func in EVP_aes_256_xts SHA256 WHIRLPOOL AES_encrypt EVP_sha512
-do :
-  as_ac_var=`$as_echo "ac_cv_func_$ac_func" | $as_tr_sh`
-ac_fn_c_check_func "$LINENO" "$ac_func" "$as_ac_var"
-if eval test \"x\$"$as_ac_var"\" = x"yes"; then :
-  cat >>confdefs.h <<_ACEOF
-#define `$as_echo "HAVE_$ac_func" | $as_tr_cpp` 1
-_ACEOF
-
-fi
-done
-
-LIBS="$LIBS_ORIG"
-CFLAGS="$CFLAGS_ORIG"
-
-cat >confcache <<\_ACEOF
-# This file is a shell script that caches the results of configure
-# tests run on this system so they can be shared between configure
-# scripts and configure runs, see configure's option --config-cache.
-# It is not useful on other systems.  If it contains results you don't
-# want to keep, you may remove or edit it.
-#
-# config.status only pays attention to the cache file if you give it
-# the --recheck option to rerun configure.
-#
-# `ac_cv_env_foo' variables (set or unset) will be overridden when
-# loading this file, other *unset* `ac_cv_foo' will be assigned the
-# following values.
-
-_ACEOF
-
-# The following way of writing the cache mishandles newlines in values,
-# but we know of no workaround that is simple, portable, and efficient.
-# So, we kill variables containing newlines.
-# Ultrix sh set writes to stderr and can't be redirected directly,
-# and sets the high bit in the cache file unless we assign to the vars.
-(
-  for ac_var in `(set) 2>&1 | sed -n 's/^\([a-zA-Z_][a-zA-Z0-9_]*\)=.*/\1/p'`; do
-    eval ac_val=\$$ac_var
-    case $ac_val in #(
-    *${as_nl}*)
-      case $ac_var in #(
-      *_cv_*) { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: cache variable $ac_var contains a newline" >&5
-$as_echo "$as_me: WARNING: cache variable $ac_var contains a newline" >&2;} ;;
-      esac
-      case $ac_var in #(
-      _ | IFS | as_nl) ;; #(
-      BASH_ARGV | BASH_SOURCE) eval $ac_var= ;; #(
-      *) { eval $ac_var=; unset $ac_var;} ;;
-      esac ;;
-    esac
-  done
-
-  (set) 2>&1 |
-    case $as_nl`(ac_space=' '; set) 2>&1` in #(
-    *${as_nl}ac_space=\ *)
-      # `set' does not quote correctly, so add quotes: double-quote
-      # substitution turns \\\\ into \\, and sed turns \\ into \.
-      sed -n \
-	"s/'/'\\\\''/g;
-	  s/^\\([_$as_cr_alnum]*_cv_[_$as_cr_alnum]*\\)=\\(.*\\)/\\1='\\2'/p"
-      ;; #(
-    *)
-      # `set' quotes correctly as required by POSIX, so do not add quotes.
-      sed -n "/^[_$as_cr_alnum]*_cv_[_$as_cr_alnum]*=/p"
-      ;;
-    esac |
-    sort
-) |
-  sed '
-     /^ac_cv_env_/b end
-     t clear
-     :clear
-     s/^\([^=]*\)=\(.*[{}].*\)$/test "${\1+set}" = set || &/
-     t end
-     s/^\([^=]*\)=\(.*\)$/\1=${\1=\2}/
-     :end' >>confcache
-if diff "$cache_file" confcache >/dev/null 2>&1; then :; else
-  if test -w "$cache_file"; then
-    if test "x$cache_file" != "x/dev/null"; then
-      { $as_echo "$as_me:${as_lineno-$LINENO}: updating cache $cache_file" >&5
-$as_echo "$as_me: updating cache $cache_file" >&6;}
-      if test ! -f "$cache_file" || test -h "$cache_file"; then
-	cat confcache >"$cache_file"
-      else
-        case $cache_file in #(
-        */* | ?:*)
-	  mv -f confcache "$cache_file"$$ &&
-	  mv -f "$cache_file"$$ "$cache_file" ;; #(
-        *)
-	  mv -f confcache "$cache_file" ;;
-	esac
-      fi
-    fi
-  else
-    { $as_echo "$as_me:${as_lineno-$LINENO}: not updating unwritable cache $cache_file" >&5
-$as_echo "$as_me: not updating unwritable cache $cache_file" >&6;}
-  fi
-fi
-rm -f confcache
-
-#################
-# Check packages:
-#################
-
-# Check for NSS
-using_nss=no
-if test "x$enable_nss" != xno; then :
-  if test "x$PKG_CONFIG" != xno; then :
-
-pkg_failed=no
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for NSS" >&5
-$as_echo_n "checking for NSS... " >&6; }
-
-if test -n "$NSS_CFLAGS"; then
-    pkg_cv_NSS_CFLAGS="$NSS_CFLAGS"
- elif test -n "$PKG_CONFIG"; then
-    if test -n "$PKG_CONFIG" && \
-    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"nss\""; } >&5
-  ($PKG_CONFIG --exists --print-errors "nss") 2>&5
-  ac_status=$?
-  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
-  test $ac_status = 0; }; then
-  pkg_cv_NSS_CFLAGS=`$PKG_CONFIG --cflags "nss" 2>/dev/null`
-else
-  pkg_failed=yes
-fi
- else
-    pkg_failed=untried
-fi
-if test -n "$NSS_LIBS"; then
-    pkg_cv_NSS_LIBS="$NSS_LIBS"
- elif test -n "$PKG_CONFIG"; then
-    if test -n "$PKG_CONFIG" && \
-    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"nss\""; } >&5
-  ($PKG_CONFIG --exists --print-errors "nss") 2>&5
-  ac_status=$?
-  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
-  test $ac_status = 0; }; then
-  pkg_cv_NSS_LIBS=`$PKG_CONFIG --libs "nss" 2>/dev/null`
-else
-  pkg_failed=yes
-fi
- else
-    pkg_failed=untried
-fi
-
-
-
-if test $pkg_failed = yes; then
-
-if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
-        _pkg_short_errors_supported=yes
-else
-        _pkg_short_errors_supported=no
-fi
-        if test $_pkg_short_errors_supported = yes; then
-	        NSS_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors "nss" 2>&1`
-        else
-	        NSS_PKG_ERRORS=`$PKG_CONFIG --print-errors "nss" 2>&1`
-        fi
-	# Put the nasty error message in config.log where it belongs
-	echo "$NSS_PKG_ERRORS" >&5
-
-	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-                :
-elif test $pkg_failed = untried; then
-	:
-else
-	NSS_CFLAGS=$pkg_cv_NSS_CFLAGS
-	NSS_LIBS=$pkg_cv_NSS_LIBS
-        { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-$as_echo "yes" >&6; }
-	using_nss=yes HAVE_NSS=-DHAVE_NSS
-
-fi
-else
-  if test "x${NSS_CFLAGS}${NSS_LIBS}" != "x"; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking supplied paths for NSS" >&5
-$as_echo_n "checking supplied paths for NSS... " >&6; }
-
-   for i in $NSS_CFLAGS; do
-      jtr_list_add_dupe=0
-      for j in $CFLAGS; do
-         if test "x$i" = "x$j"; then
-            jtr_list_add_dupe=1
-            break
-         fi
-      done
-      if test $jtr_list_add_dupe = 0; then
-         CFLAGS="$CFLAGS $i"
-         jtr_list_add_result="$jtr_list_add_result $i"
-      fi
-   done
-
-
-   for i in $NSS_LIBS; do
-      jtr_list_add_dupe=0
-      for j in $LDFLAGS; do
-         if test "x$i" = "x$j"; then
-            jtr_list_add_dupe=1
-            break
-         fi
-      done
-      if test $jtr_list_add_dupe = 0; then
-         LDFLAGS="$LDFLAGS $i"
-         jtr_list_add_result="$jtr_list_add_result $i"
-      fi
-   done
-
-         { $as_echo "$as_me:${as_lineno-$LINENO}: result: $NSS_CFLAGS $NSS_LIBS" >&5
-$as_echo "$NSS_CFLAGS $NSS_LIBS" >&6; }
-         using_nss=yes
-
-fi
-      { $as_echo "$as_me:${as_lineno-$LINENO}: checking for NSS" >&5
-$as_echo_n "checking for NSS... " >&6; }
-      { $as_echo "$as_me:${as_lineno-$LINENO}: result: $using_nss" >&5
-$as_echo "$using_nss" >&6; }
-
-fi
-
-fi
-
-# Check for openMP (enable/disable handled within the macro).
-
-  OPENMP_CFLAGS=
-  # Check whether --enable-openmp was given.
-if test "${enable_openmp+set}" = set; then :
-  enableval=$enable_openmp;
-fi
-
-  if test "$enable_openmp" != no; then
-    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $CC option to support OpenMP" >&5
-$as_echo_n "checking for $CC option to support OpenMP... " >&6; }
-if ${ac_cv_prog_c_openmp+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-#ifndef _OPENMP
- choke me
-#endif
-#include <omp.h>
-int main () { return omp_get_num_threads (); }
-
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_prog_c_openmp='none needed'
-else
-  ac_cv_prog_c_openmp='unsupported'
-	  	  	  	  	  	  	                                	  	  	  	  	  	  for ac_option in -fopenmp -xopenmp -openmp -mp -omp -qsmp=omp -homp \
-                           -Popenmp --openmp; do
-	    ac_save_CFLAGS=$CFLAGS
-	    CFLAGS="$CFLAGS $ac_option"
-	    cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-#ifndef _OPENMP
- choke me
-#endif
-#include <omp.h>
-int main () { return omp_get_num_threads (); }
-
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_prog_c_openmp=$ac_option
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-	    CFLAGS=$ac_save_CFLAGS
-	    if test "$ac_cv_prog_c_openmp" != unsupported; then
-	      break
-	    fi
-	  done
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_prog_c_openmp" >&5
-$as_echo "$ac_cv_prog_c_openmp" >&6; }
-    case $ac_cv_prog_c_openmp in #(
-      "none needed" | unsupported)
-	;; #(
-      *)
-	OPENMP_CFLAGS=$ac_cv_prog_c_openmp ;;
-    esac
-  fi
-
-
-
-# Check for OpenCL (enable/disable handled within the macro)
-if test "x$cross_compiling" = xno; then :
-
-   { $as_echo "$as_me:${as_lineno-$LINENO}: checking additional paths for OpenCL" >&5
-$as_echo_n "checking additional paths for OpenCL... " >&6; }
-   ADD_LDFLAGS=""
-   ADD_CFLAGS=""
-   if test -n "$AMDAPPSDKROOT"; then
-      if test -d "$AMDAPPSDKROOT/include"; then
-         ADD_CFLAGS="$ADD_CFLAGS -I$AMDAPPSDKROOT/include"
-      fi
-      if test $CPU_BIT_STR = 64 -a -d "$AMDAPPSDKROOT/lib/x86_64" ; then
-         ADD_LDFLAGS="$ADD_LDFLAGS -L$AMDAPPSDKROOT/lib/x86_64"
-      elif test  $CPU_BIT_STR = 32 -a -d "$AMDAPPSDKROOT/lib/x86" ; then
-         ADD_LDFLAGS="$ADD_LDFLAGS -L$AMDAPPSDKROOT/lib/x86"
-      elif test -d "$AMDAPPSDKROOT/lib"; then
-         ADD_LDFLAGS="$ADD_LDFLAGS -L$AMDAPPSDKROOT/lib"
-      fi
-   fi
-   if test -n "$ATISTREAMSDKROOT"; then
-      if test -d "$ATISTREAMSDKROOT/include"; then
-         ADD_CFLAGS="$ADD_CFLAGS -I$ATISTREAMSDKROOT/include"
-      fi
-      if test $CPU_BIT_STR = 64 -a -d "$ATISTREAMSDKROOT/lib/x86_64" ; then
-         ADD_LDFLAGS="$ADD_LDFLAGS -L$ATISTREAMSDKROOT/lib/x86_64"
-      elif test  $CPU_BIT_STR = 32 -a -d "$ATISTREAMSDKROOT/lib/x86" ; then
-         ADD_LDFLAGS="$ADD_LDFLAGS -L$ATISTREAMSDKROOT/lib/x86"
-      elif test -d "$ATISTREAMSDKROOT/lib"; then
-         ADD_LDFLAGS="$ADD_LDFLAGS -L$ATISTREAMSDKROOT/lib"
-      fi
-   fi
-
-   for i in $ADD_CFLAGS; do
-      jtr_list_add_dupe=0
-      for j in $CPPFLAGS; do
-         if test "x$i" = "x$j"; then
-            jtr_list_add_dupe=1
-            break
-         fi
-      done
-      if test $jtr_list_add_dupe = 0; then
-         CPPFLAGS="$CPPFLAGS $i"
-         jtr_list_add_result="$jtr_list_add_result $i"
-      fi
-   done
- # no typo here
-   jtr_list_add_result=""
-
-   for i in $ADD_LDFLAGS; do
-      jtr_list_add_dupe=0
-      for j in $LDFLAGS; do
-         if test "x$i" = "x$j"; then
-            jtr_list_add_dupe=1
-            break
-         fi
-      done
-      if test $jtr_list_add_dupe = 0; then
-         LDFLAGS="$LDFLAGS $i"
-         jtr_list_add_result="$jtr_list_add_result $i"
-      fi
-   done
-
-
-   for i in $ADD_CFLAGS; do
-      jtr_list_add_dupe=0
-      for j in $CFLAGS; do
-         if test "x$i" = "x$j"; then
-            jtr_list_add_dupe=1
-            break
-         fi
-      done
-      if test $jtr_list_add_dupe = 0; then
-         CFLAGS="$CFLAGS $i"
-         jtr_list_add_result="$jtr_list_add_result $i"
-      fi
-   done
-
-
-   if test -z "$jtr_list_add_result"; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: none" >&5
-$as_echo "none" >&6; }
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $jtr_list_add_result" >&5
-$as_echo "$jtr_list_add_result" >&6; }
-fi
-   jtr_list_add_result=""
-
-
-fi
 
 
 ac_ext=c
@@ -10608,6 +9743,741 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
+# The below is actually what I believe is a workaround for a bug in AX_PTHREAD.
+# It's needed on OpenBSD even after AX_PTHREAD.
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lpthread" >&5
+$as_echo_n "checking for main in -lpthread... " >&6; }
+if ${ac_cv_lib_pthread_main+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lpthread  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+int
+main ()
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_pthread_main=yes
+else
+  ac_cv_lib_pthread_main=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_pthread_main" >&5
+$as_echo "$ac_cv_lib_pthread_main" >&6; }
+if test "x$ac_cv_lib_pthread_main" = xyes; then :
+
+   for i in -lpthread; do
+      jtr_list_add_dupe=0
+      for j in $PTHREAD_LIBS; do
+         if test "x$i" = "x$j"; then
+            jtr_list_add_dupe=1
+            break
+         fi
+      done
+      if test $jtr_list_add_dupe = 0; then
+         PTHREAD_LIBS="$PTHREAD_LIBS $i"
+         jtr_list_add_result="$jtr_list_add_result $i"
+      fi
+   done
+
+fi
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lrt" >&5
+$as_echo_n "checking for main in -lrt... " >&6; }
+if ${ac_cv_lib_rt_main+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lrt  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+int
+main ()
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_rt_main=yes
+else
+  ac_cv_lib_rt_main=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_rt_main" >&5
+$as_echo "$ac_cv_lib_rt_main" >&6; }
+if test "x$ac_cv_lib_rt_main" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBRT 1
+_ACEOF
+
+  LIBS="-lrt $LIBS"
+
+fi
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lsocket" >&5
+$as_echo_n "checking for main in -lsocket... " >&6; }
+if ${ac_cv_lib_socket_main+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lsocket  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+int
+main ()
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_socket_main=yes
+else
+  ac_cv_lib_socket_main=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_socket_main" >&5
+$as_echo "$ac_cv_lib_socket_main" >&6; }
+if test "x$ac_cv_lib_socket_main" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBSOCKET 1
+_ACEOF
+
+  LIBS="-lsocket $LIBS"
+
+fi
+
+# mingw stuff from older makefile rules.
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lwsock32" >&5
+$as_echo_n "checking for main in -lwsock32... " >&6; }
+if ${ac_cv_lib_wsock32_main+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lwsock32  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+int
+main ()
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_wsock32_main=yes
+else
+  ac_cv_lib_wsock32_main=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_wsock32_main" >&5
+$as_echo "$ac_cv_lib_wsock32_main" >&6; }
+if test "x$ac_cv_lib_wsock32_main" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBWSOCK32 1
+_ACEOF
+
+  LIBS="-lwsock32 $LIBS"
+
+fi
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lws2_32" >&5
+$as_echo_n "checking for main in -lws2_32... " >&6; }
+if ${ac_cv_lib_ws2_32_main+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lws2_32  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+int
+main ()
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_ws2_32_main=yes
+else
+  ac_cv_lib_ws2_32_main=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_ws2_32_main" >&5
+$as_echo "$ac_cv_lib_ws2_32_main" >&6; }
+if test "x$ac_cv_lib_ws2_32_main" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBWS2_32 1
+_ACEOF
+
+  LIBS="-lws2_32 $LIBS"
+
+fi
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lwst" >&5
+$as_echo_n "checking for main in -lwst... " >&6; }
+if ${ac_cv_lib_wst_main+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lwst  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+int
+main ()
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_wst_main=yes
+else
+  ac_cv_lib_wst_main=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_wst_main" >&5
+$as_echo "$ac_cv_lib_wst_main" >&6; }
+if test "x$ac_cv_lib_wst_main" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBWST 1
+_ACEOF
+
+  LIBS="-lwst $LIBS"
+
+fi
+
+# in makefile, we need to know if building extra pcap items.
+if test "x$enable_pcap" != xno ; then
+  for ac_header in pcap.h pcap/pcap.h
+do :
+  as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
+ac_fn_c_check_header_mongrel "$LINENO" "$ac_header" "$as_ac_Header" "$ac_includes_default"
+if eval test \"x\$"$as_ac_Header"\" = x"yes"; then :
+  cat >>confdefs.h <<_ACEOF
+#define `$as_echo "HAVE_$ac_header" | $as_tr_cpp` 1
+_ACEOF
+ { $as_echo "$as_me:${as_lineno-$LINENO}: checking for pcap_compile in -lpcap" >&5
+$as_echo_n "checking for pcap_compile in -lpcap... " >&6; }
+if ${ac_cv_lib_pcap_pcap_compile+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lpcap  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char pcap_compile ();
+int
+main ()
+{
+return pcap_compile ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_pcap_pcap_compile=yes
+else
+  ac_cv_lib_pcap_pcap_compile=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_pcap_pcap_compile" >&5
+$as_echo "$ac_cv_lib_pcap_pcap_compile" >&6; }
+if test "x$ac_cv_lib_pcap_pcap_compile" = xyes; then :
+  HAVE_PCAP=-DHAVE_PCAP
+ PCAP_LIBS=-lpcap
+
+fi
+
+        break
+fi
+
+done
+
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: PCAP check disabled" >&5
+$as_echo "$as_me: PCAP check disabled" >&6;}
+fi
+
+####################################
+# Check for variations we can handle
+####################################
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether time.h and sys/time.h may both be included" >&5
+$as_echo_n "checking whether time.h and sys/time.h may both be included... " >&6; }
+if ${ac_cv_header_time+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include <sys/types.h>
+#include <sys/time.h>
+#include <time.h>
+
+int
+main ()
+{
+if ((struct tm *) 0)
+return 0;
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+  ac_cv_header_time=yes
+else
+  ac_cv_header_time=no
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_header_time" >&5
+$as_echo "$ac_cv_header_time" >&6; }
+if test $ac_cv_header_time = yes; then
+
+$as_echo "#define TIME_WITH_SYS_TIME 1" >>confdefs.h
+
+fi
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether string.h and strings.h may both be included" >&5
+$as_echo_n "checking whether string.h and strings.h may both be included... " >&6; }
+if ${gcc_cv_header_string+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include <string.h>
+#include <strings.h>
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+  gcc_cv_header_string=yes
+else
+  gcc_cv_header_string=no
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $gcc_cv_header_string" >&5
+$as_echo "$gcc_cv_header_string" >&6; }
+if test $gcc_cv_header_string = yes; then
+
+$as_echo "#define STRING_WITH_STRINGS 1" >>confdefs.h
+
+fi
+
+# Check missing stuff in OpenSSL (too old, or disabled features)
+LIBS_ORIG="$LIBS"
+CFLAGS_ORIG="$CFLAGS"
+LIBS="$OPENSSL_LIBS $LIBS"
+CFLAGS="$OPENSSL_CFLAGS $CFLAGS"
+for ac_func in EVP_aes_256_xts SHA256 WHIRLPOOL AES_encrypt EVP_sha512
+do :
+  as_ac_var=`$as_echo "ac_cv_func_$ac_func" | $as_tr_sh`
+ac_fn_c_check_func "$LINENO" "$ac_func" "$as_ac_var"
+if eval test \"x\$"$as_ac_var"\" = x"yes"; then :
+  cat >>confdefs.h <<_ACEOF
+#define `$as_echo "HAVE_$ac_func" | $as_tr_cpp` 1
+_ACEOF
+
+fi
+done
+
+LIBS="$LIBS_ORIG"
+CFLAGS="$CFLAGS_ORIG"
+
+cat >confcache <<\_ACEOF
+# This file is a shell script that caches the results of configure
+# tests run on this system so they can be shared between configure
+# scripts and configure runs, see configure's option --config-cache.
+# It is not useful on other systems.  If it contains results you don't
+# want to keep, you may remove or edit it.
+#
+# config.status only pays attention to the cache file if you give it
+# the --recheck option to rerun configure.
+#
+# `ac_cv_env_foo' variables (set or unset) will be overridden when
+# loading this file, other *unset* `ac_cv_foo' will be assigned the
+# following values.
+
+_ACEOF
+
+# The following way of writing the cache mishandles newlines in values,
+# but we know of no workaround that is simple, portable, and efficient.
+# So, we kill variables containing newlines.
+# Ultrix sh set writes to stderr and can't be redirected directly,
+# and sets the high bit in the cache file unless we assign to the vars.
+(
+  for ac_var in `(set) 2>&1 | sed -n 's/^\([a-zA-Z_][a-zA-Z0-9_]*\)=.*/\1/p'`; do
+    eval ac_val=\$$ac_var
+    case $ac_val in #(
+    *${as_nl}*)
+      case $ac_var in #(
+      *_cv_*) { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: cache variable $ac_var contains a newline" >&5
+$as_echo "$as_me: WARNING: cache variable $ac_var contains a newline" >&2;} ;;
+      esac
+      case $ac_var in #(
+      _ | IFS | as_nl) ;; #(
+      BASH_ARGV | BASH_SOURCE) eval $ac_var= ;; #(
+      *) { eval $ac_var=; unset $ac_var;} ;;
+      esac ;;
+    esac
+  done
+
+  (set) 2>&1 |
+    case $as_nl`(ac_space=' '; set) 2>&1` in #(
+    *${as_nl}ac_space=\ *)
+      # `set' does not quote correctly, so add quotes: double-quote
+      # substitution turns \\\\ into \\, and sed turns \\ into \.
+      sed -n \
+	"s/'/'\\\\''/g;
+	  s/^\\([_$as_cr_alnum]*_cv_[_$as_cr_alnum]*\\)=\\(.*\\)/\\1='\\2'/p"
+      ;; #(
+    *)
+      # `set' quotes correctly as required by POSIX, so do not add quotes.
+      sed -n "/^[_$as_cr_alnum]*_cv_[_$as_cr_alnum]*=/p"
+      ;;
+    esac |
+    sort
+) |
+  sed '
+     /^ac_cv_env_/b end
+     t clear
+     :clear
+     s/^\([^=]*\)=\(.*[{}].*\)$/test "${\1+set}" = set || &/
+     t end
+     s/^\([^=]*\)=\(.*\)$/\1=${\1=\2}/
+     :end' >>confcache
+if diff "$cache_file" confcache >/dev/null 2>&1; then :; else
+  if test -w "$cache_file"; then
+    if test "x$cache_file" != "x/dev/null"; then
+      { $as_echo "$as_me:${as_lineno-$LINENO}: updating cache $cache_file" >&5
+$as_echo "$as_me: updating cache $cache_file" >&6;}
+      if test ! -f "$cache_file" || test -h "$cache_file"; then
+	cat confcache >"$cache_file"
+      else
+        case $cache_file in #(
+        */* | ?:*)
+	  mv -f confcache "$cache_file"$$ &&
+	  mv -f "$cache_file"$$ "$cache_file" ;; #(
+        *)
+	  mv -f confcache "$cache_file" ;;
+	esac
+      fi
+    fi
+  else
+    { $as_echo "$as_me:${as_lineno-$LINENO}: not updating unwritable cache $cache_file" >&5
+$as_echo "$as_me: not updating unwritable cache $cache_file" >&6;}
+  fi
+fi
+rm -f confcache
+
+#################
+# Check packages:
+#################
+
+# Check for NSS
+using_nss=no
+if test "x$enable_nss" != xno; then :
+  if test "x$PKG_CONFIG" != xno; then :
+
+pkg_failed=no
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for NSS" >&5
+$as_echo_n "checking for NSS... " >&6; }
+
+if test -n "$NSS_CFLAGS"; then
+    pkg_cv_NSS_CFLAGS="$NSS_CFLAGS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
+    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"nss\""; } >&5
+  ($PKG_CONFIG --exists --print-errors "nss") 2>&5
+  ac_status=$?
+  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; }; then
+  pkg_cv_NSS_CFLAGS=`$PKG_CONFIG --cflags "nss" 2>/dev/null`
+else
+  pkg_failed=yes
+fi
+ else
+    pkg_failed=untried
+fi
+if test -n "$NSS_LIBS"; then
+    pkg_cv_NSS_LIBS="$NSS_LIBS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
+    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"nss\""; } >&5
+  ($PKG_CONFIG --exists --print-errors "nss") 2>&5
+  ac_status=$?
+  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; }; then
+  pkg_cv_NSS_LIBS=`$PKG_CONFIG --libs "nss" 2>/dev/null`
+else
+  pkg_failed=yes
+fi
+ else
+    pkg_failed=untried
+fi
+
+
+
+if test $pkg_failed = yes; then
+
+if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
+        _pkg_short_errors_supported=yes
+else
+        _pkg_short_errors_supported=no
+fi
+        if test $_pkg_short_errors_supported = yes; then
+	        NSS_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors "nss" 2>&1`
+        else
+	        NSS_PKG_ERRORS=`$PKG_CONFIG --print-errors "nss" 2>&1`
+        fi
+	# Put the nasty error message in config.log where it belongs
+	echo "$NSS_PKG_ERRORS" >&5
+
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+                :
+elif test $pkg_failed = untried; then
+	:
+else
+	NSS_CFLAGS=$pkg_cv_NSS_CFLAGS
+	NSS_LIBS=$pkg_cv_NSS_LIBS
+        { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+	using_nss=yes HAVE_NSS=-DHAVE_NSS
+
+fi
+else
+  if test "x${NSS_CFLAGS}${NSS_LIBS}" != "x"; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking supplied paths for NSS" >&5
+$as_echo_n "checking supplied paths for NSS... " >&6; }
+         { $as_echo "$as_me:${as_lineno-$LINENO}: result: $NSS_CFLAGS $NSS_LIBS" >&5
+$as_echo "$NSS_CFLAGS $NSS_LIBS" >&6; }
+         using_nss=yes
+
+fi
+      { $as_echo "$as_me:${as_lineno-$LINENO}: checking for NSS" >&5
+$as_echo_n "checking for NSS... " >&6; }
+      { $as_echo "$as_me:${as_lineno-$LINENO}: result: $using_nss" >&5
+$as_echo "$using_nss" >&6; }
+
+fi
+
+fi
+
+# Check for openMP (enable/disable handled within the macro).
+
+  OPENMP_CFLAGS=
+  # Check whether --enable-openmp was given.
+if test "${enable_openmp+set}" = set; then :
+  enableval=$enable_openmp;
+fi
+
+  if test "$enable_openmp" != no; then
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $CC option to support OpenMP" >&5
+$as_echo_n "checking for $CC option to support OpenMP... " >&6; }
+if ${ac_cv_prog_c_openmp+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#ifndef _OPENMP
+ choke me
+#endif
+#include <omp.h>
+int main () { return omp_get_num_threads (); }
+
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_prog_c_openmp='none needed'
+else
+  ac_cv_prog_c_openmp='unsupported'
+	  	  	  	  	  	  	                                	  	  	  	  	  	  for ac_option in -fopenmp -xopenmp -openmp -mp -omp -qsmp=omp -homp \
+                           -Popenmp --openmp; do
+	    ac_save_CFLAGS=$CFLAGS
+	    CFLAGS="$CFLAGS $ac_option"
+	    cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#ifndef _OPENMP
+ choke me
+#endif
+#include <omp.h>
+int main () { return omp_get_num_threads (); }
+
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_prog_c_openmp=$ac_option
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+	    CFLAGS=$ac_save_CFLAGS
+	    if test "$ac_cv_prog_c_openmp" != unsupported; then
+	      break
+	    fi
+	  done
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_prog_c_openmp" >&5
+$as_echo "$ac_cv_prog_c_openmp" >&6; }
+    case $ac_cv_prog_c_openmp in #(
+      "none needed" | unsupported)
+	;; #(
+      *)
+	OPENMP_CFLAGS=$ac_cv_prog_c_openmp ;;
+    esac
+  fi
+
+
+
+# Check for OpenCL (enable/disable handled within the macro)
+if test "x$cross_compiling" = xno; then :
+
+   { $as_echo "$as_me:${as_lineno-$LINENO}: checking additional paths for OpenCL" >&5
+$as_echo_n "checking additional paths for OpenCL... " >&6; }
+   ADD_LDFLAGS=""
+   ADD_CFLAGS=""
+   if test -n "$AMDAPPSDKROOT"; then
+      if test -d "$AMDAPPSDKROOT/include"; then
+         ADD_CFLAGS="$ADD_CFLAGS -I$AMDAPPSDKROOT/include"
+      fi
+      if test $CPU_BIT_STR = 64 -a -d "$AMDAPPSDKROOT/lib/x86_64" ; then
+         ADD_LDFLAGS="$ADD_LDFLAGS -L$AMDAPPSDKROOT/lib/x86_64"
+      elif test  $CPU_BIT_STR = 32 -a -d "$AMDAPPSDKROOT/lib/x86" ; then
+         ADD_LDFLAGS="$ADD_LDFLAGS -L$AMDAPPSDKROOT/lib/x86"
+      elif test -d "$AMDAPPSDKROOT/lib"; then
+         ADD_LDFLAGS="$ADD_LDFLAGS -L$AMDAPPSDKROOT/lib"
+      fi
+   fi
+   if test -n "$ATISTREAMSDKROOT"; then
+      if test -d "$ATISTREAMSDKROOT/include"; then
+         ADD_CFLAGS="$ADD_CFLAGS -I$ATISTREAMSDKROOT/include"
+      fi
+      if test $CPU_BIT_STR = 64 -a -d "$ATISTREAMSDKROOT/lib/x86_64" ; then
+         ADD_LDFLAGS="$ADD_LDFLAGS -L$ATISTREAMSDKROOT/lib/x86_64"
+      elif test  $CPU_BIT_STR = 32 -a -d "$ATISTREAMSDKROOT/lib/x86" ; then
+         ADD_LDFLAGS="$ADD_LDFLAGS -L$ATISTREAMSDKROOT/lib/x86"
+      elif test -d "$ATISTREAMSDKROOT/lib"; then
+         ADD_LDFLAGS="$ADD_LDFLAGS -L$ATISTREAMSDKROOT/lib"
+      fi
+   fi
+
+   for i in $ADD_CFLAGS; do
+      jtr_list_add_dupe=0
+      for j in $CPPFLAGS; do
+         if test "x$i" = "x$j"; then
+            jtr_list_add_dupe=1
+            break
+         fi
+      done
+      if test $jtr_list_add_dupe = 0; then
+         CPPFLAGS="$CPPFLAGS $i"
+         jtr_list_add_result="$jtr_list_add_result $i"
+      fi
+   done
+ # no typo here
+   jtr_list_add_result=""
+
+   for i in $ADD_LDFLAGS; do
+      jtr_list_add_dupe=0
+      for j in $LDFLAGS; do
+         if test "x$i" = "x$j"; then
+            jtr_list_add_dupe=1
+            break
+         fi
+      done
+      if test $jtr_list_add_dupe = 0; then
+         LDFLAGS="$LDFLAGS $i"
+         jtr_list_add_result="$jtr_list_add_result $i"
+      fi
+   done
+
+
+   for i in $ADD_CFLAGS; do
+      jtr_list_add_dupe=0
+      for j in $CFLAGS; do
+         if test "x$i" = "x$j"; then
+            jtr_list_add_dupe=1
+            break
+         fi
+      done
+      if test $jtr_list_add_dupe = 0; then
+         CFLAGS="$CFLAGS $i"
+         jtr_list_add_result="$jtr_list_add_result $i"
+      fi
+   done
+
+
+   if test -z "$jtr_list_add_result"; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: none" >&5
+$as_echo "none" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $jtr_list_add_result" >&5
+$as_echo "$jtr_list_add_result" >&6; }
+fi
+   jtr_list_add_result=""
+
+
+fi
 
 # Check whether --enable-opencl was given.
 if test "${enable_opencl+set}" = set; then :
@@ -11065,20 +10935,7 @@ if test "x$ac_cv_lib_cudart_cudaGetDeviceCount" = xyes; then :
   using_cuda=yes
 				   HAVE_CUDA=-DHAVE_CUDA
 
-
-   for i in -lcudart; do
-      jtr_list_add_dupe=0
-      for j in $LIBS; do
-         if test "x$i" = "x$j"; then
-            jtr_list_add_dupe=1
-            break
-         fi
-      done
-      if test $jtr_list_add_dupe = 0; then
-         LIBS="$LIBS $i"
-         jtr_list_add_result="$jtr_list_add_result $i"
-      fi
-   done
+				   CUDA_LIBS=-lcudart
 
 fi
 

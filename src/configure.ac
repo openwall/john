@@ -332,7 +332,7 @@ fi
 ################################################
 AC_CHECK_HEADER([CommonCrypto/CommonDigest.h],
    [AC_CHECK_LIB([System], [CCKeyDerivationPBKDF],
-      [AC_CHECK_LIB([System], [CCCryptorCreate],[AC_DEFINE(HAVE_COMMONCRYPTO,1,[Define to 1 if you have the CommonCrypto library.])],,-lcrypto)]dnl
+      [AC_CHECK_LIB([System], [CCCryptorCreate], [AC_DEFINE(HAVE_COMMONCRYPTO,1,[Define to 1 if you have the CommonCrypto library.])])]dnl
    )]dnl
 )
 
@@ -345,7 +345,6 @@ else
    AS_IF([test "x${OPENSSL_CFLAGS}${OPENSSL_LIBS}" != "x"],
       [AC_MSG_CHECKING([supplied paths for OpenSSL])]
       [JTR_LIST_ADD(CFLAGS, [$OPENSSL_CFLAGS])]
-      [JTR_LIST_ADD(LDFLAGS, [$OPENSSL_LIBS])]
       [AC_MSG_RESULT([$OPENSSL_CFLAGS $OPENSSL_LIBS])],
       [test "x$cross_compiling" = xno],
       [JTR_SET_NORMAL_SSL_INCLUDES([/usr/local/ssl])]
@@ -354,7 +353,7 @@ else
 	    [AC_CHECK_LIB([crypto],[MD5_Update],
 	       [AC_DEFINE(HAVE_LIBSSL,1,[Define to 1 if you have the `ssl' library (-lssl).])]
 	       [AC_DEFINE(HAVE_LIBCRYPTO,1,[Define to 1 if you have the `crypto' library (-lcrypto).])]
-	       [LIBS="-lssl -lcrypto $LIBS"],
+	       [OPENSSL_LIBS="-lssl -lcrypto"],
 	       [AC_MSG_FAILURE(JtR requires libssl/libcrypto being installed,1)])],
 	    [AC_MSG_FAILURE(JtR requires libssl being installed,1)]
 	 )],
@@ -366,22 +365,33 @@ fi
 #################
 # libz is found in pkg-config --switch zlib
 #################
-AC_CHECK_LIB([m],[sqrt],[],[AC_MSG_FAILURE(JtR requires libm being installed,1)])
-AC_CHECK_LIB([z],[deflate],[],[AC_MSG_FAILURE(JtR requires libz being installed,1)])
+AC_CHECK_LIB([m],[sqrt],[AC_DEFINE(HAVE_LIBM,1,[Define to 1 if you have the `m' library (-lm).])] [AC_SUBST(M_LIBS, [-lm])],[AC_MSG_FAILURE(JtR requires libm being installed,1)])
+AC_CHECK_LIB([z],[deflate],[AC_DEFINE(HAVE_LIBZ,1,[Define to 1 if you have the `z' library (-lz).])] [AC_SUBST(Z_LIBS, [-lz])],[AC_MSG_FAILURE(JtR requires libz being installed,1)])
+BACKUP_LIBS="$LIBS"
+LIBS=""
 AC_SEARCH_LIBS([crypt],[crypt],[AC_DEFINE(HAVE_CRYPT,1,[Define to 1 if you have the `crypt' library (-lcrypt).])])
-AC_CHECK_HEADER([krb5.h],AC_CHECK_LIB([k5crypto],[krb5_c_string_to_key_with_params]) AC_CHECK_LIB([krb5],[krb5_c_string_to_key_with_params]))
-AC_CHECK_HEADERS([gmp.h] [gmp/gmp.h], [AC_CHECK_LIB([gmp],[__gmpz_init])] [break])
+AC_SUBST(CRYPT_LIBS, [$LIBS])
+LIBS="$BACKUP_LIBS"
+AC_CHECK_HEADER([krb5.h],AC_CHECK_LIB([k5crypto],[krb5_c_string_to_key_with_params], AC_DEFINE([HAVE_LIBK5CRYPTO],1,[Define to 1 if you have the `k5crypto' library (-lk5crypto).])) AC_CHECK_LIB([krb5],[krb5_c_string_to_key_with_params], AC_DEFINE([HAVE_LIBKRB5],1,[Define to 1 if you have the `krb5' library (-lkrb5).]) [AC_SUBST(KRB5_LIBS, ["-lkrb5 -lk5crypto"])]))
+AC_CHECK_HEADERS([gmp.h] [gmp/gmp.h], [AC_CHECK_LIB([gmp],[__gmpz_init], AC_DEFINE([HAVE_LIBGMP],1,[Define to 1 if you have the `gmp' library (-lgmp).]) [AC_SUBST(GMP_LIBS, [-lgmp])])] [break])
 AC_CHECK_HEADER([skey.h], [AC_CHECK_LIB([skey],[skey_set_algorithm],
-                          AC_DEFINE([HAVE_SKEY],1,[Define to 1 if you have skey library and headers]) [JTR_LIST_ADD(LIBS, [-lskey])])])
+                          AC_DEFINE([HAVE_SKEY],1,[Define to 1 if you have skey library and headers]) [AC_SUBST(SKEY_LIBS, [-lskey])])])
 AC_CHECK_LIB([kernel32],[main])
 AC_CHECK_LIB([dl],[dlopen])
 using_rexgen=no
+BACKUP_LIBS="$LIBS"
+LIBS=""
 AC_CHECK_HEADER([librexgen/api/c/librexgen.h],
   [AC_SEARCH_LIBS([c_regex_iterator_cb],[rexgen librexgen],
     using_rexgen=yes
     [AC_DEFINE(HAVE_LIBREXGEN,1,[Define to 1 if you have the `rexgen' library (-lrexgen).])])])
+AC_SUBST(REXGEN_LIBS, [$LIBS])
+LIBS="$BACKUP_LIBS"
 AC_CHECK_LIB([nsl],[main])
-AC_CHECK_LIB([pthread],[main])
+AX_PTHREAD
+# The below is actually what I believe is a workaround for a bug in AX_PTHREAD.
+# It's needed on OpenBSD even after AX_PTHREAD.
+AC_CHECK_LIB([pthread],[main],[JTR_LIST_ADD(PTHREAD_LIBS, [-lpthread])])
 AC_CHECK_LIB([rt],[main])
 AC_CHECK_LIB([socket],[main])
 # mingw stuff from older makefile rules.
@@ -391,7 +401,7 @@ AC_CHECK_LIB([wst],[main])
 # in makefile, we need to know if building extra pcap items.
 if test "x$enable_pcap" != xno ; then
   AC_CHECK_HEADERS([pcap.h pcap/pcap.h],[AC_CHECK_LIB([pcap],[pcap_compile],
-        [AC_SUBST(HAVE_PCAP,[-DHAVE_PCAP])] [AC_SUBST(PCAP_LIB, [-lpcap])])]
+        [AC_SUBST(HAVE_PCAP,[-DHAVE_PCAP])] [AC_SUBST(PCAP_LIBS, [-lpcap])])]
         [break])
 else
   AC_MSG_NOTICE([PCAP check disabled])
@@ -405,8 +415,6 @@ ACX_HEADER_STRING
 # Check missing stuff in OpenSSL (too old, or disabled features)
 LIBS_ORIG="$LIBS"
 CFLAGS_ORIG="$CFLAGS"
-AC_CHECK_LIB([ssl], [SSL_library_init])
-AC_CHECK_LIB([crypto], [RC4])
 LIBS="$OPENSSL_LIBS $LIBS"
 CFLAGS="$OPENSSL_CFLAGS $CFLAGS"
 AC_CHECK_FUNCS([EVP_aes_256_xts SHA256 WHIRLPOOL AES_encrypt EVP_sha512])
@@ -426,8 +434,6 @@ AS_IF([test "x$enable_nss" != xno],
       [PKG_CHECK_MODULES([NSS], [nss], using_nss=yes [AC_SUBST(HAVE_NSS,[-DHAVE_NSS])],:)],
       [AS_IF([test "x${NSS_CFLAGS}${NSS_LIBS}" != "x"],
          [AC_MSG_CHECKING([supplied paths for NSS])]
-         [JTR_LIST_ADD(CFLAGS, [$NSS_CFLAGS])]
-         [JTR_LIST_ADD(LDFLAGS, [$NSS_LIBS])]
          [AC_MSG_RESULT([$NSS_CFLAGS $NSS_LIBS])]
          using_nss=yes
       )]

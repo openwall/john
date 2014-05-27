@@ -131,7 +131,7 @@ AC_DEFUN([JTR_CUDA],
 	[AC_CHECK_HEADER([cuda.h], [AC_CHECK_LIB([cudart],[cudaGetDeviceCount],
 				   [using_cuda=yes]
 				   [AC_SUBST([HAVE_CUDA],[-DHAVE_CUDA])]
-				   [JTR_LIST_ADD(LIBS, [-lcudart])])
+				   [AC_SUBST(CUDA_LIBS, [-lcudart])])
 				   ])]
      )
      if test "x$using_cuda" != xyes -a "x$enable_cuda" = xyes; then

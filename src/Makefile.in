@@ -14,6 +14,10 @@
 #
 
 CC = @CC@
+PTHREAD_CC = @PTHREAD_CC@
+ifdef PTHREAD_CC
+CC = @PTHREAD_CC@
+endif
 CXX = @CXX@
 AS = @CC@
 LD = @CC@
@@ -50,15 +54,14 @@ mandir = $(prefix)/man/man1
 NVCC_FLAGS = -c -Xptxas -v -fmad=true -arch sm_10
 
 # @CPU_BITS@ left out
-CPPFLAGS += @CPPFLAGS@
-CFLAGSX = -DAC_BUILT -c @CFLAGS@ @CFLAGS_EXTRA@ @HAVE_CUDA@ @HAVE_NSS@ @NSS_CFLAGS@ @OPENSSL_CFLAGS@ @OPENMP_CFLAGS@ @HAVE_MPI@ $(RELEASE_BLD)
+CPPFLAGS = @CPPFLAGS@
+CFLAGSX = -DAC_BUILT -c @CFLAGS@ @CFLAGS_EXTRA@ @HAVE_CUDA@ @HAVE_NSS@ @NSS_CFLAGS@ @OPENSSL_CFLAGS@ @OPENMP_CFLAGS@ @HAVE_MPI@ @PTHREAD_CFLAGS@ $(RELEASE_BLD)
 # CFLAGS for use on the main john.c file only
 CFLAGS_MAIN = @CC_MAIN_CPU@ $(CFLAGSX)
 CFLAGS = @CC_CPU@ $(CFLAGSX)
-ASFLAGS = @ASFLAGS@ @CC_CPU@ -c @OPENMP_CFLAGS@ @HAVE_MPI@ @EXTRA_AS_FLAGS@
-LIBS = @LIBS@ @NSS_LIBS@
-LDFLAGS = -g @LDFLAGS@ @OPENSSL_LIBS@ $(LIBS) @OPENMP_CFLAGS@ @HAVE_MPI@
-LDFLAGS_MKV = -g @OPENMP_CFLAGS@
+ASFLAGS = @ASFLAGS@ @CC_CPU@ -c @HAVE_MPI@ @EXTRA_AS_FLAGS@
+LIBS = @LIBS@
+LDFLAGS = -g @LDFLAGS@ $(LIBS) @HAVE_MPI@
 #
 OPT_NORMAL = @OPT_NORMAL_FLAGS@
 OPT_INLINE = @OPT_INLINE_FLAGS@
@@ -205,7 +208,6 @@ WITH_OPENCL=@CL_LIBS@
 ifdef WITH_OPENCL
 CFLAGS += -DHAVE_OPENCL @CL_CFLAGS@
 CFLAGS_MAIN += -DHAVE_OPENCL @CL_CFLAGS@
-LDFLAGS += @CL_LIBS@
 JOHN_OBJS += $(OCL_OBJS)
 endif
 
@@ -363,8 +365,11 @@ miscnl.o: misc.c
 #  By default, it is set to cygwin will use the .EXE symlink.c building,
 #  where the macro EXE_EXT is .exe.  Mingw builds always set EXE_EXT to .exe
 ###############################################################################
+
+# PTHREAD_CFLAGS and OPENMP_CFLAGS may actually contain linker options,
+# like -fopenmp
 ../run/john@EXE_EXT@: $(JOHN_OBJS) $(SUBDIRS)
-	$(LD) $(JOHN_OBJS) $(LDFLAGS) aes/aes.a -o ../run/john
+	$(LD) $(JOHN_OBJS) $(LDFLAGS) @OPENSSL_LIBS@ @OPENMP_CFLAGS@ @GMP_LIBS@ @SKEY_LIBS@ @NSS_LIBS@ @REXGEN_LIBS@ @KRB5_LIBS@ @CUDA_LIBS@ @CL_LIBS@ @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ @M_LIBS@ @Z_LIBS@ @CRYPT_LIBS@ aes/aes.a -o ../run/john
 
 ../run/unshadow: ../run/john
 	$(RM) ../run/unshadow
@@ -551,33 +556,32 @@ endif
 # single targets, using the EXE_EXT macro
 ########################################################
 ../run/genmkvpwd@EXE_EXT@: $(GENMKVPWD_OBJS)
-	$(LD) $(GENMKVPWD_OBJS) $(LDFLAGS) -o ../run/genmkvpwd
+	$(LD) @M_LIBS@ $(GENMKVPWD_OBJS) $(LDFLAGS) -o ../run/genmkvpwd
 
 ../run/mkvcalcproba@EXE_EXT@: mkvcalcproba.o
-	$(LD) mkvcalcproba.o memdbg.o $(LDFLAGS) -o ../run/mkvcalcproba
+	$(LD) @M_LIBS@ mkvcalcproba.o memdbg.o $(LDFLAGS) -o ../run/mkvcalcproba
 
 ../run/calc_stat@EXE_EXT@: calc_stat.o
-	$(LD) calc_stat.o memdbg.o $(LDFLAGS) -o ../run/calc_stat
+	$(LD) @M_LIBS@ calc_stat.o memdbg.o $(LDFLAGS) -o ../run/calc_stat
 
 ../run/raw2dyna@EXE_EXT@: raw2dyna.o
 	$(LD) raw2dyna.o memdbg.o $(LDFLAGS) -o ../run/raw2dyna
 
 ../run/SIPdump@EXE_EXT@: SIPdump.o
-	$(LD) SIPdump.o memdbg.o $(LDFLAGS) @PCAP_LIB@ -o ../run/SIPdump
+	$(LD) SIPdump.o memdbg.o $(LDFLAGS) @PCAP_LIBS@ -o ../run/SIPdump
 
 ../run/vncpcap2john@EXE_EXT@: vncpcap2john.o
-	$(CC) -Wall vncpcap2john.o memdbg.o $(LDFLAGS) @PCAP_LIB@ -o ../run/vncpcap2john
+	$(CC) -Wall vncpcap2john.o memdbg.o $(LDFLAGS) @PCAP_LIBS@ -o ../run/vncpcap2john
 
 ../run/uaf2john@EXE_EXT@: uaf2john.o uaf_encode_plug.o
-	$(LD) $(LDFLAGS) uaf2john.o uaf_encode_plug.o memdbg.o -o ../run/uaf2john
+	$(LD) $(LDFLAGS) @PTHREAD_LIBS@ uaf2john.o uaf_encode_plug.o memdbg.o -o ../run/uaf2john
 
 # Note that this is NOT depending on PCAP lib. It is self-contained.
 ../run/wpapcap2john@EXE_EXT@: wpapcap2john.o
 	$(LD) $(LDFLAGS) wpapcap2john.o memdbg.o -o ../run/wpapcap2john
 
-# Requires extra -lcrypto and -lssl aftger luks2john.o.  Not sure why, link fails without that change
 ../run/luks2john@EXE_EXT@: luks2john.o
-	$(LD) ${LDFLAGS} luks2john.o -lcrypto -lssl memdbg.o -o ../run/luks2john
+	$(LD) ${LDFLAGS} luks2john.o @OPENSSL_LIBS@ memdbg.o -o ../run/luks2john
 
 ../run/cprepair@EXE_EXT@: cprepair.c unicode.c unicode.h options.h misc.h misc.c \
 	memdbg.h memdbg.c
