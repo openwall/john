@@ -64,6 +64,7 @@ if test "x$enable_native_tests" = xyes; then
      [AC_DEFINE([HAVE_SSE2], 1, [enable if compiling for SSE2 architecture])] dnl
      [AC_MSG_RESULT([yes])]
     ,[CPU_NOTFOUND="1"]
+     [AVX_NOTFOUND=1]
      [AC_MSG_RESULT(no)]
     )
   AS_IF([test "x$CPU_NOTFOUND" = x0],
@@ -84,6 +85,7 @@ if test "x$enable_native_tests" = xyes; then
      [AC_DEFINE([HAVE_SSSE3], 1, [enable if compiling for SSSE3 architecture])] dnl
      [AC_MSG_RESULT([yes])]
     ,[CPU_NOTFOUND=1]
+     [AVX_NOTFOUND=1]
      [AC_MSG_RESULT([no])]
     )
   ]
@@ -106,6 +108,7 @@ if test "x$enable_native_tests" = xyes; then
      [AC_DEFINE([HAVE_SSE4_1], 1, [enable if compiling for SSE4.1 architecture])] dnl
      [AC_MSG_RESULT([yes])]
     ,[CPU_NOTFOUND=1]
+     [AVX_NOTFOUND=1]
      [AC_MSG_RESULT([no])]
     )
   ]
