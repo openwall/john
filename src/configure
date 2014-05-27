@@ -9217,8 +9217,8 @@ _ACEOF
 fi
 
 using_rexgen=no
-ac_fn_c_check_header_mongrel "$LINENO" "regex.h" "ac_cv_header_regex_h" "$ac_includes_default"
-if test "x$ac_cv_header_regex_h" = xyes; then :
+ac_fn_c_check_header_mongrel "$LINENO" "librexgen/api/c/librexgen.h" "ac_cv_header_librexgen_api_c_librexgen_h" "$ac_includes_default"
+if test "x$ac_cv_header_librexgen_api_c_librexgen_h" = xyes; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing c_regex_iterator_cb" >&5
 $as_echo_n "checking for library containing c_regex_iterator_cb... " >&6; }
 if ${ac_cv_search_c_regex_iterator_cb+:} false; then :

@@ -378,7 +378,7 @@ AC_CHECK_HEADER([skey.h], [AC_CHECK_LIB([skey],[skey_set_algorithm],
 AC_CHECK_LIB([kernel32],[main])
 AC_CHECK_LIB([dl],[dlopen])
 using_rexgen=no
-AC_CHECK_HEADER([regex.h],
+AC_CHECK_HEADER([librexgen/api/c/librexgen.h],
   [AC_SEARCH_LIBS([c_regex_iterator_cb],[rexgen librexgen],
     using_rexgen=yes
     [AC_DEFINE(HAVE_LIBREXGEN,1,[Define to 1 if you have the `rexgen' library (-lrexgen).])])])
