@@ -577,10 +577,11 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 		mem_map = mmap(NULL, file_len,
 		               PROT_READ, MAP_SHARED,
 		               fileno(word_file), 0);
-		if (!mem_map)
+		if (mem_map == MAP_FAILED) {
+			mem_map = NULL;
 			log_event("- memory mapping failed (%s) - but we'll do"
 			          "fine without it.", strerror(errno));
-		else {
+		} else {
 			map_pos = mem_map;
 			map_end = mem_map + file_len;
 			map_scan_end = map_end - 16;
