@@ -53,7 +53,7 @@ esac
 #############################################################################
 # All these silly macros wear you down.
 #############################################################################
-case "$host" in
+case "$host_os" in
   linux*)
     AS_IF([test "x$ac_cv_func_memmem" = xyes], [JTR_LIST_ADD(CFLAGS_EXTRA, [-D_GNU_SOURCE])])
 	;;
