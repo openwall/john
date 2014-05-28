@@ -12153,64 +12153,23 @@ echo "#define JOHN_BLD \"${CPU_BIT_STR}-bit${using_x32} ${CPU_STR}-autoconf\"" >
 
 CC_BACKUP=$CC
 CFLAGS_BACKUP="$CFLAGS"
+
+case "$host_os" in
 #############################################################################
 # check for using .exe or -ln -s for cygwin/mingw builds only.  Default uses
 # symlink.c and exe. cygwin can use --enable-ln-s to override this with ln -s
 #############################################################################
-case "$host_os" in
   cygwin*)
     { $as_echo "$as_me:${as_lineno-$LINENO}: checking for *2john helper type" >&5
 $as_echo_n "checking for *2john helper type... " >&6; }
-	if test "x$enable_ln_s" != "xno"; then
-	  { $as_echo "$as_me:${as_lineno-$LINENO}: result: ln -s" >&5
+    if test "x$enable_ln_s" != xno; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: ln -s" >&5
 $as_echo "ln -s" >&6; }
-	else
-	  EXE_EXT=.exe
-
-	  { $as_echo "$as_me:${as_lineno-$LINENO}: result: .exe (symlink.c)" >&5
+else
+  EXE_EXT=.exe
+ { $as_echo "$as_me:${as_lineno-$LINENO}: result: .exe (symlink.c)" >&5
 $as_echo ".exe (symlink.c)" >&6; }
-	fi
-	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for cygwin64" >&5
-$as_echo_n "checking for cygwin64... " >&6; }
-	if test "x$CPU_BIT_STR" = "x64"; then
-	  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-$as_echo "yes" >&6; }
-	  ax_intel_x32=no
-
-   for i in -D__CYGWIN64__ -D__CYGWIN32__; do
-      jtr_list_add_dupe=0
-      for j in $EXTRA_AS_FLAGS; do
-         if test "x$i" = "x$j"; then
-            jtr_list_add_dupe=1
-            break
-         fi
-      done
-      if test $jtr_list_add_dupe = 0; then
-         EXTRA_AS_FLAGS="$EXTRA_AS_FLAGS $i"
-         jtr_list_add_result="$jtr_list_add_result $i"
-      fi
-   done
-
-
-   for i in -D__CYGWIN64__ -D__CYGWIN32__; do
-      jtr_list_add_dupe=0
-      for j in $CFLAGS_EX; do
-         if test "x$i" = "x$j"; then
-            jtr_list_add_dupe=1
-            break
-         fi
-      done
-      if test $jtr_list_add_dupe = 0; then
-         CFLAGS_EX="$CFLAGS_EX $i"
-         jtr_list_add_result="$jtr_list_add_result $i"
-      fi
-   done
-
-	  CFLAGS_EXTRA="$CFLAGS_EXTRA $CFLAGS_EX"
-	else
-	  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-	fi
+fi
 	;;
   mingw*)
      EXE_EXT=.exe
@@ -12218,16 +12177,23 @@ $as_echo "no" >&6; }
 	 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for *2john helper type" >&5
 $as_echo_n "checking for *2john helper type... " >&6; }
 	 { $as_echo "$as_me:${as_lineno-$LINENO}: result: .exe (symlink.c)" >&5
-$as_echo ".exe (symlink.c)" >&6; };;
+$as_echo ".exe (symlink.c)" >&6; }
+	 ;;
 esac
 
+#########################################
+# From this point, we accumlate all set vars
+# into the jtr_list_add_result var, and later
+# output what vars were added (or none)
+#########################################
 jtr_list_add_result=""
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for OS-specific extension macros needed" >&5
-$as_echo_n "checking for OS-specific extension macros needed... " >&6; }
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for OS-specific extension compiler flags needed" >&5
+$as_echo_n "checking for OS-specific extension compiler flags needed... " >&6; }
+
+case "$host_os" in
 #############################################################################
 # Correct behavior for freebsd requires -D__BSD_VISIBLE to be in cflags
 #############################################################################
-case "$host_os" in
   freebsd*)
 
    for i in -D__BSD_VISIBLE; do
@@ -12246,12 +12212,9 @@ case "$host_os" in
 
     CFLAGS_EXTRA="$CFLAGS_EXTRA $CFLAGS_EX"
 	;;
-esac
-
 #############################################################################
 # All these silly macros wear you down.
 #############################################################################
-case "$host_os" in
   linux*)
     if test "x$ac_cv_func_memmem" = xyes; then :
 
@@ -12315,8 +12278,31 @@ fi
 
 fi
 	;;
+   x86_64*cygwin*)
+	  ax_intel_x32=no
+	  EXTRA_AS_FLAGS="$EXTRA_AS_FLAGS -D__CYGWIN64__ -D__CYGWIN32__"
+
+   for i in "-D__CYGWIN64__ -D__CYGWIN32__"; do
+      jtr_list_add_dupe=0
+      for j in $CFLAGS_EXTRA; do
+         if test "x$i" = "x$j"; then
+            jtr_list_add_dupe=1
+            break
+         fi
+      done
+      if test $jtr_list_add_dupe = 0; then
+         CFLAGS_EXTRA="$CFLAGS_EXTRA $i"
+         jtr_list_add_result="$jtr_list_add_result $i"
+      fi
+   done
+
+	;;
 esac
 
+#########################################
+# Now output the result of what we
+# accumlated in jtr_list_add_result
+#########################################
 
    if test -z "$jtr_list_add_result"; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: none" >&5
@@ -12326,6 +12312,7 @@ else
 $as_echo "$jtr_list_add_result" >&6; }
 fi
    jtr_list_add_result=""
+
 
 CC="$CC_BACKUP"
 CFLAGS="$CFLAGS_BACKUP"
