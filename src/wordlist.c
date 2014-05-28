@@ -102,7 +102,8 @@ static int64_t nWordFileLines;
 
 static void save_state(FILE *file)
 {
-	fprintf(file, "%d\n%lld\n%lld\n", rec_rule, rec_pos, rec_line);
+	fprintf(file, "%d\n%lld\n%lld\n",
+	        rec_rule, (long long)rec_pos, (long long)rec_line);
 }
 
 static int restore_rule_number(void)
@@ -262,11 +263,16 @@ static void restore_line_number(void)
 
 static int restore_state(FILE *file)
 {
-	if (fscanf(file, "%d\n%lld\n", &rec_rule, &rec_pos) != 2)
+	long long rule, line, pos;
+
+	if (fscanf(file, "%lld\n%lld\n", &rule, &pos) != 2)
 		return 1;
+	rec_rule = rule;
+	rec_pos = pos;
 	rec_line = 0;
-	if (rec_version >= 4 && fscanf(file, "%lld\n", &rec_line) != 1)
+	if (rec_version >= 4 && fscanf(file, "%lld\n", &line) != 1)
 		return 1;
+	rec_line = line;
 	if (rec_rule < 0 || rec_pos < 0)
 		return 1;
 
@@ -565,7 +571,8 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 		}
 
 #ifdef HAVE_MMAP
-		log_event("- memory mapping wordlist (%lld bytes)", file_len);
+		log_event("- memory mapping wordlist (%lld bytes)",
+		          (long long)file_len);
 #if (SIZEOF_SIZE_T < 8)
 		/* Now even though we are 64 bit file size, we must still
 		 * deal with some 32 bit functions ;) */
@@ -672,7 +679,8 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 				log_event("- loaded this node's share of "
 				          "wordfile %s into memory "
 				          "(%lu bytes of %lld, max_size=%zu"
-				          " avg/node)", name, my_size, file_len,
+				          " avg/node)", name, my_size,
+				          (long long)file_len,
 				          options.max_wordfile_memory);
 				if (john_main_process)
 				fprintf(stderr,"Each node loaded 1/%d "
@@ -687,7 +695,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 			else {
 				log_event("- loading wordfile %s into memory "
 				          "(%lld bytes, max_size=%zu)",
-				          name, file_len,
+				          name, (long long)file_len,
 				          options.max_wordfile_memory);
 				if (options.node_count > 1 && john_main_process)
 				fprintf(stderr,"Each node loaded the whole "
@@ -727,8 +735,9 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 				++nWordFileLines;
 			words = mem_alloc((nWordFileLines + 1) * sizeof(char*));
 			log_event("- wordfile had %lld lines and required %lld"
-			          " bytes for index.", nWordFileLines,
-			          (nWordFileLines * sizeof(char*)));
+			          " bytes for index.",
+			          (long long)nWordFileLines,
+			          (long long)(nWordFileLines * sizeof(char*)));
 
 			i = 0;
 			cp = word_file_str;
@@ -747,7 +756,8 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 					"temporarily allocating %lld bytes",
 					hash_size,
 					(hash_size * sizeof(unsigned int)) +
-					(nWordFileLines * sizeof(element_st)));
+					((long long)nWordFileLines *
+					 sizeof(element_st)));
 				buffer.hash = mem_alloc(hash_size *
 				                        sizeof(unsigned int));
 				buffer.data = mem_alloc(nWordFileLines *
@@ -810,7 +820,7 @@ skip:
 			if ((long long)nWordFileLines - i > 0)
 				log_event("- suppressed %lld duplicate lines "
 				          "and/or comments from wordlist.",
-				          nWordFileLines - i);
+				          (long long)nWordFileLines - i);
 			MEM_FREE(buffer.hash);
 			MEM_FREE(buffer.data);
 			nWordFileLines = i;
@@ -903,7 +913,7 @@ GRAB_NEXT_PIPE_LOAD:;
 				}
 				sprintf(msg_buf, "- Read block of %lld "
 				        "candidate passwords from pipe",
-				        nWordFileLines);
+				        (long long)nWordFileLines);
 				log_event("%s", msg_buf);
 			}
 #if HAVE_WINDOWS_H
