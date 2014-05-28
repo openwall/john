@@ -52,6 +52,15 @@ case "$host_os" in
 esac
 
 #############################################################################
+# All these silly macros wear you down.
+#############################################################################
+case "$host" in
+  linux*)
+    AS_IF([test "x$ac_cv_func_memmem" = xyes], [JTR_LIST_ADD(CFLAGS_EXTRA, [-D_GNU_SOURCE])])
+	;;
+esac
+
+#############################################################################
 # Add large file support to Linux, and OSX (OTHERS may need this also)
 #############################################################################
 case "$host" in
