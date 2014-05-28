@@ -12255,8 +12255,8 @@ esac
 #############################################################################
 # Add large file support to Linux, and OSX (OTHERS may need this also)
 #############################################################################
-case "$host_os" in
-  linux*)
+case "$host" in
+  i?86*linux*)
     if test "x$ac_cv_func_lseek64" = xyes; then :
 
    for i in -D_LARGEFILE64_SOURCE; do
@@ -12275,7 +12275,7 @@ case "$host_os" in
 
 fi
 	;;
-  darwin*)
+  i?86*darwin*)
     if test "x$ac_cv_func_fseeko" = xyes; then :
 
    for i in -D_DARWIN_C_SOURCE; do

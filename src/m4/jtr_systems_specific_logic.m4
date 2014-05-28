@@ -54,11 +54,11 @@ esac
 #############################################################################
 # Add large file support to Linux, and OSX (OTHERS may need this also)
 #############################################################################
-case "$host_os" in
-  linux*)
+case "$host" in
+  i?86*linux*)
     AS_IF([test "x$ac_cv_func_lseek64" = xyes], [JTR_LIST_ADD(CFLAGS_EXTRA, [-D_LARGEFILE64_SOURCE])])
 	;;
-  darwin*)
+  i?86*darwin*)
     AS_IF([test "x$ac_cv_func_fseeko" = xyes], [JTR_LIST_ADD(CFLAGS_EXTRA, [-D_DARWIN_C_SOURCE])])
 	;;
 esac
