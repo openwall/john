@@ -31,8 +31,9 @@
 
 #include "stdint.h"
 
-/* here we have to 'find' a good fseek64 and ftell64 */
-
+/******************************************/
+/* here we try to 'find' a usable fseek64 */
+/******************************************/
 #if SIZEOF_LONG == 8
 #define jtr_fseek64 fseek
 
@@ -69,16 +70,21 @@
 // we can code things for specific environments, OR simply fall
 // back to using fseek (and warn the user)
 #ifdef __CYGWIN32__
-extern  int fseeko64 (FILE* stream, int64_t offset, int whence);
-#define jtr_fseek64 fseeko64
+   extern  int fseeko64 (FILE* stream, int64_t offset, int whence);
+#  define jtr_fseek64 fseeko64
 #else
-//#warning Using 32-bit fseek(). Files larger than 2GB will be handled unreliably
-#define jtr_fseek64 fseek
+#  if defined(__GNUC__)
+#    warning Using 32-bit fseek(). Files larger than 2GB will be handled unreliably
+#  endif
+#  define jtr_fseek64 fseek
 #endif
 
 #endif /* fseek */
 
 
+/******************************************/
+/* here we try to 'find' a usable ftell64 */
+/******************************************/
 #if SIZEOF_LONG == 8
 #define jtr_ftell64 ftell
 
@@ -103,11 +109,13 @@ extern  int fseeko64 (FILE* stream, int64_t offset, int whence);
 // we can code things for specific environments, OR simply fall
 // back to using ftell (and warn the user)
 #ifdef __CYGWIN32__
-extern  int64_t ftello64 (FILE* stream);
-#define jtr_ftell64 ftello64
+   extern  int64_t ftello64 (FILE* stream);
+#  define jtr_ftell64 ftello64
 #else
-//#warning Using 32-bit ftell(). Files larger than 2GB will be handled unreliably
-#define jtr_ftell64 ftell
+#  if defined(__GNUC__)
+#    warning Using 32-bit ftell(). Files larger than 2GB will be handled unreliably
+#  endif
+#  define jtr_ftell64 ftell
 #endif
 
 #endif /* ftell */
