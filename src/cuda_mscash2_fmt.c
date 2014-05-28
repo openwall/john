@@ -109,7 +109,7 @@ static void *salt(char *ciphertext)
 
 	memset(&salt, 0, sizeof(salt));
 	salt.rounds = DEFAULT_ROUNDS;
-	sscanf(pos, "%d", &salt.rounds);
+	sscanf(pos, "%u", &salt.rounds);
 	pos = strchr(ciphertext, '#') + 1 ;
 	while (pos < end)
 		insalt[length++] = *pos++;

@@ -170,13 +170,12 @@ void init_probatables(char * filename)
 
 		strcat(fpath, filename);
 		filename = path_expand(fpath);
-	}
 
-	fichier = fopen(filename, "r");
-	if(!fichier)
-	{
-		fprintf(stderr, "could not open %s\n", filename);
-		error();
+		if (!(fichier = fopen(filename, "r")))
+		{
+			fprintf(stderr, "could not open %s\n", filename);
+			error();
+		}
 	}
 
 	first = mem_alloc( sizeof(unsigned char) * 256 );

@@ -65,15 +65,30 @@ int main(int argc, char * * argv)
 	if(first == NULL)
 	{
 		perror("malloc first");
+		fclose(fichier);
 		return 3;
 	}
 
 	ligne = malloc(4096);
-	if(ligne == NULL) { perror("malloc ligne"); return 3; }
+	if(ligne == NULL) {
+		perror("malloc ligne");
+		fclose(fichier);
+		return 3;
+	}
 	proba2 = malloc(sizeof(unsigned char) * 256 * 256);
-	if(proba2 == NULL) { perror("malloc proba2"); free(ligne); return 3; }
+	if(proba2 == NULL) {
+		perror("malloc proba2");
+		free(ligne);
+		fclose(fichier);
+		return 3;
+	}
 	proba1 = malloc(sizeof(unsigned char) * 256 );
-	if(proba1 == NULL) { perror("malloc proba1"); free(ligne); return 3; }
+	if(proba1 == NULL) {
+		perror("malloc proba1");
+		free(ligne);
+		fclose(fichier);
+		return 3;
+	}
 	for(i=0;i<256*256;i++)
 		proba2[i] = UNK_STR;
 	for(i=0;i<256;i++)
@@ -138,6 +153,7 @@ int main(int argc, char * * argv)
 		if(!fichier)
 		{
 			fprintf(stderr, "could not open %s\n", argv[2]);
+			MEM_FREE(ligne);
 			return -1;
 		}
 		fprintf(stderr, "scanning password file ...\n");

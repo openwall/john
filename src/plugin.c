@@ -75,7 +75,7 @@ void register_dlls(
 	struct fmt_main *fmt;
 	struct list_main *cfg_list;
 	int             ndx;
-	char           *dll_name, *cfg_names;
+	char           *dll_name, *cfg_names = NULL;
 	/*
          * Convert config_param string into list structure and chain it
          * and dll_list together temporarily.  Set le to the list head.
@@ -103,6 +103,8 @@ void register_dlls(
 		le = dll_list->head;	/* config_param empty, start with
 					 * dll_list */
 	} else {
+		if (cfg_names)
+			free(cfg_names);
 		return;		/* both lists empty, bail out */
 	}
 	/*

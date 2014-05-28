@@ -312,6 +312,7 @@ static void process_file(char *infile)
 	}
 	if (!listf && !rawf) {
 		fprintf(stderr, "File open failue on '%s'\n", infile);
+		if (rawf) fclose(rawf);
 		return;
 	}
 

@@ -49,7 +49,6 @@ static inline void rr13(unsigned char *buf, int len) {
     int bb;
     int b1, s1, b2, s2;
 
-    const int bits = 13 % len;
     const int lbit = len % 8;
 
     if(len == 0)
@@ -64,6 +63,8 @@ static inline void rr13(unsigned char *buf, int len) {
             tmp[bytes - 1] |= buf[0] >> i;
     }
     for(i = 0; i < bytes; i++) {
+        const int bits = 13 % len;
+
         // calculate first bit position of this byte
         bb = 8 * i - bits;
         while(bb < 0)
@@ -276,4 +277,3 @@ void str2key(char *user, char *realm, char *passwd, krb5_key *krb5key) {
     MEM_FREE(text);
 }
 // }}}
-

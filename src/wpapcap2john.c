@@ -62,7 +62,7 @@ static void to_dashed(char bssid[18], uint8 *p)
 	        p[0],p[1],p[2],p[3],p[4],p[5]);
 }
 
-static void to_compact(char bssid[18], uint8 *p)
+static void to_compact(char bssid[13], uint8 *p)
 {
 	sprintf(bssid, "%02x%02x%02x%02x%02x%02x",
 	        p[0],p[1],p[2],p[3],p[4],p[5]);

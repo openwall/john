@@ -106,6 +106,7 @@ static void process_file(const char *filename)
 		}
 	}
 	MEM_FREE(buffer);
+	fclose(fp);
 }
 
 int racf2john(int argc, char **argv)
@@ -121,4 +122,3 @@ int racf2john(int argc, char **argv)
 
 	return 0;
 }
-

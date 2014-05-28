@@ -192,7 +192,7 @@ int regen_lost_salt_parse_options() {
 
 	if (strncmp(regen_salts_options, "dynamic_", 8))
 		bailout("Error, invalid regen-lost-salts argument. Must start with dynamic_# value\nSee docs/REGEN-LOST-SALTS document");
-	if (sscanf(regen_salts_options, "dynamic_%u:%u:", &regen_salts_dyna_num, &hash_len) != 2)
+	if (sscanf(regen_salts_options, "dynamic_%d:%d:", &regen_salts_dyna_num, &hash_len) != 2)
 		 bailout("Error, invalid regen-lost-salts argument. Must start with dynamic_#:hash_len: value\nSee docs/REGEN-LOST-SALTS document");
 	// at this point in the JtR loading, we do not know if $dynamic_`regen_salts_dyna_num`$ is valid.  We have to check later.
 	sprintf(DynaType, "$dynamic_%d$", regen_salts_dyna_num);

@@ -100,11 +100,13 @@ static int hash_plugin_parse_hash(char *filename)
 
 	if (fread(&myphdr, sizeof(struct luks_phdr), 1, myfile) < 1) {
 		fprintf(stderr, "%s : file opening problem!", filename);
+		fclose(myfile);
 		return -1;
 	}
 
 	if (strcmp(myphdr.magic, "LUKS\xba\xbe") != 0) {
 		fprintf(stderr, "%s : not a LUKS file / disk", filename);
+		fclose(myfile);
 		return -2;
 	}
 
@@ -157,6 +159,7 @@ static int hash_plugin_parse_hash(char *filename)
 		BIO_write(bio, cipherbuf, afsize);
 		if(BIO_flush(bio) <= 0) {
 			fprintf(stderr, "%s : BIO_flush failed ;(\n", filename);
+			fclose(myfile);
 			return -3;
 		}
 		BIO_free_all(bio);
@@ -188,6 +191,7 @@ good:
 	return 0;
 bad:
 	printf("%s : parsing failed\n", filename);
+	fclose(myfile);
 	return 1;
 }
 

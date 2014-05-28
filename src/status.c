@@ -403,7 +403,7 @@ static void status_print_stdout(double percent)
 	    "%sp %u:%02u:%02u:%02u %.02f%%%s %sp/s%s%s\n",
 	    status_get_c(s_p, &status.cands, 0),
 	    time / 86400, time % 86400 / 3600, time % 3600 / 60, time % 60,
-	    percent,
+	        percent < 0 ? 0 : percent,
 	    status_get_ETA(percent, time),
 	    status_get_cps(s_pps, &status.cands, 0),
 	    key ? " " : "", key ? key : "");

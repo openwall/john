@@ -143,7 +143,10 @@ char **stringtoarray(char *string, char delimiter, int *size)
 		*ptr++ = 0x00;
 		(*size)++;
 
-		array = realloc(array, (count + 1) * sizeof(char *));
+		if (!(array = realloc(array, (count + 1) * sizeof(char *)))) {
+			fprintf(stderr, "realloc failed\n");
+			exit(1);
+		}
 		array[count] = strdup(oldptr);
 	}
 	return array;

@@ -48,6 +48,7 @@ int undrop(int argc, char *argv[]) {
 
     if (strncmp(t_line, USERFILE_HEADER, strlen(USERFILE_HEADER)) != 0) {
 	fprintf(stderr, "usefile format is wrong\n");
+	fclose(userfile);
 	return 1;
     } else {
 	printf("# userfile format OK\n\n");

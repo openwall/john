@@ -335,7 +335,7 @@ next_file_header:
 
 		/* We duplicate file name to the GECOS field, for single mode */
 		strncat(gecos, (char*)file_name, sizeof(gecos) - 1);
-		strncat(gecos, " ", sizeof(gecos) - 1);
+		strncat(gecos, " ", sizeof(gecos) - strlen(gecos) - 1);
 
 		/* salt processing */
 		if (file_header_head_flags & 0x400) {

@@ -241,6 +241,7 @@ static int hash_plugin_parse_hash(char *filename, struct custom_salt *cs, int is
 			filename);
 		goto bad;
 	}
+	fclose(myfile);
 	return 0;
 
 bad:

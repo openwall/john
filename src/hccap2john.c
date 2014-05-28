@@ -55,7 +55,7 @@ void to_dashed(char ssid[18], unsigned char *p)
 	sprintf(ssid, "%02x-%02x-%02x-%02x-%02x-%02x",p[0],p[1],p[2],p[3],p[4],p[5]);
 }
 
-void to_compact(char ssid[18], unsigned char *p)
+void to_compact(char ssid[13], unsigned char *p)
 {
 	sprintf(ssid, "%02x%02x%02x%02x%02x%02x",p[0],p[1],p[2],p[3],p[4],p[5]);
 }
@@ -95,10 +95,12 @@ static int process_file(const char *filename)
 	if (stat(filename, &sb) == -1) {
 		perror(filename);
 		fprintf(stderr, "\n");
+		fclose(f);
 		return 0;
 	}
 	if (sb.st_size % sizeof(hccap)) {
 		fprintf(stderr, "%s: file has wrong size\n\n", filename);
+		fclose(f);
 		return 0;
 	}
 
@@ -112,6 +114,7 @@ static int process_file(const char *filename)
 				fprintf(stderr, "\n");
 			} else
 				fprintf(stderr, "%s: file read error\n\n", filename);
+			fclose(f);
 			return 0;
 		}
 		print_hccap(&hccap, filename);

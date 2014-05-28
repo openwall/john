@@ -110,6 +110,7 @@ private bz_stream bz;
 #endif
 
 #include "jumbo.h"
+#include "misc.h"
 #include "memdbg.h"	// Must be last included header
 
 #define YES 1
@@ -2125,7 +2126,7 @@ plain_Secret_Key(int len)
 {
 	static char path[8192];
 	char *base;
-	strncpy(path, filename, sizeof(path));
+	strnzcpy(path, filename, sizeof(path));
 	base = basename(path);
 
 	switch (VERSION) {
@@ -2201,11 +2202,11 @@ encrypted_Secret_Key(int len, int sha1)
 	/* /path/johndoe.gpg -> johndoe */
 	if (!gecos[0]) {
 		cp = strip_suffixes(jtr_basename(filename), ext, 2);
-		strncpy(gecos, cp, sizeof(gecos));
+		strnzcpy(gecos, cp, sizeof(gecos));
 	}
 
 	/* login field is Real Name part of user data */
-	strncpy(login, gecos, sizeof(login));
+	strnzcpy(login, gecos, sizeof(login));
 
 	if ((cp = strchr(login, '(')))
 		memset(cp, 0, 1);

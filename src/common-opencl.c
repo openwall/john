@@ -1599,7 +1599,7 @@ void opencl_build_kernel(char *kernel_filename, int sequential_id, char *opts,
 		               "Error querying DEVICE_NAME");
 
 		// Decide the binary name.
-		strncpy(bin_name, kernel_filename, sizeof(bin_name));
+		strnzcpy(bin_name, kernel_filename, sizeof(bin_name));
 		p = strstr(bin_name, ".cl");
 		if (p) *p = 0;
 		strcat(bin_name, "_");

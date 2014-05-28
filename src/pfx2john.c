@@ -77,14 +77,17 @@ static void process_file(const char *filename)
 	in = BIO_new_file(filename, "rb");
 	if (!in) {
 		fprintf (stderr, "PKCS12 file not found: %s\n", filename);
-	    	return;
+		fclose(pfxfile);
+		return;
 	}
 	if(!(p12 = d2i_PKCS12_bio (in, NULL))) {
 		perror("Unable to create PKCS12 object\n");
+		fclose(pfxfile);
 	    	return;
 	}
 	if(PKCS12_verify_mac(p12, "", -1)) {
 		fprintf(stderr, "%s has no password!\n", filename);
+		fclose(pfxfile);
 		return;
 	}
 	count = fread(buffer, 1, LINE_BUFFER_SIZE, pfxfile);

@@ -149,6 +149,7 @@ static void process_file(const char *fname)
 	assert(count == 1);
 	if (memcmp(buf, KEYRING_FILE_HEADER, KEYRING_FILE_HEADER_LEN) != 0) {
 		fprintf(stderr, "%s : Not a GNOME Keyring file!\n", fname);
+		fclose(fp);
 		return;
 	}
 	offset = KEYRING_FILE_HEADER_LEN;
@@ -161,6 +162,7 @@ static void process_file(const char *fname)
 	if (major != 0 || minor != 0 || crypto != 0 || hash != 0) {
 		fprintf(stderr, "%s : Un-supported GNOME Keyring file!\n",
 		    fname);
+		fclose(fp);
 		return;
 	}
 	// Keyring name
@@ -212,12 +214,13 @@ static void process_file(const char *fname)
 	printf("*%d*%d*%d*", hash_iterations, crypto_size, 0);
 	print_hex(to_decrypt, crypto_size);
 	printf("\n");
-	if(to_decrypt)
-		MEM_FREE(to_decrypt);
+	MEM_FREE(to_decrypt);
+	fclose(fp);
 	return;
 
 bail:
 	fprintf(stderr, "%s: parsing failed, please report this on john-users if input was a valid keyring!\n", fname);
+	fclose(fp);
 	return;
 
 }

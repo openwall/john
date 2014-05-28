@@ -62,11 +62,13 @@ static void process_file(const char *filename)
 	bp = BIO_new(BIO_s_file());
 	if(!bp) {
 	    fprintf(stderr, "OpenSSL BIO allocation failure\n");
+	    fclose(keyfile);
 	    return;
 	}
 	if(!BIO_read_filename(bp, filename)) {
 	    fprintf(stderr, "OpenSSL BIO_read_filename failure\n");
 	    ERR_print_errors_fp(stderr);
+	    fclose(keyfile);
 	    return;
 	}
 	/* PEM_bytes_read_bio function in crypto/pem/pem_lib.c
