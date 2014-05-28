@@ -12154,8 +12154,6 @@ echo "#define JOHN_BLD \"${CPU_BIT_STR}-bit${using_x32} ${CPU_STR}-autoconf\"" >
 
 CC_BACKUP=$CC
 CFLAGS_BACKUP="$CFLAGS"
-{ $as_echo "$as_me:${as_lineno-$LINENO}: Testing build host's known unique compiling requirements" >&5
-$as_echo "$as_me: Testing build host's known unique compiling requirements" >&6;}
 #############################################################################
 # check for using .exe or -ln -s for cygwin/mingw builds only.  Default uses
 # symlink.c and exe. cygwin can use --enable-ln-s to override this with ln -s
@@ -12224,6 +12222,9 @@ $as_echo_n "checking for *2john helper type... " >&6; }
 $as_echo ".exe (symlink.c)" >&6; };;
 esac
 
+jtr_list_add_result=""
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for OS-specific extension macros needed" >&5
+$as_echo_n "checking for OS-specific extension macros needed... " >&6; }
 #############################################################################
 # Correct behavior for freebsd requires -D__BSD_VISIBLE to be in cflags
 #############################################################################
@@ -12245,10 +12246,6 @@ case "$host_os" in
    done
 
     CFLAGS_EXTRA="$CFLAGS_EXTRA $CFLAGS_EX"
-	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for FreeBSD" >&5
-$as_echo_n "checking for FreeBSD... " >&6; }
-	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-$as_echo "yes" >&6; }
 	;;
 esac
 
@@ -12321,10 +12318,18 @@ fi
 	;;
 esac
 
+
+   if test -z "$jtr_list_add_result"; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: none" >&5
+$as_echo "none" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $jtr_list_add_result" >&5
+$as_echo "$jtr_list_add_result" >&6; }
+fi
+   jtr_list_add_result=""
+
 CC="$CC_BACKUP"
 CFLAGS="$CFLAGS_BACKUP"
-{ $as_echo "$as_me:${as_lineno-$LINENO}: Done with host's known unique compiling requirements" >&5
-$as_echo "$as_me: Done with host's known unique compiling requirements" >&6;}
 
 
 HOST_OS="$host_os"

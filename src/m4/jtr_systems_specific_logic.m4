@@ -8,7 +8,6 @@
 AC_DEFUN([JTR_SYSTEMS_SPECIFIC_LOGIC], [
 CC_BACKUP=$CC
 CFLAGS_BACKUP="$CFLAGS"
-AC_MSG_NOTICE([Testing build host's known unique compiling requirements])
 #############################################################################
 # check for using .exe or -ln -s for cygwin/mingw builds only.  Default uses
 # symlink.c and exe. cygwin can use --enable-ln-s to override this with ln -s
@@ -39,6 +38,8 @@ case "$host_os" in
 	 AC_MSG_RESULT([.exe (symlink.c)]);;
 esac
 
+jtr_list_add_result=""
+AC_MSG_CHECKING([for OS-specific extension macros needed])
 #############################################################################
 # Correct behavior for freebsd requires -D__BSD_VISIBLE to be in cflags
 #############################################################################
@@ -46,8 +47,6 @@ case "$host_os" in
   freebsd*)
     JTR_LIST_ADD(CFLAGS_EX, [-D__BSD_VISIBLE])
     CFLAGS_EXTRA="$CFLAGS_EXTRA $CFLAGS_EX"
-	AC_MSG_CHECKING([for FreeBSD])
-	AC_MSG_RESULT([yes])
 	;;
 esac
 
@@ -72,7 +71,7 @@ case "$host" in
 	;;
 esac
 
+JTR_LIST_ADD_RESULT
 CC="$CC_BACKUP"
 CFLAGS="$CFLAGS_BACKUP"
-AC_MSG_NOTICE([Done with host's known unique compiling requirements])
 ])
