@@ -20,7 +20,7 @@
 #include "arch.h"
 #include "formats.h"
 #include "common.h"
-#include "misc.h"
+#include "jumbo.h"
 #include "common-opencl.h"
 #include "options.h"
 #include "memdbg.h"
@@ -279,14 +279,14 @@ static int blockchain_decrypt(unsigned char *derived_key, unsigned char *data)
 	/* XXX we are assuming that "guid" will be found in the first block
 	 * itself (when SAFETY_FACTOR is 16).
 	 */
-	if (jtr_memmem(out, SAFETY_FACTOR, "\"guid\"", 6))
+	if (memmem(out, SAFETY_FACTOR, "\"guid\"", 6))
 		return 0;
 
-	if (jtr_memmem(out, SAFETY_FACTOR, "sharedKey", 9))
+	if (memmem(out, SAFETY_FACTOR, "sharedKey", 9))
 		return 0;
 
 	/* XXX more tests required?
-	 *  if (jtr_memmem(out, cur_salt->length, "pbkdf2_iterations", 17))
+	 *  if (memmem(out, cur_salt->length, "pbkdf2_iterations", 17))
 	 *  	return 0;
 	 */
 

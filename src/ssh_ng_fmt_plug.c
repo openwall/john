@@ -23,7 +23,7 @@ static int omp_t = 1;
 #endif
 
 #include "arch.h"
-#include "misc.h"
+#include "jumbo.h"
 #include "common.h"
 #include "formats.h"
 #include "params.h"
@@ -263,22 +263,22 @@ static inline int check_padding_3des(unsigned char *out, int length)
 	outfile = BIO_new(BIO_s_mem());
 	ASN1_parse(outfile, out, cur_salt->ctl, 0);
 	BIO_gets(outfile, (char*)output, N);
-	res = jtr_memmem(output, 128, "SEQUENCE", 8);
+	res = memmem(output, 128, "SEQUENCE", 8);
 	if (!res) {
 		goto bad;
 	}
 	BIO_gets(outfile, (char*)output, N);
-	res = jtr_memmem(output, 128, ":00", 3);
+	res = memmem(output, 128, ":00", 3);
 	if (!res) {
 		goto bad;
 	}
-	res = jtr_memmem(output, 128, "INTEGER", 7);
+	res = memmem(output, 128, "INTEGER", 7);
 	if (!res) {
 		goto bad;
 	}
 	/* one more level of check */
 	BIO_gets(outfile, (char*)output, N);
-	res = jtr_memmem(output, 128, "INTEGER", 7);
+	res = memmem(output, 128, "INTEGER", 7);
 	if (!res) {
 		goto bad;
 	}

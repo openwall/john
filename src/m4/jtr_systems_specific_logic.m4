@@ -7,7 +7,7 @@
 #
 AC_DEFUN([JTR_SYSTEMS_SPECIFIC_LOGIC], [
 CC_BACKUP=$CC
-
+AC_MSG_NOTICE([Testing build host's known unique compiling requirements])
 #############################################################################
 # check for using .exe or -ln -s for cygwin/mingw builds only.  Default uses
 # symlink.c and exe. cygwin can use --enable-ln-s to override this with ln -s
@@ -50,6 +50,19 @@ case "$host_os" in
 	;;
 esac
 
+#############################################################################
+# Add large file support to Linux, and OSX (OTHERS may need this also)
+#############################################################################
+case "$host_os" in
+  linux*)
+    AS_IF([test "x$ac_cv_func_lseek64" = xyes], [JTR_LIST_ADD(CFLAGS_EXTRA, [-D_LARGEFILE64_SOURCE])])
+	;;
+  darwin*)
+    AS_IF([test "x$ac_cv_func_fseeko" = xyes], [JTR_LIST_ADD(CFLAGS_EXTRA, [-D_DARWIN_C_SOURCE])])
+	;;
+esac
+
 CC="$CC_BACKUP"
 CFLAGS="$CFLAGS_BACKUP"
+AC_MSG_NOTICE([Done with host's known unique compiling requirements])
 ])

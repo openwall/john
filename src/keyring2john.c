@@ -14,7 +14,7 @@
 #include <assert.h>
 #include "stdint.h"
 #include "memory.h"
-#include "misc.h"
+#include "jumbo.h"
 #include "memdbg.h"
 
 #define KEYRING_FILE_HEADER "GnomeKeyring\n\r\0\n"

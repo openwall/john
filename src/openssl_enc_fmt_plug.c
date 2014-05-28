@@ -32,7 +32,7 @@
 #include "params.h"
 #include "common.h"
 #include "formats.h"
-#include "misc.h"
+#include "jumbo.h"
 #ifdef _OPENMP
 #include <omp.h>
 #define OMP_SCALE               64
@@ -182,7 +182,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!q)
 		return !strcmp(p, "0");
 	if(strlen(q) == 1)
-		return 0; 
+		return 0;
 	q = q + 1;
 	if ((q - p - 1) != 1)
 		return 0;
@@ -257,12 +257,12 @@ static int kpa(unsigned char *key, unsigned char *iv, int inlined)
 	}
 	if (inlined) {
 		AES_cbc_encrypt(cur_salt->last_chunks, out, 16, &akey, iv, AES_DECRYPT);
-		if (jtr_memmem(out, 16, cur_salt->kpt, strlen((char*)cur_salt->kpt)))
+		if (memmem(out, 16, cur_salt->kpt, strlen((char*)cur_salt->kpt)))
 			return 0;
 	}
 	else {
 		AES_cbc_encrypt(cur_salt->data, out, cur_salt->datalen, &akey, iv, AES_DECRYPT);
-		if (jtr_memmem(out, cur_salt->datalen, cur_salt->kpt, strlen((char*)cur_salt->kpt)))
+		if (memmem(out, cur_salt->datalen, cur_salt->kpt, strlen((char*)cur_salt->kpt)))
 			return 0;
 	}
 	return -1;

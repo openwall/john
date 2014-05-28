@@ -19,7 +19,7 @@
 #include <sys/types.h>
 #include <fcntl.h>
 #include "memory.h"
-#include "misc.h"
+#include "jumbo.h"
 #include "memdbg.h"
 
 #define smalloc(z) safemalloc(z,1)

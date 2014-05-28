@@ -57,6 +57,7 @@
 #include <emmintrin.h>
 #endif
 #include "arch.h"
+#include "jumbo.h"
 #include "misc.h"
 #include "math.h"
 #include "params.h"
@@ -84,11 +85,11 @@ static FILE *word_file = NULL;
 static double progress = 0;
 
 static int rec_rule;
-static long rec_pos; /* ftell(3) is defined to return a long */
-static unsigned long rec_line;
+static int64_t rec_pos;
+static int64_t rec_line;
 
 static int rule_number, rule_count;
-static unsigned long line_number, loop_line_no;
+static int64_t line_number, loop_line_no;
 static int length;
 static struct rpp_context *rule_ctx;
 
@@ -97,11 +98,11 @@ static char *mem_map, *map_pos, *map_end, *map_scan_end;
 
 // used for file in 'memory buffer' mode (ready to use array)
 static char *word_file_str, **words;
-static unsigned int nWordFileLines;
+static int64_t nWordFileLines;
 
 static void save_state(FILE *file)
 {
-	fprintf(file, "%d\n%ld\n%lu\n", rec_rule, rec_pos, rec_line);
+	fprintf(file, "%d\n%lld\n%lld\n", rec_rule, rec_pos, rec_line);
 }
 
 static int restore_rule_number(void)
@@ -251,7 +252,7 @@ static MAYBE_INLINE int skip_lines(unsigned long n, char *line)
 static void restore_line_number(void)
 {
 	char line[LINE_BUFFER_SIZE];
-	if (skip_lines(rec_pos, line)) {
+	if (skip_lines((unsigned long)rec_pos, line)) {
 		if (ferror(word_file))
 			pexit("fgets");
 		fprintf(stderr, "fgets: Unexpected EOF\n");
@@ -261,10 +262,10 @@ static void restore_line_number(void)
 
 static int restore_state(FILE *file)
 {
-	if (fscanf(file, "%d\n%ld\n", &rec_rule, &rec_pos) != 2)
+	if (fscanf(file, "%d\n%lld\n", &rec_rule, &rec_pos) != 2)
 		return 1;
 	rec_line = 0;
-	if (rec_version >= 4 && fscanf(file, "%lu\n", &rec_line) != 1)
+	if (rec_version >= 4 && fscanf(file, "%lld\n", &rec_line) != 1)
 		return 1;
 	if (rec_rule < 0 || rec_pos < 0)
 		return 1;
@@ -280,8 +281,8 @@ static int restore_state(FILE *file)
 			char line[LINE_BUFFER_SIZE];
 			skip_lines(rec_line, line);
 		} else
-		if (fseek(word_file, rec_pos, SEEK_SET))
-			pexit("fseek");
+		if (jtr_fseek64(word_file, rec_pos, SEEK_SET))
+			pexit("jtr_fseek64");
 		line_number = rec_line;
 	}
 
@@ -302,20 +303,19 @@ static void fix_state(void)
 	if (word_file == stdin)
 		rec_pos = line_number;
 	else
-	if ((rec_pos = ftell(word_file)) < 0) {
+	if ((rec_pos = jtr_ftell64(word_file)) < 0) {
 #ifdef __DJGPP__
 		if (rec_pos != -1)
 			rec_pos = 0;
 		else
 #endif
-			pexit("ftell");
+			pexit("jtr_ftell64");
 	}
 }
 
 static double get_progress(void)
 {
-	size_t size;
-	long pos;
+	int64_t pos, size;
 
 	emms();
 
@@ -332,18 +332,20 @@ static double get_progress(void)
 		pos = map_pos - mem_map;
 		size = map_end - mem_map;
 	} else {
-		struct stat file_stat;
-
-		if (fstat(fileno(word_file), &file_stat))
-			pexit("fstat");
-		size = file_stat.st_size;
-		if ((pos = ftell(word_file)) < 0) {
+		pos = jtr_ftell64(word_file);
+		jtr_fseek64(word_file, 0, SEEK_END);
+		size = jtr_ftell64(word_file);
+		jtr_fseek64(word_file, pos, SEEK_SET);
+#ifdef DEBUG
+		fprintf (stderr, "pos=%lld  size=%lld  percent=%0.4f\n", pos, size, (100.0 * ((rule_number * (double)size) + pos) /(rule_count * (double)size)));
+#endif
+		if (pos < 0) {
 #ifdef __DJGPP__
 			if (pos != -1)
 				pos = 0;
 			else
 #endif
-				pexit("ftell");
+				pexit("jtr_ftell64");
 		}
 	}
 	return (100.0 * ((rule_number * (double)size) + pos) /
@@ -485,7 +487,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 	char *(*apply)(char *word, char *rule, int split, char *last) = NULL;
 	int dist_switch=0;
 	unsigned long my_words=0, their_words=0, my_words_left=0;
-	long file_len = 0;
+	int64_t file_len = 0;
 	int i, pipe_input = 0, max_pipe_words = 0, rules_keep = 0;
 	int init_once = 1;
 #if HAVE_WINDOWS_H
@@ -543,7 +545,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 
 	if (name) {
 		char *cp, csearch;
-		int ourshare = 0;
+		int64_t ourshare = 0;
 
 		if (!(word_file = fopen(path_expand(name), "rb")))
 			pexit("fopen: %s", path_expand(name));
@@ -551,20 +553,10 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 		          loopBack ? "Loopback pot" : "Wordlist",
 		          path_expand(name));
 
-		/* this will both get us the file length, and tell us
-		   of 'invalid' files (i.e. too big in Win32 or other
-		   32 bit OS's.  A file between 2gb and 4gb returns
-		   a negative number. */
-		fseek(word_file, 0, SEEK_END);
-		file_len = ftell(word_file);
-		fseek(word_file, 0, SEEK_SET);
-		if (file_len < 0) {
-			if (john_main_process)
-				fprintf(stderr, "Error, dictionary file is too"
-				        " large for john to read (probably a "
-				        "32 bit OS issue)\n");
-			error();
-		}
+		jtr_fseek64(word_file, 0, SEEK_END);
+		if ((file_len = jtr_ftell64(word_file)) == -1)
+			pexit("ftell");
+		jtr_fseek64(word_file, 0, SEEK_SET);
 		if (file_len == 0) {
 			if (john_main_process)
 				fprintf(stderr, "Error, dictionary file is "
@@ -573,7 +565,13 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 		}
 
 #ifdef HAVE_MMAP
-		log_event("- memory mapping wordlist (%lu bytes)", file_len);
+		log_event("- memory mapping wordlist (%lld bytes)", file_len);
+#if (SIZEOF_SIZE_T < 8)
+		/* Now even though we are 64 bit file size, we must still
+		 * deal with some 32 bit functions ;) */
+		mem_map = MAP_FAILED;
+		if (file_len < ((1LL)<<32))
+#endif
 		mem_map = mmap(NULL, file_len,
 		               PROT_READ, MAP_SHARED,
 		               fileno(word_file), 0);
@@ -583,7 +581,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 			fprintf(stderr, "DEBUG: - memory mapping failed (%s)\n",
 			        strerror(errno));
 #endif
-			log_event("- memory mapping failed (%s) - but we'll do"
+			log_event("- memory mapping failed (%s) - but we'll do "
 			          "fine without it.", strerror(errno));
 		} else {
 			map_pos = mem_map;
@@ -673,7 +671,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 				        " we read it\n");
 				log_event("- loaded this node's share of "
 				          "wordfile %s into memory "
-				          "(%lu bytes of %lu, max_size=%zu"
+				          "(%lu bytes of %lld, max_size=%zu"
 				          " avg/node)", name, my_size, file_len,
 				          options.max_wordfile_memory);
 				if (john_main_process)
@@ -688,17 +686,17 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 			}
 			else {
 				log_event("- loading wordfile %s into memory "
-				          "(%lu bytes, max_size=%zu)",
+				          "(%lld bytes, max_size=%zu)",
 				          name, file_len,
 				          options.max_wordfile_memory);
 				if (options.node_count > 1 && john_main_process)
 				fprintf(stderr,"Each node loaded the whole "
 				        "wordfile to memory\n");
 				word_file_str =
-					mem_alloc_tiny(file_len +
+					mem_alloc_tiny((size_t)file_len +
 					               LINE_BUFFER_SIZE + 1,
 					               MEM_ALIGN_NONE);
-				if (fread(word_file_str, 1, file_len,
+				if (fread(word_file_str, 1, (size_t)file_len,
 				          word_file) != file_len) {
 					if (ferror(word_file))
 						pexit("fread");
@@ -706,7 +704,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 					        "fread: Unexpected EOF\n");
 					error();
 				}
-				if (memchr(word_file_str, 0, file_len)) {
+				if (memchr(word_file_str, 0, (size_t)file_len)) {
 					fprintf(stderr,
 					        "Error: wordlist contains NULL"
 					        " bytes - aborting\n");
@@ -716,19 +714,19 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 			aep = word_file_str + file_len;
 			*aep = 0;
 			csearch = '\n';
-			cp = memchr(word_file_str, csearch, file_len);
+			cp = memchr(word_file_str, csearch, (size_t)file_len);
 			if (!cp)
 			{
 				csearch = '\r';
-				cp = memchr(word_file_str, csearch, file_len);
+				cp = memchr(word_file_str, csearch, (size_t)file_len);
 			}
 			for (nWordFileLines = 0; cp; ++nWordFileLines)
-				cp = memchr(&cp[1], csearch, file_len -
-				            (cp - word_file_str) - 1);
+				cp = memchr(&cp[1], csearch, (size_t)(file_len -
+				            (cp - word_file_str) - 1));
 			if (aep[-1] != csearch)
 				++nWordFileLines;
 			words = mem_alloc((nWordFileLines + 1) * sizeof(char*));
-			log_event("- wordfile had %u lines and required %zu"
+			log_event("- wordfile had %lld lines and required %lld"
 			          " bytes for index.", nWordFileLines,
 			          (nWordFileLines * sizeof(char*)));
 
@@ -746,7 +744,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 				hash_size = (1 << hash_log);
 				hash_mask = (hash_size - 1);
 				log_event("- dupe suppression: hash size %u, "
-					"temporarily allocating %zd bytes",
+					"temporarily allocating %lld bytes",
 					hash_size,
 					(hash_size * sizeof(unsigned int)) +
 					(nWordFileLines * sizeof(element_st)));
@@ -810,7 +808,9 @@ skip:
 				if (ec == '\n' && *cp == '\r') cp++;
 			} while (cp < aep);
 			if ((long long)nWordFileLines - i > 0)
-				log_event("- suppressed %u duplicate lines and/or comments from wordlist.", nWordFileLines - i);
+				log_event("- suppressed %lld duplicate lines "
+				          "and/or comments from wordlist.",
+				          nWordFileLines - i);
 			MEM_FREE(buffer.hash);
 			MEM_FREE(buffer.data);
 			nWordFileLines = i;
@@ -901,7 +901,9 @@ GRAB_NEXT_PIPE_LOAD:;
 						}
 					}
 				}
-				sprintf(msg_buf, "- Read block of %d candidate passwords from pipe", nWordFileLines);
+				sprintf(msg_buf, "- Read block of %lld "
+				        "candidate passwords from pipe",
+				        nWordFileLines);
 				log_event("%s", msg_buf);
 			}
 #if HAVE_WINDOWS_H
@@ -1204,8 +1206,8 @@ next_rule:
 				if (mem_map)
 					map_pos = mem_map;
 				else
-				if (fseek(word_file, 0, SEEK_SET))
-					pexit("fseek");
+				if (jtr_fseek64(word_file, 0, SEEK_SET))
+					pexit("jtr_fseek64");
 			}
 			if (their_words &&
 			    skip_lines(options.node_min - 1, line))

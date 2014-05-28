@@ -71,7 +71,7 @@ PLUGFORMATS_SRCS = @PLUGFORMATS_SRCS@
 PLUGFORMATS_OBJS = @PLUGFORMATS_OBJS@
 
 JOHN_OBJS = \
-	john-mpi.o \
+	jumbo.o john-mpi.o \
 	DES_fmt.o DES_std.o DES_bs.o DES_bs_b.o \
 	BSDI_fmt.o \
 	MD5_fmt.o MD5_std.o \

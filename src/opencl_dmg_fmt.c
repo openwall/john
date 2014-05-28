@@ -29,7 +29,7 @@
 #include "formats.h"
 #include "common.h"
 #include "options.h"
-#include "misc.h"
+#include "jumbo.h"
 #include "common-opencl.h"
 #include "memdbg.h"
 
@@ -546,7 +546,7 @@ static int hash_plugin_check_hash(unsigned char *derived_key)
 		unsigned char TEMP1[sizeof(cur_salt->wrapped_hmac_sha1_key)];
 		int outlen, tmplen;
 		AES_KEY aes_decrypt_key;
-		unsigned char outbuf[8192 + 1]; // XXX verify jtr_memmem function!
+		unsigned char outbuf[8192 + 1]; // XXX verify memmem function!
 		unsigned char outbuf2[4096 + 1];
 		unsigned char iv[20];
 		HMAC_CTX hmacsha1_ctx;
@@ -580,7 +580,7 @@ static int hash_plugin_check_hash(unsigned char *derived_key)
 		AES_cbc_encrypt(cur_salt->chunk, outbuf, cur_salt->data_size, &aes_decrypt_key, iv, AES_DECRYPT);
 
 		/* 8 consecutive nulls */
-		if (jtr_memmem(outbuf, cur_salt->data_size, (void*)nulls, 8)) {
+		if (memmem(outbuf, cur_salt->data_size, (void*)nulls, 8)) {
 #ifdef DMG_DEBUG
 			if (!bench_running)
 				fprintf(stderr, "NULLS found!\n\n");
@@ -591,14 +591,14 @@ static int hash_plugin_check_hash(unsigned char *derived_key)
 /* These tests seem to be obsoleted by the 8xNULL test */
 #ifdef DMG_DEBUG
 		/* </plist> is a pretty generic signature for Apple */
-		if (jtr_memmem(outbuf, cur_salt->data_size, (void*)"</plist>", 8)) {
+		if (memmem(outbuf, cur_salt->data_size, (void*)"</plist>", 8)) {
 			if (!bench_running)
 				fprintf(stderr, "</plist> found!\n\n");
 			ret = 1;
 		}
 
 		/* Journalled HFS+ */
-		if (jtr_memmem(outbuf, cur_salt->data_size, (void*)"jrnlhfs+", 8)) {
+		if (memmem(outbuf, cur_salt->data_size, (void*)"jrnlhfs+", 8)) {
 			if (!bench_running)
 				fprintf(stderr, "jrnlhfs+ found!\n\n");
 			ret = 1;
@@ -606,7 +606,7 @@ static int hash_plugin_check_hash(unsigned char *derived_key)
 
 		/* Handle compressed DMG files, CMIYC 2012 and self-made
 		   samples. Is this test obsoleted by the </plist> one? */
-		if ((r = jtr_memmem(outbuf, cur_salt->data_size, (void*)"koly", 4))) {
+		if ((r = memmem(outbuf, cur_salt->data_size, (void*)"koly", 4))) {
 			unsigned int *u32Version = (unsigned int *)(r + 4);
 
 			if (HTONL(*u32Version) == 4) {
@@ -617,7 +617,7 @@ static int hash_plugin_check_hash(unsigned char *derived_key)
 		}
 
 		/* Handle VileFault sample images */
-		if (jtr_memmem(outbuf, cur_salt->data_size, (void*)"EFI PART", 8)) {
+		if (memmem(outbuf, cur_salt->data_size, (void*)"EFI PART", 8)) {
 			if (!bench_running)
 				fprintf(stderr, "EFI PART found!\n\n");
 			ret = 1;
@@ -625,7 +625,7 @@ static int hash_plugin_check_hash(unsigned char *derived_key)
 
 		/* Apple is a good indication but it's short enough to
 		   produce false positives */
-		if (jtr_memmem(outbuf, cur_salt->data_size, (void*)"Apple", 5)) {
+		if (memmem(outbuf, cur_salt->data_size, (void*)"Apple", 5)) {
 			if (!bench_running)
 				fprintf(stderr, "Apple found!\n\n");
 			ret = 1;
@@ -649,7 +649,7 @@ static int hash_plugin_check_hash(unsigned char *derived_key)
 			AES_cbc_encrypt(cur_salt->zchunk, outbuf2, 4096, &aes_decrypt_key, iv, AES_DECRYPT);
 
 			/* 8 consecutive nulls */
-			if (jtr_memmem(outbuf2, 4096, (void*)nulls, 8)) {
+			if (memmem(outbuf2, 4096, (void*)nulls, 8)) {
 #ifdef DMG_DEBUG
 				if (!bench_running)
 					fprintf(stderr, "NULLS found in alternate block!\n\n");
@@ -658,7 +658,7 @@ static int hash_plugin_check_hash(unsigned char *derived_key)
 			}
 #ifdef DMG_DEBUG
 			/* This test seem to be obsoleted by the 8xNULL test */
-			if (jtr_memmem(outbuf2, 4096, (void*)"Press any key to reboot", 23)) {
+			if (memmem(outbuf2, 4096, (void*)"Press any key to reboot", 23)) {
 				if (!bench_running)
 					fprintf(stderr, "MS-DOS UDRW signature found in alternate block!\n\n");
 				ret = 1;

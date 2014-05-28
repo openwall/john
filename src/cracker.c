@@ -51,6 +51,7 @@
 #include "john-mpi.h"
 #endif
 #include "path.h"
+#include "jumbo.h"
 #include "memdbg.h"
 
 #ifdef index
@@ -70,7 +71,7 @@ static void (*crk_fix_state)(void);
 static struct db_keys *crk_guesses;
 static int64 *crk_timestamps;
 static char crk_stdout_key[PLAINTEXT_BUFFER_SIZE];
-long int crk_pot_pos;
+int64_t crk_pot_pos;
 static int potcheck_salt_size;
 
 #ifdef _MSC_VER
@@ -488,7 +489,7 @@ int crk_reload_pot(void)
 	if (!(pot_file = fdopen(pot_fd, "rb")))
 		pexit("fdopen: %s", pers_opts.activepot);
 
-	if (crk_pot_pos && (fseek(pot_file, crk_pot_pos, SEEK_SET) == -1)) {
+	if (crk_pot_pos && (jtr_fseek64(pot_file, crk_pot_pos, SEEK_SET) == -1)) {
 		perror("fseek");
 		rewind(pot_file);
 		crk_pot_pos = 0;
@@ -510,7 +511,7 @@ int crk_reload_pot(void)
 
 	ldr_in_pot = 0;
 
-	crk_pot_pos = ftell(pot_file);
+	crk_pot_pos = jtr_ftell64(pot_file);
 #if OS_FLOCK
 	if (flock(pot_fd, LOCK_UN))
 		perror("flock(LOCK_UN)");

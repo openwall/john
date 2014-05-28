@@ -38,6 +38,7 @@
 #include "cracker.h"
 #include "config.h"
 #include "logger.h" /* Beware: log_init() happens after most functions here */
+#include "jumbo.h"
 #include "memdbg.h"
 
 #ifdef HAVE_CRYPT
@@ -129,7 +130,7 @@ static void read_file(struct db_main *db, char *name, int flags,
 		check_abort(0);
 	}
 	if (name == pers_opts.activepot)
-		crk_pot_pos = (long int)ftell(file);
+		crk_pot_pos = jtr_ftell64(file);
 
 	if (ferror(file)) pexit("fgets");
 

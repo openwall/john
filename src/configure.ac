@@ -218,6 +218,8 @@ AC_CHECK_SIZEOF([long double])
 AC_CHECK_SIZEOF([int *])
 AC_CHECK_SIZEOF([long long *])
 AC_CHECK_SIZEOF([void *])
+AC_CHECK_SIZEOF([size_t])
+AC_CHECK_SIZEOF([off_t])
 
 # Available arch.h's:
 # alpha.h
@@ -274,7 +276,6 @@ AS_IF([test "x$cpu_family" = xintel], [JTR_X86_SPECIAL_LOGIC])
 AC_MSG_CHECKING([for arch.h alternative])
 AC_MSG_RESULT([${ARCH_LINK}])
 JTR_GENERIC_LOGIC
-JTR_SYSTEMS_SPECIFIC_LOGIC
 
 # Set a variable detecting x86-64 w/ X32 ABI
 if test "x$ax_intel_x32" = xyes; then
@@ -342,7 +343,7 @@ AS_IF([test "x$with_commoncrypto" != xyes && test "x$with_openssl" = xno],
 
 AS_IF([test "x$with_commoncrypto" = xyes],
    [AC_CHECK_HEADER([CommonCrypto/CommonDigest.h],
-      [AC_CHECK_LIB([System], [CCKeyDerivationPBKDF],
+   [AC_CHECK_LIB([System], [CCKeyDerivationPBKDF],
          [AC_CHECK_LIB([System], [CCCryptorCreate], [JTR_LIST_ADD(CFLAGS,"-DCOMMON_DIGEST_FOR_OPENSSL")] [AC_SUBST(COMMONCRYPTO_LIBS, [-lSystem])] [AC_DEFINE(HAVE_COMMONCRYPTO,1,[Define to 1 if you have the CommonCrypto library.])], [AC_MSG_FAILURE([No CommonCrypto found],1)])]dnl
        )]dnl
    )]dnl
@@ -350,29 +351,29 @@ AS_IF([test "x$with_commoncrypto" = xyes],
 
 AS_IF([test "x$with_openssl" != xno],
    [if test "x$enable_native_tests" = xyes -a "x$PKG_CONFIG" != xno; then
-      PKG_CHECK_MODULES([OPENSSL], [openssl],
-	 AC_DEFINE(HAVE_LIBCRYPTO,1,[Define to 1 if you have the `crypto' library (-lcrypto).])
-	    AC_DEFINE(HAVE_LIBSSL,1,[Define to 1 if you have the `ssl' library (-lssl).]),
+   PKG_CHECK_MODULES([OPENSSL], [openssl],
+      AC_DEFINE(HAVE_LIBCRYPTO,1,[Define to 1 if you have the `crypto' library (-lcrypto).])
+         AC_DEFINE(HAVE_LIBSSL,1,[Define to 1 if you have the `ssl' library (-lssl).]),
 	    AC_MSG_FAILURE([JtR requires OpenSSL being installed],1))
-   else
-      AS_IF([test "x${OPENSSL_CFLAGS}${OPENSSL_LIBS}" != "x"],
-	 [AC_MSG_CHECKING([supplied paths for OpenSSL])]
-	 [JTR_LIST_ADD(CFLAGS, [$OPENSSL_CFLAGS])]
-	 [AC_MSG_RESULT([$OPENSSL_CFLAGS $OPENSSL_LIBS])],
-	 [test "x$cross_compiling" = xno],
-	 [JTR_SET_NORMAL_SSL_INCLUDES([/usr/local/ssl])]
-	 [AC_CHECK_HEADER([openssl/opensslv.h],
-	    [AC_CHECK_LIB([ssl],[SSL_library_init],
-	       [AC_CHECK_LIB([crypto],[MD5_Update],
-		  [AC_DEFINE(HAVE_LIBSSL,1,[Define to 1 if you have the `ssl' library (-lssl).])]
-		  [AC_DEFINE(HAVE_LIBCRYPTO,1,[Define to 1 if you have the `crypto' library (-lcrypto).])]
+else
+   AS_IF([test "x${OPENSSL_CFLAGS}${OPENSSL_LIBS}" != "x"],
+      [AC_MSG_CHECKING([supplied paths for OpenSSL])]
+      [JTR_LIST_ADD(CFLAGS, [$OPENSSL_CFLAGS])]
+      [AC_MSG_RESULT([$OPENSSL_CFLAGS $OPENSSL_LIBS])],
+      [test "x$cross_compiling" = xno],
+      [JTR_SET_NORMAL_SSL_INCLUDES([/usr/local/ssl])]
+      [AC_CHECK_HEADER([openssl/opensslv.h],
+	 [AC_CHECK_LIB([ssl],[SSL_library_init],
+	    [AC_CHECK_LIB([crypto],[MD5_Update],
+	       [AC_DEFINE(HAVE_LIBSSL,1,[Define to 1 if you have the `ssl' library (-lssl).])]
+	       [AC_DEFINE(HAVE_LIBCRYPTO,1,[Define to 1 if you have the `crypto' library (-lcrypto).])]
 		  [OPENSSL_LIBS="-lssl -lcrypto"],
-		  [AC_MSG_FAILURE(JtR requires libssl/libcrypto being installed,1)])],
-	       [AC_MSG_FAILURE(JtR requires libssl being installed,1)]
-	    )],
-	    [AC_MSG_FAILURE(JtR requires OpenSSL headers being installed,1)]
-	 )]
-      )
+	       [AC_MSG_FAILURE(JtR requires libssl/libcrypto being installed,1)])],
+	    [AC_MSG_FAILURE(JtR requires libssl being installed,1)]
+	 )],
+	 [AC_MSG_FAILURE(JtR requires OpenSSL headers being installed,1)]
+      )]
+   )
    fi]
 )
 
@@ -474,7 +475,7 @@ AC_CHECK_HEADERS([OS.h arpa/inet.h crypt.h fcntl.h limits.h locale.h dnl
                   stddef.h stdint.h stdlib.h string.h strings.h dnl
                   sys/ethernet.h sys/file.h sys/param.h sys/socket.h dnl
                   sys/time.h sys/timeb.h sys/times.h sys/types.h termios.h dnl
-                  unistd.h unixlib/local.h wchar.h])
+                  unistd.h unixlib/local.h wchar.h windows.h])
 # Quirks for Solaris and OpenBSD
 AC_CHECK_HEADERS([net/if.h], [], [],[
 #ifdef HAVE_SYS_SOCKET_H
@@ -549,6 +550,7 @@ AC_FUNC_MMAP
 # we need a rpl_realloc before using this one.
 #AC_FUNC_REALLOC
 
+AC_CHECK_FUNCS([fseek64 fseeko fseeko64 _fseeki64 lseek64 lseek ftell64 ftello ftello64 _ftelli64 memmem])
 #AC_CHECK_FUNCS([atexit endpwent floor ftruncate gethostbyname gettimeofday dnl
 #                inet_ntoa isascii memchr memmove memset mkdir munmap pow dnl
 #                rmdir select setenv setlocale socket strcasecmp strchr dnl
@@ -654,6 +656,8 @@ echo "#define JOHN_BLD \"${CPU_BIT_STR}-bit${using_x32} ${CPU_STR}-autoconf\"" >
 ########################################################
 # End of plugin and build_rules generation code
 ########################################################
+
+JTR_SYSTEMS_SPECIFIC_LOGIC
 
 AC_SUBST([HOST_OS],["$host_os"])
 AC_CONFIG_FILES([Makefile

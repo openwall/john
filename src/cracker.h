@@ -13,7 +13,7 @@
 #include "loader.h"
 
 /* Our last read position in pot file (during crack) */
-extern long int crk_pot_pos;
+extern int64_t crk_pot_pos;
 
 /*
  * Initializes the cracker for a password database (should not be empty).

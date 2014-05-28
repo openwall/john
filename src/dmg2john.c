@@ -37,6 +37,7 @@
 #include "gladman_fileenc.h"
 #include "filevault.h"
 #include "misc.h"
+#include "jumbo.h"
 #include "memdbg.h"
 
 #ifndef ntohll

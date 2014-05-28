@@ -43,7 +43,7 @@
 #include <string.h>
 #include <assert.h>
 #include "stdint.h"
-#include "misc.h"
+#include "jumbo.h"
 #include "memdbg.h"
 
 #define SALTLEN 20

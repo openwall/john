@@ -14,7 +14,7 @@
 #include <string.h>
 
 #include "stdint.h"
-#include "misc.h"
+#include "jumbo.h"
 #include "memdbg.h"
 
 #define KWMAGIC 			"KWALLET\n\r\0\r\n"

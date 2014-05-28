@@ -66,6 +66,24 @@
 /* Define to 1 if you have the `fork' function. */
 #undef HAVE_FORK
 
+/* Define to 1 if you have the `fseek64' function. */
+#undef HAVE_FSEEK64
+
+/* Define to 1 if you have the `fseeko' function. */
+#undef HAVE_FSEEKO
+
+/* Define to 1 if you have the `fseeko64' function. */
+#undef HAVE_FSEEKO64
+
+/* Define to 1 if you have the `ftell64' function. */
+#undef HAVE_FTELL64
+
+/* Define to 1 if you have the `ftello' function. */
+#undef HAVE_FTELLO
+
+/* Define to 1 if you have the `ftello64' function. */
+#undef HAVE_FTELLO64
+
 /* Define to 1 if you have the `getpagesize' function. */
 #undef HAVE_GETPAGESIZE
 
@@ -131,6 +149,15 @@
 
 /* Define to 1 if you have the <locale.h> header file. */
 #undef HAVE_LOCALE_H
+
+/* Define to 1 if you have the `lseek' function. */
+#undef HAVE_LSEEK
+
+/* Define to 1 if you have the `lseek64' function. */
+#undef HAVE_LSEEK64
+
+/* Define to 1 if you have the `memmem' function. */
+#undef HAVE_MEMMEM
 
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H
@@ -276,6 +303,12 @@
 /* Define to 1 if the system has the type `_Bool'. */
 #undef HAVE__BOOL
 
+/* Define to 1 if you have the `_fseeki64' function. */
+#undef HAVE__FSEEKI64
+
+/* Define to 1 if you have the `_ftelli64' function. */
+#undef HAVE__FTELLI64
+
 /* Define to the address where bug reports for this package should be sent. */
 #undef PACKAGE_BUGREPORT
 
@@ -322,8 +355,14 @@
 /* The size of `long long *', as computed by sizeof. */
 #undef SIZEOF_LONG_LONG_P
 
+/* The size of `off_t', as computed by sizeof. */
+#undef SIZEOF_OFF_T
+
 /* The size of `short', as computed by sizeof. */
 #undef SIZEOF_SHORT
+
+/* The size of `size_t', as computed by sizeof. */
+#undef SIZEOF_SIZE_T
 
 /* The size of `unsigned', as computed by sizeof. */
 #undef SIZEOF_UNSIGNED

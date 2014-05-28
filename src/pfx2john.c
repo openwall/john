@@ -54,7 +54,7 @@
 #include <openssl/bio.h>
 #include <openssl/pkcs12.h>
 #include <openssl/ssl.h>
-#include "misc.h"
+#include "jumbo.h"
 #include "common.h"
 #include "arch.h"
 #include "params.h"

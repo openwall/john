@@ -65,7 +65,7 @@
 #include <assert.h>
 
 #include "common.h"
-#include "misc.h"
+#include "jumbo.h"
 #include "formats.h"
 #include "stdint.h"
 #include "memdbg.h"

@@ -625,6 +625,7 @@ ac_includes_default="\
 ac_header_list=
 ac_subst_vars='LTLIBOBJS
 HOST_OS
+EXE_EXT
 PLUGFORMATS_OBJS
 PLUGFORMATS_SRCS
 YASM_OPTIONS
@@ -666,7 +667,6 @@ M_LIBS
 OPENSSL_LIBS
 OPENSSL_CFLAGS
 COMMONCRYPTO_LIBS
-EXE_EXT
 EGREP
 PKG_CONFIG_LIBDIR
 PKG_CONFIG_PATH
@@ -7149,6 +7149,72 @@ cat >>confdefs.h <<_ACEOF
 _ACEOF
 
 
+# The cast to long int works around a bug in the HP C Compiler
+# version HP92453-01 B.11.11.23709.GP, which incorrectly rejects
+# declarations like `int a3[[(sizeof (unsigned char)) >= 0]];'.
+# This bug is HP SR number 8606223364.
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking size of size_t" >&5
+$as_echo_n "checking size of size_t... " >&6; }
+if ${ac_cv_sizeof_size_t+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if ac_fn_c_compute_int "$LINENO" "(long int) (sizeof (size_t))" "ac_cv_sizeof_size_t"        "$ac_includes_default"; then :
+
+else
+  if test "$ac_cv_type_size_t" = yes; then
+     { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error 77 "cannot compute sizeof (size_t)
+See \`config.log' for more details" "$LINENO" 5; }
+   else
+     ac_cv_sizeof_size_t=0
+   fi
+fi
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_sizeof_size_t" >&5
+$as_echo "$ac_cv_sizeof_size_t" >&6; }
+
+
+
+cat >>confdefs.h <<_ACEOF
+#define SIZEOF_SIZE_T $ac_cv_sizeof_size_t
+_ACEOF
+
+
+# The cast to long int works around a bug in the HP C Compiler
+# version HP92453-01 B.11.11.23709.GP, which incorrectly rejects
+# declarations like `int a3[[(sizeof (unsigned char)) >= 0]];'.
+# This bug is HP SR number 8606223364.
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking size of off_t" >&5
+$as_echo_n "checking size of off_t... " >&6; }
+if ${ac_cv_sizeof_off_t+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if ac_fn_c_compute_int "$LINENO" "(long int) (sizeof (off_t))" "ac_cv_sizeof_off_t"        "$ac_includes_default"; then :
+
+else
+  if test "$ac_cv_type_off_t" = yes; then
+     { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error 77 "cannot compute sizeof (off_t)
+See \`config.log' for more details" "$LINENO" 5; }
+   else
+     ac_cv_sizeof_off_t=0
+   fi
+fi
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_sizeof_off_t" >&5
+$as_echo "$ac_cv_sizeof_off_t" >&6; }
+
+
+
+cat >>confdefs.h <<_ACEOF
+#define SIZEOF_OFF_T $ac_cv_sizeof_off_t
+_ACEOF
+
+
 
 # Available arch.h's:
 # alpha.h
@@ -7999,108 +8065,6 @@ CC="$CC_BACKUP"
 CFLAGS="$CFLAGS_BACKUP"
 
 
-CC_BACKUP=$CC
-
-#############################################################################
-# check for using .exe or -ln -s for cygwin/mingw builds only.  Default uses
-# symlink.c and exe. cygwin can use --enable-ln-s to override this with ln -s
-#############################################################################
-case "$host_os" in
-  cygwin*)
-    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for *2john helper type" >&5
-$as_echo_n "checking for *2john helper type... " >&6; }
-	if test "x$enable_ln_s" != "xno"; then
-	  { $as_echo "$as_me:${as_lineno-$LINENO}: result: ln -s" >&5
-$as_echo "ln -s" >&6; }
-	else
-	  EXE_EXT=.exe
-
-	  { $as_echo "$as_me:${as_lineno-$LINENO}: result: .exe (symlink.c)" >&5
-$as_echo ".exe (symlink.c)" >&6; }
-	fi
-	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for cygwin64" >&5
-$as_echo_n "checking for cygwin64... " >&6; }
-	if test "x$CPU_BIT_STR" = "x64"; then
-	  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-$as_echo "yes" >&6; }
-	  ax_intel_x32=no
-
-   for i in -D__CYGWIN64__ -D__CYGWIN32__; do
-      jtr_list_add_dupe=0
-      for j in $EXTRA_AS_FLAGS; do
-         if test "x$i" = "x$j"; then
-            jtr_list_add_dupe=1
-            break
-         fi
-      done
-      if test $jtr_list_add_dupe = 0; then
-         EXTRA_AS_FLAGS="$EXTRA_AS_FLAGS $i"
-         jtr_list_add_result="$jtr_list_add_result $i"
-      fi
-   done
-
-
-   for i in -D__CYGWIN64__ -D__CYGWIN32__; do
-      jtr_list_add_dupe=0
-      for j in $CFLAGS_EX; do
-         if test "x$i" = "x$j"; then
-            jtr_list_add_dupe=1
-            break
-         fi
-      done
-      if test $jtr_list_add_dupe = 0; then
-         CFLAGS_EX="$CFLAGS_EX $i"
-         jtr_list_add_result="$jtr_list_add_result $i"
-      fi
-   done
-
-	  CFLAGS_EXTRA="$CFLAGS_EXTRA $CFLAGS_EX"
-	else
-	  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-	fi
-	;;
-  mingw*)
-     EXE_EXT=.exe
-
-	 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for *2john helper type" >&5
-$as_echo_n "checking for *2john helper type... " >&6; }
-	 { $as_echo "$as_me:${as_lineno-$LINENO}: result: .exe (symlink.c)" >&5
-$as_echo ".exe (symlink.c)" >&6; };;
-esac
-
-#############################################################################
-# Correct behavior for freebsd requires -D__BSD_VISIBLE to be in cflags
-#############################################################################
-case "$host_os" in
-  freebsd*)
-
-   for i in -D__BSD_VISIBLE; do
-      jtr_list_add_dupe=0
-      for j in $CFLAGS_EX; do
-         if test "x$i" = "x$j"; then
-            jtr_list_add_dupe=1
-            break
-         fi
-      done
-      if test $jtr_list_add_dupe = 0; then
-         CFLAGS_EX="$CFLAGS_EX $i"
-         jtr_list_add_result="$jtr_list_add_result $i"
-      fi
-   done
-
-    CFLAGS_EXTRA="$CFLAGS_EXTRA $CFLAGS_EX"
-	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for FreeBSD" >&5
-$as_echo_n "checking for FreeBSD... " >&6; }
-	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-$as_echo "yes" >&6; }
-	;;
-esac
-
-CC="$CC_BACKUP"
-CFLAGS="$CFLAGS_BACKUP"
-
-
 # Set a variable detecting x86-64 w/ X32 ABI
 if test "x$ax_intel_x32" = xyes; then
    using_x32=", X32 ABI"
@@ -8609,8 +8573,8 @@ $as_echo "#define HAVE_LIBCRYPTO 1" >>confdefs.h
 $as_echo "#define HAVE_LIBSSL 1" >>confdefs.h
 
 fi
-   else
-      if test "x${OPENSSL_CFLAGS}${OPENSSL_LIBS}" != "x"; then :
+else
+   if test "x${OPENSSL_CFLAGS}${OPENSSL_LIBS}" != "x"; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking supplied paths for OpenSSL" >&5
 $as_echo_n "checking supplied paths for OpenSSL... " >&6; }
 
@@ -8628,7 +8592,7 @@ $as_echo_n "checking supplied paths for OpenSSL... " >&6; }
       fi
    done
 
-	 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $OPENSSL_CFLAGS $OPENSSL_LIBS" >&5
+      { $as_echo "$as_me:${as_lineno-$LINENO}: result: $OPENSSL_CFLAGS $OPENSSL_LIBS" >&5
 $as_echo "$OPENSSL_CFLAGS $OPENSSL_LIBS" >&6; }
 elif test "x$cross_compiling" = xno; then :
 
@@ -8699,7 +8663,7 @@ fi
    jtr_list_add_result=""
 
 
-	 ac_fn_c_check_header_mongrel "$LINENO" "openssl/opensslv.h" "ac_cv_header_openssl_opensslv_h" "$ac_includes_default"
+      ac_fn_c_check_header_mongrel "$LINENO" "openssl/opensslv.h" "ac_cv_header_openssl_opensslv_h" "$ac_includes_default"
 if test "x$ac_cv_header_openssl_opensslv_h" = xyes; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for SSL_library_init in -lssl" >&5
 $as_echo_n "checking for SSL_library_init in -lssl... " >&6; }
@@ -11019,7 +10983,7 @@ See \`config.log' for more details" "$LINENO" 5; }
 
 # Checks for header files.
 # Eg. if sys/times.h is found, the below will define HAVE_SYS_TIMES_H
-for ac_header in OS.h arpa/inet.h crypt.h fcntl.h limits.h locale.h                   net/ethernet.h netdb.h netinet/in.h netinet/in_systm.h                   stddef.h stdint.h stdlib.h string.h strings.h                   sys/ethernet.h sys/file.h sys/param.h sys/socket.h                   sys/time.h sys/timeb.h sys/times.h sys/types.h termios.h                   unistd.h unixlib/local.h wchar.h
+for ac_header in OS.h arpa/inet.h crypt.h fcntl.h limits.h locale.h                   net/ethernet.h netdb.h netinet/in.h netinet/in_systm.h                   stddef.h stdint.h stdlib.h string.h strings.h                   sys/ethernet.h sys/file.h sys/param.h sys/socket.h                   sys/time.h sys/timeb.h sys/times.h sys/types.h termios.h                   unistd.h unixlib/local.h wchar.h windows.h
 do :
   as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
 ac_fn_c_check_header_mongrel "$LINENO" "$ac_header" "$as_ac_Header" "$ac_includes_default"
@@ -11931,6 +11895,18 @@ rm -f conftest.mmap conftest.txt
 # we need a rpl_realloc before using this one.
 #AC_FUNC_REALLOC
 
+for ac_func in fseek64 fseeko fseeko64 _fseeki64 lseek64 lseek ftell64 ftello ftello64 _ftelli64 memmem
+do :
+  as_ac_var=`$as_echo "ac_cv_func_$ac_func" | $as_tr_sh`
+ac_fn_c_check_func "$LINENO" "$ac_func" "$as_ac_var"
+if eval test \"x\$"$as_ac_var"\" = x"yes"; then :
+  cat >>confdefs.h <<_ACEOF
+#define `$as_echo "HAVE_$ac_func" | $as_tr_cpp` 1
+_ACEOF
+
+fi
+done
+
 #AC_CHECK_FUNCS([atexit endpwent floor ftruncate gethostbyname gettimeofday dnl
 #                inet_ntoa isascii memchr memmove memset mkdir munmap pow dnl
 #                rmdir select setenv setlocale socket strcasecmp strchr dnl
@@ -12174,6 +12150,156 @@ echo "#define JOHN_BLD \"${CPU_BIT_STR}-bit${using_x32} ${CPU_STR}-autoconf\"" >
 ########################################################
 # End of plugin and build_rules generation code
 ########################################################
+
+
+CC_BACKUP=$CC
+{ $as_echo "$as_me:${as_lineno-$LINENO}: Testing build host's known unique compiling requirements" >&5
+$as_echo "$as_me: Testing build host's known unique compiling requirements" >&6;}
+#############################################################################
+# check for using .exe or -ln -s for cygwin/mingw builds only.  Default uses
+# symlink.c and exe. cygwin can use --enable-ln-s to override this with ln -s
+#############################################################################
+case "$host_os" in
+  cygwin*)
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for *2john helper type" >&5
+$as_echo_n "checking for *2john helper type... " >&6; }
+	if test "x$enable_ln_s" != "xno"; then
+	  { $as_echo "$as_me:${as_lineno-$LINENO}: result: ln -s" >&5
+$as_echo "ln -s" >&6; }
+	else
+	  EXE_EXT=.exe
+
+	  { $as_echo "$as_me:${as_lineno-$LINENO}: result: .exe (symlink.c)" >&5
+$as_echo ".exe (symlink.c)" >&6; }
+	fi
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for cygwin64" >&5
+$as_echo_n "checking for cygwin64... " >&6; }
+	if test "x$CPU_BIT_STR" = "x64"; then
+	  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+	  ax_intel_x32=no
+
+   for i in -D__CYGWIN64__ -D__CYGWIN32__; do
+      jtr_list_add_dupe=0
+      for j in $EXTRA_AS_FLAGS; do
+         if test "x$i" = "x$j"; then
+            jtr_list_add_dupe=1
+            break
+         fi
+      done
+      if test $jtr_list_add_dupe = 0; then
+         EXTRA_AS_FLAGS="$EXTRA_AS_FLAGS $i"
+         jtr_list_add_result="$jtr_list_add_result $i"
+      fi
+   done
+
+
+   for i in -D__CYGWIN64__ -D__CYGWIN32__; do
+      jtr_list_add_dupe=0
+      for j in $CFLAGS_EX; do
+         if test "x$i" = "x$j"; then
+            jtr_list_add_dupe=1
+            break
+         fi
+      done
+      if test $jtr_list_add_dupe = 0; then
+         CFLAGS_EX="$CFLAGS_EX $i"
+         jtr_list_add_result="$jtr_list_add_result $i"
+      fi
+   done
+
+	  CFLAGS_EXTRA="$CFLAGS_EXTRA $CFLAGS_EX"
+	else
+	  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+	fi
+	;;
+  mingw*)
+     EXE_EXT=.exe
+
+	 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for *2john helper type" >&5
+$as_echo_n "checking for *2john helper type... " >&6; }
+	 { $as_echo "$as_me:${as_lineno-$LINENO}: result: .exe (symlink.c)" >&5
+$as_echo ".exe (symlink.c)" >&6; };;
+esac
+
+#############################################################################
+# Correct behavior for freebsd requires -D__BSD_VISIBLE to be in cflags
+#############################################################################
+case "$host_os" in
+  freebsd*)
+
+   for i in -D__BSD_VISIBLE; do
+      jtr_list_add_dupe=0
+      for j in $CFLAGS_EX; do
+         if test "x$i" = "x$j"; then
+            jtr_list_add_dupe=1
+            break
+         fi
+      done
+      if test $jtr_list_add_dupe = 0; then
+         CFLAGS_EX="$CFLAGS_EX $i"
+         jtr_list_add_result="$jtr_list_add_result $i"
+      fi
+   done
+
+    CFLAGS_EXTRA="$CFLAGS_EXTRA $CFLAGS_EX"
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for FreeBSD" >&5
+$as_echo_n "checking for FreeBSD... " >&6; }
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+	;;
+esac
+
+#############################################################################
+# Add large file support to Linux, and OSX (OTHERS may need this also)
+#############################################################################
+case "$host_os" in
+  linux*)
+    if test "x$ac_cv_func_lseek64" = xyes; then :
+
+   for i in -D_LARGEFILE64_SOURCE; do
+      jtr_list_add_dupe=0
+      for j in $CFLAGS_EXTRA; do
+         if test "x$i" = "x$j"; then
+            jtr_list_add_dupe=1
+            break
+         fi
+      done
+      if test $jtr_list_add_dupe = 0; then
+         CFLAGS_EXTRA="$CFLAGS_EXTRA $i"
+         jtr_list_add_result="$jtr_list_add_result $i"
+      fi
+   done
+
+fi
+	;;
+  darwin*)
+    if test "x$ac_cv_func_fseeko" = xyes; then :
+
+   for i in -D_DARWIN_C_SOURCE; do
+      jtr_list_add_dupe=0
+      for j in $CFLAGS_EXTRA; do
+         if test "x$i" = "x$j"; then
+            jtr_list_add_dupe=1
+            break
+         fi
+      done
+      if test $jtr_list_add_dupe = 0; then
+         CFLAGS_EXTRA="$CFLAGS_EXTRA $i"
+         jtr_list_add_result="$jtr_list_add_result $i"
+      fi
+   done
+
+fi
+	;;
+esac
+
+CC="$CC_BACKUP"
+CFLAGS="$CFLAGS_BACKUP"
+{ $as_echo "$as_me:${as_lineno-$LINENO}: Done with host's known unique compiling requirements" >&5
+$as_echo "$as_me: Done with host's known unique compiling requirements" >&6;}
+
 
 HOST_OS="$host_os"
 

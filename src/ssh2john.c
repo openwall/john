@@ -33,7 +33,7 @@
 #include <openssl/pem.h>
 #include <openssl/err.h>
 
-#include "misc.h"
+#include "jumbo.h"
 #include "common.h"
 #include "arch.h"
 #include "params.h"

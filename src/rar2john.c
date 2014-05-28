@@ -50,7 +50,7 @@
 #include <string.h>
 #include <assert.h>
 
-#include "misc.h"
+#include "jumbo.h"
 #include "common.h"
 #include "arch.h"
 #include "params.h"
@@ -172,7 +172,7 @@ static void process_file(const char *archive_name)
 			/* jump to "Rar!" signature */
 			while (!feof(fp)) {
 				count = fread(buf, 1, CHUNK_SIZE, fp);
-				if( (pos = jtr_memmem(buf, count, "Rar!", 4))) {
+				if( (pos = memmem(buf, count, "Rar!", 4))) {
 					diff = count - (pos - buf);
 					fseek(fp, - diff, SEEK_CUR);
 					fseek(fp, 7, SEEK_CUR);

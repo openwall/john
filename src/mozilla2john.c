@@ -12,7 +12,7 @@
 #include <assert.h>
 #include <errno.h>
 #include "arch.h"
-#include "misc.h"
+#include "jumbo.h"
 #include "common.h"
 #include "formats.h"
 #include "params.h"
