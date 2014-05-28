@@ -316,7 +316,7 @@ static inline uint32_t DoMD5_FixBufferLen32(unsigned char *input_buf, int total_
 	return ret;
 }
 static void DoMD5_crypt_f_sse(void *in, int len[MD5_LOOPS], void *out) {
-	ALIGN(16) ARCH_WORD_32 a[(16*MD5_LOOPS)/sizeof(ARCH_WORD_32)];
+	JTR_ALIGN(16) ARCH_WORD_32 a[(16*MD5_LOOPS)/sizeof(ARCH_WORD_32)];
 	unsigned int i, j, loops[MD5_LOOPS], bMore, cnt;
 	unsigned char *cp = (unsigned char*)in;
 	for (i = 0; i < MD5_LOOPS; ++i) {
@@ -343,7 +343,7 @@ static void DoMD5_crypt_f_sse(void *in, int len[MD5_LOOPS], void *out) {
 	}
 }
 static void DoMD5_crypt_sse(void *in, int ilen[MD5_LOOPS], void *out[MD5_LOOPS], unsigned int *tot_len, int tid) {
-	ALIGN(16) ARCH_WORD_32 a[(16*MD5_LOOPS)/sizeof(ARCH_WORD_32)];
+	JTR_ALIGN(16) ARCH_WORD_32 a[(16*MD5_LOOPS)/sizeof(ARCH_WORD_32)];
 	union yy { unsigned char u[16]; ARCH_WORD_32 a[16/sizeof(ARCH_WORD_32)]; } y;
 	unsigned int i, j, loops[MD5_LOOPS], bMore, cnt;
 	unsigned char *cp = (unsigned char*)in;
@@ -706,7 +706,7 @@ static inline uint32_t DoMD4_FixBufferLen32(unsigned char *input_buf, int total_
 	return ret;
 }
 static void DoMD4_crypt_f_sse(void *in, int len[MD4_LOOPS], void *out) {
-	ALIGN(16) ARCH_WORD_32 a[(16*MD4_LOOPS)/sizeof(ARCH_WORD_32)];
+	JTR_ALIGN(16) ARCH_WORD_32 a[(16*MD4_LOOPS)/sizeof(ARCH_WORD_32)];
 	unsigned int i, j, loops[MD4_LOOPS], bMore, cnt;
 	unsigned char *cp = (unsigned char*)in;
 	for (i = 0; i < MD4_LOOPS; ++i) {
@@ -733,7 +733,7 @@ static void DoMD4_crypt_f_sse(void *in, int len[MD4_LOOPS], void *out) {
 	}
 }
 static void DoMD4_crypt_sse(void *in, int ilen[MD4_LOOPS], void *out[MD4_LOOPS], unsigned int *tot_len, int tid) {
-	ALIGN(16) ARCH_WORD_32 a[(16*MD4_LOOPS)/sizeof(ARCH_WORD_32)];
+	JTR_ALIGN(16) ARCH_WORD_32 a[(16*MD4_LOOPS)/sizeof(ARCH_WORD_32)];
 	union yy { unsigned char u[16]; ARCH_WORD_32 a[16/sizeof(ARCH_WORD_32)]; } y;
 	unsigned int i, j, loops[MD4_LOOPS], bMore, cnt;
 	unsigned char *cp = (unsigned char*)in;
@@ -1091,7 +1091,7 @@ static inline uint32_t DoSHA1_FixBufferLen32(unsigned char *input_buf, int total
 	return ret;
 }
 static void DoSHA1_crypt_f_sse(void *in, int len[SHA1_LOOPS], void *out) {
-	ALIGN(16) ARCH_WORD_32 a[(20*SHA1_LOOPS)/sizeof(ARCH_WORD_32)];
+	JTR_ALIGN(16) ARCH_WORD_32 a[(20*SHA1_LOOPS)/sizeof(ARCH_WORD_32)];
 	unsigned int i, j, loops[SHA1_LOOPS], bMore, cnt;
 	unsigned char *cp = (unsigned char*)in;
 	for (i = 0; i < SHA1_LOOPS; ++i) {
@@ -1118,7 +1118,7 @@ static void DoSHA1_crypt_f_sse(void *in, int len[SHA1_LOOPS], void *out) {
 	}
 }
 static void DoSHA1_crypt_sse(void *in, int ilen[SHA1_LOOPS], void *out[SHA1_LOOPS], unsigned int *tot_len, int tid) {
-	ALIGN(16) ARCH_WORD_32 a[(20*SHA1_LOOPS)/sizeof(ARCH_WORD_32)];
+	JTR_ALIGN(16) ARCH_WORD_32 a[(20*SHA1_LOOPS)/sizeof(ARCH_WORD_32)];
 	union yy { unsigned char u[20]; ARCH_WORD_32 a[20/sizeof(ARCH_WORD_32)]; } y;
 	unsigned int i, j, loops[SHA1_LOOPS], bMore, cnt;
 	unsigned char *cp = (unsigned char*)in;
@@ -1479,7 +1479,7 @@ static inline uint32_t DoSHA256_FixBufferLen32(unsigned char *input_buf, int tot
 	return ret;
 }
 static void DoSHA256_crypt_f_sse(void *in, int len[MMX_COEF_SHA256], void *out, int isSHA256) {
-	ALIGN(16) ARCH_WORD_32 a[(32*MMX_COEF_SHA256)/sizeof(ARCH_WORD_32)];
+	JTR_ALIGN(16) ARCH_WORD_32 a[(32*MMX_COEF_SHA256)/sizeof(ARCH_WORD_32)];
 	unsigned int i, j, loops[MMX_COEF_SHA256], bMore, cnt;
 	unsigned char *cp = (unsigned char*)in;
 	for (i = 0; i < MMX_COEF_SHA256; ++i) {
@@ -1505,7 +1505,7 @@ static void DoSHA256_crypt_f_sse(void *in, int len[MMX_COEF_SHA256], void *out, 
 	}
 }
 static void DoSHA256_crypt_sse(void *in, int ilen[MMX_COEF_SHA256], void *out[MMX_COEF_SHA256], unsigned int *tot_len, int isSHA256, int tid) {
-	ALIGN(16) ARCH_WORD_32 a[(32*MMX_COEF_SHA256)/sizeof(ARCH_WORD_32)];
+	JTR_ALIGN(16) ARCH_WORD_32 a[(32*MMX_COEF_SHA256)/sizeof(ARCH_WORD_32)];
 	union yy { unsigned char u[32]; ARCH_WORD_32 a[32/sizeof(ARCH_WORD_32)]; } y;
 	unsigned int i, j, loops[MMX_COEF_SHA256], bMore, cnt;
 	unsigned char *cp = (unsigned char*)in;

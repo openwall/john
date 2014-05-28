@@ -29,8 +29,8 @@
 #pragma align ARCH_SIZE (k_ipad, k_opad)
 #endif
 typedef struct {
-	ALIGN(ARCH_SIZE) unsigned char k_ipad[64];
-	ALIGN(ARCH_SIZE) unsigned char k_opad[64];
+	JTR_ALIGN(ARCH_SIZE) unsigned char k_ipad[64];
+	JTR_ALIGN(ARCH_SIZE) unsigned char k_opad[64];
 	MD5_CTX ctx;
 } HMACMD5Context;
 

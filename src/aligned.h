@@ -9,10 +9,6 @@
  * purpose, in source and binary forms, with or without modification.
  */
 
-/* ALIGN clashes with something under 32-bit OSX */
-#undef ALIGN
-#define ALIGN JTR_ALIGN
-
 #ifndef _JTR_ALIGNED_H_
 #define _JTR_ALIGNED_H_
 

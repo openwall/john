@@ -354,7 +354,7 @@ static void crypt_all (int count)
         for (i=0; i < 16; i++) GATHER (w[i], saved_key, i);
         for (i=0; i < 15; i++) SWAP_ENDIAN (w[i]);
 #else
-        ALIGN(16) uint32_t __w[16][VWIDTH];
+        JTR_ALIGN(16) uint32_t __w[16][VWIDTH];
         int j;
 
         for (i=0; i < VWIDTH; i++)

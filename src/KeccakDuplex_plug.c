@@ -35,7 +35,7 @@ int InitDuplex(duplexState *state, unsigned int rate, unsigned int capacity)
 
 int Duplexing(duplexState *state, const unsigned char *in, unsigned int inBitLen, unsigned char *out, unsigned int outBitLen)
 {
-    ALIGN unsigned char block[KeccakPermutationSizeInBytes];
+    JTR_ALIGN(32) unsigned char block[KeccakPermutationSizeInBytes];
 
     if (inBitLen > state->rho_max)
         return 1;

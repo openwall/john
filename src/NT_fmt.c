@@ -119,8 +119,8 @@ static void swap(unsigned int *x, unsigned int *y, int count)
 #if defined (NT_X86_64)
 	#define NT_NUM_KEYS	32
 
-	ALIGN(16) unsigned int nt_buffer8x[16*NT_NUM_KEYS];
-	ALIGN(16) unsigned int output8x[4*NT_NUM_KEYS];
+	JTR_ALIGN(16) unsigned int nt_buffer8x[16*NT_NUM_KEYS];
+	JTR_ALIGN(16) unsigned int output8x[4*NT_NUM_KEYS];
 
 	#define ALGORITHM_NAME		"128/128 X2 SSE2-16"
 	#define NT_CRYPT_FUN		nt_crypt_all_x86_64
@@ -131,8 +131,8 @@ static void swap(unsigned int *x, unsigned int *y, int count)
 	#define NT_NUM_KEYS1	8
 	#define NT_NUM_KEYS4	32
 
-	ALIGN(16) unsigned int nt_buffer4x[64*NT_NUM_KEYS1];
-	ALIGN(16) unsigned int output4x[16*NT_NUM_KEYS1];
+	JTR_ALIGN(16) unsigned int nt_buffer4x[64*NT_NUM_KEYS1];
+	JTR_ALIGN(16) unsigned int output4x[16*NT_NUM_KEYS1];
 
 	unsigned int nt_buffer1x[16*NT_NUM_KEYS1];
 	unsigned int output1x[4*NT_NUM_KEYS1];

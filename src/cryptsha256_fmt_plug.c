@@ -664,9 +664,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		char *cp;
 		char p_bytes[PLAINTEXT_LENGTH+1];
 		char s_bytes[PLAINTEXT_LENGTH+1];
-		ALIGN(16) cryptloopstruct crypt_struct;
+		JTR_ALIGN(16) cryptloopstruct crypt_struct;
 #ifdef MMX_COEF_SHA256
-		ALIGN(16) ARCH_WORD_32 sse_out[64];
+		JTR_ALIGN(16) ARCH_WORD_32 sse_out[64];
 #endif
 
 		for (idx = 0; idx < MAX_KEYS_PER_CRYPT; ++idx)

@@ -96,9 +96,9 @@ static struct fmt_tests tests[] = {
 #define crypt_key mysqlSHA1_crypt_key
 #define interm_key mysqlSHA1_interm_key
 
-ALIGN(16) char saved_key[SHA_BUF_SIZ*4*NBKEYS];
-ALIGN(16) char crypt_key[BINARY_SIZE*NBKEYS];
-ALIGN(16) char interm_key[SHA_BUF_SIZ*4*NBKEYS];
+JTR_ALIGN(16) char saved_key[SHA_BUF_SIZ*4*NBKEYS];
+JTR_ALIGN(16) char crypt_key[BINARY_SIZE*NBKEYS];
+JTR_ALIGN(16) char interm_key[SHA_BUF_SIZ*4*NBKEYS];
 
 #else
 static char saved_key[PLAINTEXT_LENGTH + 1];

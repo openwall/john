@@ -106,8 +106,8 @@ static struct fmt_tests tests[] = {
 /* Cygwin would not guarantee the alignment if these were declared static */
 #define saved_key SALT_SHA_saved_key
 #define crypt_key SALT_SHA_crypt_key
-ALIGN(16) unsigned char saved_key[SHA_BUF_SIZ*4*NBKEYS];
-ALIGN(16) unsigned char crypt_key[BINARY_SIZE*NBKEYS];
+JTR_ALIGN(16) unsigned char saved_key[SHA_BUF_SIZ*4*NBKEYS];
+JTR_ALIGN(16) unsigned char crypt_key[BINARY_SIZE*NBKEYS];
 static unsigned int saved_len[NBKEYS];
 static unsigned char out[PLAINTEXT_LENGTH + 1];
 static int last_salt_size;

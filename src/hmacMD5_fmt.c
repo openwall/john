@@ -78,7 +78,7 @@ static struct fmt_tests tests[] = {
 static unsigned char *crypt_key;
 static unsigned char *ipad, *prep_ipad;
 static unsigned char *opad, *prep_opad;
-ALIGN(16) unsigned char cur_salt[PAD_SIZE * MD5_N];
+JTR_ALIGN(16) unsigned char cur_salt[PAD_SIZE * MD5_N];
 static int bufsize;
 #else
 static unsigned char cur_salt[SALT_LENGTH];

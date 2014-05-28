@@ -19,8 +19,8 @@ http://creativecommons.org/publicdomain/zero/1.0/
 
 #include "aligned.h"
 
-ALIGN(32) typedef struct duplexStateStruct {
-    ALIGN(32) unsigned char state[KeccakPermutationSizeInBytes];
+JTR_ALIGN(32) typedef struct duplexStateStruct {
+    JTR_ALIGN(32) unsigned char state[KeccakPermutationSizeInBytes];
     unsigned int rate;
     unsigned int capacity;
     unsigned int rho_max;

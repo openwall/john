@@ -21,9 +21,9 @@ http://creativecommons.org/publicdomain/zero/1.0/
 
 #include "aligned.h"
 
-ALIGN(32) typedef struct spongeStateStruct {
-    ALIGN(32) unsigned char state[KeccakPermutationSizeInBytes];
-    ALIGN(32) unsigned char dataQueue[KeccakMaximumRateInBytes];
+JTR_ALIGN(32) typedef struct spongeStateStruct {
+    JTR_ALIGN(32) unsigned char state[KeccakPermutationSizeInBytes];
+    JTR_ALIGN(32) unsigned char dataQueue[KeccakMaximumRateInBytes];
     unsigned int rate;
     unsigned int capacity;
     unsigned int bitsInQueue;
