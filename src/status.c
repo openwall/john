@@ -243,7 +243,11 @@ static char *status_get_ETA(double percent, unsigned int secs_done)
 	time_t t_ETA;
 	struct tm *pTm;
 
+#ifndef __CYGWIN__
+	// Not sure why the emms is here, but is 100% breaks cygwin ETA computations.
+	// It may break others, but I am not able to test that.
 	emms();
+#endif
 
 	/* Compute the ETA for this run.  Assumes even run time for
 	   work currently done and work left to do, and that the CPU
