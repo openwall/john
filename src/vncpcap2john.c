@@ -48,8 +48,8 @@
 #define HAVE_PCAP_PCAP_H 0
 #endif
 
-#define _BSD_SOURCE
-#define _GNU_SOURCE
+#define _BSD_SOURCE 1
+#define _GNU_SOURCE 1
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>

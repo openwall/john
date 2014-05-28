@@ -9,7 +9,7 @@
  *
  */
 
-#define _GNU_SOURCE
+#define _GNU_SOURCE 1
 #include <string.h>
 #ifdef _OPENMP
 #define OMP_SCALE			16

@@ -87,7 +87,7 @@ void main() {
 
 #include "sha2.h"
 
-#define _GNU_SOURCE
+#define _GNU_SOURCE 1
 #include <string.h>
 
 #include "params.h"

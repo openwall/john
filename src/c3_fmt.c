@@ -21,7 +21,7 @@
 #define _XOPEN_SOURCE_EXTENDED 1 /* for OpenBSD */
 #define _XOPEN_VERSION 4
 #define _XPG4_2
-#define _GNU_SOURCE /* for crypt_r(3) */
+#define _GNU_SOURCE 1 /* for crypt_r(3) */
 #include <stdio.h>
 
 #if !AC_BUILT
