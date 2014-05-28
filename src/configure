@@ -12153,6 +12153,7 @@ echo "#define JOHN_BLD \"${CPU_BIT_STR}-bit${using_x32} ${CPU_STR}-autoconf\"" >
 
 
 CC_BACKUP=$CC
+CFLAGS_BACKUP="$CFLAGS"
 { $as_echo "$as_me:${as_lineno-$LINENO}: Testing build host's known unique compiling requirements" >&5
 $as_echo "$as_me: Testing build host's known unique compiling requirements" >&6;}
 #############################################################################

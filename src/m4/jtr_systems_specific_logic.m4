@@ -7,6 +7,7 @@
 #
 AC_DEFUN([JTR_SYSTEMS_SPECIFIC_LOGIC], [
 CC_BACKUP=$CC
+CFLAGS_BACKUP="$CFLAGS"
 AC_MSG_NOTICE([Testing build host's known unique compiling requirements])
 #############################################################################
 # check for using .exe or -ln -s for cygwin/mingw builds only.  Default uses
