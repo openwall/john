@@ -556,13 +556,13 @@ endif
 # single targets, using the EXE_EXT macro
 ########################################################
 ../run/genmkvpwd@EXE_EXT@: $(GENMKVPWD_OBJS)
-	$(LD) @M_LIBS@ $(GENMKVPWD_OBJS) $(LDFLAGS) -o ../run/genmkvpwd
+	$(LD) $(GENMKVPWD_OBJS) $(LDFLAGS) @M_LIBS@ -o ../run/genmkvpwd
 
 ../run/mkvcalcproba@EXE_EXT@: mkvcalcproba.o
-	$(LD) @M_LIBS@ mkvcalcproba.o memdbg.o $(LDFLAGS) -o ../run/mkvcalcproba
+	$(LD) mkvcalcproba.o memdbg.o $(LDFLAGS) @M_LIBS@ -o ../run/mkvcalcproba
 
 ../run/calc_stat@EXE_EXT@: calc_stat.o
-	$(LD) @M_LIBS@ calc_stat.o memdbg.o $(LDFLAGS) -o ../run/calc_stat
+	$(LD) calc_stat.o memdbg.o $(LDFLAGS) @M_LIBS@ -o ../run/calc_stat
 
 ../run/raw2dyna@EXE_EXT@: raw2dyna.o
 	$(LD) raw2dyna.o memdbg.o $(LDFLAGS) -o ../run/raw2dyna
