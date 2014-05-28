@@ -332,7 +332,7 @@ fi
 ################################################
 AC_CHECK_HEADER([CommonCrypto/CommonDigest.h],
    [AC_CHECK_LIB([System], [CCKeyDerivationPBKDF],
-      [AC_CHECK_LIB([System], [CCCryptorCreate], [AC_DEFINE(HAVE_COMMONCRYPTO,1,[Define to 1 if you have the CommonCrypto library.])])]dnl
+      [AC_CHECK_LIB([System], [CCCryptorCreate], [AC_SUBST(COMMONCRYPTO_LIBS, [-lSystem])] [AC_DEFINE(HAVE_COMMONCRYPTO,1,[Define to 1 if you have the CommonCrypto library.])])]dnl
    )]dnl
 )
 
@@ -415,8 +415,8 @@ ACX_HEADER_STRING
 # Check missing stuff in OpenSSL (too old, or disabled features)
 LIBS_ORIG="$LIBS"
 CFLAGS_ORIG="$CFLAGS"
-LIBS="$OPENSSL_LIBS $LIBS"
-CFLAGS="$OPENSSL_CFLAGS $CFLAGS"
+LIBS="$OPENSSL_LIBS $COMMONCRYPTO_LIBS $LIBS"
+CFLAGS="$OPENSSL_CFLAGS -DCOMMON_DIGEST_FOR_OPENSSL $CFLAGS"
 AC_CHECK_FUNCS([EVP_aes_256_xts SHA256 WHIRLPOOL AES_encrypt EVP_sha512])
 LIBS="$LIBS_ORIG"
 CFLAGS="$CFLAGS_ORIG"

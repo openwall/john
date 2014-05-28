@@ -665,6 +665,7 @@ Z_LIBS
 M_LIBS
 OPENSSL_LIBS
 OPENSSL_CFLAGS
+COMMONCRYPTO_LIBS
 EXE_EXT
 EGREP
 PKG_CONFIG_LIBDIR
@@ -8463,6 +8464,7 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_System_CCCryptorCreate" >&5
 $as_echo "$ac_cv_lib_System_CCCryptorCreate" >&6; }
 if test "x$ac_cv_lib_System_CCCryptorCreate" = xyes; then :
+  COMMONCRYPTO_LIBS=-lSystem
 
 $as_echo "#define HAVE_COMMONCRYPTO 1" >>confdefs.h
 
@@ -10124,8 +10126,8 @@ fi
 # Check missing stuff in OpenSSL (too old, or disabled features)
 LIBS_ORIG="$LIBS"
 CFLAGS_ORIG="$CFLAGS"
-LIBS="$OPENSSL_LIBS $LIBS"
-CFLAGS="$OPENSSL_CFLAGS $CFLAGS"
+LIBS="$OPENSSL_LIBS $COMMONCRYPTO_LIBS $LIBS"
+CFLAGS="$OPENSSL_CFLAGS -DCOMMON_DIGEST_FOR_OPENSSL $CFLAGS"
 for ac_func in EVP_aes_256_xts SHA256 WHIRLPOOL AES_encrypt EVP_sha512
 do :
   as_ac_var=`$as_echo "ac_cv_func_$ac_func" | $as_tr_sh`
