@@ -12,7 +12,7 @@
 #include <string.h>
 #include <stdint.h>
 
-#include <openssl/sha.h>
+#include "sha.h"
 #include <openssl/rc2.h>
 
 #ifdef _OPENMP
