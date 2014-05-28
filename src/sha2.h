@@ -32,6 +32,7 @@
 
 #include <string.h>
 #include "arch.h"
+#include "aligned.h"
 #include <openssl/opensslv.h>
 #include "openssl_local_overrides.h"
 

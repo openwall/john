@@ -9,15 +9,19 @@
  * purpose, in source and binary forms, with or without modification.
  */
 
+/* ALIGN clashes with something under 32-bit OSX */
+#undef ALIGN
+#define ALIGN JTR_ALIGN
+
 #ifndef _JTR_ALIGNED_H_
 #define _JTR_ALIGNED_H_
 
 #if defined(__GNUC__)
-#define ALIGN(n) __attribute__ ((aligned(n)))
+#define JTR_ALIGN(n) __attribute__ ((aligned(n)))
 #elif defined(_MSC_VER)
-#define ALIGN(n) __declspec(align(n))
+#define JTR_ALIGN(n) __declspec(align(n))
 #else
-#define ALIGN(n)
+#define JTR_ALIGN(n)
 #endif
 
 

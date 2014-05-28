@@ -1,6 +1,7 @@
 #ifndef JOHN_SHA_H
 #define JOHN_SHA_H
 
+#include "aligned.h"
 #include <openssl/opensslv.h>
 
 #include "arch.h"

@@ -19,17 +19,11 @@ http://creativecommons.org/publicdomain/zero/1.0/
 #define KeccakMaximumRate 1536
 #define KeccakMaximumRateInBytes (KeccakMaximumRate/8)
 
-#if defined(__GNUC__)
-#define ALIGN __attribute__ ((aligned(32)))
-#elif defined(_MSC_VER)
-#define ALIGN __declspec(align(32))
-#else
-#define ALIGN
-#endif
+#include "aligned.h"
 
-ALIGN typedef struct spongeStateStruct {
-    ALIGN unsigned char state[KeccakPermutationSizeInBytes];
-    ALIGN unsigned char dataQueue[KeccakMaximumRateInBytes];
+ALIGN(32) typedef struct spongeStateStruct {
+    ALIGN(32) unsigned char state[KeccakPermutationSizeInBytes];
+    ALIGN(32) unsigned char dataQueue[KeccakMaximumRateInBytes];
     unsigned int rate;
     unsigned int capacity;
     unsigned int bitsInQueue;

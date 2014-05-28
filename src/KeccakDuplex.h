@@ -17,16 +17,10 @@ http://creativecommons.org/publicdomain/zero/1.0/
 #define KeccakPermutationSize 1600
 #define KeccakPermutationSizeInBytes (KeccakPermutationSize/8)
 
-#if defined(__GNUC__)
-#define ALIGN __attribute__ ((aligned(32)))
-#elif defined(_MSC_VER)
-#define ALIGN __declspec(align(32))
-#else
-#define ALIGN
-#endif
+#include "aligned.h"
 
-ALIGN typedef struct duplexStateStruct {
-    ALIGN unsigned char state[KeccakPermutationSizeInBytes];
+ALIGN(32) typedef struct duplexStateStruct {
+    ALIGN(32) unsigned char state[KeccakPermutationSizeInBytes];
     unsigned int rate;
     unsigned int capacity;
     unsigned int rho_max;
