@@ -77,7 +77,12 @@ AC_ARG_VAR([CFLAGS_EXTRA], [additional CFLAGS for -Woptions and other things, no
 AC_ARG_VAR([YASM], [full pathname of yasm (for optional AES-NI support)])
 
 # Define Packages.
+# Intrinsics pre-compiled (to .S) with icc
 AC_ARG_WITH(icc-asm, [AS_HELP_STRING([--with-icc-asm],[Use ICC pre-built asm files for intrisic SIMD code. Default: no])],,[with_icc_asm=no])
+# Use OpenSSL (default: yes).
+AC_ARG_WITH(openssl, [AS_HELP_STRING([--without-openssl],[Do not use Openssl (CommonCrypto must be enabled)])],,[with_openssl=yes])
+# Use CommonCrypto (default: no)
+AC_ARG_WITH(commoncrypto, [AS_HELP_STRING([--with-commoncrypto],[Use CommonCrypto])],,[with_commoncrypto=no])
 # Cludge for endian (if not auto detected)
 AC_ARG_WITH(endian, [AS_HELP_STRING([--with-endian=little|big],[Set endianness for target if it doesn't detect properly])],,[endian=unknown])
 
@@ -330,37 +335,46 @@ fi
 # is specified, the -llibname will NOT get appended to LIBS. So it has to be
 # done by 'hand'.
 ################################################
-AC_CHECK_HEADER([CommonCrypto/CommonDigest.h],
-   [AC_CHECK_LIB([System], [CCKeyDerivationPBKDF],
-      [AC_CHECK_LIB([System], [CCCryptorCreate], [AC_SUBST(COMMONCRYPTO_LIBS, [-lSystem])] [AC_DEFINE(HAVE_COMMONCRYPTO,1,[Define to 1 if you have the CommonCrypto library.])])]dnl
+
+AS_IF([test "x$with_commoncrypto" != xyes && test "x$with_openssl" = xno],
+   [AC_MSG_FAILURE([At least one of OpenSSL and CommonCrypto must be used],1)]
+)
+
+AS_IF([test "x$with_commoncrypto" = xyes],
+   [AC_CHECK_HEADER([CommonCrypto/CommonDigest.h],
+      [AC_CHECK_LIB([System], [CCKeyDerivationPBKDF],
+         [AC_CHECK_LIB([System], [CCCryptorCreate], [JTR_LIST_ADD(CFLAGS,"-DCOMMON_DIGEST_FOR_OPENSSL")] [AC_SUBST(COMMONCRYPTO_LIBS, [-lSystem])] [AC_DEFINE(HAVE_COMMONCRYPTO,1,[Define to 1 if you have the CommonCrypto library.])], [AC_MSG_FAILURE([No CommonCrypto found],1)])]dnl
+       )]dnl
    )]dnl
 )
 
-if test "x$enable_native_tests" = xyes -a "x$PKG_CONFIG" != xno; then
-   PKG_CHECK_MODULES([OPENSSL], [openssl],
-      AC_DEFINE(HAVE_LIBCRYPTO,1,[Define to 1 if you have the `crypto' library (-lcrypto).])
-         AC_DEFINE(HAVE_LIBSSL,1,[Define to 1 if you have the `ssl' library (-lssl).]),
-         AC_MSG_FAILURE(JtR requires OpenSSL being installed,1))
-else
-   AS_IF([test "x${OPENSSL_CFLAGS}${OPENSSL_LIBS}" != "x"],
-      [AC_MSG_CHECKING([supplied paths for OpenSSL])]
-      [JTR_LIST_ADD(CFLAGS, [$OPENSSL_CFLAGS])]
-      [AC_MSG_RESULT([$OPENSSL_CFLAGS $OPENSSL_LIBS])],
-      [test "x$cross_compiling" = xno],
-      [JTR_SET_NORMAL_SSL_INCLUDES([/usr/local/ssl])]
-      [AC_CHECK_HEADER([openssl/opensslv.h],
-	 [AC_CHECK_LIB([ssl],[SSL_library_init],
-	    [AC_CHECK_LIB([crypto],[MD5_Update],
-	       [AC_DEFINE(HAVE_LIBSSL,1,[Define to 1 if you have the `ssl' library (-lssl).])]
-	       [AC_DEFINE(HAVE_LIBCRYPTO,1,[Define to 1 if you have the `crypto' library (-lcrypto).])]
-	       [OPENSSL_LIBS="-lssl -lcrypto"],
-	       [AC_MSG_FAILURE(JtR requires libssl/libcrypto being installed,1)])],
-	    [AC_MSG_FAILURE(JtR requires libssl being installed,1)]
-	 )],
-	 [AC_MSG_FAILURE(JtR requires OpenSSL headers being installed,1)]
-      )]
-   )
-fi
+AS_IF([test "x$with_openssl" != xno],
+   [if test "x$enable_native_tests" = xyes -a "x$PKG_CONFIG" != xno; then
+      PKG_CHECK_MODULES([OPENSSL], [openssl],
+	 AC_DEFINE(HAVE_LIBCRYPTO,1,[Define to 1 if you have the `crypto' library (-lcrypto).])
+	    AC_DEFINE(HAVE_LIBSSL,1,[Define to 1 if you have the `ssl' library (-lssl).]),
+	    AC_MSG_FAILURE([JtR requires OpenSSL being installed],1))
+   else
+      AS_IF([test "x${OPENSSL_CFLAGS}${OPENSSL_LIBS}" != "x"],
+	 [AC_MSG_CHECKING([supplied paths for OpenSSL])]
+	 [JTR_LIST_ADD(CFLAGS, [$OPENSSL_CFLAGS])]
+	 [AC_MSG_RESULT([$OPENSSL_CFLAGS $OPENSSL_LIBS])],
+	 [test "x$cross_compiling" = xno],
+	 [JTR_SET_NORMAL_SSL_INCLUDES([/usr/local/ssl])]
+	 [AC_CHECK_HEADER([openssl/opensslv.h],
+	    [AC_CHECK_LIB([ssl],[SSL_library_init],
+	       [AC_CHECK_LIB([crypto],[MD5_Update],
+		  [AC_DEFINE(HAVE_LIBSSL,1,[Define to 1 if you have the `ssl' library (-lssl).])]
+		  [AC_DEFINE(HAVE_LIBCRYPTO,1,[Define to 1 if you have the `crypto' library (-lcrypto).])]
+		  [OPENSSL_LIBS="-lssl -lcrypto"],
+		  [AC_MSG_FAILURE(JtR requires libssl/libcrypto being installed,1)])],
+	       [AC_MSG_FAILURE(JtR requires libssl being installed,1)]
+	    )],
+	    [AC_MSG_FAILURE(JtR requires OpenSSL headers being installed,1)]
+	 )]
+      )
+   fi]
+)
 
 #################
 # libz is found in pkg-config --switch zlib
@@ -416,7 +430,8 @@ ACX_HEADER_STRING
 LIBS_ORIG="$LIBS"
 CFLAGS_ORIG="$CFLAGS"
 LIBS="$OPENSSL_LIBS $COMMONCRYPTO_LIBS $LIBS"
-CFLAGS="$OPENSSL_CFLAGS -DCOMMON_DIGEST_FOR_OPENSSL $CFLAGS"
+CFLAGS="$OPENSSL_CFLAGS $CFLAGS"
+AS_IF([test "$with_commoncrypto" = yes], [AC_DEFINE([HAVE_SHA256],1,[Define to 1 if you have the `SHA256' function.])])
 AC_CHECK_FUNCS([EVP_aes_256_xts SHA256 WHIRLPOOL AES_encrypt EVP_sha512])
 LIBS="$LIBS_ORIG"
 CFLAGS="$CFLAGS_ORIG"

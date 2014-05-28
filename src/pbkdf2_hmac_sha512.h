@@ -239,12 +239,20 @@ static void pbkdf2_sha512_sse(const unsigned char *K[MMX_COEF_SHA512], int KL[MM
 	for (j = 0; j < SSE_GROUP_SZ_SHA512; ++j) {
 		ptmp = &i1[(j/MMX_COEF_SHA512)*MMX_COEF_SHA512*(SHA512_DIGEST_LENGTH/sizeof(ARCH_WORD_64))+(j&(MMX_COEF_SHA512-1))];
 		for (i = 0; i < (SHA512_DIGEST_LENGTH/sizeof(ARCH_WORD_64)); ++i) {
+#if COMMON_DIGEST_FOR_OPENSSL
+			*ptmp = ipad[j].hash[i];
+#else
 			*ptmp = ipad[j].h[i];
+#endif
 			ptmp += MMX_COEF_SHA512;
 		}
 		ptmp = &i2[(j/MMX_COEF_SHA512)*MMX_COEF_SHA512*(SHA512_DIGEST_LENGTH/sizeof(ARCH_WORD_64))+(j&(MMX_COEF_SHA512-1))];
 		for (i = 0; i < (SHA512_DIGEST_LENGTH/sizeof(ARCH_WORD_64)); ++i) {
+#if COMMON_DIGEST_FOR_OPENSSL
+			*ptmp = opad[j].hash[i];
+#else
 			*ptmp = opad[j].h[i];
+#endif
 			ptmp += MMX_COEF_SHA512;
 		}
 	}
@@ -274,7 +282,11 @@ static void pbkdf2_sha512_sse(const unsigned char *K[MMX_COEF_SHA512], int KL[MM
 			// so we will need to 'undo' that in the end.
 			ptmp = &o1[(j/MMX_COEF_SHA512)*MMX_COEF_SHA512*SHA512_BUF_SIZ+(j&(MMX_COEF_SHA512-1))];
 			for (i = 0; i < (SHA512_DIGEST_LENGTH/sizeof(ARCH_WORD_64)); ++i) {
+#if COMMON_DIGEST_FOR_OPENSSL
+				*ptmp = dgst[j][i] = ctx.hash[i];
+#else
 				*ptmp = dgst[j][i] = ctx.h[i];
+#endif
 				ptmp += MMX_COEF_SHA512;
 			}
 		}

@@ -744,6 +744,8 @@ ac_subst_files=''
 ac_user_opts='
 enable_option_checking
 with_icc_asm
+with_openssl
+with_commoncrypto
 with_endian
 enable_mpi
 enable_cuda
@@ -1403,6 +1405,8 @@ Optional Packages:
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
   --with-icc-asm          Use ICC pre-built asm files for intrisic SIMD code.
                           Default: no
+  --without-openssl       Do not use Openssl (CommonCrypto must be enabled)
+  --with-commoncrypto     Use CommonCrypto
   --with-endian=little|big
                           Set endianness for target if it doesn't detect
                           properly
@@ -3420,12 +3424,31 @@ fi
 
 
 # Define Packages.
+# Intrinsics pre-compiled (to .S) with icc
 
 # Check whether --with-icc-asm was given.
 if test "${with_icc_asm+set}" = set; then :
   withval=$with_icc_asm;
 else
   with_icc_asm=no
+fi
+
+# Use OpenSSL (default: yes).
+
+# Check whether --with-openssl was given.
+if test "${with_openssl+set}" = set; then :
+  withval=$with_openssl;
+else
+  with_openssl=yes
+fi
+
+# Use CommonCrypto (default: no)
+
+# Check whether --with-commoncrypto was given.
+if test "${with_commoncrypto+set}" = set; then :
+  withval=$with_commoncrypto;
+else
+  with_commoncrypto=no
 fi
 
 # Cludge for endian (if not auto detected)
@@ -8388,7 +8411,17 @@ fi
 # is specified, the -llibname will NOT get appended to LIBS. So it has to be
 # done by 'hand'.
 ################################################
-ac_fn_c_check_header_mongrel "$LINENO" "CommonCrypto/CommonDigest.h" "ac_cv_header_CommonCrypto_CommonDigest_h" "$ac_includes_default"
+
+if test "x$with_commoncrypto" != xyes && test "x$with_openssl" = xno; then :
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error 1 "At least one of OpenSSL and CommonCrypto must be used
+See \`config.log' for more details" "$LINENO" 5; }
+
+fi
+
+if test "x$with_commoncrypto" = xyes; then :
+  ac_fn_c_check_header_mongrel "$LINENO" "CommonCrypto/CommonDigest.h" "ac_cv_header_CommonCrypto_CommonDigest_h" "$ac_includes_default"
 if test "x$ac_cv_header_CommonCrypto_CommonDigest_h" = xyes; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for CCKeyDerivationPBKDF in -lSystem" >&5
 $as_echo_n "checking for CCKeyDerivationPBKDF in -lSystem... " >&6; }
@@ -8464,10 +8497,29 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_System_CCCryptorCreate" >&5
 $as_echo "$ac_cv_lib_System_CCCryptorCreate" >&6; }
 if test "x$ac_cv_lib_System_CCCryptorCreate" = xyes; then :
-  COMMONCRYPTO_LIBS=-lSystem
+
+   for i in "-DCOMMON_DIGEST_FOR_OPENSSL"; do
+      jtr_list_add_dupe=0
+      for j in $CFLAGS; do
+         if test "x$i" = "x$j"; then
+            jtr_list_add_dupe=1
+            break
+         fi
+      done
+      if test $jtr_list_add_dupe = 0; then
+         CFLAGS="$CFLAGS $i"
+         jtr_list_add_result="$jtr_list_add_result $i"
+      fi
+   done
+ COMMONCRYPTO_LIBS=-lSystem
 
 $as_echo "#define HAVE_COMMONCRYPTO 1" >>confdefs.h
 
+else
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error 1 "No CommonCrypto found
+See \`config.log' for more details" "$LINENO" 5; }
 fi
 
 fi
@@ -8475,8 +8527,10 @@ fi
 fi
 
 
+fi
 
-if test "x$enable_native_tests" = xyes -a "x$PKG_CONFIG" != xno; then
+if test "x$with_openssl" != xno; then :
+  if test "x$enable_native_tests" = xyes -a "x$PKG_CONFIG" != xno; then
 
 pkg_failed=no
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for OPENSSL" >&5
@@ -8555,8 +8609,8 @@ $as_echo "#define HAVE_LIBCRYPTO 1" >>confdefs.h
 $as_echo "#define HAVE_LIBSSL 1" >>confdefs.h
 
 fi
-else
-   if test "x${OPENSSL_CFLAGS}${OPENSSL_LIBS}" != "x"; then :
+   else
+      if test "x${OPENSSL_CFLAGS}${OPENSSL_LIBS}" != "x"; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking supplied paths for OpenSSL" >&5
 $as_echo_n "checking supplied paths for OpenSSL... " >&6; }
 
@@ -8574,7 +8628,7 @@ $as_echo_n "checking supplied paths for OpenSSL... " >&6; }
       fi
    done
 
-      { $as_echo "$as_me:${as_lineno-$LINENO}: result: $OPENSSL_CFLAGS $OPENSSL_LIBS" >&5
+	 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $OPENSSL_CFLAGS $OPENSSL_LIBS" >&5
 $as_echo "$OPENSSL_CFLAGS $OPENSSL_LIBS" >&6; }
 elif test "x$cross_compiling" = xno; then :
 
@@ -8645,7 +8699,7 @@ fi
    jtr_list_add_result=""
 
 
-      ac_fn_c_check_header_mongrel "$LINENO" "openssl/opensslv.h" "ac_cv_header_openssl_opensslv_h" "$ac_includes_default"
+	 ac_fn_c_check_header_mongrel "$LINENO" "openssl/opensslv.h" "ac_cv_header_openssl_opensslv_h" "$ac_includes_default"
 if test "x$ac_cv_header_openssl_opensslv_h" = xyes; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for SSL_library_init in -lssl" >&5
 $as_echo_n "checking for SSL_library_init in -lssl... " >&6; }
@@ -8727,7 +8781,7 @@ $as_echo "#define HAVE_LIBSSL 1" >>confdefs.h
 
 $as_echo "#define HAVE_LIBCRYPTO 1" >>confdefs.h
 
-	       OPENSSL_LIBS="-lssl -lcrypto"
+		  OPENSSL_LIBS="-lssl -lcrypto"
 else
   { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
@@ -8754,6 +8808,8 @@ fi
 
 
 fi
+   fi
+
 fi
 
 #################
@@ -10127,7 +10183,12 @@ fi
 LIBS_ORIG="$LIBS"
 CFLAGS_ORIG="$CFLAGS"
 LIBS="$OPENSSL_LIBS $COMMONCRYPTO_LIBS $LIBS"
-CFLAGS="$OPENSSL_CFLAGS -DCOMMON_DIGEST_FOR_OPENSSL $CFLAGS"
+CFLAGS="$OPENSSL_CFLAGS $CFLAGS"
+if test "$with_commoncrypto" = yes; then :
+
+$as_echo "#define HAVE_SHA256 1" >>confdefs.h
+
+fi
 for ac_func in EVP_aes_256_xts SHA256 WHIRLPOOL AES_encrypt EVP_sha512
 do :
   as_ac_var=`$as_echo "ac_cv_func_$ac_func" | $as_tr_sh`

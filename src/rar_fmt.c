@@ -40,25 +40,18 @@
  *
  */
 
-#include "arch.h"
-#include <openssl/engine.h>
-#include <openssl/evp.h>
-#if HAVE_COMMONCRYPTO ||	  \
-	(!AC_BUILT && defined(__APPLE__) && defined(__MACH__) && \
-	 defined(__MAC_OS_X_VERSION_MIN_REQUIRED) && \
-	 __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070)
-#define COMMON_DIGEST_FOR_OPENSSL
-#include <CommonCrypto/CommonDigest.h>
-#else
-#include <openssl/sha.h>
-#endif
-
-#include <openssl/ssl.h>
-#undef MEM_FREE
-
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
+#include <openssl/engine.h>
+#include <openssl/evp.h>
+#include <openssl/ssl.h>
+
+#include "arch.h"
+#include "sha.h"
+
+#undef MEM_FREE
+
 #include "crc32.h"
 #include "misc.h"
 #include "common.h"
