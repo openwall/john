@@ -658,6 +658,7 @@ PTHREAD_LIBS
 PTHREAD_CC
 ax_pthread_config
 REXGEN_LIBS
+DL_LIBS
 SKEY_LIBS
 GMP_LIBS
 KRB5_LIBS
@@ -9206,11 +9207,9 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_dl_dlopen" >&5
 $as_echo "$ac_cv_lib_dl_dlopen" >&6; }
 if test "x$ac_cv_lib_dl_dlopen" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBDL 1
-_ACEOF
 
-  LIBS="-ldl $LIBS"
+$as_echo "#define HAVE_LIBDL 1" >>confdefs.h
+ DL_LIBS=-ldl
 
 fi
 
