@@ -30,6 +30,7 @@
 #include <openssl/crypto.h>
 
 #include "arch.h"
+#include "jumbo.h"
 #include "params.h"
 #include "path.h"
 #include "formats.h"
@@ -49,6 +50,10 @@
 #else
 #include "gmp.h"
 #endif
+#endif
+
+#ifdef HAVE_LIBKRB5
+#include <krb5/krb5.h>
 #endif
 
 #ifdef NO_JOHN_BLD
@@ -84,6 +89,9 @@ extern void cuda_device_list();
 #else
 #define DEBUG_STRING ""
 #endif
+
+#define _STR_VALUE(arg)			#arg
+#define STR_MACRO(n)			_STR_VALUE(n)
 
 /*
  * FIXME: Should all the listconf_list_*() functions get an additional stream
@@ -208,9 +216,23 @@ static void listconf_list_build_info(void)
 #ifdef PR_VERSION
 	printf("NSPR library version: %s\n", PR_VERSION);
 #endif
-#ifdef HAVE_KRB5
+#ifdef HAVE_LIBKRB5
 	// I have no idea how to get version info
-	printf("Kerberos version 5 support enabled\n");
+	printf("Kerberos version %d support enabled\n", KRB5_PVNO);
+#endif
+	printf("fseek(): " STR_MACRO(jtr_fseek64) "\n");
+	printf("ftell(): " STR_MACRO(jtr_ftell64) "\n");
+#if HAVE_MEMMEM
+#define memmem_func	"System's\n"
+#else
+#define memmem_func	"JtR internal\n"
+#endif
+	printf("memmem(): " memmem_func "\n");
+
+#if HAVE_OPENSSL
+	printf("Crypto library: OpenSSL\n");
+#elif HAVE_COMMONCRYPTO
+	printf("Crypto library: CommonCrypto\n");
 #endif
 }
 
