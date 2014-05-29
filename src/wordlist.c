@@ -131,7 +131,7 @@ static MAYBE_INLINE char *mgetl(char *res)
 {
 	char *pos = res;
 
-#if defined(__SSE2__) && !defined(__APPLE__)
+#if defined(__SSE2__) && !defined(__APPLE__) && !defined(_MSC_VER)
 
 	/* 16 chars at a time with known remainder. */
 	__m128i cx16 = _mm_set1_epi8('\n');
