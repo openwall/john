@@ -1267,8 +1267,11 @@ static void clear_keys(void) {
 		return;
 	if (curdat.md5_startup_in_x86)
 		__nonMP_DynamicFunc__clean_input_full();
-	else
-		__nonMP_DynamicFunc__clean_input_kwik();
+		
+// This clean was causing failures (dirty buffers left) for dyna_51, 61 and formspring.
+// once commented out, dyna fully passes.  I see no reason to keep this here at all.
+//	else
+//		__nonMP_DynamicFunc__clean_input_kwik();
 #else
 	__nonMP_DynamicFunc__clean_input_full();
 #endif
