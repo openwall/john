@@ -11893,7 +11893,7 @@ rm -f conftest.mmap conftest.txt
 # we need a rpl_realloc before using this one.
 #AC_FUNC_REALLOC
 
-for ac_func in fseek64 fseeko fseeko64 _fseeki64 lseek64 lseek ftell64 ftello ftello64 _ftelli64 memmem
+for ac_func in fseek64 fseeko fseeko64 _fseeki64 lseek64 lseek ftell64 ftello ftello64 _ftelli64 fopen64 _fopen64 memmem
 do :
   as_ac_var=`$as_echo "ac_cv_func_$ac_func" | $as_tr_sh`
 ac_fn_c_check_func "$LINENO" "$ac_func" "$as_ac_var"
@@ -12255,7 +12255,7 @@ case "$host" in
    done
 
 fi
-	;;
+    ;;
   i?86*darwin*)
     if test "x$ac_cv_func_fseeko" = xyes; then :
 
@@ -12274,10 +12274,10 @@ fi
    done
 
 fi
-	;;
-   x86_64*cygwin*)
-	  ax_intel_x32=no
-	  EXTRA_AS_FLAGS="$EXTRA_AS_FLAGS -D__CYGWIN64__ -D__CYGWIN32__"
+    ;;
+  x86_64*cygwin*)
+    ax_intel_x32=no
+    EXTRA_AS_FLAGS="$EXTRA_AS_FLAGS -D__CYGWIN64__ -D__CYGWIN32__"
 
    for i in "-D__CYGWIN64__ -D__CYGWIN32__"; do
       jtr_list_add_dupe=0
@@ -12293,7 +12293,10 @@ fi
       fi
    done
 
-	;;
+    ;;
+#  sparc*solaris*)
+#    AS_IF([test "x$ac_cv_func_fseeko64" = xyes && test x${CPU_BIT_STR} = x32], [JTR_LIST_ADD(CFLAGS_EXTRA, [-D_LARGEFILE_SOURCE])])
+#    ;;
 esac
 
 #########################################

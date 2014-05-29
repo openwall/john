@@ -120,6 +120,25 @@
 
 #endif /* ftell */
 
+/*************************************************/
+/* here we figure out if we use fopen or fopen64 */
+/*************************************************/
+#if SIZEOF_LONG == 8
+#define jtr_fopen fopen
+
+#elif HAVE_FOPEN64
+#define jtr_fopen fopen64
+
+#elif HAVE__FOPEN64
+#define jtr_fopen _fopen64
+
+#else
+#define jtr_fopen fopen
+#endif
+
+#ifndef O_LARGEFILE
+#define O_LARGEFILE 0
+#endif
 
 /*
  * Portable basename() function.  DO NOT USE basename().  Use this

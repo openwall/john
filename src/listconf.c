@@ -222,6 +222,7 @@ static void listconf_list_build_info(void)
 #endif
 	printf("fseek(): " STR_MACRO(jtr_fseek64) "\n");
 	printf("ftell(): " STR_MACRO(jtr_ftell64) "\n");
+	printf("fopen(): " STR_MACRO(jtr_fopen) "\n");
 #if HAVE_MEMMEM
 #define memmem_func	"System's\n"
 #else

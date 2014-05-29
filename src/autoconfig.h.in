@@ -63,6 +63,9 @@
 /* Define to 1 if you have the <fcntl.h> header file. */
 #undef HAVE_FCNTL_H
 
+/* Define to 1 if you have the `fopen64' function. */
+#undef HAVE_FOPEN64
+
 /* Define to 1 if you have the `fork' function. */
 #undef HAVE_FORK
 
@@ -302,6 +305,9 @@
 
 /* Define to 1 if the system has the type `_Bool'. */
 #undef HAVE__BOOL
+
+/* Define to 1 if you have the `_fopen64' function. */
+#undef HAVE__FOPEN64
 
 /* Define to 1 if you have the `_fseeki64' function. */
 #undef HAVE__FSEEKI64

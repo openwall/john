@@ -476,7 +476,11 @@ int crk_reload_pot(void)
 		return 0;
 
 	if ((pot_fd =
-	     open(path_expand(pers_opts.activepot), O_RDONLY)) == -1) {
+	     open(path_expand(pers_opts.activepot), O_RDONLY
+#if ARCH_BITS == 32
+		 | O_LARGEFILE
+#endif
+		 )) == -1) {
 		if (errno != ENOENT)
 			perror("open potfile");
 		return 0;

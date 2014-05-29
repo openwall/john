@@ -10,7 +10,11 @@
  * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
+/* NOTE, _POSIX_SOURCE fuk's up solaris 32 bit 64 bit processing!!! */
+#ifndef sparc
 #define _POSIX_SOURCE /* for fileno(3) */
+#endif
+
 #include <stdio.h>
 #include <sys/stat.h>
 
@@ -78,6 +82,9 @@
 #include "unicode.h"
 #include "regex.h"
 #include "memdbg.h"
+
+#define _STR_VALUE(arg)			#arg
+#define STR_MACRO(n)			_STR_VALUE(n)
 
 static int dist_rules;
 
@@ -288,7 +295,7 @@ static int restore_state(FILE *file)
 			skip_lines(rec_line, line);
 		} else
 		if (jtr_fseek64(word_file, rec_pos, SEEK_SET))
-			pexit("jtr_fseek64");
+			pexit(STR_MACRO(jtr_fseek64));
 		line_number = rec_line;
 	}
 
@@ -315,7 +322,7 @@ static void fix_state(void)
 			rec_pos = 0;
 		else
 #endif
-			pexit("jtr_ftell64");
+			pexit(STR_MACRO(jtr_ftell64));
 	}
 }
 
@@ -351,7 +358,7 @@ static double get_progress(void)
 				pos = 0;
 			else
 #endif
-				pexit("jtr_ftell64");
+				pexit(STR_MACRO(jtr_ftell64));
 		}
 	}
 	return (100.0 * ((rule_number * (double)size) + pos) /
@@ -553,15 +560,15 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 		char *cp, csearch;
 		int64_t ourshare = 0;
 
-		if (!(word_file = fopen(path_expand(name), "rb")))
-			pexit("fopen: %s", path_expand(name));
+		if (!(word_file = jtr_fopen(path_expand(name), "rb")))
+			pexit(STR_MACRO(jtr_fopen)": %s", path_expand(name));
 		log_event("- %s file: %.100s",
 		          loopBack ? "Loopback pot" : "Wordlist",
 		          path_expand(name));
 
 		jtr_fseek64(word_file, 0, SEEK_END);
 		if ((file_len = jtr_ftell64(word_file)) == -1)
-			pexit("ftell");
+			pexit(STR_MACRO(jtr_ftell64));
 		jtr_fseek64(word_file, 0, SEEK_SET);
 		if (file_len == 0) {
 			if (john_main_process)
@@ -1217,7 +1224,7 @@ next_rule:
 					map_pos = mem_map;
 				else
 				if (jtr_fseek64(word_file, 0, SEEK_SET))
-					pexit("jtr_fseek64");
+					pexit(STR_MACRO(jtr_fseek64));
 			}
 			if (their_words &&
 			    skip_lines(options.node_min - 1, line))

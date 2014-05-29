@@ -55,15 +55,18 @@ esac
 case "$host" in
   i?86*linux*)
     AS_IF([test "x$ac_cv_func_lseek64" = xyes], [JTR_LIST_ADD(CFLAGS_EXTRA, [-D_LARGEFILE64_SOURCE])])
-	;;
+    ;;
   i?86*darwin*)
     AS_IF([test "x$ac_cv_func_fseeko" = xyes], [JTR_LIST_ADD(CFLAGS_EXTRA, [-D_DARWIN_C_SOURCE])])
-	;;
-   x86_64*cygwin*)
-	  ax_intel_x32=no
-	  EXTRA_AS_FLAGS="$EXTRA_AS_FLAGS -D__CYGWIN64__ -D__CYGWIN32__"
-	  JTR_LIST_ADD(CFLAGS_EXTRA, ["-D__CYGWIN64__ -D__CYGWIN32__"])
-	;;	
+    ;;
+  x86_64*cygwin*)
+    ax_intel_x32=no
+    EXTRA_AS_FLAGS="$EXTRA_AS_FLAGS -D__CYGWIN64__ -D__CYGWIN32__"
+    JTR_LIST_ADD(CFLAGS_EXTRA, ["-D__CYGWIN64__ -D__CYGWIN32__"])
+    ;;
+#  sparc*solaris*)
+#    AS_IF([test "x$ac_cv_func_fseeko64" = xyes && test x${CPU_BIT_STR} = x32], [JTR_LIST_ADD(CFLAGS_EXTRA, [-D_LARGEFILE_SOURCE])])
+#    ;;	
 esac
 
 #########################################
