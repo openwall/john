@@ -1623,8 +1623,6 @@ static void john_done(void)
 			exit_status = 1;
 		}
 		fmt_done(database.format);
-		/* this may not be the correct place to free this, it likely can be freed much earlier, but it works here */
-		MEM_FREE(database.salt_hash);
 	}
 	log_done();
 #ifdef HAVE_OPENCL
@@ -1637,6 +1635,10 @@ static void john_done(void)
 #endif
 
 	path_done();
+
+	/* this may not be the correct place to free this, it likely can be freed much earlier, but it works here */
+	MEM_FREE(database.salt_hash);
+	MEM_FREE(database.cracked_hash);
 
 	check_abort(0);
 	cleanup_tiny_memory();

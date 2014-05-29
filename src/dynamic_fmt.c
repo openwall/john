@@ -297,7 +297,7 @@ unsigned short *itoa16_w2=itoa16_w2_l;
 // This is seen on SHA224 (etc) on Intel, or MD5 of BE systems.  We still try to clean 'only' as much as
 // we need to, but that is usually MORE than what the length of the stored string is. 8 gives us 7 byte spill
 // over, plus 1 byte for the 0x80
-#define COMPUTE_EX_LEN(a) (a > sizeof(input_buf_X86[0].x1.b)-8) ? sizeof(input_buf_X86[0].x1.b) : a+8
+#define COMPUTE_EX_LEN(a) ( (a) > (sizeof(input_buf_X86[0].x1.b)-8) ) ? sizeof(input_buf_X86[0].x1.b) : ((a)+8)
 
 static char saved_key[EFFECTIVE_MKPC][EFFECTIVE_MAX_LENGTH + 1];
 static int saved_key_len[EFFECTIVE_MKPC];
@@ -1267,7 +1267,7 @@ static void clear_keys(void) {
 		return;
 	if (curdat.md5_startup_in_x86)
 		__nonMP_DynamicFunc__clean_input_full();
-		
+
 // This clean was causing failures (dirty buffers left) for dyna_51, 61 and formspring.
 // once commented out, dyna fully passes.  I see no reason to keep this here at all.
 //	else
@@ -7565,11 +7565,43 @@ struct fmt_main *dynamic_THIN_FORMAT_LINK(struct fmt_main *pFmt, char *ciphertex
 	return pFmtLocal;
 }
 
+// We ONLY deal with hex hashes at this time.  Is we later have to deal with
+// base-64, this will become harder.  Before this function we had bugs where
+// many things were loaded as 'being' valid, even if not.
+static int looks_like_raw_hash(char *ciphertext, private_subformat_data *pPriv) {
+	int i, cipherTextLen = CIPHERTEXT_LENGTH;
+	if (pPriv->dynamic_40_byte_input) {
+		cipherTextLen = 40;
+	} else if (pPriv->dynamic_48_byte_input) {
+		cipherTextLen = 48;
+	} else if (pPriv->dynamic_64_byte_input) {
+		cipherTextLen = 64;
+	} else if (pPriv->dynamic_56_byte_input) {
+		cipherTextLen = 56;
+	} else if (pPriv->dynamic_80_byte_input) {
+		cipherTextLen = 80;
+	} else if (pPriv->dynamic_96_byte_input) {
+		cipherTextLen = 96;
+	} else if (pPriv->dynamic_128_byte_input) {
+		cipherTextLen = 128;
+	}
+	for (i = 0; i < cipherTextLen; i++) {
+		if (atoi16[ARCH_INDEX(ciphertext[i])] == 0x7f)
+			return 0;
+	}
+	if ((pPriv->pSetup->flags&MGF_SALTED) == 0) {
+		if (!ciphertext[cipherTextLen])
+			return 1;
+		return 0;
+	}
+	return ciphertext[cipherTextLen] == '$';
+}
+
 static char *FixupIfNeeded(char *ciphertext, private_subformat_data *pPriv)
 {
 	if (!ciphertext || *ciphertext == 0 || *ciphertext == '*')
 		return ciphertext;
-	if (m_allow_rawhash_fixup && strncmp(ciphertext, "$dynamic_", 9))
+	if (m_allow_rawhash_fixup && strncmp(ciphertext, "$dynamic_", 9) && looks_like_raw_hash(ciphertext, pPriv))
 	{
 		static char __ciphertext[512+24];
 		if (pPriv->pSetup->flags & MGF_SALTED) {
