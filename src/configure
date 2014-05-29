@@ -631,7 +631,6 @@ PLUGFORMATS_SRCS
 YASM_OPTIONS
 AESNI_OS
 AESNI_ARCH
-JOHN_BUILD_LABEL
 EXTRA_AS_FLAGS
 ASFLAGS
 CPU_BIT_STR
@@ -12011,8 +12010,6 @@ ASFLAGS="${ASFLAGS}"
 
 EXTRA_AS_FLAGS="${EXTRA_AS_FLAGS}"
 
-JOHN_BUILD_LABEL="${CPU_BIT_STR}-bit${using_x32} ${CPU_STR}-autoconf"
-
 
 if test "x$ALLOWS_UNALIGNED" = x1; then :
 
@@ -12145,7 +12142,7 @@ LC_ALL=C ${SED} -n 's/^\(struct fmt_main [^ ]*\) =.*/extern \1;/p' *_fmt_plug.c 
 echo "configure: creating ./fmt_registers.h"
 LC_ALL=C ${SED} -n 's/^struct fmt_main \([^ ]*\) =.*/john_register_one(\&\1);/p' *_fmt_plug.c | LC_ALL=C ${SORT} > fmt_registers.h
 echo "configure: creating ./john_build_rule.h"
-echo "#define JOHN_BLD \"${CPU_BIT_STR}-bit${using_x32} ${CPU_STR}-autoconf\"" > john_build_rule.h
+echo "#define JOHN_BLD \"${host_os} ${CPU_BIT_STR}-bit${using_x32} ${CPU_STR}-autoconf\"" > john_build_rule.h
 ########################################################
 # End of plugin and build_rules generation code
 ########################################################

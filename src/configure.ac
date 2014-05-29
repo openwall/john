@@ -565,7 +565,6 @@ AC_SUBST([CPU_BITS],["${CPU_BITS}"])
 AC_SUBST([CPU_BIT_STR],["${CPU_BIT_STR}"])
 AC_SUBST([ASFLAGS],["${ASFLAGS}"])
 AC_SUBST([EXTRA_AS_FLAGS],["${EXTRA_AS_FLAGS}"])
-AC_SUBST([JOHN_BUILD_LABEL],["${CPU_BIT_STR}-bit${using_x32} ${CPU_STR}-autoconf"])
 
 AS_IF([test "x$ALLOWS_UNALIGNED" = x1],
    [AC_DEFINE([ARCH_ALLOWS_UNALIGNED], 1, ["Enable if CPU allows unaligned memory access"])],
@@ -652,7 +651,7 @@ LC_ALL=C ${SED} -n 's/^\(struct fmt_main [[^ ]]*\) =.*/extern \1;/p' *_fmt_plug.
 echo "configure: creating ./fmt_registers.h"
 LC_ALL=C ${SED} -n 's/^struct fmt_main \([[^ ]]*\) =.*/john_register_one(\&\1);/p' *_fmt_plug.c | LC_ALL=C ${SORT} > fmt_registers.h
 echo "configure: creating ./john_build_rule.h"
-echo "#define JOHN_BLD \"${CPU_BIT_STR}-bit${using_x32} ${CPU_STR}-autoconf\"" > john_build_rule.h
+echo "#define JOHN_BLD \"${host_os} ${CPU_BIT_STR}-bit${using_x32} ${CPU_STR}-autoconf\"" > john_build_rule.h
 ########################################################
 # End of plugin and build_rules generation code
 ########################################################
