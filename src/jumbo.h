@@ -73,7 +73,7 @@
    extern  int fseeko64 (FILE* stream, int64_t offset, int whence);
 #  define jtr_fseek64 fseeko64
 #else
-#  if defined(__GNUC__)
+#  if defined(__GNUC__) && defined (AC_BUILT)
 #    warning Using 32-bit fseek(). Files larger than 2GB will be handled unreliably
 #  endif
 #  define jtr_fseek64 fseek
@@ -112,7 +112,7 @@
    extern  int64_t ftello64 (FILE* stream);
 #  define jtr_ftell64 ftello64
 #else
-#  if defined(__GNUC__)
+#  if defined(__GNUC__) && defined (AC_BUILT)
 #    warning Using 32-bit ftell(). Files larger than 2GB will be handled unreliably
 #  endif
 #  define jtr_ftell64 ftell
@@ -124,16 +124,13 @@
 /* here we figure out if we use fopen or fopen64 */
 /*************************************************/
 #if SIZEOF_LONG == 8
-#define jtr_fopen fopen
-
+#  define jtr_fopen fopen
 #elif HAVE_FOPEN64
-#define jtr_fopen fopen64
-
+#  define jtr_fopen fopen64
 #elif HAVE__FOPEN64
-#define jtr_fopen _fopen64
-
+#  define jtr_fopen _fopen64
 #else
-#define jtr_fopen fopen
+#  define jtr_fopen fopen
 #endif
 
 #ifndef O_LARGEFILE
