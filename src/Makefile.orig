@@ -26,7 +26,7 @@ NULL = /dev/null
 CPPFLAGS = -E
 SORT = sort
 STRIP = strip
-MAKE_ORIG = $(MAKE) -f Makefile.orig
+MAKE_ORIG = +$(MAKE) -f Makefile.orig -j$(J)
 
 ## Uncomment the line below for MPI (can be used together with OMP as well)
 #CC = mpicc -DHAVE_MPI
@@ -59,8 +59,8 @@ endif
 ifndef RELEASE_BLD
 HAVE_LIBGMP = `find 2>&1 /usr/include /usr/local/include -name "gmp.h" | grep -q "gmp.h" && echo -DHAVE_LIBGMP`
 GMP_LDFLAGS = `find 2>&1 /usr/include /usr/local/include -name "gmp.h" | grep -q "gmp.h" && echo -lgmp`
-#HAVE_LIBKRB5 = `find 2>&1 /usr/include/ /usr/local/include/ -name "krb5.h" | grep -q "krb5.h" && echo -DHAVE_LIBKRB5 -DHAVE_LIBK5CRYPTO`
-#KRB5_LDFLAGS = `find 2>&1 /usr/include/ /usr/local/include/ -name "krb5.h" | grep -q "krb5.h" && echo -lk5crypto -lkrb5`
+HAVE_LIBKRB5 = `find 2>&1 /usr/include/ /usr/local/include/ -name "krb5.h" | grep -q "krb5.h" && echo -DHAVE_LIBKRB5 -DHAVE_LIBK5CRYPTO`
+KRB5_LDFLAGS = `find 2>&1 /usr/include/ /usr/local/include/ -name "krb5.h" | grep -q "krb5.h" && echo -lk5crypto -lkrb5`
 REXGEN_FLAGS = `find 2>&1 /usr/include/librexgen/api/c /usr/local/include/librexgen/api/c -name "librexgen.h" | grep -q "librexgen.h" && echo -DHAVE_LIBREXGEN=1`
 REXGEN_LDFLAGS = `find 2>&1 /usr/lib/ /usr/local/lib/ -name "liblibrexgen*.a" | grep -q "liblibrexgen" && echo -llibrexgen`
 REXGEN_LDFLAGS += `find 2>&1 /usr/lib/ /usr/local/lib/ -name "librexgen*.a" -o -name "librexgen*.so" -o -name "librexgen*.dylib" | grep -q "librexgen" && echo -lrexgen`
