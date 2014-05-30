@@ -29,12 +29,12 @@ static int rnd_rand(int *g_seed)
 
 static void feal_keysch_repro(unsigned char *key, struct JtR_FEAL8_CTX *ctx)
 {
-	SetKey((ByteType *) key, ctx);
+	feal_SetKey((ByteType *) key, ctx);
 }
 
 static void feal_encrypt_repro(unsigned char *plaintext, unsigned char *ciphertext, struct JtR_FEAL8_CTX *ctx)
 {
-	Encrypt(plaintext, ciphertext, ctx);
+	feal_Encrypt(plaintext, ciphertext, ctx);
 }
 
 static void ccat_pad_repro(unsigned char *password, unsigned char *expanded_password)

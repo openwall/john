@@ -1,20 +1,31 @@
 /* FEAL8 – Implementation of NTT’s FEAL-8 cipher. Version of 11 September 1989. */
+/*
+ * Modifications, May, 2014, JimF.  Made BE compatible (change in f() only).
+ * Made all internal functions static, and put a feal_ colorization on the
+ * 3 exported functions (changed feal8.h also)
+ */
 
 #include "feal8.h"
 #include <stdio.h>
+#include <stdlib.h>
 
+#include "johnswap.h"
 #include "memdbg.h"
 
-void Decrypt(ByteType * Cipher, ByteType * Plain, struct JtR_FEAL8_CTX *ctx)
+// Moved these declares out of the functions, and into global for this file.
+static ByteType S0(ByteType X1, ByteType X2);
+static ByteType S1(ByteType X1, ByteType X2);
+static HalfWord f(HalfWord AA, QuarterWord BB);
+static HalfWord MakeH1(ByteType * B);
+static void DissH1(HalfWord H, ByteType * D);
+
+void feal_Decrypt(ByteType * Cipher, ByteType * Plain, struct JtR_FEAL8_CTX *ctx)
 /*
      Decrypt a block, using the last key set.
 */
 {
 	HalfWord L, R, NewL;
 	int r;
-	HalfWord MakeH1(ByteType *);
-	HalfWord f(HalfWord, QuarterWord);
-	void DissH1(HalfWord, ByteType *);
 
 	R = MakeH1(Cipher);
 	L = MakeH1(Cipher + 4);
@@ -36,7 +47,7 @@ void Decrypt(ByteType * Cipher, ByteType * Plain, struct JtR_FEAL8_CTX *ctx)
 	DissH1(R, Plain + 4);
 }
 
-void DissH1(HalfWord H, ByteType * D)
+static void DissH1(HalfWord H, ByteType * D)
 /*
      Disassemble the given halfword into 4 bytes.
 */
@@ -53,7 +64,7 @@ void DissH1(HalfWord H, ByteType * D)
 	*D = T.Byte[3];
 }
 
-void DissQ1(QuarterWord Q, ByteType * B)
+static void DissQ1(QuarterWord Q, ByteType * B)
 /*
      Disassemble a quarterword into two Bytes.
 */
@@ -68,16 +79,13 @@ void DissQ1(QuarterWord Q, ByteType * B)
 	*B = QQ.Byte[1];
 }
 
-void Encrypt(ByteType * Plain, ByteType * Cipher, struct JtR_FEAL8_CTX *ctx)
+void feal_Encrypt(ByteType * Plain, ByteType * Cipher, struct JtR_FEAL8_CTX *ctx)
 /*
      Encrypt a block, using the last key set.
 */
 {
 	HalfWord L, R, NewR;
 	int r;
-	HalfWord MakeH1(ByteType *);
-	HalfWord f(HalfWord, QuarterWord);
-	void DissH1(HalfWord, ByteType *);
 
 	L = MakeH1(Plain);
 	R = MakeH1(Plain + 4);
@@ -105,7 +113,7 @@ void Encrypt(ByteType * Plain, ByteType * Cipher, struct JtR_FEAL8_CTX *ctx)
 	DissH1(L, Cipher + 4);
 }
 
-HalfWord f(HalfWord AA, QuarterWord BB)
+static HalfWord f(HalfWord AA, QuarterWord BB)
 /*
      Evaluate the f function.
 */
@@ -119,13 +127,17 @@ HalfWord f(HalfWord AA, QuarterWord BB)
 		unsigned int All;
 		ByteType Byte[2];
 	} B;
-	ByteType S0(ByteType, ByteType);
-	ByteType S1(ByteType, ByteType);
 
 	A.All = AA;
 	B.All = BB;
+#if ARCH_LITTLE_ENDIAN
 	f1 = A.Byte[1] ^ B.Byte[0] ^ A.Byte[0];
 	f2 = A.Byte[2] ^ B.Byte[1] ^ A.Byte[3];
+#else
+	/* this was the only change required to make it BE compatible */
+	f1 = A.Byte[1] ^ B.Byte[2] ^ A.Byte[0];
+	f2 = A.Byte[2] ^ B.Byte[3] ^ A.Byte[3];
+#endif
 	f1 = S1(f1, f2);
 	f2 = S0(f2, f1);
 	RetVal.Byte[1] = f1;
@@ -135,7 +147,7 @@ HalfWord f(HalfWord AA, QuarterWord BB)
 	return RetVal.All;
 }
 
-HalfWord FK(HalfWord AA, HalfWord BB)
+static HalfWord FK(HalfWord AA, HalfWord BB)
 /*
      Evaluate the FK function.
 */
@@ -145,9 +157,6 @@ HalfWord FK(HalfWord AA, HalfWord BB)
 		unsigned long All;
 		ByteType Byte[4];
 	} RetVal, A, B;
-
-	ByteType S0(ByteType, ByteType);
-	ByteType S1(ByteType, ByteType);
 
 	A.All = AA;
 	B.All = BB;
@@ -162,7 +171,7 @@ HalfWord FK(HalfWord AA, HalfWord BB)
 	return RetVal.All;
 }
 
-HalfWord MakeH1(ByteType * B)
+static HalfWord MakeH1(ByteType * B)
 /*
      Assemble a HalfWord from the four bytes provided.
 */
@@ -179,21 +188,19 @@ HalfWord MakeH1(ByteType * B)
 	return RetVal.All;
 }
 
-HalfWord MakeH2(QuarterWord * Q)
+static HalfWord MakeH2(QuarterWord * Q)
 /*
      Make a halfword from the two quarterwords given.
 */
 {
 	ByteType B[4];
-	void DissQ1(QuarterWord, ByteType *);
 
 	DissQ1(*Q++, B);
 	DissQ1(*Q, B + 2);
 	return MakeH1(B);
 }
 
-#include <stdlib.h>
-ByteType Rot2(ByteType X)
+static ByteType Rot2(ByteType X)
 /*
      Evaluate the Rot2 function.
 */
@@ -216,21 +223,17 @@ ByteType Rot2(ByteType X)
 	return RetVal[X];
 }
 
-ByteType S0(ByteType X1, ByteType X2)
+static ByteType S0(ByteType X1, ByteType X2)
 {
-	ByteType Rot2(ByteType X);
-
 	return Rot2((X1 + X2) & 0xff);
 }
 
-ByteType S1(ByteType X1, ByteType X2)
+static ByteType S1(ByteType X1, ByteType X2)
 {
-	ByteType Rot2(ByteType X);
-
 	return Rot2((X1 + X2 + 1) & 0xff);
 }
 
-void SetKey(ByteType * KP, struct JtR_FEAL8_CTX *ctx)
+void feal_SetKey(ByteType * KP, struct JtR_FEAL8_CTX *ctx)
 /*
      KP points to an array of 8 bytes.
 */
@@ -245,8 +248,6 @@ void SetKey(ByteType * KP, struct JtR_FEAL8_CTX *ctx)
 	} Q;
 	int i;
 	QuarterWord *Out;
-	HalfWord FK(HalfWord, HalfWord);
-	HalfWord MakeH2(QuarterWord *);
 
 	A.Byte[0] = *KP++;
 	A.Byte[1] = *KP++;

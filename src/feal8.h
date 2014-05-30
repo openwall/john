@@ -13,8 +13,8 @@ struct JtR_FEAL8_CTX {
 };
 
 
-void SetKey(ByteType * KP, struct JtR_FEAL8_CTX *ctx);
-void Encrypt(ByteType * Plain, ByteType * Cipher, struct JtR_FEAL8_CTX *ctx);
+void feal_SetKey(ByteType * KP, struct JtR_FEAL8_CTX *ctx);
+void feal_Encrypt(ByteType * Plain, ByteType * Cipher, struct JtR_FEAL8_CTX *ctx);
 
 // void Decrypt(ByteType * Cipher, ByteType * Plain);
-void Decrypt(ByteType * Cipher, ByteType * Plain, struct JtR_FEAL8_CTX *ctx);
+void feal_Decrypt(ByteType * Cipher, ByteType * Plain, struct JtR_FEAL8_CTX *ctx);
