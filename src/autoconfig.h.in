@@ -108,9 +108,6 @@
 /* Define to 1 if you have the `gmp' library (-lgmp). */
 #undef HAVE_LIBGMP
 
-/* Define to 1 if you have the `k5crypto' library (-lk5crypto). */
-#undef HAVE_LIBK5CRYPTO
-
 /* Define to 1 if you have the `kernel32' library (-lkernel32). */
 #undef HAVE_LIBKERNEL32
 

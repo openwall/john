@@ -15,12 +15,12 @@
  * - user:REALMname$hash
  */
 #if AC_BUILT
-/* need to know if DHAVE_LIBKRB5 HAVE_LIBK5CRYPTO is set, for autoconfig build */
+/* need to know if DHAVE_LIBKRB5 is set, for autoconfig build */
 #include "autoconfig.h"
 #endif
 
 
-#if HAVE_LIBKRB5 && HAVE_LIBK5CRYPTO
+#if HAVE_LIBKRB5
 #include <string.h>
 #include <assert.h>
 #include <errno.h>

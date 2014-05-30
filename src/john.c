@@ -17,7 +17,7 @@
  */
 
 #if AC_BUILT
-/* need to know if DHAVE_LIBKRB5 HAVE_LIBK5CRYPTO and HAVE_LIBDL is set, for autoconfig build */
+/* need to know if DHAVE_LIBKRB5 and HAVE_LIBDL is set, for autoconfig build */
 #include "autoconfig.h"
 #endif
 
@@ -174,7 +174,7 @@ extern struct fmt_main fmt_SKEY;
 extern struct fmt_main fmt_mozilla;
 extern int mozilla2john(int argc, char **argv);
 #endif
-#if HAVE_LIBKRB5 && HAVE_LIBK5CRYPTO
+#if HAVE_LIBKRB5
 extern struct fmt_main fmt_krb5_18;
 extern struct fmt_main fmt_KRB5_kinit;
 #endif
@@ -410,7 +410,7 @@ static void john_register_all(void)
 #ifdef HAVE_NSS
 	john_register_one(&fmt_mozilla);
 #endif
-#if HAVE_LIBKRB5 && HAVE_LIBK5CRYPTO
+#if HAVE_LIBKRB5
 	john_register_one(&fmt_krb5_18);
 	john_register_one(&fmt_KRB5_kinit);
 #endif
