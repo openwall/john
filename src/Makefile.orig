@@ -26,7 +26,7 @@ NULL = /dev/null
 CPPFLAGS = -E
 SORT = sort
 STRIP = strip
-MAKE_ORIG = $(MAKE) -f Makefile.orig
+MAKE_ORIG = +$(MAKE) -f Makefile.orig -j$(J)
 
 ## Uncomment the line below for MPI (can be used together with OMP as well)
 #CC = mpicc -DHAVE_MPI
