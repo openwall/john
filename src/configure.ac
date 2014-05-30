@@ -387,7 +387,7 @@ LIBS=""
 AC_SEARCH_LIBS([crypt],[crypt],[AC_DEFINE(HAVE_CRYPT,1,[Define to 1 if you have the `crypt' library (-lcrypt).])])
 AC_SUBST(CRYPT_LIBS, [$LIBS])
 LIBS="$BACKUP_LIBS"
-AC_CHECK_HEADER([krb5.h],AC_CHECK_LIB([k5crypto],[krb5_c_string_to_key_with_params], AC_DEFINE([HAVE_LIBK5CRYPTO],1,[Define to 1 if you have the `k5crypto' library (-lk5crypto).])) AC_CHECK_LIB([krb5],[krb5_c_string_to_key_with_params], AC_DEFINE([HAVE_LIBKRB5],1,[Define to 1 if you have the `krb5' library (-lkrb5).]) [AC_SUBST(KRB5_LIBS, ["-lkrb5 -lk5crypto"])]))
+AC_CHECK_HEADER([krb5.h],AC_CHECK_LIB([k5crypto],[krb5_c_string_to_key_with_params], AC_DEFINE([HAVE_LIBK5CRYPTO],1,[Define to 1 if you have the `k5crypto' library (-lk5crypto).])) AC_CHECK_LIB([krb5],[main], AC_DEFINE([HAVE_LIBKRB5],1,[Define to 1 if you have the `krb5' library (-lkrb5).]) [AC_SUBST(KRB5_LIBS, ["-lkrb5 -lk5crypto"])]))
 AC_CHECK_HEADERS([gmp.h] [gmp/gmp.h], [AC_CHECK_LIB([gmp],[__gmpz_init], AC_DEFINE([HAVE_LIBGMP],1,[Define to 1 if you have the `gmp' library (-lgmp).]) [AC_SUBST(GMP_LIBS, [-lgmp])])] [break])
 AC_CHECK_HEADER([skey.h], [AC_CHECK_LIB([skey],[skey_set_algorithm],
                           AC_DEFINE([HAVE_SKEY],1,[Define to 1 if you have skey library and headers]) [AC_SUBST(SKEY_LIBS, [-lskey])])])
@@ -744,7 +744,7 @@ Rexgen (extra cracking mode) ................ ${using_rexgen}
 GMP (performance) ........................... ${ac_cv_lib_gmp___gmpz_init}
 NSS/NSPR (Mozilla format) ................... ${using_nss}
 S/Key (skey format) ......................... ${ac_cv_lib_skey_skey_set_algorithm}
-MIT Kerberos5 (krb5-18/23 formats) .......... ${ac_cv_lib_krb5_krb5_c_string_to_key_with_params}
+MIT Kerberos5 (krb5-18/23 formats) .......... ${ac_cv_lib_k5crypto_krb5_c_string_to_key_with_params}
 PCAP (vncpcap2john and SIPdump) ............. ${ac_cv_lib_pcap_pcap_compile}
 
 Install missing libraries to get any needed features that were omitted.
