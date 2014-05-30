@@ -41,7 +41,9 @@ extern "C" {
 #include <stdio.h>
 #include <string.h>
 
+#ifdef AC_BUILT
 #include "../../autoconfig.h"
+#endif
 
 void intel_AES_enc128(UCHAR *plainText,UCHAR *cipherText,UCHAR *key,size_t numBlocks)
 {

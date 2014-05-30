@@ -12,7 +12,9 @@
 
 #include <stdio.h>
 #include <string.h>
+#ifdef AC_BUILT
 #include "../autoconfig.h"
+#endif
 
 // Input, output, key, number of blocks
 typedef void (*aes_fptr_vanilla)(unsigned char *, unsigned char *, unsigned char *, size_t);

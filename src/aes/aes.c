@@ -15,7 +15,7 @@
 
 #include "aes.h"
 
-#if HAVE_AES_ENCRYPT
+#if HAVE_AES_ENCRYPT || !defined(AC_BUILT)
 #include "openssl/ossl_aes.h"
 const char *get_AES_type_string() { if (using_aes_asm()) return "AES-NI"; return "AES-oSSL"; }
 #else
