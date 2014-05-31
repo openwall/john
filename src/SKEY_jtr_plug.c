@@ -29,6 +29,7 @@
 // library and not this code.
 
 static int which;  // 0==md4, 1=md5, 2=sha1, 3=rmd160
+static unsigned int tmp_buf[5];// large enough for sha1/ripemd160
 
 char *jtr_skey_set_algorithm(char *buf) {
 	if (!strcmp(buf, "md4"))    { which = 0; return "md4"; }
@@ -37,49 +38,47 @@ char *jtr_skey_set_algorithm(char *buf) {
 	if (!strcmp(buf, "rmd160")) { which = 3; return "rmd160"; }
 	return NULL;
 }
-static void md4_f(unsigned char *crypt, unsigned char *in, int len) {
-	MD4(in, len, crypt);
-	((unsigned int*)crypt)[0] ^= ((unsigned int*)crypt)[2];
-	((unsigned int*)crypt)[1] ^= ((unsigned int*)crypt)[3];
+static void md4_f(unsigned int *crypt, unsigned char *in, int len) {
+	MD4(in, len, (unsigned char*)tmp_buf);
+	crypt[0] = tmp_buf[0]^tmp_buf[2];
+	crypt[1] = tmp_buf[1]^tmp_buf[3];
 }
-static void md5_f(unsigned char *crypt, unsigned char *in, int len) {
-	MD5(in, len, crypt);
-	((unsigned int*)crypt)[0] ^= ((unsigned int*)crypt)[2];
-	((unsigned int*)crypt)[1] ^= ((unsigned int*)crypt)[3];
+static void md5_f(unsigned int *crypt, unsigned char *in, int len) {
+	MD5(in, len, (unsigned char*)tmp_buf);
+	crypt[0] = tmp_buf[0]^tmp_buf[2];
+	crypt[1] = tmp_buf[1]^tmp_buf[3];
 }
-static void sha1_f(unsigned char *crypt, unsigned char *in, int len) {
-	SHA1(in, len, crypt);
-	((unsigned int*)crypt)[0] ^= ((unsigned int*)crypt)[2];
-	((unsigned int*)crypt)[0] ^= ((unsigned int*)crypt)[4];
-	((unsigned int*)crypt)[1] ^= ((unsigned int*)crypt)[3];
+static void sha1_f(unsigned int *crypt, unsigned char *in, int len) {
+	SHA1(in, len, (unsigned char*)tmp_buf);
+	crypt[0] = tmp_buf[0]^tmp_buf[2]^tmp_buf[4];
+	crypt[1] = tmp_buf[1]^tmp_buf[3];
 }
-static void rmd160_f(unsigned char *crypt, unsigned char *in, int len) {
+static void rmd160_f(unsigned int *crypt, unsigned char *in, int len) {
 	sph_ripemd160_context ctx;
 	sph_ripemd160_init(&ctx);
 	sph_ripemd160(&ctx, in, len);
-	sph_ripemd160_close(&ctx, crypt);
-	((unsigned int*)crypt)[0] ^= ((unsigned int*)crypt)[2];
-	((unsigned int*)crypt)[0] ^= ((unsigned int*)crypt)[4];
-	((unsigned int*)crypt)[1] ^= ((unsigned int*)crypt)[3];
+	sph_ripemd160_close(&ctx, (unsigned char*)tmp_buf);
+	crypt[0] = tmp_buf[0]^tmp_buf[2]^tmp_buf[4];
+	crypt[1] = tmp_buf[1]^tmp_buf[3];
 }
 void jtr_skey_keycrunch(unsigned char *saved_key, char *saved_salt_seed, char *saved_pass) {
-	char tmp[256];
-	strcpy(tmp, saved_salt_seed);
-	strlwr(tmp);
-	strcat(tmp, saved_pass);
+	unsigned char tmp[256];
+	strcpy((char*)tmp, saved_salt_seed);
+	strlwr((char*)tmp);
+	strcat((char*)tmp, saved_pass);
 	switch (which) {
-		case 0: md4_f(saved_key,    (unsigned char *)tmp, strlen(tmp)); return;
-		case 1: md5_f(saved_key,    (unsigned char *)tmp, strlen(tmp)); return;
-		case 2: sha1_f(saved_key,   (unsigned char *)tmp, strlen(tmp)); return;
-		case 3: rmd160_f(saved_key, (unsigned char *)tmp, strlen(tmp)); return;
+		case 0: md4_f((unsigned int *)saved_key,    tmp, strlen((char*)tmp)); return;
+		case 1: md5_f((unsigned int *)saved_key,    tmp, strlen((char*)tmp)); return;
+		case 2: sha1_f((unsigned int *)saved_key,   tmp, strlen((char*)tmp)); return;
+		case 3: rmd160_f((unsigned int *)saved_key, tmp, strlen((char*)tmp)); return;
 	}
 }
 void jtr_skey_f(unsigned char *saved_key) {
 	switch (which) {
-		case 0: md4_f(saved_key, saved_key, 8); return;
-		case 1: md5_f(saved_key, saved_key, 8); return;
-		case 2: sha1_f(saved_key, saved_key, 8); return;
-		case 3: rmd160_f(saved_key, saved_key, 8); return;
+		case 0: md4_f((unsigned int *)saved_key, saved_key, 8); return;
+		case 1: md5_f((unsigned int *)saved_key, saved_key, 8); return;
+		case 2: sha1_f((unsigned int *)saved_key, saved_key, 8); return;
+		case 3: rmd160_f((unsigned int *)saved_key, saved_key, 8); return;
 	}
 }
 
