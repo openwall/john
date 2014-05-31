@@ -709,6 +709,11 @@ krb5_found=no
 if test $(echo "x $KRB5_LIBS" | ${GREP} -c -- "-lkrb5") -ne 0 ; then
    krb5_found=yes
 fi
+if test "x${ac_cv_lib_skey_skey_set_algorithm}" = xno ; then
+   skey_found="jtr code"
+else
+   skey_found="x${ac_cv_lib_skey_skey_set_algorithm}"
+fi
 if test "x$ac_cv_lib_pcap_pcap_compile" = x ; then
    ac_cv_lib_pcap_pcap_compile=no
 fi
@@ -745,7 +750,7 @@ Optional libraries found:
 Rexgen (extra cracking mode) ................ ${using_rexgen}
 GMP (performance) ........................... ${ac_cv_lib_gmp___gmpz_init}
 NSS/NSPR (Mozilla format) ................... ${using_nss}
-S/Key (skey format) ......................... ${ac_cv_lib_skey_skey_set_algorithm}
+S/Key (skey format) ......................... ${skey_found}
 MIT Kerberos5 (krb5-18/23 formats) .......... ${krb5_found}
 PCAP (vncpcap2john and SIPdump) ............. ${ac_cv_lib_pcap_pcap_compile}
 
