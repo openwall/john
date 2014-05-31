@@ -712,7 +712,7 @@ fi
 if test "x${ac_cv_lib_skey_skey_set_algorithm}" = xno ; then
    skey_found="jtr code"
 else
-   skey_found="x${ac_cv_lib_skey_skey_set_algorithm}"
+   skey_found="$ac_cv_lib_skey_skey_set_algorithm"
 fi
 if test "x$ac_cv_lib_pcap_pcap_compile" = x ; then
    ac_cv_lib_pcap_pcap_compile=no
