@@ -1,0 +1,86 @@
+/*
+  SKEY_jtr_plug.c
+
+  S/Key native algorithm for JtR.
+
+  This is the actual SKEY algorithm, internalized into JtR code. The
+  -lskey is only on a few systems, and very hard to find. This code
+  may not be highly optimized, BUT it provides a basis for all systems
+  to perform SKEY checks.
+
+  Code added May 2014, JimF.  Released into public domain, and is usable
+  in source or binary form, with or without modifications with no
+  restrictions.
+
+*/
+
+#include "arch.h"
+#include <stdio.h>
+#include "SKEY_jtr.h"
+#include "misc.h"
+#include "memdbg.h"
+#include "md4.h"
+#include "md5.h"
+#include "sha.h"
+#include "sph_ripemd.h"
+
+#ifndef HAVE_SKEY
+// If HAVE_SKEY is defined, THEN we will use the native
+// library and not this code.
+
+static int which;  // 0==md4, 1=md5, 2=sha1, 3=rmd160
+
+char *jtr_skey_set_algorithm(char *buf) {
+	if (!strcmp(buf, "md4"))    { which = 0; return "md4"; }
+	if (!strcmp(buf, "md5"))    { which = 1; return "md5"; }
+	if (!strcmp(buf, "sha1"))   { which = 2; return "sha1"; }
+	if (!strcmp(buf, "rmd160")) { which = 3; return "rmd160"; }
+	return NULL;
+}
+static void md4_f(unsigned char *crypt, unsigned char *in, int len) {
+	MD4(in, len, crypt);
+	((unsigned int*)crypt)[0] ^= ((unsigned int*)crypt)[2];
+	((unsigned int*)crypt)[1] ^= ((unsigned int*)crypt)[3];
+}
+static void md5_f(unsigned char *crypt, unsigned char *in, int len) {
+	MD5(in, len, crypt);
+	((unsigned int*)crypt)[0] ^= ((unsigned int*)crypt)[2];
+	((unsigned int*)crypt)[1] ^= ((unsigned int*)crypt)[3];
+}
+static void sha1_f(unsigned char *crypt, unsigned char *in, int len) {
+	SHA1(in, len, crypt);
+	((unsigned int*)crypt)[0] ^= ((unsigned int*)crypt)[2];
+	((unsigned int*)crypt)[0] ^= ((unsigned int*)crypt)[4];
+	((unsigned int*)crypt)[1] ^= ((unsigned int*)crypt)[3];
+}
+static void rmd160_f(unsigned char *crypt, unsigned char *in, int len) {
+	sph_ripemd160_context ctx;
+	sph_ripemd160_init(&ctx);
+	sph_ripemd160(&ctx, in, len);
+	sph_ripemd160_close(&ctx, crypt);
+	((unsigned int*)crypt)[0] ^= ((unsigned int*)crypt)[2];
+	((unsigned int*)crypt)[0] ^= ((unsigned int*)crypt)[4];
+	((unsigned int*)crypt)[1] ^= ((unsigned int*)crypt)[3];
+}
+void jtr_skey_keycrunch(unsigned char *saved_key, char *saved_salt_seed, char *saved_pass) {
+	char tmp[256];
+	strcpy(tmp, saved_salt_seed);
+	strlwr(tmp);
+	strcat(tmp, saved_pass);
+	switch (which) {
+		case 0: md4_f(saved_key,    (unsigned char *)tmp, strlen(tmp)); return;
+		case 1: md5_f(saved_key,    (unsigned char *)tmp, strlen(tmp)); return;
+		case 2: sha1_f(saved_key,   (unsigned char *)tmp, strlen(tmp)); return;
+		case 3: rmd160_f(saved_key, (unsigned char *)tmp, strlen(tmp)); return;
+	}
+}
+void jtr_skey_f(unsigned char *saved_key) {
+	switch (which) {
+		case 0: md4_f(saved_key, saved_key, 8); return;
+		case 1: md5_f(saved_key, saved_key, 8); return;
+		case 2: sha1_f(saved_key, saved_key, 8); return;
+		case 3: rmd160_f(saved_key, saved_key, 8); return;
+	}
+}
+
+#endif

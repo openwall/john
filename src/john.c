@@ -166,10 +166,6 @@ extern struct fmt_main fmt_rawSHA256_ng_i;
 extern struct fmt_main fmt_rawSHA512_ng_i;
 #endif
 
-#ifdef HAVE_SKEY
-extern struct fmt_main fmt_SKEY;
-#endif
-
 #ifdef HAVE_NSS
 extern struct fmt_main fmt_mozilla;
 extern int mozilla2john(int argc, char **argv);
@@ -413,10 +409,6 @@ static void john_register_all(void)
 #if HAVE_LIBKRB5
 	john_register_one(&fmt_krb5_18);
 	john_register_one(&fmt_KRB5_kinit);
-#endif
-
-#ifdef HAVE_SKEY
-	john_register_one(&fmt_SKEY);
 #endif
 
 	john_register_one(&fmt_pfx);

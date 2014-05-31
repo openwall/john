@@ -94,7 +94,6 @@ JOHN_OBJS = \
 	django_fmt.o \
 	truecrypt_fmt.o \
 	bitcoin_fmt.o \
-	SKEY_fmt.o \
 	ssh_fmt.o ssh2john.o \
 	pfx_fmt.o pfx2john.o \
 	unrarcmd.o unrarfilter.o unrarhlp.o unrar.o unrarppm.o unrarvm.o \
