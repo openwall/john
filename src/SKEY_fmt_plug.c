@@ -165,6 +165,7 @@ skey_salt(char *ciphertext)
 		return (NULL);
 
 	strnzcpy(salt.seed, p, sizeof(salt.seed));
+	//strlwr(salt.seed); // This should probably be added here!! and removed from SKEY_jtr_plug.c
 
 	if ((p = strtok(NULL, " \t")) == NULL)
 		return (NULL);

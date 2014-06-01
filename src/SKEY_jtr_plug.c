@@ -39,17 +39,26 @@ char *jtr_skey_set_algorithm(char *buf) {
 	return NULL;
 }
 static void md4_f(unsigned int *crypt, unsigned char *in, int len) {
-	MD4(in, len, (unsigned char*)tmp_buf);
+	MD4_CTX ctx;
+	MD4_Init(&ctx);
+	MD4_Update(&ctx, in, len);
+	MD4_Final((unsigned char*)tmp_buf, &ctx);
 	crypt[0] = tmp_buf[0]^tmp_buf[2];
 	crypt[1] = tmp_buf[1]^tmp_buf[3];
 }
 static void md5_f(unsigned int *crypt, unsigned char *in, int len) {
-	MD5(in, len, (unsigned char*)tmp_buf);
+	MD5_CTX ctx;
+	MD5_Init(&ctx);
+	MD5_Update(&ctx, in, len);
+	MD5_Final((unsigned char*)tmp_buf, &ctx);
 	crypt[0] = tmp_buf[0]^tmp_buf[2];
 	crypt[1] = tmp_buf[1]^tmp_buf[3];
 }
 static void sha1_f(unsigned int *crypt, unsigned char *in, int len) {
-	SHA1(in, len, (unsigned char*)tmp_buf);
+	SHA_CTX ctx;
+	SHA1_Init(&ctx);
+	SHA1_Update(&ctx, in, len);
+	SHA1_Final((unsigned char*)tmp_buf, &ctx);
 	crypt[0] = tmp_buf[0]^tmp_buf[2]^tmp_buf[4];
 	crypt[1] = tmp_buf[1]^tmp_buf[3];
 }
@@ -63,14 +72,18 @@ static void rmd160_f(unsigned int *crypt, unsigned char *in, int len) {
 }
 void jtr_skey_keycrunch(unsigned char *saved_key, char *saved_salt_seed, char *saved_pass) {
 	unsigned char tmp[256];
+	int slen, plen;
+	slen = strlen(saved_salt_seed);
+	plen = strlen(saved_pass);
 	strcpy((char*)tmp, saved_salt_seed);
 	strlwr((char*)tmp);
-	strcat((char*)tmp, saved_pass);
+	strcpy((char*)(&tmp[slen]), saved_pass);
+	plen += slen;
 	switch (which) {
-		case 0: md4_f((unsigned int *)saved_key,    tmp, strlen((char*)tmp)); return;
-		case 1: md5_f((unsigned int *)saved_key,    tmp, strlen((char*)tmp)); return;
-		case 2: sha1_f((unsigned int *)saved_key,   tmp, strlen((char*)tmp)); return;
-		case 3: rmd160_f((unsigned int *)saved_key, tmp, strlen((char*)tmp)); return;
+		case 0: md4_f((unsigned int *)saved_key,    tmp, plen); return;
+		case 1: md5_f((unsigned int *)saved_key,    tmp, plen); return;
+		case 2: sha1_f((unsigned int *)saved_key,   tmp, plen); return;
+		case 3: rmd160_f((unsigned int *)saved_key, tmp, plen); return;
 	}
 }
 void jtr_skey_f(unsigned char *saved_key) {
