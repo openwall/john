@@ -66,7 +66,8 @@ my @funcs = (qw(DES BigCrypt BSDI MD5_1 MD5_a BF BFx BFegg RawMD5 RawMD5u
 		episerver_sha1 episerver_sha256 hmailserver ike keepass
 		keychain nukedclan pfx racf radmin rawsha0 sip SybaseASE vnc
 		wbb3 wpapsk sunmd5 wow_srp django_scrypt aix_ssha1 aix_ssha256
-		aix_ssha512 pbkdf2_hmac_sha512 rakp osc formspring));
+		aix_ssha512 pbkdf2_hmac_sha512 rakp osc formspring skey_md5
+		skey_md4 skey_sha1 skey_rmd160));
 
 # todo: ike keychain pfx racf sip vnc wpapsk
 
@@ -75,6 +76,7 @@ my @chrAsciiText=('a'..'z','A'..'Z');
 my @chrAsciiTextLo=('a'..'z');
 my @chrAsciiTextHi=('A'..'Z');
 my @chrAsciiTextNum=('a'..'z','A'..'Z','0'..'9');
+my @chrAsciiTextNumLo=('a'..'z','0'..'9');
 my @chrAsciiNum=('0'..'9');
 my @chrAsciiTextNumUnder=('a'..'z','A'..'Z','0'..'9','_');
 my @chrHexHiLo=('0'..'9','a'..'f','A'..'F');
@@ -1752,6 +1754,68 @@ sub nukedclan {
 		$out .= substr($salt, $k, 1);
 	}
 	print "u$u-nukedclan:\$nk\$\*",unpack("H*", $salt),"\*#$decal",md5_hex($out),":$u:0:$_[0]::\n";
+}
+sub skey_fold {
+    my $a; my $b;
+	if ($_[1] == 4) {
+		my( $f0, $f1, $f2, $f3) = unpack('I4', $_[0]);
+		$a = pack('I', $f0) ^ pack('I', $f2);
+		$b = pack('I', $f1) ^ pack('I', $f3);
+	} else {
+		my( $f0, $f1, $f2, $f3, $f4) = unpack('I5', $_[0]);
+		$a = pack('I', $f0) ^ pack('I', $f2) ^ pack('I', $f4);
+		$b = pack('I', $f1) ^ pack('I', $f3);
+	}
+	return $a.$b;
+}
+sub skey_md5 {
+	if (defined $argsalt && length($argsalt)==8) { $salt = $argsalt; } else { $salt=randstr(8, \@chrAsciiTextNumLo); }
+	my $cnt=randstr(3, \@chrAsciiNum);
+	$cnt = 1;
+	my $h = md5($salt.$_[0]);
+	$h = skey_fold($h, 4);
+	my $i = $cnt;
+	while ($i-- > 0) {
+		$h = md5($h);
+		$h = skey_fold($h, 4)
+	}
+	print "u$u-SKEY-md5:md5 $cnt $salt ",unpack("H*", $h),":0:0:$_[0]::\n";
+}
+sub skey_md4 {
+	if (defined $argsalt && length($argsalt)==8) { $salt = $argsalt; } else { $salt=randstr(8, \@chrAsciiTextNumLo); }
+	my $cnt=randstr(3, \@chrAsciiNum);
+	my $h = md4($salt.$_[0]);
+	$h = skey_fold($h, 4);
+	my $i = $cnt;
+	while ($i-- > 0) {
+		$h = md4($h);
+		$h = skey_fold($h, 4)
+	}
+	print "u$u-SKEY-md4:md4 $cnt $salt ",unpack("H*", $h),":0:0:$_[0]::\n";
+}
+sub skey_sha1 {
+	if (defined $argsalt && length($argsalt)==8) { $salt = $argsalt; } else { $salt=randstr(8, \@chrAsciiTextNumLo); }
+	my $cnt=randstr(3, \@chrAsciiNum);
+	my $h = sha1($salt.$_[0]);
+	$h = skey_fold($h, 5);
+	my $i = $cnt;
+	while ($i-- > 0) {
+		$h = sha1($h);
+		$h = skey_fold($h, 5)
+	}
+	print "u$u-SKEY-sha1:sha1 $cnt $salt ",unpack("H*", $h),":0:0:$_[0]::\n";
+}
+sub skey_rmd160 {
+	if (defined $argsalt && length($argsalt)==8) { $salt = $argsalt; } else { $salt=randstr(8, \@chrAsciiTextNumLo); }
+	my $cnt=randstr(3, \@chrAsciiNum);
+	my $h = ripemd160($salt.$_[0]);
+	$h = skey_fold($h, 5);
+	my $i = $cnt;
+	while ($i-- > 0) {
+		$h = ripemd160($h);
+		$h = skey_fold($h, 5)
+	}
+	print "u$u-SKEY-rmd160:rmd160 $cnt $salt ",unpack("H*", $h),":0:0:$_[0]::\n";
 }
 sub radmin {
 	my $pass = $_[0];
