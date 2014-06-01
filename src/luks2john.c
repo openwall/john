@@ -21,7 +21,7 @@
  */
 
 
-#define _LARGEFILE64_SOURCE
+#define _LARGEFILE64_SOURCE	1
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>

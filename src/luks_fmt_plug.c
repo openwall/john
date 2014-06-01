@@ -20,7 +20,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#define _LARGEFILE64_SOURCE
+#define _LARGEFILE64_SOURCE	1
 #include "os.h"
 #include <stdio.h>
 #include <string.h>
