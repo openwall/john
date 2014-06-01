@@ -1769,9 +1769,8 @@ sub skey_fold {
 	return $a.$b;
 }
 sub skey_md5 {
-	if (defined $argsalt && length($argsalt)==8) { $salt = $argsalt; } else { $salt=randstr(8, \@chrAsciiTextNumLo); }
+	if (defined $argsalt) { $salt = lc $argsalt; } else { $salt=randstr(8, \@chrAsciiTextNumLo); }
 	my $cnt=randstr(3, \@chrAsciiNum);
-	$cnt = 1;
 	my $h = md5($salt.$_[0]);
 	$h = skey_fold($h, 4);
 	my $i = $cnt;
@@ -1782,7 +1781,7 @@ sub skey_md5 {
 	print "u$u-SKEY-md5:md5 $cnt $salt ",unpack("H*", $h),":0:0:$_[0]::\n";
 }
 sub skey_md4 {
-	if (defined $argsalt && length($argsalt)==8) { $salt = $argsalt; } else { $salt=randstr(8, \@chrAsciiTextNumLo); }
+	if (defined $argsalt) { $salt = lc $argsalt; } else { $salt=randstr(8, \@chrAsciiTextNumLo); }
 	my $cnt=randstr(3, \@chrAsciiNum);
 	my $h = md4($salt.$_[0]);
 	$h = skey_fold($h, 4);
@@ -1794,7 +1793,7 @@ sub skey_md4 {
 	print "u$u-SKEY-md4:md4 $cnt $salt ",unpack("H*", $h),":0:0:$_[0]::\n";
 }
 sub skey_sha1 {
-	if (defined $argsalt && length($argsalt)==8) { $salt = $argsalt; } else { $salt=randstr(8, \@chrAsciiTextNumLo); }
+	if (defined $argsalt) { $salt = lc $argsalt; } else { $salt=randstr(8, \@chrAsciiTextNumLo); }
 	my $cnt=randstr(3, \@chrAsciiNum);
 	my $h = sha1($salt.$_[0]);
 	$h = skey_fold($h, 5);
@@ -1806,7 +1805,7 @@ sub skey_sha1 {
 	print "u$u-SKEY-sha1:sha1 $cnt $salt ",unpack("H*", $h),":0:0:$_[0]::\n";
 }
 sub skey_rmd160 {
-	if (defined $argsalt && length($argsalt)==8) { $salt = $argsalt; } else { $salt=randstr(8, \@chrAsciiTextNumLo); }
+	if (defined $argsalt) { $salt = lc $argsalt; } else { $salt=randstr(8, \@chrAsciiTextNumLo); }
 	my $cnt=randstr(3, \@chrAsciiNum);
 	my $h = ripemd160($salt.$_[0]);
 	$h = skey_fold($h, 5);
