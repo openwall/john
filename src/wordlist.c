@@ -277,9 +277,11 @@ static int restore_state(FILE *file)
 	rec_rule = rule;
 	rec_pos = pos;
 	rec_line = 0;
-	if (rec_version >= 4 && fscanf(file, "%lld\n", &line) != 1)
-		return 1;
-	rec_line = line;
+	if (rec_version >= 4) {
+		if (fscanf(file, "%lld\n", &line) != 1)
+			return 1;
+		rec_line = line;
+	}
 	if (rec_rule < 0 || rec_pos < 0)
 		return 1;
 
