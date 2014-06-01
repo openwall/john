@@ -600,6 +600,9 @@ static void *get_salt(char *ciphertext)
 	int i;
 	static struct saltstruct out;
 
+	/* We don't care about trailing garbage, but loader does */
+	memset(out.s, 0, sizeof(out.s));
+
 	out.l = (int)(strrchr(ciphertext, '$') - ciphertext);
 
 	for (i = 0; i < out.l; ++i)
