@@ -501,8 +501,7 @@ linux-X32-native:
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -DHAVE_LIBDL -march=native -mx32" \
 		ASFLAGS="$(ASFLAGS) -march=native -mx32" \
 		LDFLAGS="$(LDFLAGS) -lcrypt -ldl -march=native -mx32" \
-		AESNI_ARCH=86 YASM_FORMAT="elf32"
-#		not sure if elf32 is the right format here, but elf86 was definitely wrong
+		AESNI_ARCH=64 YASM_FORMAT="elfx32"
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE_ORIG) $(PROJ_PCAP)
 	@echo "All done"
@@ -515,8 +514,7 @@ linux-X32:
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -DHAVE_LIBDL -mx32" \
 		ASFLAGS="$(ASFLAGS) -mx32" \
 		LDFLAGS="$(LDFLAGS) -lcrypt -ldl -mx32" \
-		AESNI_ARCH=86 YASM_FORMAT="elf32"
-#		not sure if elf32 is the right format here, but elf86 was definitely wrong
+		AESNI_ARCH=64 YASM_FORMAT="elfx32"
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE_ORIG) $(PROJ_PCAP)
 	@echo "All done"
