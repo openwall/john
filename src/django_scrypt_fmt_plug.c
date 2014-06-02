@@ -61,7 +61,7 @@ static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
 
 static struct custom_salt {
-	int type;
+	/* int type; */ // not used (another type probably required a new JtR format)
 	int N;
 	int r;
 	int p;
@@ -225,6 +225,32 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
+#if FMT_MAIN_VERSION > 11
+static unsigned int tunable_cost_N(void *salt)
+{
+	static struct custom_salt *my_salt;
+
+	my_salt = salt;
+	return (unsigned int) my_salt->N;
+}
+
+static unsigned int tunable_cost_r(void *salt)
+{
+	static struct custom_salt *my_salt;
+
+	my_salt = salt;
+	return (unsigned int) my_salt->r;
+}
+
+static unsigned int tunable_cost_p(void *salt)
+{
+	static struct custom_salt *my_salt;
+
+	my_salt = salt;
+	return (unsigned int) my_salt->p;
+}
+#endif
+
 struct fmt_main fmt_django_scrypt = {
 	{
 		FORMAT_LABEL,
@@ -241,7 +267,11 @@ struct fmt_main fmt_django_scrypt = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 #if FMT_MAIN_VERSION > 11
-		{ NULL },
+		{
+			"N",
+			"r",
+			"p" 
+		},
 #endif
 		scrypt_tests
 	}, {
@@ -254,7 +284,11 @@ struct fmt_main fmt_django_scrypt = {
 		get_binary,
 		get_salt,
 #if FMT_MAIN_VERSION > 11
-		{ NULL },
+		{
+			tunable_cost_N,
+			tunable_cost_r,
+			tunable_cost_p 
+		},
 #endif
 		fmt_default_source,
 		{
