@@ -21,6 +21,7 @@ matrix:
 before_install:
   - sudo apt-get update -qq
   - sudo apt-get install debhelper libpcap-dev libssl-dev libnet1-dev libnss3-dev libnspr4-dev libgmp-dev libkrb5-dev yasm
+  - export OMP_NUM_THREADS=4
 script:
   - cd src && ./configure && make -sj4 check
 
