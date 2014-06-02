@@ -277,9 +277,11 @@ static int restore_state(FILE *file)
 	rec_rule = rule;
 	rec_pos = pos;
 	rec_line = 0;
-	if (rec_version >= 4 && fscanf(file, "%lld\n", &line) != 1)
-		return 1;
-	rec_line = line;
+	if (rec_version >= 4) {
+		if (fscanf(file, "%lld\n", &line) != 1)
+			return 1;
+		rec_line = line;
+	}
 	if (rec_rule < 0 || rec_pos < 0)
 		return 1;
 
@@ -515,9 +517,11 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 	int maxlength = options.force_maxlength;
 	int minlength = (options.force_minlength >= 0) ?
 		options.force_minlength : 0;
+#if HAVE_REXGEN
 	char *regex_alpha = 0;
 	int regex_case = 0;
 	char *regex = 0;
+#endif
 
 	log_event("Proceeding with %s mode",
 	          loopBack ? "loopback" : "wordlist");
@@ -527,10 +531,6 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 
 #if HAVE_REXGEN
 	regex = prepare_regex(options.regex, &regex_case, &regex_alpha);
-#else
-	/* quiet stupid unused warnings */
-	regex_case = regex_case;
-	regex = regex_alpha;
 #endif
 
 	length = db->format->params.plaintext_length;
@@ -1100,8 +1100,11 @@ SKIP_MEM_MAP_LOAD:;
 				last = word;
 
 				if (ext_filter(word))
-				if (regex ?
+				if (
+#if HAVE_REXGEN
+				    regex ?
 				    do_regex_crack_as_rules(regex, word, regex_case, regex_alpha) :
+#endif
 				    crk_process_key(word)) {
 					rule = NULL;
 					rules = 0;
@@ -1135,8 +1138,11 @@ SKIP_MEM_MAP_LOAD:;
 				last = word;
 
 				if (ext_filter(word))
-				if (regex!=NULL ?
+				if (
+#if HAVE_REXGEN
+				    regex!=NULL ?
 					do_regex_crack_as_rules(regex, word, regex_case, regex_alpha) :
+#endif
 				    crk_process_key(word)) {
 					rules = 0;
 					pipe_input = 0;
@@ -1176,8 +1182,11 @@ process_word:
 					strcpy(last, word);
 
 					if (ext_filter(word))
-					if (regex != NULL ?
+					if (
+#if HAVE_REXGEN
+					    regex != NULL ?
 						do_regex_crack_as_rules(regex, word, regex_case, regex_alpha) :
+#endif
 						crk_process_key(word)) {
 						rules = 0;
 						pipe_input = 0;
