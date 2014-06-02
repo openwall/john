@@ -20,7 +20,12 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#define _LARGEFILE64_SOURCE	1
+#if AC_BUILT
+#include "autoconfig.h"
+#else
+#define _LARGEFILE64_SOURCE 1
+#endif
+#include "jumbo.h" // large file support
 #include "os.h"
 #include <stdio.h>
 #include <string.h>
@@ -224,19 +229,22 @@ static int hash_plugin_parse_hash(char *filename, struct custom_salt *cs, int is
 	FILE *myfile;
 	int readbytes;
 
-	myfile = fopen(filename, "rb");
+	myfile = jtr_fopen(filename, "rb");
 
 	if (!myfile) {
 		fprintf(stderr, "\n%s : %s!\n", filename, strerror(errno));
 		return -1;
 	}
 
+	// can this go over 4gb?
 	cs->cipherbuf = mem_alloc_tiny(cs->afsize, MEM_ALIGN_NONE);
+	if (!cs->cipherbuf)
+		goto bad;
 	// printf(">>> %d\n", cs->afsize);
 	readbytes = fread(cs->cipherbuf, cs->afsize, 1, myfile);
 
 	if (readbytes < 0) {
-		free(cs->cipherbuf);
+		//free(cs->cipherbuf);
 		fprintf(stderr, "%s : unable to read required data\n",
 			filename);
 		goto bad;

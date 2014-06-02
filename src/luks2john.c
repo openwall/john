@@ -17,11 +17,16 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * gcc luks2john.c -lcrypto
+ * gcc luks2john.c jumbo.c -o luks2john -lcrypto
  */
 
 
-#define _LARGEFILE64_SOURCE	1
+#if AC_BUILT
+#include "autoconfig.h"
+#else
+#define _LARGEFILE64_SOURCE 1
+#endif
+#include "jumbo.h" // large file support
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
@@ -96,7 +101,7 @@ static int hash_plugin_parse_hash(char *filename)
 	int readbytes;
 	unsigned int bestiter = 0xFFFFFFFF;
 
-	myfile = fopen(filename, "rb");
+	myfile = jtr_fopen(filename, "rb");
 
 	if (fread(&myphdr, sizeof(struct luks_phdr), 1, myfile) < 1) {
 		fprintf(stderr, "%s : file opening problem!", filename);
@@ -136,7 +141,7 @@ static int hash_plugin_parse_hash(char *filename)
 
 	/* common handling */
 	cipherbuf = malloc(afsize);
-	fseek(myfile, ntohl(myphdr.keyblock[bestslot].keyMaterialOffset) * 512,
+	jtr_fseek64(myfile, ntohl(myphdr.keyblock[bestslot].keyMaterialOffset) * 512,
 	SEEK_SET);
 	readbytes = fread(cipherbuf, afsize, 1, myfile);
 	if (readbytes < 0) {
@@ -170,7 +175,7 @@ static int hash_plugin_parse_hash(char *filename)
 		goto good;
 	}
 	else {
-		FILE *fp = fopen("dump", "wb");  // XXX make me unpredictable!
+		FILE *fp = jtr_fopen("dump", "wb");  // XXX make me unpredictable!
 		fprintf(stderr, "Generating inlined hash with attached dump!\n");
 		printf("$luks$0$%zu$", sizeof(myphdr));
 		print_hex((unsigned char *)&myphdr, sizeof(myphdr));
