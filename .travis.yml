@@ -6,8 +6,6 @@ compiler:
   - gcc
   - clang
 env:
-  - OMPTYPE=--disable-openmp
-  - OMPTYPE=--enable-openmp
   # Default build. Release.
   # Debug build
 
@@ -25,7 +23,7 @@ before_install:
   - sudo apt-get install debhelper libpcap-dev libssl-dev libnet1-dev libnss3-dev libnspr4-dev libgmp-dev libkrb5-dev yasm
   - export OMP_NUM_THREADS=4
 script:
-  - cd src && ./configure $OMPTYPE && make -sj4 check
+  - cd src && ./configure && make -sj4 check
 
 addons:
   coverity_scan:
