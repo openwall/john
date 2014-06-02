@@ -35,10 +35,10 @@ struct fmt_main;
 
 #if FMT_MAIN_VERSION > 11
 /*
- * Just in case some formats use an even higher number of different
- * tunable cost parameters
+ * Maximum number of different tunable cost parameters
+ * that can be reported for a single format
  */
-#define FMT_TUNABLE_COSTS	2
+#define FMT_TUNABLE_COSTS	3
 #endif
 
 /*
