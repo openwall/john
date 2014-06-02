@@ -145,7 +145,9 @@ struct fmt_params {
  *
  * These names shouldn't contain ',', because ", " is used
  * as a separator when listing tunable cost parameters
- * in --list=format-details and --list=format-all-details
+ * in --list=format-details and --list=format-all-details.
+ * The sequence of names should match the sequence of functions
+ * returning tunable cost values.
  */
 	char *tunable_cost_name[FMT_TUNABLE_COSTS];
 #endif
@@ -207,15 +209,14 @@ struct fmt_methods {
 /*
  * These functions return the value of a tunable cost parameter
  * for a given salt.
- * The sequence of tunable costs parameters has to match the sequence
- * of their descriptions in tunable_cost_name[FMT_TUNABLE_COSTS].
+ * The sequence of of functions returning the vaules of tunable costs
+ * parameters has to match the sequence of their descriptions in
+ * tunable_cost_name[FMT_TUNABLE_COSTS].
  * The format implementation has to decide which tunable cost parameters
  * are most significant for CPU time and/or memory requirements.
  * If possible, the reported values should be linear to the real cost,
  * even if in the format the parameter is the dual logarithm of the real cost,
  * e.g., the real iteration count is 2^(t_cost) for parameter t_cost.
- *
- * If a function is NULL, john assumes a default cost value of 1
  */
 	unsigned int (*tunable_cost_value[FMT_TUNABLE_COSTS])(void *salt);
 #endif

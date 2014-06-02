@@ -735,12 +735,8 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 				format->params.salt_align);
 
 #if FMT_MAIN_VERSION > 11
-			for (i = 0; i < FMT_TUNABLE_COSTS; ++i) {
-				if (format->methods.tunable_cost_value[i] == NULL)
-					current_salt->cost[i] = 1;
-				else
-					current_salt->cost[i] = format->methods.tunable_cost_value[i](current_salt->salt);
-			}
+			for (i = 0; i < FMT_TUNABLE_COSTS && format->methods.tunable_cost_value[i] != NULL; ++i)
+				current_salt->cost[i] = format->methods.tunable_cost_value[i](current_salt->salt);
 #endif
 
 			current_salt->index = fmt_dummy_hash;
@@ -1352,7 +1348,7 @@ static void ldr_cost_ranges(struct db_main *db)
 
 	if ((current = db->salts))
 	do {
-		for (i = 0; i < FMT_TUNABLE_COSTS; ++i) {
+		for (i = 0; i < FMT_TUNABLE_COSTS && db->format->methods.tunable_cost_value[i] != NULL; ++i) {
 			if (current->cost[i] < db->min_cost[i])
 				db->min_cost[i] = current->cost[i];
 			if (current->cost[i] > db->max_cost[i])
