@@ -580,7 +580,7 @@ endif
 	$(LD) $(LDFLAGS) wpapcap2john.o memdbg.o -o ../run/wpapcap2john
 
 ../run/luks2john@EXE_EXT@: luks2john.o
-	$(LD) ${LDFLAGS} luks2john.o @OPENSSL_LIBS@ memdbg.o -o ../run/luks2john
+	$(LD) ${LDFLAGS} luks2john.o @OPENSSL_LIBS@ memdbg.o jumbo.o -o ../run/luks2john
 
 ../run/cprepair@EXE_EXT@: cprepair.c unicode.c unicode.h options.h misc.h misc.c \
 	memdbg.h memdbg.c
