@@ -32,7 +32,7 @@
   WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
   OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
   ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-  
+
   NOTE, the salt 'might' need to be made lower case. The sample .js files
   I found did lc the salt.
 */
@@ -67,6 +67,8 @@
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 
+#define HEXCHARS                "0123456789abcdefABCDEF"
+
 static struct fmt_tests skey_tests[] = {
 	{"0096 luky451004  b519dcfe18eb7aab", "w00w00 v00d00"},
 	{"md5 0099 luky451001  93b3774544ba92a3", "swirling zagnuts"},
@@ -89,6 +91,7 @@ static int
 skey_valid(char *ciphertext, struct fmt_main *self)
 {
 	char *p, *q, buf[24];
+	int hexlen;
 
 	if (*ciphertext == '#')
 		return (0);
@@ -111,6 +114,12 @@ skey_valid(char *ciphertext, struct fmt_main *self)
 		if (!isdigit( ((unsigned char)(*p))))
 			return (0);
 	}
+
+	p = strchr(ciphertext, ' ');
+	hexlen = strspn(p, HEXCHARS);
+	if (hexlen != SKEY_BINKEY_SIZE || hexlen != strlen(p))
+		return 0;
+
 	return (1);
 }
 
