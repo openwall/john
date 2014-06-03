@@ -8,7 +8,7 @@
 #include "autoconfig.h"
 #endif
 
-#ifdef HAVE_LIBDL
+#if HAVE_LIBDL || __MINGW32__ || __MINGW64__ || _MSC_VER
 
 #include "list.h"
 #include "formats.h"

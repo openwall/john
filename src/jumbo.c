@@ -211,3 +211,98 @@ int sleep(int i)
 	return 0;
 }
 #endif
+
+#if NEED_STRCASECMP_NATIVE
+ int strcasecmp(char *dst, char *src) {
+	int f,l;
+	do {
+		if ( ((f = (unsigned char)(*(dst++))) >= 'A') && (f <= 'Z') )
+            f -= 'A' - 'a';
+        if ( ((l = (unsigned char)(*(src++))) >= 'A') && (l <= 'Z') )
+            l -= 'A' - 'a';
+	} while (f && (f==l));
+	return 0;
+ }
+#endif
+
+#if NEED_STRNCASECMP_NATIVE
+int strncasecmp(char *dst, char *src, size_t count) {
+    if(count) {
+        int f=0, l=0;
+        do {
+            if ( ((f = (unsigned char)(*(dst++))) >= 'A') && (f <= 'Z') )
+                f -= 'A' - 'a';
+            if ( ((l = (unsigned char)(*(src++))) >= 'A') && (l <= 'Z') )
+                l -= 'A' - 'a';
+        }
+        while ( --count && f && (f == l) );
+        return (f - l);
+    }
+    else
+    {
+        return 0;
+    }
+}
+#endif
+
+// NOTE there is an encoding-aware version in unicode.c: enc_strlwr(). That
+// one should be used for usernames, plaintexts etc in formats.
+#if (AC_BUILT && !HAVE_STRLWR) || (!AC_BUILT && !_MSC_VER)
+char *strlwr(char *s)
+{
+	unsigned char *ptr = (unsigned char *)s;
+
+	while (*ptr)
+	if (*ptr >= 'A' && *ptr <= 'Z')
+		*ptr++ |= 0x20;
+	else
+		ptr++;
+
+	return s;
+}
+#endif
+
+#if (AC_BUILT && !HAVE_STRUPR) || (!AC_BUILT && !_MSC_VER)
+char *strupr(char *s)
+{
+	unsigned char *ptr = (unsigned char *)s;
+
+	while (*ptr)
+	if (*ptr >= 'a' && *ptr <= 'z')
+		*ptr++ ^= 0x20;
+	else
+		ptr++;
+
+	return s;
+}
+#endif
+
+#if NEED_ATOLL_NATIVE
+long long atoll(const char *s) {
+	long long l;
+	sscanf(s, "%lld", &l);
+	return l;
+}
+#endif
+
+
+#if (AC_BUILT && !HAVE_SETENV && HAVE_PUTENV) || \
+    (!AC_BUILT && (_MSC_VER || __MINGW32__ || __MINGW64__))
+int setenv(const char *name, const char *val, int overwrite) {
+	int len;
+	char *str;
+	if (strchr(name, "=")) {
+		errno = EINVAL;
+		return -1;
+	}
+	if (!overwrite) {
+		str = getenv(name);
+		if (str)
+			return 0;
+	}
+	len = strlen(name)+1+strlen(val)+1;
+	str = mem_alloc_tiny(len, MEM_ALIGN_NONE);
+	sprintf(str, "%s=%s", name, val);
+	putenv(str);
+}
+#endif

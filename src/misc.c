@@ -166,32 +166,3 @@ char *strnzcat(char *dst, const char *src, int size)
 
 	return dst;
 }
-
-// NOTE there is an encoding-aware version in unicode.c: enc_strlwr(). That
-// one should be used for usernames, plaintexts etc in formats.
-#ifndef _MSC_VER
-char *strlwr(char *s)
-{
-	unsigned char *ptr = (unsigned char *)s;
-
-	while (*ptr)
-	if (*ptr >= 'A' && *ptr <= 'Z')
-		*ptr++ |= 0x20;
-	else
-		ptr++;
-
-	return s;
-}
-char *strupr(char *s)
-{
-	unsigned char *ptr = (unsigned char *)s;
-
-	while (*ptr)
-	if (*ptr >= 'a' && *ptr <= 'z')
-		*ptr++ ^= 0x20;
-	else
-		ptr++;
-
-	return s;
-}
-#endif

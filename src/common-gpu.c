@@ -17,7 +17,11 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#if HAVE_LIBDL
 #include <dlfcn.h>
+#endif
+// For mingw/VC
+#include "Win32-dlfcn-port.h"
 #include <string.h>
 
 #include "common-gpu.h"

@@ -18,6 +18,7 @@
 #define _JOHN_MISC_H
 
 #include <stdio.h>
+#include "jumbo.h"
 
 #if !AC_BUILT
 # include <string.h>
@@ -95,19 +96,11 @@ extern char *strnzcat(char *dst, const char *src, int size);
 /*
  * Converts a string to lowercase.
  */
-#ifndef _MSC_VER
-extern char *strlwr(char *s);
-extern char *strupr(char *s);
-#else
-#define bzero(a,b) memset(a,0,b)
-#define strlwr _strlwr
-#define strupr _strupr
+#ifdef _MSC_VER
 #include "memdbg_defines.h"
 #ifndef MEMDBG_ON
 #define strdup _strdup
 #endif
-#define strncasecmp _strnicmp
-#define strcasecmp _stricmp
 #define alloca _alloca
 #define unlink _unlink
 #define fileno _fileno
@@ -116,7 +109,6 @@ extern char *strupr(char *s);
 #define inline _inline
 #undef  snprintf
 #define snprintf sprintf_s
-#define atoll _atoi64
 #endif
 
 #ifndef __has_feature

@@ -197,5 +197,98 @@ extern void *memmem(const void *haystack, size_t haystack_len,
 extern int sleep(int i);
 #endif
 
+#if (!AC_BUILT && _MSC_VER)
+#define strcasecmp _stricmp
+#else
+#if !HAVE_STRCASECMP
+#if HAVE__STRICMP
+#define strcasecmp _stricmp
+#elif HAVE__STRCMPI
+#define strcasecmp _strcmpi
+#elif HAVE_STRICMP
+#define strcasecmp stricmp
+#elif HAVE_STRCMPI
+#define strcasecmp strcmpi
+#else
+#define NEED_STRCASECMP_NATIVE 1
+extern int strcasecmp(const char *dst, const char *src);
+#endif
+#endif
+#endif
+
+#if (!AC_BUILT && _MSC_VER)
+#define strncasecmp _strnicmp
+#else
+#if !HAVE_STRNCASECMP
+#if HAVE__STRNICMP
+#define strncasecmp _strnicmp
+#elif HAVE__STRNCMPI
+#define strncasecmp _strncmpi
+#elif HAVE_STRNICMP
+#define strncasecmp strnicmp
+#elif HAVE_STRNCMPI
+#define strncasecmp strncmpi
+#else
+#define NEED_STRNCASECMP_NATIVE 1
+extern int strncasecmp(const char *dst, const char *src, size_t count);
+#endif
+#endif
+#endif
+
+#if (AC_BUILT && HAVE__STRUPR && HAVE_STRUPR) || (!AC_BUILT && _MSC_VER)
+#define strupr _strupr
+#endif
+
+#if (AC_BUILT && HAVE__STRLWR && HAVE_STRLWR) || (!AC_BUILT && _MSC_VER)
+#define strlwr _strlwr
+#endif
+
+#if (AC_BUILT && !HAVE_STRLWR) || (!AC_BUILT && !_MSC_VER)
+extern char *strlwr(char *s);
+#endif
+#if (AC_BUILT && !HAVE_STRUPR) || (!AC_BUILT && !_MSC_VER)
+extern char *strupr(char *s);
+#endif
+
+#if !HAVE_BZERO
+#define bzero(a,b) memset(a,0,b)
+#endif
+
+#if !HAVE_ATOLL
+#if HAVE__ATOI64
+#define atoll _atoi64
+#else
+#define NEED_ATOLL_NATIVE 1
+extern long long atoll(const char *);
+#endif
+#endif
+
+// NOTE, this still will fail on REALLY old systems, where you can only
+// do a setenv by getting the pointer in getenv and mofifying the results.
+// old Borland C (DOS days), was this way, as was a few others. This should
+// hopefully NOT be an issue any more, and systems will either have setenv
+// putenv or both. This code handles builds of ONLY putenv (VC, Mingw)
+#if (AC_BUILT && !HAVE_SETENV && HAVE_PUTENV) || \
+    (!AC_BUILT && (_MSC_VER || __MINGW32__ || __MINGW64__))
+extern int setenv(const char *name, const char *val, int overwrite);
+#endif
+
+// Start handing these (some we may not be able to, or are too hard to 'care', and we should
+// simply #ifdef around the logic where the functions are used, or find some other way.
+//HAVE_ATEXIT
+//HAVE_ENDPWENT  (no mingw)
+//HAVE_FLOOR
+//HAVE_FTRUNCATE
+//HAVE_GETHOSTBYNAME  (no mingw)
+//HAVE_GETTIMEOFDAY
+//HAVE_INET_NTOA   (no mingw)
+//HAVE_ISASCII     (no mingw)
+//HAVE_MKDIR
+//HAVE_RMDIR
+//HAVE_STRRCHR
+//HAVE_STRCSPN
+//HAVE_STRSPN 
+//HAVE_STRTOL
+//HAVE_STRTOUL
 
 #endif /* _JTR_JUMBO_H */

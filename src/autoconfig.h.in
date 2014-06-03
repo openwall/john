@@ -33,6 +33,12 @@
 /* Define to 1 if you have the <arpa/inet.h> header file. */
 #undef HAVE_ARPA_INET_H
 
+/* Define to 1 if you have the `atexit' function. */
+#undef HAVE_ATEXIT
+
+/* Define to 1 if you have the `atoll' function. */
+#undef HAVE_ATOLL
+
 /* enable if compiling for AVX architecture */
 #undef HAVE_AVX
 
@@ -41,6 +47,9 @@
 
 /* Define to 1 if you have the `BIO_new' function. */
 #undef HAVE_BIO_NEW
+
+/* Define to 1 if you have the `bzero' function. */
+#undef HAVE_BZERO
 
 /* Define to 1 if you have the <CL/cl.h> header file. */
 #undef HAVE_CL_CL_H
@@ -57,6 +66,9 @@
 /* Define to 1 if you have the <dnl> header file. */
 #undef HAVE_DNL
 
+/* Define to 1 if you have the `endpwent' function. */
+#undef HAVE_ENDPWENT
+
 /* Define to 1 if you have the `EVP_aes_256_xts' function. */
 #undef HAVE_EVP_AES_256_XTS
 
@@ -65,6 +77,9 @@
 
 /* Define to 1 if you have the <fcntl.h> header file. */
 #undef HAVE_FCNTL_H
+
+/* Define to 1 if you have the `floor' function. */
+#undef HAVE_FLOOR
 
 /* Define to 1 if you have the `fopen64' function. */
 #undef HAVE_FOPEN64
@@ -90,8 +105,17 @@
 /* Define to 1 if you have the `ftello64' function. */
 #undef HAVE_FTELLO64
 
+/* Define to 1 if you have the `ftruncate' function. */
+#undef HAVE_FTRUNCATE
+
+/* Define to 1 if you have the `gethostbyname' function. */
+#undef HAVE_GETHOSTBYNAME
+
 /* Define to 1 if you have the `getpagesize' function. */
 #undef HAVE_GETPAGESIZE
+
+/* Define to 1 if you have the `gettimeofday' function. */
+#undef HAVE_GETTIMEOFDAY
 
 /* Define to 1 if you have the <gmp/gmp.h> header file. */
 #undef HAVE_GMP_GMP_H
@@ -99,8 +123,14 @@
 /* Define to 1 if you have the <gmp.h> header file. */
 #undef HAVE_GMP_H
 
+/* Define to 1 if you have the `inet_ntoa' function. */
+#undef HAVE_INET_NTOA
+
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
+
+/* Define to 1 if you have the `isascii' function. */
+#undef HAVE_ISASCII
 
 /* Define to 1 if you have the `crypto' library (-lcrypto). */
 #undef HAVE_LIBCRYPTO
@@ -165,6 +195,9 @@
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H
 
+/* Define to 1 if you have the `mkdir' function. */
+#undef HAVE_MKDIR
+
 /* Define to 1 if you have a working `mmap' system call. */
 #undef HAVE_MMAP
 
@@ -213,6 +246,15 @@
 /* Define to 1 if the system has the type `ptrdiff_t'. */
 #undef HAVE_PTRDIFF_T
 
+/* Define to 1 if you have the `putenv' function. */
+#undef HAVE_PUTENV
+
+/* Define to 1 if you have the `rmdir' function. */
+#undef HAVE_RMDIR
+
+/* Define to 1 if you have the `setenv' function. */
+#undef HAVE_SETENV
+
 /* Define to 1 if you have the `SHA256' function. */
 #undef HAVE_SHA256
 
@@ -240,11 +282,50 @@
 /* Define to 1 if you have the <stdlib.h> header file. */
 #undef HAVE_STDLIB_H
 
+/* Define to 1 if you have the `strcasecmp' function. */
+#undef HAVE_STRCASECMP
+
+/* Define to 1 if you have the `strcmpi' function. */
+#undef HAVE_STRCMPI
+
+/* Define to 1 if you have the `strcspn' function. */
+#undef HAVE_STRCSPN
+
+/* Define to 1 if you have the `stricmp' function. */
+#undef HAVE_STRICMP
+
 /* Define to 1 if you have the <strings.h> header file. */
 #undef HAVE_STRINGS_H
 
 /* Define to 1 if you have the <string.h> header file. */
 #undef HAVE_STRING_H
+
+/* Define to 1 if you have the `strlwr' function. */
+#undef HAVE_STRLWR
+
+/* Define to 1 if you have the `strncasecmp' function. */
+#undef HAVE_STRNCASECMP
+
+/* Define to 1 if you have the `strncmpi' function. */
+#undef HAVE_STRNCMPI
+
+/* Define to 1 if you have the `strnicmp' function. */
+#undef HAVE_STRNICMP
+
+/* Define to 1 if you have the `strrchr' function. */
+#undef HAVE_STRRCHR
+
+/* Define to 1 if you have the `strspn' function. */
+#undef HAVE_STRSPN
+
+/* Define to 1 if you have the `strtol' function. */
+#undef HAVE_STRTOL
+
+/* Define to 1 if you have the `strtoul' function. */
+#undef HAVE_STRTOUL
+
+/* Define to 1 if you have the `strupr' function. */
+#undef HAVE_STRUPR
 
 /* Define to 1 if you have the <sys/ethernet.h> header file. */
 #undef HAVE_SYS_ETHERNET_H
@@ -306,6 +387,9 @@
 /* enable if compiling for XOP architecture */
 #undef HAVE_XOP
 
+/* Define to 1 if you have the `_atoi64' function. */
+#undef HAVE__ATOI64
+
 /* Define to 1 if the system has the type `_Bool'. */
 #undef HAVE__BOOL
 
@@ -317,6 +401,18 @@
 
 /* Define to 1 if you have the `_ftelli64' function. */
 #undef HAVE__FTELLI64
+
+/* Define to 1 if you have the `_strcmpi' function. */
+#undef HAVE__STRCMPI
+
+/* Define to 1 if you have the `_stricmp' function. */
+#undef HAVE__STRICMP
+
+/* Define to 1 if you have the `_strncmpi' function. */
+#undef HAVE__STRNCMPI
+
+/* Define to 1 if you have the `_strnicmp' function. */
+#undef HAVE__STRNICMP
 
 /* Define to the address where bug reports for this package should be sent. */
 #undef PACKAGE_BUGREPORT

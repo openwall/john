@@ -17,14 +17,17 @@
 #include "autoconfig.h"
 #endif
 
-#ifdef HAVE_LIBDL
+#if HAVE_LIBDL || __MINGW32__ || __MINGW64__ || _MSC_VER
 
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
 #include <sys/stat.h>
+#if HAVE_LIBDL
 #include <dlfcn.h>
+#endif
+#include "Win32-dlfcn-port.h"
 #ifndef RTLD_LOCAL
 #define RTLD_LOCAL 0
 #endif
