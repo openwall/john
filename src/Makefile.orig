@@ -2444,6 +2444,10 @@ fmt_registers.h: $(PLUGFORMATS_SRCS) Makefile.orig *_fmt_plug.c
 john.o: john.c fmt_externs.h fmt_registers.h
 	$(CC) $(CFLAGS_MAIN) $(OPT_NORMAL) -O0 $*.c
 
+# Workaround for gcc 3.4.6 (seen on Sparc32) (do not use -funroll-loops)
+unrarppm.o: unrarppm.c
+	$(CC) $(CFLAGS) $< -o $@
+
 .c.o:
 	$(CC) $(CFLAGS) $(OPT_NORMAL) $< -o $@
 
