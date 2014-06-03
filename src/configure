@@ -11829,7 +11829,8 @@ rm -f conftest.mmap conftest.txt
 # we need a rpl_realloc before using this one.
 #AC_FUNC_REALLOC
 
-for ac_func in fseek64 fseeko fseeko64 _fseeki64 lseek64 lseek ftell64 ftello ftello64 _ftelli64 fopen64 _fopen64 memmem
+for ac_func in fseek64 fseeko fseeko64 _fseeki64 lseek64 lseek ftell64 ftello
+                ftello64 _ftelli64 fopen64 _fopen64 memmem sleep
 do :
   as_ac_var=`$as_echo "ac_cv_func_$ac_func" | $as_tr_sh`
 ac_fn_c_check_func "$LINENO" "$ac_func" "$as_ac_var"
@@ -11841,10 +11842,10 @@ _ACEOF
 fi
 done
 
-#AC_CHECK_FUNCS([atexit endpwent floor ftruncate gethostbyname gettimeofday dnl
-#                inet_ntoa isascii memchr memmove memset mkdir munmap pow dnl
-#                rmdir select setenv setlocale socket strcasecmp strchr dnl
-#                strcspn strdup strerror strncasecmp strrchr strspn strstr dnl
+#AC_CHECK_FUNCS([atexit endpwent floor ftruncate gethostbyname gettimeofday
+#                inet_ntoa isascii memchr memmove memset mkdir munmap pow
+#                rmdir select setenv setlocale socket strcasecmp strchr
+#                strcspn strdup strerror strncasecmp strrchr strspn strstr
 #                strtol strtoul])
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure

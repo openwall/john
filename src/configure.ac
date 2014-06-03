@@ -550,11 +550,12 @@ AC_FUNC_MMAP
 # we need a rpl_realloc before using this one.
 #AC_FUNC_REALLOC
 
-AC_CHECK_FUNCS([fseek64 fseeko fseeko64 _fseeki64 lseek64 lseek ftell64 ftello ftello64 _ftelli64 fopen64 _fopen64 memmem])
-#AC_CHECK_FUNCS([atexit endpwent floor ftruncate gethostbyname gettimeofday dnl
-#                inet_ntoa isascii memchr memmove memset mkdir munmap pow dnl
-#                rmdir select setenv setlocale socket strcasecmp strchr dnl
-#                strcspn strdup strerror strncasecmp strrchr strspn strstr dnl
+AC_CHECK_FUNCS([fseek64 fseeko fseeko64 _fseeki64 lseek64 lseek ftell64 ftello
+                ftello64 _ftelli64 fopen64 _fopen64 memmem sleep])
+#AC_CHECK_FUNCS([atexit endpwent floor ftruncate gethostbyname gettimeofday
+#                inet_ntoa isascii memchr memmove memset mkdir munmap pow
+#                rmdir select setenv setlocale socket strcasecmp strchr
+#                strcspn strdup strerror strncasecmp strrchr strspn strstr
 #                strtol strtoul])
 AC_CACHE_SAVE
 

@@ -219,6 +219,9 @@
 /* Define to 1 if you have skey library and headers */
 #undef HAVE_SKEY
 
+/* Define to 1 if you have the `sleep' function. */
+#undef HAVE_SLEEP
+
 /* enable if compiling for SSE2 architecture */
 #undef HAVE_SSE2
 
