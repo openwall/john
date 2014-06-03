@@ -625,9 +625,9 @@ ac_includes_default="\
 ac_header_list=
 ac_subst_vars='LTLIBOBJS
 HOST_OS
-EXE_EXT
 PLUGFORMATS_OBJS
 PLUGFORMATS_SRCS
+EXE_EXT
 YASM_OPTIONS
 AESNI_OS
 AESNI_ARCH
@@ -6237,46 +6237,6 @@ SORT=$ac_cv_path_SORT
 if test -n "$SORT"; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: $SORT" >&5
 $as_echo "$SORT" >&6; }
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-fi
-
-
-# Extract the first word of "yasm", so it can be a program name with args.
-set dummy yasm; ac_word=$2
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
-$as_echo_n "checking for $ac_word... " >&6; }
-if ${ac_cv_path_YASM+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  case $YASM in
-  [\\/]* | ?:[\\/]*)
-  ac_cv_path_YASM="$YASM" # Let the user override the test with a path.
-  ;;
-  *)
-  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-    for ac_exec_ext in '' $ac_executable_extensions; do
-  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
-    ac_cv_path_YASM="$as_dir/$ac_word$ac_exec_ext"
-    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-  done
-IFS=$as_save_IFS
-
-  ;;
-esac
-fi
-YASM=$ac_cv_path_YASM
-if test -n "$YASM"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $YASM" >&5
-$as_echo "$YASM" >&6; }
 else
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
@@ -12054,74 +12014,81 @@ fi
 AESNI_ARCH="$aesni_arch"
 
 
-#
-# TODO: For X32 we need to check for a new enough yasm that understands the
-# "-f elfx32" output format. If it doesn't, disable AES-NI.
 aesni_os=""
 aesni_options="DISABLED"
-if test "x$ac_cv_path_YASM" != x; then
-   if test "x$ax_intel_x32" = xyes; then
-      : #aesni_os=linux aesni_options="-g dwarf2 -f elfx32"
-   else
-      case "$host" in
-         x86_64*darwin*)
-                aesni_os=darwin
-                aesni_options="--prefix=_ -f macho${CPU_BIT_STR}"
-         ;;
-         i?86*darwin*)
-                aesni_os=darwin
-                aesni_options="-f macho${CPU_BIT_STR}"
-         ;;
-         *86*linux*)
-                aesni_os=linux
-                aesni_options="-g dwarf2 -f elf${CPU_BIT_STR}"
-         ;;
-         *86*cygwin*)
-                aesni_os=cygwin
-                aesni_options="-f win${CPU_BIT_STR}"
-         ;;
-      esac
-   fi
+if test "x$ax_intel_x32" = xyes; then
+   aesni_os=linux aesni_options="-g dwarf2 -f elfx32"
+else
+   case "$host" in
+      x86_64*darwin*)
+         aesni_os=darwin
+         aesni_options="--prefix=_ -f macho${CPU_BIT_STR}"
+      ;;
+      i?86*darwin*)
+         aesni_os=darwin
+         aesni_options="-f macho${CPU_BIT_STR}"
+      ;;
+      *86*linux*)
+         aesni_os=linux
+         aesni_options="-g dwarf2 -f elf${CPU_BIT_STR}"
+      ;;
+      *86*cygwin*)
+         aesni_os=cygwin
+         aesni_options="-f win${CPU_BIT_STR}"
+      ;;
+   esac
 fi
-AESNI_OS="$aesni_os"
-
-YASM_OPTIONS="$aesni_options"
-
 if test "x$aesni_options" != xDISABLED; then
+   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for yasm that supports \"$aesni_options\"" >&5
+$as_echo_n "checking for yasm that supports \"$aesni_options\"... " >&6; }
+if ${ac_cv_path_YASM+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if test -z "$YASM"; then
+  ac_path_YASM_found=false
+  # Loop through the user's path and test for each of PROGNAME-LIST
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_prog in yasm; do
+    for ac_exec_ext in '' $ac_executable_extensions; do
+      ac_path_YASM="$as_dir/$ac_prog$ac_exec_ext"
+      as_fn_executable_p "$ac_path_YASM" || continue
+yasmout=`$ac_path_YASM $aesni_options 2>&1 | grep "No input files"`
+           test "x$yasmout" != x \
+           && ac_cv_path_YASM=$ac_path_YASM ac_path_YASM_found=:
+
+      $ac_path_YASM_found && break 3
+    done
+  done
+  done
+IFS=$as_save_IFS
+  if test -z "$ac_cv_path_YASM"; then
+    :
+  fi
+else
+  ac_cv_path_YASM=$YASM
+fi
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_path_YASM" >&5
+$as_echo "$ac_cv_path_YASM" >&6; }
+fi
+if test "x$aesni_options" != xDISABLED -a "x$ac_path_YASM_found" != xfalse; then
    using_aesni="run-time detection"
 elif test "$cpu_family" = intel; then
    using_aesni="depends on OpenSSL"
 else
    using_aesni=no
 fi
+YASM=$ac_cv_path_YASM
 
-# build proper 'link' to the arch file (based on bit only, for 32 bit, we may
-# want different ones, and for other CPU's we need different ones)
-# note, we remove it first.
-if rm -f arch.h; then :
+AESNI_OS="$aesni_os"
 
-fi
-ac_config_links="$ac_config_links arch.h:$ARCH_LINK"
+YASM_OPTIONS="$aesni_options"
 
-
-##########################################################
-# Code  to create @PLUGFORMAT_SRCS@ @PLUGFORMATS_OBJS@
-# and fmt_externs.h fmt_registers.h and john_buildrule.h
-# moved from Makefile.in to here.
-##########################################################
-PLUGFORMATS_SRCS=`echo *_plug.c`
-
-PLUGFORMATS_OBJS=`echo *_plug.c | sed "s/\.c/.o/g"`
-
-echo "configure: creating ./fmt_externs.h"
-LC_ALL=C ${SED} -n 's/^\(struct fmt_main [^ ]*\) =.*/extern \1;/p' *_fmt_plug.c | LC_ALL=C ${SORT} > fmt_externs.h
-echo "configure: creating ./fmt_registers.h"
-LC_ALL=C ${SED} -n 's/^struct fmt_main \([^ ]*\) =.*/john_register_one(\&\1);/p' *_fmt_plug.c | LC_ALL=C ${SORT} > fmt_registers.h
-echo "configure: creating ./john_build_rule.h"
-echo "#define JOHN_BLD \"${host_os} ${CPU_BIT_STR}-bit${using_x32} ${CPU_STR}-autoconf\"" > john_build_rule.h
-########################################################
-# End of plugin and build_rules generation code
-########################################################
 
 
 CC_BACKUP=$CC
@@ -12160,8 +12127,8 @@ esac
 # output what vars were added (or none)
 #########################################
 jtr_list_add_result=""
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for OS-specific extension compiler flags needed" >&5
-$as_echo_n "checking for OS-specific extension compiler flags needed... " >&6; }
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for OS-specific feature macros needed" >&5
+$as_echo_n "checking for OS-specific feature macros needed... " >&6; }
 
 case "$host_os" in
 #############################################################################
@@ -12293,6 +12260,34 @@ fi
 CC="$CC_BACKUP"
 CFLAGS="$CFLAGS_BACKUP"
 
+
+# build proper 'link' to the arch file (based on bit only, for 32 bit, we may
+# want different ones, and for other CPU's we need different ones)
+# note, we remove it first.
+if rm -f arch.h; then :
+
+fi
+ac_config_links="$ac_config_links arch.h:$ARCH_LINK"
+
+
+##########################################################
+# Code  to create @PLUGFORMAT_SRCS@ @PLUGFORMATS_OBJS@
+# and fmt_externs.h fmt_registers.h and john_buildrule.h
+# moved from Makefile.in to here.
+##########################################################
+PLUGFORMATS_SRCS=`echo *_plug.c`
+
+PLUGFORMATS_OBJS=`echo *_plug.c | sed "s/\.c/.o/g"`
+
+echo "configure: creating ./fmt_externs.h"
+LC_ALL=C ${SED} -n 's/^\(struct fmt_main [^ ]*\) =.*/extern \1;/p' *_fmt_plug.c | LC_ALL=C ${SORT} > fmt_externs.h
+echo "configure: creating ./fmt_registers.h"
+LC_ALL=C ${SED} -n 's/^struct fmt_main \([^ ]*\) =.*/john_register_one(\&\1);/p' *_fmt_plug.c | LC_ALL=C ${SORT} > fmt_registers.h
+echo "configure: creating ./john_build_rule.h"
+echo "#define JOHN_BLD \"${host_os} ${CPU_BIT_STR}-bit${using_x32} ${CPU_STR}-autoconf\"" > john_build_rule.h
+########################################################
+# End of plugin and build_rules generation code
+########################################################
 
 HOST_OS="$host_os"
 

@@ -31,8 +31,8 @@ esac
 # output what vars were added (or none)
 #########################################
 jtr_list_add_result=""
-AC_MSG_CHECKING([for OS-specific extension compiler flags needed])
-	 
+AC_MSG_CHECKING([for OS-specific feature macros needed])
+
 case "$host_os" in
 #############################################################################
 # Correct behavior for freebsd requires -D__BSD_VISIBLE to be in cflags
@@ -66,11 +66,11 @@ case "$host" in
     ;;
 #  sparc*solaris*)
 #    AS_IF([test "x$ac_cv_func_fseeko64" = xyes && test x${CPU_BIT_STR} = x32], [JTR_LIST_ADD(CFLAGS_EXTRA, [-D_LARGEFILE_SOURCE])])
-#    ;;	
+#    ;;
 esac
 
 #########################################
-# Now output the result of what we 
+# Now output the result of what we
 # accumlated in jtr_list_add_result
 #########################################
 JTR_LIST_ADD_RESULT

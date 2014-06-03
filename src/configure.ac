@@ -193,7 +193,6 @@ AC_PROG_CPP
 AC_PROG_MKDIR_P
 AC_CACHE_SAVE
 AC_PATH_PROG([SORT], [sort])
-AC_PATH_PROG([YASM], [yasm])
 AC_PATH_PROG([AR], [ar])
 AC_PATH_PROG([FIND], [find])
 
@@ -595,44 +594,50 @@ else
 fi
 AC_SUBST([AESNI_ARCH],["$aesni_arch"])
 
-#
-# TODO: For X32 we need to check for a new enough yasm that understands the
-# "-f elfx32" output format. If it doesn't, disable AES-NI.
 aesni_os=""
 aesni_options="DISABLED"
-if test "x$ac_cv_path_YASM" != x; then
-   if test "x$ax_intel_x32" = xyes; then
-      : #aesni_os=linux aesni_options="-g dwarf2 -f elfx32"
-   else
-      case "$host" in
-         x86_64*darwin*)
-                aesni_os=darwin
-                aesni_options="--prefix=_ -f macho${CPU_BIT_STR}"
-         ;;
-         i?86*darwin*)
-                aesni_os=darwin
-                aesni_options="-f macho${CPU_BIT_STR}"
-         ;;
-         *86*linux*)
-                aesni_os=linux
-                aesni_options="-g dwarf2 -f elf${CPU_BIT_STR}"
-         ;;
-         *86*cygwin*)
-                aesni_os=cygwin
-                aesni_options="-f win${CPU_BIT_STR}"
-         ;;
-      esac
-   fi
+if test "x$ax_intel_x32" = xyes; then
+   aesni_os=linux aesni_options="-g dwarf2 -f elfx32"
+else
+   case "$host" in
+      x86_64*darwin*)
+         aesni_os=darwin
+         aesni_options="--prefix=_ -f macho${CPU_BIT_STR}"
+      ;;
+      i?86*darwin*)
+         aesni_os=darwin
+         aesni_options="-f macho${CPU_BIT_STR}"
+      ;;
+      *86*linux*)
+         aesni_os=linux
+         aesni_options="-g dwarf2 -f elf${CPU_BIT_STR}"
+      ;;
+      *86*cygwin*)
+         aesni_os=cygwin
+         aesni_options="-f win${CPU_BIT_STR}"
+      ;;
+   esac
 fi
-AC_SUBST([AESNI_OS],["$aesni_os"])
-AC_SUBST([YASM_OPTIONS],["$aesni_options"])
 if test "x$aesni_options" != xDISABLED; then
+   AC_CACHE_CHECK([for yasm that supports "$aesni_options]", [ac_cv_path_YASM],
+      [AC_PATH_PROGS_FEATURE_CHECK([YASM], [yasm],
+         [[yasmout=`$ac_path_YASM $aesni_options 2>&1 | grep "No input files"`
+           test "x$yasmout" != x \
+           && ac_cv_path_YASM=$ac_path_YASM ac_path_YASM_found=:]]
+         )])
+fi
+if test "x$aesni_options" != xDISABLED -a "x$ac_path_YASM_found" != xfalse; then
    using_aesni="run-time detection"
 elif test "$cpu_family" = intel; then
    using_aesni="depends on OpenSSL"
 else
    using_aesni=no
 fi
+AC_SUBST([YASM], [$ac_cv_path_YASM])
+AC_SUBST([AESNI_OS],["$aesni_os"])
+AC_SUBST([YASM_OPTIONS],["$aesni_options"])
+
+JTR_SYSTEMS_SPECIFIC_LOGIC
 
 # build proper 'link' to the arch file (based on bit only, for 32 bit, we may
 # want different ones, and for other CPU's we need different ones)
@@ -656,8 +661,6 @@ echo "#define JOHN_BLD \"${host_os} ${CPU_BIT_STR}-bit${using_x32} ${CPU_STR}-au
 ########################################################
 # End of plugin and build_rules generation code
 ########################################################
-
-JTR_SYSTEMS_SPECIFIC_LOGIC
 
 AC_SUBST([HOST_OS],["$host_os"])
 AC_CONFIG_FILES([Makefile
