@@ -379,6 +379,16 @@ static int cmp_exact(char *source, int index)
 	return 1;
 }
 
+#if FMT_MAIN_VERSION > 11
+static unsigned int iteration_count(void *salt)
+{
+	struct custom_salt *my_salt;
+
+	my_salt = salt;
+	return (unsigned int)(1 << my_salt->NumCyclesPower);
+}
+#endif
+
 struct fmt_main fmt_opencl_sevenzip = {
 	{
 		FORMAT_LABEL,
@@ -396,7 +406,8 @@ struct fmt_main fmt_opencl_sevenzip = {
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_NOT_EXACT | FMT_UNICODE,
 #if FMT_MAIN_VERSION > 11
 		{
-		}
+			"iteration count",
+		},
 #endif
 		sevenzip_tests
 	}, {
@@ -410,7 +421,8 @@ struct fmt_main fmt_opencl_sevenzip = {
 		get_salt,
 #if FMT_MAIN_VERSION > 11
 		{
-		}
+			iteration_count,
+		},
 #endif
 		fmt_default_source,
 		{
