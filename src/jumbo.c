@@ -213,35 +213,32 @@ int sleep(int i)
 #endif
 
 #if NEED_STRCASECMP_NATIVE
- int strcasecmp(char *dst, char *src) {
-	int f,l;
-	do {
-		if ( ((f = (unsigned char)(*(dst++))) >= 'A') && (f <= 'Z') )
+int strcasecmp(char *dst, char *src) {
+    int f,l;
+    do {
+        if ( ((f = (unsigned char)(*(dst++))) >= 'A') && (f <= 'Z') )
             f -= 'A' - 'a';
         if ( ((l = (unsigned char)(*(src++))) >= 'A') && (l <= 'Z') )
             l -= 'A' - 'a';
-	} while (f && (f==l));
-	return 0;
- }
+    } while (f && (f==l));
+    return return(f - l);
+}
 #endif
 
 #if NEED_STRNCASECMP_NATIVE
 int strncasecmp(char *dst, char *src, size_t count) {
     if(count) {
-        int f=0, l=0;
+        int f,l;
         do {
             if ( ((f = (unsigned char)(*(dst++))) >= 'A') && (f <= 'Z') )
                 f -= 'A' - 'a';
             if ( ((l = (unsigned char)(*(src++))) >= 'A') && (l <= 'Z') )
                 l -= 'A' - 'a';
         }
-        while ( --count && f && (f == l) );
+        while (--count && f && (f == l));
         return (f - l);
     }
-    else
-    {
-        return 0;
-    }
+    return 0;
 }
 #endif
 
