@@ -115,9 +115,9 @@ skey_valid(char *ciphertext, struct fmt_main *self)
 			return (0);
 	}
 
-	p = strchr(ciphertext, ' ');
-	hexlen = strspn(p, HEXCHARS);
-	if (hexlen != SKEY_BINKEY_SIZE || hexlen != strlen(p))
+	p = strrchr(ciphertext, ' ');
+	hexlen = strspn(++p, HEXCHARS);
+	if (hexlen != (2 * SKEY_BINKEY_SIZE) || hexlen != strlen(p))
 		return 0;
 
 	return (1);
