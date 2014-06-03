@@ -203,6 +203,7 @@ if test "x$PKG_CONFIG" = x ; then
 fi
 
 # Cross-compile compliant size checks
+# size_t and off_t are post-poned to after feature macros are set
 AC_CHECK_SIZEOF([char])
 AC_CHECK_SIZEOF([unsigned char])
 AC_CHECK_SIZEOF([short])
@@ -217,8 +218,6 @@ AC_CHECK_SIZEOF([long double])
 AC_CHECK_SIZEOF([int *])
 AC_CHECK_SIZEOF([long long *])
 AC_CHECK_SIZEOF([void *])
-AC_CHECK_SIZEOF([size_t])
-AC_CHECK_SIZEOF([off_t])
 
 # Available arch.h's:
 # alpha.h
@@ -639,6 +638,14 @@ AC_SUBST([AESNI_OS],["$aesni_os"])
 AC_SUBST([YASM_OPTIONS],["$aesni_options"])
 
 JTR_SYSTEMS_SPECIFIC_LOGIC
+
+# The size of size_t and/or off_t might change when feature macros (chosen in
+# JTR_SYSTEMS_SPECIFIC_LOGIC) are used.
+CFLAGS_BACKUP="$CFLAGS"
+CFLAGS="$CFLAGS $CFLAGS_EXTRA"
+AC_CHECK_SIZEOF([size_t])
+AC_CHECK_SIZEOF([off_t])
+CFLAGS="$CFLAGS_BACKUP"
 
 # build proper 'link' to the arch file (based on bit only, for 32 bit, we may
 # want different ones, and for other CPU's we need different ones)
