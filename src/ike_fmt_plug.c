@@ -271,7 +271,27 @@ static char *get_key(int index)
 {
 	return saved_key[index];
 }
+/*
+ * For ike, the hash algorithm used for hmac
+ * is returned as the first "tunable cost":
+ * 1: MD5
+ * 2: SHA1
+ *
+ * However, the there is almost no difference in speed,
+ * so if the different hash types for HMAC shouldn't be reported,
+ * just define IKE_REPORT_TUNABLE_COSTS to be 0 instead of 1.
+ */
+#define IKE_REPORT_TUNABLE_COSTS	1
 
+#if FMT_MAIN_VERSION > 11 && IKE_REPORT_TUNABLE_COSTS
+static unsigned int tunable_cost_hmac_hash_type(void *salt)
+{
+	psk_entry *my_salt;
+
+	my_salt = salt;
+	return (unsigned int) my_salt->hash_type;
+}
+#endif
 struct fmt_main fmt_ike = {
 	{
 		FORMAT_LABEL,
@@ -288,7 +308,13 @@ struct fmt_main fmt_ike = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 #if FMT_MAIN_VERSION > 11
-		{ NULL },
+		{
+#if IKE_REPORT_TUNABLE_COSTS
+			"hash algorithm used for hmac [1:MD5/2:SHA1]",
+#else
+			NULL
+#endif
+		},
 #endif
 		ike_tests
 	}, {
@@ -301,7 +327,13 @@ struct fmt_main fmt_ike = {
 		get_binary,
 		get_salt,
 #if FMT_MAIN_VERSION > 11
-		{ NULL },
+		{
+#if IKE_REPORT_TUNABLE_COSTS
+			tunable_cost_hmac_hash_type,
+#else
+			NULL
+#endif
+		},
 #endif
 		fmt_default_source,
 		{
