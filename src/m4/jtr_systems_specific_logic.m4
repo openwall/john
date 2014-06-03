@@ -38,8 +38,7 @@ case "$host_os" in
 # Correct behavior for freebsd requires -D__BSD_VISIBLE to be in cflags
 #############################################################################
   freebsd*)
-    JTR_LIST_ADD(CFLAGS_EX, [-D__BSD_VISIBLE])
-    CFLAGS_EXTRA="$CFLAGS_EXTRA $CFLAGS_EX"
+    JTR_LIST_ADD(CFLAGS_EXTRA, [-D__BSD_VISIBLE])
 	;;
 #############################################################################
 # All these silly macros wear you down.

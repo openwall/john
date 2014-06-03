@@ -12139,19 +12139,18 @@ case "$host_os" in
 
    for i in -D__BSD_VISIBLE; do
       jtr_list_add_dupe=0
-      for j in $CFLAGS_EX; do
+      for j in $CFLAGS_EXTRA; do
          if test "x$i" = "x$j"; then
             jtr_list_add_dupe=1
             break
          fi
       done
       if test $jtr_list_add_dupe = 0; then
-         CFLAGS_EX="$CFLAGS_EX $i"
+         CFLAGS_EXTRA="$CFLAGS_EXTRA $i"
          jtr_list_add_result="$jtr_list_add_result $i"
       fi
    done
 
-    CFLAGS_EXTRA="$CFLAGS_EXTRA $CFLAGS_EX"
 	;;
 #############################################################################
 # All these silly macros wear you down.
