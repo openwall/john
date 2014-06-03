@@ -197,8 +197,10 @@ extern void *memmem(const void *haystack, size_t haystack_len,
 extern int sleep(int i);
 #endif
 
-#if (!AC_BUILT && _MSC_VER)
+#if !AC_BUILT 
+#ifdef _MSC_VER
 #define strcasecmp _stricmp
+#endif
 #else
 #if !HAVE_STRCASECMP
 #if HAVE__STRICMP
@@ -216,8 +218,10 @@ extern int strcasecmp(const char *dst, const char *src);
 #endif
 #endif
 
-#if (!AC_BUILT && _MSC_VER)
+#if !AC_BUILT 
+#ifdef _MSC_VER
 #define strncasecmp _strnicmp
+#endif
 #else
 #if !HAVE_STRNCASECMP
 #if HAVE__STRNICMP
@@ -250,7 +254,7 @@ extern char *strlwr(char *s);
 extern char *strupr(char *s);
 #endif
 
-#if !HAVE_BZERO
+#if (AC_BUILT && !HAVE_BZERO) || (!AC_BUILT && _MSC_VER)
 #define bzero(a,b) memset(a,0,b)
 #endif
 
