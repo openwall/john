@@ -516,6 +516,37 @@ static char *get_key(int index)
 {
 	return (char*)utf16_to_enc(saved_key[index]);
 }
+#if FMT_MAIN_VERSION > 11
+/*
+ * MS Office version (2007, 2010, 2013) as first tunable cost
+ */
+static unsigned int ms_office_version(void *salt)
+{
+	struct custom_salt *my_salt;
+
+	my_salt = salt;
+	return (unsigned int) my_salt->version;
+}
+
+/*
+ * Iteration count as second tunable cost
+ * (dummy value 1 for MS Office version 2007)
+ */
+static unsigned int iteration_count(void *salt)
+{
+	struct custom_salt *my_salt;
+
+	my_salt = salt;
+	if (my_salt->version <= 2007)
+		return 1;
+	else
+		/*
+		 * Is spinCount always 100000, or just in our
+		 * format tests?
+		 */
+		return (unsigned int) my_salt->spinCount;
+}
+#endif
 
 struct fmt_main fmt_office = {
 	{
@@ -533,7 +564,10 @@ struct fmt_main fmt_office = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_UNICODE | FMT_UTF8,
 #if FMT_MAIN_VERSION > 11
-		{ NULL },
+		{
+			"MS Office version",
+			"iteration count",
+		},
 #endif
 		office_tests
 	}, {
@@ -546,7 +580,10 @@ struct fmt_main fmt_office = {
 		fmt_default_binary,
 		get_salt,
 #if FMT_MAIN_VERSION > 11
-		{ NULL },
+		{
+			ms_office_version,
+			iteration_count,
+		},
 #endif
 		fmt_default_source,
 		{

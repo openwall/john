@@ -198,10 +198,15 @@ struct fmt_main weird_fmt = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		BINARY_ALIGN,
 		SALT_SIZE,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
+#if FMT_MAIN_VERSION > 11
+		{ NULL },
+#endif
 		weird_tests
 	}, {
 		init,
@@ -210,6 +215,10 @@ struct fmt_main weird_fmt = {
 		fmt_default_split,
 		get_binary,
 		fmt_default_salt,
+#if FMT_MAIN_VERSION > 11
+		{ NULL },
+#endif
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,

@@ -323,6 +323,16 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
+#if FMT_MAIN_VERSION > 11
+static unsigned int iteration_count(void *salt)
+{
+	struct custom_salt *my_salt;
+
+	my_salt = salt;
+	return (unsigned int) my_salt->rounds;
+}
+#endif
+
 struct fmt_main fmt_pbkdf2_hmac_sha256 = {
 	{
 		FORMAT_LABEL,
@@ -339,7 +349,9 @@ struct fmt_main fmt_pbkdf2_hmac_sha256 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 #if FMT_MAIN_VERSION > 11
-		{ NULL },
+		{
+			"iteration count",
+		},
 #endif
 		tests
 	}, {
@@ -352,7 +364,9 @@ struct fmt_main fmt_pbkdf2_hmac_sha256 = {
 		get_binary,
 		get_salt,
 #if FMT_MAIN_VERSION > 11
-		{ NULL },
+		{
+			iteration_count,
+		},
 #endif
 		fmt_default_source,
 		{
