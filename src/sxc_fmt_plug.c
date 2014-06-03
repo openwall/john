@@ -60,7 +60,7 @@ static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static ARCH_WORD_32 (*crypt_out)[32 / sizeof(ARCH_WORD_32)];
 
 static struct custom_salt {
-	int cipher_type;
+	int cipher_type; // FIXME: cipher_type seems to be ignored
 	int checksum_type;
 	int iterations;
 	int key_size;
@@ -355,6 +355,16 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
+#if FMT_MAIN_VERSION > 11
+static unsigned int iteration_count(void *salt)
+{
+	struct custom_salt *my_salt;
+
+	my_salt = salt;
+	return (unsigned int) my_salt->iterations;
+}
+#endif
+
 struct fmt_main fmt_sxc = {
 	{
 		FORMAT_LABEL,
@@ -371,7 +381,9 @@ struct fmt_main fmt_sxc = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 #if FMT_MAIN_VERSION > 11
-		{ NULL },
+		{
+			"iteration count",
+		},
 #endif
 		sxc_tests
 	}, {
@@ -384,7 +396,9 @@ struct fmt_main fmt_sxc = {
 		get_binary,
 		get_salt,
 #if FMT_MAIN_VERSION > 11
-		{ NULL },
+		{
+			iteration_count,
+		},
 #endif
 		fmt_default_source,
 		{
