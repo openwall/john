@@ -399,6 +399,18 @@ static unsigned int iteration_count(void *salt)
 	my_salt = salt;
 	return (unsigned int) my_salt->key_transf_rounds;
 }
+/*
+ * The version shouldn't have a significant impact
+ * on performance. Nevertless, report it as the 2nd
+ * "tunable cost".
+ */
+static unsigned int keepass_version(void *salt)
+{
+	struct custom_salt *my_salt;
+
+	my_salt = salt;
+	return (unsigned int) my_salt->version;
+}
 #endif
 struct fmt_main fmt_KeePass = {
 	{
@@ -418,6 +430,7 @@ struct fmt_main fmt_KeePass = {
 #if FMT_MAIN_VERSION > 11
 		{
 			"iteration count",
+			"version",
 		},
 #endif
 		KeePass_tests
@@ -433,6 +446,7 @@ struct fmt_main fmt_KeePass = {
 #if FMT_MAIN_VERSION > 11
 		{
 			iteration_count,
+			keepass_version,
 		},
 #endif
 		fmt_default_source,
