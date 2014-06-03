@@ -82,7 +82,7 @@ static struct fmt_tests tests[] = {
 };
 
 static unsigned char cursalt[SALT_SIZE];
-static char (*saved_key)[PLAINTEXT_LENGTH*2 + 1 + SALT_SIZE];
+static char (*saved_key)[(PLAINTEXT_LENGTH + 1) * 2 + SALT_SIZE];
 static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / 4];
 static int *key_length;
 
