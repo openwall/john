@@ -12178,7 +12178,7 @@ fi
 esac
 
 #############################################################################
-# Add large file support to Linux, and OSX (OTHERS may need this also)
+# Add large file support - this typically requires a feature macro on 32-bit.
 #############################################################################
 case "$host" in
   i?86*linux*)
@@ -12238,9 +12238,25 @@ fi
    done
 
     ;;
-#  sparc*solaris*)
-#    AS_IF([test "x$ac_cv_func_fseeko64" = xyes && test x${CPU_BIT_STR} = x32], [JTR_LIST_ADD(CFLAGS_EXTRA, [-D_LARGEFILE_SOURCE])])
-#    ;;
+  sparc*solaris*)
+    if test "x$ac_cv_func_fseeko64" = xyes && test x${CPU_BIT_STR} = x32; then :
+
+   for i in -D__EXTENSIONS__ -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64; do
+      jtr_list_add_dupe=0
+      for j in $CFLAGS_EXTRA; do
+         if test "x$i" = "x$j"; then
+            jtr_list_add_dupe=1
+            break
+         fi
+      done
+      if test $jtr_list_add_dupe = 0; then
+         CFLAGS_EXTRA="$CFLAGS_EXTRA $i"
+         jtr_list_add_result="$jtr_list_add_result $i"
+      fi
+   done
+
+fi
+    ;;
 esac
 
 #########################################

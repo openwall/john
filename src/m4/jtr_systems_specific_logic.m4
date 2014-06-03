@@ -50,7 +50,7 @@ case "$host_os" in
 esac
 
 #############################################################################
-# Add large file support to Linux, and OSX (OTHERS may need this also)
+# Add large file support - this typically requires a feature macro on 32-bit.
 #############################################################################
 case "$host" in
   i?86*linux*)
@@ -64,9 +64,9 @@ case "$host" in
     EXTRA_AS_FLAGS="$EXTRA_AS_FLAGS -D__CYGWIN64__ -D__CYGWIN32__"
     JTR_LIST_ADD(CFLAGS_EXTRA, ["-D__CYGWIN64__ -D__CYGWIN32__"])
     ;;
-#  sparc*solaris*)
-#    AS_IF([test "x$ac_cv_func_fseeko64" = xyes && test x${CPU_BIT_STR} = x32], [JTR_LIST_ADD(CFLAGS_EXTRA, [-D_LARGEFILE_SOURCE])])
-#    ;;
+  sparc*solaris*)
+    AS_IF([test "x$ac_cv_func_fseeko64" = xyes && test x${CPU_BIT_STR} = x32], [JTR_LIST_ADD(CFLAGS_EXTRA, [-D__EXTENSIONS__ -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64])])
+    ;;
 esac
 
 #########################################
