@@ -11,6 +11,7 @@
 #define _JOHN_CRACKER_H
 
 #include "loader.h"
+#include "stdint.h"
 
 /* Our last read position in pot file (during crack) */
 extern int64_t crk_pot_pos;

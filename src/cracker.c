@@ -74,9 +74,9 @@ static char crk_stdout_key[PLAINTEXT_BUFFER_SIZE];
 int64_t crk_pot_pos;
 static int potcheck_salt_size;
 
-#ifdef _MSC_VER
+#if defined _MSC_VER || defined (__MINGW32__) || defined (__MINGW64__)
 #undef MEM_FREE
-#include <Windows.h>
+#include <windows.h>
 int sleep(int i) {Sleep(1000*i); return 0;}
 #endif
 

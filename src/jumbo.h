@@ -92,13 +92,13 @@
 // long long ftell64(FILE *stream)
 #define jtr_ftell64 ftell64
 
-#elif defined (HAVE__FTELLI64) || defined (_MSC_VER) /* Windows */
-// __int64 _ftelli64(FILE *stream);
-#define jtr_ftell64 _ftelli64
-
 #elif HAVE_FTELLO64 /* Solaris */
 // integer*8 function ftello64 (lunit) (Solaris)
 #define jtr_ftell64 ftello64
+
+#elif defined (HAVE__FTELLI64) || defined (_MSC_VER) /* Windows */
+// __int64 _ftelli64(FILE *stream);
+#define jtr_ftell64 _ftelli64
 
 #elif SIZEOF_OFF_T == 8 && HAVE_FTELLO /* Other LLP64 */
 // off_t ftello(FILE *stream);
