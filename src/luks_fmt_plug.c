@@ -31,7 +31,7 @@
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
-#include <stdint.h>
+#include "stdint.h"
 #include <stdlib.h>
 #include <sys/types.h>
 #include <openssl/aes.h>
