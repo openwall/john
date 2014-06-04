@@ -10300,8 +10300,22 @@ $as_echo "$ac_cv_prog_c_openmp" >&6; }
 
 
 
-# Check for OpenCL (enable/disable handled within the macro)
-if test "x$cross_compiling" = xno; then :
+for ac_header in windows.h
+do :
+  ac_fn_c_check_header_mongrel "$LINENO" "windows.h" "ac_cv_header_windows_h" "$ac_includes_default"
+if test "x$ac_cv_header_windows_h" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_WINDOWS_H 1
+_ACEOF
+
+fi
+
+done
+
+
+if test "x$ac_cv_header_windows_h" = xyes || test "x ${ac_cv_lib_dl_dlopen}" = xyes ; then
+  # Check for OpenCL (enable/disable handled within the macro)
+  if test "x$cross_compiling" = xno; then :
 
    { $as_echo "$as_me:${as_lineno-$LINENO}: checking additional paths for OpenCL" >&5
 $as_echo_n "checking additional paths for OpenCL... " >&6; }
@@ -10632,7 +10646,7 @@ fi
 
 
 
-# Check for CUDA, including headers.
+  # Check for CUDA, including headers.
 
 
 
@@ -10864,10 +10878,18 @@ See \`config.log' for more details" "$LINENO" 5; }
      fi
   fi
 
+else
+  case "$host_cpu" in
+    i?86)   { $as_echo "$as_me:${as_lineno-$LINENO}: Due to lack of availability of -ldl, GPU formats are not able to be used." >&5
+$as_echo "$as_me: Due to lack of availability of -ldl, GPU formats are not able to be used." >&6;} ;;
+    x86_64) { $as_echo "$as_me:${as_lineno-$LINENO}: Due to lack of availability of -ldl, GPU formats are not able to be used." >&5
+$as_echo "$as_me: Due to lack of availability of -ldl, GPU formats are not able to be used." >&6;} ;;
+  esac
+fi
 
 # Checks for header files.
 # Eg. if sys/times.h is found, the below will define HAVE_SYS_TIMES_H
-for ac_header in OS.h arpa/inet.h crypt.h fcntl.h limits.h locale.h                   net/ethernet.h netdb.h netinet/in.h netinet/in_systm.h                   stddef.h stdint.h stdlib.h string.h strings.h                   sys/ethernet.h sys/file.h sys/param.h sys/socket.h                   sys/time.h sys/timeb.h sys/times.h sys/types.h termios.h                   unistd.h unixlib/local.h wchar.h windows.h
+for ac_header in OS.h arpa/inet.h crypt.h fcntl.h limits.h locale.h                   net/ethernet.h netdb.h netinet/in.h netinet/in_systm.h                   stddef.h stdint.h stdlib.h string.h strings.h                   sys/ethernet.h sys/file.h sys/param.h sys/socket.h                   sys/time.h sys/timeb.h sys/times.h sys/types.h termios.h                   unistd.h unixlib/local.h wchar.h
 do :
   as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
 ac_fn_c_check_header_mongrel "$LINENO" "$ac_header" "$as_ac_Header" "$ac_includes_default"

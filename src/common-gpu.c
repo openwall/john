@@ -17,16 +17,20 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#if AC_BUILT
+#ifdef AC_BUILT
 #include "autoconfig.h"
-#else
-#define HAVE_LIBDL
 #endif
+
 #if HAVE_LIBDL
 #include <dlfcn.h>
 #endif
 // For mingw/VC
+#if HAVE_WINDOWS_H
 #include "Win32-dlfcn-port.h"
+#else
+#error libdl MUST be available for usage, if building OpenCL or CUDA code
+#endif
+
 #include <string.h>
 
 #include "common-gpu.h"
