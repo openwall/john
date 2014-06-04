@@ -22,6 +22,7 @@
 #endif
 
 #include "params.h"
+#include "memory.h"
 #include "memdbg.h"
 
 /*
@@ -288,7 +289,7 @@ long long atoll(const char *s) {
 int setenv(const char *name, const char *val, int overwrite) {
 	int len;
 	char *str;
-	if (strchr(name, "=")) {
+	if (strchr(name, '=')) {
 		errno = EINVAL;
 		return -1;
 	}
@@ -301,5 +302,6 @@ int setenv(const char *name, const char *val, int overwrite) {
 	str = mem_alloc_tiny(len, MEM_ALIGN_NONE);
 	sprintf(str, "%s=%s", name, val);
 	putenv(str);
+	return 0;
 }
 #endif
