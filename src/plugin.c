@@ -32,7 +32,7 @@
 // For mingw/VC
 #include "Win32-dlfcn-port.h"
 #else
-#error libdl MUST be available for usage, if building OpenCL or CUDA code
+#error libdl MUST be available for usage, if building plugin module support
 #endif
 
 #ifndef RTLD_LOCAL

@@ -465,22 +465,13 @@ AS_IF([test "x$enable_nss" != xno],
 # Check for openMP (enable/disable handled within the macro).
 AC_OPENMP
 
-dnl had to move this one above the GPU test code. We may need to know if this one is there
-AC_CHECK_HEADERS([windows.h])
+# Check for OpenCL (enable/disable handled within the macro)
+AS_IF([test "x$cross_compiling" = xno -a "x$enable_opencl" != xno],
+      [JTR_SET_OPENCL_INCLUDES])
+AX_OPENCL(C)
 
-if test "x$ac_cv_header_windows_h" = xyes || test "x ${ac_cv_lib_dl_dlopen}" = xyes ; then
-  # Check for OpenCL (enable/disable handled within the macro)
-  AS_IF([test "x$cross_compiling" = xno], [JTR_SET_OPENCL_INCLUDES])
-  AX_OPENCL(C)
-
-  # Check for CUDA, including headers.
-  JTR_CUDA
-else
-  case "$host_cpu" in
-    i?86)   AC_MSG_NOTICE([Due to lack of availability of -ldl, GPU formats are not able to be used.]) ;;
-    x86_64) AC_MSG_NOTICE([Due to lack of availability of -ldl, GPU formats are not able to be used.]) ;;
-  esac
-fi
+# Check for CUDA, including headers.
+JTR_CUDA
 
 # Checks for header files.
 # Eg. if sys/times.h is found, the below will define HAVE_SYS_TIMES_H
@@ -489,7 +480,7 @@ AC_CHECK_HEADERS([OS.h arpa/inet.h crypt.h fcntl.h limits.h locale.h dnl
                   stddef.h stdint.h stdlib.h string.h strings.h dnl
                   sys/ethernet.h sys/file.h sys/param.h sys/socket.h dnl
                   sys/time.h sys/timeb.h sys/times.h sys/types.h termios.h dnl
-                  unistd.h unixlib/local.h wchar.h])
+                  unistd.h unixlib/local.h wchar.h windows.h])
 # Quirks for Solaris and OpenBSD
 AC_CHECK_HEADERS([net/if.h], [], [],[
 #ifdef HAVE_SYS_SOCKET_H

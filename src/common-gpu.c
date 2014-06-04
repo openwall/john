@@ -13,11 +13,11 @@
  *    modifications, are permitted.
  */
 
+#if defined (HAVE_CUDA) || defined (HAVE_OPENCL)
+
 #ifdef AC_BUILT
 #include "autoconfig.h"
 #endif
-
-#if defined (HAVE_CUDA) || defined (HAVE_OPENCL)
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,8 +27,7 @@
 #elif HAVE_WINDOWS_H
 // For mingw/VC
 #include "Win32-dlfcn-port.h"
-#else
-#error libdl MUST be available for usage, if building OpenCL or CUDA code
+#define HAVE_LIBDL 1
 #endif
 
 #include <string.h>
@@ -104,6 +103,7 @@ unsigned int temp_dev_id[MAX_GPU_DEVICES];
 
 void nvidia_probe(void)
 {
+#if HAVE_DL
 	if (nvml_lib)
 		return;
 
@@ -119,11 +119,12 @@ void nvidia_probe(void)
 	//nvmlDeviceGetName = (NVMLDEVICEGETNAME) dlsym(nvml_lib, "nvmlDeviceGetName");
 
 	nvmlInit();
+#endif
 }
 
 void amd_probe(void)
 {
-#ifdef __linux__
+#if __linux__ && HAVE_DL
 	LPAdapterInfo lpAdapterInfo = NULL;
 	int i, ret;
 	int iNumberAdapters = 0;
