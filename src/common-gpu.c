@@ -13,19 +13,19 @@
  *    modifications, are permitted.
  */
 
-#if defined (HAVE_CUDA) || defined (HAVE_OPENCL)
-
-#include <stdio.h>
-#include <stdlib.h>
 #ifdef AC_BUILT
 #include "autoconfig.h"
 #endif
 
+#if defined (HAVE_CUDA) || defined (HAVE_OPENCL)
+
+#include <stdio.h>
+#include <stdlib.h>
+
 #if HAVE_LIBDL
 #include <dlfcn.h>
-#endif
+#elif HAVE_WINDOWS_H
 // For mingw/VC
-#if HAVE_WINDOWS_H
 #include "Win32-dlfcn-port.h"
 #else
 #error libdl MUST be available for usage, if building OpenCL or CUDA code

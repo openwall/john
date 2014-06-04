@@ -13,7 +13,6 @@
  */
 
 #if AC_BUILT
-/* need to know if HAVE_LIBDL is set, for autoconfig build */
 #include "autoconfig.h"
 #endif
 
@@ -24,9 +23,16 @@
 #include <string.h>
 #include <stdlib.h>
 #include <sys/stat.h>
+
 #if HAVE_LIBDL
 #include <dlfcn.h>
+#elif HAVE_WINDOWS_H
+// For mingw/VC
+#include "Win32-dlfcn-port.h"
+#else
+#error libdl MUST be available for usage, if building OpenCL or CUDA code
 #endif
+
 #include "Win32-dlfcn-port.h"
 #ifndef RTLD_LOCAL
 #define RTLD_LOCAL 0
