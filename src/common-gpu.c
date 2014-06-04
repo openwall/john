@@ -103,7 +103,7 @@ unsigned int temp_dev_id[MAX_GPU_DEVICES];
 
 void nvidia_probe(void)
 {
-#if HAVE_DL
+#if HAVE_LIBDL
 	if (nvml_lib)
 		return;
 
@@ -124,7 +124,7 @@ void nvidia_probe(void)
 
 void amd_probe(void)
 {
-#if __linux__ && HAVE_DL
+#if __linux__ && HAVE_LIBDL
 	LPAdapterInfo lpAdapterInfo = NULL;
 	int i, ret;
 	int iNumberAdapters = 0;
