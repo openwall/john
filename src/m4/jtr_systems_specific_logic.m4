@@ -20,32 +20,41 @@ case "$host_os" in
 	;;
   mingw*)
      AC_SUBST([EXE_EXT], [.exe])
-	 AC_MSG_CHECKING([for *2john helper type])
-	 AC_MSG_RESULT([.exe (symlink.c)])
-	 ;;
+     AC_MSG_CHECKING([for *2john helper type])
+     AC_MSG_RESULT([.exe (symlink.c)])
+     # From legacy Makefile's mingw targets
+     AX_PTHREAD
+     AC_CHECK_LIB([wsock32],[main])
+     AC_CHECK_LIB([ws2_32],[main])
+     AC_CHECK_LIB([wst],[main])
+     ;;
+
+  solaris*)
+     # From legacy Makefile's LDFLAGS_SOLARIS
+     AC_CHECK_LIB([nsl],[main])
+     AC_CHECK_LIB([rt],[main])
+     AC_CHECK_LIB([socket],[main])
+     ;;
 esac
 
-#########################################
+#############################################
 # From this point, we accumlate all set vars
 # into the jtr_list_add_result var, and later
 # output what vars were added (or none)
-#########################################
+#############################################
 jtr_list_add_result=""
 AC_MSG_CHECKING([for OS-specific feature macros needed])
 
 case "$host_os" in
-#############################################################################
-# Correct behavior for freebsd requires -D__BSD_VISIBLE to be in cflags
-#############################################################################
   freebsd*)
+    # From legacy Makefile's FreeBSD targets
     JTR_LIST_ADD(CFLAGS_EXTRA, [-D__BSD_VISIBLE])
-	;;
-#############################################################################
-# All these silly macros wear you down.
-#############################################################################
+    ;;
+
   linux*)
+    # For exposing memmem()
     AS_IF([test "x$ac_cv_func_memmem" = xyes], [JTR_LIST_ADD(CFLAGS_EXTRA, [-D_GNU_SOURCE])])
-	;;
+    ;;
 esac
 
 #############################################################################

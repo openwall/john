@@ -406,17 +406,6 @@ AC_CHECK_HEADER([librexgen/api/c/librexgen.h],
     [AC_DEFINE(HAVE_LIBREXGEN,1,[Define to 1 if you have the `rexgen' library (-lrexgen).])])])
 AC_SUBST(REXGEN_LIBS, [$LIBS])
 LIBS="$BACKUP_LIBS"
-AC_CHECK_LIB([nsl],[main])
-AX_PTHREAD
-# The below is actually what I believe is a workaround for a bug in AX_PTHREAD.
-# It's needed on OpenBSD even after AX_PTHREAD.
-AC_CHECK_LIB([pthread],[main],[JTR_LIST_ADD(PTHREAD_LIBS, [-lpthread])])
-AC_CHECK_LIB([rt],[main])
-AC_CHECK_LIB([socket],[main])
-# mingw stuff from older makefile rules.
-AC_CHECK_LIB([wsock32],[main])
-AC_CHECK_LIB([ws2_32],[main])
-AC_CHECK_LIB([wst],[main])
 # in makefile, we need to know if building extra pcap items.
 if test "x$enable_pcap" != xno ; then
   AC_CHECK_HEADERS([pcap.h pcap/pcap.h],[AC_CHECK_LIB([pcap],[pcap_compile],
