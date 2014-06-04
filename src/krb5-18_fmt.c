@@ -33,7 +33,7 @@
 #include <krb5.h>
 #ifdef _OPENMP
 #include <omp.h>
-#define OMP_SCALE               64
+#define OMP_SCALE               4
 #endif
 #include "memdbg.h"
 
