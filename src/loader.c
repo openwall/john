@@ -4,13 +4,18 @@
  *
  * ...with heavy changes in the jumbo patch, by magnum and various authors
  */
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
 
 #define LDR_WARN_AMBIGUOUS
 
 #include <stdio.h>
+// needs to be above sys/stat.h for mingw, if -std=c99 used.
+#include "jumbo.h"
 #include <sys/stat.h>
 #include "os.h"
-#if HAVE_UNISTD_H
+#if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
 #include <unistd.h>
 #endif
 #ifdef _MSC_VER
@@ -38,7 +43,6 @@
 #include "cracker.h"
 #include "config.h"
 #include "logger.h" /* Beware: log_init() happens after most functions here */
-#include "jumbo.h"
 #include "memdbg.h"
 
 #ifdef HAVE_CRYPT

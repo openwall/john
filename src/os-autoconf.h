@@ -26,6 +26,7 @@
 #ifdef AC_BUILT
 
 #include "autoconfig.h"
+#include "jumbo.h"
 
 #ifdef NEED_OS_TIMER
 

@@ -1,9 +1,15 @@
 #ifdef HAVE_MPI
 
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
+
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
 #include <unistd.h>
+#endif
 
 #include "john-mpi.h"
 #include "john.h"

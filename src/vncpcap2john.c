@@ -54,7 +54,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
 #include <unistd.h>
+#endif
 #if HAVE_SYS_SOCKET_H
 #include <sys/socket.h>
 #endif

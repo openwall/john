@@ -20,11 +20,19 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.  */
 
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
+
 #include <stdio.h>
 #include <math.h>
+#if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
 #include <unistd.h>
+#endif
 #include <string.h>
+#if (!AC_BUILT || HAVE_FCNTL_H)
 #include <fcntl.h>
+#endif
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/stat.h>

@@ -13,7 +13,7 @@
 #include <stdio.h>
 #define NEED_OS_FORK
 #include "os.h"
-#if HAVE_UNISTD_H
+#if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
 #include <unistd.h>
 #endif
 #ifdef _MSC_VER

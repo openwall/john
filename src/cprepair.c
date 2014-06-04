@@ -4,10 +4,16 @@
  * source and binary forms, with or without modification, are permitted.
  */
 
+#ifdef AC_BUILT
+#include "autoconfig.h"
+#endif
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
 #include <unistd.h>
+#endif
 
 #include "unicode.h"
 #include "memdbg.h"

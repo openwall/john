@@ -3,8 +3,14 @@
 * and it is hereby released to the general public under the following terms:
 * Redistribution and use in source and binary forms, with or without modification, are permitted.
 */
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
+
 #include <string.h>
+#if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
 #include <unistd.h>
+#endif
 
 #include "arch.h"
 #include "formats.h"

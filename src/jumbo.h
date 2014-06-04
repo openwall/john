@@ -19,13 +19,13 @@
 #include "arch.h"
 #include <stdio.h>
 #include <errno.h>
-#if HAVE_SYS_TYPES_H
+#if !AC_BUILT || HAVE_SYS_TYPES_H
 #include <sys/types.h>
 #endif
-#if HAVE_UNISTD_H
+#if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
 #include <unistd.h>
 #endif
-#if HAVE_STRING_H
+#if !AC_BUILT || HAVE_STRING_H
 #include <string.h>
 #endif
 
@@ -267,6 +267,32 @@ extern long long atoll(const char *);
 #endif
 #endif
 
+#if (__MINGW32__ || __MINGW64__) && __STRICT_ANSI__
+// since we added -std=c99 for Mingw builds (to handle printf/scanf %xxx specifiers better),
+// we had to make some 'changes'. Mostly, some of the string types are undeclared (but will
+// link properly). Also, sys/file, sys/stat, fcntl.h will not include properly, due to 
+// off64_t missing.
+extern char *strdup(const char *);
+extern char *strlwr(char *);
+extern char *strupr(char *);
+extern int _strnicmp(const char*, const char *, int);
+extern int _strncmp(const char*, const char *);
+extern int _stricmp(const char*, const char *);
+extern FILE *fopen64(const char *, const char *);
+extern FILE *fdopen(int, const char *);
+extern int ftruncate(int, int);
+extern long long ftello64(FILE *);
+extern int fseeko64(FILE *, long long, int);
+extern int fileno(FILE *);
+extern int _exit(int);
+#define off64_t long long
+#undef __STRICT_ANSI__
+#include <sys/file.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#define __STRICT_ANSI__ 1
+#endif
+
 #include "memdbg_defines.h"
 #ifndef MEMDBG_ON
 #if (AC_BUILT && HAVE__STRDUP) || (!AC_BUILT && _MSC_VER)
@@ -304,6 +330,21 @@ extern long long atoll(const char *);
 #if (AC_BUILT && !HAVE_SETENV && HAVE_PUTENV) || \
     (!AC_BUILT && (_MSC_VER || __MINGW32__ || __MINGW64__))
 extern int setenv(const char *name, const char *val, int overwrite);
+#endif
+
+#if __MINGW32__ || __MINGW64__ || _MSC_VER
+// Later versions of MSVC can handle %lld but some older
+// ones can only handle %I64d.  Easiest to simply use
+// %I64d then all versions of MSVC will handle it just fine
+#define LLu "%I64u"
+#define LLd "%I64d"
+#define LLx "%I64x"
+#define Zu  "%u"
+#else
+#define LLu "%llu"
+#define LLd "%lld"
+#define LLx "%llx"
+#define Zu  "%zu"
 #endif
 
 // Start handing these (some we may not be able to, or are too hard to 'care', and we should

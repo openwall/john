@@ -2,24 +2,19 @@
  * This software is Copyright (c) 2010 bartavelle, <bartavelle at bandecon.com>, and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification, are permitted.
  */
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
-#if !defined (_MSC_VER)
+#if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
 #include <unistd.h>
-#else
+#endif
+#if _MSC_VER
 #pragma warning ( disable : 4244 )
 #endif
 #include <string.h>
-
-#if defined (__MINGW32__) || defined (_MSC_VER)
-// Later versions of MSVC can handle %lld but some older
-// ones can only handle %I64d.  Easiest to simply use
-// %I64d then all versions of MSVC will handle it just fine
-#define LLd "I64d"
-#else
-#define LLd "lld"
-#endif
 
 #define MAX_LVL_LEN 28
 #define MAX_LEN 7
@@ -192,7 +187,7 @@ int main(int argc, char * * argv)
 			i++;
 		}
 		if(index<8E18)
-			printf("\t%d\t%d\t%"LLd"\t%d\n",k,i,index,l);
+			printf("\t%d\t%d\t"LLd"\t%d\n",k,i,index,l);
 		else
 			printf("\t%d\t%d\t-\t%d\n",k,i,l);
 	}

@@ -544,7 +544,12 @@ static void *get_salt(char *ciphertext)
 		data_enum = *cp - '0';
 		p = GetFld(p, &cp);
 #if USE_PKZIP_MAGIC
-		sscanf((c8*)cp, "%hhx", &(salt->H[i].magic));
+		{
+			// mingw can't handle %hhx.  Use 'normal' %x and assign back to uint_8 var
+			unsigned jnk;
+			sscanf((c8*)cp, "%x", &jnk);
+			salt->H[i].magic = (unsigned char)jnk;
+		}
 		salt->H[i].pSig = &SIGS[salt->H[i].magic];
 #endif
 

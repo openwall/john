@@ -16,13 +16,21 @@
  *
  * racfdump format => userid:$racf$*userid*deshash  */
 
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
+
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
 #include <stdlib.h>
+// jumbo.h needs to be above sys/types.h and sys/stat.h for mingw, if -std=c99 used.
+#include "jumbo.h"
 #include <sys/types.h>
 #include <sys/stat.h>
+#if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
 #include <unistd.h>
+#endif
 #include "memory.h"
 #include "memdbg.h"
 

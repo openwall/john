@@ -29,16 +29,31 @@
   OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
   ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
+
+#if !AC_BUILT || (HAVE_SYS_SOCKET_H && HAVE_NETINET_IN_H && HAVE_ARPA_INET_H && HAVE_NETDB_H)
 
 #include <sys/types.h>
 #include <sys/time.h>
+#if !AC_BUILT || HAVE_SYS_SOCKET_H
 #include <sys/socket.h>
+#endif
+#if !AC_BUILT || HAVE_NETINET_IN_H
 #include <netinet/in.h>
+#endif
+#if !AC_BUILT || HAVE_ARPA_INET_H
 #include <arpa/inet.h>
+#endif
+#if !AC_BUILT || HAVE_NETDB_H
 #include <netdb.h>
+#endif
 #include <stdio.h>
 #include <stdlib.h>
+#if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
 #include <unistd.h>
+#endif
 #include <string.h>
 #include <ctype.h>
 #include "memory.h"
@@ -278,3 +293,11 @@ main(int argc, char *argv[])
   }
   exit(0);
 }
+
+#else
+#include <stdio.h>
+int main() {
+	printf ("tgtsnarf could NOT be compiled on this system, due to lack of support libraries\n");
+	return 1;
+}
+#endif

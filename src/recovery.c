@@ -21,7 +21,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#if HAVE_UNISTD_H
+#if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
 #include <unistd.h>
 #endif
 #ifdef _MSC_VER
@@ -31,7 +31,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#if HAVE_SYS_FILE_H
+#if !AC_BUILT || HAVE_SYS_FILE_H
 #include <sys/file.h>
 #endif
 #include <errno.h>

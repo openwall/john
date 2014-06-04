@@ -24,7 +24,7 @@
 
 #include "os.h"
 
-#if HAVE_UNISTD_H
+#if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
 #include <unistd.h>
 #endif
 
@@ -44,9 +44,9 @@
 # endif
 #endif
 
-#if HAVE_WINDOWS_H
+#if _MSC_VER || __MINGW32__ || __MINGW64__ || __CYGWIN__ || HAVE_WINDOWS_H
 #include "win32_memmap.h"
-#ifndef __CYGWIN32__
+#ifndef __CYGWIN__
 #include "mmap-windows.c"
 #elif defined HAVE_MMAP
 #include <sys/mman.h>
@@ -109,7 +109,7 @@ static int64_t nWordFileLines;
 
 static void save_state(FILE *file)
 {
-	fprintf(file, "%d\n%lld\n%lld\n",
+	fprintf(file, "%d\n" LLd "\n" LLd "\n",
 	        rec_rule, (long long)rec_pos, (long long)rec_line);
 }
 
@@ -272,13 +272,13 @@ static int restore_state(FILE *file)
 {
 	long long rule, line, pos;
 
-	if (fscanf(file, "%lld\n%lld\n", &rule, &pos) != 2)
+	if (fscanf(file, LLd"\n"LLd"\n", &rule, &pos) != 2)
 		return 1;
 	rec_rule = rule;
 	rec_pos = pos;
 	rec_line = 0;
 	if (rec_version >= 4) {
-		if (fscanf(file, "%lld\n", &line) != 1)
+		if (fscanf(file, LLd"\n", &line) != 1)
 			return 1;
 		rec_line = line;
 	}
@@ -352,7 +352,7 @@ static double get_progress(void)
 		size = jtr_ftell64(word_file);
 		jtr_fseek64(word_file, pos, SEEK_SET);
 #ifdef DEBUG
-		fprintf (stderr, "pos=%lld  size=%lld  percent=%0.4f\n", pos, size, (100.0 * ((rule_number * (double)size) + pos) /(rule_count * (double)size)));
+		fprintf (stderr, "pos="LLd"  size="LLd"  percent=%0.4f\n", pos, size, (100.0 * ((rule_number * (double)size) + pos) /(rule_count * (double)size)));
 #endif
 		if (pos < 0) {
 #ifdef __DJGPP__
@@ -578,7 +578,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 		}
 
 #ifdef HAVE_MMAP
-		log_event("- memory mapping wordlist (%lld bytes)",
+		log_event("- memory mapping wordlist ("LLd" bytes)",
 		          (long long)file_len);
 #if (SIZEOF_SIZE_T < 8)
 		/* Now even though we are 64 bit file size, we must still
@@ -685,7 +685,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 				        " we read it\n");
 				log_event("- loaded this node's share of "
 				          "wordfile %s into memory "
-				          "(%lu bytes of %lld, max_size=%zu"
+				          "(%lu bytes of "LLd", max_size="Zu
 				          " avg/node)", name, my_size,
 				          (long long)file_len,
 				          options.max_wordfile_memory);
@@ -701,7 +701,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 			}
 			else {
 				log_event("- loading wordfile %s into memory "
-				          "(%lld bytes, max_size=%zu)",
+				          "("LLd" bytes, max_size="Zu")",
 				          name, (long long)file_len,
 				          options.max_wordfile_memory);
 				if (options.node_count > 1 && john_main_process)
@@ -741,7 +741,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 			if (aep[-1] != csearch)
 				++nWordFileLines;
 			words = mem_alloc((nWordFileLines + 1) * sizeof(char*));
-			log_event("- wordfile had %lld lines and required %lld"
+			log_event("- wordfile had "LLd" lines and required "LLd
 			          " bytes for index.",
 			          (long long)nWordFileLines,
 			          (long long)(nWordFileLines * sizeof(char*)));
@@ -760,7 +760,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 				hash_size = (1 << hash_log);
 				hash_mask = (hash_size - 1);
 				log_event("- dupe suppression: hash size %u, "
-					"temporarily allocating %lld bytes",
+					"temporarily allocating "LLd" bytes",
 					hash_size,
 					(hash_size * sizeof(unsigned int)) +
 					((long long)nWordFileLines *
@@ -825,7 +825,7 @@ skip:
 				if (ec == '\n' && *cp == '\r') cp++;
 			} while (cp < aep);
 			if ((long long)nWordFileLines - i > 0)
-				log_event("- suppressed %lld duplicate lines "
+				log_event("- suppressed "LLd" duplicate lines "
 				          "and/or comments from wordlist.",
 				          (long long)nWordFileLines - i);
 			MEM_FREE(buffer.hash);
@@ -918,7 +918,7 @@ GRAB_NEXT_PIPE_LOAD:;
 						}
 					}
 				}
-				sprintf(msg_buf, "- Read block of %lld "
+				sprintf(msg_buf, "- Read block of "LLd" "
 				        "candidate passwords from pipe",
 				        (long long)nWordFileLines);
 				log_event("%s", msg_buf);

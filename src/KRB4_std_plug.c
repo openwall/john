@@ -13,12 +13,18 @@
  * service password database.
  */
 
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
+
 #ifdef KRB4_USE_SYSTEM_CRYPT
 #define _XOPEN_SOURCE 4 /* for crypt(3) */
 #define _XOPEN_SOURCE_EXTENDED
 #define _XOPEN_VERSION 4
 #define _XPG4_2
+#if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
 #include <unistd.h>
+#endif
 #endif
 
 #include <stdio.h>

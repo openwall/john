@@ -21,20 +21,21 @@
 #define NEED_OS_FORK
 #include "os.h"
 
-#if HAVE_WINDOWS_H
+#if _MSC_VER || __MINGW32__ || __MINGW64__ || HAVE_WINDOWS_H
 #define WIN32_SIGNAL_HANDLER
 #define SIGALRM SIGFPE
 #define SIGHUP SIGILL
+#include <windows.h>
 #endif
 
 #ifdef _SCO_C_DIALECT
 #include <limits.h>
 #endif
 #include <stdio.h>
-#if HAVE_SYS_TIME_H
+#if !AC_BUILT || HAVE_SYS_TIME_H
 #include <sys/time.h>
 #endif
-#if HAVE_UNISTD_H
+#if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
 #include <unistd.h>
 #endif
 #include <stdlib.h>
@@ -44,10 +45,6 @@
 
 #if HAVE_DOS_H
 #include <dos.h>
-#endif
-
-#if HAVE_WINDOWS_H
-#include <windows.h>
 #endif
 
 #include "arch.h"

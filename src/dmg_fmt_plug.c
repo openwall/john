@@ -38,9 +38,15 @@
  */
 //#define DMG_DEBUG		2
 
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
+
 #include <string.h>
 #include <errno.h>
+#if !AC_BUILT || HAVE_FCNTL_H
 #include <fcntl.h>
+#endif
 #include <stdlib.h>
 #include "stdint.h"
 #include <sys/types.h>
@@ -59,6 +65,13 @@
 #ifdef _OPENMP
 #include <omp.h>
 #define OMP_SCALE               64
+#endif
+#ifdef DMG_DEBUG
+#include <sys/file.h>
+#if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
+#include <unistd.h>
+#endif
+extern volatile int bench_running;
 #endif
 #include "memdbg.h"
 
@@ -80,12 +93,6 @@
 #else
 #define MIN_KEYS_PER_CRYPT  1
 #define MAX_KEYS_PER_CRYPT  1
-#endif
-
-#ifdef DMG_DEBUG
-#include <sys/file.h>
-#include <unistd.h>
-extern volatile int bench_running;
 #endif
 
 #undef HTONL

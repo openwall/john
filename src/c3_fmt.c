@@ -35,7 +35,9 @@
 #if defined(_OPENMP) && defined(__GLIBC__)
 #include <crypt.h>
 #else
+#if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
 #include <unistd.h>
+#endif
 #endif
 #endif
 
@@ -50,7 +52,7 @@
 #if HAVE_CRYPT_H
 #include <crypt.h>
 #endif
-#if HAVE_UNISTD_H
+#if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
 #include <unistd.h>
 #endif
 #if defined(_OPENMP)

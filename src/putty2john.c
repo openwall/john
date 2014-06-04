@@ -9,6 +9,9 @@
 
 #ifndef PUTTY_COMMON_H
 #define PUTTY_COMMON_H
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
 
 #include <stddef.h>		       /* for size_t */
 #include <string.h>		       /* for memcpy() */
@@ -17,7 +20,9 @@
 #include <stdlib.h>
 #include <limits.h>
 #include <sys/types.h>
+#if !AC_BUILT || HAVE_FCNTL_H
 #include <fcntl.h>
+#endif
 #include "memory.h"
 #include "jumbo.h"
 #include "memdbg.h"

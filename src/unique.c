@@ -25,11 +25,17 @@
  *           Each number doubles size.
  */
 
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
+
 #define _POSIX_SOURCE /* for fdopen(3) */
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#if !AC_BUILT || HAVE_FCNTL_H
 #include <fcntl.h>
+#endif
 #include <string.h>
 #ifdef _MSC_VER
 #include <io.h>
@@ -41,6 +47,7 @@
 #include "misc.h"
 #include "params.h"
 #include "memory.h"
+#include "jumbo.h"
 #include "memdbg.h"
 
 #define ENTRY_END_HASH			0xFFFFFFFF /* also hard-coded */

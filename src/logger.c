@@ -16,10 +16,10 @@
 #include "os.h"
 
 #include <stdio.h>
-#if HAVE_UNISTD_H
+#if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
 #include <unistd.h>
 #endif
-#if HAVE_SYS_FILE_H
+#if !AC_BUILT || HAVE_SYS_FILE_H
 #include <sys/file.h>
 #endif
 #if _MSC_VER

@@ -22,18 +22,25 @@
  * You should have received a copy of the GNU General Public License along with
  * kppy. If not, see <http://www.gnu.org/licenses/>. */
 
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include "stdint.h"
 #include <errno.h>
 #include <assert.h>
+// needs to be above sys/types.h and sys/stat.h for mingw, if -std=c99 used.
+#include "jumbo.h"
 #include <sys/stat.h>
 #include <sys/types.h>
+#if  (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
 #include <unistd.h>
+#endif
 #include "params.h"
 #include "memory.h"
-#include "jumbo.h"
 #include "memdbg.h"
 
 const char *extension[]={".kdbx"};

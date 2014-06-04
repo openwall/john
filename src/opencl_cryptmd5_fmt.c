@@ -5,10 +5,12 @@
  * Redistribution and use in source and binary forms, with or without modification, are permitted.
  */
 #include <string.h>
-#include <unistd.h>
 #include <assert.h>
 
 #include "arch.h"
+#if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
+#include <unistd.h>
+#endif
 #include "formats.h"
 #include "common.h"
 #include "misc.h"

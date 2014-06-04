@@ -20,11 +20,17 @@
  *
  */
 
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
+
 #include <stdlib.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#if !AC_BUILT || HAVE_FCNTL_H
 #include <fcntl.h>
+#endif
 #include <errno.h>
 
 #include <string.h>

@@ -18,7 +18,9 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <termios.h>
+#if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
 #include <unistd.h>
+#endif
 #include <stdlib.h>
 #else
 #include <bios.h>

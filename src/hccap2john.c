@@ -11,13 +11,19 @@
  *
  * hccap format => $WPAPSK$essid#base64 encoded hccap_t
  */
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
+// needs to be above sys/types.h and sys/stat.h for mingw, if -std=c99 used.
+#include "jumbo.h"
 #include <sys/types.h>
 #include <string.h>
 #include <sys/stat.h>
 #include "os.h"
-#if HAVE_UNISTD_H
+#if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
 #include <unistd.h>
 #endif
 #include <errno.h>

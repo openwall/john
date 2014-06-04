@@ -19,7 +19,9 @@
 #if HAVE_LIBDL || __MINGW32__ || __MINGW64__ || _MSC_VER
 
 #include <stdio.h>
+#if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
 #include <unistd.h>
+#endif
 #include <string.h>
 #include <stdlib.h>
 #include <sys/stat.h>
@@ -33,7 +35,6 @@
 #error libdl MUST be available for usage, if building OpenCL or CUDA code
 #endif
 
-#include "Win32-dlfcn-port.h"
 #ifndef RTLD_LOCAL
 #define RTLD_LOCAL 0
 #endif

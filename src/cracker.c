@@ -14,19 +14,21 @@
 #include <signal.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#if HAVE_SYS_FILE_H
+#if (!AC_BUILT || HAVE_SYS_FILE_H)
 #include <sys/file.h>
 #endif
 #include <time.h>
-#if HAVE_SYS_TIMES_H
+#if (!AC_BUILT || HAVE_SYS_TIMES_H)
 #include <sys/times.h>
 #endif
+#if (!AC_BUILT || HAVE_FCNTL_H)
 #include <fcntl.h>
+#endif
 #include <errno.h>
-#if HAVE_UNISTD_H
+#if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
 #include <unistd.h>
 #endif
-#ifdef _MSC_VER
+#if _MSC_VER || HAVE_IO_H
 #include <io.h> // open()
 #endif
 

@@ -3,11 +3,17 @@
  *
  * Usage: mozilla2john [key3.db files] */
 
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
+
 #ifdef HAVE_NSS
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
 #include <unistd.h>
+#endif
 #include <string.h>
 #include <assert.h>
 #include <errno.h>

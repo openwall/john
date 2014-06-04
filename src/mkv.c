@@ -29,16 +29,6 @@
 #include "mkv.h"
 #include "memdbg.h"
 
-#if defined (__MINGW32__) || defined (_MSC_VER)
-// Later versions of MSVC can handle %lld but some older
-// ones can only handle %I64d.  Easiest to simply use
-// %I64d then all versions of MSVC will handle it just fine
-// MinGW is 'same', since it uses msvcrt.dll
-#define LLd "%I64d"
-#else
-#define LLd "%lld"
-#endif
-
 #define SUBSECTION_DEFAULT	"Default"
 
 extern struct fmt_main fmt_LM;

@@ -24,7 +24,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
 #include <unistd.h>
+#endif
 #include <errno.h>
 #if HAVE_SYS_SOCKET_H
 #include <sys/socket.h>

@@ -8,6 +8,9 @@
  * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
 #include <string.h>
 
 #include "misc.h"
@@ -21,7 +24,9 @@ static char *john_home_pathex = NULL;
 static int john_home_lengthex;
 
 #if JOHN_SYSTEMWIDE
+#if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
 #include <unistd.h>
+#endif
 #include <errno.h>
 #include <pwd.h>
 #include <sys/types.h>

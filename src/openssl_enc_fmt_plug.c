@@ -18,9 +18,15 @@
  * $openssl$cipher$md$salt-size$salt$last-chunks$0$datalen$data$known-plaintext$plaintext
  */
 
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
+
 #include <string.h>
 #include <errno.h>
+#if !AC_BUILT || HAVE_FCNTL_H
 #include <fcntl.h>
+#endif
 #include <stdlib.h>
 #include "stdint.h"
 #include <sys/types.h>

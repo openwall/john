@@ -32,12 +32,18 @@
 // https://pythonhosted.org/passlib/lib/passlib.hash.sha1_crypt.html
 // http://cvsweb.netbsd.org/bsdweb.cgi/src/lib/libcrypt/crypt-sha1.c
 
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
+
 #define SHA1_MAGIC "$sha1$"
 #define SHA1_SIZE 20
 
 #include <openssl/sha.h>
 #include <stdlib.h>
+#if  (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
 #include <unistd.h>
+#endif
 #include <stdio.h>
 #include <string.h>
 #include <time.h>

@@ -10,7 +10,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "os.h"
-#if HAVE_UNISTD_H
+#if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
 #include <unistd.h>
 #endif
 

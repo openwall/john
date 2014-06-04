@@ -28,13 +28,22 @@
 #endif
 #include "jumbo.h" // large file support
 #include <stdio.h>
+#if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
 #include <unistd.h>
+#endif
 #include <string.h>
 #include "stdint.h"
 #include <stdlib.h>
 #include <sys/types.h>
+#if !AC_BUILT || HAVE_FCNTL_H
 #include <fcntl.h>
+#endif
+#if !AC_BUILT || HAVE_ARPA_INET_H
 #include <arpa/inet.h>
+#else
+#include "johnswap.h"
+#define ntohl JOHNSWAP
+#endif
 #include "params.h"
 #include <openssl/bio.h>
 #include <openssl/evp.h>

@@ -2,14 +2,19 @@
 // It will make sure the salt does not contain any 'bad' characters, and if so, it will convert
 // the salt into the $HEX$ format.
 
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 
 // isatty() in different locations, for VC, vs *unix.
-#ifdef _MSC_VER
+#if (!AC_BUILT && _MSC_VER) || (AC_BUILT && HAVE_IO_H)
 #include <io.h>
-#else
+#endif
+#if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
 #include <unistd.h>
 #endif
 #include "memdbg.h"
