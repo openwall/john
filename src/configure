@@ -8913,6 +8913,7 @@ fi
 
 
 #AC_CHECK_HEADER([krb5.h],AC_CHECK_LIB([k5crypto],[krb5_c_string_to_key_with_params], AC_DEFINE([HAVE_LIBK5CRYPTO],1,[Define to 1 if you have the `k5crypto' library (-lk5crypto).])) AC_CHECK_LIB([krb5],[main], AC_DEFINE([HAVE_LIBKRB5],1,[Define to 1 if you have the `krb5' library (-lkrb5).]) [AC_SUBST(KRB5_LIBS, ["-lkrb5 -lk5crypto"])]))
+LIBS="$BACKUP_LIBS"
 for ac_header in gmp.h gmp/gmp.h
 do :
   as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
