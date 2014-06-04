@@ -17,6 +17,11 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#if AC_BUILT
+#include "autoconfig.h"
+#else
+#define HAVE_LIBDL
+#endif
 #if HAVE_LIBDL
 #include <dlfcn.h>
 #endif
