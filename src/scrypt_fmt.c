@@ -324,6 +324,126 @@ static int cmp_exact(char *source, int index)
 	return 1;
 }
 
+#if FMT_MAIN_VERSION > 11
+/*
+ * FIXME: q&d implementation for now
+ *
+ *        Problems: -copied decode64_one() and decode64_uint32()
+ *                   from escrypt/crypto_scrypt-common.c
+ *                   (Copyright 2013 Alexander Peslyak)
+ *                  -much of the logic in tunable_cost_[N|r|p] is identical
+ *                   and copied/adapted from escrypt_r() in 
+ *                   escrypt/crypto_scrypt-common.c
+ *                   (Copyright 2013 Alexander Peslyak)
+ */
+
+static int decode64_one(uint32_t * dst, uint8_t src)
+{
+	/* FIXME: copied from escrypt/crypto_scrypt-common.c */
+	const char * ptr = strchr(itoa64, src);
+	if (ptr) {
+		*dst = ptr - itoa64;
+		return 0;
+	}
+	*dst = 0;
+	return -1;
+}
+
+static const uint8_t * decode64_uint32(uint32_t * dst, uint32_t dstbits,
+    const uint8_t * src)
+{
+	/* FIXME: copied from escrypt/crypto_scrypt-common.c */
+	uint32_t bit;
+	uint32_t value;
+
+	value = 0;
+	for (bit = 0; bit < dstbits; bit += 6) {
+		uint32_t one;
+		if (decode64_one(&one, *src)) {
+			*dst = 0;
+			return NULL;
+		}
+		src++;
+		value |= one << bit;
+	}
+
+	*dst = value;
+	return src;
+}
+
+static unsigned int tunable_cost_N(void *salt)
+{
+	const uint8_t * setting;
+	const uint8_t * src;
+	uint64_t N;
+
+	setting = salt;
+	if (setting[0] != '$' || setting[1] != '7' || setting[2] != '$')
+		return 0;
+	src = setting + 3;
+	{
+		uint32_t N_log2;
+
+		if (decode64_one(&N_log2, *src))
+			return 0;
+		src++;
+		N = (uint64_t)1 << N_log2;
+	}
+
+	return (unsigned int) N;
+}
+static unsigned int tunable_cost_r(void *salt)
+{
+	const uint8_t * setting;
+	const uint8_t * src;
+	uint32_t r;
+
+	setting = salt;
+	if (setting[0] != '$' || setting[1] != '7' || setting[2] != '$')
+		return 0;
+	src = setting + 3;
+	{
+		uint32_t N_log2;
+
+		if (decode64_one(&N_log2, *src))
+			return 0;
+		src++;
+	}
+	src = decode64_uint32(&r, 30, src);
+	if (!src)
+		return 0;
+
+	return (unsigned int) r;
+}
+
+static unsigned int tunable_cost_p(void *salt)
+{
+	const uint8_t * setting;
+	const uint8_t * src;
+	uint32_t r, p;
+
+	setting = salt;
+	if (setting[0] != '$' || setting[1] != '7' || setting[2] != '$')
+		return 0;
+	src = setting + 3;
+	{
+		uint32_t N_log2;
+
+		if (decode64_one(&N_log2, *src))
+			return 0;
+		src++;
+	}
+	src = decode64_uint32(&r, 30, src);
+	if (!src)
+		return 0;
+	src = decode64_uint32(&p, 30, src);
+	if (!src)
+		return 0;
+
+	return (unsigned int) p;
+}
+#endif
+
 struct fmt_main fmt_scrypt = {
 	{
 		FORMAT_LABEL,
@@ -340,7 +460,11 @@ struct fmt_main fmt_scrypt = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 #if FMT_MAIN_VERSION > 11
-		{ NULL },
+		{
+			"N",
+			"r",
+			"p"
+		},
 #endif
 		tests
 	}, {
@@ -353,7 +477,11 @@ struct fmt_main fmt_scrypt = {
 		binary,
 		salt,
 #if FMT_MAIN_VERSION > 11
-		{ NULL },
+		{
+			tunable_cost_N,
+			tunable_cost_r,
+			tunable_cost_p
+		},
 #endif
 		fmt_default_source,
 		{

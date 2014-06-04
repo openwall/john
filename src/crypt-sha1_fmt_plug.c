@@ -66,6 +66,12 @@ static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
 
 static struct saltstruct {
+	/*
+	 * If this definition changes, e.g., to store the iterations
+	 * in an unsigned int, make sure to adjust
+	 * static unsigned int iteration_count(void *salt)
+	 * as well.
+	 */
 	unsigned char salt[SALT_LENGTH];
 } *cur_salt;
 
@@ -230,6 +236,29 @@ static int salt_hash(void *salt)
 	return hash & (SALT_HASH_SIZE - 1);
 }
 
+#if FMT_MAIN_VERSION > 11
+static unsigned int iteration_count(void *salt)
+{
+/*
+ * FIXME: Instead of re-computing the iteration count from the
+ *        character string again and again (see internal_crypt_sha1
+ *        in crypt-sha1_plug.c), this format should compute and store
+ *        the iteration count in an integer component of the salt.
+ */
+	unsigned int iterations;
+	static const char *magic = ROUNDS_PREFIX; // SHA1_MAGIC in crypt-sha1_plug.c
+	char *my_salt = salt;
+	char *ep;
+
+	my_salt += strlen(magic);
+	iterations = strtoul(my_salt, &ep, 10);
+	if (*ep != '$')
+		iterations = 0;
+
+	return iterations;
+}
+#endif
+
 struct fmt_main fmt_cryptsha1 = {
 	{
 		FORMAT_LABEL,
@@ -246,7 +275,9 @@ struct fmt_main fmt_cryptsha1 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 #if FMT_MAIN_VERSION > 11
-		{ NULL },
+		{
+			"iteration count",
+		},
 #endif
 		tests
 	}, {
@@ -259,7 +290,9 @@ struct fmt_main fmt_cryptsha1 = {
 		get_binary,
 		get_salt,
 #if FMT_MAIN_VERSION > 11
-		{ NULL},
+		{
+			iteration_count,
+		},
 #endif
 		fmt_default_source,
 		{
