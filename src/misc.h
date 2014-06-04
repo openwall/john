@@ -93,24 +93,6 @@ extern int strnzcpyn(char *dst, const char *src, int size);
  */
 extern char *strnzcat(char *dst, const char *src, int size);
 
-/*
- * Converts a string to lowercase.
- */
-#ifdef _MSC_VER
-#include "memdbg_defines.h"
-#ifndef MEMDBG_ON
-#define strdup _strdup
-#endif
-#define alloca _alloca
-#define unlink _unlink
-#define fileno _fileno
-#pragma warning (disable : 4018 297 )
-#undef inline
-#define inline _inline
-#undef  snprintf
-#define snprintf sprintf_s
-#endif
-
 #ifndef __has_feature
 # define __has_feature(x) 0
 #endif

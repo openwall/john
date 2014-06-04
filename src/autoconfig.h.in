@@ -264,6 +264,12 @@
 /* Define to 1 if you have the `sleep' function. */
 #undef HAVE_SLEEP
 
+/* Define to 1 if you have the `snprintf' function. */
+#undef HAVE_SNPRINTF
+
+/* Define to 1 if you have the `sprintf_s' function. */
+#undef HAVE_SPRINTF_S
+
 /* enable if compiling for SSE2 architecture */
 #undef HAVE_SSE2
 

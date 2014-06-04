@@ -197,8 +197,8 @@ extern void *memmem(const void *haystack, size_t haystack_len,
 extern int sleep(int i);
 #endif
 
-#if !AC_BUILT 
-#ifdef _MSC_VER
+#if !AC_BUILT
+#if _MSC_VER
 #define strcasecmp _stricmp
 #endif
 #else
@@ -218,8 +218,8 @@ extern int strcasecmp(const char *dst, const char *src);
 #endif
 #endif
 
-#if !AC_BUILT 
-#ifdef _MSC_VER
+#if !AC_BUILT
+#if _MSC_VER
 #define strncasecmp _strnicmp
 #endif
 #else
@@ -265,6 +265,35 @@ extern char *strupr(char *s);
 #define NEED_ATOLL_NATIVE 1
 extern long long atoll(const char *);
 #endif
+#endif
+
+#include "memdbg_defines.h"
+#ifndef MEMDBG_ON
+#if (AC_BUILT && HAVE__STRDUP) || (!AC_BUILT && _MSC_VER)
+#undef strdup
+#define strdup _strdup
+#endif
+#endif
+
+#if (AC_BUILT && !HAVE_SNPRINTF && HAVE_SPRINTF_S) || (!AC_BUILT && _MSC_VER)
+#undef  snprintf
+#define snprintf sprintf_s
+#endif
+
+#if _MSC_VER
+// I tried adding these to autoconf, BUT I ended up with systems where
+// the function can be linked to, but it was not in headers. SO, I simply
+// blindly use these for VC.  For VC, they are used to work around many
+// red-herring compiler warnings
+#undef alloca
+#define alloca _alloca
+#undef unlink
+#define unlink _unlink
+#undef fileno
+#define fileno _fileno
+#pragma warning (disable : 4018 297 )
+#undef inline
+#define inline _inline
 #endif
 
 // NOTE, this still will fail on REALLY old systems, where you can only

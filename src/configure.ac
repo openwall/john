@@ -559,7 +559,7 @@ AC_CHECK_FUNCS([fseek64 fseeko fseeko64 _fseeki64 lseek64 lseek ftell64 ftello \
                isascii mkdir rmdir setenv putenv strcasecmp strncasecmp \
                stricmp strcmpi _stricmp _strcmpi strnicmp strncmpi _strnicmp \
                _strncmpi strrchr strcspn strspn strtol strtoul strlwr strupr \
-               bzero atoll _atoi64])
+               bzero atoll _atoi64 snprintf sprintf_s])
 #AC_CHECK_FUNCS([memchr memmove memset munmap pow \
 #                select setlocale socket strchr \
 #                strdup strerror strstr])
