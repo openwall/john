@@ -56,7 +56,7 @@ src/autoconfig.h
 src/autom4te.cache/
 src/config.status
 src/configure.scan
-src/config.cache
+src/config*.cache
 src/fmt_externs.h
 src/fmt_registers.h
 src/generic.h
