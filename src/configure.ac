@@ -353,13 +353,15 @@ AC_SEARCH_LIBS([crypt],[crypt],[AC_DEFINE(HAVE_CRYPT,1,[Define to 1 if you have 
 AC_SUBST(CRYPT_LIBS, [$LIBS])
 LIBS="$BACKUP_LIBS"
 # Check for MIT or Heimdal Kerberos5 libs
+krb5_found=no
 AC_CHECK_HEADER([krb5.h],
   [AC_CHECK_LIB([k5crypto], [main])]
   [AC_CHECK_LIB([krb5], [main])]
   [AS_IF([test "x$ac_cv_lib_k5crypto_main" = xyes &&
           test "x$ac_cv_lib_krb5_main" = xyes],
-    [AC_DEFINE([HAVE_LIBKRB5],1,[Define to 1 if you have the `krb5' and `k5crypto' libs.])]
+    [AC_DEFINE([HAVE_KRB5],1,[Define to 1 if you have the `krb5' and `k5crypto' libs.])]
     [AC_SUBST(KRB5_LIBS, ["$LIBS"])]
+    [krb5_found=yes]
     [AC_CHECK_FUNCS([krb5_is_thread_safe])]
   )]
   [LIBS="$BACKUP_LIBS"]
@@ -686,10 +688,6 @@ fi
 if test "x$ac_cv_lib_skey_skey_set_algorithm" = x ; then
    ac_cv_lib_skey_skey_set_algorithm=no
 fi
-krb5_found=no
-if test $(echo "x $KRB5_LIBS" | ${GREP} -c -- "-lkrb5") -ne 0 ; then
-   krb5_found=yes
-fi
 if test "x${ac_cv_lib_skey_skey_set_algorithm}" = xno ; then
    skey_found="jtr code"
 else
@@ -732,7 +730,7 @@ Rexgen (extra cracking mode) ................ ${using_rexgen}
 GMP (performance) ........................... ${ac_cv_lib_gmp___gmpz_init}
 NSS/NSPR (Mozilla format) ................... ${using_nss}
 S/Key (skey format) ......................... ${skey_found}
-MIT Kerberos5 (krb5-18/23 formats) .......... ${krb5_found}
+Kerberos5 (krb5-18/23 formats) .............. ${krb5_found}
 PCAP (vncpcap2john and SIPdump) ............. ${ac_cv_lib_pcap_pcap_compile}
 
 Install missing libraries to get any needed features that were omitted.

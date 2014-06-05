@@ -52,7 +52,7 @@
 #endif
 #endif
 
-#ifdef HAVE_LIBKRB5
+#ifdef HAVE_KRB5
 #include <krb5/krb5.h>
 #endif
 
@@ -216,7 +216,7 @@ static void listconf_list_build_info(void)
 #ifdef PR_VERSION
 	printf("NSPR library version: %s\n", PR_VERSION);
 #endif
-#ifdef HAVE_LIBKRB5
+#ifdef HAVE_KRB5
 	// I have no idea how to get version info
 	printf("Kerberos version %d support enabled\n", KRB5_PVNO);
 #endif
