@@ -76,6 +76,7 @@ krb5_c_string_to_key_with_params(krb5_context context, krb5_enctype enctype,
 static struct fmt_tests kinit_tests[] = {
   {"1667b5ee168fc31fba85ffb8f925fb70", "aqzsedrf"},
   {"8846f7eaee8fb117ad06bdd830b7586c", "password"},
+  {"32ed87bdb5fdc5e9cba88547376818d4", "123456"},
   {FORMAT_TAG "1667b5ee168fc31fba85ffb8f925fb70", "aqzsedrf"},
   {NULL}
 };
@@ -194,6 +195,9 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 				(key.contents[4 * i + 2] << 16) |
 				(key.contents[4 * i + 3] << 24);
 		}
+#ifndef USE_HEIMDAL  // Heimdal automatically does heim_krb5_free_keyblock_contents
+		krb5_free_keyblock_contents(NULL, &key);
+#endif
 	}
 	return count;
 }
