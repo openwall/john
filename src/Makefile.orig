@@ -2515,8 +2515,8 @@ clean:
 	$(RM) cuda/*.o cuda/*~ *~
 	$(RM) fmt_registers.h fmt_externs.h john_build_rule.h
 	$(CP) $(NULL) Makefile.dep
-	$(MAKE_ORIG) -C aes clean
-	$(MAKE_ORIG) -C escrypt clean
+	+$(MAKE_ORIG) -C aes clean
+	+$(MAKE_ORIG) -C escrypt clean
 
 
 # These are mostly for internal use.
