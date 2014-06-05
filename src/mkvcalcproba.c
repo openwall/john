@@ -22,6 +22,7 @@
 #include "params.h"
 #include "mkvlib.h"
 #include "memory.h"
+#include "jumbo.h"
 #include "memdbg.h"
 
 #define C2I(c) ((unsigned int)(unsigned char)(c))

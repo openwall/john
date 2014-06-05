@@ -13,7 +13,7 @@
 
 #include "jumbo.h"
 
-#if HAVE_WINDOWS_H
+#if HAVE_WINDOWS_H || _MSC_VER || __MINGW32__ || __MINGW64__ || __CYGWIN__
 #include <windows.h>
 #endif
 
