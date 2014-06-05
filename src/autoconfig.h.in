@@ -129,6 +129,9 @@
 /* Define to 1 if you have the `isascii' function. */
 #undef HAVE_ISASCII
 
+/* Define to 1 if you have the `krb5_is_thread_safe' function. */
+#undef HAVE_KRB5_IS_THREAD_SAFE
+
 /* Define to 1 if you have the `crypto' library (-lcrypto). */
 #undef HAVE_LIBCRYPTO
 
@@ -138,10 +141,13 @@
 /* Define to 1 if you have the `gmp' library (-lgmp). */
 #undef HAVE_LIBGMP
 
+/* Define to 1 if you have the `k5crypto' library (-lk5crypto). */
+#undef HAVE_LIBK5CRYPTO
+
 /* Define to 1 if you have the `kernel32' library (-lkernel32). */
 #undef HAVE_LIBKERNEL32
 
-/* Define to 1 if you have the `krb5' library (-lkrb5). */
+/* Define to 1 if you have the `krb5' and `k5crypto' libs. */
 #undef HAVE_LIBKRB5
 
 /* Define to 1 if you have the `m' library (-lm). */

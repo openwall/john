@@ -18,7 +18,6 @@
 #include "autoconfig.h"
 #endif
 
-
 #if HAVE_LIBKRB5
 #include <string.h>
 #include <assert.h>
@@ -30,6 +29,9 @@
 #include "params.h"
 #include "options.h"
 #include <krb5.h>
+#if !HAVE_KRB5_IS_THREAD_SAFE
+#undef _OPENMP
+#endif
 #ifdef _OPENMP
 #include <omp.h>
 #define OMP_SCALE               64

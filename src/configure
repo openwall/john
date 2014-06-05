@@ -8862,72 +8862,112 @@ fi
 CRYPT_LIBS=$LIBS
 
 LIBS="$BACKUP_LIBS"
+# Check for MIT or Heimdal Kerberos5 libs
 ac_fn_c_check_header_mongrel "$LINENO" "krb5.h" "ac_cv_header_krb5_h" "$ac_includes_default"
 if test "x$ac_cv_header_krb5_h" = xyes; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing krb5_c_string_to_key_with_params" >&5
-$as_echo_n "checking for library containing krb5_c_string_to_key_with_params... " >&6; }
-if ${ac_cv_search_krb5_c_string_to_key_with_params+:} false; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lk5crypto" >&5
+$as_echo_n "checking for main in -lk5crypto... " >&6; }
+if ${ac_cv_lib_k5crypto_main+:} false; then :
   $as_echo_n "(cached) " >&6
 else
-  ac_func_search_save_LIBS=$LIBS
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lk5crypto  $LIBS"
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char krb5_c_string_to_key_with_params ();
+
 int
 main ()
 {
-return krb5_c_string_to_key_with_params ();
+return main ();
   ;
   return 0;
 }
 _ACEOF
-for ac_lib in '' k5crypto krb5; do
-  if test -z "$ac_lib"; then
-    ac_res="none required"
-  else
-    ac_res=-l$ac_lib
-    LIBS="-l$ac_lib  $ac_func_search_save_LIBS"
-  fi
-  if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_search_krb5_c_string_to_key_with_params=$ac_res
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_k5crypto_main=yes
+else
+  ac_cv_lib_k5crypto_main=no
 fi
 rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext
-  if ${ac_cv_search_krb5_c_string_to_key_with_params+:} false; then :
-  break
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
 fi
-done
-if ${ac_cv_search_krb5_c_string_to_key_with_params+:} false; then :
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_k5crypto_main" >&5
+$as_echo "$ac_cv_lib_k5crypto_main" >&6; }
+if test "x$ac_cv_lib_k5crypto_main" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBK5CRYPTO 1
+_ACEOF
 
+  LIBS="-lk5crypto $LIBS"
+
+fi
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lkrb5" >&5
+$as_echo_n "checking for main in -lkrb5... " >&6; }
+if ${ac_cv_lib_krb5_main+:} false; then :
+  $as_echo_n "(cached) " >&6
 else
-  ac_cv_search_krb5_c_string_to_key_with_params=no
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lkrb5  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+int
+main ()
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_krb5_main=yes
+else
+  ac_cv_lib_krb5_main=no
 fi
-rm conftest.$ac_ext
-LIBS=$ac_func_search_save_LIBS
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
 fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_search_krb5_c_string_to_key_with_params" >&5
-$as_echo "$ac_cv_search_krb5_c_string_to_key_with_params" >&6; }
-ac_res=$ac_cv_search_krb5_c_string_to_key_with_params
-if test "$ac_res" != no; then :
-  test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_krb5_main" >&5
+$as_echo "$ac_cv_lib_krb5_main" >&6; }
+if test "x$ac_cv_lib_krb5_main" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBKRB5 1
+_ACEOF
+
+  LIBS="-lkrb5 $LIBS"
+
+fi
+
+  if test "x$ac_cv_lib_k5crypto_main" = xyes &&
+          test "x$ac_cv_lib_krb5_main" = xyes; then :
 
 $as_echo "#define HAVE_LIBKRB5 1" >>confdefs.h
- KRB5_LIBS="-lkrb5 -lk5crypto"
+
+    KRB5_LIBS="$LIBS"
+
+    for ac_func in krb5_is_thread_safe
+do :
+  ac_fn_c_check_func "$LINENO" "krb5_is_thread_safe" "ac_cv_func_krb5_is_thread_safe"
+if test "x$ac_cv_func_krb5_is_thread_safe" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_KRB5_IS_THREAD_SAFE 1
+_ACEOF
+
+fi
+done
+
+
+fi
+  LIBS="$BACKUP_LIBS"
 
 fi
 
-fi
 
-
-#AC_CHECK_HEADER([krb5.h],AC_CHECK_LIB([k5crypto],[krb5_c_string_to_key_with_params], AC_DEFINE([HAVE_LIBK5CRYPTO],1,[Define to 1 if you have the `k5crypto' library (-lk5crypto).])) AC_CHECK_LIB([krb5],[main], AC_DEFINE([HAVE_LIBKRB5],1,[Define to 1 if you have the `krb5' library (-lkrb5).]) [AC_SUBST(KRB5_LIBS, ["-lkrb5 -lk5crypto"])]))
-LIBS="$BACKUP_LIBS"
 for ac_header in gmp.h gmp/gmp.h
 do :
   as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`

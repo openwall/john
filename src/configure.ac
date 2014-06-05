@@ -352,9 +352,18 @@ LIBS=""
 AC_SEARCH_LIBS([crypt],[crypt],[AC_DEFINE(HAVE_CRYPT,1,[Define to 1 if you have the `crypt' library (-lcrypt).])])
 AC_SUBST(CRYPT_LIBS, [$LIBS])
 LIBS="$BACKUP_LIBS"
-AC_CHECK_HEADER([krb5.h],AC_SEARCH_LIBS([krb5_c_string_to_key_with_params],[k5crypto krb5], AC_DEFINE([HAVE_LIBKRB5],1,[Define to 1 if you have the `krb5' library (-lkrb5).]) [AC_SUBST(KRB5_LIBS, ["-lkrb5 -lk5crypto"])]))
-#AC_CHECK_HEADER([krb5.h],AC_CHECK_LIB([k5crypto],[krb5_c_string_to_key_with_params], AC_DEFINE([HAVE_LIBK5CRYPTO],1,[Define to 1 if you have the `k5crypto' library (-lk5crypto).])) AC_CHECK_LIB([krb5],[main], AC_DEFINE([HAVE_LIBKRB5],1,[Define to 1 if you have the `krb5' library (-lkrb5).]) [AC_SUBST(KRB5_LIBS, ["-lkrb5 -lk5crypto"])]))
-LIBS="$BACKUP_LIBS"
+# Check for MIT or Heimdal Kerberos5 libs
+AC_CHECK_HEADER([krb5.h],
+  [AC_CHECK_LIB([k5crypto], [main])]
+  [AC_CHECK_LIB([krb5], [main])]
+  [AS_IF([test "x$ac_cv_lib_k5crypto_main" = xyes &&
+          test "x$ac_cv_lib_krb5_main" = xyes],
+    [AC_DEFINE([HAVE_LIBKRB5],1,[Define to 1 if you have the `krb5' and `k5crypto' libs.])]
+    [AC_SUBST(KRB5_LIBS, ["$LIBS"])]
+    [AC_CHECK_FUNCS([krb5_is_thread_safe])]
+  )]
+  [LIBS="$BACKUP_LIBS"]
+)
 AC_CHECK_HEADERS([gmp.h] [gmp/gmp.h], [AC_CHECK_LIB([gmp],[__gmpz_init], AC_DEFINE([HAVE_LIBGMP],1,[Define to 1 if you have the `gmp' library (-lgmp).]) [AC_SUBST(GMP_LIBS, [-lgmp])])] [break])
 AC_CHECK_HEADER([skey.h], [AC_CHECK_LIB([skey],[skey_set_algorithm],
                           AC_DEFINE([HAVE_SKEY],1,[Define to 1 if you have skey library and headers]) [AC_SUBST(SKEY_LIBS, [-lskey])])])
