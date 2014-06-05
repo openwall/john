@@ -3372,7 +3372,6 @@ ac_config_headers="$ac_config_headers autoconfig.h"
 
 
 
-
 # Workaround for .gitignore refusing to ignore Makefile since it is
 # a managed file (the stub). The result of this is a *local* workaround.
 if test -d "../.git"; then :
@@ -3514,6 +3513,7 @@ if test "${enable_pkg_config+set}" = set; then :
 else
   enable_pkg_config=auto
 fi
+
 
 ####### Actual tests start here #######
 
@@ -5764,7 +5764,21 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
    # clang warnings
    #JTR_FLAG_CHECK([-Wno-format-extra-args], 1)
    #JTR_FLAG_CHECK([-Wno-unneeded-internal-declaration], 1)
-   CFLAGS_EXTRA="$CFLAGS_EXTRA $CFLAGS_EX"
+
+   for i in "$CFLAGS_EX"; do
+      jtr_list_add_dupe=0
+      for j in $CFLAGS_EXTRA; do
+         if test "x$i" = "x$j"; then
+            jtr_list_add_dupe=1
+            break
+         fi
+      done
+      if test $jtr_list_add_dupe = 0; then
+         CFLAGS_EXTRA="$CFLAGS_EXTRA $i"
+         jtr_list_add_result="$jtr_list_add_result $i"
+      fi
+   done
+
 
 else
      { $as_echo "$as_me:${as_lineno-$LINENO}: Unable to validate $CC command line arguments. CFLAGS may need to be passed to ./configure for proper build" >&5
@@ -9534,7 +9548,7 @@ if ac_fn_c_try_link "$LINENO"; then :
   ac_cv_prog_c_openmp='none needed'
 else
   ac_cv_prog_c_openmp='unsupported'
-																	  for ac_option in -fopenmp -xopenmp -openmp -mp -omp -qsmp=omp -homp \
+	  	  	  	  	  	  	                                	  	  	  	  	  	  for ac_option in -fopenmp -xopenmp -openmp -mp -omp -qsmp=omp -homp \
                            -Popenmp --openmp; do
 	    ac_save_CFLAGS=$CFLAGS
 	    CFLAGS="$CFLAGS $ac_option"
@@ -10583,7 +10597,12 @@ See \`config.log' for more details" "$LINENO" 5; }
 
 # Checks for header files.
 # Eg. if sys/times.h is found, the below will define HAVE_SYS_TIMES_H
-for ac_header in OS.h arpa/inet.h crypt.h fcntl.h limits.h locale.h                   net/ethernet.h netdb.h netinet/in.h netinet/in_systm.h                   stddef.h stdint.h stdlib.h string.h strings.h                   sys/ethernet.h sys/file.h sys/param.h sys/socket.h                   sys/time.h sys/timeb.h sys/times.h sys/types.h termios.h                   unistd.h unixlib/local.h wchar.h windows.h
+for ac_header in OS.h arpa/inet.h crypt.h fcntl.h limits.h locale.h \
+                  net/ethernet.h netdb.h netinet/in.h netinet/in_systm.h \
+                  stddef.h stdint.h stdlib.h string.h strings.h \
+                  sys/ethernet.h sys/file.h sys/param.h sys/socket.h \
+                  sys/time.h sys/timeb.h sys/times.h sys/types.h termios.h \
+                  unistd.h unixlib/local.h wchar.h windows.h
 do :
   as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
 ac_fn_c_check_header_mongrel "$LINENO" "$ac_header" "$as_ac_Header" "$ac_includes_default"

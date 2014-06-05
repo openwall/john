@@ -53,13 +53,12 @@ mandir = $(prefix)/man/man1
 # leads to regressions for Kepler cards, when it works at all.
 NVCC_FLAGS = -c -Xptxas -v -fmad=true -arch sm_10
 
-# @CPU_BITS@ left out
 CPPFLAGS = @CPPFLAGS@
 CFLAGSX = -c @CFLAGS@ @CFLAGS_EXTRA@ @HAVE_CUDA@ @HAVE_NSS@ @NSS_CFLAGS@ @OPENSSL_CFLAGS@ @OPENMP_CFLAGS@ @HAVE_MPI@ @PTHREAD_CFLAGS@ $(RELEASE_BLD)
 # CFLAGS for use on the main john.c file only
-CFLAGS_MAIN = -DAC_BUILT=1 @CC_MAIN_CPU@ $(CFLAGSX)
-CFLAGS = -DAC_BUILT=1 @CC_CPU@ $(CFLAGSX)
-ASFLAGS = -DAC_BUILT=1 @ASFLAGS@ @CC_CPU@ -c @OPENMP_CFLAGS@ @HAVE_MPI@ @EXTRA_AS_FLAGS@
+CFLAGS_MAIN = -DAC_BUILT @CC_MAIN_CPU@ $(CFLAGSX)
+CFLAGS = -DAC_BUILT @CC_CPU@ $(CFLAGSX)
+ASFLAGS = -DAC_BUILT @ASFLAGS@ @CC_CPU@ -c @OPENMP_CFLAGS@ @HAVE_MPI@ @EXTRA_AS_FLAGS@
 LIBS = @LIBS@
 LDFLAGS = -g @LDFLAGS@ $(LIBS) @HAVE_MPI@
 #
@@ -570,7 +569,7 @@ endif
 	$(LD) SIPdump.o memdbg.o $(LDFLAGS) @PCAP_LIBS@ -o ../run/SIPdump
 
 ../run/vncpcap2john@EXE_EXT@: vncpcap2john.o
-	$(CC) -DAC_BUILT=1 -Wall vncpcap2john.o memdbg.o $(LDFLAGS) @PCAP_LIBS@ -o ../run/vncpcap2john
+	$(CC) -DAC_BUILT -Wall vncpcap2john.o memdbg.o $(LDFLAGS) @PCAP_LIBS@ -o ../run/vncpcap2john
 
 ../run/uaf2john@EXE_EXT@: uaf2john.o uaf_encode_plug.o
 	$(LD) $(LDFLAGS) @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ uaf2john.o uaf_encode_plug.o memdbg.o -o ../run/uaf2john
@@ -584,18 +583,18 @@ endif
 
 ../run/cprepair@EXE_EXT@: cprepair.c unicode.c unicode.h options.h misc.h misc.c \
 	memdbg.h memdbg.c
-	$(CC) -DAC_BUILT=1 -Wall -O3 @CFLAGS_EXTRA@ @OPENSSL_CFLAGS@ -DNOT_JOHN -D_JOHN_MISC_NO_LOG cprepair.c unicode.c \
+	$(CC) -DAC_BUILT -Wall -O3 @CFLAGS_EXTRA@ @OPENSSL_CFLAGS@ -DNOT_JOHN -D_JOHN_MISC_NO_LOG cprepair.c unicode.c \
 	misc.c memdbg.c -o ../run/cprepair
 
 ../run/tgtsnarf@EXE_EXT@: tgtsnarf.o
 	$(LD) tgtsnarf.o memdbg.o $(LDFLAGS) -o ../run/tgtsnarf
 
 john.o: john.c
-	$(CC) -DAC_BUILT=1 $(CFLAGS_MAIN) $(OPT_NORMAL) -O0 $*.c
+	$(CC) -DAC_BUILT $(CFLAGS_MAIN) $(OPT_NORMAL) -O0 $*.c
 
 # Workaround for gcc 3.4.6 (seen on Sparc32) (do not use -funroll-loops)
 unrarppm.o: unrarppm.c
-	$(CC) -DAC_BUILT=1 $(CFLAGS) $< -o $@
+	$(CC) -DAC_BUILT $(CFLAGS) $< -o $@
 
 .c.o:
 	$(CC) $(CFLAGS) $(OPT_NORMAL) $< -o $@

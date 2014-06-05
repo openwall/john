@@ -25,44 +25,6 @@ m4_include([m4/jtr_generic_logic.m4])
 m4_include([m4/jtr_systems_specific_logic.m4])
 m4_include([m4/jtr_utility_macros.m4])
 
-dnl  If you want to pass these into your Makefile.in templates, use
-dnl    AC_SUBST(ac_variable_name)
-dnl  they'll be available as substitution variables (eg., @ac_variable_name@)
-dnl
-dnl  If you want to go farther and create cpp macro definitions in autoconfig.h
-dnl    AC_DEFINE(ac_variable_name)
-dnl
-dnl  macros:
-dnl    AC_CHECK_LIB (library, function, [action-if-found], [action-if-not-found], [other-libraries])
-dnl    AC_SEARCH_LIBS (function, search-libs, [action-if-found], [action-if-not-found], [other-libraries])
-dnl    AC_SUBST(ac_variable_name)
-dnl    AC_DEFINE(ac_variable_name)
-dnl    AC_RUN_IFELSE(input, [action-if-true], [action-if-false], [action-if-cross-compiling])
-dnl    AC_MSG_WARN(message)
-dnl    AC_MSG_FAILURE(message)
-dnl    AC_MSG_ERROR(message)
-dnl    AC_MSG_CHECKING(message)
-dnl    AC_MSG_RESULT(message)   (if we use msg_checking, we should use result to tell what happened).
-dnl    AC_CHECK_SIZEOF (type-or-expr, [unused], [includes = 'AC_INCLUDES_DEFAULT'])
-dnl    AC_ARG_ENABLE([opencl], [AC_HELP_STRING([--disable-opencl], [do not use OpenCL])], [disable_opencl=$enableval], [disable_opencl='yes'])
-dnl    AC_ARG_WITH(omp, [AS_HELP_STRING([--with-omp],[compile with OpenMP (multi-thread) support. If none is found, OMP is not used. Default: auto])],,with_omp=auto)
-dnl    gcc -dM -E - < /dev/null [-march=native] # list all macros
-dnl
-dnl  guide to easy to do autoconf:  http://www.galassi.org/mark/mydocs/autoconf_tutorial_2.html#SEC2
-dnl
-dnl  TODO:
-dnl    AC_C_INLINE
-dnl        If the C compiler supports the keyword inline, do nothing. Otherwise define inline
-dnl        to __inline__ or __inline if it accepts one of those, otherwise define inline to be empty.
-dnl
-dnl     AC_REQUIRE([AC_CANONICAL_HOST])[]dnl
-dnl       case $host_os in
-dnl         *cygwin* ) CYGWIN=yes;;
-dnl                * ) CYGWIN=no;;
-dnl       esac
-dnl
-dnl     use $EXEEXT and $OBJEXT  for exe and obj extension.  Set by AC_PROC_CC
-
 # Workaround for .gitignore refusing to ignore Makefile since it is
 # a managed file (the stub). The result of this is a *local* workaround.
 AS_IF([test -d "../.git"],
@@ -96,6 +58,7 @@ AC_ARG_ENABLE([pcap], [AC_HELP_STRING([--disable-pcap], [Do not build helpers de
 AC_ARG_ENABLE([native-tests], [AC_HELP_STRING([--disable-native-tests], [Do not use test build system for target features])], [enable_native_tests=$enableval], [enable_native_tests=auto])
 AC_ARG_ENABLE([ln-s], [AS_HELP_STRING([--enable-ln-s],[Use ln -s vs symlink.c wrappers (Cygwin only)])], [enable_ln_s=$enableval], [enable_ln_s=no])
 AC_ARG_ENABLE([pkg-config], [AS_HELP_STRING([--disable-pkg-config],[do not use pkg-config for any probing tests])], [enable_pkg_config=$enableval], [enable_pkg_config=auto])
+
 ####### Actual tests start here #######
 
 # Support cross compile
@@ -177,7 +140,7 @@ AS_IF([test "x$JTR_FLAG_CHECK_WORKS" = xyes],
    # clang warnings
    #JTR_FLAG_CHECK([-Wno-format-extra-args], 1)
    #JTR_FLAG_CHECK([-Wno-unneeded-internal-declaration], 1)
-   CFLAGS_EXTRA="$CFLAGS_EXTRA $CFLAGS_EX"
+   JTR_LIST_ADD(CFLAGS_EXTRA, ["$CFLAGS_EX"])
 ],[dnl
    AC_MSG_NOTICE([Unable to validate $CC command line arguments. CFLAGS may need to be passed to ./configure for proper build])
 ])
@@ -464,11 +427,11 @@ JTR_CUDA
 
 # Checks for header files.
 # Eg. if sys/times.h is found, the below will define HAVE_SYS_TIMES_H
-AC_CHECK_HEADERS([OS.h arpa/inet.h crypt.h fcntl.h limits.h locale.h dnl
-                  net/ethernet.h netdb.h netinet/in.h netinet/in_systm.h dnl
-                  stddef.h stdint.h stdlib.h string.h strings.h dnl
-                  sys/ethernet.h sys/file.h sys/param.h sys/socket.h dnl
-                  sys/time.h sys/timeb.h sys/times.h sys/types.h termios.h dnl
+AC_CHECK_HEADERS([OS.h arpa/inet.h crypt.h fcntl.h limits.h locale.h \
+                  net/ethernet.h netdb.h netinet/in.h netinet/in_systm.h \
+                  stddef.h stdint.h stdlib.h string.h strings.h \
+                  sys/ethernet.h sys/file.h sys/param.h sys/socket.h \
+                  sys/time.h sys/timeb.h sys/times.h sys/types.h termios.h \
                   unistd.h unixlib/local.h wchar.h windows.h])
 # Quirks for Solaris and OpenBSD
 AC_CHECK_HEADERS([net/if.h], [], [],[
