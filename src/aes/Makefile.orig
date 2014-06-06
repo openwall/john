@@ -1,6 +1,6 @@
-GCCV44 := $(shell expr `gcc -dumpversion` \>= 4.4)
+GCCV44 := $(shell expr `$(CC) -dumpversion` \>= 4.4)
 YASM := $(shell yasm -f $(YASM_FORMAT) 2>&1 | grep "No input files")
-UNAME := $(shell gcc -dumpmachine)
+UNAME := $(shell $(CC) -dumpmachine)
 
 AESIN = aes.o openssl/ossl_aes.o
 SUBDIRS = openssl

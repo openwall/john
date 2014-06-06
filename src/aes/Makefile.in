@@ -10,7 +10,7 @@ YASM = @YASM@
 AR = @AR@
 FIND = @FIND@
 RM = /bin/rm -f
-GCCV44 := $(shell expr `gcc -dumpversion` \>= 4.4)
+GCCV44 := $(shell expr `$(CC) -dumpversion` \>= 4.4)
 USE_AESNI = @AESNI_OS@
 
 AESIN = aes.o openssl/ossl_aes.o
