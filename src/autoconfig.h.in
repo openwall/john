@@ -120,6 +120,15 @@
 /* Define to 1 if you have the <gmp.h> header file. */
 #undef HAVE_GMP_H
 
+/* Define to 1 if you have Heimdal krb5. */
+#undef HAVE_HEIMDAL
+
+/* Define to 1 if you have the <heimdal/heim_err.h> header file. */
+#undef HAVE_HEIMDAL_HEIM_ERR_H
+
+/* Define to 1 if you have the <heim_err.h> header file. */
+#undef HAVE_HEIM_ERR_H
+
 /* Define to 1 if you have the `inet_ntoa' function. */
 #undef HAVE_INET_NTOA
 
@@ -129,11 +138,8 @@
 /* Define to 1 if you have the `isascii' function. */
 #undef HAVE_ISASCII
 
-/* Define to 1 if you have the `krb5' and `k5crypto' libs. */
+/* Define to 1 if you have the Kerberos 5 libs. */
 #undef HAVE_KRB5
-
-/* Define to 1 if you have the `krb5_is_thread_safe' function. */
-#undef HAVE_KRB5_IS_THREAD_SAFE
 
 /* Define to 1 if you have the `crypto' library (-lcrypto). */
 #undef HAVE_LIBCRYPTO
@@ -144,14 +150,8 @@
 /* Define to 1 if you have the `gmp' library (-lgmp). */
 #undef HAVE_LIBGMP
 
-/* Define to 1 if you have the `k5crypto' library (-lk5crypto). */
-#undef HAVE_LIBK5CRYPTO
-
 /* Define to 1 if you have the `kernel32' library (-lkernel32). */
 #undef HAVE_LIBKERNEL32
-
-/* Define to 1 if you have the `krb5' library (-lkrb5). */
-#undef HAVE_LIBKRB5
 
 /* Define to 1 if you have the `m' library (-lm). */
 #undef HAVE_LIBM
@@ -203,6 +203,9 @@
 
 /* Define to 1 if you have the `mkdir' function. */
 #undef HAVE_MKDIR
+
+/* Define to 1 if you have Heimdal with MKShim. */
+#undef HAVE_MKSHIM
 
 /* Define to 1 if you have a working `mmap' system call. */
 #undef HAVE_MMAP

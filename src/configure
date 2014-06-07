@@ -8862,109 +8862,269 @@ fi
 CRYPT_LIBS=$LIBS
 
 LIBS="$BACKUP_LIBS"
-# Check for MIT or Heimdal Kerberos5 libs
+# Check for Kerberos5 libs
 krb5_found=no
 ac_fn_c_check_header_mongrel "$LINENO" "krb5.h" "ac_cv_header_krb5_h" "$ac_includes_default"
 if test "x$ac_cv_header_krb5_h" = xyes; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lk5crypto" >&5
-$as_echo_n "checking for main in -lk5crypto... " >&6; }
-if ${ac_cv_lib_k5crypto_main+:} false; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing krb5_is_thread_safe" >&5
+$as_echo_n "checking for library containing krb5_is_thread_safe... " >&6; }
+if ${ac_cv_search_krb5_is_thread_safe+:} false; then :
   $as_echo_n "(cached) " >&6
 else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lk5crypto  $LIBS"
+  ac_func_search_save_LIBS=$LIBS
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
-
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char krb5_is_thread_safe ();
 int
 main ()
 {
-return main ();
+return krb5_is_thread_safe ();
   ;
   return 0;
 }
 _ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_k5crypto_main=yes
-else
-  ac_cv_lib_k5crypto_main=no
+for ac_lib in '' krb5 k5crypto; do
+  if test -z "$ac_lib"; then
+    ac_res="none required"
+  else
+    ac_res=-l$ac_lib
+    LIBS="-l$ac_lib  $ac_func_search_save_LIBS"
+  fi
+  if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_search_krb5_is_thread_safe=$ac_res
 fi
 rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
+    conftest$ac_exeext
+  if ${ac_cv_search_krb5_is_thread_safe+:} false; then :
+  break
 fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_k5crypto_main" >&5
-$as_echo "$ac_cv_lib_k5crypto_main" >&6; }
-if test "x$ac_cv_lib_k5crypto_main" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBK5CRYPTO 1
-_ACEOF
+done
+if ${ac_cv_search_krb5_is_thread_safe+:} false; then :
 
-  LIBS="-lk5crypto $LIBS"
+else
+  ac_cv_search_krb5_is_thread_safe=no
+fi
+rm conftest.$ac_ext
+LIBS=$ac_func_search_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_search_krb5_is_thread_safe" >&5
+$as_echo "$ac_cv_search_krb5_is_thread_safe" >&6; }
+ac_res=$ac_cv_search_krb5_is_thread_safe
+if test "$ac_res" != no; then :
+  test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
 
 fi
 
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lkrb5" >&5
-$as_echo_n "checking for main in -lkrb5... " >&6; }
-if ${ac_cv_lib_krb5_main+:} false; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing krb5_c_string_to_key" >&5
+$as_echo_n "checking for library containing krb5_c_string_to_key... " >&6; }
+if ${ac_cv_search_krb5_c_string_to_key+:} false; then :
   $as_echo_n "(cached) " >&6
 else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lkrb5  $LIBS"
+  ac_func_search_save_LIBS=$LIBS
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
-
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char krb5_c_string_to_key ();
 int
 main ()
 {
-return main ();
+return krb5_c_string_to_key ();
   ;
   return 0;
 }
 _ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_krb5_main=yes
-else
-  ac_cv_lib_krb5_main=no
+for ac_lib in '' krb5 k5crypto; do
+  if test -z "$ac_lib"; then
+    ac_res="none required"
+  else
+    ac_res=-l$ac_lib
+    LIBS="-l$ac_lib  $ac_func_search_save_LIBS"
+  fi
+  if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_search_krb5_c_string_to_key=$ac_res
 fi
 rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
+    conftest$ac_exeext
+  if ${ac_cv_search_krb5_c_string_to_key+:} false; then :
+  break
 fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_krb5_main" >&5
-$as_echo "$ac_cv_lib_krb5_main" >&6; }
-if test "x$ac_cv_lib_krb5_main" = xyes; then :
+done
+if ${ac_cv_search_krb5_c_string_to_key+:} false; then :
+
+else
+  ac_cv_search_krb5_c_string_to_key=no
+fi
+rm conftest.$ac_ext
+LIBS=$ac_func_search_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_search_krb5_c_string_to_key" >&5
+$as_echo "$ac_cv_search_krb5_c_string_to_key" >&6; }
+ac_res=$ac_cv_search_krb5_c_string_to_key
+if test "$ac_res" != no; then :
+  test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
+
+fi
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing krb5_c_string_to_key_with_params" >&5
+$as_echo_n "checking for library containing krb5_c_string_to_key_with_params... " >&6; }
+if ${ac_cv_search_krb5_c_string_to_key_with_params+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_func_search_save_LIBS=$LIBS
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char krb5_c_string_to_key_with_params ();
+int
+main ()
+{
+return krb5_c_string_to_key_with_params ();
+  ;
+  return 0;
+}
+_ACEOF
+for ac_lib in '' krb5 k5crypto; do
+  if test -z "$ac_lib"; then
+    ac_res="none required"
+  else
+    ac_res=-l$ac_lib
+    LIBS="-l$ac_lib  $ac_func_search_save_LIBS"
+  fi
+  if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_search_krb5_c_string_to_key_with_params=$ac_res
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext
+  if ${ac_cv_search_krb5_c_string_to_key_with_params+:} false; then :
+  break
+fi
+done
+if ${ac_cv_search_krb5_c_string_to_key_with_params+:} false; then :
+
+else
+  ac_cv_search_krb5_c_string_to_key_with_params=no
+fi
+rm conftest.$ac_ext
+LIBS=$ac_func_search_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_search_krb5_c_string_to_key_with_params" >&5
+$as_echo "$ac_cv_search_krb5_c_string_to_key_with_params" >&6; }
+ac_res=$ac_cv_search_krb5_c_string_to_key_with_params
+if test "$ac_res" != no; then :
+  test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
+
+fi
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing krb5_free_keyblock_contents" >&5
+$as_echo_n "checking for library containing krb5_free_keyblock_contents... " >&6; }
+if ${ac_cv_search_krb5_free_keyblock_contents+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_func_search_save_LIBS=$LIBS
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char krb5_free_keyblock_contents ();
+int
+main ()
+{
+return krb5_free_keyblock_contents ();
+  ;
+  return 0;
+}
+_ACEOF
+for ac_lib in '' krb5 k5crypto; do
+  if test -z "$ac_lib"; then
+    ac_res="none required"
+  else
+    ac_res=-l$ac_lib
+    LIBS="-l$ac_lib  $ac_func_search_save_LIBS"
+  fi
+  if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_search_krb5_free_keyblock_contents=$ac_res
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext
+  if ${ac_cv_search_krb5_free_keyblock_contents+:} false; then :
+  break
+fi
+done
+if ${ac_cv_search_krb5_free_keyblock_contents+:} false; then :
+
+else
+  ac_cv_search_krb5_free_keyblock_contents=no
+fi
+rm conftest.$ac_ext
+LIBS=$ac_func_search_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_search_krb5_free_keyblock_contents" >&5
+$as_echo "$ac_cv_search_krb5_free_keyblock_contents" >&6; }
+ac_res=$ac_cv_search_krb5_free_keyblock_contents
+if test "$ac_res" != no; then :
+  test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
+  if test "x$ac_cv_search_krb5_c_string_to_key" = "xnone required"; then :
+
+$as_echo "#define HAVE_HEIMDAL 1" >>confdefs.h
+
+
+$as_echo "#define HAVE_MKSHIM 1" >>confdefs.h
+
+      krb5_found="yes (Heimdal w/ MKShim)"
+else
+  for ac_header in heim_err.h heimdal/heim_err.h
+do :
+  as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
+ac_fn_c_check_header_mongrel "$LINENO" "$ac_header" "$as_ac_Header" "$ac_includes_default"
+if eval test \"x\$"$as_ac_Header"\" = x"yes"; then :
   cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBKRB5 1
+#define `$as_echo "HAVE_$ac_header" | $as_tr_cpp` 1
 _ACEOF
 
-  LIBS="-lkrb5 $LIBS"
+$as_echo "#define HAVE_HEIMDAL 1" >>confdefs.h
 
+        krb5_found="yes, Heimdal"
+
+else
+  krb5_found="yes, MIT"
 fi
 
-  if test "x$ac_cv_lib_k5crypto_main" = xyes &&
-          test "x$ac_cv_lib_krb5_main" = xyes; then :
+done
+
+
+fi
 
 $as_echo "#define HAVE_KRB5 1" >>confdefs.h
 
     KRB5_LIBS="$LIBS"
 
-    krb5_found=yes
-    for ac_func in krb5_is_thread_safe
-do :
-  ac_fn_c_check_func "$LINENO" "krb5_is_thread_safe" "ac_cv_func_krb5_is_thread_safe"
-if test "x$ac_cv_func_krb5_is_thread_safe" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_KRB5_IS_THREAD_SAFE 1
-_ACEOF
 
 fi
-done
 
-
-fi
   LIBS="$BACKUP_LIBS"
 
 fi
@@ -9073,6 +9233,16 @@ fi
 fi
 
 
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for S/Key" >&5
+$as_echo_n "checking for S/Key... " >&6; }
+if test "x${ac_cv_lib_skey_skey_set_algorithm}" != xyes; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: using our own code" >&5
+$as_echo "using our own code" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: using system library" >&5
+$as_echo "using system library" >&6; }
+
+fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lkernel32" >&5
 $as_echo_n "checking for main in -lkernel32... " >&6; }
 if ${ac_cv_lib_kernel32_main+:} false; then :
@@ -14194,14 +14364,6 @@ fi
 if test "x$ac_cv_lib_gmp___gmpz_init" = x ; then
    ac_cv_lib_gmp___gmpz_init=no
 fi
-if test "x$ac_cv_lib_skey_skey_set_algorithm" = x ; then
-   ac_cv_lib_skey_skey_set_algorithm=no
-fi
-if test "x${ac_cv_lib_skey_skey_set_algorithm}" = xno ; then
-   skey_found="jtr code"
-else
-   skey_found="$ac_cv_lib_skey_skey_set_algorithm"
-fi
 if test "x$ac_cv_lib_pcap_pcap_compile" = x ; then
    ac_cv_lib_pcap_pcap_compile=no
 fi
@@ -14238,7 +14400,6 @@ Optional libraries found:
 Rexgen (extra cracking mode) ................ ${using_rexgen}
 GMP (performance) ........................... ${ac_cv_lib_gmp___gmpz_init}
 NSS/NSPR (Mozilla format) ................... ${using_nss}
-S/Key (skey format) ......................... ${skey_found}
 Kerberos5 (krb5-18/23 formats) .............. ${krb5_found}
 PCAP (vncpcap2john and SIPdump) ............. ${ac_cv_lib_pcap_pcap_compile}
 

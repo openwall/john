@@ -14,7 +14,7 @@
  * - user:hash
  */
 #if AC_BUILT
-/* need to know if DHAVE_KRB5 and HAVE_LIBDL is set, for autoconfig build */
+/* need to know if DHAVE_KRB5 is set, for autoconfig build */
 #include "autoconfig.h"
 #endif
 
@@ -29,9 +29,6 @@
 #include "params.h"
 #include "options.h"
 #include <krb5.h>
-#if !HAVE_KRB5_IS_THREAD_SAFE
-#undef _OPENMP
-#endif
 #ifdef _OPENMP
 #include <omp.h>
 #define OMP_SCALE               64
@@ -61,14 +58,16 @@
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 
-#if defined(__APPLE__) && defined(__MACH__)
+#if !AC_BUILT && defined(__APPLE__) && defined(__MACH__)
 #ifdef __MAC_OS_X_VERSION_MIN_REQUIRED
 #if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
-#define USE_HEIMDAL
+#define HAVE_MKSHIM
+#define HAVE_HEIMDAL
 #endif
 #endif
 #endif
 
+/* Does some system not declare this in krb5.h? */
 extern krb5_error_code KRB5_CALLCONV
 krb5_c_string_to_key_with_params(krb5_context context, krb5_enctype enctype,
                                  const krb5_data *string,
@@ -184,7 +183,7 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 
 		string.data = saved_key[index];
 		string.length = strlen(saved_key[index]);
-#ifdef USE_HEIMDAL
+#ifdef HAVE_MKSHIM
 		krb5_c_string_to_key(NULL, ENCTYPE_ARCFOUR_HMAC, &string,
 		                     &salt, &key);
 #else
@@ -197,7 +196,7 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 				(key.contents[4 * i + 2] << 16) |
 				(key.contents[4 * i + 3] << 24);
 		}
-#ifndef USE_HEIMDAL  // Heimdal automatically does heim_krb5_free_keyblock_contents
+#ifndef HAVE_HEIMDAL  // Heimdal does this automatically
 		krb5_free_keyblock_contents(NULL, &key);
 #endif
 	}

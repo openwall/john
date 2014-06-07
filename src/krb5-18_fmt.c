@@ -30,9 +30,6 @@
 #include "params.h"
 #include "options.h"
 #include <krb5.h>
-#if !HAVE_KRB5_IS_THREAD_SAFE
-#undef _OPENMP
-#endif
 #ifdef _OPENMP
 #include <omp.h>
 #define OMP_SCALE               4
@@ -62,14 +59,15 @@
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 
-#if defined(__APPLE__) && defined(__MACH__)
+#if !AC_BUILT && defined(__APPLE__) && defined(__MACH__)
 #ifdef __MAC_OS_X_VERSION_MIN_REQUIRED
 #if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
-#define USE_HEIMDAL
+#define HAVE_MKSHIM
 #endif
 #endif
 #endif
 
+/* Does some system not declare this in krb5.h? */
 extern krb5_error_code KRB5_CALLCONV
 krb5_c_string_to_key_with_params(krb5_context context, krb5_enctype enctype,
                                  const krb5_data *string,
@@ -215,7 +213,7 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 		salt.length = strlen(salt.data);
 		string.data = saved_key[index];
 		string.length = strlen(saved_key[index]);
-#ifdef USE_HEIMDAL
+#ifdef HAVE_MKSHIM
 		krb5_c_string_to_key (NULL, ENCTYPE_AES256_CTS_HMAC_SHA1_96,
 		                      &string, &salt, &key);
 #else

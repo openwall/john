@@ -8,6 +8,16 @@
 # There's ABSOLUTELY NO WARRANTY, express or implied.
 #
 
+dnl TODO: This is the suggested order for tests:
+dnl checks for programs
+dnl checks for libraries
+dnl checks for header files
+dnl checks for types
+dnl checks for structures
+dnl checks for compiler characteristics
+dnl checks for library functions
+dnl checks for system services
+
 AC_PREREQ([2.69])
 AC_INIT([john], [1.8.0.2-bleeding-jumbo],[john-users mailing list at openwall.com])
 ##  AM_INIT_AUTOMAKE([foreign subdir-objects])
@@ -352,23 +362,35 @@ LIBS=""
 AC_SEARCH_LIBS([crypt],[crypt],[AC_DEFINE(HAVE_CRYPT,1,[Define to 1 if you have the `crypt' library (-lcrypt).])])
 AC_SUBST(CRYPT_LIBS, [$LIBS])
 LIBS="$BACKUP_LIBS"
-# Check for MIT or Heimdal Kerberos5 libs
+# Check for Kerberos5 libs
 krb5_found=no
 AC_CHECK_HEADER([krb5.h],
-  [AC_CHECK_LIB([k5crypto], [main])]
-  [AC_CHECK_LIB([krb5], [main])]
-  [AS_IF([test "x$ac_cv_lib_k5crypto_main" = xyes &&
-          test "x$ac_cv_lib_krb5_main" = xyes],
-    [AC_DEFINE([HAVE_KRB5],1,[Define to 1 if you have the `krb5' and `k5crypto' libs.])]
+  [AC_SEARCH_LIBS([krb5_is_thread_safe], [krb5 k5crypto])]
+  [AC_SEARCH_LIBS([krb5_c_string_to_key], [krb5 k5crypto])]
+  [AC_SEARCH_LIBS([krb5_c_string_to_key_with_params], [krb5 k5crypto])]
+  [AC_SEARCH_LIBS([krb5_free_keyblock_contents], [krb5 k5crypto],
+    [AS_IF([test "x$ac_cv_search_krb5_c_string_to_key" = "xnone required"],
+      [AC_DEFINE([HAVE_HEIMDAL],1,[Define to 1 if you have Heimdal krb5.])]
+      [AC_DEFINE([HAVE_MKSHIM],1,[Define to 1 if you have Heimdal with MKShim.])]
+      [krb5_found="yes (Heimdal w/ MKShim)"],
+      [AC_CHECK_HEADERS([heim_err.h heimdal/heim_err.h],
+        [AC_DEFINE([HAVE_HEIMDAL],1,[Define to 1 if you have Heimdal krb5.])]
+        [krb5_found="yes, Heimdal"]
+       ,[krb5_found="yes, MIT"])]
+    )]
+    [AC_DEFINE([HAVE_KRB5],1,[Define to 1 if you have the Kerberos 5 libs.])]
     [AC_SUBST(KRB5_LIBS, ["$LIBS"])]
-    [krb5_found=yes]
-    [AC_CHECK_FUNCS([krb5_is_thread_safe])]
   )]
   [LIBS="$BACKUP_LIBS"]
 )
 AC_CHECK_HEADERS([gmp.h] [gmp/gmp.h], [AC_CHECK_LIB([gmp],[__gmpz_init], AC_DEFINE([HAVE_LIBGMP],1,[Define to 1 if you have the `gmp' library (-lgmp).]) [AC_SUBST(GMP_LIBS, [-lgmp])])] [break])
 AC_CHECK_HEADER([skey.h], [AC_CHECK_LIB([skey],[skey_set_algorithm],
                           AC_DEFINE([HAVE_SKEY],1,[Define to 1 if you have skey library and headers]) [AC_SUBST(SKEY_LIBS, [-lskey])])])
+AC_MSG_CHECKING([for S/Key])
+AS_IF([test "x${ac_cv_lib_skey_skey_set_algorithm}" != xyes],
+   [AC_MSG_RESULT([using our own code])],
+   [AC_MSG_RESULT([using system library])]
+)
 AC_CHECK_LIB([kernel32],[main])
 AC_CHECK_LIB([dl],[dlopen],[AC_DEFINE(HAVE_LIBDL,1,[Define to 1 if you have the `dl' library (-ldl).])] [AC_SUBST(DL_LIBS, [-ldl])])
 using_rexgen=no
@@ -685,14 +707,6 @@ fi
 if test "x$ac_cv_lib_gmp___gmpz_init" = x ; then
    ac_cv_lib_gmp___gmpz_init=no
 fi
-if test "x$ac_cv_lib_skey_skey_set_algorithm" = x ; then
-   ac_cv_lib_skey_skey_set_algorithm=no
-fi
-if test "x${ac_cv_lib_skey_skey_set_algorithm}" = xno ; then
-   skey_found="jtr code"
-else
-   skey_found="$ac_cv_lib_skey_skey_set_algorithm"
-fi
 if test "x$ac_cv_lib_pcap_pcap_compile" = x ; then
    ac_cv_lib_pcap_pcap_compile=no
 fi
@@ -729,7 +743,6 @@ Optional libraries found:
 Rexgen (extra cracking mode) ................ ${using_rexgen}
 GMP (performance) ........................... ${ac_cv_lib_gmp___gmpz_init}
 NSS/NSPR (Mozilla format) ................... ${using_nss}
-S/Key (skey format) ......................... ${skey_found}
 Kerberos5 (krb5-18/23 formats) .............. ${krb5_found}
 PCAP (vncpcap2john and SIPdump) ............. ${ac_cv_lib_pcap_pcap_compile}
 
