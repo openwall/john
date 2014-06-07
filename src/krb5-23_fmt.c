@@ -18,7 +18,7 @@
 #include "autoconfig.h"
 #endif
 
-#if HAVE_KRB5
+#if HAVE_KRB5 && !HAVE_HEIMDAL
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
@@ -62,7 +62,6 @@
 #ifdef __MAC_OS_X_VERSION_MIN_REQUIRED
 #if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
 #define HAVE_MKSHIM
-#define HAVE_HEIMDAL
 #endif
 #endif
 #endif
@@ -196,7 +195,7 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 				(key.contents[4 * i + 2] << 16) |
 				(key.contents[4 * i + 3] << 24);
 		}
-#ifndef HAVE_HEIMDAL  // Heimdal does this automatically
+#ifndef HAVE_MKSHIM  // MKShim does this automatically
 		krb5_free_keyblock_contents(NULL, &key);
 #endif
 	}

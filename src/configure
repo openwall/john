@@ -8890,7 +8890,7 @@ return krb5_is_thread_safe ();
   return 0;
 }
 _ACEOF
-for ac_lib in '' krb5 k5crypto krb5support; do
+for ac_lib in '' krb5 k5crypto; do
   if test -z "$ac_lib"; then
     ac_res="none required"
   else
@@ -8946,7 +8946,7 @@ return krb5_c_string_to_key ();
   return 0;
 }
 _ACEOF
-for ac_lib in '' krb5 k5crypto krb5support; do
+for ac_lib in '' krb5 k5crypto; do
   if test -z "$ac_lib"; then
     ac_res="none required"
   else
@@ -9002,7 +9002,7 @@ return krb5_c_string_to_key_with_params ();
   return 0;
 }
 _ACEOF
-for ac_lib in '' krb5 k5crypto krb5support; do
+for ac_lib in '' krb5 k5crypto; do
   if test -z "$ac_lib"; then
     ac_res="none required"
   else
@@ -9058,7 +9058,7 @@ return krb5_free_keyblock_contents ();
   return 0;
 }
 _ACEOF
-for ac_lib in '' krb5 k5crypto krb5support; do
+for ac_lib in '' krb5 k5crypto; do
   if test -z "$ac_lib"; then
     ac_res="none required"
   else
@@ -9089,9 +9089,6 @@ if test "$ac_res" != no; then :
   test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
   if test "x$ac_cv_search_krb5_c_string_to_key" = "xnone required"; then :
 
-$as_echo "#define HAVE_HEIMDAL 1" >>confdefs.h
-
-
 $as_echo "#define HAVE_MKSHIM 1" >>confdefs.h
 
       krb5_found="yes (Heimdal w/ MKShim)"
@@ -9107,10 +9104,11 @@ _ACEOF
 
 $as_echo "#define HAVE_HEIMDAL 1" >>confdefs.h
 
-        krb5_found="yes, Heimdal"
+        #[krb5_found="yes, Heimdal"]
+        krb5_found="no (Heimdal found)"
 
 else
-  krb5_found="yes, MIT"
+  krb5_found="yes (MIT)"
 fi
 
 done

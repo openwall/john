@@ -19,7 +19,7 @@
 #include "autoconfig.h"
 #endif
 
-#if HAVE_KRB5
+#if HAVE_KRB5 && !HAVE_HEIMDAL
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
