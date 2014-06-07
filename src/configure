@@ -8862,7 +8862,7 @@ fi
 CRYPT_LIBS=$LIBS
 
 LIBS="$BACKUP_LIBS"
-# Check for Kerberos5 libs
+# Check for Kerberos 5 libs.
 krb5_found=no
 ac_fn_c_check_header_mongrel "$LINENO" "krb5.h" "ac_cv_header_krb5_h" "$ac_includes_default"
 if test "x$ac_cv_header_krb5_h" = xyes; then :
@@ -8890,7 +8890,7 @@ return krb5_is_thread_safe ();
   return 0;
 }
 _ACEOF
-for ac_lib in '' krb5 k5crypto; do
+for ac_lib in '' krb5 k5crypto krb5support; do
   if test -z "$ac_lib"; then
     ac_res="none required"
   else
@@ -8946,7 +8946,7 @@ return krb5_c_string_to_key ();
   return 0;
 }
 _ACEOF
-for ac_lib in '' krb5 k5crypto; do
+for ac_lib in '' krb5 k5crypto krb5support; do
   if test -z "$ac_lib"; then
     ac_res="none required"
   else
@@ -9002,7 +9002,7 @@ return krb5_c_string_to_key_with_params ();
   return 0;
 }
 _ACEOF
-for ac_lib in '' krb5 k5crypto; do
+for ac_lib in '' krb5 k5crypto krb5support; do
   if test -z "$ac_lib"; then
     ac_res="none required"
   else
@@ -9058,7 +9058,7 @@ return krb5_free_keyblock_contents ();
   return 0;
 }
 _ACEOF
-for ac_lib in '' krb5 k5crypto; do
+for ac_lib in '' krb5 k5crypto krb5support; do
   if test -z "$ac_lib"; then
     ac_res="none required"
   else

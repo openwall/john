@@ -362,13 +362,13 @@ LIBS=""
 AC_SEARCH_LIBS([crypt],[crypt],[AC_DEFINE(HAVE_CRYPT,1,[Define to 1 if you have the `crypt' library (-lcrypt).])])
 AC_SUBST(CRYPT_LIBS, [$LIBS])
 LIBS="$BACKUP_LIBS"
-# Check for Kerberos5 libs
+# Check for Kerberos 5 libs.
 krb5_found=no
 AC_CHECK_HEADER([krb5.h],
-  [AC_SEARCH_LIBS([krb5_is_thread_safe], [krb5 k5crypto])]
-  [AC_SEARCH_LIBS([krb5_c_string_to_key], [krb5 k5crypto])]
-  [AC_SEARCH_LIBS([krb5_c_string_to_key_with_params], [krb5 k5crypto])]
-  [AC_SEARCH_LIBS([krb5_free_keyblock_contents], [krb5 k5crypto],
+  [AC_SEARCH_LIBS([krb5_is_thread_safe], [krb5 k5crypto krb5support])]
+  [AC_SEARCH_LIBS([krb5_c_string_to_key], [krb5 k5crypto krb5support])]
+  [AC_SEARCH_LIBS([krb5_c_string_to_key_with_params], [krb5 k5crypto krb5support])]
+  [AC_SEARCH_LIBS([krb5_free_keyblock_contents], [krb5 k5crypto krb5support],
     [AS_IF([test "x$ac_cv_search_krb5_c_string_to_key" = "xnone required"],
       [AC_DEFINE([HAVE_HEIMDAL],1,[Define to 1 if you have Heimdal krb5.])]
       [AC_DEFINE([HAVE_MKSHIM],1,[Define to 1 if you have Heimdal with MKShim.])]
