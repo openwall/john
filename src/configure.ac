@@ -400,6 +400,8 @@ AS_IF([test "x${ac_cv_lib_skey_skey_set_algorithm}" != xyes],
    [AC_MSG_RESULT([using our own code])],
    [AC_MSG_RESULT([using system library])]
 )
+AC_CHECK_HEADER([bzlib.h], [AC_CHECK_LIB([bz2],[main],
+                          AC_DEFINE([HAVE_LIBBZ2],1,[Define to 1 if you have bz2 library and headers]) [AC_SUBST(BZ2_LIBS, [-lbz2])])])
 AC_CHECK_LIB([kernel32],[main])
 AC_CHECK_LIB([dl],[dlopen],[AC_DEFINE(HAVE_LIBDL,1,[Define to 1 if you have the `dl' library (-ldl).])] [AC_SUBST(DL_LIBS, [-ldl])])
 using_rexgen=no
@@ -705,6 +707,12 @@ else
    using_crypt=no
 fi
 
+if test "x$ac_cv_lib_bz2_main" != xno; then
+   using_bz2=yes
+else
+   using_bz2=no
+fi
+
 if test "x$host_cpu" != "x$CPU_STR" ; then
    host_cpu="$host_cpu $CPU_STR"
 fi
@@ -754,6 +762,7 @@ GMP (performance) ........................... ${ac_cv_lib_gmp___gmpz_init}
 NSS/NSPR (Mozilla format) ................... ${using_nss}
 Kerberos5 (krb5-18/23 formats) .............. ${krb5_found}
 PCAP (vncpcap2john and SIPdump) ............. ${ac_cv_lib_pcap_pcap_compile}
+BZ2 (gpg2john extra decompression logic) .... ${using_bz2}
 
 Install missing libraries to get any needed features that were omitted.
 

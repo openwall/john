@@ -141,6 +141,9 @@
 /* Define to 1 if you have the Kerberos 5 libs. */
 #undef HAVE_KRB5
 
+/* Define to 1 if you have bz2 library and headers */
+#undef HAVE_LIBBZ2
+
 /* Define to 1 if you have the `crypto' library (-lcrypto). */
 #undef HAVE_LIBCRYPTO
 
