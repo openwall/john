@@ -89,7 +89,7 @@ static int john_omp_threads_new;
 #include "dynamic.h"
 #include "fake_salts.h"
 #include "listconf.h"
-#ifdef HAVE_MPI
+#if HAVE_MPI
 #include "john-mpi.h"
 #endif
 #include "regex.h"
@@ -97,10 +97,10 @@ static int john_omp_threads_new;
 #include <openssl/opensslv.h>
 #include "unicode.h"
 #include "plugin.h"
-#ifdef HAVE_OPENCL
+#if HAVE_OPENCL
 #include "common-opencl.h"
 #endif
-#ifdef HAVE_CUDA
+#if HAVE_CUDA
 #include "cuda_common.h"
 #endif
 #ifdef NO_JOHN_BLD
@@ -109,7 +109,7 @@ static int john_omp_threads_new;
 #include "john_build_rule.h"
 #endif
 
-#ifdef HAVE_MPI
+#if HAVE_MPI
 #ifdef _OPENMP
 #define _MP_VERSION " MPI + OMP"
 #else
@@ -131,7 +131,7 @@ extern int CPU_detect(void);
 extern struct fmt_main fmt_DES, fmt_BSDI, fmt_MD5, fmt_BF;
 extern struct fmt_main fmt_scrypt;
 extern struct fmt_main fmt_AFS, fmt_LM;
-#ifdef HAVE_CRYPT
+#if HAVE_CRYPT
 extern struct fmt_main fmt_crypt;
 #endif
 extern struct fmt_main fmt_trip;
@@ -155,7 +155,7 @@ extern struct fmt_main fmt_bitcoin;
 #ifdef __SSE2__
 extern struct fmt_main fmt_rawSHA256_ng;
 extern struct fmt_main fmt_rawSHA512_ng;
-#ifndef _MSC_VER
+#if !_MSC_VER
 extern struct fmt_main fmt_sha1_ng;
 #endif
 #endif
@@ -166,17 +166,17 @@ extern struct fmt_main fmt_rawSHA256_ng_i;
 extern struct fmt_main fmt_rawSHA512_ng_i;
 #endif
 
-#ifdef HAVE_NSS
+#if HAVE_NSS
 extern struct fmt_main fmt_mozilla;
 extern int mozilla2john(int argc, char **argv);
 #endif
-#if HAVE_KRB5 && !HAVE_HEIMDAL
+#if HAVE_KRB5
 extern struct fmt_main fmt_krb5_18;
 extern struct fmt_main fmt_KRB5_kinit;
 #endif
 extern int hccap2john(int argc, char **argv);
 
-#ifdef HAVE_OPENCL
+#if HAVE_OPENCL
 extern struct fmt_main fmt_opencl_DES;
 extern struct fmt_main fmt_opencl_NSLDAPS;
 extern struct fmt_main fmt_opencl_NT;
@@ -223,7 +223,7 @@ extern struct fmt_main fmt_opencl_pbkdf2_hmac_sha512;
 extern struct fmt_main fmt_opencl_rakp;
 extern struct fmt_main fmt_opencl_o5logon;
 #endif
-#ifdef HAVE_CUDA
+#if HAVE_CUDA
 extern struct fmt_main fmt_cuda_cryptmd5;
 extern struct fmt_main fmt_cuda_cryptsha256;
 extern struct fmt_main fmt_cuda_cryptsha512;
@@ -403,10 +403,10 @@ static void john_register_all(void)
 	john_register_one(&fmt_sha1_ng);
 #endif
 
-#ifdef HAVE_NSS
+#if HAVE_NSS
 	john_register_one(&fmt_mozilla);
 #endif
-#if HAVE_KRB5 && !HAVE_HEIMDAL
+#if HAVE_KRB5
 	john_register_one(&fmt_krb5_18);
 	john_register_one(&fmt_KRB5_kinit);
 #endif
@@ -417,7 +417,7 @@ static void john_register_all(void)
 	john_register_one(&fmt_wpapsk);
 	john_register_one(&fmt_zip);
 
-#ifdef HAVE_OPENCL
+#if HAVE_OPENCL
 	john_register_one(&fmt_opencl_DES);
 	john_register_one(&fmt_opencl_NSLDAPS);
 	john_register_one(&fmt_opencl_NT);
@@ -465,7 +465,7 @@ static void john_register_all(void)
 	john_register_one(&fmt_opencl_o5logon);
 #endif
 
-#ifdef HAVE_CUDA
+#if HAVE_CUDA
 	john_register_one(&fmt_cuda_cryptmd5);
 	john_register_one(&fmt_cuda_cryptsha256);
 	john_register_one(&fmt_cuda_cryptsha512);
@@ -479,11 +479,11 @@ static void john_register_all(void)
 	john_register_one(&fmt_cuda_wpapsk);
 	john_register_one(&fmt_cuda_xsha512);
 #endif
-#ifdef HAVE_CRYPT
+#if HAVE_CRYPT
 	john_register_one(&fmt_crypt);
 #endif
 
-#ifdef HAVE_LIBDL
+#if HAVE_LIBDL
 	if (options.fmt_dlls)
 	register_dlls ( options.fmt_dlls,
 		cfg_get_param(SECTION_OPTIONS, NULL, "plugin"),
@@ -501,13 +501,13 @@ static void john_log_format(void)
 {
 	int min_chunk, chunk;
 
-#ifdef HAVE_MPI
+#if HAVE_MPI
 	if (mpi_p > 1)
 		log_event("- MPI: Node %u/%u running on %s",
 		          mpi_id + 1, mpi_p, mpi_name);
 #endif
 	/* make sure the format is properly initialized */
-#ifdef HAVE_OPENCL
+#if HAVE_OPENCL
 	if (!(options.gpu_devices->count && options.fork))
 #endif
 	fmt_init(database.format);
@@ -565,7 +565,7 @@ static void john_omp_maybe_adjust_or_fallback(char **argv)
 			john_omp_threads_new = 1;
 		omp_set_num_threads(john_omp_threads_new);
 		john_omp_init();
-#ifdef HAVE_JOHN_OMP_FALLBACK
+#if HAVE_JOHN_OMP_FALLBACK
 		john_omp_fallback(argv);
 #endif
 	}
@@ -573,7 +573,7 @@ static void john_omp_maybe_adjust_or_fallback(char **argv)
 
 static void john_omp_show_info(void)
 {
-#ifdef HAVE_MPI
+#if HAVE_MPI
 	if (mpi_p == 1)
 #endif
 	if (database.format && database.format->params.label &&
@@ -621,7 +621,7 @@ static void john_omp_show_info(void)
 			return;
 	}
 
-#ifdef HAVE_MPI
+#if HAVE_MPI
 	/*
 	 * If OMP_NUM_THREADS is set, we assume the user knows what
 	 * he is doing. Here's how to pass it to remote hosts:
@@ -678,7 +678,7 @@ static void john_fork(void)
 	fflush(stdout);
 	fflush(stderr);
 
-#ifdef HAVE_MPI
+#if HAVE_MPI
 /*
  * We already initialized MPI before knowing this is actually a fork session.
  * So now we need to tear that "1-node MPI session" down before forking, or
@@ -705,7 +705,7 @@ static void john_fork(void)
 		case 0:
 			options.node_min += i;
 			options.node_max = options.node_min;
-#ifdef HAVE_OPENCL
+#if HAVE_OPENCL
 			// Poor man's multi-device support
 			if (options.gpu_devices->count) {
 				// Pick device to use for this child
@@ -740,7 +740,7 @@ static void john_fork(void)
 		}
 	}
 
-#ifdef HAVE_OPENCL
+#if HAVE_OPENCL
 	// Poor man's multi-device support
 	if (options.gpu_devices->count) {
 		// Pick device to use for mother process
@@ -766,7 +766,7 @@ static void john_fork(void)
  * This is the "equivalent" of john_fork() for MPI runs. We are mostly
  * mimicing a -fork run, especially for resuming a session.
  */
-#ifdef HAVE_MPI
+#if HAVE_MPI
 static void john_set_mpi(void)
 {
 	options.node_min += mpi_id;
@@ -830,7 +830,7 @@ static void john_wait(void)
 }
 #endif
 
-#ifdef HAVE_MPI
+#if HAVE_MPI
 static void john_mpi_wait(void)
 {
 	if (!database.password_count && !options.reload_at_crack) {
@@ -949,7 +949,7 @@ static void john_load_conf(void)
 	if (cfg_get_bool(SECTION_OPTIONS, NULL, "CrackStatus", 0))
 		options.flags ^= FLG_CRKSTAT;
 
-#ifdef HAVE_OPENCL
+#if HAVE_OPENCL
 	if (cfg_get_bool(SECTION_OPTIONS, SUBSECTION_OPENCL, "ForceScalar", 0))
 		options.flags |= FLG_SCALAR;
 #endif
@@ -1181,7 +1181,7 @@ static void john_load(void)
 				log_event("Starting a new session");
 			log_event("Loaded a total of %s", john_loaded_counts());
 			/* make sure the format is properly initialized */
-#ifdef HAVE_OPENCL
+#if HAVE_OPENCL
 			if (!(options.gpu_devices->count && options.fork))
 #endif
 			fmt_init(database.format);
@@ -1318,7 +1318,7 @@ static void john_load(void)
 			log_flush();
 			john_fork();
 		}
-#ifdef HAVE_MPI
+#if HAVE_MPI
 		if (mpi_p > 1)
 			john_set_mpi();
 #endif
@@ -1367,7 +1367,7 @@ static void john_init(char *name, int argc, char **argv)
 #endif
 
 	if (!make_check) {
-#ifdef HAVE_JOHN_OMP_FALLBACK
+#if HAVE_JOHN_OMP_FALLBACK
 		john_omp_fallback(argv);
 #endif
 
@@ -1408,7 +1408,7 @@ static void john_init(char *name, int argc, char **argv)
 		}
 	}
 
-#ifdef HAVE_OPENCL
+#if HAVE_OPENCL
 	gpu_id = -1;
 #endif
 
@@ -1568,7 +1568,7 @@ static void john_run(void)
 			john_wait();
 #endif
 
-#ifdef HAVE_MPI
+#if HAVE_MPI
 		if (mpi_p > 1)
 			john_mpi_wait();
 #endif
@@ -1622,11 +1622,11 @@ static void john_done(void)
 		fmt_done(database.format);
 	}
 	log_done();
-#ifdef HAVE_OPENCL
+#if HAVE_OPENCL
 	if (!(options.flags & FLG_FORK) || john_main_process)
 		opencl_done();
 #endif
-#ifdef HAVE_CUDA
+#if HAVE_CUDA
 	if (!(options.flags & FLG_FORK) || john_main_process)
 		cuda_done();
 #endif
@@ -1766,7 +1766,7 @@ int main(int argc, char **argv)
 #endif
 #endif
 
-#ifdef HAVE_NSS
+#if HAVE_NSS
 	if (!strcmp(name, "mozilla2john")) {
 		CPU_detect_or_fallback(argv, 0);
 		return mozilla2john(argc, argv);
@@ -1784,7 +1784,7 @@ int main(int argc, char **argv)
 	}
 #endif
 
-#ifdef HAVE_MPI
+#if HAVE_MPI
 	mpi_setup(argc, argv);
 #else
 	if (getenv("OMPI_COMM_WORLD_SIZE"))

@@ -39,12 +39,12 @@
 #include "dynamic.h"
 #include "config.h"
 
-#ifdef HAVE_NSS
+#if HAVE_NSS
 #include "nss.h"
 //#include "nssutil.h"
 #include "nspr.h"
 #endif
-#ifdef HAVE_LIBGMP
+#if HAVE_LIBGMP
 #if HAVE_GMP_GMP_H
 #include "gmp/gmp.h"
 #else
@@ -52,7 +52,7 @@
 #endif
 #endif
 
-#ifdef HAVE_KRB5 && !HAVE_HEIMDAL
+#if HAVE_KRB5
 #include <krb5.h>
 #endif
 
@@ -62,16 +62,16 @@
 #include "john_build_rule.h"
 #endif
 
-#ifdef HAVE_CUDA
+#if HAVE_CUDA
 extern char *get_cuda_header_version();
 extern void cuda_device_list();
 #endif
-#ifdef HAVE_OPENCL
+#if HAVE_OPENCL
 #include "common-opencl.h"
 #endif
 #include "memdbg.h"
 
-#ifdef HAVE_MPI
+#if HAVE_MPI
 #ifdef _OPENMP
 #define _MP_VERSION " MPI + OMP"
 #else
@@ -106,10 +106,10 @@ static void listconf_list_options()
 	// With "opencl-devices, cuda-devices, <conf section name>" added,
 	// the resulting line will get too long
 	puts("format-tests, sections, parameters:SECTION, list-data:SECTION,");
-#ifdef HAVE_OPENCL
+#if HAVE_OPENCL
 	printf("opencl-devices, ");
 #endif
-#ifdef HAVE_CUDA
+#if HAVE_CUDA
 	printf("cuda-devices, ");
 #endif
 	/* NOTE: The following must end the list. Anything listed after
@@ -177,10 +177,10 @@ static void listconf_list_build_info(void)
 #ifdef __clang_version__
 	printf("clang version: %s\n", __clang_version__);
 #endif
-#ifdef HAVE_CUDA
+#if HAVE_CUDA
 	printf("CUDA library version: %s\n",get_cuda_header_version());
 #endif
-#ifdef HAVE_OPENCL
+#if HAVE_OPENCL
 	printf("OpenCL library version: %s\n",get_opencl_header_version());
 #endif
 #ifdef OPENSSL_VERSION_NUMBER
@@ -216,7 +216,7 @@ static void listconf_list_build_info(void)
 #ifdef PR_VERSION
 	printf("NSPR library version: %s\n", PR_VERSION);
 #endif
-#ifdef HAVE_KRB5 && !HAVE_HEIMDAL
+#ifdef KRB5_PVNO
 	// I have no idea how to get version info
 	printf("Kerberos version %d support enabled\n", KRB5_PVNO);
 #endif
@@ -291,14 +291,14 @@ void listconf_parse_early(void)
 		listEncodings();
 		exit(0);
 	}
-#ifdef HAVE_OPENCL
+#if HAVE_OPENCL
 	if (!strcasecmp(options.listconf, "opencl-devices"))
 	{
 		opencl_list_devices();
 		exit(0);
 	}
 #endif
-#ifdef HAVE_CUDA
+#if HAVE_CUDA
 	if (!strcasecmp(options.listconf, "cuda-devices"))
 	{
 		cuda_device_list();

@@ -9128,6 +9128,23 @@ fi
 fi
 
 
+# if nether of these functions found, then totally scrap all krb5 usage.  HOWEVER, this puts a lot of
+# DEFINE XYZ 0 into the autoconfig.h file, so we MUST use #if xyz and NOT #ifdef xyz since xyz 'is' defined.
+if test "x$ac_cv_search_krb5_c_string_to_key" = xno -a "x$ac_cv_search_krb5_c_string_to_key_with_params" = xno; then :
+
+$as_echo "#define HAVE_KRB5 0" >>confdefs.h
+
+  KRB5_LIBS=""
+
+  krb5_found="no"
+
+$as_echo "#define HAVE_MKSHIM 0" >>confdefs.h
+
+
+$as_echo "#define HAVE_HEIMDAL 0" >>confdefs.h
+
+fi
+
 for ac_header in gmp.h gmp/gmp.h
 do :
   as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
