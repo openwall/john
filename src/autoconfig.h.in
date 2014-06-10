@@ -39,12 +39,6 @@
 /* Define to 1 if you have the `atoll' function. */
 #undef HAVE_ATOLL
 
-/* enable if compiling for AVX architecture */
-#undef HAVE_AVX
-
-/* enable if compiling for AVX2 architecture */
-#undef HAVE_AVX2
-
 /* Define to 1 if you have the `BIO_new' function. */
 #undef HAVE_BIO_NEW
 
@@ -213,9 +207,6 @@
 /* Define to 1 if you have a working `mmap' system call. */
 #undef HAVE_MMAP
 
-/* enable if compiling for MMX architecture */
-#undef HAVE_MMX
-
 /* Define to 1 if you have the <netdb.h> header file. */
 #undef HAVE_NETDB_H
 
@@ -284,15 +275,6 @@
 
 /* Define to 1 if you have the `sprintf_s' function. */
 #undef HAVE_SPRINTF_S
-
-/* enable if compiling for SSE2 architecture */
-#undef HAVE_SSE2
-
-/* enable if compiling for SSE4.1 architecture */
-#undef HAVE_SSE4_1
-
-/* enable if compiling for SSSE3 architecture */
-#undef HAVE_SSSE3
 
 /* Define to 1 if you have the <stddef.h> header file. */
 #undef HAVE_STDDEF_H
@@ -404,9 +386,6 @@
 
 /* Define to 1 if `vfork' works. */
 #undef HAVE_WORKING_VFORK
-
-/* enable if compiling for XOP architecture */
-#undef HAVE_XOP
 
 /* Define to 1 if you have the `_atoi64' function. */
 #undef HAVE__ATOI64
