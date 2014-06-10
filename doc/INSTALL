@@ -114,42 +114,27 @@ usually not affected by this potential problem.
 
 	Optimal build on OS X (Jumbo specific)
 
-[This section is not yet updated for "autoconf" as mentioned above. On the
-other hand, autoconf is likely to do fine without it]
-
 Using OS X, you can install Xcode (free) and then its "command line tools"
-and after that the "macosx-x86-64" target should work fine. However, this
-results in suboptimal performance (AVX is not used, and some formats are
-disabled due to ancient OpenSSL). Here's how to make the best possible
-of your hardware. There are alternatives that probably work fine but these
-instructions are for "Homebrew" (http://mxcl.github.io/homebrew/).
+and after that a normal build should work fine. However, using native
+gcc (which is really clang) results in suboptimal performance and some
+formats are disabled due to ancient OpenSSL.
 
-  1. Install Homebrew
-  2. Install Homebrew's openssl and gcc
-  3. From your base "john" directory:
-	cp -avi src/osx_as_wrapper.sh /usr/local/bin/as
+Here's how to make the best possible of your hardware. There are alternatives
+that probably work fine but these instructions are for "Homebrew":
+
+  1. Install Homebrew:
+	http://mxcl.github.io/homebrew/
+  2. Install Homebrew's gcc and openssl:
+	brew install gcc openssl
+  3. From John's "src" directory:
+	cp -avi osx_as_wrapper.sh /usr/local/bin/as
   4. Link whatever gcc version you got from Homebrew to just "gcc" in the
      /usr/local/bin directory. This example is for gcc-4.7:
         ln -s gcc-4.7 /usr/local/bin/gcc
   5. Make sure /usr/local/bin preceeds /usr/bin in your $PATH
 
-After the above, you should be able to build "macosx-x86-64-native" which
-may use AVX and/or whatever extra features your CPU has got.
-
-UPDATE: It seems OS X 10.9 Mavericks (and on, hopefully) can build the
--native target without any external tools or tricks. However, the above
-instructions (using a real gcc as opposed to Apple's llvm-based one) may
-still result in a slightly better performing build.
-
-
-	OpenSSL on OS X
-
-The native OpenSSL in OSX is older than your mother. Install a newer one
-like this (Homebrew example):
-
-  $ brew install openssl
-  $ ln -s /usr/local/opt/openssl /usr/local/ssl
-
+After the above, you should be able to get an optimal build with AVX and/or
+whatever extra features your CPU has got.
 
 	CUDA on OS X
 
