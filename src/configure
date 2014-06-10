@@ -7260,8 +7260,46 @@ else
      { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
      if test y$ARCH_LINK = yx86-any.h; then :
-  ARCH_LINK=x86-mmx.h
+
+		  CC="$CC_BACKUP -mmmx"
+		  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for MMX" >&5
+$as_echo_n "checking for MMX... " >&6; }
+		  if test "$cross_compiling" = yes; then :
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "cannot run test program while cross compiling
+See \`config.log' for more details" "$LINENO" 5; }
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+			#include <mmintrin.h>
+			#include <stdio.h>
+			extern void exit(int);
+			int main(){__m64 t;*((long long*)&t)=1;t=_mm_set1_pi32(7);if((*(unsigned*)&t)==88)printf(".");exit(0);}
+
+
+_ACEOF
+if ac_fn_c_try_run "$LINENO"; then :
+  CPU_BEST_FLAGS="-mmmx" 			 CPU_STR="MMX"
+			 ARCH_LINK=x86-mmx.h
+
+$as_echo "#define HAVE_MMX 1" >>confdefs.h
+ 			 { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+			 ARCH_LINK=x86-any.h
 fi
+rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
+  conftest.$ac_objext conftest.beam conftest.$ac_ext
+fi
+
+
+fi
+
 
 fi
 rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \

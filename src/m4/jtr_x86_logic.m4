@@ -66,8 +66,27 @@ if test "x$enable_native_tests" = xyes; then
     ,[CPU_NOTFOUND="1"]
      [AVX_NOTFOUND=1]
      [AC_MSG_RESULT(no)]
-     [AS_IF([test y$ARCH_LINK = yx86-any.h], [ARCH_LINK=x86-mmx.h])]
-    )
+     [AS_IF([test y$ARCH_LINK = yx86-any.h], [
+		  CC="$CC_BACKUP -mmmx"
+		  AC_MSG_CHECKING([for MMX])
+		  AC_RUN_IFELSE(
+			[
+			AC_LANG_SOURCE(
+			  [[#include <mmintrin.h>
+			#include <stdio.h>
+			extern void exit(int);
+			int main(){__m64 t;*((long long*)&t)=1;t=_mm_set1_pi32(7);if((*(unsigned*)&t)==88)printf(".");exit(0);}]]
+			)]
+			,[CPU_BEST_FLAGS="-mmmx"] dnl
+			 [CPU_STR="MMX"]
+			 [ARCH_LINK=x86-mmx.h]
+			 [AC_DEFINE([HAVE_MMX], 1, [enable if compiling for MMX architecture])] dnl
+			 [AC_MSG_RESULT([yes])]
+			,[AC_MSG_RESULT(no)]
+			 [ARCH_LINK=x86-any.h])
+		])
+      ]
+  )
   AS_IF([test "x$CPU_NOTFOUND" = x0],
   [
   CC="$CC_BACKUP -mssse3"
