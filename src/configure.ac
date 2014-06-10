@@ -216,7 +216,7 @@ AC_CHECK_SIZEOF([void *])
 # vax.h
 # x86-64.h (-mx32, -m64)
 # x86-any.h
-# x86-mmx.h (currently busted in many formats)
+# x86-mmx.h
 # x86-sse.h
 #
 # See http://ftp.netbsd.org/pub/NetBSD/NetBSD-release-6/src/external/bsd/pcc/dist/pcc/configure.ac for many alternatives

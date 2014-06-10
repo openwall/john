@@ -91,6 +91,8 @@ case "$host_cpu" in
    i?86)
       if test "y$ARCH_LINK" = "yx86-any.h"; then
         [CC_ASM_OBJS="x86.o"]
+      elif test "y$ARCH_LINK" = "yx86-mmx.h"; then
+        [CC_ASM_OBJS="x86.o x86-mmx.o"]
       elif test "x$with_icc_asm" = "xyes"; then
         JTR_LIST_ADD(CFLAGS, [-DUSING_ICC_S_FILE])
         [CC_ASM_OBJS="x86.o x86-sse.o sse-intrinsics-32.o"]

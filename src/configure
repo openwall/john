@@ -7171,7 +7171,7 @@ _ACEOF
 # vax.h
 # x86-64.h (-mx32, -m64)
 # x86-any.h
-# x86-mmx.h (currently busted in many formats)
+# x86-mmx.h
 # x86-sse.h
 #
 # See http://ftp.netbsd.org/pub/NetBSD/NetBSD-release-6/src/external/bsd/pcc/dist/pcc/configure.ac for many alternatives
@@ -7259,6 +7259,9 @@ else
      AVX_NOTFOUND=1
      { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
+     if test y$ARCH_LINK = yx86-any.h; then :
+  ARCH_LINK=x86-mmx.h
+fi
 
 fi
 rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
@@ -7502,7 +7505,10 @@ extern void exit(int);
 _ACEOF
 if ac_fn_c_try_link "$LINENO"; then :
   CPU_BEST_FLAGS="-mmmx"      CPU_STR="MMX"
-          { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+     if test y$ARCH_LINK = yx86-any.h; then :
+  ARCH_LINK=x86-mmx.h
+fi
+     { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 
 else
@@ -7868,6 +7874,8 @@ case "$host_cpu" in
    i?86)
       if test "y$ARCH_LINK" = "yx86-any.h"; then
         CC_ASM_OBJS="x86.o"
+      elif test "y$ARCH_LINK" = "yx86-mmx.h"; then
+        CC_ASM_OBJS="x86.o x86-mmx.o"
       elif test "x$with_icc_asm" = "xyes"; then
 
    for i in -DUSING_ICC_S_FILE; do
@@ -7884,9 +7892,9 @@ case "$host_cpu" in
       fi
    done
 
-        CC_ASM_OBJS="x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics-32.o"
+        CC_ASM_OBJS="x86.o x86-sse.o sse-intrinsics-32.o"
       else
-        CC_ASM_OBJS="x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o"
+        CC_ASM_OBJS="x86.o x86-sse.o sse-intrinsics.o"
       fi
    ;;
    alpha*dec*)
