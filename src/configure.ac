@@ -47,6 +47,8 @@ AS_IF([test -d "../.git"],
 # Define precious variables. They get included in --help and need no AC_SUBST
 AC_ARG_VAR([CFLAGS_EXTRA], [additional CFLAGS for -Woptions and other things, not used during ./configure but put in resulting Makefile])
 AC_ARG_VAR([YASM], [full pathname of yasm (for optional AES-NI support)])
+AC_ARG_VAR([AS], [full pathname of assembler to use])
+AC_ARG_VAR([LD], [full pathname of linker to use])
 
 # Define Packages.
 # Intrinsics pre-compiled (to .S) with icc
@@ -168,6 +170,8 @@ AC_CACHE_SAVE
 AC_PATH_PROG([SORT], [sort])
 AC_PATH_PROG([AR], [ar])
 AC_PATH_PROG([FIND], [find])
+AS_IF([test -z "$AS"], [AS="$CC"])
+AS_IF([test -z "$LD"], [LD="$CC"])
 
 # Check if we have this at all
 PKG_PROG_PKG_CONFIG

@@ -18,10 +18,9 @@ PTHREAD_CC = @PTHREAD_CC@
 ifdef PTHREAD_CC
 CC = @PTHREAD_CC@
 endif
-CXX = @CXX@
-AS = @CC@
-LD = @CC@
-CPP = @CC@
+AS = @AS@
+LD = @LD@
+CPP = @CPP@
 CP = cp
 CP_PRESERVE = cp -p
 LN = @LN_S@

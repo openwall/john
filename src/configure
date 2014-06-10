@@ -700,6 +700,8 @@ build_os
 build_vendor
 build_cpu
 build
+LD
+AS
 YASM
 CFLAGS_EXTRA
 HAVE_GIT
@@ -763,6 +765,8 @@ host_alias
 target_alias
 CFLAGS_EXTRA
 YASM
+AS
+LD
 MPICC
 CC
 CFLAGS
@@ -1419,6 +1423,8 @@ Some influential environment variables:
               additional CFLAGS for -Woptions and other things, not used
               during ./configure but put in resulting Makefile
   YASM        full pathname of yasm (for optional AES-NI support)
+  AS          full pathname of assembler to use
+  LD          full pathname of linker to use
   MPICC       MPI C compiler command
   CC          C compiler command
   CFLAGS      C compiler flags
@@ -3422,6 +3428,8 @@ fi
 fi
 
 # Define precious variables. They get included in --help and need no AC_SUBST
+
+
 
 
 
@@ -6346,6 +6354,12 @@ $as_echo "no" >&6; }
 fi
 
 
+if test -z "$AS"; then :
+  AS="$CC"
+fi
+if test -z "$LD"; then :
+  LD="$CC"
+fi
 
 # Check if we have this at all
 
