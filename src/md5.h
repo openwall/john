@@ -41,37 +41,6 @@ extern void MD5_Init(MD5_CTX *ctx);
 extern void MD5_Update(MD5_CTX *ctx, void *data, unsigned long size);
 extern void MD5_PreFinal(MD5_CTX *ctx);
 extern void MD5_Final(unsigned char *result, MD5_CTX *ctx);
-#endif /* HAVE_OPENSSL */
+#endif /* HAVE_LIBSSL */
 
-/* Now, the MMX code is NOT dependent upon the HAVE_LIBSSL */
-
-#ifdef MMX_COEF
-#ifdef _MSC_VER
-/* NOTE, in VC, void __fastcall f(unsigned char *out, unsigned char *in, int n)
- * puts these registers:
- *  n   -> pushed on stack
- *  ECX -> out
- *  EDX -> in
- *  Thus to get into this code, we ECX -> EAX and get ECX from the stack (minus the return push)
- *  Also do a ret 4 after the emms in the mdfivemmx_noinit (to pop the push of eax)
- */
-int __fastcall mdfivemmx_VC(unsigned char *out, unsigned char *in, int n);
-int __fastcall mdfivemmx_nosizeupdate_VC(unsigned char *out, unsigned char *in, int n);
-int __fastcall mdfivemmx_noinit_sizeupdate_VC(unsigned char *out, unsigned char *in, int n);
-int __fastcall mdfivemmx_noinit_nosizeupdate_VC(unsigned char *out, unsigned char *in, int n);
-int __fastcall mdfivemmx_noinit_uniformsizeupdate_VC(unsigned char *out, unsigned char *in, int n);
-
-#define mdfivemmx mdfivemmx_VC
-#define mdfivemmx_nosizeupdate mdfivemmx_nosizeupdate_VC
-#define mdfivemmx_noinit_sizeupdate mdfivemmx_noinit_sizeupdate_VC
-#define mdfivemmx_noinit_nosizeupdate mdfivemmx_noinit_nosizeupdate_VC
-#define mdfivemmx_noinit_uniformsizeupdate mdfivemmx_noinit_uniformsizeupdate_VC
-#else
-extern int mdfivemmx(unsigned char *out, unsigned char *in, int n) __attribute__((regparm(3)));
-extern int mdfivemmx_nosizeupdate(unsigned char *out, unsigned char *in, int n) __attribute__((regparm(3)));
-extern int mdfivemmx_noinit_sizeupdate(unsigned char *out, unsigned char *in, int n) __attribute__((regparm(3)));
-extern int mdfivemmx_noinit_nosizeupdate(unsigned char *out, unsigned char *in, int n) __attribute__((regparm(3)));
-extern int mdfivemmx_noinit_uniformsizeupdate(unsigned char *out, unsigned char *in, int n) __attribute__((regparm(3)));
-#endif /* _MSC_VER */
-#endif /* MMX_COEF */
 #endif /* _MD5_H */

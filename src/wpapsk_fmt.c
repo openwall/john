@@ -29,13 +29,9 @@
 //#undef MMX_COEF
 
 #ifdef MMX_COEF
-#  ifdef SHA1_SSE_PARA
-#    define NBKEYS	(MMX_COEF * SHA1_SSE_PARA)
-#    ifdef _OPENMP
-#      include <omp.h>
-#    endif
-#  else
-#    define NBKEYS	MMX_COEF
+#  define NBKEYS	(MMX_COEF * SHA1_SSE_PARA)
+#  ifdef _OPENMP
+#    include <omp.h>
 #  endif
 #else
 #  define NBKEYS	1
@@ -296,7 +292,6 @@ static MAYBE_INLINE void wpapsk_sse(int count, wpapsk_password * in, wpapsk_hash
 		}
 
 		for (i = 1; i < 4096; i++) {
-#if SHA1_SSE_PARA
 			SSESHA1body((unsigned int*)t_sse_hash1, (unsigned int*)t_sse_hash1, (unsigned int*)t_sse_crypt1, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 			SSESHA1body((unsigned int*)t_sse_hash1, (unsigned int*)t_sse_hash1, (unsigned int*)t_sse_crypt2, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 			for (j = 0; j < NBKEYS; j++) {
@@ -304,14 +299,6 @@ static MAYBE_INLINE void wpapsk_sse(int count, wpapsk_password * in, wpapsk_hash
 				for(k = 0; k < 5; k++)
 					outbuf[j].i[k] ^= p[(k<<(MMX_COEF>>1))];
 			}
-#else
-			shammx_reloadinit_nosizeupdate_nofinalbyteswap(t_sse_hash1, t_sse_hash1, t_sse_crypt1);
-			shammx_reloadinit_nosizeupdate_nofinalbyteswap(t_sse_hash1, t_sse_hash1, t_sse_crypt2);
-			for (j = 0; j < NBKEYS; j++) {
-				for(k = 0; k < 5; k++)
-					outbuf[j].i[k] ^= ((unsigned int*)t_sse_hash1)[(k<<(MMX_COEF>>1))+j];
-			}
-#endif
 		}
 		essid[slen - 1] = 2;
 
@@ -337,7 +324,6 @@ static MAYBE_INLINE void wpapsk_sse(int count, wpapsk_password * in, wpapsk_hash
 			o1[(j/MMX_COEF)*MMX_COEF*SHA_BUF_SIZ+(j&(MMX_COEF-1))+(MMX_COEF<<2)]                   = sha1_ctx.h4;
 		}
 		for (i = 1; i < 4096; i++) {
-#if SHA1_SSE_PARA
 			SSESHA1body((unsigned int*)t_sse_hash1, (unsigned int*)t_sse_hash1, (unsigned int*)t_sse_crypt1, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 			SSESHA1body((unsigned int*)t_sse_hash1, (unsigned int*)t_sse_hash1, (unsigned int*)t_sse_crypt2, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 			for (j = 0; j < NBKEYS; j++) {
@@ -345,14 +331,6 @@ static MAYBE_INLINE void wpapsk_sse(int count, wpapsk_password * in, wpapsk_hash
 				for(k = 5; k < 8; k++)
 					outbuf[j].i[k] ^= p[((k-5)<<(MMX_COEF>>1))];
 			}
-#else
-			shammx_reloadinit_nosizeupdate_nofinalbyteswap(t_sse_hash1, t_sse_hash1, t_sse_crypt1);
-			shammx_reloadinit_nosizeupdate_nofinalbyteswap(t_sse_hash1, t_sse_hash1, t_sse_crypt2);
-			for (j = 0; j < NBKEYS; j++) {
-				for(k = 5; k < 8; k++)
-					outbuf[j].i[k] ^= ((unsigned int*)t_sse_hash1)[((k-5)<<(MMX_COEF>>1))+j];
-			}
-#endif
 		}
 
 		for (j = 0; j < NBKEYS; ++j) {

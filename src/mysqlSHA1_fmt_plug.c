@@ -30,10 +30,8 @@
 
 #include "arch.h"
 
-#ifdef SHA1_SSE_PARA
+#ifdef MMX_COEF
 #define NBKEYS	(MMX_COEF * SHA1_SSE_PARA)
-#elif MMX_COEF
-#define NBKEYS	MMX_COEF
 #endif
 #include "sse-intrinsics.h"
 
@@ -214,9 +212,7 @@ static int cmp_all(void *binary, int count) {
 #ifdef MMX_COEF
 	unsigned int x,y=0;
 
-#ifdef SHA1_SSE_PARA
 	for(;y<SHA1_SSE_PARA;y++)
-#endif
 	for(x=0;x<MMX_COEF;x++)
 	{
 		if( ((unsigned int*)binary)[0] ==
@@ -261,7 +257,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
 #ifdef MMX_COEF
-#ifdef SHA1_SSE_PARA
 	unsigned int i;
 
 	SSESHA1body(saved_key, (unsigned int *)crypt_key, NULL, SSEi_MIXED_IN);
@@ -272,12 +267,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		       MMX_COEF*BINARY_SIZE);
 
 	SSESHA1body(interm_key, (unsigned int *)crypt_key, NULL, SSEi_MIXED_IN);
-
-#else
-	shammx_nosizeupdate_nofinalbyteswap((unsigned char *) crypt_key, (unsigned char *) saved_key, 1);
-	memcpy(interm_key, crypt_key, MMX_COEF*BINARY_SIZE);
-	shammx_nosizeupdate_nofinalbyteswap((unsigned char *) crypt_key, (unsigned char *) interm_key, 1);
-#endif
 #else
 	SHA1_Init(&ctx);
 	SHA1_Update(&ctx, (unsigned char *) saved_key, strlen(saved_key));
@@ -310,7 +299,7 @@ static void *binary(char *ciphertext)
 	return (void *)realcipher;
 }
 
-#ifdef SHA1_SSE_PARA
+#ifdef MMX_COEF
 static int get_hash_0(int index)
 {
 	unsigned int x,y;

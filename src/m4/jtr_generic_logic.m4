@@ -93,9 +93,9 @@ case "$host_cpu" in
         [CC_ASM_OBJS="x86.o"]
       elif test "x$with_icc_asm" = "xyes"; then
         JTR_LIST_ADD(CFLAGS, [-DUSING_ICC_S_FILE])
-        [CC_ASM_OBJS="x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics-32.o"]
+        [CC_ASM_OBJS="x86.o x86-sse.o sse-intrinsics-32.o"]
       else
-        [CC_ASM_OBJS="x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o"]
+        [CC_ASM_OBJS="x86.o x86-sse.o sse-intrinsics.o"]
       fi
    ;;
    alpha*dec*)

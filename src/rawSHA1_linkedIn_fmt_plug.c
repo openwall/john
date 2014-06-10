@@ -18,10 +18,8 @@
 
 #include "arch.h"
 
-#ifdef SHA1_SSE_PARA
+#ifdef MMX_COEF
 #define NBKEYS	(MMX_COEF * SHA1_SSE_PARA)
-#elif MMX_COEF
-#define NBKEYS	MMX_COEF
 #endif
 #include "sse-intrinsics.h"
 
@@ -199,9 +197,7 @@ static int cmp_all(void *binary, int count) {
 #ifdef MMX_COEF
 	unsigned int x,y=0;
 
-#ifdef SHA1_SSE_PARA
 	for(;y<SHA1_SSE_PARA;y++)
-#endif
 	for(x=0;x<MMX_COEF;x++)
 	{
 		if( ((ARCH_WORD_32*)binary)[1] == crypt_key[x+y*MMX_COEF*5+MMX_COEF] )
@@ -255,13 +251,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
   // get plaintext input in saved_key put it into ciphertext crypt_key
 #ifdef MMX_COEF
-
-# if SHA1_SSE_PARA
 	SSESHA1body(saved_key, crypt_key, NULL, SSEi_MIXED_IN);
-# else
-	shammx_nosizeupdate_nofinalbyteswap((unsigned char *) crypt_key, (unsigned char *) saved_key, 1);
-# endif
-
 #else
 	SHA1_Init( &ctx );
 	SHA1_Update( &ctx, (unsigned char *) saved_key, strlen( saved_key ) );

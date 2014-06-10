@@ -14,10 +14,8 @@
 
 #include "arch.h"
 
-#ifdef MD4_SSE_PARA
+#ifdef MMX_COEF
 #define NBKEYS				(MMX_COEF * MD4_SSE_PARA)
-#elif MMX_COEF
-#define NBKEYS				MMX_COEF
 #endif
 #include "sse-intrinsics.h"
 
@@ -48,7 +46,7 @@
 #define SALT_ALIGN			1
 
 #ifdef MMX_COEF
-#if defined(MD4_SSE_PARA) && defined(_OPENMP)
+#if defined(_OPENMP)
 #ifdef __XOP__
 #define BLOCK_LOOPS			(1024*1024)
 #elif __AVX__
@@ -73,9 +71,6 @@
 static unsigned char (*saved_key);
 static unsigned char (*crypt_key);
 static unsigned int (**buf_ptr);
-#ifndef MD4_SSE_PARA
-static unsigned int total_len;
-#endif
 #else
 static MD4_CTX ctx;
 static int saved_key_length;
@@ -267,9 +262,6 @@ static void *binary(char *ciphertext)
 
 static void clear_keys(void)
 {
-#if defined(MMX_COEF) && !defined(MD4_SSE_PARA)
-	total_len = 0;
-#endif
 }
 
 // ISO-8859-1 to UCS-2, directly into vector key buffer
@@ -307,11 +299,7 @@ key_cleaning:
 		keybuf_word += MMX_COEF;
 	}
 
-#ifdef MD4_SSE_PARA
 	((unsigned int *)saved_key)[14*MMX_COEF + (index&3) + (index>>2)*16*MMX_COEF] = len << 4;
-#else
-	total_len += len << (1 + ( (32/MMX_COEF) * index ) );
-#endif
 #else
 #if ARCH_LITTLE_ENDIAN
 	UTF8 *s = (UTF8*)_key;
@@ -368,12 +356,7 @@ key_cleaning_enc:
 		*keybuf_word = 0;
 		keybuf_word += MMX_COEF;
 	}
-
-#ifdef MD4_SSE_PARA
 	((unsigned int *)saved_key)[14*MMX_COEF + (index&3) + (index>>2)*16*MMX_COEF] = len << 4;
-#else
-	total_len += len << (1 + ( (32/MMX_COEF) * index ) );
-#endif
 #else
 	saved_key_length = enc_to_utf16((UTF16*)&saved_key,
 	                                PLAINTEXT_LENGTH + 1,
@@ -469,11 +452,8 @@ static void set_key_utf8(char *_key, int index)
 		keybuf_word += MMX_COEF;
 	}
 
-#ifdef MD4_SSE_PARA
 	((unsigned int *)saved_key)[14*MMX_COEF + (index&3) + (index>>2)*16*MMX_COEF] = len << 4;
-#else
-	total_len += len << (1 + ( (32/MMX_COEF) * index ) );
-#endif
+
 #else
 	saved_key_length = utf8_to_utf16((UTF16*)&saved_key,
 	                                 PLAINTEXT_LENGTH + 1,
@@ -515,7 +495,7 @@ static char *get_key(int index)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-#if defined(MD4_SSE_PARA)
+#ifdef MMX_COEF
 #if (BLOCK_LOOPS > 1)
 	int count;
 	int i;
@@ -529,8 +509,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #else
 	SSEmd4body(saved_key, (ARCH_WORD_32*)crypt_key, NULL, SSEi_MIXED_IN);
 #endif
-#elif defined(MMX_COEF)
-	mdfourmmx(crypt_key, saved_key, total_len);
+
 #else
 	MD4_Init( &ctx );
 //	dump_stuff_msg("saved_key", saved_key, saved_key_length);
@@ -544,9 +523,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 static int cmp_all(void *binary, int count) {
 #ifdef MMX_COEF
 	unsigned int x,y=0;
-#ifdef MD4_SSE_PARA
 	for(; y < MD4_SSE_PARA * BLOCK_LOOPS; y++)
-#endif
 		for(x = 0; x < MMX_COEF; x++)
 		{
 			if( ((ARCH_WORD_32*)binary)[0] == ((ARCH_WORD_32*)crypt_key)[y*MMX_COEF*4+x] )

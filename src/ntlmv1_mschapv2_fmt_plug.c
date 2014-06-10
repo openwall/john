@@ -72,10 +72,8 @@
 #include <openssl/des.h>
 
 #include "arch.h"
-#ifdef MD4_SSE_PARA
+#ifdef MMX_COEF
 #define NBKEYS                  (MMX_COEF * MD4_SSE_PARA)
-#elif MMX_COEF
-#define NBKEYS                  MMX_COEF
 #else
 #ifdef _OPENMP
 #define OMP_SCALE               4
@@ -124,15 +122,11 @@ extern volatile int bench_running;
 
 #ifdef MMX_COEF
 #define PLAINTEXT_LENGTH        27
-#ifdef MD4_SSE_PARA
 //#define SSE_OMP
 #if defined (_OPENMP) && defined(SSE_OMP)
 #define BLOCK_LOOPS             (2048 / NBKEYS)
 #else
 #define BLOCK_LOOPS             (1024 / NBKEYS)
-#endif
-#else
-#define BLOCK_LOOPS             1 /* Only 1 is supported for MMX/SSE asm. */
 #endif
 #define MIN_KEYS_PER_CRYPT      (NBKEYS * BLOCK_LOOPS)
 #define MAX_KEYS_PER_CRYPT      (NBKEYS * BLOCK_LOOPS)
@@ -146,9 +140,6 @@ extern volatile int bench_running;
 
 #ifdef MMX_COEF
 static unsigned char *saved_key;
-#ifndef MD4_SSE_PARA
-static unsigned int total_len;
-#endif
 #else
 static UTF16 (*saved_key)[PLAINTEXT_LENGTH + 1];
 static int (*saved_key_length);
@@ -663,9 +654,6 @@ static void set_salt(void *salt)
 
 static void clear_keys(void)
 {
-#if defined(MMX_COEF) && !defined(MD4_SSE_PARA)
-	total_len = 0;
-#endif
 }
 
 // ISO-8859-1 to UCS-2, directly into vector key buffer
@@ -702,13 +690,8 @@ key_cleaning:
 		*keybuf_word = 0;
 		keybuf_word += MMX_COEF;
 	}
-
-#ifdef MD4_SSE_PARA
 	((unsigned int*)saved_key)[14*MMX_COEF + (index&3) +
 	                           (index>>2)*16*MMX_COEF] = len << 4;
-#else
-	total_len += len << (1 + ( (32/MMX_COEF) * index ) );
-#endif
 #else
 #if ARCH_LITTLE_ENDIAN
 	UTF8 *s = (UTF8*)_key;
@@ -765,13 +748,8 @@ key_cleaning_enc:
 		*keybuf_word = 0;
 		keybuf_word += MMX_COEF;
 	}
-
-#ifdef MD4_SSE_PARA
 	((unsigned int*)saved_key)[14*MMX_COEF + (index&3) +
 	                           (index>>2)*16*MMX_COEF] = len << 4;
-#else
-	total_len += len << (1 + ( (32/MMX_COEF) * index ) );
-#endif
 #else
 	saved_key_length[index] = enc_to_utf16(saved_key[index],
 	                                       PLAINTEXT_LENGTH + 1,
@@ -869,13 +847,8 @@ static void set_key_utf8(char *_key, int index)
 		*keybuf_word = 0;
 		keybuf_word += MMX_COEF;
 	}
-
-#ifdef MD4_SSE_PARA
 	((unsigned int*)saved_key)[14*MMX_COEF + (index&3) +
 	                           (index>>2)*16*MMX_COEF] = len << 4;
-#else
-	total_len += len << (1 + ( (32/MMX_COEF) * index ) );
-#endif
 #else
 	saved_key_length[index] = utf8_to_utf16(saved_key[index],
 	                                        PLAINTEXT_LENGTH + 1,
@@ -1058,9 +1031,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		cmps_per_crypt = 0;
 
 #ifdef MMX_COEF
-#if defined(MD4_SSE_PARA)
 #if (BLOCK_LOOPS > 1)
-#if defined(_OPENMP) && defined(MD4_SSE_PARA) && defined(SSE_OMP)
+#if defined(_OPENMP) && defined(SSE_OMP)
 #pragma omp parallel for
 #endif
 		for (i = 0; i < BLOCK_LOOPS; i++)
@@ -1068,9 +1040,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			           (unsigned int*)&nthash[i * NBKEYS * 16], NULL, SSEi_MIXED_IN);
 #else
 		SSEmd4body(saved_key, (unsigned int*)nthash, 1);
-#endif
-#else
-		mdfourmmx(nthash, saved_key, total_len);
 #endif
 		if (use_bitmap)
 			for (i = 0; i < NBKEYS * BLOCK_LOOPS; i++) {
@@ -1241,7 +1210,7 @@ struct fmt_main fmt_MSCHAPv2_new = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-#if !defined(MMX_COEF) || (defined(MD4_SSE_PARA) && defined(SSE_OMP))
+#if !defined(MMX_COEF) || (defined(MMX_COEF) && defined(SSE_OMP))
 		FMT_OMP |
 #endif
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE | FMT_UTF8,

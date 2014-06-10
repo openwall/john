@@ -27,20 +27,17 @@
 #define FORMAT_LABEL			"sapb"
 #define FORMAT_NAME			"SAP CODVN B (BCODE)"
 
-#ifdef MD5_SSE_PARA
+#ifdef MMX_COEF
 #define NBKEYS				(MMX_COEF * MD5_SSE_PARA)
 #define DO_MMX_MD5(in, out)		SSEmd5body(in, (unsigned int*)out, NULL, SSEi_MIXED_IN)
-#elif defined(MMX_COEF)
-#define NBKEYS				MMX_COEF
-#define DO_MMX_MD5(in, out)		mdfivemmx_nosizeupdate(out, (unsigned char*)in, 1)
 #endif
 #include "sse-intrinsics.h"
 #define ALGORITHM_NAME			"MD5 " MD5_ALGORITHM_NAME
 
-#if defined(_OPENMP) && (defined (MD5_SSE_PARA) || !defined(MMX_COEF))
+#if defined(_OPENMP)
 #include <omp.h>
 static unsigned int omp_t = 1;
-#ifdef MD5_SSE_PARA
+#ifdef MMX_COEF
 #define OMP_SCALE			128
 #else
 #define OMP_SCALE			2048
@@ -162,7 +159,7 @@ static void init(struct fmt_main *self)
 	if (pers_opts.target_enc == UTF_8 && warned++ == 0)
 		fprintf(stderr, "Warning: SAP-B format should never be UTF-8.\nConvert your input files to iso-8859-1 instead.\n");
 
-#if defined (_OPENMP) && (defined(MD5_SSE_PARA) || !defined(MMX_COEF))
+#if defined (_OPENMP)
 	omp_t = omp_get_max_threads();
 	self->params.min_keys_per_crypt = omp_t * MIN_KEYS_PER_CRYPT;
 	omp_t *= OMP_SCALE;
@@ -249,12 +246,11 @@ static char *get_key(int index)
 static int cmp_all(void *binary, int count) {
 #ifdef MMX_COEF
 	unsigned int x,y=0;
-#ifdef MD5_SSE_PARA
+
 #ifdef _OPENMP
 	for(;y<MD5_SSE_PARA*omp_t;y++)
 #else
 	for(;y<MD5_SSE_PARA;y++)
-#endif
 #endif
 		for(x = 0; x < MMX_COEF; x++)
 		{
@@ -433,7 +429,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
 #if MMX_COEF
-#if defined(_OPENMP) && (defined(MD5_SSE_PARA) || !defined(MMX_COEF))
+#if defined(_OPENMP)
 	int t;
 #pragma omp parallel for
 	for (t = 0; t < omp_t; t++)
@@ -487,12 +483,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 		DO_MMX_MD5(&saved_key[t*NBKEYS*64], &crypt_key[t*NBKEYS*16]);
 
-#if MD5_SSE_PARA
 		for (i = 0; i < MD5_SSE_PARA; i++)
 			memset(&interm_key[t*64*NBKEYS+i*64*MMX_COEF+32*MMX_COEF], 0, 32*MMX_COEF);
-#else
-		memset(&interm_key[32*MMX_COEF], 0, 32*MMX_COEF);
-#endif
 
 		for (index = 0; index < NBKEYS; index++) {
 			unsigned int sum20;
@@ -684,10 +676,7 @@ struct fmt_main fmt_sapB = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-#if !defined(MMX_COEF) || defined(MD5_SSE_PARA)
-		FMT_OMP |
-#endif
-		FMT_8_BIT,
+		FMT_OMP | FMT_8_BIT,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif

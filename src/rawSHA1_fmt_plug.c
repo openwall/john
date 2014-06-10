@@ -31,17 +31,9 @@
 #define FORMAT_NAME			""
 #define ALGORITHM_NAME			"SHA1 " SHA1_ALGORITHM_NAME
 
-#ifdef SHA1_SSE_PARA
-#  define MMX_COEF				4
+#ifdef MMX_COEF
 #  define NBKEYS				(MMX_COEF * SHA1_SSE_PARA)
 #  define DO_MMX_SHA1(in,out,n)	SSESHA1body(in, out, NULL, n)
-#elif MMX_COEF
-#  define NBKEYS				MMX_COEF
-#  define DO_MMX_SHA1(in,out,n)	shammx_nosizeupdate_nofinalbyteswap((unsigned char*)out, (unsigned char*)in, 1)
-// 32bit .S does NOT handle multi-threading. Remove OMP for any build doing that
-#  undef _OPENMP
-#  undef FMT_OMP
-#  define FMT_OMP 0
 #endif
 
 #define BENCHMARK_COMMENT		""

@@ -30,17 +30,9 @@
 #define FORMAT_NAME			""
 #define ALGORITHM_NAME			"MD5 " MD5_ALGORITHM_NAME
 
-#ifdef MD5_SSE_PARA
-#  define MMX_COEF				4
+#ifdef MMX_COEF
 #  define NBKEYS				(MMX_COEF * MD5_SSE_PARA)
 #  define DO_MMX_MD5(in, out)	SSEmd5body(in, (unsigned int*)out, NULL, SSEi_MIXED_IN)
-#elif MMX_COEF
-#  define NBKEYS				MMX_COEF
-#  define DO_MMX_MD5(in, out)	mdfivemmx_nosizeupdate(out, in, 1)
-// 32bit .S does NOT handle multi-threading. Remove OMP for any build doing that
-#  undef _OPENMP
-#  undef FMT_OMP
-#  define FMT_OMP 0
 #endif
 
 #define BENCHMARK_COMMENT		""

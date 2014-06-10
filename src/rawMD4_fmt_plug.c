@@ -32,17 +32,9 @@
 #define FORMAT_NAME			""
 #define ALGORITHM_NAME			"MD4 " MD4_ALGORITHM_NAME
 
-#ifdef MD4_SSE_PARA
-#  define MMX_COEF				4
+#ifdef MMX_COEF
 #  define NBKEYS				(MMX_COEF * MD4_SSE_PARA)
 #  define DO_MMX_MD4(in,out,n)	SSEmd4body(in, (unsigned int*)out, NULL, SSEi_MIXED_IN)
-#elif MMX_COEF
-#  define NBKEYS				MMX_COEF
-#  define DO_MMX_MD4(in,out,n)	mdfourmmx(out, in, n)
-// 32bit .S does NOT handle multi-threading. Remove OMP for any build doing that
-#  undef _OPENMP
-#  undef FMT_OMP
-#  define FMT_OMP 0
 #endif
 
 #define BENCHMARK_COMMENT		""
@@ -94,10 +86,6 @@ static struct fmt_tests tests[] = {
 #ifdef MMX_COEF
 static ARCH_WORD_32 (*saved_key)[MD4_BUF_SIZ*NBKEYS];
 static ARCH_WORD_32 (*crypt_key)[DIGEST_SIZE/4*NBKEYS];
-#ifndef MD4_SSE_PARA
-static unsigned int (*total_len);
-static unsigned total_len_cnt;
-#endif
 #else
 static int (*saved_key_length);
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
@@ -121,10 +109,6 @@ static void init(struct fmt_main *self)
 #else
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) * self->params.max_keys_per_crypt/NBKEYS, MEM_ALIGN_SIMD);
 	crypt_key = mem_calloc_tiny(sizeof(*crypt_key) * self->params.max_keys_per_crypt/NBKEYS, MEM_ALIGN_SIMD);
-#ifndef MD4_SSE_PARA
-	total_len = mem_calloc_tiny(sizeof(*total_len) * self->params.max_keys_per_crypt/NBKEYS, MEM_ALIGN_SIMD);
-	total_len_cnt = self->params.max_keys_per_crypt/NBKEYS;
-#endif
 #endif
 }
 
@@ -197,9 +181,6 @@ static int get_hash_6(int index) { return crypt_key[index][0] & 0x7ffffff; }
 
 static void clear_keys(void)
 {
-#if defined(MMX_COEF) && !defined(MD4_SSE_PARA)
-	memset(total_len, 0, sizeof(total_len[0])*total_len_cnt);
-#endif
 }
 
 #ifdef MMX_COEF
@@ -243,12 +224,7 @@ key_cleaning:
 		*keybuf_word = 0;
 		keybuf_word += MMX_COEF;
 	}
-
-#ifdef MD4_SSE_PARA
 	keybuffer[14*MMX_COEF] = len << 3;
-#else
-	total_len[index/MMX_COEF] += len << ( (32/MMX_COEF) * index);
-#endif
 }
 #else
 static void set_key(char *key, int index)
@@ -264,11 +240,8 @@ static char *get_key(int index)
 {
 	static char out[PLAINTEXT_LENGTH + 1];
 	unsigned int i;
-#ifdef MD4_SSE_PARA
 	ARCH_WORD_32 len = ((ARCH_WORD_32*)saved_key)[14*MMX_COEF + (index&(MMX_COEF-1)) + (index>>(MMX_COEF>>1))*MD4_BUF_SIZ*MMX_COEF] >> 3;
-#else
-	ARCH_WORD_32 len = (total_len[index/MMX_COEF] >> ((32/MMX_COEF) * (index&3))) & 0xFF;
-#endif
+
 	for(i=0;i<len;i++)
 		out[i] = ((char*)saved_key)[GETPOS(i, index)];
 	out[i] = 0;

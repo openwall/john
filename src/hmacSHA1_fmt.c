@@ -10,11 +10,6 @@
 
 #include "arch.h"
 
-/* MMX/SSE assembler functions are not thread safe */
-#if defined(MMX_COEF) && !defined(SHA1_SSE_PARA)
-#undef _OPENMP
-#endif
-
 #ifdef _OPENMP
 #include <omp.h>
 #define OMP_SCALE 2048 // tuned for i7 using SSE2 and w/o HT
@@ -31,10 +26,8 @@
 #define FORMAT_LABEL            "HMAC-SHA1"
 #define FORMAT_NAME             ""
 
-#ifdef SHA1_SSE_PARA
+#ifdef MMX_COEF
 #define SHA1_N                  (SHA1_SSE_PARA * MMX_COEF)
-#else
-#define SHA1_N                  MMX_COEF
 #endif
 
 #define ALGORITHM_NAME          "SHA1 " SHA1_ALGORITHM_NAME
@@ -267,9 +260,7 @@ static int cmp_all(void *binary, int count)
 #ifdef MMX_COEF
 	unsigned int x, y = 0;
 
-#if SHA1_SSE_PARA
 	for(; y < (count + MMX_COEF - 1) / MMX_COEF; y++)
-#endif
 		for(x = 0; x < MMX_COEF; x++)
 		{
 			// NOTE crypt_key is in input format (4 * SHA_BUF_SIZ * MMX_COEF)
@@ -319,7 +310,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	{
 #ifdef MMX_COEF
-#ifdef SHA1_SSE_PARA
 		if (new_keys) {
 			SSESHA1body(&ipad[index * SHA_BUF_SIZ * 4],
 			            (unsigned int*)&prep_ipad[index * BINARY_SIZE],
@@ -336,14 +326,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		            (unsigned int*)&crypt_key[index * SHA_BUF_SIZ * 4],
 		            (unsigned int*)&prep_opad[index * BINARY_SIZE],
 		            SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
-#else
-		if (new_keys) {
-			shammx_nosizeupdate_nofinalbyteswap(prep_ipad, ipad, 1);
-			shammx_nosizeupdate_nofinalbyteswap(prep_opad, opad, 1);
-		}
-		shammx_reloadinit_nosizeupdate_nofinalbyteswap(crypt_key, cur_salt, prep_ipad);
-		shammx_reloadinit_nosizeupdate_nofinalbyteswap(crypt_key, crypt_key, prep_opad);
-#endif
 #else
 		SHA_CTX ctx;
 

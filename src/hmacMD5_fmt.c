@@ -10,11 +10,6 @@
 
 #include "arch.h"
 
-/* MMX/SSE assembler functions are not thread safe */
-#if defined(MMX_COEF) && !defined(MD5_SSE_PARA)
-#undef _OPENMP
-#endif
-
 #ifdef _OPENMP
 #include <omp.h>
 #define OMP_SCALE 2048 // tuned for i7 using SSE2 and w/o HT
@@ -31,10 +26,8 @@
 #define FORMAT_LABEL            "HMAC-MD5"
 #define FORMAT_NAME             ""
 
-#ifdef MD5_SSE_PARA
+#ifdef MMX_COEF
 #define MD5_N                   (MD5_SSE_PARA * MMX_COEF)
-#else
-#define MD5_N                   MMX_COEF
 #endif
 
 #define ALGORITHM_NAME          "MD5 " MD5_ALGORITHM_NAME
@@ -267,9 +260,7 @@ static int cmp_all(void *binary, int count)
 #ifdef MMX_COEF
 	unsigned int x, y = 0;
 
-#if MD5_SSE_PARA
 	for(; y < (count + MMX_COEF - 1) / MMX_COEF; y++)
-#endif
 		for(x = 0; x < MMX_COEF; x++)
 		{
 			// NOTE crypt_key is in input format (64 * MMX_COEF)
@@ -319,7 +310,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	{
 #ifdef MMX_COEF
-#ifdef MD5_SSE_PARA
 		if (new_keys) {
 			SSEmd5body(&ipad[index * PAD_SIZE],
 			            (unsigned int*)&prep_ipad[index * BINARY_SIZE],
@@ -336,16 +326,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		            (unsigned int*)&crypt_key[index * PAD_SIZE],
 		            (unsigned int*)&prep_opad[index * BINARY_SIZE],
 		            SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
-#else
-#error hmacMD5 is b0rken for asm MMX/SSE
-		if (new_keys) {
-			mdfivemmx_nosizeupdate(prep_ipad, ipad, 0);
-			mdfivemmx_nosizeupdate(prep_opad, opad, 0);
-		}
-		ARCH_WORD_32 total_len = ((ARCH_WORD_32*)cur_salt)[14 * MMX_COEF] >> 3;
-		mdfivemmx_noinit_uniformsizeupdate((unsigned char*) crypt_key, cur_salt, total_len);
-		mdfivemmx_noinit_uniformsizeupdate((unsigned char*) crypt_key, (unsigned char*) crypt_key, BINARY_SIZE + 64);
-#endif
 #else
 	MD5_CTX ctx;
 

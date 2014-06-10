@@ -11,10 +11,8 @@
 
 #include "arch.h"
 
-#ifdef MD5_SSE_PARA
+#ifdef MMX_COEF
 #define NBKEYS				(MMX_COEF * MD5_SSE_PARA)
-#elif MMX_COEF
-#define NBKEYS				MMX_COEF
 #endif
 #include "sse-intrinsics.h"
 
@@ -44,11 +42,7 @@
 #define SALT_ALIGN			1
 
 #ifdef MMX_COEF
-#ifdef MD5_SSE_PARA
 #define BLOCK_LOOPS			1
-#else
-#define BLOCK_LOOPS			1
-#endif
 #define PLAINTEXT_LENGTH		27
 #define MIN_KEYS_PER_CRYPT		NBKEYS
 #define MAX_KEYS_PER_CRYPT		NBKEYS * BLOCK_LOOPS
@@ -432,9 +426,7 @@ static int cmp_all(void *binary, int count) {
 #ifdef MMX_COEF
 	unsigned int x,y=0;
 
-#if MD5_SSE_PARA
 	for(;y<MD5_SSE_PARA*BLOCK_LOOPS;y++)
-#endif
 		for(x=0;x<MMX_COEF;x++)
 		{
 			if( ((ARCH_WORD_32*)binary)[0] == ((ARCH_WORD_32*)crypt_key)[x+y*MMX_COEF*4] )
@@ -474,7 +466,7 @@ static int cmp_one(void *binary, int index)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
-#if defined(MD5_SSE_PARA)
+#if defined(MMX_COEF)
 #if (BLOCK_LOOPS > 1)
 	int i;
 
@@ -488,8 +480,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #else
 	SSEmd5body(saved_key, (unsigned int*)crypt_key, NULL, SSEi_MIXED_IN);
 #endif
-#elif defined(MMX_COEF)
-	mdfivemmx_nosizeupdate(crypt_key, saved_key, 1);
 #else
 	MD5_Init( &ctx );
 	MD5_Update(&ctx, (unsigned char*)saved_key, saved_key_length);

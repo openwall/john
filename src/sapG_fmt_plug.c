@@ -18,10 +18,8 @@
 
 #include "arch.h"
 
-#ifdef SHA1_SSE_PARA
+#ifdef MMX_COEF
 #define NBKEYS	(MMX_COEF * SHA1_SSE_PARA)
-#elif MMX_COEF
-#define NBKEYS	MMX_COEF
 #endif
 #include "sse-intrinsics.h"
 
@@ -39,9 +37,9 @@
 #define ALGORITHM_NAME			"SHA1 " SHA1_ALGORITHM_NAME
 
 static unsigned int omp_t = 1;
-#if defined(_OPENMP) && (defined (SHA1_SSE_PARA) || !defined(MMX_COEF))
+#if defined(_OPENMP)
 #include <omp.h>
-#ifdef SHA1_SSE_PARA
+#ifdef MMX_COEF
 #define OMP_SCALE			128
 #else
 #define OMP_SCALE			2048
@@ -158,7 +156,7 @@ static void init(struct fmt_main *self)
 	    warned++ == 0)
 		fprintf(stderr, "Warning: SAP-F/G format should always be UTF-8.\nConvert your input files to UTF-8 and use --encoding=utf8\n");
 
-#if defined (_OPENMP) && (defined(SHA1_SSE_PARA) || !defined(MMX_COEF))
+#if defined (_OPENMP)
 	omp_t = omp_get_max_threads();
 	self->params.min_keys_per_crypt = omp_t * MIN_KEYS_PER_CRYPT;
 	omp_t *= OMP_SCALE;
@@ -261,12 +259,10 @@ static int cmp_all(void *binary, int count) {
 #ifdef MMX_COEF
 	unsigned int x,y=0;
 
-#ifdef SHA1_SSE_PARA
 #ifdef _OPENMP
 	for(;y<SHA1_SSE_PARA*omp_t;y++)
 #else
 	for(;y<SHA1_SSE_PARA;y++)
-#endif
 #endif
 	for(x=0;x<MMX_COEF;x++)
 	{
@@ -398,7 +394,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	int count = *pcount;
 #if MMX_COEF
 
-#if defined(_OPENMP) && defined(SHA1_SSE_PARA)
+#if defined(_OPENMP)
 	int t;
 #pragma omp parallel for
 	for (t = 0; t < omp_t; t++)
@@ -479,20 +475,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			crypt_len[index] = len;
 		}
 
-#if SHA1_SSE_PARA
 		SSESHA1body(&saved_key[0][t*SHA_BUF_SIZ*4*NBKEYS], (unsigned int*)&crypt_key[t*20*NBKEYS], NULL, SSEi_MIXED_IN);
-#else
-		shammx_nosizeupdate_nofinalbyteswap(crypt_key, saved_key[0], 1);
-#endif
 
 		// Do another limb if needed
 		if (longest > 55) {
 			memcpy(&interm_crypt[t*20*NBKEYS], &crypt_key[t*20*NBKEYS], 20*NBKEYS);
-#if SHA1_SSE_PARA
 			SSESHA1body(&saved_key[1][t*SHA_BUF_SIZ*4*NBKEYS], (unsigned int*)&interm_crypt[t*20*NBKEYS], (unsigned int*)&interm_crypt[t*20*NBKEYS], SSEi_MIXED_IN|SSEi_RELOAD);
-#else
-			shammx_reloadinit_nosizeupdate_nofinalbyteswap(interm_crypt, saved_key[1], interm_crypt);
-#endif
 			// Copy the new output
 			for (index = 0; index < NBKEYS; index++)
 				if (crypt_len[index] > 55)
@@ -545,11 +533,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			((unsigned int*)saved_key[(len+8)>>6])[15*MMX_COEF + (ti&3) + (ti>>2)*SHA_BUF_SIZ*MMX_COEF] = len << 3;
 		}
 
-#if SHA1_SSE_PARA
 		SSESHA1body(&saved_key[0][t*SHA_BUF_SIZ*4*NBKEYS], (unsigned int*)&interm_crypt[t*20*NBKEYS], NULL, SSEi_MIXED_IN);
-#else
-		shammx_nosizeupdate_nofinalbyteswap(interm_crypt, saved_key[0], 1);
-#endif
 
 		// Typically, no or very few crypts are done at this point so this is faster than to memcpy the lot
 		for (index = 0; index < NBKEYS; index++)
@@ -558,11 +542,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 		// Do another and possibly a third limb
 		for (i = 1; i < (((longest + 8) >> 6) + 1); i++) {
-#if SHA1_SSE_PARA
 			SSESHA1body(&saved_key[i][t*SHA_BUF_SIZ*4*NBKEYS], (unsigned int*)&interm_crypt[t*20*NBKEYS], (unsigned int*)&interm_crypt[t*20*NBKEYS], SSEi_MIXED_IN|SSEi_RELOAD);
-#else
-			shammx_reloadinit_nosizeupdate_nofinalbyteswap(interm_crypt, saved_key[i], interm_crypt);
-#endif
 			// Copy any output that is done now
 			for (index = 0; index < NBKEYS; index++)
 				if (((crypt_len[index] + 8) >> 6) == i)

@@ -9,7 +9,7 @@
 
 #include "arch.h"
 
-#ifdef SHA1_SSE_PARA
+#ifdef MMX_COEF
 #define NBKEYS				(MMX_COEF * SHA1_SSE_PARA)
 
 #ifdef _OPENMP
@@ -17,9 +17,6 @@ static unsigned int omp_t = 1;
 #include <omp.h>
 #define OMP_SCALE			128
 #endif
-
-#elif MMX_COEF
-#define NBKEYS				MMX_COEF
 #endif
 #include "sse-intrinsics.h"
 
@@ -90,7 +87,7 @@ static ARCH_WORD_32 crypt_out[MAX_KEYS_PER_CRYPT][5];
 static void init(struct fmt_main *self)
 {
 #ifdef MMX_COEF
-#if defined(SHA1_SSE_PARA) && defined (_OPENMP)
+#if defined (_OPENMP)
 	omp_t = omp_get_max_threads();
 	self->params.min_keys_per_crypt = omp_t * NBKEYS;
 	omp_t *= OMP_SCALE;
@@ -333,7 +330,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	int count = *pcount;
 #ifdef MMX_COEF
 	int i = 0;
-#if defined(SHA1_SSE_PARA) && defined(_OPENMP)
+#if defined(_OPENMP)
 	#pragma omp parallel for
 	for (i=0; i < omp_t; i++) {
 #endif
@@ -342,12 +339,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		unsigned int j;
 		for (j=0; j < NBKEYS; j++)
 			in[(j&(MMX_COEF-1)) + (j>>(MMX_COEF>>1))*SHA_BUF_SIZ*MMX_COEF] = cur_salt;
-#ifdef SHA1_SSE_PARA
 		SSESHA1body(in, out, NULL, SSEi_MIXED_IN);
-#else
-		shammx_nosizeupdate_nofinalbyteswap((unsigned char*)out, (unsigned char*)in, 1);
-#endif
-#if defined(SHA1_SSE_PARA) && defined(_OPENMP)
+#if defined(_OPENMP)
 	}
 #endif
 #else
@@ -373,12 +366,10 @@ static int cmp_all(void *binary, int count)
 #ifdef MMX_COEF
 	unsigned int x,y=0;
 
-#ifdef SHA1_SSE_PARA
 #ifdef _OPENMP
 	for(;y<SHA1_SSE_PARA*omp_t;y++)
 #else
 	for(;y<SHA1_SSE_PARA;y++)
-#endif
 #endif
 	for(x=0;x<MMX_COEF;x++)
 	{
@@ -442,10 +433,7 @@ struct fmt_main fmt_XSHA = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-#if !defined(MMX_COEF) || defined(SHA1_SSE_PARA)
-		FMT_OMP |
-#endif
-		FMT_CASE | FMT_8_BIT,
+		FMT_OMP | FMT_CASE | FMT_8_BIT,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif

@@ -24,15 +24,10 @@
 
 #include "stdint.h"
 
-#ifdef MD5_SSE_PARA
-#define NBKEYS				(MMX_COEF * MD5_SSE_PARA)
-#elif defined(MMX_COEF)
-#define NBKEYS				MMX_COEF
-#endif
 #include "sse-intrinsics.h"
 #define ALGORITHM_NAME			"MD5 " MD5_ALGORITHM_NAME
 
-#if defined(_OPENMP) && (defined (MD5_SSE_PARA) || !defined(MMX_COEF))
+#if defined(_OPENMP)
 #include <omp.h>
 #endif
 
@@ -52,9 +47,9 @@
 #define SALT_SIZE			sizeof(reqinfo_t)
 #define SALT_ALIGN			4
 
-#if defined(_OPENMP) && (defined (MD5_SSE_PARA) || !defined(MMX_COEF))
+#if defined(_OPENMP)
 static unsigned int omp_t = 1;
-#ifdef MD5_SSE_PARA
+#ifdef MMX_COEF
 #define OMP_SCALE			256
 #else
 #define OMP_SCALE			64
@@ -62,6 +57,7 @@ static unsigned int omp_t = 1;
 #endif
 
 #ifdef MMX_COEF
+#define NBKEYS					(MMX_COEF * MD5_SSE_PARA)
 #define MIN_KEYS_PER_CRYPT		NBKEYS
 #define MAX_KEYS_PER_CRYPT		NBKEYS
 #define GETPOS(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&60)*MMX_COEF + ((i)&3) + (index>>(MMX_COEF>>1))*64*MMX_COEF )
@@ -140,7 +136,7 @@ static void init(struct fmt_main *self)
 #ifdef MMX_COEF
 	int i;
 #endif
-#if defined (_OPENMP) && (defined(MD5_SSE_PARA) || !defined(MMX_COEF))
+#if defined (_OPENMP)
 	omp_t = omp_get_max_threads();
 	self->params.min_keys_per_crypt *= omp_t;
 	omp_t *= OMP_SCALE;
@@ -197,12 +193,10 @@ static int cmp_all(void *binary, int count)
 {
 #ifdef MMX_COEF
 	unsigned int x,y=0;
-#ifdef MD5_SSE_PARA
 #ifdef _OPENMP
 	for(; y < MD5_SSE_PARA * omp_t; y++)
 #else
 	for(; y < MD5_SSE_PARA; y++)
-#endif
 #endif
 		for(x = 0; x < MMX_COEF; x++)
 		{
@@ -375,7 +369,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
 #if MMX_COEF
-#if defined(_OPENMP) && defined(MD5_SSE_PARA)
+#if defined(_OPENMP)
 #define ti	(thread*NBKEYS+index)
 	int thread;
 #pragma omp parallel for
@@ -415,11 +409,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			((unsigned int *)saved_key[(len+8)>>6])[14*MMX_COEF + (ti&3) + (ti>>2)*16*MMX_COEF] = len << 3;
 		}
 
-#ifdef MD5_SSE_PARA
 		SSEmd5body(&saved_key[0][thread*64*NBKEYS], &crypt_key[thread*4*NBKEYS], NULL, SSEi_MIXED_IN);
-#else
-		mdfivemmx_nosizeupdate((unsigned char*)&crypt_key[thread*4*NBKEYS], &saved_key[0][thread*64*NBKEYS], 0);
-#endif
 		sse_bin2ascii((unsigned char*)&saved_key[0][thread*64*NBKEYS], (unsigned char*)&crypt_key[thread*4*NBKEYS]);
 
 		longest = 0; shortest = HTMP;
@@ -458,11 +448,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		}
 
 		// First limb
-#ifdef MD5_SSE_PARA
 		SSEmd5body(&saved_key[0][thread*64*NBKEYS], &interm_key[thread*4*NBKEYS], NULL, SSEi_MIXED_IN);
-#else
-		mdfivemmx_nosizeupdate((unsigned char*)&interm_key[thread*4*NBKEYS], &saved_key[0][thread*64*NBKEYS], 0);
-#endif
 		// Copy any output that is done now
 		if (shortest < 56) {
 			if (longest < 56)
@@ -474,11 +460,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		}
 		// Do the rest of the limbs
 		for (i = 1; i < (((longest + 8) >> 6) + 1); i++) {
-#ifdef MD5_SSE_PARA
 			SSEmd5body(&saved_key[i][thread*64*NBKEYS], &interm_key[thread*4*NBKEYS], &interm_key[thread*4*NBKEYS], SSEi_RELOAD|SSEi_MIXED_IN);
-#else
-			mdfivemmx_noinit_nosizeupdate((unsigned char*)&interm_key[thread*4*NBKEYS], &saved_key[i][thread*64*NBKEYS], 0);
-#endif
 			// Copy any output that is done now
 			if (shortest < i*64+56) {
 				if (shortest > (i-1)*64+55 && longest < i*64+56)
@@ -671,9 +653,7 @@ struct fmt_main fmt_HDAA = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-#if !defined(MMX_COEF) || defined(MD5_SSE_PARA)
 		FMT_OMP |
-#endif
 		FMT_CASE | FMT_8_BIT,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },

@@ -20,10 +20,10 @@
 #include "formats.h"
 #include "sse-intrinsics.h"
 
-#if defined(_OPENMP) && (defined (MD5_SSE_PARA) || !defined(MMX_COEF))
+#if defined(_OPENMP)
 #include <omp.h>
 static unsigned int omp_t = 1;
-#ifdef MD5_SSE_PARA
+#ifdef MMX_COEF
 #define OMP_SCALE			256
 #else
 #define OMP_SCALE			256
@@ -37,11 +37,6 @@ static unsigned int omp_t = 1;
 #define FORMAT_LABEL			"ipb2"
 #define FORMAT_NAME			"Invision Power Board 2.x"
 
-#ifdef MD5_SSE_PARA
-#define NBKEYS				(MMX_COEF * MD5_SSE_PARA)
-#elif defined(MMX_COEF)
-#define NBKEYS				MMX_COEF
-#endif
 #define ALGORITHM_NAME			"MD5 " MD5_ALGORITHM_NAME
 
 #define BENCHMARK_COMMENT		""
@@ -59,6 +54,7 @@ static unsigned int omp_t = 1;
 #define CIPHERTEXT_LENGTH		(1 + 4 + 1 + SALT_LENGTH * 2 + 1 + MD5_HEX_SIZE)
 
 #ifdef MMX_COEF
+#define NBKEYS					(MMX_COEF * MD5_SSE_PARA)
 #define MIN_KEYS_PER_CRYPT		NBKEYS
 #define MAX_KEYS_PER_CRYPT		NBKEYS
 #define GETPOS(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&60)*MMX_COEF + ((i)&3) + (index>>(MMX_COEF>>1))*64*MMX_COEF )
@@ -136,7 +132,7 @@ static void init(struct fmt_main *self)
 #if MMX_COEF
 	int i;
 #endif
-#if defined (_OPENMP) && (defined(MD5_SSE_PARA) || !defined(MMX_COEF))
+#if defined (_OPENMP)
 	omp_t = omp_get_max_threads();
 	self->params.min_keys_per_crypt *= omp_t;
 	omp_t *= OMP_SCALE;
@@ -281,7 +277,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
 #ifdef MMX_COEF
-#if defined(_OPENMP) && defined(MD5_SSE_PARA)
+#if defined(_OPENMP)
 	int t;
 #pragma omp parallel for
 	for (t = 0; t < omp_t; t++)
@@ -341,11 +337,7 @@ key_cleaning:
 			keybuffer[14*MMX_COEF] = len << 3;
 		}
 
-#ifdef MD5_SSE_PARA
 		SSEmd5body(&key_buf[t*NBKEYS*64], (unsigned int*)&crypt_key[t*NBKEYS*16], NULL, SSEi_MIXED_IN);
-#else
-		mdfivemmx_nosizeupdate(crypt_key, key_buf, 0);
-#endif
 		for (index = 0; index < NBKEYS; index++) {
 			// Somehow when I optimised this it got faster in Valgrind but slower IRL
 			for (i = 0; i < BINARY_SIZE; i++) {
@@ -355,13 +347,8 @@ key_cleaning:
 			}
 		}
 
-#ifdef MD5_SSE_PARA
 		SSEmd5body(&saved_key[t*NBKEYS*64], (unsigned int*)&crypt_key[t*NBKEYS*16], NULL, SSEi_MIXED_IN);
 		SSEmd5body(empty_key, (unsigned int*)&crypt_key[t*NBKEYS*16], (unsigned int*)&crypt_key[t*NBKEYS*16], SSEi_RELOAD|SSEi_MIXED_IN);
-#else
-		mdfivemmx_nosizeupdate(crypt_key, saved_key, 0);
-		mdfivemmx_noinit_nosizeupdate(crypt_key, empty_key, 0);
-#endif
 	}
 	//dump_stuff_mmx_msg("\nfinal ", saved_key, 64, count-1);
 	//dump_out_mmx_msg("result", crypt_key, 16, count-1);
@@ -391,12 +378,10 @@ key_cleaning:
 static int cmp_all(void *binary, int count) {
 #ifdef MMX_COEF
 	unsigned int x,y=0;
-#ifdef MD5_SSE_PARA
 #ifdef _OPENMP
 	for(;y<MD5_SSE_PARA*omp_t;y++)
 #else
 	for(;y<MD5_SSE_PARA;y++)
-#endif
 #endif
 		for(x = 0; x < MMX_COEF; x++)
 		{

@@ -112,11 +112,8 @@ static void pbkdf2_sha1(const unsigned char *K, int KL, const unsigned char *S, 
 
 #ifdef MMX_COEF
 
-#if SHA1_SSE_PARA
 #define SSE_GROUP_SZ_SHA1 (MMX_COEF*SHA1_SSE_PARA)
-#else
-#define SSE_GROUP_SZ_SHA1 MMX_COEF
-#endif
+
 
 static void _pbkdf2_sha1_sse_load_hmac(const unsigned char *K[SSE_GROUP_SZ_SHA1], int KL[SSE_GROUP_SZ_SHA1], SHA_CTX pIpad[SSE_GROUP_SZ_SHA1], SHA_CTX pOpad[SSE_GROUP_SZ_SHA1])
 {
@@ -234,7 +231,6 @@ static void pbkdf2_sha1_sse(const unsigned char *K[SSE_GROUP_SZ_SHA1], int KL[SS
 		// Here is the inner loop.  We loop from 1 to count.  iteration 0 was done in the ipad/opad computation.
 		for(i = 1; i < R; i++) {
 			int k;
-#if SHA1_SSE_PARA
 			SSESHA1body((unsigned char*)o1,o1,i1, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 			SSESHA1body((unsigned char*)o1,o1,i2, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 			// only xor first 16 bytes, since that is ALL this format uses
@@ -243,14 +239,6 @@ static void pbkdf2_sha1_sse(const unsigned char *K[SSE_GROUP_SZ_SHA1], int KL[SS
 				for(j = 0; j < (SHA_DIGEST_LENGTH/sizeof(ARCH_WORD_32)); j++)
 					dgst[k][j] ^= p[(j<<(MMX_COEF>>1))];
 			}
-#else
-			shammx_reloadinit_nosizeupdate_nofinalbyteswap((unsigned char*)o1, (unsigned char*)o1, (unsigned char*)i1);
-			shammx_reloadinit_nosizeupdate_nofinalbyteswap((unsigned char*)o1, (unsigned char*)o1, (unsigned char*)i2);
-			for (k = 0; k < MMX_COEF; k++) {
-				for(j = 0; j < (SHA_DIGEST_LENGTH/sizeof(ARCH_WORD_32)); j++)
-					dgst[k][j] ^= o1[(j<<(MMX_COEF>>1))+k];
-			}
-#endif
 		}
 
 		// we must fixup final results.  We have been working in BE (NOT switching out of, just to switch back into it at every loop).

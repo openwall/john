@@ -31,15 +31,6 @@ void md5cryptsse(unsigned char * buf, unsigned char * salt, char * out, int md5_
 void SSEmd5body(__m128i* data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, unsigned SSEi_flags);
 #define MD5_SSE_type			SSE_type
 #define MD5_ALGORITHM_NAME		"128/128 " MD5_SSE_type " " MD5_N_STR
-#elif defined(MMX_COEF) && MMX_COEF == 4
-#define MD5_SSE_type			"SSE2"
-#define MD5_ALGORITHM_NAME		"128/128 " MD5_SSE_type " 4x"
-#elif defined(MMX_COEF) && MMX_COEF == 2
-#define MD5_SSE_type			"MMX"
-#define MD5_ALGORITHM_NAME		"64/64 " MD5_SSE_type " 2x"
-#elif defined(MMX_COEF)
-#define MD5_SSE_type			"?"
-#define MD5_ALGORITHM_NAME		MD5_SSE_type
 #else
 #define MD5_SSE_type			"1x"
 #define MD5_ALGORITHM_NAME		"32/" ARCH_BITS_STR
@@ -50,15 +41,6 @@ void SSEmd5body(__m128i* data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, un
 void SSEmd4body(__m128i* data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, unsigned SSEi_flags);
 #define MD4_SSE_type			SSE_type
 #define MD4_ALGORITHM_NAME		"128/128 " MD4_SSE_type " " MD4_N_STR
-#elif defined(MMX_COEF) && MMX_COEF == 4
-#define MD4_SSE_type			"SSE2"
-#define MD4_ALGORITHM_NAME		"128/128 " MD4_SSE_type " 4x"
-#elif defined(MMX_COEF) && MMX_COEF == 2
-#define MD4_SSE_type			"MMX"
-#define MD4_ALGORITHM_NAME		"64/64 " MD4_SSE_type " 2x"
-#elif defined(MMX_COEF)
-#define MD4_SSE_type			"?"
-#define MD4_ALGORITHM_NAME		MD4_SSE_type
 #else
 #define MD4_SSE_type			"1x"
 #define MD4_ALGORITHM_NAME		"32/" ARCH_BITS_STR
@@ -68,15 +50,6 @@ void SSEmd4body(__m128i* data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, un
 void SSESHA1body(__m128i* data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, unsigned SSEi_flags);
 #define SHA1_SSE_type			SSE_type
 #define SHA1_ALGORITHM_NAME		"128/128 " SHA1_SSE_type " " SHA1_N_STR
-#elif defined(MMX_COEF) && MMX_COEF == 4
-#define SHA1_SSE_type			"SSE2"
-#define SHA1_ALGORITHM_NAME		"128/128 " SHA1_SSE_type " 4x"
-#elif defined(MMX_COEF) && MMX_COEF == 2
-#define SHA1_SSE_type			"MMX"
-#define SHA1_ALGORITHM_NAME		"64/64 " SHA1_SSE_type " 2x"
-#elif defined(MMX_COEF)
-#define SHA1_SSE_type			"?"
-#define SHA1_ALGORITHM_NAME		SHA1_SSE_type
 #else
 #define SHA1_SSE_type			"1x"
 #define SHA1_ALGORITHM_NAME		"32/" ARCH_BITS_STR

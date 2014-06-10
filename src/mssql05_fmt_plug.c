@@ -13,10 +13,8 @@
 
 #include "arch.h"
 
-#ifdef SHA1_SSE_PARA
+#ifdef MMX_COEF
 #define NBKEYS	(MMX_COEF * SHA1_SSE_PARA)
-#elif MMX_COEF
-#define NBKEYS	MMX_COEF
 #endif
 #include "sse-intrinsics.h"
 
@@ -385,9 +383,7 @@ static int cmp_all(void *binary, int count) {
 #ifdef MMX_COEF
 	unsigned int x,y=0;
 
-#ifdef SHA1_SSE_PARA
 	for(;y<SHA1_SSE_PARA;y++)
-#endif
 	for(x=0;x<MMX_COEF;x++)
 	{
 		if( ((unsigned int *)binary)[0] == ((unsigned int *)crypt_key)[x+y*MMX_COEF*5] )
@@ -434,11 +430,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		for(i=0;i<SALT_SIZE;i++)
 			saved_key[GETPOS((len+i), index)] = cursalt[i];
 	}
-#ifdef SHA1_SSE_PARA
 	SSESHA1body(saved_key, (unsigned int *)crypt_key, NULL, SSEi_MIXED_IN);
-#else
-	shammx_nosizeupdate_nofinalbyteswap( (unsigned char *) crypt_key, (unsigned char *) saved_key, 1);
-#endif
 #else
 	SHA_CTX ctx;
 	memcpy(saved_key+key_length, cursalt, SALT_SIZE);

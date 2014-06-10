@@ -65,11 +65,7 @@
 #include "sse-intrinsics.h"
 #include "loader.h"
 
-#if (!defined(SHA1_SSE_PARA) && defined(MMX_COEF))
-#undef _OPENMP
-#undef FMT_OMP
-#define FMT_OMP				0
-#elif defined (_OPENMP)
+#if defined (_OPENMP)
 #include <omp.h>
 #define OMP_LOOPS			1
 #endif
@@ -120,11 +116,7 @@ static struct fmt_tests tests[] = {
 #define ALGORITHM_NAME			"PBKDF2-SHA1 " SHA1_ALGORITHM_NAME
 
 #ifdef MMX_COEF
-# ifdef SHA1_SSE_PARA
-#  define MS_NUM_KEYS			(MMX_COEF*SHA1_SSE_PARA)
-# else
-#  define MS_NUM_KEYS			MMX_COEF
-# endif
+#define MS_NUM_KEYS			(MMX_COEF*SHA1_SSE_PARA)
 // Ok, now we have our MMX/SSE2/intr buffer.
 // this version works properly for MMX, SSE2 (.S) and SSE2 intrinsic.
 #define GETPOS(i, index)	( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3) )*MMX_COEF + (3-((i)&3)) + (index>>(MMX_COEF>>1))*SHA_BUF_SIZ*MMX_COEF*4 ) //for endianity conversion
@@ -596,7 +588,6 @@ static void pbkdf2_sse2(int t)
 
 	for(i = 1; i < iteration_cnt; i++)
 	{
-#if SHA1_SSE_PARA
 		SSESHA1body((unsigned int*)t_sse_hash1, (unsigned int*)t_sse_hash1, (unsigned int*)t_sse_crypt1, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 		SSESHA1body((unsigned int*)t_sse_hash1, (unsigned int*)t_sse_hash1, (unsigned int*)t_sse_crypt2, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 		// only xor first 16 bytes, since that is ALL this format uses
@@ -605,15 +596,6 @@ static void pbkdf2_sse2(int t)
 			for(j = 0; j < 4; j++)
 				t_crypt[(k<<2)+j] ^= p[(j<<(MMX_COEF>>1))];
 		}
-#else
-		shammx_reloadinit_nosizeupdate_nofinalbyteswap(t_sse_hash1, t_sse_hash1, t_sse_crypt1);
-		shammx_reloadinit_nosizeupdate_nofinalbyteswap(t_sse_hash1, t_sse_hash1, t_sse_crypt2);
-		// only xor first 16 bytes, since that is ALL this format uses
-		for (k = 0; k < MMX_COEF; k++) {
-			for(j = 0; j < 4; j++)
-				t_crypt[(k<<2)+j] ^= ((unsigned int*)t_sse_hash1)[(j<<(MMX_COEF>>1))+k];
-		}
-#endif
 	}
 }
 
