@@ -46,7 +46,6 @@ CFLAGS_BACKUP=$CFLAGS
 CFLAGS="$CFLAGS -O0"
 if test "x$enable_native_tests" = xyes; then
   CPU_NOTFOUND=0
-  AVX_NOTFOUND=0
   CC="$CC_BACKUP -msse2"
   AC_MSG_NOTICE([Testing build host's native CPU features])
   AC_MSG_CHECKING([for SSE2])
@@ -63,7 +62,6 @@ if test "x$enable_native_tests" = xyes; then
      [AS_IF([test y$ARCH_LINK = yx86-any.h], [ARCH_LINK=x86-sse.h])]
      [AC_MSG_RESULT([yes])]
     ,[CPU_NOTFOUND="1"]
-     [AVX_NOTFOUND=1]
      [AC_MSG_RESULT(no)]
      [AS_IF([test y$ARCH_LINK = yx86-any.h], [
 		  CC="$CC_BACKUP -mmmx"
@@ -102,7 +100,6 @@ if test "x$enable_native_tests" = xyes; then
      [CPU_STR="SSSE3"]
      [AC_MSG_RESULT([yes])]
     ,[CPU_NOTFOUND=1]
-     [AVX_NOTFOUND=1]
      [AC_MSG_RESULT([no])]
     )
   ]
@@ -124,7 +121,6 @@ if test "x$enable_native_tests" = xyes; then
      [CPU_STR="SSE4.1"]
      [AC_MSG_RESULT([yes])]
     ,[CPU_NOTFOUND=1]
-     [AVX_NOTFOUND=1]
      [AC_MSG_RESULT([no])]
     )
   ]
@@ -144,12 +140,12 @@ if test "x$enable_native_tests" = xyes; then
     ,[CPU_BEST_FLAGS="-mavx"]dnl
      [CPU_STR="AVX"]
      [AC_MSG_RESULT([yes])]
-    ,[AVX_NOTFOUND=1]
+    ,[CPU_NOTFOUND=1]
 	 [AC_MSG_RESULT([no])]
     )
   ]
   )
-  AS_IF([test "x$AVX_NOTFOUND" = x0],
+  AS_IF([test "x$CPU_NOTFOUND" = x0],
   [
   CC="$CC_BACKUP -mavx2"
   AC_MSG_CHECKING([for AVX2])
@@ -187,6 +183,28 @@ if test "x$enable_native_tests" = xyes; then
     )
   ]
   )
+
+  AS_CASE([$host_os], [darwin*], [AS_IF([test "x$CPU_STR" = "xSSE4.1"],
+    [AC_PATH_PROGS([jtr_as], [as])]
+    [AS_IF([test "x$jtr_as" = "x/usr/bin/as"],
+      [AC_MSG_CHECKING([that 'as' works for AVX])]
+      [AC_LINK_IFELSE(
+         [AC_LANG_SOURCE(
+            [extern void exit(int);
+            int main() {
+            #if defined(__AVX__)
+                exit(0);}
+            #else
+                BORK!
+            #endif
+            ]
+         )]
+        ,[AC_MSG_RESULT([no])]
+         [osx_assembler_warn=yes]
+        ,[AC_MSG_RESULT(yes)]
+      )]
+    )]
+  )])
 
 else
 
@@ -334,6 +352,24 @@ else
       ,[AC_MSG_RESULT(no)]
     )
   fi
+
+  AS_CASE([$host_os], [darwin*], [AS_IF([test "x$CPU_NOTFOUND" = x0],[
+    CC="$CC_BACKUP -mavx"
+    AC_MSG_CHECKING([that 'as' works for AVX])
+    AC_LINK_IFELSE(
+      [
+      AC_LANG_SOURCE(
+            [[#include <immintrin.h>
+          #include <stdio.h>
+          extern void exit(int);
+          int main(){__m256d t;*((long long*)&t)=1;t=_mm256_movedup_pd(t);if((*(long long*)&t)==88)printf(".");exit(0);}]]
+      )]
+      ,[AC_MSG_RESULT([yes])]
+      ,[AC_MSG_RESULT([no])]
+       [AC_MSG_ERROR(['as' can't assemble AVX instructions. See last section of doc/INSTALL])]
+      )
+    ])]
+  )
 
 fi
 

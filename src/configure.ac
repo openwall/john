@@ -389,7 +389,7 @@ AC_CHECK_HEADER([krb5.h],
 )
 # if nether of these functions found, then totally scrap all krb5 usage.  HOWEVER, this puts a lot of
 # DEFINE XYZ 0 into the autoconfig.h file, so we MUST use #if xyz and NOT #ifdef xyz since xyz 'is' defined.
-AS_IF([test "x$ac_cv_search_krb5_c_string_to_key" = xno -a "x$ac_cv_search_krb5_c_string_to_key_with_params" = xno], 
+AS_IF([test "x$ac_cv_search_krb5_c_string_to_key" = xno -a "x$ac_cv_search_krb5_c_string_to_key_with_params" = xno],
   [AC_DEFINE([HAVE_KRB5],0,[Define to 1 if you have the Kerberos 5 libs.])]
   [AC_SUBST(KRB5_LIBS, [""])]
   [krb5_found="no"]
@@ -742,6 +742,14 @@ if test "x$endian" = "big"; then
 else
    using_endian="LE"
 fi
+
+AS_IF([test "x$osx_assembler_warn" = xyes],
+  [AC_MSG_WARN([**************************************************])]
+  [AC_MSG_WARN([* System's 'as' can't assemble AVX instructions. *])]
+  [AC_MSG_WARN([* Fixing this may yield better performance.      *])]
+  [AC_MSG_WARN([* See last section of doc/INSTALL                *])]
+  [AC_MSG_WARN([**************************************************])]
+)
 
 cat <<EOF
 dnl =======================================================================
