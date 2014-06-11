@@ -72,6 +72,7 @@
 #include <openssl/des.h>
 
 #include "arch.h"
+#include "sse-intrinsics.h"
 #ifdef MMX_COEF
 #define NBKEYS                  (MMX_COEF * MD4_SSE_PARA)
 #else
@@ -81,7 +82,6 @@
 #endif
 #endif
 
-#include "sse-intrinsics.h"
 #include "misc.h"
 #include "common.h"
 #include "formats.h"

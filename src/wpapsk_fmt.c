@@ -12,9 +12,7 @@
  */
 #include <string.h>
 #include "arch.h"
-#if defined (MMX_COEF) && MMX_COEF==2 && defined (_OPENMP)
-#undef _OPENMP
-#endif
+#include "sse-intrinsics.h"
 
 #include <assert.h>
 #include "formats.h"
@@ -39,7 +37,7 @@
 #    include <omp.h>
 #  endif
 #endif
-#include "sse-intrinsics.h"
+
 #include "memdbg.h"
 
 #define FORMAT_LABEL		"wpapsk"

@@ -5,6 +5,11 @@
  * Some modifications, Jim Fougeron, 2013.  Licensing rights listed in accompanying sse-intrinsics.c file.
  */
 
+#if (MMX_COEF && MMX_COEF == 2) || !MMX_COEF
+#define SSE_type			"x86"
+#undef MMX_COEF
+#endif
+
 #include "common.h"
 #include "sse-intrinsics-load-flags.h"
 #include "aligned.h"
@@ -17,12 +22,13 @@
 #define STRINGIZE(s) STRINGIZE2(s)
 
 #if defined(__XOP__)
+#undef SSE_type
 #define SSE_type			"XOP"
 #elif defined(__AVX__)
+#undef SSE_type
 #define SSE_type			"AVX"
-#elif defined(MMX_COEF) && MMX_COEF == 2
-#define SSE_type			"MMX"
-#else
+#elif MMX_COEF
+#undef SSE_type
 #define SSE_type			"SSE2"
 #endif
 

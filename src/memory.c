@@ -309,6 +309,12 @@ void alter_endianity(void *_x, unsigned int size) {
 #ifndef MMX_COEF
 #define MMX_COEF	4
 #endif
+#ifndef MMX_COEF_SHA512
+#define MMX_COEF_SHA512 2
+#endif
+#ifndef MMX_COEF_SHA256
+#define MMX_COEF_SHA256 4
+#endif
 
 // These work for standard MMX_COEF buffers, AND for SSEi MMX_PARA multiple MMX_COEF blocks, where index will be mod(X * MMX_COEF) and not simply mod(MMX_COEF)
 #define SHAGETPOS(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3) )*MMX_COEF + (3-((i)&3)) + (index>>(MMX_COEF>>1))*SHA_BUF_SIZ*4*MMX_COEF ) //for endianity conversion

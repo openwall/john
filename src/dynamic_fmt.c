@@ -98,6 +98,10 @@ static DYNAMIC_primitive_funcp _Funcs_1[] =
 
 #include "arch.h"
 
+#ifdef MMX_COEF
+#include "sse-intrinsics.h"
+#endif
+
 /* OMP code is b0rken - it assumes all PARA's are the same */
 #if defined(_OPENMP) && defined(MMX_COEF) &&	  \
 	(SHA1_SSE_PARA != MD5_SSE_PARA || \
@@ -134,10 +138,6 @@ static DYNAMIC_primitive_funcp _Funcs_1[] =
 #ifdef _OPENMP
 #include <omp.h>
 static int m_ompt;
-#endif
-
-#ifdef MMX_COEF
-#include "sse-intrinsics.h"
 #endif
 
 #include "dynamic_types.h"
