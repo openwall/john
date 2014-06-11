@@ -26,7 +26,8 @@ NULL = /dev/null
 CPPFLAGS = -E
 SORT = sort
 STRIP = strip
-MAKE_ORIG = +$(MAKE) -f Makefile.legacy -j$(J)
+MAKE_BEST_JTR = $(MAKE) -f Makefile.legacy
+MAKE_ORIG = +$(MAKE_BEST_JTR) -j$(J)
 
 ## Uncomment the line below for MPI (can be used together with OMP as well)
 #CC = mpicc -DHAVE_MPI
@@ -240,8 +241,8 @@ BENCH_OBJS = \
 	DES_bsg.o $(BENCH_DES_BS_OBJS_DEPEND) \
 	$(BENCH_MD5_OBJS_DEPEND) \
 	$(BENCH_BF_OBJS_DEPEND) \
-	bench-t.o best.o common.o config_g.o formats_g.o math.o memory.o \
-	miscnl.o params.o path.o signals_g.o tty.o memdbg.o
+	bench-t.o best.o common.o config_g.o formats_g.o jumbo.o math.o \
+	memory.o miscnl.o params.o path.o signals_g.o tty.o memdbg.o
 
 PARA_BENCH_32_OBJS = \
 	bench-t.o para-best.o common.o config_g.o formats_g.o math.o memory.o \
@@ -1977,7 +1978,7 @@ generic.h:
 	$(RM) arch.h
 	$(CC) $(CFLAGS) detect.c
 	$(LD) detect.o $(LDFLAGS) -o detect
-	./best.sh "$(MAKE_ORIG)" \
+	./best.sh "$(MAKE_BEST_JTR)" \
 		"$(BENCH_DES_OBJS_DEPEND)" \
 		"$(BENCH_DES_BS_OBJS_DEPEND)" \
 		"$(BENCH_MD5_OBJS_DEPEND)" \
