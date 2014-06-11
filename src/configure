@@ -7474,9 +7474,47 @@ CFLAGS_BACKUP=$CFLAGS
 CFLAGS="$CFLAGS -O0"
 if test "x$enable_native_tests" = xyes; then
   CPU_NOTFOUND=0
-  CC="$CC_BACKUP -msse2"
   { $as_echo "$as_me:${as_lineno-$LINENO}: Testing build host's native CPU features" >&5
 $as_echo "$as_me: Testing build host's native CPU features" >&6;}
+  CC="$CC_BACKUP -mmmx"
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for MMX" >&5
+$as_echo_n "checking for MMX... " >&6; }
+  if test "$cross_compiling" = yes; then :
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "cannot run test program while cross compiling
+See \`config.log' for more details" "$LINENO" 5; }
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+    #include <mmintrin.h>
+	#include <stdio.h>
+	extern void exit(int);
+	int main(){__m64 t;*((long long*)&t)=1;t=_mm_set1_pi32(7);if((*(unsigned*)&t)==88)printf(".");exit(0);}
+
+
+_ACEOF
+if ac_fn_c_try_run "$LINENO"; then :
+  CPU_BEST_FLAGS="-mmmx"      CPU_STR="MMX"
+     if test y$ARCH_LINK = yx86-any.h; then :
+  ARCH_LINK=x86-mmx.h
+fi
+     { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+
+fi
+rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
+  conftest.$ac_objext conftest.beam conftest.$ac_ext
+fi
+
+  if test "x$CPU_NOTFOUND" = x0; then :
+
+  CC="$CC_BACKUP -msse2"
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for SSE2" >&5
 $as_echo_n "checking for SSE2... " >&6; }
   if test "$cross_compiling" = yes; then :
@@ -7507,51 +7545,14 @@ else
   CPU_NOTFOUND="1"
      { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
-     if test y$ARCH_LINK = yx86-any.h; then :
-
-		  CC="$CC_BACKUP -mmmx"
-		  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for MMX" >&5
-$as_echo_n "checking for MMX... " >&6; }
-		  if test "$cross_compiling" = yes; then :
-  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
-$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error $? "cannot run test program while cross compiling
-See \`config.log' for more details" "$LINENO" 5; }
-else
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-			#include <mmintrin.h>
-			#include <stdio.h>
-			extern void exit(int);
-			int main(){__m64 t;*((long long*)&t)=1;t=_mm_set1_pi32(7);if((*(unsigned*)&t)==88)printf(".");exit(0);}
-
-
-_ACEOF
-if ac_fn_c_try_run "$LINENO"; then :
-  CPU_BEST_FLAGS="-mmmx" 			 CPU_STR="MMX"
-			 ARCH_LINK=x86-mmx.h
-			 { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-$as_echo "yes" >&6; }
-
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-			 ARCH_LINK=x86-any.h
-fi
-rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
-  conftest.$ac_objext conftest.beam conftest.$ac_ext
-fi
-
-
-fi
-
 
 fi
 rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
   conftest.$ac_objext conftest.beam conftest.$ac_ext
 fi
 
+
+fi
   if test "x$CPU_NOTFOUND" = x0; then :
 
   CC="$CC_BACKUP -mssse3"
