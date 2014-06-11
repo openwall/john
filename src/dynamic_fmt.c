@@ -111,12 +111,6 @@ static DYNAMIC_primitive_funcp _Funcs_1[] =
 #define WAS_OPENMP
 #endif
 
-#if defined (MMX_COEF) && MMX_COEF==2 && defined (_OPENMP)
-// NO thread support for MMX.  Only OpenSSL (CTX model), or SSE intrinsics have
-// thread support.  The older md5_mmx.S/sha1_mmx.S files are NOT thread safe.
-#undef _OPENMP
-#define WAS_OPENMP
-#endif
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
@@ -570,16 +564,8 @@ const int OMP_MD5_INC = (MD5_X2+1);
 const int OMP_MD4_INC = (MD5_X2+1);
 #else
 const int OMP_INC = (MD5_X2+1);
-#ifdef MD5_SSE_PARA
 const int OMP_MD5_INC = (MD5_SSE_PARA*MMX_COEF);
-#else
-const int OMP_MD5_INC = MMX_COEF;
-#endif // MD5_SSE_PARA
-#ifdef MD4_SSE_PARA
 const int OMP_MD4_INC = (MD4_SSE_PARA*MMX_COEF);
-#else
-const int OMP_MD4_INC = MMX_COEF;
-#endif // MD4_SSE_PARA
 #endif // MMX_COEF
 #endif // _OPENMP
 
@@ -4318,7 +4304,6 @@ void DynamicFunc__crypt_md5(DYNA_OMP_PARAMS)
 	if (dynamic_use_sse==1) {
 		til = (til+MMX_COEF-1)>>(MMX_COEF>>1);
 		i >>= (MMX_COEF>>1);
-#ifdef MD5_SSE_PARA
 		if (curdat.store_keys_in_input) {
 			for (; i < til; i += MD5_SSE_PARA) {
 				SSEmd5body(input_buf[i].c, crypt_key[i].w, NULL, SSEi_MIXED_IN);
@@ -4329,15 +4314,6 @@ void DynamicFunc__crypt_md5(DYNA_OMP_PARAMS)
 				SSEmd5body(input_buf[i].c, crypt_key[i].w, NULL, SSEi_MIXED_IN);
 			}
 		}
-#else
-		if (curdat.store_keys_in_input) {
-			for (; i < til; ++i)
-				mdfivemmx_nosizeupdate(crypt_key[i].c, input_buf[i].c, 1);
-		} else {
-			for (; i < til; ++i)
-				mdfivemmx(crypt_key[i].c, input_buf[i].c, total_len[i]);
-		}
-#endif
 		return;
 	}
 #endif
@@ -4369,7 +4345,6 @@ unsigned i, til;
 	if (dynamic_use_sse==1) {
 		til = (til+MMX_COEF-1)>>(MMX_COEF>>1);
 		i >>= (MMX_COEF>>1);
-#ifdef MD4_SSE_PARA
 		if (curdat.store_keys_in_input) {
 			for (; i < til; i += MD4_SSE_PARA) {
 				SSEmd4body(input_buf[i].c, crypt_key[i].w, NULL, SSEi_MIXED_IN);
@@ -4380,15 +4355,6 @@ unsigned i, til;
 				SSEmd4body(input_buf[i].c, crypt_key[i].w, NULL, SSEi_MIXED_IN);
 			}
 		}
-#else
-		if (curdat.store_keys_in_input) {
-			for (; i < til; ++i)
-				mdfourmmx_nosizeupdate(crypt_key[i].c, input_buf[i].c, 1);
-		} else {
-			for (; i < til; ++i)
-				mdfourmmx(crypt_key[i].c, input_buf[i].c, total_len[i]);
-		}
-#endif
 		return;
 	}
 #endif
@@ -4568,15 +4534,10 @@ void DynamicFunc__crypt2_md5(DYNA_OMP_PARAMS)
 	if (dynamic_use_sse==1) {
 		til = (til+MMX_COEF-1)>>(MMX_COEF>>1);
 		i >>= (MMX_COEF>>1);
-#ifdef MD5_SSE_PARA
 		for (; i < til; i += MD5_SSE_PARA) {
 			SSE_Intrinsics_LoadLens(1, i);
 			SSEmd5body(input_buf2[i].c, crypt_key2[i].w, NULL, SSEi_MIXED_IN);
 		}
-#else
-		for (; i < til; ++i)
-			mdfivemmx(crypt_key2[i].c, input_buf2[i].c, total_len2[i]);
-#endif
 		return;
 	}
 #endif
@@ -4608,15 +4569,10 @@ void DynamicFunc__crypt2_md4(DYNA_OMP_PARAMS)
 	if (dynamic_use_sse==1) {
 		til = (til+MMX_COEF-1)>>(MMX_COEF>>1);
 		i >>= (MMX_COEF>>1);
-#ifdef MD4_SSE_PARA
 		for (; i < til; i += MD4_SSE_PARA) {
 			SSE_Intrinsics_LoadLens(1, i);
 			SSEmd4body(input_buf2[i].c, crypt_key2[i].w, NULL, SSEi_MIXED_IN);
 		}
-#else
-		for (; i < til; ++i)
-			mdfourmmx(crypt_key2[i].c, input_buf2[i].c, total_len2[i]);
-#endif
 		return;
 	}
 #endif
@@ -4655,7 +4611,6 @@ void DynamicFunc__crypt_md5_in1_to_out2(DYNA_OMP_PARAMS)
 	if (dynamic_use_sse==1) {
 		til = (til+MMX_COEF-1)>>(MMX_COEF>>1);
 		i >>= (MMX_COEF>>1);
-#ifdef MD5_SSE_PARA
 		if (curdat.store_keys_in_input) {
 			for (; i < til; i += MD5_SSE_PARA) {
 				SSEmd5body(input_buf[i].c, crypt_key2[i].w, NULL, SSEi_MIXED_IN);
@@ -4666,15 +4621,6 @@ void DynamicFunc__crypt_md5_in1_to_out2(DYNA_OMP_PARAMS)
 				SSEmd5body(input_buf[i].c, crypt_key2[i].w, NULL, SSEi_MIXED_IN);
 			}
 		}
-#else
-		if (curdat.store_keys_in_input) {
-			for (; i < til; ++i)
-				mdfivemmx_nosizeupdate(crypt_key2[i].c, input_buf[i].c, 1);
-		} else {
-			for (; i < til; ++i)
-				mdfivemmx(crypt_key2[i].c, input_buf[i].c, total_len[i]);
-		}
-#endif
 		return;
 	}
 #endif
@@ -4706,7 +4652,6 @@ void DynamicFunc__crypt_md4_in1_to_out2(DYNA_OMP_PARAMS)
 	if (dynamic_use_sse==1) {
 		til = (til+MMX_COEF-1)>>(MMX_COEF>>1);
 		i >>= (MMX_COEF>>1);
-#ifdef MD4_SSE_PARA
 		if (curdat.store_keys_in_input) {
 			for (; i < til; i += MD4_SSE_PARA) {
 				SSEmd4body(input_buf[i].c, crypt_key2[i].w, NULL, SSEi_MIXED_IN);
@@ -4717,15 +4662,6 @@ void DynamicFunc__crypt_md4_in1_to_out2(DYNA_OMP_PARAMS)
 				SSEmd4body(input_buf[i].c, crypt_key2[i].w, NULL, SSEi_MIXED_IN);
 			}
 		}
-#else
-		if (curdat.store_keys_in_input) {
-			for (; i < til; ++i)
-				mdfourmmx_nosizeupdate(crypt_key2[i].c, input_buf[i].c, 1);
-		} else {
-			for (; i < til; ++i)
-				mdfourmmx(crypt_key2[i].c, input_buf[i].c, total_len[i]);
-		}
-#endif
 		return;
 	}
 #endif
@@ -4764,17 +4700,12 @@ void DynamicFunc__crypt_md5_in2_to_out1(DYNA_OMP_PARAMS)
 	if (dynamic_use_sse==1) {
 		til = (til+MMX_COEF-1)>>(MMX_COEF>>1);
 		i >>= (MMX_COEF>>1);
-#ifdef MD5_SSE_PARA
 		for (; i < til; i += MD5_SSE_PARA)
 		{
 			SSE_Intrinsics_LoadLens(1, i);
 			SSEmd5body(input_buf2[i].c, crypt_key[i].w, NULL, SSEi_MIXED_IN);
 			//dump_stuff_mmx_msg("DynamicFunc__crypt_md5_in2_to_out1", input_buf2[i].c,64,m_count-1);
 		}
-#else
-		for (; i < til; ++i)
-			mdfivemmx(crypt_key[i].c, input_buf2[i].c, total_len2[i]);
-#endif
 		return;
 	}
 #endif
@@ -4806,16 +4737,11 @@ void DynamicFunc__crypt_md4_in2_to_out1(DYNA_OMP_PARAMS)
 	if (dynamic_use_sse==1) {
 		til = (til+MMX_COEF-1)>>(MMX_COEF>>1);
 		i >>= (MMX_COEF>>1);
-#ifdef MD4_SSE_PARA
 		for (; i < til; i += MD4_SSE_PARA)
 		{
 			SSE_Intrinsics_LoadLens(1, i);
 			SSEmd4body(input_buf2[i].c, crypt_key[i].w, NULL, SSEi_MIXED_IN);
 		}
-#else
-		for (; i < til; ++i)
-			mdfourmmx(crypt_key[i].c, input_buf2[i].c, total_len2[i]);
-#endif
 		return;
 	}
 #endif
@@ -4850,7 +4776,6 @@ void DynamicFunc__crypt_md5_to_input_raw(DYNA_OMP_PARAMS)
 	if (dynamic_use_sse==1) {
 		til = (til+MMX_COEF-1)>>(MMX_COEF>>1);
 		i >>= (MMX_COEF>>1);
-#ifdef MD5_SSE_PARA
 		for (; i < til; i += MD5_SSE_PARA)
 		{
 			unsigned j;
@@ -4866,19 +4791,6 @@ void DynamicFunc__crypt_md5_to_input_raw(DYNA_OMP_PARAMS)
 				total_len[i+j] = 0x10101010;
 			}
 		}
-#else
-		for (; i < til; ++i)
-		{
-			mdfivemmx(crypt_key[i].c, input_buf[i].c, total_len[i]);
-			memset(input_buf[i].c, 0, sizeof(input_buf[0]));
-			memcpy(input_buf[i].c, crypt_key[i].c, sizeof(crypt_key[0].c));
-#if (MMX_COEF==4)
-			total_len[i] = 0x10101010;
-#else
-			total_len[i] = 0x100010;
-#endif
-		}
-#endif
 		return;
 	}
 #endif
@@ -4912,7 +4824,6 @@ void DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen_but_setlen_in_SSE(DYNA_
 	if (dynamic_use_sse==1) {
 		til = (til+MMX_COEF-1)>>(MMX_COEF>>1);
 		i >>=(MMX_COEF>>1);
-#ifdef MD5_SSE_PARA
 		for (; i < til; i += MD5_SSE_PARA)
 		{
 			unsigned j;
@@ -4924,10 +4835,6 @@ void DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen_but_setlen_in_SSE(DYNA_
 			for (j = 0; j < MD5_SSE_PARA; ++j)
 				memcpy(input_buf[i+j].c, crypt_key[i+j].c, 16*4);
 		}
-#else
-		for (; i < til; ++i)
-			mdfivemmx(input_buf[i].c, input_buf[i].c, total_len[i]);
-#endif
 		return;
 	}
 #endif
@@ -4960,7 +4867,6 @@ void DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen(DYNA_OMP_PARAMS)
 	if (dynamic_use_sse==1) {
 		til = (til+MMX_COEF-1)>>(MMX_COEF>>1);
 		i >>= (MMX_COEF>>1);
-#ifdef MD5_SSE_PARA
 		for (; i < til; i += MD5_SSE_PARA)
 		{
 			unsigned j;
@@ -4971,10 +4877,6 @@ void DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen(DYNA_OMP_PARAMS)
 			for (j = 0; j < MD5_SSE_PARA; ++j)
 				memcpy(input_buf[i+j].c, crypt_key[i+j].c, 16*4);
 		}
-#else
-		for (; i < til; ++i)
-			mdfivemmx_nosizeupdate(input_buf[i].c, input_buf[i].c, 0);
-#endif
 		return;
 	}
 #endif
@@ -6091,17 +5993,12 @@ void DynamicFunc__SSEtoX86_switch_input1(DYNA_OMP_PARAMS) {
 		cpi = input_buf[idx].w;
 
 		max = total_len_X86[j] = (total_len[idx]&0xFF);
-#if (MMX_COEF==2)
-		if (max < (total_len_X86[j+1]=((total_len[idx]>> 16)&0xFF)))
-			max = total_len_X86[j+1];
-#else
 		if (max < (total_len_X86[j+1]=((total_len[idx]>> 8)&0xFF)))
 			max = total_len_X86[j+1];
 		if (max < (total_len_X86[j+2]=((total_len[idx]>>16)&0xFF)))
 			max = total_len_X86[j+2];
 		if (max < (total_len_X86[j+3]=((total_len[idx]>>24)&0xFF)))
 			max = total_len_X86[j+3];
-#endif
 		max = (max+3)>>2;
 		for (k = 0; k < max; ++k) {
 			*cpo++ = *cpi++;
@@ -6161,17 +6058,12 @@ void DynamicFunc__SSEtoX86_switch_input2(DYNA_OMP_PARAMS) {
 		cpi = input_buf2[idx].w;
 
 		max = total_len2_X86[j] = (total_len2[idx]&0xFF);
-#if (MMX_COEF==2)
-		if (max < (total_len2_X86[j+1]=((total_len2[idx]>>16)&0xFF)))
-			max = total_len2_X86[j+1];
-#else
 		if (max < (total_len2_X86[j+1]=((total_len2[idx]>> 8)&0xFF)))
 			max = total_len2_X86[j+1];
 		if (max < (total_len2_X86[j+2]=((total_len2[idx]>>16)&0xFF)))
 			max = total_len2_X86[j+2];
 		if (max < (total_len2_X86[j+3]=((total_len2[idx]>>24)&0xFF)))
 			max = total_len2_X86[j+3];
-#endif
 		max = (max+3)>>2;
 		for (k = 0; k < max; ++k) {
 			*cpo++ = *cpi++;
@@ -7028,16 +6920,8 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 #ifdef MMX_COEF
 		// no reason to do 128 crypts, causes slow validity checking.  But we do get some gains
 		// by doing more than simple 1 set of MMX_COEF
-#if (MMX_COEF==2)
-		pFmt->params.algorithm_name = "64/64 " SSE_type " 96x2";
-		pFmt->params.max_keys_per_crypt = 96*2;
-#elif defined (MD5_SSE_PARA)
 		pFmt->params.algorithm_name = "128/128 " SSE_type " 96x4x" STRINGIZE(MD5_SSE_PARA);
 		pFmt->params.max_keys_per_crypt = 96*MD5_SSE_PARA;
-#else
-		pFmt->params.algorithm_name = "128/128 " SSE_type " 96x4";
-		pFmt->params.max_keys_per_crypt = 96*4;
-#endif
 #else
 #if ARCH_LITTLE_ENDIAN
 		pFmt->params.max_keys_per_crypt = 96;
@@ -7050,17 +6934,9 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 		pFmt->params.algorithm_name = "32/" ARCH_BITS_STR " 96x1 (MD5_body)";
 #endif
 #endif
-#else
 #ifdef MMX_COEF
-#if (MMX_COEF==2)
-		pFmt->params.algorithm_name = "64/64 " SSE_type " 8x2";
-		pFmt->params.max_keys_per_crypt = 16;
-#elif defined (MD5_SSE_PARA)
 		pFmt->params.algorithm_name = "128/128 " SSE_type " 4x4x" STRINGIZE(MD5_SSE_PARA);
 		pFmt->params.max_keys_per_crypt = 16*MD5_SSE_PARA;
-#else
-		pFmt->params.algorithm_name = "128/128 " SSE_type " 4x4";
-		pFmt->params.max_keys_per_crypt = 16;
 #endif
 #else
 		// In non-sse mode, 1 test runs as fast as 128. But validity checking is MUCH faster if
@@ -7071,7 +6947,6 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 		pFmt->params.algorithm_name = "32/" ARCH_BITS_STR " 1x2  (MD5_body)";
 #else
 		pFmt->params.algorithm_name = "32/" ARCH_BITS_STR " (MD5_body)";
-#endif
 #endif
 #endif
 		pFmt->params.min_keys_per_crypt = 1;

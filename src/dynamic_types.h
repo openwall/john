@@ -145,14 +145,7 @@ typedef struct private_subformat_data
 # ifdef _OPENMP
 // in openMP mode, we multiply everything by 24
 // in openMP mode, we multiply everything by 48
-#  if (MMX_COEF == 2)
-#   define BLOCK_LOOPS			3072
-#   define ALGORITHM_NAME		"64/64 " MD5_SSE_type  " 3072x2"
-#   define ALGORITHM_NAME_S		"64/64 " SHA1_SSE_type " 3072x2"
-#   define ALGORITHM_NAME_4		"64/64 " MD4_SSE_type  " 3072x2"
-#   define MAX_KEYS_PER_CRYPT	MMX_COEF*BLOCK_LOOPS
-#   define BSD_BLKS 1
-#  elif MMX_COEF == 4
+#  if MMX_COEF == 4
 #   define BLOCK_LOOPS		1536
 #   if !defined MD5_SSE_PARA || MD5_SSE_PARA==1
 #    define BY_X			1536
@@ -169,15 +162,7 @@ typedef struct private_subformat_data
 #   endif
 #  endif
 # else
-#  if (MMX_COEF == 2)
-#   define BLOCK_LOOPS			64
-#   define ALGORITHM_NAME		"64/64 " MD5_SSE_type  " 64x2"
-#   define ALGORITHM_NAME_S		"64/64 " SHA1_SSE_type " 64x2"
-#   define ALGORITHM_NAME_4		"64/64 " MD4_SSE_type  " 64x2"
-#   define MAX_KEYS_PER_CRYPT	MMX_COEF*BLOCK_LOOPS
-#   define PLAINTEXT_LENGTH     (27*3+1) // for worst-case UTF-8
-#   define BSD_BLKS 1
-#  elif MMX_COEF == 4
+#  if MMX_COEF == 4
 #   define BLOCK_LOOPS		32
 #   if !defined MD5_SSE_PARA || MD5_SSE_PARA==1
 #    define BY_X			32

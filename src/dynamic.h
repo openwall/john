@@ -446,10 +446,10 @@ extern void DynamicFunc__RIPEMD320_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS
 // they are for phpass, wordpress, etc.
 extern void DynamicFunc__crypt_md5_to_input_raw(DYNA_OMP_PARAMS);
 extern void DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen(DYNA_OMP_PARAMS);
-// NOTE, the below line is called 'one' time.  It calls the 'normal' crypt mdfivemmx (and intrinsic loading)
+// NOTE, the below line is called 'one' time.  It calls the 'normal' intrinsic loading
 // for the lengths.  The lengths are not modified, but are need to be set ONCE.  From that point on,
-// we simply call the DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen and it calls mdfivemmx_nosizeupdate
-// which is a faster call (and the intrincs do NOT call SSE_Intrinsics_LoadLens within the
+// we simply call the DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen and the intrincs do NOT 
+// call SSE_Intrinsics_LoadLens within the
 // DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen function)   Splitting this up into 2, gives
 // us a 1 or 2% speed increase.
 extern void DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen_but_setlen_in_SSE(DYNA_OMP_PARAMS);
