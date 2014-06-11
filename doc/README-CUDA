@@ -19,7 +19,7 @@ Compiling:
       ./configure --disable-cuda".
 
   As a last resort, you can use the legacy Makefile:
-      make -f Makefile.orig linux-x86-64-gpu
+      make -f Makefile.legacy linux-x86-64-gpu
 
 
 If you have problems with JtR CUDA support:

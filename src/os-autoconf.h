@@ -13,7 +13,7 @@
  * the call to ./configure.  NOTE, over time, this fill will be
  * reduced more and more, and likely will go away at some time.
  * when that happens, the os.h will simply be used for non autoconf
- * builds (i.e. make -f Makefile.orig )
+ * builds (i.e. make -f Makefile.legacy )
  */
 
 /*

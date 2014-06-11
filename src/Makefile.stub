@@ -7,8 +7,8 @@ all: default
 install: default
 
 default:
-	@echo "For listing legacy builds, use \"make -f Makefile.orig\"."
-	@echo "For using legacy Makefile, use \"make -sf Makefile.orig <target>\"."
+	@echo "For listing legacy builds, use \"make -f Makefile.legacy\"."
+	@echo "For using legacy Makefile, use \"make -sf Makefile.legacy <target>\"."
 	@echo
 	@echo "A normal build is now \"./configure && make -s\"."
 	@echo
@@ -22,6 +22,6 @@ default:
 
 # Better than nothing :-/
 clean:
-	+$(MAKE) -f Makefile.orig $@
+	+$(MAKE) -f Makefile.legacy $@
 
 distclean: clean

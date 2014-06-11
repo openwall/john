@@ -249,7 +249,7 @@ esac
 # out the system, then have a switch statement, based upon the system, calling
 # the proper JTR_cputype_SPECIAL_LOGIC function (and of course have to write
 # macros for each environment.  We probaby should fall back to calling
-# make -f Makefile.orig clean generic or failing with an echo of that message,
+# make -f Makefile.legacy clean generic or failing with an echo of that message,
 # for any environment we do not handle.
 CPU_STR="$host_cpu"
 AS_IF([test "x$cpu_family" = xintel], [JTR_X86_SPECIAL_LOGIC])

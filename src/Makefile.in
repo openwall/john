@@ -249,7 +249,7 @@ debug:
 	$(MAKE) default CFLAGS="$(CFLAGS) -O0 -DDEBUG"
 
 help:
-	@echo "The 'older' fat makefile can be done with make --file=Makefile.orig [target]"
+	@echo "The 'older' fat makefile can be done with make --file=Makefile.legacy [target]"
 
 # Digital/Compaq's cc and make use the .S suffix for a different purpose...
 digipaq-alpha.o: alpha.S

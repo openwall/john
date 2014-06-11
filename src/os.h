@@ -19,7 +19,7 @@
 /* include a stripped down os.h, AFTER it includes autoconf.h */
 #include "os-autoconf.h"
 #else
-/* for non autoconf build (i.e. make -f Makefile.orig) we use the original os.h code. */
+/* for non autoconf build (i.e. make -f Makefile.legacy) we use the original os.h code. */
 
 #ifdef NEED_OS_TIMER
 

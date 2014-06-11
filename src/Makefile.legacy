@@ -26,7 +26,7 @@ NULL = /dev/null
 CPPFLAGS = -E
 SORT = sort
 STRIP = strip
-MAKE_ORIG = +$(MAKE) -f Makefile.orig -j$(J)
+MAKE_ORIG = +$(MAKE) -f Makefile.legacy -j$(J)
 
 ## Uncomment the line below for MPI (can be used together with OMP as well)
 #CC = mpicc -DHAVE_MPI
@@ -298,7 +298,7 @@ PROJ_WIN32_MINGW = ../run/john-mingw.exe \
 PROJ_PCAP = ../run/SIPdump ../run/vncpcap2john
 default:
 	@echo "To build John the Ripper, type:"
-	@echo "	make -f Makefile.orig clean SYSTEM"
+	@echo "	make -f Makefile.legacy clean SYSTEM"
 	@echo "where SYSTEM can be one of the following:"
 	@echo "([i] is an optional letter for pre-built intrinsics, eg. -sse2i vs -sse2):"
 	@echo "linux-x86-64-native      Linux, x86-64 (enabling all CPU features you've got)"
@@ -2431,13 +2431,13 @@ miscnl.o: misc.c
 bench-t.o: bench.c
 	$(CC) $(CFLAGS) $(OPT_NORMAL) -DBENCH_BUILD bench.c -o bench-t.o
 
-*_fmt_plug.c: Makefile.orig john.c
+*_fmt_plug.c: Makefile.legacy john.c
 	@
 
-fmt_externs.h: $(PLUGFORMATS_SRCS) Makefile.orig *_fmt_plug.c
+fmt_externs.h: $(PLUGFORMATS_SRCS) Makefile.legacy *_fmt_plug.c
 	LC_ALL=C $(SED) -n 's/^\(struct fmt_main [^ ]*\) =.*/extern \1;/p' *_fmt_plug.c | LC_ALL=C $(SORT) > fmt_externs.h
 
-fmt_registers.h: $(PLUGFORMATS_SRCS) Makefile.orig *_fmt_plug.c
+fmt_registers.h: $(PLUGFORMATS_SRCS) Makefile.legacy *_fmt_plug.c
 	LC_ALL=C $(SED) -n 's/^struct fmt_main \([^ ]*\) =.*/john_register_one(\&\1);/p' *_fmt_plug.c | LC_ALL=C $(SORT) > fmt_registers.h
 
 john.o: john.c fmt_externs.h fmt_registers.h

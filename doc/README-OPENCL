@@ -47,7 +47,7 @@ To build without OpenCL, use:
     make -s
 
 As a last resort, you can use the legacy Makefile:
-    make -sf Makefile.orig linux-x86-64-opencl
+    make -sf Makefile.legacy linux-x86-64-opencl
 
 
 ATI/AMD suggest you to use ATISTREAMSDKROOT env variable to
