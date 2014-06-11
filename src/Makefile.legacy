@@ -2098,7 +2098,7 @@ SUBDIRS = aes
 subdirs: $(SUBDIRS)
 
 $(SUBDIRS):
-	$(MAKE_ORIG) -C $@ all
+	$(MAKE_ORIG) -C $@ all CC=$(CC)
 
 ../run/john: $(JOHN_OBJS) $(SUBDIRS)
 	$(LD) $(JOHN_OBJS) $(LDFLAGS) aes/aes.a -o ../run/john
