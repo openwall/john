@@ -29,7 +29,7 @@
 #ifdef _OPENMP
 static int omp_t = 1;
 #include <omp.h>
-#define OMP_SCALE               4
+#define OMP_SCALE               1
 #endif
 #include "memdbg.h"
 
