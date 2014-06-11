@@ -14,6 +14,10 @@
 
 /*
  * Architecture specific parameters for x86 with MMX.
+ *
+ * NOTE, all *-mmx.S functionality has been removed. There still
+ * are MMX code within DES/BF, etc, but the SHA1/MD[45] no longer
+ * have any MMX support.  MMX_COEF logic removed.  (June, 2014, JimF)
  */
 
 #ifndef _JOHN_ARCH_H
@@ -87,15 +91,5 @@
 #define BF_X2				0
 #endif
 #define BF_SCALE			1
-
-#define SHA_BUF_SIZ			80
-
-#define MMX_TYPE			" MMX"
-#define MMX_COEF			2
-
-#define MD4_N_STR			"2x"
-#define MD5_N_STR			"2x"
-#define SHA1_N_STR			"2x"
-
 
 #endif
