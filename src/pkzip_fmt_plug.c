@@ -75,7 +75,7 @@
 #endif
 
 /*
- *  format:  filename:$pkzip$C*B*[DT*MT{CL*UL*CR*OF*OX}*CT*DL*DA]*$/pkzip$
+ *  format:  filename:$pkzip$C*B*[DT*MT{CL*UL*CR*OF*OX}*CT*DL*CS*DA]*$/pkzip$
  *
  * All numeric and 'binary data' fields are stored in hex.
  *
@@ -93,6 +93,7 @@
  *     END OF 'optional' fields.
  *   CT  Compression type  (0 or 8)  0 is stored, 8 is imploded.
  *   DL  Length of the DA data.
+ *   CS  Checksum.
  *   DA  This is the 'data'.  It will be hex data if DT==1 or 2. If DT==3, then it is a filename (name of the .zip file).
  * END of array items.
  * The format string will end with $/pkzip$
@@ -104,7 +105,7 @@
  *
  */
 static struct fmt_tests tests[] = {
-
+//#if 0
 	/* compression of a perl file. We have the same password, same file used twice in a row (pkzip, 1 byte checksum).  NOTE, pkzip uses random IV, so both encrypted blobs are different */
 	{"\
 $pkzip$1*1*2*0*e4*1c5*eda7a8de*0*4c*8*e4*eda7*194883130e4c7419bd735c53dec36f0c4b6de6daefea0f507d67ff7256a49b5ea93ccfd9b12f2ee99053ee0b1c9e1c2b88aeaeb6bd4e60094a1ea118785d4ded6dae94\
@@ -136,7 +137,12 @@ b5f7662de170986f89d46d944b519e1db9d13d4254a6b0a5ac02b3cfdd468d7a4965e4af05699a92
 	/* CMIYC 2013 "pro" hard hash */
 	{"$pkzip$1*2*2*0*6b*73*8e687a5b*0*46*8*6b*0d9d*636fedc7a78a7f80cda8542441e71092d87d13da94c93848c230ea43fab5978759e506110b77bd4bc10c95bc909598a10adfd4febc0d42f3cd31e4fec848d6f49ab24bb915cf939fb1ce09326378bb8ecafde7d3fe06b6013628a779e017be0f0ad278a5b04e41807ae9fc*$/pkzip$", "c00rslit3!"},
 	/* http://corkami.googlecode.com/files/ChristmasGIFts.zip */
-	{"$pkzip$3*1*1*2*8*c0*7224*6195f9f3401076b22f006105c4323f7ac8bb8ebf8d570dc9c7f13ddacd8f071783f6bef08e09ce4f749af00178e56bc948ada1953a0263c706fd39e96bb46731f827a764c9d55945a89b952f0503747703d40ed4748a8e5c31cb7024366d0ef2b0eb4232e250d343416c12c7cbc15d41e01e986857d320fb6a2d23f4c44201c808be107912dbfe4586e3bf2c966d926073078b92a2a91568081daae85cbcddec75692485d0e89994634c71090271ac7b4a874ede424dafe1de795075d2916eae*1*6*8*c0*26ee*944bebb405b5eab4322a9ce6f7030ace3d8ec776b0a989752cf29569acbdd1fb3f5bd5fe7e4775d71f9ba728bf6c17aad1516f3aebf096c26f0c40e19a042809074caa5ae22f06c7dcd1d8e3334243bca723d20875bd80c54944712562c4ff5fdb25be5f4eed04f75f79584bfd28f8b786dd82fd0ffc760893dac4025f301c2802b79b3cb6bbdf565ceb3190849afdf1f17688b8a65df7bc53bc83b01a15c375e34970ae080307638b763fb10783b18b5dec78d8dfac58f49e3c3be62d6d54f9*2*0*2a*1e*4a204eab*ce8*2c*0*2a*4a20*6b6e1a8de47449a77e6f0d126b217d6b2b72227c0885f7dc10a2fb3e7cb0e611c5c219a78f98a9069f30*$/pkzip$", "123456"},
+//#endif
+	{"$pkzip$3*0*1*2*8*c0*7224*6195f9f3401076b22f006105c4323f7ac8bb8ebf8d570dc9c7f13ddacd8f071783f6bef08e09ce4f749af00178e56bc948ada1953a0263c706fd39e96bb46731f827a764c9d55945a89b952f0503747703d40ed4748a8e5c31cb7024366d0ef2b0eb4232e250d343416c12c7cbc15d41e01e986857d320fb6a2d23f4c44201c808be107912dbfe4586e3bf2c966d926073078b92a2a91568081daae85cbcddec75692485d0e89994634c71090271ac7b4a874ede424dafe1de795075d2916eae*1*6*8*c0*26ee*944bebb405b5eab4322a9ce6f7030ace3d8ec776b0a989752cf29569acbdd1fb3f5bd5fe7e4775d71f9ba728bf6c17aad1516f3aebf096c26f0c40e19a042809074caa5ae22f06c7dcd1d8e3334243bca723d20875bd80c54944712562c4ff5fdb25be5f4eed04f75f79584bfd28f8b786dd82fd0ffc760893dac4025f301c2802b79b3cb6bbdf565ceb3190849afdf1f17688b8a65df7bc53bc83b01a15c375e34970ae080307638b763fb10783b18b5dec78d8dfac58f49e3c3be62d6d54f9*2*0*2a*1e*4a204eab*ce8*2c*0*2a*4a20*6b6e1a8de47449a77e6f0d126b217d6b2b72227c0885f7dc10a2fb3e7cb0e611c5c219a78f98a9069f30*$/pkzip$", "123456"},
+	// this one still fails :(
+//	{"$pkzip$1*0*2*3*4c*78*bab987f2*24ac*2c*8*4c*bab9*3928c0c1e10264331c71ed96afe8ce1ed60711af6310c044c540dbd409171a3a1c541c390b480412ebc2329baf8125aefe61d822d0888678a8c0a987d1ade4ee231c809ca8a004e9ecd855aa*$/pkzip$", "123456"},
+//	bin/simple.zip:$pkzip$1*0*2*3*4c*78*bab987f2*24ac*2c*8*4c*bab9*3928c0c1e10264331c71ed96afe8ce1ed60711af6310c044c540dbd409171a3a1c541c390b480412ebc2329baf8125aefe61d822d0888678a8c0a987d1ade4ee231c809ca8a004e9ecd855aa*$/pkzip$:::::ChristmasGIFts.zip
+	
 	{NULL}
 };
 
@@ -238,7 +244,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (cnt < 1 || cnt > MAX_PKZ_FILES) {
 		sFailStr = "Count of hashes field out of range"; goto Bail; }
 	p = GetFld(p, &cp);
-	if (cp[0] < '1' || cp[0] > '2' || cp[1]) {
+	if (cp[0] < '0' || cp[0] > '2' || cp[1]) {
 		sFailStr = "Number of valid hash bytes empty or out of range"; goto Bail; }
 
 	while (cnt--) {
@@ -1382,9 +1388,9 @@ SkipKeyLoadInit:;
 				goto Failed_Bailout;
 
 			C = PKZ_MULT(*b++,key2);
-#if 0
+#if 1
 			// https://github.com/magnumripper/JohnTheRipper/issues/467
-			if (C != (e>>8))
+			if (salt->chk_bytes && C != (e>>8))
 				goto Failed_Bailout;
 #endif
 
@@ -1405,12 +1411,6 @@ SkipKeyLoadInit:;
 			// First, we want to get the inflate CODE byte (the first one).
 
 			C = PKZ_MULT(*b++,key2);
-#if 0
-			// https://github.com/magnumripper/JohnTheRipper/issues/467
-			// Ok, if this is a code 3, we are done.
-			if ( (C & 6) == 6)
-				goto Failed_Bailout;
-#endif
 			SigChecked = 0;
 			if ( salt->H[cur_hash_idx].compType == 0) {
 				// handle a stored file.
@@ -1442,6 +1442,13 @@ SkipKeyLoadInit:;
 #endif
 				continue;
 			}
+#if 1
+			// https://github.com/magnumripper/JohnTheRipper/issues/467
+			// Ok, if this is a code 3, we are done.
+			// Code moved to after the check for stored type.  (FIXED)  This check was INVALID for a stored type file.
+			if ( (C & 6) == 6)
+				goto Failed_Bailout;
+#endif
 			if ( (C & 6) == 0) {
 				// Check that checksum2 is 0 or 1.  If not, I 'think' we can be done
 				if (C > 1)
