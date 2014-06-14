@@ -6,6 +6,7 @@
  */
 
 #if (MMX_COEF && MMX_COEF == 2) || !MMX_COEF
+#undef SSE_type
 #define SSE_type			"x86"
 #undef MMX_COEF
 #endif
