@@ -401,7 +401,7 @@ static void process_old_zip(const char *fname)
 		uint32_t id = fget32(fp);
 
 		if (id == 0x04034b50UL) {	/* local header */
-			if (LoadZipBlob(fp, &curzip, &zfp, fname) && curzip.decomp_len > 12) {
+			if (LoadZipBlob(fp, &curzip, &zfp, fname) && curzip.decomp_len > 3) {
 				if (!count_of_hashes)
 					memcpy(&(hashes[count_of_hashes++]), &curzip, sizeof(curzip));
 				else {
