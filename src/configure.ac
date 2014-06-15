@@ -148,6 +148,8 @@ AS_IF([test "x$JTR_FLAG_CHECK_WORKS" = xyes],
    JTR_FLAG_CHECK([-Wall], 1)
    JTR_FLAG_CHECK([-Wdeclaration-after-statement], 1)
    JTR_FLAG_CHECK([-fomit-frame-pointer], 1)
+   # gcc bug workaround, see issue 632
+   JTR_FLAG_CHECK([--param allow-store-data-races=0], 1)
    # Silly OSX warnings
    JTR_FLAG_CHECK([-Wno-deprecated-declarations], 1)
    # clang warnings
