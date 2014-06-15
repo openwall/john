@@ -34,8 +34,8 @@
  * filename:$zip$*type*hex(CRC)*encryption_strength*hex(salt)*hex(password_verfication_value):hex(authentication_code)
  *
  * For original pkzip encryption:  (JimF, with longer explaination of fields)
- * filename:$pkzip$C*B*[DT*MT{CL*UL*CR*OF*OX}*CT*DL*CS*DA]*$/pkzip$
- *
+ * filename:$pkzip$C*B*[DT*MT{CL*UL*CR*OF*OX}*CT*DL*CS*DA]*$/pkzip$   (depricated)
+ * filename:$pkzip2$C*B*[DT*MT{CL*UL*CR*OF*OX}*CT*DL*CS*TC*DA]*$/pkzip2$   (new format, with 2 checksums)
  * All numeric and 'binary data' fields are stored in hex.
  *
  * C   is the count of hashes present (the array of items, inside the []  C can be 1 to 3.).
@@ -53,6 +53,7 @@
  *   CT  Compression type  (0 or 8)  0 is stored, 8 is imploded.
  *   DL  Length of the DA data.
  *   CS  2 bytes of checksum data.
+ *   TC  2 bytes of checksun data (fron timestamp)
  *   DA  This is the 'data'.  It will be hex data if DT==1 or 2. If DT==3, then it is a filename (name of the .zip file).
  * END of array item.  There will be C (count) array items.
  * The format string will end with $/pkzip$
@@ -75,9 +76,6 @@
 
 static int checksum_only=0, use_magic=1;
 static int force_2_byte_checksum = 0;
-static int force_time_checksum = 0;
-static int force_tail_crc_checksum = 0;
-static int force_check_bytes_0 = 0;
 static char *ascii_fname, *only_fname;
 
 static char *MagicTypes[]= { "", "DOC", "XLS", "DOT", "XLT", "EXE", "DLL", "ZIP", "BMP", "DIB", "GIF", "PDF", "GZ", "TGZ", "BZ2", "TZ2", "FLV", "SWF", "MP3", NULL };
@@ -251,6 +249,7 @@ typedef struct _zip_ptr
 	uint16_t      magic_type, cmptype;
 	uint32_t      offset, offex, crc, cmp_len, decomp_len;
 	char          chksum[5];
+	char          chksum2[5];
 	char         *hash_data;
 } zip_ptr;
 typedef struct _zip_file
@@ -319,7 +318,6 @@ static int LoadZipBlob(FILE *fp, zip_ptr *p, zip_file *zfp, const char *zip_fnam
 	// we only handle implode or store.
 	// 0x314 was seen at 2012 CMIYC ?? I have to look into that one.
 	fprintf(stderr, "ver %0x  ", version);
-	//if ( !(only_fname && strcmp(only_fname, (char*)filename)) && (version == 0x14||version==0xA||version == 0x314) && (flags & 1) && (p->cmptype == 8 || (p->cmptype == 0 && p->magic_type))) {
 	if ( !(only_fname && strcmp(only_fname, (char*)filename)) && (version == 0x14||version==0xA||version == 0x314) && (flags & 1)) {
 		uint16_t extra_len_used = 0;
 		if (flags & 8) {
@@ -355,14 +353,6 @@ static int LoadZipBlob(FILE *fp, zip_ptr *p, zip_file *zfp, const char *zip_fnam
 
 		if (force_2_byte_checksum)
 			zfp->check_bytes = 2;
-		if (force_time_checksum)
-			zfp->check_in_crc = 0;
-		if (force_tail_crc_checksum)
-			zfp->check_in_crc = 2;
-		if (version == 0x314) // I think this is 7z.. I do not think they use checksums.
-			zfp->check_bytes = 0;
-		if (force_check_bytes_0)
-			zfp->check_bytes = 0;
 
 		fprintf(stderr,
 			"%s->%s PKZIP Encr:%s%s cmplen=%d, decmplen=%d, crc=%X\n",
@@ -375,14 +365,8 @@ static int LoadZipBlob(FILE *fp, zip_ptr *p, zip_file *zfp, const char *zip_fnam
 		}
 
 		// Ok, now set checksum bytes.  This will depend upon if from crc, or from timestamp
-		if (zfp->check_in_crc) {
-			if (zfp->check_in_crc == 2)
-				sprintf (p->chksum, "%02x%02x", p->crc&0xFF, (p->crc>>8)&0xFF);
-			else
 			sprintf (p->chksum, "%02x%02x", (p->crc>>24)&0xFF, (p->crc>>16)&0xFF);
-		}
-		else
-			sprintf(p->chksum, "%02x%02x", lastmod_time>>8, lastmod_time&0xFF);
+		sprintf (p->chksum2, "%02x%02x", lastmod_time>>8, lastmod_time&0xFF);
 
 		return 1;
 
@@ -502,7 +486,7 @@ print_and_cleanup:;
 		strnzcpy(path, fname, sizeof(path));
 		bname = basename(path);
 
-		printf ("%s:$pkzip$%x*%x*", bname, count_of_hashes, zfp.check_bytes);
+		printf ("%s:$pkzip2$%x*%x*", bname, count_of_hashes, zfp.check_bytes);
 		if (checksum_only)
 			i = 0;
 		for (; i < count_of_hashes; ++i) {
@@ -511,17 +495,17 @@ print_and_cleanup:;
 				len = 12+180;
 			if (len > hashes[i].cmp_len)
 				len = hashes[i].cmp_len; // even though we 'could' output a '2', we do not.  We only need one full inflate CRC check file.
-			printf("1*%x*%x*%x*%s*%s*", hashes[i].magic_type, hashes[i].cmptype, len, hashes[i].chksum, toHex((unsigned char*)hashes[i].hash_data, len));
+			printf("1*%x*%x*%x*%s*%s*%s*", hashes[i].magic_type, hashes[i].cmptype, len, hashes[i].chksum, hashes[i].chksum2, toHex((unsigned char*)hashes[i].hash_data, len));
 		}
 		// Ok, now output the 'little' one (the first).
 		if (!checksum_only) {
 			printf("%x*%x*%x*%x*%x*%x*%x*%x*", hashes[0].cmp_len<1500?2:3, hashes[0].magic_type, hashes[0].cmp_len, hashes[0].decomp_len, hashes[0].crc, hashes[0].offset, hashes[0].offex, hashes[0].cmptype);
 			if (hashes[0].cmp_len<1500)
-				printf("%x*%s*%s*", hashes[0].cmp_len, hashes[0].chksum, toHex((unsigned char*)hashes[0].hash_data, hashes[0].cmp_len));
+				printf("%x*%s*%s*%s*", hashes[0].cmp_len, hashes[0].chksum, hashes[0].chksum2, toHex((unsigned char*)hashes[0].hash_data, hashes[0].cmp_len));
 			else
-				printf("%x*%s*%s*", (unsigned int)strlen(fname), hashes[0].chksum, fname);
+				printf("%x*%s*%s*%s*", (unsigned int)strlen(fname), hashes[0].chksum, hashes[0].chksum2, fname);
 		}
-		printf("$/pkzip$:::::%s\n", fname);
+		printf("$/pkzip2$:::::%s\n", fname);
 	}
 	fclose(fp);
 }
@@ -547,9 +531,6 @@ int usage() {
 	fprintf(stderr, "\t      Most of these situations are when there are only 'stored' files in the zip\n");
 	fprintf(stderr, "\n");
 	fprintf(stderr, "\t  -f2 Force 2 byte checksum computation\n");
-	fprintf(stderr, "\t  -f0 Force 0 byte checksum (i.e. checksums do not work)\n");
-	fprintf(stderr, "\t  -ft Force checksum from time stamp\n");
-	fprintf(stderr, "\t  -fr Force tail of CRC32 to be used as checksum\n");
 
 	return 0;
 }
@@ -595,21 +576,6 @@ int zip2john(int argc, char **argv)
 			force_2_byte_checksum = 1;
 			++i;
 			fprintf(stderr, "Forcing a 2 byte checksum detection\n");
-		}
-		else if (!strncmp(argv[i], "-f0", 3) || !strncmp(argv[i], "--f0", 4)) {
-			force_check_bytes_0 = 1;
-			++i;
-			fprintf(stderr, "Forcing a 0 byte checksum detection (i.e. not using checksum testing)\n");
-		}
-		else if (!strncmp(argv[i], "-ft", 3) || !strncmp(argv[i], "--ft", 4)) {
-			force_time_checksum = 1;
-			++i;
-			fprintf(stderr, "Forcing checksum to use timestamp bytes.\n");
-		}
-		else if (!strncmp(argv[i], "-fr", 3) || !strncmp(argv[i], "--fr", 4)) {
-			force_tail_crc_checksum = 1;
-			++i;
-			fprintf(stderr, "Forcing tail of CRC32 to be used as checksum.\n");
 		}
 		else if (!strncmp(argv[i], "-h", 2) || !strncmp(argv[i], "--h", 3))
 			return usage();

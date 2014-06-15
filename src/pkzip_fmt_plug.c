@@ -75,7 +75,8 @@
 #endif
 
 /*
- *  format:  filename:$pkzip$C*B*[DT*MT{CL*UL*CR*OF*OX}*CT*DL*CS*DA]*$/pkzip$
+ * filename:$pkzip$C*B*[DT*MT{CL*UL*CR*OF*OX}*CT*DL*CS*DA]*$/pkzip$   (depricated)
+ * filename:$pkzip2$C*B*[DT*MT{CL*UL*CR*OF*OX}*CT*DL*CS*TC*DA]*$/pkzip2$   (new format, with 2 checksums)
  *
  * All numeric and 'binary data' fields are stored in hex.
  *
@@ -93,7 +94,8 @@
  *     END OF 'optional' fields.
  *   CT  Compression type  (0 or 8)  0 is stored, 8 is imploded.
  *   DL  Length of the DA data.
- *   CS  Checksum.
+ *   CS  Checksum from crc32.
+ *   TC  Checksum from timestamp
  *   DA  This is the 'data'.  It will be hex data if DT==1 or 2. If DT==3, then it is a filename (name of the .zip file).
  * END of array items.
  * The format string will end with $/pkzip$
@@ -105,7 +107,6 @@
  *
  */
 static struct fmt_tests tests[] = {
-//#if 0
 	/* compression of a perl file. We have the same password, same file used twice in a row (pkzip, 1 byte checksum).  NOTE, pkzip uses random IV, so both encrypted blobs are different */
 	{"\
 $pkzip$1*1*2*0*e4*1c5*eda7a8de*0*4c*8*e4*eda7*194883130e4c7419bd735c53dec36f0c4b6de6daefea0f507d67ff7256a49b5ea93ccfd9b12f2ee99053ee0b1c9e1c2b88aeaeb6bd4e60094a1ea118785d4ded6dae94\
@@ -136,13 +137,8 @@ b5f7662de170986f89d46d944b519e1db9d13d4254a6b0a5ac02b3cfdd468d7a4965e4af05699a92
 	{"$pkzip$1*1*2*0*163*2b6*46abc149*0*26*8*163*46ab*7ea9a6b07ddc9419439311702b4800e7e1f620b0ab8535c5aa3b14287063557b176cf87a800b8ee496643c0b54a77684929cc160869db4443edc44338294458f1b6c8f056abb0fa27a5e5099e19a07735ff73dc91c6b20b05c023b3ef019529f6f67584343ac6d86fa3d12113f3d374b047efe90e2a325c0901598f31f7fb2a31a615c51ea8435a97d07e0bd4d4afbd228231dbc5e60bf1116ce49d6ce2547b63a1b057f286401acb7c21afbb673f3e26bc1b2114ab0b581f039c2739c7dd0af92c986fc4831b6c294783f1abb0765cf754eada132df751cf94cad7f29bb2fec0c7c47a7177dea82644fc17b455ba2b4ded6d9a24e268fcc4545cae73b14ceca1b429d74d1ebb6947274d9b0dcfb2e1ac6f6b7cd2be8f6141c3295c0dbe25b65ff89feb62cb24bd5be33853b88b8ac839fdd295f71e17a7ae1f054e27ba5e60ca03c6601b85c3055601ce41a33127938440600aaa16cfdd31afaa909fd80afc8690aaf*$/pkzip$", "7J0rdan!!"},
 	/* CMIYC 2013 "pro" hard hash */
 	{"$pkzip$1*2*2*0*6b*73*8e687a5b*0*46*8*6b*0d9d*636fedc7a78a7f80cda8542441e71092d87d13da94c93848c230ea43fab5978759e506110b77bd4bc10c95bc909598a10adfd4febc0d42f3cd31e4fec848d6f49ab24bb915cf939fb1ce09326378bb8ecafde7d3fe06b6013628a779e017be0f0ad278a5b04e41807ae9fc*$/pkzip$", "c00rslit3!"},
-	/* http://corkami.googlecode.com/files/ChristmasGIFts.zip */
-//#endif
-	{"$pkzip$3*0*1*2*8*c0*7224*6195f9f3401076b22f006105c4323f7ac8bb8ebf8d570dc9c7f13ddacd8f071783f6bef08e09ce4f749af00178e56bc948ada1953a0263c706fd39e96bb46731f827a764c9d55945a89b952f0503747703d40ed4748a8e5c31cb7024366d0ef2b0eb4232e250d343416c12c7cbc15d41e01e986857d320fb6a2d23f4c44201c808be107912dbfe4586e3bf2c966d926073078b92a2a91568081daae85cbcddec75692485d0e89994634c71090271ac7b4a874ede424dafe1de795075d2916eae*1*6*8*c0*26ee*944bebb405b5eab4322a9ce6f7030ace3d8ec776b0a989752cf29569acbdd1fb3f5bd5fe7e4775d71f9ba728bf6c17aad1516f3aebf096c26f0c40e19a042809074caa5ae22f06c7dcd1d8e3334243bca723d20875bd80c54944712562c4ff5fdb25be5f4eed04f75f79584bfd28f8b786dd82fd0ffc760893dac4025f301c2802b79b3cb6bbdf565ceb3190849afdf1f17688b8a65df7bc53bc83b01a15c375e34970ae080307638b763fb10783b18b5dec78d8dfac58f49e3c3be62d6d54f9*2*0*2a*1e*4a204eab*ce8*2c*0*2a*4a20*6b6e1a8de47449a77e6f0d126b217d6b2b72227c0885f7dc10a2fb3e7cb0e611c5c219a78f98a9069f30*$/pkzip$", "123456"},
-	// this one still fails :(
-//	{"$pkzip$1*0*2*3*4c*78*bab987f2*24ac*2c*8*4c*bab9*3928c0c1e10264331c71ed96afe8ce1ed60711af6310c044c540dbd409171a3a1c541c390b480412ebc2329baf8125aefe61d822d0888678a8c0a987d1ade4ee231c809ca8a004e9ecd855aa*$/pkzip$", "123456"},
-//	bin/simple.zip:$pkzip$1*0*2*3*4c*78*bab987f2*24ac*2c*8*4c*bab9*3928c0c1e10264331c71ed96afe8ce1ed60711af6310c044c540dbd409171a3a1c541c390b480412ebc2329baf8125aefe61d822d0888678a8c0a987d1ade4ee231c809ca8a004e9ecd855aa*$/pkzip$:::::ChristmasGIFts.zip
-	
+	/* http://corkami.googlecode.com/files/ChristmasGIFts.zip (fixed with 2 byte checksums from timestamp, using new $pkzip2$ type) */
+	{"$pkzip2$3*2*1*2*8*c0*7224*72f6*6195f9f3401076b22f006105c4323f7ac8bb8ebf8d570dc9c7f13ddacd8f071783f6bef08e09ce4f749af00178e56bc948ada1953a0263c706fd39e96bb46731f827a764c9d55945a89b952f0503747703d40ed4748a8e5c31cb7024366d0ef2b0eb4232e250d343416c12c7cbc15d41e01e986857d320fb6a2d23f4c44201c808be107912dbfe4586e3bf2c966d926073078b92a2a91568081daae85cbcddec75692485d0e89994634c71090271ac7b4a874ede424dafe1de795075d2916eae*1*6*8*c0*26ee*461b*944bebb405b5eab4322a9ce6f7030ace3d8ec776b0a989752cf29569acbdd1fb3f5bd5fe7e4775d71f9ba728bf6c17aad1516f3aebf096c26f0c40e19a042809074caa5ae22f06c7dcd1d8e3334243bca723d20875bd80c54944712562c4ff5fdb25be5f4eed04f75f79584bfd28f8b786dd82fd0ffc760893dac4025f301c2802b79b3cb6bbdf565ceb3190849afdf1f17688b8a65df7bc53bc83b01a15c375e34970ae080307638b763fb10783b18b5dec78d8dfac58f49e3c3be62d6d54f9*2*0*2a*1e*4a204eab*ce8*2c*0*2a*4a20*7235*6b6e1a8de47449a77e6f0d126b217d6b2b72227c0885f7dc10a2fb3e7cb0e611c5c219a78f98a9069f30*$/pkzip2$", "123456"},
 	{NULL}
 };
 
@@ -230,13 +226,20 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	u32 offex;
 	int type;
 	int complen = 0;
+	int type2 = 0;
 
-	if (strncmp(ciphertext, "$pkzip$", 7))
+	if (strncmp(ciphertext, "$pkzip$", 7)) {
+		if (!strncmp(ciphertext, "$pkzip2$", 8))
+			type2 = 1;
+		else
 		return 0;
+	}
 
 	cp = (u8*)str_alloc_copy(ciphertext);
 
 	p = &cp[7];
+	if (type2)
+		++p;
 	p = GetFld(p, &cp);
 	if (!is_hex_str(cp)) {
 		sFailStr = "Out of data, reading count of hashes field"; goto Bail; }
@@ -286,6 +289,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		p = GetFld(p, &cp);
 		if (!is_hex_str(cp) || strlen((c8*)cp) != 4) {
 			sFailStr = "invalid checksum value"; goto Bail; }
+		if (type2) {
+			p = GetFld(p, &cp);
+			if (!is_hex_str(cp) || strlen((c8*)cp) != 4) {
+				sFailStr = "invalid checksum2 value"; goto Bail;}
+		}
 		p = GetFld(p, &cp);
 		if (type > 1) {
 			if (type == 3) {
@@ -328,6 +336,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
                 }
 	}
 	p = GetFld(p, &cp);
+	if (type2) return !strcmp((c8*)cp, "$/pkzip2$") && !*p;
 	return !strcmp((c8*)cp, "$/pkzip$") && !*p;
 
 Bail:;
@@ -531,6 +540,7 @@ static void *get_salt(char *ciphertext)
 	u32 offex;
 	int i, j;
 	u8 *p, *cp, *cpalloc = (unsigned char*)mem_alloc(strlen(ciphertext)+1);
+	int type2 = 0;
 
 	/* Needs word align on REQ_ALIGN systems.  May crash otherwise (in the sscanf) */
 	salt = mem_alloc_tiny(sizeof(PKZ_SALT), MEM_ALIGN_WORD);
@@ -539,7 +549,12 @@ static void *get_salt(char *ciphertext)
 
 	cp = cpalloc;
 	strcpy((c8*)cp, ciphertext);
+	if (!strncmp((c8*)cp, "$pkzip$", 7))
 	p = &cp[7];
+	else {
+		p = &cp[8];
+		type2 = 1;
+	}
 	p = GetFld(p, &cp);
 	sscanf((c8*)cp, "%x", &(salt->cnt));
 	p = GetFld(p, &cp);
@@ -581,6 +596,14 @@ static void *get_salt(char *ciphertext)
 			salt->H[i].c <<= 4;
 			salt->H[i].c |= atoi16[ARCH_INDEX(cp[j])];
 		}
+		if (type2) {
+			p = GetFld(p, &cp);
+			for (j = 0; j < 4; ++j) {
+				salt->H[i].c2 <<= 4;
+				salt->H[i].c2 |= atoi16[ARCH_INDEX(cp[j])];
+			}
+		} else
+			salt->H[i].c2 = salt->H[i].c; // fake out 2nd hash, by copying first hash
 		p = GetFld(p, &cp);
 		if (data_enum > 1) {
 			/* if 2 or 3, we have the FULL zip blob for decrypting. */
@@ -1341,7 +1364,7 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 		u8 curInfBuf[128];
 #endif
 		int k, SigChecked;
-		u16 e, v1, v2;
+		u16 e, e2, v1, v2;
 		z_stream strm;
 		int ret;
 
@@ -1372,6 +1395,7 @@ SkipKeyLoadInit:;
 			b = salt->H[++cur_hash_idx].h;
 			k=11;
 			e = salt->H[cur_hash_idx].c;
+			e2 = salt->H[cur_hash_idx].c2;
 
 			do
 			{
@@ -1384,13 +1408,14 @@ SkipKeyLoadInit:;
 
 			/* if the hash is a 2 byte checksum type, then check that value first */
 			/* There is no reason to continue if this byte does not check out.  */
-			if (salt->chk_bytes == 2 && C != (e&0xFF))
+			if (salt->chk_bytes == 2 && C != (e&0xFF) && C != (e2&0xFF))
 				goto Failed_Bailout;
 
 			C = PKZ_MULT(*b++,key2);
 #if 1
 			// https://github.com/magnumripper/JohnTheRipper/issues/467
-			if (salt->chk_bytes && C != (e>>8))
+			// Fixed, JimF.  Added checksum test for crc32 and timestamp.
+			if (C != (e>>8) && C != (e2>>8))
 				goto Failed_Bailout;
 #endif
 
@@ -1563,8 +1588,14 @@ SkipKeyLoadInit:;
 				ret = inflate(&strm, Z_SYNC_FLUSH);
 
 				inflateEnd(&strm);
-				if (ret != Z_OK)
+				if (ret != Z_OK) {
+					// we need to handle zips smaller than sizeof curInfBuf.  If we find a zip of this
+					// size, the return is Z_STREAM_END, BUT things are fine.
+					if (ret == Z_STREAM_END && salt->deCompLen == strm.total_out)
+						; // things are ok.
+					else
 					goto Failed_Bailout;
+				}
 				if (!strm.total_out)
 					goto Failed_Bailout;
 

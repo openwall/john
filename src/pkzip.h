@@ -59,6 +59,7 @@ typedef struct zip_magic_signatures_t {
 typedef struct zip_hash_type_t {
 	u8 *h;
 	u16 c;
+	u16 c2;
 	u32 datlen;
 	u8 magic;					// This is used as 'magic' signature type. Also, 255 is 'generic text'
 	u8 full_zip;
