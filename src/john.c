@@ -160,53 +160,6 @@ extern struct fmt_main fmt_KRB5_kinit;
 #endif
 extern int hccap2john(int argc, char **argv);
 
-#if HAVE_OPENCL
-extern struct fmt_main fmt_opencl_DES;
-extern struct fmt_main fmt_opencl_NSLDAPS;
-extern struct fmt_main fmt_opencl_NT;
-extern struct fmt_main fmt_opencl_NTLMv2;
-extern struct fmt_main fmt_opencl_agilekeychain;
-extern struct fmt_main fmt_opencl_bf;
-extern struct fmt_main fmt_opencl_cryptMD5;
-extern struct fmt_main fmt_opencl_cryptsha256;
-extern struct fmt_main fmt_opencl_cryptsha512;
-extern struct fmt_main fmt_opencl_dmg;
-extern struct fmt_main fmt_opencl_encfs;
-extern struct fmt_main fmt_opencl_gpg;
-extern struct fmt_main fmt_opencl_keychain;
-extern struct fmt_main fmt_opencl_krb5pa_md5;
-extern struct fmt_main fmt_opencl_krb5pa_sha1;
-extern struct fmt_main fmt_opencl_1otus5;
-extern struct fmt_main fmt_opencl_mscash2;
-extern struct fmt_main fmt_opencl_mysqlsha1;
-extern struct fmt_main fmt_opencl_odf;
-extern struct fmt_main fmt_opencl_odf_aes;
-extern struct fmt_main fmt_opencl_office2007;
-extern struct fmt_main fmt_opencl_office2010;
-extern struct fmt_main fmt_opencl_office2013;
-extern struct fmt_main fmt_opencl_phpass;
-extern struct fmt_main fmt_opencl_pwsafe;
-extern struct fmt_main fmt_opencl_rar;
-extern struct fmt_main fmt_opencl_rawMD4;
-extern struct fmt_main fmt_opencl_rawMD5;
-extern struct fmt_main fmt_opencl_rawSHA1;
-extern struct fmt_main fmt_opencl_rawsha256;
-extern struct fmt_main fmt_opencl_rawsha512;
-extern struct fmt_main fmt_opencl_rawsha512_ng;
-extern struct fmt_main fmt_opencl_strip;
-extern struct fmt_main fmt_opencl_sxc;
-extern struct fmt_main fmt_opencl_wpapsk;
-extern struct fmt_main fmt_opencl_xsha512;
-extern struct fmt_main fmt_opencl_xsha512_ng;
-extern struct fmt_main fmt_opencl_zip;
-extern struct fmt_main fmt_opencl_blockchain;
-extern struct fmt_main fmt_opencl_keyring;
-//extern struct fmt_main fmt_opencl_sevenzip;
-extern struct fmt_main fmt_opencl_pbkdf2_hmac_sha256;
-extern struct fmt_main fmt_opencl_pbkdf2_hmac_sha512;
-extern struct fmt_main fmt_opencl_rakp;
-extern struct fmt_main fmt_opencl_o5logon;
-#endif
 #if HAVE_CUDA
 extern struct fmt_main fmt_cuda_cryptmd5;
 extern struct fmt_main fmt_cuda_cryptsha256;
@@ -386,54 +339,6 @@ static void john_register_all(void)
 	john_register_one(&fmt_ssh);
 	john_register_one(&fmt_wpapsk);
 	john_register_one(&fmt_zip);
-
-#if HAVE_OPENCL
-	john_register_one(&fmt_opencl_DES);
-	john_register_one(&fmt_opencl_NSLDAPS);
-	john_register_one(&fmt_opencl_NT);
-	john_register_one(&fmt_opencl_NTLMv2);
-	john_register_one(&fmt_opencl_agilekeychain);
-	john_register_one(&fmt_opencl_bf);
-	john_register_one(&fmt_opencl_blockchain);
-	john_register_one(&fmt_opencl_cryptMD5);
-	john_register_one(&fmt_opencl_cryptsha256);
-	john_register_one(&fmt_opencl_cryptsha512);
-	john_register_one(&fmt_opencl_dmg);
-	john_register_one(&fmt_opencl_encfs);
-	john_register_one(&fmt_opencl_gpg);
-	john_register_one(&fmt_opencl_keychain);
-	john_register_one(&fmt_opencl_keyring);
-	john_register_one(&fmt_opencl_krb5pa_md5);
-	john_register_one(&fmt_opencl_krb5pa_sha1);
-	john_register_one(&fmt_opencl_1otus5);
-	john_register_one(&fmt_opencl_mscash2);
-	john_register_one(&fmt_opencl_mysqlsha1);
-	john_register_one(&fmt_opencl_odf);
-	john_register_one(&fmt_opencl_odf_aes);
-	john_register_one(&fmt_opencl_office2007);
-	john_register_one(&fmt_opencl_office2010);
-	john_register_one(&fmt_opencl_office2013);
-	john_register_one(&fmt_opencl_phpass);
-	john_register_one(&fmt_opencl_pwsafe);
-	john_register_one(&fmt_opencl_rar);
-	john_register_one(&fmt_opencl_rawMD4);
-	john_register_one(&fmt_opencl_rawMD5);
-	john_register_one(&fmt_opencl_rawSHA1);
-	john_register_one(&fmt_opencl_rawsha256);
-	john_register_one(&fmt_opencl_rawsha512);
-	john_register_one(&fmt_opencl_rawsha512_ng);
-//	john_register_one(&fmt_opencl_sevenzip);
-	john_register_one(&fmt_opencl_strip);
-	john_register_one(&fmt_opencl_sxc);
-	john_register_one(&fmt_opencl_wpapsk);
-	john_register_one(&fmt_opencl_xsha512);
-	john_register_one(&fmt_opencl_xsha512_ng);
-	john_register_one(&fmt_opencl_zip);
-	john_register_one(&fmt_opencl_pbkdf2_hmac_sha256);
-	john_register_one(&fmt_opencl_pbkdf2_hmac_sha512);
-	john_register_one(&fmt_opencl_rakp);
-	john_register_one(&fmt_opencl_o5logon);
-#endif
 
 #if HAVE_CUDA
 	john_register_one(&fmt_cuda_cryptmd5);

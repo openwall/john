@@ -1,7 +1,9 @@
 #!/usr/bin/perl -w
 use strict;
 
-my @file = <>;
+open FILE, "<", $ARGV[0] or die;
+my @file = <FILE>;
+close FILE;
 
 # 's/^\(struct fmt_main [^ ]*\) =.*/extern \1;/p'
 # 's/^struct fmt_main \([^ ]*\) =.*/john_register_one(\&\1);/p'
@@ -14,14 +16,24 @@ foreach my $s (@struct) {
 	$s =~ m/^struct fmt_main ([^ ]+) =.*/;
 	$reg .= "john_register_one(&$1);\n";
 }
-my $new = $decl . $reg . "#else\n\n";
+
+my $new = "";
+if (defined $ARGV[1]) {
+	$new .= "#ifdef $ARGV[1]\n\n";
+}
+$new .= $decl . $reg . "#else\n\n";
 my $p = 0;
+open FILE, ">", $ARGV[0] or die;
 
 foreach (@file) {
 	if ($p == 0 && m/^#/) {
 		$p = 1;
-		print $new;
+		print FILE "$new";
 	}
-	print $_;
+	print FILE "$_";
 }
-printf("\n#endif /* plugin stanza */\n");
+print FILE "\n#endif /* plugin stanza */\n";
+if (defined $ARGV[1]) {
+	print FILE "\n#endif /* $ARGV[1] */\n";
+}
+close FILE;
