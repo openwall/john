@@ -137,7 +137,6 @@ extern struct fmt_main fmt_trip;
 extern struct fmt_main fmt_dummy;
 
 #if HAVE_NSS
-extern struct fmt_main fmt_mozilla;
 extern int mozilla2john(int argc, char **argv);
 #endif
 #if HAVE_KRB5
@@ -291,9 +290,6 @@ static void john_register_all(void)
 	john_register_one(&fmt_hmacSHA1);
 	john_register_one(&fmt_rawSHA0);
 
-#if HAVE_NSS
-	john_register_one(&fmt_mozilla);
-#endif
 #if HAVE_KRB5
 	john_register_one(&fmt_krb5_18);
 	john_register_one(&fmt_KRB5_kinit);

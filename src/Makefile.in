@@ -104,7 +104,7 @@ JOHN_OBJS = \
 	keyring2john.o keystore2john.o \
 	truecrypt_volume2john.o \
 	hccap2john.o \
-	mozilla_fmt.o KeyDBCracker.o mozilla_des.o lowpbe.o mozilla2john.o \
+	mozilla2john.o \
 	krb5-18_fmt.o krb5-23_fmt.o \
 	$(PLUGFORMATS_OBJS) \
 	plugin.o \

@@ -26,6 +26,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA. */
 
 #ifdef HAVE_NSS
+
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_mozilla;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_mozilla);
+#else
+
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
@@ -356,4 +363,7 @@ struct fmt_main fmt_mozilla = {
 		cmp_exact
 	}
 };
-#endif
+
+#endif /* plugin stanza */
+
+#endif /* HAVE_NSS */
