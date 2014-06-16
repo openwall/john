@@ -1,6 +1,11 @@
 #include "arch.h"
 #if defined(__SSE2__) && !defined (_MSC_VER)
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_sha1_ng;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_sha1_ng);
+#else
 
 #ifndef _GNU_SOURCE
 # define _GNU_SOURCE 1
@@ -788,4 +793,6 @@ struct fmt_main fmt_sha1_ng = {
     },
 };
 
-#endif // __SSE2__
+#endif /* plugin stanza */
+
+#endif /* __SSE2__ */

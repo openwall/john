@@ -9,6 +9,12 @@
 #include "arch.h"
 #if defined __SSE2__
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_rawSHA512_ng;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_rawSHA512_ng);
+#else
+
 #ifdef _OPENMP
 #include <omp.h>
 #if defined __XOP__
@@ -598,4 +604,6 @@ struct fmt_main fmt_rawSHA512_ng = {
     }
 };
 
-#endif
+#endif /* plugin stanza */
+
+#endif /* __SSE2__ */

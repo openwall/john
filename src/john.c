@@ -136,20 +136,6 @@ extern struct fmt_main fmt_crypt;
 extern struct fmt_main fmt_trip;
 extern struct fmt_main fmt_dummy;
 
-#ifdef __SSE2__
-extern struct fmt_main fmt_rawSHA256_ng;
-extern struct fmt_main fmt_rawSHA512_ng;
-#if !_MSC_VER
-extern struct fmt_main fmt_sha1_ng;
-#endif
-#endif
-#ifdef MMX_COEF_SHA256
-extern struct fmt_main fmt_rawSHA256_ng_i;
-#endif
-#ifdef MMX_COEF_SHA512
-extern struct fmt_main fmt_rawSHA512_ng_i;
-#endif
-
 #if HAVE_NSS
 extern struct fmt_main fmt_mozilla;
 extern int mozilla2john(int argc, char **argv);
@@ -305,26 +291,11 @@ static void john_register_all(void)
 	for (i = 0; i < cnt; ++i)
 		john_register_one(&(selfs[i]));
 
-#ifdef __SSE2__
-	john_register_one(&fmt_rawSHA256_ng);
-	john_register_one(&fmt_rawSHA512_ng);
-#endif
-#ifdef MMX_COEF_SHA256
-	john_register_one(&fmt_rawSHA256_ng_i);
-#endif
-#ifdef MMX_COEF_SHA512
-	john_register_one(&fmt_rawSHA512_ng_i);
-#endif
-
 #include "fmt_registers.h"
 
 	john_register_one(&fmt_hmacMD5);
 	john_register_one(&fmt_hmacSHA1);
 	john_register_one(&fmt_rawSHA0);
-
-#if defined (__SSE2__) && !defined(_MSC_VER)
-	john_register_one(&fmt_sha1_ng);
-#endif
 
 #if HAVE_NSS
 	john_register_one(&fmt_mozilla);
