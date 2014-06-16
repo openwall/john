@@ -23,6 +23,11 @@
  * only useing oSSL functions.  A lot of the high level stuff in oSSL sux for speed.
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_django;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_django);
+#else
 
 // uncomment this header to use the slower PKCS5_PBKDF2_HMAC function.
 // Note, PKCS5_PBKDF2_HMAC is ONLY available in oSSL 1.00 + (1.0c I think to be exact)
@@ -333,3 +338,5 @@ struct fmt_main fmt_django = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

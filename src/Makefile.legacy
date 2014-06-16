@@ -141,9 +141,6 @@ JOHN_OBJS = \
 	md4.o sha2.o \
 	dynamic_fmt.o dynamic_parser.o dynamic_preloads.o dynamic_utils.o dynamic_big_crypt.o \
 	hmacMD5_fmt.o hmacSHA1_fmt.o \
-	django_fmt.o \
-	truecrypt_fmt.o \
-	bitcoin_fmt.o \
 	ssh_fmt.o ssh2john.o \
 	pfx_fmt.o pfx2john.o \
 	unrarcmd.o unrarfilter.o unrarhlp.o unrar.o unrarppm.o unrarvm.o \
@@ -165,7 +162,6 @@ JOHN_OBJS = \
 	rawSHA1_ng_fmt.o rawSHA256_ng_fmt.o rawSHA512_ng_fmt.o rawSHA256_ng_i_fmt.o rawSHA512_ng_i_fmt.o \
 	plugin.o \
 	dummy.o \
-	NT_fmt.o \
 	gost.o \
 	common-gpu.o \
 	batch.o bench.o charset.o common.o compiler.o config.o cracker.o \

@@ -94,7 +94,6 @@ static int john_omp_threads_new;
 #endif
 #include "regex.h"
 
-#include <openssl/opensslv.h>
 #include "unicode.h"
 #include "plugin.h"
 #if HAVE_OPENCL
@@ -136,22 +135,7 @@ extern struct fmt_main fmt_crypt;
 #endif
 extern struct fmt_main fmt_trip;
 extern struct fmt_main fmt_dummy;
-extern struct fmt_main fmt_NT;
 
-// can be done as a _plug format now. But I have not renamed the plugin file
-// just yet.
-extern struct fmt_main fmt_django;
-
-#if (AC_BUILT && HAVE_EVP_AES_256_XTS) ||	  \
-    (!AC_BUILT && OPENSSL_VERSION_NUMBER >= 0x10001000 && !HAVE_NO_SSL_EVP_aes)
-extern struct fmt_main fmt_truecrypt;
-extern struct fmt_main fmt_truecrypt_sha512;
-extern struct fmt_main fmt_truecrypt_whirlpool;
-#endif
-#if (AC_BUILT && HAVE_EVP_SHA512) || \
-	(!AC_BUILT && OPENSSL_VERSION_NUMBER >= 0x0090708f)
-extern struct fmt_main fmt_bitcoin;
-#endif
 #ifdef __SSE2__
 extern struct fmt_main fmt_rawSHA256_ng;
 extern struct fmt_main fmt_rawSHA512_ng;
@@ -364,7 +348,6 @@ static void john_register_all(void)
 	john_register_one(&fmt_AFS);
 	john_register_one(&fmt_trip);
 	john_register_one(&fmt_dummy);
-	john_register_one(&fmt_NT);
 
 	for (i = 0; i < cnt; ++i)
 		john_register_one(&(selfs[i]));
@@ -385,19 +368,6 @@ static void john_register_all(void)
 	john_register_one(&fmt_hmacMD5);
 	john_register_one(&fmt_hmacSHA1);
 	john_register_one(&fmt_rawSHA0);
-	john_register_one(&fmt_django);
-
-#if (AC_BUILT && HAVE_EVP_AES_256_XTS) ||	  \
-    (!AC_BUILT && OPENSSL_VERSION_NUMBER >= 0x10001000 && !HAVE_NO_SSL_EVP_aes)
-	john_register_one(&fmt_truecrypt);
-	john_register_one(&fmt_truecrypt_sha512);
-	john_register_one(&fmt_truecrypt_whirlpool);
-#endif
-
-#if (AC_BUILT && HAVE_EVP_SHA512) || \
-	(!AC_BUILT && OPENSSL_VERSION_NUMBER >= 0x0090708f)
-	john_register_one(&fmt_bitcoin);
-#endif
 
 #if defined (__SSE2__) && !defined(_MSC_VER)
 	john_register_one(&fmt_sha1_ng);

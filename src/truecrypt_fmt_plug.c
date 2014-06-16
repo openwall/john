@@ -20,6 +20,16 @@
 #if (AC_BUILT && HAVE_EVP_AES_256_XTS) || \
 	(!AC_BUILT && OPENSSL_VERSION_NUMBER >= 0x10001000)
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_truecrypt;
+extern struct fmt_main fmt_truecrypt_sha512;
+extern struct fmt_main fmt_truecrypt_whirlpool;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_truecrypt);
+john_register_one(&fmt_truecrypt_sha512);
+john_register_one(&fmt_truecrypt_whirlpool);
+#else
+
 #include <string.h>
 #include "misc.h"
 #include "memory.h"
@@ -489,4 +499,6 @@ struct fmt_main fmt_truecrypt_whirlpool = {
 	}
 };
 
-#endif
+#endif /* plugin stanza */
+
+#endif /* OpenSSL functionality */

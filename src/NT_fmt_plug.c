@@ -18,6 +18,12 @@
  *
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_NT;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_NT);
+#else
+
 #include <string.h>
 #include "arch.h"
 #include "misc.h"
@@ -1026,3 +1032,5 @@ struct fmt_main fmt_NT = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

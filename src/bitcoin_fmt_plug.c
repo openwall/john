@@ -20,6 +20,12 @@
 #if (AC_BUILT && HAVE_EVP_SHA512) || \
 	(!AC_BUILT && OPENSSL_VERSION_NUMBER >= 0x0090708f)
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_bitcoin;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_bitcoin);
+#else
+
 #include <openssl/evp.h>
 #include <string.h>
 #include "misc.h"
@@ -371,4 +377,6 @@ struct fmt_main fmt_bitcoin = {
 	}
 };
 
-#endif
+#endif /* plugin stanza */
+
+#endif /* OpenSSL requirement */
