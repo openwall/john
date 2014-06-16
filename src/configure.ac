@@ -473,6 +473,12 @@ AC_OPENMP
 AS_IF([test "x$cross_compiling" = xno -a "x$enable_opencl" != xno],
       [JTR_SET_OPENCL_INCLUDES])
 AX_OPENCL(C)
+if test "x$CL_LIBS" = x; then
+   using_cl=no
+else
+   using_cl=yes
+   HAVE_OPENCL=-DHAVE_OPENCL
+fi
 
 # Check for CUDA, including headers.
 JTR_CUDA
@@ -689,18 +695,13 @@ AC_OUTPUT(,echo "timestamp from configure.in" > autoconfig-stamp-h)
 # AC_OUTPUT
 ##########################################################
 echo "configure: creating ./fmt_externs.h"
-$CPP -P -DFMT_EXTERNS_H *_fmt_plug.c | LC_ALL=C $GREP "extern struct fmt_main" | LC_ALL=C $SORT > fmt_externs.h
+$CPP -P -DAC_BUILT $HAVE_OPENCL $HAVE_CUDA $HAVE_NSS -DFMT_EXTERNS_H *_fmt_plug.c | LC_ALL=C $GREP "extern struct fmt_main" | LC_ALL=C $SORT > fmt_externs.h
 echo "configure: creating ./fmt_registers.h"
-$CPP -P -DFMT_REGISTERS_H *_fmt_plug.c | LC_ALL=C $GREP "john_register_one" | LC_ALL=C $SORT > fmt_registers.h
+$CPP -P -DAC_BUILT $HAVE_OPENCL $HAVE_CUDA $HAVE_NSS -DFMT_REGISTERS_H *_fmt_plug.c | LC_ALL=C $GREP "john_register_one" | LC_ALL=C $SORT > fmt_registers.h
 
 ########################################################
 #    ONLY _COSMETICAL_ OUTPUT STUFF BELOW THIS LINE
 ########################################################
-if test "x$CL_LIBS" = x; then
-   using_cl=no
-else
-   using_cl=yes
-fi
 
 # Hard to get proper info from AC_OPENMP. If it's enabled with no special
 # options needed, we might end up listing it as disabled

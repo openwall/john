@@ -4,6 +4,14 @@
 * Redistribution and use in source and binary forms, with or without modification, are permitted.
 */
 
+#ifdef HAVE_CUDA
+
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_cuda_cryptmd5;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_cuda_cryptmd5);
+#else
+
 #if AC_BUILT
 #include "autoconfig.h"
 #endif
@@ -341,3 +349,7 @@ struct fmt_main fmt_cuda_cryptmd5 = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */
+
+#endif /* HAVE_CUDA */

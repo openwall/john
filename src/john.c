@@ -136,32 +136,20 @@ extern struct fmt_main fmt_crypt;
 extern struct fmt_main fmt_trip;
 extern struct fmt_main fmt_dummy;
 
-#if HAVE_NSS
-extern int mozilla2john(int argc, char **argv);
-#endif
-extern int hccap2john(int argc, char **argv);
-
-#if HAVE_CUDA
-extern struct fmt_main fmt_cuda_cryptmd5;
-extern struct fmt_main fmt_cuda_cryptsha256;
-extern struct fmt_main fmt_cuda_cryptsha512;
-extern struct fmt_main fmt_cuda_mscash2;
-extern struct fmt_main fmt_cuda_mscash;
-extern struct fmt_main fmt_cuda_phpass;
-extern struct fmt_main fmt_cuda_pwsafe;
-extern struct fmt_main fmt_cuda_rawsha224;
-extern struct fmt_main fmt_cuda_rawsha256;
-extern struct fmt_main fmt_cuda_rawsha512;
-extern struct fmt_main fmt_cuda_wpapsk;
-extern struct fmt_main fmt_cuda_xsha512;
-#endif
-
 #include "fmt_externs.h"
 
 extern int unshadow(int argc, char **argv);
 extern int unafs(int argc, char **argv);
 extern int unique(int argc, char **argv);
 extern int undrop(int argc, char **argv);
+
+#if HAVE_NSS
+extern int mozilla2john(int argc, char **argv);
+#endif
+extern int hccap2john(int argc, char **argv);
+extern int zip2john(int argc, char **argv);
+extern int gpg2john(int argc, char **argv);
+
 #ifndef _MSC_VER
 /*
  * MSC will not compile at all with these. They use libs, headers, and other
@@ -181,8 +169,6 @@ extern int putty2john(int argc, char **argv);
 extern int keystore2john(int argc, char **argv);
 extern int truecrypt_volume2john(int argc, char **argv);
 #endif
-extern int zip2john(int argc, char **argv);
-extern int gpg2john(int argc, char **argv);
 
 int john_main_process = 1;
 #if OS_FORK
@@ -278,21 +264,7 @@ static void john_register_all(void)
 
 #include "fmt_registers.h"
 
-#if HAVE_CUDA
-	john_register_one(&fmt_cuda_cryptmd5);
-	john_register_one(&fmt_cuda_cryptsha256);
-	john_register_one(&fmt_cuda_cryptsha512);
-	john_register_one(&fmt_cuda_mscash);
-	john_register_one(&fmt_cuda_mscash2);
-	john_register_one(&fmt_cuda_phpass);
-	john_register_one(&fmt_cuda_pwsafe);
-	john_register_one(&fmt_cuda_rawsha224);
-	john_register_one(&fmt_cuda_rawsha256);
-	john_register_one(&fmt_cuda_rawsha512);
-	john_register_one(&fmt_cuda_wpapsk);
-	john_register_one(&fmt_cuda_xsha512);
-#endif
-#ifdef HAVE_CRYPT
+#if HAVE_CRYPT
 	john_register_one(&fmt_crypt);
 #endif
 

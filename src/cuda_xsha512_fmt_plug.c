@@ -13,6 +13,14 @@
  * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
+#ifdef HAVE_CUDA
+
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_cuda_xsha512;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_cuda_xsha512);
+#else
+
 #include <string.h>
 #include <assert.h>
 
@@ -412,3 +420,7 @@ struct fmt_main fmt_cuda_xsha512 = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */
+
+#endif /* HAVE_CUDA */

@@ -5,6 +5,22 @@
 * This file is shared by raw-sha224-cuda and raw-sha256-cuda formats,
 * SHA256 definition is used to distinguish between them.
 */
+#ifdef HAVE_CUDA
+
+#if FMT_EXTERNS_H
+#ifdef SHA224
+extern struct fmt_main fmt_cuda_rawsha224;
+#else
+extern struct fmt_main fmt_cuda_rawsha256;
+#endif
+#elif FMT_REGISTERS_H
+#ifdef SHA224
+john_register_one(&fmt_cuda_rawsha224);
+#else
+john_register_one(&fmt_cuda_rawsha256);
+#endif
+#else
+
 #include <string.h>
 
 #include "arch.h"
@@ -285,3 +301,7 @@ struct fmt_main FMT_MAIN = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */
+
+#endif /* HAVE_CUDA */

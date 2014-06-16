@@ -4,6 +4,14 @@
 * and it is hereby released to the general public under the following terms:
 * Redistribution and use in source and binary forms, with or without modification, are permitted.
 */
+#ifdef HAVE_CUDA
+
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_cuda_wpapsk;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_cuda_wpapsk);
+#else
+
 #include <string.h>
 #include <assert.h>
 
@@ -128,3 +136,7 @@ struct fmt_main fmt_cuda_wpapsk = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */
+
+#endif /* HAVE_CUDA */

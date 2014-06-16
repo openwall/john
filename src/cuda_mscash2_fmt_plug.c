@@ -1,49 +1,64 @@
 /*
- * This software is Copyright (c) 2011 Lukas Odzioba
- * <lukas dot odzioba at gmail dot com>
- * and it is hereby released to the general public under the following terms:
- * Redistribution and use in source and binary forms, with or without modification, are permitted.
- * Based on Alain Espinosa implementation http://openwall.info/wiki/john/MSCash
- */
+* This software is Copyright (c) 2011 Lukas Odzioba <ukasz at openwall dot net>
+* and it is hereby released to the general public under the following terms:
+* Redistribution and use in source and binary forms, with or without modification, are permitted.
+* Based on S3nf implementation http://openwall.info/wiki/john/MSCash2
+*/
+#ifdef HAVE_CUDA
+
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_cuda_mscash2;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_cuda_mscash2);
+#else
+
 #include <string.h>
 
 #include "arch.h"
 #include "formats.h"
 #include "common.h"
 #include "misc.h"
-#include "cuda_mscash.h"
-#include "cuda_common.h"
 #include "unicode.h"
+#include "cuda_mscash2.h"
+#include "cuda_common.h"
+#include "loader.h"
 #include "memdbg.h"
 
-#define FORMAT_LABEL		"mscash-cuda"
-#define FORMAT_NAME		"MS Cache Hash (DCC)"
-#define ALGORITHM_NAME		"MD4 CUDA (inefficient, development use only)"
-#define MAX_CIPHERTEXT_LENGTH	(2 + 19*3 + 1 + 32)
-#define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	0
+#define FORMAT_LABEL		"mscash2-cuda"
+#define FORMAT_NAME		"MS Cache Hash 2 (DCC2)"
+#define MAX_CIPHERTEXT_LENGTH	(8 + 5 + 3 * MAX_SALT_LENGTH + 32)
+#define ALGORITHM_NAME		"PBKDF2-SHA1 CUDA"
+#define MAX_SALT_LENGTH		19
 
-static mscash_password *inbuffer;
-static mscash_hash *outbuffer;
-static mscash_salt currentsalt;
+#define BENCHMARK_COMMENT	""
+#define BENCHMARK_LENGTH	-1
+//#define _MSCASH2_DEBUG
+
+static mscash2_password *inbuffer;
+static mscash2_hash *outbuffer;
+static mscash2_salt currentsalt;
 
 static struct fmt_tests tests[] = {
-	{"M$test2#ab60bdb4493822b175486810ac2abe63", "test2"},
-	{"M$test1#64cd29e36a8431a2b111378564a10631", "test1"},
-	{"M$test1#64cd29e36a8431a2b111378564a10631", "test1"},
-	{"M$test1#64cd29e36a8431a2b111378564a10631", "test1"},
-	{"176a4c2bd45ac73687676c2f09045353", "", {"root"}},	// nullstring password
-	{"M$test3#14dd041848e12fc48c0aa7a416a4a00c", "test3"},
-	{"M$test4#b945d24866af4b01a6d89b9d932a153c", "test4"},
-
-	{"64cd29e36a8431a2b111378564a10631", "test1", {"TEST1"}},	// salt is lowercased before hashing
-	{"290efa10307e36a79b3eebf2a6b29455", "okolada", {"nineteen_characters"}},	// max salt length
-	{"ab60bdb4493822b175486810ac2abe63", "test2", {"test2"}},
-	{"b945d24866af4b01a6d89b9d932a153c", "test4", {"test4"}},
+	{"$DCC2$10240#test1#607bbe89611e37446e736f7856515bf8", "test1"},
+	{"$DCC2$10240#Joe#e09b38f84ab0be586b730baf61781e30", "qerwt"},
+	{"$DCC2$10240#Joe#6432f517a900b3fc34ffe57f0f346e16", "12345"},
+	{"c0cbe0313a861062e29f92ede58f9b36", "", {"bin"}},	// nullstring password
+	{"87136ae0a18b2dafe4a41d555425b2ed", "w00t", {"nineteen_characters"}},	// max salt length
+	{"fc5df74eca97afd7cd5abb0032496223", "w00t", {"eighteencharacters"}},
+//unsupported salts lengths
+//      {"cfc6a1e33eb36c3d4f84e4c2606623d2", "longpassword", {"twentyXXX_characters"} },
+//      {"99ff74cea552799da8769d30b2684bee", "longpassword", {"twentyoneX_characters"} },
+//      {"0a721bdc92f27d7fb23b87a445ec562f", "longpassword", {"twentytwoXX_characters"} },
+	{"$DCC2$10240#TEST2#c6758e5be7fc943d00b97972a8a97620", "test2"},	// salt is lowercased before hashing
+	{"$DCC2$10240#test3#360e51304a2d383ea33467ab0b639cc4", "test3"},
+	{"$DCC2$10240#test4#6f79ee93518306f071c47185998566ae", "test4"},
+	// Non-standard iterations count
+	{"$DCC2$10000#Twelve_chars#54236c670e185043c8016006c001e982", "magnum"},
 	{NULL}
 };
 
-extern void cuda_mscash(mscash_password *, mscash_hash *, mscash_salt *, int);
+extern void mscash2_gpu(mscash2_password *, mscash2_hash *, mscash2_salt *,
+                        int count);
 
 static void done()
 {
@@ -55,10 +70,9 @@ static void init(struct fmt_main *self)
 {
 	//Allocate memory for hashes and passwords
 	inbuffer =
-	    (mscash_password *) mem_calloc(MAX_KEYS_PER_CRYPT *
-	    sizeof(mscash_password));
+	    (mscash2_password *) mem_calloc(MAX_KEYS_PER_CRYPT*sizeof(mscash2_password));
 	outbuffer =
-	    (mscash_hash *) mem_alloc(MAX_KEYS_PER_CRYPT * sizeof(mscash_hash));
+	    (mscash2_hash *) mem_alloc(MAX_KEYS_PER_CRYPT*sizeof(mscash2_hash));
 	check_mem_allocation(inbuffer, outbuffer);
 	//Initialize CUDA
 	cuda_init();
@@ -70,46 +84,13 @@ static void init(struct fmt_main *self)
 	}
 }
 
+extern int mscash2_valid(char *, int, struct fmt_main *);
+extern char * mscash2_prepare(char **, struct fmt_main *);
+extern char * mscash2_split(char *, int, struct fmt_main *);
+
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	char *hash, *p;
-	if (strncmp(ciphertext, mscash_prefix, strlen(mscash_prefix)) != 0)
-		return 0;
-	hash = p = strrchr(ciphertext, '#') + 1;
-	while (*p)
-		if (atoi16[ARCH_INDEX(*p++)] == 0x7f)
-			return 0;
-	return p - hash == 32;
-}
-
-static char *split(char *ciphertext, int index, struct fmt_main *self)
-{
-	static char out[MAX_CIPHERTEXT_LENGTH + 1];
-	int i = 0;
-	for (; i < MAX_CIPHERTEXT_LENGTH && ciphertext[i]; i++)
-		out[i] = ciphertext[i];
-	out[i] = 0;
-	// lowercase salt as well as hash, encoding-aware
-	enc_strlwr(&out[2]);
-	return out;
-}
-
-static char *prepare(char *split_fields[10], struct fmt_main *self)
-{
-	char *cp;
-	if (!strncmp(split_fields[1], "M$", 2) && valid(split_fields[1], self))
-		return split_fields[1];
-	if (!split_fields[0])
-		return split_fields[1];
-	cp = mem_alloc(strlen(split_fields[0]) + strlen(split_fields[1]) + 14);
-	sprintf(cp, "M$%s#%s", split_fields[0], split_fields[1]);
-	if (valid(cp, self)) {
-		char *cipher = str_alloc_copy(cp);
-		MEM_FREE(cp);
-		return cipher;
-	}
-	MEM_FREE(cp);
-	return split_fields[1];
+	return mscash2_valid(ciphertext, MAX_SALT_LENGTH, self);
 }
 
 static void *binary(char *ciphertext)
@@ -117,6 +98,8 @@ static void *binary(char *ciphertext)
 	static uint32_t binary[4];
 	char *hash = strrchr(ciphertext, '#') + 1;
 	int i;
+	if (hash == NULL)
+		return binary;
 	for (i = 0; i < 4; i++) {
 		sscanf(hash + (8 * i), "%08x", &binary[i]);
 		binary[i] = SWAP(binary[i]);
@@ -126,32 +109,42 @@ static void *binary(char *ciphertext)
 
 static void *salt(char *ciphertext)
 {
-	static mscash_salt salt;
-	UTF8 insalt[SALT_LENGTH + 1];
-	char *pos = ciphertext + strlen(mscash_prefix);
+	static mscash2_salt salt;
+	UTF8 insalt[3 * MAX_SALT_LENGTH + 1];
+	char *pos = ciphertext + strlen(mscash2_prefix);
 	char *end = strrchr(ciphertext, '#');
 	int length = 0;
 
 	memset(&salt, 0, sizeof(salt));
+	salt.rounds = DEFAULT_ROUNDS;
+	sscanf(pos, "%u", &salt.rounds);
+	pos = strchr(ciphertext, '#') + 1 ;
 	while (pos < end)
 		insalt[length++] = *pos++;
 	insalt[length] = 0;
 
-	enc_to_utf16(salt.salt, SALT_LENGTH, insalt, length);
-	salt.length = length;
+	salt.length = enc_to_utf16(salt.salt, MAX_SALT_LENGTH, insalt, length);
 
+#ifdef _MSCASH2_DEBUG
+	printf("salt=%s\n", utf16_to_enc(salt.salt));
+	printf("salt len=%d\n", salt.length);
+	printf("salt rounds=%d\n", salt.rounds);
+#endif
 	return &salt;
 }
 
 static void set_salt(void *salt)
 {
-	memcpy(&currentsalt, salt, sizeof(mscash_salt));
+	memcpy(&currentsalt, salt, sizeof(mscash2_salt));
 }
 
 static void set_key(char *key, int index)
 {
 	int length;
 
+#ifdef _MSCASH2_DEBUG
+	printf("set_key(%d) = [%s]\n", index, key);
+#endif
 	length = enc_to_utf16(inbuffer[index].v,
 	                      PLAINTEXT_LENGTH,
 	                      (UTF8*)key,
@@ -177,12 +170,31 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
 
-	cuda_mscash(inbuffer, outbuffer, &currentsalt, count);
+	mscash2_gpu(inbuffer, outbuffer, &currentsalt, count);
 	return count;
+}
+
+static int binary_hash_0(void *binary)
+{
+#ifdef _MSCASH2_DEBUG
+	puts("binary");
+	uint32_t i, *b = binary;
+	for (i = 0; i < 4; i++)
+		printf("%08x ", b[i]);
+	puts("");
+#endif
+	return (((uint32_t *) binary)[0] & 0xf);
 }
 
 static int get_hash_0(int index)
 {
+#ifdef _MSCASH2_DEBUG
+	int i;
+	puts("get_hash");
+	for (i = 0; i < 4; i++)
+		printf("%08x ", outbuffer[index].v[i]);
+	puts("");
+#endif
 	return outbuffer[index].v[0] & 0xf;
 }
 
@@ -216,7 +228,6 @@ static int get_hash_6(int index)
 	return outbuffer[index].v[0] & 0x7ffffff;
 }
 
-
 static int cmp_all(void *binary, int count)
 {
 	uint32_t i, b = ((uint32_t *) binary)[0];
@@ -240,7 +251,7 @@ static int cmp_exact(char *source, int count)
 	return 1;
 }
 
-struct fmt_main fmt_cuda_mscash = {
+struct fmt_main fmt_cuda_mscash2 = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,
@@ -263,9 +274,9 @@ struct fmt_main fmt_cuda_mscash = {
 		init,
 		done,
 		fmt_default_reset,
-		prepare,
+		mscash2_prepare,
 		valid,
-		split,
+		mscash2_split,
 		binary,
 		salt,
 #if FMT_MAIN_VERSION > 11
@@ -273,7 +284,7 @@ struct fmt_main fmt_cuda_mscash = {
 #endif
 		fmt_default_source,
 		{
-			fmt_default_binary_hash_0,
+			binary_hash_0,
 			fmt_default_binary_hash_1,
 			fmt_default_binary_hash_2,
 			fmt_default_binary_hash_3,
@@ -301,3 +312,7 @@ struct fmt_main fmt_cuda_mscash = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */
+
+#endif /* HAVE_CUDA */
