@@ -42,6 +42,12 @@
  * n = 125617018995153554710546479714086468244499594888726646874671447258204721048803
  * g = 2 */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_clipperz;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_clipperz);
+#else
+
 #if AC_BUILT
 /* need to know if HAVE_LIBGMP is set, for autoconfig build */
 #include "autoconfig.h"
@@ -476,3 +482,5 @@ struct fmt_main fmt_clipperz = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

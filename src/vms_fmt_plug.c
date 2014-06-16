@@ -12,6 +12,12 @@
  *    Redistribution and use in source and binary forms, with or without
  *    modifications, are permitted. */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_VMS;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_VMS);
+#else
+
 #include <stdio.h>
 #include <string.h>
 #include "arch.h"
@@ -282,3 +288,5 @@ struct fmt_main fmt_VMS = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

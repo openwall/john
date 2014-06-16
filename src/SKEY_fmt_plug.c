@@ -37,6 +37,12 @@
   I found did lc the salt.
 */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_SKEY;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_SKEY);
+#else
+
 #include "arch.h"
 
 #include <stdio.h>
@@ -339,3 +345,5 @@ struct fmt_main fmt_SKEY = {
 		skey_cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

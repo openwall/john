@@ -8,6 +8,12 @@
  * Edited by Shane Quigley 2013
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_pdf;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_pdf);
+#else
+
 #include <string.h>
 #include "arch.h"
 #include "params.h"
@@ -671,3 +677,5 @@ struct fmt_main fmt_pdf = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

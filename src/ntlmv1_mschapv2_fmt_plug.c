@@ -68,6 +68,14 @@
  *
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_MSCHAPv2_new;
+extern struct fmt_main fmt_NETNTLM_new;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_MSCHAPv2_new);
+john_register_one(&fmt_NETNTLM_new);
+#else
+
 #include <string.h>
 #include <openssl/des.h>
 
@@ -1325,3 +1333,5 @@ struct fmt_main fmt_NETNTLM_new = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

@@ -9,6 +9,12 @@
  * OMP added May 2013, JimF
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_rawMD4;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_rawMD4);
+#else
+
 #include <string.h>
 
 #include "arch.h"
@@ -392,3 +398,5 @@ struct fmt_main fmt_rawMD4 = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

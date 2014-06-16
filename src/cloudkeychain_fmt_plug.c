@@ -15,6 +15,12 @@
  * "onepasswordpy" project is at https://github.com/Roguelazer/onepasswordpy
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_cloud_keychain;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_cloud_keychain);
+#else
+
 #include <string.h>
 #include <errno.h>
 #include "arch.h"
@@ -445,3 +451,5 @@ struct fmt_main fmt_cloud_keychain = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

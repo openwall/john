@@ -6,6 +6,12 @@
  * Based on hmac-md5 by Bartavelle
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_hmacSHA224;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_hmacSHA224);
+#else
+
 #include "sha2.h"
 
 #include "arch.h"
@@ -285,3 +291,5 @@ struct fmt_main fmt_hmacSHA224 = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

@@ -11,6 +11,12 @@
  * hash = ibf_members_converge.converge_pass_hash
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_IPB2;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_IPB2);
+#else
+
 #include <string.h>
 
 #include "arch.h"
@@ -504,3 +510,5 @@ struct fmt_main fmt_IPB2 = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

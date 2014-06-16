@@ -19,6 +19,12 @@
  * Further optimizations (including some code rewrites) by Solar Designer
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_DOMINOSEC;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_DOMINOSEC);
+#else
+
 #include <ctype.h>
 #include <string.h>
 
@@ -779,3 +785,5 @@ struct fmt_main fmt_DOMINOSEC = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

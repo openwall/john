@@ -8,6 +8,12 @@
  * modification, are permitted.
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_cryptsha1;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_cryptsha1);
+#else
+
 #include <string.h>
 #ifdef _OPENMP
 #define OMP_SCALE                   16 // untested
@@ -324,3 +330,5 @@ struct fmt_main fmt_cryptsha1 = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

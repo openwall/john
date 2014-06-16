@@ -18,6 +18,12 @@
  * OpenMP support and other assorted hacks by Solar Designer
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_MYSQL_fast;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_MYSQL_fast);
+#else
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -331,3 +337,5 @@ struct fmt_main fmt_MYSQL_fast =
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

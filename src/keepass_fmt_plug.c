@@ -6,6 +6,12 @@
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted. */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_KeePass;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_KeePass);
+#else
+
 #include "sha2.h"
 
 #include <string.h>
@@ -467,3 +473,5 @@ struct fmt_main fmt_KeePass = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

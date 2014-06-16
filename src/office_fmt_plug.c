@@ -1,6 +1,12 @@
 /* Office 2007 cracker patch for JtR. Hacked together during March of 2012 by
  * Dhiru Kholia <dhiru.kholia at gmail.com> */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_office;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_office);
+#else
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -603,3 +609,5 @@ struct fmt_main fmt_office = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

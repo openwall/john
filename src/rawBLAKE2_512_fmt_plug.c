@@ -6,6 +6,12 @@
  * Re-used for BLAKE2 by Dhiru Kholia (dhiru at openwall.com)
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_rawBLAKE2;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_rawBLAKE2);
+#else
+
 #include "arch.h"
 
 #include "blake2.h"
@@ -275,3 +281,5 @@ struct fmt_main fmt_rawBLAKE2 = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

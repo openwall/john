@@ -13,6 +13,12 @@
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted. */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_postgres;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_postgres);
+#else
+
 #include <string.h>
 #include <errno.h>
 #ifdef _OPENMP
@@ -311,3 +317,5 @@ struct fmt_main fmt_postgres = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

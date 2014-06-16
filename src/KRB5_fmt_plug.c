@@ -20,6 +20,12 @@
  *
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_KRB5;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_KRB5);
+#else
+
 #if AC_BUILT
 #include "autoconfig.h"
 #endif
@@ -380,3 +386,5 @@ struct fmt_main fmt_KRB5 = {
 	}
 };
 // }}}
+
+#endif /* plugin stanza */

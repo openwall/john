@@ -16,6 +16,12 @@
  *
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_sunmd5;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_sunmd5);
+#else
+
 #include <string.h>
 #include "os.h"
 #if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
@@ -941,3 +947,5 @@ struct fmt_main fmt_sunmd5 = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

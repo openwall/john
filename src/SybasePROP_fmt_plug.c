@@ -16,6 +16,12 @@
  * [2] https://hacktivity.com/hu/letoltesek/archivum/57/
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_sybaseprop;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_sybaseprop);
+#else
+
 #include "arch.h"
 #include "params.h"
 #include "common.h"
@@ -251,3 +257,5 @@ struct fmt_main fmt_sybaseprop = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

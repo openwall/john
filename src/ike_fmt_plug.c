@@ -46,6 +46,12 @@
  * July, 2012, JimF small changes made, many more should be done.
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_ike;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_ike);
+#else
+
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
@@ -365,3 +371,5 @@ struct fmt_main fmt_ike = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

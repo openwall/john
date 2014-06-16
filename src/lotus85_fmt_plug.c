@@ -8,6 +8,12 @@
  * Kholia).
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_lotus_85;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_lotus_85);
+#else
+
 #include <stdio.h>
 #include <string.h>
 #include "stdint.h"
@@ -479,3 +485,5 @@ struct fmt_main fmt_lotus_85 =
 		lotus85_cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

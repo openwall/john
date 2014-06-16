@@ -22,6 +22,12 @@
  * Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
  * 02111-1307 USA. */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_vnc;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_vnc);
+#else
+
 #include <openssl/des.h>
 #include <string.h>
 #include <assert.h>
@@ -327,3 +333,5 @@ struct fmt_main fmt_vnc = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

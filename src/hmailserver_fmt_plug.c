@@ -25,6 +25,12 @@
  * (TODO) This format should be converted into a 'thin' format, hooked to dynamic_61
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_hmailserver;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_hmailserver);
+#else
+
 #include "sha2.h"
 
 #include "arch.h"
@@ -253,3 +259,5 @@ struct fmt_main fmt_hmailserver = {
         cmp_exact
     }
 };
+
+#endif /* plugin stanza */

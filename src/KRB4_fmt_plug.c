@@ -32,6 +32,12 @@
   ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_KRB4;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_KRB4);
+#else
+
 #include <string.h>
 #include <ctype.h>
 #include <openssl/des.h>
@@ -295,3 +301,5 @@ struct fmt_main fmt_KRB4 = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

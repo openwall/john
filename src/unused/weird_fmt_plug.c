@@ -6,6 +6,12 @@
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted. */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main weird_fmt;
+#elif FMT_REGISTERS_H
+john_register_one(&weird_fmt);
+#else
+
 #define _XOPEN_SOURCE
 #include <unistd.h>
 #include <string.h>
@@ -252,3 +258,5 @@ struct fmt_main weird_fmt = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

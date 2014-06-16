@@ -8,6 +8,12 @@
  *
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_mssql;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_mssql);
+#else
+
 #include <string.h>
 
 #include "arch.h"
@@ -411,3 +417,5 @@ struct fmt_main fmt_mssql = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

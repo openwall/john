@@ -32,6 +32,12 @@
  * released under same terms as above
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_krb5pa;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_krb5pa);
+#else
+
 #include <errno.h>
 #include <string.h>
 #include <stdlib.h>
@@ -651,3 +657,5 @@ struct fmt_main fmt_krb5pa = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

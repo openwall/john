@@ -14,6 +14,12 @@
  * Hash Format ==> $efs$SID$iv$iterations$ciphertext
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_efs;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_efs);
+#else
+
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
@@ -381,3 +387,5 @@ struct fmt_main fmt_efs = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

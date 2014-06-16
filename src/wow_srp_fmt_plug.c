@@ -27,6 +27,12 @@
  * GMP exponentation (faster) is optional, and controled with HAVE_LIBGMP in autoconfig.h
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_blizzard;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_blizzard);
+#else
+
 #if AC_BUILT
 /* we need to know if HAVE_LIBGMP is defined */
 #include "autoconfig.h"
@@ -476,3 +482,5 @@ struct fmt_main fmt_blizzard = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

@@ -9,6 +9,12 @@
  *
  * Version: 8 (Last edited Apr 10 2009 at 2:26 AM by dcleblanc) */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_oldoffice;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_oldoffice);
+#else
+
 #include "md5.h"
 #include "rc4.h"
 #include <string.h>
@@ -350,3 +356,5 @@ struct fmt_main fmt_oldoffice = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

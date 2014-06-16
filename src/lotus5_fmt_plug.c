@@ -3,6 +3,12 @@
 /* OpenMP support and further optimizations (including some code rewrites)
  * by Solar Designer */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_lotus5;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_lotus5);
+#else
+
 #include <stdio.h>
 #include <string.h>
 #include "misc.h"
@@ -412,3 +418,5 @@ struct fmt_main fmt_lotus5 = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

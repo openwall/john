@@ -15,6 +15,12 @@
  * racfdump format => userid:$racf$*userid*deshash
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_racf;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_racf);
+#else
+
 #include <openssl/des.h>
 #include <string.h>
 #include <assert.h>
@@ -360,3 +366,5 @@ struct fmt_main fmt_racf = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

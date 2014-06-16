@@ -11,6 +11,16 @@
  * modification, are permitted.
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_aixssha1;
+extern struct fmt_main fmt_aixssha256;
+extern struct fmt_main fmt_aixssha512;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_aixssha1);
+john_register_one(&fmt_aixssha256);
+john_register_one(&fmt_aixssha512);
+#else
+
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
@@ -591,3 +601,5 @@ struct fmt_main fmt_aixssha512 = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

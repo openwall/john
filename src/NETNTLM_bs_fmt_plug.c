@@ -42,6 +42,12 @@
  *
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_NETNTLM_old;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_NETNTLM_old);
+#else
+
 #include <string.h>
 #ifdef _OPENMP
 #include <omp.h>
@@ -473,3 +479,5 @@ struct fmt_main fmt_NETNTLM_old = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

@@ -6,6 +6,12 @@
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted. */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_encfs;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_encfs);
+#else
+
 #include <openssl/opensslv.h>
 #include <openssl/crypto.h>
 #include <openssl/ssl.h>
@@ -523,3 +529,5 @@ struct fmt_main fmt_encfs = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

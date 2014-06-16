@@ -5,6 +5,12 @@
  * Converted to thin format, into $dynamic_19$ format.
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_pixMD5;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_pixMD5);
+#else
+
 #include <string.h>
 
 #include "common.h"
@@ -132,3 +138,5 @@ static void get_ptr() {
  * indent-tabs-mode: t
  * End:
  */
+
+#endif /* plugin stanza */

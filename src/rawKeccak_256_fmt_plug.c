@@ -9,6 +9,12 @@
  * based on rawMD4_fmt.c code, with trivial changes by groszek.
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_rawKeccak_256;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_rawKeccak_256);
+#else
+
 #include <string.h>
 
 #include "arch.h"
@@ -281,3 +287,5 @@ struct fmt_main fmt_rawKeccak_256 = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

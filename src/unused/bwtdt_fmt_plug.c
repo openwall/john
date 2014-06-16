@@ -17,6 +17,12 @@
  * for the CMIYC 2013 contest. magnum thinks it should be moved to unused/
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_zzz_bwtdt;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_zzz_bwtdt);
+#else
+
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
@@ -275,3 +281,5 @@ struct fmt_main fmt_zzz_bwtdt = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

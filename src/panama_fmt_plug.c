@@ -8,6 +8,12 @@
  * modification, are permitted.
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_panama_;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_panama_);
+#else
+
 #include <string.h>
 #include "arch.h"
 #include "sph_panama.h"
@@ -235,3 +241,5 @@ struct fmt_main fmt_panama_ = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

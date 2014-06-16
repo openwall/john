@@ -11,6 +11,14 @@
  *
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_dragonfly3_32;
+extern struct fmt_main fmt_dragonfly3_64;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_dragonfly3_32);
+john_register_one(&fmt_dragonfly3_64);
+#else
+
 #include "sha2.h"
 
 #include <string.h>
@@ -385,3 +393,5 @@ struct fmt_main fmt_dragonfly3_64 = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */
