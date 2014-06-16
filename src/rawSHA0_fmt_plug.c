@@ -6,6 +6,12 @@
  * Based on Raw-SHA1, but this is OpenSSL only.
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_rawSHA0;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_rawSHA0);
+#else
+
 #include <string.h>
 #include <openssl/sha.h>
 
@@ -200,3 +206,5 @@ struct fmt_main fmt_rawSHA0 = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

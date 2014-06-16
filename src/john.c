@@ -162,10 +162,6 @@ extern struct fmt_main fmt_cuda_xsha512;
 
 #include "fmt_externs.h"
 
-extern struct fmt_main fmt_hmacMD5;
-extern struct fmt_main fmt_hmacSHA1;
-extern struct fmt_main fmt_rawSHA0;
-
 extern int unshadow(int argc, char **argv);
 extern int unafs(int argc, char **argv);
 extern int unique(int argc, char **argv);
@@ -285,10 +281,6 @@ static void john_register_all(void)
 		john_register_one(&(selfs[i]));
 
 #include "fmt_registers.h"
-
-	john_register_one(&fmt_hmacMD5);
-	john_register_one(&fmt_hmacSHA1);
-	john_register_one(&fmt_rawSHA0);
 
 #if HAVE_KRB5
 	john_register_one(&fmt_krb5_18);
