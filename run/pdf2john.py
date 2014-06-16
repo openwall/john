@@ -197,9 +197,9 @@ class PdfParser:
         return output
 
     def get_trailer(self):
-        trailer = self.get_data_between(b"trailer", b">>")
+        trailer = self.get_data_between(b"trailer", b">>", b"/ID ")
         if(trailer == b""):
-            trailer = self.get_data_between(b"DecodeParms", b"stream")
+            trailer = self.get_data_between(b"DecodeParms", b"stream", b"")
             if(trailer == ""):
                 raise RuntimeError("Can't find trailer")
         if(trailer != "" and trailer.find(b"Encrypt") == -1):
@@ -207,7 +207,7 @@ class PdfParser:
             raise RuntimeError("File not encrypted")
         return trailer
 
-    def get_data_between(self, s1, s2):
+    def get_data_between(self, s1, s2, tag):
         output = b""
         inside_first = False
         lines = re.split(b'\n|\r', self.encrypted)
@@ -216,7 +216,11 @@ class PdfParser:
             if(inside_first):
                 output += line
                 if(line.find(s2) != -1):
-                    break
+                    if(tag == b"" or output.find(tag) != -1):
+                        break
+                    else:
+                        output = b""
+                        inside_first = False
         return output
 
     def get_hex_byte(self, o_or_u, i):
