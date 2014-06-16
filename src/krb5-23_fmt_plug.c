@@ -1,25 +1,32 @@
 /*
- * KRB5 - Enctype 18 (aes256-cts-hmac-sha1-96) cracker patch for JtR
- * Created on August of 2012 by Mougey Camille (CEA/DAM) & Lalet Pierre (CEA/DAM)
+ * KRB5 - Enctype 23 (arcfour-hmac) cracker patch for JtR
+ * Created on August of 2012 by Mougey Camille (CEA/DAM)
  *
  * This format is one of formats saved in KDC database and used during the authentication part
  *
  * This software is Copyright (c) 2012, Mougey Camille (CEA/DAM)
- * Lalet Pierre (CEA/DAM)
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted.
  *
  * Input Format :
- * - user:$krb18$REALMname$hash
- * - user:REALMname$hash
+ * - user:$krb23$hash
+ * - user:hash
  */
+
 #if AC_BUILT
-/* need to know if DHAVE_KRB5 is set, for autoconfig build */
+/* need to know if HAVE_KRB5 is set, for autoconfig build */
 #include "autoconfig.h"
 #endif
 
 #if HAVE_KRB5
+
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_KRB5_kinit;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_KRB5_kinit);
+#else
+
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
@@ -32,14 +39,14 @@
 #include <krb5.h>
 #ifdef _OPENMP
 #include <omp.h>
-#define OMP_SCALE               4
+#define OMP_SCALE               64
 #endif
 #include "memdbg.h"
 
-#define FORMAT_LABEL		"krb5-18"
-#define FORMAT_NAME		"Kerberos 5 db etype 18 aes256-cts-hmac-sha1-96"
+#define FORMAT_LABEL		"krb5-23"
+#define FORMAT_NAME		"Kerberos 5 db etype 23 rc4-hmac"
 
-#define FORMAT_TAG		"$krb18$"
+#define FORMAT_TAG		"$krb23$"
 #define TAG_LENGTH		7
 
 #if !defined(USE_GCC_ASM_IA32) && defined(USE_GCC_ASM_X64)
@@ -50,11 +57,11 @@
 
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
-#define PLAINTEXT_LENGTH	64
-#define CIPHERTEXT_LENGTH	64
-#define BINARY_SIZE		32
+#define PLAINTEXT_LENGTH	32
+#define CIPHERTEXT_LENGTH	32
+#define BINARY_SIZE		16
 #define BINARY_ALIGN		4
-#define SALT_SIZE		CIPHERTEXT_LENGTH
+#define SALT_SIZE		0
 #define SALT_ALIGN		1
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
@@ -75,15 +82,15 @@ krb5_c_string_to_key_with_params(krb5_context context, krb5_enctype enctype,
                                  const krb5_data *params, krb5_keyblock *key);
 
 static struct fmt_tests kinit_tests[] = {
-  {"OLYMPE.OLtest$214bb89cf5b8330112d52189ab05d9d05b03b5a961fe6d06203335ad5f339b26", "password"},
-  {FORMAT_TAG "OLYMPE.OLtest$214bb89cf5b8330112d52189ab05d9d05b03b5a961fe6d06203335ad5f339b26",
-   "password"},
+  {"1667b5ee168fc31fba85ffb8f925fb70", "aqzsedrf"},
+  {"8846f7eaee8fb117ad06bdd830b7586c", "password"},
+  {"32ed87bdb5fdc5e9cba88547376818d4", "123456"},
+  {FORMAT_TAG "1667b5ee168fc31fba85ffb8f925fb70", "aqzsedrf"},
   {NULL}
 };
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static char saved_salt[SALT_SIZE];
-static ARCH_WORD_32 (*crypt_out)[16];
+static ARCH_WORD_32 (*crypt_out)[8];
 
 static krb5_data salt;
 static krb5_enctype enctype;
@@ -101,7 +108,7 @@ static void init(struct fmt_main *pFmt)
 #endif
 	salt.data = "";
 	salt.length = 0;
-	enctype = 18; /* AES256_CTS_HMAC_SHA1 */
+	enctype = 23; /* arcfour-hmac */
 
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
 			pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
@@ -118,16 +125,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 	if (!strncmp(p, FORMAT_TAG, TAG_LENGTH))
 		p += TAG_LENGTH;
 
-	p = strstr(p, "$");
-	if(p == NULL)
-		return 0;
-
-	q = ciphertext;
-
-	if(p - q > SALT_SIZE) /* check salt length */
-		return 0;
-	q = ++p;
-
+	q = p;
 	while (atoi16[ARCH_INDEX(*q)] != 0x7F) {
 	        if (*q >= 'A' && *q <= 'F') /* support lowercase only */
 			return 0;
@@ -140,39 +138,21 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 
 static char *split(char *ciphertext, int index, struct fmt_main *pFmt)
 {
-	static char out[TAG_LENGTH + CIPHERTEXT_LENGTH + SALT_SIZE + 1];
+	static char out[TAG_LENGTH + CIPHERTEXT_LENGTH + 1];
 
 	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
 		return ciphertext;
 
 	memcpy(out, FORMAT_TAG, TAG_LENGTH);
-	strnzcpyn(out + TAG_LENGTH, ciphertext, CIPHERTEXT_LENGTH + SALT_SIZE + 1);
+	memcpy(out + TAG_LENGTH, ciphertext, CIPHERTEXT_LENGTH + 1);
 	return out;
-}
-
-static void *get_salt(char *ciphertext)
-{
-	static char out[SALT_SIZE];
-	char *p, *q;
-
-	p = ciphertext + TAG_LENGTH;
-	q = strstr(p, "$");
-	strncpy(out, p, q-p);
-	out[q-p] = 0;
-
-	return out;
-}
-
-static void set_salt(void *salt)
-{
-	strcpy(saved_salt, salt);
 }
 
 static void *get_binary(char *ciphertext)
 {
 	static unsigned char *out;
 	char *p;
-	int i = 0;
+	int i;
 
 	if (!out) out = mem_alloc_tiny(BINARY_SIZE, MEM_ALIGN_WORD);
 
@@ -180,9 +160,8 @@ static void *get_binary(char *ciphertext)
 
 	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
 		p += TAG_LENGTH;
-	p = strstr(p, "$") + 1;
 
-	for (; i < BINARY_SIZE; i++) {
+	for (i = 0; i < BINARY_SIZE; i++) {
 	        out[i] =
 		        (atoi16[ARCH_INDEX(*p)] << 4) |
 		        atoi16[ARCH_INDEX(p[1])];
@@ -203,29 +182,30 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 	for (index = 0; index < count; index++)
 #endif
 	{
-		int i;
+		int i = 0;
 		krb5_data string;
 		krb5_keyblock key;
 
 		memset(&key, 0, sizeof(krb5_keyblock));
 
-		salt.data = saved_salt;
-		salt.length = strlen(salt.data);
 		string.data = saved_key[index];
 		string.length = strlen(saved_key[index]);
 #ifdef HAVE_MKSHIM
-		krb5_c_string_to_key (NULL, ENCTYPE_AES256_CTS_HMAC_SHA1_96,
-		                      &string, &salt, &key);
+		krb5_c_string_to_key(NULL, ENCTYPE_ARCFOUR_HMAC, &string,
+		                     &salt, &key);
 #else
-		krb5_c_string_to_key_with_params(NULL, enctype, &string, &salt,
-		                                 NULL, &key);
+		krb5_c_string_to_key_with_params(NULL, enctype, &string,
+		                                 &salt, NULL, &key);
 #endif
-		for(i = 0; i < key.length / 4; i++){
+		for(i = 0; i < key.length / 4; i++) {
 			crypt_out[index][i] = (key.contents[4 * i]) |
 				(key.contents[4 * i + 1] << 8) |
 				(key.contents[4 * i + 2] << 16) |
 				(key.contents[4 * i + 3] << 24);
 		}
+#ifndef HAVE_MKSHIM  // MKShim does this automatically
+		krb5_free_keyblock_contents(NULL, &key);
+#endif
 	}
 	return count;
 }
@@ -237,7 +217,7 @@ static int cmp_all(void *binary, int count)
 #if defined(_OPENMP) || MAX_KEYS_PER_CRYPT > 1
 	for (; index < count; index++)
 #endif
-	        if (crypt_out[index][0] == *(ARCH_WORD_32*)binary)
+		if (crypt_out[index][0] == *(ARCH_WORD_32*)binary)
 			return 1;
 
 	return 0;
@@ -275,7 +255,7 @@ static int get_hash_4(int index) { return *((ARCH_WORD_32*)&crypt_out[index]) & 
 static int get_hash_5(int index) { return *((ARCH_WORD_32*)&crypt_out[index]) & 0xffffff; }
 static int get_hash_6(int index) { return *((ARCH_WORD_32*)&crypt_out[index]) & 0x7ffffff; }
 
-struct fmt_main fmt_krb5_18 = {
+struct fmt_main fmt_KRB5_kinit = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,
@@ -302,7 +282,7 @@ struct fmt_main fmt_krb5_18 = {
 		valid,
 		split,
 		get_binary,
-		get_salt,
+		fmt_default_salt,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif
@@ -317,7 +297,7 @@ struct fmt_main fmt_krb5_18 = {
 			fmt_default_binary_hash_6
 		},
 		fmt_default_salt_hash,
-		set_salt,
+		fmt_default_set_salt,
 		set_key,
 		get_key,
 		fmt_default_clear_keys,
@@ -336,4 +316,6 @@ struct fmt_main fmt_krb5_18 = {
 		cmp_exact,
 	}
 };
-#endif
+#endif /* plugin stanza */
+
+#endif /* HAVE_KRB5 */
