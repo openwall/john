@@ -11,6 +11,12 @@
  * keytool -genkeypair -alias my_certificate -keystore my_keystore.pfx -storepass
  * my_password -validity 365 -keyalg RSA -keysize 2048 -storetype pkcs12 */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_pfx;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_pfx);
+#else
+
 #include <openssl/opensslv.h>
 #include <openssl/crypto.h>
 #include <openssl/ssl.h>
@@ -276,3 +282,5 @@ struct fmt_main fmt_pfx = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

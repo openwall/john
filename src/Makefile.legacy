@@ -20,6 +20,7 @@ CP_PRESERVE = cp -p
 LN = ln -f -s
 RM = rm -f
 MKDIR = mkdir -p
+GREP = grep
 TR = tr
 SED = sed
 NULL = /dev/null
@@ -141,12 +142,12 @@ JOHN_OBJS = \
 	md4.o sha2.o \
 	dynamic_fmt.o dynamic_parser.o dynamic_preloads.o dynamic_utils.o dynamic_big_crypt.o \
 	hmacMD5_fmt.o hmacSHA1_fmt.o \
-	ssh_fmt.o ssh2john.o \
-	pfx_fmt.o pfx2john.o \
+	ssh2john.o \
+	pfx2john.o \
 	unrarcmd.o unrarfilter.o unrarhlp.o unrar.o unrarppm.o unrarvm.o \
-	rar_fmt.o rar2john.o \
+	rar2john.o \
 	rawSHA0_fmt.o \
-	zip_fmt.o zip2john.o gladman_hmac.o gladman_pwd2key.o \
+	zip2john.o gladman_hmac.o gladman_pwd2key.o \
 	racf2john.o \
 	keychain2john.o \
 	kwallet2john.o \
@@ -155,7 +156,7 @@ JOHN_OBJS = \
 	keepass2john.o \
 	keyring2john.o keystore2john.o \
 	truecrypt_volume2john.o \
-	wpapsk_fmt.o hccap2john.o \
+	hccap2john.o \
 	mozilla_fmt.o KeyDBCracker.o mozilla_des.o lowpbe.o mozilla2john.o \
 	krb5-18_fmt.o krb5-23_fmt.o \
 	$(PLUGFORMATS_OBJS) \
@@ -2409,7 +2410,7 @@ fmt_externs.h: $(PLUGFORMATS_SRCS) Makefile.legacy *_fmt_plug.c
 	$(CC) -E -P -DFMT_EXTERNS_H *_fmt_plug.c | LC_ALL=C $GREP "extern struct fmt_main" | LC_ALL=C $(SORT) > fmt_externs.h
 
 fmt_registers.h: $(PLUGFORMATS_SRCS) Makefile.legacy *_fmt_plug.c
-	 $(CC) -E -P -DFMT_REGISTERS_H *_fmt_plug.c | LC_ALL=C $GREP "john_register_one" | LC_ALL=C $(SORT) > fmt_registers.h
+	$(CC) -E -P -DFMT_REGISTERS_H *_fmt_plug.c | LC_ALL=C $GREP "john_register_one" | LC_ALL=C $(SORT) > fmt_registers.h
 
 john.o: john.c fmt_externs.h fmt_registers.h
 	$(CC) $(CFLAGS_MAIN) $(OPT_NORMAL) -O0 $*.c

@@ -16,6 +16,12 @@
  * correct password.). The alternative is to implement/use a full unzip engine.
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_zip;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_zip);
+#else
+
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
@@ -302,3 +308,5 @@ struct fmt_main fmt_zip = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

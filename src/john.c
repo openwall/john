@@ -161,12 +161,6 @@ extern struct fmt_main fmt_cuda_wpapsk;
 extern struct fmt_main fmt_cuda_xsha512;
 #endif
 
-extern struct fmt_main fmt_pfx;
-extern struct fmt_main fmt_rar;
-extern struct fmt_main fmt_ssh;
-extern struct fmt_main fmt_wpapsk;
-extern struct fmt_main fmt_zip;
-
 #include "fmt_externs.h"
 
 extern struct fmt_main fmt_hmacMD5;
@@ -304,12 +298,6 @@ static void john_register_all(void)
 	john_register_one(&fmt_krb5_18);
 	john_register_one(&fmt_KRB5_kinit);
 #endif
-
-	john_register_one(&fmt_pfx);
-	john_register_one(&fmt_rar);
-	john_register_one(&fmt_ssh);
-	john_register_one(&fmt_wpapsk);
-	john_register_one(&fmt_zip);
 
 #if HAVE_CUDA
 	john_register_one(&fmt_cuda_cryptmd5);

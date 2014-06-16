@@ -13,6 +13,12 @@
  * level for brute-forcing purposes. So we drill down and find suitable
  * low-level OpenSSL functions. */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_ssh;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_ssh);
+#else
+
 #include <openssl/opensslv.h>
 #include <openssl/crypto.h>
 #include <openssl/ssl.h>
@@ -458,3 +464,5 @@ struct fmt_main fmt_ssh = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */
