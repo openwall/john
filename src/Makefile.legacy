@@ -182,7 +182,8 @@ OCL_OBJS = common-opencl.o opencl_autotune.o
 CUDA_OBJS = common-cuda.o cuda_common.o cuda_cryptmd5.o cuda_phpass.o \
 	cuda_cryptsha256.o cuda_cryptsha512.o cuda_mscash2.o \
 	cuda_rawsha256.o cuda_rawsha224.o cuda_mscash.o \
-	cuda_xsha512.o cuda_wpapsk.o cuda_rawsha512.o cuda_pwsafe.o
+	cuda_xsha512.o cuda_wpapsk.o cuda_rawsha512.o cuda_pwsafe.o \
+	cuda_rawsha224_fmt.o cuda_rawsha256_fmt.o
 
 BENCH_DES_OBJS_ORIG = \
 	DES_fmt.o DES_std.o
@@ -1980,74 +1981,44 @@ cuda_common.o:	cuda/cuda_common.cuh cuda/cuda_common.cu
 cuda_cryptmd5.o:  cuda_cryptmd5.h cuda/cryptmd5.cu cuda_common.o
 	cd cuda; $(NVCC) $(NVCC_FLAGS) cryptmd5.cu -o ../cuda_cryptmd5.o
 
-cuda_cryptmd5_fmt_plug.o: cuda_cryptmd5.o cuda_cryptmd5_fmt_plug.c
-	$(CC)  $(CFLAGS) cuda_cryptmd5_fmt_plug.c -o cuda_cryptmd5_fmt_plug.o
-
 cuda_phpass.o:  cuda_phpass.h cuda/phpass.cu cuda_common.o
 	cd cuda; $(NVCC) $(NVCC_FLAGS) phpass.cu -o ../cuda_phpass.o
-
-cuda_phpass_fmt_plug.o: cuda_phpass.o cuda_phpass_fmt_plug.c
-	$(CC)  $(CFLAGS) cuda_phpass_fmt_plug.c -o cuda_phpass_fmt_plug.o
 
 cuda_cryptsha256.o:  cuda_cryptsha256.h cuda/cryptsha256.cu cuda_common.o
 	cd cuda; $(NVCC) $(NVCC_FLAGS) cryptsha256.cu -o ../cuda_cryptsha256.o
 
-cuda_cryptsha256_fmt_plug.o: cuda_cryptsha256.o cuda_cryptsha256_fmt_plug.c
-	$(CC)  $(CFLAGS) cuda_cryptsha256_fmt_plug.c -o cuda_cryptsha256_fmt_plug.o
-
 cuda_cryptsha512.o:  cuda_cryptsha512.h cuda/cryptsha512.cu cuda_common.o
 	cd cuda; $(NVCC) $(NVCC_FLAGS) cryptsha512.cu -o ../cuda_cryptsha512.o
-
-cuda_cryptsha512_fmt_plug.o: cuda_cryptsha512.o cuda_cryptsha512_fmt_plug.c
-	$(CC)  $(CFLAGS) cuda_cryptsha512_fmt_plug.c -o cuda_cryptsha512_fmt_plug.o
 
 cuda_mscash2.o:  cuda_mscash2.h cuda/mscash2.cu cuda_common.o
 	cd cuda; $(NVCC) $(NVCC_FLAGS) mscash2.cu -o ../cuda_mscash2.o
 
-cuda_mscash2_fmt_plug.o: cuda_mscash2.o cuda_mscash2_fmt_plug.c
-	$(CC)  $(CFLAGS) cuda_mscash2_fmt_plug.c -o cuda_mscash2_fmt_plug.o
-
 cuda_mscash.o:  cuda_mscash.h cuda/mscash.cu cuda_common.o
 	cd cuda; $(NVCC) $(NVCC_FLAGS) mscash.cu -o ../cuda_mscash.o
-
-cuda_mscash_fmt_plug.o: cuda_mscash.o cuda_mscash_fmt_plug.c
-	$(CC)  $(CFLAGS) cuda_mscash_fmt_plug.c -o cuda_mscash_fmt_plug.o
 
 cuda_rawsha256.o:  cuda_rawsha256.h cuda/rawsha256.cu cuda_common.o
 	cd cuda; $(NVCC) $(NVCC_FLAGS) -DSHA256 rawsha256.cu -o ../cuda_rawsha256.o
 
-cuda_rawsha256_fmt_plug.o: cuda_rawsha256.o cuda_rawsha256_fmt_plug.c
-	$(CC)  $(CFLAGS) -DSHA256 cuda_rawsha256_fmt_plug.c -o cuda_rawsha256_fmt_plug.o
+cuda_rawsha256_fmt.o: cuda_rawsha256.o cuda_rawsha256_fmt.c
+	$(CC)  $(CFLAGS) -DSHA256 cuda_rawsha256_fmt.c -o cuda_rawsha256_fmt.o
 
 cuda_rawsha224.o:  cuda_rawsha256.h cuda/rawsha256.cu cuda_common.o
 	cd cuda; $(NVCC) $(NVCC_FLAGS) -DSHA224 rawsha256.cu -o ../cuda_rawsha224.o
 
-cuda_rawsha224_fmt_plug.o: cuda_rawsha224.o cuda_rawsha256_fmt_plug.c
-	$(CC)  $(CFLAGS) -DSHA224 cuda_rawsha256_fmt_plug.c -o cuda_rawsha224_fmt_plug.o
+cuda_rawsha224_fmt.o: cuda_rawsha224.o cuda_rawsha256_fmt.c
+	$(CC)  $(CFLAGS) -DSHA224 cuda_rawsha256_fmt.c -o cuda_rawsha224_fmt.o
 
 cuda_xsha512.o: cuda_xsha512.h cuda/xsha512.cu cuda_common.o
 	cd cuda; $(NVCC) $(NVCC_FLAGS) xsha512.cu -o ../cuda_xsha512.o
 
-cuda_xsha512_fmt_plug.o: cuda_xsha512.o cuda_xsha512_fmt_plug.c
-	$(CC) $(CFLAGS) cuda_xsha512_fmt_plug.c -o cuda_xsha512_fmt_plug.o
-
 cuda_wpapsk.o:  cuda_wpapsk.h cuda/wpapsk.cu cuda_common.o
 	cd cuda; $(NVCC) $(NVCC_FLAGS) wpapsk.cu -o ../cuda_wpapsk.o
-
-cuda_wpapsk_fmt_plug.o: cuda_wpapsk.o cuda_wpapsk_fmt_plug.c
-	$(CC)  $(CFLAGS) cuda_wpapsk_fmt_plug.c -o cuda_wpapsk_fmt_plug.o
 
 cuda_rawsha512.o: cuda_rawsha512.h cuda/rawsha512.cu cuda_common.o
 	cd cuda; $(NVCC) $(NVCC_FLAGS) rawsha512.cu -o ../cuda_rawsha512.o
 
-cuda_rawsha512_fmt_plug.o: cuda_rawsha512.o cuda_rawsha512_fmt_plug.c
-	$(CC) $(CFLAGS) cuda_rawsha512_fmt_plug.c -o cuda_rawsha512_fmt_plug.o
-
 cuda_pwsafe.o: cuda_pwsafe.h cuda/pwsafe.cu cuda_common.o
 	cd cuda; $(NVCC) $(NVCC_FLAGS) pwsafe.cu -o ../cuda_pwsafe.o
-
-cuda_pwsafe_fmt_plug.o: cuda_pwsafe.o cuda_pwsafe_fmt_plug.c
-	$(CC)  $(CFLAGS) cuda_pwsafe_fmt_plug.c -o cuda_pwsafe_fmt_plug.o
 
 SUBDIRS = aes
 
@@ -2394,10 +2365,10 @@ bench-t.o: bench.c
 	@
 
 fmt_externs.h: $(PLUGFORMATS_SRCS) Makefile.legacy *_fmt_plug.c
-	$(CC) -E -P -DFMT_EXTERNS_H *_fmt_plug.c | LC_ALL=C $(GREP) "extern struct fmt_main" | LC_ALL=C $(SORT) > fmt_externs.h
+	$(CC) -E -P $(CFLAGS) -DFMT_EXTERNS_H *_fmt_plug.c | LC_ALL=C $(GREP) "extern struct fmt_main" | LC_ALL=C $(SORT) > fmt_externs.h
 
 fmt_registers.h: $(PLUGFORMATS_SRCS) Makefile.legacy *_fmt_plug.c
-	$(CC) -E -P -DFMT_REGISTERS_H *_fmt_plug.c | LC_ALL=C $(GREP) "john_register_one" | LC_ALL=C $(SORT) > fmt_registers.h
+	$(CC) -E -P $(CFLAGS) -DFMT_REGISTERS_H *_fmt_plug.c | LC_ALL=C $(GREP) "john_register_one" | LC_ALL=C $(SORT) > fmt_registers.h
 
 john.o: john.c fmt_externs.h fmt_registers.h
 	$(CC) $(CFLAGS_MAIN) $(OPT_NORMAL) -O0 $*.c

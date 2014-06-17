@@ -138,6 +138,11 @@ extern struct fmt_main fmt_dummy;
 
 #include "fmt_externs.h"
 
+#if HAVE_CUDA
+extern struct fmt_main fmt_cuda_rawsha224;
+extern struct fmt_main fmt_cuda_rawsha256;
+#endif
+
 extern int unshadow(int argc, char **argv);
 extern int unafs(int argc, char **argv);
 extern int unique(int argc, char **argv);
@@ -263,6 +268,11 @@ static void john_register_all(void)
 		john_register_one(&(selfs[i]));
 
 #include "fmt_registers.h"
+
+#if HAVE_CUDA
+	john_register_one(&fmt_cuda_rawsha224);
+	john_register_one(&fmt_cuda_rawsha256);
+#endif
 
 #if HAVE_CRYPT
 	john_register_one(&fmt_crypt);
