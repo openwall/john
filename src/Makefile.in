@@ -589,7 +589,7 @@ endif
 	$(LD) tgtsnarf.o memdbg.o $(LDFLAGS) -o ../run/tgtsnarf
 
 john.o: john.c
-	$(CC) -DAC_BUILT $(CFLAGS_MAIN) $(OPT_NORMAL) -O0 $*.c
+	$(CC) $(CFLAGS_MAIN) $(OPT_NORMAL) -O0 $*.c
 
 # Workaround for gcc 3.4.6 (seen on Sparc32) (do not use -funroll-loops)
 unrarppm.o: unrarppm.c
