@@ -132,6 +132,9 @@
 #else
 #  define jtr_fopen fopen
 #endif
+#ifdef __CYGWIN32__
+   extern  FILE *_fopen64 (const char *Fname, const char *type);
+#endif
 
 #ifndef O_LARGEFILE
 #define O_LARGEFILE 0
