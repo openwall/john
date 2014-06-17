@@ -25,12 +25,6 @@
 #define WAS_OPENMP
 #endif
 
-#if defined (MMX_COEF) && MMX_COEF==2 && defined (_OPENMP)
-// NO thread support for MMX.  Only OpenSSL (CTX model), or SSE intrinsics have
-// thread support.  The older md5_mmx.S/sha1_mmx.S files are NOT thread safe.
-#undef _OPENMP
-#define WAS_OPENMP
-#endif
 #include "misc.h"
 #include "common.h"
 #include "formats.h"

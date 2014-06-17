@@ -6606,6 +6606,46 @@ static int isWHIRLFunc(DYNAMIC_primitive_funcp p) {
 	return 0;
 }
 
+static int isRIPEMDFunc(DYNAMIC_primitive_funcp p) {
+	if (p==DynamicFunc__RIPEMD128_crypt_input1_append_input2_base16    || p==DynamicFunc__RIPEMD128_crypt_input1_append_input2    ||
+		p==DynamicFunc__RIPEMD128_crypt_input2_append_input1_base16    || p==DynamicFunc__RIPEMD128_crypt_input2_append_input1    ||
+		p==DynamicFunc__RIPEMD128_crypt_input1_overwrite_input1_base16 || p==DynamicFunc__RIPEMD128_crypt_input1_overwrite_input1 ||
+		p==DynamicFunc__RIPEMD128_crypt_input2_overwrite_input2_base16 || p==DynamicFunc__RIPEMD128_crypt_input2_overwrite_input2 ||
+		p==DynamicFunc__RIPEMD128_crypt_input1_overwrite_input2_base16 || p==DynamicFunc__RIPEMD128_crypt_input1_overwrite_input2 ||
+		p==DynamicFunc__RIPEMD128_crypt_input2_overwrite_input1_base16 || p==DynamicFunc__RIPEMD128_crypt_input2_overwrite_input1 ||
+		p==DynamicFunc__RIPEMD128_crypt_input1_to_output1_FINAL ||
+		p==DynamicFunc__RIPEMD128_crypt_input2_to_output1_FINAL)
+		return 1;
+	if (p==DynamicFunc__RIPEMD160_crypt_input1_append_input2_base16    || p==DynamicFunc__RIPEMD160_crypt_input1_append_input2    ||
+		p==DynamicFunc__RIPEMD160_crypt_input2_append_input1_base16    || p==DynamicFunc__RIPEMD160_crypt_input2_append_input1    ||
+		p==DynamicFunc__RIPEMD160_crypt_input1_overwrite_input1_base16 || p==DynamicFunc__RIPEMD160_crypt_input1_overwrite_input1 ||
+		p==DynamicFunc__RIPEMD160_crypt_input2_overwrite_input2_base16 || p==DynamicFunc__RIPEMD160_crypt_input2_overwrite_input2 ||
+		p==DynamicFunc__RIPEMD160_crypt_input1_overwrite_input2_base16 || p==DynamicFunc__RIPEMD160_crypt_input1_overwrite_input2 ||
+		p==DynamicFunc__RIPEMD160_crypt_input2_overwrite_input1_base16 || p==DynamicFunc__RIPEMD160_crypt_input2_overwrite_input1 ||
+		p==DynamicFunc__RIPEMD160_crypt_input1_to_output1_FINAL ||
+		p==DynamicFunc__RIPEMD160_crypt_input2_to_output1_FINAL)
+		return 1;
+	if (p==DynamicFunc__RIPEMD256_crypt_input1_append_input2_base16    || p==DynamicFunc__RIPEMD256_crypt_input1_append_input2    ||
+		p==DynamicFunc__RIPEMD256_crypt_input2_append_input1_base16    || p==DynamicFunc__RIPEMD256_crypt_input2_append_input1    ||
+		p==DynamicFunc__RIPEMD256_crypt_input1_overwrite_input1_base16 || p==DynamicFunc__RIPEMD256_crypt_input1_overwrite_input1 ||
+		p==DynamicFunc__RIPEMD256_crypt_input2_overwrite_input2_base16 || p==DynamicFunc__RIPEMD256_crypt_input2_overwrite_input2 ||
+		p==DynamicFunc__RIPEMD256_crypt_input1_overwrite_input2_base16 || p==DynamicFunc__RIPEMD256_crypt_input1_overwrite_input2 ||
+		p==DynamicFunc__RIPEMD256_crypt_input2_overwrite_input1_base16 || p==DynamicFunc__RIPEMD256_crypt_input2_overwrite_input1 ||
+		p==DynamicFunc__RIPEMD256_crypt_input1_to_output1_FINAL ||
+		p==DynamicFunc__RIPEMD256_crypt_input2_to_output1_FINAL)
+		return 1;
+	if (p==DynamicFunc__RIPEMD320_crypt_input1_append_input2_base16    || p==DynamicFunc__RIPEMD320_crypt_input1_append_input2    ||
+		p==DynamicFunc__RIPEMD320_crypt_input2_append_input1_base16    || p==DynamicFunc__RIPEMD320_crypt_input2_append_input1    ||
+		p==DynamicFunc__RIPEMD320_crypt_input1_overwrite_input1_base16 || p==DynamicFunc__RIPEMD320_crypt_input1_overwrite_input1 ||
+		p==DynamicFunc__RIPEMD320_crypt_input2_overwrite_input2_base16 || p==DynamicFunc__RIPEMD320_crypt_input2_overwrite_input2 ||
+		p==DynamicFunc__RIPEMD320_crypt_input1_overwrite_input2_base16 || p==DynamicFunc__RIPEMD320_crypt_input1_overwrite_input2 ||
+		p==DynamicFunc__RIPEMD320_crypt_input2_overwrite_input1_base16 || p==DynamicFunc__RIPEMD320_crypt_input2_overwrite_input1 ||
+		p==DynamicFunc__RIPEMD320_crypt_input1_to_output1_FINAL ||
+		p==DynamicFunc__RIPEMD320_crypt_input2_to_output1_FINAL)
+		return 1;
+	return 0;
+}
+
 static int isLargeHashFinalFunc(DYNAMIC_primitive_funcp p) {
 	if (p==DynamicFunc__SHA1_crypt_input1_to_output1_FINAL      || p==DynamicFunc__SHA1_crypt_input2_to_output1_FINAL      ||
 		p==DynamicFunc__SHA224_crypt_input1_to_output1_FINAL    || p==DynamicFunc__SHA224_crypt_input2_to_output1_FINAL    ||
@@ -7120,6 +7160,12 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 						pFmt->params.algorithm_name = ALGORITHM_NAME_TGR;
 					else if (!strcmp(pFmt->params.algorithm_name, ALGORITHM_NAME_X86))
 						pFmt->params.algorithm_name = ALGORITHM_NAME_X86_TGR;
+				}
+				if (isRIPEMDFunc(pFuncs[x])) {
+					if (!strcmp(pFmt->params.algorithm_name, ALGORITHM_NAME))
+						pFmt->params.algorithm_name = ALGORITHM_NAME_RIPEMD;
+					else if (!strcmp(pFmt->params.algorithm_name, ALGORITHM_NAME_X86))
+						pFmt->params.algorithm_name = ALGORITHM_NAME_X86_RIPEMD;
 				}
 			}
 			if (isLargeHashFinalFunc(curdat.dynamic_FUNCTIONS[j-1]))
