@@ -131,7 +131,7 @@ extern int CPU_detect(void);
 extern struct fmt_main fmt_DES, fmt_BSDI, fmt_MD5, fmt_BF;
 extern struct fmt_main fmt_scrypt;
 extern struct fmt_main fmt_AFS, fmt_LM;
-#if HAVE_CRYPT
+#ifdef HAVE_CRYPT
 extern struct fmt_main fmt_crypt;
 #endif
 extern struct fmt_main fmt_trip;
@@ -479,7 +479,7 @@ static void john_register_all(void)
 	john_register_one(&fmt_cuda_wpapsk);
 	john_register_one(&fmt_cuda_xsha512);
 #endif
-#if HAVE_CRYPT
+#ifdef HAVE_CRYPT
 	john_register_one(&fmt_crypt);
 #endif
 
@@ -565,7 +565,7 @@ static void john_omp_maybe_adjust_or_fallback(char **argv)
 			john_omp_threads_new = 1;
 		omp_set_num_threads(john_omp_threads_new);
 		john_omp_init();
-#if HAVE_JOHN_OMP_FALLBACK
+#ifdef HAVE_JOHN_OMP_FALLBACK
 		john_omp_fallback(argv);
 #endif
 	}
@@ -1213,6 +1213,7 @@ static void john_load(void)
 			if (john_main_process)
 			printf("Remaining %s\n", john_loaded_counts());
 		}
+
 #if FMT_MAIN_VERSION > 11
 		for (i = 0; i < FMT_TUNABLE_COSTS && database.format->methods.tunable_cost_value[i] != NULL; i++) {
 			if (database.min_cost[i] < database.max_cost[i]) {
@@ -1311,7 +1312,8 @@ static void john_load(void)
 		}
 
 #if OS_FORK
-		if (options.fork) {
+		if (options.fork)
+		{
 			/*
 			 * flush before forking, to avoid multple log entries
 			 */
@@ -1367,7 +1369,7 @@ static void john_init(char *name, int argc, char **argv)
 #endif
 
 	if (!make_check) {
-#if HAVE_JOHN_OMP_FALLBACK
+#ifdef HAVE_JOHN_OMP_FALLBACK
 		john_omp_fallback(argv);
 #endif
 
