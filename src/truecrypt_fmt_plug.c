@@ -15,8 +15,8 @@
  * (This is a heavily cut-down "BSD license".)
  */
 
-#include <openssl/evp.h>
 #include "arch.h"
+#include <openssl/opensslv.h>
 #if (AC_BUILT && HAVE_EVP_AES_256_XTS) || \
 	(!AC_BUILT && OPENSSL_VERSION_NUMBER >= 0x10001000)
 
@@ -30,6 +30,7 @@ john_register_one(&fmt_truecrypt_sha512);
 john_register_one(&fmt_truecrypt_whirlpool);
 #else
 
+#include <openssl/evp.h>
 #include <string.h>
 #include "misc.h"
 #include "memory.h"

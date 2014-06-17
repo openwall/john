@@ -16,7 +16,7 @@
  */
 
 #include "arch.h"
-#include <openssl/evp.h>
+#include <openssl/opensslv.h>
 #if (AC_BUILT && HAVE_EVP_SHA512) || \
 	(!AC_BUILT && OPENSSL_VERSION_NUMBER >= 0x0090708f)
 
