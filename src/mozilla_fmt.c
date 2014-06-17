@@ -65,7 +65,7 @@ struct custom_salt {
 	SHA_CTX pctx;
 	SECItem saltItem;
 	unsigned char encString[ENCSTRING_LENGTH];
-	struct NSSPKCS5PBEParameter *paramPKCS5;;
+	struct NSSPKCS5PBEParameter *paramPKCS5;
 	struct KeyCrackData keyCrackData;
 	struct NSSPKCS5PBEParameter gpbe_param;
 	unsigned char salt_data[SALTDATA_LENGTH];
