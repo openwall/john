@@ -5953,12 +5953,7 @@ void DynamicFunc__append2_fld9(DYNA_OMP_PARAMS)
 	__append2_string(DYNA_OMP_PARAMSdm flds[9], fld_lens[9]);
 }
 
-// NOTE this function is NOT valid at all in OMP mode, but we DO have to use DYNA_OMP_PARAMS parameter to get things to build correctly.
 void DynamicFunc__SSEtoX86_switch_input1(DYNA_OMP_PARAMS) {
-#if _OPENMP && 0
-	fprintf(stderr, "DynamicFunc__SSEtoX86_switch_input1() is NOT valid in OMP mode, this format will NOT work\n");
-	exit(1);
-#else
 #ifdef MMX_COEF
 	int j, k, idx, max;
 	if (dynamic_use_sse == 0)
@@ -6015,14 +6010,8 @@ void DynamicFunc__SSEtoX86_switch_input1(DYNA_OMP_PARAMS) {
 #endif
 	}
 #endif
-#endif
 }
-// NOTE this function is NOT valid at all in OMP mode, but we DO have to use DYNA_OMP_PARAMS parameter to get things to build correctly.
 void DynamicFunc__SSEtoX86_switch_input2(DYNA_OMP_PARAMS) {
-#if _OPENMP && 0
-	fprintf(stderr, "DynamicFunc__SSEtoX86_switch_input2() is NOT valid in OMP mode, this format will NOT work\n");
-	exit(1);
-#else
 #ifdef MMX_COEF
 	int j, k, idx, max;
 
@@ -6081,14 +6070,8 @@ void DynamicFunc__SSEtoX86_switch_input2(DYNA_OMP_PARAMS) {
 #endif
 	}
 #endif
-#endif
 }
-// NOTE this function is NOT valid at all in OMP mode, but we DO have to use DYNA_OMP_PARAMS parameter to get things to build correctly.
 void DynamicFunc__SSEtoX86_switch_output1(DYNA_OMP_PARAMS) {
-#if _OPENMP && 0
-	fprintf(stderr, "DynamicFunc__SSEtoX86_switch_output1() is NOT valid in OMP mode, this format will NOT work\n");
-	exit(1);
-#else
 #ifdef MMX_COEF
 	int j, k, idx;
 
@@ -6124,14 +6107,8 @@ void DynamicFunc__SSEtoX86_switch_output1(DYNA_OMP_PARAMS) {
 		}
 	}
 #endif
-#endif
 }
-// NOTE this function is NOT valid at all in OMP mode, but we DO have to use DYNA_OMP_PARAMS parameter to get things to build correctly.
 void DynamicFunc__SSEtoX86_switch_output2(DYNA_OMP_PARAMS) {
-#if _OPENMP && 0
-	fprintf(stderr, "DynamicFunc__SSEtoX86_switch_output2() is NOT valid in OMP mode, this format will NOT work\n");
-	exit(1);
-#else
 #ifdef MMX_COEF
 	int j, k, idx;
 
@@ -6167,14 +6144,8 @@ void DynamicFunc__SSEtoX86_switch_output2(DYNA_OMP_PARAMS) {
 		}
 	}
 #endif
-#endif
 }
-// NOTE this function is NOT valid at all in OMP mode, but we DO have to use DYNA_OMP_PARAMS parameter to get things to build correctly.
 void DynamicFunc__X86toSSE_switch_input1(DYNA_OMP_PARAMS) {
-#if _OPENMP && 0
-	fprintf(stderr, "DynamicFunc__X86toSSE_switch_input1() is NOT valid in OMP mode, this format will NOT work\n");
-	exit(1);
-#else
 #ifdef MMX_COEF
 	unsigned j, idx, idx_mod;
 	if (dynamic_use_sse == 0)
@@ -6193,14 +6164,8 @@ void DynamicFunc__X86toSSE_switch_input1(DYNA_OMP_PARAMS) {
 		__SSE_append_string_to_input(input_buf[idx].c,idx_mod,input_buf_X86[j>>MD5_X2].x1.B,total_len_X86[j],0,1);
 	}
 #endif
-#endif
 }
-// NOTE this function is NOT valid at all in OMP mode, but we DO have to use DYNA_OMP_PARAMS parameter to get things to build correctly.
 void DynamicFunc__X86toSSE_switch_input2(DYNA_OMP_PARAMS) {
-#if _OPENMP && 0
-	fprintf(stderr, "DynamicFunc__X86toSSE_switch_input2() is NOT valid in OMP mode, this format will NOT work\n");
-	exit(1);
-#else
 #ifdef MMX_COEF
 	unsigned j, idx, idx_mod;
 	if (dynamic_use_sse == 0)
@@ -6219,14 +6184,8 @@ void DynamicFunc__X86toSSE_switch_input2(DYNA_OMP_PARAMS) {
 		__SSE_append_string_to_input(input_buf2[idx].c,idx_mod,input_buf2_X86[j>>MD5_X2].x1.B,total_len2_X86[j],0,1);
 	}
 #endif
-#endif
 }
-// NOTE this function is NOT valid at all in OMP mode, but we DO have to use DYNA_OMP_PARAMS parameter to get things to build correctly.
 void DynamicFunc__X86toSSE_switch_output1(DYNA_OMP_PARAMS) {
-#if _OPENMP && 0
-	fprintf(stderr, "DynamicFunc__X86toSSE_switch_output1() is NOT valid in OMP mode, this format will NOT work\n");
-	exit(1);
-#else
 #ifdef MMX_COEF
 	int j, k, idx;
 
@@ -6262,14 +6221,8 @@ void DynamicFunc__X86toSSE_switch_output1(DYNA_OMP_PARAMS) {
 		}
 	}
 #endif
-#endif
 }
-// NOTE this function is NOT valid at all in OMP mode, but we DO have to use DYNA_OMP_PARAMS parameter to get things to build correctly.
 void DynamicFunc__X86toSSE_switch_output2(DYNA_OMP_PARAMS) {
-#if _OPENMP && 0
-	fprintf(stderr, "DynamicFunc__X86toSSE_switch_output2() is NOT valid in OMP mode, this format will NOT work\n");
-	exit(1);
-#else
 #ifdef MMX_COEF
 	int j, k, idx;
 
@@ -6305,42 +6258,25 @@ void DynamicFunc__X86toSSE_switch_output2(DYNA_OMP_PARAMS) {
 		}
 	}
 #endif
-#endif
 }
 // This function, simply 'switches' back to SSE  It does NOT copy any data from X86 to SSE
 void DynamicFunc__ToSSE(DYNA_OMP_PARAMS) {
-#if _OPENMP && 0
-	fprintf(stderr, "DynamicFunc__ToSSE() is NOT valid in OMP mode, this format will NOT work\n");
-	exit(1);
-#endif
 	if (dynamic_use_sse == 0)
 		return;
 	dynamic_use_sse = 1;
 }
 // This function, simply 'switches' to X86  It does NOT copy any data from SSE to X86
 void DynamicFunc__ToX86(DYNA_OMP_PARAMS) {
-#if _OPENMP && 0
-	fprintf(stderr, "DynamicFunc__ToX86() is NOT valid in OMP mode, this format will NOT work\n");
-	exit(1);
-#endif
 	if (dynamic_use_sse == 0)
 		return;
 	dynamic_use_sse = 2;
 }
 
 void DynamicFunc__base16_convert_locase(DYNA_OMP_PARAMS) {
-#if _OPENMP && 0
-	fprintf(stderr, "DynamicFunc__base16_convert_locaseDYNA_OMP_PARAMS() is NOT valid in OMP mode, this format will NOT work\n");
-	exit(1);
-#endif
 	dynamic_itoa16 = itoa16;
 	itoa16_w2=itoa16_w2_l;
 }
 void DynamicFunc__base16_convert_upcase(DYNA_OMP_PARAMS) {
-#if _OPENMP && 0
-	fprintf(stderr, "DynamicFunc__base16_convert_upcase() is NOT valid in OMP mode, this format will NOT work\n");
-	exit(1);
-#endif
 	dynamic_itoa16 = itoa16u;
 	itoa16_w2=itoa16_w2_u;
 }
