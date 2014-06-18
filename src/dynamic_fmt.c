@@ -6483,6 +6483,7 @@ static DYNAMIC_primitive_funcp *ConvertFuncs(DYNAMIC_primitive_funcp p, int *cou
 	return fncs;
 }
 
+#ifdef _OPENMP
 static int isBadOMPFunc(DYNAMIC_primitive_funcp p) {
 	// If ANY of these functions are seen, we can NOT use OMP for this single format.
 #if MMX_COEF
@@ -6497,6 +6498,7 @@ static int isBadOMPFunc(DYNAMIC_primitive_funcp p) {
 		return 1;
 	return 0;
 }
+#endif
 
 static int isMD4Func(DYNAMIC_primitive_funcp p) {
 	// handle flats
