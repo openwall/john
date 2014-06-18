@@ -28,6 +28,12 @@
 #elif defined(__AVX__)
 #undef SSE_type
 #define SSE_type			"AVX"
+#elif defined(__SSE4_1__)
+#undef SSE_type
+#define SSE_type			"SSE4.1"
+#elif defined(__SSSE3__)
+#undef SSE_type
+#define SSE_type			"SSSE3"
 #elif MMX_COEF
 #undef SSE_type
 #define SSE_type			"SSE2"
