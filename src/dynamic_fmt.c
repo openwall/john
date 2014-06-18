@@ -558,10 +558,12 @@ static char *HandleCase(char *cp, int caseType);
 const int OMP_INC = (MD5_X2+1);
 const int OMP_MD5_INC = (MD5_X2+1);
 const int OMP_MD4_INC = (MD5_X2+1);
+const int OMP_SHA1_INC = (MD5_X2+1);
 #else
 const int OMP_INC = (MD5_X2+1);
 const int OMP_MD5_INC = (MD5_SSE_PARA*MMX_COEF);
 const int OMP_MD4_INC = (MD4_SSE_PARA*MMX_COEF);
+const int OMP_SHA1_INC = (SHA1_SSE_PARA*MMX_COEF);
 #endif // MMX_COEF
 #endif // _OPENMP
 
@@ -1590,9 +1592,18 @@ static void crypt_all(int count)
 	if ((curdat.pSetup->flags& MGF_NOTSSE2Safe) == MGF_NOTSSE2Safe)
 		inc = ((inc+OMP_INC-1)/OMP_INC)*OMP_INC;
 	else
-		// NOTE, we will likely want to know to use OMP_MD5_INC, OMP_MD4_INC
-		// but for now, this works (not! it fails on most builds).
-		inc = ((inc+OMP_MD5_INC-1)/OMP_MD5_INC)*OMP_MD5_INC;
+		// I need to add 'all-md5' all-md4, all-sha1 to the cur_dat buffer. I need to also add
+		// mixed md4/md5/sha1, so that we can turn off OMP for those formats.
+		// for a 'quick' test, we have made md4/md5 the same for OMP builds, and we test
+		// for a 40 byte input. This 'almost' works.  We do have some SHA1 which has 32 byte
+		// input stream, so that fails there.  But this DOES SHOW, that we can overcome all
+		// of the OMP issues, with a little creative programming..  If we keep the else
+		// part of this loop only, then these format fail (if sha1_para does not evenly
+		// divide md5_para:   dyna_38, 1027, 1028, 1501, 1502
+		if (Dynamic_curdat.dynamic_40_byte_input)
+			inc = ((inc+OMP_SHA1_INC-1)/OMP_SHA1_INC)*OMP_SHA1_INC;
+		else
+			inc = ((inc+OMP_MD5_INC-1)/OMP_MD5_INC)*OMP_MD5_INC;
 #endif
 #pragma omp parallel for shared(curdat, inc, m_count)
 	for (j = 0; j < m_count; j += inc) {
