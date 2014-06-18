@@ -3457,32 +3457,12 @@ int dynamic_RESERVED_PRELOAD_SETUP(int cnt, struct fmt_main *pFmt)
 	return dynamic_SETUP(&Setups[cnt], pFmt);
 }
 
-// Certain functions are NOT compatible with OMP, because they require a
-// global modification to the state.  Things like into and out of SSE/nonSSE
-// are examples. Same code as in dynamic_IS_PARSER_VALID() in dynamic_parser.c
-int IsOMP_Valid(int j) {
-#ifdef _OPENMP
-	int i;
-	for (i = 0; Setups[j].pFuncs[i]; ++i) {
-		if (Setups[j].pFuncs[i] == DynamicFunc__SSEtoX86_switch_input1) return 0;
-		if (Setups[j].pFuncs[i] == DynamicFunc__SSEtoX86_switch_input2) return 0;
-		if (Setups[j].pFuncs[i] == DynamicFunc__SSEtoX86_switch_output1) return 0;
-		if (Setups[j].pFuncs[i] == DynamicFunc__SSEtoX86_switch_output2) return 0;
-		if (Setups[j].pFuncs[i] == DynamicFunc__X86toSSE_switch_input1) return 0;
-		if (Setups[j].pFuncs[i] == DynamicFunc__X86toSSE_switch_input2) return 0;
-		if (Setups[j].pFuncs[i] == DynamicFunc__X86toSSE_switch_output1) return 0;
-		if (Setups[j].pFuncs[i] == DynamicFunc__X86toSSE_switch_output2) return 0;
-		if (Setups[j].pFuncs[i] == DynamicFunc__ToSSE) return 0;
-		if (Setups[j].pFuncs[i] == DynamicFunc__ToX86) return 0;
-		if (Setups[j].pFuncs[i] == DynamicFunc__base16_convert_locase) return 0;
-		if (Setups[j].pFuncs[i] == DynamicFunc__base16_convert_upcase) return 0;
-	}
-#endif
-	return 1;
-}
-
 // -1 is NOT valid  ( num >= 5000 is 'hidden' values )
-// 0 is valid, but NOT usable by this build (i.e. no SSE2)
+// 0 is valid, but NOT usable by this build (i.e. no SSE2).
+//   NOTE, now only a couple things are not valid. We build ALL formats
+//   even SSE problem functions under OMP. We turn off OMP for these formats
+//   but the format is INCLUDED in the build.  A couple things are still left
+//   in the parser as invalid (such as non-colon separators, etc).
 // 1 is valid.
 int dynamic_IS_VALID(int i)
 {
@@ -3495,7 +3475,7 @@ int dynamic_IS_VALID(int i)
 		len=strlen(Type);
 		for (j = 0; j < ARRAY_COUNT(Setups); ++j) {
 			if (!strncmp(Type, Setups[j].szFORMAT_NAME, len))
-				return IsOMP_Valid(j);
+				return 1;
 		}
 		return -1;
 	}

@@ -44,8 +44,6 @@ void dynamic_DISPLAY_ALL_FORMATS()
 		char Type[14], *cp;
 		if (!sz)
 			break;
-		if (!IsOMP_Valid(i))
-			continue;
 		strncpy(Type, sz, sizeof(Type));
 		Type[13] = 0;
 		cp = strchr(Type, ':');

@@ -1579,21 +1579,28 @@ static void crypt_all(int count)
 	// before walking.  Trivial improvement, but every cycle counts :)
 	{
 #ifdef _OPENMP
-	int j;
-	int inc = (m_count+m_ompt-1) / m_ompt;
-	//printf ("m_count=%d inc1=%d granularity=%d inc2=%d\n", m_count, inc, curdat.omp_granularity, ((inc + curdat.omp_granularity-1)/curdat.omp_granularity)*curdat.omp_granularity);
-	inc = ((inc + curdat.omp_granularity-1)/curdat.omp_granularity)*curdat.omp_granularity;
+	if ((curdat.pFmtMain->params.flags & FMT_OMP) == FMT_OMP) {
+		int j;
+		int inc = (m_count+m_ompt-1) / m_ompt;
+		//printf ("m_count=%d inc1=%d granularity=%d inc2=%d\n", m_count, inc, curdat.omp_granularity, ((inc + curdat.omp_granularity-1)/curdat.omp_granularity)*curdat.omp_granularity);
+		inc = ((inc + curdat.omp_granularity-1)/curdat.omp_granularity)*curdat.omp_granularity;
 #pragma omp parallel for shared(curdat, inc, m_count)
-	for (j = 0; j < m_count; j += inc) {
+		for (j = 0; j < m_count; j += inc) {
+			int i;
+			int top=j+inc;
+			if (top > m_count)
+				top = m_count;
+			// we now run a full script in this thread, using only a subset of
+			// the data, from [j,top)  The next thread will run from [top,top+inc)
+			// each thread will take the next inc values, until we get to m_count
+			for (i = 0; curdat.dynamic_FUNCTIONS[i]; ++i)
+				(*(curdat.dynamic_FUNCTIONS[i]))(j,top,omp_get_thread_num());
+		}
+	} else {
 		int i;
-		int top=j+inc;
-		if (top > m_count)
-			top = m_count;
-		// we now run a full script in this thread, using only a subset of
-		// the data, from [j,top)  The next thread will run from [top,top+inc)
-		// each thread will take the next inc values, until we get to m_count
+		// same code (almost), but without the threads.
 		for (i = 0; curdat.dynamic_FUNCTIONS[i]; ++i)
-			(*(curdat.dynamic_FUNCTIONS[i]))(j,top,omp_get_thread_num());
+			(*(curdat.dynamic_FUNCTIONS[i]))(0,m_count,0);
 	}
 #else
 	int i;
@@ -5948,7 +5955,7 @@ void DynamicFunc__append2_fld9(DYNA_OMP_PARAMS)
 
 // NOTE this function is NOT valid at all in OMP mode, but we DO have to use DYNA_OMP_PARAMS parameter to get things to build correctly.
 void DynamicFunc__SSEtoX86_switch_input1(DYNA_OMP_PARAMS) {
-#ifdef _OPENMP
+#if _OPENMP && 0
 	fprintf(stderr, "DynamicFunc__SSEtoX86_switch_input1() is NOT valid in OMP mode, this format will NOT work\n");
 	exit(1);
 #else
@@ -6012,7 +6019,7 @@ void DynamicFunc__SSEtoX86_switch_input1(DYNA_OMP_PARAMS) {
 }
 // NOTE this function is NOT valid at all in OMP mode, but we DO have to use DYNA_OMP_PARAMS parameter to get things to build correctly.
 void DynamicFunc__SSEtoX86_switch_input2(DYNA_OMP_PARAMS) {
-#ifdef _OPENMP
+#if _OPENMP && 0
 	fprintf(stderr, "DynamicFunc__SSEtoX86_switch_input2() is NOT valid in OMP mode, this format will NOT work\n");
 	exit(1);
 #else
@@ -6078,7 +6085,7 @@ void DynamicFunc__SSEtoX86_switch_input2(DYNA_OMP_PARAMS) {
 }
 // NOTE this function is NOT valid at all in OMP mode, but we DO have to use DYNA_OMP_PARAMS parameter to get things to build correctly.
 void DynamicFunc__SSEtoX86_switch_output1(DYNA_OMP_PARAMS) {
-#ifdef _OPENMP
+#if _OPENMP && 0
 	fprintf(stderr, "DynamicFunc__SSEtoX86_switch_output1() is NOT valid in OMP mode, this format will NOT work\n");
 	exit(1);
 #else
@@ -6121,7 +6128,7 @@ void DynamicFunc__SSEtoX86_switch_output1(DYNA_OMP_PARAMS) {
 }
 // NOTE this function is NOT valid at all in OMP mode, but we DO have to use DYNA_OMP_PARAMS parameter to get things to build correctly.
 void DynamicFunc__SSEtoX86_switch_output2(DYNA_OMP_PARAMS) {
-#ifdef _OPENMP
+#if _OPENMP && 0
 	fprintf(stderr, "DynamicFunc__SSEtoX86_switch_output2() is NOT valid in OMP mode, this format will NOT work\n");
 	exit(1);
 #else
@@ -6164,7 +6171,7 @@ void DynamicFunc__SSEtoX86_switch_output2(DYNA_OMP_PARAMS) {
 }
 // NOTE this function is NOT valid at all in OMP mode, but we DO have to use DYNA_OMP_PARAMS parameter to get things to build correctly.
 void DynamicFunc__X86toSSE_switch_input1(DYNA_OMP_PARAMS) {
-#ifdef _OPENMP
+#if _OPENMP && 0
 	fprintf(stderr, "DynamicFunc__X86toSSE_switch_input1() is NOT valid in OMP mode, this format will NOT work\n");
 	exit(1);
 #else
@@ -6173,7 +6180,7 @@ void DynamicFunc__X86toSSE_switch_input1(DYNA_OMP_PARAMS) {
 	if (dynamic_use_sse == 0)
 		return;
 	dynamic_use_sse = 1;
-	DynamicFunc__clean_input();
+	__nonMP_DynamicFunc__clean_input();
 	for (j = 0; j < m_count; ++j) {
 		idx = (j>>(MMX_COEF>>1));
 		idx_mod = j&(MMX_COEF-1);
@@ -6190,7 +6197,7 @@ void DynamicFunc__X86toSSE_switch_input1(DYNA_OMP_PARAMS) {
 }
 // NOTE this function is NOT valid at all in OMP mode, but we DO have to use DYNA_OMP_PARAMS parameter to get things to build correctly.
 void DynamicFunc__X86toSSE_switch_input2(DYNA_OMP_PARAMS) {
-#ifdef _OPENMP
+#if _OPENMP && 0
 	fprintf(stderr, "DynamicFunc__X86toSSE_switch_input2() is NOT valid in OMP mode, this format will NOT work\n");
 	exit(1);
 #else
@@ -6199,7 +6206,7 @@ void DynamicFunc__X86toSSE_switch_input2(DYNA_OMP_PARAMS) {
 	if (dynamic_use_sse == 0)
 		return;
 	dynamic_use_sse = 1;
-	DynamicFunc__clean_input2();
+	__nonMP_DynamicFunc__clean_input2();
 	for (j = 0; j < m_count; ++j) {
 		idx = (j>>(MMX_COEF>>1));
 		idx_mod = j&(MMX_COEF-1);
@@ -6216,7 +6223,7 @@ void DynamicFunc__X86toSSE_switch_input2(DYNA_OMP_PARAMS) {
 }
 // NOTE this function is NOT valid at all in OMP mode, but we DO have to use DYNA_OMP_PARAMS parameter to get things to build correctly.
 void DynamicFunc__X86toSSE_switch_output1(DYNA_OMP_PARAMS) {
-#ifdef _OPENMP
+#if _OPENMP && 0
 	fprintf(stderr, "DynamicFunc__X86toSSE_switch_output1() is NOT valid in OMP mode, this format will NOT work\n");
 	exit(1);
 #else
@@ -6259,7 +6266,7 @@ void DynamicFunc__X86toSSE_switch_output1(DYNA_OMP_PARAMS) {
 }
 // NOTE this function is NOT valid at all in OMP mode, but we DO have to use DYNA_OMP_PARAMS parameter to get things to build correctly.
 void DynamicFunc__X86toSSE_switch_output2(DYNA_OMP_PARAMS) {
-#ifdef _OPENMP
+#if _OPENMP && 0
 	fprintf(stderr, "DynamicFunc__X86toSSE_switch_output2() is NOT valid in OMP mode, this format will NOT work\n");
 	exit(1);
 #else
@@ -6302,7 +6309,7 @@ void DynamicFunc__X86toSSE_switch_output2(DYNA_OMP_PARAMS) {
 }
 // This function, simply 'switches' back to SSE  It does NOT copy any data from X86 to SSE
 void DynamicFunc__ToSSE(DYNA_OMP_PARAMS) {
-#ifdef _OPENMP
+#if _OPENMP && 0
 	fprintf(stderr, "DynamicFunc__ToSSE() is NOT valid in OMP mode, this format will NOT work\n");
 	exit(1);
 #endif
@@ -6312,7 +6319,7 @@ void DynamicFunc__ToSSE(DYNA_OMP_PARAMS) {
 }
 // This function, simply 'switches' to X86  It does NOT copy any data from SSE to X86
 void DynamicFunc__ToX86(DYNA_OMP_PARAMS) {
-#ifdef _OPENMP
+#if _OPENMP && 0
 	fprintf(stderr, "DynamicFunc__ToX86() is NOT valid in OMP mode, this format will NOT work\n");
 	exit(1);
 #endif
@@ -6322,7 +6329,7 @@ void DynamicFunc__ToX86(DYNA_OMP_PARAMS) {
 }
 
 void DynamicFunc__base16_convert_locase(DYNA_OMP_PARAMS) {
-#ifdef _OPENMP
+#if _OPENMP && 0
 	fprintf(stderr, "DynamicFunc__base16_convert_locaseDYNA_OMP_PARAMS() is NOT valid in OMP mode, this format will NOT work\n");
 	exit(1);
 #endif
@@ -6330,7 +6337,7 @@ void DynamicFunc__base16_convert_locase(DYNA_OMP_PARAMS) {
 	itoa16_w2=itoa16_w2_l;
 }
 void DynamicFunc__base16_convert_upcase(DYNA_OMP_PARAMS) {
-#ifdef _OPENMP
+#if _OPENMP && 0
 	fprintf(stderr, "DynamicFunc__base16_convert_upcase() is NOT valid in OMP mode, this format will NOT work\n");
 	exit(1);
 #endif
@@ -6492,6 +6499,21 @@ static DYNAMIC_primitive_funcp *ConvertFuncs(DYNAMIC_primitive_funcp p, int *cou
 	*count = 1;
 	fncs[0] = p;
 	return fncs;
+}
+
+static int isBadOMPFunc(DYNAMIC_primitive_funcp p) {
+	// If ANY of these functions are seen, we can NOT use OMP for this single format.
+#if MMX_COEF
+	if (p==DynamicFunc__SSEtoX86_switch_input1   || p==DynamicFunc__SSEtoX86_switch_input2   ||
+		p==DynamicFunc__SSEtoX86_switch_output1  || p==DynamicFunc__SSEtoX86_switch_output2  ||
+		p==DynamicFunc__X86toSSE_switch_input1   || p==DynamicFunc__X86toSSE_switch_input2   ||
+		p==DynamicFunc__X86toSSE_switch_output1  || p==DynamicFunc__X86toSSE_switch_output2  ||
+		p==DynamicFunc__ToSSE                    || p==DynamicFunc__ToX86)
+		return 1;
+#endif
+	if (p==DynamicFunc__base16_convert_locase    || p==DynamicFunc__base16_convert_upcase)
+		return 1;
+	return 0;
 }
 
 static int isMD4Func(DYNAMIC_primitive_funcp p) {
@@ -6706,13 +6728,13 @@ static int LCM(int a, int b) {
 }
 
 static void dyna_setupOMP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt) {
+	int i;
 #ifndef MMX_COEF
 	curdat.omp_granularity=OMP_INC;
 #else
 	if ((curdat.pSetup->flags& MGF_NOTSSE2Safe) == MGF_NOTSSE2Safe)
 		curdat.omp_granularity=OMP_INC;
 	else {
-		int i;
 		curdat.omp_granularity = 1;
 		for (i=0; Setup->pFuncs[i]; ++i) {
 			if (isMD5Func(Setup->pFuncs[i]))
@@ -6743,12 +6765,11 @@ static void dyna_setupOMP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt) {
 #endif
 		}
 	}
-	// We still may have some areas where we MUST remove teh OMP flags for some format. At the current time ALL
-	// formats are running OMP.  I will see if there are things (like switching in/out of SSE, switching in/out
-	// of upcase, utf8, etc), which might cause global changes that disallow using OMP.  Again, right now all
-	// dyna are OMP happy, but that may not be the case.  The line below will turn off OMP on a single dyna type.
-//	pFmt->params.flags |= (~FMT_OMP);
 #endif
+	for (i=0; Setup->pFuncs[i]; ++i) {
+		if (isBadOMPFunc(Setup->pFuncs[i]))
+			pFmt->params.flags &= (~FMT_OMP);
+	}
 }
 #endif	
 
@@ -6921,11 +6942,11 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 	// Ok, what 'flag' in the format struct, do we clear???
 	if ( (Setup->flags & MGF_PASSWORD_UPCASE) == MGF_PASSWORD_UPCASE) {
 		curdat.nPassCase = 2;
-		pFmt->params.flags |= (~FMT_CASE);
+		pFmt->params.flags &= (~FMT_CASE);
 	}
 	if ( (Setup->flags & MGF_PASSWORD_LOCASE) == MGF_PASSWORD_LOCASE) {
 		curdat.nPassCase = 3;
-		pFmt->params.flags |= (~FMT_CASE);
+		pFmt->params.flags &= (~FMT_CASE);
 	}
 
 	if ( (Setup->flags & MGF_SALT_AS_HEX) == MGF_SALT_AS_HEX)
