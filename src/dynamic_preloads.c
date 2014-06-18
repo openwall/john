@@ -27,11 +27,6 @@
 
 #include "arch.h"
 
-#if defined(_OPENMP) && MMX_COEF && MD4_SSE_PARA != MD5_SSE_PARA
-#undef _OPENMP
-#define WAS_OPENMP
-#endif
-
 #include "misc.h"
 #include "common.h"
 #include "formats.h"

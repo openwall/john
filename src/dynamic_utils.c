@@ -27,11 +27,6 @@
 
 #include "arch.h"
 
-/* OMP code is b0rken - it assumes all PARA's are the same */
-#if defined(_OPENMP) && MMX_COEF && MD4_SSE_PARA != MD5_SSE_PARA
-#undef _OPENMP
-#endif
-
 #include "misc.h"
 #include "common.h"
 #include "formats.h"

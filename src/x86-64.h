@@ -237,9 +237,7 @@
 #endif
 
 #ifndef MD4_SSE_PARA
-#ifdef _OPENMP
-#define MD4_SSE_PARA			MD5_SSE_PARA
-#elif defined(__INTEL_COMPILER) || defined(USING_ICC_S_FILE)
+#if defined(__INTEL_COMPILER) || defined(USING_ICC_S_FILE)
 #define MD4_SSE_PARA			3
 #define MD4_N_STR			"12x"
 #elif defined(__clang__)

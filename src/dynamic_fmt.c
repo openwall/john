@@ -102,11 +102,6 @@ static DYNAMIC_primitive_funcp _Funcs_1[] =
 #include "sse-intrinsics.h"
 #endif
 
-#if defined(_OPENMP) && MMX_COEF && MD4_SSE_PARA != MD5_SSE_PARA
-#undef _OPENMP
-#define WAS_OPENMP
-#endif
-
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
@@ -1586,25 +1581,8 @@ static void crypt_all(int count)
 #ifdef _OPENMP
 	int j;
 	int inc = (m_count+m_ompt-1) / m_ompt;
-#ifndef MMX_COEF
-	inc = ((inc+OMP_INC-1)/OMP_INC)*OMP_INC;
-#else
-	if ((curdat.pSetup->flags& MGF_NOTSSE2Safe) == MGF_NOTSSE2Safe)
-		inc = ((inc+OMP_INC-1)/OMP_INC)*OMP_INC;
-	else
-		// I need to add 'all-md5' all-md4, all-sha1 to the cur_dat buffer. I need to also add
-		// mixed md4/md5/sha1, so that we can turn off OMP for those formats.
-		// for a 'quick' test, we have made md4/md5 the same for OMP builds, and we test
-		// for a 40 byte input. This 'almost' works.  We do have some SHA1 which has 32 byte
-		// input stream, so that fails there.  But this DOES SHOW, that we can overcome all
-		// of the OMP issues, with a little creative programming..  If we keep the else
-		// part of this loop only, then these format fail (if sha1_para does not evenly
-		// divide md5_para:   dyna_38, 1027, 1028, 1501, 1502
-		if (Dynamic_curdat.dynamic_40_byte_input)
-			inc = ((inc+OMP_SHA1_INC-1)/OMP_SHA1_INC)*OMP_SHA1_INC;
-		else
-			inc = ((inc+OMP_MD5_INC-1)/OMP_MD5_INC)*OMP_MD5_INC;
-#endif
+	//printf ("m_count=%d inc1=%d granularity=%d inc2=%d\n", m_count, inc, curdat.omp_granularity, ((inc + curdat.omp_granularity-1)/curdat.omp_granularity)*curdat.omp_granularity);
+	inc = ((inc + curdat.omp_granularity-1)/curdat.omp_granularity)*curdat.omp_granularity;
 #pragma omp parallel for shared(curdat, inc, m_count)
 	for (j = 0; j < m_count; j += inc) {
 		int i;
@@ -6516,6 +6494,51 @@ static DYNAMIC_primitive_funcp *ConvertFuncs(DYNAMIC_primitive_funcp p, int *cou
 	return fncs;
 }
 
+static int isMD4Func(DYNAMIC_primitive_funcp p) {
+	// handle flats
+	if (p==DynamicFunc__MD4_crypt_input1_append_input2_base16    || p==DynamicFunc__MD4_crypt_input1_append_input2    ||
+		p==DynamicFunc__MD4_crypt_input2_append_input1_base16    || p==DynamicFunc__MD4_crypt_input2_append_input1    ||
+		p==DynamicFunc__MD4_crypt_input1_overwrite_input1_base16 || p==DynamicFunc__MD4_crypt_input1_overwrite_input1 ||
+		p==DynamicFunc__MD4_crypt_input2_overwrite_input2_base16 || p==DynamicFunc__MD4_crypt_input2_overwrite_input2 ||
+		p==DynamicFunc__MD4_crypt_input1_overwrite_input2_base16 || p==DynamicFunc__MD4_crypt_input1_overwrite_input2 ||
+		p==DynamicFunc__MD4_crypt_input2_overwrite_input1_base16 || p==DynamicFunc__MD4_crypt_input2_overwrite_input1 ||
+		p==DynamicFunc__MD4_crypt_input1_to_output1_FINAL        ||
+		p==DynamicFunc__MD4_crypt_input2_to_output1_FINAL)
+		return 1;
+	// handle older mmx_coef variants
+	if (p==DynamicFunc__crypt_md4    || p==DynamicFunc__crypt_md4_in1_to_out2    ||
+		p==DynamicFunc__crypt2_md4   || p==DynamicFunc__crypt_md4_in2_to_out1)
+		return 1;
+	return 0;
+}
+
+#ifdef _OPENMP
+// Only used in OMP code, to compute LCM granularity. So we #ifdef it out to avoid compiler warnings.
+static int isMD5Func(DYNAMIC_primitive_funcp p) {
+	// handle flats
+	if (p==DynamicFunc__MD5_crypt_input1_append_input2_base16    || p==DynamicFunc__MD5_crypt_input1_append_input2    ||
+		p==DynamicFunc__MD5_crypt_input2_append_input1_base16    || p==DynamicFunc__MD5_crypt_input2_append_input1    ||
+		p==DynamicFunc__MD5_crypt_input1_overwrite_input1_base16 || p==DynamicFunc__MD5_crypt_input1_overwrite_input1 ||
+		p==DynamicFunc__MD5_crypt_input2_overwrite_input2_base16 || p==DynamicFunc__MD5_crypt_input2_overwrite_input2 ||
+		p==DynamicFunc__MD5_crypt_input1_overwrite_input2_base16 || p==DynamicFunc__MD5_crypt_input1_overwrite_input2 ||
+		p==DynamicFunc__MD5_crypt_input2_overwrite_input1_base16 || p==DynamicFunc__MD5_crypt_input2_overwrite_input1 ||
+		p==DynamicFunc__MD5_crypt_input1_to_output1_FINAL        ||
+		p==DynamicFunc__MD5_crypt_input2_to_output1_FINAL)
+		return 1;
+	// handle older mmx_coef variants
+	if (p==DynamicFunc__crypt_md5                || p==DynamicFunc__InitialLoadKeys_md5crypt_ToOutput2_Base16_to_Input1      ||
+		p==DynamicFunc__crypt_md5_in1_to_out2    || p==DynamicFunc__InitialLoadKeys_md5crypt_ToOutput2                       ||
+		p==DynamicFunc__crypt_md5_to_input_raw   || p==DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen                   ||
+		p==DynamicFunc__crypt_md5_in2_to_out1    || p==DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen_but_setlen_in_SSE ||
+		p==DynamicFunc__crypt2_md5               || p==DynamicFunc__InitialLoadKeys_md5crypt_ToOutput2_Base16_to_Input1_offset32)
+		return 1;
+	// this one also.
+	if (p==DynamicFunc__PHPassCrypt)
+		return 1;
+	return 0;
+}
+#endif
+
 static int isSHA1Func(DYNAMIC_primitive_funcp p) {
 	if (p==DynamicFunc__SHA1_crypt_input1_append_input2_base16    || p==DynamicFunc__SHA1_crypt_input1_append_input2    ||
 		p==DynamicFunc__SHA1_crypt_input2_append_input1_base16    || p==DynamicFunc__SHA1_crypt_input2_append_input1    ||
@@ -6565,15 +6588,6 @@ static int isSHA2_512Func(DYNAMIC_primitive_funcp p) {
 		p==DynamicFunc__SHA512_crypt_input2_overwrite_input1_base16 || p==DynamicFunc__SHA512_crypt_input2_overwrite_input1 ||
 		p==DynamicFunc__SHA512_crypt_input1_to_output1_FINAL ||
 		p==DynamicFunc__SHA512_crypt_input2_to_output1_FINAL)
-		return 1;
-	return 0;
-}
-
-static int isMD4Func(DYNAMIC_primitive_funcp p) {
-	if (p==DynamicFunc__crypt_md4 ||
-		p==DynamicFunc__crypt2_md4 ||
-		p==DynamicFunc__crypt_md4_in1_to_out2 ||
-		p==DynamicFunc__crypt_md4_in2_to_out1)
 		return 1;
 	return 0;
 }
@@ -6674,6 +6688,69 @@ static int isLargeHashFinalFunc(DYNAMIC_primitive_funcp p) {
 		return 1;
 	return 0;
 }
+
+#ifdef _OPENMP
+// Simple euclid algorithm for GCD
+static int GCD (int a, int b) {
+	while (b) { 
+		int t = b;
+		b = a % b;
+		a = t;
+	}
+	return a;
+}
+// simple algorith for LCM is (a*b)/GCD(a,b)	
+static int LCM(int a, int b) {
+	a/=GCD(a,b);
+	return a*b;
+}
+
+static void dyna_setupOMP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt) {
+#ifndef MMX_COEF
+	curdat.omp_granularity=OMP_INC;
+#else
+	if ((curdat.pSetup->flags& MGF_NOTSSE2Safe) == MGF_NOTSSE2Safe)
+		curdat.omp_granularity=OMP_INC;
+	else {
+		int i;
+		curdat.omp_granularity = 1;
+		for (i=0; Setup->pFuncs[i]; ++i) {
+			if (isMD5Func(Setup->pFuncs[i]))
+				curdat.omp_granularity = LCM(curdat.omp_granularity, MD5_SSE_PARA*MMX_COEF);
+			else if (isMD4Func(Setup->pFuncs[i]))
+				curdat.omp_granularity = LCM(curdat.omp_granularity, MD4_SSE_PARA*MMX_COEF);
+			else if (isSHA1Func(Setup->pFuncs[i]))
+				curdat.omp_granularity = LCM(curdat.omp_granularity, SHA1_SSE_PARA*MMX_COEF);
+			else if (isSHA2_256Func(Setup->pFuncs[i]))
+#if MMX_COEF_SHA256
+	#if SHA256_SSE_PARA
+				curdat.omp_granularity = LCM(curdat.omp_granularity, SHA256_SSE_PARA*MMX_COEF_SHA256);
+	#else
+				curdat.omp_granularity = LCM(curdat.omp_granularity, MMX_COEF_SHA256);
+	#endif
+#else
+				curdat.omp_granularity=LCM(curdat.omp_granularity, OMP_INC);
+#endif
+			else if (isSHA2_512Func(Setup->pFuncs[i]))
+#if MMX_COEF_SHA512
+	#if SHA512_SSE_PARA
+				curdat.omp_granularity = LCM(curdat.omp_granularity, SHA512_SSE_PARA*MMX_COEF_SHA512);
+	#else
+				curdat.omp_granularity = LCM(curdat.omp_granularity, MMX_COEF_SHA512);
+	#endif
+#else
+				curdat.omp_granularity=LCM(curdat.omp_granularity, OMP_INC);
+#endif
+		}
+	}
+	// We still may have some areas where we MUST remove teh OMP flags for some format. At the current time ALL
+	// formats are running OMP.  I will see if there are things (like switching in/out of SSE, switching in/out
+	// of upcase, utf8, etc), which might cause global changes that disallow using OMP.  Again, right now all
+	// dyna are OMP happy, but that may not be the case.  The line below will turn off OMP on a single dyna type.
+//	pFmt->params.flags |= (~FMT_OMP);
+#endif
+}
+#endif	
 
 // XXX fix me at some point!
 ATTRIBUTE_NO_ADDRESS_SAFETY_ANALYSIS
@@ -7192,6 +7269,10 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 		return !fprintf(stderr, "Error invalid format %s: Error, no validation hash(s) for this format\n", Setup->szFORMAT_NAME);
 	}
 	cnt = 0;
+	
+#ifdef _OPENMP
+	dyna_setupOMP(Setup, pFmt);
+#endif
 
 	{
 		struct fmt_tests *pfx = mem_alloc_tiny(ARRAY_COUNT(dynamic_tests) * sizeof (struct fmt_tests), MEM_ALIGN_WORD);
