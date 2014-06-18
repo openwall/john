@@ -1178,7 +1178,7 @@ static DYNAMIC_primitive_funcp _Funcs_39[] =
 {
 	//MGF_SALTED
 	//MGF_FLAT_BUFFERS
-	DynamicFunc__clean_input_kwik,
+	DynamicFunc__clean_input,
 	DynamicFunc__append_salt,
 	DynamicFunc__append_keys_pad16,
 	DynamicFunc__MD5_crypt_input1_to_output1_FINAL,
@@ -1200,7 +1200,7 @@ static DYNAMIC_primitive_funcp _Funcs_40[] =
 	//MGF_INPUT_20_BYTE
 	//MGF_SALTED
 	//MGF_FLAT_BUFFERS
-	DynamicFunc__clean_input_kwik,
+	DynamicFunc__clean_input,
 	DynamicFunc__append_salt,
 	DynamicFunc__append_keys_pad16,
 	DynamicFunc__SHA1_crypt_input1_to_output1_FINAL,
