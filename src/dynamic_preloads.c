@@ -94,6 +94,8 @@
 //dynamic_36 -->sha1($u.:.$p) (ManGOS2)
 //dynamic_37 -->sha1(lc($u).$p) (SMF)
 //dynamic_38 -->sha1($s.sha1($s.sha1($p))) (Wolt3BB)
+//dynamic_39 -->md5($s.pad_16($p))      (Net-md5 passed password, long salts)
+//dynamic_40 -->sha1($s.pad_16($p))     (Net-sha1 passed password, long salts)
 	// Try to group sha224 here (from dyna-50 to dyna-59)
 //dynamic_50 -->sha224($p)
 //dynamic_51 -->sha224($s.$p)
@@ -1169,6 +1171,47 @@ MTL({"$dynamic_38$465bdbb99f9ede3a0a85d1773ceb693ceca10629$123456789012345678901
 	{NULL}
 };
 
+
+//$ ./pass_gen.pl  'dynamic=39'
+//dynamic_39 -->md5($s.pad_16($p))      (Net-md5 passed password, long salts)
+static DYNAMIC_primitive_funcp _Funcs_39[] =
+{
+	//MGF_SALTED
+	//MGF_FLAT_BUFFERS
+	DynamicFunc__clean_input_kwik,
+	DynamicFunc__append_salt,
+	DynamicFunc__append_keys_pad16,
+	DynamicFunc__MD5_crypt_input1_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_39[] =
+{
+	{"$dynamic_39$7d53f3e19b84242657361938a144536a$8WCoX6IuLNNs8VGgxCwubdW5IQgNffRn93DlpDVck29B1PY8Jr7KrIWdBA9p","test"}, // from pass_gen.pl
+	{"$dynamic_39$1e372a8a233c6556253a0909bc3dcce6$HEX$02020000ffff0003002c01145267d48d000000000000000000020000ac100100ffffff000000000000000001ffff0001","quagga"},
+	{"$dynamic_39$ed9f940c3276afcc06d15babe8a1b61b$HEX$02020000ffff0003002c01145267d48f000000000000000000020000ac100100ffffff000000000000000001ffff0001","quagga"},
+	{"$dynamic_39$4afe22cf1750d9af8775b25bcf9cfb8c$HEX$02020000ffff0003002c01145267e076000000000000000000020000ac100200ffffff000000000000000001ffff0001","abcdefghijklmnop"},
+	{NULL}
+};
+
+//$ ./pass_gen.pl  'dynamic=40'
+//dynamic_40 -->sha1($s.pad_16($p))     (Net-sha1 passed password, long salts)
+static DYNAMIC_primitive_funcp _Funcs_40[] =
+{
+	//MGF_INPUT_20_BYTE
+	//MGF_SALTED
+	//MGF_FLAT_BUFFERS
+	DynamicFunc__clean_input_kwik,
+	DynamicFunc__append_salt,
+	DynamicFunc__append_keys_pad16,
+	DynamicFunc__SHA1_crypt_input1_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_40[] =
+{
+	{"$dynamic_40$7236e720eaebe9eb3954c53db5cc19224a6cfeb3$HEX$02020000ffff0003002c01145267d48d000000000000000000020000ac100100ffffff000000000000000001ffff0001","quagga"},
+	{"$dynamic_40$71893ac93cb5511937d4a7189d390d14d9e013fd$HEX$02020000ffff0003002c01145267d48d000000000000000000020000ac100100ffffff000000000000000001ffff0001","magnum"},
+	{NULL}
+};
 
 //	dynamic_50: sha224($p)
 static DYNAMIC_primitive_funcp _Funcs_50[] =
@@ -3314,6 +3357,9 @@ static DYNAMIC_Setup Setups[] =
 	{ "dynamic_36: sha1($u.:.$p) (ManGOS2)",    _Funcs_36,_Preloads_36,_Const_36,     MGF_FLAT_BUFFERS|MGF_USERNAME, MGF_INPUT_20_BYTE, -23 },
 	{ "dynamic_37: sha1(lc($u).$p) (SMF)",      _Funcs_37,_Preloads_37,_ConstDefault,MGF_FLAT_BUFFERS| MGF_USERNAME, MGF_INPUT_20_BYTE, -23 },
 	{ "dynamic_38: sha1($s.sha1($s.sha1($p))) (Wolt3BB)",  _Funcs_38,_Preloads_38,_ConstDefault, MGF_SALTED|MGF_FLAT_BUFFERS, MGF_INPUT_20_BYTE, -23 },
+	{ "dynamic_39: md5($s.pad16($p)) (net-md5)",  _Funcs_39,_Preloads_39,_ConstDefault, MGF_SALTED|MGF_FLAT_BUFFERS, MGF_NO_FLAG, -230, 16, 16 },
+	{ "dynamic_40: sha1($s.pad16($p)) (net-sha1)",  _Funcs_40,_Preloads_40,_ConstDefault, MGF_SALTED|MGF_FLAT_BUFFERS, MGF_INPUT_20_BYTE, -230, 16, 16 },
+	
 	// Try to group sha224 here (from dyna-50 to dyna-59)
 	{ "dynamic_50: sha224($p)",                  _Funcs_50,_Preloads_50,_ConstDefault, MGF_FLAT_BUFFERS, MGF_KEYS_INPUT|MGF_INPUT_28_BYTE },
 	{ "dynamic_51: sha224($s.$p)",               _Funcs_51,_Preloads_51,_ConstDefault, MGF_SALTED|MGF_FLAT_BUFFERS, MGF_INPUT_28_BYTE, -20 },

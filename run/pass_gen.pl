@@ -1844,6 +1844,14 @@ sub wbb3 {
 ############################################################
 #  DYNAMIC code.  Quite a large block.  Many 'fixed' formats, and then a parser
 ############################################################
+sub pad16 { # used by pad16($p)  This will null pad a string to 16 bytes long
+	my $p = $_[0];
+	while (length($p) < 16) {
+		$p .= "\0";
+	}
+	return $p;
+}
+
 sub dynamic_7 { #dynamic_7 --> md5(md5($p).$s)
 	if (defined $argsalt) {
 		$salt = $argsalt;
@@ -2028,6 +2036,8 @@ sub dynamic_compile {
 			$dynamic_args==36 && do {$fmt='sha1($u.$c1.$p),usrname=true,const1=:';	last SWITCH; };
 			$dynamic_args==37 && do {$fmt='sha1($u.$p),usrname=lc';		last SWITCH; };
 			$dynamic_args==38 && do {$fmt='sha1($s.sha1($s.sha1($p))),saltlen=20';	last SWITCH; };
+			$dynamic_args==39 && do {$fmt='md5($s.pad16($p)),saltlen=60';	last SWITCH; };
+			$dynamic_args==40 && do {$fmt='sha1($s.pad16($p)),saltlen=60';	last SWITCH; };
 			$dynamic_args==50 && do {$fmt='sha224($p)';					last SWITCH; };
 			$dynamic_args==51 && do {$fmt='sha224($s.$p),saltlen=6';	last SWITCH; };
 			$dynamic_args==52 && do {$fmt='sha224($p.$s)';				last SWITCH; };
@@ -2247,6 +2257,7 @@ sub do_dynamic_GetToken {
 	if (substr($exprStr, 0,13) eq "ripemd256_raw") { push(@gen_toks, "frip256r"); return substr($exprStr,13); }
 	if (substr($exprStr, 0,13) eq "ripemd320_raw") { push(@gen_toks, "frip320r"); return substr($exprStr,13); }
 	if (substr($exprStr, 0,12) eq "haval256_raw")  { push(@gen_toks, "fhavr"); return substr($exprStr,12); }
+	if (substr($exprStr, 0,5)  eq "pad16")         { push(@gen_toks, "fpad16"); return substr($exprStr,5); }
 
 	$gen_lastTokIsFunc=1;
 	$stmp = uc substr($exprStr, 0, 3);
@@ -2819,3 +2830,4 @@ sub dynamic_fhav6  { require Digest::Haval256; $h = pop @gen_Stack; $h = haval25
 sub dynamic_fhave  { require Digest::Haval256; $h = pop @gen_Stack; $h = haval256_base64($h); while (length($h)%4) { $h .= "="; } $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_fhavu  { require Digest::Haval256; $h = pop @gen_Stack; $h = haval256_hex(encode("UTF-16LE",$h)); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_fhavr  { require Digest::Haval256; $h = pop @gen_Stack; $h = haval256($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_fpad16 { $h = pop @gen_Stack; $h = pad16($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }

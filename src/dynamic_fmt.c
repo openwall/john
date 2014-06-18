@@ -3485,6 +3485,52 @@ void DynamicFunc__append_keys(DYNA_OMP_PARAMS)
 	}
 }
 
+//  DynamicFunc__append_keys_pad16
+//    append the array of keys to the array input1[], padding with nulls to 16 bytes, if input shorter.
+//    Needed for net-md5 and net-sha1 formats.
+void DynamicFunc__append_keys_pad16(DYNA_OMP_PARAMS)
+{
+	unsigned j;
+	unsigned til;
+#ifdef _OPENMP
+	til = last;
+	j = first;
+#else
+	j = 0;
+	til = m_count;
+#endif
+#ifdef MMX_COEF
+	if (dynamic_use_sse==1) {
+		for (; j < til; ++j) {
+			unsigned idx = (j>>(MMX_COEF>>1));
+			unsigned idx_mod = j&(MMX_COEF-1);
+			unsigned bf_ptr = (total_len[idx] >> ((32/MMX_COEF)*idx_mod)) & 0xFF;
+			saved_key[j][saved_key_len[j]] = 0; // so strncpy 'works'
+			if (saved_key_len[j] < 16) {
+				char buf[17];
+				strncpy(buf, saved_key[j], 17);
+				total_len[idx] += (16 << ((32/MMX_COEF)*idx_mod));
+				__SSE_append_string_to_input(input_buf[idx].c,idx_mod,(unsigned char*)buf,16,bf_ptr,1);
+			} else {
+				total_len[idx] += (saved_key_len[j] << ((32/MMX_COEF)*idx_mod));
+				__SSE_append_string_to_input(input_buf[idx].c,idx_mod,(unsigned char*)saved_key[j],saved_key_len[j],bf_ptr,1);
+			}
+		}
+		return;
+	}
+#endif
+	for (; j < til; ++j) {
+		saved_key[j][saved_key_len[j]] = 0;  // so strncpy 'works'
+#if MD5_X2
+		if (j&1)
+			strncpy(&(input_buf_X86[j>>MD5_X2].x2.b2[total_len_X86[j]]), saved_key[j], 17);
+		else
+#endif
+		strncpy(&(input_buf_X86[j>>MD5_X2].x1.b[total_len_X86[j]]), saved_key[j], 17);
+		total_len_X86[j] += 16;
+	}
+}
+
 /**************************************************************
  * DYNAMIC primitive helper function
  * Appends all keys to the end of the 2nd input variables, and

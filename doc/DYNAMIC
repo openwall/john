@@ -157,7 +157,9 @@ dynamic_34  | md5(md4($p))            | No    |
 dynamic_35  | sha1(uc($u).:.$p)       | Yes   | ManGOS
 dynamic_36  | sha1($u.:.$p)           | Yes   | ManGOS2
 dynamic_37  | sha1(lc($u).$p)         | Yes   | SMF
-dynamic_38  | sha1($s.sha1($s.sha1($p)))} YES | Wolt3BB
+dynamic_38  | sha1($s.sha1($s.sha1($p)))| Yes | Wolt3BB
+dynamic_39  | md5($s.pad_16($p))      | Yes   | Net-md5.  Long salt, passwords are 16 bytes, null padded for under 16 bytes
+dynamic_40  | sha1($s.pad_16($p))     | Yes   | Net-sha1.  Long salt, passwords are 16 bytes, null padded for under 16 bytes
 dynamic_50  | sha224($p)              | No    |
 dynamic_51  | sha224($s.$p)           | Yes   |
 dynamic_52  | sha224($p.$s)           | Yes   |
@@ -615,6 +617,10 @@ examples (this whole list is also found in dynamic.conf).
 #
 #  DynamicFunc__append_keys
 #     append the array of keys to the array input1[]
+#
+#  DynamicFunc__append_keys_pad16
+#     append the array of keys to the array input1[], padding with nulls to 16 bytes, if input shorter.
+#     Needed for net-md5 and net-sha1 formats.
 #
 #  DynamicFunc__append_keys2
 #     append the array of keys to the array input2[]

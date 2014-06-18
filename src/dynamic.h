@@ -188,6 +188,7 @@ extern void DynamicFunc__clean_input(DYNA_OMP_PARAMS);
 extern void DynamicFunc__clean_input_kwik(DYNA_OMP_PARAMS);
 extern void DynamicFunc__clean_input_full(DYNA_OMP_PARAMS);
 extern void DynamicFunc__append_keys(DYNA_OMP_PARAMS);
+extern void DynamicFunc__append_keys_pad16(DYNA_OMP_PARAMS);
 extern void DynamicFunc__crypt_md5(DYNA_OMP_PARAMS);
 extern void DynamicFunc__crypt_md4(DYNA_OMP_PARAMS);
 extern void DynamicFunc__append_from_last_output_as_base16(DYNA_OMP_PARAMS);

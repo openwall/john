@@ -92,6 +92,7 @@ static Dynamic_Predicate_t Dynamic_Predicate[] =  {
 	{ "DynamicFunc__clean_input_kwik", DynamicFunc__clean_input_kwik },
 	{ "DynamicFunc__clean_input_full", DynamicFunc__clean_input_full },
 	{ "DynamicFunc__append_keys", DynamicFunc__append_keys },
+	{ "DynamicFunc__append_keys_pad16", DynamicFunc__append_keys_pad16 },
 	{ "DynamicFunc__crypt", DynamicFunc__crypt_md5 },  // legacy name.  Now the function is explicit to md5, but we still handle deprecated format
 	{ "DynamicFunc__crypt_md5", DynamicFunc__crypt_md5 },
 	{ "DynamicFunc__crypt_md4", DynamicFunc__crypt_md4 },
