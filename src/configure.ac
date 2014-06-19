@@ -153,8 +153,9 @@ AS_IF([test "x$JTR_FLAG_CHECK_WORKS" = xyes],
    # Silly OSX warnings
    JTR_FLAG_CHECK([-Wno-deprecated-declarations], 1)
    # clang warnings
-   #JTR_FLAG_CHECK([-Wno-format-extra-args], 1)
+   JTR_FLAG_CHECK([-Wno-format-extra-args], 1)
    #JTR_FLAG_CHECK([-Wno-unneeded-internal-declaration], 1)
+   JTR_FLAG_CHECK([-Qunused-arguments],1)
    JTR_LIST_ADD(CFLAGS_EXTRA, ["$CFLAGS_EX"])
 ],[dnl
    AC_MSG_NOTICE([Unable to validate $CC command line arguments. CFLAGS may need to be passed to ./configure for proper build])
