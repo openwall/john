@@ -126,6 +126,7 @@ that probably work fine but these instructions are for "Homebrew":
 	http://mxcl.github.io/homebrew/
   2. Install Homebrew's gcc and openssl:
 	brew install gcc openssl
+	brew link --force openssl
   3. From John's "src" directory:
 	cp -avi osx_as_wrapper.sh /usr/local/bin/as
   4. Link whatever gcc version you got from Homebrew to just "gcc" in the
