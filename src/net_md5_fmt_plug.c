@@ -95,7 +95,7 @@ static char *Convert(char *Buf, char *ciphertext)
 	cp2 = strchr(&cp[1], '$');
 	if (!cp2)
 		return "*";
-	snprintf(Buf, sizeof(Conv_Buf), "$dynamic_39$%s$HEX%*.*s", &cp2[1], cp2-cp,cp2-cp, cp);
+	snprintf(Buf, sizeof(Conv_Buf), "$dynamic_39$%s$HEX%*.*s", &cp2[1], (int)(cp2-cp), (int)(cp2-cp), cp);
 	return Buf;
 }
 
