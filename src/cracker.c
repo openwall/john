@@ -535,6 +535,9 @@ int crk_reload_pot(void)
 
 #ifdef DEBUG
 	end = times(&buffer);
+#if defined(_SC_CLK_TCK) && !defined(CLK_TCK)
+#define CLK_TCK	sysconf(_SC_CLK_TCK)
+#endif
 	fprintf(stderr, "%d: potsync removed %d hashes in %lu ms (%lu ms finding salts); %s\n", options.node_min, others, 1000UL*(end - start)/CLK_TCK, 1000UL * salt_time / CLK_TCK, crk_loaded_counts());
 #endif
 
