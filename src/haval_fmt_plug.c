@@ -39,6 +39,7 @@ static int omp_t = 1;
 
 static struct fmt_tests haval_256_3_tests[] = {
 	{"$haval$91850C6487C9829E791FC5B58E98E372F3063256BB7D313A93F1F83B426AEDCC", "HAVAL"},
+	{"91850C6487C9829E791FC5B58E98E372F3063256BB7D313A93F1F83B426AEDCC", "HAVAL"},
 	{NULL}
 };
 
@@ -64,7 +65,7 @@ static void init(struct fmt_main *self)
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
-static int valid(char *ciphertext, struct fmt_main *self)
+static int valid(char *ciphertext, struct fmt_main *self, int len)
 {
 	char *p;
 
@@ -72,13 +73,28 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	if (!strncmp(p, FORMAT_TAG, TAG_LENGTH))
 		p += TAG_LENGTH;
-	if (strlen(p) != 32 && strlen(p) != 64)
+	if (strlen(p) != len)
 		return 0;
 
 	while(*p)
 		if(atoi16[ARCH_INDEX(*p++)]==0x7f)
 			return 0;
 	return 1;
+}
+
+/* we need independant valids, since the $haval$ signature is the same */
+/* otherwise, if we have input with a mix of both types, then ALL of them */
+/* will validate, even though  only the ones of the proper type will actually */
+/* be tested.  If we had a singleton crypt function (which both 128-4 and */
+/* 256-3 used, then a single valid would also work. But since each have */
+/* their own crypt, and they are NOT compatible, then we need separate valids */
+static int valid3(char *ciphertext, struct fmt_main *self)
+{
+	return valid(ciphertext, self, 64);
+}
+static int valid4(char *ciphertext, struct fmt_main *self)
+{
+	return valid(ciphertext, self, 32);
 }
 
 static void *get_binary_256(char *ciphertext)
@@ -210,6 +226,22 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
+static char *prepare(char *fields[10], struct fmt_main *self) {
+	static char buf[80];
+	char *hash = fields[1];
+	int len = strlen(hash);
+	if (len == 32 || len == 64) {
+		int i;
+		for (i = 0; i < len; ++i) {
+			if (atoi16[ARCH_INDEX(hash[i])] == 0x7F)
+				return hash;
+		}
+		sprintf(buf, "%s%s", FORMAT_TAG, hash);
+		return buf;
+	}
+	return hash;	
+}
+
 struct fmt_main fmt_haval_256_3 = {
 	{
 		"haval-256-3",
@@ -233,8 +265,8 @@ struct fmt_main fmt_haval_256_3 = {
 		init,
 		fmt_default_done,
 		fmt_default_reset,
-		fmt_default_prepare,
-		valid,
+		prepare,
+		valid3,
 		fmt_default_split,
 		get_binary_256,
 		fmt_default_salt,
@@ -296,8 +328,8 @@ struct fmt_main fmt_haval_128_4 = {
 		init,
 		fmt_default_done,
 		fmt_default_reset,
-		fmt_default_prepare,
-		valid,
+		prepare,
+		valid4,
 		fmt_default_split,
 		get_binary_128,
 		fmt_default_salt,
