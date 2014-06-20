@@ -729,8 +729,8 @@ void listconf_parse_late(void)
 					const char separator = '\t';
 					char *ciphertext;
 
-					ciphertext = format->params.tests[ntests].ciphertext;
-					if (ciphertext[ 0] == '\0')
+//					ciphertext = format->params.tests[ntests].ciphertext;
+//					if (ciphertext[ 0] == '\0')
 						ciphertext = format->methods.prepare(format->params.tests[ntests].fields,
 						                                     format);
 					/*
