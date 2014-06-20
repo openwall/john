@@ -28,6 +28,7 @@
 #include "common.h"
 #include "params.h"
 #include "options.h"
+
 #include "memdbg.h"
 
 #define FORMAT_LABEL            "net-md5"
@@ -79,14 +80,14 @@ static struct custom_salt {
 } *cur_salt;
 
 static char Conv_Buf[300]; // max salt length we will pass to dyna is 230.  300 is MORE than enough.
-static struct fmt_main *pDynamic_39, *pNetMd5_Dyna;
+static struct fmt_main *pDynamicFmt, *pNetMd5_Dyna;
 
-/* this function converts a 'native' phps signature string into a $dynamic_6$ syntax string */
+/* this function converts a 'native' net-md5 signature string into a $dynamic_39$ syntax string */
 static char *Convert(char *Buf, char *ciphertext)
 {
 	char *cp, *cp2;
 
-	if (text_in_dynamic_format_already(pDynamic_39, ciphertext))
+	if (text_in_dynamic_format_already(pDynamicFmt, ciphertext))
 		return ciphertext;
 
 	cp = strchr(&ciphertext[2], '$');
@@ -143,7 +144,7 @@ static void *get_salt(char *ciphertext)
 			atoi16[ARCH_INDEX(ciphertext[2 * i + 1])];
 
 	if (len < 230) {
-		return pDynamic_39->methods.salt(Convert(Conv_Buf, orig_ct));
+		return pDynamicFmt->methods.salt(Convert(Conv_Buf, orig_ct));
 	}
 	cs.magic = MAGIC;
 	cs.length = len;
@@ -170,20 +171,20 @@ static void *get_binary(char *ciphertext)
 	return out;
 }
 
-static int get_hash_0(int index) { if (cur_salt->magic != MAGIC) return pDynamic_39->methods.get_hash[0](index); return crypt_out[index][0] & 0xf; }
-static int get_hash_1(int index) { if (cur_salt->magic != MAGIC) return pDynamic_39->methods.get_hash[1](index); return crypt_out[index][0] & 0xff; }
-static int get_hash_2(int index) { if (cur_salt->magic != MAGIC) return pDynamic_39->methods.get_hash[2](index); return crypt_out[index][0] & 0xfff; }
-static int get_hash_3(int index) { if (cur_salt->magic != MAGIC) return pDynamic_39->methods.get_hash[3](index); return crypt_out[index][0] & 0xffff; }
-static int get_hash_4(int index) { if (cur_salt->magic != MAGIC) return pDynamic_39->methods.get_hash[4](index); return crypt_out[index][0] & 0xfffff; }
-static int get_hash_5(int index) { if (cur_salt->magic != MAGIC) return pDynamic_39->methods.get_hash[5](index); return crypt_out[index][0] & 0xffffff; }
-static int get_hash_6(int index) { if (cur_salt->magic != MAGIC) return pDynamic_39->methods.get_hash[6](index); return crypt_out[index][0] & 0x7ffffff; }
+static int get_hash_0(int index) { if (cur_salt->magic != MAGIC) return pDynamicFmt->methods.get_hash[0](index); return crypt_out[index][0] & 0xf; }
+static int get_hash_1(int index) { if (cur_salt->magic != MAGIC) return pDynamicFmt->methods.get_hash[1](index); return crypt_out[index][0] & 0xff; }
+static int get_hash_2(int index) { if (cur_salt->magic != MAGIC) return pDynamicFmt->methods.get_hash[2](index); return crypt_out[index][0] & 0xfff; }
+static int get_hash_3(int index) { if (cur_salt->magic != MAGIC) return pDynamicFmt->methods.get_hash[3](index); return crypt_out[index][0] & 0xffff; }
+static int get_hash_4(int index) { if (cur_salt->magic != MAGIC) return pDynamicFmt->methods.get_hash[4](index); return crypt_out[index][0] & 0xfffff; }
+static int get_hash_5(int index) { if (cur_salt->magic != MAGIC) return pDynamicFmt->methods.get_hash[5](index); return crypt_out[index][0] & 0xffffff; }
+static int get_hash_6(int index) { if (cur_salt->magic != MAGIC) return pDynamicFmt->methods.get_hash[6](index); return crypt_out[index][0] & 0x7ffffff; }
 
 static void set_salt(void *salt)
 {
 	cur_salt = (struct custom_salt *)salt;
 	get_ptr();
 	if (cur_salt->magic != MAGIC) {
-		pDynamic_39->methods.set_salt(salt);
+		pDynamicFmt->methods.set_salt(salt);
 	}
 }
 
@@ -191,8 +192,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
 	int index = 0;
+
 	if (cur_salt->magic != MAGIC) {
-		return pDynamic_39->methods.crypt_all(pcount, salt);
+		return pDynamicFmt->methods.crypt_all(pcount, salt);
 	}
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -213,7 +215,7 @@ static int cmp_all(void *binary, int count)
 {
 	int index = 0;
 	if (cur_salt->magic != MAGIC) {
-		return pDynamic_39->methods.cmp_all(binary, count);
+		return pDynamicFmt->methods.cmp_all(binary, count);
 	}
 	for (; index < count; index++)
 		if (((ARCH_WORD_32*)binary)[0] == crypt_out[index][0])
@@ -224,7 +226,7 @@ static int cmp_all(void *binary, int count)
 static int cmp_one(void *binary, int index)
 {
 	if (cur_salt->magic != MAGIC) {
-		return pDynamic_39->methods.cmp_one(binary, index);
+		return pDynamicFmt->methods.cmp_one(binary, index);
 	}
 	return !memcmp(binary, crypt_out[index], BINARY_SIZE);
 }
@@ -237,10 +239,9 @@ static int cmp_exact(char *source, int index)
 static void netmd5_set_key(char *key, int index)
 {
 	if (cur_salt->magic != MAGIC) {
-		pDynamic_39->methods.set_key(key, index);
+		pDynamicFmt->methods.set_key(key, index);
 		return;
 	}
-
 	/* strncpy will pad with zeros, which is needed */
 	strncpy(saved_key[index], key, sizeof(saved_key[0]));
 }
@@ -248,7 +249,7 @@ static void netmd5_set_key(char *key, int index)
 static char *get_key(int index)
 {
 	if (cur_salt->magic != MAGIC) {
-		return pDynamic_39->methods.get_key(index);
+		return pDynamicFmt->methods.get_key(index);
 	}
 	return saved_key[index];
 }
@@ -316,26 +317,23 @@ struct fmt_main fmt_netmd5 = {
 };
 
 static void get_ptr() {
-	if (!pDynamic_39) {
+	if (!pDynamicFmt) {
+		char *Buf;
 		pNetMd5_Dyna = mem_alloc_tiny(sizeof(fmt_netmd5), 16);
 		memcpy(pNetMd5_Dyna, &fmt_netmd5, sizeof(fmt_netmd5));
 		
-		pDynamic_39 = dynamic_THIN_FORMAT_LINK(pNetMd5_Dyna, Convert(Conv_Buf, tests[0].ciphertext), "net-md5", 0);
-		fmt_netmd5.params.min_keys_per_crypt = pDynamic_39->params.min_keys_per_crypt;
-		fmt_netmd5.params.max_keys_per_crypt = pDynamic_39->params.max_keys_per_crypt;
-		pDynamic_39->methods.init(pDynamic_39);
+		pDynamicFmt = dynamic_THIN_FORMAT_LINK(pNetMd5_Dyna, Convert(Conv_Buf, tests[0].ciphertext), "net-md5", 0);
+		fmt_netmd5.params.min_keys_per_crypt = pDynamicFmt->params.min_keys_per_crypt;
+		fmt_netmd5.params.max_keys_per_crypt = pDynamicFmt->params.max_keys_per_crypt;
+		Buf = mem_alloc_tiny(strlen(fmt_netmd5.params.algorithm_name) + 4 + strlen("dynamic_39") + 1, 1);
+		sprintf(Buf, "%s or %s", fmt_netmd5.params.algorithm_name, "dynamic_39");
+		fmt_netmd5.params.algorithm_name = Buf;
+		pDynamicFmt->methods.init(pDynamicFmt);
 	}
 }
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
-	int omp_t = omp_get_num_threads();
-
-	self->params.min_keys_per_crypt *= omp_t;
-	omp_t *= OMP_SCALE;
-	self->params.max_keys_per_crypt *= omp_t;
-#endif
 	// We have to allocate our dyna_39 object first, because we get 'modified' min/max counts from there.
 	if (self->private.initialized == 0) {
 		get_ptr();
