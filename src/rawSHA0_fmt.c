@@ -39,6 +39,7 @@
 
 static struct fmt_tests tests[] = {
 	{"17e7ba749415d4d332447a43830ef39ac8100ab8", "magnum"},
+	{FORMAT_TAG "17e7ba749415d4d332447a43830ef39ac8100ab8", "magnum"},
 	{FORMAT_TAG "f96cea198ad1dd5617ac084a3d92c6107708c0ef", ""},
 	{NULL}
 };

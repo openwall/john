@@ -40,11 +40,13 @@ static int omp_t = 1;
 
 static struct fmt_tests snefru_128_tests[] = {
 	{"$snefru$53b8a9b1c9ed00174d88d705fb7bae30", "mystrongpassword"},
+	{"53b8a9b1c9ed00174d88d705fb7bae30", "mystrongpassword"},
 	{NULL}
 };
 
 static struct fmt_tests snefru_256_tests[] = {
 	{"$snefru$4170e04e900e6221562ceb5ff6ea27fa9b9b0d9587add44a4379a02619c5a106", "mystrongpassword"},
+	{"4170e04e900e6221562ceb5ff6ea27fa9b9b0d9587add44a4379a02619c5a106", "mystrongpassword"},
 	{NULL}
 };
 
@@ -64,8 +66,7 @@ static void init(struct fmt_main *self)
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
-// XXX fix me
-static int valid(char *ciphertext, struct fmt_main *self)
+static int valid(char *ciphertext, struct fmt_main *self, int len)
 {
 	char *p;
 
@@ -73,7 +74,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	if (!strncmp(p, FORMAT_TAG, TAG_LENGTH))
 		p += TAG_LENGTH;
-	if (strlen(p) != 32 && strlen(p) != 64)
+	if (strlen(p) != len)
 		return 0;
 
 	while(*p)
@@ -81,6 +82,15 @@ static int valid(char *ciphertext, struct fmt_main *self)
 			return 0;
 
 	return 1;
+}
+
+static int valid256(char *ciphertext, struct fmt_main *self)
+{
+	return valid(ciphertext, self, 64);
+}
+static int valid128(char *ciphertext, struct fmt_main *self)
+{
+	return valid(ciphertext, self, 32);
 }
 
 static void *get_binary_256(char *ciphertext)
@@ -213,6 +223,17 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
+static char *prepare(char *fields[10], struct fmt_main *self) {
+	static char buf[64+TAG_LENGTH+1];
+	char *hash = fields[1];
+	int len = strlen(hash);
+	if ( (len == 64 || len == 32) && valid(hash, self, len) ) {
+		sprintf(buf, "%s%s", FORMAT_TAG, hash);
+		return buf;
+	}
+	return hash;	
+}
+
 struct fmt_main fmt_snefru_256 = {
 	{
 		"Snefru-256",
@@ -236,8 +257,8 @@ struct fmt_main fmt_snefru_256 = {
 		init,
 		fmt_default_done,
 		fmt_default_reset,
-		fmt_default_prepare,
-		valid,
+		prepare,
+		valid256,
 		fmt_default_split,
 		get_binary_256,
 		fmt_default_salt,
@@ -299,8 +320,8 @@ struct fmt_main fmt_snefru_128 = {
 		init,
 		fmt_default_done,
 		fmt_default_reset,
-		fmt_default_prepare,
-		valid,
+		prepare,
+		valid128,
 		fmt_default_split,
 		get_binary_128,
 		fmt_default_salt,

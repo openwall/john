@@ -57,6 +57,7 @@
 static struct fmt_tests tests[] = {
 	{"8a9d093f14f8701df17732b2bb182c74", "password"},
 	{FORMAT_TAG "6d78785c44ea8dfa178748b245d8c3ae", "magnum" },
+	{"6d78785c44ea8dfa178748b245d8c3ae", "magnum" },
 	{FORMAT_TAG "31d6cfe0d16ae931b73c59d7e0c089c0", "" },
 	{FORMAT_TAG "934eb897904769085af8101ad9dabca2", "John the ripper" },
 	{FORMAT_TAG "cafbb81fb64d9dd286bc851c4c6e0d21", "lolcode" },

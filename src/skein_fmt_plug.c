@@ -41,11 +41,13 @@ static int omp_t = 1;
 
 static struct fmt_tests skein_256_tests[] = {
 	{"$skein$39CCC4554A8B31853B9DE7A1FE638A24CCE6B35A55F2431009E18780335D2621", ""},
+	{"39CCC4554A8B31853B9DE7A1FE638A24CCE6B35A55F2431009E18780335D2621", ""},
 	{NULL}
 };
 
 static struct fmt_tests skein_512_tests[] = {
 	{"$skein$71b7bce6fe6452227b9ced6014249e5bf9a9754c3ad618ccc4e0aae16b316cc8ca698d864307ed3e80b6ef1570812ac5272dc409b5a012df2a579102f340617a", "\xff"},
+	{"71b7bce6fe6452227b9ced6014249e5bf9a9754c3ad618ccc4e0aae16b316cc8ca698d864307ed3e80b6ef1570812ac5272dc409b5a012df2a579102f340617a", "\xff"},
 	{"$skein$BC5B4C50925519C290CC634277AE3D6257212395CBA733BBAD37A4AF0FA06AF41FCA7903D06564FEA7A2D3730DBDB80C1F85562DFCC070334EA4D1D9E72CBA7A", ""},
 	{NULL}
 };
@@ -66,7 +68,7 @@ static void init(struct fmt_main *self)
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
-static int valid(char *ciphertext, struct fmt_main *self)
+static int valid(char *ciphertext, struct fmt_main *self, int len)
 {
 	char *p;
 
@@ -74,13 +76,22 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	if (!strncmp(p, FORMAT_TAG, TAG_LENGTH))
 		p += TAG_LENGTH;
-	if (strlen(p) != 64 && strlen(p) != 128)
+	if (strlen(p) != len)
 		return 0;
 
 	while(*p)
 		if(atoi16[ARCH_INDEX(*p++)]==0x7f)
 			return 0;
 	return 1;
+}
+
+static int valid256(char *ciphertext, struct fmt_main *self)
+{
+	return valid(ciphertext, self, 64);
+}
+static int valid512(char *ciphertext, struct fmt_main *self)
+{
+	return valid(ciphertext, self, 128);
 }
 
 static void *get_binary_256(char *ciphertext)
@@ -212,6 +223,17 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
+static char *prepare(char *fields[10], struct fmt_main *self) {
+	static char buf[128+TAG_LENGTH+1];
+	char *hash = fields[1];
+	int len = strlen(hash);
+	if ( (len == 64 || len == 128) && valid(hash, self, len) ) {
+		sprintf(buf, "%s%s", FORMAT_TAG, hash);
+		return buf;
+	}
+	return hash;	
+}
+
 struct fmt_main fmt_skein_256 = {
 	{
 		"skein-256",
@@ -235,8 +257,8 @@ struct fmt_main fmt_skein_256 = {
 		init,
 		fmt_default_done,
 		fmt_default_reset,
-		fmt_default_prepare,
-		valid,
+		prepare,
+		valid256,
 		fmt_default_split,
 		get_binary_256,
 		fmt_default_salt,
@@ -298,8 +320,8 @@ struct fmt_main fmt_skein_512 = {
 		init,
 		fmt_default_done,
 		fmt_default_reset,
-		fmt_default_prepare,
-		valid,
+		prepare,
+		valid512,
 		fmt_default_split,
 		get_binary_512,
 		fmt_default_salt,

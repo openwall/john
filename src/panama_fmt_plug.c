@@ -40,6 +40,7 @@ static int omp_t = 1;
 
 static struct fmt_tests panama__tests[] = {
 	{"$panama$049d698307d8541f22870dfa0a551099d3d02bc6d57c610a06a4585ed8d35ff8", "T"},
+	{"049d698307d8541f22870dfa0a551099d3d02bc6d57c610a06a4585ed8d35ff8", "T"},
 	{NULL}
 };
 
@@ -68,7 +69,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	if (!strncmp(p, FORMAT_TAG, TAG_LENGTH))
 		p += TAG_LENGTH;
-	if (strlen(p) != 64)
+	if (strlen(p) != BINARY_SIZE*2)
 		return 0;
 	while(*p)
 		if(atoi16[ARCH_INDEX(*p++)]==0x7f)
@@ -80,7 +81,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 static void *get_binary(char *ciphertext)
 {
 	static union {
-		unsigned char c[32];
+		unsigned char c[BINARY_SIZE];
 		ARCH_WORD dummy;
 	} buf;
 	unsigned char *out = buf.c;
@@ -163,6 +164,16 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
+static char *prepare(char *fields[10], struct fmt_main *self) {
+	static char buf[BINARY_SIZE*2+TAG_LENGTH+1];
+	char *hash = fields[1];
+	if (strlen(hash) == BINARY_SIZE*2 && valid(hash, self)) {
+		sprintf(buf, "%s%s", FORMAT_TAG, hash);
+		return buf;
+	}
+	return hash;	
+}
+
 struct fmt_main fmt_panama_ = {
 	{
 		FORMAT_LABEL,
@@ -186,7 +197,7 @@ struct fmt_main fmt_panama_ = {
 		init,
 		fmt_default_done,
 		fmt_default_reset,
-		fmt_default_prepare,
+		prepare,
 		valid,
 		fmt_default_split,
 		get_binary,

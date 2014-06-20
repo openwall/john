@@ -54,6 +54,7 @@
 
 static struct fmt_tests tests[] = {
 	{"5a105e8b9d40e1329780d62ea2265d8a","test1"},
+	{FORMAT_TAG "5a105e8b9d40e1329780d62ea2265d8a","test1"},
 	{FORMAT_TAG "378e2c4a07968da2eca692320136433d","thatsworking"},
 	{FORMAT_TAG "8ad8757baa8564dc136c1e07507f4a98","test3"},
 	{"d41d8cd98f00b204e9800998ecf8427e", ""},

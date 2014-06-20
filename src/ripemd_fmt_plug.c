@@ -65,7 +65,7 @@ static void init(struct fmt_main *self)
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
-static int valid(char *ciphertext, struct fmt_main *self)
+static int valid(char *ciphertext, struct fmt_main *self, int len)
 {
 	char *p;
 
@@ -73,7 +73,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	if (!strncmp(p, FORMAT_TAG, TAG_LENGTH))
 		p += TAG_LENGTH;
-	if (strlen(p) != 32 && strlen(p) != 40)
+	if (strlen(p) != len)
 		return 0;
 
 	while(*p)
@@ -81,6 +81,15 @@ static int valid(char *ciphertext, struct fmt_main *self)
 			return 0;
 
 	return 1;
+}
+
+static int valid160(char *ciphertext, struct fmt_main *self)
+{
+	return valid(ciphertext, self, 40);
+}
+static int valid128(char *ciphertext, struct fmt_main *self)
+{
+	return valid(ciphertext, self, 32);
 }
 
 static void *get_binary_160(char *ciphertext)
@@ -212,6 +221,17 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
+static char *prepare(char *fields[10], struct fmt_main *self) {
+	static char buf[40+TAG_LENGTH+1];
+	char *hash = fields[1];
+	int len = strlen(hash);
+	if ( (len == 40 || len == 32) && valid(hash, self, len) ) {
+		sprintf(buf, "%s%s", FORMAT_TAG, hash);
+		return buf;
+	}
+	return hash;	
+}
+
 struct fmt_main fmt_ripemd_160 = {
 	{
 		"ripemd-160",
@@ -235,8 +255,8 @@ struct fmt_main fmt_ripemd_160 = {
 		init,
 		fmt_default_done,
 		fmt_default_reset,
-		fmt_default_prepare,
-		valid,
+		prepare,
+		valid160,
 		fmt_default_split,
 		get_binary_160,
 		fmt_default_salt,
@@ -298,8 +318,8 @@ struct fmt_main fmt_ripemd_128 = {
 		init,
 		fmt_default_done,
 		fmt_default_reset,
-		fmt_default_prepare,
-		valid,
+		prepare,
+		valid128,
 		fmt_default_split,
 		get_binary_128,
 		fmt_default_salt,

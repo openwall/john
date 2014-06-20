@@ -85,6 +85,7 @@ static struct fmt_tests tests[] = {
 #ifdef TEST_SHA224
 	/* SHA224 */
 	{"5475c89bd2508afc95ecbc0ba90accbd0c2e5e9e8c8625a96389499f", "epixoip"},
+	{FORMAT_TAG "5475c89bd2508afc95ecbc0ba90accbd0c2e5e9e8c8625a96389499f", "epixoip"},
 	{"287b64fd40a2fb97b9f2615a3ef1ecfce06d27325d8f44637e4893c1", "doesthiswork"},
     {"d63dc919e201d7bc4c825630d2cf25fdc93d4b2f0d46706d29038d01", "password"},
     {"621a5fcf3caf392b9a64f9eae25ee80a0a07f54fbd493c4b23f6ae30", "ALLCAPS"},
@@ -93,6 +94,7 @@ static struct fmt_tests tests[] = {
     {FORMAT_TAG "d14a028c2a3a2bc9476102bb288234c415a2b01f828ea62ac5b3e42f", ""},
 #else
     {"71c3f65d17745f05235570f1799d75e69795d469d9fcb83e326f82f1afa80dea", "epixoip"},
+    {FORMAT_TAG "71c3f65d17745f05235570f1799d75e69795d469d9fcb83e326f82f1afa80dea", "epixoip"},
     {"25b64f637b373d33a8aa2b7579784e99a20e6b7dfea99a71af124394b8958f27", "doesthiswork"},
     {"5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8", "password"},
     {"27c6794c8aa2f70f5f6dc93d3bfb25ca6de9b0752c8318614cbd4ad203bea24c", "ALLCAPS"},

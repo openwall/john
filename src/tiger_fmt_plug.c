@@ -41,6 +41,7 @@ static int omp_t = 1;
 
 static struct fmt_tests tiger_tests[] = {
 	{"$tiger$D981F8CB78201A950DCF3048751E441C517FCA1AA55A29F6", "message digest"},
+	{"D981F8CB78201A950DCF3048751E441C517FCA1AA55A29F6", "message digest"},
 	{"3293AC630C13F0245F92BBB1766E16167A4E58492DDE73F3", ""},
 	{NULL}
 };
@@ -164,6 +165,16 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
+static char *prepare(char *fields[10], struct fmt_main *self) {
+	static char buf[BINARY_SIZE*2+TAG_LENGTH+1];
+	char *hash = fields[1];
+	if (strlen(hash) == BINARY_SIZE*2 && valid(hash, self)) {
+		sprintf(buf, "%s%s", FORMAT_TAG, hash);
+		return buf;
+	}
+	return hash;	
+}
+
 struct fmt_main fmt_tiger = {
 	{
 		FORMAT_LABEL,
@@ -187,7 +198,7 @@ struct fmt_main fmt_tiger = {
 		init,
 		fmt_default_done,
 		fmt_default_reset,
-		fmt_default_prepare,
+		prepare,
 		valid,
 		fmt_default_split,
 		get_binary,
