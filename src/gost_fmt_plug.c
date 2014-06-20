@@ -58,6 +58,8 @@
 static struct fmt_tests gost_tests[] = {
 	{"ce85b99cc46752fffee35cab9a7b0278abb4c2d2055cff685af4912c49490f8d", ""},
 	{"d42c539e367c66e9c88a801f6649349c21871b4344c6a573f849fdce62f314dd", "a"},
+	{FORMAT_TAG    "ce85b99cc46752fffee35cab9a7b0278abb4c2d2055cff685af4912c49490f8d", ""},
+	{FORMAT_TAG    "d42c539e367c66e9c88a801f6649349c21871b4344c6a573f849fdce62f314dd", "a"},
 	{FORMAT_TAG    "ad4434ecb18f2c99b60cbe59ec3d2469582b65273f48de72db2fde16a4889a4d", "message digest"},
 	{FORMAT_TAG    "0886f91e7fcaff65eb2635a1a4c9f203003e0ce5ea74b72fc6462cc72649694e",
 	 "This is very very long pass phrase for test gost hash function."},
