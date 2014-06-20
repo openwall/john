@@ -52,6 +52,7 @@ static struct fmt_tests tests[] = {
 /* Mockup test vectors. Both these lines should be deleted once we get some
    real test vectors */
 	{FORMAT_TAG "02020000ffff0003002c01145267d48d000000000000000000020000ac100100ffffff000000000000000001ffff0001$7236e720eaebe9eb3954c53db5cc19224a6cfeb3", "quagga"},
+	{           "02020000ffff0003002c01145267d48d000000000000000000020000ac100100ffffff000000000000000001ffff0001$7236e720eaebe9eb3954c53db5cc19224a6cfeb3", "quagga"},
 	{FORMAT_TAG "02020000ffff0003002c01145267d48d000000000000000000020000ac100100ffffff000000000000000001ffff0001$71893ac93cb5511937d4a7189d390d14d9e013fd", "magnum"},
 	{NULL}
 };
@@ -244,6 +245,16 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
+static char *prepare(char *fields[10], struct fmt_main *self) {
+	static char buf[sizeof(cur_salt->salt)*2+TAG_LENGTH+1];
+	char *hash = fields[1];
+	if (strncmp(hash, FORMAT_TAG, TAG_LENGTH) && valid(hash, self)) {
+		sprintf(buf, "%s%s", FORMAT_TAG, hash);
+		return buf;
+	}
+	return hash;	
+}
+
 struct fmt_main fmt_netsha1 = {
 	{
 		FORMAT_LABEL,
@@ -267,7 +278,7 @@ struct fmt_main fmt_netsha1 = {
 		init,
 		fmt_default_done,
 		fmt_default_reset,
-		fmt_default_prepare,
+		prepare,
 		valid,
 		fmt_default_split,
 		get_binary,
