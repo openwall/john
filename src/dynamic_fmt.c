@@ -966,21 +966,23 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 	// at this point max length is still < 512.  491 + strlen($dynamic_xxxxx$) is 506
 
 	if (pPriv->nUserName && !strstr(cpBuilding, "$$U")) {
-		char *userName=split_fields[0], *cp;
-		static char ct[1024];
-		// assume field[0] is in format: username OR DOMAIN\\username  If we find a \\, then  use the username 'following' it.
-		cp = strchr(split_fields[0], '\\');
-		if (cp)
-			userName = &cp[1];
-		userName = HandleCase(userName, pPriv->nUserName);
-		snprintf (ct, sizeof(ct), "%s$$U%s", cpBuilding, userName);
-		cpBuilding = ct;
+		if (split_fields[0] && strlen(split_fields[0]) && strcmp(split_fields[0], "?")) {
+			char *userName=split_fields[0], *cp;
+			static char ct[1024];
+			// assume field[0] is in format: username OR DOMAIN\\username  If we find a \\, then  use the username 'following' it.
+			cp = strchr(split_fields[0], '\\');
+			if (cp)
+				userName = &cp[1];
+			userName = HandleCase(userName, pPriv->nUserName);
+			snprintf (ct, sizeof(ct), "%s$$U%s", cpBuilding, userName);
+			cpBuilding = ct;
+		}
 	}
 	if (pPriv->FldMask) {
 		for (i = 0; i < 10; ++i) {
 			if (pPriv->FldMask&(MGF_FLDx_BIT<<i)) {
 				sprintf(Tmp, "$$F%d", i);
-				if ( split_fields[i] && !strstr(cpBuilding, Tmp)) {
+				if (split_fields[i] && strlen(split_fields[i]) && strcmp(split_fields[i], "/") && !strstr(cpBuilding, Tmp)) {
 					static char ct[1024];
 					char ct2[1024];
 					snprintf (ct2, sizeof(ct2), "%s$$F%d%s", cpBuilding, i, split_fields[i]);
