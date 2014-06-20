@@ -165,6 +165,21 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
+static char *prepare(char *fields[10], struct fmt_main *self) {
+	static char buf[40];
+	char *hash = fields[1];
+	if (strlen(hash) == 32) {
+		int i;
+		for (i = 0; i < 32; ++i) {
+			if (atoi16[ARCH_INDEX(hash[i])] == 0x7F)
+				return hash;
+		}
+		sprintf(buf, "%s%s", FORMAT_TAG, hash);
+		return buf;
+	}
+	return hash;	
+}
+
 struct fmt_main fmt_md2_ = {
 	{
 		FORMAT_LABEL,
@@ -188,7 +203,7 @@ struct fmt_main fmt_md2_ = {
 		init,
 		fmt_default_done,
 		fmt_default_reset,
-		fmt_default_prepare,
+		prepare,
 		valid,
 		fmt_default_split,
 		get_binary,
