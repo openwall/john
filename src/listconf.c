@@ -723,16 +723,20 @@ void listconf_parse_late(void)
 					int i;
 					int skip = 0;
 					/*
-					 * defining a config variable ot allowing --field-separator-char=
+					 * defining a config variable to allowing --field-separator-char=
 					 * with a fallback to either ':' or '\t' is probably overkill
 					 */
 					const char separator = '\t';
 					char *ciphertext;
 
-//					ciphertext = format->params.tests[ntests].ciphertext;
-//					if (ciphertext[ 0] == '\0')
-						ciphertext = format->methods.prepare(format->params.tests[ntests].fields,
-						                                     format);
+					ciphertext = format->params.tests[ntests].ciphertext;
+					if (ciphertext[ 0] == '\0')
+						ciphertext = format->methods.prepare(format->params.tests[ntests].fields, format);
+					if (format->params.tests[ntests].fields[0] && strlen(format->params.tests[ntests].fields[0])) {
+						char *cp = mem_alloc_tiny(strlen(ciphertext)+1+strlen(format->params.tests[ntests].fields[0] )+1, 1);
+						sprintf(cp, "%s:%s", format->params.tests[ntests].fields[0], ciphertext);
+						ciphertext = cp;
+					}
 					/*
 					 * one of the scrypt tests has tabs and new lines in ciphertext
 					 * and password.
