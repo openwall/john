@@ -720,7 +720,7 @@ void listconf_parse_late(void)
 
 			if (format->params.tests) {
 				while (format->params.tests[ntests].ciphertext) {
-					int i;
+					int i, new_len=0;
 					int skip = 0;
 					/*
 					 * defining a config variable to allowing --field-separator-char=
@@ -729,13 +729,37 @@ void listconf_parse_late(void)
 					const char separator = '\t';
 					char *ciphertext;
 
-					ciphertext = format->params.tests[ntests].ciphertext;
-					if (ciphertext[ 0] == '\0')
-						ciphertext = format->methods.prepare(format->params.tests[ntests].fields, format);
-					if (format->params.tests[ntests].fields[0] && strlen(format->params.tests[ntests].fields[0])) {
-						char *cp = mem_alloc_tiny(strlen(ciphertext)+1+strlen(format->params.tests[ntests].fields[0] )+1, 1);
-						sprintf(cp, "%s:%s", format->params.tests[ntests].fields[0], ciphertext);
-						ciphertext = cp;
+					// See if any of the fields are filled in. If so, the we should return the ciphertext
+					// in passwd type format (user:pw:x:x:x...)  Otherwise simply copy over param.ciphertext
+					for (i = 0; i < 9; ++i) {
+						if (i != 1)
+							if (format->params.tests[ntests].fields[i] && (format->params.tests[ntests].fields[i])[0] )
+								new_len += strlen(format->params.tests[ntests].fields[i]);
+					}
+					if (new_len) {
+						char *Buf, *cp;
+						int len = strlen(format->params.tests[ntests].fields[1])+12+new_len;
+						Buf = mem_alloc_tiny(len, 1);
+						cp = Buf;
+						for (i = 0; i < 9; ++i) {
+							if (format->params.tests[ntests].fields[i] && (format->params.tests[ntests].fields[i])[0] ) {
+								int x = strnzcpyn(cp, format->params.tests[ntests].fields[i], len);
+								cp += x;
+								len -= (x+1);
+							}
+							*cp++ = ':';
+						}
+						cp = 0; // nul terminate string.
+						ciphertext = Buf;
+					} else {
+						ciphertext = format->params.tests[ntests].ciphertext;
+						if (ciphertext[ 0] == '\0') {
+							//printf ("Here\n");
+							//exit(0);
+							// NOTE, I tested every non GPU format, and NONE of them get here.  I am not sure
+							// just WHAT this code is, or who/why it was put here.  But it should be removed.
+							ciphertext = format->methods.prepare(format->params.tests[ntests].fields, format);
+						}
 					}
 					/*
 					 * one of the scrypt tests has tabs and new lines in ciphertext
