@@ -1422,12 +1422,7 @@ static void john_init(char *name, int argc, char **argv)
 #endif
 
 	john_register_all(); /* maybe restricted to one format by options */
-
 	common_init();
-	if ((options.subformat && !strcasecmp(options.subformat, "list")) ||
-	    options.listconf)
-		listconf_parse_late();
-
 	sig_init();
 
 	john_load();
@@ -1452,6 +1447,10 @@ static void john_init(char *name, int argc, char **argv)
 
 	if (!pers_opts.unicode_cp)
 		initUnicode(UNICODE_UNICODE);
+
+	if ((options.subformat && !strcasecmp(options.subformat, "list")) ||
+	    options.listconf)
+		listconf_parse_late();
 
 	/* Start a resumed session by emitting a status line. */
 	if (rec_restored)

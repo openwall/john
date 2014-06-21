@@ -708,6 +708,16 @@ void listconf_parse_late(void)
 	if (!strncasecmp(options.listconf, "format-tests", 12)) {
 		struct fmt_main *format;
 		format = fmt_list;
+
+#if HAVE_OPENCL
+		/* This will make the majority of OpenCL formats
+		   also do "quick" run. But if LWS or
+		   GWS was already set, we do not overwrite. */
+		setenv("LWS", "7", 0);
+		setenv("GWS", "49", 0);
+		setenv("BLOCKS", "7", 0);
+		setenv("THREADS", "7", 0);
+#endif
 		do {
 			int ntests = 0;
 
