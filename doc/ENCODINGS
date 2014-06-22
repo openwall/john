@@ -12,14 +12,14 @@ salts to UTF-16 (this happens to be very fast), and assume ASCII in most
 other cases. The rules engine will accept 8-bit candidates as-is, but it will
 not upper/lower-case them or recognise letters etc. And some truncation or
 insert operation might split a multi-byte UTF-8 character in the middle,
-resulting in meaningless garbage. Nearly all other password crackers has these
+resulting in meaningless garbage. Nearly all other password crackers have these
 limitations.
 
 For proper function, it's imperative that you let John know about what
 encodings are involved. For example, if your wordlist is encoded in
 UTF-8, you need to use the "--encoding=UTF-8" option (unless you have set
 that as default in john.conf). But you also need to know what encoding the
-hashes was made from - for example, LM hashes are always made from a legacy
+hashes were made from - for example, LM hashes are always made from a legacy
 MS-DOS codepage like CP850. This can be specified by using the option
 "--target-encoding=CP850". John will convert to/from Unicode as needed.
 
