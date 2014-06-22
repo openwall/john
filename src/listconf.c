@@ -742,7 +742,10 @@ void listconf_parse_late(void)
 					// See if any of the fields are filled in. If so, the we should return the ciphertext
 					// in passwd type format (user:pw:x:x:x...)  Otherwise simply copy over param.ciphertext
 					for (i = 0; i < 9; ++i) {
-						if (i != 1)
+						if (i == 1) {
+							if (!format->params.tests[ntests].fields[i])
+								format->params.tests[ntests].fields[i] = format->params.tests[ntests].ciphertext;
+						} else
 							if (format->params.tests[ntests].fields[i] && (format->params.tests[ntests].fields[i])[0] )
 								new_len += strlen(format->params.tests[ntests].fields[i]);
 					}
