@@ -58,6 +58,7 @@
 static struct fmt_tests phps_tests[] = {
 	{"$PHPS$433925$5d756853cd63acee76e6dcd6d3728447", "welcome"},
 	{"$PHPS$73616c$aba22b2ceb7c841473c03962b145feb3", "password"},
+	{"$PHPS$247824$ad14afbbf0e16d4ad8c8985263a3d051","test"},  // salt is $x$ (I want to test that a $ works)
 	{NULL}
 };
 
