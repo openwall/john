@@ -80,8 +80,6 @@ static size_t get_default_workgroup()
 # define SWAP32(n) \
     (((n) << 24) | (((n) & 0xff00) << 8) | (((n) >> 8) & 0xff00) | ((n) >> 24))
 
-static int new_keys;
-
 static int split_events[3] = { 2, 3, 4 };
 
 static int crypt_all(int *pcount, struct db_salt *_salt);
@@ -153,7 +151,6 @@ static void pwsafe_set_key(char *key, int index)
 	int saved_key_length = MIN(strlen(key), PLAINTEXT_LENGTH);
 	memcpy(host_pass[index].v, key, saved_key_length);
 	host_pass[index].length = saved_key_length;
-	new_keys = 1;
 }
 
 /* ------- Create and destroy necessary objects ------- */
@@ -337,7 +334,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	global_work_size = (count + local_work_size - 1) / local_work_size * local_work_size;
 
 	///Copy data to GPU memory
-	if (new_keys)
 		HANDLE_CLERROR(clEnqueueWriteBuffer
 			(queue[gpu_id], mem_in, CL_FALSE, 0, insize, host_pass, 0, NULL,
 			NULL), "Copy memin");
@@ -366,7 +362,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	///Await completion of all the above
 	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish error");
-	new_keys = 0;
 
 	return count;
 }
