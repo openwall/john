@@ -35,7 +35,7 @@
 		h += Sigma0(a) + Maj(a,b,c);
 
 typedef struct {
-        uint8_t v[32];
+        uint8_t v[55-32];
         uint8_t length;
 } pwsafe_pass;
 
