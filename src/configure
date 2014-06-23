@@ -8142,7 +8142,9 @@ case "$host_cpu" in
 
          CC_ASM_OBJS="x86-64.o sse-intrinsics-64.o"
       else
-         CC_ASM_OBJS="x86-64.o sse-intrinsics.o"
+         if test "y$CPU_STR" != "yx86_64"; then :
+  CC_ASM_OBJS="x86-64.o sse-intrinsics.o"
+fi
       fi
    ;;
    i?86)
