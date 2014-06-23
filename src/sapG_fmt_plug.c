@@ -54,7 +54,13 @@ static unsigned int omp_t = 1;
 #define SALT_FIELD_LENGTH		40
 #define USER_NAME_LENGTH		12 /* max. length of user name in characters */
 #define SALT_LENGTH			(USER_NAME_LENGTH*3)	/* 12 characters of UTF-8 */
-#define PLAINTEXT_LENGTH		(64+55-SALT_LENGTH) /* Max 2 limbs */
+#define PLAINTEXT_LENGTH		40 /* Characters = bytes unless UTF-8 */
+
+#ifdef __SSE2__
+#define UTF8_PLAINTEXT_LENGTH		(64+55-SALT_LENGTH) /* Max 2 limbs */
+#else
+#define UTF8_PLAINTEXT_LENGTH		(3*PLAINTEXT_LENGTH) /* worst case */
+#endif
 
 #define BINARY_SIZE			20
 #define BINARY_ALIGN			4
@@ -116,7 +122,7 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
-static UTF8 (*saved_plain)[PLAINTEXT_LENGTH + 1];
+static UTF8 (*saved_plain)[UTF8_PLAINTEXT_LENGTH + 1];
 static int *keyLen;
 
 #ifdef MMX_COEF
@@ -131,7 +137,7 @@ static unsigned int *clean_pos;
 
 #else
 
-static UTF8 (*saved_key)[PLAINTEXT_LENGTH + 1];
+static UTF8 (*saved_key)[UTF8_PLAINTEXT_LENGTH + 1];
 static ARCH_WORD_32 (*crypt_key)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
 
 #endif
@@ -154,7 +160,13 @@ static void init(struct fmt_main *self)
 	if (pers_opts.target_enc != UTF_8 &&
 	    !(options.flags & FLG_TEST_CHK) &&
 	    warned++ == 0)
-		fprintf(stderr, "Warning: SAP-F/G format should always be UTF-8.\nConvert your input files to UTF-8 and use --encoding=utf8\n");
+		fprintf(stderr, "Warning: SAP-F/G format should always be UTF-8.\nConvert your input files to UTF-8 and use --input-encoding=utf8\n");
+
+	// Max 40 characters or 116 bytes of UTF-8, whichever is greater. In
+	// extreme cases 120 bytes would be needed for 40 multi-byte characters
+	// but that should be academic - and would require another limb.
+	if (pers_opts.target_enc == UTF_8)
+		self->params.plaintext_length = UTF8_PLAINTEXT_LENGTH;
 
 #if defined (_OPENMP)
 	omp_t = omp_get_max_threads();
@@ -247,7 +259,7 @@ static void clear_keys(void)
 
 static void set_key(char *key, int index)
 {
-	memcpy((char*)saved_plain[index], key, PLAINTEXT_LENGTH);
+	memcpy((char*)saved_plain[index], key, UTF8_PLAINTEXT_LENGTH);
 	keyLen[index] = -1;
 }
 
@@ -564,7 +576,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	{
 		unsigned int offsetMagicArray, lengthIntoMagicArray;
 		unsigned char temp_key[BINARY_SIZE];
-		unsigned char tempVar[PLAINTEXT_LENGTH + MAGIC_ARRAY_SIZE + SALT_LENGTH]; //max size...
+		unsigned char tempVar[UTF8_PLAINTEXT_LENGTH + MAGIC_ARRAY_SIZE + SALT_LENGTH]; //max size...
 		SHA_CTX ctx;
 
 		if (keyLen[index] < 0) {
