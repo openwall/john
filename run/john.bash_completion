@@ -581,7 +581,8 @@ _john()
 			COMPREPLY=( $(compgen -W "COUNT -COUNT" -- ${cur}) )
 			return 0
 			;;
-		--encoding=*|--intermediate-enc=*|--target-encoding=*)
+		--encoding=*|--intermediate-enc=*|--target-encoding=*|--input-encoding=*)
+			cur=${cur#*[=:]}
 			# --encoding=LIST wrote to stderr in the past
 			list=`${first} --list=\? 2>/dev/null|sed 's#\(,\)\?\( or\)\?[ ]*[<].*$##; s#,##g'`
 			if [[ "_${list}" == *encoding* ]] ; then
@@ -589,8 +590,31 @@ _john()
 			else
 				cmd="${first} --encoding=LIST"
 			fi
-			encodings=`${cmd} 2>&1|grep -v 'Supported encodings'|sed 's#[,)]##g'|sed 's#(or ##g'`
-			cur=${cur#*[=:]}
+			encodings=`${cmd} 2>&1|grep -v 'Supported encodings'|sed 's#[,)]##g'|sed 's#(or ##g'|tr A-Z a-z`
+
+			if [[ "_${cur}" != "_" ]] ; then
+				# may be I should replace --encoding=8 with --encoding=iso-8 and try to complete that
+				# instead of allowing ro complete this to --encoding=8859- etc.
+				case "${cur}" in
+					8*)
+						encodings=`echo "${encodings}" | sed 's#iso-8#8#g'`
+						;;
+					iso8*|ISO8*)
+						encodings=`echo "${encodings}" | sed 's#iso-8#iso8#g'`
+						;;
+					utf8|UTF8)
+						encodings=`echo "${encodings}" | sed 's#utf-8#utf8#'`
+						;;
+					koi8|KOI8|koi8-|KOI8-)
+						;;
+					koi8*|KOI8*)
+						encodings=`echo "${encodings}" echo "$encodings" | sed 's#koi8-#koi8#'`
+						;;
+				esac
+
+				encodings=`echo "$encodings" ; echo "$encodings" | tr a-z A-Z`
+			fi
+
 			if [[ ${COMP_CWORD} -eq 2 || ${COMP_CWORD} -eq 3 && "_${cur}" != "_" ]] ; then
 				# Don't add LIST if --list=encodings
 				# is supported
