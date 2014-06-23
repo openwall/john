@@ -15,6 +15,12 @@
  * Modified by JimF, Jul 2012.  About 6x speed improvements.
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_nk;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_nk);
+#else
+
 #include <string.h>
 
 #include "arch.h"
@@ -303,3 +309,5 @@ struct fmt_main fmt_nk = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

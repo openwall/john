@@ -8,6 +8,12 @@
  * are permitted.
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_s7;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_s7);
+#else
+
 #include "sha.h"
 #include <string.h>
 #include <assert.h>
@@ -274,3 +280,5 @@ struct fmt_main fmt_s7 = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

@@ -14,6 +14,12 @@
  * within dynamic.  This is the FIRST format that is hybrid fat-thin.
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_netmd5;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_netmd5);
+#else
+
 #include <string.h>
 #ifdef _OPENMP
 #include <omp.h>
@@ -353,3 +359,5 @@ static void init(struct fmt_main *self)
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
+
+#endif /* plugin stanza */

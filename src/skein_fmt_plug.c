@@ -8,6 +8,14 @@
  * modification, are permitted.
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_skein_256;
+extern struct fmt_main fmt_skein_512;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_skein_256);
+john_register_one(&fmt_skein_512);
+#else
+
 #include <string.h>
 #include "arch.h"
 #include "sph_skein.h"
@@ -358,3 +366,5 @@ struct fmt_main fmt_skein_512 = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

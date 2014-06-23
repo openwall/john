@@ -22,6 +22,12 @@
  * 1> select * from sys.sql_logins
  * 2> go */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_mssql12;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_mssql12);
+#else
+
 #include <string.h>
 #ifdef _OPENMP
 static int omp_t = 1;
@@ -304,3 +310,5 @@ struct fmt_main fmt_mssql12 = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

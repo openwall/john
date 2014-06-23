@@ -17,6 +17,12 @@
  * of it, replacing the code in totality.  JimF.
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_pbkdf2_hmac_sha256;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_pbkdf2_hmac_sha256);
+#else
+
 #include <ctype.h>
 #include <string.h>
 #include <assert.h>
@@ -398,3 +404,5 @@ struct fmt_main fmt_pbkdf2_hmac_sha256 = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

@@ -10,6 +10,12 @@
  * modification, are permitted.
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_kwallet;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_kwallet);
+#else
+
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
@@ -330,3 +336,5 @@ struct fmt_main fmt_kwallet = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

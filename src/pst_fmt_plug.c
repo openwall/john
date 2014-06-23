@@ -10,6 +10,12 @@
  *
  * Uses code from crc32_fmt_plug.c written by JimF */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_pst;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_pst);
+#else
+
 #include <string.h>
 #include "arch.h"
 #include "misc.h"
@@ -206,3 +212,5 @@ struct fmt_main fmt_pst = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

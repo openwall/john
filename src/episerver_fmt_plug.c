@@ -33,6 +33,12 @@
  * Full Unicode support, magnum, August 2012.
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_episerver;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_episerver);
+#else
+
 #include "sha.h"
 #include "sha2.h"
 #include <string.h>
@@ -323,3 +329,5 @@ struct fmt_main fmt_episerver = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

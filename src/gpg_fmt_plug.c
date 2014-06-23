@@ -20,6 +20,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/> */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_gpg;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_gpg);
+#else
+
 #include <string.h>
 #include <openssl/aes.h>
 #include <assert.h>
@@ -1322,3 +1328,5 @@ struct fmt_main fmt_gpg = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

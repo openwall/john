@@ -473,6 +473,12 @@ AC_OPENMP
 AS_IF([test "x$cross_compiling" = xno -a "x$enable_opencl" != xno],
       [JTR_SET_OPENCL_INCLUDES])
 AX_OPENCL(C)
+if test "x$CL_LIBS" = x; then
+   using_cl=no
+else
+   using_cl=yes
+   HAVE_OPENCL=-DHAVE_OPENCL
+fi
 
 # Check for CUDA, including headers.
 JTR_CUDA
@@ -668,20 +674,12 @@ AC_CONFIG_LINKS([arch.h:$ARCH_LINK])
 
 ##########################################################
 # Code  to create @PLUGFORMAT_SRCS@ @PLUGFORMATS_OBJS@
-# and fmt_externs.h fmt_registers.h and john_buildrule.h
-# moved from Makefile.in to here.
+# and john_buildrule.h moved from Makefile.in to here.
 ##########################################################
 AC_SUBST([PLUGFORMATS_SRCS],[`echo *_plug.c`])
 AC_SUBST([PLUGFORMATS_OBJS],[`echo *_plug.c | sed "s/\.c/.o/g"`])
-echo "configure: creating ./fmt_externs.h"
-LC_ALL=C ${SED} -n 's/^\(struct fmt_main [[^ ]]*\) =.*/extern \1;/p' *_fmt_plug.c | LC_ALL=C ${SORT} > fmt_externs.h
-echo "configure: creating ./fmt_registers.h"
-LC_ALL=C ${SED} -n 's/^struct fmt_main \([[^ ]]*\) =.*/john_register_one(\&\1);/p' *_fmt_plug.c | LC_ALL=C ${SORT} > fmt_registers.h
 echo "configure: creating ./john_build_rule.h"
 echo "#define JOHN_BLD \"${host_os} ${CPU_BIT_STR}-bit${using_x32} ${CPU_STR}-autoconf\"" > john_build_rule.h
-########################################################
-# End of plugin and build_rules generation code
-########################################################
 
 AC_SUBST([HOST_OS],["$host_os"])
 AC_CONFIG_FILES([Makefile
@@ -691,14 +689,19 @@ AC_CONFIG_FILES([Makefile
                  escrypt/Makefile])
 AC_OUTPUT(,echo "timestamp from configure.in" > autoconfig-stamp-h)
 
+##########################################################
+# Create fmt_externs.h and fmt_registers.h
+# This needs arch.h to be linked so can't happen before
+# AC_OUTPUT
+##########################################################
+echo "configure: creating ./fmt_externs.h"
+$CPP -P -DAC_BUILT $CPU_BEST_FLAGS $HAVE_OPENCL $HAVE_CUDA $HAVE_NSS $CFLAGS_EXTRA $NSS_CFLAGS $OPENSSL_CFLAGS -DFMT_EXTERNS_H *_fmt_plug.c | LC_ALL=C $GREP "extern struct fmt_main" | LC_ALL=C $SORT > fmt_externs.h
+echo "configure: creating ./fmt_registers.h"
+$CPP -P -DAC_BUILT $CPU_BEST_FLAGS $HAVE_OPENCL $HAVE_CUDA $HAVE_NSS $CFLAGS_EXTRA $NSS_CFLAGS $OPENSSL_CFLAGS -DFMT_REGISTERS_H *_fmt_plug.c | LC_ALL=C $GREP "john_register_one" | LC_ALL=C $SORT > fmt_registers.h
+
 ########################################################
 #    ONLY _COSMETICAL_ OUTPUT STUFF BELOW THIS LINE
 ########################################################
-if test "x$CL_LIBS" = x; then
-   using_cl=no
-else
-   using_cl=yes
-fi
 
 # Hard to get proper info from AC_OPENMP. If it's enabled with no special
 # options needed, we might end up listing it as disabled

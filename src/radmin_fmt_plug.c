@@ -8,6 +8,12 @@
  *
  * Input Format => user:$radmin2$hash */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_radmin;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_radmin);
+#else
+
 #include "md5.h"
 #include <string.h>
 #include <assert.h>
@@ -227,3 +233,5 @@ struct fmt_main fmt_radmin = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

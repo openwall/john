@@ -30,6 +30,12 @@
  *
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_NS;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_NS);
+#else
+
 #include <string.h>
 
 #include "arch.h"
@@ -319,3 +325,5 @@ struct fmt_main fmt_NS = {
 		NS_cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

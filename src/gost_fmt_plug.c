@@ -14,6 +14,12 @@
  *		   user:$gost-cp$gost-cryptopro-hash;
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_gost;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_gost);
+#else
+
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
@@ -288,3 +294,5 @@ struct fmt_main fmt_gost = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

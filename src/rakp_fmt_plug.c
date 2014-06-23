@@ -4,6 +4,12 @@
  * and binary forms, with or without modification, are permitted.
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_rakp;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_rakp);
+#else
+
 #include <string.h>
 
 #include "arch.h"
@@ -501,3 +507,5 @@ struct fmt_main fmt_rakp = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

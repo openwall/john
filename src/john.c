@@ -17,7 +17,7 @@
  */
 
 #if AC_BUILT
-/* need to know if DHAVE_KRB5 and HAVE_LIBDL is set, for autoconfig build */
+/* need to know if HAVE_LIBDL is set, for autoconfig build */
 #include "autoconfig.h"
 #endif
 
@@ -94,7 +94,6 @@ static int john_omp_threads_new;
 #endif
 #include "regex.h"
 
-#include <openssl/opensslv.h>
 #include "unicode.h"
 #include "plugin.h"
 #if HAVE_OPENCL
@@ -136,124 +135,26 @@ extern struct fmt_main fmt_crypt;
 #endif
 extern struct fmt_main fmt_trip;
 extern struct fmt_main fmt_dummy;
-extern struct fmt_main fmt_NT;
-
-// can be done as a _plug format now. But I have not renamed the plugin file
-// just yet.
-extern struct fmt_main fmt_django;
-
-#if (AC_BUILT && HAVE_EVP_AES_256_XTS) ||	  \
-    (!AC_BUILT && OPENSSL_VERSION_NUMBER >= 0x10001000 && !HAVE_NO_SSL_EVP_aes)
-extern struct fmt_main fmt_truecrypt;
-extern struct fmt_main fmt_truecrypt_sha512;
-extern struct fmt_main fmt_truecrypt_whirlpool;
-#endif
-#if (AC_BUILT && HAVE_EVP_SHA512) || \
-	(!AC_BUILT && OPENSSL_VERSION_NUMBER >= 0x0090708f)
-extern struct fmt_main fmt_bitcoin;
-#endif
-#ifdef __SSE2__
-extern struct fmt_main fmt_rawSHA256_ng;
-extern struct fmt_main fmt_rawSHA512_ng;
-#if !_MSC_VER
-extern struct fmt_main fmt_sha1_ng;
-#endif
-#endif
-#ifdef MMX_COEF_SHA256
-extern struct fmt_main fmt_rawSHA256_ng_i;
-#endif
-#ifdef MMX_COEF_SHA512
-extern struct fmt_main fmt_rawSHA512_ng_i;
-#endif
-
-#if HAVE_NSS
-extern struct fmt_main fmt_mozilla;
-extern int mozilla2john(int argc, char **argv);
-#endif
-#if HAVE_KRB5
-extern struct fmt_main fmt_krb5_18;
-extern struct fmt_main fmt_KRB5_kinit;
-#endif
-extern int hccap2john(int argc, char **argv);
-
-#if HAVE_OPENCL
-extern struct fmt_main fmt_opencl_DES;
-extern struct fmt_main fmt_opencl_NSLDAPS;
-extern struct fmt_main fmt_opencl_NT;
-extern struct fmt_main fmt_opencl_NTLMv2;
-extern struct fmt_main fmt_opencl_agilekeychain;
-extern struct fmt_main fmt_opencl_bf;
-extern struct fmt_main fmt_opencl_cryptMD5;
-extern struct fmt_main fmt_opencl_cryptsha256;
-extern struct fmt_main fmt_opencl_cryptsha512;
-extern struct fmt_main fmt_opencl_dmg;
-extern struct fmt_main fmt_opencl_encfs;
-extern struct fmt_main fmt_opencl_gpg;
-extern struct fmt_main fmt_opencl_keychain;
-extern struct fmt_main fmt_opencl_krb5pa_md5;
-extern struct fmt_main fmt_opencl_krb5pa_sha1;
-extern struct fmt_main fmt_opencl_1otus5;
-extern struct fmt_main fmt_opencl_mscash2;
-extern struct fmt_main fmt_opencl_mysqlsha1;
-extern struct fmt_main fmt_opencl_odf;
-extern struct fmt_main fmt_opencl_odf_aes;
-extern struct fmt_main fmt_opencl_office2007;
-extern struct fmt_main fmt_opencl_office2010;
-extern struct fmt_main fmt_opencl_office2013;
-extern struct fmt_main fmt_opencl_phpass;
-extern struct fmt_main fmt_opencl_pwsafe;
-extern struct fmt_main fmt_opencl_rar;
-extern struct fmt_main fmt_opencl_rawMD4;
-extern struct fmt_main fmt_opencl_rawMD5;
-extern struct fmt_main fmt_opencl_rawSHA1;
-extern struct fmt_main fmt_opencl_rawsha256;
-extern struct fmt_main fmt_opencl_rawsha512;
-extern struct fmt_main fmt_opencl_rawsha512_ng;
-extern struct fmt_main fmt_opencl_strip;
-extern struct fmt_main fmt_opencl_sxc;
-extern struct fmt_main fmt_opencl_wpapsk;
-extern struct fmt_main fmt_opencl_xsha512;
-extern struct fmt_main fmt_opencl_xsha512_ng;
-extern struct fmt_main fmt_opencl_zip;
-extern struct fmt_main fmt_opencl_blockchain;
-extern struct fmt_main fmt_opencl_keyring;
-//extern struct fmt_main fmt_opencl_sevenzip;
-extern struct fmt_main fmt_opencl_pbkdf2_hmac_sha256;
-extern struct fmt_main fmt_opencl_pbkdf2_hmac_sha512;
-extern struct fmt_main fmt_opencl_rakp;
-extern struct fmt_main fmt_opencl_o5logon;
-#endif
-#if HAVE_CUDA
-extern struct fmt_main fmt_cuda_cryptmd5;
-extern struct fmt_main fmt_cuda_cryptsha256;
-extern struct fmt_main fmt_cuda_cryptsha512;
-extern struct fmt_main fmt_cuda_mscash2;
-extern struct fmt_main fmt_cuda_mscash;
-extern struct fmt_main fmt_cuda_phpass;
-extern struct fmt_main fmt_cuda_pwsafe;
-extern struct fmt_main fmt_cuda_rawsha224;
-extern struct fmt_main fmt_cuda_rawsha256;
-extern struct fmt_main fmt_cuda_rawsha512;
-extern struct fmt_main fmt_cuda_wpapsk;
-extern struct fmt_main fmt_cuda_xsha512;
-#endif
-
-extern struct fmt_main fmt_pfx;
-extern struct fmt_main fmt_rar;
-extern struct fmt_main fmt_ssh;
-extern struct fmt_main fmt_wpapsk;
-extern struct fmt_main fmt_zip;
 
 #include "fmt_externs.h"
 
-extern struct fmt_main fmt_hmacMD5;
-extern struct fmt_main fmt_hmacSHA1;
-extern struct fmt_main fmt_rawSHA0;
+#if HAVE_CUDA
+extern struct fmt_main fmt_cuda_rawsha224;
+extern struct fmt_main fmt_cuda_rawsha256;
+#endif
 
 extern int unshadow(int argc, char **argv);
 extern int unafs(int argc, char **argv);
 extern int unique(int argc, char **argv);
 extern int undrop(int argc, char **argv);
+
+#if HAVE_NSS
+extern int mozilla2john(int argc, char **argv);
+#endif
+extern int hccap2john(int argc, char **argv);
+extern int zip2john(int argc, char **argv);
+extern int gpg2john(int argc, char **argv);
+
 #ifndef _MSC_VER
 /*
  * MSC will not compile at all with these. They use libs, headers, and other
@@ -273,8 +174,6 @@ extern int putty2john(int argc, char **argv);
 extern int keystore2john(int argc, char **argv);
 extern int truecrypt_volume2john(int argc, char **argv);
 #endif
-extern int zip2john(int argc, char **argv);
-extern int gpg2john(int argc, char **argv);
 
 int john_main_process = 1;
 #if OS_FORK
@@ -364,122 +263,18 @@ static void john_register_all(void)
 	john_register_one(&fmt_AFS);
 	john_register_one(&fmt_trip);
 	john_register_one(&fmt_dummy);
-	john_register_one(&fmt_NT);
 
 	for (i = 0; i < cnt; ++i)
 		john_register_one(&(selfs[i]));
 
-#ifdef __SSE2__
-	john_register_one(&fmt_rawSHA256_ng);
-	john_register_one(&fmt_rawSHA512_ng);
-#endif
-#ifdef MMX_COEF_SHA256
-	john_register_one(&fmt_rawSHA256_ng_i);
-#endif
-#ifdef MMX_COEF_SHA512
-	john_register_one(&fmt_rawSHA512_ng_i);
-#endif
-
 #include "fmt_registers.h"
 
-	john_register_one(&fmt_hmacMD5);
-	john_register_one(&fmt_hmacSHA1);
-	john_register_one(&fmt_rawSHA0);
-	john_register_one(&fmt_django);
-
-#if (AC_BUILT && HAVE_EVP_AES_256_XTS) ||	  \
-    (!AC_BUILT && OPENSSL_VERSION_NUMBER >= 0x10001000 && !HAVE_NO_SSL_EVP_aes)
-	john_register_one(&fmt_truecrypt);
-	john_register_one(&fmt_truecrypt_sha512);
-	john_register_one(&fmt_truecrypt_whirlpool);
-#endif
-
-#if (AC_BUILT && HAVE_EVP_SHA512) || \
-	(!AC_BUILT && OPENSSL_VERSION_NUMBER >= 0x0090708f)
-	john_register_one(&fmt_bitcoin);
-#endif
-
-#if defined (__SSE2__) && !defined(_MSC_VER)
-	john_register_one(&fmt_sha1_ng);
-#endif
-
-#if HAVE_NSS
-	john_register_one(&fmt_mozilla);
-#endif
-#if HAVE_KRB5
-	john_register_one(&fmt_krb5_18);
-	john_register_one(&fmt_KRB5_kinit);
-#endif
-
-	john_register_one(&fmt_pfx);
-	john_register_one(&fmt_rar);
-	john_register_one(&fmt_ssh);
-	john_register_one(&fmt_wpapsk);
-	john_register_one(&fmt_zip);
-
-#if HAVE_OPENCL
-	john_register_one(&fmt_opencl_DES);
-	john_register_one(&fmt_opencl_NSLDAPS);
-	john_register_one(&fmt_opencl_NT);
-	john_register_one(&fmt_opencl_NTLMv2);
-	john_register_one(&fmt_opencl_agilekeychain);
-	john_register_one(&fmt_opencl_bf);
-	john_register_one(&fmt_opencl_blockchain);
-	john_register_one(&fmt_opencl_cryptMD5);
-	john_register_one(&fmt_opencl_cryptsha256);
-	john_register_one(&fmt_opencl_cryptsha512);
-	john_register_one(&fmt_opencl_dmg);
-	john_register_one(&fmt_opencl_encfs);
-	john_register_one(&fmt_opencl_gpg);
-	john_register_one(&fmt_opencl_keychain);
-	john_register_one(&fmt_opencl_keyring);
-	john_register_one(&fmt_opencl_krb5pa_md5);
-	john_register_one(&fmt_opencl_krb5pa_sha1);
-	john_register_one(&fmt_opencl_1otus5);
-	john_register_one(&fmt_opencl_mscash2);
-	john_register_one(&fmt_opencl_mysqlsha1);
-	john_register_one(&fmt_opencl_odf);
-	john_register_one(&fmt_opencl_odf_aes);
-	john_register_one(&fmt_opencl_office2007);
-	john_register_one(&fmt_opencl_office2010);
-	john_register_one(&fmt_opencl_office2013);
-	john_register_one(&fmt_opencl_phpass);
-	john_register_one(&fmt_opencl_pwsafe);
-	john_register_one(&fmt_opencl_rar);
-	john_register_one(&fmt_opencl_rawMD4);
-	john_register_one(&fmt_opencl_rawMD5);
-	john_register_one(&fmt_opencl_rawSHA1);
-	john_register_one(&fmt_opencl_rawsha256);
-	john_register_one(&fmt_opencl_rawsha512);
-	john_register_one(&fmt_opencl_rawsha512_ng);
-//	john_register_one(&fmt_opencl_sevenzip);
-	john_register_one(&fmt_opencl_strip);
-	john_register_one(&fmt_opencl_sxc);
-	john_register_one(&fmt_opencl_wpapsk);
-	john_register_one(&fmt_opencl_xsha512);
-	john_register_one(&fmt_opencl_xsha512_ng);
-	john_register_one(&fmt_opencl_zip);
-	john_register_one(&fmt_opencl_pbkdf2_hmac_sha256);
-	john_register_one(&fmt_opencl_pbkdf2_hmac_sha512);
-	john_register_one(&fmt_opencl_rakp);
-	john_register_one(&fmt_opencl_o5logon);
-#endif
-
 #if HAVE_CUDA
-	john_register_one(&fmt_cuda_cryptmd5);
-	john_register_one(&fmt_cuda_cryptsha256);
-	john_register_one(&fmt_cuda_cryptsha512);
-	john_register_one(&fmt_cuda_mscash);
-	john_register_one(&fmt_cuda_mscash2);
-	john_register_one(&fmt_cuda_phpass);
-	john_register_one(&fmt_cuda_pwsafe);
 	john_register_one(&fmt_cuda_rawsha224);
 	john_register_one(&fmt_cuda_rawsha256);
-	john_register_one(&fmt_cuda_rawsha512);
-	john_register_one(&fmt_cuda_wpapsk);
-	john_register_one(&fmt_cuda_xsha512);
 #endif
-#ifdef HAVE_CRYPT
+
+#if HAVE_CRYPT
 	john_register_one(&fmt_crypt);
 #endif
 

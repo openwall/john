@@ -18,6 +18,12 @@
  * $openssl$cipher$md$salt-size$salt$last-chunks$0$datalen$data$known-plaintext$plaintext
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_openssl;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_openssl);
+#else
+
 #if AC_BUILT
 #include "autoconfig.h"
 #endif
@@ -447,3 +453,5 @@ struct fmt_main fmt_openssl = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

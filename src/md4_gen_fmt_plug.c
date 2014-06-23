@@ -3,6 +3,12 @@
  * Copyright (c) 2010 by Solar Designer
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_md4_gen;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_md4_gen);
+#else
+
 #include <string.h>
 
 #include "arch.h"
@@ -260,3 +266,5 @@ struct fmt_main fmt_md4_gen = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

@@ -4,6 +4,12 @@
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted. */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_mdb;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_mdb);
+#else
+
 #include <string.h>
 #include <errno.h>
 #ifdef _OPENMP
@@ -223,3 +229,5 @@ struct fmt_main fmt_mdb = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

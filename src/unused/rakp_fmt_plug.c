@@ -11,6 +11,12 @@
  * ipmi_dumphashes (metasploit) can dump hashes in JtR format.
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_rakp;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_rakp);
+#else
+
 #include "sha2.h"
 
 #include "arch.h"
@@ -329,3 +335,5 @@ struct fmt_main fmt_rakp = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

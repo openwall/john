@@ -5,6 +5,12 @@
  * SIP digest authentication password (hash) cracker
  * See doc/SIPcrack-LICENSE */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_sip;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_sip);
+#else
+
 #include "md5.h"
 #include <string.h>
 #include <stdlib.h>
@@ -370,3 +376,5 @@ struct fmt_main fmt_sip = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

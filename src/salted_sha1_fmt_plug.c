@@ -7,6 +7,12 @@
  * modification, are permitted.
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_saltedsha;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_saltedsha);
+#else
+
 #define MAX_SALT_LEN	16	// bytes, the base64 representation is longer
 
 #include <string.h>
@@ -406,3 +412,5 @@ struct fmt_main fmt_saltedsha = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

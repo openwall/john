@@ -5,6 +5,12 @@
  * Converted to thin format, into $dynamic_20$ format.
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_asaMD5;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_asaMD5);
+#else
+
 #include <string.h>
 
 #include "common.h"
@@ -141,3 +147,5 @@ static void get_ptr() {
 		fmt_asaMD5.methods.split = our_split;
 	}
 }
+
+#endif /* plugin stanza */

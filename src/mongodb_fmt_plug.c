@@ -11,6 +11,12 @@
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted. */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_mongodb;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_mongodb);
+#else
+
 #include "md5.h"
 #include <string.h>
 #include "arch.h"
@@ -318,3 +324,5 @@ struct fmt_main fmt_mongodb = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

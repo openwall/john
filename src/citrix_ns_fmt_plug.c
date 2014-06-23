@@ -30,6 +30,12 @@
  * This version is hard coded for salt length 8 (for speed).
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_ctrxns;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_ctrxns);
+#else
+
 #include <string.h>
 
 #ifdef _OPENMP
@@ -418,3 +424,5 @@ struct fmt_main fmt_ctrxns = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

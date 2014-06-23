@@ -5,6 +5,12 @@
  * Intrinsics support added by magnum 2011.
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_XSHA;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_XSHA);
+#else
+
 #include <string.h>
 
 #include "arch.h"
@@ -480,3 +486,5 @@ struct fmt_main fmt_XSHA = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

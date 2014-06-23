@@ -31,6 +31,12 @@
  *
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_MSCHAPv2_old;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_MSCHAPv2_old);
+#else
+
 #include <string.h>
 #include <openssl/des.h>
 #ifdef _OPENMP
@@ -617,3 +623,5 @@ struct fmt_main fmt_MSCHAPv2_old = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

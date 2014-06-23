@@ -8,6 +8,12 @@
  * modification, are permitted.
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_md2_;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_md2_);
+#else
+
 #include <string.h>
 #include "arch.h"
 #include "sph_md2.h"
@@ -241,3 +247,5 @@ struct fmt_main fmt_md2_ = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

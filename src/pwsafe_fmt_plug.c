@@ -11,6 +11,12 @@
 
 
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_pwsafe;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_pwsafe);
+#else
+
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
@@ -621,3 +627,5 @@ struct fmt_main fmt_pwsafe = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

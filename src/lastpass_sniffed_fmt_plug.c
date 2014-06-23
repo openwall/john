@@ -9,6 +9,12 @@
  * modification, are permitted.
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_sniffed_lastpass;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_sniffed_lastpass);
+#else
+
 #include <string.h>
 #include <errno.h>
 #include "arch.h"
@@ -311,3 +317,5 @@ struct fmt_main fmt_sniffed_lastpass = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

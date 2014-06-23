@@ -9,6 +9,12 @@
  * modification, are permitted.
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_sevenzip;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_sevenzip);
+#else
+
 #include <string.h>
 #include <errno.h>
 #include <openssl/aes.h>
@@ -458,3 +464,5 @@ struct fmt_main fmt_sevenzip = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

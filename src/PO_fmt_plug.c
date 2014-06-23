@@ -23,6 +23,12 @@
  * Copyright (c) 2005 David Luyer <david at luyer.net>
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_PO;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_PO);
+#else
+
 #include <string.h>
 
 #include "arch.h"
@@ -255,3 +261,5 @@ struct fmt_main fmt_PO = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

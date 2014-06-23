@@ -7,6 +7,12 @@
  *
  * Algorithm : md5(md5(t)+md5(e)+md5(s)+md5(t)) for "test" */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main weird_fmt;
+#elif FMT_REGISTERS_H
+john_register_one(&weird_fmt);
+#else
+
 #include <unistd.h>
 #ifdef _OPENMP
 static int omp_t = 1;
@@ -248,3 +254,5 @@ struct fmt_main weird_fmt = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

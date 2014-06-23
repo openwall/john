@@ -12,6 +12,12 @@
  * "agilekeychain" project is at https://bitbucket.org/gwik/agilekeychain
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_agile_keychain;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_agile_keychain);
+#else
+
 #include <string.h>
 #include <errno.h>
 #include "arch.h"
@@ -341,3 +347,5 @@ struct fmt_main fmt_agile_keychain = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

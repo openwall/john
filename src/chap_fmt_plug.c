@@ -14,6 +14,12 @@
  * http://www.blackhat.com/presentations/bh-usa-05/bh-us-05-Dwivedi-update.pdf
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_chap;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_chap);
+#else
+
 #include "md5.h"
 #include <string.h>
 #include <assert.h>
@@ -261,3 +267,5 @@ struct fmt_main fmt_chap = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

@@ -10,6 +10,12 @@
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted. */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main cram_md5_fmt;
+#elif FMT_REGISTERS_H
+john_register_one(&cram_md5_fmt);
+#else
+
 #include <string.h>
 #include "arch.h"
 #include "misc.h"
@@ -275,3 +281,5 @@ struct fmt_main cram_md5_fmt = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

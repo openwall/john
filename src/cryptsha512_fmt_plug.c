@@ -9,6 +9,12 @@
  *
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_cryptsha512;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_cryptsha512);
+#else
+
 #define _GNU_SOURCE 1
 #include <string.h>
 #ifdef _OPENMP
@@ -380,3 +386,5 @@ struct fmt_main fmt_cryptsha512 = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

@@ -49,6 +49,12 @@
  * not be possible due to the way JtR parses password files)
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_oracle11;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_oracle11);
+#else
+
 #include <string.h>
 
 #include "arch.h"
@@ -467,3 +473,5 @@ struct fmt_main fmt_oracle11 = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

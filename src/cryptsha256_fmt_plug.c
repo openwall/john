@@ -78,6 +78,12 @@ void main() {
 }
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_cryptsha256;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_cryptsha256);
+#else
+
 #include "arch.h"
 
 // Helpful for debugging (at times).
@@ -1002,3 +1008,5 @@ struct fmt_main fmt_cryptsha256 = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

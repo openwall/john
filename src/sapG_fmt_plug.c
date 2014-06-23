@@ -13,6 +13,12 @@
  * source and binary forms, with or without modification, are permitted.
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_sapG;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_sapG);
+#else
+
 #include <string.h>
 #include <ctype.h>
 
@@ -784,3 +790,5 @@ struct fmt_main fmt_sapG = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

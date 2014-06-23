@@ -50,6 +50,12 @@
  *     - the HMAC-SHA1 implementation of the PolarSSL open source cryptographic library (http://polarssl.org/)
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_mscash2;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_mscash2);
+#else
+
 #include <string.h>
 
 #include "arch.h"
@@ -779,3 +785,5 @@ struct fmt_main fmt_mscash2 = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

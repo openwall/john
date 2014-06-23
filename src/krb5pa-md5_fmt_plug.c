@@ -36,6 +36,12 @@
  *
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_mskrb5;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_mskrb5);
+#else
+
 #if AC_BUILT
 #include "autoconfig.h"
 #endif
@@ -473,3 +479,5 @@ struct fmt_main fmt_mskrb5 = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

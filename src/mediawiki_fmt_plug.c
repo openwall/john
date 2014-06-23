@@ -40,6 +40,12 @@ userName2:$B$107$dd494cb03ac1c5b8f8d2dddafca2f7a6:1552:0::emailaddress@gmail.com
  */
 
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_mediawiki;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_mediawiki);
+#else
+
 #include <string.h>
 
 #include "common.h"
@@ -208,3 +214,5 @@ static void get_ptr() {
  * indent-tabs-mode: t
  * End:
  */
+
+#endif /* plugin stanza */

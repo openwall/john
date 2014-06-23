@@ -13,6 +13,12 @@
  * modification, are permitted.
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_blackberry1;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_blackberry1);
+#else
+
 #include <string.h>
 #include <errno.h>
 #include "sha2.h"
@@ -278,3 +284,5 @@ struct fmt_main fmt_blackberry1 = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

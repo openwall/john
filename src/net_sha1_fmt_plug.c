@@ -14,6 +14,12 @@
  * within dynamic.
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_netsha1;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_netsha1);
+#else
+
 #include <string.h>
 #ifdef _OPENMP
 #include <omp.h>
@@ -344,3 +350,5 @@ static void init(struct fmt_main *self)
 		self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
+
+#endif /* plugin stanza */

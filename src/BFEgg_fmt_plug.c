@@ -4,6 +4,12 @@
  * This is a free software distributable under terms of the GNU GPL.
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_BFEgg;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_BFEgg);
+#else
+
 #include <string.h>
 
 #include "misc.h"
@@ -235,3 +241,5 @@ struct fmt_main fmt_BFEgg = {
 	    cmp_exact
   }
 };
+
+#endif /* plugin stanza */

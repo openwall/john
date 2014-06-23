@@ -20,6 +20,12 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_luks;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_luks);
+#else
+
 #if AC_BUILT
 #include "autoconfig.h"
 #else
@@ -579,3 +585,5 @@ struct fmt_main fmt_luks = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */
