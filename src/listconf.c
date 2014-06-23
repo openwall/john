@@ -420,6 +420,16 @@ void listconf_parse_late(void)
 	}
 	if (!strcasecmp(options.listconf, "format-details")) {
 		struct fmt_main *format;
+
+#if HAVE_OPENCL
+		/* This will make the majority of OpenCL formats
+		   also do "quick" run. But if LWS or
+		   GWS was already set, we do not overwrite. */
+		setenv("LWS", "7", 0);
+		setenv("GWS", "49", 0);
+		setenv("BLOCKS", "7", 0);
+		setenv("THREADS", "7", 0);
+#endif
 		format = fmt_list;
 		do {
 			int ntests = 0;
@@ -475,6 +485,16 @@ void listconf_parse_late(void)
 	}
 	if (!strcasecmp(options.listconf, "format-all-details")) {
 		struct fmt_main *format;
+
+#if HAVE_OPENCL
+		/* This will make the majority of OpenCL formats
+		   also do "quick" run. But if LWS or
+		   GWS was already set, we do not overwrite. */
+		setenv("LWS", "7", 0);
+		setenv("GWS", "49", 0);
+		setenv("BLOCKS", "7", 0);
+		setenv("THREADS", "7", 0);
+#endif
 		format = fmt_list;
 		do {
 			int ntests = 0;
