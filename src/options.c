@@ -76,7 +76,7 @@ static struct opt_entry opt_list[] = {
 		0, 0, OPT_FMT_STR_ALLOC, &options.wordlist},
 	{"loopback", FLG_LOOPBACK_SET, FLG_CRACKING_CHK,
 		0, 0, OPT_FMT_STR_ALLOC, &options.wordlist},
-	/* -enc is a deprecated alias for -input-enc */
+	/* -enc is an alias for -input-enc */
 	{"encoding", FLG_INPUT_ENC, FLG_INPUT_ENC,
 		0, 0, OPT_FMT_STR_ALLOC, &encoding_str},
 	{"input-encoding", FLG_INPUT_ENC, FLG_INPUT_ENC,
@@ -249,8 +249,8 @@ static struct opt_entry opt_list[] = {
 "                  --pipe  like --stdin, but bulk reads, and allows rules\n" \
 "--loopback[=FILE]         like --wordlist, but fetch words from a .pot file\n" \
 "--dupe-suppression        suppress all dupes in wordlist (and force preload)\n" \
-"--encoding=NAME           input data is non-ascii (eg. UTF-8, ISO-8859-1).\n" \
-"                          For a full list of NAME use --list=encodings\n" \
+"--encoding=NAME           input encoding (eg. UTF-8, ISO-8859-1). See also\n" \
+"                          doc/ENCODING and --list=hidden-options.\n" \
 "--rules[=SECTION]         enable word mangling rules for wordlist modes\n" \
 "--incremental[=MODE]      \"incremental\" mode [using section MODE]\n" \
 "--mask=MASK               mask mode using MASK\n" \
@@ -393,8 +393,9 @@ void opt_print_hidden_usage(void)
 	puts("--reject-printable        reject printable binaries");
 	puts("--verbosity=N             change verbosity (1-5, default 3)");
 	puts("--skip-self-tests         skip self tests");
-	puts("--target-encoding=NAME    encoding used by format (see doc/ENCODING)");
+	puts("--input-encoding=NAME     input encoding (alias for --encoding)");
 	puts("--intermediate-enc=NAME   encoding used in rules processing (see doc/ENCODING)");
+	puts("--target-encoding=NAME    output encoding (used by format, see doc/ENCODING)");
 #ifdef HAVE_LIBDL
 	puts("--plugin=NAME[,..]        load this (these) dynamic plugin(s)");
 #endif
