@@ -983,7 +983,7 @@ int cp_name2id(char *encoding)
 	if (!strcmp(enc, "8859-15"))
 		return ISO_8859_15;
 	else
-	if (!strcmp(enc, "koi8r") || !strcmp(enc, "koi-8r"))
+	if (!strcmp(enc, "koi8r") || !strcmp(enc, "koi8-r"))
 		return KOI8_R;
 	else
 	if (!strcmp(enc, "cp437"))
