@@ -38,8 +38,10 @@
 #define ARCH_INDEX(x)			((unsigned int)(unsigned char)(x))
 
 #define CPU_DETECT			0
-#define CPU_NAME			"SSE2"
 
+#ifdef __SSE2__
+#define CPU_NAME			"SSE2"
+#endif
 #ifdef __SSSE3__
 #undef CPU_NAME
 #define CPU_NAME		"SSSE3"
@@ -64,7 +66,7 @@
 #define DES_EXTB			1
 #define DES_COPY			0
 #define DES_BS				1
-#if 0
+#if !defined(__SSE2__)
 #define DES_BS_VECTOR			0
 #define DES_BS_ALGORITHM_NAME		"DES 64/64"
 #elif defined(JOHN_AVX) && (defined(__GNUC__) || defined(_OPENMP))
@@ -208,6 +210,8 @@
 			 + __GNUC_PATCHLEVEL__)
 #endif
 
+#ifdef __SSE2__
+
 #ifndef MD5_SSE_PARA
 #if defined(__INTEL_COMPILER) || defined(USING_ICC_S_FILE)
 #define MD5_SSE_PARA			3
@@ -310,13 +314,15 @@
 #define MMX_TYPE			" SSE2"
 #define MMX_COEF			4
 
-#define BF_ASM				0
-#define BF_SCALE			1
-#define BF_X2				3
-
 #define NT_X86_64
 
 #define MMX_COEF_SHA256 4
 #define MMX_COEF_SHA512 2
+
+#endif /* __SSE2__ */
+
+#define BF_ASM				0
+#define BF_SCALE			1
+#define BF_X2				3
 
 #endif
