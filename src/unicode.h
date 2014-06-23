@@ -179,7 +179,7 @@ extern int valid_utf8(const UTF8 *source);
 /* Create an NT hash from a ISO-8859 or UTF-8 string (--encoding= aware) */
 extern int E_md4hash(const UTF8 * passwd, unsigned int len, unsigned char *p16);
 
-extern void listEncodings(void);
+extern void listEncodings(FILE *stream);
 extern void initUnicode(int type);
 extern UTF16 ucs2_upcase[0x10000];   /* NOTE, for multi-char converts, we put a 1 into these */
 extern UTF16 ucs2_downcase[0x10000]; /* array. The 1 is not valid, just an indicator to check the multi-char */

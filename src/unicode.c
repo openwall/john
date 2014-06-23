@@ -894,8 +894,8 @@ UTF8 *utf16_to_enc_r (UTF8 *dst, int dst_len, const UTF16 *source) {
 		return utf16_to_cp_r(dst, dst_len, source);
 }
 
-void listEncodings(void) {
-	printf("UTF-8, ISO-8859-1 (or ansi)"
+void listEncodings(FILE *fd) {
+	fprintf(fd, "UTF-8, ISO-8859-1 (or ansi)"
 	        ", ISO-8859-2"
 	        ", ISO-8859-7"
 	        ", ISO-8859-15"
@@ -926,7 +926,7 @@ char *cp_id2name(int encoding)
 		return enc_name[encoding];
 
 	fprintf(stderr, "ERROR: %s(%d)\n", __FUNCTION__, encoding);
-	exit(0);
+	exit(EXIT_FAILURE);
 }
 
 static char *enc_macro[] = { "UNDEF", "ASCII", "CP437", "CP737", "CP850",
@@ -942,7 +942,7 @@ char *cp_id2macro(int encoding)
 		return enc_macro[encoding];
 
 	fprintf(stderr, "ERROR: %s(%d)\n", __FUNCTION__, encoding);
-	exit(0);
+	exit(EXIT_FAILURE);
 }
 
 /* Convert encoding name to numerical ID */
@@ -983,7 +983,7 @@ int cp_name2id(char *encoding)
 	if (!strcmp(enc, "8859-15"))
 		return ISO_8859_15;
 	else
-	if (!strcmp(enc, "koi8r") || !strcmp(enc, "koi-8r"))
+	if (!strcmp(enc, "koi8r") || !strcmp(enc, "koi8-r"))
 		return KOI8_R;
 	else
 	if (!strcmp(enc, "cp437"))
@@ -1020,8 +1020,9 @@ int cp_name2id(char *encoding)
 		return ASCII;
 	else
 
-	listEncodings();
-	exit(0);
+	fprintf(stderr, "Invalid encoding. Supported encodings:\n");
+	listEncodings(stderr);
+	exit(EXIT_FAILURE);
 }
 
 int cp_class(int encoding)

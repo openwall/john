@@ -248,19 +248,19 @@ void listconf_parse_early(void)
 	if ((!strcasecmp(options.listconf, "help") ||
 	                         !strcmp(options.listconf, "?"))) {
 		listconf_list_options();
-		exit(0);
+		exit(EXIT_SUCCESS);
 	}
 
 	if ((!strcasecmp(options.listconf, "help:help") ||
 	                         !strcasecmp(options.listconf, "help:"))) {
 		listconf_list_help_options();
-		exit(0);
+		exit(EXIT_SUCCESS);
 	}
 
 	if (!strcasecmp(options.listconf, "help:format-methods"))
 	{
 		listconf_list_method_names();
-		exit(0);
+		exit(EXIT_SUCCESS);
 	}
 	if (!strncasecmp(options.listconf, "help:", 5))
 	{
@@ -271,38 +271,38 @@ void listconf_parse_early(void)
 			        "%s is not a --list option that supports additional values.\nSupported options:\n",
 			        options.listconf+5);
 			listconf_list_help_options();
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 	}
 	if (!strcasecmp(options.listconf, "hidden-options"))
 	{
 		opt_print_hidden_usage();
-		exit(0);
+		exit(EXIT_SUCCESS);
 	}
 
 	if (!strcasecmp(options.listconf, "build-info"))
 	{
 		listconf_list_build_info();
-		exit(0);
+		exit(EXIT_SUCCESS);
 	}
 
 	if (!strcasecmp(options.listconf, "encodings"))
 	{
-		listEncodings();
-		exit(0);
+		listEncodings(stdout);
+		exit(EXIT_SUCCESS);
 	}
 #if HAVE_OPENCL
 	if (!strcasecmp(options.listconf, "opencl-devices"))
 	{
 		opencl_list_devices();
-		exit(0);
+		exit(EXIT_SUCCESS);
 	}
 #endif
 #if HAVE_CUDA
 	if (!strcasecmp(options.listconf, "cuda-devices"))
 	{
 		cuda_device_list();
-		exit(0);
+		exit(EXIT_SUCCESS);
 	}
 #endif
 }
@@ -336,57 +336,57 @@ void listconf_parse_late(void)
 		/* NOTE if we have other 'generics', like sha1, sha2, rc4, ...
 		 * then EACH of them should have a DISPLAY_ALL_FORMATS()
 		 * function and we can call them here. */
-		exit(0);
+		exit(EXIT_SUCCESS);
 	}
 
 	if (!strcasecmp(options.listconf, "inc-modes"))
 	{
 		cfg_print_subsections("Incremental", NULL, NULL, 0);
-		exit(0);
+		exit(EXIT_SUCCESS);
 	}
 	if (!strcasecmp(options.listconf, "rules"))
 	{
 		cfg_print_subsections("List.Rules", NULL, NULL, 0);
-		exit(0);
+		exit(EXIT_SUCCESS);
 	}
 	if (!strcasecmp(options.listconf, "externals"))
 	{
 		cfg_print_subsections("List.External", NULL, NULL, 0);
-		exit(0);
+		exit(EXIT_SUCCESS);
 	}
 	if (!strcasecmp(options.listconf, "sections"))
 	{
 		cfg_print_section_names(0);
-		exit(0);
+		exit(EXIT_SUCCESS);
 	}
 	if (!strncasecmp(options.listconf, "parameters", 10) &&
 	    (options.listconf[10] == '=' || options.listconf[10] == ':') &&
 	    options.listconf[11] != '\0')
 	{
 		cfg_print_section_params(&options.listconf[11], NULL);
-		exit(0);
+		exit(EXIT_SUCCESS);
 	}
 	if (!strncasecmp(options.listconf, "list-data", 9) &&
 	    (options.listconf[9] == '=' || options.listconf[9] == ':') &&
 	    options.listconf[10] != '\0')
 	{
 		cfg_print_section_list_lines(&options.listconf[10], NULL);
-		exit(0);
+		exit(EXIT_SUCCESS);
 	}
 	if (!strcasecmp(options.listconf, "ext-filters"))
 	{
 		cfg_print_subsections("List.External", "filter", NULL, 0);
-		exit(0);
+		exit(EXIT_SUCCESS);
 	}
 	if (!strcasecmp(options.listconf, "ext-filters-only"))
 	{
 		cfg_print_subsections("List.External", "filter", "generate", 0);
-		exit(0);
+		exit(EXIT_SUCCESS);
 	}
 	if (!strcasecmp(options.listconf, "ext-modes"))
 	{
 		cfg_print_subsections("List.External", "generate", NULL, 0);
-		exit(0);
+		exit(EXIT_SUCCESS);
 	}
 
 	if (!strcasecmp(options.listconf, "formats")) {
@@ -416,7 +416,7 @@ void listconf_parse_late(void)
 			}
 			printf("%s%s", label, format->next ? ", " : "\n");
 		} while ((format = format->next));
-		exit(0);
+		exit(EXIT_SUCCESS);
 	}
 	if (!strcasecmp(options.listconf, "format-details")) {
 		struct fmt_main *format;
@@ -466,7 +466,7 @@ void listconf_parse_late(void)
 			       ntests ?
 			       format->params.tests[0].ciphertext : "");
 		} while ((format = format->next));
-		exit(0);
+		exit(EXIT_SUCCESS);
 	}
 	if (!strcasecmp(options.listconf, "format-all-details")) {
 		struct fmt_main *format;
@@ -531,7 +531,7 @@ void listconf_parse_late(void)
 			       format->params.tests[0].ciphertext);
 			printf("\n");
 		} while ((format = format->next));
-		exit(0);
+		exit(EXIT_SUCCESS);
 	}
 	if (!strncasecmp(options.listconf, "format-methods", 14)) {
 		struct fmt_main *format;
@@ -589,7 +589,7 @@ void listconf_parse_late(void)
 					fprintf(stderr, "Error, invalid option (invalid method name) %s\n", options.listconf);
 					fprintf(stderr, "Valid method names are:\n");
 					listconf_list_method_names();
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 				if (format->methods.init != fmt_default_init && !strcasecmp(&options.listconf[15], "init"))
 					ShowIt = 1;
@@ -703,7 +703,7 @@ void listconf_parse_late(void)
 				printf("\n\n");
 			}
 		} while ((format = format->next));
-		exit(0);
+		exit(EXIT_SUCCESS);
 	}
 	if (!strncasecmp(options.listconf, "format-tests", 12)) {
 		struct fmt_main *format;
@@ -768,7 +768,7 @@ void listconf_parse_late(void)
 						ciphertext = format->params.tests[ntests].ciphertext;
 						if (ciphertext[ 0] == '\0') {
 							//printf ("Here\n");
-							//exit(0);
+							//exit(EXIT_SUCCESS);
 							// NOTE, I tested every non GPU format, and NONE of them get here.  I am not sure
 							// just WHAT this code is, or who/why it was put here.  But it should be removed.
 							ciphertext = format->methods.prepare(format->params.tests[ntests].fields, format);
@@ -818,7 +818,7 @@ void listconf_parse_late(void)
 			fmt_done(format);
 
 		} while ((format = format->next));
-		exit(0);
+		exit(EXIT_SUCCESS);
 	}
 	/*
 	 * Other --list=help:WHAT are processed in listconf_parse_early(), but
@@ -827,26 +827,26 @@ void listconf_parse_late(void)
 	if (!strcasecmp(options.listconf, "help:parameters"))
 	{
 		cfg_print_section_names(1);
-		exit(0);
+		exit(EXIT_SUCCESS);
 	}
 	if (!strcasecmp(options.listconf, "help:list-data"))
 	{
 		cfg_print_section_names(2);
-		exit(0);
+		exit(EXIT_SUCCESS);
 	}
 
 	/* --list last resort: list subsections of any john.conf section name */
 
 	//printf("Subsections of [%s]:\n", options.listconf);
 	if (cfg_print_subsections(options.listconf, NULL, NULL, 1))
-		exit(0);
+		exit(EXIT_SUCCESS);
 	else {
 		fprintf(stderr, "Section [%s] not found.\n", options.listconf);
 		/* Just in case the user specified an invalid value
 		 * like help or list...
-		 * print the same list as with --list=?, but exit(1)
+		 * print the same list as with --list=?, but exit(EXIT_FAILURE)
 		 */
 		listconf_list_options();
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 }

@@ -300,8 +300,8 @@ int main(int argc, char **argv)
 			break;
 		case 'l':
 			puts("Supported encodings:");
-			listEncodings();
-			return EXIT_SUCCESS;
+			listEncodings(stdout);
+			exit(EXIT_SUCCESS);
 			break;
 		case 'h':
 			usage(argv[0], EXIT_SUCCESS);

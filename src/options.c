@@ -762,8 +762,8 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 	    (intermediate_enc_str &&
 	     !strcasecmp(intermediate_enc_str, "list")) ||
 	    (target_enc_str && !strcasecmp(target_enc_str, "list"))) {
-		listEncodings();
-		exit(0);
+		listEncodings(stdout);
+		exit(EXIT_SUCCESS);
 	}
 
 	if (encoding_str)
