@@ -18,6 +18,11 @@
 #include "stdint.h"
 #include "aligned.h"
 
+#if _MSC_VER
+#undef inline
+#define inline
+#endif
+
 #if defined(__cplusplus)
 extern "C" {
 #endif

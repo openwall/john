@@ -48,6 +48,7 @@
 #include "common.h"
 
 #ifdef _MSC_VER
+#undef inline
 #define inline _inline
 #endif
 

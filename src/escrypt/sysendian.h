@@ -45,6 +45,11 @@
 #include "../stdint.h"
 #include "../misc.h"
 
+#if _MSC_VER
+#undef inline
+#define inline
+#endif
+
 static inline uint32_t
 be32dec(const void *pp)
 {

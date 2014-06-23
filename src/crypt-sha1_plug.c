@@ -48,6 +48,7 @@
 #include <string.h>
 #include <time.h>
 
+#include "jumbo.h"
 #include "gladman_hmac.h"
 
 /*

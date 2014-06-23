@@ -296,6 +296,14 @@ extern int _exit(int);
 #define __STRICT_ANSI__ 1
 #endif
 
+#if _MSC_VER
+#define strdup _strdup
+#define strupr _strupr
+#define strlwr _strlwr
+#define open _open
+#define fdopen _fdopen
+#endif
+
 #include "memdbg_defines.h"
 #ifndef MEMDBG_ON
 #if (AC_BUILT && HAVE__STRDUP) || (!AC_BUILT && _MSC_VER)
