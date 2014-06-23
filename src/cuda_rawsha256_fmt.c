@@ -43,7 +43,7 @@ static struct fmt_tests sha256_tests[] = {
 #define FORMAT_LABEL		"Raw-SHA224-cuda"
 #define ALGORITHM_NAME		"SHA224 CUDA (inefficient, development use mostly)"
 #define CIPHERTEXT_LENGTH	56	///224bit
-#define BINARY_SIZE		32
+#define BINARY_SIZE		28
 #define SHA_HASH 		sha224_hash
 #define TESTS			sha224_tests
 #define FMT_MAIN		fmt_cuda_rawsha224
