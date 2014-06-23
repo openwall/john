@@ -424,6 +424,8 @@ void listconf_parse_late(void)
 		do {
 			int ntests = 0;
 
+			fmt_init(format);	/* required for --encoding support */
+
 			if (format->params.tests) {
 				while (format->params.tests[ntests++].ciphertext);
 				ntests--;
@@ -465,6 +467,9 @@ void listconf_parse_late(void)
 			        */
 			       ntests ?
 			       format->params.tests[0].ciphertext : "");
+
+			fmt_done(format);
+
 		} while ((format = format->next));
 		exit(EXIT_SUCCESS);
 	}
@@ -473,6 +478,8 @@ void listconf_parse_late(void)
 		format = fmt_list;
 		do {
 			int ntests = 0;
+
+			fmt_init(format);	/* required for --encoding support */
 
 			if (format->params.tests) {
 				while (format->params.tests[ntests++].ciphertext);
@@ -530,6 +537,9 @@ void listconf_parse_late(void)
 			       ? " (truncated here)" : "                 ",
 			       format->params.tests[0].ciphertext);
 			printf("\n");
+
+			fmt_done(format);
+
 		} while ((format = format->next));
 		exit(EXIT_SUCCESS);
 	}
