@@ -1128,7 +1128,7 @@ static void john_load(void)
 	if (options.flags & FLG_PASSWD) {
 		int total;
 #if FMT_MAIN_VERSION > 11
-		int i;
+		int i = 0;
 #endif
 
 		if (options.flags & FLG_SHOW_CHK) {
@@ -1207,6 +1207,10 @@ static void john_load(void)
 			if (john_main_process)
 			printf("No password hashes %s (see FAQ)\n",
 			    total ? "left to crack" : "loaded");
+#if FMT_MAIN_VERSION > 11
+			/* skip tunable cost reporting if no hashes were loaded */
+			i = FMT_TUNABLE_COSTS;
+#endif
 		} else
 		if (database.password_count < total) {
 			log_event("Remaining %s", john_loaded_counts());
@@ -1215,7 +1219,7 @@ static void john_load(void)
 		}
 
 #if FMT_MAIN_VERSION > 11
-		for (i = 0; i < FMT_TUNABLE_COSTS && database.format->methods.tunable_cost_value[i] != NULL; i++) {
+		for ( ; i < FMT_TUNABLE_COSTS && database.format->methods.tunable_cost_value[i] != NULL; i++) {
 			if (database.min_cost[i] < database.max_cost[i]) {
 				log_event("Loaded hashes with cost %d (%s)"
 				          " varying from %u to %u",
