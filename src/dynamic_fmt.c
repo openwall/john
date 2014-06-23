@@ -809,8 +809,10 @@ static void init(struct fmt_main *pFmt)
 	fmt_Dynamic.params.benchmark_comment  = pFmt->params.benchmark_comment;
 	fmt_Dynamic.params.benchmark_length   = pFmt->params.benchmark_length;
  // we allow for 3 bytes of utf8 data to make up the number of plaintext_length unicode chars.
-	if ( (pFmt->params.flags&FMT_UNICODE) && pers_opts.target_enc == UTF_8 )
-		pFmt->params.plaintext_length = MIN(125, pPriv->pSetup->MaxInputLen * 3);
+	if ( (pFmt->params.flags&FMT_UNICODE) && pers_opts.target_enc == UTF_8 ) {
+		//printf ("Here pFmt->params.plaintext_length=%d pPriv->pSetup->MaxInputLen=%d\n", pFmt->params.plaintext_length, pPriv->pSetup->MaxInputLen);
+		pFmt->params.plaintext_length = MIN(125, pFmt->params.plaintext_length * 3);
+	}
 	else
 		fmt_Dynamic.params.plaintext_length   = pFmt->params.plaintext_length;
 	fmt_Dynamic.params.salt_size          = pFmt->params.salt_size;
