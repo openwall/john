@@ -85,7 +85,7 @@ static struct fmt_tests episerver_tests[] = {
 	{NULL}
 };
 
-static char (*saved_key)[PLAINTEXT_LENGTH + 1];
+static char (*saved_key)[3 * PLAINTEXT_LENGTH + 1];
 static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
 
 static struct custom_salt {
@@ -168,6 +168,8 @@ static void *get_binary(char *ciphertext)
 	} buf;
 	unsigned char *out = buf.c;
 	char *p;
+
+	memset(buf.c, 0, sizeof(buf.c));
 	p = strrchr(ciphertext, '*') + 1;
 	base64_decode(p, strlen(p), (char*)out);
 	return out;
@@ -200,7 +202,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		len = enc_to_utf16((UTF16*)passwordBuf, PLAINTEXT_LENGTH,
 		                   (UTF8*)saved_key[index], strlen(saved_key[index]));
 		if (len < 0)
-			len = strlen16((UTF16*)saved_key[index]);
+			len = strlen16((UTF16*)passwordBuf);
 		len <<= 1;
 		if(cur_salt->version == 0) {
 			SHA_CTX ctx;
