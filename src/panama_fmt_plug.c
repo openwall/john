@@ -45,8 +45,8 @@ static int omp_t = 1;
 #define MAX_KEYS_PER_CRYPT	1
 
 static struct fmt_tests panama__tests[] = {
-	{"$panama$049d698307d8541f22870dfa0a551099d3d02bc6d57c610a06a4585ed8d35ff8", "T"},
 	{"049d698307d8541f22870dfa0a551099d3d02bc6d57c610a06a4585ed8d35ff8", "T"},
+	{"$panama$049d698307d8541f22870dfa0a551099d3d02bc6d57c610a06a4585ed8d35ff8", "T"},
 	{NULL}
 };
 
@@ -177,7 +177,7 @@ static char *prepare(char *fields[10], struct fmt_main *self) {
 		sprintf(buf, "%s%s", FORMAT_TAG, hash);
 		return buf;
 	}
-	return hash;	
+	return hash;
 }
 
 struct fmt_main fmt_panama_ = {

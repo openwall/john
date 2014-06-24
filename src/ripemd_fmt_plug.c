@@ -46,8 +46,8 @@ static int omp_t = 1;
 #define SALT_ALIGN		1
 
 static struct fmt_tests ripemd_160_tests[] = {
-	{"$ripemd$9c1185a5c5e9fc54612808977ee8f548b2258d31", ""},
 	{"9c1185a5c5e9fc54612808977ee8f548b2258d31", ""},
+	{"$ripemd$9c1185a5c5e9fc54612808977ee8f548b2258d31", ""},
 	{NULL}
 };
 
@@ -237,7 +237,7 @@ static char *prepare(char *fields[10], struct fmt_main *self) {
 		sprintf(buf, "%s%s", FORMAT_TAG, hash);
 		return buf;
 	}
-	return hash;	
+	return hash;
 }
 
 struct fmt_main fmt_ripemd_160 = {

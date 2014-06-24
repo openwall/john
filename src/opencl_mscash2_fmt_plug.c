@@ -69,11 +69,11 @@ static struct fmt_tests tests[] = {
 	{"$DCC2$nineteen_characters#c4201b8267d74a2db1d5d19f5c9f7b57", "verylongpassword" },
 	{"$DCC2$nineteen_characters#87136ae0a18b2dafe4a41d555425b2ed", "w00t"},
 	{"$DCC2$administrator#56f8c24c5a914299db41f70e9b43f36d", "w00t" },
-	{"$DCC2$AdMiNiStRaToR#56f8C24c5A914299Db41F70e9b43f36d", "w00t" },                   //Salt and hash are lowercased
-	{"$DCC2$10240#TEST2#c6758e5be7fc943d00b97972a8a97620", "test2" },                    // salt is lowercased before hashing
+	{"$DCC2$AdMiNiStRaToR#56f8C24c5A914299Db41F70e9b43f36d", "w00t" }, //Salt and hash are lowercased
+	{"$DCC2$10240#TEST2#c6758e5be7fc943d00b97972a8a97620", "test2" }, // salt is lowercased before hashing
 	{"$DCC2$10240#eighteencharacters#fc5df74eca97afd7cd5abb0032496223", "w00t" },
 	{"$DCC2$john-the-ripper#495c800a038d11e55fafc001eb689d1d", "batman#$@#1991" },
-	{"$DCC2$#59137848828d14b1fca295a5032b52a1", "a" },                                   //Empty Salt
+	{"$DCC2$#59137848828d14b1fca295a5032b52a1", "a" }, //Empty Salt
 	{"$DCC2$10240#nineteen_characters#cda4cef92db4398ce648a8fed8dc6853", "12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"},
 	//MAX length salt with MAX length password
 	{"$DCC2$10240#12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678#5ba26de44bd3a369f43a1c72fba76d45", "12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"},

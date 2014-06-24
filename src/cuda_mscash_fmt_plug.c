@@ -36,7 +36,7 @@ static mscash_hash *outbuffer;
 static mscash_salt currentsalt;
 
 static struct fmt_tests tests[] = {
-	{"M$test2#ab60bdb4493822b175486810ac2abe63", "test2"},
+	{"ab60bdb4493822b175486810ac2abe63", "test2", {"test2"}},
 	{"M$test1#64cd29e36a8431a2b111378564a10631", "test1"},
 	{"M$test1#64cd29e36a8431a2b111378564a10631", "test1"},
 	{"M$test1#64cd29e36a8431a2b111378564a10631", "test1"},
@@ -46,7 +46,6 @@ static struct fmt_tests tests[] = {
 
 	{"64cd29e36a8431a2b111378564a10631", "test1", {"TEST1"}},	// salt is lowercased before hashing
 	{"290efa10307e36a79b3eebf2a6b29455", "okolada", {"nineteen_characters"}},	// max salt length
-	{"ab60bdb4493822b175486810ac2abe63", "test2", {"test2"}},
 	{"b945d24866af4b01a6d89b9d932a153c", "test4", {"test4"}},
 	{NULL}
 };

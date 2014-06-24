@@ -56,7 +56,6 @@ john_register_one(&fmt_netmd5);
 
 static struct fmt_tests tests[] = {
 	/* RIPv2 MD5 authentication hashes */
-	{FORMAT_TAG "02020000ffff0003002c01145267d48d000000000000000000020000ac100100ffffff000000000000000001ffff0001$1e372a8a233c6556253a0909bc3dcce6", "quagga"},
 	{           "02020000ffff0003002c01145267d48d000000000000000000020000ac100100ffffff000000000000000001ffff0001$1e372a8a233c6556253a0909bc3dcce6", "quagga"},
 	{FORMAT_TAG "02020000ffff0003002c01145267d48f000000000000000000020000ac100100ffffff000000000000000001ffff0001$ed9f940c3276afcc06d15babe8a1b61b", "quagga"},
 	{FORMAT_TAG "02020000ffff0003002c01145267d490000000000000000000020000ac100100ffffff000000000000000001ffff0001$c9f7763f80fcfcc2bbbca073be1f5df7", "quagga"},
@@ -268,7 +267,7 @@ static char *prepare(char *fields[10], struct fmt_main *self) {
 		sprintf(buf, "%s%s", FORMAT_TAG, hash);
 		return buf;
 	}
-	return hash;	
+	return hash;
 }
 
 struct fmt_main fmt_netmd5 = {
@@ -338,7 +337,7 @@ static void get_ptr() {
 		char *Buf;
 		pNetMd5_Dyna = mem_alloc_tiny(sizeof(fmt_netmd5), 16);
 		memcpy(pNetMd5_Dyna, &fmt_netmd5, sizeof(fmt_netmd5));
-		
+
 		pDynamicFmt = dynamic_THIN_FORMAT_LINK(pNetMd5_Dyna, Convert(Conv_Buf, tests[0].ciphertext), "net-md5", 0);
 		fmt_netmd5.params.min_keys_per_crypt = pDynamicFmt->params.min_keys_per_crypt;
 		fmt_netmd5.params.max_keys_per_crypt = pDynamicFmt->params.max_keys_per_crypt;

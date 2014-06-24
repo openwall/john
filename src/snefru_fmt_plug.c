@@ -47,8 +47,8 @@ static int omp_t = 1;
 #define SALT_ALIGN		1
 
 static struct fmt_tests snefru_128_tests[] = {
-	{"$snefru$53b8a9b1c9ed00174d88d705fb7bae30", "mystrongpassword"},
 	{"53b8a9b1c9ed00174d88d705fb7bae30", "mystrongpassword"},
+	{"$snefru$53b8a9b1c9ed00174d88d705fb7bae30", "mystrongpassword"},
 	{NULL}
 };
 
@@ -239,7 +239,7 @@ static char *prepare(char *fields[10], struct fmt_main *self) {
 		sprintf(buf, "%s%s", FORMAT_TAG, hash);
 		return buf;
 	}
-	return hash;	
+	return hash;
 }
 
 struct fmt_main fmt_snefru_256 = {

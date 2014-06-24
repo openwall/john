@@ -46,9 +46,8 @@ static int omp_t = 1;
 #define MAX_KEYS_PER_CRYPT	1
 
 static struct fmt_tests tiger_tests[] = {
-	{"$tiger$D981F8CB78201A950DCF3048751E441C517FCA1AA55A29F6", "message digest"},
-	{"D981F8CB78201A950DCF3048751E441C517FCA1AA55A29F6", "message digest"},
 	{"3293AC630C13F0245F92BBB1766E16167A4E58492DDE73F3", ""},
+	{"$tiger$D981F8CB78201A950DCF3048751E441C517FCA1AA55A29F6", "message digest"},
 	{NULL}
 };
 
@@ -178,7 +177,7 @@ static char *prepare(char *fields[10], struct fmt_main *self) {
 		sprintf(buf, "%s%s", FORMAT_TAG, hash);
 		return buf;
 	}
-	return hash;	
+	return hash;
 }
 
 struct fmt_main fmt_tiger = {

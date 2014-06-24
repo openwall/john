@@ -57,7 +57,6 @@ john_register_one(&fmt_netsha1);
 static struct fmt_tests tests[] = {
 /* Mockup test vectors. Both these lines should be deleted once we get some
    real test vectors */
-	{FORMAT_TAG "02020000ffff0003002c01145267d48d000000000000000000020000ac100100ffffff000000000000000001ffff0001$7236e720eaebe9eb3954c53db5cc19224a6cfeb3", "quagga"},
 	{           "02020000ffff0003002c01145267d48d000000000000000000020000ac100100ffffff000000000000000001ffff0001$7236e720eaebe9eb3954c53db5cc19224a6cfeb3", "quagga"},
 	{FORMAT_TAG "02020000ffff0003002c01145267d48d000000000000000000020000ac100100ffffff000000000000000001ffff0001$71893ac93cb5511937d4a7189d390d14d9e013fd", "magnum"},
 	{NULL}
@@ -258,7 +257,7 @@ static char *prepare(char *fields[10], struct fmt_main *self) {
 		sprintf(buf, "%s%s", FORMAT_TAG, hash);
 		return buf;
 	}
-	return hash;	
+	return hash;
 }
 
 struct fmt_main fmt_netsha1 = {
@@ -328,7 +327,7 @@ static void get_ptr() {
 		char *Buf;
 		pNetSha1_Dyna = mem_alloc_tiny(sizeof(fmt_netsha1), 16);
 		memcpy(pNetSha1_Dyna, &fmt_netsha1, sizeof(fmt_netsha1));
-		
+
 		pDynamicFmt = dynamic_THIN_FORMAT_LINK(pNetSha1_Dyna, Convert(Conv_Buf, tests[0].ciphertext), "net-sha1", 0);
 		fmt_netsha1.params.min_keys_per_crypt = pDynamicFmt->params.min_keys_per_crypt;
 		fmt_netsha1.params.max_keys_per_crypt = pDynamicFmt->params.max_keys_per_crypt;

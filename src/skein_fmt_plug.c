@@ -48,13 +48,12 @@ static int omp_t = 1;
 #define SALT_ALIGN		1
 
 static struct fmt_tests skein_256_tests[] = {
-	{"$skein$39CCC4554A8B31853B9DE7A1FE638A24CCE6B35A55F2431009E18780335D2621", ""},
 	{"39CCC4554A8B31853B9DE7A1FE638A24CCE6B35A55F2431009E18780335D2621", ""},
+	{"$skein$39CCC4554A8B31853B9DE7A1FE638A24CCE6B35A55F2431009E18780335D2621", ""},
 	{NULL}
 };
 
 static struct fmt_tests skein_512_tests[] = {
-	{"$skein$71b7bce6fe6452227b9ced6014249e5bf9a9754c3ad618ccc4e0aae16b316cc8ca698d864307ed3e80b6ef1570812ac5272dc409b5a012df2a579102f340617a", "\xff"},
 	{"71b7bce6fe6452227b9ced6014249e5bf9a9754c3ad618ccc4e0aae16b316cc8ca698d864307ed3e80b6ef1570812ac5272dc409b5a012df2a579102f340617a", "\xff"},
 	{"$skein$BC5B4C50925519C290CC634277AE3D6257212395CBA733BBAD37A4AF0FA06AF41FCA7903D06564FEA7A2D3730DBDB80C1F85562DFCC070334EA4D1D9E72CBA7A", ""},
 	{NULL}
@@ -239,7 +238,7 @@ static char *prepare(char *fields[10], struct fmt_main *self) {
 		sprintf(buf, "%s%s", FORMAT_TAG, hash);
 		return buf;
 	}
-	return hash;	
+	return hash;
 }
 
 struct fmt_main fmt_skein_256 = {

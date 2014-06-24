@@ -39,10 +39,10 @@ static mscash2_hash *outbuffer;
 static mscash2_salt currentsalt;
 
 static struct fmt_tests tests[] = {
+	{"c0cbe0313a861062e29f92ede58f9b36", "", {"bin"}},	// nullstring password
 	{"$DCC2$10240#test1#607bbe89611e37446e736f7856515bf8", "test1"},
 	{"$DCC2$10240#Joe#e09b38f84ab0be586b730baf61781e30", "qerwt"},
 	{"$DCC2$10240#Joe#6432f517a900b3fc34ffe57f0f346e16", "12345"},
-	{"c0cbe0313a861062e29f92ede58f9b36", "", {"bin"}},	// nullstring password
 	{"87136ae0a18b2dafe4a41d555425b2ed", "w00t", {"nineteen_characters"}},	// max salt length
 	{"fc5df74eca97afd7cd5abb0032496223", "w00t", {"eighteencharacters"}},
 //unsupported salts lengths

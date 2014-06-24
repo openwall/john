@@ -80,6 +80,7 @@ john_register_one(&fmt_MSCHAPv2_old);
 #define MAX_KEYS_PER_CRYPT      DES_BS_DEPTH
 
 static struct fmt_tests tests[] = {
+	{"", "Cricket8",       {"testuser1",   "", "",    "d07054459a1fdbc266a006f0220e6fac", "33c8331a9b03b7e003f09dd253d740a2bead544143cc8bde", "3545cb1d89b507a5de104435e81b14a4"} },
 	{"$MSCHAPv2$4c092fd3fd98236502e8591100046326$b912ce522524d33123a982cf330a57f8e953fa7974042b5d$6a4915d0ce61d42be533640a75391925$1111", "2222"},
 	{"$MSCHAPv2$5B5D7C7D7B3F2F3E3C2C602132262628$82309ECD8D708B5EA08FAA3981CD83544233114A3D85D6DF$21402324255E262A28295F2B3A337C7E$User", "clientPass"},
 	{"$MSCHAPv2$d07054459a1fdbc266a006f0220e6fac$33c8331a9b03b7e003f09dd253d740a2bead544143cc8bde$3545cb1d89b507a5de104435e81b14a4$testuser1", "Cricket8"},
@@ -98,7 +99,6 @@ static struct fmt_tests tests[] = {
 	{"$MSCHAPv2$6D0E1C056CD94D5F$1C93ABCE815400686BAECA315F348469256420598A73AD49$moxie", "bPCFyF2uL1p5Lg5yrKmqmY"},
 
 	{"", "clientPass",     {"User",        "", "",    "5B5D7C7D7B3F2F3E3C2C602132262628", "82309ECD8D708B5EA08FAA3981CD83544233114A3D85D6DF", "21402324255E262A28295F2B3A337C7E"} },
-	{"", "Cricket8",       {"testuser1",   "", "",    "d07054459a1fdbc266a006f0220e6fac", "33c8331a9b03b7e003f09dd253d740a2bead544143cc8bde", "3545cb1d89b507a5de104435e81b14a4"} },
 	{"", "OMG!BBQ!11!one", {"domain\\fred", "", "",   "56d64cbe7bad61349a0b752335100eaf", "d7d829d9545cef1d631b4e568ffb7586050fa3a4d02dbc0b", "7f8a466cff2a6bf0c80218bbf56d76bc"} }, /* domain\fred */
 	{"", "",               {"lameuser", "", "domain", "d94e7c7972b2376b28c268583e162de7", "eba25a3b04d2c7085d01f842e2befc91745c40db0f792356", "0677ca7318fd7f65ae1b4f58c9f4f400"} }, /* no password */
 	{"", "asdblahblahblahblahblahblahblahblah", {"WorkGroup\\bOb", "", "", "b3c42db475b881d3c52ff3923d7b3bf8", "f07c7a4eb391f5debe32d814679a5a69661b86b33227c4f8", "6321f8649b971bd11ce8d5cb22a4a738"} }, /* WorkGroup\bOb */
