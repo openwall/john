@@ -60,13 +60,8 @@ static unsigned int omp_t = 1;
 #define SALT_FIELD_LENGTH		40
 #define USER_NAME_LENGTH		12 /* max. length of user name in characters */
 #define SALT_LENGTH			(USER_NAME_LENGTH*3)	/* 12 characters of UTF-8 */
-#define PLAINTEXT_LENGTH		40 /* Characters = bytes unless UTF-8 */
-
-#ifdef __SSE2__
-#define UTF8_PLAINTEXT_LENGTH		(64+55-SALT_LENGTH) /* Max 2 limbs */
-#else
-#define UTF8_PLAINTEXT_LENGTH		(3*PLAINTEXT_LENGTH) /* worst case */
-#endif
+#define PLAINTEXT_LENGTH		40 /* Characters of UTF-8 */
+#define UTF8_PLAINTEXT_LENGTH		(PLAINTEXT_LENGTH*3) /* worst case */
 
 #define BINARY_SIZE			20
 #define BINARY_ALIGN			4
@@ -135,7 +130,7 @@ static int *keyLen;
 
 // max intermediate crypt size is 256 bytes
 // multiple key buffers for lengths > 55
-#define LIMB	4
+#define LIMB	5
 static unsigned char *saved_key[LIMB];
 static unsigned char *crypt_key;
 static unsigned char *interm_crypt;
@@ -168,9 +163,8 @@ static void init(struct fmt_main *self)
 	    warned++ == 0)
 		fprintf(stderr, "Warning: SAP-F/G format should always be UTF-8.\nConvert your input files to UTF-8 and use --input-encoding=utf8\n");
 
-	// Max 40 characters or 116 bytes of UTF-8, whichever is greater. In
-	// extreme cases 120 bytes would be needed for 40 multi-byte characters
-	// but that should be academic - and would require another limb.
+	// Max 40 characters or 120 bytes of UTF-8, We actually do
+	// not truncate at 40 characters because it's too expensive
 	if (pers_opts.target_enc == UTF_8)
 		self->params.plaintext_length = UTF8_PLAINTEXT_LENGTH;
 
@@ -460,7 +454,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 					if (len & 63)
 						keybuf_word += MMX_COEF;
 					else
-						keybuf_word = (ARCH_WORD_32*)&saved_key[len>>8][GETSTARTPOS(ti)];
+						keybuf_word = (ARCH_WORD_32*)&saved_key[len>>6][GETSTARTPOS(ti)];
 				}
 
 				// Back-out of trailing spaces
@@ -495,13 +489,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 		SSESHA1body(&saved_key[0][t*SHA_BUF_SIZ*4*NBKEYS], (unsigned int*)&crypt_key[t*20*NBKEYS], NULL, SSEi_MIXED_IN);
 
-		// Do another limb if needed
-		if (longest > 55) {
-			memcpy(&interm_crypt[t*20*NBKEYS], &crypt_key[t*20*NBKEYS], 20*NBKEYS);
-			SSESHA1body(&saved_key[1][t*SHA_BUF_SIZ*4*NBKEYS], (unsigned int*)&interm_crypt[t*20*NBKEYS], (unsigned int*)&interm_crypt[t*20*NBKEYS], SSEi_MIXED_IN|SSEi_RELOAD);
-			// Copy the new output
+		// Do another and possibly a third limb
+		memcpy(&interm_crypt[t*20*NBKEYS], &crypt_key[t*20*NBKEYS], 20*NBKEYS);
+		for (i = 1; i < (((longest + 8) >> 6) + 1); i++) {
+			SSESHA1body(&saved_key[i][t*SHA_BUF_SIZ*4*NBKEYS], (unsigned int*)&interm_crypt[t*20*NBKEYS], (unsigned int*)&interm_crypt[t*20*NBKEYS], SSEi_MIXED_IN|SSEi_RELOAD);
+			// Copy any output that is done now
 			for (index = 0; index < NBKEYS; index++)
-				if (crypt_len[index] > 55)
+				if (((crypt_len[index] + 8) >> 6) == i)
 					crypt_done((unsigned int*)interm_crypt, (unsigned int*)crypt_key, ti);
 		}
 
@@ -511,10 +505,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			unsigned int offsetMagicArray;
 			unsigned int lengthIntoMagicArray;
 			const unsigned char *p;
+			int i;
 
 			// If final crypt ends up to be 56-61 bytes (or so), this must be clean
-			((unsigned int*)saved_key[0])[15*MMX_COEF + (ti&3) + (ti>>2)*SHA_BUF_SIZ*MMX_COEF] = 0;
-			((unsigned int*)saved_key[1])[15*MMX_COEF + (ti&3) + (ti>>2)*SHA_BUF_SIZ*MMX_COEF] = 0;
+			for (i = 0; i < LIMB; i++)
+				((unsigned int*)saved_key[i])[15*MMX_COEF + (ti&3) + (ti>>2)*SHA_BUF_SIZ*MMX_COEF] = 0;
 
 			len = keyLen[ti];
 			lengthIntoMagicArray = extractLengthOfMagicArray(crypt_key, ti);
@@ -558,7 +553,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			if (crypt_len[index] < 56)
 				crypt_done((unsigned int*)interm_crypt, (unsigned int*)crypt_key, ti);
 
-		// Do another and possibly a third limb
+		// Do another and possibly a third, fourth and fifth limb
 		for (i = 1; i < (((longest + 8) >> 6) + 1); i++) {
 			SSESHA1body(&saved_key[i][t*SHA_BUF_SIZ*4*NBKEYS], (unsigned int*)&interm_crypt[t*20*NBKEYS], (unsigned int*)&interm_crypt[t*20*NBKEYS], SSEi_MIXED_IN|SSEi_RELOAD);
 			// Copy any output that is done now
