@@ -163,8 +163,8 @@ static void init(struct fmt_main *self)
 	    warned++ == 0)
 		fprintf(stderr, "Warning: SAP-F/G format should always be UTF-8.\nConvert your input files to UTF-8 and use --input-encoding=utf8\n");
 
-	// Max 40 characters or 120 bytes of UTF-8, We actually do
-	// not truncate at 40 characters because it's too expensive
+	// Max 40 characters or 120 bytes of UTF-8, We actually do not truncate
+	// multibyte input at 40 characters because it's too expensive.
 	if (pers_opts.target_enc == UTF_8)
 		self->params.plaintext_length = UTF8_PLAINTEXT_LENGTH;
 
@@ -509,7 +509,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 			// If final crypt ends up to be 56-61 bytes (or so), this must be clean
 			for (i = 0; i < LIMB; i++)
-				((unsigned int*)saved_key[i])[15*MMX_COEF + (ti&3) + (ti>>2)*SHA_BUF_SIZ*MMX_COEF] = 0;
+				if (keyLen[ti] < i * 64 + 55)
+					((unsigned int*)saved_key[i])[15*MMX_COEF + (ti&3) + (ti>>2)*SHA_BUF_SIZ*MMX_COEF] = 0;
 
 			len = keyLen[ti];
 			lengthIntoMagicArray = extractLengthOfMagicArray(crypt_key, ti);
