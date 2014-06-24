@@ -37,8 +37,8 @@ static int omp_t = 1;
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	125
-#define BINARY_SIZE		32
-#define CMP_SIZE		16
+#define BINARY_SIZE256		32
+#define BINARY_SIZE128		16
 #define SALT_SIZE		0
 #define BINARY_ALIGN		4
 #define SALT_ALIGN		1
@@ -46,19 +46,19 @@ static int omp_t = 1;
 #define MAX_KEYS_PER_CRYPT	1
 
 static struct fmt_tests haval_256_3_tests[] = {
-	{"$haval$91850C6487C9829E791FC5B58E98E372F3063256BB7D313A93F1F83B426AEDCC", "HAVAL"},
 	{"91850C6487C9829E791FC5B58E98E372F3063256BB7D313A93F1F83B426AEDCC", "HAVAL"},
+	{"$haval$91850C6487C9829E791FC5B58E98E372F3063256BB7D313A93F1F83B426AEDCC", "HAVAL"},
 	{NULL}
 };
 
 static struct fmt_tests haval_128_4_tests[] = {
-	{"$haval$EE6BBF4D6A46A679B3A856C88538BB98", ""},
 	{"EE6BBF4D6A46A679B3A856C88538BB98", ""},
+	{"$haval$ee6bbf4d6a46a679b3a856c88538bb98", ""},
 	{NULL}
 };
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE256 / sizeof(ARCH_WORD_32)];
 
 static void init(struct fmt_main *self)
 {
@@ -205,14 +205,19 @@ static int cmp_all(void *binary, int count)
 #ifdef _OPENMP
 	for (; index < count; index++)
 #endif
-		if (!memcmp(binary, crypt_out[index], CMP_SIZE))
+		if (!memcmp(binary, crypt_out[index], ARCH_SIZE))
 			return 1;
 	return 0;
 }
 
-static int cmp_one(void *binary, int index)
+static int cmp_one256(void *binary, int index)
 {
-	return !memcmp(binary, crypt_out[index], CMP_SIZE);
+	return !memcmp(binary, crypt_out[index], BINARY_SIZE256);
+}
+
+static int cmp_one128(void *binary, int index)
+{
+	return !memcmp(binary, crypt_out[index], BINARY_SIZE128);
 }
 
 static int cmp_exact(char *source, int index)
@@ -234,37 +239,35 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-static char *prepare(char *fields[10], struct fmt_main *self) {
-	static char buf[80];
-	char *hash = fields[1];
-	int len = strlen(hash);
-	if (len == 32 || len == 64) {
-		int i;
-		for (i = 0; i < len; ++i) {
-			if (atoi16[ARCH_INDEX(hash[i])] == 0x7F)
-				return hash;
-		}
-		sprintf(buf, "%s%s", FORMAT_TAG, hash);
-		return buf;
-	}
-	return hash;	
+static char *split(char *ciphertext, int index, struct fmt_main *self)
+{
+	static char out[TAG_LENGTH + 2 * BINARY_SIZE256 + 1];
+
+	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
+		ciphertext += TAG_LENGTH;
+
+	strcpy(out, FORMAT_TAG);
+	strcpy(&out[TAG_LENGTH], ciphertext);
+	strlwr(&out[TAG_LENGTH]);
+
+	return out;
 }
 
 struct fmt_main fmt_haval_256_3 = {
 	{
-		"haval-256-3",
-		"HAVAL 256-3",
+		"HAVAL-256-3",
+		"",
 		ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
-		BINARY_SIZE,
+		BINARY_SIZE256,
 		BINARY_ALIGN,
 		SALT_SIZE,
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_SPLIT_UNIFIES_CASE,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif
@@ -273,9 +276,9 @@ struct fmt_main fmt_haval_256_3 = {
 		init,
 		fmt_default_done,
 		fmt_default_reset,
-		prepare,
+		fmt_default_prepare,
 		valid3,
-		fmt_default_split,
+		split,
 		get_binary_256,
 		fmt_default_salt,
 #if FMT_MAIN_VERSION > 11
@@ -307,7 +310,7 @@ struct fmt_main fmt_haval_256_3 = {
 			get_hash_6
 		},
 		cmp_all,
-		cmp_one,
+		cmp_one256,
 		cmp_exact
 	}
 };
@@ -315,19 +318,19 @@ struct fmt_main fmt_haval_256_3 = {
 
 struct fmt_main fmt_haval_128_4 = {
 	{
-		"haval-128-4",
-		"HAVAL 128-4",
+		"HAVAL-128-4",
+		"",
 		ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
-		BINARY_SIZE,
+		BINARY_SIZE128,
 		BINARY_ALIGN,
 		SALT_SIZE,
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_SPLIT_UNIFIES_CASE,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif
@@ -336,9 +339,9 @@ struct fmt_main fmt_haval_128_4 = {
 		init,
 		fmt_default_done,
 		fmt_default_reset,
-		prepare,
+		fmt_default_prepare,
 		valid4,
-		fmt_default_split,
+		split,
 		get_binary_128,
 		fmt_default_salt,
 #if FMT_MAIN_VERSION > 11
@@ -370,7 +373,7 @@ struct fmt_main fmt_haval_128_4 = {
 			get_hash_6
 		},
 		cmp_all,
-		cmp_one,
+		cmp_one128,
 		cmp_exact
 	}
 };
