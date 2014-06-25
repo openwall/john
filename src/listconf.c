@@ -327,6 +327,40 @@ void list_tunable_cost_names(struct fmt_main *format, char *separator)
 }
 #endif
 
+char *get_test(struct fmt_main *format, int ntests)
+{
+	int i, new_len = 0;
+
+	// See if any of the fields are filled in. If so, the we should return
+	// the ciphertext in passwd type format (user:pw:x:x:x...).
+	// Otherwise simply return param.ciphertext.
+	for (i = 0; i < 9; ++i) {
+		if (i == 1) {
+			if (!format->params.tests[ntests].fields[i])
+				format->params.tests[ntests].fields[i] = format->params.tests[ntests].ciphertext;
+		} else
+			if (format->params.tests[ntests].fields[i] && (format->params.tests[ntests].fields[i])[0] )
+				new_len += strlen(format->params.tests[ntests].fields[i]);
+	}
+	if (new_len) {
+		char *Buf, *cp;
+		int len = strlen(format->params.tests[ntests].fields[1])+12+new_len;
+		Buf = mem_alloc_tiny(len, 1);
+		cp = Buf;
+		for (i = 0; i < 9; ++i) {
+			if (format->params.tests[ntests].fields[i] && (format->params.tests[ntests].fields[i])[0] ) {
+				int x = strnzcpyn(cp, format->params.tests[ntests].fields[i], len);
+				cp += x;
+				len -= (x+1);
+			}
+			*cp++ = ':';
+		}
+		cp = 0; // nul terminate string.
+		return Buf;
+	} else
+		return format->params.tests[ntests].ciphertext;
+}
+
 void listconf_parse_late(void)
 {
 	if ((options.subformat && !strcasecmp(options.subformat, "list")) ||
@@ -551,11 +585,14 @@ void listconf_parse_late(void)
 			 * ciphertext example will be truncated to 512
 			 * characters here, with a notice.
 			 */
-			if (ntests)
-			printf("Example ciphertext%s  %.512s\n",
-			       strlen(format->params.tests[0].ciphertext) > 512
-			       ? " (truncated here)" : "                 ",
-			       format->params.tests[0].ciphertext);
+			if (ntests) {
+				char *ciphertext = get_test(format, 0);
+
+				printf("Example ciphertext%s  %.512s\n",
+				       strlen(ciphertext) > 512 ?
+				       " (truncated here)" :
+				       "                 ", ciphertext);
+			}
 			printf("\n");
 
 			fmt_done(format);
@@ -760,50 +797,14 @@ void listconf_parse_late(void)
 
 			if (format->params.tests) {
 				while (format->params.tests[ntests].ciphertext) {
-					int i, new_len=0;
+					int i;
 					int skip = 0;
 					/*
 					 * defining a config variable to allowing --field-separator-char=
 					 * with a fallback to either ':' or '\t' is probably overkill
 					 */
 					const char separator = '\t';
-					char *ciphertext;
-
-					// See if any of the fields are filled in. If so, the we should return the ciphertext
-					// in passwd type format (user:pw:x:x:x...)  Otherwise simply copy over param.ciphertext
-					for (i = 0; i < 9; ++i) {
-						if (i == 1) {
-							if (!format->params.tests[ntests].fields[i])
-								format->params.tests[ntests].fields[i] = format->params.tests[ntests].ciphertext;
-						} else
-							if (format->params.tests[ntests].fields[i] && (format->params.tests[ntests].fields[i])[0] )
-								new_len += strlen(format->params.tests[ntests].fields[i]);
-					}
-					if (new_len) {
-						char *Buf, *cp;
-						int len = strlen(format->params.tests[ntests].fields[1])+12+new_len;
-						Buf = mem_alloc_tiny(len, 1);
-						cp = Buf;
-						for (i = 0; i < 9; ++i) {
-							if (format->params.tests[ntests].fields[i] && (format->params.tests[ntests].fields[i])[0] ) {
-								int x = strnzcpyn(cp, format->params.tests[ntests].fields[i], len);
-								cp += x;
-								len -= (x+1);
-							}
-							*cp++ = ':';
-						}
-						cp = 0; // nul terminate string.
-						ciphertext = Buf;
-					} else {
-						ciphertext = format->params.tests[ntests].ciphertext;
-						if (ciphertext[ 0] == '\0') {
-							//printf ("Here\n");
-							//exit(EXIT_SUCCESS);
-							// NOTE, I tested every non GPU format, and NONE of them get here.  I am not sure
-							// just WHAT this code is, or who/why it was put here.  But it should be removed.
-							ciphertext = format->methods.prepare(format->params.tests[ntests].fields, format);
-						}
-					}
+					char *ciphertext = get_test(format, ntests);
 					/*
 					 * one of the scrypt tests has tabs and new lines in ciphertext
 					 * and password.
