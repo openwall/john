@@ -338,7 +338,7 @@ static void get_ptr() {
 		pNetMd5_Dyna = mem_alloc_tiny(sizeof(fmt_netmd5), 16);
 		memcpy(pNetMd5_Dyna, &fmt_netmd5, sizeof(fmt_netmd5));
 
-		pDynamicFmt = dynamic_THIN_FORMAT_LINK(pNetMd5_Dyna, Convert(Conv_Buf, tests[0].ciphertext), "net-md5", 0);
+		pDynamicFmt = dynamic_THIN_FORMAT_LINK(pNetMd5_Dyna, Convert(Conv_Buf, tests[1].ciphertext), "net-md5", 0);
 		fmt_netmd5.params.min_keys_per_crypt = pDynamicFmt->params.min_keys_per_crypt;
 		fmt_netmd5.params.max_keys_per_crypt = pDynamicFmt->params.max_keys_per_crypt;
 		Buf = mem_alloc_tiny(strlen(fmt_netmd5.params.algorithm_name) + 4 + strlen("dynamic_39") + 1, 1);

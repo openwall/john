@@ -328,7 +328,7 @@ static void get_ptr() {
 		pNetSha1_Dyna = mem_alloc_tiny(sizeof(fmt_netsha1), 16);
 		memcpy(pNetSha1_Dyna, &fmt_netsha1, sizeof(fmt_netsha1));
 
-		pDynamicFmt = dynamic_THIN_FORMAT_LINK(pNetSha1_Dyna, Convert(Conv_Buf, tests[0].ciphertext), "net-sha1", 0);
+		pDynamicFmt = dynamic_THIN_FORMAT_LINK(pNetSha1_Dyna, Convert(Conv_Buf, tests[1].ciphertext), "net-sha1", 0);
 		fmt_netsha1.params.min_keys_per_crypt = pDynamicFmt->params.min_keys_per_crypt;
 		fmt_netsha1.params.max_keys_per_crypt = pDynamicFmt->params.max_keys_per_crypt;
 		Buf = mem_alloc_tiny(strlen(fmt_netsha1.params.algorithm_name) + 4 + strlen("dynamic_40") + 1, 1);
