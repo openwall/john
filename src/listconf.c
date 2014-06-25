@@ -355,7 +355,8 @@ char *get_test(struct fmt_main *format, int ntests)
 			}
 			*cp++ = ':';
 		}
-		cp = 0; // nul terminate string.
+		while (*--cp == ':')
+			*cp = 0; // nul terminate string and drop trailing ':'
 		return Buf;
 	} else
 		return format->params.tests[ntests].ciphertext;
