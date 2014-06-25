@@ -163,7 +163,7 @@ static void init(struct fmt_main *self)
 	static int warned = 0;
 
 	if (pers_opts.target_enc == UTF_8 && warned++ == 0)
-		fprintf(stderr, "Warning: SAP-B format should never be UTF-8.\nConvert your input files to iso-8859-1 instead.\n");
+		fprintf(stderr, "Warning: SAP-B format should never be UTF-8.\nUse --target-encoding=iso-8859-1 or whatever is applicable.\n");
 
 #if defined (_OPENMP)
 	omp_t = omp_get_max_threads();
