@@ -52,8 +52,8 @@ static struct fmt_tests ripemd_160_tests[] = {
 };
 
 static struct fmt_tests ripemd_128_tests[] = {
-	{"$ripemd$cdf26213a150dc3ecb610f18f6b38b46", ""},
 	{"cdf26213a150dc3ecb610f18f6b38b46", ""},
+	{"$ripemd$cdf26213a150dc3ecb610f18f6b38b46", ""},
 	{NULL}
 };
 
