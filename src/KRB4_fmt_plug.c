@@ -186,11 +186,6 @@ static void set_salt(void *salt)
 
 static void krb4_set_key(char *key, int index)
 {
-	if (saved_salt->realm[0] != '\0')
-		afs_string_to_key(key, saved_salt->realm, &saved_key.key);
-	else
-		des_string_to_key(key, &saved_key.key);
-
 	strnzcpy(saved_key.string, key, sizeof(saved_key.string));
 }
 
@@ -201,6 +196,14 @@ static char *get_key(int index)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	if (saved_salt->realm[0] != '\0')
+		afs_string_to_key(saved_key.string,
+		                  saved_salt->realm,
+		                  &saved_key.key);
+	else
+		des_string_to_key(saved_key.string,
+		                  &saved_key.key);
+
 	return *pcount;
 }
 
