@@ -142,7 +142,7 @@ JOHN_OBJS = \
 	truecrypt_volume2john.o \
 	wpapsk_fmt.o hccap2john.o \
 	mozilla_fmt.o KeyDBCracker.o mozilla_des.o lowpbe.o mozilla2john.o \
-	krb5-18_fmt.o krb5-23_fmt.o \
+	krb5-18_fmt.o \
 	$(PLUGFORMATS_OBJS) \
 	rawSHA1_ng_fmt.o \
 	plugin.o \
