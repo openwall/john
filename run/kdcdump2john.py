@@ -7,6 +7,11 @@
 # and it is hereby released to the general public under the following terms:
 # Redistribution and use in source and binary forms, with or without modification,
 # are permitted.
+#
+# Change in 2014 by magnum: For krb5-23 we output $NT$ hashes as that is what
+# they really are - and our NT format is A LOT faster.
+#
+# Original krb5-23 format moved to unused/ directory.
 
 import sys
 
@@ -26,7 +31,7 @@ for l in dump_f.readlines():
         if (l.strip()):
             name = l.strip()
     if (i[0] == "23"):
-        sys.stdout.write("%s:$krb23$%s\n" % (name, i[1].strip()))
+        sys.stdout.write("%s:$NT$%s\n" % (name, i[1].strip()))
     elif (i[0] == "18"):
         salt = name.split("@")[1] + name.split("@")[0].replace("/", "")
         sys.stdout.write("%s:$krb18$%s$%s\n" % (name, salt, i[1].strip()))
