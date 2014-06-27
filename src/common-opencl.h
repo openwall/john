@@ -42,16 +42,16 @@
 
 #ifdef DEBUG_CL_ALLOC
 static inline cl_mem john_clCreateBuffer (int l, char *f,
-                                          cl_context context,
-                                          cl_mem_flags flags, size_t size,
-                                          void *host_ptr, cl_int *errcode_ret)
+					  cl_context context,
+					  cl_mem_flags flags, size_t size,
+					  void *host_ptr, cl_int *errcode_ret)
 {
 	fprintf(stderr, "allocating %zu bytes in line %d of %s\n", size, l, f);
 	return clCreateBuffer(context, flags, size, host_ptr, errcode_ret);
 }
 
 #define clCreateBuffer(a, b, c, d, e)	john_clCreateBuffer(__LINE__, \
-	                    __FILE__, a, b, c, d, e)
+			    __FILE__, a, b, c, d, e)
 #endif
 
 typedef struct {
@@ -115,11 +115,11 @@ void opencl_init(char *kernel_filename, int sequential_id, char *options);
 
 /* used by opencl_DES_bs_b.c */
 void opencl_build(int sequential_id, char *opts, int save,
-                  char *file_name, int showLog);
+		  char *file_name, int showLog);
 
 /* Build kernel (if not cached), and cache it */
 void opencl_build_kernel(char *kernel_filename, int sequential_id,
-                         char *options, int warn);
+			 char *options, int warn);
 
 void opencl_find_best_workgroup(struct fmt_main *self);
 void opencl_find_best_workgroup_limit(
@@ -180,7 +180,7 @@ void opencl_process_event(void);
  * - Your kernel (or main kernel) should be crypt_kernel.
  */
 void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
-                          cl_kernel crypt_kernel);
+			  cl_kernel crypt_kernel);
 
 /*
  * Shared function to find 'the best' global work group size (keys per crypt).
@@ -195,7 +195,7 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
  *   For raw formats it should be 1. For sha512crypt it is 5000.
  */
 void opencl_find_best_gws(int step, unsigned long long int max_run_time,
-                          int sequential_id, unsigned int rounds);
+			  int sequential_id, unsigned int rounds);
 
 /*
  * Shared function to initialize variables necessary by shared find(lws/gws) functions.
@@ -210,10 +210,10 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
  *   Find best_gws will compute the split-kernel three times in order to get the 'real' runtime.
  *   Example:
  *       for (i = 0; i < 3; i++) {
- *           HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], main_kernel[gpu_id], 1, NULL,
- *               &gws, &local_work_size, 0, NULL,
- *               multi_profilingEvent[split_events[i]]),  //split_events contains: 2 ,5 ,6
- *               "failed in clEnqueueNDRangeKernel");
+ *	   HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], main_kernel[gpu_id], 1, NULL,
+ *	       &gws, &local_work_size, 0, NULL,
+ *	       multi_profilingEvent[split_events[i]]),  //split_events contains: 2 ,5 ,6
+ *	       "failed in clEnqueueNDRangeKernel");
  *       }
  *
  * - p_warnings: array of strings to be used to show the execution details.
