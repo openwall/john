@@ -52,6 +52,7 @@
 
 /* Common OpenCL variables */
 int platform_id;
+int default_gpu_selected = 0;
 
 static char opencl_log[LOG_SIZE];
 static int kernel_loaded;
@@ -205,6 +206,21 @@ int get_sequential_id(unsigned int dev_id, unsigned int platform_id)
 	return (platforms[i].platform ? pos + dev_id : -1);
 }
 
+static int get_if_device_is_in_use(int sequential_id)
+{
+	int i = 0, found = 0;
+
+	if (sequential_id >= get_number_of_available_devices()) {
+		return -1;
+	}
+
+	for (i = 0; i < opencl_get_devices() && !found; i++) {
+		if (sequential_id == gpu_device_list[i])
+			found = 1;
+	}
+	return found;
+}
+
 static void start_opencl_environment()
 {
 	cl_platform_id platform_list[MAX_PLATFORMS];
@@ -315,18 +331,16 @@ static int start_opencl_device(int sequential_id, int *err_type)
 
 static void add_device_to_list(int sequential_id)
 {
-	int i = 0, found = 0;
+	int i = 0, found;
 
-	if (sequential_id >= get_number_of_available_devices()) {
+	found = get_if_device_is_in_use(sequential_id);
+
+	if (found < 0) {
 		fprintf(stderr, "Invalid OpenCL device id %d\n", sequential_id);
 		exit(EXIT_FAILURE);
 	}
 
-	for (i = 0; i < opencl_get_devices() && !found; i++) {
-		if (sequential_id == gpu_device_list[i])
-			found = 1;
-	}
-	if (!found) {
+	if (found == 0) {
 		// Only requested and working devices should be started.
 		if (start_opencl_device(sequential_id, &i)) {
 			gpu_device_list[opencl_get_devices() + 1] = -1;
@@ -497,6 +511,7 @@ void opencl_preinit(void)
 		if (platform_id == -1 || gpu_id == -1) {
 			find_valid_opencl_device(&gpu_id, &platform_id);
 			gpu_id = get_sequential_id(gpu_id, platform_id);
+			default_gpu_selected = 1;
 		}
 
 		if (!device_list[0]) {
@@ -2047,15 +2062,22 @@ static char *human_format(size_t size)
 	return ret;
 }
 
+/***
+ * Despite of whatever the user uses as -dev=N, I will always list devices in
+ * their natural order as definded by the OpenCL libraries.
+ *
+ * In order to be able to know everything about the device and list it obeying
+ * its natural sequence (defined by hardware, PCI slots sequence, ...) is better
+ * to scan all OpenCL stuff and list only when needed. Otherwise, I might need
+ * to reorder first and then list.
+ ***/
 void opencl_list_devices(void)
 {
 	char dname[MAX_OCLINFO_STRING_LEN];
 	cl_uint entries;
 	cl_ulong long_entries;
-	int i, j, sequence_nr = 0, err_type = 0;
+	int i, j, sequence_nr = 0, err_type = 0, platform_in_use = -1;
 	size_t p_size;
-
-	start_opencl_environment();
 
 	/* Obtain list of platforms available */
 	if (! platforms[0].platform) {
@@ -2063,23 +2085,8 @@ void opencl_list_devices(void)
 			" by the installed OpenCL driver.\n\n");
 	}
 
-	nvidia_probe();
-	amd_probe();
-
 	for (i = 0; platforms[i].platform; i++) {
 		int nvidia = 0, amd = 0;
-
-		/* Obtain information about platform */
-		clGetPlatformInfo(platforms[i].platform, CL_PLATFORM_NAME,
-			sizeof(dname), dname, NULL);
-		printf("Platform #%d name: %s\n", i, dname);
-		clGetPlatformInfo(platforms[i].platform, CL_PLATFORM_VERSION,
-			sizeof(dname), dname, NULL);
-		printf("Platform version: %s\n", dname);
-
-		/* Obtain list of devices available on platform */
-		if (!platforms[i].num_devices)
-			printf("%d devices found\n", platforms[i].num_devices);
 
 		/* Query devices for information */
 		for (j = 0; j < platforms[i].num_devices; j++, sequence_nr++) {
@@ -2089,6 +2096,26 @@ void opencl_list_devices(void)
 			int ret;
 			int fan, temp, util;
 
+			if (!default_gpu_selected && !get_if_device_is_in_use(sequence_nr))
+				/* Nothing to do, skipping */
+				continue;
+
+			if (platform_in_use != i) {
+				/* Now, dealing with different platform. */
+				/* Obtain information about platform */
+				clGetPlatformInfo(platforms[i].platform, CL_PLATFORM_NAME,
+					sizeof(dname), dname, NULL);
+				printf("Platform #%d name: %s\n", i, dname);
+				clGetPlatformInfo(platforms[i].platform, CL_PLATFORM_VERSION,
+					sizeof(dname), dname, NULL);
+				printf("Platform version: %s\n", dname);
+
+				/* Obtain a list of devices available on platform */
+				if (!platforms[i].num_devices)
+					printf("%d devices found\n", platforms[i].num_devices);
+
+				platform_in_use = i;
+			}
 			clGetDeviceInfo(devices[sequence_nr], CL_DEVICE_NAME,
 					sizeof(dname), dname, NULL);
 			p = dname;

@@ -62,6 +62,7 @@ cl_platform platforms[MAX_PLATFORMS];
 
 /* Common OpenCL variables */
 extern int platform_id;
+extern int default_gpu_selected;
 
 extern cl_device_id devices[MAX_GPU_DEVICES];
 extern cl_context context[MAX_GPU_DEVICES];
