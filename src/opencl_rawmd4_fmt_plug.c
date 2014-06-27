@@ -75,14 +75,21 @@ static int crypt_all(int *pcount, struct db_salt *_salt);
 #include "opencl_autotune.h"
 
 static struct fmt_tests tests[] = {
+	{"8a9d093f14f8701df17732b2bb182c74", "password"},
+	{FORMAT_TAG "6d78785c44ea8dfa178748b245d8c3ae", "magnum" },
 	{"6d78785c44ea8dfa178748b245d8c3ae", "magnum" },
-	{"$MD4$31d6cfe0d16ae931b73c59d7e0c089c0", "" },
-	{"$MD4$cafbb81fb64d9dd286bc851c4c6e0d21", "lolcode" },
-	{"$MD4$585028aa0f794af812ee3be8804eb14a", "123456" },
-	{"$MD4$23580e2a459f7ea40f9efa148b63cafb", "12345" },
-	{"$MD4$bf75555ca19051f694224f2f5e0b219d", "1234567" },
-	{"$MD4$41f92cf74e3d2c3ba79183629a929915", "rockyou" },
-	{"$MD4$0ceb1fd260c35bd50005341532748de6", "abc123" },
+	{FORMAT_TAG "31d6cfe0d16ae931b73c59d7e0c089c0", "" },
+	{FORMAT_TAG "934eb897904769085af8101ad9dabca2", "John the ripper" },
+	{FORMAT_TAG "cafbb81fb64d9dd286bc851c4c6e0d21", "lolcode" },
+	{FORMAT_TAG "585028aa0f794af812ee3be8804eb14a", "123456" },
+	{FORMAT_TAG "23580e2a459f7ea40f9efa148b63cafb", "12345" },
+	{FORMAT_TAG "2ae523785d0caf4d2fb557c12016185c", "123456789" },
+	{FORMAT_TAG "f3e80e83b29b778bc092bf8a7c6907fe", "iloveyou" },
+	{FORMAT_TAG "4d10a268a303379f224d8852f2d13f11", "princess" },
+	{FORMAT_TAG "bf75555ca19051f694224f2f5e0b219d", "1234567" },
+	{FORMAT_TAG "41f92cf74e3d2c3ba79183629a929915", "rockyou" },
+	{FORMAT_TAG "012d73e0fab8d26e0f4d65e36077511e", "12345678" },
+	{FORMAT_TAG "0ceb1fd260c35bd50005341532748de6", "abc123" },
 	{NULL}
 };
 
