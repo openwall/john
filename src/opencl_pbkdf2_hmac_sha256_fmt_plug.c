@@ -353,7 +353,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 #ifdef DEBUG
 	printf("crypt_all(%d)\n", count);
-	printf("LWS = %d, GWS = %d\n", local_work_size, global_work_size);
+	printf("LWS = %d, GWS = %d\n", (int)local_work_size, (int)global_work_size);
 #endif
 
 	/// Copy data to gpu
@@ -429,8 +429,8 @@ static char *get_key(int index)
 static int binary_hash_0(void *binary)
 {
 #ifdef DEBUG
-	puts("binary");
 	uint32_t i, *b = binary;
+	puts("binary");
 	for (i = 0; i < 8; i++)
 		printf("%08x ", b[i]);
 	puts("");
