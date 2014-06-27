@@ -295,7 +295,8 @@ static int kcdecrypt(unsigned char *key, unsigned char *iv, unsigned char *data)
 	return 0;
 }
 
-#ifdef DEBUG
+#if 0
+//#ifdef DEBUG
 static void print_hex(unsigned char *str, int len)
 {
 	int i;
