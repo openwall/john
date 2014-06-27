@@ -825,10 +825,17 @@ static void ldr_load_pot_line(struct db_main *db, char *line)
 	void *binary;
 	int hash;
 	struct db_password *current;
+	char *flds[10] = {0,0,0,0,0,0,0,0,0,0};
 
 	ciphertext = ldr_get_field(&line, db->options->field_sep_char);
 	if (format->methods.valid(ciphertext, format) != 1) return;
 
+	// without this prepare, we have problems not removing dynamic hashes
+	// which encode the salt with a $HEX$ when stored in the .pot file.
+	// we need to normalize the read of a .pot line, just like an input line.
+	flds[1] = ciphertext;
+	ciphertext = format->methods.prepare(flds, format);
+	
 	ciphertext = format->methods.split(ciphertext, 0, format);
 	binary = format->methods.binary(ciphertext);
 	hash = db->password_hash_func(binary);
