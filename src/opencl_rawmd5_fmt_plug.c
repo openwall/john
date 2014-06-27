@@ -75,10 +75,18 @@ static int crypt_all(int *pcount, struct db_salt *_salt);
 #include "opencl_autotune.h"
 
 static struct fmt_tests tests[] = {
+	{"5a105e8b9d40e1329780d62ea2265d8a", "test1"},
+	{FORMAT_TAG "5a105e8b9d40e1329780d62ea2265d8a", "test1"},
 	{"098f6bcd4621d373cade4e832627b4f6", "test"},
-	{FORMAT_TAG "378e2c4a07968da2eca692320136433d","thatsworking"},
-	{FORMAT_TAG "8ad8757baa8564dc136c1e07507f4a98","test3"},
+	{FORMAT_TAG "378e2c4a07968da2eca692320136433d", "thatsworking"},
+	{FORMAT_TAG "8ad8757baa8564dc136c1e07507f4a98", "test3"},
 	{"d41d8cd98f00b204e9800998ecf8427e", ""},
+#ifdef DEBUG
+	{FORMAT_TAG "c9ccf168914a1bcfc3229f1948e67da0","1234567890123456789012345678901234567890123456789012345"},
+#if PLAINTEXT_LENGTH >= 80
+	{FORMAT_TAG "57edf4a22be3c955ac49da2e2107b67a","12345678901234567890123456789012345678901234567890123456789012345678901234567890"},
+#endif
+#endif
 	{NULL}
 };
 

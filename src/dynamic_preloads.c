@@ -218,11 +218,12 @@ static DYNAMIC_primitive_funcp _Funcs_0[] =
 static struct fmt_tests _Preloads_0[] =
 {
 	{"$dynamic_0$5a105e8b9d40e1329780d62ea2265d8a","test1"},
+	{"$dynamic_0$098f6bcd4621d373cade4e832627b4f6","test"},
 	{"$dynamic_0$378e2c4a07968da2eca692320136433d","thatsworking"},
 	{"$dynamic_0$8ad8757baa8564dc136c1e07507f4a98","test3"},
 	// These next 2 do slow down self tests, so (by as much as 20%), so they are commented out, but can be uncommented
 	// to validate that these max length hashes DO not cause the format to fail to work.  They MUST be able to be
-	// successfully processed with no errors.  But can be commented out later, to keep same STest speeds.
+	// successfully processed with no errors.  But can be commented out later, to keep same test speeds.
 	// to turn on these 'max length' tests, just rebuild with -DDEBUG
 #ifdef DEBUG
 	{"$dynamic_0$c9ccf168914a1bcfc3229f1948e67da0","1234567890123456789012345678901234567890123456789012345"},
