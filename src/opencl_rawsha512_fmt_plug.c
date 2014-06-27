@@ -21,11 +21,11 @@
 #ifdef HAVE_OPENCL
 
 #if FMT_EXTERNS_H
-extern struct fmt_main fmt_opencl_rawsha512_ng;
-extern struct fmt_main fmt_opencl_xsha512_ng;
+extern struct fmt_main fmt_opencl_rawsha512;
+extern struct fmt_main fmt_opencl_xsha512;
 #elif FMT_REGISTERS_H
-john_register_one(&fmt_opencl_rawsha512_ng);
-john_register_one(&fmt_opencl_xsha512_ng);
+john_register_one(&fmt_opencl_rawsha512);
+john_register_one(&fmt_opencl_xsha512);
 #else
 
 #include <string.h>
@@ -35,12 +35,12 @@ john_register_one(&fmt_opencl_xsha512_ng);
 #include "common-opencl.h"
 #include "config.h"
 #include "options.h"
-#include "opencl_rawsha512-ng.h"
+#include "opencl_rawsha512.h"
 #include "memdbg.h"
 
-#define RAW_FORMAT_LABEL		"Raw-SHA512-ng-opencl"
+#define RAW_FORMAT_LABEL		"Raw-SHA512-opencl"
 #define RAW_FORMAT_NAME			"(pwlen < " PLAINTEXT_TEXT ")"
-#define X_FORMAT_LABEL			"XSHA512-ng-opencl"
+#define X_FORMAT_LABEL			"XSHA512-opencl"
 #define X_FORMAT_NAME			"Mac OS X 10.7 salted (pwlen < " PLAINTEXT_TEXT ")"
 
 #define ALGORITHM_NAME			"SHA512 OpenCL (inefficient, development use mostly)"
@@ -351,7 +351,7 @@ static char * get_key(int index) {
 
 /* ------- Initialization  ------- */
 static void init(struct fmt_main * self) {
-	char * task = "$JOHN/kernels/sha512-ng_kernel.cl";
+	char * task = "$JOHN/kernels/sha512_kernel.cl";
 	size_t gws_limit;
 
 	opencl_prepare_dev(gpu_id);
@@ -578,8 +578,8 @@ static int cmp_one(void *binary, int index) {
 static int cmp_exact(char *source, int index) {
 	//I don't know why, but this is called and i have to recheck.
 	//If i skip this final test i get:
-	//form=raw-sha512-ng-opencl	 guesses: 1468 time: 0:00:00:02 : Expected count(s) (1500)  [!!!FAILED!!!]
-	//.pot CHK:raw-sha512-ng-opencl	 guesses: 1452 time: 0:00:00:02 : Expected count(s) (1500)  [!!!FAILED!!!]
+	//form=raw-sha512-opencl	 guesses: 1468 time: 0:00:00:02 : Expected count(s) (1500)  [!!!FAILED!!!]
+	//.pot CHK:raw-sha512-opencl	 guesses: 1452 time: 0:00:00:02 : Expected count(s) (1500)  [!!!FAILED!!!]
 
 	uint64_t * binary;
 	sha512_hash full_hash;
@@ -593,8 +593,8 @@ static int cmp_exact(char *source, int index) {
 static int cmp_exact_x(char *source, int index) {
 	//I don't know why, but this is called and i have to recheck.
 	//If i skip this final test i get:
-	//form=raw-sha512-ng-opencl		 guesses: 1468 time: 0:00:00:02 : Expected count(s) (1500)  [!!!FAILED!!!]
-	//.pot CHK:raw-sha512-ng-opencl	 guesses: 1452 time: 0:00:00:02 : Expected count(s) (1500)  [!!!FAILED!!!]
+	//form=raw-sha512-opencl		 guesses: 1468 time: 0:00:00:02 : Expected count(s) (1500)  [!!!FAILED!!!]
+	//.pot CHK:raw-sha512-opencl	 guesses: 1452 time: 0:00:00:02 : Expected count(s) (1500)  [!!!FAILED!!!]
 
 	uint64_t * binary;
 	sha512_hash full_hash;
@@ -651,7 +651,7 @@ static int get_hash_5(int index) { return calculated_hash[index] & 0xffffff; }
 static int get_hash_6(int index) { return calculated_hash[index] & 0x7ffffff; }
 
 /* ------- Format structure ------- */
-struct fmt_main fmt_opencl_rawsha512_ng = {
+struct fmt_main fmt_opencl_rawsha512 = {
 	{
 		RAW_FORMAT_LABEL,
 		RAW_FORMAT_NAME,
@@ -713,7 +713,7 @@ struct fmt_main fmt_opencl_rawsha512_ng = {
 	}
 };
 
-struct fmt_main fmt_opencl_xsha512_ng = {
+struct fmt_main fmt_opencl_xsha512 = {
 	{
 		X_FORMAT_LABEL,
 		X_FORMAT_NAME,

@@ -12,7 +12,7 @@
  * http://www.gnu.org/licenses/gpl-2.0.html
  */
 
-#include "opencl_rawsha512-ng.h"
+#include "opencl_rawsha512.h"
 
 inline void _memcpy(               uint32_t * dest,
                     __global const uint32_t * src,
