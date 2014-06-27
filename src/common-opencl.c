@@ -159,7 +159,7 @@ int get_number_of_available_devices()
 	return total;
 }
 
-int opencl_get_devices()
+int get_number_of_devices_in_use()
 {
 	int i = 0;
 
@@ -214,7 +214,7 @@ static int get_if_device_is_in_use(int sequential_id)
 		return -1;
 	}
 
-	for (i = 0; i < opencl_get_devices() && !found; i++) {
+	for (i = 0; i < get_number_of_devices_in_use() && !found; i++) {
 		if (sequential_id == gpu_device_list[i])
 			found = 1;
 	}
@@ -343,8 +343,8 @@ static void add_device_to_list(int sequential_id)
 	if (found == 0) {
 		// Only requested and working devices should be started.
 		if (start_opencl_device(sequential_id, &i)) {
-			gpu_device_list[opencl_get_devices() + 1] = -1;
-			gpu_device_list[opencl_get_devices()] = sequential_id;
+			gpu_device_list[get_number_of_devices_in_use() + 1] = -1;
+			gpu_device_list[get_number_of_devices_in_use()] = sequential_id;
 		} else
 			fprintf(stderr, "Device id %d not working correctly,"
 				" skipping.\n", sequential_id);
@@ -522,7 +522,7 @@ void opencl_preinit(void)
 
 		build_device_list(device_list);
 
-		if (opencl_get_devices() == 0) {
+		if (get_number_of_devices_in_use() == 0) {
 			fprintf(stderr, "No OpenCL devices found\n");
 			exit(1);
 		}
@@ -531,7 +531,7 @@ void opencl_preinit(void)
 		if (mpi_p > 1) {
 			// Pick device to use for this node
 			gpu_id =
-				gpu_device_list[mpi_id % opencl_get_devices()];
+				gpu_device_list[mpi_id % get_number_of_devices_in_use()];
 
 			// Hide any other devices from list
 			gpu_device_list[0] = gpu_id;
@@ -602,7 +602,7 @@ void opencl_done()
 	if (!opencl_initialized)
 		return;
 
-	for (i = 0; i < opencl_get_devices(); i++) {
+	for (i = 0; i < get_number_of_devices_in_use(); i++) {
 		if (queue[gpu_device_list[i]])
 			HANDLE_CLERROR(clReleaseCommandQueue(
 					       queue[gpu_device_list[i]]),

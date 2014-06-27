@@ -103,7 +103,7 @@ void opencl_done(void);
 unsigned int opencl_get_vector_width(int sequential_id, int size);
 
 /* Returns number of selected devices */
-int opencl_get_devices(void);
+int get_number_of_devices_in_use(void);
 
 /* Initialize a specific device. If necessary, parse command line and get
  * information about all OpenCL devices. */
