@@ -115,7 +115,7 @@ static void init(struct fmt_main *self) {
 	/* Read LWS/GWS prefs from config or environment */
 	opencl_get_user_preferences(OCL_CONFIG);
 
-	for( i=0; i < opencl_get_devices(); i++)
+	for( i=0; i < get_number_of_devices_in_use(); i++)
 		select_device(gpu_device_list[i], self) ;
 
 	dcc2_warning() ;
