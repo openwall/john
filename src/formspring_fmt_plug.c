@@ -72,7 +72,7 @@ static char *Convert(char *Buf, char *ciphertext)
 
 static char *our_split(char *ciphertext, int index, struct fmt_main *self)
 {
-	return Convert(Conv_Buf, ciphertext);
+	return pDynamic_61->methods.split(Convert(Conv_Buf, ciphertext), index, self);
 }
 
 static char *our_prepare(char *split_fields[10], struct fmt_main *self)
