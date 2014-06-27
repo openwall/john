@@ -5292,8 +5292,8 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 # note, check message must be done after the first call to JTR_FLAG_CHECK. Since this is
 # the first macro that will use $CC, a lot of messages will happen.  We need to make that first
 # macro 'call', so that those messages are output, THEN we make our checking message.
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking arg check macro with $CC" >&5
-$as_echo_n "checking arg check macro with $CC... " >&6; }
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking arg check macro for -m with $CC" >&5
+$as_echo_n "checking arg check macro for -m with $CC... " >&6; }
   if test "0" = 1; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -mFOO_BAR_SWITCH_NOT_VALID" >&5
 $as_echo_n "checking if $CC supports -mFOO_BAR_SWITCH_NOT_VALID... " >&6; }
@@ -5390,6 +5390,66 @@ if test "x${CFLAGS_EX}" = x; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
    JTR_FLAG_CHECK_WORKS=yes
+
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+# This gave false positives on gcc 4.4.7, see issue #682
+CFLAGS_EX=""
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking arg check macro for -Q with $CC" >&5
+$as_echo_n "checking arg check macro for -Q with $CC... " >&6; }
+  if test "0" = 1; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -QFOO_BAR_SWITCH_NOT_VALID" >&5
+$as_echo_n "checking if $CC supports -QFOO_BAR_SWITCH_NOT_VALID... " >&6; }
+fi
+  ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+  ac_saved_cflags="$CFLAGS"
+  CFLAGS="-Werror -QFOO_BAR_SWITCH_NOT_VALID"
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+  if test "0" = 1; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+fi
+      CFLAGS_EX="$CFLAGS_EX -QFOO_BAR_SWITCH_NOT_VALID"
+
+else
+  if test "0" = 1; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+  CFLAGS="$ac_saved_cflags"
+  ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+
+if test "x${CFLAGS_EX}" = x; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+   JTR_FLAG_Q_CHECK_WORKS=yes
 
 else
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
@@ -5876,7 +5936,8 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
    #JTR_FLAG_CHECK([-Wno-unneeded-internal-declaration], 1)
-     if test "1" = 1; then :
+   if test "x$JTR_FLAG_Q_CHECK_WORKS" = xyes; then :
+    if test "1" = 1; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -Qunused-arguments" >&5
 $as_echo_n "checking if $CC supports -Qunused-arguments... " >&6; }
 fi
@@ -5922,6 +5983,7 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
+fi
 
    for i in "$CFLAGS_EX"; do
       jtr_list_add_dupe=0

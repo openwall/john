@@ -119,12 +119,21 @@ JTR_FLAG_CHECK([-fFOO_BAR_SWITCH_NOT_VALID], 0)
 # note, check message must be done after the first call to JTR_FLAG_CHECK. Since this is
 # the first macro that will use $CC, a lot of messages will happen.  We need to make that first
 # macro 'call', so that those messages are output, THEN we make our checking message.
-AC_MSG_CHECKING([arg check macro with $CC])
+AC_MSG_CHECKING([arg check macro for -m with $CC])
 JTR_FLAG_CHECK([-mFOO_BAR_SWITCH_NOT_VALID], 0)
 JTR_FLAG_CHECK([-m666], 0)
 AS_IF([test "x${CFLAGS_EX}" = x],
    [AC_MSG_RESULT([yes])]
    JTR_FLAG_CHECK_WORKS=yes
+   ,[AC_MSG_RESULT([no])])
+
+# This gave false positives on gcc 4.4.7, see issue #682
+CFLAGS_EX=""
+AC_MSG_CHECKING([arg check macro for -Q with $CC])
+JTR_FLAG_CHECK([-QFOO_BAR_SWITCH_NOT_VALID], 0)
+AS_IF([test "x${CFLAGS_EX}" = x],
+   [AC_MSG_RESULT([yes])]
+   JTR_FLAG_Q_CHECK_WORKS=yes
    ,[AC_MSG_RESULT([no])])
 
 # Now, we only do option checking, IF this worked, i.e. that option was not detected as valid
@@ -155,7 +164,7 @@ AS_IF([test "x$JTR_FLAG_CHECK_WORKS" = xyes],
    # clang warnings
    JTR_FLAG_CHECK([-Wno-format-extra-args], 1)
    #JTR_FLAG_CHECK([-Wno-unneeded-internal-declaration], 1)
-   JTR_FLAG_CHECK([-Qunused-arguments],1)
+   AS_IF([test "x$JTR_FLAG_Q_CHECK_WORKS" = xyes], [JTR_FLAG_CHECK([-Qunused-arguments],1)])
    JTR_LIST_ADD(CFLAGS_EXTRA, ["$CFLAGS_EX"])
 ],[dnl
    AC_MSG_NOTICE([Unable to validate $CC command line arguments. CFLAGS may need to be passed to ./configure for proper build])
