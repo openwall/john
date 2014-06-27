@@ -39,9 +39,9 @@ john_register_one(&fmt_opencl_xsha512);
 #include "memdbg.h"
 
 #define RAW_FORMAT_LABEL		"Raw-SHA512-opencl"
-#define RAW_FORMAT_NAME			"(pwlen < " PLAINTEXT_TEXT ")"
+#define RAW_FORMAT_NAME			""
 #define X_FORMAT_LABEL			"XSHA512-opencl"
-#define X_FORMAT_NAME			"Mac OS X 10.7 salted (pwlen < " PLAINTEXT_TEXT ")"
+#define X_FORMAT_NAME			"Mac OS X 10.7 salted"
 
 #define ALGORITHM_NAME			"SHA512 OpenCL (inefficient, development use mostly)"
 

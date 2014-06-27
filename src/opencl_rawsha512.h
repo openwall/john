@@ -20,7 +20,6 @@
 
 //Constants.
 #define PLAINTEXT_LENGTH        56      /* 31 characters + 0x80 */
-#define PLAINTEXT_TEXT          "55"
 #define CIPHERTEXT_LENGTH_RAW   128
 #define CIPHERTEXT_LENGTH_X     136
 
