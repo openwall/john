@@ -24,8 +24,17 @@
 #define SCALAR
 #endif
 
+#define USE_SHA1SHORT
+
 #if gpu_amd(DEVICE_INFO)
 #define USE_BITSELECT
+#endif
+
+// Catalyst bug workaround: some rotates with a number divisible by 8
+// come out wrong due to a driver bug.
+#if 0
+#undef rotate
+#define rotate(a, b) (((a) << (b)) | ((a) >> (32 - (b))))
 #endif
 
 #if gpu_nvidia(DEVICE_INFO) || amd_gcn(DEVICE_INFO)
@@ -196,6 +205,7 @@ inline uint SWAP32(uint x)
 	P4(C, D, E, A, B, R(78)); \
 	P4(B, C, D, E, A, R(79));
 
+#ifdef USE_SHA1SHORT
 #define SHA1_SHORT_BEG(A, B, C, D, E, W)	  \
 	P1(A, B, C, D, E, W[0]); \
 	P1(E, A, B, C, D, W[1]); \
@@ -313,6 +323,7 @@ inline uint SWAP32(uint x)
 	P4(B, C, D, E, A, R2(79));
 
 #define SHA1_SHORT(A, B, C, D, E, W) SHA1_SHORT_BEG(A, B, C, D, E, W) SHA1_SHORT_END(A, B, C, D, E, W)
+#endif /* USE_SHA1SHORT */
 
 #define sha1_init(o) {	  \
 		o[0] = INIT_A; \
@@ -336,6 +347,7 @@ inline uint SWAP32(uint x)
 		o[4] += E; \
 	}
 
+#ifdef USE_SHA1SHORT
 #define sha1_block_short(b, o) {	\
 		A = o[0]; \
 		B = o[1]; \
@@ -349,6 +361,9 @@ inline uint SWAP32(uint x)
 		o[3] += D; \
 		o[4] += E; \
 	}
+#else
+#define sha1_block_short	sha1_block
+#endif /* USE_SHA1SHORT */
 
 __kernel void GenerateSHA1pwhash(
 	__global const uint *unicode_pw,
@@ -423,8 +438,10 @@ void HashLoop(__global MAYBE_VECTOR_UINT *pwhash)
 		for (i = 1; i < 6; i++)
 			W[i] = output[i - 1];
 		W[6] = 0x80000000;
-		//for (i = 7; i < 15; i++)
-		//	W[i] = 0;
+#ifndef USE_SHA1SHORT
+		for (i = 7; i < 15; i++)
+			W[i] = 0;
+#endif
 		W[15] = 24 << 3;
 		sha1_init(output);
 		sha1_block_short(W, output);
@@ -440,24 +457,29 @@ void Generate2007key(
 	__global MAYBE_VECTOR_UINT *pwhash,
 	__global uint *key)
 {
-	uint i, j;
+	uint i;
 	MAYBE_VECTOR_UINT W[16];
 	MAYBE_VECTOR_UINT output[5];
 	MAYBE_VECTOR_UINT A, B, C, D, E, temp;
 	uint gid = get_global_id(0);
 
+#if (50000 % HASH_LOOPS)
+	int j;
+
 	for (i = 0; i < 5; i++)
 		output[i] = pwhash[gid * 6 + i];
-	/* Remainder of sha1(serial.last hash)
-	 * We avoid byte-swapping back and forth */
+
+	/* Remainder of sha1(serial.last hash) */
 	for (j = 50000 - (50000 % HASH_LOOPS); j < 50000; j++)
 	{
 		W[0] = SWAP32(j);
 		for (i = 1; i < 6; i++)
 			W[i] = output[i - 1];
 		W[6] = 0x80000000;
-		//for (i = 7; i < 15; i++)
-		//	W[i] = 0;
+#ifndef USE_SHA1SHORT
+		for (i = 7; i < 15; i++)
+			W[i] = 0;
+#endif
 		W[15] = 24 << 3;
 		sha1_init(output);
 		sha1_block_short(W, output);
@@ -466,10 +488,18 @@ void Generate2007key(
 	/* Final hash */
 	for (i = 0; i < 5; i++)
 		W[i] = output[i];
+#else
+	/* Final hash */
+	for (i = 0; i < 5; i++)
+		W[i] = pwhash[gid * 6 + i];
+#endif
+
 	W[5] = 0;
 	W[6] = 0x80000000;
-	//for (i = 7; i < 15; i++)
-	//	W[i] = 0;
+#ifndef USE_SHA1SHORT
+	for (i = 7; i < 15; i++)
+		W[i] = 0;
+#endif
 	W[15] = 24 << 3;
 	sha1_init(output);
 	sha1_block_short(W, output);
@@ -485,6 +515,10 @@ void Generate2007key(
 	W[0] = 0x80000000;
 	for (i = 1; i < 7; i++)
 		W[i] = 0;
+#ifndef USE_SHA1SHORT
+	for (i = 7; i < 15; i++)
+		W[i] = 0;
+#endif
 	W[15] = 64 << 3;
 	sha1_block_short(W, output);
 
