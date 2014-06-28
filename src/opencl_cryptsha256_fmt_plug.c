@@ -57,7 +57,7 @@ static int split_events[3] = { 1, 4, 5 };
 static int crypt_all(int *pcount, struct db_salt *_salt);
 static int crypt_all_benchmark(int *pcount, struct db_salt *_salt);
 
-//This file contains auto-tuning routine(s). Have to included after formats definitions.
+//This file contains auto-tuning routine(s). It has to be included after formats definitions.
 #include "opencl_autotune.h"
 
 static struct fmt_tests tests[] = {
