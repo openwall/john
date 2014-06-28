@@ -100,7 +100,7 @@ john_register_one(&fmt_mskrb5);
 
 // Second and third plaintext will be replaced in init() under --encoding=utf8
 static struct fmt_tests tests[] = {
-	{"$krb5pa$23$user$realm$$afcbe07c32c3450b37d0f2516354570fe7d3e78f829e77cdc1718adf612156507181f7daeb03b6fbcfe91f8346f3c0ae7e8abfe5", "John"},
+	{"$krb5pa$23$user$realm$salt$afcbe07c32c3450b37d0f2516354570fe7d3e78f829e77cdc1718adf612156507181f7daeb03b6fbcfe91f8346f3c0ae7e8abfe5", "John"},
 	{"$mskrb5$john$JOHN.DOE.MS.COM$02E837D06B2AC76891F388D9CC36C67A$2A9785BF5036C45D3843490BF9C228E8C18653E10CE58D7F8EF119D2EF4F92B1803B1451", "fr2beesgr"},
 	{"$mskrb5$user1$EXAMPLE.COM$08b5adda3ab0add14291014f1d69d145$a28da154fa777a53e23059647682eee2eb6c1ada7fb5cad54e8255114270676a459bfe4a", "openwall"},
 	{"$mskrb5$hackme$EXAMPLE.NET$e3cdf70485f81a85f7b59a4c1d6910a3$6e2f6705551a76f84ec2c92a9dd0fef7b2c1d4ca35bf1b02423359a3ecaa19bdf07ed0da", "openwall@123"},
@@ -191,18 +191,21 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 
 	if (!strncmp(ciphertext, "$mskrb5$", 8)) {
 		char in[TOTAL_LENGTH + 1];
-		char *u, *r, *c, *t;
+		char *c, *t;
 
-		strnzcpy(in, ciphertext, sizeof(out));
+		strnzcpy(in, ciphertext, sizeof(in));
 
 		t = strrchr(in, '$'); *t++ = 0;
 		c = strrchr(in, '$'); *c++ = 0;
-		r = strrchr(in, '$'); *r++ = 0;
-		u = in + 8;
 
-		snprintf(out, sizeof(out), "$krb5pa$23$%s$%s$$%s%s", u, r, t, c);
-	} else
-		strnzcpy(out, ciphertext, sizeof(out));
+		snprintf(out, sizeof(out), "$krb5pa$23$$$$%s%s", t, c);
+	} else {
+		char *tc;
+
+		tc = strrchr(ciphertext, '$');
+
+		snprintf(out, sizeof(out), "$krb5pa$23$$$$%s", tc);
+	}
 
 	data = out + strlen(out) - 2 * (CHECKSUM_SIZE + TIMESTAMP_SIZE) - 1;
 	strlwr(data);
