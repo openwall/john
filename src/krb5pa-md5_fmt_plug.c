@@ -100,13 +100,13 @@ john_register_one(&fmt_mskrb5);
 
 // Second and third plaintext will be replaced in init() under --encoding=utf8
 static struct fmt_tests tests[] = {
-	{"$krb5pa$23$user$realm$salt$afcbe07c32c3450b37d0f2516354570fe7d3e78f829e77cdc1718adf612156507181f7daeb03b6fbcfe91f8346f3c0ae7e8abfe5", "John"},
+	{"$krb5pa$23$user$realm$$afcbe07c32c3450b37d0f2516354570fe7d3e78f829e77cdc1718adf612156507181f7daeb03b6fbcfe91f8346f3c0ae7e8abfe5", "John"},
 	{"$mskrb5$john$JOHN.DOE.MS.COM$02E837D06B2AC76891F388D9CC36C67A$2A9785BF5036C45D3843490BF9C228E8C18653E10CE58D7F8EF119D2EF4F92B1803B1451", "fr2beesgr"},
 	{"$mskrb5$user1$EXAMPLE.COM$08b5adda3ab0add14291014f1d69d145$a28da154fa777a53e23059647682eee2eb6c1ada7fb5cad54e8255114270676a459bfe4a", "openwall"},
 	{"$mskrb5$hackme$EXAMPLE.NET$e3cdf70485f81a85f7b59a4c1d6910a3$6e2f6705551a76f84ec2c92a9dd0fef7b2c1d4ca35bf1b02423359a3ecaa19bdf07ed0da", "openwall@123"},
 	{"$mskrb5$$$98cd00b6f222d1d34e08fe0823196e0b$5937503ec29e3ce4e94a051632d0fff7b6781f93e3decf7dca707340239300d602932154", ""},
 	{"$mskrb5$$$F4085BA458B733D8092E6B348E3E3990$034ACFC70AFBA542690B8BC912FCD7FED6A848493A3FF0D7AF641A263B71DCC72902995D", "frank"},
-	{"$mskrb5$$$eb03b6fbcfe91f8346f3c0ae7e8abfe5$afcbe07c32c3450b37d0f2516354570fe7d3e78f829e77cdc1718adf612156507181f7da", "John"},
+	{"$mskrb5$user$realm$eb03b6fbcfe91f8346f3c0ae7e8abfe5$afcbe07c32c3450b37d0f2516354570fe7d3e78f829e77cdc1718adf612156507181f7da", "John"},
 	{"$mskrb5$$$881c257ce5df7b11715a6a60436e075a$c80f4a5ec18e7c5f765fb9f00eda744a57483db500271369cf4752a67ca0e67f37c68402", "the"},
 	{"$mskrb5$$$ef012e13c8b32448241091f4e1fdc805$354931c919580d4939421075bcd50f2527d092d2abdbc0e739ea72929be087de644cef8a", "Ripper"},
 	{"$mskrb5$$$334ef74dad191b71c43efaa16aa79d88$34ebbad639b2b5a230b7ec1d821594ed6739303ae6798994e72bd13d5e0e32fdafb65413", "VeryveryveryloooooooongPassword"},
@@ -164,36 +164,17 @@ static void *salt(char *ciphertext)
 	int i;
 
 	p = strrchr(ciphertext, '$') + 1;
-	if (strlen(p) == 2 * (TIMESTAMP_SIZE + CHECKSUM_SIZE)) {
-		// New input format
-		for (i = 0; i < TIMESTAMP_SIZE; i++) {
-			salt.timestamp[i] =
-				(atoi16[ARCH_INDEX(*p)] << 4) |
-				atoi16[ARCH_INDEX(p[1])];
-			p += 2;
-		}
-		for (i = 0; i < CHECKSUM_SIZE; i++) {
-			((unsigned char*)salt.checksum)[i] =
-				(atoi16[ARCH_INDEX(*p)] << 4) |
-				atoi16[ARCH_INDEX(p[1])];
-			p += 2;
-		}
-	} else {
-		// Old input format
-		p -= (2 * CHECKSUM_SIZE + 1);
-		for (i = 0; i < CHECKSUM_SIZE; i++) {
-			((unsigned char*)salt.checksum)[i] =
-				(atoi16[ARCH_INDEX(*p)] << 4) |
-				atoi16[ARCH_INDEX(p[1])];
-			p += 2;
-		}
-		++p;
-		for (i = 0; i < TIMESTAMP_SIZE; i++) {
-			salt.timestamp[i] =
-				(atoi16[ARCH_INDEX(*p)] << 4) |
-				atoi16[ARCH_INDEX(p[1])];
-			p += 2;
-		}
+	for (i = 0; i < TIMESTAMP_SIZE; i++) {
+		salt.timestamp[i] =
+			(atoi16[ARCH_INDEX(*p)] << 4) |
+			atoi16[ARCH_INDEX(p[1])];
+		p += 2;
+	}
+	for (i = 0; i < CHECKSUM_SIZE; i++) {
+		((unsigned char*)salt.checksum)[i] =
+			(atoi16[ARCH_INDEX(*p)] << 4) |
+			atoi16[ARCH_INDEX(p[1])];
+		p += 2;
 	}
 	return (void*)&salt;
 }
@@ -208,7 +189,21 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 	static char out[TOTAL_LENGTH + 1];
 	char *data;
 
-	strnzcpy(out, ciphertext, sizeof(out));
+	if (!strncmp(ciphertext, "$mskrb5$", 8)) {
+		char in[TOTAL_LENGTH + 1];
+		char *u, *r, *c, *t;
+
+		strnzcpy(in, ciphertext, sizeof(out));
+
+		t = strrchr(in, '$'); *t++ = 0;
+		c = strrchr(in, '$'); *c++ = 0;
+		r = strrchr(in, '$'); *r++ = 0;
+		u = in + 8;
+
+		snprintf(out, sizeof(out), "$krb5pa$23$%s$%s$$%s%s", u, r, t, c);
+	} else
+		strnzcpy(out, ciphertext, sizeof(out));
+
 	data = out + strlen(out) - 2 * (CHECKSUM_SIZE + TIMESTAMP_SIZE) - 1;
 	strlwr(data);
 
@@ -224,12 +219,7 @@ static void *binary(char *ciphertext)
 	if (!binary) binary = mem_alloc_tiny(BINARY_SIZE, MEM_ALIGN_WORD);
 
 	p = strrchr(ciphertext, '$') + 1;
-	if (strlen(p) == 2 * (TIMESTAMP_SIZE + CHECKSUM_SIZE))
-		// New input format
-		p += 2 * TIMESTAMP_SIZE;
-	else
-		// Old input format
-		p -= (2 * CHECKSUM_SIZE + 1);
+	p += 2 * TIMESTAMP_SIZE;
 
 	for (i = 0; i < CHECKSUM_SIZE; i++) {
 		binary[i] =
