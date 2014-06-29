@@ -645,9 +645,26 @@ static char* get_key(int index)
 static char *split(char *ciphertext, int index, struct fmt_main *pFmt)
 {
 	static char out[TOTAL_LENGTH + 1];
+	char in[TOTAL_LENGTH + 1];
+	char salt[MAX_SALTLEN + 1];
 	char *data;
+	char *e, *u, *r, *s, *tc;
 
-	strnzcpy(out, ciphertext, sizeof(out));
+	strnzcpy(in, ciphertext, sizeof(in));
+
+	tc = strrchr(in, '$'); *tc++ = 0;
+	s = strrchr(in, '$'); *s++ = 0;
+	r = strrchr(in, '$'); *r++ = 0;
+	u = strrchr(in, '$'); *u++ = 0;
+	e = in + 8;
+
+	/* Default salt is user.realm */
+	if (!*s) {
+		snprintf(salt, sizeof(salt), "%s%s", r, u);
+		s = salt;
+	}
+	snprintf(out, sizeof(out), "$krb5pa$%s$%s$%s$%s$%s", e, u, r, s, tc);
+
 	data = out + strlen(out) - 2 * (CHECKSUM_SIZE + TIMESTAMP_SIZE) - 1;
 	strlwr(data);
 
