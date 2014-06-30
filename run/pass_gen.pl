@@ -4,6 +4,7 @@ use strict;
 #############################################################################
 # For the version information list and copyright statement,
 # see doc/pass_gen.Manifest
+# Version v1.15.  Update this version signature here, AND the document file.
 #############################################################################
 
 # Most "use xxx" now moved to "require xxx" *locally* in respective subs in
@@ -209,7 +210,8 @@ if (@ARGV == 1) {
 				next if (/^#!comment/);
 				chomp;
 				s/\r$//;  # strip CR for non-Windows
-				my $line_len = length($_);
+				#my $line_len = length($_);
+				my $line_len = jtr_unicode_corrected_length($_);
 				next if $line_len > $arg_maxlen || $line_len < $arg_minlen;
 				no strict 'refs';
 				&$arg($_);
@@ -242,7 +244,8 @@ if (@ARGV == 1) {
 					next if (/^#!comment/);
 					chomp;
 					s/\r$//;  # strip CR for non-Windows
-					my $line_len = length($_);
+					#my $line_len = length($_);
+					my $line_len = jtr_unicode_corrected_length($_);
 					next if $line_len > $arg_maxlen || $line_len < $arg_minlen;
 					no strict 'refs';
 					&$arg($_);
@@ -254,6 +257,33 @@ if (@ARGV == 1) {
 			}
 		}
 	}
+}
+
+#############################################################################
+# this function is 'like' the length($s) function, BUT it has special processing
+# needed by JtR.  The only problems we are seeing, is that 4 byte utf-8 (or 5
+# byte, etc), end up requiring 4 bytes of buffer, while 3 byte utf-8 only require
+# 2 bytes. We have assumption that 1 utf8 char is 2 bytes long. So if we find
+# 4 byte characters used for a single utf8 char, then we have to say it is 2
+# characters long.  Sounds complicated, and the length is 'not' the proper
+# character length, but we have to make this choice, since the low level functions
+# in jtr do NOT know unicode, then only know bytes, AND we have to fit things
+# into proper buffer length constraints.
+#############################################################################
+sub jtr_unicode_corrected_length { #($_)
+	my $base_len = length($_[0]);
+	if ($arg_codepage ne "UTF-8") { return $base_len; }
+	# We need to check each letter, and see if it takes 4 bytes to store. If
+	# so then we charge an extra character to that char (from 1 to 2 utf-16
+	# chars). The 1 or 2 byte characters were already handled by length(),
+	# we just have to add 'extra' characters for any 4 byte unicode chars.
+	my $final_len = $base_len;
+	for (my $i = 0; $i < $base_len; $i += 1) {
+		my $s = substr($_[0], $i, 1);
+		my $ch_bytes = Encode::encode_utf8($s);
+		if (length($ch_bytes) > 3) { $final_len += 1; }
+	}
+	return $final_len;
 }
 
 #############################################################################

@@ -10,6 +10,44 @@ source and binary forms, with or without modification.
 
 Following is the pass_gen.pl version history prior to adding to the JtR tree:
 
+v1.15 Jun 30, 2014  JimF.
+	The outside 'length' function for --maxlength changed from length($s) to a new
+	specialized function. This new function when in -utf8 mode, will count any 4 byte
+	or larger utf8 chars as 2, since they will require 2 2 byte blocks to store, vs
+	a single 2 byte block.  In non-utf8 mode, this new length function simply uses length($s)
+
+These were untracked changes (between v1.14 and v1.15)
+	Added dyna 39/40 (net-md5/net-sha1) formats  (JimF June 18, 2014)
+	Added 4 SKEY formats  (JimF June 1, 2014)
+	Allow specified salts in hmacs  (JimF Apr 30, 2014)
+	Added osc and formspring hashes  (JimF Apr 29, 2014)
+	Added dynamic 2000* hashes  (JimF Apr 25, 2014)
+	Changed mscash2 to do allow non-standard iteration counts (magnum Oct 27, 2013)
+	Added -tstall to try to figure out which CPAN modules are not present. (JimF Oct 3, 2013)
+	Added rakp, and fixed bugs in HMAC generations.  (magnum (Oct 2, 2013)
+	Delay loading (using) of most crypts until they are needed.  (magnum Sept 20, 2013)
+	Added pbkdf2_hmac_sha512.  Added ability to set loop count for some formats. (JimF May 25, 2013)
+	Added scrypt/aix_ssha1/aix_ssha256/aix_ssha512 (JimF May 25, 2013)
+	Added ripemd128/160/256/320 formats and linked to dyna (JimF May 14, 2013)
+	Added tiger and haval256 formats and linked to dyna.  Added MANY missing large
+		format dyna hashes.  (JimF May 13, 2013)
+	Fixes to big hash functions (JimF April 19, 2013)
+	Allow utf-8 in salt (magnum Mar 26, 2013)
+	Added wpapsk (jimf Feb 6, 2013)
+	Changed utf8 to UTF-8 (magnum Dec, 13 2012)
+	Added comment about stopping due to hitting max count wanted (magnum, Sept 10, 2012)
+	Added sunmd5/wow_srp (JimF Aug 14, 2012)
+	Added dragonfly3_64/dragonfly4_64/pwsafe/django/drupal7/epi/episerver_sha1
+		episerver_sha256/hmailserver/ike/keepass/keychain/nukedclan/pfx/racf
+		radmin/rawsha0/sip/SybaseASE/vnc/wbb3/wpapsk/many dyna  (JimF July 30, 2012)
+	Added Dyna_27/28 (JimF July 12, 2012)
+	Added XSHA512 (JimF July 1, 2012)
+	Added sha256crypt/sha512crypt (JimF June 30, 2012)
+	Added rawsha224/gost/gost_cp/hmac_sha1/224/256/384/512 (JimF June 28, 2012)
+	more randomness in HDAA (magnum Jan 26, 2012)
+	salted_sha1, and fixed some base-64 bugs (magnum Jan 25, 2012)
+	Show usage() if no options listed. (magnum Jan 24, 2012)
+	Dragonfly BSD (magnum Jan 16, 2012)
 
 v1.14 Dec 21, 2011  magnum.  Added SHA-256/384/512 and dummy. I was planning to add SHA0 for
 	completeness, but it's not to be found on CPAN.
