@@ -247,8 +247,24 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 {
 	char *ret;
 
-	if (!strncmp(split_fields[1], "$MSCHAPv2$", 10))
+	if (!strncmp(split_fields[1], "$MSCHAPv2$", 10)) {
+		// check for a short format that has any extra trash fields, and if so remove them.
+		char *cp1, *cp2, *cp3;
+		cp1 = split_fields[1];
+		cp1 += 10;
+		cp2 = strchr(cp1, '$');
 		ret = NULL;
+		if (cp2 && cp2-cp1 == CHALLENGE_LENGTH/4) {
+			++cp2;
+			cp3 = strchr(cp2, '$');
+			if (cp3 && cp3-cp2 == CIPHERTEXT_LENGTH && (strlen(cp3) > 2 || cp3[2] != '$')) {
+				ret = str_alloc_copy(split_fields[1]);
+				ret[(cp3-split_fields[1])+1] = '$';
+				ret[(cp3-split_fields[1])+2] = 0;
+				//printf ("Here is the cut item: %s\n", ret);
+			}
+		}
+	}
 	else if (split_fields[0] && split_fields[3] && split_fields[4] && split_fields[5] &&
 	        strlen(split_fields[3]) == CHALLENGE_LENGTH/2 &&
 	        strlen(split_fields[4]) == CIPHERTEXT_LENGTH &&
@@ -510,6 +526,8 @@ static void *get_salt(char *ciphertext)
 	}
 
 	memcpy(binary_salt.u8, temp, SALT_SIZE);
+	// uncomment this line to see that the lulu hashes produced the exact same salt value.
+	//dump_stuff_msg(ciphertext, binary_salt.u8, SALT_SIZE);
 	return (void*)binary_salt.u32;
 }
 
