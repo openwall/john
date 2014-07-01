@@ -163,6 +163,8 @@ static uchar *challenge;
 static int keys_prepared;
 static struct fmt_main *my;
 
+static char *chap_long_to_short(char *orig); /* used to cannonicalize the MSCHAPv2 format */
+
 static struct fmt_tests chap_tests[] = {
 	{"$MSCHAPv2$4c092fd3fd98236502e8591100046326$b912ce522524d33123a982cf330a57f8e953fa7974042b5d$6a4915d0ce61d42be533640a75391925$1111", "2222"},
 	{"$MSCHAPv2$5B5D7C7D7B3F2F3E3C2C602132262628$82309ECD8D708B5EA08FAA3981CD83544233114A3D85D6DF$21402324255E262A28295F2B3A337C7E$User", "clientPass"},
@@ -313,14 +315,13 @@ static void chap_get_challenge(const char *ciphertext,
 /* Either the cipherext already contains the MSCHAPv2 Challenge (4 Bytes) or
    we are going to calculate it via:
    sha1(|Peer/Client Challenge (8 Bytes)|Authenticator/Server Challenge (8 Bytes)|Username (<=256)|)
+
+   NOTE, we now ONLY call this function the the short form. The long form gets converted into the short
+   form in either prepare or split function.  The short form is cannonical form (Change made July, 2014, JimF)
 */
 static void *chap_get_salt(char *ciphertext)
 {
 	static unsigned char *binary_salt;
-	SHA_CTX ctx;
-	unsigned char tmp[16];
-	int i;
-	char *pos = NULL;
 	unsigned char digest[20];
 
 	if (!binary_salt)
@@ -335,21 +336,34 @@ static void *chap_get_salt(char *ciphertext)
 	memset(binary_salt, 0, SALT_SIZE);
 	memset(digest, 0, 20);
 
-	if (chap_valid_short(ciphertext)) {
-		chap_get_challenge(ciphertext, binary_salt);
-		goto out;
-	}
+	chap_get_challenge(ciphertext, binary_salt);
+	return (void*)binary_salt;
+}
 
+/*
+ * This function will convert long hashes, into short ones (the short is now cannonical format)
+ * converts
+ *   $MSCHAPv2$95a87fa62ebcd2e3c8b09e1b448a6c72$ed8cc90fd40faa2d6bcd0abd0b1f562fd777df6c5609c98b$e2ae0995eaac6ceff0d9757428b51509$lulu
+ * into
+ *   $MSCHAPv2$ba75eb14efbfbf25$ed8cc90fd40faa2d6bcd0abd0b1f562fd777df6c5609c98b$$
+ *
+ * This code was moved from get_salt().
+ */
+static char *chap_long_to_short(char *ciphertext) {
+	static char Buf[CHAP_TOTAL_LENGTH+1];	// larger than we need, but not a big deal
+	static SHA_CTX ctx;
+	unsigned char tmp[16];
+	unsigned char digest[20];
+	char *pos = NULL;
+	int i;
 	SHA1_Init(&ctx);
 
 	/* Peer Challenge */
-	/* Skip $MSCHAPv2$, Authenticator Challenge and Response Hash */
-	pos = ciphertext + 10 + 16*2 + 1 + 24*2 + 1;
+	pos = ciphertext + 10 + 16*2 + 1 + 24*2 + 1; /* Skip $MSCHAPv2$, Authenticator Challenge and Response Hash */
 
 	memset(tmp, 0, 16);
 	for (i = 0; i < 16; i++)
-		tmp[i] = (atoi16[ARCH_INDEX(pos[i*2])] << 4) +
-			atoi16[ARCH_INDEX(pos[i*2+1])];
+		tmp[i] = (atoi16[ARCH_INDEX(pos[i*2])] << 4) + atoi16[ARCH_INDEX(pos[i*2+1])];
 
 	SHA1_Update(&ctx, tmp, 16);
 
@@ -358,23 +372,31 @@ static void *chap_get_salt(char *ciphertext)
 
 	memset(tmp, 0, 16);
 	for (i = 0; i < 16; i++)
-		tmp[i] = (atoi16[ARCH_INDEX(pos[i*2])] << 4) +
-			atoi16[ARCH_INDEX(pos[i*2+1])];
+		tmp[i] = (atoi16[ARCH_INDEX(pos[i*2])] << 4) + atoi16[ARCH_INDEX(pos[i*2+1])];
 
 	SHA1_Update(&ctx, tmp, 16);
 
 	/* Username - Only the user name (as presented by the peer and
 	   excluding any prepended domain name) is used as input to SHAUpdate()
 	*/
-	/* Skip $MSCHAPv2$, Authenticator, Response and Peer */
-	pos = ciphertext + 10 + 16*2 + 1 + 24*2 + 1 + 16*2 + 1;
+	pos = ciphertext + 10 + 16*2 + 1 + 24*2 + 1 + 16*2 + 1; /* Skip $MSCHAPv2$, Authenticator, Response and Peer */
 	SHA1_Update(&ctx, pos, strlen(pos));
 
 	SHA1_Final(digest, &ctx);
-	memcpy(binary_salt, digest, SALT_SIZE);
 
-out:
-	return (void*)binary_salt;
+	// Ok, now we re-make our ciphertext buffer, into the short cannonical form.
+	strcpy(Buf, "$MSCHAPv2$");
+	pos = Buf + 10;
+	for (i = 0; i < SALT_SIZE; i++) {
+		//binary_salt.u8[i] = (atoi16[ARCH_INDEX(pos[i*2])] << 4) + atoi16[ARCH_INDEX(pos[i*2+1])];
+		pos[(i<<1)] = itoa16[digest[i]>>4];
+		pos[(i<<1)+1] = itoa16[digest[i]&0xF];
+	}
+	memcpy(&pos[16], &ciphertext[42], CIPHERTEXT_LENGTH+2);
+	pos[16+CIPHERTEXT_LENGTH+2] = '$';
+	pos[16+CIPHERTEXT_LENGTH+3] = 0;
+	//printf ("short=%s  original=%s\n", Buf, ciphertext);
+	return Buf;
 }
 
 static int chap_valid(char *ciphertext, struct fmt_main *pFmt)
@@ -501,6 +523,11 @@ static char *chap_prepare(char *split_fields[10], struct fmt_main *pFmt)
 	else
 		ret = NULL;
 
+	if (ret && chap_valid_long(ret))
+		ret = chap_long_to_short(ret);
+	else if (chap_valid_long(split_fields[1]))
+		ret = chap_long_to_short(split_fields[1]);
+
 	return ret ? ret : split_fields[1];
 }
 
@@ -519,6 +546,9 @@ static char *chap_split(char *ciphertext, int index, struct fmt_main *self)
 		else if (out[i] == '$')
 			j++;
 	}
+
+	if (chap_valid_long(out))
+		return chap_long_to_short(out);
 
 	return out;
 }

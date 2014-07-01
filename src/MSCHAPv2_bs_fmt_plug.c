@@ -112,6 +112,7 @@ static uchar (*saved_key)[21];
 static uchar *challenge;
 static int keys_prepared;
 static void set_salt(void *salt);
+static char *long_to_short(char *orig); /* used to cannonicalize the format */
 
 static void init(struct fmt_main *self)
 {
@@ -277,6 +278,11 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 	else
 		ret = NULL;
 
+	if (ret && valid_long(ret))
+		ret = long_to_short(ret);
+	else if (valid_long(split_fields[1]))
+		ret = long_to_short(split_fields[1]);
+
 	return ret ? ret : split_fields[1];
 }
 
@@ -297,6 +303,9 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 		else if (out[i] == '$')
 			j++;
 	}
+
+	if (valid_long(out))
+		return long_to_short(out);
 
 	return out;
 }
@@ -465,6 +474,9 @@ static int cmp_exact(char *source, int index)
 /* Either the cipherext already contains the MSCHAPv2 Challenge (4 Bytes) or
    we are going to calculate it via:
    sha1(|Peer/Client Challenge (8 Bytes)|Authenticator/Server Challenge (8 Bytes)|Username (<=256)|)
+
+   NOTE, we now ONLY call this function the the short form. The long form gets converted into the short
+   form in either prepare or split function.  The short form is cannonical form (Change made July, 2014, JimF)
 */
 static void *get_salt(char *ciphertext)
 {
@@ -477,45 +489,10 @@ static void *get_salt(char *ciphertext)
 	char *pos = NULL;
 	unsigned char temp[SALT_SIZE];
 
-	if (valid_short(ciphertext)) {
-		pos = ciphertext + 10;
+	pos = ciphertext + 10;
 
-		for (i = 0; i < SALT_SIZE; i++)
-			binary_salt.u8[i] = (atoi16[ARCH_INDEX(pos[i*2])] << 4) + atoi16[ARCH_INDEX(pos[i*2+1])];
-	} else {
-		static SHA_CTX ctx;
-		unsigned char tmp[16];
-		unsigned char digest[20];
-
-		SHA1_Init(&ctx);
-
-		/* Peer Challenge */
-		pos = ciphertext + 10 + 16*2 + 1 + 24*2 + 1; /* Skip $MSCHAPv2$, Authenticator Challenge and Response Hash */
-
-		memset(tmp, 0, 16);
-		for (i = 0; i < 16; i++)
-			tmp[i] = (atoi16[ARCH_INDEX(pos[i*2])] << 4) + atoi16[ARCH_INDEX(pos[i*2+1])];
-
-		SHA1_Update(&ctx, tmp, 16);
-
-		/* Authenticator Challenge */
-		pos = ciphertext + 10; /* Skip $MSCHAPv2$ */
-
-		memset(tmp, 0, 16);
-		for (i = 0; i < 16; i++)
-			tmp[i] = (atoi16[ARCH_INDEX(pos[i*2])] << 4) + atoi16[ARCH_INDEX(pos[i*2+1])];
-
-		SHA1_Update(&ctx, tmp, 16);
-
-		/* Username - Only the user name (as presented by the peer and
-		   excluding any prepended domain name) is used as input to SHAUpdate()
-		*/
-		pos = ciphertext + 10 + 16*2 + 1 + 24*2 + 1 + 16*2 + 1; /* Skip $MSCHAPv2$, Authenticator, Response and Peer */
-		SHA1_Update(&ctx, pos, strlen(pos));
-
-		SHA1_Final(digest, &ctx);
-		memcpy(binary_salt.u8, digest, SALT_SIZE);
-	}
+	for (i = 0; i < SALT_SIZE; i++)
+		binary_salt.u8[i] = (atoi16[ARCH_INDEX(pos[i*2])] << 4) + atoi16[ARCH_INDEX(pos[i*2+1])];
 
 	/* Apply IP to salt */
 	memset(temp, 0, SALT_SIZE);
@@ -526,9 +503,66 @@ static void *get_salt(char *ciphertext)
 	}
 
 	memcpy(binary_salt.u8, temp, SALT_SIZE);
-	// uncomment this line to see that the lulu hashes produced the exact same salt value.
-	//dump_stuff_msg(ciphertext, binary_salt.u8, SALT_SIZE);
 	return (void*)binary_salt.u32;
+}
+
+/*
+ * This function will convert long hashes, into short ones (the short is now cannonical format)
+ * converts
+ *   $MSCHAPv2$95a87fa62ebcd2e3c8b09e1b448a6c72$ed8cc90fd40faa2d6bcd0abd0b1f562fd777df6c5609c98b$e2ae0995eaac6ceff0d9757428b51509$lulu
+ * into
+ *   $MSCHAPv2$ba75eb14efbfbf25$ed8cc90fd40faa2d6bcd0abd0b1f562fd777df6c5609c98b$$
+ *
+ * This code was moved from get_salt().
+ */
+static char *long_to_short(char *ciphertext) {
+	static char Buf[TOTAL_LENGTH+1];	// larger than we need, but not a big deal
+	static SHA_CTX ctx;
+	unsigned char tmp[16];
+	unsigned char digest[20];
+	char *pos = NULL;
+	int i;
+	SHA1_Init(&ctx);
+
+	/* Peer Challenge */
+	pos = ciphertext + 10 + 16*2 + 1 + 24*2 + 1; /* Skip $MSCHAPv2$, Authenticator Challenge and Response Hash */
+
+	memset(tmp, 0, 16);
+	for (i = 0; i < 16; i++)
+		tmp[i] = (atoi16[ARCH_INDEX(pos[i*2])] << 4) + atoi16[ARCH_INDEX(pos[i*2+1])];
+
+	SHA1_Update(&ctx, tmp, 16);
+
+	/* Authenticator Challenge */
+	pos = ciphertext + 10; /* Skip $MSCHAPv2$ */
+
+	memset(tmp, 0, 16);
+	for (i = 0; i < 16; i++)
+		tmp[i] = (atoi16[ARCH_INDEX(pos[i*2])] << 4) + atoi16[ARCH_INDEX(pos[i*2+1])];
+
+	SHA1_Update(&ctx, tmp, 16);
+
+	/* Username - Only the user name (as presented by the peer and
+	   excluding any prepended domain name) is used as input to SHAUpdate()
+	*/
+	pos = ciphertext + 10 + 16*2 + 1 + 24*2 + 1 + 16*2 + 1; /* Skip $MSCHAPv2$, Authenticator, Response and Peer */
+	SHA1_Update(&ctx, pos, strlen(pos));
+
+	SHA1_Final(digest, &ctx);
+
+	// Ok, now we re-make our ciphertext buffer, into the short cannonical form.
+	strcpy(Buf, "$MSCHAPv2$");
+	pos = Buf + 10;
+	for (i = 0; i < SALT_SIZE; i++) {
+		//binary_salt.u8[i] = (atoi16[ARCH_INDEX(pos[i*2])] << 4) + atoi16[ARCH_INDEX(pos[i*2+1])];
+		pos[(i<<1)] = itoa16[digest[i]>>4];
+		pos[(i<<1)+1] = itoa16[digest[i]&0xF];
+	}
+	memcpy(&pos[16], &ciphertext[42], CIPHERTEXT_LENGTH+2);
+	pos[16+CIPHERTEXT_LENGTH+2] = '$';
+	pos[16+CIPHERTEXT_LENGTH+3] = 0;
+	//printf ("short=%s  original=%s\n", Buf, ciphertext);
+	return Buf;
 }
 
 static void set_salt(void *salt)
