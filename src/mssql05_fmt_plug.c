@@ -281,6 +281,13 @@ static void set_key_utf8(char *_key, int index)
 		if (chl >= 0xC0) {
 			unsigned int extraBytesToRead = opt_trailingBytesUTF8[chl & 0x3f];
 			switch (extraBytesToRead) {
+			case 3:
+				++source;
+				if (*source) {
+					chl <<= 6;
+					chl += *source;
+				} else
+					return;
 			case 2:
 				++source;
 				if (*source) {
@@ -304,12 +311,35 @@ static void set_key_utf8(char *_key, int index)
 		}
 		source++;
 		len++;
-		if (*source && len < PLAINTEXT_LENGTH + (SALT_SIZE >> 1)) {
+		if (chl > UNI_MAX_BMP) {
+			if (len == PLAINTEXT_LENGTH + (SALT_SIZE >> 1)) {
+				chh = 0x80;
+				*keybuf_word = (chh << 16) | chl;
+				keybuf_word += MMX_COEF;
+				break;
+			}
+			#define halfBase 0x0010000UL
+			#define halfShift 10
+			#define halfMask 0x3FFUL
+			#define UNI_SUR_HIGH_START  (UTF32)0xD800
+			#define UNI_SUR_LOW_START   (UTF32)0xDC00
+			chl -= halfBase;
+			chh = (UTF16)((chl & halfMask) + UNI_SUR_LOW_START);;
+			chl = (UTF16)((chl >> halfShift) + UNI_SUR_HIGH_START);
+			len++;
+		} else if (*source && len < PLAINTEXT_LENGTH + (SALT_SIZE >> 1)) {
 			chh = *source;
 			if (chh >= 0xC0) {
 				unsigned int extraBytesToRead =
 					opt_trailingBytesUTF8[chh & 0x3f];
 				switch (extraBytesToRead) {
+				case 3:
+					++source;
+					if (*source) {
+						chl <<= 6;
+						chl += *source;
+					} else
+						return;
 				case 2:
 					++source;
 					if (*source) {

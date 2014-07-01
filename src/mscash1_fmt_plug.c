@@ -707,6 +707,15 @@ static inline void set_key_helper_utf8(unsigned int * keybuffer, unsigned int xB
 		if (chl >= 0xC0) {
 			unsigned int extraBytesToRead = opt_trailingBytesUTF8[chl & 0x3f];
 			switch (extraBytesToRead) {
+			case 3:
+				++source;
+				if (*source) {
+					chl <<= 6;
+					chl += *source;
+				} else {
+					*lastlen = ((PLAINTEXT_LENGTH >> 1) + 1) * xBuf;
+					return;
+				}
 			case 2:
 				++source;
 				if (*source) {
@@ -735,12 +744,38 @@ static inline void set_key_helper_utf8(unsigned int * keybuffer, unsigned int xB
 		}
 		source++;
 		outlen++;
-		if (*source && outlen < PLAINTEXT_LENGTH) {
+		if (chl > UNI_MAX_BMP) {
+			if (outlen == PLAINTEXT_LENGTH) {
+				chh = 0x80;
+				*target = (chh << 16) | chl;
+				target += xBuf;
+				*lastlen = ((PLAINTEXT_LENGTH >> 1) + 1) * xBuf;
+				break;
+			}
+			#define halfBase 0x0010000UL
+			#define halfShift 10
+			#define halfMask 0x3FFUL
+			#define UNI_SUR_HIGH_START  (UTF32)0xD800
+			#define UNI_SUR_LOW_START   (UTF32)0xDC00
+			chl -= halfBase;
+			chh = (UTF16)((chl & halfMask) + UNI_SUR_LOW_START);;
+			chl = (UTF16)((chl >> halfShift) + UNI_SUR_HIGH_START);
+			outlen++;
+		} else if (*source && outlen < PLAINTEXT_LENGTH) {
 			chh = *source;
 			if (chh >= 0xC0) {
 				unsigned int extraBytesToRead =
 					opt_trailingBytesUTF8[chh & 0x3f];
 				switch (extraBytesToRead) {
+				case 3:
+					++source;
+					if (*source) {
+						chl <<= 6;
+						chl += *source;
+					} else {
+						*lastlen = ((PLAINTEXT_LENGTH >> 1) + 1) * xBuf;
+						return;
+					}
 				case 2:
 					++source;
 					if (*source) {
