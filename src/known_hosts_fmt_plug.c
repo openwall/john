@@ -15,7 +15,7 @@ extern struct fmt_main fmt_known_hosts;
 john_register_one(&fmt_known_hosts);
 #else
 
-#include <openssl/sha.h>
+#include "sha.h"
 #include <string.h>
 #include "arch.h"
 #include "misc.h"
