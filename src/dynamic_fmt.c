@@ -1592,8 +1592,6 @@ static void crypt_all(int count)
 		for (j = 0; j < m_count; j += inc) {
 			int i;
 			int top=j+inc;
-			if (top > m_count)
-				top = m_count;
 			// we now run a full script in this thread, using only a subset of
 			// the data, from [j,top)  The next thread will run from [top,top+inc)
 			// each thread will take the next inc values, until we get to m_count

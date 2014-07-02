@@ -1455,6 +1455,9 @@ static inline uint32_t DoSHA256_FixBufferLen32(unsigned char *input_buf, int tot
 	uint32_t ret = (total_len / 64) + 1;
 	if (total_len % 64 > 55)
 		++ret;
+//	if (ret > 4) {
+//		fprintf (stderr, "\n\n!!!Overflow  total_len=%d  input_buf=%*.*s !!!\n\n", total_len, total_len, total_len, input_buf);
+//	}
 	input_buf[total_len] = 0x80;
 	p = (uint32_t *)&(input_buf[total_len+1]);
 	while (*p && p < (uint32_t *)&input_buf[(ret<<6)-4])
