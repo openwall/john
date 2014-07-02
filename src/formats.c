@@ -272,7 +272,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 						*p = 0;
 						// $tag$ only
 						if (format->methods.valid(k, format)) {
-							sprintf(s_size, "promiscuos valid (%s)", k);
+							sprintf(s_size, "promiscuous valid (%s)", k);
 							return s_size;
 						}
 						*p = '$';
@@ -280,7 +280,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 							*p++ = '$';
 						// $tag$$$$$$$$$$$$$$$$$$
 						if (format->methods.valid(k, format)) {
-							sprintf(s_size, "promiscuos valid");
+							sprintf(s_size, "promiscuous valid");
 							return s_size;
 						}
 						break;
