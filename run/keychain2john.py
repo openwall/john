@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# keepchain2john processes input Mac OS X keychain files into a format suitable
+# keychain2john processes input Mac OS X keychain files into a format suitable
 # for use with JtR.
 #
 # This software is Copyright (c) 2014, Dhiru Kholia <dhiru [at] openwall.com>
@@ -8,7 +8,7 @@
 #
 # This code may be freely used and modified for any purpose.
 #
-# For "inner working details", see keepchain2john.c file
+# For "inner working details", see keychain2john.c file
 #
 # Output Format: filename:$keychain$*salt*iv*ciphertext
 
