@@ -52,6 +52,7 @@ static struct fmt_tests known_hosts_tests[] = {
 	{"$known_hosts$|1|yivSFSAv9mhGu/GPc14KpaPMSjE=|I9L3FH6RGefWIFb0Po74BVN3Fto=", "213.100.98.219"},
 	{"$known_hosts$|1|pgjIzNM77FYsBHLfKvvG9aWpKAA=|XbHqTCXG1JAV6fb2h2HT8MT7kGU=", "192.30.252.130"},
 	{"$known_hosts$|1|vAQX51f9EfXY33/j3upxFIlI1ds=|q+CzSLaa1EaSsAQzP/XRM/gaFQ4=", "192.30.252.128"},
+	{"$known_hosts$|1|F1E1KeoE/eEWhi10WpGv4OdiO6Y=|3988QV0VE8wmZL7suNrYQLITLCg=", "192.168.1.61"},
 	{NULL}
 };
 
