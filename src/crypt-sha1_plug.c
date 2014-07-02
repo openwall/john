@@ -39,7 +39,7 @@
 #define SHA1_MAGIC "$sha1$"
 #define SHA1_SIZE 20
 
-#include <openssl/sha.h>
+#include "sha.h"
 #include <stdlib.h>
 #if  (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
 #include <unistd.h>
