@@ -36,7 +36,7 @@ john_register_one(&fmt_zip);
 #include "pbkdf2_hmac_sha1.h"
 #ifdef _OPENMP
 #include <omp.h>
-#define OMP_SCALE               16
+#define OMP_SCALE               1
 static int omp_t = 1;
 #endif
 #include "memdbg.h"
@@ -139,7 +139,7 @@ error:
 static void *get_salt(char *ciphertext)
 {
 	int i, strength, n;
-	static unsigned char salt[SALT_SIZE];
+	static unsigned char salt[SALT_SIZE+3];
 	/* extract data from "ciphertext" */
 	char *encoded_ciphertext, *p;
 	char *copy_mem = strdup(ciphertext);
@@ -165,12 +165,17 @@ static void *get_salt(char *ciphertext)
 	}
 	encoded_ciphertext = strtok(NULL, "*");
 	for (i = 0; i < n; i++)
-		salt[i] = atoi16[ARCH_INDEX(encoded_ciphertext[i * 2])] * 16
+		salt[i+3] = atoi16[ARCH_INDEX(encoded_ciphertext[i * 2])] * 16
 		    + atoi16[ARCH_INDEX(encoded_ciphertext[i * 2 + 1])];
 	p = strtok(NULL, "*");
 	for (i = 0; i < 2; i++)
 		passverify[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16 +
 		    atoi16[ARCH_INDEX(p[i * 2 + 1])];
+	// Note, we put mode as first byte, and passverify is next 2, followed by salt at offset 3
+	salt[0] = mode;
+	salt[1] = passverify[0];
+	salt[2] = passverify[1];
+	
 	MEM_FREE(copy_mem);
 
 	return (void*)salt;
@@ -180,6 +185,9 @@ static void set_salt(void *salt)
 {
 	memset(cracked, 0, MAX_KEYS_PER_CRYPT);
 	saved_salt = (unsigned char*)salt;
+	mode = saved_salt[0];
+	passverify[0] = saved_salt[1];
+	passverify[1] = saved_salt[2];	
 }
 
 static void zip_set_key(char *key, int index)
@@ -214,7 +222,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			pin[i] = (unsigned char*)saved_key[i+index];
 			pout[i] = &pwd_ver[i*2];
 		}
-		pbkdf2_sha1_sse((const unsigned char **)pin, lens, saved_salt, SALT_LENGTH(mode), KEYING_ITERATIONS, pout, 2, 2 * KEY_LENGTH(mode));
+		pbkdf2_sha1_sse((const unsigned char **)pin, lens, &saved_salt[3], SALT_LENGTH(mode), KEYING_ITERATIONS, pout, 2, 2 * KEY_LENGTH(mode));
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i)
 			cracked[i+index] = !memcmp(&pwd_ver[i*2], passverify, 2);
 #else
@@ -226,7 +234,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		/* derive the password verifier */
 		/* NOTE this one skips, possibly many bytes and pbkdf2 hashes, only does 1 pbkdf2 limb where the 2 bytes are */
 		pbkdf2_sha1((unsigned char *)saved_key[index],
-		       strlen(saved_key[index]), saved_salt, SALT_LENGTH(mode),
+		       strlen(saved_key[index]), &saved_salt[3], SALT_LENGTH(mode),
 		       KEYING_ITERATIONS, (unsigned char*)&pwd_ver, 4,
 		            2 * KEY_LENGTH(mode));
 #if !ARCH_LITTLE_ENDIAN
@@ -269,7 +277,7 @@ struct fmt_main fmt_zip = {
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
 		BINARY_ALIGN,
-		SALT_SIZE,
+		SALT_SIZE+3,
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT*BASE_SCALE,
