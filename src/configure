@@ -759,6 +759,7 @@ enable_native_tests
 enable_native_macro
 enable_ln_s
 enable_pkg_config
+enable_nt_full_unicode
 enable_openmp
 enable_opencl
 '
@@ -1408,6 +1409,8 @@ Optional Features:
                           flag. Native tests still can be run in this mode
   --enable-ln-s           Use ln -s vs symlink.c wrappers (Cygwin only)
   --disable-pkg-config    do not use pkg-config for any probing tests
+  --enable-nt-full-unicode
+                          support 4-byte UTF-8 for MS formats
   --disable-openmp        do not use OpenMP
   --disable-opencl        do not use OpenCL
 
@@ -3532,6 +3535,13 @@ if test "${enable_pkg_config+set}" = set; then :
   enableval=$enable_pkg_config; enable_pkg_config=$enableval
 else
   enable_pkg_config=auto
+fi
+
+# Check whether --enable-nt-full-unicode was given.
+if test "${enable_nt_full_unicode+set}" = set; then :
+  enableval=$enable_nt_full_unicode; enable_nt_unicode=$enableval
+else
+  enable_nt_unicode=no
 fi
 
 
@@ -13359,6 +13369,15 @@ if rm -f arch.h; then :
 fi
 ac_config_links="$ac_config_links arch.h:$ARCH_LINK"
 
+
+# For the fastest MS formats, full Unicode support (4-byte UTF-8) can
+# mean a 10% performance hit. Default is support for up to 3-byte UTF-8
+# which corresponds to full UCS-2 or Unicode BMP.
+if test "x$enable_nt_unicode" != xno; then :
+
+$as_echo "#define NT_FULL_UNICODE 1" >>confdefs.h
+
+fi
 
 ##########################################################
 # Code  to create @PLUGFORMAT_SRCS@ @PLUGFORMATS_OBJS@

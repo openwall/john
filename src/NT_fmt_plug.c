@@ -740,6 +740,7 @@ static inline void set_key_helper_utf8(unsigned int * keybuffer, unsigned int xB
 		if (chl >= 0xC0) {
 			unsigned int extraBytesToRead = opt_trailingBytesUTF8[chl & 0x3f];
 			switch (extraBytesToRead) {
+#if NT_FULL_UNICODE
 			case 3:
 				++source;
 				if (*source) {
@@ -749,6 +750,7 @@ static inline void set_key_helper_utf8(unsigned int * keybuffer, unsigned int xB
 					*lastlen = ((PLAINTEXT_LENGTH >> 1) + 1) * xBuf;
 					return;
 				}
+#endif
 			case 2:
 				++source;
 				if (*source) {
@@ -777,6 +779,7 @@ static inline void set_key_helper_utf8(unsigned int * keybuffer, unsigned int xB
 		}
 		source++;
 		outlen++;
+#if NT_FULL_UNICODE
 		if (chl > UNI_MAX_BMP) {
 			if (outlen == PLAINTEXT_LENGTH) {
 				chh = 0x80;
@@ -794,12 +797,15 @@ static inline void set_key_helper_utf8(unsigned int * keybuffer, unsigned int xB
 			chh = (UTF16)((chl & halfMask) + UNI_SUR_LOW_START);;
 			chl = (UTF16)((chl >> halfShift) + UNI_SUR_HIGH_START);
 			outlen++;
-		} else if (*source && outlen < PLAINTEXT_LENGTH) {
+		} else
+#endif
+		if (*source && outlen < PLAINTEXT_LENGTH) {
 			chh = *source;
 			if (chh >= 0xC0) {
 				unsigned int extraBytesToRead =
 					opt_trailingBytesUTF8[chh & 0x3f];
 				switch (extraBytesToRead) {
+#if NT_FULL_UNICODE
 				case 3:
 					++source;
 					if (*source) {
@@ -809,6 +815,7 @@ static inline void set_key_helper_utf8(unsigned int * keybuffer, unsigned int xB
 						*lastlen = ((PLAINTEXT_LENGTH >> 1) + 1) * xBuf;
 						return;
 					}
+#endif
 				case 2:
 					++source;
 					if (*source) {

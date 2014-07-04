@@ -48,6 +48,10 @@ Beware of UTF-8 BOM's. They will cripple the first word in your wordlist or
 the first entry in your hashfile. Try to avoid using Windows tools that add
 them. This version does try to discard them though.
 
+Unicode beyond U+FFFF (4-byte UTF-8) is not supported by default for the NT
+formats because it hits performance and because the chance of it being used
+in the wild is pretty slim. Supply --enable-nt-full-unicode to configure when
+building if you need that support.
 
 Examples:
 1. LM hashes from Western Europe, using a UTF-8 wordlist:

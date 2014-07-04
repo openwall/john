@@ -71,6 +71,7 @@ AC_ARG_ENABLE([native-tests], [AC_HELP_STRING([--disable-native-tests], [Do not 
 AC_ARG_ENABLE([native-macro], [AC_HELP_STRING([--disable-native-macro], [Do not use -march=native even if a valid compiler flag. Native tests still can be run in this mode])], [enable_native_macro=$enableval], [enable_native_macro=auto])
 AC_ARG_ENABLE([ln-s], [AS_HELP_STRING([--enable-ln-s],[Use ln -s vs symlink.c wrappers (Cygwin only)])], [enable_ln_s=$enableval], [enable_ln_s=no])
 AC_ARG_ENABLE([pkg-config], [AS_HELP_STRING([--disable-pkg-config],[do not use pkg-config for any probing tests])], [enable_pkg_config=$enableval], [enable_pkg_config=auto])
+AC_ARG_ENABLE([nt-full-unicode], [AS_HELP_STRING([--enable-nt-full-unicode],[support 4-byte UTF-8 for MS formats])], [enable_nt_unicode=$enableval], [enable_nt_unicode=no])
 
 ####### Actual tests start here #######
 
@@ -680,6 +681,11 @@ CFLAGS="$CFLAGS_BACKUP"
 # note, we remove it first.
 AS_IF([rm -f arch.h])
 AC_CONFIG_LINKS([arch.h:$ARCH_LINK])
+
+# For the fastest MS formats, full Unicode support (4-byte UTF-8) can
+# mean a 10% performance hit. Default is support for up to 3-byte UTF-8
+# which corresponds to full UCS-2 or Unicode BMP.
+AS_IF([test "x$enable_nt_unicode" != xno], [AC_DEFINE([NT_FULL_UNICODE],1,[Define to 1 if you want support for 4-byte UTF-8 in fast MS formats.])])
 
 ##########################################################
 # Code  to create @PLUGFORMAT_SRCS@ @PLUGFORMATS_OBJS@

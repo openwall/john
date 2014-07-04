@@ -414,6 +414,9 @@
 /* Define to 1 if you have the `_strnicmp' function. */
 #undef HAVE__STRNICMP
 
+/* Define to 1 if you want support for 4-byte UTF-8 in fast MS formats. */
+#undef NT_FULL_UNICODE
+
 /* Define to the address where bug reports for this package should be sent. */
 #undef PACKAGE_BUGREPORT
 
