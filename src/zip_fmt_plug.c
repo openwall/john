@@ -59,7 +59,7 @@ john_register_one(&fmt_zip);
 #include "pbkdf2_hmac_sha1.h"
 #ifdef _OPENMP
 #include <omp.h>
-#define OMP_SCALE               1
+#define OMP_SCALE               4	// Tuned on core i7 (note, use -test=120 during tuning) 
 static int omp_t = 1;
 #endif
 #include "gladman_hmac.h"
