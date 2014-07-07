@@ -81,7 +81,7 @@ john_register_one(&fmt_pkzip);
 #endif
 
 /*
- * filename:$pkzip$C*B*[DT*MT{CL*UL*CR*OF*OX}*CT*DL*CS*DA]*$/pkzip$   (depricated)
+ * filename:$pkzip$C*B*[DT*MT{CL*UL*CR*OF*OX}*CT*DL*CS*DA]*$/pkzip$   (deprecated)
  * filename:$pkzip2$C*B*[DT*MT{CL*UL*CR*OF*OX}*CT*DL*CS*TC*DA]*$/pkzip2$   (new format, with 2 checksums)
  *
  * All numeric and 'binary data' fields are stored in hex.
@@ -170,47 +170,6 @@ inline u8 PKZ_MULT(u8 b, MY_WORD w) {u16 t = w.u|2; return b ^ (u8)(((u16)(t*(t^
 extern struct fmt_main fmt_pkzip;
 static const char *ValidateZipContents(FILE *in, long offset, u32 offex, int len, u32 crc);
 
-/* Similar to strtok, but written specifically for the format. */
-static u8 *GetFld(u8 *p, u8 **pRet) {
-	if (!p || *p==0) {
-		*pRet = (u8*)"";
-		return p;
-	}
-	if (p && *p && *p == '*') {
-		*pRet = (u8*)"";
-		return ++p;
-	}
-	*pRet = p;
-	while (*p && *p != '*')
-		++p;
-	if (*p)
-	  *p++ = 0;
-	return p;
-}
-
-static int is_hex_str(const u8 *cp) {
-	int len, i;
-
-	if (!cp || !*cp)
-		return 0; /* empty is NOT 'fine' */
-	len = strlen((c8*)cp);
-	for (i = 0; i < len; ++i) {
-		if (atoi16[ARCH_INDEX(cp[i])] == 0x7F)
-			return 0;
-	}
-	return 1;
-}
-
-unsigned get_hex_num(const u8 *cp) {
-	char b[3];
-	unsigned u;
-	b[0] = (c8)cp[0];
-	b[1] = (c8)cp[1];
-	b[2] = 0;
-	sscanf(b, "%x", &u);
-	return u;
-}
-
 /* Since the pkzip format textual representation is pretty complex, with multiple   */
 /* 'optional' sections, we have a VERY complete valid.  Valid will make SURE that   */
 /* the format is completely valid. Thus, there is little or no error checking later */
@@ -223,8 +182,8 @@ unsigned get_hex_num(const u8 *cp) {
 /* there, so that we have a 'complete' format line, with the zip data contained.     */
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	u8 *p, *cp;
-	int cnt, data_len;
+	u8 *p, *cp, *cpkeep;
+	int cnt, data_len, ret=0;
 	u32 crc;
 	FILE *in;
 	const char *sFailStr;
@@ -238,69 +197,70 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		if (!strncmp(ciphertext, "$pkzip2$", 8))
 			type2 = 1;
 		else
-		return 0;
+			return ret;
 	}
 
-	cp = (u8*)str_alloc_copy(ciphertext);
+	cpkeep = (u8*)strdup(ciphertext);
+	cp = cpkeep;
 
 	p = &cp[7];
 	if (type2)
 		++p;
-	p = GetFld(p, &cp);
-	if (!is_hex_str(cp)) {
+	p = pkz_GetFld(p, &cp);
+	if (!pkz_is_hex_str(cp)) {
 		sFailStr = "Out of data, reading count of hashes field"; goto Bail; }
 	sscanf((c8*)cp, "%x", &cnt);
 	if (cnt < 1 || cnt > MAX_PKZ_FILES) {
 		sFailStr = "Count of hashes field out of range"; goto Bail; }
-	p = GetFld(p, &cp);
+	p = pkz_GetFld(p, &cp);
 	if (cp[0] < '0' || cp[0] > '2' || cp[1]) {
 		sFailStr = "Number of valid hash bytes empty or out of range"; goto Bail; }
 
 	while (cnt--) {
-		p = GetFld(p, &cp);
+		p = pkz_GetFld(p, &cp);
 		if (cp[0]<'1' || cp[0]>'3' || cp[1]) {
 			sFailStr = "Invalid data enumeration type"; goto Bail; }
 		type = cp[0] - '0';
-		p = GetFld(p, &cp);
-		if (!is_hex_str(cp)) {
+		p = pkz_GetFld(p, &cp);
+		if (!pkz_is_hex_str(cp)) {
 			sFailStr = "Invalid type enumeration"; goto Bail; }
 		if (type > 1) {
-			p = GetFld(p, &cp);
-			if (!is_hex_str(cp)) {
+			p = pkz_GetFld(p, &cp);
+			if (!pkz_is_hex_str(cp)) {
 				sFailStr = "Invalid compressed length"; goto Bail; }
 			sscanf((c8*)cp, "%x", &complen);
-			p = GetFld(p, &cp);
-			if (!is_hex_str(cp)) {
+			p = pkz_GetFld(p, &cp);
+			if (!pkz_is_hex_str(cp)) {
 				sFailStr = "Invalid data length value"; goto Bail; }
-			p = GetFld(p, &cp);
-			if (!is_hex_str(cp)) {
+			p = pkz_GetFld(p, &cp);
+			if (!pkz_is_hex_str(cp)) {
 				sFailStr = "Invalid CRC value"; goto Bail; }
 			sscanf((c8*)cp, "%x", &crc);
-			p = GetFld(p, &cp);
-			if (!is_hex_str(cp)) {
+			p = pkz_GetFld(p, &cp);
+			if (!pkz_is_hex_str(cp)) {
 				sFailStr = "Invalid offset length"; goto Bail; }
 			sscanf((c8*)cp, "%lx", &offset);
-			p = GetFld(p, &cp);
-			if (!is_hex_str(cp)) {
+			p = pkz_GetFld(p, &cp);
+			if (!pkz_is_hex_str(cp)) {
 				sFailStr = "Invalid offset length"; goto Bail; }
 			sscanf((c8*)cp, "%x", &offex);
 		}
-		p = GetFld(p, &cp);
+		p = pkz_GetFld(p, &cp);
 		if ((cp[0] != '0' && cp[0] != '8') || cp[1]) {
 			sFailStr = "Compression type enumeration"; goto Bail; }
-		p = GetFld(p, &cp);
-		if (!is_hex_str(cp)) {
+		p = pkz_GetFld(p, &cp);
+		if (!pkz_is_hex_str(cp)) {
 			sFailStr = "Invalid data length value"; goto Bail; }
 		sscanf((c8*)cp, "%x", &data_len);
-		p = GetFld(p, &cp);
-		if (!is_hex_str(cp) || strlen((c8*)cp) != 4) {
+		p = pkz_GetFld(p, &cp);
+		if (!pkz_is_hex_str(cp) || strlen((c8*)cp) != 4) {
 			sFailStr = "invalid checksum value"; goto Bail; }
 		if (type2) {
-			p = GetFld(p, &cp);
-			if (!is_hex_str(cp) || strlen((c8*)cp) != 4) {
+			p = pkz_GetFld(p, &cp);
+			if (!pkz_is_hex_str(cp) || strlen((c8*)cp) != 4) {
 				sFailStr = "invalid checksum2 value"; goto Bail;}
 		}
-		p = GetFld(p, &cp);
+		p = pkz_GetFld(p, &cp);
 		if (type > 1) {
 			if (type == 3) {
 				if ( !p || strlen((c8*)cp) != data_len) {
@@ -333,41 +293,24 @@ static int valid(char *ciphertext, struct fmt_main *self)
 				/* 'inline' data. */
 				if (complen != data_len) {
 					sFailStr = "length of full data does not match the salt len"; goto Bail; }
-				if (!is_hex_str(cp) || strlen((c8*)cp) != data_len<<1) {
+				if (!pkz_is_hex_str(cp) || strlen((c8*)cp) != data_len<<1) {
 					sFailStr = "invalid inline data"; goto Bail; }
 			}
 		} else {
-			if (!is_hex_str(cp) || strlen((c8*)cp) != data_len<<1) {
+			if (!pkz_is_hex_str(cp) || strlen((c8*)cp) != data_len<<1) {
 				sFailStr = "invalid partial data"; goto Bail; }
                 }
 	}
-	p = GetFld(p, &cp);
-	if (type2) return !strcmp((c8*)cp, "$/pkzip2$") && !*p;
-	return !strcmp((c8*)cp, "$/pkzip$") && !*p;
+	p = pkz_GetFld(p, &cp);
+	if (type2) ret = !strcmp((c8*)cp, "$/pkzip2$") && !*p;
+	else       ret = !strcmp((c8*)cp, "$/pkzip$") && !*p;
 
 Bail:;
 #ifdef ZIP_DEBUG
-	fprintf (stderr, "pkzip validation failed [%s]  Hash is %s\n", sFailStr, ciphertext);
+	if (!ret) fprintf (stderr, "pkzip validation failed [%s]  Hash is %s\n", sFailStr, ciphertext);
 #endif
-	return 0;
-}
-
-/* helper functions for reading binary data of known little endian */
-/* format from a file. Works whether BE or LE system.              */
-static u32 fget32(FILE * fp)
-{
-	u32 v = fgetc(fp);
-	v |= fgetc(fp) << 8;
-	v |= fgetc(fp) << 16;
-	v |= fgetc(fp) << 24;
-	return v;
-}
-
-static u16 fget16(FILE * fp)
-{
-	u16 v = fgetc(fp);
-	v |= fgetc(fp) << 8;
-	return v;
+	MEM_FREE(cpkeep);
+	return ret;
 }
 
 static const char *ValidateZipContents(FILE *fp, long offset, u32 offex, int _len, u32 _crc) {
@@ -378,21 +321,21 @@ static const char *ValidateZipContents(FILE *fp, long offset, u32 offex, int _le
 	if (fseek(fp, offset, SEEK_SET) != 0)
 		return "Not able to seek to specified offset in the .zip file, to read the zip blob data.";
 
-	id = fget32(fp);
+	id = fget32LE(fp);
 	if (id != 0x04034b50U)
 		return "Compressed zip file offset does not point to start of zip blob";
 
 	/* Ok, see if this IS the correct file blob. */
-	version = fget16(fp);
-	flags = fget16(fp);
-	method = fget16(fp);
-	modtm = fget16(fp);
-	moddt = fget16(fp);
-	crc = fget32(fp);
-	complen = fget32(fp);
-	uncomplen = fget32(fp);
-	namelen = fget16(fp);
-	exlen = fget16(fp);
+	version = fget16LE(fp);
+	flags = fget16LE(fp);
+	method = fget16LE(fp);
+	modtm = fget16LE(fp);
+	moddt = fget16LE(fp);
+	crc = fget32LE(fp);
+	complen = fget32LE(fp);
+	uncomplen = fget32LE(fp);
+	namelen = fget16LE(fp);
+	exlen = fget16LE(fp);
 
 	/* unused vars. */
 	(void)uncomplen;
@@ -561,15 +504,15 @@ static void *get_salt(char *ciphertext)
 		p = &cp[8];
 		type2 = 1;
 	}
-	p = GetFld(p, &cp);
+	p = pkz_GetFld(p, &cp);
 	sscanf((c8*)cp, "%x", &(salt->cnt));
-	p = GetFld(p, &cp);
+	p = pkz_GetFld(p, &cp);
 	sscanf((c8*)cp, "%x", &(salt->chk_bytes));
 	for(i = 0; i < salt->cnt; ++i) {
 		int data_enum;
-		p = GetFld(p, &cp);
+		p = pkz_GetFld(p, &cp);
 		data_enum = *cp - '0';
-		p = GetFld(p, &cp);
+		p = pkz_GetFld(p, &cp);
 #if USE_PKZIP_MAGIC
 		{
 			// mingw can't handle %hhx.  Use 'normal' %x and assign back to uint_8 var
@@ -581,36 +524,36 @@ static void *get_salt(char *ciphertext)
 #endif
 
 		if (data_enum > 1) {
-			p = GetFld(p, &cp);
+			p = pkz_GetFld(p, &cp);
 			sscanf((c8*)cp, "%x", &(salt->compLen));
-			p = GetFld(p, &cp);
+			p = pkz_GetFld(p, &cp);
 			sscanf((c8*)cp, "%x", &(salt->deCompLen));
-			p = GetFld(p, &cp);
+			p = pkz_GetFld(p, &cp);
 			sscanf((c8*)cp, "%x", &(salt->crc32));
-			p = GetFld(p, &cp);
+			p = pkz_GetFld(p, &cp);
 			sscanf((c8*)cp, "%lx", &offset);
-			p = GetFld(p, &cp);
+			p = pkz_GetFld(p, &cp);
 			sscanf((c8*)cp, "%x", &offex);
 		}
-		p = GetFld(p, &cp);
+		p = pkz_GetFld(p, &cp);
 		sscanf((c8*)cp, "%x", &(salt->H[i].compType));
-		p = GetFld(p, &cp);
+		p = pkz_GetFld(p, &cp);
 		sscanf((c8*)cp, "%x", &(salt->H[i].datlen));
-		p = GetFld(p, &cp);
+		p = pkz_GetFld(p, &cp);
 
 		for (j = 0; j < 4; ++j) {
 			salt->H[i].c <<= 4;
 			salt->H[i].c |= atoi16[ARCH_INDEX(cp[j])];
 		}
 		if (type2) {
-			p = GetFld(p, &cp);
+			p = pkz_GetFld(p, &cp);
 			for (j = 0; j < 4; ++j) {
 				salt->H[i].c2 <<= 4;
 				salt->H[i].c2 |= atoi16[ARCH_INDEX(cp[j])];
 			}
 		} else
 			salt->H[i].c2 = salt->H[i].c; // fake out 2nd hash, by copying first hash
-		p = GetFld(p, &cp);
+		p = pkz_GetFld(p, &cp);
 		if (data_enum > 1) {
 			/* if 2 or 3, we have the FULL zip blob for decrypting. */
 			if (data_enum == 3) {

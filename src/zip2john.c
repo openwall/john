@@ -34,7 +34,7 @@
  * filename:$zip$*type*hex(CRC)*encryption_strength*hex(salt)*hex(password_verfication_value):hex(authentication_code)
  *
  * For original pkzip encryption:  (JimF, with longer explaination of fields)
- * filename:$pkzip$C*B*[DT*MT{CL*UL*CR*OF*OX}*CT*DL*CS*DA]*$/pkzip$   (depricated)
+ * filename:$pkzip$C*B*[DT*MT{CL*UL*CR*OF*OX}*CT*DL*CS*DA]*$/pkzip$   (deprecated)
  * filename:$pkzip2$C*B*[DT*MT{CL*UL*CR*OF*OX}*CT*DL*CS*TC*DA]*$/pkzip2$   (new format, with 2 checksums)
  * All numeric and 'binary data' fields are stored in hex.
  *
@@ -57,6 +57,35 @@
  *   DA  This is the 'data'.  It will be hex data if DT==1 or 2. If DT==3, then it is a filename (name of the .zip file).
  * END of array item.  There will be C (count) array items.
  * The format string will end with $/pkzip$
+ *
+ * The AES-zip format redone by JimF, Summer 2014.  Spent some time to understand the AES authentication code,
+ * and now have placed code to do this. However, this required format change.  The old AES format was:
+ *
+ *    For type = 0, for ZIP files encrypted using AES
+ *    filename:$zip$*type*hex(CRC)*encryption_strength*hex(salt)*hex(password_verfication_value):hex(authentication_code)
+ *     NOTE, the authentication code was NOT part of this, even though documented in this file. nor is hex(CRC) a part.
+ *
+ * The new format is:  (and the $zip$ is deprecated)
+ *
+ *    filename:$zip2$*Ty*Mo*Ma*Sa*Va*Le*DF*Au*$/zip2$
+ *    Ty = type (0) and ignored.
+ *    Mo = mode (1 2 3 for 128/192/256 bit
+ *    Ma = magic (file magic).  This is reservered for now.  See pkzip_fmt_plug.c or zip2john.c for information.
+ *         For now, this must be a '0'
+ *    Sa = salt(hex).   8, 12 or 16 bytes of salt (depends on mode)
+ *    Va = Verification bytes(hex) (2 byte quick checker)
+ *    Le = real compr len (hex) length of compressed/encrypted data (field DF)
+ *    DF = compressed data DF can be L*2 hex bytes, and if so, then it is the ENTIRE file blob written 'inline'.
+ *         However, if the data blob is too long, then a .zip ZIPDATA_FILE_PTR_RECORD structure will be the 'contents' of DF
+ *    Au = Authentication code (hex) a 10 byte hex value that is the hmac-sha1 of data over D. This is the binary() value
+ *
+ *  ZIPDATA_FILE_PTR_RECORD  (this can be the 'DF' of this above hash line.
+ *      *ZFILE*Fn*Oh*Ob*  (Note, the leading and trailing * are the * that 'wrap' the DF object.
+ *  ZFILE This is the literal string ZFILE
+ *  Fn    This is the name of the .zip file.  NOTE the user will need to keep the .zip file in proper locations (same as
+ *        was seen when running zip2john. If the file is removed, this hash line will no longer be valid.
+ *  Oh    Offset to the zip central header record for this blob.
+ *  Ob    Offset to the start of the blob data
  */
 
 #include <stdio.h>
@@ -65,11 +94,13 @@
 #include <errno.h>
 #include <string.h>
 #include <assert.h>
+#include <ctype.h>
 
 #include "common.h"
 #include "jumbo.h"
 #include "formats.h"
 #include "stdint.h"
+#include "pkzip.h"
 #include "memdbg.h"
 
 #define LARGE_ENOUGH 8192
@@ -81,23 +112,6 @@ static char *ascii_fname, *only_fname;
 static char *MagicTypes[]= { "", "DOC", "XLS", "DOT", "XLT", "EXE", "DLL", "ZIP", "BMP", "DIB", "GIF", "PDF", "GZ", "TGZ", "BZ2", "TZ2", "FLV", "SWF", "MP3", NULL };
 static int  MagicToEnum[] = {0,  1,    1,     1,     1,     2,     2,     3,     4,     4,     5,     6,     7,    7,     8,     8,     9,     10,    11,  0};
 
-/* helper functions for byte order conversions, header values are stored
- * in little-endian byte order */
-static uint32_t fget32(FILE * fp)
-{
-	uint32_t v = fgetc(fp);
-	v |= fgetc(fp) << 8;
-	v |= fgetc(fp) << 16;
-	v |= fgetc(fp) << 24;
-	return v;
-}
-
-static uint16_t fget16(FILE * fp)
-{
-	uint32_t v = fgetc(fp);
-	v |= fgetc(fp) << 8;
-	return v;
-}
 
 int convert_to_hex(char *O, unsigned char *H, int len) {
 	int i;
@@ -112,7 +126,11 @@ static void process_file(const char *fname)
 	unsigned char filename[1024];
 	FILE *fp;
 	int i;
+	long long off_sig;
 	char path[LARGE_ENOUGH];
+	char *cur=0, *cp;
+	uint32_t best_len = 0xffffffff;
+
 
 	if (!(fp = fopen(fname, "rb"))) {
 		fprintf(stderr, "! %s : %s\n", fname, strerror(errno));
@@ -120,19 +138,21 @@ static void process_file(const char *fname)
 	}
 
 	while (!feof(fp)) {
-		uint32_t id = fget32(fp);
+		uint32_t id = fget32LE(fp);
+		uint32_t store = 0;
+		off_sig = (long long) (ftell(fp)-4);
 
 		if (id == 0x04034b50UL) {	/* local header */
-			uint16_t version = fget16(fp);
-			uint16_t flags = fget16(fp);
-			uint16_t compression_method = fget16(fp);
-			uint16_t lastmod_time = fget16(fp);
-			uint16_t lastmod_date = fget16(fp);
-			uint32_t crc = fget32(fp);
-			uint32_t compressed_size = fget32(fp);
-			uint32_t uncompressed_size = fget32(fp);
-			uint16_t filename_length = fget16(fp);
-			uint16_t extrafield_length = fget16(fp);
+			uint16_t version = fget16LE(fp);
+			uint16_t flags = fget16LE(fp);
+			uint16_t compression_method = fget16LE(fp);
+			uint16_t lastmod_time = fget16LE(fp);
+			uint16_t lastmod_date = fget16LE(fp);
+			uint32_t crc = fget32LE(fp);
+			uint32_t compressed_size = fget32LE(fp);
+			uint32_t uncompressed_size = fget32LE(fp);
+			uint16_t filename_length = fget16LE(fp);
+			uint16_t extrafield_length = fget16LE(fp);
 			/* unused variables */
 			(void) version;
 			(void) lastmod_time;
@@ -151,76 +171,95 @@ static void process_file(const char *fname)
 			filename[filename_length] = 0;
 
 			if (compression_method == 99) {	/* AES encryption */
-				uint16_t efh_id = fget16(fp);
-				uint16_t efh_datasize = fget16(fp);
-				uint16_t efh_vendor_version = fget16(fp);
-				uint16_t efh_vendor_id = fget16(fp);
+				uint32_t real_cmpr_len;
+				uint16_t efh_id = fget16LE(fp);
+				uint16_t efh_datasize = fget16LE(fp);
+				uint16_t efh_vendor_version = fget16LE(fp);
+				uint16_t efh_vendor_id = fget16LE(fp);
 				char efh_aes_strength = fgetc(fp);
-				uint16_t actual_compression_method = fget16(fp);
-				unsigned char salt[16];
+				uint16_t actual_compression_method = fget16LE(fp);
+				unsigned char salt[16], d;
 				char *bname;
-				int n = 0;
-				uint16_t password_verification_value;
-				unsigned char *p;
+				int magic_enum = 0;  // reserved at 0 for now, we are not computing this (yet).
+
 				strnzcpy(path, fname, sizeof(path));
 				bname = basename(path);
+				cp = cur;
+				if ((unsigned)best_len < compressed_size) {
+#if DEBUG
+					printf ("This buffer not used, it is not 'best' size\n");
+#endif
+				} else {
+					store = 1;
+					best_len = compressed_size;
+					if (cur) MEM_FREE(cur);
+					cur = mem_alloc(compressed_size*2 + 400);
+					cp = cur;
+				}
 
+#if DEBUG
 				fprintf(stderr,
 				    "%s->%s is using AES encryption, extrafield_length is %d\n",
 				    fname, filename, extrafield_length);
+#endif
 				/* unused variables */
 				(void) efh_id;
 				(void) efh_datasize;
 				(void) efh_vendor_version;
 				(void) efh_vendor_id;
-				(void) efh_aes_strength;
-				(void) actual_compression_method;
+				(void) actual_compression_method; /* we need this!! */
 
-				printf("%s:$zip$*0*%d*", bname,
-				    efh_aes_strength);
-				switch (efh_aes_strength) {
-				case 1:
-					n = 8;
-					if (fread(salt, 1, n, fp) != n) {
+				if (store) cp += sprintf(cp, "%s:$zip2$*0*%x*%x*", bname, efh_aes_strength, magic_enum);
+				if (fread(salt, 1, 4+4*efh_aes_strength, fp) != 4+4*efh_aes_strength) {
 						fprintf(stderr, "Error, in fread of file data!\n");
 						goto cleanup;
-					}
-					break;
-				case 2:
-					n = 12;
-					if (fread(salt, 1, n, fp) != n) {
-						fprintf(stderr, "Error, in fread of file data!\n");
-						goto cleanup;
-					}
-					break;
-				case 3:
-					n = 16;
-					if (fread(salt, 1, n, fp) != n) {
-						fprintf(stderr, "Error, in fread of file data!\n");
-						goto cleanup;
-					}
-					break;
+				}
 
+				for (i = 0; i < 4+4*efh_aes_strength; i++) {
+					if (store) cp += sprintf(cp, "%c%c",
+						itoa16[ARCH_INDEX(salt[i] >> 4)],
+						itoa16[ARCH_INDEX(salt[i] & 0x0f)]);
 				}
-				for (i = 0; i < n; i++) {
-					printf("%c%c",
-					    itoa16[ARCH_INDEX(salt[i] >> 4)],
-					    itoa16[ARCH_INDEX(salt[i] &
-						    0x0f)]);
-				}
-				password_verification_value = fget16(fp);
-				p = (unsigned char *) &password_verification_value;
-				printf("*");
+				if (store) cp += sprintf (cp, "*");
+				// since in the format we read/compare this one, we do it char by
+				// char, so there is no endianity swapping needed. (validator)
 				for (i = 0; i < 2; i++) {
-					printf("%c%c",
-					    itoa16[ARCH_INDEX(p[i] >> 4)],
-					    itoa16[ARCH_INDEX(p[i] & 0x0f)]);
+					d = fgetc(fp);
+					if (store) cp += sprintf(cp, "%c%c",
+						itoa16[ARCH_INDEX(d >> 4)],
+						itoa16[ARCH_INDEX(d & 0x0f)]);
 				}
-				printf(":::::%s\n", fname);
-				fseek(fp, 10, SEEK_CUR);
-
+				real_cmpr_len = compressed_size-2-(4+4*efh_aes_strength)-extrafield_length;
+				// not quite sure why the real_cmpr_len is 'off by 1' ????
+				++real_cmpr_len;
+				if (store) cp += sprintf(cp, "*%x*", real_cmpr_len);
+				if (real_cmpr_len < 1024) {
+					for (i = 0; i < real_cmpr_len; i++) {
+						d = fgetc(fp);
+						if (store) cp += sprintf(cp, "%c%c",
+							itoa16[ARCH_INDEX(d >> 4)],
+							itoa16[ARCH_INDEX(d & 0x0f)]);
+					}
+				} else {
+					if (store) cp += sprintf(cp, "ZFILE*%s*"LLx"*"LLx,
+							fname, off_sig, (long long)(ftell(fp)));
+					fseek(fp, real_cmpr_len, SEEK_CUR);
+				}
+				if (store) cp += sprintf(cp, "*");
+				for (i = 0; i < 10; i++) {
+					d = fgetc(fp);
+					if (store) cp += sprintf(cp, "%c%c",
+					    itoa16[ARCH_INDEX(d >> 4)],
+					    itoa16[ARCH_INDEX(d & 0x0f)]);
+				}
+				for (d = ' '+1; d < '~'; ++d) {
+					if (!strchr(fname, d) && d != ':' && !isxdigit(d))
+						break;
+				}
+				if (store) cp += sprintf(cp, "*$/zip2$:::::%s\n", bname);
 			} else if (flags & 1) {	/* old encryption */
 				fclose(fp);
+				fp = 0;
 				process_old_zip(fname);
 				return;
 			} else {
@@ -237,6 +276,8 @@ static void process_file(const char *fname)
 	}
 
 cleanup:
+	if (cur)
+		printf ("%s\n",cur);
 	fclose(fp);
 }
 
@@ -293,16 +334,16 @@ static int LoadZipBlob(FILE *fp, zip_ptr *p, zip_file *zfp, const char *zip_fnam
 	memset(p, 0, sizeof(*p));
 
 	p->offset = ftell(fp)-4;
-	version = fget16(fp);
-	flags = fget16(fp);
-	p->cmptype = fget16(fp);
-	lastmod_time = fget16(fp);
-	lastmod_date = fget16(fp);
-	p->crc = fget32(fp);
-	p->cmp_len= fget32(fp);
-	p->decomp_len = fget32(fp);
-	filename_length = fget16(fp);
-	extrafield_length = fget16(fp);
+	version = fget16LE(fp);
+	flags = fget16LE(fp);
+	p->cmptype = fget16LE(fp);
+	lastmod_time = fget16LE(fp);
+	lastmod_date = fget16LE(fp);
+	p->crc = fget32LE(fp);
+	p->cmp_len= fget32LE(fp);
+	p->decomp_len = fget32LE(fp);
+	filename_length = fget16LE(fp);
+	extrafield_length = fget16LE(fp);
 	/* unused variables */
 	(void) lastmod_date;
 
@@ -322,8 +363,8 @@ static int LoadZipBlob(FILE *fp, zip_ptr *p, zip_file *zfp, const char *zip_fnam
 		uint16_t extra_len_used = 0;
 		if (flags & 8) {
 			while (extra_len_used < extrafield_length) {
-				uint16_t efh_id = fget16(fp);
-				uint16_t efh_datasize = fget16(fp);
+				uint16_t efh_id = fget16LE(fp);
+				uint16_t efh_datasize = fget16LE(fp);
 				extra_len_used += 4 + efh_datasize;
 				fseek(fp, efh_datasize, SEEK_CUR);
 				fprintf(stderr, "efh %04x  ", efh_id);
@@ -398,7 +439,7 @@ static void process_old_zip(const char *fname)
 	}
 
 	while (!feof(fp)) {
-		uint32_t id = fget32(fp);
+		uint32_t id = fget32LE(fp);
 
 		if (id == 0x04034b50UL) {	/* local header */
 			if (LoadZipBlob(fp, &curzip, &zfp, fname) && curzip.decomp_len > 3) {
