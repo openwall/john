@@ -441,7 +441,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		return count;
 	}
 #ifdef _OPENMP
-#pragma omp parallel for default(none) private(index) shared(count, saved_key, saved_salt)
+#pragma omp parallel for default(none) private(index) shared(count, saved_key, saved_salt, crypt_key)
 #endif
 	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT) {
 #ifdef MMX_COEF
