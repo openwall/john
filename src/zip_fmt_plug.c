@@ -70,15 +70,15 @@ static int omp_t = 1;
 #define SALT_LENGTH(mode)       (4 * ((mode) & 3) + 4)
 
 typedef struct my_salt_t {
-		struct {
-			uint16_t type     : 4;
-			uint16_t mode : 4;
-		} v;
-		uint32_t comp_len;
-		unsigned char passverify[2];
-		unsigned char salt[SALT_LENGTH(3)];
-		//uint64_t data_key; // MSB of md5(data blob).  We lookup using this.
-		unsigned char *datablob;
+	struct {
+		uint16_t type     : 4;
+		uint16_t mode : 4;
+	} v;
+	uint32_t comp_len;
+	unsigned char passverify[2];
+	unsigned char salt[SALT_LENGTH(3)];
+	//uint64_t data_key; // MSB of md5(data blob).  We lookup using this.
+	unsigned char *datablob;
 } my_salt;
 
 
@@ -96,7 +96,7 @@ typedef struct my_salt_t {
 #define ALGORITHM_NAME      "PBKDF2-SHA1 32/" ARCH_BITS_STR
 #endif
 #define BENCHMARK_COMMENT   ""
-#define BENCHMARK_LENGTH    -1
+#define BENCHMARK_LENGTH    -1001
 #define BINARY_SIZE         10
 #define PLAINTEXT_LENGTH	125
 #define BINARY_ALIGN        MEM_ALIGN_NONE
@@ -293,10 +293,6 @@ Bail:;
 	return ret;
 }
 
-static char *prepare(char *split_flds[10], struct fmt_main *self) {
-	return split_flds[1];
-}
-
 static void *binary(char *ciphertext) {
 	static unsigned buf[(BINARY_SIZE+sizeof(unsigned)-1)/sizeof(unsigned)];
 	unsigned char *bin = (unsigned char*)buf;
@@ -308,6 +304,7 @@ static void *binary(char *ciphertext) {
 	}
 	return bin;
 }
+
 static void *get_salt(char *ciphertext)
 {
 	int i;
@@ -528,7 +525,7 @@ struct fmt_main fmt_zip = {
 		init,
 		fmt_default_done,
 		fmt_default_reset,
-		prepare,
+		fmt_default_prepare,
 		valid,
 		fmt_default_split,
 		binary,  // to add
