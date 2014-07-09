@@ -72,9 +72,6 @@ typedef struct {
 	int     outlen;
 } zip_salt;
 
-static int *cracked;
-static int any_cracked;
-
 /* From gladman_fileenc.h */
 #define PWD_VER_LENGTH		2
 #define KEYING_ITERATIONS	1000
@@ -122,7 +119,6 @@ static cl_mem mem_in, mem_out, mem_setting;
 #define insize (sizeof(zip_password) * global_work_size)
 #define outsize (sizeof(zip_hash) * global_work_size)
 #define settingsize (sizeof(zip_salt))
-#define cracked_size (sizeof(*cracked) * global_work_size)
 
 static void release_clobj(void)
 {
@@ -133,7 +129,6 @@ static void release_clobj(void)
 	MEM_FREE(crypt_key);
 	MEM_FREE(inbuffer);
 	MEM_FREE(outbuffer);
-	MEM_FREE(cracked);
 }
 
 static void done(void)
@@ -184,8 +179,6 @@ static void init(struct fmt_main *self)
 	    (zip_hash *) mem_alloc(sizeof(zip_hash) * global_work_size);
 
 	crypt_key = mem_calloc(sizeof(*crypt_key) * global_work_size);
-
-	cracked = mem_calloc(sizeof(*cracked) * global_work_size);
 
 	/// Allocate memory
 	mem_in =
@@ -480,11 +473,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	}
 
 	global_work_size = (count + local_work_size - 1) / local_work_size * local_work_size;
-
-	if (any_cracked) {
-		memset(cracked, 0, cracked_size);
-		any_cracked = 0;
-	}
 
 	/// Copy data to gpu
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0,
