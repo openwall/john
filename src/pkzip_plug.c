@@ -86,7 +86,8 @@ int pkz_is_hex_str(const u8 *cp) {
 		return 0; /* empty is NOT 'fine' */
 	len = strlen((c8*)cp);
 	for (i = 0; i < len; ++i) {
-		if (atoi16[ARCH_INDEX(cp[i])] == 0x7F)
+		if (atoi16[ARCH_INDEX(cp[i])] == 0x7F ||
+		    (cp[i] >= 'A' && cp[i] <= 'F')) /* support lowercase only */
 			return 0;
 	}
 	return 1;
