@@ -59,7 +59,7 @@ john_register_one(&fmt_zip);
 #include "pbkdf2_hmac_sha1.h"
 #ifdef _OPENMP
 #include <omp.h>
-#define OMP_SCALE               4	// Tuned on core i7 (note, use -test=120 during tuning) 
+#define OMP_SCALE               4	// Tuned on core i7 (note, use -test=120 during tuning)
 static int omp_t = 1;
 #endif
 #include "gladman_hmac.h"
@@ -429,14 +429,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	int index;
 
 	if (saved_salt->v.type) {
-		// this salt was marked as bad (but after valid() was successful).  This can happen if
-		// we are reading the zip blob from a file, valid checks it out and it's ok, BUT before
-		// the salt gets loaded in get_salt, that .zip file is changed or removed. In that case
-		// we have no way to tell JtR core code that this salt is bad. So we simply let JtR hit
-		// crypt all, and we do not process.  We can not find the password anyway (we would have
-		// to fall back to FMT_NOT_EXACT logic, and we are not FMT_NOT_EXACT any more).
+		// This salt passed valid() but failed get_salt().
+		// Should never happen.
+		memset(crypt_key, 0, count * BINARY_SIZE);
 		return count;
 	}
+
 #ifdef _OPENMP
 #pragma omp parallel for default(none) private(index) shared(count, saved_key, saved_salt, crypt_key)
 #endif

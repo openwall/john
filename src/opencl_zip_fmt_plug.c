@@ -472,8 +472,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	int count = *pcount;
 	int index;
 
-	if (saved_salt->v.type)
+	if (saved_salt->v.type) {
+		// This salt passed valid() but failed get_salt().
+		// Should never happen.
+		memset(crypt_key, 0, count * BINARY_SIZE);
 		return count;
+	}
 
 	global_work_size = (count + local_work_size - 1) / local_work_size * local_work_size;
 
