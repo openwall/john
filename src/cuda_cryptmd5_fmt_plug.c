@@ -152,7 +152,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (len - (p - ciphertext + 1) != 22)
 		return 0;
 	return 1;
-};
+}
 
 static int findb64(char c)
 {

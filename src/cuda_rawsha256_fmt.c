@@ -150,7 +150,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 			return 0;
 	}
 	return 1;
-};
+}
 
 
 static void *binary(char *ciphertext)

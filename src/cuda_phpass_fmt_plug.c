@@ -134,7 +134,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		return 0;
 
 	return 1;
-};
+}
 
 ///code from historical JtR phpass patch
 static void pbinary(char *ciphertext, unsigned char *out)

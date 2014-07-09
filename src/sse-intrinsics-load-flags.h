@@ -34,8 +34,7 @@ typedef enum {
 	// this are specific to SHA2 hashes. Can be the same bit, since only 1 will be used (i.e. it is not valid to do SSE_CRYPT_SHA224|SSE_CRYPT_SHA224 and expect both to be loaded)
 	// WARNING, SHA224 requires a FULL SHA256 width output buffer, and SHA384 requires a full SHA512 width output buffer.  This is to allow proper reloading and doing multi-limb crypts.
 	SSEi_CRYPT_SHA224=0x1000,     // use SHA224 IV.
-	SSEi_CRYPT_SHA384=0x1000,     // use SHA384 IV.
-
+	SSEi_CRYPT_SHA384=0x1000      // use SHA384 IV.
 } SSEi_FLAGS;
 
 
