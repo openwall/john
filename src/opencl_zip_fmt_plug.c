@@ -543,7 +543,7 @@ static int salt_hash(void *salt)
 	unsigned v;
 	int i;
 	v = mysalt->salt[0];
-	for (i = 1; i < 8; ++i) {
+	for (i = 1; i < SALT_LENGTH(mysalt->v.mode); ++i) {
 		v *= 11;
 		v += mysalt->salt[i];
 	}

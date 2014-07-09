@@ -167,11 +167,17 @@ void crk_init(struct db_main *db, void (*fix_state)(void),
 
 	idle_init(db->format);
 
-	/* Quirk for RAR. It will return a different salt each time
-	   get_salt() is called. Do we have more such formats? */
-	if (!strcmp(crk_params.label, "rar") ||
-	    !strncmp(crk_params.label, "rar-", 4))
+	/* Quirk for RAR and ZIP formats. Their "salts" includes pointers
+	   that will vary each time get_salt() is called. Until core can
+	   handle this, we decrease salt size to something valid. */
+	if (!strcasecmp(crk_params.label, "rar") ||
+	    !strcasecmp(crk_params.label, "rar-opencl"))
+		/* Actual salt is first 8 bytes */
 		potcheck_salt_size = 8;
+	else if (!strcasecmp(crk_params.label, "zip") ||
+	    !strcasecmp(crk_params.label, "zip-opencl"))
+		/* Last struct member is a pointer */
+		potcheck_salt_size = crk_params.salt_size - sizeof(char*);
 	else
 		potcheck_salt_size = crk_params.salt_size;
 }
