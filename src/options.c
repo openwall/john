@@ -359,9 +359,9 @@ void opt_print_hidden_usage(void)
 	puts("                          without any parameters");
 	puts("--config=FILE             use FILE instead of john.conf or john.ini");
 	puts("--mem-file-size=SIZE      size threshold for wordlist preload (default 5 MB)");
-	printf("--format=CLASS            valid classes: dynamic");
+	printf("--format=CLASS            valid classes: dynamic, cpu");
 #if defined(HAVE_OPENCL) || defined(HAVE_CUDA)
-	printf(", cpu, gpu");
+	printf(", gpu");
 #ifdef HAVE_CUDA
 	printf(", cuda");
 #endif
