@@ -226,7 +226,7 @@ static void listconf_list_build_info(void)
 	// JS_REGEX_BUILD_VERSION not reported here.
 	// It was defined as 122 in an earlier version, but is
 	// currently defined as DEV (yes, without quotes!)
-	printf("Regex library version: %d.%d (loaded: %s)\n",
+	printf("Regex library version: %d.%d\t(loaded: %s)\n",
 	       JS_REGEX_MAJOR_VERSION, JS_REGEX_MINOR_VERSION,
 	       rexgen_version());
 #endif
