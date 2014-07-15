@@ -788,7 +788,7 @@ Fork support ................................ ${ac_cv_func_fork_works}
 OpenMP support .............................. ${using_omp}
 OpenCL support .............................. ${using_cl}
 CUDA support ................................ ${using_cuda}
-Generic crypt(3) mode ....................... ${using_crypt}
+Generic crypt(3) format ..................... ${using_crypt}
 
 Optional libraries found:
 Rexgen (extra cracking mode) ................ ${using_rexgen}
