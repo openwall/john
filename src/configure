@@ -626,7 +626,6 @@ ac_header_list=
 ac_subst_vars='LTLIBOBJS
 HOST_OS
 PLUGFORMATS_OBJS
-PLUGFORMATS_SRCS
 EXE_EXT
 YASM_OPTIONS
 AESNI_OS
@@ -13379,12 +13378,10 @@ $as_echo "#define NT_FULL_UNICODE 1" >>confdefs.h
 
 fi
 
-##########################################################
-# Code  to create @PLUGFORMAT_SRCS@ @PLUGFORMATS_OBJS@
-# and john_buildrule.h moved from Makefile.in to here.
-##########################################################
-PLUGFORMATS_SRCS=`echo *_plug.c`
-
+####################################################
+# Code  to create @PLUGFORMATS_OBJS@ and
+# john_buildrule.h moved from Makefile.in to here.
+####################################################
 PLUGFORMATS_OBJS=`echo *_plug.c | sed "s/\.c/.o/g"`
 
 echo "configure: creating ./john_build_rule.h"

@@ -687,11 +687,10 @@ AC_CONFIG_LINKS([arch.h:$ARCH_LINK])
 # which corresponds to full UCS-2 or Unicode BMP.
 AS_IF([test "x$enable_nt_unicode" != xno], [AC_DEFINE([NT_FULL_UNICODE],1,[Define to 1 if you want support for 4-byte UTF-8 in fast MS formats.])])
 
-##########################################################
-# Code  to create @PLUGFORMAT_SRCS@ @PLUGFORMATS_OBJS@
-# and john_buildrule.h moved from Makefile.in to here.
-##########################################################
-AC_SUBST([PLUGFORMATS_SRCS],[`echo *_plug.c`])
+####################################################
+# Code  to create @PLUGFORMATS_OBJS@ and
+# john_buildrule.h moved from Makefile.in to here.
+####################################################
 AC_SUBST([PLUGFORMATS_OBJS],[`echo *_plug.c | sed "s/\.c/.o/g"`])
 echo "configure: creating ./john_build_rule.h"
 echo "#define JOHN_BLD \"${host_os} ${CPU_BIT_STR}-bit${using_x32} ${CPU_STR}-autoconf\"" > john_build_rule.h
