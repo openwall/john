@@ -751,6 +751,7 @@ with_openssl
 with_commoncrypto
 with_endian
 enable_mpi
+enable_rexgen
 enable_cuda
 enable_nss
 enable_pcap
@@ -1400,6 +1401,7 @@ Optional Features:
   --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
   --enable-mpi            Use OpenMPI
+  --enable-rexgen         Use rexgen library if present
   --disable-cuda          Do not use CUDA
   --disable-nss           Do not use NSS/NSPR
   --disable-pcap          Do not build helpers depending on PCAP
@@ -3485,6 +3487,13 @@ if test "${enable_mpi+set}" = set; then :
   enableval=$enable_mpi; enable_mpi=$enableval
 else
   enable_mpi=no
+fi
+
+# Check whether --enable-rexgen was given.
+if test "${enable_rexgen+set}" = set; then :
+  enableval=$enable_rexgen; enable_rexgen=$enableval
+else
+  enable_rexgen=no
 fi
 
 # Check whether --enable-cuda was given.
@@ -9752,10 +9761,14 @@ $as_echo "#define HAVE_LIBDL 1" >>confdefs.h
 
 fi
 
-using_rexgen=no
+
 BACKUP_LIBS="$LIBS"
+
 LIBS=""
-ac_fn_c_check_header_mongrel "$LINENO" "librexgen/api/c/librexgen.h" "ac_cv_header_librexgen_api_c_librexgen_h" "$ac_includes_default"
+using_rexgen=no
+# Check for rexgen only if rexgen wanted
+if test "x$enable_rexgen" != xno ; then
+	ac_fn_c_check_header_mongrel "$LINENO" "librexgen/api/c/librexgen.h" "ac_cv_header_librexgen_api_c_librexgen_h" "$ac_includes_default"
 if test "x$ac_cv_header_librexgen_api_c_librexgen_h" = xyes; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing c_regex_iterator_cb" >&5
 $as_echo_n "checking for library containing c_regex_iterator_cb... " >&6; }
@@ -9819,7 +9832,12 @@ fi
 fi
 
 
-REXGEN_LIBS=$LIBS
+	REXGEN_LIBS=$LIBS
+
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: rexgen check not enabled" >&5
+$as_echo "$as_me: rexgen check not enabled" >&6;}
+fi
 
 LIBS="$BACKUP_LIBS"
 # in makefile, we need to know if building extra pcap items.
