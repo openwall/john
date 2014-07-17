@@ -48,6 +48,8 @@
 #define __MEMDBG__
 #include "memdbg.h"
 
+#undef _OPENMP
+
 /*
  * This function ALWAYS must be defined. It is (HAS) to be used if there is code which
  * has some library code that allocates memory which was NOT handled by one of the allocation
@@ -211,11 +213,26 @@ void MemDbg_Display(FILE *fp) {
 
 		}
 		if (memcmp(p->mdbg_hdr2->mdbg_fpst, cpMEMFPOST, 4)) {
-			bbad=1;
-			if (bfreed && !memcpy(p->mdbg_hdr2->mdbg_fpst, cpMEMFPOSTd, 4))
+			if (bfreed && !memcmp(p->mdbg_hdr2->mdbg_fpst, cpMEMFPOSTd, 4)) {
+				bbad=1;
 				fprintf(fp, " YES Data was freed.");
-			else
-				fprintf(fp, " INVALID (buffer overflow)");
+			}
+			else {
+				unsigned i;
+				char *cp = ((char*)p)+RESERVE_SZ;
+				fprintf(fp, " INVALID (buffer overflow) tail of block: ");
+				cp = p->mdbg_hdr2->mdbg_fpst;
+				cp -= 16;
+				for (i = 0; i < 20; ++i) {
+					if(*cp < ' ' || *cp > '~')
+						fprintf(fp, ".");
+					else
+						fprintf(fp, "%c", *cp);
+					++cp;
+				}
+				fprintf(fp, "  and the head of the block was: ");
+				
+			}
 		}
 		if (!bbad) {
 			unsigned i;
