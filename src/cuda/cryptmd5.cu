@@ -35,7 +35,8 @@ __device__ void ctx_update(md5_ctx * ctx, const char *string, uint8_t len,
 	uint8_t *dest = &ctx->buffer[*ctx_buflen];
 	uint8_t *src = (uint8_t *) string;
 	*ctx_buflen += len;
-	memcpy(dest, src, len);
+	if (len)
+		memcpy(dest, src, len);
 }
 
 __device__ void md5_digest(md5_ctx * ctx, uint32_t * result,
