@@ -64,7 +64,7 @@ AC_ARG_WITH(endian, [AS_HELP_STRING([--with-endian=little|big],[Set endianness f
 # We define "--disable-FEATURE" when default is "auto".
 # MPI is not "auto" because its network usage might scare people:
 AC_ARG_ENABLE([mpi], [AC_HELP_STRING([--enable-mpi], [Use OpenMPI])], [enable_mpi=$enableval], [enable_mpi=no])
-AC_ARG_ENABLE([rexgen], [AC_HELP_STRING([--enable-rexgen], [Use rexgen library if present])], [enable_rexgen=$enableval], [enable_rexgen=no])
+AC_ARG_ENABLE([rexgen], [AC_HELP_STRING([--enable-rexgen], [Use rexgen library if present])], [enable_rexgen=$enableval], [enable_rexgen=auto])
 AC_ARG_ENABLE([cuda], [AC_HELP_STRING([--disable-cuda], [Do not use CUDA])], [enable_cuda=$enableval], [enable_cuda=auto])
 AC_ARG_ENABLE([nss], [AC_HELP_STRING([--disable-nss], [Do not use NSS/NSPR])], [enable_nss=$enableval], [enable_nss=auto])
 AC_ARG_ENABLE([pcap], [AC_HELP_STRING([--disable-pcap], [Do not build helpers depending on PCAP])], [enable_pcap=$enableval], [enable_pcap=auto])
@@ -431,7 +431,7 @@ using_rexgen=no
 # Check for rexgen only if rexgen wanted
 if test "x$enable_rexgen" != xno ; then
 	AC_CHECK_HEADER([librexgen/api/c/librexgen.h],
-	  [AC_SEARCH_LIBS([c_regex_iterator_cb],[rexgen librexgen],
+	  [AC_SEARCH_LIBS([c_simplestring_terminate],[rexgen librexgen],
 		using_rexgen=yes
 		[AC_DEFINE(HAVE_LIBREXGEN,1,[Define to 1 if you have the `rexgen' library (-lrexgen).])])])
 	AC_SUBST(REXGEN_LIBS, [$LIBS])
