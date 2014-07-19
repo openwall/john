@@ -431,6 +431,7 @@ static void john_omp_show_info(void)
 				fprintf(stderr, "MPI in use, disabling OMP "
 				        "(see doc/README.mpi)\n");
 			omp_set_num_threads(1);
+			john_omp_threads_orig = 0; /* Mute later warning */
 		} else if(john_omp_threads_orig > 1 &&
 		        cfg_get_bool(SECTION_OPTIONS, SUBSECTION_MPI,
 		                "MPIOMPverbose", 1) && mpi_id == 0)
