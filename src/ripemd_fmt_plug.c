@@ -37,8 +37,8 @@ static int omp_t = 1;
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	125
-#define BINARY_SIZE		20
-#define CMP_SIZE		16
+#define BINARY_SIZE160		20
+#define BINARY_SIZE128		16
 #define SALT_SIZE		0
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
@@ -58,7 +58,7 @@ static struct fmt_tests ripemd_128_tests[] = {
 };
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE160 / sizeof(ARCH_WORD_32)];
 
 static void init(struct fmt_main *self)
 {
@@ -200,14 +200,19 @@ static int cmp_all(void *binary, int count)
 #ifdef _OPENMP
 	for (; index < count; index++)
 #endif
-		if (!memcmp(binary, crypt_out[index], CMP_SIZE))
+		if (!memcmp(binary, crypt_out[index], ARCH_SIZE))
 			return 1;
 	return 0;
 }
 
-static int cmp_one(void *binary, int index)
+static int cmp_one128(void *binary, int index)
 {
-	return !memcmp(binary, crypt_out[index], CMP_SIZE);
+	return !memcmp(binary, crypt_out[index], BINARY_SIZE128);
+}
+
+static int cmp_one160(void *binary, int index)
+{
+	return !memcmp(binary, crypt_out[index], BINARY_SIZE160);
 }
 
 static int cmp_exact(char *source, int index)
@@ -229,15 +234,18 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-static char *prepare(char *fields[10], struct fmt_main *self) {
-	static char buf[40+TAG_LENGTH+1];
-	char *hash = fields[1];
-	int len = strlen(hash);
-	if ( (len == 40 || len == 32) && valid(hash, self, len) ) {
-		sprintf(buf, "%s%s", FORMAT_TAG, hash);
-		return buf;
-	}
-	return hash;
+static char *split(char *ciphertext, int index, struct fmt_main *self)
+{
+	static char out[TAG_LENGTH + 2 * BINARY_SIZE160 + 1];
+
+	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
+		ciphertext += TAG_LENGTH;
+
+	strcpy(out, FORMAT_TAG);
+	strcpy(&out[TAG_LENGTH], ciphertext);
+	strlwr(&out[TAG_LENGTH]);
+
+	return out;
 }
 
 struct fmt_main fmt_ripemd_160 = {
@@ -248,13 +256,13 @@ struct fmt_main fmt_ripemd_160 = {
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
-		BINARY_SIZE,
+		BINARY_SIZE160,
 		BINARY_ALIGN,
 		SALT_SIZE,
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_SPLIT_UNIFIES_CASE,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif
@@ -263,9 +271,9 @@ struct fmt_main fmt_ripemd_160 = {
 		init,
 		fmt_default_done,
 		fmt_default_reset,
-		prepare,
+		fmt_default_prepare,
 		valid160,
-		fmt_default_split,
+		split,
 		get_binary_160,
 		fmt_default_salt,
 #if FMT_MAIN_VERSION > 11
@@ -297,7 +305,7 @@ struct fmt_main fmt_ripemd_160 = {
 			get_hash_6
 		},
 		cmp_all,
-		cmp_one,
+		cmp_one160,
 		cmp_exact
 	}
 };
@@ -311,13 +319,13 @@ struct fmt_main fmt_ripemd_128 = {
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
-		BINARY_SIZE,
+		BINARY_SIZE128,
 		BINARY_ALIGN,
 		SALT_SIZE,
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_SPLIT_UNIFIES_CASE,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif
@@ -326,9 +334,9 @@ struct fmt_main fmt_ripemd_128 = {
 		init,
 		fmt_default_done,
 		fmt_default_reset,
-		prepare,
+		fmt_default_prepare,
 		valid128,
-		fmt_default_split,
+		split,
 		get_binary_128,
 		fmt_default_salt,
 #if FMT_MAIN_VERSION > 11
@@ -360,7 +368,7 @@ struct fmt_main fmt_ripemd_128 = {
 			get_hash_6
 		},
 		cmp_all,
-		cmp_one,
+		cmp_one128,
 		cmp_exact
 	}
 };
