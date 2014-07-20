@@ -287,6 +287,11 @@ static void ldr_set_encoding(struct fmt_main *format)
 		}
 	}
 
+	/* For FMT_NOT_EXACT, --show=left should only list hashes we
+	   did not found any candidate for */
+	if (options.loader.showuncracked)
+		format->params.flags &= ~FMT_NOT_EXACT;
+
 	if ((options.flags & FLG_SHOW_CHK) || options.loader.showuncracked) {
 		initUnicode(UNICODE_UNICODE);
 		return;
