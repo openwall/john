@@ -172,6 +172,17 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 	return split_fields[1];
 }
 
+static char *split(char *ciphertext, int index, struct fmt_main *self)
+{
+	static char out[2 + sizeof(cur_salt) + 1 + CIPHERTEXT_LENGTH];
+
+	strnzcpy(out, ciphertext, sizeof(out));
+	enc_strupper(&out[2]);
+	strlwr(strrchr(out, '#'));
+
+	return out;
+}
+
 static void init(struct fmt_main *self)
 {
 	unsigned char deskey[8];
@@ -349,7 +360,7 @@ struct fmt_main fmt_oracle = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_8_BIT | FMT_UNICODE | FMT_UTF8,
+		FMT_8_BIT | FMT_UNICODE | FMT_UTF8 | FMT_SPLIT_UNIFIES_CASE,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif
@@ -360,7 +371,7 @@ struct fmt_main fmt_oracle = {
 		fmt_default_reset,
 		prepare,
 		valid,
-		fmt_default_split,
+		split,
 		binary,
 		get_salt,
 #if FMT_MAIN_VERSION > 11
