@@ -60,6 +60,7 @@ static struct fmt_tests tests[] = {
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static uaf_qword (*crypt_out)[BINARY_SIZE / sizeof(uaf_qword)];
+static int initialized;
 
 /*
  * See if signature of ciphertext (from passwd file) matches the hack
@@ -69,7 +70,14 @@ static int valid(char *ciphertext, struct fmt_main *self )
 {
 	struct uaf_hash_info pwd;
 
-	if (strncmp(ciphertext, "$V$", 3)) return 0;	/* no match */
+	if (!initialized) {
+		uaf_init();
+		initialized = 1;
+	}
+
+	if (strncmp(ciphertext, "$V$", 3))
+		return 0;	/* no match */
+
 	if ( strlen ( ciphertext ) < (UAF_ENCODE_SIZE-1) )
 		return 0;
 
@@ -100,17 +108,12 @@ static void fmt_vms_init ( struct fmt_main *self )
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, sizeof(uaf_qword));
-	uaf_init ( );
-}
 
-/*
- * Prepare function.
- */
-char *prepare ( char *split_fields[10], struct fmt_main *pFmt )
-{
-	return split_fields[1];
+	if (!initialized) {
+		uaf_init();
+		initialized = 1;
+	}
 }
-
 
 /*
  * Save a password (key) for testing.  VMS_std_set_key returns position value
@@ -148,16 +151,9 @@ static int cmp_exact(char *source, int index)
 	return 1;
 }
 
-static char *fmt_vms_split(char *ciphertext, int index, struct fmt_main *pFmt)
-{
-	return ciphertext;
-}
-
-
 /*
  * Save salt for producing ciphertext from it and saved keys at next crypt call.
  */
-
 static struct uaf_hash_info *cur_salt;
 
 void VMS_std_set_salt ( void *salt )
@@ -249,9 +245,9 @@ struct fmt_main fmt_VMS = {
 		fmt_vms_init,			/* changed for jumbo */
 		fmt_default_done,
 		fmt_default_reset,
-		prepare,			/* Added for jumbo */
+		fmt_default_prepare,
 		valid,
-		fmt_vms_split,
+		fmt_default_split,
 		(void *(*)(char *))VMS_std_get_binary,
 		(void *(*)(char *))VMS_std_get_salt,
 #if FMT_MAIN_VERSION > 11
