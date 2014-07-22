@@ -293,13 +293,23 @@ sub jtr_unicode_corrected_length { #($_)
 sub tst_all
 {
 	$u = 1;
+	my $cnt = 0;
 	$arg_hidden_cp = "iso-8859-1";
 	foreach my $f (@funcs) {
 		no strict 'refs';
 		$f = lc $f;
-		if ($f ne "dynamic") {&$f("password");}
+		if ($f ne "dynamic") {&$f("password"); $cnt += 1;}
 		use strict;
 	}
+	# now test all 'simple' dyna which we have defined (number only)
+	for (my $i = 0; $i < 10000; $i += 1) {
+		my $f = dynamic_compile($i);
+		no strict 'refs';
+		$f = lc $f;
+		if (defined(&{$f})) {&$f("password"); $cnt += 1;}
+		use strict;
+	}
+	print "\nAll formats were able to be run ($cnt total formats). All CPAN modules installed\n";
 }
 
 #############################################################################
