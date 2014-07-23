@@ -145,15 +145,6 @@ static char *fmt_self_test_body(struct fmt_main *format,
 #endif
 	int ml;
 
-	/*
-	 * Kludge for thin dynamic formats (split is NULL before init).
-	 * This is a bug in dynamic - it should be fixed and this kludge
-	 * should be dropped. The split() function can be called BEFORE
-	 * init(), by definition.
-	 */
-	if (!format->methods.split)
-		fmt_init(format);
-
 	// validate that there are no NULL function pointers
 	if (format->methods.prepare == NULL)    return "method prepare NULL";
 	if (format->methods.valid == NULL)      return "method valid NULL";
