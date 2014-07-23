@@ -433,8 +433,8 @@ int benchmark_all(void)
 		}
 #endif
 
-		/* Kludge for thin dynamics */
-		if (format->params.flags && FMT_DYNAMIC)
+		/* FIXME: Kludge for thin dynamics */
+		if (format->params.flags & FMT_DYNAMIC)
 			fmt_init(format);
 
 #ifdef _OPENMP
