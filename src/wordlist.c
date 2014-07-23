@@ -1175,11 +1175,9 @@ process_word:
 					}
 					line[length] = 0;
 				}
-				if (!strcmp(line, last))
-					continue;
 
 				if ((word = apply(line, rule, -1, last))) {
-					strcpy(last, word);
+					last = word;
 
 					if (ext_filter(word))
 					if (
