@@ -432,10 +432,8 @@ int benchmark_all(void)
 			}
 		}
 #endif
-
-		fmt_init(format);
 #ifdef _OPENMP
-		// format's init() or MPIOMPmutex may have capped the number of threads
+		// MPIOMPmutex may have capped the number of threads
 		ompt = omp_get_max_threads();
 #endif /* _OPENMP */
 

@@ -145,6 +145,15 @@ static char *fmt_self_test_body(struct fmt_main *format,
 #endif
 	int ml;
 
+	/*
+	 * Kludge for thin dynamic formats (split is NULL before init).
+	 * This is a bug in dynamic - it should be fixed and this kludge
+	 * should be dropped. The split() function can be called BEFORE
+	 * init(), by definition.
+	 */
+	if (!format->methods.split)
+		fmt_init(format);
+
 	// validate that there are no NULL function pointers
 	if (format->methods.init == NULL)       return "method init NULL";
 	if (format->methods.done == NULL)       return "method done NULL";
@@ -198,8 +207,6 @@ static char *fmt_self_test_body(struct fmt_main *format,
 	if (format->methods.valid("*", format))
 		return "valid";
 
-	fmt_init(format);
-
 	ml = format->params.plaintext_length;
 #ifndef BENCH_BUILD
 	/* UTF-8 bodge in reverse. Otherwise we will get truncated keys back
@@ -209,8 +216,6 @@ static char *fmt_self_test_body(struct fmt_main *format,
 	    (format->params.flags & FMT_UNICODE))
 		ml /= 3;
 #endif
-
-	format->methods.reset(NULL);
 
 	if ((format->methods.split == fmt_default_split) &&
 	    (format->params.flags & FMT_SPLIT_UNIFIES_CASE))
@@ -295,6 +300,9 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		if (!ciphertext)
 			return "split() returned NULL";
 		plaintext = current->plaintext;
+
+		/* Calling init() late */
+		fmt_init(format);
 
 /*
  * Make sure the declared binary_size and salt_size are sufficient to actually
@@ -469,6 +477,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		}
 	} while (done != 3);
 
+	format->methods.reset(NULL);
 	format->methods.clear_keys();
 	format->private.initialized = 2;
 
