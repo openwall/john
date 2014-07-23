@@ -251,6 +251,22 @@ static char *fmt_self_test_body(struct fmt_main *format,
 	current = format->params.tests;
 	if (ntests==0) return NULL;
 
+	/* Check prepare, valid, split before init */
+	{
+		if (!current->fields[1])
+			current->fields[1] = current->ciphertext;
+		ciphertext = format->methods.prepare(current->fields, format);
+		if (!ciphertext || strlen(ciphertext) < 7)
+			return "prepare (before init)";
+		if (format->methods.valid(ciphertext, format) != 1)
+			return "valid (before init)";
+		if (!format->methods.split(ciphertext, 0, format))
+			return "split() returned NULL (before init)";
+
+		fmt_init(format);
+	}
+	format->methods.reset(NULL);
+
 	done = 0;
 	index = 0; max = format->params.max_keys_per_crypt;
 
@@ -300,9 +316,6 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		if (!ciphertext)
 			return "split() returned NULL";
 		plaintext = current->plaintext;
-
-		/* Calling init() late */
-		fmt_init(format);
 
 /*
  * Make sure the declared binary_size and salt_size are sufficient to actually
@@ -477,7 +490,6 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		}
 	} while (done != 3);
 
-	format->methods.reset(NULL);
 	format->methods.clear_keys();
 	format->private.initialized = 2;
 
