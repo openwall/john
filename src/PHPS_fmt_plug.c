@@ -104,11 +104,13 @@ static char *Convert(char *Buf, char *ciphertext)
 
 static char *our_split(char *ciphertext, int index, struct fmt_main *self)
 {
+	get_ptr();
 	return pDynamic_6->methods.split(Convert(Conv_Buf, ciphertext), index, self);
 }
 
 static char *our_prepare(char *split_fields[10], struct fmt_main *self)
 {
+	get_ptr();
 	return pDynamic_6->methods.prepare(split_fields, self);
 }
 
@@ -150,6 +152,7 @@ static void * our_salt(char *ciphertext)
 }
 static void * our_binary(char *ciphertext)
 {
+	get_ptr();
 	return pDynamic_6->methods.binary(Convert(Conv_Buf, ciphertext));
 }
 
@@ -159,7 +162,7 @@ struct fmt_main fmt_PHPS =
 		// setup the labeling and stuff. NOTE the max and min crypts are set to 1
 		// here, but will be reset within our init() function.
 		FORMAT_LABEL, FORMAT_NAME, ALGORITHM_NAME, BENCHMARK_COMMENT, BENCHMARK_LENGTH,
-		PLAINTEXT_LENGTH, BINARY_SIZE, DEFAULT_ALIGN, SALT_SIZE+1, DEFAULT_ALIGN, 1, 1, FMT_CASE | FMT_8_BIT,
+		PLAINTEXT_LENGTH, BINARY_SIZE, DEFAULT_ALIGN, SALT_SIZE+1, DEFAULT_ALIGN, 1, 1, FMT_CASE | FMT_8_BIT | FMT_DYNAMIC,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif
@@ -172,18 +175,15 @@ struct fmt_main fmt_PHPS =
 		fmt_default_done,
 		fmt_default_reset,
 		fmt_default_prepare,
-		phps_valid
+		phps_valid,
+		our_split
 	}
 };
 
 static void phps_init(struct fmt_main *self)
 {
+	get_ptr();
 	if (self->private.initialized == 0) {
-		pDynamic_6 = dynamic_THIN_FORMAT_LINK(&fmt_PHPS, Convert(Conv_Buf, phps_tests[0].ciphertext), "phps", 1);
-		fmt_PHPS.methods.salt   = our_salt;
-		fmt_PHPS.methods.binary = our_binary;
-		fmt_PHPS.methods.split = our_split;
-		fmt_PHPS.methods.prepare = our_prepare;
 		fmt_PHPS.params.algorithm_name = pDynamic_6->params.algorithm_name;
 		self->private.initialized = 1;
 	}

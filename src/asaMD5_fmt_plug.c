@@ -59,6 +59,7 @@ static char *Convert(char *Buf, char *ciphertext) {
 
 static char *our_split(char *ciphertext, int index, struct fmt_main *self)
 {
+	get_ptr();
 	return pDynamic_20->methods.split(Convert(Conv_Buf, ciphertext), index, self);
 }
 
@@ -102,6 +103,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 }
 
 static void *our_binary(char *ciphertext) {
+	get_ptr();
 	return pDynamic_20->methods.binary(Convert(Conv_Buf, ciphertext));
 }
 
@@ -110,7 +112,7 @@ struct fmt_main fmt_asaMD5 = {
 		// setup the labeling and stuff. NOTE the max and min crypts are set to 1
 		// here, but will be reset within our init() function.
 		FORMAT_LABEL, FORMAT_NAME, ALGORITHM_NAME, BENCHMARK_COMMENT, BENCHMARK_LENGTH,
-		12, BINARY_SIZE, DEFAULT_ALIGN, SALT_SIZE, DEFAULT_ALIGN, 1, 1, FMT_CASE | FMT_8_BIT,
+		12, BINARY_SIZE, DEFAULT_ALIGN, SALT_SIZE, DEFAULT_ALIGN, 1, 1, FMT_CASE | FMT_8_BIT | FMT_DYNAMIC,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif
@@ -123,17 +125,15 @@ struct fmt_main fmt_asaMD5 = {
 		fmt_default_done,
 		fmt_default_reset,
 		prepare,
-		valid
+		valid,
+		our_split
 	}
 };
 
 static void init(struct fmt_main *self)
 {
+	get_ptr();
 	if (self->private.initialized == 0) {
-		pDynamic_20 = dynamic_THIN_FORMAT_LINK(&fmt_asaMD5, Convert(Conv_Buf, tests[0].ciphertext), "asa-md5", 1);
-		fmt_asaMD5.methods.salt = our_salt;
-		fmt_asaMD5.methods.binary = our_binary;
-		fmt_asaMD5.methods.split = our_split;
 		fmt_asaMD5.params.algorithm_name = pDynamic_20->params.algorithm_name;
 		self->private.initialized = 1;
 	}

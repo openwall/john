@@ -7572,7 +7572,7 @@ struct fmt_main *dynamic_THIN_FORMAT_LINK(struct fmt_main *pFmt, char *ciphertex
 		pFmt->methods.get_hash[i]    = pFmtLocal->methods.get_hash[i];
 	}
 
-	if (bInitAlso)
+	//if (bInitAlso)
 		init(pFmtLocal);
 
 	pFmt->private.data = mem_alloc_tiny(sizeof(private_subformat_data), MEM_ALIGN_WORD);
