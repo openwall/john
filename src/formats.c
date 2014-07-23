@@ -178,56 +178,6 @@ static char *fmt_self_test_body(struct fmt_main *format,
 	}
 #endif
 
-	if (format->params.plaintext_length < 1 ||
-	    format->params.plaintext_length > PLAINTEXT_BUFFER_SIZE - 3)
-		return "plaintext_length";
-
-	if (!is_poweroftwo(format->params.binary_align))
-		return "binary_align";
-
-	if (!is_poweroftwo(format->params.salt_align))
-		return "salt_align";
-
-	if (format->methods.valid("*", format))
-		return "valid";
-
-	ml = format->params.plaintext_length;
-#ifndef BENCH_BUILD
-	/* UTF-8 bodge in reverse. Otherwise we will get truncated keys back
-	   from the max-length self-test */
-	if ((pers_opts.target_enc == UTF_8) &&
-	    (format->params.flags & FMT_UTF8) &&
-	    (format->params.flags & FMT_UNICODE))
-		ml /= 3;
-#endif
-
-	if ((format->methods.split == fmt_default_split) &&
-	    (format->params.flags & FMT_SPLIT_UNIFIES_CASE))
-		return "FMT_SPLIT_UNIFIES_CASE";
-
-	if ((format->params.flags & FMT_OMP_BAD) &&
-	    !(format->params.flags & FMT_OMP))
-		return "FMT_OMP_BAD";
-
-	if ((format->methods.binary == fmt_default_binary) &&
-	    (format->params.binary_size > 0))
-		puts("Warning: Using default binary() with a "
-		     "non-zero BINARY_SIZE");
-
-	if ((format->methods.salt == fmt_default_salt) &&
-	    (format->params.salt_size > 0))
-		puts("Warning: Using default salt() with a non-zero SALT_SIZE");
-
-	if (format->params.min_keys_per_crypt < 1)
-		return "min keys per crypt";
-
-	if (format->params.max_keys_per_crypt < 1)
-		return "max keys per crypt";
-
-	if (format->params.max_keys_per_crypt <
-	    format->params.min_keys_per_crypt)
-		return "max < min keys per crypt";
-
 	if (!(current = format->params.tests)) return NULL;
 	ntests = 0;
 	while ((current++)->ciphertext)
@@ -265,7 +215,57 @@ static char *fmt_self_test_body(struct fmt_main *format,
 	if (format->methods.cmp_one == NULL)    return "method cmp_one NULL";
 	if (format->methods.cmp_exact == NULL)  return "method cmp_exact NULL";
 
+	if (format->params.plaintext_length < 1 ||
+	    format->params.plaintext_length > PLAINTEXT_BUFFER_SIZE - 3)
+		return "plaintext_length";
+
+	if (!is_poweroftwo(format->params.binary_align))
+		return "binary_align";
+
+	if (!is_poweroftwo(format->params.salt_align))
+		return "salt_align";
+
+	if (format->methods.valid("*", format))
+		return "valid";
+
+	ml = format->params.plaintext_length;
+#ifndef BENCH_BUILD
+	/* UTF-8 bodge in reverse. Otherwise we will get truncated keys back
+	   from the max-length self-test */
+	if ((pers_opts.target_enc == UTF_8) &&
+	    (format->params.flags & FMT_UTF8) &&
+	    (format->params.flags & FMT_UNICODE))
+		ml /= 3;
+#endif
+
 	format->methods.reset(NULL);
+
+	if ((format->methods.split == fmt_default_split) &&
+	    (format->params.flags & FMT_SPLIT_UNIFIES_CASE))
+		return "FMT_SPLIT_UNIFIES_CASE";
+
+	if ((format->params.flags & FMT_OMP_BAD) &&
+	    !(format->params.flags & FMT_OMP))
+		return "FMT_OMP_BAD";
+
+	if ((format->methods.binary == fmt_default_binary) &&
+	    (format->params.binary_size > 0))
+		puts("Warning: Using default binary() with a "
+		     "non-zero BINARY_SIZE");
+
+	if ((format->methods.salt == fmt_default_salt) &&
+	    (format->params.salt_size > 0))
+		puts("Warning: Using default salt() with a non-zero SALT_SIZE");
+
+	if (format->params.min_keys_per_crypt < 1)
+		return "min keys per crypt";
+
+	if (format->params.max_keys_per_crypt < 1)
+		return "max keys per crypt";
+
+	if (format->params.max_keys_per_crypt <
+	    format->params.min_keys_per_crypt)
+		return "max < min keys per crypt";
 
 	done = 0;
 	index = 0; max = format->params.max_keys_per_crypt;
