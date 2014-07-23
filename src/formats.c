@@ -155,26 +155,10 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		fmt_init(format);
 
 	// validate that there are no NULL function pointers
-	if (format->methods.init == NULL)       return "method init NULL";
-	if (format->methods.done == NULL)       return "method done NULL";
-	if (format->methods.reset == NULL)      return "method reset NULL";
 	if (format->methods.prepare == NULL)    return "method prepare NULL";
 	if (format->methods.valid == NULL)      return "method valid NULL";
 	if (format->methods.split == NULL)      return "method split NULL";
-	if (format->methods.binary == NULL)     return "method binary NULL";
-	if (format->methods.salt == NULL)       return "method salt NULL";
-	if (format->methods.source == NULL)     return "method source NULL";
-	if (!format->methods.binary_hash[0])    return "method binary_hash[0] NULL";
-	if (format->methods.salt_hash == NULL)  return "method salt_hash NULL";
-	if (format->methods.set_salt == NULL)   return "method set_salt NULL";
-	if (format->methods.set_key == NULL)    return "method set_key NULL";
-	if (format->methods.get_key == NULL)    return "method get_key NULL";
-	if (format->methods.clear_keys == NULL) return "method clear_keys NULL";
-	if (format->methods.crypt_all == NULL)  return "method crypt_all NULL";
-	if (format->methods.get_hash[0]==NULL)  return "method get_hash[0] NULL";
-	if (format->methods.cmp_all == NULL)    return "method cmp_all NULL";
-	if (format->methods.cmp_one == NULL)    return "method cmp_one NULL";
-	if (format->methods.cmp_exact == NULL)  return "method cmp_exact NULL";
+	if (format->methods.init == NULL)       return "method init NULL";
 
 /*
  * Test each format just once unless we're debugging.
@@ -252,19 +236,35 @@ static char *fmt_self_test_body(struct fmt_main *format,
 	if (ntests==0) return NULL;
 
 	/* Check prepare, valid, split before init */
-	{
-		if (!current->fields[1])
-			current->fields[1] = current->ciphertext;
-		ciphertext = format->methods.prepare(current->fields, format);
-		if (!ciphertext || strlen(ciphertext) < 7)
-			return "prepare (before init)";
-		if (format->methods.valid(ciphertext, format) != 1)
-			return "valid (before init)";
-		if (!format->methods.split(ciphertext, 0, format))
-			return "split() returned NULL (before init)";
+	if (!current->fields[1])
+		current->fields[1] = current->ciphertext;
+	ciphertext = format->methods.prepare(current->fields, format);
+	if (!ciphertext || strlen(ciphertext) < 7)
+		return "prepare (before init)";
+	if (format->methods.valid(ciphertext, format) != 1)
+		return "valid (before init)";
+	if (!format->methods.split(ciphertext, 0, format))
+		return "split() returned NULL (before init)";
+	fmt_init(format);
 
-		fmt_init(format);
-	}
+	// validate that there are no NULL function pointers after init()
+	if (format->methods.done == NULL)       return "method done NULL";
+	if (format->methods.reset == NULL)      return "method reset NULL";
+	if (format->methods.binary == NULL)     return "method binary NULL";
+	if (format->methods.salt == NULL)       return "method salt NULL";
+	if (format->methods.source == NULL)     return "method source NULL";
+	if (!format->methods.binary_hash[0])    return "method binary_hash[0] NULL";
+	if (format->methods.salt_hash == NULL)  return "method salt_hash NULL";
+	if (format->methods.set_salt == NULL)   return "method set_salt NULL";
+	if (format->methods.set_key == NULL)    return "method set_key NULL";
+	if (format->methods.get_key == NULL)    return "method get_key NULL";
+	if (format->methods.clear_keys == NULL) return "method clear_keys NULL";
+	if (format->methods.crypt_all == NULL)  return "method crypt_all NULL";
+	if (format->methods.get_hash[0]==NULL)  return "method get_hash[0] NULL";
+	if (format->methods.cmp_all == NULL)    return "method cmp_all NULL";
+	if (format->methods.cmp_one == NULL)    return "method cmp_one NULL";
+	if (format->methods.cmp_exact == NULL)  return "method cmp_exact NULL";
+
 	format->methods.reset(NULL);
 
 	done = 0;
