@@ -1168,10 +1168,10 @@ process_word:
 					if (minlength || maxlength) {
 						int len = strlen(line);
 						if (minlength && len < minlength)
-							continue;
+							goto next_word;
 						/* --max-length skips */
 						if (maxlength && len > maxlength)
-							continue;
+							goto next_word;
 					}
 					line[length] = 0;
 				}
