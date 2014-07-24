@@ -15,6 +15,8 @@
 #include "memdbg.h"
 
 #define FORMAT_LABEL			"dummy"
+#define FORMAT_TAG			"$dummy$"
+#define FORMAT_TAG_LEN		7
 #define FORMAT_NAME			""
 #define ALGORITHM_NAME			"N/A"
 
@@ -41,6 +43,8 @@ typedef struct {
 static struct fmt_tests tests[] = {
 	{"$dummy$64756d6d79", "dummy"},
 	{"$dummy$", ""},
+	{"$dummy$00", ""}, // note, NOT cannonical
+	{"$dummy$0064756d6d79", ""}, // note, NOT cannonical
 	{"$dummy$70617373776f7264", "password"},
 	{NULL}
 };
@@ -101,6 +105,24 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		return 0;
 	}
 	return 1;
+}
+
+static char *split(char *ciphertext, int index, struct fmt_main *self)
+{
+	// cannonical fix for any hash with embedded null.
+	char *cp;
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
+		return ciphertext;
+	cp = &ciphertext[FORMAT_TAG_LEN];
+	while (cp[0] && cp[1]) {
+		if (cp[0] == '0' && cp[1] == '0') {
+			char *cp2 = str_alloc_copy(ciphertext);
+			cp2[cp-ciphertext] = 0;
+			return cp2;
+		}
+		cp += 2;
+	}
+	return ciphertext;
 }
 
 static char *decode(char *ciphertext)
@@ -313,7 +335,7 @@ struct fmt_main fmt_dummy = {
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
-		fmt_default_split,
+		split,
 		binary,
 		fmt_default_salt,
 #if FMT_MAIN_VERSION > 11
