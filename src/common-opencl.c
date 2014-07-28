@@ -746,7 +746,7 @@ void opencl_build(int sequential_id, char *opts, int save, char *file_name,
 					     CL_PROGRAM_BUILD_LOG, 0, NULL,
 					     &log_size),
 		       "Error while getting build info I");
-	build_log = (char *) mem_alloc((log_size + 1));
+	build_log = (char *) mem_calloc((log_size + 1));
 
 	HANDLE_CLERROR(clGetProgramBuildInfo(program[sequential_id],
 					     devices[sequential_id],
@@ -780,7 +780,7 @@ void opencl_build(int sequential_id, char *opts, int save, char *file_name,
 		if (options.verbosity > 4)
 			fprintf(stderr, "binary size %zu\n", source_size);
 
-		source = mem_alloc(source_size);
+		source = mem_calloc(source_size);
 
 		HANDLE_CLERROR(clGetProgramInfo(program[sequential_id],
 						CL_PROGRAM_BINARIES,
