@@ -504,15 +504,20 @@ int crk_reload_pot(void)
 	ldr_in_pot = 1; /* Mutes some warnings from valid() et al */
 
 	while (fgetl(line, sizeof(line), pot_file)) {
-		char *p, *ciphertext = line;
+		char *p, *fields[10], *ciphertext = line;
 
 		if (!(p = strchr(ciphertext, options.loader.field_sep_char)))
 			continue;
 		*p = 0;
 
-		if (crk_methods.valid(ciphertext, crk_db->format) &&
-		    crk_remove_pot_entry(ciphertext))
-			break;
+		fields[1] = ciphertext;
+		ciphertext = crk_methods.prepare(fields, crk_db->format);
+		if (crk_methods.valid(ciphertext, crk_db->format)) {
+			ciphertext = crk_methods.split(ciphertext, 0,
+			                               crk_db->format);
+			if (crk_remove_pot_entry(ciphertext))
+				break;
+		}
 	}
 
 	ldr_in_pot = 0;
