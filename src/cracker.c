@@ -510,6 +510,7 @@ int crk_reload_pot(void)
 			continue;
 		*p = 0;
 
+		memset(fields, 0, sizeof(fields));
 		fields[1] = ciphertext;
 		ciphertext = crk_methods.prepare(fields, crk_db->format);
 		if (crk_methods.valid(ciphertext, crk_db->format)) {
