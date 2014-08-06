@@ -462,7 +462,7 @@ static int crk_remove_pot_entry(char *ciphertext)
 
 int crk_reload_pot(void)
 {
-	char line[LINE_BUFFER_SIZE];
+	char line[LINE_BUFFER_SIZE], *fields[10];
 	int pot_fd;
 	FILE *pot_file;
 	int total = crk_db->password_count, others;
@@ -503,14 +503,16 @@ int crk_reload_pot(void)
 
 	ldr_in_pot = 1; /* Mutes some warnings from valid() et al */
 
+	/* We only ever use fields[1] here */
+	memset(fields, 0, sizeof(fields));
+
 	while (fgetl(line, sizeof(line), pot_file)) {
-		char *p, *fields[10], *ciphertext = line;
+		char *p, *ciphertext = line;
 
 		if (!(p = strchr(ciphertext, options.loader.field_sep_char)))
 			continue;
 		*p = 0;
 
-		memset(fields, 0, sizeof(fields));
 		fields[1] = ciphertext;
 		ciphertext = crk_methods.prepare(fields, crk_db->format);
 		if (crk_methods.valid(ciphertext, crk_db->format)) {
