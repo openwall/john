@@ -1433,7 +1433,7 @@ static void ldr_show_pot_line(struct db_main *db, char *line)
 		char Tmp[16384];
 		RemoveHEX(Tmp, ciphertext);
 		// We only remove hex if the end result is 'safe'. IF there are any line feeds, or
-		// ':' chars, then it is not safe to remove.  NULL is also dangrous, BUT the 
+		// ':' chars, then it is not safe to remove.  NULL is also dangrous, BUT the
 		// RemoveHEX itself bails if there are nulls, putting original ciphertext into Tmp.
 		if (strchr(Tmp, ':') || strchr(Tmp, '\n')
 #if (AC_BUILT && HAVE_WINDOWS_H) || (!AC_BUILT && (_MSC_VER || __CYGWIN__ || __MINGW__))

@@ -37,11 +37,12 @@ extern volatile int bench_running;
 
 #ifndef BENCH_BUILD
 /* We could move this to misc.c */
-static size_t fmt_strnlen(const char *s, size_t max) {
-    const char *p=s;
-    while(*p && max--)
+static size_t fmt_strnlen(const char *s, size_t max)
+{
+	const char *p=s;
+	while(*p && max--)
 		++p;
-    return(p - s);
+	return(p - s);
 }
 #endif
 
