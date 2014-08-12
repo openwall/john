@@ -863,6 +863,9 @@ int crk_process_salt(struct db_salt *salt)
 
 char *crk_get_key1(void)
 {
+	if (options.secure)
+		return "";
+	else
 	if (crk_db->loaded)
 		return crk_methods.get_key(0);
 	else
@@ -871,6 +874,9 @@ char *crk_get_key1(void)
 
 char *crk_get_key2(void)
 {
+	if (options.secure)
+		return NULL;
+	else
 	if (crk_key_index > 1 && crk_key_index < crk_last_key)
 		return crk_methods.get_key(crk_key_index - 1);
 	else
