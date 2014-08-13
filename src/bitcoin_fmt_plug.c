@@ -33,6 +33,10 @@ john_register_one(&fmt_bitcoin);
 #include "formats.h"
 #include "params.h"
 #include "options.h"
+#include "sha2.h"
+#include "stdint.h"
+#include "johnswap.h"
+#include "sse-intrinsics.h"
 #ifdef _OPENMP
 #include <omp.h>
 #define OMP_SCALE               1
@@ -42,14 +46,29 @@ static int omp_t = 1;
 
 #define FORMAT_LABEL		"Bitcoin"
 #define FORMAT_NAME		""
-#define ALGORITHM_NAME		"SHA256 AES 32/" ARCH_BITS_STR
+
+#ifdef MMX_COEF_SHA512
+#define ALGORITHM_NAME		"SHA512 AES " SHA512_ALGORITHM_NAME
+#else
+#if ARCH_BITS >= 64
+#define ALGORITHM_NAME		"SHA512 AES 64/" ARCH_BITS_STR " " SHA2_LIB
+#else
+#define ALGORITHM_NAME		"SHA512 AES 32/" ARCH_BITS_STR " " SHA2_LIB
+#endif
+#endif
+
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	64
 #define BINARY_SIZE		0
 #define SALT_SIZE		sizeof(struct custom_salt)
+#ifdef MMX_COEF_SHA512
+#define MIN_KEYS_PER_CRYPT	MMX_COEF_SHA512
+#define MAX_KEYS_PER_CRYPT	MMX_COEF_SHA512
+#else
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
+#endif
 
 #define SZ 			128
 
@@ -242,38 +261,101 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
+	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 #endif
 	{
-		unsigned char key[32];
 		unsigned char output[SZ];
-		unsigned char iv[16];
-		int fOk = 1;
-		int padval = 0;
+		int fOk;
+		SHA512_CTX sha_ctx;
 		EVP_CIPHER_CTX ctx;
-		int nPLen = cur_salt->cry_master_length, nFLen = 0;
-		EVP_BytesToKey(EVP_aes_256_cbc(), EVP_sha512(), cur_salt->cry_salt,
-				(unsigned char *)saved_key[index], strlen(saved_key[index]),
-				cur_salt->cry_rounds, key, iv);
+		int nPLen, nFLen;
+		int i;
 
+#ifdef MMX_COEF_SHA512
+		JTR_ALIGN(16) ARCH_WORD_64 key_iv[MMX_COEF_SHA512*SHA512_BUF_SIZ];  // 2 * 16 bytes == 2048 bits, i.e. two SHA blocks
+		JTR_ALIGN(8)  unsigned char hash1[SHA512_DIGEST_LENGTH];            // 512 bits
+		int index2;
+
+		for (index2 = 0; index2 < MAX_KEYS_PER_CRYPT; index2++) {
+			// The first hash for this password
+			SHA512_Init(&sha_ctx);
+			SHA512_Update(&sha_ctx, saved_key[index+index2], strlen(saved_key[index+index2]));
+			SHA512_Update(&sha_ctx, cur_salt->cry_salt, cur_salt->cry_salt_length);
+			SHA512_Final(hash1, &sha_ctx);
+
+			// We need to set ONE time, the upper half of the data buffer.  We put the 0x80 byte (in BE format), at offset
+			// 512-bits (SHA512_DIGEST_LENGTH) multiplied by the MMX_COEF_SHA512 (same as MAX_KEYS_PER_CRYPT), then zero
+			// out the rest of the buffer, putting 512 (#bits) at the end.  Once this part of the buffer is set up, we never
+			// touch it again, for the rest of the crypt.  We simply overwrite the first half of this buffer, over and over
+			// again, with BE results of the prior hash.
+			key_iv[ SHA512_DIGEST_LENGTH/sizeof(ARCH_WORD_64) * MMX_COEF_SHA512 + index2 ] = 0x8000000000000000ULL;
+			for (i = (SHA512_DIGEST_LENGTH/sizeof(ARCH_WORD_64)+1) * MMX_COEF_SHA512 + index2; i < 15*MMX_COEF_SHA512; i += MMX_COEF_SHA512)
+				key_iv[i] = 0;
+			key_iv[15*MMX_COEF_SHA512 + index2] = (SHA512_DIGEST_LENGTH << 3);
+
+			// Now copy and convert hash1 from flat into MMX_COEF_SHA512 buffers.
+			for (i = 0; i < SHA512_DIGEST_LENGTH/sizeof(ARCH_WORD_64); ++i) {
+#if COMMON_DIGEST_FOR_OPENSSL
+				key_iv[MMX_COEF_SHA512*i + index2] = sha_ctx.hash[i];  // this is in BE format
+#else
+				key_iv[MMX_COEF_SHA512*i + index2] = sha_ctx.h[i];
+#endif
+			}
+		}
+
+		for (i = 1; i < cur_salt->cry_rounds; i++)  // start at 1; the first iteration is already done
+			SSESHA512body(key_iv, key_iv, NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT);
+
+		// We must fixup final results.  We have been working in BE (NOT switching out of, just to switch back into it at every loop).
+		// Convert the first 6 words (48 bytes, all we need) of each hash back to LE.
+		alter_endianity_to_BE64(key_iv, 6 * MAX_KEYS_PER_CRYPT);
+
+		for (index2 = 0; index2 < MAX_KEYS_PER_CRYPT; index2++) {
+			unsigned char key[32];
+			unsigned char iv[16];
+
+			// Copy and convert from MMX_COEF_SHA512 buffers back into flat buffers
+			for (i = 0; i < sizeof(key)/sizeof(ARCH_WORD_64); i++)  // the derived key
+				((ARCH_WORD_64 *)key)[i] = key_iv[MMX_COEF_SHA512*i + index2];
+			for (i = 0; i < sizeof(iv)/sizeof(ARCH_WORD_64); i++)   // the derived iv
+				((ARCH_WORD_64 *)iv)[i]  = key_iv[MMX_COEF_SHA512*(sizeof(key)/sizeof(ARCH_WORD_64) + i) + index2];
+
+			/* NOTE: write our code instead of using following high-level OpenSSL functions */
+			EVP_CIPHER_CTX_init(&ctx);
+			fOk = EVP_DecryptInit_ex(&ctx, EVP_aes_256_cbc(), NULL, key, iv);
+			if (fOk)
+				fOk = EVP_DecryptUpdate(&ctx, output, &nPLen, cur_salt->cry_master, cur_salt->cry_master_length);
+			if (fOk)
+				fOk = EVP_DecryptFinal_ex(&ctx, output + nPLen, &nFLen);
+			EVP_CIPHER_CTX_cleanup(&ctx);
+			// a decrypted mkey is exactly 32 bytes in len; ossl has already checked the padding (16 0x0f's) for us
+			if (fOk && nPLen + nFLen == 32)
+				any_cracked = cracked[index + index2] = 1;
+
+		}
+#else
+		unsigned char key_iv[SHA512_DIGEST_LENGTH];  // buffer for both the derived key and iv
+		SHA512_Init(&sha_ctx);
+		SHA512_Update(&sha_ctx, saved_key[index], strlen(saved_key[index]));
+		SHA512_Update(&sha_ctx, cur_salt->cry_salt, cur_salt->cry_salt_length);
+		SHA512_Final(key_iv, &sha_ctx);
+		for (i = 1; i < cur_salt->cry_rounds; i++) {  // start at 1; the first iteration is already done
+			SHA512_Init(&sha_ctx);
+			SHA512_Update(&sha_ctx, key_iv, SHA512_DIGEST_LENGTH);
+			SHA512_Final(key_iv, &sha_ctx);
+		}
 		/* NOTE: write our code instead of using following high-level OpenSSL functions */
 		EVP_CIPHER_CTX_init(&ctx);
-		if (fOk)
-			fOk = EVP_DecryptInit_ex(&ctx, EVP_aes_256_cbc(), NULL, key, iv);
+		fOk = EVP_DecryptInit_ex(&ctx, EVP_aes_256_cbc(), NULL, key_iv, key_iv+32);
 		if (fOk)
 			fOk = EVP_DecryptUpdate(&ctx, output, &nPLen, cur_salt->cry_master, cur_salt->cry_master_length);
 		if (fOk)
 			fOk = EVP_DecryptFinal_ex(&ctx, output + nPLen, &nFLen);
 		EVP_CIPHER_CTX_cleanup(&ctx);
-		if (fOk) {
-			padval = *(output + nPLen + 15);
-			if (padval >= 4) { /* good enough? */
-				/* NOTE: check remaining padding bytes too! */
-				any_cracked = cracked[index] = 1;
-				// print_hex(output + nPLen, 16);
-			}
-		}
-		/* NOTE: do we really need to add "the" stronger check? */
+		// a decrypted mkey is exactly 32 bytes in len; ossl has already checked the padding (16 0x0f's) for us
+		if (fOk && nPLen + nFLen == 32)
+			any_cracked = cracked[index] = 1;
+#endif
 	}
 	return count;
 }
@@ -335,7 +417,7 @@ struct fmt_main fmt_bitcoin = {
 #endif
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_OMP,
+		FMT_CASE | FMT_8_BIT | FMT_OMP,
 #if FMT_MAIN_VERSION > 11
 		{
 			"iteration count",
