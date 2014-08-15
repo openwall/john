@@ -167,7 +167,7 @@ static void process_file(const char *archive_name)
 	memset(marker_block, 0, 7);
 	count = fread(marker_block, 7, 1, fp);
 	assert(count == 1);
-	if (memcmp(marker_block, "\x52\x61\x72\x21\x1a\x07\x00", 7)) {
+	if (memcmp(marker_block, "\x52\x61\x72\x21\x1a\x07\x00", 7)) { /* handle SFX archives */
 		if (memcmp(marker_block, "MZ", 2) == 0) {
 			/* jump to "Rar!" signature */
 			while (!feof(fp)) {
@@ -187,6 +187,11 @@ static void process_file(const char *archive_name)
 			}
 		}
 		else {
+			/* try to detect RAR 5 files */
+			if (memcmp(marker_block, "\x52\x61\x72\x21\x1a\x07\x01\x00", 7) == 0) {
+				fprintf(stderr, "! %s: Not a RAR 3.x file, try running rar5tojohn.py on me!\n", archive_name);
+				goto err;
+			}
 			fprintf(stderr, "! %s: Not a RAR file\n", archive_name);
 			goto err;
 		}
