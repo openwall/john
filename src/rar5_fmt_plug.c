@@ -61,6 +61,9 @@ static struct fmt_tests rar5_tests[] = {
 	/* "-p mode" test vectors */
 	{"$rar5$16$92373e6493111cf1f2443dcd82122af9$16$a3af5246dd171431ac823cc79567e77e$8$16015b087c86964b", "password"},
 	{"$rar5$16$92373e6493111cf1f2443dcd82122af9$16$011a3192b2f637d43deba9d0a08b7fa0$8$6862fcec47944d14", "openwall"},
+	/* from CMIYC 2014 contest */
+	{"$rar5$16$ed9bd88cc649bd06bfd7dc418fcf5fbd$16$21771e718815d6f23073ea294540ce94$8$92c584bec0ad2979", "rar"}, // 1798815729.rar
+	{"$rar5$16$ed9bd88cc649bd06bfd7dc418fcf5fbd$16$21771e718815d6f23073ea294540ce94$8$5c4361e549c999e1", "win"}, // 844013895.rar
 	{NULL}
 };
 
