@@ -245,7 +245,7 @@ def ProcessExtra50(f, ExtraSize, RawSize, HeaderType, PrevNextBlockPos):
                 # print binascii.hexlify(buf.s_buffer)
                 EncVersion = buf.GetV()
                 # print "EncVersion", EncVersion
-                Flags= buf.GetV()
+                Flags = buf.GetV()
 
                 # print "Flags", Flags
                 UsePswCheck = (Flags & FHEXTRA_CRYPT_PSWCHECK) != 0
@@ -258,7 +258,7 @@ def ProcessExtra50(f, ExtraSize, RawSize, HeaderType, PrevNextBlockPos):
 
                 assert Lg2Count < CRYPT5_KDF_LG2_COUNT_MAX
 
-                Salt = buf.read( SIZE_SALT50)
+                Salt = buf.read(SIZE_SALT50)
                 InitV = buf.read(SIZE_INITV)
 
                 PswCheck = buf.read(SIZE_PSWCHECK)
@@ -339,14 +339,14 @@ def read_rar5_header(f, PrevNextBlockPos=0):
     if HeaderType == HEAD_CRYPT:
         CryptVersion = buf.GetV()
         # print "CV", CryptVersion
-        if CryptVersion>CRYPT_VERSION:
+        if CryptVersion > CRYPT_VERSION:
             print "bad 2"
         EncFlags = buf.GetV()
         UsePswCheck = (EncFlags & CHFL_CRYPT_PSWCHECK) != 0
         Lg2Count = buf.Get1()
         # print "LG2CNT", Lg2Count
         iterations = Lg2Count
-        if (Lg2Count>CRYPT5_KDF_LG2_COUNT_MAX):
+        if (Lg2Count > CRYPT5_KDF_LG2_COUNT_MAX):
             print "bad 3"
 
         # get salt
@@ -361,22 +361,22 @@ def read_rar5_header(f, PrevNextBlockPos=0):
         Encrypted = 1
 
     elif HeaderType == HEAD_MAIN:
-        ArcFlags=buf.GetV();
+        ArcFlags = buf.GetV()
         # print "HEAD_MAIN ArcFlags", ArcFlags
 
         Volume = (ArcFlags & MHFL_VOLUME) != 0
         Solid = (ArcFlags & MHFL_SOLID) != 0
         Locked = (ArcFlags & MHFL_LOCK) != 0
         Protected = (ArcFlags & MHFL_PROTECT) != 0
-        Signed = False;
-        NewNumbering = True;
+        Signed = False
+        NewNumbering = True
 
-        if ((ArcFlags & MHFL_VOLNUMBER)!=0):
-            VolNumber = buf.GetV();
+        if ((ArcFlags & MHFL_VOLNUMBER) != 0):
+            VolNumber = buf.GetV()
         else:
-          VolNumber=0
+            VolNumber = 0
 
-        FirstVolume=Volume and VolNumber==0
+        FirstVolume = Volume and VolNumber == 0
 
         if ExtraSize != 0:
             pass
@@ -391,7 +391,7 @@ def read_rar5_header(f, PrevNextBlockPos=0):
         # print "DataSize", DataSize
         FileFlags = buf.GetV()
         # print "FileFlags", FileFlags
-        UnpSize = buf.GetV();
+        UnpSize = buf.GetV()
         # print "UnpSize", UnpSize
         # UnknownUnpSize = (FileFlags and FHFL_UNPUNKNOWN) != 0
 
@@ -410,7 +410,7 @@ def read_rar5_header(f, PrevNextBlockPos=0):
 
         # RedirType = FSREDIR_NONE
         CompInfo = buf.GetV()
-        Method = (CompInfo>>7) & 7
+        Method = (CompInfo >> 7) & 7
         UnpVer = CompInfo & 0x3f
         HostOS = buf.GetV()
         NameSize = buf.GetV()
@@ -427,12 +427,12 @@ def read_rar5_header(f, PrevNextBlockPos=0):
         # Dir = (FileFlags & FHFL_DIRECTORY) != 0
 
         # XXX code block
-        # hd->WinSize=hd->Dir ? 0:size_t(0x20000)<<((CompInfo>>10)&0xf);
+        # hd->WinSize=hd->Dir ? 0:size_t(0x20000)<<((CompInfo>>10)&0xf)
         # hd->CryptMethod=hd->Encrypted ? CRYPT_RAR50:CRYPT_NONE;
-        # char FileName[NM*4];
-        # size_t ReadNameSize=Min(NameSize,ASIZE(FileName)-1);
-        # Raw.GetB((byte *)FileName,ReadNameSize);
-        # FileName[ReadNameSize]=0;
+        # char FileName[NM*4]
+        # size_t ReadNameSize=Min(NameSize,ASIZE(FileName)-1)
+        # Raw.GetB((byte *)FileName,ReadNameSize)
+        # FileName[ReadNameSize]=0
 
         # Should do it before converting names, because extra fields can
         # affect name processing, like in case of NTFS streams.
@@ -445,19 +445,21 @@ def read_rar5_header(f, PrevNextBlockPos=0):
     return HeaderType, NextBlockPos
 
 if __name__ == "__main__":
-    f = open(sys.argv[1], "rb")
-    # check RAR5 magic
-    magic = f.read(8)
-    if magic != "\x52\x61\x72\x21\x1a\x07\x01\x00":
-        print "%s is not a RAR 5 file!" % sys.argv[1]
-        sys.exit(-1)
 
-    NextBlockPos = 0
+    for i in range(1, len(sys.argv)):
+        f = open(sys.argv[i], "rb")
+        # check RAR5 magic
+        magic = f.read(8)
+        if magic != "\x52\x61\x72\x21\x1a\x07\x01\x00":
+            print "%s is not a RAR 5 file!" % sys.argv[1]
+            continue
 
-    while(1):
-        CurBlockPos = f.tell()
-        HeaderType, NextBlockPos = read_rar5_header(f, NextBlockPos)
-        if not NextBlockPos:
-            break
-        # print "NextBlockPos is", NextBlockPos, HeaderType, CurBlockPos
-        f.seek(NextBlockPos, 0)
+        NextBlockPos = 0
+
+        while(1):
+            CurBlockPos = f.tell()
+            HeaderType, NextBlockPos = read_rar5_header(f, NextBlockPos)
+            if not NextBlockPos:
+                break
+            # print "NextBlockPos is", NextBlockPos, HeaderType, CurBlockPos
+            f.seek(NextBlockPos, 0)
