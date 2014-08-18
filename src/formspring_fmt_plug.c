@@ -132,10 +132,19 @@ struct fmt_main fmt_FORMSPRING =
 	}
 };
 
+static void link_funcs() {
+	fmt_FORMSPRING.methods.salt   = our_salt;
+	fmt_FORMSPRING.methods.binary = our_binary;
+	fmt_FORMSPRING.methods.split = our_split;
+	fmt_FORMSPRING.methods.prepare = our_prepare;
+}
+
 static void formspring_init(struct fmt_main *self)
 {
 	get_ptr();
 	if (self->private.initialized == 0) {
+		pDynamic_61 = dynamic_THIN_FORMAT_LINK(&fmt_FORMSPRING, Convert(Conv_Buf, formspring_tests[0].ciphertext), "formspring", 1);
+		link_funcs();
 		fmt_FORMSPRING.params.algorithm_name = pDynamic_61->params.algorithm_name;
 		self->private.initialized = 1;
 	}
@@ -144,10 +153,7 @@ static void formspring_init(struct fmt_main *self)
 static void get_ptr() {
 	if (!pDynamic_61) {
 		pDynamic_61 = dynamic_THIN_FORMAT_LINK(&fmt_FORMSPRING, Convert(Conv_Buf, formspring_tests[0].ciphertext), "formspring", 0);
-		fmt_FORMSPRING.methods.salt   = our_salt;
-		fmt_FORMSPRING.methods.binary = our_binary;
-		fmt_FORMSPRING.methods.split = our_split;
-		fmt_FORMSPRING.methods.prepare = our_prepare;
+		link_funcs();
 	}
 }
 

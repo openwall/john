@@ -184,11 +184,19 @@ struct fmt_main fmt_mediawiki =
 	}
 };
 
+static void link_funcs() {
+	fmt_mediawiki.methods.salt   = our_salt;
+	fmt_mediawiki.methods.binary = our_binary;
+	fmt_mediawiki.methods.split = our_split;
+	fmt_mediawiki.methods.prepare = our_prepare;
+}
 
 static void mediawiki_init(struct fmt_main *self)
 {
 	get_ptr();
 	if (self->private.initialized == 0) {
+		pDynamic_9 = dynamic_THIN_FORMAT_LINK(&fmt_mediawiki, Convert(Conv_Buf, mediawiki_tests[0].ciphertext), "mediawiki", 1);
+		link_funcs();
 		fmt_mediawiki.params.algorithm_name = pDynamic_9->params.algorithm_name;
 		self->private.initialized = 1;
 	}
@@ -197,6 +205,7 @@ static void mediawiki_init(struct fmt_main *self)
 static void get_ptr() {
 	if (!pDynamic_9) {
 		pDynamic_9 = dynamic_THIN_FORMAT_LINK(&fmt_mediawiki, Convert(Conv_Buf, mediawiki_tests[0].ciphertext), "mediawiki", 0);
+		link_funcs();
 		fmt_mediawiki.methods.salt   = our_salt;
 		fmt_mediawiki.methods.binary = our_binary;
 		fmt_mediawiki.methods.split = our_split;

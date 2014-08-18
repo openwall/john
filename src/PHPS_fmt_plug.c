@@ -180,10 +180,20 @@ struct fmt_main fmt_PHPS =
 	}
 };
 
+static void link_funcs() {
+	fmt_PHPS.methods.salt   = our_salt;
+	fmt_PHPS.methods.binary = our_binary;
+	fmt_PHPS.methods.split = our_split;
+	fmt_PHPS.methods.prepare = our_prepare;
+}
+
 static void phps_init(struct fmt_main *self)
 {
 	get_ptr();
+	//fprintf(stderr, "in PHPS phps_init()\n");
 	if (self->private.initialized == 0) {
+		pDynamic_6 = dynamic_THIN_FORMAT_LINK(&fmt_PHPS, Convert(Conv_Buf, phps_tests[0].ciphertext), "phps", 1);
+		link_funcs();
 		fmt_PHPS.params.algorithm_name = pDynamic_6->params.algorithm_name;
 		self->private.initialized = 1;
 	}
@@ -192,10 +202,7 @@ static void phps_init(struct fmt_main *self)
 static void get_ptr() {
 	if (!pDynamic_6) {
 		pDynamic_6 = dynamic_THIN_FORMAT_LINK(&fmt_PHPS, Convert(Conv_Buf, phps_tests[0].ciphertext), "phps", 0);
-		fmt_PHPS.methods.salt   = our_salt;
-		fmt_PHPS.methods.binary = our_binary;
-		fmt_PHPS.methods.split = our_split;
-		fmt_PHPS.methods.prepare = our_prepare;
+		link_funcs();
 	}
 }
 

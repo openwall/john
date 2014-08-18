@@ -130,10 +130,18 @@ struct fmt_main fmt_asaMD5 = {
 	}
 };
 
+static void link_funcs() {
+	fmt_asaMD5.methods.salt = our_salt;
+	fmt_asaMD5.methods.binary = our_binary;
+	fmt_asaMD5.methods.split = our_split;
+}
+
 static void init(struct fmt_main *self)
 {
 	get_ptr();
 	if (self->private.initialized == 0) {
+		pDynamic_20 = dynamic_THIN_FORMAT_LINK(&fmt_asaMD5, Convert(Conv_Buf, tests[0].ciphertext), "asa-md5", 1);
+		link_funcs();
 		fmt_asaMD5.params.algorithm_name = pDynamic_20->params.algorithm_name;
 		self->private.initialized = 1;
 	}
@@ -142,9 +150,7 @@ static void init(struct fmt_main *self)
 static void get_ptr() {
 	if (!pDynamic_20) {
 		pDynamic_20 = dynamic_THIN_FORMAT_LINK(&fmt_asaMD5, Convert(Conv_Buf, tests[0].ciphertext), "asa-md5", 0);
-		fmt_asaMD5.methods.salt = our_salt;
-		fmt_asaMD5.methods.binary = our_binary;
-		fmt_asaMD5.methods.split = our_split;
+		link_funcs();
 	}
 }
 

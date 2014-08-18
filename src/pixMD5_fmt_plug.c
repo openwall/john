@@ -112,10 +112,18 @@ struct fmt_main fmt_pixMD5 = {
 	}
 };
 
+static void link_funcs() {
+	fmt_pixMD5.methods.salt   = our_salt;
+	fmt_pixMD5.methods.binary = our_binary;
+	fmt_pixMD5.methods.split = our_split;
+}
+
 static void pixmd5_init(struct fmt_main *self)
 {
 	get_ptr();
 	if (self->private.initialized == 0) {
+		pDynamic_19 = dynamic_THIN_FORMAT_LINK(&fmt_pixMD5, Convert(Conv_Buf, pixmd5_tests[0].ciphertext), "pix-md5", 1);
+		link_funcs();;
 		fmt_pixMD5.params.algorithm_name = pDynamic_19->params.algorithm_name;
 		self->private.initialized = 1;
 	}
@@ -124,9 +132,7 @@ static void pixmd5_init(struct fmt_main *self)
 static void get_ptr() {
 	if (!pDynamic_19) {
 		pDynamic_19 = dynamic_THIN_FORMAT_LINK(&fmt_pixMD5, Convert(Conv_Buf, pixmd5_tests[0].ciphertext), "pix-md5", 0);
-		fmt_pixMD5.methods.salt   = our_salt;
-		fmt_pixMD5.methods.binary = our_binary;
-		fmt_pixMD5.methods.split = our_split;
+		link_funcs();
 	}
 }
 

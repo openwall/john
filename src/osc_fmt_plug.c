@@ -168,10 +168,19 @@ struct fmt_main fmt_OSC =
 	}
 };
 
+static void link_funcs() {
+	fmt_OSC.methods.salt   = our_salt;
+	fmt_OSC.methods.binary = our_binary;
+	fmt_OSC.methods.split = our_split;
+	fmt_OSC.methods.prepare = our_prepare;
+}
+
 static void osc_init(struct fmt_main *self)
 {
 	get_ptr();
 	if (self->private.initialized == 0) {
+		pDynamic_4 = dynamic_THIN_FORMAT_LINK(&fmt_OSC, Convert(Conv_Buf, osc_tests[0].ciphertext), "osc", 1);
+		link_funcs();
 		fmt_OSC.params.algorithm_name = pDynamic_4->params.algorithm_name;
 		self->private.initialized = 1;
 	}
@@ -180,10 +189,7 @@ static void osc_init(struct fmt_main *self)
 static void get_ptr() {
 	if (!pDynamic_4) {
 		pDynamic_4 = dynamic_THIN_FORMAT_LINK(&fmt_OSC, Convert(Conv_Buf, osc_tests[0].ciphertext), "osc", 0);
-		fmt_OSC.methods.salt   = our_salt;
-		fmt_OSC.methods.binary = our_binary;
-		fmt_OSC.methods.split = our_split;
-		fmt_OSC.methods.prepare = our_prepare;
+		link_funcs();
 	}
 }
 

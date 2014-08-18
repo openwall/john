@@ -734,6 +734,8 @@ static void init(struct fmt_main *pFmt)
 	private_subformat_data *pPriv = pFmt->private.data;
 	int i;
 
+	//fprintf(stderr, "init(%s)\n", pPriv->dynamic_WHICH_TYPE_SIG);
+	
 	/* first off, SAVE the original format structure (owned by JtR).  We may need this later */
 	pPriv->pFmtMain = pFmt;
 #ifdef _OPENMP
@@ -7572,8 +7574,11 @@ struct fmt_main *dynamic_THIN_FORMAT_LINK(struct fmt_main *pFmt, char *ciphertex
 		pFmt->methods.get_hash[i]    = pFmtLocal->methods.get_hash[i];
 	}
 
-	//if (bInitAlso)
+	if (bInitAlso)
+	{
+		//fprintf(stderr, "dynamic_THIN_FORMAT_LINK() calling init(%s)\n", subformat);
 		init(pFmtLocal);
+	}
 
 	pFmt->private.data = mem_alloc_tiny(sizeof(private_subformat_data), MEM_ALIGN_WORD);
 	memcpy(pFmt->private.data, pFmtLocal->private.data, sizeof(private_subformat_data));

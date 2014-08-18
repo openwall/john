@@ -344,15 +344,16 @@ static void get_ptr() {
 		Buf = mem_alloc_tiny(strlen(fmt_netmd5.params.algorithm_name) + 4 + strlen("dynamic_39") + 1, 1);
 		sprintf(Buf, "%s or %s", fmt_netmd5.params.algorithm_name, "dynamic_39");
 		fmt_netmd5.params.algorithm_name = Buf;
-		pDynamicFmt->methods.init(pDynamicFmt);
+		//pDynamicFmt->methods.init(pDynamicFmt);
 	}
 }
 
 static void init(struct fmt_main *self)
 {
 	// We have to allocate our dyna_39 object first, because we get 'modified' min/max counts from there.
+	get_ptr();
 	if (self->private.initialized == 0) {
-		get_ptr();
+		pDynamicFmt = dynamic_THIN_FORMAT_LINK(pNetMd5_Dyna, Convert(Conv_Buf, tests[1].ciphertext), "net-md5", 1);
 		self->private.initialized = 1;
 	}
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);

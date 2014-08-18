@@ -334,19 +334,19 @@ static void get_ptr() {
 		Buf = mem_alloc_tiny(strlen(fmt_netsha1.params.algorithm_name) + 4 + strlen("dynamic_40") + 1, 1);
 		sprintf(Buf, "%s or %s", fmt_netsha1.params.algorithm_name, "dynamic_40");
 		fmt_netsha1.params.algorithm_name = Buf;
-		pDynamicFmt->methods.init(pDynamicFmt);
+		//pDynamicFmt->methods.init(pDynamicFmt);
 	}
 }
 
 static void init(struct fmt_main *self)
 {
 	// We have to allocate our dyna_40 object first, because we get 'modified' min/max counts from there.
+	get_ptr();
 	if (self->private.initialized == 0) {
-		get_ptr();
+		pDynamicFmt = dynamic_THIN_FORMAT_LINK(pNetSha1_Dyna, Convert(Conv_Buf, tests[1].ciphertext), "net-sha1", 1);
 		self->private.initialized = 1;
 	}
-	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
-		self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	saved_key = mem_calloc_tiny(sizeof(*saved_key) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
