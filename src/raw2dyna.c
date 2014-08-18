@@ -122,6 +122,11 @@ char *GetSalt(char *s) {
 			// NOTE, some of these chars will never be seen in this app, due to strtok taking them out, or
 			// due to the C language not allowing them (i.e. null).  But they are listed here for documenation
 			if (*cp == ':' || *cp == '\\' || *cp == '\n' || *cp == '\r' || *cp == '\x0' || *cp == '$') { tohex=1; break; }
+			// Ok, if there is trailing white space in the salt, jtr core 'can' strip this out, if there is only a
+			// flat hash, and no user name.  This 'issue' is by design within core, so we try to work around that
+			// by detecting this can happen, and simply use $HEX$ in that situation.
+			if (!cp[1] && (*cp == ' ' || *cp == '\t'))
+				tohex = 1;
 			++cp;
 		}
 	}
@@ -172,15 +177,15 @@ int simple_convert() {
 }
 
 // Ok, handle these 2 cases:
-// raw_hash:salt              // end result:    :$dynamic_x$raw_hash$fixed_salt
-// user_id:raw_hash:salt      // end result:    user_id:$dynamic_x$raw_hash$fixed_salt
+// raw_hash[:$]salt              // end result:    :$dynamic_x$raw_hash$fixed_salt
+// user_id:raw_hash[:$]salt      // end result:    user_id:$dynamic_x$raw_hash$fixed_salt
 
 int find_items(char *Buf, char **cph, char **cps, char *usr_id) {
 	int istype1=1;
 	char *usr_ptr;
 	*cph = Buf;
 	*cps = &Buf[hash_len];
-	if (*(*cps) == salt_sep) {
+	if (*(*cps) == salt_sep || *(*cps) == '$') {
 		// Ok, could be type 1.
 		int x=0;
 		while(x < hash_len && istype1) {
