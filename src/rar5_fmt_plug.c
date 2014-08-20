@@ -196,10 +196,10 @@ static void set_salt(void *salt)
 }
 
 static void hmac_sha256(unsigned char * pass, int passlen, unsigned char * salt,
-                        int saltlen, int add, unsigned char * ret)
+                        int saltlen, int add, unsigned char * ret,
+                        SHA256_CTX saved_ctx[2])
 {
 	uint8_t i, ipad[64], opad[64];
-	static SHA256_CTX saved_ctx[2];
 	SHA256_CTX ctx;
 
 	if (!add) {
@@ -249,6 +249,8 @@ static void rar5kdf(unsigned char *Pwd, size_t PwdLength,
 	int CurCount[] = { Count-1, 16, 16 };
 	unsigned char *CurValue[] = { Key    , V1, V2 };
 	unsigned char Fn[SHA256_DIGEST_SIZE]; // Current function value.
+	SHA256_CTX saved_ctx[2];
+
 	memcpy(SaltData, Salt, Min(SaltLength,MaxSalt));
 
 	SaltData[SaltLength + 0] = 0; // Salt concatenated to 1.
@@ -257,13 +259,14 @@ static void rar5kdf(unsigned char *Pwd, size_t PwdLength,
 	SaltData[SaltLength + 3] = 1;
 
 	// First iteration: HMAC of password, salt and block index (1).
-	hmac_sha256(Pwd, PwdLength, SaltData, SaltLength + 4, 0, U1);
+	hmac_sha256(Pwd, PwdLength, SaltData, SaltLength + 4, 0, U1, saved_ctx);
 	memcpy(Fn, U1, sizeof(Fn)); // Function at first iteration.
 
 	for (I = 0; I < 3; I++) // For output key and 2 supplementary values.
 	{
 		for (J = 0; J < CurCount[I]; J++) {
-			hmac_sha256(Pwd, PwdLength, U1, sizeof(U1), 1, U2); // U2 = PRF (P, U1).
+			hmac_sha256(Pwd, PwdLength, U1, sizeof(U1), 1, U2,
+			            saved_ctx); // U2 = PRF (P, U1).
 			memcpy(U1, U2, sizeof(U1));
 			for (K = 0; K < sizeof(Fn); K++) // Function ^= U.
 				Fn[K] ^= U1[K];
