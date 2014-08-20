@@ -199,22 +199,34 @@ static void hmac_sha256(unsigned char * pass, int passlen, unsigned char * salt,
                         int saltlen, int add, unsigned char * ret)
 {
 	uint8_t i, ipad[64], opad[64];
+	static SHA256_CTX saved_ctx[2];
 	SHA256_CTX ctx;
-	memset(ipad, 0x36, 64);
-	memset(opad, 0x5c, 64);
 
-	for (i = 0; i < passlen; i++) {
-		ipad[i] ^= pass[i];
-		opad[i] ^= pass[i];
-	}
+	if (!add) {
+		memset(ipad, 0x36, 64);
+		memset(opad, 0x5c, 64);
 
-	SHA256_Init(&ctx);
-	SHA256_Update(&ctx, ipad, 64);
+		for (i = 0; i < passlen; i++) {
+			ipad[i] ^= pass[i];
+			opad[i] ^= pass[i];
+		}
+
+		SHA256_Init(&ctx);
+		SHA256_Update(&ctx, ipad, 64);
+		memcpy(&saved_ctx[0], &ctx, sizeof(SHA256_CTX));
+	} else
+		memcpy(&ctx, &saved_ctx[0], sizeof(SHA256_CTX));
+
 	SHA256_Update(&ctx, salt, saltlen);
 	SHA256_Final(ret, &ctx);
 
-	SHA256_Init(&ctx);
-	SHA256_Update(&ctx, opad, 64);
+	if (!add) {
+		SHA256_Init(&ctx);
+		SHA256_Update(&ctx, opad, 64);
+		memcpy(&saved_ctx[1], &ctx, sizeof(SHA256_CTX));
+	} else
+		memcpy(&ctx, &saved_ctx[1], sizeof(SHA256_CTX));
+
 	SHA256_Update(&ctx, ret, 32);
 	SHA256_Final(ret, &ctx);
 }
