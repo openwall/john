@@ -9,6 +9,8 @@
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
+ *
+ * $rar5$<salt_len>$<salt>$<iter_log2>$<iv>$<pswcheck_len>$<pswcheck>
  */
 
 #if FMT_EXTERNS_H
@@ -47,7 +49,7 @@ static int omp_t = 1;
 #define FORMAT_NAME		""
 #define FORMAT_TAG  		"$rar5$"
 #define TAG_LENGTH  		6
-#define ALGORITHM_NAME		"alleged PBKDF2-SHA256 32/" ARCH_BITS_STR
+#define ALGORITHM_NAME		"PBKDF2-SHA256 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	32
@@ -106,29 +108,31 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += TAG_LENGTH;
-	if ((p = strtok(ctcopy, "$")) == NULL)
+	if ((p = strtok(ctcopy, "$")) == NULL) // salt length
 		goto err;
 	len = atoi(p);
-	if(len > 32) // salt length
+	if(len > 32)
 		goto err;
-	if ((p = strtok(NULL, "$")) == NULL)
+	if ((p = strtok(NULL, "$")) == NULL) // salt
 		goto err;
 	if (strlen(p) != len * 2)
 		goto err;
-	if ((p = strtok(NULL, "$")) == NULL)
+	if ((p = strtok(NULL, "$")) == NULL) // iterations (in log2)
 		goto err;
-	len = atoi(p);
-	if(atoi(p) > 24) // iterations (in log2), CRYPT5_KDF_LG2_COUNT_MAX
+	if(atoi(p) > 24) // CRYPT5_KDF_LG2_COUNT_MAX
 		goto err;
-	if ((p = strtok(NULL, "$")) == NULL)
+	if ((p = strtok(NULL, "$")) == NULL) // AES IV
 		goto err;
 	if (strlen(p) != SIZE_INITV * 2)
 		goto err;
-	if ((p = strtok(NULL, "*$")) == NULL) // iterations
+	if ((p = strtok(NULL, "$")) == NULL) // pswcheck len (redundant)
 		goto err;
-	if ((p = strtok(NULL, "*$")) == NULL) // hash
+	len = atoi(p);
+	if(len != BINARY_SIZE)
 		goto err;
-	if(strlen(p) != BINARY_SIZE * 2) // PswCheck
+	if ((p = strtok(NULL, "$")) == NULL) // pswcheck
+		goto err;
+	if(strlen(p) != BINARY_SIZE * 2 || strlen(p) != len * 2)
 		goto err;
 
 	MEM_FREE(keeptr);
