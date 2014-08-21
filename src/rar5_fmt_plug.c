@@ -1,6 +1,8 @@
 /* RAR 5.0 cracker patch for JtR. Hacked together during May of 2013 by Dhiru
  * Kholia.
  *
+ * http://www.rarlab.com/technote.htm
+ *
  * This software is Copyright (c) 2013 Dhiru Kholia <dhiru at openwall.com> and
  * it is hereby released to the general public under the
  * following terms:
@@ -53,17 +55,17 @@ static int omp_t = 1;
 #define SALT_SIZE		sizeof(struct custom_salt)
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
-#define SHA256_DIGEST_SIZE      32
-#define MaxSalt				64
+#define SHA256_DIGEST_SIZE	32
+#define MaxSalt			64
 
 static struct fmt_tests rar5_tests[] = {
-	{"$rar5$16$37526a0922b4adcc32f8fed5d51bb6c8$16$8955617d9b801def51d734095bb8ecdb$8$9f0b23c98ebb3653", "password"},
+	{"$rar5$16$37526a0922b4adcc32f8fed5d51bb6c8$15$8955617d9b801def51d734095bb8ecdb$8$9f0b23c98ebb3653", "password"},
 	/* "-p mode" test vectors */
-	{"$rar5$16$92373e6493111cf1f2443dcd82122af9$16$a3af5246dd171431ac823cc79567e77e$8$16015b087c86964b", "password"},
-	{"$rar5$16$92373e6493111cf1f2443dcd82122af9$16$011a3192b2f637d43deba9d0a08b7fa0$8$6862fcec47944d14", "openwall"},
+	{"$rar5$16$92373e6493111cf1f2443dcd82122af9$15$a3af5246dd171431ac823cc79567e77e$8$16015b087c86964b", "password"},
+	{"$rar5$16$92373e6493111cf1f2443dcd82122af9$15$011a3192b2f637d43deba9d0a08b7fa0$8$6862fcec47944d14", "openwall"},
 	/* from CMIYC 2014 contest */
-	{"$rar5$16$ed9bd88cc649bd06bfd7dc418fcf5fbd$16$21771e718815d6f23073ea294540ce94$8$92c584bec0ad2979", "rar"}, // 1798815729.rar
-	{"$rar5$16$ed9bd88cc649bd06bfd7dc418fcf5fbd$16$21771e718815d6f23073ea294540ce94$8$5c4361e549c999e1", "win"}, // 844013895.rar
+	{"$rar5$16$ed9bd88cc649bd06bfd7dc418fcf5fbd$15$21771e718815d6f23073ea294540ce94$8$92c584bec0ad2979", "rar"}, // 1798815729.rar
+	{"$rar5$16$ed9bd88cc649bd06bfd7dc418fcf5fbd$15$21771e718815d6f23073ea294540ce94$8$5c4361e549c999e1", "win"}, // 844013895.rar
 	{NULL}
 };
 
@@ -116,17 +118,17 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if ((p = strtok(NULL, "$")) == NULL)
 		goto err;
 	len = atoi(p);
-	if(len > 32) // iv length
+	if(atoi(p) > 24) // iterations (in log2), CRYPT5_KDF_LG2_COUNT_MAX
 		goto err;
 	if ((p = strtok(NULL, "$")) == NULL)
 		goto err;
-	if (strlen(p) != len * 2)
+	if (strlen(p) != SIZE_INITV * 2)
 		goto err;
 	if ((p = strtok(NULL, "*$")) == NULL) // iterations
 		goto err;
 	if ((p = strtok(NULL, "*$")) == NULL) // hash
 		goto err;
-	if(strlen(p) != BINARY_SIZE * 2)
+	if(strlen(p) != BINARY_SIZE * 2) // PswCheck
 		goto err;
 
 	MEM_FREE(keeptr);
@@ -152,12 +154,11 @@ static void *get_salt(char *ciphertext)
 		cs.salt[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	p = strtok(NULL, "$");
-	cs.ivlen = atoi(p);
+	cs.iterations = 1 << atoi(p);
 	p = strtok(NULL, "$");
-	for (i = 0; i < cs.ivlen; i++)
+	for (i = 0; i < SIZE_INITV; i++)
 		cs.iv[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	cs.iterations = 1 << 15;
 	MEM_FREE(keeptr);
 	return (void *)&cs;
 }
