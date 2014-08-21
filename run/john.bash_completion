@@ -303,6 +303,9 @@ _john()
 	fi
 	COMPREPLY=()
 
+	# Drop any input files from the command to run for enumeration
+	COMP_LINE=`echo ${COMP_LINE}|sed -r "s# [^\-][^ ]+##g"`
+
 	# We do not check the token specified on the command line.
 	# Instead, we check a modified token (abbreviated option name
 	# has already been replaced with the complete option name).
