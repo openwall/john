@@ -250,7 +250,7 @@ def ProcessExtra50(f, ExtraSize, RawSize, HeaderType, PrevNextBlockPos):
                 # print "Flags", Flags
                 UsePswCheck = (Flags & FHEXTRA_CRYPT_PSWCHECK) != 0
                 if not UsePswCheck:
-                    assert 0, "UsePswCheck if OFF. We currently don't support such files"
+                    assert 0, "UsePswCheck is OFF. We currently don't support such files!"
 
                 UseHashKey = (Flags & FHEXTRA_CRYPT_HASHMAC) != 0
                 Lg2Count = buf.Get1()
@@ -265,7 +265,7 @@ def ProcessExtra50(f, ExtraSize, RawSize, HeaderType, PrevNextBlockPos):
                 print "%s:$rar5$%s$%s$%s$%s$%s$%s" % (
                     os.path.basename(f.name),
                     len(Salt), Salt.encode("hex"),
-                    len(InitV), InitV.encode("hex"),
+                    Lg2Count, InitV.encode("hex"),
                     len(PswCheck), PswCheck.encode("hex"))
                 return  # XXX handle other "FieldType" values
 
@@ -276,7 +276,7 @@ def read_rar5_header(f, PrevNextBlockPos=0):
     global Encrypted
     global PswCheck
     global salt
-    global iterations
+    # global iterations
     # bool Decrypt = Encrypted && CurBlockPos>(int64)SFXSize+SIZEOF_MARKHEAD5
     Decrypt = Encrypted
 
@@ -345,7 +345,7 @@ def read_rar5_header(f, PrevNextBlockPos=0):
         UsePswCheck = (EncFlags & CHFL_CRYPT_PSWCHECK) != 0
         Lg2Count = buf.Get1()
         # print "LG2CNT", Lg2Count
-        iterations = Lg2Count
+        # iterations = Lg2Count
         if (Lg2Count > CRYPT5_KDF_LG2_COUNT_MAX):
             print "bad 3"
 
