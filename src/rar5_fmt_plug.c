@@ -132,7 +132,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtok(NULL, "$")) == NULL) // pswcheck
 		goto err;
-	if(strlen(p) != BINARY_SIZE * 2 || strlen(p) != len * 2)
+	if(strlen(p) != BINARY_SIZE * 2)
 		goto err;
 
 	MEM_FREE(keeptr);
