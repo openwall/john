@@ -65,8 +65,8 @@ john_register_one(&fmt_ocl_rar5);
 
 #define MIN(a, b)		(((a) < (b)) ? (a) : (b))
 #define MAX(a, b)		(((a) > (b)) ? (a) : (b))
-#define HASH_LOOPS		2048
-#define ITERATIONS		(32768+16+16-1)
+#define HASH_LOOPS		2523 // 2523 * 13 == 32799
+#define ITERATIONS		(32800 - 1)
 
 typedef struct {
 	uint8_t length;
@@ -157,6 +157,9 @@ static cl_ulong gws_test(size_t gws, struct fmt_main *self)
 	cl_int ret_code;
 	int i;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
+	int loops = ITERATIONS / HASH_LOOPS;
+
+	loops += ITERATIONS % HASH_LOOPS > 0;
 
 	create_clobj(gws, self);
 	queue_prof = clCreateCommandQueue(context[gpu_id], devices[gpu_id], CL_QUEUE_PROFILING_ENABLE, &ret_code);
@@ -195,7 +198,7 @@ static cl_ulong gws_test(size_t gws, struct fmt_main *self)
 	HANDLE_CLERROR(clGetEventProfilingInfo(Event[3], CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime, NULL), "Failed to get profiling info");
 	HANDLE_CLERROR(clGetEventProfilingInfo(Event[3], CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime, NULL), "Failed to get profiling info");
 	if (options.verbosity > 3)
-		fprintf(stderr, "loop kernel %.2f ms x %u = %.2f s, ", (endTime - startTime)/1000000., 2 * ITERATIONS/HASH_LOOPS, 2 * (ITERATIONS/HASH_LOOPS) * (endTime - startTime) / 1000000000.);
+		fprintf(stderr, "loop kernel %.2f ms x %u = %.2f s, ", (endTime - startTime)/1000000., loops, loops * (endTime - startTime) / 1000000000.);
 
 	/* 200 ms duration limit for GCN to avoid ASIC hangs */
 	if (amd_gcn(device_info[gpu_id]) && endTime - startTime > 200000000) {
@@ -209,7 +212,7 @@ static cl_ulong gws_test(size_t gws, struct fmt_main *self)
 	clReleaseCommandQueue(queue_prof);
 	release_clobj();
 
-	return (endTime - startTime) * 2 * (ITERATIONS / HASH_LOOPS - 1);
+	return (endTime - startTime) * loops;
 }
 
 static void find_best_gws(struct fmt_main *self)
@@ -219,7 +222,7 @@ static void find_best_gws(struct fmt_main *self)
 	unsigned int SHAspeed, bestSHAspeed = 0, max_gws;
 	int optimal_gws = get_kernel_preferred_multiple(gpu_id,
 	                                                split_kernel);
-	const int sha_per_key = 32799 * 2 + 4;
+	const int sha_per_key = ITERATIONS * 2 + 4;
 	unsigned long long int MaxRunTime = cpu(device_info[gpu_id]) ? 1000000000 : 10000000000ULL;
 
 	max_gws = get_max_mem_alloc_size(gpu_id) / 64;
