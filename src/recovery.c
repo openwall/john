@@ -202,6 +202,10 @@ void rec_save(void)
 			add_mkv_stats = 0;
 	}
 
+	if (add_2nd_enc && (options.flags & FLG_STDOUT) &&
+	    (pers_opts.input_enc != UTF_8 || pers_opts.target_enc != UTF_8))
+		add_2nd_enc = 0;
+
 	add_argc = add_enc + add_2nd_enc + add_mkv_stats;
 #ifdef HAVE_MPI
 	add_argc += fake_fork;
