@@ -22,6 +22,11 @@ john_register_one(&fmt_rar5);
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
+#ifdef _OPENMP
+static int omp_t = 1;
+#include <omp.h>
+#define OMP_SCALE               1 // tuned on core i7
+#endif
 
 #include "arch.h"
 #include "johnswap.h"
@@ -32,57 +37,20 @@ john_register_one(&fmt_rar5);
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-#ifdef _OPENMP
-static int omp_t = 1;
-#include <omp.h>
-#define OMP_SCALE               1 // tuned on core i7
-#endif
-
+#include "rar5_common.h"
 #include "memdbg.h"
-
-#define SIZE_SALT50 16
-#define SIZE_PSWCHECK 8
-#define SIZE_PSWCHECK_CSUM 4
-#define SIZE_INITV 16
 
 #define FORMAT_LABEL		"RAR5"
 #define FORMAT_NAME		""
-#define FORMAT_TAG  		"$rar5$"
-#define TAG_LENGTH  		6
 #define ALGORITHM_NAME		"PBKDF2-SHA256 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	32
-#define BINARY_SIZE		SIZE_PSWCHECK
 #define SALT_SIZE		sizeof(struct custom_salt)
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
-#define SHA256_DIGEST_SIZE	32
-#define MaxSalt			64
-
-static struct fmt_tests rar5_tests[] = {
-	{"$rar5$16$37526a0922b4adcc32f8fed5d51bb6c8$15$8955617d9b801def51d734095bb8ecdb$8$9f0b23c98ebb3653", "password"},
-	/* "-p mode" test vectors */
-	{"$rar5$16$92373e6493111cf1f2443dcd82122af9$15$a3af5246dd171431ac823cc79567e77e$8$16015b087c86964b", "password"},
-	{"$rar5$16$92373e6493111cf1f2443dcd82122af9$15$011a3192b2f637d43deba9d0a08b7fa0$8$6862fcec47944d14", "openwall"},
-	/* from CMIYC 2014 contest */
-	{"$rar5$16$ed9bd88cc649bd06bfd7dc418fcf5fbd$15$21771e718815d6f23073ea294540ce94$8$92c584bec0ad2979", "rar"}, // 1798815729.rar
-	{"$rar5$16$ed9bd88cc649bd06bfd7dc418fcf5fbd$15$21771e718815d6f23073ea294540ce94$8$5c4361e549c999e1", "win"}, // 844013895.rar
-	{NULL}
-};
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
-
-static struct custom_salt {
-	int version;
-	int hp;
-	int saltlen;
-	int ivlen;
-	unsigned int iterations;
-	unsigned char salt[32];
-	unsigned char iv[32];
-} *cur_salt;
 
 static void init(struct fmt_main *self)
 {
@@ -96,104 +64,6 @@ static void init(struct fmt_main *self)
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
-
-static int valid(char *ciphertext, struct fmt_main *self)
-{
-	char *ctcopy, *keeptr, *p;
-	int len;
-
-	if (strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH) != 0)
-		return 0;
-
-	ctcopy = strdup(ciphertext);
-	keeptr = ctcopy;
-	ctcopy += TAG_LENGTH;
-	if ((p = strtok(ctcopy, "$")) == NULL) // salt length
-		goto err;
-	len = atoi(p);
-	if(len > 32)
-		goto err;
-	if ((p = strtok(NULL, "$")) == NULL) // salt
-		goto err;
-	if (strlen(p) != len * 2)
-		goto err;
-	if ((p = strtok(NULL, "$")) == NULL) // iterations (in log2)
-		goto err;
-	if(atoi(p) > 24) // CRYPT5_KDF_LG2_COUNT_MAX
-		goto err;
-	if ((p = strtok(NULL, "$")) == NULL) // AES IV
-		goto err;
-	if (strlen(p) != SIZE_INITV * 2)
-		goto err;
-	if ((p = strtok(NULL, "$")) == NULL) // pswcheck len (redundant)
-		goto err;
-	len = atoi(p);
-	if(len != BINARY_SIZE)
-		goto err;
-	if ((p = strtok(NULL, "$")) == NULL) // pswcheck
-		goto err;
-	if(strlen(p) != BINARY_SIZE * 2)
-		goto err;
-
-	MEM_FREE(keeptr);
-	return 1;
-
-err:
-	MEM_FREE(keeptr);
-	return 0;
-}
-
-static void *get_salt(char *ciphertext)
-{
-	char *ctcopy = strdup(ciphertext);
-	char *keeptr = ctcopy;
-	char *p;
-	int i;
-	static struct custom_salt cs;
-	ctcopy += TAG_LENGTH;
-	p = strtok(ctcopy, "$");
-	cs.saltlen = atoi(p);
-	p = strtok(NULL, "$");
-	for (i = 0; i < cs.saltlen; i++)
-		cs.salt[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
-			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	p = strtok(NULL, "$");
-	cs.iterations = 1 << atoi(p);
-	p = strtok(NULL, "$");
-	for (i = 0; i < SIZE_INITV; i++)
-		cs.iv[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
-			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	MEM_FREE(keeptr);
-	return (void *)&cs;
-}
-
-static void *get_binary(char *ciphertext)
-{
-	static union {
-		unsigned char c[BINARY_SIZE];
-		ARCH_WORD dummy;
-	} buf;
-	unsigned char *out = buf.c;
-	char *p;
-	int i;
-	p = strrchr(ciphertext, '$') + 1;
-	for (i = 0; i < BINARY_SIZE; i++) {
-		out[i] =
-		    (atoi16[ARCH_INDEX(*p)] << 4) |
-		    atoi16[ARCH_INDEX(p[1])];
-		p += 2;
-	}
-
-	return out;
-}
-
-static int get_hash_0(int index) { return crypt_out[index][0] & 0xf; }
-static int get_hash_1(int index) { return crypt_out[index][0] & 0xff; }
-static int get_hash_2(int index) { return crypt_out[index][0] & 0xfff; }
-static int get_hash_3(int index) { return crypt_out[index][0] & 0xffff; }
-static int get_hash_4(int index) { return crypt_out[index][0] & 0xfffff; }
-static int get_hash_5(int index) { return crypt_out[index][0] & 0xffffff; }
-static int get_hash_6(int index) { return crypt_out[index][0] & 0x7ffffff; }
 
 static void set_salt(void *salt)
 {
@@ -236,11 +106,9 @@ static void hmac_sha256(unsigned char * pass, int passlen, unsigned char * salt,
 	SHA256_Final(ret, &ctx);
 }
 
-
-#define  Min(x,y) (((x)<(y)) ? (x):(y))
-// PBKDF2 for 32 unsigned char key length. We generate the key for specified number
-// of iteration count also as two supplementary values (key for checksums
-// and password verification) for iterations+16 and iterations+32.
+// PBKDF2 for 32 unsigned char key length. We generate the key for specified
+// number of iteration count also as two supplementary values (key for
+// checksums and password verification) for iterations+16 and iterations+32.
 static void rar5kdf(unsigned char *Pwd, size_t PwdLength,
             unsigned char *Salt, size_t SaltLength,
             unsigned char *Key, unsigned char *V1, unsigned char *V2, int Count)
@@ -292,41 +160,20 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	{
 		unsigned char Key[32],PswCheckValue[SHA256_DIGEST_SIZE],HashKeyValue[SHA256_DIGEST_SIZE];
 		char *password = saved_key[index];
-		unsigned char PswCheck[SHA256_DIGEST_SIZE];
+		unsigned char PswCheck[SIZE_PSWCHECK];
 		int i;
 		rar5kdf((unsigned char*)password, strlen(password),
 				cur_salt->salt, SIZE_SALT50,
 				Key, HashKeyValue, PswCheckValue,
 				cur_salt->iterations);
 		// special wtf processing
-		memset(PswCheck, 0, SIZE_PSWCHECK);
-		for (i = 0; i <SHA256_DIGEST_SIZE; i++)
+		memset(PswCheck, 0, sizeof(PswCheck));
+		for (i = 0; i < SHA256_DIGEST_SIZE; i++)
 			PswCheck[i % SIZE_PSWCHECK] ^= PswCheckValue[i];
 
-		memcpy((unsigned char*)crypt_out[index], PswCheck, SIZE_PSWCHECK);
+		memcpy((void*)crypt_out[index], PswCheck, SIZE_PSWCHECK);
 	}
 	return count;
-}
-
-static int cmp_all(void *binary, int count)
-{
-	int index = 0;
-#ifdef _OPENMP
-	for (; index < count; index++)
-#endif
-		if (!memcmp(binary, crypt_out[index], BINARY_SIZE))
-			return 1;
-	return 0;
-}
-
-static int cmp_one(void *binary, int index)
-{
-	return !memcmp(binary, crypt_out[index], BINARY_SIZE);
-}
-
-static int cmp_exact(char *source, int index)
-{
-	return 1;
 }
 
 static void rar5_set_key(char *key, int index)
@@ -349,11 +196,6 @@ static unsigned int iteration_count(void *salt)
 	struct custom_salt *my_salt;
 
 	my_salt = salt;
-
-	/*
-	 * Should I report my_salt->iterations - 1 + 16 +16 instead?
-	 * (see rar5kdf)
-	 */
 	return my_salt->iterations;
 }
 #endif
@@ -378,7 +220,7 @@ struct fmt_main fmt_rar5 = {
 			"iteration count",
 		},
 #endif
-		rar5_tests
+		tests
 	}, {
 		init,
 		fmt_default_done,
