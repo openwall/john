@@ -5,9 +5,6 @@
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification, are permitted.
  *
- * TODO:
- *	auto LWS/GWS setup
- *
  * http://www.rarlab.com/technote.htm
  *
  * $rar5$<salt_len>$<salt>$<iter_log2>$<iv>$<pswcheck_len>$<pswcheck>
