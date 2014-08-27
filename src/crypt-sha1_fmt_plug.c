@@ -6,6 +6,9 @@
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
+ *
+ * Enhanced code (dropped usage of the Gladman hmac code), and addition of SSE2
+ * logic, Aug 2014, JimF.
  */
 
 #if FMT_EXTERNS_H
@@ -43,9 +46,9 @@ john_register_one(&fmt_cryptsha1);
 #define SALT_LENGTH                 64
 
 #ifdef MMX_COEF
-#define ALGORITHM_NAME          "PBKDF2-SHA1 " SHA1_N_STR MMX_TYPE
+#define ALGORITHM_NAME          "PBKDF1-SHA1 " SHA1_N_STR MMX_TYPE
 #else
-#define ALGORITHM_NAME          "PBKDF2-SHA1 " ARCH_BITS_STR "/" ARCH_BITS_STR
+#define ALGORITHM_NAME          "PBKDF1-SHA1 " ARCH_BITS_STR "/" ARCH_BITS_STR
 #endif
 
 #define PLAINTEXT_LENGTH            125
