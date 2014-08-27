@@ -5,6 +5,9 @@
  * Some modifications, Jim Fougeron, 2013.  Licensing rights listed in accompanying sse-intrinsics.c file.
  */
 
+#if !defined (__JTR_SSE_INTRINSICS_H__)
+#define __JTR_SSE_INTRINSICS_H__
+
 #if (MMX_COEF && MMX_COEF == 2) || !MMX_COEF
 #undef SSE_type
 #define SSE_type			"x86"
@@ -99,3 +102,5 @@ void SSESHA512body(__m128i* data, ARCH_WORD_64 *out, ARCH_WORD_64 *reload_state,
 #endif
 
 #endif
+
+#endif // __JTR_SSE_INTRINSICS_H__
