@@ -183,7 +183,7 @@ static size_t get_task_max_size()
 
 static size_t get_default_workgroup()
 {
-	return 0;
+	return 128;
 }
 
 static void release_clobj(void)

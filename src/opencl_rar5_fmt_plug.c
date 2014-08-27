@@ -163,7 +163,7 @@ static size_t get_task_max_work_group_size(){
 
 static size_t get_task_max_size()
 {
-	return 0;
+	return 128;
 }
 
 static size_t get_default_workgroup()
