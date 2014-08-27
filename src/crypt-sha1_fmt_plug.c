@@ -26,19 +26,26 @@ john_register_one(&fmt_cryptsha1);
 #include "params.h"
 #include "common.h"
 #include "formats.h"
-#define BINARY_SIZE                 20
-#define SALT_LENGTH                 64
+#define PBKDF1_LOGIC 1
+#include "pbkdf2_hmac_sha1.h"
 #include "memdbg.h"
+
+#define SHA1_MAGIC "$sha1$"
+#define SHA1_SIZE 20
 
 #define FORMAT_LABEL                "sha1crypt"
 #define FORMAT_NAME                 "NetBSD's sha1crypt"
 #define BENCHMARK_COMMENT           ""
 #define BENCHMARK_LENGTH            -1001
 
-#if ARCH_BITS >= 64
-#define ALGORITHM_NAME              "PBKDF1-SHA1 64/" ARCH_BITS_STR
+#define BINARY_SIZE                 20
+// max valid salt len in hash is shorter than this (by length of "$sha1$" and length of base10 string of rounds)
+#define SALT_LENGTH                 64
+
+#ifdef MMX_COEF
+#define ALGORITHM_NAME          "PBKDF2-SHA1 " SHA1_N_STR MMX_TYPE
 #else
-#define ALGORITHM_NAME              "PBKDF1-SHA1 32/" ARCH_BITS_STR
+#define ALGORITHM_NAME          "PBKDF2-SHA1 " ARCH_BITS_STR "/" ARCH_BITS_STR
 #endif
 
 #define PLAINTEXT_LENGTH            125
@@ -48,8 +55,14 @@ john_register_one(&fmt_cryptsha1);
 #define SALT_SIZE                   sizeof(struct saltstruct)
 #define SALT_ALIGN                  4
 
-#define MIN_KEYS_PER_CRYPT          1
-#define MAX_KEYS_PER_CRYPT          1
+#ifdef MMX_COEF
+#define MIN_KEYS_PER_CRYPT      MMX_COEF
+#define MAX_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA1
+#else
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      1
+#endif
+
 
 /* An example hash (of password) is $sha1$40000$jtNX3nZ2$hBNaIXkt4wBI2o5rsi8KejSjNqIq.
  * An sha1-crypt hash string has the format $sha1$rounds$salt$checksum, where:
@@ -72,24 +85,18 @@ static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
 
 static struct saltstruct {
-	/*
-	 * If this definition changes, e.g., to store the iterations
-	 * in an unsigned int, make sure to adjust
-	 * static unsigned int iteration_count(void *salt)
-	 * as well.
-	 */
+	unsigned int length;
+	unsigned int rounds;
 	unsigned char salt[SALT_LENGTH];
 } *cur_salt;
 
 static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
-	int omp_t;
-
-	omp_t = omp_get_max_threads();
-	self->params.min_keys_per_crypt = omp_t * MIN_KEYS_PER_CRYPT;
+	int omp_t = omp_get_max_threads();
+	self->params.min_keys_per_crypt *= omp_t;
 	omp_t *= OMP_SCALE;
-	self->params.max_keys_per_crypt = omp_t * MAX_KEYS_PER_CRYPT;
+	self->params.max_keys_per_crypt *= omp_t;
 #endif
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
@@ -103,11 +110,9 @@ static int get_hash_4(int index) { return crypt_out[index][0] & 0xfffff; }
 static int get_hash_5(int index) { return crypt_out[index][0] & 0xffffff; }
 static int get_hash_6(int index) { return crypt_out[index][0] & 0x7ffffff; }
 
-#define ROUNDS_PREFIX           "$sha1$"
-
 static int valid(char * ciphertext, struct fmt_main * self) {
 	char *pos, *start, *endp;
-	if (strncmp(ciphertext, ROUNDS_PREFIX, sizeof(ROUNDS_PREFIX) - 1))
+	if (strncmp(ciphertext, SHA1_MAGIC, sizeof(SHA1_MAGIC) - 1))
 		return 0;
 
 	// validate checksum
@@ -119,7 +124,7 @@ static int valid(char * ciphertext, struct fmt_main * self) {
 		return 0;
 
 	// validate "rounds"
-	start = ciphertext + sizeof(ROUNDS_PREFIX) - 1;
+	start = ciphertext + sizeof(SHA1_MAGIC) - 1;
 	if (!strtoul(start, &endp, 10))
 		return 0;
 
@@ -176,18 +181,37 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-void internal_crypt_sha1(const char *pw, const char *salt, unsigned char *passwd);
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
 	int index = 0;
-#ifdef _OPENMP
+
+#if defined(_OPENMP) || MAX_KEYS_PER_CRYPT > 1
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
+	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 #endif
 	{
-		internal_crypt_sha1(saved_key[index], (char*)cur_salt->salt, (unsigned char *)crypt_out[index]);
+#ifdef SSE_GROUP_SZ_SHA1
+		int lens[SSE_GROUP_SZ_SHA1], i;
+		unsigned char *pin[SSE_GROUP_SZ_SHA1];
+		ARCH_WORD_32 *pout[SSE_GROUP_SZ_SHA1];
+		for (i = 0; i < SSE_GROUP_SZ_SHA1; ++i) {
+			lens[i] = strlen(saved_key[index+i]);
+			pin[i] = (unsigned char*)saved_key[index+i];
+			pout[i] = crypt_out[index+i];
+		}
+		pbkdf2_sha1_sse((const unsigned char **)pin, lens,
+		                cur_salt->salt, cur_salt->length,
+		                cur_salt->rounds, (unsigned char**)pout,
+		                BINARY_SIZE, 0);
+#else
+		pbkdf2_sha1((const unsigned char*)(saved_key[index]),
+		            strlen(saved_key[index]),
+		            cur_salt->salt, cur_salt->length,
+		            cur_salt->rounds, (unsigned char*)crypt_out[index],
+		            BINARY_SIZE, 0);
+#endif
 	}
 	return count;
 }
@@ -200,17 +224,23 @@ static void set_salt(void *salt)
 static void *get_salt(char *ciphertext)
 {
 	static struct saltstruct out;
-        char *p;
-        p = strrchr(ciphertext, '$') + 1;
-	strncpy((char*)out.salt, ciphertext, p - ciphertext);
+	char tmp[256];
+	char *p;
+	p = strrchr(ciphertext, '$') + 1;
+	strncpy(tmp, ciphertext, p - ciphertext -1);
 
+	out.rounds = strtoul(&ciphertext[sizeof(SHA1_MAGIC)-1], NULL, 10);
+	// point p to the salt value, BUT we have to decorate the salt for this hash.
+	p = strrchr(tmp, '$') + 1;
+	// real salt used is: <salt><magic><iterations>
+	out.length = snprintf((char*)out.salt, sizeof(out.salt), "%.*s%s%u", strlen(p), p, SHA1_MAGIC, out.rounds);
 	return &out;
 }
 
 static int cmp_all(void *binary, int count)
 {
 	int index = 0;
-#ifdef _OPENMP
+#if defined(_OPENMP) || MAX_KEYS_PER_CRYPT > 1
 	for (; index < count; index++)
 #endif
 		if (!memcmp(binary, crypt_out[index], BINARY_SIZE))
@@ -220,7 +250,7 @@ static int cmp_all(void *binary, int count)
 
 static int cmp_one(void *binary, int index)
 {
-	return !memcmp(binary, crypt_out[index], 8);
+	return !memcmp(binary, crypt_out[index], BINARY_SIZE);
 }
 
 static int cmp_exact(char *source, int index)
@@ -245,23 +275,8 @@ static int salt_hash(void *salt)
 #if FMT_MAIN_VERSION > 11
 static unsigned int iteration_count(void *salt)
 {
-/*
- * FIXME: Instead of re-computing the iteration count from the
- *        character string again and again (see internal_crypt_sha1
- *        in crypt-sha1_plug.c), this format should compute and store
- *        the iteration count in an integer component of the salt.
- */
-	unsigned int iterations;
-	static const char *magic = ROUNDS_PREFIX; // SHA1_MAGIC in crypt-sha1_plug.c
-	char *my_salt = salt;
-	char *ep;
-
-	my_salt += strlen(magic);
-	iterations = strtoul(my_salt, &ep, 10);
-	if (*ep != '$')
-		iterations = 0;
-
-	return iterations;
+	struct saltstruct *p = (struct saltstruct *)salt;
+	return p->rounds;
 }
 #endif
 

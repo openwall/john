@@ -91,7 +91,8 @@ static void _pbkdf2_sha1(const unsigned char *S, int SL, int R, ARCH_WORD_32 *ou
 	}
 #if defined (PBKDF1_LOGIC)
 	// PBKDF1 simply uses end result of all of the HMAC iterations
-	memcpy(out, tmp_hash, SHA_DIGEST_LENGTH);
+	for(j = 0; j < SHA_DIGEST_LENGTH/sizeof(ARCH_WORD_32); j++)
+			out[j] = ((ARCH_WORD_32*)tmp_hash)[j];
 #endif
 }
 static void pbkdf2_sha1(const unsigned char *K, int KL, const unsigned char *S, int SL, int R, unsigned char *out, int outlen, int skip_bytes)
@@ -213,6 +214,7 @@ static void pbkdf2_sha1_sse(const unsigned char *K[SSE_GROUP_SZ_SHA1], int KL[SS
 	loops = (skip_bytes + outlen + (SHA_DIGEST_LENGTH-1)) / SHA_DIGEST_LENGTH;
 	loop = skip_bytes / SHA_DIGEST_LENGTH + 1;
 	while (loop <= loops) {
+		int k;
 		for (j = 0; j < SSE_GROUP_SZ_SHA1; ++j) {
 			memcpy(&ctx, &ipad[j], sizeof(ctx));
 			SHA1_Update(&ctx, S, SL);
@@ -245,7 +247,6 @@ static void pbkdf2_sha1_sse(const unsigned char *K[SSE_GROUP_SZ_SHA1], int KL[SS
 
 		// Here is the inner loop.  We loop from 1 to count.  iteration 0 was done in the ipad/opad computation.
 		for(i = 1; i < R; i++) {
-			int k;
 			SSESHA1body((unsigned char*)o1,o1,i1, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 			SSESHA1body((unsigned char*)o1,o1,i2, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 #if !defined (PBKDF1_LOGIC)
@@ -261,7 +262,7 @@ static void pbkdf2_sha1_sse(const unsigned char *K[SSE_GROUP_SZ_SHA1], int KL[SS
 		for (k = 0; k < SSE_GROUP_SZ_SHA1; k++) {
 			unsigned *p = &o1[(k/MMX_COEF)*MMX_COEF*SHA_BUF_SIZ + (k&(MMX_COEF-1))];
 			for(j = 0; j < (SHA_DIGEST_LENGTH/sizeof(ARCH_WORD_32)); j++)
-				dgst[k][j]  p[(j<<(MMX_COEF>>1))];
+				dgst[k][j] = p[(j<<(MMX_COEF>>1))];
 		}
 #endif
 
