@@ -156,8 +156,8 @@ static void create_clobj(size_t kpc, struct fmt_main *self)
 }
 
 /* ------- Helper functions ------- */
-static size_t get_task_max_work_group_size(){
-
+static size_t get_task_max_work_group_size()
+{
 	return common_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
 }
 
@@ -168,7 +168,10 @@ static size_t get_task_max_size()
 
 static size_t get_default_workgroup()
 {
-	return 128;
+	if (cpu(device_info[gpu_id]))
+		return 1;
+	else
+		return 128;
 }
 
 static void release_clobj(void)

@@ -1451,6 +1451,9 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
 		}
 
 		if (run_time > max_run_time) {
+			if (!optimal_gws)
+				optimal_gws = num;
+
 			if (options.verbosity > 3)
 				fprintf(stderr, " - too slow\n");
 			break;
@@ -1474,9 +1477,6 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
 				     &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating command queue");
 	global_work_size = optimal_gws;
-
-	if (!global_work_size)
-		global_work_size = num;
 
 	config_string[0] = '\0';
 	strcat(config_string, config_name);
