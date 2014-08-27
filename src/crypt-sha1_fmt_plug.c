@@ -233,7 +233,7 @@ static void *get_salt(char *ciphertext)
 	char *p;
 	p = strrchr(ciphertext, '$') + 1;
 	strncpy(tmp, ciphertext, p - ciphertext -1);
-
+	tmp[p-ciphertext-1] = 0;
 	out.rounds = strtoul(&ciphertext[sizeof(SHA1_MAGIC)-1], NULL, 10);
 	// point p to the salt value, BUT we have to decorate the salt for this hash.
 	p = strrchr(tmp, '$') + 1;
