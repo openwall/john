@@ -190,8 +190,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	int count = *pcount;
 	int index = 0;
 
-#if defined(_OPENMP) || MAX_KEYS_PER_CRYPT > 1
+#ifdef _OPENMP
 #pragma omp parallel for
+#endif
+#if defined(_OPENMP) || MAX_KEYS_PER_CRYPT > 1
 	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 #endif
 	{
@@ -236,7 +238,7 @@ static void *get_salt(char *ciphertext)
 	// point p to the salt value, BUT we have to decorate the salt for this hash.
 	p = strrchr(tmp, '$') + 1;
 	// real salt used is: <salt><magic><iterations>
-	out.length = snprintf((char*)out.salt, sizeof(out.salt), "%.*s%s%u", strlen(p), p, SHA1_MAGIC, out.rounds);
+	out.length = snprintf((char*)out.salt, sizeof(out.salt), "%.*s%s%u", (int)strlen(p), p, SHA1_MAGIC, out.rounds);
 	return &out;
 }
 
