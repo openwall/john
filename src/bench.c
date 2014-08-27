@@ -433,10 +433,9 @@ int benchmark_all(void)
 		}
 #endif
 
-		/* FIXME: Kludge for thin dynamics, and OpenCL version
-		   of RAR3 format, that morphes in init() */
+		/* FIXME: Kludge for thin dynamics, and OpenCL formats */
 		if ((format->params.flags & FMT_DYNAMIC) ||
-		    !strcasecmp(format->params.label, "rar-opencl"))
+		    strstr(format->params.label, "-opencl"))
 			fmt_init(format);
 
 #ifdef _OPENMP
