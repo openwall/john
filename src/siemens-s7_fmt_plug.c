@@ -154,14 +154,14 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	int count = *pcount;
 	int index = 0;
 
-	if (new_keys) {
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
 #if defined(_OPENMP) || MAX_KEYS_PER_CRYPT > 1
-		for (index = 0; index < count; index++)
+	for (index = 0; index < count; index++)
 #endif
-		{
+	{
+		if (new_keys) {
 			SHA_CTX ctx;
 
 			SHA1_Init(&ctx);
@@ -169,16 +169,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			            strlen(saved_key[index]));
 			SHA1_Final(crypt_key[index], &ctx);
 		}
-		new_keys = 0;
-	}
-
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-#if defined(_OPENMP) || MAX_KEYS_PER_CRYPT > 1
-	for (index = 0; index < count; index++)
-#endif
 		hmac_sha1(crypt_key[index], 20, challenge, 20, (unsigned char*)crypt_out[index], 20);
+	}
+	new_keys = 0;
 
 	return count;
 }
