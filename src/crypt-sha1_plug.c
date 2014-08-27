@@ -52,6 +52,14 @@
 //#define USE_NAIVE_GLADMAN_CODE
 #ifdef USE_NAIVE_GLADMAN_CODE
 #include "gladman_hmac.h"
+#else
+#define PBKDF1_LOGIC 1
+#ifdef MMX_COEF
+// until we get the MMX stuff in this code, we want to ELIM MMX.  pbkdf2_hmac_sha1 has 2 types, and we only want 1 of them.
+#include "sse-intrinsics.h"
+#undef MMX_COEF
+#endif
+#include "pbkdf2_hmac_sha1.h"
 #endif
 #include "memdbg.h"
 
@@ -208,6 +216,7 @@ void internal_crypt_sha1(const char *pw, const char *salt, unsigned char *inout)
 	// Now output
 	memcpy(inout, hmac_buf, SHA1_SIZE);
 #else
-	pbkdf1((const unsigned char*)pw, pl, inout,dl, iterations, inout);
+	//pbkdf1((const unsigned char*)pw, pl, inout,dl, iterations, inout);
+	pbkdf2_sha1((const unsigned char*)pw, pl, inout, dl, iterations, inout, 20, 0);
 #endif
 }

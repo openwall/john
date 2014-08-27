@@ -13,6 +13,11 @@
  * simpler, AND contains an option to skip bytes, and only call the hashing
  * function where needed (significant speedup for zip format).  Also, new code
  * does not have size restrictions on PLAINTEXT_LENGTH.
+ *
+ * change made in Aug, 2014 (JimF) to also handle PBKDF1-HMAC-SHA1 logic. Pretty
+ * simple change.  We do not append iteration count. Also we do not xor accum
+ * the results of the output of each iteration. PBKDF1 only uses final iterations
+ * output buffer.
  */
 #if 1
 
@@ -58,9 +63,11 @@ static void _pbkdf2_sha1(const unsigned char *S, int SL, int R, ARCH_WORD_32 *ou
 
 	memcpy(&ctx, pIpad, sizeof(SHA_CTX));
 	SHA1_Update(&ctx, S, SL);
+#if !defined (PBKDF1_LOGIC)
 	// this 4 byte BE 'loop' appended to the salt
 	SHA1_Update(&ctx, "\x0\x0\x0", 3);
 	SHA1_Update(&ctx, &loop, 1);
+#endif
 	SHA1_Final(tmp_hash, &ctx);
 
 	memcpy(&ctx, pOpad, sizeof(SHA_CTX));
@@ -77,9 +84,15 @@ static void _pbkdf2_sha1(const unsigned char *S, int SL, int R, ARCH_WORD_32 *ou
 		memcpy(&ctx, pOpad, sizeof(SHA_CTX));
 		SHA1_Update(&ctx, tmp_hash, SHA_DIGEST_LENGTH);
 		SHA1_Final(tmp_hash, &ctx);
+#if !defined (PBKDF1_LOGIC)
 		for(j = 0; j < SHA_DIGEST_LENGTH/sizeof(ARCH_WORD_32); j++)
 			out[j] ^= ((ARCH_WORD_32*)tmp_hash)[j];
+#endif
 	}
+#if defined (PBKDF1_LOGIC)
+	// PBKDF1 simply uses end result of all of the HMAC iterations
+	memcpy(out, tmp_hash, SHA_DIGEST_LENGTH);
+#endif
 }
 static void pbkdf2_sha1(const unsigned char *K, int KL, const unsigned char *S, int SL, int R, unsigned char *out, int outlen, int skip_bytes)
 {
@@ -209,8 +222,10 @@ static void pbkdf2_sha1_sse(const unsigned char *K[SSE_GROUP_SZ_SHA1], int KL[SS
 			// rounds between, but each chunk of password we would use a larger
 			// BE number appended to the salt. The first roung (64 byte pw), and
 			// we simply append the first number (0001 in BE)
+#if !defined (PBKDF1_LOGIC)
 			SHA1_Update(&ctx, "\x0\x0\x0", 3);
 			SHA1_Update(&ctx, &loop, 1);
+#endif
 			SHA1_Final(tmp_hash, &ctx);
 
 			memcpy(&ctx, &opad[j], sizeof(ctx));
@@ -233,13 +248,22 @@ static void pbkdf2_sha1_sse(const unsigned char *K[SSE_GROUP_SZ_SHA1], int KL[SS
 			int k;
 			SSESHA1body((unsigned char*)o1,o1,i1, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 			SSESHA1body((unsigned char*)o1,o1,i2, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
-			// only xor first 16 bytes, since that is ALL this format uses
+#if !defined (PBKDF1_LOGIC)
 			for (k = 0; k < SSE_GROUP_SZ_SHA1; k++) {
 				unsigned *p = &o1[(k/MMX_COEF)*MMX_COEF*SHA_BUF_SIZ + (k&(MMX_COEF-1))];
 				for(j = 0; j < (SHA_DIGEST_LENGTH/sizeof(ARCH_WORD_32)); j++)
 					dgst[k][j] ^= p[(j<<(MMX_COEF>>1))];
 			}
+#endif
 		}
+#if defined (PBKDF1_LOGIC)
+		// PBKDF1 simply uses the end 'result' of all of the HMAC iterations.
+		for (k = 0; k < SSE_GROUP_SZ_SHA1; k++) {
+			unsigned *p = &o1[(k/MMX_COEF)*MMX_COEF*SHA_BUF_SIZ + (k&(MMX_COEF-1))];
+			for(j = 0; j < (SHA_DIGEST_LENGTH/sizeof(ARCH_WORD_32)); j++)
+				dgst[k][j]  p[(j<<(MMX_COEF>>1))];
+		}
+#endif
 
 		// we must fixup final results.  We have been working in BE (NOT switching out of, just to switch back into it at every loop).
 		// for the 'very' end of the crypt, we remove BE logic, so the calling function can view it in native format.
