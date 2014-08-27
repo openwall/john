@@ -1063,7 +1063,7 @@ static void release_profiling_events()
 static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 {
 	cl_ulong startTime, endTime, runtime = 0, looptime = 0;
-	int i, count, tidx = 0;
+	int i, count, tidx = 0, total = 0;
 	size_t kpc = gws * opencl_v_width;
 
 	// Prepare buffers.
@@ -1121,9 +1121,10 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 
 		if ((split_events) && (i == split_events[0] ||
 				       i == split_events[1] ||
-				       i == split_events[2]))
+				       i == split_events[2])) {
 			looptime += (endTime - startTime);
-		else
+			total++;
+		} else
 			runtime += (endTime - startTime);
 
 		if (options.verbosity > 4)
@@ -1144,7 +1145,7 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 		fprintf(stderr, "\n");
 
 	if (split_events)
-		runtime += ((looptime / 3) * (rounds / hash_loops));
+		runtime += ((looptime / total) * (rounds / hash_loops));
 
 	release_profiling_events();
 	release_clobj();
@@ -1473,6 +1474,9 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
 				     &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating command queue");
 	global_work_size = optimal_gws;
+
+	if (!global_work_size)
+		global_work_size = num;
 
 	config_string[0] = '\0';
 	strcat(config_string, config_name);
