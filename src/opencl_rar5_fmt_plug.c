@@ -390,20 +390,14 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	// special wtf processing [SIC]
 	for (i = 0; i < count; i++) {
-		int j;
-		unsigned char PswCheck[SIZE_PSWCHECK];
-
-#ifdef DEBUG
-		fprintf(stderr, "hash %d ", i);
-		dump_stuff(host_crack[i].hash, SHA256_DIGEST_SIZE);
-#endif
-		memset(PswCheck, 0, sizeof(PswCheck));
-		for (j = 0; j < SHA256_DIGEST_SIZE; j++)
-			PswCheck[j % SIZE_PSWCHECK] ^= ((unsigned char*)host_crack[i].hash)[j];
-		memcpy((void*)crypt_out[i], PswCheck, SIZE_PSWCHECK);
-#ifdef DEBUG
-		dump_stuff_msg("result", PswCheck, SIZE_PSWCHECK);
-#endif
+		crypt_out[i][0] = host_crack[i].hash[0];
+		crypt_out[i][1] = host_crack[i].hash[1];
+		crypt_out[i][0] ^= host_crack[i].hash[2];
+		crypt_out[i][1] ^= host_crack[i].hash[3];
+		crypt_out[i][0] ^= host_crack[i].hash[4];
+		crypt_out[i][1] ^= host_crack[i].hash[5];
+		crypt_out[i][0] ^= host_crack[i].hash[6];
+		crypt_out[i][1] ^= host_crack[i].hash[7];
 	}
 
 	return count;
