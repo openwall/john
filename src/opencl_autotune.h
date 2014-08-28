@@ -15,7 +15,6 @@
 
 #include "common-opencl.h"
 
-
 //Necessary definitions. Each format have to have each one of them.
 static size_t get_task_max_size();
 static size_t get_default_workgroup();
