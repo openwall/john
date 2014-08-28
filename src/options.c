@@ -293,7 +293,7 @@ JOHN_USAGE_FORK \
 
 static int qcmpstr(const void *p1, const void *p2)
 {
-	return strcmp(*(const char**)p1, *(const char**)p2);
+	return strcasecmp(*(const char**)p1, *(const char**)p2);
 }
 
 static void print_usage(char *name)
