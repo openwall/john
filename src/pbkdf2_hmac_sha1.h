@@ -26,6 +26,11 @@
 #include "stdint.h"
 #include "sse-intrinsics.h"
 
+#ifdef PBKDF1_LOGIC
+#define pbkdf2_sha1 pbkdf1_sha1
+#define pbkdf2_sha1_sse pbkdf1_sha1_sse
+#endif
+
 #if !defined(MMX_COEF) || defined (PBKDF2_HMAC_SHA1_ALSO_INCLUDE_CTX)
 
 static void _pbkdf2_sha1_load_hmac(const unsigned char *K, int KL, SHA_CTX *pIpad, SHA_CTX *pOpad) {

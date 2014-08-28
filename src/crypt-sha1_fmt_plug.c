@@ -208,12 +208,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			pin[i] = (unsigned char*)saved_key[index+i];
 			pout[i] = crypt_out[index+i];
 		}
-		pbkdf2_sha1_sse((const unsigned char **)pin, lens,
+		pbkdf1_sha1_sse((const unsigned char **)pin, lens,
 		                cur_salt->salt, cur_salt->length,
 		                cur_salt->rounds, (unsigned char**)pout,
 		                BINARY_SIZE, 0);
 #else
-		pbkdf2_sha1((const unsigned char*)(saved_key[index]),
+		pbkdf1_sha1((const unsigned char*)(saved_key[index]),
 		            strlen(saved_key[index]),
 		            cur_salt->salt, cur_salt->length,
 		            cur_salt->rounds, (unsigned char*)crypt_out[index],
