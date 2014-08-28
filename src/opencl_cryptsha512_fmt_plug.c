@@ -121,7 +121,7 @@ static size_t get_default_workgroup(){
 	max_available = get_task_max_work_group_size();
 
 	if (gpu_nvidia(device_info[gpu_id])) {
-		global_work_size = GET_MULTIPLE(global_work_size, max_available);
+		global_work_size = GET_EXACT_MULTIPLE(global_work_size, max_available);
 		return max_available;
 
 	} else
@@ -260,7 +260,7 @@ static void * get_salt(char *ciphertext) {
 	//Put the tranfered salt on salt buffer.
 	memcpy(out.salt, ciphertext, len);
 	out.length = len;
-	out.final = out.rounds - GET_MULTIPLE(out.rounds, HASH_LOOPS);
+	out.final = out.rounds - GET_MULTIPLE_OR_ZERO(out.rounds, HASH_LOOPS);
 
 	return &out;
 }
@@ -389,7 +389,7 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *_salt) {
 	size_t gws;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
-	gws = GET_MULTIPLE_BIGGER(count, local_work_size);
+	gws = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
 
 	//Send data to device.
 	if (new_keys)
@@ -435,7 +435,7 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 	int i;
 	size_t gws;
 
-	gws = GET_MULTIPLE_BIGGER(count, local_work_size);
+	gws = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
 
 	//Send data to device.
 	if (new_keys)

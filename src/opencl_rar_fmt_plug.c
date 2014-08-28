@@ -113,9 +113,6 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *_salt);
 //This file contains auto-tuning routine(s). Has to be included after formats definitions.
 #include "opencl_autotune.h"
 
-#define GET_MULTIPLE_BIGGER(dividend, divisor)	(divisor) ? (((dividend + divisor - 1) / divisor) * divisor) : (dividend)
-
-
 #define ITERATIONS		0x40000
 #define HASH_LOOPS		0x04000 // Fixed, do not change
 
@@ -793,7 +790,7 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
 	int count = *pcount;
 	int k, ev = 0;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
-	size_t gws = local_work_size ? ((count + (local_work_size - 1)) / local_work_size) * local_work_size : count;
+	size_t gws = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
 
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_key, CL_FALSE, 0, UNICODE_LENGTH * gws, saved_key, 0, NULL, multi_profilingEvent[ev++]), "failed in clEnqueueWriteBuffer saved_key");
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_len, CL_FALSE, 0, sizeof(int) * gws, saved_len, 0, NULL, multi_profilingEvent[ev++]), "failed in clEnqueueWriteBuffer saved_len");

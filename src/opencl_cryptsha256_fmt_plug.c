@@ -270,7 +270,7 @@ static void * get_salt(char *ciphertext) {
 	//Put the tranfered salt on salt buffer.
 	memcpy(out.salt, ciphertext, len);
 	out.length = len;
-	out.final = out.rounds - GET_MULTIPLE(out.rounds, HASH_LOOPS);
+	out.final = out.rounds - GET_MULTIPLE_OR_ZERO(out.rounds, HASH_LOOPS);
 
 	return &out;
 }
@@ -403,7 +403,7 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *_salt)
 	size_t gws;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
-	gws = GET_MULTIPLE_BIGGER(count, local_work_size);
+	gws = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
 
 	//Send data to device.
 	if (new_keys)
@@ -449,7 +449,7 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 	int i;
 	size_t gws;
 
-	gws = GET_MULTIPLE_BIGGER(count, local_work_size);
+	gws = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
 
 	//Send data to device.
 	if (new_keys)

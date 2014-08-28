@@ -657,7 +657,7 @@ void opencl_get_user_preferences(char *format)
 
 	if (local_work_size)
 		// Ensure a valid multiple is used.
-		global_work_size = GET_MULTIPLE(global_work_size,
+		global_work_size = GET_MULTIPLE_OR_ZERO(global_work_size,
 						local_work_size);
 
 	if (format)

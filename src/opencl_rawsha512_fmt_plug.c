@@ -514,7 +514,7 @@ static int crypt_all(int *pcount, struct db_salt *_salt) {
 	size_t gws;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
-	gws = GET_MULTIPLE_BIGGER(count, local_work_size);
+	gws = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
 
 	/* Self-test cludge */
 	if (offset > key_idx || offset > gws)
@@ -557,7 +557,7 @@ static int cmp_all(void * binary, int count) {
 	uint32_t partial_binary;
 	size_t gws;
 
-	gws = GET_MULTIPLE_BIGGER(count, local_work_size);
+	gws = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
 	partial_binary = (int) ((uint64_t *) binary)[0];
 	hash_found = 0;
 

@@ -114,8 +114,6 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *_salt);
 //This file contains auto-tuning routine(s). Has to be included after formats definitions.
 #include "opencl_autotune.h"
 
-#define GET_MULTIPLE_BIGGER(dividend, divisor)	(divisor) ? (((dividend + divisor - 1) / divisor) * divisor) : (dividend)
-
 static void create_clobj(size_t kpc, struct fmt_main *self)
 {
 #define CL_RO CL_MEM_READ_ONLY
@@ -252,7 +250,7 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
 	size_t gws;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
-	gws = GET_MULTIPLE_BIGGER(count, local_work_size);
+	gws = GET_EXACT_MULTIPLE(count, local_work_size);
 
 #ifdef DEBUG
 	printf("crypt_all(%d)\n", count);

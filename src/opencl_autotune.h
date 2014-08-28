@@ -13,11 +13,15 @@
 #ifndef _COMMON_TUNE_H
 #define _COMMON_TUNE_H
 
+#include "common-opencl.h"
+
+
 //Necessary definitions. Each format have to have each one of them.
 static size_t get_task_max_size();
 static size_t get_default_workgroup();
 static size_t get_task_max_work_group_size();
 static void create_clobj(size_t gws, struct fmt_main * self);
+static void release_clobj(void);
 
 /* ------- Externals ------- */
 /* Can be used to select a 'good' default gws size */
@@ -92,6 +96,12 @@ static void common_run_auto_tune(struct fmt_main * self, unsigned int rounds,
 	if (gws_limit && (global_work_size > gws_limit))
 		global_work_size = gws_limit;
 
+	/* Adjust, if necessary */
+	if (!local_work_size)
+		global_work_size = GET_MULTIPLE_OR_ZERO(global_work_size, 64);
+	else
+		global_work_size = GET_MULTIPLE_OR_ZERO(global_work_size, local_work_size);
+
 	//Check if local_work_size is a valid number.
 	if (local_work_size > get_task_max_work_group_size()){
 		local_work_size = 0; //Force find a valid number.
@@ -108,7 +118,10 @@ static void common_run_auto_tune(struct fmt_main * self, unsigned int rounds,
 	if (!local_work_size)
 		find_best_lws(self, gpu_id);
 
-	global_work_size = GET_MULTIPLE(global_work_size, local_work_size);
+	/* Adjust to the final configuration */
+	release_clobj();
+	global_work_size = GET_EXACT_MULTIPLE(global_work_size, local_work_size);
+	create_clobj(global_work_size, self);
 
 	if (options.verbosity > 2)
 		fprintf(stderr,

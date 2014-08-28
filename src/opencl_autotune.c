@@ -18,9 +18,9 @@ int common_get_next_gws_size(size_t num, int step, int startup,
                              int default_value) {
 	if (startup) {
 		if (step == 0)
-			return GET_MULTIPLE_BIGGER(default_value, local_work_size);
+			return GET_EXACT_MULTIPLE(default_value, local_work_size);
 		else
-			return GET_MULTIPLE_BIGGER(step, local_work_size);
+			return GET_EXACT_MULTIPLE(step, local_work_size);
 	}
 
 	if (step < 1)
@@ -89,7 +89,7 @@ void common_find_best_gws(int sequential_id, unsigned int rounds, int step,
 	if ((tmp_value = getenv("STEP")))
 		step = atoi(tmp_value);
 
-	step = GET_MULTIPLE(step, local_work_size);
+	step = GET_MULTIPLE_OR_ZERO(step, local_work_size);
 
 	//Call the default function.
 	opencl_find_best_gws(step, max_run_time, sequential_id, rounds);
