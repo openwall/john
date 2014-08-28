@@ -1062,9 +1062,8 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self,
 
 			if (self->methods.crypt_all(&count, NULL) < 0) {
 				startTime = endTime = 0;
-#ifdef DEBUG
-				fprintf(stderr, " Error occured\n");
-#endif
+				if (options.verbosity > 3)
+					fprintf(stderr, " Error occured\n");
 				break;
 			}
 

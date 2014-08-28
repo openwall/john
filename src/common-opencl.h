@@ -189,8 +189,11 @@ void opencl_process_event(void);
 
 /* Use this macro for OpenCL Error handling in crypt_all_benchmark() */
 #define BENCH_CLERROR(cl_error, message) {	  \
-		if ((cl_error) != CL_SUCCESS) \
+		if ((cl_error) != CL_SUCCESS) { \
+			if (options.verbosity > 4) \
+				fprintf(stderr, message); \
 			return -1; \
+		} \
 	}
 
 /* Macro for get a multiple of a given value */
