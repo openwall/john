@@ -222,7 +222,7 @@ static void init(struct fmt_main *self)
 
 	//Initialize openCL tuning (library) for this format.
 	opencl_init_auto_setup(SEED, HASH_LOOPS, 5, split_events,
-		warn, 1, self, create_clobj, release_clobj,
+		warn, 4, self, create_clobj, release_clobj,
 		sizeof(state_t), gws_limit);
 
 	//Auto tune execution from shared/included code.

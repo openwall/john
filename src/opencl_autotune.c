@@ -11,15 +11,16 @@
 
 #include "common-opencl.h"
 #include "memdbg.h"
+#include "opencl_sha2_common.h"
 
 /* Allow the developer to select configurable step size for gws. */
 int common_get_next_gws_size(size_t num, int step, int startup,
                              int default_value) {
 	if (startup) {
 		if (step == 0)
-			return GET_MULTIPLE(default_value, local_work_size);
+			return GET_MULTIPLE_BIGGER(default_value, local_work_size);
 		else
-			return GET_MULTIPLE(step, local_work_size);
+			return GET_MULTIPLE_BIGGER(step, local_work_size);
 	}
 
 	if (step < 1)
