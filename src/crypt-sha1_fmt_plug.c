@@ -42,7 +42,7 @@ john_register_one(&fmt_cryptsha1);
 #define BENCHMARK_LENGTH            -1001
 
 #define BINARY_SIZE                 20
-// max valid salt len in hash is shorter than this (by length of "$sha1$" and length of base10 string of rounds)
+// max valid salt len in hash. Final salt 'used' is larger, by length of "$sha1$" and length of base10 string of rounds
 #define SALT_LENGTH                 64
 
 #ifdef MMX_COEF
@@ -90,7 +90,7 @@ static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
 static struct saltstruct {
 	unsigned int length;
 	unsigned int rounds;
-	unsigned char salt[SALT_LENGTH];
+	unsigned char salt[SALT_LENGTH+sizeof(SHA1_MAGIC)+7+1]; // allows up to 9999999 sized rounds with 64 byte salt.
 } *cur_salt;
 
 static void init(struct fmt_main *self)
@@ -114,12 +114,13 @@ static int get_hash_5(int index) { return crypt_out[index][0] & 0xffffff; }
 static int get_hash_6(int index) { return crypt_out[index][0] & 0x7ffffff; }
 
 static int valid(char * ciphertext, struct fmt_main * self) {
-	char *pos, *start, *endp;
+	char *pos, *start;
+	unsigned rounds;
 	if (strncmp(ciphertext, SHA1_MAGIC, sizeof(SHA1_MAGIC) - 1))
 		return 0;
 
 	// validate checksum
-        pos = start = strrchr(ciphertext, '$') + 1;
+	pos = start = strrchr(ciphertext, '$') + 1;
 	if (strlen(pos) != CHECKSUM_LENGTH)
 		return 0;
 	while (atoi64[ARCH_INDEX(*pos)] != 0x7F) pos++;
@@ -128,13 +129,15 @@ static int valid(char * ciphertext, struct fmt_main * self) {
 
 	// validate "rounds"
 	start = ciphertext + sizeof(SHA1_MAGIC) - 1;
-	if (!strtoul(start, &endp, 10))
+	rounds = 0;
+	rounds = strtoul(start, NULL, 10);
+	if (rounds < 1 || rounds > 9999999) // 9999999 is 'max' due to size of buffer to hold salt.
 		return 0;
 
 	// validate salt
 	start = pos = strchr(start, '$') + 1;
 	while (atoi64[ARCH_INDEX(*pos)] != 0x7F && *pos != '$') pos++;
-	if (pos - start != 8)
+	if (pos - start > SALT_LENGTH)
 		return 0;
 
 	return 1;
@@ -161,7 +164,6 @@ static void * get_binary(char * ciphertext)
 	char *pos = strrchr(ciphertext, '$') + 1;
 	int i = 0;
 
-	// XXX is this even correct?
 	do {
 		TO_BINARY(i, i + 1, i + 2);
 		i = i + 3;
@@ -229,11 +231,11 @@ static void set_salt(void *salt)
 static void *get_salt(char *ciphertext)
 {
 	static struct saltstruct out;
-	char tmp[256];
+	char tmp[sizeof(out.salt)];
 	char *p;
+
 	p = strrchr(ciphertext, '$') + 1;
-	strncpy(tmp, ciphertext, p - ciphertext -1);
-	tmp[p-ciphertext-1] = 0;
+	strnzcpy(tmp, ciphertext, p - ciphertext);
 	out.rounds = strtoul(&ciphertext[sizeof(SHA1_MAGIC)-1], NULL, 10);
 	// point p to the salt value, BUT we have to decorate the salt for this hash.
 	p = strrchr(tmp, '$') + 1;
