@@ -1106,6 +1106,8 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 
 	//** Get execution time **//
 	for (i = 0; i < number_of_events; i++) {
+		char mult[32] = "";
+
 		HANDLE_CLERROR(
 			clGetEventProfilingInfo(*multi_profilingEvent[i],
 						CL_PROFILING_COMMAND_START,
@@ -1124,11 +1126,12 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 				       i == split_events[2])) {
 			looptime += (endTime - startTime);
 			total++;
+			sprintf(mult, "%dx", rounds / hash_loops);
 		} else
 			runtime += (endTime - startTime);
 
 		if (options.verbosity > 4)
-			fprintf(stderr, "%s%.2f ms", warnings[i],
+			fprintf(stderr, "%s%s%.2fms", warnings[i], mult,
 				(double)(endTime - startTime) / 1000000.);
 
 		/* 200 ms duration limit for GCN to avoid ASIC hangs */
