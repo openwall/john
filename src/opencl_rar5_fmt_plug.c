@@ -250,7 +250,7 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
 	size_t gws;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
-	gws = GET_EXACT_MULTIPLE(count, local_work_size);
+	gws = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
 
 #ifdef DEBUG
 	printf("crypt_all(%d)\n", count);
