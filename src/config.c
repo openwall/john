@@ -44,10 +44,35 @@ static char *trim(char *s)
 	return s;
 }
 
+static void cfg_merge_local_section() {
+	struct cfg_section *parent;
+	struct cfg_param *p1, *p2;
+
+	if (!cfg_database) return;
+	if (strncmp(cfg_database->name, "local:", 6)) return;
+	if (!strncmp(cfg_database->name, "local:list.", 11)) return;
+	parent = cfg_get_section(&cfg_database->name[6], NULL);
+	if (!parent) return;
+	// now update the params in parent section
+	p1 = cfg_database->params;
+	while (p1) {
+		p2 = parent->params;
+		while (p2) {
+			if (!strcmp(p1->name, p2->name)) {
+				p2->value = p1->value;
+				break;
+			}
+			p2 = p2->next;
+		}
+		p1 = p1->next;
+	}
+}
 static void cfg_add_section(char *name)
 {
 	struct cfg_section *last;
 
+	// if the last section was a 'Local:" section, then merge it.
+	cfg_merge_local_section();
 	last = cfg_database;
 	cfg_database = mem_alloc_tiny(
 		sizeof(struct cfg_section), MEM_ALIGN_WORD);
@@ -161,6 +186,9 @@ void cfg_init(char *name, int allow_missing)
 	if (ferror(file)) pexit("fgets");
 
 	if (fclose(file)) pexit("fclose");
+
+	// merge final section (if it is a 'Local:" section)
+	cfg_merge_local_section();
 }
 
 struct cfg_section *cfg_get_section(char *section, char *subsection)

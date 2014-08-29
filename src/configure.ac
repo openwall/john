@@ -34,6 +34,7 @@ m4_include([m4/jtr_x86_logic.m4])
 m4_include([m4/jtr_generic_logic.m4])
 m4_include([m4/jtr_systems_specific_logic.m4])
 m4_include([m4/jtr_utility_macros.m4])
+m4_include([m4/jtr_local_conf.m4])
 
 # Workaround for .gitignore refusing to ignore Makefile since it is
 # a managed file (the stub). The result of this is a *local* workaround.
@@ -723,6 +724,14 @@ echo "configure: creating ./fmt_registers.h"
 $CPP -P -DAC_BUILT $CPU_BEST_FLAGS $CFLAGS $HAVE_NSS $CFLAGS_EXTRA $NSS_CFLAGS $OPENSSL_CFLAGS -DFMT_REGISTERS_H *_fmt_plug.c | LC_ALL=C $GREP "john_register_one" | LC_ALL=C $SORT -f > fmt_registers.h
 $CPP -P -DAC_BUILT $CPU_BEST_FLAGS $CFLAGS $HAVE_OPENCL $HAVE_CUDA $HAVE_NSS $CFLAGS_EXTRA $NSS_CFLAGS $OPENSSL_CFLAGS -DFMT_REGISTERS_H opencl_*_fmt_plug.c | LC_ALL=C $GREP "john_register_one" | LC_ALL=C $SORT -f >> fmt_registers.h
 $CPP -P -DAC_BUILT $CPU_BEST_FLAGS $CFLAGS $HAVE_OPENCL $HAVE_CUDA $HAVE_NSS $CFLAGS_EXTRA $NSS_CFLAGS $OPENSSL_CFLAGS -DFMT_REGISTERS_H cuda_*_fmt_plug.c | LC_ALL=C $GREP "john_register_one" | LC_ALL=C $SORT -f >> fmt_registers.h
+
+########################################################
+# Creates ./run/john.local.conf but ONLY if it does not
+# exist. The file will have a valid comment section, and
+# will be pre-seeded with all 'Local:' sections possible
+# at the time of creation.
+JTR_JOHN_LOCAL_CONF
+########################################################
 
 ########################################################
 #    ONLY _COSMETICAL_ OUTPUT STUFF BELOW THIS LINE
