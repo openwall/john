@@ -67,7 +67,7 @@ john_register_one(&fmt_ocl_rar5);
 
 #define MIN(a, b)		(((a) < (b)) ? (a) : (b))
 #define MAX(a, b)		(((a) > (b)) ? (a) : (b))
-#define HASH_LOOPS		2523 // 2523 * 13 == 32799
+#define HASH_LOOPS		(3*13*29) // factors 3, 13, 29, 29
 #define ITERATIONS		(32800 - 1)
 
 typedef struct {
@@ -101,12 +101,11 @@ static cl_mem mem_in, mem_out, mem_salt, mem_state;
 static cl_kernel split_kernel;
 
 static const char * warn[] = {
-        "data xfer: "  ,  ", salt xfer: "   , ", prepare: " , ", result xfer: ",
-	", crypt: "
-
+        "P xfer: "  ,  ", S xfer: "   , ", init: " , ", crypt: ",
+        ", res xfer: "
 };
 
-static int split_events[] = { 4, -1, -1 };
+static int split_events[] = { 3, -1, -1 };
 
 static int crypt_all(int *pcount, struct db_salt *_salt);
 static int crypt_all_benchmark(int *pcount, struct db_salt *_salt);
@@ -205,7 +204,7 @@ static void init(struct fmt_main *self)
 
 	//Initialize openCL tuning (library) for this format.
 	opencl_init_auto_setup(SEED, HASH_LOOPS, 5, split_events,
-		warn, 4, self, create_clobj, release_clobj,
+		warn, 3, self, create_clobj, release_clobj,
 		sizeof(state_t), gws_limit);
 
 	//Auto tune execution from shared/included code.
@@ -274,14 +273,14 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
 	for(i = 0; i < 1; i++) {
 		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], split_kernel,
 			1, NULL, &gws, lws, 0, NULL,
-			multi_profilingEvent[4]), "Run split kernel");
+			multi_profilingEvent[3]), "Run split kernel");
 		HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish");
 		opencl_process_event();
 	}
 	/// Read the result back
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out,
 		CL_FALSE, 0, gws * sizeof(crack_t), host_crack, 0,
-		NULL, multi_profilingEvent[3]), "Copy result back");
+		NULL, multi_profilingEvent[4]), "Copy result back");
 
 	/// Await completion of all the above
 	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish");
