@@ -1411,6 +1411,7 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
 
 	for (num = common_get_next_gws_size(num, step, 1, default_value);;
 	     num = common_get_next_gws_size(num, step, 0, default_value)) {
+		int kpc = num * opencl_v_width;
 
 		// Check if hardware can handle the size we are going
 		// to try now.
@@ -1433,7 +1434,7 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
 		if (options.verbosity < 4)
 			advance_cursor();
 
-		speed = rounds * num / (run_time / 1000000000.);
+		speed = rounds * kpc / (run_time / 1000000000.);
 
 		if (run_time < min_time)
 			min_time = run_time;
@@ -1442,13 +1443,13 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
 			if (rounds > 1)
 				fprintf(stderr, "gws: %9zu\t%10llu c/s%12u "
 					"rounds/s%8.3f sec per crypt_all()",
-					num, (long long)(num / (run_time /
+					num, (long long)(kpc / (run_time /
 								1000000000.)),
 					speed, (float)run_time / 1000000000.);
 			else
 				fprintf(stderr, "gws: %9zu\t%10llu c/s %8.3f "
 					"ms per crypt_all()",
-					num, (long long) (num / (run_time /
+					num, (long long) (kpc / (run_time /
 								 1000000000.)),
 					(float)run_time / 1000000.);
 		}

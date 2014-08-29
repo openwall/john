@@ -41,7 +41,9 @@ static unsigned int *inbuffer;
 #define BENCHMARK_LENGTH	-1
 
 #define ITERATIONS		4095
-#define HASH_LOOPS		105 /* Must be made from factors 3, 3, 5, 7, 13 */
+#define HASH_LOOPS		105 // factors 3, 3, 5, 7, 13
+#define STEP			0
+#define SEED			64
 
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
@@ -68,11 +70,38 @@ typedef struct {
 	cl_uint partial[5];
 } wpapsk_state;
 
+static const char * warn[] = {
+        "init: ", ", loop: ", ", pass2: ", ", final: "
+};
+
+static int split_events[] = { 1, -1, -1 };
+
+//This file contains auto-tuning routine(s). Has to be included after formats definitions.
+#include "opencl_autotune.h"
+
+/* ------- Helper functions ------- */
+static size_t get_task_max_work_group_size()
+{
+	return common_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
+}
+
+static size_t get_task_max_size()
+{
+	return 0;
+}
+
+static size_t get_default_workgroup()
+{
+	if (cpu(device_info[gpu_id]))
+		return get_platform_vendor_id(platform_id) == DEV_INTEL ?
+			8 : 1;
+	else
+		return 64;
+}
+
 static void create_clobj(size_t gws, struct fmt_main *self)
 {
-	global_work_size = gws;
 	gws *= v_width;
-	self->params.max_keys_per_crypt = gws;
 
 	key_buf_size = 64 * gws;
 
@@ -168,183 +197,14 @@ static char* get_key(int index)
 	return ret;
 }
 
-static void *salt(char *ciphertext);
-static void set_salt(void *salt);
-
-static cl_ulong gws_test(size_t gws, struct fmt_main *self)
-{
-	cl_ulong startTime, endTime;
-	cl_command_queue queue_prof;
-	cl_event Event[7];
-	cl_int ret_code;
-	int i;
-	size_t scalar_gws = v_width * gws;
-	size_t *lws = local_work_size ? &local_work_size : NULL;
-
-	create_clobj(gws, self);
-	queue_prof = clCreateCommandQueue(context[gpu_id], devices[gpu_id], CL_QUEUE_PROFILING_ENABLE, &ret_code);
-	for (i = 0; i < scalar_gws; i++)
-		self->methods.set_key(tests[0].plaintext, i);
-	self->methods.set_salt(self->methods.salt(tests[0].ciphertext));
-
-	/// Copy data to gpu
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, mem_in, CL_FALSE, 0, key_buf_size, inbuffer, 0, NULL, &Event[0]), "Copy data to gpu");
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, mem_salt, CL_FALSE, 0, sizeof(wpapsk_salt), &currentsalt, 0, NULL, &Event[1]), "Copy setting to gpu");
-
-	/// Run kernels
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, wpapsk_init, 1, NULL, &global_work_size, lws, 0, NULL, &Event[2]), "Run initial kernel");
-
-	//for (i = 0; i < ITERATIONS / HASH_LOOPS - 1; i++)
-	// warm-up run without measuring
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, wpapsk_loop, 1, NULL, &global_work_size, lws, 0, NULL, NULL), "Run loop kernel");
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, wpapsk_loop, 1, NULL, &global_work_size, lws, 0, NULL, &Event[3]), "Run loop kernel");
-
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, wpapsk_pass2, 1, NULL, &global_work_size, lws, 0, NULL, &Event[4]), "Run intermediate kernel");
-
-	//for (i = 0; i < ITERATIONS / HASH_LOOPS; i++)
-	//	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, wpapsk_loop, 1, NULL, &global_work_size, lws, 0, NULL, NULL), "Run loop kernel (2nd)");
-
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, wpapsk_final_sha1, 1, NULL, &global_work_size, lws, 0, NULL, &Event[5]), "Run final kernel");
-
-	/// Read the result back
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue_prof, mem_out, CL_TRUE, 0, sizeof(mic_t) * scalar_gws, mic, 0, NULL, &Event[6]), "Copy result back");
-
-#if 1
-	HANDLE_CLERROR(clGetEventProfilingInfo(Event[0],
-			CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime,
-			NULL), "Failed to get profiling info");
-	HANDLE_CLERROR(clGetEventProfilingInfo(Event[1],
-			CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime,
-			NULL), "Failed to get profiling info");
-	if (options.verbosity > 3)
-		fprintf(stderr, "keys xfer %.2f us, ", (endTime-startTime)/1000.);
-
-	HANDLE_CLERROR(clGetEventProfilingInfo(Event[2],
-			CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime,
-			NULL), "Failed to get profiling info");
-	HANDLE_CLERROR(clGetEventProfilingInfo(Event[2],
-			CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime,
-			NULL), "Failed to get profiling info");
-	if (options.verbosity > 3)
-		fprintf(stderr, "1st kernel %.2f ms, ", (endTime-startTime)/1000000.);
-#endif
-
-	HANDLE_CLERROR(clGetEventProfilingInfo(Event[3],
-			CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime,
-			NULL), "Failed to get profiling info");
-	HANDLE_CLERROR(clGetEventProfilingInfo(Event[3],
-			CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime,
-			NULL), "Failed to get profiling info");
-
-	if (options.verbosity > 3)
-		fprintf(stderr, "loop kernel %.2f ms x %u = %.2f s, ", (endTime - startTime)/1000000., 2 * ITERATIONS/HASH_LOOPS, 2 * (ITERATIONS/HASH_LOOPS) * (endTime - startTime) / 1000000000.);
-
-	/* 200 ms duration limit */
-	if ((endTime - startTime) > 200000000) {
-		if (options.verbosity > 3)
-			fprintf(stderr, "- exceeds 200 ms\n");
-		clReleaseCommandQueue(queue_prof);
-		release_clobj();
-		return 0;
-	}
-
-#if 1
-	HANDLE_CLERROR(clGetEventProfilingInfo(Event[4],
-			CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime,
-			NULL), "Failed to get profiling info");
-	HANDLE_CLERROR(clGetEventProfilingInfo(Event[4],
-			CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime,
-			NULL), "Failed to get profiling info");
-	if (options.verbosity > 3)
-		fprintf(stderr, "pass2 kernel %.2f ms, ", (endTime-startTime)/1000000.);
-
-	HANDLE_CLERROR(clGetEventProfilingInfo(Event[5],
-			CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime,
-			NULL), "Failed to get profiling info");
-	HANDLE_CLERROR(clGetEventProfilingInfo(Event[5],
-			CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime,
-			NULL), "Failed to get profiling info");
-	if (options.verbosity > 3)
-		fprintf(stderr, "result xfer %.2f us\n", (endTime-startTime)/1000.);
-
-	HANDLE_CLERROR(clGetEventProfilingInfo(Event[6],
-			CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime,
-			NULL), "Failed to get profiling info");
-	HANDLE_CLERROR(clGetEventProfilingInfo(Event[6],
-			CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime,
-			NULL), "Failed to get profiling info");
-	if (options.verbosity > 3)
-		fprintf(stderr, "final kernel %.2f ms, ", (endTime-startTime)/1000000.);
-#endif
-
-	HANDLE_CLERROR(clGetEventProfilingInfo(Event[3],
-			CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime,
-			NULL), "Failed to get profiling info");
-	HANDLE_CLERROR(clGetEventProfilingInfo(Event[3],
-			CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime,
-			NULL), "Failed to get profiling info");
-	clReleaseCommandQueue(queue_prof);
-	release_clobj();
-
-	return (endTime - startTime) * 2 * (ITERATIONS / HASH_LOOPS - 1);
-}
-
-static void find_best_gws(struct fmt_main *self)
-{
-	int num;
-	cl_ulong run_time, min_time = CL_ULONG_MAX;
-	unsigned int SHAspeed, bestSHAspeed = 0;
-	int optimal_gws = get_kernel_preferred_multiple(gpu_id,
-	                                                crypt_kernel);
-	const int sha1perkey = 2 * ITERATIONS * 2 + 6 + 10;
-
-	if (options.verbosity > 3) {
-		fprintf(stderr, "Calculating best keys per crypt (GWS) for LWS=%zd and max. 200ms duration.\n\n", local_work_size);
-		fprintf(stderr, "Raw GPU speed figures including buffer transfers:\n");
-	}
-
-	for (num = MAX(local_work_size, optimal_gws); num; num *= 2) {
-		if (!(run_time = gws_test(num, self)))
-			break;
-
-		SHAspeed = sha1perkey * (1000000000UL * v_width * num / run_time);
-
-		if (run_time < min_time)
-			min_time = run_time;
-
-		if (options.verbosity > 3)
-			fprintf(stderr, "gws %6d%8llu c/s%14u sha1/s%8.2f sec per crypt_all()", num, (1000000000ULL * v_width * num / run_time), SHAspeed, (float)run_time / 1000000000.);
-		else
-			advance_cursor();
-
-		if (((float)run_time / (float)min_time) < ((float)SHAspeed / (float)bestSHAspeed)) {
-			if (options.verbosity > 3)
-				fprintf(stderr, "!\n");
-			bestSHAspeed = SHAspeed;
-			optimal_gws = num;
-		} else {
-			if (SHAspeed > (bestSHAspeed)) {
-				if (options.verbosity > 3)
-					fprintf(stderr, "+\n");
-				bestSHAspeed = SHAspeed;
-				optimal_gws = num;
-				continue;
-			}
-			if (options.verbosity > 3)
-				fprintf(stderr, "\n");
-		}
-	}
-	global_work_size = optimal_gws;
-}
-
 static int crypt_all(int *pcount, struct db_salt *salt);
 static int crypt_all_benchmark(int *pcount, struct db_salt *salt);
 
 static void init(struct fmt_main *self)
 {
 	char build_opts[128];
-	cl_ulong maxsize, maxsize2, max_mem;
 	static char valgo[32] = "";
+	size_t gws_limit;
 
 	if ((v_width = opencl_get_vector_width(gpu_id,
 	                                       sizeof(cl_int))) > 1) {
@@ -361,9 +221,6 @@ static void init(struct fmt_main *self)
 	         PLAINTEXT_LENGTH, v_width);
 	opencl_init("$JOHN/kernels/wpapsk_kernel.cl", gpu_id, build_opts);
 
-	/* Read LWS/GWS prefs from config or environment */
-	opencl_get_user_preferences(OCL_CONFIG);
-
 	// create kernels to execute
 	crypt_kernel = wpapsk_init = clCreateKernel(program[gpu_id], "wpapsk_init", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel");
@@ -376,65 +233,22 @@ static void init(struct fmt_main *self)
 	wpapsk_final_sha1 = clCreateKernel(program[gpu_id], "wpapsk_final_sha1", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel");
 
-	/* Enumerate GWS using *LWS=NULL (unless it was set explicitly) */
-	if (!global_work_size)
-		find_best_gws(self);
+	gws_limit = get_max_mem_alloc_size(gpu_id) / (64 * v_width);
 
-	/* Note: we ask for the kernels' max sizes, not the device's! */
-	maxsize = get_kernel_max_lws(gpu_id, wpapsk_init);
-	maxsize2 = get_kernel_max_lws(gpu_id, wpapsk_loop);
-	if (maxsize2 < maxsize) maxsize = maxsize2;
-	maxsize2 = get_kernel_max_lws(gpu_id, wpapsk_pass2);
-	if (maxsize2 < maxsize) maxsize = maxsize2;
-	maxsize2 = get_kernel_max_lws(gpu_id, wpapsk_final_md5);
-	if (maxsize2 < maxsize) maxsize = maxsize2;
-	maxsize2 = get_kernel_max_lws(gpu_id, wpapsk_final_sha1);
-	if (maxsize2 < maxsize) maxsize = maxsize2;
+	//Initialize openCL tuning (library) for this format.
+	opencl_init_auto_setup(SEED, 2 * HASH_LOOPS, 4, split_events,
+		warn, 1, self, create_clobj, release_clobj,
+		sizeof(wpapsk_state), gws_limit);
 
-	// Obey device limits
-	max_mem = get_max_mem_alloc_size(gpu_id);
-	while (global_work_size * v_width > max_mem / PLAINTEXT_LENGTH)
-		global_work_size -= get_kernel_preferred_multiple(gpu_id,
-		                                                  crypt_kernel);
-
-	if (options.verbosity > 3)
-		fprintf(stderr, "Max LWS %d\n", (int)maxsize);
-
-	if (local_work_size > maxsize)
-		local_work_size = maxsize;
-
-/* Work around bug in OSX 10.9.2 */
-#ifdef __APPLE__
-	if (!local_work_size)
-		local_work_size = maxsize;
-#endif
-
-	if (!local_work_size) {
-		if (cpu(device_info[gpu_id])) {
-			if (get_platform_vendor_id(platform_id) == DEV_INTEL)
-				local_work_size = MIN(maxsize, 8);
-			else
-				local_work_size = 1;
-		} else {
-			create_clobj(global_work_size, self);
-			self->methods.crypt_all = crypt_all_benchmark;
-			opencl_find_best_workgroup_limit(self, maxsize,
-			                                 gpu_id,
-			                                 crypt_kernel);
-			self->methods.crypt_all = crypt_all;
-			release_clobj();
-		}
-	}
+	//Auto tune execution from shared/included code.
+	self->methods.crypt_all = crypt_all_benchmark;
+	common_run_auto_tune(self, 2 * ITERATIONS * 2 + 2, gws_limit,
+		(cpu(device_info[gpu_id]) ? 1000000000 : 10000000000ULL));
+	self->methods.crypt_all = crypt_all;
 
 	self->params.min_keys_per_crypt = local_work_size < 8 ?
 		8 * v_width : local_work_size * v_width;
-
-	if (global_work_size < local_work_size)
-		global_work_size = local_work_size;
-
-	if (options.verbosity > 2)
-		fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
-	create_clobj(global_work_size, self);
+	self->params.max_keys_per_crypt = global_work_size * v_width;
 }
 
 static int crypt_all(int *pcount, struct db_salt *salt)
@@ -486,18 +300,26 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
+	size_t *lws = local_work_size ? &local_work_size : NULL;
+
+	global_work_size = local_work_size ? ((count + (v_width * local_work_size - 1)) / (v_width * local_work_size)) * local_work_size : count / v_width;
 
 	/// Copy data to gpu
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0, key_buf_size, inbuffer, 0, NULL, NULL), "Copy data to gpu");
 
 	/// Run kernels, no iterations for fast enumeration
-	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], wpapsk_init, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "Run initial kernel");
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], wpapsk_init, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[0]), "Run initial kernel");
 
 	BENCH_CLERROR(clFinish(queue[gpu_id]), "Error running kernel");
 
-	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], wpapsk_loop, 1, NULL, &global_work_size, &local_work_size, 0, NULL, profilingEvent), "Run loop kernel");
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], wpapsk_loop, 1, NULL, &global_work_size, lws, 0, NULL, NULL), "Run loop kernel");
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], wpapsk_pass2, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[2]), "Run intermediate kernel");
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], wpapsk_loop, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[1]), "Run loop kernel");
+
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], wpapsk_final_sha1, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[3]), "Run final kernel (SHA1)");
 
 	BENCH_CLERROR(clFinish(queue[gpu_id]), "Error running loop kernel");
+
 	return count;
 }
 
