@@ -1365,7 +1365,7 @@ void opencl_find_best_lws(
 		fprintf(stderr, "Optimal local worksize %zd\n",
 			local_work_size);
 		fprintf(stderr, "(to avoid this test on next run, put \""
-			"%s = %zd\" in john.conf, section [" SECTION_OPTIONS
+			"%s = %zd\" in john.local.conf, section [Local:" SECTION_OPTIONS
 			SUBSECTION_OPENCL "])\n", config_string,
 			local_work_size);
 	}
@@ -1486,7 +1486,7 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
 		fprintf(stderr, "Optimal global worksize %zd\n",
 			global_work_size);
 		fprintf(stderr, "(to avoid this test on next run, put \""
-			"%s = %zd\" in john.conf, section [" SECTION_OPTIONS
+			"%s = %zd\" in john.local.conf, section [Local:" SECTION_OPTIONS
 			SUBSECTION_OPENCL "])\n", config_string,
 			global_work_size);
 	}
