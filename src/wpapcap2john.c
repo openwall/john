@@ -14,10 +14,11 @@
 #include "memdbg.h"
 
 /*
- * Max. number of handshakes we can collect from all files combined.
- * Just bump this if you need more.
+ * Max. number of ESSID's we can collect from all files combined.
+ * Just bump this if you need more. We should use a linked list instead
+ * and drop this limitation
  */
-#define MAX_HANDSHAKES	10000
+#define MAX_ESSIDS	10000
 
 static int GetNextPacket(FILE *in);
 static int ProcessPacket();
@@ -25,17 +26,17 @@ static void HandleBeacon();
 static void Handle4Way(int bIsQOS);
 static void DumpKey(int idx, int one_three, int bIsQOS);
 
-uint32 start_t, start_u, cur_t, cur_u;
-pcaprec_hdr_t pkt_hdr;
-uint8 full_packet[65535];
-uint8 *packet;
+static uint32 start_t, start_u, cur_t, cur_u;
+static pcaprec_hdr_t pkt_hdr;
+static uint8 full_packet[65535];
+static uint8 *packet;
 static int bROT;
-WPA4way_t wpa[MAX_HANDSHAKES];
-int nwpa = 0;
-const char cpItoa64[64] =
+static WPA4way_t wpa[MAX_ESSIDS];
+static int nwpa = 0;
+static const char cpItoa64[64] =
 	"./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-const char *filename;
-unsigned int link_type;
+static const char *filename;
+static unsigned int link_type, ShowIncomplete = 1;
 
 // These 2 functions output data properly for JtR, in base-64 format. These
 // were taken from hccap2john.c source, and modified for this project.
@@ -259,10 +260,15 @@ static int Process(FILE *in)
 		main_hdr.network = swap32u(main_hdr.network);
 	}
 	link_type = main_hdr.network;
-	if (link_type != LINKTYPE_IEEE802_11 &&
-	    link_type != LINKTYPE_PRISM_HEADER &&
-	    link_type != LINKTYPE_RADIOTAP_HDR &&
-	    link_type != LINKTYPE_PPI_HDR) {
+	if (link_type == LINKTYPE_IEEE802_11)
+		; //fprintf(stderr, "%s: raw 802.11\n", filename);
+	else if (link_type == LINKTYPE_PRISM_HEADER)
+		fprintf(stderr, "%s: Prism headers stripped\n", filename);
+	else if (link_type == LINKTYPE_RADIOTAP_HDR)
+		fprintf(stderr, "%s: Radiotap headers stripped\n", filename);
+	else if (link_type == LINKTYPE_PPI_HDR)
+		fprintf(stderr, "%s: PPI headers stripped\n", filename);
+	else {
 		fprintf(stderr, "%s: No 802.11 wireless traffic data (network %d)\n", filename, link_type);
 		return 0;
 	}
@@ -330,6 +336,7 @@ static int ProcessPacket()
 			return 0;
 		packet += frame_skip;
 		pkt_hdr.incl_len -= frame_skip;
+		pkt_hdr.orig_len -= frame_skip;
 	}
 
 	// Skip Radiotap frame if present
@@ -342,6 +349,7 @@ static int ProcessPacket()
 			return 0;
 		packet += frame_skip;
 		pkt_hdr.incl_len -= frame_skip;
+		pkt_hdr.orig_len -= frame_skip;
 	}
 
 	// Skip PPI frame if present
@@ -350,7 +358,7 @@ static int ProcessPacket()
 #if !ARCH_LITTLE_ENDIAN
 		frame_skip = JOHNSWAP(frame_skip);
 #endif
-		if(frame_skip <= 0 || frame_skip>= (int) pkt_hdr.incl_len)
+		if(frame_skip <= 0 || frame_skip >= pkt_hdr.incl_len)
 			return 0;
 
 		// Kismet logged broken PPI frames for a period
@@ -361,6 +369,7 @@ static int ProcessPacket()
 			return 0;
 		packet += frame_skip;
 		pkt_hdr.incl_len -= frame_skip;
+		pkt_hdr.orig_len -= frame_skip;
 	}
 
 	// our data is in *packet with pkt_hdr being the pcap packet header for this packet.
@@ -385,7 +394,7 @@ static int ProcessPacket()
 		// p now points to the start of the LLC (logical link control) structure.
 		// this is 8 bytes long, and the last 2 bytes are the 'type' field.  What
 		// we are looking for is 802.11X authentication packets. These are 0x888e
-		// in value.  We are running from an LE system, so should look for 0x8e88
+		// in value.  We are running from an LE point of view, so should look for 0x8e88
 		p += 6;
 		if (*((uint16*)p) == 0x8e88)
 			Handle4Way(bQOS);	// this packet was a eapol packet.
@@ -425,8 +434,8 @@ static void HandleBeacon()
 	}
 	strcpy(wpa[nwpa].essid, essid);
 	strcpy(wpa[nwpa].bssid, bssid);
-	if (++nwpa >= MAX_HANDSHAKES) {
-		fprintf(stderr, "ERROR: Too many handshakes (%d)\n", MAX_HANDSHAKES);
+	if (++nwpa >= MAX_ESSIDS) {
+		fprintf(stderr, "ERROR: Too many ESSIDs seen (%d)\n", MAX_ESSIDS);
 		exit(EXIT_FAILURE);
 	}
 }
@@ -508,9 +517,8 @@ static void Handle4Way(int bIsQOS)
 		if (wpa[ess].packet2) free(wpa[ess].packet2);  wpa[ess].packet2 = NULL;
 		if (wpa[ess].orig_2)  free(wpa[ess].orig_2);   wpa[ess].orig_2 = NULL;
 		if (wpa[ess].packet3) free(wpa[ess].packet3);  wpa[ess].packet3 = NULL;
-		if (wpa[ess].packet4) free(wpa[ess].packet4);  wpa[ess].packet4 = NULL;
 	}
-	if (msg == 2) {
+	else if (msg == 2) {
 		// Some sanitiy checks
 		if (pkt_hdr.orig_len < sizeof(ether_frame_hdr_t) + (bIsQOS ? 10 : 8)) {
 			fprintf(stderr, "%s: header len %u, wanted to subtract %zu, skipping packet\n", filename, pkt_hdr.orig_len, sizeof(ether_frame_hdr_t) + (bIsQOS ? 10 : 8));
@@ -519,7 +527,6 @@ static void Handle4Way(int bIsQOS)
 
 		// see if we have a msg1 that 'matches'.
 		if (wpa[ess].packet3) free(wpa[ess].packet3);  wpa[ess].packet3 = NULL;
-		if (wpa[ess].packet4) free(wpa[ess].packet4);  wpa[ess].packet4 = NULL;
 		wpa[ess].packet2 = (uint8 *)malloc(sizeof(uint8) * pkt_hdr.orig_len);
 		wpa[ess].orig_2  = (uint8 *)malloc(sizeof(uint8) * pkt_hdr.orig_len);
 		memcpy(wpa[ess].packet2, packet, pkt_hdr.orig_len);
@@ -532,7 +539,7 @@ static void Handle4Way(int bIsQOS)
 		// bytes preceeding it. But adding four *is* required. Why!?
 		wpa[ess].eapol_sz = auth->length + 4;
 
-		if (wpa[ess].packet1) {
+		if (wpa[ess].packet1 && ShowIncomplete) {
 			ether_auto_802_1x_t *auth2 = auth, *auth1;
 			p = (uint8*)wpa[ess].packet1;
 			if (bIsQOS)
@@ -541,17 +548,13 @@ static void Handle4Way(int bIsQOS)
 			p += sizeof(ether_frame_hdr_t);
 			auth1 = (ether_auto_802_1x_t*)p;
 			if (auth1->replay_cnt == auth2->replay_cnt) {
-				fprintf (stderr, "\nKey1/Key2 hit (hopeful hit), for ESSID:%s (%s)\n", wpa[ess].essid, filename);
+				fprintf (stderr, "\nKey1/Key2 hit (unverified), for ESSID:%s (%s)\n", wpa[ess].essid, filename);
 				DumpKey(ess, 1, bIsQOS);
 			}
-			// we no longer want to know about this packet 1.
-			if (wpa[ess].packet1) free(wpa[ess].packet1);  wpa[ess].packet1 = NULL;
 		}
 	}
-	if (msg == 3) {
+	else if (msg == 3) {
 		// see if we have a msg2 that 'matches',  which is 1 less than our replay count.
-		if (wpa[ess].packet1) free(wpa[ess].packet1);  wpa[ess].packet1 = NULL;
-		if (wpa[ess].packet4) free(wpa[ess].packet4);  wpa[ess].packet4 = NULL;
 		wpa[ess].packet3 = (uint8 *)malloc(sizeof(uint8) * pkt_hdr.orig_len);
 		memcpy(wpa[ess].packet3, packet, pkt_hdr.orig_len);
 		if (wpa[ess].packet2) {
@@ -563,12 +566,27 @@ static void Handle4Way(int bIsQOS)
 			p += sizeof(ether_frame_hdr_t);
 			auth2 = (ether_auto_802_1x_t*)p;
 			if (auth2->replay_cnt+1 == auth3->replay_cnt) {
-				fprintf (stderr, "\nKey2/Key3 hit (SURE hit), for ESSID:%s (%s)\n", wpa[ess].essid, filename);
-				DumpKey(ess, 3, bIsQOS);
-				wpa[ess].fully_cracked = 1;
+				ether_auto_802_1x_t *auth1;
+				if (wpa[ess].packet1) {
+					p = (uint8*)wpa[ess].packet1;
+					if (bIsQOS)
+						p += 2;
+					p += 8;
+					p += sizeof(ether_frame_hdr_t);
+					auth1 = (ether_auto_802_1x_t*)p;
+				}
+				// If we saw the first packet, its nonce must
+				// match the third's nonce and we are 100% sure.
+				// If we didn't see it, we are only 99% sure.
+				if (!wpa[ess].packet1 || !memcmp(auth1->wpa_nonce, auth3->wpa_nonce, 32)) {
+					fprintf (stderr, "\nKey2/Key3 hit (%s verified), for ESSID:%s (%s)\n", wpa[ess].packet1 ? "100%" : "99%", wpa[ess].essid, filename);
+					DumpKey(ess, 3, bIsQOS);
+					wpa[ess].fully_cracked = 1;
+				}
 			}
 		}
 		// clear this, so we do not hit the same 3 packet and output exact same 2/3 combo.
+		if (wpa[ess].packet1) free(wpa[ess].packet1);  wpa[ess].packet1 = NULL;
 		if (wpa[ess].packet3) free(wpa[ess].packet3);  wpa[ess].packet3 = NULL;
 		if (wpa[ess].packet2) free(wpa[ess].packet2);  wpa[ess].packet2 = NULL;
 		if (wpa[ess].orig_2)  free(wpa[ess].orig_2);   wpa[ess].orig_2 = NULL;
@@ -652,10 +670,18 @@ int main(int argc, char **argv)
 		return 2;
 	}
 
+	if (argc > 1 && !strcmp(argv[1], "-c")) {
+		ShowIncomplete = 0;
+		argv[1] = argv[0];
+		argv++; argc--;
+	}
+
 	if (argc < 2)
 		return !!fprintf(stderr,
-		                 "Converts PCAP or ISV2 files to JtR format\n"
-		                 "Usage: %s <file[s]>\n", argv[0]);
+"Converts PCAP or IVS2 files to JtR format\n"
+"Usage: %s [-c] <file[s]>\n"
+"\n-c\tShow only complete auths (incomplete ones might be wrong passwords\n"
+"\tbut we can crack what passwords were tried)\n\n", argv[0]);
 
 	for (i = 1; i < argc; i++) {
 		in = fopen(filename = argv[i], "rb");
