@@ -525,10 +525,12 @@ static void Handle4Way(int bIsQOS)
 		memcpy(wpa[ess].packet2, packet, pkt_hdr.orig_len);
 		memcpy(wpa[ess].orig_2, orig_2, pkt_hdr.orig_len);
 
-		wpa[ess].eapol_sz = pkt_hdr.orig_len - sizeof(ether_frame_hdr_t) - 8;
-
-		if (bIsQOS)
-			wpa[ess].eapol_sz -= 2;
+		// FIXME: The '+ 4' here is fairly logical (length of packet
+		// after the length field) except it contradicts the RFC's,
+		// which say it's supposed to be length of the whole 802.1X
+		// frame including the 16-bit length field itself and the two
+		// bytes preceeding it. But adding four *is* required. Why!?
+		wpa[ess].eapol_sz = auth->length + 4;
 
 		if (wpa[ess].packet1) {
 			ether_auto_802_1x_t *auth2 = auth, *auth1;
