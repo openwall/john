@@ -29,9 +29,9 @@ static int omp_t = 1;
 #define FORMAT_NAME			""
 
 #if ARCH_BITS >= 64
-#define ALGORITHM_NAME			"SHA512 64/" ARCH_BITS_STR " " SHA2_LIB
+#define ALGORITHM_NAME			"password is key, SHA512 64/" ARCH_BITS_STR " " SHA2_LIB
 #else
-#define ALGORITHM_NAME			"SHA512 32/" ARCH_BITS_STR " " SHA2_LIB
+#define ALGORITHM_NAME			"password is key, SHA512 32/" ARCH_BITS_STR " " SHA2_LIB
 #endif
 
 #define BENCHMARK_COMMENT		""

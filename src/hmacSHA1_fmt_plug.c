@@ -36,7 +36,7 @@ john_register_one(&fmt_hmacSHA1);
 #define SHA1_N                  (SHA1_SSE_PARA * MMX_COEF)
 #endif
 
-#define ALGORITHM_NAME          "SHA1 " SHA1_ALGORITHM_NAME
+#define ALGORITHM_NAME          "password is key, SHA1 " SHA1_ALGORITHM_NAME
 
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        0

@@ -28,7 +28,7 @@ static int omp_t = 1;
 #define FORMAT_LABEL			"HMAC-SHA256"
 #define FORMAT_NAME			""
 
-#define ALGORITHM_NAME			"SHA256 32/" ARCH_BITS_STR " " SHA2_LIB
+#define ALGORITHM_NAME			"password is key, SHA256 32/" ARCH_BITS_STR " " SHA2_LIB
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		0
