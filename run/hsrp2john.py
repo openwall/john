@@ -7,9 +7,13 @@
 # http://www.gotohack.org/2011/01/scapy-hsrp-md5-auth-dissecter-to.html
 # "i86bi-linux-l3-ipbase-12.4.bin" is fun ;)
 #
-# Written by Dhiru Kholia <dhiru at openwall.com> in September 2014.
-#
 # This is dedicated to Darya. You insipre me.
+
+# This software is Copyright (c) 2014 Dhiru Kholia <dhiru at openwall.com>, and
+# it is hereby released to the general public under the following terms:
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted.
 
 import dpkt
 import sys
