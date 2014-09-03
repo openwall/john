@@ -6,7 +6,12 @@
 # http://www.rarlab.com/rar/unrarsrc-5.0.13.tar.gz
 #
 # TODO: Only files using "PSWCHECK" are supported!
-
+#
+# This software is Copyright (c) 2014 Dhiru Kholia <dhiru at openwall.com>, and
+# it is hereby released to the general public under the following terms:
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted.
 
 import sys
 import os
