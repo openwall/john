@@ -19,6 +19,9 @@
  * the results of the output of each iteration. PBKDF1 only uses final iterations
  * output buffer.
  */
+#ifndef JOHN_PBKDF2_HMAC_SHA1_H
+#define JOHN_PBKDF2_HMAC_SHA1_H
+
 #if 1
 
 #include <string.h>
@@ -783,3 +786,4 @@ static void pbkdf2(const uint8_t *pass, int passlen, const uint8_t *salt,
 	}
 }
 #endif
+#endif /* JOHN_PBKDF2_HMAC_SHA1_H */
