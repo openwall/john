@@ -1652,7 +1652,7 @@ def find_rc4_passinfo_doc(filename, stream):
         headerLength -= 4
         unpack("<I", stream.read(4))[0]  # algHashId
         headerLength -= 4
-        unpack("<I", stream.read(4))[0]  # keySize
+        keySize = unpack("<I", stream.read(4))[0]  # keySize
         headerLength -= 4
         unpack("<I", stream.read(4))[0]  # providerType
         headerLength -= 4
@@ -1662,10 +1662,13 @@ def find_rc4_passinfo_doc(filename, stream):
         headerLength -= 4
         CSPName = stream.read(headerLength)
         provider = CSPName.decode('utf-16').lower()
-        if "strong" in provider:
+        if keySize == 128:
             typ = 4
-        else:
+        elif keySize == 40:
             typ = 3
+        else:
+            sys.stderr.write("%s : invalid keySize\n" % filename)
+
         # Encryption verifier
         saltSize = unpack("<I", stream.read(4))[0]
         assert(saltSize == 16)
