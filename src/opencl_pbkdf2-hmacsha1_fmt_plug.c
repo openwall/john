@@ -185,7 +185,6 @@ static void init(struct fmt_main *self)
 {
 	char build_opts[64];
 	static char valgo[sizeof(ALGORITHM_NAME) + 8] = "";
-	size_t gws_limit;
 
 	if ((v_width = opencl_get_vector_width(gpu_id,
 	                                       sizeof(cl_int))) > 1) {
@@ -208,16 +207,14 @@ static void init(struct fmt_main *self)
 	pbkdf2_final = clCreateKernel(program[gpu_id], "pbkdf2_final", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel");
 
-	gws_limit = 0;
-
 	//Initialize openCL tuning (library) for this format.
 	opencl_init_auto_setup(SEED, 2*HASH_LOOPS, 5, split_events,
 		warn, 2, self, create_clobj, release_clobj,
-	        sizeof(pbkdf2_state), gws_limit);
+	        sizeof(pbkdf2_state), 0);
 
 	//Auto tune execution from shared/included code.
 	self->methods.crypt_all = crypt_all_benchmark;
-	common_run_auto_tune(self, 2*999+4, gws_limit,
+	common_run_auto_tune(self, 2*999+4, 0,
 		(cpu(device_info[gpu_id]) ? 1000000000 : 5000000000ULL));
 	self->methods.crypt_all = crypt_all;
 

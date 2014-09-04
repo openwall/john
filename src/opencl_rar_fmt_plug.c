@@ -525,7 +525,6 @@ static void set_salt(void *salt)
 static void init(struct fmt_main *self)
 {
 	char build_opts[64];
-	size_t gws_limit;
 
 	snprintf(build_opts, sizeof(build_opts), "-DPLAINTEXT_LENGTH=%u", PLAINTEXT_LENGTH);
 	opencl_init("$JOHN/kernels/rar_kernel.cl", gpu_id, build_opts);
@@ -549,16 +548,14 @@ static void init(struct fmt_main *self)
 		self->params.tests = gpu_tests;
 	}
 
-	gws_limit = get_max_mem_alloc_size(gpu_id) / 64;
-
 	//Initialize openCL tuning (library) for this format.
 	opencl_init_auto_setup(SEED, HASH_LOOPS, 7, split_events,
 		warn, 3, self, create_clobj, release_clobj,
-	        UNICODE_LENGTH + sizeof(cl_int) * 14, gws_limit);
+	        UNICODE_LENGTH + sizeof(cl_int) * 14, 0);
 
 	//Auto tune execution from shared/included code.
 	self->methods.crypt_all = crypt_all_benchmark;
-	common_run_auto_tune(self, ITERATIONS, gws_limit,
+	common_run_auto_tune(self, ITERATIONS, 0,
 		(cpu(device_info[gpu_id]) ? 1000000000 : 10000000000ULL));
 	self->methods.crypt_all = crypt_all;
 

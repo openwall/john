@@ -204,7 +204,6 @@ static void init(struct fmt_main *self)
 {
 	char build_opts[128];
 	static char valgo[32] = "";
-	size_t gws_limit;
 
 	if ((v_width = opencl_get_vector_width(gpu_id,
 	                                       sizeof(cl_int))) > 1) {
@@ -233,16 +232,14 @@ static void init(struct fmt_main *self)
 	wpapsk_final_sha1 = clCreateKernel(program[gpu_id], "wpapsk_final_sha1", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel");
 
-	gws_limit = get_max_mem_alloc_size(gpu_id) / (64 * v_width);
-
 	//Initialize openCL tuning (library) for this format.
 	opencl_init_auto_setup(SEED, 2 * HASH_LOOPS, 4, split_events,
 		warn, 1, self, create_clobj, release_clobj,
-		sizeof(wpapsk_state), gws_limit);
+		sizeof(wpapsk_state), 0);
 
 	//Auto tune execution from shared/included code.
 	self->methods.crypt_all = crypt_all_benchmark;
-	common_run_auto_tune(self, 2 * ITERATIONS * 2 + 2, gws_limit,
+	common_run_auto_tune(self, 2 * ITERATIONS * 2 + 2, 0,
 		(cpu(device_info[gpu_id]) ? 1000000000 : 10000000000ULL));
 	self->methods.crypt_all = crypt_all;
 

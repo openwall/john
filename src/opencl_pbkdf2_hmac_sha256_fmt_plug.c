@@ -201,7 +201,6 @@ static void release_clobj(void)
 static void init(struct fmt_main *self)
 {
 	char build_opts[64];
-	size_t gws_limit;
 
         snprintf(build_opts, sizeof(build_opts), "-DHASH_LOOPS=%u", HASH_LOOPS);
         opencl_init("$JOHN/kernels/pbkdf2_hmac_sha256_kernel.cl",
@@ -215,16 +214,14 @@ static void init(struct fmt_main *self)
 	    clCreateKernel(program[gpu_id], SPLIT_KERNEL_NAME, &cl_error);
 	HANDLE_CLERROR(cl_error, "Error creating split kernel");
 
-	gws_limit = get_max_mem_alloc_size(gpu_id) / 64;
-
 	//Initialize openCL tuning (library) for this format.
 	opencl_init_auto_setup(SEED, HASH_LOOPS, 5, split_events,
 		warn, 3, self, create_clobj, release_clobj,
-		sizeof(state_t), gws_limit);
+		sizeof(state_t), 0);
 
 	//Auto tune execution from shared/included code.
 	self->methods.crypt_all = crypt_all_benchmark;
-	common_run_auto_tune(self, ITERATIONS, gws_limit,
+	common_run_auto_tune(self, ITERATIONS, 0,
 		(cpu(device_info[gpu_id]) ? 1000000000 : 10000000000ULL));
 	self->methods.crypt_all = crypt_all;
 }
