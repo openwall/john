@@ -208,7 +208,7 @@ static void init(struct fmt_main *self)
 	pbkdf2_final = clCreateKernel(program[gpu_id], "pbkdf2_final", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel");
 
-	gws_limit = get_max_mem_alloc_size(gpu_id) / (64 * v_width);
+	gws_limit = get_max_mem_alloc_size(gpu_id) / sizeof(pbkdf2_state);
 
 	//Initialize openCL tuning (library) for this format.
 	opencl_init_auto_setup(SEED, 2*HASH_LOOPS, 5, split_events,
