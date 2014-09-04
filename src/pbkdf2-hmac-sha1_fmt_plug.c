@@ -42,9 +42,9 @@ john_register_one(&fmt_pbkdf2_hmac_sha1);
 
 #define BINARY_SIZE             20
 #define BINARY_ALIGN            sizeof(ARCH_WORD_32)
-#define MAX_BINARY_SIZE         (256 + (BINARY_SIZE - 1) / BINARY_SIZE)
-#define MAX_SALT_SIZE           4
-#define MAX_CIPHERTEXT_LENGTH   (TAG_LEN + 6 + 1 + 2*MAX_SALT_SIZE + 1 + 2*BINARY_SIZE)
+#define MAX_BINARY_SIZE         (4 * BINARY_SIZE)
+#define MAX_SALT_SIZE           64
+#define MAX_CIPHERTEXT_LENGTH   (TAG_LEN + 6 + 1 + 2*MAX_SALT_SIZE + 1 + 2*MAX_BINARY_SIZE)
 #define SALT_SIZE               sizeof(struct custom_salt)
 #define SALT_ALIGN              sizeof(ARCH_WORD_32)
 
@@ -69,6 +69,9 @@ static struct fmt_tests tests[] = {
 	{"$pbkdf2-hmac-sha1$1000.fd11cde0.27de197171e6d49fc5f55c9ef06c0d8751cd7250", "3956"},
 	{"$pbkdf2-hmac-sha1$1000.6926d45e.231c561018a4cee662df7cd4a8206701c5806af9", "1234"},
 	{"$pbkdf2-hmac-sha1$1000.98fcb0db.37082711ff503c2d2dea9a5cf7853437c274d32e", "5490"},
+	// WPA-PSK DK (raw key as stored by some routers)
+	// ESSID was "Harkonen" - converted to hex 4861726b6f6e656e
+	{"$pbkdf2-hmac-sha1$4096$4861726b6f6e656e$ee51883793a6f68e9615fe73c80a3aa6f2dd0ea537bce627b929183cc6e57925", "12345678"},
 	{NULL}
 };
 
@@ -107,30 +110,33 @@ static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ptr, *ctcopy, *keeptr;
 	size_t len;
+	char *delim;
 
 	if (strncmp(ciphertext, FORMAT_TAG, TAG_LEN))
 		return 0;
 
-	ciphertext += TAG_LEN;
-
 	if (strlen(ciphertext) > MAX_CIPHERTEXT_LENGTH)
 		return 0;
+
+	ciphertext += TAG_LEN;
+
+	delim = strchr(ciphertext, '.') ? "." : "$";
 
 	if (!(ctcopy = strdup(ciphertext)))
 		return 0;
 	keeptr = ctcopy;
-	if (!(ptr = strtok(ctcopy, ".")))
+	if (!(ptr = strtok(ctcopy, delim)))
 		goto error;
 	if (!atoi(ptr))
 		goto error;
-	if (!(ptr = strtok(NULL, ".")))
+	if (!(ptr = strtok(NULL, delim)))
 		goto error;
 	len = strlen(ptr); // salt hex length
 	if (len > 2 * MAX_SALT_SIZE || len & 1)
 		goto error;
 	if (!ishex(ptr))
 		goto error;
-	if (!(ptr = strtok(NULL, ".")))
+	if (!(ptr = strtok(NULL, delim)))
 		goto error;
 	len = strlen(ptr); // binary length
 	if (len < BINARY_SIZE || len > MAX_BINARY_SIZE || len & 1)
@@ -167,6 +173,7 @@ static void *get_salt(char *ciphertext)
 	ciphertext = strchr(ciphertext, delim) + 1;
 	p = strchr(ciphertext, delim);
 	saltlen = 0;
+	memset(cs.salt, 0, sizeof(cs.salt));
 	while (ciphertext < p) {        /** extract salt **/
 		cs.salt[saltlen++] =
 			atoi16[ARCH_INDEX(ciphertext[0])] * 16 +
@@ -284,7 +291,7 @@ static int cmp_exact(char *source, int index)
 	p = strrchr(source, delim) + 1;
 	len = strlen(p) / 2;
 
-	if (len == 64) return 1;
+	if (len == BINARY_SIZE) return 1;
 
 	binary = mem_alloc(len);
 	crypt = mem_alloc(len);
@@ -304,6 +311,8 @@ static int cmp_exact(char *source, int index)
 	            cur_salt->salt, cur_salt->length,
 	            cur_salt->rounds, crypt, len, 0);
 	result = !memcmp(binary, crypt, len);
+	//dump_stuff_msg("hash binary", binary, len);
+	//dump_stuff_msg("calc binary", crypt, len);
 	MEM_FREE(binary);
 	MEM_FREE(crypt);
 	if (!result)

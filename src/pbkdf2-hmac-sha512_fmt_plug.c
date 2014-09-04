@@ -339,7 +339,7 @@ static int cmp_exact(char *source, int index)
 	p = strrchr(source, delim) + 1;
 	len = strlen(p) / 2;
 
-	if (len == 64) return 1;
+	if (len == BINARY_SIZE) return 1;
 
 	binary = mem_alloc(len);
 	crypt = mem_alloc(len);
