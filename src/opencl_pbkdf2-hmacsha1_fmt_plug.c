@@ -76,8 +76,7 @@ john_register_one(&fmt_ocl_pbkdf1_sha1);
 #define OCL_CONFIG		"pbkdf2-sha1"
 
 static const char * warn[] = {
-        "P xfer: "  ,  ", init: "   , ", loop: " , ", final: ",
-        ", res xfer: "
+	"P xfer: "  ,  ", init: "   , ", loop: " , ", final: ", ", res xfer: "
 };
 
 static int split_events[] = { 2, -1, -1 };
@@ -116,10 +115,10 @@ static struct fmt_tests tests[] = {
 	// iterations is always 4096.
 	// ESSID was "Harkonen" - converted to hex 4861726b6f6e656e.
 	// Only first 20 bytes (40 hex chars) of key is required but if
-	// you supply all 64 of them, they will be double checked without
-	// sacrificing speed.
+	// you supply all 32 (64) of them, they will be double checked
+	// without sacrificing speed.
 	// Please also note that you should run such hashes with --min-len=8,
-	// for further optimizations.
+	// because WPAPSK passwords can't be shorter than that.
 	{"$pbkdf2-hmac-sha1$4096$4861726b6f6e656e$ee51883793a6f68e9615fe73c80a3aa6f2dd0ea537bce627b929183cc6e57925", "12345678"},
 	{NULL}
 };
@@ -146,10 +145,9 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	mem_in = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, key_buf_size, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error allocating mem in");
 	mem_salt = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, sizeof(pbkdf2_salt), NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error allocating mem setting");
+	HANDLE_CLERROR(ret_code, "Error allocating mem salt");
 	mem_out = clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, sizeof(pbkdf2_out) * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error allocating mem out");
-
 	mem_state = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, sizeof(pbkdf2_state) * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error allocating mem_state");
 
@@ -166,12 +164,13 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 
 static void release_clobj(void)
 {
-	HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
-	HANDLE_CLERROR(clReleaseMemObject(mem_salt), "Release mem setting");
+	HANDLE_CLERROR(clReleaseMemObject(mem_state), "Release mem state");
 	HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
+	HANDLE_CLERROR(clReleaseMemObject(mem_salt), "Release mem setting");
+	HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
 
-	MEM_FREE(inbuffer);
 	MEM_FREE(output);
+	MEM_FREE(inbuffer);
 }
 
 static void done(void)
@@ -214,12 +213,12 @@ static void init(struct fmt_main *self)
 	//Initialize openCL tuning (library) for this format.
 	opencl_init_auto_setup(SEED, 2*HASH_LOOPS, 5, split_events,
 		warn, 2, self, create_clobj, release_clobj,
-		sizeof(pbkdf2_state), gws_limit);
+		64+sizeof(pbkdf2_state)+20, gws_limit);
 
 	//Auto tune execution from shared/included code.
 	self->methods.crypt_all = crypt_all_benchmark;
 	common_run_auto_tune(self, 2*999+4, gws_limit,
-		(cpu(device_info[gpu_id]) ? 1000000000 : 10000000000ULL));
+		(cpu(device_info[gpu_id]) ? 1000000000 : 5000000000ULL));
 	self->methods.crypt_all = crypt_all;
 
 	self->params.min_keys_per_crypt = local_work_size < 8 ?
@@ -355,7 +354,8 @@ static void set_salt(void *salt)
 #endif
 }
 
-static void clear_keys(void) {
+static void clear_keys(void)
+{
 	memset(inbuffer, 0, key_buf_size);
 }
 
@@ -423,20 +423,24 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
 	global_work_size = local_work_size ? ((*pcount + (v_width * local_work_size - 1)) / (v_width * local_work_size)) * local_work_size : *pcount / v_width;
 	scalar_gws = global_work_size * v_width;
 
+#ifdef DEBUG
+	fprintf(stderr, "%s(%d) lws %zu gws %zu sgws %zu kpc %d/%d\n", __FUNCTION__, *pcount, local_work_size, global_work_size, scalar_gws, me->params.min_keys_per_crypt, me->params.max_keys_per_crypt);
+#endif
+
 	/// Copy data to gpu
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0, key_buf_size, inbuffer, 0, NULL, multi_profilingEvent[0]), "Copy data to gpu");
+	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0, key_buf_size, inbuffer, 0, NULL, multi_profilingEvent[0]), "Copy data to gpu");
 
 	/// Run kernels
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], pbkdf2_init, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[1]), "Run initial kernel");
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], pbkdf2_init, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[1]), "Run initial kernel");
 
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], pbkdf2_loop, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[2]), "Run loop kernel");
-	HANDLE_CLERROR(clFinish(queue[gpu_id]), "Error running loop kernel");
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], pbkdf2_loop, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[2]), "Run loop kernel");
+	BENCH_CLERROR(clFinish(queue[gpu_id]), "Error running loop kernel");
 	opencl_process_event();
 
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], pbkdf2_final, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[3]), "Run intermediate kernel");
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], pbkdf2_final, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[3]), "Run intermediate kernel");
 
 	/// Read the result back
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0, sizeof(pbkdf2_out) * scalar_gws, output, 0, NULL, multi_profilingEvent[4]), "Copy result back");
+	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0, sizeof(pbkdf2_out) * scalar_gws, output, 0, NULL, multi_profilingEvent[4]), "Copy result back");
 
 	return *pcount;
 }
