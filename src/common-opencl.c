@@ -1416,11 +1416,11 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
 		// Check if hardware can handle the size we are going
 		// to try now.
 		if ((gws_limit && (num > gws_limit)) || ((gws_limit == 0) &&
-		    (buffer_size * num * 1.2 >
+		    (buffer_size * kpc * 1.1 >
 		     get_max_mem_alloc_size(gpu_id)))) {
 			if (options.verbosity > 4)
 				fprintf(stderr, "Hardware resources "
-					"fullfilled\n");
+					"exhausted\n");
 			break;
 		}
 		// Activate events. Since it has to be released, redo it evey run.

@@ -208,12 +208,12 @@ static void init(struct fmt_main *self)
 	pbkdf2_final = clCreateKernel(program[gpu_id], "pbkdf2_final", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel");
 
-	gws_limit = get_max_mem_alloc_size(gpu_id) / sizeof(pbkdf2_state);
+	gws_limit = 0;
 
 	//Initialize openCL tuning (library) for this format.
 	opencl_init_auto_setup(SEED, 2*HASH_LOOPS, 5, split_events,
 		warn, 2, self, create_clobj, release_clobj,
-		64+sizeof(pbkdf2_state)+20, gws_limit);
+	        sizeof(pbkdf2_state), gws_limit);
 
 	//Auto tune execution from shared/included code.
 	self->methods.crypt_all = crypt_all_benchmark;
