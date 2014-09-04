@@ -260,6 +260,56 @@ if (@ARGV == 1) {
 }
 
 #############################################################################
+# these 3 functions (the pp_pbkdf2/pp_pbkdf2_hex are the 'exported' functions,
+# the other is just a hmac 'helper') replace all requirements on the
+# Crypt::PBKDF2 module. this code is VERY simple, and at least as fast as the
+# Crypt::PBKDF2, and is MUCH more simple to use (IMHO).  The entire interface
+# is in the single function call pp_pbkdf2($pass,$salt,$itr,$algo,$bytes_out)
+# pp_pbkdf2_hex() is a simple hex function wrapper function.
+#############################################################################
+sub hmac_pad {
+	my ($pass, $ch, $algo) = @_;
+	my $pad;  # ipad or opad, depending upon ch passed in.
+	no strict 'refs';
+	$pad = &$algo("a");
+	use strict;
+	my $len = (length($pad)>= 48) ? 128 : 64; # I am not 100% sure this is valid for ALL algos.
+	$pad = $ch x $len;
+	if (length($pass) > $len) { no strict 'refs'; $pass = &$algo($pass); use strict; }
+	$pad ^= $pass;
+	return $pad;
+}
+sub pp_pbkdf2 {
+	my ($pass, $orig_salt, $iter, $algo, $bytes) = @_;
+	my $ipad = hmac_pad($pass, '6', $algo);  # 6 is \x36 for an ipad
+	my $opad = hmac_pad($pass, '\\', $algo); # \ is \x5c for an opad
+	my $final_out=""; my $i=1;
+	while (length($final_out) < $bytes) {
+		my $salt = $orig_salt . chr($i>>24); $salt .= chr(($i>>16)&0xFF); $salt .= chr(($i>>8)&0xFF); $salt .= chr($i&0xFF);
+		$i += 1;
+		no strict 'refs';
+		$salt = &$algo($opad.&$algo($ipad.$salt));
+		use strict;
+		my $out = $salt;
+		for (my $i = 1; $i < $iter; $i += 1) {
+			no strict 'refs';
+			$salt = &$algo($opad.&$algo($ipad.$salt));
+			use strict;
+			$out ^= $salt;
+		}
+		if (length($final_out)+length($out) > $bytes) {
+			$out = substr($out, 0, $bytes-length($final_out));
+		}
+		$final_out .= $out;
+	}
+	return $final_out;
+}
+sub pp_pbkdf2_hex {
+	my ($pass, $salt, $iter, $algo, $bytes) = @_;
+	return unpack("H*",pp_pbkdf2($pass,$salt,$iter,$algo,$bytes));
+}
+
+#############################################################################
 # this function is 'like' the length($s) function, BUT it has special processing
 # needed by JtR.  The only problems we are seeing, is that 4 byte utf-8 (or 5
 # byte, etc), end up requiring 4 bytes of buffer, while 3 byte utf-8 only require
@@ -270,7 +320,7 @@ if (@ARGV == 1) {
 # in jtr do NOT know unicode, then only know bytes, AND we have to fit things
 # into proper buffer length constraints.
 #############################################################################
-sub jtr_unicode_corrected_length { #($_)
+sub jtr_unicode_corrected_length {
 	my $base_len = length($_[0]);
 	if ($arg_codepage ne "UTF-8") { return $base_len; }
 	# We need to check each letter, and see if it takes 4 bytes to store. If
@@ -290,8 +340,7 @@ sub jtr_unicode_corrected_length { #($_)
 # if the 'magic' option -tstall is used, we simply call a function that calls
 # ALL of the functions which is used to test if all CPAN modules are installed.
 #############################################################################
-sub tst_all
-{
+sub tst_all {
 	$u = 1;
 	my $cnt = 0;
 	$arg_hidden_cp = "iso-8859-1";
@@ -315,8 +364,7 @@ sub tst_all
 #############################################################################
 # used to get salts.  Call with randstr(count[,array of valid chars] );   array is 'optional'  Default is AsciiText (UPloCase,  nums, _ )
 #############################################################################
-sub randnum
-{
+sub randnum {
 	my @chr = defined($_[1]) ? @{$_[1]} : @chrAsciiNum;
 	my $s;
 	foreach (1..$_[0]) {
@@ -325,8 +373,7 @@ sub randnum
 	return $s;
 }
 
-sub randstr
-{
+sub randstr {
 	my @chr = defined($_[1]) ? @{$_[1]} : @chrAsciiTextNum;
 	my $s;
 	foreach (1..$_[0]) {
@@ -809,7 +856,6 @@ sub keychain {
 }
 sub wpapsk {
 	require Digest::HMAC_MD5;
-	require Crypt::PBKDF2;
 	# max ssid is 32 bytes
 	# min password is 8 bytes.  Max is 63 bytes
 	if (length($_[0]) < 8 || length($_[0]) > 63) { return; }
@@ -820,13 +866,7 @@ sub wpapsk {
 	if (defined $argsalt) {$ssid = $argsalt; } else { $ssid = randusername(32); }
 
 	# Compute the pbkdf2-sha1(4096) for 32 bytes
-	my $pbkdf2 = Crypt::PBKDF2->new(
-		hash_class => 'HMACSHA1',
-		iterations => 4096,
-		output_len => 32,
-		salt_len => length($ssid),
-		);
-	my $wpaH = $pbkdf2->PBKDF2($ssid,$_[0]);
+	my $wpaH = pp_pbkdf2($_[0],$ssid,4096,"sha1",32);
 
 	# load some other 'random' values, for the other data.
 	$nonce1 = randbytes(32);
@@ -893,7 +933,6 @@ sub Load_MinMax {
 	$_[0] .= $v1.$v2;
 }
 sub mscash2 {
-	require Crypt::PBKDF2;
 	# max username (salt) length is supposed to be 19 characters (in John)
 	# max password length is 27 characters (in John)
 	# the algorithm lowercases the salt
@@ -901,15 +940,8 @@ sub mscash2 {
 	my $iter = 10240;
 	if (defined $argsalt) { $user = $argsalt; } else { $user = randusername(22); }
 	$salt = encode("UTF-16LE", lc($user));
-	my $pbkdf2 = Crypt::PBKDF2->new(
-		hash_class => 'HMACSHA1',
-		iterations => $iter,
-		output_len => 16,
-		salt_len => length($salt),
-		);
-	# Crypt::PBKDF2 hex output is buggy, we do it ourselves!
-	print "$user:", '$DCC2$', "$iter#$user#", unpack("H*", $pbkdf2->PBKDF2($salt,md4(md4(encode("UTF-16LE",$_[0])).$salt))),
-	":$u:0:$_[0]:mscash2:\n";
+	my $key = md4(md4(encode("UTF-16LE",$_[0])).$salt);
+	print "$user:", '$DCC2$', "$iter#$user#", pp_pbkdf2_hex($key,$salt,$iter,"sha1",16), ":$u:0:$_[0]:mscash2:\n";
 }
 sub lm {
 	require Authen::Passphrase::LANManager;
@@ -1704,56 +1736,35 @@ sub pwsafe {
 	print "u$u-pwsafe:\$pwsafe\$\*3\*", unpack('H*', $salt), "\*2048\*", unpack('H*', $digest), ":$u:0:$_[0]::\n";
 }
 sub django {
-	require Crypt::PBKDF2;
 	if (defined $argsalt && length($argsalt)<=32) { $salt = $argsalt; } else { $salt=randstr(12); }
-	my $pbkdf2 = Crypt::PBKDF2->new(
-		hash_class => 'HMACSHA2',
-		iterations => 10000,
-		output_len => 32,
-		salt_len => length($salt),
-		);
-	print "u$u-django:\$django\$\*1\*pbkdf2_sha256\$10000\$$salt\$", base64($pbkdf2->PBKDF2($salt, $_[0])), ":$u:0:$_[0]::\n";
+	print "u$u-django:\$django\$\*1\*pbkdf2_sha256\$10000\$$salt\$", base64(pp_pbkdf2($_[0], $salt, 10000, "sha256", 32)), ":$u:0:$_[0]::\n";
 }
 sub django_scrypt {
 	#require Crypt::Scrypt;
 	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(16); }
-
 	print "django_scrypt : THIS ONE STILL TO DO\n";
 	print "u$u-scrypt:scrypt\$$h\$", uc unpack("H*", $salt), ":$u:0:", $_[0], "::\n";
 }
 sub aix_ssha1 {
-	require Crypt::PBKDF2;
 	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(16); }
-	my $itr = 64; # 1<<6
-	my $pbkdf2 = Crypt::PBKDF2->new(hash_class => 'HMACSHA1', iterations => $itr, output_len => 20, salt_len => length($salt) );
-	my $hash = $pbkdf2->PBKDF2($salt, $_[0]);
-	print "u$u-aix-ssha1:{ssha1}06\$$salt\$", base64_aix($hash) ,":$u:0:", $_[0], "::\n";
+	print "u$u-aix-ssha1:{ssha1}06\$$salt\$", base64_aix(pp_pbkdf2($_[0],$salt,(1<<6),"sha1",20)) ,":$u:0:", $_[0], "::\n";
 }
 sub aix_ssha256 {
-	require Crypt::PBKDF2;
 	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(16); }
-	my $itr = 64; # 1<<6
-	my $pbkdf2 = Crypt::PBKDF2->new(hash_class => 'HMACSHA2', iterations => $itr, output_len => 32, salt_len => length($salt) );
-	print "u$u-aix-ssha256:{ssha256}06\$$salt\$", base64_aix($pbkdf2->PBKDF2($salt, $_[0])) ,":$u:0:", $_[0], "::\n";
+	print "u$u-aix-ssha256:{ssha256}06\$$salt\$", base64_aix(pp_pbkdf2($_[0],$salt,(1<<6),"sha256",32)) ,":$u:0:", $_[0], "::\n";
 }
 sub aix_ssha512 {
-	require Crypt::PBKDF2;
 	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(16); }
-	my $itr = 64; # 1<<6
-	my $pbkdf2 = Crypt::PBKDF2->new(hash_class => 'HMACSHA2', hash_args => { sha_size => 512 },  iterations => $itr, output_len => 64, salt_len => length($salt) );
-	print "u$u-aix-ssha512:{ssha512}06\$$salt\$", base64_aix($pbkdf2->PBKDF2($salt, $_[0])) ,":$u:0:", $_[0], "::\n";
+	print "u$u-aix-ssha512:{ssha512}06\$$salt\$", base64_aix(pp_pbkdf2($_[0],$salt,(1<<6),"sha512",64)) ,":$u:0:", $_[0], "::\n";
 }
 # there are many 'formats' handled, but we just do the cannonical $pbkdf2-hmac-sha512$ one.
 # there could also be $ml$ and grub.pbkdf2.sha512. as the signatures. but within prepare() of pbkdf2-hmac-sha512_fmt,
 # they all get converted to this one, so that is all I plan on using.
 sub pbkdf2_hmac_sha512 {
-	require Crypt::PBKDF2;
 	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(16); }
 	my $itr = 10000;
 	if ($arg_loops > 0) { $itr = $arg_loops; }
-	my $pbkdf2 = Crypt::PBKDF2->new(hash_class => 'HMACSHA2', hash_args => { sha_size => 512 },  iterations => $itr, output_len => 64, salt_len => length($salt) );
-	print "u$u-pbkdf2-hmac-ssha512:\$pbkdf2-hmac-sha512\$${itr}.".unpack("H*", $salt).".", unpack("H*", $pbkdf2->PBKDF2($salt, $_[0])) ,":$u:0:", $_[0], "::\n";
-
+	print "u$u-pbkdf2-hmac-ssha512:\$pbkdf2-hmac-sha512\$${itr}.".unpack("H*", $salt).".", pp_pbkdf2_hex($_[0],$salt,$itr,"sha512",64) ,":$u:0:", $_[0], "::\n";
 }
 sub drupal7 {
 	if (defined $argsalt && length($argsalt)<=8) { $salt = $argsalt; } else { $salt=randstr(8); }
@@ -1761,7 +1772,6 @@ sub drupal7 {
 	my $h = sha512($salt.$_[0]);
 	my $i = 16384;
 	do { $h = sha512($h.$_[0]); } while (--$i > 0);
-
 	print "u$u-drupal:\$S\$C",$salt,substr(base64i($h),0,43),":$u:0:$_[0]::\n";
 }
 sub epi {
@@ -1887,6 +1897,22 @@ sub wbb3 {
 sub pad16 { # used by pad16($p)  This will null pad a string to 16 bytes long
 	my $p = $_[0];
 	while (length($p) < 16) {
+		$p .= "\0";
+	}
+	return $p;
+}
+# used by pad_md64($p)  This will null pad a string to 64 bytes long, appends the 0x80 after current length, and puts length
+# 'bits' (i.e. length << 3) in proper place for md5 processing.  HSRP format uses this.
+sub pad_md64 {
+	my $p = $_[0];
+	my $len = length($p);
+	$p .= "\x80";
+	while (length($p) < 56) {
+		$p .= "\0";
+	}
+	$p .= chr(($len*8)&0xFF);
+	$p .= chr(($len*8)/256);
+	while (length($p) < 64) {
 		$p .= "\0";
 	}
 	return $p;
@@ -2298,6 +2324,7 @@ sub do_dynamic_GetToken {
 	if (substr($exprStr, 0,13) eq "ripemd320_raw") { push(@gen_toks, "frip320r"); return substr($exprStr,13); }
 	if (substr($exprStr, 0,12) eq "haval256_raw")  { push(@gen_toks, "fhavr"); return substr($exprStr,12); }
 	if (substr($exprStr, 0,5)  eq "pad16")         { push(@gen_toks, "fpad16"); return substr($exprStr,5); }
+	if (substr($exprStr, 0,7)  eq "padmd64")       { push(@gen_toks, "fpadmd64"); return substr($exprStr,7); }
 
 	$gen_lastTokIsFunc=1;
 	$stmp = uc substr($exprStr, 0, 3);
@@ -2871,3 +2898,5 @@ sub dynamic_fhave  { require Digest::Haval256; $h = pop @gen_Stack; $h = haval25
 sub dynamic_fhavu  { require Digest::Haval256; $h = pop @gen_Stack; $h = haval256_hex(encode("UTF-16LE",$h)); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_fhavr  { require Digest::Haval256; $h = pop @gen_Stack; $h = haval256($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_fpad16 { $h = pop @gen_Stack; $h = pad16($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_fpadmd64 { $h = pop @gen_Stack; $h = pad_md64($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+

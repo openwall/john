@@ -10,6 +10,14 @@ source and binary forms, with or without modification.
 
 Following is the pass_gen.pl version history prior to adding to the JtR tree:
 
+v1.17 Sept 4, 2014  JimF
+	Added pad_md64() function to allow HSRP Authentication to be usable with Dynamic.
+	Created pp_pbkdf2 function, and replaced all usages of Crypt::PBKDF2 with this internal
+		function. It is at least as fast as Crypt::PBKDF2, and much simpler to use.
+
+v1.16 Jul 22, 2014  JimF
+	Added dyna formats from dynamic.conf to -tstall function.
+
 v1.15 Jun 30, 2014  JimF.
 	The outside 'length' function for --maxlength changed from length($s) to a new
 	specialized function. This new function when in -utf8 mode, will count any 4 byte
