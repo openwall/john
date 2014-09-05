@@ -57,16 +57,18 @@ lotus5(__global unsigned int * i_saved_key,
        __global unsigned int * crypt_key) {
 
 	unsigned int index = get_global_id(0);
-	size_t local_work_dim = get_local_size(0);
 	unsigned int m32[16];
 	int password_length;
 
 	__local unsigned int lotus_magic_table[256];
 
 	{
+		size_t local_work_dim = get_local_size(0);
+		unsigned int lid = get_local_id(0);
 		size_t offset;
-		for (offset = 0; offset < 256; offset += 256/local_work_dim)
-			lotus_magic_table[get_local_id(0) + offset] = magic_table[get_local_id(0) + offset];
+
+		for (offset = lid; offset < 256; offset += local_work_dim)
+			lotus_magic_table[offset] = magic_table[offset];
 	}
 
 	m32[0] = m32[1] = m32[2] = m32[3] = 0;

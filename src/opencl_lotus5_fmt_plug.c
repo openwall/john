@@ -1,5 +1,6 @@
 /*
  * This software is Copyright (c) 2014 Sayantan Datta <std2048 at gmail dot com>
+ * and Copyright (c) 2014 magnum
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification, are permitted.
  * Based on CPU version by Jeff Fay, bartavelle and Solar Designer.
@@ -19,8 +20,9 @@ john_register_one(&fmt_opencl_1otus5);
 #include "formats.h"
 #include "common.h"
 #include "common-opencl.h"
-#include "memdbg.h"
 #include "opencl_lotus5_fmt.h"
+#include "options.h"
+#include "memdbg.h"
 
 /*preprocessor constants that John The Ripper likes*/
 #define FORMAT_LABEL                   "lotus5-opencl"
@@ -32,7 +34,8 @@ john_register_one(&fmt_opencl_1otus5);
 #define SALT_SIZE                      0
 #define MIN_KEYS_PER_CRYPT             4
 #define MAX_KEYS_PER_CRYPT             (16384*64) /* must be even */
-#define KEY_SIZE_IN_BYTES 	       (((PLAINTEXT_LENGTH >> 2) + 1) << 2)
+#define KEY_SIZE_IN_BYTES              (((PLAINTEXT_LENGTH >> 2) + 1) << 2)
+#define OCL_CONFIG                     "Lotus5"
 
 /*A struct used for JTR's benchmarks*/
 static struct fmt_tests tests[] = {
@@ -88,13 +91,30 @@ static cl_kernel cl_lotus5_kernel;
 static void init_ocl(int sequential_id, struct fmt_main *self){
 
 	cl_int err;
-	size_t mem_alloc_sz;
+	size_t mem_alloc_sz, max_lws;
 	char *err_msg;
 
 	opencl_init("$JOHN/kernels/lotus5_kernel.cl", sequential_id, NULL);
 
 	cl_lotus5_kernel = clCreateKernel(program[sequential_id], "lotus5", &err);
 	HANDLE_CLERROR(err, "Create kernel FAILED.");
+
+	/* Read LWS/GWS prefs from config or environment */
+	opencl_get_user_preferences(OCL_CONFIG);
+
+	max_lws = get_kernel_max_lws(sequential_id, cl_lotus5_kernel);
+
+	if (!local_work_size)
+		local_work_size = 256;
+
+	if (local_work_size > max_lws)
+		local_work_size = max_lws;
+
+	if (!global_work_size)
+		global_work_size = MAX_KEYS_PER_CRYPT;
+
+	self->params.min_keys_per_crypt = local_work_size;
+	self->params.max_keys_per_crypt = global_work_size;
 
 	err_msg = "Create Buffer FAILED";
 
@@ -131,6 +151,11 @@ static void init_ocl(int sequential_id, struct fmt_main *self){
 	HANDLE_CLERROR(clSetKernelArg(cl_lotus5_kernel, 2,
 				      sizeof(cl_mem), &cl_tx_binary),
 		                      "Set Kernel Arg 1 :FAILED");
+
+	if (options.verbosity > 2)
+		fprintf(stderr,
+		        "Local worksize (LWS) %zu, Global worksize (GWS) %zu\n",
+		        local_work_size, global_work_size);
 }
 
 static void init(struct fmt_main *self)
@@ -240,7 +265,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 					    0, NULL, NULL),
 					    "Failed:Copy data to gpu.");
 
-	M = 256;
+	M = local_work_size;
 	N = (count + (M - 1)) / M * M;
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id],
 					      cl_lotus5_kernel, 1,
@@ -292,7 +317,7 @@ struct fmt_main fmt_opencl_1otus5 = {
 		DEFAULT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		FMT_CASE | FMT_8_BIT,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif
