@@ -37,7 +37,7 @@ john_register_one(&fmt_opencl_blockchain);
 #define FORMAT_NAME		"blockchain My Wallet"
 #define FORMAT_TAG		"$blockchain$"
 #define TAG_LENGTH		12
-#define ALGORITHM_NAME		"PBKDF2-SHA1 AES OpenCL"
+#define ALGORITHM_NAME		"PBKDF2-SHA1 OpenCL AES"
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define KEYS_PER_CRYPT		40960*9

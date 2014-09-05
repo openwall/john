@@ -34,7 +34,7 @@ john_register_one(&fmt_opencl_sxc);
 
 #define FORMAT_LABEL		"sxc-opencl"
 #define FORMAT_NAME		"StarOffice .sxc"
-#define ALGORITHM_NAME		"PBKDF2-SHA1 Blowfish OpenCL"
+#define ALGORITHM_NAME		"PBKDF2-SHA1 OpenCL Blowfish"
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define MIN_KEYS_PER_CRYPT	4096*9

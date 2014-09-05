@@ -37,7 +37,7 @@ john_register_one(&fmt_opencl_agilekeychain);
 
 #define FORMAT_LABEL		"agilekeychain-opencl"
 #define FORMAT_NAME		"1Password Agile Keychain"
-#define ALGORITHM_NAME		"PBKDF2-SHA1 AES OpenCL"
+#define ALGORITHM_NAME		"PBKDF2-SHA1 OpenCL AES"
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define KEYS_PER_CRYPT		1024*9

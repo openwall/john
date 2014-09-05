@@ -44,7 +44,7 @@ john_register_one(&fmt_opencl_office2013);
 
 #define FORMAT_LABEL		"office2013-opencl"
 #define FORMAT_NAME		"MS Office 2013"
-#define ALGORITHM_NAME		"SHA512 AES OpenCL"
+#define ALGORITHM_NAME		"SHA512 OpenCL AES"
 #define BENCHMARK_COMMENT	" (100,000 iterations)"
 #define BENCHMARK_LENGTH	-1
 #define BINARY_SIZE		0

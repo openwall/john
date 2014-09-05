@@ -28,13 +28,13 @@ john_register_one(&fmt_rakp);
 #include "memdbg.h"
 
 #define FORMAT_LABEL            "RAKP"
-#define FORMAT_NAME             ""
+#define FORMAT_NAME             "IPMI 2.0 RAKP (RMCP+)"
 
 #ifdef MMX_COEF
 #define SHA1_N                  (SHA1_SSE_PARA * MMX_COEF)
 #endif
 
-#define ALGORITHM_NAME          "IPMI 2.0 RAKP (RMCP+) HMAC-SHA1 " SHA1_ALGORITHM_NAME
+#define ALGORITHM_NAME          "HMAC-SHA1 " SHA1_ALGORITHM_NAME
 
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        0

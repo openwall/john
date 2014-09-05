@@ -84,7 +84,7 @@ static pthread_mutex_t *lockarray;
 
 #define FORMAT_LABEL		"rar-opencl"
 #define FORMAT_NAME		"RAR3"
-#define ALGORITHM_NAME		"SHA1 AES OpenCL"
+#define ALGORITHM_NAME		"SHA1 OpenCL AES"
 #ifdef DEBUG
 #define BENCHMARK_COMMENT	" (length 1-16)"
 #else

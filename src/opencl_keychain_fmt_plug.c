@@ -30,7 +30,7 @@ john_register_one(&fmt_opencl_keychain);
 
 #define FORMAT_LABEL		"keychain-opencl"
 #define FORMAT_NAME		"Mac OS X Keychain"
-#define ALGORITHM_NAME		"PBKDF2-SHA1 3DES OpenCL"
+#define ALGORITHM_NAME		"PBKDF2-SHA1 OpenCL 3DES"
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define MIN_KEYS_PER_CRYPT	1024*9

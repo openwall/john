@@ -23,9 +23,9 @@ john_register_one(&fmt_opencl_pbkdf2_hmac_sha512);
 #include "memdbg.h"
 
 #define NUUL NULL
-#define FORMAT_LABEL		"grub-opencl"
-#define FORMAT_NAME		FORMAT_LABEL
-#define ALGORITHM_NAME		"PBKDF2-SHA512"
+#define FORMAT_LABEL		"GRUB-opencl"
+#define FORMAT_NAME		""
+#define ALGORITHM_NAME		"PBKDF2-SHA512 OpenCL"
 
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1

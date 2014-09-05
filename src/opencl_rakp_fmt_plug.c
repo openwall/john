@@ -34,8 +34,8 @@ john_register_one(&fmt_opencl_rakp);
 #include "memdbg.h"
 
 #define FORMAT_LABEL            "RAKP-opencl"
-#define FORMAT_NAME             ""
-#define ALGORITHM_NAME          "IPMI 2.0 RAKP (RMCP+) OpenCL"
+#define FORMAT_NAME             "IPMI 2.0 RAKP (RMCP+)"
+#define ALGORITHM_NAME          "HMAC-SHA1 OpenCL"
 
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        -1000

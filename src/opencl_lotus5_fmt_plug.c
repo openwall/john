@@ -25,7 +25,7 @@ john_register_one(&fmt_opencl_1otus5);
 /*preprocessor constants that John The Ripper likes*/
 #define FORMAT_LABEL                   "lotus5-opencl"
 #define FORMAT_NAME                    "Lotus Notes/Domino 5"
-#define ALGORITHM_NAME                 "8/" ARCH_BITS_STR
+#define ALGORITHM_NAME                 "OpenCL"
 #define BENCHMARK_COMMENT              ""
 #define BENCHMARK_LENGTH               -1
 #define CIPHERTEXT_LENGTH              32

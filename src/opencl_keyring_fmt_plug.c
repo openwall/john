@@ -35,7 +35,7 @@ john_register_one(&fmt_opencl_keyring);
 
 #define FORMAT_LABEL		"keyring-opencl"
 #define FORMAT_NAME		"GNOME Keyring"
-#define ALGORITHM_NAME		"SHA256 AES OPENCL"
+#define ALGORITHM_NAME		"SHA256 OpenCL AES"
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define MIN_KEYS_PER_CRYPT	8*1024

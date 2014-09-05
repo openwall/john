@@ -47,7 +47,7 @@ john_register_one(&fmt_opencl_o5logon);
 
 #define FORMAT_LABEL		"o5logon-opencl"
 #define FORMAT_NAME		"Oracle O5LOGON protocol"
-#define ALGORITHM_NAME		"OpenCL-SHA1 AES 32/" ARCH_BITS_STR
+#define ALGORITHM_NAME		"SHA1 OpenCL AES 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	32

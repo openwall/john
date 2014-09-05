@@ -44,7 +44,7 @@ john_register_one(&fmt_opencl_office2007);
 
 #define FORMAT_LABEL		"office2007-opencl"
 #define FORMAT_NAME		"MS Office 2007"
-#define ALGORITHM_NAME		"SHA1 AES OpenCL"
+#define ALGORITHM_NAME		"SHA1 OpenCL AES"
 #define BENCHMARK_COMMENT	" (50,000 iterations)"
 #define BENCHMARK_LENGTH	-1
 #define BINARY_SIZE		0

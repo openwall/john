@@ -33,7 +33,7 @@ john_register_one(&fmt_opencl_odf);
 
 #define FORMAT_LABEL		"ODF-opencl"
 #define FORMAT_NAME		""
-#define ALGORITHM_NAME		"SHA1 Blowfish OpenCL"
+#define ALGORITHM_NAME		"SHA1 OpenCL Blowfish"
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define MIN_KEYS_PER_CRYPT	1024*9

@@ -44,7 +44,7 @@ john_register_one(&fmt_opencl_gpg);
 
 #define FORMAT_LABEL		"gpg-opencl"
 #define FORMAT_NAME		"OpenPGP / GnuPG Secret Key"
-#define ALGORITHM_NAME		"OpenCL"
+#define ALGORITHM_NAME		"SHA1 OpenCL"
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define MIN_KEYS_PER_CRYPT	8*1024

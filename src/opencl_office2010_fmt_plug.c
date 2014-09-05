@@ -44,7 +44,7 @@ john_register_one(&fmt_opencl_office2010);
 
 #define FORMAT_LABEL		"office2010-opencl"
 #define FORMAT_NAME		"MS Office 2010"
-#define ALGORITHM_NAME		"SHA1 AES OpenCL"
+#define ALGORITHM_NAME		"SHA1 OpenCL AES"
 #define BENCHMARK_COMMENT	" (100,000 iterations)"
 #define BENCHMARK_LENGTH	-1
 #define BINARY_SIZE		0

@@ -38,7 +38,7 @@ john_register_one(&fmt_opencl_encfs);
 
 #define FORMAT_LABEL		"encfs-opencl"
 #define FORMAT_NAME		"EncFS"
-#define ALGORITHM_NAME		"PBKDF2-SHA1 AES/Blowfish OpenCL"
+#define ALGORITHM_NAME		"PBKDF2-SHA1 OpenCL AES/Blowfish"
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define MIN_KEYS_PER_CRYPT	1

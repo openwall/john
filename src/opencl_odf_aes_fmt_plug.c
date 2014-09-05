@@ -32,7 +32,7 @@ john_register_one(&fmt_opencl_odf_aes);
 
 #define FORMAT_LABEL		"ODF-AES-opencl"
 #define FORMAT_NAME		""
-#define ALGORITHM_NAME		"SHA256 AES OpenCL"
+#define ALGORITHM_NAME		"SHA256 OpenCL AES"
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define MIN_KEYS_PER_CRYPT	1024*9

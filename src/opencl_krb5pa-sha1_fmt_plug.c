@@ -62,7 +62,7 @@ john_register_one(&fmt_opencl_krb5pa_sha1);
 
 #define FORMAT_LABEL		"krb5pa-sha1-opencl"
 #define FORMAT_NAME		"Kerberos 5 AS-REQ Pre-Auth etype 17/18" /* aes-cts-hmac-sha1-96 */
-#define ALGORITHM_NAME		"OpenCL"
+#define ALGORITHM_NAME		"PBKDF2-SHA1 OpenCL"
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1001
 #define BINARY_SIZE		12
