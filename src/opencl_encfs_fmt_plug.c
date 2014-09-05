@@ -38,7 +38,9 @@ john_register_one(&fmt_opencl_encfs);
 
 #define FORMAT_LABEL		"encfs-opencl"
 #define FORMAT_NAME		"EncFS"
-#define ALGORITHM_NAME		"PBKDF2-SHA1 OpenCL AES/Blowfish"
+#define OCL_ALGORITHM_NAME	"PBKDF2-SHA1 OpenCL"
+#define CPU_ALGORITHM_NAME	" AES/Blowfish"
+#define ALGORITHM_NAME		OCL_ALGORITHM_NAME CPU_ALGORITHM_NAME
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define MIN_KEYS_PER_CRYPT	1
@@ -452,7 +454,7 @@ static void init(struct fmt_main *self)
 	                                       sizeof(cl_int))) > 1) {
 		/* Run vectorized kernel */
 		snprintf(valgo, sizeof(valgo),
-		         ALGORITHM_NAME " %ux", v_width);
+		         OCL_ALGORITHM_NAME " %ux" CPU_ALGORITHM_NAME, v_width);
 		self->params.algorithm_name = valgo;
 	}
 

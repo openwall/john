@@ -44,7 +44,9 @@ john_register_one(&fmt_opencl_office2010);
 
 #define FORMAT_LABEL		"office2010-opencl"
 #define FORMAT_NAME		"MS Office 2010"
-#define ALGORITHM_NAME		"SHA1 OpenCL AES"
+#define OCL_ALGORITHM_NAME	"SHA1 OpenCL"
+#define CPU_ALGORITHM_NAME	" AES"
+#define ALGORITHM_NAME		OCL_ALGORITHM_NAME CPU_ALGORITHM_NAME
 #define BENCHMARK_COMMENT	" (100,000 iterations)"
 #define BENCHMARK_LENGTH	-1
 #define BINARY_SIZE		0
@@ -421,7 +423,7 @@ static void init(struct fmt_main *self)
 	                                       sizeof(cl_int))) > 1) {
 		/* Run vectorized kernel */
 		snprintf(valgo, sizeof(valgo),
-		         ALGORITHM_NAME " %ux", v_width);
+		         OCL_ALGORITHM_NAME " %ux" CPU_ALGORITHM_NAME, v_width);
 		self->params.algorithm_name = valgo;
 	}
 

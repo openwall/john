@@ -44,7 +44,9 @@ john_register_one(&fmt_opencl_office2013);
 
 #define FORMAT_LABEL		"office2013-opencl"
 #define FORMAT_NAME		"MS Office 2013"
-#define ALGORITHM_NAME		"SHA512 OpenCL AES"
+#define OCL_ALGORITHM_NAME	"SHA512 OpenCL"
+#define CPU_ALGORITHM_NAME	" AES"
+#define ALGORITHM_NAME		OCL_ALGORITHM_NAME CPU_ALGORITHM_NAME
 #define BENCHMARK_COMMENT	" (100,000 iterations)"
 #define BENCHMARK_LENGTH	-1
 #define BINARY_SIZE		0
@@ -420,7 +422,7 @@ static void init(struct fmt_main *self)
 	                                       sizeof(cl_long))) > 1) {
 		/* Run vectorized kernel */
 		snprintf(valgo, sizeof(valgo),
-		         ALGORITHM_NAME " %ux", v_width);
+		         OCL_ALGORITHM_NAME " %ux" CPU_ALGORITHM_NAME, v_width);
 		self->params.algorithm_name = valgo;
 	}
 
