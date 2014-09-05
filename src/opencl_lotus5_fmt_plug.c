@@ -80,10 +80,10 @@ static const unsigned int lotus_magic_table[256] = {
 
 /*Some more JTR variables*/
 static cl_uint *crypt_key;
-char *saved_key;
+static char *saved_key;
 
-cl_mem cl_tx_keys, cl_tx_binary, cl_magic_table;
-cl_kernel cl_lotus5_kernel;
+static cl_mem cl_tx_keys, cl_tx_binary, cl_magic_table;
+static cl_kernel cl_lotus5_kernel;
 
 static void init_ocl(int sequential_id, struct fmt_main *self){
 
@@ -169,8 +169,7 @@ static void * binary (char *ciphertext)
 
 /*Another function required by JTR: decides whether we have a valid
  * ciphertext */
-static int
-valid (char *ciphertext, struct fmt_main *self)
+static int valid (char *ciphertext, struct fmt_main *self)
 {
   int i;
 
@@ -242,9 +241,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 					    "Failed:Copy data to gpu.");
 
 	M = 256;
-	N = (count / M + 1) * M;
-	if (N > MAX_KEYS_PER_CRYPT)
-		N = MAX_KEYS_PER_CRYPT;
+	N = (count + (M - 1)) / M * M;
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id],
 					      cl_lotus5_kernel, 1,
 					      NULL, &N, &M, 0, NULL,
@@ -259,7 +256,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 					   NULL, NULL),
 					   "Failed:Copy data from gpu.");
 
-	HANDLE_CLERROR(clFinish(queue[gpu_id]), "Finish Error");
+	// This is implied by the CL_TRUE above
+	//HANDLE_CLERROR(clFinish(queue[gpu_id]), "Finish Error");
 
 	return count;
 }
