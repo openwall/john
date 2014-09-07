@@ -4,7 +4,7 @@ use strict;
 #############################################################################
 # For the version information list and copyright statement,
 # see doc/pass_gen.Manifest
-# Version v1.15.  Update this version signature here, AND the document file.
+# Version v1.18.  Update this version signature here, AND the document file.
 #############################################################################
 
 # Most "use xxx" now moved to "require xxx" *locally* in respective subs in
@@ -105,7 +105,7 @@ my @gen_pCode; my @gen_Stack; my @gen_Flags;
 my $debug_pcode=0; my $gen_needs; my $gen_needs2; my $gen_needu; my $gen_singlesalt;
 my $hash_format; my $arg_utf8 = 0; my $arg_codepage = ""; my $arg_minlen = 0; my $arg_maxlen = 128; my $arg_dictfile = "unknown";
 my $arg_count = 1500, my $argsalt, my $arg_nocomment = 0; my $arg_hidden_cp; my $arg_loops=-1;
-my $arg_tstall = 0;
+my $arg_tstall = 0; my $arg_genall = 0; my $arg_rgenall = 0;
 
 GetOptions(
 	'codepage=s'       => \$arg_codepage,
@@ -118,15 +118,32 @@ GetOptions(
 	'count=n'          => \$arg_count,
 	'loops=n'          => \$arg_loops,
 	'dictfile=s'       => \$arg_dictfile,
-	'tstall!'          => \$arg_tstall
+	'tstall!'          => \$arg_tstall,
+	'genall!'          => \$arg_genall,
+	'rgenall!'         => \$arg_rgenall
 	) || usage();
 
+sub fmt_strings {
+	my $s; my $s2; my $i;
+	$s2 = "       ";
+	for ($i = 0; $i < scalar @funcs; ++$i) {
+		if (length($s2)+length($funcs[$i]) > 78) {
+			$s .= $s2."\n";
+			$s2 = "       ";
+		}
+		$s2 .= $funcs[$i]." ";
+	}
+	return $s.$s2."\n";
+}
+
 sub usage {
+my $s = fmt_strings();
 die <<"UsageHelp";
-usage: $0 [-h|-?] [codepage=CP|-utf8] [-option[s]] HashType [HashType2 [...]] [ < wordfile ]
+usage:
+  $0 [-codepage=CP|-utf8] [-option[s]] HashType [HashType2 [...]] [<wordfile]
     Options can be abbreviated!
     HashType is one or more (space separated) from the following list:
-      [ @funcs ]
+$s
     Multiple hashtypes are done one after the other. All sample words
     are read from stdin or redirection of a wordfile
 
@@ -146,6 +163,8 @@ usage: $0 [-h|-?] [codepage=CP|-utf8] [-option[s]] HashType [HashType2 [...]] [ 
     -nocomment    eliminate the first line comment
 
     -tstall       runs a 'simple' test for all known types.
+    -genall       generates all hashes (non-random, repeatable)
+    -rgenall      gererates all hashes (randomly)
 
     -help         shows this help screen.
 UsageHelp
@@ -156,7 +175,9 @@ if ($arg_tstall != 0) {
 	exit(0);
 }
 
-if (@ARGV == 0) {
+if ($arg_rgenall != 0) { $arg_genall = 1; }
+
+if (@ARGV == 0 && $arg_genall == 0) {
 	die usage();
 }
 
@@ -185,6 +206,19 @@ if (defined $arg_codepage and length($arg_codepage)) {
 	binmode(STDIN,":raw");
 	binmode(STDOUT,":raw");
 	if (!$arg_nocomment) { printf("#!comment: Built with pass_gen.pl using RAW mode, $arg_minlen to $arg_maxlen characters dict file=$arg_dictfile\n"); }
+}
+
+if ($arg_genall != 0) {
+	while (<STDIN>) {
+		next if (/^#!comment/);
+		chomp;
+		s/\r$//;  # strip CR for non-Windows
+		#my $line_len = length($_);
+		my $line_len = jtr_unicode_corrected_length($_);
+		next if $line_len > $arg_maxlen || $line_len < $arg_minlen;
+		gen_all($_);
+	}
+	exit(0);
 }
 ###############################################################################################
 ###############################################################################################
@@ -359,6 +393,28 @@ sub tst_all {
 		use strict;
 	}
 	print "\nAll formats were able to be run ($cnt total formats). All CPAN modules installed\n";
+}
+
+sub gen_all {
+	$u = 1;
+	$arg_hidden_cp = "iso-8859-1";
+	if ($arg_rgenall != 0) {
+		srand(666);
+	}
+	foreach my $f (@funcs) {
+		no strict 'refs';
+		$f = lc $f;
+		if ($f ne "dynamic") {&$f($_[0]);}
+		use strict;
+	}
+	# now test all 'simple' dyna which we have defined (number only)
+	for (my $i = 0; $i < 10000; $i += 1) {
+		my $f = dynamic_compile($i);
+		no strict 'refs';
+		$f = lc $f;
+		if (defined(&{$f})) {&$f($_[0]);}
+		use strict;
+	}
 }
 
 #############################################################################

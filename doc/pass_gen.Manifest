@@ -10,6 +10,10 @@ source and binary forms, with or without modification.
 
 Following is the pass_gen.pl version history prior to adding to the JtR tree:
 
+v1.18 Sept 6, 2014 JimF
+	Better output of usage text (line wrapping and such).
+	Added -genall and -rgenall (non-random and random generation of all hashes).
+
 v1.17 Sept 4, 2014  JimF
 	Added pad_md64() function to allow HSRP Authentication to be usable with Dynamic.
 	Created pp_pbkdf2 function, and replaced all usages of Crypt::PBKDF2 with this internal
