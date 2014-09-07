@@ -123,24 +123,21 @@ static void init_ocl(int sequential_id, struct fmt_main *self){
 	cl_tx_keys = clCreateBuffer(context[sequential_id],
 				    CL_MEM_READ_ONLY,
 			            mem_alloc_sz, NULL, &err);
-	if (cl_tx_keys == (cl_mem)0)
-		HANDLE_CLERROR(err, err_msg);
+	HANDLE_CLERROR(err, err_msg);
 
 	mem_alloc_sz = BINARY_SIZE *
 	               self->params.max_keys_per_crypt;
 	cl_tx_binary = clCreateBuffer(context[sequential_id],
 				      CL_MEM_WRITE_ONLY,
 			              mem_alloc_sz, NULL, &err);
-	if (cl_tx_binary == (cl_mem)0)
-		HANDLE_CLERROR(err, err_msg);
+	HANDLE_CLERROR(err, err_msg);
 
 	mem_alloc_sz = sizeof(cl_uint) * 256;
 	cl_magic_table = clCreateBuffer(context[sequential_id],
 					CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
 				        mem_alloc_sz, (cl_uint *)lotus_magic_table,
 					&err);
-	if (cl_magic_table == (cl_mem)0)
-		HANDLE_CLERROR(err, err_msg);
+	HANDLE_CLERROR(err, err_msg);
 
 	HANDLE_CLERROR(clSetKernelArg(cl_lotus5_kernel, 0,
 				      sizeof(cl_mem), &cl_tx_keys),
@@ -160,14 +157,14 @@ static void init_ocl(int sequential_id, struct fmt_main *self){
 
 static void init(struct fmt_main *self)
 {
+	opencl_preinit();
+	init_ocl(gpu_id, self);
 	crypt_key = mem_calloc_tiny(
 	    BINARY_SIZE * self->params.max_keys_per_crypt,
 	    MEM_ALIGN_CACHE);
 	saved_key = mem_calloc_tiny(
 	    KEY_SIZE_IN_BYTES * self->params.max_keys_per_crypt,
 	    MEM_ALIGN_CACHE);
-	opencl_preinit();
-	init_ocl(gpu_id, self);
 }
 
 static void done(void) {
