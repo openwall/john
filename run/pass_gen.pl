@@ -347,7 +347,17 @@ sub pp_pbkdf2_hex {
 sub LANMan {
 	require Crypt::DES;
 	my $LMConst = 'KGS!@#$%';
-	my $s = uc $_[0];
+	my $s;
+	if ($arg_utf8) {
+		eval { $s = encode("CP850", uc($_[0]), Encode::FB_CROAK); };
+		  if ($@) {
+			  die "UTF-8 input for LM hashes must be encodable in CP850. Use non-UTF8 input with --codepage=xx instead";
+		  }
+	} elsif ($arg_codepage) {
+		$s = encode($arg_codepage, uc($_[0]));
+	} else {
+		$s = uc($_[0]);
+	}
 	if (length($s)>14) { $s = substr($s,0,14); }
 	while (length ($s) < 14) { $s .= "\0"; }
 	my $des0 = new Crypt::DES setup_des_key(substr($s,0,7));
@@ -944,7 +954,11 @@ sub rawmd5u {
 	print "u$u-RawMD5-unicode:", md5_hex(encode("UTF-16LE",$_[0])), ":$u:0:$_[0]::\n";
 }
 sub rawsha1 {
-	print "u$u-RawSHA1:", sha1_hex($_[0]), ":$u:0:$_[0]::\n";
+	my $p = $_[0];
+	if ($arg_codepage) {
+		$p = encode($arg_codepage, $_[0]);
+	}
+	print "u$u-RawSHA1:", sha1_hex($p), ":$u:0:$_[0]::\n";
 }
 sub rawsha1u {
 	print "u$u-RawSHA1-unicode:", sha1_hex(encode("UTF-16LE",$_[0])), ":$u:0:$_[0]::\n";
@@ -1862,7 +1876,7 @@ sub l0phtcrack {
 	$ntresp .= Crypt::ECB::encrypt(setup_des_key(substr($nthash, 14, 7)), 'DES', $challenge, PADDING_NONE());
 	my $type;
 	#if ($arg_utf8 or length($password) > 14) {
-	if ($arg_codepage or length($password) > 14) {
+	if (length($password) > 14) {
 		$type = "ntlm only";
 		$lmresp = $ntresp;
 	} else {
