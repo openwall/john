@@ -43,9 +43,6 @@ use MIME::Base64;
 # 4.    Update the version of this file (at the top of it)
 # 5.    Publish it to the john wiki for others to also use.
 #
-# These john jumbo formats are not done 'yet':
-# AFS/KRB5/dominosec/sapG/sapB/DMD5/trip/keychain/pfx/racf/sip/vnc/wpapsk
-#
 # these are decrypt images, which we may not be able to do in perl. We will
 # take these case by case.
 # odf office pdf pkzip zip rar ssh
@@ -68,9 +65,9 @@ my @funcs = (qw(DES BigCrypt BSDI MD5_1 MD5_a BF BFx BFegg RawMD5 RawMD5u
 		keychain nukedclan pfx racf radmin rawsha0 sip SybaseASE vnc
 		wbb3 wpapsk sunmd5 wow_srp django_scrypt aix_ssha1 aix_ssha256
 		aix_ssha512 pbkdf2_hmac_sha512 rakp osc formspring skey_md5
-		skey_md4 skey_sha1 skey_rmd160));
+		skey_md4 skey_sha1 skey_rmd160 cloudkeychain agilekeychain));
 
-# todo: ike keychain pfx racf sip vnc wpapsk
+# todo: ike keepass sub cloudkeychain agilekeychain pfx racf sip vnc
 
 my $i; my $h; my $u; my $salt;
 my @chrAsciiText=('a'..'z','A'..'Z');
@@ -1035,7 +1032,35 @@ sub keepass {
 }
 sub ike {
 }
+sub cloudkeychain {
+}
+sub agilekeychain {
+}
 sub keychain {
+	require Crypt::DES_EDE3;
+	require Crypt::CBC;
+	my $salt; my $iv; my $data; my $key; my $h;
+	if (defined $argsalt && length($argsalt=20)) { $salt = $argsalt; } else { $salt = randbytes(20); }
+	$iv = randbytes(8);
+
+#	With this $salt and $iv, "password" generates proper (same) hash as found in keychain_fmt_plug.c
+#	$salt = "\x10\xf7\x44\x5c\x85\x10\xfa\x40\xd9\xef\x6b\x4e\x0f\x8c\x77\x2a\x9d\x37\xe4\x49";
+#	$iv = "\xf3\xd1\x9b\x2a\x45\xcd\xcc\xcb";
+
+	# NOTE, this data came from decryption of the sample hash in jtr's keychain_fmt_plug.c.
+	# So we will just keep using it. We know (think) it is valid.
+	$data = "\x85\x6e\xef\x45\x56\xb5\x85\x8c\x15\x47\x7d\xb1\x7b\x95\xc5\xcb\x01\x5d" .
+			"\x51\x0b\x9f\x37\x10\xce\x9d\x44\xf6\x5d\x8b\x6c\xbd\x5d\xa0\x66\xee\x9d" .
+			"\xd0\x85\xc2\x0d\xfa\x53\x78\x25\x04\x04\x04\x04";
+	$key = pp_pbkdf2($_[0], $salt, 1000,"sha1",24);
+	my $cbc = Crypt::CBC->new(	-key => $key,
+								-cipher => "DES_EDE3",
+								-iv => $iv,
+								-literal_key => 1,
+								-header => "none");
+	$h = $cbc->encrypt($data);
+	# $h is 8 bytes longer than in the JtR sample hash. BUT the first 48 bytes ARE the same.  We just trim them.
+	print "u$u-keychain:\$keychain\$*".unpack("H*",$salt)."*".unpack("H*",$iv)."*".substr(unpack("H*",$h),0,48*2),":$u:0:$_[0]::\n";
 }
 sub wpapsk {
 	require Digest::HMAC_MD5;
