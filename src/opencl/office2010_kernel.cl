@@ -22,6 +22,8 @@
 #define SCALAR
 #endif
 
+#define USE_SHA1SHORT
+
 #if gpu_amd(DEVICE_INFO)
 #define USE_BITSELECT
 #endif
@@ -198,6 +200,7 @@ __constant uint ValueBlockKey[] = { 0xd7aa0f6d, 0x3061344e };
 	P4(C, D, E, A, B, R(78)); \
 	P4(B, C, D, E, A, R(79));
 
+#ifdef USE_SHA1SHORT
 #define SHA1_SHORT_BEG(A, B, C, D, E, W)	  \
 	P1(A, B, C, D, E, W[0]); \
 	P1(E, A, B, C, D, W[1]); \
@@ -315,6 +318,7 @@ __constant uint ValueBlockKey[] = { 0xd7aa0f6d, 0x3061344e };
 	P4(B, C, D, E, A, R2(79));
 
 #define SHA1_SHORT(A, B, C, D, E, W) SHA1_SHORT_BEG(A, B, C, D, E, W) SHA1_SHORT_END(A, B, C, D, E, W)
+#endif /* USE_SHA1SHORT */
 
 #define sha1_init(o) {	  \
 		o[0] = INIT_A; \
@@ -338,6 +342,21 @@ __constant uint ValueBlockKey[] = { 0xd7aa0f6d, 0x3061344e };
 		o[4] += E; \
 	}
 
+#define sha1_single(b, o) {	\
+		A = INIT_A; \
+		B = INIT_B; \
+		C = INIT_C; \
+		D = INIT_D; \
+		E = INIT_E; \
+		SHA1(A, B, C, D, E, b); \
+		o[0] = A + INIT_A; \
+		o[1] = B + INIT_B; \
+		o[2] = C + INIT_C; \
+		o[3] = D + INIT_D; \
+		o[4] = E + INIT_E; \
+	}
+
+#ifdef USE_SHA1SHORT
 #define sha1_block_short(b, o) {	\
 		A = o[0]; \
 		B = o[1]; \
@@ -352,6 +371,23 @@ __constant uint ValueBlockKey[] = { 0xd7aa0f6d, 0x3061344e };
 		o[4] += E; \
 	}
 
+#define sha1_single_short(b, o) {	\
+		A = INIT_A; \
+		B = INIT_B; \
+		C = INIT_C; \
+		D = INIT_D; \
+		E = INIT_E; \
+		SHA1_SHORT(A, B, C, D, E, b); \
+		o[0] = A + INIT_A; \
+		o[1] = B + INIT_B; \
+		o[2] = C + INIT_C; \
+		o[3] = D + INIT_D; \
+		o[4] = E + INIT_E; \
+	}
+#else
+#define sha1_block_short	sha1_block
+#endif /* USE_SHA1SHORT */
+
 __kernel void GenerateSHA1pwhash(
 	__global const uint *unicode_pw,
 	__global const uint *pw_len,
@@ -361,8 +397,8 @@ __kernel void GenerateSHA1pwhash(
 	uint i;
 	uint W[16];
 	uint output[5];
-	uint A, B, C, D, E, temp;
 	uint gid = get_global_id(0);
+	uint A, B, C, D, E, temp;
 
 	/* Initial hash of salt + password */
 	/* The ending 0x80 is already in the buffer */
@@ -374,8 +410,7 @@ __kernel void GenerateSHA1pwhash(
 		W[14] = 0;
 		W[15] = (pw_len[gid] + 16) << 3;
 	}
-	sha1_init(output);
-	sha1_block(W, output);
+	sha1_single(W, output);
 
 	if (pw_len[gid] >= 40) {
 		for (i = 0; i < 14; i++)
@@ -390,10 +425,8 @@ __kernel void GenerateSHA1pwhash(
 		pwhash[gid * 6 + i] = output[i];
 	pwhash[gid * 6 + 5] = 0;
 #else
-
 #define VEC_IN(VAL)	  \
-	pwhash[(gid / V_WIDTH) * 6 * V_WIDTH + (gid % V_WIDTH) + i * V_WIDTH] \
-		= (VAL)
+	pwhash[(gid / V_WIDTH) * 6 * V_WIDTH + (gid % V_WIDTH) + i * V_WIDTH] = (VAL)
 
 	for (i = 0; i < 5; i++)
 		VEC_IN(output[i]);
@@ -427,11 +460,12 @@ void HashLoop(__global MAYBE_VECTOR_UINT *pwhash)
 		for (i = 1; i < 6; i++)
 			W[i] = output[i - 1];
 		W[6] = 0x80000000;
-		//for (i = 7; i < 15; i++)
-		//	W[i] = 0;
+#ifndef USE_SHA1SHORT
+		for (i = 7; i < 15; i++)
+			W[i] = 0;
+#endif
 		W[15] = 24 << 3;
-		sha1_init(output);
-		sha1_block_short(W, output);
+		sha1_single_short(W, output);
 	}
 	for (i = 0; i < 5; i++)
 		pwhash[gid * 6 + i] = output[i];
@@ -469,8 +503,7 @@ void Generate2010key(
 		//for (i = 7; i < 15; i++)
 		//	W[i] = 0;
 		W[15] = 24 << 3;
-		sha1_init(output);
-		sha1_block_short(W, output);
+		sha1_single_short(W, output);
 	}
 
 	/* Our sha1 destroys input so we store it in hash[] */
@@ -484,8 +517,7 @@ void Generate2010key(
 	for (i = 8; i < 15; i++)
 		W[i] = 0;
 	W[15] = 28 << 3;
-	sha1_init(output);
-	sha1_block(W, output);
+	sha1_single(W, output);
 
 	/* Endian-swap to output (we only use 16 bytes) */
 	for (i = 0; i < 4; i++)
@@ -533,8 +565,7 @@ void Generate2010key(
 	for (i = 8; i < 15; i++)
 		W[i] = 0;
 	W[15] = 28 << 3;
-	sha1_init(output);
-	sha1_block(W, output);
+	sha1_single(W, output);
 
 	/* Endian-swap to output (we only use 16 bytes) */
 	for (i = 0; i < 4; i++)

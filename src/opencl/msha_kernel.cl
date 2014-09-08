@@ -294,6 +294,20 @@
 		o[4] += E; \
 	}
 
+#define sha1_single(b, o) {	\
+		A = INIT_A; \
+		B = INIT_B; \
+		C = INIT_C; \
+		D = INIT_D; \
+		E = INIT_E; \
+		SHA1(A, B, C, D, E, b); \
+		o[0] = A + INIT_A; \
+		o[1] = B + INIT_B; \
+		o[2] = C + INIT_C; \
+		o[3] = D + INIT_D; \
+		o[4] = E + INIT_E; \
+	}
+
 #define sha1_block_short(b, o) {	\
 		A = o[0]; \
 		B = o[1]; \
@@ -306,6 +320,20 @@
 		o[2] += C; \
 		o[3] += D; \
 		o[4] += E; \
+	}
+
+#define sha1_single_short(b, o) {	\
+		A = INIT_A; \
+		B = INIT_B; \
+		C = INIT_C; \
+		D = INIT_D; \
+		E = INIT_E; \
+		SHA1_SHORT(A, B, C, D, E, b); \
+		o[0] = A + INIT_A; \
+		o[1] = B + INIT_B; \
+		o[2] = C + INIT_C; \
+		o[3] = D + INIT_D; \
+		o[4] = E + INIT_E; \
 	}
 
 
@@ -331,8 +359,7 @@ __kernel void mysqlsha1_crypt_kernel(__global const uchar *key,
 		PUTCHAR_BE(W, i, key[i]);
 	PUTCHAR_BE(W, i, 0x80);
 	W[15] = i << 3;
-	sha1_init(output);
-	sha1_block(W, output);
+	sha1_single(W, output);
 
 	W[0] = output[0];
 	W[1] = output[1];
@@ -344,12 +371,10 @@ __kernel void mysqlsha1_crypt_kernel(__global const uchar *key,
 	for (i = 6; i < 16; i++)
 		W[i] = 0;
 	W[15] = 20 << 3;
-	sha1_init(output);
-	sha1_block(W, output);
+	sha1_single(W, output);
 #else
 	W[15] = 20 << 3;
-	sha1_init(output);
-	sha1_block_short(W, output);
+	sha1_single_short(W, output);
 #endif
 	for (i = 0; i < 5; i++)
 		digest[i * gws + gid] = output[i];

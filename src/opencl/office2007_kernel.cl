@@ -347,6 +347,20 @@ inline uint SWAP32(uint x)
 		o[4] += E; \
 	}
 
+#define sha1_single(b, o) {	\
+		A = INIT_A; \
+		B = INIT_B; \
+		C = INIT_C; \
+		D = INIT_D; \
+		E = INIT_E; \
+		SHA1(A, B, C, D, E, b); \
+		o[0] = A + INIT_A; \
+		o[1] = B + INIT_B; \
+		o[2] = C + INIT_C; \
+		o[3] = D + INIT_D; \
+		o[4] = E + INIT_E; \
+	}
+
 #ifdef USE_SHA1SHORT
 #define sha1_block_short(b, o) {	\
 		A = o[0]; \
@@ -360,6 +374,20 @@ inline uint SWAP32(uint x)
 		o[2] += C; \
 		o[3] += D; \
 		o[4] += E; \
+	}
+
+#define sha1_single_short(b, o) {	\
+		A = INIT_A; \
+		B = INIT_B; \
+		C = INIT_C; \
+		D = INIT_D; \
+		E = INIT_E; \
+		SHA1_SHORT(A, B, C, D, E, b); \
+		o[0] = A + INIT_A; \
+		o[1] = B + INIT_B; \
+		o[2] = C + INIT_C; \
+		o[3] = D + INIT_D; \
+		o[4] = E + INIT_E; \
 	}
 #else
 #define sha1_block_short	sha1_block
@@ -387,8 +415,7 @@ __kernel void GenerateSHA1pwhash(
 		W[14] = 0;
 		W[15] = (pw_len[gid] + 16) << 3;
 	}
-	sha1_init(output);
-	sha1_block(W, output);
+	sha1_single(W, output);
 
 	if (pw_len[gid] >= 40) {
 		for (i = 0; i < 14; i++)
@@ -443,8 +470,7 @@ void HashLoop(__global MAYBE_VECTOR_UINT *pwhash)
 			W[i] = 0;
 #endif
 		W[15] = 24 << 3;
-		sha1_init(output);
-		sha1_block_short(W, output);
+		sha1_single_short(W, output);
 	}
 	for (i = 0; i < 5; i++)
 		pwhash[gid * 6 + i] = output[i];
@@ -481,8 +507,7 @@ void Generate2007key(
 			W[i] = 0;
 #endif
 		W[15] = 24 << 3;
-		sha1_init(output);
-		sha1_block_short(W, output);
+		sha1_single_short(W, output);
 	}
 
 	/* Final hash */
@@ -501,16 +526,14 @@ void Generate2007key(
 		W[i] = 0;
 #endif
 	W[15] = 24 << 3;
-	sha1_init(output);
-	sha1_block_short(W, output);
+	sha1_single_short(W, output);
 
 	/* DeriveKey */
 	for (i = 0; i < 5; i++)
 		W[i] = output[i] ^ 0x36363636;
 	for (i = 5; i < 16; i++)
 		W[i] = 0x36363636;
-	sha1_init(output);
-	sha1_block(W, output);
+	sha1_single(W, output);
 	/* sha1_final (last block was 64 bytes) */
 	W[0] = 0x80000000;
 	for (i = 1; i < 7; i++)
