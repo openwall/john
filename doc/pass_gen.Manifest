@@ -10,6 +10,20 @@ source and binary forms, with or without modification.
 
 Following is the pass_gen.pl version history prior to adding to the JtR tree:
 
+v1.19 Sept 8, 2014 JimF
+	Created all needed basic functions to eliminate the dependency on Authens::Passprase. Now
+		the only HUGE dependency, is on CryptX (Digest::Crypt).  That is a monster, but that
+		is the only place I could find the RipeMD functions, other than RipeMD160. So I have
+		Not been able to replace that ugly monster dependency yet.
+	changed -genall code a bit. Now, -nrgenall is the non-rand version. Did regression tests
+		of pass_gen, comparing it prior to Authen removal.  Code generates 100% same results,
+		once I changed original code to fix a bug or 2 (LM and mschapv2), and to generate
+		salts in the exact same way we do in the new code, for the removed Authens hashes.
+		The -genall code does do an srand, but only at start of run.  The -nrgenall does
+		an srand before building every random salt/string/user name.  It was done this way
+		so that if another hash was added, we could still regression test, and the others
+		should match, OR if we changed the lenght of a salt on a hash (or something similar).
+
 v1.18 Sept 6, 2014 JimF
 	Better output of usage text (line wrapping and such).
 	Added -genall and -rgenall (non-random and random generation of all hashes).
