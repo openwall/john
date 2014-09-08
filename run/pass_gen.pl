@@ -105,7 +105,7 @@ my @gen_pCode; my @gen_Stack; my @gen_Flags;
 my $debug_pcode=0; my $gen_needs; my $gen_needs2; my $gen_needu; my $gen_singlesalt;
 my $hash_format; my $arg_utf8 = 0; my $arg_codepage = ""; my $arg_minlen = 0; my $arg_maxlen = 128; my $arg_dictfile = "unknown";
 my $arg_count = 1500, my $argsalt, my $arg_nocomment = 0; my $arg_hidden_cp; my $arg_loops=-1;
-my $arg_tstall = 0; my $arg_genall = 0; my $arg_rgenall = 0;
+my $arg_tstall = 0; my $arg_genall = 0; my $arg_nrgenall = 0;
 
 GetOptions(
 	'codepage=s'       => \$arg_codepage,
@@ -120,7 +120,7 @@ GetOptions(
 	'dictfile=s'       => \$arg_dictfile,
 	'tstall!'          => \$arg_tstall,
 	'genall!'          => \$arg_genall,
-	'rgenall!'         => \$arg_rgenall
+	'nrgenall!'        => \$arg_nrgenall
 	) || usage();
 
 sub fmt_strings {
@@ -163,8 +163,8 @@ $s
     -nocomment    eliminate the first line comment
 
     -tstall       runs a 'simple' test for all known types.
-    -genall       generates all hashes (non-random, repeatable)
-    -rgenall      gererates all hashes (randomly)
+    -genall       generates all hashes with random salts.
+    -nrgenall     gererates all hashes (non-random, repeatable)
 
     -help         shows this help screen.
 UsageHelp
@@ -175,7 +175,7 @@ if ($arg_tstall != 0) {
 	exit(0);
 }
 
-if ($arg_rgenall != 0) { $arg_genall = 1; }
+if ($arg_nrgenall != 0) { $arg_genall = 1; }
 
 if (@ARGV == 0 && $arg_genall == 0) {
 	die usage();
@@ -252,8 +252,8 @@ if (@ARGV == 1) {
 				use strict;
 				++$u;
 				if ($u >= $arg_count) {
-				    print STDERR "Got $arg_count, not processing more. Use -count to bump limit.\n";
-				    last;
+					print STDERR "Got $arg_count, not processing more. Use -count to bump limit.\n";
+					last;
 				}
 			}
 			last;
@@ -319,7 +319,7 @@ sub pp_pbkdf2 {
 	my $opad = hmac_pad($pass, '\\', $algo); # \ is \x5c for an opad
 	my $final_out=""; my $i=1;
 	while (length($final_out) < $bytes) {
-		my $salt = $orig_salt . chr($i>>24); $salt .= chr(($i>>16)&0xFF); $salt .= chr(($i>>8)&0xFF); $salt .= chr($i&0xFF);
+		$salt = $orig_salt . chr($i>>24); $salt .= chr(($i>>16)&0xFF); $salt .= chr(($i>>8)&0xFF); $salt .= chr($i&0xFF);
 		$i += 1;
 		no strict 'refs';
 		$salt = &$algo($opad.&$algo($ipad.$salt));
@@ -398,9 +398,7 @@ sub tst_all {
 sub gen_all {
 	$u = 1;
 	$arg_hidden_cp = "iso-8859-1";
-	if ($arg_rgenall != 0) {
-		srand(666);
-	}
+	if ($arg_nrgenall != 0) { srand(666); }
 	foreach my $f (@funcs) {
 		no strict 'refs';
 		$f = lc $f;
@@ -422,7 +420,8 @@ sub gen_all {
 #############################################################################
 sub randnum {
 	my @chr = defined($_[1]) ? @{$_[1]} : @chrAsciiNum;
-	my $s;
+	my $s="";
+	if ($arg_nrgenall != 0) { srand(666); }
 	foreach (1..$_[0]) {
 		$s.=$chr[rand @chr];
 	}
@@ -431,7 +430,8 @@ sub randnum {
 
 sub randstr {
 	my @chr = defined($_[1]) ? @{$_[1]} : @chrAsciiTextNum;
-	my $s;
+	my $s="";
+	if ($arg_nrgenall != 0) { srand(666); }
 	foreach (1..$_[0]) {
 		$s.=$chr[rand @chr];
 	}
@@ -439,6 +439,7 @@ sub randstr {
 }
 sub randbytes {
 	my $ret = "";
+	if ($arg_nrgenall != 0) { srand(666); }
 	foreach(1 .. $_[0]) {
 		$ret .= chr(rand(256));
 	}
@@ -446,6 +447,7 @@ sub randbytes {
 }
 sub randusername {
 	my $num = shift;
+	if ($arg_nrgenall != 0) { srand(666); }
 	my $user = $userNames[rand @userNames];
 	if (defined($num) && $num > 0) {
 		while (length($user) > $num) {
@@ -714,23 +716,24 @@ sub ripemd320_base64 {
 #############################################################################
 sub des {
 	require Authen::Passphrase::DESCrypt;
-	if ($argsalt && length($argsalt)==2) {
-		$h = Authen::Passphrase::DESCrypt->new(passphrase => $_[0], salt_base64 => $argsalt);
-	} else {
-		$h = Authen::Passphrase::DESCrypt->new(passphrase => $_[0], salt_random => 12);
-	}
+	if ($argsalt && length($argsalt)==2) { $salt = $argsalt; } else { $salt = randstr(2,\@i64); }
+	$h = Authen::Passphrase::DESCrypt->new(passphrase => $_[0], salt_base64 => $salt);
 	print "u$u-DES:", $h->as_crypt, ":$u:0:$_[0]::\n";
 }
 sub bigcrypt {
 	require Authen::Passphrase::BigCrypt;
+	if ($argsalt && length($argsalt)==2) { $salt = $argsalt; } else { $salt = randstr(2,\@i64); }
 	if (length($_[0]) > 8) {
-		$h = Authen::Passphrase::BigCrypt->new(passphrase => $_[0], salt_random => 12);
+		$h = Authen::Passphrase::BigCrypt->new(passphrase => $_[0], salt_base64 => $salt);
 		print "u$u-DES_BigCrypt:", $h->salt_base64_2, $h->hash_base64, ":$u:0:$_[0]::\n";
+	} else {
+		des($_[0]);
 	}
 }
 sub bsdi {
 	require Authen::Passphrase::DESCrypt;
-	$h = Authen::Passphrase::DESCrypt->new(passphrase => $_[0], fold => 1, nrounds => 725, salt_random => 24);
+	if ($argsalt && length($argsalt)==4) { $salt = $argsalt; } else { $salt = randstr(4,\@i64); }
+	$h = Authen::Passphrase::DESCrypt->new(passphrase => $_[0], fold => 1, nrounds => 725, salt_base64 => $salt);
 	print "u$u-BSDI:", $h->as_crypt, ":$u:0:$_[0]::\n";
 }
 sub md5_1 {
@@ -785,24 +788,16 @@ sub bfx_fix_pass {
 sub bfx {
 	require Authen::Passphrase::BlowfishCrypt;
 	my $fixed_pass = bfx_fix_pass($_[0]);
-	if ($argsalt && length($argsalt)==16) {
-		$h = Authen::Passphrase::BlowfishCrypt->new(passphrase => $fixed_pass, cost => 5, salt => $argsalt);
-	}
-	else {
-		$h = Authen::Passphrase::BlowfishCrypt->new(passphrase => $fixed_pass, cost => 5, salt_random => 1);
-	}
+	if ($argsalt && length($argsalt)==16) { $salt = $argsalt; } else { $salt = randstr(16,\@i64); }
+	$h = Authen::Passphrase::BlowfishCrypt->new(passphrase => $fixed_pass, cost => 5, salt => $salt);
 	my $hash_str = $h->as_crypt;
 	$hash_str =~ s/\$2a\$/\$2x\$/;
 	print "u$u-BF:", $hash_str, ":$u:0:$_[0]::\n";
 }
 sub bf {
 	require Authen::Passphrase::BlowfishCrypt;
-	if ($argsalt && length($argsalt)==16) {
-		$h = Authen::Passphrase::BlowfishCrypt->new(passphrase => $_[0], cost => 5, salt => $argsalt);
-	}
-	else {
-		$h = Authen::Passphrase::BlowfishCrypt->new(passphrase => $_[0], cost => 5, salt_random => 1);
-	}
+	if ($argsalt && length($argsalt)==16) { $salt = $argsalt; } else { $salt = randstr(16,\@i64); }
+	$h = Authen::Passphrase::BlowfishCrypt->new(passphrase => $_[0], cost => 5, salt => $salt);
 	print "u$u-BF:", $h->as_crypt, ":$u:0:$_[0]::\n";
 }
 sub bfegg {
@@ -1002,7 +997,7 @@ sub mscash2 {
 sub lm {
 	require Authen::Passphrase::LANManager;
 	my $s = $_[0];
-	if (length($s)>14) { $s = substr($s,14);}
+	if (length($s)>14) { $s = substr($s,0,14);}
 	$h = Authen::Passphrase::LANManager->new(passphrase => length($s) <= 14 ? $s : "");
 	print "u$u-LM:$u:", $h->hash_hex, ":$u:0:", uc $s, "::\n";
 }
@@ -1035,7 +1030,8 @@ sub formspring {
 }
 sub phpass {
 	require Authen::Passphrase::PHPass;
-	$h = Authen::Passphrase::PHPass->new(cost => 11, salt_random => 1, passphrase => $_[0]);
+	if (defined $argsalt) { $salt = md5_hex($argsalt); } else { $salt=randstr(8); }
+	$h = Authen::Passphrase::PHPass->new(cost => 11, salt => $salt, passphrase => $_[0]);
 	print "u$u-PHPass:", $h->as_crypt, ":$u:0:$_[0]::\n";
 }
 sub po {
@@ -1072,7 +1068,7 @@ sub md5_a_hash {
 	# md5("a","b","c") == md5("abc");
 	my $b, my $c, my $tmp;
 	my $type = $_[2];
-	my $salt = $_[1];
+	$salt = $_[1];
 	#create $b
 	$b = md5($_[0],$salt,$_[0]);
 	#create $a
@@ -1164,7 +1160,7 @@ sub moffet_coinflip {
 }
 sub _sunmd5_hash {
 	my $pw=$_[0];
-	my $salt = $_[1];
+	$salt = $_[1];
 	my $c = md5($pw,$salt);
 	my $i = 0;
 	while ($i < 5000) {
@@ -1756,7 +1752,7 @@ sub mschapv2 {
 	my $response = Crypt::ECB::encrypt(setup_des_key(substr($nthash, 0, 7)), 'DES', $challenge, PADDING_NONE());
 	$response .= Crypt::ECB::encrypt(setup_des_key(substr($nthash, 7, 7)), 'DES', $challenge, PADDING_NONE());
 	$response .= Crypt::ECB::encrypt(setup_des_key(substr($nthash . "\x00" x 5, 14, 7)), 'DES', $challenge, PADDING_NONE());
-	printf("%s:::%s:%s:%s::%s:netntlmv2\n", $user, binToHex($a_challenge), binToHex($response), binToHex($p_challenge), $pwd);
+	printf("%s:::%s:%s:%s::%s:mschapv2\n", $user, binToHex($a_challenge), binToHex($response), binToHex($p_challenge), $pwd);
 }
 sub crc_32 {
 	require String::CRC32;
@@ -1984,7 +1980,8 @@ sub dynamic_7 { #dynamic_7 --> md5(md5($p).$s)
 }
 sub dynamic_17 { #dynamic_17 --> phpass ($P$ or $H$)	phpass
 	require Authen::Passphrase::PHPass;
-	$h = Authen::Passphrase::PHPass->new(cost => 11, salt_random => 1, passphrase => $_[0]);
+	if (defined $argsalt) { $salt = md5_hex($argsalt); } else { $salt=randstr(8); }
+	$h = Authen::Passphrase::PHPass->new(cost => 11, salt => $salt, passphrase => $_[0]);
 	my $hh = $h->as_crypt;
 	$salt = substr($hh,3,9);
 	print "u$u-dynamic_17:\$dynamic_17\$", substr($hh,12), "\$$salt:$u:0:$_[0]::\n";
