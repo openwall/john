@@ -1,7 +1,7 @@
 /*
  * Cracker for HSRP MD5 authentication, http://www.rfc-editor.org/rfc/rfc1828.txt
  *
- * This is dedicated to Darya. You insipre me.
+ * This is dedicated to Darya. You inspire me.
  *
  * This software is Copyright (c) 2014, Dhiru Kholia <dhiru [at] openwall.com>,
  * and it is hereby released to the general public under the following terms:
