@@ -2,12 +2,12 @@
  * 2012 by Dhiru Kholia <dhiru.kholia at gmail.com>.
  *
  * This software is Copyright (c) 2012, Dhiru Kholia <dhiru.kholia at gmail.com>
- *
+ * Copyright (c) 2014, magnum
  * Copyright (c) 2009, David Leblanc (http://offcrypto.codeplex.com/)
  *
  * License: Microsoft Public License (MS-PL)
  *
- * Version: 8 (Last edited Apr 10 2009 at 2:26 AM by dcleblanc) */
+ */
 
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_oldoffice;
@@ -39,7 +39,7 @@ john_register_one(&fmt_oldoffice);
 #define FORMAT_NAME		"MS Office <= 2003"
 #define ALGORITHM_NAME		"MD5/SHA1 RC4 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	-1
+#define BENCHMARK_LENGTH	-1000
 #define PLAINTEXT_LENGTH	64
 #define BINARY_SIZE		0
 #define SALT_SIZE		sizeof(struct custom_salt)
@@ -62,6 +62,9 @@ static struct fmt_tests oo_tests[] = {
 	{"$oldoffice$3*3fbf56a18b026e25815cbea85a16036c*216562ea03b4165b54cfaabe89d36596*91308b40297b7ce31af2e8c57c6407994b205590", "openwall"},
 	/* 2003-RC4-40bit-MS-Base-1.0_myhovercraftisfullofeels_.xls */
 	{"$oldoffice$3*f426041b2eba9745d30c7949801f7d3a*888b34927e5f31e2703cc4ce86a6fd78*ff66200812fd06c1ba43ec2be9f3390addb20096", "myhovercraftisfullofeels"},
+	/* Meet-in-the-middle candidate produced with oclHashcat -m9710 */
+	/* Real pw is "hashcat", one collision is "zvDtu!" */
+	{"$oldoffice$1*d6aabb63363188b9b73a88efb9c9152e*afbbb9254764273f8f4fad9a5d82981f*6f09fd2eafc4ade522b5f2bee0eaf66d*f2ab1219ae", "zvDtu!"},
 	{NULL}
 };
 
@@ -77,6 +80,8 @@ static struct custom_salt {
 	unsigned char salt[16];
 	unsigned char verifier[16]; /* or encryptedVerifier */
 	unsigned char verifierHash[20];  /* or encryptedVerifierHash */
+	unsigned int has_mitm;
+	unsigned char mitm[5]; /* Meet-in-the-middle hint, if we have one */
 } *cur_salt;
 
 static void init(struct fmt_main *self)
@@ -155,6 +160,7 @@ static void *get_salt(char *ciphertext)
 	char *p;
 	int i;
 	static struct custom_salt cs;
+
 	ctcopy += 11;	/* skip over "$oldoffice$" */
 	p = strtok(ctcopy, "*");
 	cs.type = atoi(p);
@@ -177,6 +183,13 @@ static void *get_salt(char *ciphertext)
 			cs.verifierHash[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 				+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	}
+	if ((p = strtok(NULL, "*"))) {
+		cs.has_mitm = 1;
+		for (i = 0; i < 5; i++)
+			cs.mitm[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
+				+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
+	} else
+		cs.has_mitm = 0;
 	MEM_FREE(keeptr);
 	return (void *)&cs;
 }
@@ -198,16 +211,17 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
 #endif
+	for (index = 0; index < count; index++)
 	{
 		int i;
-		MD5_CTX ctx;
-		unsigned char pwdHash[16];
-		unsigned char hashBuf[21 * 16];
 		RC4_KEY key;
 
 		if(cur_salt->type < 3) {
+			MD5_CTX ctx;
+			unsigned char pwdHash[16];
+			unsigned char hashBuf[21 * 16];
+
 			MD5_Init(&ctx);
 			MD5_Update(&ctx, saved_key[index], saved_len[index]);
 			MD5_Final(pwdHash, &ctx);
@@ -219,6 +233,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			MD5_Init(&ctx);
 			MD5_Update(&ctx, hashBuf, 21 * 16);
 			MD5_Final(pwdHash, &ctx);
+			// Early reject if we got a hint
+			if (cur_salt->has_mitm &&
+			    memcmp(pwdHash, cur_salt->mitm, 5))
+				continue;
 			memcpy(hashBuf, pwdHash, 5);
 			memset(hashBuf + 5, 0, 4);
 			MD5_Init(&ctx);
@@ -232,6 +250,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			MD5_Update(&ctx, hashBuf, 16);
 			MD5_Final(pwdHash, &ctx);
 			if(!memcmp(pwdHash, hashBuf + 16, 16))
+#ifdef _OPENMP
+#pragma omp critical
+#endif
 				any_cracked = cracked[index] = 1;
 		}
 		else {
@@ -249,6 +270,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			SHA1_Init(&ctx);
 			SHA1_Update(&ctx, H0, 24);
 			SHA1_Final(Hfinal, &ctx);
+			// Early reject if we got a hint
+			if (cur_salt->has_mitm &&
+			    memcmp(Hfinal, cur_salt->mitm, 5))
+				continue;
 			if(cur_salt->type < 4)
 				memset(&Hfinal[5], 0, 11);
 			RC4_set_key(&key, 16, Hfinal); /* dek */
@@ -258,6 +283,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			SHA1_Update(&ctx, DecryptedVerifier, 16);
 			SHA1_Final(Hfinal, &ctx);
 			if(!memcmp(Hfinal, DecryptedVerifierHash, 16))
+#ifdef _OPENMP
+#pragma omp critical
+#endif
 				any_cracked = cracked[index] = 1;
 		}
 	}
