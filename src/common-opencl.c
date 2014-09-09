@@ -1292,14 +1292,14 @@ void opencl_find_best_lws(
 					       sizeof(cl_ulong), &endTime,
 					       NULL),
 		       "Failed to get profiling info");
-	numloops = (int)(size_t)(500000000ULL / (endTime-startTime));
+	numloops = (int)(size_t)(200000000ULL / (endTime-startTime));
 
 	release_profiling_events();
 
 	if (numloops < 1)
 		numloops = 1;
-	else if (numloops > 10)
-		numloops = 10;
+	else if (numloops > 5)
+		numloops = 5;
 
 	// Find minimum time
 	for (optimal_work_group = my_work_group = wg_multiple;
