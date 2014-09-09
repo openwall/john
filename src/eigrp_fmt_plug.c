@@ -33,7 +33,7 @@ john_register_one(&fmt_eigrp);
 #include "memdbg.h"
 
 #define FORMAT_LABEL            "eigrp"
-#define FORMAT_NAME             "EIGRP MD5 authentication *BROKEN*"  // reduce expectations ;)
+#define FORMAT_NAME             "EIGRP MD5 authentication"
 #define FORMAT_TAG              "$eigrp$"
 #define TAG_LENGTH              (sizeof(FORMAT_TAG) - 1)
 #define ALGORITHM_NAME          "MD5 32/" ARCH_BITS_STR
@@ -65,6 +65,7 @@ static struct custom_salt {
 	int have_extra_salt;
 	int extra_salt_length;
 	unsigned char salt[1024];
+	MD5_CTX prep_salt;
 	unsigned char extra_salt[1024];
 } *cur_salt;
 
@@ -149,6 +150,10 @@ static void *get_salt(char *ciphertext)
 				atoi16[ARCH_INDEX(p[2 * i + 1])];
 	}
 
+	/* Better do this once than 10 million times per second */
+	MD5_Init(&cs.prep_salt);
+	MD5_Update(&cs.prep_salt, cs.salt, cs.length);
+
 	return &cs;
 }
 
@@ -195,8 +200,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	{
 		MD5_CTX ctx;
-		MD5_Init(&ctx);
-		MD5_Update(&ctx, cur_salt->salt, cur_salt->length);
+
+		memcpy(&ctx, &cur_salt->prep_salt, sizeof(MD5_CTX));
 		MD5_Update(&ctx, saved_key[index], saved_len[index]);
 		MD5_Update(&ctx, "\x00\x00\x00", 3);  // WTF!
 		// do we have extra_salt?
@@ -231,10 +236,8 @@ static int cmp_exact(char *source, int index)
 
 static void eigrp_set_key(char *key, int index)
 {
-	saved_len[index] = strlen(key);
-
-	/* strncpy will pad with zeros, which is needed */
-	strncpy(saved_key[index], key, sizeof(saved_key[0]));
+	saved_len[index] = strnzcpyn(saved_key[index], key,
+	                             PLAINTEXT_LENGTH + 1);
 }
 
 static char *get_key(int index)
