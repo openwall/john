@@ -40,7 +40,7 @@ john_register_one(&fmt_opencl_office2013);
 
 #define PLAINTEXT_LENGTH	47
 #define UNICODE_LENGTH		96 /* In octets, including 0x80 */
-#define HASH_LOOPS		64 /* Lower figure gives less X hogging */
+#define HASH_LOOPS		256 /* Lower figure gives less X hogging */
 
 #define FORMAT_LABEL		"office2013-opencl"
 #define FORMAT_NAME		"MS Office 2013"

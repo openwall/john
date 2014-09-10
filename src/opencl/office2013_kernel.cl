@@ -1,13 +1,13 @@
 /*
  * Office 2013
  *
- * Copyright (c) 2012, magnum
+ * Copyright (c) 2012-2014, magnum
+ * Copyright (c) 2012, 2013 Lukas Odzioba <ukasz at openwall dot net>
  * This software is hereby released to the general public under
  * the following terms: Redistribution and use in source and binary
  * forms, with or without modification, are permitted.
  *
  * This is thanks to Dhiru writing the CPU code first!
- * Also, it's using Claudio's SHA-512 (although very slimmed here).
  */
 
 #include "opencl_device_info.h"
@@ -21,10 +21,6 @@
 #else
 #define MAYBE_VECTOR_ULONG	ulong
 #define SCALAR
-#endif
-
-#if !amd_gcn(DEVICE_INFO)
-#define UNROLL
 #endif
 
 /* Office 2010/2013 */
@@ -93,127 +89,160 @@ inline uint SWAP32(uint x)
 #define sigma0(x)               ((ror(x,1))  ^ (ror(x,8))  ^ (x>>7))
 #define sigma1(x)               ((ror(x,19)) ^ (ror(x,61)) ^ (x>>6))
 
+#define INIT_A	0x6a09e667f3bcc908UL
+#define INIT_B	0xbb67ae8584caa73bUL
+#define INIT_C	0x3c6ef372fe94f82bUL
+#define INIT_D	0xa54ff53a5f1d36f1UL
+#define INIT_E	0x510e527fade682d1UL
+#define INIT_F	0x9b05688c2b3e6c1fUL
+#define INIT_G	0x1f83d9abfb41bd6bUL
+#define INIT_H	0x5be0cd19137e2179UL
+
+#define ROUND_A(a,b,c,d,e,f,g,h,ki,wi)\
+ t = (ki) + (wi) + (h) + Sigma1(e) + Ch((e),(f),(g));\
+ d += (t); h = (t) + Sigma0(a) + Maj((a), (b), (c));\
+
+#define ROUND_B(a,b,c,d,e,f,g,h,ki,wi,wj,wk,wl,wm)\
+ wi = sigma1(wj) + sigma0(wk) + wl + wm;\
+ t = (ki) + (wi) + (h) + Sigma1(e) + Ch((e),(f),(g));\
+ d += (t); h = (t) + Sigma0(a) + Maj((a), (b), (c));\
+
+
+#define SHA512(a, b, c, d, e, f, g, h)\
+	ROUND_A(A,B,C,D,E,F,G,H,k[0],W[0])\
+	ROUND_A(H,A,B,C,D,E,F,G,k[1],W[1])\
+	ROUND_A(G,H,A,B,C,D,E,F,k[2],W[2])\
+	ROUND_A(F,G,H,A,B,C,D,E,k[3],W[3])\
+	ROUND_A(E,F,G,H,A,B,C,D,k[4],W[4])\
+	ROUND_A(D,E,F,G,H,A,B,C,k[5],W[5])\
+	ROUND_A(C,D,E,F,G,H,A,B,k[6],W[6])\
+	ROUND_A(B,C,D,E,F,G,H,A,k[7],W[7])\
+	ROUND_A(A,B,C,D,E,F,G,H,k[8],W[8])\
+	ROUND_A(H,A,B,C,D,E,F,G,k[9],W[9])\
+	ROUND_A(G,H,A,B,C,D,E,F,k[10],W[10])\
+	ROUND_A(F,G,H,A,B,C,D,E,k[11],W[11])\
+	ROUND_A(E,F,G,H,A,B,C,D,k[12],W[12])\
+	ROUND_A(D,E,F,G,H,A,B,C,k[13],W[13])\
+	ROUND_A(C,D,E,F,G,H,A,B,k[14],W[14])\
+	ROUND_A(B,C,D,E,F,G,H,A,k[15],W[15])\
+	ROUND_B(A,B,C,D,E,F,G,H,k[16],W[0],  W[14],W[1],W[0],W[9])\
+	ROUND_B(H,A,B,C,D,E,F,G,k[17],W[1],  W[15],W[2],W[1],W[10])\
+	ROUND_B(G,H,A,B,C,D,E,F,k[18],W[2],  W[0],W[3],W[2],W[11])\
+	ROUND_B(F,G,H,A,B,C,D,E,k[19],W[3],  W[1],W[4],W[3],W[12])\
+	ROUND_B(E,F,G,H,A,B,C,D,k[20],W[4],  W[2],W[5],W[4],W[13])\
+	ROUND_B(D,E,F,G,H,A,B,C,k[21],W[5],  W[3],W[6],W[5],W[14])\
+	ROUND_B(C,D,E,F,G,H,A,B,k[22],W[6],  W[4],W[7],W[6],W[15])\
+	ROUND_B(B,C,D,E,F,G,H,A,k[23],W[7],  W[5],W[8],W[7],W[0])\
+	ROUND_B(A,B,C,D,E,F,G,H,k[24],W[8],  W[6],W[9],W[8],W[1])\
+	ROUND_B(H,A,B,C,D,E,F,G,k[25],W[9],  W[7],W[10],W[9],W[2])\
+	ROUND_B(G,H,A,B,C,D,E,F,k[26],W[10],  W[8],W[11],W[10],W[3])\
+	ROUND_B(F,G,H,A,B,C,D,E,k[27],W[11],  W[9],W[12],W[11],W[4])\
+	ROUND_B(E,F,G,H,A,B,C,D,k[28],W[12],  W[10],W[13],W[12],W[5])\
+	ROUND_B(D,E,F,G,H,A,B,C,k[29],W[13],  W[11],W[14],W[13],W[6])\
+	ROUND_B(C,D,E,F,G,H,A,B,k[30],W[14],  W[12],W[15],W[14],W[7])\
+	ROUND_B(B,C,D,E,F,G,H,A,k[31],W[15],  W[13],W[0],W[15],W[8])\
+	ROUND_B(A,B,C,D,E,F,G,H,k[32],W[0],  W[14],W[1],W[0],W[9])\
+	ROUND_B(H,A,B,C,D,E,F,G,k[33],W[1],  W[15],W[2],W[1],W[10])\
+	ROUND_B(G,H,A,B,C,D,E,F,k[34],W[2],  W[0],W[3],W[2],W[11])\
+	ROUND_B(F,G,H,A,B,C,D,E,k[35],W[3],  W[1],W[4],W[3],W[12])\
+	ROUND_B(E,F,G,H,A,B,C,D,k[36],W[4],  W[2],W[5],W[4],W[13])\
+	ROUND_B(D,E,F,G,H,A,B,C,k[37],W[5],  W[3],W[6],W[5],W[14])\
+	ROUND_B(C,D,E,F,G,H,A,B,k[38],W[6],  W[4],W[7],W[6],W[15])\
+	ROUND_B(B,C,D,E,F,G,H,A,k[39],W[7],  W[5],W[8],W[7],W[0])\
+	ROUND_B(A,B,C,D,E,F,G,H,k[40],W[8],  W[6],W[9],W[8],W[1])\
+	ROUND_B(H,A,B,C,D,E,F,G,k[41],W[9],  W[7],W[10],W[9],W[2])\
+	ROUND_B(G,H,A,B,C,D,E,F,k[42],W[10],  W[8],W[11],W[10],W[3])\
+	ROUND_B(F,G,H,A,B,C,D,E,k[43],W[11],  W[9],W[12],W[11],W[4])\
+	ROUND_B(E,F,G,H,A,B,C,D,k[44],W[12],  W[10],W[13],W[12],W[5])\
+	ROUND_B(D,E,F,G,H,A,B,C,k[45],W[13],  W[11],W[14],W[13],W[6])\
+	ROUND_B(C,D,E,F,G,H,A,B,k[46],W[14],  W[12],W[15],W[14],W[7])\
+	ROUND_B(B,C,D,E,F,G,H,A,k[47],W[15],  W[13],W[0],W[15],W[8])\
+	ROUND_B(A,B,C,D,E,F,G,H,k[48],W[0],  W[14],W[1],W[0],W[9])\
+	ROUND_B(H,A,B,C,D,E,F,G,k[49],W[1],  W[15],W[2],W[1],W[10])\
+	ROUND_B(G,H,A,B,C,D,E,F,k[50],W[2],  W[0],W[3],W[2],W[11])\
+	ROUND_B(F,G,H,A,B,C,D,E,k[51],W[3],  W[1],W[4],W[3],W[12])\
+	ROUND_B(E,F,G,H,A,B,C,D,k[52],W[4],  W[2],W[5],W[4],W[13])\
+	ROUND_B(D,E,F,G,H,A,B,C,k[53],W[5],  W[3],W[6],W[5],W[14])\
+	ROUND_B(C,D,E,F,G,H,A,B,k[54],W[6],  W[4],W[7],W[6],W[15])\
+	ROUND_B(B,C,D,E,F,G,H,A,k[55],W[7],  W[5],W[8],W[7],W[0])\
+	ROUND_B(A,B,C,D,E,F,G,H,k[56],W[8],  W[6],W[9],W[8],W[1])\
+	ROUND_B(H,A,B,C,D,E,F,G,k[57],W[9],  W[7],W[10],W[9],W[2])\
+	ROUND_B(G,H,A,B,C,D,E,F,k[58],W[10],  W[8],W[11],W[10],W[3])\
+	ROUND_B(F,G,H,A,B,C,D,E,k[59],W[11],  W[9],W[12],W[11],W[4])\
+	ROUND_B(E,F,G,H,A,B,C,D,k[60],W[12],  W[10],W[13],W[12],W[5])\
+	ROUND_B(D,E,F,G,H,A,B,C,k[61],W[13],  W[11],W[14],W[13],W[6])\
+	ROUND_B(C,D,E,F,G,H,A,B,k[62],W[14],  W[12],W[15],W[14],W[7])\
+	ROUND_B(B,C,D,E,F,G,H,A,k[63],W[15],  W[13],W[0],W[15],W[8])\
+	ROUND_B(A,B,C,D,E,F,G,H,k[64],W[0],  W[14],W[1],W[0],W[9])\
+	ROUND_B(H,A,B,C,D,E,F,G,k[65],W[1],  W[15],W[2],W[1],W[10])\
+	ROUND_B(G,H,A,B,C,D,E,F,k[66],W[2],  W[0],W[3],W[2],W[11])\
+	ROUND_B(F,G,H,A,B,C,D,E,k[67],W[3],  W[1],W[4],W[3],W[12])\
+	ROUND_B(E,F,G,H,A,B,C,D,k[68],W[4],  W[2],W[5],W[4],W[13])\
+	ROUND_B(D,E,F,G,H,A,B,C,k[69],W[5],  W[3],W[6],W[5],W[14])\
+	ROUND_B(C,D,E,F,G,H,A,B,k[70],W[6],  W[4],W[7],W[6],W[15])\
+	ROUND_B(B,C,D,E,F,G,H,A,k[71],W[7],  W[5],W[8],W[7],W[0])\
+	ROUND_B(A,B,C,D,E,F,G,H,k[72],W[8],  W[6],W[9],W[8],W[1])\
+	ROUND_B(H,A,B,C,D,E,F,G,k[73],W[9],  W[7],W[10],W[9],W[2])\
+	ROUND_B(G,H,A,B,C,D,E,F,k[74],W[10],  W[8],W[11],W[10],W[3])\
+	ROUND_B(F,G,H,A,B,C,D,E,k[75],W[11],  W[9],W[12],W[11],W[4])\
+	ROUND_B(E,F,G,H,A,B,C,D,k[76],W[12],  W[10],W[13],W[12],W[5])\
+	ROUND_B(D,E,F,G,H,A,B,C,k[77],W[13],  W[11],W[14],W[13],W[6])\
+	ROUND_B(C,D,E,F,G,H,A,B,k[78],W[14],  W[12],W[15],W[14],W[7])\
+	ROUND_B(B,C,D,E,F,G,H,A,k[79],W[15],  W[13],W[0],W[15],W[8])
+
 #ifdef SCALAR
 #define sha512_single_s		sha512_single
 #else
 
 /* Raw'n'lean single-block SHA-512, no context[tm] */
-inline void sha512_single_s(ulong *w, ulong *output) {
-	ulong t1, t2, a, b, c, d, e, f, g, h;
+inline void sha512_single_s(ulong *W, ulong *output) {
+	ulong A, B, C, D, E, F, G, H, t;
 
-	/* always init */
-	a = 0x6a09e667f3bcc908UL;
-	b = 0xbb67ae8584caa73bUL;
-	c = 0x3c6ef372fe94f82bUL;
-	d = 0xa54ff53a5f1d36f1UL;
-	e = 0x510e527fade682d1UL;
-	f = 0x9b05688c2b3e6c1fUL;
-	g = 0x1f83d9abfb41bd6bUL;
-	h = 0x5be0cd19137e2179UL;
+	A = INIT_A;
+	B = INIT_B;
+	C = INIT_C;
+	D = INIT_D;
+	E = INIT_E;
+	F = INIT_F;
+	G = INIT_G;
+	H = INIT_H;
 
-#ifdef UNROLL
-	#pragma unroll
-#endif
-	for (int i = 0; i < 16; i++) {
-		t1 = k[i] + w[i] + h + Sigma1(e) + Ch(e, f, g);
-		t2 = Maj(a, b, c) + Sigma0(a);
+	SHA512(a, b, c, d, e, f, g, h)
 
-		h = g;
-		g = f;
-		f = e;
-		e = d + t1;
-		d = c;
-		c = b;
-		b = a;
-		a = t1 + t2;
-	}
-
-#ifdef UNROLL
-	#pragma unroll
-#endif
-	for (int i = 16; i < 80; i++) {
-		w[i & 15] = sigma1(w[(i - 2) & 15]) + sigma0(w[(i - 15) & 15]) + w[(i - 16) & 15] + w[(i - 7) & 15];
-		t1 = k[i] + w[i & 15] + h + Sigma1(e) + Ch(e, f, g);
-		t2 = Maj(a, b, c) + Sigma0(a);
-
-		h = g;
-		g = f;
-		f = e;
-		e = d + t1;
-		d = c;
-		c = b;
-		b = a;
-		a = t1 + t2;
-	}
-
-	output[0] = 0x6a09e667f3bcc908UL + a;
-	output[1] = 0xbb67ae8584caa73bUL + b;
-	output[2] = 0x3c6ef372fe94f82bUL + c;
-	output[3] = 0xa54ff53a5f1d36f1UL + d;
-	output[4] = 0x510e527fade682d1UL + e;
-	output[5] = 0x9b05688c2b3e6c1fUL + f;
-	output[6] = 0x1f83d9abfb41bd6bUL + g;
-	output[7] = 0x5be0cd19137e2179UL + h;
+	output[0] = A + INIT_A;
+	output[1] = B + INIT_B;
+	output[2] = C + INIT_C;
+	output[3] = D + INIT_D;
+	output[4] = E + INIT_E;
+	output[5] = F + INIT_F;
+	output[6] = G + INIT_G;
+	output[7] = H + INIT_H;
 }
 #endif
 
 /* Raw'n'lean single-block SHA-512, no context[tm] */
-inline void sha512_single(MAYBE_VECTOR_ULONG *w, MAYBE_VECTOR_ULONG *output) {
-	MAYBE_VECTOR_ULONG t1, t2, a, b, c, d, e, f, g, h;
+inline void sha512_single(MAYBE_VECTOR_ULONG *W, MAYBE_VECTOR_ULONG *output) {
+	MAYBE_VECTOR_ULONG A, B, C, D, E, F, G, H, t;
 
-	/* always init */
-	a = 0x6a09e667f3bcc908UL;
-	b = 0xbb67ae8584caa73bUL;
-	c = 0x3c6ef372fe94f82bUL;
-	d = 0xa54ff53a5f1d36f1UL;
-	e = 0x510e527fade682d1UL;
-	f = 0x9b05688c2b3e6c1fUL;
-	g = 0x1f83d9abfb41bd6bUL;
-	h = 0x5be0cd19137e2179UL;
+	A = INIT_A;
+	B = INIT_B;
+	C = INIT_C;
+	D = INIT_D;
+	E = INIT_E;
+	F = INIT_F;
+	G = INIT_G;
+	H = INIT_H;
 
-#ifdef UNROLL
-	#pragma unroll
-#endif
-	for (int i = 0; i < 16; i++) {
-		t1 = k[i] + w[i] + h + Sigma1(e) + Ch(e, f, g);
-		t2 = Maj(a, b, c) + Sigma0(a);
+	SHA512(a, b, c, d, e, f, g, h)
 
-		h = g;
-		g = f;
-		f = e;
-		e = d + t1;
-		d = c;
-		c = b;
-		b = a;
-		a = t1 + t2;
-	}
-
-#ifdef UNROLL
-	#pragma unroll
-#endif
-	for (int i = 16; i < 80; i++) {
-		w[i & 15] = sigma1(w[(i - 2) & 15]) + sigma0(w[(i - 15) & 15]) + w[(i - 16) & 15] + w[(i - 7) & 15];
-		t1 = k[i] + w[i & 15] + h + Sigma1(e) + Ch(e, f, g);
-		t2 = Maj(a, b, c) + Sigma0(a);
-
-		h = g;
-		g = f;
-		f = e;
-		e = d + t1;
-		d = c;
-		c = b;
-		b = a;
-		a = t1 + t2;
-	}
-
-	output[0] = 0x6a09e667f3bcc908UL + a;
-	output[1] = 0xbb67ae8584caa73bUL + b;
-	output[2] = 0x3c6ef372fe94f82bUL + c;
-	output[3] = 0xa54ff53a5f1d36f1UL + d;
-	output[4] = 0x510e527fade682d1UL + e;
-	output[5] = 0x9b05688c2b3e6c1fUL + f;
-	output[6] = 0x1f83d9abfb41bd6bUL + g;
-	output[7] = 0x5be0cd19137e2179UL + h;
+	output[0] = A + INIT_A;
+	output[1] = B + INIT_B;
+	output[2] = C + INIT_C;
+	output[3] = D + INIT_D;
+	output[4] = E + INIT_E;
+	output[5] = F + INIT_F;
+	output[6] = G + INIT_G;
+	output[7] = H + INIT_H;
 }
 
 __kernel void GenerateSHA512pwhash(
@@ -229,17 +258,14 @@ __kernel void GenerateSHA512pwhash(
 
 	/* Initial hash of salt + password */
 	/* The ending 0x80 is already in the buffer */
-	#pragma unroll
 	for (i = 0; i < 2; i++)
 		block[i] = SWAP64(salt[i]);
-	#pragma unroll
 	for (i = 2; i < 14; i++)
 		block[i] = SWAP64(unicode_pw[gid * (UNICODE_LENGTH >> 3) + i - 2]);
 	block[14] = 0;
 	block[15] = (ulong)(pw_len[gid] + 16) << 3;
 	sha512_single_s(block, output);
 
-	#pragma unroll
 #ifdef SCALAR
 	for (i = 0; i < 8; i++)
 		pwhash[gid * 9 + i] = output[i];
@@ -269,7 +295,6 @@ void HashLoop(__global MAYBE_VECTOR_ULONG *pwhash)
 	uint base = pwhash[gid * 9 + 8].s0;
 #endif
 
-	#pragma unroll
 	for (i = 0; i < 8; i++)
 		output[i] = pwhash[gid * 9 + i];
 
@@ -286,7 +311,6 @@ void HashLoop(__global MAYBE_VECTOR_ULONG *pwhash)
 		block[15] = 68 << 3;
 		sha512_single(block, output);
 	}
-	#pragma unroll
 	for (i = 0; i < 8; i++)
 		pwhash[gid * 9 + i] = output[i];
 	pwhash[gid * 9 + 8] += HASH_LOOPS;
@@ -310,7 +334,6 @@ void Generate2013key(
 #endif
 	uint iterations = *spincount % HASH_LOOPS;
 
-	#pragma unroll
 	for (i = 0; i < 8; i++)
 		output[i] = pwhash[gid * 9 + i];
 
@@ -318,11 +341,9 @@ void Generate2013key(
 	for (j = 0; j < iterations; j++)
 	{
 		block[0] = ((ulong)SWAP32(base + j) << 32) | (output[0] >> 32);
-		#pragma unroll
 		for (i = 1; i < 8; i++)
 			block[i] = (output[i - 1] << 32) | (output[i] >> 32);
 		block[8] = (output[7] << 32) | 0x80000000UL;
-		#pragma unroll
 		for (i = 9; i < 15; i++)
 			block[i] = 0;
 		block[15] = 68 << 3;
@@ -330,26 +351,18 @@ void Generate2013key(
 	}
 
 	/* Our sha512 destroys input so we store a needed portion in temp[] */
-	#pragma unroll
 	for (i = 0; i < 8; i++)
 		block[i] = temp[i] = output[i];
 
 	/* Final hash 1 */
 	block[8] = InputBlockKey;
 	block[9] = 0x8000000000000000UL;
-	#pragma unroll
 	for (i = 10; i < 15; i++)
 		block[i] = 0;
 	block[15] = 72 << 3;
 	sha512_single(block, output);
 
-	/* Prepare for final hash 2 */
-	#pragma unroll
-	for (i = 0; i < 8; i++)
-		block[i] = temp[i];
-
 	/* Endian-swap to hash 1 output */
-	#pragma unroll
 	for (i = 0; i < 8; i++)
 #ifdef SCALAR
 		key[gid * 128/8 + i] = SWAP64(output[i]);
@@ -388,16 +401,16 @@ void Generate2013key(
 #endif
 
 	/* Final hash 2 */
+	for (i = 0; i < 8; i++)
+		block[i] = temp[i];
 	block[8] = ValueBlockKey;
 	block[9] = 0x8000000000000000UL;
-	#pragma unroll
 	for (i = 10; i < 15; i++)
 		block[i] = 0;
 	block[15] = 72 << 3;
 	sha512_single(block, output);
 
 	/* Endian-swap to hash 2 output */
-	#pragma unroll
 	for (i = 0; i < 8; i++)
 #ifdef SCALAR
 		key[gid * 128/8 + 64/8 + i] = SWAP64(output[i]);
