@@ -124,8 +124,6 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	output = mem_alloc(sizeof(pbkdf2_out) * gws);
 	cracked = mem_calloc(cracked_size);
 
-	any_cracked = 0;
-
 	mem_in = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, key_buf_size, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error allocating mem in");
 	mem_salt = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, sizeof(pbkdf2_salt), NULL, &ret_code);
@@ -722,6 +720,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		streamDecode(tmpBuf, cur_salt->keySize + cur_salt->ivLength ,checksum, master);
 		checksum2 = MAC_32( tmpBuf,  cur_salt->keySize + cur_salt->ivLength, master);
 		if(checksum2 == checksum)
+#ifdef _OPENMP
+#pragma omp critical
+#endif
 			any_cracked = cracked[index] = 1;
 	}
 	return count;

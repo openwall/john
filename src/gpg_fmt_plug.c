@@ -1258,6 +1258,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		cur_salt->s2kfun(saved_key[index], keydata, ks);
 		res = check(keydata, ks);
 		if(res)
+#ifdef _OPENMP
+#pragma omp critical
+#endif
 			any_cracked = cracked[index] = 1;
 	}
 	return count;

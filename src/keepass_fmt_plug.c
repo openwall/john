@@ -356,11 +356,17 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			SHA256_Update(&ctx, decrypted_content, datasize);
 			SHA256_Final(out, &ctx);
 			if(!memcmp(out, cur_salt->contents_hash, 32))
+#ifdef _OPENMP
+#pragma omp critical
+#endif
 				any_cracked = cracked[index] = 1;
 		}
 		else {
 			AES_cbc_encrypt(cur_salt->contents, decrypted_content, 32, &akey, iv, AES_DECRYPT);
 			if(!memcmp(decrypted_content, cur_salt->expected_bytes, 32))
+#ifdef _OPENMP
+#pragma omp critical
+#endif
 				any_cracked = cracked[index] = 1;
 
 		}

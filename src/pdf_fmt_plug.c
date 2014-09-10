@@ -604,9 +604,15 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		pdf_compute_user_password((unsigned char*)saved_key[index], output);
 		if (crypt_out->R == 2 || crypt_out->R == 5 || crypt_out->R == 6)
 			if(memcmp(output, crypt_out->u, 32) == 0)
+#ifdef _OPENMP
+#pragma omp critical
+#endif
 				any_cracked = cracked[index] = 1;
 		if (crypt_out->R == 3 || crypt_out->R == 4)
 			if(memcmp(output, crypt_out->u, 16) == 0)
+#ifdef _OPENMP
+#pragma omp critical
+#endif
 				any_cracked = cracked[index] = 1;
 	}
 	return count;

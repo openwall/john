@@ -210,6 +210,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	{
 		if(PKCS12_verify_mac(&cur_salt->pfx, saved_key[index], -1))
+#ifdef _OPENMP
+#pragma omp critical
+#endif
 			any_cracked = cracked[index] = 1;
 	}
 	return count;

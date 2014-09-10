@@ -338,6 +338,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	for (index = 0; index < count; index++)
 	if (!blockchain_decrypt((unsigned char*)outbuffer[index].v, cur_salt->data))
+#ifdef _OPENMP
+#pragma omp critical
+#endif
 		any_cracked = cracked[index] = 1;
 
 	return count;

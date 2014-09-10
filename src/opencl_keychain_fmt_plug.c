@@ -349,6 +349,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	for (index = 0; index < count; index++)
 	if (!kcdecrypt((unsigned char*)outbuffer[index].v,
 	               salt_struct->iv, salt_struct->ct))
+#ifdef _OPENMP
+#pragma omp critical
+#endif
 		any_cracked = cracked[index] = 1;
 
 	return count;

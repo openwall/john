@@ -363,6 +363,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 		AES_cbc_encrypt(buffer, buffer, cur_salt->crypto_size, &akey, iv, AES_DECRYPT);
 		if (verify_decrypted_buffer(buffer, cur_salt->crypto_size))
+#ifdef _OPENMP
+#pragma omp critical
+#endif
 			any_cracked = cracked[index] = 1;
 	}
 	return count;

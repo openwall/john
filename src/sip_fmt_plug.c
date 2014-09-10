@@ -295,6 +295,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 		/* Check for match */
 		if(!strncmp(final_hash, pSalt->login_hash, MD5_LEN_HEX))
+#ifdef _OPENMP
+#pragma omp critical
+#endif
 			any_cracked = cracked[index] = 1;
 	}
 	return count;

@@ -620,6 +620,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		SHA512_Update(&ctx, decryptedVerifierHashInputBytes, 16);
 		SHA512_Final(hash, &ctx);
 		if (!memcmp(hash, decryptedVerifierHashBytes, 20))
+#ifdef _OPENMP
+#pragma omp critical
+#endif
 			any_cracked = cracked[index] = 1;
 	}
 	return count;

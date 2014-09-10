@@ -274,7 +274,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	int count = *pcount;
 	int index = 0;
 
-	any_cracked = 0;
+	if (any_cracked) {
+		memset(cracked, 0, cracked_size);
+		any_cracked = 0;
+	}
 
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -289,9 +292,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		memcpy(input[t], cur_salt->ct, cur_salt->crypto_size);
 		decrypt_buffer(input[t], cur_salt->crypto_size, cur_salt->salt, cur_salt->iterations, saved_key[index]);
 		if (verify_decrypted_buffer(input[t], cur_salt->crypto_size))
+#ifdef _OPENMP
+#pragma omp critical
+#endif
 			any_cracked = cracked[index] = 1;
-		else
-			cracked[index] = 0;
 	}
 	return count;
 }

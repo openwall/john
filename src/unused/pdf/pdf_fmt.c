@@ -220,10 +220,6 @@ static void set_salt(void *salt)
 {
 	cur_salt = (struct custom_salt *)salt;
 	loadPDFCrack(cur_salt);
-	if (any_cracked) {
-		memset(cracked, 0, cracked_size);
-		any_cracked = 0;
-	}
 }
 
 static void pdf_set_key(char *key, int index)
@@ -243,6 +239,12 @@ static char *get_key(int index)
 static void crypt_all(int count)
 {
 	int index = 0;
+
+	if (any_cracked) {
+		memset(cracked, 0, cracked_size);
+		any_cracked = 0;
+	}
+
 #ifdef _OPENMP
 #pragma omp parallel for
 	for (index = 0; index < count; index++)
@@ -251,6 +253,9 @@ static void crypt_all(int count)
 		/* do the actual crunching */
 		cracked[index] = runCrack(saved_key[index], cur_salt);
 		if(cracked[index] == 1)
+#ifdef _OPENMP
+#pragma omp critical
+#endif
 			any_cracked = 1;
 	}
 }
