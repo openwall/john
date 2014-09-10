@@ -408,6 +408,10 @@ void Generate2013key(
 	for (i = 10; i < 15; i++)
 		block[i] = 0;
 	block[15] = 72 << 3;
+#if gpu_amd(DEVICE_INFO)
+	/* Workaround for Catalyst 14.4-14.6 driver bug */
+	barrier(CLK_GLOBAL_MEM_FENCE);
+#endif
 	sha512_single(block, output);
 
 	/* Endian-swap to hash 2 output */

@@ -213,18 +213,20 @@ inline uint SWAP32(uint x)
 		o[4] = INIT_E; \
 	}
 
-#define sha1_block(b, o) {	\
-		A = o[0]; \
-		B = o[1]; \
-		C = o[2]; \
-		D = o[3]; \
-		E = o[4]; \
-		SHA1(A, B, C, D, E, b); \
-		o[0] += A; \
-		o[1] += B; \
-		o[2] += C; \
-		o[3] += D; \
-		o[4] += E; \
+/* The extra a-e variables are a workaround for an AMD bug in Cat 14.6b */
+#define sha1_block(block, o) {	\
+		MAYBE_VECTOR_UINT a, b, c, d, e; \
+		a = A = o[0]; \
+		b = B = o[1]; \
+		c = C = o[2]; \
+		d = D = o[3]; \
+		e = E = o[4]; \
+		SHA1(A, B, C, D, E, block); \
+		o[0] = a + A; \
+		o[1] = b + B; \
+		o[2] = c + C; \
+		o[3] = d + D; \
+		o[4] = e + E; \
 	}
 
 #define dump_stuff_msg(msg, x, size) {	  \

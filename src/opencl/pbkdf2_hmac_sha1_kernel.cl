@@ -413,12 +413,14 @@ inline uint SWAP32(uint x)
 
 /* raw'n'lean sha1, context kept in output buffer.
    Note that we thrash the input buffer! */
+/* The extra a-e variables are a workaround for an AMD bug in Cat 14.6b */
 #define sha1_block(W, output) {	  \
-		A = output[0]; \
-		B = output[1]; \
-		C = output[2]; \
-		D = output[3]; \
-		E = output[4]; \
+		MAYBE_VECTOR_UINT a, b, c, d, e; \
+		a = A = output[0]; \
+		b = B = output[1]; \
+		c = C = output[2]; \
+		d = D = output[3]; \
+		e = E = output[4]; \
 		K = 0x5A827999; \
 		ROTATE1(A, B, C, D, E, W[0]); \
 		ROTATE1(E, A, B, C, D, W[1]); \
@@ -503,11 +505,11 @@ inline uint SWAP32(uint x)
 		W[9] = rotate(W[6] ^ W[1] ^ W[12] ^ W[10], S1); ROTATE4_F(D, E, A, B, C, W[9]); \
 		W[10] = rotate(W[7] ^ W[2] ^ W[13] ^ W[11], S1); ROTATE4_F(C, D, E, A, B, W[10]); \
 		W[11] = rotate(W[8] ^ W[3] ^ W[14] ^ W[12], S1); ROTATE4_F(B, C, D, E, A, W[11]); \
-		output[0] += A; \
-		output[1] += B; \
-		output[2] += C; \
-		output[3] += D; \
-		output[4] += E; \
+		output[0] = a + A; \
+		output[1] = b + B; \
+		output[2] = c + C; \
+		output[3] = d + D; \
+		output[4] = e + E; \
 	}
 
 #define sha1_init(output) {	  \
