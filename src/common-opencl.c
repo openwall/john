@@ -94,6 +94,7 @@ size_t max_group_size;
 unsigned int opencl_v_width = 1;
 
 char *kernel_source;
+static char *kernel_source_file;
 
 cl_event *profilingEvent, *firstEvent, *lastEvent;
 cl_event *multi_profilingEvent[MAX_EVENTS];
@@ -758,8 +759,9 @@ void opencl_build(int sequential_id, char *opts, int save, char *file_name,
 	if ((build_code != CL_SUCCESS) && showLog ) {
 		// Give us much info about error and exit
 		fprintf(stderr, "Build log: %s\n", build_log);
-		fprintf(stderr, "Error %d building kernel. DEVICE_INFO=%d\n",
-			build_code, device_info[sequential_id]);
+		fprintf(stderr, "Error %d building kernel %s. DEVICE_INFO=%d\n",
+		        build_code, kernel_source_file,
+		        device_info[sequential_id]);
 		HANDLE_CLERROR (build_code, "clBuildProgram failed.");
 	}
 	// Nvidia may return a single '\n' that we ignore
@@ -1567,6 +1569,8 @@ void opencl_read_source(char *kernel_filename)
 	char *kernel_path = path_expand(kernel_filename);
 	FILE *fp = fopen(kernel_path, "r");
 	size_t source_size, read_size;
+
+	kernel_source_file = kernel_filename;
 
 	if (!fp)
 		fp = fopen(kernel_path, "rb");
