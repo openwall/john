@@ -106,7 +106,10 @@ static void crk_help(void)
 #endif
 	else
 #endif
-	if (~options.flags & FLG_STDIN_CHK)
+	if ((options.flags & FLG_STDIN_CHK) || (options.flags & FLG_PIPE_CHK))
+		fprintf(stderr, "Press Ctrl-C to abort, "
+		        "or send SIGUSR1 for status\n");
+	else
 	fprintf(stderr, "Press 'q' or Ctrl-C to abort, "
 	    "almost any other key for status\n");
 	printed = 1;
