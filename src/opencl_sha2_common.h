@@ -43,9 +43,11 @@
 #if no_byte_addressable(DEVICE_INFO)
     #define PUT         PUTCHAR
     #define BUFFER      ctx->buffer->mem_32
+    #define F_BUFFER    ctx.buffer->mem_32
 #else
     #define PUT         ATTRIB
     #define BUFFER      ctx->buffer->mem_08
+    #define F_BUFFER    ctx.buffer->mem_08
 #endif
 #endif
 
