@@ -95,16 +95,23 @@ sub unique
 #
 sub deobfuscate
 {
-    my ($ep) = @_;
     my @xlat = ( 0x64, 0x73, 0x66, 0x64, 0x3b, 0x6b, 0x66, 0x6f, 0x41,
 		 0x2c, 0x2e, 0x69, 0x79, 0x65, 0x77, 0x72, 0x6b, 0x6c,
 		 0x64, 0x4a, 0x4b, 0x44, 0x48, 0x53 , 0x55, 0x42 );
+    my ($ep) = @_;
     my $dp = "";
-    my ($s, $e) = ($2 =~ /^(..)(.+)/);
-    for (my $i = 0; $i < length($e); $i+=2) {
-	$dp .= sprintf "%c",hex(substr($e,$i,2))^$xlat[$s++];
+
+    if (!(length($ep) & 1)) {
+	    my ($s, $e) = ($ep =~ /^(..)(.+)/);
+	    for (my $i = 0; $i < length($e); $i += 2) {
+		    $dp .= sprintf "%c", hex(substr($e, $i, 2)) ^
+		      $xlat[hex($s++) % 26];
+	    }
+	    if ($dp =~ m/[\x00-\x19]/) {
+		    $dp = unpack("H*", $dp);
+	    }
+	    return $dp;
     }
-    return $dp;
 }
 
 sub notice
@@ -117,12 +124,27 @@ sub notice
 
 if ($ARGV[0] =~ /-h/) { usage() }
 
+my $ssid = "";
 foreach (<>) {
+    chomp;
     s/[\r\n]//g;
     #print "in: $_\n";
 
+    # WPA-PSK
+    if ($ssid && m/hex 0 ([\dA-F]+)/) {
+	my $output = "$ssid:\$pbkdf2-hmac-sha1\$4096\$" . unpack("H*", $ssid) . '$' . $1;
+	if (unique($output)) {
+	    print $output, "\n";
+	}
+    } elsif ($ssid && m/hex 7 ([\dA-F]+)/) {
+	#print "in: $_\nhex: $1\n";
+	my $hex = deobfuscate($1);
+	my $output = "$ssid:\$pbkdf2-hmac-sha1\$4096\$" . unpack("H*", $ssid) . '$' . $hex;
+	if ($hex && unique($output)) {
+	    print $output, "\n";
+	}
     # password 0 <cleartext>
-    if (/(password|md5|secret|ascii) 0 /) {
+    } elsif (m/(?:password|md5|secret|ascii|hex) 0 /) {
 	#print "in1: $_\n";
 	notice();
 	s/\s+privilege [0-9]+ *$//;
@@ -132,7 +154,7 @@ foreach (<>) {
 	    print STDERR $1, "\n";
 	}
     # password 7 <obfuscated>
-    } elsif (/(password|md5|ascii|key) 7 ([\dA-F]+)/) {
+    } elsif (m/(?:password|md5|ascii|key|hex|encryption .*) 7 ([\dA-F]+)/) {
 	#print "in2: $_\n";
 	notice();
 	my $pw = deobfuscate($1);
@@ -161,16 +183,24 @@ foreach (<>) {
 	if (unique($output)) {
 	    print $output, "\n";
 	}
-    # Hostname and SNMP communities - add to seeds
-    } elsif (m/(?:hostname|snmp-server community) ([^\s]+)/) {
+    # SSIDs
+    } elsif (m/(?:\bssid) ([^\s]+)/) {
+	#print "in5: $_\n";
+	$ssid = $1;
+	notice();
+	if (unique($1)) {
+	    print STDERR $1, "\n";
+	}
+    # Hostnames, SSIDs and SNMP communities - add to seeds
+    } elsif (m/\b(?:hostname|snmp-server community|ssid) ([^\s]+)/) {
 	#print "in5: $_\n";
 	notice();
 	if (unique($1)) {
 	    print STDERR $1, "\n";
 	}
     # password <cleartext> (may produce false hits but what the heck)
-    } elsif (/^(username|enable|wpapsk).*(password|md5|secret|ascii) / ||
-	     /^ (password|md5|secret|ascii) /) {
+    } elsif (m/^(username|enable|wpapsk).*(password|md5|secret|ascii) / ||
+	     m/^ (password|md5|secret|ascii) /) {
 	#print "in6: $_\n";
 	notice();
 	s/ privilege [0-9] *$//;
