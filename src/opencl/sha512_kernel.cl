@@ -23,27 +23,27 @@ inline void _memcpy(               uint32_t * dest,
 }
 
 inline void sha512_block(sha512_ctx * ctx) {
-    uint64_t A = H0;
-    uint64_t B = H1;
-    uint64_t C = H2;
-    uint64_t D = H3;
-    uint64_t E = H4;
-    uint64_t F = H5;
-    uint64_t G = H6;
-    uint64_t H = H7;
+    uint64_t a = H0;
+    uint64_t b = H1;
+    uint64_t c = H2;
+    uint64_t d = H3;
+    uint64_t e = H4;
+    uint64_t f = H5;
+    uint64_t g = H6;
+    uint64_t h = H7;
     uint64_t t;
-    uint64_t W[16];
+    uint64_t w[16];
 
     #pragma unroll
     for (int i = 0; i < 15; i++)
-        W[i] = SWAP64(ctx->buffer[i].mem_64[0]);
-    W[15] = (uint64_t) (ctx->buflen * 8);
+        w[i] = SWAP64(ctx->buffer[i].mem_64[0]);
+    w[15] = (uint64_t) (ctx->buflen * 8);
 
     /* Do the job, up to 77 iterations. */
     SHA512_SHORT()
 
     /* Put checksum in context given as argument. */
-    ctx->H[0] = D;
+    ctx->H[0] = d;
 }
 
 __kernel
