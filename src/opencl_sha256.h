@@ -71,7 +71,7 @@ __constant uint32_t k[] = {
 };
 
 __constant uint32_t clear_mask[] = {
-    0x00000000UL, 0x000000ffUL,                                    //0,   8bits
+    0xffffffffUL, 0x000000ffUL,                                    //0,   8bits
     0x0000ffffUL, 0x00ffffffUL,	                                   //16, 24bits
     0xffffffffUL                                                   //32    bits
 };
