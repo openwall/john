@@ -69,6 +69,19 @@ __constant uint32_t k[] = {
     0x748f82eeU, 0x78a5636fU, 0x84c87814U, 0x8cc70208U,
     0x90befffaU, 0xa4506cebU, 0xbef9a3f7U, 0xc67178f2U
 };
+
+__constant uint32_t clear_mask[] = {
+    0x00000000UL, 0x000000ffUL,                                    //0,   8bits
+    0x0000ffffUL, 0x00ffffffUL,	                                   //16, 24bits
+    0xffffffffUL                                                   //32    bits
+};
+
+#define CLEAR_BUFFER_32_FAST(dest, start) {        \
+    uint32_t tmp, pos;                             \
+    tmp = (uint32_t) (start & 3);                  \
+    pos = (uint32_t) (start >> 2);                 \
+    dest[pos] = dest[pos] & clear_mask[tmp];       \
+}
 #endif
 
 #endif	/* OPENCL_SHA256_H */

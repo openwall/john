@@ -77,20 +77,16 @@ __constant uint64_t k[] = {
 };
 
 __constant uint64_t clear_mask[] = {
-    0xffffffffffffffffUL, 0x0UL, 0x0UL, 0x0UL, 0x0UL, 0x0UL, 0x0UL, 0x0UL, //0
-    0x00000000000000ffUL, 0x0UL, 0x0UL, 0x0UL, 0x0UL, 0x0UL, 0x0UL, 0x0UL,
-    0x000000000000ffffUL, 0x0UL, 0x0UL, 0x0UL, 0x0UL, 0x0UL, 0x0UL, 0x0UL, //16
-    0x0000000000ffffffUL, 0x0UL, 0x0UL, 0x0UL, 0x0UL, 0x0UL, 0x0UL, 0x0UL,
-    0x00000000ffffffffUL, 0x0UL, 0x0UL, 0x0UL, 0x0UL, 0x0UL, 0x0UL, 0x0UL, //32
-    0x000000ffffffffffUL, 0x0UL, 0x0UL, 0x0UL, 0x0UL, 0x0UL, 0x0UL, 0x0UL,
-    0x0000ffffffffffffUL, 0x0UL, 0x0UL, 0x0UL, 0x0UL, 0x0UL, 0x0UL, 0x0UL, //48
-    0x00ffffffffffffffUL, 0x0UL, 0x0UL, 0x0UL, 0x0UL, 0x0UL, 0x0UL, 0x0UL,
-    0xffffffffffffffffUL                                                   //64
+    0xffffffffffffffffUL, 0x00000000000000ffUL,	    //0,   8bits
+    0x000000000000ffffUL, 0x0000000000ffffffUL,	    //16, 24bits
+    0x00000000ffffffffUL, 0x000000ffffffffffUL,	    //32, 40bits
+    0x0000ffffffffffffUL, 0x00ffffffffffffffUL,	    //48, 56bits
+    0xffffffffffffffffUL                            //64    bits
 };
 
 #define CLEAR_BUFFER_64(dest, start) {             \
     uint32_t tmp, pos;                             \
-    tmp = (uint32_t) ((start & 7) << 3);           \
+    tmp = (uint32_t) (start & 7);                  \
     pos = (uint32_t) (start >> 3);                 \
     dest[pos] = dest[pos] & clear_mask[tmp];       \
     if (tmp)                                       \
@@ -101,7 +97,7 @@ __constant uint64_t clear_mask[] = {
 
 #define CLEAR_BUFFER_64_FAST(dest, start) {        \
     uint32_t tmp, pos;                             \
-    tmp = (uint32_t) ((start & 7) << 3);           \
+    tmp = (uint32_t) (start & 7);                  \
     pos = (uint32_t) (start >> 3);                 \
     dest[pos] = dest[pos] & clear_mask[tmp];       \
 }

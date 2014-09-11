@@ -54,19 +54,9 @@ typedef struct {
 } sha512_hash;
 
 typedef struct {
-    uint64_t                    H[8];           //512 bits
     uint32_t                    buflen;
     buffer_64                   buffer[16];     //1024bits
 } sha512_ctx;
-
-typedef struct {
-    uint64_t                    H[8];           //512 bits
-} sha512_ctx_H;
-
-typedef struct {
-    uint32_t                    buflen;
-    buffer_64                   buffer[16];     //1024bits
-} sha512_ctx_buffer;
 
 #ifndef _OPENCL_COMPILER
     static const char * warn[] = {
