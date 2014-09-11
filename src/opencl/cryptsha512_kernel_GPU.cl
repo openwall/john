@@ -17,10 +17,6 @@
     #define VECTOR_USAGE
 #endif
 
-#if ! amd_gcn(DEVICE_INFO)
-    #define UNROLL
-#endif
-
 inline void init_ctx(sha512_ctx * ctx) {
     ctx->H[0] = H0;
     ctx->H[1] = H1;
@@ -57,9 +53,6 @@ inline void sha512_block(sha512_ctx * ctx) {
         w[i] = SWAP64(ctx->buffer[i].mem_64[0]);
 #endif
 
-#ifdef UNROLL
-    #pragma unroll
-#endif
     for (int i = 0; i < 16; i++) {
         t1 = k[i] + w[i] + h + Sigma1(e) + Ch(e, f, g);
         t2 = Maj(a, b, c) + Sigma0(a);
@@ -75,7 +68,7 @@ inline void sha512_block(sha512_ctx * ctx) {
     }
 
 #if ! amd_gcn(DEVICE_INFO)
-    #pragma unroll 16  // NVIDIA Compiler segfaults if i use: "#pragma unroll"
+    #pragma unroll 16
 #else
     #pragma unroll 8
 #endif

@@ -22,7 +22,7 @@
  *       len(salt) + len(key) MUST BE less than 40 bytes.
  *       Need to put this information somewhere since if the user has
  *       a 16 bytes salt, he will never be able to crack a
- *       password with 24 bytes. If the salt has less than 16 bytes
+ *       password of 24 bytes. If the salt has less than 16 bytes
  *       JtR will be able to crack a 24 bytes password without problems.
  *** */
 
