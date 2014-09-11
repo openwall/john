@@ -103,9 +103,10 @@ sub deobfuscate
 
     if (!(length($ep) & 1)) {
 	    my ($s, $e) = ($ep =~ /^(..)(.+)/);
+	    $s = hex($s);
 	    for (my $i = 0; $i < length($e); $i += 2) {
 		    $dp .= sprintf "%c", hex(substr($e, $i, 2)) ^
-		      $xlat[hex($s++) % 26];
+		      $xlat[$s++ % 26];
 	    }
 	    if ($dp =~ m/[\x00-\x19]/) {
 		    $dp = unpack("H*", $dp);
