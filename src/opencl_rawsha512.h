@@ -54,7 +54,6 @@ typedef struct {
 } sha512_hash;
 
 typedef struct {
-    uint64_t                    H[8];           //512 bits
     uint32_t                    buflen;
     buffer_64                   buffer[16];     //1024bits
 } sha512_ctx;
