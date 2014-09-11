@@ -22,7 +22,7 @@ inline void _memcpy(               uint32_t * dest,
         *dest++ = *src++;
 }
 
-inline void sha512_block(sha512_ctx * ctx) {
+inline uint64_t sha512_block(sha512_ctx * ctx) {
     uint64_t a = H0;
     uint64_t b = H1;
     uint64_t c = H2;
@@ -42,8 +42,8 @@ inline void sha512_block(sha512_ctx * ctx) {
     /* Do the job, up to 77 iterations. */
     SHA512_SHORT()
 
-    /* Put checksum in context given as argument. */
-    ctx->H[0] = d;
+    /* Return partial hash value. */
+    return d;
 }
 
 __kernel
@@ -88,11 +88,8 @@ void kernel_crypt_raw(__global   const uint32_t  * keys_buffer,
     PUT(F_BUFFER, ctx.buflen, 0x80);
     CLEAR_BUFFER_64_FAST(ctx.buffer->mem_64, ctx.buflen + 1);
 
-    /* Run the collected hash value through SHA512. */
-    sha512_block(&ctx);
-
-    //Save parcial results.
-    out_buffer[gid] = (uint32_t) ctx.H[0];
+    /* Run the collected hash value through SHA512. Return parcial results */
+    out_buffer[gid] = (uint32_t) sha512_block(&ctx);
 }
 
 __kernel
@@ -142,11 +139,8 @@ void kernel_crypt_xsha(__constant sha512_salt     * salt,
     PUT(F_BUFFER, ctx.buflen, 0x80);
     CLEAR_BUFFER_64_FAST(ctx.buffer->mem_64, ctx.buflen + 1);
 
-    /* Run the collected hash value through SHA512. */
-    sha512_block(&ctx);
-
-    //Save parcial results.
-    out_buffer[gid] = (uint32_t) ctx.H[0];
+    /* Run the collected hash value through SHA512. Return parcial results */
+    out_buffer[gid] = (uint32_t) sha512_block(&ctx);
 }
 
 __kernel
