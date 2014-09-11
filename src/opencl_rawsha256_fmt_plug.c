@@ -196,6 +196,7 @@ static void create_clobj(size_t gws, struct fmt_main * self)
 	HANDLE_CLERROR(clSetKernelArg(cmp_kernel, 2, sizeof(cl_mem),
 			(void *) &result_buffer), "Error setting argument 2");
 
+	//Assure buffers have no "trash data".
 	memset(plaintext, '\0', BUFFER_SIZE * gws);
 	memset(saved_idx, '\0', sizeof(uint32_t) * gws);
 }

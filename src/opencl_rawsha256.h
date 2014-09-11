@@ -46,7 +46,6 @@ typedef struct {
 } sha256_hash;
 
 typedef struct {
-    uint32_t                    H[8];           //256 bits
     uint32_t                    buflen;
     buffer_32                   buffer[16];     //512 bits
 } sha256_ctx;
