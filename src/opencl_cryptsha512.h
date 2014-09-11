@@ -17,6 +17,15 @@
 #include "opencl_device_info.h"
 #include "opencl_sha512.h"
 
+/* ***
+ * TODO: IMPORTANT => due to optimizations
+ *       len(salt) + len(key) MUST BE less than 40 bytes.
+ *       Need to put this information somewhere since if the user has
+ *       a 16 bytes salt, he will never be able to crack a
+ *       password of 24 bytes. If the salt has less than 16 bytes
+ *       JtR will be able to crack a 24 bytes password without problems.
+ *** */
+
 //Constants.
 #define SALT_LENGTH             16
 #define SALT_ALIGN              4
