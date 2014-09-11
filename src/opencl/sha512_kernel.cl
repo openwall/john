@@ -32,8 +32,7 @@ inline uint32_t sha512_block(sha512_ctx * ctx) {
     uint64_t g = H6;
     uint64_t h = H7;
     uint64_t t;
-    uint64_t w[16];
-    //#define  w   ctx->buffer->mem_64 //Possible optimization?
+    uint64_t w[16];	//#define  w   ctx->buffer->mem_64
 
     #pragma unroll
     for (int i = 0; i < 15; i++)

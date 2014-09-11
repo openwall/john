@@ -31,8 +31,7 @@ inline uint32_t sha256_block(sha256_ctx * ctx) {
     uint32_t g = H6;
     uint32_t h = H7;
     uint32_t t;
-    uint32_t w[16];
-    //#define  w   ctx->buffer->mem_64 //Possible optimization?
+    uint32_t w[16];	//#define  w   ctx->buffer->mem_32
 
     #pragma unroll
     for (int i = 0; i < 15; i++)
