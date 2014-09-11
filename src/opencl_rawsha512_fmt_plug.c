@@ -521,7 +521,7 @@ static int crypt_all(int *pcount, struct db_salt *_salt) {
 		offset = 0;
 
 	//Send data to device.
-	if (new_keys)
+	if (new_keys && key_idx > offset)
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], pass_buffer, CL_FALSE,
 			sizeof(uint32_t) * offset,
 			sizeof(uint32_t) * (key_idx - offset),

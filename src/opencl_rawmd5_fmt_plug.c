@@ -192,7 +192,6 @@ static void init(struct fmt_main *self)
 	//Auto tune execution from shared/included code.
 	common_run_auto_tune(self, 1, gws_limit,
 		(cpu(device_info[gpu_id]) ? 500000000ULL : 1000000000ULL));
-
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -283,13 +282,14 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	size_t gws;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
-	if (local_work_size)
-		gws = (count + local_work_size - 1) / local_work_size * local_work_size;
-	else
-		gws = (count + 64 - 1) / 64 * 64;
+	gws = local_work_size ? (count + local_work_size - 1) / local_work_size * local_work_size : count;
+
+	//fprintf(stderr, "%s(%d) lws %zu gws %zu idx %u\n", __FUNCTION__, count, local_work_size, gws, key_idx);
 
 	// copy keys to the device
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_keys, CL_TRUE, 0, 4 * key_idx, saved_plain, 0, NULL, multi_profilingEvent[0]), "failed in clEnqueueWriteBuffer buffer_keys");
+	if (key_idx)
+		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_keys, CL_TRUE, 0, 4 * key_idx, saved_plain, 0, NULL, multi_profilingEvent[0]), "failed in clEnqueueWriteBuffer buffer_keys");
+
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_idx, CL_TRUE, 0, 4 * gws, saved_idx, 0, NULL, multi_profilingEvent[3]), "failed in clEnqueueWriteBuffer buffer_idx");
 
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[1]), "failed in clEnqueueNDRangeKernel");

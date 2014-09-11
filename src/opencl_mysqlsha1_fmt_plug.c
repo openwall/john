@@ -470,7 +470,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	if (idx_offset > 4 * (global_work_size + 1))
 		idx_offset = 0;
 
-	if (key_idx - key_offset)
+	if (key_idx > key_offset)
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_key, CL_FALSE, key_offset, key_idx - key_offset, saved_key + key_offset, 0, NULL, NULL), "Failed transferring keys");
 
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_idx, CL_FALSE, idx_offset, sizeof(cl_uint) * (global_work_size + 1) - idx_offset, saved_idx + (idx_offset / sizeof(cl_uint)), 0, NULL, NULL), "Failed transferring index");

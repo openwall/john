@@ -385,24 +385,22 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
 	size_t scalar_gws;
-	size_t gws;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
-	if (local_work_size)
-		gws = ((count + v_width * local_work_size - 1) / (v_width * local_work_size)) * local_work_size;
-	else
-		gws = ((count + v_width * 64 - 1) / (v_width * 64)) * 64;
-	scalar_gws = gws * v_width;
+	global_work_size = local_work_size ? (count + (v_width * local_work_size) - 1) / (v_width * local_work_size) * local_work_size : count / v_width;
 
-	if (key_idx) {
+	scalar_gws = global_work_size * v_width;
+
+	//fprintf(stderr, "%s(%d) lws %zu gws %zu sgws %zu kidx %u\n", __FUNCTION__, count, local_work_size, global_work_size, scalar_gws, key_idx);
+
+	if (key_idx)
 		HANDLE_CLERROR(
 			clEnqueueWriteBuffer(queue[gpu_id], keys_buffer, CL_FALSE, 0, 4 * key_idx, keys, 0, NULL, multi_profilingEvent[0]),
 			"Error updating contents of keys_buffer");
 
-		HANDLE_CLERROR(
-			clEnqueueWriteBuffer(queue[gpu_id], idx_buffer, CL_FALSE, 0, 4 * scalar_gws, idx, 0, NULL, multi_profilingEvent[1]),
-			"Error updating contents of idx_buffer");
-	}
+	HANDLE_CLERROR(
+		clEnqueueWriteBuffer(queue[gpu_id], idx_buffer, CL_FALSE, 0, 4 * scalar_gws, idx, 0, NULL, multi_profilingEvent[1]),
+		"Error updating contents of idx_buffer");
 
 	HANDLE_CLERROR(
 		clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[2]),

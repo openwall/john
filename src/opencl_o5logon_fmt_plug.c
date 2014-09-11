@@ -323,26 +323,24 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
 	int index = 0;
-
-/* ---- Start OpenCL Modifications ---- */
-
-//        size_t gws;
+	size_t gws;
         size_t *lws = local_work_size ? &local_work_size : NULL;
 
-//        if (local_work_size)
-//                gws = (count + local_work_size - 1) / local_work_size * local_work_size;
-//        else
-//                gws = (count + 64 - 1) / 64 * 64;
+        gws = local_work_size ? (count + local_work_size - 1) / local_work_size * local_work_size : count;
 
+        //fprintf(stderr, "%s(%d) lws %zu gws %zu\n", __FUNCTION__, count, local_work_size, global_work_size);
+
+	if (key_idx)
         HANDLE_CLERROR(
                 clEnqueueWriteBuffer(queue[gpu_id], buffer_keys, CL_TRUE, 0, 4 * key_idx, saved_plain, 0, NULL, multi_profilingEvent[0]),
                 "failed in clEnqueueWriteBuffer buffer_keys");
+
         HANDLE_CLERROR(
                 clEnqueueWriteBuffer(queue[gpu_id], buffer_idx, CL_TRUE, 0, 4 * count, saved_idx, 0, NULL, multi_profilingEvent[1]),
                 "failed in clEnqueueWriteBuffer buffer_idx");
 
         HANDLE_CLERROR(
-                clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[2]),
+                clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &gws, lws, 0, NULL, multi_profilingEvent[2]),
                 "failed in clEnqueueNDRangeKernel");
 
         HANDLE_CLERROR(
