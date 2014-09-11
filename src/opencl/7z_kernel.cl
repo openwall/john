@@ -44,33 +44,21 @@ sha256_context;
 
 inline void _memcpy(uchar* dest, __global const uchar *src, int count)
 {
-	char* dst8 = (char*)dest;
-	__global uchar* src8 = (__global uchar*)src;
-
-	while (count--) {
-		*dst8++ = *src8++;
-	}
+	while (count--)
+		*dest++ = *src++;
 }
 
 inline void __memcpy(__global uchar* dest, uchar *src, int count)
 {
-	__global char* dst8 = dest;
-	uchar* src8 = src;
-
-	while (count--) {
-		*dst8++ = *src8++;
-	}
+	while (count--)
+		*dest++ = *src++;
 }
 
 
 inline void _memcpy_(uchar* dest, const uchar *src, int count)
 {
-	char* dst8 = (char*)dest;
-	uchar* src8 = (uchar*)src;
-
-	while (count--) {
-		*dst8++ = *src8++;
-	}
+	while (count--)
+		*dest++ = *src++;
 }
 
 #define GET_UINT32(n,b,i)                       \
