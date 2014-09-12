@@ -330,7 +330,9 @@ static void init(struct fmt_main * self) {
 	if ((tmp_value = getenv("_TYPE")))
 		source_in_use = atoi(tmp_value);
 
-	if (_USE_GPU_SOURCE)
+	if (amd_gcn(source_in_use))
+		task = "$JOHN/kernels/cryptsha512_kernel_GCN.cl";
+	else if (_USE_GPU_SOURCE)
 		task = "$JOHN/kernels/cryptsha512_kernel_GPU.cl";
 
 	build_kernel(task);

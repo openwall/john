@@ -82,7 +82,7 @@ inline void sha512_block(sha512_ctx * ctx) {
     uint64_t f = ctx->H[5];
     uint64_t g = ctx->H[6];
     uint64_t h = ctx->H[7];
-    uint64_t t1, t2;
+    uint64_t t;
     uint64_t w[16];
 
 #ifdef UNROLL
@@ -91,40 +91,9 @@ inline void sha512_block(sha512_ctx * ctx) {
     for (int i = 0; i < 16; i++)
         w[i] = SWAP64(ctx->buffer[i].mem_64[0]);
 
-#ifdef UNROLL
-    #pragma unroll
-#endif
-    for (int i = 0; i < 16; i++) {
-        t1 = k[i] + w[i] + h + Sigma1(e) + Ch(e, f, g);
-        t2 = Maj(a, b, c) + Sigma0(a);
+    /* Do the job. */
+    SHA512()
 
-        h = g;
-        g = f;
-        f = e;
-        e = d + t1;
-        d = c;
-        c = b;
-        b = a;
-        a = t1 + t2;
-    }
-
-#ifdef UNROLL
-    #pragma unroll
-#endif
-    for (int i = 16; i < 80; i++) {
-        w[i & 15] = sigma1(w[(i - 2) & 15]) + sigma0(w[(i - 15) & 15]) + w[(i - 16) & 15] + w[(i - 7) & 15];
-        t1 = k[i] + w[i & 15] + h + Sigma1(e) + Ch(e, f, g);
-        t2 = Maj(a, b, c) + Sigma0(a);
-
-        h = g;
-        g = f;
-        f = e;
-        e = d + t1;
-        d = c;
-        c = b;
-        b = a;
-        a = t1 + t2;
-    }
     /* Put checksum in context given as argument. */
     ctx->H[0] += a;
     ctx->H[1] += b;
