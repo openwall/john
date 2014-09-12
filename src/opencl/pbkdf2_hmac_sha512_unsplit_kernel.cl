@@ -200,7 +200,7 @@ typedef struct {
 inline void preproc(__global const uint8_t * key, uint32_t keylen,
     uint64_t * state, uint8_t var1, uint64_t var4)
 {
-	int i;
+	uint i;
 	uint64_t W[16],t;
 	uint8_t ipad[16];
 
@@ -241,7 +241,7 @@ inline void preproc(__global const uint8_t * key, uint32_t keylen,
 
 inline void hmac_sha512(uint64_t * output,
     uint64_t * ipad_state, uint64_t * opad_state, __global const uint8_t * salt,
-    int saltlen)
+    uint saltlen)
 {
 	uint32_t i;
 	uint64_t W[16],t;
@@ -339,7 +339,7 @@ inline void hmac_sha512(uint64_t * output,
 inline void big_hmac_sha512(uint64_t * input, uint32_t rounds,
     uint64_t * ipad_state, uint64_t * opad_state, uint64_t * tmp_out)
 {
-	int i, round;
+	uint i, round;
 	uint64_t W[16],t;
 	uint64_t A, B, C, D, E, F, G, H;
 
@@ -460,7 +460,3 @@ __kernel void pbkdf2_sha512_kernel(__global const pbkdf2_password * inbuffer,
 	for (i = 0; i < 8; i++)
 		outbuffer[idx].hash[i] = tmp_out[i];
 }
-
-
-
-
