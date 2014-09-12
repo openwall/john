@@ -30,6 +30,8 @@
 /* Macros for reading/writing chars from int32's (from rar_kernel.cl) */
 #define GETCHAR(buf, index) ((buf)[(index)])
 #define ATTRIB(buf, index, val) (buf)[(index)] = val
+#define PUTCHAR_BE(buf, index, val) ((uchar*)(buf))[(index) ^ 7] = (val)
+
 #if gpu_amd(DEVICE_INFO) || no_byte_addressable(DEVICE_INFO)
 #define PUTCHAR(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2] & ~(0xffU << (((index) & 3) << 3))) + ((val) << (((index) & 3) << 3))
 #else
@@ -48,12 +50,12 @@
 
 #define ROUND_A(A, B, C, D, E, F, G, H, ki, wi)\
 	t = (ki) + (wi) + (H) + Sigma1(E) + Ch((E),(F),(G));\
-	D += (t); H = (t) + Sigma0(A) + Maj((A), (B), (C));\
+	D += (t); H = (t) + Sigma0(A) + Maj((A), (B), (C));
 
 #define ROUND_B(A, B, C, D, E, F, G, H, ki, wi, wj, wk, wl, wm)\
 	wi = sigma1(wj) + sigma0(wk) + wl + wm;\
 	t = (ki) + (wi) + (H) + Sigma1(E) + Ch((E),(F),(G));\
-	D += (t); H = (t) + Sigma0(A) + Maj((A), (B), (C));\
+	D += (t); H = (t) + Sigma0(A) + Maj((A), (B), (C));
 
 #define SHA256_SHORT()\
 	ROUND_A(a, b, c, d, e, f, g, h, k[0],  w[0])\
@@ -198,7 +200,7 @@
 	ROUND_B(f, g, h, a, b, c, d, e, k[75], w[11], w[9],  w[12], w[11], w[4])\
 	ROUND_B(e, f, g, h, a, b, c, d, k[76], w[12], w[10], w[13], w[12], w[5])
 
-#define SHA512\
+#define SHA512()\
 	ROUND_A(a, b, c, d, e, f, g, h, k[0],  w[0])\
 	ROUND_A(h, a, b, c, d, e, f, g, k[1],  w[1])\
 	ROUND_A(g, h, a, b, c, d, e, f, k[2],  w[2])\

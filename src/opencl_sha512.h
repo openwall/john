@@ -110,6 +110,14 @@ __constant uint64_t clear_mask[] = {
     dest[pos+1] = (tmp == 0 ? (uint64_t) 0 : (src >> (64 - tmp)));  \
 }
 
+#define APPEND_BE(dest, src, start) {              \
+    uint32_t tmp, pos;                             \
+    tmp = (uint32_t) ((start & 7) << 3);           \
+    pos = (uint32_t) (start >> 3);                 \
+    dest[pos]   = (dest[pos] | (src >> tmp));      \
+    dest[pos+1] = (tmp == 0 ? (uint64_t) 0 : (src << (64 - tmp)));  \
+}
+
 #define APPEND_FINAL(dest, src, start) {           \
     uint32_t tmp, pos;                             \
     tmp = (uint32_t) ((start & 7) << 3);           \
@@ -117,6 +125,15 @@ __constant uint64_t clear_mask[] = {
     dest[pos]   = (dest[pos] | (src << tmp));      \
     if (pos < 15)                                  \
        dest[pos+1] = (tmp == 0 ? (uint64_t) 0 : (src >> (64 - tmp)));  \
+}
+
+#define APPEND_FINAL_BE(dest, src, start) {        \
+    uint32_t tmp, pos;                             \
+    tmp = (uint32_t) ((start & 7) << 3);           \
+    pos = (uint32_t) (start >> 3);                 \
+    dest[pos]   = (dest[pos] | (src >> tmp));      \
+    if (pos < 15)                                  \
+       dest[pos+1] = (tmp == 0 ? (uint64_t) 0 : (src << (64 - tmp)));  \
 }
 #endif
 
