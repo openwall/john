@@ -81,6 +81,7 @@ static const char * warn[] = {
 
 static int split_events[] = { 2, -1, -1 };
 
+static cl_kernel pbkdf2_init, pbkdf2_loop, pbkdf2_final;
 static int crypt_all(int *pcount, struct db_salt *_salt);
 static int crypt_all_benchmark(int *pcount, struct db_salt *_salt);
 
@@ -90,7 +91,12 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *_salt);
 /* ------- Helper functions ------- */
 static size_t get_task_max_work_group_size()
 {
-	return common_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
+	size_t s;
+
+	s = common_get_task_max_work_group_size(FALSE, 0, pbkdf2_init);
+	s = MIN(s, common_get_task_max_work_group_size(FALSE, 0, pbkdf2_loop));
+	s = MIN(s, common_get_task_max_work_group_size(FALSE, 0, pbkdf2_final));
+	return s;
 }
 
 static size_t get_task_max_size()
@@ -130,8 +136,6 @@ static pbkdf2_salt *cur_salt;
 static cl_mem mem_in, mem_out, mem_salt, mem_state;
 static unsigned int v_width = 1;	/* Vector width of kernel */
 static int new_keys;
-
-static cl_kernel pbkdf2_init, pbkdf2_loop, pbkdf2_final;
 
 static void create_clobj(size_t gws, struct fmt_main *self)
 {

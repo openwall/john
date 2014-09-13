@@ -96,9 +96,17 @@ static struct fmt_tests tests[] = {
 };
 
 /* ------- Helper functions ------- */
-static size_t get_task_max_work_group_size(){
+static size_t get_task_max_work_group_size()
+{
+	size_t s;
 
-	return common_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
+	s = common_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
+	if (_SPLIT_KERNEL_IN_USE) {
+		s = MIN(s, common_get_task_max_work_group_size(FALSE, 0, prepare_kernel));
+		s = MIN(s, common_get_task_max_work_group_size(FALSE, 0, final_kernel));
+	}
+	return s;
+
 }
 
 static size_t get_task_max_size(){

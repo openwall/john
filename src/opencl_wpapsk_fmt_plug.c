@@ -82,7 +82,14 @@ static int split_events[] = { 1, -1, -1 };
 /* ------- Helper functions ------- */
 static size_t get_task_max_work_group_size()
 {
-	return common_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
+	size_t s;
+
+	s = common_get_task_max_work_group_size(FALSE, 0, wpapsk_init);
+	s = MIN(s, common_get_task_max_work_group_size(FALSE, 0, wpapsk_loop));
+	s = MIN(s, common_get_task_max_work_group_size(FALSE, 0, wpapsk_pass2));
+	s = MIN(s, common_get_task_max_work_group_size(FALSE, 0, wpapsk_final_md5));
+	s = MIN(s, common_get_task_max_work_group_size(FALSE, 0, wpapsk_final_sha1));
+	return s;
 }
 
 static size_t get_task_max_size()
