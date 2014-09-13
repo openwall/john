@@ -377,7 +377,10 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 /* ------- Helper functions ------- */
 static size_t get_task_max_work_group_size()
 {
-	return common_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
+	return MIN(
+		MIN(common_get_task_max_work_group_size(FALSE, 0, RarInit),
+		    common_get_task_max_work_group_size(FALSE, 0, crypt_kernel)),
+		common_get_task_max_work_group_size(FALSE, 0, RarFinal));
 }
 
 static size_t get_task_max_size()

@@ -61,10 +61,16 @@ static const char * warn[] = {
 
 #include "opencl_autotune.h"
 
+cl_kernel init_kernel;
+cl_kernel finish_kernel;
+
 /* ------- Helper functions ------- */
 static size_t get_task_max_work_group_size()
 {
-	return common_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
+	return MIN(
+		MIN(common_get_task_max_work_group_size(FALSE, 0, init_kernel),
+		    common_get_task_max_work_group_size(FALSE, 0, crypt_kernel)),
+		common_get_task_max_work_group_size(FALSE, 0, finish_kernel));
 }
 
 static size_t get_task_max_size()
@@ -93,9 +99,6 @@ static struct fmt_tests pwsafe_tests[] = {
 	{"$pwsafe$*3*c380dee0dbb536f5454f78603b020be76b33e294e9c2a0e047f43b9c61669fc8*2048*e88ed54a85e419d555be219d200563ae3ba864e24442826f412867fc0403917d", "this is an 87 character password to test the max bound of pwsafe-opencl................"},
 	{NULL}
 };
-
-cl_kernel init_kernel;
-cl_kernel finish_kernel;
 
 //Also acts as the hash state
 typedef struct {
