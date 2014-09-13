@@ -318,7 +318,6 @@ static void sevenzip_set_key(char *key, int index)
 	if (length > PLAINTEXT_LENGTH)
 		length = PLAINTEXT_LENGTH;
 	inbuffer[index].length = length;
-	inbuffer[index].v[length]= 0;
 	memcpy(inbuffer[index].v, key, length);
 }
 
