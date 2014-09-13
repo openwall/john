@@ -158,9 +158,8 @@ static void init(struct fmt_main *self)
 	// in UTF-8 mode.
 	initUnicode(UNICODE_MS_NEW);
 
-	if (pers_opts.target_enc != UTF_8 &&
-	    !(options.flags & FLG_TEST_CHK) &&
-	    warned++ == 0)
+	if (!options.listconf && pers_opts.target_enc != UTF_8 &&
+	    !(options.flags & FLG_TEST_CHK) && warned++ == 0)
 		fprintf(stderr, "Warning: SAP-F/G format should always be UTF-8.\nConvert your input files to UTF-8 and use --input-encoding=utf8\n");
 
 	// Max 40 characters or 120 bytes of UTF-8, We actually do not truncate

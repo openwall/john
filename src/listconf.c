@@ -352,6 +352,12 @@ void listconf_parse_early(void)
 		exit(EXIT_SUCCESS);
 	}
 #endif
+	/* For other --list options that happen in listconf_parse_late()
+	   we want to mute some GPU output */
+	if (options.listconf) {
+		options.flags |= FLG_VERBOSITY;
+		options.verbosity = 1;
+	}
 }
 
 #if FMT_MAIN_VERSION > 11
@@ -592,6 +598,11 @@ void listconf_parse_late(void)
 			 * as with format-details, but human-readable
 			 */
 			printf("Format label                         %s\n", format->params.label);
+			printf("Disabled in john.conf                %s\n",
+			       cfg_get_bool(SECTION_DISABLED,
+			                    SUBSECTION_FORMATS,
+			                    format->params.label, 0)
+			       ? "yes" : "no");
 			printf("Max. password length in bytes        %d\n", format->params.plaintext_length);
 			printf("Min. keys per crypt                  %d\n", format->params.min_keys_per_crypt);
 			printf("Max. keys per crypt                  %d\n", format->params.max_keys_per_crypt);
