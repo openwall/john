@@ -350,9 +350,23 @@ sub LANMan {
 	my $s;
 	if ($arg_utf8) {
 		eval { $s = encode("CP850", uc($_[0]), Encode::FB_CROAK); };
-		  if ($@) {
-			  die "UTF-8 input for LM hashes must be encodable in CP850. Use non-UTF8 input with --codepage=xx instead";
-		  }
+		if (!defined($@)) { goto LM_enc_Found; }
+		eval { $s = encode("CP437", uc($_[0]), Encode::FB_CROAK); };
+		if (!defined($@)) { goto LM_enc_Found; }
+		eval { $s = encode("CP852", uc($_[0]), Encode::FB_CROAK); };
+		if (!defined($@)) { goto LM_enc_Found; }
+		eval { $s = encode("CP858", uc($_[0]), Encode::FB_CROAK); };
+		if (!defined($@)) { goto LM_enc_Found; }
+		eval { $s = encode("CP866", uc($_[0]), Encode::FB_CROAK); };
+		if (!defined($@)) { goto LM_enc_Found; }
+		eval { $s = encode("CP737", uc($_[0]), Encode::FB_CROAK); };
+		if ($@) {
+			# should we just do a $s = uc($_[0]) here ???  It will make a wrong hash,
+			# BUT this might be better than aborting, especially if creating large,
+			# known garbage files for jtrts.
+			die "UTF-8 input for LM hashes must be encodable in CP850/CP437/CP852/CP858/CP866/CP737.\nUse non-UTF8 input with --codepage=xx instead\nWord was:  $s";
+		}
+		LM_enc_Found:;
 	} elsif ($arg_codepage) {
 		$s = encode($arg_codepage, uc($_[0]));
 	} else {
@@ -1823,19 +1837,21 @@ sub hdaa {
 	my $resp = md5_hex($h1, ":", $nonce, ":00000001:", $clientNonce, ":auth:", $h2);
 	print "u$u-HDAA:\$response\$$resp\$$user\$$realm\$GET\$/$url\$$nonce\$00000001\$$clientNonce\$auth:$u:0:$_[0]::\n";
 }
-
-sub setup_des_key
-{
+sub setup_des_key {
+	# ported from the ntlmv1_mschap2_fmt_plug.c by magnum. Changed to
+	# use (& 254) by JimF so that all parity bits are 0. It did worke
+	# with parity bits being mixed 0 and 1, but when all bits are set
+	# to 0, we can see that the function is correct.
 	my @key_56 = split(//, shift);
 	my $key = "";
-	$key = $key_56[0];
-	$key .= chr(((ord($key_56[0]) << 7) | (ord($key_56[1]) >> 1)) & 255);
-	$key .= chr(((ord($key_56[1]) << 6) | (ord($key_56[2]) >> 2)) & 255);
-	$key .= chr(((ord($key_56[2]) << 5) | (ord($key_56[3]) >> 3)) & 255);
-	$key .= chr(((ord($key_56[3]) << 4) | (ord($key_56[4]) >> 4)) & 255);
-	$key .= chr(((ord($key_56[4]) << 3) | (ord($key_56[5]) >> 5)) & 255);
-	$key .= chr(((ord($key_56[5]) << 2) | (ord($key_56[6]) >> 6)) & 255);
-	$key .= chr((ord($key_56[6]) << 1) & 255);
+	$key  = chr(  ord($key_56[0])                                 & 254);
+	$key .= chr(((ord($key_56[0]) << 7) | (ord($key_56[1]) >> 1)) & 254);
+	$key .= chr(((ord($key_56[1]) << 6) | (ord($key_56[2]) >> 2)) & 254);
+	$key .= chr(((ord($key_56[2]) << 5) | (ord($key_56[3]) >> 3)) & 254);
+	$key .= chr(((ord($key_56[3]) << 4) | (ord($key_56[4]) >> 4)) & 254);
+	$key .= chr(((ord($key_56[4]) << 3) | (ord($key_56[5]) >> 5)) & 254);
+	$key .= chr(((ord($key_56[5]) << 2) | (ord($key_56[6]) >> 6)) & 254);
+	$key .= chr( (ord($key_56[6]) << 1)                           & 254);
 	return $key;
 }
 # This produces only NETNTLM ESS hashes, in L0phtcrack format
