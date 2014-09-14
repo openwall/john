@@ -10,6 +10,17 @@ source and binary forms, with or without modification.
 
 Following is the pass_gen.pl version history prior to adding to the JtR tree:
 
+v1.20 Sept 14, 2014 JimF
+	Added keychain password generation.
+	Added encoding processing (up case) for LANMan function.
+	Added encoding function for all words, passing them in as $_[1] to all hashing functions.
+		Now we just have to use $_[0] in the hashes which need them, always checking with
+		-genall testing each time.
+	des_setup_key reworked, so that all parity bits are forced to be 0.  Changed the & 255
+		to & 254.  The older method worked, but now we 'know' that we have our DES key setup
+		properly.
+	STDERR added to many print statements which are not outputting hash value.
+
 v1.19 Sept 8, 2014 JimF
 	Created all needed basic functions to eliminate the dependency on Authens::Passprase. Now
 		the only HUGE dependency, is on CryptX (Digest::Crypt).  That is a monster, but that
