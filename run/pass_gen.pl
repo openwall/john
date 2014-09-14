@@ -3,8 +3,8 @@ use strict;
 
 #############################################################################
 # For the version information list and copyright statement,
-# see doc/pass_gen.Manifest
-# Version v1.18.  Update this version signature here, AND the document file.
+# see ../doc/pass_gen.Manifest
+# Version v1.20.  Update this version signature here, AND the document file.
 #############################################################################
 
 # Most "use xxx" now moved to "require xxx" *locally* in respective subs in
@@ -245,7 +245,7 @@ if (@ARGV == 1) {
 				my $line_len = jtr_unicode_corrected_length($_);
 				next if $line_len > $arg_maxlen || $line_len < $arg_minlen;
 				no strict 'refs';
-				&$arg($_);
+				&$arg($_, word_encode($_));
 				use strict;
 				++$u;
 				if ($u >= $arg_count) {
@@ -279,7 +279,7 @@ if (@ARGV == 1) {
 					my $line_len = jtr_unicode_corrected_length($_);
 					next if $line_len > $arg_maxlen || $line_len < $arg_minlen;
 					no strict 'refs';
-					&$arg($_);
+					&$arg($_, word_encode($_));
 					use strict;
 					++$u;
 					last if $u >= $arg_count;
@@ -341,37 +341,48 @@ sub pp_pbkdf2_hex {
 }
 
 #############################################################################
+# these functions will encode words 'properly', or at least try to, based upon
+# things like -utf8 mode, and possible MS code pages understood by JtR.
+#############################################################################
+sub ms_word_encode_uc {
+    my $s = uc($_[0]);
+    if ($arg_utf8) {
+        eval { $s = encode("CP850", uc($_[0]), Encode::FB_CROAK); };
+        if (!defined($@)) { goto MS_enc_Found; }
+        eval { $s = encode("CP437", uc($_[0]), Encode::FB_CROAK); };
+        if (!defined($@)) { goto MS_enc_Found; }
+        eval { $s = encode("CP852", uc($_[0]), Encode::FB_CROAK); };
+        if (!defined($@)) { goto MS_enc_Found; }
+        eval { $s = encode("CP858", uc($_[0]), Encode::FB_CROAK); };
+        if (!defined($@)) { goto MS_enc_Found; }
+        eval { $s = encode("CP866", uc($_[0]), Encode::FB_CROAK); };
+        if (!defined($@)) { goto MS_enc_Found; }
+        eval { $s = encode("CP737", uc($_[0]), Encode::FB_CROAK); };
+        if ($@) {
+            print STDERR "UTF-8 input for must be encodable in CP850/CP437/CP852/CP858/CP866/CP737.  Use non-UTF8 input with --codepage=xx instead   Word was:  $_[0]\n";
+            $s = uc($_[0]);
+        }
+        MS_enc_Found:;
+    } elsif ($arg_codepage) {
+        $s = encode($arg_codepage, uc($_[0]));
+    } 
+    return $s;
+}
+sub word_encode {
+    my $s = $_[0];
+	if ($arg_codepage) {
+        $s = encode($arg_codepage, $_[0]);
+    }
+    return $s;
+}
+#############################################################################
 # this function does the LM hash in pure perl. It uses an existing
 # setup_des_key we were using for the net_ntlm stuff.
 #############################################################################
 sub LANMan {
 	require Crypt::DES;
 	my $LMConst = 'KGS!@#$%';
-	my $s;
-	if ($arg_utf8) {
-		eval { $s = encode("CP850", uc($_[0]), Encode::FB_CROAK); };
-		if (!defined($@)) { goto LM_enc_Found; }
-		eval { $s = encode("CP437", uc($_[0]), Encode::FB_CROAK); };
-		if (!defined($@)) { goto LM_enc_Found; }
-		eval { $s = encode("CP852", uc($_[0]), Encode::FB_CROAK); };
-		if (!defined($@)) { goto LM_enc_Found; }
-		eval { $s = encode("CP858", uc($_[0]), Encode::FB_CROAK); };
-		if (!defined($@)) { goto LM_enc_Found; }
-		eval { $s = encode("CP866", uc($_[0]), Encode::FB_CROAK); };
-		if (!defined($@)) { goto LM_enc_Found; }
-		eval { $s = encode("CP737", uc($_[0]), Encode::FB_CROAK); };
-		if ($@) {
-			# should we just do a $s = uc($_[0]) here ???  It will make a wrong hash,
-			# BUT this might be better than aborting, especially if creating large,
-			# known garbage files for jtrts.
-			die "UTF-8 input for LM hashes must be encodable in CP850/CP437/CP852/CP858/CP866/CP737.\nUse non-UTF8 input with --codepage=xx instead\nWord was:  $s";
-		}
-		LM_enc_Found:;
-	} elsif ($arg_codepage) {
-		$s = encode($arg_codepage, uc($_[0]));
-	} else {
-		$s = uc($_[0]);
-	}
+	my $s = ms_word_encode_uc($_[0]);
 	if (length($s)>14) { $s = substr($s,0,14); }
 	while (length ($s) < 14) { $s .= "\0"; }
 	my $des0 = new Crypt::DES setup_des_key(substr($s,0,7));
@@ -439,7 +450,7 @@ sub tst_all {
 	foreach my $f (@funcs) {
 		no strict 'refs';
 		$f = lc $f;
-		if ($f ne "dynamic") {&$f("password"); $cnt += 1;}
+		if ($f ne "dynamic") {&$f("password", word_encode("password")); $cnt += 1;}
 		use strict;
 	}
 	# now test all 'simple' dyna which we have defined (number only)
@@ -447,10 +458,10 @@ sub tst_all {
 		my $f = dynamic_compile($i);
 		no strict 'refs';
 		$f = lc $f;
-		if (defined(&{$f})) {&$f("password"); $cnt += 1;}
+		if (defined(&{$f})) {&$f("password", word_encode("password")); $cnt += 1;}
 		use strict;
 	}
-	print "\nAll formats were able to be run ($cnt total formats). All CPAN modules installed\n";
+	print STDERR "\nAll formats were able to be run ($cnt total formats). All CPAN modules installed\n";
 }
 
 sub gen_all {
@@ -460,7 +471,7 @@ sub gen_all {
 	foreach my $f (@funcs) {
 		no strict 'refs';
 		$f = lc $f;
-		if ($f ne "dynamic") {&$f($_[0]);}
+		if ($f ne "dynamic") {&$f($_[0], word_encode($_[0]));}
 		use strict;
 	}
 	# now test all 'simple' dyna which we have defined (number only)
@@ -468,7 +479,7 @@ sub gen_all {
 		my $f = dynamic_compile($i);
 		no strict 'refs';
 		$f = lc $f;
-		if (defined(&{$f})) {&$f($_[0]);}
+		if (defined(&{$f})) {&$f($_[0], word_encode($_[0]));}
 		use strict;
 	}
 }
@@ -859,7 +870,7 @@ sub md5_1 {
 #	$h = Authen::Passphrase::MD5Crypt->new(passphrase => $_[0], salt_random => 1);
 #	print "u$u-MD5:", $h->as_crypt, ":$u:0:$_[0]::\n";
 
-	if (length($_[0]) > 15) { print "Warning, john can only handle 15 byte passwords for this format!\n"; }
+	if (length($_[0]) > 15) { print STDERR "Warning, john can only handle 15 byte passwords for this format!\n"; }
 	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(8); }
 	$h = md5_a_hash($_[0], $salt, "\$1\$");
 	print "u$u-MD5:$h:$u:0:$_[0]::\n";
@@ -968,11 +979,7 @@ sub rawmd5u {
 	print "u$u-RawMD5-unicode:", md5_hex(encode("UTF-16LE",$_[0])), ":$u:0:$_[0]::\n";
 }
 sub rawsha1 {
-	my $p = $_[0];
-	if ($arg_codepage) {
-		$p = encode($arg_codepage, $_[0]);
-	}
-	print "u$u-RawSHA1:", sha1_hex($p), ":$u:0:$_[0]::\n";
+	print "u$u-RawSHA1:", sha1_hex($_[1]), ":$u:0:$_[0]::\n";
 }
 sub rawsha1u {
 	print "u$u-RawSHA1-unicode:", sha1_hex(encode("UTF-16LE",$_[0])), ":$u:0:$_[0]::\n";
@@ -1296,7 +1303,7 @@ sub md5_a_hash {
 	return $ret;
 }
 sub md5_a {
-	if (length($_[0]) > 15) { print "Warning, john can only handle 15 byte passwords for this format!\n"; }
+	if (length($_[0]) > 15) { print STDERR "Warning, john can only handle 15 byte passwords for this format!\n"; }
 	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(8); }
 	$h = md5_a_hash($_[0], $salt, "\$apr1\$");
 	print "u$u-md5a:$h:$u:0:$_[0]::\n";
@@ -1733,7 +1740,7 @@ sub mssql_no_upcase_change {
 	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(4); }
 	# converts $c into utf8, from $enc code page, and 'sets' the 'flag' in perl that $c IS a utf8 char.
 	# since we are NOT doing case changes in this function, it is ASSSUMED that we have been given a properly upcased dictionary
-	if (!defined $arg_hidden_cp) { print "ERROR, for this format, you MUST use -hiddencp=CP to set the proper code page conversion\n"; exit(1); }
+	if (!defined $arg_hidden_cp) { print STDERR "ERROR, for this format, you MUST use -hiddencp=CP to set the proper code page conversion\n"; exit(1); }
 	my $PASS = Encode::decode(":".$arg_hidden_cp, $_[0]);
 	print "u$u-mssql:0x0100", uc saltToHex(4);
 	print uc sha1_hex(encode("UTF-16LE", $PASS).$salt) . uc sha1_hex(encode("UTF-16LE", $PASS).$salt), ":$u:0:" . $_[0] . ":" . $_[0] . ":\n";
@@ -1806,7 +1813,7 @@ sub oracle_no_upcase_change {
 	if (defined $argsalt) { $username = uc $argsalt; } else { $username = uc randusername(16); }
 	# converts $c into utf8, from $enc code page, and 'sets' the 'flag' in perl that $c IS a utf8 char.
 	# since we are NOT doing case changes in this function, it is ASSSUMED that we have been given a properly upcased dictionary
-	if (!defined $arg_hidden_cp) { print "ERROR, for this format, you MUST use -hiddencp=CP to set the proper code page conversion\n"; exit(1); }
+	if (!defined $arg_hidden_cp) { print STDERR "ERROR, for this format, you MUST use -hiddencp=CP to set the proper code page conversion\n"; exit(1); }
 
 	my $pass = $username . Encode::decode(":".$arg_hidden_cp, $_[0]);
 
@@ -1839,7 +1846,7 @@ sub hdaa {
 }
 sub setup_des_key {
 	# ported from the ntlmv1_mschap2_fmt_plug.c by magnum. Changed to
-	# use (& 254) by JimF so that all parity bits are 0. It did worke
+	# use (& 254) by JimF so that all parity bits are 0. It did work
 	# with parity bits being mixed 0 and 1, but when all bits are set
 	# to 0, we can see that the function is correct.
 	my @key_56 = split(//, shift);
@@ -1983,7 +1990,7 @@ sub raw_gost {
 }
 sub raw_gost_cp {
 	# HMMM.  Not sure how to do this at this time in perl.
-	print "raw_gost_cp : THIS ONE STILL LEFT TO DO\n";
+	print STDERR "raw_gost_cp : THIS ONE STILL LEFT TO DO\n";
 }
 sub pwsafe {
 	if (defined $argsalt && length($argsalt)==32) { $salt = $argsalt; } else { $salt=randstr(32); }
@@ -2001,7 +2008,7 @@ sub django {
 sub django_scrypt {
 	#require Crypt::Scrypt;
 	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(16); }
-	print "django_scrypt : THIS ONE STILL TO DO\n";
+	print STDERR "django_scrypt : THIS ONE STILL TO DO\n";
 	print "u$u-scrypt:scrypt\$$h\$", uc unpack("H*", $salt), ":$u:0:", $_[0], "::\n";
 }
 sub aix_ssha1 {
@@ -2247,13 +2254,13 @@ sub dynamic_27 { #dynamic_27 --> OpenBSD MD5
 	#$salt = substr($hh,3,8);
 	#print "u$u-dynamic_27:\$dynamic_27\$", substr($hh,12), "\$$salt:$u:0:$_[0]::\n";
 
-	if (length($_[0]) > 15) { print "Warning, john can only handle 15 byte passwords for this format!\n"; }
+	if (length($_[0]) > 15) { print STDERR "Warning, john can only handle 15 byte passwords for this format!\n"; }
 	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(8); }
 	$h = md5_a_hash($_[0], $salt, "\$1\$");
 	print "u$u-dynamic_27:\$dynamic_27\$", substr($h,15), "\$$salt:$u:0:$_[0]::\n";
 }
 sub dynamic_28 { # Apache MD5
-	if (length($_[0]) > 15) { print "Warning, john can only handle 15 byte passwords for this format!\n"; }
+	if (length($_[0]) > 15) { print STDERR "Warning, john can only handle 15 byte passwords for this format!\n"; }
 	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(8); }
 	$h = md5_a_hash($_[0], $salt, "\$apr1\$");
 	print "u$u-dynamic_28:\$dynamic_28\$", substr($h,15), "\$$salt:$u:0:$_[0]::\n";
@@ -2262,45 +2269,45 @@ sub dynamic_compile {
 	require Digest::Haval256;
 	my $dynamic_args = $_[0];
 	if (length($dynamic_args) == 0) {
-		print "usage: $0 [-h|-?] HashType ... [ < wordfile ]\n";
-		print "\n";
-		print "NOTE, for DYNAMIC usage:   here are the possible formats:\n";
-		print "    dynamic=#   # can be any of the built in dynamic values. So,\n";
-		print "                dynamic=0 will output for md5(\$p) format\n";
-		print "\n";
-		print "    dynamic=num=#,format=FMT_EXPR[,saltlen=#][,salt=true|ashex|tohex]\n";
-		print "         [,pass=uni][,salt2len=#][,const#=value][,usrname=true|lc|uc|uni]\n";
-		print "         [,single_salt=1][passcase=uc|lc]]\n";
-		print "\n";
-		print "The FMT_EXPR is somewhat 'normal' php type format, with some extensions.\n";
-		print "    A format such as md5(\$p.\$s.md5(\$p)) is 'normal'.  Dots must be used\n";
-		print "    where needed. Also, only a SINGLE expression is valid.  Using an\n";
-		print "    expression such as md5(\$p).md5(\$s) is not valid.\n";
-		print "    The extensions are:\n";
-		print "        Added \$s2 (if 2nd salt is defined),\n";
-		print "        Added \$c1 to \$c9 for constants (must be defined in const#= values)\n";
-		print "        Added \$u if user name (normal, upper/lower case or unicode convert)\n";
-		print "        Handle md5, sha1, md4 sha2 (sha224,sha256,sha384,sha512) gost whirlpool tiger and haval crypts.\n";
-		print "        Handle MD5, SHA1, MD4 SHA2 (all uc(sha2) types) GOST WHILRPOOL TIGER HAVAL which output hex in uppercase.\n";
-		print "        Handle md5u, sha1u md4u, sha2*u gostu whirlpoolu tigeru havalu which encode to UTF16LE.\n";
-		print "          prior to hashing. Warning, be careful with md5u and usrname=uni,\n";
-		print "          they will 'clash'\n";
-		print "        Handle md5_64, sha1_64, md4_64, sha2*_64 gost_64 whirlpool_64 tiger_64 haval_64 which output in\n";
-		print "          'standard' base-64 which is \"./0-9A-Za-z\"\n";
-		print "        Handle md5_64e, sha1_64e, md4_64e, sha2*_64e goste, whirlpoole which output in\n";
-		print "          'standard' base-64 which is \"./0-9A-Za-z\" with '=' padding up to even\n";
-		print "          4 character (similar to mime-base64\n";
-		print "        Handle md5_raw, sha1_raw, md4_raw, sha2*_raw gost_raw whirlpool_raw which output\n";
-		print "          is the 'binary' 16 or 20 bytes of data.  CAN not be used as 'outside'\n";
-		print "           function\n";
-		print "    User names are handled by usrname=  if true, then \'normal\' user names\n";
-		print "    used, if lc, then user names are converted to lowercase, if uc then\n";
-		print "    they are converted to UPPER case. if uni they are converted into unicode\n";
-		print "    If constants are used, then they have to start from const1= and can \n";
-		print "    go up to const9= , but they need to be in order, and start from one (1).\n";
-		print "    So if there are 3 constants in the expression, then the line needs to\n";
-		print "    contain const1=v1,const2=v2,const3=v3 (v's replaced by proper constants)\n";
-		print "    if pw=uni is used, the passwords are converted into unicode before usage\n";
+		print STDERR "usage: $0 [-h|-?] HashType ... [ < wordfile ]\n";
+		print STDERR "\n";
+		print STDERR "NOTE, for DYNAMIC usage:   here are the possible formats:\n";
+		print STDERR "    dynamic=#   # can be any of the built in dynamic values. So,\n";
+		print STDERR "                dynamic=0 will output for md5(\$p) format\n";
+		print STDERR "\n";
+		print STDERR "    dynamic=num=#,format=FMT_EXPR[,saltlen=#][,salt=true|ashex|tohex]\n";
+		print STDERR "         [,pass=uni][,salt2len=#][,const#=value][,usrname=true|lc|uc|uni]\n";
+		print STDERR "         [,single_salt=1][passcase=uc|lc]]\n";
+		print STDERR "\n";
+		print STDERR "The FMT_EXPR is somewhat 'normal' php type format, with some extensions.\n";
+		print STDERR "    A format such as md5(\$p.\$s.md5(\$p)) is 'normal'.  Dots must be used\n";
+		print STDERR "    where needed. Also, only a SINGLE expression is valid.  Using an\n";
+		print STDERR "    expression such as md5(\$p).md5(\$s) is not valid.\n";
+		print STDERR "    The extensions are:\n";
+		print STDERR "        Added \$s2 (if 2nd salt is defined),\n";
+		print STDERR "        Added \$c1 to \$c9 for constants (must be defined in const#= values)\n";
+		print STDERR "        Added \$u if user name (normal, upper/lower case or unicode convert)\n";
+		print STDERR "        Handle md5, sha1, md4 sha2 (sha224,sha256,sha384,sha512) gost whirlpool tiger and haval crypts.\n";
+		print STDERR "        Handle MD5, SHA1, MD4 SHA2 (all uc(sha2) types) GOST WHILRPOOL TIGER HAVAL which output hex in uppercase.\n";
+		print STDERR "        Handle md5u, sha1u md4u, sha2*u gostu whirlpoolu tigeru havalu which encode to UTF16LE.\n";
+		print STDERR "          prior to hashing. Warning, be careful with md5u and usrname=uni,\n";
+		print STDERR "          they will 'clash'\n";
+		print STDERR "        Handle md5_64, sha1_64, md4_64, sha2*_64 gost_64 whirlpool_64 tiger_64 haval_64 which output in\n";
+		print STDERR "          'standard' base-64 which is \"./0-9A-Za-z\"\n";
+		print STDERR "        Handle md5_64e, sha1_64e, md4_64e, sha2*_64e goste, whirlpoole which output in\n";
+		print STDERR "          'standard' base-64 which is \"./0-9A-Za-z\" with '=' padding up to even\n";
+		print STDERR "          4 character (similar to mime-base64\n";
+		print STDERR "        Handle md5_raw, sha1_raw, md4_raw, sha2*_raw gost_raw whirlpool_raw which output\n";
+		print STDERR "          is the 'binary' 16 or 20 bytes of data.  CAN not be used as 'outside'\n";
+		print STDERR "           function\n";
+		print STDERR "    User names are handled by usrname=  if true, then \'normal\' user names\n";
+		print STDERR "    used, if lc, then user names are converted to lowercase, if uc then\n";
+		print STDERR "    they are converted to UPPER case. if uni they are converted into unicode\n";
+		print STDERR "    If constants are used, then they have to start from const1= and can \n";
+		print STDERR "    go up to const9= , but they need to be in order, and start from one (1).\n";
+		print STDERR "    So if there are 3 constants in the expression, then the line needs to\n";
+		print STDERR "    contain const1=v1,const2=v2,const3=v3 (v's replaced by proper constants)\n";
+		print STDERR "    if pw=uni is used, the passwords are converted into unicode before usage\n";
 		die;
 	}
 	if ($dynamic_args =~ /^[+\-]?\d*.?\d+$/) { # is $dynamic_args a 'simple' number?
@@ -2540,15 +2547,15 @@ sub do_dynamic_GetToken {
 		}
 		if ($stmp ne '$c') { push(@gen_toks, "X"); return $exprStr; }
 		$stmp = substr($exprStr, 2, 1);
-		if ($stmp eq "1") { push(@gen_toks, "1"); if (!defined($gen_c[0])) {print "\$c1 found, but no constant1 loaded\n"; die; } return substr($exprStr, 3); }
-		if ($stmp eq "2") { push(@gen_toks, "2"); if (!defined($gen_c[1])) {print "\$c2 found, but no constant2 loaded\n"; die; } return substr($exprStr, 3); }
-		if ($stmp eq "3") { push(@gen_toks, "3"); if (!defined($gen_c[2])) {print "\$c3 found, but no constant3 loaded\n"; die; } return substr($exprStr, 3); }
-		if ($stmp eq "4") { push(@gen_toks, "4"); if (!defined($gen_c[3])) {print "\$c4 found, but no constant4 loaded\n"; die; } return substr($exprStr, 3); }
-		if ($stmp eq "5") { push(@gen_toks, "5"); if (!defined($gen_c[4])) {print "\$c5 found, but no constant5 loaded\n"; die; } return substr($exprStr, 3); }
-		if ($stmp eq "6") { push(@gen_toks, "6"); if (!defined($gen_c[5])) {print "\$c6 found, but no constant6 loaded\n"; die; } return substr($exprStr, 3); }
-		if ($stmp eq "7") { push(@gen_toks, "7"); if (!defined($gen_c[6])) {print "\$c7 found, but no constant7 loaded\n"; die; } return substr($exprStr, 3); }
-		if ($stmp eq "8") { push(@gen_toks, "8"); if (!defined($gen_c[7])) {print "\$c8 found, but no constant8 loaded\n"; die; } return substr($exprStr, 3); }
-		if ($stmp eq "9") { push(@gen_toks, "9"); if (!defined($gen_c[8])) {print "\$c9 found, but no constant9 loaded\n"; die; } return substr($exprStr, 3); }
+		if ($stmp eq "1") { push(@gen_toks, "1"); if (!defined($gen_c[0])) {print STDERR "\$c1 found, but no constant1 loaded\n"; die; } return substr($exprStr, 3); }
+		if ($stmp eq "2") { push(@gen_toks, "2"); if (!defined($gen_c[1])) {print STDERR "\$c2 found, but no constant2 loaded\n"; die; } return substr($exprStr, 3); }
+		if ($stmp eq "3") { push(@gen_toks, "3"); if (!defined($gen_c[2])) {print STDERR "\$c3 found, but no constant3 loaded\n"; die; } return substr($exprStr, 3); }
+		if ($stmp eq "4") { push(@gen_toks, "4"); if (!defined($gen_c[3])) {print STDERR "\$c4 found, but no constant4 loaded\n"; die; } return substr($exprStr, 3); }
+		if ($stmp eq "5") { push(@gen_toks, "5"); if (!defined($gen_c[4])) {print STDERR "\$c5 found, but no constant5 loaded\n"; die; } return substr($exprStr, 3); }
+		if ($stmp eq "6") { push(@gen_toks, "6"); if (!defined($gen_c[5])) {print STDERR "\$c6 found, but no constant6 loaded\n"; die; } return substr($exprStr, 3); }
+		if ($stmp eq "7") { push(@gen_toks, "7"); if (!defined($gen_c[6])) {print STDERR "\$c7 found, but no constant7 loaded\n"; die; } return substr($exprStr, 3); }
+		if ($stmp eq "8") { push(@gen_toks, "8"); if (!defined($gen_c[7])) {print STDERR "\$c8 found, but no constant8 loaded\n"; die; } return substr($exprStr, 3); }
+		if ($stmp eq "9") { push(@gen_toks, "9"); if (!defined($gen_c[8])) {print STDERR "\$c9 found, but no constant9 loaded\n"; die; } return substr($exprStr, 3); }
 		push(@gen_toks, "X");
 		return $exprStr;
 	}
@@ -2680,7 +2687,7 @@ sub do_dynamic_Lexi {
 	@gen_toks=();
 	my $fmt = do_dynamic_GetToken($hash_format);
 	if ($gen_lastTokIsFunc!=1) {
-		print "The expression MUST start with an md5/md4/sha1 type function.  This one starts with: $_[0]\n";  die;
+		print STDERR "The expression MUST start with an md5/md4/sha1 type function.  This one starts with: $_[0]\n";  die;
 	}
 	my $paren = 0;
 	while ($gen_toks[@gen_toks - 1] ne "X") {
@@ -2762,9 +2769,9 @@ sub dynamic_compile_to_pcode {
 
 	# Validate that the 'required' params are at least here.
 	$gen_num = $hash{"num"};
-	if (!defined ($gen_num )) { print "Error, num=# is REQUIRED for dynamic\n"; die; }
+	if (!defined ($gen_num )) { print STDERR "Error, num=# is REQUIRED for dynamic\n"; die; }
 	my $v = $hash{"format"};
-	if (!defined ($v)) { print "Error, format=EXPR is REQUIRED for dynamic\n"; die; }
+	if (!defined ($v)) { print STDERR "Error, format=EXPR is REQUIRED for dynamic\n"; die; }
 
 	$gen_singlesalt = $hash{"single_salt"};
 	if (!defined($gen_singlesalt)) {$gen_singlesalt=0;}
@@ -2813,7 +2820,7 @@ sub dynamic_compile_to_pcode {
 	# syntax check, and load the expression into our token table.
 	######################################
 	do_dynamic_Lexi();
-	unless (@gen_toks > 3) { print "Error, the format= of the expression was missing, or NOT valid\n"; die; }
+	unless (@gen_toks > 3) { print STDERR "Error, the format= of the expression was missing, or NOT valid\n"; die; }
 
  	# now clean up salt, salt2, user, etc if they were NOT part of the expression:
 	$v = $saltlen; $saltlen=0;
@@ -2957,7 +2964,7 @@ sub dynamic_compile_expression_to_pcode {
 		if ($curTok eq "8") { push(@gen_pCode, "dynamic_app_8"); ++$cur; next; }
 		if ($curTok eq "9") { push(@gen_pCode, "dynamic_app_9"); ++$cur; next; }
 
-		print "Error, invalid, can NOT create this expression (trying to build sample test buffer\n";
+		print STDERR "Error, invalid, can NOT create this expression (trying to build sample test buffer\n";
 		die;
 	}
 }
