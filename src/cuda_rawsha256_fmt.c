@@ -25,6 +25,8 @@
 
 #define FORMAT_NAME		""
 
+#define TAG_LEN			(sizeof(FORMAT_TAG) - 1)
+
 #ifdef SHA256
 #define FORMAT_LABEL		"Raw-SHA256-cuda"
 #define FORMAT_TAG		"$SHA256$"
@@ -34,6 +36,7 @@
 #define SHA_HASH		sha256_hash
 #define TESTS			sha256_tests
 #define FMT_MAIN		fmt_cuda_rawsha256
+
 static struct fmt_tests sha256_tests[] = {
 	{"71c3f65d17745f05235570f1799d75e69795d469d9fcb83e326f82f1afa80dea", "epixoip"},
 	{FORMAT_TAG "71c3f65d17745f05235570f1799d75e69795d469d9fcb83e326f82f1afa80dea", "epixoip"},
@@ -82,6 +85,7 @@ static struct fmt_tests sha256_tests[] = {
 #endif
 #ifdef SHA224
 #define FORMAT_LABEL		"Raw-SHA224-cuda"
+#define FORMAT_TAG		"$SHA224$"
 #define ALGORITHM_NAME		"SHA224 CUDA (inefficient, development use mostly)"
 #define CIPHERTEXT_LENGTH	56	///224bit
 #define BINARY_SIZE		28
@@ -89,8 +93,8 @@ static struct fmt_tests sha256_tests[] = {
 #define TESTS			sha224_tests
 #define FMT_MAIN		fmt_cuda_rawsha224
 static struct fmt_tests sha224_tests[] = {
-	{"d6d8ff02342ea04cf65f8ab446b22c4064984c29fe86f858360d0319",
-	    "openwall"},
+	{"d6d8ff02342ea04cf65f8ab446b22c4064984c29fe86f858360d0319", "openwall"},
+	{FORMAT_TAG "d6d8ff02342ea04cf65f8ab446b22c4064984c29fe86f858360d0319", "openwall"},
 	{NULL}
 };
 #endif
@@ -141,6 +145,8 @@ static void init(struct fmt_main *self)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	int i;
+	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LEN))
+		ciphertext += TAG_LEN;
 	if (strlen(ciphertext) != CIPHERTEXT_LENGTH)
 		return 0;
 	for (i = 0; i < CIPHERTEXT_LENGTH; i++) {
@@ -157,6 +163,9 @@ static void *binary(char *ciphertext)
 {
 	static char realcipher[BINARY_SIZE];
 	int i;
+
+	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LEN))
+		ciphertext += TAG_LEN;
 	memset(realcipher, 0, BINARY_SIZE);
 	for (i = 0; i < BINARY_SIZE; i += 4) {
 		realcipher[i] =
@@ -173,10 +182,6 @@ static void *binary(char *ciphertext)
 		    atoi16[ARCH_INDEX(ciphertext[(i) * 2 + 1])];
 	}
 	return (void *) realcipher;
-}
-
-static void set_salt(void *salt)
-{
 }
 
 static void set_key(char *key, int index)
@@ -307,7 +312,7 @@ struct fmt_main FMT_MAIN = {
 			fmt_default_binary_hash_6
 		},
 		fmt_default_salt_hash,
-		set_salt,
+		fmt_default_set_salt,
 		set_key,
 		get_key,
 		fmt_default_clear_keys,
