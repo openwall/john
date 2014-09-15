@@ -88,13 +88,15 @@ static char *saved_key;
 static cl_mem cl_tx_keys, cl_tx_binary, cl_magic_table;
 static cl_kernel cl_lotus5_kernel;
 
-static void init_ocl(int sequential_id, struct fmt_main *self){
+static void init_ocl(struct fmt_main *self){
 
 	cl_int err;
 	size_t mem_alloc_sz, max_lws;
 	char *err_msg;
+	int sequential_id;
 
-	opencl_init("$JOHN/kernels/lotus5_kernel.cl", sequential_id, NULL);
+	opencl_init("$JOHN/kernels/lotus5_kernel.cl", gpu_id, NULL);
+	sequential_id = gpu_id;
 
 	cl_lotus5_kernel = clCreateKernel(program[sequential_id], "lotus5", &err);
 	HANDLE_CLERROR(err, "Create kernel FAILED.");
@@ -157,8 +159,8 @@ static void init_ocl(int sequential_id, struct fmt_main *self){
 
 static void init(struct fmt_main *self)
 {
-	opencl_preinit();
-	init_ocl(gpu_id, self);
+	init_ocl(self);
+
 	crypt_key = mem_calloc_tiny(
 	    BINARY_SIZE * self->params.max_keys_per_crypt,
 	    MEM_ALIGN_CACHE);
