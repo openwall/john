@@ -97,8 +97,7 @@ static size_t get_task_max_work_group_size(){
 
 static size_t get_task_max_size(){
 
-	return common_get_task_max_size((amd_gcn(device_info[gpu_id]) ? 10 : 4),
-		KEYS_PER_CORE_CPU, KEYS_PER_CORE_GPU, crypt_kernel);
+	return 0;
 }
 
 static size_t get_default_workgroup(){
@@ -317,7 +316,7 @@ static void init(struct fmt_main * self) {
 	build_kernel(task);
 
 	//Initialize openCL tuning (library) for this format.
-	opencl_init_auto_setup(STEP, HASH_LOOPS, ((_SPLIT_KERNEL_IN_USE) ? 7 : 3),
+	opencl_init_auto_setup(SEED, HASH_LOOPS, ((_SPLIT_KERNEL_IN_USE) ? 7 : 3),
 		((_SPLIT_KERNEL_IN_USE) ? split_events : NULL),
 		warn, 1, self, create_clobj, release_clobj,
 		sizeof(sha256_password), 0);
@@ -328,7 +327,7 @@ static void init(struct fmt_main * self) {
 	//Auto tune execution from shared/included code.
 	self->methods.crypt_all = crypt_all_benchmark;
 	common_run_auto_tune(self, ROUNDS_DEFAULT, 0,
-		(cpu(device_info[gpu_id]) ? 2000000000ULL : 7000000000ULL));
+		(cpu(device_info[gpu_id]) ? 2000000000ULL : 4000000000ULL));
 	self->methods.crypt_all = crypt_all;
 }
 
