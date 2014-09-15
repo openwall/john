@@ -311,10 +311,6 @@ static void init(struct fmt_main * self) {
 	if ((tmp_value = getenv("_TYPE")))
 		source_in_use = atoi(tmp_value);
 
-//	if (_USE_LOCAL_SOURCE)
-//		task = "$JOHN/kernels/cryptsha256_kernel_LOCAL.cl";
-
-//	else
 	if (_USE_GPU_SOURCE)
 		task = "$JOHN/kernels/cryptsha256_kernel_GPU.cl";
 
