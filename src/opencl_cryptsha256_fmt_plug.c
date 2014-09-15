@@ -36,8 +36,7 @@ john_register_one(&fmt_opencl_cryptsha256);
 //Checks for source code to pick (parameters, sizes, kernels to execute, etc.)
 #define _USE_CPU_SOURCE			(cpu(source_in_use))
 #define _USE_GPU_SOURCE			(gpu(source_in_use) || platform_apple(platform_id))
-#define _USE_LOCAL_SOURCE		(use_local(source_in_use) || amd_vliw5(source_in_use))
-#define _SPLIT_KERNEL_IN_USE		(_USE_GPU_SOURCE || _USE_LOCAL_SOURCE)
+#define _SPLIT_KERNEL_IN_USE		(_USE_GPU_SOURCE)
 
 static sha256_salt			* salt;
 static sha256_password			* plaintext;			// plaintext ciphertexts
@@ -85,16 +84,20 @@ static struct fmt_tests tests[] = {
 
 /* ------- Helper functions ------- */
 static size_t get_task_max_work_group_size(){
+	size_t s;
 
-	return common_get_task_max_work_group_size(_USE_LOCAL_SOURCE,
-		(sizeof(sha256_ctx) + sizeof(sha256_buffers) + 1),
-		crypt_kernel);
+	s = common_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
+	if (_SPLIT_KERNEL_IN_USE) {
+		s = MIN(s, common_get_task_max_work_group_size(FALSE, 0, prepare_kernel));
+		s = MIN(s, common_get_task_max_work_group_size(FALSE, 0, final_kernel));
+	}
+	return s;
+
 }
 
 static size_t get_task_max_size(){
 
-	return common_get_task_max_size((amd_gcn(device_info[gpu_id]) ? 10 : 4),
-		KEYS_PER_CORE_CPU, KEYS_PER_CORE_GPU, crypt_kernel);
+	return 0;
 }
 
 static size_t get_default_workgroup(){
@@ -156,11 +159,6 @@ static void create_clobj(size_t gws, struct fmt_main * self)
 			(void *) &hash_buffer), "Error setting argument 2");
 
 	if (_SPLIT_KERNEL_IN_USE) {
-		size_t temp_size = local_work_size;
-
-		if (!local_work_size)
-			temp_size = get_task_max_work_group_size();
-
 		//Set prepare kernel arguments
 		HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 0, sizeof(cl_mem),
 			(void *) &salt_buffer), "Error setting argument 0");
@@ -169,28 +167,10 @@ static void create_clobj(size_t gws, struct fmt_main * self)
 		HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 2, sizeof(cl_mem),
 			(void *) &work_buffer), "Error setting argument 2");
 
-		if (_USE_LOCAL_SOURCE) {
-
-			HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 3,
-				sizeof(sha256_buffers) * temp_size,
-				NULL), "Error setting argument 3");
-			HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 4,
-				sizeof(sha256_ctx) * temp_size,
-				NULL), "Error setting argument 4");
-		}
 		//Set crypt kernel arguments
 		HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(cl_mem),
 			(void *) &work_buffer), "Error setting argument crypt_kernel (3)");
 
-		if (_USE_LOCAL_SOURCE) {
-			//Fast working memory.
-			HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 4,
-				sizeof(sha256_buffers) * temp_size,
-				NULL), "Error setting argument 4");
-			HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 5,
-				sizeof(sha256_ctx) * temp_size,
-				NULL), "Error setting argument 5");
-		}
 		//Set final kernel arguments
 		HANDLE_CLERROR(clSetKernelArg(final_kernel, 0, sizeof(cl_mem),
 				(void *) &salt_buffer), "Error setting argument 0");
@@ -200,16 +180,6 @@ static void create_clobj(size_t gws, struct fmt_main * self)
 				(void *) &hash_buffer), "Error setting argument 2");
 		HANDLE_CLERROR(clSetKernelArg(final_kernel, 3, sizeof(cl_mem),
 			(void *) &work_buffer), "Error setting argument crypt_kernel (3)");
-
-		if (_USE_LOCAL_SOURCE) {
-			//Fast working memory.
-			HANDLE_CLERROR(clSetKernelArg(final_kernel, 4,
-				sizeof(sha256_buffers) * temp_size,
-				NULL), "Error setting argument 4");
-			HANDLE_CLERROR(clSetKernelArg(final_kernel, 5,
-				sizeof(sha256_ctx) * temp_size,
-				NULL), "Error setting argument 5");
-		}
 	}
 	memset(plaintext, '\0', sizeof(sha256_password) * gws);
 }
@@ -340,16 +310,13 @@ static void init(struct fmt_main * self) {
 	if ((tmp_value = getenv("_TYPE")))
 		source_in_use = atoi(tmp_value);
 
-	if (_USE_LOCAL_SOURCE)
-		task = "$JOHN/kernels/cryptsha256_kernel_LOCAL.cl";
-
-	else if (_USE_GPU_SOURCE)
+	if (_USE_GPU_SOURCE)
 		task = "$JOHN/kernels/cryptsha256_kernel_GPU.cl";
 
 	build_kernel(task);
 
 	//Initialize openCL tuning (library) for this format.
-	opencl_init_auto_setup(STEP, HASH_LOOPS, ((_SPLIT_KERNEL_IN_USE) ? 7 : 3),
+	opencl_init_auto_setup(SEED, HASH_LOOPS, ((_SPLIT_KERNEL_IN_USE) ? 7 : 3),
 		((_SPLIT_KERNEL_IN_USE) ? split_events : NULL),
 		warn, 1, self, create_clobj, release_clobj,
 		sizeof(sha256_password), 0);
@@ -360,7 +327,7 @@ static void init(struct fmt_main * self) {
 	//Auto tune execution from shared/included code.
 	self->methods.crypt_all = crypt_all_benchmark;
 	common_run_auto_tune(self, ROUNDS_DEFAULT, 0,
-		(cpu(device_info[gpu_id]) ? 2000000000ULL : 7000000000ULL));
+		(cpu(device_info[gpu_id]) ? 2000000000ULL : 4000000000ULL));
 	self->methods.crypt_all = crypt_all;
 }
 
