@@ -19,26 +19,26 @@
 
 //Macros.
 #define SWAP(n) \
-            (((n) << 24)               | (((n) & 0xff00) << 8) |     \
-            (((n) >> 8) & 0xff00)      | ((n) >> 24))
+	    (((n) << 24)	       | (((n) & 0xff00) << 8) |     \
+	    (((n) >> 8) & 0xff00)      | ((n) >> 24))
 
-#define SWAP32_V(n)             SWAP(n)
+#define SWAP32_V(n)	     SWAP(n)
 
 #if gpu_amd(DEVICE_INFO)
-        #define Ch(x, y, z)     bitselect(z, y, x)
-        #define Maj(x, y, z)    bitselect(x, y, z ^ x)
-        #define ror(x, n)       rotate(x, (uint32_t) 32-n)
-        #define SWAP32(n)       (as_uint(as_uchar4(n).s3210))
+	#define Ch(x, y, z)     bitselect(z, y, x)
+	#define Maj(x, y, z)    bitselect(x, y, z ^ x)
+	#define ror(x, n)       rotate(x, (uint32_t) 32-n)
+	#define SWAP32(n)       (as_uint(as_uchar4(n).s3210))
 #else
-        #define Ch(x, y, z)     ((x & y) ^ ( (~x) & z))
-        #define Maj(x, y, z)    ((x & y) ^ (x & z) ^ (y & z))
-        #define ror(x, n)       ((x >> n) | (x << (32-n)))
-        #define SWAP32(n)       SWAP(n)
+	#define Ch(x, y, z)     ((x & y) ^ ( (~x) & z))
+	#define Maj(x, y, z)    ((x & y) ^ (x & z) ^ (y & z))
+	#define ror(x, n)       ((x >> n) | (x << (32-n)))
+	#define SWAP32(n)       SWAP(n)
 #endif
-#define Sigma0(x)               ((ror(x,2))  ^ (ror(x,13)) ^ (ror(x,22)))
-#define Sigma1(x)               ((ror(x,6))  ^ (ror(x,11)) ^ (ror(x,25)))
-#define sigma0(x)               ((ror(x,7))  ^ (ror(x,18)) ^ (x>>3))
-#define sigma1(x)               ((ror(x,17)) ^ (ror(x,19)) ^ (x>>10))
+#define Sigma0(x)	       ((ror(x,2))  ^ (ror(x,13)) ^ (ror(x,22)))
+#define Sigma1(x)	       ((ror(x,6))  ^ (ror(x,11)) ^ (ror(x,25)))
+#define sigma0(x)	       ((ror(x,7))  ^ (ror(x,18)) ^ (x>>3))
+#define sigma1(x)	       ((ror(x,17)) ^ (ror(x,19)) ^ (x>>10))
 
 //SHA256 constants.
 #define H0      0x6a09e667U
@@ -71,34 +71,34 @@ __constant uint32_t k[] = {
 };
 
 __constant uint32_t clear_mask[] = {
-    0xffffffffUL, 0x000000ffUL,                                    //0,   8bits
-    0x0000ffffUL, 0x00ffffffUL,	                                   //16, 24bits
-    0xffffffffUL                                                   //32    bits
+    0xffffffffUL, 0x000000ffUL,			//0,   8bits
+    0x0000ffffUL, 0x00ffffffUL,			//16, 24bits
+    0xffffffffUL				//32    bits
 };
 
-#define CLEAR_BUFFER_32_FAST(dest, start) {        \
-    uint32_t tmp, pos;                             \
-    tmp = (uint32_t) (start & 3);                  \
-    pos = (uint32_t) (start >> 2);                 \
-    dest[pos] = dest[pos] & clear_mask[tmp];       \
+#define CLEAR_BUFFER_32_FAST(dest, start) {	\
+    uint32_t tmp, pos;				\
+    tmp = (uint32_t) (start & 3);		\
+    pos = (uint32_t) (start >> 2);		\
+    dest[pos] = dest[pos] & clear_mask[tmp];	\
 }
 
-#define CLEAR_BUFFER_32(dest, start) {             \
-    uint32_t tmp, pos;                             \
-    tmp = (uint32_t) (start & 3);                  \
-    pos = (uint32_t) (start >> 2);                 \
-    dest[pos] = dest[pos] & clear_mask[tmp];       \
-    if (tmp)                                       \
-        length = pos + 1;                          \
-    else                                           \
-	length = pos;                              \
+#define CLEAR_BUFFER_32(dest, start) {		\
+    uint32_t tmp, pos;				\
+    tmp = (uint32_t) (start & 3);		\
+    pos = (uint32_t) (start >> 2);		\
+    dest[pos] = dest[pos] & clear_mask[tmp];	\
+    if (tmp)					\
+	length = pos + 1;			\
+    else					\
+	length = pos;				\
 }
 
-#define APPEND(dest, src, start) {                 \
-    uint32_t tmp, pos;                             \
-    tmp = (uint32_t) (start & 3) << 3;             \
-    pos = (uint32_t) (start >> 2);                 \
-    dest[pos]   = (dest[pos] | (src << tmp));      \
+#define APPEND(dest, src, start) {		\
+    uint32_t tmp, pos;				\
+    tmp = (uint32_t) (start & 3) << 3;		\
+    pos = (uint32_t) (start >> 2);		\
+    dest[pos]   = (dest[pos] | (src << tmp));	\
     dest[pos+1] = (tmp == 0 ? (uint32_t) 0 : (src >> (32 - tmp)));  \
 }
 #endif
