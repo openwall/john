@@ -348,24 +348,24 @@ sub ms_word_encode_uc {
     my $s = uc($_[0]);
     if ($arg_utf8) {
         eval { $s = encode("CP850", uc($_[0]), Encode::FB_CROAK); };
-        if (!defined($@)) { goto MS_enc_Found; }
+        if (!$@) { goto MS_enc_Found; }
         eval { $s = encode("CP437", uc($_[0]), Encode::FB_CROAK); };
-        if (!defined($@)) { goto MS_enc_Found; }
+        if (!$@) { goto MS_enc_Found; }
         eval { $s = encode("CP852", uc($_[0]), Encode::FB_CROAK); };
-        if (!defined($@)) { goto MS_enc_Found; }
+        if (!$@) { goto MS_enc_Found; }
         eval { $s = encode("CP858", uc($_[0]), Encode::FB_CROAK); };
-        if (!defined($@)) { goto MS_enc_Found; }
+        if (!$@) { goto MS_enc_Found; }
         eval { $s = encode("CP866", uc($_[0]), Encode::FB_CROAK); };
-        if (!defined($@)) { goto MS_enc_Found; }
+        if (!$@) { goto MS_enc_Found; }
         eval { $s = encode("CP737", uc($_[0]), Encode::FB_CROAK); };
         if ($@) {
-            print STDERR "UTF-8 input for must be encodable in CP850/CP437/CP852/CP858/CP866/CP737.  Use non-UTF8 input with --codepage=xx instead   Word was:  $_[0]\n";
+            print STDERR "UTF-8 input for LM must be encodable in CP850/CP437/CP852/CP858/CP866/CP737.  Use non-UTF8 input with --codepage=xx instead   Word was:  $_[0]\n";
             $s = uc($_[0]);
         }
         MS_enc_Found:;
     } elsif ($arg_codepage) {
         $s = encode($arg_codepage, uc($_[0]));
-    } 
+    }
     return $s;
 }
 sub word_encode {
@@ -3152,4 +3152,3 @@ sub dynamic_fhavu  { require Digest::Haval256; $h = pop @gen_Stack; $h = haval25
 sub dynamic_fhavr  { require Digest::Haval256; $h = pop @gen_Stack; $h = haval256($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_fpad16 { $h = pop @gen_Stack; $h = pad16($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_fpadmd64 { $h = pop @gen_Stack; $h = pad_md64($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
-
