@@ -141,6 +141,7 @@ PROJ = ../run/john@EXE_EXT@ ../run/unshadow@EXE_EXT@ ../run/unafs@EXE_EXT@ ../ru
 	../run/truecrypt_volume2john@EXE_EXT@ ../run/keystore2john@EXE_EXT@ ../run/wpapcap2john@EXE_EXT@ \
 	../run/gpg2john@EXE_EXT@ ../run/cprepair@EXE_EXT@ ../run/luks2john@EXE_EXT@
 
+HAVE_NSS = @HAVE_NSS@
 ifdef HAVE_NSS
 PROJ += ../run/mozilla2john@EXE_EXT@
 endif
