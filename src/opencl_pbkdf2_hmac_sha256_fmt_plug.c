@@ -292,7 +292,8 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 static void abase64_decode(const char *in, int length, char *out)
 {
 	int i;
-	static char hash[70 + 1];
+	char hash[70 + 1];
+
 #ifdef DEBUG
 	assert(length <= 70);
 	assert(length % 4 != 1);
@@ -314,10 +315,11 @@ static void abase64_decode(const char *in, int length, char *out)
 	base64_decode(hash, length, out);
 }
 
-static void *passlib_binary(char *ciphertext)
+static void *binary(char *ciphertext)
 {
-	static char ret[256 / 8];
+	static char ret[256 / 8 + 1];
 	char *c = ciphertext;
+
 	c += strlen(FMT_PREFIX) + 1;
 	c = strchr(c, '$') + 1;
 	c = strchr(c, '$') + 1;
@@ -326,11 +328,6 @@ static void *passlib_binary(char *ciphertext)
 #endif
 	abase64_decode(c, 43, ret);
 	return ret;
-}
-
-static void *binary(char *ciphertext)
-{
-	return passlib_binary(ciphertext);
 }
 
 static void *get_salt(char *ciphertext)
