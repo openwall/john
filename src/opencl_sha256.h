@@ -82,6 +82,33 @@ __constant uint32_t clear_mask[] = {
     pos = (uint32_t) (start >> 2);                 \
     dest[pos] = dest[pos] & clear_mask[tmp];       \
 }
+
+#define CLEAR_BUFFER_32(dest, start) {             \
+    uint32_t tmp, pos;                             \
+    tmp = (uint32_t) (start & 3);                  \
+    pos = (uint32_t) (start >> 2);                 \
+    dest[pos] = dest[pos] & clear_mask[tmp];       \
+    if (tmp)                                       \
+        length = pos + 1;                          \
+    else                                           \
+	length = pos;                              \
+}
+
+#define APPEND_BE(dest, src, start) {              \
+    uint32_t tmp, pos;                             \
+    tmp = (uint32_t) ((start & 3) << 2);           \
+    pos = (uint32_t) (start >> 2);                 \
+    dest[pos]   = (dest[pos] | (src >> tmp));      \
+    dest[pos+1] = (tmp == 0 ? (uint32_t) 0 : (src << (32 - tmp)));  \
+}
+
+#define APPEND(dest, src, start) {              \
+    uint32_t tmp, pos;                             \
+    tmp = (uint32_t) ((start & 3) << 2);           \
+    pos = (uint32_t) (start >> 2);                 \
+    dest[pos]   = (dest[pos] | (src << tmp));      \
+    dest[pos+1] = (tmp == 0 ? (uint32_t) 0 : (src >> (32 - tmp)));  \
+}
 #endif
 
 #endif	/* OPENCL_SHA256_H */

@@ -119,6 +119,43 @@ inline void sha256_block(sha256_ctx * ctx) {
     ctx->H[7] += h;
 }
 
+inline void sha256_block_be(sha256_ctx * ctx) {
+    uint32_t a = ctx->H[0];
+    uint32_t b = ctx->H[1];
+    uint32_t c = ctx->H[2];
+    uint32_t d = ctx->H[3];
+    uint32_t e = ctx->H[4];
+    uint32_t f = ctx->H[5];
+    uint32_t g = ctx->H[6];
+    uint32_t h = ctx->H[7];
+    uint32_t t;
+    uint32_t w[16];
+
+#ifdef VECTOR_USAGE
+    uint16  w_vector;
+    w_vector = vload16(0, ctx->buffer->mem_32);
+    w_vector = SWAP32_V(w_vector);
+    vstore16(w_vector, 0, w);
+#else
+    #pragma unroll
+    for (int i = 0; i < 16; i++)
+        w[i] = SWAP32(ctx->buffer->mem_32[i]);
+#endif
+
+    /* Do the job. */
+    SHA256()
+
+    /* Put checksum in context given as argument. */
+    ctx->H[0] += a;
+    ctx->H[1] += b;
+    ctx->H[2] += c;
+    ctx->H[3] += d;
+    ctx->H[4] += e;
+    ctx->H[5] += f;
+    ctx->H[6] += g;
+    ctx->H[7] += h;
+}
+
 inline void insert_to_buffer_R(sha256_ctx    * ctx,
                                const uint8_t * string,
                                const uint32_t len) {
@@ -199,6 +236,22 @@ inline void ctx_update_G(         sha256_ctx * ctx,
     }
 }
 
+inline void clear_buffer(uint32_t     * destination,
+                         const uint32_t len,
+                         const uint32_t limit) {
+
+    uint32_t length;
+
+    CLEAR_BUFFER_32(destination, len);
+
+    uint32_t * l = destination + length;
+
+    while (length < limit) {
+        *l++ = 0;
+        length++;
+    }
+}
+
 inline void ctx_append_1(sha256_ctx * ctx) {
 
     uint32_t length = ctx->buflen;
@@ -212,6 +265,21 @@ inline void ctx_append_1(sha256_ctx * ctx) {
     while (length < 64) {
         *l++ = 0;
         length += 8;
+    }
+}
+
+inline void ctx_append_1_be(sha256_ctx * ctx) {
+
+    uint32_t length = ctx->buflen;
+    PUT(BUFFER, length++, 0x80);
+
+    CLEAR_BUFFER_32(ctx->buffer->mem_32, length)
+
+    uint32_t * l = ctx->buffer->mem_32 + length;
+
+    while (length < 15) {
+        *l++ = 0;
+        length++;
     }
 }
 
@@ -285,7 +353,6 @@ inline void sha256_digest(sha256_ctx * ctx) {
 
 inline void sha256_prepare(__constant sha256_salt     * salt_data,
                            __global   sha256_password * keys_data,
-                           __global   sha256_buffers  * tmp_memory,
                                       sha256_buffers  * fast_buffers,
                                       sha256_ctx      * ctx) {
 
@@ -294,8 +361,8 @@ inline void sha256_prepare(__constant sha256_salt     * salt_data,
 #define salt        salt_data->salt->mem_08
 #define saltlen     salt_data->length
 #define alt_result  fast_buffers->alt_result
-#define temp_result tmp_memory->temp_result
-#define p_sequence  tmp_memory->p_sequence
+#define temp_result fast_buffers->temp_result
+#define p_sequence  fast_buffers->p_sequence
 
     init_ctx(ctx);
 
@@ -326,7 +393,8 @@ inline void sha256_prepare(__constant sha256_salt     * salt_data,
         ctx_update_G(ctx, pass, passlen);
 
     sha256_digest(ctx);
-    sha256_digest_move_G(ctx, p_sequence->mem_32, PLAINTEXT_ARRAY);
+    sha256_digest_move_R(ctx, p_sequence->mem_32, PLAINTEXT_ARRAY);
+    clear_buffer(p_sequence->mem_32, passlen, PLAINTEXT_ARRAY);
     init_ctx(ctx);
 
     /* For every character in the password add the entire password. */
@@ -335,7 +403,8 @@ inline void sha256_prepare(__constant sha256_salt     * salt_data,
 
     /* Finish the digest. */
     sha256_digest(ctx);
-    sha256_digest_move_G(ctx, temp_result->mem_32, SALT_ARRAY);
+    sha256_digest_move_R(ctx, temp_result->mem_32, SALT_ARRAY);
+    clear_buffer(temp_result->mem_32, saltlen, SALT_ARRAY);
 }
 #undef salt
 #undef pass
@@ -354,21 +423,79 @@ inline void sha256_crypt(sha256_buffers * fast_buffers,
 
     /* Repeatedly run the collected hash value through SHA256 to burn cycles. */
     for (uint32_t i = initial; i < rounds; i++) {
-        init_ctx(ctx);
+	ctx->H[0] = H0;
+	ctx->H[1] = H1;
+	ctx->H[2] = H2;
+	ctx->H[3] = H3;
+	ctx->H[4] = H4;
+	ctx->H[5] = H5;
+	ctx->H[6] = H6;
+	ctx->H[7] = H7;
 
-        ctx_update_R(ctx, ((i & 1) ? p_sequence->mem_08 : alt_result->mem_08),
-                          ((i & 1) ? passlen : 32U));
+	#pragma unroll
+	for (int j = 3; j < 12; j++)
+	   ctx->buffer[j].mem_32[0] = 0;
 
-        if (i % 3)
-            ctx_update_R(ctx, temp_result->mem_08, saltlen);
+        if (i & 1) {
+            ctx->buffer[0].mem_32[0] = p_sequence[0].mem_32[0];
+            ctx->buffer[1].mem_32[0] = p_sequence[1].mem_32[0];
+            ctx->buffer[2].mem_32[0] = p_sequence[2].mem_32[0];
+            ctx->buflen = passlen;
+	    ctx->total = passlen;
+        } else {
+            ctx->buffer[0].mem_32[0] = alt_result[0].mem_32[0];
+            ctx->buffer[1].mem_32[0] = alt_result[1].mem_32[0];
+            ctx->buffer[2].mem_32[0] = alt_result[2].mem_32[0];
+            ctx->buffer[3].mem_32[0] = alt_result[3].mem_32[0];
+            ctx->buffer[4].mem_32[0] = alt_result[4].mem_32[0];
+            ctx->buffer[5].mem_32[0] = alt_result[5].mem_32[0];
+            ctx->buffer[6].mem_32[0] = alt_result[6].mem_32[0];
+            ctx->buffer[7].mem_32[0] = alt_result[7].mem_32[0];
+            ctx->buflen = 32U;
+            ctx->total = 32U;
+        }
+
+        if (i % 3) {
+            APPEND(ctx->buffer->mem_32, temp_result[0].mem_32[0], ctx->buflen);
+            APPEND(ctx->buffer->mem_32, temp_result[1].mem_32[0], ctx->buflen + 4);
+            APPEND(ctx->buffer->mem_32, temp_result[2].mem_32[0], ctx->buflen + 8);
+            APPEND(ctx->buffer->mem_32, temp_result[3].mem_32[0], ctx->buflen + 12);
+	    ctx->buflen += saltlen;
+            ctx->total += saltlen;
+	}
 
         if (i % 7)
             ctx_update_R(ctx, p_sequence->mem_08, passlen);
 
         ctx_update_R(ctx, ((i & 1) ? alt_result->mem_08 : p_sequence->mem_08),
                           ((i & 1) ? 32U :                passlen));
-        sha256_digest(ctx);
-        sha256_digest_move_R(ctx, alt_result->mem_32, BUFFER_ARRAY);
+
+	//Do: sha256_digest(ctx);
+	if (ctx->buflen < 56) { //data+0x80+datasize fits in one 1024bit block
+	    ctx_append_1_be(ctx);
+	    ctx->buffer[15].mem_32[0] = SWAP32(ctx->total * 8);
+	    ctx->buflen = 0;
+
+	} else {
+	    bool moved = true;
+
+	    if (ctx->buflen < 64) { //data and 0x80 fits in one block
+		ctx_append_1_be(ctx);
+		ctx->buffer[15].mem_32[0] = 0;
+		moved = false;
+	    }
+	    sha256_block_be(ctx);
+	    clear_ctx_buffer(ctx);
+
+	    if (moved) //append 1,the rest is already clean
+		ctx->buffer[0].mem_32[0] = 0x80;
+	    ctx->buffer[15].mem_32[0] = SWAP32(ctx->total * 8);
+	}
+	sha256_block_be(ctx);
+
+	#pragma unroll
+	for (int j = 0; j < BUFFER_ARRAY; j++)
+	    alt_result[j].mem_32[0] = SWAP32(ctx->H[j]);
     }
 }
 #undef alt_result
@@ -388,12 +515,20 @@ void kernel_prepare(__constant sha256_salt     * salt,
     size_t gid = get_global_id(0);
 
     //Do the job
-    sha256_prepare(salt, &keys_buffer[gid], &tmp_memory[gid], &fast_buffers, &ctx_data);
+    sha256_prepare(salt, &keys_buffer[gid], &fast_buffers, &ctx_data);
 
     //Save results.
     #pragma unroll
     for (int i = 0; i < 8; i++)
-        tmp_memory[gid].alt_result[i].mem_32[0] = fast_buffers.alt_result[i].mem_32[0];
+        tmp_memory[gid].alt_result[i].mem_32[0] = (fast_buffers.alt_result[i].mem_32[0]);
+
+    #pragma unroll
+    for (int i = 0; i < SALT_ARRAY; i++)
+        tmp_memory[gid].temp_result[i].mem_32[0] = (fast_buffers.temp_result[i].mem_32[0]);
+
+    #pragma unroll
+    for (int i = 0; i < PLAINTEXT_ARRAY; i++)
+        tmp_memory[gid].p_sequence[i].mem_32[0] = (fast_buffers.p_sequence[i].mem_32[0]);
 }
 
 __kernel
