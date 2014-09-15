@@ -38,7 +38,6 @@
 #define PUTCHAR(buf, index, val) ((uchar*)(buf))[(index)] = (val)
 #endif
 
-#define HASH_LOOPS              (7*3*2)
 #define TRANSFER_SIZE           (1024 * 64)
 
 #ifdef _OPENCL_COMPILER
