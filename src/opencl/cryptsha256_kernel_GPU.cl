@@ -119,7 +119,7 @@ inline void sha256_block(sha256_ctx * ctx) {
     ctx->H[7] += h;
 }
 
-inline void sha256_block_be(sha256_ctx * ctx) {
+inline void sha256_block_short(sha256_ctx * ctx) {
     uint32_t a = ctx->H[0];
     uint32_t b = ctx->H[1];
     uint32_t c = ctx->H[2];
@@ -255,20 +255,19 @@ inline void clear_buffer(uint32_t     * destination,
 inline void ctx_append_1(sha256_ctx * ctx) {
 
     uint32_t length = ctx->buflen;
-    PUT(BUFFER, length, 0x80);
+    PUT(BUFFER, length++, 0x80);
 
-    while (++length & 7)
-        PUT(BUFFER, length, 0);
+    CLEAR_BUFFER_32(ctx->buffer->mem_32, length)
 
-    uint64_t * l = (uint64_t *) (ctx->buffer->mem_08 + length);
+    uint32_t * l = ctx->buffer->mem_32 + length;
 
-    while (length < 64) {
+    while (length < 16) {
         *l++ = 0;
-        length += 8;
+        length++;
     }
 }
 
-inline void ctx_append_1_be(sha256_ctx * ctx) {
+inline void ctx_append_1_short(sha256_ctx * ctx) {
 
     uint32_t length = ctx->buflen;
     PUT(BUFFER, length++, 0x80);
@@ -433,13 +432,16 @@ inline void sha256_crypt(sha256_buffers * fast_buffers,
 	ctx->H[7] = H7;
 
 	#pragma unroll
-	for (int j = 3; j < 12; j++)
+	for (int j = 6; j < 12; j++)
 	   ctx->buffer[j].mem_32[0] = 0;
 
         if (i & 1) {
             ctx->buffer[0].mem_32[0] = p_sequence[0].mem_32[0];
             ctx->buffer[1].mem_32[0] = p_sequence[1].mem_32[0];
             ctx->buffer[2].mem_32[0] = p_sequence[2].mem_32[0];
+            ctx->buffer[3].mem_32[0] = p_sequence[3].mem_32[0];
+            ctx->buffer[4].mem_32[0] = p_sequence[4].mem_32[0];
+            ctx->buffer[5].mem_32[0] = p_sequence[5].mem_32[0];
             ctx->buflen = passlen;
 	    ctx->total = passlen;
         } else {
@@ -472,7 +474,7 @@ inline void sha256_crypt(sha256_buffers * fast_buffers,
 
 	//Do: sha256_digest(ctx);
 	if (ctx->buflen < 56) { //data+0x80+datasize fits in one 1024bit block
-	    ctx_append_1_be(ctx);
+	    ctx_append_1_short(ctx);
 	    ctx->buffer[15].mem_32[0] = SWAP32(ctx->total * 8);
 	    ctx->buflen = 0;
 
@@ -480,23 +482,23 @@ inline void sha256_crypt(sha256_buffers * fast_buffers,
 	    bool moved = true;
 
 	    if (ctx->buflen < 64) { //data and 0x80 fits in one block
-		ctx_append_1_be(ctx);
-		ctx->buffer[15].mem_32[0] = 0;
+		ctx_append_1(ctx);
 		moved = false;
 	    }
-	    sha256_block_be(ctx);
+	    sha256_block_short(ctx);
 	    clear_ctx_buffer(ctx);
 
 	    if (moved) //append 1,the rest is already clean
 		ctx->buffer[0].mem_32[0] = 0x80;
 	    ctx->buffer[15].mem_32[0] = SWAP32(ctx->total * 8);
 	}
-	sha256_block_be(ctx);
+	sha256_block_short(ctx);
 
 	#pragma unroll
 	for (int j = 0; j < BUFFER_ARRAY; j++)
 	    alt_result[j].mem_32[0] = SWAP32(ctx->H[j]);
     }
+
 }
 #undef alt_result
 #undef temp_result
