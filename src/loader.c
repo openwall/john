@@ -1612,7 +1612,7 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 			putchar('\n');
 	}
 	else if (*joined && found && loop) {
-		char *plain = ldr_conv(enc_strlwr(joined));
+		char *plain = enc_strlwr(ldr_conv(joined));
 
 		/* list_add_unique is O(n^2) */
 		if (db->plaintexts->count < 0x10000)
