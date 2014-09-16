@@ -1245,7 +1245,8 @@ static int cmp_exact(char *source, int index)
 {
 	DES_key_schedule ks;
 	uchar binary[24];
-	unsigned char key[21], *cp;
+	unsigned char key[21];
+	char *cp;
 	int i;
 
 #ifdef MMX_COEF
@@ -1273,7 +1274,10 @@ static int cmp_exact(char *source, int index)
 
 	// With the normalized source we simply need to skip the
 	// $MSCHAPv2$hhhhhhhhhhhhhhhh$ string to get 'real' binary data.
-	cp = source + 27; 
+	// $NETNTLM$c75c20bff9baa71f4765f360625700b0$
+	cp = &source[11];
+	cp = strchr(cp, '$');
+	++cp;
 	for (i = 0; i < 24; ++i) {
 		unsigned char c = (atoi16[ARCH_INDEX(*cp)] << 4) +
 		                  (atoi16[ARCH_INDEX(*(cp+1))] );
