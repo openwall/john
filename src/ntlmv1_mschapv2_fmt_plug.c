@@ -1245,10 +1245,10 @@ static int cmp_exact(char *source, int index)
 {
 	DES_key_schedule ks;
 	uchar binary[24];
-	unsigned char key[21];
-#ifdef MMX_COEF
+	unsigned char key[21], *cp;
 	int i;
 
+#ifdef MMX_COEF
 	for (i = 0; i < 4; i++)
 		((ARCH_WORD_32*)key)[i] = *(ARCH_WORD_32*)
 			&nthash[GETOUTPOS(4 * i, index)];
@@ -1271,8 +1271,17 @@ static int cmp_exact(char *source, int index)
 	DES_ecb_encrypt((DES_cblock*)challenge, (DES_cblock*)&binary[16],
 	                &ks, DES_ENCRYPT);
 
-	return !memcmp(binary, ((char*)my->methods.binary(source)) + 2,
-	               FULL_BINARY_SIZE - 2);
+	// With the normalized source we simply need to skip the
+	// $MSCHAPv2$hhhhhhhhhhhhhhhh$ string to get 'real' binary data.
+	cp = source + 27; 
+	for (i = 0; i < 24; ++i) {
+		unsigned char c = (atoi16[ARCH_INDEX(*cp)] << 4) +
+		                  (atoi16[ARCH_INDEX(*(cp+1))] );
+		if (c != binary[i])
+			return 0;
+		cp += 2;
+	}
+	return 1;
 }
 
 static int salt_hash(void *salt) { return *(ARCH_WORD_32*)salt & (SALT_HASH_SIZE - 1); }
