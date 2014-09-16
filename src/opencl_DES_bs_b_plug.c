@@ -565,6 +565,7 @@ int opencl_DES_bs_crypt_25(int *pcount, struct db_salt *salt)
 	err = clEnqueueNDRangeKernel(queue[gpu_id], krnl[gpu_id][pos], 1, NULL, &N, &M, 0, NULL, &evnt);
 	HANDLE_CLERROR(err, "Enque Kernel Failed");
 	clWaitForEvents(1, &evnt);
+	clReleaseEvent(evnt);
 
 	if (salt) {
 		int i;
@@ -662,6 +663,7 @@ int opencl_DES_bs_crypt_25(int *pcount, struct db_salt *salt)
 	HANDLE_CLERROR(err, "Enque Kernel Failed");
 
 	clWaitForEvents(1, &evnt);
+	clReleaseEvent(evnt);
 
 	if (salt) {
 		int i;
