@@ -38,21 +38,29 @@ static int omp_t = 1;
 #include "params.h"
 #include "options.h"
 #include "rar5_common.h"
-#define PBKDF2_HMAC_SHA256_ALSO_INCLUDE_CTX
+//#define PBKDF2_HMAC_SHA256_ALSO_INCLUDE_CTX
 #include "pbkdf2_hmac_sha256.h"
 
 #include "memdbg.h"
 
 #define FORMAT_LABEL		"RAR5"
 #define FORMAT_NAME		""
-#define ALGORITHM_NAME		"PBKDF2-SHA256 32/" ARCH_BITS_STR
+#ifdef MMX_COEF_SHA256
+#define ALGORITHM_NAME		"PBKDF2-SHA256 " SHA256_ALGORITHM_NAME
+#else
+#if ARCH_BITS >= 64
+#define ALGORITHM_NAME          "PBKDF2-SHA256 64/" ARCH_BITS_STR " " SHA2_LIB
+#else
+#define ALGORITHM_NAME          "PBKDF2-SHA256 32/" ARCH_BITS_STR " " SHA2_LIB
+#endif
+#endif
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	32
 #define SALT_SIZE		sizeof(struct custom_salt)
 #ifdef MMX_COEF_SHA256
-#define MIN_KEYS_PER_CRYPT	MMX_COEF_SHA256
-#define MAX_KEYS_PER_CRYPT	MMX_COEF_SHA256
+#define MIN_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA256
+#define MAX_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA256
 #else
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
@@ -78,132 +86,6 @@ static void set_salt(void *salt)
 	cur_salt = (struct custom_salt *)salt;
 }
 
-static void hmac_sha256(unsigned char * pass, int passlen, unsigned char * salt,
-                        int saltlen, int add, unsigned char * ret,
-                        SHA256_CTX saved_ctx[2])
-{
-	uint8_t i, ipad[64], opad[64];
-	SHA256_CTX ctx;
-
-	if (!add) {
-		memset(ipad, 0x36, 64);
-		memset(opad, 0x5c, 64);
-
-		for (i = 0; i < passlen; i++) {
-			ipad[i] ^= pass[i];
-			opad[i] ^= pass[i];
-		}
-
-		SHA256_Init(&ctx);
-		SHA256_Update(&ctx, ipad, 64);
-		memcpy(&saved_ctx[0], &ctx, sizeof(SHA256_CTX));
-	} else
-		memcpy(&ctx, &saved_ctx[0], sizeof(SHA256_CTX));
-
-	SHA256_Update(&ctx, salt, saltlen);
-	SHA256_Final(ret, &ctx);
-
-	if (!add) {
-		SHA256_Init(&ctx);
-		SHA256_Update(&ctx, opad, 64);
-		memcpy(&saved_ctx[1], &ctx, sizeof(SHA256_CTX));
-	} else
-		memcpy(&ctx, &saved_ctx[1], sizeof(SHA256_CTX));
-
-	SHA256_Update(&ctx, ret, 32);
-	SHA256_Final(ret, &ctx);
-}
-
-#if old_rar_kdf
-// PBKDF2 for 32 unsigned char key length. We generate the key for specified
-// number of iteration count also as two supplementary values (key for
-// checksums and password verification) for iterations+16 and iterations+32.
-static void rar5kdf(unsigned char *Pwd, size_t PwdLength,
-            unsigned char *Salt, size_t SaltLength,
-            unsigned char *Key, unsigned char *V1, unsigned char *V2, int Count)
-{
-	unsigned char SaltData[MaxSalt+4];
-	unsigned char U1[SHA256_DIGEST_SIZE];
-	unsigned char U2[SHA256_DIGEST_SIZE];
-	int I;
-	int J;
-	int K;
-	int CurCount[] = { Count-1, 16, 16 };
-	unsigned char *CurValue[] = { Key    , V1, V2 };
-	unsigned char Fn[SHA256_DIGEST_SIZE]; // Current function value.
-	SHA256_CTX saved_ctx[2];
-
-	memcpy(SaltData, Salt, Min(SaltLength,MaxSalt));
-
-	SaltData[SaltLength + 0] = 0; // Salt concatenated to 1.
-	SaltData[SaltLength + 1] = 0;
-	SaltData[SaltLength + 2] = 0;
-	SaltData[SaltLength + 3] = 1;
-
-	// First iteration: HMAC of password, salt and block index (1).
-	hmac_sha256(Pwd, PwdLength, SaltData, SaltLength + 4, 0, U1, saved_ctx);
-	memcpy(Fn, U1, sizeof(Fn)); // Function at first iteration.
-
-	for (I = 0; I < 3; I++) // For output key and 2 supplementary values.
-	{
-		for (J = 0; J < CurCount[I]; J++) {
-			hmac_sha256(Pwd, PwdLength, U1, sizeof(U1), 1, U2,
-			            saved_ctx); // U2 = PRF (P, U1).
-			memcpy(U1, U2, sizeof(U1));
-			for (K = 0; K < sizeof(Fn); K++) // Function ^= U.
-				Fn[K] ^= U1[K];
-		}
-		memcpy(CurValue[I], Fn, SHA256_DIGEST_SIZE);
-	}
-}
-
-#else
-static void rar5kdf(unsigned char *Pwd, size_t PwdLength,
-            unsigned char *Salt, size_t SaltLength,
-            unsigned char *Key, unsigned char *V1, unsigned char *V2, int Count)
-{
-	int K, i;
-	unsigned char SaltData[MaxSalt+4];
-	unsigned char tmp_hash[SHA256_DIGEST_LENGTH];
-	unsigned char U1[SHA256_DIGEST_SIZE];
-	unsigned char U2[SHA256_DIGEST_SIZE];
-	unsigned char Fn[SHA256_DIGEST_SIZE];
-	SHA256_CTX saved_ctx[2];
-
-	pbkdf2_sha256_owned_tmp(Pwd, PwdLength, Salt, SaltLength, Count, Key, SHA256_DIGEST_SIZE, 0, tmp_hash);
-
-	//since we did not build our own hmac, we have to 'seed' the ctx's properly.
-	memcpy(SaltData, Salt, Min(SaltLength,MaxSalt));
-	SaltData[SaltLength+0] = 0; SaltData[SaltLength+1] = 0; SaltData[SaltLength+2] = 0; SaltData[SaltLength+3] = 1;
-	// First iteration: HMAC of password, salt and block index (1). We only want the saved_ctx set, we discard the output.
-	hmac_sha256(Pwd, PwdLength, SaltData, SaltLength + 4, 0, U1, saved_ctx);
-
-	// this is the internal value from the pbkdf2 loop.  We need to put that into OUR temp value, and use it.
-	// Our ctx's are ready, our starting hash (temp val) is ready, now we can do the last 32 loops.
-	memcpy(U1, tmp_hash, SHA256_DIGEST_SIZE);
-	memcpy(Fn, Key, SHA256_DIGEST_SIZE);
-	for (i = 0; i < 16; ++i) {
-		hmac_sha256(Pwd, PwdLength, U1, SHA256_DIGEST_SIZE, 1, U2, saved_ctx);
-		memcpy(U1, U2, SHA256_DIGEST_SIZE);
-		for (K = 0; K <SHA256_DIGEST_SIZE; K++)
-			Fn[K] ^= U2[K];
-	}
-	memcpy(V1, Fn, SHA256_DIGEST_SIZE);
-	for (i = 0; i < 16; ++i) {
-		hmac_sha256(Pwd, PwdLength, U1, SHA256_DIGEST_SIZE, 1, U2, saved_ctx);
-		memcpy(U1, U2, SHA256_DIGEST_SIZE);
-		for (K = 0; K <SHA256_DIGEST_SIZE; K++)
-			Fn[K] ^= U2[K];
-	}
-	memcpy(V2, Fn, SHA256_DIGEST_SIZE);
-}
-
-void rar5_junk_function() {
-	pbkdf2_sha256(0,0,0,0,0,0,0,0);  // this is never called. Just here to quiet a 'unused' warning.
-	pbkdf2_sha256_sse(0,0,0,0,0,0,0,0); // this 'will' be used later. Right now, we are just doing the oSSL code to get it working.
-}
-#endif
-
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
@@ -212,22 +94,38 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index++)
+	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 	{
-		unsigned char Key[32],PswCheckValue[SHA256_DIGEST_SIZE],HashKeyValue[SHA256_DIGEST_SIZE];
-		char *password = saved_key[index];
+#ifdef SSE_GROUP_SZ_SHA256
+		int lens[SSE_GROUP_SZ_SHA256], i, j;
+		unsigned char PswCheck[SIZE_PSWCHECK],
+		              PswCheckValue[SSE_GROUP_SZ_SHA256][SHA256_DIGEST_SIZE];
+		unsigned char *pin[SSE_GROUP_SZ_SHA256];
+		ARCH_WORD_32 *pout[SSE_GROUP_SZ_SHA256];
+		for (i = 0; i < SSE_GROUP_SZ_SHA256; ++i) {
+			lens[i] = strlen(saved_key[index+i]);
+			pin[i] = (unsigned char*)saved_key[index+i];
+			pout[i] = (ARCH_WORD_32*)PswCheckValue[index+i];
+		}
+		pbkdf2_sha256_sse((const unsigned char **)pin, lens, cur_salt->salt, SIZE_SALT50, cur_salt->iterations+32, (unsigned char**)pout, SHA256_DIGEST_SIZE, 0);
+		// special wtf processing
+		for (j = 0; j < SSE_GROUP_SZ_SHA256; ++j) {
+			memset(PswCheck, 0, sizeof(PswCheck));
+			for (i = 0; i < SHA256_DIGEST_SIZE; i++)
+				PswCheck[i % SIZE_PSWCHECK] ^= PswCheckValue[j][i];
+			memcpy((void*)crypt_out[index+j], PswCheck, SIZE_PSWCHECK);
+		}
+#else
+		unsigned char PswCheckValue[SHA256_DIGEST_SIZE];
 		unsigned char PswCheck[SIZE_PSWCHECK];
 		int i;
-		rar5kdf((unsigned char*)password, strlen(password),
-				cur_salt->salt, SIZE_SALT50,
-				Key, HashKeyValue, PswCheckValue,
-				cur_salt->iterations);
+		pbkdf2_sha256((unsigned char*)saved_key[index], strlen(saved_key[index]), cur_salt->salt, SIZE_SALT50, cur_salt->iterations+32, PswCheckValue, SHA256_DIGEST_SIZE, 0);
 		// special wtf processing
 		memset(PswCheck, 0, sizeof(PswCheck));
 		for (i = 0; i < SHA256_DIGEST_SIZE; i++)
 			PswCheck[i % SIZE_PSWCHECK] ^= PswCheckValue[i];
-
 		memcpy((void*)crypt_out[index], PswCheck, SIZE_PSWCHECK);
+#endif
 	}
 	return count;
 }
