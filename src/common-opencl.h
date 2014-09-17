@@ -40,6 +40,14 @@
 
 #define OPENCLBUILDOPTIONS "-cl-mad-enable"
 
+#ifndef CL_DEVICE_PCI_BUS_ID_NV
+#define CL_DEVICE_PCI_BUS_ID_NV                     0x4008
+#endif
+
+#ifndef CL_DEVICE_PCI_SLOT_ID_NV
+#define CL_DEVICE_PCI_SLOT_ID_NV                    0x4009
+#endif
+
 #ifdef DEBUG_CL_ALLOC
 static inline cl_mem john_clCreateBuffer (int l, char *f,
 					  cl_context context,
