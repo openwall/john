@@ -50,21 +50,22 @@ use MIME::Base64;
 # lotus5 is done in some custom C code.  If someone wants to take a crack at
 # it here, be my guest :)
 #############################################################################
-my @funcs = (qw(DES BigCrypt BSDI MD5_1 MD5_a BF BFx BFegg RawMD5 RawMD5u
-		RawSHA1 RawSHA1u msCash LM NT pwdump RawMD4 PHPass PO hmac_MD5
+my @funcs = (qw(DESCrypt BigCrypt BSDI md5crypt md5crypt_a BF BFx BFegg Raw-MD5 Raw-MD5u
+		Raw-SHA1 Raw-SHA1u msCash LM NT pwdump Raw-MD4 PHPass PO hmac-MD5
 		IPB2 PHPS MD4p MD4s SHA1p SHA1s mysqlSHA1 pixMD5 MSSql05 MSSql12
 		nsldap nsldaps ns XSHA mskrb5 mysql mssql_no_upcase_change
 		mssql oracle oracle_no_upcase_change oracle11 hdaa netntlm_ess
 		openssha l0phtcrack netlmv2 netntlmv2 mschapv2 mscash2 mediawiki
-		crc_32 Dynamic dummy rawsha224 rawsha256 rawsha384 rawsha512
-		dragonfly3_32 dragonfly4_32 dragonfly3_64 dragonfly4_64
-		saltedsha1 raw_gost raw_gost_cp hmac_sha1 hmac_sha224
-		hmac_sha256 hmac_sha384 hmac_sha512 sha256crypt sha512crypt
+		crc_32 Dynamic dummy raw-sha224 raw-sha256 raw-sha384 raw-sha512
+		dragonfly3-32 dragonfly4-32 dragonfly3-64 dragonfly4-64
+		saltedsha1 raw_gost raw_gost_cp hmac-sha1 hmac-sha224
+		hmac-sha256 hmac-sha384 hmac-sha512 sha256crypt sha512crypt
 		XSHA512  dynamic_27 dynamic_28 pwsafe django drupal7 epi
 		episerver_sha1 episerver_sha256 hmailserver ike keepass
 		keychain nukedclan pfx racf radmin rawsha0 sip SybaseASE vnc
-		wbb3 wpapsk sunmd5 wow_srp django_scrypt aix_ssha1 aix_ssha256
-		aix_ssha512 pbkdf2_hmac_sha512 rakp osc formspring skey_md5
+		wbb3 wpapsk sunmd5 wowsrp django-scrypt aix-ssha1 aix-ssha256
+		aix-ssha512 pbkdf2-hmac-sha512 pbkdf2-hmac-sha256 pbkdf2-hmac-sha1
+		rakp osc formspring skey_md5
 		skey_md4 skey_sha1 skey_rmd160 cloudkeychain agilekeychain));
 
 # todo: ike keepass sub cloudkeychain agilekeychain pfx racf sip vnc
@@ -244,6 +245,8 @@ if (@ARGV == 1) {
 				#my $line_len = length($_);
 				my $line_len = jtr_unicode_corrected_length($_);
 				next if $line_len > $arg_maxlen || $line_len < $arg_minlen;
+				$arg =~ s/-/_/g;
+				print $arg."\n";
 				no strict 'refs';
 				&$arg($_, word_encode($_));
 				use strict;
@@ -315,18 +318,19 @@ sub pp_pbkdf2 {
 	my $ipad = hmac_pad($pass, '6', $algo);  # 6 is \x36 for an ipad
 	my $opad = hmac_pad($pass, '\\', $algo); # \ is \x5c for an opad
 	my $final_out=""; my $i=1;
+	my $slt;
 	while (length($final_out) < $bytes) {
-		$salt = $orig_salt . chr($i>>24); $salt .= chr(($i>>16)&0xFF); $salt .= chr(($i>>8)&0xFF); $salt .= chr($i&0xFF);
+		$slt = $orig_salt . chr($i>>24); $slt .= chr(($i>>16)&0xFF); $slt .= chr(($i>>8)&0xFF); $slt .= chr($i&0xFF);
 		$i += 1;
 		no strict 'refs';
-		$salt = &$algo($opad.&$algo($ipad.$salt));
+		$slt = &$algo($opad.&$algo($ipad.$slt));
 		use strict;
-		my $out = $salt;
+		my $out = $slt;
 		for (my $i = 1; $i < $iter; $i += 1) {
 			no strict 'refs';
-			$salt = &$algo($opad.&$algo($ipad.$salt));
+			$slt = &$algo($opad.&$algo($ipad.$slt));
 			use strict;
-			$out ^= $salt;
+			$out ^= $slt;
 		}
 		if (length($final_out)+length($out) > $bytes) {
 			$out = substr($out, 0, $bytes-length($final_out));
@@ -336,8 +340,8 @@ sub pp_pbkdf2 {
 	return $final_out;
 }
 sub pp_pbkdf2_hex {
-	my ($pass, $salt, $iter, $algo, $bytes) = @_;
-	return unpack("H*",pp_pbkdf2($pass,$salt,$iter,$algo,$bytes));
+	my ($pass, $slt, $iter, $algo, $bytes) = @_;
+	return unpack("H*",pp_pbkdf2($pass,$slt,$iter,$algo,$bytes));
 }
 
 #############################################################################
@@ -450,6 +454,7 @@ sub tst_all {
 	foreach my $f (@funcs) {
 		no strict 'refs';
 		$f = lc $f;
+		$f =~ s/-/_/g;
 		if ($f ne "dynamic") {&$f("password", word_encode("password")); $cnt += 1;}
 		use strict;
 	}
@@ -471,6 +476,7 @@ sub gen_all {
 	foreach my $f (@funcs) {
 		no strict 'refs';
 		$f = lc $f;
+		$f =~ s/-/_/g;
 		if ($f ne "dynamic") {&$f($_[0], word_encode($_[0]));}
 		use strict;
 	}
@@ -526,7 +532,7 @@ sub randusername {
 	return $user;
 }
 
-# helper function needed by md5_a (or md5_1 if we were doing that one)
+# helper function needed by md5crypt_a (or md5crypt if we were doing that one)
 sub to64 #unsigned long v, int n)
 {
 	my $str, my $n = $_[1], my $v = $_[0];
@@ -535,6 +541,14 @@ sub to64 #unsigned long v, int n)
 		$v >>= 6;
 	}
 	return $str;
+}
+# uses encode_64, but replaces all + with .  NOT sure why, but that is what it does.
+# used in at least pbkdf2-hmac-sha256. Probably others.
+sub base64pl {
+	my $ret = encode_base64($_[0]);
+	$ret =~ s/\+/./g;
+	chomp $ret;
+	return $ret;
 }
 # helper function for nsldap and nsldaps
 sub base64 {
@@ -553,6 +567,7 @@ sub _crypt_to64 {
 # used by drupal.  Would also probably be used for phpass.  dragonfly also uses something similar, but 'mixes'
 sub base64i {
 	my $final = $_[0];
+	#print "\n".unpack("H*",$final)."\n";
 	my $len = length $final;
 	my $mod = $len%3;
 	my $cnt = ($len-$mod)/3;
@@ -807,14 +822,14 @@ sub ripemd320_base64 {
 #  the format of ALL of these is:    function(password)
 #  all salted formats choose 'random' salts, in one way or another.
 #############################################################################
-sub des {
+sub descrypt {
 	#require Authen::Passphrase::DESCrypt;
 	#if ($argsalt && length($argsalt)==2) {
 	#	$h = Authen::Passphrase::DESCrypt->new(passphrase => $_[0], salt_base64 => $argsalt);
 	#} else {
 	#	$h = Authen::Passphrase::DESCrypt->new(passphrase => $_[0], salt_random => 12);
 	#}
-	#print "u$u-DES:", $h->as_crypt, ":$u:0:$_[0]::\n";
+	#print "u$u-descrypt:", $h->as_crypt, ":$u:0:$_[0]::\n";
 
 	require Crypt::UnixCrypt_XS;
 	if ($argsalt && length($argsalt)==2) { $salt = $argsalt; } else { $salt = randstr(2,\@i64); }
@@ -822,7 +837,7 @@ sub des {
 	# crypt 'works', but ONLY if a system has crypt(1) installed.  Authen::Passphrase used Crypt::UnixCrypt_XS
 	# so we 'still' have to have that CPAN mod installed.  We also fully qualify Crypt::UnixCrypt_XS::crypt()
 	# so that crypt() builtin is not called.
-	print "u$u-DES:", Crypt::UnixCrypt_XS::crypt($_[1], $salt), ":$u:0:$_[0]::\n";
+	print "u$u-descrypt:", Crypt::UnixCrypt_XS::crypt($_[1], $salt), ":$u:0:$_[0]::\n";
 }
 sub bigcrypt {
 	#require Authen::Passphrase::BigCrypt;
@@ -846,7 +861,7 @@ sub bigcrypt {
 		}
 		print ":$u:0:$_[0]::\n";
 	} else {
-		des(@_);
+		descrypt(@_);
 	}
 }
 sub bsdi {
@@ -864,16 +879,16 @@ sub bsdi {
 	my $h = Crypt::UnixCrypt_XS::crypt_rounds(Crypt::UnixCrypt_XS::fold_password($_[1]),$rounds,Crypt::UnixCrypt_XS::base64_to_int24($salt),$block);
 	print "u$u-BSDI:_", Crypt::UnixCrypt_XS::int24_to_base64($rounds), $salt, Crypt::UnixCrypt_XS::block_to_base64($h), ":$u:0:$_[0]::\n";
 }
-sub md5_1 {
+sub md5crypt {
 #require Authen::Passphrase::MD5Crypt;
 #	if (length($_[0]) > 15) { print "Warning, john can only handle 15 byte passwords for this format!\n"; }
 #	$h = Authen::Passphrase::MD5Crypt->new(passphrase => $_[0], salt_random => 1);
-#	print "u$u-MD5:", $h->as_crypt, ":$u:0:$_[0]::\n";
+#	print "u$u-md5crypt:", $h->as_crypt, ":$u:0:$_[0]::\n";
 
 	if (length($_[1]) > 15) { print STDERR "Warning, john can only handle 15 byte passwords for this format!\n"; }
 	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(8); }
-	$h = md5_a_hash($_[1], $salt, "\$1\$");
-	print "u$u-MD5:$h:$u:0:$_[0]::\n";
+	$h = md5crypt_hash($_[1], $salt, "\$1\$");
+	print "u$u-md5crypt:$h:$u:0:$_[0]::\n";
 }
 sub bfx_fix_pass {
 	my $pass = $_[0];
@@ -972,29 +987,29 @@ sub bfegg {
 		print "u$u-BFegg:+", _bfegg_en_base64($h), ":$u:0:$_[0]::\n";
 	}
 }
-sub rawmd5 {
-	print "u$u-RawMD5:", md5_hex($_[1]), ":$u:0:$_[0]::\n";
+sub raw_md5 {
+	print "u$u-Raw-MD5:", md5_hex($_[1]), ":$u:0:$_[0]::\n";
 }
-sub rawmd5u {
-	print "u$u-RawMD5-unicode:", md5_hex(encode("UTF-16LE",$_[0])), ":$u:0:$_[0]::\n";
+sub raw_md5u {
+	print "u$u-Raw-MD5-unicode:", md5_hex(encode("UTF-16LE",$_[0])), ":$u:0:$_[0]::\n";
 }
-sub rawsha1 {
-	print "u$u-RawSHA1:", sha1_hex($_[1]), ":$u:0:$_[0]::\n";
+sub raw_sha1 {
+	print "u$u-Raw-SHA1:", sha1_hex($_[1]), ":$u:0:$_[0]::\n";
 }
-sub rawsha1u {
-	print "u$u-RawSHA1-unicode:", sha1_hex(encode("UTF-16LE",$_[0])), ":$u:0:$_[0]::\n";
+sub raw_sha1u {
+	print "u$u-Raw-SHA1-unicode:", sha1_hex(encode("UTF-16LE",$_[0])), ":$u:0:$_[0]::\n";
 }
-sub rawsha256 {
-	print "u$u-RawSHA256:", sha256_hex($_[1]), ":$u:0:$_[0]::\n";
+sub raw_sha256 {
+	print "u$u-Raw-SHA256:", sha256_hex($_[1]), ":$u:0:$_[0]::\n";
 }
-sub rawsha224 {
-	print "u$u-RawSHA224:", sha224_hex($_[1]), ":$u:0:$_[0]::\n";
+sub raw_sha224 {
+	print "u$u-Raw-SHA224:", sha224_hex($_[1]), ":$u:0:$_[0]::\n";
 }
-sub rawsha384 {
-	print "u$u-RawSHA384:", sha384_hex($_[1]), ":$u:0:$_[0]::\n";
+sub raw_sha384 {
+	print "u$u-Raw-SHA384:", sha384_hex($_[1]), ":$u:0:$_[0]::\n";
 }
-sub rawsha512 {
-	print "u$u-RawSHA512:", sha512_hex($_[1]), ":$u:0:$_[0]::\n";
+sub raw_sha512 {
+	print "u$u-Raw-SHA512:", sha512_hex($_[1]), ":$u:0:$_[0]::\n";
 }
 sub dragonfly3_32 {
 	$salt = randstr(rand(8)+1);
@@ -1215,8 +1230,8 @@ sub pwdump {
 	my $nt = unpack("H*",md4(encode("UTF-16LE", $_[0])));
 	print "u$u-pwdump:$u:$lm:$nt:$_[0]::\n";
 }
-sub rawmd4 {
-	print "u$u-RawMD4:", md4_hex($_[1]), ":$u:0:$_[0]::\n";
+sub raw_md4 {
+	print "u$u-Raw-MD4:", md4_hex($_[1]), ":$u:0:$_[0]::\n";
 }
 sub mediawiki {
 	if (defined $argsalt) { $salt = $argsalt; } else { $salt = randstr(8); }
@@ -1266,7 +1281,7 @@ sub _md5_crypt_to_64 {
 	$tmp .= to64($i,2);
 	return $tmp;
 }
-sub md5_a_hash {
+sub md5crypt_hash {
 	# not 'native' in the Authen::MD5Crypt (but should be!!!)
 	# NOTE, this function is about 2.5x FASTER than Authen::MD5Crypt !!!!!
 	# have to use md5() function to get the 'raw' md5s, and do our 1000 loops.
@@ -1302,11 +1317,11 @@ sub md5_a_hash {
 	my $ret = "$type$salt\$$tmp";
 	return $ret;
 }
-sub md5_a {
+sub md5crypt_a {
 	if (length($_[1]) > 15) { print STDERR "Warning, john can only handle 15 byte passwords for this format!\n"; }
 	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(8); }
-	$h = md5_a_hash($_[1], $salt, "\$apr1\$");
-	print "u$u-md5a:$h:$u:0:$_[0]::\n";
+	$h = md5crypt_hash($_[1], $salt, "\$apr1\$");
+	print "u$u-md5crypt_a:$h:$u:0:$_[0]::\n";
 }
 #int md5bit(unsigned char *digest, int bit_num)
 sub md5bit {
@@ -1427,7 +1442,7 @@ sub sunmd5 {
 	my $h = _md5_crypt_to_64($c);
 	print "u$u-sunmd5:$salt\$$h:$u:0:$_[0]::\n";
 }
-sub wow_srp {
+sub wowsrp {
 	require Math::BigInt;
 	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(16); }
 	my $usr = uc randusername();
@@ -1733,7 +1748,7 @@ sub mssql {
 
 	if (length($_[1]) == length($t)) {
 		print "u$u-mssql:0x0100", uc saltToHex(4);
-		print uc sha1_hex(encode("UTF-16LE", $_[0]).$salt) . uc sha1_hex(encode("UTF-16LE", $t).$salt), ":$u:0:" . $_[0] . ":" . $_[0] . ":\n";
+		print uc sha1_hex(encode("UTF-16LE", $_[0]).$salt) . uc sha1_hex(encode("UTF-16LE", $t).$salt), ":$u:0:" . $t . ":" . $_[0] . ":\n";
 	}
 }
 sub mssql_no_upcase_change {
@@ -2029,7 +2044,21 @@ sub pbkdf2_hmac_sha512 {
 	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(16); }
 	my $itr = 10000;
 	if ($arg_loops > 0) { $itr = $arg_loops; }
-	print "u$u-pbkdf2-hmac-ssha512:\$pbkdf2-hmac-sha512\$${itr}.".unpack("H*", $salt).".", pp_pbkdf2_hex($_[1],$salt,$itr,"sha512",64) ,":$u:0:", $_[0], "::\n";
+	print "u$u-pbkdf2-hmac-sha512:\$pbkdf2-hmac-sha512\$${itr}.".unpack("H*", $salt).".", pp_pbkdf2_hex($_[1],$salt,$itr,"sha512",64) ,":$u:0:", $_[0], "::\n";
+}
+sub pbkdf2_hmac_sha256 {
+	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(12); }
+	my $itr = 1000;
+	if ($arg_loops > 0) { $itr = $arg_loops; }
+	my $s64 = base64pl($salt);
+	my $h64 = substr(base64pl(pack("H*",pp_pbkdf2_hex($_[1],$salt,$itr,"sha256",32))),0,43);
+	print "u$u-pbkdf2-hmac-sha256:\$pbkdf2-sha256\$${itr}\$${s64}\$${h64}:$u:0:", $_[0], "::\n";
+}
+sub pbkdf2_hmac_sha1 {
+	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(16); }
+	my $itr = 1000;
+	if ($arg_loops > 0) { $itr = $arg_loops; }
+	print "u$u-pbkdf2-hmac-sha1:\$pbkdf2-hmac-sha1\$${itr}.".unpack("H*", $salt).".", pp_pbkdf2_hex($_[1],$salt,$itr,"sha1",20) ,":$u:0:", $_[0], "::\n";
 }
 sub drupal7 {
 	if (defined $argsalt && length($argsalt)<=8) { $salt = $argsalt; } else { $salt=randstr(8); }
@@ -2255,13 +2284,13 @@ sub dynamic_27 { #dynamic_27 --> OpenBSD MD5
 
 	if (length($_[1]) > 15) { print STDERR "Warning, john can only handle 15 byte passwords for this format!\n"; }
 	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(8); }
-	$h = md5_a_hash($_[1], $salt, "\$1\$");
+	$h = md5crypt_hash($_[1], $salt, "\$1\$");
 	print "u$u-dynamic_27:\$dynamic_27\$", substr($h,15), "\$$salt:$u:0:$_[0]::\n";
 }
 sub dynamic_28 { # Apache MD5
 	if (length($_[1]) > 15) { print STDERR "Warning, john can only handle 15 byte passwords for this format!\n"; }
 	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(8); }
-	$h = md5_a_hash($_[1], $salt, "\$apr1\$");
+	$h = md5crypt_hash($_[1], $salt, "\$apr1\$");
 	print "u$u-dynamic_28:\$dynamic_28\$", substr($h,15), "\$$salt:$u:0:$_[0]::\n";
 }
 sub dynamic_compile {
