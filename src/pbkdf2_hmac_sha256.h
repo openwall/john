@@ -61,9 +61,8 @@ static void _pbkdf2_sha256_load_hmac(const unsigned char *K, int KL, SHA256_CTX 
 }
 
 static void _pbkdf2_sha256(const unsigned char *S, int SL, int R, ARCH_WORD_32 *out,
-	                     unsigned char loop, const SHA256_CTX *pIpad, const SHA256_CTX *pOpad) {
+	                     unsigned char loop, const SHA256_CTX *pIpad, const SHA256_CTX *pOpad, unsigned char tmp_hash[SHA256_DIGEST_LENGTH]) {
 	SHA256_CTX ctx;
-	unsigned char tmp_hash[SHA256_DIGEST_LENGTH];
 	unsigned i, j;
 
 	memcpy(&ctx, pIpad, sizeof(SHA256_CTX));
@@ -114,7 +113,7 @@ static void _pbkdf2_sha256(const unsigned char *S, int SL, int R, ARCH_WORD_32 *
 	}
 }
 
-static void pbkdf2_sha256(const unsigned char *K, int KL, unsigned char *S, int SL, int R, unsigned char *out, int outlen, int skip_bytes)
+static void pbkdf2_sha256_owned_tmp(const unsigned char *K, int KL, unsigned char *S, int SL, int R, unsigned char *out, int outlen, int skip_bytes, unsigned char tmp_hash[SHA256_DIGEST_LENGTH])
 {
 	union {
 		ARCH_WORD_32 x32[SHA256_DIGEST_LENGTH/sizeof(ARCH_WORD_32)];
@@ -128,7 +127,7 @@ static void pbkdf2_sha256(const unsigned char *K, int KL, unsigned char *S, int 
 	loops = (skip_bytes + outlen + (SHA256_DIGEST_LENGTH-1)) / SHA256_DIGEST_LENGTH;
 	loop = skip_bytes / SHA256_DIGEST_LENGTH + 1;
 	while (loop <= loops) {
-		_pbkdf2_sha256(S,SL,R,tmp.x32,loop,&ipad,&opad);
+		_pbkdf2_sha256(S,SL,R,tmp.x32,loop,&ipad,&opad,tmp_hash);
 		for (i = skip_bytes%SHA256_DIGEST_LENGTH; i < SHA256_DIGEST_LENGTH && accum < outlen; i++) {
 #if ARCH_LITTLE_ENDIAN
 			out[accum++] = ((uint8_t*)tmp.out)[i];
@@ -139,6 +138,11 @@ static void pbkdf2_sha256(const unsigned char *K, int KL, unsigned char *S, int 
 		loop++;
 		skip_bytes = 0;
 	}
+}
+
+static void pbkdf2_sha256(const unsigned char *K, int KL, unsigned char *S, int SL, int R, unsigned char *out, int outlen, int skip_bytes) {
+	unsigned char tmp_hash[SHA256_DIGEST_LENGTH];
+	pbkdf2_sha256_owned_tmp(K,KL,S,SL,R,out,outlen,skip_bytes,tmp_hash);
 }
 
 #endif

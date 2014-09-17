@@ -38,6 +38,9 @@ static int omp_t = 1;
 #include "params.h"
 #include "options.h"
 #include "rar5_common.h"
+#define PBKDF2_HMAC_SHA256_ALSO_INCLUDE_CTX
+#include "pbkdf2_hmac_sha256.h"
+
 #include "memdbg.h"
 
 #define FORMAT_LABEL		"RAR5"
@@ -47,8 +50,13 @@ static int omp_t = 1;
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	32
 #define SALT_SIZE		sizeof(struct custom_salt)
+#ifdef MMX_COEF_SHA256
+#define MIN_KEYS_PER_CRYPT	MMX_COEF_SHA256
+#define MAX_KEYS_PER_CRYPT	MMX_COEF_SHA256
+#else
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
+#endif
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 
@@ -106,6 +114,7 @@ static void hmac_sha256(unsigned char * pass, int passlen, unsigned char * salt,
 	SHA256_Final(ret, &ctx);
 }
 
+#if old_rar_kdf
 // PBKDF2 for 32 unsigned char key length. We generate the key for specified
 // number of iteration count also as two supplementary values (key for
 // checksums and password verification) for iterations+16 and iterations+32.
@@ -148,6 +157,53 @@ static void rar5kdf(unsigned char *Pwd, size_t PwdLength,
 	}
 }
 
+#else
+static void rar5kdf(unsigned char *Pwd, size_t PwdLength,
+            unsigned char *Salt, size_t SaltLength,
+            unsigned char *Key, unsigned char *V1, unsigned char *V2, int Count)
+{
+	int K, i;
+	unsigned char SaltData[MaxSalt+4];
+	unsigned char tmp_hash[SHA256_DIGEST_LENGTH];
+	unsigned char U1[SHA256_DIGEST_SIZE];
+	unsigned char U2[SHA256_DIGEST_SIZE];
+	unsigned char Fn[SHA256_DIGEST_SIZE];
+	SHA256_CTX saved_ctx[2];
+
+	pbkdf2_sha256_owned_tmp(Pwd, PwdLength, Salt, SaltLength, Count, Key, SHA256_DIGEST_SIZE, 0, tmp_hash);
+
+	//since we did not build our own hmac, we have to 'seed' the ctx's properly.
+	memcpy(SaltData, Salt, Min(SaltLength,MaxSalt));
+	SaltData[SaltLength+0] = 0; SaltData[SaltLength+1] = 0; SaltData[SaltLength+2] = 0; SaltData[SaltLength+3] = 1;
+	// First iteration: HMAC of password, salt and block index (1). We only want the saved_ctx set, we discard the output.
+	hmac_sha256(Pwd, PwdLength, SaltData, SaltLength + 4, 0, U1, saved_ctx);
+
+	// this is the internal value from the pbkdf2 loop.  We need to put that into OUR temp value, and use it.
+	// Our ctx's are ready, our starting hash (temp val) is ready, now we can do the last 32 loops.
+	memcpy(U1, tmp_hash, SHA256_DIGEST_SIZE);
+	memcpy(Fn, Key, SHA256_DIGEST_SIZE);
+	for (i = 0; i < 16; ++i) {
+		hmac_sha256(Pwd, PwdLength, U1, SHA256_DIGEST_SIZE, 1, U2, saved_ctx);
+		memcpy(U1, U2, SHA256_DIGEST_SIZE);
+		for (K = 0; K <SHA256_DIGEST_SIZE; K++)
+			Fn[K] ^= U2[K];
+	}
+	memcpy(V1, Fn, SHA256_DIGEST_SIZE);
+	for (i = 0; i < 16; ++i) {
+		hmac_sha256(Pwd, PwdLength, U1, SHA256_DIGEST_SIZE, 1, U2, saved_ctx);
+		memcpy(U1, U2, SHA256_DIGEST_SIZE);
+		for (K = 0; K <SHA256_DIGEST_SIZE; K++)
+			Fn[K] ^= U2[K];
+	}
+	memcpy(V2, Fn, SHA256_DIGEST_SIZE);
+}
+
+void rar5_junk_function() {
+	pbkdf2_sha256(0,0,0,0,0,0,0,0);  // this is never called. Just here to quiet a 'unused' warning.
+	pbkdf2_sha256_sse(0,0,0,0,0,0,0,0); // this 'will' be used later. Right now, we are just doing the oSSL code to get it working.
+}
+#endif
+
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
@@ -155,8 +211,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
 #endif
+	for (index = 0; index < count; index++)
 	{
 		unsigned char Key[32],PswCheckValue[SHA256_DIGEST_SIZE],HashKeyValue[SHA256_DIGEST_SIZE];
 		char *password = saved_key[index];
