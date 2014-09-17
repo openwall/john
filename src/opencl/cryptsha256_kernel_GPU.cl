@@ -17,6 +17,12 @@
 	#define VECTOR_USAGE
 #endif
 
+#if !(amd_gcn(DEVICE_INFO))
+	#define update_final ctx_update_final
+#else
+	#define update_final ctx_update_R
+#endif
+
 inline void init_ctx(sha256_ctx * ctx) {
 	ctx->H[0] = H0;
 	ctx->H[1] = H1;
@@ -166,6 +172,18 @@ inline void insert_to_buffer_R(sha256_ctx	 * ctx,
 	ctx->buflen += len;
 }
 
+inline void insert_to_buffer_final(sha256_ctx	 * ctx,
+				   const uint8_t * string,
+				   const uint32_t len) {
+
+	uint32_t * p = (uint32_t *) string;
+
+	for (uint32_t i = 0; i < len; i+=4, p++)
+		APPEND(ctx->buffer->mem_32, p[0], ctx->buflen + i);
+
+	ctx->buflen += len;
+}
+
 inline void insert_to_buffer_C(	      sha256_ctx * ctx,
 			__constant const uint8_t * string,
 				   const uint32_t len) {
@@ -200,6 +218,32 @@ inline void ctx_update_R(sha256_ctx * ctx,
 		sha256_block(ctx);
 		ctx->buflen = 0;
 		insert_to_buffer_R(ctx, (string + offset), len - offset);
+	}
+}
+
+inline void ctx_update_final(sha256_ctx * ctx,
+			     uint8_t    * string,
+			     const uint32_t len) {
+
+	ctx->total += len;
+	uint32_t startpos = ctx->buflen;
+
+	insert_to_buffer_final(ctx, string, (startpos + len <= 64 ? len : 64 - startpos));
+
+	if (ctx->buflen == 64) {  //Branching.
+		uint32_t offset = 64 - startpos;
+		sha256_block(ctx);
+		ctx->buflen = 0;
+
+		#pragma unroll
+		for (int j = 0; j < 15; j++)
+		    ctx->buffer[j].mem_32[0] = 0;
+
+		while (offset & 3) {
+			PUT(BUFFER, ctx->buflen++, (string + offset)[0]);
+			offset++;
+		}
+		insert_to_buffer_final(ctx, (string + offset), (len - offset));
 	}
 }
 
@@ -467,9 +511,9 @@ inline void sha256_crypt(sha256_buffers * fast_buffers,
 	}
 
 	if (i % 7)
-		ctx_update_R(ctx, p_sequence->mem_08, passlen);
+		update_final(ctx, p_sequence->mem_08, passlen);
 
-	ctx_update_R(ctx, ((i & 1) ? alt_result->mem_08 : p_sequence->mem_08),
+	update_final(ctx, ((i & 1) ? alt_result->mem_08 : p_sequence->mem_08),
 			  ((i & 1) ? 32U :		  passlen));
 
 	//Do: sha256_digest(ctx);
