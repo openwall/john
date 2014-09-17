@@ -105,7 +105,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		for (i = 0; i < SSE_GROUP_SZ_SHA256; ++i) {
 			lens[i] = strlen(saved_key[index+i]);
 			pin[i] = (unsigned char*)saved_key[index+i];
-			pout[i] = (ARCH_WORD_32*)PswCheckValue[index+i];
+			pout[i] = (ARCH_WORD_32*)PswCheckValue[i];
 		}
 		pbkdf2_sha256_sse((const unsigned char **)pin, lens, cur_salt->salt, SIZE_SALT50, cur_salt->iterations+32, (unsigned char**)pout, SHA256_DIGEST_SIZE, 0);
 		// special wtf processing
