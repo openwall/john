@@ -257,7 +257,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 {
 	int saltlen = 0;
 	char *p, *c = ciphertext;
-	if (strncmp(ciphertext, FMT_PREFIX, strlen(FMT_PREFIX) != 0))
+	if (strncmp(ciphertext, FMT_PREFIX, strlen(FMT_PREFIX)) != 0)
 		return 0;
 	if (strlen(ciphertext) < 44 + strlen(FMT_PREFIX))
 		return 0;
