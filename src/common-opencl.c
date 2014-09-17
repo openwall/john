@@ -2314,7 +2314,7 @@ void opencl_list_devices(void)
 			if (gpu_nvidia(device_info[sequence_nr])) {
 				unsigned int major = 0, minor = 0;
 
-				get_compute_capability(j, &major, &minor);
+				get_compute_capability(sequence_nr, &major, &minor);
 				if (major && minor)
 					printf("\tCompute capability:\t%u.%u "
 					       "(sm_%u%u)\n",
@@ -2326,6 +2326,21 @@ void opencl_list_devices(void)
 			if (ret == CL_SUCCESS)
 				printf("\tKernel exec. timeout:\t%s\n",
 				       boolean ? "yes" : "no");
+
+				ret = clGetDeviceInfo(
+					devices[sequence_nr],
+					CL_DEVICE_PCI_BUS_ID_NV,
+					sizeof(cl_uint), &entries, NULL);
+				if (ret == CL_SUCCESS)
+					printf("\tPCI device topology:\t"
+					       "%02x", entries);
+
+				ret = clGetDeviceInfo(
+					devices[sequence_nr],
+					CL_DEVICE_PCI_SLOT_ID_NV,
+					sizeof(cl_uint), &entries, NULL);
+				if (ret == CL_SUCCESS)
+					printf(":%02x\n", entries);
 #endif
 #if defined(CL_DEVICE_TOPOLOGY_AMD) && CL_DEVICE_TOPOLOGY_TYPE_PCIE_AMD == 1
 			{
