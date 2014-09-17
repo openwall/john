@@ -230,6 +230,7 @@ if (@ARGV == 1) {
 	$u = 0;
 	my $orig_arg = lc (defined($_) ? $_ : '');
 	my $arg = lc $ARGV[0];
+	if (substr($arg,0,8) eq "dynamic_") { substr($arg,0,8)="dynamic="; }
 	if ($arg eq "dynamic") { $arg = "dynamic="; }
 	if (substr($arg,0,8) eq "dynamic=") {
 		@funcs = ();
@@ -246,7 +247,6 @@ if (@ARGV == 1) {
 				my $line_len = jtr_unicode_corrected_length($_);
 				next if $line_len > $arg_maxlen || $line_len < $arg_minlen;
 				$arg =~ s/-/_/g;
-				print $arg."\n";
 				no strict 'refs';
 				&$arg($_, word_encode($_));
 				use strict;
@@ -268,6 +268,7 @@ if (@ARGV == 1) {
 		$u = 0;
 		my $orig_arg = lc $_;
 		my $arg = lc $_;
+		if (substr($arg,0,8) eq "dynamic_") { substr($arg,0,8)="dynamic="; }
 		if (substr($arg,0,8) eq "dynamic=") {
 			push(@funcs, $arg = dynamic_compile(substr($ARGV[0],8)));
 		}
@@ -2300,8 +2301,8 @@ sub dynamic_compile {
 		print STDERR "usage: $0 [-h|-?] HashType ... [ < wordfile ]\n";
 		print STDERR "\n";
 		print STDERR "NOTE, for DYNAMIC usage:   here are the possible formats:\n";
-		print STDERR "    dynamic=#   # can be any of the built in dynamic values. So,\n";
-		print STDERR "                dynamic=0 will output for md5(\$p) format\n";
+		print STDERR "    dynamic_#   # can be any of the built in dynamic values. So,\n";
+		print STDERR "                dynamic_0 will output for md5(\$p) format\n";
 		print STDERR "\n";
 		print STDERR "    dynamic=num=#,format=FMT_EXPR[,saltlen=#][,salt=true|ashex|tohex]\n";
 		print STDERR "         [,pass=uni][,salt2len=#][,const#=value][,usrname=true|lc|uc|uni]\n";
