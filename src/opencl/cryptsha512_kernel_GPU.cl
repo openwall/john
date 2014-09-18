@@ -461,7 +461,7 @@ inline void sha512_crypt(sha512_buffers * fast_buffers,
     for (uint32_t i = initial; i < rounds; i++) {
 
 	#pragma unroll
-	for (int j = 6; j < 16; j++)
+	for (int j = 4; j < 16; j++)
 	   ctx->buffer[j].mem_64[0] = 0;
 
         if (i & 1) {
