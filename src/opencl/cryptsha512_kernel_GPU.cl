@@ -459,8 +459,6 @@ inline void sha512_crypt(sha512_buffers * fast_buffers,
 
     /* Repeatedly run the collected hash value through SHA512 to burn cycles. */
     for (uint32_t i = initial; i < rounds; i++) {
-        //Prepare CTX buffer.
-        init_ctx(ctx);
 
 	#pragma unroll
 	for (int j = 6; j < 16; j++)
@@ -512,8 +510,18 @@ inline void sha512_crypt(sha512_buffers * fast_buffers,
             APPEND_FINAL_BE(ctx->buffer->mem_64, p_sequence[2].mem_64[0], ctx->total + 16);
             ctx->total += passlen;
         }
+        //Initialize CTX.
+	ctx->H[0] = H0;
+	ctx->H[1] = H1;
+	ctx->H[2] = H2;
+	ctx->H[3] = H3;
+	ctx->H[4] = H4;
+	ctx->H[5] = H5;
+	ctx->H[6] = H6;
+	ctx->H[7] = H7;
+
         //Do: sha512_digest(ctx);
-	PUTCHAR_BE(ctx->buffer->mem_32, ctx->total, 0x80);
+	ADD_BE_64BITS(ctx->buffer->mem_64, 0x8000000000000000UL, ctx->total);
 
 	if (ctx->total < 112) { //data+0x80+datasize fits in one 1024bit block
 	    ctx->buffer[15].mem_64[0] = ((uint64_t) (ctx->total * 8));
