@@ -2353,8 +2353,9 @@ void opencl_list_devices(void)
 				if (ret == CL_SUCCESS)
 					printf("\tPCI device topology:\t"
 					       "%02x:%02x.%x\n",
-					       topo.pcie.bus, topo.pcie.device,
-					       topo.pcie.function);
+					       topo.pcie.bus & 0xff,
+					       topo.pcie.device & 0xff,
+					       topo.pcie.function & 0xff);
 			}
 #endif
 			fan = temp = util = -1;

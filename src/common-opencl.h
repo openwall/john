@@ -48,6 +48,17 @@
 #define CL_DEVICE_PCI_SLOT_ID_NV                    0x4009
 #endif
 
+#ifndef CL_DEVICE_TOPOLOGY_AMD
+#define CL_DEVICE_TOPOLOGY_AMD                      0x4037
+typedef union
+{
+  struct { cl_uint type; cl_uint data[5]; } raw;
+  struct { cl_uint type; cl_char unused[17]; cl_char bus; cl_char device; cl_char function; } pcie;
+} cl_device_topology_amd;
+
+#define CL_DEVICE_TOPOLOGY_TYPE_PCIE_AMD            1
+#endif
+
 #ifdef DEBUG_CL_ALLOC
 static inline cl_mem john_clCreateBuffer (int l, char *f,
 					  cl_context context,
