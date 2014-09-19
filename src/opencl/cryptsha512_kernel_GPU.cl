@@ -543,7 +543,7 @@ inline void sha512_crypt(const uint32_t saltlen, const uint32_t passlen,
 }
 
 __kernel
-void kernel_crypt(__global   sha512_salt     * salt,
+void kernel_crypt(__constant sha512_salt     * salt,
                   __global   sha512_password * keys_buffer,
                   __global   sha512_hash     * out_buffer,
                   __global   sha512_buffers  * tmp_memory) {
@@ -576,7 +576,7 @@ void kernel_crypt(__global   sha512_salt     * salt,
 }
 
 __kernel
-void kernel_final(__global   sha512_salt     * salt,
+void kernel_final(__constant sha512_salt     * salt,
                   __global   sha512_password * keys_buffer,
                   __global   sha512_hash     * out_buffer,
                   __global   sha512_buffers  * tmp_memory) {
