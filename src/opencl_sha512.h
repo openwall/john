@@ -110,7 +110,7 @@ __constant uint64_t clear_mask[] = {
     dest[pos+1] = (tmp == 0 ? (uint64_t) 0 : (src >> (64 - tmp)));  \
 }
 
-#define ADD_BE_64BITS(dest, src, start) {          \
+#define APPEND_BE_FAST(dest, src, start) {         \
     uint32_t tmp, pos;                             \
     tmp = (uint32_t) ((start & 7) << 3);           \
     pos = (uint32_t) (start >> 3);                 \

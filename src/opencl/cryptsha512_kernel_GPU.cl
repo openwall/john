@@ -13,10 +13,11 @@
 
 #include "opencl_cryptsha512.h"
 
-#if gpu(DEVICE_INFO)
+#if gpu(DEVICE_INFO) && !amd_gcn(DEVICE_INFO)
     #define VECTOR_USAGE
 #endif
 
+/************************** prepare **************************/
 inline void init_ctx(sha512_ctx * ctx) {
     ctx->H[0] = H0;
     ctx->H[1] = H1;
@@ -48,7 +49,6 @@ inline void sha512_block(sha512_ctx * ctx) {
     w_vector = SWAP64_V(w_vector);
     vstore16(w_vector, 0, w);
 #else
-    #pragma unroll
     for (int i = 0; i < 16; i++)
         w[i] = SWAP64(ctx->buffer[i].mem_64[0]);
 #endif
@@ -67,7 +67,9 @@ inline void sha512_block(sha512_ctx * ctx) {
         a = t1 + t2;
     }
 
+#if amd_vliw5(DEVICE_INFO) ///TODO: can't remove this unroll: AMD driver bug HD 6770.
     #pragma unroll 16
+#endif
     for (int i = 16; i < 80; i++) {
         w[i & 15] = sigma1(w[(i - 2) & 15]) + sigma0(w[(i - 15) & 15]) + w[(i - 16) & 15] + w[(i - 7) & 15];
         t1 = k[i] + w[i & 15] + h + Sigma1(e) + Ch(e, f, g);
@@ -92,122 +94,9 @@ inline void sha512_block(sha512_ctx * ctx) {
     ctx->H[6] += g;
     ctx->H[7] += h;
 }
-
-#if gpu_amd(DEVICE_INFO)
-inline void sha512_block_be(sha512_ctx * ctx) {
-    uint64_t a = ctx->H[0];
-    uint64_t b = ctx->H[1];
-    uint64_t c = ctx->H[2];
-    uint64_t d = ctx->H[3];
-    uint64_t e = ctx->H[4];
-    uint64_t f = ctx->H[5];
-    uint64_t g = ctx->H[6];
-    uint64_t h = ctx->H[7];
-    uint64_t t;
-    uint64_t w[16];
-
-#ifdef VECTOR_USAGE
-    ulong16  w_vector;
-    w_vector = vload16(0, ctx->buffer->mem_64);
-    w_vector = (w_vector);
-    vstore16(w_vector, 0, w);
-#else
-    #pragma unroll
-    for (int i = 0; i < 16; i++)
-        w[i] = (ctx->buffer[i].mem_64[0]);
-#endif
-
-    /* Do the job. */
-    SHA512()
-
-    /* Put checksum in context given as argument. */
-    ctx->H[0] += a;
-    ctx->H[1] += b;
-    ctx->H[2] += c;
-    ctx->H[3] += d;
-    ctx->H[4] += e;
-    ctx->H[5] += f;
-    ctx->H[6] += g;
-    ctx->H[7] += h;
-}
-
-#else
-inline void sha512_block_be(sha512_ctx * ctx) {
-    uint64_t a = ctx->H[0];
-    uint64_t b = ctx->H[1];
-    uint64_t c = ctx->H[2];
-    uint64_t d = ctx->H[3];
-    uint64_t e = ctx->H[4];
-    uint64_t f = ctx->H[5];
-    uint64_t g = ctx->H[6];
-    uint64_t h = ctx->H[7];
-    uint64_t t1, t2;
-    uint64_t w[16];
-
-#ifdef VECTOR_USAGE
-    ulong16  w_vector;
-    w_vector = vload16(0, ctx->buffer->mem_64);
-    w_vector = (w_vector);
-    vstore16(w_vector, 0, w);
-#else
-    #pragma unroll
-    for (int i = 0; i < 16; i++)
-        w[i] = (ctx->buffer[i].mem_64[0]);
-#endif
-
-    for (int i = 0; i < 16; i++) {
-        t1 = k[i] + w[i] + h + Sigma1(e) + Ch(e, f, g);
-        t2 = Maj(a, b, c) + Sigma0(a);
-
-        h = g;
-        g = f;
-        f = e;
-        e = d + t1;
-        d = c;
-        c = b;
-        b = a;
-        a = t1 + t2;
-    }
-
-    #pragma unroll 16
-    for (int i = 16; i < 80; i++) {
-        w[i & 15] = sigma1(w[(i - 2) & 15]) + sigma0(w[(i - 15) & 15]) + w[(i - 16) & 15] + w[(i - 7) & 15];
-        t1 = k[i] + w[i & 15] + h + Sigma1(e) + Ch(e, f, g);
-        t2 = Maj(a, b, c) + Sigma0(a);
-
-        h = g;
-        g = f;
-        f = e;
-        e = d + t1;
-        d = c;
-        c = b;
-        b = a;
-        a = t1 + t2;
-    }
-    /* Put checksum in context given as argument. */
-    ctx->H[0] += a;
-    ctx->H[1] += b;
-    ctx->H[2] += c;
-    ctx->H[3] += d;
-    ctx->H[4] += e;
-    ctx->H[5] += f;
-    ctx->H[6] += g;
-    ctx->H[7] += h;
-}
-#endif
 
 inline void insert_to_buffer_R(sha512_ctx    * ctx,
                                const uint8_t * string,
-                               const uint32_t len) {
-
-    for (uint32_t i = 0; i < len; i++)
-        PUT(BUFFER, ctx->buflen + i, string[i]);
-
-    ctx->buflen += len;
-}
-
-inline void insert_to_buffer_C(           sha512_ctx    * ctx,
-                               __constant const uint8_t * string,
                                const uint32_t len) {
 
     for (uint32_t i = 0; i < len; i++)
@@ -239,23 +128,6 @@ inline void ctx_update_R(sha512_ctx * ctx,
         sha512_block(ctx);
         ctx->buflen = 0;
         insert_to_buffer_R(ctx, (string + offset), len - offset);
-    }
-}
-
-inline void ctx_update_C(           sha512_ctx * ctx,
-                         __constant uint8_t    * string,
-                         const uint32_t len) {
-
-    ctx->total += len;
-    uint32_t startpos = ctx->buflen;
-
-    insert_to_buffer_C(ctx, string, (startpos + len <= 128 ? len : 128 - startpos));
-
-    if (ctx->buflen == 128) {  //Branching.
-        uint32_t offset = 128 - startpos;
-        sha512_block(ctx);
-        ctx->buflen = 0;
-        insert_to_buffer_C(ctx, (string + offset), len - offset);
     }
 }
 
@@ -386,7 +258,7 @@ inline void sha512_digest_special(sha512_ctx * ctx) {
     sha512_block(ctx);
 }
 
-inline void sha512_prepare(__constant sha512_salt     * salt_data,
+inline void sha512_prepare(__global   sha512_salt     * salt_data,
                            __global   sha512_password * keys_data,
                            __global   sha512_buffers  * tmp_memory,
                                       sha512_buffers  * fast_buffers,
@@ -403,7 +275,7 @@ inline void sha512_prepare(__constant sha512_salt     * salt_data,
     init_ctx(ctx);
 
     ctx_update_special(ctx, pass, passlen);
-    ctx_update_C(ctx, salt, saltlen);
+    ctx_update_G(ctx, salt, saltlen);
     ctx_update_G(ctx, pass, passlen);
 
     sha512_digest(ctx);
@@ -411,7 +283,7 @@ inline void sha512_prepare(__constant sha512_salt     * salt_data,
     init_ctx(ctx);
 
     ctx_update_special(ctx, pass, passlen);
-    ctx_update_C(ctx, salt, saltlen);
+    ctx_update_G(ctx, salt, saltlen);
     ctx_update_R(ctx, alt_result->mem_08, passlen);
 
     for (uint32_t i = passlen; i > 0; i >>= 1) {
@@ -435,7 +307,7 @@ inline void sha512_prepare(__constant sha512_salt     * salt_data,
 
     /* For every character in the password add the entire password. */
     for (uint32_t i = 0; i < 16U + alt_result->mem_08[0]; i++)
-        ctx_update_C(ctx, salt, saltlen);
+        ctx_update_G(ctx, salt, saltlen);
 
     /* Finish the digest. */
     sha512_digest(ctx);
@@ -446,9 +318,139 @@ inline void sha512_prepare(__constant sha512_salt     * salt_data,
 #undef pass
 #undef saltlen
 #undef passlen
+#undef alt_result
 #undef temp_result
 #undef p_sequence
-#undef alt_result
+
+__kernel
+void kernel_prepare(__global   sha512_salt     * salt,
+                    __global   sha512_password * keys_buffer,
+                    __global   sha512_buffers  * tmp_memory) {
+
+    //Compute buffers (on Nvidia, better private)
+    sha512_buffers fast_buffers;
+    sha512_ctx     ctx_data;
+
+    //Get the task to be done
+    size_t gid = get_global_id(0);
+
+    //Do the job
+    sha512_prepare(salt, &keys_buffer[gid], &tmp_memory[gid], &fast_buffers, &ctx_data);
+
+    //Save results.
+    for (int i = 0; i < 8; i++)
+        tmp_memory[gid].alt_result[i].mem_64[0] = SWAP64(fast_buffers.alt_result[i].mem_64[0]);
+
+    for (int i = 0; i < SALT_ARRAY; i++)
+        tmp_memory[gid].temp_result[i].mem_64[0] = SWAP64(fast_buffers.temp_result[i].mem_64[0]);
+
+    for (int i = 0; i < PLAINTEXT_ARRAY; i++)
+        tmp_memory[gid].p_sequence[i].mem_64[0] = SWAP64(fast_buffers.p_sequence[i].mem_64[0]);
+}
+
+/************************** hashing **************************/
+#if gpu_amd(DEVICE_INFO)
+inline void sha512_block_be(sha512_ctx * ctx) {
+    uint64_t a = ctx->H[0];
+    uint64_t b = ctx->H[1];
+    uint64_t c = ctx->H[2];
+    uint64_t d = ctx->H[3];
+    uint64_t e = ctx->H[4];
+    uint64_t f = ctx->H[5];
+    uint64_t g = ctx->H[6];
+    uint64_t h = ctx->H[7];
+    uint64_t t;
+    uint64_t w[16];
+
+#ifdef VECTOR_USAGE
+    ulong16  w_vector;
+    w_vector = vload16(0, ctx->buffer->mem_64);
+    w_vector = (w_vector);
+    vstore16(w_vector, 0, w);
+#else
+    #pragma unroll
+    for (int i = 0; i < 16; i++)
+        w[i] = (ctx->buffer[i].mem_64[0]);
+#endif
+
+    /* Do the job. */
+    SHA512()
+
+    /* Put checksum in context given as argument. */
+    ctx->H[0] += a;
+    ctx->H[1] += b;
+    ctx->H[2] += c;
+    ctx->H[3] += d;
+    ctx->H[4] += e;
+    ctx->H[5] += f;
+    ctx->H[6] += g;
+    ctx->H[7] += h;
+}
+
+#else
+inline void sha512_block_be(sha512_ctx * ctx) {
+    uint64_t a = ctx->H[0];
+    uint64_t b = ctx->H[1];
+    uint64_t c = ctx->H[2];
+    uint64_t d = ctx->H[3];
+    uint64_t e = ctx->H[4];
+    uint64_t f = ctx->H[5];
+    uint64_t g = ctx->H[6];
+    uint64_t h = ctx->H[7];
+    uint64_t t1, t2;
+    uint64_t w[16];
+
+#ifdef VECTOR_USAGE
+    ulong16  w_vector;
+    w_vector = vload16(0, ctx->buffer->mem_64);
+    w_vector = (w_vector);
+    vstore16(w_vector, 0, w);
+#else
+    #pragma unroll
+    for (int i = 0; i < 16; i++)
+        w[i] = (ctx->buffer[i].mem_64[0]);
+#endif
+
+    for (int i = 0; i < 16; i++) {
+        t1 = k[i] + w[i] + h + Sigma1(e) + Ch(e, f, g);
+        t2 = Maj(a, b, c) + Sigma0(a);
+
+        h = g;
+        g = f;
+        f = e;
+        e = d + t1;
+        d = c;
+        c = b;
+        b = a;
+        a = t1 + t2;
+    }
+
+    #pragma unroll 16
+    for (int i = 16; i < 80; i++) {
+        w[i & 15] = sigma1(w[(i - 2) & 15]) + sigma0(w[(i - 15) & 15]) + w[(i - 16) & 15] + w[(i - 7) & 15];
+        t1 = k[i] + w[i & 15] + h + Sigma1(e) + Ch(e, f, g);
+        t2 = Maj(a, b, c) + Sigma0(a);
+
+        h = g;
+        g = f;
+        f = e;
+        e = d + t1;
+        d = c;
+        c = b;
+        b = a;
+        a = t1 + t2;
+    }
+    /* Put checksum in context given as argument. */
+    ctx->H[0] += a;
+    ctx->H[1] += b;
+    ctx->H[2] += c;
+    ctx->H[3] += d;
+    ctx->H[4] += e;
+    ctx->H[5] += f;
+    ctx->H[6] += g;
+    ctx->H[7] += h;
+}
+#endif
 
 inline void sha512_crypt(const uint32_t saltlen, const uint32_t passlen,
                          const uint32_t initial, const uint32_t rounds,
@@ -520,8 +522,8 @@ inline void sha512_crypt(const uint32_t saltlen, const uint32_t passlen,
 	ctx.H[6] = H6;
 	ctx.H[7] = H7;
 
-        //Do: sha512_digest(ctx);
-	ADD_BE_64BITS(ctx.buffer->mem_64, 0x8000000000000000UL, ctx.total);
+        //Do the sha512_digest(ctx);
+	APPEND_BE_FAST(ctx.buffer->mem_64, 0x8000000000000000UL, ctx.total);
 
 	if (ctx.total < 112) { //data+0x80+datasize fits in one 1024bit block
 	    ctx.buffer[15].mem_64[0] = ((uint64_t) (ctx.total * 8));
@@ -539,38 +541,9 @@ inline void sha512_crypt(const uint32_t saltlen, const uint32_t passlen,
 	    alt_result[j].mem_64[0] = (ctx.H[j]);
     }
 }
-#undef alt_result
-#undef temp_result
-#undef p_sequence
 
 __kernel
-void kernel_prepare(__constant sha512_salt     * salt,
-                    __global   sha512_password * keys_buffer,
-                    __global   sha512_buffers  * tmp_memory) {
-
-    //Compute buffers (on Nvidia, better private)
-    sha512_buffers fast_buffers;
-    sha512_ctx     ctx_data;
-
-    //Get the task to be done
-    size_t gid = get_global_id(0);
-
-    //Do the job
-    sha512_prepare(salt, &keys_buffer[gid], &tmp_memory[gid], &fast_buffers, &ctx_data);
-
-    //Save results.
-    for (int i = 0; i < 8; i++)
-        tmp_memory[gid].alt_result[i].mem_64[0] = SWAP64(fast_buffers.alt_result[i].mem_64[0]);
-
-    for (int i = 0; i < SALT_ARRAY; i++)
-        tmp_memory[gid].temp_result[i].mem_64[0] = SWAP64(fast_buffers.temp_result[i].mem_64[0]);
-
-    for (int i = 0; i < PLAINTEXT_ARRAY; i++)
-        tmp_memory[gid].p_sequence[i].mem_64[0] = SWAP64(fast_buffers.p_sequence[i].mem_64[0]);
-}
-
-__kernel
-void kernel_crypt(__constant sha512_salt     * salt,
+void kernel_crypt(__global   sha512_salt     * salt,
                   __global   sha512_password * keys_buffer,
                   __global   sha512_hash     * out_buffer,
                   __global   sha512_buffers  * tmp_memory) {
@@ -603,7 +576,7 @@ void kernel_crypt(__constant sha512_salt     * salt,
 }
 
 __kernel
-void kernel_final(__constant sha512_salt     * salt,
+void kernel_final(__global   sha512_salt     * salt,
                   __global   sha512_password * keys_buffer,
                   __global   sha512_hash     * out_buffer,
                   __global   sha512_buffers  * tmp_memory) {
