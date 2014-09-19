@@ -445,9 +445,9 @@ inline void sha512_block_be(sha512_ctx * ctx) {
 
 inline void sha512_crypt(const uint32_t saltlen, const uint32_t passlen,
                          const uint32_t initial, const uint32_t rounds,
-				    buffer_64 * alt_result,
-				    buffer_64 * temp_result,
-				    buffer_64 * p_sequence) {
+					buffer_64 * alt_result,
+			 __local	buffer_64 * temp_result,
+			 __local	buffer_64 * p_sequence) {
 
     sha512_ctx     ctx;
 
@@ -539,31 +539,34 @@ void kernel_crypt(__constant sha512_salt     * salt,
                   __global   sha512_hash     * out_buffer,
                   __global   sha512_buffers  * tmp_memory) {
 
-    //Compute buffers (on Nvidia, better private)
-    sha512_buffers fast_buffers;
+    //Compute buffers
+    buffer_64			alt_result[8];
+    __local buffer_64		temp_result[WORK_SIZE][SALT_ARRAY];
+    __local buffer_64           p_sequence[WORK_SIZE][PLAINTEXT_ARRAY];
 
     //Get the task to be done
     size_t gid = get_global_id(0);
+    size_t lid = get_local_id(0);
 
     //Transfer host data to faster memory
     for (int i = 0; i < 8; i++)
-        fast_buffers.alt_result[i].mem_64[0] = tmp_memory[gid].alt_result[i].mem_64[0];
+        alt_result[i].mem_64[0] = tmp_memory[gid].alt_result[i].mem_64[0];
 
     for (int i = 0; i < SALT_ARRAY; i++)
-        fast_buffers.temp_result[i].mem_64[0] = tmp_memory[gid].temp_result[i].mem_64[0];
+        temp_result[lid][i].mem_64[0] = tmp_memory[gid].temp_result[i].mem_64[0];
 
     for (int i = 0; i < PLAINTEXT_ARRAY; i++)
-        fast_buffers.p_sequence[i].mem_64[0] = tmp_memory[gid].p_sequence[i].mem_64[0];
+        p_sequence[lid][i].mem_64[0] = tmp_memory[gid].p_sequence[i].mem_64[0];
 
     //Do the job
     sha512_crypt(salt->length, keys_buffer[gid].length, 0, HASH_LOOPS,
-		 &fast_buffers.alt_result[0],
-		 &fast_buffers.temp_result[0],
-		 &fast_buffers.p_sequence[0]);
+		 alt_result,
+		 temp_result[lid],
+		 p_sequence[lid]);
 
     //Save results.
     for (int i = 0; i < 8; i++)
-        tmp_memory[gid].alt_result[i].mem_64[0] = fast_buffers.alt_result[i].mem_64[0];
+        tmp_memory[gid].alt_result[i].mem_64[0] = alt_result[i].mem_64[0];
 }
 
 __kernel
@@ -572,29 +575,32 @@ void kernel_final(__constant sha512_salt     * salt,
                   __global   sha512_hash     * out_buffer,
                   __global   sha512_buffers  * tmp_memory) {
 
-    //Compute buffers (on Nvidia, better private)
-    sha512_buffers fast_buffers;
+    //Compute buffers
+    buffer_64			alt_result[8];
+    __local buffer_64		temp_result[WORK_SIZE][SALT_ARRAY];
+    __local buffer_64           p_sequence[WORK_SIZE][PLAINTEXT_ARRAY];
 
     //Get the task to be done
     size_t gid = get_global_id(0);
+    size_t lid = get_local_id(0);
 
     //Transfer host data to faster memory
     for (int i = 0; i < 8; i++)
-        fast_buffers.alt_result[i].mem_64[0] = tmp_memory[gid].alt_result[i].mem_64[0];
+        alt_result[i].mem_64[0] = tmp_memory[gid].alt_result[i].mem_64[0];
 
     for (int i = 0; i < SALT_ARRAY; i++)
-        fast_buffers.temp_result[i].mem_64[0] = tmp_memory[gid].temp_result[i].mem_64[0];
+        temp_result[lid][i].mem_64[0] = tmp_memory[gid].temp_result[i].mem_64[0];
 
     for (int i = 0; i < PLAINTEXT_ARRAY; i++)
-        fast_buffers.p_sequence[i].mem_64[0] = tmp_memory[gid].p_sequence[i].mem_64[0];
+        p_sequence[lid][i].mem_64[0] = tmp_memory[gid].p_sequence[i].mem_64[0];
 
     //Do the job
     sha512_crypt(salt->length, keys_buffer[gid].length, 0, salt->final,
-		 &fast_buffers.alt_result[0],
-		 &fast_buffers.temp_result[0],
-		 &fast_buffers.p_sequence[0]);
+		 alt_result,
+		 temp_result[lid],
+		 p_sequence[lid]);
 
     //Send results to the host.
     for (int i = 0; i < 8; i++)
-        out_buffer[gid].v[i] = SWAP64(fast_buffers.alt_result[i].mem_64[0]);
+        out_buffer[gid].v[i] = SWAP64(alt_result[i].mem_64[0]);
 }

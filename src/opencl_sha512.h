@@ -16,6 +16,7 @@
 
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
+#define WORK_SIZE		512
 
 //Macros.
 #define SWAP(n) \

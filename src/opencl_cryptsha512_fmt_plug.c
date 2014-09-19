@@ -37,6 +37,7 @@ john_register_one(&fmt_opencl_cryptsha512);
 #define _USE_CPU_SOURCE			(cpu(source_in_use))
 #define _USE_GPU_SOURCE			(gpu(source_in_use))
 #define _SPLIT_KERNEL_IN_USE		(gpu(source_in_use))
+#define _USE_LOCAL_SOURCE		(use_local(source_in_use) || gpu(source_in_use))
 
 static sha512_salt			* salt;
 static sha512_password	 		* plaintext;			// plaintext ciphertexts
@@ -100,7 +101,9 @@ static size_t get_task_max_work_group_size()
 {
 	size_t s;
 
-	s = common_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
+	s = common_get_task_max_work_group_size(_USE_LOCAL_SOURCE,
+		((sizeof(buffer_64) * SALT_ARRAY + sizeof(buffer_64) * PLAINTEXT_ARRAY) + 1),
+		crypt_kernel);
 	if (_SPLIT_KERNEL_IN_USE) {
 		s = MIN(s, common_get_task_max_work_group_size(FALSE, 0, prepare_kernel));
 		s = MIN(s, common_get_task_max_work_group_size(FALSE, 0, final_kernel));
