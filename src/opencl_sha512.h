@@ -24,18 +24,21 @@
             (((n) >> 8)  & 0xff000000) | (((n) >> 24) & 0xff0000)   |   \
             (((n) >> 40) & 0xff00)     | ((n)  >> 56))
 
-#define SWAP64_V(n)             SWAP(n)
-
 #if gpu_amd(DEVICE_INFO)
-        #define Ch(x,y,z)       bitselect(z, y, x)
-        #define Maj(x,y,z)      bitselect(x, y, z ^ x)
-        #define ror(x, n)       rotate(x, (64UL-n))
-        #define SWAP64(n)       (as_ulong(as_uchar8(n).s76543210))
+	#define Ch(x,y,z)       bitselect(z, y, x)
+	#define Maj(x,y,z)      bitselect(x, y, z ^ x)
+	#define ror(x, n)       rotate(x, (64UL-n))
+	#define SWAP64(n)	rotate(n & 0x000000FF000000FFUL, 56UL) | \
+				rotate(n & 0xFF000000FF000000UL, 8UL)  | \
+				rotate(n & 0x00FF000000FF0000UL, 24UL) | \
+				rotate(n & 0x0000FF000000FF00UL, 40UL)
+	#define SWAP64_V(n)     SWAP64(n)
 #else
         #define Ch(x,y,z)       ((x & y) ^ ( (~x) & z))
         #define Maj(x,y,z)      ((x & y) ^ (x & z) ^ (y & z))
         #define ror(x, n)       ((x >> n) | (x << (64-n)))
         #define SWAP64(n)       SWAP(n)
+	#define SWAP64_V(n)     SWAP(n)
 #endif
 #define Sigma0(x)               ((ror(x,28UL)) ^ (ror(x,34UL)) ^ (ror(x,39UL)))
 #define Sigma1(x)               ((ror(x,14UL)) ^ (ror(x,18UL)) ^ (ror(x,41UL)))

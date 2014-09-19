@@ -30,7 +30,6 @@
 /* Macros for reading/writing chars from int32's (from rar_kernel.cl) */
 #define GETCHAR(buf, index) ((buf)[(index)])
 #define ATTRIB(buf, index, val) (buf)[(index)] = val
-#define PUTCHAR_BE(buf, index, val) ((uchar*)(buf))[(index) ^ 7] = (val)
 
 #if gpu_amd(DEVICE_INFO) || no_byte_addressable(DEVICE_INFO)
 #define PUTCHAR(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2] & ~(0xffU << (((index) & 3) << 3))) + ((val) << (((index) & 3) << 3))
