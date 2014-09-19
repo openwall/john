@@ -118,25 +118,9 @@ static size_t get_task_max_size(){
 		KEYS_PER_CORE_CPU, KEYS_PER_CORE_GPU, crypt_kernel);
 }
 
-static size_t get_safe_workgroup(){
-
-	if (cpu(device_info[gpu_id]))
-		return 1;
-
-	else
-		return 64;
-}
-
 static size_t get_default_workgroup(){
-	size_t max_available;
-	max_available = get_task_max_work_group_size();
 
-	if (gpu_nvidia(device_info[gpu_id])) {
-		global_work_size = GET_EXACT_MULTIPLE(global_work_size, max_available);
-		return max_available;
-
-	} else
-		return get_safe_workgroup();
+	return get_task_max_work_group_size();
 }
 
 /* ------- Create and destroy necessary objects ------- */
@@ -343,7 +327,7 @@ static void init(struct fmt_main * self) {
 
 	if (amd_gcn(source_in_use))
 		task = "$JOHN/kernels/cryptsha512_kernel_GCN.cl";
-	else if (_USE_GPU_SOURCE)
+	else if (_USE_GPU_SOURCE || _USE_LOCAL_SOURCE)
 		task = "$JOHN/kernels/cryptsha512_kernel_GPU.cl";
 
 	build_kernel(task);
