@@ -453,8 +453,8 @@ inline void sha512_prepare(__constant sha512_salt     * salt_data,
 inline void sha512_crypt(const uint32_t saltlen, const uint32_t passlen,
                          const uint32_t initial, const uint32_t rounds,
 				    buffer_64 * alt_result,
-			  __global  buffer_64 * temp_result,
-			  __global  buffer_64 * p_sequence) {
+				    buffer_64 * temp_result,
+				    buffer_64 * p_sequence) {
 
     sha512_ctx     ctx;
 
@@ -585,11 +585,17 @@ void kernel_crypt(__constant sha512_salt     * salt,
     for (int i = 0; i < 8; i++)
         fast_buffers.alt_result[i].mem_64[0] = tmp_memory[gid].alt_result[i].mem_64[0];
 
+    for (int i = 0; i < SALT_ARRAY; i++)
+        fast_buffers.temp_result[i].mem_64[0] = tmp_memory[gid].temp_result[i].mem_64[0];
+
+    for (int i = 0; i < PLAINTEXT_ARRAY; i++)
+        fast_buffers.p_sequence[i].mem_64[0] = tmp_memory[gid].p_sequence[i].mem_64[0];
+
     //Do the job
     sha512_crypt(salt->length, keys_buffer[gid].length, 0, HASH_LOOPS,
 		 &fast_buffers.alt_result[0],
-		 &tmp_memory[gid].temp_result[0],
-		 &tmp_memory[gid].p_sequence[0]);
+		 &fast_buffers.temp_result[0],
+		 &fast_buffers.p_sequence[0]);
 
     //Save results.
     for (int i = 0; i < 8; i++)
@@ -612,11 +618,17 @@ void kernel_final(__constant sha512_salt     * salt,
     for (int i = 0; i < 8; i++)
         fast_buffers.alt_result[i].mem_64[0] = tmp_memory[gid].alt_result[i].mem_64[0];
 
+    for (int i = 0; i < SALT_ARRAY; i++)
+        fast_buffers.temp_result[i].mem_64[0] = tmp_memory[gid].temp_result[i].mem_64[0];
+
+    for (int i = 0; i < PLAINTEXT_ARRAY; i++)
+        fast_buffers.p_sequence[i].mem_64[0] = tmp_memory[gid].p_sequence[i].mem_64[0];
+
     //Do the job
     sha512_crypt(salt->length, keys_buffer[gid].length, 0, salt->final,
 		 &fast_buffers.alt_result[0],
-		 &tmp_memory[gid].temp_result[0],
-		 &tmp_memory[gid].p_sequence[0]);
+		 &fast_buffers.temp_result[0],
+		 &fast_buffers.p_sequence[0]);
 
     //Send results to the host.
     for (int i = 0; i < 8; i++)
