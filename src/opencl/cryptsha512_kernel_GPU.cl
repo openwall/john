@@ -453,92 +453,93 @@ inline void sha512_prepare(__constant sha512_salt     * salt_data,
 #define p_sequence  fast_buffers->p_sequence
 
 inline void sha512_crypt(sha512_buffers * fast_buffers,
-                         sha512_ctx     * ctx,
                          const uint32_t saltlen, const uint32_t passlen,
                          const uint32_t initial, const uint32_t rounds) {
+
+    sha512_ctx     ctx;
 
     /* Repeatedly run the collected hash value through SHA512 to burn cycles. */
     for (uint32_t i = initial; i < rounds; i++) {
 
 	#pragma unroll
 	for (int j = 4; j < 16; j++)
-	   ctx->buffer[j].mem_64[0] = 0;
+	   ctx.buffer[j].mem_64[0] = 0;
 
         if (i & 1) {
-            ctx->buffer[0].mem_64[0] = p_sequence[0].mem_64[0];
-            ctx->buffer[1].mem_64[0] = p_sequence[1].mem_64[0];
-            ctx->buffer[2].mem_64[0] = p_sequence[2].mem_64[0];
-            ctx->total = passlen;
+            ctx.buffer[0].mem_64[0] = p_sequence[0].mem_64[0];
+            ctx.buffer[1].mem_64[0] = p_sequence[1].mem_64[0];
+            ctx.buffer[2].mem_64[0] = p_sequence[2].mem_64[0];
+            ctx.total = passlen;
         } else {
-            ctx->buffer[0].mem_64[0] = alt_result[0].mem_64[0];
-            ctx->buffer[1].mem_64[0] = alt_result[1].mem_64[0];
-            ctx->buffer[2].mem_64[0] = alt_result[2].mem_64[0];
-            ctx->buffer[3].mem_64[0] = alt_result[3].mem_64[0];
-            ctx->buffer[4].mem_64[0] = alt_result[4].mem_64[0];
-            ctx->buffer[5].mem_64[0] = alt_result[5].mem_64[0];
-            ctx->buffer[6].mem_64[0] = alt_result[6].mem_64[0];
-            ctx->buffer[7].mem_64[0] = alt_result[7].mem_64[0];
-            ctx->total = 64U;
+            ctx.buffer[0].mem_64[0] = alt_result[0].mem_64[0];
+            ctx.buffer[1].mem_64[0] = alt_result[1].mem_64[0];
+            ctx.buffer[2].mem_64[0] = alt_result[2].mem_64[0];
+            ctx.buffer[3].mem_64[0] = alt_result[3].mem_64[0];
+            ctx.buffer[4].mem_64[0] = alt_result[4].mem_64[0];
+            ctx.buffer[5].mem_64[0] = alt_result[5].mem_64[0];
+            ctx.buffer[6].mem_64[0] = alt_result[6].mem_64[0];
+            ctx.buffer[7].mem_64[0] = alt_result[7].mem_64[0];
+            ctx.total = 64U;
         }
 
         if (i % 3) {
-            APPEND_BE(ctx->buffer->mem_64, temp_result[0].mem_64[0], ctx->total);
-            APPEND_BE(ctx->buffer->mem_64, temp_result[1].mem_64[0], ctx->total + 8);
-            ctx->total += saltlen;
+            APPEND_BE(ctx.buffer->mem_64, temp_result[0].mem_64[0], ctx.total);
+            APPEND_BE(ctx.buffer->mem_64, temp_result[1].mem_64[0], ctx.total + 8);
+            ctx.total += saltlen;
         }
 
         if (i % 7) {
-            APPEND_BE(ctx->buffer->mem_64, p_sequence[0].mem_64[0], ctx->total);
-            APPEND_BE(ctx->buffer->mem_64, p_sequence[1].mem_64[0], ctx->total + 8);
-            APPEND_BE(ctx->buffer->mem_64, p_sequence[2].mem_64[0], ctx->total + 16);
-            ctx->total += passlen;
+            APPEND_BE(ctx.buffer->mem_64, p_sequence[0].mem_64[0], ctx.total);
+            APPEND_BE(ctx.buffer->mem_64, p_sequence[1].mem_64[0], ctx.total + 8);
+            APPEND_BE(ctx.buffer->mem_64, p_sequence[2].mem_64[0], ctx.total + 16);
+            ctx.total += passlen;
         }
 
         if (i & 1) {
-            APPEND_BE(ctx->buffer->mem_64, alt_result[0].mem_64[0], ctx->total);
-            APPEND_BE(ctx->buffer->mem_64, alt_result[1].mem_64[0], ctx->total + 8);
-            APPEND_BE(ctx->buffer->mem_64, alt_result[2].mem_64[0], ctx->total + 16);
-            APPEND_BE(ctx->buffer->mem_64, alt_result[3].mem_64[0], ctx->total + 24);
-            APPEND_BE(ctx->buffer->mem_64, alt_result[4].mem_64[0], ctx->total + 32);
-            APPEND_BE(ctx->buffer->mem_64, alt_result[5].mem_64[0], ctx->total + 40);
-            APPEND_BE(ctx->buffer->mem_64, alt_result[6].mem_64[0], ctx->total + 48);
-            APPEND_FINAL_BE(ctx->buffer->mem_64, alt_result[7].mem_64[0], ctx->total + 56);
-            ctx->total += 64U;
+            APPEND_BE(ctx.buffer->mem_64, alt_result[0].mem_64[0], ctx.total);
+            APPEND_BE(ctx.buffer->mem_64, alt_result[1].mem_64[0], ctx.total + 8);
+            APPEND_BE(ctx.buffer->mem_64, alt_result[2].mem_64[0], ctx.total + 16);
+            APPEND_BE(ctx.buffer->mem_64, alt_result[3].mem_64[0], ctx.total + 24);
+            APPEND_BE(ctx.buffer->mem_64, alt_result[4].mem_64[0], ctx.total + 32);
+            APPEND_BE(ctx.buffer->mem_64, alt_result[5].mem_64[0], ctx.total + 40);
+            APPEND_BE(ctx.buffer->mem_64, alt_result[6].mem_64[0], ctx.total + 48);
+            APPEND_FINAL_BE(ctx.buffer->mem_64, alt_result[7].mem_64[0], ctx.total + 56);
+            ctx.total += 64U;
         } else {
-            APPEND_BE(ctx->buffer->mem_64, p_sequence[0].mem_64[0], ctx->total);
-            APPEND_BE(ctx->buffer->mem_64, p_sequence[1].mem_64[0], ctx->total + 8);
-            APPEND_FINAL_BE(ctx->buffer->mem_64, p_sequence[2].mem_64[0], ctx->total + 16);
-            ctx->total += passlen;
+            APPEND_BE(ctx.buffer->mem_64, p_sequence[0].mem_64[0], ctx.total);
+            APPEND_BE(ctx.buffer->mem_64, p_sequence[1].mem_64[0], ctx.total + 8);
+            APPEND_FINAL_BE(ctx.buffer->mem_64, p_sequence[2].mem_64[0], ctx.total + 16);
+            ctx.total += passlen;
         }
         //Initialize CTX.
-	ctx->H[0] = H0;
-	ctx->H[1] = H1;
-	ctx->H[2] = H2;
-	ctx->H[3] = H3;
-	ctx->H[4] = H4;
-	ctx->H[5] = H5;
-	ctx->H[6] = H6;
-	ctx->H[7] = H7;
+	ctx.H[0] = H0;
+	ctx.H[1] = H1;
+	ctx.H[2] = H2;
+	ctx.H[3] = H3;
+	ctx.H[4] = H4;
+	ctx.H[5] = H5;
+	ctx.H[6] = H6;
+	ctx.H[7] = H7;
 
         //Do: sha512_digest(ctx);
-	ADD_BE_64BITS(ctx->buffer->mem_64, 0x8000000000000000UL, ctx->total);
+	ADD_BE_64BITS(ctx.buffer->mem_64, 0x8000000000000000UL, ctx.total);
 
-	if (ctx->total < 112) { //data+0x80+datasize fits in one 1024bit block
-	    ctx->buffer[15].mem_64[0] = ((uint64_t) (ctx->total * 8));
+	if (ctx.total < 112) { //data+0x80+datasize fits in one 1024bit block
+	    ctx.buffer[15].mem_64[0] = ((uint64_t) (ctx.total * 8));
 
 	} else {
-	    sha512_block_be(ctx);
+	    sha512_block_be(&ctx);
 
 	    #pragma unroll
 	    for (int i = 0; i < 15; i++)
-	       ctx->buffer[i].mem_64[0] = 0;
-	    ctx->buffer[15].mem_64[0] = ((uint64_t) (ctx->total * 8));
+	       ctx.buffer[i].mem_64[0] = 0;
+	    ctx.buffer[15].mem_64[0] = ((uint64_t) (ctx.total * 8));
 	}
-	sha512_block_be(ctx);
+	sha512_block_be(&ctx);
 
 	#pragma unroll
 	for (int j = 0; j < BUFFER_ARRAY; j++)
-	    alt_result[j].mem_64[0] = (ctx->H[j]);
+	    alt_result[j].mem_64[0] = (ctx.H[j]);
     }
 }
 #undef alt_result
@@ -582,7 +583,6 @@ void kernel_crypt(__constant sha512_salt     * salt,
 
     //Compute buffers (on Nvidia, better private)
     sha512_buffers fast_buffers;
-    sha512_ctx     ctx_data;
 
     //Get the task to be done
     size_t gid = get_global_id(0);
@@ -601,8 +601,7 @@ void kernel_crypt(__constant sha512_salt     * salt,
         fast_buffers.p_sequence[i].mem_64[0] = tmp_memory[gid].p_sequence[i].mem_64[0];
 
     //Do the job
-    sha512_crypt(&fast_buffers, &ctx_data,
-                 salt->length, keys_buffer[gid].length, 0, HASH_LOOPS);
+    sha512_crypt(&fast_buffers, salt->length, keys_buffer[gid].length, 0, HASH_LOOPS);
 
     //Save results.
     #pragma unroll
@@ -618,7 +617,6 @@ void kernel_final(__constant sha512_salt     * salt,
 
     //Compute buffers (on Nvidia, better private)
     sha512_buffers fast_buffers;
-    sha512_ctx     ctx_data;
 
     //Get the task to be done
     size_t gid = get_global_id(0);
@@ -637,8 +635,7 @@ void kernel_final(__constant sha512_salt     * salt,
         fast_buffers.p_sequence[i].mem_64[0] = tmp_memory[gid].p_sequence[i].mem_64[0];
 
     //Do the job
-    sha512_crypt(&fast_buffers, &ctx_data,
-                 salt->length, keys_buffer[gid].length, 0, salt->final);
+    sha512_crypt(&fast_buffers, salt->length, keys_buffer[gid].length, 0, salt->final);
 
     //Send results to the host.
     #pragma unroll
