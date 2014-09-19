@@ -102,10 +102,7 @@ static size_t get_task_max_size(){
 
 static size_t get_default_workgroup(){
 
-	if (cpu(device_info[gpu_id]))
-		return 1;
-	else
-		return 128;
+	return 0;
 }
 
 /* ------- Create and destroy necessary objects ------- */
