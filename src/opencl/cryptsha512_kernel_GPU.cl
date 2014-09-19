@@ -461,7 +461,6 @@ inline void sha512_crypt(sha512_buffers * fast_buffers,
     /* Repeatedly run the collected hash value through SHA512 to burn cycles. */
     for (uint32_t i = initial; i < rounds; i++) {
 
-	#pragma unroll
 	for (int j = 4; j < 16; j++)
 	   ctx.buffer[j].mem_64[0] = 0;
 
@@ -530,14 +529,12 @@ inline void sha512_crypt(sha512_buffers * fast_buffers,
 	} else {
 	    sha512_block_be(&ctx);
 
-	    #pragma unroll
 	    for (int i = 0; i < 15; i++)
 	       ctx.buffer[i].mem_64[0] = 0;
 	    ctx.buffer[15].mem_64[0] = ((uint64_t) (ctx.total * 8));
 	}
 	sha512_block_be(&ctx);
 
-	#pragma unroll
 	for (int j = 0; j < BUFFER_ARRAY; j++)
 	    alt_result[j].mem_64[0] = (ctx.H[j]);
     }
@@ -562,15 +559,12 @@ void kernel_prepare(__constant sha512_salt     * salt,
     sha512_prepare(salt, &keys_buffer[gid], &tmp_memory[gid], &fast_buffers, &ctx_data);
 
     //Save results.
-    #pragma unroll
     for (int i = 0; i < 8; i++)
         tmp_memory[gid].alt_result[i].mem_64[0] = SWAP64(fast_buffers.alt_result[i].mem_64[0]);
 
-    #pragma unroll
     for (int i = 0; i < SALT_ARRAY; i++)
         tmp_memory[gid].temp_result[i].mem_64[0] = SWAP64(fast_buffers.temp_result[i].mem_64[0]);
 
-    #pragma unroll
     for (int i = 0; i < PLAINTEXT_ARRAY; i++)
         tmp_memory[gid].p_sequence[i].mem_64[0] = SWAP64(fast_buffers.p_sequence[i].mem_64[0]);
 }
@@ -588,15 +582,12 @@ void kernel_crypt(__constant sha512_salt     * salt,
     size_t gid = get_global_id(0);
 
     //Transfer host data to faster memory
-    #pragma unroll
     for (int i = 0; i < 8; i++)
         fast_buffers.alt_result[i].mem_64[0] = tmp_memory[gid].alt_result[i].mem_64[0];
 
-    #pragma unroll
     for (int i = 0; i < SALT_ARRAY; i++)
         fast_buffers.temp_result[i].mem_64[0] = tmp_memory[gid].temp_result[i].mem_64[0];
 
-    #pragma unroll
     for (int i = 0; i < PLAINTEXT_ARRAY; i++)
         fast_buffers.p_sequence[i].mem_64[0] = tmp_memory[gid].p_sequence[i].mem_64[0];
 
@@ -604,7 +595,6 @@ void kernel_crypt(__constant sha512_salt     * salt,
     sha512_crypt(&fast_buffers, salt->length, keys_buffer[gid].length, 0, HASH_LOOPS);
 
     //Save results.
-    #pragma unroll
     for (int i = 0; i < 8; i++)
         tmp_memory[gid].alt_result[i].mem_64[0] = fast_buffers.alt_result[i].mem_64[0];
 }
@@ -622,15 +612,12 @@ void kernel_final(__constant sha512_salt     * salt,
     size_t gid = get_global_id(0);
 
     //Transfer host data to faster memory
-    #pragma unroll
     for (int i = 0; i < 8; i++)
         fast_buffers.alt_result[i].mem_64[0] = tmp_memory[gid].alt_result[i].mem_64[0];
 
-    #pragma unroll
     for (int i = 0; i < SALT_ARRAY; i++)
         fast_buffers.temp_result[i].mem_64[0] = tmp_memory[gid].temp_result[i].mem_64[0];
 
-    #pragma unroll
     for (int i = 0; i < PLAINTEXT_ARRAY; i++)
         fast_buffers.p_sequence[i].mem_64[0] = tmp_memory[gid].p_sequence[i].mem_64[0];
 
@@ -638,7 +625,6 @@ void kernel_final(__constant sha512_salt     * salt,
     sha512_crypt(&fast_buffers, salt->length, keys_buffer[gid].length, 0, salt->final);
 
     //Send results to the host.
-    #pragma unroll
     for (int i = 0; i < 8; i++)
         out_buffer[gid].v[i] = SWAP64(fast_buffers.alt_result[i].mem_64[0]);
 }
