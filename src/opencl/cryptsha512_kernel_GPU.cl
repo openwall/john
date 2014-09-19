@@ -362,16 +362,8 @@ inline void sha512_block_be(sha512_ctx * ctx) {
     uint64_t t;
     uint64_t w[16];
 
-#ifdef VECTOR_USAGE
-    ulong16  w_vector;
-    w_vector = vload16(0, ctx->buffer->mem_64);
-    w_vector = (w_vector);
-    vstore16(w_vector, 0, w);
-#else
-    #pragma unroll
     for (int i = 0; i < 16; i++)
         w[i] = (ctx->buffer[i].mem_64[0]);
-#endif
 
     /* Do the job. */
     SHA512()
@@ -403,7 +395,6 @@ inline void sha512_block_be(sha512_ctx * ctx) {
 #ifdef VECTOR_USAGE
     ulong16  w_vector;
     w_vector = vload16(0, ctx->buffer->mem_64);
-    w_vector = (w_vector);
     vstore16(w_vector, 0, w);
 #else
     #pragma unroll
@@ -526,14 +517,14 @@ inline void sha512_crypt(const uint32_t saltlen, const uint32_t passlen,
 	APPEND_BE_FAST(ctx.buffer->mem_64, 0x8000000000000000UL, ctx.total);
 
 	if (ctx.total < 112) { //data+0x80+datasize fits in one 1024bit block
-	    ctx.buffer[15].mem_64[0] = ((uint64_t) (ctx.total * 8));
+	    ctx.buffer[15].mem_64[0] = (ctx.total * 8);
 
 	} else {
 	    sha512_block_be(&ctx);
 
 	    for (int i = 0; i < 15; i++)
 	       ctx.buffer[i].mem_64[0] = 0;
-	    ctx.buffer[15].mem_64[0] = ((uint64_t) (ctx.total * 8));
+	    ctx.buffer[15].mem_64[0] = (ctx.total * 8);
 	}
 	sha512_block_be(&ctx);
 
