@@ -2327,20 +2327,20 @@ void opencl_list_devices(void)
 				printf("\tKernel exec. timeout:\t%s\n",
 				       boolean ? "yes" : "no");
 
-				ret = clGetDeviceInfo(
-					devices[sequence_nr],
-					CL_DEVICE_PCI_BUS_ID_NV,
-					sizeof(cl_uint), &entries, NULL);
-				if (ret == CL_SUCCESS)
-					printf("\tPCI device topology:\t"
-					       "%02x", entries);
+			ret = clGetDeviceInfo(
+				devices[sequence_nr],
+				CL_DEVICE_PCI_BUS_ID_NV,
+				sizeof(cl_uint), &entries, NULL);
+			if (ret == CL_SUCCESS)
+				printf("\tPCI device topology:\t"
+				       "%02x", entries);
 
-				ret = clGetDeviceInfo(
-					devices[sequence_nr],
-					CL_DEVICE_PCI_SLOT_ID_NV,
-					sizeof(cl_uint), &entries, NULL);
-				if (ret == CL_SUCCESS)
-					printf(":%02x\n", entries);
+			ret = clGetDeviceInfo(
+				devices[sequence_nr],
+				CL_DEVICE_PCI_SLOT_ID_NV,
+				sizeof(cl_uint), &entries, NULL);
+			if (ret == CL_SUCCESS)
+				printf(":%02x.0\n", entries);
 #endif
 #if defined(CL_DEVICE_TOPOLOGY_AMD) && CL_DEVICE_TOPOLOGY_TYPE_PCIE_AMD == 1
 			{
