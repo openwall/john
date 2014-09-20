@@ -227,7 +227,6 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
  *
  * - p_default_value: the default step size (see step in opencl_find_best_gws).
  * - p_hash_loops: the number of loops performed by a split-kernel. Zero otherwise.
- * - p_number_of_events: number of events that have to be benchmarked.
  *   For example: if you only transfer plaintext, compute the hash and tranfer hashes back,
  *   the number is 3.
  * - p_split_events: A pointer to a 3 elements array containing the position order of
@@ -246,7 +245,7 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
  *     - pass xfer: 10.01 ms, crypt: 3.46 ms, result xfer: 1.84 ms
  *   An array like this have to be used:
  *     - "pass xfer: "  ,  ", crypt: ", ", result xfer: "
- * - p_to_profile_event: index of the main event to be profiled (in find_lws).
+ * - p_main_opencl_event: index of the main event to be profiled (in find_lws).
  * - p_self: a pointer to the format itself.
  * - p_create_clobj: function that (m)alloc all buffers needed by crypt_all.
  * - p_release_clobj: function that release all buffers needed by crypt_all.
@@ -256,9 +255,9 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
  *   (needed to variable size plaintext formats).
  */
 void opencl_init_auto_setup(
-	int p_default_value, int p_hash_loops, int p_number_of_events,
+	int p_default_value, int p_hash_loops,
 	int * p_split_events, const char ** p_warnings,
-	int p_to_profile_event, struct fmt_main * p_self,
+	int p_main_opencl_event, struct fmt_main * p_self,
 	void (*p_create_clobj)(size_t gws, struct fmt_main * self),
 	void (*p_release_clobj)(void), int p_buffer_size, size_t p_gws_limit);
 

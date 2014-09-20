@@ -333,7 +333,7 @@ static void init(struct fmt_main * self) {
 	build_kernel(task);
 
 	//Initialize openCL tuning (library) for this format.
-	opencl_init_auto_setup(STEP, HASH_LOOPS, ((_SPLIT_KERNEL_IN_USE) ? 7 : 3),
+	opencl_init_auto_setup(STEP, HASH_LOOPS,
 		((_SPLIT_KERNEL_IN_USE) ? split_events : NULL),
 		warn, 1, self, create_clobj, release_clobj,
 		sizeof(sha512_password), 0);

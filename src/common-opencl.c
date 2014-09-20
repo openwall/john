@@ -73,9 +73,8 @@ static int default_value;
 static int hash_loops;
 static unsigned long long int duration_time = 0;
 static const char **warnings;
-static int number_of_events;
 static int *split_events;
-static int to_profile_event;
+static int main_opencl_event;
 static struct fmt_main *self;
 static void (*create_clobj)(size_t gws, struct fmt_main *self);
 static void (*release_clobj)(void);
@@ -1045,7 +1044,7 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self,
 }
 
 // Do the proper test using different global work sizes.
-static void release_profiling_events()
+static void clear_profiling_events()
 {
 	int i;
 
@@ -1067,6 +1066,11 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 	cl_ulong startTime, endTime, runtime = 0, looptime = 0;
 	int i, count, tidx = 0, total = 0;
 	size_t kpc = gws * opencl_v_width;
+	cl_event benchEvent[MAX_EVENTS];
+	int number_of_events = 0;
+
+	for (i = 0; i < MAX_EVENTS; i++)
+		benchEvent[i] = NULL;
 
 	// Prepare buffers.
 	create_clobj(gws, self);
@@ -1094,6 +1098,10 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 	self->methods.set_salt(
 		self->methods.salt(self->params.tests[0].ciphertext));
 
+	// Activate events. Then clear them later.
+	for (i = 0; i < MAX_EVENTS; i++)
+		multi_profilingEvent[i] = &benchEvent[i];
+
 	// Timing run
 	count = kpc;
 	if (self->methods.crypt_all(&count, NULL) < 0) {
@@ -1101,10 +1109,13 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 
 		if (options.verbosity > 3)
 			fprintf(stderr, " (error occured)");
-		release_profiling_events();
+		clear_profiling_events();
 		release_clobj();
 		return 0;
 	}
+
+	for (i = 0; (*multi_profilingEvent[i]); i++)
+		number_of_events++;
 
 	//** Get execution time **//
 	for (i = 0; i < number_of_events; i++) {
@@ -1154,32 +1165,28 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 	if (split_events)
 		runtime += ((looptime / total) * (rounds / hash_loops));
 
-	release_profiling_events();
+	clear_profiling_events();
 	release_clobj();
 	return runtime;
 }
 
 void opencl_init_auto_setup(
-	int p_default_value, int p_hash_loops, int p_number_of_events,
+	int p_default_value, int p_hash_loops,
 	int *p_split_events, const char **p_warnings,
-	int p_to_profile_event, struct fmt_main *p_self,
+	int p_main_opencl_event, struct fmt_main *p_self,
 	void (*p_create_clobj)(size_t gws, struct fmt_main *self),
 	void (*p_release_clobj)(void), int p_buffer_size, size_t p_gws_limit)
 {
-	int i;
-
 	// Initialize events
-	for (i = 0; i < MAX_EVENTS; i++)
-		multi_profilingEvent[i] = NULL;
+	clear_profiling_events();
 
 	// Get parameters
 	buffer_size = p_buffer_size;
 	default_value = p_default_value;
 	hash_loops = p_hash_loops;
-	number_of_events = p_number_of_events;
 	split_events = p_split_events;
 	warnings = p_warnings;
-	to_profile_event = p_to_profile_event;
+	main_opencl_event = p_main_opencl_event;
 	self = p_self;
 	create_clobj = p_create_clobj;
 	release_clobj = p_release_clobj;
@@ -1278,7 +1285,7 @@ void opencl_find_best_lws(
 	count = global_work_size * opencl_v_width;
 	self->methods.crypt_all(&count, NULL);
 
-	// Activate events. Since it has to be released, redo it every run.
+	// Activate events. Then clear them later.
 	for (i = 0; i < MAX_EVENTS; i++)
 		multi_profilingEvent[i] = &benchEvent[i];
 
@@ -1286,19 +1293,19 @@ void opencl_find_best_lws(
 	self->methods.crypt_all(&count, NULL);
 
 	HANDLE_CLERROR(clFinish(queue[sequential_id]), "clFinish error");
-	HANDLE_CLERROR(clGetEventProfilingInfo(benchEvent[to_profile_event],
+	HANDLE_CLERROR(clGetEventProfilingInfo(benchEvent[main_opencl_event],
 					       CL_PROFILING_COMMAND_START,
 					       sizeof(cl_ulong),
 					       &startTime, NULL),
 		       "Failed to get profiling info");
-	HANDLE_CLERROR(clGetEventProfilingInfo(benchEvent[to_profile_event],
+	HANDLE_CLERROR(clGetEventProfilingInfo(benchEvent[main_opencl_event],
 					       CL_PROFILING_COMMAND_END,
 					       sizeof(cl_ulong), &endTime,
 					       NULL),
 		       "Failed to get profiling info");
 	numloops = (int)(size_t)(200000000ULL / (endTime-startTime));
 
-	release_profiling_events();
+	clear_profiling_events();
 
 	if (numloops < 1)
 		numloops = 1;
@@ -1320,7 +1327,7 @@ void opencl_find_best_lws(
 			advance_cursor();
 			local_work_size = my_work_group;
 
-			// Activate events. Since it has to be released, redo it every run.
+			// Activate events. Then clear them later.
 			for (j = 0; j < MAX_EVENTS; j++)
 				multi_profilingEvent[j] = &benchEvent[j];
 
@@ -1334,11 +1341,11 @@ void opencl_find_best_lws(
 
 			HANDLE_CLERROR(clFinish(queue[sequential_id]),
 				       "clFinish error");
-			HANDLE_CLERROR(clGetEventProfilingInfo(benchEvent[to_profile_event],
+			HANDLE_CLERROR(clGetEventProfilingInfo(benchEvent[main_opencl_event],
 					   CL_PROFILING_COMMAND_START,
 					   sizeof(cl_ulong), &startTime, NULL),
 				       "Failed to get profiling info");
-			HANDLE_CLERROR(clGetEventProfilingInfo(benchEvent[to_profile_event],
+			HANDLE_CLERROR(clGetEventProfilingInfo(benchEvent[main_opencl_event],
 					   CL_PROFILING_COMMAND_END,
 					   sizeof(cl_ulong), &endTime, NULL),
 				       "Failed to get profiling info");
@@ -1346,7 +1353,7 @@ void opencl_find_best_lws(
 			sumStartTime += startTime;
 			sumEndTime += endTime;
 
-			release_profiling_events();
+			clear_profiling_events();
 		}
 		if (!endTime)
 			break;
@@ -1382,14 +1389,10 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
 			  int sequential_id, unsigned int rounds)
 {
 	size_t num = 0;
-	int optimal_gws = local_work_size, i;
+	int optimal_gws = local_work_size;
 	unsigned int speed, best_speed = 0;
 	cl_ulong run_time, min_time = CL_ULONG_MAX;
 	char config_string[128];
-	cl_event benchEvent[MAX_EVENTS];
-
-	for (i = 0; i < MAX_EVENTS; i++)
-		benchEvent[i] = NULL;
 
 	if (duration_time)
 		max_run_time = duration_time;
@@ -1427,12 +1430,8 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
 					"exhausted\n");
 			break;
 		}
-		// Activate events. Since it has to be released, redo it evey run.
-		for (i = 0; i < MAX_EVENTS; i++)
-			multi_profilingEvent[i] = &benchEvent[i];
 
-		if (!(run_time = gws_test(num, rounds,
-					  sequential_id)))
+		if (!(run_time = gws_test(num, rounds, sequential_id)))
 			break;
 
 		if (options.verbosity < 4)
