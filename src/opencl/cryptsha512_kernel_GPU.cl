@@ -17,6 +17,23 @@
     #define VECTOR_USAGE
 #endif
 
+///	    *** UNROLL ***
+///AMD: sometimes a bad thing.
+///NVIDIA: GTX 570 don't allow full unroll.
+#if amd_gcn(DEVICE_INFO)
+    #define WEAK_UNROLL
+#elif gpu_amd(DEVICE_INFO)
+    #define STRONG_UNROLL
+#elif gpu_nvidia(DEVICE_INFO)
+    #define MEDIUM_UNROLL
+#endif
+
+/// Start documenting bugs.
+#if amd_vliw5(DEVICE_INFO)
+    #define AMD_STUPID_BUG_1
+    ///TODO: can't remove the [unroll]: (at least) AMD driver bug HD 6770.
+#endif
+
 /************************** prepare **************************/
 inline void init_ctx(sha512_ctx * ctx) {
     ctx->H[0] = H0;
@@ -67,7 +84,7 @@ inline void sha512_block(sha512_ctx * ctx) {
         a = t;
     }
 
-#if amd_vliw5(DEVICE_INFO) ///TODO: can't remove this unroll: AMD driver bug HD 6770.
+#ifdef AMD_STUPID_BUG_1
     #pragma unroll 16
 #endif
     for (int i = 16; i < 80; i++) {
@@ -349,37 +366,6 @@ void kernel_prepare(__global   sha512_salt     * salt,
 }
 
 /************************** hashing **************************/
-#if gpu_amd(DEVICE_INFO)
-inline void sha512_block_be(sha512_ctx * ctx) {
-    uint64_t a = ctx->H[0];
-    uint64_t b = ctx->H[1];
-    uint64_t c = ctx->H[2];
-    uint64_t d = ctx->H[3];
-    uint64_t e = ctx->H[4];
-    uint64_t f = ctx->H[5];
-    uint64_t g = ctx->H[6];
-    uint64_t h = ctx->H[7];
-    uint64_t t;
-    uint64_t w[16];
-
-    for (int i = 0; i < 16; i++)
-        w[i] = (ctx->buffer[i].mem_64[0]);
-
-    /* Do the job. */
-    SHA512()
-
-    /* Put checksum in context given as argument. */
-    ctx->H[0] += a;
-    ctx->H[1] += b;
-    ctx->H[2] += c;
-    ctx->H[3] += d;
-    ctx->H[4] += e;
-    ctx->H[5] += f;
-    ctx->H[6] += g;
-    ctx->H[7] += h;
-}
-
-#else
 inline void sha512_block_be(sha512_ctx * ctx) {
     uint64_t a = ctx->H[0];
     uint64_t b = ctx->H[1];
@@ -393,8 +379,7 @@ inline void sha512_block_be(sha512_ctx * ctx) {
     uint64_t w[16];
 
 #ifdef VECTOR_USAGE
-    ulong16  w_vector;
-    w_vector = vload16(0, ctx->buffer->mem_64);
+    ulong16  w_vector = vload16(0, ctx->buffer->mem_64);
     vstore16(w_vector, 0, w);
 #else
     #pragma unroll
@@ -402,6 +387,9 @@ inline void sha512_block_be(sha512_ctx * ctx) {
         w[i] = (ctx->buffer[i].mem_64[0]);
 #endif
 
+#ifdef STRONG_UNROLL
+    #pragma unroll
+#endif
     for (int i = 0; i < 16; i++) {
         t = k[i] + w[i] + h + Sigma1(e) + Ch(e, f, g);
 
@@ -416,7 +404,13 @@ inline void sha512_block_be(sha512_ctx * ctx) {
         a = t;
     }
 
+#ifdef STRONG_UNROLL
+    #pragma unroll
+#elif MEDIUM_UNROLL
     #pragma unroll 16
+#elif WEAK_UNROLL
+    #pragma unroll 8
+#endif
     for (int i = 16; i < 80; i++) {
         w[i & 15] = sigma1(w[(i - 2) & 15]) + sigma0(w[(i - 15) & 15]) + w[(i - 16) & 15] + w[(i - 7) & 15];
         t = k[i] + w[i & 15] + h + Sigma1(e) + Ch(e, f, g);
@@ -441,7 +435,6 @@ inline void sha512_block_be(sha512_ctx * ctx) {
     ctx->H[6] += g;
     ctx->H[7] += h;
 }
-#endif
 
 inline void sha512_crypt(const uint32_t saltlen, const uint32_t passlen,
                          const uint32_t initial, const uint32_t rounds,
