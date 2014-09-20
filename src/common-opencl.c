@@ -2341,7 +2341,7 @@ void opencl_list_devices(void)
 				CL_DEVICE_PCI_SLOT_ID_NV,
 				sizeof(cl_uint), &entries, NULL);
 			if (ret == CL_SUCCESS)
-				printf(":%02x.%02x0\n",
+				printf(":%02x.%x\n",
 				       entries >> 3, entries & 7);
 			{
 				cl_device_topology_amd topo;
