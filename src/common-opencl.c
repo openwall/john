@@ -1128,7 +1128,9 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 				       i == split_events[2])) {
 			looptime += (endTime - startTime);
 			total++;
-			sprintf(mult, "%dx", rounds / hash_loops);
+
+			if (i == split_events[0])
+				sprintf(mult, "%dx", rounds / hash_loops);
 		} else
 			runtime += (endTime - startTime);
 

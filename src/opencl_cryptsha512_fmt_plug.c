@@ -52,7 +52,7 @@ static cl_mem pinned_saved_keys, pinned_partial_hashes;
 static cl_kernel prepare_kernel, final_kernel;
 
 static int new_keys, source_in_use;
-static int split_events[3] = { 1, 4, 5 };
+static int split_events[3] = { 1, 5, 6 };
 
 static int crypt_all(int *pcount, struct db_salt *_salt);
 static int crypt_all_benchmark(int *pcount, struct db_salt *_salt);
@@ -403,11 +403,11 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *_salt) {
 		for (i = 0; i < 3; i++) {
 			BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL,
 				&gws, lws, 0, NULL,
-				multi_profilingEvent[split_events[i]]),  //1, 4, 5
+				multi_profilingEvent[split_events[i]]),  //1, 5, 6
 				"failed in clEnqueueNDRangeKernel");
 		}
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], final_kernel, 1, NULL,
-			&gws, lws, 0, NULL, multi_profilingEvent[6]),
+			&gws, lws, 0, NULL, multi_profilingEvent[4]),
 			"failed in clEnqueueNDRangeKernel II");
 	} else
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL,
