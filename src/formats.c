@@ -56,6 +56,9 @@ void fmt_register(struct fmt_main *format)
 
 void fmt_init(struct fmt_main *format)
 {
+	if (options.flags & FLG_KEEP_GUESSING)
+		format->params.flags |= FMT_NOT_EXACT;
+
 	if (!format->private.initialized) {
 		format->methods.init(format);
 		format->private.initialized = 1;

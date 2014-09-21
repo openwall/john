@@ -176,7 +176,7 @@ static struct opt_entry opt_list[] = {
 	{"nolog", FLG_NOLOG, FLG_NOLOG},
 	{"log-stderr", FLG_LOG_STDERR | FLG_NOLOG, FLG_LOG_STDERR},
 	{"crack-status", FLG_CRKSTAT, FLG_CRKSTAT},
-	{"mkpc", FLG_MKPC, FLG_MKPC, 0, OPT_REQ_PARAM,
+	{"mkpc", FLG_NONE, 0, 0, OPT_REQ_PARAM,
 		"%u", &options.force_maxkeys},
 	{"min-length", FLG_MINLEN, FLG_MINLEN, 0, OPT_REQ_PARAM,
 		"%u", &options.force_minlength},
@@ -210,6 +210,7 @@ static struct opt_entry opt_list[] = {
                 OPT_FMT_STR_ALLOC, &costs_str},
 
 #endif
+	{"keep-guessing", FLG_KEEP_GUESSING, FLG_KEEP_GUESSING},
 	{NULL}
 };
 
@@ -387,6 +388,8 @@ void opt_print_hidden_usage(void)
 	puts("                          always treat bare hashes as valid");
 	puts("--progress-every=N        emit a status line every N seconds");
 	puts("--crack-status            emit a status line whenever a password is cracked");
+	puts("--keep-guessing           try more candidates for cracked hashes (ie. search");
+	puts("                          for plaintext collisions)");
 	puts("--max-run-time=N          gracefully exit after this many seconds");
 	puts("--regen-lost-salts=N      regenerate lost salts (see doc/OPTIONS)");
 	puts("--mkv-stats=FILE          \"Markov\" stats file (see doc/MARKOV)");
