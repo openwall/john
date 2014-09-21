@@ -2450,13 +2450,6 @@ void opencl_list_devices(void)
 			if (util >= 0)
 				printf("\tUtilization:\t\t%u%%\n", util);
 			puts("");
-
-
-printf("Test: nr %d, hw_id %d, bus %d, device %d\n",
-		sequence_nr, get_device_hw_id(sequence_nr),
-		ocl_device_list[sequence_nr].pci_info.bus,
-		ocl_device_list[sequence_nr].pci_info.device);
-puts("");
 		}
 	}
 	return;
