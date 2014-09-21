@@ -82,6 +82,7 @@ cl_platform platforms[MAX_PLATFORMS];
 typedef struct {
 	int				bus;
 	int				device;
+	int				function;
 	int				node;
 } ocl_hw_bus;
 

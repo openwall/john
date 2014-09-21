@@ -276,6 +276,7 @@ static cl_int get_pci_info(int sequential_id, ocl_hw_bus * hardware_info) {
 		if (ret == CL_SUCCESS) {
 			hardware_info->bus = topo.pcie.bus & 0xff;
 			hardware_info->device = topo.pcie.device & 0xff;
+			hardware_info->function = topo.pcie.function & 0xff;
 		} else
 		    return ret;
 	}
@@ -299,9 +300,11 @@ static cl_int get_pci_info(int sequential_id, ocl_hw_bus * hardware_info) {
 			devices[sequential_id],CL_DEVICE_PCI_SLOT_ID_NV,
 			sizeof(cl_uint), &entries, NULL);
 
-		if (ret == CL_SUCCESS)
-			hardware_info->device = entries;
-		else
+		if (ret == CL_SUCCESS) {
+			hardware_info->device = entries >> 3;
+			hardware_info->function = entries & 7;
+
+		} else
 		    return ret;
 	}
 #endif
@@ -319,6 +322,7 @@ static int get_device_hw_id(int sequential_id) {
 
 		if (ocl_device_list[sequential_id].pci_info.bus == hardware_info.bus &&
 		    ocl_device_list[sequential_id].pci_info.device == hardware_info.device &&
+		    ocl_device_list[sequential_id].pci_info.function == hardware_info.function &&
 		    ocl_device_list[sequential_id].pci_info.node == options.node_min)
 			return hardware_id;
 
