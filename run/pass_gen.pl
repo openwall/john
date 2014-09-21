@@ -1783,7 +1783,7 @@ sub openssha {
 	#print "u$u-openssha:{SSHA}", ns_base64(7,0), ":$u:0:$_[0]::\n";
 	print "u$u-openssha:{SSHA}", base64($h), ":$u:0:$_[0]::\n";
 }
-sub salted-sha1 {
+sub salted_sha1 {
 	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(rand(16)+1); }
 	$h = sha1($_[1],$salt);
 	$h .= $salt;
