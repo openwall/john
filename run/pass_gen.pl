@@ -124,13 +124,14 @@ GetOptions(
 
 sub fmt_strings {
 	my $s; my $s2; my $i;
+	my @sorted_funcs = sort {lc($a) cmp lc($b)} @funcs;
 	$s2 = "       ";
-	for ($i = 0; $i < scalar @funcs; ++$i) {
-		if (length($s2)+length($funcs[$i]) > 78) {
+	for ($i = 0; $i < scalar @sorted_funcs; ++$i) {
+		if (length($s2)+length($sorted_funcs[$i]) > 78) {
 			$s .= $s2."\n";
 			$s2 = "       ";
 		}
-		$s2 .= $funcs[$i]." ";
+		$s2 .= $sorted_funcs[$i]." ";
 	}
 	return $s.$s2."\n";
 }
