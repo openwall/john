@@ -219,25 +219,26 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 		if(cur_salt->type < 3) {
 			MD5_CTX ctx;
+			unsigned char mid_key[16];
 			unsigned char pwdHash[16];
 			unsigned char hashBuf[21 * 16];
 
 			MD5_Init(&ctx);
 			MD5_Update(&ctx, saved_key[index], saved_len[index]);
-			MD5_Final(pwdHash, &ctx);
+			MD5_Final(mid_key, &ctx);
 			for (i = 0; i < 16; i++)
 			{
-				memcpy(hashBuf + i * 21, pwdHash, 5);
+				memcpy(hashBuf + i * 21, mid_key, 5);
 				memcpy(hashBuf + i * 21 + 5, cur_salt->salt, 16);
 			}
 			MD5_Init(&ctx);
 			MD5_Update(&ctx, hashBuf, 21 * 16);
-			MD5_Final(pwdHash, &ctx);
+			MD5_Final(mid_key, &ctx);
 			// Early reject if we got a hint
 			if (cur_salt->has_mitm &&
-			    memcmp(pwdHash, cur_salt->mitm, 5))
+			    memcmp(mid_key, cur_salt->mitm, 5))
 				continue;
-			memcpy(hashBuf, pwdHash, 5);
+			memcpy(hashBuf, mid_key, 5);
 			memset(hashBuf + 5, 0, 4);
 			MD5_Init(&ctx);
 			MD5_Update(&ctx, hashBuf, 9);
@@ -249,15 +250,19 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			MD5_Init(&ctx);
 			MD5_Update(&ctx, hashBuf, 16);
 			MD5_Final(pwdHash, &ctx);
-			if(!memcmp(pwdHash, hashBuf + 16, 16))
+			if(!memcmp(pwdHash, hashBuf + 16, 16)) {
 #ifdef _OPENMP
 #pragma omp critical
 #endif
 				any_cracked = cracked[index] = 1;
+				cur_salt->has_mitm = 1;
+				memcpy(cur_salt->mitm, mid_key, 5);
+			}
 		}
 		else {
 			SHA_CTX ctx;
 			unsigned char H0[24];
+			unsigned char mid_key[20];
 			unsigned char Hfinal[20];
 			unsigned char DecryptedVerifier[16];
 			unsigned char DecryptedVerifierHash[20];
@@ -269,24 +274,30 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			memset(&H0[20], 0, 4);
 			SHA1_Init(&ctx);
 			SHA1_Update(&ctx, H0, 24);
-			SHA1_Final(Hfinal, &ctx);
+			SHA1_Final(mid_key, &ctx);
 			// Early reject if we got a hint
 			if (cur_salt->has_mitm &&
-			    memcmp(Hfinal, cur_salt->mitm, 5))
+			    memcmp(mid_key, cur_salt->mitm, 5))
 				continue;
-			if(cur_salt->type < 4)
+			if(cur_salt->type < 4) {
+				memcpy(Hfinal, mid_key, 5);
 				memset(&Hfinal[5], 0, 11);
+			} else
+				memcpy(Hfinal, mid_key, 20);
 			RC4_set_key(&key, 16, Hfinal); /* dek */
 			RC4(&key, 16, cur_salt->verifier, DecryptedVerifier);
 			RC4(&key, 20, cur_salt->verifierHash, DecryptedVerifierHash);
 			SHA1_Init(&ctx);
 			SHA1_Update(&ctx, DecryptedVerifier, 16);
 			SHA1_Final(Hfinal, &ctx);
-			if(!memcmp(Hfinal, DecryptedVerifierHash, 16))
+			if(!memcmp(Hfinal, DecryptedVerifierHash, 16)) {
 #ifdef _OPENMP
 #pragma omp critical
 #endif
 				any_cracked = cracked[index] = 1;
+				cur_salt->has_mitm = 1;
+				memcpy(cur_salt->mitm, mid_key, 5);
+			}
 		}
 	}
 	return count;
