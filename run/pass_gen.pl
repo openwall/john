@@ -50,22 +50,23 @@ use MIME::Base64;
 # lotus5 is done in some custom C code.  If someone wants to take a crack at
 # it here, be my guest :)
 #############################################################################
-my @funcs = (qw(DESCrypt BigCrypt BSDI md5crypt md5crypt_a BF BFx BFegg Raw-MD5 Raw-MD5u
-		Raw-SHA1 Raw-SHA1u msCash LM NT pwdump Raw-MD4 PHPass PO hmac-MD5
-		IPB2 PHPS MD4p MD4s SHA1p SHA1s mysqlSHA1 pixMD5 MSSql05 MSSql12
-		nsldap nsldaps ns XSHA mskrb5 mysql mssql_no_upcase_change
+my @funcs = (qw(DESCrypt BigCrypt BSDIcrypt md5crypt md5crypt_a BCRYPT BCRYPTx
+		BFegg Raw-MD5 Raw-MD5u Raw-SHA1 Raw-SHA1u msCash LM NT pwdump
+		Raw-MD4 PHPass PO hmac-MD5 IPB2 PHPS MD4p MD4s SHA1p SHA1s
+		mysql-sha1 pixMD5 MSSql05 MSSql12 netntlm
+		nsldap nsldaps ns XSHA krb5pa-md5 mysql mssql_no_upcase_change
 		mssql oracle oracle_no_upcase_change oracle11 hdaa netntlm_ess
 		openssha l0phtcrack netlmv2 netntlmv2 mschapv2 mscash2 mediawiki
 		crc_32 Dynamic dummy raw-sha224 raw-sha256 raw-sha384 raw-sha512
 		dragonfly3-32 dragonfly4-32 dragonfly3-64 dragonfly4-64
-		saltedsha1 raw_gost raw_gost_cp hmac-sha1 hmac-sha224
+		salted-sha1 raw_gost raw_gost_cp hmac-sha1 hmac-sha224
 		hmac-sha256 hmac-sha384 hmac-sha512 sha256crypt sha512crypt
-		XSHA512  dynamic_27 dynamic_28 pwsafe django drupal7 epi
+		XSHA512 dynamic_27 dynamic_28 pwsafe django drupal7 epi
 		episerver_sha1 episerver_sha256 hmailserver ike keepass
-		keychain nukedclan pfx racf radmin rawsha0 sip SybaseASE vnc
+		keychain nukedclan pfx racf radmin raw-SHA sip SybaseASE vnc
 		wbb3 wpapsk sunmd5 wowsrp django-scrypt aix-ssha1 aix-ssha256
-		aix-ssha512 pbkdf2-hmac-sha512 pbkdf2-hmac-sha256 pbkdf2-hmac-sha1
-		rakp osc formspring skey_md5
+		aix-ssha512 pbkdf2-hmac-sha512 pbkdf2-hmac-sha256
+		rakp osc formspring skey_md5 pbkdf2-hmac-sha1
 		skey_md4 skey_sha1 skey_rmd160 cloudkeychain agilekeychain));
 
 # todo: ike keepass sub cloudkeychain agilekeychain pfx racf sip vnc
@@ -123,13 +124,14 @@ GetOptions(
 
 sub fmt_strings {
 	my $s; my $s2; my $i;
+	my @sorted_funcs = sort {lc($a) cmp lc($b)} @funcs;
 	$s2 = "       ";
-	for ($i = 0; $i < scalar @funcs; ++$i) {
-		if (length($s2)+length($funcs[$i]) > 78) {
+	for ($i = 0; $i < scalar @sorted_funcs; ++$i) {
+		if (length($s2)+length($sorted_funcs[$i]) > 78) {
 			$s .= $s2."\n";
 			$s2 = "       ";
 		}
-		$s2 .= $funcs[$i]." ";
+		$s2 .= $sorted_funcs[$i]." ";
 	}
 	return $s.$s2."\n";
 }
@@ -865,10 +867,10 @@ sub bigcrypt {
 		descrypt(@_);
 	}
 }
-sub bsdi {
+sub bsdicrypt {
 	#require Authen::Passphrase::DESCrypt;
 	#$h = Authen::Passphrase::DESCrypt->new(passphrase => $_[0], fold => 1, nrounds => 725, salt_random => 24);
-	#print "u$u-BSDI:", $h->as_crypt, ":$u:0:$_[0]::\n";
+	#print "u$u-BSDIcrypt:", $h->as_crypt, ":$u:0:$_[0]::\n";
 	#$argsalt = substr($h->as_crypt,5,4);
 
 	require Crypt::UnixCrypt_XS;
@@ -878,7 +880,7 @@ sub bsdi {
 	# all of this is now done using Crypt::UnixCrypt_XS functions (vs using Authen::PassPhrase).  Authen::PassPrase
 	# already required Crypt::UnixCrypt_XS, so this is really no additional dependancy.
 	my $h = Crypt::UnixCrypt_XS::crypt_rounds(Crypt::UnixCrypt_XS::fold_password($_[1]),$rounds,Crypt::UnixCrypt_XS::base64_to_int24($salt),$block);
-	print "u$u-BSDI:_", Crypt::UnixCrypt_XS::int24_to_base64($rounds), $salt, Crypt::UnixCrypt_XS::block_to_base64($h), ":$u:0:$_[0]::\n";
+	print "u$u-BSDIcrypt:_", Crypt::UnixCrypt_XS::int24_to_base64($rounds), $salt, Crypt::UnixCrypt_XS::block_to_base64($h), ":$u:0:$_[0]::\n";
 }
 sub md5crypt {
 #require Authen::Passphrase::MD5Crypt;
@@ -929,7 +931,7 @@ sub bfx_fix_pass {
 		$pass_ret .= chr($BF_word&0xFF);
 	}
 }
-sub bfx {
+sub bcryptx {
 	#require Authen::Passphrase::BlowfishCrypt;
 	my $fixed_pass = bfx_fix_pass($_[1]);
 	#if ($argsalt && length($argsalt)==16) {
@@ -940,14 +942,14 @@ sub bfx {
 	#}
 	#my $hash_str = $h->as_crypt;
 	#$hash_str =~ s/\$2a\$/\$2x\$/;
-	#print "u$u-BF:", $hash_str, ":$u:0:$_[0]::\n";
+	#print "u$u-BCRYPT:", $hash_str, ":$u:0:$_[0]::\n";
 
 	require Crypt::Eksblowfish::Bcrypt;
 	if ($argsalt && length($argsalt)==16) { $salt = $argsalt; } else { $salt = randstr(16,\@i64); }
 	my $hash = Crypt::Eksblowfish::Bcrypt::bcrypt_hash({key_nul => 1, cost => 5, salt => $salt, }, $fixed_pass);
-	print "u$u-BF:\$2x\$05\$", Crypt::Eksblowfish::Bcrypt::en_base64($salt), Crypt::Eksblowfish::Bcrypt::en_base64($hash), ":$u:0:$_[0]::\n";
+	print "u$u-BCRYPT:\$2x\$05\$", Crypt::Eksblowfish::Bcrypt::en_base64($salt), Crypt::Eksblowfish::Bcrypt::en_base64($hash), ":$u:0:$_[0]::\n";
 }
-sub bf {
+sub bcrypt {
 	#require Authen::Passphrase::BlowfishCrypt;
 	#if ($argsalt && length($argsalt)==16) {
 	#	$h = Authen::Passphrase::BlowfishCrypt->new(passphrase => $_[0], cost => 5, salt => $argsalt);
@@ -955,12 +957,12 @@ sub bf {
 	#else {
 	#	$h = Authen::Passphrase::BlowfishCrypt->new(passphrase => $_[0], cost => 5, salt_random => 1);
 	#}
-	#print "u$u-BF:", $h->as_crypt, ":$u:0:$_[0]::\n";
+	#print "u$u-BCRYPT:", $h->as_crypt, ":$u:0:$_[0]::\n";
 
 	require Crypt::Eksblowfish::Bcrypt;
 	if ($argsalt && length($argsalt)==16) { $salt = $argsalt; } else { $salt = randstr(16,\@i64); }
 	my $hash = Crypt::Eksblowfish::Bcrypt::bcrypt_hash({key_nul => 1, cost => 5, salt => $salt, }, $_[1]);
-	print "u$u-BF:\$2a\$05\$", Crypt::Eksblowfish::Bcrypt::en_base64($salt), Crypt::Eksblowfish::Bcrypt::en_base64($hash), ":$u:0:$_[0]::\n";
+	print "u$u-BCRYPT:\$2a\$05\$", Crypt::Eksblowfish::Bcrypt::en_base64($salt), Crypt::Eksblowfish::Bcrypt::en_base64($hash), ":$u:0:$_[0]::\n";
 }
 sub _bfegg_en_base64($) {
 	my($bytes) = @_;
@@ -1652,7 +1654,7 @@ sub xsha512 {
 	if ($u&1) { print ("\$LION\$"); }
 	print "" . unpack("H*", $salt) . sha512_hex($salt . $_[1]) . ":$u:0:$_[0]::\n";
 }
-sub mskrb5 {
+sub krb5pa_md5 {
 	#require Authen::Passphrase::NTHash;
 	require Crypt::RC4;
 	import Crypt::RC4 qw(RC4);
@@ -1665,7 +1667,7 @@ sub mskrb5 {
 	my $K2 = _hmacmd5($K1, $timestamp);
 	my $K3 = _hmacmd5($K1, $K2);
 	my $encrypted = RC4($K3, $timestamp);
-	printf("%s:\$mskrb5\$\$\$%s\$%s:::%s:%s\n", "u$u-mskrb5", binToHex($K2), binToHex($encrypted), $_[1], $datestring);
+	printf("%s:\$krb5pa_md5\$\$\$%s\$%s:::%s:%s\n", "u$u-krb5pa_md5", binToHex($K2), binToHex($encrypted), $_[1], $datestring);
 }
 sub ipb2 {
 	if (defined $argsalt) { $salt = $argsalt; } else { $salt = randstr(5); }
@@ -1694,8 +1696,8 @@ sub sha1s {
 	if (defined $argsalt) { $salt = $argsalt; } else { $salt = randstr(8); }
 	print "u$u-SHA1s:\$SHA1s\$$salt\$", sha1_hex($_[1], $salt), ":$u:0:$_[0]::\n";;
 }
-sub mysqlsha1 {
-	print "u$u-mysqlSHA1:*", sha1_hex(sha1($_[1])), ":$u:0:$_[0]::\n";
+sub mysql_sha1 {
+	print "u$u-mysql_sha1:*", sha1_hex(sha1($_[1])), ":$u:0:$_[0]::\n";
 }
 sub mysql{
 	my $nr=0x50305735;
@@ -1781,7 +1783,7 @@ sub openssha {
 	#print "u$u-openssha:{SSHA}", ns_base64(7,0), ":$u:0:$_[0]::\n";
 	print "u$u-openssha:{SSHA}", base64($h), ":$u:0:$_[0]::\n";
 }
-sub saltedsha1 {
+sub salted-sha1 {
 	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(rand(16)+1); }
 	$h = sha1($_[1],$salt);
 	$h .= $salt;
@@ -1896,6 +1898,10 @@ sub netntlm_ess {
 	my $type = "ntlm ESS";
 	my $lmresp = $c_challenge . "\0"x16;
 	printf("%s\\%s:::%s:%s:%s::%s:%s\n", $domain, "u$u-netntlm", binToHex($lmresp), binToHex($ntresp), binToHex($s_challenge), $_[0], $type);
+}
+# Alias for l0phtcrack
+sub netntlm {
+	l0phtcrack(@_);
 }
 # This produces NETHALFLM, NETLM and non-ESS NETNTLM hashes in L0pthcrack format
 sub l0phtcrack {
@@ -2166,14 +2172,14 @@ sub radmin {
 	while (length($pass) < 100) { $pass .= "\0"; }
 	print "u$u-radmin:\$radmin2\$",md5_hex($pass),":$u:0:$_[0]::\n";
 }
-sub rawsha0 {
+sub raw_sha {
 # this method sux, but I can find NO sha0 anywhere else in perl.
 # It does exist in "openssl dgst -sha"  however. Slow, but works.
 	$h = `echo -n '$_[1]' | openssl dgst -sha`;
 	chomp($h);
 	if (substr($h,0,9) eq "(stdin)= ") { $h = substr($h,9); }
 	if (substr($h,0,8) eq "(stdin)=") { $h = substr($h,8); }
-	print "u$u-rawsha0:$h:$u:0:$_[0]::\n";
+	print "u$u-raw_sha:$h:$u:0:$_[0]::\n";
 }
 sub sybasease {
 	if (defined $argsalt && length($argsalt)==8) { $salt = $argsalt; } else { $salt=randstr(8, \@chrAsciiTextNum); }
