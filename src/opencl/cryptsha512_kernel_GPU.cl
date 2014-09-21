@@ -21,11 +21,11 @@
 ///AMD: sometimes a bad thing.
 ///NVIDIA: GTX 570 don't allow full unroll.
 #if amd_gcn(DEVICE_INFO)
-    #define WEAK_UNROLL
+    #define WEAK_UNROLL		1
 #elif gpu_amd(DEVICE_INFO)
-    #define STRONG_UNROLL
+    #define STRONG_UNROLL	1
 #elif gpu_nvidia(DEVICE_INFO)
-    #define MEDIUM_UNROLL
+    #define MEDIUM_UNROLL	1
 #endif
 
 /// Start documenting bugs.
