@@ -1072,6 +1072,7 @@ static char *split_UC(char *ciphertext, int index)
 			*ciphertext += 0x20; // ASCII specific, but I really do not care.
 		++ciphertext;
 	}
+//	printf("%s\n", out);
 	return out;
 }
 
@@ -6908,11 +6909,16 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 		pFmt->methods.get_hash[6] = NULL;
 
 	}
+//	printf ("%.13s",Setup->szFORMAT_NAME);
 	if ( (Setup->flags & (MGF_INPBASE64|MGF_INPBASE64_4x6|MGF_INPBASE64a)) == 0)  {
 		pFmt->params.flags |= FMT_SPLIT_UNIFIES_CASE;
-		if (pFmt->methods.split == split)
+//		printf ("  Setting FMT_SPLIT_UNIFIES_CASE");
+		if (pFmt->methods.split == split) {
 			pFmt->methods.split = split_UC;
+//			printf ("  split set to split_UC()\n");
+		}
 	}
+//	else printf ("  split set to split()\n");
 	if (Setup->flags & MGF_UTF8)
 		pFmt->params.flags |= FMT_UTF8;
 	if (Setup->flags & MGF_INPBASE64a) {
