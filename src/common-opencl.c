@@ -99,7 +99,7 @@ cl_event *profilingEvent, *firstEvent, *lastEvent;
 cl_event *multi_profilingEvent[MAX_EVENTS];
 
 int device_info[MAX_GPU_DEVICES];
-ocl_device_detais ocl_device_list[MAX_GPU_DEVICES];
+static ocl_device_detais ocl_device_list[MAX_GPU_DEVICES];
 
 void opencl_process_event(void)
 {
@@ -263,6 +263,7 @@ static cl_int get_pci_info(int sequential_id, ocl_hw_bus * hardware_info) {
 	cl_int ret;
 	hardware_info->bus = -1;
 	hardware_info->device = -1;
+	hardware_info->node = options.node_min;
 
 #if defined(CL_DEVICE_TOPOLOGY_AMD) && CL_DEVICE_TOPOLOGY_TYPE_PCIE_AMD == 1
 
@@ -317,7 +318,8 @@ static int get_device_hw_id(int sequential_id) {
 		get_pci_info(hardware_id, &hardware_info);
 
 		if (ocl_device_list[sequential_id].pci_info.bus == hardware_info.bus &&
-		    ocl_device_list[sequential_id].pci_info.device == hardware_info.device)
+		    ocl_device_list[sequential_id].pci_info.device == hardware_info.device &&
+		    ocl_device_list[sequential_id].pci_info.node == options.node_min)
 			return hardware_id;
 
 		hardware_id++;

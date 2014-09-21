@@ -82,6 +82,7 @@ cl_platform platforms[MAX_PLATFORMS];
 typedef struct {
 	int				bus;
 	int				device;
+	int				node;
 } ocl_hw_bus;
 
 typedef struct {
@@ -110,7 +111,6 @@ extern cl_event *profilingEvent, *firstEvent, *lastEvent;
 extern cl_event *multi_profilingEvent[MAX_EVENTS];
 
 extern int device_info[MAX_GPU_DEVICES];
-extern ocl_device_detais ocl_device_list[MAX_GPU_DEVICES];
 
 #define LWS_CONFIG_NAME			"_LWS"
 #define GWS_CONFIG_NAME			"_GWS"
