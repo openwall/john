@@ -813,7 +813,7 @@ Optional libraries found:
 Rexgen (extra cracking mode) ................ ${using_rexgen}
 GMP (performance) ........................... ${ac_cv_lib_gmp___gmpz_init}
 NSS/NSPR (Mozilla format) ................... ${using_nss}
-Kerberos5 (krb5-18 format) .,,,,............. ${krb5_found}
+Kerberos5 (krb5-18 format) .................. ${krb5_found}
 PCAP (vncpcap2john and SIPdump) ............. ${ac_cv_lib_pcap_pcap_compile}
 BZ2 (gpg2john extra decompression logic) .... ${using_bz2}
 
