@@ -46,6 +46,10 @@ struct opt_entry {
 
 /* Pointer to buffer where the parameter is to be stored */
 	void *param;
+
+/* Used to detect dupe options without a specific option flag. This is
+ * used only with FLG_NONE and OPT_REQ_PARAM. */
+	int param_set;
 };
 
 /*

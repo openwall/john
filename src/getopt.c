@@ -16,6 +16,7 @@
 #include "list.h"
 #include "getopt.h"
 #include "john.h"
+#include "options.h" /* for FLG_NONE */
 #include "memdbg.h"
 
 static char *opt_errors[] = {
@@ -114,6 +115,11 @@ static int opt_process_one(struct opt_entry *list, opt_flags *flg, char *opt)
 		} else
 		if (opt_process_param(param, entry->format, entry->param))
 			return OPT_ERROR_PARAM_INV;
+
+		/* Dupe checking without an option flag */
+		if (param && entry->flg_set == FLG_NONE &&
+		    entry->req_clr & OPT_REQ_PARAM && entry->param_set++)
+			return OPT_ERROR_COMB;
 	} else
 	if (param) return OPT_ERROR_PARAM_EXT;
 
