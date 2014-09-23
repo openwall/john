@@ -174,13 +174,10 @@ err:
 	return 0;
 }
 
-// NOTE, this still needs work. I am sure this will not eliminate (compact out)
-// duplicate salts.
 static void *get_salt(char *ciphertext)
 {
-	sip_salt *salt;
-	static char saltBuf[2048];
-
+	static sip_salt salt;
+	char saltBuf[2048];
 	char *lines[16];
 	login_t login;
 	int num_lines;
@@ -189,7 +186,7 @@ static void *get_salt(char *ciphertext)
 	char static_hash[MD5_LEN_HEX+1];
 	char *saltcopy = saltBuf;
 
-	salt = mem_calloc_tiny(sizeof(sip_salt), MEM_ALIGN_NONE);
+	memset(&salt, 0, sizeof(salt));
 
 	strcpy(saltBuf, ciphertext);
 	saltcopy += 6;	/* skip over "$sip$*" */
@@ -227,30 +224,30 @@ static void *get_salt(char *ciphertext)
 	bin_to_hex(bin2hex_table, md5_bin_hash, MD5_LEN, static_hash, MD5_LEN_HEX);
 
 	/* Constructing first part of dynamic hash: 'USER:REALM:' */
-	salt->dynamic_hash_data = salt->Buf;
-	snprintf(salt->dynamic_hash_data, DYNAMIC_HASH_SIZE, "%s:%s:", login.user, login.realm);
-	salt->dynamic_hash_data_len = strlen(salt->dynamic_hash_data);
+	salt.dynamic_hash_data = salt.Buf;
+	snprintf(salt.dynamic_hash_data, DYNAMIC_HASH_SIZE, "%s:%s:", login.user, login.realm);
+	salt.dynamic_hash_data_len = strlen(salt.dynamic_hash_data);
 
 	/* Construct last part of final hash data: ':NONCE(:CNONCE:NONCE_COUNT:QOP):<static_hash>' */
 	/* no qop */
-	salt->static_hash_data = &(salt->Buf[salt->dynamic_hash_data_len+1]);
+	salt.static_hash_data = &(salt.Buf[salt.dynamic_hash_data_len+1]);
 	if(!strlen(login.qop))
-		snprintf(salt->static_hash_data, STATIC_HASH_SIZE, ":%s:%s", login.nonce, static_hash);
+		snprintf(salt.static_hash_data, STATIC_HASH_SIZE, ":%s:%s", login.nonce, static_hash);
 	/* qop/conce/cnonce_count */
 	else
-		snprintf(salt->static_hash_data, STATIC_HASH_SIZE, ":%s:%s:%s:%s:%s",
+		snprintf(salt.static_hash_data, STATIC_HASH_SIZE, ":%s:%s:%s:%s:%s",
 				login.nonce, login.nonce_count, login.cnonce,
 				login.qop, static_hash);
 	/* Get lens of static buffers */
-	salt->static_hash_data_len  = strlen(salt->static_hash_data);
+	salt.static_hash_data_len  = strlen(salt.static_hash_data);
 
 	/* Begin brute force attack */
 #ifdef SIP_DEBUG
 	printf("Starting bruteforce against user '%s' (%s: '%s')\n",
 			login.user, login.algorithm, login.hash);
 #endif
-	strcpy(salt->login_hash, login.hash);
-	return salt;
+	strcpy(salt.login_hash, login.hash);
+	return &salt;
 }
 
 

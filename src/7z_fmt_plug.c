@@ -183,6 +183,8 @@ static void *get_salt(char *ciphertext)
 	} un;
 	struct custom_salt *cs = &(un._cs);
 
+	memset(cs, 0, SALT_SIZE);
+
 	ctcopy += 4;
 	p = strtok(ctcopy, "$");
 	cs->type = atoi(p);
