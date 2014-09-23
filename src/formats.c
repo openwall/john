@@ -142,7 +142,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 	char *ciphertext, *plaintext;
 	int i, ntests, done, index, max, size;
 	void *binary, *salt;
-	int binary_align_warned = 0, salt_align_warned = 0;
+	int binary_align_warned = 0, salt_align_warned = 0, salt_cleaned_warned = 0;
 #ifndef BENCH_BUILD
 	int dhirutest = 0;
 	int maxlength = 0;
@@ -323,9 +323,9 @@ static char *fmt_self_test_body(struct fmt_main *format,
 #if ARCH_ALLOWS_UNALIGNED
 		if (mem_saving_level <= 2 || format->params.binary_align >= MEM_ALIGN_SIMD)
 #endif
-		if (!is_aligned(binary, format->params.binary_align) &&
-		    (format->params.binary_size > 0) &&
-		    !binary_align_warned) {
+		if (!binary_align_warned &&
+			!is_aligned(binary, format->params.binary_align) &&
+		    format->params.binary_size > 0) {
 			puts("Warning: binary() returned misaligned pointer");
 			binary_align_warned = 1;
 		}
@@ -337,13 +337,23 @@ static char *fmt_self_test_body(struct fmt_main *format,
 #if ARCH_ALLOWS_UNALIGNED
 		if (mem_saving_level <= 2 || format->params.salt_align >= MEM_ALIGN_SIMD)
 #endif
-		if (!is_aligned(salt, format->params.salt_align) &&
-		    (format->params.salt_size > 0) &&
-		    !salt_align_warned) {
+		if (!salt_align_warned &&
+			!is_aligned(salt, format->params.salt_align) &&
+		    format->params.salt_size > 0) {
 			puts("Warning: salt() returned misaligned pointer");
 			salt_align_warned = 1;
 		}
 		memcpy(salt_copy, salt, format->params.salt_size);
+		/* validate that salt() returns cleaned buffer */
+		memset(salt, 0xAF, format->params.salt_size);
+		salt = format->methods.salt(ciphertext);
+		if (!salt_cleaned_warned &&
+			((unsigned char*)salt)[format->params.salt_size-1] == 0xAF &&
+			((unsigned char*)salt)[format->params.salt_size-2] == 0xAF) {
+			// possibly did not clean the salt.
+			puts("Warning: salt() not pre-cleaning buffer");
+			salt_cleaned_warned = 1;
+		}
 		salt = salt_copy;
 
 		if (strcmp(ciphertext,
