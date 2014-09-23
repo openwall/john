@@ -50,8 +50,10 @@ john_register_one(&fmt_opencl_dmg);
 #define MIN_KEYS_PER_CRYPT	KEYS_PER_CRYPT
 #define MAX_KEYS_PER_CRYPT	KEYS_PER_CRYPT
 #define BINARY_SIZE		0
+#define BINARY_ALIGN		1
 #define PLAINTEXT_LENGTH	64
 #define SALT_SIZE		sizeof(struct custom_salt)
+#define SALT_ALIGN		sizeof(uint32_t)
 
 #undef HTONL
 #define HTONL(n) (((((unsigned long)(n) & 0xFF)) << 24) | \
@@ -786,9 +788,9 @@ struct fmt_main fmt_opencl_dmg = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 #ifdef DMG_DEBUG
