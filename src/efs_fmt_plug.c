@@ -183,6 +183,7 @@ static void *get_salt(char *ciphertext)
 	int length;
 	static struct custom_salt cs;
 
+	memset(&cs, 0, sizeof(cs));
 	ctcopy += 5;	/* skip over "$efs$" */
 	p = strtok(ctcopy, "$");
 

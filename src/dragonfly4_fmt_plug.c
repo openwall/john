@@ -213,6 +213,7 @@ static void *get_salt_32(char *ciphertext)
 
 	if (!out) out = mem_alloc_tiny(SALT_SIZE_32, MEM_ALIGN_WORD);
 
+	memset(out, 0, SALT_SIZE_32);
 	ciphertext += 3;
 	strcpy(&out[1], "$4$");
 	for (len = 0; ciphertext[len] != '$'; len++);
@@ -231,6 +232,7 @@ static void *get_salt_64(char *ciphertext)
 
 	if (!out) out = mem_alloc_tiny(SALT_SIZE_64, MEM_ALIGN_WORD);
 
+	memset(out, 0, SALT_SIZE_64);
 	ciphertext += 3;
 	memcpy(&out[1], "$4$\0/etc", 8);
 	for (len = 0; ciphertext[len] != '$'; len++);
