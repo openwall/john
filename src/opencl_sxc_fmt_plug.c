@@ -281,6 +281,9 @@ static void *get_salt(char *ciphertext)
 	int i;
 	char *p;
 	static sxc_cpu_salt cs;
+
+	memset(&cs, 0, sizeof(cs));
+
 	ctcopy += 6;	/* skip over "$sxc$*" */
 	p = strtok(ctcopy, "*");
 	cs.cipher_type = atoi(p);

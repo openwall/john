@@ -464,6 +464,8 @@ static void *get_salt(char *ciphertext)
 	char *keep_ptr = saltcopy;
 	static rarfile rarfile;
 
+	memset(&rarfile, 0, sizeof(rarfile));
+
 	saltcopy += 7;		/* skip over "$RAR3$*" */
 	rarfile.type = atoi(strtok(saltcopy, "*"));
 	encoded_salt = strtok(NULL, "*");
