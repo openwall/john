@@ -158,6 +158,8 @@ static void *get_binary(char *ciphertext)
 	unsigned char *out = buf.c;
 	char *p;
 	int i;
+	if (text_in_dynamic_format_already(pDynamicFmt, ciphertext))
+		return pDynamicFmt->methods.binary(ciphertext);
 	p = strrchr(ciphertext, '$') + 1;
 	for (i = 0; i < BINARY_SIZE; i++) {
 		out[i] =
