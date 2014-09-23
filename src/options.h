@@ -109,9 +109,11 @@
  * Tip: For your private patches, pick first free from MSB. When
  * sharing your patch, pick first free from LSB of high 32 bits.
  *
- * In Jumbo, the combination flg_set == 0 and req_clr == OPT_REQ_PARAM
+ * In Jumbo, the combination flg_set == FLG_ZERO and req_clr == OPT_REQ_PARAM
  * gets dupe checking automatically, without a specific flag.
  */
+#define FLG_ZERO			0x0
+
 /* .pot file used as wordlist, options.wordlist is set to the file name, or
  * we use the active .pot file */
 #define FLG_LOOPBACK_CHK		0x0000000100000000ULL
