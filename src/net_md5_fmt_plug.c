@@ -124,8 +124,10 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		return 0;
 
 	len = strspn(q, HEXCHARS);
-	if (len != BINARY_SIZE * 2 || len != strlen(q))
-		return 0;
+	if (len != BINARY_SIZE * 2 || len != strlen(q)) {
+		get_ptr();
+		return pDynamicFmt->methods.valid(ciphertext, pDynamicFmt);
+	}
 
 	if (strspn(p, HEXCHARS) != q - p - 1)
 		return 0;
@@ -264,6 +266,9 @@ static char *prepare(char *fields[10], struct fmt_main *self) {
 	static char buf[sizeof(cur_salt->salt)*2+TAG_LENGTH+1];
 	char *hash = fields[1];
 	if (strncmp(hash, FORMAT_TAG, TAG_LENGTH) && valid(hash, self)) {
+		get_ptr();
+		if (text_in_dynamic_format_already(pDynamicFmt, hash))
+			return hash;
 		sprintf(buf, "%s%s", FORMAT_TAG, hash);
 		return buf;
 	}
