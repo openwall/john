@@ -176,6 +176,7 @@ static void *get_salt(char *ciphertext)
 	char *p;
 	int i;
 
+	memset(&cs, 0, sizeof(cs));
 	ctcopy += TAG_LEN;	/* skip over "$oldoffice$" */
 	p = strtok(ctcopy, "*");
 	cs.type = atoi(p);

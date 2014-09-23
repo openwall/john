@@ -212,6 +212,7 @@ static char *get_salt(char *ciphertext)
 	static char out[SALT_SIZE + 1];
 	char *ipos, *opos;
 
+	memset(&out, 0, sizeof(out));
 	ipos = ciphertext;
 	opos = out;
 	while (*ipos != '$') *opos++ = *ipos++;

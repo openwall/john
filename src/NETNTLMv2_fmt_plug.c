@@ -387,6 +387,7 @@ static void *get_salt(char *ciphertext)
 #endif
 
   if (!binary_salt) binary_salt = mem_alloc_tiny(SALT_SIZE, MEM_ALIGN_WORD);
+  memset(binary_salt, 0, SALT_SIZE);
 
   /* Calculate identity length */
   for (pos = ciphertext + 11; *pos != '$'; pos++);

@@ -140,7 +140,7 @@ static void *get_salt(char *ciphertext)
 	static struct custom_salt cs;
 	char *orig_ct = ciphertext;
 	int i, len;
-	memset(&cs, 0, SALT_SIZE);
+	memset(&cs, 0, sizeof(cs));
 
 	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
 		ciphertext += TAG_LENGTH;
@@ -152,7 +152,11 @@ static void *get_salt(char *ciphertext)
 			atoi16[ARCH_INDEX(ciphertext[2 * i + 1])];
 
 	if (len < 230) {
-		return pDynamicFmt->methods.salt(Convert(Conv_Buf, orig_ct));
+		// return our memset buffer (putting the dyna salt pointer into it).
+		// This keeps teh 'pre-cleaned salt() warning from hitting this format)
+		//return pDynamicFmt->methods.salt(Convert(Conv_Buf, orig_ct));
+		memcpy((char*)(&cs), pDynamicFmt->methods.salt(Convert(Conv_Buf, orig_ct)), pDynamicFmt->params.salt_size);
+		return &cs;
 	}
 	cs.magic = MAGIC;
 	cs.length = len;

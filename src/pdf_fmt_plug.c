@@ -296,6 +296,7 @@ static void *get_salt(char *ciphertext)
 	int i;
 	char *p;
 	static struct custom_salt cs;
+	memset(&cs, 0, sizeof(cs));
 	ctcopy += 5;	/* skip over "$pdf$" marker */
 	p = strtok(ctcopy, "*");
 	cs.V = atoi(p);

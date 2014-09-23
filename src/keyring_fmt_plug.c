@@ -156,6 +156,7 @@ static void *get_salt(char *ciphertext)
 	int i;
 	char *p;
 	static struct custom_salt cs;
+	memset(&cs, 0, sizeof(cs));
 	ctcopy += 9;	/* skip over "$keyring$" */
 	cur_salt = mem_alloc_tiny(sizeof(struct custom_salt), MEM_ALIGN_WORD);
 	p = strtok(ctcopy, "*");

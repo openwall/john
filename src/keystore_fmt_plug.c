@@ -149,6 +149,7 @@ static void *get_salt(char *ciphertext)
 	int i;
 	/* NOTE: do we need dynamic allocation because of underlying large object size? */
 	static struct custom_salt cs;
+	memset(&cs, 0, sizeof(cs));
 	ctcopy += 10; /* skip over "$keystore$" */
 	p = strtok(ctcopy, "$");
 	cs.target = atoi(p);

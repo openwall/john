@@ -133,6 +133,7 @@ static void *get_salt(char *ciphertext)
 	int i;
 	char *p;
 	static struct custom_salt cs;
+	memset(&cs, 0, sizeof(cs));
 	ctcopy += 10;	/* skip over "$lastpass$" */
 	p = strtok(ctcopy, "$");
 	i = strlen(p);
