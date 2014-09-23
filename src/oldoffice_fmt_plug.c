@@ -46,6 +46,10 @@ john_register_one(&fmt_oldoffice);
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 
+#define CIPHERTEXT_LENGTH	(TAG_LEN + 120)
+#define FORMAT_TAG		"$oldoffice$"
+#define TAG_LEN			(sizeof(FORMAT_TAG) - 1)
+
 static struct fmt_tests oo_tests[] = {
 	{"$oldoffice$1*de17a7f3c3ff03a39937ba9666d6e952*2374d5b6ce7449f57c9f252f9f9b53d2*e60e1185f7aecedba262f869c0236f81", "test"},
 	{"$oldoffice$0*e40b4fdade5be6be329c4238e2099b8a*259590322b55f7a3c38cb96b5864e72d*2e6516bfaf981770fe6819a34998295d", "123456789012345"},
@@ -82,7 +86,7 @@ static struct custom_salt {
 	unsigned char verifierHash[20];  /* or encryptedVerifierHash */
 	unsigned int has_mitm;
 	unsigned char mitm[5]; /* Meet-in-the-middle hint, if we have one */
-} *cur_salt;
+} cs;
 
 static void init(struct fmt_main *self)
 {
@@ -117,12 +121,14 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *ctcopy, *ptr, *keeptr;
 	int res;
 
-	if (strncmp(ciphertext, "$oldoffice$", 11))
+	if (strncmp(ciphertext, FORMAT_TAG, TAG_LEN))
+		return 0;
+	if (strlen(ciphertext) > CIPHERTEXT_LENGTH)
 		return 0;
 	if (!(ctcopy = strdup(ciphertext)))
 		return 0;
 	keeptr = ctcopy;
-	ctcopy += 11;
+	ctcopy += TAG_LEN;
 	if (!(ptr = strtok(ctcopy, "*"))) /* type */
 		goto error;
 	res = atoi(ptr);
@@ -153,15 +159,24 @@ error:
 	return 0;
 }
 
+static char *split(char *ciphertext, int index, struct fmt_main *self)
+{
+	static char out[CIPHERTEXT_LENGTH];
+
+	strnzcpy(out, ciphertext, sizeof(out));
+	strlwr(out);
+
+	return out;
+}
+
 static void *get_salt(char *ciphertext)
 {
 	char *ctcopy = strdup(ciphertext);
 	char *keeptr = ctcopy;
 	char *p;
 	int i;
-	static struct custom_salt cs;
 
-	ctcopy += 11;	/* skip over "$oldoffice$" */
+	ctcopy += TAG_LEN;	/* skip over "$oldoffice$" */
 	p = strtok(ctcopy, "*");
 	cs.type = atoi(p);
 	p = strtok(NULL, "*");
@@ -194,9 +209,57 @@ static void *get_salt(char *ciphertext)
 	return (void *)&cs;
 }
 
+#if 0
+static char *source(char *source, void *binary)
+{
+	static char Buf[CIPHERTEXT_LENGTH];
+	unsigned char *cpi, *cp = (unsigned char*)Buf;
+	int i, len;
+
+	cp += sprintf(Buf, "%s%d*", FORMAT_TAG, cs.type);
+
+	cpi = cs.salt;
+	for (i = 0; i < 16; i++) {
+		*cp++ = itoa16[*cpi >> 4];
+		*cp++ = itoa16[*cpi & 0xf];
+		cpi++;
+	}
+	*cp++ = '*';
+
+	cpi = cs.verifier;
+	for (i = 0; i < 16; i++) {
+		*cp++ = itoa16[*cpi >> 4];
+		*cp++ = itoa16[*cpi & 0xf];
+		cpi++;
+	}
+	*cp++ = '*';
+
+	len = (cs.type < 3) ? 16 : 20;
+	cpi = cs.verifierHash;
+	for (i = 0; i < len; i++) {
+		*cp++ = itoa16[*cpi >> 4];
+		*cp++ = itoa16[*cpi & 0xf];
+		cpi++;
+	}
+
+	if (cs.has_mitm) {
+		*cp++ = '*';
+		cpi = cs.mitm;
+		for (i = 0; i < 5; i++) {
+			*cp++ = itoa16[*cpi >> 4];
+			*cp++ = itoa16[*cpi & 0xf];
+			cpi++;
+		}
+	}
+
+	*cp = 0;
+	return Buf;
+}
+#endif
+
 static void set_salt(void *salt)
 {
-	cur_salt = (struct custom_salt *)salt;
+	memcpy(&cs, (struct custom_salt *)salt, sizeof(struct custom_salt));
 }
 
 static int crypt_all(int *pcount, struct db_salt *salt)
@@ -217,7 +280,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		int i;
 		RC4_KEY key;
 
-		if(cur_salt->type < 3) {
+		if(cs.type < 3) {
 			MD5_CTX ctx;
 			unsigned char mid_key[16];
 			unsigned char pwdHash[16];
@@ -229,14 +292,14 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			for (i = 0; i < 16; i++)
 			{
 				memcpy(hashBuf + i * 21, mid_key, 5);
-				memcpy(hashBuf + i * 21 + 5, cur_salt->salt, 16);
+				memcpy(hashBuf + i * 21 + 5, cs.salt, 16);
 			}
 			MD5_Init(&ctx);
 			MD5_Update(&ctx, hashBuf, 21 * 16);
 			MD5_Final(mid_key, &ctx);
 			// Early reject if we got a hint
-			if (cur_salt->has_mitm &&
-			    memcmp(mid_key, cur_salt->mitm, 5))
+			if (cs.has_mitm &&
+			    memcmp(mid_key, cs.mitm, 5))
 				continue;
 			memcpy(hashBuf, mid_key, 5);
 			memset(hashBuf + 5, 0, 4);
@@ -244,8 +307,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			MD5_Update(&ctx, hashBuf, 9);
 			MD5_Final(pwdHash, &ctx);
 			RC4_set_key(&key, 16, pwdHash); /* rc4Key */
-			RC4(&key, 16, cur_salt->verifier, hashBuf); /* encryptedVerifier */
-			RC4(&key, 16, cur_salt->verifierHash, hashBuf + 16); /* encryptedVerifierHash */
+			RC4(&key, 16, cs.verifier, hashBuf); /* encryptedVerifier */
+			RC4(&key, 16, cs.verifierHash, hashBuf + 16); /* encryptedVerifierHash */
 			/* hash the decrypted verifier */
 			MD5_Init(&ctx);
 			MD5_Update(&ctx, hashBuf, 16);
@@ -255,8 +318,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #pragma omp critical
 #endif
 				any_cracked = cracked[index] = 1;
-				cur_salt->has_mitm = 1;
-				memcpy(cur_salt->mitm, mid_key, 5);
+				cs.has_mitm = 1;
+				memcpy(cs.mitm, mid_key, 5);
 			}
 		}
 		else {
@@ -268,7 +331,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			unsigned char DecryptedVerifierHash[20];
 
 			SHA1_Init(&ctx);
-			SHA1_Update(&ctx, cur_salt->salt, 16);
+			SHA1_Update(&ctx, cs.salt, 16);
 			SHA1_Update(&ctx, saved_key[index], saved_len[index]);
 			SHA1_Final(H0, &ctx);
 			memset(&H0[20], 0, 4);
@@ -276,17 +339,17 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			SHA1_Update(&ctx, H0, 24);
 			SHA1_Final(mid_key, &ctx);
 			// Early reject if we got a hint
-			if (cur_salt->has_mitm &&
-			    memcmp(mid_key, cur_salt->mitm, 5))
+			if (cs.has_mitm &&
+			    memcmp(mid_key, cs.mitm, 5))
 				continue;
-			if(cur_salt->type < 4) {
+			if(cs.type < 4) {
 				memcpy(Hfinal, mid_key, 5);
 				memset(&Hfinal[5], 0, 11);
 			} else
 				memcpy(Hfinal, mid_key, 20);
 			RC4_set_key(&key, 16, Hfinal); /* dek */
-			RC4(&key, 16, cur_salt->verifier, DecryptedVerifier);
-			RC4(&key, 20, cur_salt->verifierHash, DecryptedVerifierHash);
+			RC4(&key, 16, cs.verifier, DecryptedVerifier);
+			RC4(&key, 20, cs.verifierHash, DecryptedVerifierHash);
 			SHA1_Init(&ctx);
 			SHA1_Update(&ctx, DecryptedVerifier, 16);
 			SHA1_Final(Hfinal, &ctx);
@@ -295,8 +358,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #pragma omp critical
 #endif
 				any_cracked = cracked[index] = 1;
-				cur_salt->has_mitm = 1;
-				memcpy(cur_salt->mitm, mid_key, 5);
+				cs.has_mitm = 1;
+				memcpy(cs.mitm, mid_key, 5);
 			}
 		}
 	}
@@ -356,7 +419,7 @@ struct fmt_main fmt_oldoffice = {
 		DEFAULT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_UNICODE | FMT_UTF8,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_UNICODE | FMT_UTF8 | FMT_SPLIT_UNIFIES_CASE,
 #if FMT_MAIN_VERSION > 11
 		{
 			"hash type",
@@ -369,7 +432,7 @@ struct fmt_main fmt_oldoffice = {
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
-		fmt_default_split,
+		split,
 		fmt_default_binary,
 		get_salt,
 #if FMT_MAIN_VERSION > 11
