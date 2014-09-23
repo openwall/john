@@ -160,9 +160,10 @@ static char *split(char *ciphertext, int index, struct fmt_main *pFmt)
 
 static void *get_salt(char *ciphertext)
 {
-	static char out[SALT_SIZE];
+	static char out[SALT_SIZE+1];
 	char *p, *q;
 
+	memset(&out, 0, sizeof(out));
 	p = ciphertext + TAG_LENGTH;
 	q = strstr(p, "$");
 	strncpy(out, p, q-p);
