@@ -194,6 +194,7 @@ static void *get_salt(char *ciphertext)
 	static struct custom_salt cs;
 	keeptr = ctcopy;
 
+	memset(&cs, 0, sizeof(cs));
 	if ((strncmp(ciphertext, "{ssha1}", 7) == 0))
 		cs.type = 1;
 	else if ((strncmp(ciphertext, "{ssha256}", 9) == 0))

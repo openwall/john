@@ -234,6 +234,7 @@ static void *salt(char *ciphertext)
 	char *p;
 	char *q;
 	static struct custom_salt cs;
+	memset(&cs, 0, sizeof(cs));
 	p = ciphertext;
 	p += (10 + 64 + 1);
 	q = strrchr(ciphertext, '*');

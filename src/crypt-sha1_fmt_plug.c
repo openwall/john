@@ -233,7 +233,7 @@ static void *get_salt(char *ciphertext)
 	static struct saltstruct out;
 	char tmp[sizeof(out.salt)];
 	char *p;
-
+	memset(&out, 0, sizeof(out));
 	p = strrchr(ciphertext, '$') + 1;
 	strnzcpy(tmp, ciphertext, p - ciphertext);
 	out.rounds = strtoul(&ciphertext[sizeof(SHA1_MAGIC)-1], NULL, 10);

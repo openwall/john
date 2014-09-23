@@ -192,6 +192,7 @@ static void * salt(char *ciphertext) {
     char *data = ciphertext, *p;
     int n;
 
+	memset(&salt, 0, sizeof(salt));
     // advance past the $krb5$ string - it was checked for in valid()
     data += strlen(MAGIC_PREFIX);
 
