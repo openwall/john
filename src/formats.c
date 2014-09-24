@@ -343,17 +343,26 @@ static char *fmt_self_test_body(struct fmt_main *format,
 			puts("Warning: salt() returned misaligned pointer");
 			salt_align_warned = 1;
 		}
-		memcpy(salt_copy, salt, format->params.salt_size);
+
 		/* validate that salt() returns cleaned buffer */
 		memset(salt, 0xAF, format->params.salt_size);
 		salt = format->methods.salt(ciphertext);
-		if (!salt_cleaned_warned &&
-			((unsigned char*)salt)[format->params.salt_size-1] == 0xAF &&
-			((unsigned char*)salt)[format->params.salt_size-2] == 0xAF) {
-			// possibly did not clean the salt.
-			puts("Warning: salt() not pre-cleaning buffer");
-			salt_cleaned_warned = 1;
+		if (!salt_cleaned_warned)
+		if (((unsigned char*)salt)[format->params.salt_size-1] == 0xAF)
+		{
+			memset(salt, 0xCC, format->params.salt_size);
+			salt = format->methods.salt(ciphertext);
+			if (((unsigned char*)salt)[format->params.salt_size-1] == 0xCC) {
+				/* possibly did not clean the salt. */
+				puts("Warning: salt() not pre-cleaning buffer");
+				salt_cleaned_warned = 1;
+			}
 		}
+		/* Clean up the mess we might have caused */
+		memset(salt, 0, format->params.salt_size);
+
+		salt = format->methods.salt(ciphertext);
+		memcpy(salt_copy, salt, format->params.salt_size);
 		salt = salt_copy;
 
 		if (strcmp(ciphertext,
