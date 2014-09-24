@@ -108,7 +108,11 @@ static void crk_help(void)
 #endif
 	if ((options.flags & FLG_STDIN_CHK) || (options.flags & FLG_PIPE_CHK))
 		fprintf(stderr, "Press Ctrl-C to abort, "
-		        "or send SIGUSR1 for status\n");
+#ifdef SIGUSR1
+		        "or send SIGUSR1 to john process for status\n");
+#else
+		        "or send SIGHUP to john process for status\n");
+#endif
 	else
 	fprintf(stderr, "Press 'q' or Ctrl-C to abort, "
 	    "almost any other key for status\n");
