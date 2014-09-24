@@ -38,7 +38,8 @@ static int omp_t = 1;
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	125
-#define BINARY_SIZE		32
+#define BINARY_SIZE128		16
+#define BINARY_SIZE256		32
 #define CMP_SIZE		16
 #define SALT_SIZE		0
 #define MIN_KEYS_PER_CRYPT	1
@@ -59,7 +60,7 @@ static struct fmt_tests snefru_256_tests[] = {
 };
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE256 / sizeof(ARCH_WORD_32)];
 
 static void init(struct fmt_main *self)
 {
@@ -250,7 +251,7 @@ struct fmt_main fmt_snefru_256 = {
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
-		BINARY_SIZE,
+		BINARY_SIZE256,
 		BINARY_ALIGN,
 		SALT_SIZE,
 		SALT_ALIGN,
@@ -313,7 +314,7 @@ struct fmt_main fmt_snefru_128 = {
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
-		BINARY_SIZE,
+		BINARY_SIZE128,
 		BINARY_ALIGN,
 		SALT_SIZE,
 		SALT_ALIGN,

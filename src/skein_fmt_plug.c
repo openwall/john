@@ -39,7 +39,8 @@ static int omp_t = 1;
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	125
-#define BINARY_SIZE		64
+#define BINARY_SIZE256		32
+#define BINARY_SIZE512		64
 #define CMP_SIZE		28 // skein224
 #define SALT_SIZE		0
 #define MIN_KEYS_PER_CRYPT	1
@@ -60,7 +61,7 @@ static struct fmt_tests skein_512_tests[] = {
 };
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE512 / sizeof(ARCH_WORD_32)];
 
 static void init(struct fmt_main *self)
 {
@@ -104,7 +105,7 @@ static int valid512(char *ciphertext, struct fmt_main *self)
 static void *get_binary_256(char *ciphertext)
 {
 	static union {
-		unsigned char c[32];
+		unsigned char c[BINARY_SIZE256];
 		ARCH_WORD dummy;
 	} buf;
 	unsigned char *out = buf.c;
@@ -115,7 +116,7 @@ static void *get_binary_256(char *ciphertext)
 		p = strrchr(ciphertext, '$') + 1;
 	else
 		p = ciphertext;
-	for (i = 0; i < 32; i++) {
+	for (i = 0; i < BINARY_SIZE256; i++) {
 		out[i] =
 		    (atoi16[ARCH_INDEX(*p)] << 4) |
 		    atoi16[ARCH_INDEX(p[1])];
@@ -128,7 +129,7 @@ static void *get_binary_256(char *ciphertext)
 static void *get_binary_512(char *ciphertext)
 {
 	static union {
-		unsigned char c[32];
+		unsigned char c[BINARY_SIZE512];
 		ARCH_WORD dummy;
 	} buf;
 	unsigned char *out = buf.c;
@@ -139,7 +140,7 @@ static void *get_binary_512(char *ciphertext)
 		p = strrchr(ciphertext, '$') + 1;
 	else
 		p = ciphertext;
-	for (i = 0; i < 32; i++) {
+	for (i = 0; i < BINARY_SIZE512; i++) {
 		out[i] =
 		    (atoi16[ARCH_INDEX(*p)] << 4) |
 		    atoi16[ARCH_INDEX(p[1])];
@@ -249,7 +250,7 @@ struct fmt_main fmt_skein_256 = {
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
-		BINARY_SIZE,
+		BINARY_SIZE256,
 		BINARY_ALIGN,
 		SALT_SIZE,
 		BINARY_ALIGN,
@@ -312,7 +313,7 @@ struct fmt_main fmt_skein_512 = {
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
-		BINARY_SIZE,
+		BINARY_SIZE512,
 		BINARY_ALIGN,
 		SALT_SIZE,
 		SALT_ALIGN,
