@@ -181,6 +181,7 @@ static void *binary(char *ciphertext)
 	static dummy_binary out;
 	char *decoded;
 
+	memset(&out, 0, sizeof(out));	/* Jumbo only */
 	decoded = decode(ciphertext);
 
 	out.hash = string_hash(decoded);

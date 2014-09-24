@@ -137,6 +137,7 @@ static void *get_binary(char *ciphertext)
 	unsigned char *out = (unsigned char*)outbuf;
 	int i;
 
+	memset(outbuf, 0, sizeof(outbuf));
 	pos = strrchr(ciphertext, '$') + 1;
 
 	for (i = 0; i < 20; i++) {
@@ -285,7 +286,7 @@ struct fmt_main fmt_dragonfly4_32 = {
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
-		BINARY_SIZE,
+		USED_BINARY_SIZE,
 		BINARY_ALIGN,
 		SALT_SIZE_32,
 		SALT_ALIGN,

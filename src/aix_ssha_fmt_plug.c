@@ -237,6 +237,7 @@ static void *get_binary(char *ciphertext)
 	int len = strlen(pos);
 	int i;
 
+	memset(&out, 0, sizeof(out));
 	for (i = 0; i < len/4*3; i += 3)
 		TO_BINARY(i, i + 1, i + 2);
 
@@ -251,7 +252,7 @@ static void *get_binary(char *ciphertext)
 		out.c[i++] = value >> 8;
 		out.c[i++] = value;
 	}
-	
+
 #if !ARCH_LITTLE_ENDIAN
 	{
 		// we need to know if we are using sha1 or sha256  OR a 64 bit (sha384/512)
