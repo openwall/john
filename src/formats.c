@@ -142,7 +142,8 @@ static char *fmt_self_test_body(struct fmt_main *format,
 	char *ciphertext, *plaintext;
 	int i, ntests, done, index, max, size;
 	void *binary, *salt;
-	int binary_align_warned = 0, salt_align_warned = 0, salt_cleaned_warned = 0;
+	int binary_align_warned = 0, salt_align_warned = 0;
+	int salt_cleaned_warned = 0, binary_cleaned_warned = 0;
 #ifndef BENCH_BUILD
 	int dhirutest = 0;
 	int maxlength = 0;
@@ -329,6 +330,25 @@ static char *fmt_self_test_body(struct fmt_main *format,
 			puts("Warning: binary() returned misaligned pointer");
 			binary_align_warned = 1;
 		}
+
+		/* validate that binary() returns cleaned buffer */
+		memset(binary, 0xAF, format->params.binary_size);
+		binary = format->methods.binary(ciphertext);
+		if (!binary_cleaned_warned)
+		if (((unsigned char*)binary)[format->params.binary_size-1] == 0xAF)
+		{
+			memset(binary, 0xCC, format->params.binary_size);
+			binary = format->methods.binary(ciphertext);
+			if (((unsigned char*)binary)[format->params.binary_size-1] == 0xCC) {
+				/* possibly did not clean the binary. */
+				puts("Warning: binary() not pre-cleaning buffer");
+				binary_cleaned_warned = 1;
+			}
+		}
+		/* Clean up the mess we might have caused */
+		memset(binary, 0, format->params.binary_size);
+
+		binary = format->methods.binary(ciphertext);
 		memcpy(binary_copy, binary, format->params.binary_size);
 		binary = binary_copy;
 
