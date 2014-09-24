@@ -535,7 +535,8 @@ static int ldr_split_line(char **login, char **ciphertext,
 			*ciphertext = prepared;
 			ldr_set_encoding(alt);
 #ifdef HAVE_OPENCL
-			if (options.gpu_devices->count && options.fork)
+			if (options.gpu_devices->count && options.fork &&
+			    strstr(alt->params.label, "-opencl"))
 				*format = alt;
 			else
 #endif
