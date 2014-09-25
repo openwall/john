@@ -111,8 +111,6 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *_salt);
 //This file contains auto-tuning routine(s). Has to be included after formats definitions.
 #include "opencl_autotune.h"
 
-#define GET_MULTIPLE_BIGGER(dividend, divisor)	(divisor) ? (((dividend + divisor - 1) / divisor) * divisor) : (dividend)
-
 static void create_clobj(size_t kpc, struct fmt_main *self)
 {
 	//fprintf(stderr, "%s(%zu)\n", __FUNCTION__, kpc);
@@ -185,7 +183,7 @@ static void init(struct fmt_main *self)
 	         (int)sizeof(host_salt->salt),
 	         (int)sizeof(host_crack->hash));
         opencl_init("$JOHN/kernels/pbkdf1_hmac_sha1_kernel.cl",
-            gpu_id, build_opts);
+                    gpu_id, build_opts);
 
 	crypt_kernel =
 	    clCreateKernel(program[gpu_id], "derive_key", &cl_error);
@@ -197,12 +195,11 @@ static void init(struct fmt_main *self)
 	//Initialize openCL tuning (library) for this format.
 	opencl_init_auto_setup(SEED, ITERATIONS, 4, split_events,
 		warn, 1, self, create_clobj, release_clobj,
-	                       sizeof(pass_t) + sizeof(crack_t), gws_limit);
+	        sizeof(pass_t) + sizeof(crack_t), gws_limit);
 
 	//Auto tune execution from shared/included code.
 	self->methods.crypt_all = crypt_all_benchmark;
-	common_run_auto_tune(self, ITERATIONS, gws_limit,
-		(cpu(device_info[gpu_id]) ? 1000000000 : 10000000000ULL));
+	common_run_auto_tune(self, ITERATIONS, gws_limit, 5000000000ULL);
 	self->methods.crypt_all = crypt_all;
 }
 
@@ -299,19 +296,13 @@ static void *get_binary(char * ciphertext)
 	return (void *)out;
 }
 
-static void opencl_limit_gws(int count)
-{
-	global_work_size =
-	    (count + local_work_size - 1) / local_work_size * local_work_size;
-}
-
 static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
 {
 	int ev = 0, count = *pcount;
 	size_t gws;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
-	gws = GET_MULTIPLE_BIGGER(count, local_work_size);
+	gws = GET_EXACT_MULTIPLE(count, local_work_size);
 	//fprintf(stderr, "%s(%d) lws %zu gws %zu\n", __FUNCTION__, count, local_work_size, gws);
 	/// Copy data to gpu
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in,
@@ -337,13 +328,19 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
 	return count;
 }
 
+static void opencl_limit_gws(int count)
+{
+	global_work_size =
+	    (count + local_work_size - 1) / local_work_size * local_work_size;
+}
+
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
 	size_t gws;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
-	gws = GET_MULTIPLE_BIGGER(count, local_work_size);
+	gws = GET_EXACT_MULTIPLE(count, local_work_size);
 	opencl_limit_gws(count);
 	//fprintf(stderr, "%s(%d) lws %zu gws %zu\n", __FUNCTION__, count, local_work_size, gws);
 
