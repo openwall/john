@@ -132,7 +132,7 @@
 #else
 #  define jtr_fopen fopen
 #endif
-#ifdef __CYGWIN32__
+#if __CYGWIN32__ || _MSC_VER
    extern  FILE *_fopen64 (const char *Fname, const char *type);
 #endif
 
@@ -296,7 +296,9 @@ extern int _exit(int);
 #define __STRICT_ANSI__ 1
 #endif
 
-#if _MSC_VER
+#ifdef _MSC_VER
+#undef inline
+#define inline _inline
 #define strdup _strdup
 #define strupr _strupr
 #define strlwr _strlwr
