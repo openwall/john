@@ -167,7 +167,7 @@ static void create_clobj(size_t gws, struct fmt_main * self)
 	HANDLE_CLERROR(ret_code, "Error creating buffer argument work_area 1");
 
 	work_buffer = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE,
-			sizeof(uint64_t) * (16 * 8) * gws, NULL, &ret_code);
+			sizeof(uint64_t) * (9 * 8) * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating buffer argument work_area 2");
 
 	//Set kernel arguments
