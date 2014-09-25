@@ -32,8 +32,9 @@
 
 /// Start documenting bugs.
 #if amd_vliw5(DEVICE_INFO)
-    #define AMD_STUPID_BUG_1
+    ///#define AMD_STUPID_BUG_1
     ///TODO: can't remove the [unroll]: (at least) AMD driver bug HD 6770.
+    ///Fixed and kept for future reference.
 
     #define AMD_STUPID_BUG_2
     ///TODO: can't use a valid command twice.
@@ -137,15 +138,7 @@ inline void sha512_block(sha512_ctx * ctx) {
 inline void insert_to_buffer_R(sha512_ctx    * ctx,
                                const uint8_t * string,
                                const uint32_t len) { //TODO
-/*
-	uint64_t * p = (uint64_t *) string;
-	clear_buffer(ctx->buffer->mem_64, ctx->buflen, 16);
 
-	for (uint32_t i = 0; i < len; i+=8, p++)
-		APPEND_F(ctx->buffer->mem_64, p[0], ctx->buflen + i);
-
-	ctx->buflen += len;
-*/
     for (uint32_t i = 0; i < len; i++)
         PUT(BUFFER, ctx->buflen + i, string[i]);
 
@@ -155,17 +148,7 @@ inline void insert_to_buffer_R(sha512_ctx    * ctx,
 inline void insert_to_buffer_G(         sha512_ctx    * ctx,
                                __global const uint8_t * string,
                                const uint32_t len) {  //TODO
-/*
-	__global uint64_t * p = (__global uint64_t *) string;
 
-	clear_buffer(ctx->buffer->mem_64, ctx->buflen, 16);
-
-	for (uint32_t i = 0; i < len; i+=8, p++)
-		APPEND_F(ctx->buffer->mem_64, p[0], ctx->buflen + i);
-
-	ctx->buflen += len;
-
-*/
     for (uint32_t i = 0; i < len; i++)
         PUT(BUFFER, ctx->buflen + i, string[i]);
 
