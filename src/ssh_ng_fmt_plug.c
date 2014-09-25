@@ -398,7 +398,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				cracked[index] = 0;
 		}
 		else {  /* new ssh key format handling */
-			unsigned char key[32] = {0};
+			unsigned char key[32+16] = {0};
 			unsigned char out[4096];
 			AES_KEY akey;
 			unsigned char iv[16];
