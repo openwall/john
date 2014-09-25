@@ -1,6 +1,6 @@
 The following changes were made between 1.7.9-jumbo-7 and 1.7.9-jumbo-8:
 
-magnum (726):
+magnum (731):
 	Add a "Section [%s] not found" before outputting the catch-all
 	  --list=?
 	Merge fix
@@ -1285,8 +1285,20 @@ magnum (726):
 	Print a warning when FMT_NOT_EXACT.
 	pkzip: Bugfix for #467. Two early rejection tests had to be disabled.
 	  Hopefully they can be re-enabled by JimF after some tuning.
+	Update CREDITS-jumbo & CHANGES-jumbo.git
+	Fix an old bug with CPstoreUTF8 vs. split hashes and --show. Some
+	  cracked hashes with passwords containing 8-bit characters would be
+	  output as partially uncracked in case CPstoreUTF8 was enabled.
+	SAP B passed salts to loader with possible garbage in the end
+	  (variable length). This lead to loader potentially seeing
+	  "different" salts even though they were the same. Closes #608.
+	It turns out krb5-23 are just NT hashes. Drop the krb5-23 format
+	  (it was a lot slower) and change kdcdump2john.py so it outputs
+	  $NT$ tags for those.
+	Add some alternative addresses for Dhiru to .mailmap so Git knows
+	  he is one same person
 
-Dhiru Kholia (336):
+Dhiru Kholia (337):
 	BONUS: pwsafe format also cracks Password Gorilla databases.
 	Integrate psk-crack (from ike-scan) into john.
 	Add support for cracking Nuked-Klan CMS hashes.
@@ -1628,6 +1640,7 @@ Dhiru Kholia (336):
 	fix crash in pdf format
 	clean up dmg stuff a bit
 	Start using Travis CI
+	tweaks required for building on FreeBSD 10 (32-bit)
 
 Claudio André (157):
 	Improvement: pre-compute modulus values.
@@ -1943,7 +1956,7 @@ JimF (64):
 	JtR-Unstable-crash-fix-dyna_21.patch
 	JtR-Unstable-Dyna-big-hash-fixes.patch
 
-Frank Dittrich (53):
+Frank Dittrich (57):
 	Make --list= a little bit more user friendly
 	Bash completion: add support for --list=format-methods[:WHICH]
 	Silence -Wpointer-sign warnings in hmacSHA*_fmt_plug.c, take 2
@@ -2003,6 +2016,12 @@ Frank Dittrich (53):
 	Fix bash completion for formats if --list=hidden-option has
 	  --format=CLASS
 	Bash completion: Workaround for --format=CLASS parsing
+	dynamic_THIN_FORMAT_LINK: use PASSWORD_HASH_SIZES ... to make sure
+	  all the binary_hash[i] and get_hash[i] methods get passed to the
+	  thin formats.
+	benchmark-unify: format name mappings sorted (sort --ignore-case)
+	benchmark-unify: add/change some mappings
+	.mailmap: make sure git maps my commits to my new email address
 
 Sayantan Datta (25):
 	common-opencl.c:Added build from binary
