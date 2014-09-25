@@ -27,8 +27,10 @@ john_register_one(&fmt_asaMD5);
 #define PLAINTEXT_LENGTH        32
 #define CIPHERTEXT_LENGTH       21
 #define BINARY_SIZE             16
+#define BINARY_ALIGN            MEM_ALIGN_WORD
 
-#define SALT_SIZE               0
+#define SALT_SIZE               (sizeof(char*))
+#define SALT_ALIGN              MEM_ALIGN_WORD
 
 static struct fmt_tests tests[] = {
 	{"$dynamic_20$h3mJrcH0901pqX/m$alex","ripper"},
@@ -112,7 +114,7 @@ struct fmt_main fmt_asaMD5 = {
 		// setup the labeling and stuff. NOTE the max and min crypts are set to 1
 		// here, but will be reset within our init() function.
 		FORMAT_LABEL, FORMAT_NAME, ALGORITHM_NAME, BENCHMARK_COMMENT, BENCHMARK_LENGTH,
-		12, BINARY_SIZE, DEFAULT_ALIGN, SALT_SIZE, DEFAULT_ALIGN, 1, 1, FMT_CASE | FMT_8_BIT | FMT_DYNAMIC,
+		12, BINARY_SIZE, BINARY_ALIGN, SALT_SIZE, SALT_ALIGN, 1, 1, FMT_CASE | FMT_8_BIT | FMT_DYNAMIC,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif

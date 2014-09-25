@@ -55,8 +55,11 @@ john_register_one(&fmt_PHPS);
 #define MD5_HEX_SIZE		(MD5_BINARY_SIZE * 2)
 
 #define BINARY_SIZE			MD5_BINARY_SIZE
+#define BINARY_ALIGN		MEM_ALIGN_WORD
 
 #define SALT_SIZE			3
+#define DYNA_SALT_SIZE		(sizeof(char*))
+#define SALT_ALIGN			MEM_ALIGN_WORD
 
 #define PLAINTEXT_LENGTH	32
 #define CIPHERTEXT_LENGTH	(1 + 4 + 1 + SALT_SIZE * 2 + 1 + MD5_HEX_SIZE)
@@ -162,7 +165,7 @@ struct fmt_main fmt_PHPS =
 		// setup the labeling and stuff. NOTE the max and min crypts are set to 1
 		// here, but will be reset within our init() function.
 		FORMAT_LABEL, FORMAT_NAME, ALGORITHM_NAME, BENCHMARK_COMMENT, BENCHMARK_LENGTH,
-		PLAINTEXT_LENGTH, BINARY_SIZE, DEFAULT_ALIGN, SALT_SIZE+1, DEFAULT_ALIGN, 1, 1, FMT_CASE | FMT_8_BIT | FMT_DYNAMIC,
+		PLAINTEXT_LENGTH, BINARY_SIZE, BINARY_ALIGN, DYNA_SALT_SIZE, SALT_ALIGN, 1, 1, FMT_CASE | FMT_8_BIT | FMT_DYNAMIC,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif
