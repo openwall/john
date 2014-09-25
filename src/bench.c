@@ -168,8 +168,7 @@ char *benchmark_format(struct fmt_main *format, int salts,
 	if (!(current = format->params.tests)) return "FAILED (no data)";
 	if ((where = fmt_self_test(format))) {
 		sprintf(s_error, "FAILED (%s)\n", where);
-printf("%s", s_error)		;
-		//return s_error;
+		return s_error;
 	}
 	if (!current->ciphertext && !current->plaintext)  return "FAILED (no data)";
 

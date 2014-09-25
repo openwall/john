@@ -365,7 +365,7 @@ void kernel_prepare(__global   sha512_salt     * salt,
     //Preload and prepare the temp buffer.
     for (int i = 0; i < 8; i++) {
 	uint32_t total = 0;
-	int j = get_generator(i);
+	uint32_t j = get_generator(i);
 	__global uint64_t * buf = &work_memory[(gid * (9 * 8)) + (i * 9)];
 
 	for (int k = 0; k < 8; k++)
@@ -483,6 +483,7 @@ inline void sha512_crypt(const uint32_t saltlen, const uint32_t passlen,
     uint64_t	    H[8];
 
     //Transfer host global data to a faster memory space.
+    #pragma unroll
     for (int i = 0; i < 8; i++)
         H[i] = alt_result[i].mem_64[0];
 
@@ -490,7 +491,8 @@ inline void sha512_crypt(const uint32_t saltlen, const uint32_t passlen,
     for (int i = 0; i < rounds; i++) {
         __global uint64_t * buf = &work_memory[(get_global_id(0) * (9 * 8)) + (index[i] * 9)];
 
-	for (int j = 0; j < 16; j++)
+	#pragma unroll
+	for (int j = 8; j < 16; j++)
 	   w[j] = 0;
 
         if (i & 1) {
@@ -559,6 +561,7 @@ inline void sha512_crypt(const uint32_t saltlen, const uint32_t passlen,
 	sha512_block_be(w, H);
     }
     //Push results back to global memory.
+    #pragma unroll
     for (int i = 0; i < 8; i++)
         alt_result[i].mem_64[0] = H[i];
 }
