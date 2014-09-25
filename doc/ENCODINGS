@@ -66,16 +66,16 @@ Examples:
    you do not have to worry about target encoding at all - any input encoding
    can be used:
 
-   ./john hashfile -form:nt -enc:ansi -wo:german.lst
+   ./john hashfile -form:nt -enc:8859-1 -wo:german.lst
 
-3. Using a UTF-8 wordlist and intermediate encoding:
+3. Using a UTF-8 wordlist and intermediate encoding for rules processing:
 
-   ./john hashfile -enc:utf8 -interm=ansi -wo:french.lst
+   ./john hashfile -enc:utf8 -interm=CP1252 -wo:french.lst -ru
 
-4. Using mask mode to produce all possible "Latin1" words of length 4, first
-   letter upper case:
+4. Using mask mode to produce all possible "Latin-1" words of length 4,
+   first letter upper case:
 
-   ./john hashfile -enc:utf8 -interm=ansi -mask:?u?l?l?l
+   ./john hashfile -enc:utf8 -interm=8859-1 -mask:?u?l?l?l
 
 5. Using the recommended john.conf settings mentioned above:
 
