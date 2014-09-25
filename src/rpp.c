@@ -118,7 +118,7 @@ void rpp_process_rule(struct rpp_context *ctx)
 		saved_input = input + 1;
 		switch (*input) {
 		case 'l':
-			switch (pers_opts.target_enc) {
+			switch (pers_opts.intermediate_enc) {
 			case CP437:
 				input = (unsigned char *)"[a-z"
 					CHARS_LOWER_CP437
@@ -214,7 +214,7 @@ void rpp_process_rule(struct rpp_context *ctx)
 			}
 			break;
 		case 'u':
-			switch (pers_opts.target_enc) {
+			switch (pers_opts.intermediate_enc) {
 			case CP437:
 				input = (unsigned char *)"[A-Z"
 					CHARS_UPPER_CP437
@@ -310,7 +310,7 @@ void rpp_process_rule(struct rpp_context *ctx)
 			}
 			break;
 		case 'd':
-			switch (pers_opts.target_enc) {
+			switch (pers_opts.intermediate_enc) {
 			case CP437:
 				input = (unsigned char *)"[0-9"
 					CHARS_DIGITS_CP437 "]";
@@ -376,7 +376,7 @@ void rpp_process_rule(struct rpp_context *ctx)
 			}
 			break;
 		case 's':
-			switch (pers_opts.target_enc) {
+			switch (pers_opts.intermediate_enc) {
 			case CP437:
 				input = (unsigned char *)"[ -/:-@[-`{-~"
 					CHARS_PUNCTUATION_CP437
@@ -481,7 +481,7 @@ void rpp_process_rule(struct rpp_context *ctx)
 			input = (unsigned char *)"[ -~]";
 			break;
 		case 'A':
-			switch (pers_opts.target_enc) {
+			switch (pers_opts.intermediate_enc) {
 			case CP437:
 				input = (unsigned char *)"[ -"
 					CHARS_ALPHA_CP437

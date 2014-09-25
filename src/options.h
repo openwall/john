@@ -308,11 +308,11 @@ struct pers_opts {
 	int target_enc;
 
 /* If different from target_enc, this is an intermediate encoding only
-   used within rules processing. This is only applicable for the case
-   "UTF-8 -> rules -> UTF-8". Since the rules engine can't do proper case
-   conversion etc. in UTF-8, we can pick this intermediate encoding (use
-   one that matches most input) but the double conversions may come with
-   a speed penalty. */
+   used within rules/mask processing. This is only applicable for the case
+   "UTF-8 -> rules -> UTF-8" or "mask -> UTF-8". Since the rules engine can't
+   do proper case conversion etc. in UTF-8, we can pick this intermediate
+   encoding (use one that matches most input) but the double conversions may
+   come with a speed penalty. */
 	int intermediate_enc;
 
 /* Store UTF-8 in pot file. Default is no conversion. */

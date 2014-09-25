@@ -23,6 +23,7 @@
 #include "cracker.h"
 #include "john.h"
 #include "mask.h"
+#include "unicode.h"
 
 #include "memdbg.h"
 
@@ -81,6 +82,17 @@ static void fix_state(void)
 {
 	rec_seq = seq;
 	rec_ctx = ctx;
+}
+
+static char* mask_cp_to_utf8(char *in)
+{
+	static char out[PLAINTEXT_BUFFER_SIZE + 1];
+
+	if (pers_opts.intermediate_enc != UTF_8 &&
+	    pers_opts.intermediate_enc != pers_opts.target_enc)
+		return cp_to_utf8_r(in, out, PLAINTEXT_BUFFER_SIZE);
+
+	return in;
 }
 
 void do_mask_crack(struct db_main *db, char *mask)
@@ -145,6 +157,7 @@ void do_mask_crack(struct db_main *db, char *mask)
 				their_words = options.node_count - my_words;
 			}
 		}
+		word = mask_cp_to_utf8(word);
 		if (ext_filter(word))
 			if (crk_process_key(word))
 				break;

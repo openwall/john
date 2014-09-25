@@ -84,7 +84,7 @@ static struct opt_entry opt_list[] = {
 	{"intermediate-encoding", FLG_SECOND_ENC, FLG_SECOND_ENC,
 		0, 0, OPT_FMT_STR_ALLOC, &intermediate_enc_str},
 	{"target-encoding", FLG_SECOND_ENC, FLG_SECOND_ENC,
-		0, FLG_STDOUT, OPT_FMT_STR_ALLOC, &target_enc_str},
+		0, 0, OPT_FMT_STR_ALLOC, &target_enc_str},
 	{"stdin", FLG_STDIN_SET, FLG_CRACKING_CHK},
 #if HAVE_WINDOWS_H
 	{"pipe", FLG_PIPE_SET, FLG_CRACKING_CHK,

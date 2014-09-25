@@ -783,7 +783,7 @@ static void john_load_conf_db(void)
 		/* john.conf alternative for --intermediate-encoding */
 		if (!pers_opts.intermediate_enc &&
 		    pers_opts.target_enc == UTF_8 && options.flags &
-		    (FLG_RULES | FLG_SINGLE_CHK | FLG_BATCH_CHK))
+		    (FLG_RULES | FLG_SINGLE_CHK | FLG_BATCH_CHK | FLG_MASK_CHK))
 			pers_opts.intermediate_enc = cp_name2id(
 				cfg_get_param(SECTION_OPTIONS, NULL,
 				              "DefaultIntermediateEncoding"));
@@ -859,19 +859,19 @@ static void john_load_conf_db(void)
 	if (!(options.flags & FLG_SHOW_CHK) && !options.loader.showuncracked)
 	if (pers_opts.input_enc != pers_opts.intermediate_enc) {
 		if (pers_opts.intermediate_enc == pers_opts.target_enc) {
-			log_event("- Rules engine using %s for Unicode",
+			log_event("- Rules/masks using %s for Unicode",
 			          cp_id2name(pers_opts.intermediate_enc));
 			if (john_main_process &&
 			    (database.format->params.flags & FMT_UNICODE))
-				fprintf(stderr, "Rules engine using %s for "
+				fprintf(stderr, "Rules/masks using %s for "
 				        "Unicode\n",
 				        cp_id2name(pers_opts.intermediate_enc));
 		} else {
-			log_event("- Rules engine using %s as intermediate "
+			log_event("- Rules/masks using %s as intermediate "
 			          "encoding for Unicode",
 			          cp_id2name(pers_opts.intermediate_enc));
 			if (john_main_process)
-				fprintf(stderr, "Rules engine using %s as "
+				fprintf(stderr, "Rules/masks using %s as "
 				        "intermediate encoding for Unicode\n",
 				        cp_id2name(pers_opts.intermediate_enc));
 		}
@@ -915,7 +915,7 @@ static void john_load(void)
 		memset(&dummy_format, 0, sizeof(dummy_format));
 		dummy_format.params.plaintext_length = options.length;
 		dummy_format.params.flags = FMT_CASE | FMT_8_BIT;
-		if (pers_opts.report_utf8)
+		if (pers_opts.report_utf8 || pers_opts.target_enc == UTF_8)
 			dummy_format.params.flags |= FMT_UTF8;
 		dummy_format.params.label = "stdout";
 		dummy_format.methods.clear_keys = &fmt_default_clear_keys;
