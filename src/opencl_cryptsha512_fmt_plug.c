@@ -34,10 +34,10 @@ john_register_one(&fmt_opencl_cryptsha512);
 #define OCL_CONFIG			"sha512crypt"
 
 //Checks for source code to pick (parameters, sizes, kernels to execute, etc.)
-#define _USE_CPU_SOURCE			(cpu(source_in_use))
-#define _USE_GPU_SOURCE			(gpu(source_in_use))
-#define _SPLIT_KERNEL_IN_USE		(gpu(source_in_use))
-#define _USE_LOCAL_SOURCE		(use_local(source_in_use) || gpu(source_in_use))
+#define _USE_CPU_SOURCE			0//(cpu(source_in_use))
+#define _USE_GPU_SOURCE			1//(gpu(source_in_use))
+#define _SPLIT_KERNEL_IN_USE		1//(gpu(source_in_use))
+#define _USE_LOCAL_SOURCE		1//(use_local(source_in_use) || gpu(source_in_use))
 
 static sha512_salt			* salt;
 static sha512_password	 		* plaintext;			// plaintext ciphertexts
@@ -46,7 +46,7 @@ static sha512_hash			* calculated_hash;		// calculated hashes
 static cl_mem salt_buffer;		//Salt information.
 static cl_mem pass_buffer;		//Plaintext buffer.
 static cl_mem hash_buffer;		//Hash keys (output).
-static cl_mem work_buffer;		//Temporary buffer
+static cl_mem work_buffer, tmp_buffer;	//Temporary buffers
 static cl_mem pinned_saved_keys, pinned_partial_hashes;
 
 static cl_kernel prepare_kernel, final_kernel;
@@ -120,7 +120,8 @@ static size_t get_task_max_size(){
 
 static size_t get_default_workgroup(){
 
-	return get_task_max_work_group_size();
+    return 1;
+	//return get_task_max_work_group_size();
 }
 
 /* ------- Create and destroy necessary objects ------- */
@@ -161,9 +162,13 @@ static void create_clobj(size_t gws, struct fmt_main * self)
 			sizeof(sha512_hash) * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_out");
 
+	tmp_buffer = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE,
+			sizeof(buffer_64) * 8 * gws, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating buffer argument work_area 1");
+
 	work_buffer = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE,
-			sizeof(sha512_buffers) * gws, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating buffer argument work_area");
+			sizeof(uint64_t) * (9 * 8) * gws, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating buffer argument work_area 2");
 
 	//Set kernel arguments
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(cl_mem),
@@ -180,21 +185,27 @@ static void create_clobj(size_t gws, struct fmt_main * self)
 		HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 1, sizeof(cl_mem),
 			(void *) &pass_buffer), "Error setting argument 1");
 		HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 2, sizeof(cl_mem),
-			(void *) &work_buffer), "Error setting argument 2");
+			(void *) &tmp_buffer), "Error setting argument 2");
+		HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 3, sizeof(cl_mem),
+			(void *) &work_buffer), "Error setting argument 3");
 
 		//Set crypt kernel arguments
 		HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(cl_mem),
-			(void *) &work_buffer), "Error setting argument crypt_kernel (3)");
+			(void *) &tmp_buffer), "Error setting argument crypt_kernel (3)");
+		HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 4, sizeof(cl_mem),
+			(void *) &work_buffer), "Error setting argument crypt_kernel (4)");
 
 		//Set final kernel arguments
 		HANDLE_CLERROR(clSetKernelArg(final_kernel, 0, sizeof(cl_mem),
-				(void *) &salt_buffer), "Error setting argument 0");
+			(void *) &salt_buffer), "Error setting argument 0");
 		HANDLE_CLERROR(clSetKernelArg(final_kernel, 1, sizeof(cl_mem),
-				(void *) &pass_buffer), "Error setting argument 1");
+			(void *) &pass_buffer), "Error setting argument 1");
 		HANDLE_CLERROR(clSetKernelArg(final_kernel, 2, sizeof(cl_mem),
-				(void *) &hash_buffer), "Error setting argument 2");
+			(void *) &hash_buffer), "Error setting argument 2");
 		HANDLE_CLERROR(clSetKernelArg(final_kernel, 3, sizeof(cl_mem),
-				(void *) &work_buffer), "Error setting argument 3");
+			(void *) &tmp_buffer), "Error setting argument 3");
+		HANDLE_CLERROR(clSetKernelArg(final_kernel, 4, sizeof(cl_mem),
+			(void *) &work_buffer), "Error setting argument crypt_kernel (4)");
 	}
 	memset(plaintext, '\0', sizeof(sha512_password) * gws);
 }
@@ -216,6 +227,8 @@ static void release_clobj(void) {
 	HANDLE_CLERROR(ret_code, "Error Releasing buffer_keys");
 	ret_code = clReleaseMemObject(hash_buffer);
 	HANDLE_CLERROR(ret_code, "Error Releasing buffer_out");
+	ret_code = clReleaseMemObject(tmp_buffer);
+	HANDLE_CLERROR(ret_code, "Error Releasing tmp_buffer");
 	ret_code = clReleaseMemObject(work_buffer);
 	HANDLE_CLERROR(ret_code, "Error Releasing work_out");
 
@@ -325,7 +338,7 @@ static void init(struct fmt_main * self) {
 	if ((tmp_value = getenv("_TYPE")))
 		source_in_use = atoi(tmp_value);
 
-	if (amd_gcn(source_in_use))
+	if (0 && amd_gcn(source_in_use))
 		task = "$JOHN/kernels/cryptsha512_kernel_GCN.cl";
 	else if (_USE_GPU_SOURCE || _USE_LOCAL_SOURCE)
 		task = "$JOHN/kernels/cryptsha512_kernel_GPU.cl";
@@ -336,7 +349,7 @@ static void init(struct fmt_main * self) {
 	opencl_init_auto_setup(STEP, HASH_LOOPS,
 		((_SPLIT_KERNEL_IN_USE) ? split_events : NULL),
 		warn, 1, self, create_clobj, release_clobj,
-		sizeof(sha512_password), 0);
+		sizeof(uint64_t) * 9 * 8 , 0);
 
 	if (source_in_use != device_info[gpu_id])
 		fprintf(stderr, "Selected runtime id %d, source (%s)\n", source_in_use, task);
