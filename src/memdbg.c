@@ -221,7 +221,7 @@ void MemDbg_Display(FILE *fp) {
 				unsigned i;
 				char *cp = ((char*)p)+RESERVE_SZ;
 				fprintf(fp, " INVALID (buffer overflow) tail of block: ");
-				cp = p->mdbg_hdr2->mdbg_fpst;
+				cp = (char*)p->mdbg_hdr2->mdbg_fpst;
 				cp -= 16;
 				for (i = 0; i < 20; ++i) {
 					if(*cp < ' ' || *cp > '~')
@@ -763,7 +763,9 @@ void MEMDBG_checkSnapshot_possible_exit_on_error(MEMDBG_HANDLE h, int exit_on_an
 		p = p->mdbg_next;
 	}
 	MemDbg_Validate_msg2(3, "MEMDBG_checkSnapshot", 0);
-
+	if (leak) {
+		exit(1);
+	}
 }
 /* MUST be thread safe */
 void MEMDBG_tag_mem_from_alloc_tiny(void *ptr) {
