@@ -343,38 +343,45 @@ void kernel_prepare(__global   sha512_salt     * salt,
     for (int i = 0; i < 8; i++) {
 	uint32_t total = 0;
 	uint32_t j = generator_index[i];
-	__global uint64_t * buf = &work_memory[(gid * (9 * 8)) + (i * 9)];
 
 	for (int k = 0; k < 8; k++)
-	   buf[k] = 0;
+	   work_memory[OFFSET(i, k)] = 0;
 
         if (j & 1) {
-	    buf[0] = fast_buffers.p_sequence[0].mem_64[0];
-	    buf[1] = fast_buffers.p_sequence[1].mem_64[0];
-	    buf[2] = fast_buffers.p_sequence[2].mem_64[0];
+	    work_memory[OFFSET(i, 0)] = fast_buffers.p_sequence[0].mem_64[0];
+	    work_memory[OFFSET(i, 1)] = fast_buffers.p_sequence[1].mem_64[0];
+	    work_memory[OFFSET(i, 2)] = fast_buffers.p_sequence[2].mem_64[0];
             total += keys_buffer[gid].length;
         }
 
         if (j % 3) {
-	    APPEND_BE(buf, fast_buffers.temp_result[0].mem_64[0], total);
-	    APPEND_BE(buf, fast_buffers.temp_result[1].mem_64[0], total + 8);
+	    APPEND_BE_SPECIAL(work_memory, fast_buffers.temp_result[0].mem_64[0],
+		i, total);
+	    APPEND_BE_SPECIAL(work_memory, fast_buffers.temp_result[1].mem_64[0],
+		i, total + 8);
             total += salt->length;
         }
 
         if (j % 7) {
-	    APPEND_BE(buf, fast_buffers.p_sequence[0].mem_64[0], total);
-	    APPEND_BE(buf, fast_buffers.p_sequence[1].mem_64[0], total + 8);
-	    APPEND_BE_F_8(buf, fast_buffers.p_sequence[2].mem_64[0], total + 16);
+	    APPEND_BE_SPECIAL(work_memory, fast_buffers.p_sequence[0].mem_64[0],
+		i, total);
+	    APPEND_BE_SPECIAL(work_memory, fast_buffers.p_sequence[1].mem_64[0],
+		i, total + 8);
+	    APPEND_BE_SPECIAL(work_memory, fast_buffers.p_sequence[2].mem_64[0],
+		i, total + 16);
             total += keys_buffer[gid].length;
         }
 
         if (! (j & 1)) {
-	    APPEND_BE(buf, fast_buffers.p_sequence[0].mem_64[0], total);
-	    APPEND_BE(buf, fast_buffers.p_sequence[1].mem_64[0], total + 8);
-	    APPEND_BE_F_8(buf, fast_buffers.p_sequence[2].mem_64[0], total + 16);
+	    APPEND_BE_SPECIAL(work_memory, fast_buffers.p_sequence[0].mem_64[0],
+		i, total);
+	    APPEND_BE_SPECIAL(work_memory, fast_buffers.p_sequence[1].mem_64[0],
+		i, total + 8);
+	    APPEND_BE_SPECIAL(work_memory, fast_buffers.p_sequence[2].mem_64[0],
+		i, total + 16);
             total += keys_buffer[gid].length;
         }
-	buf[8] = total;
+	work_memory[OFFSET(i, 8)] = total;
     }
 }
 
@@ -466,22 +473,21 @@ inline void sha512_crypt(const uint32_t saltlen, const uint32_t passlen,
 
     /* Repeatedly run the collected hash value through SHA512 to burn cycles. */
     for (int i = 0; i < rounds; i++) {
-        __global uint64_t * buf = &work_memory[(get_global_id(0) * (9 * 8)) + (loop_index[i] * 9)];
 
 	#pragma unroll
 	for (int j = 8; j < 16; j++)
 	   w[j] = 0;
-
+//printf("V: id %d, size %d, calc %d\n", get_global_id(0), get_global_size(0), (get_global_id(0) + get_global_size(0) * 8)); return;
         if (i & 1) {
-            w[0] = buf[0];
-            w[1] = buf[1];
-            w[2] = buf[2];
-            w[3] = buf[3];
-            w[4] = buf[4];
-            w[5] = buf[5];
-            w[6] = buf[6];
-            w[7] = buf[7];
-            total = buf[8];
+            w[0] = work_memory[OFFSET(loop_index[i], 0)];
+            w[1] = work_memory[OFFSET(loop_index[i], 1)];
+            w[2] = work_memory[OFFSET(loop_index[i], 2)];
+            w[3] = work_memory[OFFSET(loop_index[i], 3)];
+            w[4] = work_memory[OFFSET(loop_index[i], 4)];
+            w[5] = work_memory[OFFSET(loop_index[i], 5)];
+            w[6] = work_memory[OFFSET(loop_index[i], 6)];
+            w[7] = work_memory[OFFSET(loop_index[i], 7)];
+            total = work_memory[OFFSET(loop_index[i], 8)];
 
             APPEND_BE(w, H[0], total);
             APPEND_BE(w, H[1], total + 8);
@@ -490,7 +496,7 @@ inline void sha512_crypt(const uint32_t saltlen, const uint32_t passlen,
             APPEND_BE(w, H[4], total + 32);
             APPEND_BE(w, H[5], total + 40);
             APPEND_BE(w, H[6], total + 48);
-            APPEND_BE_F_16(w, H[7], total + 56);
+            APPEND_BE_F(w, H[7], total + 56);
             total += 64;
 
         } else {
@@ -502,15 +508,15 @@ inline void sha512_crypt(const uint32_t saltlen, const uint32_t passlen,
             w[5] = H[5];
             w[6] = H[6];
             w[7] = H[7];
-	    w[8] = buf[0];
-	    w[9] = buf[1];
-	    w[10] = buf[2];
-	    w[11] = buf[3];
-	    w[12] = buf[4];
-	    w[13] = buf[5];
-	    w[14] = buf[6];
-	    w[15] = buf[7];
-            total = 64 + buf[8];
+	    w[8] = work_memory[OFFSET(loop_index[i], 0)];
+	    w[9] = work_memory[OFFSET(loop_index[i], 1)];
+	    w[10] = work_memory[OFFSET(loop_index[i], 2)];
+	    w[11] = work_memory[OFFSET(loop_index[i], 3)];
+	    w[12] = work_memory[OFFSET(loop_index[i], 4)];
+	    w[13] = work_memory[OFFSET(loop_index[i], 5)];
+	    w[14] = work_memory[OFFSET(loop_index[i], 6)];
+	    w[15] = work_memory[OFFSET(loop_index[i], 7)];
+            total = 64 + work_memory[OFFSET(loop_index[i], 8)];
         }
         //Initialize CTX.
 	H[0] = H0;

@@ -16,7 +16,6 @@
 
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
-#define WORK_SIZE		512
 
 //Macros.
 #define SWAP(n) \
@@ -122,6 +121,12 @@ __constant uint64_t clear_mask[] = {
     0xffffffffffffffffUL                            //64    bits
 };
 
+#define OFFSET(index, position) 		   \
+    (get_global_id(0) +				   \
+	    (get_global_size(0) *		   \
+	    (index * 9 + position))		   \
+    )
+
 #define CLEAR_BUFFER_64(dest, start) {             \
     uint32_t tmp, pos;                             \
     tmp = (uint32_t) (start & 7);                  \
@@ -139,14 +144,6 @@ __constant uint64_t clear_mask[] = {
     pos = (uint32_t) (start >> 3);                 \
     dest[pos] = dest[pos] & clear_mask[tmp];       \
 }
-//TODO
-#define APPEND(dest, src, start) {                 \
-    uint32_t tmp, pos;                             \
-    tmp = (uint32_t) ((start & 7) << 3);           \
-    pos = (uint32_t) (start >> 3);                 \
-    dest[pos]   = (dest[pos] | (src << tmp));      \
-    dest[pos+1] = (tmp == 0 ? (uint64_t) 0 : (src >> (64 - tmp)));  \
-}
 
 #define APPEND_BE(dest, src, start) {              \
     uint32_t tmp, pos;                             \
@@ -163,6 +160,19 @@ __constant uint64_t clear_mask[] = {
     dest[pos]   = (dest[pos] | (src >> tmp));      \
 }
 
+#define APPEND_BE_SPECIAL(dest, src, index, start) {\
+    uint32_t tmp, pos, offset;                     \
+    tmp = (uint32_t) ((start & 7) << 3);           \
+    pos = (uint32_t) (start >> 3);		   \
+    offset = (uint32_t) OFFSET(index, pos);		   \
+    dest[offset] = (dest[offset] | (src >> tmp));			       \
+    if (pos < 7) {							       \
+	pos++;								       \
+	offset = (uint32_t) OFFSET(index, pos);				       \
+	dest[offset] = (tmp == 0 ? (uint64_t) 0 : (src << (64 - tmp)));        \
+    }									       \
+}
+
 #define APPEND_F(dest, src, start) {               \
     uint32_t tmp, pos;                             \
     tmp = (uint32_t) ((start & 7) << 3);           \
@@ -172,21 +182,12 @@ __constant uint64_t clear_mask[] = {
        dest[pos+1] = (tmp == 0 ? (uint64_t) 0 : (src >> (64 - tmp)));  \
 }
 
-#define APPEND_BE_F_16(dest, src, start) {         \
+#define APPEND_BE_F(dest, src, start) {            \
     uint32_t tmp, pos;                             \
     tmp = (uint32_t) ((start & 7) << 3);           \
     pos = (uint32_t) (start >> 3);                 \
     dest[pos]   = (dest[pos] | (src >> tmp));      \
     if (pos < 15)                                  \
-       dest[pos+1] = (tmp == 0 ? (uint64_t) 0 : (src << (64 - tmp)));  \
-}
-
-#define APPEND_BE_F_8(dest, src, start) {          \
-    uint32_t tmp, pos;                             \
-    tmp = (uint32_t) ((start & 7) << 3);           \
-    pos = (uint32_t) (start >> 3);                 \
-    dest[pos]   = (dest[pos] | (src >> tmp));      \
-    if (pos < 8)                                   \
        dest[pos+1] = (tmp == 0 ? (uint64_t) 0 : (src << (64 - tmp)));  \
 }
 #endif
