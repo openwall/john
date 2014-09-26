@@ -64,7 +64,8 @@ static unsigned int seq, rec_seq;
  * [[ab][c], parsed as two separate ranges [[ab] and [c]
  * [[ab][, error, sets parse_ok to 0.
  */
-static void parse_braces(char *mask, parsed_ctx *parsed_mask) {
+static void parse_braces(char *mask, parsed_ctx *parsed_mask)
+{
 
 	int i, j ,k;
 	int cl_br_enc;
@@ -115,7 +116,8 @@ static void parse_braces(char *mask, parsed_ctx *parsed_mask) {
  * -if ? is immediately followed by the identifier such as
  * ?a for all printable ASCII.
  */
-static void parse_qtn(char *mask, parsed_ctx *parsed_mask) {
+static void parse_qtn(char *mask, parsed_ctx *parsed_mask)
+{
 	int i, j, k;
 
 	for (i = 0; i < MAX_NUM_MASK_PLHDR; i++)
@@ -140,7 +142,8 @@ static void parse_qtn(char *mask, parsed_ctx *parsed_mask) {
 	}
 }
 
-static int search_stack(parsed_ctx *parsed_mask, int loc) {
+static int search_stack(parsed_ctx *parsed_mask, int loc)
+{
 	int t;
 
 	for (t = 0; load_op(t) != -1; t++)
@@ -157,7 +160,8 @@ static int search_stack(parsed_ctx *parsed_mask, int loc) {
  * Maps the postion of a range in a mask to its actual postion in a key.
  * Offset for wordlist + mask is not taken into account.
  */
-static int calc_pos_in_key(char *mask, parsed_ctx *parsed_mask, int mask_loc) {
+static int calc_pos_in_key(char *mask, parsed_ctx *parsed_mask, int mask_loc)
+{
 	int i, ret_pos;
 
 	i = ret_pos = 0;
@@ -172,8 +176,9 @@ static int calc_pos_in_key(char *mask, parsed_ctx *parsed_mask, int mask_loc) {
 }
 
 static void init_cpu_mask(char *mask, parsed_ctx *parsed_mask,
-			  cpu_mask_context *cpu_mask_ctx) {
-	int i, qtn_ctr, op_ctr, cl_ctr ;
+                          cpu_mask_context *cpu_mask_ctx, struct db_main *db)
+{
+	int i, qtn_ctr, op_ctr, cl_ctr;
 
 #define count(i) cpu_mask_ctx->ranges[i].count
 #define swap(a, b) { x = a; a = b; b = x; }
@@ -276,7 +281,12 @@ static void init_cpu_mask(char *mask, parsed_ctx *parsed_mask,
 
 			switch(mask[load_qtn(qtn_ctr) + 1]) {
 			case 'a': /* Printable ASCII */
-				add_range(0x20, 0x7e);
+				if (db->format->params.flags & FMT_CASE) {
+					add_range(0x20, 0x7e);
+				} else {
+					add_range(0x20, 0x60);
+					add_range(0x7b, 0x7e);
+				}
 				break;
 			case 'l': /* lower-case letters */
 				add_range('a', 'z');
@@ -544,123 +554,188 @@ static void init_cpu_mask(char *mask, parsed_ctx *parsed_mask,
 			case 'h': /* All high-bit */
 				add_range(0x80, 0xff);
 				break;
-			case 'H': /* All, except 0 which we can't handle */
+			case 'H': /* All, except 0 (which we can't handle) */
 				add_range(0x01, 0xff);
 				break;
 			case 'A': /* All valid chars in codepage */
-				add_range(0x20, 0x7e);
+				if (db->format->params.flags & FMT_CASE) {
+					add_range(0x20, 0x7e);
+				} else {
+					add_range(0x20, 0x60);
+					add_range(0x7b, 0x7e);
+				}
 				switch (pers_opts.internal_enc) {
 				case CP437:
-					add_string(CHARS_ALPHA_CP437
-						CHARS_DIGITS_CP437
-						CHARS_PUNCTUATION_CP437
-						CHARS_SPECIALS_CP437
-						CHARS_WHITESPACE_CP437);
+					if (db->format->params.flags & FMT_CASE) {
+						add_string(CHARS_ALPHA_CP437);
+					} else {
+						add_string(CHARS_UPPER_CP437);
+					}
+					add_string(CHARS_DIGITS_CP437
+					           CHARS_PUNCTUATION_CP437
+					           CHARS_SPECIALS_CP437
+					           CHARS_WHITESPACE_CP437);
 					break;
 				case CP737:
-					add_string(CHARS_ALPHA_CP737
-						CHARS_DIGITS_CP737
-						CHARS_PUNCTUATION_CP737
-						CHARS_SPECIALS_CP737
-						CHARS_WHITESPACE_CP737);
+					if (db->format->params.flags & FMT_CASE) {
+						add_string(CHARS_ALPHA_CP737);
+					} else {
+						add_string(CHARS_UPPER_CP737);
+					}
+					add_string(CHARS_DIGITS_CP737
+					           CHARS_PUNCTUATION_CP737
+					           CHARS_SPECIALS_CP737
+					           CHARS_WHITESPACE_CP737);
 					break;
 				case CP850:
-					add_string(CHARS_ALPHA_CP850
-						CHARS_DIGITS_CP850
-						CHARS_PUNCTUATION_CP850
-						CHARS_SPECIALS_CP850
-						CHARS_WHITESPACE_CP850);
+					if (db->format->params.flags & FMT_CASE) {
+						add_string(CHARS_ALPHA_CP850);
+					} else {
+						add_string(CHARS_UPPER_CP850);
+					}
+					add_string(CHARS_DIGITS_CP850
+					           CHARS_PUNCTUATION_CP850
+					           CHARS_SPECIALS_CP850
+					           CHARS_WHITESPACE_CP850);
 					break;
 				case CP852:
-					add_string(CHARS_ALPHA_CP852
-						CHARS_DIGITS_CP852
-						CHARS_PUNCTUATION_CP852
-						CHARS_SPECIALS_CP852
-						CHARS_WHITESPACE_CP852);
+					if (db->format->params.flags & FMT_CASE) {
+						add_string(CHARS_ALPHA_CP852);
+					} else {
+						add_string(CHARS_UPPER_CP852);
+					}
+					add_string(CHARS_DIGITS_CP852
+					           CHARS_PUNCTUATION_CP852
+					           CHARS_SPECIALS_CP852
+					           CHARS_WHITESPACE_CP852);
 					break;
 				case CP858:
-					add_string(CHARS_ALPHA_CP858
-						CHARS_DIGITS_CP858
-						CHARS_PUNCTUATION_CP858
-						CHARS_SPECIALS_CP858
-						CHARS_WHITESPACE_CP858);
+					if (db->format->params.flags & FMT_CASE) {
+						add_string(CHARS_ALPHA_CP858);
+					} else {
+						add_string(CHARS_UPPER_CP858);
+					}
+					add_string(CHARS_DIGITS_CP858
+					           CHARS_PUNCTUATION_CP858
+					           CHARS_SPECIALS_CP858
+					           CHARS_WHITESPACE_CP858);
 					break;
 				case CP866:
-					add_string(CHARS_ALPHA_CP866
-						CHARS_DIGITS_CP866
-						CHARS_PUNCTUATION_CP866
-						CHARS_SPECIALS_CP866
-						CHARS_WHITESPACE_CP866);
+					if (db->format->params.flags & FMT_CASE) {
+						add_string(CHARS_ALPHA_CP866);
+					} else {
+						add_string(CHARS_UPPER_CP866);
+					}
+					add_string(CHARS_DIGITS_CP866
+					           CHARS_PUNCTUATION_CP866
+					           CHARS_SPECIALS_CP866
+					           CHARS_WHITESPACE_CP866);
 					break;
 				case CP1250:
-					add_string(CHARS_ALPHA_CP1250
-						CHARS_DIGITS_CP1250
-						CHARS_PUNCTUATION_CP1250
-						CHARS_SPECIALS_CP1250
-						CHARS_WHITESPACE_CP1250);
+					if (db->format->params.flags & FMT_CASE) {
+						add_string(CHARS_ALPHA_CP1250);
+					} else {
+						add_string(CHARS_UPPER_CP1250);
+					}
+					add_string(CHARS_DIGITS_CP1250
+					           CHARS_PUNCTUATION_CP1250
+					           CHARS_SPECIALS_CP1250
+					           CHARS_WHITESPACE_CP1250);
 					break;
 				case CP1251:
-					add_string(CHARS_ALPHA_CP1251
-						CHARS_DIGITS_CP1251
-						CHARS_PUNCTUATION_CP1251
-						CHARS_SPECIALS_CP1251
-						CHARS_WHITESPACE_CP1251);
+					if (db->format->params.flags & FMT_CASE) {
+						add_string(CHARS_ALPHA_CP1251);
+					} else {
+						add_string(CHARS_UPPER_CP1251);
+					}
+					add_string(CHARS_DIGITS_CP1251
+					           CHARS_PUNCTUATION_CP1251
+					           CHARS_SPECIALS_CP1251
+					           CHARS_WHITESPACE_CP1251);
 					break;
 				case CP1252:
-					add_string(CHARS_ALPHA_CP1252
-						CHARS_DIGITS_CP1252
-						CHARS_PUNCTUATION_CP1252
-						CHARS_SPECIALS_CP1252
-						CHARS_WHITESPACE_CP1252);
+					if (db->format->params.flags & FMT_CASE) {
+						add_string(CHARS_ALPHA_CP1252);
+					} else {
+						add_string(CHARS_UPPER_CP1252);
+					}
+					add_string(CHARS_DIGITS_CP1252
+					           CHARS_PUNCTUATION_CP1252
+					           CHARS_SPECIALS_CP1252
+					           CHARS_WHITESPACE_CP1252);
 					break;
 				case CP1253:
-					add_string(CHARS_ALPHA_CP1253
-						CHARS_DIGITS_CP1253
-						CHARS_PUNCTUATION_CP1253
-						CHARS_SPECIALS_CP1253
-						CHARS_WHITESPACE_CP1253);
+					if (db->format->params.flags & FMT_CASE) {
+						add_string(CHARS_ALPHA_CP1253);
+					} else {
+						add_string(CHARS_UPPER_CP1253);
+					}
+					add_string(CHARS_DIGITS_CP1253
+					           CHARS_PUNCTUATION_CP1253
+					           CHARS_SPECIALS_CP1253
+					           CHARS_WHITESPACE_CP1253);
 					break;
 				case ISO_8859_1:
-					add_string(CHARS_ALPHA_ISO_8859_1
-						CHARS_DIGITS_ISO_8859_1
-						CHARS_PUNCTUATION_ISO_8859_1
-						CHARS_SPECIALS_ISO_8859_1
-						CHARS_WHITESPACE_ISO_8859_1);
+					if (db->format->params.flags & FMT_CASE) {
+						add_string(CHARS_ALPHA_ISO_8859_1);
+					} else {
+						add_string(CHARS_UPPER_ISO_8859_1);
+					}
+					add_string(CHARS_DIGITS_ISO_8859_1
+					           CHARS_PUNCTUATION_ISO_8859_1
+					           CHARS_SPECIALS_ISO_8859_1
+					           CHARS_WHITESPACE_ISO_8859_1);
 					break;
 				case ISO_8859_2:
-					add_string(CHARS_ALPHA_ISO_8859_2
-						CHARS_DIGITS_ISO_8859_2
-						CHARS_PUNCTUATION_ISO_8859_2
-						CHARS_SPECIALS_ISO_8859_2
-						CHARS_WHITESPACE_ISO_8859_2);
+					if (db->format->params.flags & FMT_CASE) {
+						add_string(CHARS_ALPHA_ISO_8859_2);
+					} else {
+						add_string(CHARS_UPPER_ISO_8859_2);
+					}
+					add_string(CHARS_DIGITS_ISO_8859_2
+					           CHARS_PUNCTUATION_ISO_8859_2
+					           CHARS_SPECIALS_ISO_8859_2
+					           CHARS_WHITESPACE_ISO_8859_2);
 					break;
 				case ISO_8859_7:
-					add_string(CHARS_ALPHA_ISO_8859_7
-						CHARS_DIGITS_ISO_8859_7
-						CHARS_PUNCTUATION_ISO_8859_7
-						CHARS_SPECIALS_ISO_8859_7
-						CHARS_WHITESPACE_ISO_8859_7);
+					if (db->format->params.flags & FMT_CASE) {
+						add_string(CHARS_ALPHA_ISO_8859_7);
+					} else {
+						add_string(CHARS_UPPER_ISO_8859_7);
+					}
+					add_string(CHARS_DIGITS_ISO_8859_7
+					           CHARS_PUNCTUATION_ISO_8859_7
+					           CHARS_SPECIALS_ISO_8859_7
+					           CHARS_WHITESPACE_ISO_8859_7);
 					break;
 				case ISO_8859_15:
-					add_string(CHARS_ALPHA_ISO_8859_15
-						CHARS_DIGITS_ISO_8859_15
-						CHARS_PUNCTUATION_ISO_8859_15
-						CHARS_SPECIALS_ISO_8859_15
-						CHARS_WHITESPACE_ISO_8859_15);
+					if (db->format->params.flags & FMT_CASE) {
+						add_string(CHARS_ALPHA_ISO_8859_15);
+					} else {
+						add_string(CHARS_UPPER_ISO_8859_15);
+					}
+					add_string(CHARS_DIGITS_ISO_8859_15
+					           CHARS_PUNCTUATION_ISO_8859_15
+					           CHARS_SPECIALS_ISO_8859_15
+					           CHARS_WHITESPACE_ISO_8859_15);
 					break;
 				case KOI8_R:
-					add_string(CHARS_ALPHA_KOI8_R
-						CHARS_DIGITS_KOI8_R
-						CHARS_PUNCTUATION_KOI8_R
-						CHARS_SPECIALS_KOI8_R
-						CHARS_WHITESPACE_KOI8_R);
+					if (db->format->params.flags & FMT_CASE) {
+						add_string(CHARS_ALPHA_KOI8_R);
+					} else {
+						add_string(CHARS_UPPER_KOI8_R);
+					}
+					add_string(CHARS_DIGITS_KOI8_R
+					           CHARS_PUNCTUATION_KOI8_R
+					           CHARS_SPECIALS_KOI8_R
+					           CHARS_WHITESPACE_KOI8_R);
 					break;
 				default:
 					add_range(0x80, 0xff);
 				}
 				break;
 /*
- * Note: To add more cases, also append the new symbol to string BUILT_IN_CHARSET.
+ * Note: To add more cases, also append the symbol to string BUILT_IN_CHARSET.
  */
 			default:  fprintf(stderr,
 			                  "Unrecognized placeholder ?%c.\n",
@@ -689,7 +764,8 @@ static void init_cpu_mask(char *mask, parsed_ctx *parsed_mask,
  * Returns the template of the keys corresponding to the mask.
  * Wordlist + mask not taken into account.
  */
-static char* generate_template_key(char *mask, parsed_ctx *parsed_mask) {
+static char* generate_template_key(char *mask, parsed_ctx *parsed_mask)
+{
 	char *template_key = (char*)mem_alloc(0x400);
 	int i, k, t;
 	i = 0, k = 0;
@@ -720,7 +796,8 @@ static MAYBE_INLINE char* mask_cp_to_utf8(char *in)
 }
 
 static void generate_keys(char *template_key, cpu_mask_context *cpu_mask_ctx,
-			  int my_words, int their_words) {
+			  int my_words, int their_words)
+{
 	int i, j, k, ps1 = MAX_NUM_MASK_PLHDR, ps2 = MAX_NUM_MASK_PLHDR,
 	    ps3 = MAX_NUM_MASK_PLHDR, ps;
 	int offset = cpu_mask_ctx->offset, num_active_postions = 0;
@@ -838,7 +915,8 @@ static void generate_keys(char *template_key, cpu_mask_context *cpu_mask_ctx,
 }
 
 /* Skips iteration for postions stored in arr */
-static void skip_position(cpu_mask_context *cpu_mask_ctx, int *arr) {
+static void skip_position(cpu_mask_context *cpu_mask_ctx, int *arr)
+{
 	if (arr != NULL) {
 		int k = 0;
 		while (arr[k] >= 0 && arr[k] < cpu_mask_ctx->count) {
@@ -939,7 +1017,7 @@ void do_mask_crack(struct db_main *db, char *mask)
 		error();
 	}
 
-	init_cpu_mask(mask, &parsed_mask, &cpu_mask_ctx);
+	init_cpu_mask(mask, &parsed_mask, &cpu_mask_ctx, db);
 
 	/*
 	 * Warning: NULL to be raplaced by an array containing information
