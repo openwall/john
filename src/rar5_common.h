@@ -14,6 +14,8 @@
 #define SHA256_DIGEST_SIZE	32
 #define MaxSalt			64
 
+#include "formats.h"
+
 #define  Min(x,y) (((x)<(y)) ? (x):(y))
 
 static struct fmt_tests tests[] = {
@@ -124,6 +126,7 @@ static void *get_binary(char *ciphertext)
 	static union {
 		unsigned char c[BINARY_SIZE];
 		ARCH_WORD dummy;
+		ARCH_WORD_32 swap[1];
 	} buf;
 	unsigned char *out = buf.c;
 	char *p;
@@ -136,7 +139,11 @@ static void *get_binary(char *ciphertext)
 		    atoi16[ARCH_INDEX(p[1])];
 		p += 2;
 	}
-
+#if (ARCH_LITTLE_ENDIAN==0)
+	for (i = 0; i < sizeof(buf.c)/4; ++i) {
+		buf.swap[i] = JOHNSWAP(buf.swap[i]);
+	}
+#endif
 	return out;
 }
 
