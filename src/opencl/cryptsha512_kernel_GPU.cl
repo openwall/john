@@ -479,14 +479,20 @@ inline void sha512_crypt(const uint32_t saltlen, const uint32_t passlen,
             w[7] = work_memory[OFFSET(loop_index[i], 7)];
             total = work_memory[OFFSET(loop_index[i], 8)];
 
-            APPEND_BE(w, H[0], total);
-            APPEND_BE(w, H[1], total + 8);
-            APPEND_BE(w, H[2], total + 16);
-            APPEND_BE(w, H[3], total + 24);
-            APPEND_BE(w, H[4], total + 32);
-            APPEND_BE(w, H[5], total + 40);
-            APPEND_BE(w, H[6], total + 48);
-            APPEND_BE_F(w, H[7], total + 56);
+	    {
+		uint32_t tmp, pos;
+		tmp = ((total & 7) << 3);
+		pos = (total >> 3);
+
+		APPEND_BE_BUFFER(w, H[0]);
+		APPEND_BE_BUFFER(w, H[1]);
+		APPEND_BE_BUFFER(w, H[2]);
+		APPEND_BE_BUFFER(w, H[3]);
+		APPEND_BE_BUFFER(w, H[4]);
+		APPEND_BE_BUFFER(w, H[5]);
+		APPEND_BE_BUFFER(w, H[6]);
+		APPEND_BE_BUFFER_F(w, H[7]);
+	    }
             total += 64;
 
         } else {

@@ -195,6 +195,15 @@ __constant uint64_t clear_mask[] = {
        dest[pos+1] = (tmp == 0 ? (uint64_t) 0 : (src << (64 - tmp)));	       \
 }
 
+#define APPEND_BE_BUFFER(dest, src)				    \
+	dest[pos] = (dest[pos] | (src >> tmp));			    \
+	dest[++pos] = (tmp ? (src << (64 - tmp)) : 0UL);
+
+#define APPEND_BE_BUFFER_F(dest, src) 				    \
+	dest[pos] = (dest[pos] | (src >> tmp));			    \
+	if (pos < 15)						    \
+	    dest[++pos] = (tmp ? (src << (64 - tmp)) : 0UL);	    \
+
 #define APPEND_F(dest, src, start) {               \
     uint32_t tmp, pos;                             \
     tmp = ((start & 7) << 3);                      \
