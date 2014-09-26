@@ -77,7 +77,7 @@ __constant uint32_t clear_mask[] = {
     0xffffffffUL				//32    bits
 };
 
-#define CLEAR_BUFFER_32_FAST(dest, start) {	\
+#define CLEAR_BUFFER_32_SINGLE(dest, start) {	\
     uint32_t tmp, pos;				\
     tmp = (uint32_t) (start & 3);		\
     pos = (uint32_t) (start >> 2);		\
@@ -101,6 +101,13 @@ __constant uint32_t clear_mask[] = {
     pos = (uint32_t) (start >> 2);		\
     dest[pos]   = (dest[pos] | (src << tmp));	\
     dest[pos+1] = (tmp == 0 ? (uint32_t) 0 : (src >> (32 - tmp)));  \
+}
+
+#define APPEND_SINGLE(dest, src, start) {	\
+    uint32_t tmp, pos;				\
+    tmp = (uint32_t) (start & 3) << 3;		\
+    pos = (uint32_t) (start >> 2);		\
+    dest[pos]   = (dest[pos] | (src << tmp));	\
 }
 #endif
 

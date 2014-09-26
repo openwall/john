@@ -161,16 +161,25 @@ __constant uint64_t clear_mask[] = {
 }
 
 #define APPEND_BE_SPECIAL(dest, src, index, start) {\
-    uint32_t tmp, pos, offset;                     \
-    tmp = (uint32_t) ((start & 7) << 3);           \
-    pos = (uint32_t) (start >> 3);		   \
-    offset = (uint32_t) OFFSET(index, pos);		   \
+    uint32_t tmp, pos, offset;                      \
+    tmp = (uint32_t) ((start & 7) << 3);            \
+    pos = (uint32_t) (start >> 3);		    \
+    offset = (uint32_t) OFFSET(index, pos);         \
     dest[offset] = (dest[offset] | (src >> tmp));			       \
     if (pos < 7) {							       \
 	pos++;								       \
 	offset = (uint32_t) OFFSET(index, pos);				       \
 	dest[offset] = (tmp == 0 ? (uint64_t) 0 : (src << (64 - tmp)));        \
     }									       \
+}
+
+#define APPEND_BE_F(dest, src, start) {            \
+    uint32_t tmp, pos;                             \
+    tmp = (uint32_t) ((start & 7) << 3);           \
+    pos = (uint32_t) (start >> 3);                 \
+    dest[pos]   = (dest[pos] | (src >> tmp));      \
+    if (pos < 15)                                  \
+       dest[pos+1] = (tmp == 0 ? (uint64_t) 0 : (src << (64 - tmp)));  \
 }
 
 #define APPEND_F(dest, src, start) {               \
@@ -182,13 +191,11 @@ __constant uint64_t clear_mask[] = {
        dest[pos+1] = (tmp == 0 ? (uint64_t) 0 : (src >> (64 - tmp)));  \
 }
 
-#define APPEND_BE_F(dest, src, start) {            \
+#define APPEND_SINGLE(dest, src, start) {          \
     uint32_t tmp, pos;                             \
     tmp = (uint32_t) ((start & 7) << 3);           \
     pos = (uint32_t) (start >> 3);                 \
-    dest[pos]   = (dest[pos] | (src >> tmp));      \
-    if (pos < 15)                                  \
-       dest[pos+1] = (tmp == 0 ? (uint64_t) 0 : (src << (64 - tmp)));  \
+    dest[pos]   = (dest[pos] | (src << tmp));      \
 }
 #endif
 

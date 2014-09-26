@@ -477,7 +477,7 @@ inline void sha512_crypt(const uint32_t saltlen, const uint32_t passlen,
 	#pragma unroll
 	for (int j = 8; j < 16; j++)
 	   w[j] = 0;
-//printf("V: id %d, size %d, calc %d\n", get_global_id(0), get_global_size(0), (get_global_id(0) + get_global_size(0) * 8)); return;
+
         if (i & 1) {
             w[0] = work_memory[OFFSET(loop_index[i], 0)];
             w[1] = work_memory[OFFSET(loop_index[i], 1)];
