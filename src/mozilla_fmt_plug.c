@@ -199,7 +199,7 @@ static void *get_salt(char *ciphertext)
 	char *keeptr = ctcopy;
 	static struct custom_salt cs;
 	memset(&cs, 0, sizeof(cs));
-	ctcopy += 9;	/* skip over "$vnc$*" */
+	ctcopy += 9;	/* skip over "$mozilla$*" */
 	p = strtok(ctcopy, "*");
 	cs.keyCrackData.version = atoi(p);
 	p = strtok(NULL, "*");
