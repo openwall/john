@@ -30,16 +30,6 @@
     #define MEDIUM_UNROLL	1
 #endif
 
-/// Start documenting bugs.
-#if amd_vliw5(DEVICE_INFO)
-    ///#define AMD_STUPID_BUG_1
-    ///TODO: can't remove the [unroll]: (at least) AMD driver bug HD 6770.
-    ///Fixed and kept for future reference.
-
-    #define AMD_STUPID_BUG_2
-    ///TODO: can't use a valid command twice.
-#endif
-
 /************************** prepare **************************/
 inline void init_ctx(sha512_ctx * ctx) {
     ctx->H[0] = H0;
