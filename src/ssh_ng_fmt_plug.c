@@ -262,7 +262,7 @@ static inline int check_padding_only(unsigned char *out, int length)
 	pad = out[length - 1];
 	if(pad > 16 || length < 16)
 		return -1;
-	if (pad < 4) { // XXX is this possible? if yes, will killing this result in too many false positive?
+	if (pad < 4) { // XXX is this possible? if yes, will killing this result in too many false positives?
 		return -1;
 	}
 	for(i = length - 1; i > pad; i--) // check for 0102030405060708090a like sequence
@@ -399,10 +399,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		}
 		else {  /* new ssh key format handling */
 			unsigned char key[32+16] = {0};
-			unsigned char out[4096];
+			unsigned char out[32] = {0};
 			AES_KEY akey;
 			unsigned char iv[16];
-			memset(out, 0, 4096);
 			// derive (key length + iv length) bytes
 			bcrypt_pbkdf(saved_key[index], strlen(saved_key[index]), cur_salt->salt, 16, key, 32 + 16, cur_salt->rounds);
 			AES_set_decrypt_key(key, 256, &akey);
