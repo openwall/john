@@ -26,24 +26,24 @@ MS-DOS codepage like CP850. This can be specified by using the option
 Finally, there's the special case where both input (wordlist) and output (eg.
 hashes from a website) are UTF-8 but you want to use rules including eg. upper
 or lower-casing non-ASCII characters. In this case you can use an intermediate
-encoding (--intermediate-encoding option) and pick some codepage that can
+encoding (--internal-encoding option) and pick some codepage that can
 shelter as much of the needed input as possible. For US/Western Europe, any
 "Latin-1" codepage will do fine, eg. CP850, ISO-8859-1 or CP1252 (if you do
 this with a Unicode format like NT, it will silently be treated in another
 way internally for performance reasons but the outcome will be the same).
 
-Mask mode also honors --intermediate-encoding (or plain --encoding). For
+Mask mode also honors --internal-encoding (or plain --encoding). For
 example, the mask ?l that normally is a placeholder for [a-z] will also
 include all lowercase Greek letters if you use CP737.
 
-The limitation is if you use --target-encoding or --intermediate-encoding,
+The limitation is if you use --target-encoding or --internal-encoding,
 the input encoding must be UTF-8. The recommended, and easiest, use is to
 un-comment all encoding parameters in john.conf and only use UTF-8 wordlists.
 This will work for most cases without too much impact on cracking speed
 and you will almost never have to give any command-line options.
 
 Some new reject rules and character classes are implemented, see doc/RULES.
-If you use rules without --intermediate-encoding, some wordlist rules may cut
+If you use rules without --internal-encoding, some wordlist rules may cut
 UTF-8 multibyte sequences in the middle, resulting in garbage. You can reject
 such rules with -U to have them in use only when UTF-8 is not used.
 
@@ -68,14 +68,14 @@ Examples:
 
    ./john hashfile -form:nt -enc:8859-1 -wo:german.lst
 
-3. Using a UTF-8 wordlist and intermediate encoding for rules processing:
+3. Using a UTF-8 wordlist with an internal encoding for rules processing:
 
-   ./john hashfile -enc:utf8 -interm=CP1252 -wo:french.lst -ru
+   ./john hashfile -enc:utf8 -int=CP1252 -wo:french.lst -ru
 
-4. Using mask mode to produce all possible "Latin-1" words of length 4,
+4. Using mask mode to print all possible "Latin-1" words of length 4,
    first letter upper case:
 
-   ./john hashfile -enc:utf8 -interm=8859-1 -mask:?u?l?l?l
+   ./john -stdout -enc:utf8 -int=8859-1 -mask:?u?l?l?l
 
 5. Using the recommended john.conf settings mentioned above:
 
@@ -106,8 +106,10 @@ Examples:
 
 
 Currently supported encodings:
-UTF-8, ISO-8859-1 (a.k.a ansi), ISO-8859-2, ISO-8859-7, ISO-8859-15, KOI8-R,
-CP437, CP737, CP850, CP852, CP858, CP866, CP1250, CP1251, CP1252, CP1253.
+UTF-8, ISO-8859-1, ISO-8859-2, ISO-8859-7, ISO-8859-15,
+CP437, CP737, CP850, CP852, CP858, CP866,
+CP1250, CP1251, CP1252, CP1253 and KOI8-R.
+
 New encodings can be added with ease, using automated tools that rely on the
 Unicode Database (see Openwall wiki, or just post a request on john-users
 mailing list).

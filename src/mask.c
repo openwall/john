@@ -280,7 +280,7 @@ static void init_cpu_mask(char *mask, parsed_ctx *parsed_mask,
 				break;
 			case 'l': /* lower-case letters */
 				add_range('a', 'z');
-				switch (pers_opts.intermediate_enc) {
+				switch (pers_opts.internal_enc) {
 				case CP437:
 					add_string(CHARS_LOWER_CP437
 					           CHARS_LOW_ONLY_CP437);
@@ -345,7 +345,7 @@ static void init_cpu_mask(char *mask, parsed_ctx *parsed_mask,
 				break;
 			case 'u': /* upper-case letters */
 				add_range('A', 'Z');
-				switch (pers_opts.intermediate_enc) {
+				switch (pers_opts.internal_enc) {
 				case CP437:
 					add_string(CHARS_UPPER_CP437
 					           CHARS_UP_ONLY_CP437);
@@ -410,7 +410,7 @@ static void init_cpu_mask(char *mask, parsed_ctx *parsed_mask,
 				break;
 			case 'd': /* digits */
 				add_range('0', '9');
-				switch (pers_opts.intermediate_enc) {
+				switch (pers_opts.internal_enc) {
 				case CP437:
 					add_string(CHARS_DIGITS_CP437);
 					break;
@@ -463,7 +463,7 @@ static void init_cpu_mask(char *mask, parsed_ctx *parsed_mask,
 				add_range(58, 64);
 				add_range(91, 96);
 				add_range(123, 126);
-				switch (pers_opts.intermediate_enc) {
+				switch (pers_opts.internal_enc) {
 				case CP437:
 					add_string(CHARS_PUNCTUATION_CP437
 					           CHARS_SPECIALS_CP437
@@ -549,7 +549,7 @@ static void init_cpu_mask(char *mask, parsed_ctx *parsed_mask,
 				break;
 			case 'A': /* All valid chars in codepage */
 				add_range(0x20, 0x7e);
-				switch (pers_opts.intermediate_enc) {
+				switch (pers_opts.internal_enc) {
 				case CP437:
 					add_string(CHARS_ALPHA_CP437
 						CHARS_DIGITS_CP437
@@ -707,13 +707,13 @@ static char* generate_template_key(char *mask, parsed_ctx *parsed_mask) {
 	return template_key;
 }
 
-/* Handle intermediate encoding. */
+/* Handle internal encoding. */
 static MAYBE_INLINE char* mask_cp_to_utf8(char *in)
 {
 	static char out[PLAINTEXT_BUFFER_SIZE + 1];
 
-	if (pers_opts.intermediate_enc != UTF_8 &&
-	    pers_opts.intermediate_enc != pers_opts.target_enc)
+	if (pers_opts.internal_enc != UTF_8 &&
+	    pers_opts.internal_enc != pers_opts.target_enc)
 		return cp_to_utf8_r(in, out, PLAINTEXT_BUFFER_SIZE);
 
 	return in;

@@ -63,7 +63,7 @@
 struct options_main options;
 struct pers_opts pers_opts; /* Not reset after forked resume */
 static char *field_sep_char_str, *show_uncracked_str, *salts_str;
-static char *encoding_str, *target_enc_str, *intermediate_enc_str;
+static char *encoding_str, *target_enc_str, *internal_enc_str;
 #if FMT_MAIN_VERSION > 11
 static char *costs_str;
 #endif
@@ -81,8 +81,8 @@ static struct opt_entry opt_list[] = {
 		0, 0, OPT_FMT_STR_ALLOC, &encoding_str},
 	{"input-encoding", FLG_INPUT_ENC, FLG_INPUT_ENC,
 		0, 0, OPT_FMT_STR_ALLOC, &encoding_str},
-	{"intermediate-encoding", FLG_SECOND_ENC, FLG_SECOND_ENC,
-		0, 0, OPT_FMT_STR_ALLOC, &intermediate_enc_str},
+	{"internal-encoding", FLG_SECOND_ENC, FLG_SECOND_ENC,
+		0, 0, OPT_FMT_STR_ALLOC, &internal_enc_str},
 	{"target-encoding", FLG_SECOND_ENC, FLG_SECOND_ENC,
 		0, 0, OPT_FMT_STR_ALLOC, &target_enc_str},
 	{"stdin", FLG_STDIN_SET, FLG_CRACKING_CHK},
@@ -397,7 +397,7 @@ void opt_print_hidden_usage(void)
 	puts("--verbosity=N             change verbosity (1-5, default 3)");
 	puts("--skip-self-tests         skip self tests");
 	puts("--input-encoding=NAME     input encoding (alias for --encoding)");
-	puts("--intermediate-enc=NAME   encoding used in rules processing (see doc/ENCODING)");
+	puts("--internal-encoding=NAME  encoding used in rules/masks (see doc/ENCODING)");
 	puts("--target-encoding=NAME    output encoding (used by format, see doc/ENCODING)");
 #ifdef HAVE_LIBDL
 	puts("--plugin=NAME[,..]        load this (these) dynamic plugin(s)");
@@ -763,8 +763,8 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 	 * that in john.conf or with the --encoding option.
 	 */
 	if ((encoding_str && !strcasecmp(encoding_str, "list")) ||
-	    (intermediate_enc_str &&
-	     !strcasecmp(intermediate_enc_str, "list")) ||
+	    (internal_enc_str &&
+	     !strcasecmp(internal_enc_str, "list")) ||
 	    (target_enc_str && !strcasecmp(target_enc_str, "list"))) {
 		listEncodings(stdout);
 		exit(EXIT_SUCCESS);
@@ -776,14 +776,14 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 	if (target_enc_str)
 		pers_opts.target_enc = cp_name2id(target_enc_str);
 
-	if (intermediate_enc_str)
-		pers_opts.intermediate_enc = cp_name2id(intermediate_enc_str);
+	if (internal_enc_str)
+		pers_opts.internal_enc = cp_name2id(internal_enc_str);
 
 	if (pers_opts.input_enc && pers_opts.input_enc != UTF_8) {
 		if (!pers_opts.target_enc)
 			pers_opts.target_enc = pers_opts.input_enc;
-		if (!pers_opts.intermediate_enc)
-			pers_opts.intermediate_enc = pers_opts.input_enc;
+		if (!pers_opts.internal_enc)
+			pers_opts.internal_enc = pers_opts.input_enc;
 	}
 
 #ifdef HAVE_OPENCL

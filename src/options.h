@@ -145,7 +145,7 @@
 /* Regex cracking mode */
 #define FLG_REGEX_CHK			0x0000100000000000ULL
 #define FLG_REGEX_SET			(FLG_REGEX_CHK | FLG_CRACKING_SET)
-/* Encodings. You can only give one of --intermediate-enc or --target-enc */
+/* Encodings. You can only give one of --internal-enc or --target-enc */
 #define FLG_INPUT_ENC			0x0000200000000000ULL
 #define FLG_SECOND_ENC			0x0000400000000000ULL
 /* --verbosity */
@@ -313,7 +313,7 @@ struct pers_opts {
    do proper case conversion etc. in UTF-8, we can pick this intermediate
    encoding (use one that matches most input) but the double conversions may
    come with a speed penalty. */
-	int intermediate_enc;
+	int internal_enc;
 
 /* Store UTF-8 in pot file. Default is no conversion. */
 	int store_utf8;

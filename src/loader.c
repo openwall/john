@@ -268,7 +268,7 @@ static int ldr_check_shells(struct list_main *list, char *shell)
 static void ldr_set_encoding(struct fmt_main *format)
 {
 	if ((!pers_opts.target_enc || pers_opts.default_target_enc) &&
-	    !pers_opts.intermediate_enc) {
+	    !pers_opts.internal_enc) {
 		if (!strcasecmp(format->params.label, "LM") ||
 		    !strcasecmp(format->params.label, "netlm") ||
 		    !strcasecmp(format->params.label, "nethalflm")) {
@@ -280,10 +280,10 @@ static void ldr_set_encoding(struct fmt_main *format)
 				pers_opts.default_target_enc = 1;
 			else
 				pers_opts.target_enc = pers_opts.input_enc;
-		} else if (pers_opts.intermediate_enc &&
+		} else if (pers_opts.internal_enc &&
 		           (format->params.flags & FMT_UNICODE) &&
 		           (format->params.flags & FMT_UTF8)) {
-			pers_opts.target_enc = pers_opts.intermediate_enc;
+			pers_opts.target_enc = pers_opts.internal_enc;
 		}
 	}
 
@@ -297,22 +297,26 @@ static void ldr_set_encoding(struct fmt_main *format)
 		return;
 	}
 
-	/* john.conf alternative for --intermediate-encoding */
+	/* john.conf alternative for --internal-encoding */
 	if (options.flags &
 	    (FLG_RULES | FLG_SINGLE_CHK | FLG_BATCH_CHK | FLG_MASK_CHK))
 	if ((!pers_opts.target_enc || pers_opts.target_enc == UTF_8) &&
-	    !pers_opts.intermediate_enc) {
-		pers_opts.intermediate_enc =
-			cp_name2id(cfg_get_param(SECTION_OPTIONS, NULL,
-			                        "DefaultIntermediateEncoding"));
+	    !pers_opts.internal_enc) {
+		if (!(pers_opts.internal_enc =
+		      cp_name2id(cfg_get_param(SECTION_OPTIONS, NULL,
+		                               "DefaultInternalEncoding"))))
+			/* Deprecated alternative */
+			pers_opts.internal_enc =
+				cp_name2id(cfg_get_param(SECTION_OPTIONS, NULL,
+				               "DefaultIntermediateEncoding"));
 	}
 
 	/* Performance opportunity - avoid unneccessary conversions */
-	if (pers_opts.intermediate_enc && pers_opts.intermediate_enc != UTF_8 &&
+	if (pers_opts.internal_enc && pers_opts.internal_enc != UTF_8 &&
 	    (!pers_opts.target_enc || pers_opts.target_enc == UTF_8)) {
 		if ((format->params.flags & FMT_UNICODE) &&
 		    (format->params.flags & FMT_UTF8))
-			pers_opts.target_enc = pers_opts.intermediate_enc;
+			pers_opts.target_enc = pers_opts.internal_enc;
 	}
 
 	initUnicode(UNICODE_UNICODE);
