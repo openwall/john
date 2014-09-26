@@ -275,7 +275,7 @@ static void get_temp_od5(int adl_id, int *temp, int *fanspeed, int *util)
 	    !ADL_Overdrive5_CurrentActivity_Get)
 		return;
 
-	fprintf(stderr, "\tADL OD5 device number   %d\n", gpu_id);
+	fprintf(stderr, "\tADL OD5 device number   %d\n", adl_id);
 
 	termalControllerInfo.iSize = sizeof(ADLThermalControllerInfo);
 
@@ -330,7 +330,7 @@ static void get_temp_od6(int adl_id, int *temp, int *fanspeed, int *util)
 	    !ADL_Overdrive6_CurrentStatus_Get)
 		return;
 
-	fprintf(stderr, "\tADL OD6 device number   %d\n", gpu_id);
+	fprintf(stderr, "\tADL OD6 device number   %d\n", adl_id);
 	if (ADL_Overdrive6_ThermalController_Caps(adl_id, &thermalControllerCaps) == ADL_OK) {
 		if (thermalControllerCaps.iCapabilities & ADL_OD6_TCCAPS_FANSPEED_CONTROL)
 		if (thermalControllerCaps.iCapabilities & ADL_OD6_TCCAPS_FANSPEED_PERCENT_READ)
