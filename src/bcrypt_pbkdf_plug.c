@@ -17,8 +17,8 @@
 
 #include <stdlib.h>
 #include "blf.h"
-#include <openssl/sha.h>
-#include <stdint.h>
+#include "sha2.h"
+#include "stdint.h"
 #include <string.h>
 
 /*
@@ -47,6 +47,10 @@
 
 #define BCRYPT_BLOCKS 8
 #define BCRYPT_HASHSIZE (BCRYPT_BLOCKS * 4)
+
+#ifndef SHA512_DIGEST_LENGTH
+#define SHA512_DIGEST_LENGTH 64
+#endif
 
 static void
 bcrypt_hash(uint8_t *sha2pass, uint8_t *sha2salt, uint8_t *out)
