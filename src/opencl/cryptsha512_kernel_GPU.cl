@@ -162,7 +162,7 @@ inline void ctx_update_R(sha512_ctx * ctx,
     ctx->total += len;
     uint32_t startpos = ctx->buflen;
 
-    insert_to_buffer_R(ctx, string, (startpos + len <= 128 ? len : 128 - startpos));
+    insert_to_buffer_R(ctx, string, (startpos + len < 127 ? len : 128 - startpos));
 
     if (ctx->buflen == 128) {  //Branching.
         uint32_t offset = 128 - startpos;
@@ -178,7 +178,7 @@ inline void ctx_update_G(         sha512_ctx * ctx,
     ctx->total += len;
     uint32_t startpos = ctx->buflen;
 
-    insert_to_buffer_G(ctx, string, (startpos + len <= 128 ? len : 128 - startpos));
+    insert_to_buffer_G(ctx, string, (startpos + len < 127 ? len : 128 - startpos));
 
     if (ctx->buflen == 128) {  //Branching.
         uint32_t offset = 128 - startpos;
@@ -228,7 +228,7 @@ inline void sha512_digest(sha512_ctx * ctx,
                           uint64_t   * result,
                           const int size) {
 
-    if (ctx->buflen <= 111) { //data+0x80+datasize fits in one 1024bit block
+    if (ctx->buflen < 110) { //data+0x80+datasize fits in one 1024bit block
         finish_ctx(ctx);
 
     } else {
@@ -310,29 +310,6 @@ inline void sha512_prepare(__global   sha512_salt     * salt_data,
 #undef temp_result
 #undef p_sequence
 
-inline int get_generator(int matrix_index) {
-
-    switch (matrix_index) {
-	case 0:
-	    return 0;	/*  0, 000 */
-	case 1:
-	    return 6;	/*  6, 001 */
-	case 2:
-	    return 14;	/* 14, 010 */
-	case 3:
-	    return 2;	/*  2, 011 */
-	case 4:
-	    return 21;	/* 21, 100 */
-	case 5:
-	    return 3;	/*  3, 101 */
-	case 6:
-	    return 7;	/*  7, 110 */
-	case 7:
-	    return 1;	/*  1, 111 */
-    }
-    return -1;
-}
-
 __kernel
 void kernel_prepare(__global   sha512_salt     * salt,
                     __global   sha512_password * keys_buffer,
@@ -365,7 +342,7 @@ void kernel_prepare(__global   sha512_salt     * salt,
     //Preload and prepare the temp buffer.
     for (int i = 0; i < 8; i++) {
 	uint32_t total = 0;
-	uint32_t j = get_generator(i);
+	uint32_t j = generator_index[i];
 	__global uint64_t * buf = &work_memory[(gid * (9 * 8)) + (i * 9)];
 
 	for (int k = 0; k < 8; k++)
@@ -489,7 +466,7 @@ inline void sha512_crypt(const uint32_t saltlen, const uint32_t passlen,
 
     /* Repeatedly run the collected hash value through SHA512 to burn cycles. */
     for (int i = 0; i < rounds; i++) {
-        __global uint64_t * buf = &work_memory[(get_global_id(0) * (9 * 8)) + (index[i] * 9)];
+        __global uint64_t * buf = &work_memory[(get_global_id(0) * (9 * 8)) + (loop_index[i] * 9)];
 
 	#pragma unroll
 	for (int j = 8; j < 16; j++)
