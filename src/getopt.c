@@ -142,8 +142,14 @@ static int opt_check_one(struct opt_entry *list, opt_flags flg, char *opt)
 
 void opt_process(struct opt_entry *list, opt_flags *flg, char **argv)
 {
+	struct opt_entry *lp;
 	char **opt;
 	int res;
+
+	/* Clear Jumbo dupe-check in case we're resuming */
+	if ((lp = list))
+	while (lp->name)
+		lp++->param_set = 0;
 
 	if (*(opt = argv))
 	while (*++opt)
