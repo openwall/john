@@ -27,6 +27,7 @@ john_register_one(&fmt_hsrp);
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
+#include "johnswap.h"
 #include "params.h"
 #include "options.h"
 #include "memdbg.h"
@@ -183,6 +184,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		memcpy(block, saved_key[index], len);
 		PUTCHAR(block, len, 0x80);
 		block[14] = len << 3;
+#if (ARCH_LITTLE_ENDIAN==0)
+		block[14] = JOHNSWAP(block[14]);
+#endif
 		MD5_Update(&ctx, (unsigned char*)block, 64);
 		// data
 		MD5_Update(&ctx, cur_salt->salt, cur_salt->length);
