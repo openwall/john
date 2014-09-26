@@ -24,14 +24,27 @@
             (((n) >> 8)  & 0xff000000) | (((n) >> 24) & 0xff0000)   |   \
             (((n) >> 40) & 0xff00)     | ((n)  >> 56))
 
-#if gpu_amd(DEVICE_INFO)
+#ifdef USE_BITSELECT
 	#define Ch(x,y,z)       bitselect(z, y, x)
 	#define Maj(x,y,z)      bitselect(x, y, z ^ x)
 	#define ror(x, n)       rotate(x, (64UL-n))
-	#define SWAP64(n)	rotate(n & 0x000000FF000000FFUL, 56UL) | \
-				rotate(n & 0xFF000000FF000000UL, 8UL)  | \
+	#define SWAP64(n)	rotate(n & 0xFF000000FF000000UL, 8UL)  | \
 				rotate(n & 0x00FF000000FF0000UL, 24UL) | \
-				rotate(n & 0x0000FF000000FF00UL, 40UL)
+				rotate(n & 0x0000FF000000FF00UL, 40UL) | \
+				rotate(n & 0x000000FF000000FFUL, 56UL)
+
+	#define NOT_BETTER(n)	(0x0000FFFF0000FFFFUL & bitselect(rotate(n, 24UL), \
+				    rotate(n, 8UL), 0x000000FF000000FFUL)) |	   \
+				(0xFFFF0000FFFF0000UL & bitselect(rotate(n, 56UL), \
+				    rotate(n, 40UL), 0x00FF000000FF0000UL))
+
+	#define ALMOST(n)	bitselect(					    \
+				    bitselect(rotate(n, 24UL),			    \
+					rotate(n, 8UL), 0x000000FF000000FFUL),	    \
+				    bitselect(rotate(n, 56UL),			    \
+					rotate(n, 40UL), 0x00FF000000FF0000UL),	    \
+				    0xFFFF0000FFFF0000UL)
+
 	#define SWAP64_V(n)     SWAP64(n)
 #else
         #define Ch(x,y,z)       ((x & y) ^ ( (~x) & z))
@@ -46,14 +59,14 @@
 #define sigma1(x)               ((ror(x,19UL)) ^ (ror(x,61UL)) ^ (x>>6))
 
 //SHA512 constants.
-#define H0      0x6a09e667f3bcc908UL;
-#define H1      0xbb67ae8584caa73bUL;
-#define H2      0x3c6ef372fe94f82bUL;
-#define H3      0xa54ff53a5f1d36f1UL;
-#define H4      0x510e527fade682d1UL;
-#define H5      0x9b05688c2b3e6c1fUL;
-#define H6      0x1f83d9abfb41bd6bUL;
-#define H7      0x5be0cd19137e2179UL;
+#define H0      0x6a09e667f3bcc908UL
+#define H1      0xbb67ae8584caa73bUL
+#define H2      0x3c6ef372fe94f82bUL
+#define H3      0xa54ff53a5f1d36f1UL
+#define H4      0x510e527fade682d1UL
+#define H5      0x9b05688c2b3e6c1fUL
+#define H6      0x1f83d9abfb41bd6bUL
+#define H7      0x5be0cd19137e2179UL
 
 #ifdef _OPENCL_COMPILER
 __constant uint64_t k[] = {
@@ -129,8 +142,8 @@ __constant uint64_t clear_mask[] = {
 
 #define CLEAR_BUFFER_64(dest, start) {             \
     uint32_t tmp, pos;                             \
-    tmp = (uint32_t) (start & 7);                  \
-    pos = (uint32_t) (start >> 3);                 \
+    tmp = (start & 7);				   \
+    pos = (start >> 3);				   \
     dest[pos] = dest[pos] & clear_mask[tmp];       \
     if (tmp)                                       \
         length = pos + 1;                          \
@@ -140,52 +153,52 @@ __constant uint64_t clear_mask[] = {
 
 #define CLEAR_BUFFER_64_SINGLE(dest, start) {      \
     uint32_t tmp, pos;                             \
-    tmp = (uint32_t) (start & 7);                  \
-    pos = (uint32_t) (start >> 3);                 \
+    tmp = (start & 7);				   \
+    pos = (start >> 3);				   \
     dest[pos] = dest[pos] & clear_mask[tmp];       \
 }
 
 #define APPEND_BE(dest, src, start) {              \
     uint32_t tmp, pos;                             \
-    tmp = (uint32_t) ((start & 7) << 3);           \
-    pos = (uint32_t) (start >> 3);                 \
-    dest[pos]   = (dest[pos] | (src >> tmp));      \
+    tmp = ((start & 7) << 3);			   \
+    pos = (start >> 3);				   \
+    dest[pos] = (dest[pos] | (src >> tmp));	   \
     dest[pos+1] = (tmp == 0 ? (uint64_t) 0 : (src << (64 - tmp)));  \
 }
 
 #define APPEND_BE_SINGLE(dest, src, start) {       \
     uint32_t tmp, pos;                             \
-    tmp = (uint32_t) ((start & 7) << 3);           \
-    pos = (uint32_t) (start >> 3);                 \
-    dest[pos]   = (dest[pos] | (src >> tmp));      \
+    tmp = ((start & 7) << 3);                      \
+    pos = (start >> 3);                            \
+    dest[pos] = (dest[pos] | (src >> tmp));        \
 }
 
-#define APPEND_BE_SPECIAL(dest, src, index, start) {\
-    uint32_t tmp, pos, offset;                      \
-    tmp = (uint32_t) ((start & 7) << 3);            \
-    pos = (uint32_t) (start >> 3);		    \
-    offset = (uint32_t) OFFSET(index, pos);         \
+#define APPEND_BE_SPECIAL(dest, src, index, start) {			       \
+    uint32_t tmp, pos, offset;						       \
+    tmp = ((start & 7) << 3);						       \
+    pos = (start >> 3);							       \
+    offset = OFFSET(index, pos);					       \
     dest[offset] = (dest[offset] | (src >> tmp));			       \
     if (pos < 7) {							       \
 	pos++;								       \
-	offset = (uint32_t) OFFSET(index, pos);				       \
+	offset = OFFSET(index, pos);					       \
 	dest[offset] = (tmp == 0 ? (uint64_t) 0 : (src << (64 - tmp)));        \
     }									       \
 }
 
-#define APPEND_BE_F(dest, src, start) {            \
-    uint32_t tmp, pos;                             \
-    tmp = (uint32_t) ((start & 7) << 3);           \
-    pos = (uint32_t) (start >> 3);                 \
-    dest[pos]   = (dest[pos] | (src >> tmp));      \
-    if (pos < 15)                                  \
-       dest[pos+1] = (tmp == 0 ? (uint64_t) 0 : (src << (64 - tmp)));  \
+#define APPEND_BE_F(dest, src, start) {					       \
+    uint32_t tmp, pos;							       \
+    tmp = ((start & 7) << 3);						       \
+    pos = (start >> 3);							       \
+    dest[pos] = (dest[pos] | (src >> tmp));				       \
+    if (pos < 15)							       \
+       dest[pos+1] = (tmp == 0 ? (uint64_t) 0 : (src << (64 - tmp)));	       \
 }
 
 #define APPEND_F(dest, src, start) {               \
     uint32_t tmp, pos;                             \
-    tmp = (uint32_t) ((start & 7) << 3);           \
-    pos = (uint32_t) (start >> 3);                 \
+    tmp = ((start & 7) << 3);                      \
+    pos = (start >> 3);                            \
     dest[pos]   = (dest[pos] | (src << tmp));      \
     if (pos < 15)                                  \
        dest[pos+1] = (tmp == 0 ? (uint64_t) 0 : (src >> (64 - tmp)));  \
@@ -193,9 +206,9 @@ __constant uint64_t clear_mask[] = {
 
 #define APPEND_SINGLE(dest, src, start) {          \
     uint32_t tmp, pos;                             \
-    tmp = (uint32_t) ((start & 7) << 3);           \
-    pos = (uint32_t) (start >> 3);                 \
-    dest[pos]   = (dest[pos] | (src << tmp));      \
+    tmp = ((start & 7) << 3);                      \
+    pos = (start >> 3);                            \
+    dest[pos] = (dest[pos] | (src << tmp));        \
 }
 #endif
 

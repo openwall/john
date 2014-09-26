@@ -22,7 +22,7 @@
 	    (((n) << 24)	       | (((n) & 0xff00) << 8) |     \
 	    (((n) >> 8) & 0xff00)      | ((n) >> 24))
 
-#if gpu_amd(DEVICE_INFO)
+#ifdef USE_BITSELECT
 	#define Ch(x, y, z)     bitselect(z, y, x)
 	#define Maj(x, y, z)    bitselect(x, y, z ^ x)
 	#define ror(x, n)       rotate(x, (uint32_t) 32-n)
