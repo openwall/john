@@ -185,11 +185,6 @@ static void init_cpu_mask(char *mask, parsed_ctx *parsed_mask,
 		    x, count(i)))					\
 			cpu_mask_ctx->ranges[i].chars[count(i)++] = x;
 
-#define populate_range(a, b)						\
-	cpu_mask_ctx->ranges[i].start = a;				\
-	for (j = a; j <= b; j++)					\
-		cpu_mask_ctx->ranges[i].chars[count(i)++] = j;
-
 #define add_range(a, b)							\
 	for (j = a; j <= b; j++)					\
 		cpu_mask_ctx->ranges[i].chars[count(i)++] = j;
@@ -199,6 +194,15 @@ static void init_cpu_mask(char *mask, parsed_ctx *parsed_mask,
 	while (*p)							\
 		cpu_mask_ctx->ranges[i].chars[count(i)++] = *p++;	\
 	}
+
+#define set_range_start()						\
+	for (j = 0; j < cpu_mask_ctx->ranges[i].count; j++)		\
+			if (cpu_mask_ctx->ranges[i].chars[0] + j !=	\
+			    cpu_mask_ctx->ranges[i].chars[j])		\
+				break;					\
+	if (j == cpu_mask_ctx->ranges[i].count)				\
+		cpu_mask_ctx->ranges[i].start =				\
+			cpu_mask_ctx->ranges[i].chars[0];
 
 	for (i = 0; i < MAX_NUM_MASK_PLHDR; i++) {
 		cpu_mask_ctx->ranges[i].start =
@@ -255,6 +259,8 @@ static void init_cpu_mask(char *mask, parsed_ctx *parsed_mask,
 				j++;
 			}
 
+			set_range_start();
+
 			op_ctr++;
 			cl_ctr++;
 			cpu_mask_ctx->count++;
@@ -270,10 +276,10 @@ static void init_cpu_mask(char *mask, parsed_ctx *parsed_mask,
 
 			switch(mask[load_qtn(qtn_ctr) + 1]) {
 			case 'a': /* Printable ASCII */
-				populate_range(0x20, 0x7e);
+				add_range(0x20, 0x7e);
 				break;
 			case 'l': /* lower-case letters */
-				populate_range('a', 'z');
+				add_range('a', 'z');
 				switch (pers_opts.intermediate_enc) {
 				case CP437:
 					add_string(CHARS_LOWER_CP437
@@ -338,7 +344,7 @@ static void init_cpu_mask(char *mask, parsed_ctx *parsed_mask,
 				}
 				break;
 			case 'u': /* upper-case letters */
-				populate_range('A', 'Z');
+				add_range('A', 'Z');
 				switch (pers_opts.intermediate_enc) {
 				case CP437:
 					add_string(CHARS_UPPER_CP437
@@ -403,7 +409,7 @@ static void init_cpu_mask(char *mask, parsed_ctx *parsed_mask,
 				}
 				break;
 			case 'd': /* digits */
-				populate_range('0', '9');
+				add_range('0', '9');
 				switch (pers_opts.intermediate_enc) {
 				case CP437:
 					add_string(CHARS_DIGITS_CP437);
@@ -453,7 +459,7 @@ static void init_cpu_mask(char *mask, parsed_ctx *parsed_mask,
 				}
 				break;
 			case 's': /* specials */
-				populate_range(32, 47);
+				add_range(32, 47);
 				add_range(58, 64);
 				add_range(91, 96);
 				add_range(123, 126);
@@ -536,13 +542,13 @@ static void init_cpu_mask(char *mask, parsed_ctx *parsed_mask,
 				}
 				break;
 			case 'h': /* All high-bit */
-				populate_range(0x80, 0xff);
+				add_range(0x80, 0xff);
 				break;
 			case 'H': /* All, except 0 which we can't handle */
-				populate_range(0x01, 0xff);
+				add_range(0x01, 0xff);
 				break;
 			case 'A': /* All valid chars in codepage */
-				populate_range(0x20, 0x7e);
+				add_range(0x20, 0x7e);
 				switch (pers_opts.intermediate_enc) {
 				case CP437:
 					add_string(CHARS_ALPHA_CP437
@@ -661,6 +667,9 @@ static void init_cpu_mask(char *mask, parsed_ctx *parsed_mask,
 			                  mask[load_qtn(qtn_ctr) + 1]);
 				error();
 			}
+
+			set_range_start();
+
 			qtn_ctr++;
 			cpu_mask_ctx->count++;
 		}
@@ -715,6 +724,7 @@ static void generate_keys(char *template_key, cpu_mask_context *cpu_mask_ctx,
 	int i, j, k, ps1 = MAX_NUM_MASK_PLHDR, ps2 = MAX_NUM_MASK_PLHDR,
 	    ps3 = MAX_NUM_MASK_PLHDR, ps;
 	int offset = cpu_mask_ctx->offset, num_active_postions = 0;
+	int start1, start2, start3;
 
 	for (i = 0; i < cpu_mask_ctx->count; i++)
 		if ((int)(cpu_mask_ctx->active_positions[i])) {
@@ -735,7 +745,8 @@ static void generate_keys(char *template_key, cpu_mask_context *cpu_mask_ctx,
 		fprintf(stdout, "%s\n", template_key);
 
 #define inner_loop_body() {						\
-	template_key[ranges(ps1).pos + offset] = ranges(ps1).chars[i];  \
+	template_key[ranges(ps1).pos + offset] = start1 ? start1 + i:	\
+		ranges(ps1).chars[i];  					\
 	if (options.node_count) {					\
 		seq++;							\
 		if (their_words) {					\
@@ -754,13 +765,17 @@ static void generate_keys(char *template_key, cpu_mask_context *cpu_mask_ctx,
 	}
 
 	else if (num_active_postions == 1) {
+		start1 = ranges(ps1).start;
 		for (i = 0; i < ranges(ps1).count; i++)
 			inner_loop_body();
 	}
 
 	else if (num_active_postions == 2) {
+		start1 = ranges(ps1).start;
+		start2 = ranges(ps2).start;
 		for (j = 0; j < ranges(ps2).count; j++) {
 			template_key[ranges(ps2).pos + offset] =
+			start2? start2 + j:
 			ranges(ps2).chars[j];
 			for (i = 0; i < ranges(ps1).count; i++)
 				inner_loop_body();
@@ -778,12 +793,17 @@ static void generate_keys(char *template_key, cpu_mask_context *cpu_mask_ctx,
 		}
 
 		while (1) {
+			start1 = ranges(ps1).start;
+			start2 = ranges(ps2).start;
+			start3 = ranges(ps3).start;
 			/* Iterate over first three placeholders */
 			for (k = 0; k < ranges(ps3).count; k++) {
 				template_key[ranges(ps3).pos + offset] =
+					start3 ? start3 + k:
 					ranges(ps3).chars[k];
 				for (j = 0; j < ranges(ps2).count; j++) {
 					template_key[ranges(ps2).pos + offset] =
+						start2 ? start2 + j:
 						ranges(ps2).chars[j];
 					for (i = 0; i < ranges(ps1).count; i++)
 						inner_loop_body();

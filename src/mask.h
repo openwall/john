@@ -34,7 +34,7 @@ typedef struct {
  /* Rearranging the structure could affect performance */
 typedef struct {
 	/* Characters in the range */
-	unsigned char chars[0xF8];
+	unsigned char chars[0xFF];
 	/* next active range */
 	unsigned char next;
 	/* current postion in chars[] while iterating */
