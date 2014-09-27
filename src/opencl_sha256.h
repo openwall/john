@@ -109,6 +109,15 @@ __constant uint32_t clear_mask[] = {
     dest[pos+1] = (tmp == 0 ? (uint32_t) 0 : (src >> (32 - tmp)));  \
 }
 
+#define APPEND_F(dest, src, start) {		\
+    uint32_t tmp, pos;				\
+    tmp = (uint32_t) (start & 3) << 3;		\
+    pos = (uint32_t) (start >> 2);		\
+    dest[pos]   = (dest[pos] | (src << tmp));	\
+    if (pos < 15)                               \
+	dest[pos+1] = (tmp == 0 ? (uint32_t) 0 : (src >> (32 - tmp)));  \
+}
+
 #define APPEND_SINGLE(dest, src, start) {	\
     uint32_t tmp, pos;				\
     tmp = (uint32_t) (start & 3) << 3;		\
