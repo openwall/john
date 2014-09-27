@@ -179,6 +179,8 @@ static void init_cpu_mask(char *mask, parsed_ctx *parsed_mask,
                           cpu_mask_context *cpu_mask_ctx, struct db_main *db)
 {
 	int i, qtn_ctr, op_ctr, cl_ctr;
+	char *p;
+	int fmt_case = (db->format->params.flags & FMT_CASE);
 
 #define count(i) cpu_mask_ctx->ranges[i].count
 #define swap(a, b) { x = a; a = b; b = x; }
@@ -190,15 +192,15 @@ static void init_cpu_mask(char *mask, parsed_ctx *parsed_mask,
 		    x, count(i)))					\
 			cpu_mask_ctx->ranges[i].chars[count(i)++] = x;
 
+/* Safe in non-bracketed if/for: The final ';' comes with this invocation */
 #define add_range(a, b)							\
 	for (j = a; j <= b; j++)					\
-		cpu_mask_ctx->ranges[i].chars[count(i)++] = j;
+		cpu_mask_ctx->ranges[i].chars[count(i)++] = j
 
-#define add_string(string) {						\
-	char *p = "" string;						\
-	while (*p)							\
-		cpu_mask_ctx->ranges[i].chars[count(i)++] = *p++;	\
-	}
+/* Safe in non-bracketed if/for: The final ';' comes with this invocation */
+#define add_string(string)						\
+	for (p = (char*)string ""; *p; p++)				\
+		cpu_mask_ctx->ranges[i].chars[count(i)++] = *p
 
 #define set_range_start()						\
 	for (j = 0; j < cpu_mask_ctx->ranges[i].count; j++)		\
@@ -281,9 +283,9 @@ static void init_cpu_mask(char *mask, parsed_ctx *parsed_mask,
 
 			switch(mask[load_qtn(qtn_ctr) + 1]) {
 			case 'a': /* Printable ASCII */
-				if (db->format->params.flags & FMT_CASE) {
+				if (fmt_case)
 					add_range(0x20, 0x7e);
-				} else {
+				else {
 					add_range(0x20, 0x60);
 					add_range(0x7b, 0x7e);
 				}
@@ -558,173 +560,158 @@ static void init_cpu_mask(char *mask, parsed_ctx *parsed_mask,
 				add_range(0x01, 0xff);
 				break;
 			case 'A': /* All valid chars in codepage */
-				if (db->format->params.flags & FMT_CASE) {
+				if (fmt_case)
 					add_range(0x20, 0x7e);
-				} else {
+				else {
 					add_range(0x20, 0x60);
 					add_range(0x7b, 0x7e);
 				}
 				switch (pers_opts.internal_enc) {
 				case CP437:
-					if (db->format->params.flags & FMT_CASE) {
+					if (fmt_case)
 						add_string(CHARS_ALPHA_CP437);
-					} else {
+					else
 						add_string(CHARS_UPPER_CP437);
-					}
 					add_string(CHARS_DIGITS_CP437
 					           CHARS_PUNCTUATION_CP437
 					           CHARS_SPECIALS_CP437
 					           CHARS_WHITESPACE_CP437);
 					break;
 				case CP737:
-					if (db->format->params.flags & FMT_CASE) {
+					if (fmt_case)
 						add_string(CHARS_ALPHA_CP737);
-					} else {
+					else
 						add_string(CHARS_UPPER_CP737);
-					}
 					add_string(CHARS_DIGITS_CP737
 					           CHARS_PUNCTUATION_CP737
 					           CHARS_SPECIALS_CP737
 					           CHARS_WHITESPACE_CP737);
 					break;
 				case CP850:
-					if (db->format->params.flags & FMT_CASE) {
+					if (fmt_case)
 						add_string(CHARS_ALPHA_CP850);
-					} else {
+					else
 						add_string(CHARS_UPPER_CP850);
-					}
 					add_string(CHARS_DIGITS_CP850
 					           CHARS_PUNCTUATION_CP850
 					           CHARS_SPECIALS_CP850
 					           CHARS_WHITESPACE_CP850);
 					break;
 				case CP852:
-					if (db->format->params.flags & FMT_CASE) {
+					if (fmt_case)
 						add_string(CHARS_ALPHA_CP852);
-					} else {
+					else
 						add_string(CHARS_UPPER_CP852);
-					}
 					add_string(CHARS_DIGITS_CP852
 					           CHARS_PUNCTUATION_CP852
 					           CHARS_SPECIALS_CP852
 					           CHARS_WHITESPACE_CP852);
 					break;
 				case CP858:
-					if (db->format->params.flags & FMT_CASE) {
+					if (fmt_case)
 						add_string(CHARS_ALPHA_CP858);
-					} else {
+					else
 						add_string(CHARS_UPPER_CP858);
-					}
 					add_string(CHARS_DIGITS_CP858
 					           CHARS_PUNCTUATION_CP858
 					           CHARS_SPECIALS_CP858
 					           CHARS_WHITESPACE_CP858);
 					break;
 				case CP866:
-					if (db->format->params.flags & FMT_CASE) {
+					if (fmt_case)
 						add_string(CHARS_ALPHA_CP866);
-					} else {
+					else
 						add_string(CHARS_UPPER_CP866);
-					}
 					add_string(CHARS_DIGITS_CP866
 					           CHARS_PUNCTUATION_CP866
 					           CHARS_SPECIALS_CP866
 					           CHARS_WHITESPACE_CP866);
 					break;
 				case CP1250:
-					if (db->format->params.flags & FMT_CASE) {
+					if (fmt_case)
 						add_string(CHARS_ALPHA_CP1250);
-					} else {
+					else
 						add_string(CHARS_UPPER_CP1250);
-					}
 					add_string(CHARS_DIGITS_CP1250
 					           CHARS_PUNCTUATION_CP1250
 					           CHARS_SPECIALS_CP1250
 					           CHARS_WHITESPACE_CP1250);
 					break;
 				case CP1251:
-					if (db->format->params.flags & FMT_CASE) {
+					if (fmt_case)
 						add_string(CHARS_ALPHA_CP1251);
-					} else {
+					else
 						add_string(CHARS_UPPER_CP1251);
-					}
 					add_string(CHARS_DIGITS_CP1251
 					           CHARS_PUNCTUATION_CP1251
 					           CHARS_SPECIALS_CP1251
 					           CHARS_WHITESPACE_CP1251);
 					break;
 				case CP1252:
-					if (db->format->params.flags & FMT_CASE) {
+					if (fmt_case)
 						add_string(CHARS_ALPHA_CP1252);
-					} else {
+					else
 						add_string(CHARS_UPPER_CP1252);
-					}
 					add_string(CHARS_DIGITS_CP1252
 					           CHARS_PUNCTUATION_CP1252
 					           CHARS_SPECIALS_CP1252
 					           CHARS_WHITESPACE_CP1252);
 					break;
 				case CP1253:
-					if (db->format->params.flags & FMT_CASE) {
+					if (fmt_case)
 						add_string(CHARS_ALPHA_CP1253);
-					} else {
+					else
 						add_string(CHARS_UPPER_CP1253);
-					}
 					add_string(CHARS_DIGITS_CP1253
 					           CHARS_PUNCTUATION_CP1253
 					           CHARS_SPECIALS_CP1253
 					           CHARS_WHITESPACE_CP1253);
 					break;
 				case ISO_8859_1:
-					if (db->format->params.flags & FMT_CASE) {
+					if (fmt_case)
 						add_string(CHARS_ALPHA_ISO_8859_1);
-					} else {
+					else
 						add_string(CHARS_UPPER_ISO_8859_1);
-					}
 					add_string(CHARS_DIGITS_ISO_8859_1
 					           CHARS_PUNCTUATION_ISO_8859_1
 					           CHARS_SPECIALS_ISO_8859_1
 					           CHARS_WHITESPACE_ISO_8859_1);
 					break;
 				case ISO_8859_2:
-					if (db->format->params.flags & FMT_CASE) {
+					if (fmt_case)
 						add_string(CHARS_ALPHA_ISO_8859_2);
-					} else {
+					else
 						add_string(CHARS_UPPER_ISO_8859_2);
-					}
 					add_string(CHARS_DIGITS_ISO_8859_2
 					           CHARS_PUNCTUATION_ISO_8859_2
 					           CHARS_SPECIALS_ISO_8859_2
 					           CHARS_WHITESPACE_ISO_8859_2);
 					break;
 				case ISO_8859_7:
-					if (db->format->params.flags & FMT_CASE) {
+					if (fmt_case)
 						add_string(CHARS_ALPHA_ISO_8859_7);
-					} else {
+					else
 						add_string(CHARS_UPPER_ISO_8859_7);
-					}
 					add_string(CHARS_DIGITS_ISO_8859_7
 					           CHARS_PUNCTUATION_ISO_8859_7
 					           CHARS_SPECIALS_ISO_8859_7
 					           CHARS_WHITESPACE_ISO_8859_7);
 					break;
 				case ISO_8859_15:
-					if (db->format->params.flags & FMT_CASE) {
+					if (fmt_case)
 						add_string(CHARS_ALPHA_ISO_8859_15);
-					} else {
+					else
 						add_string(CHARS_UPPER_ISO_8859_15);
-					}
 					add_string(CHARS_DIGITS_ISO_8859_15
 					           CHARS_PUNCTUATION_ISO_8859_15
 					           CHARS_SPECIALS_ISO_8859_15
 					           CHARS_WHITESPACE_ISO_8859_15);
 					break;
 				case KOI8_R:
-					if (db->format->params.flags & FMT_CASE) {
+					if (fmt_case)
 						add_string(CHARS_ALPHA_KOI8_R);
-					} else {
+					else
 						add_string(CHARS_UPPER_KOI8_R);
-					}
 					add_string(CHARS_DIGITS_KOI8_R
 					           CHARS_PUNCTUATION_KOI8_R
 					           CHARS_SPECIALS_KOI8_R
