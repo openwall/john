@@ -91,12 +91,14 @@ typedef enum nvmlTemperatureSensors_enum {
 
 typedef nvmlReturn_t ( *NVMLINIT ) ();
 typedef nvmlReturn_t ( *NVMLSHUTDOWN ) ();
-typedef nvmlReturn_t ( *NVMLDEVICEGETHANDLEBYINDEX ) (unsigned int, nvmlDevice_t*);
+typedef nvmlReturn_t ( *NVMLDEVICEGETHANDLEBYINDEX ) (unsigned int, nvmlDevice_t *);
 typedef nvmlReturn_t ( *NVMLDEVICEGETTEMPERATURE )( nvmlDevice_t, int, unsigned int *);
 typedef nvmlReturn_t ( *NVMLDEVICEGETFANSPEED ) (nvmlDevice_t, unsigned int *);
 typedef nvmlReturn_t ( *NVMLDEVICEGETUTILIZATIONRATES ) (nvmlDevice_t, nvmlUtilization_t *);
 typedef nvmlReturn_t ( *NVMLDEVICEGETPCIINFO ) (nvmlDevice_t, nvmlPciInfo_t *);
 typedef nvmlReturn_t ( *NVMLDEVICEGETNAME ) (nvmlDevice_t, char *, unsigned int);
+typedef nvmlReturn_t ( *NVMLDEVICEGETHANDLEBYPCIBUSID ) (const char *, nvmlDevice_t *);
+typedef nvmlReturn_t ( *NVMLDEVICEGETINDEX ) (nvmlDevice_t, unsigned int *);
 
 /* Progress indicator "spinning wheel" */
 void advance_cursor(void);

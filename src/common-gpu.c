@@ -50,6 +50,8 @@ NVMLDEVICEGETFANSPEED nvmlDeviceGetFanSpeed = NULL;
 NVMLDEVICEGETUTILIZATIONRATES nvmlDeviceGetUtilizationRates = NULL;
 NVMLDEVICEGETPCIINFO nvmlDeviceGetPciInfo = NULL;
 NVMLDEVICEGETNAME nvmlDeviceGetName = NULL;
+NVMLDEVICEGETHANDLEBYPCIBUSID nvmlDeviceGetHandleByPciBusId = NULL;
+NVMLDEVICEGETINDEX nvmlDeviceGetIndex = NULL;
 
 void *adl_lib;
 
@@ -119,6 +121,8 @@ void nvidia_probe(void)
 	nvmlDeviceGetUtilizationRates = (NVMLDEVICEGETUTILIZATIONRATES) dlsym(nvml_lib, "nvmlDeviceGetUtilizationRates");
 	nvmlDeviceGetPciInfo = (NVMLDEVICEGETPCIINFO) dlsym(nvml_lib, "nvmlDeviceGetPciInfo");
 	nvmlDeviceGetName = (NVMLDEVICEGETNAME) dlsym(nvml_lib, "nvmlDeviceGetName");
+	nvmlDeviceGetHandleByPciBusId = (NVMLDEVICEGETHANDLEBYPCIBUSID) dlsym(nvml_lib, "nvmlDeviceGetHandleByPciBusId");
+	nvmlDeviceGetIndex = (NVMLDEVICEGETINDEX) dlsym(nvml_lib, "nvmlDeviceGetIndex");
 	//nvmlUnitGetCount = (NVMLUNITGETCOUNT) dlsym(nvml_lib, "nvmlUnitGetCount");
 	nvmlInit();
 #endif
@@ -363,6 +367,18 @@ void amd_get_temp(int amd_id, int *temp, int *fanspeed, int *util)
 	} else
 #endif
 		*temp = *fanspeed = *util = -1;
+}
+
+unsigned int id2nvml(const char * pciBusId) {
+	nvmlDevice_t dev;
+
+	if (nvmlDeviceGetHandleByPciBusId(pciBusId, &dev) == NVML_SUCCESS) {
+		unsigned int id_NVML;
+
+		if (nvmlDeviceGetIndex(dev, &id_NVML) == NVML_SUCCESS)
+			return id_NVML;
+	}
+	return -1;
 }
 
 #endif /* HAVE_ */

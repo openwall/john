@@ -83,7 +83,7 @@ typedef struct {
 	int				bus;
 	int				device;
 	int				function;
-	int				node;
+	char				busId[100];
 } ocl_hw_bus;
 
 typedef struct {

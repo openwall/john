@@ -263,7 +263,7 @@ static cl_int get_pci_info(int sequential_id, ocl_hw_bus * hardware_info) {
 	cl_int ret;
 	hardware_info->bus = -1;
 	hardware_info->device = -1;
-	hardware_info->node = options.node_min;
+	memset(hardware_info->busId, '\0', sizeof(hardware_info->busId));
 
 #if defined(CL_DEVICE_TOPOLOGY_AMD) && CL_DEVICE_TOPOLOGY_TYPE_PCIE_AMD == 1
 
@@ -308,27 +308,9 @@ static cl_int get_pci_info(int sequential_id, ocl_hw_bus * hardware_info) {
 		    return ret;
 	}
 #endif
-
+	sprintf(hardware_info->busId, "%02x:%02x.%x", hardware_info->bus,
+		hardware_info->device, hardware_info->function);
 	return CL_SUCCESS;
-}
-
-static int get_device_hw_id(int sequential_id) {
-
-	int hardware_id = 0;
-	ocl_hw_bus hardware_info;
-
-	while (hardware_id < get_number_of_available_devices()) {
-		get_pci_info(hardware_id, &hardware_info);
-
-		if (ocl_device_list[sequential_id].pci_info.bus == hardware_info.bus &&
-		    ocl_device_list[sequential_id].pci_info.device == hardware_info.device &&
-		    ocl_device_list[sequential_id].pci_info.function == hardware_info.function &&
-		    ocl_device_list[sequential_id].pci_info.node == options.node_min)
-			return hardware_id;
-
-		hardware_id++;
-	}
-	return -1;
 }
 
 static int start_opencl_device(int sequential_id, int *err_type)
@@ -2177,6 +2159,7 @@ void opencl_list_devices(void)
 	}
 
 	for (i = 0; platforms[i].platform; i++) {
+		int nvidia = 0, amd = 0;
 
 		/* Query devices for information */
 		for (j = 0; j < platforms[i].num_devices; j++, sequence_nr++) {
@@ -2450,17 +2433,17 @@ void opencl_list_devices(void)
 			fan = temp = util = -1;
 			if (gpu_nvidia(device_info[sequence_nr])) {
 				if (nvml_lib)
-				nvidia_get_temp(get_device_hw_id(sequence_nr), &temp, &fan, &util);
+				nvidia_get_temp(nvidia++, &temp, &fan, &util);
 			} else if (gpu_amd(device_info[sequence_nr])) {
 				if (adl_lib)
-				amd_get_temp(get_device_hw_id(sequence_nr), &temp, &fan, &util);
+				amd_get_temp(amd++, &temp, &fan, &util);
 			}
 			if (fan >= 0)
 				printf("\tFan speed:\t\t%u%%\n", fan);
 			if (temp >= 0)
 				printf("\tTemperature:\t\t%u" DEGC "\n", temp);
 			if (util >= 0)
-				printf("\tUtilization:\t\t%u%%\n", util);
+				printf("\tUtilization:\t\t%u%%\n", util); printf("Values: %s \n", ocl_device_list[sequence_nr].pci_info.busId);
 			puts("");
 		}
 	}
