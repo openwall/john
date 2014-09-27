@@ -40,7 +40,7 @@ static double cand;
  */
 static unsigned int seq, rec_seq;
 
-#define BUILT_IN_CHARSET "aludshHA"
+#define BUILT_IN_CHARSET "aludshHA1234"
 
 #define store_op(k, i) \
 	parsed_mask->stack_op_br[k] = i;
@@ -199,7 +199,7 @@ static void init_cpu_mask(char *mask, parsed_ctx *parsed_mask,
 
 /* Safe in non-bracketed if/for: The final ';' comes with this invocation */
 #define add_string(string)						\
-	for (p = (char*)string ""; *p; p++)				\
+	for (p = (char*)string; *p; p++)				\
 		cpu_mask_ctx->ranges[i].chars[count(i)++] = *p
 
 #define set_range_start()						\
@@ -282,6 +282,18 @@ static void init_cpu_mask(char *mask, parsed_ctx *parsed_mask,
 							load_qtn(qtn_ctr));
 
 			switch(mask[load_qtn(qtn_ctr) + 1]) {
+			case '1': /* Custom masks */
+				add_string(options.custom_mask[0]);
+				break;
+			case '2': /* Custom masks */
+				add_string(options.custom_mask[1]);
+				break;
+			case '3': /* Custom masks */
+				add_string(options.custom_mask[2]);
+				break;
+			case '4': /* Custom masks */
+				add_string(options.custom_mask[3]);
+				break;
 			case 'a': /* Printable ASCII */
 				if (fmt_case)
 					add_range(0x20, 0x7e);

@@ -126,7 +126,7 @@ static const UTF16 ISO_8859_2_to_unicode_high128[] = {
 #define CHARS_UP_ONLY_ISO_8859_2
 
 // 
-#define CHARS_DIGITS_ISO_8859_2
+#define CHARS_DIGITS_ISO_8859_2 ""
 
 // 
 #define CHARS_PUNCTUATION_ISO_8859_2
@@ -528,7 +528,7 @@ static const UTF16 CP852_to_unicode_high128[] = {
 #define CHARS_UP_ONLY_CP852
 
 // 
-#define CHARS_DIGITS_CP852
+#define CHARS_DIGITS_CP852 ""
 
 // «»
 #define CHARS_PUNCTUATION_CP852 "\xAE\xAF"
@@ -642,7 +642,7 @@ static const UTF16 CP866_to_unicode_high128[] = {
 #define CHARS_UP_ONLY_CP866
 
 // 
-#define CHARS_DIGITS_CP866
+#define CHARS_DIGITS_CP866 ""
 
 // ·
 #define CHARS_PUNCTUATION_CP866 "\xFA"
@@ -700,7 +700,7 @@ static const UTF16 CP1250_to_unicode_high128[] = {
 #define CHARS_UP_ONLY_CP1250
 
 // 
-#define CHARS_DIGITS_CP1250
+#define CHARS_DIGITS_CP1250 ""
 
 // ‚„…†‡‰‹‘’“”•–—›«·»
 #define CHARS_PUNCTUATION_CP1250 "\x82\x84\x85\x86\x87\x89\x8B\x91\x92\x93\x94\x95\x96\x97\x9B\xAB\xB7\xBB"
@@ -757,7 +757,7 @@ static const UTF16 CP1251_to_unicode_high128[] = {
 #define CHARS_UP_ONLY_CP1251
 
 // 
-#define CHARS_DIGITS_CP1251
+#define CHARS_DIGITS_CP1251 ""
 
 // ‚„…†‡‰‹‘’“”•–—›«·»
 #define CHARS_PUNCTUATION_CP1251 "\x82\x84\x85\x86\x87\x89\x8B\x91\x92\x93\x94\x95\x96\x97\x9B\xAB\xB7\xBB"

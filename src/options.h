@@ -280,7 +280,9 @@ struct options_main {
 /* Secure mode. Do not output, log or store cracked passwords. */
 	int secure;
 /* regular expression */
-  char *regex;
+	char *regex;
+/* Custom masks */
+	char *custom_mask[4];
 };
 
 extern struct options_main options;

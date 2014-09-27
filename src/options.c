@@ -98,6 +98,14 @@ static struct opt_entry opt_list[] = {
 		0, 0, OPT_FMT_STR_ALLOC, &options.charset},
 	{"mask", FLG_MASK_SET, FLG_CRACKING_CHK,
 		0, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.mask},
+	{"1", FLG_ZERO, 0, FLG_MASK_SET, OPT_REQ_PARAM,
+		OPT_FMT_STR_ALLOC, &options.custom_mask[0]},
+	{"2", FLG_ZERO, 0, FLG_MASK_SET, OPT_REQ_PARAM,
+		OPT_FMT_STR_ALLOC, &options.custom_mask[1]},
+	{"3", FLG_ZERO, 0, FLG_MASK_SET, OPT_REQ_PARAM,
+		OPT_FMT_STR_ALLOC, &options.custom_mask[2]},
+	{"4", FLG_ZERO, 0, FLG_MASK_SET, OPT_REQ_PARAM,
+		OPT_FMT_STR_ALLOC, &options.custom_mask[3]},
 	{"markov", FLG_MKV_SET, FLG_CRACKING_CHK,
 		0, 0, OPT_FMT_STR_ALLOC, &options.mkv_param},
 	{"mkv-stats", FLG_ZERO, 0,
@@ -148,7 +156,7 @@ static struct opt_entry opt_list[] = {
 		"%u", &options.fork},
 #endif
 	{"pot", FLG_ZERO, 0, 0, OPT_REQ_PARAM,
-	    OPT_FMT_STR_ALLOC, &pers_opts.activepot},
+		OPT_FMT_STR_ALLOC, &pers_opts.activepot},
 	{"format", FLG_FORMAT, FLG_FORMAT,
 		0, FLG_STDOUT | OPT_REQ_PARAM,
 		OPT_FMT_STR_ALLOC, &options.format},
@@ -163,7 +171,7 @@ static struct opt_entry opt_list[] = {
 #endif
 	{"mem-file-size", FLG_ZERO, 0,
 		FLG_WORDLIST_CHK, (FLG_DUPESUPP | FLG_SAVEMEM |
-	        FLG_STDIN_CHK | FLG_PIPE_CHK | OPT_REQ_PARAM),
+		FLG_STDIN_CHK | FLG_PIPE_CHK | OPT_REQ_PARAM),
 		"%zu", &options.max_wordfile_memory},
 	{"dupe-suppression", FLG_DUPESUPP, FLG_DUPESUPP, FLG_WORDLIST_CHK,
 		FLG_SAVEMEM | FLG_STDIN_CHK | FLG_PIPE_CHK},
