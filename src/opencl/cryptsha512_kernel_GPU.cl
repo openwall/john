@@ -577,7 +577,8 @@ void kernel_final(__constant sha512_salt     * salt,
     __global buffer_64 * alt_result = &global_alt_result[(gid * 8)];
 
     //Do the job
-    sha512_crypt(salt->length, keys_buffer[gid].length, 0, salt->final,
+    sha512_crypt(salt->length, keys_buffer[gid].length, 0,
+		 MIN(salt->final,  HASH_LOOPS),
 		 alt_result, work_memory);
 
     //SWAP results and put it as hash data.

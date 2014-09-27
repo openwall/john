@@ -299,7 +299,7 @@ static void * get_salt(char *ciphertext) {
 	//Put the tranfered salt on salt buffer.
 	memcpy(out.salt, ciphertext, len);
 	out.length = len;
-	out.final = out.rounds - GET_MULTIPLE_OR_ZERO(out.rounds, HASH_LOOPS);
+	out.final = out.rounds % HASH_LOOPS;
 
 	return &out;
 }
