@@ -127,7 +127,7 @@ inline void sha512_block(sha512_ctx * ctx) {
 
 inline void insert_to_buffer_R(sha512_ctx    * ctx,
                                const uint8_t * string,
-                               const uint32_t len) { //TODO
+                               const uint32_t len) {
 
     for (uint32_t i = 0; i < len; i++)
         PUT(BUFFER, ctx->buflen + i, string[i]);
@@ -137,7 +137,7 @@ inline void insert_to_buffer_R(sha512_ctx    * ctx,
 
 inline void insert_to_buffer_G(         sha512_ctx    * ctx,
                                __global const uint8_t * string,
-                               const uint32_t len) {  //TODO
+                               const uint32_t len) {
 
     for (uint32_t i = 0; i < len; i++)
         PUT(BUFFER, ctx->buflen + i, string[i]);
