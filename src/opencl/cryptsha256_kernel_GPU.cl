@@ -18,7 +18,7 @@
 #endif
 
 #if !(amd_gcn(DEVICE_INFO))
-	#define update_final ctx_update_final
+	#define update_final ctx_update_R
 #else
 	#define update_final ctx_update_R
 #endif
