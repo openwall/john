@@ -18,6 +18,8 @@
 #include "john.h"
 #include "memdbg.h"
 
+#define FLG_ZERO			0x0
+
 static char *opt_errors[] = {
 	NULL,	/* No error */
 	"Unknown option",
@@ -114,6 +116,11 @@ static int opt_process_one(struct opt_entry *list, opt_flags *flg, char *opt)
 		} else
 		if (opt_process_param(param, entry->format, entry->param))
 			return OPT_ERROR_PARAM_INV;
+
+		/* Dupe checking without an option flag */
+		if (param && entry->flg_set == FLG_ZERO &&
+		    entry->req_clr & OPT_REQ_PARAM && entry->param_set++)
+			return OPT_ERROR_COMB;
 	} else
 	if (param) return OPT_ERROR_PARAM_EXT;
 
@@ -135,8 +142,14 @@ static int opt_check_one(struct opt_entry *list, opt_flags flg, char *opt)
 
 void opt_process(struct opt_entry *list, opt_flags *flg, char **argv)
 {
+	struct opt_entry *lp;
 	char **opt;
 	int res;
+
+	/* Clear Jumbo dupe-check in case we're resuming */
+	if ((lp = list))
+	while (lp->name)
+		lp++->param_set = 0;
 
 	if (*(opt = argv))
 	while (*++opt)

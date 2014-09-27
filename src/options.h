@@ -108,7 +108,12 @@
  *
  * Tip: For your private patches, pick first free from MSB. When
  * sharing your patch, pick first free from LSB of high 32 bits.
+ *
+ * In Jumbo, the combination flg_set == FLG_ZERO and req_clr == OPT_REQ_PARAM
+ * gets dupe checking automatically, without a specific flag.
  */
+#define FLG_ZERO			0x0
+
 /* .pot file used as wordlist, options.wordlist is set to the file name, or
  * we use the active .pot file */
 #define FLG_LOOPBACK_CHK		0x0000000100000000ULL
@@ -140,31 +145,13 @@
 /* Regex cracking mode */
 #define FLG_REGEX_CHK			0x0000100000000000ULL
 #define FLG_REGEX_SET			(FLG_REGEX_CHK | FLG_CRACKING_SET)
-/* Encodings. You can only give one of --intermediate-enc or --target-enc */
+/* Encodings. You can only give one of --internal-enc or --target-enc */
 #define FLG_INPUT_ENC			0x0000200000000000ULL
 #define FLG_SECOND_ENC			0x0000400000000000ULL
-/* Old Jumbo options. They can do without the flags but options parsing
-   would not catch duplicate options, leading to undefined behavior. */
-#define FLG_POT				0x0000800000000000ULL
-#define FLG_SUBFORMAT			0x0001000000000000ULL
-#define FLG_MEM_FILE_SIZE		0x0002000000000000ULL
-#define FLG_FIELDSEP			0x0004000000000000ULL
-#define FLG_CONFIG			0x0008000000000000ULL
-#define FLG_MKPC			0x0010000000000000ULL
-#define FLG_MINLEN			0x0020000000000000ULL
-#define FLG_MAXLEN			0x0040000000000000ULL
-#define FLG_MAXRUN			0x0080000000000000ULL
-#define FLG_PROGRESS			0x0100000000000000ULL
-#define FLG_REGEN			0x0200000000000000ULL
-#define FLG_BARE			0x0400000000000000ULL
-#define FLG_VERBOSITY			0x0800000000000000ULL
-#define FLG_PLATFORM			0x1000000000000000ULL
-#define FLG_DEVICE			0x2000000000000000ULL
-/* Tunable cost ranges requested */
-#define FLG_COSTS			0x4000000000000000ULL
-/* Markov stats */
-#define FLG_MKV_STATS			0x8000000000000000ULL
-/* Gee we're out of flags again */
+/* --verbosity */
+#define FLG_VERBOSITY			0x0000800000000000ULL
+/* Sets FMT_NOT_EXACT, searching for cleartext collisions */
+#define FLG_KEEP_GUESSING		0x0001000000000000ULL
 
 /*
  * Structure with option flags and all the parameters.
@@ -293,7 +280,9 @@ struct options_main {
 /* Secure mode. Do not output, log or store cracked passwords. */
 	int secure;
 /* regular expression */
-  char *regex;
+	char *regex;
+/* Custom masks */
+	char *custom_mask[4];
 };
 
 extern struct options_main options;
@@ -321,12 +310,12 @@ struct pers_opts {
 	int target_enc;
 
 /* If different from target_enc, this is an intermediate encoding only
-   used within rules processing. This is only applicable for the case
-   "UTF-8 -> rules -> UTF-8". Since the rules engine can't do proper case
-   conversion etc. in UTF-8, we can pick this intermediate encoding (use
-   one that matches most input) but the double conversions may come with
-   a speed penalty. */
-	int intermediate_enc;
+   used within rules/mask processing. This is only applicable for the case
+   "UTF-8 -> rules -> UTF-8" or "mask -> UTF-8". Since the rules engine can't
+   do proper case conversion etc. in UTF-8, we can pick this intermediate
+   encoding (use one that matches most input) but the double conversions may
+   come with a speed penalty. */
+	int internal_enc;
 
 /* Store UTF-8 in pot file. Default is no conversion. */
 	int store_utf8;

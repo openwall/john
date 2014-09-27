@@ -56,6 +56,9 @@ void fmt_register(struct fmt_main *format)
 
 void fmt_init(struct fmt_main *format)
 {
+	if (options.flags & FLG_KEEP_GUESSING)
+		format->params.flags |= FMT_NOT_EXACT;
+
 	if (!format->private.initialized) {
 		format->methods.init(format);
 		format->private.initialized = 1;
@@ -140,6 +143,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 	int i, ntests, done, index, max, size;
 	void *binary, *salt;
 	int binary_align_warned = 0, salt_align_warned = 0;
+	int salt_cleaned_warned = 0, binary_cleaned_warned = 0;
 #ifndef BENCH_BUILD
 	int dhirutest = 0;
 	int maxlength = 0;
@@ -320,12 +324,31 @@ static char *fmt_self_test_body(struct fmt_main *format,
 #if ARCH_ALLOWS_UNALIGNED
 		if (mem_saving_level <= 2 || format->params.binary_align >= MEM_ALIGN_SIMD)
 #endif
-		if (!is_aligned(binary, format->params.binary_align) &&
-		    (format->params.binary_size > 0) &&
-		    !binary_align_warned) {
+		if (!binary_align_warned &&
+			!is_aligned(binary, format->params.binary_align) &&
+		    format->params.binary_size > 0) {
 			puts("Warning: binary() returned misaligned pointer");
 			binary_align_warned = 1;
 		}
+
+		/* validate that binary() returns cleaned buffer */
+		memset(binary, 0xAF, format->params.binary_size);
+		binary = format->methods.binary(ciphertext);
+		if (!binary_cleaned_warned)
+		if (((unsigned char*)binary)[format->params.binary_size-1] == 0xAF)
+		{
+			memset(binary, 0xCC, format->params.binary_size);
+			binary = format->methods.binary(ciphertext);
+			if (((unsigned char*)binary)[format->params.binary_size-1] == 0xCC) {
+				/* possibly did not clean the binary. */
+				puts("Warning: binary() not pre-cleaning buffer");
+				binary_cleaned_warned = 1;
+			}
+		}
+		/* Clean up the mess we might have caused */
+		memset(binary, 0, format->params.binary_size);
+
+		binary = format->methods.binary(ciphertext);
 		memcpy(binary_copy, binary, format->params.binary_size);
 		binary = binary_copy;
 
@@ -334,12 +357,31 @@ static char *fmt_self_test_body(struct fmt_main *format,
 #if ARCH_ALLOWS_UNALIGNED
 		if (mem_saving_level <= 2 || format->params.salt_align >= MEM_ALIGN_SIMD)
 #endif
-		if (!is_aligned(salt, format->params.salt_align) &&
-		    (format->params.salt_size > 0) &&
-		    !salt_align_warned) {
+		if (!salt_align_warned &&
+			!is_aligned(salt, format->params.salt_align) &&
+		    format->params.salt_size > 0) {
 			puts("Warning: salt() returned misaligned pointer");
 			salt_align_warned = 1;
 		}
+
+		/* validate that salt() returns cleaned buffer */
+		memset(salt, 0xAF, format->params.salt_size);
+		salt = format->methods.salt(ciphertext);
+		if (!salt_cleaned_warned)
+		if (((unsigned char*)salt)[format->params.salt_size-1] == 0xAF)
+		{
+			memset(salt, 0xCC, format->params.salt_size);
+			salt = format->methods.salt(ciphertext);
+			if (((unsigned char*)salt)[format->params.salt_size-1] == 0xCC) {
+				/* possibly did not clean the salt. */
+				puts("Warning: salt() not pre-cleaning buffer");
+				salt_cleaned_warned = 1;
+			}
+		}
+		/* Clean up the mess we might have caused */
+		memset(salt, 0, format->params.salt_size);
+
+		salt = format->methods.salt(ciphertext);
 		memcpy(salt_copy, salt, format->params.salt_size);
 		salt = salt_copy;
 

@@ -930,6 +930,7 @@ void *BF_std_get_salt(char *ciphertext)
 {
 	static BF_salt salt;
 
+	memset(&salt, 0, sizeof(salt));
 	BF_decode(salt.salt, &ciphertext[7], 16);
 	BF_swap(salt.salt, 4);
 

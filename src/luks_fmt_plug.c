@@ -364,6 +364,7 @@ static void *get_salt(char *ciphertext)
 	size_t size;
 	ctcopy += 6;
 
+	memset(&cs, 0, sizeof(cs));
 	out = (unsigned char*)&cs.myphdr;
 
 	p = strtok(ctcopy, "$");

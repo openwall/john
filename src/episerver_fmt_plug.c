@@ -150,6 +150,7 @@ static void *get_salt(char *ciphertext)
 	static struct custom_salt cs;
 	char _ctcopy[256], *ctcopy=_ctcopy;
 	char *p;
+	memset(&cs, 0, sizeof(cs));
 	strncpy(ctcopy, ciphertext, 255);
 	ctcopy[255] = 0;
 	ctcopy += 12;	/* skip over "$episerver$*" */
@@ -262,6 +263,7 @@ static unsigned int hash_type(void *salt)
 {
 	struct custom_salt *my_salt;
 
+	memset(&my_salt, 0, sizeof(my_salt));
 	my_salt = salt;
 	return (unsigned int) (1 + my_salt->version);
 }

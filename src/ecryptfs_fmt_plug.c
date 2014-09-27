@@ -123,6 +123,7 @@ static void *get_salt(char *ciphertext)
 {
 	static struct custom_salt cs;
 
+	memset(&cs, 0, sizeof(cs));
 	memcpy(cs.salt, ECRYPTFS_DEFAULT_SALT, ECRYPTFS_SALT_SIZE);
 
 	return (void *)&cs;
@@ -232,7 +233,7 @@ struct fmt_main fmt_ecryptfs1 = {
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
-		BINARY_SIZE,
+		REAL_BINARY_SIZE,
 		BINARY_ALIGN,
 		SALT_SIZE,
 		SALT_ALIGN,

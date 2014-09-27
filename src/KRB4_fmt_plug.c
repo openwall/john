@@ -162,6 +162,7 @@ static void *salt(char *ciphertext)
 	static struct salt_st salt;
 	char *p;
 
+	memset(&salt, 0, sizeof(salt));
 	if (strncmp(ciphertext, "$af$", 4) == 0) {
 		ciphertext += 4;
 		p = strchr(ciphertext, '$');

@@ -63,7 +63,7 @@
 struct options_main options;
 struct pers_opts pers_opts; /* Not reset after forked resume */
 static char *field_sep_char_str, *show_uncracked_str, *salts_str;
-static char *encoding_str, *target_enc_str, *intermediate_enc_str;
+static char *encoding_str, *target_enc_str, *internal_enc_str;
 #if FMT_MAIN_VERSION > 11
 static char *costs_str;
 #endif
@@ -81,10 +81,10 @@ static struct opt_entry opt_list[] = {
 		0, 0, OPT_FMT_STR_ALLOC, &encoding_str},
 	{"input-encoding", FLG_INPUT_ENC, FLG_INPUT_ENC,
 		0, 0, OPT_FMT_STR_ALLOC, &encoding_str},
-	{"intermediate-encoding", FLG_SECOND_ENC, FLG_SECOND_ENC,
-		0, 0, OPT_FMT_STR_ALLOC, &intermediate_enc_str},
+	{"internal-encoding", FLG_SECOND_ENC, FLG_SECOND_ENC,
+		0, 0, OPT_FMT_STR_ALLOC, &internal_enc_str},
 	{"target-encoding", FLG_SECOND_ENC, FLG_SECOND_ENC,
-		0, FLG_STDOUT, OPT_FMT_STR_ALLOC, &target_enc_str},
+		0, 0, OPT_FMT_STR_ALLOC, &target_enc_str},
 	{"stdin", FLG_STDIN_SET, FLG_CRACKING_CHK},
 #if HAVE_WINDOWS_H
 	{"pipe", FLG_PIPE_SET, FLG_CRACKING_CHK,
@@ -98,9 +98,17 @@ static struct opt_entry opt_list[] = {
 		0, 0, OPT_FMT_STR_ALLOC, &options.charset},
 	{"mask", FLG_MASK_SET, FLG_CRACKING_CHK,
 		0, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.mask},
+	{"1", FLG_ZERO, 0, FLG_MASK_SET, OPT_REQ_PARAM,
+		OPT_FMT_STR_ALLOC, &options.custom_mask[0]},
+	{"2", FLG_ZERO, 0, FLG_MASK_SET, OPT_REQ_PARAM,
+		OPT_FMT_STR_ALLOC, &options.custom_mask[1]},
+	{"3", FLG_ZERO, 0, FLG_MASK_SET, OPT_REQ_PARAM,
+		OPT_FMT_STR_ALLOC, &options.custom_mask[2]},
+	{"4", FLG_ZERO, 0, FLG_MASK_SET, OPT_REQ_PARAM,
+		OPT_FMT_STR_ALLOC, &options.custom_mask[3]},
 	{"markov", FLG_MKV_SET, FLG_CRACKING_CHK,
 		0, 0, OPT_FMT_STR_ALLOC, &options.mkv_param},
-	{"mkv-stats", FLG_MKV_STATS, FLG_MKV_STATS,
+	{"mkv-stats", FLG_ZERO, 0,
 		FLG_MKV_SET, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC,
 		&options.mkv_stats},
 	{"external", FLG_EXTERNAL_SET, FLG_EXTERNAL_CHK,
@@ -147,69 +155,70 @@ static struct opt_entry opt_list[] = {
 		FLG_CRACKING_CHK, FLG_STDIN_CHK | FLG_STDOUT | FLG_PIPE_CHK | OPT_REQ_PARAM,
 		"%u", &options.fork},
 #endif
-	{"pot", FLG_POT, FLG_POT, 0, OPT_REQ_PARAM,
-	    OPT_FMT_STR_ALLOC, &pers_opts.activepot},
+	{"pot", FLG_ZERO, 0, 0, OPT_REQ_PARAM,
+		OPT_FMT_STR_ALLOC, &pers_opts.activepot},
 	{"format", FLG_FORMAT, FLG_FORMAT,
 		0, FLG_STDOUT | OPT_REQ_PARAM,
 		OPT_FMT_STR_ALLOC, &options.format},
-	{"subformat", FLG_SUBFORMAT, FLG_SUBFORMAT,
+	{"subformat", FLG_ZERO, 0,
 		0, FLG_STDOUT | OPT_REQ_PARAM,
 		OPT_FMT_STR_ALLOC, &options.subformat},
-	{"list", FLG_NONE, 0, 0, OPT_REQ_PARAM,
+	{"list", FLG_ZERO, 0, 0, OPT_REQ_PARAM,
 		OPT_FMT_STR_ALLOC, &options.listconf},
 #ifdef HAVE_LIBDL
 	{"plugin", FLG_DYNFMT, 0, 0, OPT_REQ_PARAM,
 		OPT_FMT_ADD_LIST_MULTI,	&options.fmt_dlls},
 #endif
-	{"mem-file-size", FLG_MEM_FILE_SIZE, FLG_MEM_FILE_SIZE,
+	{"mem-file-size", FLG_ZERO, 0,
 		FLG_WORDLIST_CHK, (FLG_DUPESUPP | FLG_SAVEMEM |
-	        FLG_STDIN_CHK | FLG_PIPE_CHK | OPT_REQ_PARAM),
+		FLG_STDIN_CHK | FLG_PIPE_CHK | OPT_REQ_PARAM),
 		"%zu", &options.max_wordfile_memory},
 	{"dupe-suppression", FLG_DUPESUPP, FLG_DUPESUPP, FLG_WORDLIST_CHK,
 		FLG_SAVEMEM | FLG_STDIN_CHK | FLG_PIPE_CHK},
-	{"fix-state-delay", FLG_NONE, 0, 0, OPT_REQ_PARAM,
+	{"fix-state-delay", FLG_ZERO, 0, 0, OPT_REQ_PARAM,
 		"%u", &options.max_fix_state_delay},
-	{"field-separator-char", FLG_FIELDSEP, FLG_FIELDSEP, 0, OPT_REQ_PARAM,
+	{"field-separator-char", FLG_ZERO, 0, 0, OPT_REQ_PARAM,
 		OPT_FMT_STR_ALLOC, &field_sep_char_str},
-	{"config", FLG_CONFIG, FLG_CONFIG, 0, OPT_REQ_PARAM,
+	{"config", FLG_ZERO, 0, 0, OPT_REQ_PARAM,
 		OPT_FMT_STR_ALLOC, &options.config},
 	{"nolog", FLG_NOLOG, FLG_NOLOG},
 	{"log-stderr", FLG_LOG_STDERR | FLG_NOLOG, FLG_LOG_STDERR},
 	{"crack-status", FLG_CRKSTAT, FLG_CRKSTAT},
-	{"mkpc", FLG_MKPC, FLG_MKPC, 0, OPT_REQ_PARAM,
+	{"mkpc", FLG_ZERO, 0, 0, OPT_REQ_PARAM,
 		"%u", &options.force_maxkeys},
-	{"min-length", FLG_MINLEN, FLG_MINLEN, 0, OPT_REQ_PARAM,
+	{"min-length", FLG_ZERO, 0, 0, OPT_REQ_PARAM,
 		"%u", &options.force_minlength},
-	{"max-length", FLG_MAXLEN, FLG_MAXLEN, 0, OPT_REQ_PARAM,
+	{"max-length", FLG_ZERO, 0, 0, OPT_REQ_PARAM,
 		"%u", &options.force_maxlength},
-	{"max-run-time", FLG_MAXRUN, FLG_MAXRUN, 0, OPT_REQ_PARAM,
+	{"max-run-time", FLG_ZERO, 0, 0, OPT_REQ_PARAM,
 		"%u", &options.max_run_time},
-	{"progress-every", FLG_PROGRESS, FLG_PROGRESS, 0, OPT_REQ_PARAM,
+	{"progress-every", FLG_ZERO, 0, 0, OPT_REQ_PARAM,
 		"%u", &options.status_interval},
-	{"regen-lost-salts", FLG_REGEN, FLG_REGEN, 0, OPT_REQ_PARAM,
+	{"regen-lost-salts", FLG_ZERO, 0, 0, OPT_REQ_PARAM,
 		OPT_FMT_STR_ALLOC, &regen_salts_options},
-	{"bare-always-valid", FLG_BARE, FLG_BARE, 0, OPT_REQ_PARAM,
+	{"bare-always-valid", FLG_ZERO, 0, 0, OPT_REQ_PARAM,
 		"%c", &options.dynamic_bare_hashes_always_valid},
 	{"reject-printable", FLG_REJECT_PRINTABLE, FLG_REJECT_PRINTABLE},
 	{"verbosity", FLG_VERBOSITY, FLG_VERBOSITY, 0, OPT_REQ_PARAM,
 		"%u", &options.verbosity},
 #ifdef HAVE_OPENCL
-	{"platform", FLG_PLATFORM, FLG_PLATFORM, 0, OPT_REQ_PARAM,
+	{"platform", FLG_ZERO, 0, 0, OPT_REQ_PARAM,
 		OPT_FMT_STR_ALLOC, &options.ocl_platform},
 	{"force-scalar", FLG_SCALAR, FLG_SCALAR, 0, FLG_VECTOR},
 	{"force-vector-width", FLG_VECTOR, FLG_VECTOR, 0,
 		(FLG_SCALAR | OPT_REQ_PARAM), "%u", &options.v_width},
 #endif
 #if defined(HAVE_OPENCL) || defined(HAVE_CUDA)
-	{"devices", FLG_DEVICE, FLG_DEVICE, 0, OPT_REQ_PARAM,
+	{"devices", FLG_ZERO, 0, 0, OPT_REQ_PARAM,
 		OPT_FMT_ADD_LIST_MULTI, &options.gpu_devices},
 #endif
 	{"skip-self-tests", FLG_NOTESTS, FLG_NOTESTS},
 #if FMT_MAIN_VERSION > 11
-	{"costs", FLG_COSTS, FLG_COSTS, FLG_PASSWD, OPT_REQ_PARAM,
+	{"costs", FLG_ZERO, 0, FLG_PASSWD, OPT_REQ_PARAM,
                 OPT_FMT_STR_ALLOC, &costs_str},
 
 #endif
+	{"keep-guessing", FLG_KEEP_GUESSING, FLG_KEEP_GUESSING},
 	{NULL}
 };
 
@@ -387,6 +396,8 @@ void opt_print_hidden_usage(void)
 	puts("                          always treat bare hashes as valid");
 	puts("--progress-every=N        emit a status line every N seconds");
 	puts("--crack-status            emit a status line whenever a password is cracked");
+	puts("--keep-guessing           try more candidates for cracked hashes (ie. search");
+	puts("                          for plaintext collisions)");
 	puts("--max-run-time=N          gracefully exit after this many seconds");
 	puts("--regen-lost-salts=N      regenerate lost salts (see doc/OPTIONS)");
 	puts("--mkv-stats=FILE          \"Markov\" stats file (see doc/MARKOV)");
@@ -394,7 +405,7 @@ void opt_print_hidden_usage(void)
 	puts("--verbosity=N             change verbosity (1-5, default 3)");
 	puts("--skip-self-tests         skip self tests");
 	puts("--input-encoding=NAME     input encoding (alias for --encoding)");
-	puts("--intermediate-enc=NAME   encoding used in rules processing (see doc/ENCODING)");
+	puts("--internal-encoding=NAME  encoding used in rules/masks (see doc/ENCODING)");
 	puts("--target-encoding=NAME    output encoding (used by format, see doc/ENCODING)");
 #ifdef HAVE_LIBDL
 	puts("--plugin=NAME[,..]        load this (these) dynamic plugin(s)");
@@ -537,7 +548,7 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 		exit(0);
 	}
 #if FMT_MAIN_VERSION > 11
-	if (options.flags & FLG_COSTS) {
+	if (costs_str) {
 		/*
 		 * costs_str: [-]COST1[:MAX1][,[-]COST2[:MAX2]][...,[-]COSTn[:MAXn]]
 		 *            but not --costs=,2:9 or --costs=,-99
@@ -760,8 +771,8 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 	 * that in john.conf or with the --encoding option.
 	 */
 	if ((encoding_str && !strcasecmp(encoding_str, "list")) ||
-	    (intermediate_enc_str &&
-	     !strcasecmp(intermediate_enc_str, "list")) ||
+	    (internal_enc_str &&
+	     !strcasecmp(internal_enc_str, "list")) ||
 	    (target_enc_str && !strcasecmp(target_enc_str, "list"))) {
 		listEncodings(stdout);
 		exit(EXIT_SUCCESS);
@@ -773,14 +784,14 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 	if (target_enc_str)
 		pers_opts.target_enc = cp_name2id(target_enc_str);
 
-	if (intermediate_enc_str)
-		pers_opts.intermediate_enc = cp_name2id(intermediate_enc_str);
+	if (internal_enc_str)
+		pers_opts.internal_enc = cp_name2id(internal_enc_str);
 
 	if (pers_opts.input_enc && pers_opts.input_enc != UTF_8) {
 		if (!pers_opts.target_enc)
 			pers_opts.target_enc = pers_opts.input_enc;
-		if (!pers_opts.intermediate_enc)
-			pers_opts.intermediate_enc = pers_opts.input_enc;
+		if (!pers_opts.internal_enc)
+			pers_opts.internal_enc = pers_opts.input_enc;
 	}
 
 #ifdef HAVE_OPENCL

@@ -147,6 +147,7 @@ static void *get_salt(char *ciphertext)
 	char _ctcopy[256], *ctcopy = _ctcopy;
 	char *p;
 
+	memset(&cs, 0, sizeof(cs));
 	strnzcpy(ctcopy, ciphertext, 255);
 	ctcopy += 7;	/* skip over "$wbb3$*" */
 	p = strtok(ctcopy, "*");

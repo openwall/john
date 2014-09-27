@@ -247,6 +247,7 @@ static void *get_salt(char *ciphertext)
 	char *p;
 	int i;
 	static struct custom_salt cs;
+	memset(&cs, 0, sizeof(cs));
 	ctcopy += 10;	/* skip over "$keepass$*" */
 	p = strtok(ctcopy, "*");
 	cs.version = atoi(p);

@@ -390,6 +390,7 @@ static void *salt(char *ciphertext)
 	int j;
 #endif
 	memset(salt, 0, sizeof(salt));
+	memset(&cur_salt, 0, sizeof(cur_salt));
 
 	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
 		ciphertext += TAG_LENGTH;

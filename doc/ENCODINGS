@@ -26,20 +26,24 @@ MS-DOS codepage like CP850. This can be specified by using the option
 Finally, there's the special case where both input (wordlist) and output (eg.
 hashes from a website) are UTF-8 but you want to use rules including eg. upper
 or lower-casing non-ASCII characters. In this case you can use an intermediate
-encoding (--intermediate-encoding option) and pick some codepage that can
+encoding (--internal-encoding option) and pick some codepage that can
 shelter as much of the needed input as possible. For US/Western Europe, any
 "Latin-1" codepage will do fine, eg. CP850, ISO-8859-1 or CP1252 (if you do
 this with a Unicode format like NT, it will silently be treated in another
 way internally for performance reasons but the outcome will be the same).
 
-The limitation is if you use --target-encoding or --intermediate-encoding,
+Mask mode also honors --internal-encoding (or plain --encoding). For
+example, the mask ?l that normally is a placeholder for [a-z] will also
+include all lowercase Greek letters if you use CP737.
+
+The limitation is if you use --target-encoding or --internal-encoding,
 the input encoding must be UTF-8. The recommended, and easiest, use is to
 un-comment all encoding parameters in john.conf and only use UTF-8 wordlists.
 This will work for most cases without too much impact on cracking speed
 and you will almost never have to give any command-line options.
 
 Some new reject rules and character classes are implemented, see doc/RULES.
-If you use rules without --intermediate-encoding, some wordlist rules may cut
+If you use rules without --internal-encoding, some wordlist rules may cut
 UTF-8 multibyte sequences in the middle, resulting in garbage. You can reject
 such rules with -U to have them in use only when UTF-8 is not used.
 
@@ -56,21 +60,26 @@ building if you need that support.
 Examples:
 1. LM hashes from Western Europe, using a UTF-8 wordlist:
 
-   ./john -form:lm -enc:utf8 -target:cp850 -wo:spanish.lst hashfile
+   ./john hashfile -form:lm -enc:utf8 -target:cp850 -wo:spanish.lst
 
 2. NT hashes, using a legacy Latin-1 wordlist. Since NT is a Unicode format,
    you do not have to worry about target encoding at all - any input encoding
    can be used:
 
-   ./john -form:nt -enc:ansi -wo:german.lst
+   ./john hashfile -form:nt -enc:8859-1 -wo:german.lst
 
-3. Some web hashes, using a UTF-8 wordlist and intermediate encoding:
+3. Using a UTF-8 wordlist with an internal encoding for rules processing:
 
-   ./john -form:raw-sha1 -enc:utf8 -interm=ansi -wo:french.lst
+   ./john hashfile -enc:utf8 -int=CP1252 -wo:french.lst -ru
 
-4. Using the recommended john.conf settings mentioned above:
+4. Using mask mode to print all possible "Latin-1" words of length 4,
+   first letter upper case:
 
-   $ ../run/john test -form:lm -single
+   ./john -stdout -enc:utf8 -int=8859-1 -mask:?u?l?l?l
+
+5. Using the recommended john.conf settings mentioned above:
+
+   $ ../run/john hashfile -form:lm -single
    Using default input encoding: UTF-8
    Target encoding: CP850
    Loaded 3 password hashes with no different salts (LM [DES 128/128 AVX-16])
@@ -83,7 +92,7 @@ Examples:
    Use the "--show" option to display all of the cracked passwords reliably
    Session completed
 
-   $ ../run/john test -form:nt -loopback
+   $ ../run/john hashfile -form:nt -loopback
    Rules engine using CP850 for Unicode
    Loaded 2 password hashes with no different salts (NT [MD4 128/128 SSE2-16])
    Assembling cracked LM halves for loopback
@@ -97,8 +106,10 @@ Examples:
 
 
 Currently supported encodings:
-UTF-8, ISO-8859-1 (a.k.a ansi), ISO-8859-2, ISO-8859-7, ISO-8859-15, KOI8-R,
-CP437, CP737, CP850, CP852, CP858, CP866, CP1250, CP1251, CP1252, CP1253.
+UTF-8, ISO-8859-1, ISO-8859-2, ISO-8859-7, ISO-8859-15,
+CP437, CP737, CP850, CP852, CP858, CP866,
+CP1250, CP1251, CP1252, CP1253 and KOI8-R.
+
 New encodings can be added with ease, using automated tools that rely on the
 Unicode Database (see Openwall wiki, or just post a request on john-users
 mailing list).

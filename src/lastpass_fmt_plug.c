@@ -124,6 +124,7 @@ static void *get_salt(char *ciphertext)
 	char *keeptr = ctcopy;
 	char *p;
 	static struct custom_salt cs;
+	memset(&cs, 0, sizeof(cs));
 	ctcopy += 4;	/* skip over "$lp$" */
 	p = strtok(ctcopy, "$");
 	strncpy((char*)cs.salt, p, 32);

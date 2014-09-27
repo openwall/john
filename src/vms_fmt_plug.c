@@ -195,6 +195,7 @@ int VMS_std_crypt(int *pcount, struct db_salt *salt)
 char *VMS_std_get_salt(char *ciphertext)
 {
 	static struct uaf_hash_info pwd;
+	memset(&pwd, 0, sizeof(pwd));
 	uaf_hash_decode ( ciphertext, &pwd );
 #ifdef DEBUG
 	printf("/VMS_STD/ get_salt decoded '%s' to %x/%x-%x-%x-%x-%x  %ld\n",

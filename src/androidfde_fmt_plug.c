@@ -166,6 +166,7 @@ static void *get_salt(char *ciphertext)
 	// int res;
 	int i;
 	static struct custom_salt cs;
+	memset(&cs, 0, sizeof(cs));
 	ctcopy += TAG_LENGTH;
 	p = strtok(ctcopy, "$");
 	cs.saltlen = atoi(p);

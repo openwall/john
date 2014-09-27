@@ -186,6 +186,7 @@ static void *get_salt(char *ciphertext)
 		ARCH_WORD_32 dummy;
 	} un;
 	struct custom_salt *cs = &(un._cs);
+	memset(cs, 0, sizeof(un));
 	ctcopy += 7;	/* skip over "$putty$" marker */
 	p = strtok(ctcopy, "*");
 	cs->cipher = atoi(p);

@@ -39,9 +39,13 @@ john_register_one(&fmt_FORMSPRING);
 #define BENCHMARK_LENGTH	0
 
 #define BINARY_SIZE		    32
+#define DYNA_BINARY_SIZE	16
+#define BINARY_ALIGN		MEM_ALIGN_WORD
 #define HEX_SIZE		    (BINARY_SIZE * 2)
 
 #define SALT_SIZE			2
+#define DYNA_SALT_SIZE		(sizeof(char*))
+#define SALT_ALIGN			MEM_ALIGN_WORD
 
 #define PLAINTEXT_LENGTH	32
 #define CIPHERTEXT_LENGTH	(SALT_SIZE + 1 + HEX_SIZE)
@@ -114,7 +118,7 @@ struct fmt_main fmt_FORMSPRING =
 		// setup the labeling and stuff. NOTE the max and min crypts are set to 1
 		// here, but will be reset within our init() function.
 		FORMAT_LABEL, FORMAT_NAME, ALGORITHM_NAME, BENCHMARK_COMMENT, BENCHMARK_LENGTH,
-		PLAINTEXT_LENGTH, BINARY_SIZE, DEFAULT_ALIGN, SALT_SIZE+1, DEFAULT_ALIGN, 1, 1, FMT_CASE | FMT_8_BIT | FMT_DYNAMIC,
+		PLAINTEXT_LENGTH, DYNA_BINARY_SIZE, BINARY_ALIGN, DYNA_SALT_SIZE, SALT_ALIGN, 1, 1, FMT_CASE | FMT_8_BIT | FMT_DYNAMIC,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif

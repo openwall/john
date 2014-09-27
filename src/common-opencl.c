@@ -2186,23 +2186,34 @@ void opencl_list_devices(void)
 			int ret;
 			int fan, temp, util;
 
-			if (!default_gpu_selected && !get_if_device_is_in_use(sequence_nr))
+			if (!default_gpu_selected &&
+			    !get_if_device_is_in_use(sequence_nr))
 				/* Nothing to do, skipping */
 				continue;
 
 			if (platform_in_use != i) {
 				/* Now, dealing with different platform. */
 				/* Obtain information about platform */
-				clGetPlatformInfo(platforms[i].platform, CL_PLATFORM_NAME,
+				clGetPlatformInfo(platforms[i].platform,
+				                  CL_PLATFORM_NAME,
 					sizeof(dname), dname, NULL);
 				printf("Platform #%d name: %s\n", i, dname);
-				clGetPlatformInfo(platforms[i].platform, CL_PLATFORM_VERSION,
+				clGetPlatformInfo(platforms[i].platform,
+				                  CL_PLATFORM_VERSION,
 					sizeof(dname), dname, NULL);
 				printf("Platform version: %s\n", dname);
 
-				/* Obtain a list of devices available on platform */
+				clGetPlatformInfo(platforms[i].platform,
+				                CL_PLATFORM_EXTENSIONS,
+				                sizeof(dname), dname, NULL);
+				if (options.verbosity > 3)
+					printf("\tPlatform extensions:\t%s\n",
+					       dname);
+
+				/* Obtain a list of devices available */
 				if (!platforms[i].num_devices)
-					printf("%d devices found\n", platforms[i].num_devices);
+					printf("%d devices found\n",
+					       platforms[i].num_devices);
 
 				platform_in_use = i;
 			}
@@ -2308,12 +2319,13 @@ void opencl_list_devices(void)
 			printf("\tGlobal Memory:\t\t%s%s\n",
 			       human_format((unsigned long long) long_entries),
 			       boolean == CL_TRUE ? " (ECC)" : "");
-#ifdef DEBUG
+
 			clGetDeviceInfo(devices[sequence_nr],
 					CL_DEVICE_EXTENSIONS,
 					sizeof(dname), dname, NULL);
-			printf("\tDevice extensions:\t%s\n", dname);
-#endif
+			if (options.verbosity > 3)
+				printf("\tDevice extensions:\t%s\n", dname);
+
 			clGetDeviceInfo(devices[sequence_nr],
 					CL_DEVICE_GLOBAL_MEM_CACHE_SIZE,
 					sizeof(cl_ulong),

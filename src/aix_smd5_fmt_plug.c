@@ -114,6 +114,7 @@ static void *get_salt(char *ciphertext)
 	char *keeptr = ctcopy;
 	char *p;
 	static struct custom_salt cs;
+	memset(&cs, 0, sizeof(cs));
 	keeptr = ctcopy;
 	if (!strncmp(ciphertext, "{smd5}", 6)) {
 		ctcopy += 6;

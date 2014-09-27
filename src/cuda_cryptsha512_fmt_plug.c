@@ -182,6 +182,8 @@ static void *salt(char *ciphertext)
 {
 	int end = 0, i, len = strlen(ciphertext);
 	static unsigned char ret[50];
+
+	memset(ret, 0, sizeof(ret));
 	for (i = len - 1; i >= 0; i--)
 		if (ciphertext[i] == '$') {
 			end = i;

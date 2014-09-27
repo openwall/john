@@ -122,6 +122,7 @@ static void *get_salt(char *ciphertext)
 	char *p;
 	static struct custom_salt cs;
 
+	memset(&cs, 0, sizeof(cs));
 	p = strrchr(ciphertext, '$') + 1;
 	strncpy((char*)cs.salt, p, MAX_SALT_SIZE);
 

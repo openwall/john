@@ -56,6 +56,9 @@ john_register_one(&fmt_phpassmd5);
 
 #define BINARY_SIZE				16
 #define SALT_SIZE				8
+#define DYNA_SALT_SIZE			(sizeof(char*))
+#define SALT_ALIGN				MEM_ALIGN_WORD
+#define BINARY_ALIGN			MEM_ALIGN_WORD
 
 static struct fmt_tests phpassmd5_tests[] = {
 	{"$H$9aaaaaSXBjgypwqm.JsMssPLiS8YQ00", "test1"},
@@ -144,7 +147,7 @@ struct fmt_main fmt_phpassmd5 =
 		// setup the labeling and stuff. NOTE the max and min crypts are set to 1
 		// here, but will be reset within our init() function.
 		FORMAT_LABEL, FORMAT_NAME, ALGORITHM_NAME, BENCHMARK_COMMENT, BENCHMARK_LENGTH,
-		PLAINTEXT_LENGTH, BINARY_SIZE, DEFAULT_ALIGN, SALT_SIZE+1, DEFAULT_ALIGN, 1, 1, FMT_CASE | FMT_8_BIT | FMT_DYNAMIC,
+		PLAINTEXT_LENGTH, BINARY_SIZE, BINARY_ALIGN, DYNA_SALT_SIZE, SALT_ALIGN, 1, 1, FMT_CASE | FMT_8_BIT | FMT_DYNAMIC,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif

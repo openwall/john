@@ -49,7 +49,7 @@ john_register_one(&fmt_netmd5);
 #define BINARY_SIZE             16
 #define BINARY_ALIGN            sizeof(ARCH_WORD_32)
 #define SALT_SIZE               sizeof(struct custom_salt)
-#define SALT_ALIGN              MEM_ALIGN_NONE
+#define SALT_ALIGN              MEM_ALIGN_WORD
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
 #define HEXCHARS                "0123456789abcdef"
@@ -124,8 +124,10 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		return 0;
 
 	len = strspn(q, HEXCHARS);
-	if (len != BINARY_SIZE * 2 || len != strlen(q))
-		return 0;
+	if (len != BINARY_SIZE * 2 || len != strlen(q)) {
+		get_ptr();
+		return pDynamicFmt->methods.valid(ciphertext, pDynamicFmt);
+	}
 
 	if (strspn(p, HEXCHARS) != q - p - 1)
 		return 0;
@@ -138,7 +140,7 @@ static void *get_salt(char *ciphertext)
 	static struct custom_salt cs;
 	char *orig_ct = ciphertext;
 	int i, len;
-	memset(&cs, 0, SALT_SIZE);
+	memset(&cs, 0, sizeof(cs));
 
 	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
 		ciphertext += TAG_LENGTH;
@@ -150,7 +152,11 @@ static void *get_salt(char *ciphertext)
 			atoi16[ARCH_INDEX(ciphertext[2 * i + 1])];
 
 	if (len < 230) {
-		return pDynamicFmt->methods.salt(Convert(Conv_Buf, orig_ct));
+		// return our memset buffer (putting the dyna salt pointer into it).
+		// This keeps teh 'pre-cleaned salt() warning from hitting this format)
+		//return pDynamicFmt->methods.salt(Convert(Conv_Buf, orig_ct));
+		memcpy((char*)(&cs), pDynamicFmt->methods.salt(Convert(Conv_Buf, orig_ct)), pDynamicFmt->params.salt_size);
+		return &cs;
 	}
 	cs.magic = MAGIC;
 	cs.length = len;
@@ -166,6 +172,9 @@ static void *get_binary(char *ciphertext)
 	unsigned char *out = buf.c;
 	char *p;
 	int i;
+	if (text_in_dynamic_format_already(pDynamicFmt, ciphertext))
+		// returns proper 16 bytes, so we do not need to copy into our buffer.
+		return pDynamicFmt->methods.binary(ciphertext);
 	p = strrchr(ciphertext, '$') + 1;
 	for (i = 0; i < BINARY_SIZE; i++) {
 		out[i] =
@@ -264,6 +273,9 @@ static char *prepare(char *fields[10], struct fmt_main *self) {
 	static char buf[sizeof(cur_salt->salt)*2+TAG_LENGTH+1];
 	char *hash = fields[1];
 	if (strncmp(hash, FORMAT_TAG, TAG_LENGTH) && valid(hash, self)) {
+		get_ptr();
+		if (text_in_dynamic_format_already(pDynamicFmt, hash))
+			return hash;
 		sprintf(buf, "%s%s", FORMAT_TAG, hash);
 		return buf;
 	}
@@ -279,9 +291,9 @@ struct fmt_main fmt_netmd5 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,

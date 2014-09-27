@@ -294,6 +294,7 @@ static void * get_salt(char * ciphertext)
 	int l;
 
 	if (!out) out = mem_alloc_tiny(SALT_SIZE+2, MEM_ALIGN_WORD);
+	memset(out, 0, SALT_SIZE+2);
 	l = 2;
 	while( ciphertext[l] && (ciphertext[l]!='#') )
 	{

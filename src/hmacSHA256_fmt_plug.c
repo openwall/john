@@ -232,6 +232,7 @@ static void *salt(char *ciphertext)
 	static unsigned char salt[SALT_SIZE+1];
 	// allow # in salt
 	int len = strrchr(ciphertext, '#') - ciphertext;
+	memset(salt, 0, SALT_SIZE+1);
 	memcpy(salt, ciphertext, len);
 	salt[len] = 0;
 	return salt;

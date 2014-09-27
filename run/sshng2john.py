@@ -385,6 +385,7 @@ class PKey (object):
     _CIPHER_TABLE = {
         'AES-128-CBC': {'cipher': AES, 'keysize': 16, 'blocksize': 16, 'mode': AES.MODE_CBC},
         'DES-EDE3-CBC': {'cipher': DES3, 'keysize': 24, 'blocksize': 8, 'mode': DES3.MODE_CBC},
+        'AES-256-CBC': {'cipher': AES, 'keysize': 32, 'blocksize': 16, 'mode': AES.MODE_CBC},
     }
 
     def __init__(self, msg=None, data=None):
@@ -605,12 +606,14 @@ class PKey (object):
         if "BEGIN RSA PRIVATE" in lines[0]:
             tag = "RSA"
             self.type = 0
+        elif "-----BEGIN OPENSSH PRIVATE KEY-----" in lines[0]:
+            self.type = 2  # bcrypt pbkdf + aes-256-cbc
         else:
             self.type = 1
             tag = "DSA"
 
         start = 0
-        while (start < len(lines)) and (lines[start].strip() != '-----BEGIN ' + tag + ' PRIVATE KEY-----'):
+        while (start < len(lines)) and ((lines[start].strip() != '-----BEGIN ' + tag + ' PRIVATE KEY-----') and (lines[start].strip() != '-----BEGIN OPENSSH PRIVATE KEY-----')):
             start += 1
         if start >= len(lines):
             sys.stdout.write("%s is not a valid private key file\n" % f.name)
@@ -626,7 +629,7 @@ class PKey (object):
             start += 1
         # find end
         end = start
-        while (lines[end].strip() != '-----END ' + tag + ' PRIVATE KEY-----') and (end < len(lines)):
+        while ((lines[end].strip() != '-----END OPENSSH PRIVATE KEY-----') and (lines[end].strip() != '-----END ' + tag + ' PRIVATE KEY-----')) and (end < len(lines)):
             end += 1
         # if we trudged to the end of the file, just try to cope.
         try:
@@ -636,17 +639,21 @@ class PKey (object):
             e = sys.exc_info()[1]
             raise SSHException('base64 decoding error: ' + str(e))
 
-        if 'proc-type' not in headers:
+        if 'proc-type' not in headers and self.type != 2:
             # unencryped: done
             sys.stderr.write("%s has no password!\n" % f.name)
             return None
         # encrypted keyfile: will need a password
-        if headers['proc-type'] != '4,ENCRYPTED':
+        if self.type !=2 and headers['proc-type'] != '4,ENCRYPTED':
             raise SSHException('Unknown private key structure "%s"' % headers['proc-type'])
         try:
             encryption_type, saltstr = headers['dek-info'].split(',')
         except:
-            raise SSHException('Can\'t parse DEK-info in private key file')
+           if self.type != 2:
+               raise SSHException('Can\'t parse DEK-info in private key file')
+           else:
+               encryption_type = "AES-256-CBC"
+               saltstr = "fefe"
         if encryption_type not in self._CIPHER_TABLE:
             raise SSHException('Unknown private key cipher "%s"' % encryption_type)
         # if no password was passed in, raise an exception pointing out that we need one
@@ -655,14 +662,22 @@ class PKey (object):
         cipher = self._CIPHER_TABLE[encryption_type]['cipher']
         keysize = self._CIPHER_TABLE[encryption_type]['keysize']
         mode = self._CIPHER_TABLE[encryption_type]['mode']
-        salt = unhexlify(saltstr)
+        if self.type == 2:
+            salt_offset = 47  # XXX is this fixed?
+            salt_length = 16
+            saltstr = data[salt_offset:salt_offset+salt_length].encode("hex")
         data = binascii.hexlify(data).decode("ascii")
         if keysize == 24:
             self.hashline = "%s:$sshng$%s$%s$%s$%s$%s" % (f.name, 0,
                 len(salt), saltstr, len(data) // 2, data)
         elif keysize == 16:
-            self.hashline = "%s:$sshng$%s$%s$%s$%s$%s" % (f.name, 1, len(salt),
+            self.hashline = "%s:$sshng$%s$%s$%s$%s$%s" % (f.name, 1, len(saltstr) // 2,
                 saltstr, len(data) // 2, data)
+        elif keysize == 32 and self.type == 2:  # bcrypt pbkdf + aes-256-cbc
+            # round value appears after salt
+            rounds = 16
+            self.hashline = "%s:$sshng$%s$%s$%s$%s$%s$%d" % (f.name, 2, len(saltstr) // 2,
+                saltstr, len(data) // 2, data, rounds)
         else:
             sys.stderr.write("%s uses unsupported cipher, please file a bug!\n" % f.name)
             return None

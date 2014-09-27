@@ -201,7 +201,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 static MAYBE_INLINE void prf_512(uint32_t * key, uint8_t * data, uint32_t * ret)
 {
 	HMAC_CTX ctx;
-	char *text = "Pairwise key expansion";
+	char *text = (char*)"Pairwise key expansion";
 	unsigned char buff[100];
 
 	memcpy(buff, text, 22);

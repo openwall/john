@@ -56,14 +56,21 @@ extern int gpu_device_list[MAX_GPU_DEVICES];
 
 typedef struct nvmlDevice_st* nvmlDevice_t;
 
-typedef struct nvmlUtilization_st
-{
+typedef struct nvmlUtilization_st {
     unsigned int gpu;    // GPU kernel execution last second, percent
     unsigned int memory; // GPU memory read/write last second, percent
 } nvmlUtilization_t;
 
-typedef enum nvmlReturn_enum
-{
+typedef struct nvmlPciInfo_st {
+	char busId[16];
+	unsigned int domain;
+	unsigned int bus;
+	unsigned int device;
+	unsigned int pciDeviceId;
+	unsigned int pciSubSystemId;
+} nvmlPciInfo_t;
+
+typedef enum nvmlReturn_enum {
     NVML_SUCCESS = 0,                   // The operation was successful
     NVML_ERROR_UNINITIALIZED = 1,       // NVML was not first initialized with nvmlInit()
     NVML_ERROR_INVALID_ARGUMENT = 2,    // A supplied argument is invalid
@@ -78,8 +85,7 @@ typedef enum nvmlReturn_enum
     NVML_ERROR_UNKNOWN = 999            // An internal driver error occurred
 } nvmlReturn_t;
 
-typedef enum nvmlTemperatureSensors_enum
-{
+typedef enum nvmlTemperatureSensors_enum {
     NVML_TEMPERATURE_GPU = 0     // Temperature sensor for the GPU die
 } nvmlTemperatureSensors_t;
 
@@ -89,7 +95,8 @@ typedef nvmlReturn_t ( *NVMLDEVICEGETHANDLEBYINDEX ) (unsigned int, nvmlDevice_t
 typedef nvmlReturn_t ( *NVMLDEVICEGETTEMPERATURE )( nvmlDevice_t, int, unsigned int *);
 typedef nvmlReturn_t ( *NVMLDEVICEGETFANSPEED ) (nvmlDevice_t, unsigned int *);
 typedef nvmlReturn_t ( *NVMLDEVICEGETUTILIZATIONRATES ) (nvmlDevice_t, nvmlUtilization_t *);
-//typedef nvmlReturn_t ( *NVMLDEVICEGETNAME ) (nvmlDevice_t, char *, unsigned int);
+typedef nvmlReturn_t ( *NVMLDEVICEGETPCIINFO ) (nvmlDevice_t, nvmlPciInfo_t *);
+typedef nvmlReturn_t ( *NVMLDEVICEGETNAME ) (nvmlDevice_t, char *, unsigned int);
 
 /* Progress indicator "spinning wheel" */
 void advance_cursor(void);

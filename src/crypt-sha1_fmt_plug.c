@@ -29,6 +29,7 @@ john_register_one(&fmt_cryptsha1);
 #include "params.h"
 #include "common.h"
 #include "formats.h"
+#include "johnswap.h"
 #define PBKDF1_LOGIC 1
 #include "pbkdf2_hmac_sha1.h"
 #include "memdbg.h"
@@ -157,6 +158,7 @@ static void * get_binary(char * ciphertext)
 {       static union {
                 unsigned char c[BINARY_SIZE + 16];
                 ARCH_WORD dummy;
+				ARCH_WORD_32 swap[1];
         } buf;
         unsigned char *out = buf.c;
 	ARCH_WORD_32 value;
@@ -168,7 +170,11 @@ static void * get_binary(char * ciphertext)
 		TO_BINARY(i, i + 1, i + 2);
 		i = i + 3;
 	} while (i <= 18);
-
+#if (ARCH_LITTLE_ENDIAN==0)
+	for (i = 0; i < sizeof(buf.c)/4; ++i) {
+		buf.swap[i] = JOHNSWAP(buf.swap[i]);
+	}
+#endif
 	return (void *)out;
 }
 
@@ -233,7 +239,7 @@ static void *get_salt(char *ciphertext)
 	static struct saltstruct out;
 	char tmp[sizeof(out.salt)];
 	char *p;
-
+	memset(&out, 0, sizeof(out));
 	p = strrchr(ciphertext, '$') + 1;
 	strnzcpy(tmp, ciphertext, p - ciphertext);
 	out.rounds = strtoul(&ciphertext[sizeof(SHA1_MAGIC)-1], NULL, 10);

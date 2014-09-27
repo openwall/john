@@ -895,7 +895,7 @@ UTF8 *utf16_to_enc_r (UTF8 *dst, int dst_len, const UTF16 *source) {
 }
 
 void listEncodings(FILE *fd) {
-	fprintf(fd, "UTF-8, ISO-8859-1 (or ANSI)"
+	fprintf(fd, "UTF-8, ISO-8859-1 (or latin1)"
 	        ", ISO-8859-2"
 	        ", ISO-8859-7"
 	        ", ISO-8859-15"
@@ -971,7 +971,8 @@ int cp_name2id(char *encoding)
 	if (!strcmp(enc, "utf8") || !strcmp(enc, "utf-8"))
 		return UTF_8;
 	else
-	if (!strcmp(enc, "ansi") || !strcmp(enc, "8859-1"))
+	if (!strcmp(enc, "8859-1") || !strcmp(enc, "ansi") ||
+	    !strcmp(enc, "latin1"))
 		return ISO_8859_1;
 	else
 	if (!strcmp(enc, "8859-2"))
@@ -1053,11 +1054,11 @@ void initUnicode(int type) {
 	if (!pers_opts.target_enc)
 		pers_opts.target_enc = pers_opts.input_enc;
 
-	if (!pers_opts.intermediate_enc)
-		pers_opts.intermediate_enc = pers_opts.target_enc;
+	if (!pers_opts.internal_enc)
+		pers_opts.internal_enc = pers_opts.target_enc;
 
-	if (pers_opts.intermediate_enc != pers_opts.target_enc)
-		encoding = pers_opts.intermediate_enc;
+	if (pers_opts.internal_enc != pers_opts.target_enc)
+		encoding = pers_opts.internal_enc;
 	else if (pers_opts.target_enc != pers_opts.input_enc)
 		encoding = pers_opts.target_enc;
 	else
@@ -1078,7 +1079,7 @@ void initUnicode(int type) {
 		        cp_id2name(encoding), cp_id2name(pers_opts.unicode_cp));
 		fprintf(stderr, "%s -> %s -> %s\n",
 		        cp_id2name(pers_opts.input_enc),
-		        cp_id2name(pers_opts.intermediate_enc),
+		        cp_id2name(pers_opts.internal_enc),
 		        cp_id2name(pers_opts.target_enc));
 	}
 

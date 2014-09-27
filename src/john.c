@@ -303,7 +303,8 @@ static void john_log_format(void)
 #endif
 	/* make sure the format is properly initialized */
 #if HAVE_OPENCL
-	if (!(options.gpu_devices->count && options.fork))
+	if (!(options.gpu_devices->count && options.fork &&
+	      strstr(database.format->params.label, "-opencl")))
 #endif
 	fmt_init(database.format);
 
@@ -503,7 +504,8 @@ static void john_fork(void)
 			options.node_max = options.node_min;
 #if HAVE_OPENCL
 			// Poor man's multi-device support
-			if (options.gpu_devices->count) {
+			if (options.gpu_devices->count &&
+			    strstr(database.format->params.label, "-opencl")) {
 				// Pick device to use for this child
 				opencl_preinit();
 				gpu_id =
@@ -538,7 +540,8 @@ static void john_fork(void)
 
 #if HAVE_OPENCL
 	// Poor man's multi-device support
-	if (options.gpu_devices->count) {
+	if (options.gpu_devices->count &&
+	    strstr(database.format->params.label, "-opencl")) {
 		// Pick device to use for mother process
 		opencl_preinit();
 		gpu_id = gpu_device_list[0];
@@ -678,7 +681,7 @@ static char *john_loaded_counts(void)
 
 static void john_load_conf(void)
 {
-	int intermediate, target;
+	int internal, target;
 
 	if (!(options.flags & FLG_VERBOSITY)) {
 		options.verbosity = cfg_get_int(SECTION_OPTIONS, NULL,
@@ -765,11 +768,20 @@ static void john_load_conf(void)
 		pers_opts.default_enc = pers_opts.input_enc;
 	}
 
+	if (!options.custom_mask[0])
+		options.custom_mask[0] = cfg_get_param("Mask", NULL, "1");
+	if (!options.custom_mask[1])
+		options.custom_mask[1] = cfg_get_param("Mask", NULL, "2");
+	if (!options.custom_mask[2])
+		options.custom_mask[2] = cfg_get_param("Mask", NULL, "3");
+	if (!options.custom_mask[3])
+		options.custom_mask[3] = cfg_get_param("Mask", NULL, "4");
+
 	/* Pre-init in case some format's prepare() needs it */
-	intermediate = pers_opts.intermediate_enc;
+	internal = pers_opts.internal_enc;
 	target = pers_opts.target_enc;
 	initUnicode(UNICODE_UNICODE);
-	pers_opts.intermediate_enc = intermediate;
+	pers_opts.internal_enc = internal;
 	pers_opts.target_enc = target;
 	pers_opts.unicode_cp = CP_UNDEF;
 }
@@ -777,13 +789,17 @@ static void john_load_conf(void)
 static void john_load_conf_db(void)
 {
 	if (options.flags & FLG_STDOUT) {
-		/* john.conf alternative for --intermediate-encoding */
-		if (!pers_opts.intermediate_enc &&
+		/* john.conf alternative for --internal-encoding */
+		if (!pers_opts.internal_enc &&
 		    pers_opts.target_enc == UTF_8 && options.flags &
-		    (FLG_RULES | FLG_SINGLE_CHK | FLG_BATCH_CHK))
-			pers_opts.intermediate_enc = cp_name2id(
-				cfg_get_param(SECTION_OPTIONS, NULL,
-				              "DefaultIntermediateEncoding"));
+		    (FLG_RULES | FLG_SINGLE_CHK | FLG_BATCH_CHK | FLG_MASK_CHK))
+		if (!(pers_opts.internal_enc =
+		      cp_name2id(cfg_get_param(SECTION_OPTIONS, NULL,
+		                               "DefaultInternalEncoding"))))
+			/* Deprecated alternative */
+			pers_opts.internal_enc =
+				cp_name2id(cfg_get_param(SECTION_OPTIONS, NULL,
+				               "DefaultIntermediateEncoding"));
 	}
 
 	if (!pers_opts.unicode_cp)
@@ -854,24 +870,13 @@ static void john_load_conf_db(void)
 	}
 
 	if (!(options.flags & FLG_SHOW_CHK) && !options.loader.showuncracked)
-	if (pers_opts.input_enc != pers_opts.intermediate_enc) {
-		if (pers_opts.intermediate_enc == pers_opts.target_enc) {
-			log_event("- Rules engine using %s for Unicode",
-			          cp_id2name(pers_opts.intermediate_enc));
-			if (john_main_process &&
-			    (database.format->params.flags & FMT_UNICODE))
-				fprintf(stderr, "Rules engine using %s for "
-				        "Unicode\n",
-				        cp_id2name(pers_opts.intermediate_enc));
-		} else {
-			log_event("- Rules engine using %s as intermediate "
-			          "encoding for Unicode",
-			          cp_id2name(pers_opts.intermediate_enc));
-			if (john_main_process)
-				fprintf(stderr, "Rules engine using %s as "
-				        "intermediate encoding for Unicode\n",
-				        cp_id2name(pers_opts.intermediate_enc));
-		}
+	if (pers_opts.input_enc != pers_opts.internal_enc) {
+		log_event("- Rules/masks using %s",
+		          cp_id2name(pers_opts.internal_enc));
+		if (john_main_process &&
+		    (database.format->params.flags & FMT_UNICODE))
+			fprintf(stderr, "Rules/masks using %s\n",
+			        cp_id2name(pers_opts.internal_enc));
 	}
 }
 
@@ -912,7 +917,7 @@ static void john_load(void)
 		memset(&dummy_format, 0, sizeof(dummy_format));
 		dummy_format.params.plaintext_length = options.length;
 		dummy_format.params.flags = FMT_CASE | FMT_8_BIT;
-		if (pers_opts.report_utf8)
+		if (pers_opts.report_utf8 || pers_opts.target_enc == UTF_8)
 			dummy_format.params.flags |= FMT_UTF8;
 		dummy_format.params.label = "stdout";
 		dummy_format.methods.clear_keys = &fmt_default_clear_keys;
@@ -978,7 +983,8 @@ static void john_load(void)
 			log_event("Loaded a total of %s", john_loaded_counts());
 			/* make sure the format is properly initialized */
 #if HAVE_OPENCL
-			if (!(options.gpu_devices->count && options.fork))
+			if (!(options.gpu_devices->count && options.fork &&
+			      strstr(database.format->params.label, "-opencl")))
 #endif
 			fmt_init(database.format);
 			if (john_main_process)
@@ -1228,19 +1234,12 @@ static void john_init(char *name, int argc, char **argv)
 	john_load();
 
 	/* Init the Unicode system */
-	if (pers_opts.intermediate_enc) {
-		if (pers_opts.intermediate_enc != pers_opts.input_enc &&
+	if (pers_opts.internal_enc) {
+		if (pers_opts.internal_enc != pers_opts.input_enc &&
 		    pers_opts.input_enc != UTF_8) {
 			if (john_main_process)
-			fprintf(stderr, "Intermediate encoding can only be "
+			fprintf(stderr, "Internal encoding can only be "
 			        "specified if input encoding is UTF-8\n");
-			exit(0);
-		}
-		if (pers_opts.target_enc && pers_opts.target_enc != UTF_8 &&
-		    pers_opts.target_enc != pers_opts.intermediate_enc) {
-			if (john_main_process)
-			fprintf(stderr, "BUG: Intermediate encoding is "
-			        "different from target encoding\n");
 			exit(0);
 		}
 	}

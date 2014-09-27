@@ -48,7 +48,8 @@ NVMLDEVICEGETHANDLEBYINDEX nvmlDeviceGetHandleByIndex = NULL;
 NVMLDEVICEGETTEMPERATURE nvmlDeviceGetTemperature = NULL;
 NVMLDEVICEGETFANSPEED nvmlDeviceGetFanSpeed = NULL;
 NVMLDEVICEGETUTILIZATIONRATES nvmlDeviceGetUtilizationRates = NULL;
-//NVMLDEVICEGETNAME nvmlDeviceGetName = NULL;
+NVMLDEVICEGETPCIINFO nvmlDeviceGetPciInfo = NULL;
+NVMLDEVICEGETNAME nvmlDeviceGetName = NULL;
 
 void *adl_lib;
 
@@ -116,8 +117,9 @@ void nvidia_probe(void)
 	nvmlDeviceGetTemperature = (NVMLDEVICEGETTEMPERATURE) dlsym(nvml_lib, "nvmlDeviceGetTemperature");
 	nvmlDeviceGetFanSpeed = (NVMLDEVICEGETFANSPEED) dlsym(nvml_lib, "nvmlDeviceGetFanSpeed");
 	nvmlDeviceGetUtilizationRates = (NVMLDEVICEGETUTILIZATIONRATES) dlsym(nvml_lib, "nvmlDeviceGetUtilizationRates");
-	//nvmlDeviceGetName = (NVMLDEVICEGETNAME) dlsym(nvml_lib, "nvmlDeviceGetName");
-
+	nvmlDeviceGetPciInfo = (NVMLDEVICEGETPCIINFO) dlsym(nvml_lib, "nvmlDeviceGetPciInfo");
+	nvmlDeviceGetName = (NVMLDEVICEGETNAME) dlsym(nvml_lib, "nvmlDeviceGetName");
+	//nvmlUnitGetCount = (NVMLUNITGETCOUNT) dlsym(nvml_lib, "nvmlUnitGetCount");
 	nvmlInit();
 #endif
 }
@@ -223,7 +225,8 @@ void nvidia_get_temp(int gpu_id, int *temp, int *fanspeed, int *util)
 	nvmlUtilization_t s_util;
 	nvmlDevice_t dev;
 	unsigned int value;
-	//char name[80];
+	nvmlPciInfo_t pci;
+	char name[80];
 
 	if (nvmlDeviceGetHandleByIndex(gpu_id, &dev) != NVML_SUCCESS) {
 		*temp = *fanspeed = *util = -1;
@@ -243,8 +246,12 @@ void nvidia_get_temp(int gpu_id, int *temp, int *fanspeed, int *util)
 	else
 		*util = -1;
 
-	//if (nvmlDeviceGetName(dev, name, sizeof(name)) == NVML_SUCCESS)
-	//	printf("Querying %s\n", name);
+	if (nvmlDeviceGetName(dev, name, sizeof(name)) != NVML_SUCCESS)
+		sprintf(name, "[error querying for name]");
+
+	if (nvmlDeviceGetPciInfo(dev, &pci) == NVML_SUCCESS)
+		fprintf(stderr, "\tNVML PCI info device    %s (idx %d '%s')\n",
+		        &pci.busId[5], gpu_id, name);
 }
 
 #ifdef __linux__
@@ -267,6 +274,8 @@ static void get_temp_od5(int adl_id, int *temp, int *fanspeed, int *util)
 	    !ADL_Overdrive5_ODParameters_Get ||
 	    !ADL_Overdrive5_CurrentActivity_Get)
 		return;
+
+	fprintf(stderr, "\tADL OD5 device number   %d\n", adl_id);
 
 	termalControllerInfo.iSize = sizeof(ADLThermalControllerInfo);
 
@@ -321,6 +330,7 @@ static void get_temp_od6(int adl_id, int *temp, int *fanspeed, int *util)
 	    !ADL_Overdrive6_CurrentStatus_Get)
 		return;
 
+	fprintf(stderr, "\tADL OD6 device number   %d\n", adl_id);
 	if (ADL_Overdrive6_ThermalController_Caps(adl_id, &thermalControllerCaps) == ADL_OK) {
 		if (thermalControllerCaps.iCapabilities & ADL_OD6_TCCAPS_FANSPEED_CONTROL)
 		if (thermalControllerCaps.iCapabilities & ADL_OD6_TCCAPS_FANSPEED_PERCENT_READ)

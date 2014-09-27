@@ -58,7 +58,7 @@ john_register_one(&fmt_mozilla);
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	16
 #define BINARY_SIZE		0
-#define SALT_SIZE		sizeof(*salt_struct)
+#define SALT_SIZE		sizeof(struct custom_salt)
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 
@@ -197,57 +197,58 @@ static void *get_salt(char *ciphertext)
 	char *p;
 	char *ctcopy = strdup(ciphertext);
 	char *keeptr = ctcopy;
-	ctcopy += 9;	/* skip over "$vnc$*" */
-	salt_struct = mem_alloc_tiny(sizeof(struct custom_salt), MEM_ALIGN_WORD);
+	static struct custom_salt cs;
+	memset(&cs, 0, sizeof(cs));
+	ctcopy += 9;	/* skip over "$mozilla$*" */
 	p = strtok(ctcopy, "*");
-	salt_struct->keyCrackData.version = atoi(p);
+	cs.keyCrackData.version = atoi(p);
 	p = strtok(NULL, "*");
-	salt_struct->keyCrackData.saltLen = atoi(p);
+	cs.keyCrackData.saltLen = atoi(p);
 	p = strtok(NULL, "*");
-	salt_struct->keyCrackData.nnLen = atoi(p);
+	cs.keyCrackData.nnLen = atoi(p);
 	p = strtok(NULL, "*");
-	for (i = 0; i < salt_struct->keyCrackData.saltLen; i++)
-		salt_struct->keyCrackData.salt[i] = atoi16[ARCH_INDEX(p[i * 2])]
+	for (i = 0; i < cs.keyCrackData.saltLen; i++)
+		cs.keyCrackData.salt[i] = atoi16[ARCH_INDEX(p[i * 2])]
 			* 16 + atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	salt_struct->keyCrackData.salt[salt_struct->keyCrackData.saltLen] = 0;
+	cs.keyCrackData.salt[cs.keyCrackData.saltLen] = 0;
 	p = strtok(NULL, "*");
-	salt_struct->keyCrackData.oidLen = atoi(p);
+	cs.keyCrackData.oidLen = atoi(p);
 	p = strtok(NULL, "*");
-	for (i = 0; i < salt_struct->keyCrackData.oidLen; i++)
-		salt_struct->keyCrackData.oidData[i] = atoi16[ARCH_INDEX(p[i * 2])]
+	for (i = 0; i < cs.keyCrackData.oidLen; i++)
+		cs.keyCrackData.oidData[i] = atoi16[ARCH_INDEX(p[i * 2])]
 			* 16 + atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	salt_struct->keyCrackData.oidData[salt_struct->keyCrackData.oidLen] =0;
+	cs.keyCrackData.oidData[cs.keyCrackData.oidLen] =0;
 	p = strtok(NULL, "*");
-	salt_struct->keyCrackData.encDataLen = atoi(p);
+	cs.keyCrackData.encDataLen = atoi(p);
 	p = strtok(NULL, "*");
-	for (i = 0; i < salt_struct->keyCrackData.encDataLen; i++)
-		salt_struct->keyCrackData.encData[i] = atoi16[ARCH_INDEX(p[i * 2])]
+	for (i = 0; i < cs.keyCrackData.encDataLen; i++)
+		cs.keyCrackData.encData[i] = atoi16[ARCH_INDEX(p[i * 2])]
 			* 16 + atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	p = strtok(NULL, "*");
-	salt_struct->keyCrackData.globalSaltLen = atoi(p);
+	cs.keyCrackData.globalSaltLen = atoi(p);
 	p = strtok(NULL, "*");
-	for (i = 0; i < salt_struct->keyCrackData.globalSaltLen; i++)
-		salt_struct->keyCrackData.globalSalt[i] = atoi16[ARCH_INDEX(p[i * 2])]
+	for (i = 0; i < cs.keyCrackData.globalSaltLen; i++)
+		cs.keyCrackData.globalSalt[i] = atoi16[ARCH_INDEX(p[i * 2])]
 			* 16 + atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	// initialize the pkcs5 structure
-	salt_struct->saltItem.type = (SECItemType) 0;
-	salt_struct->saltItem.len  = salt_struct->keyCrackData.saltLen;
-	salt_struct->saltItem.data = salt_struct->keyCrackData.salt;
-	salt_struct->paramPKCS5 = nsspkcs5_NewParam(0, &salt_struct->saltItem, 1, &salt_struct->gpbe_param, salt_struct->salt_data);
-	if(salt_struct->paramPKCS5 == NULL) {
+	cs.saltItem.type = (SECItemType) 0;
+	cs.saltItem.len  = cs.keyCrackData.saltLen;
+	cs.saltItem.data = cs.keyCrackData.salt;
+	cs.paramPKCS5 = nsspkcs5_NewParam(0, &cs.saltItem, 1, &cs.gpbe_param, cs.salt_data);
+	if(cs.paramPKCS5 == NULL) {
 		fprintf(stderr, "\nFailed to initialize NSSPKCS5 structure");
 		exit(0);
 	}
 	// Current algorithm is
 	// SEC_OID_PKCS12_PBE_WITH_SHA1_AND_TRIPLE_DES_CBC
 	// Setup the encrypted password-check string
-	memcpy(salt_struct->encString, salt_struct->keyCrackData.encData, salt_struct->keyCrackData.encDataLen );
+	memcpy(cs.encString, cs.keyCrackData.encData, cs.keyCrackData.encDataLen );
 	// Calculate partial sha1 data for password hashing
-	SHA1_Init(&salt_struct->pctx);
-	SHA1_Update(&salt_struct->pctx, salt_struct->keyCrackData.globalSalt, salt_struct->keyCrackData.globalSaltLen);
+	SHA1_Init(&cs.pctx);
+	SHA1_Update(&cs.pctx, cs.keyCrackData.globalSalt, cs.keyCrackData.globalSaltLen);
 
 	MEM_FREE(keeptr);
-	return (void *)salt_struct;
+	return (void *)&cs;
 }
 
 

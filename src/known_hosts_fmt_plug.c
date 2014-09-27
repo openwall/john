@@ -102,6 +102,7 @@ static void *get_salt(char *ciphertext)
 {
 	char *p, *q;
 	static struct custom_salt cs;
+	memset(&cs, 0, sizeof(cs));
 	p = ciphertext +  TAG_LENGTH + 3;
 
 	q = strchr(p, '|');
