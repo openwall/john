@@ -152,7 +152,7 @@ inline void ctx_update_R(sha512_ctx * ctx,
     ctx->total += len;
     uint32_t startpos = ctx->buflen;
 
-    insert_to_buffer_R(ctx, string, (startpos + len < 127 ? len : 128 - startpos));
+    insert_to_buffer_R(ctx, string, (startpos + len <= 128 ? len : 128 - startpos));
 
     if (ctx->buflen == 128) {  //Branching.
         uint32_t offset = 128 - startpos;
@@ -168,7 +168,7 @@ inline void ctx_update_G(         sha512_ctx * ctx,
     ctx->total += len;
     uint32_t startpos = ctx->buflen;
 
-    insert_to_buffer_G(ctx, string, (startpos + len < 127 ? len : 128 - startpos));
+    insert_to_buffer_G(ctx, string, (startpos + len <= 128 ? len : 128 - startpos));
 
     if (ctx->buflen == 128) {  //Branching.
         uint32_t offset = 128 - startpos;
