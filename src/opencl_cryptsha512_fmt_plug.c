@@ -166,9 +166,15 @@ static void create_clobj(size_t gws, struct fmt_main * self)
 			sizeof(buffer_64) * 8 * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating buffer argument work_area 1");
 
-	work_buffer = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE,
+	if (! amd_gcn(source_in_use)) {
+		work_buffer = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE,
 			sizeof(uint64_t) * (9 * 8) * gws, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating buffer argument work_area 2");
+		HANDLE_CLERROR(ret_code, "Error creating buffer argument work_area 2");
+	} else {
+		work_buffer = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE,
+		    sizeof(sha512_buffers) * gws, NULL, &ret_code);
+		HANDLE_CLERROR(ret_code, "Error creating buffer argument work_area");
+	}
 
 	//Set kernel arguments
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(cl_mem),
@@ -179,33 +185,58 @@ static void create_clobj(size_t gws, struct fmt_main * self)
 			(void *) &hash_buffer), "Error setting argument 2");
 
 	if (_SPLIT_KERNEL_IN_USE) {
-		//Set prepare kernel arguments
-		HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 0, sizeof(cl_mem),
-			(void *) &salt_buffer), "Error setting argument 0");
-		HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 1, sizeof(cl_mem),
-			(void *) &pass_buffer), "Error setting argument 1");
-		HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 2, sizeof(cl_mem),
-			(void *) &tmp_buffer), "Error setting argument 2");
-		HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 3, sizeof(cl_mem),
-			(void *) &work_buffer), "Error setting argument 3");
 
-		//Set crypt kernel arguments
-		HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(cl_mem),
-			(void *) &tmp_buffer), "Error setting argument crypt_kernel (3)");
-		HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 4, sizeof(cl_mem),
-			(void *) &work_buffer), "Error setting argument crypt_kernel (4)");
+		if (! amd_gcn(source_in_use)) {
+			//Set prepare kernel arguments
+			HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 0, sizeof(cl_mem),
+				(void *) &salt_buffer), "Error setting argument 0");
+			HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 1, sizeof(cl_mem),
+				(void *) &pass_buffer), "Error setting argument 1");
+			HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 2, sizeof(cl_mem),
+				(void *) &tmp_buffer), "Error setting argument 2");
+			HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 3, sizeof(cl_mem),
+				(void *) &work_buffer), "Error setting argument 3");
 
-		//Set final kernel arguments
-		HANDLE_CLERROR(clSetKernelArg(final_kernel, 0, sizeof(cl_mem),
-			(void *) &salt_buffer), "Error setting argument 0");
-		HANDLE_CLERROR(clSetKernelArg(final_kernel, 1, sizeof(cl_mem),
-			(void *) &pass_buffer), "Error setting argument 1");
-		HANDLE_CLERROR(clSetKernelArg(final_kernel, 2, sizeof(cl_mem),
-			(void *) &hash_buffer), "Error setting argument 2");
-		HANDLE_CLERROR(clSetKernelArg(final_kernel, 3, sizeof(cl_mem),
-			(void *) &tmp_buffer), "Error setting argument 3");
-		HANDLE_CLERROR(clSetKernelArg(final_kernel, 4, sizeof(cl_mem),
-			(void *) &work_buffer), "Error setting argument crypt_kernel (4)");
+			//Set crypt kernel arguments
+			HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(cl_mem),
+				(void *) &tmp_buffer), "Error setting argument crypt_kernel (3)");
+			HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 4, sizeof(cl_mem),
+				(void *) &work_buffer), "Error setting argument crypt_kernel (4)");
+
+			//Set final kernel arguments
+			HANDLE_CLERROR(clSetKernelArg(final_kernel, 0, sizeof(cl_mem),
+				(void *) &salt_buffer), "Error setting argument 0");
+			HANDLE_CLERROR(clSetKernelArg(final_kernel, 1, sizeof(cl_mem),
+				(void *) &pass_buffer), "Error setting argument 1");
+			HANDLE_CLERROR(clSetKernelArg(final_kernel, 2, sizeof(cl_mem),
+				(void *) &hash_buffer), "Error setting argument 2");
+			HANDLE_CLERROR(clSetKernelArg(final_kernel, 3, sizeof(cl_mem),
+				(void *) &tmp_buffer), "Error setting argument 3");
+			HANDLE_CLERROR(clSetKernelArg(final_kernel, 4, sizeof(cl_mem),
+				(void *) &work_buffer), "Error setting argument crypt_kernel (4)");
+		} else {
+			//Set prepare kernel arguments
+			HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 0, sizeof(cl_mem),
+				(void *) &salt_buffer), "Error setting argument 0");
+			HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 1, sizeof(cl_mem),
+				(void *) &pass_buffer), "Error setting argument 1");
+			HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 2, sizeof(cl_mem),
+				(void *) &work_buffer), "Error setting argument 2");
+
+			//Set crypt kernel arguments
+			HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(cl_mem),
+				(void *) &work_buffer), "Error setting argument crypt_kernel (3)");
+
+			//Set final kernel arguments
+			HANDLE_CLERROR(clSetKernelArg(final_kernel, 0, sizeof(cl_mem),
+					(void *) &salt_buffer), "Error setting argument 0");
+			HANDLE_CLERROR(clSetKernelArg(final_kernel, 1, sizeof(cl_mem),
+					(void *) &pass_buffer), "Error setting argument 1");
+			HANDLE_CLERROR(clSetKernelArg(final_kernel, 2, sizeof(cl_mem),
+					(void *) &hash_buffer), "Error setting argument 2");
+			HANDLE_CLERROR(clSetKernelArg(final_kernel, 3, sizeof(cl_mem),
+					(void *) &work_buffer), "Error setting argument 3");
+		}
 	}
 	memset(plaintext, '\0', sizeof(sha512_password) * gws);
 }
