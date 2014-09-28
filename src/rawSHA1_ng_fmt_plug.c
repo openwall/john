@@ -24,6 +24,10 @@ john_register_one(&fmt_sha1_ng);
 # include <x86intrin.h>
 #endif
 
+#if !FAST_FORMATS_OMP
+#undef _OPENMP
+#endif
+
 #ifdef _OPENMP
 # include <omp.h>
 #endif
@@ -742,7 +746,11 @@ struct fmt_main fmt_sha1_ng = {
         .salt_align         = 1,
         .min_keys_per_crypt = 4,
         .max_keys_per_crypt = SHA1_PARALLEL_HASH,
-        .flags              = FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP,
+        .flags              =
+#ifdef _OPENMP
+                              FMT_OMP | FMT_OMP_BAD |
+#endif
+                              FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
 #if FMT_MAIN_VERSION > 11
 	.tunable_cost_name  = { NULL },
 #endif

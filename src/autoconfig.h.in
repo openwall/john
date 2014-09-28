@@ -27,6 +27,9 @@
 /* "Type with native size" */
 #undef ARCH_WORD
 
+/* "Enable if you want OpenMP for fast formats" */
+#undef FAST_FORMATS_OMP
+
 /* Define to 1 if you have the `AES_encrypt' function. */
 #undef HAVE_AES_ENCRYPT
 
