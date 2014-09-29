@@ -1143,7 +1143,7 @@ accept:
 	return out_rule;
 }
 
-static inline int valid_utf8(UTF8 *source)
+static MAYBE_INLINE int rules_valid_utf8(UTF8 *source)
 {
 	UTF8 a;
 	int length;
@@ -1703,7 +1703,7 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 			break;
 
 		case 'U':
-			if (!valid_utf8((UTF8*)in))
+			if (!rules_valid_utf8((UTF8*)in))
 				REJECT
 			break;
 
