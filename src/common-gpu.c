@@ -40,6 +40,9 @@
 /* These are shared between OpenCL and CUDA */
 int gpu_id;
 int gpu_device_list[MAX_GPU_DEVICES];
+hw_bus gpu_device_bus[MAX_GPU_DEVICES];
+
+static int amd = 0;
 
 void *nvml_lib;
 NVMLINIT nvmlInit = NULL;
@@ -138,7 +141,6 @@ void amd_probe(void)
 	int iOverdriveEnabled = 0;
 	int iOverdriveVersion = 0;
 	char *env;
-	int amd = 0;
 
 	if (adl_lib)
 		return;
@@ -202,6 +204,13 @@ void amd_probe(void)
 
 			amd2adl[amd++] = adl_id;
 			adl2od[adl_id] = 0;
+			gpu_device_bus[adl_id].bus = adapterInfo.iBusNumber;
+			gpu_device_bus[adl_id].device = adapterInfo.iDeviceNumber;
+			gpu_device_bus[adl_id].function = adapterInfo.iFunctionNumber;
+
+			memset(gpu_device_bus[adl_id].busId, '\0', sizeof(gpu_device_bus[adl_id].busId));
+			sprintf(gpu_device_bus[adl_id].busId, "%02x:%02x.%x", gpu_device_bus[adl_id].bus,
+				gpu_device_bus[adl_id].device,gpu_device_bus[adl_id].function);
 
 			if (ADL_Overdrive_Caps(adl_id, &iOverdriveSupported, &iOverdriveEnabled, &iOverdriveVersion) != ADL_OK) {
 				//printf("Can't get Overdrive capabilities\n");
@@ -369,14 +378,32 @@ void amd_get_temp(int amd_id, int *temp, int *fanspeed, int *util)
 		*temp = *fanspeed = *util = -1;
 }
 
-unsigned int id2nvml(const char * pciBusId) {
+int id2nvml(const hw_bus busInfo) {
 	nvmlDevice_t dev;
+//@magnumripper: maybe use can apply the same strategy as AMD: nvmlReturn_t DECLDIR nvmlDeviceGetPciInfo (nvmlDevice_t device, nvmlPciInfo_t ∗pci)
 
-	if (nvmlDeviceGetHandleByPciBusId(pciBusId, &dev) == NVML_SUCCESS) {
+	if (nvmlDeviceGetHandleByPciBusId &&
+	    nvmlDeviceGetHandleByPciBusId(busInfo.busId, &dev) == NVML_SUCCESS) {
 		unsigned int id_NVML;
 
 		if (nvmlDeviceGetIndex(dev, &id_NVML) == NVML_SUCCESS)
 			return id_NVML;
+	}
+	return -1;
+}
+
+int id2adl(const hw_bus busInfo) {
+
+	int hardware_id = 0;
+
+	while (hardware_id < amd) {
+
+		if (gpu_device_bus[hardware_id].bus == busInfo.bus &&
+		    gpu_device_bus[hardware_id].device == busInfo.device &&
+		    gpu_device_bus[hardware_id].function == busInfo.function)
+			return hardware_id;
+
+		hardware_id++;
 	}
 	return -1;
 }

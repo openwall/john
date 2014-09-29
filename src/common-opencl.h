@@ -80,16 +80,9 @@ typedef struct {
 cl_platform platforms[MAX_PLATFORMS];
 
 typedef struct {
-	int				bus;
-	int				device;
-	int				function;
-	char				busId[100];
-} ocl_hw_bus;
-
-typedef struct {
 	int				device_info;
 	int				cores_per_MP;
-	ocl_hw_bus			pci_info;
+	hw_bus				pci_info;
 } ocl_device_detais;
 
 /* Common OpenCL variables */

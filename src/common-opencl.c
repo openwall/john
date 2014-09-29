@@ -258,7 +258,7 @@ static void start_opencl_environment()
 	devices[device_pos] = NULL;
 }
 
-static cl_int get_pci_info(int sequential_id, ocl_hw_bus * hardware_info) {
+static cl_int get_pci_info(int sequential_id, hw_bus * hardware_info) {
 
 	cl_int ret;
 	hardware_info->bus = -1;
@@ -2443,8 +2443,13 @@ void opencl_list_devices(void)
 			if (temp >= 0)
 				printf("\tTemperature:\t\t%u" DEGC "\n", temp);
 			if (util >= 0)
-				printf("\tUtilization:\t\t%u%%\n", util); printf("Values: %s \n", ocl_device_list[sequence_nr].pci_info.busId);
+				printf("\tUtilization:\t\t%u%%\n", util);
 			puts("");
+
+printf("ocl_device_list: %s \n", ocl_device_list[sequence_nr].pci_info.busId);
+printf("gpu_device_list: %s \n", gpu_device_bus[sequence_nr].busId);
+printf("id2nvml: %d\n", id2nvml(ocl_device_list[sequence_nr].pci_info));
+printf("id2adl: %d \n", id2adl(ocl_device_list[sequence_nr].pci_info));
 		}
 	}
 	return;
