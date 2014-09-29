@@ -28,7 +28,7 @@
 	#define Ch(x,y,z)       bitselect(z, y, x)
 	#define Maj(x,y,z)      bitselect(x, y, z ^ x)
 	#define ror(x, n)       rotate(x, (64UL-n))
-	#define SWAP64(n)	rotate(n & 0xFF000000FF000000UL, 8UL)  | \
+	#define OLD(n)	rotate(n & 0xFF000000FF000000UL, 8UL)  | \
 				rotate(n & 0x00FF000000FF0000UL, 24UL) | \
 				rotate(n & 0x0000FF000000FF00UL, 40UL) | \
 				rotate(n & 0x000000FF000000FFUL, 56UL)
@@ -38,7 +38,7 @@
 				(0xFFFF0000FFFF0000UL & bitselect(rotate(n, 56UL), \
 				    rotate(n, 40UL), 0x00FF000000FF0000UL))
 
-	#define ALMOST(n)	bitselect(					    \
+	#define SWAP64(n)	bitselect(					    \
 				    bitselect(rotate(n, 24UL),			    \
 					rotate(n, 8UL), 0x000000FF000000FFUL),	    \
 				    bitselect(rotate(n, 56UL),			    \
