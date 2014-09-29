@@ -196,13 +196,13 @@ __constant uint64_t clear_mask[] = {
 }
 
 #define APPEND_BE_BUFFER(dest, src)				    \
-	dest[pos] = (dest[pos] | (src >> tmp));			    \
-	dest[++pos] = (tmp ? (src << (64 - tmp)) : 0UL);
+    dest[pos] = (dest[pos] | (src >> tmp));			    \
+    dest[++pos] = (tmp ? (src << (64 - tmp)) : 0UL);
 
 #define APPEND_BE_BUFFER_F(dest, src) 				    \
-	dest[pos] = (dest[pos] | (src >> tmp));			    \
-	if (pos < 15)						    \
-	    dest[++pos] = (tmp ? (src << (64 - tmp)) : 0UL);	    \
+    dest[pos] = (dest[pos] | (src >> tmp));			    \
+    if (pos < 15)						    \
+        dest[++pos] = (tmp ? (src << (64 - tmp)) : 0UL);	    \
 
 #define APPEND_F(dest, src, start) {               \
     uint32_t tmp, pos;                             \
@@ -219,6 +219,11 @@ __constant uint64_t clear_mask[] = {
     pos = (start >> 3);                            \
     dest[pos] = (dest[pos] | (src << tmp));        \
 }
+
+#define APPEND_BUFFER_F(dest, src) 				    \
+    dest[pos] = (dest[pos] | (src << tmp));			    \
+    if (pos < 15)						    \
+        dest[++pos] = (tmp ? (src >> (64 - tmp)) : 0UL);
 #endif
 
 #endif	/* OPENCL_SHA512_H */

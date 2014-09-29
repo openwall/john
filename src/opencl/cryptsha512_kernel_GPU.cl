@@ -152,10 +152,18 @@ inline void insert_to_buffer_R(sha512_ctx    * ctx,
                                const uint8_t * string,
                                const uint32_t len) {
 
-    for (uint32_t i = 0; i < len; i++)
-        PUT(BUFFER, ctx->buflen + i, string[i]);
+    uint64_t * s = (uint64_t *) string;
+    uint32_t tmp, pos;
+    tmp = ((ctx->buflen & 7) << 3);
+    pos = (ctx->buflen >> 3);
 
+    for (uint32_t i = 0; i < len; i+=8, s++) {
+	APPEND_BUFFER_F(ctx->buffer->mem_64, s[0]);
+    }
     ctx->buflen += len;
+
+    //A fast clean should be possible.
+    clear_buffer(ctx->buffer->mem_64, ctx->buflen, 16);
 }
 
 inline void insert_to_buffer_G(         sha512_ctx    * ctx,
