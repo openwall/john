@@ -143,6 +143,7 @@ static void process_old_database(FILE *fp, char* encryptedDatabase)
 	int count;
 	long long filesize;
 	long long datasize;
+	int algorithm = -1;
 	char *dbname;
 	FILE *kfp = NULL;
 	enc_flag = fget32(fp);
@@ -165,11 +166,15 @@ static void process_old_database(FILE *fp, char* encryptedDatabase)
 		fprintf(stderr, "! %s : Unsupported file version!\n", encryptedDatabase);
 		return;
 	}
-	else if(!(enc_flag & 2)) {
+	/* src/Kdb3Database.cpp from KeePass 0.4.3 is authoritative */
+	if (enc_flag & 2) {
+		algorithm = 0; // AES
+	} else if (enc_flag & 8) {
+		algorithm = 1; // Twofish
+	} else {
 		fprintf(stderr, "! %s : Unsupported file encryption!\n", encryptedDatabase);
 		return;
 	}
-	dbname = strip_suffixes(basename(encryptedDatabase),extension, 1);
 
 	/* keyfile processing */
 	if (keyfile) {
@@ -180,7 +185,11 @@ static void process_old_database(FILE *fp, char* encryptedDatabase)
 		}
 	}
 
-	printf("%s:$keepass$*1*%d*%d*",dbname, key_transf_rounds, 124);
+	dbname = strip_suffixes(basename(encryptedDatabase), extension, 1);
+	// offset (124) field below is not used, we hijack it to convey the
+	// algorithm.
+	// printf("%s:$keepass$*1*%d*%d*", dbname, key_transf_rounds, 124);
+	printf("%s:$keepass$*1*%d*%d*", dbname, key_transf_rounds, algorithm);
 	print_hex(final_randomseed, 16);
 	printf("*");
 	print_hex(transf_randomseed, 32);
