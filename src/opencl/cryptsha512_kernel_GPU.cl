@@ -253,7 +253,7 @@ inline void sha512_digest(sha512_ctx * ctx,
                           uint64_t   * result,
                           const int size) {
 
-    if (ctx->buflen < 110) { //data+0x80+datasize fits in one 1024bit block
+    if (ctx->buflen <= 111) { //data+0x80+datasize fits in one 1024bit block
         finish_ctx(ctx);
 
     } else {
