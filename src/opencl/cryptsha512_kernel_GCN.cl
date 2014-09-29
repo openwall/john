@@ -17,8 +17,8 @@
     #define VECTOR_USAGE
 #endif
 
-#undef SWAP64(n)
-#undef SWAP64_V(n)
+#undef SWAP64
+#undef SWAP64_V
 
 #define SWAP64(n)       (as_ulong(as_uchar8(n).s76543210))
 #define SWAP64_V(n)     SWAP(n)
