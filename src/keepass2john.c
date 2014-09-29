@@ -30,6 +30,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "stdint.h"
+#include "getopt.h"
 #include <errno.h>
 #include <assert.h>
 // needs to be above sys/types.h and sys/stat.h for mingw, if -std=c99 used.
@@ -43,7 +44,8 @@
 #include "memory.h"
 #include "memdbg.h"
 
-const char *extension[]={".kdbx"};
+const char *extension[] = {".kdbx"};
+static char *keyfile = NULL;
 
 // KeePass 1.x signature
 uint32_t FileSignatureOld1 = 0x9AA2D903;
@@ -142,6 +144,7 @@ static void process_old_database(FILE *fp, char* encryptedDatabase)
 	long long filesize;
 	long long datasize;
 	char *dbname;
+	FILE *kfp = NULL;
 	enc_flag = fget32(fp);
 	version = fget32(fp);
 	count = fread(final_randomseed, 16, 1, fp);
@@ -167,6 +170,16 @@ static void process_old_database(FILE *fp, char* encryptedDatabase)
 		return;
 	}
 	dbname = strip_suffixes(basename(encryptedDatabase),extension, 1);
+
+	/* keyfile processing */
+	if (keyfile) {
+		kfp = fopen(keyfile, "rb");
+		if (!kfp) {
+			fprintf(stderr, "! %s : %s\n", keyfile, strerror(errno));
+			return;
+		}
+	}
+
 	printf("%s:$keepass$*1*%d*%d*",dbname, key_transf_rounds, 124);
 	print_hex(final_randomseed, 16);
 	printf("*");
@@ -187,6 +200,12 @@ static void process_old_database(FILE *fp, char* encryptedDatabase)
 	}
 	else {
 		printf("*0*%s", dbname); /* data is not inline */
+	}
+	if (keyfile) {
+		filesize = (long long)get_file_size(keyfile);
+		printf("*1*%lld*", filesize); /* inline keyfile content */
+		count = fread(buffer, filesize, 1, kfp);
+		print_hex(buffer, filesize);
 	}
 	printf("\n");
 }
@@ -333,6 +352,9 @@ static void process_database(char* encryptedDatabase)
 	}
 	printf("*");
 	print_hex(out, 32);
+	if (keyfile) {
+		abort();  // TODO
+	}
 	printf("\n");
 
 bailout:
@@ -345,15 +367,34 @@ bailout:
 
 int keepass2john(int argc, char **argv)
 {
-	int i;
+	int i, c;
 
 	if(argc < 2) {
-		fprintf(stderr, "Usage: keepass2john [.kdbx KeePass database(s)]\n");
+		fprintf(stderr, "Usage: keepass2john -k [optional keyfile] [.kdbx KeePass database(s)]\n");
 		return -1;
 	}
-	for(i = 1; i < argc; i++) {
+
+	/* Parse command line */
+	while ((c = getopt(argc, argv, "k:")) != -1) {
+		switch (c) {
+		case 'k':
+			keyfile = (char *)malloc(strlen(optarg) + 1);
+			strcpy(keyfile, optarg);
+			break;
+		}
+	}
+
+	if (keyfile) {
+		puts(keyfile);
+	}
+
+	argv += optind;
+	argc -= optind;
+
+	for(i = 0; i < argc; i++) {
 		process_database(argv[i]);
 	}
+
 	MEMDBG_PROGRAM_EXIT_CHECKS(stderr);
 	return 0;
 }
