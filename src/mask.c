@@ -57,6 +57,24 @@ static unsigned int seq, rec_seq;
 #define load_qtn(i) \
 	parsed_mask->stack_qtn[i]
 
+/* Converts \xHH notation to characters. The original buffer is modified -
+   we are guaranteed the new string is shorter or same length */
+static void parse_hex(char *string)
+{
+	unsigned char *s = (unsigned char*)string;
+	unsigned char *d = s;
+
+	while (*s)
+	if (*s == '\\' && s[1] == 'x' &&
+	    atoi16[s[2]] != 0x7f && atoi16[s[3]] != 0x7f) {
+		*d++ = (atoi16[s[2]] << 4) + atoi16[s[3]];
+		s += 4;
+	} else
+		*d++ = *s++;
+
+	*d = 0;
+}
+
 /*
  * valid braces:
  * [abcd], [[[[[abcde], []]abcde]]], [[[ab]cdefr]]
@@ -234,19 +252,12 @@ static void init_cpu_mask(char *mask, parsed_ctx *parsed_mask,
 
 			for (j = load_op(op_ctr) + 1; j < load_cl(cl_ctr);) {
 				int a , b;
-				if (mask[j] == '\\' &&
-				    j + 8 < load_cl(cl_ctr) &&
-				    sscanf(mask + j, "\\x%02x-\\x%02x", &a, &b)
-				    == 2) {
+				if (mask[j] == '-' &&
+				    j + 1 < load_cl(cl_ctr) &&
+				    j - 1 > load_op(op_ctr)) {
 					int x;
-					fill_range();
-					j = j + 8;
-				}
-				else if (mask[j] == '-' &&
-					 j + 1 < load_cl(cl_ctr) &&
-					 j - 1 > load_op(op_ctr)) {
-					int x;
-		/* Remove the character mask[j-1] added in previous iteration */
+
+/* Remove the character mask[j-1] added in previous iteration */
 					count(i)--;
 
 					a = mask[j - 1];
@@ -1023,7 +1034,12 @@ void do_mask_crack(struct db_main *db, char *mask)
 
 	log_event("Proceeding with mask mode");
 
+	/* De-hexify */
+	parse_hex(mask);
+
+	/* Parse ranges */
 	parse_braces(mask, &parsed_mask);
+
 	if (parsed_mask.parse_ok)
 		parse_qtn(mask, &parsed_mask);
 	else {
