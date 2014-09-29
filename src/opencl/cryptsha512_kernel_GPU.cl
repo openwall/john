@@ -582,6 +582,7 @@ inline void sha512_crypt(const uint32_t saltlen, const uint32_t passlen,
 	} else {
 	    sha512_block_be(w, H);
 
+	    #pragma unroll
 	    for (int i = 0; i < 15; i++)
 	       w[i] = 0;
 	    w[15] = (total * 8);
