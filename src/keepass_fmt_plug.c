@@ -1,6 +1,9 @@
 /* KeePass cracker patch for JtR. Hacked together during May of
  * 2012 by Dhiru Kholia <dhiru.kholia at gmail.com>.
  *
+ * Support for cracking KeePass databases, which use key file(s), was added by
+ * m3g9tr0n (Spiros Fraganastasis) and Dhiru Kholia in September of 2014.
+ *
  * This software is Copyright (c) 2012, Dhiru Kholia <dhiru.kholia at gmail.com>,
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification,
@@ -64,10 +67,13 @@ static struct custom_salt {
 	int version;
 	long long offset;
 	int isinline;
+	int keyfilesize;
+	int have_keyfile;
 	int contentsize;
 	unsigned char contents[LINE_BUFFER_SIZE];
 	unsigned char final_randomseed[32];
 	unsigned char enc_iv[16];
+	unsigned char keyfile[32];
 	unsigned char contents_hash[32];
 	unsigned char transf_randomseed[32];
 	unsigned char expected_bytes[32];
@@ -79,6 +85,7 @@ static void transform_key(char *masterkey, struct custom_salt *csp, unsigned cha
         // First, hash the masterkey
 	SHA256_CTX ctx;
 	unsigned char hash[32];
+	unsigned char temphash[32];
 	int i;
 	AES_KEY akey;
 	SHA256_Init(&ctx);
@@ -93,6 +100,28 @@ static void transform_key(char *masterkey, struct custom_salt *csp, unsigned cha
 	if(AES_set_encrypt_key(csp->transf_randomseed, 256, &akey) < 0) {
 		fprintf(stderr, "AES_set_encrypt_key failed!\n");
 	}
+	/* keyfile handling (only tested for KeePass 1.x files) */
+	if (cur_salt->have_keyfile) {
+		SHA256_CTX composite_ctx;  // for keyfile handling
+		SHA256_CTX keyfile_ctx;
+
+		SHA256_Init(&composite_ctx);
+		SHA256_Update(&composite_ctx, hash, 32);
+
+		if (cur_salt->keyfilesize != 32 && cur_salt->keyfilesize != 64) {
+			SHA256_Init(&keyfile_ctx);
+			SHA256_Update(&keyfile_ctx, cur_salt->keyfile, cur_salt->keyfilesize);
+			SHA256_Final(temphash, &keyfile_ctx);
+		} else if(cur_salt->keyfilesize == 32) {
+			memcpy(temphash, cur_salt->keyfile, 32);
+		} else if (cur_salt->keyfilesize == 64) { /* do hex decoding */
+			abort();  // TODO
+		}
+
+		SHA256_Update(&composite_ctx, temphash, 32);
+		SHA256_Final(hash, &composite_ctx);
+	}
+
         // Next, encrypt the created hash
 	i = csp->key_transf_rounds >> 2;
 	while (i--) {
@@ -281,6 +310,16 @@ static void *get_salt(char *ciphertext)
 			for (i = 0; i < cs.contentsize; i++)
 				cs.contents[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 					+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
+		}
+		p = strtok(NULL, "*");
+		if (p) { /* keyfile handling */
+			p = strtok(NULL, "*");
+			cs.keyfilesize = atoi(p);
+			p = strtok(NULL, "*");
+			for (i = 0; i < cs.keyfilesize; i++)
+				cs.keyfile[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
+					+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
+			cs.have_keyfile = 1;
 		}
 	}
 	else {
