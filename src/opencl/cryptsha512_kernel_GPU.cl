@@ -152,21 +152,10 @@ inline void insert_to_buffer_R(sha512_ctx    * ctx,
                                const uint8_t * string,
                                const uint32_t len) {
 
-    uint64_t * s = (uint64_t *) string;
-    uint32_t tmp, pos;
-    tmp = ((ctx->buflen & 7) << 3);
-    pos = (ctx->buflen >> 3);
+    for (uint32_t i = 0; i < len; i++)
+        PUT(BUFFER, ctx->buflen + i, string[i]);
 
-    for (uint32_t i = 0; i < len; i+=8, s++) {
-	APPEND_BUFFER_F(ctx->buffer->mem_64, s[0]);
-    }
     ctx->buflen += len;
-    tmp = (ctx->buflen & 7);
-
-    if (tmp) {
-	pos = (ctx->buflen >> 3);
-	ctx->buffer[pos].mem_64[0] = ctx->buffer[pos].mem_64[0] & clear_mask[tmp];
-    }
 }
 
 inline void insert_to_buffer_G(         sha512_ctx    * ctx,
@@ -202,13 +191,12 @@ inline void ctx_update_R(sha512_ctx * ctx,
     if (ctx->buflen == 128) {  //Branching.
         uint32_t offset = 128 - startpos;
         sha512_block(ctx);
-	ctx->buflen = 0;
+        ctx->buflen = len - offset;
 
         //Unaligned memory acess.
-	for (uint32_t i = 0; i < len; i++)
-	    PUT(BUFFER, ctx->buflen + i, (string + offset)[i]);
+	for (uint32_t i = 0; i < ctx->buflen; i++)
+	    PUT(BUFFER, i, (string + offset)[i]);
 
-	ctx->buflen = len - offset;
 	clear_buffer(ctx->buffer->mem_64, ctx->buflen, 16);
     }
 }
@@ -224,13 +212,12 @@ inline void ctx_update_G(         sha512_ctx * ctx,
     if (ctx->buflen == 128) {  //Branching.
         uint32_t offset = 128 - startpos;
         sha512_block(ctx);
-	ctx->buflen = 0;
+        ctx->buflen = len - offset;
 
         //Unaligned memory acess.
-	for (uint32_t i = 0; i < len; i++)
-	    PUT(BUFFER, ctx->buflen + i, (string + offset)[i]);
+	for (uint32_t i = 0; i < ctx->buflen; i++)
+	    PUT(BUFFER, i, (string + offset)[i]);
 
-	ctx->buflen = len - offset;
 	clear_buffer(ctx->buffer->mem_64, ctx->buflen, 16);
     }
 }
