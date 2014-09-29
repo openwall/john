@@ -30,7 +30,7 @@
     #define MEDIUM_UNROLL	1
 #endif
 
-/************************** prepare **************************/
+/************************** helper **************************/
 inline void init_ctx(sha512_ctx * ctx) {
     ctx->H[0] = H0;
     ctx->H[1] = H1;
@@ -45,6 +45,29 @@ inline void init_ctx(sha512_ctx * ctx) {
     ctx->buflen = 0;
 }
 
+inline void clear_ctx_buffer(sha512_ctx * ctx) {
+
+    ctx->buffer[0].mem_64[0] = 0;
+    ctx->buffer[1].mem_64[0] = 0;
+    ctx->buffer[2].mem_64[0] = 0;
+    ctx->buffer[3].mem_64[0] = 0;
+    ctx->buffer[4].mem_64[0] = 0;
+    ctx->buffer[5].mem_64[0] = 0;
+    ctx->buffer[6].mem_64[0] = 0;
+    ctx->buffer[7].mem_64[0] = 0;
+    ctx->buffer[8].mem_64[0] = 0;
+    ctx->buffer[9].mem_64[0] = 0;
+    ctx->buffer[10].mem_64[0] = 0;
+    ctx->buffer[11].mem_64[0] = 0;
+    ctx->buffer[12].mem_64[0] = 0;
+    ctx->buffer[13].mem_64[0] = 0;
+    ctx->buffer[14].mem_64[0] = 0;
+    ctx->buffer[15].mem_64[0] = 0;
+
+    ctx->buflen = 0;
+}
+
+/************************** prepare **************************/
 inline void clear_buffer(uint64_t     * destination,
                          const uint32_t len,
                          const uint32_t limit) {
@@ -129,20 +152,42 @@ inline void insert_to_buffer_R(sha512_ctx    * ctx,
                                const uint8_t * string,
                                const uint32_t len) {
 
-    for (uint32_t i = 0; i < len; i++)
-        PUT(BUFFER, ctx->buflen + i, string[i]);
+    uint64_t * s = (uint64_t *) string;
+    uint32_t tmp, pos;
+    tmp = ((ctx->buflen & 7) << 3);
+    pos = (ctx->buflen >> 3);
 
+    for (uint32_t i = 0; i < len; i+=8, s++) {
+	APPEND_BUFFER_F(ctx->buffer->mem_64, s[0]);
+    }
     ctx->buflen += len;
+    tmp = (ctx->buflen & 7);
+
+    if (tmp) {
+	pos = (ctx->buflen >> 3);
+	ctx->buffer[pos].mem_64[0] = ctx->buffer[pos].mem_64[0] & clear_mask[tmp];
+    }
 }
 
 inline void insert_to_buffer_G(         sha512_ctx    * ctx,
                                __global const uint8_t * string,
                                const uint32_t len) {
 
-    for (uint32_t i = 0; i < len; i++)
-        PUT(BUFFER, ctx->buflen + i, string[i]);
+    __global uint64_t * s = (__global uint64_t *) string;
+    uint32_t tmp, pos;
+    tmp = ((ctx->buflen & 7) << 3);
+    pos = (ctx->buflen >> 3);
 
+    for (uint32_t i = 0; i < len; i+=8, s++) {
+	APPEND_BUFFER_F(ctx->buffer->mem_64, s[0]);
+    }
     ctx->buflen += len;
+    tmp = (ctx->buflen & 7);
+
+    if (tmp) {
+	pos = (ctx->buflen >> 3);
+	ctx->buffer[pos].mem_64[0] = ctx->buffer[pos].mem_64[0] & clear_mask[tmp];
+    }
 }
 
 inline void ctx_update_R(sha512_ctx * ctx,
@@ -157,8 +202,14 @@ inline void ctx_update_R(sha512_ctx * ctx,
     if (ctx->buflen == 128) {  //Branching.
         uint32_t offset = 128 - startpos;
         sha512_block(ctx);
-        ctx->buflen = 0;
-        insert_to_buffer_R(ctx, (string + offset), len - offset);
+	ctx->buflen = 0;
+
+        //Unaligned memory acess.
+	for (uint32_t i = 0; i < len; i++)
+	    PUT(BUFFER, ctx->buflen + i, (string + offset)[i]);
+
+	ctx->buflen = len - offset;
+	clear_buffer(ctx->buffer->mem_64, ctx->buflen, 16);
     }
 }
 
@@ -173,8 +224,14 @@ inline void ctx_update_G(         sha512_ctx * ctx,
     if (ctx->buflen == 128) {  //Branching.
         uint32_t offset = 128 - startpos;
         sha512_block(ctx);
-        ctx->buflen = 0;
-        insert_to_buffer_G(ctx, (string + offset), len - offset);
+	ctx->buflen = 0;
+
+        //Unaligned memory acess.
+	for (uint32_t i = 0; i < len; i++)
+	    PUT(BUFFER, ctx->buflen + i, (string + offset)[i]);
+
+	ctx->buflen = len - offset;
+	clear_buffer(ctx->buffer->mem_64, ctx->buflen, 16);
     }
 }
 
@@ -202,15 +259,6 @@ inline void finish_ctx(sha512_ctx * ctx) {
 
     ctx_append_1(ctx);
     ctx_add_length(ctx);
-    ctx->buflen = 0;
-}
-
-inline void clear_ctx_buffer(sha512_ctx * ctx) {
-
-    #pragma unroll
-    for (int i = 0; i < 16; i++)
-        ctx->buffer[i].mem_64[0] = 0;
-
     ctx->buflen = 0;
 }
 
@@ -255,6 +303,7 @@ inline void sha512_prepare(__global   sha512_salt     * salt_data,
 #define p_sequence  fast_buffers->p_sequence
 
     init_ctx(ctx);
+    clear_ctx_buffer(ctx);
 
     ctx_update_G(ctx, pass, passlen);
     ctx_update_G(ctx, salt, saltlen);
@@ -262,6 +311,7 @@ inline void sha512_prepare(__global   sha512_salt     * salt_data,
 
     sha512_digest(ctx, alt_result->mem_64, BUFFER_ARRAY);
     init_ctx(ctx);
+    clear_ctx_buffer(ctx);
 
     ctx_update_G(ctx, pass, passlen);
     ctx_update_G(ctx, salt, saltlen);
@@ -276,13 +326,14 @@ inline void sha512_prepare(__global   sha512_salt     * salt_data,
     }
     sha512_digest(ctx, alt_result->mem_64, BUFFER_ARRAY);
     init_ctx(ctx);
+    clear_ctx_buffer(ctx);
 
     for (uint32_t i = 0; i < passlen; i++)
         ctx_update_G(ctx, pass, passlen);
 
     sha512_digest(ctx, p_sequence->mem_64, PLAINTEXT_ARRAY);
-    clear_buffer(p_sequence->mem_64, passlen, PLAINTEXT_ARRAY);
     init_ctx(ctx);
+    clear_ctx_buffer(ctx);
 
     /* For every character in the password add the entire password. */
     for (uint32_t i = 0; i < 16U + alt_result->mem_08[0]; i++)
@@ -290,6 +341,9 @@ inline void sha512_prepare(__global   sha512_salt     * salt_data,
 
     /* Finish the digest. */
     sha512_digest(ctx, temp_result->mem_64, SALT_ARRAY);
+
+    /* SWAP temp buffers. */
+    clear_buffer(p_sequence->mem_64, passlen, PLAINTEXT_ARRAY);
     clear_buffer(temp_result->mem_64, saltlen, SALT_ARRAY);
 }
 #undef salt
