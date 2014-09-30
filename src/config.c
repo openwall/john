@@ -56,13 +56,26 @@ static void cfg_merge_local_section() {
 	// now update the params in parent section
 	p1 = cfg_database->params;
 	while (p1) {
+		int found = 0;
 		p2 = parent->params;
 		while (p2) {
 			if (!strcmp(p1->name, p2->name)) {
+				found = 1;
 				p2->value = p1->value;
 				break;
 			}
 			p2 = p2->next;
+		}
+		if (!found) {
+			// add a new item. NOTE, fixes bug #767
+			// https://github.com/magnumripper/JohnTheRipper/issues/767
+			struct cfg_param *p3 = (struct cfg_param*)mem_alloc_tiny(sizeof(struct cfg_param), 1);
+			// this get jammed 1 from tail of section. Need to test with section without any
+			// params and also one with only 1 param.
+			p3->next = parent->params->next;
+			p3->name = p1->name;
+			p3->value = p1->value;
+			parent->params->next = p3;
 		}
 		p1 = p1->next;
 	}
