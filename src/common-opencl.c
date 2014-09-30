@@ -267,7 +267,7 @@ static cl_int get_pci_info(int sequential_id, hw_bus * hardware_info) {
 
 #if defined(CL_DEVICE_TOPOLOGY_AMD) && CL_DEVICE_TOPOLOGY_TYPE_PCIE_AMD == 1
 
-	if (gpu_amd(device_info[sequential_id]) || cpu_amd(device_info[sequential_id])) {
+	if (gpu_amd(device_info[sequential_id]) || cpu(device_info[sequential_id])) {
 		cl_device_topology_amd topo;
 
 		ret = clGetDeviceInfo(devices[sequential_id],
@@ -2416,7 +2416,7 @@ void opencl_list_devices(void)
 				printf("\tKernel exec. timeout:\t%s\n",
 				       boolean ? "yes" : "no");
 #endif
-			{
+			if (ocl_device_list[sequence_nr].pci_info.bus >= 0) {
 				printf("\tPCI device topology:\t%s\n",
 				       ocl_device_list[sequence_nr].pci_info.busId);
 			}
@@ -2428,8 +2428,8 @@ void opencl_list_devices(void)
 					&temp, &fan, &util);
 			} else if (gpu_amd(device_info[sequence_nr])) {
 				if (adl_lib)
-				amd_get_temp(
-					id2adl(ocl_device_list[sequence_nr].pci_info),
+				amd_get_temp(sequence_nr,
+					//id2adl(ocl_device_list[sequence_nr].pci_info),
 					&temp, &fan, &util);
 			}
 			if (fan >= 0)
