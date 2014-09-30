@@ -2441,11 +2441,6 @@ void opencl_list_devices(void)
 			if (util >= 0)
 				printf("\tUtilization:\t\t%u%%\n", util);
 			puts("");
-
-printf("ocl_device_list: %s \n", ocl_device_list[sequence_nr].pci_info.busId);
-printf("gpu_device_list: %s \n", gpu_device_bus[sequence_nr].busId);
-printf("id2nvml: %d\n", id2nvml(ocl_device_list[sequence_nr].pci_info));
-printf("id2adl: %d \n", id2adl(ocl_device_list[sequence_nr].pci_info));
 		}
 	}
 	return;
