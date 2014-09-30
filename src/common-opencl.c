@@ -1575,6 +1575,23 @@ static void opencl_get_dev_info(int sequential_id)
 	device_info[sequential_id] += get_vendor_id(sequential_id);
 	device_info[sequential_id] += get_processor_family(sequential_id);
 	device_info[sequential_id] += get_byte_addressable(sequential_id);
+
+	{
+		unsigned int major;
+
+		get_compute_capability(sequential_id, &major, &minor);
+
+		if (major) {
+			device_info[sequential_id] +=
+				(major == 2 ? DEV_NV_C2X : 0);
+			device_info[sequential_id] +=
+				(major == 3 && minor == 0 ? DEV_NV_C30 : 0);
+			device_info[sequential_id] +=
+				(major == 3 && minor == 5 ? DEV_NV_C35 : 0);
+			device_info[sequential_id] +=
+				(major == 5 ? DEV_NV_C5X : 0);
+		}
+	}
 }
 
 static void find_valid_opencl_device(int *dev_id, int *platform_id)
@@ -1853,10 +1870,9 @@ size_t get_kernel_preferred_multiple(int sequential_id, cl_kernel crypt_kernel)
 	return size;
 }
 
-#ifdef CL_DEVICE_COMPUTE_CAPABILITY_MAJOR_NV
 void get_compute_capability(int sequential_id, unsigned int *major,
-	unsigned int *minor)
-{
+	unsigned int *minor) {
+#ifdef CL_DEVICE_COMPUTE_CAPABILITY_MAJOR_NV
 	if (!clGetDeviceInfo(devices[sequential_id],
 			     CL_DEVICE_COMPUTE_CAPABILITY_MAJOR_NV,
 			     sizeof(cl_uint), major, NULL))
@@ -1865,8 +1881,11 @@ void get_compute_capability(int sequential_id, unsigned int *major,
 			     CL_DEVICE_COMPUTE_CAPABILITY_MINOR_NV,
 			     sizeof(cl_uint), minor, NULL))
 		minor = 0;
-}
+#else
+	major = 0;
+	minor = 0;
 #endif
+}
 
 cl_uint get_processors_count(int sequential_id)
 {
