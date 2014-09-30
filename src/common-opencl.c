@@ -1577,7 +1577,7 @@ static void opencl_get_dev_info(int sequential_id)
 	device_info[sequential_id] += get_byte_addressable(sequential_id);
 
 	{
-		unsigned int major;
+		unsigned int major, minor;
 
 		get_compute_capability(sequential_id, &major, &minor);
 
@@ -1872,6 +1872,7 @@ size_t get_kernel_preferred_multiple(int sequential_id, cl_kernel crypt_kernel)
 
 void get_compute_capability(int sequential_id, unsigned int *major,
 	unsigned int *minor) {
+
 #ifdef CL_DEVICE_COMPUTE_CAPABILITY_MAJOR_NV
 	if (!clGetDeviceInfo(devices[sequential_id],
 			     CL_DEVICE_COMPUTE_CAPABILITY_MAJOR_NV,
