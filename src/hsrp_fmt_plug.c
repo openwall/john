@@ -64,7 +64,7 @@ static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
 
 static struct custom_salt {
 	int length;
-	unsigned char salt[1024];
+	unsigned char salt[2048];  // be safe ;)
 } *cur_salt;
 
 static void init(struct fmt_main *self)
@@ -98,8 +98,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!q)
 		return 0;
 	q = q + 1;
-	if ((q - p - 1) > REAL_SALT_SIZE * 2)
-		return 0;
+	// if ((q - p - 1) > REAL_SALT_SIZE * 2)
+	//	return 0;
 
 	len = strspn(q, HEXCHARS);
 	if (len != BINARY_SIZE * 2 || len != strlen(q))
