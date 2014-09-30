@@ -65,7 +65,10 @@ static void parse_hex(char *string)
 	unsigned char *d = s;
 
 	while (*s)
-	if (*s == '\\' && s[1] == 'x' &&
+	if (*s == '\\' && s[1] != 'x') {
+		s++;
+		*d++ = *s++;
+	} else if (*s == '\\' && s[1] == 'x' &&
 	    atoi16[s[2]] != 0x7f && atoi16[s[3]] != 0x7f) {
 		*d++ = (atoi16[s[2]] << 4) + atoi16[s[3]];
 		s += 4;
