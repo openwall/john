@@ -8,8 +8,16 @@
 # http://c0decafe.de/svn/codename_loki/trunk/modules/module_eigrp.py is cool
 #
 # Output Format,
-#
 # packet_number:$eigrp$algo_type$salt$have_extra_salt$extra_salt$hash
+#
+# $ md5sum i86bi-linux-l3-ipbase-12.4.bin  # EIGRP TLV version 3.0
+# 3e79a8010a4174dc316a55e6d1886f3c  i86bi-linux-l3-ipbase-12.4.bin
+#
+# $ md5sum i86bi-linux-l3-adventerprisek9-15.4.1T.bin  # EIGRP TLV version 2.0
+# 2eabae17778316c49cbc80e8e81262f9  i86bi-linux-l3-adventerprisek9-15.4.1T.bin
+#
+# "c3660-js-mz.124-11-T.image" uses EIGRP TLV version 1.2 and we can't crack
+# such hashes currently (for unknown reasons).
 #
 # This is dedicated to Darya. You inspire me.
 #
