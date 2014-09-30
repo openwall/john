@@ -37,6 +37,7 @@
 #define gpu_nvidia(n)               ((n & DEV_NVIDIA) && gpu(n))
 #define gpu_intel(n)                ((n & DEV_INTEL) && gpu(n))
 #define cpu_amd(n)                  ((n & DEV_AMD) && cpu(n))
+#define cpu_intel(n)                ((n & DEV_INTEL) && cpu(n))
 #define amd_gcn(n)                  ((n & DEV_AMD_GCN) && gpu_amd(n))
 #define amd_vliw4(n)                ((n & DEV_AMD_VLIW4) && gpu_amd(n))
 #define amd_vliw5(n)                ((n & DEV_AMD_VLIW5) && gpu_amd(n))

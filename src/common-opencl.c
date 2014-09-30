@@ -278,7 +278,10 @@ static cl_int get_pci_info(int sequential_id, hw_bus * hardware_info) {
 			hardware_info->device = topo.pcie.device & 0xff;
 			hardware_info->function = topo.pcie.function & 0xff;
 		} else
-		    return ret;
+			if (cpu_intel(device_info[sequential_id]))
+				return CL_SUCCESS;
+			else
+				return ret;
 	}
 #endif
 
