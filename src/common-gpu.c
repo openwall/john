@@ -382,7 +382,6 @@ void amd_get_temp(int amd_id, int *temp, int *fanspeed, int *util)
 
 int id2nvml(const hw_bus busInfo) {
 	nvmlDevice_t dev;
-//@magnumripper: maybe use can apply the same strategy as AMD: nvmlReturn_t DECLDIR nvmlDeviceGetPciInfo (nvmlDevice_t device, nvmlPciInfo_t ∗pci)
 
 	if (nvmlDeviceGetHandleByPciBusId &&
 	    nvmlDeviceGetHandleByPciBusId(busInfo.busId, &dev) == NVML_SUCCESS) {
