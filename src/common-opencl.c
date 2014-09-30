@@ -2176,7 +2176,6 @@ void opencl_list_devices(void)
 	}
 
 	for (i = 0; platforms[i].platform; i++) {
-		int nvidia = 0, amd = 0;
 
 		/* Query devices for information */
 		for (j = 0; j < platforms[i].num_devices; j++, sequence_nr++) {
@@ -2417,43 +2416,21 @@ void opencl_list_devices(void)
 				printf("\tKernel exec. timeout:\t%s\n",
 				       boolean ? "yes" : "no");
 #endif
-
-			ret = clGetDeviceInfo(
-				devices[sequence_nr],
-				CL_DEVICE_PCI_BUS_ID_NV,
-				sizeof(cl_uint), &entries, NULL);
-			if (ret == CL_SUCCESS)
-				printf("\tPCI device topology:\t"
-				       "%02x", entries);
-
-			ret = clGetDeviceInfo(
-				devices[sequence_nr],
-				CL_DEVICE_PCI_SLOT_ID_NV,
-				sizeof(cl_uint), &entries, NULL);
-			if (ret == CL_SUCCESS)
-				printf(":%02x.%x\n",
-				       entries >> 3, entries & 7);
 			{
-				cl_device_topology_amd topo;
-
-				ret = clGetDeviceInfo(
-					devices[sequence_nr],
-					CL_DEVICE_TOPOLOGY_AMD, sizeof(topo),
-					&topo, NULL);
-				if (ret == CL_SUCCESS)
-					printf("\tPCI device topology:\t"
-					       "%02x:%02x.%x\n",
-					       topo.pcie.bus & 0xff,
-					       topo.pcie.device & 0xff,
-					       topo.pcie.function & 0xff);
+				printf("\tPCI device topology:\t%s\n",
+				       ocl_device_list[sequence_nr].pci_info.busId);
 			}
 			fan = temp = util = -1;
 			if (gpu_nvidia(device_info[sequence_nr])) {
 				if (nvml_lib)
-				nvidia_get_temp(nvidia++, &temp, &fan, &util);
+				nvidia_get_temp(
+					id2nvml(ocl_device_list[sequence_nr].pci_info),
+					&temp, &fan, &util);
 			} else if (gpu_amd(device_info[sequence_nr])) {
 				if (adl_lib)
-				amd_get_temp(amd++, &temp, &fan, &util);
+				amd_get_temp(
+					id2adl(ocl_device_list[sequence_nr].pci_info),
+					&temp, &fan, &util);
 			}
 			if (fan >= 0)
 				printf("\tFan speed:\t\t%u%%\n", fan);
