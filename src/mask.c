@@ -1035,7 +1035,7 @@ void do_mask_crack(struct db_main *db, char *mask)
 	log_event("Proceeding with mask mode");
 
 	/* Handle command-line arguments given in UTF-8 */
-	if (pers_opts.input_enc == UTF_8 &&
+	if (valid_utf8((UTF8*)mask) > 1 && pers_opts.input_enc == UTF_8 &&
 	    pers_opts.internal_enc != UTF_8)
 		utf8_to_cp_r(mask, mask, strlen(mask));
 
