@@ -70,12 +70,10 @@ static void cfg_merge_local_section() {
 			// add a new item. NOTE, fixes bug #767
 			// https://github.com/magnumripper/JohnTheRipper/issues/767
 			struct cfg_param *p3 = (struct cfg_param*)mem_alloc_tiny(sizeof(struct cfg_param), 1);
-			// this get jammed 1 from tail of section. Need to test with section without any
-			// params and also one with only 1 param.
-			p3->next = parent->params->next;
+			p3->next = parent->params;
 			p3->name = p1->name;
 			p3->value = p1->value;
-			parent->params->next = p3;
+			parent->params = p3;
 		}
 		p1 = p1->next;
 	}
