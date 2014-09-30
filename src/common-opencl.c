@@ -2431,8 +2431,7 @@ void opencl_list_devices(void)
 					&temp, &fan, &util);
 			} else if (gpu_amd(device_info[sequence_nr])) {
 				if (adl_lib)
-				amd_get_temp(sequence_nr,
-					//id2adl(ocl_device_list[sequence_nr].pci_info),
+				amd_get_temp(id2adl(ocl_device_list[sequence_nr].pci_info),
 					&temp, &fan, &util);
 			}
 			if (fan >= 0)

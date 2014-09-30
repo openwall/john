@@ -202,15 +202,17 @@ void amd_probe(void)
 		if (adapterActive) {
 			int adl_id = adapterInfo.iAdapterIndex;
 
-			amd2adl[amd++] = adl_id;
+			amd2adl[amd] = adl_id;
 			adl2od[adl_id] = 0;
-			gpu_device_bus[adl_id].bus = adapterInfo.iBusNumber;
-			gpu_device_bus[adl_id].device = adapterInfo.iDeviceNumber;
-			gpu_device_bus[adl_id].function = adapterInfo.iFunctionNumber;
+			gpu_device_bus[amd].bus = adapterInfo.iBusNumber;
+			gpu_device_bus[amd].device = adapterInfo.iDeviceNumber;
+			gpu_device_bus[amd].function = adapterInfo.iFunctionNumber;
 
-			memset(gpu_device_bus[adl_id].busId, '\0', sizeof(gpu_device_bus[adl_id].busId));
-			sprintf(gpu_device_bus[adl_id].busId, "%02x:%02x.%x", gpu_device_bus[adl_id].bus,
-				gpu_device_bus[adl_id].device,gpu_device_bus[adl_id].function);
+			memset(gpu_device_bus[amd].busId, '\0', sizeof(gpu_device_bus[amd].busId));
+			sprintf(gpu_device_bus[amd].busId, "%02x:%02x.%x", gpu_device_bus[amd].bus,
+				gpu_device_bus[amd].device,gpu_device_bus[amd].function);
+
+			amd++;
 
 			if (ADL_Overdrive_Caps(adl_id, &iOverdriveSupported, &iOverdriveEnabled, &iOverdriveVersion) != ADL_OK) {
 				//printf("Can't get Overdrive capabilities\n");
@@ -401,7 +403,7 @@ int id2adl(const hw_bus busInfo) {
 		if (gpu_device_bus[hardware_id].bus == busInfo.bus &&
 		    gpu_device_bus[hardware_id].device == busInfo.device &&
 		    gpu_device_bus[hardware_id].function == busInfo.function)
-			return hardware_id;
+			return amd2adl[hardware_id];
 
 		hardware_id++;
 	}
