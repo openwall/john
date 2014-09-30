@@ -6,6 +6,12 @@
 # Output Format,
 # packet_number:$vrrp$algo_type$salt$have_extra_salt$extra_salt$hash
 #
+# $ md5sum i86bi-linux-l3-ipbase-12.4.bin
+# 3e79a8010a4174dc316a55e6d1886f3c  i86bi-linux-l3-ipbase-12.4.bin
+#
+# $ md5sum i86bi-linux-l3-adventerprisek9-15.4.1T.bin
+# 2eabae17778316c49cbc80e8e81262f9  i86bi-linux-l3-adventerprisek9-15.4.1T.bin
+#
 # This software is Copyright (c) 2014 m3g9tr0n (Spiros Fraganastasis)
 # <spirosfr.1985 at gmail.com> and Dhiru Kholia <dhiru at openwall.com>, and it
 # is hereby released to the general public under the following terms:
