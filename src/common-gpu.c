@@ -369,7 +369,7 @@ static void get_temp_od6(int adl_id, int *temp, int *fanspeed, int *util)
 void amd_get_temp(int amd_id, int *temp, int *fanspeed, int *util)
 {
 #ifdef __linux__
-	int adl_id = amd2adl[amd_id];
+	int adl_id = amd_id;
 
 	if (adl2od[adl_id] == 5) {
 		get_temp_od5(adl_id, temp, fanspeed, util);
