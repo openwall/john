@@ -1578,7 +1578,7 @@ static void opencl_get_dev_info(int sequential_id)
 
 #ifdef CL_DEVICE_COMPUTE_CAPABILITY_MAJOR_NV
 	{
-		unsigned int major = 0, minor;
+		unsigned int major = 0, minor = 0;
 
 		get_compute_capability(sequential_id, &major, &minor);
 
@@ -1874,18 +1874,16 @@ size_t get_kernel_preferred_multiple(int sequential_id, cl_kernel crypt_kernel)
 
 #ifdef CL_DEVICE_COMPUTE_CAPABILITY_MAJOR_NV
 void get_compute_capability(int sequential_id, unsigned int *major,
-	unsigned int *minor) {
-
-	if (!clGetDeviceInfo(devices[sequential_id],
-			     CL_DEVICE_COMPUTE_CAPABILITY_MAJOR_NV,
-			     sizeof(cl_uint), major, NULL))
-		*major = 0;
-	if (!clGetDeviceInfo(devices[sequential_id],
-			     CL_DEVICE_COMPUTE_CAPABILITY_MINOR_NV,
-			     sizeof(cl_uint), minor, NULL))
-		*minor = 0;
-#endif
+        unsigned int *minor)
+{
+        clGetDeviceInfo(devices[sequential_id],
+                             CL_DEVICE_COMPUTE_CAPABILITY_MAJOR_NV,
+                             sizeof(cl_uint), major, NULL);
+        clGetDeviceInfo(devices[sequential_id],
+                             CL_DEVICE_COMPUTE_CAPABILITY_MINOR_NV,
+                             sizeof(cl_uint), minor, NULL);
 }
+#endif
 
 cl_uint get_processors_count(int sequential_id)
 {
