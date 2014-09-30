@@ -26,9 +26,9 @@
     #define STRONG_UNROLL	1
 #elif cpu(DEVICE_INFO)
     #define STRONG_UNROLL	1
-#elif nvidia_sm_2x(DEVICE_INFO)
+#elif (nvidia_sm_2x(DEVICE_INFO) || nvidia_sm_3x(DEVICE_INFO))
     #define MEDIUM_UNROLL	1
-#elif (nvidia_sm_3x(DEVICE_INFO) || nvidia_sm_5x(DEVICE_INFO))
+#elif nvidia_sm_5x(DEVICE_INFO)
     #define STRONG_UNROLL	1
 #endif
 
