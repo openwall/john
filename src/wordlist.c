@@ -512,6 +512,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 	int forceLoad = 0;
 	int dupeCheck = (options.flags & FLG_DUPESUPP) ? 1 : 0;
 	int loopBack = (options.flags & FLG_LOOPBACK_CHK) ? 1 : 0;
+	int do_lmloop = loopBack && db->plaintexts->head;
 	long my_size = 0;
 	unsigned int myWordFileLines = 0;
 	int maxlength = options.force_maxlength;
@@ -950,6 +951,8 @@ SKIP_MEM_MAP_LOAD:;
 		}
 	}
 
+REDO_AFTER_LMLOOP:
+
 	if (rules) {
 		if (rpp_init(rule_ctx = &ctx, pers_opts.activewordlistrules)) {
 			log_event("! No \"%s\" mode rules found",
@@ -964,6 +967,7 @@ SKIP_MEM_MAP_LOAD:;
 		rules_init(length);
 		rule_count = rules_count(&ctx, -1);
 
+		if (do_lmloop || !db->plaintexts->head)
 		log_event("- %d preprocessed word mangling rules", rule_count);
 
 		apply = rules_apply;
@@ -986,6 +990,9 @@ SKIP_MEM_MAP_LOAD:;
 		status_init(get_progress, 0);
 
 		rec_restore_mode(restore_state);
+		if (do_lmloop && ((nWordFileLines && rec_line) ||
+		                  (!nWordFileLines && rec_pos)))
+			do_lmloop = 0;
 		rec_init(db, save_state);
 
 		crk_init(db, fix_state, NULL);
@@ -1081,9 +1088,7 @@ SKIP_MEM_MAP_LOAD:;
 
 		/* Process loopback LM passwords that were put together
 		   at start of session */
-		if (loopBack)
-		if (rule)
-		if ((joined = db->plaintexts->head))
+		if (rule && do_lmloop && (joined = db->plaintexts->head))
 		do {
 			if (options.node_count && !dist_rules) {
 				int for_node = loop_line_no %
@@ -1114,7 +1119,7 @@ SKIP_MEM_MAP_LOAD:;
 			}
 		} while ((joined = joined->next));
 
-		if (rule && nWordFileLines)
+		else if (rule && nWordFileLines)
 		while (line_number < nWordFileLines) {
 			if (options.node_count && !myWordFileLines)
 			if (!dist_rules) {
@@ -1240,6 +1245,12 @@ next_rule:
 
 		my_words_left = my_words;
 	} while (rules);
+
+	if (do_lmloop && !event_abort) {
+		log_event("- Done with reassembled LM halves");
+		do_lmloop = 0;
+		goto REDO_AFTER_LMLOOP;
+	}
 
 	if (pipe_input)
 		goto GRAB_NEXT_PIPE_LOAD;
