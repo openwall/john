@@ -212,7 +212,7 @@ static void init(struct fmt_main *self)
 	HANDLE_CLERROR(ret_code, "Error creating kernel");
 
 	//Initialize openCL tuning (library) for this format.
-	opencl_init_auto_setup(SEED, 2*HASH_LOOPS, 5, split_events,
+	opencl_init_auto_setup(SEED, 2*HASH_LOOPS, split_events,
 		warn, 2, self, create_clobj, release_clobj,
 	        sizeof(pbkdf2_state), 0);
 

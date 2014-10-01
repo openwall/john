@@ -193,7 +193,7 @@ static void init(struct fmt_main *self)
 		(sizeof(pass_t) + sizeof(crack_t));
 
 	//Initialize openCL tuning (library) for this format.
-	opencl_init_auto_setup(SEED, ITERATIONS, 4, split_events,
+	opencl_init_auto_setup(SEED, ITERATIONS, split_events,
 		warn, 1, self, create_clobj, release_clobj,
 	        sizeof(pass_t) + sizeof(crack_t), gws_limit);
 

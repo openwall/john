@@ -98,7 +98,7 @@ static void common_run_auto_tune(struct fmt_main * self, unsigned int rounds,
 	/* Adjust, if necessary */
 	if (!local_work_size)
 		global_work_size = GET_MULTIPLE_OR_ZERO(global_work_size, 64);
-	else
+	else if (global_work_size)
 		global_work_size = GET_MULTIPLE_OR_ZERO(global_work_size, local_work_size);
 
 	//Check if local_work_size is a valid number.

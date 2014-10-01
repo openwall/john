@@ -21,6 +21,16 @@
 	#define uint64_t unsigned long
 #endif
 
+// Start documenting AMD OpenCL bugs.
+#if amd_vliw5(DEVICE_INFO)
+    ///Fixed. Kept for future reference.
+    ///TODO: can't remove the [unroll]. (at least) HD 6770.
+    ///#define AMD_STUPID_BUG_1
+
+    ///TODO: can't use a valid command twice on sha256crypt. (at least) HD 6770.
+    #define AMD_STUPID_BUG_2
+#endif
+
 //Functions.
 #undef MAX
 #undef MIN
@@ -30,7 +40,10 @@
 /* Macros for reading/writing chars from int32's (from rar_kernel.cl) */
 #define GETCHAR(buf, index) ((buf)[(index)])
 #define ATTRIB(buf, index, val) (buf)[(index)] = val
-#define PUTCHAR_BE(buf, index, val) ((uchar*)(buf))[(index) ^ 7] = (val)
+
+#if gpu_amd(DEVICE_INFO)
+	#define USE_BITSELECT
+#endif
 
 #if gpu_amd(DEVICE_INFO) || no_byte_addressable(DEVICE_INFO)
 #define PUTCHAR(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2] & ~(0xffU << (((index) & 3) << 3))) + ((val) << (((index) & 3) << 3))
@@ -40,7 +53,6 @@
 
 #define TRANSFER_SIZE           (1024 * 64)
 
-#ifdef _OPENCL_COMPILER
 #define CLEAR_CTX_32(i)\
     ctx.buffer[i].mem_32[0] = 0;
 
@@ -354,7 +366,6 @@
     #define PUT         ATTRIB
     #define BUFFER      ctx->buffer->mem_08
     #define F_BUFFER    ctx.buffer->mem_08
-#endif
 #endif
 
 #ifndef _OPENCL_COMPILER
