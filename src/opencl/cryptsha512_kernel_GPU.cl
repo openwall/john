@@ -149,7 +149,7 @@ inline void sha512_block(sha512_ctx * ctx) {
     }
 
 #ifdef AMD_STUPID_BUG_1
-    #pragma unroll 16
+    #pragma unroll 4
 #endif
     for (int i = 16; i < 80; i++) {
         w[i & 15] = sigma1(w[(i - 2) & 15]) + sigma0(w[(i - 15) & 15]) + w[(i - 16) & 15] + w[(i - 7) & 15];
