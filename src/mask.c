@@ -1041,6 +1041,14 @@ void do_mask_crack(struct db_main *db, char *mask)
 	if (valid_utf8((UTF8*)mask) > 1 && pers_opts.input_enc == UTF_8 &&
 	    pers_opts.internal_enc != UTF_8)
 		utf8_to_cp_r(mask, mask, strlen(mask));
+	for (i = 0; i < 4; i++) {
+		if (valid_utf8((UTF8*)options.custom_mask[i]) > 1 &&
+		    pers_opts.input_enc == UTF_8 &&
+		    pers_opts.internal_enc != UTF_8)
+			utf8_to_cp_r(options.custom_mask[i],
+			             options.custom_mask[i],
+			             strlen(options.custom_mask[i]));
+	}
 
 	/* De-hexify */
 	parse_hex(mask);
