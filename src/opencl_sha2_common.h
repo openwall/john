@@ -24,11 +24,15 @@
 // Start documenting AMD OpenCL bugs.
 #if amd_vliw5(DEVICE_INFO)
     ///Fixed. Kept for future reference.
-    ///TODO: can't remove the [unroll]. (at least) HD 6770.
-    ///#define AMD_STUPID_BUG_1
+    ///TODO: can't remove the [unroll]. (At least) HD 6770.
+    #define AMD_STUPID_BUG_1
 
-    ///TODO: can't use a valid command twice on sha256crypt. (at least) HD 6770.
+    ///TODO: can't use a valid command twice on sha256crypt. (At least) HD 6770.
     #define AMD_STUPID_BUG_2
+
+    ///TODO: can't use constant. (At least) HD 6770.
+    ///inline void sha512_prepare(__constant   sha512_salt     * salt_data,
+    #define AMD_STUPID_BUG_3
 #endif
 
 //Functions.
