@@ -23,7 +23,7 @@
 
 // Start documenting AMD OpenCL bugs.
 #if amd_vliw5(DEVICE_INFO)
-    ///Fixed. Kept for future reference.
+    ///Fixed (back in 14.9). Kept for future reference.
     ///TODO: can't remove the [unroll]. (At least) HD 6770.
     #define AMD_STUPID_BUG_1
 
@@ -31,8 +31,9 @@
     #define AMD_STUPID_BUG_2
 
     ///TODO: can't use constant. (At least) HD 6770.
+    ///Fixed. Kept for future reference.
     ///inline void sha512_prepare(__constant   sha512_salt     * salt_data,
-    #define AMD_STUPID_BUG_3
+    ///#define AMD_STUPID_BUG_3
 #endif
 
 //Functions.

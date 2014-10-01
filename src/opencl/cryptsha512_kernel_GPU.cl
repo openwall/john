@@ -215,6 +215,27 @@ inline void insert_to_buffer_G(         sha512_ctx    * ctx,
     }
 }
 
+inline void insert_to_buffer_C(           sha512_ctx    * ctx,
+                               __constant const uint8_t * string,
+                               const uint32_t len) {
+
+    __constant uint64_t * s = (__constant uint64_t *) string;
+    uint32_t tmp, pos;
+    tmp = ((ctx->buflen & 7) << 3);
+    pos = (ctx->buflen >> 3);
+
+    for (uint32_t i = 0; i < len; i+=8, s++) {
+	APPEND_BUFFER_F(ctx->buffer->mem_64, s[0]);
+    }
+    ctx->buflen += len;
+    tmp = (ctx->buflen & 7);
+
+    if (tmp) {
+	pos = (ctx->buflen >> 3);
+	ctx->buffer[pos].mem_64[0] = ctx->buffer[pos].mem_64[0] & clear_mask[tmp];
+    }
+}
+
 inline void ctx_update_R(sha512_ctx * ctx,
                          uint8_t    * string,
                          const uint32_t len) {
@@ -258,6 +279,27 @@ inline void ctx_update_G(         sha512_ctx * ctx,
     }
 }
 
+inline void ctx_update_C(           sha512_ctx * ctx,
+                         __constant uint8_t    * string, uint32_t len) {
+
+    ctx->total += len;
+    uint32_t startpos = ctx->buflen;
+
+    insert_to_buffer_C(ctx, string, (startpos + len <= 128 ? len : 128 - startpos));
+
+    if (ctx->buflen == 128) {  //Branching.
+        uint32_t offset = 128 - startpos;
+        sha512_block(ctx);
+        ctx->buflen = len - offset;
+
+        //Unaligned memory acess.
+	for (uint32_t i = 0; i < ctx->buflen; i++)
+	    PUT(BUFFER, i, (string + offset)[i]);
+
+	clear_buffer(ctx->buffer->mem_64, ctx->buflen, 16);
+    }
+}
+
 inline void sha512_digest(sha512_ctx * ctx,
                           uint64_t   * result,
                           const int size) {
@@ -287,11 +329,7 @@ inline void sha512_digest(sha512_ctx * ctx,
         result[i] = SWAP64(ctx->H[i]);
 }
 
-#ifdef AMD_STUPID_BUG_3
-inline void sha512_prepare(__global   sha512_salt     * salt_data,
-#else
 inline void sha512_prepare(__constant sha512_salt     * salt_data,
-#endif
                            __global   sha512_password * keys_data,
                                       sha512_buffers  * fast_buffers) {
 
@@ -308,7 +346,7 @@ inline void sha512_prepare(__constant sha512_salt     * salt_data,
     clear_ctx_buffer(&ctx);
 
     insert_to_buffer_G(&ctx, pass, passlen);
-    insert_to_buffer_G(&ctx, salt, saltlen);
+    insert_to_buffer_C(&ctx, salt, saltlen);
     insert_to_buffer_G(&ctx, pass, passlen);
 
     ctx.total = ctx.buflen;
@@ -318,7 +356,7 @@ inline void sha512_prepare(__constant sha512_salt     * salt_data,
     clear_ctx_buffer(&ctx);
 
     insert_to_buffer_G(&ctx, pass, passlen);
-    insert_to_buffer_G(&ctx, salt, saltlen);
+    insert_to_buffer_C(&ctx, salt, saltlen);
     insert_to_buffer_R(&ctx, alt_result->mem_08, passlen);
 
     ctx.total = ctx.buflen;
@@ -342,7 +380,7 @@ inline void sha512_prepare(__constant sha512_salt     * salt_data,
 
     /* For every character in the password add the entire password. */
     for (uint32_t i = 0; i < 16U + alt_result->mem_08[0]; i++)
-        ctx_update_G(&ctx, salt, saltlen);
+        ctx_update_C(&ctx, salt, saltlen);
 
     sha512_digest(&ctx, temp_result->mem_64, SALT_ARRAY);
 
@@ -359,7 +397,7 @@ inline void sha512_prepare(__constant sha512_salt     * salt_data,
 #undef p_sequence
 
 __kernel
-void kernel_prepare(__global   sha512_salt     * salt,
+void kernel_prepare(__constant sha512_salt     * salt,
                     __global   sha512_password * keys_buffer,
                     __global   buffer_64       * global_alt_result,
 		    __global   uint64_t	       * work_memory) {
