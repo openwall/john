@@ -554,7 +554,7 @@ static void init(struct fmt_main *self)
 	}
 
 	//Initialize openCL tuning (library) for this format.
-	opencl_init_auto_setup(SEED, HASH_LOOPS, 7, split_events,
+	opencl_init_auto_setup(SEED, HASH_LOOPS, split_events,
 		warn, 3, self, create_clobj, release_clobj,
 	        UNICODE_LENGTH + sizeof(cl_int) * 14, 0);
 

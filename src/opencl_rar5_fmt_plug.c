@@ -204,7 +204,7 @@ static void init(struct fmt_main *self)
 	HANDLE_CLERROR(cl_error, "Error creating split kernel");
 
 	//Initialize openCL tuning (library) for this format.
-	opencl_init_auto_setup(SEED, HASH_LOOPS, 5, split_events,
+	opencl_init_auto_setup(SEED, HASH_LOOPS, split_events,
 		warn, 3, self, create_clobj, release_clobj,
 		sizeof(state_t), 0);
 

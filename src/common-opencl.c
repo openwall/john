@@ -73,9 +73,8 @@ static int default_value;
 static int hash_loops;
 static unsigned long long int duration_time = 0;
 static const char **warnings;
-static int number_of_events;
 static int *split_events;
-static int to_profile_event;
+static int main_opencl_event;
 static struct fmt_main *self;
 static void (*create_clobj)(size_t gws, struct fmt_main *self);
 static void (*release_clobj)(void);
@@ -100,7 +99,7 @@ cl_event *profilingEvent, *firstEvent, *lastEvent;
 cl_event *multi_profilingEvent[MAX_EVENTS];
 
 int device_info[MAX_GPU_DEVICES];
-int cores_per_MP[MAX_GPU_DEVICES];
+static ocl_device_detais ocl_device_list[MAX_GPU_DEVICES];
 
 void opencl_process_event(void)
 {
@@ -259,6 +258,64 @@ static void start_opencl_environment()
 	devices[device_pos] = NULL;
 }
 
+static cl_int get_pci_info(int sequential_id, hw_bus * hardware_info) {
+
+	cl_int ret;
+	hardware_info->bus = -1;
+	hardware_info->device = -1;
+	memset(hardware_info->busId, '\0', sizeof(hardware_info->busId));
+
+#if defined(CL_DEVICE_TOPOLOGY_AMD) && CL_DEVICE_TOPOLOGY_TYPE_PCIE_AMD == 1
+
+	if (gpu_amd(device_info[sequential_id]) || cpu(device_info[sequential_id])) {
+		cl_device_topology_amd topo;
+
+		ret = clGetDeviceInfo(devices[sequential_id],
+			CL_DEVICE_TOPOLOGY_AMD, sizeof(topo), &topo, NULL);
+
+		if (ret == CL_SUCCESS) {
+			hardware_info->bus = topo.pcie.bus & 0xff;
+			hardware_info->device = topo.pcie.device & 0xff;
+			hardware_info->function = topo.pcie.function & 0xff;
+		} else
+			if (cpu_intel(device_info[sequential_id]))
+				return CL_SUCCESS;
+			else
+				return ret;
+	}
+#endif
+
+#ifdef CL_DEVICE_REGISTERS_PER_BLOCK_NV
+
+	if (gpu_nvidia(device_info[sequential_id])) {
+		cl_uint entries;
+
+		ret = clGetDeviceInfo(
+			devices[sequential_id], CL_DEVICE_PCI_BUS_ID_NV,
+			sizeof(cl_uint), &entries, NULL);
+
+		if (ret == CL_SUCCESS)
+			hardware_info->bus = entries;
+		else
+		    return ret;
+
+		ret = clGetDeviceInfo(
+			devices[sequential_id],CL_DEVICE_PCI_SLOT_ID_NV,
+			sizeof(cl_uint), &entries, NULL);
+
+		if (ret == CL_SUCCESS) {
+			hardware_info->device = entries >> 3;
+			hardware_info->function = entries & 7;
+
+		} else
+		    return ret;
+	}
+#endif
+	sprintf(hardware_info->busId, "%02x:%02x.%x", hardware_info->bus,
+		hardware_info->device, hardware_info->function);
+	return CL_SUCCESS;
+}
+
 static int start_opencl_device(int sequential_id, int *err_type)
 {
 	cl_context_properties properties[3];
@@ -279,6 +336,11 @@ static int start_opencl_device(int sequential_id, int *err_type)
 		temp_dev_id[sequential_id] = sequential_id;
 		dev_get_temp[sequential_id] = NULL;
 	}
+	//Get harware bus/pcie information.
+	HANDLE_CLERROR(
+		get_pci_info(sequential_id,
+		&ocl_device_list[sequential_id].pci_info),
+	    "Error querying BUS INFORMATION");
 
 	HANDLE_CLERROR(clGetDeviceInfo(devices[sequential_id], CL_DEVICE_NAME,
 	    sizeof(opencl_data), opencl_data, NULL),
@@ -1045,7 +1107,7 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self,
 }
 
 // Do the proper test using different global work sizes.
-static void release_profiling_events()
+static void clear_profiling_events()
 {
 	int i;
 
@@ -1067,6 +1129,11 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 	cl_ulong startTime, endTime, runtime = 0, looptime = 0;
 	int i, count, tidx = 0, total = 0;
 	size_t kpc = gws * opencl_v_width;
+	cl_event benchEvent[MAX_EVENTS];
+	int number_of_events = 0;
+
+	for (i = 0; i < MAX_EVENTS; i++)
+		benchEvent[i] = NULL;
 
 	// Prepare buffers.
 	create_clobj(gws, self);
@@ -1094,6 +1161,10 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 	self->methods.set_salt(
 		self->methods.salt(self->params.tests[0].ciphertext));
 
+	// Activate events. Then clear them later.
+	for (i = 0; i < MAX_EVENTS; i++)
+		multi_profilingEvent[i] = &benchEvent[i];
+
 	// Timing run
 	count = kpc;
 	if (self->methods.crypt_all(&count, NULL) < 0) {
@@ -1101,10 +1172,13 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 
 		if (options.verbosity > 3)
 			fprintf(stderr, " (error occured)");
-		release_profiling_events();
+		clear_profiling_events();
 		release_clobj();
 		return 0;
 	}
+
+	for (i = 0; (*multi_profilingEvent[i]); i++)
+		number_of_events++;
 
 	//** Get execution time **//
 	for (i = 0; i < number_of_events; i++) {
@@ -1128,7 +1202,9 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 				       i == split_events[2])) {
 			looptime += (endTime - startTime);
 			total++;
-			sprintf(mult, "%dx", rounds / hash_loops);
+
+			if (i == split_events[0])
+				sprintf(mult, "%dx", rounds / hash_loops);
 		} else
 			runtime += (endTime - startTime);
 
@@ -1152,32 +1228,28 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 	if (split_events)
 		runtime += ((looptime / total) * (rounds / hash_loops));
 
-	release_profiling_events();
+	clear_profiling_events();
 	release_clobj();
 	return runtime;
 }
 
 void opencl_init_auto_setup(
-	int p_default_value, int p_hash_loops, int p_number_of_events,
+	int p_default_value, int p_hash_loops,
 	int *p_split_events, const char **p_warnings,
-	int p_to_profile_event, struct fmt_main *p_self,
+	int p_main_opencl_event, struct fmt_main *p_self,
 	void (*p_create_clobj)(size_t gws, struct fmt_main *self),
 	void (*p_release_clobj)(void), int p_buffer_size, size_t p_gws_limit)
 {
-	int i;
-
 	// Initialize events
-	for (i = 0; i < MAX_EVENTS; i++)
-		multi_profilingEvent[i] = NULL;
+	clear_profiling_events();
 
 	// Get parameters
 	buffer_size = p_buffer_size;
 	default_value = p_default_value;
 	hash_loops = p_hash_loops;
-	number_of_events = p_number_of_events;
 	split_events = p_split_events;
 	warnings = p_warnings;
-	to_profile_event = p_to_profile_event;
+	main_opencl_event = p_main_opencl_event;
 	self = p_self;
 	create_clobj = p_create_clobj;
 	release_clobj = p_release_clobj;
@@ -1276,7 +1348,7 @@ void opencl_find_best_lws(
 	count = global_work_size * opencl_v_width;
 	self->methods.crypt_all(&count, NULL);
 
-	// Activate events. Since it has to be released, redo it every run.
+	// Activate events. Then clear them later.
 	for (i = 0; i < MAX_EVENTS; i++)
 		multi_profilingEvent[i] = &benchEvent[i];
 
@@ -1284,19 +1356,19 @@ void opencl_find_best_lws(
 	self->methods.crypt_all(&count, NULL);
 
 	HANDLE_CLERROR(clFinish(queue[sequential_id]), "clFinish error");
-	HANDLE_CLERROR(clGetEventProfilingInfo(benchEvent[to_profile_event],
+	HANDLE_CLERROR(clGetEventProfilingInfo(benchEvent[main_opencl_event],
 					       CL_PROFILING_COMMAND_START,
 					       sizeof(cl_ulong),
 					       &startTime, NULL),
 		       "Failed to get profiling info");
-	HANDLE_CLERROR(clGetEventProfilingInfo(benchEvent[to_profile_event],
+	HANDLE_CLERROR(clGetEventProfilingInfo(benchEvent[main_opencl_event],
 					       CL_PROFILING_COMMAND_END,
 					       sizeof(cl_ulong), &endTime,
 					       NULL),
 		       "Failed to get profiling info");
 	numloops = (int)(size_t)(200000000ULL / (endTime-startTime));
 
-	release_profiling_events();
+	clear_profiling_events();
 
 	if (numloops < 1)
 		numloops = 1;
@@ -1318,7 +1390,7 @@ void opencl_find_best_lws(
 			advance_cursor();
 			local_work_size = my_work_group;
 
-			// Activate events. Since it has to be released, redo it every run.
+			// Activate events. Then clear them later.
 			for (j = 0; j < MAX_EVENTS; j++)
 				multi_profilingEvent[j] = &benchEvent[j];
 
@@ -1332,11 +1404,11 @@ void opencl_find_best_lws(
 
 			HANDLE_CLERROR(clFinish(queue[sequential_id]),
 				       "clFinish error");
-			HANDLE_CLERROR(clGetEventProfilingInfo(benchEvent[to_profile_event],
+			HANDLE_CLERROR(clGetEventProfilingInfo(benchEvent[main_opencl_event],
 					   CL_PROFILING_COMMAND_START,
 					   sizeof(cl_ulong), &startTime, NULL),
 				       "Failed to get profiling info");
-			HANDLE_CLERROR(clGetEventProfilingInfo(benchEvent[to_profile_event],
+			HANDLE_CLERROR(clGetEventProfilingInfo(benchEvent[main_opencl_event],
 					   CL_PROFILING_COMMAND_END,
 					   sizeof(cl_ulong), &endTime, NULL),
 				       "Failed to get profiling info");
@@ -1344,7 +1416,7 @@ void opencl_find_best_lws(
 			sumStartTime += startTime;
 			sumEndTime += endTime;
 
-			release_profiling_events();
+			clear_profiling_events();
 		}
 		if (!endTime)
 			break;
@@ -1380,14 +1452,10 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
 			  int sequential_id, unsigned int rounds)
 {
 	size_t num = 0;
-	int optimal_gws = local_work_size, i;
+	int optimal_gws = local_work_size;
 	unsigned int speed, best_speed = 0;
 	cl_ulong run_time, min_time = CL_ULONG_MAX;
 	char config_string[128];
-	cl_event benchEvent[MAX_EVENTS];
-
-	for (i = 0; i < MAX_EVENTS; i++)
-		benchEvent[i] = NULL;
 
 	if (duration_time)
 		max_run_time = duration_time;
@@ -1425,12 +1493,8 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
 					"exhausted\n");
 			break;
 		}
-		// Activate events. Since it has to be released, redo it evey run.
-		for (i = 0; i < MAX_EVENTS; i++)
-			multi_profilingEvent[i] = &benchEvent[i];
 
-		if (!(run_time = gws_test(num, rounds,
-					  sequential_id)))
+		if (!(run_time = gws_test(num, rounds, sequential_id)))
 			break;
 
 		if (options.verbosity < 4)
@@ -1514,6 +1578,25 @@ static void opencl_get_dev_info(int sequential_id)
 	device_info[sequential_id] += get_vendor_id(sequential_id);
 	device_info[sequential_id] += get_processor_family(sequential_id);
 	device_info[sequential_id] += get_byte_addressable(sequential_id);
+
+#ifdef CL_DEVICE_COMPUTE_CAPABILITY_MAJOR_NV
+	{
+		unsigned int major = 0, minor = 0;
+
+		get_compute_capability(sequential_id, &major, &minor);
+
+		if (major) {
+			device_info[sequential_id] +=
+				(major == 2 ? DEV_NV_C2X : 0);
+			device_info[sequential_id] +=
+				(major == 3 && minor == 0 ? DEV_NV_C30 : 0);
+			device_info[sequential_id] +=
+				(major == 3 && minor == 5 ? DEV_NV_C35 : 0);
+			device_info[sequential_id] +=
+				(major == 5 ? DEV_NV_C5X : 0);
+		}
+	}
+#endif
 }
 
 static void find_valid_opencl_device(int *dev_id, int *platform_id)
@@ -1794,16 +1877,14 @@ size_t get_kernel_preferred_multiple(int sequential_id, cl_kernel crypt_kernel)
 
 #ifdef CL_DEVICE_COMPUTE_CAPABILITY_MAJOR_NV
 void get_compute_capability(int sequential_id, unsigned int *major,
-	unsigned int *minor)
+        unsigned int *minor)
 {
-	if (!clGetDeviceInfo(devices[sequential_id],
-			     CL_DEVICE_COMPUTE_CAPABILITY_MAJOR_NV,
-			     sizeof(cl_uint), major, NULL))
-		major = 0;
-	if (!clGetDeviceInfo(devices[sequential_id],
-			     CL_DEVICE_COMPUTE_CAPABILITY_MINOR_NV,
-			     sizeof(cl_uint), minor, NULL))
-		minor = 0;
+        clGetDeviceInfo(devices[sequential_id],
+                             CL_DEVICE_COMPUTE_CAPABILITY_MAJOR_NV,
+                             sizeof(cl_uint), major, NULL);
+        clGetDeviceInfo(devices[sequential_id],
+                             CL_DEVICE_COMPUTE_CAPABILITY_MINOR_NV,
+                             sizeof(cl_uint), minor, NULL);
 }
 #endif
 
@@ -1817,7 +1898,7 @@ cl_uint get_processors_count(int sequential_id)
 				       sizeof(dname), dname, NULL),
 		       "Error querying CL_DEVICE_NAME");
 
-	cores_per_MP[sequential_id] = 0;
+	ocl_device_list[sequential_id].cores_per_MP = 0;
 
 	if (gpu_nvidia(device_info[sequential_id])) {
 #ifdef CL_DEVICE_COMPUTE_CAPABILITY_MAJOR_NV
@@ -1825,13 +1906,13 @@ cl_uint get_processors_count(int sequential_id)
 
 		get_compute_capability(sequential_id, &major, &minor);
 		if (major == 1)
-			core_count *= (cores_per_MP[sequential_id] = 8);
+			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 8);
 		else if (major == 2 && minor == 0)
-			core_count *= (cores_per_MP[sequential_id] = 32);	// 2.0
+			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 32);	// 2.0
 		else if (major == 2 && minor >= 1)
-			core_count *= (cores_per_MP[sequential_id] = 48);	// 2.1
+			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 48);	// 2.1
 		else if (major == 3)
-			core_count *= (cores_per_MP[sequential_id] = 192);	// 3.0
+			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 192);	// 3.0
 #else
 		/* Apple does not expose get_compute_capability() so we need
 		   to find out using mory hacky approaches. This needs more
@@ -1847,20 +1928,20 @@ cl_uint get_processors_count(int sequential_id)
 			strstr(dname, "GT 67") || strstr(dname, "GTX 67") ||
 			strstr(dname, "GT 68") || strstr(dname, "GTX 68") ||
 			strstr(dname, "GT 69") || strstr(dname, "GTX 69"))
-			core_count *= (cores_per_MP[sequential_id] = 192);
+			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 192);
 #endif
 	} else if (gpu_amd(device_info[sequential_id])) {
 			// 16 thread proc * 5 SP
-			core_count *= (cores_per_MP[sequential_id] = (16 *
+			core_count *= (ocl_device_list[sequential_id].cores_per_MP = (16 *
 			((amd_gcn(device_info[sequential_id]) ||
 			amd_vliw4(device_info[sequential_id])) ? 4 : 5)));
 	} else if (!strncmp(dname, "HD Graphics", 11)) {
-			core_count *= (cores_per_MP[sequential_id] = 1);
+			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 1);
 	} else if (!strncmp(dname, "Iris", 4)) {
-			core_count *= (cores_per_MP[sequential_id] = 1);
+			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 1);
 	} else if (gpu(device_info[sequential_id]))
 			// Any other GPU, if we don't know we wont guess
-			core_count *= (cores_per_MP[sequential_id] = 0);
+			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 0);
 
 	return core_count;
 }
@@ -2098,7 +2179,6 @@ void opencl_list_devices(void)
 	}
 
 	for (i = 0; platforms[i].platform; i++) {
-		int nvidia = 0, amd = 0;
 
 		/* Query devices for information */
 		for (j = 0; j < platforms[i].num_devices; j++, sequence_nr++) {
@@ -2299,12 +2379,12 @@ void opencl_list_devices(void)
 			printf("\tParallel compute cores:\t%d\n", entries);
 
 			long_entries = get_processors_count(sequence_nr);
-			if (cores_per_MP[sequence_nr] > 1)
+			if (ocl_device_list[sequence_nr].cores_per_MP > 1)
 				printf("\tStream processors:\t%llu "
 				       " (%d x %d)\n",
 				       (unsigned long long)long_entries,
 				       entries,
-				       cores_per_MP[sequence_nr]);
+				       ocl_device_list[sequence_nr].cores_per_MP);
 
 #ifdef CL_DEVICE_REGISTERS_PER_BLOCK_NV
 			ret = clGetDeviceInfo(devices[sequence_nr],
@@ -2339,43 +2419,20 @@ void opencl_list_devices(void)
 				printf("\tKernel exec. timeout:\t%s\n",
 				       boolean ? "yes" : "no");
 #endif
-
-			ret = clGetDeviceInfo(
-				devices[sequence_nr],
-				CL_DEVICE_PCI_BUS_ID_NV,
-				sizeof(cl_uint), &entries, NULL);
-			if (ret == CL_SUCCESS)
-				printf("\tPCI device topology:\t"
-				       "%02x", entries);
-
-			ret = clGetDeviceInfo(
-				devices[sequence_nr],
-				CL_DEVICE_PCI_SLOT_ID_NV,
-				sizeof(cl_uint), &entries, NULL);
-			if (ret == CL_SUCCESS)
-				printf(":%02x.%x\n",
-				       entries >> 3, entries & 7);
-			{
-				cl_device_topology_amd topo;
-
-				ret = clGetDeviceInfo(
-					devices[sequence_nr],
-					CL_DEVICE_TOPOLOGY_AMD, sizeof(topo),
-					&topo, NULL);
-				if (ret == CL_SUCCESS)
-					printf("\tPCI device topology:\t"
-					       "%02x:%02x.%x\n",
-					       topo.pcie.bus & 0xff,
-					       topo.pcie.device & 0xff,
-					       topo.pcie.function & 0xff);
+			if (ocl_device_list[sequence_nr].pci_info.bus >= 0) {
+				printf("\tPCI device topology:\t%s\n",
+				       ocl_device_list[sequence_nr].pci_info.busId);
 			}
 			fan = temp = util = -1;
 			if (gpu_nvidia(device_info[sequence_nr])) {
 				if (nvml_lib)
-				nvidia_get_temp(nvidia++, &temp, &fan, &util);
+				nvidia_get_temp(
+					id2nvml(ocl_device_list[sequence_nr].pci_info),
+					&temp, &fan, &util);
 			} else if (gpu_amd(device_info[sequence_nr])) {
 				if (adl_lib)
-				amd_get_temp(amd++, &temp, &fan, &util);
+				amd_get_temp(id2adl(ocl_device_list[sequence_nr].pci_info),
+					&temp, &fan, &util);
 			}
 			if (fan >= 0)
 				printf("\tFan speed:\t\t%u%%\n", fan);
