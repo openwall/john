@@ -368,7 +368,7 @@ inline void sha512_prepare(__constant sha512_salt     * salt_data,
 
     sha512_digest(&ctx, temp_result->mem_64, SALT_ARRAY);
 
-    /* SWAP temp buffers. */
+    /* Assure temp buffers has no trash. */
     clear_buffer(p_sequence->mem_64, passlen, PLAINTEXT_ARRAY);
     clear_buffer(temp_result->mem_64, saltlen, SALT_ARRAY);
 }
@@ -662,7 +662,6 @@ void kernel_final(__constant sha512_salt     * salt,
 		 alt_result, work_memory);
 
     //SWAP results and put it as hash data.
-    //Unlikely, but if avoided, could became an optimization.
     for (int i = 0; i < 8; i++)
         out_buffer[gid].v[i] = SWAP64(alt_result[i].mem_64[0]);
 }
