@@ -45,13 +45,13 @@ static sha512_hash			* calculated_hash;		// calculated hashes
 static cl_mem salt_buffer;		//Salt information.
 static cl_mem pass_buffer;		//Plaintext buffer.
 static cl_mem hash_buffer;		//Hash keys (output).
-static cl_mem work_buffer;		//Temporary buffer
+static cl_mem work_buffer, tmp_buffer;	//Temporary buffers
 static cl_mem pinned_saved_keys, pinned_partial_hashes;
 
 static cl_kernel prepare_kernel, final_kernel;
 
 static int new_keys, source_in_use;
-static int split_events[3] = { 1, 4, 5 };
+static int split_events[3] = { 1, 5, 6 };
 
 static int crypt_all(int *pcount, struct db_salt *_salt);
 static int crypt_all_benchmark(int *pcount, struct db_salt *_salt);
@@ -72,8 +72,8 @@ static struct fmt_tests tests[] = {
 	{"$6$saltstring$svn8UoSVapNtMuq1ukKS4tPQd8iKwSMHWjl/O817G3uBnIFNjnQJuesI68u4OTLiBFdcbYEdFCoEOfaS35inz1", "Hello world!"},
 	{"$6$rounds=391939$saltstring$P5HDSEq.sTdSBNmknrLQpg6UHp.9.vuEv6QibJNP8ecoNGo9Wa.3XuR7LKu8FprtxGDpGv17Y27RfTHvER4kI0", "amy"},
 	{"$6$rounds=391939$saltstring$JAjUHgEFBJB1lSM25mYGFdH42OOBZ8eytTvKCleaR4jI5cSs0KbATSYyhLj3tkMhmU.fUKfsZkT5y0EYbTLcr1", "amy99"},
-	{"$6$TtrrO3IN$D7Qz38n3JOn4Cc6y0340giveWD8uUvBAdPeCI0iC1cGYCmYHDrVXUEoSf3Qp5TRgo7x0BXN4lKNEj7KOvFTZV1", ">7fSy+N\\W=o@Wd&"},
-	{"$6$yRihAbCh$V5Gr/BhMSMkl6.fBt4TV5lWYY6MhjqApHxDL04HeTgeAX.mZT/0pDDYvArvmCfmMVa/XxzzOBXf1s7TGa2FDL0", "0H@<:IS:BfM\"V"},
+	{"$6$TtrrO3IN$D7Qz38n3JOn4Cc6y0340giveWD8uUvBAdPeCI0iC1cGYCmYHDrVXUEoSf3Qp5TRgo7x0BXN4lKNEj7KOvFTZV1", ">7fSy+N\\W=o@Wd&"}, // Password: >7fSy+N\W=o@Wd&
+	{"$6$yRihAbCh$V5Gr/BhMSMkl6.fBt4TV5lWYY6MhjqApHxDL04HeTgeAX.mZT/0pDDYvArvmCfmMVa/XxzzOBXf1s7TGa2FDL0", "0H@<:IS:BfM\"V"},   // Password: 0H@<:IS:BfM"V
 	{"$6$rounds=4900$saltstring$p3pnU2njiDujK0Pp5us7qlUvkjVaAM0GilTprwyZ1ZiyGKvsfNyDCnlmc.9ahKmDqyqKXMH3frK1I/oEiEbTK/", "Hello world!"},
 	{"$6$saltstring$fgNTR89zXnDUV97U5dkWayBBRaB0WIBnu6s4T7T8Tz1SbUyewwiHjho25yWVkph2p18CmUkqXh4aIyjPnxdgl0","john"},
 	{"$6$saltstring$MO53nAXQUKXVLlsbiXyPgMsR6q10N7eF7sPvanwdXnEeCj5kE3eYaRvFv0wVW1UZ4SnNTzc1v4OCOq1ASDQZY0","a"},
@@ -111,29 +111,17 @@ static size_t get_task_max_work_group_size()
 
 static size_t get_task_max_size(){
 
-	return common_get_task_max_size((amd_gcn(device_info[gpu_id]) ? 4 : 2),
+	return common_get_task_max_size((amd_gcn(device_info[gpu_id]) ? 4 : 6),
 		KEYS_PER_CORE_CPU, KEYS_PER_CORE_GPU, crypt_kernel);
 }
 
-static size_t get_safe_workgroup(){
-
-	if (cpu(device_info[gpu_id]))
-		return 1;
-
-	else
-		return 64;
-}
-
 static size_t get_default_workgroup(){
-	size_t max_available;
-	max_available = get_task_max_work_group_size();
 
-	if (gpu_nvidia(device_info[gpu_id])) {
-		global_work_size = GET_EXACT_MULTIPLE(global_work_size, max_available);
-		return max_available;
-
-	} else
-		return get_safe_workgroup();
+    	if (cpu(device_info[gpu_id]))
+		return get_platform_vendor_id(platform_id) == DEV_INTEL ?
+			8 : 1;
+	else
+		return 0;
 }
 
 /* ------- Create and destroy necessary objects ------- */
@@ -174,9 +162,19 @@ static void create_clobj(size_t gws, struct fmt_main * self)
 			sizeof(sha512_hash) * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_out");
 
-	work_buffer = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE,
-			sizeof(sha512_buffers) * gws, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating buffer argument work_area");
+	tmp_buffer = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE,
+			sizeof(buffer_64) * 8 * gws, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating buffer argument work_area 1");
+
+	if (! amd_gcn(source_in_use)) {
+		work_buffer = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE,
+			sizeof(uint64_t) * (9 * 8) * gws, NULL, &ret_code);
+		HANDLE_CLERROR(ret_code, "Error creating buffer argument work_area 2");
+	} else {
+		work_buffer = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE,
+		    sizeof(sha512_buffers) * gws, NULL, &ret_code);
+		HANDLE_CLERROR(ret_code, "Error creating buffer argument work_area");
+	}
 
 	//Set kernel arguments
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(cl_mem),
@@ -187,27 +185,58 @@ static void create_clobj(size_t gws, struct fmt_main * self)
 			(void *) &hash_buffer), "Error setting argument 2");
 
 	if (_SPLIT_KERNEL_IN_USE) {
-		//Set prepare kernel arguments
-		HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 0, sizeof(cl_mem),
-			(void *) &salt_buffer), "Error setting argument 0");
-		HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 1, sizeof(cl_mem),
-			(void *) &pass_buffer), "Error setting argument 1");
-		HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 2, sizeof(cl_mem),
-			(void *) &work_buffer), "Error setting argument 2");
 
-		//Set crypt kernel arguments
-		HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(cl_mem),
-			(void *) &work_buffer), "Error setting argument crypt_kernel (3)");
-
-		//Set final kernel arguments
-		HANDLE_CLERROR(clSetKernelArg(final_kernel, 0, sizeof(cl_mem),
+		if (! amd_gcn(source_in_use)) {
+			//Set prepare kernel arguments
+			HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 0, sizeof(cl_mem),
 				(void *) &salt_buffer), "Error setting argument 0");
-		HANDLE_CLERROR(clSetKernelArg(final_kernel, 1, sizeof(cl_mem),
+			HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 1, sizeof(cl_mem),
 				(void *) &pass_buffer), "Error setting argument 1");
-		HANDLE_CLERROR(clSetKernelArg(final_kernel, 2, sizeof(cl_mem),
-				(void *) &hash_buffer), "Error setting argument 2");
-		HANDLE_CLERROR(clSetKernelArg(final_kernel, 3, sizeof(cl_mem),
+			HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 2, sizeof(cl_mem),
+				(void *) &tmp_buffer), "Error setting argument 2");
+			HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 3, sizeof(cl_mem),
 				(void *) &work_buffer), "Error setting argument 3");
+
+			//Set crypt kernel arguments
+			HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(cl_mem),
+				(void *) &tmp_buffer), "Error setting argument crypt_kernel (3)");
+			HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 4, sizeof(cl_mem),
+				(void *) &work_buffer), "Error setting argument crypt_kernel (4)");
+
+			//Set final kernel arguments
+			HANDLE_CLERROR(clSetKernelArg(final_kernel, 0, sizeof(cl_mem),
+				(void *) &salt_buffer), "Error setting argument 0");
+			HANDLE_CLERROR(clSetKernelArg(final_kernel, 1, sizeof(cl_mem),
+				(void *) &pass_buffer), "Error setting argument 1");
+			HANDLE_CLERROR(clSetKernelArg(final_kernel, 2, sizeof(cl_mem),
+				(void *) &hash_buffer), "Error setting argument 2");
+			HANDLE_CLERROR(clSetKernelArg(final_kernel, 3, sizeof(cl_mem),
+				(void *) &tmp_buffer), "Error setting argument 3");
+			HANDLE_CLERROR(clSetKernelArg(final_kernel, 4, sizeof(cl_mem),
+				(void *) &work_buffer), "Error setting argument crypt_kernel (4)");
+		} else {
+			//Set prepare kernel arguments
+			HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 0, sizeof(cl_mem),
+				(void *) &salt_buffer), "Error setting argument 0");
+			HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 1, sizeof(cl_mem),
+				(void *) &pass_buffer), "Error setting argument 1");
+			HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 2, sizeof(cl_mem),
+				(void *) &work_buffer), "Error setting argument 2");
+
+			//Set crypt kernel arguments
+			HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(cl_mem),
+				(void *) &work_buffer), "Error setting argument crypt_kernel (3)");
+
+			//Set final kernel arguments
+			HANDLE_CLERROR(clSetKernelArg(final_kernel, 0, sizeof(cl_mem),
+					(void *) &salt_buffer), "Error setting argument 0");
+			HANDLE_CLERROR(clSetKernelArg(final_kernel, 1, sizeof(cl_mem),
+					(void *) &pass_buffer), "Error setting argument 1");
+			HANDLE_CLERROR(clSetKernelArg(final_kernel, 2, sizeof(cl_mem),
+					(void *) &hash_buffer), "Error setting argument 2");
+			HANDLE_CLERROR(clSetKernelArg(final_kernel, 3, sizeof(cl_mem),
+					(void *) &work_buffer), "Error setting argument 3");
+		}
 	}
 	memset(plaintext, '\0', sizeof(sha512_password) * gws);
 }
@@ -229,6 +258,8 @@ static void release_clobj(void) {
 	HANDLE_CLERROR(ret_code, "Error Releasing buffer_keys");
 	ret_code = clReleaseMemObject(hash_buffer);
 	HANDLE_CLERROR(ret_code, "Error Releasing buffer_out");
+	ret_code = clReleaseMemObject(tmp_buffer);
+	HANDLE_CLERROR(ret_code, "Error Releasing tmp_buffer");
 	ret_code = clReleaseMemObject(work_buffer);
 	HANDLE_CLERROR(ret_code, "Error Releasing work_out");
 
@@ -268,7 +299,7 @@ static void * get_salt(char *ciphertext) {
 	//Put the tranfered salt on salt buffer.
 	memcpy(out.salt, ciphertext, len);
 	out.length = len;
-	out.final = out.rounds - GET_MULTIPLE_OR_ZERO(out.rounds, HASH_LOOPS);
+	out.final = out.rounds % HASH_LOOPS;
 
 	return &out;
 }
@@ -346,10 +377,10 @@ static void init(struct fmt_main * self) {
 	build_kernel(task);
 
 	//Initialize openCL tuning (library) for this format.
-	opencl_init_auto_setup(STEP, HASH_LOOPS, ((_SPLIT_KERNEL_IN_USE) ? 7 : 3),
+	opencl_init_auto_setup(STEP, HASH_LOOPS,
 		((_SPLIT_KERNEL_IN_USE) ? split_events : NULL),
 		warn, 1, self, create_clobj, release_clobj,
-		sizeof(sha512_password), 0);
+		sizeof(uint64_t) * 9 * 8 , 0);
 
 	if (source_in_use != device_info[gpu_id])
 		fprintf(stderr, "Selected runtime id %d, source (%s)\n", source_in_use, task);
@@ -416,11 +447,11 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *_salt) {
 		for (i = 0; i < 3; i++) {
 			BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL,
 				&gws, lws, 0, NULL,
-				multi_profilingEvent[split_events[i]]),  //1, 4, 5
+				multi_profilingEvent[split_events[i]]),  //1, 5, 6
 				"failed in clEnqueueNDRangeKernel");
 		}
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], final_kernel, 1, NULL,
-			&gws, lws, 0, NULL, multi_profilingEvent[6]),
+			&gws, lws, 0, NULL, multi_profilingEvent[4]),
 			"failed in clEnqueueNDRangeKernel II");
 	} else
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL,
