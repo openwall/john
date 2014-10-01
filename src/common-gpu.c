@@ -40,6 +40,9 @@
 /* These are shared between OpenCL and CUDA */
 int gpu_id;
 int gpu_device_list[MAX_GPU_DEVICES];
+hw_bus gpu_device_bus[MAX_GPU_DEVICES];
+
+static int amd = 0;
 
 void *nvml_lib;
 NVMLINIT nvmlInit = NULL;
@@ -50,6 +53,8 @@ NVMLDEVICEGETFANSPEED nvmlDeviceGetFanSpeed = NULL;
 NVMLDEVICEGETUTILIZATIONRATES nvmlDeviceGetUtilizationRates = NULL;
 NVMLDEVICEGETPCIINFO nvmlDeviceGetPciInfo = NULL;
 NVMLDEVICEGETNAME nvmlDeviceGetName = NULL;
+NVMLDEVICEGETHANDLEBYPCIBUSID nvmlDeviceGetHandleByPciBusId = NULL;
+NVMLDEVICEGETINDEX nvmlDeviceGetIndex = NULL;
 
 void *adl_lib;
 
@@ -119,6 +124,8 @@ void nvidia_probe(void)
 	nvmlDeviceGetUtilizationRates = (NVMLDEVICEGETUTILIZATIONRATES) dlsym(nvml_lib, "nvmlDeviceGetUtilizationRates");
 	nvmlDeviceGetPciInfo = (NVMLDEVICEGETPCIINFO) dlsym(nvml_lib, "nvmlDeviceGetPciInfo");
 	nvmlDeviceGetName = (NVMLDEVICEGETNAME) dlsym(nvml_lib, "nvmlDeviceGetName");
+	nvmlDeviceGetHandleByPciBusId = (NVMLDEVICEGETHANDLEBYPCIBUSID) dlsym(nvml_lib, "nvmlDeviceGetHandleByPciBusId");
+	nvmlDeviceGetIndex = (NVMLDEVICEGETINDEX) dlsym(nvml_lib, "nvmlDeviceGetIndex");
 	//nvmlUnitGetCount = (NVMLUNITGETCOUNT) dlsym(nvml_lib, "nvmlUnitGetCount");
 	nvmlInit();
 #endif
@@ -134,7 +141,6 @@ void amd_probe(void)
 	int iOverdriveEnabled = 0;
 	int iOverdriveVersion = 0;
 	char *env;
-	int amd = 0;
 
 	if (adl_lib)
 		return;
@@ -196,8 +202,17 @@ void amd_probe(void)
 		if (adapterActive) {
 			int adl_id = adapterInfo.iAdapterIndex;
 
-			amd2adl[amd++] = adl_id;
+			amd2adl[amd] = adl_id;
 			adl2od[adl_id] = 0;
+			gpu_device_bus[amd].bus = adapterInfo.iBusNumber;
+			gpu_device_bus[amd].device = adapterInfo.iDeviceNumber;
+			gpu_device_bus[amd].function = adapterInfo.iFunctionNumber;
+
+			memset(gpu_device_bus[amd].busId, '\0', sizeof(gpu_device_bus[amd].busId));
+			sprintf(gpu_device_bus[amd].busId, "%02x:%02x.%x", gpu_device_bus[amd].bus,
+				gpu_device_bus[amd].device,gpu_device_bus[amd].function);
+
+			amd++;
 
 			if (ADL_Overdrive_Caps(adl_id, &iOverdriveSupported, &iOverdriveEnabled, &iOverdriveVersion) != ADL_OK) {
 				//printf("Can't get Overdrive capabilities\n");
@@ -354,7 +369,7 @@ static void get_temp_od6(int adl_id, int *temp, int *fanspeed, int *util)
 void amd_get_temp(int amd_id, int *temp, int *fanspeed, int *util)
 {
 #ifdef __linux__
-	int adl_id = amd2adl[amd_id];
+	int adl_id = amd_id;
 
 	if (adl2od[adl_id] == 5) {
 		get_temp_od5(adl_id, temp, fanspeed, util);
@@ -363,6 +378,38 @@ void amd_get_temp(int amd_id, int *temp, int *fanspeed, int *util)
 	} else
 #endif
 		*temp = *fanspeed = *util = -1;
+}
+
+int id2nvml(const hw_bus busInfo) {
+#ifdef __linux__
+	nvmlDevice_t dev;
+
+	if (nvmlDeviceGetHandleByPciBusId &&
+	    nvmlDeviceGetHandleByPciBusId(busInfo.busId, &dev) == NVML_SUCCESS) {
+		unsigned int id_NVML;
+
+		if (nvmlDeviceGetIndex(dev, &id_NVML) == NVML_SUCCESS)
+			return id_NVML;
+	}
+#endif
+	return -1;
+}
+
+int id2adl(const hw_bus busInfo) {
+#ifdef __linux__
+	int hardware_id = 0;
+
+	while (hardware_id < amd) {
+
+		if (gpu_device_bus[hardware_id].bus == busInfo.bus &&
+		    gpu_device_bus[hardware_id].device == busInfo.device &&
+		    gpu_device_bus[hardware_id].function == busInfo.function)
+			return amd2adl[hardware_id];
+
+		hardware_id++;
+	}
+#endif
+	return -1;
 }
 
 #endif /* HAVE_ */

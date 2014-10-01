@@ -51,7 +51,7 @@ static cl_mem pinned_saved_keys, pinned_partial_hashes;
 static cl_kernel prepare_kernel, final_kernel;
 
 static int new_keys, source_in_use;
-static int split_events[3] = { 1, 4, 5 };
+static int split_events[3] = { 1, 5, 6 };
 
 static int crypt_all(int *pcount, struct db_salt *_salt);
 static int crypt_all_benchmark(int *pcount, struct db_salt *_salt);
@@ -102,10 +102,11 @@ static size_t get_task_max_size(){
 
 static size_t get_default_workgroup(){
 
-	if (cpu(device_info[gpu_id]))
-		return 1;
+    	if (cpu(device_info[gpu_id]))
+		return get_platform_vendor_id(platform_id) == DEV_INTEL ?
+			8 : 1;
 	else
-		return 128;
+		return 0;
 }
 
 /* ------- Create and destroy necessary objects ------- */
@@ -240,7 +241,7 @@ static void * get_salt(char *ciphertext) {
 	//Put the tranfered salt on salt buffer.
 	memcpy(out.salt, ciphertext, len);
 	out.length = len;
-	out.final = out.rounds - GET_MULTIPLE_OR_ZERO(out.rounds, HASH_LOOPS);
+	out.final = out.rounds % HASH_LOOPS;
 
 	return &out;
 }
@@ -316,7 +317,7 @@ static void init(struct fmt_main * self) {
 	build_kernel(task);
 
 	//Initialize openCL tuning (library) for this format.
-	opencl_init_auto_setup(SEED, HASH_LOOPS, ((_SPLIT_KERNEL_IN_USE) ? 7 : 3),
+	opencl_init_auto_setup(SEED, HASH_LOOPS,
 		((_SPLIT_KERNEL_IN_USE) ? split_events : NULL),
 		warn, 1, self, create_clobj, release_clobj,
 		sizeof(sha256_password), 0);
@@ -387,11 +388,11 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *_salt)
 		for (i = 0; i < 3; i++) {
 			BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL,
 				&gws, lws, 0, NULL,
-				multi_profilingEvent[split_events[i]]),  //1 ,4 ,5
+				multi_profilingEvent[split_events[i]]),  //1, 5, 6
 				"failed in clEnqueueNDRangeKernel");
 		}
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], final_kernel, 1, NULL,
-			&gws, lws, 0, NULL, multi_profilingEvent[6]),
+			&gws, lws, 0, NULL, multi_profilingEvent[4]),
 			"failed in clEnqueueNDRangeKernel II");
 	} else
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL,

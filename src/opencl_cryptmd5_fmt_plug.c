@@ -324,7 +324,7 @@ static void init(struct fmt_main *self)
 	opencl_get_user_preferences(OCL_CONFIG);
 
 	//Initialize openCL tuning (library) for this format.
-	opencl_init_auto_setup(SEED, 0, 3, NULL,
+	opencl_init_auto_setup(SEED, 0, NULL,
 		warn, 1, self, create_clobj, release_clobj,
 		sizeof(crypt_md5_password), 0);
 

@@ -47,10 +47,19 @@ typedef int (*ADL_OVERDRIVE6_POWERCONTROL_GET)(int iAdapterIndex, int *lpCurrent
 
 #endif
 
+typedef struct {
+	int				bus;
+	int				device;
+	int				function;
+	char				busId[100];
+} hw_bus;
+
 /* These are shared between CUDA and OpenCL */
 #define MAX_GPU_DEVICES         128
 extern int gpu_id;
 extern int gpu_device_list[MAX_GPU_DEVICES];
+
+extern hw_bus gpu_device_bus[MAX_GPU_DEVICES];
 
 #define DEGC "\xc2\xb0" "C" // UTF-8 degree sign, Celsius
 
@@ -91,12 +100,14 @@ typedef enum nvmlTemperatureSensors_enum {
 
 typedef nvmlReturn_t ( *NVMLINIT ) ();
 typedef nvmlReturn_t ( *NVMLSHUTDOWN ) ();
-typedef nvmlReturn_t ( *NVMLDEVICEGETHANDLEBYINDEX ) (unsigned int, nvmlDevice_t*);
+typedef nvmlReturn_t ( *NVMLDEVICEGETHANDLEBYINDEX ) (unsigned int, nvmlDevice_t *);
 typedef nvmlReturn_t ( *NVMLDEVICEGETTEMPERATURE )( nvmlDevice_t, int, unsigned int *);
 typedef nvmlReturn_t ( *NVMLDEVICEGETFANSPEED ) (nvmlDevice_t, unsigned int *);
 typedef nvmlReturn_t ( *NVMLDEVICEGETUTILIZATIONRATES ) (nvmlDevice_t, nvmlUtilization_t *);
 typedef nvmlReturn_t ( *NVMLDEVICEGETPCIINFO ) (nvmlDevice_t, nvmlPciInfo_t *);
 typedef nvmlReturn_t ( *NVMLDEVICEGETNAME ) (nvmlDevice_t, char *, unsigned int);
+typedef nvmlReturn_t ( *NVMLDEVICEGETHANDLEBYPCIBUSID ) (const char *, nvmlDevice_t *);
+typedef nvmlReturn_t ( *NVMLDEVICEGETINDEX ) (nvmlDevice_t, unsigned int *);
 
 /* Progress indicator "spinning wheel" */
 void advance_cursor(void);
@@ -122,6 +133,10 @@ extern void (*dev_get_temp[MAX_GPU_DEVICES]) (int, int *, int *, int *);
 
 /* Map OpenCL device number to ADL/NVML device number */
 extern unsigned int temp_dev_id[MAX_GPU_DEVICES];
+
+/* Map OpenCL device number to ADL/NVML device number using PCI info */
+int id2nvml(const hw_bus busInfo);
+int id2adl(const hw_bus busInfo);
 
 #endif /* defined (HAVE_CUDA) || defined (HAVE_OPENCL) */
 

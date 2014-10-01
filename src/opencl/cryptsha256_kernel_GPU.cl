@@ -179,7 +179,7 @@ inline void insert_to_buffer_final(sha256_ctx	 * ctx,
 	uint32_t * p = (uint32_t *) string;
 
 	for (uint32_t i = 0; i < len; i+=4, p++)
-		APPEND(ctx->buffer->mem_32, p[0], ctx->buflen + i);
+		APPEND_F(ctx->buffer->mem_32, p[0], ctx->buflen + i);
 
 	ctx->buflen += len;
 }
@@ -239,11 +239,7 @@ inline void ctx_update_final(sha256_ctx * ctx,
 		for (int j = 0; j < 15; j++)
 		    ctx->buffer[j].mem_32[0] = 0;
 
-		while (offset & 3) {
-			PUT(BUFFER, ctx->buflen++, (string + offset)[0]);
-			offset++;
-		}
-		insert_to_buffer_final(ctx, (string + offset), (len - offset));
+		insert_to_buffer_R(ctx, (string + offset), len - offset);
 	}
 }
 

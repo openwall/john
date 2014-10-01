@@ -21,7 +21,7 @@ inline void _memcpy(               uint32_t * dest,
         *dest++ = *src++;
 }
 
-inline uint32_t sha256_block(sha256_ctx * ctx) {
+inline uint32_t sha256_block(uint32_t * buffer, int total) {
     uint32_t a = H0;
     uint32_t b = H1;
     uint32_t c = H2;
@@ -31,12 +31,12 @@ inline uint32_t sha256_block(sha256_ctx * ctx) {
     uint32_t g = H6;
     uint32_t h = H7;
     uint32_t t;
-    uint32_t w[16];	//#define  w   ctx->buffer->mem_32
+    uint32_t w[16];	//#define  w   buffer
 
     #pragma unroll
     for (int i = 0; i < 15; i++)
-        w[i] = SWAP32(ctx->buffer[i].mem_32[0]);
-    w[15] = (uint32_t) (ctx->buflen * 8);
+        w[i] = SWAP32(buffer[i]);
+    w[15] = (uint32_t) (total * 8);
 
     /* Do the job, up to 61 iterations. */
     SHA256_SHORT()
@@ -51,44 +51,45 @@ void kernel_crypt(__global   const uint32_t  * keys_buffer,
                   __global   uint32_t        * out_buffer) {
 
     //Compute buffers (on CPU and NVIDIA, better private)
-    sha256_ctx     ctx;
+    int		    total;
+    uint32_t	    w[16];
 
     //Get the task to be done
     size_t gid = get_global_id(0);
 
     //Get position and length of informed key.
     uint32_t base = index[gid];
-    ctx.buflen = base & 63;
+    total = base & 63;
 
     //Ajust keys to it start position.
     keys_buffer += (base >> 6);
 
     //Clear the buffer.
-    CLEAR_CTX_32(0) \
-    CLEAR_CTX_32(1) \
-    CLEAR_CTX_32(2) \
-    CLEAR_CTX_32(3) \
-    CLEAR_CTX_32(4) \
-    CLEAR_CTX_32(5) \
-    CLEAR_CTX_32(6) \
-    CLEAR_CTX_32(7) \
-    CLEAR_CTX_32(8) \
-    CLEAR_CTX_32(9) \
-    CLEAR_CTX_32(10) \
-    CLEAR_CTX_32(11) \
-    CLEAR_CTX_32(12) \
-    CLEAR_CTX_32(13) \
-    CLEAR_CTX_32(14)
+    w[0] = 0;
+    w[1] = 0;
+    w[2] = 0;
+    w[3] = 0;
+    w[4] = 0;
+    w[5] = 0;
+    w[6] = 0;
+    w[7] = 0;
+    w[8] = 0;
+    w[9] = 0;
+    w[10] = 0;
+    w[11] = 0;
+    w[12] = 0;
+    w[13] = 0;
+    w[14] = 0;
 
     //Get password.
-    _memcpy(ctx.buffer->mem_32, keys_buffer, ctx.buflen);
+    _memcpy(w, keys_buffer, total);
 
     //Prepare buffer.
-    PUT(F_BUFFER, ctx.buflen, 0x80);
-    CLEAR_BUFFER_32_FAST(ctx.buffer->mem_32, ctx.buflen + 1);
+    APPEND_SINGLE(w, 0x80UL, total);
+    CLEAR_BUFFER_32_SINGLE(w, total + 1);
 
     /* Run the collected hash value through SHA512. Return parcial results */
-    out_buffer[gid] = sha256_block(&ctx);
+    out_buffer[gid] = sha256_block(w, total);
 }
 
 __kernel

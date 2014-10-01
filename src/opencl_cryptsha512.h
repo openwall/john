@@ -36,7 +36,7 @@
 #define PLAINTEXT_ARRAY         (PLAINTEXT_LENGTH / 8)
 #define BINARY_SIZE             64
 #define BINARY_ALIGN            4
-#define STEP                    512
+#define STEP                    1024
 
 #define HASH_LOOPS              (7*3*2)
 
@@ -86,8 +86,8 @@ typedef struct {
 
 #ifndef _OPENCL_COMPILER
     static const char * warn[] = {
-        "pass xfer: "  ,  ", crypt: "    ,  ", result xfer: ",
-        ", crypt: "    ,  "/"            ,  ", prepare: "    ,  ", final: "
+        "pass xfer: "  ,  ", crypt: " , ", result xfer: ",
+        ", prepare: "  ,  ", final: " , ", mean: "	 ,  "/"
 };
 #endif
 
