@@ -768,6 +768,9 @@ static void john_load_conf(void)
 		pers_opts.default_enc = pers_opts.input_enc;
 	}
 
+	if (options.flags & FLG_MASK_CHK && !options.mask &&
+	    !(options.mask = cfg_get_param("Mask", NULL, "DefaultMask")))
+		options.mask = "";
 	if (!options.custom_mask[0] &&
 	    !(options.custom_mask[0] = cfg_get_param("Mask", NULL, "1")))
 		options.custom_mask[0] = "";

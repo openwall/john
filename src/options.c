@@ -97,7 +97,7 @@ static struct opt_entry opt_list[] = {
 	{"incremental", FLG_INC_SET, FLG_CRACKING_CHK,
 		0, 0, OPT_FMT_STR_ALLOC, &options.charset},
 	{"mask", FLG_MASK_SET, FLG_CRACKING_CHK,
-		0, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.mask},
+		0, 0, OPT_FMT_STR_ALLOC, &options.mask},
 	{"1", FLG_ZERO, 0, FLG_MASK_SET, OPT_REQ_PARAM,
 		OPT_FMT_STR_ALLOC, &options.custom_mask[0]},
 	{"2", FLG_ZERO, 0, FLG_MASK_SET, OPT_REQ_PARAM,
