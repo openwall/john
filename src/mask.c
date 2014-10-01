@@ -1052,6 +1052,8 @@ void do_mask_crack(struct db_main *db, char *mask)
 
 	/* De-hexify */
 	parse_hex(mask);
+	for (i = 0; i < 4; i++)
+		parse_hex(options.custom_mask[i]);
 
 	/* Parse ranges */
 	parse_braces(mask, &parsed_mask);
