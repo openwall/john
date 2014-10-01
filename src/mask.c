@@ -90,6 +90,9 @@ static char* expand_cplhdr(char *string)
 	unsigned char *s = (unsigned char*)string;
 	char *d = out;
 
+	if (!string || !*string)
+		return string;
+
 	//fprintf(stderr, "%s(%s)\n", __FUNCTION__, string);
 	while (*s && d < &out[sizeof(out) - 2]) {
 		if (*s == '\\') {
@@ -607,6 +610,9 @@ static char* expand_plhdr(char *string, int fmt_case)
 	static char out[0x8000];
 	unsigned char *s = (unsigned char*)string;
 	char *d = out;
+
+	if (!string || !*string)
+		return string;
 
 	//fprintf(stderr, "%s(%s)\n", __FUNCTION__, string);
 	if (*s != '[')
