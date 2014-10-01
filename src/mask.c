@@ -64,6 +64,9 @@ static void parse_hex(char *string)
 	unsigned char *s = (unsigned char*)string;
 	unsigned char *d = s;
 
+	if (!string || !*string)
+		return;
+
 	while (*s)
 	if (*s == '\\' && s[1] != 'x') {
 		s++;
