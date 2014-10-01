@@ -42,8 +42,6 @@ int gpu_id;
 int gpu_device_list[MAX_GPU_DEVICES];
 hw_bus gpu_device_bus[MAX_GPU_DEVICES];
 
-static int amd = 0;
-
 void *nvml_lib;
 NVMLINIT nvmlInit = NULL;
 NVMLSHUTDOWN nvmlShutdown = NULL;
@@ -59,6 +57,7 @@ NVMLDEVICEGETINDEX nvmlDeviceGetIndex = NULL;
 void *adl_lib;
 
 #ifdef __linux__
+static int amd = 0;
 static int amd2adl[MAX_GPU_DEVICES];
 static int adl2od[MAX_GPU_DEVICES];
 
