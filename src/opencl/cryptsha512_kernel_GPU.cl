@@ -43,6 +43,23 @@ inline void init_ctx(sha512_ctx * ctx) {
     ctx->H[6] = H6;
     ctx->H[7] = H7;
 
+    ctx->buffer[0].mem_64[0] = 0;
+    ctx->buffer[1].mem_64[0] = 0;
+    ctx->buffer[2].mem_64[0] = 0;
+    ctx->buffer[3].mem_64[0] = 0;
+    ctx->buffer[4].mem_64[0] = 0;
+    ctx->buffer[5].mem_64[0] = 0;
+    ctx->buffer[6].mem_64[0] = 0;
+    ctx->buffer[7].mem_64[0] = 0;
+    ctx->buffer[8].mem_64[0] = 0;
+    ctx->buffer[9].mem_64[0] = 0;
+    ctx->buffer[10].mem_64[0] = 0;
+    ctx->buffer[11].mem_64[0] = 0;
+    ctx->buffer[12].mem_64[0] = 0;
+    ctx->buffer[13].mem_64[0] = 0;
+    ctx->buffer[14].mem_64[0] = 0;
+    ctx->buffer[15].mem_64[0] = 0;
+
     ctx->total = 0;
     ctx->buflen = 0;
 }
@@ -78,10 +95,8 @@ inline void clear_buffer(uint64_t     * destination,
 
     CLEAR_BUFFER_64(destination, len);
 
-    uint64_t * l = destination + length;
-
     while (length < limit) {
-        *l++ = 0;
+        destination[length] = 0;
         length++;
     }
 }
@@ -235,14 +250,11 @@ inline void ctx_update_G(         sha512_ctx * ctx,
 inline void ctx_append_1(sha512_ctx * ctx) {
 
     uint32_t length;
-    PUT(BUFFER, ctx->buflen, 0x80);
-
+    APPEND_SINGLE(ctx->buffer->mem_64, 0x80UL, ctx->buflen);
     CLEAR_BUFFER_64(ctx->buffer->mem_64, ctx->buflen + 1);
 
-    uint64_t * l = ctx->buffer->mem_64 + length;
-
     while (length < 16) {
-        *l++ = 0;
+        ctx->buffer->mem_64[length] = 0;
         length++;
     }
 }
@@ -277,7 +289,7 @@ inline void sha512_digest(sha512_ctx * ctx,
         clear_ctx_buffer(ctx);
 
         if (moved) //append 1,the rest is already clean
-            PUT(BUFFER, 0, 0x80);
+            ctx->buffer[0].mem_64[0] = 0x80UL;
         ctx_add_length(ctx);
     }
     sha512_block(ctx);
@@ -300,7 +312,6 @@ inline void sha512_prepare(__global   sha512_salt     * salt_data,
 #define p_sequence  fast_buffers->p_sequence
 
     init_ctx(ctx);
-    clear_ctx_buffer(ctx);
 
     ctx_update_G(ctx, pass, passlen);
     ctx_update_G(ctx, salt, saltlen);
@@ -308,7 +319,6 @@ inline void sha512_prepare(__global   sha512_salt     * salt_data,
 
     sha512_digest(ctx, alt_result->mem_64, BUFFER_ARRAY);
     init_ctx(ctx);
-    clear_ctx_buffer(ctx);
 
     ctx_update_G(ctx, pass, passlen);
     ctx_update_G(ctx, salt, saltlen);
@@ -323,14 +333,12 @@ inline void sha512_prepare(__global   sha512_salt     * salt_data,
     }
     sha512_digest(ctx, alt_result->mem_64, BUFFER_ARRAY);
     init_ctx(ctx);
-    clear_ctx_buffer(ctx);
 
     for (uint32_t i = 0; i < passlen; i++)
         ctx_update_G(ctx, pass, passlen);
 
     sha512_digest(ctx, p_sequence->mem_64, PLAINTEXT_ARRAY);
     init_ctx(ctx);
-    clear_ctx_buffer(ctx);
 
     /* For every character in the password add the entire password. */
     for (uint32_t i = 0; i < 16U + alt_result->mem_08[0]; i++)
