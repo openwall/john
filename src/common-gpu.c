@@ -381,6 +381,7 @@ void amd_get_temp(int amd_id, int *temp, int *fanspeed, int *util)
 }
 
 int id2nvml(const hw_bus busInfo) {
+#ifdef __linux__
 	nvmlDevice_t dev;
 
 	if (nvmlDeviceGetHandleByPciBusId &&
@@ -390,11 +391,12 @@ int id2nvml(const hw_bus busInfo) {
 		if (nvmlDeviceGetIndex(dev, &id_NVML) == NVML_SUCCESS)
 			return id_NVML;
 	}
+#endif
 	return -1;
 }
 
 int id2adl(const hw_bus busInfo) {
-
+#ifdef __linux__
 	int hardware_id = 0;
 
 	while (hardware_id < amd) {
@@ -406,6 +408,7 @@ int id2adl(const hw_bus busInfo) {
 
 		hardware_id++;
 	}
+#endif
 	return -1;
 }
 
