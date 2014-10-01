@@ -57,6 +57,24 @@ static unsigned int seq, rec_seq;
 #define load_qtn(i) \
 	parsed_mask->stack_qtn[i]
 
+/* Converts \xHH notation to characters. The original buffer is modified -
+   we are guaranteed the new string is shorter or same length */
+static void parse_hex(char *string)
+{
+	unsigned char *s = (unsigned char*)string;
+	unsigned char *d = s;
+
+	while (*s)
+	if (*s == '\\' && s[1] == 'x' &&
+	    atoi16[s[2]] != 0x7f && atoi16[s[3]] != 0x7f) {
+		*d++ = (atoi16[s[2]] << 4) + atoi16[s[3]];
+		s += 4;
+	} else
+		*d++ = *s++;
+
+	*d = 0;
+}
+
 /*
  * valid braces:
  * [abcd], [[[[[abcde], []]abcde]]], [[[ab]cdefr]]
@@ -234,19 +252,12 @@ static void init_cpu_mask(char *mask, parsed_ctx *parsed_mask,
 
 			for (j = load_op(op_ctr) + 1; j < load_cl(cl_ctr);) {
 				int a , b;
-				if (mask[j] == '\\' &&
-				    j + 8 < load_cl(cl_ctr) &&
-				    sscanf(mask + j, "\\x%02x-\\x%02x", &a, &b)
-				    == 2) {
+				if (mask[j] == '-' &&
+				    j + 1 < load_cl(cl_ctr) &&
+				    j - 1 > load_op(op_ctr)) {
 					int x;
-					fill_range();
-					j = j + 8;
-				}
-				else if (mask[j] == '-' &&
-					 j + 1 < load_cl(cl_ctr) &&
-					 j - 1 > load_op(op_ctr)) {
-					int x;
-		/* Remove the character mask[j-1] added in previous iteration */
+
+/* Remove the character mask[j-1] added in previous iteration */
 					count(i)--;
 
 					a = mask[j - 1];
@@ -298,8 +309,8 @@ static void init_cpu_mask(char *mask, parsed_ctx *parsed_mask,
 				if (fmt_case)
 					add_range(0x20, 0x7e);
 				else {
-					add_range(0x20, 0x60);
-					add_range(0x7b, 0x7e);
+					add_range(0x20, 0x40);
+					add_range(0x5b, 0x7e);
 				}
 				break;
 			case 'l': /* lower-case letters */
@@ -575,15 +586,16 @@ static void init_cpu_mask(char *mask, parsed_ctx *parsed_mask,
 				if (fmt_case)
 					add_range(0x20, 0x7e);
 				else {
-					add_range(0x20, 0x60);
-					add_range(0x7b, 0x7e);
+					add_range(0x20, 0x40);
+					add_range(0x5b, 0x7e);
 				}
 				switch (pers_opts.internal_enc) {
 				case CP437:
 					if (fmt_case)
 						add_string(CHARS_ALPHA_CP437);
 					else
-						add_string(CHARS_UPPER_CP437);
+						add_string(CHARS_LOWER_CP437
+							   CHARS_LOW_ONLY_CP437);
 					add_string(CHARS_DIGITS_CP437
 					           CHARS_PUNCTUATION_CP437
 					           CHARS_SPECIALS_CP437
@@ -593,7 +605,8 @@ static void init_cpu_mask(char *mask, parsed_ctx *parsed_mask,
 					if (fmt_case)
 						add_string(CHARS_ALPHA_CP737);
 					else
-						add_string(CHARS_UPPER_CP737);
+						add_string(CHARS_LOWER_CP737
+							   CHARS_LOW_ONLY_CP737);
 					add_string(CHARS_DIGITS_CP737
 					           CHARS_PUNCTUATION_CP737
 					           CHARS_SPECIALS_CP737
@@ -603,7 +616,8 @@ static void init_cpu_mask(char *mask, parsed_ctx *parsed_mask,
 					if (fmt_case)
 						add_string(CHARS_ALPHA_CP850);
 					else
-						add_string(CHARS_UPPER_CP850);
+						add_string(CHARS_LOWER_CP850
+							   CHARS_LOW_ONLY_CP850);
 					add_string(CHARS_DIGITS_CP850
 					           CHARS_PUNCTUATION_CP850
 					           CHARS_SPECIALS_CP850
@@ -613,7 +627,8 @@ static void init_cpu_mask(char *mask, parsed_ctx *parsed_mask,
 					if (fmt_case)
 						add_string(CHARS_ALPHA_CP852);
 					else
-						add_string(CHARS_UPPER_CP852);
+						add_string(CHARS_LOWER_CP852
+							   CHARS_LOW_ONLY_CP852);
 					add_string(CHARS_DIGITS_CP852
 					           CHARS_PUNCTUATION_CP852
 					           CHARS_SPECIALS_CP852
@@ -623,7 +638,8 @@ static void init_cpu_mask(char *mask, parsed_ctx *parsed_mask,
 					if (fmt_case)
 						add_string(CHARS_ALPHA_CP858);
 					else
-						add_string(CHARS_UPPER_CP858);
+						add_string(CHARS_LOWER_CP858
+							   CHARS_LOW_ONLY_CP858);
 					add_string(CHARS_DIGITS_CP858
 					           CHARS_PUNCTUATION_CP858
 					           CHARS_SPECIALS_CP858
@@ -633,7 +649,8 @@ static void init_cpu_mask(char *mask, parsed_ctx *parsed_mask,
 					if (fmt_case)
 						add_string(CHARS_ALPHA_CP866);
 					else
-						add_string(CHARS_UPPER_CP866);
+						add_string(CHARS_LOWER_CP866
+							   CHARS_LOW_ONLY_CP866);
 					add_string(CHARS_DIGITS_CP866
 					           CHARS_PUNCTUATION_CP866
 					           CHARS_SPECIALS_CP866
@@ -643,7 +660,8 @@ static void init_cpu_mask(char *mask, parsed_ctx *parsed_mask,
 					if (fmt_case)
 						add_string(CHARS_ALPHA_CP1250);
 					else
-						add_string(CHARS_UPPER_CP1250);
+						add_string(CHARS_LOWER_CP1250
+							   CHARS_LOW_ONLY_CP1250);
 					add_string(CHARS_DIGITS_CP1250
 					           CHARS_PUNCTUATION_CP1250
 					           CHARS_SPECIALS_CP1250
@@ -653,7 +671,8 @@ static void init_cpu_mask(char *mask, parsed_ctx *parsed_mask,
 					if (fmt_case)
 						add_string(CHARS_ALPHA_CP1251);
 					else
-						add_string(CHARS_UPPER_CP1251);
+						add_string(CHARS_LOWER_CP1251
+							   CHARS_LOW_ONLY_CP1251);
 					add_string(CHARS_DIGITS_CP1251
 					           CHARS_PUNCTUATION_CP1251
 					           CHARS_SPECIALS_CP1251
@@ -663,7 +682,8 @@ static void init_cpu_mask(char *mask, parsed_ctx *parsed_mask,
 					if (fmt_case)
 						add_string(CHARS_ALPHA_CP1252);
 					else
-						add_string(CHARS_UPPER_CP1252);
+						add_string(CHARS_LOWER_CP1252
+							   CHARS_LOW_ONLY_CP1252);
 					add_string(CHARS_DIGITS_CP1252
 					           CHARS_PUNCTUATION_CP1252
 					           CHARS_SPECIALS_CP1252
@@ -673,7 +693,8 @@ static void init_cpu_mask(char *mask, parsed_ctx *parsed_mask,
 					if (fmt_case)
 						add_string(CHARS_ALPHA_CP1253);
 					else
-						add_string(CHARS_UPPER_CP1253);
+						add_string(CHARS_LOWER_CP1253
+							   CHARS_LOW_ONLY_CP1253);
 					add_string(CHARS_DIGITS_CP1253
 					           CHARS_PUNCTUATION_CP1253
 					           CHARS_SPECIALS_CP1253
@@ -683,7 +704,8 @@ static void init_cpu_mask(char *mask, parsed_ctx *parsed_mask,
 					if (fmt_case)
 						add_string(CHARS_ALPHA_ISO_8859_1);
 					else
-						add_string(CHARS_UPPER_ISO_8859_1);
+						add_string(CHARS_LOWER_ISO_8859_1
+							   CHARS_LOW_ONLY_ISO_8859_1);
 					add_string(CHARS_DIGITS_ISO_8859_1
 					           CHARS_PUNCTUATION_ISO_8859_1
 					           CHARS_SPECIALS_ISO_8859_1
@@ -693,7 +715,8 @@ static void init_cpu_mask(char *mask, parsed_ctx *parsed_mask,
 					if (fmt_case)
 						add_string(CHARS_ALPHA_ISO_8859_2);
 					else
-						add_string(CHARS_UPPER_ISO_8859_2);
+						add_string(CHARS_LOWER_ISO_8859_2
+							   CHARS_LOW_ONLY_ISO_8859_2);
 					add_string(CHARS_DIGITS_ISO_8859_2
 					           CHARS_PUNCTUATION_ISO_8859_2
 					           CHARS_SPECIALS_ISO_8859_2
@@ -703,7 +726,8 @@ static void init_cpu_mask(char *mask, parsed_ctx *parsed_mask,
 					if (fmt_case)
 						add_string(CHARS_ALPHA_ISO_8859_7);
 					else
-						add_string(CHARS_UPPER_ISO_8859_7);
+						add_string(CHARS_LOWER_ISO_8859_7
+							   CHARS_LOW_ONLY_ISO_8859_7);
 					add_string(CHARS_DIGITS_ISO_8859_7
 					           CHARS_PUNCTUATION_ISO_8859_7
 					           CHARS_SPECIALS_ISO_8859_7
@@ -713,7 +737,8 @@ static void init_cpu_mask(char *mask, parsed_ctx *parsed_mask,
 					if (fmt_case)
 						add_string(CHARS_ALPHA_ISO_8859_15);
 					else
-						add_string(CHARS_UPPER_ISO_8859_15);
+						add_string(CHARS_LOWER_ISO_8859_15
+							   CHARS_LOW_ONLY_ISO_8859_15);
 					add_string(CHARS_DIGITS_ISO_8859_15
 					           CHARS_PUNCTUATION_ISO_8859_15
 					           CHARS_SPECIALS_ISO_8859_15
@@ -723,7 +748,8 @@ static void init_cpu_mask(char *mask, parsed_ctx *parsed_mask,
 					if (fmt_case)
 						add_string(CHARS_ALPHA_KOI8_R);
 					else
-						add_string(CHARS_UPPER_KOI8_R);
+						add_string(CHARS_LOWER_KOI8_R
+							   CHARS_LOW_ONLY_KOI8_R);
 					add_string(CHARS_DIGITS_KOI8_R
 					           CHARS_PUNCTUATION_KOI8_R
 					           CHARS_SPECIALS_KOI8_R
@@ -1008,7 +1034,17 @@ void do_mask_crack(struct db_main *db, char *mask)
 
 	log_event("Proceeding with mask mode");
 
+	/* Handle command-line arguments given in UTF-8 */
+	if (valid_utf8((UTF8*)mask) > 1 && pers_opts.input_enc == UTF_8 &&
+	    pers_opts.internal_enc != UTF_8)
+		utf8_to_cp_r(mask, mask, strlen(mask));
+
+	/* De-hexify */
+	parse_hex(mask);
+
+	/* Parse ranges */
 	parse_braces(mask, &parsed_mask);
+
 	if (parsed_mask.parse_ok)
 		parse_qtn(mask, &parsed_mask);
 	else {

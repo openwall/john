@@ -31,6 +31,7 @@ john rule to start with a period, so at this time, this is not a problem.
 -u	reject this rule unless the --encoding=utf8 flag is used
 -U	reject this rule if the --encoding=utf8 flag is used
 ->N	reject this rule unless length N or longer is supported
+-<N     reject this rule unless length N or shorter is supported (--min-len)
 
 
 	Numeric constants and variables.
@@ -241,7 +242,7 @@ example, if we follow our "vil2" somewhere later in the same rule with
 the time of processing of the "vil2" command earlier in the rule.
 
 
-	Character class commands.
+	Character class and similar commands.
 
 sXY	replace all characters X in the word with Y
 s?CY	replace all characters of class C in the word with Y
@@ -259,6 +260,12 @@ s?CY	replace all characters of class C in the word with Y
 )?C	reject the word unless its last character is in class C
 %NX	reject the word unless it contains at least N instances of X
 %N?C	reject the word unless it contains at least N characters of class C
+U       reject the word unless it is valid UTF-8 (use with -u rule reject)
+
+Note that U will accept plain ASCII. It will only reject words that contain
+8-bit characters but can't be parsed as UTF-8. It can be used to reject
+invalid input words, or to reject invalid output words after applying other
+commands.
 
 
 	Extra "single crack" mode commands.

@@ -1,6 +1,9 @@
 /* KeePass cracker patch for JtR. Hacked together during May of
  * 2012 by Dhiru Kholia <dhiru.kholia at gmail.com>.
  *
+ * Support for cracking KeePass databases, which use key file(s), was added by
+ * m3g9tr0n (Spiros Fraganastasis) and Dhiru Kholia in September of 2014.
+ *
  * This software is Copyright (c) 2012, Dhiru Kholia <dhiru.kholia at gmail.com>,
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification,
@@ -26,6 +29,7 @@ john_register_one(&fmt_KeePass);
 #include "options.h"
 #include "base64.h"
 #include "aes/aes.h"
+#include "twofish.h"
 #ifdef _OPENMP
 #include <omp.h>
 #define OMP_SCALE               1
@@ -64,14 +68,18 @@ static struct custom_salt {
 	int version;
 	long long offset;
 	int isinline;
+	int keyfilesize;
+	int have_keyfile;
 	int contentsize;
 	unsigned char contents[LINE_BUFFER_SIZE];
 	unsigned char final_randomseed[32];
 	unsigned char enc_iv[16];
+	unsigned char keyfile[32];
 	unsigned char contents_hash[32];
 	unsigned char transf_randomseed[32];
 	unsigned char expected_bytes[32];
 	uint32_t key_transf_rounds;
+	int algorithm; // 1 for Twofish
 } *cur_salt;
 
 static void transform_key(char *masterkey, struct custom_salt *csp, unsigned char *final_key)
@@ -79,6 +87,7 @@ static void transform_key(char *masterkey, struct custom_salt *csp, unsigned cha
         // First, hash the masterkey
 	SHA256_CTX ctx;
 	unsigned char hash[32];
+	unsigned char temphash[32];
 	int i;
 	AES_KEY akey;
 	SHA256_Init(&ctx);
@@ -93,6 +102,28 @@ static void transform_key(char *masterkey, struct custom_salt *csp, unsigned cha
 	if(AES_set_encrypt_key(csp->transf_randomseed, 256, &akey) < 0) {
 		fprintf(stderr, "AES_set_encrypt_key failed!\n");
 	}
+	/* keyfile handling (only tested for KeePass 1.x files) */
+	if (cur_salt->have_keyfile) {
+		SHA256_CTX composite_ctx;  // for keyfile handling
+		SHA256_CTX keyfile_ctx;
+
+		SHA256_Init(&composite_ctx);
+		SHA256_Update(&composite_ctx, hash, 32);
+
+		if (cur_salt->keyfilesize != 32 && cur_salt->keyfilesize != 64) {
+			SHA256_Init(&keyfile_ctx);
+			SHA256_Update(&keyfile_ctx, cur_salt->keyfile, cur_salt->keyfilesize);
+			SHA256_Final(temphash, &keyfile_ctx);
+		} else if(cur_salt->keyfilesize == 32) {
+			memcpy(temphash, cur_salt->keyfile, 32);
+		} else if (cur_salt->keyfilesize == 64) { /* do hex decoding */
+			abort();  // TODO
+		}
+
+		SHA256_Update(&composite_ctx, temphash, 32);
+		SHA256_Final(hash, &composite_ctx);
+	}
+
         // Next, encrypt the created hash
 	i = csp->key_transf_rounds >> 2;
 	while (i--) {
@@ -141,6 +172,8 @@ static void init(struct fmt_main *self)
 	any_cracked = 0;
 	cracked_size = sizeof(*cracked) * self->params.max_keys_per_crypt;
 	cracked = mem_calloc_tiny(cracked_size, MEM_ALIGN_WORD);
+
+	Twofish_initialise();
 }
 
 static int ishex(char *q)
@@ -255,7 +288,8 @@ static void *get_salt(char *ciphertext)
 		p = strtok(NULL, "*");
 		cs.key_transf_rounds = atoi(p);
 		p = strtok(NULL, "*");
-		cs.offset = atoll(p);
+		// cs.offset = atoll(p); // Twofish handling hack!
+		cs.algorithm = atoll(p);
 		p = strtok(NULL, "*");
 		for (i = 0; i < 16; i++)
 			cs.final_randomseed[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
@@ -282,12 +316,23 @@ static void *get_salt(char *ciphertext)
 				cs.contents[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 					+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 		}
+		p = strtok(NULL, "*");
+		if (p) { /* keyfile handling */
+			p = strtok(NULL, "*");
+			cs.keyfilesize = atoi(p);
+			p = strtok(NULL, "*");
+			for (i = 0; i < cs.keyfilesize; i++)
+				cs.keyfile[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
+					+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
+			cs.have_keyfile = 1;
+		}
 	}
 	else {
 		p = strtok(NULL, "*");
 		cs.key_transf_rounds = atoi(p);
 		p = strtok(NULL, "*");
-		cs.offset = atoll(p);
+		// cs.offset = atoll(p);  // Twofish handling hack
+		cs.algorithm = atoll(p);
 		p = strtok(NULL, "*");
 		for (i = 0; i < 32; i++)
 			cs.final_randomseed[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
@@ -310,6 +355,10 @@ static void *get_salt(char *ciphertext)
 				+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	}
 	MEM_FREE(keeptr);
+
+	if (cs.algorithm != 0 && cs.algorithm != 1)  // offset hijacking!
+		cs.algorithm = 0;  // AES
+
 	return (void *)&cs;
 }
 
@@ -341,15 +390,24 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		int pad_byte;
 		int datasize;
 		AES_KEY akey;
+		Twofish_key tkey;
 
+		// derive and set decryption key
 		transform_key(saved_key[index], cur_salt, final_key);
-		/* AES decrypt cur_salt->contents with final_key */
-		memcpy(iv, cur_salt->enc_iv, 16);
-		memset(&akey, 0, sizeof(AES_KEY));
-		if(AES_set_decrypt_key(final_key, 256, &akey) < 0) {
-			fprintf(stderr, "AES_set_decrypt_key failed in crypt!\n");
+		if (cur_salt->algorithm == 0) {
+			/* AES decrypt cur_salt->contents with final_key */
+			memcpy(iv, cur_salt->enc_iv, 16);
+			memset(&akey, 0, sizeof(AES_KEY));
+			if(AES_set_decrypt_key(final_key, 256, &akey) < 0) {
+				fprintf(stderr, "AES_set_decrypt_key failed in crypt!\n");
+			}
+		} else if (cur_salt->algorithm == 1) {
+			memcpy(iv, cur_salt->enc_iv, 16);
+			memset(&tkey, 0, sizeof(Twofish_key));
+			Twofish_prepare_key(final_key, 32, &tkey);
 		}
-		if(cur_salt->version == 1) {
+
+		if (cur_salt->version == 1 && cur_salt->algorithm == 0) {
 			AES_cbc_encrypt(cur_salt->contents, decrypted_content, cur_salt->contentsize, &akey, iv, AES_DECRYPT);
 			pad_byte = decrypted_content[cur_salt->contentsize-1];
 			datasize = cur_salt->contentsize - pad_byte;
@@ -362,7 +420,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 				any_cracked = cracked[index] = 1;
 		}
-		else {
+		else if (cur_salt->version == 2 && cur_salt->algorithm == 0) {
 			AES_cbc_encrypt(cur_salt->contents, decrypted_content, 32, &akey, iv, AES_DECRYPT);
 			if(!memcmp(decrypted_content, cur_salt->expected_bytes, 32))
 #ifdef _OPENMP
@@ -370,6 +428,21 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 				any_cracked = cracked[index] = 1;
 
+		}
+		else if (cur_salt->version == 1 && cur_salt->algorithm == 1) { /* KeePass 1.x with Twofish */
+			int crypto_size;
+			crypto_size = Twofish_Decrypt(&tkey, cur_salt->contents, decrypted_content, cur_salt->contentsize, iv);
+			datasize = crypto_size;  // awesome, right?
+			SHA256_Init(&ctx);
+			SHA256_Update(&ctx, decrypted_content, datasize);
+			SHA256_Final(out, &ctx);
+			if(!memcmp(out, cur_salt->contents_hash, 32))
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+				any_cracked = cracked[index] = 1;
+		} else {  // KeePass version 2 with Twofish is TODO
+			abort();
 		}
 	}
 	return count;

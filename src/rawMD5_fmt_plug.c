@@ -21,6 +21,10 @@ john_register_one(&fmt_rawMD5);
 #include "common.h"
 #include "formats.h"
 
+#if !FAST_FORMATS_OMP
+#undef _OPENMP
+#endif
+
 #ifdef _OPENMP
 #ifdef MMX_COEF
 #define OMP_SCALE               1024
@@ -340,7 +344,10 @@ struct fmt_main fmt_rawMD5 = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_OMP_BAD,
+#ifdef _OPENMP
+		FMT_OMP | FMT_OMP_BAD |
+#endif
+		FMT_CASE | FMT_8_BIT,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif

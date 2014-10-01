@@ -2,7 +2,7 @@
  * of 2012 by Dhiru Kholia <dhiru.kholia at gmail.com>.
  *
  * Support for cracking new openssh key format (bcrypt pbkdf) was added by
- * m3g9tr0n (Spiros Fragnastasis) and Dhiru Kholia in September of 2014. This
+ * m3g9tr0n (Spiros Fraganastasis) and Dhiru Kholia in September of 2014. This
  * is dedicated to Raquel :-)
  *
  * Ideas borrowed from SSH2 protocol library, http://pypi.python.org/pypi/ssh

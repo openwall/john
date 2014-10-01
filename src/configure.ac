@@ -64,6 +64,7 @@ AC_ARG_WITH(endian, [AS_HELP_STRING([--with-endian=little|big],[Set endianness f
 # Define Features. OpenMP and OpenCL are defined in their respective macros.
 # We define "--disable-FEATURE" when default is "auto".
 # MPI is not "auto" because its network usage might scare people:
+AC_ARG_ENABLE([openmp-for-fast-formats], [AC_HELP_STRING([--disable-openmp-for-fast-formats], [Disable OpenMP for fast formats])], [ompfast=$enableval], [ompfast=yes])
 AC_ARG_ENABLE([mpi], [AC_HELP_STRING([--enable-mpi], [Use OpenMPI])], [enable_mpi=$enableval], [enable_mpi=no])
 AC_ARG_ENABLE([rexgen], [AC_HELP_STRING([--enable-rexgen], [Use rexgen library if present])], [enable_rexgen=$enableval], [enable_rexgen=auto])
 AC_ARG_ENABLE([cuda], [AC_HELP_STRING([--disable-cuda], [Do not use CUDA])], [enable_cuda=$enableval], [enable_cuda=auto])
@@ -440,6 +441,10 @@ else
   AC_MSG_NOTICE([rexgen check not enabled])
 fi
 
+if test "x$ompfast" = xyes ; then
+   AC_DEFINE([FAST_FORMATS_OMP], 1, ["Enable if you want OpenMP for fast formats"])
+fi
+
 LIBS="$BACKUP_LIBS"
 # in makefile, we need to know if building extra pcap items.
 if test "x$enable_pcap" != xno ; then
@@ -741,7 +746,11 @@ JTR_JOHN_LOCAL_CONF
 # options needed, we might end up listing it as disabled
 if test "x$ac_cv_prog_c_openmp" != x -a  "x$enable_openmp" != xno -a dnl
         "x$ac_cv_prog_c_openmp" != xunsupported ; then
-   using_omp=yes
+   if test "x$ompfast" = "xyes"; then
+      using_omp=yes
+   else
+      using_omp="yes (not for fast formats)"
+   fi
 else
    using_omp=no
 fi

@@ -750,6 +750,7 @@ with_icc_asm
 with_openssl
 with_commoncrypto
 with_endian
+enable_openmp_for_fast_formats
 enable_mpi
 enable_rexgen
 enable_cuda
@@ -1400,6 +1401,8 @@ Optional Features:
   --disable-option-checking  ignore unrecognized --enable/--with options
   --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
+  --disable-openmp-for-fast-formats
+                          Disable OpenMP for fast formats
   --enable-mpi            Use OpenMPI
   --enable-rexgen         Use rexgen library if present
   --disable-cuda          Do not use CUDA
@@ -3493,6 +3496,13 @@ fi
 # Define Features. OpenMP and OpenCL are defined in their respective macros.
 # We define "--disable-FEATURE" when default is "auto".
 # MPI is not "auto" because its network usage might scare people:
+# Check whether --enable-openmp-for-fast-formats was given.
+if test "${enable_openmp_for_fast_formats+set}" = set; then :
+  enableval=$enable_openmp_for_fast_formats; ompfast=$enableval
+else
+  ompfast=yes
+fi
+
 # Check whether --enable-mpi was given.
 if test "${enable_mpi+set}" = set; then :
   enableval=$enable_mpi; enable_mpi=$enableval
@@ -9850,6 +9860,12 @@ else
 $as_echo "$as_me: rexgen check not enabled" >&6;}
 fi
 
+if test "x$ompfast" = xyes ; then
+
+$as_echo "#define FAST_FORMATS_OMP 1" >>confdefs.h
+
+fi
+
 LIBS="$BACKUP_LIBS"
 # in makefile, we need to know if building extra pcap items.
 if test "x$enable_pcap" != xno ; then
@@ -14861,7 +14877,11 @@ fi
 # Hard to get proper info from AC_OPENMP. If it's enabled with no special
 # options needed, we might end up listing it as disabled
 if test "x$ac_cv_prog_c_openmp" != x -a  "x$enable_openmp" != xno -a         "x$ac_cv_prog_c_openmp" != xunsupported ; then
-   using_omp=yes
+   if test "x$ompfast" = "xyes"; then
+      using_omp=yes
+   else
+      using_omp="yes (not for fast formats)"
+   fi
 else
    using_omp=no
 fi

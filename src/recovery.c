@@ -195,7 +195,7 @@ void rec_save(void)
 		if (!strncmp(*opt, "--encoding", 10) ||
 			!strncmp(*opt, "--input-encoding", 16))
 			add_enc = 0;
-		else if (!strncmp(*opt, "--internal-encoding", 23) ||
+		else if (!strncmp(*opt, "--internal-encoding", 19) ||
 		         !strncmp(*opt, "--target-encoding", 17))
 			add_2nd_enc = 0;
 		else if (!strncmp(*opt, "--mkv-stats", 11))

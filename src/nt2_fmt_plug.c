@@ -51,6 +51,10 @@ john_register_one(&fmt_NT2);
 #define SALT_SIZE			0
 #define SALT_ALIGN			1
 
+#if !FAST_FORMATS_OMP
+#undef _OPENMP
+#endif
+
 #ifdef MMX_COEF
 #if defined(_OPENMP)
 #ifdef __XOP__
@@ -715,7 +719,7 @@ struct fmt_main fmt_NT2 = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-#if (BLOCK_LOOPS > 1) && defined(MD4_SSE_PARA)
+#if defined(_OPENMP) && (BLOCK_LOOPS > 1) && defined(MD4_SSE_PARA)
 		FMT_OMP | FMT_OMP_BAD |
 #endif
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE | FMT_UTF8,
