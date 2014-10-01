@@ -258,42 +258,20 @@ inline void ctx_update_G(         sha512_ctx * ctx,
     }
 }
 
-inline void ctx_append_1(sha512_ctx * ctx) {
-
-    uint32_t length;
-    APPEND_SINGLE(ctx->buffer->mem_64, 0x80UL, ctx->buflen);
-    CLEAR_BUFFER_64(ctx->buffer->mem_64, ctx->buflen + 1);
-
-    while (length < 16) {
-        ctx->buffer->mem_64[length] = 0;
-        length++;
-    }
-}
-
-inline void ctx_add_length(sha512_ctx * ctx) {
-
-    ctx->buffer[15].mem_64[0] = SWAP64((uint64_t) (ctx->total * 8));
-}
-
-inline void finish_ctx(sha512_ctx * ctx) {
-
-    ctx_append_1(ctx);
-    ctx_add_length(ctx);
-    ctx->buflen = 0;
-}
-
 inline void sha512_digest(sha512_ctx * ctx,
                           uint64_t   * result,
                           const int size) {
 
     if (ctx->buflen <= 111) { //data+0x80+datasize fits in one 1024bit block
-        finish_ctx(ctx);
+	APPEND_SINGLE(ctx->buffer->mem_64, 0x80UL, ctx->buflen);
+	ctx->buffer[15].mem_64[0] = SWAP64((uint64_t) (ctx->total * 8));
+	ctx->buflen = 0;
 
     } else {
         bool moved = true;
 
         if (ctx->buflen < 128) { //data and 0x80 fits in one block
-            ctx_append_1(ctx);
+	    APPEND_SINGLE(ctx->buffer->mem_64, 0x80UL, ctx->buflen);
             moved = false;
         }
         sha512_block(ctx);
@@ -301,7 +279,7 @@ inline void sha512_digest(sha512_ctx * ctx,
 
         if (moved) //append 1,the rest is already clean
             ctx->buffer[0].mem_64[0] = 0x80UL;
-        ctx_add_length(ctx);
+        ctx->buffer[15].mem_64[0] = SWAP64((uint64_t) (ctx->total * 8));
     }
     sha512_block(ctx);
 
