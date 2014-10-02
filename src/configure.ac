@@ -23,6 +23,7 @@ AC_INIT([john], [1.8.0.2-bleeding-jumbo],[john-users mailing list at openwall.co
 ##  AM_INIT_AUTOMAKE([foreign subdir-objects])
 AC_CONFIG_SRCDIR([john.c])
 AC_CONFIG_HEADERS([autoconfig.h])
+AC_PREFIX_DEFAULT([../run])
 
 # Include our extra macro code
 m4_include([m4/pkg.m4])

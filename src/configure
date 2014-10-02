@@ -586,6 +586,7 @@ PACKAGE_BUGREPORT='john-users mailing list at openwall.com'
 PACKAGE_URL=''
 
 ac_unique_file="john.c"
+ac_default_prefix=../run
 # Factoring default headers for most tests.
 ac_includes_default="\
 #include <stdio.h>
@@ -2616,6 +2617,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 ##  AM_INIT_AUTOMAKE([foreign subdir-objects])
 
 ac_config_headers="$ac_config_headers autoconfig.h"
+
 
 
 # Include our extra macro code
