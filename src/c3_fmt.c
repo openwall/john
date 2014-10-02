@@ -140,25 +140,55 @@ static void init(struct fmt_main *self)
 			error();
 		} else if (!strcasecmp(options.subformat, "md5crypt") ||
 		    !strcasecmp(options.subformat, "md5")) {
+			static struct fmt_tests tests[] = {
+			{"$1$12345678$aIccj83HRDBo6ux1bVx7D1", "0123456789ABCDE"},
+			{"$1$12345678$f8QoJuo0DpBRfQSD0vglc1", "12345678"},
+			{"$1$$qRPK7m23GJusamGpoGLby/", ""},
+			{NULL} };
+			self->params.tests = tests;
 			self->params.benchmark_comment = " MD5";
 			salt = "$1$dXc3I7Rw$";
 		} else if (!strcasecmp(options.subformat, "sunmd5") ||
 		    !strcasecmp(options.subformat, "sun-md5")) {
+			static struct fmt_tests tests[] = {
+			{"$md5$rounds=904$Vc3VgyFx44iS8.Yu$Scf90iLWN6O6mT9TA06NK/", "test"},
+			{"$md5$rounds=904$ZZZig8GS.S0pRNhc$dw5NMYJoxLlnFq4E.phLy.", "Don41dL33"},
+			{"$md5$rounds=904$zSuVTn567UJLv14u$q2n2ZBFwKg2tElFBIzUq/0", "J4ck!3Wood"},
+			{NULL} };
+			self->params.tests = tests;
 			self->params.benchmark_comment = " SunMD5";
 			salt = "$md5$rounds=904$Vc3VgyFx44iS8.Yu$dummy";
 		} else if ((!strcasecmp(options.subformat, "sha256crypt")) ||
 		           (!strcasecmp(options.subformat, "sha-256")) ||
 		           (!strcasecmp(options.subformat, "sha256"))) {
+			static struct fmt_tests tests[] = {
+			{"$5$LKO/Ute40T3FNF95$U0prpBQd4PloSGU0pnpM4z9wKn4vZ1.jsrzQfPqxph9", "U*U*U*U*"},
+			{"$5$LKO/Ute40T3FNF95$fdgfoJEBoMajNxCv3Ru9LyQ0xZgv0OBMQoq80LQ/Qd.", "U*U***U"},
+			{"$5$LKO/Ute40T3FNF95$8Ry82xGnnPI/6HtFYnvPBTYgOL23sdMXn8C29aO.x/A", "U*U***U*"},
+			{NULL} };
+			self->params.tests = tests;
 			self->params.benchmark_comment = " SHA-256 rounds=5000";
 			salt = "$5$LKO/Ute40T3FNF95$";
 		} else if ((!strcasecmp(options.subformat, "sha512crypt")) ||
 		           (!strcasecmp(options.subformat, "sha-512")) ||
 		           (!strcasecmp(options.subformat, "sha512"))) {
+			static struct fmt_tests tests[] = {
+			{"$6$LKO/Ute40T3FNF95$6S/6T2YuOIHY0N3XpLKABJ3soYcXD9mB7uVbtEZDj/LNscVhZoZ9DEH.sBciDrMsHOWOoASbNLTypH/5X26gN0", "U*U*U*U*"},
+			{"$6$LKO/Ute40T3FNF95$wK80cNqkiAUzFuVGxW6eFe8J.fSVI65MD5yEm8EjYMaJuDrhwe5XXpHDJpwF/kY.afsUs1LlgQAaOapVNbggZ1", "U*U***U"},
+			{"$6$LKO/Ute40T3FNF95$YS81pp1uhOHTgKLhSMtQCr2cDiUiN03Ud3gyD4ameviK1Zqz.w3oXsMgO6LrqmIEcG3hiqaUqHi/WEE2zrZqa/", "U*U***U*"},
+			{NULL} };
+			self->params.tests = tests;
 			self->params.benchmark_comment = " SHA-512 rounds=5000";
 			salt = "$6$LKO/Ute40T3FNF95$";
 		} else if ((!strcasecmp(options.subformat, "bf")) ||
 		           (!strcasecmp(options.subformat, "blowfish")) ||
 		           (!strcasecmp(options.subformat, "bcrypt"))) {
+			static struct fmt_tests tests[] = {
+			{"$2a$05$CCCCCCCCCCCCCCCCCCCCC.E5YPO9kmyuRGyh0XouQYb4YMJKvyOeW","U*U"},
+			{"$2a$05$CCCCCCCCCCCCCCCCCCCCC.VGOzA784oUp/Z0DY336zx7pLYAy0lwK","U*U*"},
+			{"$2a$05$XXXXXXXXXXXXXXXXXXXXXOAcXxm9kjPGEMsLznoKqmqw7tc8WCx4a","U*U*U"},
+			{NULL} };
+			self->params.tests = tests;
 			self->params.benchmark_comment = " BF x32";
 			salt = "$2a$05$AD6y0uWY62Xk2TXZ";
 		} else if (!strcasecmp(options.subformat, "descrypt") ||
@@ -171,6 +201,9 @@ static void init(struct fmt_main *self)
 			strcat(p, options.subformat);
 			self->params.benchmark_comment = p;
 			salt = options.subformat;
+			/* turn off many salts test, since we are not updating the */
+			/* params.tests structure data.                            */
+			self->params.benchmark_length = -1;
 		}
 		for (i = 0; i < 5; i++)
 		{

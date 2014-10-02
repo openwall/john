@@ -434,8 +434,11 @@ int benchmark_all(void)
 #endif
 
 		/* FIXME: Kludge for thin dynamics, and OpenCL formats */
+		/* c3_fmt also added, since it is a somewhat dynamic   */
+		/* format and needs init called to change the name     */
 		if ((format->params.flags & FMT_DYNAMIC) ||
-		    strstr(format->params.label, "-opencl"))
+		    strstr(format->params.label, "-opencl") ||
+			strcmp(format->params.label, "crypt")==0 )
 			fmt_init(format);
 
 #ifdef _OPENMP
