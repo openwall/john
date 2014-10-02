@@ -974,7 +974,8 @@ static void generate_keys(char *template_key, cpu_mask_context *cpu_mask_ctx,
 		}
 
 		while (1) {
-			if (options.node_count && !(*my_candidates)--) goto done;
+			if (options.node_count && !(*my_candidates)--)
+				goto done;
 			start1 = ranges(ps1).start;
 			start2 = ranges(ps2).start;
 			start3 = ranges(ps3).start;
@@ -1004,12 +1005,12 @@ static void generate_keys(char *template_key, cpu_mask_context *cpu_mask_ctx,
 				if ((++(ranges(ps).iter)) == ranges(ps).count) {
 					ranges(ps).iter = 0;
 					template_key[ranges(ps).pos + offset] =
-						ranges(ps).chars[ranges(ps).iter];
+					      ranges(ps).chars[ranges(ps).iter];
 					ps = ranges(ps).next;
 				}
 				else {
 					template_key[ranges(ps).pos + offset] =
-						ranges(ps).chars[ranges(ps).iter];
+					      ranges(ps).chars[ranges(ps).iter];
 					break;
 				}
 			}
@@ -1124,7 +1125,7 @@ static unsigned long int divide_work(cpu_mask_context *cpu_mask_ctx)
 	for (i = 0; i < cpu_mask_ctx->count; i++)
 		if ((int)(cpu_mask_ctx->active_positions[i])) {
 			skip_first_three++;
-			if(skip_first_three > 3)
+			if (skip_first_three > 3)
 				offset *= cpu_mask_ctx->ranges[i].count;
 		}
 
@@ -1148,7 +1149,7 @@ static unsigned long int divide_work(cpu_mask_context *cpu_mask_ctx)
 	for (i = 0; i < cpu_mask_ctx->count; i++)
 		if ((int)(cpu_mask_ctx->active_positions[i])) {
 			skip_first_three++;
-			if(skip_first_three > 3) {
+			if (skip_first_three > 3) {
 				cpu_mask_ctx->
 				ranges[i].iter = (offset / ctr) %
 						  cpu_mask_ctx->ranges[i].count;
@@ -1176,7 +1177,7 @@ void do_mask_crack(struct db_main *db, char *mask)
 	log_event("Proceeding with mask mode");
 
 	/* Load defaults from john.conf */
-	if (options.flags & FLG_MASK_CHK && !options.mask &&
+	if (!options.mask &&
 	    !(options.mask = cfg_get_param("Mask", NULL, "DefaultMask")))
 		options.mask = "";
 	if (!options.custom_mask[0] &&
@@ -1203,7 +1204,7 @@ void do_mask_crack(struct db_main *db, char *mask)
 			             strlen(options.custom_mask[i]));
 	}
 
-	/* De-hexify */
+	/* De-hexify mask and custom placeholders */
 	parse_hex(mask);
 	for (i = 0; i < 4; i++)
 		parse_hex(options.custom_mask[i]);
@@ -1214,11 +1215,13 @@ void do_mask_crack(struct db_main *db, char *mask)
 			str_alloc_copy(expand_plhdr(options.custom_mask[i],
 				db->format->params.flags & FMT_CASE));
 
-	/* Expand custom placeholders ?1 .. ?4 */
+	/* Finally expand custom placeholders ?1 .. ?4 */
 	mask = expand_cplhdr(mask);
 
-	/* DEBUG */
-	//fprintf(stderr, "Custom masks expanded (this is 'mask' when passed to init_cpu_mask()):\n%s\n", mask);
+#if DEBUG
+	fprintf(stderr, "Custom masks expanded (this is 'mask' when passed to "
+	        "init_cpu_mask()):\n%s\n", mask);
+#endif
 
 	/* Parse ranges */
 	parse_braces(mask, &parsed_mask);
@@ -1234,19 +1237,20 @@ void do_mask_crack(struct db_main *db, char *mask)
 	init_cpu_mask(mask, &parsed_mask, &cpu_mask_ctx, db);
 
 	/*
-	 * Warning: NULL to be raplaced by an array containing information
+	 * Warning: NULL to be replaced by an array containing information
 	 * regarding GPU portion of mask.
 	 */
 	skip_position(&cpu_mask_ctx, NULL);
 	template_key = generate_template_key(mask, &parsed_mask);
 
-	cand = 1;
-	for (i = 0; i < cpu_mask_ctx.count; i++)
-		if ((int)(cpu_mask_ctx.active_positions[i]))
-			cand *= cpu_mask_ctx.ranges[i].count;
-
-	if(options.node_count)
+	if (options.node_count)
 		cand = divide_work(&cpu_mask_ctx);
+	else {
+		cand = 1;
+		for (i = 0; i < cpu_mask_ctx.count; i++)
+			if ((int)(cpu_mask_ctx.active_positions[i]))
+				cand *= cpu_mask_ctx.ranges[i].count;
+	}
 
 	status_init(&get_progress, 0);
 
