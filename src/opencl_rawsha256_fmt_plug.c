@@ -30,7 +30,6 @@ john_register_one(&fmt_opencl_rawsha256);
 #include "options.h"
 #include "opencl_rawsha256.h"
 #include "rawSHA256_common.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL			"Raw-SHA256-opencl"
 #define FORMAT_NAME			""
@@ -59,6 +58,7 @@ static int crypt_all(int *pcount, struct db_salt *_salt);
 
 //This file contains auto-tuning routine(s). Has to be included after formats definitions.
 #include "opencl_autotune.h"
+#include "memdbg.h"
 
 static struct fmt_tests tests[] = {
 	{"71c3f65d17745f05235570f1799d75e69795d469d9fcb83e326f82f1afa80dea", "epixoip"},

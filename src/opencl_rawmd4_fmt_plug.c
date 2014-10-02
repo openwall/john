@@ -26,7 +26,6 @@ john_register_one(&fmt_opencl_rawMD4);
 #include "common-opencl.h"
 #include "config.h"
 #include "options.h"
-#include "memdbg.h"
 
 #define PLAINTEXT_LENGTH    55 /* Max. is 55 with current kernel */
 #define BUFSIZE             ((PLAINTEXT_LENGTH+3)/4*4)
@@ -73,6 +72,7 @@ static int crypt_all(int *pcount, struct db_salt *_salt);
 
 //This file contains auto-tuning routine(s). It has to be included after formats definitions.
 #include "opencl_autotune.h"
+#include "memdbg.h"
 
 static struct fmt_tests tests[] = {
 	{"8a9d093f14f8701df17732b2bb182c74", "password"},

@@ -30,7 +30,6 @@ john_register_one(&fmt_opencl_pwsafe);
 #include "base64.h"
 #include "common-opencl.h"
 #include "memory.h"
-#include "memdbg.h"
 
 #define uint8_t                         unsigned char
 #define uint32_t                        unsigned int
@@ -60,6 +59,7 @@ static const char * warn[] = {
 };
 
 #include "opencl_autotune.h"
+#include "memdbg.h"
 
 cl_kernel init_kernel;
 cl_kernel finish_kernel;

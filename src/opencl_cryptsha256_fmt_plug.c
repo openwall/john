@@ -27,7 +27,6 @@ john_register_one(&fmt_opencl_cryptsha256);
 #include "options.h"
 #include "opencl_cryptsha256.h"
 #include "cryptsha256_common.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL			"sha256crypt-opencl"
 #define ALGORITHM_NAME			"SHA256 OpenCL"
@@ -58,6 +57,7 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *_salt);
 
 //This file contains auto-tuning routine(s). It has to be included after formats definitions.
 #include "opencl_autotune.h"
+#include "memdbg.h"
 
 static struct fmt_tests tests[] = {
 	{"$5$LKO/Ute40T3FNF95$U0prpBQd4PloSGU0pnpM4z9wKn4vZ1.jsrzQfPqxph9", "U*U*U*U*"},

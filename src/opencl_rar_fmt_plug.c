@@ -80,7 +80,6 @@ static pthread_mutex_t *lockarray;
 #include "unrar.h"
 #include "common-opencl.h"
 #include "config.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL		"rar-opencl"
 #define FORMAT_NAME		"RAR3"
@@ -112,6 +111,7 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *_salt);
 
 //This file contains auto-tuning routine(s). Has to be included after formats definitions.
 #include "opencl_autotune.h"
+#include "memdbg.h"
 
 #define ITERATIONS		0x40000
 #define HASH_LOOPS		0x04000 // Fixed, do not change

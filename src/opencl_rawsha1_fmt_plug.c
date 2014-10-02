@@ -28,7 +28,6 @@ john_register_one(&fmt_opencl_rawSHA1);
 #include "johnswap.h"
 #include "common-opencl.h"
 #include "options.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL			"Raw-SHA1-opencl"
 #define FORMAT_NAME			""
@@ -91,6 +90,7 @@ static const char * warn[] = {
 static int crypt_all(int *pcount, struct db_salt *_salt);
 
 #include "opencl_autotune.h"
+#include "memdbg.h"
 
 static struct fmt_tests tests[] = {
 	{"a9993e364706816aba3e25717850c26c9cd0d89d", "abc"},

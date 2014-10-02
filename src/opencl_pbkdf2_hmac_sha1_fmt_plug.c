@@ -29,7 +29,6 @@ john_register_one(&fmt_ocl_pbkdf1_sha1);
 #undef MMX_COEF
 #define PBKDF2_HMAC_SHA1_ALSO_INCLUDE_CTX 1
 #include "pbkdf2_hmac_sha1.h"
-#include "memdbg.h"
 
 //#define DEBUG
 #define dump_stuff_msg(a, b, c)	dump_stuff_msg((void*)a, b, c)
@@ -87,6 +86,7 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *_salt);
 
 //This file contains auto-tuning routine(s). Has to be included after formats definitions.
 #include "opencl_autotune.h"
+#include "memdbg.h"
 
 /* ------- Helper functions ------- */
 static size_t get_task_max_work_group_size()

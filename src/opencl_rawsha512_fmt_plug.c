@@ -36,7 +36,6 @@ john_register_one(&fmt_opencl_xsha512);
 #include "config.h"
 #include "options.h"
 #include "opencl_rawsha512.h"
-#include "memdbg.h"
 
 #define RAW_FORMAT_LABEL		"Raw-SHA512-opencl"
 #define RAW_FORMAT_NAME			""
@@ -73,6 +72,7 @@ static int crypt_all(int *pcount, struct db_salt *_salt);
 
 //This file contains auto-tuning routine(s). It has to be included after formats definitions.
 #include "opencl_autotune.h"
+#include "memdbg.h"
 
 static struct fmt_tests raw_tests[] = {
 	{"f342aae82952db35b8e02c30115e3deed3d80fdfdadacab336f0ba51ac54e297291fa1d6b201d69a2bd77e2535280f17a54fa1e527abc6e2eddba79ad3be11c0", "epixoip"},

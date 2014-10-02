@@ -31,7 +31,6 @@ john_register_one(&fmt_ocl_rar5);
 #include "options.h"
 #include "common-opencl.h"
 #include "rar5_common.h"
-#include "memdbg.h"
 
 #define SIZE_SALT50 16
 #define SIZE_PSWCHECK 8
@@ -112,6 +111,7 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *_salt);
 
 //This file contains auto-tuning routine(s). Has to be included after formats definitions.
 #include "opencl_autotune.h"
+#include "memdbg.h"
 
 static void create_clobj(size_t kpc, struct fmt_main *self)
 {

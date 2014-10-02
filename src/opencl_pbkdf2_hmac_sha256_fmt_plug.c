@@ -22,7 +22,6 @@ john_register_one(&fmt_opencl_pbkdf2_hmac_sha256);
 #include "formats.h"
 #include "options.h"
 #include "common-opencl.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL		"PBKDF2-HMAC-SHA256-opencl"
 #define FORMAT_NAME		""
@@ -128,6 +127,7 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *_salt);
 
 //This file contains auto-tuning routine(s). Has to be included after formats definitions.
 #include "opencl_autotune.h"
+#include "memdbg.h"
 
 static void create_clobj(size_t kpc, struct fmt_main *self)
 {

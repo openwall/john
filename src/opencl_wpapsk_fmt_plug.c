@@ -32,7 +32,6 @@ static unsigned int *inbuffer;
 
 #define JOHN_OCL_WPAPSK
 #include "wpapsk.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL		"wpapsk-opencl"
 #define FORMAT_NAME		"WPA/WPA2 PSK"
@@ -78,6 +77,7 @@ static int split_events[] = { 1, -1, -1 };
 
 //This file contains auto-tuning routine(s). Has to be included after formats definitions.
 #include "opencl_autotune.h"
+#include "memdbg.h"
 
 /* ------- Helper functions ------- */
 static size_t get_task_max_work_group_size()
