@@ -804,21 +804,24 @@ static void init_cpu_mask(char *mask, parsed_ctx *parsed_mask,
 	for (i = 0; i < MAX_NUM_MASK_PLHDR; i++) {
 		if ((unsigned int)load_op(op_ctr) <
 		    (unsigned int)load_qtn(qtn_ctr)) {
+#define check_n_insert 						\
+	(!memchr((const char*)cpu_mask_ctx->ranges[i].chars,	\
+		(int)mask[j], count(i)))			\
+		cpu_mask_ctx->ranges[i].chars[count(i)++] = mask[j];		  
 			int j;
 
 			cpu_mask_ctx->
 			ranges[i].pos = calc_pos_in_key(mask,
 						        parsed_mask,
 				                        load_op(op_ctr));
-
+		
 			for (j = load_op(op_ctr) + 1; j < load_cl(cl_ctr);) {
 				int a , b;
 
 				if (mask[j] == '\\' &&
 				    (!j || mask[j - 1] != '\\')) {
 					j++;
-					cpu_mask_ctx->ranges[i].
-						chars[count(i)++] = mask[j];
+					if check_n_insert
 				}
 				else if (mask[j] == '-' &&
 				         j + 1 < load_cl(cl_ctr) &&
@@ -835,12 +838,7 @@ static void init_cpu_mask(char *mask, parsed_ctx *parsed_mask,
 
 					j++;
 				}
-				else if (!memchr((const char*)
-				         cpu_mask_ctx->ranges[i].chars,
-		                         (int)mask[j], count(i)))
-						cpu_mask_ctx->
-						ranges[i].
-						chars[count(i)++] = mask[j];
+				else if check_n_insert
 
 				j++;
 			}
@@ -850,6 +848,7 @@ static void init_cpu_mask(char *mask, parsed_ctx *parsed_mask,
 			op_ctr++;
 			cl_ctr++;
 			cpu_mask_ctx->count++;
+#undef check_n_insert			
 		}
 		else if ((unsigned int)load_op(op_ctr) >
 		         (unsigned int)load_qtn(qtn_ctr))  {
