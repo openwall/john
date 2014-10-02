@@ -32,14 +32,7 @@
 static parsed_ctx parsed_mask;
 static cpu_mask_context cpu_mask_ctx, rec_ctx;
 
-static double cand;
-
-/*
- * A "sequence number" for distributing the candidate passwords across nodes.
- * It is OK if this number overflows once in a while, as long as this happens
- * in the same way for all nodes (must be same size unsigned integer type).
- */
-static unsigned int seq, rec_seq;
+static unsigned long int cand, rec_cand;
 
 #define BUILT_IN_CHARSET "aludshHA1234"
 
@@ -807,14 +800,14 @@ static void init_cpu_mask(char *mask, parsed_ctx *parsed_mask,
 #define check_n_insert 						\
 	(!memchr((const char*)cpu_mask_ctx->ranges[i].chars,	\
 		(int)mask[j], count(i)))			\
-		cpu_mask_ctx->ranges[i].chars[count(i)++] = mask[j];		  
+		cpu_mask_ctx->ranges[i].chars[count(i)++] = mask[j];
 			int j;
 
 			cpu_mask_ctx->
 			ranges[i].pos = calc_pos_in_key(mask,
 						        parsed_mask,
 				                        load_op(op_ctr));
-		
+
 			for (j = load_op(op_ctr) + 1; j < load_cl(cl_ctr);) {
 				int a , b;
 
@@ -848,7 +841,7 @@ static void init_cpu_mask(char *mask, parsed_ctx *parsed_mask,
 			op_ctr++;
 			cl_ctr++;
 			cpu_mask_ctx->count++;
-#undef check_n_insert			
+#undef check_n_insert
 		}
 		else if ((unsigned int)load_op(op_ctr) >
 		         (unsigned int)load_qtn(qtn_ctr))  {
@@ -914,7 +907,7 @@ static MAYBE_INLINE char* mask_cp_to_utf8(char *in)
 }
 
 static void generate_keys(char *template_key, cpu_mask_context *cpu_mask_ctx,
-			  int my_words, int their_words)
+			  unsigned long int *my_candidates)
 {
 	int i, j, k, ps1 = MAX_NUM_MASK_PLHDR, ps2 = MAX_NUM_MASK_PLHDR,
 	    ps3 = MAX_NUM_MASK_PLHDR, ps;
@@ -936,24 +929,15 @@ static void generate_keys(char *template_key, cpu_mask_context *cpu_mask_ctx,
 		if ((int)(cpu_mask_ctx->active_positions[i]))
 			num_active_postions++;
 
-	if (!num_active_postions)
-		fprintf(stdout, "%s\n", template_key);
+	if (!num_active_postions) {
+		if (ext_filter(template_key))
+			if (crk_process_key(mask_cp_to_utf8(template_key)))
+				goto done;
+	}
 
 #define inner_loop_body() {						\
 	template_key[ranges(ps1).pos + offset] = start1 ? start1 + i:	\
 		ranges(ps1).chars[i];  					\
-	if (options.node_count) {					\
-		seq++;							\
-		if (their_words) {					\
-			their_words--;					\
-			continue;					\
-		}							\
-		if (--my_words == 0) {					\
-			my_words =					\
-				options.node_max - options.node_min + 1;\
-			their_words = options.node_count - my_words;	\
-		}							\
-	}								\
 	if (ext_filter(template_key))					\
 		if (crk_process_key(mask_cp_to_utf8(template_key)))	\
 			goto done;					\
@@ -988,6 +972,7 @@ static void generate_keys(char *template_key, cpu_mask_context *cpu_mask_ctx,
 		}
 
 		while (1) {
+			if (options.node_count && !(*my_candidates)--) goto done;
 			start1 = ranges(ps1).start;
 			start2 = ranges(ps2).start;
 			start3 = ranges(ps3).start;
@@ -1073,14 +1058,13 @@ static double get_progress(void)
 	if (!cand)
 		return -1;
 
-	return 100.0 * try / cand;
+	return 100.0 * try / (double)cand;
 }
 
 static void save_state(FILE *file)
 {
 	int i;
-
-	fprintf(file, "%u\n", rec_seq);
+	fprintf(file, "%lu\n", rec_cand);
 	fprintf(file, "%d\n", rec_ctx.count);
 	fprintf(file, "%d\n", rec_ctx.offset);
 	for (i = 0; i < rec_ctx.count; i++)
@@ -1090,8 +1074,7 @@ static void save_state(FILE *file)
 static int restore_state(FILE *file)
 {
 	int i;
-
-	if (fscanf(file, "%u\n", &seq) != 1)
+	if (fscanf(file, "%lu\n", &cand) != 1)
 		return 1;
 	if (fscanf(file, "%d\n", &cpu_mask_ctx.count) != 1)
 		return 1;
@@ -1106,16 +1089,72 @@ static int restore_state(FILE *file)
 static void fix_state(void)
 {
 	int i;
-	rec_seq = seq;
+	rec_cand = cand;
 	rec_ctx.count = cpu_mask_ctx.count;
 	rec_ctx.offset = cpu_mask_ctx.offset;
 	for (i = 0; i < rec_ctx.count; i++)
 		rec_ctx.ranges[i].iter = cpu_mask_ctx.ranges[i].iter;
 }
 
+static unsigned long int divide_work(cpu_mask_context *cpu_mask_ctx)
+{
+	unsigned long int offset, my_candidates, total_candidates, ctr;
+	int i, skip_first_three, num_active_postions;
+	double fract;
+
+	fract = (double)(options.node_max - options.node_min + 1) /
+		options.node_count;
+
+	num_active_postions = 0;
+	for (i = 0; i < cpu_mask_ctx->count; i++)
+		if ((int)(cpu_mask_ctx->active_positions[i]))
+			num_active_postions++;
+
+	if (num_active_postions < 4) {
+		fprintf(stderr, "Insufficient placeholders. Cannot distribute work among nodes!");
+		error();
+	}
+
+	skip_first_three = 0;
+	offset = 1;
+	for (i = 0; i < cpu_mask_ctx->count; i++)
+		if ((int)(cpu_mask_ctx->active_positions[i])) {
+			skip_first_three++;
+			if(skip_first_three > 3)
+				offset *= cpu_mask_ctx->ranges[i].count;
+		}
+
+	total_candidates = offset;
+	offset *= fract;
+	my_candidates = offset;
+	offset = my_candidates * (options.node_min - 1);
+
+	if (options.node_max == options.node_count)
+		my_candidates = total_candidates - offset;
+
+	if (!my_candidates) {
+		fprintf(stderr, "Insufficient work. Cannot distribute work among nodes!");
+		error();
+	}
+
+	ctr = 1;
+	skip_first_three = 0;
+	for (i = 0; i < cpu_mask_ctx->count; i++)
+		if ((int)(cpu_mask_ctx->active_positions[i])) {
+			skip_first_three++;
+			if(skip_first_three > 3) {
+				cpu_mask_ctx->
+				ranges[i].iter = (offset / ctr) %
+						  cpu_mask_ctx->ranges[i].count;
+				ctr *= cpu_mask_ctx->ranges[i].count;
+			}
+		}
+
+	return my_candidates;
+}
+
 void do_mask_crack(struct db_main *db, char *mask)
 {
-	int my_words, their_words;
 	int i;
 	char *template_key;
 
@@ -1191,7 +1230,13 @@ void do_mask_crack(struct db_main *db, char *mask)
 	skip_position(&cpu_mask_ctx, NULL);
 	template_key = generate_template_key(mask, &parsed_mask);
 
-	seq = 0;
+	cand = 1;
+	for (i = 0; i < cpu_mask_ctx.count; i++)
+		if ((int)(cpu_mask_ctx.active_positions[i]))
+			cand *= cpu_mask_ctx.ranges[i].count;
+
+	if(options.node_count)
+		cand = divide_work(&cpu_mask_ctx);
 
 	status_init(&get_progress, 0);
 
@@ -1200,31 +1245,7 @@ void do_mask_crack(struct db_main *db, char *mask)
 
 	crk_init(db, fix_state, NULL);
 
-	my_words = options.node_max - options.node_min + 1;
-	their_words = options.node_min - 1;
-
-	if (seq) {
-/* Restored session.  seq is right after a word we've actually used. */
-		int for_node = seq % options.node_count + 1;
-		if (for_node < options.node_min ||
-		        for_node > options.node_max) {
-/* We assume that seq is at the beginning of other nodes' block */
-			their_words = options.node_count - my_words;
-		} else {
-			my_words = options.node_max - for_node + 1;
-			their_words = 0;
-		}
-	}
-
-	cand = 1;
-	for (i = 0; i < cpu_mask_ctx.count; i++)
-		if ((int)(cpu_mask_ctx.active_positions[i]))
-			cand *= cpu_mask_ctx.ranges[i].count;
-	if (options.node_count)
-		cand *= (double)(options.node_max - options.node_min + 1) /
-			options.node_count;
-
-	generate_keys(template_key, &cpu_mask_ctx, my_words, their_words);
+	generate_keys(template_key, &cpu_mask_ctx, &cand);
 
 	// For reporting DONE regardless of rounding errors
 	if (!event_abort)
