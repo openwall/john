@@ -465,7 +465,7 @@ static void build_device_list(char *device_list[MAX_GPU_DEVICES])
 void opencl_preinit(void)
 {
 	char *device_list[MAX_GPU_DEVICES], string[10];
-	int n = 0;
+	int n = 0, i;
 	char *env;
 
 	// Prefer COMPUTE over DISPLAY and lacking both, assume :0
@@ -487,6 +487,11 @@ void opencl_preinit(void)
 
 		gpu_device_list[0] = -1;
 		gpu_device_list[1] = -1;
+
+		for (i = 0; i < MAX_GPU_DEVICES; i++) {
+			context[i] = NULL;
+			queue[i] = NULL;
+		}
 		start_opencl_environment();
 
 		if (options.ocl_platform) {
