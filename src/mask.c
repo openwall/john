@@ -63,7 +63,7 @@ static void parse_hex(char *string)
 
 	while (*s)
 	if (*s == '\\' && s[1] != 'x') {
-		s++;
+		*d++ = *s++;
 		*d++ = *s++;
 	} else if (*s == '\\' && s[1] == 'x' &&
 	    atoi16[s[2]] != 0x7f && atoi16[s[3]] != 0x7f) {
@@ -89,7 +89,7 @@ static char* expand_cplhdr(char *string)
 	//fprintf(stderr, "%s(%s)\n", __FUNCTION__, string);
 	while (*s && d < &out[sizeof(out) - 2]) {
 		if (*s == '\\') {
-			s++;
+			*d++ = *s++;
 			*d++ = *s++;
 		} else
 		if (*s == '?' && s[1] >= '1' && s[1] <= '4') {
@@ -612,7 +612,7 @@ static char* expand_plhdr(char *string, int fmt_case)
 		*d++ = '[';
 	while (*s && d < &out[sizeof(out) - 1]) {
 		if (*s == '\\') {
-			s++;
+			*d++ = *s++;
 			*d++ = *s++;
 		} else
 		if (*s == '?' && strchr(BUILT_IN_CHARSET, s[1])) {
