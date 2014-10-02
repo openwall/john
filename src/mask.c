@@ -586,7 +586,9 @@ static char* plhdr2string(char p, int fmt_case)
  * Note: To add more cases, also append the symbol to string BUILT_IN_CHARSET.
  */
 	default:
-		fprintf(stderr, "Can't nest custom placeholder ?%c.\n", p);
+		if (john_main_process)
+			fprintf(stderr, "Can't nest custom placeholder ?%c.\n",
+			        p);
 		error();
 	}
 
@@ -1111,7 +1113,9 @@ static unsigned long int divide_work(cpu_mask_context *cpu_mask_ctx)
 			num_active_postions++;
 
 	if (num_active_postions < 4) {
-		fprintf(stderr, "Insufficient placeholders. Cannot distribute work among nodes!");
+		if (john_main_process)
+			fprintf(stderr, "Insufficient placeholders. Cannot "
+			        "distribute work among nodes!\n");
 		error();
 	}
 
@@ -1133,7 +1137,9 @@ static unsigned long int divide_work(cpu_mask_context *cpu_mask_ctx)
 		my_candidates = total_candidates - offset;
 
 	if (!my_candidates) {
-		fprintf(stderr, "Insufficient work. Cannot distribute work among nodes!");
+		if (john_main_process)
+			fprintf(stderr, "Insufficient work. Cannot distribute "
+			        "work among nodes!\n");
 		error();
 	}
 
@@ -1160,7 +1166,9 @@ void do_mask_crack(struct db_main *db, char *mask)
 
 	/* We do not yet support min/max-len */
 	if (options.force_minlength >= 0 || options.force_maxlength) {
-		fprintf(stderr, "Mask mode: --min-length and --max-length currently not supported\n");
+		if (john_main_process)
+			fprintf(stderr, "Mask mode: --min-length and "
+			        "--max-length currently not supported\n");
 		error();
 	}
 
@@ -1209,7 +1217,7 @@ void do_mask_crack(struct db_main *db, char *mask)
 	mask = expand_cplhdr(mask);
 
 	/* DEBUG */
-	fprintf(stderr, "Custom masks expanded (this is 'mask' when passed to init_cpu_mask():\n%s\n", mask);
+	//fprintf(stderr, "Custom masks expanded (this is 'mask' when passed to init_cpu_mask()):\n%s\n", mask);
 
 	/* Parse ranges */
 	parse_braces(mask, &parsed_mask);
@@ -1217,7 +1225,8 @@ void do_mask_crack(struct db_main *db, char *mask)
 	if (parsed_mask.parse_ok)
 		parse_qtn(mask, &parsed_mask);
 	else {
-		fprintf(stderr, "Parsing unsuccessful\n");
+		if (john_main_process)
+			fprintf(stderr, "Parsing unsuccessful\n");
 		error();
 	}
 
