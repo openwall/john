@@ -42,6 +42,7 @@
 
 
 #include "blf.h"
+#include "memdbg.h"
 
 #undef inline
 #ifdef __GNUC__

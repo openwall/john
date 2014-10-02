@@ -110,6 +110,7 @@ static unsigned int *saved_plain, *saved_idx;
 static unsigned int key_idx = 0;
 
 #include "opencl_autotune.h" // Must come after auto-tune definitions
+#include "memdbg.h"
 
 static size_t get_task_max_work_group_size()
 {

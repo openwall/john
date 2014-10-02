@@ -17,6 +17,7 @@
 #include <io.h>
 #include <windows.h>
 #include <sys/types.h>
+#include "memdbg.h"
 
 #define PROT_READ     0x1
 #define PROT_WRITE    0x2

@@ -6,6 +6,7 @@
 #include "memory.h"
 
 #include "pkzip.h"
+#include "memdbg.h"
 
 const u32 pkz_crc_32_tab[] =
 {
@@ -102,4 +103,3 @@ unsigned pkz_get_hex_num(const u8 *cp) {
 	sscanf(b, "%x", &u);
 	return u;
 }
-
