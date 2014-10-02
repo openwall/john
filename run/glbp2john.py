@@ -22,7 +22,6 @@
 
 import dpkt
 import sys
-import struct
 
 
 def pcap_parser(fname):

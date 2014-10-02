@@ -33,7 +33,7 @@ john_register_one(&fmt_hsrp);
 #include "memdbg.h"
 
 #define FORMAT_LABEL            "hsrp"
-#define FORMAT_NAME             "HSRP MD5 authentication"
+#define FORMAT_NAME             "\"MD5 authentication\" HSRP, VRRP, GLBP"
 #define FORMAT_TAG              "$hsrp$"
 #define TAG_LENGTH              (sizeof(FORMAT_TAG) - 1)
 #define ALGORITHM_NAME          "MD5 32/" ARCH_BITS_STR
