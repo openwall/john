@@ -1153,7 +1153,8 @@ static unsigned long int divide_work(cpu_mask_context *cpu_mask_ctx)
 				ranges[i].iter = (offset / ctr) %
 						  cpu_mask_ctx->ranges[i].count;
 				ctr *= cpu_mask_ctx->ranges[i].count;
-			}
+			} else
+				my_candidates *= cpu_mask_ctx->ranges[i].count;
 		}
 
 	return my_candidates;
