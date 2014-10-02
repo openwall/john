@@ -20,6 +20,7 @@
 #include "signals.h"
 #include "status.h"
 #include "options.h"
+#include "config.h"
 #include "external.h"
 #include "cracker.h"
 #include "john.h"
@@ -1040,14 +1041,29 @@ void do_mask_crack(struct db_main *db, char *mask)
 
 	log_event("Proceeding with mask mode");
 
+	/* Load defaults from john.conf */
+	if (options.flags & FLG_MASK_CHK && !options.mask &&
+	    !(options.mask = cfg_get_param("Mask", NULL, "DefaultMask")))
+		options.mask = "";
+	if (!options.custom_mask[0] &&
+	    !(options.custom_mask[0] = cfg_get_param("Mask", NULL, "1")))
+		options.custom_mask[0] = "";
+	if (!options.custom_mask[1] &&
+	    !(options.custom_mask[1] = cfg_get_param("Mask", NULL, "2")))
+		options.custom_mask[1] = "";
+	if (!options.custom_mask[2] &&
+	    !(options.custom_mask[2] = cfg_get_param("Mask", NULL, "3")))
+		options.custom_mask[2] = "";
+	if (!options.custom_mask[3] &&
+	    !(options.custom_mask[3] = cfg_get_param("Mask", NULL, "4")))
+		options.custom_mask[3] = "";
+
 	/* Handle command-line arguments given in UTF-8 */
-	if (valid_utf8((UTF8*)mask) > 1 && pers_opts.input_enc == UTF_8 &&
-	    pers_opts.internal_enc != UTF_8)
-		utf8_to_cp_r(mask, mask, strlen(mask));
-	for (i = 0; i < 4; i++) {
-		if (valid_utf8((UTF8*)options.custom_mask[i]) > 1 &&
-		    pers_opts.input_enc == UTF_8 &&
-		    pers_opts.internal_enc != UTF_8)
+	if (pers_opts.input_enc == UTF_8 && pers_opts.internal_enc != UTF_8) {
+		if (valid_utf8((UTF8*)mask) > 1)
+			utf8_to_cp_r(mask, mask, strlen(mask));
+		for (i = 0; i < 4; i++)
+		if (valid_utf8((UTF8*)options.custom_mask[i]) > 1)
 			utf8_to_cp_r(options.custom_mask[i],
 			             options.custom_mask[i],
 			             strlen(options.custom_mask[i]));

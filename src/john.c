@@ -768,22 +768,6 @@ static void john_load_conf(void)
 		pers_opts.default_enc = pers_opts.input_enc;
 	}
 
-	if (options.flags & FLG_MASK_CHK && !options.mask &&
-	    !(options.mask = cfg_get_param("Mask", NULL, "DefaultMask")))
-		options.mask = "";
-	if (!options.custom_mask[0] &&
-	    !(options.custom_mask[0] = cfg_get_param("Mask", NULL, "1")))
-		options.custom_mask[0] = "";
-	if (!options.custom_mask[1] &&
-	    !(options.custom_mask[1] = cfg_get_param("Mask", NULL, "2")))
-		options.custom_mask[1] = "";
-	if (!options.custom_mask[2] &&
-	    !(options.custom_mask[2] = cfg_get_param("Mask", NULL, "3")))
-		options.custom_mask[2] = "";
-	if (!options.custom_mask[3] &&
-	    !(options.custom_mask[3] = cfg_get_param("Mask", NULL, "4")))
-		options.custom_mask[3] = "";
-
 	/* Pre-init in case some format's prepare() needs it */
 	internal = pers_opts.internal_enc;
 	target = pers_opts.target_enc;
