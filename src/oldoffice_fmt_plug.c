@@ -86,7 +86,9 @@ static struct custom_salt {
 	unsigned char verifierHash[20];  /* or encryptedVerifierHash */
 	unsigned int has_mitm;
 	unsigned char mitm[5]; /* Meet-in-the-middle hint, if we have one */
-} cs;
+} *cur_salt;
+
+static struct custom_salt cs;
 
 static void init(struct fmt_main *self)
 {
@@ -107,6 +109,7 @@ static void init(struct fmt_main *self)
 	any_cracked = 0;
 	cracked_size = sizeof(*cracked) * self->params.max_keys_per_crypt;
 	cracked = mem_calloc_tiny(cracked_size, MEM_ALIGN_WORD);
+	cur_salt = &cs;
 }
 
 static int ishex(char *q)
@@ -217,9 +220,9 @@ static char *source(char *source, void *binary)
 	unsigned char *cpi, *cp = (unsigned char*)Buf;
 	int i, len;
 
-	cp += sprintf(Buf, "%s%d*", FORMAT_TAG, cs.type);
+	cp += sprintf(Buf, "%s%d*", FORMAT_TAG, cur_salt->type);
 
-	cpi = cs.salt;
+	cpi = cur_salt->salt;
 	for (i = 0; i < 16; i++) {
 		*cp++ = itoa16[*cpi >> 4];
 		*cp++ = itoa16[*cpi & 0xf];
@@ -227,7 +230,7 @@ static char *source(char *source, void *binary)
 	}
 	*cp++ = '*';
 
-	cpi = cs.verifier;
+	cpi = cur_salt->verifier;
 	for (i = 0; i < 16; i++) {
 		*cp++ = itoa16[*cpi >> 4];
 		*cp++ = itoa16[*cpi & 0xf];
@@ -235,17 +238,17 @@ static char *source(char *source, void *binary)
 	}
 	*cp++ = '*';
 
-	len = (cs.type < 3) ? 16 : 20;
-	cpi = cs.verifierHash;
+	len = (cur_salt->type < 3) ? 16 : 20;
+	cpi = cur_salt->verifierHash;
 	for (i = 0; i < len; i++) {
 		*cp++ = itoa16[*cpi >> 4];
 		*cp++ = itoa16[*cpi & 0xf];
 		cpi++;
 	}
 
-	if (cs.has_mitm) {
+	if (cur_salt->has_mitm) {
 		*cp++ = '*';
-		cpi = cs.mitm;
+		cpi = cur_salt->mitm;
 		for (i = 0; i < 5; i++) {
 			*cp++ = itoa16[*cpi >> 4];
 			*cp++ = itoa16[*cpi & 0xf];
@@ -260,7 +263,7 @@ static char *source(char *source, void *binary)
 
 static void set_salt(void *salt)
 {
-	memcpy(&cs, (struct custom_salt *)salt, sizeof(struct custom_salt));
+	cur_salt = (struct custom_salt *)salt;
 }
 
 static int crypt_all(int *pcount, struct db_salt *salt)
@@ -281,7 +284,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		int i;
 		RC4_KEY key;
 
-		if(cs.type < 3) {
+		if(cur_salt->type < 3) {
 			MD5_CTX ctx;
 			unsigned char mid_key[16];
 			unsigned char pwdHash[16];
@@ -293,14 +296,14 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			for (i = 0; i < 16; i++)
 			{
 				memcpy(hashBuf + i * 21, mid_key, 5);
-				memcpy(hashBuf + i * 21 + 5, cs.salt, 16);
+				memcpy(hashBuf + i * 21 + 5, cur_salt->salt, 16);
 			}
 			MD5_Init(&ctx);
 			MD5_Update(&ctx, hashBuf, 21 * 16);
 			MD5_Final(mid_key, &ctx);
 			// Early reject if we got a hint
-			if (cs.has_mitm &&
-			    memcmp(mid_key, cs.mitm, 5))
+			if (cur_salt->has_mitm &&
+			    memcmp(mid_key, cur_salt->mitm, 5))
 				continue;
 			memcpy(hashBuf, mid_key, 5);
 			memset(hashBuf + 5, 0, 4);
@@ -308,8 +311,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			MD5_Update(&ctx, hashBuf, 9);
 			MD5_Final(pwdHash, &ctx);
 			RC4_set_key(&key, 16, pwdHash); /* rc4Key */
-			RC4(&key, 16, cs.verifier, hashBuf); /* encryptedVerifier */
-			RC4(&key, 16, cs.verifierHash, hashBuf + 16); /* encryptedVerifierHash */
+			RC4(&key, 16, cur_salt->verifier, hashBuf); /* encryptedVerifier */
+			RC4(&key, 16, cur_salt->verifierHash, hashBuf + 16); /* encryptedVerifierHash */
 			/* hash the decrypted verifier */
 			MD5_Init(&ctx);
 			MD5_Update(&ctx, hashBuf, 16);
@@ -319,8 +322,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #pragma omp critical
 #endif
 				any_cracked = cracked[index] = 1;
-				cs.has_mitm = 1;
-				memcpy(cs.mitm, mid_key, 5);
+				cur_salt->has_mitm = 1;
+				memcpy(cur_salt->mitm, mid_key, 5);
 			}
 		}
 		else {
@@ -332,7 +335,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			unsigned char DecryptedVerifierHash[20];
 
 			SHA1_Init(&ctx);
-			SHA1_Update(&ctx, cs.salt, 16);
+			SHA1_Update(&ctx, cur_salt->salt, 16);
 			SHA1_Update(&ctx, saved_key[index], saved_len[index]);
 			SHA1_Final(H0, &ctx);
 			memset(&H0[20], 0, 4);
@@ -340,17 +343,17 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			SHA1_Update(&ctx, H0, 24);
 			SHA1_Final(mid_key, &ctx);
 			// Early reject if we got a hint
-			if (cs.has_mitm &&
-			    memcmp(mid_key, cs.mitm, 5))
+			if (cur_salt->has_mitm &&
+			    memcmp(mid_key, cur_salt->mitm, 5))
 				continue;
-			if(cs.type < 4) {
+			if(cur_salt->type < 4) {
 				memcpy(Hfinal, mid_key, 5);
 				memset(&Hfinal[5], 0, 11);
 			} else
 				memcpy(Hfinal, mid_key, 20);
 			RC4_set_key(&key, 16, Hfinal); /* dek */
-			RC4(&key, 16, cs.verifier, DecryptedVerifier);
-			RC4(&key, 20, cs.verifierHash, DecryptedVerifierHash);
+			RC4(&key, 16, cur_salt->verifier, DecryptedVerifier);
+			RC4(&key, 20, cur_salt->verifierHash, DecryptedVerifierHash);
 			SHA1_Init(&ctx);
 			SHA1_Update(&ctx, DecryptedVerifier, 16);
 			SHA1_Final(Hfinal, &ctx);
@@ -359,8 +362,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #pragma omp critical
 #endif
 				any_cracked = cracked[index] = 1;
-				cs.has_mitm = 1;
-				memcpy(cs.mitm, mid_key, 5);
+				cur_salt->has_mitm = 1;
+				memcpy(cur_salt->mitm, mid_key, 5);
 			}
 		}
 	}
