@@ -177,6 +177,8 @@ static size_t get_default_workgroup()
 
 static void release_clobj(void)
 {
+	MEM_FREE(crypt_out);
+
 	HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
 	HANDLE_CLERROR(clReleaseMemObject(mem_salt), "Release mem salt");
 	HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
@@ -217,7 +219,6 @@ static void init(struct fmt_main *self)
 
 static void done(void)
 {
-	MEM_FREE(crypt_out);
 	release_clobj();
 	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel 1");
 	HANDLE_CLERROR(clReleaseKernel(split_kernel), "Release kernel 2");
