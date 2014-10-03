@@ -911,7 +911,7 @@ static MAYBE_INLINE char* mask_cp_to_utf8(char *in)
 static void generate_keys(char *template_key, cpu_mask_context *cpu_mask_ctx,
 			  unsigned long int *my_candidates)
 {
-	int i, j, k, ps1 = MAX_NUM_MASK_PLHDR, ps2 = MAX_NUM_MASK_PLHDR,
+	int i, ps1 = MAX_NUM_MASK_PLHDR, ps2 = MAX_NUM_MASK_PLHDR,
 	    ps3 = MAX_NUM_MASK_PLHDR, ps4 = MAX_NUM_MASK_PLHDR, ps ;
 	int offset = cpu_mask_ctx->offset, num_active_postions = 0;
 	int start1, start2, start3, start4;
@@ -1148,7 +1148,6 @@ static unsigned long int divide_work(cpu_mask_context *cpu_mask_ctx)
 	}
 
 	ctr = 1;
-	skip_first_three = 0;
 	for (i = 0; i < cpu_mask_ctx->count; i++)
 		if ((int)(cpu_mask_ctx->active_positions[i])) {
 			cpu_mask_ctx->
