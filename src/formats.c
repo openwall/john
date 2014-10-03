@@ -56,14 +56,14 @@ void fmt_register(struct fmt_main *format)
 
 void fmt_init(struct fmt_main *format)
 {
-	if (options.flags & FLG_KEEP_GUESSING)
-		format->params.flags |= FMT_NOT_EXACT;
-
 	if (!format->private.initialized) {
 		format->methods.init(format);
 		format->private.initialized = 1;
 	}
 #ifndef BENCH_BUILD
+	if (options.flags & FLG_KEEP_GUESSING)
+		format->params.flags |= FMT_NOT_EXACT;
+
 	if (options.force_maxkeys) {
 		if (options.force_maxkeys <= format->params.max_keys_per_crypt)
 			format->params.min_keys_per_crypt =
