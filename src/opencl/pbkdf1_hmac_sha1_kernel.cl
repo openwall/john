@@ -504,11 +504,11 @@ inline uint SWAP32(uint x)
 		W[9] = rotate(W[6] ^ W[1] ^ W[12] ^ W[10], S1); ROTATE4_F(D, E, A, B, C, W[9]); \
 		W[10] = rotate(W[7] ^ W[2] ^ W[13] ^ W[11], S1); ROTATE4_F(C, D, E, A, B, W[10]); \
 		W[11] = rotate(W[8] ^ W[3] ^ W[14] ^ W[12], S1); ROTATE4_F(B, C, D, E, A, W[11]); \
-		output[0] += A; \
-		output[1] += B; \
-		output[2] += C; \
-		output[3] += D; \
-		output[4] += E; \
+		output[0] = a + A; \
+		output[1] = b + B; \
+		output[2] = c + C; \
+		output[3] = d + D; \
+		output[4] = e + E; \
 	}
 
 #define sha1_init(output) {	  \
@@ -631,7 +631,6 @@ void pbkdf1_loop(__global pbkdf1_state *state)
 	MAYBE_VECTOR_UINT ipad[5];
 	MAYBE_VECTOR_UINT opad[5];
 	MAYBE_VECTOR_UINT output[5];
-	MAYBE_VECTOR_UINT state_out[5];
 #if defined ITERATIONS
 #define iterations HASH_LOOPS
 #else
@@ -644,8 +643,6 @@ void pbkdf1_loop(__global pbkdf1_state *state)
 		ipad[i] = state[gid].ipad[i];
 	for (i = 0; i < 5; i++)
 		opad[i] = state[gid].opad[i];
-	for (i = 0; i < 5; i++)
-		state_out[i] = state[gid].out[i];
 
 	for (j = 0; j < iterations; j++) {
 		for (i = 0; i < 5; i++)
@@ -699,10 +696,9 @@ void pbkdf1_final(MAYBE_CONSTANT pbkdf1_salt *salt,
                   __global pbkdf1_state *state)
 {
 	uint gid = get_global_id(0);
-	uint i, pass, base;
+	uint i, base;
 
 	base = state[gid].pass++ * 5;
-	pass = state[gid].pass;
 
 	// First/next 20 bytes of output
 	for (i = 0; i < 5; i++)
