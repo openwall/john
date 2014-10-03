@@ -345,7 +345,10 @@ static char * get_key(int index) {
 /* ------- Initialization  ------- */
 static void build_kernel(char * task) {
 
-	opencl_build_kernel(task, gpu_id, NULL, 1);
+	if (FALSE)
+		opencl_build_kernel(task, gpu_id, "-cl-nv-maxrregcount=80", 1);
+	else
+		opencl_build_kernel(task, gpu_id, NULL, 1);
 
 	// create kernel(s) to execute
 	crypt_kernel = clCreateKernel(program[gpu_id], "kernel_crypt", &ret_code);
