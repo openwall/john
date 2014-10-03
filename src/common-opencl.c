@@ -2433,10 +2433,14 @@ void opencl_list_devices(void)
 				nvidia_get_temp(
 					id2nvml(ocl_device_list[sequence_nr].pci_info),
 					&temp, &fan, &util);
-			} else if (gpu_amd(device_info[sequence_nr])) {
-				if (adl_lib)
-				amd_get_temp(id2adl(ocl_device_list[sequence_nr].pci_info),
+			}
+#if __linux__ && HAVE_LIBDL
+			else if (gpu_amd(device_info[sequence_nr])) {
+				if (adl_lib) {
+					printf("\tADL:\t\t\tOverdrive%d, device id %d\n", adl2od[id2adl(ocl_device_list[sequence_nr].pci_info)], id2adl(ocl_device_list[sequence_nr].pci_info));
+					amd_get_temp(id2adl(ocl_device_list[sequence_nr].pci_info),
 					&temp, &fan, &util);
+				}
 			}
 			if (fan >= 0)
 				printf("\tFan speed:\t\t%u%%\n", fan);
@@ -2444,6 +2448,7 @@ void opencl_list_devices(void)
 				printf("\tTemperature:\t\t%u" DEGC "\n", temp);
 			if (util >= 0)
 				printf("\tUtilization:\t\t%u%%\n", util);
+#endif
 			puts("");
 		}
 	}

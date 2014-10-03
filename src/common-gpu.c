@@ -56,10 +56,10 @@ NVMLDEVICEGETINDEX nvmlDeviceGetIndex = NULL;
 
 void *adl_lib;
 
-#ifdef __linux__
+#if __linux__ && HAVE_LIBDL
 static int amd = 0;
-static int amd2adl[MAX_GPU_DEVICES];
-static int adl2od[MAX_GPU_DEVICES];
+int amd2adl[MAX_GPU_DEVICES];
+int adl2od[MAX_GPU_DEVICES];
 
 ADL_MAIN_CONTROL_CREATE ADL_Main_Control_Create;
 ADL_MAIN_CONTROL_DESTROY ADL_Main_Control_Destroy;
@@ -87,7 +87,7 @@ static void*ADL_Main_Memory_Alloc(int iSize)
 	return lpBuffer;
 }
 
-#endif /* __linux__ */
+#endif /* __linux__ && HAVE_LIBDL */
 
 void advance_cursor()
 {
@@ -239,8 +239,10 @@ void nvidia_get_temp(int gpu_id, int *temp, int *fanspeed, int *util)
 	nvmlUtilization_t s_util;
 	nvmlDevice_t dev;
 	unsigned int value;
-	nvmlPciInfo_t pci;
 	char name[80];
+#ifdef DEBUG
+	nvmlPciInfo_t pci;
+#endif
 
 	if (nvmlDeviceGetHandleByIndex(gpu_id, &dev) != NVML_SUCCESS) {
 		*temp = *fanspeed = *util = -1;
@@ -263,12 +265,14 @@ void nvidia_get_temp(int gpu_id, int *temp, int *fanspeed, int *util)
 	if (nvmlDeviceGetName(dev, name, sizeof(name)) != NVML_SUCCESS)
 		sprintf(name, "[error querying for name]");
 
+#ifdef DEBUG
 	if (nvmlDeviceGetPciInfo(dev, &pci) == NVML_SUCCESS)
-		fprintf(stderr, "\tNVML PCI info device    %s (idx %d '%s')\n",
+		printf("\tNVML PCI info           %s (idx %d '%s')\n",
 		        &pci.busId[5], gpu_id, name);
+#endif
 }
 
-#ifdef __linux__
+#if __linux__ && HAVE_LIBDL
 static void get_temp_od5(int adl_id, int *temp, int *fanspeed, int *util)
 {
 	int ADL_Err = ADL_ERR;
@@ -288,8 +292,6 @@ static void get_temp_od5(int adl_id, int *temp, int *fanspeed, int *util)
 	    !ADL_Overdrive5_ODParameters_Get ||
 	    !ADL_Overdrive5_CurrentActivity_Get)
 		return;
-
-	fprintf(stderr, "\tADL OD5 device number   %d\n", adl_id);
 
 	termalControllerInfo.iSize = sizeof(ADLThermalControllerInfo);
 
@@ -344,7 +346,6 @@ static void get_temp_od6(int adl_id, int *temp, int *fanspeed, int *util)
 	    !ADL_Overdrive6_CurrentStatus_Get)
 		return;
 
-	fprintf(stderr, "\tADL OD6 device number   %d\n", adl_id);
 	if (ADL_Overdrive6_ThermalController_Caps(adl_id, &thermalControllerCaps) == ADL_OK) {
 		if (thermalControllerCaps.iCapabilities & ADL_OD6_TCCAPS_FANSPEED_CONTROL)
 		if (thermalControllerCaps.iCapabilities & ADL_OD6_TCCAPS_FANSPEED_PERCENT_READ)
@@ -367,7 +368,7 @@ static void get_temp_od6(int adl_id, int *temp, int *fanspeed, int *util)
 
 void amd_get_temp(int amd_id, int *temp, int *fanspeed, int *util)
 {
-#ifdef __linux__
+#if __linux__ && HAVE_LIBDL
 	int adl_id = amd_id;
 
 	if (adl2od[adl_id] == 5) {
@@ -380,7 +381,7 @@ void amd_get_temp(int amd_id, int *temp, int *fanspeed, int *util)
 }
 
 int id2nvml(const hw_bus busInfo) {
-#ifdef __linux__
+#if __linux__ && HAVE_LIBDL
 	nvmlDevice_t dev;
 
 	if (nvmlDeviceGetHandleByPciBusId &&
@@ -395,7 +396,7 @@ int id2nvml(const hw_bus busInfo) {
 }
 
 int id2adl(const hw_bus busInfo) {
-#ifdef __linux__
+#if __linux__ && HAVE_LIBDL
 	int hardware_id = 0;
 
 	while (hardware_id < amd) {
@@ -411,4 +412,4 @@ int id2adl(const hw_bus busInfo) {
 	return -1;
 }
 
-#endif /* HAVE_ */
+#endif /* defined (HAVE_CUDA) || defined (HAVE_OPENCL) */
