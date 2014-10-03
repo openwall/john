@@ -912,9 +912,9 @@ static void generate_keys(char *template_key, cpu_mask_context *cpu_mask_ctx,
 			  unsigned long int *my_candidates)
 {
 	int i, j, k, ps1 = MAX_NUM_MASK_PLHDR, ps2 = MAX_NUM_MASK_PLHDR,
-	    ps3 = MAX_NUM_MASK_PLHDR, ps;
+	    ps3 = MAX_NUM_MASK_PLHDR, ps4 = MAX_NUM_MASK_PLHDR, ps ;
 	int offset = cpu_mask_ctx->offset, num_active_postions = 0;
-	int start1, start2, start3;
+	int start1, start2, start3, start4;
 
 	for (i = 0; i < cpu_mask_ctx->count; i++)
 		if ((int)(cpu_mask_ctx->active_positions[i])) {
@@ -924,100 +924,114 @@ static void generate_keys(char *template_key, cpu_mask_context *cpu_mask_ctx,
 
 #define ranges(i) cpu_mask_ctx->ranges[i]
 
+#define process_key(key)						\
+	if (ext_filter(template_key))					\
+	  	if (crk_process_key(mask_cp_to_utf8(template_key)))	\
+			goto done;
+/*
+ * Calculate next state of remaing placeholders, working
+ * similar to counters.
+ */
+#define next_state(ps)							\
+	while(1) {							\
+		if (ps == MAX_NUM_MASK_PLHDR) goto done;		\
+		if ((++(ranges(ps).iter)) == ranges(ps).count) {	\
+			ranges(ps).iter = 0;				\
+			template_key[ranges(ps).pos + offset] =		\
+			ranges(ps).chars[ranges(ps).iter];		\
+			ps = ranges(ps).next;				\
+		}							\
+		else {							\
+			template_key[ranges(ps).pos + offset] =		\
+			      ranges(ps).chars[ranges(ps).iter];	\
+			break;						\
+		}							\
+	}
+
+#define init_key(ps)							\
+	while (ps != MAX_NUM_MASK_PLHDR) {				\
+		template_key[ranges(ps).pos + offset] =			\
+		ranges(ps).chars[ranges(ps).iter];			\
+		ps = ranges(ps).next;					\
+	}
+
+#define iterate_over(ps)						\
+	;ranges(ps).iter < ranges(ps).count; ranges(ps).iter++
+
+#define set_template_key(ps, start)					\
+	template_key[ranges(ps).pos + offset] =				\
+		start ? start + ranges(ps).iter:			\
+		ranges(ps).chars[ranges(ps).iter];
+
+
 	ps2 = cpu_mask_ctx->ranges[ps1].next;
 	ps3 = cpu_mask_ctx->ranges[ps2].next;
+	ps4 = cpu_mask_ctx->ranges[ps3].next;
 
-	for (i = 0; i < cpu_mask_ctx->count; i++)
+	for (i = 0; i < cpu_mask_ctx->count; i++) {
 		if ((int)(cpu_mask_ctx->active_positions[i]))
 			num_active_postions++;
-
-	if (!num_active_postions) {
-		if (ext_filter(template_key))
-			if (crk_process_key(mask_cp_to_utf8(template_key)))
-				goto done;
 	}
 
-#define inner_loop_body() {						\
-	template_key[ranges(ps1).pos + offset] = start1 ? start1 + i:	\
-		ranges(ps1).chars[i];  					\
-	if (ext_filter(template_key))					\
-		if (crk_process_key(mask_cp_to_utf8(template_key)))	\
-			goto done;					\
-	}
+	if (num_active_postions < 4) {
+		ps = ps1;
 
-	else if (num_active_postions == 1) {
-		start1 = ranges(ps1).start;
-		for (i = 0; i < ranges(ps1).count; i++)
-			inner_loop_body();
-	}
-
-	else if (num_active_postions == 2) {
-		start1 = ranges(ps1).start;
-		start2 = ranges(ps2).start;
-		for (j = 0; j < ranges(ps2).count; j++) {
-			template_key[ranges(ps2).pos + offset] =
-			start2? start2 + j:
-			ranges(ps2).chars[j];
-			for (i = 0; i < ranges(ps1).count; i++)
-				inner_loop_body();
-		}
-	}
-
-	else if (num_active_postions > 2) {
-		ps = ranges(ps3).next;
-
-	/* Initialize the reaming placeholders other than the first three */
-		while (ps != MAX_NUM_MASK_PLHDR) {
-			template_key[ranges(ps).pos + offset] =
-			ranges(ps).chars[ranges(ps).iter];
-			ps = ranges(ps).next;
-		}
+		/* Initialize the placeholders */
+		init_key(ps);
 
 		while (1) {
 			if (options.node_count && !(*my_candidates)--)
 				goto done;
+
+			process_key(template_key);
+			ps = ps1;
+			next_state(ps);
+		}
+	}
+
+	else if (num_active_postions >= 4) {
+		ps = ranges(ps4).next;
+
+	/* Initialize the reaming placeholders other than the first four */
+		init_key(ps);
+
+		while (1) {
 			start1 = ranges(ps1).start;
 			start2 = ranges(ps2).start;
 			start3 = ranges(ps3).start;
+			start4 = ranges(ps4).start;
 			/* Iterate over first three placeholders */
-			for (k = 0; k < ranges(ps3).count; k++) {
-				template_key[ranges(ps3).pos + offset] =
-					start3 ? start3 + k:
-					ranges(ps3).chars[k];
-				for (j = 0; j < ranges(ps2).count; j++) {
-					template_key[ranges(ps2).pos + offset] =
-						start2 ? start2 + j:
-						ranges(ps2).chars[j];
-					for (i = 0; i < ranges(ps1).count; i++)
-						inner_loop_body();
+			for (iterate_over(ps4)) {
+				set_template_key(ps4, start4);
+				for (iterate_over(ps3)) {
+					set_template_key(ps3, start3);
+					for (iterate_over(ps2)) {
+						set_template_key(ps2, start2);
+						for (iterate_over(ps1)) {
+							if (options.node_count &&
+							    !(*my_candidates)--)
+								goto done;
+							set_template_key(ps1, start1);
+							process_key(template_key);
+						}
+					ranges(ps1).iter = 0;
+					}
+				ranges(ps2).iter = 0;
 				}
+			ranges(ps3).iter = 0;
 			}
-
-			ps = ranges(ps3).next;
-
-			/*
-			 * Calculate next state of remaing placeholders, working
-			 * similar to counters.
-			 */
-			while(1) {
-
-				if (ps == MAX_NUM_MASK_PLHDR) goto done;
-				if ((++(ranges(ps).iter)) == ranges(ps).count) {
-					ranges(ps).iter = 0;
-					template_key[ranges(ps).pos + offset] =
-					      ranges(ps).chars[ranges(ps).iter];
-					ps = ranges(ps).next;
-				}
-				else {
-					template_key[ranges(ps).pos + offset] =
-					      ranges(ps).chars[ranges(ps).iter];
-					break;
-				}
-			}
+			ranges(ps4).iter = 0;
+			ps = ranges(ps4).next;
+			next_state(ps);
 		}
-#undef ranges
 	}
 	done: ;
+#undef ranges
+#undef process_key
+#undef next_state
+#undef init_key
+#undef iterate_over
+#undef set_template_key
 }
 
 /* Skips iteration for postions stored in arr */
@@ -1102,7 +1116,7 @@ static void fix_state(void)
 static unsigned long int divide_work(cpu_mask_context *cpu_mask_ctx)
 {
 	unsigned long int offset, my_candidates, total_candidates, ctr;
-	int i, skip_first_three, num_active_postions;
+	int i, num_active_postions;
 	double fract;
 
 	fract = (double)(options.node_max - options.node_min + 1) /
@@ -1113,21 +1127,10 @@ static unsigned long int divide_work(cpu_mask_context *cpu_mask_ctx)
 		if ((int)(cpu_mask_ctx->active_positions[i]))
 			num_active_postions++;
 
-	if (num_active_postions < 4) {
-		if (john_main_process)
-			fprintf(stderr, "Insufficient placeholders. Cannot "
-			        "distribute work among nodes!\n");
-		error();
-	}
-
-	skip_first_three = 0;
 	offset = 1;
 	for (i = 0; i < cpu_mask_ctx->count; i++)
-		if ((int)(cpu_mask_ctx->active_positions[i])) {
-			skip_first_three++;
-			if (skip_first_three > 3)
-				offset *= cpu_mask_ctx->ranges[i].count;
-		}
+		if ((int)(cpu_mask_ctx->active_positions[i]))
+			offset *= cpu_mask_ctx->ranges[i].count;
 
 	total_candidates = offset;
 	offset *= fract;
@@ -1148,14 +1151,11 @@ static unsigned long int divide_work(cpu_mask_context *cpu_mask_ctx)
 	skip_first_three = 0;
 	for (i = 0; i < cpu_mask_ctx->count; i++)
 		if ((int)(cpu_mask_ctx->active_positions[i])) {
-			skip_first_three++;
-			if (skip_first_three > 3) {
-				cpu_mask_ctx->
-				ranges[i].iter = (offset / ctr) %
-						  cpu_mask_ctx->ranges[i].count;
-				ctr *= cpu_mask_ctx->ranges[i].count;
-			} else
-				my_candidates *= cpu_mask_ctx->ranges[i].count;
+			cpu_mask_ctx->
+			ranges[i].iter = (offset / ctr) %
+					  cpu_mask_ctx->ranges[i].count;
+			ctr *= cpu_mask_ctx->ranges[i].count;
+			my_candidates *= cpu_mask_ctx->ranges[i].count;
 		}
 
 	return my_candidates;
