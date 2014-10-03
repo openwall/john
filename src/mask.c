@@ -909,7 +909,7 @@ static MAYBE_INLINE char* mask_cp_to_utf8(char *in)
 }
 
 static void generate_keys(char *template_key, cpu_mask_context *cpu_mask_ctx,
-			  unsigned long int *my_candidates)
+			  unsigned long int my_candidates)
 {
 	int i, ps1 = MAX_NUM_MASK_PLHDR, ps2 = MAX_NUM_MASK_PLHDR,
 	    ps3 = MAX_NUM_MASK_PLHDR, ps4 = MAX_NUM_MASK_PLHDR, ps ;
@@ -980,7 +980,7 @@ static void generate_keys(char *template_key, cpu_mask_context *cpu_mask_ctx,
 		init_key(ps);
 
 		while (1) {
-			if (options.node_count && !(*my_candidates)--)
+			if (options.node_count && !(my_candidates)--)
 				goto done;
 
 			process_key(template_key);
@@ -1009,7 +1009,7 @@ static void generate_keys(char *template_key, cpu_mask_context *cpu_mask_ctx,
 						set_template_key(ps2, start2);
 						for (iterate_over(ps1)) {
 							if (options.node_count &&
-							    !(*my_candidates)--)
+							    !(my_candidates)--)
 								goto done;
 							set_template_key(ps1, start1);
 							process_key(template_key);
@@ -1072,10 +1072,10 @@ static double get_progress(void)
 
 	try = ((unsigned long long)status.cands.hi << 32) + status.cands.lo;
 
-	if (!cand)
+	if (!rec_cand)
 		return -1;
 
-	return 100.0 * try / (double)cand;
+	return 100.0 * try / (double)rec_cand;
 }
 
 static void save_state(FILE *file)
@@ -1149,13 +1149,11 @@ static unsigned long int divide_work(cpu_mask_context *cpu_mask_ctx)
 
 	ctr = 1;
 	for (i = 0; i < cpu_mask_ctx->count; i++)
-		if ((int)(cpu_mask_ctx->active_positions[i])) {
-			cpu_mask_ctx->
-			ranges[i].iter = (offset / ctr) %
-					  cpu_mask_ctx->ranges[i].count;
-			ctr *= cpu_mask_ctx->ranges[i].count;
-			my_candidates *= cpu_mask_ctx->ranges[i].count;
-		}
+	if ((int)(cpu_mask_ctx->active_positions[i])) {
+		cpu_mask_ctx->ranges[i].iter = (offset / ctr) %
+			cpu_mask_ctx->ranges[i].count;
+		ctr *= cpu_mask_ctx->ranges[i].count;
+	}
 
 	return my_candidates;
 }
@@ -1258,7 +1256,7 @@ void do_mask_crack(struct db_main *db, char *mask)
 
 	crk_init(db, fix_state, NULL);
 
-	generate_keys(template_key, &cpu_mask_ctx, &cand);
+	generate_keys(template_key, &cpu_mask_ctx, cand);
 
 	// For reporting DONE regardless of rounding errors
 	if (!event_abort)
