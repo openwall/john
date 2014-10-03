@@ -34,7 +34,7 @@
 
 #include "common-gpu.h"
 #include "john.h"
-
+#include "memory.h"
 #include "memdbg.h"
 
 /* These are shared between OpenCL and CUDA */
@@ -231,6 +231,8 @@ void amd_probe(void)
 				adl2od[adl_id] = 0;
 		}
 	}
+	MEM_FREE(lpAdapterInfo);
+	ADL_Main_Control_Destroy();
 #endif
 }
 
@@ -283,6 +285,9 @@ static void get_temp_od5(int adl_id, int *temp, int *fanspeed, int *util)
 	ADLODParameters overdriveParameters = { 0 };
 	ADLPMActivity activity = { 0 };
 
+	if (ADL_Main_Control_Create(ADL_Main_Memory_Alloc, 1) != ADL_OK)
+		return;
+
 	*temp = *fanspeed = *util = -1;
 
 	if (!ADL_Overdrive5_ThermalDevices_Enum ||
@@ -327,6 +332,7 @@ static void get_temp_od5(int adl_id, int *temp, int *fanspeed, int *util)
 			*util = activity.iActivityPercent;
 	}
 
+	ADL_Main_Control_Destroy();
 	return;
 }
 
@@ -337,6 +343,9 @@ static void get_temp_od6(int adl_id, int *temp, int *fanspeed, int *util)
 	ADLOD6Capabilities od6Capabilities = { 0 };
 	int temperature = 0;
 	ADLOD6CurrentStatus currentStatus = { 0 };
+
+	if (ADL_Main_Control_Create(ADL_Main_Memory_Alloc, 1) != ADL_OK)
+		return;
 
 	*temp = *fanspeed = *util = -1;
 
@@ -362,6 +371,7 @@ static void get_temp_od6(int adl_id, int *temp, int *fanspeed, int *util)
 			*util = currentStatus.iActivityPercent;
 	}
 
+	ADL_Main_Control_Destroy();
 	return;
 }
 #endif
