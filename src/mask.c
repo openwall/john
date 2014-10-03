@@ -1067,7 +1067,7 @@ static double get_progress(void)
 static void save_state(FILE *file)
 {
 	int i;
-	fprintf(file, "%lu\n", rec_cand);
+	fprintf(file, "%lu\n", rec_cand + 1);
 	fprintf(file, "%d\n", rec_ctx.count);
 	fprintf(file, "%d\n", rec_ctx.offset);
 	for (i = 0; i < rec_ctx.count; i++)
