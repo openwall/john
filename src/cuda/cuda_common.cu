@@ -9,6 +9,8 @@
 #include <stdio.h>
 #include <assert.h>
 
+#include "../autoconfig.h"
+#define HAVE_CUDA
 #include "../common-gpu.h"
 #include "cuda.h"
 #include "cuda_common.cuh"
@@ -53,13 +55,21 @@ static char *human_format(size_t size)
 }
 
 extern "C"
-void nvidia_get_temp(int gpu_id, int *temp, int *fanspeed, int *util);
+int cuda_id2nvml(int cuda_id)
+{
+#if __linux__ && HAVE_LIBDL
+	cudaDeviceProp devProp;
+	hw_bus pci_info;
 
-extern "C"
-void nvidia_probe(void);
-
-extern "C"
-void *nvml_lib;
+	cudaGetDeviceProperties(&devProp, cuda_id);
+	memset(pci_info.busId, 0, sizeof(pci_info.busId));
+	sprintf(pci_info.busId, "%02x:%02x.%x",
+	        devProp.pciBusID, devProp.pciDeviceID, devProp.pciDomainID);
+	return id2nvml(pci_info);
+#else
+	return -1;
+#endif
+}
 
 extern "C"
 void cuda_device_list()
@@ -142,19 +152,30 @@ void cuda_device_list()
 		    devProp.maxThreadsPerMultiProcessor);
 		printf("\tPCI device topology:           %02x:%02x.%x\n",
 		    devProp.pciBusID, devProp.pciDeviceID, devProp.pciDomainID);
+#if __linux__ && HAVE_LIBDL
 		if (nvml_lib) {
 			int fan, temp, util;
 
+			printf("\tNVML id:                       %d\n",
+			       cuda_id2nvml(i));
 			fan = temp = util = -1;
 
 			nvidia_get_temp(i, &temp, &fan, &util);
 			if (fan >= 0)
 				printf("\tFan speed:                     %d%%\n", fan);
+			else
+				printf("\tFan speed:                     n/a\n");
 			if (temp >= 0)
-				printf("\tGPU temp:                      %d°C\n", temp);
+				printf("\tGPU temp:                      %d"
+				       DEGC "\n", temp);
+			else
+				printf("\tGPU temp:                      n/a\n");
 			if (util >= 0)
 				printf("\tUtilization:                   %d%%\n", util);
+			else
+				printf("\tUtilization:                   n/a\n");
 		}
+#endif
 		puts("");
 	}
 }

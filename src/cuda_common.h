@@ -31,6 +31,7 @@ extern void cuda_done(void);
       exit(1);\
     }
 
+extern int cuda_id2nvml(int cuda_id);
 extern void cuda_device_list();
 
 extern void HandleError(cudaError_t err, const char *file, int line);

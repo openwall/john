@@ -17,6 +17,10 @@
 
 #if defined (HAVE_CUDA) || defined (HAVE_OPENCL)
 
+#if (__cplusplus)
+extern "C" {
+#endif
+
 extern void *nvml_lib;
 extern void *adl_lib;
 
@@ -135,12 +139,16 @@ extern void (*dev_get_temp[MAX_GPU_DEVICES]) (int, int *, int *, int *);
 extern unsigned int temp_dev_id[MAX_GPU_DEVICES];
 
 /* Map OpenCL device number to ADL/NVML device number using PCI info */
-int id2nvml(const hw_bus busInfo);
-int id2adl(const hw_bus busInfo);
+extern int id2nvml(const hw_bus busInfo);
+extern int id2adl(const hw_bus busInfo);
 
 /* Mapping between our device number and ADL id */
 extern int amd2adl[MAX_GPU_DEVICES];
 extern int adl2od[MAX_GPU_DEVICES];
+
+#if (__cplusplus)
+}
+#endif
 
 #endif /* defined (HAVE_CUDA) || defined (HAVE_OPENCL) */
 

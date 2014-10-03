@@ -40,7 +40,7 @@ void cuda_init()
 		}
 		gpu_id = atoi(current->data);
 		dev_get_temp[gpu_id] = nvml_lib ? nvidia_get_temp : NULL;
-		temp_dev_id[gpu_id] = gpu_id;
+		temp_dev_id[gpu_id] = cuda_id2nvml(gpu_id);
 		do {
 			int device_repeat = 0, i;
 			int device_id = atoi(current->data);
