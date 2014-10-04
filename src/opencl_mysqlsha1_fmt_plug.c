@@ -27,7 +27,6 @@ john_register_one(&fmt_opencl_mysqlsha1);
 #include "formats.h"
 #include "sha.h"
 #include "common-opencl.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "mysql-sha1-opencl"
 #define FORMAT_NAME             "MySQL 4.1+"
@@ -48,6 +47,17 @@ john_register_one(&fmt_opencl_mysqlsha1);
 #define MAX_KEYS_PER_CRYPT      (1024 * 2048)
 
 #define OCL_CONFIG              "mysql-sha1"
+
+#define STEP 0
+#define SEED 64
+
+//This file contains auto-tuning routine(s). Has to be included after formats definitions.
+#include "opencl_autotune.h"
+#include "memdbg.h"
+
+static const char * warn[] = {
+	"xfer: ",  "xfer: ",  ", crypt: ",  ", xfer: "
+};
 
 #define MIN(a, b)		(((a) > (b)) ? (b) : (a))
 #define MAX(a, b)		(((a) > (b)) ? (a) : (b))
@@ -81,11 +91,28 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
+/* ------- Helper functions ------- */
+static size_t get_task_max_work_group_size()
+{
+	return common_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
+}
+
+static size_t get_task_max_size()
+{
+	return 0;
+}
+
+static size_t get_default_workgroup()
+{
+	if (cpu(device_info[gpu_id]))
+		return get_platform_vendor_id(platform_id) == DEV_INTEL ?
+			8 : 1;
+	else
+		return 64;
+}
+
 static void create_clobj(size_t gws, struct fmt_main *self)
 {
-	global_work_size = gws;
-	self->params.max_keys_per_crypt = gws;
-
 	pinned_key = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, PLAINTEXT_LENGTH * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked buffer");
 	cl_saved_key = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, PLAINTEXT_LENGTH * gws, NULL, &ret_code);
@@ -134,164 +161,6 @@ static void done(void)
 	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
 }
 
-static cl_ulong gws_test(size_t gws, struct fmt_main *self)
-{
-	cl_ulong startTime, endTime;
-	cl_event Event[4];
-	int i, tidx = 0;
-	size_t *lws = local_work_size ? &local_work_size : NULL;
-
-	create_clobj(gws, self);
-
-	// Set keys - all keys from tests will be benchmarked and some
-	// will be permuted to force them unique
-	self->methods.clear_keys();
-	for (i = 0; i < gws; i++) {
-		union {
-			char c[PLAINTEXT_BUFFER_SIZE];
-			unsigned int w;
-		} uniq;
-		int len;
-		if (self->params.tests[tidx].plaintext == NULL)
-			tidx = 0;
-		len = strlen(self->params.tests[tidx].plaintext);
-		strncpy(uniq.c, self->params.tests[tidx++].plaintext,
-		        sizeof(uniq.c));
-		uniq.w ^= i;
-		uniq.c[len] = 0;
-		self->methods.set_key(uniq.c, i);
-	}
-
-	/* Emulate crypt_all() */
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_key, CL_FALSE, key_offset, key_idx - key_offset, saved_key + key_offset, 0, NULL, &Event[0]), "Failed transferring keys");
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_idx, CL_FALSE, idx_offset, sizeof(cl_uint) * (global_work_size + 1) - idx_offset, saved_idx + (idx_offset / sizeof(cl_uint)), 0, NULL, &Event[1]), "Failed transferring index");
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, lws, 0, NULL, &Event[2]), "running kernel");
-
-	/* Only benchmark partial transfer - that is what we optimize for */
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_result, CL_TRUE, 0, sizeof(cl_uint) * gws, output, 0, NULL, &Event[3]), "failed in reading output back");
-
-	HANDLE_CLERROR(clGetEventProfilingInfo(Event[0],
-            CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime,
-            NULL), "Failed to get profiling info");
-	HANDLE_CLERROR(clGetEventProfilingInfo(Event[1],
-            CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime,
-            NULL), "Failed to get profiling info");
-	if (options.verbosity > 3)
-		fprintf(stderr, "key xfer %.2f ms, ", (double)(endTime-startTime)/1000000.);
-
-	HANDLE_CLERROR(clGetEventProfilingInfo(Event[2],
-            CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime,
-            NULL), "Failed to get profiling info");
-	HANDLE_CLERROR(clGetEventProfilingInfo(Event[2],
-            CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime,
-            NULL), "Failed to get profiling info");
-	if (options.verbosity > 3)
-		fprintf(stderr, "crypt kernel %.2f ms, ", (double)((endTime - startTime)/1000000.));
-
-	/* 200 ms duration limit */
-	if (endTime - startTime > 200000000) {
-		if (options.verbosity > 3)
-			fprintf(stderr, "- exceeds 200 ms\n");
-		release_clobj();
-		return 0;
-	}
-
-	HANDLE_CLERROR(clGetEventProfilingInfo(Event[3],
-	    CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime,
-	    NULL), "Failed to get profiling info");
-	HANDLE_CLERROR(clGetEventProfilingInfo(Event[3],
-	    CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime,
-	    NULL), "Failed to get profiling info");
-	if (options.verbosity > 3)
-		fprintf(stderr, "results xfer %.2f ms", (double)(endTime-startTime)/1000000.);
-
-	if (options.verbosity > 3)
-		fprintf(stderr, "\n");
-
-	HANDLE_CLERROR(clGetEventProfilingInfo(Event[0],
-	    CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime,
-	    NULL), "Failed to get profiling info");
-	HANDLE_CLERROR(clGetEventProfilingInfo(Event[3],
-	    CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime,
-	    NULL), "Failed to get profiling info");
-
-	release_clobj();
-
-	return (endTime - startTime);
-}
-
-static void find_best_gws(struct fmt_main *self)
-{
-	int num, max_gws;
-	cl_ulong run_time, min_time = CL_ULONG_MAX;
-	double SHA1speed, bestSHA1speed = 0.0;
-	int optimal_gws = get_kernel_preferred_multiple(gpu_id,
-	                                                crypt_kernel);
-	const int sha1perkey = 2;
-	unsigned long long int MaxRunTime = 1000000000ULL;
-
-	/* Enable profiling */
-#ifndef CL_VERSION_1_1
-	HANDLE_CLERROR(clSetCommandQueueProperty(queue[gpu_id], CL_QUEUE_PROFILING_ENABLE, CL_TRUE, NULL), "Failed enabling profiling");
-#else /* clSetCommandQueueProperty() is deprecated */
-	cl_command_queue origQueue = queue[gpu_id];
-	queue[gpu_id] = clCreateCommandQueue(context[gpu_id], devices[gpu_id], CL_QUEUE_PROFILING_ENABLE, &ret_code);
-	HANDLE_CLERROR(ret_code, "Failed enabling profiling");
-#endif
-
-	/* Beware of device limits */
-	max_gws = get_max_mem_alloc_size(gpu_id) / PLAINTEXT_LENGTH;
-
-	if (options.verbosity > 3) {
-		fprintf(stderr, "Calculating best keys per crypt (GWS) for LWS=%zd and max. %llu s duration.\n\n", local_work_size, MaxRunTime / 1000000000UL);
-		fprintf(stderr, "Raw GPU speed figures including buffer transfers:\n");
-	}
-
-	for (num = MAX(local_work_size, optimal_gws); num <= max_gws; num *= 2) {
-		if (!(run_time = gws_test(num, self)))
-			break;
-
-		SHA1speed = sha1perkey * (1000000000. * num / run_time);
-
-		if (run_time < min_time)
-			min_time = run_time;
-
-		if (options.verbosity > 3)
-			fprintf(stderr, "gws %6d %9.0f c/s %13.0f sha1/s%8.2f sec per crypt_all()", num, (1000000000. * num / run_time), SHA1speed, (double)run_time / 1000000000.);
-		else
-			advance_cursor();
-
-		if (((double)run_time / (double)min_time) < (SHA1speed / bestSHA1speed)) {
-			if (options.verbosity > 3)
-				fprintf(stderr, "!\n");
-			bestSHA1speed = SHA1speed;
-			optimal_gws = num;
-		} else {
-			if (run_time < MaxRunTime && SHA1speed > bestSHA1speed) {
-				if (options.verbosity > 3)
-					fprintf(stderr, "+\n");
-				bestSHA1speed = SHA1speed;
-				optimal_gws = num;
-				continue;
-			}
-			if (options.verbosity > 3)
-				fprintf(stderr, "\n");
-			if (run_time >= MaxRunTime)
-				break;
-		}
-	}
-
-	/* Disable profiling */
-#ifndef CL_VERSION_1_1
-	HANDLE_CLERROR(clSetCommandQueueProperty(queue[gpu_id], CL_QUEUE_PROFILING_ENABLE, CL_FALSE, NULL), "Failed disabling profiling");
-#else /* clSetCommandQueueProperty() is deprecated */
-	clReleaseCommandQueue(queue[gpu_id]);
-	queue[gpu_id] = origQueue;
-#endif
-
-	global_work_size = optimal_gws;
-}
-
 static int valid(char *ciphertext, struct fmt_main *self){
 	int i;
 
@@ -320,7 +189,6 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 
 static void init(struct fmt_main *self)
 {
-	cl_ulong maxsize, max_mem;
 	char build_opts[64];
 
 	local_work_size = global_work_size = 0;
@@ -329,46 +197,17 @@ static void init(struct fmt_main *self)
 	        "-DPLAINTEXT_LENGTH=%u", PLAINTEXT_LENGTH);
 	opencl_init("$JOHN/kernels/msha_kernel.cl", gpu_id, build_opts);
 
-	/* Read LWS/GWS prefs from config or environment */
-	opencl_get_user_preferences(OCL_CONFIG);
-
 	// create kernel to execute
 	crypt_kernel = clCreateKernel(program[gpu_id], "mysqlsha1_crypt_kernel", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 
-	/* Enumerate GWS using *LWS=NULL (unless it was set explicitly) */
-	if (!global_work_size)
-		find_best_gws(self);
+	//Initialize openCL tuning (library) for this format.
+	opencl_init_auto_setup(SEED, 0, NULL,
+		warn, 1, self, create_clobj, release_clobj,
+		PLAINTEXT_LENGTH, 0);
 
-	/* Note: we ask for the kernel's max size, not the device's! */
-	maxsize = get_kernel_max_lws(gpu_id, crypt_kernel);
-
-	// Obey device limits
-	max_mem = get_max_mem_alloc_size(gpu_id);
-	while (global_work_size > max_mem / ((PLAINTEXT_LENGTH + 63) / 64 * 64))
-		global_work_size -= get_kernel_preferred_multiple(gpu_id,
-		                                                  crypt_kernel);
-
-	if (!local_work_size) {
-		create_clobj(global_work_size, self);
-		opencl_find_best_workgroup_limit(self, maxsize, gpu_id, crypt_kernel);
-		release_clobj();
-	}
-
-	if (local_work_size > maxsize)
-		local_work_size = maxsize;
-
-	if (global_work_size < local_work_size)
-		global_work_size = local_work_size;
-
-	// Ensure GWS is multiple of LWS
-	global_work_size = global_work_size / local_work_size * local_work_size;
-
-	if (options.verbosity > 2)
-		fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n",(int)local_work_size, (int)global_work_size);
-
-	create_clobj(global_work_size, self);
-	self->params.min_keys_per_crypt = local_work_size;
+	//Auto tune execution from shared/included code.
+	common_run_auto_tune(self, 2, 0, 100000000);
 }
 
 static void clear_keys(void)
@@ -471,14 +310,14 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		idx_offset = 0;
 
 	if (key_idx > key_offset)
-		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_key, CL_FALSE, key_offset, key_idx - key_offset, saved_key + key_offset, 0, NULL, NULL), "Failed transferring keys");
+		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_key, CL_FALSE, key_offset, key_idx - key_offset, saved_key + key_offset, 0, NULL, multi_profilingEvent[0]), "Failed transferring keys");
 
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_idx, CL_FALSE, idx_offset, sizeof(cl_uint) * (global_work_size + 1) - idx_offset, saved_idx + (idx_offset / sizeof(cl_uint)), 0, NULL, NULL), "Failed transferring index");
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_idx, CL_FALSE, idx_offset, sizeof(cl_uint) * (global_work_size + 1) - idx_offset, saved_idx + (idx_offset / sizeof(cl_uint)), 0, NULL, multi_profilingEvent[1]), "Failed transferring index");
 
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, profilingEvent), "failed in clEnqueueNDRangeKernel");
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, multi_profilingEvent[2]), "failed in clEnqueueNDRangeKernel");
 
 	// read back partial hashes
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_result, CL_TRUE, 0, sizeof(cl_uint) * global_work_size, output, 0, NULL, NULL), "failed in reading data back");
+	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_result, CL_TRUE, 0, sizeof(cl_uint) * global_work_size, output, 0, NULL, multi_profilingEvent[3]), "failed in reading data back");
 	partial_output = 1;
 
 	return count;
