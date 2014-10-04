@@ -272,6 +272,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 					      &evnt), "Enqueue Kernel Failed.");
 	HANDLE_CLERROR(clWaitForEvents(1, &evnt),
 		       "Wait for Kernel Call Failed.");
+	clReleaseEvent(evnt);
 
 	mem_cpy_sz = count * BINARY_SIZE;
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id],

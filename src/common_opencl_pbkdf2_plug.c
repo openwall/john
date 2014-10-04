@@ -490,6 +490,7 @@ static gpu_mem_buffer exec_pbkdf2(cl_uint *pass_api, cl_uint *salt_api, cl_uint 
 		else
 			HANDLE_CLERROR(err, "Enqueue Kernel Failed");
 
+		clReleaseEvent(evnt);
 		return globalObj[jtrUniqDevNo].gpu_buffer;
 	}
 
@@ -519,6 +520,7 @@ static gpu_mem_buffer exec_pbkdf2(cl_uint *pass_api, cl_uint *salt_api, cl_uint 
 			else
 				HANDLE_CLERROR(err, "Enqueue Kernel Failed");
 
+			clReleaseEvent(evnt);
 			return globalObj[jtrUniqDevNo].gpu_buffer;
 		}
 
@@ -546,6 +548,7 @@ static gpu_mem_buffer exec_pbkdf2(cl_uint *pass_api, cl_uint *salt_api, cl_uint 
 		else
 			HANDLE_CLERROR(err, "Enqueue Kernel Failed");
 
+		clReleaseEvent(evnt);
 		return globalObj[jtrUniqDevNo].gpu_buffer;
 	}
 
@@ -573,6 +576,7 @@ static gpu_mem_buffer exec_pbkdf2(cl_uint *pass_api, cl_uint *salt_api, cl_uint 
          else
 		event_ctr++;
 
+	clReleaseEvent(evnt);
          return globalObj[jtrUniqDevNo].gpu_buffer;
 }
 

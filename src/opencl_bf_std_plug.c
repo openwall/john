@@ -627,6 +627,7 @@ void exec_bf(cl_uint *salt_api, cl_uint *BF_out, cl_uint rounds, int n) {
 	HANDLE_CLERROR(err, "Enque Kernel Failed") ;
 
 	HANDLE_CLERROR(clWaitForEvents(1, &evnt), "Sync :FAILED") ;
+	clReleaseEvent(evnt);
 
 	errMsg = "Read data from device: Failed" ;
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buffers[gpu_id].out_gpu, CL_FALSE, 0, 2 * BF_N * sizeof(cl_uint), BF_out, 0, NULL, NULL), errMsg) ;
