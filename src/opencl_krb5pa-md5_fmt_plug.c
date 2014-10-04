@@ -146,9 +146,6 @@ static size_t get_default_workgroup()
 
 static void create_clobj(size_t gws, struct fmt_main *self)
 {
-	global_work_size = gws;
-	self->params.max_keys_per_crypt = gws;
-
 	pinned_key = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, max_len * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked buffer");
 	cl_saved_key = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, max_len * gws, NULL, &ret_code);
