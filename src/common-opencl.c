@@ -773,9 +773,16 @@ static void dev_init(int sequential_id)
 static char *include_source(char *pathname, int sequential_id, char *opts)
 {
 	static char include[PATH_BUFFER_SIZE];
+	char *global_opts;
+
+	if (!(global_opts = getenv("OPENCLBUILDOPTIONS")))
+	if (!(global_opts = cfg_get_param(SECTION_OPTIONS,
+	                                 SUBSECTION_OPENCL,
+	                                 "GlobalBuildOpts")))
+		global_opts = OPENCLBUILDOPTIONS;
 
 	sprintf(include, "-I %s %s %s%s%s%d %s %s", path_expand(pathname),
-		OPENCLBUILDOPTIONS,
+		global_opts,
 #ifdef __APPLE__
 		"-DAPPLE ",
 #else
