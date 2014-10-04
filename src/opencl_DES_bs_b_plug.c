@@ -49,6 +49,8 @@ void DES_opencl_clean_all_buffer()
 	for( i = 0; i < 4096; i++)
 		if (krnl[gpu_id][i])
 			clReleaseKernel(krnl[gpu_id][i]);
+	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]),
+	               "Error releasing Program");
 }
 
 void opencl_DES_reset(struct db_main *db) {

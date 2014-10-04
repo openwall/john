@@ -58,6 +58,8 @@ void clean_all_buffer() {
 		HANDLE_CLERROR(clReleaseKernel(globalObj[gpu_device_list[i]].krnl[2]), "Error releasing kernel pbkdf2_iter");
 		HANDLE_CLERROR(clReleaseKernel(globalObj[gpu_device_list[i]].krnl[3]), "Error releasing kernel pbkdf2_postprocess");
 	 }
+	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]),
+	               "Error releasing Program");
 }
 
 static void find_best_workgroup(int jtrUniqDevNo, unsigned int gpu_perf) {
