@@ -34,7 +34,6 @@ john_register_one(&fmt_opencl_encfs);
 #include "misc.h"
 #define OUTLEN (32 + 16)
 #include "opencl_pbkdf2_hmac_sha1.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL		"encfs-opencl"
 #define FORMAT_NAME		"EncFS"
@@ -59,17 +58,6 @@ john_register_one(&fmt_opencl_encfs);
 
 /* This handles all widths */
 #define GETPOS(i, index)	(((index) % v_width) * 4 + ((i) & ~3U) * v_width + (((i) & 3) ^ 3) + ((index) / v_width) * 64 * v_width)
-
-/*
- * HASH_LOOPS is ideally made by factors of (iteration count - 1) and should
- * be chosen for a kernel duration of not more than 200 ms
- */
-#define HASH_LOOPS		(3 * 251)
-
-#define LOOP_COUNT		(((currentsalt.iterations - 1 + HASH_LOOPS - 1)) / HASH_LOOPS)
-#define OCL_CONFIG		"encfs"
-
-#define MIN(a, b)		(((a) > (b)) ? (b) : (a))
 
 static int *cracked;
 static int any_cracked;
@@ -111,11 +99,55 @@ static cl_kernel pbkdf2_init, pbkdf2_loop, pbkdf2_final;
 
 #define cracked_size (sizeof(*cracked) * global_work_size * v_width)
 
+/*
+ * HASH_LOOPS is ideally made by factors of (iteration count - 1) and should
+ * be chosen for a kernel duration of not more than 200 ms
+ */
+#define HASH_LOOPS		(3 * 251)
+#define ITERATIONS		181474 /* Just for auto tune */
+#define LOOP_COUNT		(((currentsalt.iterations - 1 + HASH_LOOPS - 1)) / HASH_LOOPS)
+#define OCL_CONFIG		"encfs"
+#define STEP			0
+#define SEED			64
+
+static const char * warn[] = {
+	"P xfer: "  ,  ", init: "   , ", loop: " , ", final: ", ", res xfer: "
+};
+
+static int split_events[] = { 2, -1, -1 };
+
+//This file contains auto-tuning routine(s). Has to be included after formats definitions.
+#include "opencl_autotune.h"
+#include "memdbg.h"
+
+/* ------- Helper functions ------- */
+static size_t get_task_max_work_group_size()
+{
+	size_t s;
+
+	s = common_get_task_max_work_group_size(FALSE, 0, pbkdf2_init);
+	s = MIN(s, common_get_task_max_work_group_size(FALSE, 0, pbkdf2_loop));
+	s = MIN(s, common_get_task_max_work_group_size(FALSE, 0, pbkdf2_final));
+	return s;
+}
+
+static size_t get_task_max_size()
+{
+	return 0;
+}
+
+static size_t get_default_workgroup()
+{
+	if (cpu(device_info[gpu_id]))
+		return get_platform_vendor_id(platform_id) == DEV_INTEL ?
+			8 : 1;
+	else
+		return 64;
+}
+
 static void create_clobj(size_t gws, struct fmt_main *self)
 {
-	global_work_size = gws;
 	gws *= v_width;
-	self->params.max_keys_per_crypt = gws;
 
 	key_buf_size = 64 * gws;
 
@@ -162,137 +194,6 @@ static void done(void)
 
 	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
 	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
-}
-
-static cl_ulong gws_test(size_t gws, struct fmt_main *self)
-{
-	cl_ulong startTime, endTime;
-	cl_command_queue queue_prof;
-	cl_event Event[7];
-	cl_int ret_code;
-	int i;
-	size_t scalar_gws = v_width * gws;
-	size_t *lws = local_work_size ? &local_work_size : NULL;
-
-	create_clobj(gws, self);
-	queue_prof = clCreateCommandQueue(context[gpu_id], devices[gpu_id], CL_QUEUE_PROFILING_ENABLE, &ret_code);
-	for (i = 0; i < scalar_gws; i++)
-		self->methods.set_key(tests[0].plaintext, i);
-	self->methods.set_salt(self->methods.salt(tests[0].ciphertext));
-
-	/// Copy data to gpu
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, mem_in, CL_FALSE, 0, key_buf_size, inbuffer, 0, NULL, &Event[0]), "Copy data to gpu");
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, mem_salt, CL_FALSE, 0, sizeof(pbkdf2_salt), &currentsalt, 0, NULL, &Event[1]), "Copy setting to gpu");
-
-	/// Run kernels
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, pbkdf2_init, 1, NULL, &global_work_size, lws, 0, NULL, &Event[2]), "Run initial kernel");
-
-	//for (i = 0; i < LOOP_COUNT; i++)
-		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, pbkdf2_loop, 1, NULL, &global_work_size, lws, 0, NULL, &Event[3]), "Run loop kernel");
-
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, pbkdf2_final, 1, NULL, &global_work_size, lws, 0, NULL, &Event[4]), "Run intermediate kernel");
-
-	//for (i = 0; i < LOOP_COUNT; i++)
-		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, pbkdf2_loop, 1, NULL, &global_work_size, lws, 0, NULL, NULL), "Run loop kernel (2nd)");
-
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, pbkdf2_final, 1, NULL, &global_work_size, lws, 0, NULL, &Event[5]), "Run final kernel");
-
-	/// Read the result back
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue_prof, mem_out, CL_TRUE, 0, sizeof(pbkdf2_out) * scalar_gws, output, 0, NULL, &Event[6]), "Copy result back");
-
-#if 0
-	HANDLE_CLERROR(clGetEventProfilingInfo(Event[2], CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime, NULL), "Failed to get profiling info");
-	HANDLE_CLERROR(clGetEventProfilingInfo(Event[2], CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime, NULL), "Failed to get profiling info");
-	if (options.verbosity > 3)
-		fprintf(stderr, "pbkdf2_init kernel duration: %llu us, ", (endTime-startTime)/1000ULL);
-#endif
-
-	HANDLE_CLERROR(clGetEventProfilingInfo(Event[3], CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime, NULL), "Failed to get profiling info");
-	HANDLE_CLERROR(clGetEventProfilingInfo(Event[3], CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime, NULL), "Failed to get profiling info");
-	if (options.verbosity > 3)
-		fprintf(stderr, "loop kernel %.2f ms x %u = %.2f s, ", (endTime - startTime)/1000000., 2 * (currentsalt.iterations - 1)/HASH_LOOPS, 2 * ((currentsalt.iterations - 1)/HASH_LOOPS) * (endTime - startTime) / 1000000000.);
-
-	/* 200 ms duration limit */
-	if (endTime - startTime > 200000000) {
-		if (options.verbosity > 3)
-			fprintf(stderr, "- exceeds 200 ms\n");
-		clReleaseCommandQueue(queue_prof);
-		release_clobj();
-		return 0;
-	}
-
-#if 0
-	HANDLE_CLERROR(clGetEventProfilingInfo(Event[4], CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime, NULL), "Failed to get profiling info");
-	HANDLE_CLERROR(clGetEventProfilingInfo(Event[4], CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime, NULL), "Failed to get profiling info");
-	if (options.verbosity > 3)
-		fprintf(stderr, "pbkdf2_pass2 kernel duration: %llu us, ", (endTime-startTime)/1000ULL);
-
-	HANDLE_CLERROR(clGetEventProfilingInfo(Event[5], CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime, NULL), "Failed to get profiling info");
-	HANDLE_CLERROR(clGetEventProfilingInfo(Event[5], CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime, NULL), "Failed to get profiling info");
-	if (options.verbosity > 3)
-		fprintf(stderr, "pbkdf2_final kernel duration: %llu us\n", (endTime-startTime)/1000ULL);
-#endif
-
-	//HANDLE_CLERROR(clGetEventProfilingInfo(Event[0], CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime, NULL), "Failed to get profiling info");
-	//HANDLE_CLERROR(clGetEventProfilingInfo(Event[6], CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime, NULL), "Failed to get profiling info");
-	HANDLE_CLERROR(clGetEventProfilingInfo(Event[3], CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime, NULL), "Failed to get profiling info");
-	HANDLE_CLERROR(clGetEventProfilingInfo(Event[3], CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime, NULL), "Failed to get profiling info");
-
-	clReleaseCommandQueue(queue_prof);
-	release_clobj();
-
-	return (endTime - startTime) * ((currentsalt.outlen + 19) / 20) * (LOOP_COUNT);
-}
-
-static void find_best_gws(struct fmt_main *self)
-{
-	int num;
-	cl_ulong run_time, min_time = CL_ULONG_MAX;
-	unsigned int SHAspeed, bestSHAspeed = 0;
-	int optimal_gws = get_kernel_preferred_multiple(gpu_id,
-	                                                crypt_kernel);
-	unsigned long long int MaxRunTime = cpu(device_info[gpu_id]) ? 5000000000ULL : 10000000000ULL;
-#define sha1perkey (2 * (currentsalt.iterations) * ((currentsalt.outlen + 19) / 20))
-
-	if (options.verbosity > 3) {
-		fprintf(stderr, "Calculating best keys per crypt (GWS) for LWS=%zd and max. %llu s duration.\n\n", local_work_size, MaxRunTime / 1000000000UL);
-		fprintf(stderr, "Raw GPU speed figures including buffer transfers:\n");
-	}
-
-	for (num = MAX(local_work_size, optimal_gws); num; num *= 2) {
-		if (!(run_time = gws_test(num, self)))
-			break;
-
-		SHAspeed = sha1perkey * (1000000000UL * v_width * num / run_time);
-
-		if (run_time < min_time)
-			min_time = run_time;
-
-		if (options.verbosity > 3)
-			fprintf(stderr, "gws %6d%8llu c/s%14u sha1/s%8.3f sec per crypt_all()", num, (1000000000ULL * v_width * num / run_time), SHAspeed, (float)run_time / 1000000000.);
-		else
-			advance_cursor();
-
-		if (((float)run_time / (float)min_time) < ((float)SHAspeed / (float)bestSHAspeed)) {
-			if (options.verbosity > 3)
-				fprintf(stderr, "!\n");
-			bestSHAspeed = SHAspeed;
-			optimal_gws = num;
-		} else {
-			if (run_time < MaxRunTime && SHAspeed > bestSHAspeed) {
-				if (options.verbosity > 3)
-					fprintf(stderr, "+\n");
-				bestSHAspeed = SHAspeed;
-				optimal_gws = num;
-				continue;
-			}
-			if (options.verbosity > 3)
-				fprintf(stderr, "\n");
-			if (run_time >= MaxRunTime)
-				break;
-		}
-	}
-	global_work_size = optimal_gws;
 }
 
 static void setIVec( unsigned char *ivec, uint64_t seed,
@@ -445,7 +346,6 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *salt);
 static void init(struct fmt_main *self)
 {
 	char build_opts[64];
-	cl_ulong maxsize, maxsize2, max_mem;
 	static char valgo[sizeof(ALGORITHM_NAME) + 8] = "";
 
 	if ((v_width = opencl_get_vector_width(gpu_id,
@@ -462,9 +362,6 @@ static void init(struct fmt_main *self)
 	         HASH_LOOPS, OUTLEN, PLAINTEXT_LENGTH, v_width);
 	opencl_init("$JOHN/kernels/pbkdf2_hmac_sha1_kernel.cl", gpu_id, build_opts);
 
-	/* Read LWS/GWS prefs from config or environment */
-	opencl_get_user_preferences(OCL_CONFIG);
-
 	crypt_kernel = pbkdf2_init = clCreateKernel(program[gpu_id], "pbkdf2_init", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel");
 	pbkdf2_loop = clCreateKernel(program[gpu_id], "pbkdf2_loop", &ret_code);
@@ -472,52 +369,19 @@ static void init(struct fmt_main *self)
 	pbkdf2_final = clCreateKernel(program[gpu_id], "pbkdf2_final", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel");
 
-	/* Enumerate GWS using *LWS=NULL (unless it was set explicitly) */
-	if (!global_work_size)
-		find_best_gws(self);
+	//Initialize openCL tuning (library) for this format.
+	opencl_init_auto_setup(SEED, 2*HASH_LOOPS, split_events,
+		warn, 2, self, create_clobj, release_clobj,
+	        sizeof(pbkdf2_state), 0);
 
-	/* Note: we ask for the kernels' max sizes, not the device's! */
-	maxsize = get_kernel_max_lws(gpu_id, pbkdf2_init);
-	maxsize2 = get_kernel_max_lws(gpu_id, pbkdf2_loop);
-	if (maxsize2 < maxsize) maxsize = maxsize2;
-	maxsize2 = get_kernel_max_lws(gpu_id, pbkdf2_final);
-	if (maxsize2 < maxsize) maxsize = maxsize2;
-
-	// Obey device limits
-	max_mem = get_max_mem_alloc_size(gpu_id);
-	while (global_work_size * v_width > max_mem / PLAINTEXT_LENGTH)
-		global_work_size -= get_kernel_preferred_multiple(gpu_id,
-		                                                  crypt_kernel);
-
-	if (local_work_size > maxsize)
-		local_work_size = maxsize;
-
-	if (!local_work_size) {
-		if (cpu(device_info[gpu_id])) {
-			if (get_platform_vendor_id(platform_id) == DEV_INTEL)
-				local_work_size = MIN(maxsize, 8);
-			else
-				local_work_size = 1;
-		} else {
-			create_clobj(global_work_size, self);
-			self->methods.crypt_all = crypt_all_benchmark;
-			opencl_find_best_workgroup_limit(self, maxsize,
-			                                 gpu_id,
-			                                 crypt_kernel);
-			self->methods.crypt_all = crypt_all;
-			release_clobj();
-		}
-	}
+	//Auto tune execution from shared/included code.
+	self->methods.crypt_all = crypt_all_benchmark;
+	common_run_auto_tune(self, 2 * (ITERATIONS - 1) + 4, 0,
+		(cpu(device_info[gpu_id]) ? 1000000000 : 5000000000ULL));
+	self->methods.crypt_all = crypt_all;
 
 	self->params.min_keys_per_crypt = local_work_size * v_width;
-
-	if (global_work_size < local_work_size)
-		global_work_size = local_work_size;
-
-	if (options.verbosity > 2)
-		fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
-
-	create_clobj(global_work_size, self);
+	self->params.max_keys_per_crypt = global_work_size * v_width;
 }
 
 static int ishex(char *q)
@@ -730,15 +594,30 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
 {
-	/// Run kernels, no iterations for fast enumeration
-	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], pbkdf2_init, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "Run initial kernel");
+	size_t scalar_gws;
+	size_t *lws = local_work_size ? &local_work_size : NULL;
 
-	BENCH_CLERROR(clFinish(queue[gpu_id]), "Failed running kernel");
+	global_work_size = local_work_size ? ((*pcount + (v_width * local_work_size - 1)) / (v_width * local_work_size)) * local_work_size : *pcount / v_width;
+	scalar_gws = global_work_size * v_width;
 
-	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], pbkdf2_loop, 1, NULL, &global_work_size, &local_work_size, 0, NULL, profilingEvent), "Run loop kernel");
-	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], pbkdf2_loop, 1, NULL, &global_work_size, &local_work_size, 0, NULL, profilingEvent), "Run loop kernel");
+#ifdef DEBUG
+	fprintf(stderr, "%s(%d) lws %zu gws %zu sgws %zu kpc %d/%d\n", __FUNCTION__, *pcount, local_work_size, global_work_size, scalar_gws, me->params.min_keys_per_crypt, me->params.max_keys_per_crypt);
+#endif
 
-	BENCH_CLERROR(clFinish(queue[gpu_id]), "Failed running loop kernel");
+	/// Copy data to gpu
+	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0, key_buf_size, inbuffer, 0, NULL, multi_profilingEvent[0]), "Copy data to gpu");
+
+	/// Run kernels
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], pbkdf2_init, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[1]), "Run initial kernel");
+
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], pbkdf2_loop, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[2]), "Run loop kernel");
+	BENCH_CLERROR(clFinish(queue[gpu_id]), "Error running loop kernel");
+	opencl_process_event();
+
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], pbkdf2_final, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[3]), "Run intermediate kernel");
+
+	/// Read the result back
+	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0, sizeof(pbkdf2_out) * scalar_gws, output, 0, NULL, multi_profilingEvent[4]), "Copy result back");
 
 	return *pcount;
 }
