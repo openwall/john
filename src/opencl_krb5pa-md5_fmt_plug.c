@@ -45,7 +45,6 @@ john_register_one(&fmt_opencl_krb5pa_md5);
 #include "hmacmd5.h"
 #include "md4.h"
 #include "rc4.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL       "krb5pa-md5-opencl"
 #define FORMAT_NAME        "Kerberos 5 AS-REQ Pre-Auth etype 23" /* md4, rc4-hmac-md5 */
@@ -251,7 +250,7 @@ static void init(struct fmt_main *self)
 
 	//Initialize openCL tuning (library) for this format.
 	opencl_init_auto_setup(SEED, 0, NULL,
-		warn, 1, self, create_clobj, release_clobj,
+		warn, 2, self, create_clobj, release_clobj,
 		PLAINTEXT_LENGTH, 0);
 
 	//Auto tune execution from shared/included code.
