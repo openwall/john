@@ -219,6 +219,9 @@ static struct opt_entry opt_list[] = {
 
 #endif
 	{"keep-guessing", FLG_KEEP_GUESSING, FLG_KEEP_GUESSING},
+	{"stress-test", FLG_LOOPTEST | FLG_TEST_SET, FLG_TEST_CHK,
+		0, ~FLG_TEST_SET & ~FLG_FORMAT & ~FLG_SAVEMEM & ~FLG_DYNFMT &
+		~OPT_REQ_PARAM & ~FLG_NOLOG, "%u", &benchmark_time},
 	{NULL}
 };
 
@@ -404,6 +407,7 @@ void opt_print_hidden_usage(void)
 	puts("--reject-printable        reject printable binaries");
 	puts("--verbosity=N             change verbosity (1-5, default 3)");
 	puts("--skip-self-tests         skip self tests");
+	puts("--stress-test[=TIME]      loop self tests forever");
 	puts("--input-encoding=NAME     input encoding (alias for --encoding)");
 	puts("--internal-encoding=NAME  encoding used in rules/masks (see doc/ENCODING)");
 	puts("--target-encoding=NAME    output encoding (used by format, see doc/ENCODING)");

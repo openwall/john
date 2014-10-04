@@ -394,9 +394,10 @@ int benchmark_all(void)
 	}
 #endif
 
+AGAIN:
 	total = failed = 0;
 #ifdef DEBUG
-	if (!benchmark_time)
+	if (benchmark_time)
 	puts("NOTE: This is a debug build, figures might be lower than normal");
 #endif
 #ifndef BENCH_BUILD
@@ -604,6 +605,9 @@ next:
 	else if (total > 1 && !event_abort)
 		if (john_main_process)
 			printf("All %u formats passed self-tests!\n", total);
+
+	if (options.flags & FLG_LOOPTEST && !event_abort)
+		goto AGAIN;
 
 	return failed || event_abort;
 }

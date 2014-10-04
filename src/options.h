@@ -152,6 +152,9 @@
 #define FLG_VERBOSITY			0x0000800000000000ULL
 /* Sets FMT_NOT_EXACT, searching for cleartext collisions */
 #define FLG_KEEP_GUESSING		0x0001000000000000ULL
+/* Loops self-test forever */
+#define FLG_LOOPTEST			0x0002000000000000ULL
+
 
 /*
  * Structure with option flags and all the parameters.
