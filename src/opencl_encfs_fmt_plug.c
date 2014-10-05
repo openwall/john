@@ -377,7 +377,7 @@ static void init(struct fmt_main *self)
 	//Auto tune execution from shared/included code.
 	self->methods.crypt_all = crypt_all_benchmark;
 	common_run_auto_tune(self, 2 * (ITERATIONS - 1) + 4, 0,
-		(cpu(device_info[gpu_id]) ? 1000000000 : 5000000000ULL));
+		(cpu(device_info[gpu_id]) ? 1000000000 : 10000000000ULL));
 	self->methods.crypt_all = crypt_all;
 
 	self->params.min_keys_per_crypt = local_work_size * v_width;
