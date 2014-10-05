@@ -154,6 +154,8 @@ static void release_clobj(void){
     HANDLE_CLERROR(ret_code, "Error Unmapping outbuffer");
     ret_code = clEnqueueUnmapMemObject(queue[gpu_id], pinned_saved_keys, saved_plain, 0, NULL, NULL);
     HANDLE_CLERROR(ret_code, "Error Unmapping saved_plain");
+    HANDLE_CLERROR(clFinish(queue[gpu_id]),
+                   "Error releasing memory mappings");
     ret_code = clReleaseMemObject(buffer_keys);
     HANDLE_CLERROR(ret_code, "Error Releasing buffer_keys");
     ret_code = clReleaseMemObject(buffer_out);

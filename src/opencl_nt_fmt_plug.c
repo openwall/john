@@ -128,6 +128,8 @@ static void release_clobj(void)
 {
 	clEnqueueUnmapMemObject(queue[gpu_id], pinned_bbbs, bbbs, 0, NULL, NULL);
 	clEnqueueUnmapMemObject(queue[gpu_id], pinned_saved_keys, saved_plain, 0, NULL, NULL);
+	HANDLE_CLERROR(clFinish(queue[gpu_id]),
+	               "Error releasing memory mappings");
 
         HANDLE_CLERROR(clReleaseMemObject(buffer_keys), "Release mem in");
 	HANDLE_CLERROR(clReleaseMemObject(buffer_out), "Release mem setting");

@@ -217,6 +217,8 @@ static void release_clobj(void) {
 	ret_code = clEnqueueUnmapMemObject(queue[gpu_id], pinned_partial_hashes,
 			calculated_hash, 0, NULL, NULL);
 	HANDLE_CLERROR(ret_code, "Error Unmapping partial hashes");
+	HANDLE_CLERROR(clFinish(queue[gpu_id]),
+	               "Error releasing memory mappings");
 
 	ret_code = clReleaseMemObject(pass_buffer);
 	HANDLE_CLERROR(ret_code, "Error Releasing buffer_keys");
