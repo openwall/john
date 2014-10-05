@@ -394,7 +394,9 @@ int benchmark_all(void)
 	}
 #endif
 
+#ifndef BENCH_BUILD
 AGAIN:
+#endif
 	total = failed = 0;
 #ifdef DEBUG
 	if (benchmark_time)
@@ -606,8 +608,10 @@ next:
 		if (john_main_process)
 			printf("All %u formats passed self-tests!\n", total);
 
+#ifndef BENCH_BUILD
 	if (options.flags & FLG_LOOPTEST && !event_abort)
 		goto AGAIN;
+#endif
 
 	return failed || event_abort;
 }
