@@ -39,14 +39,14 @@ john_register_one(&fmt_opencl_pwsafe);
 #define FORMAT_NAME             "Password Safe"
 #define ALGORITHM_NAME          "SHA256 OpenCL"
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        0
+#define BENCHMARK_LENGTH        -1
 #define PLAINTEXT_LENGTH        87
 #define BINARY_SIZE             0
 #define KERNEL_INIT_NAME	"pwsafe_init"
 #define KERNEL_RUN_NAME   	"pwsafe_iter"
 #define KERNEL_FINISH_NAME	"pwsafe_check"
-#define MIN_KEYS_PER_CRYPT      (512*112)
-#define MAX_KEYS_PER_CRYPT      MIN_KEYS_PER_CRYPT
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      1
 
 #define OCL_CONFIG		"pwsafe"
 #define STEP                    0
@@ -159,40 +159,33 @@ static void pwsafe_set_key(char *key, int index)
 /* ------- Create and destroy necessary objects ------- */
 static void create_clobj(size_t gws, struct fmt_main * self)
 {
-	size_t in_size = (sizeof(pwsafe_pass) * gws);
-	size_t out_size = (sizeof(pwsafe_hash) * gws);
+	global_work_size = gws; /* needed for size macros */
 
-	self->params.min_keys_per_crypt = self->params.max_keys_per_crypt = gws;
+	host_pass = mem_calloc(insize);
+	host_hash = mem_calloc(outsize);
+	host_salt = mem_calloc(saltsize);
 
-	host_pass = mem_calloc(gws * sizeof(pwsafe_pass));
-	host_hash = mem_calloc(gws * sizeof(pwsafe_hash));
-	host_salt = mem_calloc(sizeof(pwsafe_salt));
-
-	///Allocate memory on the GPU
-
+	// Allocate memory on the GPU
 	mem_salt =
 	    clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, saltsize, NULL,
 	    &ret_code);
 	HANDLE_CLERROR(ret_code, "Error while allocating memory for salt");
 	mem_in =
-	    clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, in_size, NULL,
+	    clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, insize, NULL,
 	    &ret_code);
 	HANDLE_CLERROR(ret_code, "Error while allocating memory for passwords");
 	mem_out =
-	    clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, out_size, NULL,
+	    clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, outsize, NULL,
 	    &ret_code);
 	HANDLE_CLERROR(ret_code, "Error while allocating memory for hashes");
-	///Assign kernel parameters
+
+	// Assign kernel parameters
 	clSetKernelArg(init_kernel, 0, sizeof(mem_in), &mem_in);
 	clSetKernelArg(init_kernel, 1, sizeof(mem_salt), &mem_salt);
 	clSetKernelArg(crypt_kernel, 0, sizeof(mem_in), &mem_in);
 	clSetKernelArg(finish_kernel, 0, sizeof(mem_in), &mem_in);
 	clSetKernelArg(finish_kernel, 1, sizeof(mem_out), &mem_out);
 	clSetKernelArg(finish_kernel, 2, sizeof(mem_salt), &mem_salt);
-
-	self->params.min_keys_per_crypt = local_work_size;
-	self->params.max_keys_per_crypt = gws;
-	global_work_size = gws;
 }
 
 static void init(struct fmt_main *self)

@@ -51,7 +51,7 @@ john_register_one(&fmt_opencl_rakp);
 #define BINARY_SIZE             20
 
 #define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      (3 * 1024 * 1024)
+#define MAX_KEYS_PER_CRYPT      1
 
 #define FORMAT_TAG              "$rakp$"
 #define TAG_LENGTH              (sizeof(FORMAT_TAG) - 1)
@@ -157,7 +157,6 @@ static void set_key(char *key, int index);
 
 static void create_clobj(size_t gws, struct fmt_main *self)
 {
-	global_work_size = gws;
 	gws *= v_width;
 
 	keys = mem_alloc((PLAINTEXT_LENGTH + 1) * gws);
@@ -191,9 +190,6 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	HANDLE_CLERROR(
 		clSetKernelArg(crypt_kernel, 3, sizeof(digest_buffer), (void *) &digest_buffer),
 		"Error attaching digest_buffer to kernel");
-
-	self->params.min_keys_per_crypt = local_work_size * v_width;
-	self->params.max_keys_per_crypt = global_work_size * v_width;
 }
 
 static void release_clobj(void)

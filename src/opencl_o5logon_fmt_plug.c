@@ -163,16 +163,8 @@ static void create_clobj(size_t gws, struct fmt_main *self)
         HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(buffer_idx), (void *) &buffer_idx), "Error setting argument 2");
         HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(buffer_out), (void *) &buffer_out), "Error setting argument 3");
 
+        cracked = mem_alloc(sizeof(*cracked) * gws);
         global_work_size = gws;
-        self->params.min_keys_per_crypt = local_work_size;
-        self->params.max_keys_per_crypt = global_work_size;
-
-	if (cracked) {
-		free(cracked);
-	}
-
-	cracked = mem_alloc(sizeof(*cracked) *
-			self->params.max_keys_per_crypt);
 }
 
 static void release_clobj(void){
@@ -186,10 +178,9 @@ static void release_clobj(void){
 	HANDLE_CLERROR(clReleaseMemObject(salt_buffer), "Error Releasing salt_buffer");
         HANDLE_CLERROR(clReleaseMemObject(pinned_saved_keys), "Error Releasing pinned_saved_keys");
         HANDLE_CLERROR(clReleaseMemObject(pinned_sha1_hashes), "Error Releasing pinned_sha1_hashes");
-        free(res_hashes);
 
-	free(cracked);
-	cracked = NULL;
+        MEM_FREE(res_hashes);
+        MEM_FREE(cracked);
 }
 
 static void done(void)

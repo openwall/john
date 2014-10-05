@@ -31,7 +31,6 @@ john_register_one(&fmt_opencl_cryptMD5);
 #define uint32_t unsigned int
 #define uint8_t unsigned char
 
-#define KEYS_PER_CRYPT		(64*1024)
 #define PLAINTEXT_LENGTH	15 /* max. due to optimizations */
 
 #define FORMAT_LABEL		"md5crypt-opencl"
@@ -60,10 +59,29 @@ static const char * warn[] = {
         "pass xfer: "  ,  ", crypt: "    ,  ", result xfer: "
 };
 
-extern void common_find_best_lws(size_t group_size_limit,
-	int sequential_id, cl_kernel crypt_kernel);
-extern void common_find_best_gws(int sequential_id, unsigned int rounds, int step,
-	unsigned long long int max_run_time);
+//This file contains auto-tuning routine(s). Has to be included after formats definitions.
+#include "opencl_autotune.h"
+#include "memdbg.h"
+
+/* ------- Helper functions ------- */
+static size_t get_task_max_work_group_size()
+{
+	return common_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
+}
+
+static size_t get_task_max_size()
+{
+	return 0;
+}
+
+static size_t get_default_workgroup()
+{
+	if (cpu(device_info[gpu_id]))
+		return get_platform_vendor_id(platform_id) == DEV_INTEL ?
+			8 : 1;
+	else
+		return 64;
+}
 
 typedef struct {
 	unsigned int saltlen;
@@ -153,8 +171,6 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 {
 	size_t in_size = (sizeof(crypt_md5_password) * gws);
 	size_t out_size = (sizeof(crypt_md5_hash) * gws);
-
-	global_work_size = gws;
 
 	///Allocate memory on the GPU
 	mem_salt = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, saltsize, NULL, &ret_code);
@@ -276,83 +292,23 @@ static char *get_key(int index)
 	return ret;
 }
 
-/* ------- Try to find the best configuration ------- */
-/* --
-  This function could be used to calculated the best num
-  for the workgroup
-  Work-items that make up a work-group (also referred to
-  as the size of the work-group)
--- */
-static void find_best_lws(struct fmt_main * self, int sequential_id) {
-
-	//Call the default function.
-	common_find_best_lws(
-		get_kernel_max_lws(gpu_id, crypt_kernel),
-		sequential_id, crypt_kernel
-	);
-}
-
-/* --
-  This function could be used to calculated the best num
-  of keys per crypt for the given format
--- */
-static void find_best_gws(struct fmt_main * self, int sequential_id) {
-
-	//Call the common function.
-	common_find_best_gws(sequential_id, ROUNDS_DEFAULT, 0, 1000000000ULL);
-
-	create_clobj(global_work_size, self);
-}
-
 static int crypt_all(int *pcount, struct db_salt *salt);
 
 static void init(struct fmt_main *self)
 {
-	cl_ulong maxsize;
-	size_t selected_gws;
-
 	opencl_init("$JOHN/kernels/cryptmd5_kernel.cl", gpu_id, NULL);
 
 	///Create Kernel
 	crypt_kernel = clCreateKernel(program[gpu_id], KERNEL_NAME, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error while creating kernel");
 
-	/* Note: we ask for the kernel's max size, not the device's! */
-	maxsize = get_kernel_max_lws(gpu_id, crypt_kernel);
-
-	/* Read LWS/GWS prefs from config or environment */
-	opencl_get_user_preferences(OCL_CONFIG);
-
 	//Initialize openCL tuning (library) for this format.
 	opencl_init_auto_setup(SEED, 0, NULL,
 		warn, 1, self, create_clobj, release_clobj,
 		sizeof(crypt_md5_password), 0);
 
-	selected_gws = global_work_size;
-
-	if (local_work_size > maxsize)
-		local_work_size = maxsize;
-
-	self->params.max_keys_per_crypt = (global_work_size ? global_work_size: KEYS_PER_CRYPT);
-
-	if (!local_work_size) {
-		create_clobj(self->params.max_keys_per_crypt, self);
-		find_best_lws(self, gpu_id);
-		release_clobj();
-	}
-	global_work_size = selected_gws;
-
-	if (global_work_size)
-		create_clobj(global_work_size, self);
-	else
-		//user chose to die of boredom
-		find_best_gws(self, gpu_id);
-
-	self->params.min_keys_per_crypt = local_work_size;
-	self->params.max_keys_per_crypt = global_work_size;
-
-	if (options.verbosity > 2)
-		fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
+	//Auto tune execution from shared/included code.
+	common_run_auto_tune(self, 1000, 0, 100000000);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)

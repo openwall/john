@@ -105,8 +105,6 @@ static void common_run_auto_tune(struct fmt_main * self, unsigned int rounds,
 	if (local_work_size > get_task_max_work_group_size()) {
 		local_work_size = 0; //Force find a valid number.
 	}
-	self->params.max_keys_per_crypt =  opencl_v_width *
-		(global_work_size ? global_work_size : get_task_max_size());
 
 	/* Enumerate GWS using *LWS=NULL (unless it was set explicitly) */
 	if (!global_work_size)
@@ -126,6 +124,7 @@ static void common_run_auto_tune(struct fmt_main * self, unsigned int rounds,
 		fprintf(stderr,
 		        "Local worksize (LWS) %zd, global worksize (GWS) %zd\n",
 		        local_work_size, global_work_size);
+
 	self->params.min_keys_per_crypt = local_work_size * opencl_v_width;
 	self->params.max_keys_per_crypt = global_work_size * opencl_v_width;
 }

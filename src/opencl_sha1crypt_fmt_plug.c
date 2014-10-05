@@ -110,6 +110,8 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *_salt);
 
 static void create_clobj(size_t gws, struct fmt_main *self)
 {
+	size_t kpc = gws * v_width;
+
 #define CL_RO CL_MEM_READ_ONLY
 #define CL_WO CL_MEM_WRITE_ONLY
 #define CL_RW CL_MEM_READ_WRITE
@@ -121,8 +123,6 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 #define CLKERNELARG(kernel, id, arg)	  \
 	HANDLE_CLERROR(clSetKernelArg(kernel, id, sizeof(arg), &arg), \
 	               "Error setting kernel argument");
-
-	size_t kpc = gws * v_width;
 
 #ifdef DEBUG
 	fprintf(stderr, "%s(%zu) kpc %zu\n", __FUNCTION__, gws, kpc);
@@ -145,8 +145,6 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	CLKERNELARG(pbkdf1_final, 0, mem_salt);
 	CLKERNELARG(pbkdf1_final, 1, mem_out);
 	CLKERNELARG(pbkdf1_final, 2, mem_state);
-
-	self->params.max_keys_per_crypt = kpc;
 	global_work_size = gws;
 }
 

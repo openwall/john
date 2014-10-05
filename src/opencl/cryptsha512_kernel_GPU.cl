@@ -557,7 +557,7 @@ inline void sha512_crypt(const uint32_t saltlen, const uint32_t passlen,
         H[i] = alt_result[i].mem_64[0];
 
     /* Repeatedly run the collected hash value through SHA512 to burn cycles. */
-    for (int i = 0; i < rounds; i++) {
+    for (uint i = 0; i < rounds; i++) {
 
 	#pragma unroll
 	for (int j = 8; j < 16; j++)
