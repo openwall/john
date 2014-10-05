@@ -47,9 +47,7 @@ john_register_one(&fmt_opencl_rawMD5);
 cl_command_queue queue_prof;
 cl_mem pinned_saved_keys, pinned_saved_idx, pinned_partial_hashes;
 cl_mem buffer_keys, buffer_idx, buffer_out;
-static cl_uint *partial_hashes;
-
-static unsigned int *saved_plain, *saved_idx;
+static cl_uint *partial_hashes, *saved_plain, *saved_idx;
 static unsigned int key_idx = 0;
 
 #define MIN(a, b)               (((a) > (b)) ? (b) : (a))
@@ -146,6 +144,7 @@ static void release_clobj(void)
 	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_saved_keys, saved_plain, 0, NULL, NULL), "Error Unmapping saved_plain");
 	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_saved_idx, saved_idx, 0, NULL, NULL), "Error Unmapping saved_idx");
 	HANDLE_CLERROR(clFinish(queue[gpu_id]), "Error releasing mappings");
+
 	HANDLE_CLERROR(clReleaseMemObject(buffer_keys), "Error Releasing buffer_keys");
 	HANDLE_CLERROR(clReleaseMemObject(buffer_idx), "Error Releasing buffer_idx");
 	HANDLE_CLERROR(clReleaseMemObject(buffer_out), "Error Releasing buffer_out");

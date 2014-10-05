@@ -47,9 +47,7 @@ john_register_one(&fmt_opencl_rawMD4);
 cl_command_queue queue_prof;
 cl_mem pinned_saved_keys, pinned_saved_idx, pinned_partial_hashes;
 cl_mem buffer_keys, buffer_idx, buffer_out;
-static cl_uint *partial_hashes;
-
-static unsigned int *saved_plain, *saved_idx;
+static cl_uint *partial_hashes, *saved_plain, *saved_idx;
 static unsigned int key_idx = 0;
 
 #define MIN(a, b)               (((a) > (b)) ? (b) : (a))
