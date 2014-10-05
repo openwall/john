@@ -108,8 +108,6 @@ static size_t get_default_workgroup()
 
 static void create_clobj(size_t kpc, struct fmt_main * self)
 {
-	self->params.min_keys_per_crypt = self->params.max_keys_per_crypt = kpc;
-
 	pinned_saved_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, BUFSIZE * kpc, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory pinned_saved_keys");
 	saved_plain = clEnqueueMapBuffer(queue[gpu_id], pinned_saved_keys, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, BUFSIZE * kpc, 0, NULL, NULL, &ret_code);
@@ -140,8 +138,6 @@ static void create_clobj(size_t kpc, struct fmt_main * self)
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(buffer_keys), (void *) &buffer_keys), "Error setting argument 1");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(buffer_idx), (void *) &buffer_idx), "Error setting argument 2");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(buffer_out), (void *) &buffer_out), "Error setting argument 3");
-
-	global_work_size = kpc;
 }
 
 static void release_clobj(void)
@@ -173,9 +169,6 @@ static void init(struct fmt_main *self)
 	opencl_init("$JOHN/kernels/md5_kernel.cl", gpu_id, NULL);
 	crypt_kernel = clCreateKernel(program[gpu_id], "md5", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
-
-	/* Read LWS/GWS prefs from config or environment */
-	opencl_get_user_preferences(OCL_CONFIG);
 
 	gws_limit = MIN((0xf << 22) * 4 / BUFSIZE,
 			get_max_mem_alloc_size(gpu_id) / BUFSIZE);
