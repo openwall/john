@@ -438,12 +438,16 @@ void status_print(void)
 
 				fan = temp = util = -1;
 				dev_get_temp[gpu_device_list[i]](temp_dev_id[gpu_device_list[i]], &temp, &fan, &util);
-				if (temp >= 0)
-					n += sprintf(s_gpu + n, " GPU %u" DEGC, temp);
-				if (util >= 0)
-					n += sprintf(s_gpu + n, " util %u%%", util);
+				if (temp >= 0) {
+					if (i == 0)
+						n += sprintf(s_gpu + n, " GPU:%u" DEGC, temp);
+					else
+						n += sprintf(s_gpu + n, " GPU%d:%u" DEGC, i, temp);
+				}
+				if (util > 0)
+					n += sprintf(s_gpu + n, " util:%u%%", util);
 				if (fan >= 0)
-					n += sprintf(s_gpu + n, " fan %u%%", fan);
+					n += sprintf(s_gpu + n, " fan:%u%%", fan);
 			}
 		}
 	}
