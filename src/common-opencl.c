@@ -320,27 +320,29 @@ static int start_opencl_device(int sequential_id, int *err_type)
 {
 	cl_context_properties properties[3];
 	char opencl_data[LOG_SIZE];
-	static int amd = 0, nvidia = 0;
 
 	// Get the detailed information about the device.
 	opencl_get_dev_info(sequential_id);
 
-	// Map temp monitoring function to device id
+	// Get hardware bus/PCIE information.
+	HANDLE_CLERROR(
+		get_pci_info(sequential_id,
+		&ocl_device_list[sequential_id].pci_info),
+	    "Error querying PCI bus info");
+
+	// Map temp monitoring function and NVML/ADL id to our device id
 	if (gpu_nvidia(device_info[sequential_id])) {
-		temp_dev_id[sequential_id] = nvidia++;
+		temp_dev_id[sequential_id] =
+			id2nvml(ocl_device_list[sequential_id].pci_info);
 		dev_get_temp[sequential_id] = nvml_lib ? nvidia_get_temp : NULL;
 	} else if (gpu_amd(device_info[sequential_id])) {
-		temp_dev_id[sequential_id] = amd++;
+		temp_dev_id[sequential_id] =
+			id2adl(ocl_device_list[sequential_id].pci_info);
 		dev_get_temp[sequential_id] = adl_lib ? amd_get_temp : NULL;
 	} else {
 		temp_dev_id[sequential_id] = sequential_id;
 		dev_get_temp[sequential_id] = NULL;
 	}
-	//Get harware bus/pcie information.
-	HANDLE_CLERROR(
-		get_pci_info(sequential_id,
-		&ocl_device_list[sequential_id].pci_info),
-	    "Error querying BUS INFORMATION");
 
 	HANDLE_CLERROR(clGetDeviceInfo(devices[sequential_id], CL_DEVICE_NAME,
 	    sizeof(opencl_data), opencl_data, NULL),

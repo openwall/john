@@ -297,7 +297,11 @@ static char *status_get_ETA(double percent, unsigned int secs_done)
 	return s_ETA;
 }
 
+#if defined(HAVE_CUDA) || defined(HAVE_OPENCL)
+static void status_print_cracking(double percent, char *gpustat)
+#else
 static void status_print_cracking(double percent)
+#endif
 {
 	unsigned int time = status_get_time();
 	char *key1, key2[PLAINTEXT_BUFFER_SIZE];
@@ -379,9 +383,16 @@ static void status_print_cracking(double percent)
 			p += n;
 	}
 
+#if defined(HAVE_CUDA) || defined(HAVE_OPENCL)
+	n = sprintf(p, "%.31sC/s%s%s%.200s%s%.200s\n",
+	    status_get_cps(s_combs_ps, &status.combs, status.combs_ehi),
+	    gpustat,
+	    key1 ? " " : "", key1 ? key1 : "", key2[0] ? ".." : "", key2);
+#else
 	n = sprintf(p, "%.31sC/s%s%.200s%s%.200s\n",
 	    status_get_cps(s_combs_ps, &status.combs, status.combs_ehi),
 	    key1 ? " " : "", key1 ? key1 : "", key2[0] ? ".." : "", key2);
+#endif
 	if (n > 0)
 		p += n;
 
@@ -412,6 +423,31 @@ static void status_print_stdout(double percent)
 void status_print(void)
 {
 	double percent_value;
+#if defined(HAVE_CUDA) || defined(HAVE_OPENCL)
+	char s_gpu[32 * MAX_GPU_DEVICES] = "";
+
+	if (!(options.flags & FLG_STDOUT) &&
+	    cfg_get_bool(SECTION_OPTIONS, ":GPU", "SensorsStatus", 0)) {
+		int i;
+		int n = 0;
+
+		for (i = 0; i < MAX_GPU_DEVICES &&
+			     gpu_device_list[i] != -1; i++) {
+			if (dev_get_temp[gpu_device_list[i]]) {
+				int fan, temp, util;
+
+				fan = temp = util = -1;
+				dev_get_temp[gpu_device_list[i]](temp_dev_id[gpu_device_list[i]], &temp, &fan, &util);
+				if (temp >= 0)
+					n += sprintf(s_gpu + n, " GPU %u" DEGC, temp);
+				if (util >= 0)
+					n += sprintf(s_gpu + n, " util %u%%", util);
+				if (fan >= 0)
+					n += sprintf(s_gpu + n, " fan %u%%", fan);
+			}
+		}
+	}
+#endif
 
 	percent_value = -1;
 	if (options.flags & FLG_STATUS_CHK)
@@ -423,32 +459,9 @@ void status_print(void)
 	if (options.flags & FLG_STDOUT)
 		status_print_stdout(percent_value);
 	else
+#if defined(HAVE_CUDA) || defined(HAVE_OPENCL)
+		status_print_cracking(percent_value, s_gpu);
+#else
 		status_print_cracking(percent_value);
-
-#if 0 //defined(HAVE_CUDA) || defined(HAVE_OPENCL)
-	if (!(options.flags & FLG_STDOUT)) {
-		int dev;
-		for (dev = 0; dev < MAX_GPU_DEVICES &&
-			     gpu_device_list[dev] != -1; dev++) {
-			if (dev_get_temp[dev]) {
-				int fan, temp, util;
-				char s_gpu[80];
-				int m, n;
-
-				fan = temp = util = -1;
-				//printf("gen %p, nvidia %p, amd %p\n", dev_get_temp[dev], nvidia_get_temp, amd_get_temp);
-				m = n = sprintf(s_gpu, "GPU %d (%d) ", dev, temp_dev_id[dev]);
-				dev_get_temp[dev](temp_dev_id[dev], &temp, &fan, &util);
-				if (fan >= 0)
-					n += sprintf(s_gpu + n, "fan %u%% ", fan);
-				if (temp >= 0)
-					n += sprintf(s_gpu + n, "temp %u" DEGC " ", temp);
-				if (util >= 0)
-					n += sprintf(s_gpu + n, "util %u%%", util);
-				if (n > m)
-					printf("%s\n", s_gpu);
-			}
-		}
-	}
 #endif
 }
