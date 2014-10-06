@@ -312,7 +312,7 @@ static void *get_salt(char *ciphertext)
 {
 	int i;
 	my_salt salt, *psalt;
-	static unsigned char ptr[sizeof(my_salt*)];
+	static unsigned char ptr[sizeof(my_salt)];
 	/* extract data from "ciphertext" */
 	u8 *copy_mem = (u8*)strdup(ciphertext);
 	u8 *cp, *p;
@@ -345,10 +345,10 @@ static void *get_salt(char *ciphertext)
 	psalt->v.type = salt.v.type;
 	psalt->v.mode = salt.v.mode;
 	psalt->comp_len = salt.comp_len;
-	memcpy(psalt->salt, salt.salt, sizeof(salt.salt)); 
+	memcpy(psalt->salt, salt.salt, sizeof(salt.salt));
 	psalt->passverify[0] = salt.passverify[0];
 	psalt->passverify[1] = salt.passverify[1];
-	
+
 	// set the JtR core linkage stuff for this dyna_salt
 	psalt->salt_comp_offset = SALT_CMP_OFF(my_salt, comp_len);
 	psalt->salt_comp_size = SALT_CMP_SIZE(my_salt, comp_len, psalt->comp_len);
