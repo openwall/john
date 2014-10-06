@@ -79,6 +79,7 @@ ADL_OVERDRIVE6_FANSPEED_GET ADL_Overdrive6_FanSpeed_Get = NULL;
 ADL_OVERDRIVE6_THERMALCONTROLLER_CAPS ADL_Overdrive6_ThermalController_Caps = NULL;
 ADL_OVERDRIVE6_TEMPERATURE_GET ADL_Overdrive6_Temperature_Get = NULL;
 ADL_OVERDRIVE6_CURRENTSTATUS_GET ADL_Overdrive6_CurrentStatus_Get = NULL;
+ADL_OVERDRIVE6_CAPABILITIES_GET ADL_Overdrive6_Capabilities_Get = NULL;
 
 // Memory allocation callback function
 static void*ADL_Main_Memory_Alloc(int iSize)
@@ -176,6 +177,7 @@ void amd_probe(void)
 	ADL_Overdrive6_ThermalController_Caps = (ADL_OVERDRIVE6_THERMALCONTROLLER_CAPS)dlsym(adl_lib, "ADL_Overdrive6_ThermalController_Caps");
 	ADL_Overdrive6_Temperature_Get = (ADL_OVERDRIVE6_TEMPERATURE_GET)dlsym(adl_lib, "ADL_Overdrive6_Temperature_Get");
 	ADL_Overdrive6_CurrentStatus_Get = (ADL_OVERDRIVE6_CURRENTSTATUS_GET)dlsym(adl_lib, "ADL_Overdrive6_CurrentStatus_Get");
+	ADL_Overdrive6_Capabilities_Get = (ADL_OVERDRIVE6_CAPABILITIES_GET)dlsym(adl_lib, "ADL_Overdrive6_Capabilities_Get");
 
 	if ((ret = ADL_Main_Control_Create(ADL_Main_Memory_Alloc, 1)) != ADL_OK)
 		return;
@@ -366,8 +368,9 @@ static void get_temp_od6(int adl_id, int *temp, int *fanspeed, int *util)
 		if (ADL_Overdrive6_Temperature_Get(adl_id, &temperature) == ADL_OK)
 			*temp = temperature / 1000;
 
-		if (ADL_Overdrive6_CurrentStatus_Get(adl_id, &currentStatus) == ADL_OK)
+		if (ADL_Overdrive6_Capabilities_Get(adl_id, &od6Capabilities) == ADL_OK)
 		if (od6Capabilities.iCapabilities & ADL_OD6_CAPABILITY_GPU_ACTIVITY_MONITOR)
+		if (ADL_Overdrive6_CurrentStatus_Get(adl_id, &currentStatus) == ADL_OK)
 			*util = currentStatus.iActivityPercent;
 	}
 
