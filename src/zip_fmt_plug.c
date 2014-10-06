@@ -312,11 +312,12 @@ static void *get_salt(char *ciphertext)
 {
 	int i;
 	my_salt salt, *psalt;
-	static unsigned char ptr[sizeof(my_salt)];
+	static unsigned char *ptr;
 	/* extract data from "ciphertext" */
 	u8 *copy_mem = (u8*)strdup(ciphertext);
 	u8 *cp, *p;
 
+	if (!ptr) ptr = mem_alloc_tiny(sizeof(my_salt*),sizeof(my_salt*));
 	p = copy_mem + TAG_LENGTH+1; /* skip over "$zip2$*" */
 	memset(&salt, 0, sizeof(salt));
 	p = pkz_GetFld(p, &cp); // type
