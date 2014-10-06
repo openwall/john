@@ -57,6 +57,7 @@ john_register_one(&fmt_zip);
 #include "memory.h"
 #include "pkzip.h"
 #include "pbkdf2_hmac_sha1.h"
+#include "dyna_salt.h"
 #ifdef _OPENMP
 #include <omp.h>
 #define OMP_SCALE               4	// Tuned on core i7 (note, use -test=120 during tuning)
@@ -70,15 +71,17 @@ static int omp_t = 1;
 #define SALT_LENGTH(mode)       (4 * ((mode) & 3) + 4)
 
 typedef struct my_salt_t {
+	size_t salt_comp_size;
+	size_t salt_comp_offset;
+	uint32_t comp_len;
 	struct {
 		uint16_t type     : 4;
 		uint16_t mode : 4;
 	} v;
-	uint32_t comp_len;
 	unsigned char passverify[2];
 	unsigned char salt[SALT_LENGTH(3)];
 	//uint64_t data_key; // MSB of md5(data blob).  We lookup using this.
-	unsigned char *datablob;
+	unsigned char datablob[1];
 } my_salt;
 
 
@@ -100,8 +103,8 @@ typedef struct my_salt_t {
 #define BINARY_SIZE         10
 #define PLAINTEXT_LENGTH	125
 #define BINARY_ALIGN        MEM_ALIGN_NONE
-#define SALT_SIZE           sizeof(my_salt)
-#define SALT_ALIGN          MEM_ALIGN_NONE
+#define SALT_SIZE           sizeof(my_salt*)
+#define SALT_ALIGN          sizeof(my_salt*)
 #ifdef MMX_COEF
 #define MIN_KEYS_PER_CRYPT  SSE_GROUP_SZ_SHA1
 #define MAX_KEYS_PER_CRYPT  SSE_GROUP_SZ_SHA1
@@ -308,7 +311,8 @@ static void *binary(char *ciphertext) {
 static void *get_salt(char *ciphertext)
 {
 	int i;
-	static my_salt salt;
+	my_salt salt, *psalt;
+	static unsigned char ptr[sizeof(my_salt*)];
 	/* extract data from "ciphertext" */
 	u8 *copy_mem = (u8*)strdup(ciphertext);
 	u8 *cp, *p;
@@ -332,11 +336,27 @@ static void *get_salt(char *ciphertext)
 	// later we will store the data blob in our own static data structure, and place the 64 bit LSB of the
 	// MD5 of the data blob into a field in the salt. For the first POC I store the entire blob and just
 	// make sure all my test data is small enough to fit.
+
 	p = pkz_GetFld(p, &cp);	// data blob
-	salt.datablob = (unsigned char*)mem_alloc_tiny(salt.comp_len+1, 1);
+
+	// Ok, now create the allocated salt record we are going to return back to John, using the dynamic
+	// sized data buffer.
+	psalt = (my_salt*)mem_calloc_tiny(sizeof(my_salt)+salt.comp_len, 1);
+	psalt->v.type = salt.v.type;
+	psalt->v.mode = salt.v.mode;
+	psalt->comp_len = salt.comp_len;
+	memcpy(psalt->salt, salt.salt, sizeof(salt.salt)); 
+	psalt->passverify[0] = salt.passverify[0];
+	psalt->passverify[1] = salt.passverify[1];
+	
+	// set the JtR core linkage stuff for this dyna_salt
+	psalt->salt_comp_offset = SALT_CMP_OFF(my_salt, comp_len);
+	psalt->salt_comp_size = SALT_CMP_SIZE(my_salt, comp_len, psalt->comp_len);
+
+
 	if (strcmp((const char*)cp, "ZFILE")) {
-	for (i = 0; i < salt.comp_len; i++)
-		salt.datablob[i] = (atoi16[ARCH_INDEX(cp[i<<1])]<<4) | atoi16[ARCH_INDEX(cp[(i<<1)+1])];
+	for (i = 0; i < psalt->comp_len; i++)
+		psalt->datablob[i] = (atoi16[ARCH_INDEX(cp[i<<1])]<<4) | atoi16[ARCH_INDEX(cp[(i<<1)+1])];
 	} else {
 		u8 *Fn, *Oh, *Ob;
 		long len;
@@ -349,30 +369,30 @@ static void *get_salt(char *ciphertext)
 
 		fp = fopen((const char*)Fn, "rb");
 		if (!fp) {
-			salt.v.type = 1; // this will tell the format to 'skip' this salt, it is garbage
+			psalt->v.type = 1; // this will tell the format to 'skip' this salt, it is garbage
 			goto Bail;
 		}
 		sscanf((const char*)Oh, "%lx", &len);
 		if (fseek(fp, len, SEEK_SET)) {
 			fclose(fp);
-			salt.v.type = 1;
+			psalt->v.type = 1;
 			goto Bail;
 		}
 		id = fget32LE(fp);
 		if (id != 0x04034b50U) {
 			fclose(fp);
-			salt.v.type = 1;
+			psalt->v.type = 1;
 			goto Bail;
 		}
 		sscanf((const char*)Ob, "%lx", &len);
 		if (fseek(fp, len, SEEK_SET)) {
 			fclose(fp);
-			salt.v.type = 1;
+			psalt->v.type = 1;
 			goto Bail;
 		}
-		if (fread(salt.datablob, 1, len, fp) != len) {
+		if (fread(psalt->datablob, 1, len, fp) != len) {
 			fclose(fp);
-			salt.v.type = 1;
+			psalt->v.type = 1;
 			goto Bail;
 		}
 		fclose(fp);
@@ -380,12 +400,13 @@ static void *get_salt(char *ciphertext)
 Bail:;
 	MEM_FREE(copy_mem);
 
-	return (void*)&salt;
+	memcpy(ptr, &psalt, sizeof(my_salt));
+	return (void*)ptr;
 }
 
 static void set_salt(void *salt)
 {
-	saved_salt = (my_salt*)salt;
+	saved_salt = *((my_salt**)salt);
 }
 
 static void set_key(char *key, int index)

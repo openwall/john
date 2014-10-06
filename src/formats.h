@@ -75,6 +75,11 @@ struct db_salt;
  * when a likely PW is found
  */
 #define FMT_NOT_EXACT			0x00000100
+/*
+ * this format uses a dynamic sized salt, and it's salt structure
+ * 'derives' from the dyna_salt type defind in dyna_salt.h
+ */
+#define FMT_DYNA_SALT			0x00000200
 /* Uses a bitslice implementation */
 #define FMT_BS				0x00010000
 /* The split() method unifies the case of characters in hash encodings */

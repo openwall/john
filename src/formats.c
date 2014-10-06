@@ -365,6 +365,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		}
 
 		/* validate that salt() returns cleaned buffer */
+		/* TODO: we need to update this, for FMT_DYNA_SALT types also */
 		memset(salt, 0xAF, format->params.salt_size);
 		salt = format->methods.salt(ciphertext);
 		if (!salt_cleaned_warned)
