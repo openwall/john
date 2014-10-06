@@ -7,8 +7,6 @@
 # http://tools.ietf.org/html/rfc1305
 # http://www.eecis.udel.edu/~mills/ntp/html/authentic.html
 #
-# TODO: Support SHA1 and other hashes
-#
 # This software is Copyright (c) 2014 Spiros Fraganastasis <spirosfr.1985 at
 # gmail.com> and Dhiru Kholia <dhiru at openwall.com>, and it is hereby
 # released to the general public under the following terms:
@@ -46,14 +44,32 @@ def pcap_parser(fname):
             if len(data) < 48:  # no authentication is being used
                 continue
 
-            # the whole NTP packet except the MAC (hash) and Key ID (48 bytes)
+            # the whole NTP packet (till "Transmit Timestamp", 48 bytes)
             salt = data[0:48]
+            data = data[48:]
+            # skip of Key ID (4 bytes) or Extension length (4 bytes)
+            data = data[4:]
 
-            # hash is at at offset 52 (48 bytes of standard NTP data format + 4 bytes of Key ID)
-            h = data[52:]
+            length = len(data)
+            if length == 0:
+                continue
+            h = data
 
-            # sys.stdout.write("%s:$ntp$%s$%s\n" % (index, salt.encode("hex"), h.encode("hex")))
-            sys.stdout.write("%s:$dynamic_1016$%s$HEX$%s\n" % (index, h.encode("hex"), salt.encode("hex")))
+            if length == 16:  # MD5 hash
+                sys.stdout.write("%s:$dynamic_1016$%s$HEX$%s\n" % (index, h.encode("hex"), salt.encode("hex")))
+            elif length == 20:  # SHA1
+                print "SHA-1 support is missing currently!"
+            elif length == 28:
+                print "SHA-224 support is missing currently!"
+            elif length == 32:
+                print "SHA-256 support is missing currently!"
+            elif length == 48:
+                print "SHA-384 support is missing currently!"
+            elif length == 64:
+                print "SHA-512 support is missing currently!"
+            else:
+                print "Unsupported hash of length %s found!" % len(data)
+
 
     f.close()
 
