@@ -1,5 +1,6 @@
 /*
- * Cracker for HSRP MD5 authentication, http://www.rfc-editor.org/rfc/rfc1828.txt
+ * Cracker for MD5 authentication in HSRP, VRRP and GLBP.
+ * http://www.rfc-editor.org/rfc/rfc1828.txt
  *
  * This is dedicated to Darya. You inspire me.
  *
