@@ -366,22 +366,42 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		}
 
 		/* validate that salt() returns cleaned buffer */
-		/* TODO: we need to update this, for FMT_DYNA_SALT types also */
-		memset(salt, 0xAF, format->params.salt_size);
-		salt = format->methods.salt(ciphertext);
-		if (!salt_cleaned_warned)
-		if (((unsigned char*)salt)[format->params.salt_size-1] == 0xAF)
-		{
-			memset(salt, 0xCC, format->params.salt_size);
-			salt = format->methods.salt(ciphertext);
-			if (((unsigned char*)salt)[format->params.salt_size-1] == 0xCC) {
-				/* possibly did not clean the salt. */
-				puts("Warning: salt() not pre-cleaning buffer");
-				salt_cleaned_warned = 1;
+		if (!salt_cleaned_warned) {
+			if ((format->params.flags & FMT_DYNA_SALT) == FMT_DYNA_SALT) {
+				dyna_salt *p1 = *((dyna_salt**)salt);
+				memset(&((unsigned char*)p1)[p1->salt_cmp_offset], 0xAF, p1->salt_cmp_size);
+				salt = format->methods.salt(ciphertext);
+				p1 = *((dyna_salt**)salt);
+				if (((unsigned char*)p1)[p1->salt_cmp_offset+p1->salt_cmp_size-1] == 0xAF)
+				{
+					memset(&((unsigned char*)p1)[p1->salt_cmp_offset], 0xC3, p1->salt_cmp_size);
+					salt = format->methods.salt(ciphertext);
+					p1 = *((dyna_salt**)salt);
+					if (((unsigned char*)p1)[p1->salt_cmp_offset+p1->salt_cmp_size-1] == 0xC3) {
+						/* possibly did not clean the salt. */
+						puts("Warning: salt() not pre-cleaning buffer");
+						salt_cleaned_warned = 1;
+					}
+				}
+				/* Clean up the mess we might have caused */
+				memset(&((unsigned char*)p1)[p1->salt_cmp_offset], 0, p1->salt_cmp_size);
+			} else {
+				memset(salt, 0xAF, format->params.salt_size);
+				salt = format->methods.salt(ciphertext);
+				if (((unsigned char*)salt)[format->params.salt_size-1] == 0xAF)
+				{
+					memset(salt, 0xC3, format->params.salt_size);
+					salt = format->methods.salt(ciphertext);
+					if (((unsigned char*)salt)[format->params.salt_size-1] == 0xC3) {
+						/* possibly did not clean the salt. */
+						puts("Warning: salt() not pre-cleaning buffer");
+						salt_cleaned_warned = 1;
+					}
+				}
+				/* Clean up the mess we might have caused */
+				memset(salt, 0, format->params.salt_size);
 			}
 		}
-		/* Clean up the mess we might have caused */
-		memset(salt, 0, format->params.salt_size);
 
 		salt = format->methods.salt(ciphertext);
 		memcpy(salt_copy, salt, format->params.salt_size);
