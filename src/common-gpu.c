@@ -459,4 +459,30 @@ void gpu_check_temp(void)
 #endif
 }
 
+void gpu_log_temp(void)
+{
+#if HAVE_LIBDL
+	int i;
+
+	for (i = 0; i < MAX_GPU_DEVICES && gpu_device_list[i] != -1; i++)
+	if (dev_get_temp[gpu_device_list[i]]) {
+		char s_gpu[32] = "";
+		int n, fan, temp, util;
+		int dev = gpu_device_list[i];
+
+		fan = temp = util = -1;
+		dev_get_temp[dev](temp_dev_id[dev], &temp, &fan, &util);
+		n = sprintf(s_gpu, "GPU %d:", i);
+		if (temp >= 0)
+			n += sprintf(s_gpu + n, " temp: %u" DEGC, temp);
+		if (util > 0)
+			n += sprintf(s_gpu + n, " util: %u%%", util);
+		if (fan >= 0)
+			n += sprintf(s_gpu + n, " fan: %u%%", fan);
+		if (temp >= 0 || util > 0 || fan > 0)
+			log_event("- %s", s_gpu);
+	}
+#endif
+}
+
 #endif /* defined (HAVE_CUDA) || defined (HAVE_OPENCL) */

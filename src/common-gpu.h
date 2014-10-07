@@ -152,6 +152,9 @@ extern int adl2od[MAX_GPU_DEVICES];
 /* Check temperature limit */
 extern void gpu_check_temp(void);
 
+/* Log GPU sensors */
+extern void gpu_log_temp(void);
+
 #if (__cplusplus)
 }
 #endif

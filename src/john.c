@@ -301,6 +301,9 @@ static void john_log_format(void)
 		log_event("- MPI: Node %u/%u running on %s",
 		          mpi_id + 1, mpi_p, mpi_name);
 #endif
+#if defined(HAVE_CUDA) || defined(HAVE_OPENCL)
+	gpu_log_temp();
+#endif
 	/* make sure the format is properly initialized */
 #if HAVE_OPENCL
 	if (!(options.gpu_devices->count && options.fork &&
@@ -1412,6 +1415,9 @@ static void john_done(void)
 		}
 		fmt_done(database.format);
 	}
+#if defined(HAVE_CUDA) || defined(HAVE_OPENCL)
+	gpu_log_temp();
+#endif
 	log_done();
 #if HAVE_OPENCL
 	if (!(options.flags & FLG_FORK) || john_main_process)
