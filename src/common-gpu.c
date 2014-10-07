@@ -88,7 +88,7 @@ ADL_OVERDRIVE6_CURRENTSTATUS_GET ADL_Overdrive6_CurrentStatus_Get = NULL;
 ADL_OVERDRIVE6_CAPABILITIES_GET ADL_Overdrive6_Capabilities_Get = NULL;
 
 // Memory allocation callback function
-static void*ADL_Main_Memory_Alloc(int iSize)
+static void* ADL_Main_Memory_Alloc(int iSize)
 {
 	void*lpBuffer = malloc(iSize);
 	return lpBuffer;
@@ -165,10 +165,8 @@ void amd_probe(void)
 		setenv("DISPLAY", env, 1);
 	else {
 		env = getenv("DISPLAY");
-		if (!env || !*env) {
-			//fprintf(stderr, "Warning: No DISPLAY nor COMPUTE variable set. Defaulting to :0\n");
+		if (!env || !*env)
 			setenv("DISPLAY", ":0", 1);
-		}
 	}
 
 	ADL_Main_Control_Create = (ADL_MAIN_CONTROL_CREATE) dlsym(adl_lib,"ADL_Main_Control_Create");
@@ -195,10 +193,8 @@ void amd_probe(void)
 		return;
 
 	// Obtain the number of adapters for the system
-	if (ADL_Adapter_NumberOfAdapters_Get(&iNumberAdapters) != ADL_OK) {
-		//printf("Cannot get the number of adapters!\n");
+	if (ADL_Adapter_NumberOfAdapters_Get(&iNumberAdapters) != ADL_OK)
 		return;
-	}
 
 	if (iNumberAdapters > 0) {
 		lpAdapterInfo = (LPAdapterInfo)malloc(sizeof(AdapterInfo) * iNumberAdapters);
@@ -227,15 +223,11 @@ void amd_probe(void)
 
 			amd++;
 
-			if (ADL_Overdrive_Caps(adl_id, &iOverdriveSupported, &iOverdriveEnabled, &iOverdriveVersion) != ADL_OK) {
-				//printf("Can't get Overdrive capabilities\n");
+			if (ADL_Overdrive_Caps(adl_id, &iOverdriveSupported, &iOverdriveEnabled, &iOverdriveVersion) != ADL_OK)
 				return;
-			}
 
-			if (!iOverdriveSupported) {
-				//printf("Overdrive is not supported\n");
+			if (!iOverdriveSupported)
 				return;
-			}
 
 			if (iOverdriveVersion == 5)
 				adl2od[adl_id] = 5;
@@ -410,7 +402,8 @@ int id2nvml(const hw_bus busInfo) {
 	nvmlDevice_t dev;
 
 	if (nvmlDeviceGetHandleByPciBusId &&
-	    nvmlDeviceGetHandleByPciBusId(busInfo.busId, &dev) == NVML_SUCCESS) {
+	    nvmlDeviceGetHandleByPciBusId(busInfo.busId, &dev) == NVML_SUCCESS)
+	{
 		unsigned int id_NVML;
 
 		if (nvmlDeviceGetIndex(dev, &id_NVML) == NVML_SUCCESS)
@@ -445,21 +438,25 @@ void gpu_check_temp(void)
 	if (temp_limit < 0)
 		return;
 
-	for (i = 0; i < MAX_GPU_DEVICES && gpu_device_list[i] != -1; i++) {
-		if (dev_get_temp[gpu_device_list[i]]) {
-			int fan, temp, util;
+	for (i = 0; i < MAX_GPU_DEVICES && gpu_device_list[i] != -1; i++)
+	if (dev_get_temp[gpu_device_list[i]]) {
+		int fan, temp, util;
+		int dev = gpu_device_list[i];
 
-			dev_get_temp[gpu_device_list[i]](temp_dev_id[gpu_device_list[i]], &temp, &fan, &util);
-			if (temp >= temp_limit) {
-				char s_fan[10] = "n/a";
-				if (fan >= 0)
-					sprintf(s_fan, "%u%%", fan);
-				if (!event_abort) {
-					log_event("GPU %d overheat (%d" DEGC ", fan %s), aborting job.", gpu_device_list[i], temp, s_fan);
-					fprintf(stderr, "GPU %d overheat (%d" DEGC ", fan %s), aborting job.\n", gpu_device_list[i], temp, s_fan);
-				}
-				event_abort++;
+		dev_get_temp[dev](temp_dev_id[dev], &temp, &fan, &util);
+		if (temp >= temp_limit) {
+			char s_fan[10] = "n/a";
+			if (fan >= 0)
+				sprintf(s_fan, "%u%%", fan);
+			if (!event_abort) {
+				log_event("GPU %d overheat (%d" DEGC
+				          ", fan %s), aborting job.",
+				          dev, temp, s_fan);
+				fprintf(stderr, "GPU %d overheat (%d" DEGC
+				        ", fan %s), aborting job.\n",
+				        dev, temp, s_fan);
 			}
+			event_abort++;
 		}
 	}
 #endif
