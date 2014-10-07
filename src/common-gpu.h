@@ -17,6 +17,8 @@
 
 #if defined (HAVE_CUDA) || defined (HAVE_OPENCL)
 
+#define SUBSECTION_GPU			":GPU"
+
 #if (__cplusplus)
 extern "C" {
 #endif
@@ -146,6 +148,9 @@ extern int id2adl(const hw_bus busInfo);
 /* Mapping between our device number and ADL id */
 extern int amd2adl[MAX_GPU_DEVICES];
 extern int adl2od[MAX_GPU_DEVICES];
+
+/* Check temperature limit */
+extern void gpu_check_temp(void);
 
 #if (__cplusplus)
 }

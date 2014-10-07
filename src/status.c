@@ -427,27 +427,36 @@ void status_print(void)
 	char s_gpu[32 * MAX_GPU_DEVICES] = "";
 
 	if (!(options.flags & FLG_STDOUT) &&
-	    cfg_get_bool(SECTION_OPTIONS, ":GPU", "SensorsStatus", 0)) {
+	    cfg_get_bool(SECTION_OPTIONS, SUBSECTION_GPU, "SensorsStatus", 0)) {
 		int i;
 		int n = 0;
 
 		for (i = 0; i < MAX_GPU_DEVICES &&
 			     gpu_device_list[i] != -1; i++) {
-			if (dev_get_temp[gpu_device_list[i]]) {
+			int dev = gpu_device_list[i];
+
+			if (dev_get_temp[dev]) {
 				int fan, temp, util;
 
 				fan = temp = util = -1;
-				dev_get_temp[gpu_device_list[i]](temp_dev_id[gpu_device_list[i]], &temp, &fan, &util);
+				dev_get_temp[dev](temp_dev_id[dev],
+				                  &temp, &fan, &util);
 				if (temp >= 0) {
 					if (i == 0)
-						n += sprintf(s_gpu + n, " GPU:%u" DEGC, temp);
+						n += sprintf(s_gpu + n,
+						             " GPU:%u" DEGC,
+						             temp);
 					else
-						n += sprintf(s_gpu + n, " GPU%d:%u" DEGC, i, temp);
+						n += sprintf(s_gpu + n,
+						             " GPU%d:%u" DEGC,
+						             i, temp);
 				}
 				if (util > 0)
-					n += sprintf(s_gpu + n, " util:%u%%", util);
+					n += sprintf(s_gpu + n,
+					             " util:%u%%", util);
 				if (fan >= 0)
-					n += sprintf(s_gpu + n, " fan:%u%%", fan);
+					n += sprintf(s_gpu + n,
+					             " fan:%u%%", fan);
 			}
 		}
 	}

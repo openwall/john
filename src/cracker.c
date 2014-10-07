@@ -55,6 +55,9 @@
 #endif
 #include "path.h"
 #include "jumbo.h"
+#if HAVE_LIBDL && defined(HAVE_CUDA) || defined(HAVE_OPENCL)
+#include "common-gpu.h"
+#endif
 #include "memdbg.h"
 
 #ifdef index
@@ -677,6 +680,9 @@ static int crk_process_event(void)
 
 	if (event_poll_files) {
 		event_poll_files = 0;
+#if HAVE_LIBDL && defined(HAVE_CUDA) || defined(HAVE_OPENCL)
+		gpu_check_temp();
+#endif
 		crk_poll_files();
 	}
 

@@ -35,6 +35,10 @@
 #include "common-gpu.h"
 #include "john.h"
 #include "memory.h"
+#include "params.h"
+#include "logger.h"
+#include "config.h"
+#include "signals.h"
 #include "memdbg.h"
 
 /* These are shared between OpenCL and CUDA */
@@ -423,6 +427,36 @@ int id2adl(const hw_bus busInfo) {
 	}
 #endif
 	return -1;
+}
+
+void gpu_check_temp(void)
+{
+#if HAVE_LIBDL
+	int i;
+	int limit = cfg_get_int(SECTION_OPTIONS, SUBSECTION_GPU,
+	                        "AbortTemperature");
+
+	if (limit < 0)
+		return;
+
+	for (i = 0; i < MAX_GPU_DEVICES && gpu_device_list[i] != -1; i++) {
+		if (dev_get_temp[gpu_device_list[i]]) {
+			int fan, temp, util;
+
+			dev_get_temp[gpu_device_list[i]](temp_dev_id[gpu_device_list[i]], &temp, &fan, &util);
+			if (temp >= limit) {
+				char s_fan[10] = "n/a";
+				if (fan >= 0)
+					sprintf(s_fan, "%u%%", fan);
+				if (!event_abort) {
+					log_event("GPU %d overheat (%d" DEGC ", fan %s), aborting job.", gpu_device_list[i], temp, s_fan);
+					fprintf(stderr, "GPU %d overheat (%d" DEGC ", fan %s), aborting job.\n", gpu_device_list[i], temp, s_fan);
+				}
+				event_abort++;
+			}
+		}
+	}
+#endif
 }
 
 #endif /* defined (HAVE_CUDA) || defined (HAVE_OPENCL) */

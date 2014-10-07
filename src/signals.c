@@ -257,6 +257,7 @@ static void sig_handle_timer(int signum)
 	unsigned int time;
 #endif
 #ifndef BENCH_BUILD
+#if OS_TIMER
 	/* Some stuff only done every third second */
 	if ((timer_save_value & 3) == 3) {
 #ifdef HAVE_MPI
@@ -264,13 +265,11 @@ static void sig_handle_timer(int signum)
 			event_pending = event_mpiprobe = 1;
 		}
 #endif
-#ifdef SIGUSR2
-
 		event_poll_files = event_pending = 1;
+#ifdef SIGUSR2
 		sig_install(sig_handle_reload, SIGUSR2);
 #endif
 	}
-#if OS_TIMER
 	if (!--timer_save_value) {
 		timer_save_value = timer_save_interval;
 		event_save = event_pending = 1;
@@ -288,6 +287,18 @@ static void sig_handle_timer(int signum)
 #else /* no OS_TIMER */
 	time = status_get_time();
 
+	/* Some stuff only done every third second */
+	if ((time & 3) == 3) {
+#ifdef HAVE_MPI
+		if (!event_reload && mpi_p > 1) {
+			event_pending = event_mpiprobe = 1;
+		}
+#endif
+		event_poll_files = event_pending = 1;
+#ifdef SIGUSR2
+		sig_install(sig_handle_reload, SIGUSR2);
+#endif
+	}
 	if (time >= timer_save_value) {
 		timer_save_value += timer_save_interval;
 		event_save = event_pending = 1;

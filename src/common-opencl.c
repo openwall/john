@@ -108,9 +108,6 @@ void opencl_process_event(void)
 		sig_timer_emu_tick();
 #endif
 		if (event_pending) {
-
-			event_pending = event_abort;
-
 			if (event_save) {
 				event_save = 0;
 				rec_save();
@@ -125,6 +122,13 @@ void opencl_process_event(void)
 				event_ticksafety = 0;
 				status_ticks_overflow_safety();
 			}
+
+#if HAVE_LIBDL && defined(HAVE_CUDA) || defined(HAVE_OPENCL)
+			if (event_poll_files) {
+				gpu_check_temp();
+			}
+#endif
+			event_pending = (event_abort || event_poll_files);
 		}
 	}
 }
