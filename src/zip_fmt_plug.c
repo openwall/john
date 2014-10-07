@@ -401,7 +401,7 @@ static void *get_salt(char *ciphertext)
 Bail:;
 	MEM_FREE(copy_mem);
 
-	memcpy(ptr, &psalt, sizeof(my_salt));
+	memcpy(ptr, &psalt, sizeof(my_salt*));
 	return (void*)ptr;
 }
 
@@ -434,15 +434,27 @@ static int get_hash_6(int index) { return ((ARCH_WORD_32*)&(crypt_key[index]))[0
 
 static int salt_hash(void *salt)
 {
-	my_salt * mysalt = (my_salt *)salt;
+	my_salt * mysalt = *(my_salt **)salt;
 	unsigned v;
 	int i;
+	unsigned char *p;
+	p = (unsigned char*)mysalt;
+	p += mysalt->salt_comp_offset;
+	v = 0;
+	for (i = 0; i < mysalt->salt_comp_size; ++i) {
+		v *= 11;
+		v += *p++;
+	}
+	return v & (SALT_HASH_SIZE - 1);
+	/*
+
 	v = mysalt->salt[0];
 	for (i = 1; i < SALT_LENGTH(mysalt->v.mode); ++i) {
 		v *= 11;
 		v += mysalt->salt[i];
 	}
 	return v & (SALT_HASH_SIZE - 1);
+	*/
 }
 
 static int crypt_all(int *pcount, struct db_salt *salt)
@@ -536,7 +548,7 @@ struct fmt_main fmt_zip = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT*BASE_SCALE,
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_DYNA_SALT,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif

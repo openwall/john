@@ -33,6 +33,7 @@
 #include "list.h"
 #include "signals.h"
 #include "formats.h"
+#include "dyna_salt.h"
 #include "loader.h"
 #include "options.h"
 #include "config.h"
@@ -732,12 +733,24 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 		salt = format->methods.salt(piece);
 		salt_hash = format->methods.salt_hash(salt);
 
-		if ((current_salt = db->salt_hash[salt_hash]))
-		do {
-			if (!memcmp(current_salt->salt, salt,
-			    format->params.salt_size))
-				break;
-		} while ((current_salt = current_salt->next));
+		if ((current_salt = db->salt_hash[salt_hash])) {
+			if ((format->params.flags & FMT_DYNA_SALT) == FMT_DYNA_SALT) {
+				dyna_salt *p1 = *((dyna_salt**)salt);
+				do {
+					dyna_salt *p2 = *((dyna_salt**)(current_salt->salt));
+					if (!memcmp( &((unsigned char*)p1)[p1->salt_cmp_offset],
+								&((unsigned char*)p2)[p1->salt_cmp_offset],
+								p1->salt_cmp_size))
+								break;
+				}  while ((current_salt = current_salt->next));
+			} else {
+				do {
+					if (!memcmp(current_salt->salt, salt,
+						format->params.salt_size))
+						break;
+				} while ((current_salt = current_salt->next));
+			}
+		}
 
 		if (!current_salt) {
 			last_salt = db->salt_hash[salt_hash];

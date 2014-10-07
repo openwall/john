@@ -40,6 +40,7 @@
 #include "signals.h"
 #include "idle.h"
 #include "formats.h"
+#include "dyna_salt.h"
 #include "loader.h"
 #include "logger.h"
 #include "status.h"
@@ -412,10 +413,21 @@ static int crk_remove_pot_entry(char *ciphertext)
 	} else
 		salt = crk_db->salts;
 
-	do {
-		if (!memcmp(pot_salt, salt->salt, potcheck_salt_size))
-			break;
-	} while ((salt = salt->next));
+	if ((crk_params.flags & FMT_DYNA_SALT) == FMT_DYNA_SALT) {
+		dyna_salt *p1 = *((dyna_salt**)pot_salt);
+		do {
+			dyna_salt *p2 = *((dyna_salt**)(salt->salt));
+			if (!memcmp( &((unsigned char*)p1)[p1->salt_cmp_offset],
+						&((unsigned char*)p2)[p1->salt_cmp_offset],
+						p1->salt_cmp_size))
+						break;
+		}  while ((salt = salt->next));
+	} else {
+		do {
+			if (!memcmp(pot_salt, salt->salt, potcheck_salt_size))
+				break;
+		} while ((salt = salt->next));
+	}
 
 #ifdef DEBUG
 	end = times(&buffer);
