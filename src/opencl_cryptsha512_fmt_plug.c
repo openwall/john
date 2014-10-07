@@ -111,8 +111,7 @@ static size_t get_task_max_work_group_size()
 
 static size_t get_task_max_size(){
 
-	return common_get_task_max_size((amd_gcn(device_info[gpu_id]) ? 4 : 6),
-		KEYS_PER_CORE_CPU, KEYS_PER_CORE_GPU, crypt_kernel);
+	return 0;
 }
 
 static size_t get_default_workgroup(){
@@ -368,6 +367,7 @@ static void build_kernel(char * task) {
 static void init(struct fmt_main * self) {
 	char * tmp_value;
 	char * task = "$JOHN/kernels/cryptsha512_kernel_DEFAULT.cl";
+	int default_value = 0;
 
 	opencl_prepare_dev(gpu_id);
 	source_in_use = device_info[gpu_id];
@@ -382,8 +382,14 @@ static void init(struct fmt_main * self) {
 
 	build_kernel(task);
 
+	if (gpu_amd(source_in_use))
+		default_value = get_processors_count(gpu_id);
+	else
+		default_value = common_get_task_max_size(
+			1, KEYS_PER_CORE_CPU, KEYS_PER_CORE_GPU, crypt_kernel);
+
 	//Initialize openCL tuning (library) for this format.
-	opencl_init_auto_setup(STEP, HASH_LOOPS,
+	opencl_init_auto_setup(default_value, HASH_LOOPS,
 		((_SPLIT_KERNEL_IN_USE) ? split_events : NULL),
 		warn, 1, self, create_clobj, release_clobj,
 		sizeof(uint64_t) * 9 * 8 , 0);
