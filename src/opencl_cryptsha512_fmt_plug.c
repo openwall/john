@@ -111,8 +111,7 @@ static size_t get_task_max_work_group_size()
 
 static size_t get_task_max_size(){
 
-	return common_get_task_max_size((amd_gcn(device_info[gpu_id]) ? 4 : 6),
-		KEYS_PER_CORE_CPU, KEYS_PER_CORE_GPU, crypt_kernel);
+	return 0;
 }
 
 static size_t get_default_workgroup(){
@@ -383,7 +382,7 @@ static void init(struct fmt_main * self) {
 	build_kernel(task);
 
 	//Initialize openCL tuning (library) for this format.
-	opencl_init_auto_setup(STEP, HASH_LOOPS,
+	opencl_init_auto_setup(get_processors_count(gpu_id), HASH_LOOPS,
 		((_SPLIT_KERNEL_IN_USE) ? split_events : NULL),
 		warn, 1, self, create_clobj, release_clobj,
 		sizeof(uint64_t) * 9 * 8 , 0);

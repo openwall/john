@@ -542,9 +542,111 @@ inline void sha512_block_be(uint64_t * buffer, uint64_t * H) {
 }
 
 inline void sha512_crypt(const uint32_t saltlen, const uint32_t passlen,
-                         const uint32_t initial, const uint32_t rounds,
 			 __global	buffer_64      * alt_result,
 			 __global	uint64_t       * work_memory) {
+
+    //To compute buffers.
+    int		    total;
+    uint64_t	    w[16];
+    uint64_t	    H[8];
+
+    //Transfer host global data to a faster memory space.
+    #pragma unroll
+    for (int i = 0; i < 8; i++)
+        H[i] = alt_result[i].mem_64[0];
+
+    /* Repeatedly run the collected hash value through SHA512 to burn cycles. */
+#ifdef STRONG_UNROLL
+    #pragma unroll 2
+#endif
+    for (uint i = 0; i < HASH_LOOPS; i++) {
+
+	#pragma unroll
+	for (int j = 8; j < 16; j++)
+	   w[j] = 0;
+
+        if (i & 1) {
+            w[0] = work_memory[OFFSET(loop_index[i], 0)];
+            w[1] = work_memory[OFFSET(loop_index[i], 1)];
+            w[2] = work_memory[OFFSET(loop_index[i], 2)];
+            w[3] = work_memory[OFFSET(loop_index[i], 3)];
+            w[4] = work_memory[OFFSET(loop_index[i], 4)];
+            w[5] = work_memory[OFFSET(loop_index[i], 5)];
+            w[6] = work_memory[OFFSET(loop_index[i], 6)];
+            w[7] = work_memory[OFFSET(loop_index[i], 7)];
+            total = work_memory[OFFSET(loop_index[i], 8)];
+
+	    {
+		uint32_t tmp, pos;
+		tmp = ((total & 7) << 3);
+		pos = (total >> 3);
+
+		APPEND_BE_BUFFER(w, H[0]);
+		APPEND_BE_BUFFER(w, H[1]);
+		APPEND_BE_BUFFER(w, H[2]);
+		APPEND_BE_BUFFER(w, H[3]);
+		APPEND_BE_BUFFER(w, H[4]);
+		APPEND_BE_BUFFER(w, H[5]);
+		APPEND_BE_BUFFER(w, H[6]);
+		APPEND_BE_BUFFER_F(w, H[7]);
+	    }
+            total += 64;
+
+        } else {
+            w[0] = H[0];
+            w[1] = H[1];
+            w[2] = H[2];
+            w[3] = H[3];
+            w[4] = H[4];
+            w[5] = H[5];
+            w[6] = H[6];
+            w[7] = H[7];
+	    w[8] = work_memory[OFFSET(loop_index[i], 0)];
+	    w[9] = work_memory[OFFSET(loop_index[i], 1)];
+	    w[10] = work_memory[OFFSET(loop_index[i], 2)];
+	    w[11] = work_memory[OFFSET(loop_index[i], 3)];
+	    w[12] = work_memory[OFFSET(loop_index[i], 4)];
+	    w[13] = work_memory[OFFSET(loop_index[i], 5)];
+	    w[14] = work_memory[OFFSET(loop_index[i], 6)];
+	    w[15] = work_memory[OFFSET(loop_index[i], 7)];
+            total = 64 + work_memory[OFFSET(loop_index[i], 8)];
+        }
+        //Initialize CTX.
+	H[0] = H0;
+	H[1] = H1;
+	H[2] = H2;
+	H[3] = H3;
+	H[4] = H4;
+	H[5] = H5;
+	H[6] = H6;
+	H[7] = H7;
+
+        //Do the sha512_digest(ctx);
+	APPEND_BE_SINGLE(w, 0x8000000000000000UL, total);
+
+	if (total < 112) { //data+0x80+datasize fits in one 1024bit block
+	    w[15] = (total * 8);
+
+	} else {
+	    sha512_block_be(w, H);
+
+	    #pragma unroll
+	    for (int i = 0; i < 15; i++)
+	       w[i] = 0;
+	    w[15] = (total * 8);
+	}
+	sha512_block_be(w, H);
+    }
+    //Push results back to global memory.
+    #pragma unroll
+    for (int i = 0; i < 8; i++)
+        alt_result[i].mem_64[0] = H[i];
+}
+
+inline void sha512_crypt_f(const uint32_t saltlen, const uint32_t passlen,
+                           const uint32_t initial, const uint32_t rounds,
+			   __global	  buffer_64      * alt_result,
+			   __global	  uint64_t       * work_memory) {
 
     //To compute buffers.
     int		    total;
@@ -655,7 +757,7 @@ void kernel_crypt(__constant sha512_salt     * salt,
     __global buffer_64 * alt_result = &global_alt_result[(gid * 8)];
 
     //Do the job
-    sha512_crypt(salt->length, keys_buffer[gid].length, 0, HASH_LOOPS,
+    sha512_crypt(salt->length, keys_buffer[gid].length,
 		 alt_result, work_memory);
 }
 
@@ -673,9 +775,9 @@ void kernel_final(__constant sha512_salt     * salt,
     __global buffer_64 * alt_result = &global_alt_result[(gid * 8)];
 
     //Do the job
-    sha512_crypt(salt->length, keys_buffer[gid].length, 0,
-		 MIN(salt->final,  HASH_LOOPS),
-		 alt_result, work_memory);
+    sha512_crypt_f(salt->length, keys_buffer[gid].length, 0,
+		   MIN(salt->final,  HASH_LOOPS),
+		   alt_result, work_memory);
 
     //SWAP results and put it as hash data.
     for (int i = 0; i < 8; i++)
