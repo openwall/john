@@ -123,11 +123,6 @@ void opencl_process_event(void)
 				status_ticks_overflow_safety();
 			}
 
-#if HAVE_LIBDL && defined(HAVE_CUDA) || defined(HAVE_OPENCL)
-			if (event_poll_files) {
-				gpu_check_temp();
-			}
-#endif
 			event_pending = (event_abort || event_poll_files);
 		}
 	}
