@@ -302,7 +302,7 @@ inline void ctx_update_C(           sha512_ctx * ctx,
 
 inline void sha512_digest(sha512_ctx * ctx,
                           uint64_t   * result,
-                          const int size) {
+                          const uint32_t size) {
 
     if (ctx->buflen <= 111) { //data+0x80+datasize fits in one 1024bit block
 	APPEND_SINGLE(ctx->buffer->mem_64, 0x80UL, ctx->buflen);
@@ -325,7 +325,7 @@ inline void sha512_digest(sha512_ctx * ctx,
     }
     sha512_block(ctx);
 
-    for (int i = 0; i < size; i++)
+    for (uint32_t i = 0; i < size; i++)
         result[i] = SWAP64(ctx->H[i]);
 }
 
@@ -546,7 +546,7 @@ inline void sha512_crypt(const uint32_t saltlen, const uint32_t passlen,
 			 __global	uint64_t       * work_memory) {
 
     //To compute buffers.
-    int		    total;
+    uint32_t	    total;
     uint64_t	    w[16];
     uint64_t	    H[8];
 
@@ -590,7 +590,7 @@ inline void sha512_crypt(const uint32_t saltlen, const uint32_t passlen,
 		APPEND_BE_BUFFER(w, H[6]);
 		APPEND_BE_BUFFER_F(w, H[7]);
 	    }
-            total += 64;
+            total += 64U;
 
         } else {
             w[0] = H[0];
@@ -609,7 +609,7 @@ inline void sha512_crypt(const uint32_t saltlen, const uint32_t passlen,
 	    w[13] = work_memory[OFFSET(loop_index[i], 5)];
 	    w[14] = work_memory[OFFSET(loop_index[i], 6)];
 	    w[15] = work_memory[OFFSET(loop_index[i], 7)];
-            total = 64 + work_memory[OFFSET(loop_index[i], 8)];
+            total = 64U + work_memory[OFFSET(loop_index[i], 8)];
         }
         //Initialize CTX.
 	H[0] = H0;
@@ -649,7 +649,7 @@ inline void sha512_crypt_f(const uint32_t saltlen, const uint32_t passlen,
 			   __global	  uint64_t       * work_memory) {
 
     //To compute buffers.
-    int		    total;
+    uint32_t	    total;
     uint64_t	    w[16];
     uint64_t	    H[8];
 
@@ -690,7 +690,7 @@ inline void sha512_crypt_f(const uint32_t saltlen, const uint32_t passlen,
 		APPEND_BE_BUFFER(w, H[6]);
 		APPEND_BE_BUFFER_F(w, H[7]);
 	    }
-            total += 64;
+            total += 64U;
 
         } else {
             w[0] = H[0];
@@ -709,7 +709,7 @@ inline void sha512_crypt_f(const uint32_t saltlen, const uint32_t passlen,
 	    w[13] = work_memory[OFFSET(loop_index[i], 5)];
 	    w[14] = work_memory[OFFSET(loop_index[i], 6)];
 	    w[15] = work_memory[OFFSET(loop_index[i], 7)];
-            total = 64 + work_memory[OFFSET(loop_index[i], 8)];
+            total = 64U + work_memory[OFFSET(loop_index[i], 8)];
         }
         //Initialize CTX.
 	H[0] = H0;
