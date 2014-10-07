@@ -46,6 +46,8 @@ int gpu_id;
 int gpu_device_list[MAX_GPU_DEVICES];
 hw_bus gpu_device_bus[MAX_GPU_DEVICES];
 
+static int temp_limit;
+
 void *nvml_lib;
 NVMLINIT nvmlInit = NULL;
 NVMLSHUTDOWN nvmlShutdown = NULL;
@@ -117,6 +119,9 @@ void nvidia_probe(void)
 	if (nvml_lib)
 		return;
 
+	temp_limit = cfg_get_int(SECTION_OPTIONS, SUBSECTION_GPU,
+	                         "AbortTemperature");
+
 	if (!(nvml_lib = dlopen("libnvidia-ml.so", RTLD_LAZY|RTLD_GLOBAL)))
 		return;
 
@@ -148,6 +153,9 @@ void amd_probe(void)
 
 	if (adl_lib)
 		return;
+
+	temp_limit = cfg_get_int(SECTION_OPTIONS, SUBSECTION_GPU,
+	                         "AbortTemperature");
 
 	if (!(adl_lib = dlopen("libatiadlxx.so", RTLD_LAZY|RTLD_GLOBAL)))
 		return;
@@ -433,10 +441,8 @@ void gpu_check_temp(void)
 {
 #if HAVE_LIBDL
 	int i;
-	int limit = cfg_get_int(SECTION_OPTIONS, SUBSECTION_GPU,
-	                        "AbortTemperature");
 
-	if (limit < 0)
+	if (temp_limit < 0)
 		return;
 
 	for (i = 0; i < MAX_GPU_DEVICES && gpu_device_list[i] != -1; i++) {
@@ -444,7 +450,7 @@ void gpu_check_temp(void)
 			int fan, temp, util;
 
 			dev_get_temp[gpu_device_list[i]](temp_dev_id[gpu_device_list[i]], &temp, &fan, &util);
-			if (temp >= limit) {
+			if (temp >= temp_limit) {
 				char s_fan[10] = "n/a";
 				if (fan >= 0)
 					sprintf(s_fan, "%u%%", fan);
