@@ -561,11 +561,11 @@ inline void sha512_crypt(const uint32_t saltlen, const uint32_t passlen,
 #endif
     for (uint i = 0; i < HASH_LOOPS; i++) {
 
-	#pragma unroll
-	for (int j = 8; j < 16; j++)
-	   w[j] = 0;
-
         if (i & 1) {
+	    #pragma unroll
+	    for (int j = 8; j < 16; j++)
+		w[j] = 0;
+
             w[0] = work_memory[OFFSET(loop_index[i], 0)];
             w[1] = work_memory[OFFSET(loop_index[i], 1)];
             w[2] = work_memory[OFFSET(loop_index[i], 2)];

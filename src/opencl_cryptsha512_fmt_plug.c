@@ -382,7 +382,7 @@ static void init(struct fmt_main * self) {
 
 	build_kernel(task);
 
-	if (gpu_amd(source_in_use))
+	if (gpu_amd(source_in_use) && !platform_apple(platform_id))
 		default_value = get_processors_count(gpu_id);
 	else
 		default_value = common_get_task_max_size(
