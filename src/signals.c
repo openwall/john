@@ -277,7 +277,7 @@ static void sig_handle_timer(int signum)
 	}
 	if (timer_abort && !--timer_abort) {
 		aborted_by_timer = 1;
-		timer_abort = 3;
+		timer_abort = 30; /* grace time */
 		sig_handle_abort(0);
 	}
 	if (timer_status && !--timer_status) {
@@ -306,7 +306,7 @@ static void sig_handle_timer(int signum)
 	}
 	if (timer_abort && time >= timer_abort) {
 		aborted_by_timer = 1;
-		timer_abort += 3;
+		timer_abort += 30; /* grace time */
 		sig_handle_abort(0);
 	}
 	if (timer_status && time >= timer_status) {
