@@ -417,7 +417,8 @@ static int crk_remove_pot_entry(char *ciphertext)
 		dyna_salt *p1 = *((dyna_salt**)pot_salt);
 		do {
 			dyna_salt *p2 = *((dyna_salt**)(salt->salt));
-			if (!memcmp( &((unsigned char*)p1)[p1->salt_cmp_offset],
+			if (p1->salt_cmp_offset == p2->salt_cmp_offset && p1->salt_cmp_size == p2->salt_cmp_size &&
+				!memcmp( &((unsigned char*)p1)[p1->salt_cmp_offset],
 						&((unsigned char*)p2)[p1->salt_cmp_offset],
 						p1->salt_cmp_size))
 						break;
