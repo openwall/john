@@ -360,6 +360,8 @@ extern int fmt_default_salt_hash(void *salt);
 extern void fmt_default_set_salt(void *salt);
 extern void fmt_default_clear_keys(void);
 extern int fmt_default_get_hash(int index);
+/* this is a salt_hash default specifically for dyna_salt type formats */
+extern int fmt_default_salt_hash_dyna_salt(void *salt);
 
 /*
  * Default binary_hash_N methods

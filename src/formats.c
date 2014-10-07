@@ -9,6 +9,7 @@
 #include "params.h"
 #include "memory.h"
 #include "formats.h"
+#include "dyna_salt.h"
 #include "misc.h"
 #include "unicode.h"
 #ifndef BENCH_BUILD
@@ -661,6 +662,23 @@ int fmt_default_binary_hash_6(void * binary)
 int fmt_default_salt_hash(void *salt)
 {
 	return 0;
+}
+
+int fmt_default_salt_hash_dyna_salt(void *salt)
+{
+	/* if the hash is a dyna_salt type hash, it can simply use this function */
+	dyna_salt *mysalt = *(dyna_salt **)salt;
+	unsigned v;
+	int i;
+	unsigned char *p;
+	p = (unsigned char*)mysalt;
+	p += mysalt->salt_cmp_offset;
+	v = 0;
+	for (i = 0; i < mysalt->salt_cmp_size; ++i) {
+		v *= 11;
+		v += *p++;
+	}
+	return v & (SALT_HASH_SIZE - 1);
 }
 
 void fmt_default_set_salt(void *salt)

@@ -432,31 +432,6 @@ static int get_hash_4(int index) { return ((ARCH_WORD_32*)&(crypt_key[index]))[0
 static int get_hash_5(int index) { return ((ARCH_WORD_32*)&(crypt_key[index]))[0] & 0xffffff; }
 static int get_hash_6(int index) { return ((ARCH_WORD_32*)&(crypt_key[index]))[0] & 0x7ffffff; }
 
-static int salt_hash(void *salt)
-{
-	my_salt * mysalt = *(my_salt **)salt;
-	unsigned v;
-	int i;
-	unsigned char *p;
-	p = (unsigned char*)mysalt;
-	p += mysalt->salt_comp_offset;
-	v = 0;
-	for (i = 0; i < mysalt->salt_comp_size; ++i) {
-		v *= 11;
-		v += *p++;
-	}
-	return v & (SALT_HASH_SIZE - 1);
-	/*
-
-	v = mysalt->salt[0];
-	for (i = 1; i < SALT_LENGTH(mysalt->v.mode); ++i) {
-		v *= 11;
-		v += mysalt->salt[i];
-	}
-	return v & (SALT_HASH_SIZE - 1);
-	*/
-}
-
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
@@ -575,7 +550,7 @@ struct fmt_main fmt_zip = {
 			fmt_default_binary_hash_5,
 			fmt_default_binary_hash_6
 		},
-		salt_hash,
+		fmt_default_salt_hash_dyna_salt,
 		set_salt,
 		set_key,
 		get_key,
