@@ -7892,7 +7892,7 @@ extern void exit(int);
 _ACEOF
 if ac_fn_c_try_link "$LINENO"; then :
   CPU_BEST_FLAGS="-msse2"        CPU_STR="SSE2"
-       if test y$ARCH_LINK = yx86-any.h; then :
+       if test y$ARCH_LINK = yx86-mmx.h; then :
   ARCH_LINK=x86-sse.h
 fi
        { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
