@@ -6525,6 +6525,8 @@ static int isMD4Func(DYNAMIC_primitive_funcp p) {
 
 #ifdef _OPENMP
 // Only used in OMP code, to compute LCM granularity. So we #ifdef it out to avoid compiler warnings.
+#ifdef MMX_COEF
+// otherwise unused
 static int isMD5Func(DYNAMIC_primitive_funcp p) {
 	// handle flats
 	if (p==DynamicFunc__MD5_crypt_input1_append_input2_base16    || p==DynamicFunc__MD5_crypt_input1_append_input2    ||
@@ -6548,6 +6550,7 @@ static int isMD5Func(DYNAMIC_primitive_funcp p) {
 		return 1;
 	return 0;
 }
+#endif
 #endif
 
 static int isSHA1Func(DYNAMIC_primitive_funcp p) {
@@ -6701,6 +6704,7 @@ static int isLargeHashFinalFunc(DYNAMIC_primitive_funcp p) {
 }
 
 #ifdef _OPENMP
+#ifdef MMX_COEF
 // Simple euclid algorithm for GCD
 static int GCD (int a, int b) {
 	while (b) { 
@@ -6715,6 +6719,7 @@ static int LCM(int a, int b) {
 	a/=GCD(a,b);
 	return a*b;
 }
+#endif
 
 static void dyna_setupOMP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt) {
 	int i;
