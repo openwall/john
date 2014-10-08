@@ -1924,7 +1924,9 @@ cl_uint get_processors_count(int sequential_id)
 		else if (major == 2 && minor >= 1)
 			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 48);	// 2.1
 		else if (major == 3)
-			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 192);	// 3.0
+			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 192);	// 3.x Kepler
+		else if (major == 5)
+			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 128);	// 5.x Maxwell
 #else
 		/* Apple does not expose get_compute_capability() so we need
 		   to find out using mory hacky approaches. This needs more
