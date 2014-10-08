@@ -61,7 +61,8 @@ if test "x$enable_native_tests" = xyes; then
      [CPU_STR="MMX"]
      [AS_IF([test y$ARCH_LINK = yx86-any.h], [ARCH_LINK=x86-mmx.h])]
      [AC_MSG_RESULT([yes])]
-    ,[AC_MSG_RESULT(no)]
+    ,[CPU_NOTFOUND="1"]
+     [AC_MSG_RESULT(no)]
   )
   AS_IF([test "x$CPU_NOTFOUND" = x0],
   [
@@ -77,7 +78,7 @@ if test "x$enable_native_tests" = xyes; then
     )]
     ,[CPU_BEST_FLAGS="-msse2"] dnl
      [CPU_STR="SSE2"]
-     [AS_IF([test y$ARCH_LINK = yx86-any.h], [ARCH_LINK=x86-sse.h])]
+     [AS_IF([test y$ARCH_LINK = yx86-mmx.h], [ARCH_LINK=x86-sse.h])]
      [AC_MSG_RESULT([yes])]
     ,[CPU_NOTFOUND="1"]
      [AC_MSG_RESULT(no)]
