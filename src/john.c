@@ -296,14 +296,6 @@ static void john_log_format(void)
 {
 	int min_chunk, chunk;
 
-#if HAVE_MPI
-	if (mpi_p > 1)
-		log_event("- MPI: Node %u/%u running on %s",
-		          mpi_id + 1, mpi_p, mpi_name);
-#endif
-#if defined(HAVE_CUDA) || defined(HAVE_OPENCL)
-	gpu_log_temp();
-#endif
 	/* make sure the format is properly initialized */
 #if HAVE_OPENCL
 	if (!(options.gpu_devices->count && options.fork &&
@@ -1249,6 +1241,14 @@ static void john_init(char *name, int argc, char **argv)
 	if (rec_restored)
 		event_pending = event_status = 1;
 
+#if HAVE_MPI
+	if (mpi_p > 1)
+		log_event("- MPI: Node %u/%u running on %s",
+		          mpi_id + 1, mpi_p, mpi_name);
+#endif
+#if defined(HAVE_CUDA) || defined(HAVE_OPENCL)
+	gpu_log_temp();
+#endif
 	if (pers_opts.target_enc != ASCII)
 		log_event("- %s input encoding enabled",
 		          cp_id2name(pers_opts.input_enc));
