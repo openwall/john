@@ -30,30 +30,31 @@ static int valid(char * ciphertext, struct fmt_main * self) {
 	char *pos, *start;
 
 	if (strncmp(ciphertext, "$6$", 3))
-			return 0;
+		return 0;
 
 	ciphertext += 3;
 
-	if (!strncmp(ciphertext, ROUNDS_PREFIX,
-			sizeof(ROUNDS_PREFIX) - 1)) {
+	if (!strncmp(ciphertext, ROUNDS_PREFIX, sizeof(ROUNDS_PREFIX) - 1)) {
 		const char *num = ciphertext + sizeof(ROUNDS_PREFIX) - 1;
 		char *endp;
+
 		if (!strtoul(num, &endp, 10))
-					return 0;
+			return 0;
 		if (*endp == '$')
 			ciphertext = endp + 1;
-			}
+	}
 	for (pos = ciphertext; *pos && *pos != '$'; pos++);
 	if (!*pos || pos < ciphertext || pos > &ciphertext[SALT_LENGTH]) return 0;
 
 	start = ++pos;
 	while (atoi64[ARCH_INDEX(*pos)] != 0x7F) pos++;
-	if (*pos || pos - start != CIPHERTEXT_LENGTH) return 0;
+	if (*pos || pos - start != CIPHERTEXT_LENGTH)
+		return 0;
 	return 1;
 }
 
 /* ------- To binary functions ------- */
-#define TO_BINARY(b1, b2, b3) \
+#define TO_BINARY(b1, b2, b3)	  \
 	value = (ARCH_WORD_32)atoi64[ARCH_INDEX(pos[0])] | \
 		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[1])] << 6) | \
 		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[2])] << 12) | \
