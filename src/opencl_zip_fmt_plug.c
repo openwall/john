@@ -415,7 +415,7 @@ static void *get_salt(char *ciphertext)
 			salt.v.type = 1;
 			goto Bail;
 		}
-		len = salt->comp_len;
+		len = salt.comp_len;
 		if (fread(salt.datablob, 1, len, fp) != len) {
 			fclose(fp);
 			salt.v.type = 1;
