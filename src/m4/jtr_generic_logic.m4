@@ -79,8 +79,10 @@ AC_LINK_IFELSE(
 
 # At this point we know the arch and CPU width so we can pick details. Most
 # "special stuff" from old fat Makefile should go here.
-case "$host_cpu" in
-   x86_64)
+case "${host_cpu}_${CFLAGS}" in
+   *_*-mno-mmx) ;;
+   *_*-mno-sse2) ;;
+   x86_64_*)
       if test "x$with_icc_asm" = "xyes"; then
          JTR_LIST_ADD(CFLAGS, [-DUSING_ICC_S_FILE])
          [CC_ASM_OBJS="x86-64.o sse-intrinsics-64.o"]
@@ -89,7 +91,7 @@ case "$host_cpu" in
             [CC_ASM_OBJS="x86-64.o sse-intrinsics.o"])
       fi
    ;;
-   i?86)
+   i?86_*)
       if test "y$ARCH_LINK" = "yx86-any.h"; then
         [CC_ASM_OBJS="x86.o"]
       elif test "y$ARCH_LINK" = "yx86-mmx.h"; then

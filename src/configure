@@ -8227,8 +8227,10 @@ rm -f core conftest.err conftest.$ac_objext \
 
 # At this point we know the arch and CPU width so we can pick details. Most
 # "special stuff" from old fat Makefile should go here.
-case "$host_cpu" in
-   x86_64)
+case "${host_cpu}_${CFLAGS}" in
+   *_*-mno-mmx) ;;
+   *_*-mno-sse2) ;;
+   x86_64_*)
       if test "x$with_icc_asm" = "xyes"; then
 
    for i in -DUSING_ICC_S_FILE; do
@@ -8252,7 +8254,7 @@ case "$host_cpu" in
 fi
       fi
    ;;
-   i?86)
+   i?86_*)
       if test "y$ARCH_LINK" = "yx86-any.h"; then
         CC_ASM_OBJS="x86.o"
       elif test "y$ARCH_LINK" = "yx86-mmx.h"; then
@@ -12402,7 +12404,9 @@ aesni_options="DISABLED"
 if test "x$ax_intel_x32" = xyes; then
    aesni_os=linux aesni_options="-g dwarf2 -f elfx32"
 else
-   case "$host" in
+   case "${host}_${CFLAGS}" in
+      *_*-mno-mmx*) ;;
+      *_*-mno-sse2*) ;;
       x86_64*darwin*)
          aesni_os=darwin
          aesni_options="--prefix=_ -f macho${CPU_BIT_STR}"

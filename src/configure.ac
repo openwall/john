@@ -644,7 +644,9 @@ aesni_options="DISABLED"
 if test "x$ax_intel_x32" = xyes; then
    aesni_os=linux aesni_options="-g dwarf2 -f elfx32"
 else
-   case "$host" in
+   case "${host}_${CFLAGS}" in
+      *_*-mno-mmx*) ;;
+      *_*-mno-sse2*) ;;
       x86_64*darwin*)
          aesni_os=darwin
          aesni_options="--prefix=_ -f macho${CPU_BIT_STR}"
