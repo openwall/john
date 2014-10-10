@@ -148,6 +148,9 @@ static char *fmt_self_test_body(struct fmt_main *format,
 #ifndef BENCH_BUILD
 	int dhirutest = 0;
 	int maxlength = 0;
+	int extra_tests = options.flags & FLG_TEST_SET;
+#else
+	int extra_tests = 0;
 #endif
 	int ml;
 
@@ -280,7 +283,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		}
 
 #if !defined(BENCH_BUILD)
-		if (!dhirutest++ && strcmp(format->params.label, "dummy")
+		if (extra_tests && !dhirutest++ && strcmp(format->params.label, "dummy")
 		    && strcmp(format->params.label, "crypt")) {
 			if (*ciphertext == '$') {
 				char *p, *k = strdup(ciphertext);
@@ -333,23 +336,24 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		}
 
 		/* validate that binary() returns cleaned buffer */
-		memset(binary, 0xAF, format->params.binary_size);
-		binary = format->methods.binary(ciphertext);
-		if (!binary_cleaned_warned)
-		if (((unsigned char*)binary)[format->params.binary_size-1] == 0xAF)
-		{
-			memset(binary, 0xCC, format->params.binary_size);
+		if (extra_tests && !binary_cleaned_warned) {
+			memset(binary, 0xAF, format->params.binary_size);
 			binary = format->methods.binary(ciphertext);
-			if (((unsigned char*)binary)[format->params.binary_size-1] == 0xCC) {
-				/* possibly did not clean the binary. */
-				puts("Warning: binary() not pre-cleaning buffer");
-				binary_cleaned_warned = 1;
+			if (((unsigned char*)binary)[format->params.binary_size-1] == 0xAF)
+			{
+				memset(binary, 0xCC, format->params.binary_size);
+				binary = format->methods.binary(ciphertext);
+				if (((unsigned char*)binary)[format->params.binary_size-1] == 0xCC)
+				{
+					/* possibly did not clean the binary. */
+					puts("Warning: binary() not pre-cleaning buffer");
+					binary_cleaned_warned = 1;
+				}
 			}
+			/* Clean up the mess we might have caused */
+			memset(binary, 0, format->params.binary_size);
+			binary = format->methods.binary(ciphertext);
 		}
-		/* Clean up the mess we might have caused */
-		memset(binary, 0, format->params.binary_size);
-
-		binary = format->methods.binary(ciphertext);
 		memcpy(binary_copy, binary, format->params.binary_size);
 		binary = binary_copy;
 
@@ -366,7 +370,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		}
 
 		/* validate that salt() returns cleaned buffer */
-		if (!salt_cleaned_warned) {
+		if (extra_tests && !salt_cleaned_warned) {
 			if ((format->params.flags & FMT_DYNA_SALT) == FMT_DYNA_SALT) {
 				dyna_salt *p1 = *((dyna_salt**)salt);
 				memset(&((unsigned char*)p1)[p1->salt_cmp_offset], 0xAF, p1->salt_cmp_size);
@@ -401,9 +405,9 @@ static char *fmt_self_test_body(struct fmt_main *format,
 				/* Clean up the mess we might have caused */
 				memset(salt, 0, format->params.salt_size);
 			}
+			salt = format->methods.salt(ciphertext);
 		}
 
-		salt = format->methods.salt(ciphertext);
 		memcpy(salt_copy, salt, format->params.salt_size);
 		salt = salt_copy;
 
@@ -418,7 +422,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		format->methods.set_salt(salt);
 
 #ifndef BENCH_BUILD
-		if (maxlength == 0) {
+		if (extra_tests && maxlength == 0) {
 			int min = format->params.min_keys_per_crypt;
 			maxlength = 1;
 
