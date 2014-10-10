@@ -197,7 +197,7 @@ class PdfParser:
         return output
 
     def get_trailer(self):
-        trailer = self.get_data_between(b"trailer", b">>", b"/ID ")
+        trailer = self.get_data_between(b"trailer", b">>", b"/ID")
         if(trailer == b""):
             trailer = self.get_data_between(b"DecodeParms", b"stream", b"")
             if(trailer == ""):
