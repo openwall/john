@@ -181,7 +181,9 @@ static void done(void)
 {
 	release_clobj();
 
-	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
+	HANDLE_CLERROR(clReleaseKernel(pbkdf2_init), "Release kernel");
+	HANDLE_CLERROR(clReleaseKernel(pbkdf2_loop), "Release kernel");
+	HANDLE_CLERROR(clReleaseKernel(pbkdf2_final), "Release kernel");
 	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
 }
 
@@ -204,9 +206,9 @@ static void init(struct fmt_main *self)
 	         HASH_LOOPS, OUTLEN, PLAINTEXT_LENGTH, v_width);
 	opencl_init("$JOHN/kernels/pbkdf2_hmac_sha1_kernel.cl", gpu_id, build_opts);
 
-	crypt_kernel = pbkdf2_init = clCreateKernel(program[gpu_id], "pbkdf2_init", &ret_code);
+	pbkdf2_init = clCreateKernel(program[gpu_id], "pbkdf2_init", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel");
-	pbkdf2_loop = clCreateKernel(program[gpu_id], "pbkdf2_loop", &ret_code);
+	crypt_kernel = pbkdf2_loop = clCreateKernel(program[gpu_id], "pbkdf2_loop", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel");
 	pbkdf2_final = clCreateKernel(program[gpu_id], "pbkdf2_final", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel");

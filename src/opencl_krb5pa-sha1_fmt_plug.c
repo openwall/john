@@ -340,9 +340,9 @@ static void init(struct fmt_main *self)
 	opencl_init("$JOHN/kernels/pbkdf2_hmac_sha1_kernel.cl", gpu_id,
 	            build_opts);
 
-	crypt_kernel = pbkdf2_init = clCreateKernel(program[gpu_id], "pbkdf2_init", &ret_code);
+	pbkdf2_init = clCreateKernel(program[gpu_id], "pbkdf2_init", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel");
-	pbkdf2_loop = clCreateKernel(program[gpu_id], "pbkdf2_loop", &ret_code);
+	crypt_kernel = pbkdf2_loop = clCreateKernel(program[gpu_id], "pbkdf2_loop", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel");
 	pbkdf2_final = clCreateKernel(program[gpu_id], "pbkdf2_final", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel");
