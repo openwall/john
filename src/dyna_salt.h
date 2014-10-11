@@ -13,53 +13,66 @@
 
 /*
  * This is a dynamic salt structure.  In a hash that has salts which
- * vary in size, make your local salt structure use the first 2 varianbles
- * from this salt structure, EXACTLY like they are here. Then define the
+ * vary in size. To make a local salt structure usable by dyna_salt
+ * code in John, simply place an instance of a dyna_salt structure as
+ * the FIRST member of your salt structure, and then properly fill in
+ * the members of that structure.  This will make your structure 'look'
+ * just like a dyna_salt_john_core structure. That is the structure
+ * that john core code uses, so john core can access your structure,
+ * without having to know it's full internal structure. Then define the
  * rest of the salt structure to be the 'real' salt structure you need
- * for the runtime of your hash.  Within the salt() function, allocate
- * your salt structure, setting the 2 values properly, the return a pointer
- * to your allocated salt record.  In your format structure, set the salt_size
+ * for the runtime of your hash.  In your format structure, set the salt_size
  * to be sizeof(dyna_salt*)  and set the FMT_DYNA_SALT format flag. See
- * zip format for an example of how to properly use this.
+ * zip format for an example of how to properly use dyna_salt's.
  */
 
 #include <stddef.h>
+#include "stdint.h"
 
 typedef struct dyna_salt_t {
 	size_t salt_cmp_size;
-	size_t salt_cmp_offset;
-	unsigned char buffer[1];
+	struct {
+		size_t salt_alloc_needs_free : 1; /* 1 if if malloc/calloc used (not mem_alloc_tiny) */
+		size_t salt_cmp_offset : (sizeof(size_t)*8-1);
+	};
 } dyna_salt;
+
+/* this IS the signature that is required for ALL formats
+ *  which use dyna_salt to have
+ */
+typedef struct dyna_salt_john_core_t {
+	dyna_salt dyna_salt;
+} dyna_salt_john_core;
 
 // call with SALT_CMP_SIZE(struct, member, extra_bytes)
 #define SALT_CMP_SIZE(a,b,c) (sizeof(a)-offsetof(a,b)+c-1)
 // call with SALT_CMP_OFF(struct, member)
 #define SALT_CMP_OFF(a,b) (offsetof(a,b))
 
-/* an example would be:
-struct my_salt {
-	size_t salt_cmp_size;
-	size_t salt_cmp_offset;
-	void *some_unused_item;
-	int count;				// we start out salt compare here.
-	int something_else;
-	char buffer[1];
-} *saltp;
+/*
+ * MUST be called prior to other functions, and reset
+ * each time a format change happens, during self test
+ * and loading. There are times where other functions
+ * are called, where we do not have a format structure.
+ */
+void dyna_salt_init(struct fmt_main *format);
 
-then something like this:
+/*
+ * NOTE, will compare dyna and non-dyna salts.
+ */
+int dyna_salt_cmp(void *p1, void *p2, int comp_size);
 
-void *salt() {
-	struct my_salt *p;
-	// compute size of buffer. We will say buf_size variable has this computed
-	p = mem_alloc_tiny(sizeof(struct my_salt)+buf_size-1);
-	p->salt_comp_size = SALT_CMP_SIZE(struct my_salt, count, buf_size);
-	p->salt_comp_offset = SALT_CMP_OFF(struct my_salt, count);
-	memcpy(p->buffer, data, buf_size);
-	return p;
-}
+#ifdef DEBUG
+void dyna_salt_created_fp(char *fname, int line);
+#define dyna_salt_create() dyna_salt_created_fp(__FILE__,__LINE__)
+void dyna_salt_remove_fp(void *a, char *fname, int line);
+#define dyna_salt_remove(a) dyna_salt_remove_fp(a,__FILE__,__LINE__)
+#else
+#define dyna_salt_create()
+void dyna_salt_remove_fp(void *a);
+#define dyna_salt_remove(a) dyna_salt_remove_fp(a)
+#endif
 
-then in the fmt structure
-
-   salt_size = sizeof(struct my_salt);
-   salt_align = sizeof(struct my_salt);
-*/
+/* These 2 used in self test code. Put here to hide the ugly details */
+void dyna_salt_smash(void *p, char c);
+int dyna_salt_smash_check(void *p, unsigned char c);

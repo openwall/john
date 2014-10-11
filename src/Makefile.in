@@ -100,7 +100,7 @@ JOHN_OBJS = \
 	mozilla2john.o \
 	$(PLUGFORMATS_OBJS) \
 	plugin.o \
-	dummy.o \
+	dyna_salt.o dummy.o \
 	gost.o \
 	common-gpu.o \
 	batch.o bench.o charset.o common.o compiler.o config.o cracker.o \

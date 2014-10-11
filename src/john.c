@@ -71,6 +71,7 @@ static int john_omp_threads_new;
 #include "common.h"
 #include "idle.h"
 #include "formats.h"
+#include "dyna_salt.h"
 #include "loader.h"
 #include "logger.h"
 #include "status.h"
@@ -1432,6 +1433,13 @@ static void john_done(void)
 	path_done();
 
 	/* this may not be the correct place to free this, it likely can be freed much earlier, but it works here */
+	if (database.format && (database.format->params.flags &  FMT_DYNA_SALT) == FMT_DYNA_SALT) {
+		struct db_salt *psalt = database.salts;
+		while (psalt) {
+			dyna_salt_remove(psalt->salt);
+			psalt = psalt->next;
+		}
+	}
 	MEM_FREE(database.salt_hash);
 	MEM_FREE(database.cracked_hash);
 

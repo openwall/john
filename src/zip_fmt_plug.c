@@ -71,8 +71,7 @@ static int omp_t = 1;
 #define SALT_LENGTH(mode)       (4 * ((mode) & 3) + 4)
 
 typedef struct my_salt_t {
-	size_t salt_comp_size;
-	size_t salt_comp_offset;
+	dyna_salt dsalt;
 	uint32_t comp_len;
 	struct {
 		uint16_t type     : 4;
@@ -342,17 +341,18 @@ static void *get_salt(char *ciphertext)
 
 	// Ok, now create the allocated salt record we are going to return back to John, using the dynamic
 	// sized data buffer.
-	psalt = (my_salt*)mem_calloc_tiny(sizeof(my_salt)+salt.comp_len, 1);
+	psalt = (my_salt*)mem_calloc(sizeof(my_salt)+salt.comp_len);
 	psalt->v.type = salt.v.type;
 	psalt->v.mode = salt.v.mode;
 	psalt->comp_len = salt.comp_len;
+	psalt->dsalt.salt_alloc_needs_free = 1;  // we used mem_calloc, so JtR CAN free our pointer when done with them.
 	memcpy(psalt->salt, salt.salt, sizeof(salt.salt));
 	psalt->passverify[0] = salt.passverify[0];
 	psalt->passverify[1] = salt.passverify[1];
 
 	// set the JtR core linkage stuff for this dyna_salt
-	psalt->salt_comp_offset = SALT_CMP_OFF(my_salt, comp_len);
-	psalt->salt_comp_size = SALT_CMP_SIZE(my_salt, comp_len, psalt->comp_len);
+	psalt->dsalt.salt_cmp_offset = SALT_CMP_OFF(my_salt, comp_len);
+	psalt->dsalt.salt_cmp_size = SALT_CMP_SIZE(my_salt, comp_len, psalt->comp_len);
 
 
 	if (strcmp((const char*)cp, "ZFILE")) {
@@ -391,8 +391,7 @@ static void *get_salt(char *ciphertext)
 			psalt->v.type = 1;
 			goto Bail;
 		}
-		len = psalt->comp_len;
-		if (fread(psalt->datablob, 1, len, fp) != len) {
+		if (fread(psalt->datablob, 1, psalt->comp_len, fp) != psalt->comp_len) {
 			fclose(fp);
 			psalt->v.type = 1;
 			goto Bail;

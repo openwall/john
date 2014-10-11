@@ -103,6 +103,7 @@ static void read_file(struct db_main *db, char *name, int flags,
 		pexit("fopen: %s", path_expand(name));
 	}
 
+	dyna_salt_init(db->format);
 	while (fgets(line_buf, sizeof(line_buf), file)) {
 		line = skip_bom(line_buf);
 
@@ -642,6 +643,7 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 	if (count >= 2) db->options->flags |= DB_SPLIT;
 
 	format = db->format;
+	dyna_salt_init(format);
 
 	words = NULL;
 
@@ -730,27 +732,15 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 			if (current_pw) continue;
 		}
 
+		dyna_salt_create();
 		salt = format->methods.salt(piece);
 		salt_hash = format->methods.salt_hash(salt);
 
 		if ((current_salt = db->salt_hash[salt_hash])) {
-			if ((format->params.flags & FMT_DYNA_SALT) == FMT_DYNA_SALT) {
-				dyna_salt *p1 = *((dyna_salt**)salt);
-				do {
-					dyna_salt *p2 = *((dyna_salt**)(current_salt->salt));
-					if (p1->salt_cmp_offset == p2->salt_cmp_offset && p1->salt_cmp_size == p2->salt_cmp_size &&
-						!memcmp( &((unsigned char*)p1)[p1->salt_cmp_offset],
-								&((unsigned char*)p2)[p1->salt_cmp_offset],
-								p1->salt_cmp_size))
-								break;
-				}  while ((current_salt = current_salt->next));
-			} else {
-				do {
-					if (!memcmp(current_salt->salt, salt,
-						format->params.salt_size))
-						break;
-				} while ((current_salt = current_salt->next));
-			}
+			do {
+				if (!dyna_salt_cmp(current_salt->salt, salt, format->params.salt_size))
+					break;
+			}  while ((current_salt = current_salt->next));
 		}
 
 		if (!current_salt) {
@@ -780,7 +770,8 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 				current_salt->keys = NULL;
 
 			db->salt_count++;
-		}
+		} else
+			dyna_salt_remove(salt);
 
 		current_salt->count++;
 		db->password_count++;
@@ -1169,7 +1160,7 @@ static void ldr_remove_marked(struct db_main *db)
 
 		if (!current_salt->list) {
 			db->salt_count--;
-
+			dyna_salt_remove(current_salt->salt);
 			if (last_salt)
 				last_salt->next = current_salt->next;
 			else
@@ -1197,6 +1188,7 @@ static void ldr_filter_salts(struct db_main *db)
 	if ((current = db->salts))
 	do {
 		if (current->count < min || current->count > max) {
+			dyna_salt_remove(current->salt);
 			if (last)
 				last->next = current->next;
 			else
@@ -1238,6 +1230,7 @@ static void ldr_filter_costs(struct db_main *db)
 	do {
 		if (!ldr_cost_ok(current, db->options->min_cost,
 		                          db->options->max_cost)) {
+			dyna_salt_remove(current->salt);
 			if (last)
 				last->next = current->next;
 			else

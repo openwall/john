@@ -240,6 +240,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 #endif
 
 	format->methods.reset(NULL);
+	dyna_salt_init(format);
 
 	if ((format->methods.split == fmt_default_split) &&
 	    (format->params.flags & FMT_SPLIT_UNIFIES_CASE))
@@ -357,6 +358,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		memcpy(binary_copy, binary, format->params.binary_size);
 		binary = binary_copy;
 
+		dyna_salt_create();
 		if (!(salt = format->methods.salt(ciphertext)))
 			return "salt() returned NULL";
 #if ARCH_ALLOWS_UNALIGNED
@@ -372,23 +374,28 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		/* validate that salt() returns cleaned buffer */
 		if (extra_tests && !salt_cleaned_warned) {
 			if ((format->params.flags & FMT_DYNA_SALT) == FMT_DYNA_SALT) {
-				dyna_salt *p1 = *((dyna_salt**)salt);
-				memset(&((unsigned char*)p1)[p1->salt_cmp_offset], 0xAF, p1->salt_cmp_size);
-				salt = format->methods.salt(ciphertext);
+				dyna_salt *p1, *p2=0, *p3=0;
 				p1 = *((dyna_salt**)salt);
-				if (((unsigned char*)p1)[p1->salt_cmp_offset+p1->salt_cmp_size-1] == 0xAF)
+				dyna_salt_smash(salt, 0xAF);
+				dyna_salt_create();
+				salt = format->methods.salt(ciphertext);
+				p2 = *((dyna_salt**)salt);
+				if (dyna_salt_smash_check(salt, 0xAF))
 				{
-					memset(&((unsigned char*)p1)[p1->salt_cmp_offset], 0xC3, p1->salt_cmp_size);
+					dyna_salt_smash(salt, 0xC3);
+					dyna_salt_create();
 					salt = format->methods.salt(ciphertext);
-					p1 = *((dyna_salt**)salt);
-					if (((unsigned char*)p1)[p1->salt_cmp_offset+p1->salt_cmp_size-1] == 0xC3) {
+					p3 = *((dyna_salt**)salt);
+					if (dyna_salt_smash_check(salt, 0xC3)) {
 						/* possibly did not clean the salt. */
 						puts("Warning: salt() not pre-cleaning buffer");
 						salt_cleaned_warned = 1;
 					}
 				}
 				/* Clean up the mess we might have caused */
-				memset(&((unsigned char*)p1)[p1->salt_cmp_offset], 0, p1->salt_cmp_size);
+				dyna_salt_remove(&p1);
+				dyna_salt_remove(&p2);
+				dyna_salt_remove(&p3);
 			} else {
 				memset(salt, 0xAF, format->params.salt_size);
 				salt = format->methods.salt(ciphertext);
@@ -405,6 +412,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 				/* Clean up the mess we might have caused */
 				memset(salt, 0, format->params.salt_size);
 			}
+			dyna_salt_create();
 			salt = format->methods.salt(ciphertext);
 		}
 
@@ -549,6 +557,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 			current = format->params.tests;
 			done |= 2;
 		}
+		dyna_salt_remove(salt);
 	} while (done != 3);
 
 	format->methods.clear_keys();
@@ -691,14 +700,14 @@ int fmt_default_salt_hash(void *salt)
 int fmt_default_salt_hash_dyna_salt(void *salt)
 {
 	/* if the hash is a dyna_salt type hash, it can simply use this function */
-	dyna_salt *mysalt = *(dyna_salt **)salt;
+	dyna_salt_john_core *mysalt = *(dyna_salt_john_core **)salt;
 	unsigned v;
 	int i;
 	unsigned char *p;
 	p = (unsigned char*)mysalt;
-	p += mysalt->salt_cmp_offset;
+	p += mysalt->dyna_salt.salt_cmp_offset;
 	v = 0;
-	for (i = 0; i < mysalt->salt_cmp_size; ++i) {
+	for (i = 0; i < mysalt->dyna_salt.salt_cmp_size; ++i) {
 		v *= 11;
 		v += *p++;
 	}

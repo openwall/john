@@ -225,6 +225,7 @@ static void crk_remove_salt(struct db_salt *salt)
 	    crk_db->salt_count < crk_db->password_count)
 		log_event("- got rid of a salt, %d left", crk_db->salt_count);
 #endif
+	dyna_salt_remove(salt->salt);
 }
 
 /*
@@ -406,6 +407,7 @@ static int crk_remove_pot_entry(char *ciphertext)
 	clock_t start = times(&buffer), end;
 #endif
 
+	dyna_salt_create();
 	pot_salt = crk_methods.salt(ciphertext);
 
 	/* Do we still have a hash table for salts? */
@@ -416,27 +418,16 @@ static int crk_remove_pot_entry(char *ciphertext)
 	} else
 		salt = crk_db->salts;
 
-	if ((crk_params.flags & FMT_DYNA_SALT) == FMT_DYNA_SALT) {
-		dyna_salt *p1 = *((dyna_salt**)pot_salt);
-		do {
-			dyna_salt *p2 = *((dyna_salt**)(salt->salt));
-			if (p1->salt_cmp_offset == p2->salt_cmp_offset && p1->salt_cmp_size == p2->salt_cmp_size &&
-				!memcmp( &((unsigned char*)p1)[p1->salt_cmp_offset],
-						&((unsigned char*)p2)[p1->salt_cmp_offset],
-						p1->salt_cmp_size))
-						break;
-		}  while ((salt = salt->next));
-	} else {
-		do {
-			if (!memcmp(pot_salt, salt->salt, potcheck_salt_size))
-				break;
-		} while ((salt = salt->next));
-	}
+	do {
+		if (!dyna_salt_cmp(pot_salt, salt->salt, potcheck_salt_size))
+			break;
+	}  while ((salt = salt->next));
 
 #ifdef DEBUG
 	end = times(&buffer);
 	salt_time += (end - start);
 #endif
+	dyna_salt_remove(pot_salt);
 	if (!salt)
 		return 0;
 

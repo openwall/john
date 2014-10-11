@@ -51,6 +51,7 @@
 #include "memory.h"
 #include "signals.h"
 #include "formats.h"
+#include "dyna_salt.h"
 #include "bench.h"
 #include "john.h"
 #include "unicode.h"
@@ -187,6 +188,7 @@ char *benchmark_format(struct fmt_main *format, int salts,
 				fields[1] = ciphertext;
 			ciphertext = format->methods.split(
 			    format->methods.prepare(fields, format), 0, format);
+			dyna_salt_create();
 			salt = format->methods.salt(ciphertext);
 		} else
 			salt = two_salts[0];
@@ -300,8 +302,10 @@ char *benchmark_format(struct fmt_main *format, int salts,
 	results->virtual = results->real;
 #endif
 
-	for (index = 0; index < 2; index++)
+	for (index = 0; index < 2; index++) {
+		dyna_salt_remove(two_salts[index]);
 		MEM_FREE(two_salts[index]);
+	}
 
 	/* unsmash the passwords */
 	if (pw_mangled) {
