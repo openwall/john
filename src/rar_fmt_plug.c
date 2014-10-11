@@ -307,9 +307,8 @@ static void *get_salt(char *ciphertext)
 		inlined = atoi(strtok(NULL, "*"));
 		ex_len = pack_size;
 
-		/* load ciphertext. We allocate and load all files here, and
-		   they don't get unloaded until program ends 
-		   UPDATE.  with dyna_salts, we unload when password found. */
+		/* load ciphertext. We allocate and load all files
+		   here, and they are freed when password found. */
 		psalt = mem_calloc(sizeof(*psalt)+ex_len);
 		psalt->type = type;
 		memcpy(psalt->salt, tmp_salt, 8);

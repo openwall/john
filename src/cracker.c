@@ -78,7 +78,6 @@ static struct db_keys *crk_guesses;
 static int64 *crk_timestamps;
 static char crk_stdout_key[PLAINTEXT_BUFFER_SIZE];
 int64_t crk_pot_pos;
-static int potcheck_salt_size;
 
 static void crk_dummy_set_salt(void *salt)
 {
@@ -177,20 +176,6 @@ void crk_init(struct db_main *db, void (*fix_state)(void),
 	crk_help();
 
 	idle_init(db->format);
-
-	/* Quirk for RAR and ZIP formats. Their "salts" includes pointers
-	   that will vary each time get_salt() is called. Until core can
-	   handle this, we decrease salt size to something valid. */
-	if (!strcasecmp(crk_params.label, "rar") ||
-	    !strcasecmp(crk_params.label, "rar-opencl"))
-		/* Actual salt is first 8 bytes */
-		potcheck_salt_size = 8;
-	else if (!strcasecmp(crk_params.label, "zip") ||
-	    !strcasecmp(crk_params.label, "zip-opencl"))
-		/* Last struct member is a pointer */
-		potcheck_salt_size = crk_params.salt_size - sizeof(char*);
-	else
-		potcheck_salt_size = crk_params.salt_size;
 }
 
 /*
@@ -419,7 +404,7 @@ static int crk_remove_pot_entry(char *ciphertext)
 		salt = crk_db->salts;
 
 	do {
-		if (!dyna_salt_cmp(pot_salt, salt->salt, potcheck_salt_size))
+		if (!dyna_salt_cmp(pot_salt, salt->salt, crk_params.salt_size))
 			break;
 	}  while ((salt = salt->next));
 

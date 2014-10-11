@@ -73,6 +73,8 @@ static pthread_mutex_t *lockarray;
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
+#include "dyna_salt.h"
+#include "memory.h"
 #include "params.h"
 #include "options.h"
 #include "unicode.h"
@@ -94,7 +96,9 @@ static pthread_mutex_t *lockarray;
 #define PLAINTEXT_LENGTH	22 /* Max. currently supported is 22 */
 #define UNICODE_LENGTH		(2 * PLAINTEXT_LENGTH)
 #define BINARY_SIZE		0
-#define SALT_SIZE		sizeof(rarfile)
+#define BINARY_ALIGN		MEM_ALIGN_NONE
+#define SALT_SIZE		sizeof(rarfile*)
+#define SALT_ALIGN		sizeof(rarfile*)
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 
@@ -131,9 +135,12 @@ static unsigned char *aes_key;
 static unsigned char *aes_iv;
 
 typedef struct {
+	dyna_salt dsalt; /* must be first. allows dyna_salt to work */
+	/* place all items we are NOT going to use for salt comparison, first */
+
+	/* data from this point on, is part of the salt for compare reasons */
 	unsigned char salt[8];
 	int type;	/* 0 = -hp, 1 = -p */
-	unsigned char *raw_data;
 	/* for rar -p mode only: */
 	union {
 		unsigned int w;
@@ -141,9 +148,9 @@ typedef struct {
 	} crc;
 	unsigned long long pack_size;
 	unsigned long long unp_size;
-	char *archive_name;
-	long pos;
 	int method;
+	// raw_data should be word aligned, and 'ok'
+	unsigned char raw_data[1];
 } rarfile;
 
 static rarfile *cur_file;
@@ -456,72 +463,95 @@ static void set_key(char *key, int index)
 
 static void *get_salt(char *ciphertext)
 {
-	unsigned int i;
+	unsigned int i, type, ex_len;
 	size_t count;
+	static unsigned char *ptr;
 	/* extract data from "salt" */
 	char *encoded_salt;
 	char *saltcopy = strdup(ciphertext);
 	char *keep_ptr = saltcopy;
-	static rarfile rarfile;
+	rarfile *psalt;
+	unsigned char tmp_salt[8];
 
-	memset(&rarfile, 0, sizeof(rarfile));
-
+	if (!ptr) ptr = mem_alloc_tiny(sizeof(rarfile*),sizeof(rarfile*));
 	saltcopy += 7;		/* skip over "$RAR3$*" */
-	rarfile.type = atoi(strtok(saltcopy, "*"));
+	type = atoi(strtok(saltcopy, "*"));
 	encoded_salt = strtok(NULL, "*");
 	for (i = 0; i < 8; i++)
-		rarfile.salt[i] = atoi16[ARCH_INDEX(encoded_salt[i * 2])] * 16 + atoi16[ARCH_INDEX(encoded_salt[i * 2 + 1])];
-	if (rarfile.type == 0) {	/* rar-hp mode */
+		tmp_salt[i] = atoi16[ARCH_INDEX(encoded_salt[i * 2])] * 16 + atoi16[ARCH_INDEX(encoded_salt[i * 2 + 1])];
+	if (type == 0) {	/* rar-hp mode */
 		char *encoded_ct = strtok(NULL, "*");
-		rarfile.raw_data = (unsigned char*)mem_alloc_tiny(16, MEM_ALIGN_WORD);
+		psalt = mem_calloc(sizeof(*psalt)+16);
+		psalt->type = type;
+		ex_len = 16;
+		memcpy(psalt->salt, tmp_salt, 8);
 		for (i = 0; i < 16; i++)
-			rarfile.raw_data[i] = atoi16[ARCH_INDEX(encoded_ct[i * 2])] * 16 + atoi16[ARCH_INDEX(encoded_ct[i * 2 + 1])];
+			psalt->raw_data[i] = atoi16[ARCH_INDEX(encoded_ct[i * 2])] * 16 + atoi16[ARCH_INDEX(encoded_ct[i * 2 + 1])];
 	} else {
 		char *p = strtok(NULL, "*");
 		int inlined;
-		for (i = 0; i < 4; i++)
-			rarfile.crc.c[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16 + atoi16[ARCH_INDEX(p[i * 2 + 1])];
-		rarfile.pack_size = atoll(strtok(NULL, "*"));
-		rarfile.unp_size = atoll(strtok(NULL, "*"));
-		inlined = atoi(strtok(NULL, "*"));
+		char crc_c[4];
+		unsigned long long pack_size;
+		unsigned long long unp_size;
 
-		/* load ciphertext. We allocate and load all files here, and
-		   they don't get unloaded until program ends */
-		rarfile.raw_data = (unsigned char*)mem_alloc_tiny(rarfile.pack_size, MEM_ALIGN_WORD);
+		for (i = 0; i < 4; i++)
+			crc_c[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16 + atoi16[ARCH_INDEX(p[i * 2 + 1])];
+		pack_size = atoll(strtok(NULL, "*"));
+		unp_size = atoll(strtok(NULL, "*"));
+		inlined = atoi(strtok(NULL, "*"));
+		ex_len = pack_size;
+
+		/* load ciphertext. We allocate and load all files
+		   here, and they are freed when password found. */
+		psalt = mem_calloc(sizeof(*psalt)+ex_len);
+		psalt->type = type;
+		memcpy(psalt->salt, tmp_salt, 8);
+		psalt->pack_size = pack_size;
+		psalt->unp_size = unp_size;
+		memcpy(psalt->crc.c, crc_c, 4);
+
 		if (inlined) {
-			unsigned char *d = rarfile.raw_data;
+			unsigned char *d = psalt->raw_data;
 			p = strtok(NULL, "*");
-			for (i = 0; i < rarfile.pack_size; i++)
+			for (i = 0; i < psalt->pack_size; i++)
 				*d++ = atoi16[ARCH_INDEX(p[i * 2])] * 16 + atoi16[ARCH_INDEX(p[i * 2 + 1])];
 		} else {
 			FILE *fp;
-			rarfile.archive_name = strtok(NULL, "*");
-			rarfile.pos = atol(strtok(NULL, "*"));
+			char *archive_name = strtok(NULL, "*");
+			long pos = atol(strtok(NULL, "*"));
 
-			if (!(fp = fopen(rarfile.archive_name, "rb"))) {
-				fprintf(stderr, "! %s: %s\n", rarfile.archive_name, strerror(errno));
+			if (!(fp = fopen(archive_name, "rb"))) {
+				fprintf(stderr, "! %s: %s\n", archive_name, strerror(errno));
 				error();
 			}
-			fseek(fp, rarfile.pos, SEEK_SET);
-			count = fread(rarfile.raw_data, 1, rarfile.pack_size, fp);
-			if (count != rarfile.pack_size) {
-				fprintf(stderr, "Error loading file from archive '%s', expected %llu bytes, got %zu. Archive possibly damaged.\n", rarfile.archive_name, rarfile.pack_size, count);
+			fseek(fp, pos, SEEK_SET);
+			count = fread(psalt->raw_data, 1, psalt->pack_size, fp);
+			if (count != psalt->pack_size) {
+				fprintf(stderr, "Error loading file from archive '%s', expected %llu bytes, got %zu. Archive possibly damaged.\n", archive_name, psalt->pack_size, count);
 				exit(0);
 			}
 			fclose(fp);
 		}
 		p = strtok(NULL, "*");
-		rarfile.method = atoi16[ARCH_INDEX(p[0])] * 16 + atoi16[ARCH_INDEX(p[1])];
-		if (rarfile.method != 0x30)
-			rarfile.crc.w = ~rarfile.crc.w;
+		psalt->method = atoi16[ARCH_INDEX(p[0])] * 16 + atoi16[ARCH_INDEX(p[1])];
+		if (psalt->method != 0x30)
+#if ARCH_LITTLE_ENDIAN
+			psalt->crc.w = ~psalt->crc.w;
+#else
+			psalt->crc.w = JOHNSWAP(~psalt->crc.w);
+#endif
 	}
 	MEM_FREE(keep_ptr);
-	return (void*)&rarfile;
+	psalt->dsalt.salt_alloc_needs_free = 1;
+	psalt->dsalt.salt_cmp_offset = SALT_CMP_OFF(rarfile, salt);
+	psalt->dsalt.salt_cmp_size = SALT_CMP_SIZE(rarfile, salt, ex_len);
+	memcpy(ptr, &psalt, sizeof(rarfile*));
+	return (void*)ptr;
 }
 
 static void set_salt(void *salt)
 {
-	cur_file = (rarfile*)salt;
+	cur_file = *((rarfile**)salt);
 	memcpy(saved_salt, cur_file->salt, 8);
 
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_salt, CL_FALSE, 0, 8, saved_salt, 0, NULL, NULL), "failed in clEnqueueWriteBuffer saved_salt");
@@ -968,12 +998,12 @@ struct fmt_main fmt_opencl_rar = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		1,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		ARCH_SIZE,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_UNICODE | FMT_UTF8 | FMT_OMP,
+		FMT_CASE | FMT_8_BIT | FMT_UNICODE | FMT_UTF8 | FMT_OMP | FMT_DYNA_SALT,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif
