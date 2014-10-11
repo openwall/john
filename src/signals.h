@@ -62,6 +62,12 @@ extern void sig_timer_emu_tick(void);
 #endif
 
 /*
+ * Mitigate a race condition where a children recieces a SIGUSR2 before
+ * being prepared for it.
+ */
+void sig_preinit(void);
+
+/*
  * Installs the signal handlers.
  */
 extern void sig_init(void);

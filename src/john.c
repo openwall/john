@@ -1443,6 +1443,7 @@ int main(int argc, char **argv)
 	char *name;
 	unsigned int time;
 
+	sig_preinit(); // Mitigate race conditions
 #ifdef __DJGPP__
 	if (--argc <= 0) return 1;
 	if ((name = strrchr(argv[0], '/')))

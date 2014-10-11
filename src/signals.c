@@ -459,6 +459,16 @@ static void sig_handle_reload(int signum)
 
 static void sig_done(void);
 
+void sig_preinit(void)
+{
+#ifdef SIGUSR1
+	sig_install(sig_handle_status, SIGUSR1);
+#endif
+#ifdef SIGUSR2
+	sig_remove_reload();
+#endif
+}
+
 void sig_init(void)
 {
 	clk_tck_init();
@@ -485,16 +495,16 @@ void sig_init(void)
 	sig_install(sig_handle_update, SIGHUP);
 	sig_install_abort();
 	sig_install_timer();
-#ifdef SIGUSR1
-	sig_install(sig_handle_status, SIGUSR1);
-#endif
-#ifdef SIGUSR2
-	sig_install(sig_handle_reload, SIGUSR2);
-#endif
 }
 
 void sig_init_child(void)
 {
+#ifdef SIGUSR1
+	sig_install(sig_handle_status, SIGUSR1);
+#endif
+#ifdef SIGUSR2
+	sig_remove_reload();
+#endif
 #if OS_TIMER
 	sig_init_timer();
 #endif
