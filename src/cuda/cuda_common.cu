@@ -91,7 +91,7 @@ void cuda_device_list()
 	nvidia_probe();
 	for (i = 0; i < devices; i++) {
 		cudaDeviceProp devProp;
-		int arch_sm[] = { 1, 8, 32, 192 };
+		int arch_sm[] = { 1, 8, 32, 192, 0, 128 };
 
 		cudaGetDeviceProperties(&devProp, i);
 		printf("\nCUDA Device #%d\n", i);
@@ -102,7 +102,7 @@ void cuda_device_list()
 		printf("\tCompute capability:            sm_%d%d\n",
 		    devProp.major, devProp.minor);
 
-		if (devProp.major <= 3)
+		if (devProp.major <= 5 && arch_sm[devProp.major])
 		printf("\tNumber of stream processors:   %d (%d x %d)\n",
 		    devProp.multiProcessorCount * arch_sm[devProp.major],
 		    devProp.multiProcessorCount, arch_sm[devProp.major]);
