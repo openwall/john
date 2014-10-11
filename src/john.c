@@ -495,6 +495,7 @@ static void john_fork(void)
 			pexit("fork");
 
 		case 0:
+			sig_preinit();
 			options.node_min += i;
 			options.node_max = options.node_min;
 #if HAVE_OPENCL

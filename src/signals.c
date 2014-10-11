@@ -461,11 +461,11 @@ static void sig_done(void);
 
 void sig_preinit(void)
 {
-#ifdef SIGUSR1
-	sig_install(sig_handle_status, SIGUSR1);
-#endif
 #ifdef SIGUSR2
 	sig_remove_reload();
+#endif
+#ifdef SIGUSR1
+	sig_install(sig_handle_status, SIGUSR1);
 #endif
 }
 
