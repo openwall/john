@@ -299,7 +299,9 @@ extern int _exit(int);
 #ifdef _MSC_VER
 #undef inline
 #define inline _inline
+#if !defined (MEMDBG_ON)
 #define strdup _strdup
+#endif
 #define strupr _strupr
 #define strlwr _strlwr
 #define open _open
