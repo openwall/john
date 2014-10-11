@@ -29,6 +29,7 @@ john_register_one(&fmt_opencl_zip);
 #include "misc.h"
 #include "common-opencl.h"
 #include "pkzip.h"
+#include "dyna_salt.h"
 #include "gladman_fileenc.h"
 #include "options.h"
 #include "stdint.h"
@@ -47,8 +48,8 @@ john_register_one(&fmt_opencl_zip);
 #define BINARY_SIZE		10
 #define BINARY_ALIGN		MEM_ALIGN_NONE
 #define PLAINTEXT_LENGTH	64
-#define SALT_SIZE		sizeof(my_salt)
-#define SALT_ALIGN		MEM_ALIGN_NONE
+#define SALT_SIZE		sizeof(my_salt*)
+#define SALT_ALIGN		sizeof(my_salt*)
 
 #define FORMAT_TAG		"$zip2$"
 #define FORMAT_CLOSE_TAG	"$/zip2$"
@@ -79,15 +80,16 @@ typedef struct {
 #define SALT_LENGTH(mode)	(4 * ((mode) & 3) + 4)
 
 typedef struct my_salt_t {
+	dyna_salt dsalt;
+	uint32_t comp_len;
 	struct {
-		uint16_t type : 4;
+		uint16_t type     : 4;
 		uint16_t mode : 4;
 	} v;
-	uint32_t comp_len;
 	unsigned char passverify[2];
 	unsigned char salt[SALT_LENGTH(3)];
 	//uint64_t data_key; // MSB of md5(data blob).  We lookup using this.
-	unsigned char *datablob;
+	unsigned char datablob[1];
 } my_salt;
 
 static my_salt *saved_salt;
@@ -353,11 +355,13 @@ static void *binary(char *ciphertext) {
 static void *get_salt(char *ciphertext)
 {
 	int i;
-	static my_salt salt;
+	my_salt salt, *psalt;
+	static unsigned char *ptr;
 	/* extract data from "ciphertext" */
 	u8 *copy_mem = (u8*)strdup(ciphertext);
 	u8 *cp, *p;
 
+	if (!ptr) ptr = mem_alloc_tiny(sizeof(my_salt*),sizeof(my_salt*));
 	p = copy_mem + TAG_LENGTH+1; /* skip over "$zip2$*" */
 	memset(&salt, 0, sizeof(salt));
 	p = pkz_GetFld(p, &cp); // type
@@ -377,11 +381,28 @@ static void *get_salt(char *ciphertext)
 	// later we will store the data blob in our own static data structure, and place the 64 bit LSB of the
 	// MD5 of the data blob into a field in the salt. For the first POC I store the entire blob and just
 	// make sure all my test data is small enough to fit.
+
 	p = pkz_GetFld(p, &cp);	// data blob
-	salt.datablob = (unsigned char*)mem_alloc_tiny(salt.comp_len+1, 1);
+
+	// Ok, now create the allocated salt record we are going to return back to John, using the dynamic
+	// sized data buffer.
+	psalt = (my_salt*)mem_calloc(sizeof(my_salt)+salt.comp_len);
+	psalt->v.type = salt.v.type;
+	psalt->v.mode = salt.v.mode;
+	psalt->comp_len = salt.comp_len;
+	psalt->dsalt.salt_alloc_needs_free = 1;  // we used mem_calloc, so JtR CAN free our pointer when done with them.
+	memcpy(psalt->salt, salt.salt, sizeof(salt.salt));
+	psalt->passverify[0] = salt.passverify[0];
+	psalt->passverify[1] = salt.passverify[1];
+
+	// set the JtR core linkage stuff for this dyna_salt
+	psalt->dsalt.salt_cmp_offset = SALT_CMP_OFF(my_salt, comp_len);
+	psalt->dsalt.salt_cmp_size = SALT_CMP_SIZE(my_salt, comp_len, psalt->comp_len);
+
+
 	if (strcmp((const char*)cp, "ZFILE")) {
-	for (i = 0; i < salt.comp_len; i++)
-		salt.datablob[i] = (atoi16[ARCH_INDEX(cp[i<<1])]<<4) | atoi16[ARCH_INDEX(cp[(i<<1)+1])];
+	for (i = 0; i < psalt->comp_len; i++)
+		psalt->datablob[i] = (atoi16[ARCH_INDEX(cp[i<<1])]<<4) | atoi16[ARCH_INDEX(cp[(i<<1)+1])];
 	} else {
 		u8 *Fn, *Oh, *Ob;
 		long len;
@@ -394,44 +415,45 @@ static void *get_salt(char *ciphertext)
 
 		fp = fopen((const char*)Fn, "rb");
 		if (!fp) {
-			salt.v.type = 1; // this will tell the format to 'skip' this salt, it is garbage
+			psalt->v.type = 1; // this will tell the format to 'skip' this salt, it is garbage
 			goto Bail;
 		}
 		sscanf((const char*)Oh, "%lx", &len);
 		if (fseek(fp, len, SEEK_SET)) {
 			fclose(fp);
-			salt.v.type = 1;
+			psalt->v.type = 1;
 			goto Bail;
 		}
 		id = fget32LE(fp);
 		if (id != 0x04034b50U) {
 			fclose(fp);
-			salt.v.type = 1;
+			psalt->v.type = 1;
 			goto Bail;
 		}
 		sscanf((const char*)Ob, "%lx", &len);
 		if (fseek(fp, len, SEEK_SET)) {
 			fclose(fp);
-			salt.v.type = 1;
+			psalt->v.type = 1;
 			goto Bail;
 		}
-		len = salt.comp_len;
-		if (fread(salt.datablob, 1, len, fp) != len) {
+		if (fread(psalt->datablob, 1, psalt->comp_len, fp) != psalt->comp_len) {
 			fclose(fp);
-			salt.v.type = 1;
+			psalt->v.type = 1;
 			goto Bail;
 		}
 		fclose(fp);
 	}
-Bail:;
+Bail:
 	MEM_FREE(copy_mem);
 
-	return (void*)&salt;
+	memcpy(ptr, &psalt, sizeof(my_salt*));
+	return (void*)ptr;
 }
 
 static void set_salt(void *salt)
 {
-	saved_salt = (my_salt*)salt;
+	saved_salt = *((my_salt**)salt);
+
 	memcpy((char*)currentsalt.salt, saved_salt->salt, SALT_LENGTH(saved_salt->v.mode));
 	currentsalt.length = SALT_LENGTH(saved_salt->v.mode);
 	currentsalt.iterations = KEYING_ITERATIONS;
@@ -538,19 +560,6 @@ static int cmp_exact(char *source, int index)
 	return !memcmp(b, crypt_key[index], sizeof(crypt_key[index]));
 }
 
-static int salt_hash(void *salt)
-{
-	my_salt * mysalt = (my_salt *)salt;
-	unsigned v;
-	int i;
-	v = mysalt->salt[0];
-	for (i = 1; i < SALT_LENGTH(mysalt->v.mode); ++i) {
-		v *= 11;
-		v += mysalt->salt[i];
-	}
-	return v & (SALT_HASH_SIZE - 1);
-}
-
 struct fmt_main fmt_opencl_zip = {
 	{
 		FORMAT_LABEL,
@@ -565,7 +574,7 @@ struct fmt_main fmt_opencl_zip = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_DYNA_SALT,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif
@@ -592,7 +601,7 @@ struct fmt_main fmt_opencl_zip = {
 			fmt_default_binary_hash_5,
 			fmt_default_binary_hash_6
 		},
-		salt_hash,
+		fmt_default_salt_hash_dyna_salt,
 		set_salt,
 		set_key,
 		get_key,
