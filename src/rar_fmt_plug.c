@@ -289,8 +289,8 @@ static void *get_salt(char *ciphertext)
 		char *encoded_ct = strtok(NULL, "*");
 		psalt = mem_calloc(sizeof(*psalt)+16);
 		psalt->type = type;
-		ex_len = 8;
-		memcpy(psalt->salt, tmp_salt, ex_len);
+		ex_len = 16;
+		memcpy(psalt->salt, tmp_salt, 8);
 		for (i = 0; i < 16; i++)
 			psalt->raw_data[i] = atoi16[ARCH_INDEX(encoded_ct[i * 2])] * 16 + atoi16[ARCH_INDEX(encoded_ct[i * 2 + 1])];
 	} else {
