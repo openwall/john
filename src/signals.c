@@ -151,6 +151,13 @@ static void sig_remove_update(void)
 	signal(SIGHUP, SIG_IGN);
 }
 
+#ifdef SIGUSR2
+static void sig_remove_reload(void)
+{
+	signal(SIGUSR2, SIG_IGN);
+}
+#endif
+
 void check_abort(int be_async_signal_safe)
 {
 	if (!event_abort) return;
@@ -498,4 +505,7 @@ static void sig_done(void)
 	sig_remove_update();
 	sig_remove_abort();
 	sig_remove_timer();
+#ifdef SIGUSR2
+	sig_remove_reload();
+#endif
 }
