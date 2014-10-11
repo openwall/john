@@ -35,17 +35,17 @@
 #endif
 #include "memdbg.h"
 
-void error(void)
+void real_error(char *file, int line)
 {
 #ifndef _JOHN_MISC_NO_LOG
-	log_event("Terminating on error");
+	log_event("Terminating on error, %s:%d", file, line);
 	log_done();
 #endif
 
 	exit(1);
 }
 
-void pexit(char *format, ...)
+void real_pexit(char *file, int line, char *format, ...)
 {
 	va_list args;
 
@@ -64,7 +64,7 @@ void pexit(char *format, ...)
 
 	fprintf(stderr, ": %s\n", strerror(errno));
 
-	error();
+	real_error(file, line);
 }
 
 int write_loop(int fd, const char *buffer, int count)

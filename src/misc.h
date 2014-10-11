@@ -46,17 +46,19 @@
  * Exit on error. Logs the event, closes john.pot and the log file, and
  * terminates the process with non-zero exit status.
  */
-extern void error(void);
+extern void real_error(char *file, int line);
+#define error(...) real_error(__FILE__, __LINE__)
 
 /*
  * Similar to perror(), but supports formatted output, and calls error().
  */
-extern void pexit(char *format, ...)
+extern void real_pexit(char *file, int line, char *format, ...)
 #ifdef __GNUC__
-	__attribute__ ((format (printf, 1, 2)));
+	__attribute__ ((format (printf, 3, 4)));
 #else
 	;
 #endif
+#define pexit(...) real_pexit(__FILE__, __LINE__, __VA_ARGS__)
 
 /*
  * Attempts to write all the supplied data. Returns the number of bytes
