@@ -155,9 +155,10 @@ void cuda_device_list()
 #if __linux__ && HAVE_LIBDL
 		if (nvml_lib) {
 			int fan, temp, util;
-			int nvml_id = cuda_id2nvml(i));
+			int nvml_id = cuda_id2nvml(i);
 
-			printf("\tNVML id:                       %d\n", nvml_id;
+			printf("\tNVML id:                       %d\n",
+			       nvml_id);
 			fan = temp = util = -1;
 
 			nvidia_get_temp(nvml_id, &temp, &fan, &util);
