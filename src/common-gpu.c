@@ -242,7 +242,7 @@ void amd_probe(void)
 #endif
 }
 
-void nvidia_get_temp(int gpu_id, int *temp, int *fanspeed, int *util)
+void nvidia_get_temp(int nvml_id, int *temp, int *fanspeed, int *util)
 {
 	nvmlUtilization_t s_util;
 	nvmlDevice_t dev;
@@ -252,7 +252,7 @@ void nvidia_get_temp(int gpu_id, int *temp, int *fanspeed, int *util)
 	nvmlPciInfo_t pci;
 #endif
 
-	if (nvmlDeviceGetHandleByIndex(gpu_id, &dev) != NVML_SUCCESS) {
+	if (nvmlDeviceGetHandleByIndex(nvml_id, &dev) != NVML_SUCCESS) {
 		*temp = *fanspeed = *util = -1;
 		return;
 	}
@@ -276,7 +276,7 @@ void nvidia_get_temp(int gpu_id, int *temp, int *fanspeed, int *util)
 #ifdef DEBUG
 	if (nvmlDeviceGetPciInfo(dev, &pci) == NVML_SUCCESS)
 		printf("\tNVML PCI info           %s (idx %d '%s')\n",
-		        &pci.busId[5], gpu_id, name);
+		        &pci.busId[5], nvml_id, name);
 #endif
 }
 
