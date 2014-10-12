@@ -348,7 +348,7 @@ static struct fmt_tests cq_tests[] = {
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *p, *q;
-	if strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH)
+	if (strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
 		return 0;
 
 	p = strrchr(ciphertext, '$');
