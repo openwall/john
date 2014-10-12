@@ -137,6 +137,10 @@ static cl_mem mem_in, mem_out, mem_salt, mem_state;
 static unsigned int v_width = 1;	/* Vector width of kernel */
 static int new_keys;
 
+#ifdef DEBUG
+struct fmt_main *me;
+#endif
+
 static void create_clobj(size_t gws, struct fmt_main *self)
 {
 	gws *= v_width;
@@ -192,6 +196,9 @@ static void init(struct fmt_main *self)
 	char build_opts[64];
 	static char valgo[sizeof(ALGORITHM_NAME) + 8] = "";
 
+#ifdef DEBUG
+	me = self;
+#endif
 	if ((v_width = opencl_get_vector_width(gpu_id,
 	                                       sizeof(cl_int))) > 1) {
 		/* Run vectorized kernel */
