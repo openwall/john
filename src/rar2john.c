@@ -161,8 +161,10 @@ static void process_file(const char *archive_name)
 	char path[PATH_BUFFER_SIZE];
 	char *gecos, *best;
 
-	gecos = mem_calloc(LINE_BUFFER_SIZE);
-	best = mem_calloc(LINE_BUFFER_SIZE);
+	/* not sure the +PATH_BUFFER_SIZE is needed here, but does not hurt. */
+	gecos = mem_calloc(LINE_BUFFER_SIZE+PATH_BUFFER_SIZE);
+	/* the +PATH_BUFFER_SIZE IS needed here, to avoid overflow if LINE_BUF_SIZE is small */
+	best = mem_calloc(LINE_BUFFER_SIZE+PATH_BUFFER_SIZE);
 
 	strnzcpy(path, archive_name, sizeof(path));
 	base_aname = basename(path);
@@ -488,13 +490,21 @@ int rar2john(int argc, char **argv)
 
 	LINE_BUFFER_SIZE = MAX_LEN;
 	if (argc < 2) {
-		puts("Usage: rar2john [-maxinline=#] [rar files]");
+		fprintf(stderr,"Usage: rar2john [-maxinline=#] [rar files]");
 		return 0;
 	}
 	i = 1;
 	if (!strncmp(argv[1], "-maxinline=", 11)) {
 		++i;
 		LINE_BUFFER_SIZE = strtol(&argv[1][11], NULL, 10);
+		if (LINE_BUFFER_SIZE < 120) {
+			fprintf(stderr,"Minimum inline size is 120. We will be using this minimal value.\n");
+			LINE_BUFFER_SIZE=120;
+		}
+		if (LINE_BUFFER_SIZE > MAX_LEN) {
+			fprintf(stderr,"Maximum inline size is %d. We will be using this maximal value.\n", MAX_LEN);
+			LINE_BUFFER_SIZE=MAX_LEN;
+		}
 	}
 	for (; i < argc; i++)
 		process_file(argv[i]);
