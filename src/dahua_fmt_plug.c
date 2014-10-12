@@ -52,6 +52,8 @@ john_register_one(&fmt_dahua);
 static struct fmt_tests tests[] = {
 	{"$dahua$4WzwxXxM", "888888"},  // from hashcat.net
 	{"$dahua$HRG6OLE6", "Do You Even Lift?"},
+	{"$dahua$sh15yfFM", "666666"},
+	{"$dahua$6QNMIQGe", "admin"},
 	{NULL}
 };
 
