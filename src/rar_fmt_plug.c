@@ -849,7 +849,7 @@ struct fmt_main fmt_rar = {
 		{
 			fmt_default_binary_hash
 		},
-		fmt_default_salt_hash,
+		fmt_default_salt_hash_dyna_salt,
 		set_salt,
 		set_key,
 		get_key,
