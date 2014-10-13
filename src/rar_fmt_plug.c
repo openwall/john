@@ -131,10 +131,6 @@ static unsigned int *saved_len;
 static unsigned char *aes_key;
 static unsigned char *aes_iv;
 
-#if HAVE_MMAP
-#warning Notice: Using mmap() for RAR
-#endif
-
 typedef struct {
 	dyna_salt dsalt; /* must be first. allows dyna_salt to work */
 	/* place all items we are NOT going to use for salt comparison, first */
@@ -397,7 +393,7 @@ static void *get_salt(char *ciphertext)
 	psalt->dsalt.salt_alloc_needs_free = 1;
 #endif
 	psalt->dsalt.salt_cmp_offset = SALT_CMP_OFF(rarfile, salt);
-	psalt->dsalt.salt_cmp_size = SALT_CMP_SIZE(rarfile, salt, 0);
+	psalt->dsalt.salt_cmp_size = SALT_CMP_SIZE(rarfile, salt, raw_data, 0);
 	memcpy(ptr, &psalt, sizeof(rarfile*));
 	return (void*)ptr;
 }
