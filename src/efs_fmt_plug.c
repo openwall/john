@@ -292,7 +292,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		passwordBufSize = (strlen16(cur_salt->SID) + 1) * 2;
 		hmac_sha1(out, 20, passwordBuf, passwordBufSize, out2, 20);
 
-		pbkdf2_sha1_shit(out2, 20, cur_salt->iv, 16, 4000, 32, out);
+		pbkdf2_sha1_shit(out2, 20, cur_salt->iv, 16, cur_salt->iterations, 32, out);
 
 		// kcdecrypt will use 32 bytes, we only initialized 20 so far
 		memset(out2 + 20, 0, 32 - 20);
