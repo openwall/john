@@ -347,20 +347,16 @@ static void *get_salt(char *ciphertext)
 			char *archive_name = strtok(NULL, "*");
 			long pos = atol(strtok(NULL, "*"));
 #if HAVE_MMAP
-			size_t page_sz = 4096;
-
 			if (!(fp = fopen(archive_name, "rb"))) {
 				fprintf(stderr, "! %s: %s\n", archive_name,
 				        strerror(errno));
 				error();
 			}
-			fprintf(stderr, "mmap() len %llu offset %lu\n",
-			        psalt->pack_size + (pos % page_sz),
-			        pos & ~(page_sz - 1));
-			psalt->blob = mmap(NULL, psalt->pack_size +
-			                   (pos % page_sz),
-			                   PROT_READ, MAP_SHARED, fileno(fp),
-			                   pos & ~(page_sz - 1));
+			fprintf(stderr, "mmap() len %llu offset 0\n",
+			        pos + psalt->pack_size);
+			psalt->blob = mmap(NULL, pos + psalt->pack_size,
+			                   PROT_READ, MAP_SHARED,
+			                   fileno(fp), 0);
 			if (psalt->blob == MAP_FAILED) {
 				fprintf(stderr, "Error loading file from "
 				        "archive '%s'. Archive possibly "
