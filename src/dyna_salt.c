@@ -72,6 +72,10 @@ int dyna_salt_cmp(void *_p1, void *_p2, int comp_size) {
 	if ((format->params.flags & FMT_DYNA_SALT) == FMT_DYNA_SALT) {
 		dyna_salt_john_core *p1 = *((dyna_salt_john_core**)_p1);
 		dyna_salt_john_core *p2 = *((dyna_salt_john_core**)_p2);
+#ifdef DEBUG
+		dump_stuff_msg("dyna_salt_cmp\np1", &((unsigned char*)p1)[p1->dyna_salt.salt_cmp_offset], p1->dyna_salt.salt_cmp_size);
+		dump_stuff_msg("p2", &((unsigned char*)p2)[p2->dyna_salt.salt_cmp_offset], p2->dyna_salt.salt_cmp_size);
+#endif
 		if (p1->dyna_salt.salt_cmp_offset == p2->dyna_salt.salt_cmp_offset &&
 			p1->dyna_salt.salt_cmp_size == p2->dyna_salt.salt_cmp_size &&
 			!memcmp( &((unsigned char*)p1)[p1->dyna_salt.salt_cmp_offset],
@@ -80,6 +84,10 @@ int dyna_salt_cmp(void *_p1, void *_p2, int comp_size) {
 					return 0;
 		return 1;
 	}
+#ifdef DEBUG
+	dump_stuff_msg("salt_cmp\np1", _p1, comp_size);
+	dump_stuff_msg("p2", _p2, comp_size);
+#endif
 	// non-dyna salt compare.
 	return memcmp(_p1, _p2, comp_size);
 }
@@ -92,4 +100,3 @@ int dyna_salt_smash_check(void *p, unsigned char c) {
 	dyna_salt_john_core *p1 = *((dyna_salt_john_core**)p);
 	return (((unsigned char*)p)[p1->dyna_salt.salt_cmp_offset+p1->dyna_salt.salt_cmp_size-1] == c);
 }
-
