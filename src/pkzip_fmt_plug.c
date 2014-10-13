@@ -647,9 +647,6 @@ static void *get_salt(char *ciphertext)
 	return salt_p;
 }
 
-static int binary_hash0(void *binary) { return 1; }
-static int get_hash0(int index)       { return chk[index]; }
-
 static void set_key(char *key, int index)
 {
 	/* Keep the PW, so we can return it in get_key if asked to do so */
@@ -1651,11 +1648,7 @@ struct fmt_main fmt_pkzip = {
 #endif
 		fmt_default_source,
 		{
-			binary_hash0,
-			NULL,
-			NULL,
-			NULL,
-			NULL
+			fmt_default_binary_hash
 		},
 		fmt_default_salt_hash,
 		set_salt,
@@ -1664,11 +1657,7 @@ struct fmt_main fmt_pkzip = {
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-			get_hash0,
-			NULL,
-			NULL,
-			NULL,
-			NULL
+			fmt_default_get_hash
 		},
 		cmp_all,
 		cmp_one,

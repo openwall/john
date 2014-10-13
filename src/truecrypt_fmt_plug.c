@@ -187,16 +187,6 @@ static void *get_binary(char *ciphertext)
 	return out;
 }
 
-static int binary_hash(void *binary)
-{
-	return 1;
-}
-
-static int get_hash(int index)
-{
-	return 1;
-}
-
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	return *pcount;
@@ -351,11 +341,7 @@ struct fmt_main fmt_truecrypt = {
 #endif
 		fmt_default_source,
 		{
-			binary_hash,
-			binary_hash,
-			binary_hash,
-			binary_hash,
-			binary_hash
+			fmt_default_binary_hash
 		},
 		salt_hash,
 		set_salt,
@@ -364,11 +350,7 @@ struct fmt_main fmt_truecrypt = {
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-			get_hash,
-			get_hash,
-			get_hash,
-			get_hash,
-			get_hash
+			fmt_default_get_hash
 		},
 		cmp_all,
 		cmp_one,
@@ -413,11 +395,7 @@ struct fmt_main fmt_truecrypt_sha512 = {
 #endif
 		fmt_default_source,
 		{
-			binary_hash,
-			binary_hash,
-			binary_hash,
-			binary_hash,
-			binary_hash
+			fmt_default_binary_hash
 		},
 		salt_hash,
 		set_salt,
@@ -426,11 +404,7 @@ struct fmt_main fmt_truecrypt_sha512 = {
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-			get_hash,
-			get_hash,
-			get_hash,
-			get_hash,
-			get_hash
+			fmt_default_get_hash
 		},
 		cmp_all,
 		cmp_one,
@@ -475,11 +449,7 @@ struct fmt_main fmt_truecrypt_whirlpool = {
 #endif
 		fmt_default_source,
 		{
-			binary_hash,
-			binary_hash,
-			binary_hash,
-			binary_hash,
-			binary_hash
+			fmt_default_binary_hash
 		},
 		salt_hash,
 		set_salt,
@@ -488,11 +458,7 @@ struct fmt_main fmt_truecrypt_whirlpool = {
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-			get_hash,
-			get_hash,
-			get_hash,
-			get_hash,
-			get_hash
+			fmt_default_get_hash
 		},
 		cmp_all,
 		cmp_one,
