@@ -77,11 +77,11 @@ int dyna_salt_cmp(void *_p1, void *_p2, int comp_size) {
 		dump_stuff_msg("p2", &((unsigned char*)p2)[p2->dyna_salt.salt_cmp_offset], p2->dyna_salt.salt_cmp_size);
 #endif
 		if (p1->dyna_salt.salt_cmp_offset == p2->dyna_salt.salt_cmp_offset &&
-			p1->dyna_salt.salt_cmp_size == p2->dyna_salt.salt_cmp_size &&
-			!memcmp( &((unsigned char*)p1)[p1->dyna_salt.salt_cmp_offset],
-					&((unsigned char*)p2)[p1->dyna_salt.salt_cmp_offset],
-					p1->dyna_salt.salt_cmp_size))
-					return 0;
+		    p1->dyna_salt.salt_cmp_size == p2->dyna_salt.salt_cmp_size &&
+		    !memcmp( &((unsigned char*)p1)[p1->dyna_salt.salt_cmp_offset],
+		             &((unsigned char*)p2)[p2->dyna_salt.salt_cmp_offset],
+		             p1->dyna_salt.salt_cmp_size))
+			return 0;
 		return 1;
 	}
 #ifdef DEBUG

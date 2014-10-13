@@ -348,8 +348,10 @@ static void *get_salt(char *ciphertext)
 				        strerror(errno));
 				error();
 			}
+#ifdef DEBUG
 			fprintf(stderr, "mmap() len %llu offset 0\n",
 			        pos + psalt->pack_size);
+#endif
 			psalt->blob = mmap(NULL, pos + psalt->pack_size,
 			                   PROT_READ, MAP_SHARED,
 			                   fileno(fp), 0);
