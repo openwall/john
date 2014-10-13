@@ -327,17 +327,13 @@ static int salt_hash(void *salt)
 	return hash & (SALT_HASH_SIZE - 1);
 }
 
-static int binary_hash0(void * binary) { return (((ARCH_WORD_32 *)binary)[0] & 0xf); }
-static int binary_hash1(void * binary) { return (((ARCH_WORD_32 *)binary)[0] & 0xff); }
-static int binary_hash2(void * binary) { return (((ARCH_WORD_32 *)binary)[0] & 0xfff); }
-static int binary_hash3(void * binary) { return (((ARCH_WORD_32 *)binary)[0] & 0xffff); }
-static int binary_hash4(void * binary) { return (((ARCH_WORD_32 *)binary)[0] & 0xfffff); }
-
-static int get_hash0(int index) { return crypt_key[0] & 0xf; }
-static int get_hash1(int index) { return crypt_key[0] & 0xff; }
-static int get_hash2(int index) { return crypt_key[0] & 0xfff; }
-static int get_hash3(int index) { return crypt_key[0] & 0xffff; }
-static int get_hash4(int index) { return crypt_key[0] & 0xfffff; }
+static int get_hash_0(int index) { return crypt_key[0] & 0xf; }
+static int get_hash_1(int index) { return crypt_key[0] & 0xff; }
+static int get_hash_2(int index) { return crypt_key[0] & 0xfff; }
+static int get_hash_3(int index) { return crypt_key[0] & 0xffff; }
+static int get_hash_4(int index) { return crypt_key[0] & 0xfffff; }
+static int get_hash_5(int index) { return crypt_key[0] & 0xffffff; }
+static int get_hash_6(int index) { return crypt_key[0] & 0x7ffffff; }
 
 static int cmp_all(void *binary, int index) {
 	return !memcmp(binary, crypt_key, sizeof(crypt_key));
@@ -380,11 +376,13 @@ struct fmt_main fmt_oracle = {
 #endif
 		fmt_default_source,
 		{
-			binary_hash0,
-			binary_hash1,
-			binary_hash2,
-			binary_hash3,
-			binary_hash4
+			fmt_default_binary_hash_0,
+			fmt_default_binary_hash_1,
+			fmt_default_binary_hash_2,
+			fmt_default_binary_hash_3,
+			fmt_default_binary_hash_4,
+			fmt_default_binary_hash_5,
+			fmt_default_binary_hash_6
 		},
 		salt_hash,
 		set_salt,
@@ -393,11 +391,13 @@ struct fmt_main fmt_oracle = {
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-			get_hash0,
-			get_hash1,
-			get_hash2,
-			get_hash3,
-			get_hash4
+			get_hash_0,
+			get_hash_1,
+			get_hash_2,
+			get_hash_3,
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
 		},
 		cmp_all,
 		cmp_all,
