@@ -53,13 +53,8 @@ john_register_one(&fmt_pkzip);
 #define SALT_ALIGN			4
 
 #define MIN_KEYS_PER_CRYPT		1
-/* max keys allows 256 words per thread on a 16 thread OMP build */
-/* for non-OMP builds, we only want 64 keys */
-#ifdef _OPENMP
-#define MAX_KEYS_PER_CRYPT		(16*256)
-#else
 #define MAX_KEYS_PER_CRYPT		64
-#endif
+#define OMP_SCALE			64
 
 //#define ZIP_DEBUG 1
 //#define ZIP_DEBUG 2
@@ -152,10 +147,10 @@ b5f7662de170986f89d46d944b519e1db9d13d4254a6b0a5ac02b3cfdd468d7a4965e4af05699a92
 /* perform the pkzip 'checksum' checking. If we do get a 'hit', then that pass &  */
 /* salt pair is checked fully within the cmp_exact, where it gets inflated  and   */
 /* checked (possibly also a 'sample TEXT record is done first, as a quick check   */
-static char saved_key[MAX_KEYS_PER_CRYPT][PLAINTEXT_LENGTH + 1];
-static u32  K12[MAX_KEYS_PER_CRYPT*3];
+static char (*saved_key)[PLAINTEXT_LENGTH + 1];
+static u32  *K12;
 static PKZ_SALT *salt;
-static u8 chk[MAX_KEYS_PER_CRYPT];
+static u8 *chk;
 static int dirty=1;
 #if USE_PKZIP_MAGIC
 static ZIP_SIGS SIGS[256];
@@ -355,7 +350,24 @@ static u8 *buf_copy (char *p, int len) {
 }
 static void init(struct fmt_main *self)
 {
+#ifdef PKZIP_USE_MULT_TABLE
 	unsigned short n=0;
+#endif
+#ifdef _OPENMP
+	int omp_t;
+
+	omp_t = omp_get_max_threads();
+	self->params.min_keys_per_crypt *= omp_t;
+	omp_t *= OMP_SCALE;
+	self->params.max_keys_per_crypt *= omp_t;
+#endif
+	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
+			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	K12 = mem_calloc_tiny(sizeof(*K12) * 3 *
+			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	chk = mem_calloc_tiny(sizeof(*chk) *
+			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+
 	/*
 	 * Precompute the multiply mangling, within several parts of the hash. There is a pattern,
 	 * 64k entries long.  However the exact same value is produced 4 times in a row, every
@@ -371,15 +383,6 @@ static void init(struct fmt_main *self)
 	for (n = 0; n < 16384; n++)
 		mult_tab[n] = ((n*4+3) * (n*4+2) >> 8) & 0xff;
 #endif
-
-#ifdef _OPENMP
-	/* This can be tuned but it's tedious. */
-	n = omp_get_max_threads();
-	if (n*256 < MAX_KEYS_PER_CRYPT)
-		fmt_pkzip.params.max_keys_per_crypt = n*256;
-#endif
-	/* if not openmp and not use mult_tab, make sure we quiet the unused warning. */
-	(void)n;
 
 #if USE_PKZIP_MAGIC
 
