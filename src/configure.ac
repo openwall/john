@@ -714,7 +714,8 @@ echo "configure: creating ./john_build_rule.h"
 echo "#define JOHN_BLD \"${host_os} ${CPU_BIT_STR}-bit${using_x32} ${CPU_STR}-autoconf\"" > john_build_rule.h
 
 AC_SUBST([HOST_OS],["$host_os"])
-AC_CONFIG_FILES([Makefile
+AC_CONFIG_FILES([GNUMakefile
+                 Makefile
                  aes/Makefile
                  aes/aesni/Makefile
                  aes/openssl/Makefile

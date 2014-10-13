@@ -13442,7 +13442,7 @@ echo "#define JOHN_BLD \"${host_os} ${CPU_BIT_STR}-bit${using_x32} ${CPU_STR}-au
 
 HOST_OS="$host_os"
 
-ac_config_files="$ac_config_files Makefile aes/Makefile aes/aesni/Makefile aes/openssl/Makefile escrypt/Makefile"
+ac_config_files="$ac_config_files GNUMakefile Makefile aes/Makefile aes/aesni/Makefile aes/openssl/Makefile escrypt/Makefile"
 
 ac_config_commands="$ac_config_commands default"
 
@@ -14147,6 +14147,7 @@ do
   case $ac_config_target in
     "autoconfig.h") CONFIG_HEADERS="$CONFIG_HEADERS autoconfig.h" ;;
     "arch.h") CONFIG_LINKS="$CONFIG_LINKS arch.h:$ARCH_LINK" ;;
+    "GNUMakefile") CONFIG_FILES="$CONFIG_FILES GNUMakefile" ;;
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
     "aes/Makefile") CONFIG_FILES="$CONFIG_FILES aes/Makefile" ;;
     "aes/aesni/Makefile") CONFIG_FILES="$CONFIG_FILES aes/aesni/Makefile" ;;
