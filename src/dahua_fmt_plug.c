@@ -94,7 +94,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		return 0;
 
 	for (i = 0; i < BINARY_SIZE; i++)
-		if (!(isalpha(p[i]) || isdigit(p[i])))
+		if (!isalnum((int)(unsigned char)p[i]))
 			return 0;
 
 	return 1;
