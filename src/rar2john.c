@@ -490,7 +490,8 @@ int rar2john(int argc, char **argv)
 
 	LINE_BUFFER_SIZE = MAX_LEN;
 	if (argc < 2) {
-		fprintf(stderr,"Usage: rar2john [-maxinline=#] [rar files]");
+		fprintf(stderr,"Usage: %s [-maxinline=#] [rar file(s)]\n",
+			argv[0]);
 		return 0;
 	}
 	i = 1;
