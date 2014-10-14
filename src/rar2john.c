@@ -63,10 +63,8 @@
 
 #define CHUNK_SIZE 4096
 
-/* time to undo this honkin HUGE buffer, and allow a variable sized inline buffer */
-static unsigned MAX_LEN=LINE_BUFFER_SIZE;
-#undef LINE_BUFFER_SIZE
-static unsigned LINE_BUFFER_SIZE;
+static int inline_thr = MAX_INLINE_SIZE;
+#define MAX_THR (LINE_BUFFER_SIZE/2 - PATH_BUFFER_SIZE - PLAINTEXT_BUFFER_SIZE*2)
 
 /* Derived from unrar's encname.cpp */
 void DecodeFileName(unsigned char *Name, unsigned char *EncName, size_t EncSize,
@@ -160,11 +158,11 @@ static void process_file(const char *archive_name)
 	int found = 0;
 	char path[PATH_BUFFER_SIZE];
 	char *gecos, *best;
+	int best_len = 0, gecos_len = 0;
 
-	/* not sure the +PATH_BUFFER_SIZE is needed here, but does not hurt. */
-	gecos = mem_calloc(LINE_BUFFER_SIZE+PATH_BUFFER_SIZE);
-	/* the +PATH_BUFFER_SIZE IS needed here, to avoid overflow if LINE_BUF_SIZE is small */
-	best = mem_calloc(LINE_BUFFER_SIZE+PATH_BUFFER_SIZE);
+	/* We misuse PATH_BUFFER_SIZE as a sane maximum for this */
+	gecos = mem_calloc(PATH_BUFFER_SIZE);
+	best = mem_calloc(LINE_BUFFER_SIZE);
 
 	strnzcpy(path, archive_name, sizeof(path));
 	base_aname = basename(path);
@@ -326,7 +324,7 @@ next_file_header:
 
 		/* If this flag is set, file_name contains some weird
 		   wide char encoding that need to be decoded to UTF16
-		   and then to our currently used encoding */
+		   and then to UTF-8 (we don't support codepages here) */
 		if (file_header_head_flags & 0x200) {
 			UTF16 FileNameW[256];
 			int Length = strlen((char*)file_name);
@@ -340,9 +338,9 @@ next_file_header:
 			if (*FileNameW) {
 #ifdef DEBUG
 				dump_stuff_msg("UTF16 filename", FileNameW, strlen16(FileNameW) << 1);
-#endif
 				fprintf(stderr, "OEM name:  %s\n", file_name);
 				utf16_to_utf8_r(file_name, 256, FileNameW);
+#endif
 				fprintf(stderr, "Unicode:   %s\n", file_name);
 			} else
 				fprintf(stderr, "UTF8 name: %s\n", file_name);
@@ -350,8 +348,7 @@ next_file_header:
 			fprintf(stderr, "file name: %s\n", file_name);
 
 		/* We duplicate file name to the GECOS field, for single mode */
-		strncat(gecos, (char*)file_name, LINE_BUFFER_SIZE- 1);
-		strncat(gecos, " ", LINE_BUFFER_SIZE - strlen(gecos) - 1);
+		gecos_len += snprintf(&gecos[gecos_len], PATH_BUFFER_SIZE - 1, "%s ", (char*)file_name);
 
 		/* salt processing */
 		if (file_header_head_flags & 0x400) {
@@ -396,7 +393,7 @@ next_file_header:
 		}
 
 		/* Prefer shorter files, except zero-byte ones */
-		if (*best && (bestsize && (bestsize < file_header_unp_size))) {
+		if (bestsize && (bestsize < file_header_unp_size)) {
 			fseek(fp, file_header_pack_size, SEEK_CUR);
 			goto next_file_header;
 		}
@@ -404,17 +401,17 @@ next_file_header:
 		bestsize = file_header_unp_size;
 
 		/* process encrypted data of size "file_header_pack_size" */
-		sprintf(best, "%s:$RAR3$*%d*", base_aname, type);
+		best_len = sprintf(best, "%s:$RAR3$*%d*", base_aname, type);
 		for (i = 0; i < 8; i++) { /* encode salt */
-			sprintf(&best[strlen(best)], "%c%c", itoa16[ARCH_INDEX(salt[i] >> 4)], itoa16[ARCH_INDEX(salt[i] & 0x0f)]);
+			best_len += sprintf(&best[best_len], "%c%c", itoa16[ARCH_INDEX(salt[i] >> 4)], itoa16[ARCH_INDEX(salt[i] & 0x0f)]);
 		}
 #ifdef DEBUG
 		fprintf(stderr, "salt: '%s'\n", best);
 #endif
-		sprintf(&best[strlen(best)], "*");
+		best_len += sprintf(&best[best_len], "*");
 		memcpy(file_crc, file_header_block + 16, 4);
 		for (i = 0; i < 4; i++) { /* encode file_crc */
-			sprintf(&best[strlen(best)], "%c%c", itoa16[ARCH_INDEX(file_crc[i] >> 4)], itoa16[ARCH_INDEX(file_crc[i] & 0x0f)]);
+			best_len += sprintf(&best[best_len], "%c%c", itoa16[ARCH_INDEX(file_crc[i] >> 4)], itoa16[ARCH_INDEX(file_crc[i] & 0x0f)]);
 		}
 #ifdef DEBUG
 		/* Minimal version needed to unpack this file */
@@ -437,32 +434,27 @@ next_file_header:
 		/* fp is at ciphertext location */
 		pos = ftell(fp);
 
-		sprintf(&best[strlen(best)], "*%llu*%llu*",
+		best_len += sprintf(&best[best_len], "*%llu*%llu*",
 		        (unsigned long long)file_header_pack_size,
 		        (unsigned long long)file_header_unp_size);
 
 		/* If small enough, we store it inline */
-
-		/*
-		 * not sure why PATH_BUFFER_SIZE was in this condition, but it made trying to use LINE_BUFFER_SIZE
-		 * smaller than PATH_BUFFER_SIZE not work, and always inline.  Removed, and appears
-		 * to work, but I do not know may be bad side effects lurking!!!
-		 */
-		/*if ((2 * file_header_pack_size) < (LINE_BUFFER_SIZE - strlen(best) - strlen((char*)file_name) - PATH_BUFFER_SIZE)) { */
-		if ((2 * file_header_pack_size) < (LINE_BUFFER_SIZE - strlen(best) - strlen((char*)file_name))) {
+		if (file_header_pack_size < inline_thr) {
 			char *p;
 			unsigned char s;
-			sprintf(&best[strlen(best)], "1*");
-			p = &best[strlen(best)];
+
+			best_len += sprintf(&best[best_len], "1*");
+			p = &best[best_len];
 			for (i = 0; i < file_header_pack_size; i++) {
 				if (fread(&s, 1, 1, fp) != 1)
 					fprintf(stderr, "Error while reading archive: %s\n", strerror(errno));
 				*p++ = itoa16[s >> 4];
 				*p++ = itoa16[s & 0xf];
 			}
-			sprintf(p, "*%c%c:%d::", itoa16[file_header_block[25]>>4], itoa16[file_header_block[25]&0xf], type);
+			best_len += file_header_pack_size;
+			best_len += sprintf(p, "*%c%c:%d::", itoa16[file_header_block[25]>>4], itoa16[file_header_block[25]&0xf], type);
 		} else {
-			sprintf(&best[strlen(best)], "0*%s*%ld*%c%c:%d::", archive_name, pos, itoa16[file_header_block[25]>>4], itoa16[file_header_block[25]&0xf], type);
+			best_len += sprintf(&best[best_len], "0*%s*%ld*%c%c:%d::", archive_name, pos, itoa16[file_header_block[25]>>4], itoa16[file_header_block[25]&0xf], type);
 			fseek(fp, file_header_pack_size, SEEK_CUR);
 		}
 		/* Keep looking for better candidates */
@@ -471,7 +463,7 @@ next_file_header:
 BailOut:
 		if (*best) {
 			fprintf(stderr, "Found a valid -p mode candidate in %s\n", base_aname);
-			strncat(best, gecos, LINE_BUFFER_SIZE - 1);
+			strncat(best, gecos, LINE_BUFFER_SIZE - best_len - 1);
 			puts(best);
 		} else
 			fprintf(stderr, "Did not find a valid encrypted candidate in %s\n", base_aname);
@@ -486,29 +478,37 @@ err:
 
 int rar2john(int argc, char **argv)
 {
-	int i;
+	int c;
 
-	LINE_BUFFER_SIZE = MAX_LEN;
-	if (argc < 2) {
-		fprintf(stderr,"Usage: %s [-maxinline=#] [rar file(s)]\n",
-			argv[0]);
-		return 0;
-	}
-	i = 1;
-	if (!strncmp(argv[1], "-maxinline=", 11)) {
-		++i;
-		LINE_BUFFER_SIZE = strtol(&argv[1][11], NULL, 10);
-		if (LINE_BUFFER_SIZE < 120) {
-			fprintf(stderr,"Minimum inline size is 120. We will be using this minimal value.\n");
-			LINE_BUFFER_SIZE=120;
-		}
-		if (LINE_BUFFER_SIZE > MAX_LEN) {
-			fprintf(stderr,"Maximum inline size is %d. We will be using this maximal value.\n", MAX_LEN);
-			LINE_BUFFER_SIZE=MAX_LEN;
+	/* Parse command line */
+	while ((c = getopt(argc, argv, "i:")) != -1) {
+		switch (c) {
+		case 'i':
+			inline_thr = (int)strtol(optarg, NULL, 0);
+			if (inline_thr > MAX_THR) {
+				fprintf(stderr, "%s error: threshold %d, can't"
+				        " be larger than %d\n", argv[0],
+				        inline_thr, MAX_THR);
+				exit(EXIT_FAILURE);
+			}
+			break;
+		case '?':
+			exit(EXIT_FAILURE);
+			break;
 		}
 	}
-	for (; i < argc; i++)
-		process_file(argv[i]);
+	argc -= optind;
 
-	return 0;
+	if (argc == 0) {
+		fprintf(stderr,"Usage: %s [-i <inline threshold>] <rar file(s)>\n"
+		        "Default threshold is %d bytes (data smaller than that"
+		        " will be inlined)\n", argv[0], MAX_INLINE_SIZE);
+		return EXIT_FAILURE;
+	}
+	argv += optind;
+
+	while (argc--)
+		process_file(*argv++);
+
+	return EXIT_SUCCESS;
 }
