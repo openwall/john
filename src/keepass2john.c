@@ -399,14 +399,17 @@ int keepass2john(int argc, char **argv)
 			keyfile = (char *)malloc(strlen(optarg) + 1);
 			strcpy(keyfile, optarg);
 			break;
+		case '?':
+			exit(EXIT_FAILURE);
+			break;
 		}
 	}
 	argc -= optind;
 
 	if(argc == 0) {
 		fprintf(stderr,
-		        "Usage: %s [-i <inline threshold>] [-k <keyfile>] [.kdbx database(s)]\n"
-		        "Default threshold is %d bytes (files smaller than that will be inlined)\n", argv[0], inline_thr);
+		        "Usage: %s [-i <inline threshold>] [-k <keyfile>] <.kdbx database(s)>\n"
+		        "Default threshold is %d bytes (files smaller than that will be inlined)\n", argv[0], MAX_INLINE_SIZE);
 		return -1;
 	}
 	argv += optind;
