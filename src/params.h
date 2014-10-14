@@ -325,6 +325,16 @@ extern int password_hash_thresholds[PASSWORD_HASH_SIZES];
 #define LINE_BUFFER_SIZE		0x30000
 
 /*
+ * Default threshold for inlining files in rar2john, zip2john, etc.
+ * Data blobs larger than this will not be inlined. Note that this is
+ * original data size, eg. encoded size will be twice this if hex encoding
+ * is used, or 25% larger if using Base64. All tools should have an option
+ * to override this default but has to take care not to ever produce lines
+ * with a *total* length exceeding LINE_BUFFER_SIZE - PLAINTEXT_BUFFER_SIZE.
+ */
+#define MAX_INLINE_SIZE			0x400
+
+/*
  * john.pot and log file buffer sizes, can be zero.
  */
 #define POT_BUFFER_SIZE			0x8000

@@ -47,6 +47,8 @@
 const char *extension[] = {".kdbx"};
 static char *keyfile = NULL;
 
+static int inline_thr = MAX_INLINE_SIZE;
+
 // KeePass 1.x signature
 uint32_t FileSignatureOld1 = 0x9AA2D903;
 uint32_t FileSignatureOld2 = 0xB54BFB65;
@@ -141,7 +143,7 @@ static void process_old_database(FILE *fp, char* encryptedDatabase)
 	uint32_t key_transf_rounds;
 	unsigned char buffer[LINE_BUFFER_SIZE];
 	int count;
-	long long filesize;
+	long long filesize = 0;
 	long long datasize;
 	int algorithm = -1;
 	char *dbname;
@@ -183,6 +185,7 @@ static void process_old_database(FILE *fp, char* encryptedDatabase)
 			fprintf(stderr, "! %s : %s\n", keyfile, strerror(errno));
 			return;
 		}
+		filesize = (long long)get_file_size(keyfile);
 	}
 
 	dbname = strip_suffixes(basename(encryptedDatabase), extension, 1);
@@ -199,8 +202,9 @@ static void process_old_database(FILE *fp, char* encryptedDatabase)
 	print_hex(contents_hash, 32);
 	filesize = (long long)get_file_size(encryptedDatabase);
 	datasize = filesize - 124;
-	if(filesize < (LINE_BUFFER_SIZE - 128)) {
+	if((filesize + datasize) < inline_thr) {
 		/* we can inline the content with the hash */
+		fprintf(stderr, "Inlining %s\n", encryptedDatabase);
 		printf("*1*%lld*", datasize);
 		fseek(fp, 124, SEEK_SET);
 		count = fread(buffer, datasize, 1, fp);
@@ -208,10 +212,10 @@ static void process_old_database(FILE *fp, char* encryptedDatabase)
 		print_hex(buffer, datasize);
 	}
 	else {
+		fprintf(stderr, "Not inlining %s\n", encryptedDatabase);
 		printf("*0*%s", dbname); /* data is not inline */
 	}
 	if (keyfile) {
-		filesize = (long long)get_file_size(keyfile);
 		printf("*1*%lld*", filesize); /* inline keyfile content */
 		count = fread(buffer, filesize, 1, kfp);
 		print_hex(buffer, filesize);
@@ -377,15 +381,27 @@ bailout:
 int keepass2john(int argc, char **argv)
 {
 	int i, c;
+	const int max_thr = LINE_BUFFER_SIZE / 2 - 2 * PLAINTEXT_BUFFER_SIZE;
 
 	if(argc < 2) {
-		fprintf(stderr, "Usage: keepass2john -k [optional keyfile] [.kdbx KeePass database(s)]\n");
+		fprintf(stderr,
+		        "Usage: %s [-i inline threshold] [-k keyfile] [.kdbx database(s)]\n"
+		        "Default threshold is %d bytes (files smaller than that will be inlined)\n", argv[0], inline_thr);
 		return -1;
 	}
 
 	/* Parse command line */
-	while ((c = getopt(argc, argv, "k:")) != -1) {
+	while ((c = getopt(argc, argv, "i:k:")) != -1) {
 		switch (c) {
+		case 'i':
+			inline_thr = (int)strtoul(optarg, NULL, 0);
+			if (inline_thr > max_thr) {
+				fprintf(stderr, "%s error: threshold %d, can't"
+				        " be larger than %d\n", argv[0],
+				        inline_thr, max_thr);
+				exit(EXIT_FAILURE);
+			}
+			break;
 		case 'k':
 			keyfile = (char *)malloc(strlen(optarg) + 1);
 			strcpy(keyfile, optarg);
