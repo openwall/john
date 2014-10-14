@@ -269,8 +269,7 @@ static void set_key(char *key, int index)
 
 static void *get_salt(char *ciphertext)
 {
-	unsigned int i, type;
-	unsigned long long ex_len;
+	unsigned int i, type, ex_len;
 	size_t count;
 	static unsigned char *ptr;
 	/* extract data from "salt" */
@@ -310,7 +309,7 @@ static void *get_salt(char *ciphertext)
 
 		/* load ciphertext. We allocate and load all files
 		   here, and they are freed when password found. */
-		psalt = mem_calloc(sizeof(*psalt)+(size_t)ex_len);
+		psalt = mem_calloc(sizeof(*psalt)+ex_len);
 		psalt->type = type;
 		memcpy(psalt->salt, tmp_salt, 8);
 		psalt->pack_size = pack_size;
@@ -331,11 +330,8 @@ static void *get_salt(char *ciphertext)
 				fprintf(stderr, "! %s: %s\n", archive_name, strerror(errno));
 				error();
 			}
-			// NOTE, we may not have large file support here. If we need that, we should look into it. with jtr_fseek()
 			fseek(fp, pos, SEEK_SET);
-			// also fread is not guarenteed to read > 2^32 bytes (whatever size_t allows). pack_size is 64 bits. If
-			// we want to handle these (I doubt it), then we would need to acount for that.
-			count = fread(psalt->raw_data, 1, (size_t)psalt->pack_size, fp);
+			count = fread(psalt->raw_data, 1, psalt->pack_size, fp);
 			if (count != psalt->pack_size) {
 				fprintf(stderr, "Error loading file from archive '%s', expected %llu bytes, got %zu. Archive possibly damaged.\n", archive_name, psalt->pack_size, count);
 				exit(0);
@@ -354,7 +350,7 @@ static void *get_salt(char *ciphertext)
 	MEM_FREE(keep_ptr);
 	psalt->dsalt.salt_alloc_needs_free = 1;
 	psalt->dsalt.salt_cmp_offset = SALT_CMP_OFF(rarfile, salt);
-	psalt->dsalt.salt_cmp_size = SALT_CMP_SIZE2(rarfile, salt, raw_data, 0);
+	psalt->dsalt.salt_cmp_size = SALT_CMP_SIZE(rarfile, salt, 0);
 	memcpy(ptr, &psalt, sizeof(rarfile*));
 	return (void*)ptr;
 }
@@ -735,14 +731,14 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 					inlen = 0x8000;
 
 					EVP_DecryptUpdate(&aes_ctx, plain, &outlen, cipher, inlen);
-					CRC32_Update(&crc, plain, outlen > size ? (unsigned)size : outlen);
+					CRC32_Update(&crc, plain, outlen > size ? size : outlen);
 					size -= outlen;
 					cipher += inlen;
 				}
 				EVP_DecryptUpdate(&aes_ctx, plain, &outlen, cipher, (size + 15) & ~0xf);
 				EVP_DecryptFinal_ex(&aes_ctx, &plain[outlen], &outlen);
 				size += outlen;
-				CRC32_Update(&crc, plain, (unsigned)size);
+				CRC32_Update(&crc, plain, size);
 				CRC32_Final(crc_out, crc);
 
 				/* Compare computed CRC with stored CRC */
@@ -783,7 +779,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 				unpack_t->max_size = cur_file->unp_size;
 				unpack_t->dest_unp_size = cur_file->unp_size;
-				unpack_t->pack_size = (unsigned)cur_file->pack_size; // we can not handle > sizeof(unsigned)
+				unpack_t->pack_size = cur_file->pack_size;
 				unpack_t->iv = &aes_iv[i16];
 				unpack_t->ctx = &aes_ctx;
 				unpack_t->key = &aes_key[i16];

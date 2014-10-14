@@ -352,7 +352,7 @@ static void *get_salt(char *ciphertext)
 
 	// set the JtR core linkage stuff for this dyna_salt
 	psalt->dsalt.salt_cmp_offset = SALT_CMP_OFF(my_salt, comp_len);
-	psalt->dsalt.salt_cmp_size = SALT_CMP_SIZE2(my_salt, comp_len, datablob, psalt->comp_len);
+	psalt->dsalt.salt_cmp_size = SALT_CMP_SIZE(my_salt, comp_len, psalt->comp_len);
 
 
 	if (strcmp((const char*)cp, "ZFILE")) {
