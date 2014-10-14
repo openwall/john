@@ -589,10 +589,10 @@ static void crk_poll_files(void)
 	else if (options.pause_file &&
 	         stat(path_expand(options.pause_file), &trigger_stat) == 0) {
 #if !HAVE_SYS_TIMES_H
-		time_t end, start = clock();
+		clock_t end, start = clock();
 #else
 		struct tms buf;
-		time_t end, start = times(&buf);
+		clock_t end, start = times(&buf);
 #endif
 
 		status_print();
