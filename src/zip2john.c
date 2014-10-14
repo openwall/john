@@ -95,6 +95,9 @@
 #include <string.h>
 #include <assert.h>
 #include <ctype.h>
+#if  (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
+#include <unistd.h>
+#endif
 
 #include "common.h"
 #include "jumbo.h"
@@ -108,17 +111,11 @@
 static int checksum_only=0, use_magic=1;
 static int force_2_byte_checksum = 0;
 static char *ascii_fname, *only_fname;
+static int inline_thr = MAX_INLINE_SIZE;
+#define MAX_THR (LINE_BUFFER_SIZE / 2 - 2 * PLAINTEXT_BUFFER_SIZE)
 
 static char *MagicTypes[]= { "", "DOC", "XLS", "DOT", "XLT", "EXE", "DLL", "ZIP", "BMP", "DIB", "GIF", "PDF", "GZ", "TGZ", "BZ2", "TZ2", "FLV", "SWF", "MP3", NULL };
 static int  MagicToEnum[] = {0,  1,    1,     1,     1,     2,     2,     3,     4,     4,     5,     6,     7,    7,     8,     8,     9,     10,    11,  0};
-
-
-int convert_to_hex(char *O, unsigned char *H, int len) {
-	int i;
-	for (i = 0; i < len; ++i)
-		O += sprintf (O, "%02x", *H++);
-	return len<<1;
-}
 
 static void process_old_zip(const char *fname);
 static void process_file(const char *fname)
@@ -233,7 +230,7 @@ static void process_file(const char *fname)
 				// not quite sure why the real_cmpr_len is 'off by 1' ????
 				++real_cmpr_len;
 				if (store) cp += sprintf(cp, "*%x*", real_cmpr_len);
-				if (real_cmpr_len < 1024) {
+				if (real_cmpr_len < inline_thr) {
 					for (i = 0; i < real_cmpr_len; i++) {
 						d = fgetc(fp);
 						if (store) cp += sprintf(cp, "%c%c",
@@ -540,8 +537,8 @@ print_and_cleanup:;
 		}
 		// Ok, now output the 'little' one (the first).
 		if (!checksum_only) {
-			printf("%x*%x*%x*%x*%x*%x*%x*%x*", hashes[0].cmp_len<1500?2:3, hashes[0].magic_type, hashes[0].cmp_len, hashes[0].decomp_len, hashes[0].crc, hashes[0].offset, hashes[0].offex, hashes[0].cmptype);
-			if (hashes[0].cmp_len<1500)
+			printf("%x*%x*%x*%x*%x*%x*%x*%x*", hashes[0].cmp_len < inline_thr ? 2 : 3, hashes[0].magic_type, hashes[0].cmp_len, hashes[0].decomp_len, hashes[0].crc, hashes[0].offset, hashes[0].offex, hashes[0].cmptype);
+			if (hashes[0].cmp_len < inline_thr)
 				printf("%x*%s*%s*%s*", hashes[0].cmp_len, hashes[0].chksum, hashes[0].chksum2, toHex((unsigned char*)hashes[0].hash_data, hashes[0].cmp_len));
 			else
 				printf("%x*%s*%s*%s*", (unsigned int)strlen(fname), hashes[0].chksum, hashes[0].chksum2, fname);
@@ -551,82 +548,82 @@ print_and_cleanup:;
 	fclose(fp);
 }
 
-int usage() {
-	fprintf(stderr, "Usage: zip2john [options] [zip files]\n");
-	fprintf(stderr, "\tOptions (for 'old' PKZIP encrypted files):\n");
-	fprintf(stderr, "\t  -a=filename   This is a 'known' ASCII file\n");
-	fprintf(stderr, "\t      Using 'ascii' mode is a serious speedup, IF all files are larger, and\n");
-	fprintf(stderr, "\t      you KNOW that at least one of them starts out as 'pure' ASCII data\n");
-	fprintf(stderr, "\t  -o=filename   Only use this file from the .zip file\n");
-	fprintf(stderr, "\t  -co This will create a 'checksum only' hash.  If there are many encrypted\n");
-	fprintf(stderr, "\t      files in the .zip file, then this may be an option, and there will be\n");
-	fprintf(stderr, "\t      enough data that false possitives will not be seen.  If the .zip is 2\n");
-	fprintf(stderr, "\t      byte checksums, and there are 3 or more of them, then we have 48 bits\n");
-	fprintf(stderr, "\t      knowledge, which 'may' be enough to crack the password, without having\n");
-	fprintf(stderr, "\t      to force the user to have the .zip file present\n");
-	fprintf(stderr, "\t  -nm DO not look for any magic file types in this zip.  If you know that\n");
-	fprintf(stderr, "\t      are files with one of the 'magic' extensions, but they are not the right\n");
-	fprintf(stderr, "\t      type files (some *.doc files that ARE NOT MS Office Word documents), then\n");
-	fprintf(stderr, "\t      this switch will keep them from being detected this way.  NOTE, that\n");
-	fprintf(stderr, "\t      the 'magic' logic will only be used in john, under certain situations.\n");
-	fprintf(stderr, "\t      Most of these situations are when there are only 'stored' files in the zip\n");
-	fprintf(stderr, "\n");
-	fprintf(stderr, "\t  -f2 Force 2 byte checksum computation\n");
+static int usage(char *name) {
+	fprintf(stderr, "Usage: %s [options] [zip files]\n", name);
+	fprintf(stderr, " -i <inline threshold> Set threshold for inlining data. Default is %d bytes\n", MAX_INLINE_SIZE);
+	fprintf(stderr, "Options for 'old' PKZIP encrypted files only:\n");
+	fprintf(stderr, " -a <filename>   This is a 'known' ASCII file\n");
+	fprintf(stderr, "    Using 'ascii' mode is a serious speedup, IF all files are larger, and\n");
+	fprintf(stderr, "    you KNOW that at least one of them starts out as 'pure' ASCII data\n");
+	fprintf(stderr, " -o <filename>   Only use this file from the .zip file\n");
+	fprintf(stderr, " -c This will create a 'checksum only' hash.  If there are many encrypted\n");
+	fprintf(stderr, "    files in the .zip file, then this may be an option, and there will be\n");
+	fprintf(stderr, "    enough data that false possitives will not be seen.  If the .zip is 2\n");
+	fprintf(stderr, "    byte checksums, and there are 3 or more of them, then we have 48 bits\n");
+	fprintf(stderr, "    knowledge, which 'may' be enough to crack the password, without having\n");
+	fprintf(stderr, "    to force the user to have the .zip file present\n");
+	fprintf(stderr, " -n Do not look for any magic file types in this zip.  If you know that\n");
+	fprintf(stderr, "    are files with one of the 'magic' extensions, but they are not the right\n");
+	fprintf(stderr, "    type files (some *.doc files that ARE NOT MS Office Word documents), then\n");
+	fprintf(stderr, "    this switch will keep them from being detected this way.  NOTE, that\n");
+	fprintf(stderr, "    the 'magic' logic will only be used in john, under certain situations.\n");
+	fprintf(stderr, "    Most of these situations are when there are only 'stored' files in the zip\n");
+	fprintf(stderr, " -2 Force 2 byte checksum computation\n");
 
-	return 0;
+	return EXIT_FAILURE;
 }
+
 int zip2john(int argc, char **argv)
 {
-	int i=1;
+	int c;
 
-	if (argc < 2)
-		return usage();
-	while (argv[i][0] == '-') {
-		// handle both the -val and --val types of command line switches (since all the rest of john does this also).
-		if (strstr(argv[i], "-a=")) {
-			if (!strncmp(argv[i], "-a=", 3))
-				ascii_fname = &argv[i][3];
-			else if (!strncmp(argv[i], "--a=", 4))
-				ascii_fname = &argv[i][4];
-			else
-				break;
+	/* Parse command line */
+	while ((c = getopt(argc, argv, "a:o:i:cn2")) != -1) {
+		switch (c) {
+		case 'i':
+			inline_thr = (int)strtol(optarg, NULL, 0);
+			if (inline_thr > MAX_THR) {
+				fprintf(stderr, "%s error: threshold %d, can't"
+				        " be larger than %d\n", argv[0],
+				        inline_thr, MAX_THR);
+				return EXIT_FAILURE;
+			}
+			break;
+		case 'a':
+			ascii_fname = optarg;
 			fprintf(stderr, "Using file %s as an 'ASCII' quick check file\n", ascii_fname);
-			++i;
-		}
-		else if (strstr(argv[i], "-o=")) {
-			if (!strncmp(argv[i], "-o=", 3))
-				only_fname = &argv[i][3];
-			else if (!strncmp(argv[i], "--o=", 4))
-				only_fname = &argv[i][4];
-			else
-				break;
+			break;
+		case 'o':
+			only_fname = optarg;
 			fprintf(stderr, "Using file %s as only file to check\n", only_fname);
-			++i;
-		}
-		else if (!strcmp(argv[i], "-co") || !strcmp(argv[i], "--co")) {
+			break;
+		case 'c':
 			checksum_only = 1;
-			++i;
 			fprintf(stderr, "Outputing hashes that are 'checksum ONLY' hashes\n");
-		}
-		else if (!strcmp(argv[i], "-nm") || !strcmp(argv[i], "--nm")) {
+			break;
+		case 'n':
 			use_magic = 0;
-			++i;
 			fprintf(stderr, "Ignoring any checking of file 'magic' signatures\n");
-		}
-		else if (!strncmp(argv[i], "-f2", 3) || !strncmp(argv[i], "--f2", 4)) {
+			break;
+		case '2':
 			force_2_byte_checksum = 1;
-			++i;
 			fprintf(stderr, "Forcing a 2 byte checksum detection\n");
+			break;
+		case '?':
+		default:
+			return usage(argv[0]);
 		}
-		else if (!strncmp(argv[i], "-h", 2) || !strncmp(argv[i], "--h", 3))
-			return usage();
-		else
-			break; // file name starting with a '-' char.
 	}
-	for (; i < argc; i++)
-		process_file(argv[i]);
+	argc -= optind;
+	if(argc == 0)
+		return usage(argv[0]);
+	argv += optind;
+
+	while(argc--)
+		process_file(*argv++);
 
 	cleanup_tiny_memory();
 	MEMDBG_PROGRAM_EXIT_CHECKS(stderr);
-	return 0;
+
+	return EXIT_SUCCESS;
 }
