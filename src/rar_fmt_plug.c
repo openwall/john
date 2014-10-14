@@ -350,7 +350,7 @@ static void *get_salt(char *ciphertext)
 	MEM_FREE(keep_ptr);
 	psalt->dsalt.salt_alloc_needs_free = 1;
 	psalt->dsalt.salt_cmp_offset = SALT_CMP_OFF(rarfile, salt);
-	psalt->dsalt.salt_cmp_size = SALT_CMP_SIZE(rarfile, salt, 0);
+	psalt->dsalt.salt_cmp_size = SALT_CMP_SIZE2(rarfile, salt, raw_data, 0);
 	memcpy(ptr, &psalt, sizeof(rarfile*));
 	return (void*)ptr;
 }
