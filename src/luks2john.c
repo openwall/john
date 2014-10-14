@@ -58,8 +58,11 @@
 #define LUKS_SALTSIZE 32
 #define LUKS_NUMKEYS 8
 
+static int inline_thr = MAX_INLINE_SIZE;
+#define MAX_THR (LINE_BUFFER_SIZE / 2 - 2 * PLAINTEXT_BUFFER_SIZE)
+
 /* taken from LUKS on disk format specification */
-struct luks_phdr {
+static struct luks_phdr {
 	char magic[LUKS_MAGIC_L];
 	uint16_t version;
 	char cipherName[LUKS_CIPHERNAME_L];
@@ -79,7 +82,6 @@ struct luks_phdr {
 		uint32_t stripes;
 	} keyblock[LUKS_NUMKEYS];
 } myphdr;
-
 
 static unsigned char *cipherbuf;
 static int afsize;
@@ -159,7 +161,7 @@ static int hash_plugin_parse_hash(char *filename)
 		goto bad;
 	}
 
-	if (afsize * 2 < LINE_BUFFER_SIZE) {
+	if (afsize < inline_thr) {
 		BIO *bio, *b64;
 		fprintf(stderr, "Generating inlined hash!\n");
 		printf("$luks$1$%zu$", sizeof(myphdr));
@@ -209,17 +211,43 @@ bad:
 	return 1;
 }
 
+static int usage(char *name)
+{
+	fprintf(stderr, "Usage: %s [-i <inline threshold>] [LUKS file(s) / disk(s)]\n"
+	        "Default threshold is %d bytes (files smaller than that will be inlined)\n",
+	        name, MAX_INLINE_SIZE);
+
+	return EXIT_FAILURE;
+}
 
 int main(int argc, char **argv)
 {
-	int i;
+	int c;
 
-	if (argc < 2) {
-		puts("Usage: luks2john [LUKS files / disks]");
-		return -1;
+	/* Parse command line */
+	while ((c = getopt(argc, argv, "i:")) != -1) {
+		switch (c) {
+		case 'i':
+			inline_thr = (int)strtol(optarg, NULL, 0);
+			if (inline_thr > MAX_THR) {
+				fprintf(stderr, "%s error: threshold %d, can't"
+				        " be larger than %d\n", argv[0],
+				        inline_thr, MAX_THR);
+				return EXIT_FAILURE;
+			}
+			break;
+		case '?':
+		default:
+			return usage(argv[0]);
+		}
 	}
-	for (i = 1; i < argc; i++)
-		hash_plugin_parse_hash(argv[i]);
+	argc -= optind;
+	if(argc == 0)
+		return usage(argv[0]);
+	argv += optind;
 
-	return 0;
+	while (argc--)
+		hash_plugin_parse_hash(*argv++);
+
+	return EXIT_SUCCESS;
 }
