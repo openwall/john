@@ -48,6 +48,7 @@ const char *extension[] = {".kdbx"};
 static char *keyfile = NULL;
 
 static int inline_thr = MAX_INLINE_SIZE;
+#define MAX_THR (LINE_BUFFER_SIZE / 2 - 2 * PLAINTEXT_BUFFER_SIZE)
 
 // KeePass 1.x signature
 uint32_t FileSignatureOld1 = 0x9AA2D903;
@@ -381,25 +382,17 @@ bailout:
 int keepass2john(int argc, char **argv)
 {
 	int i, c;
-	const int max_thr = LINE_BUFFER_SIZE / 2 - 2 * PLAINTEXT_BUFFER_SIZE;
-
-	if(argc < 2) {
-		fprintf(stderr,
-		        "Usage: %s [-i inline threshold] [-k keyfile] [.kdbx database(s)]\n"
-		        "Default threshold is %d bytes (files smaller than that will be inlined)\n", argv[0], inline_thr);
-		return -1;
-	}
 
 	/* Parse command line */
 	while ((c = getopt(argc, argv, "i:k:")) != -1) {
 		switch (c) {
 		case 'i':
-			inline_thr = (int)strtoul(optarg, NULL, 0);
-			if (inline_thr > max_thr) {
+			inline_thr = (int)strtol(optarg, NULL, 0);
+			if (inline_thr > MAX_THR) {
 				fprintf(stderr, "%s error: threshold %d, can't"
 				        " be larger than %d\n", argv[0],
-				        inline_thr, max_thr);
-				exit(EXIT_FAILURE);
+				        inline_thr, MAX_THR);
+				return EXIT_FAILURE;
 			}
 			break;
 		case 'k':
@@ -408,13 +401,19 @@ int keepass2john(int argc, char **argv)
 			break;
 		}
 	}
+	argc -= optind;
+
+	if(argc == 0) {
+		fprintf(stderr,
+		        "Usage: %s [-i <inline threshold>] [-k <keyfile>] [.kdbx database(s)]\n"
+		        "Default threshold is %d bytes (files smaller than that will be inlined)\n", argv[0], inline_thr);
+		return -1;
+	}
+	argv += optind;
 
 	if (keyfile) {
 		puts(keyfile);
 	}
-
-	argv += optind;
-	argc -= optind;
 
 	for(i = 0; i < argc; i++) {
 		process_database(argv[i]);
