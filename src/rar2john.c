@@ -51,6 +51,9 @@
 #include <errno.h>
 #include <string.h>
 #include <assert.h>
+#if  (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
+#include <unistd.h>
+#endif
 
 #include "jumbo.h"
 #include "common.h"
@@ -67,8 +70,8 @@ static int inline_thr = MAX_INLINE_SIZE;
 #define MAX_THR (LINE_BUFFER_SIZE/2 - PATH_BUFFER_SIZE - PLAINTEXT_BUFFER_SIZE*2)
 
 /* Derived from unrar's encname.cpp */
-void DecodeFileName(unsigned char *Name, unsigned char *EncName, size_t EncSize,
-                            UTF16 *NameW, size_t MaxDecSize)
+static void DecodeFileName(unsigned char *Name, unsigned char *EncName,
+                           size_t EncSize, UTF16 *NameW, size_t MaxDecSize)
 {
 	unsigned char Flags = 0;
 	unsigned int FlagBits = 0;
@@ -476,6 +479,14 @@ err:
 	MEM_FREE(gecos);
 }
 
+static int usage(char *name)
+{
+	fprintf(stderr,"Usage: %s [-i <inline threshold>] <rar file(s)>\n"
+	        "Default threshold is %d bytes (data smaller than that"
+	        " will be inlined)\n", name, MAX_INLINE_SIZE);
+	return EXIT_FAILURE;
+}
+
 int rar2john(int argc, char **argv)
 {
 	int c;
@@ -493,18 +504,13 @@ int rar2john(int argc, char **argv)
 			}
 			break;
 		case '?':
-			exit(EXIT_FAILURE);
-			break;
+		default:
+			return usage(argv[0]);
 		}
 	}
 	argc -= optind;
-
-	if (argc == 0) {
-		fprintf(stderr,"Usage: %s [-i <inline threshold>] <rar file(s)>\n"
-		        "Default threshold is %d bytes (data smaller than that"
-		        " will be inlined)\n", argv[0], MAX_INLINE_SIZE);
-		return EXIT_FAILURE;
-	}
+	if (argc == 0)
+		return usage(argv[0]);
 	argv += optind;
 
 	while (argc--)

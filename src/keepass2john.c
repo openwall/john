@@ -379,9 +379,18 @@ bailout:
 	fclose(fp);
 }
 
+static int usage(char *name)
+{
+	fprintf(stderr, "Usage: %s [-i <inline threshold>] [-k <keyfile>] <.kdbx database(s)>\n"
+	        "Default threshold is %d bytes (files smaller than that will be inlined)\n",
+	        name, MAX_INLINE_SIZE);
+
+	return EXIT_FAILURE;
+}
+
 int keepass2john(int argc, char **argv)
 {
-	int i, c;
+	int c;
 
 	/* Parse command line */
 	while ((c = getopt(argc, argv, "i:k:")) != -1) {
@@ -400,27 +409,20 @@ int keepass2john(int argc, char **argv)
 			strcpy(keyfile, optarg);
 			break;
 		case '?':
-			exit(EXIT_FAILURE);
-			break;
+		default:
+			return usage(argv[0]);
 		}
 	}
 	argc -= optind;
-
-	if(argc == 0) {
-		fprintf(stderr,
-		        "Usage: %s [-i <inline threshold>] [-k <keyfile>] <.kdbx database(s)>\n"
-		        "Default threshold is %d bytes (files smaller than that will be inlined)\n", argv[0], MAX_INLINE_SIZE);
-		return -1;
-	}
+	if(argc == 0)
+		return usage(argv[0]);
 	argv += optind;
 
-	if (keyfile) {
+	if (keyfile)
 		puts(keyfile);
-	}
 
-	for(i = 0; i < argc; i++) {
-		process_database(argv[i]);
-	}
+	while(argc--)
+		process_database(*argv++);
 
 	MEMDBG_PROGRAM_EXIT_CHECKS(stderr);
 	return 0;
