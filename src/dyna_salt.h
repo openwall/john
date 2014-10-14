@@ -44,8 +44,8 @@ typedef struct dyna_salt_john_core_t {
 	dyna_salt dyna_salt;
 } dyna_salt_john_core;
 
-// call with SALT_CMP_SIZE(struct, member, extra_bytes)
-#define SALT_CMP_SIZE(a,b,c) (sizeof(a)-offsetof(a,b)+c-1)
+// call with SALT_CMP_SIZE(struct, first comp. member, blob member, extra_bytes)
+#define SALT_CMP_SIZE(a,b,c,d) (offsetof(a,c)-offsetof(a,b)+d)
 // call with SALT_CMP_OFF(struct, member)
 #define SALT_CMP_OFF(a,b) (offsetof(a,b))
 

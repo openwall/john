@@ -60,7 +60,19 @@ john_register_one(&fmt_opencl_rar);
 #include "arch.h"
 #include "sha.h"
 
-#undef MEM_FREE
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
+#if _MSC_VER || __MINGW32__ || __MINGW64__ || __CYGWIN__ || HAVE_WINDOWS_H
+#include "win32_memmap.h"
+#ifndef __CYGWIN__
+#include "mmap-windows.c"
+#elif defined HAVE_MMAP
+#include <sys/mman.h>
+#endif
+#elif defined(HAVE_MMAP)
+#include <sys/mman.h>
+#endif
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -137,7 +149,7 @@ static unsigned char *aes_iv;
 typedef struct {
 	dyna_salt dsalt; /* must be first. allows dyna_salt to work */
 	/* place all items we are NOT going to use for salt comparison, first */
-
+	unsigned char *blob;
 	/* data from this point on, is part of the salt for compare reasons */
 	unsigned char salt[8];
 	int type;	/* 0 = -hp, 1 = -p */
@@ -464,7 +476,6 @@ static void set_key(char *key, int index)
 static void *get_salt(char *ciphertext)
 {
 	unsigned int i, type, ex_len;
-	size_t count;
 	static unsigned char *ptr;
 	/* extract data from "salt" */
 	char *encoded_salt;
@@ -472,6 +483,7 @@ static void *get_salt(char *ciphertext)
 	char *keep_ptr = saltcopy;
 	rarfile *psalt;
 	unsigned char tmp_salt[8];
+	int inlined = 1;
 
 	if (!ptr) ptr = mem_alloc_tiny(sizeof(rarfile*),sizeof(rarfile*));
 	saltcopy += 7;		/* skip over "$RAR3$*" */
@@ -487,9 +499,9 @@ static void *get_salt(char *ciphertext)
 		memcpy(psalt->salt, tmp_salt, 8);
 		for (i = 0; i < 16; i++)
 			psalt->raw_data[i] = atoi16[ARCH_INDEX(encoded_ct[i * 2])] * 16 + atoi16[ARCH_INDEX(encoded_ct[i * 2 + 1])];
+		psalt->blob = psalt->raw_data;
 	} else {
 		char *p = strtok(NULL, "*");
-		int inlined;
 		char crc_c[4];
 		unsigned long long pack_size;
 		unsigned long long unp_size;
@@ -503,7 +515,11 @@ static void *get_salt(char *ciphertext)
 
 		/* load ciphertext. We allocate and load all files
 		   here, and they are freed when password found. */
+#if HAVE_MMAP
+		psalt = mem_calloc(sizeof(*psalt) + (inlined ? ex_len : 0));
+#else
 		psalt = mem_calloc(sizeof(*psalt)+ex_len);
+#endif
 		psalt->type = type;
 		memcpy(psalt->salt, tmp_salt, 8);
 		psalt->pack_size = pack_size;
@@ -515,10 +531,33 @@ static void *get_salt(char *ciphertext)
 			p = strtok(NULL, "*");
 			for (i = 0; i < psalt->pack_size; i++)
 				*d++ = atoi16[ARCH_INDEX(p[i * 2])] * 16 + atoi16[ARCH_INDEX(p[i * 2 + 1])];
+			psalt->blob = psalt->raw_data;
 		} else {
 			FILE *fp;
 			char *archive_name = strtok(NULL, "*");
 			long pos = atol(strtok(NULL, "*"));
+#if HAVE_MMAP
+			if (!(fp = fopen(archive_name, "rb"))) {
+				fprintf(stderr, "! %s: %s\n", archive_name,
+				        strerror(errno));
+				error();
+			}
+#ifdef DEBUG
+			fprintf(stderr, "mmap() len %llu offset 0\n",
+			        pos + psalt->pack_size);
+#endif
+			psalt->blob = mmap(NULL, pos + psalt->pack_size,
+			                   PROT_READ, MAP_SHARED,
+			                   fileno(fp), 0);
+			if (psalt->blob == MAP_FAILED) {
+				fprintf(stderr, "Error loading file from "
+				        "archive '%s'. Archive possibly "
+				        "damaged.\n", archive_name);
+				error();
+			}
+			psalt->blob += pos;
+#else
+			size_t count;
 
 			if (!(fp = fopen(archive_name, "rb"))) {
 				fprintf(stderr, "! %s: %s\n", archive_name, strerror(errno));
@@ -528,8 +567,10 @@ static void *get_salt(char *ciphertext)
 			count = fread(psalt->raw_data, 1, psalt->pack_size, fp);
 			if (count != psalt->pack_size) {
 				fprintf(stderr, "Error loading file from archive '%s', expected %llu bytes, got %zu. Archive possibly damaged.\n", archive_name, psalt->pack_size, count);
-				exit(0);
+				error();
 			}
+			psalt->blob = psalt->raw_data;
+#endif
 			fclose(fp);
 		}
 		p = strtok(NULL, "*");
@@ -542,9 +583,13 @@ static void *get_salt(char *ciphertext)
 #endif
 	}
 	MEM_FREE(keep_ptr);
+#if HAVE_MMAP
+	psalt->dsalt.salt_alloc_needs_free = inlined;
+#else
 	psalt->dsalt.salt_alloc_needs_free = 1;
+#endif
 	psalt->dsalt.salt_cmp_offset = SALT_CMP_OFF(rarfile, salt);
-	psalt->dsalt.salt_cmp_size = SALT_CMP_SIZE(rarfile, salt, ex_len);
+	psalt->dsalt.salt_cmp_size = SALT_CMP_SIZE(rarfile, salt, raw_data, 0);
 	memcpy(ptr, &psalt, sizeof(rarfile*));
 	return (void*)ptr;
 }
@@ -877,13 +922,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		EVP_DecryptInit_ex(&aes_ctx, EVP_aes_128_cbc(), NULL, &aes_key[i16], &aes_iv[i16]);
 		EVP_CIPHER_CTX_set_padding(&aes_ctx, 0);
 
-		/* AES decrypt, uses aes_iv, aes_key and raw_data */
+		/* AES decrypt, uses aes_iv, aes_key and blob */
 		if (cur_file->type == 0) {	/* rar-hp mode */
 			unsigned char plain[16];
 
 			outlen = 0;
 
-			EVP_DecryptUpdate(&aes_ctx, plain, &outlen, cur_file->raw_data, inlen);
+			EVP_DecryptUpdate(&aes_ctx, plain, &outlen, cur_file->blob, inlen);
 			EVP_DecryptFinal_ex(&aes_ctx, &plain[outlen], &outlen);
 
 			cracked[index] = !memcmp(plain, "\xc4\x3d\x7b\x00\x40\x07\x00", 7);
@@ -895,7 +940,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				unsigned char crc_out[4];
 				unsigned char plain[0x8010];
 				unsigned long long size = cur_file->unp_size;
-				unsigned char *cipher = cur_file->raw_data;
+				unsigned char *cipher = cur_file->blob;
 
 				/* Use full decryption with CRC check.
 				   Compute CRC of the decompressed plaintext */
@@ -927,7 +972,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 				/* Decrypt just one block for early rejection */
 				outlen = 0;
-				EVP_DecryptUpdate(&aes_ctx, plain, &outlen, cur_file->raw_data, 16);
+				EVP_DecryptUpdate(&aes_ctx, plain, &outlen, cur_file->blob, 16);
 				EVP_DecryptFinal_ex(&aes_ctx, &plain[outlen], &outlen);
 
 #if 1
@@ -959,7 +1004,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				unpack_t->ctx = &aes_ctx;
 				unpack_t->key = &aes_key[i16];
 
-				if (rar_unpack29(cur_file->raw_data, solid, unpack_t))
+				if (rar_unpack29(cur_file->blob, solid, unpack_t))
 					cracked[index] = !memcmp(&unpack_t->unp_crc, &cur_file->crc.c, 4);
 bailOut:;
 			}
