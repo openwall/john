@@ -390,7 +390,7 @@ static void* get_binary(char *ciphertext)
 
 	p = strrchr(ciphertext, '$') + 1;
 
-	*out = (unsigned int)strtol(p, NULL, 16);
+	*out = (unsigned int)strtoul(p, NULL, 16);
 	return out;
 }
 
