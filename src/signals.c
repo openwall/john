@@ -256,7 +256,9 @@ static void signal_children(int signum)
 
 static void sig_install_timer(void);
 #ifndef BENCH_BUILD
+#ifdef SIGUSR2
 static void sig_handle_reload(int signum);
+#endif
 #endif
 
 static void sig_handle_timer(int signum)
@@ -443,6 +445,7 @@ static void sig_handle_status(int signum)
 }
 
 #ifndef BENCH_BUILD
+#ifdef SIGUSR2
 static void sig_handle_reload(int signum)
 {
 #if OS_FORK && !defined(BENCH_BUILD)
@@ -459,6 +462,7 @@ static void sig_handle_reload(int signum)
 	   in sig_handle_timer() */
 	signal(signum, SIG_IGN);
 }
+#endif
 #endif
 
 static void sig_done(void);
