@@ -106,7 +106,7 @@ static cl_kernel ntlmv2_nthash;
 #include "memdbg.h"
 
 static const char * warn[] = {
-	"xfer: ",  "xfer: ",  ", init: ",  ", crypt: ",  ", xfer: "
+	"xfer: ",  ", xfer: ",  ", init: ",  ", crypt: ",  ", xfer: "
 };
 
 /* ------- Helper functions ------- */
