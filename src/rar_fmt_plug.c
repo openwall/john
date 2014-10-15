@@ -594,7 +594,9 @@ static MAYBE_INLINE int check_huffman(unsigned char *next) {
 	unsigned int ncount[4];
 	unsigned char *count = (unsigned char*)ncount;
 	unsigned char bit_length[20];
+#ifdef DEBUG
 	unsigned char *was = next;
+#endif
 
 #if ARCH_LITTLE_ENDIAN && ARCH_ALLOWS_UNALIGNED
 	hold = JOHNSWAP(*(unsigned int*)next);
@@ -631,11 +633,13 @@ static MAYBE_INLINE int check_huffman(unsigned char *next) {
 		}
 	}
 
+#ifdef DEBUG
 	if (next - was > 16) {
 		fprintf(stderr, "*** (possible) BUG: check_huffman() needed %u bytes, we only have 16 (bits=%d, hold=0x%08x)\n", (int)(next - was), bits, hold);
 		dump_stuff_msg("complete buffer", was, 16);
 		error();
 	}
+#endif
 
 	/* Count the number of codes for each code length */
 	memset(count, 0, 16);
