@@ -263,12 +263,7 @@ static void set_key(char *key, int index)
 	int plen;
 	UTF16 buf[PLAINTEXT_LENGTH + 1];
 
-	/*
-	 * UTF-16LE encode the password, encoding aware
-	 *
-	 * We may get up to 125 octets of 8-bit input and that will
-	 * be converted to between 41 and 125 characters of UTF-16
-	 */
+	/* UTF-16LE encode the password, encoding aware */
 	plen = enc_to_utf16(buf, PLAINTEXT_LENGTH, (UTF8*) key, strlen(key));
 
 	if (plen < 0)
@@ -500,8 +495,6 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		}
 		if ((plen = atoll(ptr)) < 16)
 			goto error;
-		//if (plen >= 9223372036854775807)	// FIXME: atoll undefined behavior
-		//	goto error;			// checked strlen(ptr) instead
 		if (!(ptr = strtok(NULL, "*"))) /* unp_size */
 			goto error;
 		if (strlen(ptr) > 12) {
@@ -510,8 +503,6 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		}
 		if ((ulen = atoll(ptr)) < 1)
 			goto error;
-		//if(ulen >= 9223372036854775807)	// FIXME: atoll undefined behavior
-		//	goto error;			// checked strlen(ptr) instead
 		if (!(ptr = strtok(NULL, "*"))) /* inlined */
 			goto error;
 		if (hexlen(ptr) != 1)

@@ -43,9 +43,9 @@
 #ifdef HAVE_OPENCL
 
 #if FMT_EXTERNS_H
-extern struct fmt_main fmt_opencl_rar;
+extern struct fmt_main fmt_ocl_rar;
 #elif FMT_REGISTERS_H
-john_register_one(&fmt_opencl_rar);
+john_register_one(&fmt_ocl_rar);
 #else
 
 #define STEP			0
@@ -257,7 +257,7 @@ static struct fmt_tests gpu_tests[] = {
 };
 
 #if defined (_OPENMP)
-static void lock_callback(int mode, int type, char *file, int line)
+static void lock_callback(int mode, int type, const char *file, int line)
 {
 	(void)file;
 	(void)line;
@@ -269,9 +269,7 @@ static void lock_callback(int mode, int type, char *file, int line)
 
 static unsigned long thread_id(void)
 {
-	unsigned long ret;
-	ret = (unsigned long) pthread_self();
-	return (ret);
+	return omp_get_thread_num();
 }
 
 static void init_locks(void)
@@ -280,8 +278,8 @@ static void init_locks(void)
 	lockarray = (pthread_mutex_t*) OPENSSL_malloc(CRYPTO_num_locks() * sizeof(pthread_mutex_t));
 	for (i = 0; i < CRYPTO_num_locks(); i++)
 		pthread_mutex_init(&(lockarray[i]), NULL);
-	CRYPTO_set_id_callback((unsigned long (*)()) thread_id);
-	CRYPTO_set_locking_callback((void (*)()) lock_callback);
+	CRYPTO_set_id_callback(thread_id);
+	CRYPTO_set_locking_callback(lock_callback);
 }
 #endif	/* _OPENMP */
 
@@ -713,10 +711,18 @@ static int valid(char *ciphertext, struct fmt_main *self)
 			goto error;
 		if (!(ptr = strtok(NULL, "*"))) /* pack_size */
 			goto error;
+		if (strlen(ptr) > 12) { // pack_size > 1 TB? Really?
+			fprintf(stderr, "pack_size > 1TB not supported (%s)\n", FORMAT_NAME);
+			goto error;
+		}
 		if ((plen = atoll(ptr)) < 16)
 			goto error;
 		if (!(ptr = strtok(NULL, "*"))) /* unp_size */
 			goto error;
+		if (strlen(ptr) > 12) {
+			fprintf(stderr, "unp_size > 1TB not supported (%s)\n", FORMAT_NAME);
+			goto error;
+		}
 		if ((ulen = atoll(ptr)) < 1)
 			goto error;
 		if (!(ptr = strtok(NULL, "*"))) /* inlined */
@@ -805,7 +811,13 @@ static MAYBE_INLINE int check_huffman(unsigned char *next) {
 	unsigned char *was = next;
 #endif
 
+#if ARCH_LITTLE_ENDIAN && ARCH_ALLOWS_UNALIGNED
 	hold = JOHNSWAP(*(unsigned int*)next);
+#else
+	hold = next[3] + (((unsigned int)next[2]) << 8) +
+		(((unsigned int)next[1]) << 16) +
+		(((unsigned int)next[0]) << 24);
+#endif
 	next += 4;	// we already have the first 32 bits
 	hold <<= 2;	// we already processed 2 bits, PPM and keepOldTable
 	bits = 32 - 2;
@@ -1038,7 +1050,7 @@ static int cmp_exact(char *source, int index)
 	return 1;
 }
 
-struct fmt_main fmt_opencl_rar = {
+struct fmt_main fmt_ocl_rar = {
 {
 		FORMAT_LABEL,
 		FORMAT_NAME,
