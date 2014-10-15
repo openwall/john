@@ -158,7 +158,7 @@ JOHN_OBJS = \
 	mozilla2john.o \
 	$(PLUGFORMATS_OBJS) \
 	plugin.o \
-	dummy.o \
+	dyna_salt.o dummy.o \
 	gost.o \
 	common-gpu.o \
 	batch.o bench.o charset.o common.o compiler.o config.o cracker.o \
@@ -206,7 +206,7 @@ BENCH_OBJS = \
 	DES_bsg.o $(BENCH_DES_BS_OBJS_DEPEND) \
 	$(BENCH_MD5_OBJS_DEPEND) \
 	$(BENCH_BF_OBJS_DEPEND) \
-	bench-t.o best.o common.o config_g.o formats_g.o jumbo.o math.o \
+	bench-t.o best.o common.o config_g.o formats_g.o jumbo.o math.o dyna_salt.o \
 	memory.o miscnl.o params.o path.o signals_g.o tty.o memdbg.o
 
 PARA_BENCH_32_OBJS = \
