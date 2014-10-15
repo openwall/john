@@ -15,3 +15,8 @@ aesni.o: iaes_asm_interface.h  iaesni.h  intel_aes.c
 all: iaesx.o rdtsc.o aesni.o
 
 default: all
+
+clean:
+
+distclean: clean
+	$(RM) Makefile

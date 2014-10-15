@@ -12,3 +12,8 @@ ossl_aes.o: ossl_aes.c ossl_aes.h
 
 default: ossl_aes.o
 all: ossl_aes.o
+
+clean:
+
+distclean: clean
+	$(RM) Makefile
