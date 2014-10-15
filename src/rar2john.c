@@ -62,6 +62,7 @@
 #include "crc32.h"
 #include "unicode.h"
 #include "stdint.h"
+#include "jumbo.h"
 #include "memdbg.h"
 
 #define CHUNK_SIZE 4096
@@ -186,12 +187,12 @@ static void process_file(const char *archive_name)
 				count = fread(buf, 1, CHUNK_SIZE, fp);
 				if( (pos = memmem(buf, count, "Rar!", 4))) {
 					diff = count - (pos - buf);
-					fseek(fp, - diff, SEEK_CUR);
-					fseek(fp, 7, SEEK_CUR);
+					jtr_fseek64(fp, - diff, SEEK_CUR);
+					jtr_fseek64(fp, 7, SEEK_CUR);
 					found = 1;
 					break;
 				}
-				fseek(fp, -3, SEEK_CUR);
+				jtr_fseek64(fp, -3, SEEK_CUR);
 			}
 			if (!found) {
 				fprintf(stderr, "! %s: Not a RAR file\n", archive_name);
@@ -250,7 +251,7 @@ next_file_header:
 
 		fprintf(stderr, "! -hp mode entry found in %s\n", base_aname);
 		printf("%s:$RAR3$*%d*", base_aname, type);
-		fseek(fp, -24, SEEK_END);
+		jtr_fseek64(fp, -24, SEEK_END);
 		count = fread(buf, 24, 1, fp);
 		assert(count == 1);
 		for (i = 0; i < 8; i++) { /* salt */
@@ -375,13 +376,13 @@ next_file_header:
 		 */
 		if (file_header_head_flags & 0x10) {
 			fprintf(stderr, "! Solid, can't handle (currently)\n");
-			fseek(fp, file_header_pack_size, SEEK_CUR);
+			jtr_fseek64(fp, file_header_pack_size, SEEK_CUR);
 			goto next_file_header;
 		}
 
 		if ((file_header_head_flags & 0xe0)>>5 == 7) {
 			fprintf(stderr, "! Is a directory, skipping\n");
-			fseek(fp, file_header_pack_size, SEEK_CUR);
+			jtr_fseek64(fp, file_header_pack_size, SEEK_CUR);
 			goto next_file_header;
 		}
 #ifdef DEBUG
@@ -391,13 +392,13 @@ next_file_header:
 		/* Check if encryption is being used */
 		if (!(file_header_head_flags & 0x04)) {
 			fprintf(stderr, "! not encrypted, skipping\n");
-			fseek(fp, file_header_pack_size, SEEK_CUR);
+			jtr_fseek64(fp, file_header_pack_size, SEEK_CUR);
 			goto next_file_header;
 		}
 
 		/* Prefer shorter files, except zero-byte ones */
 		if (bestsize && (bestsize < file_header_unp_size)) {
-			fseek(fp, file_header_pack_size, SEEK_CUR);
+			jtr_fseek64(fp, file_header_pack_size, SEEK_CUR);
 			goto next_file_header;
 		}
 
@@ -458,7 +459,7 @@ next_file_header:
 			best_len += sprintf(p, "*%c%c:%d::", itoa16[file_header_block[25]>>4], itoa16[file_header_block[25]&0xf], type);
 		} else {
 			best_len += sprintf(&best[best_len], "0*%s*%ld*%c%c:%d::", archive_name, pos, itoa16[file_header_block[25]>>4], itoa16[file_header_block[25]&0xf], type);
-			fseek(fp, file_header_pack_size, SEEK_CUR);
+			jtr_fseek64(fp, file_header_pack_size, SEEK_CUR);
 		}
 		/* Keep looking for better candidates */
 		goto next_file_header;
