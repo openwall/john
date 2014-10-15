@@ -94,6 +94,7 @@ static pthread_mutex_t *lockarray;
 #include "unrar.h"
 #include "common-opencl.h"
 #include "config.h"
+#include "jumbo.h"
 
 #define FORMAT_LABEL		"rar-opencl"
 #define FORMAT_NAME		"RAR3"
@@ -533,7 +534,7 @@ static void *get_salt(char *ciphertext)
 		} else {
 			FILE *fp;
 			char *archive_name = strtok(NULL, "*");
-			long pos = atol(strtok(NULL, "*"));
+			long long pos = atoll(strtok(NULL, "*"));
 #if HAVE_MMAP
 			if (!(fp = fopen(archive_name, "rb"))) {
 				fprintf(stderr, "! %s: %s\n", archive_name,
@@ -561,7 +562,7 @@ static void *get_salt(char *ciphertext)
 				fprintf(stderr, "! %s: %s\n", archive_name, strerror(errno));
 				error();
 			}
-			fseek(fp, pos, SEEK_SET);
+			jtr_fseek64(fp, pos, SEEK_SET);
 			count = fread(psalt->raw_data, 1, psalt->pack_size, fp);
 			if (count != psalt->pack_size) {
 				fprintf(stderr, "Error loading file from archive '%s', expected %llu bytes, got %zu. Archive possibly damaged.\n", archive_name, psalt->pack_size, count);
