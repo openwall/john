@@ -69,9 +69,12 @@
 // at this point, we have NO easy workaround for a seek64 function.
 // we can code things for specific environments, OR simply fall
 // back to using fseek (and warn the user)
-#ifdef __CYGWIN32__
+#if defined (__CYGWIN32__) && !defined (__CYGWIN64__)
    extern  int fseeko64 (FILE* stream, int64_t offset, int whence);
 #  define jtr_fseek64 fseeko64
+#elif defined (__CYGWIN64__)
+   extern  int fseeko (FILE* stream, int64_t offset, int whence);
+#  define jtr_fseek64 fseeko
 #else
 #  if defined(__GNUC__) && defined (AC_BUILT)
 #    warning Using 32-bit fseek(). Files larger than 2GB will be handled unreliably
@@ -108,9 +111,12 @@
 // at this point, we have NO easy workaround for a tell64 function.
 // we can code things for specific environments, OR simply fall
 // back to using ftell (and warn the user)
-#ifdef __CYGWIN32__
+#if defined (__CYGWIN32__) && !defined (__CYGWIN64__)
    extern  int64_t ftello64 (FILE* stream);
 #  define jtr_ftell64 ftello64
+#elif defined (__CYGWIN64__)
+   extern  int64_t ftello (FILE* stream);
+#  define jtr_ftell64 ftello
 #else
 #  if defined(__GNUC__) && defined (AC_BUILT)
 #    warning Using 32-bit ftell(). Files larger than 2GB will be handled unreliably
