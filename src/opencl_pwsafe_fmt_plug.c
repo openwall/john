@@ -253,8 +253,11 @@ static void *get_salt(char *ciphertext)
 	char *keeptr = ctcopy;
 	char *p;
 	int i;
-	pwsafe_salt *salt_struct =
-	    mem_alloc_tiny(sizeof(pwsafe_salt), MEM_ALIGN_WORD);
+	static pwsafe_salt *salt_struct;
+
+	if (!salt_struct)
+		salt_struct = mem_calloc_tiny(sizeof(pwsafe_salt),
+		                              MEM_ALIGN_WORD);
 	ctcopy += 9;		/* skip over "$pwsafe$*" */
 	p = strtok(ctcopy, "*");
 	salt_struct->version = atoi(p);

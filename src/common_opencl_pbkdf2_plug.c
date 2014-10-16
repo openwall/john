@@ -124,6 +124,7 @@ static void find_best_workgroup(int jtrUniqDevNo, unsigned int gpu_perf) {
 
 	MEM_FREE(dcc_hash_host);
 	MEM_FREE(dcc2_hash_host);
+	MEM_FREE(hmac_sha1_out);
 	HANDLE_CLERROR(clReleaseCommandQueue(cmdq), "Release Command Queue:Failed");
 }
 
@@ -171,6 +172,7 @@ static unsigned int quick_bechmark(int jtrUniqDevNo) {
 
 	MEM_FREE(dcc_hash_host);
 	MEM_FREE(dcc2_hash_host);
+	MEM_FREE(hmac_sha1_out);
 	HANDLE_CLERROR(clReleaseCommandQueue(cmdq), "Release Command Queue:Failed");
 }
 

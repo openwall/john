@@ -161,12 +161,8 @@ static void init(struct fmt_main *self)
 {
 	init_ocl(self);
 
-	crypt_key = mem_calloc_tiny(
-	    BINARY_SIZE * self->params.max_keys_per_crypt,
-	    MEM_ALIGN_CACHE);
-	saved_key = mem_calloc_tiny(
-	    KEY_SIZE_IN_BYTES * self->params.max_keys_per_crypt,
-	    MEM_ALIGN_CACHE);
+	crypt_key = mem_calloc(BINARY_SIZE * self->params.max_keys_per_crypt);
+	saved_key = mem_calloc(KEY_SIZE_IN_BYTES * self->params.max_keys_per_crypt);
 }
 
 static void done(void) {
@@ -174,11 +170,15 @@ static void done(void) {
 
 	HANDLE_CLERROR(clReleaseMemObject(cl_tx_keys), err_msg);
 	HANDLE_CLERROR(clReleaseMemObject(cl_tx_binary), err_msg);
+	HANDLE_CLERROR(clReleaseMemObject(cl_magic_table), err_msg);
 
 	HANDLE_CLERROR(clReleaseKernel(cl_lotus5_kernel),
 		       "Release kernel");
 	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]),
 		       "Release Program");
+
+	MEM_FREE(saved_key);
+	MEM_FREE(crypt_key);
 }
 
 /*Utility function to convert hex to bin */

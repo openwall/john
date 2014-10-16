@@ -221,8 +221,11 @@ static void *get_salt(char *ciphertext)
 	char *keeptr = ctcopy;
 	int i;
 	char *p;
+
+	if (!salt_struct)
+		salt_struct = mem_calloc_tiny(sizeof(struct custom_salt),
+		                             MEM_ALIGN_WORD);
 	ctcopy += 11;	/* skip over "$keychain$*" */
-	salt_struct = mem_alloc_tiny(sizeof(struct custom_salt), MEM_ALIGN_WORD);
 	p = strtok(ctcopy, "*");
 	for (i = 0; i < SALTLEN; i++)
 		salt_struct->salt[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16

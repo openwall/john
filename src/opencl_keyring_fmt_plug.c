@@ -251,8 +251,10 @@ static void *get_salt(char *ciphertext)
 
 	memset(&cs, 0, sizeof(cs));
 
+	if (!cur_salt)
+		cur_salt = mem_alloc_tiny(sizeof(struct custom_salt),
+		                          MEM_ALIGN_WORD);
 	ctcopy += 9;	/* skip over "$keyring$" */
-	cur_salt = mem_alloc_tiny(sizeof(struct custom_salt), MEM_ALIGN_WORD);
 	p = strtok(ctcopy, "*");
 	for (i = 0; i < SALTLEN; i++)
 		cs.salt[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16

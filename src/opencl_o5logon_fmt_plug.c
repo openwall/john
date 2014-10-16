@@ -178,6 +178,7 @@ static void release_clobj(void){
         HANDLE_CLERROR(clReleaseMemObject(buffer_idx), "Error Releasing buffer_idx");
         HANDLE_CLERROR(clReleaseMemObject(buffer_out), "Error Releasing buffer_out");
 	HANDLE_CLERROR(clReleaseMemObject(salt_buffer), "Error Releasing salt_buffer");
+        HANDLE_CLERROR(clReleaseMemObject(pinned_saved_idx), "Error Releasing pinned_saved_idx");
         HANDLE_CLERROR(clReleaseMemObject(pinned_saved_keys), "Error Releasing pinned_saved_keys");
         HANDLE_CLERROR(clReleaseMemObject(pinned_sha1_hashes), "Error Releasing pinned_sha1_hashes");
 

@@ -446,6 +446,8 @@ static void done(void)
 	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
 	HANDLE_CLERROR(clReleaseKernel(RarFinal), "Release kernel");
 	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
+
+	MEM_FREE(unpack_data);
 }
 
 static void clear_keys(void)
@@ -646,7 +648,7 @@ static void init(struct fmt_main *self)
 	if (pers_opts.target_enc == UTF_8)
 		self->params.plaintext_length = MIN(125, 3 * PLAINTEXT_LENGTH);
 
-	unpack_data = mem_calloc_tiny(sizeof(unpack_data_t) * omp_t, MEM_ALIGN_WORD);
+	unpack_data = mem_calloc(sizeof(unpack_data_t) * omp_t);
 
 	/* OpenSSL init */
 	init_aesni();
