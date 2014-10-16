@@ -155,12 +155,6 @@ extern int mozilla2john(int argc, char **argv);
 extern int hccap2john(int argc, char **argv);
 extern int zip2john(int argc, char **argv);
 extern int gpg2john(int argc, char **argv);
-
-#ifndef _MSC_VER
-/*
- * MSC will not compile at all with these. They use libs, headers, and other
- * features (and poor coding) that simply will not build or link under VC.
- */
 extern int ssh2john(int argc, char **argv);
 extern int pfx2john(int argc, char **argv);
 extern int keychain2john(int argc, char **argv);
@@ -174,7 +168,6 @@ extern int dmg2john(int argc, char **argv);
 extern int putty2john(int argc, char **argv);
 extern int keystore2john(int argc, char **argv);
 extern int truecrypt_volume2john(int argc, char **argv);
-#endif
 
 int john_main_process = 1;
 #if OS_FORK
@@ -1501,7 +1494,6 @@ int main(int argc, char **argv)
 		return unique(argc, argv);
 	}
 
-#ifndef _MSC_VER
 	if (!strcmp(name, "ssh2john")) {
 		CPU_detect_or_fallback(argv, 0);
 		return ssh2john(argc, argv);
@@ -1565,12 +1557,11 @@ int main(int argc, char **argv)
 		CPU_detect_or_fallback(argv, 0);
 		return gpg2john(argc, argv);
 	}
-#if !defined (__MINGW32__)
+#if !defined (_MSC_VER) && !defined (__MINGW32__)
 	if (!strcmp(name, "dmg2john")) {
 		CPU_detect_or_fallback(argv, 0);
 		return dmg2john(argc, argv);
 	}
-#endif
 #endif
 
 #if HAVE_NSS
@@ -1580,7 +1571,6 @@ int main(int argc, char **argv)
 	}
 #endif
 
-#ifndef _MSC_VER
 	if (!strcmp(name, "zip2john")) {
 		CPU_detect_or_fallback(argv, 0);
 		return zip2john(argc, argv);
@@ -1589,7 +1579,6 @@ int main(int argc, char **argv)
 		CPU_detect_or_fallback(argv, 0);
 		return hccap2john(argc, argv);
 	}
-#endif
 
 #if HAVE_MPI
 	mpi_setup(argc, argv);

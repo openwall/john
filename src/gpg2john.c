@@ -33,7 +33,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <libgen.h>
+//#include <libgen.h>
 #include <ctype.h>
 #include <stdarg.h>
 
@@ -95,6 +95,10 @@ private bz_stream bz;
 # else
 #  include <time.h>
 # endif
+#endif
+
+#ifdef _MSC_VER
+#define HAVE_TZNAME 1
 #endif
 
 #if HAVE_STRUCT_TM_TM_ZONE

@@ -30,7 +30,9 @@
 #include <string.h>
 #include <stdlib.h>
 #include "stdint.h"
-#include "getopt.h"
+#ifdef _MSC_VER
+#include "missing_getopt.h"
+#endif
 #include <errno.h>
 #include <assert.h>
 // needs to be above sys/types.h and sys/stat.h for mingw, if -std=c99 used.
@@ -38,7 +40,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #if  (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
-#include <unistd.h>
+#include <unistd.h>	// getopt defined here for unix
 #endif
 #include "params.h"
 #include "memory.h"
