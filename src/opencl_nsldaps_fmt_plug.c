@@ -28,7 +28,6 @@ john_register_one(&fmt_opencl_NSLDAPS);
 #include "sha.h"
 #include "base64.h"
 #include "common-opencl.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL			"ssha-opencl"
 #define FORMAT_NAME			"Netscape LDAP {SSHA}"
@@ -49,8 +48,6 @@ john_register_one(&fmt_opencl_NSLDAPS);
 
 #define MIN_KEYS_PER_CRYPT              1
 #define MAX_KEYS_PER_CRYPT		1
-
-#define OCL_CONFIG			"ssha"
 
 #ifndef uint32_t
 #define uint32_t unsigned int
@@ -97,6 +94,40 @@ static struct fmt_tests tests[] = {
 #endif
 	{NULL}
 };
+
+#define OCL_CONFIG             "ssha"
+#define STEP                   0
+#define SEED                   1024
+
+static int have_full_hashes;
+
+//This file contains auto-tuning routine(s). It has to be included after formats definitions.
+#include "opencl_autotune.h"
+#include "memdbg.h"
+
+static const char * warn[] = {
+	"xfer: "  ,  ", crypt: "    ,  ", result xfer: "
+};
+
+/* ------- Helper functions ------- */
+static size_t get_task_max_work_group_size()
+{
+	return common_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
+}
+
+static size_t get_task_max_size()
+{
+	return 0;
+}
+
+static size_t get_default_workgroup()
+{
+	if (cpu(device_info[gpu_id]))
+		return get_platform_vendor_id(platform_id) == DEV_INTEL ?
+			8 : 1;
+	else
+		return 64;
+}
 
 static void create_clobj(size_t kpc, struct fmt_main *self)
 {
@@ -148,24 +179,25 @@ static void create_clobj(size_t kpc, struct fmt_main *self)
 }
 
 static void release_clobj(void){
-    cl_int ret_code;
+    HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_partial_hashes,
+                                           outbuffer, 0,NULL,NULL),
+                   "Error Unmapping outbuffer");
+    HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_saved_keys,
+                                           saved_plain, 0, NULL, NULL),
+                   "Error Unmapping saved_plain");
+    HANDLE_CLERROR(clFinish(queue[gpu_id]), "Error releasing memory mappings");
 
-    ret_code = clEnqueueUnmapMemObject(queue[gpu_id], pinned_partial_hashes, outbuffer, 0,NULL,NULL);
-    HANDLE_CLERROR(ret_code, "Error Unmapping outbuffer");
-    ret_code = clEnqueueUnmapMemObject(queue[gpu_id], pinned_saved_keys, saved_plain, 0, NULL, NULL);
-    HANDLE_CLERROR(ret_code, "Error Unmapping saved_plain");
-    HANDLE_CLERROR(clFinish(queue[gpu_id]),
-                   "Error releasing memory mappings");
-    ret_code = clReleaseMemObject(buffer_keys);
-    HANDLE_CLERROR(ret_code, "Error Releasing buffer_keys");
-    ret_code = clReleaseMemObject(buffer_out);
-    HANDLE_CLERROR(ret_code, "Error Releasing buffer_out");
-    ret_code = clReleaseMemObject(mysalt);
-    HANDLE_CLERROR(ret_code, "Error Releasing mysalt");
-    ret_code = clReleaseMemObject(pinned_saved_keys);
-    HANDLE_CLERROR(ret_code, "Error Releasing pinned_saved_keys");
-    ret_code = clReleaseMemObject(pinned_partial_hashes);
-    HANDLE_CLERROR(ret_code, "Error Releasing pinned_partial_hashes");
+    HANDLE_CLERROR(clReleaseMemObject(buffer_keys),
+                   "Error Releasing buffer_keys");
+    HANDLE_CLERROR(clReleaseMemObject(buffer_out),
+                   "Error Releasing buffer_out");
+    HANDLE_CLERROR(clReleaseMemObject(mysalt),
+                   "Error Releasing mysalt");
+    HANDLE_CLERROR(clReleaseMemObject(pinned_saved_keys),
+                   "Error Releasing pinned_saved_keys");
+    HANDLE_CLERROR(clReleaseMemObject(pinned_partial_hashes),
+                   "Error Releasing pinned_partial_hashes");
+
     MEM_FREE(outbuffer2);
 }
 
@@ -177,61 +209,8 @@ static void done(void)
 	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
 }
 
-/* this function could be used to calculated the best num
-of keys per crypt for the given format
-*/
-
-static void find_best_gws(struct fmt_main *self)
-{
-    cl_event myEvent;
-    cl_ulong startTime, endTime, tmpTime;
-    int kernelExecTimeNs = INT_MAX;
-    cl_int ret_code;
-    int optimal_kpc=2048;
-    size_t gws, i = 0;
-    cl_uint *tmpbuffer;
-    size_t maxgws = get_max_mem_alloc_size(gpu_id) / PLAINTEXT_LENGTH;
-
-    for(gws = local_work_size << 2; gws < maxgws; gws <<= 1) {
-        create_clobj(gws, self);
-	advance_cursor();
-	queue_prof = clCreateCommandQueue( context[gpu_id], devices[gpu_id], CL_QUEUE_PROFILING_ENABLE, &ret_code);
-	for (i=0; i < gws; i++){
-		memcpy(&(saved_plain[i*PLAINTEXT_LENGTH]),"abacaeaf",PLAINTEXT_LENGTH);
-	}
-	clEnqueueWriteBuffer(queue_prof, mysalt, CL_TRUE, 0, SALT_SIZE, saved_salt, 0, NULL, NULL);
-	clEnqueueWriteBuffer(queue_prof, buffer_keys, CL_TRUE, 0, PLAINTEXT_LENGTH * gws, saved_plain, 0, NULL, NULL);
-	ret_code = clEnqueueNDRangeKernel( queue_prof, crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &myEvent);
-	if(ret_code != CL_SUCCESS) {
-		// We hit some resource limit so we end here.
-		release_clobj();
-		break;
-	}
-	clFinish(queue_prof);
-	clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime, NULL);
-	clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END  , sizeof(cl_ulong), &endTime  , NULL);
-	tmpTime = endTime-startTime;
-	tmpbuffer = mem_alloc(sizeof(cl_uint) * gws);
-	clEnqueueReadBuffer(queue_prof, buffer_out, CL_TRUE, 0, sizeof(cl_uint) * gws, tmpbuffer, 0, NULL, &myEvent);
-	clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime, NULL);
-	clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END  , sizeof(cl_ulong), &endTime  , NULL);
-	tmpTime = tmpTime + (endTime-startTime);
-	if (options.verbosity > 3)
-		fprintf(stderr, "%10zu %10llu c/s %-.2f us\n", gws, gws * 1000000000ULL / tmpTime, tmpTime / 1000.0);
-	if( ((int)( ((float) (tmpTime) / gws) * 10 )) <= kernelExecTimeNs) {
-		kernelExecTimeNs = ((int) (((float) (tmpTime) / gws) * 10) ) ;
-		optimal_kpc = gws;
-	}
-	MEM_FREE(tmpbuffer);
-	clReleaseCommandQueue(queue_prof);
-	release_clobj();
-    }
-    global_work_size = optimal_kpc;
-}
-
 static void fmt_ssha_init(struct fmt_main *self)
 {
-	cl_ulong maxsize;
 	char build_opts[64];
 
 	snprintf(build_opts, sizeof(build_opts),
@@ -242,36 +221,16 @@ static void fmt_ssha_init(struct fmt_main *self)
 	crypt_kernel = clCreateKernel(program[gpu_id], "sha1_crypt_kernel", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 
-	/* Note: we ask for the kernel's max size, not the device's! */
-	maxsize = get_kernel_max_lws(gpu_id, crypt_kernel);
+	// Initialize openCL tuning (library) for this format.
+	opencl_init_auto_setup(SEED, 1, NULL, warn,
+	                       1, self, create_clobj, release_clobj,
+	                       PLAINTEXT_LENGTH, 0);
 
-	/* Read LWS/GWS prefs from config or environment */
-	opencl_get_user_preferences(OCL_CONFIG);
-
-	if (!local_work_size) {
-		int temp = global_work_size;
-		local_work_size = maxsize;
-		global_work_size = global_work_size ? global_work_size : 4 * maxsize;
-		create_clobj(global_work_size, self);
-		opencl_find_best_workgroup_limit(self, maxsize, gpu_id, crypt_kernel);
-		release_clobj();
-		global_work_size = temp;
-	}
-
-	while (local_work_size > maxsize)
-		local_work_size >>= 1;
-
-	if (!global_work_size)
-		find_best_gws(self);
-
-	if (global_work_size < local_work_size)
-		global_work_size = local_work_size;
-
-	if (options.verbosity > 2)
-		fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
-	create_clobj(global_work_size, self);
+	// Auto tune execution from shared/included code.
+	common_run_auto_tune(self, 1, 0, 100000000);
 
 	self->params.min_keys_per_crypt = local_work_size;
+	self->params.max_keys_per_crypt = global_work_size;
 }
 
 
@@ -392,23 +351,16 @@ static int cmp_exact(char *source, int index){
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
-	cl_int code;
 
 	global_work_size = (count + local_work_size - 1) / local_work_size * local_work_size;
 
-	code = clEnqueueWriteBuffer(queue[gpu_id], buffer_keys, CL_TRUE, 0,
-	    PLAINTEXT_LENGTH * global_work_size, saved_plain, 0, NULL, NULL);
-	HANDLE_CLERROR(code, "failed in clEnqueueWriteBuffer saved_plain");
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_keys, CL_FALSE, 0, PLAINTEXT_LENGTH * global_work_size, saved_plain, 0, NULL, multi_profilingEvent[0]), "failed in clEnqueueWriteBuffer saved_plain");
 
-	code = clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL,
-	    &global_work_size, &local_work_size, 0, NULL, profilingEvent);
-	HANDLE_CLERROR(code, "failed in clEnqueueNDRangeKernel");
-
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, multi_profilingEvent[1]), "failed in clEnqueueNDRangeKernel");
 	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish error");
+
 	// read back partial hashes
-	code = clEnqueueReadBuffer(queue[gpu_id], buffer_out, CL_TRUE, 0,
-	    sizeof(cl_uint) * global_work_size, outbuffer, 0, NULL, NULL);
-	HANDLE_CLERROR(code, "failed in clEnqueueReadBuffer -reading partial hashes");
+	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buffer_out, CL_TRUE, 0, sizeof(cl_uint) * global_work_size, outbuffer, 0, NULL, multi_profilingEvent[2]), "failed in clEnqueueReadBuffer -reading partial hashes");
 	have_full_hashes = 0;
 
 	return count;
