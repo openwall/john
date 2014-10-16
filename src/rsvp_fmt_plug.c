@@ -50,6 +50,7 @@ john_register_one(&fmt_rsvp);
 
 static struct fmt_tests tests[] = {
 	{"$rsvp$1$10010000ff0000ac002404010100000000000001d7e95bfa0000003a00000000000000000000000000000000000c0101c0a8011406000017000c0301c0a8010a020004020008050100007530000c0b01c0a8010a0000000000240c0200000007010000067f00000545fa000046fa000045fa0000000000007fffffff00300d020000000a010000080400000100000001060000014998968008000001000000000a000001000005dc05000000$636d8e6db5351fbc9dad620c5ec16c0b", "password12345"},
+	{"$rsvp$2$10010000ff0000b0002804010100000000000001d7e95bfa0000055d0000000000000000000000000000000000000000000c0101c0a8011406000017000c0301c0a8010a020004020008050100007530000c0b01c0a8010a0000000000240c0200000007010000067f00000545fa000046fa000045fa0000000000007fffffff00300d020000000a010000080400000100000001060000014998968008000001000000000a000001000005dc05000000$ab63f157e601742983b853f13a63bc4d4379a434", "JtR_kicks_ass"},
 	{NULL}
 };
 
@@ -93,8 +94,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!p)
 		return 0;
 	version = atoi(p);
-	// if (version != 1  && version != 2)
-	if (version != 1)
+	if (version != 1  && version != 2)
 		return 0;
 
 	q = strrchr(ciphertext, '$') + 1;
@@ -175,7 +175,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			hmac_md5_init_rfc2104((unsigned char*)saved_key[index], saved_len[index], &ctx);
 			hmac_md5_update(cur_salt->salt, cur_salt->salt_length, &ctx);
 			hmac_md5_final((unsigned char*)crypt_out[index], &ctx);
-		} else if (cur_salt->type == 1) {
+		} else if (cur_salt->type == 2) {
 			hmac_sha1((unsigned char*)saved_key[index],
 					saved_len[index], cur_salt->salt,
 					cur_salt->salt_length, (unsigned
