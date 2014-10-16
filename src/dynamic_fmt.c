@@ -3679,6 +3679,7 @@ void DynamicFunc__set_input_len_16(DYNA_OMP_PARAMS)
 #endif
 	for (; j < til; ++j)
 	{
+		// TODO: this code MAY need buffer cleaned up if we are using md5_go code!!!
 #if MD5_X2
 		if (j&1) {
 			while (total_len_X86[j] < 16)
@@ -3734,6 +3735,7 @@ void DynamicFunc__set_input2_len_16(DYNA_OMP_PARAMS)
 #endif
 	for (; j < til; ++j)
 	{
+		// TODO: this code MAY need buffer cleaned up if we are using md5_go code!!!
 #if MD5_X2
 		if (j&1) {
 			while (total_len2_X86[j] < 16)
