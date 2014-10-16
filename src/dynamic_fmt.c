@@ -5605,6 +5605,8 @@ void DynamicFunc__append_from_last_output2_as_raw(DYNA_OMP_PARAMS)
 			{
 				ARCH_WORD_32 *po = input_buf[idx].w;
 				ARCH_WORD_32 *pi = crypt_key2[idx].w;
+				po += (index&(MMX_COEF-1));
+				pi += (index&(MMX_COEF-1));
 				for (i = 0; i < 4; i++)
 				{
 					*po = *pi;
@@ -5666,6 +5668,8 @@ void DynamicFunc__append2_from_last_output2_as_raw(DYNA_OMP_PARAMS)
 			{
 				ARCH_WORD_32 *po = input_buf2[idx].w;
 				ARCH_WORD_32 *pi = crypt_key2[idx].w;
+				po += (index&(MMX_COEF-1));
+				pi += (index&(MMX_COEF-1));
 				for (i = 0; i < 4; i++)
 				{
 					*po = *pi;
@@ -5726,6 +5730,8 @@ void DynamicFunc__append_from_last_output1_as_raw(DYNA_OMP_PARAMS)
 			{
 				ARCH_WORD_32 *po = input_buf[idx].w;
 				ARCH_WORD_32 *pi = crypt_key[idx].w;
+				po += (index&(MMX_COEF-1));
+				pi += (index&(MMX_COEF-1));
 				for (i = 0; i < 4; i++)
 				{
 					*po = *pi;
@@ -5786,6 +5792,8 @@ void DynamicFunc__append2_from_last_output1_as_raw(DYNA_OMP_PARAMS)
 			{
 				ARCH_WORD_32 *po = input_buf2[idx].w;
 				ARCH_WORD_32 *pi = crypt_key[idx].w;
+				po += (index&(MMX_COEF-1));
+				pi += (index&(MMX_COEF-1));
 				for (i = 0; i < 4; i++)
 				{
 					*po = *pi;
