@@ -584,13 +584,16 @@ static void john_wait(void)
 {
 	int waiting_for = john_child_count;
 
-	if (!database.password_count && !options.reload_at_crack)
-		raise(SIGUSR2);
-
 	log_event("Waiting for %d child%s to terminate",
 	    waiting_for, waiting_for == 1 ? "" : "ren");
 	fprintf(stderr, "Waiting for %d child%s to terminate\n",
 	    waiting_for, waiting_for == 1 ? "" : "ren");
+
+	log_flush();
+
+	/* Tell our friends there is nothing more to crack! */
+	if (!database.password_count && !options.reload_at_crack)
+		raise(SIGUSR2);
 
 /*
  * Although we may block on wait(2), we still have signal handlers and a timer
