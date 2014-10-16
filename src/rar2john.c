@@ -70,6 +70,29 @@
 static int inline_thr = MAX_INLINE_SIZE;
 #define MAX_THR (LINE_BUFFER_SIZE/2 - PATH_BUFFER_SIZE - PLAINTEXT_BUFFER_SIZE*2)
 
+#ifdef _MSC_VER
+static int optind = 0;
+static char *optarg;
+static char getopt(int argc, char **argv, char *type) {
+	// only have to handle 1 arg, -i right now, so this is trivial code.
+	if (strcmp(type, "i:")) {
+		printf ("MSVC only coded to handle -i.  Update the getopt function in rar2john.c\n");
+		return -1;
+	}
+	if (argc > 2 && !strncmp(argv[1], "-i",2)) {
+		if (strlen(argv[1]) > 2) {
+			optind = 1;
+			optarg = &argv[1][2];
+		} else {
+			optind = 2;
+			optarg = argv[2];
+		}
+		return 'i';
+	}
+	return -1;
+}
+#endif
+
 /* Derived from unrar's encname.cpp */
 static void DecodeFileName(unsigned char *Name, unsigned char *EncName,
                            size_t EncSize, UTF16 *NameW, size_t MaxDecSize)
