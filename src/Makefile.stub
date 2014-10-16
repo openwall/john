@@ -1,3 +1,7 @@
+#
+# This is the stub Makefile. If you did run ./configure and have GNU make,
+# you are probably more interested in looking at GNUmakefile.
+#
 generic: default
 
 help: default

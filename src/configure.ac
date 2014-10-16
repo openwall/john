@@ -31,20 +31,12 @@ m4_include([m4/ax_opencl.m4])
 m4_include([m4/ax_pthread.m4])
 m4_include([m4/ax_prog_cc_mpi.m4])
 m4_include([m4/ax_lang_compiler_ms.m4])
+m4_include([m4/ax_check_gnu_make.m4])
 m4_include([m4/jtr_x86_logic.m4])
 m4_include([m4/jtr_generic_logic.m4])
 m4_include([m4/jtr_systems_specific_logic.m4])
 m4_include([m4/jtr_utility_macros.m4])
 m4_include([m4/jtr_local_conf.m4])
-
-# Workaround for .gitignore refusing to ignore Makefile since it is
-# a managed file (the stub). The result of this is a *local* workaround.
-AS_IF([test -d "../.git"],
-  [AC_CHECK_PROG([HAVE_GIT], [git], [yes], [no])]
-  [AS_IF([test "x$HAVE_GIT" = xyes],
-     [git update-index --assume-unchanged Makefile]
-  )]
-)
 
 # Define precious variables. They get included in --help and need no AC_SUBST
 AC_ARG_VAR([CFLAGS_EXTRA], [additional CFLAGS for -Woptions and other things, not used during ./configure but put in resulting Makefile])
@@ -181,6 +173,7 @@ AC_PROG_GREP
 dnl AC_PROG_EGREP Do not trust this one
 AC_PROG_SED
 dnl AC_PROG_CXX
+AX_CHECK_GNU_MAKE()
 AC_PROG_MAKE_SET
 AC_PROG_CPP
 AC_PROG_MKDIR_P
@@ -713,9 +706,11 @@ AC_SUBST([PLUGFORMATS_OBJS],[`echo *_plug.c | sed "s/\.c/.o/g"`])
 echo "configure: creating ./john_build_rule.h"
 echo "#define JOHN_BLD \"${host_os} ${CPU_BIT_STR}-bit${using_x32} ${CPU_STR}-autoconf\"" > john_build_rule.h
 
+# Use GNUmakefile if we have gmake
+AS_IF([test x$_cv_gnu_make_command = x], [makefile=Makefile], [makefile=GNUmakefile])
+
 AC_SUBST([HOST_OS],["$host_os"])
-AC_CONFIG_FILES([GNUmakefile
-                 Makefile
+AC_CONFIG_FILES([${makefile}
                  aes/Makefile
                  aes/aesni/Makefile
                  aes/openssl/Makefile
@@ -796,6 +791,19 @@ if test "x$endian" = "big"; then
 else
    using_endian="LE"
 fi
+if test x$_cv_gnu_make_command = x; then
+   use_make=make
+else
+   use_make=$_cv_gnu_make_command
+   # Workaround for .gitignore refusing to ignore Makefile since it is
+   # a managed file (the stub). The result of this is a *local* workaround.
+   AS_IF([test -d "../.git"],
+     [AC_CHECK_PROG([HAVE_GIT], [git], [yes], [no])]
+     [AS_IF([test "x$HAVE_GIT" = xyes],
+        [git update-index --assume-unchanged Makefile]
+     )]
+   )
+fi
 
 AS_IF([test "x$osx_assembler_warn" = xyes],
   [AC_MSG_WARN([**************************************************])]
@@ -832,6 +840,6 @@ BZ2 (gpg2john extra decompression logic) .... ${using_bz2}
 
 Install missing libraries to get any needed features that were omitted.
 
-Configure finished.  Do 'make -s' to compile.
+Configure finished.  Do '${use_make} -s' to compile.
 EOF
 dnl =======================================================================

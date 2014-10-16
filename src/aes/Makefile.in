@@ -1,3 +1,4 @@
+@SET_MAKE@
 CC = @CC@
 CXX = @CXX@
 AS = @CC@
