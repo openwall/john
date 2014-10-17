@@ -729,10 +729,14 @@ void opencl_get_user_preferences(char *format)
 		global_work_size = GET_MULTIPLE_OR_ZERO(global_work_size,
 						local_work_size);
 
-	if (format)
-	if ((tmp_value = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL,
+	if (format &&
+	    (tmp_value = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL,
 		opencl_get_config_name(format, DUR_CONFIG_NAME))))
-		duration_time = atoi(tmp_value) * 1000000000ULL;
+		duration_time = atoi(tmp_value) * 1000000ULL;
+	else
+	if ((tmp_value = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL,
+		"Global" DUR_CONFIG_NAME)))
+		duration_time = atoi(tmp_value) * 1000000ULL;
 
 	// Save the format config string.
 	config_name = format;
@@ -1224,13 +1228,13 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 			fprintf(stderr, "%s%s%.2fms", warnings[i], mult,
 				(double)(endTime - startTime) / 1000000.);
 
-		/* 200 ms duration limit for GCN to avoid ASIC hangs */
-		if (amd_gcn(device_info[sequential_id]) &&
-		    (endTime - startTime) > 200000000) {
+		/* Single-invocation duration limit */
+		if (duration_time && (endTime - startTime) > duration_time) {
 			runtime = looptime = 0;
 
 			if (options.verbosity > 4)
-				fprintf(stderr, " (exceeds 200 ms)");
+				fprintf(stderr, " (exceeds %d ms)",
+				        (int)(duration_time / 1000000));
 			break;
 		}
 	}
@@ -1469,13 +1473,29 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
 	cl_ulong run_time, min_time = CL_ULONG_MAX;
 	char config_string[128];
 
-	if (duration_time)
-		max_run_time = duration_time;
+	/*
+	 * max_run_time is either:
+	 *   - total running time for crypt_all(), in ns
+	 *   - single duration of a kernel run, is ms
+	 */
 
-	if (options.verbosity > 3)
+	/* Does format specify max. single duration? */
+	if (max_run_time < 1000 &&
+	    (!duration_time || duration_time > max_run_time * 1000000)) {
+		duration_time = max_run_time * 1000000;
+		max_run_time = 0;
+	}
+
+	if (options.verbosity > 3) {
+		if (!max_run_time)
 		fprintf(stderr, "Calculating best global worksize (GWS); "
-			"max. %2.1f s duration.\n",
+			"max. %2.1f ms single kernel invocation.\n",
+			(float) duration_time / 1000000.);
+		else
+		fprintf(stderr, "Calculating best global worksize (GWS); "
+			"max. %2.1f s total for crypt_all()\n",
 			(float) max_run_time / 1000000000.);
+	}
 
 	if (options.verbosity > 4)
 		fprintf(stderr, "Raw speed figures including buffer "
@@ -1532,7 +1552,7 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
 					(float)run_time / 1000000.);
 		}
 
-		if (run_time > max_run_time) {
+		if (max_run_time && run_time > max_run_time) {
 			if (!optimal_gws)
 				optimal_gws = num;
 
