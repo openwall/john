@@ -114,9 +114,9 @@ static size_t get_task_max_work_group_size()
 {
 	size_t s;
 
-	s = common_get_task_max_work_group_size(FALSE, 0, GenerateSHA1pwhash);
-	s = MIN(s, common_get_task_max_work_group_size(FALSE, 0, crypt_kernel));
-	s = MIN(s, common_get_task_max_work_group_size(FALSE, 0, Generate2010key));
+	s = autotune_get_task_max_work_group_size(FALSE, 0, GenerateSHA1pwhash);
+	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel));
+	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, Generate2010key));
 	return s;
 }
 
@@ -336,7 +336,7 @@ static void init(struct fmt_main *self)
 
 	//Auto tune execution from shared/included code.
 	self->methods.crypt_all = crypt_all_benchmark;
-	common_run_auto_tune(self, ITERATIONS + 4, 0,
+	autotune_run(self, ITERATIONS + 4, 0,
 		(cpu(device_info[gpu_id]) ? 1000000000 : 10000000000ULL));
 	self->methods.crypt_all = crypt_all;
 

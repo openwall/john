@@ -13,7 +13,7 @@
 #include "memdbg.h"
 
 /* Allow the developer to select configurable step size for gws. */
-int common_get_next_gws_size(size_t num, int step, int startup,
+int autotune_get_next_gws_size(size_t num, int step, int startup,
                              int default_value) {
 	if (startup) {
 		if (step == 0)
@@ -29,7 +29,7 @@ int common_get_next_gws_size(size_t num, int step, int startup,
 }
 
 /* Can be used to select a 'good' default lws size */
-size_t common_get_task_max_work_group_size(int use_local_memory,
+size_t autotune_get_task_max_work_group_size(int use_local_memory,
                                            int local_memory_size,
                                            cl_kernel crypt_kernel)
 {
@@ -49,7 +49,7 @@ size_t common_get_task_max_work_group_size(int use_local_memory,
 }
 
 /* Can be used to select a 'good' default gws size */
-size_t common_get_task_max_size(int multiplier, int keys_per_core_cpu,
+size_t autotune_get_task_max_size(int multiplier, int keys_per_core_cpu,
                                 int keys_per_core_gpu, cl_kernel crypt_kernel)
 {
 	size_t max_available;
@@ -69,7 +69,7 @@ size_t common_get_task_max_size(int multiplier, int keys_per_core_cpu,
    This function could be used to calculated the best local
    group size for the given format
    -- */
-void common_find_best_lws(size_t group_size_limit,
+void autotune_find_best_lws(size_t group_size_limit,
                           int sequential_id, cl_kernel crypt_kernel)
 {
 	//Call the default function.
@@ -80,7 +80,7 @@ void common_find_best_lws(size_t group_size_limit,
    This function could be used to calculated the best num
    of keys per crypt for the given format
    -- */
-void common_find_best_gws(int sequential_id, unsigned int rounds, int step,
+void autotune_find_best_gws(int sequential_id, unsigned int rounds, int step,
                           unsigned long long int max_run_time)
 {
 	char *tmp_value;

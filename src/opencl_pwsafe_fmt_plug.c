@@ -68,9 +68,9 @@ cl_kernel finish_kernel;
 static size_t get_task_max_work_group_size()
 {
 	return MIN(
-		MIN(common_get_task_max_work_group_size(FALSE, 0, init_kernel),
-		    common_get_task_max_work_group_size(FALSE, 0, crypt_kernel)),
-		common_get_task_max_work_group_size(FALSE, 0, finish_kernel));
+		MIN(autotune_get_task_max_work_group_size(FALSE, 0, init_kernel),
+		    autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel)),
+		autotune_get_task_max_work_group_size(FALSE, 0, finish_kernel));
 }
 
 static size_t get_task_max_size()
@@ -208,7 +208,7 @@ static void init(struct fmt_main *self)
 	        release_clobj, sizeof(pwsafe_pass), 0);
 
 	//Auto tune execution from shared/included code.
-	common_run_auto_tune(self, ROUNDS_DEFAULT, 0,
+	autotune_run(self, ROUNDS_DEFAULT, 0,
 		(cpu(device_info[gpu_id]) ? 500000000ULL : 1000000000ULL));
 	self->methods.crypt_all = crypt_all;
 }

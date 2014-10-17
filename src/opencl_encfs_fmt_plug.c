@@ -125,9 +125,9 @@ static size_t get_task_max_work_group_size()
 {
 	size_t s;
 
-	s = common_get_task_max_work_group_size(FALSE, 0, pbkdf2_init);
-	s = MIN(s, common_get_task_max_work_group_size(FALSE, 0, pbkdf2_loop));
-	s = MIN(s, common_get_task_max_work_group_size(FALSE, 0, pbkdf2_final));
+	s = autotune_get_task_max_work_group_size(FALSE, 0, pbkdf2_init);
+	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, pbkdf2_loop));
+	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, pbkdf2_final));
 	return s;
 }
 
@@ -386,7 +386,7 @@ static void init(struct fmt_main *self)
 
 	//Auto tune execution from shared/included code.
 	self->methods.crypt_all = crypt_all_benchmark;
-	common_run_auto_tune(self, 2 * (ITERATIONS - 1) + 4, 0, 10000000000ULL);
+	autotune_run(self, 2 * (ITERATIONS - 1) + 4, 0, 10000000000ULL);
 	self->methods.crypt_all = crypt_all;
 
 	self->params.min_keys_per_crypt = local_work_size * v_width;

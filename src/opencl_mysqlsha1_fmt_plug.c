@@ -94,7 +94,7 @@ static struct fmt_tests tests[] = {
 /* ------- Helper functions ------- */
 static size_t get_task_max_work_group_size()
 {
-	return common_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
+	return autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
 }
 
 static size_t get_task_max_size()
@@ -207,7 +207,7 @@ static void init(struct fmt_main *self)
 		PLAINTEXT_LENGTH, 0);
 
 	//Auto tune execution from shared/included code.
-	common_run_auto_tune(self, 2, 0, 100000000);
+	autotune_run(self, 2, 0, 100000000);
 }
 
 static void clear_keys(void)

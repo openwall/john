@@ -124,8 +124,8 @@ static size_t get_task_max_work_group_size()
 {
 	size_t s;
 
-	s = common_get_task_max_work_group_size(FALSE, 0, krb5pa_md5_nthash);
-	s = MIN(s, common_get_task_max_work_group_size(FALSE, 0, crypt_kernel));
+	s = autotune_get_task_max_work_group_size(FALSE, 0, krb5pa_md5_nthash);
+	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel));
 	return s;
 }
 
@@ -254,7 +254,7 @@ static void init(struct fmt_main *self)
 		PLAINTEXT_LENGTH, 0);
 
 	//Auto tune execution from shared/included code.
-	common_run_auto_tune(self, 1, 0, 100000000);
+	autotune_run(self, 1, 0, 100000000);
 }
 
 static void *salt(char *ciphertext)

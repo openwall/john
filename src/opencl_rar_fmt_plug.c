@@ -396,9 +396,9 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 static size_t get_task_max_work_group_size()
 {
 	return MIN(
-		MIN(common_get_task_max_work_group_size(FALSE, 0, RarInit),
-		    common_get_task_max_work_group_size(FALSE, 0, crypt_kernel)),
-		common_get_task_max_work_group_size(FALSE, 0, RarFinal));
+		MIN(autotune_get_task_max_work_group_size(FALSE, 0, RarInit),
+		    autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel)),
+		autotune_get_task_max_work_group_size(FALSE, 0, RarFinal));
 }
 
 static size_t get_task_max_size()
@@ -636,7 +636,7 @@ static void init(struct fmt_main *self)
 
 	//Auto tune execution from shared/included code.
 	self->methods.crypt_all = crypt_all_benchmark;
-	common_run_auto_tune(self, ITERATIONS, 0,
+	autotune_run(self, ITERATIONS, 0,
 		(cpu(device_info[gpu_id]) ? 1000000000 : 10000000000ULL));
 	self->methods.crypt_all = crypt_all;
 

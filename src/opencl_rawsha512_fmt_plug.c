@@ -116,8 +116,8 @@ static size_t get_task_max_work_group_size()
 {
 	size_t s;
 
-	s = common_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
-	s = MIN(s, common_get_task_max_work_group_size(FALSE, 0, cmp_kernel));
+	s = autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
+	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, cmp_kernel));
 	return s;
 }
 
@@ -397,7 +397,7 @@ static void init(struct fmt_main * self) {
 		global_work_size -= local_work_size;
 
 	//Auto tune execution from shared/included code.
-	common_run_auto_tune(self, 1, gws_limit,
+	autotune_run(self, 1, gws_limit,
 		(cpu(device_info[gpu_id]) ? 500000000ULL : 1000000000ULL));
 }
 

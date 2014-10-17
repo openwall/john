@@ -66,7 +66,7 @@ static const char * warn[] = {
 /* ------- Helper functions ------- */
 static size_t get_task_max_work_group_size()
 {
-	return common_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
+	return autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
 }
 
 static size_t get_task_max_size()
@@ -308,7 +308,7 @@ static void init(struct fmt_main *self)
 		sizeof(crypt_md5_password), 0);
 
 	//Auto tune execution from shared/included code.
-	common_run_auto_tune(self, 1000, 0, 100000000);
+	autotune_run(self, 1000, 0, 100000000);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)

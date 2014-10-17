@@ -64,7 +64,7 @@ static void opencl_get_dev_info(int sequential_id);
 static void find_valid_opencl_device(int *dev_id, int *platform_id);
 
 // Used by auto-tuning to decide how GWS should changed between trials.
-extern int common_get_next_gws_size(size_t num, int step, int startup,
+extern int autotune_get_next_gws_size(size_t num, int step, int startup,
 	int default_value);
 
 // Settings to use for auto-tuning.
@@ -1491,8 +1491,8 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
 				     CL_QUEUE_PROFILING_ENABLE, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating command queue");
 
-	for (num = common_get_next_gws_size(num, step, 1, default_value);;
-	     num = common_get_next_gws_size(num, step, 0, default_value)) {
+	for (num = autotune_get_next_gws_size(num, step, 1, default_value);;
+	     num = autotune_get_next_gws_size(num, step, 0, default_value)) {
 		int kpc = num * opencl_v_width;
 
 		// Check if hardware can handle the size we are going

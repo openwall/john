@@ -24,25 +24,25 @@ static void release_clobj(void);
 
 /* ------- Externals ------- */
 /* Can be used to select a 'good' default gws size */
-size_t common_get_task_max_size(int multiplier, int keys_per_core_cpu,
+size_t autotune_get_task_max_size(int multiplier, int keys_per_core_cpu,
 	int keys_per_core_gpu, cl_kernel crypt_kernel);
 
 /* Can be used to select a 'good' default lws size */
-size_t common_get_task_max_work_group_size(int use_local_memory,
+size_t autotune_get_task_max_work_group_size(int use_local_memory,
 	int local_memory_size, cl_kernel crypt_kernel);
 
 /* --
   This function could be used to calculated the best num
   of keys per crypt for the given format
 -- */
-void common_find_best_gws(int sequential_id, unsigned int rounds, int step,
+void autotune_find_best_gws(int sequential_id, unsigned int rounds, int step,
 	unsigned long long int max_run_time);
 
 /* --
   This function could be used to calculated the best local
   group size for the given format
 -- */
-void common_find_best_lws(size_t group_size_limit,
+void autotune_find_best_lws(size_t group_size_limit,
 	int sequential_id, cl_kernel crypt_kernel);
 
 /* ------- Try to find the best configuration ------- */
@@ -55,7 +55,7 @@ void common_find_best_lws(size_t group_size_limit,
 static void find_best_lws(struct fmt_main * self, int sequential_id)
 {
 	//Call the default function.
-	common_find_best_lws(
+	autotune_find_best_lws(
 		get_task_max_work_group_size(), sequential_id, crypt_kernel
 	);
 }
@@ -68,7 +68,7 @@ static void find_best_gws(struct fmt_main * self, int sequential_id, unsigned in
 	unsigned long long int max_run_time)
 {
 	//Call the common function.
-	common_find_best_gws(
+	autotune_find_best_gws(
 		sequential_id, rounds, STEP, max_run_time
 	);
 
@@ -80,7 +80,7 @@ static void find_best_gws(struct fmt_main * self, int sequential_id, unsigned in
   preparation and execution. It is shared code to be inserted
   in each format file.
 -- */
-static void common_run_auto_tune(struct fmt_main * self, unsigned int rounds,
+static void autotune_run(struct fmt_main * self, unsigned int rounds,
 	size_t gws_limit, unsigned long long int max_run_time)
 {
 	/* Read LWS/GWS prefs from config or environment */

@@ -114,7 +114,7 @@ static unsigned int key_idx = 0;
 
 static size_t get_task_max_work_group_size()
 {
-        return common_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
+        return autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
 }
 
 static size_t get_task_max_size()
@@ -227,7 +227,7 @@ static void init(struct fmt_main *self)
                 global_work_size -= local_work_size;
 
         //Auto tune execution from shared/included code.
-        common_run_auto_tune(self, ROUNDS, gws_limit,
+        autotune_run(self, ROUNDS, gws_limit,
                 (cpu(device_info[gpu_id]) ? 500000000ULL : 1000000000ULL));
 
 /* ---- End OpenCL Modifications ---- */

@@ -112,7 +112,7 @@ static const char * warn[] = {
 /* ------- Helper functions ------- */
 static size_t get_task_max_work_group_size()
 {
-	return common_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
+	return autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
 }
 
 static size_t get_task_max_size()
@@ -227,7 +227,7 @@ static void fmt_ssha_init(struct fmt_main *self)
 	                       PLAINTEXT_LENGTH, 0);
 
 	// Auto tune execution from shared/included code.
-	common_run_auto_tune(self, 1, 0, 100000000);
+	autotune_run(self, 1, 0, 100000000);
 
 	self->params.min_keys_per_crypt = local_work_size;
 	self->params.max_keys_per_crypt = global_work_size;
