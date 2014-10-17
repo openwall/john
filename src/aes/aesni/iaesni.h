@@ -32,6 +32,7 @@
 #define _IAESNI_H__
 
 #include <stdlib.h>
+#include "../../aligned.h"
 
 #define AES_INSTRCTIONS_CPUID_BIT (1<<25)
 
@@ -84,7 +85,7 @@ int check_for_aes_instructions(void);
 #ifdef ROUND_KEYS_UNALIGNED_TESTING
 
 #define DEFINE_ROUND_KEYS \
-	__declspec(align(16)) UCHAR _expandedKey[16*16];	\
+	JTR_ALIGN(16) UCHAR _expandedKey[16*16];	\
 	UCHAR *expandedKey = _expandedKey + 4;	\
 
 
@@ -93,7 +94,7 @@ int check_for_aes_instructions(void);
 
 
 #define DEFINE_ROUND_KEYS \
-	__declspec(align(16)) UCHAR _expandedKey[16*16];	\
+	JTR_ALIGN(16) UCHAR _expandedKey[16*16];	\
 	UCHAR *expandedKey = _expandedKey;	\
 
 
