@@ -114,11 +114,16 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		return 0;
 
 	version = atoi(p);
-	if (version != 1  && version != 2 && version != 3)
+	// if (version != 1  && version != 2 && version != 3)  // VTP version 3 support is pending
+	if (version != 1  && version != 2)
 		return 0;
 
 	q = strrchr(ciphertext, '$');
 	if (!q)
+		return 0;
+	q = q + 1;
+
+	if (strlen(q) != BINARY_SIZE * 2)
 		return 0;
 
 	return 1;
