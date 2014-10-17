@@ -107,9 +107,10 @@ generic crypt(3)	generic crypt(3) DES
 hmailserver	hMailServer salted SHA-256
 HTTP Digest access authentication	HTTP Digest access authentication MD5
 IPB2 MD5	Invision Power Board 2.x salted MD5
+Kerberos 5 db etype 18 aes256-cts-hmac-sha1-96	NT MD4
 Kerberos v4 TGT	Kerberos v4 TGT DES
 Kerberos v5 TGT	Kerberos v5 TGT 3DES
-KRB5 aes256-cts-hmac-sha1-96	Kerberos 5 db etype 18 aes256-cts-hmac-sha1-96
+KRB5 aes256-cts-hmac-sha1-96	NT MD4
 KRB5 arcfour-hmac	Kerberos 5 db etype 23 rc4-hmac
 Lotus5	Lotus Notes/Domino 5
 M$ Cache Hash 2 (DCC2)	M$ Cache Hash 2 (DCC2) PBKDF2-HMAC-SHA-1
