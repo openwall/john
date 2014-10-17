@@ -1464,8 +1464,8 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
 			  int sequential_id, unsigned int rounds)
 {
 	size_t num = 0;
-	int optimal_gws = local_work_size;
-	unsigned int speed, best_speed = 0;
+	size_t optimal_gws = local_work_size;
+	unsigned long long speed, best_speed = 0;
 	cl_ulong run_time, min_time = CL_ULONG_MAX;
 	char config_string[128];
 
@@ -1493,7 +1493,7 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
 
 	for (num = autotune_get_next_gws_size(num, step, 1, default_value);;
 	     num = autotune_get_next_gws_size(num, step, 0, default_value)) {
-		int kpc = num * opencl_v_width;
+		size_t kpc = num * opencl_v_width;
 
 		// Check if hardware can handle the size we are going
 		// to try now.
@@ -1519,7 +1519,7 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
 
 		if (options.verbosity > 3) {
 			if (rounds > 1)
-				fprintf(stderr, "gws: %9zu\t%10llu c/s%12u "
+				fprintf(stderr, "gws: %9zu\t%10llu c/s%12llu "
 					"rounds/s%8.3f sec per crypt_all()",
 					num, (long long)(kpc / (run_time /
 								1000000000.)),
