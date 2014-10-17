@@ -697,7 +697,7 @@ int fmt_default_salt_hash(void *salt)
 	return 0;
 }
 
-int fmt_default_salt_hash_dyna_salt(void *salt)
+int fmt_default_dyna_salt_hash(void *salt)
 {
 	/* if the hash is a dyna_salt type hash, it can simply use this function */
 	dyna_salt_john_core *mysalt = *(dyna_salt_john_core **)salt;
