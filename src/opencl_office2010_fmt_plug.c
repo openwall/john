@@ -93,7 +93,7 @@ static cl_mem cl_saved_key, cl_saved_len, cl_salt, cl_pwhash, cl_key, cl_spincou
 static cl_mem pinned_saved_key, pinned_saved_len, pinned_salt, pinned_key;
 static cl_kernel GenerateSHA1pwhash, Generate2010key;
 
-#define HASH_LOOPS		128 /* Lower figure gives less X hogging */
+#define HASH_LOOPS		500 /* Lower figure gives less X hogging */
 #define ITERATIONS		100000
 #define STEP			0
 #define SEED			64
@@ -329,15 +329,14 @@ static void init(struct fmt_main *self)
 	Generate2010key = clCreateKernel(program[gpu_id], "Generate2010key", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 
-	//Initialize openCL tuning (library) for this format.
+	// Initialize openCL tuning (library) for this format.
 	opencl_init_auto_setup(SEED, HASH_LOOPS, split_events,
 		warn, 3, self, create_clobj, release_clobj,
 		UNICODE_LENGTH, 0);
 
-	//Auto tune execution from shared/included code.
+	// Auto tune execution from shared/included code.
 	self->methods.crypt_all = crypt_all_benchmark;
-	autotune_run(self, ITERATIONS + 4, 0,
-		(cpu(device_info[gpu_id]) ? 1000000000 : 10000000000ULL));
+	autotune_run(self, ITERATIONS + 4, 0, 10000 * HASH_LOOPS / ITERATIONS);
 	self->methods.crypt_all = crypt_all;
 
 	self->params.min_keys_per_crypt = local_work_size * v_width;
