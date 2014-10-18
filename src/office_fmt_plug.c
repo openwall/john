@@ -92,6 +92,8 @@ static struct custom_salt {
 	int spinCount;
 } *cur_salt;
 
+#define MS_OFFICE_2007_ITERATIONS	50000
+
 #if defined (_OPENMP)
 static int omp_t = 1;
 #endif
@@ -158,7 +160,7 @@ static unsigned char* GeneratePasswordHashUsingSHA1(UTF16 *passwordBuf, int pass
 	// Create a byte array of the integer and put at the front of the input buffer
 	// 1.3.6 says that little-endian byte ordering is expected
 	memcpy(&inputBuf[1], hashBuf, 20);
-	for (i = 0; i < 50000; i++) {
+	for (i = 0; i < MS_OFFICE_2007_ITERATIONS; i++) {
 #if ARCH_LITTLE_ENDIAN
 		*inputBuf = i;
 #else
@@ -536,15 +538,15 @@ static unsigned int ms_office_version(void *salt)
 
 /*
  * Iteration count as second tunable cost
- * (dummy value 1 for MS Office version 2007)
+ * (hard coded value for MS Office version 2007)
  */
 static unsigned int iteration_count(void *salt)
 {
 	struct custom_salt *my_salt;
 
 	my_salt = salt;
-	if (my_salt->version <= 2007)
-		return 1;
+	if (my_salt->version == 2007)
+		return MS_OFFICE_2007_ITERATIONS;
 	else
 		/*
 		 * Is spinCount always 100000, or just in our

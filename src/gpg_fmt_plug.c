@@ -1282,6 +1282,36 @@ static int cmp_exact(char *source, int index)
 	return cracked[index];
 }
 
+#if FMT_MAIN_VERSION > 11
+/*
+ * Report iteration count as 1st tunable cost,
+ * hash algorithm as 2nd tunable cost,
+ * cipher algorithm as 3rd tunable cost.
+ */
+
+static unsigned int gpg_iteration_count(void *salt)
+{
+	struct custom_salt *my_salt;
+
+	my_salt = salt;
+	return (unsigned int) my_salt->count;
+}
+static unsigned int gpg_hash_algorithm(void *salt)
+{
+	struct custom_salt *my_salt;
+
+	my_salt = salt;
+	return (unsigned int) my_salt->hash_algorithm;
+}
+static unsigned int gpg_cipher_algorithm(void *salt)
+{
+	struct custom_salt *my_salt;
+
+	my_salt = salt;
+	return (unsigned int) my_salt->cipher_algorithm;
+}
+#endif
+
 struct fmt_main fmt_gpg = {
 	{
 		FORMAT_LABEL,
@@ -1298,7 +1328,11 @@ struct fmt_main fmt_gpg = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 #if FMT_MAIN_VERSION > 11
-		{ NULL },
+		{
+			"iteration count",
+			"hash algorithm [1:MD5 2:SHA1 3:RIPEMD160 8:SHA256 9:SHA384 10:SHA512 11:SHA224]",
+			"cipher algorithm [1:IDEA 2:3DES 3:CAST5 4:Blowfish 7:AES128 8:AES192 9:AES256]",
+		},
 #endif
 		gpg_tests
 	},
@@ -1312,7 +1346,11 @@ struct fmt_main fmt_gpg = {
 		fmt_default_binary,
 		get_salt,
 #if FMT_MAIN_VERSION > 11
-		{ NULL },
+		{
+			gpg_iteration_count,
+			gpg_hash_algorithm,
+			gpg_cipher_algorithm,
+		},
 #endif
 		fmt_default_source,
 		{

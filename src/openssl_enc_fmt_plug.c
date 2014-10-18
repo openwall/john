@@ -420,6 +420,10 @@ struct fmt_main fmt_openssl = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_NOT_EXACT,
+/*
+ * FIXME: if there wouldn't be so many false positives,
+ *        it would be useful to report some tunable costs
+ */
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif
