@@ -433,7 +433,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	scalar_gws = gws * v_width;
 
 	if (any_cracked) {
-		memset(cracked, 0, global_work_size * sizeof(*cracked));
+		memset(cracked, 0, count * sizeof(*cracked));
 		any_cracked = 0;
 	}
 
