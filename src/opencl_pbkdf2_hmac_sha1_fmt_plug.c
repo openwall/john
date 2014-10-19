@@ -39,7 +39,7 @@ john_register_one(&fmt_ocl_pbkdf1_sha1);
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	(3 * 1024)
+#define MAX_KEYS_PER_CRYPT	1
 
 #define BINARY_SIZE		20
 #define BINARY_ALIGN		sizeof(uint32_t)
@@ -61,7 +61,7 @@ john_register_one(&fmt_ocl_pbkdf1_sha1);
 #define MAX(a, b)		(((a) > (b)) ? (a) : (b))
 
 /* This handles all widths */
-#define GETPOS(i, index)	(((index) % v_width) * 4 + ((i) & ~3U) * v_width + (((i) & 3) ^ 3) + ((index) / v_width) * 64 * v_width)
+#define GETPOS(i, index)	(((index) % v_width) * 4 + ((i) & ~3U) * v_width + (((i) & 3) ^ 3) + ((index) / v_width) * PLAINTEXT_LENGTH * v_width)
 
 /*
  * HASH_LOOPS is ideally made by factors of (iteration count - 1) and should
@@ -144,7 +144,7 @@ struct fmt_main *me;
 static void create_clobj(size_t gws, struct fmt_main *self)
 {
 	gws *= v_width;
-	key_buf_size = 64 * gws;
+	key_buf_size = PLAINTEXT_LENGTH * gws;
 
 	/// Allocate memory
 	inbuffer = mem_calloc(key_buf_size);
