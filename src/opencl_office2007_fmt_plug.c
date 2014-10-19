@@ -259,6 +259,9 @@ static void *get_salt(char *ciphertext)
 	if (!cur_salt)
 		cur_salt = mem_calloc_tiny(sizeof(struct custom_salt),
 		                           MEM_ALIGN_WORD);
+	else
+		memset(cur_salt, 0, sizeof(struct custom_salt));
+
 	ctcopy += 9;	/* skip over "$office$*" */
 	p = strtok(ctcopy, "*");
 	cur_salt->version = atoi(p);
