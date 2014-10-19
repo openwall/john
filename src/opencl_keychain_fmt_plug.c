@@ -222,9 +222,8 @@ static void *get_salt(char *ciphertext)
 	int i;
 	char *p;
 
-	if (!salt_struct)
-		salt_struct = mem_calloc_tiny(sizeof(struct custom_salt),
-		                             MEM_ALIGN_WORD);
+	salt_struct = mem_calloc_tiny(sizeof(struct custom_salt),
+	                              MEM_ALIGN_WORD);
 	ctcopy += 11;	/* skip over "$keychain$*" */
 	p = strtok(ctcopy, "*");
 	for (i = 0; i < SALTLEN; i++)

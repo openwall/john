@@ -257,11 +257,8 @@ static void *get_salt(char *ciphertext)
 	char *ctcopy = strdup(ciphertext);
 	char *keeptr = ctcopy, *p;
 
-	if (!cur_salt)
-		cur_salt = mem_calloc_tiny(sizeof(struct custom_salt),
-		                           MEM_ALIGN_WORD);
-	else
-		memset(cur_salt, 0, sizeof(struct custom_salt));
+	cur_salt = mem_calloc_tiny(sizeof(struct custom_salt),
+	                           MEM_ALIGN_WORD);
 
 	ctcopy += 9;	/* skip over "$office$*" */
 	p = strtok(ctcopy, "*");

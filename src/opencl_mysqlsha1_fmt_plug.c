@@ -44,7 +44,7 @@ john_register_one(&fmt_opencl_mysqlsha1);
 #define SALT_ALIGN              1
 
 #define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      (1024 * 2048)
+#define MAX_KEYS_PER_CRYPT      1
 
 #define OCL_CONFIG              "mysql-sha1"
 
