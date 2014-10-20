@@ -294,13 +294,6 @@ static int get_hash4(int index) { return crypt_key[index * BINARY_SIZE_IN_ARCH_W
 static int get_hash5(int index) { return crypt_key[index * BINARY_SIZE_IN_ARCH_WORD_32] & 0xfffff; }
 static int get_hash6(int index) { return crypt_key[index * BINARY_SIZE_IN_ARCH_WORD_32] & 0xffffff; }
 static int get_hash7(int index) { return crypt_key[index * BINARY_SIZE_IN_ARCH_WORD_32] & 0x7ffffff; }
-static int binary_hash1(void * binary) { return *(ARCH_WORD_32 *)binary & 0xf; }
-static int binary_hash2(void * binary) { return *(ARCH_WORD_32 *)binary & 0xff; }
-static int binary_hash3(void * binary) { return *(ARCH_WORD_32 *)binary & 0xfff; }
-static int binary_hash4(void * binary) { return *(ARCH_WORD_32 *)binary & 0xffff; }
-static int binary_hash5(void * binary) { return *(ARCH_WORD_32 *)binary & 0xfffff; }
-static int binary_hash6(void * binary) { return *(ARCH_WORD_32 *)binary & 0xffffff; }
-static int binary_hash7(void * binary) { return *(ARCH_WORD_32 *)binary & 0x7ffffff; }
 
 /* C's version of a class specifier */
 struct fmt_main fmt_opencl_1otus5 = {
@@ -336,13 +329,13 @@ struct fmt_main fmt_opencl_1otus5 = {
 #endif
 		fmt_default_source,
 		{
-			binary_hash1,
-			binary_hash2,
-			binary_hash3,
-			binary_hash4,
-			binary_hash5,
-			binary_hash6,
-			binary_hash7
+			fmt_default_binary_hash_0,
+			fmt_default_binary_hash_1,
+			fmt_default_binary_hash_2,
+			fmt_default_binary_hash_3,
+			fmt_default_binary_hash_4,
+			fmt_default_binary_hash_5,
+			fmt_default_binary_hash_6
 		},
 		fmt_default_salt_hash,
 		fmt_default_set_salt,

@@ -39,7 +39,8 @@ static int omp_t = 1;
 #define BENCHMARK_LENGTH      -1
 #define PLAINTEXT_LENGTH      32
 #define CIPHERTEXT_LENGTH     0x64
-#define BINARY_SIZE           5  // XXX probably should rename this!
+#define BINARY_SIZE           0
+#define BINARY_LENGTH         5
 #define BINARY_ALIGN          1
 #define SALT_SIZE             sizeof(struct custom_salt)
 #define SALT_ALIGN            4
@@ -101,8 +102,8 @@ static struct custom_salt {
  * As the password is used to derive a RC2 key and decipher the user blob
  * the reference digest is always different and we should track them all
  */
-static uint8_t (*lotus85_last_binary_hash1)[BINARY_SIZE];
-static uint8_t (*lotus85_last_binary_hash2)[BINARY_SIZE];
+static uint8_t (*lotus85_last_binary_hash1)[BINARY_LENGTH];
+static uint8_t (*lotus85_last_binary_hash2)[BINARY_LENGTH];
 
 /* Plaintext passwords history requested by JtR engine */
 static char (*lotus85_saved_passwords)[PLAINTEXT_LENGTH+1];
@@ -302,10 +303,10 @@ static void lotus85_init(struct fmt_main *self)
 		(PLAINTEXT_LENGTH + 1) * self->params.max_keys_per_crypt,
 		MEM_ALIGN_CACHE);
 	lotus85_last_binary_hash1 = mem_calloc_tiny(
-		BINARY_SIZE * self->params.max_keys_per_crypt,
+		BINARY_LENGTH * self->params.max_keys_per_crypt,
 		MEM_ALIGN_CACHE);
 	lotus85_last_binary_hash2 = mem_calloc_tiny(
-		BINARY_SIZE * self->params.max_keys_per_crypt,
+		BINARY_LENGTH * self->params.max_keys_per_crypt,
 		MEM_ALIGN_CACHE);
 }
 
@@ -377,8 +378,8 @@ static int lotus85_crypt_all(int *pcount, struct db_salt *salt)
 	for (index = 0; index < count; index++)
 	{
 		unsigned char user_key[8], deciphered_userid[LOTUS85_MAX_BLOB_SIZE];
-		memset(lotus85_last_binary_hash1[index], 0, BINARY_SIZE);
-		memset(lotus85_last_binary_hash2[index], 0, BINARY_SIZE);
+		memset(lotus85_last_binary_hash1[index], 0, BINARY_LENGTH);
+		memset(lotus85_last_binary_hash2[index], 0, BINARY_LENGTH);
 		memset(user_key, 0, sizeof(user_key));
 		memset(deciphered_userid, 0, sizeof(deciphered_userid));
 
@@ -389,10 +390,10 @@ static int lotus85_crypt_all(int *pcount, struct db_salt *salt)
 		decipher_userid_blob(cur_salt->lotus85_user_blob, cur_salt->lotus85_user_blob_len, user_key, deciphered_userid);
 
 		/* Store first deciphered digest */
-		memcpy(lotus85_last_binary_hash1[index], deciphered_userid + cur_salt->lotus85_user_blob_len - BINARY_SIZE, BINARY_SIZE);
+		memcpy(lotus85_last_binary_hash1[index], deciphered_userid + cur_salt->lotus85_user_blob_len - BINARY_LENGTH, BINARY_LENGTH);
 
 		/* Compute digest of deciphered message */
-		compute_msg_mac(deciphered_userid, cur_salt->lotus85_user_blob_len - BINARY_SIZE, lotus85_last_binary_hash2[index]);
+		compute_msg_mac(deciphered_userid, cur_salt->lotus85_user_blob_len - BINARY_LENGTH, lotus85_last_binary_hash2[index]);
 	}
 	return count;
 }
@@ -404,7 +405,7 @@ static int lotus85_cmp_all(void *binary,int count)
 
 	for(i = 0; i < count; i++)
 	{
-		if(!memcmp(lotus85_last_binary_hash1[i],lotus85_last_binary_hash2[i],BINARY_SIZE))
+		if(!memcmp(lotus85_last_binary_hash1[i],lotus85_last_binary_hash2[i],BINARY_LENGTH))
 			return 1;
 	}
 
@@ -414,7 +415,7 @@ static int lotus85_cmp_all(void *binary,int count)
 /* Check if last computed hash match */
 static int lotus85_cmp_one(void *binary,int index)
 {
-	return !memcmp(lotus85_last_binary_hash1[index],lotus85_last_binary_hash2[index],BINARY_SIZE);
+	return !memcmp(lotus85_last_binary_hash1[index],lotus85_last_binary_hash2[index],BINARY_LENGTH);
 }
 
 /* No ASCII ciphertext, thus returns true */
@@ -440,7 +441,7 @@ struct fmt_main fmt_lotus_85 =
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
-		0,
+		BINARY_SIZE,
 		BINARY_ALIGN,
 		SALT_SIZE,
 		SALT_ALIGN,
@@ -465,8 +466,6 @@ struct fmt_main fmt_lotus_85 =
 #endif
 		fmt_default_source,
 		{
-			fmt_default_binary_hash,
-			fmt_default_binary_hash,
 			fmt_default_binary_hash
 		},
 		fmt_default_salt_hash,
@@ -476,8 +475,6 @@ struct fmt_main fmt_lotus_85 =
 		fmt_default_clear_keys,
 		lotus85_crypt_all,        /*  Main hash funcion       */
 		{
-			fmt_default_get_hash,
-			fmt_default_get_hash,
 			fmt_default_get_hash
 		},
 		lotus85_cmp_all,          /* Compare * hash (binary)  */

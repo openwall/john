@@ -394,6 +394,18 @@ static void* get_binary(char *ciphertext)
 	return out;
 }
 
+static int salt_hash(void *salt)
+{
+    unsigned char *s = salt;
+    unsigned int hash = 5381;
+    unsigned int len = SALT_SIZE;
+
+    while (len-- && *s)
+        hash = ((hash << 5) + hash) ^ *s++;
+
+    return hash & (SALT_HASH_SIZE - 1);
+}
+
 static void set_salt(void *salt)
 {
 	memcpy(saved_salt, salt, SALT_SIZE);
@@ -449,6 +461,14 @@ static int cmp_exact(char *source, int index)
 	return 1;
 }
 
+static int get_hash_0(int index) { return crypt_key[index][0] & 0xf; }
+static int get_hash_1(int index) { return crypt_key[index][0] & 0xff; }
+static int get_hash_2(int index) { return crypt_key[index][0] & 0xfff; }
+static int get_hash_3(int index) { return crypt_key[index][0] & 0xffff; }
+static int get_hash_4(int index) { return crypt_key[index][0] & 0xfffff; }
+static int get_hash_5(int index) { return crypt_key[index][0] & 0xffffff; }
+static int get_hash_6(int index) { return crypt_key[index][0] & 0x7ffffff; }
+
 struct fmt_main fmt_cq = {
 	{
 		FORMAT_LABEL,
@@ -482,16 +502,28 @@ struct fmt_main fmt_cq = {
 #endif
 		fmt_default_source,
 		{
-			fmt_default_binary_hash,
+			fmt_default_binary_hash_0,
+			fmt_default_binary_hash_1,
+			fmt_default_binary_hash_2,
+			fmt_default_binary_hash_3,
+			fmt_default_binary_hash_4,
+			fmt_default_binary_hash_5,
+			fmt_default_binary_hash_6
 		},
-		fmt_default_salt_hash,
+		salt_hash,
 		set_salt,
 		cq_set_key,
 		get_key,
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-			fmt_default_get_hash
+			get_hash_0,
+			get_hash_1,
+			get_hash_2,
+			get_hash_3,
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
 		},
 		cmp_all,
 		cmp_one,
