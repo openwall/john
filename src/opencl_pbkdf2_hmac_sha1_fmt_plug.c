@@ -549,6 +549,13 @@ static int salt_hash(void *salt)
 	return hash & (SALT_HASH_SIZE - 1);
 }
 
+#if FMT_MAIN_VERSION > 11
+static unsigned int iteration_count(void *salt)
+{
+	return ((pbkdf2_salt*)salt)->iterations;
+}
+#endif
+
 struct fmt_main fmt_ocl_pbkdf1_sha1 = {
 	{
 		FORMAT_LABEL,
@@ -565,7 +572,9 @@ struct fmt_main fmt_ocl_pbkdf1_sha1 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
 #if FMT_MAIN_VERSION > 11
-		{ NULL },
+		{
+			"iterations",
+		},
 #endif
 		tests
 	}, {
@@ -578,7 +587,9 @@ struct fmt_main fmt_ocl_pbkdf1_sha1 = {
 		binary,
 		salt,
 #if FMT_MAIN_VERSION > 11
-		{ NULL },
+		{
+			iteration_count,
+		},
 #endif
 		fmt_default_source,
 		{
