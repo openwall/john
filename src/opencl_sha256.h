@@ -124,6 +124,40 @@ __constant uint32_t clear_mask[] = {
     pos = (uint32_t) (start >> 2);		\
     dest[pos]   = (dest[pos] | (src << tmp));	\
 }
+
+#define APPEND_BE_SPECIAL(dest, src, index, start) {			       \
+    uint32_t tmp, pos, offset;						       \
+    tmp = ((start & 3) << 3);						       \
+    pos = (start >> 3);							       \
+    offset = OFFSET(index, pos);					       \
+    dest[offset] = (dest[offset] | (src >> tmp));			       \
+    if (pos < 7) {							       \
+	pos++;								       \
+	offset = OFFSET(index, pos);					       \
+	dest[offset] = (tmp ? (src << (32 - tmp)) : 0UL);		       \
+    }									       \
+}
+
+#define APPEND_BE_SINGLE(dest, src, start) {       \
+    uint32_t tmp, pos;                             \
+    tmp = ((start & 3) << 3);                      \
+    pos = (start >> 3);                            \
+    dest[pos] = (dest[pos] | (src >> tmp));        \
+}
+
+#define APPEND_BE_BUFFER(dest, src)				    \
+    dest[pos] = (dest[pos] | (src >> tmp));			    \
+    dest[++pos] = (tmp ? (src << (32 - tmp)) : 0UL);
+
+#define APPEND_BE_BUFFER_F(dest, src) 				    \
+    dest[pos] = (dest[pos] | (src >> tmp));			    \
+    if (pos < 15)						    \
+        dest[++pos] = (tmp ? (src << (32 - tmp)) : 0UL);	    \
+
+#define APPEND_BUFFER_F(dest, src) 				    \
+    dest[pos] = (dest[pos] | (src << tmp));			    \
+    if (pos < 15)						    \
+        dest[++pos] = (tmp ? (src >> (32 - tmp)) : 0UL);
 #endif
 
 #endif	/* OPENCL_SHA256_H */
