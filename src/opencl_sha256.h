@@ -1,7 +1,7 @@
 /*
  * Developed by Claudio André <claudioandre.br at gmail.com> in 2012
  *
- * Copyright (c) 2012 Claudio André <claudioandre.br at gmail.com>
+ * Copyright (c) 2012-2014 Claudio André <claudioandre.br at gmail.com>
  * This program comes with ABSOLUTELY NO WARRANTY; express or implied.
  *
  * This is free software, and you are welcome to redistribute it
