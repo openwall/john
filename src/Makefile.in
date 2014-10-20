@@ -567,7 +567,7 @@ zsh-completion:
 shell-completion: bash-completion zsh-completion
 
 clean:
-	$(RM) $(PROJ)
+	$(RM) $(PROJ) GNUmakefile
 	@for exe in ${PROJ}; do \
 	  ($(RM) $$exe.exe) \
 	done
@@ -708,7 +708,7 @@ distclean: clean
 	done && test -z "$$fail"
 	$(RM) -f Makefile autoconfig.h config.status config.cache config.log autoconfig-stamp-h stamp-h1 ../run/john.log
 	$(LN) Makefile.stub Makefile
-	$(RM) arch.h GNUmakefile
+	$(RM) arch.h
 	$(RM) fmt_registers.h fmt_externs.h john_build_rule.h
 
 # a rule to make snapshots  (NOTE, still to be done for JtR)

@@ -706,11 +706,8 @@ AC_SUBST([PLUGFORMATS_OBJS],[`echo *_plug.c | sed "s/\.c/.o/g"`])
 echo "configure: creating ./john_build_rule.h"
 echo "#define JOHN_BLD \"${host_os} ${CPU_BIT_STR}-bit${using_x32} ${CPU_STR}-autoconf\"" > john_build_rule.h
 
-# Use GNUmakefile if we have gmake
-AS_IF([test x$_cv_gnu_make_command = x], [makefile=Makefile], [makefile=GNUmakefile])
-
 AC_SUBST([HOST_OS],["$host_os"])
-AC_CONFIG_FILES([${makefile}
+AC_CONFIG_FILES([Makefile
                  aes/Makefile
                  aes/aesni/Makefile
                  aes/openssl/Makefile
@@ -795,14 +792,6 @@ if test x$_cv_gnu_make_command = x; then
    use_make=make
 else
    use_make=$_cv_gnu_make_command
-   # Workaround for .gitignore refusing to ignore Makefile since it is
-   # a managed file (the stub). The result of this is a *local* workaround.
-   AS_IF([test -d "../.git"],
-     [AC_CHECK_PROG([HAVE_GIT], [git], [yes], [no])]
-     [AS_IF([test "x$HAVE_GIT" = xyes],
-        [git update-index --assume-unchanged Makefile]
-     )]
-   )
 fi
 
 AS_IF([test "x$osx_assembler_warn" = xyes],

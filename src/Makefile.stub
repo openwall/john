@@ -1,6 +1,5 @@
 #
-# This is the stub Makefile. If you did run ./configure and have GNU make,
-# you are probably more interested in looking at GNUmakefile.
+# This is a stub Makefile. If you run ./configure you will get a real one.
 #
 generic: default
 

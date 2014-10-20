@@ -50,7 +50,6 @@ run/wpapcap2john
 run/zip2john
 
 src/.gdbinit
-src/GNUmakefile
 src/aes/aes.a
 src/arch.h
 src/autoconfig-stamp-h
