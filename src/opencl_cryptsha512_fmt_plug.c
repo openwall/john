@@ -273,7 +273,7 @@ static void release_clobj(void) {
 /* ------- Salt functions ------- */
 static void * get_salt(char *ciphertext) {
 	static sha512_salt out;
-	int len;
+	int len, i;
 
 	out.rounds = ROUNDS_DEFAULT;
 	ciphertext += 3;
@@ -298,6 +298,9 @@ static void * get_salt(char *ciphertext) {
 
 	//Put the tranfered salt on salt buffer.
 	memcpy(out.salt, ciphertext, len);
+
+	for (i = 0; i < SALT_ARRAY; i++)
+		out.salt_be[i].mem_64[0] = SWAP64(out.salt[i].mem_64[0]);
 	out.length = len;
 	out.final = out.rounds % HASH_LOOPS;
 
@@ -380,7 +383,7 @@ static void init(struct fmt_main * self) {
 		task = "$JOHN/kernels/cryptsha512_kernel_GCN.cl";
 	else if (_USE_GPU_SOURCE)
 		task = "$JOHN/kernels/cryptsha512_kernel_GPU.cl";
-
+	
 	build_kernel(task);
 
 	if (gpu_amd(source_in_use))

@@ -50,10 +50,26 @@
 	#define USE_BITSELECT
 #endif
 
+#if no_byte_addressable(DEVICE_INFO)
+	#define PUT         PUTCHAR
+	#define BUFFER      ctx->buffer->mem_32
+	#define F_BUFFER    ctx.buffer->mem_32
+#else
+	#define PUT         ATTRIB
+	#define BUFFER      ctx->buffer->mem_08
+	#define F_BUFFER    ctx.buffer->mem_08
+#endif
+
 #if gpu_amd(DEVICE_INFO) || no_byte_addressable(DEVICE_INFO)
 #define PUTCHAR(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2] & ~(0xffU << (((index) & 3) << 3))) + ((val) << (((index) & 3) << 3))
 #else
 #define PUTCHAR(buf, index, val) ((uchar*)(buf))[(index)] = (val)
+#endif
+
+#if no_byte_addressable(DEVICE_INFO)
+#define PUTCHAR_BE_64(buf, index, val) ((uchar*)(buf))[(index)] = (val)
+#else
+#define PUTCHAR_BE_64(buf, index, val) ((uchar*)(buf))[(index) ^ 7] = (val)
 #endif
 
 #define TRANSFER_SIZE           (1024 * 64)
@@ -135,7 +151,7 @@
 	ROUND_B(g, h, a, b, c, d, e, f, k[58], w[10], w[8],  w[11], w[10], w[3])\
 	ROUND_B(f, g, h, a, b, c, d, e, k[59], w[11], w[9],  w[12], w[11], w[4])\
 	ROUND_B(e, f, g, h, a, b, c, d, k[60], w[12], w[10], w[13], w[12], w[5])
-
+///TODO remove-me.
 #define SHA256()\
 	ROUND_A(a, b, c, d, e, f, g, h, k[0],  w[0])\
 	ROUND_A(h, a, b, c, d, e, f, g, k[1],  w[1])\
@@ -280,7 +296,7 @@
 	ROUND_B(g, h, a, b, c, d, e, f, k[74], w[10], w[8],  w[11], w[10], w[3])\
 	ROUND_B(f, g, h, a, b, c, d, e, k[75], w[11], w[9],  w[12], w[11], w[4])\
 	ROUND_B(e, f, g, h, a, b, c, d, k[76], w[12], w[10], w[13], w[12], w[5])
-
+///TODO remove-me.
 #define SHA512()\
 	ROUND_A(a, b, c, d, e, f, g, h, k[0],  w[0])\
 	ROUND_A(h, a, b, c, d, e, f, g, k[1],  w[1])\
@@ -363,14 +379,40 @@
 	ROUND_B(c, d, e, f, g, h, a, b, k[78], w[14], w[12], w[15], w[14], w[7])\
 	ROUND_B(b, c, d, e, f, g, h, a, k[79], w[15], w[13], w[0],  w[15], w[8])
 
-#if no_byte_addressable(DEVICE_INFO)
-    #define PUT         PUTCHAR
-    #define BUFFER      ctx->buffer->mem_32
-    #define F_BUFFER    ctx.buffer->mem_32
-#else
-    #define PUT         ATTRIB
-    #define BUFFER      ctx->buffer->mem_08
-    #define F_BUFFER    ctx.buffer->mem_08
+#ifdef _OPENCL_COMPILER
+	// ** Precomputed index to position/values. **
+	//0:		0					=>  1
+	//0: 3		14,28					=>  2
+	//0: 7		6,12,18,24,30,36			=>  6
+	//0: 3,7	2,4,8,10,16,20,22,26,32,34,38,40	=> 12
+	//1:		21					=>  1
+	//1: 3		7,35					=>  2
+	//1: 7		3,9,15,27,33,39				=>  6
+	//1: 3,7	1,5,11,13,17,19,23,25,29,31,37,41	=> 12
+	__constant int loop_index[] = {
+	    0, /* 0,000*/ 7, /* 1,111*/ 3, /* 2,011*/ 5, /* 3,101*/
+	    3, /* 4,011*/ 7, /* 5,111*/ 1, /* 6,001*/ 6, /* 7,110*/
+	    3, /* 8,011*/ 5, /* 9,101*/ 3, /*10,011*/ 7, /*11,111*/
+	    1, /*12,001*/ 7, /*13,111*/ 2, /*14,010*/ 5, /*15,101*/
+	    3, /*16,011*/ 7, /*17,111*/ 1, /*18,001*/ 7, /*19,111*/
+	    3, /*20,011*/ 4, /*21,100*/ 3, /*22,011*/ 7, /*23,111*/
+	    1, /*24,001*/ 7, /*25,111*/ 3, /*26,011*/ 5, /*27,101*/
+	    2, /*28,010*/ 7, /*29,111*/ 1, /*30,001*/ 7, /*31,111*/
+	    3, /*32,011*/ 5, /*33,101*/ 3, /*34,011*/ 6, /*35,110*/
+	    1, /*36,001*/ 7, /*37,111*/ 3, /*38,011*/ 5, /*39,101*/
+	    3, /*40,011*/ 7, /*41,111*/
+	};
+
+	__constant int generator_index[] = {
+	    0,	    /*  0, 000 */
+	    6,	    /*  6, 001 */
+	    14,	    /* 14, 010 */
+	    2,	    /*  2, 011 */
+	    21,	    /* 21, 100 */
+	    3,	    /*  3, 101 */
+	    7,	    /*  7, 110 */
+	    1	    /*  1, 111 */
+	};
 #endif
 
 #ifndef _OPENCL_COMPILER
