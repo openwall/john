@@ -167,17 +167,20 @@ static char *fmt_self_test_body(struct fmt_main *format,
 	if (format->private.initialized == 2)
 		return NULL;
 #endif
-	MemDbg_Validate_msg(MEMDBG_VALIDATE_DEEPEST, "\nAt start of self-test:");
 
 #ifndef BENCH_BUILD
 	if (options.flags & FLG_NOTESTS) {
 		fmt_init(format);
+		dyna_salt_init(format);
 		format->methods.reset(NULL);
 		format->private.initialized = 2;
 		format->methods.clear_keys();
 		return NULL;
 	}
 #endif
+
+	MemDbg_Validate_msg(MEMDBG_VALIDATE_DEEPEST,
+	                    "\nAt start of self-test:");
 
 	if (!(current = format->params.tests)) return NULL;
 	ntests = 0;
