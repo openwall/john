@@ -99,8 +99,9 @@ void cuda_device_list()
 		printf("\tType:                          %s%s\n",
 		    devProp.integrated ? "integrated" : "discrete",
 		    devProp.tccDriver ? " (Tesla running tcc)" : "");
-		printf("\tCompute capability:            sm_%d%d\n",
-		    devProp.major, devProp.minor);
+		printf("\tCompute capability:            %d.%d (sm_%d%d)\n",
+		       devProp.major, devProp.minor,
+		       devProp.major, devProp.minor);
 
 		if (devProp.major <= 5 && arch_sm[devProp.major])
 		printf("\tNumber of stream processors:   %d (%d x %d)\n",
