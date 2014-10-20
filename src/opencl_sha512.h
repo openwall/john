@@ -28,16 +28,6 @@
 	#define Ch(x,y,z)       bitselect(z, y, x)
 	#define Maj(x,y,z)      bitselect(x, y, z ^ x)
 	#define ror(x, n)       rotate(x, (64UL-n))
-	#define OLD(n)		rotate(n & 0xFF000000FF000000UL, 8UL)  | \
-				rotate(n & 0x00FF000000FF0000UL, 24UL) | \
-				rotate(n & 0x0000FF000000FF00UL, 40UL) | \
-				rotate(n & 0x000000FF000000FFUL, 56UL)
-
-	#define NOT_BETTER(n)	(0x0000FFFF0000FFFFUL & bitselect(rotate(n, 24UL), \
-				    rotate(n, 8UL), 0x000000FF000000FFUL)) |	   \
-				(0xFFFF0000FFFF0000UL & bitselect(rotate(n, 56UL), \
-				    rotate(n, 40UL), 0x00FF000000FF0000UL))
-
 	#define SWAP64(n)	bitselect(					    \
 				    bitselect(rotate(n, 24UL),			    \
 					rotate(n, 8UL), 0x000000FF000000FFUL),	    \
@@ -125,11 +115,11 @@ __constant uint64_t clear_mask_be[] = {
 	length = pos;                              \
 }
 
-#define CLEAR_BUFFER_BE_64(dest, start) {             \
+#define CLEAR_BUFFER_BE_64(dest, start) {          \
     uint32_t tmp, pos;                             \
     tmp = (start & 7);				   \
     pos = (start >> 3);				   \
-    dest[pos] = dest[pos] & clear_mask_be[tmp];       \
+    dest[pos] = dest[pos] & clear_mask_be[tmp];    \
     if (tmp)                                       \
         length = pos + 1;                          \
     else                                           \

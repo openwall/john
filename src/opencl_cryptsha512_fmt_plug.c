@@ -383,7 +383,7 @@ static void init(struct fmt_main * self) {
 		task = "$JOHN/kernels/cryptsha512_kernel_GCN.cl";
 	else if (_USE_GPU_SOURCE)
 		task = "$JOHN/kernels/cryptsha512_kernel_GPU.cl";
-	
+
 	build_kernel(task);
 
 	if (gpu_amd(source_in_use))
