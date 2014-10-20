@@ -8145,7 +8145,7 @@ CC_BACKUP=$CC
 
 # Check for -march=native and add it to CPU_BEST_FLAGS
 # This should be rewritten for aestethical reasons and readability
-if test "x$enable_native_tests" != xno -a "x$enable_native_macro" != xno; then
+if test "x$enable_native_tests" != xno -a "x$enable_native_macro" != xno -a "x$osx_assembler_warn" != xyes; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether compiler understands -march=native" >&5
 $as_echo_n "checking whether compiler understands -march=native... " >&6; }
   CC="$CC_BACKUP -march=native"
