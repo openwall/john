@@ -95,7 +95,7 @@ static cl_mem cl_saved_key, cl_saved_len, cl_salt, cl_pwhash, cl_key, cl_spincou
 static cl_mem pinned_saved_key, pinned_saved_len, pinned_salt, pinned_key;
 static cl_kernel GenerateSHA512pwhash, Generate2013key;
 
-#define HASH_LOOPS		64 /* Lower figure gives less X hogging */
+#define HASH_LOOPS		100 /* Lower figure gives less X hogging */
 #define ITERATIONS		100000
 #define STEP			0
 #define SEED			64
@@ -334,8 +334,7 @@ static void init(struct fmt_main *self)
 
 	//Auto tune execution from shared/included code.
 	self->methods.crypt_all = crypt_all_benchmark;
-	autotune_run(self, ITERATIONS + 4, 0,
-		(cpu(device_info[gpu_id]) ? 5000000000 : 10000000000ULL));
+	autotune_run(self, ITERATIONS + 4, 0, 10000 * HASH_LOOPS / ITERATIONS);
 	self->methods.crypt_all = crypt_all;
 
 	self->params.min_keys_per_crypt = local_work_size * v_width;
