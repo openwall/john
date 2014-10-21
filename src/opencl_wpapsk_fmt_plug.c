@@ -209,7 +209,8 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *salt);
 
 static void init(struct fmt_main *self)
 {
-	char build_opts[128];
+	char *custom_opts;
+	char build_opts[256];
 	static char valgo[32] = "";
 
 	if ((v_width = opencl_get_vector_width(gpu_id,
@@ -220,9 +221,16 @@ static void init(struct fmt_main *self)
 		self->params.algorithm_name = valgo;
 	}
 
+	if (!(custom_opts = getenv(OCL_CONFIG "_BuildOpts")))
+		custom_opts = cfg_get_param(SECTION_OPTIONS,
+		                            SUBSECTION_OPENCL,
+		                            OCL_CONFIG "_BuildOpts");
+
 	snprintf(build_opts, sizeof(build_opts),
-	         "-DHASH_LOOPS=%u -DITERATIONS=%u "
+	         "%s%s-DHASH_LOOPS=%u -DITERATIONS=%u "
 	         "-DPLAINTEXT_LENGTH=%u -DV_WIDTH=%u",
+	         custom_opts ? custom_opts : "",
+	         custom_opts ? " " : "",
 	         HASH_LOOPS, ITERATIONS,
 	         PLAINTEXT_LENGTH, v_width);
 	opencl_init("$JOHN/kernels/wpapsk_kernel.cl", gpu_id, build_opts);
@@ -246,7 +254,8 @@ static void init(struct fmt_main *self)
 
 	// Auto tune execution from shared/included code.
 	self->methods.crypt_all = crypt_all_benchmark;
-	autotune_run(self, 2 * ITERATIONS * 2 + 2, 0, 100);
+	autotune_run(self, 2 * ITERATIONS * 2 + 2, 0,
+	             10000 * HASH_LOOPS / (2 * ITERATIONS));
 	self->methods.crypt_all = crypt_all;
 
 	self->params.min_keys_per_crypt = local_work_size * v_width;

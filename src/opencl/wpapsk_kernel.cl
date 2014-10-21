@@ -19,18 +19,20 @@
 #define SCALAR
 #endif
 
-#if gpu_amd(DEVICE_INFO)
+#if gpu_amd(DEVICE_INFO) || nvidia_sm_5x(DEVICE_INFO)
 #define USE_BITSELECT
+#elif gpu_nvidia(DEVICE_INFO) && !nvidia_sm_5x(DEVICE_INFO)
+#define OLD_NVIDIA
 #endif
 
 /* Workaround for problem seen with 9600GT */
-#if gpu_nvidia(DEVICE_INFO)
+#ifdef OLD_NVIDIA
 #define MAYBE_CONSTANT	__global const
 #else
 #define MAYBE_CONSTANT	__constant
 #endif
 
-#ifdef SCALAR
+#if defined(USE_BITSELECT) || defined(SCALAR)
 #define VSWAP32 SWAP32
 #else
 /* Vector-capable swap32() */
@@ -41,11 +43,15 @@ inline MAYBE_VECTOR_UINT VSWAP32(MAYBE_VECTOR_UINT x)
 }
 #endif
 
+#ifdef USE_BITSELECT
+#define SWAP32(n)	bitselect(rotate(n, 24U), rotate(n, 8U), 0x00FF00FFU)
+#else
 inline uint SWAP32(uint x)
 {
 	x = rotate(x, 16U);
 	return ((x & 0x00FF00FF) << 8) + ((x >> 8) & 0x00FF00FF);
 }
+#endif
 
 typedef struct
 {
@@ -84,7 +90,7 @@ typedef struct {
 #define XORCHAR_BE(buf, index, val) ((uchar*)(buf))[(index) ^ 3] ^= (val)
 #endif
 
-#if gpu_nvidia(DEVICE_INFO) /* Lukas' original SHA-1 */
+#ifdef OLD_NVIDIA /* Lukas' original SHA-1 */
 
 #define INIT_A			0x67452301
 #define INIT_B			0xefcdab89
@@ -641,7 +647,7 @@ inline void hmac_sha1(__global MAYBE_VECTOR_UINT *state,
 	uint i;
 	MAYBE_VECTOR_UINT W[16];
 	MAYBE_VECTOR_UINT output[5];
-#if !gpu_nvidia(DEVICE_INFO)
+#ifndef OLD_NVIDIA
 	MAYBE_VECTOR_UINT K;
 #endif
 	MAYBE_VECTOR_UINT A, B, C, D, E, temp;
@@ -668,7 +674,7 @@ inline void hmac_sha1(__global MAYBE_VECTOR_UINT *state,
 
 	for (i = 0; i < 5; i++)
 		output[i] = state[(OPAD + i) * gws + gid];
-#if gpu_nvidia(DEVICE_INFO)
+#ifdef OLD_NVIDIA
 	sha1_block_short(W, output);
 #else
 	for (i = 6; i < 15; i++)
@@ -686,7 +692,7 @@ inline void preproc(__global const MAYBE_VECTOR_UINT *key,
 	uint i;
 	MAYBE_VECTOR_UINT W[16];
 	MAYBE_VECTOR_UINT output[5];
-#if !gpu_nvidia(DEVICE_INFO)
+#ifndef OLD_NVIDIA
 	MAYBE_VECTOR_UINT K;
 #endif
 	MAYBE_VECTOR_UINT A, B, C, D, E, temp;
@@ -729,7 +735,7 @@ void wpapsk_loop(__global MAYBE_VECTOR_UINT *state)
 	uint gid = get_global_id(0);
 	uint gws = get_global_size(0);
 	uint i, j;
-#if !gpu_nvidia(DEVICE_INFO)
+#ifndef OLD_NVIDIA
 	MAYBE_VECTOR_UINT K;
 #endif
 	MAYBE_VECTOR_UINT A, B, C, D, E, temp;
@@ -751,7 +757,7 @@ void wpapsk_loop(__global MAYBE_VECTOR_UINT *state)
 			output[i] = ipad[i];
 		W[5] = 0x80000000;
 		W[15] = (64 + 20) << 3;
-#if gpu_nvidia(DEVICE_INFO)
+#ifdef OLD_NVIDIA
 		sha1_block_short(W, output);
 #else
 		for (i = 6; i < 15; i++)
@@ -765,7 +771,7 @@ void wpapsk_loop(__global MAYBE_VECTOR_UINT *state)
 		W[15] = (64 + 20) << 3;
 		for (i = 0; i < 5; i++)
 			output[i] = opad[i];
-#if gpu_nvidia(DEVICE_INFO)
+#ifdef OLD_NVIDIA
 		sha1_block_short(W, output);
 #else
 		for (i = 6; i < 15; i++)
@@ -819,7 +825,7 @@ inline void prf_512(const MAYBE_VECTOR_UINT *key,
 	MAYBE_VECTOR_UINT W[16];
 	MAYBE_VECTOR_UINT ipad[5];
 	MAYBE_VECTOR_UINT opad[5];
-#if !gpu_nvidia(DEVICE_INFO)
+#ifndef OLD_NVIDIA
 	MAYBE_VECTOR_UINT K;
 #endif
 	MAYBE_VECTOR_UINT A, B, C, D, E, temp;
@@ -868,7 +874,7 @@ inline void prf_512(const MAYBE_VECTOR_UINT *key,
 		W[i] = ipad[i];
 	W[5] = 0x80000000;
 	W[15] = (64 + 20) << 3;
-#if gpu_nvidia(DEVICE_INFO)
+#ifdef OLD_NVIDIA
 	sha1_block_short(W, opad);
 #else
 	for (i = 6; i < 15; i++)
@@ -993,7 +999,7 @@ void wpapsk_final_sha1(__global MAYBE_VECTOR_UINT *state,
 	MAYBE_VECTOR_UINT opad[5];
 	uint i, eapol_blocks;
 	MAYBE_CONSTANT uint *cp = salt->eapol;
-#if !gpu_nvidia(DEVICE_INFO)
+#ifndef OLD_NVIDIA
 	MAYBE_VECTOR_UINT K;
 #endif
 	MAYBE_VECTOR_UINT A, B, C, D, E, temp;
@@ -1040,7 +1046,7 @@ void wpapsk_final_sha1(__global MAYBE_VECTOR_UINT *state,
 		W[i] = ipad[i];
 	W[5] = 0x80000000;
 	W[15] = (64 + 20) << 3;
-#if gpu_nvidia(DEVICE_INFO)
+#ifdef OLD_NVIDIA
 	sha1_block_short(W, opad);
 #else
 	for (i = 6; i < 15; i++)
