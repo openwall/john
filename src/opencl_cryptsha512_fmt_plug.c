@@ -273,7 +273,7 @@ static void release_clobj(void) {
 /* ------- Salt functions ------- */
 static void * get_salt(char *ciphertext) {
 	static sha512_salt out;
-	int len, i;
+	int len;
 
 	out.rounds = ROUNDS_DEFAULT;
 	ciphertext += 3;
@@ -298,9 +298,6 @@ static void * get_salt(char *ciphertext) {
 
 	//Put the tranfered salt on salt buffer.
 	memcpy(out.salt, ciphertext, len);
-
-	for (i = 0; i < SALT_ARRAY; i++)
-		out.salt_be[i].mem_64[0] = SWAP64(out.salt[i].mem_64[0]);
 	out.length = len;
 	out.final = out.rounds % HASH_LOOPS;
 
