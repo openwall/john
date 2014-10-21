@@ -125,11 +125,10 @@ inline void sha512_block(sha512_ctx * ctx) {
     uint64_t w[16];
 
 #ifdef VECTOR_USAGE
-    ulong16  w_vector;
-    w_vector = vload16(0, ctx->buffer->mem_64);
-    w_vector = (w_vector);
+    ulong16  w_vector = vload16(0, ctx->buffer->mem_64);
     vstore16(w_vector, 0, w);
 #else
+    #pragma unroll
     for (int i = 0; i < 16; i++)
         w[i] = (ctx->buffer[i].mem_64[0]);
 #endif
@@ -182,6 +181,7 @@ inline void sha512_digest(sha512_ctx * ctx,
 
     if (ctx->buflen <= 111) { //data+0x80+datasize fits in one 1024bit block
 	APPEND_BE_SINGLE(ctx->buffer->mem_64, 0x8000000000000000UL, ctx->buflen);
+	clear_buffer(ctx->buffer->mem_64, ctx->buflen+1, 16);
 	ctx->buffer[15].mem_64[0] = ((uint64_t) (ctx->total * 8));
 	ctx->buflen = 0;
 
@@ -190,6 +190,7 @@ inline void sha512_digest(sha512_ctx * ctx,
 
         if (ctx->buflen < 128) { //data and 0x80 fits in one block
 	    APPEND_BE_SINGLE(ctx->buffer->mem_64, 0x8000000000000000UL, ctx->buflen);
+	    clear_buffer(ctx->buffer->mem_64, ctx->buflen+1, 16);
             moved = false;
         }
         sha512_block(ctx);
@@ -504,6 +505,7 @@ inline void sha512_digest_slim(sha512_ctx * ctx,
 
     if (ctx->buflen <= 111) { //data+0x80+datasize fits in one 1024bit block
 	APPEND_BE_SINGLE(ctx->buffer->mem_64, 0x8000000000000000UL, ctx->buflen);
+	clear_buffer(ctx->buffer->mem_64, ctx->buflen+1, 16);
 	ctx->buffer[15].mem_64[0] = ((uint64_t) (ctx->total * 8));
 	ctx->buflen = 0;
 
@@ -512,6 +514,7 @@ inline void sha512_digest_slim(sha512_ctx * ctx,
 
         if (ctx->buflen < 128) { //data and 0x80 fits in one block
 	    APPEND_BE_SINGLE(ctx->buffer->mem_64, 0x8000000000000000UL, ctx->buflen);
+	    clear_buffer(ctx->buffer->mem_64, ctx->buflen+1, 16);
             moved = false;
         }
         sha512_block_slim(ctx->buffer->mem_64, ctx->H);
@@ -542,7 +545,6 @@ inline void sha512_crypt(__global sha512_buffers * tmp_memory,
     for (uint32_t i = initial; i < rounds; i++) {
         //Prepare CTX buffer.
         clear_ctx_buffer(&ctx);
-	ctx.total = 0;
 
 	if (i & 1) {
 	    ctx.buffer[0].mem_64[0] = p_sequence[0].mem_64[0];
@@ -568,8 +570,10 @@ inline void sha512_crypt(__global sha512_buffers * tmp_memory,
 	    ctx.total = ctx.buflen;
 	}
 
-        if (i % 7)
-            ctx_update_G(&ctx, p_sequence->mem_08, passlen);
+        if (i % 7) {
+            insert_to_buffer_G(&ctx, p_sequence->mem_08, passlen);
+	    ctx.total = ctx.buflen;
+	}
 
 	if (i & 1)
             ctx_update_R(&ctx, (uint8_t *) ctx.H, 64U);
