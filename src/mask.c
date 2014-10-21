@@ -31,6 +31,7 @@
 
 static parsed_ctx parsed_mask;
 static cpu_mask_context cpu_mask_ctx, rec_ctx;
+static char *mask = NULL;
 
 /* cand and rec_cand is the number of remaining candidates.
  * So, it's value decreases as cracking progress.
@@ -1165,10 +1166,11 @@ static unsigned long int divide_work(cpu_mask_context *cpu_mask_ctx)
 	return my_candidates;
 }
 
-void do_mask_crack(struct db_main *db, char *mask)
+void mask_init(struct db_main *db, char *unprocessed_mask)
 {
 	int i;
-	char *template_key;
+
+	mask = unprocessed_mask;
 
 	/* We do not yet support min/max-len */
 	if (options.force_minlength >= 0 || options.force_maxlength) {
@@ -1245,7 +1247,6 @@ void do_mask_crack(struct db_main *db, char *mask)
 	 * regarding GPU portion of mask.
 	 */
 	skip_position(&cpu_mask_ctx, NULL);
-	template_key = generate_template_key(mask, &parsed_mask);
 
 	if (options.node_count)
 		cand = divide_work(&cpu_mask_ctx);
@@ -1262,9 +1263,10 @@ void do_mask_crack(struct db_main *db, char *mask)
 	rec_init(db, save_state);
 
 	crk_init(db, fix_state, NULL);
+}
 
-	generate_keys(template_key, &cpu_mask_ctx, &cand);
-
+void mask_done()
+{
 	// For reporting DONE regardless of rounding errors
 	if (!event_abort)
 		cand = ((unsigned long long)status.cands.hi << 32) +
@@ -1273,6 +1275,15 @@ void do_mask_crack(struct db_main *db, char *mask)
 	crk_done();
 
 	rec_done(event_abort);
+}
+
+void do_mask_crack()
+{
+	char *template_key;
+
+	template_key = generate_template_key(mask, &parsed_mask);
+
+	generate_keys(template_key, &cpu_mask_ctx, &cand);
 
 	MEM_FREE(template_key);
 }

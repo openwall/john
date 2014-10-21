@@ -1326,6 +1326,9 @@ static void john_run(void)
 			}
 		}
 
+		if (options.mask)
+			mask_init(&database, options.mask);
+
 		if (options.flags & FLG_SINGLE_CHK)
 			do_single_crack(&database);
 		else
@@ -1342,7 +1345,7 @@ static void john_run(void)
 			do_incremental_crack(&database, options.charset);
 		else
 		if (options.flags & FLG_MASK_CHK)
-			do_mask_crack(&database, options.mask);
+			do_mask_crack();
 		else
 		if (options.flags & FLG_MKV_CHK)
 			do_markov_crack(&database, options.mkv_param);
@@ -1354,6 +1357,9 @@ static void john_run(void)
 			do_batch_crack(&database);
 
 		status_print();
+
+		if (options.mask)
+			mask_done();
 
 #if OS_FORK
 		if (options.fork && john_main_process)

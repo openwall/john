@@ -64,8 +64,16 @@ typedef struct {
 } cpu_mask_context;
 
 /*
+ * Initialize mask mode cracker.
+ */
+extern void mask_init(struct db_main *db, char *unprocessed_mask);
+
+/*
  * Runs the mask mode cracker.
  */
-extern void do_mask_crack(struct db_main *db, char *mask);
+extern void do_mask_crack(void);
+
+extern void mask_done(void);
+
 
 #endif
