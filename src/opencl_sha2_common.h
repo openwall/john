@@ -67,8 +67,10 @@
 #endif
 
 #if no_byte_addressable(DEVICE_INFO)
-#define PUTCHAR_BE_64(buf, index, val) ((uchar*)(buf))[(index)] = (val)
+#define PUTCHAR_BE_32(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2] & ~(0xffU << ((((index) & 3) ^ 3) << 3))) + ((val) << ((((index) & 3) ^ 3) << 3))
+#define PUTCHAR_BE_64(buf, index, val) (buf)[(index)>>3] = ((buf)[(index)>>3] & ~(0xffU << ((((index) & 3) ^ 7) << 3))) + ((val) << ((((index) & 7) ^ 3) << 3))
 #else
+#define PUTCHAR_BE_32(buf, index, val) ((uchar*)(buf))[(index) ^ 3] = (val)
 #define PUTCHAR_BE_64(buf, index, val) ((uchar*)(buf))[(index) ^ 7] = (val)
 #endif
 
