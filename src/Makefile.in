@@ -567,7 +567,7 @@ zsh-completion:
 shell-completion: bash-completion zsh-completion
 
 clean:
-	$(RM) $(PROJ) GNUmakefile
+	$(RM) $(PROJ)
 	@for exe in ${PROJ}; do \
 	  ($(RM) $$exe.exe) \
 	done

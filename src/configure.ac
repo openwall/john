@@ -71,6 +71,11 @@ AC_ARG_ENABLE([nt-full-unicode], [AS_HELP_STRING([--enable-nt-full-unicode],[sup
 
 ####### Actual tests start here #######
 
+# Assert that we don't have a stray GNUmakefile left in the tree :-(
+if test -f GNU?akefile; then
+   AC_MSG_ERROR([Stray GNUmakefile (or GNUMakefile) detected. Please remove it])
+fi
+
 # Support cross compile
 AC_CANONICAL_HOST
 

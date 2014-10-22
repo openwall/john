@@ -3590,6 +3590,11 @@ fi
 
 ####### Actual tests start here #######
 
+# Assert that we don't have a stray GNUmakefile left in the tree :-(
+if test -f GNU?akefile; then
+   as_fn_error $? "Stray GNUmakefile (or GNUMakefile) detected. Please remove it" "$LINENO" 5
+fi
+
 # Support cross compile
 ac_aux_dir=
 for ac_dir in "$srcdir" "$srcdir/.." "$srcdir/../.."; do
