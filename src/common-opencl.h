@@ -4,7 +4,7 @@
  * Common OpenCL functions go in this file.
  *
  *
- * Copyright (c) 2013 by Claudio André <claudioandre.br at gmail.com>,
+ * Copyright (c) 2013-2014 Claudio André <claudioandre.br at gmail.com>,
  * Copyright (c) 2012-2013 magnum,
  * Others and
  * is hereby released to the general public under the following terms:
