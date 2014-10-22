@@ -51,6 +51,7 @@ typedef struct {
     uint32_t                    length;
     uint32_t                    final;
     buffer_32                   salt[SALT_ARRAY];
+    buffer_32                   salt_be[SALT_ARRAY];
 } sha256_salt;
 #define SALT_SIZE               sizeof(sha256_salt)
 

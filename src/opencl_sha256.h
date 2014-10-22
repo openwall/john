@@ -26,13 +26,14 @@
 	#define Ch(x, y, z)     bitselect(z, y, x)
 	#define Maj(x, y, z)    bitselect(x, y, z ^ x)
 	#define ror(x, n)       rotate(x, (uint32_t) 32-n)
-	#define SWAP32(n)       rotate(n & 0x00FF00FF, 24U) | rotate(n & 0xFF00FF00, 8U)
+#define SWAP32(n)		SWAP(n)
+	//#define SWAP32(n)       rotate(n & 0x00FF00FF, 24U) | rotate(n & 0xFF00FF00, 8U)
 
-#ifdef AMD_STUPID_BUG_2
-	#define SWAP_V(n)	bitselect(rotate(n, 24U), rotate(n, 8U), 0x00FF00FFU)
-#else
+//#ifdef AMD_STUPID_BUG_2
+//	#define SWAP_V(n)	bitselect(rotate(n, 24U), rotate(n, 8U), 0x00FF00FFU)
+//#else
 	#define SWAP_V(n)	SWAP32(n)
-#endif
+//#endif
 
 #else
 	#define Ch(x, y, z)     ((x & y) ^ ( (~x) & z))
@@ -83,6 +84,12 @@ __constant uint32_t clear_mask[] = {
     0xffffffffUL				//32    bits
 };
 
+__constant uint32_t clear_mask_be[] = {
+    0xffffffffUL, 0xff000000UL,			//0,   8bits
+    0xffff0000UL, 0xffffff00UL,			//16, 24bits
+    0xffffffffUL				//32    bits
+};
+
 #define CLEAR_BUFFER_32_SINGLE(dest, start) {	\
     uint32_t tmp, pos;				\
     tmp = (uint32_t) (start & 3);		\
@@ -99,6 +106,17 @@ __constant uint32_t clear_mask[] = {
 	length = pos + 1;			\
     else					\
 	length = pos;				\
+}
+
+#define CLEAR_BUFFER_BE_32(dest, start) {       \
+    uint32_t tmp, pos;                          \
+    tmp = (uint32_t) (start & 3);		\
+    pos = (uint32_t) (start >> 2);		\
+    dest[pos] = dest[pos] & clear_mask_be[tmp]; \
+    if (tmp)                                    \
+        length = pos + 1;                       \
+    else                                        \
+	length = pos;                           \
 }
 
 #define APPEND(dest, src, start) {		\
@@ -125,23 +143,10 @@ __constant uint32_t clear_mask[] = {
     dest[pos]   = (dest[pos] | (src << tmp));	\
 }
 
-#define APPEND_BE_SPECIAL(dest, src, index, start) {			       \
-    uint32_t tmp, pos, offset;						       \
-    tmp = ((start & 3) << 3);						       \
-    pos = (start >> 3);							       \
-    offset = OFFSET(index, pos);					       \
-    dest[offset] = (dest[offset] | (src >> tmp));			       \
-    if (pos < 7) {							       \
-	pos++;								       \
-	offset = OFFSET(index, pos);					       \
-	dest[offset] = (tmp ? (src << (32 - tmp)) : 0UL);		       \
-    }									       \
-}
-
 #define APPEND_BE_SINGLE(dest, src, start) {       \
     uint32_t tmp, pos;                             \
-    tmp = ((start & 3) << 3);                      \
-    pos = (start >> 3);                            \
+    tmp = (uint32_t) ((start & 3) << 3);           \
+    pos = (uint32_t) (start >> 2);                 \
     dest[pos] = (dest[pos] | (src >> tmp));        \
 }
 

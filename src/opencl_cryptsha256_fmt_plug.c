@@ -215,7 +215,7 @@ static void release_clobj(void) {
 /* ------- Salt functions ------- */
 static void * get_salt(char *ciphertext) {
 	static sha256_salt out;
-	int len;
+	int len, i;
 
 	out.rounds = ROUNDS_DEFAULT;
 	ciphertext += 3;
@@ -240,6 +240,9 @@ static void * get_salt(char *ciphertext) {
 
 	//Put the tranfered salt on salt buffer.
 	memcpy(out.salt, ciphertext, len);
+
+	for (i = 0; i < SALT_ARRAY; i++)
+		out.salt_be[i].mem_32[0] = SWAP32(out.salt[i].mem_32[0]);
 	out.length = len;
 	out.final = out.rounds % HASH_LOOPS;
 
@@ -426,7 +429,7 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 	gws = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
 
 	//Send data to device.
-	if (new_keys)
+	if (1) //Always, since I change keys in device memory.
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], pass_buffer, CL_FALSE, 0,
 				sizeof(sha256_password) * gws, plaintext, 0, NULL, NULL),
 				"failed in clEnqueueWriteBuffer pass_buffer");
