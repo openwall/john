@@ -26,15 +26,8 @@
 	#define Ch(x, y, z)     bitselect(z, y, x)
 	#define Maj(x, y, z)    bitselect(x, y, z ^ x)
 	#define ror(x, n)       rotate(x, (uint32_t) 32-n)
-#define SWAP32(n)		SWAP(n)
-	//#define SWAP32(n)       rotate(n & 0x00FF00FF, 24U) | rotate(n & 0xFF00FF00, 8U)
-
-//#ifdef AMD_STUPID_BUG_2
-//	#define SWAP_V(n)	bitselect(rotate(n, 24U), rotate(n, 8U), 0x00FF00FFU)
-//#else
+	#define SWAP32(n)	bitselect(rotate(n, 24U), rotate(n, 8U), 0x00FF00FFU)
 	#define SWAP_V(n)	SWAP32(n)
-//#endif
-
 #else
 	#define Ch(x, y, z)     ((x & y) ^ ( (~x) & z))
 	#define Maj(x, y, z)    ((x & y) ^ (x & z) ^ (y & z))

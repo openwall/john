@@ -28,11 +28,19 @@
     #define AMD_STUPID_BUG_1
 
     ///TODO: can't use a valid command twice on sha256crypt. (At least) HD 6770.
-    #define AMD_STUPID_BUG_2
+    ///Fixed. Kept for future reference.
+    /// ----------------------
+    ///  #define SWAP32(n)	rotate(n & 0x00FF00FF, 24U) | rotate(n & 0xFF00FF00, 8U)
+    ///  #ifdef AMD_STUPID_BUG_2
+    ///	   #define SWAP_V(n)	bitselect(rotate(n, 24U), rotate(n, 8U), 0x00FF00FFU)
+    /// ----------------------
+    ///#define AMD_STUPID_BUG_2
 
     ///TODO: can't use constant. (At least) HD 6770.
     ///Fixed. Kept for future reference.
+    /// ----------------------
     ///inline void sha512_prepare(__constant   sha512_salt     * salt_data,
+    /// ----------------------
     ///#define AMD_STUPID_BUG_3
 #endif
 
@@ -75,12 +83,6 @@
 #endif
 
 #define TRANSFER_SIZE           (1024 * 64)
-
-#define CLEAR_CTX_32(i)\
-    ctx.buffer[i].mem_32[0] = 0;
-
-#define CLEAR_CTX_64(i)\
-    ctx.buffer[i].mem_64[0] = 0;
 
 #define ROUND_A(A, B, C, D, E, F, G, H, ki, wi)\
 	t = (ki) + (wi) + (H) + Sigma1(E) + Ch((E),(F),(G));\
