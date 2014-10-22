@@ -96,7 +96,7 @@ static struct opt_entry opt_list[] = {
 		OPT_FMT_STR_ALLOC, &pers_opts.activewordlistrules},
 	{"incremental", FLG_INC_SET, FLG_CRACKING_CHK,
 		0, 0, OPT_FMT_STR_ALLOC, &options.charset},
-	{"mask", FLG_MASK_SET, FLG_CRACKING_CHK,
+	{"mask", FLG_MASK_SET, FLG_MASK_CHK,
 		0, 0, OPT_FMT_STR_ALLOC, &options.mask},
 	{"1", FLG_ZERO, 0, FLG_MASK_SET, OPT_REQ_PARAM,
 		OPT_FMT_STR_ALLOC, &options.custom_mask[0]},
@@ -467,6 +467,12 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 			if (rec_restored)
 				ext_flags |= EXT_REQ_RESTORE;
 		}
+	}
+	if (options.flags & FLG_MASK_CHK) {
+		if (options.flags & FLG_CRACKING_CHK)
+			options.flags |= FLG_MASK_STACKED;
+		else
+			options.flags |= FLG_CRACKING_SET;
 	}
 
 	if (!(options.flags & FLG_ACTION))

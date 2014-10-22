@@ -1345,7 +1345,7 @@ static void john_run(void)
 			do_incremental_crack(&database, options.charset);
 		else
 		if (options.flags & FLG_MASK_CHK)
-			do_mask_crack();
+			do_mask_crack(NULL);
 		else
 		if (options.flags & FLG_MKV_CHK)
 			do_markov_crack(&database, options.mkv_param);

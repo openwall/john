@@ -71,7 +71,7 @@ extern void mask_init(struct db_main *db, char *unprocessed_mask);
 /*
  * Runs the mask mode cracker.
  */
-extern void do_mask_crack(void);
+extern int do_mask_crack(char *key);
 
 extern void mask_done(void);
 
