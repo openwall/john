@@ -47,8 +47,10 @@ typedef struct {
 	 * value cannot be a null character which has a value zero.
 	 */
 	unsigned char start;
-	/* Postion of the characters in key */
+	/* Base postion of the characters in key */
 	int pos;
+	/* offset when a key is inserted from other mode */
+	int offset;
 } mask_range;
 
 /* Processed mask structure for password generation on CPU */
