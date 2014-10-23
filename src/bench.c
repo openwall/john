@@ -56,6 +56,7 @@
 #include "john.h"
 #include "unicode.h"
 #include "config.h"
+#include "common-gpu.h"
 
 #ifndef BENCH_BUILD
 #include "options.h"
@@ -378,6 +379,12 @@ int benchmark_all(void)
 	char *result, *msg_1, *msg_m;
 	struct bench_results results_1, results_m;
 	char s_real[64], s_virtual[64];
+#if defined(HAVE_OPENCL) || defined(HAVE_CUDA)
+	char s_gpu[16 * MAX_GPU_DEVICES] = "";
+	int i;
+#else
+	const char s_gpu = "";
+#endif
 	unsigned int total, failed;
 	MEMDBG_HANDLE memHand;
 
@@ -411,6 +418,9 @@ AGAIN:
 #endif
 	if ((format = fmt_list))
 	do {
+#if defined(HAVE_OPENCL) || defined(HAVE_CUDA)
+		int n = 0;
+#endif
 		memHand = MEMDBG_getSnapshot(0);
 #ifndef BENCH_BUILD
 /* Silently skip formats for which we have no tests, unless forced */
@@ -539,10 +549,37 @@ AGAIN:
 			goto next;
 		}
 
+#if defined(HAVE_CUDA) || defined(HAVE_OPENCL)
+		if (benchmark_time > 1)
+		for (i = 0; i < MAX_GPU_DEVICES &&
+			     gpu_device_list[i] != -1; i++) {
+			int dev = gpu_device_list[i];
+			int fan, temp, util;
+
+			fan = temp = util = -1;
+
+			if (dev_get_temp[dev])
+				dev_get_temp[dev](temp_dev_id[dev],
+				                  &temp, &fan, &util);
+#if 1
+			if (util <= 0)
+				continue;
+#endif
+			if (i == 0)
+				n += sprintf(s_gpu + n, ", GPU util:");
+			else
+				n += sprintf(s_gpu + n, ", GPU%d:", i);
+
+			if (util > 0)
+				n += sprintf(s_gpu + n, "%u%%", util);
+			else
+				n += sprintf(s_gpu + n, "n/a");
+		}
+#endif
 #ifdef HAVE_MPI
 		if (john_main_process)
 #endif
-			puts(benchmark_time ? "DONE" : "PASS");
+			printf(benchmark_time ? "DONE%s\n" : "PASS%s\n", s_gpu);
 #ifdef _OPENMP
 		// reset this in case format capped it (we may be testing more formats)
 		omp_set_num_threads(ompt_start);

@@ -691,6 +691,8 @@ void opencl_done()
 	opencl_v_width = 1;
 
 	opencl_initialized = 0;
+
+	gpu_device_list[0] = gpu_device_list[1] = -1;
 }
 
 static char *opencl_get_config_name(char *format, char *config_name)
