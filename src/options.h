@@ -58,9 +58,10 @@
 /* Incremental mode enabled */
 #define FLG_INC_CHK			0x00000800
 #define FLG_INC_SET			(FLG_INC_CHK | FLG_CRACKING_SET)
-/* Mask mode enabled */
+/* Mask mode enabled (might be hybrid) */
 #define FLG_MASK_CHK			0x00001000
-#define FLG_MASK_SET			(FLG_MASK_CHK | FLG_CRACKING_SET)
+#define FLG_MASK_SET \
+	(FLG_MASK_CHK | FLG_ACTION | FLG_CRACKING_SUP | FLG_PWD_SUP)
 /* External mode or word filter enabled */
 #define FLG_EXTERNAL_CHK		0x00002000
 #define FLG_EXTERNAL_SET \
@@ -154,7 +155,8 @@
 #define FLG_KEEP_GUESSING		0x0001000000000000ULL
 /* Loops self-test forever */
 #define FLG_LOOPTEST			0x0002000000000000ULL
-
+/* Mask mode is stacked */
+#define FLG_MASK_STACKED                0x0004000000000000ULL
 
 /*
  * Structure with option flags and all the parameters.

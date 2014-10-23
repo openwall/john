@@ -29,6 +29,7 @@
 #include "john.h"
 #include "options.h"
 #include "unicode.h"
+#include "mask.h"
 #include "memdbg.h"
 
 extern struct fmt_main fmt_LM;
@@ -369,6 +370,10 @@ update_last:
 	}
 
 	key = key_i;
+	if (options.mask) {
+		if (do_mask_crack(key))
+			return 1;
+	} else
 	if (!f_filter || ext_filter_body(key_i, key = key_e))
 		if (crk_process_key(key))
 			return 1;
@@ -732,6 +737,10 @@ void do_incremental_crack(struct db_main *db, char *mode)
 
 		if (!length && !min_length) {
 			min_length = 1;
+			if (options.mask) {
+				if (!skip && do_mask_crack(""))
+					break;
+			} else
 			if (!skip && crk_process_key(""))
 				break;
 		}

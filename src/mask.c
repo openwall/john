@@ -28,9 +28,12 @@
 #include "unicode.h"
 #include "encoding_data.h"
 #include "memdbg.h"
+#include <ctype.h>
 
 static parsed_ctx parsed_mask;
 static cpu_mask_context cpu_mask_ctx, rec_ctx;
+static int *template_key_offsets;
+static char *mask = NULL, *template_key;
 
 /* cand and rec_cand is the number of remaining candidates.
  * So, it's value decreases as cracking progress.
@@ -712,19 +715,20 @@ static void parse_qtn(char *mask, parsed_ctx *parsed_mask)
 
 	for (i = 0, k = 0; i < strlen(mask); i++) {
 		if (mask[i] == '?')
-			if (i + 1 < strlen(mask))
-				if (strchr(BUILT_IN_CHARSET, mask[i + 1])) {
-					j = 0;
-					while (load_op(j) != -1 &&
-					       load_cl(j) != -1) {
-						if (i > load_op(j) &&
-						    i < load_cl(j))
-							goto cont;
-						j++;
-					}
-					parsed_mask->stack_qtn[k++] = i;
-				}
-		cont:;
+		if (i + 1 < strlen(mask))
+		if (strchr(BUILT_IN_CHARSET, mask[i + 1])) {
+			j = 0;
+			while (load_op(j) != -1 &&
+			       load_cl(j) != -1) {
+				if (i > load_op(j) &&
+				    i < load_cl(j))
+					goto cont;
+				j++;
+			}
+			parsed_mask->stack_qtn[k++] = i;
+		}
+cont:
+		;
 	}
 }
 
@@ -797,7 +801,8 @@ static void init_cpu_mask(char *mask, parsed_ctx *parsed_mask,
 		cpu_mask_ctx->ranges[i].count =
 		cpu_mask_ctx->ranges[i].pos =
 		cpu_mask_ctx->ranges[i].iter =
-		cpu_mask_ctx->active_positions[i] = 0;
+		cpu_mask_ctx->active_positions[i] =
+		cpu_mask_ctx->ranges[i].offset = 0;
 		cpu_mask_ctx->ranges[i].next = MAX_NUM_MASK_PLHDR;
 	}
 	cpu_mask_ctx->count = cpu_mask_ctx->offset = 0;
@@ -882,18 +887,30 @@ static void init_cpu_mask(char *mask, parsed_ctx *parsed_mask,
 
 /*
  * Returns the template of the keys corresponding to the mask.
- * Wordlist + mask not taken into account.
  */
-static char* generate_template_key(char *mask, parsed_ctx *parsed_mask)
+static char* generate_template_key(char *mask, const char *key,
+				   parsed_ctx *parsed_mask,
+				   cpu_mask_context *cpu_mask_ctx)
 {
-	char *template_key = (char*)mem_alloc(0x400);
-	int i, k, t;
-	i = 0, k = 0;
+	int i, k, t, j, l, offset = 0;
+	i = 0, k = 0, j = 0, l = 0;
 
+	while (template_key_offsets[l] != -1)
+		template_key_offsets[l++] = -1;
+
+	l = 0;
 	while (i < strlen(mask)) {
 		if ((t = search_stack(parsed_mask, i))){
 			template_key[k++] = '#';
 			i = t + 1;
+			cpu_mask_ctx->ranges[j++].offset = offset;
+		}
+		else if (key != NULL && mask[i + 1] == 'w' && mask[i] == '?') {
+			template_key_offsets[l++] = k;
+			/* Subtract 2 to account for '?w' in mask.*/
+			offset += (strlen(key) - 2);
+			k += strlen(key);
+			i += 2;
 		}
 		else
 			template_key[k++] = mask[i++];
@@ -915,13 +932,14 @@ static MAYBE_INLINE char* mask_cp_to_utf8(char *in)
 	return in;
 }
 
-static void generate_keys(char *template_key, cpu_mask_context *cpu_mask_ctx,
+static int generate_keys(cpu_mask_context *cpu_mask_ctx,
 			  unsigned long int *my_candidates)
 {
 	int i, ps1 = MAX_NUM_MASK_PLHDR, ps2 = MAX_NUM_MASK_PLHDR,
 	    ps3 = MAX_NUM_MASK_PLHDR, ps4 = MAX_NUM_MASK_PLHDR, ps ;
-	int offset = cpu_mask_ctx->offset, num_active_postions = 0;
+	int num_active_postions = 0;
 	int start1, start2, start3, start4;
+	int ret = 0;
 
 	for (i = 0; i < cpu_mask_ctx->count; i++)
 		if ((int)(cpu_mask_ctx->active_positions[i])) {
@@ -933,7 +951,7 @@ static void generate_keys(char *template_key, cpu_mask_context *cpu_mask_ctx,
 
 #define process_key(key)						\
 	if (ext_filter(template_key))					\
-	  	if (crk_process_key(mask_cp_to_utf8(template_key)))	\
+		if ((ret = crk_process_key(mask_cp_to_utf8(template_key)))) \
 			goto done;
 /*
  * Calculate next state of remaing placeholders, working
@@ -944,12 +962,12 @@ static void generate_keys(char *template_key, cpu_mask_context *cpu_mask_ctx,
 		if (ps == MAX_NUM_MASK_PLHDR) goto done;		\
 		if ((++(ranges(ps).iter)) == ranges(ps).count) {	\
 			ranges(ps).iter = 0;				\
-			template_key[ranges(ps).pos + offset] =		\
+			template_key[ranges(ps).pos + ranges(ps).offset] =		\
 			ranges(ps).chars[ranges(ps).iter];		\
 			ps = ranges(ps).next;				\
 		}							\
 		else {							\
-			template_key[ranges(ps).pos + offset] =		\
+			template_key[ranges(ps).pos + ranges(ps).offset] =		\
 			      ranges(ps).chars[ranges(ps).iter];	\
 			break;						\
 		}							\
@@ -957,7 +975,7 @@ static void generate_keys(char *template_key, cpu_mask_context *cpu_mask_ctx,
 
 #define init_key(ps)							\
 	while (ps != MAX_NUM_MASK_PLHDR) {				\
-		template_key[ranges(ps).pos + offset] =			\
+		template_key[ranges(ps).pos + ranges(ps).offset] =			\
 		ranges(ps).chars[ranges(ps).iter];			\
 		ps = ranges(ps).next;					\
 	}
@@ -966,7 +984,7 @@ static void generate_keys(char *template_key, cpu_mask_context *cpu_mask_ctx,
 	;ranges(ps).iter < ranges(ps).count; ranges(ps).iter++
 
 #define set_template_key(ps, start)					\
-	template_key[ranges(ps).pos + offset] =				\
+	template_key[ranges(ps).pos + ranges(ps).offset] =				\
 		start ? start + ranges(ps).iter:			\
 		ranges(ps).chars[ranges(ps).iter];
 
@@ -987,7 +1005,9 @@ static void generate_keys(char *template_key, cpu_mask_context *cpu_mask_ctx,
 		init_key(ps);
 
 		while (1) {
-			if (options.node_count && !(*my_candidates)--)
+			if (options.node_count &&
+			    !(options.flags & FLG_MASK_STACKED) &&
+			    !(*my_candidates)--)
 				goto done;
 
 			process_key(template_key);
@@ -1016,6 +1036,7 @@ static void generate_keys(char *template_key, cpu_mask_context *cpu_mask_ctx,
 						set_template_key(ps2, start2);
 						for (iterate_over(ps1)) {
 							if (options.node_count &&
+							    !(options.flags & FLG_MASK_STACKED) &&
 							    !(*my_candidates)--)
 								goto done;
 							set_template_key(ps1, start1);
@@ -1032,7 +1053,8 @@ static void generate_keys(char *template_key, cpu_mask_context *cpu_mask_ctx,
 			next_state(ps);
 		}
 	}
-	done: ;
+done:
+	return ret;
 #undef ranges
 #undef process_key
 #undef next_state
@@ -1165,10 +1187,15 @@ static unsigned long int divide_work(cpu_mask_context *cpu_mask_ctx)
 	return my_candidates;
 }
 
-void do_mask_crack(struct db_main *db, char *mask)
+void mask_init(struct db_main *db, char *unprocessed_mask)
 {
-	int i;
-	char *template_key;
+	int i, ctr = 0;
+
+#ifdef DEBUG
+	fprintf(stderr, "%s(%s)\n", __FUNCTION__, unprocessed_mask);
+#endif
+	mask = unprocessed_mask;
+	template_key = (char*)mem_alloc(0x400);
 
 	/* We do not yet support min/max-len */
 	if (options.force_minlength >= 0 || options.force_maxlength) {
@@ -1222,7 +1249,7 @@ void do_mask_crack(struct db_main *db, char *mask)
 	/* Finally expand custom placeholders ?1 .. ?4 */
 	mask = expand_cplhdr(mask);
 
-#if DEBUG
+#ifdef DEBUG
 	fprintf(stderr, "Custom masks expanded (this is 'mask' when passed to "
 	        "init_cpu_mask()):\n%s\n", mask);
 #endif
@@ -1238,6 +1265,22 @@ void do_mask_crack(struct db_main *db, char *mask)
 		error();
 	}
 
+	i = 0;
+	while (i < strlen(mask)) {
+		if (i + 1 < strlen(mask) && mask[i] == '?' && mask[i + 1] == 'w') {
+			ctr++;
+			i += 2;
+		}
+		else
+			i++;
+	}
+
+	ctr++;
+	template_key_offsets = (int*)mem_alloc(ctr * sizeof(int));
+
+	for (i = 0; i < ctr; i++)
+		template_key_offsets[i] = -1;
+
 	init_cpu_mask(mask, &parsed_mask, &cpu_mask_ctx, db);
 
 	/*
@@ -1245,9 +1288,9 @@ void do_mask_crack(struct db_main *db, char *mask)
 	 * regarding GPU portion of mask.
 	 */
 	skip_position(&cpu_mask_ctx, NULL);
-	template_key = generate_template_key(mask, &parsed_mask);
 
-	if (options.node_count)
+	/* If running hybrid (stacked), we let the parent mode distribute */
+	if (options.node_count && !(options.flags & FLG_MASK_STACKED))
 		cand = divide_work(&cpu_mask_ctx);
 	else {
 		cand = 1;
@@ -1256,15 +1299,21 @@ void do_mask_crack(struct db_main *db, char *mask)
 				cand *= cpu_mask_ctx.ranges[i].count;
 	}
 	total_cand = cand;
-	status_init(&get_progress, 0);
 
-	rec_restore_mode(restore_state);
-	rec_init(db, save_state);
+	if (!(options.flags & FLG_MASK_STACKED)) {
+		status_init(&get_progress, 0);
 
-	crk_init(db, fix_state, NULL);
+		rec_restore_mode(restore_state);
+		rec_init(db, save_state);
 
-	generate_keys(template_key, &cpu_mask_ctx, &cand);
+		crk_init(db, fix_state, NULL);
+	}
+}
 
+void mask_done()
+{
+	MEM_FREE(template_key);
+	MEM_FREE(template_key_offsets);
 	// For reporting DONE regardless of rounding errors
 	if (!event_abort)
 		cand = ((unsigned long long)status.cands.hi << 32) +
@@ -1273,6 +1322,28 @@ void do_mask_crack(struct db_main *db, char *mask)
 	crk_done();
 
 	rec_done(event_abort);
+}
 
-	MEM_FREE(template_key);
+int do_mask_crack(const char *key)
+{
+	int ret , i = 0;
+	static int old_keylen = -1;
+	int key_len = key ? strlen(key) : 0;
+
+#ifdef DEBUG
+	fprintf(stderr, "%s(%s)\n", __FUNCTION__, key);
+#endif
+
+	if (old_keylen != key_len) {
+		generate_template_key(mask, key, &parsed_mask, &cpu_mask_ctx);
+		old_keylen = key_len;
+	}
+
+	i = 0;
+	while(template_key_offsets[i] != -1)
+		memcpy(template_key + template_key_offsets[i++], key, key_len);
+
+	ret = generate_keys(&cpu_mask_ctx, &cand);
+
+	return ret;
 }

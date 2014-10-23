@@ -47,8 +47,10 @@ typedef struct {
 	 * value cannot be a null character which has a value zero.
 	 */
 	unsigned char start;
-	/* Postion of the characters in key */
+	/* Base postion of the characters in key */
 	int pos;
+	/* offset when a key is inserted from other mode */
+	int offset;
 } mask_range;
 
 /* Processed mask structure for password generation on CPU */
@@ -64,8 +66,16 @@ typedef struct {
 } cpu_mask_context;
 
 /*
+ * Initialize mask mode cracker.
+ */
+extern void mask_init(struct db_main *db, char *unprocessed_mask);
+
+/*
  * Runs the mask mode cracker.
  */
-extern void do_mask_crack(struct db_main *db, char *mask);
+extern int do_mask_crack(const char *key);
+
+extern void mask_done(void);
+
 
 #endif
