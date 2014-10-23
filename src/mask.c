@@ -1324,7 +1324,7 @@ int do_mask_crack(const char *key)
 {
 	int ret , i = 0;
 	static int old_keylen = -1;
-	int key_len = strlen(key);
+	int key_len = key ? strlen(key) : 0;
 
 #ifdef DEBUG
 	fprintf(stderr, "%s(%s)\n", __FUNCTION__, key);
