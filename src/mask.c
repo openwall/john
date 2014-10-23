@@ -1005,7 +1005,9 @@ static int generate_keys(cpu_mask_context *cpu_mask_ctx,
 		init_key(ps);
 
 		while (1) {
-			if (options.node_count && !(*my_candidates)--)
+			if (options.node_count &&
+			    !(options.flags & FLG_MASK_STACKED) &&
+			    !(*my_candidates)--)
 				goto done;
 
 			process_key(template_key);
@@ -1034,6 +1036,7 @@ static int generate_keys(cpu_mask_context *cpu_mask_ctx,
 						set_template_key(ps2, start2);
 						for (iterate_over(ps1)) {
 							if (options.node_count &&
+							    !(options.flags & FLG_MASK_STACKED) &&
 							    !(*my_candidates)--)
 								goto done;
 							set_template_key(ps1, start1);
@@ -1286,7 +1289,8 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 	 */
 	skip_position(&cpu_mask_ctx, NULL);
 
-	if (options.node_count)
+	/* If running hybrid (stacked), we let the parent mode distribute */
+	if (options.node_count && !(options.flags & FLG_MASK_STACKED))
 		cand = divide_work(&cpu_mask_ctx);
 	else {
 		cand = 1;
