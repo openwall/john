@@ -888,7 +888,7 @@ static void init_cpu_mask(char *mask, parsed_ctx *parsed_mask,
 /*
  * Returns the template of the keys corresponding to the mask.
  */
-static char* generate_template_key(char *mask, char *key,
+static char* generate_template_key(char *mask, const char *key,
 				   parsed_ctx *parsed_mask,
 				   cpu_mask_context *cpu_mask_ctx)
 {
@@ -1271,7 +1271,7 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 		else
 			i++;
 	}
-	
+
 	ctr++;
 	template_key_offsets = (int*)mem_alloc(ctr * sizeof(int));
 
@@ -1320,23 +1320,24 @@ void mask_done()
 	rec_done(event_abort);
 }
 
-int do_mask_crack(char *key)
+int do_mask_crack(const char *key)
 {
 	int ret , i = 0;
-	static int key_length = -1;
+	static int old_keylen = -1;
+	int key_len = strlen(key);
 
 #ifdef DEBUG
 	fprintf(stderr, "%s(%s)\n", __FUNCTION__, key);
 #endif
 
-	if (key_length != strlen(key)) {
+	if (old_keylen != key_len) {
 		generate_template_key(mask, key, &parsed_mask, &cpu_mask_ctx);
-		key_length = strlen(key);
+		old_keylen = key_len;
 	}
 
 	i = 0;
 	while(template_key_offsets[i] != -1)
-		memcpy(template_key + template_key_offsets[i++], key, strlen(key));
+		memcpy(template_key + template_key_offsets[i++], key, key_len);
 
 	ret = generate_keys(&cpu_mask_ctx, &cand);
 
