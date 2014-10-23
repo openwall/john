@@ -33,7 +33,7 @@ john_register_one(&fmt_rsvp);
 #include "gladman_hmac.h"
 
 #define FORMAT_LABEL            "rsvp"
-#define FORMAT_NAME             "HMAC-MD5 / HMAC-SHA1, RSVP"
+#define FORMAT_NAME             "HMAC-MD5 / HMAC-SHA1, RSVP, IS-IS"
 #define FORMAT_TAG              "$rsvp$"
 #define TAG_LENGTH              (sizeof(FORMAT_TAG) - 1)
 #define ALGORITHM_NAME          "MD5 32/" ARCH_BITS_STR
