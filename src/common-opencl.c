@@ -135,7 +135,7 @@ void handle_clerror(cl_int cl_error, const char *message, const char *file,
 		fprintf(stderr,
 			"OpenCL error (%s) in file (%s) at line (%d) - (%s)\n",
 			get_error_name(cl_error), file, line, message);
-		exit(EXIT_FAILURE);
+		error();
 	}
 }
 
@@ -401,7 +401,7 @@ static void add_device_to_list(int sequential_id)
 
 	if (found < 0) {
 		fprintf(stderr, "Invalid OpenCL device id %d\n", sequential_id);
-		exit(EXIT_FAILURE);
+		error();
 	}
 
 	if (found == 0) {
@@ -455,7 +455,7 @@ static void build_device_list(char *device_list[MAX_GPU_DEVICES])
 			fprintf(stderr, "Error: --device must be numerical, "
 				"or one of \"all\", \"cpu\", \"gpu\" and\n"
 				"\"accelerator\".\n");
-			exit(1);
+			error();
 		}
 		else
 			add_device_to_list(atoi(device_list[n]));
@@ -504,7 +504,7 @@ void opencl_preinit(void)
 			{
 				fprintf(stderr, "Invalid OpenCL platform %d\n",
 					platform_id);
-				exit(1);
+				error();
 			}
 
 			/* Legacy syntax --platform + --device */
@@ -513,7 +513,7 @@ void opencl_preinit(void)
 					fprintf(stderr, "Only one OpenCL device"
 						" supported with --platform "
 						"syntax.\n");
-					exit(1);
+					error();
 				}
 				if (!strcmp(current->data, "all") ||
 				    !strcmp(current->data, "cpu") ||
@@ -522,12 +522,12 @@ void opencl_preinit(void)
 						"numerical --device allowed "
 						"when using legacy --platform "
 						"syntax.\n");
-					exit(1);
+					error();
 				}
 				if (!isdigit(ARCH_INDEX(current->data[0]))) {
 					fprintf(stderr, "Invalid OpenCL device"
 						" id %s\n", current->data);
-					exit(1);
+					error();
 				}
 				gpu_id = get_sequential_id(
 					atoi(current->data), platform_id);
@@ -535,7 +535,7 @@ void opencl_preinit(void)
 				if (gpu_id < 0) {
 					fprintf(stderr, "Invalid OpenCL device"
 						" id %s\n", current->data);
-					exit(1);
+					error();
 				}
 			} else
 				gpu_id = get_sequential_id(0, platform_id);
@@ -593,7 +593,7 @@ void opencl_preinit(void)
 
 		if (get_number_of_devices_in_use() == 0) {
 			fprintf(stderr, "No OpenCL devices found\n");
-			exit(1);
+			error();
 		}
 #ifdef HAVE_MPI
 		// Poor man's multi-device support
