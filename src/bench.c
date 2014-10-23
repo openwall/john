@@ -383,7 +383,7 @@ int benchmark_all(void)
 	char s_gpu[16 * MAX_GPU_DEVICES] = "";
 	int i;
 #else
-	const char s_gpu = "";
+	const char *s_gpu = "";
 #endif
 	unsigned int total, failed;
 	MEMDBG_HANDLE memHand;
