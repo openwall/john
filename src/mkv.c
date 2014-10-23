@@ -79,9 +79,10 @@ static int show_pwd_rnbs(struct s_pwd * pwd)
 		if( (pwd->len >= gmin_len) && (pwd->level >= gmin_level) )
 		{
 			pass = (char*) pwd->password;
-			if (options.mask && do_mask_crack(pass))
-				return 1;
-			else
+			if (options.mask) {
+				if (do_mask_crack(pass))
+					return 1;
+			} else
 			if (!f_filter || ext_filter_body((char*) pwd->password, pass = pass_filtered))
 				if(crk_process_key(pass))
 					return 1;
@@ -125,9 +126,10 @@ static int show_pwd_r(struct s_pwd * pwd, unsigned int bs)
 		if( (pwd->len >= gmin_len) && (pwd->level >= gmin_level) )
 		{
 			pass = (char*) pwd->password;
-			if (options.mask && do_mask_crack(pass))
-				return 1;
-			else
+			if (options.mask) {
+				if (do_mask_crack(pass))
+					return 1;
+			} else
 			if (!f_filter || ext_filter_body((char*)pwd->password, pass = pass_filtered))
 				if(crk_process_key(pass))
 					return 1;
@@ -149,9 +151,10 @@ static int show_pwd_r(struct s_pwd * pwd, unsigned int bs)
 		if( (pwd->len >= gmin_len) && (pwd->level >= gmin_level) )
 		{
 			pass = (char*) pwd->password;
-			if (options.mask && do_mask_crack(pass))
-				return 1;
-			else
+			if (options.mask) {
+				if (do_mask_crack(pass))
+					return 1;
+			} else
 			if (!f_filter || ext_filter_body((char*)pwd->password, pass = pass_filtered))
 				if(crk_process_key(pass))
 					return 1;
@@ -191,9 +194,10 @@ static int show_pwd(unsigned long long start)
 		if( (pwd.len >= gmin_len) && (pwd.level >= gmin_level) )
 		{
 			pass = (char*) pwd.password;
-			if (options.mask && do_mask_crack(pass))
-				return 1;
-			else
+			if (options.mask) {
+				if (do_mask_crack(pass))
+					return 1;
+			} else
 			if (!f_filter || ext_filter_body((char*)pwd.password, pass = pass_filtered))
 				if(crk_process_key(pass))
 					return 1;
@@ -214,9 +218,10 @@ static int show_pwd(unsigned long long start)
 		if( (pwd.len >= gmin_len) && (pwd.level >= gmin_level) )
 		{
 			pass = (char*) pwd.password;
-			if (options.mask && do_mask_crack(pass))
-				return 1;
-			else
+			if (options.mask) {
+				if (do_mask_crack(pass))
+					return 1;
+			} else
 			if (!f_filter || ext_filter_body((char*)pwd.password, pass = pass_filtered))
 				if(crk_process_key(pass))
 					return 1;

@@ -1105,11 +1105,13 @@ REDO_AFTER_LMLOOP:
 			if ((word = apply(joined->data, rule, -1, last))) {
 				last = word;
 
-				if (options.mask && do_mask_crack(word)) {
-					rule = NULL;
-					rules = 0;
-					pipe_input = 0;
-					break;
+				if (options.mask) {
+					if (do_mask_crack(word)) {
+						rule = NULL;
+						rules = 0;
+						pipe_input = 0;
+						break;
+					}
 				} else
 				if (ext_filter(word))
 				if (
@@ -1149,11 +1151,13 @@ REDO_AFTER_LMLOOP:
 			if ((word = apply(line, rule, -1, last))) {
 				last = word;
 
-				if (options.mask && do_mask_crack(word)) {
-					rule = NULL;
-					rules = 0;
-					pipe_input = 0;
-					break;
+				if (options.mask) {
+					if (do_mask_crack(word)) {
+						rule = NULL;
+						rules = 0;
+						pipe_input = 0;
+						break;
+					}
 				} else
 				if (ext_filter(word))
 				if (
@@ -1197,12 +1201,13 @@ process_word:
 				if ((word = apply(line, rule, -1, last))) {
 					last = word;
 
-					if (options.mask && do_mask_crack(word))
-					{
-						rule = NULL;
-						rules = 0;
-						pipe_input = 0;
-						break;
+					if (options.mask) {
+						if (do_mask_crack(word)) {
+							rule = NULL;
+							rules = 0;
+							pipe_input = 0;
+							break;
+						}
 					} else
 					if (ext_filter(word))
 					if (
