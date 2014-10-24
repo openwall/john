@@ -1,11 +1,11 @@
 /*
- * Developed by Claudio André <claudio.andre at correios.net.br> in 2012
+ * Developed by Claudio André <claudioandre.br at gmail.com> in 2012
  * Based on source code provided by Samuele Giovanni Tonon
  *
  * More information at http://openwall.info/wiki/john/OpenCL-SHA-512
  *
  * Copyright (c) 2011 Samuele Giovanni Tonon <samu at linuxasylum dot net>
- * Copyright (c) 2012 Claudio André <claudio.andre at correios.net.br>
+ * Copyright (c) 2012-2014 Claudio André <claudioandre.br at gmail.com>
  * This program comes with ABSOLUTELY NO WARRANTY; express or implied .
  * This is free software, and you are welcome to redistribute it
  * under certain conditions; as expressed here
@@ -91,6 +91,7 @@ static struct fmt_tests tests[] = {
 	{"$6$saltstring$l2IxCS4o2S/vud70F1S5Z7H1WE67QFIXCYqskySdLFjjorEJdAnAp1ZqdgfNuZj2orjmeVDTsTXHpZ1IoxSKd.","abcdefghijklm"},
 	{"$6$saltstring$PFzjspQs/CDXWALauDTav3u5bHB3n21xWrfwjnjpFO5eM5vuP0qKwDCXmlyZ5svEgsIH1oiZiGlRqkcBP5PiB.","abcdefghijklmn"},
 	{"$6$saltstring$rdREv5Pd9C9YGtg.zXEQMb6m0sPeq4b6zFW9oWY9w4ZltmjH3yzMLgl9iBuez9DFFUvF5nJH3Y2xidiq1dH9M.","abcdefghijklmno"},
+	{"$6$qa.eYgSFYRm2D71$iWu4nQmQvFr7ToBz.hRnUGV1L0yIof4cZPICdrm3EC6ElnhogshU4FP9yjshV1OVUhLZIBxAQYEFc1mxtKyI5/", "12345678901234567890123"},
 #endif
 	{NULL}
 };
@@ -384,8 +385,6 @@ static void init(struct fmt_main * self) {
 
 	if (gpu_amd(source_in_use))
 		default_value = get_processors_count(gpu_id);
-	else if (gpu_intel(source_in_use))
-		default_value = 1024;
 	else
 		default_value = autotune_get_task_max_size(
 			1, KEYS_PER_CORE_CPU, KEYS_PER_CORE_GPU, crypt_kernel);

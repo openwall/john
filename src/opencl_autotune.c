@@ -1,7 +1,7 @@
 /*
- * Developed by Claudio André <claudio.andre at correios.net.br> in 2012
+ * Developed by Claudio André <claudioandre.br at gmail.com> in 2012
  *
- * Copyright (c) 2012 Claudio André <claudio.andre at correios.net.br>
+ * Copyright (c) 2012-2014 Claudio André <claudioandre.br at gmail.com>
  * This program comes with ABSOLUTELY NO WARRANTY; express or implied.
  *
  * This is free software, and you are welcome to redistribute it
@@ -59,7 +59,7 @@ size_t autotune_get_task_max_size(int multiplier, int keys_per_core_cpu,
 	if (cpu(device_info[gpu_id]))
 		return max_available * keys_per_core_cpu;
 	else if (gpu_intel(device_info[gpu_id]))
-		return 0;
+		return 512;
 	else
 		return max_available * multiplier * keys_per_core_gpu *
 			get_kernel_max_lws(gpu_id, crypt_kernel);

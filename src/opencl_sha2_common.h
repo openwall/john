@@ -1,7 +1,7 @@
 /*
- * Developed by Claudio André <claudio.andre at correios.net.br> in 2012
+ * Developed by Claudio André <claudioandre.br at gmail.com> in 2012
  *
- * Copyright (c) 2012 Claudio André <claudio.andre at correios.net.br>
+ * Copyright (c) 2012-2014 Claudio André <claudioandre.br at gmail.com>
  * This program comes with ABSOLUTELY NO WARRANTY; express or implied.
  *
  * This is free software, and you are welcome to redistribute it
@@ -28,11 +28,19 @@
     #define AMD_STUPID_BUG_1
 
     ///TODO: can't use a valid command twice on sha256crypt. (At least) HD 6770.
-    #define AMD_STUPID_BUG_2
+    ///Fixed. Kept for future reference.
+    /// ----------------------
+    ///  #define SWAP32(n)	rotate(n & 0x00FF00FF, 24U) | rotate(n & 0xFF00FF00, 8U)
+    ///  #ifdef AMD_STUPID_BUG_2
+    ///	   #define SWAP_V(n)	bitselect(rotate(n, 24U), rotate(n, 8U), 0x00FF00FFU)
+    /// ----------------------
+    ///#define AMD_STUPID_BUG_2
 
     ///TODO: can't use constant. (At least) HD 6770.
     ///Fixed. Kept for future reference.
+    /// ----------------------
     ///inline void sha512_prepare(__constant   sha512_salt     * salt_data,
+    /// ----------------------
     ///#define AMD_STUPID_BUG_3
 #endif
 
@@ -50,19 +58,31 @@
 	#define USE_BITSELECT
 #endif
 
-#if gpu_amd(DEVICE_INFO) || no_byte_addressable(DEVICE_INFO)
+#if no_byte_addressable(DEVICE_INFO)
+	#define PUT         PUTCHAR
+	#define BUFFER      ctx->buffer->mem_32
+	#define F_BUFFER    ctx.buffer->mem_32
+#else
+	#define PUT         ATTRIB
+	#define BUFFER      ctx->buffer->mem_08
+	#define F_BUFFER    ctx.buffer->mem_08
+#endif
+
+#if no_byte_addressable(DEVICE_INFO)
 #define PUTCHAR(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2] & ~(0xffU << (((index) & 3) << 3))) + ((val) << (((index) & 3) << 3))
 #else
 #define PUTCHAR(buf, index, val) ((uchar*)(buf))[(index)] = (val)
 #endif
 
+#if no_byte_addressable(DEVICE_INFO)
+#define PUTCHAR_BE_32(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2] & ~(0xffU << ((((index) & 3) ^ 3) << 3))) + ((val) << ((((index) & 3) ^ 3) << 3))
+#define PUTCHAR_BE_64(buf, index, val) (buf)[(index)>>3] = ((buf)[(index)>>3] & ~(0xffU << ((((index) & 3) ^ 7) << 3))) + ((val) << ((((index) & 7) ^ 3) << 3))
+#else
+#define PUTCHAR_BE_32(buf, index, val) ((uchar*)(buf))[(index) ^ 3] = (val)
+#define PUTCHAR_BE_64(buf, index, val) ((uchar*)(buf))[(index) ^ 7] = (val)
+#endif
+
 #define TRANSFER_SIZE           (1024 * 64)
-
-#define CLEAR_CTX_32(i)\
-    ctx.buffer[i].mem_32[0] = 0;
-
-#define CLEAR_CTX_64(i)\
-    ctx.buffer[i].mem_64[0] = 0;
 
 #define ROUND_A(A, B, C, D, E, F, G, H, ki, wi)\
 	t = (ki) + (wi) + (H) + Sigma1(E) + Ch((E),(F),(G));\
@@ -135,72 +155,6 @@
 	ROUND_B(g, h, a, b, c, d, e, f, k[58], w[10], w[8],  w[11], w[10], w[3])\
 	ROUND_B(f, g, h, a, b, c, d, e, k[59], w[11], w[9],  w[12], w[11], w[4])\
 	ROUND_B(e, f, g, h, a, b, c, d, k[60], w[12], w[10], w[13], w[12], w[5])
-
-#define SHA256()\
-	ROUND_A(a, b, c, d, e, f, g, h, k[0],  w[0])\
-	ROUND_A(h, a, b, c, d, e, f, g, k[1],  w[1])\
-	ROUND_A(g, h, a, b, c, d, e, f, k[2],  w[2])\
-	ROUND_A(f, g, h, a, b, c, d, e, k[3],  w[3])\
-	ROUND_A(e, f, g, h, a, b, c, d, k[4],  w[4])\
-	ROUND_A(d, e, f, g, h, a, b, c, k[5],  w[5])\
-	ROUND_A(c, d, e, f, g, h, a, b, k[6],  w[6])\
-	ROUND_A(b, c, d, e, f, g, h, a, k[7],  w[7])\
-	ROUND_A(a, b, c, d, e, f, g, h, k[8],  w[8])\
-	ROUND_A(h, a, b, c, d, e, f, g, k[9],  w[9])\
-	ROUND_A(g, h, a, b, c, d, e, f, k[10], w[10])\
-	ROUND_A(f, g, h, a, b, c, d, e, k[11], w[11])\
-	ROUND_A(e, f, g, h, a, b, c, d, k[12], w[12])\
-	ROUND_A(d, e, f, g, h, a, b, c, k[13], w[13])\
-	ROUND_A(c, d, e, f, g, h, a, b, k[14], w[14])\
-	ROUND_A(b, c, d, e, f, g, h, a, k[15], w[15])\
-	ROUND_B(a, b, c, d, e, f, g, h, k[16], w[0],  w[14], w[1],  w[0],  w[9])\
-	ROUND_B(h, a, b, c, d, e, f, g, k[17], w[1],  w[15], w[2],  w[1],  w[10])\
-	ROUND_B(g, h, a, b, c, d, e, f, k[18], w[2],  w[0],  w[3],  w[2],  w[11])\
-	ROUND_B(f, g, h, a, b, c, d, e, k[19], w[3],  w[1],  w[4],  w[3],  w[12])\
-	ROUND_B(e, f, g, h, a, b, c, d, k[20], w[4],  w[2],  w[5],  w[4],  w[13])\
-	ROUND_B(d, e, f, g, h, a, b, c, k[21], w[5],  w[3],  w[6],  w[5],  w[14])\
-	ROUND_B(c, d, e, f, g, h, a, b, k[22], w[6],  w[4],  w[7],  w[6],  w[15])\
-	ROUND_B(b, c, d, e, f, g, h, a, k[23], w[7],  w[5],  w[8],  w[7],  w[0])\
-	ROUND_B(a, b, c, d, e, f, g, h, k[24], w[8],  w[6],  w[9],  w[8],  w[1])\
-	ROUND_B(h, a, b, c, d, e, f, g, k[25], w[9],  w[7],  w[10], w[9],  w[2])\
-	ROUND_B(g, h, a, b, c, d, e, f, k[26], w[10], w[8],  w[11], w[10], w[3])\
-	ROUND_B(f, g, h, a, b, c, d, e, k[27], w[11], w[9],  w[12], w[11], w[4])\
-	ROUND_B(e, f, g, h, a, b, c, d, k[28], w[12], w[10], w[13], w[12], w[5])\
-	ROUND_B(d, e, f, g, h, a, b, c, k[29], w[13], w[11], w[14], w[13], w[6])\
-	ROUND_B(c, d, e, f, g, h, a, b, k[30], w[14], w[12], w[15], w[14], w[7])\
-	ROUND_B(b, c, d, e, f, g, h, a, k[31], w[15], w[13], w[0],  w[15], w[8])\
-	ROUND_B(a, b, c, d, e, f, g, h, k[32], w[0],  w[14], w[1],  w[0],  w[9])\
-	ROUND_B(h, a, b, c, d, e, f, g, k[33], w[1],  w[15], w[2],  w[1],  w[10])\
-	ROUND_B(g, h, a, b, c, d, e, f, k[34], w[2],  w[0],  w[3],  w[2],  w[11])\
-	ROUND_B(f, g, h, a, b, c, d, e, k[35], w[3],  w[1],  w[4],  w[3],  w[12])\
-	ROUND_B(e, f, g, h, a, b, c, d, k[36], w[4],  w[2],  w[5],  w[4],  w[13])\
-	ROUND_B(d, e, f, g, h, a, b, c, k[37], w[5],  w[3],  w[6],  w[5],  w[14])\
-	ROUND_B(c, d, e, f, g, h, a, b, k[38], w[6],  w[4],  w[7],  w[6],  w[15])\
-	ROUND_B(b, c, d, e, f, g, h, a, k[39], w[7],  w[5],  w[8],  w[7],  w[0])\
-	ROUND_B(a, b, c, d, e, f, g, h, k[40], w[8],  w[6],  w[9],  w[8],  w[1])\
-	ROUND_B(h, a, b, c, d, e, f, g, k[41], w[9],  w[7],  w[10], w[9],  w[2])\
-	ROUND_B(g, h, a, b, c, d, e, f, k[42], w[10], w[8],  w[11], w[10], w[3])\
-	ROUND_B(f, g, h, a, b, c, d, e, k[43], w[11], w[9],  w[12], w[11], w[4])\
-	ROUND_B(e, f, g, h, a, b, c, d, k[44], w[12], w[10], w[13], w[12], w[5])\
-	ROUND_B(d, e, f, g, h, a, b, c, k[45], w[13], w[11], w[14], w[13], w[6])\
-	ROUND_B(c, d, e, f, g, h, a, b, k[46], w[14], w[12], w[15], w[14], w[7])\
-	ROUND_B(b, c, d, e, f, g, h, a, k[47], w[15], w[13], w[0],  w[15], w[8])\
-	ROUND_B(a, b, c, d, e, f, g, h, k[48], w[0],  w[14], w[1],  w[0],  w[9])\
-	ROUND_B(h, a, b, c, d, e, f, g, k[49], w[1],  w[15], w[2],  w[1],  w[10])\
-	ROUND_B(g, h, a, b, c, d, e, f, k[50], w[2],  w[0],  w[3],  w[2],  w[11])\
-	ROUND_B(f, g, h, a, b, c, d, e, k[51], w[3],  w[1],  w[4],  w[3],  w[12])\
-	ROUND_B(e, f, g, h, a, b, c, d, k[52], w[4],  w[2],  w[5],  w[4],  w[13])\
-	ROUND_B(d, e, f, g, h, a, b, c, k[53], w[5],  w[3],  w[6],  w[5],  w[14])\
-	ROUND_B(c, d, e, f, g, h, a, b, k[54], w[6],  w[4],  w[7],  w[6],  w[15])\
-	ROUND_B(b, c, d, e, f, g, h, a, k[55], w[7],  w[5],  w[8],  w[7],  w[0])\
-	ROUND_B(a, b, c, d, e, f, g, h, k[56], w[8],  w[6],  w[9],  w[8],  w[1])\
-	ROUND_B(h, a, b, c, d, e, f, g, k[57], w[9],  w[7],  w[10], w[9],  w[2])\
-	ROUND_B(g, h, a, b, c, d, e, f, k[58], w[10], w[8],  w[11], w[10], w[3])\
-	ROUND_B(f, g, h, a, b, c, d, e, k[59], w[11], w[9],  w[12], w[11], w[4])\
-	ROUND_B(e, f, g, h, a, b, c, d, k[60], w[12], w[10], w[13], w[12], w[5])\
-	ROUND_B(d, e, f, g, h, a, b, c, k[61], w[13], w[11], w[14], w[13], w[6])\
-	ROUND_B(c, d, e, f, g, h, a, b, k[62], w[14], w[12], w[15], w[14], w[7])\
-	ROUND_B(b, c, d, e, f, g, h, a, k[63], w[15], w[13], w[0],  w[15], w[8])
 
 #define SHA512_SHORT()\
 	ROUND_A(a, b, c, d, e, f, g, h, k[0],  w[0])\
@@ -363,14 +317,40 @@
 	ROUND_B(c, d, e, f, g, h, a, b, k[78], w[14], w[12], w[15], w[14], w[7])\
 	ROUND_B(b, c, d, e, f, g, h, a, k[79], w[15], w[13], w[0],  w[15], w[8])
 
-#if no_byte_addressable(DEVICE_INFO)
-    #define PUT         PUTCHAR
-    #define BUFFER      ctx->buffer->mem_32
-    #define F_BUFFER    ctx.buffer->mem_32
-#else
-    #define PUT         ATTRIB
-    #define BUFFER      ctx->buffer->mem_08
-    #define F_BUFFER    ctx.buffer->mem_08
+#ifdef _OPENCL_COMPILER
+	// ** Precomputed index to position/values. **
+	//0:		0					=>  1
+	//0: 3		14,28					=>  2
+	//0: 7		6,12,18,24,30,36			=>  6
+	//0: 3,7	2,4,8,10,16,20,22,26,32,34,38,40	=> 12
+	//1:		21					=>  1
+	//1: 3		7,35					=>  2
+	//1: 7		3,9,15,27,33,39				=>  6
+	//1: 3,7	1,5,11,13,17,19,23,25,29,31,37,41	=> 12
+	__constant int loop_index[] = {
+	    0, /* 0,000*/ 7, /* 1,111*/ 3, /* 2,011*/ 5, /* 3,101*/
+	    3, /* 4,011*/ 7, /* 5,111*/ 1, /* 6,001*/ 6, /* 7,110*/
+	    3, /* 8,011*/ 5, /* 9,101*/ 3, /*10,011*/ 7, /*11,111*/
+	    1, /*12,001*/ 7, /*13,111*/ 2, /*14,010*/ 5, /*15,101*/
+	    3, /*16,011*/ 7, /*17,111*/ 1, /*18,001*/ 7, /*19,111*/
+	    3, /*20,011*/ 4, /*21,100*/ 3, /*22,011*/ 7, /*23,111*/
+	    1, /*24,001*/ 7, /*25,111*/ 3, /*26,011*/ 5, /*27,101*/
+	    2, /*28,010*/ 7, /*29,111*/ 1, /*30,001*/ 7, /*31,111*/
+	    3, /*32,011*/ 5, /*33,101*/ 3, /*34,011*/ 6, /*35,110*/
+	    1, /*36,001*/ 7, /*37,111*/ 3, /*38,011*/ 5, /*39,101*/
+	    3, /*40,011*/ 7, /*41,111*/
+	};
+
+	__constant int generator_index[] = {
+	    0,	    /*  0, 000 */
+	    6,	    /*  6, 001 */
+	    14,	    /* 14, 010 */
+	    2,	    /*  2, 011 */
+	    21,	    /* 21, 100 */
+	    3,	    /*  3, 101 */
+	    7,	    /*  7, 110 */
+	    1	    /*  1, 111 */
+	};
 #endif
 
 #ifndef _OPENCL_COMPILER

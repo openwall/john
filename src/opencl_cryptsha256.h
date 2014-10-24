@@ -1,9 +1,9 @@
 /*
- * Developed by Claudio André <claudio.andre at correios.net.br> in 2012
+ * Developed by Claudio André <claudioandre.br at gmail.com> in 2012
  *
  * More information at http://openwall.info/wiki/john/OpenCL-SHA-256
  *
- * Copyright (c) 2012 Claudio André <claudio.andre at correios.net.br>
+ * Copyright (c) 2012-2014 Claudio André <claudioandre.br at gmail.com>
  * This program comes with ABSOLUTELY NO WARRANTY; express or implied.
  *
  * This is free software, and you are welcome to redistribute it
@@ -34,7 +34,7 @@
 #define BINARY_ALIGN            4
 #define SEED                    1024
 #define STEP                    0
-#define HASH_LOOPS              ((7*3*2) * 4)
+#define HASH_LOOPS              (7*3*2)
 
 #define KEYS_PER_CORE_CPU       128
 #define KEYS_PER_CORE_GPU       1
@@ -51,6 +51,7 @@ typedef struct {
     uint32_t                    length;
     uint32_t                    final;
     buffer_32                   salt[SALT_ARRAY];
+    buffer_32                   salt_be[SALT_ARRAY];
 } sha256_salt;
 #define SALT_SIZE               sizeof(sha256_salt)
 
