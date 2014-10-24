@@ -55,4 +55,9 @@ extern void crk_done(void);
  * Check for and process new entries in pot file, written by other processes.
  */
 extern int crk_reload_pot(void);
+
+/*
+ * Exported for stacked modes
+ */
+extern void (*crk_fix_state)(void);
 #endif

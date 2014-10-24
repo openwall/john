@@ -52,6 +52,7 @@ extern int ftruncate(int fd, size_t length);
 #include "status.h"
 #include "recovery.h"
 #include "john.h"
+#include "mask.h"
 #include "unicode.h"
 #ifdef HAVE_MPI
 #include "john-mpi.h"
@@ -277,6 +278,9 @@ void rec_save(void)
 
 	if (rec_save_mode) rec_save_mode(rec_file);
 
+	if (options.flags & FLG_MASK_STACKED)
+		mask_save_state(rec_file);
+
 	if (ferror(rec_file)) pexit("fprintf");
 
 	if ((size = ftell(rec_file)) < 0) pexit("ftell");
@@ -447,6 +451,8 @@ void rec_restore_mode(int (*restore_mode)(FILE *file))
 	if (restore_mode)
 	if (restore_mode(rec_file)) rec_format_error("fscanf");
 
+	if (options.flags & FLG_MASK_STACKED)
+	if (mask_restore_state(rec_file)) rec_format_error("fscanf");
 /*
  * Unlocking the file explicitly is normally not necessary since we're about to
  * close it anyway (which would normally release the lock).  However, when

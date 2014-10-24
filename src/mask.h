@@ -75,7 +75,13 @@ extern void mask_init(struct db_main *db, char *unprocessed_mask);
  */
 extern int do_mask_crack(const char *key);
 
-extern void mask_done(void);
+/*
+ * These are exported for stacked modes (eg. hybrid mask)
+ */
+extern void mask_fix_state(void);
+extern void mask_save_state(FILE *file);
+extern int mask_restore_state(FILE *file);
 
+extern void mask_done(void);
 
 #endif

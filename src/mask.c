@@ -1107,9 +1107,10 @@ static double get_progress(void)
 	return 100.0 * try / (double)total_cand;
 }
 
-static void save_state(FILE *file)
+void mask_save_state(FILE *file)
 {
 	int i;
+
 	fprintf(file, "%lu\n", rec_cand + 1);
 	fprintf(file, "%d\n", rec_ctx.count);
 	fprintf(file, "%d\n", rec_ctx.offset);
@@ -1117,24 +1118,41 @@ static void save_state(FILE *file)
 		fprintf(file, "%hhu\n", rec_ctx.ranges[i].iter);
 }
 
-static int restore_state(FILE *file)
+int mask_restore_state(FILE *file)
 {
-	int i;
-	if (fscanf(file, "%lu\n", &cand) != 1)
-		return 1;
-	if (fscanf(file, "%d\n", &cpu_mask_ctx.count) != 1)
-		return 1;
-	if (fscanf(file, "%d\n", &cpu_mask_ctx.offset) != 1)
-		return 1;
+	int i, d;
+	unsigned char uc;
+	unsigned long int ul;
+	int fail = !(options.flags & FLG_MASK_STACKED);
+
+	if (fscanf(file, "%lu\n", &ul) == 1)
+		cand = ul;
+	else
+		return fail;
+
+	if (fscanf(file, "%d\n", &d) == 1)
+		cpu_mask_ctx.count = d;
+	else
+		return fail;
+
+	if (fscanf(file, "%d\n", &d) == 1)
+		cpu_mask_ctx.offset = d;
+	else
+		return fail;
+
 	for (i = 0; i < cpu_mask_ctx.count; i++)
-		if (fscanf(file, "%hhu\n", &cpu_mask_ctx.ranges[i].iter) != 1)
-			return 1;
+	if (fscanf(file, "%hhu\n", &uc) == 1)
+		cpu_mask_ctx.ranges[i].iter = uc;
+	else
+		return fail;
+
 	return 0;
 }
 
-static void fix_state(void)
+void mask_fix_state(void)
 {
 	int i;
+
 	rec_cand = cand;
 	rec_ctx.count = cpu_mask_ctx.count;
 	rec_ctx.offset = cpu_mask_ctx.offset;
@@ -1303,10 +1321,10 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 	if (!(options.flags & FLG_MASK_STACKED)) {
 		status_init(&get_progress, 0);
 
-		rec_restore_mode(restore_state);
-		rec_init(db, save_state);
+		rec_restore_mode(mask_restore_state);
+		rec_init(db, mask_save_state);
 
-		crk_init(db, fix_state, NULL);
+		crk_init(db, mask_fix_state, NULL);
 	}
 }
 
@@ -1344,6 +1362,9 @@ int do_mask_crack(const char *key)
 		memcpy(template_key + template_key_offsets[i++], key, key_len);
 
 	ret = generate_keys(&cpu_mask_ctx, &cand);
+
+	if (!ret && options.flags & FLG_MASK_STACKED)
+		crk_fix_state();
 
 	return ret;
 }

@@ -47,6 +47,7 @@
 #include "recovery.h"
 #include "external.h"
 #include "options.h"
+#include "mask.h"
 #include "unicode.h"
 #include "john.h"
 #include "fake_salts.h"
@@ -73,7 +74,7 @@ static struct fmt_params crk_params;
 static struct fmt_methods crk_methods;
 static int crk_key_index, crk_last_key;
 static void *crk_last_salt;
-static void (*crk_fix_state)(void);
+void (*crk_fix_state)(void);
 static struct db_keys *crk_guesses;
 static int64 *crk_timestamps;
 static char crk_stdout_key[PLAINTEXT_BUFFER_SIZE];
@@ -750,6 +751,9 @@ static int crk_salt_loop(void)
 
 	crk_key_index = 0;
 	crk_last_salt = NULL;
+	if (options.flags & FLG_MASK_STACKED)
+		mask_fix_state();
+	else
 	crk_fix_state();
 
 	crk_methods.clear_keys();
@@ -790,6 +794,9 @@ int crk_process_key(char *key)
 
 	status_update_cands(1);
 
+	if (options.flags & FLG_MASK_STACKED)
+		mask_fix_state();
+	else
 	crk_fix_state();
 
 	if (ext_abort)
