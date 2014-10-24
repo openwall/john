@@ -234,12 +234,17 @@ static int show_pwd(unsigned long long start)
 
 static double get_progress(void)
 {
+	unsigned long long mask_mult = mask_tot_cand ? mask_tot_cand : 1;
+	double try;
+
 	emms();
 
 	if(gend == 0)
 		return 0;
 
-	return 100.0 * (gidx - gstart) / (gend - gstart);
+	try = ((unsigned long long)status.cands.hi << 32) + status.cands.lo;
+
+	return 100.0 * try / ((gend - gstart) * mask_mult);
 }
 
 void get_markov_options(struct db_main *db,

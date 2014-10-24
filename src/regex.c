@@ -201,7 +201,8 @@ void do_regex_crack(struct db_main *db, const char *regex) {
 		word = c_simplestring_bufferaddress(buffer);
 		c_simplestring_clear(buffer);
 		if (ext_filter((char*)word)) {
-			crk_process_key((char*)word);
+			if (crk_process_key((char*)word))
+				break;
 		}
 	}
 	c_simplestring_delete(buffer);

@@ -332,6 +332,7 @@ static void fix_state(void)
 static double get_progress(void)
 {
 	int64_t pos, size;
+	unsigned long long mask_mult = mask_tot_cand ? mask_tot_cand : 1;
 
 	emms();
 
@@ -352,7 +353,7 @@ static double get_progress(void)
 		jtr_fseek64(word_file, 0, SEEK_END);
 		size = jtr_ftell64(word_file);
 		jtr_fseek64(word_file, pos, SEEK_SET);
-#ifdef DEBUG
+#if 0
 		fprintf (stderr, "pos="LLd"  size="LLd"  percent=%0.4f\n", (long long)pos, (long long)size, (100.0 * ((rule_number * (double)size) + pos) /(rule_count * (double)size)));
 #endif
 		if (pos < 0) {
@@ -364,8 +365,12 @@ static double get_progress(void)
 				pexit(STR_MACRO(jtr_ftell64));
 		}
 	}
-	return (100.0 * ((rule_number * (double)size) + pos) /
-	        (rule_count * (double)size));
+#if 0
+	fprintf(stderr, "rule %d/%d mask %llu pos %llu/%llu\n",
+	        rule_number, rule_count, mask_mult, pos, size);
+#endif
+	return (100.0 * ((rule_number * size * mask_mult) + pos * mask_mult) /
+	        (rule_count * size * mask_mult));
 }
 
 static char *dummy_rules_apply(char *word, char *rule, int split, char *last)

@@ -70,7 +70,7 @@ static char *costs_str;
 
 static struct opt_entry opt_list[] = {
 	{"", FLG_PASSWD, 0, 0, 0, OPT_FMT_ADD_LIST, &options.passwd},
-	{"single", FLG_SINGLE_SET, FLG_CRACKING_CHK, 0, 0,
+	{"single", FLG_SINGLE_SET, FLG_CRACKING_CHK, 0, FLG_MASK_CHK,
 		OPT_FMT_STR_ALLOC, &pers_opts.activesinglerules},
 	{"wordlist", FLG_WORDLIST_SET, FLG_CRACKING_CHK,
 		0, 0, OPT_FMT_STR_ALLOC, &options.wordlist},
@@ -115,7 +115,8 @@ static struct opt_entry opt_list[] = {
 		0, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.external},
 #if HAVE_REXGEN
 	{"regex", FLG_REGEX_SET, FLG_REGEX_CHK,
-		0, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.regex},
+		0, FLG_MASK_CHK | OPT_REQ_PARAM, OPT_FMT_STR_ALLOC,
+	 	&options.regex},
 #endif
 	{"stdout", FLG_STDOUT, FLG_STDOUT,
 		FLG_CRACKING_SUP, FLG_SINGLE_CHK | FLG_BATCH_CHK,
@@ -479,6 +480,12 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 		options.flags |= FLG_BATCH_SET;
 
 	opt_check(opt_list, options.flags, argv);
+
+	if (options.flags & FLG_MASK_STACKED && ext_flags & EXT_REQ_FILTER) {
+		fprintf(stderr, "Can't use Hybrid Mask mode with External "
+		        "Filter\n");
+		error();
+	}
 
 	if (options.session) {
 		rec_name = options.session;

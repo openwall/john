@@ -81,6 +81,7 @@ extern int do_mask_crack(const char *key);
 extern void mask_fix_state(void);
 extern void mask_save_state(FILE *file);
 extern int mask_restore_state(FILE *file);
+extern unsigned long long mask_tot_cand;
 
 extern void mask_done(void);
 

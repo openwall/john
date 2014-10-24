@@ -41,6 +41,7 @@ static double cand;
 static double get_progress(void)
 {
 	double try;
+	unsigned long long mask_mult = mask_tot_cand ? mask_tot_cand : 1;
 
 	emms();
 
@@ -49,7 +50,7 @@ static double get_progress(void)
 
 	try = ((unsigned long long)status.cands.hi << 32) + status.cands.lo;
 
-	return 100.0 * try / cand;
+	return 100.0 * try / (cand * mask_mult);
 }
 
 typedef char (*char2_table)

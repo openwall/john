@@ -35,14 +35,17 @@ static cpu_mask_context cpu_mask_ctx, rec_ctx;
 static int *template_key_offsets;
 static char *mask = NULL, *template_key;
 
-/* cand and rec_cand is the number of remaining candidates.
+/*
+ * cand and rec_cand is the number of remaining candidates.
  * So, it's value decreases as cracking progress.
  */
-static unsigned long int cand, rec_cand;
-/* Total number of candidates to begin with.
+static unsigned long long cand, rec_cand;
+
+/*
+ * Total number of candidates to begin with.
  * Remains unchanged throughout.
  */
-static unsigned long int total_cand;
+unsigned long long mask_tot_cand;
 
 #define BUILT_IN_CHARSET "aludshHA1234"
 
@@ -933,7 +936,7 @@ static MAYBE_INLINE char* mask_cp_to_utf8(char *in)
 }
 
 static int generate_keys(cpu_mask_context *cpu_mask_ctx,
-			  unsigned long int *my_candidates)
+			  unsigned long long *my_candidates)
 {
 	int i, ps1 = MAX_NUM_MASK_PLHDR, ps2 = MAX_NUM_MASK_PLHDR,
 	    ps3 = MAX_NUM_MASK_PLHDR, ps4 = MAX_NUM_MASK_PLHDR, ps ;
@@ -1101,17 +1104,17 @@ static double get_progress(void)
 
 	try = ((unsigned long long)status.cands.hi << 32) + status.cands.lo;
 
-	if (!total_cand)
+	if (!mask_tot_cand)
 		return -1;
 
-	return 100.0 * try / (double)total_cand;
+	return 100.0 * try / (double)mask_tot_cand;
 }
 
 void mask_save_state(FILE *file)
 {
 	int i;
 
-	fprintf(file, "%lu\n", rec_cand + 1);
+	fprintf(file, "%llu\n", rec_cand + 1);
 	fprintf(file, "%d\n", rec_ctx.count);
 	fprintf(file, "%d\n", rec_ctx.offset);
 	for (i = 0; i < rec_ctx.count; i++)
@@ -1122,11 +1125,11 @@ int mask_restore_state(FILE *file)
 {
 	int i, d;
 	unsigned char uc;
-	unsigned long int ul;
+	unsigned long long ull;
 	int fail = !(options.flags & FLG_MASK_STACKED);
 
-	if (fscanf(file, "%lu\n", &ul) == 1)
-		cand = ul;
+	if (fscanf(file, "%llu\n", &ull) == 1)
+		cand = ull;
 	else
 		return fail;
 
@@ -1160,9 +1163,9 @@ void mask_fix_state(void)
 		rec_ctx.ranges[i].iter = cpu_mask_ctx.ranges[i].iter;
 }
 
-static unsigned long int divide_work(cpu_mask_context *cpu_mask_ctx)
+static unsigned long long divide_work(cpu_mask_context *cpu_mask_ctx)
 {
-	unsigned long int offset, my_candidates, total_candidates, ctr;
+	unsigned long long offset, my_candidates, total_candidates, ctr;
 	int i, num_active_postions;
 	double fract;
 
@@ -1316,7 +1319,7 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 			if ((int)(cpu_mask_ctx.active_positions[i]))
 				cand *= cpu_mask_ctx.ranges[i].count;
 	}
-	total_cand = cand;
+	mask_tot_cand = cand;
 
 	if (!(options.flags & FLG_MASK_STACKED)) {
 		status_init(&get_progress, 0);
@@ -1332,14 +1335,18 @@ void mask_done()
 {
 	MEM_FREE(template_key);
 	MEM_FREE(template_key_offsets);
-	// For reporting DONE regardless of rounding errors
-	if (!event_abort)
-		cand = ((unsigned long long)status.cands.hi << 32) +
-			status.cands.lo;
 
-	crk_done();
+	if (!(options.flags & FLG_MASK_STACKED)) {
+		// For reporting DONE regardless of rounding errors
+		if (!event_abort)
+			cand =
+				((unsigned long long)status.cands.hi << 32) +
+				status.cands.lo;
 
-	rec_done(event_abort);
+		crk_done();
+
+		rec_done(event_abort);
+	}
 }
 
 int do_mask_crack(const char *key)
@@ -1361,6 +1368,7 @@ int do_mask_crack(const char *key)
 	while(template_key_offsets[i] != -1)
 		memcpy(template_key + template_key_offsets[i++], key, key_len);
 
+	cand = mask_tot_cand;
 	ret = generate_keys(&cpu_mask_ctx, &cand);
 
 	if (!ret && options.flags & FLG_MASK_STACKED)
