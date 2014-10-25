@@ -1369,5 +1369,5 @@ int do_mask_crack(const char *key)
 	if (!event_abort && (options.flags & FLG_MASK_STACKED))
 		crk_fix_state();
 
-	return 0;
+	return event_abort;
 }
