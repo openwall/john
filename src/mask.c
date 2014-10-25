@@ -808,7 +808,9 @@ static void init_cpu_mask(char *mask, parsed_ctx *parsed_mask,
 		cpu_mask_ctx->ranges[i].offset = 0;
 		cpu_mask_ctx->ranges[i].next = MAX_NUM_MASK_PLHDR;
 	}
-	cpu_mask_ctx->count = cpu_mask_ctx->offset = 0;
+	cpu_mask_ctx->count = cpu_mask_ctx->offset =
+	cpu_mask_ctx->cpu_count = 0;
+	cpu_mask_ctx->ps1 = MAX_NUM_MASK_PLHDR;
 
 	qtn_ctr = op_ctr = cl_ctr = 0;
 	for (i = 0; i < MAX_NUM_MASK_PLHDR; i++) {
@@ -938,17 +940,10 @@ static MAYBE_INLINE char* mask_cp_to_utf8(char *in)
 static int generate_keys(cpu_mask_context *cpu_mask_ctx,
 			  unsigned long long *my_candidates)
 {
-	int i, ps1 = MAX_NUM_MASK_PLHDR, ps2 = MAX_NUM_MASK_PLHDR,
+	int ps1 = MAX_NUM_MASK_PLHDR, ps2 = MAX_NUM_MASK_PLHDR,
 	    ps3 = MAX_NUM_MASK_PLHDR, ps4 = MAX_NUM_MASK_PLHDR, ps ;
-	int num_active_postions = 0;
 	int start1, start2, start3, start4;
 	int ret = 0;
-
-	for (i = 0; i < cpu_mask_ctx->count; i++)
-		if ((int)(cpu_mask_ctx->active_positions[i])) {
-			ps1 = i;
-			break;
-		}
 
 #define ranges(i) cpu_mask_ctx->ranges[i]
 
@@ -991,17 +986,12 @@ static int generate_keys(cpu_mask_context *cpu_mask_ctx,
 		start ? start + ranges(ps).iter:			\
 		ranges(ps).chars[ranges(ps).iter];
 
-
+	ps1 = cpu_mask_ctx->ps1;
 	ps2 = cpu_mask_ctx->ranges[ps1].next;
 	ps3 = cpu_mask_ctx->ranges[ps2].next;
 	ps4 = cpu_mask_ctx->ranges[ps3].next;
 
-	for (i = 0; i < cpu_mask_ctx->count; i++) {
-		if ((int)(cpu_mask_ctx->active_positions[i]))
-			num_active_postions++;
-	}
-
-	if (num_active_postions < 4) {
+	if (cpu_mask_ctx->cpu_count < 4) {
 		ps = ps1;
 
 		/* Initialize the placeholders */
@@ -1019,7 +1009,7 @@ static int generate_keys(cpu_mask_context *cpu_mask_ctx,
 		}
 	}
 
-	else if (num_active_postions >= 4) {
+	else if (cpu_mask_ctx->cpu_count >= 4) {
 		ps = ranges(ps4).next;
 
 	/* Initialize the reaming placeholders other than the first four */
@@ -1069,6 +1059,8 @@ done:
 /* Skips iteration for postions stored in arr */
 static void skip_position(cpu_mask_context *cpu_mask_ctx, int *arr)
 {
+	int i;
+
 	if (arr != NULL) {
 		int k = 0;
 		while (arr[k] >= 0 && arr[k] < cpu_mask_ctx->count) {
@@ -1094,6 +1086,15 @@ static void skip_position(cpu_mask_context *cpu_mask_ctx, int *arr)
 			k++;
 		}
 	}
+
+	cpu_mask_ctx->cpu_count = 0;
+	cpu_mask_ctx->ps1 = MAX_NUM_MASK_PLHDR;
+	for (i = 0; i < cpu_mask_ctx->count; i++)
+		if ((int)(cpu_mask_ctx->active_positions[i])) {
+			if (!cpu_mask_ctx->cpu_count)
+				cpu_mask_ctx->ps1 = i;
+			cpu_mask_ctx->cpu_count++;
+		}
 }
 
 static double get_progress(void)
@@ -1113,7 +1114,7 @@ static double get_progress(void)
 void mask_save_state(FILE *file)
 {
 	int i;
-
+	
 	fprintf(file, "%llu\n", rec_cand + 1);
 	fprintf(file, "%d\n", rec_ctx.count);
 	fprintf(file, "%d\n", rec_ctx.offset);
@@ -1166,16 +1167,11 @@ void mask_fix_state(void)
 static unsigned long long divide_work(cpu_mask_context *cpu_mask_ctx)
 {
 	unsigned long long offset, my_candidates, total_candidates, ctr;
-	int i, num_active_postions;
+	int i;
 	double fract;
 
 	fract = (double)(options.node_max - options.node_min + 1) /
 		options.node_count;
-
-	num_active_postions = 0;
-	for (i = 0; i < cpu_mask_ctx->count; i++)
-		if ((int)(cpu_mask_ctx->active_positions[i]))
-			num_active_postions++;
 
 	offset = 1;
 	for (i = 0; i < cpu_mask_ctx->count; i++)
@@ -1351,7 +1347,7 @@ void mask_done()
 
 int do_mask_crack(const char *key)
 {
-	int ret , i = 0;
+	int ret , i;
 	static int old_keylen = -1;
 	int key_len = key ? strlen(key) : 0;
 
@@ -1368,7 +1364,6 @@ int do_mask_crack(const char *key)
 	while(template_key_offsets[i] != -1)
 		memcpy(template_key + template_key_offsets[i++], key, key_len);
 
-	cand = mask_tot_cand;
 	ret = generate_keys(&cpu_mask_ctx, &cand);
 
 	if (!ret && options.flags & FLG_MASK_STACKED)

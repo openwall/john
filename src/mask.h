@@ -61,8 +61,12 @@ typedef struct {
 	mask_range ranges[MAX_NUM_MASK_PLHDR + 1];
 	/* Positions in mask for iteration on CPU */
 	int active_positions[MAX_NUM_MASK_PLHDR + 1];
-	/* Number of postions for iterating on CPU */
+	/* Postion of the first active range */
+	int ps1;
+	/* Total number of placeholders, cpu + gpu */
 	int count;
+	/* Number of placeholders active for iteration on CPU */
+	int cpu_count;
 	/* offset at which mask starts in the key */
 	int offset;
 } cpu_mask_context;
