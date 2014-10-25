@@ -1358,10 +1358,10 @@ static void john_run(void)
 		if (options.flags & FLG_BATCH_CHK)
 			do_batch_crack(&database);
 
-		status_print();
-
 		if (options.mask)
 			mask_done();
+
+		status_print();
 
 #if OS_FORK
 		if (options.fork && john_main_process)

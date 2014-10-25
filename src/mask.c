@@ -1,7 +1,7 @@
 /*
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 2013 by Solar Designer
- * Copyright (c) 2013 by magnum
+ * Copyright (c) 2013-2014 by magnum
  * Copyright (c) 2014 by Sayantan Datta
  *
  * Redistribution and use in source and binary forms, with or without
@@ -1322,7 +1322,7 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 	mask_tot_cand = cand;
 
 	if (!(options.flags & FLG_MASK_STACKED)) {
-		status_init(&get_progress, 0);
+		status_init(get_progress, 0);
 
 		rec_restore_mode(mask_restore_state);
 		rec_init(db, mask_save_state);
