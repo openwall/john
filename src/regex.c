@@ -16,6 +16,8 @@
 #include "loader.h"
 #include "logger.h"
 #include "status.h"
+#include "os.h"
+#include "signals.h"
 #include "recovery.h"
 #include "options.h"
 #include "config.h"
@@ -31,8 +33,10 @@
 
 char *rexgen_alphabets[256];
 
-static void fix_state(void) {
-}
+static void fix_state(void) {}
+static double get_progress(void) { return -1; }
+static void save_state(FILE *file) {}
+static int restore_state(FILE *file) { return 0; }
 
 static void rexgen_setlocale() {
 	const char* defaultLocale = "en_US.UTF8";
@@ -189,6 +193,9 @@ void do_regex_crack(struct db_main *db, const char *regex) {
 		        "resumed if aborted\n");
 
 	rexgen_setlocale();
+	status_init(&get_progress, 0);
+	rec_restore_mode(restore_state);
+	rec_init(db, save_state);
 	crk_init(db, fix_state, NULL);
 	iter = c_regex_iterator_cb(regex, ignore_case, encoding, randomize, callback);
 	if (!iter) {
@@ -208,6 +215,7 @@ void do_regex_crack(struct db_main *db, const char *regex) {
 	c_simplestring_delete(buffer);
 	c_iterator_delete(iter);
 	crk_done();
+	rec_done(event_abort);
 }
 
 

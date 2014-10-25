@@ -145,7 +145,8 @@
 #define FLG_NOTESTS			0x0000080000000000ULL
 /* Regex cracking mode */
 #define FLG_REGEX_CHK			0x0000100000000000ULL
-#define FLG_REGEX_SET			(FLG_REGEX_CHK | FLG_CRACKING_SET)
+#define FLG_REGEX_SET	  \
+	(FLG_REGEX_CHK | FLG_ACTION | FLG_CRACKING_SUP | FLG_PWD_SUP)
 /* Encodings. You can only give one of --internal-enc or --target-enc */
 #define FLG_INPUT_ENC			0x0000200000000000ULL
 #define FLG_SECOND_ENC			0x0000400000000000ULL
@@ -157,6 +158,9 @@
 #define FLG_LOOPTEST			0x0002000000000000ULL
 /* Mask mode is stacked */
 #define FLG_MASK_STACKED                0x0004000000000000ULL
+/* Stacking modes */
+#define FLG_STACKING	\
+	(FLG_MASK_CHK | FLG_REGEX_CHK)
 
 /*
  * Structure with option flags and all the parameters.

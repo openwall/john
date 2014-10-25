@@ -70,7 +70,7 @@ static char *costs_str;
 
 static struct opt_entry opt_list[] = {
 	{"", FLG_PASSWD, 0, 0, 0, OPT_FMT_ADD_LIST, &options.passwd},
-	{"single", FLG_SINGLE_SET, FLG_CRACKING_CHK, 0, FLG_MASK_CHK,
+	{"single", FLG_SINGLE_SET, FLG_CRACKING_CHK, 0, FLG_STACKING,
 		OPT_FMT_STR_ALLOC, &pers_opts.activesinglerules},
 	{"wordlist", FLG_WORDLIST_SET, FLG_CRACKING_CHK,
 		0, 0, OPT_FMT_STR_ALLOC, &options.wordlist},
@@ -97,7 +97,7 @@ static struct opt_entry opt_list[] = {
 	{"incremental", FLG_INC_SET, FLG_CRACKING_CHK,
 		0, 0, OPT_FMT_STR_ALLOC, &options.charset},
 	{"mask", FLG_MASK_SET, FLG_MASK_CHK,
-		0, 0, OPT_FMT_STR_ALLOC, &options.mask},
+		0, FLG_REGEX_CHK, OPT_FMT_STR_ALLOC, &options.mask},
 	{"1", FLG_ZERO, 0, FLG_MASK_SET, OPT_REQ_PARAM,
 		OPT_FMT_STR_ALLOC, &options.custom_mask[0]},
 	{"2", FLG_ZERO, 0, FLG_MASK_SET, OPT_REQ_PARAM,
@@ -473,6 +473,12 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 		if (options.flags & FLG_CRACKING_CHK)
 			options.flags |= FLG_MASK_STACKED;
 		else
+			options.flags |= FLG_CRACKING_SET;
+	}
+	if (options.flags & FLG_REGEX_CHK) {
+		//if (options.flags & FLG_CRACKING_CHK)
+		//	options.flags |= FLG_REGEX_STACKED;
+		//else
 			options.flags |= FLG_CRACKING_SET;
 	}
 
