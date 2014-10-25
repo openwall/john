@@ -1029,6 +1029,7 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self,
 	if (*lastEvent == NULL)
 		lastEvent = firstEvent;
 
+	HANDLE_CLERROR(clWaitForEvents(1, firstEvent), "MaitForEvents failed");
 	HANDLE_CLERROR(clFinish(queue[sequential_id]), "clFinish error");
 	HANDLE_CLERROR(clGetEventProfilingInfo(*firstEvent,
 					       CL_PROFILING_COMMAND_SUBMIT,
@@ -1081,6 +1082,8 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self,
 				break;
 			}
 
+			HANDLE_CLERROR(clWaitForEvents(1, firstEvent),
+					   "MaitForEvents failed");
 			HANDLE_CLERROR(clFinish(queue[sequential_id]),
 				       "clFinish error");
 			HANDLE_CLERROR(clGetEventProfilingInfo(*firstEvent,
@@ -1202,6 +1205,9 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 	for (i = 0; i < number_of_events; i++) {
 		char mult[32] = "";
 
+		HANDLE_CLERROR(
+			clWaitForEvents(1, multi_profilingEvent[i]),
+				"MaitForEvents failed");
 		HANDLE_CLERROR(
 			clGetEventProfilingInfo(*multi_profilingEvent[i],
 						CL_PROFILING_COMMAND_START,
@@ -1373,12 +1379,16 @@ void opencl_find_best_lws(
 	// Timing run
 	self->methods.crypt_all(&count, NULL);
 
+	HANDLE_CLERROR(
+		clWaitForEvents(1, &benchEvent[main_opencl_event]),
+		"MaitForEvents failed");
 	HANDLE_CLERROR(clFinish(queue[sequential_id]), "clFinish error");
 	HANDLE_CLERROR(clGetEventProfilingInfo(benchEvent[main_opencl_event],
 					       CL_PROFILING_COMMAND_START,
 					       sizeof(cl_ulong),
 					       &startTime, NULL),
 		       "Failed to get profiling info");
+
 	HANDLE_CLERROR(clGetEventProfilingInfo(benchEvent[main_opencl_event],
 					       CL_PROFILING_COMMAND_END,
 					       sizeof(cl_ulong), &endTime,
@@ -1420,6 +1430,9 @@ void opencl_find_best_lws(
 				break;
 			}
 
+			HANDLE_CLERROR(
+				clWaitForEvents(1, &benchEvent[main_opencl_event]),
+				"MaitForEvents failed");
 			HANDLE_CLERROR(clFinish(queue[sequential_id]),
 				       "clFinish error");
 			HANDLE_CLERROR(clGetEventProfilingInfo(benchEvent[main_opencl_event],
