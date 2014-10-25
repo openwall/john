@@ -140,6 +140,13 @@ static char* plhdr2string(char p, int fmt_case)
 #define add_range(a, b)	for (j = a; j <= b; j++) *o++ = j
 #define add_string(str)	for (s = (char*)str; *s; s++) *o++ = *s
 
+	if (pers_opts.internal_enc == ASCII)
+	if (p == 'U' || p == 'L') {
+		fprintf(stderr, "Can't use ?%c placeholder with "
+		        "ASCII encoding\n", p);
+		error();
+	}
+
 	switch(p) {
 	case 'a': /* Printable ASCII */
 		if (fmt_case)
