@@ -47,7 +47,7 @@ static unsigned long long cand, rec_cand;
  */
 unsigned long long mask_tot_cand;
 
-#define BUILT_IN_CHARSET "aludshHA1234"
+#define BUILT_IN_CHARSET "aludshHA1234LU"
 
 #define store_op(k, i) \
 	parsed_mask->stack_op_br[k] = i;
@@ -151,6 +151,7 @@ static char* plhdr2string(char p, int fmt_case)
 		break;
 	case 'l': /* lower-case letters */
 		add_range('a', 'z');
+	case 'L': /* lower-case non-ASCII only */
 		switch (pers_opts.internal_enc) {
 		case CP437:
 			add_string(CHARS_LOWER_CP437
@@ -216,6 +217,7 @@ static char* plhdr2string(char p, int fmt_case)
 		break;
 	case 'u': /* upper-case letters */
 		add_range('A', 'Z');
+	case 'U': /* upper-case non-ASCII only */
 		switch (pers_opts.internal_enc) {
 		case CP437:
 			add_string(CHARS_UPPER_CP437
