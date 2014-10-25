@@ -943,14 +943,13 @@ static int generate_keys(cpu_mask_context *cpu_mask_ctx,
 	int ps1 = MAX_NUM_MASK_PLHDR, ps2 = MAX_NUM_MASK_PLHDR,
 	    ps3 = MAX_NUM_MASK_PLHDR, ps4 = MAX_NUM_MASK_PLHDR, ps ;
 	int start1, start2, start3, start4;
-	int ret = 0;
 
 #define ranges(i) cpu_mask_ctx->ranges[i]
 
 #define process_key(key)						\
 	if (ext_filter(template_key))					\
-		if ((ret = crk_process_key(mask_cp_to_utf8(template_key)))) \
-			goto done;
+		if ((crk_process_key(mask_cp_to_utf8(template_key))))   \
+			return 1;
 /*
  * Calculate next state of remaing placeholders, working
  * similar to counters.
@@ -1047,7 +1046,7 @@ static int generate_keys(cpu_mask_context *cpu_mask_ctx,
 		}
 	}
 done:
-	return ret;
+	return 0;
 #undef ranges
 #undef process_key
 #undef next_state
@@ -1114,7 +1113,7 @@ static double get_progress(void)
 void mask_save_state(FILE *file)
 {
 	int i;
-	
+
 	fprintf(file, "%llu\n", rec_cand + 1);
 	fprintf(file, "%d\n", rec_ctx.count);
 	fprintf(file, "%d\n", rec_ctx.offset);
@@ -1347,7 +1346,7 @@ void mask_done()
 
 int do_mask_crack(const char *key)
 {
-	int ret , i;
+	int i;
 	static int old_keylen = -1;
 	int key_len = key ? strlen(key) : 0;
 
@@ -1364,10 +1363,11 @@ int do_mask_crack(const char *key)
 	while(template_key_offsets[i] != -1)
 		memcpy(template_key + template_key_offsets[i++], key, key_len);
 
-	ret = generate_keys(&cpu_mask_ctx, &cand);
+	if (generate_keys(&cpu_mask_ctx, &cand))
+		return 1;
 
-	if (!ret && options.flags & FLG_MASK_STACKED)
+	if (!event_abort && (options.flags & FLG_MASK_STACKED))
 		crk_fix_state();
 
-	return ret;
+	return 0;
 }
