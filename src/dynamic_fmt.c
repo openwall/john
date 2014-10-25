@@ -1595,6 +1595,16 @@ static void crypt_all(int count)
 		for (j = 0; j < m_count; j += inc) {
 			int i;
 			int top=j+inc;
+			//if (top > m_count)
+			//	top = m_count;
+			/* this code fixes 2 bugs.  One is fixed by NOT doing the 2 lines above. That is a core for
+			   formats 55 and 65 in TS runs. The other is by DOING the 2 lines below. That is a core
+			   for MANY OMP_NUM_THREADS where in does not correctly compute, and overflows the number of
+			   buffers.  THIS IS NOT the fix I want, but for now, it works around issue.  I need to either
+			   get inc right, OR get the full count of buffers right during init() call */
+			if (top > curdat.pFmtMain->params.max_keys_per_crypt)
+				top = curdat.pFmtMain->params.max_keys_per_crypt;
+
 			// we now run a full script in this thread, using only a subset of
 			// the data, from [j,top)  The next thread will run from [top,top+inc)
 			// each thread will take the next inc values, until we get to m_count
