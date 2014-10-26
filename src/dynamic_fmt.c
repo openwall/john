@@ -1589,19 +1589,16 @@ static void crypt_all(int count)
 	if ((curdat.pFmtMain->params.flags & FMT_OMP) == FMT_OMP) {
 		int j;
 		int inc = (m_count+m_ompt-1) / m_ompt;
-		//printf ("m_count=%d inc1=%d granularity=%d inc2=%d\n", m_count, inc, curdat.omp_granularity, ((inc + curdat.omp_granularity-1)/curdat.omp_granularity)*curdat.omp_granularity);
+		//printf ("maxkeys=%d m_count=%d inc1=%d granularity=%d inc2=%d\n", curdat.pFmtMain->params.max_keys_per_crypt, m_count, inc, curdat.omp_granularity, ((inc + curdat.omp_granularity-1)/curdat.omp_granularity)*curdat.omp_granularity);
 		inc = ((inc + curdat.omp_granularity-1)/curdat.omp_granularity)*curdat.omp_granularity;
 #pragma omp parallel for shared(curdat, inc, m_count)
 		for (j = 0; j < m_count; j += inc) {
 			int i;
 			int top=j+inc;
-			//if (top > m_count)
-			//	top = m_count;
-			/* this code fixes 2 bugs.  One is fixed by NOT doing the 2 lines above. That is a core for
-			   formats 55 and 65 in TS runs. The other is by DOING the 2 lines below. That is a core
-			   for MANY OMP_NUM_THREADS where in does not correctly compute, and overflows the number of
-			   buffers.  THIS IS NOT the fix I want, but for now, it works around issue.  I need to either
-			   get inc right, OR get the full count of buffers right during init() call */
+			/* The last block may 'appear' to have more keys than we have in the
+			    entire buffer space.  This is due to the granularity.  If so,
+			   reduce that last one to stop at end of our buffers.  NOT doing
+			   this is causes a huge buffer overflow.  */
 			if (top > curdat.pFmtMain->params.max_keys_per_crypt)
 				top = curdat.pFmtMain->params.max_keys_per_crypt;
 
