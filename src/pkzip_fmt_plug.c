@@ -31,6 +31,7 @@ john_register_one(&fmt_pkzip);
 
 #include "zlib.h"
 #include "pkzip_inffixed.h"  // This file is a data file, taken from zlib
+#include "loader.h"
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -263,7 +264,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 				in = fopen((c8*)cp, "rb"); /* have to open in bin mode for OS's where this matters, DOS/Win32 */
 				if (!in) {
 					/* this error is listed, even if not in pkzip debugging mode. */
-					fprintf(stderr, "Error loading a pkzip hash line. The ZIP file '%s' could NOT be found\n", cp);
+					/* But not if we're just reading old pot lines */
+					if (!ldr_in_pot)
+						fprintf(stderr, "Error loading a pkzip hash line. The ZIP file '%s' could NOT be found\n", cp);
 					return 0;
 				}
 				sFailStr = ValidateZipContents(in, offset, offex, complen, crc);
