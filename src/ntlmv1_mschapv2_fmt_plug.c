@@ -838,7 +838,7 @@ static void set_key_utf8(char *_key, int index)
 					chl <<= 6;
 					chl += *source;
 				} else
-					return;
+					goto bailout;
 #endif
 			case 2:
 				++source;
@@ -846,18 +846,18 @@ static void set_key_utf8(char *_key, int index)
 					chl <<= 6;
 					chl += *source;
 				} else
-					return;
+					goto bailout;
 			case 1:
 				++source;
 				if (*source) {
 					chl <<= 6;
 					chl += *source;
 				} else
-					return;
+					goto bailout;
 			case 0:
 				break;
 			default:
-				return;
+				goto bailout;
 			}
 			chl -= offsetsFromUTF8[extraBytesToRead];
 		}
@@ -895,7 +895,7 @@ static void set_key_utf8(char *_key, int index)
 						chl <<= 6;
 						chl += *source;
 					} else
-						return;
+						goto bailout;
 #endif
 				case 2:
 					++source;
@@ -903,18 +903,18 @@ static void set_key_utf8(char *_key, int index)
 						chh <<= 6;
 						chh += *source;
 					} else
-						return;
+						goto bailout;
 				case 1:
 					++source;
 					if (*source) {
 						chh <<= 6;
 						chh += *source;
 					} else
-						return;
+						goto bailout;
 				case 0:
 					break;
 				default:
-					return;
+					goto bailout;
 				}
 				chh -= offsetsFromUTF8[extraBytesToRead];
 			}
@@ -934,6 +934,7 @@ static void set_key_utf8(char *_key, int index)
 		keybuf_word += MMX_COEF;
 	}
 
+bailout:
 	while(*keybuf_word) {
 		*keybuf_word = 0;
 		keybuf_word += MMX_COEF;
