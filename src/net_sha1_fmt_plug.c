@@ -74,7 +74,7 @@ static struct custom_salt {
 	int length;
 	unsigned char salt[1024]; // XXX but should be OK
 } *cur_salt;
-
+static int dyna_salt_seen=0;
 static char Conv_Buf[300]; // max salt length we will pass to dyna is 230.  300 is MORE than enough.
 static struct fmt_main *pDynamicFmt, *pNetSha1_Dyna;
 
@@ -146,6 +146,7 @@ static void *get_salt(char *ciphertext)
 		// This keeps teh 'pre-cleaned salt() warning from hitting this format)
 		//return pDynamicFmt->methods.salt(Convert(Conv_Buf, orig_ct));
 		memcpy((char*)(&cs), pDynamicFmt->methods.salt(Convert(Conv_Buf, orig_ct)), pDynamicFmt->params.salt_size);
+		dyna_salt_seen=1;
 		return &cs;
 		
 	}
@@ -247,19 +248,14 @@ static int cmp_exact(char *source, int index)
 
 static void netsha1_set_key(char *key, int index)
 {
-	if (cur_salt->magic != MAGIC) {
+	if (dyna_salt_seen)
 		pDynamicFmt->methods.set_key(key, index);
-		return;
-	}
 	/* strncpy will pad with zeros, which is needed */
 	strncpy(saved_key[index], key, sizeof(saved_key[0]));
 }
 
 static char *get_key(int index)
 {
-	if (cur_salt->magic != MAGIC) {
-		return pDynamicFmt->methods.get_key(index);
-	}
 	return saved_key[index];
 }
 
