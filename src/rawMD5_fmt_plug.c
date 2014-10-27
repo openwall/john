@@ -217,7 +217,15 @@ static void set_key(char *_key, int index)
 		keybuf_word += MMX_COEF;
 	}
 	*keybuf_word = 0x80;
-
+#ifdef DEBUG
+	/* This function is higly optimized and assumes that we are
+	   never ever given a key longer than fmt_params.plaintext_length.
+	   If we are, buffer overflows WILL happen */
+	if (len > PLAINTEXT_LENGTH) {
+		fprintf(stderr, "\n** Core bug: got len %u\n'%s'\n", len, _key);
+		error();
+	}
+#endif
 key_cleaning:
 	keybuf_word += MMX_COEF;
 	while(*keybuf_word) {

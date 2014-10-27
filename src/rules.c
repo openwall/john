@@ -970,6 +970,10 @@ void rules_init(int max_length)
 	if (max_length > RULE_WORD_SIZE - 1)
 		max_length = RULE_WORD_SIZE - 1;
 
+	minlength = (options.force_minlength >= 0) ?
+		options.force_minlength : 0;
+	maxlength = options.force_maxlength;
+
 	if (max_length == rules_max_length) return;
 
 	if (!rules_max_length) {
@@ -977,9 +981,6 @@ void rules_init(int max_length)
 		rules_init_convs();
 	}
 	rules_init_length(max_length);
-	minlength = (options.force_minlength >= 0) ?
-		options.force_minlength : 0;
-	maxlength = options.force_maxlength;
 }
 
 char *rules_reject(char *rule, int split, char *last, struct db_main *db)
@@ -1204,7 +1205,7 @@ static char* rules_cp_to_utf8(char *in)
 
 	if (pers_opts.internal_enc != UTF_8 &&
 	    pers_opts.internal_enc != pers_opts.target_enc)
-		return cp_to_utf8_r(in, out, PLAINTEXT_BUFFER_SIZE);
+		return cp_to_utf8_r(in, out, rules_max_length);
 
 	return in;
 }
