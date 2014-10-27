@@ -89,8 +89,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	int version;
 
 	p = ciphertext;
-	if (!strncmp(p, FORMAT_TAG, TAG_LENGTH))
-		p += TAG_LENGTH;
+	if (strncmp(p, FORMAT_TAG, TAG_LENGTH))
+		return 0;
+	p += TAG_LENGTH;
 	if (!p)
 		return 0;
 	version = atoi(p);
