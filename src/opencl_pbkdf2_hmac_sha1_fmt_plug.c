@@ -137,7 +137,7 @@ static cl_mem mem_in, mem_out, mem_salt, mem_state;
 static unsigned int v_width = 1;	/* Vector width of kernel */
 static int new_keys;
 
-#ifdef DEBUG
+#if 0
 struct fmt_main *me;
 #endif
 
@@ -196,7 +196,7 @@ static void init(struct fmt_main *self)
 	char build_opts[64];
 	static char valgo[sizeof(ALGORITHM_NAME) + 8] = "";
 
-#ifdef DEBUG
+#if 0
 	me = self;
 #endif
 	if ((v_width = opencl_get_vector_width(gpu_id,
@@ -347,7 +347,7 @@ static void *binary(char *ciphertext)
 		((uint32_t*)out)[i] = JOHNSWAP(((uint32_t*)out)[i]);
 	}
 #endif
-#ifdef DEBUG
+#if 0
 	dump_stuff_msg(__FUNCTION__, out, BINARY_SIZE);
 #endif
 	return out;
@@ -357,7 +357,7 @@ static void set_salt(void *salt)
 {
 	cur_salt = (pbkdf2_salt*)salt;
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_salt, CL_FALSE, 0, sizeof(pbkdf2_salt), cur_salt, 0, NULL, NULL), "Copy salt to gpu");
-#ifdef DEBUG
+#if 0
 	fprintf(stderr, "\n%s(%.*s) len %u iter %u\n", __FUNCTION__, cur_salt->length, cur_salt->salt, cur_salt->length, cur_salt->iterations);
 	dump_stuff_msg("salt", cur_salt->salt, cur_salt->length);
 #endif
@@ -432,7 +432,7 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
 	global_work_size = local_work_size ? ((*pcount + (v_width * local_work_size - 1)) / (v_width * local_work_size)) * local_work_size : *pcount / v_width;
 	scalar_gws = global_work_size * v_width;
 
-#ifdef DEBUG
+#if 0
 	fprintf(stderr, "%s(%d) lws %zu gws %zu sgws %zu kpc %d/%d\n", __FUNCTION__, *pcount, local_work_size, global_work_size, scalar_gws, me->params.min_keys_per_crypt, me->params.max_keys_per_crypt);
 #endif
 
@@ -456,7 +456,7 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
 
 static int binary_hash_0(void *binary)
 {
-#ifdef DEBUG
+#if 0
 	dump_stuff_msg(__FUNCTION__, binary, BINARY_SIZE);
 #endif
 	return (((uint32_t *) binary)[0] & 0xf);
@@ -464,7 +464,7 @@ static int binary_hash_0(void *binary)
 
 static int get_hash_0(int index)
 {
-#ifdef DEBUG
+#if 0
 	dump_stuff_msg(__FUNCTION__, output[index].dk, BINARY_SIZE);
 #endif
 	return *(uint32_t*)output[index].dk & 0xf;
@@ -524,7 +524,7 @@ static int cmp_exact(char *source, int index)
 	            cur_salt->salt, cur_salt->length,
 	            cur_salt->iterations, crypt, len, 0);
 	result = !memcmp(binary, crypt, len);
-#ifdef DEBUG
+#if 0
 	dump_stuff_msg("hash binary", binary, len);
 	dump_stuff_msg("calc binary", crypt, len);
 #endif

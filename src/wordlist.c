@@ -599,7 +599,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 		if (mem_map == MAP_FAILED) {
 			mem_map = NULL;
 #ifdef DEBUG
-			fprintf(stderr, "DEBUG: - memory mapping failed (%s)\n",
+			fprintf(stderr, "wordlist: memory mapping failed (%s) (non-fatal)\n",
 			        strerror(errno));
 #endif
 			log_event("- memory mapping failed (%s) - but we'll do "

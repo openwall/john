@@ -543,8 +543,8 @@ static void *get_salt(char *ciphertext)
 				        strerror(errno));
 				error();
 			}
-#ifdef DEBUG
-			fprintf(stderr, "mmap() len %llu offset 0\n",
+#ifdef RAR_DEBUG
+			fprintf(stderr, "RAR mmap() len %llu offset 0\n",
 			        pos + psalt->pack_size);
 #endif
 			psalt->blob = mmap(NULL, pos + psalt->pack_size,

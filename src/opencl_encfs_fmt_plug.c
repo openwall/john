@@ -145,7 +145,7 @@ static size_t get_default_workgroup()
 		return 64;
 }
 
-#ifdef DEBUG
+#if 0
 struct fmt_main *me;
 #endif
 
@@ -355,7 +355,7 @@ static void init(struct fmt_main *self)
 	char build_opts[64];
 	static char valgo[sizeof(ALGORITHM_NAME) + 8] = "";
 
-#ifdef DEBUG
+#if 0
 	me = self;
 #endif
 	if ((v_width = opencl_get_vector_width(gpu_id,
@@ -609,7 +609,7 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
 	global_work_size = local_work_size ? ((*pcount + (v_width * local_work_size - 1)) / (v_width * local_work_size)) * local_work_size : *pcount / v_width;
 	scalar_gws = global_work_size * v_width;
 
-#ifdef DEBUG
+#if 0
 	fprintf(stderr, "%s(%d) lws %zu gws %zu sgws %zu kpc %d/%d\n", __FUNCTION__, *pcount, local_work_size, global_work_size, scalar_gws, me->params.min_keys_per_crypt, me->params.max_keys_per_crypt);
 #endif
 

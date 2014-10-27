@@ -365,7 +365,7 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
 
 	gws = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
 
-#ifdef DEBUG
+#if 0
 	printf("crypt_all(%d)\n", count);
 	printf("LWS = %d, GWS = %d\n", (int)local_work_size, (int)gws);
 #endif
@@ -410,7 +410,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	loops += host_salt->rounds % HASH_LOOPS > 0;
 	opencl_limit_gws(count);
 
-#ifdef DEBUG
+#if 0
 	printf("crypt_all(%d)\n", count);
 	printf("LWS = %d, GWS = %d\n", (int)local_work_size, (int)global_work_size);
 #endif
@@ -488,7 +488,7 @@ static char *get_key(int index)
 
 static int binary_hash_0(void *binary)
 {
-#ifdef DEBUG
+#if 0
 	uint32_t i, *b = binary;
 	puts("binary");
 	for (i = 0; i < 8; i++)
@@ -500,7 +500,7 @@ static int binary_hash_0(void *binary)
 
 static int get_hash_0(int index)
 {
-#ifdef DEBUG
+#if 0
 	uint32_t i;
 	puts("get_hash");
 	for (i = 0; i < 8; i++)

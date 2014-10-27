@@ -1216,7 +1216,7 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 {
 	int i, ctr = 0;
 
-#ifdef DEBUG
+#ifdef MASK_DEBUG
 	fprintf(stderr, "%s(%s)\n", __FUNCTION__, unprocessed_mask);
 #endif
 	mask = unprocessed_mask;
@@ -1274,7 +1274,7 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 	/* Finally expand custom placeholders ?1 .. ?4 */
 	mask = expand_cplhdr(mask);
 
-#ifdef DEBUG
+#ifdef MASK_DEBUG
 	fprintf(stderr, "Custom masks expanded (this is 'mask' when passed to "
 	        "init_cpu_mask()):\n%s\n", mask);
 #endif
@@ -1359,7 +1359,7 @@ int do_mask_crack(const char *key)
 	static int old_keylen = -1;
 	int key_len = key ? strlen(key) : 0;
 
-#ifdef DEBUG
+#ifdef MASK_DEBUG
 	fprintf(stderr, "%s(%s)\n", __FUNCTION__, key);
 #endif
 

@@ -247,7 +247,7 @@ static void start_opencl_environment()
 		// Point to the end of the list
 		device_pos += device_num;
 
-#ifdef DEBUG
+#ifdef OCL_DEBUG
 		fprintf(stderr, "OpenCL platform %d: %s, %d device(s).\n",
 			i, opencl_data, device_num);
 #endif
@@ -359,7 +359,7 @@ static int start_opencl_device(int sequential_id, int *err_type)
 	context[sequential_id] = clCreateContext(properties, 1,
 		&devices[sequential_id], NULL, NULL, &ret_code);
 	if (ret_code != CL_SUCCESS) {
-#ifdef DEBUG
+#ifdef OCL_DEBUG
 		fprintf(stderr, "Error creating context for device %d "
 			"(%d:%d): %s\n", sequential_id,
 			get_platform_id(sequential_id),
@@ -373,7 +373,7 @@ static int start_opencl_device(int sequential_id, int *err_type)
 	queue[sequential_id] = clCreateCommandQueue(context[sequential_id],
 		devices[sequential_id], 0, &ret_code);
 	if (ret_code != CL_SUCCESS) {
-#ifdef DEBUG
+#ifdef OCL_DEBUG
 		fprintf(stderr, "Error creating command queue for "
 			"device %d (%d:%d): %s\n", sequential_id,
 			get_platform_id(sequential_id),
@@ -386,7 +386,7 @@ static int start_opencl_device(int sequential_id, int *err_type)
 		*err_type = 2;
 		return 0;
 	}
-#ifdef DEBUG
+#ifdef OCL_DEBUG
 	fprintf(stderr, "  Device %d: %s\n", sequential_id, opencl_data);
 #endif
 	// Success.

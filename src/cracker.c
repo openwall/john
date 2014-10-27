@@ -65,7 +65,7 @@
 #undef index
 #endif
 
-#ifdef DEBUG
+#ifdef POTSYNC_DEBUG
 static clock_t salt_time = 0;
 #endif
 
@@ -206,7 +206,7 @@ static void crk_remove_salt(struct db_salt *salt)
 				crk_db->salt_hash[hash] = NULL;
 		}
 	}
-#ifdef DEBUG
+#ifdef POTSYNC_DEBUG
 	if (options.verbosity >= 2 && crk_params.binary_size &&
 	    crk_db->salt_count < crk_db->password_count)
 		log_event("- got rid of a salt, %d left", crk_db->salt_count);
@@ -388,7 +388,7 @@ static int crk_remove_pot_entry(char *ciphertext)
 	struct db_password *pw;
 	void *pot_salt;
 	char *binary = crk_methods.binary(ciphertext);
-#ifdef DEBUG
+#ifdef POTSYNC_DEBUG
 	struct tms buffer;
 	clock_t start = times(&buffer), end;
 #endif
@@ -409,7 +409,7 @@ static int crk_remove_pot_entry(char *ciphertext)
 			break;
 	}  while ((salt = salt->next));
 
-#ifdef DEBUG
+#ifdef POTSYNC_DEBUG
 	end = times(&buffer);
 	salt_time += (end - start);
 #endif
@@ -466,7 +466,7 @@ int crk_reload_pot(void)
 	int pot_fd;
 	FILE *pot_file;
 	int total = crk_db->password_count, others;
-#ifdef DEBUG
+#ifdef POTSYNC_DEBUG
 	struct tms buffer;
 	clock_t start = times(&buffer), end;
 
@@ -547,7 +547,7 @@ int crk_reload_pot(void)
 			fprintf(stderr, "%s\n", crk_loaded_counts());
 	}
 
-#ifdef DEBUG
+#ifdef POTSYNC_DEBUG
 	end = times(&buffer);
 #if defined(_SC_CLK_TCK) && !defined(CLK_TCK)
 #define CLK_TCK	sysconf(_SC_CLK_TCK)

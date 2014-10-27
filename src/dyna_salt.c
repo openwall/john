@@ -32,10 +32,10 @@
 #include "dyna_salt.h"
 #include "memdbg.h"
 
-//#define DEBUG
+//#define DYNA_SALT_DEBUG
 
 static struct fmt_main *format;
-#ifdef DEBUG
+#ifdef DYNA_SALT_DEBUG
 static int salt_count;
 #endif
 
@@ -43,7 +43,7 @@ void dyna_salt_init(struct fmt_main *_format) {
 	format=_format;
 }
 
-#ifdef DEBUG
+#ifdef DYNA_SALT_DEBUG
 void dyna_salt_remove_fp(void *p, char *fname, int line)
 #else
 void dyna_salt_remove_fp(void *p)
@@ -52,7 +52,7 @@ void dyna_salt_remove_fp(void *p)
 	if (p && (format->params.flags & FMT_DYNA_SALT) == FMT_DYNA_SALT) {
 		dyna_salt_john_core *p1 = *((dyna_salt_john_core**)p);
 		if (p1 && p1->dyna_salt.salt_alloc_needs_free == 1) {
-#ifdef DEBUG
+#ifdef DYNA_SALT_DEBUG
 			printf ("-- Freeing a salt    #%d  from: %s line %d\n", --salt_count, fname, line);
 #endif
 			MEM_FREE(p1);
@@ -60,7 +60,7 @@ void dyna_salt_remove_fp(void *p)
 	}
 }
 
-#ifdef DEBUG
+#ifdef DYNA_SALT_DEBUG
 void dyna_salt_created_fp(char *fname, int line) {
 	if ((format->params.flags & FMT_DYNA_SALT) == FMT_DYNA_SALT) {
 		printf ("++ Allocating a salt #%d  from: %s line %d\n", ++salt_count, fname, line);
@@ -72,7 +72,7 @@ int dyna_salt_cmp(void *_p1, void *_p2, int comp_size) {
 	if ((format->params.flags & FMT_DYNA_SALT) == FMT_DYNA_SALT) {
 		dyna_salt_john_core *p1 = *((dyna_salt_john_core**)_p1);
 		dyna_salt_john_core *p2 = *((dyna_salt_john_core**)_p2);
-#ifdef DEBUG
+#ifdef DYNA_SALT_DEBUG
 		dump_stuff_msg("dyna_salt_cmp\np1", &((unsigned char*)p1)[p1->dyna_salt.salt_cmp_offset], p1->dyna_salt.salt_cmp_size);
 		dump_stuff_msg("p2", &((unsigned char*)p2)[p2->dyna_salt.salt_cmp_offset], p2->dyna_salt.salt_cmp_size);
 #endif
@@ -84,7 +84,7 @@ int dyna_salt_cmp(void *_p1, void *_p2, int comp_size) {
 			return 0;
 		return 1;
 	}
-#ifdef DEBUG
+#ifdef DYNA_SALT_DEBUG
 	dump_stuff_msg("salt_cmp\np1", _p1, comp_size);
 	dump_stuff_msg("p2", _p2, comp_size);
 #endif

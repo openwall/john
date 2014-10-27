@@ -710,7 +710,7 @@ int fmt_default_dyna_salt_hash(void *salt)
 
 	p = (unsigned char*)mysalt;
 	p += mysalt->dyna_salt.salt_cmp_offset;
-#ifdef DEBUG
+#ifdef DYNA_SALT_DEBUG
 	dump_stuff_msg((void*)__FUNCTION__, p, mysalt->dyna_salt.salt_cmp_size);
 	fprintf(stderr, "cmp size %zu\n", mysalt->dyna_salt.salt_cmp_size);
 #endif
@@ -719,7 +719,7 @@ int fmt_default_dyna_salt_hash(void *salt)
 		v *= 11;
 		v += *p++;
 	}
-#ifdef DEBUG
+#ifdef DYNA_SALT_DEBUG
 	fprintf(stderr, "return %d\n", v & (SALT_HASH_SIZE - 1));
 #endif
 	return v & (SALT_HASH_SIZE - 1);

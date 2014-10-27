@@ -624,7 +624,7 @@ static int cmp_exact_x(char *source, int index) {
 }
 
 /* ------- Binary Hash functions group ------- */
-#ifdef DEBUG
+#if 0
 static void print_binary(void * binary) {
 	uint64_t *bin = binary;
 	uint64_t tmp = bin[0] + H3;
@@ -648,7 +648,7 @@ static void print_hash(int index) {
 #endif
 
 static int binary_hash_0(void * binary) {
-#ifdef DEBUG
+#if 0
 	print_binary(binary);
 #endif
 	return *(ARCH_WORD_32 *) binary & 0xF;
@@ -656,7 +656,7 @@ static int binary_hash_0(void * binary) {
 
 //Get Hash functions group.
 static int get_hash_0(int index) {
-#ifdef DEBUG
+#if 0
 	print_hash(index);
 #endif
 	return calculated_hash[index] & 0xF;

@@ -114,7 +114,7 @@ static void *get_salt(char *ciphertext)
 #endif
 	MEM_FREE(keeptr);
 
-#ifdef DEBUG
+#ifdef RARDEBUG
 	fprintf(stderr, "get_salt len %d iter %d\n", cs.saltlen, cs.iterations);
 	dump_stuff(cs.salt, SIZE_SALT50);
 #endif
@@ -168,7 +168,7 @@ static int cmp_exact(char *source, int index)
 
 static int get_hash_0(int index)
 {
-#ifdef DEBUG
+#ifdef RARDEBUG
 	dump_stuff_msg("get_hash", crypt_out[index], BINARY_SIZE);
 #endif
 	return crypt_out[index][0] & 0xf;

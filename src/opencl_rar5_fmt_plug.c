@@ -232,7 +232,7 @@ static void set_salt(void *salt)
 	host_salt->rounds = cur_salt->iterations + 32; // We only need PswCheck
 	host_salt->length = cur_salt->saltlen;
 	memcpy(host_salt->salt, cur_salt->salt, cur_salt->saltlen);
-#ifdef DEBUG
+#if 0
 	fprintf(stderr, "Setting salt iter %d len %d ", host_salt->rounds, host_salt->length);
 	dump_stuff(host_salt->salt, SIZE_SALT50);
 #endif
@@ -252,7 +252,7 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
 
 	gws = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
 
-#ifdef DEBUG
+#if 0
 	printf("crypt_all(%d)\n", count);
 	printf("LWS = %d, GWS = %d\n", (int)local_work_size, (int)gws);
 #endif
@@ -297,7 +297,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	loops += host_salt->rounds % HASH_LOOPS > 0;
 	opencl_limit_gws(count);
 
-#ifdef DEBUG
+#if 0
 	printf("crypt_all(%d)\n", count);
 	printf("LWS = %d, GWS = %d\n", (int)local_work_size, (int)global_work_size);
 #endif
@@ -353,7 +353,7 @@ static void set_key(char *key, int index)
 
 	memcpy(host_pass[index].v, key, saved_key_length);
 	host_pass[index].length = saved_key_length;
-#ifdef DEBUG
+#if 0
 	fprintf(stderr, "%s(%s)\n", __FUNCTION__, key);
 #endif
 }

@@ -118,13 +118,13 @@ static void set_lws_gws(int defaultLWS, int defaultGWS)
 	local_work_size = global_work_size = 0;
 	opencl_get_user_preferences(CONFIG_NAME);
 	if (!local_work_size) {
-#ifdef DEBUG
+#if 0
 		fprintf(stderr, "Forcing LWS = %d\n", defaultLWS);
 #endif
 		local_work_size = DEFAULT_LWS;
 	}
 	if (!global_work_size) {
-#ifdef DEBUG
+#if 0
 		fprintf(stderr, "Forcing GWS = %d\n", defaultGWS);
 #endif
 		global_work_size = DEFAULT_GWS;
@@ -277,7 +277,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	opencl_limit_gws(count);
 
-#ifdef DEBUG
+#if 0
 	printf("crypt_all(%d)\n", count);
 	printf("LWS = %d, GWS = %d\n",(int)local_work_size, (int)global_work_size);
 #endif
@@ -350,7 +350,7 @@ static char *get_key(int index)
 
 static int binary_hash_0(void *binary)
 {
-#ifdef DEBUG
+#if 0
 	uint32_t i, *b = binary;
 	puts("binary");
 	for (i = 0; i < 16; i++)
@@ -362,7 +362,7 @@ static int binary_hash_0(void *binary)
 
 static int get_hash_0(int index)
 {
-#ifdef DEBUG
+#if 0
 	uint32_t i;
 	puts("get_hash");
 	for (i = 0; i < 16; i++)

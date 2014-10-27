@@ -248,9 +248,6 @@ void nvidia_get_temp(int nvml_id, int *temp, int *fanspeed, int *util)
 	nvmlDevice_t dev;
 	unsigned int value;
 	char name[80];
-#ifdef DEBUG
-	nvmlPciInfo_t pci;
-#endif
 
 	if (nvmlDeviceGetHandleByIndex(nvml_id, &dev) != NVML_SUCCESS) {
 		*temp = *fanspeed = *util = -1;
@@ -272,12 +269,6 @@ void nvidia_get_temp(int nvml_id, int *temp, int *fanspeed, int *util)
 
 	if (nvmlDeviceGetName(dev, name, sizeof(name)) != NVML_SUCCESS)
 		sprintf(name, "[error querying for name]");
-
-#ifdef DEBUG
-	if (nvmlDeviceGetPciInfo(dev, &pci) == NVML_SUCCESS)
-		printf("\tNVML PCI info           %s (idx %d '%s')\n",
-		        &pci.busId[5], nvml_id, name);
-#endif
 }
 
 #if __linux__ && HAVE_LIBDL

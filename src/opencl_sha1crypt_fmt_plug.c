@@ -124,7 +124,7 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	HANDLE_CLERROR(clSetKernelArg(kernel, id, sizeof(arg), &arg), \
 	               "Error setting kernel argument");
 
-#ifdef DEBUG
+#if 0
 	fprintf(stderr, "%s(%zu) kpc %zu\n", __FUNCTION__, gws, kpc);
 #endif
 	key_buf_size = PLAINTEXT_LENGTH * kpc;
@@ -246,7 +246,7 @@ static void set_salt(void *salt)
 
 static int binary_hash_0(void *binary)
 {
-#ifdef DEBUG
+#if 0
 	dump_stuff_msg("binary_hash[0]", (uint32_t*)binary, 20);
 #endif
 	return (((uint32_t *) binary)[0] & 0xf);
@@ -254,7 +254,7 @@ static int binary_hash_0(void *binary)
 
 static int get_hash_0(int index)
 {
-#ifdef DEBUG
+#if 0
 	dump_stuff_msg("\nget_hash", host_crack[index].dk, 20);
 #endif
 	return host_crack[index].dk[0] & 0xf;
@@ -328,7 +328,7 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
 	int lazy = 0;
 	size_t scalar_gws = global_work_size * v_width;
 
-#ifdef DEBUG
+#if 0
 	fprintf(stderr, "%s(%d) lws %zu gws %zu sgws %zu\n", __FUNCTION__,
 	        *pcount, local_work_size, global_work_size, scalar_gws);
 #endif
@@ -355,7 +355,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	global_work_size = ((count + (v_width * local_work_size - 1)) / (v_width * local_work_size)) * local_work_size;
 	scalar_gws = global_work_size * v_width;
-#ifdef DEBUG
+#if 0
 	fprintf(stderr, "%s(%d) lws %zu gws %zu sgws %zu\n", __FUNCTION__,
 	        count, local_work_size, global_work_size, scalar_gws);
 #endif

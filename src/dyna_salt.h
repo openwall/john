@@ -62,9 +62,9 @@ void dyna_salt_init(struct fmt_main *format);
  */
 int dyna_salt_cmp(void *p1, void *p2, int comp_size);
 
-//#define DEBUG
+//#define DYNA_SALT_DEBUG
 
-#ifdef DEBUG
+#ifdef DYNA_SALT_DEBUG
 void dyna_salt_created_fp(char *fname, int line);
 #define dyna_salt_create() dyna_salt_created_fp(__FILE__,__LINE__)
 void dyna_salt_remove_fp(void *a, char *fname, int line);
@@ -75,7 +75,7 @@ void dyna_salt_remove_fp(void *a);
 #define dyna_salt_remove(a) dyna_salt_remove_fp(a)
 #endif
 
-//#undef DEBUG
+//#undef DYNA_SALT_DEBUG
 
 /* These 2 used in self test code. Put here to hide the ugly details */
 void dyna_salt_smash(void *p, char c);
