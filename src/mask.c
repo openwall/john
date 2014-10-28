@@ -12,6 +12,7 @@
 
 #include <stdio.h> /* for fprintf(stderr, ...) */
 #include <string.h>
+#include <ctype.h>
 
 #include "misc.h" /* for error() */
 #include "logger.h"
@@ -28,12 +29,12 @@
 #include "unicode.h"
 #include "encoding_data.h"
 #include "memdbg.h"
-#include <ctype.h>
 
 static parsed_ctx parsed_mask;
 static cpu_mask_context cpu_mask_ctx, rec_ctx;
 static int *template_key_offsets;
 static char *mask = NULL, *template_key;
+static int max_keylen;
 
 /*
  * cand and rec_cand is the number of remaining candidates.
@@ -978,11 +979,10 @@ static char* generate_template_key(char *mask, const char *key, int key_len,
 		else
 			template_key[k++] = mask[i++];
 
-		if (options.force_maxlength &&
-		    k >= (unsigned int)options.force_maxlength) {
+		if (k >= (unsigned int)max_keylen) {
 			save_restore(cpu_mask_ctx, j - 1, 0);
 			truncate_mask(cpu_mask_ctx, j - 1);
-			k = options.force_maxlength;
+			k = max_keylen;
 			break;
 		}
 	}
@@ -1275,6 +1275,9 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 {
 	int i, ctr = 0;
 
+	max_keylen = options.force_maxlength ?
+		options.force_maxlength : db->format->params.plaintext_length;
+
 #ifdef MASK_DEBUG
 	fprintf(stderr, "%s(%s)\n", __FUNCTION__, unprocessed_mask);
 #endif
@@ -1430,9 +1433,8 @@ int do_mask_crack(const char *key)
 
 	i = 0;
 	while(template_key_offsets[i] != -1) {
-		int cpy_len = options.force_maxlength - template_key_offsets[i];
+		int cpy_len = max_keylen - template_key_offsets[i];
 		cpy_len = cpy_len > key_len ? key_len : cpy_len;
-		cpy_len = options.force_maxlength ? cpy_len : key_len;
 		memcpy(template_key + template_key_offsets[i++], key, cpy_len);
 	}
 
