@@ -899,10 +899,59 @@ static void init_cpu_mask(char *mask, parsed_ctx *parsed_mask,
 	cpu_mask_ctx->active_positions[i] = 1;
 }
 
+static void save_restore(cpu_mask_context *cpu_mask_ctx, int range_idx, int ch)
+{
+	static int bckp_active_positions[MAX_NUM_MASK_PLHDR + 1], bckp_range_idx,
+	bckp_next, bckp_cpu_count, bckp_ps1, toggle;
+
+	int i;
+	/* save state */
+	if (!ch) {
+		for (i = 0; i < cpu_mask_ctx->count; i++)
+			bckp_active_positions[i] = cpu_mask_ctx->active_positions[i];
+
+		bckp_range_idx = range_idx;
+		bckp_next = cpu_mask_ctx->ranges[bckp_range_idx].next;
+		bckp_cpu_count = cpu_mask_ctx->cpu_count;
+		bckp_ps1 = cpu_mask_ctx->ps1;
+		toggle = 1;
+	}
+
+	else if (toggle){
+		for (i = 0; i < cpu_mask_ctx->count; i++)
+			cpu_mask_ctx->active_positions[i] = bckp_active_positions[i];
+
+		cpu_mask_ctx->ranges[bckp_range_idx].next = bckp_next;
+		cpu_mask_ctx->cpu_count = bckp_cpu_count;
+		cpu_mask_ctx->ps1 = bckp_ps1;
+		toggle = 0;
+	}
+}
+
+/* truncates mask after range idx */
+static void truncate_mask(cpu_mask_context *cpu_mask_ctx, int range_idx)
+{
+	int i;
+
+	for (i = range_idx + 1; i < cpu_mask_ctx->count; i++)
+		cpu_mask_ctx->active_positions[i] = 0;
+
+	cpu_mask_ctx->ranges[range_idx].next = MAX_NUM_MASK_PLHDR;
+
+	cpu_mask_ctx->cpu_count = 0;
+	cpu_mask_ctx->ps1 = MAX_NUM_MASK_PLHDR;
+	for (i = 0; i < cpu_mask_ctx->count; i++)
+		if ((int)(cpu_mask_ctx->active_positions[i])) {
+			if (!cpu_mask_ctx->cpu_count)
+				cpu_mask_ctx->ps1 = i;
+			cpu_mask_ctx->cpu_count++;
+		}
+}
+
 /*
  * Returns the template of the keys corresponding to the mask.
  */
-static char* generate_template_key(char *mask, const char *key,
+static char* generate_template_key(char *mask, const char *key, int key_len,
 				   parsed_ctx *parsed_mask,
 				   cpu_mask_context *cpu_mask_ctx)
 {
@@ -922,14 +971,24 @@ static char* generate_template_key(char *mask, const char *key,
 		else if (key != NULL && mask[i + 1] == 'w' && mask[i] == '?') {
 			template_key_offsets[l++] = k;
 			/* Subtract 2 to account for '?w' in mask.*/
-			offset += (strlen(key) - 2);
-			k += strlen(key);
+			offset += (key_len - 2);
+			k += key_len;
 			i += 2;
 		}
 		else
 			template_key[k++] = mask[i++];
+
+		if (options.force_maxlength &&
+		    k >= (unsigned int)options.force_maxlength) {
+			save_restore(cpu_mask_ctx, j - 1, 0);
+			truncate_mask(cpu_mask_ctx, j - 1);
+			k = options.force_maxlength;
+			break;
+		}
 	}
+
 	template_key[k] = '\0';
+
 
 	return template_key;
 }
@@ -1222,11 +1281,11 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 	mask = unprocessed_mask;
 	template_key = (char*)mem_alloc(0x400);
 
-	/* We do not yet support min/max-len */
-	if (options.force_minlength >= 0 || options.force_maxlength) {
+	/* We do not yet support min */
+	if (options.force_minlength >= 0) {
 		if (john_main_process)
-			fprintf(stderr, "Mask mode: --min-length and "
-			        "--max-length currently not supported\n");
+			fprintf(stderr, "Mask mode: --min-length "
+			        "currently not supported\n");
 		error();
 	}
 
@@ -1364,13 +1423,18 @@ int do_mask_crack(const char *key)
 #endif
 
 	if (old_keylen != key_len) {
-		generate_template_key(mask, key, &parsed_mask, &cpu_mask_ctx);
+		save_restore(&cpu_mask_ctx, 0, 1);
+		generate_template_key(mask, key, key_len, &parsed_mask, &cpu_mask_ctx);
 		old_keylen = key_len;
 	}
 
 	i = 0;
-	while(template_key_offsets[i] != -1)
-		memcpy(template_key + template_key_offsets[i++], key, key_len);
+	while(template_key_offsets[i] != -1) {
+		int cpy_len = options.force_maxlength - template_key_offsets[i];
+		cpy_len = cpy_len > key_len ? key_len : cpy_len;
+		cpy_len = options.force_maxlength ? cpy_len : key_len;
+		memcpy(template_key + template_key_offsets[i++], key, cpy_len);
+	}
 
 	if (generate_keys(&cpu_mask_ctx, &cand))
 		return 1;
