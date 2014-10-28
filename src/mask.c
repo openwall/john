@@ -958,7 +958,7 @@ static char* generate_template_key(char *mask, const char *key, int key_len,
 				   parsed_ctx *parsed_mask,
 				   cpu_mask_context *cpu_mask_ctx)
 {
-	int i, k, t, j, l, offset = 0;
+	int i, k, t, j, l, offset = 0, qw = 0;
 	i = 0, k = 0, j = 0, l = 0;
 
 	while (template_key_offsets[l] != -1)
@@ -966,7 +966,7 @@ static char* generate_template_key(char *mask, const char *key, int key_len,
 
 	l = 0;
 	while (i < strlen(mask)) {
-		if ((t = search_stack(parsed_mask, i))){
+		if ((t = search_stack(parsed_mask, i))) {
 			template_key[k++] = '#';
 			i = t + 1;
 			cpu_mask_ctx->ranges[j++].offset = offset;
@@ -977,6 +977,7 @@ static char* generate_template_key(char *mask, const char *key, int key_len,
 			offset += (key_len - 2);
 			k += key_len;
 			i += 2;
+			qw = 1;
 		}
 		else
 			template_key[k++] = mask[i++];
@@ -991,6 +992,10 @@ static char* generate_template_key(char *mask, const char *key, int key_len,
 
 	template_key[k] = '\0';
 
+	if (options.flags & FLG_MASK_STACKED && !qw) {
+		fprintf(stderr, "Hybrid mask must contain ?w\n");
+		error();
+	}
 
 	return template_key;
 }
