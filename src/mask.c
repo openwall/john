@@ -1295,9 +1295,9 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 	log_event("Proceeding with mask mode");
 
 	/* Load defaults from john.conf */
-	if (!unprocessed_mask &&
-	    !(unprocessed_mask = cfg_get_param("Mask", NULL, "DefaultMask")))
-		unprocessed_mask = "";
+	if (!options.mask &&
+	    !(options.mask = cfg_get_param("Mask", NULL, "DefaultMask")))
+		options.mask = "";
 	if (!options.custom_mask[0] &&
 	    !(options.custom_mask[0] = cfg_get_param("Mask", NULL, "1")))
 		options.custom_mask[0] = "";
@@ -1311,7 +1311,7 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 	    !(options.custom_mask[3] = cfg_get_param("Mask", NULL, "4")))
 		options.custom_mask[3] = "";
 
-	options.mask = mask = unprocessed_mask;
+	mask = options.mask;
 	template_key = (char*)mem_alloc(0x400);
 
 	/* Handle command-line arguments given in UTF-8 */
