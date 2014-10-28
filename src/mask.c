@@ -1001,7 +1001,7 @@ static MAYBE_INLINE char* mask_cp_to_utf8(char *in)
 
 	if (pers_opts.internal_enc != UTF_8 &&
 	    pers_opts.internal_enc != pers_opts.target_enc)
-		return cp_to_utf8_r(in, out, PLAINTEXT_BUFFER_SIZE);
+		return cp_to_utf8_r(in, out, max_keylen);
 
 	return in;
 }
