@@ -958,7 +958,7 @@ static char* generate_template_key(char *mask, const char *key, int key_len,
 				   parsed_ctx *parsed_mask,
 				   cpu_mask_context *cpu_mask_ctx)
 {
-	int i, k, t, j, l, offset = 0, qw = 0;
+	int i, k, t, j, l, offset = 0;
 	i = 0, k = 0, j = 0, l = 0;
 
 	while (template_key_offsets[l] != -1)
@@ -977,7 +977,6 @@ static char* generate_template_key(char *mask, const char *key, int key_len,
 			offset += (key_len - 2);
 			k += key_len;
 			i += 2;
-			qw = 1;
 		}
 		else
 			template_key[k++] = mask[i++];
@@ -991,11 +990,6 @@ static char* generate_template_key(char *mask, const char *key, int key_len,
 	}
 
 	template_key[k] = '\0';
-
-	if (options.flags & FLG_MASK_STACKED && !qw) {
-		fprintf(stderr, "Hybrid mask must contain ?w\n");
-		error();
-	}
 
 	return template_key;
 }
@@ -1280,7 +1274,7 @@ static unsigned long long divide_work(cpu_mask_context *cpu_mask_ctx)
 
 void mask_init(struct db_main *db, char *unprocessed_mask)
 {
-	int i, ctr = 0;
+	int i, ctr = 0, k;
 
 	max_keylen = options.force_maxlength ?
 		options.force_maxlength : db->format->params.plaintext_length;
@@ -1366,14 +1360,26 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 		error();
 	}
 
-	i = 0;
+	i = 0; k = 0;
 	while (i < strlen(mask)) {
+		int t;
+		if ((t = search_stack(&parsed_mask, i))) {
+			k++;
+			i = t + 1;
+		}
 		if (i + 1 < strlen(mask) && mask[i] == '?' && mask[i + 1] == 'w') {
 			ctr++;
 			i += 2;
+			if ((options.flags & FLG_MASK_STACKED) &&
+			    (ctr == 1) && (k >= (unsigned int)max_keylen)) {
+				fprintf(stderr, "Hybrid mask must contain ?w\n");
+				error();
+			}
 		}
-		else
+		else {
 			i++;
+			k++;
+		}
 	}
 
 	ctr++;
