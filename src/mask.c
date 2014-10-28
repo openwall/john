@@ -1295,9 +1295,15 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 	log_event("Proceeding with mask mode");
 
 	/* Load defaults from john.conf */
-	if (!options.mask &&
-	    !(options.mask = cfg_get_param("Mask", NULL, "DefaultMask")))
-		options.mask = "";
+	if (options.flags & FLG_MASK_STACKED) {
+		if (!unprocessed_mask && !(options.mask =
+		   cfg_get_param("Mask", NULL, "DefaultHybridMask")))
+			options.mask = "";
+	} else
+		if (!unprocessed_mask && !(options.mask =
+		   cfg_get_param("Mask", NULL, "DefaultMask")))
+			options.mask = "";
+
 	if (!options.custom_mask[0] &&
 	    !(options.custom_mask[0] = cfg_get_param("Mask", NULL, "1")))
 		options.custom_mask[0] = "";
