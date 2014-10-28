@@ -1311,7 +1311,7 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 	    !(options.custom_mask[3] = cfg_get_param("Mask", NULL, "4")))
 		options.custom_mask[3] = "";
 
-	mask = unprocessed_mask;
+	options.mask = mask = unprocessed_mask;
 	template_key = (char*)mem_alloc(0x400);
 
 	/* Handle command-line arguments given in UTF-8 */
