@@ -1328,7 +1328,7 @@ static void john_run(void)
 			}
 		}
 
-		if (options.mask)
+		if (options.flags & FLG_MASK_CHK)
 			mask_init(&database, options.mask);
 
 		if (options.flags & FLG_SINGLE_CHK)

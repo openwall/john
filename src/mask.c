@@ -10,6 +10,8 @@
  * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
+//#define MASK_DEBUG
+
 #include <stdio.h> /* for fprintf(stderr, ...) */
 #include <string.h>
 #include <ctype.h>
@@ -1279,11 +1281,9 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 		options.force_maxlength : db->format->params.plaintext_length;
 
 #ifdef MASK_DEBUG
-	fprintf(stderr, "%s(%s)\n", __FUNCTION__, unprocessed_mask);
+	fprintf(stderr, "%s(%s) maxlen %d\n", __FUNCTION__, unprocessed_mask,
+	        max_keylen);
 #endif
-	mask = unprocessed_mask;
-	template_key = (char*)mem_alloc(0x400);
-
 	/* We do not yet support min */
 	if (options.force_minlength >= 0) {
 		if (john_main_process)
@@ -1295,9 +1295,9 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 	log_event("Proceeding with mask mode");
 
 	/* Load defaults from john.conf */
-	if (!options.mask &&
-	    !(options.mask = cfg_get_param("Mask", NULL, "DefaultMask")))
-		options.mask = "";
+	if (!unprocessed_mask &&
+	    !(unprocessed_mask = cfg_get_param("Mask", NULL, "DefaultMask")))
+		unprocessed_mask = "";
 	if (!options.custom_mask[0] &&
 	    !(options.custom_mask[0] = cfg_get_param("Mask", NULL, "1")))
 		options.custom_mask[0] = "";
@@ -1310,6 +1310,9 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 	if (!options.custom_mask[3] &&
 	    !(options.custom_mask[3] = cfg_get_param("Mask", NULL, "4")))
 		options.custom_mask[3] = "";
+
+	mask = unprocessed_mask;
+	template_key = (char*)mem_alloc(0x400);
 
 	/* Handle command-line arguments given in UTF-8 */
 	if (pers_opts.input_enc == UTF_8 && pers_opts.internal_enc != UTF_8) {
