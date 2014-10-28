@@ -105,6 +105,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	 * 2 - it comes from memory, and has got O$ + salt + # + blah
 	 */
 
+	if (strlen(ciphertext) > CIPHERTEXT_LENGTH + SALT_SIZE / 2 + 2)
+		return 0;
+
 	if (!memcmp(ciphertext, "O$", 2))
 	{
 		l = strlen(ciphertext) - CIPHERTEXT_LENGTH;
