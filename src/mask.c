@@ -904,26 +904,19 @@ static void init_cpu_mask(char *mask, parsed_ctx *parsed_mask,
 
 static void save_restore(cpu_mask_context *cpu_mask_ctx, int range_idx, int ch)
 {
-	static int bckp_active_positions[MAX_NUM_MASK_PLHDR + 1], bckp_range_idx,
-	bckp_next, bckp_cpu_count, bckp_ps1, toggle;
+	static int bckp_range_idx, bckp_next,
+	bckp_cpu_count, bckp_ps1, toggle;
 
-	int i;
 	/* save state */
 	if (!ch) {
-		for (i = 0; i < cpu_mask_ctx->count; i++)
-			bckp_active_positions[i] = cpu_mask_ctx->active_positions[i];
-
 		bckp_range_idx = range_idx;
 		bckp_next = cpu_mask_ctx->ranges[bckp_range_idx].next;
 		bckp_cpu_count = cpu_mask_ctx->cpu_count;
 		bckp_ps1 = cpu_mask_ctx->ps1;
 		toggle = 1;
 	}
-
+	/* restore state */
 	else if (toggle){
-		for (i = 0; i < cpu_mask_ctx->count; i++)
-			cpu_mask_ctx->active_positions[i] = bckp_active_positions[i];
-
 		cpu_mask_ctx->ranges[bckp_range_idx].next = bckp_next;
 		cpu_mask_ctx->cpu_count = bckp_cpu_count;
 		cpu_mask_ctx->ps1 = bckp_ps1;
@@ -936,14 +929,11 @@ static void truncate_mask(cpu_mask_context *cpu_mask_ctx, int range_idx)
 {
 	int i;
 
-	for (i = range_idx + 1; i < cpu_mask_ctx->count; i++)
-		cpu_mask_ctx->active_positions[i] = 0;
-
 	cpu_mask_ctx->ranges[range_idx].next = MAX_NUM_MASK_PLHDR;
 
 	cpu_mask_ctx->cpu_count = 0;
 	cpu_mask_ctx->ps1 = MAX_NUM_MASK_PLHDR;
-	for (i = 0; i < cpu_mask_ctx->count; i++)
+	for (i = 0; i <= range_idx; i++)
 		if ((int)(cpu_mask_ctx->active_positions[i])) {
 			if (!cpu_mask_ctx->cpu_count)
 				cpu_mask_ctx->ps1 = i;
