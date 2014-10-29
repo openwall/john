@@ -324,10 +324,7 @@ static int start_opencl_device(int sequential_id, int *err_type)
 	opencl_get_dev_info(sequential_id);
 
 	// Get hardware bus/PCIE information.
-	HANDLE_CLERROR(
-		get_pci_info(sequential_id,
-		&ocl_device_list[sequential_id].pci_info),
-	    "Error querying PCI bus info");
+	get_pci_info(sequential_id, &ocl_device_list[sequential_id].pci_info);
 
 	// Map temp monitoring function and NVML/ADL id to our device id
 	if (gpu_nvidia(device_info[sequential_id])) {
