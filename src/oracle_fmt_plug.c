@@ -36,7 +36,7 @@ john_register_one(&fmt_oracle);
 
 #define BINARY_SIZE			8
 #define BINARY_ALIGN			4
-#define SALT_SIZE			(32 + 4)  // also contain the NULL
+#define SALT_SIZE			(60 + 4)  // also contain the NULL
 #define SALT_ALIGN			2
 #define CIPHERTEXT_LENGTH		16
 
@@ -310,7 +310,7 @@ static void * get_salt(char * ciphertext)
 	// Encoding-aware shift to upper-case
 	enc_strupper((char*)salt);
 
-	l = enc_to_utf16_be(&out[1], 16, (UTF8 *)salt, l-2);
+	l = enc_to_utf16_be(&out[1], 30, (UTF8 *)salt, l-2);
 	if (l < 0)
 		l = strlen16(&out[1]);
 
