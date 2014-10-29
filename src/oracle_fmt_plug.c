@@ -36,7 +36,8 @@ john_register_one(&fmt_oracle);
 
 #define BINARY_SIZE			8
 #define BINARY_ALIGN			4
-#define SALT_SIZE			(60 + 4)  // also contain the NULL
+#define MAX_USERNAME_LEN    30
+#define SALT_SIZE			(MAX_USERNAME_LEN*2 + 4)  // also contain the NULL
 #define SALT_ALIGN			2
 #define CIPHERTEXT_LENGTH		16
 
@@ -105,7 +106,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	 * 2 - it comes from memory, and has got O$ + salt + # + blah
 	 */
 
-	if (strlen(ciphertext) > CIPHERTEXT_LENGTH + (SALT_SIZE-4) / 2 + 3)
+	if (strlen(ciphertext) > CIPHERTEXT_LENGTH + MAX_USERNAME_LEN + 3)
 		return 0;
 
 	if (!memcmp(ciphertext, "O$", 2))
@@ -310,7 +311,7 @@ static void * get_salt(char * ciphertext)
 	// Encoding-aware shift to upper-case
 	enc_strupper((char*)salt);
 
-	l = enc_to_utf16_be(&out[1], 30, (UTF8 *)salt, l-2);
+	l = enc_to_utf16_be(&out[1], MAX_USERNAME_LEN, (UTF8 *)salt, l-2);
 	if (l < 0)
 		l = strlen16(&out[1]);
 
