@@ -36,7 +36,7 @@ static parsed_ctx parsed_mask;
 static cpu_mask_context cpu_mask_ctx, rec_ctx;
 static int *template_key_offsets;
 static char *mask = NULL, *template_key;
-static int max_keylen;
+static int max_keylen, fmt_maxlen;
 
 /*
  * cand and rec_cand is the number of remaining candidates.
@@ -989,9 +989,8 @@ static MAYBE_INLINE char* mask_cp_to_utf8(char *in)
 {
 	static char out[PLAINTEXT_BUFFER_SIZE + 1];
 
-	if (pers_opts.internal_enc != UTF_8 &&
-	    pers_opts.internal_enc != pers_opts.target_enc)
-		return cp_to_utf8_r(in, out, max_keylen);
+	if (pers_opts.internal_enc != UTF_8 && pers_opts.target_enc == UTF_8)
+		return cp_to_utf8_r(in, out, fmt_maxlen);
 
 	return in;
 }
@@ -1266,8 +1265,9 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 {
 	int i, ctr = 0, k;
 
+	fmt_maxlen = db->format->params.plaintext_length;
 	max_keylen = options.force_maxlength ?
-		options.force_maxlength : db->format->params.plaintext_length;
+		options.force_maxlength : fmt_maxlen;
 
 #ifdef MASK_DEBUG
 	fprintf(stderr, "%s(%s) maxlen %d\n", __FUNCTION__, unprocessed_mask,
