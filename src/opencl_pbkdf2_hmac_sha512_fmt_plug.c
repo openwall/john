@@ -206,7 +206,7 @@ static void *binary(char *ciphertext)
 	p = c + 128;
 
 	while (c < p) {
-		ret[i++] = atoi16[tolower(c[0])] * 16 + atoi16[tolower(c[1])];
+		ret[i++] = (unsigned char)(atoi16[(unsigned char)(c[0])]) * 16 + (unsigned char)(atoi16[(unsigned char)(c[1])]);
 		c += 2;
 	}
 	return ret;
@@ -240,7 +240,7 @@ static void *get_salt(char *ciphertext)
 	saltlen = 0;
 	while (c < p) {
 		salt.salt[saltlen++] =
-		    atoi16[tolower(c[0])] * 16 + atoi16[tolower(c[1])];
+		    (unsigned char)(atoi16[(unsigned char)(c[0])]) * 16 + (unsigned char)(atoi16[(unsigned char)(c[1])]);
 		c += 2;
 	}
 
