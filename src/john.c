@@ -1358,7 +1358,7 @@ static void john_run(void)
 		if (options.flags & FLG_BATCH_CHK)
 			do_batch_crack(&database);
 
-		if (options.mask)
+		if (options.flags & FLG_MASK_CHK)
 			mask_done();
 
 		status_print();
