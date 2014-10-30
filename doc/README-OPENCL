@@ -130,19 +130,20 @@ Multi-device support
 
 Currently only mscash2-OpenCL support multiple devices by itself. However,
 All other formats can use it together with MPI or the --fork option. For
-example, let's say you have four GPU cards in your local host:
+example, let's say you have four GPU or accelerator cards in your local host:
 
 $ ./john -fork=4 -dev=gpu,acc -format=(...)
 
 The above will fork to four processes and each process will use a different
-GPU or Accelerator device. For this to happen, the "-dev" option (--device)
-is mandatory and instead of -dev=gpu,acc (use all GPUs and accelerators) you
-could specify them yourself, eg. -dev=0,1,5,6.
+GPU or Accelerator device. The "-dev" option (--device) is likely needed
+because it defaults to 'all' which may include unwanted devices. Instead
+of -dev=gpu,acc (use all/any GPUs and accelerators) you could specify them
+explicitly if needed, eg. -dev=0,1,5,6.
 
 Or maybe you have two cards in a remote host called alpha and one card in
 a host called bravo. Build with MPI support and use this variant of the above:
 
-$ mpirun -host alpha -host alpha -host bravo ./john -dev=gpu -format=(...)
+$ mpirun -host alpha,alpha,bravo ./john -dev=gpu,acc -format=(...)
 
 The above will start two processes on alpha, using different GPUs, as well
 as one process on bravo. In this case, the "-dev=gpu" option will be

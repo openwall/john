@@ -487,6 +487,11 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 
 	opt_check(opt_list, options.flags, argv);
 
+	if (options.format && strcasestr(options.format, "opencl") &&
+	    (options.flags & FLG_FORK) && options.gpu_devices->count == 0) {
+		list_add(options.gpu_devices, "all");
+	}
+
 	if (options.flags & FLG_MASK_STACKED && ext_flags & EXT_REQ_FILTER) {
 		fprintf(stderr, "Can't use Hybrid Mask mode with External "
 		        "Filter\n");
