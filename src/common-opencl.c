@@ -768,9 +768,14 @@ static void dev_init(int sequential_id)
 	} else
 #endif
 	{
+		char *dname = device_name;
+
+		/* Skip leading whitespace seen on Intel */
+		while (*dname == ' ') dname++;
+
 		if (options.verbosity >= 2)
 			fprintf(stderr, "Device %d: %s\n",
-				sequential_id, device_name);
+				sequential_id, dname);
 	}
 }
 
