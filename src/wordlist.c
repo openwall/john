@@ -970,7 +970,9 @@ REDO_AFTER_LMLOOP:
 			error();
 		}
 
-		rules_init(length);
+		/* rules.c honors -min/max-len options on its own */
+		rules_init(pers_opts.internal_enc == pers_opts.target_enc ?
+		           length : db->format->params.plaintext_length);
 		rule_count = rules_count(&ctx, -1);
 
 		if (do_lmloop || !db->plaintexts->head)
