@@ -598,7 +598,7 @@ void listconf_parse_late(void)
 			 * as with format-details, but human-readable
 			 */
 			printf("Format label                         %s\n", format->params.label);
-			printf("Disabled in john.conf                %s\n",
+			printf("Disabled in configuration file       %s\n",
 			       cfg_get_bool(SECTION_DISABLED,
 			                    SUBSECTION_FORMATS,
 			                    format->params.label, 0)
