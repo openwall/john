@@ -795,6 +795,8 @@ void listconf_parse_late(void)
 					if (format->methods.tunable_cost_value[i])
 						printf("\t\ttunable_cost_value[%d]()\n", i);
 #endif
+				if (format->methods.source != fmt_default_source)
+					printf("\tsource()\n");
 				for (i = 0; i < PASSWORD_HASH_SIZES; ++i)
 					if (format->methods.binary_hash[i] != fmt_default_binary_hash) {
 						if (format->methods.binary_hash[i])
