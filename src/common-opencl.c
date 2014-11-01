@@ -448,7 +448,7 @@ static void build_device_list(char *device_list[MAX_GPU_DEVICES])
 			add_device_type(CL_DEVICE_TYPE_GPU);
 		else if (!strncmp(device_list[n], "accelerator", len))
 			add_device_type(CL_DEVICE_TYPE_ACCELERATOR);
-		else if (!isdigit(device_list[n][0])) {
+		else if (!isdigit(ARCH_INDEX(device_list[n][0]))) {
 			fprintf(stderr, "Error: --device must be numerical, "
 				"or one of \"all\", \"cpu\", \"gpu\" and\n"
 				"\"accelerator\".\n");
