@@ -1596,7 +1596,7 @@ static void crypt_all(int count)
 			int i;
 			int top=j+inc;
 			/* The last block may 'appear' to have more keys than we have in the
-			    entire buffer space.  This is due to the granularity.  If so,
+			   entire buffer space.  This is due to the granularity.  If so,
 			   reduce that last one to stop at end of our buffers.  NOT doing
 			   this is causes a huge buffer overflow.  */
 			if (top > curdat.pFmtMain->params.max_keys_per_crypt)
