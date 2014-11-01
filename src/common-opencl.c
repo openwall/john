@@ -28,6 +28,7 @@
 #include "options.h"
 #include "config.h"
 #include "common-opencl.h"
+#include "dyna_salt.h"
 #include "signals.h"
 #include "recovery.h"
 #include "status.h"
@@ -945,6 +946,7 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self,
 	cl_event benchEvent[2];
 	size_t gws;
 	int count, tidx = 0;
+	void *salt;
 
 	/* Formats supporting vectorizing should have a default max keys per
 	   crypt that is a multiple of 2 and of 3 */
@@ -1008,8 +1010,10 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self,
 		self->methods.set_key(uniq.c, i);
 	}
 	// Set salt
-	self->methods.set_salt(self->methods.salt(
-				       self->params.tests[0].ciphertext));
+	dyna_salt_init(self);
+	dyna_salt_create();
+	salt = self->methods.salt(self->params.tests[0].ciphertext);
+	self->methods.set_salt(salt);
 
 	// Warm-up run
 	local_work_size = wg_multiple;
@@ -1127,6 +1131,7 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self,
 
 	// These ensure we don't get events from crypt_all() in real use
 	profilingEvent = firstEvent = lastEvent = NULL;
+	dyna_salt_remove(salt);
 }
 
 // Do the proper test using different global work sizes.
@@ -1154,6 +1159,7 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 	size_t kpc = gws * opencl_v_width;
 	cl_event benchEvent[MAX_EVENTS];
 	int number_of_events = 0;
+	void *salt;
 
 	for (i = 0; i < MAX_EVENTS; i++)
 		benchEvent[i] = NULL;
@@ -1181,8 +1187,10 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 		self->methods.set_key(uniq.c, i);
 	}
 	// Set salt
-	self->methods.set_salt(
-		self->methods.salt(self->params.tests[0].ciphertext));
+	dyna_salt_init(self);
+	dyna_salt_create();
+	salt = self->methods.salt(self->params.tests[0].ciphertext);
+	self->methods.set_salt(salt);
 
 	// Activate events. Then clear them later.
 	for (i = 0; i < MAX_EVENTS; i++)
@@ -1197,6 +1205,7 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 			fprintf(stderr, " (error occured)");
 		clear_profiling_events();
 		release_clobj();
+		dyna_salt_remove(salt);
 		return 0;
 	}
 
@@ -1256,6 +1265,7 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 
 	clear_profiling_events();
 	release_clobj();
+	dyna_salt_remove(salt);
 	return runtime;
 }
 
@@ -1301,6 +1311,7 @@ void opencl_find_best_lws(
 	cl_ulong startTime, endTime, kernelExecTimeNs = CL_ULONG_MAX;
 	char config_string[128];
 	cl_event benchEvent[MAX_EVENTS];
+	void *salt;
 
 	for (i = 0; i < MAX_EVENTS; i++)
 		benchEvent[i] = NULL;
@@ -1366,8 +1377,10 @@ void opencl_find_best_lws(
 		self->methods.set_key(uniq.c, i);
 	}
 	// Set salt
-	self->methods.set_salt(
-		self->methods.salt(self->params.tests[0].ciphertext));
+	dyna_salt_init(self);
+	dyna_salt_create();
+	salt = self->methods.salt(self->params.tests[0].ciphertext);
+	self->methods.set_salt(salt);
 
 	// Warm-up run
 	local_work_size = wg_multiple;
@@ -1479,6 +1492,7 @@ void opencl_find_best_lws(
 			SUBSECTION_OPENCL "])\n", config_string,
 			local_work_size);
 	}
+	dyna_salt_remove(salt);
 }
 
 void opencl_find_best_gws(int step, unsigned long long int max_run_time,
