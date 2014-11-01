@@ -37,6 +37,7 @@ static cpu_mask_context cpu_mask_ctx, rec_ctx;
 static int *template_key_offsets;
 static char *mask = NULL, *template_key;
 static int max_keylen, fmt_maxlen;
+int mask_add_len, num_qw;
 
 /*
  * cand and rec_cand is the number of remaining candidates.
@@ -1263,7 +1264,7 @@ static unsigned long long divide_work(cpu_mask_context *cpu_mask_ctx)
 
 void mask_init(struct db_main *db, char *unprocessed_mask)
 {
-	int i, ctr = 0, k;
+	int i;
 
 	fmt_maxlen = db->format->params.plaintext_length;
 	max_keylen = options.force_maxlength ?
@@ -1350,32 +1351,32 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 		error();
 	}
 
-	i = 0; k = 0;
+	i = 0; mask_add_len = 0; num_qw = 0;
 	while (i < strlen(mask)) {
 		int t;
 		if ((t = search_stack(&parsed_mask, i))) {
-			k++;
+			mask_add_len++;
 			i = t + 1;
 		}
 		if (i + 1 < strlen(mask) && mask[i] == '?' && mask[i + 1] == 'w') {
-			ctr++;
+			num_qw++;
 			i += 2;
 			if ((options.flags & FLG_MASK_STACKED) &&
-			    (ctr == 1) && (k >= (unsigned int)max_keylen)) {
+			    (num_qw == 1) && (mask_add_len >= (unsigned int)max_keylen)) {
 				fprintf(stderr, "Hybrid mask must contain ?w\n");
 				error();
 			}
 		}
 		else {
 			i++;
-			k++;
+			mask_add_len++;
 		}
 	}
+	mask_add_len--;
+	
+	template_key_offsets = (int*)mem_alloc((num_qw + 1) * sizeof(int));
 
-	ctr++;
-	template_key_offsets = (int*)mem_alloc(ctr * sizeof(int));
-
-	for (i = 0; i < ctr; i++)
+	for (i = 0; i < num_qw + 1; i++)
 		template_key_offsets[i] = -1;
 
 	init_cpu_mask(mask, &parsed_mask, &cpu_mask_ctx, db);

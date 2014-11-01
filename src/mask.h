@@ -88,6 +88,7 @@ extern void mask_fix_state(void);
 extern void mask_save_state(FILE *file);
 extern int mask_restore_state(FILE *file);
 extern unsigned long long mask_tot_cand;
+extern int mask_add_len, num_qw;
 
 extern void mask_done(void);
 
