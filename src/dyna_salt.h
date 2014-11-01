@@ -29,6 +29,8 @@
 #include <stddef.h>
 #include "stdint.h"
 
+//#define DYNA_SALT_DEBUG
+
 typedef struct dyna_salt_t {
 	size_t salt_cmp_size;
 	struct {

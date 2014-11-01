@@ -32,8 +32,6 @@
 #include "dyna_salt.h"
 #include "memdbg.h"
 
-//#define DYNA_SALT_DEBUG
-
 static struct fmt_main *format;
 #ifdef DYNA_SALT_DEBUG
 static int salt_count;
