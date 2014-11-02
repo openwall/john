@@ -209,6 +209,10 @@ endif
 debug:
 	$(MAKE) default CFLAGS="-DDEBUG $(CFLAGS) -O0" CFLAGS_MAIN="-DDEBUG $(CFLAGS_MAIN) -O0"
 
+# Similar but just turn memdbg on instead, and normal optimizations.
+memdbg:
+	$(MAKE) default CFLAGS="-DMEMDBG_BUILD $(CFLAGS)" CFLAGS_MAIN="-DMEMDBG_BUILD $(CFLAGS_MAIN)"
+
 help:
 	@echo "The 'older' fat makefile can be done with make --file=Makefile.legacy [target]"
 
