@@ -38,13 +38,19 @@ def pcap_parser(fname):
                 continue
 
             authentication_type = ord(data[24])
+            salt = data[0:32].encode("hex")
 
-            if authentication_type == 2:  # Keyed MD5
+            if authentication_type == 2 or authentication_type == 3:  # Keyed MD5, Meticulous Keyed MD5
                 h = data[-16:].encode("hex")  # MD5 hash
-                salt = data[0:32].encode("hex")
+                # password needs to be padded to length 16 (password + ''.join(['\x00' * (16 - len(password))])),
+                # "netmd5" format automagically handles this ;)
                 sys.stdout.write("$netmd5$%s$%s\n" % (salt, h))
+            elif authentication_type == 4 or authentication_type == 5:  # Keyed SHA1, Meticulous Keyed SHA1
+                # http://tools.ietf.org/html/rfc5880
+                # password needs to be padded to length 20 (password + ''.join(['\x00' * (20 - len(password))])),
+                h = data[-20:].encode("hex")  # SHA1 hash
+                sys.stdout.write("$netsha1$%s$%s\n" % (salt, h))
             else:
-                # http://tools.ietf.org/html/rfc5880 (TODO)
                 assert 0
 
     f.close()
