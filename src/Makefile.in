@@ -207,7 +207,7 @@ endif
 # target turns off optimizations for better debugging, and defines DEBUG
 # so code can adopt.
 debug:
-	$(MAKE) default CFLAGS="$(CFLAGS) -O0 -DDEBUG"
+	$(MAKE) default CFLAGS="-DDEBUG $(CFLAGS) -O0" CFLAGS_MAIN="-DDEBUG $(CFLAGS_MAIN) -O0"
 
 help:
 	@echo "The 'older' fat makefile can be done with make --file=Makefile.legacy [target]"
