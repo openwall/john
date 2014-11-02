@@ -45,11 +45,8 @@ int mask_add_len, mask_num_qw;
  */
 static unsigned long long cand, rec_cand;
 
-/*
- * Total number of candidates to begin with.
- * Remains unchanged throughout.
- */
 unsigned long long mask_tot_cand;
+unsigned long long mask_parent_keys;
 
 #define BUILT_IN_CHARSET "aludshHA1234LU"
 
@@ -1234,6 +1231,7 @@ static unsigned long long divide_work(cpu_mask_context *cpu_mask_ctx)
 	offset = 1;
 	for (i = 0; i < cpu_mask_ctx->count; i++)
 		if ((int)(cpu_mask_ctx->active_positions[i]))
+		if (cpu_mask_ctx->ranges[i].pos < max_keylen)
 			offset *= cpu_mask_ctx->ranges[i].count;
 
 	total_candidates = offset;
@@ -1416,6 +1414,7 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 		cand = 1;
 		for (i = 0; i < cpu_mask_ctx.count; i++)
 			if ((int)(cpu_mask_ctx.active_positions[i]))
+			if (cpu_mask_ctx.ranges[i].pos < max_keylen)
 				cand *= cpu_mask_ctx.ranges[i].count;
 	}
 	mask_tot_cand = cand;
@@ -1438,9 +1437,8 @@ void mask_done()
 	if (!(options.flags & FLG_MASK_STACKED)) {
 		// For reporting DONE regardless of rounding errors
 		if (!event_abort)
-			cand =
-				((unsigned long long)status.cands.hi << 32) +
-				status.cands.lo;
+		mask_tot_cand = ((unsigned long long)status.cands.hi << 32) +
+			status.cands.lo;
 
 		crk_done();
 
@@ -1454,6 +1452,7 @@ int do_mask_crack(const char *key)
 	static int old_keylen = -1;
 	int key_len = key ? strlen(key) : 0;
 
+	mask_parent_keys++;
 #ifdef MASK_DEBUG
 	fprintf(stderr, "%s(%s)\n", __FUNCTION__, key);
 #endif

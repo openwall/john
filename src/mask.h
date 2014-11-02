@@ -81,15 +81,28 @@ extern void mask_init(struct db_main *db, char *unprocessed_mask);
  */
 extern int do_mask_crack(const char *key);
 
+extern void mask_done(void);
+
 /*
  * These are exported for stacked modes (eg. hybrid mask)
  */
 extern void mask_fix_state(void);
 extern void mask_save_state(FILE *file);
 extern int mask_restore_state(FILE *file);
-extern unsigned long long mask_tot_cand;
-extern int mask_add_len, mask_num_qw;
 
-extern void mask_done(void);
+/*
+ * Total number of candidates to begin with. Remains unchanged throughout
+ * one call to do_mask_crack but may vary with hybrid parent key length.
+ */
+extern unsigned long long mask_tot_cand;
+
+/* Hybrid mask's contribution to key length. Eg. for bc?l?d?w this will be 4. */
+extern int mask_add_len;
+
+/* Number of ?w in hybrid mask */
+extern int mask_num_qw;
+
+/* Number of times parent mode called hybrid mask. */
+extern unsigned long long mask_parent_keys;
 
 #endif
