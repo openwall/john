@@ -541,6 +541,8 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 #endif
 
 	length = db->format->params.plaintext_length - mask_add_len;
+	if (mask_num_qw > 1)
+		length /= mask_num_qw;
 	if (maxlength && maxlength < length)
 		length = maxlength;
 

@@ -419,6 +419,7 @@ void do_incremental_crack(struct db_main *db, char *mode)
 	unsigned int fixed, count;
 	int last_length, last_count;
 	int pos;
+	int our_fmt_len = db->format->params.plaintext_length;
 
 	if (!mode) {
 		if (db->format == &fmt_LM) {
@@ -470,6 +471,16 @@ void do_incremental_crack(struct db_main *db, char *mode)
 		max_length = CHARSET_LENGTH;
 	max_count = cfg_get_int(SECTION_INC, mode, "CharCount");
 
+	/* Hybrid mask */
+	min_length -= mask_add_len;
+	max_length -= mask_add_len;
+	our_fmt_len -= mask_add_len;
+	if (mask_num_qw > 1) {
+		min_length /= mask_num_qw;
+		max_length /= mask_num_qw;
+		our_fmt_len /= mask_num_qw;
+	}
+
 	/* Command-line can over-ride lengths from config file */
 	if (options.force_minlength >= 0)
 		min_length = options.force_minlength;
@@ -485,7 +496,7 @@ void do_incremental_crack(struct db_main *db, char *mode)
 		error();
 	}
 
-	if (min_length > db->format->params.plaintext_length - mask_add_len) {
+	if (min_length > our_fmt_len) {
 		log_event("! MinLen = %d is too large for this hash type",
 		    min_length);
 		if (john_main_process)
@@ -496,15 +507,15 @@ void do_incremental_crack(struct db_main *db, char *mode)
 		error();
 	}
 
-	if (max_length > db->format->params.plaintext_length - mask_add_len) {
+	if (max_length > our_fmt_len) {
 		log_event("! MaxLen = %d is too large for this hash type",
 		    max_length);
 		if (john_main_process)
 			fprintf(stderr, "Warning: MaxLen = %d is too large "
 			    "for the current hash type, reduced to %d\n",
 			    max_length,
-			    db->format->params.plaintext_length - mask_add_len);
-		max_length = db->format->params.plaintext_length - mask_add_len;
+			    our_fmt_len);
+		max_length = our_fmt_len;
 	}
 
 	if (max_length > CHARSET_LENGTH) {

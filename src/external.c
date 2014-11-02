@@ -153,6 +153,10 @@ void ext_init(char *mode, struct db_main *db)
 		/* This is second time we are called, just update max length */
 		ext_cipher_limit = maxlen =
 			db->format->params.plaintext_length - mask_add_len;
+		if (mask_num_qw > 1) {
+			ext_cipher_limit /= mask_num_qw;
+			maxlen /= mask_num_qw;
+		}
 		return;
 	} else
 		ext_cipher_limit = options.length;

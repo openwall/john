@@ -260,6 +260,7 @@ void get_markov_options(struct db_main *db,
 	char *dummy_token = NULL;
 
 	int minlevel, level, minlen, maxlen;
+	int our_fmt_len = db->format->params.plaintext_length;
 
 	*start_token = NULL;
 	*end_token = NULL;
@@ -426,21 +427,25 @@ void get_markov_options(struct db_main *db,
 				        "section [" SECTION_MARKOV "%s]\n",
 			        mode);
 			error();
-		} else
+		} else {
 			maxlen -= mask_add_len;
+			if (mask_num_qw > 1)
+				maxlen /= mask_num_qw;
+		}
 	}
 
-	if (db->format->params.plaintext_length - mask_add_len <= MAX_MKV_LEN &&
-	    maxlen > db->format->params.plaintext_length - mask_add_len)
+	if (mask_num_qw > 1)
+		our_fmt_len /= mask_num_qw;
+
+	if (our_fmt_len <= MAX_MKV_LEN && maxlen > our_fmt_len)
 	{
 		log_event("! MaxLen = %d is too large for this hash type",
 			maxlen);
 		if (john_main_process)
 		fprintf(stderr, "Warning: "
 		        "MaxLen = %d is too large for the current hash"
-		        " type, reduced to %d\n", maxlen,
-		        db->format->params.plaintext_length - mask_add_len);
-		maxlen = db->format->params.plaintext_length - mask_add_len;
+		        " type, reduced to %d\n", maxlen, our_fmt_len);
+		maxlen = our_fmt_len;
 	}
 	else
 	if (maxlen > MAX_MKV_LEN)
@@ -452,9 +457,15 @@ void get_markov_options(struct db_main *db,
 		maxlen = MAX_MKV_LEN;
 	}
 
-	if(minlen < 0)
+	if(minlen < 0) {
 		if( (minlen = cfg_get_int(SECTION_MARKOV, mode, "MkvMinLen")) == -1 )
 			minlen = 0;
+		else {
+			minlen -= mask_add_len;
+			if (mask_num_qw > 1)
+				minlen /= mask_num_qw;
+		}
+	}
 
 	if(minlen > maxlen)
 	{
