@@ -10,7 +10,7 @@
  * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
-#define MASK_DEBUG
+//#define MASK_DEBUG
 
 #include <stdio.h> /* for fprintf(stderr, ...) */
 #include <string.h>
