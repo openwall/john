@@ -540,9 +540,9 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 	regex = prepare_regex(options.regex, &regex_case, &regex_alpha);
 #endif
 
-	length = db->format->params.plaintext_length;
-	if (options.force_maxlength && options.force_maxlength < length)
-		length = options.force_maxlength;
+	length = db->format->params.plaintext_length - mask_add_len;
+	if (maxlength && maxlength < length)
+		length = maxlength;
 
 	/* If we did not give a name for loopback mode,
 	   we use the active pot file */

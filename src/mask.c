@@ -37,7 +37,7 @@ static cpu_mask_context cpu_mask_ctx, rec_ctx;
 static int *template_key_offsets;
 static char *mask = NULL, *template_key;
 static int max_keylen, fmt_maxlen;
-int mask_add_len, num_qw;
+int mask_add_len, mask_num_qw;
 
 /*
  * cand and rec_cand is the number of remaining candidates.
@@ -1351,19 +1351,22 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 		error();
 	}
 
-	i = 0; mask_add_len = 0; num_qw = 0;
+	i = 0; mask_add_len = 0; mask_num_qw = 0;
 	while (i < strlen(mask)) {
 		int t;
 		if ((t = search_stack(&parsed_mask, i))) {
 			mask_add_len++;
 			i = t + 1;
 		}
-		if (i + 1 < strlen(mask) && mask[i] == '?' && mask[i + 1] == 'w') {
-			num_qw++;
+		if (i + 1 < strlen(mask) && mask[i] == '?' &&
+		    mask[i + 1] == 'w') {
+			mask_num_qw++;
 			i += 2;
 			if ((options.flags & FLG_MASK_STACKED) &&
-			    (num_qw == 1) && (mask_add_len >= (unsigned int)max_keylen)) {
-				fprintf(stderr, "Hybrid mask must contain ?w\n");
+			    mask_add_len >= (unsigned int)max_keylen &&
+			    mask_num_qw == 1) {
+				fprintf(stderr,
+				        "Hybrid mask must contain ?w\n");
 				error();
 			}
 		}
@@ -1373,10 +1376,27 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 		}
 	}
 	mask_add_len--;
-	
-	template_key_offsets = (int*)mem_alloc((num_qw + 1) * sizeof(int));
 
-	for (i = 0; i < num_qw + 1; i++)
+#ifdef MASK_DEBUG
+	fprintf(stderr, "qw %d minlen %d maxlen %d fmt_len %d\n", mask_num_qw,
+	        options.force_minlength, options.force_maxlength, fmt_maxlen);
+#endif
+	/*
+	 * We decrease these here instead of changing parent modes
+	 */
+	if (options.force_minlength - mask_add_len >= 0)
+		options.force_minlength -= mask_add_len;
+	if (options.force_maxlength)
+		options.force_maxlength -= mask_add_len;
+#ifdef MASK_DEBUG
+	fprintf(stderr, "effective minlen %d maxlen %d fmt_len %d\n",
+	        options.force_minlength, options.force_maxlength,
+	        fmt_maxlen - mask_add_len);
+#endif
+
+	template_key_offsets = (int*)mem_alloc((mask_num_qw + 1) * sizeof(int));
+
+	for (i = 0; i < mask_num_qw + 1; i++)
 		template_key_offsets[i] = -1;
 
 	init_cpu_mask(mask, &parsed_mask, &cpu_mask_ctx, db);
@@ -1438,7 +1458,8 @@ int do_mask_crack(const char *key)
 
 	if (old_keylen != key_len) {
 		save_restore(&cpu_mask_ctx, 0, 1);
-		generate_template_key(mask, key, key_len, &parsed_mask, &cpu_mask_ctx);
+		generate_template_key(mask, key, key_len, &parsed_mask,
+		                      &cpu_mask_ctx);
 		old_keylen = key_len;
 	}
 

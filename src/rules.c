@@ -1025,7 +1025,7 @@ char *rules_reject(char *rule, int split, char *last, struct db_main *db)
 				return NULL;
 			}
 			if (rules_vars[ARCH_INDEX(RULE)] <=
-			    db->format->params.plaintext_length ) continue;
+			    rules_max_length) continue;
 			return NULL;
 
 		case '<':
@@ -1093,7 +1093,7 @@ char *rules_reject(char *rule, int split, char *last, struct db_main *db)
 					return NULL;
 				}
 				if (rules_vars[ARCH_INDEX(RULE)] <=
-				    db->format->params.plaintext_length )
+				    rules_max_length)
 					continue;
 				return NULL;
 

@@ -485,7 +485,7 @@ void do_incremental_crack(struct db_main *db, char *mode)
 		error();
 	}
 
-	if (min_length > db->format->params.plaintext_length) {
+	if (min_length > db->format->params.plaintext_length - mask_add_len) {
 		log_event("! MinLen = %d is too large for this hash type",
 		    min_length);
 		if (john_main_process)
@@ -496,14 +496,15 @@ void do_incremental_crack(struct db_main *db, char *mode)
 		error();
 	}
 
-	if (max_length > db->format->params.plaintext_length) {
+	if (max_length > db->format->params.plaintext_length - mask_add_len) {
 		log_event("! MaxLen = %d is too large for this hash type",
 		    max_length);
 		if (john_main_process)
 			fprintf(stderr, "Warning: MaxLen = %d is too large "
 			    "for the current hash type, reduced to %d\n",
-			    max_length, db->format->params.plaintext_length);
-		max_length = db->format->params.plaintext_length;
+			    max_length,
+			    db->format->params.plaintext_length - mask_add_len);
+		max_length = db->format->params.plaintext_length - mask_add_len;
 	}
 
 	if (max_length > CHARSET_LENGTH) {

@@ -416,7 +416,7 @@ void get_markov_options(struct db_main *db,
 	if (options.force_maxlength)
 		maxlen = options.force_maxlength;
 
-	if(maxlen <= 0)
+	if(maxlen <= 0) {
 		if( (maxlen = cfg_get_int(SECTION_MARKOV, mode, "MkvMaxLen")) == -1 )
 		{
 			log_event("no markov max length defined!");
@@ -426,19 +426,21 @@ void get_markov_options(struct db_main *db,
 				        "section [" SECTION_MARKOV "%s]\n",
 			        mode);
 			error();
-		}
+		} else
+			maxlen -= mask_add_len;
+	}
 
-	if (db->format->params.plaintext_length <= MAX_MKV_LEN &&
-	    maxlen > db->format->params.plaintext_length)
+	if (db->format->params.plaintext_length - mask_add_len <= MAX_MKV_LEN &&
+	    maxlen > db->format->params.plaintext_length - mask_add_len)
 	{
 		log_event("! MaxLen = %d is too large for this hash type",
 			maxlen);
 		if (john_main_process)
-			fprintf(stderr, "Warning: "
-			        "MaxLen = %d is too large for the current hash"
-			        " type, reduced to %d\n",
-			        maxlen, db->format->params.plaintext_length);
-		maxlen = db->format->params.plaintext_length;
+		fprintf(stderr, "Warning: "
+		        "MaxLen = %d is too large for the current hash"
+		        " type, reduced to %d\n", maxlen,
+		        db->format->params.plaintext_length - mask_add_len);
+		maxlen = db->format->params.plaintext_length - mask_add_len;
 	}
 	else
 	if (maxlen > MAX_MKV_LEN)
