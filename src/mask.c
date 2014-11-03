@@ -1377,6 +1377,10 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 	if ((options.flags & FLG_MASK_STACKED) && mask_num_qw == 0) {
 		fprintf(stderr, "Hybrid mask must contain ?w\n");
 		error();
+	} else
+	if (!(options.flags & FLG_MASK_STACKED) && mask_num_qw) {
+		fprintf(stderr, "?w not allowed in pure mask mode\n");
+		error();
 	}
 
 #ifdef MASK_DEBUG
