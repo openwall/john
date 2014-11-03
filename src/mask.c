@@ -1376,8 +1376,7 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 	mask_add_len--;
 
 #ifdef MASK_DEBUG
-	fprintf(stderr, "qw %d minlen %d maxlen %d fmt_len %d\n", mask_num_qw,
-	        options.force_minlength, options.force_maxlength, fmt_maxlen);
+	fprintf(stderr, "qw %d minlen %d maxlen %d fmt_len %d mask_add_len %d\n", mask_num_qw, options.force_minlength, options.force_maxlength, fmt_maxlen, mask_add_len);
 #endif
 	/* We decrease these here instead of changing parent modes. */
 	if (options.force_minlength - mask_add_len >= 0)

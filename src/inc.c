@@ -781,9 +781,13 @@ void do_incremental_crack(struct db_main *db, char *mode)
 	}
 
 	// For reporting DONE despite poor node distribution
-	if (!event_abort)
-		cand = ((unsigned long long)status.cands.hi << 32) +
-			status.cands.lo;
+	if (!event_abort) {
+		unsigned long long mask_mult =
+			mask_tot_cand ? mask_tot_cand : 1;
+
+		cand = (((unsigned long long)status.cands.hi << 32) +
+		        status.cands.lo) / mask_mult;
+	}
 
 	crk_done();
 	rec_done(event_abort);
