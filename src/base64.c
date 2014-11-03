@@ -76,3 +76,37 @@ int base64_decode(char *in, int inlen, char *out) {
 
   return 0;
 }
+
+
+static const char *cr64 = "./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+static const char *mi64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789./";
+
+char *mime64_to_crypt64(char *in, char *out, int len) {
+	int i;
+	char *cp;
+	for (i = 0; i < len; ++i) {
+		cp = strchr(mi64, in[i]);
+		if (!cp) {
+			out[i] = 0;
+			return out;
+		}
+		out[i] = cr64[cp-mi64];
+	}
+	out[i] = 0;
+	return out;
+}
+
+char *crypt64_to_mime64(char *in, char *out, int len) {
+	int i;
+	char *cp;
+	for (i = 0; i < len; ++i) {
+		cp = strchr(cr64, in[i]);
+		if (!cp) {
+			out[i] = 0;
+			return out;
+		}
+		out[i] = mi64[cp-cr64];
+	}
+	out[i] = 0;
+	return out;
+}
