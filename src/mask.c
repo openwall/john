@@ -1356,7 +1356,7 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 			mask_add_len++;
 			i = t + 1;
 		}
-		if (i + 1 < strlen(mask) && mask[i] == '?' &&
+		else if (i + 1 < strlen(mask) && mask[i] == '?' &&
 		    mask[i + 1] == 'w') {
 			mask_num_qw++;
 			i += 2;
@@ -1373,7 +1373,6 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 			mask_add_len++;
 		}
 	}
-	mask_add_len--;
 
 #ifdef MASK_DEBUG
 	fprintf(stderr, "qw %d minlen %d maxlen %d fmt_len %d mask_add_len %d\n", mask_num_qw, options.force_minlength, options.force_maxlength, fmt_maxlen, mask_add_len);
