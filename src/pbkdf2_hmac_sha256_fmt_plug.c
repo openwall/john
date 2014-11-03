@@ -102,7 +102,7 @@ static struct fmt_tests tests[] = {
 	{"$pbkdf2-sha256$12000$0zoHwNgbIwSAkDImZGwNQUjpHcNYa43xPqd0DuH8H0OIUWqttfY.h5DynvPeG.O8N.Y$.XK4LNIeewI7w9QF5g9p5/NOYMYrApW03bcv/MaD6YQ", "salt length = 50"},
 	{"$pbkdf2-sha256$12000$HGPMeS9lTAkhROhd653Tuvc.ZyxFSOk9x5gTYgyBEAIAgND6PwfAmA$WdCipc7O/9tTgbpZvcz.mAkIDkdrebVKBUgGbncvoNw", "salt length = 40"},
 	{"$pbkdf2-sha256$12001$ay2F0No7p1QKgVAqpbQ2hg$UbKdswiLpjc5wT8Zl2M6VlE2cNiKuhAUntGciP8JjPw", "test"},
-	// cisco type 8 hashes.  20k iterations, different base-64 (same as WPA)
+	// cisco type 8 hashes.  20k iterations, different base-64 (same as WPA).  Also salt is used RAW, it is not base64 decoded prior to usage
 	{"$8$dsYGNam3K1SIJO$7nv/35M/qr6t.dVc7UY9zrJDWRVqncHub1PE9UlMQFs", "cisco"},
 	{"$8$6NHinlEjiwvb5J$RjC.H.ydVb34wDLqJvfjyG1ubxYKpfXqv.Ry9mtrNBY", "password"},
 	{"$8$lGO8juTOQLPCHw$cBv2WEaFCLUA24Z48CKUGixIywyGFP78r/slQcMXr3M", "JtR"},
@@ -146,7 +146,7 @@ static int isabase64(char a)
 	return ret;
 }
 
-char *prepare(char *fields[10], struct fmt_main *self)
+static char *prepare(char *fields[10], struct fmt_main *self)
 {
 	static char *Buf;
 	char *pi, *po, tmp[44];
@@ -162,10 +162,12 @@ char *prepare(char *fields[10], struct fmt_main *self)
 	po += sprintf (po, "%s20000$%14.14s$%s", FMT_PREFIX, &pi[3], crypt64_to_mime64(&pi[3+14+1], tmp, 43));
 	return Buf;
 }
+
 static int valid(char *ciphertext, struct fmt_main *pFmt)
 {
 	int saltlen = 0;
 	char *p, *c = ciphertext;
+
 	if (strncmp(ciphertext, FMT_CISCO8, 3) == 0) {
 		char *f[10];
 		f[1] = ciphertext;
@@ -232,6 +234,7 @@ static void *get_salt(char *ciphertext)
 {
 	static struct custom_salt salt;
 	char *p, *c = ciphertext, *oc;
+
 	memset(&salt, 0, sizeof(salt));
 	c += strlen(FMT_PREFIX);
 	salt.rounds = strtol(c, NULL, 10);

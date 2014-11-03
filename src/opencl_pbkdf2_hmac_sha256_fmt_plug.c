@@ -27,7 +27,7 @@ john_register_one(&fmt_opencl_pbkdf2_hmac_sha256);
 #define FORMAT_NAME		""
 #define ALGORITHM_NAME		"PBKDF2-SHA256 OpenCL"
 
-#define BENCHMARK_COMMENT	""
+#define BENCHMARK_COMMENT	", rounds=12000"
 #define BENCHMARK_LENGTH	-1
 #define DEFAULT_LWS		64
 #define DEFAULT_GWS		(64*256)
@@ -44,6 +44,7 @@ john_register_one(&fmt_opencl_pbkdf2_hmac_sha256);
 #define SALT_SIZE		sizeof(salt_t)
 
 #define FMT_PREFIX		"$pbkdf2-sha256$"
+#define FMT_CISCO8		"$8$"
 #define KERNEL_NAME		"pbkdf2_sha256_kernel"
 #define SPLIT_KERNEL_NAME	"pbkdf2_sha256_loop"
 #define OCL_CONFIG		"pbkdf2_sha256"
@@ -104,6 +105,10 @@ static struct fmt_tests tests[] = {
 	{"$pbkdf2-sha256$12000$0zoHwNgbIwSAkDImZGwNQUjpHcNYa43xPqd0DuH8H0OIUWqttfY.h5DynvPeG.O8N.Y$.XK4LNIeewI7w9QF5g9p5/NOYMYrApW03bcv/MaD6YQ", "salt length = 50"},
 	{"$pbkdf2-sha256$12000$HGPMeS9lTAkhROhd653Tuvc.ZyxFSOk9x5gTYgyBEAIAgND6PwfAmA$WdCipc7O/9tTgbpZvcz.mAkIDkdrebVKBUgGbncvoNw", "salt length = 40"},
 	{"$pbkdf2-sha256$12001$ay2F0No7p1QKgVAqpbQ2hg$UbKdswiLpjc5wT8Zl2M6VlE2cNiKuhAUntGciP8JjPw", "test"},
+	// cisco type 8 hashes.  20k iterations, different base-64 (same as WPA).  Also salt is used RAW, it is not base64 decoded prior to usage
+	{"$8$dsYGNam3K1SIJO$7nv/35M/qr6t.dVc7UY9zrJDWRVqncHub1PE9UlMQFs", "cisco"},
+	{"$8$6NHinlEjiwvb5J$RjC.H.ydVb34wDLqJvfjyG1ubxYKpfXqv.Ry9mtrNBY", "password"},
+	{"$8$lGO8juTOQLPCHw$cBv2WEaFCLUA24Z48CKUGixIywyGFP78r/slQcMXr3M", "JtR"},
 	{NULL}
 };
 
@@ -252,10 +257,33 @@ static int isabase64(char a)
 	return ret;
 }
 
+static char *prepare(char *fields[10], struct fmt_main *self)
+{
+	static char *Buf;
+	char *pi, *po, tmp[44];
+
+	if (strncmp(fields[1], FMT_CISCO8, 3) != 0)
+		return fields[1];
+	if (strlen(fields[1]) != 4+14+43)
+		return fields[1];
+	if (!Buf)
+		Buf = mem_alloc_tiny(120, 1);
+	pi = fields[1];
+	po = Buf;
+	po += sprintf (po, "%s20000$%14.14s$%s", FMT_PREFIX, &pi[3], crypt64_to_mime64(&pi[3+14+1], tmp, 43));
+	return Buf;
+}
+
 static int valid(char *ciphertext, struct fmt_main *pFmt)
 {
 	int saltlen = 0;
 	char *p, *c = ciphertext;
+
+	if (strncmp(ciphertext, FMT_CISCO8, 3) == 0) {
+		char *f[10];
+		f[1] = ciphertext;
+		ciphertext = prepare(f, pFmt);
+	}
 	if (strncmp(ciphertext, FMT_PREFIX, strlen(FMT_PREFIX)) != 0)
 		return 0;
 	if (strlen(ciphertext) < 44 + strlen(FMT_PREFIX))
@@ -333,10 +361,18 @@ static void *get_salt(char *ciphertext)
 {
 	static salt_t salt;
 	char *p, *c = ciphertext, *oc;
+
+	memset(&salt, 0, sizeof(salt));
 	c += strlen(FMT_PREFIX);
 	salt.rounds = strtol(c, NULL, 10);
 	c = strchr(c, '$') + 1;
 	p = strchr(c, '$');
+	if (p-c==14 && salt.rounds==20000) {
+		// for now, assume this is a cisco8 hash
+		strncpy((char*)(salt.salt), c, 14);
+		salt.length = 14;
+		return (void*)&salt;
+	}
 	salt.length = 0;
 	oc = c;
 	while (c++ < p)
@@ -575,7 +611,7 @@ struct fmt_main fmt_opencl_pbkdf2_hmac_sha256 = {
 	init,
 	done,
 	fmt_default_reset,
-	fmt_default_prepare,
+	prepare,
 	valid,
 	fmt_default_split,
 	binary,
