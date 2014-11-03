@@ -1363,8 +1363,8 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 			if ((options.flags & FLG_MASK_STACKED) &&
 			    mask_add_len >= (unsigned int)max_keylen &&
 			    mask_num_qw == 1) {
-				fprintf(stderr,
-				        "Hybrid mask must contain ?w\n");
+				fprintf(stderr, "Hybrid mask must contain ?w"
+				        " after truncation for max. length\n");
 				error();
 			}
 		}
@@ -1372,6 +1372,11 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 			i++;
 			mask_add_len++;
 		}
+	}
+
+	if ((options.flags & FLG_MASK_STACKED) && mask_num_qw == 0) {
+		fprintf(stderr, "Hybrid mask must contain ?w\n");
+		error();
 	}
 
 #ifdef MASK_DEBUG
