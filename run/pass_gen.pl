@@ -4,7 +4,7 @@ use strict;
 #############################################################################
 # For the version information list and copyright statement,
 # see ../doc/pass_gen.Manifest
-# Version v1.20.  Update this version signature here, AND the document file.
+# Version v1.21.  Update this version signature here, AND the document file.
 #############################################################################
 
 # Most "use xxx" now moved to "require xxx" *locally* in respective subs in
@@ -23,7 +23,7 @@ use Encode;
 use POSIX;
 use Getopt::Long;
 use MIME::Base64;
-
+use Crypt::ScryptKDF qw (scrypt_raw);
 #############################################################################
 #
 # Here is how to add a new hash subroutine to this script file:
@@ -1018,13 +1018,16 @@ sub raw_sha512 {
 	print "u$u-Raw-SHA512:", sha512_hex($_[1]), ":$u:0:$_[0]::\n";
 }
 sub cisco8 {
-	#pw=secret $8$dsYGNam3K1SIJO$7nv/35M/qr6t.dVc7UY9zrJDWRVqncHub1PE9UlMQFs
-	print "cisco8 not done yet\n";
+	if (defined $argsalt && length($argsalt)==14) { $salt = $argsalt; } else { $salt = randstr(14,\@i64); }
+	my $h = pp_pbkdf2($_[1],$salt,20000,"sha256",32);
+	my $s = base64_wpa($h);
+	print "u-cisco8:\$8\$$salt\$$s:$u:0:$_[0]::\n";
 }
 sub cisco9 {
-	#pw=secret $9$nhEmQVczB7dqsO$X.HsgL6x1il0RxkOSSvyQYwucySCt7qFm4v7pqCxkKM
-	#pw=123456 $9$cvWdfQlRRDKq/U$VFTPha5VHTCbSgSUAo.nPoh50ZiXOw1zmljEjXkaq1g
-	print "cisco9 not done yet\n";
+	if (defined $argsalt && length($argsalt)==14) { $salt = $argsalt; } else { $salt = randstr(14,\@i64); }
+	my $h = scrypt_raw($_[1],$salt,16384,1,1,32);
+	my $s = base64_wpa($h);
+	print "u-cisco9:\$9\$$salt\$$s:$u:0:$_[0]::\n";
 }
 sub dragonfly3_32 {
 	$salt = randstr(rand(8)+1);

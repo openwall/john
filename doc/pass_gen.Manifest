@@ -10,6 +10,13 @@ source and binary forms, with or without modification.
 
 Following is the pass_gen.pl version history prior to adding to the JtR tree:
 
+v1.21 Nov 3, 2014 JimF
+	Added Cisco4, Cisco8 and Cisco9 hashes  (raw-sha256, pbkdf2-sha256 and scrypt)
+	bug fix in LM encodings.
+	Some name normalizations (many actually)
+	Fixed salt smash bug in new pbkdf2 code.
+	New dependancy on Crypt::ScryptKDF
+
 v1.20 Sept 14, 2014 JimF
 	Added keychain password generation.
 	Added encoding processing (up case) for LANMan function.
