@@ -48,7 +48,7 @@ static unsigned long long cand, rec_cand;
 unsigned long long mask_tot_cand;
 unsigned long long mask_parent_keys;
 
-#define BUILT_IN_CHARSET "aludshHA1234LU"
+#define BUILT_IN_CHARSET "ludshaLUDSHA123456789"
 
 #define store_op(k, i) \
 	parsed_mask->stack_op_br[k] = i;
@@ -106,7 +106,7 @@ static char* expand_cplhdr(char *string)
 			*d++ = *s++;
 			*d++ = *s++;
 		} else
-		if (*s == '?' && s[1] >= '1' && s[1] <= '4') {
+		if (*s == '?' && s[1] >= '1' && s[1] <= '9') {
 			char *cs = options.custom_mask[s[1] - '1'];
 			if (*cs == '[')
 				cs++;
@@ -141,25 +141,18 @@ static char* plhdr2string(char p, int fmt_case)
 #define add_range(a, b)	for (j = a; j <= b; j++) *o++ = j
 #define add_string(str)	for (s = (char*)str; *s; s++) *o++ = *s
 
-	if (pers_opts.internal_enc == ASCII)
-	if (p == 'U' || p == 'L') {
-		fprintf(stderr, "Can't use ?%c placeholder with "
+	if (pers_opts.internal_enc == ASCII &&
+	    (p == 'L' || p == 'U' || p == 'D' || p == 'S')) {
+		fprintf(stderr, "Can't use 8-bit ?%c placeholder with "
 		        "ASCII encoding\n", p);
 		error();
 	}
 
 	switch(p) {
-	case 'a': /* Printable ASCII */
-		if (fmt_case)
-			add_range(0x20, 0x7e);
-		else {
-			add_range(0x20, 0x40);
-			add_range(0x5b, 0x7e);
-		}
-		break;
 	case 'l': /* lower-case letters */
 		add_range('a', 'z');
-	case 'L': /* lower-case non-ASCII only */
+		break;
+	case 'L': /* lower-case letters, non-ASCII only */
 		switch (pers_opts.internal_enc) {
 		case CP437:
 			add_string(CHARS_LOWER_CP437
@@ -225,7 +218,8 @@ static char* plhdr2string(char p, int fmt_case)
 		break;
 	case 'u': /* upper-case letters */
 		add_range('A', 'Z');
-	case 'U': /* upper-case non-ASCII only */
+		break;
+	case 'U': /* upper-case letters, non-ASCII only */
 		switch (pers_opts.internal_enc) {
 		case CP437:
 			add_string(CHARS_UPPER_CP437
@@ -291,6 +285,8 @@ static char* plhdr2string(char p, int fmt_case)
 		break;
 	case 'd': /* digits */
 		add_range('0', '9');
+		break;
+	case 'D': /* digits, non-ASCII only */
 		switch (pers_opts.internal_enc) {
 		case CP437:
 			add_string(CHARS_DIGITS_CP437);
@@ -344,6 +340,8 @@ static char* plhdr2string(char p, int fmt_case)
 		add_range(58, 64);
 		add_range(91, 96);
 		add_range(123, 126);
+		break;
+	case 'S': /* specials, non-ASCII only */
 		switch (pers_opts.internal_enc) {
 		case CP437:
 			add_string(CHARS_PUNCTUATION_CP437
@@ -425,16 +423,18 @@ static char* plhdr2string(char p, int fmt_case)
 	case 'h': /* All high-bit */
 		add_range(0x80, 0xff);
 		break;
-	case 'H': /* All, except 0 (which we can't handle) */
+	case 'H': /* All (except NULL which we can't handle) */
 		add_range(0x01, 0xff);
 		break;
-	case 'A': /* All valid chars in codepage */
+	case 'a': /* Printable ASCII */
 		if (fmt_case)
 			add_range(0x20, 0x7e);
 		else {
 			add_range(0x20, 0x40);
 			add_range(0x5b, 0x7e);
 		}
+		break;
+	case 'A': /* All valid non-ASCII chars in codepage */
 		switch (pers_opts.internal_enc) {
 		case CP437:
 			if (fmt_case)
@@ -1292,18 +1292,14 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 		   cfg_get_param("Mask", NULL, "DefaultMask")))
 			options.mask = "";
 
-	if (!options.custom_mask[0] &&
-	    !(options.custom_mask[0] = cfg_get_param("Mask", NULL, "1")))
-		options.custom_mask[0] = "";
-	if (!options.custom_mask[1] &&
-	    !(options.custom_mask[1] = cfg_get_param("Mask", NULL, "2")))
-		options.custom_mask[1] = "";
-	if (!options.custom_mask[2] &&
-	    !(options.custom_mask[2] = cfg_get_param("Mask", NULL, "3")))
-		options.custom_mask[2] = "";
-	if (!options.custom_mask[3] &&
-	    !(options.custom_mask[3] = cfg_get_param("Mask", NULL, "4")))
-		options.custom_mask[3] = "";
+	/* Load defaults for custom placeholders ?1..?9 from john.conf */
+	for (i = 0; i < MAX_NUM_CUST_PLHDR; i++) {
+		char pl[2] = { '1' + i, 0 };
+
+		if (!options.custom_mask[i] &&
+		    !(options.custom_mask[i] = cfg_get_param("Mask", NULL, pl)))
+			options.custom_mask[i] = "";
+	}
 
 	mask = options.mask;
 	template_key = (char*)mem_alloc(0x400);
@@ -1312,7 +1308,7 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 	if (pers_opts.input_enc == UTF_8 && pers_opts.internal_enc != UTF_8) {
 		if (valid_utf8((UTF8*)mask) > 1)
 			utf8_to_cp_r(mask, mask, strlen(mask));
-		for (i = 0; i < 4; i++)
+		for (i = 0; i < MAX_NUM_CUST_PLHDR; i++)
 		if (valid_utf8((UTF8*)options.custom_mask[i]) > 1)
 			utf8_to_cp_r(options.custom_mask[i],
 			             options.custom_mask[i],
@@ -1321,16 +1317,16 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 
 	/* De-hexify mask and custom placeholders */
 	parse_hex(mask);
-	for (i = 0; i < 4; i++)
+	for (i = 0; i < MAX_NUM_CUST_PLHDR; i++)
 		parse_hex(options.custom_mask[i]);
 
 	/* Expand static placeholders within custom ones */
-	for (i = 0; i < 4; i++)
+	for (i = 0; i < MAX_NUM_CUST_PLHDR; i++)
 		options.custom_mask[i] =
 			str_alloc_copy(expand_plhdr(options.custom_mask[i],
 				db->format->params.flags & FMT_CASE));
 
-	/* Finally expand custom placeholders ?1 .. ?4 */
+	/* Finally expand custom placeholders ?1 .. ?9 */
 	mask = expand_cplhdr(mask);
 
 #ifdef MASK_DEBUG

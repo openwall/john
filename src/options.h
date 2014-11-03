@@ -291,7 +291,7 @@ struct options_main {
 /* regular expression */
 	char *regex;
 /* Custom masks */
-	char *custom_mask[4];
+	char *custom_mask[MAX_NUM_CUST_PLHDR];
 };
 
 extern struct options_main options;
