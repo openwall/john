@@ -53,7 +53,7 @@ use MIME::Base64;
 my @funcs = (qw(DESCrypt BigCrypt BSDIcrypt md5crypt md5crypt_a BCRYPT BCRYPTx
 		BFegg Raw-MD5 Raw-MD5u Raw-SHA1 Raw-SHA1u msCash LM NT pwdump
 		Raw-MD4 PHPass PO hmac-MD5 IPB2 PHPS MD4p MD4s SHA1p SHA1s
-		mysql-sha1 pixMD5 MSSql05 MSSql12 netntlm
+		mysql-sha1 pixMD5 MSSql05 MSSql12 netntlm cisco4 cisco8 cisco9
 		nsldap nsldaps ns XSHA krb5pa-md5 mysql mssql_no_upcase_change
 		mssql oracle oracle_no_upcase_change oracle11 hdaa netntlm_ess
 		openssha l0phtcrack netlmv2 netntlmv2 mschapv2 mscash2 mediawiki
@@ -1005,6 +1005,9 @@ sub raw_sha1u {
 sub raw_sha256 {
 	print "u$u-Raw-SHA256:", sha256_hex($_[1]), ":$u:0:$_[0]::\n";
 }
+sub cisco4 {
+	print "u$u-cisco4:\$cisco4\$", base64_wpa(sha256($_[1])), ":$u:0:$_[0]::\n";
+}
 sub raw_sha224 {
 	print "u$u-Raw-SHA224:", sha224_hex($_[1]), ":$u:0:$_[0]::\n";
 }
@@ -1013,6 +1016,15 @@ sub raw_sha384 {
 }
 sub raw_sha512 {
 	print "u$u-Raw-SHA512:", sha512_hex($_[1]), ":$u:0:$_[0]::\n";
+}
+sub cisco8 {
+	#pw=secret $8$dsYGNam3K1SIJO$7nv/35M/qr6t.dVc7UY9zrJDWRVqncHub1PE9UlMQFs
+	print "cisco8 not done yet\n";
+}
+sub cisco9 {
+	#pw=secret $9$nhEmQVczB7dqsO$X.HsgL6x1il0RxkOSSvyQYwucySCt7qFm4v7pqCxkKM
+	#pw=123456 $9$cvWdfQlRRDKq/U$VFTPha5VHTCbSgSUAo.nPoh50ZiXOw1zmljEjXkaq1g
+	print "cisco9 not done yet\n";
 }
 sub dragonfly3_32 {
 	$salt = randstr(rand(8)+1);
