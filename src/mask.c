@@ -65,8 +65,13 @@ unsigned long long mask_parent_keys;
 #define load_qtn(i) \
 	parsed_mask->stack_qtn[i]
 
-/* Converts \xHH notation to characters. The original buffer is modified -
-   we are guaranteed the new string is shorter or same length */
+/*
+ * Converts \xHH notation to characters. The original buffer is modified -
+ * we are guaranteed the new string is shorter or same length.
+ *
+ * This function must pass escaped characters on, as-is (still escaped),
+ * including "\\" which may escape "\\xHH" from being parsed as \xHH.
+ */
 static void parse_hex(char *string)
 {
 	unsigned char *s = (unsigned char*)string;
@@ -89,8 +94,12 @@ static void parse_hex(char *string)
 	*d = 0;
 }
 
-/* Expands custom placeholders in string and returns a new resulting string.
-   with -1=?u?l, "A?1abc[3-6]" will expand to "A[?u?l]abc[3-6]" */
+/*
+ * Expands custom placeholders in string and returns a new resulting string.
+ * with -1=?u?l, "A?1abc[3-6]" will expand to "A[?u?l]abc[3-6]"
+ *
+ * This function must pass any escaped characters on, as-is (still escaped).
+ */
 static char* expand_cplhdr(char *string)
 {
 	static char out[0x8000];
@@ -107,31 +116,34 @@ static char* expand_cplhdr(char *string)
 			*d++ = *s++;
 		} else
 		if (*s == '?' && s[1] >= '1' && s[1] <= '9') {
+			int ab = 0;
 			char *cs = options.custom_mask[s[1] - '1'];
-			if (*cs == '[')
-				cs++;
-			*d++ = '[';
-			while (*cs && d < &out[sizeof(out) - 2]) {
-				if (strstr("\\[]-", cs))
-					*d++ = '\\';
+			if (*cs != '[') {
+				*d++ = '[';
+				ab = 1;
+			}
+			while (*cs && d < &out[sizeof(out) - 2])
 				*d++ = *cs++;
-			}
-			if (d[-1] == ']' && d[-2] == '\\') {
-				--d;
-				d[-1] = ']';
-			}
+			if (ab)
+				*d++ = ']';
 			s += 2;
 		} else
 			*d++ = *s++;
 	}
 	*d = '\0';
 
-	//fprintf(stderr, "return: %s\n", out);
+#ifdef MASK_DEBUG
+	fprintf(stderr, "%s(%s) return: %s\n", __FUNCTION__, string, out);
+#endif
 	return out;
 }
 
-/* Convert a single placeholder like ?l (given as 'l' char arg.) to a string.
-   plhdr2string('d', n) will return "0123456789" plus any Unicode oddities */
+/*
+ * Convert a single placeholder like ?l (given as 'l' char arg.) to a string.
+ * plhdr2string('d', n) will return "0123456789"
+ *
+ * This function never has to deal with escapes (would not be called).
+ */
 static char* plhdr2string(char p, int fmt_case)
 {
 	static char out[256];
@@ -620,21 +632,29 @@ static char* plhdr2string(char p, int fmt_case)
 }
 #undef add_string
 
-/* Expands all non-custom placeholders in string and returns a new resulting
-   string. ?d is expanded to [0123456789] as opposed to [0-9]. If the outer
-   brackets are already given, as in [?d], output is still [0123456789] */
+/*
+ * Expands all non-custom placeholders in string and returns a new resulting
+ * string. ?d is expanded to [0123456789] as opposed to [0-9]. If the outer
+ * brackets are already given, as in [?d], output is still [0123456789]
+ *
+ * This function must pass any escaped characters on, as-is (still escaped).
+ * It may also have to ADD escapes to ranges produced from eg. ?s.
+ */
 static char* expand_plhdr(char *string, int fmt_case)
 {
 	static char out[0x8000];
 	unsigned char *s = (unsigned char*)string;
 	char *d = out;
+	int ab = 0;
 
 	if (!string || !*string)
 		return string;
 
 	//fprintf(stderr, "%s(%s)\n", __FUNCTION__, string);
-	if (*s != '[')
+	if (*s != '[') {
 		*d++ = '[';
+		ab = 1;
+	}
 	while (*s && d < &out[sizeof(out) - 1]) {
 		if (*s == '\\') {
 			*d++ = *s++;
@@ -643,7 +663,7 @@ static char* expand_plhdr(char *string, int fmt_case)
 		if (*s == '?' && strchr(BUILT_IN_CHARSET, s[1])) {
 			char *ps = plhdr2string(s[1], fmt_case);
 			while (*ps && d < &out[sizeof(out) - 2]) {
-				if (strchr("\\[]-", *ps))
+				if (strchr("\\[]?-", ARCH_INDEX(*ps)))
 					*d++ = '\\';
 				*d++ = *ps++;
 			}
@@ -651,11 +671,13 @@ static char* expand_plhdr(char *string, int fmt_case)
 		} else
 			*d++ = *s++;
 	}
-	if (d[-1] != ']')
+	if (ab)
 		*d++ = ']';
 	*d = '\0';
 
-	//fprintf(stderr, "return: %s\n", out);
+#ifdef MASK_DEBUG
+	fprintf(stderr, "%s(%s) return: %s\n", __FUNCTION__, string, out);
+#endif
 	return out;
 }
 
@@ -665,10 +687,11 @@ static char* expand_plhdr(char *string, int fmt_case)
  * invalid braces:
  * [[ab][c], parsed as two separate ranges [[ab] and [c]
  * [[ab][, error, sets parse_ok to 0.
+ *
+ * This function must pass any escaped characters on, as-is (still escaped).
  */
 static void parse_braces(char *mask, parsed_ctx *parsed_mask)
 {
-
 	int i, j ,k;
 	int cl_br_enc;
 
@@ -680,25 +703,29 @@ static void parse_braces(char *mask, parsed_ctx *parsed_mask)
 	j = k = 0;
 	while (j < strlen(mask)) {
 
-		for (i = j; i < strlen(mask); i++)
-			if (mask[i] == '[' && (!i || mask[i-1] != '\\'))
+		for (i = j; i < strlen(mask); i++) {
+			if (mask[i] == '\\')
+				i++;
+			else
+			if (mask[i] == '[')
 				break;
-
+		}
 		if (i < strlen(mask))
 		/* store first opening brace for kth placeholder */
 			store_op(k, i);
 
-		i++;
-
 		cl_br_enc = 0;
-		for (;i < strlen(mask); i++) {
-			if (mask[i] == ']' && (!i || mask[i-1] != '\\')) {
+		for (i++; i < strlen(mask); i++) {
+			if (mask[i] == '\\') {
+				i++;
+				continue;
+			}
+			if (mask[i] == ']') {
 			/* store last closing brace for kth placeholder */
 				store_cl(k, i);
 				cl_br_enc = 1;
 			}
-			if (mask[i] == '[' &&
-			    (!i || mask[i-1] != '\\') && cl_br_enc)
+			if (mask[i] == '[' && cl_br_enc)
 				break;
 		}
 
@@ -718,6 +745,8 @@ static void parse_braces(char *mask, parsed_ctx *parsed_mask)
  * -if outside [] braces and
  * -if ? is immediately followed by the identifier such as
  * ?a for all printable ASCII.
+ *
+ * This function must pass any escaped characters on, as-is (still escaped).
  */
 static void parse_qtn(char *mask, parsed_ctx *parsed_mask)
 {
@@ -727,9 +756,12 @@ static void parse_qtn(char *mask, parsed_ctx *parsed_mask)
 		parsed_mask->stack_qtn[i] = -1;
 
 	for (i = 0, k = 0; i < strlen(mask); i++) {
+		if (mask[i] == '\\')
+			i++;
+		else
 		if (mask[i] == '?')
 		if (i + 1 < strlen(mask))
-		if (strchr(BUILT_IN_CHARSET, mask[i + 1])) {
+		if (strchr(BUILT_IN_CHARSET, ARCH_INDEX(mask[i + 1]))) {
 			j = 0;
 			while (load_op(j) != -1 &&
 			       load_cl(j) != -1) {
@@ -760,10 +792,11 @@ static int search_stack(parsed_ctx *parsed_mask, int loc)
 }
 
 /*
- * Maps the postion of a range in a mask to its actual postion in a key.
+ * Maps the position of a range in a mask to its actual postion in a key.
  * Offset for wordlist + mask is not taken into account.
  */
-static int calc_pos_in_key(char *mask, parsed_ctx *parsed_mask, int mask_loc)
+static int calc_pos_in_key(const char *mask, parsed_ctx *parsed_mask,
+                           int mask_loc)
 {
 	int i, ret_pos;
 
@@ -778,7 +811,11 @@ static int calc_pos_in_key(char *mask, parsed_ctx *parsed_mask, int mask_loc)
 	return ret_pos;
 }
 
-static void init_cpu_mask(char *mask, parsed_ctx *parsed_mask,
+/*
+ * This function will finally remove any escape characters (after honoring
+ * them of course, if they protected any of our specials)
+ */
+static void init_cpu_mask(const char *mask, parsed_ctx *parsed_mask,
                           cpu_mask_context *cpu_mask_ctx, struct db_main *db)
 {
 	int i, qtn_ctr, op_ctr, cl_ctr;
@@ -830,6 +867,7 @@ static void init_cpu_mask(char *mask, parsed_ctx *parsed_mask,
 	(!memchr((const char*)cpu_mask_ctx->ranges[i].chars,	\
 		(int)mask[j], count(i)))			\
 		cpu_mask_ctx->ranges[i].chars[count(i)++] = mask[j];
+
 			int j;
 
 			cpu_mask_ctx->
@@ -840,8 +878,7 @@ static void init_cpu_mask(char *mask, parsed_ctx *parsed_mask,
 			for (j = load_op(op_ctr) + 1; j < load_cl(cl_ctr);) {
 				int a , b;
 
-				if (mask[j] == '\\' &&
-				    (!j || mask[j - 1] != '\\')) {
+				if (mask[j] == '\\') {
 					j++;
 					if check_n_insert
 				}
@@ -1260,6 +1297,31 @@ static unsigned long long divide_work(cpu_mask_context *cpu_mask_ctx)
 	return my_candidates;
 }
 
+/*
+ * Notes about escapes, lists and ranges:
+ *
+ * Parsing chain:
+ * mask -> utf8_to_cp() -> expand_plhdr() -> parse_hex()
+ *                      -> parse_braces() -> parse_qtn()
+ *
+ * "\x41" means literal "A". Hex escaped characters must be passed as-is until
+ * parse_hex(). All other escapes should be passed as-is until parse_qtn().
+ * Note that de-hex comes after UTF-8 conversion so any 8-bit hex escaped
+ * characters will be parsed as the *internal* encoding.
+ *
+ * Hex characters *can* compose ranges, eg. "\x80-\xff", but can not end up as
+ * placeholders. Eg. "\x3fd" ("?d" after de-hex) must be parsed literally as
+ * "?d" and not a digits range.
+ *
+ * Anything else escaped by "\" must be parsed as literal character,
+ * including but not limited to:
+ *    "\\" means literal "\" with no further meaning
+ *    "\?" means literal "?" and must never be parsed as placeholder (but -"-)
+ *    "\-" means literal "-" and must never be parsed as range
+ *    "\[" means literal "[" and must never start a list range
+ *    "\]" means literal "]" and must never end a list range
+ *
+ */
 void mask_init(struct db_main *db, char *unprocessed_mask)
 {
 	int i;
@@ -1315,11 +1377,6 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 			             strlen(options.custom_mask[i]));
 	}
 
-	/* De-hexify mask and custom placeholders */
-	parse_hex(mask);
-	for (i = 0; i < MAX_NUM_CUST_PLHDR; i++)
-		parse_hex(options.custom_mask[i]);
-
 	/* Expand static placeholders within custom ones */
 	for (i = 0; i < MAX_NUM_CUST_PLHDR; i++)
 		options.custom_mask[i] =
@@ -1329,9 +1386,14 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 	/* Finally expand custom placeholders ?1 .. ?9 */
 	mask = expand_cplhdr(mask);
 
+	/* De-hexify mask and custom placeholders */
+	parse_hex(mask);
+	for (i = 0; i < MAX_NUM_CUST_PLHDR; i++)
+		parse_hex(options.custom_mask[i]);
+
 #ifdef MASK_DEBUG
 	fprintf(stderr, "Custom masks expanded (this is 'mask' when passed to "
-	        "init_cpu_mask()):\n%s\n", mask);
+	        "parse_braces()):\n%s\n", mask);
 #endif
 
 	/* Parse ranges */
@@ -1341,7 +1403,8 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 		parse_qtn(mask, &parsed_mask);
 	else {
 		if (john_main_process)
-			fprintf(stderr, "Parsing unsuccessful\n");
+			fprintf(stderr, "Parsing unsuccessful, missing closing"
+			        " bracket\n");
 		error();
 	}
 
@@ -1351,6 +1414,10 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 		if ((t = search_stack(&parsed_mask, i))) {
 			mask_add_len++;
 			i = t + 1;
+		}
+		else if (mask[i] == '\\') {
+			i += 2;
+			mask_add_len++;
 		}
 		else if (i + 1 < strlen(mask) && mask[i] == '?' &&
 		    mask[i + 1] == 'w') {
@@ -1402,6 +1469,10 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 	for (i = 0; i < mask_num_qw + 1; i++)
 		template_key_offsets[i] = -1;
 
+#ifdef MASK_DEBUG
+	fprintf(stderr, "Custom masks expanded (this is 'mask' when passed to "
+	        "init_cpu_mask()):\n%s\n", mask);
+#endif
 	init_cpu_mask(mask, &parsed_mask, &cpu_mask_ctx, db);
 
 	/*
