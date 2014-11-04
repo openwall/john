@@ -86,7 +86,10 @@ static void parse_hex(char *string)
 		*d++ = *s++;
 	} else if (*s == '\\' && s[1] == 'x' &&
 	    atoi16[s[2]] != 0x7f && atoi16[s[3]] != 0x7f) {
-		*d++ = (atoi16[s[2]] << 4) + atoi16[s[3]];
+		char c = (atoi16[s[2]] << 4) + atoi16[s[3]];
+		if (strchr("\\[]?-", c))
+			*d++ = '\\';
+		*d++ = c;
 		s += 4;
 	} else
 		*d++ = *s++;
@@ -1305,7 +1308,7 @@ static unsigned long long divide_work(cpu_mask_context *cpu_mask_ctx)
  *                      -> parse_braces() -> parse_qtn()
  *
  * "\x41" means literal "A". Hex escaped characters must be passed as-is until
- * parse_hex(). All other escapes should be passed as-is until parse_qtn().
+ * parse_hex(). All other escapes should be passed as-is past parse_qtn().
  * Note that de-hex comes after UTF-8 conversion so any 8-bit hex escaped
  * characters will be parsed as the *internal* encoding.
  *
