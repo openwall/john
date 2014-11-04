@@ -148,8 +148,8 @@ static int isabase64(char a)
 
 static char *prepare(char *fields[10], struct fmt_main *self)
 {
-	static char *Buf;
-	char *pi, *po, tmp[44];
+	static char *Buf=NULL;
+	char *pi, *po, tmp[50];
 
 	if (strncmp(fields[1], FMT_CISCO8, 3) != 0)
 		return fields[1];
