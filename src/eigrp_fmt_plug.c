@@ -39,7 +39,7 @@ john_register_one(&fmt_eigrp);
 #define ALGORITHM_NAME          "MD5 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        0
-#define PLAINTEXT_LENGTH        81 // IOU accepts larger strings but doesn't use them fully!
+#define PLAINTEXT_LENGTH        81 // IOU accepts larger strings but doesn't use them fully, passwords are zero padded to a minimum length of 16!
 #define BINARY_SIZE             16 // MD5 hash or first 16 bytes of HMAC-SHA256
 #define BINARY_ALIGN            sizeof(ARCH_WORD_32)
 #define SALT_SIZE               sizeof(struct custom_salt)
@@ -52,6 +52,8 @@ static struct fmt_tests tests[] = {
 	{"$eigrp$2$020500000000000000000000000000000000002a000200280002001000000001000000000000000000000000$0$XXX$1a42aaf8ebe2f766100ea1fa05a5fa55", "password12345"},
 	{"$eigrp$2$020500000000000000000000000000000000002a000200280002001000000001000000000000000000000000$0$XXX$f29e7d44351d37e6fc71e2aacca63d28", "1234567812345"},
 	{"$eigrp$2$020500000000000000000000000000000000002a000200280002001000000001000000000000000000000000$1$0001000c010001000000000f000400080500030000f5000c0000000400$560c87396267310978883da92c0cff90", "password12345"},
+	{"$eigrp$2$020500000000000000000000000000000000002a000200280002001000000001000000000000000000000000$0$XXX$61f237e29d28538a372f01121f2cd12f", "123456789012345678901234567890"},
+	{"$eigrp$2$0205000000000000000000000000000000000001000200280002001000000001000000000000000000000000$0$XXX$212acb1cb76b31a810a9752c5cf6f554", "ninja"}, // this one is for @digininja :-)
 	{NULL}
 };
 
@@ -190,6 +192,8 @@ static void set_salt(void *salt)
 	cur_salt = (struct custom_salt *)salt;
 }
 
+static unsigned char zeropad[16] = {0};
+
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
@@ -203,7 +207,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 		memcpy(&ctx, &cur_salt->prep_salt, sizeof(MD5_CTX));
 		MD5_Update(&ctx, saved_key[index], saved_len[index]);
-		MD5_Update(&ctx, "\x00\x00\x00", 3);  // WTF!
+		if (saved_len[index] < 16) {
+			MD5_Update(&ctx, zeropad, 16 - saved_len[index]);
+		}
 		// do we have extra_salt?
 		if (cur_salt->have_extra_salt) {
 			MD5_Update(&ctx, cur_salt->extra_salt, cur_salt->extra_salt_length);
