@@ -7,7 +7,7 @@
 #define _BASE64_H
 
 int base64_decode(char *in, int inlen, char *out);
-char *mime64_to_crypt64(char *in, char *out, int len); /* out buffer at least len+1 */
-char *crypt64_to_mime64(char *in, char *out, int len);
+char *mime64_to_crypt64(const char *in, char *out, int len); /* out buffer at least len+1 */
+char *crypt64_to_mime64(const char *in, char *out, int len);
 
 #endif

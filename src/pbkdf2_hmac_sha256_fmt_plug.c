@@ -149,7 +149,7 @@ static int isabase64(char a)
 static char *prepare(char *fields[10], struct fmt_main *self)
 {
 	static char *Buf=NULL;
-	char *pi, *po, tmp[50];
+	char tmp[50];
 
 	if (strncmp(fields[1], FMT_CISCO8, 3) != 0)
 		return fields[1];
@@ -157,9 +157,7 @@ static char *prepare(char *fields[10], struct fmt_main *self)
 		return fields[1];
 	if (!Buf)
 		Buf = mem_alloc_tiny(120, 1);
-	pi = fields[1];
-	po = Buf;
-	po += sprintf (po, "%s20000$%14.14s$%s", FMT_PREFIX, &pi[3], crypt64_to_mime64(&pi[3+14+1], tmp, 43));
+	sprintf (Buf, "%s20000$%14.14s$%s", FMT_PREFIX, &(fields[1][3]), crypt64_to_mime64(&(fields[1][3+14+1]), tmp, 43));
 	return Buf;
 }
 
