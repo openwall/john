@@ -148,8 +148,8 @@ static int isabase64(char a)
 
 static char *prepare(char *fields[10], struct fmt_main *self)
 {
-	static char *Buf=NULL;
-	char tmp[50];
+	static char *Buf;
+	char tmp[44];
 
 	if (strncmp(fields[1], FMT_CISCO8, 3) != 0)
 		return fields[1];
@@ -257,7 +257,7 @@ static void *get_salt(char *ciphertext)
 static void *get_binary(char *ciphertext)
 {
 	static union {
-		char c[BINARY_SIZE];
+		char c[BINARY_SIZE + 1];
 		ARCH_WORD dummy;
 	} buf;
 	char *ret = buf.c;
@@ -338,7 +338,7 @@ static int cmp_one(void *binary, int index)
 
 /* Check the FULL binary, just for good measure. There is no chance we'll
    have a false positive here but this function is not performance sensitive.
-   
+
    This function not done linke pbkdf2_hmac_sha512. Simply return 1.
    */
 static int cmp_exact(char *source, int index)
