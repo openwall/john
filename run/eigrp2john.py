@@ -66,7 +66,7 @@ def pcap_parser(fname):
             # Check EIGRP Flags
             flags = struct.unpack(">I", data[4:8])[0]
             if opcode == 1 and flags == 1:  # Update with "Init" flags
-                sys.stderr.write("[-] Ignoring update packet (%s) with init flag!\n" % index)
+                # sys.stderr.write("[-] Ignoring update packet (%s) with init flag!\n" % index)
                 # these packets have MD5 hash but no password is actually involved in MD5 hash calculation, wow!
                 continue
 
@@ -76,7 +76,7 @@ def pcap_parser(fname):
                 continue
             # Is this MD5 authentication? XXX
             algo_type = struct.unpack(">H", data[24:26])[0]
-            if algo_type != 2:
+            if algo_type != 2 and algo_type != 3:  # MD5 and SHA-256
                 sys.stderr.write("[-] Ignoring non-MD5 auth type in packet %s!\n" % index)
                 continue
 
@@ -116,7 +116,11 @@ def pcap_parser(fname):
                         extra_salt = (tlv_data_parameters + tlv_data_version + tlv_data_peer).encode("hex")
                         have_extra_salt = 1
                     elif tlv_type == 0x00f2:  # Internal Route(MTR)
-                        extra_salt = (data[offset:offset+22] + "\x00").encode("hex")  # only 22 bytes are used, wtaf?
+                        extra_salt = (data[offset:offset+22] + "\x00").encode("hex")  # only 22 bytes are used, wtaf? XXX
+                        offset = offset + tlv_length
+                        have_extra_salt = 1
+                    elif tlv_type == 0x0602:  # Internal Router (seen with "Update" with Flags == 0)
+                        extra_salt = (data[offset:offset+25]).encode("hex")
                         offset = offset + tlv_length
                         have_extra_salt = 1
                     else:
