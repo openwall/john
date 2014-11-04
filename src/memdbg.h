@@ -79,11 +79,11 @@
  *  self test code, etc, and not within OMP.  But this warning is here, so that
  *  it is known NOT to call within OMP.
  */
-extern unsigned long MemDbg_Used(int show_freed);
-extern void          MemDbg_Display(FILE *);
-extern void	     MemDbg_Validate(int level);
-extern void	     MemDbg_Validate_msg(int level, const char *pMsg);
-extern void	     MemDbg_Validate_msg2(int level, const char *pMsg, int bShowExData);
+extern size_t	MemDbg_Used(int show_freed);
+extern void		MemDbg_Display(FILE *);
+extern void		MemDbg_Validate(int level);
+extern void		MemDbg_Validate_msg(int level, const char *pMsg);
+extern void		MemDbg_Validate_msg2(int level, const char *pMsg, int bShowExData);
 
 /* these functions should almost NEVER be called by any client code. They
  * are listed here, because the macros need to know their names. Client code
@@ -130,7 +130,7 @@ extern char *MEMDBG_strdup(const char *, char *, int);
 typedef struct MEMDBG_HANDLE_t {
 	unsigned id;
 	unsigned alloc_cnt;
-	unsigned long mem_size;
+	size_t mem_size;
 } MEMDBG_HANDLE;
 
 /*

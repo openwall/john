@@ -212,6 +212,8 @@ debug:
 # Similar but just turn memdbg on instead, and normal optimizations.
 memdbg:
 	$(MAKE) default CFLAGS="-DMEMDBG_BUILD $(CFLAGS)" CFLAGS_MAIN="-DMEMDBG_BUILD $(CFLAGS_MAIN)"
+memdbg_ex:
+	$(MAKE) default CFLAGS="-DMEMDBG_BUILD -DMEMDBG_EXTRA $(CFLAGS)" CFLAGS_MAIN="-DMEMDBG_BUILD -DMEMDBG_EXTRA $(CFLAGS_MAIN)"
 
 help:
 	@echo "The 'older' fat makefile can be done with make --file=Makefile.legacy [target]"

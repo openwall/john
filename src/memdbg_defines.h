@@ -14,7 +14,9 @@
  * runtime will slow, possibly noticeably.  However, it is much more in-depth,
  * finding things like usage of freed pointers.
  */
+#if defined MEMDBG_EXTRA
 #define MEMDBG_EXTRA_CHECKS
+#endif
 #endif
 
 #if defined (JTR_RELEASE_BUILD)

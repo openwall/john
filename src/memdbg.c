@@ -110,24 +110,24 @@ typedef struct _hdr {
    struct _hdr *mdbg_next;
    struct _hdr *mdbg_prev;
    MEMDBG_HDR2 *mdbg_hdr2; /* points to just 'right' after allocated memory, for overflow catching */
-   const char*  mdbg_file;
+   const char  *mdbg_file;
    ARCH_WORD_32 mdbg_line;
-   ARCH_WORD_32 mdbg_size;
    ARCH_WORD_32 mdbg_cnt;
+   size_t mdbg_size;
    ARCH_WORD_32 mdbg_fpst; /* this should be 'right' against the allocated memory, for underflow catching */
 } MEMDBG_HDR;
 
-static unsigned long   mem_size = 0;
-static unsigned long   max_mem_size = 0;
-static unsigned long   mem_sizet = 0;
-static unsigned long   max_mem_sizet = 0;
-static MEMDBG_HDR     *memlist = NULL;
-static ARCH_WORD_32    alloc_cnt = 0;
+static size_t   mem_size = 0;
+static size_t   max_mem_size = 0;
+static size_t   mem_sizet = 0;
+static size_t   max_mem_sizet = 0;
+static MEMDBG_HDR		*memlist = NULL;
+static unsigned long	alloc_cnt = 0;
 
 #ifdef MEMDBG_EXTRA_CHECKS
-static MEMDBG_HDR     *freed_memlist = NULL;
-static unsigned long   freed_mem_size = 0;
-static ARCH_WORD_32    freed_cnt = 0;
+static MEMDBG_HDR		*freed_memlist = NULL;
+static size_t			freed_mem_size = 0;
+static unsigned long	freed_cnt = 0;
 #endif
 
 #define RESERVE_SZ (sizeof(MEMDBG_HDR))
@@ -171,7 +171,7 @@ static void   MEMDBG_FREEDLIST_add(MEMDBG_HDR *);
  * a good check before program exit, is are there 0
  * bytes allocated.
  */
-unsigned long MemDbg_Used(int show_freed) {
+size_t MemDbg_Used(int show_freed) {
 #ifdef MEMDBG_EXTRA_CHECKS
 	if (show_freed)
 		return freed_mem_size;
@@ -190,10 +190,10 @@ void MemDbg_Display(FILE *fp) {
 
 	fprintf(fp, "\n------------------------------\n");
 	fprintf(fp, "MEMDBG: allocation information:\n");
-	fprintf(fp, "   current normal alloc mem (leaks)%5lu  max normal mem allocated: %lu\n", mem_size, max_mem_size);
-	fprintf(fp, "   current 'tiny' alloc mem (leaks)%5lu  max  tiny  mem allocated: %lu\n", mem_sizet, max_mem_sizet);
+	fprintf(fp, "   current normal alloc mem (leaks)%llu  max normal mem allocated: %llu\n", (unsigned long long)mem_size, (unsigned long long)max_mem_size);
+	fprintf(fp, "   current 'tiny' alloc mem (leaks)%llu  max  tiny  mem allocated: %llu\n", (unsigned long long)mem_sizet, (unsigned long long)max_mem_sizet);
 #ifdef MEMDBG_EXTRA_CHECKS
-	fprintf(fp, "  Freed mem size: %lu (freed cnt: %d)", freed_mem_size, freed_cnt);
+	fprintf(fp, "  Freed mem size: %llu (freed cnt: %lu)", (unsigned long long)freed_mem_size, freed_cnt);
 #endif
 	fprintf(fp, "\n");
 	fprintf(fp, "Index : alloc# :   Size : File(Line)  [first 20 bytes, or size of bytes]\n");
@@ -201,7 +201,7 @@ void MemDbg_Display(FILE *fp) {
 	p = memlist;
 	while (p != NULL) {
 		int bfreed = 0, bbad=0;
-		fprintf(fp, "%-5d : %-6d : %6u : %s(%d)", idx++, p->mdbg_cnt, p->mdbg_size, p->mdbg_file, p->mdbg_line);
+		fprintf(fp, "%-5d : %-6d : %6llu : %s(%u)", idx++, p->mdbg_cnt, (unsigned long long)p->mdbg_size, p->mdbg_file, p->mdbg_line);
 		if (p->mdbg_fpst != MEMFPOST && p->mdbg_fpst != MEMFPOSTt) {
 			bbad=1;
 			if (p->mdbg_fpst == MEMFPOSTd) {
@@ -702,7 +702,7 @@ void MEMDBG_free(const void *ptr, char *file, int line)
 static void   MEMDBG_FREEDLIST_add(MEMDBG_HDR *p)
 {
 	unsigned char *cp;
-	unsigned i;
+	size_t i;
 
 #ifdef _OPENMP
 #pragma omp critical (memdbg_crit)
@@ -758,7 +758,7 @@ void MEMDBG_checkSnapshot_possible_exit_on_error(MEMDBG_HANDLE h, int exit_on_an
 	while (p) {
 		if (p->mdbg_cnt > h.alloc_cnt && p->mdbg_fpst == MEMFPOST) {
 			leak = 1;
-			fprintf(stderr, "Mem leak: %d bytes, alloc_num %d, file %s, line %d\n", p->mdbg_size, p->mdbg_cnt, p->mdbg_file, p->mdbg_line);
+			fprintf(stderr, "Mem leak: %llu bytes, alloc_num %d, file %s, line %d\n", (unsigned long long)p->mdbg_size, p->mdbg_cnt, p->mdbg_file, p->mdbg_line);
 		}
 		p = p->mdbg_next;
 	}
