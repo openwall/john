@@ -369,7 +369,7 @@ static void *get_salt(char *ciphertext)
 	p = strchr(c, '$');
 	if (p-c==14 && salt.rounds==20000) {
 		// for now, assume this is a cisco8 hash
-		strncpy((char*)(salt.salt), c, 14);
+		strnzcpy((char*)(salt.salt), c, 14);
 		salt.length = 14;
 		return (void*)&salt;
 	}
