@@ -4,10 +4,11 @@ use strict;
 #############################################################################
 # For the version information list and copyright statement,
 # see ../doc/pass_gen.Manifest
-# Version v1.21.  Update this version signature here, AND the document file.
+# Version v1.22.  Update this version signature here, AND the document file.
 #############################################################################
 
 # Most "use xxx" now moved to "require xxx" *locally* in respective subs in
+# order to only require them when actually used.
 # order to only require them when actually used.
 #
 # use Digest::SHA qw(sha1);
@@ -23,7 +24,7 @@ use Encode;
 use POSIX;
 use Getopt::Long;
 use MIME::Base64;
-use Crypt::ScryptKDF qw (scrypt_raw);
+use Crypt::ScryptKDF qw (scrypt_raw scrypt_b64);
 #############################################################################
 #
 # Here is how to add a new hash subroutine to this script file:
@@ -65,7 +66,7 @@ my @funcs = (qw(DESCrypt BigCrypt BSDIcrypt md5crypt md5crypt_a BCRYPT BCRYPTx
 		episerver_sha1 episerver_sha256 hmailserver ike keepass
 		keychain nukedclan pfx racf radmin raw-SHA sip SybaseASE vnc
 		wbb3 wpapsk sunmd5 wowsrp django-scrypt aix-ssha1 aix-ssha256
-		aix-ssha512 pbkdf2-hmac-sha512 pbkdf2-hmac-sha256
+		aix-ssha512 pbkdf2-hmac-sha512 pbkdf2-hmac-sha256 scrypt
 		rakp osc formspring skey_md5 pbkdf2-hmac-sha1
 		skey_md4 skey_sha1 skey_rmd160 cloudkeychain agilekeychain));
 
@@ -2042,10 +2043,18 @@ sub django {
 	print "u$u-django:\$django\$\*1\*pbkdf2_sha256\$10000\$$salt\$", base64(pp_pbkdf2($_[1], $salt, 10000, "sha256", 32)), ":$u:0:$_[0]::\n";
 }
 sub django_scrypt {
-	#require Crypt::Scrypt;
-	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(16); }
-	print STDERR "django_scrypt : THIS ONE STILL TO DO\n";
-	print "u$u-scrypt:scrypt\$$h\$", uc unpack("H*", $salt), ":$u:0:", $_[0], "::\n";
+	if (defined $argsalt && length($argsalt)==12) { $salt = $argsalt; } else { $salt=randstr(12, \@i64);}
+	my $N=14; my $r=8; my $p=1; my $bytes=64;
+	my $h = scrypt_b64($_[1],$salt,1<<$N,$r,$p,$bytes);
+	print "u$u-django_scrypt:scrypt\$$salt\$$N\$$r\$$p\$$bytes\$$h:$u:0:", $_[0], "::\n";
+}
+sub scrypt {
+	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(12, \@i64);}
+	my $N=14; my $r=8; my $p=1; my $bytes=32;
+	my $h = base64i(scrypt_raw($_[1],$salt,1<<$N,$r,$p,$bytes));
+	# C is 14, 6.... is 8 and /.... is 1  ($N, $r, $p)
+	if (length($h) > 43) { $h = substr($h,0,43); }
+	print "u$u-scrypt:\$7\$C6..../....$salt\$".$h.":$u:0:", $_[0], "::\n";
 }
 sub aix_ssha1 {
 	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(16); }

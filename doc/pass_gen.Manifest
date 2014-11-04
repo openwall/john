@@ -10,6 +10,9 @@ source and binary forms, with or without modification.
 
 Following is the pass_gen.pl version history prior to adding to the JtR tree:
 
+v1.22 Nov 4, 2014 JimF
+	Added scrypt and django-scrypt
+
 v1.21 Nov 3, 2014 JimF
 	Added Cisco4, Cisco8 and Cisco9 hashes  (raw-sha256, pbkdf2-sha256 and scrypt)
 	bug fix in LM encodings.
