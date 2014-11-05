@@ -840,14 +840,20 @@ static void init_cpu_mask(const char *mask, parsed_ctx *parsed_mask,
 	int fmt_case = (db->format->params.flags & FMT_CASE);
 
 #define count(i) cpu_mask_ctx->ranges[i].count
-#define swap(a, b) { x = a; a = b; b = x; }
 #define fill_range() 							\
-	if (a > b)							\
-		swap(a, b);						\
-	for (x = a; x <= b; x++) 					\
-		if (!memchr((const char*)cpu_mask_ctx->ranges[i].chars, \
-		    x, count(i)))					\
-			cpu_mask_ctx->ranges[i].chars[count(i)++] = x;
+	if (a > b) {							\
+		for (x = a; x >= b; x--)				\
+			if (!memchr((const char*)cpu_mask_ctx->		\
+			   ranges[i].chars, x, count(i)))		\
+				cpu_mask_ctx->ranges[i].		\
+				chars[count(i)++] = x;			\
+	} else {							\
+		for (x = a; x <= b; x++) 				\
+			if (!memchr((const char*)cpu_mask_ctx->		\
+			    ranges[i].chars, x, count(i)))		\
+				cpu_mask_ctx->ranges[i].		\
+				chars[count(i)++] = x;			\
+	}
 
 /* Safe in non-bracketed if/for: The final ';' comes with the invocation */
 #define add_string(string)						\
