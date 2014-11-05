@@ -22,7 +22,6 @@ john_register_one(&fmt_mysqlna);
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-#include "base64.h"
 #ifdef _OPENMP
 static int omp_t = 1;
 #include <omp.h>

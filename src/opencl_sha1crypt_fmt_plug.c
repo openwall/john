@@ -17,7 +17,6 @@ john_register_one(&fmt_ocl_cryptsha1);
 #include <string.h>
 
 #include "arch.h"
-#include "base64.h"
 #include "sha.h"
 #include "params.h"
 #include "common.h"

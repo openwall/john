@@ -154,7 +154,7 @@ static void *get_salt(char *ciphertext)
 static void *get_binary(char *ciphertext)
 {
 	static union {
-		unsigned char c[BINARY_SIZE];
+		unsigned char c[BINARY_SIZE + 1];
 		ARCH_WORD dummy;
 	} buf;
 	unsigned char *out = buf.c;
@@ -276,7 +276,7 @@ struct fmt_main fmt_django_scrypt = {
 		{
 			"N",
 			"r",
-			"p" 
+			"p"
 		},
 #endif
 		scrypt_tests
@@ -293,7 +293,7 @@ struct fmt_main fmt_django_scrypt = {
 		{
 			tunable_cost_N,
 			tunable_cost_r,
-			tunable_cost_p 
+			tunable_cost_p
 		},
 #endif
 		fmt_default_source,

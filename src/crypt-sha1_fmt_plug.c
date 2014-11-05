@@ -24,7 +24,6 @@ john_register_one(&fmt_cryptsha1);
 #endif
 
 #include "arch.h"
-#include "base64.h"
 #include "sha.h"
 #include "params.h"
 #include "common.h"

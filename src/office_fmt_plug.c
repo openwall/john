@@ -24,7 +24,6 @@ john_register_one(&fmt_office);
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-#include "base64.h"
 #include "unicode.h"
 #include "sha.h"
 #include "sha2.h"

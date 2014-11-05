@@ -35,7 +35,6 @@ john_register_one(&fmt_zzz_bwtdt);
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-#include "base64.h"
 #ifdef _OPENMP
 #include <omp.h>
 #define OMP_SCALE               8 // XXX

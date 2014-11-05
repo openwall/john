@@ -234,7 +234,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 static void * binary(char *ciphertext)
 {
-	static char realcipher[BINARY_SIZE + 9];
+	static char realcipher[BINARY_SIZE + 1 + 9];
 
 	memset(realcipher, 0, sizeof(realcipher));
 	base64_decode(ciphertext + NSLDAP_MAGIC_LENGTH,

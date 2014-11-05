@@ -32,7 +32,6 @@ john_register_one(&fmt_opencl_office2007);
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-#include "base64.h"
 #include "unicode.h"
 #include "common-opencl.h"
 #include "config.h"

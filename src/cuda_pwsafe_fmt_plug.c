@@ -26,7 +26,6 @@ john_register_one(&fmt_cuda_pwsafe);
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-#include "base64.h"
 #include "memory.h"
 #include "cuda_pwsafe.h"
 #include "cuda_common.h"

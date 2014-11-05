@@ -27,7 +27,6 @@ john_register_one(&fmt_opencl_pwsafe);
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-#include "base64.h"
 #include "common-opencl.h"
 #include "memory.h"
 

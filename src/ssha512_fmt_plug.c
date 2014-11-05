@@ -45,7 +45,7 @@ john_register_one(&fmt_saltedsha2);
 #define SALT_SIZE                       (MAX_SALT_LEN + sizeof(unsigned int))
 #define SALT_ALIGN                      4
 
-#define CIPHERTEXT_LENGTH               ((BINARY_SIZE + MAX_SALT_LEN + 2) / 3 * 4)
+#define CIPHERTEXT_LENGTH               ((BINARY_SIZE + 1 + MAX_SALT_LEN + 2) / 3 * 4)
 
 #define MIN_KEYS_PER_CRYPT              1
 #define MAX_KEYS_PER_CRYPT              1
@@ -95,7 +95,7 @@ static void init(struct fmt_main *self)
 static void * binary(char *ciphertext) {
 	static char *realcipher;
 
-	if (!realcipher) realcipher = mem_alloc_tiny(BINARY_SIZE + SALT_SIZE, MEM_ALIGN_WORD);
+	if (!realcipher) realcipher = mem_alloc_tiny(BINARY_SIZE + 1 + SALT_SIZE, MEM_ALIGN_WORD);
 
 	ciphertext += NSLDAP_MAGIC_LENGTH;
 	memset(realcipher, 0, BINARY_SIZE);

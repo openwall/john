@@ -25,7 +25,6 @@ john_register_one(&fmt_ocl_rar5);
 
 #include "misc.h"
 #include "arch.h"
-#include "base64.h"
 #include "common.h"
 #include "formats.h"
 #include "options.h"

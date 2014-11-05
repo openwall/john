@@ -90,7 +90,7 @@ static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
 
 static struct custom_salt {
 	int version;
-	unsigned char esalt[18]; /* base64 decoding, 24 / 4 * 3 = 18 */
+	unsigned char esalt[18 + 1]; /* base64 decoding, 24 / 4 * 3 = 18 */
 } *cur_salt;
 
 static void init(struct fmt_main *self)
@@ -164,7 +164,7 @@ static void *get_salt(char *ciphertext)
 static void *get_binary(char *ciphertext)
 {
 	static union {
-		unsigned char c[BINARY_SIZE+1];
+		unsigned char c[BINARY_SIZE + 1];
 		ARCH_WORD dummy;
 	} buf;
 	unsigned char *out = buf.c;

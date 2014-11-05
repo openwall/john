@@ -243,7 +243,7 @@ static int hash_plugin_parse_hash(char *filename, struct custom_salt *cs, int is
 	}
 
 	// can this go over 4gb?
-	cs->cipherbuf = mem_alloc_tiny(cs->afsize, MEM_ALIGN_NONE);
+	cs->cipherbuf = mem_alloc_tiny(cs->afsize + 1, MEM_ALIGN_NONE);
 	if (!cs->cipherbuf)
 		goto bad;
 	// printf(">>> %d\n", cs->afsize);
@@ -389,7 +389,7 @@ static void *get_salt(char *ciphertext)
 
 	if (is_inlined) {
 		p = strtok(NULL, "$");
-		size = (strlen(p) + 20) / 4 * 3;
+		size = (strlen(p) + 20) / 4 * 3 + 1;
 		cs.cipherbuf = mem_alloc_tiny(size, MEM_ALIGN_NONE);
 		base64_decode(p, strlen(p), (char*)cs.cipherbuf);
 	}

@@ -111,7 +111,7 @@ static struct fmt_tests tests[] = {
 
 static struct custom_salt {
 	uint8_t length;
-	uint8_t salt[MAX_SALT_SIZE];
+	uint8_t salt[MAX_SALT_SIZE + 1];
 	uint32_t rounds;
 } *cur_salt;
 
