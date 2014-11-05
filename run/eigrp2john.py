@@ -70,11 +70,11 @@ def pcap_parser(fname):
                 # these packets have MD5 hash but no password is actually involved in MD5 hash calculation, wow!
                 continue
 
-            # Authentication Type TLV is at offset 20
+            # Authentication Type TLV is at offset 20, does this always hold?
             tlv_type = struct.unpack(">H", data[20:22])[0]
             if tlv_type != 2:
                 continue
-            # Is this MD5 authentication? XXX
+            # Is this MD5 authentication?
             algo_type = struct.unpack(">H", data[24:26])[0]
             if algo_type != 2 and algo_type != 3:  # MD5 and SHA-256
                 sys.stderr.write("[-] Ignoring non-MD5 auth type in packet %s!\n" % index)
@@ -98,7 +98,7 @@ def pcap_parser(fname):
                     tlv_length = struct.unpack(">H", data[offset+2:offset+2+2])[0]
                     if tlv_type == 1:  # Parameters TLV
                         assert tlv_length == 12  # XXX
-                        tlv_data_parameters = data[offset:offset+tlv_length]
+                        tlv_data_parameters = data[offset:offset+tlv_length - 2]  # till "K6"
                         offset = offset + tlv_length
                     elif tlv_type == 4:  # Software Version
                         tlv_data_version = data[offset:offset+tlv_length]
