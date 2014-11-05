@@ -897,11 +897,13 @@ static void init_cpu_mask(const char *mask, parsed_ctx *parsed_mask,
 
 				if (mask[j] == '\\') {
 					j++;
+					if (j >= load_cl(cl_ctr)) break;
 					if check_n_insert
 				}
 				else if (mask[j] == '-' &&
 				         j + 1 < load_cl(cl_ctr) &&
-				         j - 1 > load_op(op_ctr)) {
+				         j - 1 > load_op(op_ctr) &&
+					 mask[j + 1] != '\\') {
 					int x;
 
 /* Remove the character mask[j-1] added in previous iteration */
@@ -913,6 +915,22 @@ static void init_cpu_mask(const char *mask, parsed_ctx *parsed_mask,
 					fill_range();
 
 					j++;
+				}
+				else if (mask[j] == '-' &&
+				         j + 2 < load_cl(cl_ctr) &&
+				         j - 1 > load_op(op_ctr) &&
+					 mask[j + 1] == '\\') {
+					 int x;
+
+/* Remove the character mask[j-1] added in previous iteration */
+					count(i)--;
+
+					a = mask[j - 1];
+					b = mask[j + 2];
+
+					fill_range();
+
+					j += 2;
 				}
 				else if check_n_insert
 
