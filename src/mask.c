@@ -1423,10 +1423,10 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 	for (i = 0; i < MAX_NUM_CUST_PLHDR; i++)
 		parse_hex(options.custom_mask[i]);
 
-//#ifdef MASK_DEBUG
+#ifdef MASK_DEBUG
 	fprintf(stderr, "Custom masks expanded (this is 'mask' when passed to "
 	        "parse_braces()):\n%s\n", mask);
-//#endif
+#endif
 
 	/* Parse ranges */
 	parse_braces(mask, &parsed_mask);
@@ -1440,17 +1440,16 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 		error();
 	}
 
-	//remove_slash(mask);
-
-	fprintf(stderr, "Custom masks expanded (this is 'mask' when passed to "
-	        "remove_slash()):\n%s\n", mask);
-
 	i = 0; mask_add_len = 0; mask_num_qw = 0;
 	while (i < strlen(mask)) {
 		int t;
 		if ((t = search_stack(&parsed_mask, i))) {
 			mask_add_len++;
 			i = t + 1;
+		}
+		else if (mask[i] == '\\') {
+			i+=2;
+			mask_add_len++;
 		}
 		else if (i + 1 < strlen(mask) && mask[i] == '?' &&
 		    mask[i + 1] == 'w') {
@@ -1479,9 +1478,9 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 		error();
 	}
 
-//#ifdef MASK_DEBUG
+#ifdef MASK_DEBUG
 	fprintf(stderr, "qw %d minlen %d maxlen %d fmt_len %d mask_add_len %d\n", mask_num_qw, options.force_minlength, options.force_maxlength, fmt_maxlen, mask_add_len);
-//#endif
+#endif
 	/* We decrease these here instead of changing parent modes. */
 	if (options.force_minlength - mask_add_len >= 0)
 		options.force_minlength -= mask_add_len;
@@ -1502,10 +1501,10 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 	for (i = 0; i < mask_num_qw + 1; i++)
 		template_key_offsets[i] = -1;
 
-//#ifdef MASK_DEBUG
+#ifdef MASK_DEBUG
 	fprintf(stderr, "Custom masks expanded (this is 'mask' when passed to "
 	        "init_cpu_mask()):\n%s\n", mask);
-//#endif
+#endif
 	init_cpu_mask(mask, &parsed_mask, &cpu_mask_ctx, db);
 
 	/*
