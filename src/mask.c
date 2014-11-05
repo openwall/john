@@ -906,8 +906,10 @@ static void init_cpu_mask(const char *mask, parsed_ctx *parsed_mask,
 					 mask[j + 1] != '\\') {
 					int x;
 
-/* Remove the character mask[j-1] added in previous iteration */
-					count(i)--;
+/* Remove the character mask[j-1] added in previous iteration, only if it was added.*/
+					if (!memchr((const char*)cpu_mask_ctx->
+					    ranges[i].chars, (int)mask[j - 1], count(i)))
+						count(i)--;
 
 					a = mask[j - 1];
 					b = mask[j + 1];
@@ -922,8 +924,10 @@ static void init_cpu_mask(const char *mask, parsed_ctx *parsed_mask,
 					 mask[j + 1] == '\\') {
 					 int x;
 
-/* Remove the character mask[j-1] added in previous iteration */
-					count(i)--;
+/* Remove the character mask[j-1] added in previous iteration, only if it was added.*/
+					if (!memchr((const char*)cpu_mask_ctx->
+					    ranges[i].chars, (int)mask[j - 1], count(i)))
+						count(i)--;
 
 					a = mask[j - 1];
 					b = mask[j + 2];
@@ -1596,17 +1600,22 @@ int do_mask_crack(const char *key)
 
 		for (i = min_len; i <= max_len; i++) {
 			int j = 0;
+
 			max_keylen = i;
+
 			save_restore(&cpu_mask_ctx, 0, 1);
 			generate_template_key(mask, key, key_len, &parsed_mask,
 		                      &cpu_mask_ctx);
+
 			if (template_key_len == strlen(template_key)) break;
 			template_key_len = strlen(template_key);
+
 			while(template_key_offsets[j] != -1) {
 				int cpy_len = max_keylen - template_key_offsets[j];
 				cpy_len = cpy_len > key_len ? key_len : cpy_len;
 				memcpy(template_key + template_key_offsets[j++], key, cpy_len);
 			}
+
 			if (generate_keys(&cpu_mask_ctx, &cand))
 				return 1;
 		}
