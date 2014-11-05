@@ -1495,10 +1495,8 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 		fprintf(stderr, "Hybrid mask must contain ?w\n");
 		error();
 	} else
-	if (!(options.flags & FLG_MASK_STACKED) && mask_num_qw) {
-		fprintf(stderr, "?w not allowed in pure mask mode\n");
-		error();
-	}
+	if (!(options.flags & FLG_MASK_STACKED) && mask_num_qw)
+		fprintf(stderr, "Warning: ?w has no special meaning in pure mask mode\n");
 
 #ifdef MASK_DEBUG
 	fprintf(stderr, "qw %d minlen %d maxlen %d fmt_len %d mask_add_len %d\n", mask_num_qw, options.force_minlength, options.force_maxlength, fmt_maxlen, mask_add_len);
