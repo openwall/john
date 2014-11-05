@@ -1575,35 +1575,6 @@ void mask_done()
 	}
 }
 
-static int mask_crack(const char *key, int key_len, int min_max_iter_flag)
-{
-	static int old_keylen = -1;
-	int i;
-
-#ifdef MASK_DEBUG
-	fprintf(stderr, "%s(%s)\n", __FUNCTION__, key);
-#endif
-
-	if (old_keylen != key_len || min_max_iter_flag) {
-		save_restore(&cpu_mask_ctx, 0, 1);
-		generate_template_key(mask, key, key_len, &parsed_mask,
-		                      &cpu_mask_ctx);
-		old_keylen = key_len;
-	}
-
-	i = 0;
-	while(template_key_offsets[i] != -1) {
-		int cpy_len = max_keylen - template_key_offsets[i];
-		cpy_len = cpy_len > key_len ? key_len : cpy_len;
-		memcpy(template_key + template_key_offsets[i++], key, cpy_len);
-	}
-
-	if (generate_keys(&cpu_mask_ctx, &cand))
-		return 1;
-
-	return event_abort;
-}
-
 int do_mask_crack(const char *key)
 {
 	int key_len = key ? strlen(key) : 0;
@@ -1620,18 +1591,45 @@ int do_mask_crack(const char *key)
 		int max_len = max_keylen;
 		int min_len = restored_len ?
 			restored_len : options.force_minlength;
-
+		int template_key_len = -1;
 		restored_len = 0;
 
 		for (i = min_len; i <= max_len; i++) {
+			int j = 0;
 			max_keylen = i;
-			if (mask_crack(key, key_len, 1))
+			save_restore(&cpu_mask_ctx, 0, 1);
+			generate_template_key(mask, key, key_len, &parsed_mask,
+		                      &cpu_mask_ctx);
+			if (template_key_len == strlen(template_key)) break;
+			template_key_len = strlen(template_key);
+			while(template_key_offsets[j] != -1) {
+				int cpy_len = max_keylen - template_key_offsets[j];
+				cpy_len = cpy_len > key_len ? key_len : cpy_len;
+				memcpy(template_key + template_key_offsets[j++], key, cpy_len);
+			}
+			if (generate_keys(&cpu_mask_ctx, &cand))
 				return 1;
 		}
-	} else
-		if (mask_crack(key, key_len, 0))
-			return 1;
+	} else {
+		static int old_keylen = -1;
 
+		if (old_keylen != key_len) {
+			save_restore(&cpu_mask_ctx, 0, 1);
+			generate_template_key(mask, key, key_len, &parsed_mask,
+		                      &cpu_mask_ctx);
+			old_keylen = key_len;
+		}
+
+		i = 0;
+		while(template_key_offsets[i] != -1) {
+			int cpy_len = max_keylen - template_key_offsets[i];
+			cpy_len = cpy_len > key_len ? key_len : cpy_len;
+			memcpy(template_key + template_key_offsets[i++], key, cpy_len);
+		}
+
+		if (generate_keys(&cpu_mask_ctx, &cand))
+			return 1;
+	}
 	if (!event_abort && (options.flags & FLG_MASK_STACKED))
 		crk_fix_state();
 
