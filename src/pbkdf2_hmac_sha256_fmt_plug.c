@@ -148,15 +148,13 @@ static int isabase64(char a)
 
 static char *prepare(char *fields[10], struct fmt_main *self)
 {
-	static char *Buf;
+	static char Buf[120];
 	char tmp[44];
 
 	if (strncmp(fields[1], FMT_CISCO8, 3) != 0)
 		return fields[1];
 	if (strlen(fields[1]) != 4+14+43)
 		return fields[1];
-	if (!Buf)
-		Buf = mem_alloc_tiny(120, 1);
 	sprintf (Buf, "%s20000$%14.14s$%s", FMT_PREFIX, &(fields[1][3]), crypt64_to_mime64(&(fields[1][3+14+1]), tmp, 43));
 	return Buf;
 }
