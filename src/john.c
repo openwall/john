@@ -831,6 +831,7 @@ static void john_load_conf_db(void)
 	}
 
 	if (!(options.flags & FLG_SHOW_CHK) && !options.loader.showuncracked)
+	if (options.flags & (FLG_PASSWD | FLG_STDIN_CHK))
 	if (pers_opts.default_enc && john_main_process &&
 	    pers_opts.input_enc != ASCII)
 		fprintf(stderr, "Using default input encoding: %s\n",
