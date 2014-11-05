@@ -1575,7 +1575,7 @@ void mask_done()
 	}
 }
 
-static int mask_crack(const char *key, int key_len)
+static int mask_crack(const char *key, int key_len, int min_max_iter_flag)
 {
 	static int old_keylen = -1;
 	int i;
@@ -1584,7 +1584,7 @@ static int mask_crack(const char *key, int key_len)
 	fprintf(stderr, "%s(%s)\n", __FUNCTION__, key);
 #endif
 
-	if (old_keylen != key_len) {
+	if (old_keylen != key_len || min_max_iter_flag) {
 		save_restore(&cpu_mask_ctx, 0, 1);
 		generate_template_key(mask, key, key_len, &parsed_mask,
 		                      &cpu_mask_ctx);
@@ -1625,15 +1625,11 @@ int do_mask_crack(const char *key)
 
 		for (i = min_len; i <= max_len; i++) {
 			max_keylen = i;
-			save_restore(&cpu_mask_ctx, 0, 1);
-			generate_template_key(mask, key, key_len, &parsed_mask,
-			                      &cpu_mask_ctx);
-
-			if (mask_crack(key, key_len))
+			if (mask_crack(key, key_len, 1))
 				return 1;
 		}
 	} else
-		if (mask_crack(key, key_len))
+		if (mask_crack(key, key_len, 0))
 			return 1;
 
 	if (!event_abort && (options.flags & FLG_MASK_STACKED))
