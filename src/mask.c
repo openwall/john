@@ -36,7 +36,7 @@ static parsed_ctx parsed_mask;
 static cpu_mask_context cpu_mask_ctx, rec_ctx;
 static int *template_key_offsets;
 static char *mask = NULL, *template_key;
-static int max_keylen, fmt_maxlen;
+static int max_keylen, fmt_maxlen, rec_len, restored_len;
 int mask_add_len, mask_num_qw;
 
 /*
@@ -1250,6 +1250,8 @@ void mask_save_state(FILE *file)
 	fprintf(file, "%llu\n", rec_cand + 1);
 	fprintf(file, "%d\n", rec_ctx.count);
 	fprintf(file, "%d\n", rec_ctx.offset);
+	if (options.force_minlength)
+		fprintf(file, "%d\n", rec_len);
 	for (i = 0; i < rec_ctx.count; i++)
 		fprintf(file, "%hhu\n", rec_ctx.ranges[i].iter);
 }
@@ -1276,6 +1278,13 @@ int mask_restore_state(FILE *file)
 	else
 		return fail;
 
+	if (options.force_minlength) {
+		if (fscanf(file, "%d\n", &d) == 1)
+			restored_len = d;
+		else
+			return fail;
+	}
+
 	for (i = 0; i < cpu_mask_ctx.count; i++)
 	if (fscanf(file, "%hhu\n", &uc) == 1)
 		cpu_mask_ctx.ranges[i].iter = uc;
@@ -1292,6 +1301,7 @@ void mask_fix_state(void)
 	rec_cand = cand;
 	rec_ctx.count = cpu_mask_ctx.count;
 	rec_ctx.offset = cpu_mask_ctx.offset;
+	rec_len = max_keylen;
 	for (i = 0; i < rec_ctx.count; i++)
 		rec_ctx.ranges[i].iter = cpu_mask_ctx.ranges[i].iter;
 }
@@ -1388,14 +1398,6 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 	fprintf(stderr, "%s(%s) maxlen %d\n", __FUNCTION__, unprocessed_mask,
 	        max_keylen);
 #endif
-	/* We do not yet support min */
-	if (options.force_minlength >= 0) {
-		if (john_main_process)
-			fprintf(stderr, "Mask mode: --min-length "
-			        "currently not supported\n");
-		error();
-	}
-
 	log_event("Proceeding with mask mode");
 
 	/* Load defaults from john.conf */
@@ -1496,7 +1498,8 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 		error();
 	} else
 	if (!(options.flags & FLG_MASK_STACKED) && mask_num_qw)
-		fprintf(stderr, "Warning: ?w has no special meaning in pure mask mode\n");
+		fprintf(stderr, "Warning: ?w has no special meaning in pure "
+		        "mask mode\n");
 
 #ifdef MASK_DEBUG
 	fprintf(stderr, "qw %d minlen %d maxlen %d fmt_len %d mask_add_len %d\n", mask_num_qw, options.force_minlength, options.force_maxlength, fmt_maxlen, mask_add_len);
@@ -1572,13 +1575,11 @@ void mask_done()
 	}
 }
 
-int do_mask_crack(const char *key)
+static int mask_crack(const char *key, int key_len)
 {
-	int i;
 	static int old_keylen = -1;
-	int key_len = key ? strlen(key) : 0;
+	int i;
 
-	mask_parent_keys++;
 #ifdef MASK_DEBUG
 	fprintf(stderr, "%s(%s)\n", __FUNCTION__, key);
 #endif
@@ -1599,6 +1600,41 @@ int do_mask_crack(const char *key)
 
 	if (generate_keys(&cpu_mask_ctx, &cand))
 		return 1;
+
+	return event_abort;
+}
+
+int do_mask_crack(const char *key)
+{
+	int key_len = key ? strlen(key) : 0;
+	int i;
+
+#ifdef MASK_DEBUG
+	fprintf(stderr, "%s(%s)\n", __FUNCTION__, key);
+#endif
+
+	mask_parent_keys++;
+
+	/* If --min-len is used, we iterate max_keylen */
+	if (options.force_minlength >= 0) {
+		int max_len = max_keylen;
+		int min_len = restored_len ?
+			restored_len : options.force_minlength;
+
+		restored_len = 0;
+
+		for (i = min_len; i <= max_len; i++) {
+			max_keylen = i;
+			save_restore(&cpu_mask_ctx, 0, 1);
+			generate_template_key(mask, key, key_len, &parsed_mask,
+			                      &cpu_mask_ctx);
+
+			if (mask_crack(key, key_len))
+				return 1;
+		}
+	} else
+		if (mask_crack(key, key_len))
+			return 1;
 
 	if (!event_abort && (options.flags & FLG_MASK_STACKED))
 		crk_fix_state();
