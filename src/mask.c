@@ -74,6 +74,7 @@ unsigned long long mask_parent_keys;
  */
 static void parse_hex(char *string)
 {
+	static int warned;
 	unsigned char *s = (unsigned char*)string;
 	unsigned char *d = s;
 
@@ -87,6 +88,9 @@ static void parse_hex(char *string)
 	} else if (*s == '\\' && s[1] == 'x' &&
 	    atoi16[s[2]] != 0x7f && atoi16[s[3]] != 0x7f) {
 		char c = (atoi16[s[2]] << 4) + atoi16[s[3]];
+		if (!c && !warned++)
+			fprintf(stderr, "Warning: \\x00 in mask terminates "
+			        "the string\n");
 		if (strchr("\\[]?-", c))
 			*d++ = '\\';
 		*d++ = c;
