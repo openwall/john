@@ -264,6 +264,7 @@ void MemDbg_Validate_msg2(int level, const char *pMsg, int bShowExMessages) {
 	/* Level 0 we ALWAYS walk the alloc list, looking for over/underwrite, and validate a few other items. */
 	MEMDBG_HDR  *p = memlist;
 	int error = 0;
+	int cnt=0;
 #ifdef MEMDBG_EXTRA_CHECKS
 	unsigned char *cp;
 	unsigned i;
@@ -275,19 +276,29 @@ void MemDbg_Validate_msg2(int level, const char *pMsg, int bShowExMessages) {
 	}
 	while (p) {
 		if (p->mdbg_fpst != MEMFPOST && p->mdbg_fpst != MEMFPOSTt) {
-			fprintf(stderr, "\nMemory buffer underwrite found! Will try to list what file/line allocated the buffer\n");
+			++cnt;
+			if (cnt < 100)
+				fprintf(stderr, "\nMemory buffer underwrite found! Will try to list what file/line allocated the buffer\n");
 			mem_fence_post_err_ne(p, p->mdbg_file, p->mdbg_line);
 			error = 1;
 		}
 		if (memcmp(p->mdbg_hdr2->mdbg_fpst, cpMEMFPOST, 4)) {
-			fprintf(stderr, "\nMemory buffer overwrite found! Will try to list what file/line allocated the buffer\n");
+			++cnt;
+			if (cnt < 100)
+				fprintf(stderr, "\nMemory buffer overwrite found! Will try to list what file/line allocated the buffer\n");
 			mem_fence_post_err_ne(p, p->mdbg_file, p->mdbg_line);
 			error = 1;
+		}
+		if (p->mdbg_next == p) {
+			fprintf (stderr, "Error, internal loop in the memdbg linked list, aborting\n");
+			break;
 		}
 		p = p->mdbg_next;
 	}
 	if (error) {
 		fprintf(stderr, "\nExiting due to the error detected\n");
+		if (cnt > 100)
+			fprintf(stderr, "There were %d total errors, only first 100 shown\n", cnt);
 		exit(1);
 	}
 	if (bShowExMessages)
@@ -298,23 +309,34 @@ void MemDbg_Validate_msg2(int level, const char *pMsg, int bShowExMessages) {
 	// Ok, we have a list of all freed items. We will do work on this.
 	p = freed_memlist;
 	if (!p) return;
+	cnt = 0;
 	if (bShowExMessages)
 		fprintf(stderr, "MemDbg_Validate level 1 checking");
 	while (p) {
 		if (p->mdbg_fpst != MEMFPOSTd) {
-			fprintf(stderr, "\nFreed Memory buffer underwrite found! Will try to list what file/line allocated the buffer\n");
+			++cnt;
+			if (cnt < 100)
+				fprintf(stderr, "\nFreed Memory buffer underwrite found! Will try to list what file/line allocated the buffer\n");
 			mem_fence_post_err_ne(p, p->mdbg_file, p->mdbg_line);
 			error = 1;
 		}
 		if (memcmp(p->mdbg_hdr2->mdbg_fpst, cpMEMFPOSTd, 4)) {
-			fprintf(stderr, "\nFreed Memory buffer overwrite found! Will try to list what file/line allocated the buffer\n");
+			++cnt;
+			if (cnt < 100)
+				fprintf(stderr, "\nFreed Memory buffer overwrite found! Will try to list what file/line allocated the buffer\n");
 			mem_fence_post_err_ne(p, p->mdbg_file, p->mdbg_line);
 			error = 1;
+		}
+		if (p->mdbg_next == p) {
+			fprintf (stderr, "Error, internal loop in the memdbg linked list, aborting\n");
+			break;
 		}
 		p = p->mdbg_next;
 	}
 	if (error) {
 		fprintf(stderr, "\nExiting due to the error detected\n");
+		if (cnt > 100)
+			fprintf(stderr, "There were %d total errors, only first 100 shown\n", cnt);
 		exit(1);
 	}
 	if (bShowExMessages)
@@ -322,6 +344,7 @@ void MemDbg_Validate_msg2(int level, const char *pMsg, int bShowExMessages) {
 	if (level == MEMDBG_VALIDATE_DEEP) return;
 
 	p = freed_memlist;
+	cnt = 0;
 	if (bShowExMessages)
 		fprintf(stderr, "MemDbg_Validate level 2 checking");
 	while (p) {
@@ -337,17 +360,25 @@ void MemDbg_Validate_msg2(int level, const char *pMsg, int bShowExMessages) {
 				if (i == 8)
 					break;
 				if (*cp++ != 0xCD) {
-					fprintf(stderr, "\nFreed Memory buffer modification found! Will try to list what file/line allocated the buffer\n");
+					++cnt;
+					if (cnt < 100)
+						fprintf(stderr, "\nFreed Memory buffer modification found! Will try to list what file/line allocated the buffer\n");
 					mem_fence_post_err_ne(p, p->mdbg_file, p->mdbg_line);
 					error = 1;
 					break;
 				}
 			}
 		}
+		if (p->mdbg_next == p) {
+			fprintf (stderr, "Error, internal loop in the memdbg linked list, aborting\n");
+			break;
+		}
 		p = p->mdbg_next;
 	}
 	if (error) {
 		fprintf(stderr, "\nExiting due to the error detected\n");
+		if (cnt > 100)
+			fprintf(stderr, "There were %d total errors, only first 100 shown\n", cnt);
 		exit(1);
 	}
 	if (bShowExMessages)
@@ -355,6 +386,7 @@ void MemDbg_Validate_msg2(int level, const char *pMsg, int bShowExMessages) {
 	if (level == MEMDBG_VALIDATE_DEEPER) return;
 
 	p = freed_memlist;
+	cnt = 0;
 	if (bShowExMessages)
 		fprintf(stderr, "MemDbg_Validate level 3 checking");
 	while (p) {
@@ -362,16 +394,24 @@ void MemDbg_Validate_msg2(int level, const char *pMsg, int bShowExMessages) {
 		// in this deepest mode, we look at the ENTIRE buffer.  In deeper, we looked at first 8, so here, we just start from 8 and look forward.
 		for (i = 8; i < p->mdbg_size; ++i) {
 			if (*cp++ != 0xCD) {
-				fprintf(stderr, "\nFreed Memory buffer modification found! Will try to list what file/line allocated the buffer\n");
+				++cnt;
+				if (cnt < 100)
+					fprintf(stderr, "\nFreed Memory buffer modification found! Will try to list what file/line allocated the buffer\n");
 				mem_fence_post_err_ne(p, p->mdbg_file, p->mdbg_line);
 				error = 1;
 				break;
 			}
 		}
+		if (p->mdbg_next == p) {
+			fprintf (stderr, "Error, internal loop in the memdbg linked list, aborting\n");
+			break;
+		}
 		p = p->mdbg_next;
 	}
 	if (error) {
 		fprintf(stderr, "\nExiting due to the error detected\n");
+		if (cnt > 100)
+			fprintf(stderr, "There were %d total errors, only first 100 shown\n", cnt);
 		exit(1);
 	}
 	if (bShowExMessages)
@@ -800,7 +840,21 @@ static void mem_fence_post_errd(void *p, const char *file, int line)
 }
 static void mem_fence_post_err_ne(void *p, const char *file, int line)
 {
-	fprintf(stderr, "Memory fence_post error - %p - %s(%d)\n", p, file, line);
+	char buf[120], *cp=buf, *ip;
+	int i;
+
+	ip = (char*) p;
+	for (i = 0; i < 16; ++i) {
+		if (ip[i] >= ' ' && ip[i] <= '~')
+			*cp++ = ip[i];
+		else
+			*cp++ = '.';
+	}
+	*cp++ = ' ';
+	for (i = 0; i < 16; ++i)
+		cp += sprintf(cp, " %02x", (unsigned char)ip[i]);
+
+	fprintf(stderr, "Memory fence_post error - %p - %s(%d)\n\tdata:  (%s)\n", p, file, line, buf);
 }
 static void mem_fence_post_errd_ne(void *p, const char *file, int line)
 {
