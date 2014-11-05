@@ -759,8 +759,10 @@ static void parse_qtn(char *mask, parsed_ctx *parsed_mask)
 		parsed_mask->stack_qtn[i] = -1;
 
 	for (i = 0, k = 0; i < strlen(mask); i++) {
-		if (mask[i] == '\\')
+		if (mask[i] == '\\') {
 			i++;
+			continue;
+		}
 		else
 		if (mask[i] == '?')
 		if (i + 1 < strlen(mask))
@@ -806,6 +808,14 @@ static int calc_pos_in_key(const char *mask, parsed_ctx *parsed_mask,
 	i = ret_pos = 0;
 	while (i < mask_loc) {
 		int t;
+		if (mask[i] == '\\') {
+			i++;
+			if (i < mask_loc && mask[i] == '\\') {
+				i++;
+				ret_pos++;
+			}
+		        continue;
+		}
 		t = search_stack(parsed_mask, i);
 		i = t ? t + 1: i + 1;
 		ret_pos++;
@@ -998,6 +1008,11 @@ static char* generate_template_key(char *mask, const char *key, int key_len,
 			template_key[k++] = '#';
 			i = t + 1;
 			cpu_mask_ctx->ranges[j++].offset = offset;
+		}
+		else if (mask[i] == '\\') {
+			i++;
+			if (i >= strlen(mask)) break;
+			template_key[k++] = mask[i++];
 		}
 		else if (key != NULL && mask[i + 1] == 'w' && mask[i] == '?') {
 			template_key_offsets[l++] = k;
@@ -1300,6 +1315,20 @@ static unsigned long long divide_work(cpu_mask_context *cpu_mask_ctx)
 	return my_candidates;
 }
 
+void remove_slash(char *mask) {
+	int i = 0;
+	while (i < strlen(mask)) {
+		if (mask[i] == '\\') {
+		    int j = i;
+		    while(j < strlen(mask)) {
+			  mask[j] = mask[j + 1];
+			  j++;
+		    }
+		}
+		i++;
+	}
+}
+
 /*
  * Notes about escapes, lists and ranges:
  *
@@ -1394,10 +1423,10 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 	for (i = 0; i < MAX_NUM_CUST_PLHDR; i++)
 		parse_hex(options.custom_mask[i]);
 
-#ifdef MASK_DEBUG
+//#ifdef MASK_DEBUG
 	fprintf(stderr, "Custom masks expanded (this is 'mask' when passed to "
 	        "parse_braces()):\n%s\n", mask);
-#endif
+//#endif
 
 	/* Parse ranges */
 	parse_braces(mask, &parsed_mask);
@@ -1411,16 +1440,17 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 		error();
 	}
 
+	//remove_slash(mask);
+
+	fprintf(stderr, "Custom masks expanded (this is 'mask' when passed to "
+	        "remove_slash()):\n%s\n", mask);
+
 	i = 0; mask_add_len = 0; mask_num_qw = 0;
 	while (i < strlen(mask)) {
 		int t;
 		if ((t = search_stack(&parsed_mask, i))) {
 			mask_add_len++;
 			i = t + 1;
-		}
-		else if (mask[i] == '\\') {
-			i += 2;
-			mask_add_len++;
 		}
 		else if (i + 1 < strlen(mask) && mask[i] == '?' &&
 		    mask[i + 1] == 'w') {
@@ -1449,9 +1479,9 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 		error();
 	}
 
-#ifdef MASK_DEBUG
+//#ifdef MASK_DEBUG
 	fprintf(stderr, "qw %d minlen %d maxlen %d fmt_len %d mask_add_len %d\n", mask_num_qw, options.force_minlength, options.force_maxlength, fmt_maxlen, mask_add_len);
-#endif
+//#endif
 	/* We decrease these here instead of changing parent modes. */
 	if (options.force_minlength - mask_add_len >= 0)
 		options.force_minlength -= mask_add_len;
@@ -1472,10 +1502,10 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 	for (i = 0; i < mask_num_qw + 1; i++)
 		template_key_offsets[i] = -1;
 
-#ifdef MASK_DEBUG
+//#ifdef MASK_DEBUG
 	fprintf(stderr, "Custom masks expanded (this is 'mask' when passed to "
 	        "init_cpu_mask()):\n%s\n", mask);
-#endif
+//#endif
 	init_cpu_mask(mask, &parsed_mask, &cpu_mask_ctx, db);
 
 	/*
