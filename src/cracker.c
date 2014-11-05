@@ -99,7 +99,8 @@ static void crk_init_salt(void)
 static void crk_help(void)
 {
 	static int printed = 0;
-	if (!john_main_process || printed)
+	if (!john_main_process || printed ||
+	    ((options.flags & FLG_STDOUT) && isatty(fileno(stdout))))
 		return;
 #ifdef HAVE_MPI
 	if (mpi_p > 1 || getenv("OMPI_COMM_WORLD_SIZE"))
