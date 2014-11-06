@@ -99,36 +99,36 @@ static void init(struct fmt_main *self)
   * processing. You always know how to do it. The only nuance is case, and that is trival
   *******************************************************************************************/
 static void base64_unmap_i(char *in_block) {
-  int i;
-  char *c;
+	int i;
+	char *c;
 
-  for(i=0; i<4; i++) {
-    c = in_block + i;
-    if(*c == '.') { *c = 0; continue; }
-    if(*c == '/') { *c = 1; continue; }
-    if(*c>='0' && *c<='9') { *c -= '0'; *c += 2; continue; }
-    if(*c>='A' && *c<='Z') { *c -= 'A'; *c += 12; continue; }
-    *c -= 'a'; *c += 38;
-  }
+	for(i=0; i<4; i++) {
+		c = in_block + i;
+		if(*c == '.') { *c = 0; continue; }
+		if(*c == '/') { *c = 1; continue; }
+		if(*c>='0' && *c<='9') { *c -= '0'; *c += 2; continue; }
+		if(*c>='A' && *c<='Z') { *c -= 'A'; *c += 12; continue; }
+		*c -= 'a'; *c += 38;
+	}
 }
 static void base64_decode_i(const char *in, int inlen, unsigned char *out) {
-  int i, done=0;
-  unsigned char temp[4];
+	int i, done=0;
+	unsigned char temp[4];
 
-  for(i=0; i<inlen; i+=4) {
-    memcpy(temp, in, 4);
-    memset(out, 0, 3);
-    base64_unmap_i((char*)temp);
-    out[0] = ((temp[0]<<2) & 0xfc) | ((temp[1]>>4) & 3);
-	done += 2;
-	if (done >= inlen) return;
-    out[1] = ((temp[1]<<4) & 0xf0) | ((temp[2]>>2) & 0xf);
-	if (++done >= inlen) return;
-    out[2] = ((temp[2]<<6) & 0xc0) | ((temp[3]   ) & 0x3f);
-	++done;
-    out += 3;
-    in += 4;
-  }
+	for(i=0; i<inlen; i+=4) {
+		memcpy(temp, in, 4);
+		memset(out, 0, 3);
+		base64_unmap_i((char*)temp);
+		out[0] = ((temp[0]<<2) & 0xfc) | ((temp[1]>>4) & 3);
+		done += 2;
+		if (done >= inlen) return;
+		out[1] = ((temp[1]<<4) & 0xf0) | ((temp[2]>>2) & 0xf);
+		if (++done >= inlen) return;
+		out[2] = ((temp[2]<<6) & 0xc0) | ((temp[3]   ) & 0x3f);
+		++done;
+		out += 3;
+		in += 4;
+	}
 }
 static void enc_base64_1_i(char *out, unsigned val, unsigned cnt) {
 	while (cnt--) {
