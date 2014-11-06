@@ -21,10 +21,12 @@
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
+#include "base64.h"
 #include "memdbg.h"
 
 #define FORMAT_LABEL			"scrypt"
 #define FORMAT_NAME			""
+#define FMT_CISCO9              "$9$"
 #ifdef __XOP__
 #define ALGORITHM_NAME			"Salsa20/8 128/128 XOP"
 #elif defined(__AVX__)
@@ -49,14 +51,14 @@
 #define MAX_KEYS_PER_CRYPT		1
 
 static struct fmt_tests tests[] = {
-	{"$7$C6..../....SodiumChloride$"
-	    "kBGj9fHznVYFQMEn/qDCfrDevf9YDtcDdKvEqHJLV8D", "pleaseletmein"},
-	{"$7$C6..../....\x01\x09\x0a\x0d\x20\x7f\x80\xff$"
-	    "b7cKqzsQk7txdc9As1WZBHjUPNWQWJW8A.UUUTA5eD1",
-	    "\x01\x09\x0a\x0d\x20\x7f\x80\xff"},
+	{"$7$C6..../....SodiumChloride$kBGj9fHznVYFQMEn/qDCfrDevf9YDtcDdKvEqHJLV8D", "pleaseletmein"},
+	{"$7$C6..../....\x01\x09\x0a\x0d\x20\x7f\x80\xff$b7cKqzsQk7txdc9As1WZBHjUPNWQWJW8A.UUUTA5eD1", "\x01\x09\x0a\x0d\x20\x7f\x80\xff"},
 	{"$7$2/..../....$rNxJWVHNv/mCNcgE/f6/L4zO6Fos5c2uTzhyzoisI62", ""},
-	{"$7$86....E....NaCl$xffjQo7Bm/.SKRS4B2EuynbOLjAmXU5AbDbRXhoBl64",
-	    "password"},
+	{"$7$86....E....NaCl$xffjQo7Bm/.SKRS4B2EuynbOLjAmXU5AbDbRXhoBl64", "password"},
+	// cisco type 9 hashes.  .  They are $7$C/..../.... type  (N=16384, r=1, p=1) different base-64 (same as WPA).  salt used RAW
+	{"$9$nhEmQVczB7dqsO$X.HsgL6x1il0RxkOSSvyQYwucySCt7qFm4v7pqCxkKM", "cisco"},
+	{"$9$cvWdfQlRRDKq/U$VFTPha5VHTCbSgSUAo.nPoh50ZiXOw1zmljEjXkaq1g", "123456"},
+	{"$9$X9fA8mypebLFVj$Klp6X9hxNhkns0kwUIinvLRSIgWOvCwDhVTZqjsycyU", "JtR"},
 	{NULL}
 };
 
@@ -86,6 +88,97 @@ static void init(struct fmt_main *self)
 		escrypt_init_local(&local[i]);
 
 	buffer = mem_alloc(sizeof(*buffer) * self->params.max_keys_per_crypt);
+}
+
+
+ /********************************************************************************************
+  * This code will 'byte swap' the base-64. OHHH how I despise Base-64 (JimF).  I know many
+  * here coding JtR have a hard on for it. But the 8000 different methods of doing base-64,
+  * and absolutely NOTHING that tells us just what the decode is, makes this encoding method
+  * absolutely SUCK to handle.  Yes, base-16 makes larger files, BUT it is 100% trivial on
+  * processing. You always know how to do it. The only nuance is case, and that is trival
+  *******************************************************************************************/
+static void base64_unmap_i(char *in_block) {
+  int i;
+  char *c;
+
+  for(i=0; i<4; i++) {
+    c = in_block + i;
+    if(*c == '.') { *c = 0; continue; }
+    if(*c == '/') { *c = 1; continue; }
+    if(*c>='0' && *c<='9') { *c -= '0'; *c += 2; continue; }
+    if(*c>='A' && *c<='Z') { *c -= 'A'; *c += 12; continue; }
+    *c -= 'a'; *c += 38;
+  }
+}
+static void base64_decode_i(const char *in, int inlen, unsigned char *out) {
+  int i, done=0;
+  unsigned char temp[4];
+
+  for(i=0; i<inlen; i+=4) {
+    memcpy(temp, in, 4);
+    memset(out, 0, 3);
+    base64_unmap_i((char*)temp);
+    out[0] = ((temp[0]<<2) & 0xfc) | ((temp[1]>>4) & 3);
+	done += 2;
+	if (done >= inlen) return;
+    out[1] = ((temp[1]<<4) & 0xf0) | ((temp[2]>>2) & 0xf);
+	if (++done >= inlen) return;
+    out[2] = ((temp[2]<<6) & 0xc0) | ((temp[3]   ) & 0x3f);
+	++done;
+    out += 3;
+    in += 4;
+  }
+}
+static void enc_base64_1_i(char *out, unsigned val, unsigned cnt) {
+	while (cnt--) {
+		unsigned v = val & 0x3f;
+		val >>= 6;
+		*out++ = itoa64[v];
+	}
+}
+static void base64_encode_i(const unsigned char *in, int len, char *outy) {
+	int mod = len%3, i;
+	unsigned u;
+	for (i = 0; i*4 < len; ++i) {
+		u = (in[i*3] | (((unsigned)in[i*3+1])<<8)  | (((unsigned)in[i*3+2])<<16));
+		if (i*4+4>len)
+			enc_base64_1_i(outy, u, 4-mod);
+		else
+			enc_base64_1_i(outy, u, 4);
+		outy += 4;
+	}
+}
+static char *crypt64_to_crypt64_bs(const char *in, char *out, int len) {
+	unsigned char Tmp[256];
+	base64_decode_i(in, len, Tmp);
+	base64_encode_i(Tmp, len, out);
+	out[len] = 0;
+	return out;
+}
+/******************************************************************************
+ * end of base6 byte swapping crap,  UGG
+ *****************************************************************************/
+
+static char *prepare(char *fields[10], struct fmt_main *self)
+{
+	static char Buf[120];
+	char tmp[44];
+
+	if (strncmp(fields[1], FMT_CISCO9, 3) != 0)
+		return fields[1];
+	if (strlen(fields[1]) != 4+14+43)
+		return fields[1];
+
+	// cisco type 9 hashes.  .  They are $7$C/..../.... type  (N=16384, r=1, p=1) different base-64 (same as WPA).  salt used RAW
+//	{"$9$nhEmQVczB7dqsO$X.HsgL6x1il0RxkOSSvyQYwucySCt7qFm4v7pqCxkKM", "cisco"},
+	// becomes
+//  {"$7$C/..../....$nhEmQVczB7dqsO$AG.yl8LDCkiErlh4ttizmxYCXSiXYrNY6vKmLDKj/P4", "cisco"},
+	// the signature changes, and the hash base-64 is converted.  That is IT.
+
+	// We have to byte swap (I think) the base-64.
+	sprintf (Buf, "$7$C/..../....%14.14s$%s", &(fields[1][3]), crypt64_to_crypt64_bs(&(fields[1][3+14+1]), tmp, 43));
+	return Buf;
 }
 
 static void done(void)
@@ -248,57 +341,29 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
 	int index;
-
-#ifdef _OPENMP
 	int failed = 0;
 
-#pragma omp parallel for default(none) private(index) shared(count, failed, max_threads, local, saved_salt, buffer)
+#ifdef _OPENMP
+#pragma omp parallel for default(none) private(index) shared(count, failed, local, saved_salt, buffer)
 #endif
 	for (index = 0; index < count; index++) {
 		uint8_t *hash;
-#ifdef _OPENMP
-		int t = omp_get_thread_num();
-#else
-		const int t = 0;
-#endif
-		if (t < max_threads) {
-			hash = escrypt_r(&local[t],
-			    (const uint8_t *)buffer[index].key,
-			    strlen(buffer[index].key),
-			    (const uint8_t *)saved_salt,
-			    (uint8_t *)&buffer[index].out,
-			    sizeof(buffer[index].out));
-		} else { /* should not happen */
-			escrypt_local_t local;
-			hash = NULL;
-			if (escrypt_init_local(&local) == 0) {
-				hash = escrypt_r(&local,
-				    (const uint8_t *)buffer[index].key,
-				    strlen(buffer[index].key),
-				    (const uint8_t *)saved_salt,
-				    (uint8_t *)&buffer[index].out,
-				    sizeof(buffer[index].out));
-				escrypt_free_local(&local);
-			}
-		}
+		hash = escrypt_r(&(local[index]),
+		    (const uint8_t *)(buffer[index].key),
+		    strlen(buffer[index].key),
+		    (const uint8_t *)saved_salt,
+		    (uint8_t *)&(buffer[index].out),
+		    sizeof(buffer[index].out));
 		if (!hash) {
-#ifdef _OPENMP
-#pragma omp critical
 			failed = 1;
 			buffer[index].out[0] = 0;
-#else
-			fprintf(stderr, "scrypt memory allocation failed\n");
-			error();
-#endif
 		}
 	}
 
-#ifdef _OPENMP
 	if (failed) {
 		fprintf(stderr, "scrypt memory allocation failed\n");
 		error();
 	}
-#endif
 
 	return count;
 }
@@ -471,7 +536,7 @@ struct fmt_main fmt_scrypt = {
 		init,
 		done,
 		fmt_default_reset,
-		fmt_default_prepare,
+		prepare,
 		valid,
 		fmt_default_split,
 		binary,
