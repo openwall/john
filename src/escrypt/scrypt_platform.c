@@ -27,6 +27,7 @@
 #include "scrypt_platform.h"
 
 #include "../memdbg.h"
+#include "../memory.h"
 
 static void *
 alloc_region(escrypt_region_t * region, size_t size)
@@ -50,7 +51,7 @@ alloc_region(escrypt_region_t * region, size_t size)
 	base = aligned = NULL;
 	if (size + 63 < size)
 		errno = ENOMEM;
-	else if ((base = malloc(size + 63)) != NULL) {
+	else if ((base = mem_alloc(size + 63)) != NULL) {
 		aligned = base + 63;
 		aligned -= (uintptr_t)aligned & 63;
 	}
@@ -78,7 +79,7 @@ free_region(escrypt_region_t * region)
 #elif defined(HAVE_POSIX_MEMALIGN) && !defined (MEMDBG_ON)
 		libc_free(region->base);
 #else
-		free(region->base);
+		MEM_FREE(region->base);
 #endif
 	}
 	init_region(region);
