@@ -36,7 +36,7 @@ static parsed_ctx parsed_mask;
 static cpu_mask_context cpu_mask_ctx, rec_ctx;
 static int *template_key_offsets;
 static char *mask = NULL, *template_key;
-static int max_keylen, fmt_maxlen, rec_len, restored_len;
+static int max_keylen, fmt_maxlen, rec_len, restored_len, restored = 1;
 int mask_add_len, mask_num_qw;
 
 /*
@@ -1300,7 +1300,7 @@ int mask_restore_state(FILE *file)
 		cpu_mask_ctx.ranges[i].iter = uc;
 	else
 		return fail;
-
+	restored = 0;
 	return 0;
 }
 
@@ -1319,17 +1319,19 @@ void mask_fix_state(void)
 static unsigned long long divide_work(cpu_mask_context *cpu_mask_ctx)
 {
 	unsigned long long offset, my_candidates, total_candidates, ctr;
-	int i;
+	int ps;
 	double fract;
 
 	fract = (double)(options.node_max - options.node_min + 1) /
 		options.node_count;
 
 	offset = 1;
-	for (i = 0; i < cpu_mask_ctx->count; i++)
-		if ((int)(cpu_mask_ctx->active_positions[i]))
-		if (cpu_mask_ctx->ranges[i].pos < max_keylen)
-			offset *= cpu_mask_ctx->ranges[i].count;
+	ps = cpu_mask_ctx->ps1;
+	while(ps != MAX_NUM_MASK_PLHDR) {
+		if (cpu_mask_ctx->ranges[ps].pos < max_keylen)
+			offset *= cpu_mask_ctx->ranges[ps].count;
+		ps = cpu_mask_ctx->ranges[ps].next;
+	}
 
 	total_candidates = offset;
 	offset *= fract;
@@ -1347,11 +1349,12 @@ static unsigned long long divide_work(cpu_mask_context *cpu_mask_ctx)
 	}
 
 	ctr = 1;
-	for (i = 0; i < cpu_mask_ctx->count; i++)
-	if ((int)(cpu_mask_ctx->active_positions[i])) {
-		cpu_mask_ctx->ranges[i].iter = (offset / ctr) %
-			cpu_mask_ctx->ranges[i].count;
-		ctr *= cpu_mask_ctx->ranges[i].count;
+	ps = cpu_mask_ctx->ps1;
+	while(ps != MAX_NUM_MASK_PLHDR) {
+		cpu_mask_ctx->ranges[ps].iter = (offset / ctr) %
+			cpu_mask_ctx->ranges[ps].count;
+		ctr *= cpu_mask_ctx->ranges[ps].count;
+		ps = cpu_mask_ctx->ranges[ps].next;
 	}
 
 	return my_candidates;
@@ -1609,6 +1612,7 @@ int do_mask_crack(const char *key)
 				return 1;
 			min_len++;
 		}
+
 		for (i = min_len; i <= max_len; i++) {
 			int j = 0;
 
@@ -1617,6 +1621,11 @@ int do_mask_crack(const char *key)
 			save_restore(&cpu_mask_ctx, 0, 1);
 			generate_template_key(mask, key, key_len, &parsed_mask,
 		                      &cpu_mask_ctx);
+
+			if (options.node_count && !(options.flags & FLG_MASK_STACKED) && restored) {
+				cand = divide_work(&cpu_mask_ctx);
+				restored = 1;
+			}
 
 			if (template_key_len == strlen(template_key)) break;
 			template_key_len = strlen(template_key);

@@ -329,11 +329,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				fOk = EVP_DecryptFinal_ex(&ctx, output + nPLen, &nFLen);
 			EVP_CIPHER_CTX_cleanup(&ctx);
 			// a decrypted mkey is exactly 32 bytes in len; ossl has already checked the padding (16 0x0f's) for us
-			if (fOk && nPLen + nFLen == 32)
+			if (fOk && nPLen + nFLen == 32) {
+				cracked[index + index2] = 1;
 #ifdef _OPENMP
-#pragma omp critical
+#pragma omp atomic
 #endif
-				any_cracked = cracked[index + index2] = 1;
+				any_cracked |= 1;
+			}
 
 		}
 #else
@@ -356,11 +358,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			fOk = EVP_DecryptFinal_ex(&ctx, output + nPLen, &nFLen);
 		EVP_CIPHER_CTX_cleanup(&ctx);
 		// a decrypted mkey is exactly 32 bytes in len; ossl has already checked the padding (16 0x0f's) for us
-		if (fOk && nPLen + nFLen == 32)
+		if (fOk && nPLen + nFLen == 32) {
+			cracked[index] = 1;
 #ifdef _OPENMP
-#pragma omp critical
+#pragma omp atomic
 #endif
-			any_cracked = cracked[index] = 1;
+			any_cracked |= 1;
+		}
 #endif
 	}
 	return count;

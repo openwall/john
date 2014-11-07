@@ -1004,10 +1004,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	for (index = 0; index < count; index++)
 	if (check(outbuffer[index].v, keySize(cur_salt->cipher_algorithm)))
+	{
+		cracked[index] = 1;
 #ifdef _OPENMP
-#pragma omp critical
+#pragma omp atomic
 #endif
-		any_cracked = cracked[index] = 1;
+		any_cracked |= 1;
+	}
 
 	return count;
 }

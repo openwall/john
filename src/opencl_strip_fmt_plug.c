@@ -353,10 +353,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		/* decrypting 24 bytes is enough */
 		AES_cbc_encrypt(cur_salt->data + 16, output + 16, 24, &akey, iv_out, AES_DECRYPT);
 		if (verify_page(output) == 0)
+		{
+			cracked[index] = 1;
 #ifdef _OPENMP
-#pragma omp critical
+#pragma omp atomic
 #endif
-			any_cracked = cracked[index] = 1;
+			any_cracked |= 1;
+		}
 	}
 	return count;
 }

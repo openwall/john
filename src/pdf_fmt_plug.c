@@ -604,17 +604,21 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		unsigned char output[32];
 		pdf_compute_user_password((unsigned char*)saved_key[index], output);
 		if (crypt_out->R == 2 || crypt_out->R == 5 || crypt_out->R == 6)
-			if(memcmp(output, crypt_out->u, 32) == 0)
+			if(memcmp(output, crypt_out->u, 32) == 0) {
+				cracked[index] = 1;
 #ifdef _OPENMP
-#pragma omp critical
+#pragma omp atomic
 #endif
-				any_cracked = cracked[index] = 1;
+				any_cracked |= 1;
+			}
 		if (crypt_out->R == 3 || crypt_out->R == 4)
-			if(memcmp(output, crypt_out->u, 16) == 0)
+			if(memcmp(output, crypt_out->u, 16) == 0) {
+				cracked[index] = 1;
 #ifdef _OPENMP
-#pragma omp critical
+#pragma omp atomic
 #endif
-				any_cracked = cracked[index] = 1;
+				any_cracked |= 1;
+			}
 	}
 	return count;
 }
@@ -635,7 +639,7 @@ static int cmp_exact(char *source, int index)
 }
 
 #if FMT_MAIN_VERSION > 11
-/* 
+/*
  * Report revision as tunable cost, since between revisions 2 and 6,
  * only revisions 3 and 4 seem to have a similar c/s rate.
  */

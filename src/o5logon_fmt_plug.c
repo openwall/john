@@ -194,11 +194,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		// Using AES function:
 		// in (cipher), out (plain), key, block count, iv
 		aesFunc(cur_salt->ct + 32, pt, key, 1, iv);
-		if (!memcmp(pt + 8, "\x08\x08\x08\x08\x08\x08\x08\x08", 8))
+		if (!memcmp(pt + 8, "\x08\x08\x08\x08\x08\x08\x08\x08", 8)) {
+			cracked[index] = 1;
 #ifdef _OPENMP
-#pragma omp critical
+#pragma omp atomic
 #endif
-			any_cracked = cracked[index] = 1;
+			any_cracked |= 1;
+		}
 	}
 	return count;
 }

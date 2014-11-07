@@ -163,8 +163,8 @@ static int cmp_all(void* binary, int count)
 #pragma omp parallel for default(none) private(i) shared(count, binary, crypt_key, retval)
 	for (i = 0; i < count; i++)
 		if (*(ARCH_WORD_32 *)binary == crypt_key[i][0])
-#pragma omp critical
-			retval = 1;
+#pragma omp atomic
+			retval |= 1;
 	return retval;
 #else
 	for (i = 0; i < count; i++)

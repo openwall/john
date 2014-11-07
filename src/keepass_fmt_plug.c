@@ -413,19 +413,23 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			SHA256_Init(&ctx);
 			SHA256_Update(&ctx, decrypted_content, datasize);
 			SHA256_Final(out, &ctx);
-			if(!memcmp(out, cur_salt->contents_hash, 32))
+			if(!memcmp(out, cur_salt->contents_hash, 32)) {
+				cracked[index] = 1;
 #ifdef _OPENMP
-#pragma omp critical
+#pragma omp atomic
 #endif
-				any_cracked = cracked[index] = 1;
+				any_cracked |= 1;
+			}
 		}
 		else if (cur_salt->version == 2 && cur_salt->algorithm == 0) {
 			AES_cbc_encrypt(cur_salt->contents, decrypted_content, 32, &akey, iv, AES_DECRYPT);
-			if(!memcmp(decrypted_content, cur_salt->expected_bytes, 32))
+			if(!memcmp(decrypted_content, cur_salt->expected_bytes, 32)) {
+				cracked[index] = 1;
 #ifdef _OPENMP
-#pragma omp critical
+#pragma omp atomic
 #endif
-				any_cracked = cracked[index] = 1;
+				any_cracked |= 1;
+			}
 
 		}
 		else if (cur_salt->version == 1 && cur_salt->algorithm == 1) { /* KeePass 1.x with Twofish */
@@ -435,11 +439,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			SHA256_Init(&ctx);
 			SHA256_Update(&ctx, decrypted_content, datasize);
 			SHA256_Final(out, &ctx);
-			if(!memcmp(out, cur_salt->contents_hash, 32))
+			if(!memcmp(out, cur_salt->contents_hash, 32)) {
+				cracked[index] = 1;
 #ifdef _OPENMP
-#pragma omp critical
+#pragma omp atomic
 #endif
-				any_cracked = cracked[index] = 1;
+				any_cracked |= 1;
+			}
 		} else {  // KeePass version 2 with Twofish is TODO
 			abort();
 		}

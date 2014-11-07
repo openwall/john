@@ -593,10 +593,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		streamDecode(tmpBuf, cur_salt->keySize + cur_salt->ivLength ,checksum, master);
 		checksum2 = MAC_32( tmpBuf,  cur_salt->keySize + cur_salt->ivLength, master);
 		if(checksum2 == checksum)
+		{
+			cracked[index] = 1;
 #ifdef _OPENMP
-#pragma omp critical
+#pragma omp atomic
 #endif
-			any_cracked = cracked[index] = 1;
+			any_cracked |= 1;
+		}
 	}
 	return count;
 }

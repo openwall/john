@@ -376,20 +376,26 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 					d2i_DSAPrivateKey(NULL, &dc,
 					    working_len)) != NULL) {
 					DSA_free(dsapkc);
+					{
+						cracked[index] = 1;
 #if defined(_OPENMP) && OPENSSL_VERSION_NUMBER >= 0x10000000
-#pragma omp critical
+#pragma omp atomic
 #endif
-					any_cracked = cracked[index] = 1;
+						any_cracked |= 1;
+					}
 				}
 			} else if (pk.save_type == EVP_PKEY_RSA) {
 				if ((rsapkc =
 					d2i_RSAPrivateKey(NULL, &dc,
 					    working_len)) != NULL) {
 					RSA_free(rsapkc);
+					{
+						cracked[index] = 1;
 #if defined(_OPENMP) && OPENSSL_VERSION_NUMBER >= 0x10000000
-#pragma omp critical
+#pragma omp atomic
 #endif
-					any_cracked = cracked[index] = 1;
+						any_cracked |= 1;
+					}
 				}
 			}
 		}
