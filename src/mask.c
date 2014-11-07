@@ -1299,7 +1299,7 @@ void mask_save_state(FILE *file)
 	fprintf(file, "%llu\n", rec_cand + 1);
 	fprintf(file, "%d\n", rec_ctx.count);
 	fprintf(file, "%d\n", rec_ctx.offset);
-	if (options.force_minlength)
+	if (options.force_minlength >= 0)
 		fprintf(file, "%d\n", rec_len);
 	for (i = 0; i < rec_ctx.count; i++)
 		fprintf(file, "%hhu\n", rec_ctx.ranges[i].iter);
@@ -1327,7 +1327,7 @@ int mask_restore_state(FILE *file)
 	else
 		return fail;
 
-	if (options.force_minlength) {
+	if (options.force_minlength >= 0) {
 		if (fscanf(file, "%d\n", &d) == 1)
 			restored_len = d;
 		else
