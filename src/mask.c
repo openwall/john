@@ -984,22 +984,17 @@ static void init_cpu_mask(const char *mask, parsed_ctx *parsed_mask,
 
 static void save_restore(cpu_mask_context *cpu_mask_ctx, int range_idx, int ch)
 {
-	static int bckp_range_idx, bckp_next,
-	bckp_cpu_count, bckp_ps1, toggle;
+	static int bckp_range_idx, bckp_next, toggle;
 
 	/* save state */
 	if (!ch) {
 		bckp_range_idx = range_idx;
 		bckp_next = cpu_mask_ctx->ranges[bckp_range_idx].next;
-		bckp_cpu_count = cpu_mask_ctx->cpu_count;
-		bckp_ps1 = cpu_mask_ctx->ps1;
 		toggle = 1;
 	}
 	/* restore state */
 	else if (toggle){
 		cpu_mask_ctx->ranges[bckp_range_idx].next = bckp_next;
-		cpu_mask_ctx->cpu_count = bckp_cpu_count;
-		cpu_mask_ctx->ps1 = bckp_ps1;
 		toggle = 0;
 	}
 }
@@ -1028,8 +1023,8 @@ static char* generate_template_key(char *mask, const char *key, int key_len,
 				   parsed_ctx *parsed_mask,
 				   cpu_mask_context *cpu_mask_ctx)
 {
-	int i, k, t, j, l, offset = 0;
-	i = 0, k = 0, j = 0, l = 0;
+	int i, k, t, j, l, offset;
+	i = 0, k = 0, j = 0, l = 0, offset = 0;
 
 	while (template_key_offsets[l] != -1)
 		template_key_offsets[l++] = -1;
@@ -1239,6 +1234,50 @@ static void skip_position(cpu_mask_context *cpu_mask_ctx, int *arr)
 		}
 }
 
+static unsigned long long divide_work(cpu_mask_context *cpu_mask_ctx)
+{
+	unsigned long long offset, my_candidates, total_candidates, ctr;
+	int ps;
+	double fract;
+
+	fract = (double)(options.node_max - options.node_min + 1) /
+		options.node_count;
+
+	offset = 1;
+	ps = cpu_mask_ctx->ps1;
+	while(ps != MAX_NUM_MASK_PLHDR) {
+		if (cpu_mask_ctx->ranges[ps].pos < max_keylen)
+			offset *= cpu_mask_ctx->ranges[ps].count;
+		ps = cpu_mask_ctx->ranges[ps].next;
+	}
+
+	total_candidates = offset;
+	offset *= fract;
+	my_candidates = offset;
+	offset = my_candidates * (options.node_min - 1);
+
+	if (options.node_max == options.node_count)
+		my_candidates = total_candidates - offset;
+
+	if (!my_candidates) {
+		if (john_main_process)
+			fprintf(stderr, "Insufficient work. Cannot distribute "
+			        "work among nodes!\n");
+		error();
+	}
+
+	ctr = 1;
+	ps = cpu_mask_ctx->ps1;
+	while(ps != MAX_NUM_MASK_PLHDR) {
+		cpu_mask_ctx->ranges[ps].iter = (offset / ctr) %
+			cpu_mask_ctx->ranges[ps].count;
+		ctr *= cpu_mask_ctx->ranges[ps].count;
+		ps = cpu_mask_ctx->ranges[ps].next;
+	}
+
+	return my_candidates;
+}
+
 static double get_progress(void)
 {
 	double try;
@@ -1314,50 +1353,6 @@ void mask_fix_state(void)
 	rec_len = max_keylen;
 	for (i = 0; i < rec_ctx.count; i++)
 		rec_ctx.ranges[i].iter = cpu_mask_ctx.ranges[i].iter;
-}
-
-static unsigned long long divide_work(cpu_mask_context *cpu_mask_ctx)
-{
-	unsigned long long offset, my_candidates, total_candidates, ctr;
-	int ps;
-	double fract;
-
-	fract = (double)(options.node_max - options.node_min + 1) /
-		options.node_count;
-
-	offset = 1;
-	ps = cpu_mask_ctx->ps1;
-	while(ps != MAX_NUM_MASK_PLHDR) {
-		if (cpu_mask_ctx->ranges[ps].pos < max_keylen)
-			offset *= cpu_mask_ctx->ranges[ps].count;
-		ps = cpu_mask_ctx->ranges[ps].next;
-	}
-
-	total_candidates = offset;
-	offset *= fract;
-	my_candidates = offset;
-	offset = my_candidates * (options.node_min - 1);
-
-	if (options.node_max == options.node_count)
-		my_candidates = total_candidates - offset;
-
-	if (!my_candidates) {
-		if (john_main_process)
-			fprintf(stderr, "Insufficient work. Cannot distribute "
-			        "work among nodes!\n");
-		error();
-	}
-
-	ctr = 1;
-	ps = cpu_mask_ctx->ps1;
-	while(ps != MAX_NUM_MASK_PLHDR) {
-		cpu_mask_ctx->ranges[ps].iter = (offset / ctr) %
-			cpu_mask_ctx->ranges[ps].count;
-		ctr *= cpu_mask_ctx->ranges[ps].count;
-		ps = cpu_mask_ctx->ranges[ps].next;
-	}
-
-	return my_candidates;
 }
 
 void remove_slash(char *mask) {
