@@ -431,10 +431,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	for (index = 0; index < count; index++) {
 		/* do decryptiion and checks */
 		if(sevenzip_decrypt(outbuffer[index].key, cur_salt->data) == 0)
+		{
+			cracked[index] = 1;
 #ifdef _OPENMP
-#pragma omp critical
+#pragma omp atomic
 #endif
-			any_cracked = cracked[index] = 1;
+			any_cracked |= 1;
+		}
 	}
 	return count;
 }

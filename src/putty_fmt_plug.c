@@ -357,11 +357,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	{
 		cracked[index] = LAME_ssh2_load_userkey(saved_key[index]);
-		if(cracked[index])
+		if (cracked[index])
 #ifdef _OPENMP
-#pragma omp critical
+#pragma omp atomic
 #endif
-			any_cracked = 1;
+			any_cracked |= 1;
 	}
 	return count;
 }

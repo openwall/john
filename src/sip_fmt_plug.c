@@ -291,11 +291,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		bin_to_hex(bin2hex_table, md5_bin_hash, MD5_LEN, final_hash, MD5_LEN_HEX);
 
 		/* Check for match */
-		if(!strncmp(final_hash, pSalt->login_hash, MD5_LEN_HEX))
+		if(!strncmp(final_hash, pSalt->login_hash, MD5_LEN_HEX)) {
+			cracked[index] = 1;
 #ifdef _OPENMP
-#pragma omp critical
+#pragma omp atomic
 #endif
-			any_cracked = cracked[index] = 1;
+			any_cracked |= 1;
+		}
 	}
 	return count;
 }

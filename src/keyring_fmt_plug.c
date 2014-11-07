@@ -292,11 +292,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 		memcpy(input[t], cur_salt->ct, cur_salt->crypto_size);
 		decrypt_buffer(input[t], cur_salt->crypto_size, cur_salt->salt, cur_salt->iterations, saved_key[index]);
-		if (verify_decrypted_buffer(input[t], cur_salt->crypto_size))
+		if (verify_decrypted_buffer(input[t], cur_salt->crypto_size)) {
+			cracked[index] = 1;
 #ifdef _OPENMP
-#pragma omp critical
+#pragma omp atomic
 #endif
-			any_cracked = cracked[index] = 1;
+			any_cracked |= 1;
+		}
 	}
 	return count;
 }

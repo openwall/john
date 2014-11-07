@@ -321,9 +321,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp critical
 #endif
-				any_cracked = cracked[index] = 1;
-				cur_salt->has_mitm = 1;
-				memcpy(cur_salt->mitm, mid_key, 5);
+				{
+					any_cracked = cracked[index] = 1;
+					cur_salt->has_mitm = 1;
+					memcpy(cur_salt->mitm, mid_key, 5);
+				}
 			}
 		}
 		else {
@@ -361,9 +363,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp critical
 #endif
-				any_cracked = cracked[index] = 1;
-				cur_salt->has_mitm = 1;
-				memcpy(cur_salt->mitm, mid_key, 5);
+				{
+					any_cracked = cracked[index] = 1;
+					cur_salt->has_mitm = 1;
+					memcpy(cur_salt->mitm, mid_key, 5);
+				}
 			}
 		}
 	}

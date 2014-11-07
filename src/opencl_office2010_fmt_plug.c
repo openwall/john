@@ -468,10 +468,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		SHA1_Update(&ctx, decryptedVerifierHashInputBytes, 16);
 		SHA1_Final(hash, &ctx);
 		if (!memcmp(hash, decryptedVerifierHashBytes, 20))
+		{
+			cracked[index] = 1;
 #ifdef _OPENMP
-#pragma omp critical
+#pragma omp atomic
 #endif
-			any_cracked = cracked[index] = 1;
+			any_cracked |= 1;
+		}
 	}
 	return count;
 }
