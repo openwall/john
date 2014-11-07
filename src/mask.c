@@ -36,7 +36,7 @@ static parsed_ctx parsed_mask;
 static cpu_mask_context cpu_mask_ctx, rec_ctx;
 static int *template_key_offsets;
 static char *mask = NULL, *template_key;
-static int max_keylen, fmt_maxlen, rec_len, restored_len;
+static int max_keylen, fmt_maxlen, rec_len, restored_len, restored = 1;
 int mask_add_len, mask_num_qw;
 
 /*
@@ -1300,7 +1300,7 @@ int mask_restore_state(FILE *file)
 		cpu_mask_ctx.ranges[i].iter = uc;
 	else
 		return fail;
-
+	restored = 0;
 	return 0;
 }
 
@@ -1612,6 +1612,7 @@ int do_mask_crack(const char *key)
 				return 1;
 			min_len++;
 		}
+
 		for (i = min_len; i <= max_len; i++) {
 			int j = 0;
 
@@ -1621,8 +1622,10 @@ int do_mask_crack(const char *key)
 			generate_template_key(mask, key, key_len, &parsed_mask,
 		                      &cpu_mask_ctx);
 
-			if (options.node_count && !(options.flags & FLG_MASK_STACKED))
+			if (options.node_count && !(options.flags & FLG_MASK_STACKED) && restored) {
 				cand = divide_work(&cpu_mask_ctx);
+				restored = 1;
+			}
 
 			if (template_key_len == strlen(template_key)) break;
 			template_key_len = strlen(template_key);
