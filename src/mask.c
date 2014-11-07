@@ -1604,6 +1604,11 @@ int do_mask_crack(const char *key)
 		int template_key_len = -1;
 		restored_len = 0;
 
+		if (min_len == 0) {
+			if (crk_process_key(""))
+				return 1;
+			min_len++;
+		}
 		for (i = min_len; i <= max_len; i++) {
 			int j = 0;
 
