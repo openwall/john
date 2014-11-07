@@ -9,7 +9,6 @@ use strict;
 
 # Most "use xxx" now moved to "require xxx" *locally* in respective subs in
 # order to only require them when actually used.
-# order to only require them when actually used.
 #
 # use Digest::SHA qw(sha1);
 # ->
