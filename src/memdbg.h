@@ -115,6 +115,7 @@ extern char *MEMDBG_strdup(const char *, char *, int);
 #define libc_malloc(a)   MEMDBG_libc_alloc(a)
 #define libc_calloc(a)   MEMDBG_libc_calloc(a)
 #define malloc(a)     MEMDBG_alloc((a),__FILE__,__LINE__)
+#define calloc(a)     MEMDBG_calloc((a),__FILE__,__LINE__)
 #define realloc(a,b)  MEMDBG_realloc((a),(b),__FILE__,__LINE__)
 /* this code mimicks JtR's FREE_MEM(a) but does it for any MEMDBG_free(a,F,L) call (a hooked free(a) call) */
 #define free(a)       do { if (a) MEMDBG_free((a),__FILE__,__LINE__); a=0; } while(0)

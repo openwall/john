@@ -48,7 +48,9 @@
 #define __MEMDBG__
 #include "memdbg.h"
 
-#undef _OPENMP
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 /*
  * This function ALWAYS must be defined. It is (HAS) to be used if there is code which
@@ -135,10 +137,16 @@ static unsigned long	freed_cnt = 0;
 #define CLIENT_2_HDR(a) ((MEMDBG_HDR *) (((char *) (a)) - RESERVE_SZ))
 #define HDR_2_CLIENT(a) ((void *) (((char *) (a)) + RESERVE_SZ))
 
-static void   mem_fence_post_err    (void *, const char *, int);
-static void   mem_fence_post_err_ne (void *, const char *, int);
-static void   mem_fence_post_errd   (void *, const char *, int);
-static void   mem_fence_post_errd_ne(void *, const char *, int);
+static void   mem_fence_post_err_fp    (void *, const char *, int, char *fp, int line);
+static void   mem_fence_post_err_ne_fp (void *, const char *, int, char *fp, int line);
+static void   mem_fence_post_errd_fp   (void *, const char *, int, char *fp, int line);
+static void   mem_fence_post_errd_ne_fp(void *, const char *, int, char *fp, int line);
+
+#define mem_fence_post_err(a,b,c)      mem_fence_post_err_fp(a,b,c,__FILE__,__LINE__)
+#define mem_fence_post_err_ne(a,b,c)   mem_fence_post_err_ne_fp(a,b,c,__FILE__,__LINE__)
+#define mem_fence_post_errd(a,b,c)     mem_fence_post_errd_fp(a,b,c,__FILE__,__LINE__)
+#define mem_fence_post_errd_ne(a,b,c)  mem_fence_post_errd_ne_fp(a,b,c,__FILE__,__LINE__)
+
 #ifdef MEMDBG_EXTRA_CHECKS
 /* NOTE, which this function is called, the memory (client memory) gets SMASHED   */
 /* If this starts causing the program to crash, then it is likely that the client */
@@ -189,7 +197,7 @@ void MemDbg_Display(FILE *fp) {
 	if (!(mem_size+mem_sizet)) return;
 
 	fprintf(fp, "\n------------------------------\n");
-	fprintf(fp, "MEMDBG: allocation information:\n");
+	fprintf(fp, "MEMDBG: allocation information (display):\n");
 	fprintf(fp, "   current normal alloc mem (leaks)%llu  max normal mem allocated: %llu\n", (unsigned long long)mem_size, (unsigned long long)max_mem_size);
 	fprintf(fp, "   current 'tiny' alloc mem (leaks)%llu  max  tiny  mem allocated: %llu\n", (unsigned long long)mem_sizet, (unsigned long long)max_mem_sizet);
 #ifdef MEMDBG_EXTRA_CHECKS
@@ -277,22 +285,40 @@ void MemDbg_Validate_msg2(int level, const char *pMsg, int bShowExMessages) {
 	while (p) {
 		if (p->mdbg_fpst != MEMFPOST && p->mdbg_fpst != MEMFPOSTt) {
 			++cnt;
-			if (cnt < 100)
-				fprintf(stderr, "\nMemory buffer underwrite found! Will try to list what file/line allocated the buffer\n");
-			mem_fence_post_err_ne(p, p->mdbg_file, p->mdbg_line);
+			if (cnt < 100) {
+				if (p->mdbg_fpst == MEMFPOSTd)
+					fprintf(stderr, "\nDeleted memory still in chain\n");
+				else {
+					fprintf(stderr, "\nMemory buffer underwrite found! Will try to list what file/line allocated the buffer\n");
+					mem_fence_post_err_ne(p, p->mdbg_file, p->mdbg_line);
+				}
+			}
 			error = 1;
 		}
 		if (memcmp(p->mdbg_hdr2->mdbg_fpst, cpMEMFPOST, 4)) {
 			++cnt;
-			if (cnt < 100)
-				fprintf(stderr, "\nMemory buffer overwrite found! Will try to list what file/line allocated the buffer\n");
-			mem_fence_post_err_ne(p, p->mdbg_file, p->mdbg_line);
+			if (cnt < 100) {
+				if (p->mdbg_fpst == MEMFPOSTd) {
+				} else {
+					fprintf(stderr, "\nMemory buffer overwrite found! Will try to list what file/line allocated the buffer\n");
+					mem_fence_post_err_ne(p, p->mdbg_file, p->mdbg_line);
+				}
+			}
 			error = 1;
 		}
-		if (p->mdbg_next == p) {
-			fprintf (stderr, "Error, internal loop in the memdbg linked list, aborting\n");
-			break;
+		// Loop detect code
+		{
+			MEMDBG_HDR  volatile *p2 = p->mdbg_next;
+			while (p2) {
+				if (p2 == p || p2 == p2->mdbg_next) {
+					fprintf (stderr, "Error, internal loop in the memdbg linked list, aborting\n");
+					break;
+				}
+				p2 = p2->mdbg_next;
+			}
 		}
+		if (cnt > 1000)
+			break;
 		p = p->mdbg_next;
 	}
 	if (error) {
@@ -327,10 +353,19 @@ void MemDbg_Validate_msg2(int level, const char *pMsg, int bShowExMessages) {
 			mem_fence_post_err_ne(p, p->mdbg_file, p->mdbg_line);
 			error = 1;
 		}
-		if (p->mdbg_next == p) {
-			fprintf (stderr, "Error, internal loop in the memdbg linked list, aborting\n");
-			break;
+		// Loop detect code
+		{
+			MEMDBG_HDR  *p2 = p->mdbg_next;
+			while (p2) {
+				if (p2 == p || p2 == p2->mdbg_next) {
+					fprintf (stderr, "Error, internal loop in the memdbg linked list, aborting\n");
+					break;
+				}
+				p2 = p2->mdbg_next;
+			}
 		}
+		if (cnt > 1000)
+			break;
 		p = p->mdbg_next;
 	}
 	if (error) {
@@ -369,10 +404,19 @@ void MemDbg_Validate_msg2(int level, const char *pMsg, int bShowExMessages) {
 				}
 			}
 		}
-		if (p->mdbg_next == p) {
-			fprintf (stderr, "Error, internal loop in the memdbg linked list, aborting\n");
-			break;
+		// Loop detect code
+		{
+			MEMDBG_HDR  *p2 = p->mdbg_next;
+			while (p2) {
+				if (p2 == p || p2 == p2->mdbg_next) {
+					fprintf (stderr, "Error, internal loop in the memdbg linked list, aborting\n");
+					break;
+				}
+				p2 = p2->mdbg_next;
+			}
 		}
+		if (cnt > 1000)
+			break;
 		p = p->mdbg_next;
 	}
 	if (error) {
@@ -402,10 +446,19 @@ void MemDbg_Validate_msg2(int level, const char *pMsg, int bShowExMessages) {
 				break;
 			}
 		}
-		if (p->mdbg_next == p) {
-			fprintf (stderr, "Error, internal loop in the memdbg linked list, aborting\n");
-			break;
+		// Loop detect code
+		{
+			MEMDBG_HDR  *p2 = p->mdbg_next;
+			while (p2) {
+				if (p2 == p || p2 == p2->mdbg_next) {
+					fprintf (stderr, "Error, internal loop in the memdbg linked list, aborting\n");
+					break;
+				}
+				p2 = p2->mdbg_next;
+			}
 		}
+		if (cnt > 1000)
+			break;
 		p = p->mdbg_next;
 	}
 	if (error) {
@@ -433,6 +486,7 @@ static void release_oldest_freed_block() {
 #pragma omp critical (memdbg_crit)
 #endif
 	{
+		p = freed_memlist;
 		while (p->mdbg_next)
 			p = p->mdbg_next;
 		// now unlink it.
@@ -468,6 +522,16 @@ static void release_oldest_freed_block() {
 }
 #endif
 
+void * MEMDBG_calloc(size_t size, char *file, int line)
+{
+	char *p;
+	if ( ((signed long long)mem_size) < 0)
+		fprintf(stderr, "MEMDBG_calloc %lld %s:%d  mem:%lld\n", (unsigned long long)size, file, line, (unsigned long long)mem_size);
+	p = (char*)MEMDBG_alloc(size,file,line);
+	memset(p, 0, size);
+	return p;
+}
+
 /*
  *  MEMDBG_alloc
  *  Allocate a memory block. makes a protected call to malloc(), allocating
@@ -476,6 +540,9 @@ static void release_oldest_freed_block() {
 void * MEMDBG_alloc(size_t size, char *file, int line)
 {
 	MEMDBG_HDR      *p;
+
+	if ( ((signed long long)mem_size) < 0)
+		fprintf(stderr, "MEMDBG_alloc %lld %s:%d  mem:%lld\n", (unsigned long long)size, file, line, (unsigned long long)mem_size);
 
 	p = (MEMDBG_HDR*)malloc(RESERVE_SZ + size + 4);
 #ifdef MEMDBG_EXTRA_CHECKS
@@ -504,8 +571,11 @@ void * MEMDBG_alloc(size_t size, char *file, int line)
 	}
 #endif
 #endif
-	if (!p)
+	if (!p) {
+		if ( ((signed long long)mem_size) < 0)
+			fprintf(stderr, "MEMDBG_alloc (end) %lld %s:%d  mem:%lld\n", (unsigned long long)size, file, line, (unsigned long long)mem_size);
 		return NULL;
+	}
 	p->mdbg_fpst = MEMFPOST;
 	p->mdbg_size = size;
 	p->mdbg_file = file;
@@ -522,6 +592,8 @@ void * MEMDBG_alloc(size_t size, char *file, int line)
 			max_mem_size = mem_size;
 		MEMDBG_LIST_add(p);
 	}
+	if ( ((signed long long)mem_size) < 0)
+		fprintf(stderr, "MEMDBG_alloc (end) %lld %s:%d  mem:%lld\n", (unsigned long long)size, file, line, (unsigned long long)mem_size);
 	return HDR_2_CLIENT(p);
 }
 
@@ -538,14 +610,47 @@ MEMDBG_realloc(const void *ptr, size_t size, char *file, int line)
 {
 	MEMDBG_HDR *p;
 	int istiny=0;
+	int err=0, i;
+
+	if ( ((signed long long)mem_size) < 0)
+		fprintf(stderr, "MEMDBG_realloc(%lld) %s:%d  mem:%lld\n", (unsigned long long)size, file, line, (unsigned long long)mem_size);
 
 	/* if ptr is null, this function works just like alloc, so simply use alloc */
 	if (!ptr)
 		return MEMDBG_alloc(size, file, line);
 
-	p = CLIENT_2_HDR(ptr);
-	if ( (p->mdbg_fpst != MEMFPOST && p->mdbg_fpst != MEMFPOSTt) || memcmp(p->mdbg_hdr2->mdbg_fpst, cpMEMFPOST, 4)) {
-		if (p->mdbg_fpst == MEMFPOSTd && !memcmp(p->mdbg_hdr2->mdbg_fpst, cpMEMFPOSTd, 4))
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+	{
+		p = CLIENT_2_HDR(ptr);
+		if (p->mdbg_fpst == MEMFPOSTt)
+			istiny = 1;
+		else if (p->mdbg_fpst != MEMFPOST)
+			err = 1;
+		else {
+			for (i = 0; i < 4; ++i)
+				if (((char*)(p->mdbg_hdr2->mdbg_fpst))[i] != cpMEMFPOST[i]) {
+					err = 1;
+					break;
+				}
+		}
+		if (err) {
+			if (p->mdbg_fpst == MEMFPOSTd)
+				err = 2;
+			else {
+				for (i = 0; i < 4; ++i)
+					if (((char*)(p->mdbg_hdr2->mdbg_fpst))[i] != cpMEMFPOSTd[i]) {
+						break;
+					}
+				if (i < 4)
+					err = 2;
+			}
+
+		}
+	}
+	if (err) {
+		if (err == 2)
 			mem_fence_post_errd(p, file, line);
 		else
 			mem_fence_post_err(p, file, line);
@@ -557,8 +662,6 @@ MEMDBG_realloc(const void *ptr, size_t size, char *file, int line)
 		MEMDBG_free(ptr, file, line);
 		return NULL;
 	}
-	if (p->mdbg_fpst == MEMFPOSTt)
-		istiny = 1;
 	p->mdbg_fpst = MEMFPOSTd;
 	memcpy(p->mdbg_hdr2->mdbg_fpst, cpMEMFPOSTd, 4);
 #ifdef _OPENMP
@@ -688,6 +791,8 @@ MEMDBG_realloc(const void *ptr, size_t size, char *file, int line)
 char *MEMDBG_strdup(const char *str, char *file, int line)
 {
 	char * s;
+	if ( ((signed long long)mem_size) < 0)
+		fprintf(stderr, "MEMDBG_strdup(%ld) %s:%d  mem:%lld\n", strlen(str), file, line, (unsigned long long)mem_size);
 	s = (char*)MEMDBG_alloc(strlen(str)+1, file, line);
 	if (s != NULL)
 		strcpy(s, str);
@@ -702,35 +807,47 @@ char *MEMDBG_strdup(const char *str, char *file, int line)
 void MEMDBG_free(const void *ptr, char *file, int line)
 {
 	MEMDBG_HDR *p;
-	int istiny = 0;
+	int err=0, i;
 
-	p = CLIENT_2_HDR(ptr);
-	if (p->mdbg_fpst == MEMFPOSTt)
-		istiny = 1;
-	if ((p->mdbg_fpst != MEMFPOST && p->mdbg_fpst != MEMFPOSTt) || memcmp(p->mdbg_hdr2->mdbg_fpst, cpMEMFPOST, 4)) {
-		if (p->mdbg_fpst == MEMFPOSTd)
-			mem_fence_post_errd(p, file, line);
-		else
-			mem_fence_post_err(p, file, line);
-		return;
-	}
-	p->mdbg_fpst = MEMFPOSTd;
-	memcpy(p->mdbg_hdr2->mdbg_fpst, cpMEMFPOSTd, 4);
 #ifdef _OPENMP
 #pragma omp critical (memdbg_crit)
 #endif
 	{
-		if (istiny)
+		p = CLIENT_2_HDR(ptr);
+		if (p->mdbg_fpst == MEMFPOSTt)
 			mem_sizet -= p->mdbg_size;
-		else
+		else if (p->mdbg_fpst == MEMFPOST)
 			mem_size -= p->mdbg_size;
+		else if (p->mdbg_fpst != MEMFPOST)
+			err = 1;
+		else {
+			for (i = 0; i < 4; ++i)
+				if (((char*)(p->mdbg_hdr2->mdbg_fpst))[i] != cpMEMFPOST[i]) {
+					err = 1;
+					break;
+				}
+		}
+		if (err && p->mdbg_fpst == MEMFPOSTd)
+			err = 2;
 		MEMDBG_LIST_delete(p);
+		p->mdbg_fpst = MEMFPOSTd;
+		for (i = 0; i < 4; ++i)
+			((char*)(p->mdbg_hdr2->mdbg_fpst))[i] = cpMEMFPOST[i];
+	}
+	if (err) {
+		if (err == 2)
+			mem_fence_post_errd(p, file, line);
+		else
+			mem_fence_post_err(p, file, line);
+		return;
 	}
 #ifndef MEMDBG_EXTRA_CHECKS
 	free(p);
 #else
 	MEMDBG_FREEDLIST_add(p);
 #endif
+	if ( ((signed long long)mem_size) < 0)
+		fprintf(stderr, "MEMDBG_free (end) %s:%d  mem:%lld\n", file, line, (unsigned long long)mem_size);
 }
 
 #ifdef MEMDBG_EXTRA_CHECKS
@@ -755,11 +872,11 @@ static void   MEMDBG_FREEDLIST_add(MEMDBG_HDR *p)
 		if (freed_memlist != NULL)
 			freed_memlist->mdbg_prev = p;
 		freed_memlist = p;
+		/* Ok, now 'DEADBEEF' the original data buffer */
+		cp = ((unsigned char*)p)+RESERVE_SZ;
+		for (i = 0; i < p->mdbg_size; ++i)
+			*cp++ = 0xCD;
 	}
-	/* Ok, now 'DEADBEEF' the original data buffer */
-	cp = ((unsigned char*)p)+RESERVE_SZ;
-	for (i = 0; i < p->mdbg_size; ++i)
-		*cp++ = 0xCD;
 }
 #endif
 
@@ -826,19 +943,19 @@ void MEMDBG_tag_mem_from_alloc_tiny(void *ptr) {
 	}
 }
 
-static void mem_fence_post_err(void *p, const char *file, int line)
+static void mem_fence_post_err_fp(void *p, const char *file, int line, char *fp, int line2)
 {
-	mem_fence_post_err_ne(p, file, line);
+	mem_fence_post_err_ne_fp(p, file, line,fp,line2);
 	MemDbg_Display(stderr);
 	exit(1);
 }
-static void mem_fence_post_errd(void *p, const char *file, int line)
+static void mem_fence_post_errd_fp(void *p, const char *file, int line, char *fp, int line2)
 {
-	mem_fence_post_errd_ne(p, file, line);
+	mem_fence_post_errd_ne_fp(p, file, line,fp,line2);
 	MemDbg_Display(stderr);
 	exit(1);
 }
-static void mem_fence_post_err_ne(void *p, const char *file, int line)
+static void mem_fence_post_err_ne_fp(void *p, const char *file, int line, char *fp, int line2)
 {
 	char buf[120], *cp=buf, *ip;
 	int i;
@@ -854,11 +971,11 @@ static void mem_fence_post_err_ne(void *p, const char *file, int line)
 	for (i = 0; i < 16; ++i)
 		cp += sprintf(cp, " %02x", (unsigned char)ip[i]);
 
-	fprintf(stderr, "Memory fence_post error - %p - %s(%d)\n\tdata:  (%s)\n", p, file, line, buf);
+	fprintf(stderr, "Memory fence_post error - %p - %s(%d) (%d)\n\tdata:  (%s)\n", p, file, line, line2, buf);
 }
-static void mem_fence_post_errd_ne(void *p, const char *file, int line)
+static void mem_fence_post_errd_ne_fp(void *p, const char *file, int line, char *fp, int line2)
 {
-	fprintf(stderr, "Memory fence_postd error, using dangling pointer, memory already freed - %p - %s(%d)\n", p, file, line);
+	fprintf(stderr, "Memory fence_postd error, using dangling pointer, memory already freed - %p - %s(%d) (%d)\n", p, file, line, line2);
 }
 
 #else
