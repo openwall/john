@@ -1595,7 +1595,8 @@ int do_mask_crack(const char *key)
 	mask_parent_keys++;
 
 	/* If --min-len is used, we iterate max_keylen */
-	if (options.force_minlength >= 0) {
+	if (!(options.flags & FLG_MASK_STACKED) &&
+	    options.force_minlength >= 0) {
 		int max_len = max_keylen;
 		int min_len = restored_len ?
 			restored_len : options.force_minlength;
