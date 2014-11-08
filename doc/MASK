@@ -1,0 +1,75 @@
+Mask mode is a fast way to produce password candidates given a "mask" that
+describes what the words should look like.
+
+A mask may consist of:
+
+- Static letters.
+- Ranges in [aouei] or [a-z] syntax. Or both, [0-9abcdef] is the same as
+  [0-9a-f].
+- Placeholders that are just a short form for ranges, like ?l which is
+  equivalent to [a-z].
+- ?l lower-case ASCII letters
+- ?u upper-case ASCII letters
+- ?d digits
+- ?s specials (all printable ASCII characters not in ?l, ?u or ?d)
+- ?a full 'printable' ASCII
+- ?A all valid characters in the current code page
+- ?h all 8-bit (0x80-0xff)
+- ?H all except the NULL character (which is currently not supported by core)
+- ?L non-ASCII lower-case letters
+- ?U non-ASCII upper-case letters
+- ?D non-ASCII "digits"
+- ?S non-ASCII "specials"
+- Placeholders that are custom defined, so we can eg. define ?1 to mean [?u?l]
+  ?1 .. ?9 user-defined place-holder 1 .. 9
+- Placeholder for Hybrid Mask mode
+  ?w is a placeholder for the original word produced by the parent mode in
+    Hybrid Mask mode.
+
+Mask Mode alone produces words from the mask, for example ?u?l?l will generate
+all possible three-letter words, with first character uppercased and the
+remaining in lowercase.
+
+Hybrid Mask means we use eg. a wordlist with or without rules (or some other
+cracking mode), and then apply the mask to each word. So with a mask of ?w?d?d
+and an input word (from the parent cracking mode) of "pass", it will produce
+"pass00", "pass01" and so on until "pass99". Hybrid Mask can be stacked upon
+Incremental, Markov, Wordlist and External modes.
+
+External Filters currently can't be applied to Hybrid Mask output.
+
+You can define custom placeholders for ?1 .. ?9 using command line eg. -1=?l?u
+or in john.conf section [Mask].
+
+There is a default mask in john.conf too (defaulting to same as Hashcat:
+?1?2?2?2?2?2?2?3?3?3?3?d?d?d?d). This should be used with -max-len and possibly
+-min-len.
+
+The -max-len=N option will truncate the mask so no words longer than N are
+produced.
+
+The -min-len=N option will skip generation of words shorter than N, and more
+importantly in this case, it will iterate length from -min-len to -max-len (or
+format's max length, if -max-len was not given). So to produce all possible
+words from 3 to 5 letters, use -mask=?l?l?l?l?l -min-len=3 -max-len=5. For this
+to work, the mask must have at least 5 positions defined.
+
+You can escape special characters with \. So to produce a literal "?l" you
+could say \?l or ?\l and it will not be parsed as a placeholder. Similarly you
+can escape dashes or brackets to prevent them from being parsed as specials. To
+produce a literal backslash, use \\.
+
+There is also a special hex notation, \xHH for specifying any character code.
+For example, \x41 is "A" and \x09 is the code for TAB.
+
+
+Examples:
+
+Mask		custom mask / hybrid input	example output	num candidates
+pass						pass		1
+pw%d						pw3		10
+?w?d?d?d		password		password123	1000x
+?w?s?w			bozo			bozo#bozo	33x
+0x?1?1:?1?1:?1?1	-1=[0-9a-f]		0xde:ad:ca	16777216
+?3?l?l?l		-3=?l?u			Bozo, hobo	913952
+[Pp][Aa@][Ss5][Ss5][Ww][Oo0][Rr][Dd]		P@55w0rD	1296
