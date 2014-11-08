@@ -23,7 +23,7 @@ use Encode;
 use POSIX;
 use Getopt::Long;
 use MIME::Base64;
-use Crypt::ScryptKDF qw (scrypt_raw scrypt_b64);
+
 #############################################################################
 #
 # Here is how to add a new hash subroutine to this script file:
@@ -69,7 +69,7 @@ my @funcs = (qw(DESCrypt BigCrypt BSDIcrypt md5crypt md5crypt_a BCRYPT BCRYPTx
 		rakp osc formspring skey_md5 pbkdf2-hmac-sha1
 		skey_md4 skey_sha1 skey_rmd160 cloudkeychain agilekeychain));
 
-# todo: ike keepass sub cloudkeychain agilekeychain pfx racf sip vnc
+# todo: ike keepass cloudkeychain agilekeychain pfx racf sip vnc
 
 my $i; my $h; my $u; my $salt;
 my @chrAsciiText=('a'..'z','A'..'Z');
@@ -101,8 +101,11 @@ my $gen_u; my $gen_s; my $gen_soutput, my $gen_stype; my $gen_s2; my $gen_pw; my
 my $gen_lastTokIsFunc; my $gen_u_do; my $dynamic_usernameType; my $dynamic_passType; my $salt2len; my $saltlen; my $gen_PWCase="";
 # pcode, and stack needed for pcode.
 my @gen_pCode; my @gen_Stack; my @gen_Flags;
-my $debug_pcode=0; my $gen_needs; my $gen_needs2; my $gen_needu; my $gen_singlesalt;
-my $hash_format; my $arg_utf8 = 0; my $arg_codepage = ""; my $arg_minlen = 0; my $arg_maxlen = 128; my $arg_dictfile = "unknown";
+my $debug_pcode=0; my $gen_needs; my $gen_needs2; my $gen_needu; my $gen_singlesalt; my $hash_format;
+#########################################################
+# These global vars settable by command line args.
+#########################################################
+my $arg_utf8 = 0; my $arg_codepage = ""; my $arg_minlen = 0; my $arg_maxlen = 128; my $arg_dictfile = "unknown";
 my $arg_count = 1500, my $argsalt, my $arg_nocomment = 0; my $arg_hidden_cp; my $arg_loops=-1;
 my $arg_tstall = 0; my $arg_genall = 0; my $arg_nrgenall = 0;
 
@@ -122,7 +125,7 @@ GetOptions(
 	'nrgenall!'        => \$arg_nrgenall
 	) || usage();
 
-sub fmt_strings {
+sub pretty_print_hash_names {
 	my $s; my $s2; my $i;
 	my @sorted_funcs = sort {lc($a) cmp lc($b)} @funcs;
 	$s2 = "       ";
@@ -137,7 +140,7 @@ sub fmt_strings {
 }
 
 sub usage {
-my $s = fmt_strings();
+my $s = pretty_print_hash_names();
 die <<"UsageHelp";
 usage:
   $0 [-codepage=CP|-utf8] [-option[s]] HashType [HashType2 [...]] [<wordfile]
@@ -1024,6 +1027,8 @@ sub cisco8 {
 	print "u-cisco8:\$8\$$salt\$$s:$u:0:$_[0]::\n";
 }
 sub cisco9 {
+	require Crypt::ScryptKDF;
+	import Crypt::ScryptKDF qw(scrypt_raw);
 	if (defined $argsalt && length($argsalt)==14) { $salt = $argsalt; } else { $salt = randstr(14,\@i64); }
 	my $h = scrypt_raw($_[1],$salt,16384,1,1,32);
 	my $s = base64_wpa($h);
@@ -2042,12 +2047,16 @@ sub django {
 	print "u$u-django:\$django\$\*1\*pbkdf2_sha256\$10000\$$salt\$", base64(pp_pbkdf2($_[1], $salt, 10000, "sha256", 32)), ":$u:0:$_[0]::\n";
 }
 sub django_scrypt {
+	require Crypt::ScryptKDF;
+	import Crypt::ScryptKDF qw(scrypt_b64);
 	if (defined $argsalt && length($argsalt)==12) { $salt = $argsalt; } else { $salt=randstr(12, \@i64);}
 	my $N=14; my $r=8; my $p=1; my $bytes=64;
 	my $h = scrypt_b64($_[1],$salt,1<<$N,$r,$p,$bytes);
 	print "u$u-django_scrypt:scrypt\$$salt\$$N\$$r\$$p\$$bytes\$$h:$u:0:", $_[0], "::\n";
 }
 sub scrypt {
+	require Crypt::ScryptKDF;
+	import Crypt::ScryptKDF qw(scrypt_raw);
 	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(12, \@i64);}
 	my $N=14; my $r=8; my $p=1; my $bytes=32;
 	my $h = base64i(scrypt_raw($_[1],$salt,1<<$N,$r,$p,$bytes));
