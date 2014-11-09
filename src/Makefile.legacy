@@ -138,7 +138,7 @@ JOHN_OBJS = \
 	md5.o \
 	rc4.o \
 	hmacmd5.o \
-	base64.o \
+	base64.o base64_convert.o \
 	md4.o sha2.o \
 	dynamic_fmt.o dynamic_parser.o dynamic_preloads.o dynamic_utils.o dynamic_big_crypt.o \
 	ssh2john.o \
@@ -231,7 +231,7 @@ PROJ = ../run/john ../run/unshadow ../run/unafs ../run/unique ../run/undrop \
 	../run/keychain2john ../run/keyring2john ../run/kwallet2john \
 	../run/dmg2john ../run/putty2john john.local.conf ../run/uaf2john \
 	../run/truecrypt_volume2john ../run/keystore2john ../run/wpapcap2john \
-	../run/gpg2john ../run/luks2john ../run/cprepair
+	../run/gpg2john ../run/luks2john ../run/cprepair ../run/base64conv
 PROJ_DOS = ../run/john.bin ../run/john.com \
 	../run/unshadow.com ../run/unafs.com ../run/unique.com \
 	../run/undrop.com \
@@ -250,7 +250,7 @@ PROJ_WIN32 = ../run/john.exe \
 	../run/pwsafe2john.exe ../run/raw2dyna.exe ../run/keepass2john.exe \
 	../run/pfx2john.exe ../run/keychain2john.exe ../run/keyring2john.exe \
 	../run/kwallet2john.exe ../run/dmg2john.exe ../run/putty2john.exe \
-	john.local.conf ../run/gpg2john.exe
+	john.local.conf ../run/gpg2john.exe ../run/base64conv.exe
 PROJ_WIN32_MINGW = ../run/john-mingw.exe \
 	../run/unshadow.exe ../run/unafs.exe ../run/unique.exe \
 	../run/undrop.exe \
@@ -260,7 +260,7 @@ PROJ_WIN32_MINGW = ../run/john-mingw.exe \
 	../run/pwsafe2john.exe ../run/raw2dyna.exe ../run/keepass2john.exe \
 	../run/pfx2john.exe ../run/keychain2john.exe ../run/keyring2john.exe \
 	../run/kwallet2john.exe ../run/putty2john.exe john.local.conf \
-	../run/gpg2john.exe
+	../run/gpg2john.exe ../run/base64conv.exe
 PROJ_PCAP = ../run/SIPdump ../run/vncpcap2john
 default:
 	@echo "To build John the Ripper, type:"
@@ -2106,6 +2106,10 @@ endif
 	$(RM) ../run/hccap2john
 	ln -s john ../run/hccap2john
 
+../run/base64conv: ../run/john
+	$(RM) ../run/base64conv
+	ln -s john ../run/base64conv
+
 ../run/truecrypt_volume2john: ../run/john
 	$(RM) ../run/truecrypt_volume2john
 	ln -s john ../run/truecrypt_volume2john
@@ -2281,6 +2285,10 @@ endif
 ../run/hccap2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/hccap2john.exe
 	$(STRIP) ../run/hccap2john.exe
+
+../run/base64conv.exe: symlink.c
+	$(CC) symlink.c -o ../run/base64conv.exe
+	$(STRIP) ../run/base64conv.exe
 
 ../run/unique.exe: symlink.c
 	$(CC) symlink.c -o ../run/unique.exe

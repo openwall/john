@@ -21,7 +21,7 @@
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
-#include "base64.h"
+#include "base64_convert.h"
 #include "memdbg.h"
 
 #define FORMAT_LABEL			"scrypt"
@@ -90,76 +90,6 @@ static void init(struct fmt_main *self)
 	buffer = mem_alloc(sizeof(*buffer) * self->params.max_keys_per_crypt);
 }
 
-
- /********************************************************************************************
-  * This code will 'byte swap' the base-64. OHHH how I despise Base-64 (JimF).  I know many
-  * here coding JtR have a hard on for it. But the 8000 different methods of doing base-64,
-  * and absolutely NOTHING that tells us just what the decode is, makes this encoding method
-  * absolutely SUCK to handle.  Yes, base-16 makes larger files, BUT it is 100% trivial on
-  * processing. You always know how to do it. The only nuance is case, and that is trival
-  *******************************************************************************************/
-static void base64_unmap_i(char *in_block) {
-	int i;
-	char *c;
-
-	for(i=0; i<4; i++) {
-		c = in_block + i;
-		if(*c == '.') { *c = 0; continue; }
-		if(*c == '/') { *c = 1; continue; }
-		if(*c>='0' && *c<='9') { *c -= '0'; *c += 2; continue; }
-		if(*c>='A' && *c<='Z') { *c -= 'A'; *c += 12; continue; }
-		*c -= 'a'; *c += 38;
-	}
-}
-static void base64_decode_i(const char *in, int inlen, unsigned char *out) {
-	int i, done=0;
-	unsigned char temp[4];
-
-	for(i=0; i<inlen; i+=4) {
-		memcpy(temp, in, 4);
-		memset(out, 0, 3);
-		base64_unmap_i((char*)temp);
-		out[0] = ((temp[0]<<2) & 0xfc) | ((temp[1]>>4) & 3);
-		done += 2;
-		if (done >= inlen) return;
-		out[1] = ((temp[1]<<4) & 0xf0) | ((temp[2]>>2) & 0xf);
-		if (++done >= inlen) return;
-		out[2] = ((temp[2]<<6) & 0xc0) | ((temp[3]   ) & 0x3f);
-		++done;
-		out += 3;
-		in += 4;
-	}
-}
-static void enc_base64_1_i(char *out, unsigned val, unsigned cnt) {
-	while (cnt--) {
-		unsigned v = val & 0x3f;
-		val >>= 6;
-		*out++ = itoa64[v];
-	}
-}
-static void base64_encode_i(const unsigned char *in, int len, char *outy) {
-	int mod = len%3, i;
-	unsigned u;
-	for (i = 0; i*4 < len; ++i) {
-		u = (in[i*3] | (((unsigned)in[i*3+1])<<8)  | (((unsigned)in[i*3+2])<<16));
-		if (i*4+4>len)
-			enc_base64_1_i(outy, u, 4-mod);
-		else
-			enc_base64_1_i(outy, u, 4);
-		outy += 4;
-	}
-}
-static char *crypt64_to_crypt64_bs(const char *in, char *out, int len) {
-	unsigned char Tmp[256];
-	base64_decode_i(in, len, Tmp);
-	base64_encode_i(Tmp, len, out);
-	out[len] = 0;
-	return out;
-}
-/******************************************************************************
- * end of base6 byte swapping crap,  UGG
- *****************************************************************************/
-
 static char *prepare(char *fields[10], struct fmt_main *self)
 {
 	static char Buf[120];
@@ -177,7 +107,8 @@ static char *prepare(char *fields[10], struct fmt_main *self)
 	// the signature changes, and the hash base-64 is converted.  That is IT.
 
 	// We have to byte swap (I think) the base-64.
-	sprintf (Buf, "$7$C/..../....%14.14s$%s", &(fields[1][3]), crypt64_to_crypt64_bs(&(fields[1][3+14+1]), tmp, 43));
+	sprintf (Buf, "$7$C/..../....%14.14s$%s", &(fields[1][3]),
+		base64_convert_cp(&(fields[1][3+14+1]), e_b64_crypt, 43, tmp, e_b64_cryptBS, sizeof(tmp)));
 	return Buf;
 }
 
@@ -397,7 +328,7 @@ static int cmp_exact(char *source, int index)
  *                   from escrypt/crypto_scrypt-common.c
  *                   (Copyright 2013 Alexander Peslyak)
  *                  -much of the logic in tunable_cost_[N|r|p] is identical
- *                   and copied/adapted from escrypt_r() in 
+ *                   and copied/adapted from escrypt_r() in
  *                   escrypt/crypto_scrypt-common.c
  *                   (Copyright 2013 Alexander Peslyak)
  */

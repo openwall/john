@@ -152,6 +152,7 @@ extern int undrop(int argc, char **argv);
 #if HAVE_NSS
 extern int mozilla2john(int argc, char **argv);
 #endif
+extern int base64conv(int argc, char **argv);
 extern int hccap2john(int argc, char **argv);
 extern int zip2john(int argc, char **argv);
 extern int gpg2john(int argc, char **argv);
@@ -1590,6 +1591,10 @@ int main(int argc, char **argv)
 	if (!strcmp(name, "hccap2john")) {
 		CPU_detect_or_fallback(argv, 0);
 		return hccap2john(argc, argv);
+	}
+	if (!strcmp(name, "base64conv")) {
+		CPU_detect_or_fallback(argv, 0);
+		return base64conv(argc, argv);
 	}
 
 #if HAVE_MPI

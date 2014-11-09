@@ -81,7 +81,7 @@ JOHN_OBJS = \
 	md5.o \
 	rc4.o \
 	hmacmd5.o \
-	base64.o \
+	base64.o base64_convert.o \
 	md4.o sha2.o \
 	dynamic_fmt.o dynamic_parser.o dynamic_preloads.o dynamic_utils.o dynamic_big_crypt.o \
 	ssh2john.o \
@@ -140,7 +140,7 @@ PROJ = ../run/john@EXE_EXT@ ../run/unshadow@EXE_EXT@ ../run/unafs@EXE_EXT@ ../ru
 	../run/keychain2john@EXE_EXT@ ../run/keyring2john@EXE_EXT@ ../run/kwallet2john@EXE_EXT@ \
 	../run/dmg2john@EXE_EXT@ ../run/putty2john@EXE_EXT@ ../run/uaf2john@EXE_EXT@ \
 	../run/truecrypt_volume2john@EXE_EXT@ ../run/keystore2john@EXE_EXT@ ../run/wpapcap2john@EXE_EXT@ \
-	../run/gpg2john@EXE_EXT@ ../run/cprepair@EXE_EXT@ ../run/luks2john@EXE_EXT@
+	../run/gpg2john@EXE_EXT@ ../run/cprepair@EXE_EXT@ ../run/luks2john@EXE_EXT@ ../run/base64conv@EXE_EXT@
 
 HAVE_NSS = @HAVE_NSS@
 ifdef HAVE_NSS
@@ -373,6 +373,10 @@ endif
 	$(RM) ../run/hccap2john
 	$(LN) john ../run/hccap2john
 
+../run/base64conv: ../run/john
+	$(RM) ../run/base64conv
+	$(LN) john ../run/base64conv
+
 ../run/truecrypt_volume2john: ../run/john
 	$(RM) ../run/truecrypt_volume2john
 	$(LN) john ../run/truecrypt_volume2john
@@ -466,6 +470,10 @@ endif
 ../run/hccap2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/hccap2john.exe
 	$(STRIP) ../run/hccap2john.exe
+
+../run/base64conv.exe: symlink.c
+	$(CC) symlink.c -o ../run/base64conv.exe
+	$(STRIP) ../run/base64conv.exe
 
 ../run/truecrypt_volume2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/truecrypt_volume2john.exe

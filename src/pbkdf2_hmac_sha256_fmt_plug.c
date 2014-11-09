@@ -31,7 +31,7 @@ john_register_one(&fmt_pbkdf2_hmac_sha256);
 #include "arch.h"
 #include "common.h"
 #include "formats.h"
-#include "base64.h"
+#include "base64_convert.h"
 #include "sha2.h"
 #include "johnswap.h"
 #include "stdint.h"
@@ -149,13 +149,19 @@ static int isabase64(char a)
 static char *prepare(char *fields[10], struct fmt_main *self)
 {
 	static char Buf[120];
-	char tmp[44];
+	char tmp[44], *cp;
 
 	if (strncmp(fields[1], FMT_CISCO8, 3) != 0)
 		return fields[1];
 	if (strlen(fields[1]) != 4+14+43)
 		return fields[1];
-	sprintf (Buf, "%s20000$%14.14s$%s", FMT_PREFIX, &(fields[1][3]), crypt64_to_mime64(&(fields[1][3+14+1]), tmp, 43));
+	sprintf (Buf, "%s20000$%14.14s$%s", FMT_PREFIX, &(fields[1][3]),
+		base64_convert_cp(&(fields[1][3+14+1]), e_b64_crypt, 43, tmp, e_b64_mime, sizeof(tmp)));
+	cp = strchr(Buf, '+');
+	while (cp) {
+		*cp = '.';
+		cp = strchr(cp, '+');
+	}
 	return Buf;
 }
 
@@ -201,7 +207,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 }
 
 /* adapted base64 encoding used by passlib - s/./+/ and trim padding */
-static void abase64_decode(const char *in, int length, char *out)
+static void abase64_decode(const char *in, int length, char *out, int outlen)
 {
 	int i;
 	static char hash[70 + 1];
@@ -223,7 +229,7 @@ static void abase64_decode(const char *in, int length, char *out)
 		break;
 	}
 	hash[length] = 0;
-	base64_decode(hash, length, out);
+	base64_convert(hash, e_b64_mime, length, out, e_b64_raw, outlen);
 }
 
 static void *get_salt(char *ciphertext)
@@ -246,7 +252,7 @@ static void *get_salt(char *ciphertext)
 	oc = c;
 	while (c++ < p)
 		salt.length++;
-	abase64_decode(oc, salt.length, (char *)salt.salt);
+	abase64_decode(oc, salt.length, (char *)salt.salt, sizeof(salt.salt));
 	salt.length = salt.length * 3 / 4;
 	//memcpy(salt.hash, (char *)binary(ciphertext), BINARY_SIZE);
 	return (void *)&salt;
@@ -269,7 +275,7 @@ static void *get_binary(char *ciphertext)
 #ifdef DEBUG
 	assert(strlen(c) == 43);
 #endif
-	abase64_decode(c, 43, ret);
+	abase64_decode(c, 43, ret, sizeof(buf.c));
 #if !ARCH_LITTLE_ENDIAN
 	for (i = 0; i < BINARY_SIZE/4; ++i) {
 		((ARCH_WORD_32*)ret)[i] = JOHNSWAP(((ARCH_WORD_32*)ret)[i]);
