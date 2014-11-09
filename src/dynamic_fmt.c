@@ -735,7 +735,7 @@ static void init(struct fmt_main *pFmt)
 	int i;
 
 	//fprintf(stderr, "init(%s)\n", pPriv->dynamic_WHICH_TYPE_SIG);
-	
+
 	/* first off, SAVE the original format structure (owned by JtR).  We may need this later */
 	pPriv->pFmtMain = pFmt;
 #ifdef _OPENMP
@@ -6724,14 +6724,14 @@ static int isLargeHashFinalFunc(DYNAMIC_primitive_funcp p) {
 #ifdef MMX_COEF
 // Simple euclid algorithm for GCD
 static int GCD (int a, int b) {
-	while (b) { 
+	while (b) {
 		int t = b;
 		b = a % b;
 		a = t;
 	}
 	return a;
 }
-// simple algorith for LCM is (a*b)/GCD(a,b)	
+// simple algorith for LCM is (a*b)/GCD(a,b)
 static int LCM(int a, int b) {
 	a/=GCD(a,b);
 	return a*b;
@@ -6782,7 +6782,7 @@ static void dyna_setupOMP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt) {
 			pFmt->params.flags &= (~FMT_OMP);
 	}
 }
-#endif	
+#endif
 
 // XXX fix me at some point!
 ATTRIBUTE_NO_ADDRESS_SAFETY_ANALYSIS
@@ -7306,7 +7306,7 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 		return !fprintf(stderr, "Error invalid format %s: Error, no validation hash(s) for this format\n", Setup->szFORMAT_NAME);
 	}
 	cnt = 0;
-	
+
 #ifdef _OPENMP
 	dyna_setupOMP(Setup, pFmt);
 #endif

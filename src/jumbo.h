@@ -279,7 +279,7 @@ extern long long atoll(const char *);
 #if (__MINGW32__ || __MINGW64__) && __STRICT_ANSI__
 // since we added -std=c99 for Mingw builds (to handle printf/scanf %xxx specifiers better),
 // we had to make some 'changes'. Mostly, some of the string types are undeclared (but will
-// link properly). Also, sys/file, sys/stat, fcntl.h will not include properly, due to 
+// link properly). Also, sys/file, sys/stat, fcntl.h will not include properly, due to
 // off64_t missing.
 extern char *strdup(const char *);
 extern char *strlwr(char *);
@@ -382,7 +382,7 @@ extern int setenv(const char *name, const char *val, int overwrite);
 //HAVE_RMDIR
 //HAVE_STRRCHR
 //HAVE_STRCSPN
-//HAVE_STRSPN 
+//HAVE_STRSPN
 //HAVE_STRTOL
 //HAVE_STRTOUL
 

@@ -239,7 +239,6 @@ void MemDbg_Display(FILE *fp) {
 					++cp;
 				}
 				fprintf(fp, "  and the head of the block was: ");
-				
 			}
 		}
 		if (!bbad) {

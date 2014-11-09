@@ -1037,7 +1037,7 @@ int ppm_decode_char(ppm_data_t *ppm_data, const unsigned char **fd, unpack_data_
 	if (!ppm_data->order_fall && (unsigned char *) ppm_data->found_state->successor > ppm_data->sub_alloc.ptext) {
 		ppm_data->min_context = ppm_data->max_context = ppm_data->found_state->successor;
 	} else {
-	
+
 		if(!update_model(ppm_data)) {   // This line HANGS the compiler on sparc
 		    //rar_dbgmsg("unrar: ppm_decode_char: update_model failed\n");
 		    return -1;

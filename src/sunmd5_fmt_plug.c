@@ -874,7 +874,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 }
 #if FMT_MAIN_VERSION > 11
 /*
- * the number of iterations is the sum of a "basic round count" (4096) and 
+ * the number of iterations is the sum of a "basic round count" (4096) and
  * a configurable "per-user round count"; we report the sum as cost
  */
 unsigned int sunmd5_cost(void *salt)

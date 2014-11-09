@@ -73,13 +73,13 @@ static struct fmt_tests tests[] = {
 	//{"000007f070b64a50e9d31ac3f9eda35120e29d6c", "digipalmw221u"},
 	{"2fbf0eba37de1d1d633bc1ed943b907f9b360d4c", "azertyuiop1"},
 	//{"00000eba37de1d1d633bc1ed943b907f9b360d4c", "azertyuiop1"},
-	
+
 	// if we have these 2 (raw and same) we get a source error. NOTE, the code
 	// works, the source error is a red-herring.
 //	{"a9993e364706816aba3e25717850c26c9cd0d89d", "abc"},
 	{FORMAT_TAG "a9993e364706816aba3e25717850c26c9cd0d89d", "abc"},
 	//{FORMAT_TAG "00000E364706816ABA3E25717850C26C9CD0D89D", "abc"},
-	
+
 	{"f879f8090e92232ed07092ebed6dc6170457a21d", "azertyuiop2"},
 	//{"000008090e92232ed07092ebed6dc6170457a21d", "azertyuiop2"},
 	{"1813c12f25e64931f3833b26e999e26e81f9ad24", "azertyuiop3"},
