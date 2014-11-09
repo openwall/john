@@ -2293,37 +2293,37 @@ endif
 	$(LD) $(GENMKVPWD_OBJS) $(LDFLAGS_MKV) -o ../run/genmkvpwd.exe
 
 ../run/mkvcalcproba: mkvcalcproba.o
-	$(LD) mkvcalcproba.o memdbg.o $(LDFLAGS) -o ../run/mkvcalcproba
+	$(LD) mkvcalcproba.o memdbg.o $(LDFLAGS) $(OMPFLAGS) -o ../run/mkvcalcproba
 
 ../run/mkvcalcproba.exe: mkvcalcproba.o
-	$(LD) mkvcalcproba.o memdbg.o $(LDFLAGS_MKV) -o ../run/mkvcalcproba.exe
+	$(LD) mkvcalcproba.o memdbg.o $(LDFLAGS_MKV) $(OMPFLAGS) -o ../run/mkvcalcproba.exe
 
 ../run/calc_stat: calc_stat.o
-	$(LD) calc_stat.o memdbg.o $(LDFLAGS) -o ../run/calc_stat
+	$(LD) calc_stat.o memdbg.o $(LDFLAGS) $(OMPFLAGS) -o ../run/calc_stat
 
 ../run/calc_stat.exe: calc_stat.o
-	$(LD) calc_stat.o memdbg.o $(LDFLAGS_MKV) -o ../run/calc_stat.exe
+	$(LD) calc_stat.o memdbg.o $(LDFLAGS_MKV) $(OMPFLAGS) -o ../run/calc_stat.exe
 
 ../run/raw2dyna: raw2dyna.o
-	$(LD) raw2dyna.o memdbg.o $(LDFLAGS) -o ../run/raw2dyna
+	$(LD) raw2dyna.o memdbg.o $(LDFLAGS) $(OMPFLAGS) -o ../run/raw2dyna
 
 ../run/raw2dyna.exe: raw2dyna.o
-	$(LD) raw2dyna.o memdbg.o $(LDFLAGS) -o ../run/raw2dyna.exe
+	$(LD) raw2dyna.o memdbg.o $(LDFLAGS) $(OMPFLAGS) -o ../run/raw2dyna.exe
 
 ../run/SIPdump: SIPdump.o
-	$(LD) SIPdump.o memdbg.o $(LDFLAGS) -lpcap -o ../run/SIPdump
+	$(LD) SIPdump.o memdbg.o $(LDFLAGS) -lpcap $(OMPFLAGS) -o ../run/SIPdump
 
 ../run/vncpcap2john: vncpcap2john.o
-	$(CC) -Wall vncpcap2john.o memdbg.o -lpcap -o ../run/vncpcap2john
+	$(CC) -Wall vncpcap2john.o memdbg.o -lpcap $(OMPFLAGS) -o ../run/vncpcap2john
 
 ../run/uaf2john: uaf2john.o uaf_encode_plug.o
-	$(LD) $(LDFLAGS) uaf2john.o uaf_encode_plug.o memdbg.o -o ../run/uaf2john
+	$(LD) $(LDFLAGS) uaf2john.o uaf_encode_plug.o memdbg.o $(OMPFLAGS) -o ../run/uaf2john
 
 ../run/wpapcap2john: wpapcap2john.o
-	$(LD) $(LDFLAGS) wpapcap2john.o memdbg.o -o ../run/wpapcap2john
+	$(LD) $(LDFLAGS) wpapcap2john.o memdbg.o $(OMPFLAGS) -o ../run/wpapcap2john
 
 ../run/luks2john: luks2john.o
-	$(LD) ${LDFLAGS} luks2john.o -s -lcrypto -lssl memdbg.o jumbo.o -o ../run/luks2john
+	$(LD) ${LDFLAGS} luks2john.o -s -lcrypto -lssl memdbg.o jumbo.o $(OMPFLAGS) -o ../run/luks2john
 
 ../run/keystore2john: ../run/john
 	$(RM) ../run/keystore2john
@@ -2335,7 +2335,7 @@ endif
 	misc.c memdbg.c -o ../run/cprepair
 
 ../run/tgtsnarf: tgtsnarf.o
-	$(LD) tgtsnarf.o memdbg.o $(LDFLAGS) -o ../run/tgtsnarf
+	$(LD) tgtsnarf.o memdbg.o $(LDFLAGS) $(OMPFLAGS) -o ../run/tgtsnarf
 
 # Inlining the S-boxes produces faster code as long as they fit in the cache.
 DES_bs_b.o: DES_bs_b.c sboxes.c nonstd.c sboxes-s.c
