@@ -269,8 +269,9 @@ static void sig_handle_timer(int signum)
 #endif
 #ifndef BENCH_BUILD
 #if OS_TIMER
-	/* Some stuff only done every third second */
-	if ((timer_save_value & 3) == 3) {
+	/* Some stuff only done every few seconds */
+	if (timer_save_interval < 4 ||
+	    ((timer_save_interval - timer_save_value) & 3) == 3) {
 #ifdef HAVE_MPI
 		if (!event_reload && mpi_p > 1) {
 			event_pending = event_mpiprobe = 1;
@@ -298,7 +299,7 @@ static void sig_handle_timer(int signum)
 #else /* no OS_TIMER */
 	time = status_get_time();
 
-	/* Some stuff only done every third second */
+	/* Some stuff only done every few seconds */
 	if ((time & 3) == 3) {
 #ifdef HAVE_MPI
 		if (!event_reload && mpi_p > 1) {
