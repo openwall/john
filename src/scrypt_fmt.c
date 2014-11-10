@@ -103,7 +103,7 @@ static char *prepare(char *fields[10], struct fmt_main *self)
 	// cisco type 9 hashes.  .  They are $7$C/..../.... type  (N=16384, r=1, p=1) different base-64 (same as WPA).  salt used RAW
 //	{"$9$nhEmQVczB7dqsO$X.HsgL6x1il0RxkOSSvyQYwucySCt7qFm4v7pqCxkKM", "cisco"},
 	// becomes
-//  {"$7$C/..../....$nhEmQVczB7dqsO$AG.yl8LDCkiErlh4ttizmxYCXSiXYrNY6vKmLDKj/P4", "cisco"},
+//  {"$7$C/..../....nhEmQVczB7dqsO$AG.yl8LDCkiErlh4ttizmxYCXSiXYrNY6vKmLDKj/P4", "cisco"},
 	// the signature changes, and the hash base-64 is converted.  That is IT.
 
 	// We have to byte swap (I think) the base-64.

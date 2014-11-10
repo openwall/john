@@ -14,7 +14,7 @@
  *  currently handles these conversions (to and from any to any)
  *     raw      (binary)
  *     hex      (and hexU for uppercase output)
- *     mime     (A..Za..z0..1/.   The == for null trails may be optional, removed for now)
+ *     mime     (A..Za..z0..1+/   The == for null trails may be optional, removed for now)
  *     crypt    (./0..9A..Za..Z   Similar to encoding used by crypt)
  *     cryptBS  like crypt, but bit swapped encoding order
  */
@@ -211,7 +211,7 @@ static char *crypt64_to_crypt64_bs(const char *in, char *out, int len) {
 	unsigned char *Tmp;
 	Tmp = (unsigned char*)mem_alloc(len*2);
 	base64_decode_i(in, len, Tmp);
-	base64_encode_iBS(Tmp, len, out);
+	base64_encode_iBS(Tmp, (len*3)/4+1, out);
 	out[len] = 0;
 	MEM_FREE(Tmp);
 	return out;
