@@ -56,11 +56,12 @@ def pcap_parser(fname):
             if ord(data[0]) != 2:  # EIGRP version
                 continue
 
-            if len(data) < 40:  # XXX rough estimate ;)
+            if len(data) < 40:  # skip small packets
                 continue
 
             have_extra_salt = False
-            extra_salt = "XXX"
+            extra_salt = ""
+            internal_routes = ""
             opcode = ord(data[1])
 
             # Check EIGRP Flags
@@ -97,36 +98,47 @@ def pcap_parser(fname):
                     tlv_type = struct.unpack(">H", data[offset:offset+2])[0]
                     tlv_length = struct.unpack(">H", data[offset+2:offset+2+2])[0]
                     if tlv_type == 1:  # Parameters TLV
-                        assert tlv_length == 12  # XXX
-                        tlv_data_parameters = data[offset:offset+tlv_length - 2]  # till "K6"
+                        tlv_data_parameters = data[offset:offset+tlv_length - 2]  # till "K6", 10 bytes
+                        full_tlv_data_parameters = data[offset:offset+tlv_length]
                         offset = offset + tlv_length
                     elif tlv_type == 4:  # Software Version
                         tlv_data_version = data[offset:offset+tlv_length]
                         offset = offset + tlv_length
                     elif tlv_type == 0x00f5:  # Peer Topology ID List
                         # does Peer Topology ID List trigger inclusion of Parameters TLV into the MD5 process?
-                        tlv_data_peer = data[offset:offset+8] + "\x00"  # only 8 bytes seem to be used
+                        tlv_data_peer = data[offset:offset+6] \
+                            + "\x00"  # only 6 bytes with \x00 appended seems to be used
                         offset = offset + tlv_length
                         have_extra_salt = 1
                         extra_salt = tlv_data_parameters.encode("hex")
                     elif tlv_type == 0x0003:  # Sequence TLV
                         # does Sequence / Next multicast sequence TLV trigger the inclusion of Parameters TLV, Type
-                        # 0x0004 TLV and Peer Topology TLV? this stuff keeps getting weirder!
+                        # 0x0004 TLV (Software Version) and Peer Topology TLV? this stuff keeps getting weirder!
                         offset = offset + tlv_length
-                        extra_salt = (tlv_data_parameters + tlv_data_version + tlv_data_peer).encode("hex")
+                        extra_salt = (full_tlv_data_parameters + tlv_data_version + tlv_data_peer).encode("hex")
                         have_extra_salt = 1
                     elif tlv_type == 0x00f2:  # Internal Route(MTR)
-                        extra_salt = (data[offset:offset+22] + "\x00").encode("hex")  # only 22 bytes are used, wtaf? XXX
+                        extra_salt = data[offset:offset+22] \
+                            + "\x00".encode("hex")  # only 22 bytes seem to be used
                         offset = offset + tlv_length
                         have_extra_salt = 1
-                    elif tlv_type == 0x0602:  # Internal Router (seen with "Update" with Flags == 0)
-                        extra_salt = (data[offset:offset+25]).encode("hex")
+                    elif tlv_type == 0x0602:  # Internal Route (seen with "Update" with Flags == 0)
+                        # there can be multiple such TLVs!
+                        internal_routes = internal_routes + data[offset:offset + tlv_length]
                         offset = offset + tlv_length
                         have_extra_salt = 1
                     else:
                         break
                 except:
                     break
+
+            # strangely, the last 20 bytes of internal_routes are chopped in MAC calculation!
+            if internal_routes:
+                internal_routes = internal_routes[:-20].encode("hex")
+                extra_salt = extra_salt + internal_routes
+
+            if not extra_salt:
+                extra_salt = "no-extra-salt"
 
             sys.stdout.write("%s:$eigrp$%d$%s$%d$%s$%s\n" % (index, algo_type, salt.encode("hex"), have_extra_salt,
                                                              extra_salt, h))
