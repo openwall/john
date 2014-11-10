@@ -1246,7 +1246,8 @@ static unsigned long long divide_work(cpu_mask_context *cpu_mask_ctx)
 	offset = 1;
 	ps = cpu_mask_ctx->ps1;
 	while(ps != MAX_NUM_MASK_PLHDR) {
-		if (cpu_mask_ctx->ranges[ps].pos < max_keylen)
+		if ((options.flags & FLG_MASK_STACKED) ||
+		    cpu_mask_ctx->ranges[ps].pos < max_keylen)
 			offset *= cpu_mask_ctx->ranges[ps].count;
 		ps = cpu_mask_ctx->ranges[ps].next;
 	}
@@ -1500,6 +1501,8 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 			mask_add_len++;
 		}
 	}
+	if (mask_add_len > max_keylen)
+		mask_add_len = max_keylen;
 
 	if ((options.flags & FLG_MASK_STACKED) && mask_num_qw == 0) {
 		fprintf(stderr, "Hybrid mask must contain ?w\n");
@@ -1551,7 +1554,8 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 		cand = 1;
 		for (i = 0; i < cpu_mask_ctx.count; i++)
 			if ((int)(cpu_mask_ctx.active_positions[i]))
-			if (cpu_mask_ctx.ranges[i].pos < max_keylen)
+			if ((options.flags & FLG_MASK_STACKED) ||
+			    cpu_mask_ctx.ranges[i].pos < max_keylen)
 				cand *= cpu_mask_ctx.ranges[i].count;
 	}
 	mask_tot_cand = cand;
