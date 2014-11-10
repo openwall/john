@@ -831,7 +831,7 @@ void MEMDBG_free(const void *ptr, char *file, int line)
 		MEMDBG_LIST_delete(p);
 		p->mdbg_fpst = MEMFPOSTd;
 		for (i = 0; i < 4; ++i)
-			((char*)(p->mdbg_hdr2->mdbg_fpst))[i] = cpMEMFPOST[i];
+			((char*)(p->mdbg_hdr2->mdbg_fpst))[i] = cpMEMFPOSTd[i];
 	}
 	if (err) {
 		if (err == 2)
