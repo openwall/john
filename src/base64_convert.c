@@ -363,7 +363,7 @@ int base64_convert(const void *from, b64_convert_type from_t, int from_len, void
 				case e_b64_hexU:
 				{
 					// TODO, validate to_len
-					tmp = (unsigned char*)mem_alloc(to_len/2+1);
+					tmp = (unsigned char*)mem_alloc(from_len);
 					base64_decode((char*)from, from_len, (char*)tmp);
 					raw_to_hex(tmp, from_len/4*3, (char*)to);
 					MEM_FREE(tmp);
@@ -376,7 +376,7 @@ int base64_convert(const void *from, b64_convert_type from_t, int from_len, void
 					if (to_len < from_len+1)
 						return ERR_base64_to_buffer_sz;
 					memcpy(to, from, from_len);
-					((char*)to)[from_len] =0;
+					((char*)to)[from_len] = 0;
 					return from_len;
 				}
 				case e_b64_crypt:	/* crypt encoding */
@@ -387,10 +387,10 @@ int base64_convert(const void *from, b64_convert_type from_t, int from_len, void
 				}
 				case e_b64_cryptBS:	/* crypt encoding, network order (used by WPA, cisco9, etc) */
 				{
-					unsigned char *tmp = (unsigned char*)mem_alloc(from_len/2+1);
+					unsigned char *tmp = (unsigned char*)mem_alloc(from_len);
 					base64_decode((char*)from, from_len, (char*)tmp);
-					base64_encode_iBS(tmp, from_len, (char*)to);
-					((char*)to)[from_len] =0;
+					base64_encode_iBS(tmp, (from_len*3)/4+1, (char*)to);
+					((char*)to)[from_len] = 0;
 					MEM_FREE(tmp);
 					return from_len;
 				}
@@ -411,7 +411,7 @@ int base64_convert(const void *from, b64_convert_type from_t, int from_len, void
 				case e_b64_hexU:	/* hex, but if used for convertTO param, will uppercase the hex */
 				{
 					// TODO, validate to_len
-					tmp = (unsigned char*)mem_alloc(to_len/2+1);
+					tmp = (unsigned char*)mem_alloc(from_len);
 					base64_decode_i((char*)from, from_len, (unsigned char*)tmp);
 					raw_to_hex(tmp, from_len/4*3, (char*)to);
 					MEM_FREE(tmp);
@@ -458,7 +458,7 @@ int base64_convert(const void *from, b64_convert_type from_t, int from_len, void
 				case e_b64_hexU:	/* hex, but if used for convertTO param, will uppercase the hex */
 				{
 					// TODO, validate to_len
-					unsigned char *tmp = (unsigned char*)mem_alloc(from_len/2+1);
+					unsigned char *tmp = (unsigned char*)mem_alloc(from_len);
 					base64_decode_i_bs((char*)from, from_len, (unsigned char*)tmp);
 					raw_to_hex(tmp, from_len/4*3, (char*)to);
 					MEM_FREE(tmp);
@@ -468,18 +468,18 @@ int base64_convert(const void *from, b64_convert_type from_t, int from_len, void
 				}
 				case e_b64_mime:	/* mime */
 				{
-					unsigned char *tmp = (unsigned char*)mem_alloc(from_len/2+1);
+					unsigned char *tmp = (unsigned char*)mem_alloc(from_len);
 					base64_decode_i_bs((char*)from, from_len, (unsigned char*)tmp);
-					base64_encode(tmp, from_len, (char*)to);
+					base64_encode(tmp, (from_len*3)/4+1, (char*)to);
 					((char*)to)[from_len] =0;
 					MEM_FREE(tmp);
 					return from_len;
 				}
 				case e_b64_crypt:	/* crypt encoding */
 				{
-					unsigned char *tmp = (unsigned char*)mem_alloc(from_len/2+1);
+					unsigned char *tmp = (unsigned char*)mem_alloc(from_len);
 					base64_decode_i_bs((char*)from, from_len, (unsigned char*)tmp);
-					base64_encode_i(tmp, from_len, (char*)to);
+					base64_encode_i(tmp, (from_len*3)/4+1, (char*)to);
 					((char*)to)[from_len] =0;
 					MEM_FREE(tmp);
 					return from_len;
