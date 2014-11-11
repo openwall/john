@@ -36,7 +36,8 @@
 	#if defined(_WIN32)
 		/* librexgen fux this up for Win32 builds. We have coded JtR to use sprintf_s, and not _snprintf. They ARE different */
 		#undef  snprintf
-		#define snprintf sprintf_s
+		#define snprintf(str, size, ...) vc_fixed_snprintf((str), (size), __VA_ARGS__)
+		extern int vc_fixed_snprintf(char *Dest, size_t max_cnt, const char *Fmt, ...);
 	#endif
 
 

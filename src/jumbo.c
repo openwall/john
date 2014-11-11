@@ -15,6 +15,7 @@
 
 #if HAVE_WINDOWS_H || _MSC_VER || __MINGW32__ || __MINGW64__ || __CYGWIN__
 #include <windows.h>
+#include <stdarg.h>
 #endif
 
 #if defined (__CYGWIN32__) && !defined(__CYGWIN64__)
@@ -33,6 +34,34 @@
 #define SEP_CHAR(c) ((c)=='/'||(c)=='\\')
 #else
 #define SEP_CHAR(c) ((c)=='/')
+#endif
+
+
+#ifdef _MSC_VER
+// we will simply fix the broken _snprintf.  In VC, it will not null terminate buffers that get
+// truncated, AND the return is - if we truncate.  We fix both of these issues, and bring snprintf
+// for VC up to C99 standard.
+int vc_fixed_snprintf(char *Dest, size_t max_cnt, const char *Fmt, ...) {
+	va_list varg;
+	int len;
+
+	va_start(varg, Fmt);
+	len = _vsnprintf(Dest, max_cnt, Fmt, varg);
+	if (len < 0) {
+		int len_now = max_cnt;
+		Dest[max_cnt-1] = 0;
+		// len = -1 right now.  We want to figure out exactly WHAT len should be, to stay C99 compliant.
+		while (len < 0) {
+			char *cp;
+			len_now *= 2;
+			cp = (char*)mem_alloc(len_now);
+			len = _vsnprintf(cp, len_now, Fmt, varg);
+			MEM_FREE(cp);
+		}
+	}
+	va_end(varg);
+	return len;
+}
 #endif
 
 char *jtr_basename_r(const char *name, char *buf) {

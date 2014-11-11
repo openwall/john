@@ -282,7 +282,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		if (!ciphertext || strlen(ciphertext) < 7)
 			return "prepare";
 		if (format->methods.valid(ciphertext, format) != 1) {
-			snprintf(s_size, sizeof(s_size) - 10, "valid (%s)", ciphertext);
+			snprintf(s_size, sizeof(s_size), "valid (%s)", ciphertext);
 			return s_size;
 		}
 

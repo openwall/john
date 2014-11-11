@@ -332,6 +332,9 @@ extern int _exit(int);
 // the function can be linked to, but it was not in headers. SO, I simply
 // blindly use these for VC.  For VC, they are used to work around many
 // red-herring compiler warnings
+#undef snprintf
+#define snprintf(str, size, ...) vc_fixed_snprintf((str), (size), __VA_ARGS__)
+extern int vc_fixed_snprintf(char *Dest, size_t max_cnt, const char *Fmt, ...);
 #undef alloca
 #define alloca _alloca
 #undef unlink
