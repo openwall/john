@@ -34,7 +34,8 @@
 static const char * const itoa64 =
 	"./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
-static uint8_t * encode64_uint32(uint8_t * dst, size_t dstlen,
+// REMOVED static from this function. It is used by other source (such as scrypt_fmt.c)
+uint8_t * encode64_uint32(uint8_t * dst, size_t dstlen,
     uint32_t src, uint32_t srcbits)
 {
 	uint32_t bit;
@@ -72,7 +73,8 @@ static uint8_t * encode64(uint8_t * dst, size_t dstlen,
 	return dst;
 }
 
-static int decode64_one(uint32_t * dst, uint8_t src)
+// REMOVED static
+int decode64_one(uint32_t * dst, uint8_t src)
 {
 	const char * ptr = strchr(itoa64, src);
 	if (ptr) {
@@ -83,7 +85,8 @@ static int decode64_one(uint32_t * dst, uint8_t src)
 	return -1;
 }
 
-static const uint8_t * decode64_uint32(uint32_t * dst, uint32_t dstbits,
+// REMOVED static from this function. It is used by other source (such as scrypt_fmt.c)
+const uint8_t * decode64_uint32(uint32_t * dst, uint32_t dstbits,
     const uint8_t * src)
 {
 	uint32_t bit;

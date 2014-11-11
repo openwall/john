@@ -27,6 +27,7 @@
 #define FORMAT_LABEL			"scrypt"
 #define FORMAT_NAME			""
 #define FMT_CISCO9              "$9$"
+#define FMT_SCRYPTKDF			"SCRYPT:"
 #ifdef __XOP__
 #define ALGORITHM_NAME			"Salsa20/8 128/128 XOP"
 #elif defined(__AVX__)
@@ -59,8 +60,19 @@ static struct fmt_tests tests[] = {
 	{"$9$nhEmQVczB7dqsO$X.HsgL6x1il0RxkOSSvyQYwucySCt7qFm4v7pqCxkKM", "cisco"},
 	{"$9$cvWdfQlRRDKq/U$VFTPha5VHTCbSgSUAo.nPoh50ZiXOw1zmljEjXkaq1g", "123456"},
 	{"$9$X9fA8mypebLFVj$Klp6X9hxNhkns0kwUIinvLRSIgWOvCwDhVTZqjsycyU", "JtR"},
+	// 3rd type ScryptKDF.pm format (we saw this in CMIYC 2013)
+	// Generate in perl with scrypt_hash($_[1],$salt,1<<$N,$r,$p,$bytes)
+	// to put into proper format, we mime->raw the salt and mime->cryptBS the hash hash, and fixup $N,$r,$p
+	{"SCRYPT:16384:8:1:VHRuaXZOZ05INWJs:JjrOzA8pdPhLvLh8sY64fLLaAjFUwYCXMmS16NXcn0A=","password"},
+	{"SCRYPT:16384:8:1:bjZkemVmZ3lWVi42:cmBflTPsqGIbg9ZIJRTQdbic8OCUH+904TFmNPBkuEA=","test123"},
+	{"SCRYPT:16384:8:1:VlVYUzBhQmlNbk5J:bJhm6VUS2UQRwMRqLTvSsljDeq193Ge4aqQDtb94bKg=","hello"},
 	{NULL}
 };
+
+// from crypt_scrypt-common.c  (removed static from that file on these 3 functions)
+extern const uint8_t * decode64_uint32(uint32_t * dst, uint32_t dstbits, const uint8_t * src);
+extern uint8_t * encode64_uint32(uint8_t * dst, size_t dstlen, uint32_t src, uint32_t srcbits);
+extern int decode64_one(uint32_t * dst, uint8_t src);
 
 static int max_threads;
 static escrypt_local_t *local;
@@ -90,25 +102,77 @@ static void init(struct fmt_main *self)
 	buffer = mem_alloc(sizeof(*buffer) * self->params.max_keys_per_crypt);
 }
 
+static char N_to_c(int N) {
+	int b=0;
+	while (N>>=1) ++b;
+	return itoa64[b];
+}
+
 static char *prepare(char *fields[10], struct fmt_main *self)
 {
-	static char Buf[120];
-	char tmp[44];
+	static char Buf[256];
+	char tmp[48], tmp2[48], tmp3[48], tmp4[48], tmp5[6], tmp6[6];
 
-	if (strncmp(fields[1], FMT_CISCO9, 3) != 0)
+	if (strncmp(fields[1], FMT_CISCO9, 3) != 0 && strncmp(fields[1], FMT_SCRYPTKDF, 7))
 		return fields[1];
-	if (strlen(fields[1]) != 4+14+43)
-		return fields[1];
+	if (!strncmp(fields[1], FMT_CISCO9, 3)) {
+		if (strlen(fields[1]) != 4+14+43)
+			return fields[1];
 
-	// cisco type 9 hashes.  .  They are $7$C/..../.... type  (N=16384, r=1, p=1) different base-64 (same as WPA).  salt used RAW
-//	{"$9$nhEmQVczB7dqsO$X.HsgL6x1il0RxkOSSvyQYwucySCt7qFm4v7pqCxkKM", "cisco"},
-	// becomes
-//  {"$7$C/..../....nhEmQVczB7dqsO$AG.yl8LDCkiErlh4ttizmxYCXSiXYrNY6vKmLDKj/P4", "cisco"},
-	// the signature changes, and the hash base-64 is converted.  That is IT.
+		// cisco type 9 hashes.  .  They are $7$C/..../.... type  (N=16384, r=1, p=1) different base-64 (same as WPA).  salt used RAW
+	//	{"$9$nhEmQVczB7dqsO$X.HsgL6x1il0RxkOSSvyQYwucySCt7qFm4v7pqCxkKM", "cisco"},
+		// becomes
+	//  {"$7$C/..../....nhEmQVczB7dqsO$AG.yl8LDCkiErlh4ttizmxYCXSiXYrNY6vKmLDKj/P4", "cisco"},
 
-	// We have to byte swap (I think) the base-64.
-	sprintf (Buf, "$7$C/..../....%14.14s$%s", &(fields[1][3]),
-		base64_convert_cp(&(fields[1][3+14+1]), e_b64_crypt, 43, tmp, e_b64_cryptBS, sizeof(tmp)));
+		sprintf (Buf, "$7$C/..../....%14.14s$%s", &(fields[1][3]),
+			base64_convert_cp(&(fields[1][3+14+1]), e_b64_crypt, 43, tmp, e_b64_cryptBS, sizeof(tmp)));
+	} else {
+		char *cp = strrchr(fields[1], ':'), *cp2;
+		int N, r, p;
+		if (!cp || strlen(cp) > sizeof(tmp2))
+			return fields[1];
+		strcpy(tmp2, &cp[1]); // hash  (mime format, we need cryptBS)
+		cp2 = cp;
+		--cp2;
+		while (cp2 > fields[1] && *cp2 != ':')
+			--cp2;
+		if (*cp2 != ':' || cp-cp2 > sizeof(tmp3))
+			return fields[1];
+		strnzcpy(tmp3, &cp2[1], cp-cp2); // salt (mime format, we need raw)
+		// remove trailing '=' if any from hash and salt. This may not matter on salt, BUT does matter on hash, since
+		// it will change the length of the returned hash annd it will not match 43 bytes.
+		cp = &tmp2[strlen(tmp2)-1];
+		while (cp > tmp2 && *cp == '=')
+			*cp-- = 0;
+		cp = &tmp3[strlen(tmp3)-1];
+		while (cp > tmp3 && *cp == '=')
+			*cp-- = 0;
+		cp = &fields[1][7];
+		N = atoi(cp);
+		cp = strchr(cp, ':');
+		if (!cp) return fields[1];
+		++cp;
+		r = atoi(cp);
+		cp = strchr(cp, ':');
+		if (!cp) return fields[1];
+		++cp;
+		p = atoi(cp);
+		cp = strchr(cp, ':');
+		if (cp != cp2) return fields[1];
+		encode64_uint32((uint8_t*)tmp5, sizeof(tmp5), r, 30);
+		tmp5[5]=0;
+		encode64_uint32((uint8_t*)tmp6, sizeof(tmp6), p, 30);
+		tmp6[5]=0;
+		memset(tmp4, 0, sizeof(tmp4));
+		sprintf (Buf, "$7$%c%s%s%s$%s", N_to_c(N), tmp5, tmp6,
+			base64_convert_cp(tmp3, e_b64_mime, strlen(tmp3), tmp4, e_b64_raw, sizeof(tmp4)),
+			base64_convert_cp(tmp2, e_b64_mime, strlen(tmp2), tmp, e_b64_cryptBS, sizeof(tmp)));
+
+		// Ok, all parsed, now write the thing out.
+		// to put into proper format, we mime->raw the salt and mime->cryptBS the hash hash, and fixup $N,$r,$p
+		//{"SCRYPT:16384:8:1:VHRuaXZOZ05INWJs:JjrOzA8pdPhLvLh8sY64fLLaAjFUwYCXMmS16NXcn0A=","password"},
+		//$7$C6..../....TtnivNgNH5bl$acXnAzE8oVzGwW9Tlu6iw7fq021J/1sZmEKhcLBrT02:0:0:password
+	}
 	return Buf;
 }
 
@@ -321,51 +385,6 @@ static int cmp_exact(char *source, int index)
 }
 
 #if FMT_MAIN_VERSION > 11
-/*
- * FIXME: q&d implementation for now
- *
- *        Problems: -copied decode64_one() and decode64_uint32()
- *                   from escrypt/crypto_scrypt-common.c
- *                   (Copyright 2013 Alexander Peslyak)
- *                  -much of the logic in tunable_cost_[N|r|p] is identical
- *                   and copied/adapted from escrypt_r() in
- *                   escrypt/crypto_scrypt-common.c
- *                   (Copyright 2013 Alexander Peslyak)
- */
-
-static int decode64_one(uint32_t * dst, uint8_t src)
-{
-	/* FIXME: copied from escrypt/crypto_scrypt-common.c */
-	const char * ptr = strchr(itoa64, src);
-	if (ptr) {
-		*dst = ptr - itoa64;
-		return 0;
-	}
-	*dst = 0;
-	return -1;
-}
-
-static const uint8_t * decode64_uint32(uint32_t * dst, uint32_t dstbits,
-    const uint8_t * src)
-{
-	/* FIXME: copied from escrypt/crypto_scrypt-common.c */
-	uint32_t bit;
-	uint32_t value;
-
-	value = 0;
-	for (bit = 0; bit < dstbits; bit += 6) {
-		uint32_t one;
-		if (decode64_one(&one, *src)) {
-			*dst = 0;
-			return NULL;
-		}
-		src++;
-		value |= one << bit;
-	}
-
-	*dst = value;
-	return src;
-}
 
 static unsigned int tunable_cost_N(void *salt)
 {
