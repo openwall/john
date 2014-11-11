@@ -357,7 +357,7 @@ int base64_convert(const void *from, b64_convert_type from_t, int from_len, void
 				{
 					// TODO, validate to_len
 					base64_decode((char*)from, from_len, (char*)to);
-					return from_len/4*3;
+					return (from_len*3+1)/4;
 				}
 				case e_b64_hex:		/* hex */
 				case e_b64_hexU:
@@ -383,13 +383,15 @@ int base64_convert(const void *from, b64_convert_type from_t, int from_len, void
 				{
 					if (to_len < from_len+1)
 						return ERR_base64_to_buffer_sz;
-					return strlen(mime64_to_crypt64((const char*)from, (char*)to, from_len));
+					mime64_to_crypt64((const char*)from, (char*)to, from_len);
+					((char*)to)[from_len] = 0;
+					return strlen((char*)to);
 				}
 				case e_b64_cryptBS:	/* crypt encoding, network order (used by WPA, cisco9, etc) */
 				{
 					unsigned char *tmp = (unsigned char*)mem_alloc(from_len);
 					base64_decode((char*)from, from_len, (char*)tmp);
-					base64_encode_iBS(tmp, (from_len*3)/4+1, (char*)to);
+					base64_encode_iBS(tmp, (from_len*3+1)/4, (char*)to);
 					((char*)to)[from_len] = 0;
 					MEM_FREE(tmp);
 					return from_len;
@@ -405,7 +407,7 @@ int base64_convert(const void *from, b64_convert_type from_t, int from_len, void
 				{
 					// TODO, validate to_len
 					base64_decode_i((char*)from, from_len, (unsigned char*)to);
-					return from_len/4*3;
+					return (from_len*3+1)/4;
 				}
 				case e_b64_hex:		/* hex */
 				case e_b64_hexU:	/* hex, but if used for convertTO param, will uppercase the hex */
@@ -423,7 +425,9 @@ int base64_convert(const void *from, b64_convert_type from_t, int from_len, void
 				{
 					if (to_len < from_len+1)
 						return ERR_base64_to_buffer_sz;
-					return strlen(crypt64_to_mime64((const char*)from, (char*)to, from_len));
+					crypt64_to_mime64((const char*)from, (char*)to, from_len);
+					((char*)to)[from_len] = 0;
+					return strlen((char*)to);
 				}
 				case e_b64_crypt:	/* crypt encoding */
 				{
@@ -439,7 +443,9 @@ int base64_convert(const void *from, b64_convert_type from_t, int from_len, void
 						return ERR_base64_to_buffer_sz;
 					if (to_len < from_len+1)
 						return ERR_base64_to_buffer_sz;
-					return strlen(crypt64_to_crypt64_bs((const char*)from, (char*)to, from_len));
+					crypt64_to_crypt64_bs((const char*)from, (char*)to, from_len);
+					((char*)to)[from_len] = 0;
+					return strlen((char*)to);
 				}
 				default:
 					return ERR_base64_unk_to_type;
@@ -452,7 +458,7 @@ int base64_convert(const void *from, b64_convert_type from_t, int from_len, void
 				{
 					 // TODO, validate to_len
 					base64_decode_i_bs((char*)from, from_len, (unsigned char*)to);
-					return from_len/4*3;
+					return (from_len*3+1)/4;
 				}
 				case e_b64_hex:		/* hex */
 				case e_b64_hexU:	/* hex, but if used for convertTO param, will uppercase the hex */
@@ -470,8 +476,8 @@ int base64_convert(const void *from, b64_convert_type from_t, int from_len, void
 				{
 					unsigned char *tmp = (unsigned char*)mem_alloc(from_len);
 					base64_decode_i_bs((char*)from, from_len, (unsigned char*)tmp);
-					base64_encode(tmp, (from_len*3)/4+1, (char*)to);
-					((char*)to)[from_len] =0;
+					base64_encode(tmp, (from_len*3+1)/4, (char*)to);
+					((char*)to)[from_len] = 0;
 					MEM_FREE(tmp);
 					return from_len;
 				}
@@ -479,15 +485,15 @@ int base64_convert(const void *from, b64_convert_type from_t, int from_len, void
 				{
 					unsigned char *tmp = (unsigned char*)mem_alloc(from_len);
 					base64_decode_i_bs((char*)from, from_len, (unsigned char*)tmp);
-					base64_encode_i(tmp, (from_len*3)/4+1, (char*)to);
-					((char*)to)[from_len] =0;
+					base64_encode_i(tmp, (from_len*3+1)/4, (char*)to);
+					((char*)to)[from_len] = 0;
 					MEM_FREE(tmp);
 					return from_len;
 				}
 				case e_b64_cryptBS:	/* crypt encoding, network order (used by WPA, cisco9, etc) */
 				{
 					memcpy(to, from, from_len);
-					((char*)to)[from_len]=0;
+					((char*)to)[from_len] = 0;
 					return from_len;
 				}
 				default:
@@ -524,9 +530,10 @@ char *base64_convert_error(int err) {
 
 static int usage(char *name)
 {
-	fprintf(stderr, "Usage: %s [-i input_type] [-o output_type] [-q] data [data ...]\n"
+	fprintf(stderr, "Usage: %s [-i input_type] [-o output_type] [-q] [-e] data [data ...]\n"
 	        "\tdata must match input_type (if hex, then data should be in hex)\n"
 			"\t-q will only output resultant string. No extra junk text\n"
+			"\t-e turns on buffer overwrite error checking logic\n"
 			"\tinput/output types:\n"
 			"\t\traw\traw data byte\n"
 			"\t\thex\thexidecimal string (for input, case does not matter)\n"
@@ -553,10 +560,10 @@ static b64_convert_type str2convtype(const char *in) {
 int base64conv(int argc, char **argv) {
 	int c;
 	b64_convert_type in_t=e_b64_unk, out_t=e_b64_unk;
-	int quiet=0;
+	int quiet=0,err_chk=0;
 
 	/* Parse command line */
-	while ((c = getopt(argc, argv, "i:o:q!")) != -1) {
+	while ((c = getopt(argc, argv, "i:o:q!e!")) != -1) {
 		switch (c) {
 		case 'i':
 			in_t = str2convtype(optarg);
@@ -575,6 +582,9 @@ int base64conv(int argc, char **argv) {
 		case 'q':
 			quiet=1;
 			break;
+		case 'e':
+			err_chk=1;
+			break;
 		case '?':
 		default:
 			return usage(argv[0]);
@@ -587,9 +597,31 @@ int base64conv(int argc, char **argv) {
 
 	while(argc--) {
 		char *po = (char*)mem_calloc(strlen(*argv)*3);
+		int i, len;
+		if (err_chk)
+			memset(po, 2, strlen(*argv)*3);
 		if (!quiet)
 			printf("%s  -->  ", *argv);
-		printf("%s\n", base64_convert_cp(*argv, in_t, strlen(*argv), po, out_t, strlen(*argv)*3));
+		len=base64_convert(*argv, in_t, strlen(*argv), po, out_t, strlen(*argv)*3);
+		po[len] = 0;
+		printf("%s\n", po);
+		fflush(stdout);
+		// check for overwrite problems
+		if (err_chk) {
+			int tot = strlen(*argv)*3;
+			//i=strlen(po);
+			i=len;
+			if (po[i]) {
+				fprintf(stderr, "OverwriteLogic: Null byte missing\n");
+			}
+			for (++i; i < tot; ++i)
+			{
+				if (((unsigned char)po[i]) != 2) {
+					if (i-len > 2)
+					fprintf(stderr, "OverwriteLogic: byte %c (%02X) located at offset %d (%+d)\n", (unsigned char)po[i], (unsigned char)po[i], i, i-len);
+				}
+			}
+		}
 		MEM_FREE(po);
 		++argv;
 	}
