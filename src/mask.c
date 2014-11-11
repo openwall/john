@@ -89,6 +89,7 @@ static void parse_hex(char *string)
 	    atoi16[s[2]] != 0x7f && atoi16[s[3]] != 0x7f) {
 		char c = (atoi16[s[2]] << 4) + atoi16[s[3]];
 		if (!c && !warned++)
+		if (john_main_process)
 			fprintf(stderr, "Warning: \\x00 in mask terminates "
 			        "the string\n");
 		if (strchr("\\[]?-", c))
@@ -162,8 +163,9 @@ static char* plhdr2string(char p, int fmt_case)
 
 	if (pers_opts.internal_enc == ASCII &&
 	    (p == 'L' || p == 'U' || p == 'D' || p == 'S')) {
-		fprintf(stderr, "Can't use 8-bit ?%c placeholder with "
-		        "ASCII encoding\n", p);
+		if (john_main_process)
+			fprintf(stderr, "Can't use 8-bit ?%c placeholder with "
+			        "ASCII encoding\n", p);
 		error();
 	}
 
@@ -1491,6 +1493,7 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 			if ((options.flags & FLG_MASK_STACKED) &&
 			    mask_add_len >= (unsigned int)max_keylen &&
 			    mask_num_qw == 1) {
+				if (john_main_process)
 				fprintf(stderr, "Hybrid mask must contain ?w"
 				        " after truncation for max. length\n");
 				error();
@@ -1505,10 +1508,12 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 		mask_add_len = max_keylen;
 
 	if ((options.flags & FLG_MASK_STACKED) && mask_num_qw == 0) {
-		fprintf(stderr, "Hybrid mask must contain ?w\n");
+		if (john_main_process)
+			fprintf(stderr, "Hybrid mask must contain ?w\n");
 		error();
 	} else
 	if (!(options.flags & FLG_MASK_STACKED) && mask_num_qw)
+	if (john_main_process)
 		fprintf(stderr, "Warning: ?w has no special meaning in pure "
 		        "mask mode\n");
 
