@@ -493,7 +493,7 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 	}
 
 	/* Bodge for bash completion of eg. "john -stdout -list=..." */
-	if (options.listconf != NULL)
+	if (options.listconf != NULL && options.fork == NULL)
 		options.flags |= (FLG_CRACKING_SUP | FLG_STDIN_SET);
 
 	if (!(options.flags & FLG_ACTION))
