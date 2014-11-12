@@ -61,6 +61,7 @@
 #include <string.h>
 #include <openssl/crypto.h>
 #include <openssl/des.h>
+
 #include "mdc2-JtR.h"
 
 #undef c2l
@@ -76,31 +77,32 @@
 			*((c)++)=(unsigned char)(((l)>>24L)&0xff))
 
 static void mdc2_body(JtR_MDC2_CTX *c, const unsigned char *in, size_t len);
-fips_md_init(JtR_MDC2)
-	{
+
+int JtR_MDC2_Init(JtR_MDC2_CTX *c)
+{
 	c->num=0;
 	c->pad_type=1;
 	memset(&(c->h[0]),0x52,JtR_MDC2_BLOCK);
 	memset(&(c->hh[0]),0x25,JtR_MDC2_BLOCK);
 	return 1;
-	}
+}
 
 int JtR_MDC2_Update(JtR_MDC2_CTX *c, const unsigned char *in, size_t len)
-	{
+{
 	size_t i,j;
 
 	i=c->num;
 	if (i != 0)
-		{
+	{
 		if (i+len < JtR_MDC2_BLOCK)
-			{
+		{
 			/* partial block */
 			memcpy(&(c->data[i]),in,len);
 			c->num+=(int)len;
 			return 1;
-			}
+		}
 		else
-			{
+		{
 			/* filled one */
 			j=JtR_MDC2_BLOCK-i;
 			memcpy(&(c->data[i]),in,j);
@@ -108,21 +110,21 @@ int JtR_MDC2_Update(JtR_MDC2_CTX *c, const unsigned char *in, size_t len)
 			in+=j;
 			c->num=0;
 			mdc2_body(c,&(c->data[0]),JtR_MDC2_BLOCK);
-			}
 		}
+	}
 	i=len&~((size_t)JtR_MDC2_BLOCK-1);
 	if (i > 0) mdc2_body(c,in,i);
 	j=len-i;
 	if (j > 0)
-		{
+	{
 		memcpy(&(c->data[0]),&(in[i]),j);
 		c->num=(int)j;
-		}
-	return 1;
 	}
+	return 1;
+}
 
 static void mdc2_body(JtR_MDC2_CTX *c, const unsigned char *in, size_t len)
-	{
+{
 	register DES_LONG tin0,tin1;
 	register DES_LONG ttin0,ttin1;
 	DES_LONG d[2],dd[2];
@@ -131,7 +133,7 @@ static void mdc2_body(JtR_MDC2_CTX *c, const unsigned char *in, size_t len)
 	size_t i;
 
 	for (i=0; i<len; i+=8)
-		{
+	{
 		c2l(in,tin0); d[0]=dd[0]=tin0;
 		c2l(in,tin1); d[1]=dd[1]=tin1;
 		c->h[0]=(c->h[0]&0x9f)|0x40;
@@ -156,24 +158,24 @@ static void mdc2_body(JtR_MDC2_CTX *c, const unsigned char *in, size_t len)
 		p=c->hh;
 		l2c(ttin0,p);
 		l2c(tin1,p);
-		}
 	}
+}
 
 int JtR_MDC2_Final(unsigned char *md, JtR_MDC2_CTX *c)
-	{
+{
 	unsigned int i;
 	int j;
 
 	i=c->num;
 	j=c->pad_type;
 	if ((i > 0) || (j == 2))
-		{
+	{
 		if (j == 2)
 			c->data[i++]=0x80;
 		memset(&(c->data[i]),0,JtR_MDC2_BLOCK-i);
 		mdc2_body(c,c->data,JtR_MDC2_BLOCK);
-		}
+	}
 	memcpy(md,(char *)c->h,JtR_MDC2_BLOCK);
 	memcpy(&(md[JtR_MDC2_BLOCK]),(char *)c->hh,JtR_MDC2_BLOCK);
 	return 1;
-	}
+}

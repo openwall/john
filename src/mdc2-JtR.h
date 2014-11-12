@@ -69,12 +69,12 @@ extern "C" {
 #define JtR_MDC2_DIGEST_LENGTH      16
 
 typedef struct mdc2_ctx_st
-	{
+{
 	unsigned int num;
 	unsigned char data[JtR_MDC2_BLOCK];
 	DES_cblock h,hh;
 	int pad_type; /* either 1 or 2, default 1 */
-	} JtR_MDC2_CTX;
+} JtR_MDC2_CTX;
 
 
 int JtR_MDC2_Init(JtR_MDC2_CTX *c);
@@ -88,4 +88,3 @@ unsigned char *JtR_MDC2(const unsigned char *d, size_t n,
 #endif
 
 #endif
-
