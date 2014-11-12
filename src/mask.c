@@ -1406,6 +1406,13 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 	max_keylen = options.force_maxlength ?
 		options.force_maxlength : fmt_maxlen;
 
+	if ((options.flags & FLG_MASK_STACKED) && max_keylen < 2) {
+		if (john_main_process)
+			fprintf(stderr,
+			        "Too short max-length for hybrid mask\n");
+		error();
+	}
+
 #ifdef MASK_DEBUG
 	fprintf(stderr, "%s(%s) maxlen %d\n", __FUNCTION__, unprocessed_mask,
 	        max_keylen);
@@ -1505,20 +1512,24 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 			mask_add_len++;
 		}
 	}
-	if (mask_add_len >
-	    (options.flags & FLG_MASK_STACKED) ? max_keylen - 1 : max_keylen)
-		mask_add_len = (options.flags & FLG_MASK_STACKED) ?
-			max_keylen - 1 : max_keylen;
+	if (options.flags & FLG_MASK_STACKED) {
+		if (mask_add_len > max_keylen - 1)
+			mask_add_len = max_keylen - 1;
 
-	if ((options.flags & FLG_MASK_STACKED) && mask_num_qw == 0) {
-		if (john_main_process)
-			fprintf(stderr, "Hybrid mask must contain ?w\n");
-		error();
-	} else
-	if (!(options.flags & FLG_MASK_STACKED) && mask_num_qw)
-	if (john_main_process)
+		if (mask_num_qw == 0) {
+			if (john_main_process)
+				fprintf(stderr,
+				        "Hybrid mask must contain ?w\n");
+			error();
+		}
+	} else {
+		if (mask_add_len > max_keylen)
+			mask_add_len = max_keylen;
+
+		if (mask_num_qw && john_main_process)
 		fprintf(stderr, "Warning: ?w has no special meaning in pure "
 		        "mask mode\n");
+	}
 
 #ifdef MASK_DEBUG
 	fprintf(stderr, "qw %d minlen %d maxlen %d fmt_len %d mask_add_len %d\n", mask_num_qw, options.force_minlength, options.force_maxlength, fmt_maxlen, mask_add_len);
