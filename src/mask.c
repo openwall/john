@@ -1525,6 +1525,11 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 	} else {
 		if (mask_add_len > max_keylen)
 			mask_add_len = max_keylen;
+		else
+		if (options.force_maxlength && mask_add_len < max_keylen)
+			if (john_main_process)
+			fprintf(stderr, "Warning: mask is shorter than "
+			        "-max-length parameter\n");
 
 		if (mask_num_qw && john_main_process)
 		fprintf(stderr, "Warning: ?w has no special meaning in pure "
