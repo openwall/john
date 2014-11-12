@@ -20,18 +20,25 @@ typedef enum {
 		e_b64_unk=-1,	/* invalid type seen from command line usage */
 		e_b64_raw,		/* raw memory */
 		e_b64_hex,		/* hex */
-		e_b64_hexU,		/* hex, but if used for convertTO param, will uppercase the hex */
 		e_b64_mime,		/* mime */
 		e_b64_crypt,	/* crypt encoding */
 		e_b64_cryptBS,	/* crypt encoding, network order (used by WPA, cisco9, etc) */
 } b64_convert_type;
 
 /*
+ * Base-64 modification flags
+ */
+#define flg_Base64_HEX_UPCASE			1
+#define flg_Base64_MIME_TRAIL_EQ		2
+#define flg_Base64_CRYPT_TRAIL_DOTS		4
+#define flg_Base64_MIME_PLUS_TO_DOT		8
+
+/*
  * return will be number of bytes converted and placed into *to (can be less than to_len).  A negative return is
  * an error, which can be passed to one of the error processing functions
  */
-int base64_convert(const void *from, b64_convert_type from_t, int from_len, void *to, b64_convert_type to_t, int to_len);
-char *base64_convert_cp(const void *from, b64_convert_type from_t, int from_len, void *to, b64_convert_type to_t, int to_len);
+int base64_convert(const void *from, b64_convert_type from_t, int from_len, void *to, b64_convert_type to_t, int to_len, unsigned flags);
+char *base64_convert_cp(const void *from, b64_convert_type from_t, int from_len, void *to, b64_convert_type to_t, int to_len, unsigned flags);
 void base64_convert_error_exit(int err);
 char *base64_convert_error(int err);  /* allocates buffer, which caller must free */
 

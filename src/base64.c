@@ -36,12 +36,13 @@ void base64_unmap(char *in_block) {
       continue;
     }
 
-    if(*c == '=') {
-      *c = 0;
+    if (*c>='0' && *c<='9') {
+      *c -= '0';
+      *c += 52;
+      continue;
     }
-
-    *c -= '0';
-    *c += 52;
+    /* ignore trailing trash (if there were no '=' values */
+    *c = 0;
   }
 }
 

@@ -156,7 +156,7 @@ static char *prepare(char *fields[10], struct fmt_main *self)
 	if (strlen(fields[1]) != 4+14+43)
 		return fields[1];
 	sprintf (Buf, "%s20000$%14.14s$%s", FMT_PREFIX, &(fields[1][3]),
-		base64_convert_cp(&(fields[1][3+14+1]), e_b64_crypt, 43, tmp, e_b64_mime, sizeof(tmp)));
+		base64_convert_cp(&(fields[1][3+14+1]), e_b64_crypt, 43, tmp, e_b64_mime, sizeof(tmp), flg_Base64_NO_FLAGS));
 	cp = strchr(Buf, '+');
 	while (cp) {
 		*cp = '.';
@@ -229,7 +229,7 @@ static void abase64_decode(const char *in, int length, char *out, int outlen)
 		break;
 	}
 	hash[length] = 0;
-	base64_convert(hash, e_b64_mime, length, out, e_b64_raw, outlen);
+	base64_convert(hash, e_b64_mime, length, out, e_b64_raw, outlen, flg_Base64_NO_FLAGS);
 }
 
 static void *get_salt(char *ciphertext)
