@@ -1008,6 +1008,7 @@ static void truncate_mask(cpu_mask_context *cpu_mask_ctx, int range_idx)
 
 	cpu_mask_ctx->ranges[range_idx].next = MAX_NUM_MASK_PLHDR;
 
+	mask_tot_cand = 1;
 	cpu_mask_ctx->cpu_count = 0;
 	cpu_mask_ctx->ps1 = MAX_NUM_MASK_PLHDR;
 	for (i = 0; i <= range_idx; i++)
@@ -1015,6 +1016,7 @@ static void truncate_mask(cpu_mask_context *cpu_mask_ctx, int range_idx)
 			if (!cpu_mask_ctx->cpu_count)
 				cpu_mask_ctx->ps1 = i;
 			cpu_mask_ctx->cpu_count++;
+			mask_tot_cand *= cpu_mask_ctx->ranges[i].count;
 		}
 }
 
