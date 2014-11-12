@@ -28,6 +28,7 @@ typedef enum {
 /*
  * Base-64 modification flags
  */
+#define flg_Base64_NO_FLAGS				0
 #define flg_Base64_HEX_UPCASE			1
 #define flg_Base64_MIME_TRAIL_EQ		2
 #define flg_Base64_CRYPT_TRAIL_DOTS		4
