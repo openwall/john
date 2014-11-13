@@ -93,6 +93,8 @@ static struct skey_salt_st {
 static unsigned char	saved_key[SKEY_BINKEY_SIZE];
 static char	saved_pass[PLAINTEXT_LENGTH + 1];
 
+static void *skey_salt(char *ciphertext);
+
 static int
 skey_valid(char *ciphertext, struct fmt_main *self)
 {
@@ -124,6 +126,9 @@ skey_valid(char *ciphertext, struct fmt_main *self)
 	p = strrchr(ciphertext, ' ');
 	hexlen = strspn(++p, HEXCHARS);
 	if (hexlen != (2 * SKEY_BINKEY_SIZE) || hexlen != strlen(p))
+		return 0;
+
+	if (!skey_salt(ciphertext))
 		return 0;
 
 	return (1);
