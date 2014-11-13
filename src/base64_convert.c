@@ -1,6 +1,6 @@
 /*
  * This is Base64 conversion code. It will convert between raw and base64
- * all flavors, hex and base64 (all flavors), and between 2 flavors of
+ * all flavors, hex and base64 (all flavors), and between 3 flavors of
  * base64.  Conversion happens either direction (to or from).
  *
  * Coded Fall 2014 by Jim Fougeron.  Code placed in public domain.
@@ -43,14 +43,23 @@ static const char *itoa64m = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwx
 static char atoi64m[0x100];
 static int mime_setup=0;
 
-// Length macros which convert from one system to the other.
-// RAW_TO_B64_LEN(x) returns 'exact' base64 string length needed. NOTE, some base64 will padd to
-//     an even 4 characters.  The length from this macro DOES NOT include padding values.
-// B64_TO_RAW_LEN(x) returns raw string length needed for the base-64 string that is NOT padded
-//     in any way (i.e.  needs to be same value as returned from RAW_TO_B64_LEN(x)  )
+/*********************************************************************
+ * Length macros which convert from one system to the other.
+ * RAW_TO_B64_LEN(x) returns 'exact' base64 string length needed. NOTE, some base64 will padd to
+ *     an even 4 characters.  The length from this macro DOES NOT include padding values.
+ * B64_TO_RAW_LEN(x) returns raw string length needed for the base-64 string that is NOT padded
+ *     in any way (i.e.  needs to be same value as returned from RAW_TO_B64_LEN(x)  )
+ *********************************************************************/
 #define RAW_TO_B64_LEN(a) (((a)*4+2)/3)
 #define B64_TO_RAW_LEN(a) (((a)*3+1)/4)
 
+/*********************************************************************
+ * NOTE: Decode functions for mime base-64 (found in base64.c)
+ *********************************************************************/
+
+/*********************************************************************
+ * Decode functions for crypt base-64
+ *********************************************************************/
 static void base64_unmap_i(char *in_block) {
 	int i;
 	char *c;
@@ -84,6 +93,10 @@ static void base64_decode_i(const char *in, int inlen, unsigned char *out) {
 		in += 4;
 	}
 }
+/*********************************************************************
+ * Decode function for byte swapped crypt base-64 (usas the same
+ * base64_unmap_i function as is used for crypt)
+ *********************************************************************/
 static void base64_decode_iBS(const char *in, int inlen, unsigned char *out) {
 	int i, done=0;
 	unsigned char temp[4];
@@ -104,6 +117,9 @@ static void base64_decode_iBS(const char *in, int inlen, unsigned char *out) {
 		in += 4;
 	}
 }
+/*********************************************************************
+ * Encode functions for byte swapped crypt base-64
+ *********************************************************************/
 static void enc_base64_1_iBS(char *out, unsigned val, unsigned cnt) {
 	while (cnt--) {
 		unsigned v = val & 0x3f;
@@ -131,6 +147,9 @@ static void base64_encode_iBS(const unsigned char *in, int len, char *outy) {
 		outy += 4;
 	}
 }
+/*********************************************************************
+ * Encode functions for crypt base-64
+ *********************************************************************/
 static void enc_base64_1_i(char *out, unsigned val, unsigned cnt) {
 	while (cnt--) {
 		unsigned v = (val & 0xFC0000)>>18;
@@ -158,6 +177,9 @@ static void base64_encode_i(const unsigned char *in, int len, char *outy) {
 		outy += 4;
 	}
 }
+/*********************************************************************
+ * Encode functions for mime base-64
+ *********************************************************************/
 static void enc_base64_1(char *out, unsigned val, unsigned cnt) {
 	while (cnt--) {
 		unsigned v = (val & 0xFC0000)>>18;
@@ -165,7 +187,6 @@ static void enc_base64_1(char *out, unsigned val, unsigned cnt) {
 		*out++ = itoa64m[v];
 	}
 }
-/* mime char set */
 static void base64_encode(const unsigned char *in, int len, char *outy) {
 	int mod = len%3, i;
 	unsigned u;
@@ -186,6 +207,10 @@ static void base64_encode(const unsigned char *in, int len, char *outy) {
 		outy += 4;
 	}
 }
+
+/*********************************************************************
+ * functions for HEX to mem and mem to HEX
+ *********************************************************************/
 static void raw_to_hex(const unsigned char *from, int len, char *to) {
 	int i;
 	for (i = 0; i < len; ++i) {
@@ -202,9 +227,11 @@ static void hex_to_raw(const char *from, int len, unsigned char *to) {
 	*to = 0;
 }
 
-/* these functions should allow us to convert 4 base64 bytes at a time, and not */
-/* have to allocate a large buffer, decrypt to one, and re-encrypt just to do a */
-/* conversion.  With these functions we should be able to walk through a buffer */
+/******************************************************************************************
+ * these functions should allow us to convert 4 base64 bytes at a time, and not
+ * have to allocate a large buffer, decrypt to one, and re-encrypt just to do a
+ * conversion.  With these functions we should be able to walk through a buffer
+ ******************************************************************************************/
 static int mime_to_cryptBS(const char *cpi, char *cpo) {
 	char Tmp[3], *cpo_o = cpo;
 	int len, len_left = strlen(cpi);
@@ -290,16 +317,140 @@ static int cryptBS_to_crypt(const char *cpi, char *cpo) {
 	return strlen(cpo_o);
 }
 
+/******************************************************************************************
+ * these functions should allow us to convert 4 base64 bytes against 6 hex bytes at a
+ * time, and not have to allocate a large buffer, decrypt to one, and re-encrypt just
+ * to do a conversion.  With these functions we should be able to walk through a buffer
+ ******************************************************************************************/
+static int hex_to_cryptBS(const char *cpi, char *cpo) {
+	char Tmp[3], *cpo_o = cpo;
+	int len, len_left = strlen(cpi);
+	len = 0;
+	while (len_left > 0) {
+		if (len_left < 6) memset(Tmp,0,3);
+		hex_to_raw((const char*)cpi, len_left < 6 ? len_left : 6, (unsigned char*)Tmp);
+		base64_encode_iBS((const unsigned char*)Tmp, 3, cpo);
+		cpi += 6;
+		cpo += 4;
+		if (len_left >= 6) len += 4;
+		else if (len_left ==2) len +=2;
+		else len += 3;
+		len_left -= 6;
+	}
+	cpo_o[len] = 0;
+	return strlen(cpo_o);
+}
+static int hex_to_crypt(const char *cpi, char *cpo) {
+	char Tmp[3], *cpo_o = cpo;
+	int len, len_left = strlen(cpi);
+	len = 0;
+	while (len_left > 0) {
+		if (len_left < 6) memset(Tmp,0,3);
+		hex_to_raw((const char*)cpi, len_left < 6 ? len_left : 6, (unsigned char*)Tmp);
+		base64_encode_i((const unsigned char*)Tmp, 3, cpo);
+		cpi += 6;
+		cpo += 4;
+		if (len_left >= 6) len += 4;
+		else if (len_left ==2) len +=2;
+		else len += 3;
+		len_left -= 6;
+	}
+	cpo_o[len] = 0;
+	return strlen(cpo_o);
+}
+static int hex_to_mime(const char *cpi, char *cpo) {
+	char Tmp[3], *cpo_o = cpo;
+	int len, len_left = strlen(cpi);
+	len = 0;
+	while (len_left > 0) {
+		if (len_left < 6) memset(Tmp,0,3);
+		hex_to_raw((const char*)cpi, len_left < 6 ? len_left : 6, (unsigned char*)Tmp);
+		base64_encode((const unsigned char*)Tmp, 3, cpo);
+		cpi += 6;
+		cpo += 4;
+		if (len_left >= 6) len += 4;
+		else if (len_left ==2) len +=2;
+		else len += 3;
+		len_left -= 6;
+	}
+	cpo_o[len] = 0;
+	return strlen(cpo_o);
+}
+static int cryptBS_to_hex(const char *cpi, char *cpo) {
+	char Tmp[3], *cpo_o = cpo;
+	int len, this_len=3, len_left = strlen(cpi);
+	len = 0;
+	while (len_left > 0) {
+		if(len_left<4) {if(len_left==1)this_len=1;else if (len_left==2)this_len=2;}
+		base64_decode_iBS((char*)cpi, len_left < 4 ? len_left : 4, (unsigned char*)Tmp);
+		raw_to_hex((const unsigned char*)Tmp, this_len, (char*)cpo);
+		cpi += 4;
+		cpo += 6;
+		len += this_len;
+		len_left -= 4;
+	}
+	len <<= 1;
+	cpo_o[len] = 0;
+	return strlen(cpo_o);
+}
+static int crypt_to_hex(const char *cpi, char *cpo) {
+	char Tmp[3], *cpo_o = cpo;
+	int len, this_len=3, len_left = strlen(cpi);
+	len = 0;
+	while (len_left > 0) {
+		if(len_left<4) {if(len_left==1)this_len=1;else if (len_left==2)this_len=2;}
+		base64_decode_i((char*)cpi, len_left < 4 ? len_left : 4, (unsigned char*)Tmp);
+		raw_to_hex((const unsigned char*)Tmp, this_len, (char*)cpo);
+		cpi += 4;
+		cpo += 6;
+		len += this_len;
+		len_left -= 4;
+	}
+	len <<= 1;
+	cpo_o[len] = 0;
+	return strlen(cpo_o);
+}
+static int mime_to_hex(const char *cpi, char *cpo) {
+	char Tmp[3], *cpo_o = cpo;
+	int len, this_len=3, len_left = strlen(cpi);
+	len = 0;
+	while (len_left > 0) {
+		if(len_left<4) {if(len_left==1)this_len=1;else if (len_left==2)this_len=2;}
+		base64_decode((char*)cpi, len_left < 4 ? len_left : 4, (char*)Tmp);
+		raw_to_hex((const unsigned char*)Tmp, this_len, (char*)cpo);
+		cpi += 4;
+		cpo += 6;
+		len += this_len;
+		len_left -= 4;
+	}
+	len <<= 1;
+	cpo_o[len] = 0;
+	return strlen(cpo_o);
+}
+
+/******************************************************************************************
+ * This function will initialize our base64 conversion data. We also call common_init, in
+ * case it was not called before (it is safe to call multiple times). When we execute the
+ * base64conv tool common_init has not been called by JtR core code, so we HAVE to do it.
+ ******************************************************************************************/
 static void setup_mime() {
 	const char *pos;
 	mime_setup=1;
 	memset(atoi64m, 0x7F, sizeof(atoi64m));
 	for (pos = itoa64m; pos <= &itoa64m[63]; pos++)
 		atoi64m[ARCH_INDEX(*pos)] = pos - itoa64m;
-	/* base64conv tool does not have common_init called by JtR. We have to do it ourselves */
 	common_init();
 }
 
+
+/******************************************************************************************
+ ******************************************************************************************
+ *
+ * These are the main 2 external conversion functions. There also is error functions after
+ * these 2, but these are the main ones.
+ *
+ ******************************************************************************************
+ ******************************************************************************************/
 char *base64_convert_cp(const void *from, b64_convert_type from_t, int from_len, void *to, b64_convert_type to_t, int to_len, unsigned flags)
 {
 	int err = base64_convert(from, from_t, from_len, to, to_t, to_len, flags);
@@ -310,7 +461,6 @@ char *base64_convert_cp(const void *from, b64_convert_type from_t, int from_len,
 }
 int base64_convert(const void *from, b64_convert_type from_t, int from_len, void *to, b64_convert_type to_t, int to_len, unsigned flags)
 {
-	unsigned char *tmp;
 	if (!mime_setup)
 		setup_mime();
 
@@ -370,37 +520,26 @@ int base64_convert(const void *from, b64_convert_type from_t, int from_len, void
 					if (to_len < strlen((char*)from)+1)
 						return ERR_base64_to_buffer_sz;
 					strcpy((char*)to, (const char*)from);
-					if (to_t != from_t) {
-						if (to_t == e_b64_hex)
-							strlwr((char*)to);
-						else
-							strlwr((char*)to);
-					}
+					if (flags&flg_Base64_HEX_UPCASE)
+						strupr((char*)to);
+					else
+						strlwr((char*)to);
 					return from_len;
 				}
 				case e_b64_mime:	/* mime */
 				{
-					tmp = (unsigned char*)mem_alloc(from_len/2);
-					hex_to_raw((const char*)from, from_len, tmp);
-					base64_encode((unsigned char*)tmp, from_len/2, (char*)to);
-					MEM_FREE(tmp);
-					return strlen((char*)to);
+					int len = hex_to_mime((const char *)from, (char *)to);
+					return len;
 				}
 				case e_b64_crypt:	/* crypt encoding */
 				{
-					tmp = (unsigned char*)mem_alloc(from_len/2);
-					hex_to_raw((const char*)from, from_len, tmp);
-					base64_encode_i((unsigned char*)tmp, from_len/2, (char*)to);
-					MEM_FREE(tmp);
-					return strlen((char*)to);
+					int len = hex_to_crypt((const char *)from, (char *)to);
+					return len;
 				}
 				case e_b64_cryptBS:	/* crypt encoding, network order (used by WPA, cisco9, etc) */
 				{
-					tmp = (unsigned char*)mem_alloc(from_len/2);
-					hex_to_raw((const char*)from, from_len, tmp);
-					base64_encode_iBS((unsigned char*)tmp, from_len/2, (char*)to);
-					MEM_FREE(tmp);
-					return strlen((char*)to);
+					int len = hex_to_cryptBS((const char *)from, (char *)to);
+					return len;
 				}
 				default:
 					return ERR_base64_unk_to_type;
@@ -423,13 +562,10 @@ int base64_convert(const void *from, b64_convert_type from_t, int from_len, void
 				case e_b64_hex:		/* hex */
 				{
 					// TODO, validate to_len
-					tmp = (unsigned char*)mem_alloc(from_len);
-					base64_decode((char*)from, from_len, (char*)tmp);
-					raw_to_hex(tmp, B64_TO_RAW_LEN(from_len), (char*)to);
-					MEM_FREE(tmp);
+					int len = mime_to_hex((const char *)from, (char *)to);
 					if (flags&flg_Base64_HEX_UPCASE)
 						strupr((char*)to);
-					return strlen((char*)to);
+					return len;
 				}
 				case e_b64_mime:	/* mime */
 				{
@@ -459,7 +595,7 @@ int base64_convert(const void *from, b64_convert_type from_t, int from_len, void
 			from_len = strlen(cp);
 			while (cp[from_len-1]=='.' && cp[from_len-2]=='.')
 				from_len--;
-			if (cp[from_len-1]=='.' && from_len%4 != 2)
+			if (cp[from_len-1]=='.' && from_len%4 ==2)
 				from_len--;
 			switch(to_t) {
 				case e_b64_raw:		/* raw memory */
@@ -471,13 +607,10 @@ int base64_convert(const void *from, b64_convert_type from_t, int from_len, void
 				case e_b64_hex:		/* hex */
 				{
 					// TODO, validate to_len
-					tmp = (unsigned char*)mem_alloc(from_len);
-					base64_decode_i((char*)from, from_len, (unsigned char*)tmp);
-					raw_to_hex(tmp, B64_TO_RAW_LEN(from_len), (char*)to);
-					MEM_FREE(tmp);
+					int len = crypt_to_hex((const char *)from, (char *)to);
 					if (flags&flg_Base64_HEX_UPCASE)
 						strupr((char*)to);
-					return strlen((char*)to);
+					return len;
 				}
 				case e_b64_mime:	/* mime */
 				{
@@ -519,13 +652,10 @@ int base64_convert(const void *from, b64_convert_type from_t, int from_len, void
 				case e_b64_hex:		/* hex */
 				{
 					// TODO, validate to_len
-					unsigned char *tmp = (unsigned char*)mem_alloc(from_len);
-					base64_decode_iBS((char*)from, from_len, (unsigned char*)tmp);
-					raw_to_hex(tmp, B64_TO_RAW_LEN(from_len), (char*)to);
-					MEM_FREE(tmp);
+					int len = cryptBS_to_hex((const char *)from, (char *)to);
 					if (flags&flg_Base64_HEX_UPCASE)
 						strupr((char*)to);
-					return strlen((char*)to);
+					return len;
 				}
 				case e_b64_mime:	/* mime */
 				{
@@ -575,6 +705,13 @@ char *base64_convert_error(int err) {
 	return p;
 }
 
+/*************************************************************************
+ * Here are the 'main' function and helper functions that make up the
+ * base64_covert application (a JtR symlink).  This test app will allow
+ * conversions to and from for all types, and allows testing the routines
+ * along with is very useful for developers.
+ *************************************************************************/
+/* used by base64conv 'main()' function */
 static int usage(char *name)
 {
 	fprintf(stderr, "Usage: %s [-i input_type] [-o output_type] [-q] [-e] data [data ...]\n"
@@ -592,6 +729,7 @@ static int usage(char *name)
 	return EXIT_FAILURE;
 }
 
+/* used by base64conv 'main()' function */
 static b64_convert_type str2convtype(const char *in) {
 	if (!strcmp(in, "raw")) return e_b64_raw;
 	if (!strcmp(in, "hex")) return e_b64_hex;
@@ -601,7 +739,9 @@ static b64_convert_type str2convtype(const char *in) {
 	return e_b64_unk;
 }
 
-/* simple conerter of strings or raw memory */
+/* simple conerter of strings or raw memory     */
+/* this is a main() function for john, and      */
+/* the program created is ../run/base64_convert */
 int base64conv(int argc, char **argv) {
 	int c;
 	b64_convert_type in_t=e_b64_unk, out_t=e_b64_unk;
@@ -651,7 +791,7 @@ int base64conv(int argc, char **argv) {
 		po[len] = 0;
 		printf("%s\n", po);
 		fflush(stdout);
-		// check for overwrite problems
+		/* check for overwrite problems */
 		if (err_chk) {
 			int tot = strlen(*argv)*3;
 			i=len;
@@ -661,8 +801,11 @@ int base64conv(int argc, char **argv) {
 			for (++i; i < tot; ++i)
 			{
 				if (((unsigned char)po[i]) != 2) {
+					/* we ignore overwrites that are 1 or 2 bytes over.  The way the */
+					/* functions are written, we expect some 1 and 2 byte overflows, */
+					/* and the caller MUST be aware of that fact                     */
 					if (i-len > 2)
-					fprintf(stderr, "OverwriteLogic: byte %c (%02X) located at offset %d (%+d)\n", (unsigned char)po[i], (unsigned char)po[i], i, i-len);
+						fprintf(stderr, "OverwriteLogic: byte %c (%02X) located at offset %d (%+d)\n", (unsigned char)po[i], (unsigned char)po[i], i, i-len);
 				}
 			}
 		}

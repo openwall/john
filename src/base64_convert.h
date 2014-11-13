@@ -2,7 +2,7 @@
  * These are conversion functions for MIME Base64 (as opposed to MIME in base6.[ch] and
  * crypt(3) encoding found in common.[ch]).  This code will convert between many base64
  * types, raw memory, hex, etc.
- * functions added to convert between the 2 types (JimF)
+ * functions added to convert between the 3 types (JimF)
  *
  * Coded Fall 2014 by Jim Fougeron.  Code placed in public domain.
  *
