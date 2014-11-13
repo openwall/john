@@ -915,9 +915,13 @@ static void init_cpu_mask(const char *mask, parsed_ctx *parsed_mask,
 					 mask[j + 1] != '\\') {
 					int x;
 
-/* Remove the character mask[j-1] added in previous iteration, only if it was added.*/
+/*
+ * Remove the character mask[j-1] added in previous iteration, only if it
+ * was added.
+*/
 					if (!memchr((const char*)cpu_mask_ctx->
-					    ranges[i].chars, (int)mask[j - 1], count(i)))
+					    ranges[i].chars, (int)mask[j - 1],
+					            count(i)))
 						count(i)--;
 
 					a = mask[j - 1];
@@ -933,9 +937,13 @@ static void init_cpu_mask(const char *mask, parsed_ctx *parsed_mask,
 					 mask[j + 1] == '\\') {
 					 int x;
 
-/* Remove the character mask[j-1] added in previous iteration, only if it was added.*/
+/*
+ * Remove the character mask[j-1] added in previous iteration, only if it
+ * was added.
+*/
 					if (!memchr((const char*)cpu_mask_ctx->
-					    ranges[i].chars, (int)mask[j - 1], count(i)))
+					    ranges[i].chars, (int)mask[j - 1],
+					            count(i)))
 						count(i)--;
 
 					a = mask[j - 1];
@@ -1102,12 +1110,12 @@ static int generate_keys(cpu_mask_context *cpu_mask_ctx,
 		if (ps == MAX_NUM_MASK_PLHDR) goto done;		\
 		if ((++(ranges(ps).iter)) == ranges(ps).count) {	\
 			ranges(ps).iter = 0;				\
-			template_key[ranges(ps).pos + ranges(ps).offset] =		\
+			template_key[ranges(ps).pos + ranges(ps).offset] = \
 			ranges(ps).chars[ranges(ps).iter];		\
 			ps = ranges(ps).next;				\
 		}							\
 		else {							\
-			template_key[ranges(ps).pos + ranges(ps).offset] =		\
+			template_key[ranges(ps).pos + ranges(ps).offset] = \
 			      ranges(ps).chars[ranges(ps).iter];	\
 			break;						\
 		}							\
@@ -1115,7 +1123,7 @@ static int generate_keys(cpu_mask_context *cpu_mask_ctx,
 
 #define init_key(ps)							\
 	while (ps != MAX_NUM_MASK_PLHDR) {				\
-		template_key[ranges(ps).pos + ranges(ps).offset] =			\
+		template_key[ranges(ps).pos + ranges(ps).offset] =	\
 		ranges(ps).chars[ranges(ps).iter];			\
 		ps = ranges(ps).next;					\
 	}
@@ -1124,7 +1132,7 @@ static int generate_keys(cpu_mask_context *cpu_mask_ctx,
 	;ranges(ps).iter < ranges(ps).count; ranges(ps).iter++
 
 #define set_template_key(ps, start)					\
-	template_key[ranges(ps).pos + ranges(ps).offset] =				\
+	template_key[ranges(ps).pos + ranges(ps).offset] =		\
 		start ? start + ranges(ps).iter:			\
 		ranges(ps).chars[ranges(ps).iter];
 
@@ -1360,7 +1368,8 @@ void mask_fix_state(void)
 		rec_ctx.ranges[i].iter = cpu_mask_ctx.ranges[i].iter;
 }
 
-void remove_slash(char *mask) {
+void remove_slash(char *mask)
+{
 	int i = 0;
 	while (i < strlen(mask)) {
 		if (mask[i] == '\\') {
@@ -1442,7 +1451,7 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 	mask = options.mask;
 	template_key = (char*)mem_alloc(0x400);
 
-	/* Handle command-line arguments given in UTF-8 */
+	/* Handle command-line (or john.conf) masks given in UTF-8 */
 	if (pers_opts.input_enc == UTF_8 && pers_opts.internal_enc != UTF_8) {
 		if (valid_utf8((UTF8*)mask) > 1)
 			utf8_to_cp_r(mask, mask, strlen(mask));
@@ -1647,7 +1656,8 @@ int do_mask_crack(const char *key)
 			generate_template_key(mask, key, key_len, &parsed_mask,
 		                      &cpu_mask_ctx);
 
-			if (options.node_count && !(options.flags & FLG_MASK_STACKED) && restored) {
+			if (options.node_count &&
+			    !(options.flags & FLG_MASK_STACKED) && restored) {
 				cand = divide_work(&cpu_mask_ctx);
 				restored = 1;
 			}
@@ -1656,9 +1666,11 @@ int do_mask_crack(const char *key)
 			template_key_len = strlen(template_key);
 
 			while(template_key_offsets[j] != -1) {
-				int cpy_len = max_keylen - template_key_offsets[j];
+				int cpy_len = max_keylen -
+					template_key_offsets[j];
 				cpy_len = cpy_len > key_len ? key_len : cpy_len;
-				memcpy(template_key + template_key_offsets[j++], key, cpy_len);
+				memcpy(template_key + template_key_offsets[j++],
+				       key, cpy_len);
 			}
 
 			if (generate_keys(&cpu_mask_ctx, &cand))
@@ -1678,7 +1690,8 @@ int do_mask_crack(const char *key)
 		while(template_key_offsets[i] != -1) {
 			int cpy_len = max_keylen - template_key_offsets[i];
 			cpy_len = cpy_len > key_len ? key_len : cpy_len;
-			memcpy(template_key + template_key_offsets[i++], key, cpy_len);
+			memcpy(template_key + template_key_offsets[i++], key,
+			       cpy_len);
 		}
 
 		if (generate_keys(&cpu_mask_ctx, &cand))
