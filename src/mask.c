@@ -161,11 +161,12 @@ static char* plhdr2string(char p, int fmt_case)
 #define add_range(a, b)	for (j = a; j <= b; j++) *o++ = j
 #define add_string(str)	for (s = (char*)str; *s; s++) *o++ = *s
 
-	if (pers_opts.internal_enc == ASCII &&
+	if ((pers_opts.internal_enc == ASCII ||
+	     pers_opts.internal_enc == UTF_8) &&
 	    (p == 'L' || p == 'U' || p == 'D' || p == 'S')) {
 		if (john_main_process)
-			fprintf(stderr, "Can't use 8-bit ?%c placeholder with "
-			        "ASCII encoding\n", p);
+		fprintf(stderr, "Can't use ?%c placeholder with %s encoding\n",
+			        p, cp_id2name(pers_opts.internal_enc));
 		error();
 	}
 
