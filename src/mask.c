@@ -40,6 +40,12 @@ static int max_keylen, fmt_maxlen, rec_len, restored_len, restored = 1;
 int mask_add_len, mask_num_qw;
 
 /*
+ * This keeps track of whether we have any 8-bit in our non-hybrid mask.
+ * If we do not, we can skip expensive encoding conversions
+ */
+static int mask_has_8bit;
+
+/*
  * cand and rec_cand is the number of remaining candidates.
  * So, it's value decreases as cracking progress.
  */
@@ -1072,6 +1078,27 @@ static char* generate_template_key(char *mask, const char *key, int key_len,
 		}
 	}
 
+	if (!mask_has_8bit && !(options.flags & FLG_MASK_STACKED)) {
+		for (i = 0; i < strlen(template_key); i++)
+			if (template_key[i] & 0x80) {
+				mask_has_8bit = 1;
+				break;
+			}
+
+		for (i = 0; !mask_has_8bit && i <= cpu_mask_ctx->count; i++)
+		if (cpu_mask_ctx->ranges[i].pos < max_keylen) {
+			for (j = 0; j < cpu_mask_ctx->ranges[i].count; j++) {
+				if (cpu_mask_ctx->ranges[i].chars[j] & 0x80) {
+					mask_has_8bit = 1;
+					break;
+				}
+			}
+		}
+	}
+#ifdef MASK_DEBUG
+	fprintf(stderr, "Mask '%s' has%s 8-bit\n", template_key, mask_has_8bit ? "" : " no");
+#endif
+
 	template_key[k] = '\0';
 
 	return template_key;
@@ -1082,7 +1109,8 @@ static MAYBE_INLINE char* mask_cp_to_utf8(char *in)
 {
 	static char out[PLAINTEXT_BUFFER_SIZE + 1];
 
-	if (pers_opts.internal_enc != UTF_8 && pers_opts.target_enc == UTF_8)
+	if (mask_has_8bit &&
+	    (pers_opts.internal_enc != UTF_8 && pers_opts.target_enc == UTF_8))
 		return cp_to_utf8_r(in, out, fmt_maxlen);
 
 	return in;
@@ -1523,6 +1551,7 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 		}
 	}
 	if (options.flags & FLG_MASK_STACKED) {
+		mask_has_8bit = 1;
 		if (mask_add_len > max_keylen - 1)
 			mask_add_len = max_keylen - 1;
 
