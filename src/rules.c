@@ -1203,8 +1203,8 @@ static char* rules_cp_to_utf8(char *in)
 {
 	static char out[PLAINTEXT_BUFFER_SIZE + 1];
 
-	if (pers_opts.internal_enc != UTF_8 &&
-	    pers_opts.internal_enc != pers_opts.target_enc)
+	if (!(options.flags & FLG_MASK_STACKED) &&
+	    pers_opts.internal_enc != UTF_8 && pers_opts.target_enc == UTF_8)
 		return cp_to_utf8_r(in, out, rules_max_length);
 
 	return in;
@@ -1218,8 +1218,7 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 	int length;
 	int which;
 
-	if (pers_opts.internal_enc != UTF_8 &&
-	    pers_opts.internal_enc != pers_opts.target_enc)
+	if (pers_opts.internal_enc != UTF_8 && pers_opts.target_enc == UTF_8)
 		memory = word = utf8_to_cp_r(word_in, cpword,
 		                             PLAINTEXT_BUFFER_SIZE);
 	else
