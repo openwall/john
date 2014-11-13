@@ -188,6 +188,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *p;
 	int length;
+	unsigned tmp;
 
 	if (strncmp(ciphertext, "$7$", 3))
 		return 0;
@@ -206,6 +207,13 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	length = 0;
 	while (atoi64[ARCH_INDEX(*++p)] != 0x7F)
 		length++;
+
+	decode64_uint32(&tmp, 30, (const uint8_t *)&ciphertext[4]);
+	if (!tmp)
+		return 0;
+	decode64_uint32(&tmp, 30, (const uint8_t *)&ciphertext[4+5]);
+	if (!tmp)
+		return 0;
 
 	//return !*p && length == 43;
 	// we want the hash to use 32 bytes OR more
