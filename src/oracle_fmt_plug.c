@@ -179,10 +179,13 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[2 + sizeof(cur_salt) + 1 + CIPHERTEXT_LENGTH];
+	char *cp;
 
 	strnzcpy(out, ciphertext, sizeof(out));
 	enc_strupper(&out[2]);
-	strlwr(strrchr(out, '#'));
+	cp = strrchr(out, '#');
+	if (cp)
+		strlwr(cp);
 
 	return out;
 }
