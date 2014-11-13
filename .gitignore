@@ -11,6 +11,7 @@
 
 Makefile
 
+run/base64conv
 run/calc_stat
 run/cprepair
 run/dmg2john
@@ -65,5 +66,6 @@ src/john_build_rule.h
 src/memdbg_defines.h
 src/para-bench
 src/stamp-h1
+src/Unicode
 
 test/
