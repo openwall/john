@@ -1830,7 +1830,7 @@ sub oracle {
 	require Crypt::CBC;
 	# snagged perl source from http://users.aber.ac.uk/auj/freestuff/orapass.pl.txt
 	my $username;
-	if (defined $argsalt) { $username = $argsalt; } else { $username = randusername(16); }
+	if (defined $argsalt) { $username = $argsalt; } else { $username = randusername(30); }
 	my $pass = $_[1];
 #	print "orig = " . $username . $pass . "\n";
 #	print "upcs = " . uc($username.$pass) . "\n\n";

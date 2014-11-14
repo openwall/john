@@ -145,8 +145,8 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 	sprintf (cp, "O$%s#%s", split_fields[0], split_fields[1]);
 	if (valid(cp, self))
 	{
-		UTF8 tmp8[16*3+1];
-		UTF16 tmp16[17];
+		UTF8 tmp8[30*3+1];
+		UTF16 tmp16[31];
 		int utf8len, utf16len;
 
 		// we no longer need this.  It was just used for valid().   We will recompute
@@ -155,13 +155,13 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 		MEM_FREE(cp);
 
 		// Upcase user name, --encoding aware
-		utf8len = enc_uc(tmp8, 16*3, (unsigned char*)split_fields[0], strlen(split_fields[0]));
+		utf8len = enc_uc(tmp8, 30*3, (unsigned char*)split_fields[0], strlen(split_fields[0]));
 
 		if (utf8len <= 0 && split_fields[0][0])
 			return split_fields[1];
 
-		// make sure this 'fits' into 16 unicode's
-		utf16len = enc_to_utf16(tmp16, 16, tmp8, utf8len);
+		// make sure this 'fits' into 30 unicode's
+		utf16len = enc_to_utf16(tmp16, 30, tmp8, utf8len);
 		if (utf16len <= 0)
 			return split_fields[1];
 
@@ -180,7 +180,6 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[2 + sizeof(cur_salt) + 1 + CIPHERTEXT_LENGTH];
 	char *cp;
-
 	strnzcpy(out, ciphertext, sizeof(out));
 	enc_strupper(&out[2]);
 	cp = strrchr(out, '#');
