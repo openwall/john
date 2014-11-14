@@ -16,6 +16,16 @@
 #ifndef _BASE64_CONVERT_H
 #define _BASE64_CONVERT_H
 
+/*********************************************************************
+ * Length macros which convert from one system to the other.
+ * RAW_TO_B64_LEN(x) returns 'exact' base64 string length needed. NOTE, some base64 will padd to
+ *     an even 4 characters.  The length from this macro DOES NOT include padding values.
+ * B64_TO_RAW_LEN(x) returns raw string length needed for the base-64 string that is NOT padded
+ *     in any way (i.e.  needs to be same value as returned from RAW_TO_B64_LEN(x)  )
+ *********************************************************************/
+#define RAW_TO_B64_LEN(a) (((a)*4+2)/3)
+#define B64_TO_RAW_LEN(a) (((a)*3+1)/4)
+
 typedef enum {
 		e_b64_unk=-1,	/* invalid type seen from command line usage */
 		e_b64_raw,		/* raw memory */
@@ -40,6 +50,7 @@ typedef enum {
  */
 int base64_convert(const void *from, b64_convert_type from_t, int from_len, void *to, b64_convert_type to_t, int to_len, unsigned flags);
 char *base64_convert_cp(const void *from, b64_convert_type from_t, int from_len, void *to, b64_convert_type to_t, int to_len, unsigned flags);
+int base64_valid_length(const char *from, b64_convert_type from_t, unsigned flags);
 void base64_convert_error_exit(int err);
 char *base64_convert_error(int err);  /* allocates buffer, which caller must free */
 

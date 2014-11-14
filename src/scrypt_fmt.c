@@ -204,20 +204,18 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (p - ciphertext > BINARY_SIZE - (1 + 43))
 		return 0;
 
-	length = 0;
-	while (atoi64[ARCH_INDEX(*++p)] != 0x7F)
-		length++;
+	++p;
+	length = base64_valid_length(p, e_b64_cryptBS, flg_Base64_NO_FLAGS);
 
-	decode64_uint32(&tmp, 30, (const uint8_t *)&ciphertext[4]);
+	decode64_uint32(&tmp, 30, (const uint8_t *)&p[1]);
 	if (!tmp)
 		return 0;
-	decode64_uint32(&tmp, 30, (const uint8_t *)&ciphertext[4+5]);
+	decode64_uint32(&tmp, 30, (const uint8_t *)&p[1+5]);
 	if (!tmp)
 		return 0;
 
-	//return !*p && length == 43;
-	// we want the hash to use 32 bytes OR more
-	return !*p && length >= 43;
+	// we want the hash to use 32 bytes OR more.  43 base64 bytes is 32 raw bytes
+	return p[length]==0 && length >= 43;
 }
 
 static void *binary(char *ciphertext)

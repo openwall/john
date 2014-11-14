@@ -111,7 +111,7 @@ static struct fmt_tests tests[] = {
 
 static struct custom_salt {
 	uint8_t length;
-	uint8_t salt[MAX_SALT_SIZE + 1];
+	uint8_t salt[MAX_SALT_SIZE + 3];
 	uint32_t rounds;
 } *cur_salt;
 
@@ -132,24 +132,10 @@ static void init(struct fmt_main *self)
 	        self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
-static int isabase64(char a)
-{
-	int ret = 0;
-	if (a >= 'a' && a <= 'z')
-		ret = 1;
-	if (a >= 'A' && a <= 'Z')
-		ret = 1;
-	if (a >= '0' && a <= '9')
-		ret = 1;
-	if (a == '.' || a == '/')
-		ret = 1;
-	return ret;
-}
-
 static char *prepare(char *fields[10], struct fmt_main *self)
 {
 	static char Buf[120];
-	char tmp[44], *cp;
+	char tmp[43+3], *cp;
 
 	if (strncmp(fields[1], FMT_CISCO8, 3) != 0)
 		return fields[1];
@@ -189,53 +175,22 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 	p = strchr(c, '$');
 	if (p == NULL)
 		return 0;
-	while (c < p) {
-		if (!isabase64(*c++))
-			return 0;
-		saltlen++;
-	}
-	saltlen = saltlen * 3 / 4;
+	saltlen = base64_valid_length(c, e_b64_mime, flg_Base64_MIME_PLUS_TO_DOT);
+	c += saltlen;
+	saltlen = B64_TO_RAW_LEN(saltlen);
 	if (saltlen > MAX_SALT_SIZE)
 		return 0;
+	if (*c != '$') return 0;
 	c++;
-	if (strlen(c) != 43)
+	if (base64_valid_length(c, e_b64_mime, flg_Base64_MIME_PLUS_TO_DOT) != 43)
 		return 0;
-	while (*c)
-		if (!isabase64(*c++))
-			return 0;
 	return 1;
-}
-
-/* adapted base64 encoding used by passlib - s/./+/ and trim padding */
-static void abase64_decode(const char *in, int length, char *out, int outlen)
-{
-	int i;
-	static char hash[70 + 1];
-#ifdef DEBUG
-	assert(length <= 70);
-	assert(length % 4 != 1);
-#endif
-	memset(hash, '=', 70);
-	memcpy(hash, in, length);
-	for (i = 0; i < length; i++)
-		if (hash[i] == '.')
-			hash[i] = '+';
-	switch (length % 4) {
-	case 2:
-		length += 2;
-		break;
-	case 3:
-		length++;
-		break;
-	}
-	hash[length] = 0;
-	base64_convert(hash, e_b64_mime, length, out, e_b64_raw, outlen, flg_Base64_NO_FLAGS);
 }
 
 static void *get_salt(char *ciphertext)
 {
 	static struct custom_salt salt;
-	char *p, *c = ciphertext, *oc;
+	char *p, *c = ciphertext;
 
 	memset(&salt, 0, sizeof(salt));
 	c += strlen(FMT_PREFIX);
@@ -248,13 +203,7 @@ static void *get_salt(char *ciphertext)
 		salt.length = 14;
 		return (void*)&salt;
 	}
-	salt.length = 0;
-	oc = c;
-	while (c++ < p)
-		salt.length++;
-	abase64_decode(oc, salt.length, (char *)salt.salt, sizeof(salt.salt));
-	salt.length = salt.length * 3 / 4;
-	//memcpy(salt.hash, (char *)binary(ciphertext), BINARY_SIZE);
+	salt.length = base64_convert(c, e_b64_mime, p-c, salt.salt, e_b64_raw, sizeof(salt.salt), flg_Base64_MIME_PLUS_TO_DOT);
 	return (void *)&salt;
 }
 
@@ -275,7 +224,7 @@ static void *get_binary(char *ciphertext)
 #ifdef DEBUG
 	assert(strlen(c) == 43);
 #endif
-	abase64_decode(c, 43, ret, sizeof(buf.c));
+	base64_convert(c, e_b64_mime, 43, buf.c, e_b64_raw, sizeof(buf.c), flg_Base64_MIME_PLUS_TO_DOT);
 #if !ARCH_LITTLE_ENDIAN
 	for (i = 0; i < BINARY_SIZE/4; ++i) {
 		((ARCH_WORD_32*)ret)[i] = JOHNSWAP(((ARCH_WORD_32*)ret)[i]);

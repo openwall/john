@@ -243,24 +243,10 @@ static void done(void)
 	    "Release Program");
 }
 
-static int isabase64(char a)
-{
-	int ret = 0;
-	if (a >= 'a' && a <= 'z')
-		ret = 1;
-	if (a >= 'A' && a <= 'Z')
-		ret = 1;
-	if (a >= '0' && a <= '9')
-		ret = 1;
-	if (a == '.' || a == '/')
-		ret = 1;
-	return ret;
-}
-
 static char *prepare(char *fields[10], struct fmt_main *self)
 {
 	static char Buf[120];
-	char tmp[44], *cp;
+	char tmp[43+3], *cp;
 
 	if (strncmp(fields[1], FMT_CISCO8, 3) != 0)
 		return fields[1];
@@ -300,48 +286,36 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 	p = strchr(c, '$');
 	if (p == NULL)
 		return 0;
-	while (c < p) {
-		if (!isabase64(*c++))
-			return 0;
-		saltlen++;
-	}
-	saltlen = saltlen * 3 / 4;
+	saltlen = base64_valid_length(c, e_b64_mime, flg_Base64_MIME_PLUS_TO_DOT);
+	c += saltlen;
+	saltlen = B64_TO_RAW_LEN(saltlen);
 	if (saltlen > SALT_LENGTH)
 		return 0;
+	if (*c != '$') return 0;
 	c++;
-	if (strlen(c) != 43)
+	if (base64_valid_length(c, e_b64_mime, flg_Base64_MIME_PLUS_TO_DOT) != 43)
 		return 0;
-	while (*c)
-		if (!isabase64(*c++))
-			return 0;
 	return 1;
 }
 
-/* adapted base64 encoding used by passlib - s/./+/ and trim padding */
-static void abase64_decode(const char *in, int length, char *out, int outlen)
+static void *get_salt(char *ciphertext)
 {
-	int i;
-	char hash[70 + 1];
+	static salt_t salt;
+	char *p, *c = ciphertext;
 
-#ifdef DEBUG
-	assert(length <= 70);
-	assert(length % 4 != 1);
-#endif
-	memset(hash, '=', 70);
-	memcpy(hash, in, length);
-	for (i = 0; i < length; i++)
-		if (hash[i] == '.')
-			hash[i] = '+';
-	switch (length % 4) {
-	case 2:
-		length += 2;
-		break;
-	case 3:
-		length++;
-		break;
+	memset(&salt, 0, sizeof(salt));
+	c += strlen(FMT_PREFIX);
+	salt.rounds = strtol(c, NULL, 10);
+	c = strchr(c, '$') + 1;
+	p = strchr(c, '$');
+	if (p-c==14 && salt.rounds==20000) {
+		// for now, assume this is a cisco8 hash
+		strnzcpy((char*)(salt.salt), c, 15);
+		salt.length = 14;
+		return (void*)&salt;
 	}
-	hash[length] = 0;
-	base64_convert(hash, e_b64_mime, length, out, e_b64_raw, outlen, flg_Base64_NO_FLAGS);
+	salt.length = base64_convert(c, e_b64_mime, p-c, salt.salt, e_b64_raw, sizeof(salt.salt), flg_Base64_MIME_PLUS_TO_DOT);
+	return (void *)&salt;
 }
 
 static void *binary(char *ciphertext)
@@ -355,33 +329,8 @@ static void *binary(char *ciphertext)
 #ifdef DEBUG
 	assert(strlen(c) == 43);
 #endif
-	abase64_decode(c, 43, ret, sizeof(ret));
+	base64_convert(c, e_b64_mime, 43, ret, e_b64_raw, sizeof(ret), flg_Base64_MIME_PLUS_TO_DOT);
 	return ret;
-}
-
-static void *get_salt(char *ciphertext)
-{
-	static salt_t salt;
-	char *p, *c = ciphertext, *oc;
-
-	memset(&salt, 0, sizeof(salt));
-	c += strlen(FMT_PREFIX);
-	salt.rounds = strtol(c, NULL, 10);
-	c = strchr(c, '$') + 1;
-	p = strchr(c, '$');
-	if (p-c==14 && salt.rounds==20000) {
-		// for now, assume this is a cisco8 hash
-		strnzcpy((char*)(salt.salt), c, 15);
-		salt.length = 14;
-		return (void*)&salt;
-	}
-	salt.length = 0;
-	oc = c;
-	while (c++ < p)
-		salt.length++;
-	abase64_decode(oc, salt.length, (char *)salt.salt, sizeof(salt.salt));
-	salt.length = salt.length * 3 / 4;
-	return (void *)&salt;
 }
 
 static void set_salt(void *salt)

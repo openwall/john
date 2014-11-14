@@ -27,6 +27,7 @@
 #include "missing_getopt.h"
 #endif
 #include "memory.h"
+#include "misc.h"
 #include "common.h"
 #include "jumbo.h"
 #include "base64.h"
@@ -40,18 +41,8 @@
 
 /* mime variant of base64, like crypt version in common.c */
 static const char *itoa64m = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-static char atoi64m[0x100];
+static char atoi64m[0x100], atoi64md[0x100];  // the atoi64md[] array maps value for '+' into '.'
 static int mime_setup=0;
-
-/*********************************************************************
- * Length macros which convert from one system to the other.
- * RAW_TO_B64_LEN(x) returns 'exact' base64 string length needed. NOTE, some base64 will padd to
- *     an even 4 characters.  The length from this macro DOES NOT include padding values.
- * B64_TO_RAW_LEN(x) returns raw string length needed for the base-64 string that is NOT padded
- *     in any way (i.e.  needs to be same value as returned from RAW_TO_B64_LEN(x)  )
- *********************************************************************/
-#define RAW_TO_B64_LEN(a) (((a)*4+2)/3)
-#define B64_TO_RAW_LEN(a) (((a)*3+1)/4)
 
 /*********************************************************************
  * NOTE: Decode functions for mime base-64 (found in base64.c)
@@ -439,9 +430,20 @@ static void setup_mime() {
 	memset(atoi64m, 0x7F, sizeof(atoi64m));
 	for (pos = itoa64m; pos <= &itoa64m[63]; pos++)
 		atoi64m[ARCH_INDEX(*pos)] = pos - itoa64m;
+	// passlib encoding uses . and not + BUT they mean the same thing.
+	memcpy(atoi64md, atoi64m, 0x100);
+	atoi64md[ARCH_INDEX('.')] = atoi64md[ARCH_INDEX('+')];
+	atoi64md[ARCH_INDEX('+')] = 0x7f;
 	common_init();
 }
 
+void mime_deplus(char *to) {
+	char *cp = strchr(to, '+');
+	while (cp) {
+		*cp = '.';
+		cp = strchr(cp, '+');
+	}
+}
 
 /******************************************************************************************
  ******************************************************************************************
@@ -487,6 +489,8 @@ int base64_convert(const void *from, b64_convert_type from_t, int from_len, void
 				case e_b64_mime:	/* mime */
 				{
 					base64_encode((unsigned char*)from, from_len, (char*)to);
+					if (flags & flg_Base64_MIME_PLUS_TO_DOT)
+						mime_deplus((char*)to);
 					return strlen((char*)to);
 				}
 				case e_b64_crypt:	/* crypt encoding */
@@ -505,7 +509,6 @@ int base64_convert(const void *from, b64_convert_type from_t, int from_len, void
 		}
 		case e_b64_hex:		/* hex */
 		{
-			from_len = strlen((char*)from);
 			switch(to_t) {
 				case e_b64_raw:		/* raw memory */
 				{
@@ -516,8 +519,7 @@ int base64_convert(const void *from, b64_convert_type from_t, int from_len, void
 				}
 				case e_b64_hex:		/* hex */
 				{
-					from_len = strlen((char*)from);
-					if (to_len < strlen((char*)from)+1)
+					if (to_len < from_len+1)
 						return ERR_base64_to_buffer_sz;
 					strcpy((char*)to, (const char*)from);
 					if (flags&flg_Base64_HEX_UPCASE)
@@ -529,6 +531,8 @@ int base64_convert(const void *from, b64_convert_type from_t, int from_len, void
 				case e_b64_mime:	/* mime */
 				{
 					int len = hex_to_mime((const char *)from, (char *)to);
+					if (flags & flg_Base64_MIME_PLUS_TO_DOT)
+						mime_deplus((char*)to);
 					return len;
 				}
 				case e_b64_crypt:	/* crypt encoding */
@@ -547,52 +551,76 @@ int base64_convert(const void *from, b64_convert_type from_t, int from_len, void
 		}
 		case e_b64_mime:	/* mime */
 		{
-			const char *cp = (const char*)from;
-			from_len = strlen(cp);
-			while (cp[from_len-1]=='=' || cp[from_len-1]=='.')
+			char *fromWrk = (char*)from, fromTmp[256];
+			int alloced=0;
+			while (fromWrk[from_len-1]=='=' || fromWrk[from_len-1]=='.')
 				from_len--;
+
+			/* autohandle the reverse of mime deplus code on input, i.e. auto convert . into + */
+			if (strchr(fromWrk, '.')) {
+				char *cp;
+				if (from_len<sizeof(fromTmp))
+					fromWrk=fromTmp;
+				else {
+					alloced = 1;
+					fromWrk = (char*)mem_alloc(from_len+1);
+				}
+				strnzcpy(fromWrk, (const char*)from, from_len+1);
+				cp = strchr(fromWrk, '.');
+				while (cp) {
+					*cp = '+';
+					cp = strchr(cp, '.');
+				}
+			}
 
 			switch(to_t) {
 				case e_b64_raw:		/* raw memory */
 				{
 					// TODO, validate to_len
-					base64_decode((char*)from, from_len, (char*)to);
+					base64_decode(fromWrk, from_len, (char*)to);
+					if (alloced) MEM_FREE(fromWrk);
 					return B64_TO_RAW_LEN(from_len);
 				}
 				case e_b64_hex:		/* hex */
 				{
 					// TODO, validate to_len
-					int len = mime_to_hex((const char *)from, (char *)to);
+					int len = mime_to_hex((const char *)fromWrk, (char *)to);
 					if (flags&flg_Base64_HEX_UPCASE)
 						strupr((char*)to);
+					if (alloced) MEM_FREE(fromWrk);
 					return len;
 				}
 				case e_b64_mime:	/* mime */
 				{
 					if (to_len < from_len+1)
 						return ERR_base64_to_buffer_sz;
-					memcpy(to, from, from_len);
+					memcpy(to, fromWrk, from_len);
 					((char*)to)[from_len] = 0;
+					if (flags & flg_Base64_MIME_PLUS_TO_DOT)
+						mime_deplus((char*)to);
+					if (alloced) MEM_FREE(fromWrk);
 					return from_len;
 				}
 				case e_b64_crypt:	/* crypt encoding */
 				{
-					int len = mime_to_crypt((const char *)from, (char *)to);
+					int len = mime_to_crypt((const char *)fromWrk, (char *)to);
+					if (alloced) MEM_FREE(fromWrk);
 					return len;
 				}
 				case e_b64_cryptBS:	/* crypt encoding, network order (used by WPA, cisco9, etc) */
 				{
-					int len = mime_to_cryptBS((const char *)from, (char *)to);
+					int len = mime_to_cryptBS((const char *)fromWrk, (char *)to);
+					if (alloced) MEM_FREE(fromWrk);
 					return len;
 				}
 				default:
+					if (alloced) MEM_FREE(fromWrk);
 					return ERR_base64_unk_to_type;
 			}
 		}
 		case e_b64_crypt:	/* crypt encoding */
 		{
 			const char *cp = (const char*)from;
-			from_len = strlen(cp);
 			while (cp[from_len-1]=='.' && cp[from_len-2]=='.')
 				from_len--;
 			if (cp[from_len-1]=='.' && from_len%4 ==2)
@@ -615,6 +643,8 @@ int base64_convert(const void *from, b64_convert_type from_t, int from_len, void
 				case e_b64_mime:	/* mime */
 				{
 					int len = crypt_to_mime((const char *)from, (char *)to);
+					if (flags & flg_Base64_MIME_PLUS_TO_DOT)
+						mime_deplus((char*)to);
 					return len;
 				}
 				case e_b64_crypt:	/* crypt encoding */
@@ -637,7 +667,6 @@ int base64_convert(const void *from, b64_convert_type from_t, int from_len, void
 		case e_b64_cryptBS:	/* crypt encoding, network order (used by WPA, cisco9, etc) */
 		{
 			const char *cp = (const char*)from;
-			from_len = strlen(cp);
 			while (cp[from_len-1]=='.' && cp[from_len-2]=='.')
 				from_len--;
 			if (cp[from_len-1]=='.' && from_len%4 != 2)
@@ -660,6 +689,8 @@ int base64_convert(const void *from, b64_convert_type from_t, int from_len, void
 				case e_b64_mime:	/* mime */
 				{
 					int len = cryptBS_to_mime((const char *)from, (char *)to);
+					if (flags & flg_Base64_MIME_PLUS_TO_DOT)
+						mime_deplus((char*)to);
 					return len;
 				}
 				case e_b64_crypt:	/* crypt encoding */
@@ -703,6 +734,36 @@ char *base64_convert_error(int err) {
 		default:						sprintf(p, "base64_convert_error_exit(%d)\n", err);
 	}
 	return p;
+}
+
+int base64_valid_length(const char *from, b64_convert_type from_t, unsigned flags) {
+	int len=0;
+	if (!mime_setup)
+		setup_mime();
+
+	switch (from_t) {
+		case e_b64_hex:		/* hex */
+			while (atoi16[ARCH_INDEX(*from++)] != 0x7f)
+				++len;
+			break;
+		case e_b64_mime:	/* mime */
+			if (flg_Base64_MIME_PLUS_TO_DOT) {
+				while (atoi64md[ARCH_INDEX(*from++)] != 0x7f)
+					++len;
+			} else {
+				while (atoi64m[ARCH_INDEX(*from++)] != 0x7f)
+					++len;
+			}
+			break;
+		case e_b64_crypt:	/* crypt encoding */
+		case e_b64_cryptBS:	/* crypt encoding, network order (used by WPA, cisco9, etc) */
+			while (atoi64[ARCH_INDEX(*from++)] != 0x7f)
+				++len;
+			break;
+		default:
+			return ERR_base64_unk_from_type;
+	}
+	return len;
 }
 
 /*************************************************************************
