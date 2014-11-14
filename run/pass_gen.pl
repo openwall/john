@@ -2234,6 +2234,13 @@ sub pad16 { # used by pad16($p)  This will null pad a string to 16 bytes long
 	}
 	return $p;
 }
+sub pad20 { # used by pad20($p)  This will null pad a string to 20 bytes long
+	my $p = $_[0];
+	while (length($p) < 20) {
+		$p .= "\0";
+	}
+	return $p;
+}
 # used by pad_md64($p)  This will null pad a string to 64 bytes long, appends the 0x80 after current length, and puts length
 # 'bits' (i.e. length << 3) in proper place for md5 processing.  HSRP format uses this.
 sub pad_md64 {
@@ -2423,7 +2430,7 @@ sub dynamic_compile {
 			$dynamic_args==37 && do {$fmt='sha1($u.$p),usrname=lc';		last SWITCH; };
 			$dynamic_args==38 && do {$fmt='sha1($s.sha1($s.sha1($p))),saltlen=20';	last SWITCH; };
 			$dynamic_args==39 && do {$fmt='md5($s.pad16($p)),saltlen=60';	last SWITCH; };
-			$dynamic_args==40 && do {$fmt='sha1($s.pad16($p)),saltlen=60';	last SWITCH; };
+			$dynamic_args==40 && do {$fmt='sha1($s.pad20($p)),saltlen=60';	last SWITCH; };
 			$dynamic_args==50 && do {$fmt='sha224($p)';					last SWITCH; };
 			$dynamic_args==51 && do {$fmt='sha224($s.$p),saltlen=6';	last SWITCH; };
 			$dynamic_args==52 && do {$fmt='sha224($p.$s)';				last SWITCH; };
@@ -2644,6 +2651,7 @@ sub do_dynamic_GetToken {
 	if (substr($exprStr, 0,13) eq "ripemd320_raw") { push(@gen_toks, "frip320r"); return substr($exprStr,13); }
 	if (substr($exprStr, 0,12) eq "haval256_raw")  { push(@gen_toks, "fhavr"); return substr($exprStr,12); }
 	if (substr($exprStr, 0,5)  eq "pad16")         { push(@gen_toks, "fpad16"); return substr($exprStr,5); }
+	if (substr($exprStr, 0,5)  eq "pad20")         { push(@gen_toks, "fpad20"); return substr($exprStr,5); }
 	if (substr($exprStr, 0,7)  eq "padmd64")       { push(@gen_toks, "fpadmd64"); return substr($exprStr,7); }
 
 	$gen_lastTokIsFunc=1;
@@ -3218,4 +3226,5 @@ sub dynamic_fhave  { require Digest::Haval256; $h = pop @gen_Stack; $h = haval25
 sub dynamic_fhavu  { require Digest::Haval256; $h = pop @gen_Stack; $h = haval256_hex(encode("UTF-16LE",$h)); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_fhavr  { require Digest::Haval256; $h = pop @gen_Stack; $h = haval256($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_fpad16 { $h = pop @gen_Stack; $h = pad16($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_fpad20 { $h = pop @gen_Stack; $h = pad20($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_fpadmd64 { $h = pop @gen_Stack; $h = pad_md64($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }

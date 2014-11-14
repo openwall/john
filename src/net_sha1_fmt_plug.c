@@ -140,7 +140,7 @@ static void *get_salt(char *ciphertext)
 		cs.salt[i] = (atoi16[ARCH_INDEX(ciphertext[2 * i])] << 4) |
 			atoi16[ARCH_INDEX(ciphertext[2 * i + 1])];
 
-	if (0 && len < 230) { // XXX disable "dynamic" since I can't get it to work!
+	if (len < 230) {
 		// return our memset buffer (putting the dyna salt pointer into it).
 		// This keeps teh 'pre-cleaned salt() warning from hitting this format)
 		//return pDynamicFmt->methods.salt(Convert(Conv_Buf, orig_ct));
