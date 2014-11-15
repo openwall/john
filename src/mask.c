@@ -1411,6 +1411,65 @@ void remove_slash(char *mask)
 	}
 }
 
+char *stretch_mask(char *mask, parsed_ctx *parsed_mask)
+{
+	char *stretched_mask;
+	int i, j, k;
+
+	j = strlen(mask);
+	stretched_mask = (char*)malloc(
+		(options.force_maxlength - options.force_minlength) * j + j);
+
+	strncpy(stretched_mask, mask, j);
+	k = 0;
+	while (k <= (options.force_maxlength - options.force_minlength)) {
+		i = strlen(mask) - 1;
+		if (mask[i] == '\\' && i - 1 >= 0) {
+			i--;
+			if (!k) j--;
+		}
+		if (mask[i] == '\\') {
+			if(!k) j++;
+			strncpy(stretched_mask + j, mask + i, 2);
+			j += 2;
+		}
+		else if(mask[i] != ']') {
+		  /* problem correct: check in stack for ?*/
+			if (strchr(BUILT_IN_CHARSET, ARCH_INDEX(mask[i])) &&
+			    i - 1 >= 0 && mask[i - 1] == '?') {
+				strncpy(stretched_mask + j, mask + i - 1, 2);
+				j += 2;
+			}
+			else {
+			      stretched_mask[j] = mask[i];
+			      j++;
+			}
+		}
+		else if (mask[i] == ']') {
+			int l = 0;
+			while (parsed_mask->stack_op_br[l] != -1) l++;
+			if (parsed_mask->stack_cl_br[l-1] == i) {
+				i = parsed_mask->stack_op_br[l-1];
+				strcpy(stretched_mask + j, mask + i);
+				j += strlen(mask + i);
+			}
+			else {
+			      stretched_mask[j] = mask[i];
+			      j++;
+			}
+		}
+		k++;
+	}
+	stretched_mask[j] = '\0';
+
+	i = 0;
+	while (parsed_mask->stack_cl_br[i] != -1) {
+		parsed_mask->stack_cl_br[i] = -1;
+		parsed_mask->stack_op_br[i++] = -1;
+	}
+	return stretched_mask;
+}
+
 /*
  * Notes about escapes, lists and ranges:
  *
@@ -1512,8 +1571,23 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 	/* Parse ranges */
 	parse_braces(mask, &parsed_mask);
 
-	if (parsed_mask.parse_ok)
+	if (parsed_mask.parse_ok) {
+		if (!(options.flags & FLG_MASK_STACKED) &&
+		      options.force_minlength >= 0 &&
+		      options.force_maxlength > options.force_minlength) {
+			mask = stretch_mask(mask, &parsed_mask);
+			parse_braces(mask, &parsed_mask);
+			if (!parsed_mask.parse_ok) {
+				if (john_main_process)
+					fprintf(stderr, "Parse unsuccessful,"
+					 " missing closing"
+					 " bracket\n");
+				error();
+			}
+
+		}
 		parse_qtn(mask, &parsed_mask);
+	}
 	else {
 		if (john_main_process)
 			fprintf(stderr, "Parsing unsuccessful, missing closing"
@@ -1639,6 +1713,10 @@ void mask_done()
 	MEM_FREE(template_key_offsets);
 
 	if (!(options.flags & FLG_MASK_STACKED)) {
+		if (parsed_mask.parse_ok &&
+		      options.force_minlength >= 0 &&
+		      options.force_maxlength > options.force_minlength)
+			MEM_FREE(mask);
 		// For reporting DONE regardless of rounding errors
 		if (!event_abort)
 		mask_tot_cand = ((unsigned long long)status.cands.hi << 32) +
