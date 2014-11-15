@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Cracker for VRRP authentication (cisco varient).
+# Cracker for VRRP authentication (cisco variant).
 #
 # Output Format,
 # packet_number:$vrrp$algo_type$salt$have_extra_salt$extra_salt$hash

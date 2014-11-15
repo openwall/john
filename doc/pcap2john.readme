@@ -29,7 +29,7 @@
 ################################################################################
 # from vrrp2john.py
 ####
-# Cracker for VRRP authentication (cisco varient).
+# Cracker for VRRP authentication (cisco variant).
 #
 # Output Format,
 # packet_number:$vrrp$algo_type$salt$have_extra_salt$extra_salt$hash
@@ -199,7 +199,7 @@
 ################################################################################
 # from gadu2john.py
 ####
-# Cracker for EIGRP authentication (MD5 and SHA-256 varients). Currently, this script is very speculative!
+# Cracker for EIGRP authentication (MD5 and SHA-256 variants). Currently, this script is very speculative!
 # http://tools.ietf.org/html/draft-savage-eigrp-02
 #
 # Wireshark dissects EIGRP messages pretty nicely.

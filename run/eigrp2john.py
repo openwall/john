@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Cracker for EIGRP authentication (MD5 and SHA-256 varients). Currently, this script is very speculative!
+# Cracker for EIGRP authentication (MD5 and SHA-256 variants). Currently, this script is very speculative!
 # http://tools.ietf.org/html/draft-savage-eigrp-02
 #
 # Wireshark dissects EIGRP messages pretty nicely.
