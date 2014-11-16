@@ -450,6 +450,9 @@ if test "x$enable_pcap" != xno ; then
   AC_CHECK_HEADERS([pcap.h pcap/pcap.h],[AC_CHECK_LIB([pcap],[pcap_compile],
         [AC_SUBST(HAVE_PCAP,[-DHAVE_PCAP])] [AC_SUBST(PCAP_LIBS, [-lpcap])])]
         [break])
+  AC_CHECK_HEADERS([pcap.h pcap/pcap.h],[AC_CHECK_LIB([wpcap],[pcap_compile],
+        [AC_SUBST(HAVE_PCAP,[-DHAVE_PCAP])] [AC_SUBST(PCAP_LIBS, [-lwpcap])])]
+        [break])
 else
   AC_MSG_NOTICE([PCAP check disabled])
 fi
@@ -779,8 +782,12 @@ fi
 if test "x$ac_cv_lib_gmp___gmpz_init" = x ; then
    ac_cv_lib_gmp___gmpz_init=no
 fi
-if test "x$ac_cv_lib_pcap_pcap_compile" = x ; then
-   ac_cv_lib_pcap_pcap_compile=no
+using_pcap=no
+if test "x$ac_cv_lib_pcap_pcap_compile" = xyes ; then
+    using_pcap=yes
+fi
+if test "x$ac_cv_lib_wpcap_pcap_compile" = xyes; then
+   using_pcap=yes
 fi
 if test $(echo "$CFLAGS" | ${GREP} -c -- "-O") -eq 0 &&
    test $(echo "$CFLAGS" | ${GREP} -c -- "-xO") -eq 0 &&
@@ -829,7 +836,7 @@ Rexgen (extra cracking mode) ................ ${using_rexgen}
 GMP (performance) ........................... ${ac_cv_lib_gmp___gmpz_init}
 NSS/NSPR (Mozilla format) ................... ${using_nss}
 Kerberos5 (krb5-18 format) .................. ${krb5_found}
-PCAP (vncpcap2john and SIPdump) ............. ${ac_cv_lib_pcap_pcap_compile}
+PCAP (vncpcap2john and SIPdump) ............. ${using_pcap}
 BZ2 (gpg2john extra decompression logic) .... ${using_bz2}
 
 Install missing libraries to get any needed features that were omitted.

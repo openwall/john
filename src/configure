@@ -9973,6 +9973,61 @@ fi
 
 done
 
+  for ac_header in pcap.h pcap/pcap.h
+do :
+  as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
+ac_fn_c_check_header_mongrel "$LINENO" "$ac_header" "$as_ac_Header" "$ac_includes_default"
+if eval test \"x\$"$as_ac_Header"\" = x"yes"; then :
+  cat >>confdefs.h <<_ACEOF
+#define `$as_echo "HAVE_$ac_header" | $as_tr_cpp` 1
+_ACEOF
+ { $as_echo "$as_me:${as_lineno-$LINENO}: checking for pcap_compile in -lwpcap" >&5
+$as_echo_n "checking for pcap_compile in -lwpcap... " >&6; }
+if ${ac_cv_lib_wpcap_pcap_compile+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lwpcap  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char pcap_compile ();
+int
+main ()
+{
+return pcap_compile ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_wpcap_pcap_compile=yes
+else
+  ac_cv_lib_wpcap_pcap_compile=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_wpcap_pcap_compile" >&5
+$as_echo "$ac_cv_lib_wpcap_pcap_compile" >&6; }
+if test "x$ac_cv_lib_wpcap_pcap_compile" = xyes; then :
+  HAVE_PCAP=-DHAVE_PCAP
+ PCAP_LIBS=-lwpcap
+
+fi
+
+        break
+fi
+
+done
+
 else
   { $as_echo "$as_me:${as_lineno-$LINENO}: PCAP check disabled" >&5
 $as_echo "$as_me: PCAP check disabled" >&6;}
@@ -14960,8 +15015,12 @@ fi
 if test "x$ac_cv_lib_gmp___gmpz_init" = x ; then
    ac_cv_lib_gmp___gmpz_init=no
 fi
-if test "x$ac_cv_lib_pcap_pcap_compile" = x ; then
-   ac_cv_lib_pcap_pcap_compile=no
+using_pcap=no
+if test "x$ac_cv_lib_pcap_pcap_compile" = xyes ; then
+    using_pcap=yes
+fi
+if test "x$ac_cv_lib_wpcap_pcap_compile" = xyes; then
+   using_pcap=yes
 fi
 if test $(echo "$CFLAGS" | ${GREP} -c -- "-O") -eq 0 &&
    test $(echo "$CFLAGS" | ${GREP} -c -- "-xO") -eq 0 &&
@@ -15016,7 +15075,7 @@ Rexgen (extra cracking mode) ................ ${using_rexgen}
 GMP (performance) ........................... ${ac_cv_lib_gmp___gmpz_init}
 NSS/NSPR (Mozilla format) ................... ${using_nss}
 Kerberos5 (krb5-18 format) .................. ${krb5_found}
-PCAP (vncpcap2john and SIPdump) ............. ${ac_cv_lib_pcap_pcap_compile}
+PCAP (vncpcap2john and SIPdump) ............. ${using_pcap}
 BZ2 (gpg2john extra decompression logic) .... ${using_bz2}
 
 Install missing libraries to get any needed features that were omitted.
