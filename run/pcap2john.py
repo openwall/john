@@ -939,13 +939,25 @@ if __name__ == "__main__":
 
     for i in range(1, len(sys.argv)):
         pcap_parser_bfd(sys.argv[i])
-        #pcap_parser_vtp(sys.argv[i])
+        try:
+            pcap_parser_vtp(sys.argv[i])
+        except:
+            #sys.stderr.write("vtp could not handle input\n")
+            pass
         pcap_parser_vrrp(sys.argv[i])
         pcap_parser_tcpmd5(sys.argv[i])
-        #pcap_parser_s7(sys.argv[i])
+        try:
+            pcap_parser_s7(sys.argv[i])
+        except:
+            #sys.stderr.write("s7 could not handle input\n")
+            pass
         pcap_parser_rsvp(sys.argv[i])
         pcap_parser_ntp(sys.argv[i])
-        #pcap_parser_krbpa(sys.argv[i])
+        try:
+            pcap_parser_krbpa(sys.argv[i])
+        except:
+            #sys.stderr.write("krbpa could not handle input\n")
+            pass
         pcap_parser_isis(sys.argv[i])
         pcap_parser_hsrp(sys.argv[i])
         pcap_parser_glbp(sys.argv[i])

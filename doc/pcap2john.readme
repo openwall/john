@@ -1,3 +1,15 @@
+This file contains all the prior copyright headers from the independent
+XXX2john.py PCAP conversion utilities.  These have all been combined into
+a single ./run/pcap2john.py, and all of the copyright statements placed
+here.
+
+This file should also contain information and help on how to use the tool,
+how to obtain the pcap input data, etc.  For now, I will simply provide a
+link to a large resource on git owned by Dhiru.
+
+https://github.com/kholia/my-pcaps/
+or a full zip: https://github.com/kholia/my-pcaps/archive/master.zip
+
 ################################################################################
 # from bfd2john.py
 ####
@@ -197,7 +209,7 @@
 ################################################################################
 
 ################################################################################
-# from gadu2john.py
+# from eigrp2john.py
 ####
 # Cracker for EIGRP authentication (MD5 and SHA-256 variants). Currently, this script is very speculative!
 # http://tools.ietf.org/html/draft-savage-eigrp-02
