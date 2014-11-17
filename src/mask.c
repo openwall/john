@@ -1417,12 +1417,11 @@ char *stretch_mask(char *mask, parsed_ctx *parsed_mask)
 	int i, j, k;
 
 	j = strlen(mask);
-	stretched_mask = (char*)malloc(
-		(options.force_maxlength - options.force_minlength) * j + j);
+	stretched_mask = (char*)malloc((options.force_maxlength + 2) * j);
 
 	strncpy(stretched_mask, mask, j);
 	k = 0;
-	while (k <= (options.force_maxlength - options.force_minlength)) {
+	while (k <= options.force_maxlength) {
 		i = strlen(mask) - 1;
 		if (mask[i] == '\\' && i - 1 >= 0) {
 			i--;
@@ -1434,8 +1433,7 @@ char *stretch_mask(char *mask, parsed_ctx *parsed_mask)
 			j += 2;
 		}
 		else if(mask[i] != ']') {
-		  /* problem correct: check in stack for ?*/
-			if (strchr(BUILT_IN_CHARSET, ARCH_INDEX(mask[i])) &&
+		 	if (strchr(BUILT_IN_CHARSET, ARCH_INDEX(mask[i])) &&
 			    i - 1 >= 0 && mask[i - 1] == '?') {
 				strncpy(stretched_mask + j, mask + i - 1, 2);
 				j += 2;
@@ -1573,8 +1571,7 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 
 	if (parsed_mask.parse_ok) {
 		if (!(options.flags & FLG_MASK_STACKED) &&
-		      options.force_minlength >= 0 &&
-		      options.force_maxlength > options.force_minlength) {
+		      options.force_maxlength > 0) {
 			mask = stretch_mask(mask, &parsed_mask);
 			parse_braces(mask, &parsed_mask);
 			if (!parsed_mask.parse_ok) {
@@ -1714,8 +1711,7 @@ void mask_done()
 
 	if (!(options.flags & FLG_MASK_STACKED)) {
 		if (parsed_mask.parse_ok &&
-		      options.force_minlength >= 0 &&
-		      options.force_maxlength > options.force_minlength)
+		    options.force_maxlength > 0)
 			MEM_FREE(mask);
 		// For reporting DONE regardless of rounding errors
 		if (!event_abort)
