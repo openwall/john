@@ -50,7 +50,7 @@ mandir = $(prefix)/man/man1
 NVCC_FLAGS = -c -Xptxas -v -fmad=true
 
 CPPFLAGS = @CPPFLAGS@
-CFLAGSX = -c @CFLAGS@ @CFLAGS_EXTRA@ @HAVE_CUDA@ @HAVE_NSS@ @NSS_CFLAGS@ @OPENSSL_CFLAGS@ @OPENMP_CFLAGS@ @HAVE_MPI@ @PTHREAD_CFLAGS@ $(RELEASE_BLD)
+CFLAGSX = -c @CFLAGS@ @CFLAGS_EXTRA@ @MEMDBG_CFLAGS@ @HAVE_CUDA@ @HAVE_NSS@ @NSS_CFLAGS@ @OPENSSL_CFLAGS@ @OPENMP_CFLAGS@ @HAVE_MPI@ @PTHREAD_CFLAGS@ $(RELEASE_BLD)
 # CFLAGS for use on the main john.c file only
 CFLAGS_MAIN = -DAC_BUILT @CC_MAIN_CPU@ $(CFLAGSX)
 CFLAGS = -DAC_BUILT @CC_CPU@ $(CFLAGSX)
@@ -208,12 +208,6 @@ endif
 # so code can adopt.
 debug:
 	$(MAKE) default CFLAGS="-DDEBUG $(CFLAGS) -O0" CFLAGS_MAIN="-DDEBUG $(CFLAGS_MAIN) -O0"
-
-# Similar but just turn memdbg on instead, and normal optimizations.
-memdbg:
-	$(MAKE) default CFLAGS="-DMEMDBG_BUILD $(CFLAGS)" CFLAGS_MAIN="-DMEMDBG_BUILD $(CFLAGS_MAIN)"
-memdbg_ex:
-	$(MAKE) default CFLAGS="-DMEMDBG_BUILD -DMEMDBG_EXTRA $(CFLAGS)" CFLAGS_MAIN="-DMEMDBG_BUILD -DMEMDBG_EXTRA $(CFLAGS_MAIN)"
 
 help:
 	@echo "The 'older' fat makefile can be done with make --file=Makefile.legacy [target]"

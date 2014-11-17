@@ -656,6 +656,7 @@ NSS_LIBS
 NSS_CFLAGS
 PCAP_LIBS
 HAVE_PCAP
+MEMDBG_CFLAGS
 REXGEN_LIBS
 DL_LIBS
 BZ2_LIBS
@@ -751,6 +752,8 @@ with_icc_asm
 with_openssl
 with_commoncrypto
 with_endian
+enable_memdbg
+enable_memdbg_ex
 enable_openmp_for_fast_formats
 enable_mpi
 enable_rexgen
@@ -1402,6 +1405,8 @@ Optional Features:
   --disable-option-checking  ignore unrecognized --enable/--with options
   --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
+  --enable-memdbg         Enable memdbg memory debugging (safe level)
+  --enable-memdbg-ex      Enable memdbg memory debugging (expanded level)
   --disable-openmp-for-fast-formats
                           Disable OpenMP for fast formats
   --enable-mpi            Use OpenMPI
@@ -3504,6 +3509,21 @@ if test "${with_endian+set}" = set; then :
   withval=$with_endian;
 else
   endian=unknown
+fi
+
+
+# Check whether --enable-memdbg was given.
+if test "${enable_memdbg+set}" = set; then :
+  enableval=$enable_memdbg; memdbg=$enableval
+else
+  memdbg=no
+fi
+
+# Check whether --enable-memdbg-ex was given.
+if test "${enable_memdbg_ex+set}" = set; then :
+  enableval=$enable_memdbg_ex; memdbgex=$enableval
+else
+  memdbgex=no
 fi
 
 
@@ -9915,6 +9935,16 @@ $as_echo "#define FAST_FORMATS_OMP 1" >>confdefs.h
 
 fi
 
+if test "x$memdbg" = xyes ; then
+   MEMDBG_CFLAGS="-DMEMDBG_BUILD"
+fi
+if test "x$memdbgex" = xyes ; then
+   MEMDBG_CFLAGS="-DMEMDBG_BUILD -DMEMDBG_EXTRA"
+fi
+MEMDBG_CFLAGS="${MEMDBG_CFLAGS}"
+
+
+
 LIBS="$BACKUP_LIBS"
 # in makefile, we need to know if building extra pcap items.
 if test "x$enable_pcap" != xno ; then
@@ -15040,6 +15070,12 @@ else
    use_make=$_cv_gnu_make_command
 fi
 
+if test "x$MEMDBG_CFLAGS" = "x"; then
+   memdbg_settings="release (off)"
+else
+   memdbg_settings=${MEMDBG_CFLAGS}
+fi
+
 if test "x$osx_assembler_warn" = xyes; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: **************************************************" >&5
 $as_echo "$as_me: WARNING: **************************************************" >&2;}
@@ -15077,6 +15113,7 @@ NSS/NSPR (Mozilla format) ................... ${using_nss}
 Kerberos5 (krb5-18 format) .................. ${krb5_found}
 PCAP (vncpcap2john and SIPdump) ............. ${using_pcap}
 BZ2 (gpg2john extra decompression logic) .... ${using_bz2}
+Memdbg memory debugging settings ............ ${memdbg_settings}
 
 Install missing libraries to get any needed features that were omitted.
 

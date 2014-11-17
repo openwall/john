@@ -54,6 +54,9 @@ AC_ARG_WITH(commoncrypto, [AS_HELP_STRING([--with-commoncrypto],[Use CommonCrypt
 # Cludge for endian (if not auto detected)
 AC_ARG_WITH(endian, [AS_HELP_STRING([--with-endian=little|big],[Set endianness for target if it doesn't detect properly])],,[endian=unknown])
 
+AC_ARG_ENABLE([memdbg], [AC_HELP_STRING([--enable-memdbg], [Enable memdbg memory debugging (safe level)])], [memdbg=$enableval], [memdbg=no])
+AC_ARG_ENABLE([memdbg-ex], [AC_HELP_STRING([--enable-memdbg-ex], [Enable memdbg memory debugging (expanded level)])], [memdbgex=$enableval], [memdbgex=no])
+
 # Define Features. OpenMP and OpenCL are defined in their respective macros.
 # We define "--disable-FEATURE" when default is "auto".
 # MPI is not "auto" because its network usage might scare people:
@@ -444,6 +447,15 @@ if test "x$ompfast" = xyes ; then
    AC_DEFINE([FAST_FORMATS_OMP], 1, ["Enable if you want OpenMP for fast formats"])
 fi
 
+if test "x$memdbg" = xyes ; then
+   MEMDBG_CFLAGS="-DMEMDBG_BUILD"
+fi
+if test "x$memdbgex" = xyes ; then
+   MEMDBG_CFLAGS="-DMEMDBG_BUILD -DMEMDBG_EXTRA"
+fi
+AC_SUBST([MEMDBG_CFLAGS],["${MEMDBG_CFLAGS}"])
+
+
 LIBS="$BACKUP_LIBS"
 # in makefile, we need to know if building extra pcap items.
 if test "x$enable_pcap" != xno ; then
@@ -806,6 +818,12 @@ else
    use_make=$_cv_gnu_make_command
 fi
 
+if test "x$MEMDBG_CFLAGS" = "x"; then
+   memdbg_settings="release (off)"
+else
+   memdbg_settings=${MEMDBG_CFLAGS}
+fi
+
 AS_IF([test "x$osx_assembler_warn" = xyes],
   [AC_MSG_WARN([**************************************************])]
   [AC_MSG_WARN([* System's 'as' can't assemble AVX instructions. *])]
@@ -838,6 +856,7 @@ NSS/NSPR (Mozilla format) ................... ${using_nss}
 Kerberos5 (krb5-18 format) .................. ${krb5_found}
 PCAP (vncpcap2john and SIPdump) ............. ${using_pcap}
 BZ2 (gpg2john extra decompression logic) .... ${using_bz2}
+Memdbg memory debugging settings ............ ${memdbg_settings}
 
 Install missing libraries to get any needed features that were omitted.
 
