@@ -1650,19 +1650,21 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 	fprintf(stderr, "qw %d minlen %d maxlen %d fmt_len %d mask_add_len %d\n", mask_num_qw, options.force_minlength, options.force_maxlength, fmt_maxlen, mask_add_len);
 #endif
 	/* We decrease these here instead of changing parent modes. */
-	if (options.force_minlength - mask_add_len >= 0)
-		options.force_minlength -= mask_add_len;
-	if (options.force_maxlength)
-		options.force_maxlength -= mask_add_len;
-	if (mask_num_qw) {
-		options.force_minlength /= mask_num_qw;
-		options.force_maxlength /= mask_num_qw;
-	}
+	if (options.flags & FLG_MASK_STACKED) {
+		if (options.force_minlength - mask_add_len >= 0)
+			options.force_minlength -= mask_add_len;
+		if (options.force_maxlength)
+			options.force_maxlength -= mask_add_len;
+		if (mask_num_qw) {
+			options.force_minlength /= mask_num_qw;
+			options.force_maxlength /= mask_num_qw;
+		}
 #ifdef MASK_DEBUG
-	fprintf(stderr, "effective minlen %d maxlen %d fmt_len %d\n",
-	        options.force_minlength, options.force_maxlength,
-	        fmt_maxlen - mask_add_len);
+		fprintf(stderr, "effective minlen %d maxlen %d fmt_len %d\n",
+		        options.force_minlength, options.force_maxlength,
+		        fmt_maxlen - mask_add_len);
 #endif
+	}
 
 	template_key_offsets = (int*)mem_alloc((mask_num_qw + 1) * sizeof(int));
 
