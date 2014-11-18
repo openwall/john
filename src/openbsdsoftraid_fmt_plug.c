@@ -266,11 +266,17 @@ static struct fmt_tests tests_openbsdsoftraid[] = {
 	{NULL}
 };
 
+#ifdef MMX_COEF
+#define ALGORITHM_NAME          "PBKDF2-SHA1 " SHA1_N_STR MMX_TYPE
+#else
+#define ALGORITHM_NAME          "PBKDF2-SHA1 32/" ARCH_BITS_STR
+#endif
+
 struct fmt_main fmt_openbsd_softraid = {
 	{
-		"openbsd-softraid",               // FORMAT_LABEL
-		"OpenBSD SoftRAID",               // FORMAT_NAME
-		"PBKDF2-SHA1 32/" ARCH_BITS_STR,  // ALGORITHM_NAME,
+		"OpenBSD-SoftRAID",               // FORMAT_LABEL
+		"",                               // FORMAT_NAME
+		ALGORITHM_NAME,
 		" (8192 iterations)",             // BENCHMARK_COMMENT
 		-1,                               // BENCHMARK_LENGTH
 		PLAINTEXT_LENGTH,
