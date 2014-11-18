@@ -17,9 +17,12 @@ use strict;
 
 use Digest::MD4 qw(md4 md4_hex md4_base64);
 use Digest::MD5 qw(md5 md5_hex md5_base64);
-use Digest::SHA qw(sha1 sha1_hex sha1_base64 sha224 sha224_hex sha224_base64 sha256 sha256_hex sha256_base64 sha384 sha384_hex sha384_base64 sha512 sha512_hex sha512_base64 );
+use Digest::SHA qw(sha1 sha1_hex sha1_base64
+                   sha224 sha224_hex sha224_base64
+                   sha256 sha256_hex sha256_base64
+                   sha384 sha384_hex sha384_base64
+                   sha512 sha512_hex sha512_base64 );
 use Encode;
-#use Switch 'Perl5', 'Perl6';
 use POSIX;
 use Getopt::Long;
 use MIME::Base64;
@@ -45,7 +48,7 @@ use MIME::Base64;
 #
 # these are decrypt images, which we may not be able to do in perl. We will
 # take these case by case.
-# odf office pdf pkzip zip rar ssh
+# office pdf pkzip zip rar ssh
 #
 # lotus5 is done in some custom C code.  If someone wants to take a crack at
 # it here, be my guest :)
@@ -58,19 +61,18 @@ my @funcs = (qw(DESCrypt BigCrypt BSDIcrypt md5crypt md5crypt_a BCRYPT BCRYPTx
 		mssql oracle oracle_no_upcase_change oracle11 hdaa netntlm_ess
 		openssha l0phtcrack netlmv2 netntlmv2 mschapv2 mscash2 mediawiki
 		crc_32 Dynamic dummy raw-sha224 raw-sha256 raw-sha384 raw-sha512
-		dragonfly3-32 dragonfly4-32 dragonfly3-64 dragonfly4-64
-		salted-sha1 raw_gost raw_gost_cp hmac-sha1 hmac-sha224
+		dragonfly3-32 dragonfly4-32 dragonfly3-64 dragonfly4-64 ssh
+		salted-sha1 raw_gost raw_gost_cp hmac-sha1 hmac-sha224 rar
 		hmac-sha256 hmac-sha384 hmac-sha512 sha256crypt sha512crypt
-		XSHA512 dynamic_27 dynamic_28 pwsafe django drupal7 epi
-		episerver_sha1 episerver_sha256 hmailserver ike keepass
+		XSHA512 dynamic_27 dynamic_28 pwsafe django drupal7 epi zip
+		episerver_sha1 episerver_sha256 hmailserver ike keepass pkzip
 		keychain nukedclan pfx racf radmin raw-SHA sip SybaseASE vnc
 		wbb3 wpapsk sunmd5 wowsrp django-scrypt aix-ssha1 aix-ssha256
-		aix-ssha512 pbkdf2-hmac-sha512 pbkdf2-hmac-sha256 scrypt
-		rakp osc formspring skey_md5 pbkdf2-hmac-sha1
+		aix-ssha512 pbkdf2-hmac-sha512 pbkdf2-hmac-sha256 scrypt pdf
+		rakp osc formspring skey_md5 pbkdf2-hmac-sha1 odf odf-1 office
 		skey_md4 skey_sha1 skey_rmd160 cloudkeychain agilekeychain));
 
-# todo: ike keepass cloudkeychain agilekeychain pfx racf sip vnc
-
+# todo: ike keepass cloudkeychain agilekeychain pfx racf sip vnc office pdf pkzip zip rar ssh raw_gost_cp
 my $i; my $h; my $u; my $salt;
 my @chrAsciiText=('a'..'z','A'..'Z');
 my @chrAsciiTextLo=('a'..'z');
@@ -106,7 +108,7 @@ my $debug_pcode=0; my $gen_needs; my $gen_needs2; my $gen_needu; my $gen_singles
 # These global vars settable by command line args.
 #########################################################
 my $arg_utf8 = 0; my $arg_codepage = ""; my $arg_minlen = 0; my $arg_maxlen = 128; my $arg_dictfile = "unknown";
-my $arg_count = 1500, my $argsalt, my $arg_nocomment = 0; my $arg_hidden_cp; my $arg_loops=-1;
+my $arg_count = 1500, my $argsalt, my $argiv, my $arg_nocomment = 0; my $arg_hidden_cp; my $arg_loops=-1;
 my $arg_tstall = 0; my $arg_genall = 0; my $arg_nrgenall = 0;
 
 GetOptions(
@@ -117,6 +119,7 @@ GetOptions(
 	'minlength=n'      => \$arg_minlen,
 	'maxlength=n'      => \$arg_maxlen,
 	'salt=s'           => \$argsalt,
+	'iv=s'             => \$argiv,
 	'count=n'          => \$arg_count,
 	'loops=n'          => \$arg_loops,
 	'dictfile=s'       => \$arg_dictfile,
@@ -162,6 +165,7 @@ $s
                   allows setting a custom count for some formats.
 
     -salt <s>     Force a single salt (only supported in a few formats)
+    -iv <s>       Force a single iv (only supported in a few formats)
     -dictfile <s> Put name of dict file into the first line comment
     -nocomment    eliminate the first line comment
 
@@ -648,40 +652,6 @@ sub base64_aix {
 	return $out;
 }
 
-#sub ns_base64 {
-#	my $ret = "";
-#	my $n; my @ha = split(//,$h);
-#	for ($i = 0; $i <= $_[0]; ++$i) {
-#		# the first one gets some unitialized at times.
-#		#$n = ord($ha[$i*3+2]) | (ord($ha[$i*3+1])<<8)  | (ord($ha[$i*3])<<16);
-#		$n = ord($ha[$i*3])<<16;
-#		if (@ha > $i*3+1) {$n |= (ord($ha[$i*3+1])<<8);}
-#		if (@ha > $i*3+2) {$n |= ord($ha[$i*3+2]);}
-#		$ret .= "$ns_i64[($n>>18)&0x3F]";
-#		if ($_[1] == 3 && $i == $_[0]) { $ret .= "="; }
-#		else {$ret .= "$ns_i64[($n>>12)&0x3F]"; }
-#		if ($_[1] > 1 && $i == $_[0]) { $ret .= "="; }
-#		else {$ret .= "$ns_i64[($n>>6)&0x3F]"; }
-#		if ($_[1] > 0 && $i == $_[0]) { $ret .= "="; }
-#		else {$ret .= "$ns_i64[$n&0x3F]"; }
-#	}
-#	return $ret;
-#}
-##helper function for ns
-#sub ns_base64_2 {
-#	my $ret = "";
-#	my $n; my @ha = split(//,$h);
-#	for ($i = 0; $i < $_[0]; ++$i) {
-#		# the first one gets some unitialized at times..  Same as the fix in ns_base64
-#		#$n = ord($ha[$i*2+1]) | (ord($ha[$i*2])<<8);
-#		$n = ord($ha[$i*2])<<8;
-#		if (@ha > $i*2+1) { $n |= ord($ha[$i*2+1]); }
-#		$ret .= "$ns_i64[($n>>12)&0xF]";
-#		$ret .= "$ns_i64[($n>>6)&0x3F]";
-#		$ret .= "$ns_i64[$n&0x3F]";
-#	}
-#	return $ret;
-#}
 # helper function to convert binary to hex.  Many formats store salts and such in hex
 sub saltToHex {
 	my $ret = "";
@@ -751,74 +721,50 @@ sub ripemd128_hex {
 	# these come from CryptX which is very hard to get working under Cygwin, but the only place
 	# to find RIPEMD128, RIPEMD266, RIPEMD320.  We use the Crypt::Digest usage, instead of
 	# loading each Digest type (4 of them, at least)
-	#require Crypt::Digest;
-	#Crypt::Digest::digest_data_hex('RIPEMD128', $_[0]);
 	require Crypt::Digest::RIPEMD128;
 	Crypt::Digest::RIPEMD128::ripemd128_hex($_[0]);
 }
 sub ripemd128 {
-	#require Crypt::Digest::RIPEMD128;
-	#Crypt::Digest::digest_data('RIPEMD128', $_[0]);
 	require Crypt::Digest::RIPEMD128;
 	Crypt::Digest::RIPEMD128::ripemd128($_[0]);
 }
 sub ripemd128_base64 {
-	#require Crypt::Digest;
-	#Crypt::Digest::digest_data_base64('RIPEMD128', $_[0]);
 	require Crypt::Digest::RIPEMD128;
 	Crypt::Digest::RIPEMD128::ripemd128_base64($_[0]);
 }
 sub ripemd160_hex {
-	#require Crypt::Digest;
-	#Crypt::Digest::digest_data_hex('RIPEMD160', $_[0]);
 	require Crypt::Digest::RIPEMD160;
 	Crypt::Digest::RIPEMD160::ripemd160_hex($_[0]);
 }
 sub ripemd160 {
-	#require Crypt::Digest;
-	#Crypt::Digest::digest_data('RIPEMD160', $_[0]);
 	require Crypt::Digest::RIPEMD160;
 	Crypt::Digest::RIPEMD160::ripemd160($_[0]);
 }
 sub ripemd160_base64 {
-	#require Crypt::Digest;
-	#Crypt::Digest::digest_data_base64('RIPEMD160', $_[0]);
 	require Crypt::Digest::RIPEMD160;
 	Crypt::Digest::RIPEMD160::ripemd160_base64($_[0]);
 }
 sub ripemd256_hex {
-	#require Crypt::Digest;
-	#Crypt::Digest::digest_data_hex('RIPEMD256', $_[0]);
 	require Crypt::Digest::RIPEMD256;
 	Crypt::Digest::RIPEMD256::ripemd256_hex($_[0]);
 }
 sub ripemd256 {
-	#require Crypt::Digest;
-	#Crypt::Digest::digest_data('RIPEMD256', $_[0]);
 	require Crypt::Digest::RIPEMD256;
 	Crypt::Digest::RIPEMD256::ripemd256($_[0]);
 }
 sub ripemd256_base64 {
-	#require Crypt::Digest;
-	#Crypt::Digest::digest_data_base64('RIPEMD256', $_[0]);
 	require Crypt::Digest::RIPEMD256;
 	Crypt::Digest::RIPEMD256::ripemd256_base64($_[0]);
 }
 sub ripemd320_hex {
-	#require Crypt::Digest;
-	#Crypt::Digest::digest_data_hex('RIPEMD320', $_[0]);
 	require Crypt::Digest::RIPEMD320;
 	Crypt::Digest::RIPEMD320::ripemd320_hex($_[0]);
 }
 sub ripemd320 {
-	#require Crypt::Digest;
-	#Crypt::Digest::digest_data('RIPEMD320', $_[0]);
 	require Crypt::Digest::RIPEMD320;
 	Crypt::Digest::RIPEMD320::ripemd320($_[0]);
 }
 sub ripemd320_base64 {
-	#require Crypt::Digest;
-	#Crypt::Digest::digest_data_base64('RIPEMD320', $_[0]);
 	require Crypt::Digest::RIPEMD320;
 	Crypt::Digest::RIPEMD320::ripemd320_base64($_[0]);
 }
@@ -829,29 +775,11 @@ sub ripemd320_base64 {
 #  all salted formats choose 'random' salts, in one way or another.
 #############################################################################
 sub descrypt {
-	#require Authen::Passphrase::DESCrypt;
-	#if ($argsalt && length($argsalt)==2) {
-	#	$h = Authen::Passphrase::DESCrypt->new(passphrase => $_[0], salt_base64 => $argsalt);
-	#} else {
-	#	$h = Authen::Passphrase::DESCrypt->new(passphrase => $_[0], salt_random => 12);
-	#}
-	#print "u$u-descrypt:", $h->as_crypt, ":$u:0:$_[0]::\n";
-
 	require Crypt::UnixCrypt_XS;
 	if ($argsalt && length($argsalt)==2) { $salt = $argsalt; } else { $salt = randstr(2,\@i64); }
-	# we replaced Authen::Passphrase::DESCrypt with crypt() and later with Crypt::UnixCrypt_XS::crypt()
-	# crypt 'works', but ONLY if a system has crypt(1) installed.  Authen::Passphrase used Crypt::UnixCrypt_XS
-	# so we 'still' have to have that CPAN mod installed.  We also fully qualify Crypt::UnixCrypt_XS::crypt()
-	# so that crypt() builtin is not called.
 	print "u$u-descrypt:", Crypt::UnixCrypt_XS::crypt($_[1], $salt), ":$u:0:$_[0]::\n";
 }
 sub bigcrypt {
-	#require Authen::Passphrase::BigCrypt;
-	#if (length($_[0]) > 8) {
-	#	$h = Authen::Passphrase::BigCrypt->new(passphrase => $_[0], salt_random => 12);
-	#	print "u$u-DES_BigCrypt:", $h->salt_base64_2, $h->hash_base64, ":$u:0:$_[0]::\n";
-	#}
-
 	require Crypt::UnixCrypt_XS;
 	if (length($_[0]) > 8) {
 		if ($argsalt && length($argsalt)==2) { $salt = $argsalt; } else { $salt = randstr(2,\@i64); }
@@ -871,26 +799,14 @@ sub bigcrypt {
 	}
 }
 sub bsdicrypt {
-	#require Authen::Passphrase::DESCrypt;
-	#$h = Authen::Passphrase::DESCrypt->new(passphrase => $_[0], fold => 1, nrounds => 725, salt_random => 24);
-	#print "u$u-BSDIcrypt:", $h->as_crypt, ":$u:0:$_[0]::\n";
-	#$argsalt = substr($h->as_crypt,5,4);
-
 	require Crypt::UnixCrypt_XS;
 	my $block = "\0\0\0\0\0\0\0\0";
 	my $rounds = 725;
 	if ($argsalt && length($argsalt)==4) { $salt = $argsalt; } else { $salt = randstr(4,\@i64); }
-	# all of this is now done using Crypt::UnixCrypt_XS functions (vs using Authen::PassPhrase).  Authen::PassPrase
-	# already required Crypt::UnixCrypt_XS, so this is really no additional dependancy.
 	my $h = Crypt::UnixCrypt_XS::crypt_rounds(Crypt::UnixCrypt_XS::fold_password($_[1]),$rounds,Crypt::UnixCrypt_XS::base64_to_int24($salt),$block);
 	print "u$u-BSDIcrypt:_", Crypt::UnixCrypt_XS::int24_to_base64($rounds), $salt, Crypt::UnixCrypt_XS::block_to_base64($h), ":$u:0:$_[0]::\n";
 }
 sub md5crypt {
-#require Authen::Passphrase::MD5Crypt;
-#	if (length($_[0]) > 15) { print "Warning, john can only handle 15 byte passwords for this format!\n"; }
-#	$h = Authen::Passphrase::MD5Crypt->new(passphrase => $_[0], salt_random => 1);
-#	print "u$u-md5crypt:", $h->as_crypt, ":$u:0:$_[0]::\n";
-
 	if (length($_[1]) > 15) { print STDERR "Warning, john can only handle 15 byte passwords for this format!\n"; }
 	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(8); }
 	$h = md5crypt_hash($_[1], $salt, "\$1\$");
@@ -935,33 +851,13 @@ sub bfx_fix_pass {
 	}
 }
 sub bcryptx {
-	#require Authen::Passphrase::BlowfishCrypt;
 	my $fixed_pass = bfx_fix_pass($_[1]);
-	#if ($argsalt && length($argsalt)==16) {
-	#	$h = Authen::Passphrase::BlowfishCrypt->new(passphrase => $fixed_pass, cost => 5, salt => $argsalt);
-	#}
-	#else {
-	#	$h = Authen::Passphrase::BlowfishCrypt->new(passphrase => $fixed_pass, cost => 5, salt_random => 1);
-	#}
-	#my $hash_str = $h->as_crypt;
-	#$hash_str =~ s/\$2a\$/\$2x\$/;
-	#print "u$u-BCRYPT:", $hash_str, ":$u:0:$_[0]::\n";
-
 	require Crypt::Eksblowfish::Bcrypt;
 	if ($argsalt && length($argsalt)==16) { $salt = $argsalt; } else { $salt = randstr(16,\@i64); }
 	my $hash = Crypt::Eksblowfish::Bcrypt::bcrypt_hash({key_nul => 1, cost => 5, salt => $salt, }, $fixed_pass);
 	print "u$u-BCRYPT:\$2x\$05\$", Crypt::Eksblowfish::Bcrypt::en_base64($salt), Crypt::Eksblowfish::Bcrypt::en_base64($hash), ":$u:0:$_[0]::\n";
 }
 sub bcrypt {
-	#require Authen::Passphrase::BlowfishCrypt;
-	#if ($argsalt && length($argsalt)==16) {
-	#	$h = Authen::Passphrase::BlowfishCrypt->new(passphrase => $_[0], cost => 5, salt => $argsalt);
-	#}
-	#else {
-	#	$h = Authen::Passphrase::BlowfishCrypt->new(passphrase => $_[0], cost => 5, salt_random => 1);
-	#}
-	#print "u$u-BCRYPT:", $h->as_crypt, ":$u:0:$_[0]::\n";
-
 	require Crypt::Eksblowfish::Bcrypt;
 	if ($argsalt && length($argsalt)==16) { $salt = $argsalt; } else { $salt = randstr(16,\@i64); }
 	my $hash = Crypt::Eksblowfish::Bcrypt::bcrypt_hash({key_nul => 1, cost => 5, salt => $salt, }, $_[1]);
@@ -979,13 +875,6 @@ sub _bfegg_en_base64($) {
 	return $digits;
 }
 sub bfegg {
-#	require Authen::Passphrase::BlowfishCrypt;
-#	require Authen::Passphrase::EggdropBlowfish;
-#	if (length($_[0]) > 0) {
-#		$h = Authen::Passphrase::EggdropBlowfish->new(passphrase => $_[0] );
-#		print "u$u-BFegg:+", $h->hash_base64, ":$u:0:$_[0]::\n";
-#	}
-
 	require Crypt::Eksblowfish::Uklblowfish;
 	if (length($_[1]) > 0) {
 		my $cipher = Crypt::Eksblowfish::Uklblowfish->new($_[1]);
@@ -1092,6 +981,49 @@ sub mscash {
 	if (defined $argsalt) { $salt = $argsalt; } else { $salt = randusername(19); }
 	print "$salt:", md4_hex(md4(encode("UTF-16LE",$_[0])).encode("UTF-16LE", lc($salt))),
 			":$u:0:$_[0]:mscash (uname is salt):\n";
+}
+sub vnc {
+}
+sub odf {
+	my $iv;
+	if (defined $argsalt && length ($argsalt)==16) { $salt = $argsalt; } else { $salt = randstr(16); }
+	if (defined $argiv && length ($argiv)==8) { $iv = $argiv; } else { $iv = randstr(8); }
+	my $content = randstr(1024);
+	my $s = sha1($_[0]);
+	my $key = pp_pbkdf2($s, $salt, 1024, "sha1", 16);
+	use Crypt::OpenSSL::Blowfish::CFB64;
+	my $crypt = Crypt::OpenSSL::Blowfish::CFB64->new($key, $iv);
+	my $output = $crypt->decrypt($content);
+	$s = sha1($output);
+
+	print "u$u-odf:\$odf\$*0*0*1024*16*".unpack("H*",$s)."*8*".unpack("H*",$iv)."*16*".unpack("H*",$salt)."*0*".unpack("H*",$content).":0:$_[0]::\n";
+}
+sub odf_1 {
+# odf cipher type 1 (AEF instead of blowfish, and some sha256, pbkdf2 is still sha1, but 32 byte of output)
+	my $iv;
+	if (defined $argsalt && length ($argsalt)==16) { $salt = $argsalt; } else { $salt = randstr(16); }
+	if (defined $argiv && length ($argiv)==16) { $iv = $argiv; } else { $iv = randstr(16); }
+	my $content = randstr(1024);
+	my $s = sha256($_[0]);
+	my $key = pp_pbkdf2($s, $salt, 1024, "sha1", 32);
+	use Crypt::OpenSSL::AES;
+	use Crypt::CBC;
+	my $crypt = Crypt::CBC->new(-literal_key => 1, -key => $key, -iv => $iv, -cipher => "Crypt::OpenSSL::AES", -header => 'none');
+	my $output = $crypt->decrypt($content);
+	$s = sha256($output);
+	print "u$u-odf:\$odf\$*1*1*1024*32*".unpack("H*",$s)."*16*".unpack("H*",$iv)."*16*".unpack("H*",$salt)."*0*".unpack("H*",$content).":0:$_[0]::\n";
+}
+sub office {
+}
+sub pdf {
+}
+sub pkzip {
+}
+sub zip {
+}
+sub rar {
+}
+sub ssh {
 }
 sub vnc {
 }
@@ -1225,30 +1157,14 @@ sub mscash2 {
 	print "$user:", '$DCC2$', "$iter#$user#", pp_pbkdf2_hex($key,$salt,$iter,"sha1",16), ":$u:0:$_[0]:mscash2:\n";
 }
 sub lm {
-	#require Authen::Passphrase::LANManager;
-	#my $s = $_[0];
-	#if (length($s)>14) { $s = substr($s,0,14);}
-	#$h = Authen::Passphrase::LANManager->new(passphrase => length($s) <= 14 ? $s : "");
-	#print "u$u-LM:$u:", $h->hash_hex, ":$u:0:", uc $s, "::\n";
-
 	my $p = $_[0];
 	if (length($p)>14) { $p = substr($p,0,14);}
 	print "u$u-LM:$u:", unpack("H*",LANMan($p)), ":$u:0:", uc $p, "::\n";
 }
 sub nt { #$utf8mode=0, $utf8_pass;
-	#require Authen::Passphrase::NTHash;
-	#$h = Authen::Passphrase::NTHash->new(passphrase => $_[0]);
-	#print "u$u-NT:\$NT\$", $h->hash_hex, ":$u:0:$_[0]::\n";
-
 	print "u$u-NT:\$NT\$", unpack("H*",md4(encode("UTF-16LE", $_[0]))), ":$u:0:$_[0]::\n";
 }
 sub pwdump {
-	#require Authen::Passphrase::LANManager;
-	#require Authen::Passphrase::NTHash;
-	#my $lm = Authen::Passphrase::LANManager->new(passphrase => length($_[0]) <= 14 ? $_[0] : "");
-	#my $nt = Authen::Passphrase::NTHash->new(passphrase => $_[0]);
-	#print "u$u-pwdump:$u:", $lm->hash_hex, ":", $nt->hash_hex, ":$_[0]::\n";
-
 	my $lm = unpack("H*",LANMan(length($_[0]) <= 14 ? $_[0] : ""));
 	my $nt = unpack("H*",md4(encode("UTF-16LE", $_[0])));
 	print "u$u-pwdump:$u:$lm:$nt:$_[0]::\n";
@@ -1269,10 +1185,6 @@ sub formspring {
 	print "u$u-formspring:" . sha256_hex($salt. $_[1]) . "\$$salt:$u:0:$_[0]::\n";
 }
 sub phpass {
-	#require Authen::Passphrase::PHPass;
-	#$h = Authen::Passphrase::PHPass->new(cost => 11, salt_random => 1, passphrase => $_[0]);
-	#print "u$u-PHPass:", $h->as_crypt, ":$u:0:$_[0]::\n";
-
 	if (defined $argsalt) { $salt = md5_hex($argsalt); } else { $salt=randstr(8); }
 	my $h = PHPass_hash($_[1], 11, $salt);
 	print "u$u-PHPass:\$P\$", to_phpbyte(11), $salt,  substr(base64i($h),0,22), ":$u:0:$_[0]::\n";
@@ -1305,10 +1217,6 @@ sub _md5_crypt_to_64 {
 	return $tmp;
 }
 sub md5crypt_hash {
-	# not 'native' in the Authen::MD5Crypt (but should be!!!)
-	# NOTE, this function is about 2.5x FASTER than Authen::MD5Crypt !!!!!
-	# have to use md5() function to get the 'raw' md5s, and do our 1000 loops.
-	# md5("a","b","c") == md5("abc");
 	my $b, my $c, my $tmp;
 	my $type = $_[2];
 	$salt = $_[1];
@@ -1346,7 +1254,6 @@ sub md5crypt_a {
 	$h = md5crypt_hash($_[1], $salt, "\$apr1\$");
 	print "u$u-md5crypt_a:$h:$u:0:$_[0]::\n";
 }
-#int md5bit(unsigned char *digest, int bit_num)
 sub md5bit {
 	my $digest = $_[0]; my $bit_num=$_[1];
 	my $byte_off;
@@ -1675,13 +1582,11 @@ sub xsha512 {
 	print "" . unpack("H*", $salt) . sha512_hex($salt . $_[1]) . ":$u:0:$_[0]::\n";
 }
 sub krb5pa_md5 {
-	#require Authen::Passphrase::NTHash;
 	require Crypt::RC4;
 	import Crypt::RC4 qw(RC4);
 	my $password = $_[1];
 	my $datestring = sprintf('20%02u%02u%02u%02u%02u%02uZ', rand(100), rand(12)+1, rand(31)+1, rand(24), rand(60), rand(60));
 	my $timestamp = randbytes(14) . $datestring . randbytes(7);
-	#my $K = Authen::Passphrase::NTHash->new(passphrase => $password)->hash;
 	my $K = md4(encode("UTF-16LE", $password));
 	my $K1 = _hmacmd5($K, pack('N', 0x01000000));
 	my $K2 = _hmacmd5($K1, $timestamp);
@@ -1901,12 +1806,10 @@ sub setup_des_key {
 }
 # This produces only NETNTLM ESS hashes, in L0phtcrack format
 sub netntlm_ess {
-	#require Authen::Passphrase::NTHash;
 	require Crypt::ECB;
 	import Crypt::ECB qw(encrypt PADDING_AUTO PADDING_NONE);
 	my $password = $_[1];
 	my $domain = randstr(rand(15)+1);
-	#my $nthash = Authen::Passphrase::NTHash->new(passphrase => $password)->hash;
 	my $nthash = md4(encode("UTF-16LE", $password));
 	$nthash .= "\x00"x5;
 	my $s_challenge = randbytes(8);
@@ -1925,13 +1828,10 @@ sub netntlm {
 }
 # This produces NETHALFLM, NETLM and non-ESS NETNTLM hashes in L0pthcrack format
 sub l0phtcrack {
-	#require Authen::Passphrase::LANManager;
-	#require Authen::Passphrase::NTHash;
 	require Crypt::ECB;
 	import Crypt::ECB qw(encrypt PADDING_AUTO PADDING_NONE);
 	my $password = $_[1];
 	my $domain = randstr(rand(15)+1);
-	#my $nthash = Authen::Passphrase::NTHash->new(passphrase => $password)->hash;
 	my $nthash = md4(encode("UTF-16LE", $password));
 	$nthash .= "\x00"x5;
 	my $lmhash; my $lmresp;
@@ -1940,13 +1840,11 @@ sub l0phtcrack {
 	$ntresp .= Crypt::ECB::encrypt(setup_des_key(substr($nthash, 7, 7)), 'DES', $challenge, PADDING_NONE());
 	$ntresp .= Crypt::ECB::encrypt(setup_des_key(substr($nthash, 14, 7)), 'DES', $challenge, PADDING_NONE());
 	my $type;
-	#if ($arg_utf8 or length($password) > 14) {
 	if (length($password) > 14) {
 		$type = "ntlm only";
 		$lmresp = $ntresp;
 	} else {
 		$type = "lm and ntlm";
-		#$lmhash = Authen::Passphrase::LANManager->new(passphrase => $password)->hash;
 		$lmhash = LANMan($password);
 		$lmhash .= "\x00"x5;
 		$lmresp = Crypt::ECB::encrypt(setup_des_key(substr($lmhash, 0, 7)), 'DES', $challenge, PADDING_NONE());
@@ -1956,9 +1854,7 @@ sub l0phtcrack {
 	printf("%s\\%s:::%s:%s:%s::%s:%s\n", $domain, "u$u-netntlm", binToHex($lmresp), binToHex($ntresp), binToHex($challenge), $_[0], $type);
 }
 sub netlmv2 {
-	#require Authen::Passphrase::NTHash;
 	my $pwd = $_[1];
-	#my $nthash = Authen::Passphrase::NTHash->new(passphrase => $pwd)->hash;
 	my $nthash = md4(encode("UTF-16LE", $pwd));
 	my $domain = randstr(rand(15)+1);
 	my $user = randusername(20);
@@ -1969,9 +1865,7 @@ sub netlmv2 {
 	printf("%s\\%s:::%s:%s:%s::%s:netlmv2\n", $domain, $user, binToHex($s_challenge), binToHex($lmresponse), binToHex($c_challenge), $_[0]);
 }
 sub netntlmv2 {
-	#require Authen::Passphrase::NTHash;
 	my $pwd = $_[1];
-	#my $nthash = Authen::Passphrase::NTHash->new(passphrase => $pwd)->hash;
 	my $nthash = md4(encode("UTF-16LE", $pwd));
 	my $user;
 	my $domain;
@@ -1991,11 +1885,9 @@ sub netntlmv2 {
 	printf("%s\\%s:::%s:%s:%s::%s:netntlmv2\n", $domain, $user, binToHex($s_challenge), binToHex($ntproofstr), binToHex($temp), $_[0]);
 }
 sub mschapv2 {
-	#require Authen::Passphrase::NTHash;
 	require Crypt::ECB;
 	import Crypt::ECB qw(encrypt PADDING_AUTO PADDING_NONE);
 	my $pwd = $_[1];
-	#my $nthash = Authen::Passphrase::NTHash->new(passphrase => $pwd)->hash;
 	my $nthash = md4(encode("UTF-16LE", $pwd));
 	my $user = randusername();
 	my $a_challenge = randbytes(16);
@@ -2263,12 +2155,6 @@ sub dynamic_7 { #dynamic_7 --> md5(md5($p).$s)
 	print "u$u-dynamic_7"."\x1F"."\$dynamic_7\$", md5_hex(md5_hex($_[1]), $salt), "\$$salt"."\x1F"."$u"."\x1F"."0"."\x1F"."$_[0]"."\x1F"."\x1F"."\n";
 }
 sub dynamic_17 { #dynamic_17 --> phpass ($P$ or $H$)	phpass
-	#require Authen::Passphrase::PHPass;
-	#$h = Authen::Passphrase::PHPass->new(cost => 11, salt_random => 1, passphrase => $_[0]);
-	#my $hh = $h->as_crypt;
-	#$salt = substr($hh,3,9);
-	#print "u$u-dynamic_17:\$dynamic_17\$", substr($hh,12), "\$$salt:$u:0:$_[0]::\n";
-
 	if (defined $argsalt) { $salt = md5_hex($argsalt); } else { $salt=randstr(8); }
 	my $h = PHPass_hash($_[1], 11, $salt);
 	print "u$u-dynamic_17:\$dynamic_17\$", substr(base64i($h),0,22), "\$", to_phpbyte(11), $salt, ":$u:0:$_[0]::\n";
@@ -2322,12 +2208,6 @@ sub dynamic_21 { #HDAA HTTP Digest  access authentication
 	print "$user:\$dynamic_21\$$resp\$$nonce\$\$U$user\$\$F2myrealm\$\$F3GET\$/\$\$F400000001\$$clientNonce\$auth:$u:0:$_[0]::\n";
 }
 sub dynamic_27 { #dynamic_27 --> OpenBSD MD5
-	#if (length($_[0]) > 15) { print "Warning, john can only handle 15 byte passwords for this format!\n"; }
-	#$h = Authen::Passphrase::MD5Crypt->new(salt_random => 1, passphrase => $_[0]);
-	#my $hh = $h->as_crypt;
-	#$salt = substr($hh,3,8);
-	#print "u$u-dynamic_27:\$dynamic_27\$", substr($hh,12), "\$$salt:$u:0:$_[0]::\n";
-
 	if (length($_[1]) > 15) { print STDERR "Warning, john can only handle 15 byte passwords for this format!\n"; }
 	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(8); }
 	$h = md5crypt_hash($_[1], $salt, "\$1\$");
