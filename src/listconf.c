@@ -91,6 +91,13 @@ extern void cuda_device_list();
 #else
 #define DEBUG_STRING ""
 #endif
+#if defined(MEMDBG_ON) && defined(MEMDBG_EXTRA_CHECKS)
+#define MEMDBG_STRING "-memdbg_ex"
+#elif defined(MEMDBG_ON)
+#define MEMDBG_STRING "-memdbg"
+#else
+#define MEMDBG_STRING ""
+#endif
 
 #define _STR_VALUE(arg)			#arg
 #define STR_MACRO(n)			_STR_VALUE(n)
@@ -145,7 +152,7 @@ static void listconf_list_build_info(void)
 #ifdef __GNU_MP_VERSION
 	int gmp_major, gmp_minor, gmp_patchlevel;
 #endif
-	puts("Version: " JOHN_VERSION _MP_VERSION DEBUG_STRING);
+	puts("Version: " JOHN_VERSION _MP_VERSION DEBUG_STRING MEMDBG_STRING);
 	puts("Build: " JOHN_BLD);
 	printf("Arch: %d-bit %s\n", ARCH_BITS,
 	       ARCH_LITTLE_ENDIAN ? "LE" : "BE");
