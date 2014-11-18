@@ -19,7 +19,6 @@
 #include <stdlib.h>
 
 #include "arch.h"
-#include "memdbg_defines.h"
 
 /*
  * Standard alignments for mem_alloc_tiny().

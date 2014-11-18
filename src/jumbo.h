@@ -314,7 +314,6 @@ extern int _exit(int);
 #define fdopen _fdopen
 #endif
 
-#include "memdbg_defines.h"
 #ifndef MEMDBG_ON
 #if (AC_BUILT && HAVE__STRDUP) || (!AC_BUILT && _MSC_VER)
 #undef strdup

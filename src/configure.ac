@@ -448,10 +448,10 @@ if test "x$ompfast" = xyes ; then
 fi
 
 if test "x$memdbg" = xyes ; then
-   MEMDBG_CFLAGS="-DMEMDBG_BUILD"
+   MEMDBG_CFLAGS="-DMEMDBG_ON"
 fi
 if test "x$memdbgex" = xyes ; then
-   MEMDBG_CFLAGS="-DMEMDBG_BUILD -DMEMDBG_EXTRA"
+   MEMDBG_CFLAGS="-DMEMDBG_ON -DMEMDBG_EXTRA_CHECKS"
 fi
 AC_SUBST([MEMDBG_CFLAGS],["${MEMDBG_CFLAGS}"])
 

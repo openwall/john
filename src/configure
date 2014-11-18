@@ -9936,10 +9936,10 @@ $as_echo "#define FAST_FORMATS_OMP 1" >>confdefs.h
 fi
 
 if test "x$memdbg" = xyes ; then
-   MEMDBG_CFLAGS="-DMEMDBG_BUILD"
+   MEMDBG_CFLAGS="-DMEMDBG_ON"
 fi
 if test "x$memdbgex" = xyes ; then
-   MEMDBG_CFLAGS="-DMEMDBG_BUILD -DMEMDBG_EXTRA"
+   MEMDBG_CFLAGS="-DMEMDBG_ON -DMEMDBG_EXTRA_CHECKS"
 fi
 MEMDBG_CFLAGS="${MEMDBG_CFLAGS}"
 

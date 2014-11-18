@@ -23,12 +23,6 @@
 #endif
 #include <string.h>
 
-/*
- * within the next included file, there is a single line that will turn on or off ALL
- * malloc debugging. There are other defines that will increase the level of debugging
- * to check for more things.  By default, there will be no malloc debugging.
- */
-#include "memdbg_defines.h"
 #if defined (MEMDBG_ON)
 
 /*
@@ -53,7 +47,7 @@
  *   free, most buffer overwrites.  Also, tracking of non-freed
  *   data, showing memory leaks, can also be shown.
  *
- *  Compilation Options (in the memdbg_defines.h file)
+ *  Compilation Options (provided from Makefile CFLAGS)
  *
  *   MEMDBG_ON     If this is NOT defined, then memdbg will
  *       get out of your way, and most normal memory functions

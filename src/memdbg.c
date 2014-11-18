@@ -20,7 +20,7 @@
  *   free, most buffer overwrites.  Also, tracking of non-freed
  *   data, showing memory leaks, can also be shown.
  *
- *  Compilation Options (in the memdbg_defines.h file)
+ *  Compilation Options (provided from Makefile CFLAGS)
  *
  *   MEMDBG_ON     If this is NOT defined, then memdbg will
  *       get out of your way, and most normal memory functions
