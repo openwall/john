@@ -105,4 +105,7 @@ extern int mask_num_qw;
 /* Number of times parent mode called hybrid mask. */
 extern unsigned long long mask_parent_keys;
 
+/* Current length when pure mask mode iterates over length */
+extern int mask_cur_len;
+
 #endif

@@ -45,6 +45,7 @@
 #include "config.h"
 #include "unicode.h"
 #include "signals.h"
+#include "mask.h"
 #ifdef HAVE_MPI
 #include "john-mpi.h"
 #endif
@@ -249,6 +250,9 @@ static char *status_get_ETA(double percent, unsigned int secs_done)
 	   which may not always be valid assumptions */
 	if (status.pass)
 		sprintf(s_ETA, " %d/3", status.pass);
+	else
+	if (mask_cur_len)
+		sprintf(s_ETA, " (%d)", mask_cur_len);
 	else
 		s_ETA[0] = 0;
 

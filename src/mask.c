@@ -37,7 +37,8 @@ static cpu_mask_context cpu_mask_ctx, rec_ctx;
 static int *template_key_offsets;
 static char *mask = NULL, *template_key;
 static int max_keylen, fmt_maxlen, rec_len, restored_len, restored = 1;
-int mask_add_len, mask_num_qw;
+static unsigned long long cand_length;
+int mask_add_len, mask_num_qw, mask_cur_len;
 
 /*
  * This keeps track of whether we have any 8-bit in our non-hybrid mask.
@@ -1330,6 +1331,9 @@ static double get_progress(void)
 	if (!mask_tot_cand)
 		return -1;
 
+	if (cand_length)
+		try -= cand_length;
+
 	return 100.0 * try / (double)mask_tot_cand;
 }
 
@@ -1716,10 +1720,12 @@ void mask_done()
 		    options.force_maxlength > 0)
 			MEM_FREE(mask);
 		// For reporting DONE regardless of rounding errors
-		if (!event_abort)
-		mask_tot_cand = ((unsigned long long)status.cands.hi << 32) +
-			status.cands.lo;
-
+		if (!event_abort) {
+			mask_tot_cand =
+				((unsigned long long)status.cands.hi << 32) +
+				status.cands.lo;
+			cand_length = 0;
+		}
 		crk_done();
 
 		rec_done(event_abort);
@@ -1740,22 +1746,27 @@ int do_mask_crack(const char *key)
 	/* If --min-len is used, we iterate max_keylen */
 	if (!(options.flags & FLG_MASK_STACKED) &&
 	    options.force_minlength >= 0) {
-		int max_len = max_keylen;
-		int min_len = restored_len ?
-			restored_len : options.force_minlength;
 		int template_key_len = -1;
+		int max_len = max_keylen;
+
+		mask_cur_len = restored_len ?
+			restored_len : options.force_minlength;
+
 		restored_len = 0;
 
-		if (min_len == 0) {
+		if (mask_cur_len == 0) {
 			if (crk_process_key(""))
 				return 1;
-			min_len++;
+			mask_cur_len++;
 		}
 
-		for (i = min_len; i <= max_len; i++) {
+		for (i = mask_cur_len; i <= max_len; i++) {
 			int j = 0;
 
-			max_keylen = i;
+			mask_cur_len = max_keylen = i;
+			cand_length =
+				((unsigned long long)status.cands.hi << 32) +
+				status.cands.lo;
 
 			save_restore(&cpu_mask_ctx, 0, 1);
 			generate_template_key(mask, key, key_len, &parsed_mask,
