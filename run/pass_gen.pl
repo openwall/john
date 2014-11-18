@@ -108,7 +108,7 @@ my $debug_pcode=0; my $gen_needs; my $gen_needs2; my $gen_needu; my $gen_singles
 # These global vars settable by command line args.
 #########################################################
 my $arg_utf8 = 0; my $arg_codepage = ""; my $arg_minlen = 0; my $arg_maxlen = 128; my $arg_dictfile = "unknown";
-my $arg_count = 1500, my $argsalt, my $argiv, my $arg_nocomment = 0; my $arg_hidden_cp; my $arg_loops=-1;
+my $arg_count = 1500, my $argsalt, my $argiv, my $argcontent; my $arg_nocomment = 0; my $arg_hidden_cp; my $arg_loops=-1;
 my $arg_tstall = 0; my $arg_genall = 0; my $arg_nrgenall = 0;
 
 GetOptions(
@@ -120,6 +120,7 @@ GetOptions(
 	'maxlength=n'      => \$arg_maxlen,
 	'salt=s'           => \$argsalt,
 	'iv=s'             => \$argiv,
+	'content=s'        => \$argcontent,
 	'count=n'          => \$arg_count,
 	'loops=n'          => \$arg_loops,
 	'dictfile=s'       => \$arg_dictfile,
@@ -166,6 +167,7 @@ $s
 
     -salt <s>     Force a single salt (only supported in a few formats)
     -iv <s>       Force a single iv (only supported in a few formats)
+    -content <s>  Force a single content (for ODF hash)
     -dictfile <s> Put name of dict file into the first line comment
     -nocomment    eliminate the first line comment
 
@@ -985,33 +987,33 @@ sub mscash {
 sub vnc {
 }
 sub odf {
-	my $iv;
+	my $iv; my $content;
 	if (defined $argsalt && length ($argsalt)==16) { $salt = $argsalt; } else { $salt = randstr(16); }
 	if (defined $argiv && length ($argiv)==8) { $iv = $argiv; } else { $iv = randstr(8); }
-	my $content = randstr(1024);
+	if (defined $argcontent) { $content = $argcontent; } else { $content = randstr(1024); }
 	my $s = sha1($_[0]);
-	my $key = pp_pbkdf2($s, $salt, 1024, "sha1", 16);
+	my $key = pp_pbkdf2($s, $salt, length($content), "sha1", 16);
 	use Crypt::OpenSSL::Blowfish::CFB64;
 	my $crypt = Crypt::OpenSSL::Blowfish::CFB64->new($key, $iv);
 	my $output = $crypt->decrypt($content);
 	$s = sha1($output);
 
-	print "u$u-odf:\$odf\$*0*0*1024*16*".unpack("H*",$s)."*8*".unpack("H*",$iv)."*16*".unpack("H*",$salt)."*0*".unpack("H*",$content).":0:$_[0]::\n";
+	print "u$u-odf:\$odf\$*0*0*".length($content)."*16*".unpack("H*",$s)."*8*".unpack("H*",$iv)."*16*".unpack("H*",$salt)."*0*".unpack("H*",$content).":0:$_[0]::\n";
 }
 sub odf_1 {
 # odf cipher type 1 (AEF instead of blowfish, and some sha256, pbkdf2 is still sha1, but 32 byte of output)
-	my $iv;
+	my $iv; my $content;
 	if (defined $argsalt && length ($argsalt)==16) { $salt = $argsalt; } else { $salt = randstr(16); }
 	if (defined $argiv && length ($argiv)==16) { $iv = $argiv; } else { $iv = randstr(16); }
-	my $content = randstr(1024);
+	if (defined $argcontent) { $content = $argcontent; } else { $content = randstr(1024); }
 	my $s = sha256($_[0]);
-	my $key = pp_pbkdf2($s, $salt, 1024, "sha1", 32);
+	my $key = pp_pbkdf2($s, $salt, length($content), "sha1", 32);
 	use Crypt::OpenSSL::AES;
 	use Crypt::CBC;
 	my $crypt = Crypt::CBC->new(-literal_key => 1, -key => $key, -iv => $iv, -cipher => "Crypt::OpenSSL::AES", -header => 'none');
 	my $output = $crypt->decrypt($content);
 	$s = sha256($output);
-	print "u$u-odf:\$odf\$*1*1*1024*32*".unpack("H*",$s)."*16*".unpack("H*",$iv)."*16*".unpack("H*",$salt)."*0*".unpack("H*",$content).":0:$_[0]::\n";
+	print "u$u-odf:\$odf\$*1*1*".length($content)."*32*".unpack("H*",$s)."*16*".unpack("H*",$iv)."*16*".unpack("H*",$salt)."*0*".unpack("H*",$content).":0:$_[0]::\n";
 }
 sub office {
 }
