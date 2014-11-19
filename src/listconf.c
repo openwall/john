@@ -39,11 +39,6 @@
 #include "dynamic.h"
 #include "config.h"
 
-#if HAVE_NSS
-#include "nss.h"
-//#include "nssutil.h"
-#include "nspr.h"
-#endif
 #if HAVE_LIBGMP
 #if HAVE_GMP_GMP_H
 #include "gmp/gmp.h"
@@ -216,51 +211,7 @@ static void listconf_list_build_info(void)
 		       gmp_major, gmp_minor, gmp_patchlevel);
 	printf("\n");
 #endif
-#ifdef NSS_VERSION
-	// <major>.<minor>[.<patch_level>[.<build_number>]][ <ECC>][ <Beta>]
-	printf("NSS library version: %s", NSS_VERSION);
-	// NSS_GetVersion() has been added to the API at NSS v3.13+
-	// See https://bugzilla.mozilla.org/show_bug.cgi?id=673115
-	// A recent firefox version requires at least NSS version 3.16,
-	// see about:support.
-	// Do we really need to support a library version which is
-	// more than 2 years old?
-	// Otherwise, this run time version check shouldn't cause problems anymore.
-	// Assume run time version is new enough unless the build version isn't.
-	// (If the build version is much newer than the run time version,
-	// we might also run into other problems.)
-#if (NSS_VMAJOR>3) || (NSS_VMAJOR==3 && NSS_VMINOR>12)
-	if(strcmp(NSS_VERSION, NSS_GetVersion()))
-		printf("\t(loaded: %s)", NSS_GetVersion());
-#endif
-	printf("\n");
-#endif
 
-// NSS_VERSION and NSSUTIL_VERSION always seem to match.
-// At least, I didn't find any differences on Fedora 16/17/18 systems.
-#if 0
-#ifdef NSSUTIL_VERSION
-	printf("NSS utilities version: %s", NSSUTIL_VERSION);
-#if (NSS_VMAJOR>3) || (NSS_VMAJOR==3 && NSS_VMINOR>12)
-	if(strcmp(NSSUTIL_VERSION, NSSUTIL_GetVersion()))
-		printf("\t(loaded: %s",  NSSUTIL_GetVersion());
-#endif
-	printf("\n");
-#endif
-#endif
-
-#ifdef PR_VERSION
-	printf("NSPR library version: %s", PR_VERSION);
-	// PR_GetVersion() added to API at PR v4.8.9
-	// See https://bugzilla.mozilla.org/show_bug.cgi?id=673223
-	// A recent firefox version requires at least NSPR version 4.10.6.
-	// Assume run time version is new enough unless the build version isn't.
-#if (PR_VMAJOR>4) || (PR_VMAJOR==4 && PR_VMINOR>8) || (PR_VMAJOR==4 && PR_VMINOR==8 && PR_VPATCH > 8)
-	if(strcmp(PR_VERSION, PR_GetVersion()))
-		printf("\t(loaded: %s)", PR_GetVersion());
-#endif
-	printf("\n");
-#endif
 #ifdef KRB5_PVNO
 	// I have no idea how to get version info
 	printf("Kerberos version %d support enabled\n", KRB5_PVNO);

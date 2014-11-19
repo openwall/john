@@ -490,21 +490,6 @@ AC_CACHE_SAVE
 # Check packages:
 #################
 
-# Check for NSS
-using_nss=no
-AS_IF([test "x$enable_nss" != xno],
-   [AS_IF([test "x$PKG_CONFIG" != xno],
-      [PKG_CHECK_MODULES([NSS], [nss], using_nss=yes [AC_SUBST(HAVE_NSS,[-DHAVE_NSS])],:)],
-      [AS_IF([test "x${NSS_CFLAGS}${NSS_LIBS}" != "x"],
-         [AC_MSG_CHECKING([supplied paths for NSS])]
-         [AC_MSG_RESULT([$NSS_CFLAGS $NSS_LIBS])]
-         using_nss=yes
-      )]
-      [AC_MSG_CHECKING([for NSS])]
-      [AC_MSG_RESULT([$using_nss])]
-   )]
-)
-
 # Check for openMP (enable/disable handled within the macro).
 AC_OPENMP
 
@@ -740,11 +725,11 @@ AC_OUTPUT(,echo "timestamp from configure.in" > autoconfig-stamp-h)
 # AC_OUTPUT
 ##########################################################
 echo "configure: creating ./fmt_externs.h"
-$CPP -P -DAC_BUILT $CPU_BEST_FLAGS $CFLAGS $HAVE_OPENCL $HAVE_CUDA $HAVE_NSS $CFLAGS_EXTRA $NSS_CFLAGS $OPENSSL_CFLAGS -DFMT_EXTERNS_H *_fmt_plug.c | LC_ALL=C $GREP "extern struct fmt_main" | LC_ALL=C $SORT -f > fmt_externs.h
+$CPP -P -DAC_BUILT $CPU_BEST_FLAGS $CFLAGS $HAVE_OPENCL $HAVE_CUDA $CFLAGS_EXTRA $OPENSSL_CFLAGS -DFMT_EXTERNS_H *_fmt_plug.c | LC_ALL=C $GREP "extern struct fmt_main" | LC_ALL=C $SORT -f > fmt_externs.h
 echo "configure: creating ./fmt_registers.h"
-$CPP -P -DAC_BUILT $CPU_BEST_FLAGS $CFLAGS $HAVE_NSS $CFLAGS_EXTRA $NSS_CFLAGS $OPENSSL_CFLAGS -DFMT_REGISTERS_H *_fmt_plug.c | LC_ALL=C $GREP "john_register_one" | LC_ALL=C $SORT -f > fmt_registers.h
-$CPP -P -DAC_BUILT $CPU_BEST_FLAGS $CFLAGS $HAVE_OPENCL $HAVE_CUDA $HAVE_NSS $CFLAGS_EXTRA $NSS_CFLAGS $OPENSSL_CFLAGS -DFMT_REGISTERS_H opencl_*_fmt_plug.c | LC_ALL=C $GREP "john_register_one" | LC_ALL=C $SORT -f >> fmt_registers.h
-$CPP -P -DAC_BUILT $CPU_BEST_FLAGS $CFLAGS $HAVE_OPENCL $HAVE_CUDA $HAVE_NSS $CFLAGS_EXTRA $NSS_CFLAGS $OPENSSL_CFLAGS -DFMT_REGISTERS_H cuda_*_fmt_plug.c | LC_ALL=C $GREP "john_register_one" | LC_ALL=C $SORT -f >> fmt_registers.h
+$CPP -P -DAC_BUILT $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA $OPENSSL_CFLAGS -DFMT_REGISTERS_H *_fmt_plug.c | LC_ALL=C $GREP "john_register_one" | LC_ALL=C $SORT -f > fmt_registers.h
+$CPP -P -DAC_BUILT $CPU_BEST_FLAGS $CFLAGS $HAVE_OPENCL $HAVE_CUDA $CFLAGS_EXTRA $OPENSSL_CFLAGS -DFMT_REGISTERS_H opencl_*_fmt_plug.c | LC_ALL=C $GREP "john_register_one" | LC_ALL=C $SORT -f >> fmt_registers.h
+$CPP -P -DAC_BUILT $CPU_BEST_FLAGS $CFLAGS $HAVE_OPENCL $HAVE_CUDA $CFLAGS_EXTRA $OPENSSL_CFLAGS -DFMT_REGISTERS_H cuda_*_fmt_plug.c | LC_ALL=C $GREP "john_register_one" | LC_ALL=C $SORT -f >> fmt_registers.h
 
 ########################################################
 # Creates ./run/john.local.conf but ONLY if it does not
@@ -852,7 +837,6 @@ Generic crypt(3) format ..................... ${using_crypt}
 Optional libraries found:
 Rexgen (extra cracking mode) ................ ${using_rexgen}
 GMP (performance) ........................... ${ac_cv_lib_gmp___gmpz_init}
-NSS/NSPR (Mozilla format) ................... ${using_nss}
 Kerberos5 (krb5-18 format) .................. ${krb5_found}
 PCAP (vncpcap2john and SIPdump) ............. ${using_pcap}
 BZ2 (gpg2john extra decompression logic) .... ${using_bz2}

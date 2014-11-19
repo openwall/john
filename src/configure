@@ -651,9 +651,6 @@ PTHREAD_LIBS
 PTHREAD_CC
 ax_pthread_config
 OPENMP_CFLAGS
-HAVE_NSS
-NSS_LIBS
-NSS_CFLAGS
 PCAP_LIBS
 HAVE_PCAP
 MEMDBG_CFLAGS
@@ -787,8 +784,6 @@ PKG_CONFIG_PATH
 PKG_CONFIG_LIBDIR
 OPENSSL_CFLAGS
 OPENSSL_LIBS
-NSS_CFLAGS
-NSS_LIBS
 NVCC
 NVCC_GCC
 NVIDIA_CUDA'
@@ -1460,8 +1455,6 @@ Some influential environment variables:
               C compiler flags for OPENSSL, overriding pkg-config
   OPENSSL_LIBS
               linker flags for OPENSSL, overriding pkg-config
-  NSS_CFLAGS  C compiler flags for NSS, overriding pkg-config
-  NSS_LIBS    linker flags for NSS, overriding pkg-config
   NVCC        full pathname of CUDA compiler
   NVCC_GCC    full pathname of CUDA compiler's gcc backend
   NVIDIA_CUDA base path of CUDA installation
@@ -10248,96 +10241,6 @@ rm -f confcache
 # Check packages:
 #################
 
-# Check for NSS
-using_nss=no
-if test "x$enable_nss" != xno; then :
-  if test "x$PKG_CONFIG" != xno; then :
-
-pkg_failed=no
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for NSS" >&5
-$as_echo_n "checking for NSS... " >&6; }
-
-if test -n "$NSS_CFLAGS"; then
-    pkg_cv_NSS_CFLAGS="$NSS_CFLAGS"
- elif test -n "$PKG_CONFIG"; then
-    if test -n "$PKG_CONFIG" && \
-    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"nss\""; } >&5
-  ($PKG_CONFIG --exists --print-errors "nss") 2>&5
-  ac_status=$?
-  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
-  test $ac_status = 0; }; then
-  pkg_cv_NSS_CFLAGS=`$PKG_CONFIG --cflags "nss" 2>/dev/null`
-else
-  pkg_failed=yes
-fi
- else
-    pkg_failed=untried
-fi
-if test -n "$NSS_LIBS"; then
-    pkg_cv_NSS_LIBS="$NSS_LIBS"
- elif test -n "$PKG_CONFIG"; then
-    if test -n "$PKG_CONFIG" && \
-    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"nss\""; } >&5
-  ($PKG_CONFIG --exists --print-errors "nss") 2>&5
-  ac_status=$?
-  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
-  test $ac_status = 0; }; then
-  pkg_cv_NSS_LIBS=`$PKG_CONFIG --libs "nss" 2>/dev/null`
-else
-  pkg_failed=yes
-fi
- else
-    pkg_failed=untried
-fi
-
-
-
-if test $pkg_failed = yes; then
-
-if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
-        _pkg_short_errors_supported=yes
-else
-        _pkg_short_errors_supported=no
-fi
-        if test $_pkg_short_errors_supported = yes; then
-	        NSS_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors "nss" 2>&1`
-        else
-	        NSS_PKG_ERRORS=`$PKG_CONFIG --print-errors "nss" 2>&1`
-        fi
-	# Put the nasty error message in config.log where it belongs
-	echo "$NSS_PKG_ERRORS" >&5
-
-	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-                :
-elif test $pkg_failed = untried; then
-	:
-else
-	NSS_CFLAGS=$pkg_cv_NSS_CFLAGS
-	NSS_LIBS=$pkg_cv_NSS_LIBS
-        { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-$as_echo "yes" >&6; }
-	using_nss=yes HAVE_NSS=-DHAVE_NSS
-
-fi
-else
-  if test "x${NSS_CFLAGS}${NSS_LIBS}" != "x"; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking supplied paths for NSS" >&5
-$as_echo_n "checking supplied paths for NSS... " >&6; }
-         { $as_echo "$as_me:${as_lineno-$LINENO}: result: $NSS_CFLAGS $NSS_LIBS" >&5
-$as_echo "$NSS_CFLAGS $NSS_LIBS" >&6; }
-         using_nss=yes
-
-fi
-      { $as_echo "$as_me:${as_lineno-$LINENO}: checking for NSS" >&5
-$as_echo_n "checking for NSS... " >&6; }
-      { $as_echo "$as_me:${as_lineno-$LINENO}: result: $using_nss" >&5
-$as_echo "$using_nss" >&6; }
-
-fi
-
-fi
-
 # Check for openMP (enable/disable handled within the macro).
 
   OPENMP_CFLAGS=
@@ -14949,11 +14852,11 @@ fi
 # AC_OUTPUT
 ##########################################################
 echo "configure: creating ./fmt_externs.h"
-$CPP -P -DAC_BUILT $CPU_BEST_FLAGS $CFLAGS $HAVE_OPENCL $HAVE_CUDA $HAVE_NSS $CFLAGS_EXTRA $NSS_CFLAGS $OPENSSL_CFLAGS -DFMT_EXTERNS_H *_fmt_plug.c | LC_ALL=C $GREP "extern struct fmt_main" | LC_ALL=C $SORT -f > fmt_externs.h
+$CPP -P -DAC_BUILT $CPU_BEST_FLAGS $CFLAGS $HAVE_OPENCL $HAVE_CUDA $CFLAGS_EXTRA $OPENSSL_CFLAGS -DFMT_EXTERNS_H *_fmt_plug.c | LC_ALL=C $GREP "extern struct fmt_main" | LC_ALL=C $SORT -f > fmt_externs.h
 echo "configure: creating ./fmt_registers.h"
-$CPP -P -DAC_BUILT $CPU_BEST_FLAGS $CFLAGS $HAVE_NSS $CFLAGS_EXTRA $NSS_CFLAGS $OPENSSL_CFLAGS -DFMT_REGISTERS_H *_fmt_plug.c | LC_ALL=C $GREP "john_register_one" | LC_ALL=C $SORT -f > fmt_registers.h
-$CPP -P -DAC_BUILT $CPU_BEST_FLAGS $CFLAGS $HAVE_OPENCL $HAVE_CUDA $HAVE_NSS $CFLAGS_EXTRA $NSS_CFLAGS $OPENSSL_CFLAGS -DFMT_REGISTERS_H opencl_*_fmt_plug.c | LC_ALL=C $GREP "john_register_one" | LC_ALL=C $SORT -f >> fmt_registers.h
-$CPP -P -DAC_BUILT $CPU_BEST_FLAGS $CFLAGS $HAVE_OPENCL $HAVE_CUDA $HAVE_NSS $CFLAGS_EXTRA $NSS_CFLAGS $OPENSSL_CFLAGS -DFMT_REGISTERS_H cuda_*_fmt_plug.c | LC_ALL=C $GREP "john_register_one" | LC_ALL=C $SORT -f >> fmt_registers.h
+$CPP -P -DAC_BUILT $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA $OPENSSL_CFLAGS -DFMT_REGISTERS_H *_fmt_plug.c | LC_ALL=C $GREP "john_register_one" | LC_ALL=C $SORT -f > fmt_registers.h
+$CPP -P -DAC_BUILT $CPU_BEST_FLAGS $CFLAGS $HAVE_OPENCL $HAVE_CUDA $CFLAGS_EXTRA $OPENSSL_CFLAGS -DFMT_REGISTERS_H opencl_*_fmt_plug.c | LC_ALL=C $GREP "john_register_one" | LC_ALL=C $SORT -f >> fmt_registers.h
+$CPP -P -DAC_BUILT $CPU_BEST_FLAGS $CFLAGS $HAVE_OPENCL $HAVE_CUDA $CFLAGS_EXTRA $OPENSSL_CFLAGS -DFMT_REGISTERS_H cuda_*_fmt_plug.c | LC_ALL=C $GREP "john_register_one" | LC_ALL=C $SORT -f >> fmt_registers.h
 
 ########################################################
 # Creates ./run/john.local.conf but ONLY if it does not
@@ -15109,7 +15012,6 @@ Generic crypt(3) format ..................... ${using_crypt}
 Optional libraries found:
 Rexgen (extra cracking mode) ................ ${using_rexgen}
 GMP (performance) ........................... ${ac_cv_lib_gmp___gmpz_init}
-NSS/NSPR (Mozilla format) ................... ${using_nss}
 Kerberos5 (krb5-18 format) .................. ${krb5_found}
 PCAP (vncpcap2john and SIPdump) ............. ${using_pcap}
 BZ2 (gpg2john extra decompression logic) .... ${using_bz2}
