@@ -13346,7 +13346,7 @@ case "$host_os" in
 
     ;;
 
-  linux*)
+  linux*|cygwin*)
     # For exposing memmem()
     if test "x$ac_cv_func_memmem" = xyes; then :
 
