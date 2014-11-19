@@ -48,13 +48,6 @@ OMPFLAGS =
 # This should be commented out in Git but active in release tarballs
 #RELEASE_BLD = -DJTR_RELEASE_BUILD
 
-ifndef RELEASE_BLD
-# Try to auto-detect NSS (and NSPR) flag, needed for mozilla format.
-NSS_CFLAGS = `pkg-config 2>/dev/null --cflags nss`
-HAVE_NSS = $(NSS_CFLAGS) `pkg-config 2>/dev/null --exists nss && echo -DHAVE_NSS`
-NSS_LDFLAGS = `pkg-config 2>/dev/null --libs nss`
-endif
-
 # Try to auto-detect GMP and KRB5 libs. The grep is needed in case some of the
 # paths does not exist, because find will return false even though finding a
 # file. If these hacks do not work, comment them out and see next sections.
@@ -102,13 +95,13 @@ AMDAPP = -DAMDAPPSDK
 OCLROOT = $(ATISTREAMSDKROOT)
 endif
 
-CFLAGS = -c -Wall -Wdeclaration-after-statement -O2 -fomit-frame-pointer -I/usr/local/include $(REXGEN_FLAGS) $(HAVE_NSS) $(HAVE_LIBGMP) $(HAVE_KRB5) $(OMPFLAGS) $(AMDAPP) $(JOHN_CFLAGS) $(RELEASE_BLD)
+CFLAGS = -c -Wall -Wdeclaration-after-statement -O2 -fomit-frame-pointer -I/usr/local/include $(REXGEN_FLAGS) $(HAVE_LIBGMP) $(HAVE_KRB5) $(OMPFLAGS) $(AMDAPP) $(JOHN_CFLAGS) $(RELEASE_BLD)
 # -DHAVE_SKEY
 # CFLAGS for use on the main john.c file only
 CFLAGS_MAIN = $(CFLAGS)
 ASFLAGS = -c $(OMPFLAGS) $(JOHN_ASFLAGS)
 LDFLAGS = -s -L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz \
-	$(OMPFLAGS) $(NSS_LDFLAGS) $(GMP_LDFLAGS) $(KRB5_LDFLAGS) $(JOHN_LDFLAGS) $(REXGEN_LDFLAGS)
+	$(OMPFLAGS) $(GMP_LDFLAGS) $(KRB5_LDFLAGS) $(JOHN_LDFLAGS) $(REXGEN_LDFLAGS)
 # -lskey
 LDFLAGS_SOLARIS = -lrt -lnsl -lsocket -lm -lz -lcrypto -lssl
 LDFLAGS_MKV = -s -lm $(OMPFLAGS)
@@ -513,7 +506,7 @@ linux-x86-64-clang:
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE_ORIG) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
-		CFLAGS="-Wall -c -O2 -I/usr/include -msse2 -DHAVE_CRYPT -DHAVE_LIBDL $(HAVE_NSS) $(HAVE_LIBGMP) $(HAVE_KRB5) $(JOHN_CFLAGS)" \
+		CFLAGS="-Wall -c -O2 -I/usr/include -msse2 -DHAVE_CRYPT -DHAVE_LIBDL $(HAVE_LIBGMP) $(HAVE_KRB5) $(JOHN_CFLAGS)" \
 		LDFLAGS="$(LDFLAGS) -lcrypt -ldl" \
 		CPP="clang" CC="clang" AS="clang" LD="clang" CXX="clang++" \
 		AESNI_ARCH=64 YASM_FORMAT="elf64"
@@ -526,14 +519,14 @@ linux-x86-64-clang-debug:
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE_ORIG) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
-		CFLAGS="-Wall -Wdeclaration-after-statement -c -g -O1 -faddress-sanitizer -I/usr/include -msse2 -DDEBUG -DHAVE_CRYPT -DHAVE_LIBDL $(HAVE_NSS) $(HAVE_LIBGMP) $(HAVE_KRB5) $(JOHN_CFLAGS)" \
-		LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz -lcrypt -ldl -faddress-sanitizer $(NSS_LDFLAGS) $(GMP_LDFLAGS) $(KRB5_LDFLAGS) $(JOHN_LDFLAGS)" \
+		CFLAGS="-Wall -Wdeclaration-after-statement -c -g -O1 -faddress-sanitizer -I/usr/include -msse2 -DDEBUG -DHAVE_CRYPT -DHAVE_LIBDL $(HAVE_LIBGMP) $(HAVE_KRB5) $(JOHN_CFLAGS)" \
+		LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz -lcrypt -ldl -faddress-sanitizer $(GMP_LDFLAGS) $(KRB5_LDFLAGS) $(JOHN_LDFLAGS)" \
 		CPP="clang" CC="clang" AS="clang" LD="clang" CXX="clang++" \
 		AESNI_ARCH=64 YASM_FORMAT="elf64"
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE_ORIG) $(PROJ_PCAP) \
-		CFLAGS="-Wall -Wdeclaration-after-statement -c -g -O1 -faddress-sanitizer -I/usr/include -msse2 -DDEBUG -DHAVE_CRYPT -DHAVE_LIBDL $(HAVE_NSS) $(HAVE_LIBGMP) $(HAVE_KRB5) $(JOHN_CFLAGS)" \
-		LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz -lcrypt -ldl -faddress-sanitizer $(NSS_LDFLAGS) $(GMP_LDFLAGS) $(KRB5_LDFLAGS) $(JOHN_LDFLAGS)" \
+		CFLAGS="-Wall -Wdeclaration-after-statement -c -g -O1 -faddress-sanitizer -I/usr/include -msse2 -DDEBUG -DHAVE_CRYPT -DHAVE_LIBDL $(HAVE_LIBGMP) $(HAVE_KRB5) $(JOHN_CFLAGS)" \
+		LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz -lcrypt -ldl -faddress-sanitizer $(GMP_LDFLAGS) $(KRB5_LDFLAGS) $(JOHN_LDFLAGS)" \
 		CPP="clang" CC="clang" AS="clang" LD="clang" CXX="clang++"
 	@echo "All done"
 
@@ -542,13 +535,13 @@ linux-x86-64-newgcc-debug:
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE_ORIG) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
-		CFLAGS="-Wall -Wdeclaration-after-statement -c -g -O1 -fsanitize=address -I/usr/include -msse2 -DDEBUG -DHAVE_CRYPT -DHAVE_LIBDL $(HAVE_NSS) $(HAVE_LIBGMP) $(HAVE_KRB5) $(JOHN_CFLAGS)" \
-		LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz -lcrypt -ldl -fsanitize=address $(NSS_LDFLAGS) $(GMP_LDFLAGS) $(KRB5_LDFLAGS) $(JOHN_LDFLAGS)" \
+		CFLAGS="-Wall -Wdeclaration-after-statement -c -g -O1 -fsanitize=address -I/usr/include -msse2 -DDEBUG -DHAVE_CRYPT -DHAVE_LIBDL $(HAVE_LIBGMP) $(HAVE_KRB5) $(JOHN_CFLAGS)" \
+		LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz -lcrypt -ldl -fsanitize=address $(GMP_LDFLAGS) $(KRB5_LDFLAGS) $(JOHN_LDFLAGS)" \
 		AESNI_ARCH=64 YASM_FORMAT="elf64"
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE_ORIG) $(PROJ_PCAP) \
-		CFLAGS="-Wall -Wdeclaration-after-statement -c -g -O1 -fsanitize=address -I/usr/include -msse2 -DDEBUG -DHAVE_CRYPT -DHAVE_LIBDL $(HAVE_NSS) $(HAVE_LIBGMP) $(HAVE_KRB5) $(JOHN_CFLAGS)" \
-		LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz -lcrypt -ldl -fsanitize=address $(NSS_LDFLAGS) $(GMP_LDFLAGS) $(KRB5_LDFLAGS) $(JOHN_LDFLAGS)"
+		CFLAGS="-Wall -Wdeclaration-after-statement -c -g -O1 -fsanitize=address -I/usr/include -msse2 -DDEBUG -DHAVE_CRYPT -DHAVE_LIBDL $(HAVE_LIBGMP) $(HAVE_KRB5) $(JOHN_CFLAGS)" \
+		LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz -lcrypt -ldl -fsanitize=address $(GMP_LDFLAGS) $(KRB5_LDFLAGS) $(JOHN_LDFLAGS)"
 	@echo "All done"
 
 linux-x86-64-icc:
@@ -556,9 +549,9 @@ linux-x86-64-icc:
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE_ORIG) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
-		CFLAGS="-c -fast -O2 -I/usr/include -static-intel -DHAVE_CRYPT -DHAVE_LIBDL $(ICCOMPFLAGS) $(HAVE_NSS) $(HAVE_LIBGMP) $(HAVE_KRB5) $(JOHN_CFLAGS)" \
+		CFLAGS="-c -fast -O2 -I/usr/include -static-intel -DHAVE_CRYPT -DHAVE_LIBDL $(ICCOMPFLAGS) $(HAVE_LIBGMP) $(HAVE_KRB5) $(JOHN_CFLAGS)" \
 		ASFLAGS="-c -xHost $(JOHN_ASFLAGS)" \
-		LDFLAGS="-lm -lssl -lcrypto -ipo -static-intel -lcrypt -ldl -lz $(ICCOMPFLAGS) -s $(NSS_LDFLAGS) $(GMP_LDFLAGS) $(KRB5_LDFLAGS) $(JOHN_LDFLAGS)" \
+		LDFLAGS="-lm -lssl -lcrypto -ipo -static-intel -lcrypt -ldl -lz $(ICCOMPFLAGS) -s $(GMP_LDFLAGS) $(KRB5_LDFLAGS) $(JOHN_LDFLAGS)" \
 		CPP="icc" CC="icc" AS="icc" LD="icc" \
 		AESNI_ARCH=64 YASM_FORMAT="elf64"
 	@echo "Failing after this point just means some helper tools did not build:"
@@ -784,7 +777,7 @@ linux-x86-clang:
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE_ORIG) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o x86-sse.o sse-intrinsics.o" \
-		CFLAGS="-Wall -c -O2 -I/usr/include -msse2 -DHAVE_CRYPT -DHAVE_LIBDL -D_LARGEFILE64_SOURCE $(HAVE_NSS) $(HAVE_LIBGMP) $(HAVE_KRB5) $(OMPFLAGS) $(JOHN_CFLAGS)" \
+		CFLAGS="-Wall -c -O2 -I/usr/include -msse2 -DHAVE_CRYPT -DHAVE_LIBDL -D_LARGEFILE64_SOURCE $(HAVE_LIBGMP) $(HAVE_KRB5) $(OMPFLAGS) $(JOHN_CFLAGS)" \
 		LDFLAGS="$(LDFLAGS) -lcrypt -ldl" \
 		CPP="clang" CC="clang" AS="clang" LD="clang" CXX="clang++" \
 		AESNI_ARCH=86 YASM_FORMAT="elf32"
@@ -797,14 +790,14 @@ linux-x86-clang-debug:
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE_ORIG) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o x86-sse.o sse-intrinsics.o" \
-		CFLAGS="-Wall -Wdeclaration-after-statement -c -g -O1 -faddress-sanitizer -I/usr/include -msse2 -DDEBUG -DHAVE_CRYPT -DHAVE_LIBDL -D_LARGEFILE64_SOURCE $(HAVE_NSS) $(HAVE_LIBGMP) $(HAVE_KRB5) $(OMPFLAGS) $(JOHN_CFLAGS)" \
-		LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz -lcrypt -ldl -faddress-sanitizer $(NSS_LDFLAGS) $(GMP_LDFLAGS) $(KRB5_LDFLAGS) $(JOHN_LDFLAGS)" \
+		CFLAGS="-Wall -Wdeclaration-after-statement -c -g -O1 -faddress-sanitizer -I/usr/include -msse2 -DDEBUG -DHAVE_CRYPT -DHAVE_LIBDL -D_LARGEFILE64_SOURCE $(HAVE_LIBGMP) $(HAVE_KRB5) $(OMPFLAGS) $(JOHN_CFLAGS)" \
+		LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz -lcrypt -ldl -faddress-sanitizer $(GMP_LDFLAGS) $(KRB5_LDFLAGS) $(JOHN_LDFLAGS)" \
 		CPP="clang" CC="clang" AS="clang" LD="clang" CXX="clang++" \
 		AESNI_ARCH=86 YASM_FORMAT="elf32"
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE_ORIG) $(PROJ_PCAP) \
-		CFLAGS="-Wall -Wdeclaration-after-statement -c -g -O1 -faddress-sanitizer -I/usr/include -msse2 -DDEBUG -DHAVE_CRYPT -DHAVE_LIBDL $(HAVE_NSS) $(HAVE_LIBGMP) $(HAVE_KRB5) $(OMPFLAGS) $(JOHN_CFLAGS)" \
-		LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz -lcrypt -ldl -faddress-sanitizer $(NSS_LDFLAGS) $(GMP_LDFLAGS) $(KRB5_LDFLAGS) $(JOHN_LDFLAGS)" \
+		CFLAGS="-Wall -Wdeclaration-after-statement -c -g -O1 -faddress-sanitizer -I/usr/include -msse2 -DDEBUG -DHAVE_CRYPT -DHAVE_LIBDL $(HAVE_LIBGMP) $(HAVE_KRB5) $(OMPFLAGS) $(JOHN_CFLAGS)" \
+		LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz -lcrypt -ldl -faddress-sanitizer $(GMP_LDFLAGS) $(KRB5_LDFLAGS) $(JOHN_LDFLAGS)" \
 		CPP="clang" CC="clang" AS="clang" LD="clang" CXX="clang++"
 	@echo "All done"
 
@@ -1504,14 +1497,14 @@ macosx-x86-64-clang-debug:
 	$(MAKE_ORIG) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
 		ASFLAGS="$(ASFLAGS) -m64 -DUNDERSCORES -DBSD -DALIGN_LOG" \
-		CFLAGS="-Wall -Wdeclaration-after-statement -c -g -O1 -I/usr/include -I/usr/local/include -Wno-deprecated-declarations -DDEBUG -DHAVE_CRYPT -DBSD $(HAVE_NSS) $(HAVE_LIBGMP) $(HAVE_KRB5) $(JOHN_CFLAGS)" \
-		LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz $(NSS_LDFLAGS) $(GMP_LDFLAGS) $(KRB5_LDFLAGS) $(JOHN_LDFLAGS)" \
+		CFLAGS="-Wall -Wdeclaration-after-statement -c -g -O1 -I/usr/include -I/usr/local/include -Wno-deprecated-declarations -DDEBUG -DHAVE_CRYPT -DBSD $(HAVE_LIBGMP) $(HAVE_KRB5) $(JOHN_CFLAGS)" \
+		LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz $(GMP_LDFLAGS) $(KRB5_LDFLAGS) $(JOHN_LDFLAGS)" \
 		CPP="clang" CC="clang" AS="clang" LD="clang" CXX="clang++"
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE_ORIG) $(PROJ_PCAP) \
 		ASFLAGS="$(ASFLAGS) -m64 -DUNDERSCORES -DBSD -DALIGN_LOG" \
-		CFLAGS="-Wall -Wdeclaration-after-statement -c -g -O1 -I/usr/include -I/usr/local/include -Wno-deprecated-declarations -DDEBUG -DHAVE_CRYPT -DBSD $(HAVE_NSS) $(HAVE_LIBGMP) $(HAVE_KRB5) $(JOHN_CFLAGS)" \
-		LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz $(NSS_LDFLAGS) $(GMP_LDFLAGS) $(KRB5_LDFLAGS) $(JOHN_LDFLAGS)" \
+		CFLAGS="-Wall -Wdeclaration-after-statement -c -g -O1 -I/usr/include -I/usr/local/include -Wno-deprecated-declarations -DDEBUG -DHAVE_CRYPT -DBSD $(HAVE_LIBGMP) $(HAVE_KRB5) $(JOHN_CFLAGS)" \
+		LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz $(GMP_LDFLAGS) $(KRB5_LDFLAGS) $(JOHN_LDFLAGS)" \
 		CPP="clang" CC="clang" AS="clang" LD="clang" CXX="clang++"
 	@echo "All done"
 
@@ -2076,12 +2069,6 @@ $(SUBDIRS):
 	$(RM) ../run/rar2john
 	ln -s john ../run/rar2john
 
-../run/mozilla2john: ../run/john
-ifdef HAVE_NSS
-	$(RM) ../run/mozilla2john
-	ln -s john ../run/mozilla2john
-endif
-
 ../run/racf2john: ../run/john
 	$(RM) ../run/racf2john
 	ln -s john ../run/racf2john
@@ -2152,11 +2139,6 @@ endif
 
 ../run/rar2john.com: john.com
 	copy john.com ..\run\rar2john.com
-
-../run/mozilla2john.com: john.com
-ifdef HAVE_NSS
-	copy john.com ..\run\mozilla2john.com
-endif
 
 ../run/racf2john.com: john.com
 	copy john.com ..\run\racf2john.com
@@ -2247,12 +2229,6 @@ john.com: john.asm
 ../run/rar2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/rar2john.exe
 	$(STRIP) ../run/rar2john.exe
-
-../run/mozilla2john.exe: symlink.c
-ifdef HAVE_NSS
-	$(CC) symlink.c -o ../run/mozilla2john.exe
-	$(STRIP) ../run/mozilla2john.exe
-endif
 
 ../run/racf2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/racf2john.exe

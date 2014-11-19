@@ -755,7 +755,6 @@ enable_openmp_for_fast_formats
 enable_mpi
 enable_rexgen
 enable_cuda
-enable_nss
 enable_pcap
 enable_native_tests
 enable_native_macro
@@ -1407,7 +1406,6 @@ Optional Features:
   --enable-mpi            Use OpenMPI
   --enable-rexgen         Use rexgen library if present
   --disable-cuda          Do not use CUDA
-  --disable-nss           Do not use NSS/NSPR
   --disable-pcap          Do not build helpers depending on PCAP
   --disable-native-tests  Do not use test build system for target features
   --disable-native-macro  Do not use -march=native even if a valid compiler
@@ -3549,13 +3547,6 @@ if test "${enable_cuda+set}" = set; then :
   enableval=$enable_cuda; enable_cuda=$enableval
 else
   enable_cuda=auto
-fi
-
-# Check whether --enable-nss was given.
-if test "${enable_nss+set}" = set; then :
-  enableval=$enable_nss; enable_nss=$enableval
-else
-  enable_nss=auto
 fi
 
 # Check whether --enable-pcap was given.
