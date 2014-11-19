@@ -1,0 +1,14 @@
+Building JtR with AddressSanitizer (or ASan)
+--------------------------------------------
+
+./configure --enable-asan
+
+make
+
+../run/john --test
+
+Disabling instrumentation of a particular function
+--------------------------------------------------
+
+Use "ATTRIBUTE_NO_ADDRESS_SAFETY_ANALYSIS" function attribute to disable
+instrumentation of a particular function.
