@@ -50,7 +50,7 @@ mandir = $(prefix)/man/man1
 NVCC_FLAGS = -c -Xptxas -v -fmad=true
 
 CPPFLAGS = @CPPFLAGS@
-CFLAGSX = -c @CFLAGS@ @CFLAGS_EXTRA@ @MEMDBG_CFLAGS@ @HAVE_CUDA@ @HAVE_NSS@ @NSS_CFLAGS@ @OPENSSL_CFLAGS@ @OPENMP_CFLAGS@ @HAVE_MPI@ @PTHREAD_CFLAGS@ $(RELEASE_BLD)
+CFLAGSX = -c @CFLAGS@ @CFLAGS_EXTRA@ @MEMDBG_CFLAGS@ @HAVE_CUDA@ @OPENSSL_CFLAGS@ @OPENMP_CFLAGS@ @HAVE_MPI@ @PTHREAD_CFLAGS@ $(RELEASE_BLD)
 # CFLAGS for use on the main john.c file only
 CFLAGS_MAIN = -DAC_BUILT @CC_MAIN_CPU@ $(CFLAGSX)
 CFLAGS = -DAC_BUILT @CC_CPU@ $(CFLAGSX)
@@ -98,7 +98,6 @@ JOHN_OBJS = \
 	keyring2john.o keystore2john.o \
 	truecrypt_volume2john.o \
 	hccap2john.o \
-	mozilla2john.o \
 	$(PLUGFORMATS_OBJS) \
 	plugin.o \
 	dyna_salt.o dummy.o \
@@ -141,11 +140,6 @@ PROJ = ../run/john@EXE_EXT@ ../run/unshadow@EXE_EXT@ ../run/unafs@EXE_EXT@ ../ru
 	../run/dmg2john@EXE_EXT@ ../run/putty2john@EXE_EXT@ ../run/uaf2john@EXE_EXT@ \
 	../run/truecrypt_volume2john@EXE_EXT@ ../run/keystore2john@EXE_EXT@ ../run/wpapcap2john@EXE_EXT@ \
 	../run/gpg2john@EXE_EXT@ ../run/cprepair@EXE_EXT@ ../run/luks2john@EXE_EXT@ ../run/base64conv@EXE_EXT@
-
-HAVE_NSS = @HAVE_NSS@
-ifdef HAVE_NSS
-PROJ += ../run/mozilla2john@EXE_EXT@
-endif
 
 WITH_PCAP = @HAVE_PCAP@
 ifdef WITH_PCAP
@@ -297,7 +291,7 @@ miscnl.o: misc.c
 # PTHREAD_CFLAGS and OPENMP_CFLAGS may actually contain linker options,
 # like -fopenmp
 ../run/john@EXE_EXT@: $(JOHN_OBJS) $(SUBDIRS)
-	$(LD) $(JOHN_OBJS) $(LDFLAGS) @OPENSSL_LIBS@ @COMMONCRYPTO_LIBS@ @OPENMP_CFLAGS@ @GMP_LIBS@ @SKEY_LIBS@ @NSS_LIBS@ @REXGEN_LIBS@ @KRB5_LIBS@ @CUDA_LIBS@ @CL_LIBS@ @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ @M_LIBS@ @Z_LIBS@ @DL_LIBS@ @CRYPT_LIBS@ @BZ2_LIBS@ aes/aes.a -o ../run/john
+	$(LD) $(JOHN_OBJS) $(LDFLAGS) @OPENSSL_LIBS@ @COMMONCRYPTO_LIBS@ @OPENMP_CFLAGS@ @GMP_LIBS@ @SKEY_LIBS@ @REXGEN_LIBS@ @KRB5_LIBS@ @CUDA_LIBS@ @CL_LIBS@ @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ @M_LIBS@ @Z_LIBS@ @DL_LIBS@ @CRYPT_LIBS@ @BZ2_LIBS@ aes/aes.a -o ../run/john
 
 ../run/unshadow: ../run/john
 	$(RM) ../run/unshadow
@@ -342,12 +336,6 @@ miscnl.o: misc.c
 ../run/rar2john: ../run/john
 	$(RM) ../run/rar2john
 	$(LN) john ../run/rar2john
-
-../run/mozilla2john: ../run/john
-ifdef HAVE_NSS
-	$(RM) ../run/mozilla2john
-	$(LN) john ../run/mozilla2john
-endif
 
 ../run/racf2john: ../run/john
 	$(RM) ../run/racf2john
@@ -440,12 +428,6 @@ endif
 ../run/rar2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/rar2john.exe
 	$(STRIP) ../run/rar2john.exe
-
-../run/mozilla2john.exe: symlink.c
-ifdef HAVE_NSS
-	$(CC) symlink.c -o ../run/mozilla2john.exe
-	$(STRIP) ../run/mozilla2john.exe
-endif
 
 ../run/racf2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/racf2john.exe
