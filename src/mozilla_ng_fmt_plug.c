@@ -35,8 +35,9 @@ john_register_one(&fmt_mozilla);
 #include "params.h"
 #include "options.h"
 #include "memdbg.h"
+#include "stdint.h"
 #include <openssl/des.h>
-#include "gladman_hmac.h"
+#include "sha.h"
 
 #define FORMAT_LABEL            "Mozilla"
 #define FORMAT_NAME             "Mozilla key3.db"
@@ -299,14 +300,15 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	for (index = 0; index < count; index++)
 #endif
 	{
-		hmac_ctx hctx[1];
-		SHA_CTX ctx;
+		SHA_CTX ctx, ctxi, ctxo;
+		int i;
+		union {
+			unsigned char uc[64];
+			uint32_t ui[64/4];
+		} pad;
 		unsigned char buffer[20];
-		unsigned char k1[20];
-		unsigned char k2[20];
 		unsigned char tk[20];
-		unsigned char key[40] = {0};
-		DES_cblock key1, key2, key3;
+		unsigned char key[40];
 		DES_cblock ivec;
 		DES_key_schedule ks1, ks2, ks3;
 
@@ -322,35 +324,51 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		SHA1_Update(&ctx, cur_salt->local_salt, cur_salt->local_salt_length);
 		SHA1_Final(buffer, &ctx);
 
+		// Step 0 for all hmac, store off the first half (the key is the same for all 3)
+		// this will avoid having to setup the ipad/opad 2 times, and also avoids 4 SHA calls
+		// reducing the hmac calls from 12 SHA limbs, down to 8 and ipad/opad loads from 3
+		// down to 1.  It adds 4 CTX memcpy's, but that is a very fair trade off.
+		SHA1_Init(&ctxi);
+		SHA1_Init(&ctxo);
+		memset(pad.uc, 0x36, 64);
+		for (i = 0; i < 20; ++i)
+			pad.uc[i] ^= buffer[i];
+		SHA1_Update(&ctxi, pad.uc, 64);
+		for (i = 0; i < 64/4; ++i)
+			pad.ui[i] ^= 0x36363636^0x5c5c5c5c;
+		SHA1_Update(&ctxo, pad.uc, 64);
+
 		// k1 = HMAC(PES||ES) // use CHP as the key, PES is ES which is zero padded to length 20
-		hmac_sha1_begin(hctx);
-		hmac_sha1_key(buffer, 20, hctx);
-		hmac_sha1_data(cur_salt->local_salt, 20, hctx);
-		hmac_sha1_data(cur_salt->local_salt, cur_salt->local_salt_length, hctx);
-		hmac_sha1_end(k1, 20, hctx);
+		//  NOTE, memcpy ctxi/ctxo to harvest off the preloaded hmac key
+		memcpy(&ctx, &ctxi, sizeof(ctx));
+		SHA1_Update(&ctx, cur_salt->local_salt, 20);
+		SHA1_Update(&ctx, cur_salt->local_salt, cur_salt->local_salt_length);
+		SHA1_Final(buffer, &ctx);
+		memcpy(&ctx, &ctxo, sizeof(ctx));
+		SHA1_Update(&ctx, buffer, 20);
+		SHA1_Final(key, &ctx);
 
 		// tk = HMAC(PES) // use CHP as the key
-		hmac_sha1_begin(hctx);
-		hmac_sha1_key(buffer, 20, hctx);
-		hmac_sha1_data(cur_salt->local_salt, 20, hctx);
-		hmac_sha1_end(tk, 20, hctx);
+		//  NOTE, memcpy ctxi/ctxo to harvest off the preloaded hmac key
+		memcpy(&ctx, &ctxi, sizeof(ctx));
+		SHA1_Update(&ctx, cur_salt->local_salt, 20);
+		SHA1_Final(buffer, &ctx);
+		memcpy(&ctx, &ctxo, sizeof(ctx));
+		SHA1_Update(&ctx, buffer, 20);
+		SHA1_Final(tk, &ctx);
 
 		// k2 = HMAC(tk||ES) // use CHP as the key
-		hmac_sha1_begin(hctx);
-		hmac_sha1_key(buffer, 20, hctx);
-		hmac_sha1_data(tk, 20, hctx);
-		hmac_sha1_data(cur_salt->local_salt, cur_salt->local_salt_length, hctx);
-		hmac_sha1_end(k2, 20, hctx);
+		//  NOTE, ctxi and ctxo are no longer needed after this hmac, so we simply use them
+		SHA1_Update(&ctxi, tk, 20);
+		SHA1_Update(&ctxi, cur_salt->local_salt, cur_salt->local_salt_length);
+		SHA1_Final(buffer, &ctxi);
+		SHA1_Update(&ctxo, buffer, 20);
+		SHA1_Final(key+20, &ctxo);
 
 		// k = k1||k2 // encrypt "password-check" string using this key
-		memcpy(key, k1, 20);
-		memcpy(key + 20, k2, 20); // key has 40 bytes now
-		memcpy(key1, key, 8);
-		memcpy(key2, key + 8, 8);
-		memcpy(key3, key + 16, 8);
-		DES_set_key((C_Block *) key1, &ks1);
-		DES_set_key((C_Block *) key2, &ks2);
-		DES_set_key((C_Block *) key3, &ks3);
+		DES_set_key((C_Block *) key, &ks1);
+		DES_set_key((C_Block *) (key+8), &ks2);
+		DES_set_key((C_Block *) (key+16), &ks3);
 		memcpy(ivec, key + 32, 8);  // last 8 bytes!
 		// PKCS#5 padding (standard block padding)
 		DES_ede3_cbc_encrypt((unsigned char*)"password-check\x02\x02", (unsigned char*)crypt_out[index], 16, &ks1, &ks2, &ks3, &ivec, DES_ENCRYPT);
