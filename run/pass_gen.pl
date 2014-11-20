@@ -1010,7 +1010,7 @@ sub odf_1 {
 	use Crypt::CBC;
 	my $crypt = Crypt::CBC->new(-literal_key => 1, -key => $key, -iv => $iv, -cipher => "Crypt::OpenSSL::AES", -header => 'none');
 	# we have to null pad to even length, or the AES code will not generate proper value.
-	while (length($content)%32 != 0) { $content .= '\x0'; }
+	while (length($content)%32 != 0) { $content .= "\x0"; }
 	my $output = $crypt->decrypt($content);
 	$s = sha256($output);
 	print "u$u-odf:\$odf\$*1*1*1024*32*".unpack("H*",$s)."*16*".unpack("H*",$iv)."*16*".unpack("H*",$salt)."*0*".unpack("H*",$content).":0:$_[0]::\n";
