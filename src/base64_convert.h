@@ -38,11 +38,13 @@ typedef enum {
 /*
  * Base-64 modification flags
  */
-#define flg_Base64_NO_FLAGS				0
-#define flg_Base64_HEX_UPCASE			1
-#define flg_Base64_MIME_TRAIL_EQ		2
-#define flg_Base64_CRYPT_TRAIL_DOTS		4
-#define flg_Base64_MIME_PLUS_TO_DOT		8
+#define flg_Base64_NO_FLAGS				0x00
+#define flg_Base64_HEX_UPCASE			0x01
+#define flg_Base64_MIME_TRAIL_EQ		0x02
+#define flg_Base64_CRYPT_TRAIL_DOTS		0x04
+#define flg_Base64_MIME_PLUS_TO_DOT		0x08
+// mime alphabet, BUT last 2 chars are -_ (instead of +/ )
+#define flg_Base64_MIME_DASH_UNDER		0x10
 
 /*
  * return will be number of bytes converted and placed into *to (can be less than to_len).  A negative return is
@@ -53,8 +55,5 @@ char *base64_convert_cp(const void *from, b64_convert_type from_t, int from_len,
 int base64_valid_length(const char *from, b64_convert_type from_t, unsigned flags);
 void base64_convert_error_exit(int err);
 char *base64_convert_error(int err);  /* allocates buffer, which caller must free */
-
-//char *mime64_to_crypt64(const char *in, char *out, int len); /* out buffer at least len+1 */
-//char *crypt64_to_mime64(const char *in, char *out, int len);
 
 #endif  // _BASE64_CONVERT_H
