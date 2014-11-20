@@ -62,7 +62,7 @@ my @funcs = (qw(DESCrypt BigCrypt BSDIcrypt md5crypt md5crypt_a BCRYPT BCRYPTx
 		openssha l0phtcrack netlmv2 netntlmv2 mschapv2 mscash2 mediawiki
 		crc_32 Dynamic dummy raw-sha224 raw-sha256 raw-sha384 raw-sha512
 		dragonfly3-32 dragonfly4-32 dragonfly3-64 dragonfly4-64 ssh
-		salted-sha1 raw_gost raw_gost_cp hmac-sha1 hmac-sha224 rar
+		salted-sha1 raw_gost raw_gost_cp hmac-sha1 hmac-sha224 rar mozilla
 		hmac-sha256 hmac-sha384 hmac-sha512 sha256crypt sha512crypt
 		XSHA512 dynamic_27 dynamic_28 pwsafe django drupal7 epi zip
 		episerver_sha1 episerver_sha256 hmailserver ike keepass pkzip
@@ -984,8 +984,6 @@ sub mscash {
 	print "$salt:", md4_hex(md4(encode("UTF-16LE",$_[0])).encode("UTF-16LE", lc($salt))),
 			":$u:0:$_[0]:mscash (uname is salt):\n";
 }
-sub vnc {
-}
 sub odf {
 	my $iv; my $content;
 	if (defined $argsalt && length ($argsalt)==16) { $salt = $argsalt; } else { $salt = randstr(16); }
@@ -1042,6 +1040,29 @@ sub ike {
 sub cloudkeychain {
 }
 sub agilekeychain {
+}
+sub mozilla {
+	my $gsalt;
+	if (defined $argsalt && length ($argsalt)==40) { $argsalt = pack("H*",$argsalt); }
+	if (defined $argiv && length ($argiv)==40) { $argiv = pack("H*",$argiv); }
+	if (defined $argsalt && length ($argsalt)==20) { $salt = $argsalt; } else { $salt = randstr(20); }
+	# use -iv=xxx to pass in global_salt by user.
+	if (defined $argiv && length ($argiv)==20) { $gsalt = $argiv; } else { $gsalt = randstr(20); }
+
+	my $h2 = sha1(sha1($gsalt.$_[0]).$salt);
+	my $h4 = Digest::SHA::hmac_sha1($salt, $h2);
+	my $h3 = Digest::SHA::hmac_sha1($salt.$salt, $h2) . Digest::SHA::hmac_sha1($h4.$salt, $h2);
+
+	require Crypt::DES_EDE3;
+	require Crypt::CBC;
+	my $chk_key = "password-check";
+	my $cbc = Crypt::CBC->new(	-key => substr($h3,0,24),
+								-cipher => "DES_EDE3",
+								-iv => substr($h3,32,8),
+								-literal_key => 1,
+								-header => "none");
+	my $enc = $cbc->encrypt($chk_key);
+	print "u$u-mozilla:\$mozilla\$*3*20*1*".unpack("H*",$salt)."*11*2a864886f70d010c050103*16*".unpack("H*",$enc)."*20*".unpack("H*",$gsalt),":$u:0:$_[0]::\n";
 }
 sub keychain {
 	require Crypt::DES_EDE3;
