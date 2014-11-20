@@ -22,6 +22,7 @@ john_register_one(&fmt_ocl_pbkdf1_sha1);
 #include "common.h"
 #include "formats.h"
 #include "johnswap.h"
+#include "base64_convert.h"
 #include "stdint.h"
 #include "options.h"
 #define OUTLEN 20
@@ -51,6 +52,8 @@ john_register_one(&fmt_ocl_pbkdf1_sha1);
 #define MAX_CIPHERTEXT_LENGTH   (TAG_LEN + 6 + 1 + 2*MAX_SALT_SIZE + 1 + 2*MAX_BINARY_SIZE)
 
 #define FORMAT_TAG              "$pbkdf2-hmac-sha1$"
+#define PKCS5S2_TAG             "{PKCS5S2}"
+#define PK5K2_TAG               "$p5k2$"
 #define TAG_LEN                 (sizeof(FORMAT_TAG) - 1)
 
 #define uint8_t			unsigned char
@@ -126,6 +129,11 @@ static struct fmt_tests tests[] = {
 	// Please also note that you should run such hashes with --min-len=8,
 	// because WPAPSK passwords can't be shorter than that.
 	{"$pbkdf2-hmac-sha1$4096$4861726b6f6e656e$ee51883793a6f68e9615fe73c80a3aa6f2dd0ea537bce627b929183cc6e57925", "12345678"},
+	// these get converted in prepare()
+	// http://pythonhosted.org/passlib/lib/passlib.hash.atlassian_pbkdf2_sha1.html
+	{"{PKCS5S2}DQIXJU038u4P7FdsuFTY/+35bm41kfjZa57UrdxHp2Mu3qF2uy+ooD+jF5t1tb8J", "password"},
+	// http://pythonhosted.org/passlib/lib/passlib.hash.cta_pbkdf2_sha1.html
+	{"$p5k2$2710$oX9ZZOcNgYoAsYL-8bqxKg==$AU2JLf2rNxWoZxWxRCluY0u6h6c=", "password" },
 	{NULL}
 };
 
@@ -234,6 +242,48 @@ static void init(struct fmt_main *self)
 	self->params.min_keys_per_crypt = local_work_size * v_width;
 	self->params.max_keys_per_crypt = global_work_size * v_width;
 }
+
+static char *prepare(char *fields[10], struct fmt_main *self)
+{
+	static char Buf[256];
+	if (strncmp(fields[1], PKCS5S2_TAG, 9) != 0 && strncmp(fields[1], PK5K2_TAG, 6))
+		return fields[1];
+	if (!strncmp(fields[1], PKCS5S2_TAG, 9)) {
+		char tmp[120];
+		if (strlen(fields[1]) > 75) return fields[1];
+		//{"{PKCS5S2}DQIXJU038u4P7FdsuFTY/+35bm41kfjZa57UrdxHp2Mu3qF2uy+ooD+jF5t1tb8J", "password"},
+		//{"$pbkdf2-hmac-sha1$10000.0d0217254d37f2ee0fec576cb854d8ff.edf96e6e3591f8d96b9ed4addc47a7632edea176bb2fa8a03fa3179b75b5bf09", "password"},
+		base64_convert(&(fields[1][9]), e_b64_mime, strlen(&(fields[1][9])), tmp, e_b64_hex, sizeof(tmp), 0);
+		sprintf(Buf, "$pbkdf2-hmac-sha1$10000.%32.32s.%s", tmp, &tmp[32]);
+		return Buf;
+	}
+	if (!strncmp(fields[1], PK5K2_TAG, 6)) {
+		char tmps[140], tmph[70], *cp, *cp2;
+		unsigned iter=0;
+		// salt was listed as 1024 bytes max. But our max salt size is 64 bytes (~90 base64 bytes).
+		if (strlen(fields[1]) > 128) return fields[1];
+		//{"$p5k2$2710$oX9ZZOcNgYoAsYL-8bqxKg==$AU2JLf2rNxWoZxWxRCluY0u6h6c=", "password" },
+		//{"$pbkdf2-hmac-sha1$10000.a17f5964e70d818a00b182fef1bab12a.014d892dfdab3715a86715b144296e634bba87a7", "password"},
+		cp = fields[1];
+		cp += 6;
+		while (*cp && *cp != '$') {
+			iter *= 0x10;
+			iter += atoi16[ARCH_INDEX(*cp)];
+			++cp;
+		}
+		if (*cp != '$') return fields[1];
+		++cp;
+		cp2 = strchr(cp, '$');
+		if (!cp2) return fields[1];
+		base64_convert(cp, e_b64_mime, cp2-cp, tmps, e_b64_hex, sizeof(tmps), flg_Base64_MIME_DASH_UNDER);
+		++cp2;
+		base64_convert(cp2, e_b64_mime, strlen(cp2), tmph, e_b64_hex, sizeof(tmph), flg_Base64_MIME_DASH_UNDER);
+		sprintf(Buf, "$pbkdf2-hmac-sha1$%d.%s.%s", iter, tmps, tmph);
+		return Buf;
+	}
+	return fields[1];
+}
+
 
 static int ishex(char *q)
 {
@@ -581,7 +631,7 @@ struct fmt_main fmt_ocl_pbkdf1_sha1 = {
 		init,
 		done,
 		fmt_default_reset,
-		fmt_default_prepare,
+		prepare,
 		valid,
 		split,
 		binary,
