@@ -193,6 +193,7 @@ static void *get_salt(char *ciphertext)
 	int i;
 	char *p;
 	static struct custom_salt cs;
+	memset(&cs, 0, sizeof(cs));
 	ctcopy += 6;	/* skip over "$odf$*" */
 	p = strtok(ctcopy, "*");
 	cs.cipher_type = atoi(p);
@@ -315,6 +316,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			}
 #endif
 #endif
+
 			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
 				bf_ivec_pos = 0;
 				memcpy(ivec, cur_salt->iv, 8);
