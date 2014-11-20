@@ -120,7 +120,7 @@ static char *prepare(char *fields[10], struct fmt_main *self)
 		//{"{PKCS5S2}DQIXJU038u4P7FdsuFTY/+35bm41kfjZa57UrdxHp2Mu3qF2uy+ooD+jF5t1tb8J", "password"},
 		//{"$pbkdf2-hmac-sha1$10000.0d0217254d37f2ee0fec576cb854d8ff.edf96e6e3591f8d96b9ed4addc47a7632edea176bb2fa8a03fa3179b75b5bf09", "password"},
 		base64_convert(&(fields[1][9]), e_b64_mime, strlen(&(fields[1][9])), tmp, e_b64_hex, sizeof(tmp), 0);
-		sprintf(Buf, "$pbkdf2-hmac-sha1$10000.%32.32s.%s", tmp, &tmp[32]);
+		sprintf(Buf, "$pbkdf2-hmac-Sha1$10000.%32.32s.%s", tmp, &tmp[32]);
 		return Buf;
 	}
 	if (!strncmp(fields[1], PK5K2_TAG, 6)) {
@@ -144,7 +144,7 @@ static char *prepare(char *fields[10], struct fmt_main *self)
 		base64_convert(cp, e_b64_mime, cp2-cp, tmps, e_b64_hex, sizeof(tmps), flg_Base64_MIME_DASH_UNDER);
 		++cp2;
 		base64_convert(cp2, e_b64_mime, strlen(cp2), tmph, e_b64_hex, sizeof(tmph), flg_Base64_MIME_DASH_UNDER);
-		sprintf(Buf, "$pbkdf2-hmac-sha1$%d.%s.%s", iter, tmps, tmph);
+		sprintf(Buf, "$pbkdf2-hmac-Sha1$%d.%s.%s", iter, tmps, tmph);
 		return Buf;
 	}
 	return fields[1];
@@ -164,7 +164,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	size_t len;
 	char *delim;
 
-	if (strncmp(ciphertext, FORMAT_TAG, TAG_LEN))
+	if (strncasecmp(ciphertext, FORMAT_TAG, TAG_LEN))
 		return 0;
 
 	if (strlen(ciphertext) > MAX_CIPHERTEXT_LENGTH)
@@ -218,8 +218,9 @@ static void *get_salt(char *ciphertext)
 	int saltlen;
 	char delim;
 
-	if (!strncmp(ciphertext, FORMAT_TAG, sizeof(FORMAT_TAG) - 1))
+	if (!strncasecmp(ciphertext, FORMAT_TAG, sizeof(FORMAT_TAG) - 1))
 		ciphertext += sizeof(FORMAT_TAG) - 1;
+	cs.use_utf8 = ciphertext[13] == 'S';
 	cs.rounds = atoi(ciphertext);
 	delim = strchr(ciphertext, '.') ? '.' : '$';
 	ciphertext = strchr(ciphertext, delim) + 1;
