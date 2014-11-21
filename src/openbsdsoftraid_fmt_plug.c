@@ -233,22 +233,21 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 static int cmp_all(void *binary, int count)
 {
 	int index = 0;
-#ifdef _OPENMP
 	for (; index < count; index++)
-#endif
-		if (!memcmp(binary, crypt_out[index], BINARY_SIZE))
+		if (*(ARCH_WORD_32*)binary == *(ARCH_WORD_32*)(crypt_out[index]))
 			return 1;
 	return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return !memcmp(binary, crypt_out[index], BINARY_SIZE);
+	return (*(ARCH_WORD_32*)binary == *(ARCH_WORD_32*)(crypt_out[index]));
 }
 
 static int cmp_exact(char *source, int index)
 {
-	return 1;
+	void *bin = binary(source);
+	return !memcmp(bin, crypt_out[index], 20);
 }
 
 static void jtr_set_key(char* key, int index)
@@ -290,7 +289,7 @@ struct fmt_main fmt_openbsd_softraid = {
 		" (8192 iterations)",             // BENCHMARK_COMMENT
 		-1,                               // BENCHMARK_LENGTH
 		PLAINTEXT_LENGTH,
-		BINARY_SIZE,
+		sizeof(ARCH_WORD_32), //BINARY_SIZE,
 		BINARY_ALIGN,
 		SALT_SIZE,
 		SALT_ALIGN,
