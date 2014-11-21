@@ -113,7 +113,7 @@ typedef struct my_salt_t {
 #endif
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static unsigned char (*crypt_key)[BINARY_SIZE];
+static unsigned char (*crypt_key)[((BINARY_SIZE+3)/4)*4];
 
 static my_salt *saved_salt;
 
