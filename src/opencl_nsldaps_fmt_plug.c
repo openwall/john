@@ -102,7 +102,7 @@ static struct fmt_tests tests[] = {
 static int have_full_hashes;
 
 //This file contains auto-tuning routine(s). It has to be included after formats definitions.
-#include "opencl_autotune.h"
+#include "opencl-autotune.h"
 #include "memdbg.h"
 
 static const char * warn[] = {

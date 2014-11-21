@@ -69,7 +69,7 @@ static const char * warn[] = {
 static int crypt_all(int *pcount, struct db_salt *_salt);
 
 //This file contains auto-tuning routine(s). It has to be included after formats definitions.
-#include "opencl_autotune.h"
+#include "opencl-autotune.h"
 #include "memdbg.h"
 
 static struct fmt_tests tests[] = {

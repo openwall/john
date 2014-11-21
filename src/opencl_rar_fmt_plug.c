@@ -127,7 +127,7 @@ static int crypt_all(int *pcount, struct db_salt *_salt);
 static int crypt_all_benchmark(int *pcount, struct db_salt *_salt);
 
 //This file contains auto-tuning routine(s). Has to be included after formats definitions.
-#include "opencl_autotune.h"
+#include "opencl-autotune.h"
 #include "memdbg.h"
 
 #define ITERATIONS		0x40000

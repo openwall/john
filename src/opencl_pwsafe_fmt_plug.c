@@ -57,7 +57,7 @@ static const char * warn[] = {
 	" ("           ,  "/"              ,  "), final: "  ,  ", result xfer: "
 };
 
-#include "opencl_autotune.h"
+#include "opencl-autotune.h"
 #include "memdbg.h"
 
 cl_kernel init_kernel;

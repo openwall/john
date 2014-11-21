@@ -87,7 +87,7 @@ static const char * warn[] = {
 
 static int crypt_all(int *pcount, struct db_salt *_salt);
 
-#include "opencl_autotune.h"
+#include "opencl-autotune.h"
 #include "memdbg.h"
 
 static struct fmt_tests tests[] = {

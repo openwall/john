@@ -112,7 +112,7 @@ static cl_kernel krb5pa_md5_nthash;
 #define SEED 64
 
 //This file contains auto-tuning routine(s). Has to be included after formats definitions.
-#include "opencl_autotune.h"
+#include "opencl-autotune.h"
 #include "memdbg.h"
 
 static const char * warn[] = {
