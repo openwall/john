@@ -296,8 +296,11 @@ Bail:;
 }
 
 static void *binary(char *ciphertext) {
-	static unsigned buf[(BINARY_SIZE+sizeof(unsigned)-1)/sizeof(unsigned)];
-	unsigned char *bin = (unsigned char*)buf;
+	static union {
+		unsigned char buf[10];
+		unsigned x;
+	} x;
+	unsigned char *bin = x.buf;
 	char *c = strrchr(ciphertext, '*')-2*BINARY_SIZE;
 	int i;
 
@@ -470,10 +473,23 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				memset(crypt_key[index+i], 0, BINARY_SIZE);
 		}
 #else
-		unsigned char pwd_ver[(2+64)*MAX_KEYS_PER_CRYPT];
+		int LEN = 2+2*KEY_LENGTH(saved_salt->v.mode);
+		union {
+			// MUST be aligned on 4 byte boundary for alter endianity on BE
+			// we also need 2 extra bytes for endianity flipping.
+			unsigned char pwd_ver[4+64];
+			ARCH_WORD_32 w;
+		} x;
+		unsigned char *pwd_ver = x.pwd_ver;
+#if !ARCH_LITTLE_ENDIAN
+		LEN += 2;
+#endif
 		pbkdf2_sha1((unsigned char *)saved_key[index],
 		       strlen(saved_key[index]), saved_salt->salt, SALT_LENGTH(saved_salt->v.mode),
-		       KEYING_ITERATIONS, pwd_ver, 2+2*KEY_LENGTH(saved_salt->v.mode), 0);
+		       KEYING_ITERATIONS, pwd_ver, LEN, 0);
+#if !ARCH_LITTLE_ENDIAN
+		alter_endianity(pwd_ver, LEN);
+#endif
 		if (!memcmp(&(pwd_ver[KEY_LENGTH(saved_salt->v.mode)<<1]), saved_salt->passverify, 2))
 		{
 			// yes, I know gladman's code but for now that is what I am using.  Later we will improve.
@@ -517,7 +533,7 @@ struct fmt_main fmt_zip = {
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
-		BINARY_SIZE,
+		4, // BINARY_SIZE,
 		BINARY_ALIGN,
 		SALT_SIZE,
 		SALT_ALIGN,
