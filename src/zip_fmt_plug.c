@@ -101,7 +101,7 @@ typedef struct my_salt_t {
 #define BENCHMARK_LENGTH    -1001
 #define BINARY_SIZE         10
 #define PLAINTEXT_LENGTH	125
-#define BINARY_ALIGN        MEM_ALIGN_NONE
+#define BINARY_ALIGN        sizeof(ARCH_WORD_32)
 #define SALT_SIZE           sizeof(my_salt*)
 #define SALT_ALIGN          sizeof(my_salt*)
 #ifdef MMX_COEF
