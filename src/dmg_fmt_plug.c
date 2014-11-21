@@ -93,6 +93,8 @@ extern volatile int bench_running;
 #define BINARY_SIZE         0
 #define PLAINTEXT_LENGTH	125
 #define SALT_SIZE           sizeof(struct custom_salt)
+#define BINARY_ALIGN		1
+#define SALT_ALIGN			sizeof(int)
 #ifdef MMX_COEF
 #define MIN_KEYS_PER_CRYPT  SSE_GROUP_SZ_SHA1
 #define MAX_KEYS_PER_CRYPT  SSE_GROUP_SZ_SHA1
@@ -727,9 +729,9 @@ struct fmt_main fmt_dmg = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 #ifdef DMG_DEBUG

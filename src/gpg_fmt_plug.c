@@ -64,6 +64,9 @@ john_register_one(&fmt_gpg);
 #define SALT_SIZE		sizeof(struct custom_salt)
 #define MIN_KEYS_PER_CRYPT  1
 #define MAX_KEYS_PER_CRYPT  1
+#define BINARY_ALIGN	1
+// salt has a function pointer.  Use ARCH_WORD
+#define SALT_ALIGN		sizeof(ARCH_WORD)
 
 #ifndef SHA256_DIGEST_LENGTH
 #define SHA256_DIGEST_LENGTH 32
@@ -1323,9 +1326,9 @@ struct fmt_main fmt_gpg = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,

@@ -57,6 +57,7 @@ john_register_one(&fmt_gost);
 #define BINARY_SIZE		32
 #define SALT_SIZE		1
 #define SALT_ALIGN		1
+#define BINARY_ALIGN	sizeof(ARCH_WORD_32)
 
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
@@ -242,7 +243,7 @@ struct fmt_main fmt_gost = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
