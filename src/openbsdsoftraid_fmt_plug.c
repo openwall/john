@@ -14,6 +14,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
+ * Fixed BE issues, and build problems (Fall 2014), JimF.
  */
 
 #include "arch.h"
@@ -204,6 +206,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 
     for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+
+#if !ARCH_LITTLE_ENDIAN
+      alter_endianty(mask_key[i], 32);
+#endif
 
       /* decrypt sector keys */
       AES_set_decrypt_key(mask_key[i], 256, &akey);
