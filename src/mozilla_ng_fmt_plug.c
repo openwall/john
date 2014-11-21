@@ -66,6 +66,7 @@ static int *saved_len;
 static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
 
 static  struct custom_salt {
+	SHA_CTX pctx;
 	int password_check_length;
 	unsigned char password_check[20];
 	int global_salt_length;
@@ -236,6 +237,10 @@ static void *get_salt(char *ciphertext)
 		cs.global_salt[i] = atoi16[ARCH_INDEX(p[i * 2])]
 			* 16 + atoi16[ARCH_INDEX(p[i * 2 + 1])];
 
+	// Calculate partial sha1 data for password hashing
+	SHA1_Init(&cs.pctx);
+	SHA1_Update(&cs.pctx, cs.global_salt, cs.global_salt_length);
+
 	return (void *)&cs;
 }
 
@@ -313,8 +318,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		DES_key_schedule ks1, ks2, ks3;
 
 		// HP = SHA1(global-salt||password)
-		SHA1_Init(&ctx);
-		SHA1_Update(&ctx, cur_salt->global_salt, cur_salt->global_salt_length);
+		// Copy already calculated partial hash data
+		memcpy(&ctx, &cur_salt->pctx, sizeof(SHA_CTX));
 		SHA1_Update(&ctx, saved_key[index], saved_len[index]);
 		SHA1_Final(buffer, &ctx);
 
