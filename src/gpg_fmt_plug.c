@@ -64,7 +64,7 @@ john_register_one(&fmt_gpg);
 #define SALT_SIZE		sizeof(struct custom_salt)
 #define MIN_KEYS_PER_CRYPT  1
 #define MAX_KEYS_PER_CRYPT  1
-#define BINARY_ALIGN	1
+#define BINARY_ALIGN	sizeof(ARCH_WORD_32)
 // salt has a function pointer.  Use ARCH_WORD
 #define SALT_ALIGN		sizeof(ARCH_WORD)
 
