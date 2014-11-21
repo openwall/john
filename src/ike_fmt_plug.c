@@ -78,6 +78,8 @@ static int omp_t = 1;
 #define BINARY_SIZE		20 /* SHA1 */
 #define BINARY_SIZE_SMALLER	16 /* MD5 */
 #define SALT_SIZE		sizeof(psk_entry)
+#define BINARY_ALIGN		sizeof(ARCH_WORD_32)
+#define SALT_ALIGN			sizeof(size_t)
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	16
 
@@ -307,9 +309,9 @@ struct fmt_main fmt_ike = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE_SMALLER,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,

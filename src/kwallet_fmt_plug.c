@@ -42,6 +42,8 @@ john_register_one(&fmt_kwallet);
 #define BINARY_SIZE		0
 #define PLAINTEXT_LENGTH	125
 #define SALT_SIZE		sizeof(*cur_salt)
+#define BINARY_ALIGN		1
+#define SALT_ALIGN			sizeof(int)
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 // #define BENCH_LARGE_PASSWORDS   1
@@ -296,9 +298,9 @@ struct fmt_main fmt_kwallet = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_NOT_EXACT,

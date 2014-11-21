@@ -45,6 +45,8 @@ john_register_one(&fmt_keychain);
 #define BINARY_SIZE		0
 #define PLAINTEXT_LENGTH	125
 #define SALT_SIZE		sizeof(*salt_struct)
+#define BINARY_ALIGN		1
+#define SALT_ALIGN			1
 #ifdef MMX_COEF
 #define MIN_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA1
 #define MAX_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA1
@@ -270,9 +272,9 @@ struct fmt_main fmt_keychain = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_NOT_EXACT,

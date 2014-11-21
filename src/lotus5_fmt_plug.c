@@ -38,6 +38,8 @@ john_register_one(&fmt_lotus5);
 #define CIPHERTEXT_LENGTH              32
 #define BINARY_SIZE                    16
 #define SALT_SIZE                      0
+#define BINARY_ALIGN			sizeof(ARCH_WORD_32)
+#define SALT_ALIGN				1
 #define MIN_KEYS_PER_CRYPT             LOTUS_N
 /* Must be divisible by any LOTUS_N (thus, by 2 and 3) */
 #define MAX_KEYS_PER_CRYPT             0x900
@@ -366,9 +368,9 @@ struct fmt_main fmt_lotus5 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,

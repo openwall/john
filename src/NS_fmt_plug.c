@@ -57,6 +57,8 @@ john_register_one(&fmt_NS);
 
 #define BINARY_SIZE			16
 #define SALT_SIZE			32
+#define BINARY_ALIGN		sizeof(ARCH_WORD_32)
+#define SALT_ALIGN			1
 
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
@@ -274,9 +276,9 @@ struct fmt_main fmt_NS = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,

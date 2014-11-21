@@ -48,6 +48,8 @@ static int omp_t = 1;
 #define CIPHERTEXT_LENGTH	48
 #define SALT_LENGTH		10
 #define BINARY_SIZE		0
+#define BINARY_ALIGN	1
+#define SALT_ALIGN		1
 #define SALT_SIZE		sizeof(struct custom_salt)
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
@@ -243,9 +245,9 @@ struct fmt_main fmt_o5logon = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
