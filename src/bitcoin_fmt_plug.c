@@ -61,6 +61,8 @@ static int omp_t = 1;
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	64
 #define BINARY_SIZE		0
+#define BINARY_ALIGN		1
+#define SALT_ALIGN			sizeof(int)
 #define SALT_SIZE		sizeof(struct custom_salt)
 #ifdef MMX_COEF_SHA512
 #define MIN_KEYS_PER_CRYPT	MMX_COEF_SHA512
@@ -418,13 +420,9 @@ struct fmt_main fmt_bitcoin = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-#if FMT_MAIN_VERSION > 9
-                DEFAULT_ALIGN,
-#endif
+		BINARY_ALIGN,
 		SALT_SIZE,
-#if FMT_MAIN_VERSION > 9
-                DEFAULT_ALIGN,
-#endif
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,

@@ -31,6 +31,9 @@ john_register_one(&fmt_cuda_mscash);
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	0
 
+#define BINARY_ALIGN		sizeof(uint32_t)
+#define SALT_ALIGN			sizeof(uint32_t)
+
 static mscash_password *inbuffer;
 static mscash_hash *outbuffer;
 static mscash_salt currentsalt;
@@ -256,9 +259,9 @@ struct fmt_main fmt_cuda_mscash = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE | FMT_UTF8,

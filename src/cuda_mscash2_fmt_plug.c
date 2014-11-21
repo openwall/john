@@ -30,6 +30,9 @@ john_register_one(&fmt_cuda_mscash2);
 #define ALGORITHM_NAME		"PBKDF2-SHA1 CUDA"
 #define MAX_SALT_LENGTH		19
 
+#define BINARY_ALIGN		sizeof(uint32_t)
+#define SALT_ALIGN			sizeof(uint32_t)
+
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 //#define _MSCASH2_DEBUG
@@ -260,9 +263,9 @@ struct fmt_main fmt_cuda_mscash2 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE | FMT_UTF8,

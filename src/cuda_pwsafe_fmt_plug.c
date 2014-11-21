@@ -42,6 +42,9 @@ john_register_one(&fmt_cuda_pwsafe);
 #define MIN_KEYS_PER_CRYPT      THREADS
 #define MAX_KEYS_PER_CRYPT      KEYS_PER_CRYPT
 
+#define BINARY_ALIGN		1
+#define SALT_ALIGN			sizeof(uint32_t)
+
 static struct fmt_tests pwsafe_tests[] = {
         {"$pwsafe$*3*fefc1172093344c9d5577b25f5b4b6e5d2942c94f9fc24c21733e28ae6527521*2048*88cbaf7d8668c1a98263f5dce7cb39c3304c49a3e0d76a7ea475dc02ab2f97a7", "12345678"},
         {"$pwsafe$*3*581cd1135b9b993ccb0f6b01c1fcfacd799c69960496c96286f94fe1400c1b25*2048*4ab3c2d3af251e94eb2f753fdf30fb9da074bec6bac0fa9d9d152b95fc5795c6", "openwall"},
@@ -197,9 +200,9 @@ struct fmt_main fmt_cuda_pwsafe = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		KEYS_PER_CRYPT,
 		KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,

@@ -42,6 +42,9 @@ john_register_one(&fmt_cuda_cryptsha256);
 
 #define SALT_SIZE		(3+7+9+16)
 
+#define BINARY_ALIGN		4
+#define SALT_ALIGN			sizeof(uint32_t)
+
 #define MIN_KEYS_PER_CRYPT	THREADS
 #define MAX_KEYS_PER_CRYPT	KEYS_PER_CRYPT
 
@@ -350,9 +353,9 @@ struct fmt_main fmt_cuda_cryptsha256 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,

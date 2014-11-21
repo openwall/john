@@ -34,6 +34,8 @@ john_register_one(&fmt_cuda_cryptsha512);
 #define BINARY_SIZE		(3+16+86)
 #define MD5_DIGEST_LENGTH 	16
 
+#define BINARY_ALIGN		8
+#define SALT_ALIGN			sizeof(uint32_t)
 
 #define SALT_SIZE		(3+7+9+16)
 
@@ -334,9 +336,9 @@ struct fmt_main fmt_cuda_cryptsha512 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
