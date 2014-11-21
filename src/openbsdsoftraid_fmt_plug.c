@@ -245,7 +245,7 @@ static int cmp_exact(char *source, int index)
 	return 1;
 }
 
-static void set_key(char* key, int index)
+static void jtr_set_key(char* key, int index)
 {
 	strcpy(key_buffer[index], key);
 }
@@ -317,7 +317,7 @@ struct fmt_main fmt_openbsd_softraid = {
 		},
 		fmt_default_salt_hash,
 		set_salt,
-		set_key,
+		jtr_set_key,
 		get_key,
 		fmt_default_clear_keys,
 		crypt_all,
