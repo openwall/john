@@ -208,7 +208,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
     for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
 
 #if !ARCH_LITTLE_ENDIAN
-      alter_endianty(mask_key[i], 32);
+      alter_endianity(mask_key[i], 32);
 #endif
 
       /* decrypt sector keys */
