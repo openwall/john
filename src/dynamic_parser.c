@@ -569,6 +569,7 @@ static Dynamic_Str_Flag_t Dynamic_Str_sFlag[] =  {
 	{ "MGF_KEYS_UNICODE_B4_CRYPT",        MGF_KEYS_UNICODE_B4_CRYPT },
 	{ "MGF_PHPassSetup",                  MGF_PHPassSetup },
 	{ "MGF_POSetup",                      MGF_POSetup },
+	{ "MGF_POOR_OMP",                     MGF_POOR_OMP },
 	{ "MGF_FreeBSDMD5Setup",              MGF_FreeBSDMD5Setup },
 	{ "MGF_RAW_SHA1_INPUT",               MGF_RAW_SHA1_INPUT },
 	{ "MGF_KEYS_INPUT_BE_SAFE",           MGF_KEYS_INPUT_BE_SAFE },  // big endian safe, i.e. the input will NEVER get swapped.  Only SHA1 is 'safe'.

@@ -6782,6 +6782,7 @@ static int LCM(int a, int b) {
 
 static void dyna_setupOMP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt) {
 	int i;
+
 #ifndef MMX_COEF
 	curdat.omp_granularity=OMP_INC;
 #else
@@ -6823,6 +6824,8 @@ static void dyna_setupOMP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt) {
 		if (isBadOMPFunc(Setup->pFuncs[i]))
 			pFmt->params.flags &= (~FMT_OMP);
 	}
+	if ((pFmt->params.flags&FMT_OMP)==FMT_OMP && (curdat.pSetup->startFlags&MGF_POOR_OMP)==MGF_POOR_OMP)
+		pFmt->params.flags |= FMT_OMP_BAD;
 }
 #endif
 
