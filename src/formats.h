@@ -28,11 +28,6 @@
  */
 struct fmt_main;
 
-/*
- * Default alignment (used unless known)
- */
-#define DEFAULT_ALIGN MEM_ALIGN_WORD
-
 #if FMT_MAIN_VERSION > 11
 /*
  * Maximum number of different tunable cost parameters
