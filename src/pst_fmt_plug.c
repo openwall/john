@@ -39,6 +39,7 @@ static int omp_t = 1;
 #define PLAINTEXT_LENGTH		8
 #define BINARY_SIZE			4
 #define SALT_SIZE			0
+#define BINARY_ALIGN		sizeof(ARCH_WORD_32)
 #define SALT_ALIGN			1
 
 #define MIN_KEYS_PER_CRYPT		1
@@ -160,7 +161,7 @@ struct fmt_main fmt_pst = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,

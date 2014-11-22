@@ -43,7 +43,7 @@ john_register_one(&fmt_rsvp);
 #define BINARY_SIZE             16
 #define BINARY_ALIGN            sizeof(ARCH_WORD_32)
 #define SALT_SIZE               sizeof(struct custom_salt)
-#define SALT_ALIGN              MEM_ALIGN_NONE
+#define SALT_ALIGN              sizeof(int)
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
 #define HEXCHARS                "0123456789abcdef"
@@ -240,9 +240,9 @@ struct fmt_main fmt_rsvp = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,

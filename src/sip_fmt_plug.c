@@ -50,6 +50,8 @@ static sip_salt *pSalt;
 #define PLAINTEXT_LENGTH	32
 #define BINARY_SIZE		0
 #define SALT_SIZE		sizeof(sip_salt)
+#define BINARY_ALIGN	1
+#define SALT_ALIGN		sizeof(int)
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	64
 
@@ -338,9 +340,9 @@ struct fmt_main fmt_sip = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,

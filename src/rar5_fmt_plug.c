@@ -58,6 +58,8 @@ static int omp_t = 1;
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	32
 #define SALT_SIZE		sizeof(struct custom_salt)
+#define BINARY_ALIGN	sizeof(ARCH_WORD_32)
+#define SALT_ALIGN		sizeof(int)
 #ifdef MMX_COEF_SHA256
 #define MIN_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA256
 #define MAX_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA256
@@ -163,9 +165,9 @@ struct fmt_main fmt_rar5 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
