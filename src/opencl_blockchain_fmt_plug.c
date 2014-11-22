@@ -46,6 +46,8 @@ john_register_one(&fmt_opencl_blockchain);
 #define BINARY_SIZE		0
 #define PLAINTEXT_LENGTH	64
 #define SALT_SIZE		sizeof(struct custom_salt)
+#define BINARY_ALIGN		MEM_ALIGN_WORD
+#define SALT_ALIGN			MEM_ALIGN_WORD
 #define BIG_ENOUGH 		(8192 * 32)
 // increase me (in multiples of 16) to increase the decrypted and search area
 #define SAFETY_FACTOR 		16
@@ -373,9 +375,9 @@ struct fmt_main fmt_opencl_blockchain = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,

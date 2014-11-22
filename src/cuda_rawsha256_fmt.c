@@ -33,6 +33,8 @@
 #define ALGORITHM_NAME		"SHA256 CUDA (inefficient, development use mostly)"
 #define CIPHERTEXT_LENGTH	64	///256bit
 #define BINARY_SIZE		32
+#define BINARY_ALIGN		MEM_ALIGN_WORD
+#define SALT_ALIGN			1
 #define SHA_HASH		sha256_hash
 #define TESTS			sha256_tests
 #define FMT_MAIN		fmt_cuda_rawsha256
@@ -279,9 +281,9 @@ struct fmt_main FMT_MAIN = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,

@@ -38,6 +38,7 @@ john_register_one(&fmt_opencl_phpass);
 #define BINARY_SIZE             16
 #define ACTUAL_SALT_SIZE        8
 #define SALT_SIZE               (ACTUAL_SALT_SIZE + 1) // 1 byte for iterations
+#define BINARY_ALIGN		MEM_ALIGN_WORD
 #define SALT_ALIGN		1
 
 #define MIN_KEYS_PER_CRYPT      (2048 * 96)
@@ -436,7 +437,7 @@ struct fmt_main fmt_opencl_phpass = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,

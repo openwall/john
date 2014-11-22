@@ -32,6 +32,8 @@ john_register_one(&fmt_opencl_1otus5);
 #define BENCHMARK_LENGTH               -1
 #define CIPHERTEXT_LENGTH              32
 #define SALT_SIZE                      0
+#define BINARY_ALIGN		MEM_ALIGN_WORD
+#define SALT_ALIGN			1
 #define MIN_KEYS_PER_CRYPT             4
 #define MAX_KEYS_PER_CRYPT             (16384*64) /* must be even */
 #define KEY_SIZE_IN_BYTES              (((PLAINTEXT_LENGTH >> 2) + 1) << 2)
@@ -305,9 +307,9 @@ struct fmt_main fmt_opencl_1otus5 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,

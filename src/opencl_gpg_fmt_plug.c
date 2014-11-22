@@ -52,6 +52,9 @@ john_register_one(&fmt_opencl_gpg);
 #define BINARY_SIZE		0
 #define PLAINTEXT_LENGTH	32
 #define SALT_SIZE		sizeof(struct custom_salt)
+#define BINARY_ALIGN		MEM_ALIGN_WORD
+#define SALT_ALIGN			MEM_ALIGN_WORD
+
 
 #define uint8_t			unsigned char
 #define uint16_t		unsigned short
@@ -1069,9 +1072,9 @@ struct fmt_main fmt_opencl_gpg = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,

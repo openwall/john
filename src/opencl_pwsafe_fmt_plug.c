@@ -41,6 +41,8 @@ john_register_one(&fmt_opencl_pwsafe);
 #define BENCHMARK_LENGTH        -1
 #define PLAINTEXT_LENGTH        87
 #define BINARY_SIZE             0
+#define BINARY_ALIGN		1
+#define SALT_ALIGN			MEM_ALIGN_WORD
 #define KERNEL_INIT_NAME	"pwsafe_init"
 #define KERNEL_RUN_NAME   	"pwsafe_iter"
 #define KERNEL_FINISH_NAME	"pwsafe_check"
@@ -402,9 +404,9 @@ struct fmt_main fmt_opencl_pwsafe = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
