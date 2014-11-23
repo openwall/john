@@ -335,9 +335,10 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if (strlen(p) != res * 2)
 		goto err;
-	for(i = 0; i < strlen(p); i++)
+	for(i = 0; i < strlen(p); i++) {
 		if(atoi16[ARCH_INDEX(p[i])] == 0x7F)
 			goto err;
+	}
 	if ((p = strtok(NULL, "*")) == NULL)	/* spec */
 		goto err;
 	if (strlen(p) >= 10)
@@ -415,7 +416,6 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		/* RSA */
 		ex_flds = 1; /* handle p */
 	} else if (usage == 255 && spec == 3 && algorithm == 1) {
-		/* UNK */
 		/* gpg --homedir . --s2k-cipher-algo 3des --simple-sk-checksum --gen-key */
 		ex_flds = 1; /* handle p */
 	} else {
