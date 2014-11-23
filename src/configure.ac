@@ -310,6 +310,7 @@ fi
 #############################################################################
 # Check for LE/BE CPU
 #############################################################################
+
 if test "x$endian" = "xunknown"; then
   AC_C_BIGENDIAN([endian=big], [endian=little])
 else
@@ -724,7 +725,7 @@ AC_OUTPUT(,echo "timestamp from configure.in" > autoconfig-stamp-h)
 # AC_OUTPUT
 ##########################################################
 # we can now disable formats for BE or LE only  (VMS is disabled currently)
-if test "x$endian" = "big"; then
+if test "x$endian" = "xbig"; then
    ENDIAN=-DENDIAN_BE
 else
    ENDIAN=-DENDIAN_LE
@@ -797,7 +798,7 @@ if test $(echo "$CFLAGS" | ${GREP} -c -- "-O") -eq 0 &&
    echo
    AC_MSG_WARN([No recognized optimization option present in CFLAGS])
 fi
-if test "x$endian" = "big"; then
+if test "x$endian" = "xbig"; then
    using_endian="BE"
 else
    using_endian="LE"
