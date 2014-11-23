@@ -13,9 +13,13 @@
  *    modifications, are permitted. */
 
 #if FMT_EXTERNS_H
+#ifdef ENDIAN_LE
 extern struct fmt_main fmt_VMS;
+#endif
 #elif FMT_REGISTERS_H
+#ifdef ENDIAN_LE
 john_register_one(&fmt_VMS);
+#endif
 #else
 
 #include <stdio.h>
