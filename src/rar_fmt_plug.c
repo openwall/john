@@ -113,6 +113,10 @@ john_register_one(&fmt_rar);
 /* The reason we want to bump OMP_SCALE in this case is to even out the
    difference in processing time for different length keys. It doesn't
    boost performance in other ways */
+#ifdef _MSC_VER
+#undef _OPENMP
+#endif
+
 #ifdef _OPENMP
 #include <omp.h>
 #include <pthread.h>
