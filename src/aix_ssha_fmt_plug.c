@@ -301,14 +301,17 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef SSE_GROUP_SZ_SHA1
 				int lens[SSE_GROUP_SZ_SHA1], i;
 				unsigned char *pin[SSE_GROUP_SZ_SHA1];
-				ARCH_WORD_32 *pout[SSE_GROUP_SZ_SHA1];
+				union {
+					ARCH_WORD_32 *pout[SSE_GROUP_SZ_SHA1];
+					unsigned char *poutc;
+				} x;
 				for (i = 0; i < SSE_GROUP_SZ_SHA1; ++i) {
 					lens[i] = strlen(saved_key[j]);
 					pin[i] = (unsigned char*)(saved_key[j]);
-					pout[i] = crypt_out[j];
+					x.pout[i] = crypt_out[j];
 					++j;
 				}
-				pbkdf2_sha1_sse((const unsigned char **)pin, lens, cur_salt->salt, strlen((char*)cur_salt->salt), cur_salt->iterations, (unsigned char**)pout, BINARY_SIZE, 0);
+				pbkdf2_sha1_sse((const unsigned char **)pin, lens, cur_salt->salt, strlen((char*)cur_salt->salt), cur_salt->iterations, &(x.poutc), BINARY_SIZE, 0);
 #else
 				pbkdf2_sha1((const unsigned char*)(saved_key[j]), strlen(saved_key[j]),
 					cur_salt->salt, strlen((char*)cur_salt->salt),
@@ -320,14 +323,17 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef SSE_GROUP_SZ_SHA256
 				int lens[SSE_GROUP_SZ_SHA256], i;
 				unsigned char *pin[SSE_GROUP_SZ_SHA256];
-				ARCH_WORD_32 *pout[SSE_GROUP_SZ_SHA256];
+				union {
+					ARCH_WORD_32 *pout[SSE_GROUP_SZ_SHA256];
+					unsigned char *poutc;
+				} x;
 				for (i = 0; i < SSE_GROUP_SZ_SHA256; ++i) {
 					lens[i] = strlen(saved_key[j]);
 					pin[i] = (unsigned char*)saved_key[j];
-					pout[i] = crypt_out[j];
+					x.pout[i] = crypt_out[j];
 					++j;
 				}
-				pbkdf2_sha256_sse((const unsigned char **)pin, lens, cur_salt->salt, strlen((char*)cur_salt->salt), cur_salt->iterations, (unsigned char**)pout, BINARY_SIZE, 0);
+				pbkdf2_sha256_sse((const unsigned char **)pin, lens, cur_salt->salt, strlen((char*)cur_salt->salt), cur_salt->iterations, &(x.poutc), BINARY_SIZE, 0);
 #else
 				pbkdf2_sha256((const unsigned char*)(saved_key[j]), strlen(saved_key[j]),
 					cur_salt->salt, strlen((char*)cur_salt->salt),
@@ -339,14 +345,17 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef SSE_GROUP_SZ_SHA512
 				int lens[SSE_GROUP_SZ_SHA512], i;
 				unsigned char *pin[SSE_GROUP_SZ_SHA512];
-				ARCH_WORD_32 *pout[SSE_GROUP_SZ_SHA512];
+				union {
+					ARCH_WORD_32 *pout[SSE_GROUP_SZ_SHA512];
+					unsigned char *poutc;
+				} x;
 				for (i = 0; i < SSE_GROUP_SZ_SHA512; ++i) {
 					lens[i] = strlen(saved_key[j]);
 					pin[i] = (unsigned char*)saved_key[j];
-					pout[i] = crypt_out[j];
+					x.pout[i] = crypt_out[j];
 					++j;
 				}
-				pbkdf2_sha512_sse((const unsigned char **)pin, lens, cur_salt->salt, strlen((char*)cur_salt->salt), cur_salt->iterations, (unsigned char**)pout, BINARY_SIZE, 0);
+				pbkdf2_sha512_sse((const unsigned char **)pin, lens, cur_salt->salt, strlen((char*)cur_salt->salt), cur_salt->iterations, &(x.poutc), BINARY_SIZE, 0);
 #else
 				pbkdf2_sha512((const unsigned char*)(saved_key[j]), strlen(saved_key[j]),
 					cur_salt->salt, strlen((char*)cur_salt->salt),
