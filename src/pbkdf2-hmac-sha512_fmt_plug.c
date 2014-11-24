@@ -294,13 +294,16 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef SSE_GROUP_SZ_SHA512
 		int lens[SSE_GROUP_SZ_SHA512], i;
 		unsigned char *pin[SSE_GROUP_SZ_SHA512];
-		ARCH_WORD_32 *pout[SSE_GROUP_SZ_SHA512];
+		union {
+			ARCH_WORD_32 *pout[SSE_GROUP_SZ_SHA512];
+			unsigned char *poutc;
+		} x;
 		for (i = 0; i < SSE_GROUP_SZ_SHA512; ++i) {
 			lens[i] = strlen(saved_key[index+i]);
 			pin[i] = (unsigned char*)saved_key[index+i];
-			pout[i] = crypt_out[index+i];
+			x.pout[i] = crypt_out[index+i];
 		}
-		pbkdf2_sha512_sse((const unsigned char **)pin, lens, cur_salt->salt, cur_salt->length, cur_salt->rounds, (unsigned char**)pout, BINARY_SIZE, 0);
+		pbkdf2_sha512_sse((const unsigned char **)pin, lens, cur_salt->salt, cur_salt->length, cur_salt->rounds, &(x.poutc), BINARY_SIZE, 0);
 #else
 		pbkdf2_sha512((const unsigned char*)(saved_key[index]), strlen(saved_key[index]),
 			cur_salt->salt, cur_salt->length,

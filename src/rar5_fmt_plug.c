@@ -103,13 +103,16 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		unsigned char PswCheck[SIZE_PSWCHECK],
 		              PswCheckValue[SSE_GROUP_SZ_SHA256][SHA256_DIGEST_SIZE];
 		unsigned char *pin[SSE_GROUP_SZ_SHA256];
-		ARCH_WORD_32 *pout[SSE_GROUP_SZ_SHA256];
+		union {
+			ARCH_WORD_32 *pout[SSE_GROUP_SZ_SHA256];
+			unsigned char *poutc;
+		} x;
 		for (i = 0; i < SSE_GROUP_SZ_SHA256; ++i) {
 			lens[i] = strlen(saved_key[index+i]);
 			pin[i] = (unsigned char*)saved_key[index+i];
-			pout[i] = (ARCH_WORD_32*)PswCheckValue[i];
+			x.pout[i] = (ARCH_WORD_32*)PswCheckValue[i];
 		}
-		pbkdf2_sha256_sse((const unsigned char **)pin, lens, cur_salt->salt, SIZE_SALT50, cur_salt->iterations+32, (unsigned char**)pout, SHA256_DIGEST_SIZE, 0);
+		pbkdf2_sha256_sse((const unsigned char **)pin, lens, cur_salt->salt, SIZE_SALT50, cur_salt->iterations+32, &(x.poutc), SHA256_DIGEST_SIZE, 0);
 		// special wtf processing
 		for (j = 0; j < SSE_GROUP_SZ_SHA256; ++j) {
 			memset(PswCheck, 0, sizeof(PswCheck));
