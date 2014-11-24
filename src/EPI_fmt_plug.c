@@ -29,12 +29,12 @@ john_register_one(&fmt_EPI);
 
 #define PLAINTEXT_LENGTH   125
 #define BINARY_LENGTH      20
-#define BINARY_ALIGN       sizeof(ARCH_WORD)
+#define BINARY_ALIGN       sizeof(ARCH_WORD_32)
 #define SALT_LENGTH        30
-#define SALT_ALIGN         4
+#define SALT_ALIGN         1
 
-static ARCH_WORD global_crypt[BINARY_LENGTH / ARCH_SIZE + 1];
-static char global_key[PLAINTEXT_LENGTH + 1]; // set by set_key and used by get_get
+static ARCH_WORD_32 global_crypt[BINARY_LENGTH / sizeof(ARCH_WORD_32) + 1];
+static int key_len;
 static char global_salt[SALT_LENGTH + PLAINTEXT_LENGTH + 1]; // set by set_salt and used by crypt_all
                                                          // the extra plaintext_length is needed because the
                                                          // current key is copied there before hashing
@@ -106,18 +106,21 @@ static void* salt(char *ciphertext)
 
 static void set_salt(void *salt)
 {
-  memcpy(global_salt, salt, SALT_LENGTH);
+  // first byte of key uses location of last byte of salt, so be sure we do not overwrite that byte.
+  memcpy(global_salt, salt, SALT_LENGTH-1);
 }
 
 static void set_key(char *key, int index)
 {
   if(!key) return;
-  strnzcpy(global_key, key, PLAINTEXT_LENGTH + 1);
+  key_len = strlen(key);
+  // Yes, I'm overwriting the last byte of the salt, perhaps the coder at ElektoPost whom wrote the EPiServer password checking function used to be a C coder (their code is written in .NET)
+  strnzcpy(global_salt+SALT_LENGTH-1, key, PLAINTEXT_LENGTH + 1);
 }
 
 static char* get_key(int index)
 {
-  return global_key;
+  return global_salt+(SALT_LENGTH-1);
 }
 
 static int crypt_all(int *pcount, struct db_salt *salt)
@@ -125,11 +128,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	int count = *pcount;
 	static SHA_CTX ctx;
 
-	// Yes, I'm overwriting the last byte of the salt, perhaps the coder at ElektoPost whom wrote the EPiServer password checking function used to be a C coder (their code is written in .NET)
-	strnzcpy(global_salt+SALT_LENGTH-1, global_key, PLAINTEXT_LENGTH + 1);
-
 	SHA1_Init(&ctx);
-	SHA1_Update(&ctx, (unsigned char*)global_salt, SALT_LENGTH+strlen(global_key));
+	SHA1_Update(&ctx, (unsigned char*)global_salt, SALT_LENGTH+key_len);
 	SHA1_Final((unsigned char*)global_crypt, &ctx);
 
 	return count;
@@ -137,16 +137,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 static int cmp_all(void *binary, int count)
 {
-  if (((ARCH_WORD *)binary)[0] != global_crypt[0])
-    return 0;
-
-  return !memcmp(&((ARCH_WORD *)binary)[1], &global_crypt[1],
-    BINARY_LENGTH - ARCH_SIZE);
+  return ((ARCH_WORD_32 *)binary)[0] == global_crypt[0];
 }
 
 static int cmp_one(void *binary, int index)
 {
-  return cmp_all(binary, 0);
+  return !memcmp(binary, global_crypt, BINARY_LENGTH);
 }
 
 static int cmp_exact(char *source, int index)
@@ -154,13 +150,13 @@ static int cmp_exact(char *source, int index)
   return 1;
 }
 
-static int get_hash_0(int index) { return ((ARCH_WORD_32*)global_crypt)[index] & 0xF; }
-static int get_hash_1(int index) { return ((ARCH_WORD_32*)global_crypt)[index] & 0xFF; }
-static int get_hash_2(int index) { return ((ARCH_WORD_32*)global_crypt)[index] & 0xFFF; }
-static int get_hash_3(int index) { return ((ARCH_WORD_32*)global_crypt)[index] & 0xFFFF; }
-static int get_hash_4(int index) { return ((ARCH_WORD_32*)global_crypt)[index] & 0xFFFFF; }
-static int get_hash_5(int index) { return ((ARCH_WORD_32*)global_crypt)[index] & 0xFFFFFF; }
-static int get_hash_6(int index) { return ((ARCH_WORD_32*)global_crypt)[index] & 0x7FFFFFF; }
+static int get_hash_0(int index) { return global_crypt[index] & 0xF; }
+static int get_hash_1(int index) { return global_crypt[index] & 0xFF; }
+static int get_hash_2(int index) { return global_crypt[index] & 0xFFF; }
+static int get_hash_3(int index) { return global_crypt[index] & 0xFFFF; }
+static int get_hash_4(int index) { return global_crypt[index] & 0xFFFFF; }
+static int get_hash_5(int index) { return global_crypt[index] & 0xFFFFFF; }
+static int get_hash_6(int index) { return global_crypt[index] & 0x7FFFFFF; }
 
 static int salt_hash(void *salt)
 {
