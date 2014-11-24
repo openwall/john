@@ -370,7 +370,7 @@ void Toupper(char *buffer, size_t buffer_len)
 	int i;
 
 	for (i = 0; i < buffer_len; i++)
-		buffer[i] = toupper(buffer[i]);
+		buffer[i] = toupper(ARCH_INDEX(buffer[i]));
 
 	return;
 }
