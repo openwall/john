@@ -13,11 +13,11 @@
  *    modifications, are permitted. */
 
 #if FMT_EXTERNS_H
-#ifdef ENDIAN_LE
+#if ARCH_LITTLE_ENDIAN
 extern struct fmt_main fmt_VMS;
 #endif
 #elif FMT_REGISTERS_H
-#ifdef ENDIAN_LE
+#if ARCH_LITTLE_ENDIAN
 john_register_one(&fmt_VMS);
 #endif
 #else

@@ -310,7 +310,6 @@ fi
 #############################################################################
 # Check for LE/BE CPU
 #############################################################################
-
 if test "x$endian" = "xunknown"; then
   AC_C_BIGENDIAN([endian=big], [endian=little])
 else
@@ -692,6 +691,17 @@ AC_CHECK_SIZEOF([size_t])
 AC_CHECK_SIZEOF([off_t])
 CFLAGS="$CFLAGS_BACKUP"
 
+#add ARCH_LITTLE_ENDIAN to command line, IF we know it is big or little
+if test "x$endian" = "xbig"; then
+   CFLAGS="$CFLAGS -DARCH_LITTLE_ENDIAN=0"
+   ASFLAGS="$ASFLAGS -DARCH_LITTLE_ENDIAN=0"
+else
+   if test "x$endian" = "xlittle"; then
+      CFLAGS="$CFLAGS -DARCH_LITTLE_ENDIAN=1"
+      ASFLAGS="$ASFLAGS -DARCH_LITTLE_ENDIAN=1"
+   fi
+fi
+
 # build proper 'link' to the arch file (based on bit only, for 32 bit, we may
 # want different ones, and for other CPU's we need different ones)
 # note, we remove it first.
@@ -724,16 +734,10 @@ AC_OUTPUT(,echo "timestamp from configure.in" > autoconfig-stamp-h)
 # This needs arch.h to be linked so can't happen before
 # AC_OUTPUT
 ##########################################################
-# we can now disable formats for BE or LE only  (VMS is disabled currently)
-if test "x$endian" = "xbig"; then
-   ENDIAN=-DENDIAN_BE
-else
-   ENDIAN=-DENDIAN_LE
-fi
 echo "configure: creating ./fmt_externs.h"
-$CPP -P -DAC_BUILT $ENDIAN $CPU_BEST_FLAGS $CFLAGS $HAVE_OPENCL $HAVE_CUDA $CFLAGS_EXTRA $OPENSSL_CFLAGS -DFMT_EXTERNS_H *_fmt_plug.c | LC_ALL=C $GREP "extern struct fmt_main" | LC_ALL=C $SORT -f > fmt_externs.h
+$CPP -P -DAC_BUILT $CPU_BEST_FLAGS $CFLAGS $HAVE_OPENCL $HAVE_CUDA $CFLAGS_EXTRA $OPENSSL_CFLAGS -DFMT_EXTERNS_H *_fmt_plug.c | LC_ALL=C $GREP "extern struct fmt_main" | LC_ALL=C $SORT -f > fmt_externs.h
 echo "configure: creating ./fmt_registers.h"
-$CPP -P -DAC_BUILT $ENDIAN $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA $OPENSSL_CFLAGS -DFMT_REGISTERS_H *_fmt_plug.c | LC_ALL=C $GREP "john_register_one" | LC_ALL=C $SORT -f > fmt_registers.h
+$CPP -P -DAC_BUILT $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA $OPENSSL_CFLAGS -DFMT_REGISTERS_H *_fmt_plug.c | LC_ALL=C $GREP "john_register_one" | LC_ALL=C $SORT -f > fmt_registers.h
 $CPP -P -DAC_BUILT $CPU_BEST_FLAGS $CFLAGS $HAVE_OPENCL $HAVE_CUDA $CFLAGS_EXTRA $OPENSSL_CFLAGS -DFMT_REGISTERS_H opencl_*_fmt_plug.c | LC_ALL=C $GREP "john_register_one" | LC_ALL=C $SORT -f >> fmt_registers.h
 $CPP -P -DAC_BUILT $CPU_BEST_FLAGS $CFLAGS $HAVE_OPENCL $HAVE_CUDA $CFLAGS_EXTRA $OPENSSL_CFLAGS -DFMT_REGISTERS_H cuda_*_fmt_plug.c | LC_ALL=C $GREP "john_register_one" | LC_ALL=C $SORT -f >> fmt_registers.h
 
