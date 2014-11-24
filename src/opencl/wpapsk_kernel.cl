@@ -633,14 +633,6 @@ typedef struct {
 		output[3] = 0x10325476; \
 	}
 
-#define dump_stuff_msg(msg, x, size) {	  \
-		uint ii; \
-		printf("%s : ", msg); \
-		for (ii = 0; ii < (size)/4; ii++) \
-			printf("%08x ", x[ii]); \
-		printf("\n"); \
-	}
-
 inline void hmac_sha1(__global MAYBE_VECTOR_UINT *state,
                       MAYBE_CONSTANT uchar *salt, uint saltlen, uchar add)
 {

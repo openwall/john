@@ -521,14 +521,6 @@ inline uint SWAP32(uint x)
 	}
 #endif /* Lukas or Milen */
 
-#define dump_stuff_msg(msg, x, size) {	  \
-		uint ii; \
-		printf("%s : ", msg); \
-		for (ii = 0; ii < (size)/4; ii++) \
-			printf("%08x ", x[ii]); \
-		printf("\n"); \
-	}
-
 inline void hmac_sha1(__global MAYBE_VECTOR_UINT *state,
                       __global MAYBE_VECTOR_UINT *ipad,
                       __global MAYBE_VECTOR_UINT *opad,

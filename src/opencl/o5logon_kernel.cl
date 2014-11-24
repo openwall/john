@@ -222,14 +222,6 @@ inline uint SWAP32(uint x)
 		o[4] += E; \
 	}
 
-#define dump_stuff_msg(msg, x, size) {	  \
-		uint ii; \
-		printf("%s : ", msg); \
-		for (ii = 0; ii < (size)/4; ii++) \
-			printf("%08x ", x[ii]); \
-		printf("\n"); \
-	}
-
 __kernel void o5logon_kernel(__global uint* keys, __constant uint* salt, __global const uint *index, __global uint* digest)
 {
 	uint W[16] = { 0 }, salt_s[3], output[5];
