@@ -5,6 +5,10 @@
  * This software is hereby released to the general public under
  * the following terms: Redistribution and use in source and binary
  * forms, with or without modification, are permitted.
+ *
+ * NOTICE: After changes in headers, you probably need to drop cached
+ * kernels to ensure the changes take effect.
+ *
  */
 
 /* The basic MD5 functions */

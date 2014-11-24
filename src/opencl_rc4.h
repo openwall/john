@@ -5,7 +5,13 @@
  * This software is hereby released to the general public under
  * the following terms: Redistribution and use in source and binary
  * forms, with or without modification, are permitted.
+ *
+ * NOTICE: After changes in headers, you probably need to drop cached
+ * kernels to ensure the changes take effect.
+ *
  */
+
+//#define USE_LOCAL
 
 #if !no_byte_addressable(DEVICE_INFO)
 __constant uint rc4_iv[64] = { 0x03020100, 0x07060504, 0x0b0a0908, 0x0f0e0d0c,
@@ -55,12 +61,22 @@ inline void rc4_16_16(const uint *key_w, MAYBE_CONSTANT uint *in,
 	for (x = 0; x < 256; x++)
 		state[x] = x;
 #else
+#ifdef USE_LOCAL
+	int lid = get_local_id(0);
+	__local uint state_w[64][64];
+	__local uchar *state = (__local uchar*)state_w[lid];
+#else
 	uint state_w[64];
 	uchar *state = (uchar*)state_w;
+#endif
 
 	/* RC4_init() */
 	for (x = 0; x < 64; x++)
+#ifdef USE_LOCAL
+		state_w[lid][x] = rc4_iv[x];
+#else
 		state_w[x] = rc4_iv[x];
+#endif
 #endif
 #if 0
 	/* RC4_set_key() */
@@ -179,12 +195,22 @@ inline void rc4_16_32i(const uint *key_w, uint *buf)
 	for (x = 0; x < 256; x++)
 		state[x] = x;
 #else
+#ifdef USE_LOCAL
+	int lid = get_local_id(0);
+	__local uint state_w[64][64];
+	__local uchar *state = (__local uchar*)state_w[lid];
+#else
 	uint state_w[64];
 	uchar *state = (uchar*)state_w;
+#endif
 
 	/* RC4_init() */
 	for (x = 0; x < 64; x++)
+#ifdef USE_LOCAL
+		state_w[lid][x] = rc4_iv[x];
+#else
 		state_w[x] = rc4_iv[x];
+#endif
 #endif
 #if 0
 	/* RC4_set_key() */
