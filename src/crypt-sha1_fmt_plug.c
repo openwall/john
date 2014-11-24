@@ -207,15 +207,18 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef SSE_GROUP_SZ_SHA1
 		int lens[SSE_GROUP_SZ_SHA1], i;
 		unsigned char *pin[SSE_GROUP_SZ_SHA1];
-		ARCH_WORD_32 *pout[SSE_GROUP_SZ_SHA1];
+		union {
+			ARCH_WORD_32 *pout[SSE_GROUP_SZ_SHA1];
+			unsigned char *poutc;
+		} x;
 		for (i = 0; i < SSE_GROUP_SZ_SHA1; ++i) {
 			lens[i] = strlen(saved_key[index+i]);
 			pin[i] = (unsigned char*)saved_key[index+i];
-			pout[i] = crypt_out[index+i];
+			x.pout[i] = crypt_out[index+i];
 		}
 		pbkdf1_sha1_sse((const unsigned char **)pin, lens,
 		                cur_salt->salt, cur_salt->length,
-		                cur_salt->rounds, (unsigned char**)pout,
+		                cur_salt->rounds, &(x.poutc),
 		                BINARY_SIZE, 0);
 #else
 		pbkdf1_sha1((const unsigned char*)(saved_key[index]),

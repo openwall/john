@@ -209,13 +209,16 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef MMX_COEF_SHA256
 		int lens[MAX_KEYS_PER_CRYPT], i;
 		unsigned char *pin[MAX_KEYS_PER_CRYPT];
-		ARCH_WORD_32 *pout[MAX_KEYS_PER_CRYPT];
+		union {
+			ARCH_WORD_32 *pout[MAX_KEYS_PER_CRYPT];
+			unsigned char *poutc;
+		} x;
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
 			lens[i] = strlen(saved_key[i+index]);
 			pin[i] = (unsigned char*)saved_key[i+index];
-			pout[i] = crypt_out[i+index];
+			x.pout[i] = crypt_out[i+index];
 		}
-		pbkdf2_sha256_sse((const unsigned char **)pin, lens, cur_salt->salt, strlen((char*)cur_salt->salt), cur_salt->iterations, (unsigned char**)pout, 32, 0);
+		pbkdf2_sha256_sse((const unsigned char **)pin, lens, cur_salt->salt, strlen((char*)cur_salt->salt), cur_salt->iterations, &(x.poutc), 32, 0);
 #else
 //		PKCS5_PBKDF2_HMAC(saved_key[index], strlen(saved_key[index]),
 //			cur_salt->salt, strlen((char*)cur_salt->salt),
