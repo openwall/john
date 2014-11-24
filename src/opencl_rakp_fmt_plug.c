@@ -216,7 +216,6 @@ static void init(struct fmt_main *self)
 {
 	char build_opts[64];
 	static char valgo[48] = "";
-	size_t gws_limit;
 
 	if ((v_width = opencl_get_vector_width(gpu_id,
 	                                       sizeof(cl_int))) > 1) {
@@ -232,21 +231,13 @@ static void init(struct fmt_main *self)
 	crypt_kernel = clCreateKernel(program[gpu_id], "rakp_kernel", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel");
 
-	gws_limit = MIN((1 << 26) * 4 / PAD_SIZE / v_width,
-			get_max_mem_alloc_size(gpu_id) / (v_width * BUFFER_SIZE));
-
 	//Initialize openCL tuning (library) for this format.
 	opencl_init_auto_setup(SEED, 0, NULL, warn, 2,
 	                       self, create_clobj, release_clobj,
-	                       BUFFER_SIZE, gws_limit);
-
-	//Limit worksize using index limitation.
-	while (global_work_size > gws_limit)
-		global_work_size -= local_work_size;
+	                       BUFFER_SIZE, 0);
 
 	//Auto tune execution from shared/included code.
-	autotune_run(self, ROUNDS, gws_limit,
-		(cpu(device_info[gpu_id]) ? 500000000ULL : 1000000000ULL));
+	autotune_run(self, ROUNDS, 0, 200);
 }
 
 static void clear_keys(void)

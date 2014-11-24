@@ -11,6 +11,11 @@
  *
  */
 
+#ifndef _OPENCL_MD4_H
+#define _OPENCL_MD4_H
+
+#include <opencl_misc.h>
+
 #ifdef USE_BITSELECT
 #define MD4_F(x, y, z)	bitselect((z), (y), (x))
 #else
@@ -30,8 +35,17 @@
 	    (a) = rotate((a), (uint)(s))
 
 
-/* Raw'n'lean MD4 with context in output buffer */
-/* NOTE: This version thrashes the input block! */
+/*
+ * Raw'n'lean MD4 with context in output buffer
+ * NOTE: This version thrashes the input block!
+ *
+ * Needs caller to have these defined:
+ *	uint a, b, c, d;
+ *
+ * or perhaps:
+ *	MAYBE_VECTOR_UINT a, b, c, d;
+ *
+ */
 #define	md4_block(block, output) { \
 		a = output[0]; \
 		b = output[1]; \
@@ -97,3 +111,5 @@
 	output[2] = 0x98badcfe; \
 	output[3] = 0x10325476; \
 	}
+
+#endif

@@ -11,6 +11,11 @@
  *
  */
 
+#ifndef _OPENCL_RC4_H
+#define _OPENCL_RC4_H
+
+#include <opencl_misc.h>
+
 //#define USE_LOCAL
 
 #if !no_byte_addressable(DEVICE_INFO)
@@ -310,3 +315,5 @@ inline void rc4_16_32i(const uint *key_w, uint *buf)
 		*buf++ ^= xor_word;
 	}
 }
+
+#endif

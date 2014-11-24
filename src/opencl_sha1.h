@@ -11,6 +11,11 @@
  *
  */
 
+#ifndef _OPENCL_SHA1_H
+#define _OPENCL_SHA1_H
+
+#include <opencl_misc.h>
+
 /* SHA1 constants and IVs */
 #define K0	0x5A827999
 #define K1	0x6ED9EBA1
@@ -347,3 +352,5 @@ inline void sha1_block(uint *W, uint *output) {
 		output[3] = H4; \
 		output[4] = H5; \
 	}
+
+#endif

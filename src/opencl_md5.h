@@ -11,6 +11,11 @@
  *
  */
 
+#ifndef _OPENCL_MD5_H
+#define _OPENCL_MD5_H
+
+#include <opencl_misc.h>
+
 /* The basic MD5 functions */
 #ifdef USE_BITSELECT
 #define MD5_F(x, y, z)	bitselect((z), (y), (x))
@@ -31,8 +36,17 @@
 	    (a) += (b)
 
 
-/* Raw'n'lean MD5 with context in output buffer */
-/* NOTE: This version thrashes the input block! */
+/*
+ * Raw'n'lean MD5 with context in output buffer
+ * NOTE: This version thrashes the input block!
+ *
+ * Needs caller to have these defined:
+ *	uint a, b, c, d;
+ *
+ * or perhaps:
+ *	MAYBE_VECTOR_UINT a, b, c, d;
+ *
+ */
 #define md5_block(block, output)  \
 	{ \
 		a = output[0]; \
@@ -116,3 +130,5 @@
 		output[2] = 0x98badcfe; \
 		output[3] = 0x10325476; \
 	}
+
+#endif

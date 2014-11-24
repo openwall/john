@@ -31,30 +31,6 @@
 #define UNICODE_LENGTH		(2 * PLAINTEXT_LENGTH)
 #define ROUNDS			0x40000
 
-/* Macros for reading/writing chars from int32's */
-#define GETCHAR(buf, index) (((uchar*)(buf))[(index)])
-#define GETCHAR_G(buf, index) (((const __global uchar*)(buf))[(index)])
-#define GETCHAR_BE(buf, index) (((uchar*)(buf))[(index) ^ 3])
-#define LASTCHAR_BE(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2] & (0xffffff00U << ((((index) & 3) ^ 3) << 3))) + ((val) << ((((index) & 3) ^ 3) << 3))
-
-#if no_byte_addressable(DEVICE_INFO)
-
-/* These use 32-bit stores */
-#define PUTCHAR(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2] & ~(0xffU << (((index) & 3) << 3))) + ((val) << (((index) & 3) << 3))
-#define PUTCHAR_BE(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2] & ~(0xffU << ((((index) & 3) ^ 3) << 3))) + ((val) << ((((index) & 3) ^ 3) << 3))
-#define PUTCHAR_G	PUTCHAR
-#define PUTCHAR_BE_G	PUTCHAR_BE
-
-#else
-
-/* These use byte-adressed stores */
-#define PUTCHAR(buf, index, val) ((uchar*)(buf))[(index)] = (val)
-#define PUTCHAR_G(buf, index, val) ((__global uchar*)(buf))[(index)] = (val)
-#define PUTCHAR_BE(buf, index, val) ((uchar*)(buf))[(index) ^ 3] = (val)
-#define PUTCHAR_BE_G(buf, index, val) ((__global uchar*)(buf))[(index) ^ 3] = (val)
-
-#endif
-
 inline void sha1_final(uint *W, uint *output, const uint tot_len)
 {
 	uint len = ((tot_len & 63) >> 2) + 1;
