@@ -160,3 +160,127 @@ inline void rc4_16_16(const uint *key_w, MAYBE_CONSTANT uint *in,
 		*out++ = *in++ ^ xor_word;
 	}
 }
+
+/*
+ * One-shot rc4 with fixed key len of 16 and decrypt len of 32.
+ * Decrypts buffer in-place.
+ */
+inline void rc4_16_32i(const uint *key_w, uint *buf)
+{
+	const uchar *key = (uchar*)key_w;
+	uint x;
+	uint y = 0;
+	uint index1 = 0;
+	uint index2 = 0;
+#if no_byte_addressable(DEVICE_INFO)
+	uint state[256];
+
+	/* RC4_init() */
+	for (x = 0; x < 256; x++)
+		state[x] = x;
+#else
+	uint state_w[64];
+	uchar *state = (uchar*)state_w;
+
+	/* RC4_init() */
+	for (x = 0; x < 64; x++)
+		state_w[x] = rc4_iv[x];
+#endif
+#if 0
+	/* RC4_set_key() */
+	for (x = 0; x < 256; x++)
+		swap_state(x);
+#else
+	/* RC4_set_key() */
+	/* Unrolled hard-coded for key length 16 */
+	for (x = 0; x < 256; x++) {
+		index2 = (key[index1] + state[x] + index2) & 255;
+		swap_byte(state[x], state[index2]);
+		index1++; x++;
+
+		index2 = (key[index1] + state[x] + index2) & 255;
+		swap_byte(state[x], state[index2]);
+		index1++; x++;
+
+		index2 = (key[index1] + state[x] + index2) & 255;
+		swap_byte(state[x], state[index2]);
+		index1++; x++;
+
+		index2 = (key[index1] + state[x] + index2) & 255;
+		swap_byte(state[x], state[index2]);
+		index1++; x++;
+
+		index2 = (key[index1] + state[x] + index2) & 255;
+		swap_byte(state[x], state[index2]);
+		index1++; x++;
+
+		index2 = (key[index1] + state[x] + index2) & 255;
+		swap_byte(state[x], state[index2]);
+		index1++; x++;
+
+		index2 = (key[index1] + state[x] + index2) & 255;
+		swap_byte(state[x], state[index2]);
+		index1++; x++;
+
+		index2 = (key[index1] + state[x] + index2) & 255;
+		swap_byte(state[x], state[index2]);
+		index1++; x++;
+
+		index2 = (key[index1] + state[x] + index2) & 255;
+		swap_byte(state[x], state[index2]);
+		index1++; x++;
+
+		index2 = (key[index1] + state[x] + index2) & 255;
+		swap_byte(state[x], state[index2]);
+		index1++; x++;
+
+		index2 = (key[index1] + state[x] + index2) & 255;
+		swap_byte(state[x], state[index2]);
+		index1++; x++;
+
+		index2 = (key[index1] + state[x] + index2) & 255;
+		swap_byte(state[x], state[index2]);
+		index1++; x++;
+
+		index2 = (key[index1] + state[x] + index2) & 255;
+		swap_byte(state[x], state[index2]);
+		index1++; x++;
+
+		index2 = (key[index1] + state[x] + index2) & 255;
+		swap_byte(state[x], state[index2]);
+		index1++; x++;
+
+		index2 = (key[index1] + state[x] + index2) & 255;
+		swap_byte(state[x], state[index2]);
+		index1++; x++;
+
+		index2 = (key[index1] + state[x] + index2) & 255;
+		swap_byte(state[x], state[index2]);
+		index1 = 0;
+	}
+#endif
+
+	/* RC4() */
+	/* Unrolled for avoiding byte-addressed stores */
+	for (x = 1; x <= 32; x++) {
+		uint xor_word;
+
+		y = (state[x] + y) & 255;
+		swap_byte(state[x], state[y]);
+		xor_word = state[(state[x++] + state[y]) & 255];
+
+		y = (state[x] + y) & 255;
+		swap_byte(state[x], state[y]);
+		xor_word |= state[(state[x++] + state[y]) & 255] << 8;
+
+		y = (state[x] + y) & 255;
+		swap_byte(state[x], state[y]);
+		xor_word |= state[(state[x++] + state[y]) & 255] << 16;
+
+		y = (state[x] + y) & 255;
+		swap_byte(state[x], state[y]);
+		xor_word |= state[(state[x] + state[y]) & 255] << 24;
+
+		*buf++ ^= xor_word;
+	}
+}
