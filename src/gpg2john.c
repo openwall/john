@@ -2415,7 +2415,7 @@ encrypted_Secret_Key(int len, int sha1)
 			if (dump_subkeys || !is_subkey) {
 				cp = last_hash;
 				cp += sprintf(cp, "$gpg$*%d*%d*%d*", m_algorithm, len, key_bits);
-				print_hex(m_data, len, cp);
+				cp += print_hex(m_data, len, cp);
 				cp += sprintf(cp, "*%d*%d*%d*%d*%d*", m_spec, m_usage, m_hashAlgorithm, m_cipherAlgorithm, bs);
 				cp += print_hex(iv, bs, cp);
 				cp += sprintf(cp, "*%d*", m_count);
