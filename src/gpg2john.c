@@ -138,9 +138,12 @@ static unsigned char e[BIG_ENOUGH];
 // static unsigned char x[BIG_ENOUGH];
 static unsigned char m_data[BIG_ENOUGH];
 static char gecos[BIG_ENOUGH];
+static char last_hash[BIG_ENOUGH] = {0};
 static unsigned char m_salt[64];
 static unsigned char iv[16];
 char *filename;
+int offset = 0;
+int gpg_dbg = 0;
 
 int m_spec;
 int m_algorithm;
@@ -321,16 +324,42 @@ warn_exit(const string fmt, ...)
 
 int gpg2john(int argc, char **argv)
 {
-	string target = argv[1];
-        if (argc < 2) {
-                fprintf(stderr, "Usage: %s <GPG Secret Key File(s)>\n", argv[0]);
-                exit(-1);
-        }
+	int i;
+	if (argc > 2 && !strcmp(argv[1], "-d")) {
+		gpg_dbg = 1;
+		for (i = 1; i < argc; ++i)
+			argv[i] = argv[i+1];
+		--argc;
+	}
+    if (argc < 2) {
+         fprintf(stderr, "Usage: %s <GPG Secret Key File(s)>\n", argv[0]);
+         exit(-1);
+    }
 
-	filename = argv[1];
-	if (freopen(target, "rb", stdin) == NULL)
-		warn_exit("can't open %s.", target);
-	parse_packet();
+	for (i = 1; i < argc; ++i) {
+		filename = argv[i];
+		if (freopen(filename, "rb", stdin) == NULL)
+			warn_exit("can't open %s.", filename);
+		parse_packet();
+		if (*last_hash) {
+			char login[4096], *cp;
+			char *gecos_remains = gecos;
+			const char *ext[] = {".gpg", ".pgp"};
+			if (!gecos[0]) {
+				cp = strip_suffixes(jtr_basename(filename), ext, 2);
+				strnzcpy(gecos, cp, sizeof(gecos));
+			}
+			strnzcpy(login, gecos, sizeof(login));
+			if ((cp = strchr(login, '('))) 	memset(cp, 0, 1);
+			if ((cp = strrchr(login, '<'))) memset(cp, 0, 1);
+			gecos_remains += strlen(login);
+			cp = &login[strlen(login) - 1];
+			while (cp > login && *cp == ' ') *cp-- = 0;
+			printf("%s:%s:::%s::%s\n", login, last_hash, gecos, filename);
+			*last_hash = 0;
+		}
+	}
+
 	exit(EXIT_SUCCESS);
 }
 
@@ -347,7 +376,7 @@ dump(int len)
 {
 	int i;
 	for (i = 0; i < len; i++)
-		printf("%02x", Getc());
+		fprintf(stderr, "%02x", Getc());
 }
 
 public void
@@ -363,7 +392,7 @@ pdump(int len)
 {
 	int i;
 	for (i = 0; i < len; i++)
-		printf("%c", Getc());
+		fprintf(stderr, "%c", Getc());
 }
 
 public void
@@ -379,9 +408,9 @@ public void
 kdump(int len)
 {
         int i;
-        printf("0x");
+        fprintf(stderr, "0x");
         for (i = 0; i < len; i++)
-                printf("%02X", Getc());
+                fprintf(stderr, "%02X", Getc());
 }
 
 /*
@@ -572,7 +601,7 @@ time4_base(string str, time_t *pt)
 	// char* pyr;
 
 	if (*pt < 0) {  /* 32 bit time_t and after 2038-01-19 */
-		printf("\t%s - cannot print date after 2038-01-19\n", str);
+		fprintf(stderr, "\t%s - cannot print date after 2038-01-19\n", str);
 		return;
 	}
 
@@ -718,12 +747,12 @@ string_to_key(void)
 		}
 		break;
 	case 101:
-		printf("\tGnuPG string-to-key(s2k %d)\n", type);
+		// printf("\tGnuPG string-to-key(s2k %d)\n", type);
 		has_iv = NO;
 		skip(5);
 		break;
 	default:
-		printf("\tUnknown string-to-key(s2k %d)\n", type);
+		fprintf(stderr, "\tUnknown string-to-key(s2k %d)\n", type);
 	}
 	return has_iv;
 }
@@ -829,7 +858,7 @@ Public_Key_Encrypted_Session_Key_Packet(int len)
 		skip_multi_precision_integer("DSA ?");
 		break;
 	default:
-		printf("\t\tunknown(pub %d)\n", pub);
+		fprintf(stderr, "\t\tunknown(pub %d)\n", pub);
 		skip(len - 10);
 	}
 	// printf("\t\t-> m = sym alg(1 byte) + checksum(2 bytes) + PKCS-1 block type 02\n");
@@ -894,39 +923,39 @@ Literal_Data_Packet(int len)
 	int format, flen, blen;
 
 	format = Getc();
-	printf("\tFormat - ");
+	fprintf(stderr, "\tFormat - ");
 	switch (format) {
 	case 'b':
-		printf("binary");
+		fprintf(stderr, "binary");
 		break;
 	case 't':
-		printf("text");
+		fprintf(stderr, "text");
 		break;
 	case 'u':
-		printf("UTF-8 text");
+		fprintf(stderr, "UTF-8 text");
 		break;
 	case 'l':
 		/* RFC 1991 incorrectly define this as '1' */
-		printf("local");
+		fprintf(stderr, "local");
 		break;
 	default:
-		printf("unknown");
+		fprintf(stderr, "unknown");
 	}
-	printf("\n");
+	fprintf(stderr, "\n");
 	flen = Getc();
-	printf("\tFilename - ");
+	fprintf(stderr, "\tFilename - ");
 	pdump(flen);
-	printf("\n");
+	fprintf(stderr, "\n");
 	time4("File modified time");
 	blen = len - 6 - flen;
-	printf("\tLiteral - ");
+	fprintf(stderr, "\tLiteral - ");
 	if (lflag) {
 		pdump(blen);
 	} else {
-		printf("...");
+		fprintf(stderr, "...");
 		skip(blen);
 	}
-	printf("\n");
+	fprintf(stderr, "\n");
 }
 
 public void
@@ -1156,6 +1185,77 @@ private void
 	Private_Packet,
 };
 
+char *pkt_type(tag) {
+	switch(tag) {
+	case 0: return "Reserved";
+	case 1: return "Public_Key_Encrypted_Session_Key_Packet";
+	case 2: return "Signature_Packet";
+	case 3: return "Symmetric_Key_Encrypted_Session_Key_Packet";
+	case 4: return "One_Pass_Signature_Packet";
+	case 5: return "Secret_Key_Packet";
+	case 6: return "Public_Key_Packet";
+	case 7: return "Secret_Subkey_Packet";
+	case 8: return "Compressed_Data_Packet";
+	case 9: return "Symmetrically_Encrypted_Data_Packet";
+	case 10: return "Marker_Packet";
+	case 11: return "Literal_Data_Packet";
+	case 12: return "Trust_Packet";
+	case 13: return "User_ID_Packet";
+	case 14: return "Public_Subkey_Packet";
+	case 15: return "NULL";
+	case 16: return "NULL";
+	case 17: return "User_Attribute_Packet";
+	case 18: return "Symmetrically_Encrypted_and_MDC_Packet";
+	case 19: return "Modification_Detection_Code_Packet";
+	case 20: return "NULL";
+	case 21: return "NULL";
+	case 22: return "NULL";
+	case 23: return "NULL";
+	case 24: return "NULL";
+	case 25: return "NULL";
+	case 26: return "NULL";
+	case 27: return "NULL";
+	case 28: return "NULL";
+	case 29: return "NULL";
+	case 30: return "NULL";
+	case 31: return "NULL";
+	case 32: return "NULL";
+	case 33: return "NULL";
+	case 34: return "NULL";
+	case 35: return "NULL";
+	case 36: return "NULL";
+	case 37: return "NULL";
+	case 38: return "NULL";
+	case 39: return "NULL";
+	case 40: return "NULL";
+	case 41: return "NULL";
+	case 42: return "NULL";
+	case 43: return "NULL";
+	case 44: return "NULL";
+	case 45: return "NULL";
+	case 46: return "NULL";
+	case 47: return "NULL";
+	case 48: return "NULL";
+	case 49: return "NULL";
+	case 50: return "NULL";
+	case 51: return "NULL";
+	case 52: return "NULL";
+	case 53: return "NULL";
+	case 54: return "NULL";
+	case 55: return "NULL";
+	case 56: return "NULL";
+	case 57: return "NULL";
+	case 58: return "NULL";
+	case 59: return "NULL";
+	case 60: return "NULL";
+	case 61: return "Private_Packet";
+	case 62: return "Private_Packet";
+	case 63: return "Private_Packet";
+	case 64: return "Private_Packet";
+	default: return "Unk, past end!";
+};
+
+}
 private string
 SIGSUB[] = {
 	"reserved(sub 0)",
@@ -1281,6 +1381,7 @@ parse_packet(void)
 
 	c = getchar();
 	ungetc(c, stdin);
+	offset = 0;
 
 	/* If the PGP packet is in the binary raw form, 7th bit of
 	 * the first byte is always 1. If it is set, let's assume
@@ -1336,31 +1437,36 @@ parse_packet(void)
 			// printf("%s(tag %d)", TAG[tag], tag);
 			;
 		else
-			printf("unknown(tag %d)", tag);
+			fprintf(stderr, "unknown(tag %d)", tag);
 
 		if (partial == YES)
-			printf("(%d bytes) partial start\n", len);
+			fprintf(stderr, "(%d bytes) partial start\n", len);
 		else if (tag == TAG_COMPRESSED)
-			printf("\n");
+			fprintf(stderr, "\n");
 		else if (len == EOF)
-			printf("(until eof)\n");
+			fprintf(stderr, "(until eof)\n");
 		else
 			// printf("(%d bytes)\n", len);
 			;
 
-		if (tag < TAG_NUM && tag_func[tag] != NULL)
+		if (tag < TAG_NUM && tag_func[tag] != NULL) {
+			if (gpg_dbg)
+				fprintf(stderr, "Packet type %d, len %d at offset %d  (Processing) (pkt-type %s)\n", tag, len, offset, pkt_type(tag));
 			(*tag_func[tag])(len);
-		else
+		} else {
+			if (gpg_dbg)
+				fprintf(stderr, "Packet type %d, len %d at offset %d  (Skipping)\n", tag, len, offset);
 			skip(len);
+		}
 		while (partial == YES) {
-			printf("New: ");
+			fprintf(stderr, "New: ");
 			c = Getc();
 			len = get_new_len(c);
 			partial = is_partial(c);
 			if (partial == YES)
-				printf("\t(%d bytes) partial continue\n", len);
+				fprintf(stderr, "\t(%d bytes) partial continue\n", len);
 			else
-				printf("\t(%d bytes) partial end\n", len);
+				fprintf(stderr, "\t(%d bytes) partial end\n", len);
 			skip(len);
 		}
 		if (len == EOF) return;
@@ -1436,9 +1542,9 @@ parse_userattr_subpacket(string prefix, int tlen)
 		len--;  /* len includes this field byte */
 
 		if (subtype < UATSUB_NUM)
-			printf("\t%s: %s", prefix, UATSUB[subtype]);
+			fprintf(stderr, "\t%s: %s", prefix, UATSUB[subtype]);
 		else
-			printf("\t%s: unknown(sub %d)", prefix, subtype);
+			fprintf(stderr, "\t%s: unknown(sub %d)", prefix, subtype);
 		// printf("(%d bytes)\n", len);
 		if (subtype < UATSUB_NUM && uatsub_func[subtype] != NULL)
 			(*uatsub_func[subtype])(len);
@@ -1522,16 +1628,16 @@ public void
 additional_decryption_key(int len)
 {
 	int c = Getc();
-	printf("\t\tClass - ");
+	fprintf(stderr, "\t\tClass - ");
 	switch (c) {
 	case 0x80:
-		printf("Strong request");
+		fprintf(stderr, "Strong request");
 		break;
 	case 0x0:
-		printf("Normal");
+		fprintf(stderr, "Normal");
 		break;
 	default:
-		printf("Unknown class(%02x)", c);
+		fprintf(stderr, "Unknown class(%02x)", c);
 		break;
 	}
 	// printf("\n");
@@ -1555,26 +1661,26 @@ public void
 revocation_key(int len)
 {
 	int c = Getc();
-	printf("\t\tClass - ");
+	fprintf(stderr, "\t\tClass - ");
 	if (c & 0x80)
 		switch (c) {
 		case 0x80:
-			printf("Normal");
+			fprintf(stderr, "Normal");
 			break;
 		case 0xc0:
-			printf("Sensitive");
+			fprintf(stderr, "Sensitive");
 			break;
 		default:
-			printf("Unknown class(%02x)", c);
+			fprintf(stderr, "Unknown class(%02x)", c);
 			break;
 		}
 	else
-		printf("Unknown class(%02x)", c);
+		fprintf(stderr, "Unknown class(%02x)", c);
 
-	printf("\n");
-	printf("\t");
+	fprintf(stderr, "\n");
+	fprintf(stderr, "\t");
 	pub_algs(Getc());
-	printf("\t");
+	fprintf(stderr, "\t");
 	fingerprint();
 }
 
@@ -1730,31 +1836,31 @@ public void
 reason_for_revocation(int len)
 {
 	int c = Getc();
-	printf("\t\tReason - ");
+	fprintf(stderr, "\t\tReason - ");
 	switch (c) {
 	case 0:
-		printf("No reason specified");
+		fprintf(stderr, "No reason specified");
 		break;
 	case 1:
-		printf("Key is superceded");
+		fprintf(stderr, "Key is superceded");
 		break;
 	case 2:
-		printf("Key material has been compromised");
+		fprintf(stderr, "Key material has been compromised");
 		break;
 	case 3:
-		printf("Key is retired and no longer used");
+		fprintf(stderr, "Key is retired and no longer used");
 		break;
 	case 32:
-		printf("User ID information is no longer valid");
+		fprintf(stderr, "User ID information is no longer valid");
 		break;
 	default:
-		printf("Unknown reason(%2d)", c);
+		fprintf(stderr, "Unknown reason(%2d)", c);
 		break;
 	}
-	printf("\n");
-	printf("\t\tComment - ");
+	fprintf(stderr, "\n");
+	fprintf(stderr, "\t\tComment - ");
 	pdump(len - 1);
-	printf("\n");
+	fprintf(stderr, "\n");
 }
 
 public void
@@ -1899,12 +2005,12 @@ One_Pass_Signature_Packet(int len)
 	hash_algs(Getc());
 	pub_algs(Getc());
 	key_id();
-	printf("\tNext packet - ");
+	fprintf(stderr, "\tNext packet - ");
 	if (Getc() == 0)
-		printf("another one pass signature");
+		fprintf(stderr, "another one pass signature");
 	else
-		printf("other than one pass signature");
-	printf("\n");
+		fprintf(stderr, "other than one pass signature");
+	fprintf(stderr, "\n");
 }
 
 public void
@@ -1936,7 +2042,7 @@ old_Signature_Packet(int len)
 {
 	int pub;
 
-	printf("\tHash material(%d bytes):\n", Getc());
+	fprintf(stderr, "\tHash material(%d bytes):\n", Getc());
 	// printf("\t");
 	signature_type(Getc());
 	// printf("\t");
@@ -2056,7 +2162,7 @@ new_Public_Key_Packet(int len)
 		give_multi_precision_integer(y, &y_bits);
 		break;
 	default:
-		printf("\tUnknown public key(pub %d)\n", PUBLIC);
+		fprintf(stderr, "\tUnknown public key(pub %d)\n", PUBLIC);
 		skip(len - 5);
 		break;
 	}
@@ -2119,11 +2225,12 @@ Secret_Key_Packet(int len)
 	}
 }
 
-static void print_hex(unsigned char *str, int len)
+static int print_hex(unsigned char *str, int len, char *cp)
 {
 	int i;
 	for (i = 0; i < len; ++i)
-		printf("%02x", str[i]);
+		cp += sprintf(cp, "%02x", str[i]);
+	return len*2;
 }
 
 private void
@@ -2178,7 +2285,7 @@ plain_Secret_Key(int len)
 			fprintf(stderr, "%s contains plain DSA secret key packet!\n", base);
 			break;
 		default:
-			printf("\tUnknown secret key(pub %d)\n", PUBLIC);
+			fprintf(stderr, "\tUnknown secret key(pub %d)\n", PUBLIC);
 			skip(len - 2);
 			break;
 		}
@@ -2188,7 +2295,7 @@ plain_Secret_Key(int len)
 		// printf("\n");
 		break;
 	default:
-		printf("\tunknown version (%d)\n", VERSION);
+		fprintf(stderr, "\tunknown version (%d)\n", VERSION);
 		skip(len);
 		break;
 	}
@@ -2240,17 +2347,22 @@ encrypted_Secret_Key(int len, int sha1)
 		used += len;
 
 		m_algorithm = PUBLIC;
-		printf("%s:$gpg$*%d*%d*%d*", login, m_algorithm, len, n_bits);
-		print_hex(m_data, len);
-		printf("*%d*%d*%d*%d*%d*", m_spec, m_usage, m_hashAlgorithm, m_cipherAlgorithm, bs);
-		print_hex(iv, bs);
-		printf("*%d*", m_count);
-		print_hex(m_salt, 8);
-		if (m_usage == 1) { /* handle 2 byte checksum */
-			printf("*%d*", (n_bits + 7) / 8);
-			print_hex(n, (n_bits + 7) / 8);
+		if (*last_hash) {
+			printf("%s:%s:::%s::%s\n", login, last_hash, gecos, filename);
+			*last_hash = 0;
 		}
-		printf(":::%s::%s\n", gecos, filename);
+		cp = last_hash;
+		cp += sprintf(cp, "$gpg$*%d*%d*%d*", m_algorithm, len, n_bits);
+		cp += print_hex(m_data, len, cp);
+		cp += sprintf(cp, "*%d*%d*%d*%d*%d*", m_spec, m_usage, m_hashAlgorithm, m_cipherAlgorithm, bs);
+		cp += print_hex(iv, bs, cp);
+		cp += sprintf(cp, "*%d*", m_count);
+		cp += print_hex(m_salt, 8, cp);
+		if (m_usage == 1) { /* handle 2 byte checksum */
+			cp += sprintf(cp, "*%d*", (n_bits + 7) / 8);
+			cp += print_hex(n, (n_bits + 7) / 8, cp);
+		}
+		*cp = 0;
 		break;
 	case 4:
 		switch (PUBLIC) {
@@ -2261,64 +2373,76 @@ encrypted_Secret_Key(int len, int sha1)
 			give(len, m_data); // we can't break down the "data" further into fields
 			used += len;
 			m_algorithm = PUBLIC;  // Encrypted RSA
-			printf("%s:$gpg$*%d*%d*%d*", login, m_algorithm, len, n_bits);
-			print_hex(m_data, len);
-			printf("*%d*%d*%d*%d*%d*", m_spec, m_usage, m_hashAlgorithm, m_cipherAlgorithm, bs);
-			print_hex(iv, bs);
-			printf("*%d*", m_count);
-			print_hex(m_salt, 8);
+			if (*last_hash) {
+				printf("%s:%s:::%s::%s\n", login, last_hash, gecos, filename);
+				*last_hash = 0;
+			}
+			cp = last_hash;
+			cp += sprintf(cp, "$gpg$*%d*%d*%d*", m_algorithm, len, n_bits);
+			cp += print_hex(m_data, len, cp);
+			cp += sprintf(cp, "*%d*%d*%d*%d*%d*", m_spec, m_usage, m_hashAlgorithm, m_cipherAlgorithm, bs);
+			cp += print_hex(iv, bs, cp);
+			cp += sprintf(cp, "*%d*", m_count);
+			cp += print_hex(m_salt, 8, cp);
 			if (m_usage == 255) { /* handle 2 byte checksum */
 				// gpg --homedir . --s2k-mode 0 --simple-sk-checksum --s2k-cipher-algo IDEA --gen-key
-				printf("*%d*", (n_bits + 7) / 8);
-				print_hex(n, (n_bits + 7) / 8);
+				cp += sprintf(cp, "*%d*", (n_bits + 7) / 8);
+				cp += print_hex(n, (n_bits + 7) / 8, cp);
 			}
-			printf(":::%s::%s\n",gecos_remains, filename);
 			break;
 		case 16:
 		case 20:
 			m_algorithm = PUBLIC;  // Encrypted ElGamal
 			give(len, m_data);
 			used += len;
-			printf("%s:$gpg$*%d*%d*%d*", login, m_algorithm, len, key_bits);
-			print_hex(m_data, len);
-			printf("*%d*%d*%d*%d*%d*", m_spec, m_usage, m_hashAlgorithm, m_cipherAlgorithm, bs);
-			print_hex(iv, bs);
-			printf("*%d*", m_count);
-			print_hex(m_salt, 8);
-			if (m_usage == 255) { /* handle 2 byte checksum */
-				printf("*%d*", (p_bits + 7) / 8);
-				print_hex(p, (p_bits + 7) / 8);
-				printf("*%d*", (g_bits + 7) / 8);
-				print_hex(g, (g_bits + 7) / 8);
-				printf("*%d*", (y_bits + 7) / 8);
-				print_hex(y, (y_bits + 7) / 8);
+			if (*last_hash) {
+				printf("%s:%s:::%s::%s\n", login, last_hash, gecos, filename);
+				*last_hash = 0;
 			}
-			printf(":::%s::%s\n",gecos_remains, filename);
+			cp = last_hash;
+			cp += sprintf(cp, "$gpg$*%d*%d*%d*", m_algorithm, len, key_bits);
+			print_hex(m_data, len, cp);
+			cp += sprintf(cp, "*%d*%d*%d*%d*%d*", m_spec, m_usage, m_hashAlgorithm, m_cipherAlgorithm, bs);
+			cp += print_hex(iv, bs, cp);
+			cp += sprintf(cp, "*%d*", m_count);
+			cp += print_hex(m_salt, 8, cp);
+			if (m_usage == 255) { /* handle 2 byte checksum */
+				cp += sprintf(cp, "*%d*", (p_bits + 7) / 8);
+				cp += print_hex(p, (p_bits + 7) / 8, cp);
+				cp += sprintf(cp, "*%d*", (g_bits + 7) / 8);
+				cp += print_hex(g, (g_bits + 7) / 8, cp);
+				cp += sprintf(cp, "*%d*", (y_bits + 7) / 8);
+				cp += print_hex(y, (y_bits + 7) / 8, cp);
+			}
 			break;
 		case 17:
 			m_algorithm = PUBLIC;  // Encrypted DSA
 			give(len, m_data);
 			used += len;
-			printf("%s:$gpg$*%d*%d*%d*", login, m_algorithm, len, key_bits);
-			print_hex(m_data, len);
-			printf("*%d*%d*%d*%d*%d*", m_spec, m_usage, m_hashAlgorithm, m_cipherAlgorithm, bs);
-			print_hex(iv, bs);
-			printf("*%d*", m_count);
-			print_hex(m_salt, 8);
-			if (m_usage == 255) { /* handle 2 byte checksum */
-				printf("*%d*", (key_bits + 7) / 8);
-				print_hex(p, (key_bits + 7) / 8);
-				printf("*%d*", (q_bits + 7) / 8);
-				print_hex(q, (q_bits + 7) / 8);
-				printf("*%d*", (g_bits + 7) / 8);
-				print_hex(g, (g_bits + 7) / 8);
-				printf("*%d*", (y_bits + 7) / 8);
-				print_hex(y, (y_bits + 7) / 8);
+			if (*last_hash) {
+				printf("%s:%s:::%s::%s\n", login, last_hash, gecos, filename);
+				*last_hash = 0;
 			}
-			printf(":::%s::%s\n",gecos_remains, filename);
+			cp = last_hash;
+			cp += sprintf(cp, "$gpg$*%d*%d*%d*", m_algorithm, len, key_bits);
+			cp += print_hex(m_data, len, cp);
+			cp += sprintf(cp, "*%d*%d*%d*%d*%d*", m_spec, m_usage, m_hashAlgorithm, m_cipherAlgorithm, bs);
+			cp += print_hex(iv, bs, cp);
+			cp += sprintf(cp, "*%d*", m_count);
+			cp += print_hex(m_salt, 8, cp);
+			if (m_usage == 255) { /* handle 2 byte checksum */
+				cp += sprintf(cp, "*%d*", (key_bits + 7) / 8);
+				cp += print_hex(p, (key_bits + 7) / 8, cp);
+				cp += sprintf(cp, "*%d*", (q_bits + 7) / 8);
+				cp += print_hex(q, (q_bits + 7) / 8, cp);
+				cp += sprintf(cp, "*%d*", (g_bits + 7) / 8);
+				cp += print_hex(g, (g_bits + 7) / 8, cp);
+				cp += sprintf(cp, "*%d*", (y_bits + 7) / 8);
+				cp += print_hex(y, (y_bits + 7) / 8, cp);
+			}
 			break;
 		default:
-			printf("\tUnknown encrypted key(pub %d)\n", PUBLIC);
+			fprintf(stderr, "\tUnknown encrypted key(pub %d)\n", PUBLIC);
 			break;
 		}
 		if (sha1 == YES)
@@ -2330,7 +2454,7 @@ encrypted_Secret_Key(int len, int sha1)
 		skip(len - used);
 		break;
 	default:
-		printf("\tunknown version (%d)\n", VERSION);
+		fprintf(stderr, "\tunknown version (%d)\n", VERSION);
 		//skip(len);
 		break;
 	}
@@ -2626,6 +2750,7 @@ Getc1(void)
 	MAGIC_COUNT++;
 	c = *NEXT_IN;
 	NEXT_IN++;
+	offset++;
 	return c;
 }
 
@@ -2772,14 +2897,14 @@ image_attribute(int len)
 	hver = Getc();
 	if (hver == 1) {
 		int enc = Getc();
-		printf("\t\tImage encoding - %s(enc %d)\n",
+		fprintf(stderr, "\t\tImage encoding - %s(enc %d)\n",
 			enc == 1 ? "JPEG" : "Unknown",
 			enc);
-		printf("\t\tImage data(%d bytes)\n", len - hlen);
+		fprintf(stderr, "\t\tImage data(%d bytes)\n", len - hlen);
 		skip(len - 4);
 	} else {
-		printf("\t\tUnknown header version(ver %d)\n", hver);
-		printf("\t\tUnknown data(%d bytes)\n", len - hlen);
+		fprintf(stderr, "\t\tUnknown header version(ver %d)\n", hver);
+		fprintf(stderr, "\t\tUnknown data(%d bytes)\n", len - hlen);
 		skip(len - 3);
 	}
 }
