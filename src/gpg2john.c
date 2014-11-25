@@ -141,25 +141,26 @@ static char gecos[BIG_ENOUGH];
 static char last_hash[BIG_ENOUGH] = {0};
 static unsigned char m_salt[64];
 static unsigned char iv[16];
-char *filename;
-int offset = 0;
-int gpg_dbg = 0;
+static char *filename;
+static int offset = 0;
+static int gpg_dbg = 0;
+static int dump_subkeys = 0;
+static int is_subkey = 0;
 
-int m_spec;
-int m_algorithm;
-int m_datalen;
-int key_bits;
-int d_bits;
-int p_bits;
-int q_bits;
-int g_bits;
-int y_bits;
-int n_bits;
-int u_bits;
-int e_bits;
-int m_datalen;
-int m_usage, m_hashAlgorithm, m_cipherAlgorithm, bs;
-int m_count;
+static int m_spec;
+static int m_algorithm;
+//static int m_datalen;
+static int key_bits;
+static int d_bits;
+static int p_bits;
+static int q_bits;
+static int g_bits;
+static int y_bits;
+static int n_bits;
+static int u_bits;
+static int e_bits;
+static int m_usage, m_hashAlgorithm, m_cipherAlgorithm, bs;
+static int m_count;
 
 /*
  * pgpdump.c
@@ -286,14 +287,14 @@ public void image_attribute(int);
 /*
  * pgpdump.c
  */
-int aflag;
-int dflag;
-int gflag;
-int iflag;
-int lflag;
-int mflag;
-int pflag;
-int uflag;
+static int aflag;
+//static int dflag;
+//static int gflag;
+//static int iflag;
+static int lflag;
+static int mflag;
+//static int pflag;
+static int uflag;
 
 public void
 warning(const string fmt, ...)
@@ -325,14 +326,19 @@ warn_exit(const string fmt, ...)
 int gpg2john(int argc, char **argv)
 {
 	int i;
-	if (argc > 2 && !strcmp(argv[1], "-d")) {
-		gpg_dbg = 1;
+	if (argc > 2 && (!strcmp(argv[1], "-d") || !strcmp(argv[1], "-S"))) {
+		if (!strcmp(argv[1], "-d"))
+			gpg_dbg = 1;
+		else
+			dump_subkeys = 1;
 		for (i = 1; i < argc; ++i)
 			argv[i] = argv[i+1];
 		--argc;
 	}
     if (argc < 2) {
-         fprintf(stderr, "Usage: %s <GPG Secret Key File(s)>\n", argv[0]);
+         fprintf(stderr, "Usage: %s [-d] [-S] <GPG Secret Key File(s)>\n", argv[0]);
+		 fprintf(stderr, "   if -d is used, then debugging of the object types decoded is written\n");
+		 fprintf(stderr, "   if -S is used, then subkeys will also be output\n");
          exit(-1);
     }
 
@@ -2181,7 +2187,9 @@ IV(unsigned int len)
 public void
 Secret_Subkey_Packet(int len)
 {
+	is_subkey = 1;
 	Secret_Key_Packet(len);
+	is_subkey = 0;
 }
 
 public void
@@ -2351,18 +2359,20 @@ encrypted_Secret_Key(int len, int sha1)
 			printf("%s:%s:::%s::%s\n", login, last_hash, gecos, filename);
 			*last_hash = 0;
 		}
-		cp = last_hash;
-		cp += sprintf(cp, "$gpg$*%d*%d*%d*", m_algorithm, len, n_bits);
-		cp += print_hex(m_data, len, cp);
-		cp += sprintf(cp, "*%d*%d*%d*%d*%d*", m_spec, m_usage, m_hashAlgorithm, m_cipherAlgorithm, bs);
-		cp += print_hex(iv, bs, cp);
-		cp += sprintf(cp, "*%d*", m_count);
-		cp += print_hex(m_salt, 8, cp);
-		if (m_usage == 1) { /* handle 2 byte checksum */
-			cp += sprintf(cp, "*%d*", (n_bits + 7) / 8);
-			cp += print_hex(n, (n_bits + 7) / 8, cp);
+		if (dump_subkeys || !is_subkey) {
+			cp = last_hash;
+			cp += sprintf(cp, "$gpg$*%d*%d*%d*", m_algorithm, len, n_bits);
+			cp += print_hex(m_data, len, cp);
+			cp += sprintf(cp, "*%d*%d*%d*%d*%d*", m_spec, m_usage, m_hashAlgorithm, m_cipherAlgorithm, bs);
+			cp += print_hex(iv, bs, cp);
+			cp += sprintf(cp, "*%d*", m_count);
+			cp += print_hex(m_salt, 8, cp);
+			if (m_usage == 1) { /* handle 2 byte checksum */
+				cp += sprintf(cp, "*%d*", (n_bits + 7) / 8);
+				cp += print_hex(n, (n_bits + 7) / 8, cp);
+			}
+			*cp = 0;
 		}
-		*cp = 0;
 		break;
 	case 4:
 		switch (PUBLIC) {
@@ -2377,17 +2387,20 @@ encrypted_Secret_Key(int len, int sha1)
 				printf("%s:%s:::%s::%s\n", login, last_hash, gecos, filename);
 				*last_hash = 0;
 			}
-			cp = last_hash;
-			cp += sprintf(cp, "$gpg$*%d*%d*%d*", m_algorithm, len, n_bits);
-			cp += print_hex(m_data, len, cp);
-			cp += sprintf(cp, "*%d*%d*%d*%d*%d*", m_spec, m_usage, m_hashAlgorithm, m_cipherAlgorithm, bs);
-			cp += print_hex(iv, bs, cp);
-			cp += sprintf(cp, "*%d*", m_count);
-			cp += print_hex(m_salt, 8, cp);
-			if (m_usage == 255) { /* handle 2 byte checksum */
-				// gpg --homedir . --s2k-mode 0 --simple-sk-checksum --s2k-cipher-algo IDEA --gen-key
-				cp += sprintf(cp, "*%d*", (n_bits + 7) / 8);
-				cp += print_hex(n, (n_bits + 7) / 8, cp);
+			if (dump_subkeys || !is_subkey) {
+				cp = last_hash;
+				cp += sprintf(cp, "$gpg$*%d*%d*%d*", m_algorithm, len, n_bits);
+				cp += print_hex(m_data, len, cp);
+				cp += sprintf(cp, "*%d*%d*%d*%d*%d*", m_spec, m_usage, m_hashAlgorithm, m_cipherAlgorithm, bs);
+				cp += print_hex(iv, bs, cp);
+				cp += sprintf(cp, "*%d*", m_count);
+				cp += print_hex(m_salt, 8, cp);
+				if (m_usage == 255) { /* handle 2 byte checksum */
+					// gpg --homedir . --s2k-mode 0 --simple-sk-checksum --s2k-cipher-algo IDEA --gen-key
+					cp += sprintf(cp, "*%d*", (n_bits + 7) / 8);
+					cp += print_hex(n, (n_bits + 7) / 8, cp);
+				}
+				*cp = 0;
 			}
 			break;
 		case 16:
@@ -2399,20 +2412,23 @@ encrypted_Secret_Key(int len, int sha1)
 				printf("%s:%s:::%s::%s\n", login, last_hash, gecos, filename);
 				*last_hash = 0;
 			}
-			cp = last_hash;
-			cp += sprintf(cp, "$gpg$*%d*%d*%d*", m_algorithm, len, key_bits);
-			print_hex(m_data, len, cp);
-			cp += sprintf(cp, "*%d*%d*%d*%d*%d*", m_spec, m_usage, m_hashAlgorithm, m_cipherAlgorithm, bs);
-			cp += print_hex(iv, bs, cp);
-			cp += sprintf(cp, "*%d*", m_count);
-			cp += print_hex(m_salt, 8, cp);
-			if (m_usage == 255) { /* handle 2 byte checksum */
-				cp += sprintf(cp, "*%d*", (p_bits + 7) / 8);
-				cp += print_hex(p, (p_bits + 7) / 8, cp);
-				cp += sprintf(cp, "*%d*", (g_bits + 7) / 8);
-				cp += print_hex(g, (g_bits + 7) / 8, cp);
-				cp += sprintf(cp, "*%d*", (y_bits + 7) / 8);
-				cp += print_hex(y, (y_bits + 7) / 8, cp);
+			if (dump_subkeys || !is_subkey) {
+				cp = last_hash;
+				cp += sprintf(cp, "$gpg$*%d*%d*%d*", m_algorithm, len, key_bits);
+				print_hex(m_data, len, cp);
+				cp += sprintf(cp, "*%d*%d*%d*%d*%d*", m_spec, m_usage, m_hashAlgorithm, m_cipherAlgorithm, bs);
+				cp += print_hex(iv, bs, cp);
+				cp += sprintf(cp, "*%d*", m_count);
+				cp += print_hex(m_salt, 8, cp);
+				if (m_usage == 255) { /* handle 2 byte checksum */
+					cp += sprintf(cp, "*%d*", (p_bits + 7) / 8);
+					cp += print_hex(p, (p_bits + 7) / 8, cp);
+					cp += sprintf(cp, "*%d*", (g_bits + 7) / 8);
+					cp += print_hex(g, (g_bits + 7) / 8, cp);
+					cp += sprintf(cp, "*%d*", (y_bits + 7) / 8);
+					cp += print_hex(y, (y_bits + 7) / 8, cp);
+				}
+				*cp = 0;
 			}
 			break;
 		case 17:
@@ -2423,22 +2439,25 @@ encrypted_Secret_Key(int len, int sha1)
 				printf("%s:%s:::%s::%s\n", login, last_hash, gecos, filename);
 				*last_hash = 0;
 			}
-			cp = last_hash;
-			cp += sprintf(cp, "$gpg$*%d*%d*%d*", m_algorithm, len, key_bits);
-			cp += print_hex(m_data, len, cp);
-			cp += sprintf(cp, "*%d*%d*%d*%d*%d*", m_spec, m_usage, m_hashAlgorithm, m_cipherAlgorithm, bs);
-			cp += print_hex(iv, bs, cp);
-			cp += sprintf(cp, "*%d*", m_count);
-			cp += print_hex(m_salt, 8, cp);
-			if (m_usage == 255) { /* handle 2 byte checksum */
-				cp += sprintf(cp, "*%d*", (key_bits + 7) / 8);
-				cp += print_hex(p, (key_bits + 7) / 8, cp);
-				cp += sprintf(cp, "*%d*", (q_bits + 7) / 8);
-				cp += print_hex(q, (q_bits + 7) / 8, cp);
-				cp += sprintf(cp, "*%d*", (g_bits + 7) / 8);
-				cp += print_hex(g, (g_bits + 7) / 8, cp);
-				cp += sprintf(cp, "*%d*", (y_bits + 7) / 8);
-				cp += print_hex(y, (y_bits + 7) / 8, cp);
+			if (dump_subkeys || !is_subkey) {
+				cp = last_hash;
+				cp += sprintf(cp, "$gpg$*%d*%d*%d*", m_algorithm, len, key_bits);
+				cp += print_hex(m_data, len, cp);
+				cp += sprintf(cp, "*%d*%d*%d*%d*%d*", m_spec, m_usage, m_hashAlgorithm, m_cipherAlgorithm, bs);
+				cp += print_hex(iv, bs, cp);
+				cp += sprintf(cp, "*%d*", m_count);
+				cp += print_hex(m_salt, 8, cp);
+				if (m_usage == 255) { /* handle 2 byte checksum */
+					cp += sprintf(cp, "*%d*", (key_bits + 7) / 8);
+					cp += print_hex(p, (key_bits + 7) / 8, cp);
+					cp += sprintf(cp, "*%d*", (q_bits + 7) / 8);
+					cp += print_hex(q, (q_bits + 7) / 8, cp);
+					cp += sprintf(cp, "*%d*", (g_bits + 7) / 8);
+					cp += print_hex(g, (g_bits + 7) / 8, cp);
+					cp += sprintf(cp, "*%d*", (y_bits + 7) / 8);
+					cp += print_hex(y, (y_bits + 7) / 8, cp);
+				}
+				*cp = 0;
 			}
 			break;
 		default:
