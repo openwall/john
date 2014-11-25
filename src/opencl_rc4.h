@@ -9,6 +9,39 @@
  * NOTICE: After changes in headers, you probably need to drop cached
  * kernels to ensure the changes take effect.
  *
+ * Some code originally had this copyright notice:
+ *
+ * Copyright (c) 1996-2000 Whistle Communications, Inc.
+ * All rights reserved.
+ *
+ * Subject to the following obligations and disclaimer of warranty, use and
+ * redistribution of this software, in source or object code forms, with or
+ * without modifications are expressly permitted by Whistle Communications;
+ * provided, however, that:
+ * 1. Any and all reproductions of the source or object code must include the
+ *    copyright notice above and the following disclaimer of warranties; and
+ * 2. No rights are granted, in any manner or form, to use Whistle
+ *    Communications, Inc. trademarks, including the mark "WHISTLE
+ *    COMMUNICATIONS" on advertising, endorsements, or otherwise except as
+ *    such appears in the above copyright notice or in the software.
+ *
+ * THIS SOFTWARE IS BEING PROVIDED BY WHISTLE COMMUNICATIONS "AS IS", AND
+ * TO THE MAXIMUM EXTENT PERMITTED BY LAW, WHISTLE COMMUNICATIONS MAKES NO
+ * REPRESENTATIONS OR WARRANTIES, EXPRESS OR IMPLIED, REGARDING THIS SOFTWARE,
+ * INCLUDING WITHOUT LIMITATION, ANY AND ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, OR NON-INFRINGEMENT.
+ * WHISTLE COMMUNICATIONS DOES NOT WARRANT, GUARANTEE, OR MAKE ANY
+ * REPRESENTATIONS REGARDING THE USE OF, OR THE RESULTS OF THE USE OF THIS
+ * SOFTWARE IN TERMS OF ITS CORRECTNESS, ACCURACY, RELIABILITY OR OTHERWISE.
+ * IN NO EVENT SHALL WHISTLE COMMUNICATIONS BE LIABLE FOR ANY DAMAGES
+ * RESULTING FROM OR ARISING OUT OF ANY USE OF THIS SOFTWARE, INCLUDING
+ * WITHOUT LIMITATION, ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY,
+ * PUNITIVE, OR CONSEQUENTIAL DAMAGES, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES, LOSS OF USE, DATA OR PROFITS, HOWEVER CAUSED AND UNDER ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+ * THIS SOFTWARE, EVEN IF WHISTLE COMMUNICATIONS IS ADVISED OF THE POSSIBILITY
+ * OF SUCH DAMAGE.
  */
 
 #ifndef _OPENCL_RC4_H
@@ -16,14 +49,15 @@
 
 #include <opencl_misc.h>
 
-//#define USE_LOCAL
-//#define USE_INT
-
-#if !no_byte_addressable(DEVICE_INFO)
-#define USE_INT
+#if no_byte_addressable(DEVICE_INFO)
+#define RC4_INT uint
+#else
+#define RC4_INT uchar
+#define USE_IV_LUT
 #endif
 
-#ifdef USE_INT
+//#define USE_LOCAL
+
 __constant uint rc4_iv[64] = { 0x03020100, 0x07060504, 0x0b0a0908, 0x0f0e0d0c,
                                0x13121110, 0x17161514, 0x1b1a1918, 0x1f1e1d1c,
                                0x23222120, 0x27262524, 0x2b2a2928, 0x2f2e2d2c,
@@ -41,10 +75,89 @@ __constant uint rc4_iv[64] = { 0x03020100, 0x07060504, 0x0b0a0908, 0x0f0e0d0c,
                                0xe3e2e1e0, 0xe7e6e5e4, 0xebeae9e8, 0xefeeedec,
                                0xf3f2f1f0, 0xf7f6f5f4, 0xfbfaf9f8, 0xfffefdfc
 };
+
+#if 0  /* Generic code */
+typedef struct {
+	RC4_INT	perm[256];
+	uchar	index1;
+	uchar	index2;
+} rc4_state_t;
+
+inline void swap_bytes(RC4_INT* a, RC4_INT* b)
+{
+	RC4_INT tmp = *a;
+	*a = *b;
+	*b = tmp;
+}
+
+inline void rc4_init(rc4_state_t* const state, uint *key, int keylen)
+{
+	uchar j;
+	int i;
+	const uchar* keybuf = (const uchar*)key;
+
+#if USE_IV_LUT
+	for (i = 0; i < 64; i++)
+		((uint*)state->perm)[i] = rc4_iv[i];
+#else
+	for (i = 0; i < 256; i++)
+		state->perm[i] = (RC4_INT)i;
 #endif
+	state->index1 = 0;
+	state->index2 = 0;
+	for (j = i = 0; i < 256; i++) {
+		j += state->perm[i] + keybuf[i % keylen];
+		swap_bytes(&state->perm[i], &state->perm[j]);
+	}
+}
+
+/* Unrolled to 32-bit writes, buflen must be multiple of 4 */
+inline void rc4_crypt(rc4_state_t* const state, const uint* in, uint* out, int buflen)
+{
+	int i;
+
+	for (i = 0; i < buflen; i++) {
+		uchar j;
+		uint perm;
+
+		state->index1++;
+		state->index2 += state->perm[state->index1];
+		swap_bytes(&state->perm[state->index1],
+		           &state->perm[state->index2]);
+		j = state->perm[state->index1] + state->perm[state->index2];
+		perm = state->perm[j];
+		i++;
+
+		state->index1++;
+		state->index2 += state->perm[state->index1];
+		swap_bytes(&state->perm[state->index1],
+		           &state->perm[state->index2]);
+		j = state->perm[state->index1] + state->perm[state->index2];
+		perm |= state->perm[j] << 8;
+		i++;
+
+		state->index1++;
+		state->index2 += state->perm[state->index1];
+		swap_bytes(&state->perm[state->index1],
+		           &state->perm[state->index2]);
+		j = state->perm[state->index1] + state->perm[state->index2];
+		perm |= state->perm[j] << 16;
+		i++;
+
+		state->index1++;
+		state->index2 += state->perm[state->index1];
+		swap_bytes(&state->perm[state->index1],
+		           &state->perm[state->index2]);
+		j = state->perm[state->index1] + state->perm[state->index2];
+		perm |= state->perm[j] << 24;
+
+		*out++ = *in++ ^ perm;
+	}
+}
+#endif /* Generic BSD code */
 
 #define swap_byte(a, b) {	  \
-		uint tmp = a; \
+		RC4_INT tmp = a; \
 		a = b; \
 		b = tmp; \
 	}
@@ -55,29 +168,19 @@ __constant uint rc4_iv[64] = { 0x03020100, 0x07060504, 0x0b0a0908, 0x0f0e0d0c,
 		index1 = (index1 + 1) & 15 /* (& 15 == % keylen) */; \
 	}
 
-/* One-shot rc4 with fixed key length and decrypt length of 16 */
+/* One-shot RC4 with fixed keylen and buflen of 16 */
 inline void rc4_16_16(const uint *key_w, MAYBE_CONSTANT uint *in,
                 __global uint *out)
 {
 	const uchar *key = (uchar*)key_w;
 	uint x;
 	uint y = 0;
-	uint index1 = 0;
-	uint index2 = 0;
+	RC4_INT index1 = 0;
+	RC4_INT index2 = 0;
 #ifdef USE_LOCAL
 	uint lid = get_local_id(0);
 #endif
-#ifdef USE_INT
-#ifdef USE_LOCAL
-	__local uint state_l[64][256];
-	__local uint *state = (__local uint*)state_l[lid];
-#else
-	uint state[256];
-#endif
-	/* RC4_init() */
-	for (x = 0; x < 256; x++)
-		state[x] = x;
-#else
+#ifdef USE_IV_LUT
 #ifdef USE_LOCAL
 	__local uint state_w[64][64];
 	__local uchar *state = (__local uchar*)state_w[lid];
@@ -93,14 +196,25 @@ inline void rc4_16_16(const uint *key_w, MAYBE_CONSTANT uint *in,
 #else
 		state_w[x] = rc4_iv[x];
 #endif
+#else
+#ifdef USE_LOCAL
+	__local uint state_l[64][256];
+	__local uint *state = (__local uint*)state_l[lid];
+#else
+	RC4_INT state[256];
 #endif
+	/* RC4_init() */
+	for (x = 0; x < 256; x++)
+		state[x] = x;
+#endif
+
 #if 0
 	/* RC4_set_key() */
 	for (x = 0; x < 256; x++)
 		swap_state(x);
 #else
 	/* RC4_set_key() */
-	/* Unrolled hard-coded for key length 16 */
+	/* Unrolled for hard-coded key length 16 */
 	for (x = 0; x < 256; x++) {
 		index2 = (key[index1] + state[x] + index2) & 255;
 		swap_byte(state[x], state[index2]);
@@ -194,7 +308,7 @@ inline void rc4_16_16(const uint *key_w, MAYBE_CONSTANT uint *in,
 }
 
 /*
- * One-shot rc4 with fixed key len of 16 and decrypt len of 32.
+ * One-shot RC4 with fixed keylen of 16 and buflen of 32.
  * Decrypts buffer in-place.
  */
 inline void rc4_16_32i(const uint *key_w, uint *buf)
@@ -202,22 +316,12 @@ inline void rc4_16_32i(const uint *key_w, uint *buf)
 	const uchar *key = (uchar*)key_w;
 	uint x;
 	uint y = 0;
-	uint index1 = 0;
-	uint index2 = 0;
+	RC4_INT index1 = 0;
+	RC4_INT index2 = 0;
 #ifdef USE_LOCAL
 	uint lid = get_local_id(0);
 #endif
-#ifdef USE_INT
-#ifdef USE_LOCAL
-	__local uint state_l[64][256];
-	__local uint *state = (__local uint*)state_l[lid];
-#else
-	uint state[256];
-#endif
-	/* RC4_init() */
-	for (x = 0; x < 256; x++)
-		state[x] = x;
-#else
+#ifdef USE_IV_LUT
 #ifdef USE_LOCAL
 	__local uint state_w[64][64];
 	__local uchar *state = (__local uchar*)state_w[lid];
@@ -233,14 +337,25 @@ inline void rc4_16_32i(const uint *key_w, uint *buf)
 #else
 		state_w[x] = rc4_iv[x];
 #endif
+#else
+#ifdef USE_LOCAL
+	__local uint state_l[64][256];
+	__local uint *state = (__local uint*)state_l[lid];
+#else
+	RC4_INT state[256];
 #endif
+	/* RC4_init() */
+	for (x = 0; x < 256; x++)
+		state[x] = x;
+#endif
+
 #if 0
 	/* RC4_set_key() */
 	for (x = 0; x < 256; x++)
 		swap_state(x);
 #else
 	/* RC4_set_key() */
-	/* Unrolled hard-coded for key length 16 */
+	/* Unrolled for hard-coded key length 16 */
 	for (x = 0; x < 256; x++) {
 		index2 = (key[index1] + state[x] + index2) & 255;
 		swap_byte(state[x], state[index2]);
