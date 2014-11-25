@@ -1484,6 +1484,23 @@ int main(int argc, char **argv)
 		name[strlen(name) - 4] = 0;
 #endif
 
+#ifdef _MSC_VER
+	// Ok, I am making a simple way to debug external programs. in VC.  Prior to this, I would set
+	// break point below, right where the external name is, and then would modify IP to put me into
+	// the block that calls main() from the external.  Now, in VC mode, if the first command is:
+	// -external_command=COMMAND, then I set name == COMMAND, and pop the command line args off, just
+	// like the first one was not there.  So if the command was "-external_command=gpg2john secring.gpg"
+	// then we will be setup in gpg2john mode with command line arg of secring.gpg
+	if (argc > 2 && !strncmp(argv[1], "-external_command=", 18)) {
+		int i;
+		name = &argv[1][18];
+		for (i = 1; i < argc; ++i) {
+			argv[i] = argv[i+1];
+		}
+		--argc;
+	}
+#endif
+
 	if (!strcmp(name, "unshadow")) {
 		CPU_detect_or_fallback(argv, 0);
 		return unshadow(argc, argv);
