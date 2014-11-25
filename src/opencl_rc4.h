@@ -17,8 +17,13 @@
 #include <opencl_misc.h>
 
 //#define USE_LOCAL
+//#define USE_INT
 
 #if !no_byte_addressable(DEVICE_INFO)
+#define USE_INT
+#endif
+
+#ifdef USE_INT
 __constant uint rc4_iv[64] = { 0x03020100, 0x07060504, 0x0b0a0908, 0x0f0e0d0c,
                                0x13121110, 0x17161514, 0x1b1a1918, 0x1f1e1d1c,
                                0x23222120, 0x27262524, 0x2b2a2928, 0x2f2e2d2c,
@@ -39,7 +44,7 @@ __constant uint rc4_iv[64] = { 0x03020100, 0x07060504, 0x0b0a0908, 0x0f0e0d0c,
 #endif
 
 #define swap_byte(a, b) {	  \
-		uchar tmp = a; \
+		uint tmp = a; \
 		a = b; \
 		b = tmp; \
 	}
@@ -59,15 +64,21 @@ inline void rc4_16_16(const uint *key_w, MAYBE_CONSTANT uint *in,
 	uint y = 0;
 	uint index1 = 0;
 	uint index2 = 0;
-#if no_byte_addressable(DEVICE_INFO)
+#ifdef USE_LOCAL
+	uint lid = get_local_id(0);
+#endif
+#ifdef USE_INT
+#ifdef USE_LOCAL
+	__local uint state_l[64][256];
+	__local uint *state = (__local uint*)state_l[lid];
+#else
 	uint state[256];
-
+#endif
 	/* RC4_init() */
 	for (x = 0; x < 256; x++)
 		state[x] = x;
 #else
 #ifdef USE_LOCAL
-	int lid = get_local_id(0);
 	__local uint state_w[64][64];
 	__local uchar *state = (__local uchar*)state_w[lid];
 #else
@@ -193,15 +204,21 @@ inline void rc4_16_32i(const uint *key_w, uint *buf)
 	uint y = 0;
 	uint index1 = 0;
 	uint index2 = 0;
-#if no_byte_addressable(DEVICE_INFO)
+#ifdef USE_LOCAL
+	uint lid = get_local_id(0);
+#endif
+#ifdef USE_INT
+#ifdef USE_LOCAL
+	__local uint state_l[64][256];
+	__local uint *state = (__local uint*)state_l[lid];
+#else
 	uint state[256];
-
+#endif
 	/* RC4_init() */
 	for (x = 0; x < 256; x++)
 		state[x] = x;
 #else
 #ifdef USE_LOCAL
-	int lid = get_local_id(0);
 	__local uint state_w[64][64];
 	__local uchar *state = (__local uchar*)state_w[lid];
 #else

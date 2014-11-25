@@ -75,6 +75,8 @@ static struct fmt_tests oo_tests[] = {
 	{NULL}
 };
 
+extern volatile int bench_running;
+
 static struct custom_salt {
 	int type;
 	unsigned char salt[16];
@@ -82,6 +84,7 @@ static struct custom_salt {
 	unsigned char verifierHash[20];  /* or encryptedVerifierHash */
 	unsigned int has_mitm;
 	unsigned char mitm[8]; /* Meet-in-the-middle hint, if we have one */
+	int benchmark; /* Disable mitm, during benchmarking */
 } *cur_salt;
 
 typedef struct {
@@ -243,7 +246,7 @@ static void init(struct fmt_main *self)
 		2 * max_len, 0);
 
 	// Auto tune execution from shared/included code.
-	autotune_run(self, 1, 0, 200);
+	autotune_run(self, 1, 0, 1000000000);
 }
 
 static int ishex(char *q)
@@ -398,6 +401,7 @@ static char *source(char *source, void *binary)
 static void set_salt(void *salt)
 {
 	cur_salt = (struct custom_salt *)salt;
+	cur_salt->benchmark = bench_running;
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_salt, CL_FALSE, 0, SALT_SIZE, cur_salt, 0, NULL, NULL), "Failed transferring salt");
 }
 
@@ -408,6 +412,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	/* Don't do more than requested */
 	global_work_size = (count + local_work_size - 1) / local_work_size * local_work_size;
+
+	//fprintf(stderr, "%s(%d) lws %zu gws %zu kidx %u m %d\n", __FUNCTION__, count, local_work_size, global_work_size, key_idx, m);
 
 	if (new_keys) {
 		/* Self-test kludge */
@@ -427,10 +433,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], oldoffice_sha1, 1, NULL, &global_work_size, &local_work_size, 0, NULL, multi_profilingEvent[3]), "Failed running first kernel");
 	}
 
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_salt, CL_TRUE, 0, SALT_SIZE, cur_salt, 0, NULL, multi_profilingEvent[4]), "Failed transferring salt");
-
-	if (m) {
-		HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_result, CL_TRUE, 0, sizeof(unsigned int) * global_work_size, cracked, 0, NULL, multi_profilingEvent[5]), "failed reading results back");
+	if (bench_running || m) {
+		HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_result, CL_TRUE, 0, sizeof(unsigned int) * global_work_size, cracked, 0, NULL, multi_profilingEvent[4]), "failed reading results back");
 
 		any_cracked = 0;
 
@@ -440,9 +444,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			break;
 		}
 	} else {
+		HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_salt, CL_TRUE, 0, SALT_SIZE, cur_salt, 0, NULL, multi_profilingEvent[4]), "Failed transferring salt");
 		if ((any_cracked = cur_salt->has_mitm))
 			HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_result, CL_TRUE, 0, sizeof(unsigned int) * global_work_size, cracked, 0, NULL, multi_profilingEvent[5]), "failed reading results back");
 	}
+
 	return count;
 }
 

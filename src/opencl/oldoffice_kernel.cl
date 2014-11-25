@@ -25,6 +25,7 @@ typedef struct {
 	uint verifierHash[20/4];  /* or encryptedVerifierHash */
 	uint has_mitm;
 	uint mitm[8/4]; /* Meet-in-the-middle hint, if we have one */
+	int benchmark; /* Disable mitm, during benchmarking */
 } salt_t;
 
 typedef struct {
@@ -344,12 +345,10 @@ __kernel void oldoffice_md5(__global const mid_t *mid,
 		    verifier[2] == verifier[6] &&
 		    verifier[3] == verifier[7]) {
 			result[gid] = 1;
-#if 1
-			if (!atomic_xchg(&cs->has_mitm, 1)) {
+			if (!cs->benchmark && !atomic_xchg(&cs->has_mitm, 1)) {
 				cs->mitm[0] = key[0];
 				cs->mitm[1] = key[1];
 			}
-#endif
 		} else {
 			result[gid] = 0;
 		}
@@ -427,50 +426,48 @@ __kernel void oldoffice_sha1(__global const mid_t *mid,
 	if (cs->type == 3 && cs->has_mitm) {
 		result[gid] = (sha1[0] == cs->mitm[0] &&
 		               (sha1[1] & 0xff) == cs->mitm[1]);
-	}
-
-	key[0] = sha1[0];
-	if (cs->type == 3) {
-		key[1] = sha1[1] & 0xff;
-		key[2] = 0;
-		key[3] = 0;
 	} else {
-		key[1] = sha1[1];
-		key[2] = SWAP32(sha1[2]);
-		key[3] = SWAP32(sha1[3]);
-	}
-
-	for (i = 0; i < 32/4; i++)
-		verifier[i] = cs->verifier[i];
-	rc4_16_32i(key, verifier);
-
-	for (i = 0; i < 4; i++)
-		W[i] = SWAP32(verifier[i]);
-	W[4] = 0x80000000;
-	for (i = 5; i < 15; i++)
-		W[i] = 0;
-	W[15] = 16 << 3;
-	sha1_init(key);
-	sha1_block(W, key);
-
-	verifier[0] = SWAP32(key[0]);
-	verifier[1] = SWAP32(key[1]);
-	verifier[2] = SWAP32(key[2]);
-	verifier[3] = SWAP32(key[3]);
-
-	if (verifier[0] == verifier[4] &&
-	    verifier[1] == verifier[5] &&
-	    verifier[2] == verifier[6] &&
-	    verifier[3] == verifier[7]) {
-		result[gid] = 1;
-#if 1
-		if (cs->type == 3)
-		if (!atomic_xchg(&cs->has_mitm, 1)) {
-			cs->mitm[0] = sha1[0];
-			cs->mitm[1] = sha1[1];
+		key[0] = sha1[0];
+		if (cs->type == 3) {
+			key[1] = sha1[1] & 0xff;
+			key[2] = 0;
+			key[3] = 0;
+		} else {
+			key[1] = sha1[1];
+			key[2] = SWAP32(sha1[2]);
+			key[3] = SWAP32(sha1[3]);
 		}
-#endif
-	} else {
-		result[gid] = 0;
+
+		for (i = 0; i < 32/4; i++)
+			verifier[i] = cs->verifier[i];
+		rc4_16_32i(key, verifier);
+
+		for (i = 0; i < 4; i++)
+			W[i] = SWAP32(verifier[i]);
+		W[4] = 0x80000000;
+		for (i = 5; i < 15; i++)
+			W[i] = 0;
+		W[15] = 16 << 3;
+		sha1_init(key);
+		sha1_block(W, key);
+
+		verifier[0] = SWAP32(key[0]);
+		verifier[1] = SWAP32(key[1]);
+		verifier[2] = SWAP32(key[2]);
+		verifier[3] = SWAP32(key[3]);
+
+		if (verifier[0] == verifier[4] &&
+		    verifier[1] == verifier[5] &&
+		    verifier[2] == verifier[6] &&
+		    verifier[3] == verifier[7]) {
+			result[gid] = 1;
+			if (!cs->benchmark && cs->type == 3 &&
+			    !atomic_xchg(&cs->has_mitm, 1)) {
+				cs->mitm[0] = sha1[0];
+				cs->mitm[1] = sha1[1];
+			}
+		} else {
+			result[gid] = 0;
+		}
 	}
 }

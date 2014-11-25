@@ -948,6 +948,8 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self,
 	int count, tidx = 0;
 	void *salt;
 
+	bench_running = 1;
+
 	/* Formats supporting vectorizing should have a default max keys per
 	   crypt that is a multiple of 2 and of 3 */
 	gws = global_work_size ? global_work_size :
@@ -1132,6 +1134,8 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self,
 	// These ensure we don't get events from crypt_all() in real use
 	profilingEvent = firstEvent = lastEvent = NULL;
 	dyna_salt_remove(salt);
+
+	bench_running = 0;
 }
 
 // Do the proper test using different global work sizes.
@@ -1160,6 +1164,8 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 	cl_event benchEvent[MAX_EVENTS];
 	int number_of_events = 0;
 	void *salt;
+
+	bench_running = 1;
 
 	for (i = 0; i < MAX_EVENTS; i++)
 		benchEvent[i] = NULL;
@@ -1206,6 +1212,7 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 		clear_profiling_events();
 		release_clobj();
 		dyna_salt_remove(salt);
+		bench_running = 0;
 		return 0;
 	}
 
@@ -1266,6 +1273,7 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 	clear_profiling_events();
 	release_clobj();
 	dyna_salt_remove(salt);
+	bench_running = 0;
 	return runtime;
 }
 
@@ -1312,6 +1320,8 @@ void opencl_find_best_lws(
 	char config_string[128];
 	cl_event benchEvent[MAX_EVENTS];
 	void *salt;
+
+	bench_running = 1;
 
 	for (i = 0; i < MAX_EVENTS; i++)
 		benchEvent[i] = NULL;
@@ -1493,6 +1503,7 @@ void opencl_find_best_lws(
 			local_work_size);
 	}
 	dyna_salt_remove(salt);
+	bench_running = 0;
 }
 
 void opencl_find_best_gws(int step, unsigned long long int max_run_time,
