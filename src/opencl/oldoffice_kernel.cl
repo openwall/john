@@ -182,10 +182,10 @@ __kernel void oldoffice_md5(__global const mid_t *mid,
 #if PLAINTEXT_LENGTH > 31
 	if (len > 31) {
 		for (i = 0; i < 32; i += 2)
-			W[i >> 1] = *p++ | (*p++ << 16);
+			W[i >> 1] = (uint)*p++ | (*p++ << 16U);
 		md5_block(W, md5);
 		for (i = 0; i < len - 32; i += 2)
-			W[i >> 1] = *p++ | (*p++ << 16);
+			W[i >> 1] = (uint)*p++ | (*p++ << 16U);
 		PUTSHORT(W, i, 0x80);
 		i++;
 		for (; i < 28; i++)
@@ -198,7 +198,7 @@ __kernel void oldoffice_md5(__global const mid_t *mid,
 #if PLAINTEXT_LENGTH > 27
 	if (len > 27) {
 		for (i = 0; i < len; i += 2)
-			W[i >> 1] = *p++ | (*p++ << 16);
+			W[i >> 1] = (uint)*p++ | (*p++ << 16U);
 		PUTSHORT(W, i, 0x80);
 		for (i = len + 1; i < 32; i++)
 			PUTSHORT(W, i, 0);
@@ -212,7 +212,7 @@ __kernel void oldoffice_md5(__global const mid_t *mid,
 #endif
 	{
 		for (i = 0; i < len; i += 2)
-			W[i >> 1] = *p++ | (*p++ << 16);
+			W[i >> 1] = (uint)*p++ | (*p++ << 16U);
 		PUTSHORT(W, len, 0x80);
 		for (i = len + 1; i < 28; i++)
 			PUTSHORT(W, i, 0);
@@ -375,10 +375,10 @@ __kernel void oldoffice_sha1(__global const mid_t *mid,
 #if PLAINTEXT_LENGTH > (31 - 8)
 	if (len > 31) {
 		for (i = 8; i < 32; i += 2)
-			W[i >> 1] = SWAP32(*p++ | (*p++ << 16));
+			W[i >> 1] = SWAP32((uint)*p++ | (*p++ << 16U));
 		sha1_block(W, key);
 		for (i = 0; i < len - 32; i += 2)
-			W[i >> 1] = SWAP32(*p++ | (*p++ << 16));
+			W[i >> 1] = SWAP32((uint)*p++ | (*p++ << 16U));
 		PUTSHORT_BE(W, len - 32, 0x8000);
 		for (i = len - 32 + 1; i < 30; i++)
 			PUTSHORT_BE(W, i, 0);
@@ -389,7 +389,7 @@ __kernel void oldoffice_sha1(__global const mid_t *mid,
 #if PLAINTEXT_LENGTH > (27 - 8)
 	if (len > 27) {
 		for (i = 8; i < len; i += 2)
-			W[i >> 1] = SWAP32(*p++ | (*p++ << 16));
+			W[i >> 1] = SWAP32((uint)*p++ | (*p++ << 16U));
 		PUTSHORT_BE(W, len, 0x8000);
 		for (i = len + 1; i < 32; i++)
 			PUTSHORT_BE(W, i, 0);
@@ -402,7 +402,7 @@ __kernel void oldoffice_sha1(__global const mid_t *mid,
 #endif
 	{
 		for (i = 8; i < len; i += 2)
-			W[i >> 1] = SWAP32(*p++ | (*p++ << 16));
+			W[i >> 1] = SWAP32((uint)*p++ | (*p++ << 16U));
 		PUTSHORT_BE(W, len, 0x8000);
 		for (i = len + 1; i < 30; i++)
 			PUTSHORT_BE(W, i, 0);
