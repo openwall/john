@@ -374,11 +374,15 @@ __kernel void oldoffice_sha1(__global const mid_t *mid,
 		W[i] = SWAP32(cs->salt[i]);
 #if PLAINTEXT_LENGTH > (31 - 8)
 	if (len > 31) {
-		for (i = 8; i < 32; i += 2)
-			W[i >> 1] = SWAP32((uint)*p++ | (*p++ << 16U));
+		for (i = 8; i < 32; i += 2) {
+			uint u = *p++ | (*p++ << 16U);
+			W[i >> 1] = SWAP32(u);
+		}
 		sha1_block(W, key);
-		for (i = 0; i < len - 32; i += 2)
-			W[i >> 1] = SWAP32((uint)*p++ | (*p++ << 16U));
+		for (i = 0; i < len - 32; i += 2) {
+			uint u = *p++ | (*p++ << 16U);
+			W[i >> 1] = SWAP32(u);
+		}
 		PUTSHORT_BE(W, len - 32, 0x8000);
 		for (i = len - 32 + 1; i < 30; i++)
 			PUTSHORT_BE(W, i, 0);
@@ -388,8 +392,10 @@ __kernel void oldoffice_sha1(__global const mid_t *mid,
 #endif
 #if PLAINTEXT_LENGTH > (27 - 8)
 	if (len > 27) {
-		for (i = 8; i < len; i += 2)
-			W[i >> 1] = SWAP32((uint)*p++ | (*p++ << 16U));
+		for (i = 8; i < len; i += 2) {
+			uint u = *p++ | (*p++ << 16U);
+			W[i >> 1] = SWAP32(u);
+		}
 		PUTSHORT_BE(W, len, 0x8000);
 		for (i = len + 1; i < 32; i++)
 			PUTSHORT_BE(W, i, 0);
@@ -401,8 +407,10 @@ __kernel void oldoffice_sha1(__global const mid_t *mid,
 	} else
 #endif
 	{
-		for (i = 8; i < len; i += 2)
-			W[i >> 1] = SWAP32((uint)*p++ | (*p++ << 16U));
+		for (i = 8; i < len; i += 2) {
+			uint u = *p++ | (*p++ << 16U);
+			W[i >> 1] = SWAP32(u);
+		}
 		PUTSHORT_BE(W, len, 0x8000);
 		for (i = len + 1; i < 30; i++)
 			PUTSHORT_BE(W, i, 0);

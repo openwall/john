@@ -10,24 +10,6 @@
 #include "opencl_misc.h"
 #include "opencl_md5.h"
 
-/* Workaround for problem seen with 9600GT */
-#ifdef OLD_NVIDIA
-#define MAYBE_CONSTANT	__global const
-#else
-#define MAYBE_CONSTANT	__constant
-#endif
-
-#if defined(USE_BITSELECT) || defined(SCALAR)
-#define VSWAP32 SWAP32
-#else
-/* Vector-capable swap32() */
-inline MAYBE_VECTOR_UINT VSWAP32(MAYBE_VECTOR_UINT x)
-{
-	x = rotate(x, 16U);
-	return ((x & 0x00FF00FF) << 8) + ((x >> 8) & 0x00FF00FF);
-}
-#endif
-
 typedef struct {
 	uint keymic[16 / 4];
 } mic_t;

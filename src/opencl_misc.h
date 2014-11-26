@@ -22,7 +22,7 @@
 
 #include "opencl_device_info.h"
 
-#if gpu_amd(DEVICE_INFO) || nvidia_sm_5x(DEVICE_INFO)
+#if cpu(DEVICE_INFO) || gpu_amd(DEVICE_INFO) || nvidia_sm_5x(DEVICE_INFO)
 #define USE_BITSELECT
 #elif gpu_nvidia(DEVICE_INFO) && !nvidia_sm_5x(DEVICE_INFO)
 #define OLD_NVIDIA
@@ -34,8 +34,10 @@
 /* host code may pass -DV_WIDTH=2 or some other width */
 #if defined(V_WIDTH) && V_WIDTH > 1
 #define MAYBE_VECTOR_UINT	VECTOR(uint, V_WIDTH)
+#define MAYBE_VECTOR_ULONG	VECTOR(ulong, V_WIDTH)
 #else
 #define MAYBE_VECTOR_UINT	uint
+#define MAYBE_VECTOR_ULONG	ulong
 #define SCALAR
 #endif
 
@@ -46,10 +48,24 @@
 #define MAYBE_CONSTANT	__constant
 #endif
 
+/* Warning: This macro can't be used with eg. SWAP32(*p++) because it will
+   be incremented twice */
 #ifdef USE_BITSELECT
+//#define SWAP32(n)	(as_uint(as_uchar4(n).s3210))
 #define SWAP32(n)	bitselect(rotate(n, 24U), rotate(n, 8U), 0x00FF00FFU)
 #else
 inline uint SWAP32(uint x)
+{
+	x = rotate(x, 16U);
+	return ((x & 0x00FF00FF) << 8) + ((x >> 8) & 0x00FF00FF);
+}
+#endif
+
+#if defined(USE_BITSELECT) || defined(SCALAR)
+#define VSWAP32 SWAP32
+#else
+/* Vector-capable swap32() */
+inline MAYBE_VECTOR_UINT VSWAP32(MAYBE_VECTOR_UINT x)
 {
 	x = rotate(x, 16U);
 	return ((x & 0x00FF00FF) << 8) + ((x >> 8) & 0x00FF00FF);

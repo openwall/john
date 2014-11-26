@@ -170,7 +170,7 @@ inline void rc4_crypt(rc4_state_t* const state, const uint* in, uint* out, int b
 
 /* One-shot RC4 with fixed keylen and buflen of 16 */
 inline void rc4_16_16(const uint *key_w, MAYBE_CONSTANT uint *in,
-                __global uint *out)
+                      __global uint *out)
 {
 	const uchar *key = (uchar*)key_w;
 	uint x;
@@ -339,8 +339,8 @@ inline void rc4_16_32i(const uint *key_w, uint *buf)
 #endif
 #else
 #ifdef USE_LOCAL
-	__local uint state_l[64][256];
-	__local uint *state = (__local uint*)state_l[lid];
+	__local RC4_INT state_l[64][256];
+	__local RC4_INT *state = (__local RC4_INT*)state_l[lid];
 #else
 	RC4_INT state[256];
 #endif
