@@ -33,6 +33,8 @@ static uint8 *packet;
 static int bROT;
 static WPA4way_t wpa[MAX_ESSIDS];
 static int nwpa = 0;
+static char *unVerified[MAX_ESSIDS];
+static int nunVer = 0;
 static const char cpItoa64[64] =
 	"./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 static const char *filename;
@@ -40,15 +42,19 @@ static unsigned int link_type, ShowIncomplete = 1;
 
 // These 2 functions output data properly for JtR, in base-64 format. These
 // were taken from hccap2john.c source, and modified for this project.
-static void code_block(unsigned char *in, unsigned char b)
+static int code_block(unsigned char *in, unsigned char b, char *cp)
 {
-	putchar(cpItoa64[in[0] >> 2]);
-	putchar(cpItoa64[((in[0] & 0x03) << 4) | (in[1] >> 4)]);
+	int cnt = 0;
+	*cp++ = cpItoa64[in[0] >> 2];
+	*cp++ = cpItoa64[((in[0] & 0x03) << 4) | (in[1] >> 4)];
 	if (b) {
-		putchar(cpItoa64[((in[1] & 0x0f) << 2) | (in[2] >> 6)]);
-		putchar(cpItoa64[in[2] & 0x3f]);
+		*cp++ = cpItoa64[((in[1] & 0x0f) << 2) | (in[2] >> 6)];
+		*cp++ = cpItoa64[in[2] & 0x3f];
+		++cnt;
 	} else
-		putchar(cpItoa64[((in[1] & 0x0f) << 2)]);
+		*cp++ = cpItoa64[((in[1] & 0x0f) << 2)];
+	*cp = 0;
+	return cnt+3;
 }
 
 static void to_bssid(char bssid[18], uint8 *p)
@@ -166,6 +172,7 @@ static int convert_ivs(FILE *f_in)
 		}
 
 		if (ivs2.flags & IVS2_WPA) {
+			char buf[8];
 			int ofs = (p - buffer);
 			int len = pktlen - ofs;
 			char sta_mac[18], ap_mac[18], gecos[13];
@@ -206,9 +213,11 @@ static int convert_ivs(FILE *f_in)
 			// print struct in base64 format
 			w = (unsigned char*)&hccap;
 			for (i=36; i+3 < sizeof(hccap_t); i += 3) {
-				code_block(&w[i], 1);
+				code_block(&w[i], 1, buf);
+				printf ("%s", buf);
 			}
-			code_block(&w[i], 0);
+			code_block(&w[i], 0, buf);
+			printf ("%s", buf);
 			to_compact(gecos, hccap.mac1);
 			to_dashed(ap_mac, hccap.mac1);
 			to_dashed(sta_mac, hccap.mac2);
@@ -229,6 +238,18 @@ static int convert_ivs(FILE *f_in)
 	}
 
 	return 0;
+}
+
+static void dump_any_unver() {
+	if (nunVer) {
+		int i;
+		fprintf(stderr, "Dumping %d unverified keys, which were not verified\n", nunVer);
+		for (i = 0; i < nunVer; ++i) {
+			printf ("%s\n", unVerified[i]);
+			free(unVerified[i]);
+		}
+	}
+	nunVer = 0;
 }
 
 static int Process(FILE *in)
@@ -274,9 +295,12 @@ static int Process(FILE *in)
 	}
 
 	while (GetNextPacket(in)) {
-		if (!ProcessPacket())
+		if (!ProcessPacket()) {
+			dump_any_unver();
 			return 1;
+		}
 	}
+	dump_any_unver();
 	return 1;
 }
 
@@ -598,10 +622,12 @@ static void DumpKey(int ess, int one_three, int bIsQOS)
 	hccap_t	hccap;
 	int i;
 	uint8 *w;
-	char sta_mac[18], ap_mac[18], gecos[13];
+	char sta_mac[18+1], ap_mac[18+1], gecos[13+1];
+	char TmpKey[2048], *cp = TmpKey;
+	int search_len;
 
-	fprintf (stderr, "Dumping key %d at time:  %d.%d BSSID %s\n", one_three, cur_t, cur_u, wpa[ess].bssid);
-	printf ("%s:$WPAPSK$%s#", wpa[ess].essid, wpa[ess].essid);
+	fprintf (stderr, "Dumping key %d at time:  %d.%d BSSID %s  ESSID=%s\n", one_three, cur_t, cur_u, wpa[ess].bssid, wpa[ess].essid);
+	cp += sprintf (cp, "%s:$WPAPSK$%s#", wpa[ess].essid, wpa[ess].essid);
 	if (!wpa[ess].packet2) { printf ("ERROR, msg2 null\n"); return; }
 	if (bIsQOS)
 		p += 2;
@@ -641,17 +667,34 @@ static void DumpKey(int ess, int one_three, int bIsQOS)
 
 	w = (uint8 *)&hccap;
 	for (i = 36; i + 3 < sizeof(hccap_t); i += 3)
-		code_block(&w[i], 1);
-	code_block(&w[i], 0);
+		cp += code_block(&w[i], 1, cp);
+	cp += code_block(&w[i], 0, cp);
 	to_compact(gecos, hccap.mac1);
 	to_dashed(ap_mac, hccap.mac1);
 	to_dashed(sta_mac, hccap.mac2);
-	printf(":%s:%s:%s::WPA", sta_mac, ap_mac, gecos);
+	cp += sprintf(cp, ":%s:%s:%s::WPA", sta_mac, ap_mac, gecos);
 	if (hccap.keyver > 1)
-		printf("%d", hccap.keyver);
-	printf(":password %sverified:%s\n", (one_three == 1) ? "not " : "", filename);
-	fflush(stdout);
+		cp += sprintf(cp, "%d", hccap.keyver);
+	search_len = cp-TmpKey;
+	cp += sprintf(cp, ":password %sverified:%s", (one_three == 1) ? "not " : "", filename);
+	if (one_three == 1) {
+		fprintf (stderr, "unVerified key stored, pending verification");
+		unVerified[nunVer++] = strdup(TmpKey);
+		fprintf(stderr, "\n");
+		return;
+	} else {
+		for (i = 0; i < nunVer; ++i) {
+			if (!strncmp(TmpKey, unVerified[i], search_len)) {
+				fprintf (stderr, "Key now verified\n");
+				free(unVerified[i]);
+				unVerified[i] = unVerified[--nunVer];
+				break;
+			}
+		}
+	}
 	fprintf(stderr, "\n");
+	printf ("%s\n", TmpKey);
+	fflush(stdout);
 }
 
 int main(int argc, char **argv)
