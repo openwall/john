@@ -36,7 +36,7 @@ static parsed_ctx parsed_mask;
 static cpu_mask_context cpu_mask_ctx, rec_ctx;
 static int *template_key_offsets;
 static char *mask = NULL, *template_key;
-static int max_keylen, fmt_maxlen, rec_len, restored_len, restored = 1;
+static int max_keylen, fmt_maxlen, rec_len, rec_cl, restored_len, restored = 1;
 static unsigned long long cand_length;
 int mask_add_len, mask_num_qw, mask_cur_len;
 
@@ -1344,8 +1344,10 @@ void mask_save_state(FILE *file)
 	fprintf(file, "%llu\n", rec_cand + 1);
 	fprintf(file, "%d\n", rec_ctx.count);
 	fprintf(file, "%d\n", rec_ctx.offset);
-	if (options.force_minlength >= 0)
+	if (options.force_minlength >= 0) {
 		fprintf(file, "%d\n", rec_len);
+		fprintf(file, "%llu\n", cand_length);
+	}
 	for (i = 0; i < rec_ctx.count; i++)
 		fprintf(file, "%hhu\n", rec_ctx.ranges[i].iter);
 }
@@ -1377,6 +1379,11 @@ int mask_restore_state(FILE *file)
 			restored_len = d;
 		else
 			return fail;
+		if (fscanf(file, "%llu\n", &ull) == 1)
+			rec_cl = ull;
+		/* FIXME: enable the below at 2015-01-01 or later */
+		//else
+		//	return fail;
 	}
 
 	for (i = 0; i < cpu_mask_ctx.count; i++)
@@ -1764,9 +1771,10 @@ int do_mask_crack(const char *key)
 			int j = 0;
 
 			mask_cur_len = max_keylen = i;
-			cand_length =
+			cand_length = rec_cl ? rec_cl :
 				((unsigned long long)status.cands.hi << 32) +
 				status.cands.lo;
+			rec_cl = 0;
 
 			save_restore(&cpu_mask_ctx, 0, 1);
 			generate_template_key(mask, key, key_len, &parsed_mask,
