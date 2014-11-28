@@ -519,14 +519,16 @@ int read_buf (FILE *fp, unsigned char *cp, int len, uint32_t *bytes_read) {
     *bytes_read += len;
 	return len;
 }
-int read_vuint32 (FILE *fp, uint32_t *n, uint32_t *bytes_read) {
+int read_vuint (FILE *fp, uint64_t *n, uint32_t *bytes_read) {
 	unsigned char c;
 	int i, shift=0;
+    uint64_t accum;
 	*n = 0;
-	for (i = 0; i < 4; ++i) {
+	for (i = 0; i < 10; ++i) {
 		if (fread(&c, 1, 1, fp) != 1)
 			return 0;
-		*n = *n + ( (c&0x7F) << shift);
+        accum = (c&0x7f);
+		*n = *n + (accum << shift);
 		shift += 7;
 		if ((c & 0x80) == 0) {
             *bytes_read += i+1;
@@ -604,19 +606,20 @@ uint32_t FullHeaderSize(uint32_t size) {
     return size
 #endif
 
-static int ProcessExtra50(FILE *fp, uint32_t extra_size, uint32_t HeadSize, uint32_t HeaderType, uint32_t CurBlockPos, const char *archive_name) {
-    uint32_t FieldSize, FieldType, EncVersion, Flags, bytes_read=0;
+static int ProcessExtra50(FILE *fp, uint64_t extra_size, uint64_t HeadSize, uint32_t HeaderType, uint32_t CurBlockPos, const char *archive_name) {
+    uint64_t FieldSize, FieldType, EncVersion, Flags;
+    uint32_t bytes_read=0;
     int bytes_left=(int)extra_size;
     unsigned char Lg2Count;
 
    // fprintf (stderr, "in extra50 extrasize=%d\n", extra_size);
     while (1) {
-        int len = read_vuint32(fp, &FieldSize, &bytes_read);
-        if (!len) return 0;
+        int len = read_vuint(fp, &FieldSize, &bytes_read);
+        if (!len || len > 3) return 0;  // rar5 technote (http://www.rarlab.com/technote.htm#arcblocks) lists max size of header len is 3 byte vint.
         bytes_left -= len;
-        bytes_left -= FieldSize;
+        bytes_left -= (uint32_t)FieldSize;
         if (bytes_left < 0) return 0;
-        if (!read_vuint32(fp, &FieldType, &bytes_read)) return 0;
+        if (!read_vuint(fp, &FieldType, &bytes_read)) return 0;
 
         // fprintf (stderr, "in Extra50.  FieldSize=%d FieldType=%d\n", FieldSize, FieldType);
 
@@ -624,8 +627,8 @@ static int ProcessExtra50(FILE *fp, uint32_t extra_size, uint32_t HeadSize, uint
             if (FieldType == FHEXTRA_CRYPT) {
                 unsigned char InitV[SIZE_INITV];
                 unsigned char Hex1[128], Hex2[128], Hex3[128];
-                if (!read_vuint32(fp, &EncVersion, &bytes_read)) return 0;
-                if (!read_vuint32(fp, &Flags, &bytes_read)) return 0;
+                if (!read_vuint(fp, &EncVersion, &bytes_read)) return 0;
+                if (!read_vuint(fp, &Flags, &bytes_read)) return 0;
                 if ( (Flags & FHEXTRA_CRYPT_PSWCHECK) == 0) {
                     fprintf (stderr, "UsePswCheck is OFF. We currently don't support such files!\n");
                     return 0;
@@ -651,10 +654,11 @@ static int ProcessExtra50(FILE *fp, uint32_t extra_size, uint32_t HeadSize, uint
     return 1;
  }
 
-static size_t read_rar5_header(FILE *fp, size_t CurBlockPos, int *HeaderType, const char *archive_name) {
-	uint32_t head_crc, block_size, header_type, flags, header_bytes_read = 0, extra_size=0, data_size=0;
-    uint32_t crypt_version, enc_flags, HeadSize, SizeBytes;
-    uint8_t lg_2count;
+static size_t read_rar5_header(FILE *fp, size_t CurBlockPos, uint8_t *HeaderType, const char *archive_name) {
+	uint64_t block_size, flags, extra_size=0, data_size=0;
+    uint64_t crypt_version, enc_flags, HeadSize, SizeBytes;
+    uint32_t head_crc, header_bytes_read = 0;
+    uint8_t header_type, lg_2count;
     //int skip_if_unknown;
 
     // int NowCurPos = ftell(fp);
@@ -675,25 +679,26 @@ static size_t read_rar5_header(FILE *fp, size_t CurBlockPos, int *HeaderType, co
     }
 	if (!read_uint32(fp, &head_crc, &header_bytes_read)) return 0;
 
-	//if (!read_vuint32(fp, &block_size, &header_bytes_read)) return 0;
-    SizeBytes = read_vuint32(fp, &block_size, &header_bytes_read);
+	//if (!read_vuint(fp, &block_size, &header_bytes_read)) return 0;
+    SizeBytes = read_vuint(fp, &block_size, &header_bytes_read);
     if (!SizeBytes) return 0;
 
-	if (!read_vuint32(fp, &header_type, &header_bytes_read)) return 0;
-    if (!read_vuint32(fp, &flags, &header_bytes_read)) return 0;
+	//if (!read_vuint(fp, &header_type, &header_bytes_read)) return 0;
+    if (!read_uint8(fp, &header_type, &header_bytes_read)) return 0;
+    if (!read_vuint(fp, &flags, &header_bytes_read)) return 0;
     *HeaderType = header_type;
     HeadSize = block_size +5;
     //skip_if_unknown = (flags & HFL_SKIPIFUNKNOWN) != 0;
-    if ((flags & HFL_EXTRA) != 0) { if (!read_vuint32(fp, &extra_size, &header_bytes_read)) return 0; }
-    if ((flags & HFL_DATA) != 0)  { if (!read_vuint32(fp, &data_size, &header_bytes_read)) return 0; }
+    if ((flags & HFL_EXTRA) != 0) { if (!read_vuint(fp, &extra_size, &header_bytes_read)) return 0; }
+    if ((flags & HFL_DATA) != 0)  { if (!read_vuint(fp, &data_size, &header_bytes_read)) return 0; }
 
     // fprintf (stderr, "curpos=%d bs=%d firstreadsize=%d, sizeBytes=%d headtye=%d flags=%d \n", NowCurPos, block_size, 7, SizeBytes, header_type, flags);
 
     if (header_type == HEAD_CRYPT) {
        unsigned char chksum[SIZE_PSWCHECK_CSUM];
-       if (!read_vuint32(fp, &crypt_version, &header_bytes_read)) return 0;
+       if (!read_vuint(fp, &crypt_version, &header_bytes_read)) return 0;
        if (crypt_version > CRYPT_VERSION) { printf("bad 2\n"); return 0; }
-       if (!read_vuint32(fp, &enc_flags, &header_bytes_read)) return 0;
+       if (!read_vuint(fp, &enc_flags, &header_bytes_read)) return 0;
        UsePswCheck = (enc_flags & CHFL_CRYPT_PSWCHECK) != 0;  // set global
        if (!read_uint8(fp, &lg_2count, &header_bytes_read)) return 0;
        if (lg_2count > CRYPT5_KDF_LG2_COUNT_MAX) { printf("bad 3\n"); return 0; }
@@ -722,10 +727,10 @@ static size_t read_rar5_header(FILE *fp, size_t CurBlockPos, int *HeaderType, co
         //    # print "UPC", UsePswCheck
         //Encrypted = 1 
     } else if (header_type == HEAD_MAIN) {
-        uint32_t ArcFlags, VolNumber=0;
-        if (!read_vuint32(fp, &ArcFlags, &header_bytes_read)) return 0;
+        uint64_t ArcFlags, VolNumber=0;
+        if (!read_vuint(fp, &ArcFlags, &header_bytes_read)) return 0;
         if ((ArcFlags & MHFL_VOLNUMBER) != 0)
-            if (!read_vuint32(fp, &VolNumber, &header_bytes_read)) return 0;
+            if (!read_vuint(fp, &VolNumber, &header_bytes_read)) return 0;
         // fprintf (stderr, "ArcFlags = %d, offset=%d nowcurpos=%d\n", ArcFlags, ftell(fp), NowCurPos);
         //ArcFlags = buf.GetV()
         //# print "HEAD_MAIN ArcFlags", ArcFlags
@@ -752,17 +757,18 @@ static size_t read_rar5_header(FILE *fp, size_t CurBlockPos, int *HeaderType, co
         //int FileBlock = header_type == HEAD_FILE;
         //int LargeFile = 1;
         //int PackSize = data_size;
-        uint32_t FileFlags, UnpSize, FileAttr, tmp, FileHashCRC32;
-        uint32_t CompInfo, HostOS, NameSize;
+        uint64_t FileFlags, UnpSize, FileAttr;
+        uint64_t CompInfo, HostOS, NameSize;
+        uint32_t FileHashCRC32, tmp;
         //uint32_t Method, UnpVer, MaxSize;
         //time_t mtime;
 
-        if (!read_vuint32(fp, &FileFlags, &header_bytes_read)) return 0;
-        if (!read_vuint32(fp, &UnpSize, &header_bytes_read)) return 0;
+        if (!read_vuint(fp, &FileFlags, &header_bytes_read)) return 0;
+        if (!read_vuint(fp, &UnpSize, &header_bytes_read)) return 0;
         //# UnknownUnpSize = (FileFlags and FHFL_UNPUNKNOWN) != 0
         //
         //MaxSize = PackSize > UnpSize ? PackSize : UnpSize;
-        if (!read_vuint32(fp, &FileAttr, &header_bytes_read)) return 0;
+        if (!read_vuint(fp, &FileAttr, &header_bytes_read)) return 0;
        
         if ((FileFlags & FHFL_UTIME) != 0) {
             if (!read_uint32(fp, &tmp, &header_bytes_read)) return 0;
@@ -775,11 +781,11 @@ static size_t read_rar5_header(FILE *fp, size_t CurBlockPos, int *HeaderType, co
         }
         
         //# RedirType = FSREDIR_NONE
-        if (!read_vuint32(fp, &CompInfo, &header_bytes_read)) return 0;
+        if (!read_vuint(fp, &CompInfo, &header_bytes_read)) return 0;
         //Method = (CompInfo >> 7) & 7;
         //UnpVer = CompInfo & 0x3f;
-        if (!read_vuint32(fp, &HostOS, &header_bytes_read)) return 0;
-        if (!read_vuint32(fp, &NameSize, &header_bytes_read)) return 0;
+        if (!read_vuint(fp, &HostOS, &header_bytes_read)) return 0;
+        if (!read_vuint(fp, &NameSize, &header_bytes_read)) return 0;
         // skip the field name.
         jtr_fseek64(fp, NameSize, SEEK_CUR);
         //
@@ -850,7 +856,7 @@ static void process_file5(const char *archive_name) {
 	}
 	NextBlockPos = 0;
 	while (1) {
-		int HeaderType;
+		uint8_t HeaderType;
 		CurBlockPos = (size_t)jtr_ftell64(fp);
 		NextBlockPos = read_rar5_header(fp, CurBlockPos, &HeaderType, archive_name);
 		if (!NextBlockPos)
