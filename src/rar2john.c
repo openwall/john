@@ -65,6 +65,7 @@
 #include "jumbo.h"
 #include "base64_convert.h"
 #include "sha2.h"
+#include "rar2john.h"
 #ifdef _MSC_VER
 #include "missing_getopt.h"
 #endif
@@ -492,6 +493,24 @@ err:
 	MEM_FREE(gecos);
 }
 
+
+/**************************************************************************
+ * Here are the functions and tools for RAR5
+ *************************************************************************/
+
+// global variables
+static int Encrypted = 0;
+static unsigned char PswCheck[SIZE_PSWCHECK];
+static unsigned rar5_interations=0, UsePswCheck=0;
+static unsigned char rar5_salt[SIZE_SALT50];
+
+/**************************************************************************
+ * These 4 functions do much of the reading for rar5 files. There is a
+ * function to read a 4 byte int (in LE format), one to read a single
+ * byte, one to to read a buffer, and one that reads the variable sized
+ * numbers used in rar5 (LE format, 7 bits used per byte with high bit
+ * used to signify if there are more bytes of data or not)
+ *************************************************************************/
 int read_uint32 (FILE *fp, uint32_t *n, uint32_t *bytes_read) {
 	unsigned char Buf[4];
 	int i, shift=0;
@@ -538,74 +557,10 @@ int read_vuint (FILE *fp, uint64_t *n, uint32_t *bytes_read) {
 	return 0;
 }
 
-//# global constants
-#define HFL_EXTRA         1
-#define HFL_DATA          2
-#define HFL_SKIPIFUNKNOWN 4
-#define CRYPT_VERSION     0
-#define CHFL_CRYPT_PSWCHECK     1
-#define CRYPT5_KDF_LG2_COUNT 15
-#define CRYPT5_KDF_LG2_COUNT_MAX 24
-#define SIZE_SALT50 16
-#define SIZE_PSWCHECK 8
-#define SIZE_PSWCHECK_CSUM 4
-#define SIZE_INITV 16
-
-
-// # RAR 5.0 header types.
-#define HEAD_MARK    0x00
-#define HEAD_MAIN    0x01
-#define HEAD_FILE    0x02
-#define HEAD_SERVICE 0x03
-#define HEAD_CRYPT   0x04
-#define HEAD_ENDARC  0x05
-#define HEAD_UNKNOWN 0xff
-
-// # RAR 5.0 main archive header specific flags.
-#define MHFL_VOLUME     0x0001
-#define MHFL_VOLNUMBER  0x0002
-#define MHFL_SOLID      0x0004
-#define MHFL_PROTECT    0x0008
-#define MHFL_LOCK       0x0010
-
-// # RAR 5.0 file header specific flags.
-#define FHFL_DIRECTORY    0x0001
-#define FHFL_UTIME        0x0002
-#define FHFL_CRC32        0x0004
-#define FHFL_UNPUNKNOWN   0x0008
-
-// #  File and service header extra field values.
-#define FHEXTRA_CRYPT    0x01
-#define FHEXTRA_HASH     0x02
-#define FHEXTRA_HTIME    0x03
-#define FHEXTRA_VERSION  0x04
-#define FHEXTRA_REDIR    0x05
-#define FHEXTRA_UOWNER   0x06
-#define FHEXTRA_SUBDATA  0x07
-
-// # Flags for FHEXTRA_CRYPT.
-#define FHEXTRA_CRYPT_PSWCHECK 0x01
-#define FHEXTRA_CRYPT_HASHMAC  0x02
-
-// # global variables
-static int Encrypted = 0;
-static unsigned char PswCheck[SIZE_PSWCHECK];
-unsigned iterations=0, UsePswCheck=0;
-unsigned char salt[SIZE_SALT50];
-
-// CurBlockPos=0
-
-#if 0
-uint32_t FullHeaderSize(uint32_t size) {
-    //Calculate the block size including encryption fields and padding if any"""
-    if (Encrypted) {
-        uint32_tSize = ALIGN_VALUE(Size, CRYPT_BLOCK_SIZE)
-        if Format == RARFMT50:
-            pass
-            Size += SIZE_INITV
-    return size
-#endif
-
+/**************************************************************************
+ * Process an 'extra' block of data. This is where rar5 stores the
+ * encryption block.
+ *************************************************************************/
 static int ProcessExtra50(FILE *fp, uint64_t extra_size, uint64_t HeadSize, uint32_t HeaderType, uint32_t CurBlockPos, const char *archive_name) {
     uint64_t FieldSize, FieldType, EncVersion, Flags;
     uint32_t bytes_read=0;
@@ -633,19 +588,18 @@ static int ProcessExtra50(FILE *fp, uint64_t extra_size, uint64_t HeadSize, uint
                     fprintf (stderr, "UsePswCheck is OFF. We currently don't support such files!\n");
                     return 0;
                 }
-//                UseHashKey = (Flags & FHEXTRA_CRYPT_HASHMAC) != 0
                 if (!read_uint8(fp, &Lg2Count, &bytes_read)) return 0;
                 if (Lg2Count >= CRYPT5_KDF_LG2_COUNT_MAX) {
                     fprintf (stderr, "Lg2Count >= CRYPT5_KDF_LG2_COUNT_MAX (problem with file?)");
                     return 0;
                 }
-                if (!read_buf(fp, salt, SIZE_SALT50, &bytes_read)) return 0;
+                if (!read_buf(fp, rar5_salt, SIZE_SALT50, &bytes_read)) return 0;
                 if (!read_buf(fp, InitV, SIZE_INITV, &bytes_read)) return 0;
                 if (!read_buf(fp, PswCheck, SIZE_PSWCHECK, &bytes_read)) return 0;
                 printf ("%s:$rar5$%d$%s$%d$%s$%d$%s\n",
                     archive_name,
-                    SIZE_SALT50, base64_convert_cp(salt,e_b64_raw,SIZE_SALT50,Hex1,e_b64_hex,sizeof(Hex1),0),
-                    SIZE_INITV, base64_convert_cp(InitV,e_b64_raw,SIZE_INITV,Hex2,e_b64_hex,sizeof(Hex2),0),
+                    SIZE_SALT50, base64_convert_cp(rar5_salt,e_b64_raw,SIZE_SALT50,Hex1,e_b64_hex,sizeof(Hex1),0),
+                    Lg2Count, base64_convert_cp(InitV,e_b64_raw,SIZE_INITV,Hex2,e_b64_hex,sizeof(Hex2),0),
                     SIZE_PSWCHECK, base64_convert_cp(PswCheck,e_b64_raw,SIZE_PSWCHECK,Hex3,e_b64_hex,sizeof(Hex3),0));
                 return 0;
             }
@@ -654,41 +608,43 @@ static int ProcessExtra50(FILE *fp, uint64_t extra_size, uint64_t HeadSize, uint
     return 1;
  }
 
+/**************************************************************************
+ * Common file header processing for rar5
+ *************************************************************************/
+
 static size_t read_rar5_header(FILE *fp, size_t CurBlockPos, uint8_t *HeaderType, const char *archive_name) {
 	uint64_t block_size, flags, extra_size=0, data_size=0;
-    uint64_t crypt_version, enc_flags, HeadSize, SizeBytes;
-    uint32_t head_crc, header_bytes_read = 0;
+    uint64_t crypt_version, enc_flags, HeadSize;
+    uint32_t head_crc, header_bytes_read = 0, sizeof_vint;
     uint8_t header_type, lg_2count;
-    //int skip_if_unknown;
 
-    // int NowCurPos = ftell(fp);
-	
     if (Encrypted) {
+        // The header is encrypted, so we simply find the IV from this block.
         unsigned char HeadersInitV[SIZE_INITV];
         unsigned char Hex1[128], Hex2[128], Hex3[128];
-        if (fread(HeadersInitV, 1, SIZE_INITV, fp) != SIZE_INITV) {
+        sizeof_vint = read_buf(fp, HeadersInitV,  SIZE_INITV, &header_bytes_read);
+        if (sizeof_vint != SIZE_INITV) {
             fprintf (stderr, "Error, rar file %s too short, could not read IV from header\n", archive_name);
             return 0;
         }
         printf ("%s:$rar5$%d$%s$%d$%s$%d$%s\n",
             archive_name,
-            SIZE_SALT50, base64_convert_cp(salt,e_b64_raw,SIZE_SALT50,Hex1,e_b64_hex,sizeof(Hex1),0),
-            SIZE_INITV, base64_convert_cp(HeadersInitV,e_b64_raw,SIZE_INITV,Hex2,e_b64_hex,sizeof(Hex2),0),
+            SIZE_SALT50, base64_convert_cp(rar5_salt,e_b64_raw,SIZE_SALT50,Hex1,e_b64_hex,sizeof(Hex1),0),
+            rar5_interations, base64_convert_cp(HeadersInitV,e_b64_raw,SIZE_INITV,Hex2,e_b64_hex,sizeof(Hex2),0),
             SIZE_PSWCHECK, base64_convert_cp(PswCheck,e_b64_raw,SIZE_PSWCHECK,Hex3,e_b64_hex,sizeof(Hex3),0));
         return 0;
     }
 	if (!read_uint32(fp, &head_crc, &header_bytes_read)) return 0;
 
-	//if (!read_vuint(fp, &block_size, &header_bytes_read)) return 0;
-    SizeBytes = read_vuint(fp, &block_size, &header_bytes_read);
-    if (!SizeBytes) return 0;
+    sizeof_vint = read_vuint(fp, &block_size, &header_bytes_read);
+    if (!sizeof_vint) return 0;
+    // The HeadSize is full size of this header from the start of the HeaderCRC, to the end of any 'extra-data' section.
+    HeadSize = block_size + 4 + sizeof_vint;
 
 	//if (!read_vuint(fp, &header_type, &header_bytes_read)) return 0;
     if (!read_uint8(fp, &header_type, &header_bytes_read)) return 0;
     if (!read_vuint(fp, &flags, &header_bytes_read)) return 0;
     *HeaderType = header_type;
-    HeadSize = block_size +5;
-    //skip_if_unknown = (flags & HFL_SKIPIFUNKNOWN) != 0;
     if ((flags & HFL_EXTRA) != 0) { if (!read_vuint(fp, &extra_size, &header_bytes_read)) return 0; }
     if ((flags & HFL_DATA) != 0)  { if (!read_vuint(fp, &data_size, &header_bytes_read)) return 0; }
 
@@ -697,14 +653,14 @@ static size_t read_rar5_header(FILE *fp, size_t CurBlockPos, uint8_t *HeaderType
     if (header_type == HEAD_CRYPT) {
        unsigned char chksum[SIZE_PSWCHECK_CSUM];
        if (!read_vuint(fp, &crypt_version, &header_bytes_read)) return 0;
-       if (crypt_version > CRYPT_VERSION) { printf("bad 2\n"); return 0; }
+       if (crypt_version > CRYPT_VERSION) { printf("bad rar crypt version byte\n"); return 0; }
        if (!read_vuint(fp, &enc_flags, &header_bytes_read)) return 0;
        UsePswCheck = (enc_flags & CHFL_CRYPT_PSWCHECK) != 0;  // set global
        if (!read_uint8(fp, &lg_2count, &header_bytes_read)) return 0;
-       if (lg_2count > CRYPT5_KDF_LG2_COUNT_MAX) { printf("bad 3\n"); return 0; }
-       iterations = lg_2count; // set global
+       if (lg_2count > CRYPT5_KDF_LG2_COUNT_MAX) { printf("rar PBKDF2 iteration count too large\n"); return 0; }
+       rar5_interations = lg_2count; // set global
        // get salt
-       if (!read_buf(fp, salt, SIZE_SALT50, &header_bytes_read)) return 0;
+       if (!read_buf(fp, rar5_salt, SIZE_SALT50, &header_bytes_read)) return 0;
        if (UsePswCheck) {
            unsigned char sha256ch[32];
            SHA256_CTX ctx;
@@ -716,107 +672,41 @@ static size_t read_rar5_header(FILE *fp, size_t CurBlockPos, uint8_t *HeaderType
            UsePswCheck = !memcmp(sha256ch, chksum, sizeof(chksum));
        }
        Encrypted = 1;
-        //# get salt
-        //salt = buf.read(SIZE_SALT50)
-        //if (UsePswCheck):
-        //    PswCheck = buf.read(SIZE_PSWCHECK)
-        //    # print len(PswCheck)
-        //    csum = buf.read(SIZE_PSWCHECK_CSUM)
-        //    digest = hashlib.sha256(PswCheck).digest()
-        //    UsePswCheck = csum == digest[0:SIZE_PSWCHECK_CSUM]
-        //    # print "UPC", UsePswCheck
-        //Encrypted = 1 
-    } else if (header_type == HEAD_MAIN) {
+     } else if (header_type == HEAD_MAIN) {
         uint64_t ArcFlags, VolNumber=0;
         if (!read_vuint(fp, &ArcFlags, &header_bytes_read)) return 0;
         if ((ArcFlags & MHFL_VOLNUMBER) != 0)
             if (!read_vuint(fp, &VolNumber, &header_bytes_read)) return 0;
-        // fprintf (stderr, "ArcFlags = %d, offset=%d nowcurpos=%d\n", ArcFlags, ftell(fp), NowCurPos);
-        //ArcFlags = buf.GetV()
-        //# print "HEAD_MAIN ArcFlags", ArcFlags
-        //
-        //Volume = (ArcFlags & MHFL_VOLUME) != 0
-        //Solid = (ArcFlags & MHFL_SOLID) != 0
-        //Locked = (ArcFlags & MHFL_LOCK) != 0
-        //Protected = (ArcFlags & MHFL_PROTECT) != 0
-        //Signed = False
-        //NewNumbering = True
-        //
-        //if ((ArcFlags & MHFL_VOLNUMBER) != 0):
-        //    VolNumber = buf.GetV()
-        //else:
-        //    VolNumber = 0
-        //
-        //FirstVolume = Volume and VolNumber == 0
-        //
-        //if ExtraSize != 0:
-        //    pass
-        //    # print "ExtraSize != 0"
-        //    # ProcessExtra50(...)
     } else if (header_type == HEAD_FILE || header_type == HEAD_SERVICE) {
-        //int FileBlock = header_type == HEAD_FILE;
-        //int LargeFile = 1;
-        //int PackSize = data_size;
         uint64_t FileFlags, UnpSize, FileAttr;
         uint64_t CompInfo, HostOS, NameSize;
         uint32_t FileHashCRC32, tmp;
-        //uint32_t Method, UnpVer, MaxSize;
-        //time_t mtime;
 
         if (!read_vuint(fp, &FileFlags, &header_bytes_read)) return 0;
         if (!read_vuint(fp, &UnpSize, &header_bytes_read)) return 0;
-        //# UnknownUnpSize = (FileFlags and FHFL_UNPUNKNOWN) != 0
-        //
-        //MaxSize = PackSize > UnpSize ? PackSize : UnpSize;
         if (!read_vuint(fp, &FileAttr, &header_bytes_read)) return 0;
        
         if ((FileFlags & FHFL_UTIME) != 0) {
             if (!read_uint32(fp, &tmp, &header_bytes_read)) return 0;
             //mtime = tmp;
         }
-       // FileHashType = HASH_NONE;
+
         if ((FileFlags & FHFL_CRC32) != 0) {
-           // FileHashType = HASH_CRC32;
             if (!read_uint32(fp, &FileHashCRC32, &header_bytes_read)) return 0;
         }
         
-        //# RedirType = FSREDIR_NONE
         if (!read_vuint(fp, &CompInfo, &header_bytes_read)) return 0;
-        //Method = (CompInfo >> 7) & 7;
-        //UnpVer = CompInfo & 0x3f;
         if (!read_vuint(fp, &HostOS, &header_bytes_read)) return 0;
         if (!read_vuint(fp, &NameSize, &header_bytes_read)) return 0;
         // skip the field name.
         jtr_fseek64(fp, NameSize, SEEK_CUR);
-        //
-        //# print "NameSize", NameSize
-        //f.read(NameSize)
-        //# print ">>>", f.tell(), NextBlockPos, PrevNextBlockPos
-        //
-        //# Inherited =(Flags & HFL_INHERITED) != 0
-        //# SplitBefore = (Flags and HFL_SPLITBEFORE) != 0
-        //# SplitAfter = (Flags and HFL_SPLITAFTER) != 0
-        //# SubBlock = (Flags and HFL_CHILD) != 0
-        //# Solid = FileBlock and (CompInfo & FCI_SOLID) != 0
-        //# Dir = (FileFlags & FHFL_DIRECTORY) != 0
-        //
-        //# XXX code block
-        //# hd->WinSize=hd->Dir ? 0:size_t(0x20000)<<((CompInfo>>10)&0xf)
-        //# hd->CryptMethod=hd->Encrypted ? CRYPT_RAR50:CRYPT_NONE;
-        //# char FileName[NM*4]
-        //# size_t ReadNameSize=Min(NameSize,ASIZE(FileName)-1)
-        //# Raw.GetB((byte *)FileName,ReadNameSize)
-        //# FileName[ReadNameSize]=0
-        //
-        //# Should do it before converting names, because extra fields can
-        //# affect name processing, like in case of NTFS streams.
         if (extra_size != 0)
             ProcessExtra50(fp, extra_size, HeadSize, *HeaderType, CurBlockPos, archive_name);
 
     } else if (header_type == HEAD_ENDARC) {
         return 0;
     }
-	return block_size+CurBlockPos+5;
+	return CurBlockPos+HeadSize+data_size;
 }
 
 /* handle rar5 files */
