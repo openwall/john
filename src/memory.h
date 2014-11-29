@@ -196,6 +196,14 @@ void getbuf_stuff_mpara_mmx(unsigned char *oBuf, void *buf, unsigned int size, u
 #endif
 
 /*
+ * here, a stack buffer that is at least align-1 bytes LARGER than required, can be
+ * properly aligned to 'align' bytes. So:   char tmpbuf[256+15], *aligned_buf=mem_align(tmpbuf,16);
+ * will give you a stack buffer, alignef to 16 bytes.  There are bugs in some compilers which cause
+ * JTR_ALIGN(x) to fail properly (such as a bug in bitcoin OMP mode for linux32)
+ */
+extern void *mem_align(void *stack_ptr, int align);
+
+/*
  * 32-bit endian-swap a memory buffer in place. Size is in octets (so should
  * be a multiple of 4). From now on, this function may be used on any arch.
  */
