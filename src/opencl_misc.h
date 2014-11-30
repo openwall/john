@@ -51,7 +51,6 @@
 /* Warning: This macro can't be used with eg. SWAP32(*p++) because it will
    be incremented twice */
 #ifdef USE_BITSELECT
-//#define SWAP32(n)	(as_uint(as_uchar4(n).s3210))
 #define SWAP32(n)	bitselect(rotate(n, 24U), rotate(n, 8U), 0x00FF00FFU)
 #else
 inline uint SWAP32(uint x)
@@ -61,7 +60,7 @@ inline uint SWAP32(uint x)
 }
 #endif
 
-#if defined(USE_BITSELECT) || defined(SCALAR)
+#if defined(SCALAR)
 #define VSWAP32 SWAP32
 #else
 /* Vector-capable swap32() */
