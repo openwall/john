@@ -56,6 +56,10 @@ for using 4 cores in parallel when building. This can be written together,
 as in:
 	./configure && make -sj4
 
+That -j option does not work well with the "clean" target so if you want to
+use that, do it separately:
+	./configure && make -s clean && make -sj4
+
 ./configure should find and enable any extra stuff you have, including OMP,
 OpenCL, CUDA and extra libraries mentioned above. The only exception is MPI
 which needs the "--enable-mpi" option to be supplied to configure. If something
@@ -66,6 +70,10 @@ pass parameters:
 NOTE! If you pass CFLAGS like above, you probably also want to add "-O2"
 since it (and "-g") will only be added automatically provided CFLAGS start
 out empty. This is a feature of the autoconf macros, not specific to JtR.
+
+If you have a broken pkg-config (eg. claiming there is no OpenSSL even though
+there is one) you can disable its use within configure:
+	./configure --disable-pkg-config
 
 You can also disable certain features you don't want, eg:
 	./configure --disable-openmp && make
