@@ -991,7 +991,7 @@ sub odf {
 	if (defined $argcontent) { $content = $argcontent; } else { $content = randstr(1024); }
 	my $s = sha1($_[0]);
 	my $key = pp_pbkdf2($s, $salt, 1024, "sha1", 16);
-	use Crypt::OpenSSL::Blowfish::CFB64;
+	require Crypt::OpenSSL::Blowfish::CFB64;
 	my $crypt = Crypt::OpenSSL::Blowfish::CFB64->new($key, $iv);
 	my $output = $crypt->decrypt($content);
 	$s = sha1($output);
@@ -1006,8 +1006,8 @@ sub odf_1 {
 	if (defined $argcontent) { $content = $argcontent; } else { $content = randstr(1024); }
 	my $s = sha256($_[0]);
 	my $key = pp_pbkdf2($s, $salt, 1024, "sha1", 32);
-	use Crypt::OpenSSL::AES;
-	use Crypt::CBC;
+	require Crypt::OpenSSL::AES;
+	require Crypt::CBC;
 	my $crypt = Crypt::CBC->new(-literal_key => 1, -key => $key, -iv => $iv, -cipher => "Crypt::OpenSSL::AES", -header => 'none');
 	# we have to pad to even length, or the AES code will not generate proper value.
 	while (length($content)%16 != 0) { $content .= "\x0"; }
