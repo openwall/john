@@ -164,7 +164,7 @@ static void process_file(const char *archive_name)
 	size_t bestsize = 0;
 	char *base_aname;
 	unsigned char buf[CHUNK_SIZE];
-	uint16_t archive_header_head_flags, file_header_head_flags;
+	uint16_t archive_header_head_flags, file_header_head_flags, head_size;
 	unsigned char *pos;
 	int diff;
 	int found = 0;
@@ -231,6 +231,13 @@ static void process_file(const char *archive_name)
 		type = 0;	/* RAR file was created using -hp flag */
 	} else
 		type = 1;
+
+	/* we need to skip ahead, if there is a comment block in the main header. It causes that
+	 * header tp be larger that a simple 13 byte block.
+	 */
+	head_size = archive_header_block[6] << 8 | archive_header_block[5];
+	if (head_size > 13)
+		fseek(fp, head_size-13, SEEK_CUR);
 
 next_file_header:
 	/* file header block */
@@ -585,9 +592,7 @@ static int ProcessExtra50(FILE *fp, uint64_t extra_size, uint64_t HeadSize, uint
         bytes_left -= (uint32_t)FieldSize;
         if (bytes_left < 0) return 0;
         if (!read_vuint(fp, &FieldType, &bytes_read)) return 0;
-
         // fprintf (stderr, "in Extra50.  FieldSize=%d FieldType=%d\n", FieldSize, FieldType);
-
         if (HeaderType == HEAD_FILE || HeaderType == HEAD_SERVICE) {
             if (FieldType == FHEXTRA_CRYPT) {
                 unsigned char InitV[SIZE_INITV];
