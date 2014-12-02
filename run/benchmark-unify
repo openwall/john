@@ -101,7 +101,6 @@ while (<>) {
 __DATA__
 bf-opencl, OpenBSD Blowfish (x32)	bcrypt-opencl ("$2a$05", 32 iterations)
 BSDI DES (x725)	bsdicrypt, BSDI crypt(3) ("_J9..", 725 iterations)
-crypt-MD5	md5crypt
 CRC-32	CRC32
 DIGEST-MD5	dmd5, DIGEST-MD5 C/R
 DIGEST-MD5 C/R	dmd5, DIGEST-MD5 C/R
@@ -116,6 +115,7 @@ Eggdrop Blowfish	bfegg, Eggdrop
 EPiServer SID Hashes	EPI, EPiServer SID
 EPiServer SID salted SHA-1	EPI, EPiServer SID
 EPiServer salted SHA-1/SHA-256	EPiServer
+crypt-MD5	md5crypt, crypt(3) $1$
 FreeBSD MD5	md5crypt, crypt(3) $1$
 generic crypt(3)	crypt, generic crypt(3)
 generic crypt(3) DES	crypt, generic crypt(3)
