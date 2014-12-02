@@ -674,9 +674,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		unsigned int i, j;
 		unsigned char RawPsw[UNICODE_LENGTH + 8 + 3];
 		int RawLength;
-		SHA_CTX ctx;
+		SHA_CTX ctx, tempctx;
 		unsigned int digest[5];
-		unsigned char *PswNum;
+		unsigned char *PswNum, tempout[20];
 
 		RawLength = saved_len[index] + 8 + 3;
 		PswNum = (unsigned char*) &RawPsw[saved_len[index] + 8];
@@ -693,18 +693,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				PswNum[1] = (unsigned char) (i >> 8);
 				PswNum[2] = (unsigned char) (i >> 16);
 			}
-
 			SHA1_Update(&ctx, RawPsw, RawLength);
 			if (i % (ROUNDS / 16) == 0) {
-				SHA_CTX tempctx = ctx;
-				unsigned int tempout[5];
-
-				SHA1_Final((unsigned char*) tempout, &tempctx);
-#if ARCH_LITTLE_ENDIAN
-				aes_iv[i16 + i / (ROUNDS / 16)] = (unsigned char)JOHNSWAP(tempout[4]);
-#else
-				aes_iv[i16 + i / (ROUNDS / 16)] = (unsigned char)tempout[4];
-#endif
+				tempctx = ctx;
+				SHA1_Final(tempout, &tempctx);
+				aes_iv[i16 + i / (ROUNDS / 16)] = tempout[19];
 			}
 		}
 		SHA1_Final((unsigned char*)digest, &ctx);
