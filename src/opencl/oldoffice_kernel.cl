@@ -11,6 +11,8 @@
 #include "opencl_device_info.h"
 #include "opencl_unicode.h"
 #include "opencl_misc.h"
+#define RC4_BUFLEN 32
+#define RC4_IN_PLACE
 #include "opencl_rc4.h"
 #include "opencl_md5.h"
 #include "opencl_sha1.h"
@@ -328,7 +330,7 @@ __kernel void oldoffice_md5(__global const mid_t *mid,
 
 		for (i = 0; i < 32/4; i++)
 			verifier[i] = cs->verifier[i];
-		rc4_16_32i(md5, verifier);
+		rc4(md5, verifier);
 
 		for (i = 0; i < 4; i++)
 			W[i] = verifier[i];
@@ -448,7 +450,7 @@ __kernel void oldoffice_sha1(__global const mid_t *mid,
 
 		for (i = 0; i < 32/4; i++)
 			verifier[i] = cs->verifier[i];
-		rc4_16_32i(key, verifier);
+		rc4(key, verifier);
 
 		for (i = 0; i < 4; i++)
 			W[i] = SWAP32(verifier[i]);

@@ -11,6 +11,7 @@
 #include "opencl_device_info.h"
 #include "opencl_unicode.h"
 #include "opencl_misc.h"
+#define RC4_BUFLEN 16
 #include "opencl_rc4.h"
 #include "opencl_md4.h"
 #include "opencl_md5.h"
@@ -261,5 +262,5 @@ __kernel void krb5pa_md5_final(const __global uint *nthash,
 	md5_block(block, output); /* md5_update(hash, 16), md5_final() */
 
 	/* output is our RC4 key. salts now point to encrypted timestamp. */
-	rc4_16_16(output, salts, &result[gid * 4]);
+	rc4(output, salts, &result[gid * 4]);
 }

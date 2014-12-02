@@ -49,15 +49,17 @@
 
 #include <opencl_misc.h>
 
-#if no_byte_addressable(DEVICE_INFO)
-#define RC4_INT uint
-#else
-#define RC4_INT uchar
-#define USE_IV_LUT
+#ifndef RC4_BUFLEN
+#error RC4_BUFLEN must be defined prior to including opencl_rc4.h
 #endif
 
-//#define USE_LOCAL
+// None 2885 626
+#define USE_IV32 // 3633 696
+#define UNROLLED_RC4_KEY // 3893 817
+#define UNROLLED_RC4 // 3932 848
+//#define USE_LOCAL // 455 397
 
+#ifdef USE_IV32
 __constant uint rc4_iv[64] = { 0x03020100, 0x07060504, 0x0b0a0908, 0x0f0e0d0c,
                                0x13121110, 0x17161514, 0x1b1a1918, 0x1f1e1d1c,
                                0x23222120, 0x27262524, 0x2b2a2928, 0x2f2e2d2c,
@@ -73,19 +75,19 @@ __constant uint rc4_iv[64] = { 0x03020100, 0x07060504, 0x0b0a0908, 0x0f0e0d0c,
                                0xc3c2c1c0, 0xc7c6c5c4, 0xcbcac9c8, 0xcfcecdcc,
                                0xd3d2d1d0, 0xd7d6d5d4, 0xdbdad9d8, 0xdfdedddc,
                                0xe3e2e1e0, 0xe7e6e5e4, 0xebeae9e8, 0xefeeedec,
-                               0xf3f2f1f0, 0xf7f6f5f4, 0xfbfaf9f8, 0xfffefdfc
-};
+                               0xf3f2f1f0, 0xf7f6f5f4, 0xfbfaf9f8, 0xfffefdfc };
+#endif
 
 #if 0  /* Generic code */
 typedef struct {
-	RC4_INT	perm[256];
+	uint	perm[256];
 	uchar	index1;
 	uchar	index2;
 } rc4_state_t;
 
-inline void swap_bytes(RC4_INT* a, RC4_INT* b)
+inline void swap_bytes(uint* a, uint* b)
 {
-	RC4_INT tmp = *a;
+	uint tmp = *a;
 	*a = *b;
 	*b = tmp;
 }
@@ -96,22 +98,17 @@ inline void rc4_init(rc4_state_t* const state, uint *key, int keylen)
 	int i;
 	const uchar* keybuf = (const uchar*)key;
 
-#if USE_IV_LUT
-	for (i = 0; i < 64; i++)
-		((uint*)state->perm)[i] = rc4_iv[i];
-#else
 	for (i = 0; i < 256; i++)
-		state->perm[i] = (RC4_INT)i;
-#endif
+		state->perm[i] = (uint)i;
 	state->index1 = 0;
 	state->index2 = 0;
 	for (j = i = 0; i < 256; i++) {
-		j += state->perm[i] + keybuf[i % keylen];
+		j += state->perm[i] + keybuf[i & (keylen - 1)];
 		swap_bytes(&state->perm[i], &state->perm[j]);
 	}
 }
 
-/* Unrolled to 32-bit writes, buflen must be multiple of 4 */
+/* Unrolled to 32-bit xor, buflen must be multiple of 4 */
 inline void rc4_crypt(rc4_state_t* const state, const uint* in, uint* out, int buflen)
 {
 	int i;
@@ -133,7 +130,7 @@ inline void rc4_crypt(rc4_state_t* const state, const uint* in, uint* out, int b
 		swap_bytes(&state->perm[state->index1],
 		           &state->perm[state->index2]);
 		j = state->perm[state->index1] + state->perm[state->index2];
-		perm |= state->perm[j] << 8;
+		perm += state->perm[j] << 8;
 		i++;
 
 		state->index1++;
@@ -141,7 +138,7 @@ inline void rc4_crypt(rc4_state_t* const state, const uint* in, uint* out, int b
 		swap_bytes(&state->perm[state->index1],
 		           &state->perm[state->index2]);
 		j = state->perm[state->index1] + state->perm[state->index2];
-		perm |= state->perm[j] << 16;
+		perm += state->perm[j] << 16;
 		i++;
 
 		state->index1++;
@@ -149,303 +146,142 @@ inline void rc4_crypt(rc4_state_t* const state, const uint* in, uint* out, int b
 		swap_bytes(&state->perm[state->index1],
 		           &state->perm[state->index2]);
 		j = state->perm[state->index1] + state->perm[state->index2];
-		perm |= state->perm[j] << 24;
+		perm += state->perm[j] << 24;
 
 		*out++ = *in++ ^ perm;
 	}
 }
 #endif /* Generic BSD code */
 
+#ifndef USE_LOCAL
+#undef GETCHAR_L
+#define GETCHAR_L GETCHAR
+#undef PUTCHAR_L
+#define PUTCHAR_L PUTCHAR
+#endif
+
+#undef swap_byte
 #define swap_byte(a, b) {	  \
-		RC4_INT tmp = a; \
-		a = b; \
-		b = tmp; \
+		uint tmp = GETCHAR_L(state, a); \
+		PUTCHAR_L(state, a, GETCHAR_L(state, b)); \
+		PUTCHAR_L(state, b, tmp); \
 	}
-
+#undef swap_no_inc
+#define swap_no_inc(n) {	  \
+		index2 = (GETCHAR(key, index1) + GETCHAR_L(state, n) + index2) & 255; \
+		swap_byte(n, index2); \
+	}
+#undef swap_state
 #define swap_state(n) {	  \
-		index2 = (key[index1] + state[(n)] + index2) & 255; \
-		swap_byte(state[(n)], state[index2]); \
-		index1 = (index1 + 1) & 15 /* (& 15 == % keylen) */; \
+		swap_no_inc(n); \
+		index1 = (index1 + 1) & 15; \
 	}
-
-/* One-shot RC4 with fixed keylen and buflen of 16 */
-inline void rc4_16_16(const uint *key_w, MAYBE_CONSTANT uint *in,
-                      __global uint *out)
-{
-	const uchar *key = (uchar*)key_w;
-	uint x;
-	uint y = 0;
-	RC4_INT index1 = 0;
-	RC4_INT index2 = 0;
-#ifdef USE_LOCAL
-	uint lid = get_local_id(0);
-#endif
-#ifdef USE_IV_LUT
-#ifdef USE_LOCAL
-	__local uint state_w[64][64];
-	__local uchar *state = (__local uchar*)state_w[lid];
-#else
-	uint state_w[64];
-	uchar *state = (uchar*)state_w;
-#endif
-
-	/* RC4_init() */
-	for (x = 0; x < 64; x++)
-#ifdef USE_LOCAL
-		state_w[lid][x] = rc4_iv[x];
-#else
-		state_w[x] = rc4_iv[x];
-#endif
-#else
-#ifdef USE_LOCAL
-	__local uint state_l[64][256];
-	__local uint *state = (__local uint*)state_l[lid];
-#else
-	RC4_INT state[256];
-#endif
-	/* RC4_init() */
-	for (x = 0; x < 256; x++)
-		state[x] = x;
-#endif
-
-#if 0
-	/* RC4_set_key() */
-	for (x = 0; x < 256; x++)
-		swap_state(x);
-#else
-	/* RC4_set_key() */
-	/* Unrolled for hard-coded key length 16 */
-	for (x = 0; x < 256; x++) {
-		index2 = (key[index1] + state[x] + index2) & 255;
-		swap_byte(state[x], state[index2]);
-		index1++; x++;
-
-		index2 = (key[index1] + state[x] + index2) & 255;
-		swap_byte(state[x], state[index2]);
-		index1++; x++;
-
-		index2 = (key[index1] + state[x] + index2) & 255;
-		swap_byte(state[x], state[index2]);
-		index1++; x++;
-
-		index2 = (key[index1] + state[x] + index2) & 255;
-		swap_byte(state[x], state[index2]);
-		index1++; x++;
-
-		index2 = (key[index1] + state[x] + index2) & 255;
-		swap_byte(state[x], state[index2]);
-		index1++; x++;
-
-		index2 = (key[index1] + state[x] + index2) & 255;
-		swap_byte(state[x], state[index2]);
-		index1++; x++;
-
-		index2 = (key[index1] + state[x] + index2) & 255;
-		swap_byte(state[x], state[index2]);
-		index1++; x++;
-
-		index2 = (key[index1] + state[x] + index2) & 255;
-		swap_byte(state[x], state[index2]);
-		index1++; x++;
-
-		index2 = (key[index1] + state[x] + index2) & 255;
-		swap_byte(state[x], state[index2]);
-		index1++; x++;
-
-		index2 = (key[index1] + state[x] + index2) & 255;
-		swap_byte(state[x], state[index2]);
-		index1++; x++;
-
-		index2 = (key[index1] + state[x] + index2) & 255;
-		swap_byte(state[x], state[index2]);
-		index1++; x++;
-
-		index2 = (key[index1] + state[x] + index2) & 255;
-		swap_byte(state[x], state[index2]);
-		index1++; x++;
-
-		index2 = (key[index1] + state[x] + index2) & 255;
-		swap_byte(state[x], state[index2]);
-		index1++; x++;
-
-		index2 = (key[index1] + state[x] + index2) & 255;
-		swap_byte(state[x], state[index2]);
-		index1++; x++;
-
-		index2 = (key[index1] + state[x] + index2) & 255;
-		swap_byte(state[x], state[index2]);
-		index1++; x++;
-
-		index2 = (key[index1] + state[x] + index2) & 255;
-		swap_byte(state[x], state[index2]);
-		index1 = 0;
+#undef swap_anc_inc
+#define swap_and_inc(n) {	  \
+		swap_no_inc(n); \
+		index1++; n++; \
 	}
-#endif
-
-	/* RC4() */
-	/* Unrolled for avoiding byte-addressed stores */
-	for (x = 1; x <= 16 /* length */; x++) {
-		uint xor_word;
-
-		y = (state[x] + y) & 255;
-		swap_byte(state[x], state[y]);
-		xor_word = state[(state[x++] + state[y]) & 255];
-
-		y = (state[x] + y) & 255;
-		swap_byte(state[x], state[y]);
-		xor_word |= state[(state[x++] + state[y]) & 255] << 8;
-
-		y = (state[x] + y) & 255;
-		swap_byte(state[x], state[y]);
-		xor_word |= state[(state[x++] + state[y]) & 255] << 16;
-
-		y = (state[x] + y) & 255;
-		swap_byte(state[x], state[y]);
-		xor_word |= state[(state[x] + state[y]) & 255] << 24;
-
-		*out++ = *in++ ^ xor_word;
-	}
-}
 
 /*
- * One-shot RC4 with fixed keylen of 16 and buflen of 32.
- * Decrypts buffer in-place.
+ * One-shot RC4 with fixed keylen of 16. No byte addressed stores.
  */
-inline void rc4_16_32i(const uint *key_w, uint *buf)
+inline void rc4(const uint *key,
+#ifdef RC4_IN_PLACE
+                uint *buf
+#else
+                MAYBE_CONSTANT uint *in, __global uint *out
+#endif
+	)
 {
-	const uchar *key = (uchar*)key_w;
 	uint x;
 	uint y = 0;
-	RC4_INT index1 = 0;
-	RC4_INT index2 = 0;
+	uint index1 = 0;
+	uint index2 = 0;
 #ifdef USE_LOCAL
-	uint lid = get_local_id(0);
-#endif
-#ifdef USE_IV_LUT
-#ifdef USE_LOCAL
-	__local uint state_w[64][64];
-	__local uchar *state = (__local uchar*)state_w[lid];
+	__local uint state_l[64][256/4];
+	__local uint *state = state_l[get_local_id(0)];
 #else
-	uint state_w[64];
-	uchar *state = (uchar*)state_w;
+	uint state[256/4];
 #endif
 
 	/* RC4_init() */
-	for (x = 0; x < 64; x++)
-#ifdef USE_LOCAL
-		state_w[lid][x] = rc4_iv[x];
+#ifdef USE_IV32
+	for (x = 0; x < 256/4; x++)
+		state[x] = rc4_iv[x];
 #else
-		state_w[x] = rc4_iv[x];
-#endif
-#else
-#ifdef USE_LOCAL
-	__local RC4_INT state_l[64][256];
-	__local RC4_INT *state = (__local RC4_INT*)state_l[lid];
-#else
-	RC4_INT state[256];
-#endif
-	/* RC4_init() */
 	for (x = 0; x < 256; x++)
-		state[x] = x;
+		PUTCHAR_L(state, x, x);
 #endif
 
-#if 0
 	/* RC4_set_key() */
-	for (x = 0; x < 256; x++)
-		swap_state(x);
-#else
-	/* RC4_set_key() */
+#ifdef UNROLLED_RC4_KEY
 	/* Unrolled for hard-coded key length 16 */
 	for (x = 0; x < 256; x++) {
-		index2 = (key[index1] + state[x] + index2) & 255;
-		swap_byte(state[x], state[index2]);
-		index1++; x++;
-
-		index2 = (key[index1] + state[x] + index2) & 255;
-		swap_byte(state[x], state[index2]);
-		index1++; x++;
-
-		index2 = (key[index1] + state[x] + index2) & 255;
-		swap_byte(state[x], state[index2]);
-		index1++; x++;
-
-		index2 = (key[index1] + state[x] + index2) & 255;
-		swap_byte(state[x], state[index2]);
-		index1++; x++;
-
-		index2 = (key[index1] + state[x] + index2) & 255;
-		swap_byte(state[x], state[index2]);
-		index1++; x++;
-
-		index2 = (key[index1] + state[x] + index2) & 255;
-		swap_byte(state[x], state[index2]);
-		index1++; x++;
-
-		index2 = (key[index1] + state[x] + index2) & 255;
-		swap_byte(state[x], state[index2]);
-		index1++; x++;
-
-		index2 = (key[index1] + state[x] + index2) & 255;
-		swap_byte(state[x], state[index2]);
-		index1++; x++;
-
-		index2 = (key[index1] + state[x] + index2) & 255;
-		swap_byte(state[x], state[index2]);
-		index1++; x++;
-
-		index2 = (key[index1] + state[x] + index2) & 255;
-		swap_byte(state[x], state[index2]);
-		index1++; x++;
-
-		index2 = (key[index1] + state[x] + index2) & 255;
-		swap_byte(state[x], state[index2]);
-		index1++; x++;
-
-		index2 = (key[index1] + state[x] + index2) & 255;
-		swap_byte(state[x], state[index2]);
-		index1++; x++;
-
-		index2 = (key[index1] + state[x] + index2) & 255;
-		swap_byte(state[x], state[index2]);
-		index1++; x++;
-
-		index2 = (key[index1] + state[x] + index2) & 255;
-		swap_byte(state[x], state[index2]);
-		index1++; x++;
-
-		index2 = (key[index1] + state[x] + index2) & 255;
-		swap_byte(state[x], state[index2]);
-		index1++; x++;
-
-		index2 = (key[index1] + state[x] + index2) & 255;
-		swap_byte(state[x], state[index2]);
+		swap_and_inc(x);
+		swap_and_inc(x);
+		swap_and_inc(x);
+		swap_and_inc(x);
+		swap_and_inc(x);
+		swap_and_inc(x);
+		swap_and_inc(x);
+		swap_and_inc(x);
+		swap_and_inc(x);
+		swap_and_inc(x);
+		swap_and_inc(x);
+		swap_and_inc(x);
+		swap_and_inc(x);
+		swap_and_inc(x);
+		swap_and_inc(x);
+		swap_no_inc(x);
 		index1 = 0;
 	}
+#else
+	for (x = 0; x < 256; x++)
+		swap_state(x);
 #endif
 
 	/* RC4() */
-	/* Unrolled for avoiding byte-addressed stores */
-	for (x = 1; x <= 32; x++) {
+#ifdef UNROLLED_RC4
+	/* Unrolled to 32-bit xor */
+	for (x = 1; x <= RC4_BUFLEN; x++) {
 		uint xor_word;
 
-		y = (state[x] + y) & 255;
-		swap_byte(state[x], state[y]);
-		xor_word = state[(state[x++] + state[y]) & 255];
+		y = (GETCHAR_L(state, x) + y) & 255;
+		swap_byte(x, y);
+		xor_word = GETCHAR_L(state, (GETCHAR_L(state, x) + GETCHAR_L(state, y)) & 255);
+		x++;
 
-		y = (state[x] + y) & 255;
-		swap_byte(state[x], state[y]);
-		xor_word |= state[(state[x++] + state[y]) & 255] << 8;
+		y = (GETCHAR_L(state, x) + y) & 255;
+		swap_byte(x, y);
+		xor_word += GETCHAR_L(state, (GETCHAR_L(state, x) + GETCHAR_L(state, y)) & 255) << 8;
+		x++;
 
-		y = (state[x] + y) & 255;
-		swap_byte(state[x], state[y]);
-		xor_word |= state[(state[x++] + state[y]) & 255] << 16;
+		y = (GETCHAR_L(state, x) + y) & 255;
+		swap_byte(x, y);
+		xor_word += GETCHAR_L(state, (GETCHAR_L(state, x) + GETCHAR_L(state, y)) & 255) << 16;
+		x++;
 
-		y = (state[x] + y) & 255;
-		swap_byte(state[x], state[y]);
-		xor_word |= state[(state[x] + state[y]) & 255] << 24;
+		y = (GETCHAR_L(state, x) + y) & 255;
+		swap_byte(x, y);
+		xor_word += GETCHAR_L(state, (GETCHAR_L(state, x) + GETCHAR_L(state, y)) & 255) << 24;
 
+#ifdef RC4_IN_PLACE
 		*buf++ ^= xor_word;
+#else
+		*out++ = *in++ ^ xor_word;
+#endif
 	}
+#else /* UNROLLED_RC4 */
+	for (x = 1; x <= RC4_BUFLEN; x++) {
+		y = (GETCHAR_L(state, x) + y) & 255;
+		swap_byte(x, y);
+#ifdef RC4_IN_PLACE
+		XORCHAR(buf, x - 1, GETCHAR_L(state, (GETCHAR_L(state, x) + GETCHAR_L(state, y)) & 255));
+#else
+		PUTCHAR_G(out, x - 1, GETCHAR_G(in, x - 1) ^ (GETCHAR_L(state, (GETCHAR_L(state, x) + GETCHAR_L(state, y)) & 255)));
+#endif
+	}
+#endif /* UNROLLED_RC4 */
 }
 
-#endif
+#endif /* _OPENCL_RC4_H */

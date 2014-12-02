@@ -73,6 +73,7 @@ inline MAYBE_VECTOR_UINT VSWAP32(MAYBE_VECTOR_UINT x)
 
 #define GETCHAR(buf, index) (((uchar*)(buf))[(index)])
 #define GETCHAR_G(buf, index) (((__global uchar*)(buf))[(index)])
+#define GETCHAR_L(buf, index) (((__local uchar*)(buf))[(index)])
 #define GETCHAR_BE(buf, index) (((uchar*)(buf))[(index) ^ 3])
 #define LASTCHAR_BE(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2] & (0xffffff00U << ((((index) & 3) ^ 3) << 3))) + ((val) << ((((index) & 3) ^ 3) << 3))
 
@@ -80,17 +81,21 @@ inline MAYBE_VECTOR_UINT VSWAP32(MAYBE_VECTOR_UINT x)
 #define PUTCHAR(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2] & ~(0xffU << (((index) & 3) << 3))) + ((val) << (((index) & 3) << 3))
 #define PUTCHAR_BE(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2] & ~(0xffU << ((((index) & 3) ^ 3) << 3))) + ((val) << ((((index) & 3) ^ 3) << 3))
 #define PUTCHAR_G	PUTCHAR
+#define PUTCHAR_L	PUTCHAR
 #define PUTCHAR_BE_G	PUTCHAR_BE
 #define PUTSHORT(buf, index, val) (buf)[(index)>>1] = ((buf)[(index)>>1] & ~(0xffffU << (((index) & 1) << 4))) + ((val) << (((index) & 1) << 4))
 #define PUTSHORT_BE(buf, index, val) (buf)[(index)>>1] = ((buf)[(index)>>1] & ~(0xffffU << ((((index) & 1) ^ 3) << 4))) + ((val) << ((((index) & 1) ^ 3) << 4))
+#define XORCHAR(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2]) ^ ((val) << (((index) & 3) << 3))
 #define XORCHAR_BE(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2]) ^ ((val) << ((((index) & 3) ^ 3) << 3))
 #else
 #define PUTCHAR(buf, index, val) ((uchar*)(buf))[index] = (val)
 #define PUTCHAR_G(buf, index, val) ((__global uchar*)(buf))[(index)] = (val)
+#define PUTCHAR_L(buf, index, val) ((__local uchar*)(buf))[(index)] = (val)
 #define PUTCHAR_BE(buf, index, val) ((uchar*)(buf))[(index) ^ 3] = (val)
 #define PUTCHAR_BE_G(buf, index, val) ((__global uchar*)(buf))[(index) ^ 3] = (val)
 #define PUTSHORT(buf, index, val) ((ushort*)(buf))[index] = (val)
 #define PUTSHORT_BE(buf, index, val) ((ushort*)(buf))[(index) ^ 1] = (val)
+#define XORCHAR(buf, index, val) ((uchar*)(buf))[(index)] ^= (val)
 #define XORCHAR_BE(buf, index, val) ((uchar*)(buf))[(index) ^ 3] ^= (val)
 #endif
 
