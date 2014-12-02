@@ -672,25 +672,15 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	for (index = 0; index < count; index++) {
 		int i16 = index*16;
 		unsigned int i, j;
-#if ARCH_LITTLE_ENDIAN && ARCH_ALLOWS_UNALIGNED
-		unsigned char RawPsw[UNICODE_LENGTH + 8 + sizeof(int)];
-#else
-		unsigned char RawPsw[UNICODE_LENGTH + 8];
-#endif
+		unsigned char RawPsw[UNICODE_LENGTH + 8 + 3];
 		int RawLength;
 		SHA_CTX ctx;
 		unsigned int digest[5];
-#if ARCH_LITTLE_ENDIAN && ARCH_ALLOWS_UNALIGNED
-		unsigned int *PswNum;
-#endif
+		unsigned char *PswNum;
 
-#if ARCH_LITTLE_ENDIAN && ARCH_ALLOWS_UNALIGNED
 		RawLength = saved_len[index] + 8 + 3;
-		PswNum = (unsigned int*) &RawPsw[saved_len[index] + 8];
-		*PswNum = 0;
-#else
-		RawLength = saved_len[index] + 8;
-#endif
+		PswNum = (unsigned char*) &RawPsw[saved_len[index] + 8];
+		PswNum[1] = PswNum[2] = 0;
 		/* derive IV and key for AES from saved_key and
 		   saved_salt, this code block is based on unrarhp's
 		   and unrar's sources */
@@ -698,19 +688,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		memcpy(RawPsw + saved_len[index], saved_salt, 8);
 		SHA1_Init(&ctx);
 		for (i = 0; i < ROUNDS; i++) {
-#if !(ARCH_LITTLE_ENDIAN && ARCH_ALLOWS_UNALIGNED)
-			unsigned char PswNum[3];
-#endif
+			PswNum[0] = (unsigned char) i;
+			if ( ((unsigned char) i) == 0) {
+				PswNum[1] = (unsigned char) (i >> 8);
+				PswNum[2] = (unsigned char) (i >> 16);
+			}
 
 			SHA1_Update(&ctx, RawPsw, RawLength);
-#if ARCH_LITTLE_ENDIAN && ARCH_ALLOWS_UNALIGNED
-			*PswNum += 1;
-#else
-			PswNum[0] = (unsigned char) i;
-			PswNum[1] = (unsigned char) (i >> 8);
-			PswNum[2] = (unsigned char) (i >> 16);
-			SHA1_Update(&ctx, PswNum, 3);
-#endif
 			if (i % (ROUNDS / 16) == 0) {
 				SHA_CTX tempctx = ctx;
 				unsigned int tempout[5];
