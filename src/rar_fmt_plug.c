@@ -671,7 +671,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	for (index = 0; index < count; index++) {
 		int i16 = index*16;
-		unsigned int i, j;
+		unsigned int i;
 		unsigned char RawPsw[UNICODE_LENGTH + 8 + 3];
 		int RawLength;
 		SHA_CTX ctx, tempctx;
@@ -701,13 +701,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			}
 		}
 		SHA1_Final((unsigned char*)digest, &ctx);
-#if ARCH_LITTLE_ENDIAN
-		for (j = 0; j < 5; j++)	/* reverse byte order */
-			digest[j] = JOHNSWAP(digest[j]);
-#endif
-		for (i = 0; i < 4; i++)
-			for (j = 0; j < 4; j++)
-				aes_key[i16 + i * 4 + j] = (unsigned char)(digest[i] >> (j * 8));
+		for (i = 0; i < 4; i++)	/* reverse byte order */
+			digest[i] = JOHNSWAP(digest[i]);
+		memcpy(&aes_key[i16], (unsigned char*)digest, 16);
 	}
 
 #ifdef _OPENMP
