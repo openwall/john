@@ -48,7 +48,7 @@ use MIME::Base64;
 #
 # these are decrypt images, which we may not be able to do in perl. We will
 # take these case by case.
-# office pdf pkzip zip rar5, rar4p, ssh
+# office pdf pkzip zip rar5, rar_pc, ssh
 #
 # lotus5 is done in some custom C code.  If someone wants to take a crack at
 # it here, be my guest :)
@@ -62,7 +62,7 @@ my @funcs = (qw(DESCrypt BigCrypt BSDIcrypt md5crypt md5crypt_a BCRYPT BCRYPTx
 		openssha l0phtcrack netlmv2 netntlmv2 mschapv2 mscash2 mediawiki
 		crc_32 Dynamic dummy raw-sha224 raw-sha256 raw-sha384 raw-sha512
 		dragonfly3-32 dragonfly4-32 dragonfly3-64 dragonfly4-64 ssh
-		salted-sha1 raw_gost raw_gost_cp hmac-sha1 hmac-sha224 rar5 rar4p rar4hp mozilla
+		salted-sha1 raw_gost raw_gost_cp hmac-sha1 hmac-sha224 rar5 rar_ps rar_pc rar_hp mozilla
 		hmac-sha256 hmac-sha384 hmac-sha512 sha256crypt sha512crypt
 		XSHA512 dynamic_27 dynamic_28 pwsafe django drupal7 epi zip
 		episerver_sha1 episerver_sha256 hmailserver ike keepass pkzip
@@ -1051,15 +1051,31 @@ sub _gen_key_rar4 {
 	require Crypt::OpenSSL::AES;
 	require Crypt::CBC;
 	my $crypt = Crypt::CBC->new(-literal_key => 1, -key => $key, -keysize => 16, -iv => $iv, -cipher => 'Crypt::OpenSSL::AES', -header => 'none');
+	while (length($raw_input) % 16 != 0) { $raw_input .= "\x00"; }
 	return $crypt->encrypt($raw_input);
 }
-sub rar4p {
-	# for rar 4 -p mode, we need to create a 'fake' file, we can then build an inline
-	# hash file, where we either encrypt the rar file (for stored), or zip the file,
-	# encrypt that buffer, and then save that.  Files should be able to be provided by
-	# user (use $argcontent);
+sub rar_pc {
+	# for rar 4 -p mode with compressed file.
+	# I am not sure there is perl code for rar compression, like there is for zip (implode)
+	# rar is an ugly bitch, so it is VERY likely this will never be handled, OR we will simply
+	# have a couple of pre-encrypted rar buffers stored as flat data.  The only difference for
+	# this function and rar_ps (stored), is that we append a 33 as the last value of the hash.
 }
-sub rar4hp {
+sub rar_ps {
+	# for rar 4 -p mode with stored file.
+	my $content; my $contentlen; my $contentpacklen;
+	if (defined $argsalt && length ($argsalt)==8) { $salt = $argsalt; } else { $salt = randstr(8); }
+	if (defined $argcontent) { $content = $argcontent; } else { $content = randstr(124); }
+	$contentlen = length($content);
+	$contentpacklen = $contentlen + 16-$contentlen%16;
+	my $output = _gen_key_rar4($_[0], $salt, $content);
+	require String::CRC32;
+	import String::CRC32 qw(crc32);
+	my $crcs = sprintf("%08x", crc32($content));  # note, wrong byte order!!
+	my $crc = substr($crcs,6).substr($crcs,4,2).substr($crcs,2,2).substr($crcs,0,2);
+	print "u$u-rar3hp:\$RAR3\$*1*".unpack("H*",$salt)."*$crc*".$contentpacklen."*".$contentlen."*1*".unpack("H*",substr($output,0,$contentpacklen))."*30:$u:0:$_[0]::\n";
+}
+sub rar_hp {
 	if (defined $argsalt && length ($argsalt)==8) { $salt = $argsalt; } else { $salt = randstr(8); }
 	my $output = _gen_key_rar4($_[0], $salt, "\xc4\x3d\x7b\x00\x40\x07\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00");
 	print "u$u-rar3hp:\$RAR3\$*0*".unpack("H*",$salt)."*".unpack("H*",substr($output,0,16)).":$u:0:$_[0]::\n";
