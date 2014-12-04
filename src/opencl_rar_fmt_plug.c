@@ -162,6 +162,7 @@ typedef struct {
 	unsigned long long pack_size;
 	unsigned long long unp_size;
 	int method;
+	unsigned char blob_hash[20]; // holds an sha1, but could be 'any' hash.
 	// raw_data should be word aligned, and 'ok'
 	unsigned char raw_data[1];
 } rarfile;
@@ -485,6 +486,7 @@ static void *get_salt(char *ciphertext)
 	rarfile *psalt;
 	unsigned char tmp_salt[8];
 	int inlined = 1;
+	SHA_CTX ctx;
 
 	if (!ptr) ptr = mem_alloc_tiny(sizeof(rarfile*),sizeof(rarfile*));
 	saltcopy += 7;		/* skip over "$RAR3$*" */
@@ -501,6 +503,7 @@ static void *get_salt(char *ciphertext)
 		for (i = 0; i < 16; i++)
 			psalt->raw_data[i] = atoi16[ARCH_INDEX(encoded_ct[i * 2])] * 16 + atoi16[ARCH_INDEX(encoded_ct[i * 2 + 1])];
 		psalt->blob = psalt->raw_data;
+		psalt->pack_size = 16;
 	} else {
 		char *p = strtok(NULL, "*");
 		char crc_c[4];
@@ -583,6 +586,9 @@ static void *get_salt(char *ciphertext)
 			psalt->crc.w = JOHNSWAP(~psalt->crc.w);
 #endif
 	}
+	SHA1_Init(&ctx);
+	SHA1_Update(&ctx, psalt->blob, psalt->pack_size);
+	SHA1_Final(psalt->blob_hash, &ctx);
 	MEM_FREE(keep_ptr);
 #if HAVE_MMAP
 	psalt->dsalt.salt_alloc_needs_free = inlined;
