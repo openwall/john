@@ -48,7 +48,7 @@ use MIME::Base64;
 #
 # these are decrypt images, which we may not be able to do in perl. We will
 # take these case by case.
-# office pdf pkzip zip rar5, rar_pc, ssh
+# office pdf pkzip zip rar5, ssh
 #
 # lotus5 is done in some custom C code.  If someone wants to take a crack at
 # it here, be my guest :)
@@ -62,7 +62,7 @@ my @funcs = (qw(DESCrypt BigCrypt BSDIcrypt md5crypt md5crypt_a BCRYPT BCRYPTx
 		openssha l0phtcrack netlmv2 netntlmv2 mschapv2 mscash2 mediawiki
 		crc_32 Dynamic dummy raw-sha224 raw-sha256 raw-sha384 raw-sha512
 		dragonfly3-32 dragonfly4-32 dragonfly3-64 dragonfly4-64 ssh
-		salted-sha1 raw_gost raw_gost_cp hmac-sha1 hmac-sha224 rar5 rar_ps rar_pc rar_hp mozilla
+		salted-sha1 raw_gost raw_gost_cp hmac-sha1 hmac-sha224 rar5 rar mozilla
 		hmac-sha256 hmac-sha384 hmac-sha512 sha256crypt sha512crypt
 		XSHA512 dynamic_27 dynamic_28 pwsafe django drupal7 epi zip
 		episerver_sha1 episerver_sha256 hmailserver ike keepass pkzip
@@ -1054,53 +1054,61 @@ sub _gen_key_rar4 {
 	while (length($raw_input) % 16 != 0) { $raw_input .= "\x00"; }
 	return $crypt->encrypt($raw_input);
 }
-sub rar_pc {
-	# for rar 4 -p mode with compressed file.
-	my $content; my $contentlen; my $contentpacklen; my $crc;
-	if (defined $argsalt && length ($argsalt)==8) { $salt = $argsalt; } else { $salt = randstr(8); }
-	my @ar;
-	my $rnd = int(rand(7));
+sub rar {
+	# for rar version 4 archives (both -p (compressed or stored) and -hp)
+	my $content; my $contentlen; my $contentpacklen; my $crc; my $type = "33";
+	$salt = randstr(8);
+	my $rnd = int(rand(10));
+	if (defined $argcontent) { $rnd = $argcontent; }
+	# first 7 are compressed files. 8th is stored file.  9-10 are type -hp
+	# using command line arg: '-content=7' would force only doing stored file -content=2 would force file 2,
+	# and -content=xxx or anything other than 0 to 7 would force -hp mode.
 	if ($rnd == 0) {
-	@ar = split('_', "b54415c5_46_0bc548bdd40d37b8578f5b39a3c022c11115d2ce1fb3d8f9c548bbddb5dfb7a56c475063d6eef86f2033f6fe7e20a4a24590e9f044759c4f0761dbe4");
+		$crc="b54415c5";
+		$contentlen="46";
+		$content=pack("H*","0bc548bdd40d37b8578f5b39a3c022c11115d2ce1fb3d8f9c548bbddb5dfb7a56c475063d6eef86f2033f6fe7e20a4a24590e9f044759c4f0761dbe4");
 	} elsif ($rnd == 1) {
-	@ar = split('_', "e90c7d49_28_0c0108be90bfb0a204c9dce07778e0700dfdbffeb056af47a8d305370ec39e95c87c7d");
+		$crc="e90c7d49";
+		$contentlen="28";
+		$content=pack("H*","0c0108be90bfb0a204c9dce07778e0700dfdbffeb056af47a8d305370ec39e95c87c7d");
 	} elsif ($rnd == 2) {
-	@ar = split('_',  "d3ec3a5e_54_09414c8fe50fbb85423de8e4694b222827da16cdfef463c52e29ef6ad1608b42e72884766c17f8527cefabb68c8f1daed4c6079ea715387c80");
+		$crc="d3ec3a5e";
+		$contentlen="54";
+		$content=pack("H*","09414c8fe50fbb85423de8e4694b222827da16cdfef463c52e29ef6ad1608b42e72884766c17f8527cefabb68c8f1daed4c6079ea715387c80");
 	} elsif ($rnd == 3) {
-	@ar = split('_',  "d85f3c19_142_0951148d3e11372f0a41e03270586689a203a24de9307ec104508af7f842668c4905491270ebabbbae53775456cf7b8795496201243e397cb8c6c0f78cb235303dd513853ffad6afc9bf5806e9cd6e0e3db4f82fc72b4ff10488beb8cdc2b6a545159260e47e891ec8");
+		$crc="d85f3c19";
+		$contentlen="142";
+		$content=pack("H*","0951148d3e11372f0a41e03270586689a203a24de9307ec104508af7f842668c4905491270ebabbbae53775456cf7b8795496201243e397cb8c6c0f78cb235303dd513853ffad6afc9bf5806e9cd6e0e3db4f82fc72b4ff10488beb8cdc2b6a545159260e47e891ec8");
 	} elsif ($rnd == 4) {
-	@ar = split('_', "b1e45656_82_090010cbe4cee6615e497b83a208d0a308ca5abc48fc2404fa204dfdbbd80e00e09d6f6a8c9c4fa2880ef8bb86bc5ba60fcb676a398a99f44ccaefdb4c498775f420be69095f25a09589b1aaf1");
+		$crc="b1e45656";
+		$contentlen="82";
+		$content=pack("H*","090010cbe4cee6615e497b83a208d0a308ca5abc48fc2404fa204dfdbbd80e00e09d6f6a8c9c4fa2880ef8bb86bc5ba60fcb676a398a99f44ccaefdb4c498775f420be69095f25a09589b1aaf1");
 	} elsif ($rnd == 5) {
-	@ar = split('_', "965f1453_47_09414c93e4cef985416f472549220827da3ba6fed8ad28e29ef6ad170ad53a69051e9b06f439ef6da5df8670181f7eb2481650");
+		$crc="965f1453";
+		$contentlen="47";
+		$content=pack("H*","09414c93e4cef985416f472549220827da3ba6fed8ad28e29ef6ad170ad53a69051e9b06f439ef6da5df8670181f7eb2481650");
 	} elsif ($rnd == 6) {
-	@ar = split('_', "51699729_27_100108be8cb7614409939cf2298079cbedfdbfec5e33d2b148c388be230259f57ddbe8");
+		$crc="51699729";
+		$contentlen="27";
+		$content=pack("H*","100108be8cb7614409939cf2298079cbedfdbfec5e33d2b148c388be230259f57ddbe8");
+	} elsif ($rnd == 7) {
+		$type = "30";
+		$content = randstr(int(rand(32))+int(rand(32))+16);
+		$contentlen=length($content);
+		require String::CRC32;
+		import String::CRC32 qw(crc32);
+		my $crcs = sprintf("%08x", crc32($content));  # note, rar_fmt/rar2john F's up the byte order!! so we have to match what it expects.
+		$crc = substr($crcs,6).substr($crcs,4,2).substr($crcs,2,2).substr($crcs,0,2);
+	} else {
+		# do -hp type here.
+		my $output = _gen_key_rar4($_[0], $salt, "\xc4\x3d\x7b\x00\x40\x07\x00");
+		print "u$u-rar3hp:\$RAR3\$*0*".unpack("H*",$salt)."*".unpack("H*",substr($output,0,16)).":$u:0:$_[0]::\n";
+		return;
 	}
-
-	$content=pack("H*",$ar[2]);
-	$contentlen = $ar[1];
-	$crc = $ar[0];
+	# common final processing for -p rar (-hp returns before getting here).
 	$contentpacklen = length($content) + 16-length($content)%16;
 	my $output = _gen_key_rar4($_[0], $salt, $content);
-	print "u$u-rar3hp:\$RAR3\$*1*".unpack("H*",$salt)."*$crc*".$contentpacklen."*".$contentlen."*1*".unpack("H*",substr($output,0,$contentpacklen))."*33:$u:0:$_[0]::\n";
-}
-sub rar_ps {
-	# for rar 4 -p mode with stored file.
-	my $content; my $contentlen; my $contentpacklen;
-	if (defined $argsalt && length ($argsalt)==8) { $salt = $argsalt; } else { $salt = randstr(8); }
-	if (defined $argcontent) { $content = $argcontent; } else { $content = randstr(124); }
-	$contentlen = length($content);
-	$contentpacklen = $contentlen + 16-$contentlen%16;
-	my $output = _gen_key_rar4($_[0], $salt, $content);
-	require String::CRC32;
-	import String::CRC32 qw(crc32);
-	my $crcs = sprintf("%08x", crc32($content));  # note, wrong byte order!!
-	my $crc = substr($crcs,6).substr($crcs,4,2).substr($crcs,2,2).substr($crcs,0,2);
-	print "u$u-rar3hp:\$RAR3\$*1*".unpack("H*",$salt)."*$crc*".$contentpacklen."*".$contentlen."*1*".unpack("H*",substr($output,0,$contentpacklen))."*30:$u:0:$_[0]::\n";
-}
-sub rar_hp {
-	if (defined $argsalt && length ($argsalt)==8) { $salt = $argsalt; } else { $salt = randstr(8); }
-	my $output = _gen_key_rar4($_[0], $salt, "\xc4\x3d\x7b\x00\x40\x07\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00");
-	print "u$u-rar3hp:\$RAR3\$*0*".unpack("H*",$salt)."*".unpack("H*",substr($output,0,16)).":$u:0:$_[0]::\n";
+	print "u$u-rar:\$RAR3\$*1*".unpack("H*",$salt)."*$crc*$contentpacklen*$contentlen*1*".unpack("H*",substr($output,0,$contentpacklen))."*$type:$u:0:$_[0]::\n";
 }
 sub ssh {
 }
