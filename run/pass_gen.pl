@@ -1005,14 +1005,24 @@ sub odf_1 {
 	if (defined $argiv && length ($argiv)==16) { $iv = $argiv; } else { $iv = randstr(16); }
 	if (defined $argcontent) { $content = $argcontent; } else { $content = randstr(1024); }
 	my $s = sha256($_[0]);
+	#print "s=    ".unpack("H*",$s)."\n";
 	my $key = pp_pbkdf2($s, $salt, 1024, "sha1", 32);
+	#print "key=  ".unpack("H*",$key)."\n";
 	require Crypt::OpenSSL::AES;
 	require Crypt::CBC;
 	my $crypt = Crypt::CBC->new(-literal_key => 1, -key => $key, -iv => $iv, -cipher => "Crypt::OpenSSL::AES", -header => 'none');
 	# we have to pad to even length, or the AES code will not generate proper value.
-	while (length($content)%16 != 0) { $content .= "\x0"; }
-	my $output = $crypt->decrypt($content);
+	while (length($content)%16 != 0) { $content .= " " }
+	my $output = substr($crypt->decrypt($content), 0, length($content));
+	# NOTE, I have found a bug in Crypt::CBC when using Crypt::OpenSSL::AES.
+	# If the last byte is a 1, sometimes it is not output!?!?!?!
+	if (length($output)+1 == length($content)) {
+		$output .= "\x01";
+	}
+	#print length($output)."  ".length($content)."\n";
+	#print "outpT=".unpack("H*",$output)."\n";
 	$s = sha256($output);
+	#print "res=  ".unpack("H*",$s)."\n";
 	print "u$u-odf:\$odf\$*1*1*1024*32*".unpack("H*",$s)."*16*".unpack("H*",$iv)."*16*".unpack("H*",$salt)."*0*".unpack("H*",$content).":$u:0:$_[0]::\n";
 }
 sub office {
