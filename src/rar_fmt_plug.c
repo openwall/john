@@ -308,6 +308,7 @@ static void *get_salt(char *ciphertext)
 		for (i = 0; i < 16; i++)
 			psalt->raw_data[i] = atoi16[ARCH_INDEX(encoded_ct[i * 2])] * 16 + atoi16[ARCH_INDEX(encoded_ct[i * 2 + 1])];
 		psalt->blob = psalt->raw_data;
+		psalt->pack_size = 16;
 	} else {
 		char *p = strtok(NULL, "*");
 		char crc_c[4];
@@ -381,9 +382,6 @@ static void *get_salt(char *ciphertext)
 #endif
 			fclose(fp);
 		}
-		SHA1_Init(&ctx);
-		SHA1_Update(&ctx, psalt->blob, psalt->pack_size);
-		SHA1_Final(psalt->blob_hash, &ctx);
 		p = strtok(NULL, "*");
 		psalt->method = atoi16[ARCH_INDEX(p[0])] * 16 + atoi16[ARCH_INDEX(p[1])];
 		if (psalt->method != 0x30)
@@ -393,6 +391,9 @@ static void *get_salt(char *ciphertext)
 			psalt->crc.w = JOHNSWAP(~psalt->crc.w);
 #endif
 	}
+	SHA1_Init(&ctx);
+	SHA1_Update(&ctx, psalt->blob, psalt->pack_size);
+	SHA1_Final(psalt->blob_hash, &ctx);
 	MEM_FREE(keep_ptr);
 #if HAVE_MMAP
 	psalt->dsalt.salt_alloc_needs_free = inlined;
