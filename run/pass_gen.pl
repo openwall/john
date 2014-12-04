@@ -1059,38 +1059,26 @@ sub rar {
 	my $content; my $contentlen; my $contentpacklen; my $crc; my $type = "33";
 	$salt = randstr(8);
 	my $rnd = int(rand(10));
+	my @ar;
 	if (defined $argcontent) { $rnd = $argcontent; }
 	# first 7 are compressed files. 8th is stored file.  9-10 are type -hp
 	# using command line arg: '-content=7' would force only doing stored file -content=2 would force file 2,
 	# and -content=xxx or anything other than 0 to 7 would force -hp mode.
 	if ($rnd == 0) {
-		$crc="b54415c5";
-		$contentlen="46";
-		$content=pack("H*","0bc548bdd40d37b8578f5b39a3c022c11115d2ce1fb3d8f9c548bbddb5dfb7a56c475063d6eef86f2033f6fe7e20a4a24590e9f044759c4f0761dbe4");
+		# the format of the string is crc~len~rarpackbuffer  the rarpackbuffer is NOT encrypted.  We put that into an array, and later pull it out.
+		@ar = split("~", "b54415c5~46~0bc548bdd40d37b8578f5b39a3c022c11115d2ce1fb3d8f9c548bbddb5dfb7a56c475063d6eef86f2033f6fe7e20a4a24590e9f044759c4f0761dbe4");
 	} elsif ($rnd == 1) {
-		$crc="e90c7d49";
-		$contentlen="28";
-		$content=pack("H*","0c0108be90bfb0a204c9dce07778e0700dfdbffeb056af47a8d305370ec39e95c87c7d");
+		@ar = split("~", "e90c7d49~28~0c0108be90bfb0a204c9dce07778e0700dfdbffeb056af47a8d305370ec39e95c87c7d");
 	} elsif ($rnd == 2) {
-		$crc="d3ec3a5e";
-		$contentlen="54";
-		$content=pack("H*","09414c8fe50fbb85423de8e4694b222827da16cdfef463c52e29ef6ad1608b42e72884766c17f8527cefabb68c8f1daed4c6079ea715387c80");
+		@ar = split("~", "d3ec3a5e~54~09414c8fe50fbb85423de8e4694b222827da16cdfef463c52e29ef6ad1608b42e72884766c17f8527cefabb68c8f1daed4c6079ea715387c80");
 	} elsif ($rnd == 3) {
-		$crc="d85f3c19";
-		$contentlen="142";
-		$content=pack("H*","0951148d3e11372f0a41e03270586689a203a24de9307ec104508af7f842668c4905491270ebabbbae53775456cf7b8795496201243e397cb8c6c0f78cb235303dd513853ffad6afc9bf5806e9cd6e0e3db4f82fc72b4ff10488beb8cdc2b6a545159260e47e891ec8");
+		@ar = split("~", "d85f3c19~142~0951148d3e11372f0a41e03270586689a203a24de9307ec104508af7f842668c4905491270ebabbbae53775456cf7b8795496201243e397cb8c6c0f78cb235303dd513853ffad6afc9bf5806e9cd6e0e3db4f82fc72b4ff10488beb8cdc2b6a545159260e47e891ec8");
 	} elsif ($rnd == 4) {
-		$crc="b1e45656";
-		$contentlen="82";
-		$content=pack("H*","090010cbe4cee6615e497b83a208d0a308ca5abc48fc2404fa204dfdbbd80e00e09d6f6a8c9c4fa2880ef8bb86bc5ba60fcb676a398a99f44ccaefdb4c498775f420be69095f25a09589b1aaf1");
+		@ar = split("~", "b1e45656~82~090010cbe4cee6615e497b83a208d0a308ca5abc48fc2404fa204dfdbbd80e00e09d6f6a8c9c4fa2880ef8bb86bc5ba60fcb676a398a99f44ccaefdb4c498775f420be69095f25a09589b1aaf1");
 	} elsif ($rnd == 5) {
-		$crc="965f1453";
-		$contentlen="47";
-		$content=pack("H*","09414c93e4cef985416f472549220827da3ba6fed8ad28e29ef6ad170ad53a69051e9b06f439ef6da5df8670181f7eb2481650");
+		@ar = split("~", "965f1453~47~09414c93e4cef985416f472549220827da3ba6fed8ad28e29ef6ad170ad53a69051e9b06f439ef6da5df8670181f7eb2481650");
 	} elsif ($rnd == 6) {
-		$crc="51699729";
-		$contentlen="27";
-		$content=pack("H*","100108be8cb7614409939cf2298079cbedfdbfec5e33d2b148c388be230259f57ddbe8");
+		@ar = split("~", "51699729~27~100108be8cb7614409939cf2298079cbedfdbfec5e33d2b148c388be230259f57ddbe8");
 	} elsif ($rnd == 7) {
 		$type = "30";
 		$content = randstr(int(rand(32))+int(rand(32))+16);
@@ -1099,13 +1087,17 @@ sub rar {
 		import String::CRC32 qw(crc32);
 		my $crcs = sprintf("%08x", crc32($content));  # note, rar_fmt/rar2john F's up the byte order!! so we have to match what it expects.
 		$crc = substr($crcs,6).substr($crcs,4,2).substr($crcs,2,2).substr($crcs,0,2);
+		@ar = ($crc, $contentlen, unpack("H*", $content));
 	} else {
 		# do -hp type here.
 		my $output = _gen_key_rar4($_[0], $salt, "\xc4\x3d\x7b\x00\x40\x07\x00");
-		print "u$u-rar3hp:\$RAR3\$*0*".unpack("H*",$salt)."*".unpack("H*",substr($output,0,16)).":$u:0:$_[0]::\n";
+		print "u$u-rarhp:\$RAR3\$*0*".unpack("H*",$salt)."*".unpack("H*",substr($output,0,16)).":$u:0:$_[0]::\n";
 		return;
 	}
 	# common final processing for -p rar (-hp returns before getting here).
+	$crc = $ar[0];
+	$contentlen = $ar[1];
+	$content = pack("H*", $ar[2]);
 	$contentpacklen = length($content) + 16-length($content)%16;
 	my $output = _gen_key_rar4($_[0], $salt, $content);
 	print "u$u-rar:\$RAR3\$*1*".unpack("H*",$salt)."*$crc*$contentpacklen*$contentlen*1*".unpack("H*",substr($output,0,$contentpacklen))."*$type:$u:0:$_[0]::\n";
