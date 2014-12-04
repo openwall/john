@@ -9,39 +9,6 @@
  * NOTICE: After changes in headers, you probably need to drop cached
  * kernels to ensure the changes take effect.
  *
- * Some code originally had this copyright notice:
- *
- * Copyright (c) 1996-2000 Whistle Communications, Inc.
- * All rights reserved.
- *
- * Subject to the following obligations and disclaimer of warranty, use and
- * redistribution of this software, in source or object code forms, with or
- * without modifications are expressly permitted by Whistle Communications;
- * provided, however, that:
- * 1. Any and all reproductions of the source or object code must include the
- *    copyright notice above and the following disclaimer of warranties; and
- * 2. No rights are granted, in any manner or form, to use Whistle
- *    Communications, Inc. trademarks, including the mark "WHISTLE
- *    COMMUNICATIONS" on advertising, endorsements, or otherwise except as
- *    such appears in the above copyright notice or in the software.
- *
- * THIS SOFTWARE IS BEING PROVIDED BY WHISTLE COMMUNICATIONS "AS IS", AND
- * TO THE MAXIMUM EXTENT PERMITTED BY LAW, WHISTLE COMMUNICATIONS MAKES NO
- * REPRESENTATIONS OR WARRANTIES, EXPRESS OR IMPLIED, REGARDING THIS SOFTWARE,
- * INCLUDING WITHOUT LIMITATION, ANY AND ALL IMPLIED WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, OR NON-INFRINGEMENT.
- * WHISTLE COMMUNICATIONS DOES NOT WARRANT, GUARANTEE, OR MAKE ANY
- * REPRESENTATIONS REGARDING THE USE OF, OR THE RESULTS OF THE USE OF THIS
- * SOFTWARE IN TERMS OF ITS CORRECTNESS, ACCURACY, RELIABILITY OR OTHERWISE.
- * IN NO EVENT SHALL WHISTLE COMMUNICATIONS BE LIABLE FOR ANY DAMAGES
- * RESULTING FROM OR ARISING OUT OF ANY USE OF THIS SOFTWARE, INCLUDING
- * WITHOUT LIMITATION, ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY,
- * PUNITIVE, OR CONSEQUENTIAL DAMAGES, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES, LOSS OF USE, DATA OR PROFITS, HOWEVER CAUSED AND UNDER ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
- * THIS SOFTWARE, EVEN IF WHISTLE COMMUNICATIONS IS ADVISED OF THE POSSIBILITY
- * OF SUCH DAMAGE.
  */
 
 #ifndef _OPENCL_RC4_H
@@ -53,11 +20,15 @@
 #error RC4_BUFLEN must be defined prior to including opencl_rc4.h
 #endif
 
-// None 2885 626
-#define USE_IV32 // 3633 696
-#define UNROLLED_RC4_KEY // 3893 817
-#define UNROLLED_RC4 // 3932 848
-//#define USE_LOCAL // 455 397
+// None 2885 626 13860 8097
+#define USE_IV32 // 3633 696 14278 8118
+#if !gpu_amd(DEVICE_INFO) /* bug in Catalyst 14.9, besides its slower */
+#define UNROLLED_RC4_KEY // 3893 817 14340 7245
+#define UNROLLED_RC4 // 3932 848 14348 7847
+#endif
+#if gpu(DEVICE_INFO) /* Actually we only want discrete GPUs */
+#define USE_LOCAL // 455 397 20560 31655
+#endif
 
 #ifdef USE_IV32
 __constant uint rc4_iv[64] = { 0x03020100, 0x07060504, 0x0b0a0908, 0x0f0e0d0c,
@@ -77,81 +48,6 @@ __constant uint rc4_iv[64] = { 0x03020100, 0x07060504, 0x0b0a0908, 0x0f0e0d0c,
                                0xe3e2e1e0, 0xe7e6e5e4, 0xebeae9e8, 0xefeeedec,
                                0xf3f2f1f0, 0xf7f6f5f4, 0xfbfaf9f8, 0xfffefdfc };
 #endif
-
-#if 0  /* Generic code */
-typedef struct {
-	uint	perm[256];
-	uchar	index1;
-	uchar	index2;
-} rc4_state_t;
-
-inline void swap_bytes(uint* a, uint* b)
-{
-	uint tmp = *a;
-	*a = *b;
-	*b = tmp;
-}
-
-inline void rc4_init(rc4_state_t* const state, uint *key, int keylen)
-{
-	uchar j;
-	int i;
-	const uchar* keybuf = (const uchar*)key;
-
-	for (i = 0; i < 256; i++)
-		state->perm[i] = (uint)i;
-	state->index1 = 0;
-	state->index2 = 0;
-	for (j = i = 0; i < 256; i++) {
-		j += state->perm[i] + keybuf[i & (keylen - 1)];
-		swap_bytes(&state->perm[i], &state->perm[j]);
-	}
-}
-
-/* Unrolled to 32-bit xor, buflen must be multiple of 4 */
-inline void rc4_crypt(rc4_state_t* const state, const uint* in, uint* out, int buflen)
-{
-	int i;
-
-	for (i = 0; i < buflen; i++) {
-		uchar j;
-		uint perm;
-
-		state->index1++;
-		state->index2 += state->perm[state->index1];
-		swap_bytes(&state->perm[state->index1],
-		           &state->perm[state->index2]);
-		j = state->perm[state->index1] + state->perm[state->index2];
-		perm = state->perm[j];
-		i++;
-
-		state->index1++;
-		state->index2 += state->perm[state->index1];
-		swap_bytes(&state->perm[state->index1],
-		           &state->perm[state->index2]);
-		j = state->perm[state->index1] + state->perm[state->index2];
-		perm += state->perm[j] << 8;
-		i++;
-
-		state->index1++;
-		state->index2 += state->perm[state->index1];
-		swap_bytes(&state->perm[state->index1],
-		           &state->perm[state->index2]);
-		j = state->perm[state->index1] + state->perm[state->index2];
-		perm += state->perm[j] << 16;
-		i++;
-
-		state->index1++;
-		state->index2 += state->perm[state->index1];
-		swap_bytes(&state->perm[state->index1],
-		           &state->perm[state->index2]);
-		j = state->perm[state->index1] + state->perm[state->index2];
-		perm += state->perm[j] << 24;
-
-		*out++ = *in++ ^ perm;
-	}
-}
-#endif /* Generic BSD code */
 
 #ifndef USE_LOCAL
 #undef GETCHAR_L
@@ -185,7 +81,11 @@ inline void rc4_crypt(rc4_state_t* const state, const uint* in, uint* out, int b
 /*
  * One-shot RC4 with fixed keylen of 16. No byte addressed stores.
  */
-inline void rc4(const uint *key,
+inline void rc4(
+#ifdef USE_LOCAL
+                __local uint *state,
+#endif
+                const uint *key,
 #ifdef RC4_IN_PLACE
                 uint *buf
 #else
@@ -197,10 +97,7 @@ inline void rc4(const uint *key,
 	uint y = 0;
 	uint index1 = 0;
 	uint index2 = 0;
-#ifdef USE_LOCAL
-	__local uint state_l[64][256/4];
-	__local uint *state = state_l[get_local_id(0)];
-#else
+#ifndef USE_LOCAL
 	uint state[256/4];
 #endif
 
@@ -213,7 +110,7 @@ inline void rc4(const uint *key,
 		PUTCHAR_L(state, x, x);
 #endif
 
-	/* RC4_set_key() */
+	/* RC4_set_key() 406ms */
 #ifdef UNROLLED_RC4_KEY
 	/* Unrolled for hard-coded key length 16 */
 	for (x = 0; x < 256; x++) {
@@ -240,7 +137,7 @@ inline void rc4(const uint *key,
 		swap_state(x);
 #endif
 
-	/* RC4() */
+	/* RC4() 76ms for 32 bytes in-place */
 #ifdef UNROLLED_RC4
 	/* Unrolled to 32-bit xor */
 	for (x = 1; x <= RC4_BUFLEN; x++) {
@@ -272,13 +169,14 @@ inline void rc4(const uint *key,
 #endif
 	}
 #else /* UNROLLED_RC4 */
+#pragma unroll
 	for (x = 1; x <= RC4_BUFLEN; x++) {
 		y = (GETCHAR_L(state, x) + y) & 255;
 		swap_byte(x, y);
 #ifdef RC4_IN_PLACE
 		XORCHAR(buf, x - 1, GETCHAR_L(state, (GETCHAR_L(state, x) + GETCHAR_L(state, y)) & 255));
 #else
-		PUTCHAR_G(out, x - 1, GETCHAR_G(in, x - 1) ^ (GETCHAR_L(state, (GETCHAR_L(state, x) + GETCHAR_L(state, y)) & 255)));
+		PUTCHAR_G(out, x - 1, GETCHAR_MC(in, x - 1) ^ (GETCHAR_L(state, (GETCHAR_L(state, x) + GETCHAR_L(state, y)) & 255)));
 #endif
 	}
 #endif /* UNROLLED_RC4 */

@@ -119,7 +119,7 @@ static cl_kernel oldoffice_utf16, oldoffice_md5, oldoffice_sha1;
 #include "memdbg.h"
 
 static const char * warn[] = {
-	"xfer: ",  ", xfer: ",  ", md5: ",  ", rc4: ",  ", xfer: ",  ", xfer: "
+	"xP: ",  ", xI: ",  ", enc: ",  ", md5+rc4: ",  ", xR: "
 };
 
 /* ------- Helper functions ------- */
@@ -242,8 +242,8 @@ static void init(struct fmt_main *self)
 
 	// Initialize openCL tuning (library) for this format.
 	opencl_init_auto_setup(SEED, 0, NULL,
-		warn, 3, self, create_clobj, release_clobj,
-		2 * max_len, 0);
+	                       warn, 3, self, create_clobj, release_clobj,
+	                       sizeof(mid_t), 0);
 
 	// Auto tune execution from shared/included code.
 	autotune_run(self, 1, 0, 1000000000);
@@ -444,9 +444,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			break;
 		}
 	} else {
-		HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_salt, CL_TRUE, 0, SALT_SIZE, cur_salt, 0, NULL, multi_profilingEvent[4]), "Failed transferring salt");
+		HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_salt, CL_TRUE, 0, SALT_SIZE, cur_salt, 0, NULL, NULL), "Failed transferring salt");
 		if ((any_cracked = cur_salt->has_mitm))
-			HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_result, CL_TRUE, 0, sizeof(unsigned int) * global_work_size, cracked, 0, NULL, multi_profilingEvent[5]), "failed reading results back");
+			HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_result, CL_TRUE, 0, sizeof(unsigned int) * global_work_size, cracked, 0, NULL, multi_profilingEvent[4]), "failed reading results back");
 	}
 
 	return count;
