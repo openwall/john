@@ -22,7 +22,7 @@
 
 #include "opencl_device_info.h"
 
-#if cpu(DEVICE_INFO) || gpu_amd(DEVICE_INFO) || nvidia_sm_5x(DEVICE_INFO)
+#if !gpu_nvidia(DEVICE_INFO) || nvidia_sm_5x(DEVICE_INFO)
 #define USE_BITSELECT
 #elif gpu_nvidia(DEVICE_INFO) && !nvidia_sm_5x(DEVICE_INFO)
 #define OLD_NVIDIA

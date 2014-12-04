@@ -26,7 +26,7 @@
 #define UNROLLED_RC4_KEY // 3893 817 14340 7245
 #define UNROLLED_RC4 // 3932 848 14348 7847
 #endif
-#if gpu(DEVICE_INFO) /* Actually we only want discrete GPUs */
+#if !defined(APPLE) && gpu(DEVICE_INFO) /* Actually we want discrete GPUs */
 #define USE_LOCAL // 455 397 20560 31655
 #endif
 
