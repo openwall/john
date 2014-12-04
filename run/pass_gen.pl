@@ -1056,10 +1056,32 @@ sub _gen_key_rar4 {
 }
 sub rar_pc {
 	# for rar 4 -p mode with compressed file.
-	# I am not sure there is perl code for rar compression, like there is for zip (implode)
-	# rar is an ugly bitch, so it is VERY likely this will never be handled, OR we will simply
-	# have a couple of pre-encrypted rar buffers stored as flat data.  The only difference for
-	# this function and rar_ps (stored), is that we append a 33 as the last value of the hash.
+	my $content; my $contentlen; my $contentpacklen; my $crc;
+	if (defined $argsalt && length ($argsalt)==8) { $salt = $argsalt; } else { $salt = randstr(8); }
+	my @ar;
+	my $rnd = int(rand(7));
+	if ($rnd == 0) {
+	@ar = split('_', "b54415c5_46_0bc548bdd40d37b8578f5b39a3c022c11115d2ce1fb3d8f9c548bbddb5dfb7a56c475063d6eef86f2033f6fe7e20a4a24590e9f044759c4f0761dbe4");
+	} elsif ($rnd == 1) {
+	@ar = split('_', "e90c7d49_28_0c0108be90bfb0a204c9dce07778e0700dfdbffeb056af47a8d305370ec39e95c87c7d");
+	} elsif ($rnd == 2) {
+	@ar = split('_',  "d3ec3a5e_54_09414c8fe50fbb85423de8e4694b222827da16cdfef463c52e29ef6ad1608b42e72884766c17f8527cefabb68c8f1daed4c6079ea715387c80");
+	} elsif ($rnd == 3) {
+	@ar = split('_',  "d85f3c19_142_0951148d3e11372f0a41e03270586689a203a24de9307ec104508af7f842668c4905491270ebabbbae53775456cf7b8795496201243e397cb8c6c0f78cb235303dd513853ffad6afc9bf5806e9cd6e0e3db4f82fc72b4ff10488beb8cdc2b6a545159260e47e891ec8");
+	} elsif ($rnd == 4) {
+	@ar = split('_', "b1e45656_82_090010cbe4cee6615e497b83a208d0a308ca5abc48fc2404fa204dfdbbd80e00e09d6f6a8c9c4fa2880ef8bb86bc5ba60fcb676a398a99f44ccaefdb4c498775f420be69095f25a09589b1aaf1");
+	} elsif ($rnd == 5) {
+	@ar = split('_', "965f1453_47_09414c93e4cef985416f472549220827da3ba6fed8ad28e29ef6ad170ad53a69051e9b06f439ef6da5df8670181f7eb2481650");
+	} elsif ($rnd == 6) {
+	@ar = split('_', "51699729_27_100108be8cb7614409939cf2298079cbedfdbfec5e33d2b148c388be230259f57ddbe8");
+	}
+
+	$content=pack("H*",$ar[2]);
+	$contentlen = $ar[1];
+	$crc = $ar[0];
+	$contentpacklen = length($content) + 16-length($content)%16;
+	my $output = _gen_key_rar4($_[0], $salt, $content);
+	print "u$u-rar3hp:\$RAR3\$*1*".unpack("H*",$salt)."*$crc*".$contentpacklen."*".$contentlen."*1*".unpack("H*",substr($output,0,$contentpacklen))."*33:$u:0:$_[0]::\n";
 }
 sub rar_ps {
 	# for rar 4 -p mode with stored file.
