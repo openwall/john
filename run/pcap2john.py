@@ -13,6 +13,7 @@ import sys
 import dpkt.ethernet as ethernet
 import dpkt.stp as stp
 import struct
+import socket
 
 import os
 import logging
@@ -22,8 +23,7 @@ from binascii import hexlify
 try:
     from scapy.all import TCP, rdpcap
 except ImportError:
-    sys.stderr.write("Please install scapy, "
-            "http://www.secdev.org/projects/scapy/\n")
+    sys.stderr.write("Please install scapy, http://www.secdev.org/projects/scapy/\n")
     sys.exit(-1)
 try:
     from lxml import etree
@@ -33,6 +33,7 @@ except ImportError:
 import binascii
 
 VTP_DOMAIN_SIZE = 32
+
 
 def pcap_parser_bfd(fname):
 
@@ -76,6 +77,7 @@ def pcap_parser_bfd(fname):
                 assert 0
 
     f.close()
+
 
 class LLC(dpkt.Packet):  # borrowed from dpkt "trunk"
     _typesw = {}
@@ -165,6 +167,7 @@ def pcap_parser_vtp(fname):
 
     f.close()
 
+
 def pcap_parser_vrrp(fname):
 
     f = open(fname, "rb")
@@ -203,6 +206,7 @@ def pcap_parser_vrrp(fname):
             sys.stdout.write("%s:$hsrp$%s$%s\n" % (index, salt.encode("hex"), h))
 
     f.close()
+
 
 def pcap_parser_tcpmd5(fname):
 
@@ -271,14 +275,14 @@ def pcap_parser_tcpmd5(fname):
                 salt = salt + raw_tcp_data[:16]  # TCP header without checksum
                 salt = salt + ("\x00" * 4)  # add zero checksum
                 # add segment data
-                salt = salt + raw_tcp_data[header_length:header_length +
-                        data_length]
+                salt = salt + raw_tcp_data[header_length:header_length + data_length]
                 # print len(salt)
 
                 sys.stdout.write("$tcpmd5$%s$%s\n" % (salt.encode("hex"),
-                        opt_data.encode("hex")))
+                                                      opt_data.encode("hex")))
 
     f.close()
+
 
 def pcap_parser_s7(cfg_pcap_file):
     found_something = False
@@ -300,10 +304,10 @@ def pcap_parser_s7(cfg_pcap_file):
         try:
             payload = packet.load.encode('hex')
             # if payload[14:26]=='720200453200' and payload[46:52]=='100214' and abs(packet.len+14 - 138)<=1:
-            if payload[14:20]=='720200' and payload[46:52]=='100214' and abs(packet.len+14 - 138)<=1:
+            if payload[14:20] == '720200' and payload[46:52] == '100214' and abs(packet.len+14 - 138) <= 1:
                 challenge = payload[52:92]
             # elif payload[14:26]=='720200663100' and payload[64:70]=='100214'  and abs(packet.len+14 - 171)<=1:
-            elif payload[14:20]=='720200' and payload[64:70]=='100214'  and abs(packet.len+14 - 171)<=1:
+            elif payload[14:20] == '720200' and payload[64:70] == '100214' and abs(packet.len+14 - 171) <= 1:
                 response = payload[70:110]
 
             if challenge and response:
@@ -359,8 +363,8 @@ def pcap_parser_s7(cfg_pcap_file):
             assert(pckt_92)
             break
 
-    # print "found packets indices: pckt_108=%d, pckt_141=%d, pckt_84=%d, pckt_92=%d" % (pckt_108, pckt_141, pckt_84, pckt_92)
-    # if pckt_84:
+    # print "found packets indices: pckt_108=%d, pckt_141=%d, pckt_84=%d, pckt_92=%d" % (pckt_108, pckt_141, pckt_84,
+    #   pckt_92) if pckt_84:
     #    print "auth ok"
     # else:
     #    print "auth bad. for brute we need right auth result. exit"
@@ -382,7 +386,7 @@ def pcap_parser_s7(cfg_pcap_file):
         # sys.stdout.write("found challenge: %s\n" % challenge)
     else:
         sys.stderr.write("[-] cannot find challenge for %s. exiting...\n"
-                % os.path.basename(cfg_pcap_file))
+                         % os.path.basename(cfg_pcap_file))
         return
 
     raw_response = hexlify(r[pckt_141].load)
@@ -391,7 +395,7 @@ def pcap_parser_s7(cfg_pcap_file):
         # sys.stdout.write("found  response: %s\n" % response)
     else:
         sys.stderr.write("[-] cannot find response for %s. exiting...\n"
-                % os.path.basename(cfg_pcap_file))
+                         % os.path.basename(cfg_pcap_file))
         return
 
     if pckt_84:
@@ -399,7 +403,8 @@ def pcap_parser_s7(cfg_pcap_file):
     else:
         outcome = 0
     sys.stdout.write("%s:$siemens-s7$%s$%s$%s\n" % (os.path.basename(cfg_pcap_file),
-        outcome, challenge, response))
+                                                    outcome, challenge, response))
+
 
 def pcap_parser_rsvp(fname):
 
@@ -445,6 +450,7 @@ def pcap_parser_rsvp(fname):
             sys.stdout.write("%s:$rsvp$%d$%s$%s\n" % (index, algo_type, salt.encode("hex"), h.encode("hex")))
 
     f.close()
+
 
 def pcap_parser_ntp(fname):
 
@@ -498,8 +504,8 @@ def pcap_parser_ntp(fname):
             else:
                 print "Unsupported hash of length %s found!" % len(data)
 
-
     f.close()
+
 
 def pcap_parser_krbpa(f):
 
@@ -553,11 +559,12 @@ def pcap_parser_krbpa(f):
                 if user == "":
                     user = binascii.unhexlify(salt)
                 sys.stdout.write("%s:$krb5pa$%s$%s$%s$%s$%s\n" % (user,
-                    etype, user, realm, binascii.unhexlify(salt),
-                    encrypted_timestamp))
+                                                                  etype, user, realm, binascii.unhexlify(salt),
+                                                                  encrypted_timestamp))
                 # reset state
                 state = None
                 got_etype = False
+
 
 def pcap_parser_isis(fname):
 
@@ -697,6 +704,7 @@ def pcap_parser_hsrp(fname):
 
     f.close()
 
+
 def pcap_parser_glbp(fname):
 
     f = open(fname, "rb")
@@ -729,7 +737,6 @@ def pcap_parser_glbp(fname):
             if len(data) < 40:  # XXX rough estimate ;)
                 continue
 
-            # Authentication Type TLV is at offset 12
             # XXX We should do Authentication TLV processing with generic TLV
             # processing code below!
             tlv_type = ord(data[12])
@@ -746,7 +753,7 @@ def pcap_parser_glbp(fname):
                 continue
 
             # hash is at offset 20
-            h = data[20:20 +16].encode("hex")
+            h = data[20:20 + 16].encode("hex")
 
             # salt extends from offset 0 to 19 (hash starts from 20)
             salt = data[0:20]
@@ -782,17 +789,20 @@ def pcap_parser_glbp(fname):
 
     f.close()
 
+
 def endian(s):
     ret = ""
     for i in range(0, len(s), 2):
         ret += s[i + 1] + s[i]
     return ret
 
+
 def process_hash(uid, nonce, sha1):
     if len(nonce) == 0:
         return
     uid = int(endian(uid[::-1]), 16)
     print "%s:$dynamic_24$%s$HEX$%s" % (uid, sha1, nonce)
+
 
 def pcap_parser_gadu(pcapfile):
     try:
@@ -815,6 +825,7 @@ def pcap_parser_gadu(pcapfile):
                     sha1 = payload[30:70]
                     process_hash(uid, nonce, sha1)
 
+
 def pcap_parser_eigrp(fname):
 
     f = open(fname, "rb")
@@ -835,6 +846,7 @@ def pcap_parser_eigrp(fname):
                 continue
 
             data = ip.data
+            destination = socket.inet_ntoa(ip.src)
 
             if ord(data[0]) != 2:  # EIGRP version
                 continue
@@ -923,8 +935,13 @@ def pcap_parser_eigrp(fname):
             if not extra_salt:
                 extra_salt = "no-extra-salt"
 
-            sys.stdout.write("%s:$eigrp$%d$%s$%d$%s$%s\n" % (index, algo_type, salt.encode("hex"), have_extra_salt,
-                                                             extra_salt, h))
+            # HMAC-SHA-256 seems to use all data as salt
+            if algo_type == 3:
+                salt = data[0:2] + "\x00\x00\x00\x00" + data[6:]  # zero-ize checksum
+                salt = salt.replace(h.decode("hex"), "\x00" * hash_length)  # zero-ize the digest
+
+            sys.stdout.write("%s:$eigrp$%d$%s$%d$%s$1$%s$%s\n" % (index, algo_type, salt.encode("hex"), have_extra_salt,
+                                                                  extra_salt, destination, h))
 
     f.close()
 
@@ -942,21 +959,21 @@ if __name__ == "__main__":
         try:
             pcap_parser_vtp(sys.argv[i])
         except:
-            #sys.stderr.write("vtp could not handle input\n")
+            # sys.stderr.write("vtp could not handle input\n")
             pass
         pcap_parser_vrrp(sys.argv[i])
         pcap_parser_tcpmd5(sys.argv[i])
         try:
             pcap_parser_s7(sys.argv[i])
         except:
-            #sys.stderr.write("s7 could not handle input\n")
+            # sys.stderr.write("s7 could not handle input\n")
             pass
         pcap_parser_rsvp(sys.argv[i])
         pcap_parser_ntp(sys.argv[i])
         try:
             pcap_parser_krbpa(sys.argv[i])
         except:
-            #sys.stderr.write("krbpa could not handle input\n")
+            # sys.stderr.write("krbpa could not handle input\n")
             pass
         pcap_parser_isis(sys.argv[i])
         pcap_parser_hsrp(sys.argv[i])

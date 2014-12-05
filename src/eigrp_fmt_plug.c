@@ -1,5 +1,5 @@
 /*
- * Cracker for EIGRP (Cisco's proprietary routing protocol) MD5 authentication.
+ * Cracker for EIGRP (Cisco's proprietary routing protocol) MD5 + HMAC-SHA-256 authentication.
  * http://tools.ietf.org/html/draft-savage-eigrp-00
  *
  * This is dedicated to Darya. You inspire me.
@@ -31,16 +31,17 @@ john_register_one(&fmt_eigrp);
 #include "params.h"
 #include "options.h"
 #include "memdbg.h"
+#include "escrypt/sha256.h"
 
 #define FORMAT_LABEL            "eigrp"
-#define FORMAT_NAME             "EIGRP MD5 authentication"
+#define FORMAT_NAME             "EIGRP MD5 / HMAC-SHA-256 authentication"
 #define FORMAT_TAG              "$eigrp$"
 #define TAG_LENGTH              (sizeof(FORMAT_TAG) - 1)
-#define ALGORITHM_NAME          "MD5 32/" ARCH_BITS_STR
+#define ALGORITHM_NAME          "MD5 32/" ARCH_BITS_STR  // XXX
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        0
-#define PLAINTEXT_LENGTH        81 // IOU accepts larger strings but doesn't use them fully, passwords are zero padded to a minimum length of 16!
-#define BINARY_SIZE             16 // MD5 hash or first 16 bytes of HMAC-SHA256
+#define PLAINTEXT_LENGTH        81 // IOU accepts larger strings but doesn't use them fully, passwords are zero padded to a minimum length of 16 (for MD5 hashes only)!
+#define BINARY_SIZE             16 // MD5 hash or first 16 bytes of HMAC-SHA-256
 #define BINARY_ALIGN            sizeof(ARCH_WORD_32)
 #define SALT_SIZE               sizeof(struct custom_salt)
 #define SALT_ALIGN              sizeof(int)
@@ -67,6 +68,8 @@ static struct custom_salt {
 	int have_extra_salt;
 	int extra_salt_length;
 	unsigned char salt[1024];
+	char ip[45 + 1];
+	int ip_length;
 	MD5_CTX prep_salt;
 	unsigned char extra_salt[1024];
 } *cur_salt;
@@ -100,7 +103,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		p += TAG_LENGTH;
 	if (!p)
 		return 0;
-	if (*p != '2')  // MD5 hashes only, currently
+	if (*p != '2' && *p != '3')  // MD5 hashes + HMAC-SHA256 hashes
 		return 0;
 	if (*(p+1) != '$')
 		return 0;
@@ -110,10 +113,10 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		return 0;
 	q = q + 1;
 
-	if (strlen(q) > BINARY_SIZE * 2)  // check hash size and data
+	if (strlen(q) > 32 * 2)  // check hash size and data
 		return 0;
 	len = strspn(q, HEXCHARS);
-	if (len != BINARY_SIZE * 2 || len != strlen(q))
+	if (len != BINARY_SIZE * 2 &&  len != 32 * 2)
 		return 0;
 
 	return 1;
@@ -150,11 +153,25 @@ static void *get_salt(char *ciphertext)
 		for (i = 0; i < cs.extra_salt_length; i++)
 			cs.extra_salt[i] = (atoi16[ARCH_INDEX(p[2 * i])] << 4) |
 				atoi16[ARCH_INDEX(p[2 * i + 1])];
+	} else {
+		/* skip over extra_salt */
+		p = q + 2;
+		q = strchr(p, '$');
+	}
+
+	/* dirty hack for HMAC-SHA-256 support */
+	if (*q == '$' && *(q+1) == '1' && *(q+2) == '$') { /* IP destination field */
+		p = q + 3;
+		q = strchr(p, '$');
+		cs.ip_length = q - p;
+		strncpy(cs.ip, p, cs.ip_length);
 	}
 
 	/* Better do this once than 10 million times per second */
-	MD5_Init(&cs.prep_salt);
-	MD5_Update(&cs.prep_salt, cs.salt, cs.length);
+	if (cs.algo_type == 2) {
+		MD5_Init(&cs.prep_salt);
+		MD5_Update(&cs.prep_salt, cs.salt, cs.length);
+	}
 
 	return &cs;
 }
@@ -205,16 +222,29 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	{
 		MD5_CTX ctx;
 
-		memcpy(&ctx, &cur_salt->prep_salt, sizeof(MD5_CTX));
-		MD5_Update(&ctx, saved_key[index], saved_len[index]);
-		if (saved_len[index] < 16) {
-			MD5_Update(&ctx, zeropad, 16 - saved_len[index]);
+		if (cur_salt->algo_type == 2) {
+			memcpy(&ctx, &cur_salt->prep_salt, sizeof(MD5_CTX));
+			MD5_Update(&ctx, saved_key[index], saved_len[index]);
+			if (saved_len[index] < 16) {
+				MD5_Update(&ctx, zeropad, 16 - saved_len[index]);
+			}
+			// do we have extra_salt?
+			if (cur_salt->have_extra_salt) {
+				MD5_Update(&ctx, cur_salt->extra_salt, cur_salt->extra_salt_length);
+			}
+			MD5_Final((unsigned char*)crypt_out[index], &ctx);
+		} else {
+			HMAC_SHA256_CTX hctx[1];
+			unsigned char buffer[1 + PLAINTEXT_LENGTH + 45 + 1] = { 0 }; // HMAC key ==> '\n' + password + IP address
+			buffer[0] = '\n'; // WTF?
+			memcpy(buffer + 1, saved_key[index], saved_len[index]);
+			memcpy(buffer + 1 + saved_len[index], cur_salt->ip, cur_salt->ip_length);
+			HMAC__SHA256_Init(hctx, buffer, 1 + saved_len[index] + cur_salt->ip_length);
+			HMAC__SHA256_Update(hctx, cur_salt->salt, cur_salt->length);
+			HMAC__SHA256_Final((unsigned char*)crypt_out[index], hctx);
+
 		}
-		// do we have extra_salt?
-		if (cur_salt->have_extra_salt) {
-			MD5_Update(&ctx, cur_salt->extra_salt, cur_salt->extra_salt_length);
-		}
-		MD5_Final((unsigned char*)crypt_out[index], &ctx);
+
 	}
 	return count;
 }
@@ -243,7 +273,7 @@ static int cmp_exact(char *source, int index)
 static void eigrp_set_key(char *key, int index)
 {
 	saved_len[index] = strnzcpyn(saved_key[index], key,
-	                             PLAINTEXT_LENGTH + 1);
+			PLAINTEXT_LENGTH + 1);
 }
 
 static char *get_key(int index)
