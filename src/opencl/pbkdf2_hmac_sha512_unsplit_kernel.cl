@@ -183,7 +183,7 @@ __constant uint64_t k[] = {
 
 typedef struct {
 	uint8_t length;
-	uint8_t v[15];
+	uint8_t v[110];
 } pbkdf2_password;
 
 typedef struct {

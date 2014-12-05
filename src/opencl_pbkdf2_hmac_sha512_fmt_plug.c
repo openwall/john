@@ -23,7 +23,7 @@ john_register_one(&fmt_opencl_pbkdf2_hmac_sha512);
 #include "memdbg.h"
 
 #define NUUL NULL
-#define FORMAT_LABEL		"GRUB-opencl"
+#define FORMAT_LABEL		"pbkdf2-hmac-sha512-opencl"
 #define FORMAT_NAME		""
 #define ALGORITHM_NAME		"PBKDF2-SHA512 OpenCL"
 
@@ -38,9 +38,9 @@ john_register_one(&fmt_opencl_pbkdf2_hmac_sha512);
 #define uint64_t		unsigned long long int
 
 #define DEFAULT_LWS		64
-#define DEFAULT_GWS		(64*64)
+#define DEFAULT_GWS		(64*64)/4
 
-#define PLAINTEXT_LENGTH	15
+#define PLAINTEXT_LENGTH	110
 #define BINARY_SIZE		64
 #define	SALT_SIZE		sizeof(salt_t)
 
@@ -52,7 +52,7 @@ john_register_one(&fmt_opencl_pbkdf2_hmac_sha512);
 
 typedef struct {
 	uint8_t length;
-	uint8_t v[15];
+	uint8_t v[PLAINTEXT_LENGTH];
 } pass_t;
 
 typedef struct {
