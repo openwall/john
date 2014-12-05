@@ -1004,16 +1004,14 @@ sub odf_1 {
 	if (defined $argsalt && length ($argsalt)==16) { $salt = $argsalt; } else { $salt = randstr(16); }
 	if (defined $argiv && length ($argiv)==16) { $iv = $argiv; } else { $iv = randstr(16); }
 	if (defined $argcontent) { $content = $argcontent; } else { $content = randstr(1024); }
+	while (length($content)%16 != 0) { $content .= "\x0" } # must be even 16 byte padded.
 	my $s = sha256($_[0]);
 	my $key = pp_pbkdf2($s, $salt, 1024, "sha1", 32);
 	require Crypt::OpenSSL::AES;
 	require Crypt::CBC;
-	my $crypt = Crypt::CBC->new(-literal_key => 1, -key => $key, -iv => $iv, -cipher => "Crypt::OpenSSL::AES", -header => 'none');
-	# we have to pad to even length, or the AES code will not generate proper value.
-	while (length($content)%16 != 0) { $content .= "\x0" }
-	# I have seen a BUG in "Crypt::OpenSSL::AES".  The bug is if the very last character that is decrypted is a 0x01, then 
-	# it is not being output. So to work around this, I encode an extra limb, then simply cut it off.
-	my $output = substr($crypt->decrypt($content."xxxxxxxxxxxxxxxx"), 0, length($content));
+	# set -padding to 'none'. Otherwise a Crypt::CBC bug bites us.
+	my $crypt = Crypt::CBC->new(-literal_key => 1, -key => $key, -iv => $iv, -cipher => "Crypt::OpenSSL::AES", -header => 'none', -padding => 'none');
+	my $output = $crypt->decrypt($content);
 	$s = sha256($output);
 	print "u$u-odf:\$odf\$*1*1*1024*32*".unpack("H*",$s)."*16*".unpack("H*",$iv)."*16*".unpack("H*",$salt)."*0*".unpack("H*",$content).":$u:0:$_[0]::\n";
 }
