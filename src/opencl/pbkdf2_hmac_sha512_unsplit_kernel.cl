@@ -192,7 +192,7 @@ typedef struct {
 
 typedef struct {
 	uint8_t length;
-	uint8_t salt[64];
+	uint8_t salt[107];
 	uint32_t rounds;
 
 } pbkdf2_salt;
@@ -200,7 +200,7 @@ typedef struct {
 inline void preproc(__global const uint8_t * key, uint32_t keylen,
     uint64_t * state, uint8_t var1, uint64_t var4)
 {
-	uint i;
+	uint i, j;
 	uint64_t W[16],t;
 	uint8_t ipad[16];
 
@@ -216,14 +216,14 @@ inline void preproc(__global const uint8_t * key, uint32_t keylen,
 
 	for (i = 0; i < keylen; i++)
 		ipad[i] = var1 ^ key[i];
-	for (i = keylen; i < 16; i++)
+	for (i = keylen; i & 7; i++)
 		ipad[i] = var1;
+    i >>= 3;
 
+	for (j = 0; j < i; j++)
+		GET_WORD_64(W[j], ipad, j * 8);
 
-	for (i = 0; i < 2; i++)
-		GET_WORD_64(W[i], ipad, i * 8);
-
-	for (i = 2; i < 16; i++)
+	for (; i < 16; i++)
 		W[i] = var4;
 
 	SHA512(A, B, C, D, E, F, G, H);
