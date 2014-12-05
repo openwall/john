@@ -48,7 +48,7 @@ use MIME::Base64;
 #
 # these are decrypt images, which we may not be able to do in perl. We will
 # take these case by case.
-# office pdf pkzip zip rar5, ssh
+# office pdf pkzip rar5, ssh
 #
 # lotus5 is done in some custom C code.  If someone wants to take a crack at
 # it here, be my guest :)
@@ -72,7 +72,7 @@ my @funcs = (qw(DESCrypt BigCrypt BSDIcrypt md5crypt md5crypt_a BCRYPT BCRYPTx
 		rakp osc formspring skey_md5 pbkdf2-hmac-sha1 odf odf-1 office
 		skey_md4 skey_sha1 skey_rmd160 cloudkeychain agilekeychain));
 
-# todo: ike keepass cloudkeychain agilekeychain pfx racf sip vnc office pdf pkzip zip rar ssh raw_gost_cp
+# todo: ike keepass cloudkeychain agilekeychain pfx racf sip vnc office pdf pkzip rar5 ssh raw_gost_cp
 my $i; my $h; my $u; my $salt;
 my @chrAsciiText=('a'..'z','A'..'Z');
 my @chrAsciiTextLo=('a'..'z');
@@ -109,7 +109,7 @@ my $debug_pcode=0; my $gen_needs; my $gen_needs2; my $gen_needu; my $gen_singles
 #########################################################
 my $arg_utf8 = 0; my $arg_codepage = ""; my $arg_minlen = 0; my $arg_maxlen = 128; my $arg_dictfile = "unknown";
 my $arg_count = 1500, my $argsalt, my $argiv, my $argcontent; my $arg_nocomment = 0; my $arg_hidden_cp; my $arg_loops=-1;
-my $arg_tstall = 0; my $arg_genall = 0; my $arg_nrgenall = 0;
+my $arg_tstall = 0; my $arg_genall = 0; my $arg_nrgenall = 0; my $argmode;
 
 GetOptions(
 	'codepage=s'       => \$arg_codepage,
@@ -121,6 +121,7 @@ GetOptions(
 	'salt=s'           => \$argsalt,
 	'iv=s'             => \$argiv,
 	'content=s'        => \$argcontent,
+	'mode=s'           => \$argmode,
 	'count=n'          => \$arg_count,
 	'loops=n'          => \$arg_loops,
 	'dictfile=s'       => \$arg_dictfile,
@@ -168,6 +169,7 @@ $s
     -salt <s>     Force a single salt (only supported in a few formats)
     -iv <s>       Force a single iv (only supported in a few formats)
     -content <s>  Force a single content (for ODF hash)
+    -mode <s>     Force mode (zip, mode 1..3, rar4 modes 1..10, etc)
     -dictfile <s> Put name of dict file into the first line comment
     -nocomment    eliminate the first line comment
 
@@ -1009,7 +1011,7 @@ sub odf_1 {
 	my $key = pp_pbkdf2($s, $salt, 1024, "sha1", 32);
 	require Crypt::OpenSSL::AES;
 	require Crypt::CBC;
-	# set -padding to 'none'. Otherwise a Crypt::CBC bug bites us.
+	# set -padding to 'none'. Otherwise a Crypt::CBC->decrypt() padding removal will bite us, and possibly strip off bytes.
 	my $crypt = Crypt::CBC->new(-literal_key => 1, -key => $key, -iv => $iv, -cipher => "Crypt::OpenSSL::AES", -header => 'none', -padding => 'none');
 	my $output = $crypt->decrypt($content);
 	$s = sha256($output);
@@ -1022,6 +1024,23 @@ sub pdf {
 sub pkzip {
 }
 sub zip {
+	# NOTE ,the zip contents are garbage, but we do not care.  We simply
+	# run the hmac-sha1 over it and compare to the validator (in JtR), so
+	# we simply have designed this to build hashes that are 'jtr' valid.
+	my $mode; my $sl; my $kl; my $chksum; my $content; my $hexlen;
+	if (defined $argmode) {$mode=$argmode;} else { $mode=int(rand(3))+1; }
+	if ($mode==1) { $sl = 8; }
+	elsif ($mode==2) { $sl = 12; }
+	else { $mode = 3; $sl = 16; }
+	$kl = $sl*2;
+	if (defined $argsalt && length ($argsalt)==$sl) { $salt = $argsalt; } else { $salt = randstr($sl); }
+	if (defined $argsalt && length ($argsalt)==2*$sl) { $salt = pack("H*",$argsalt); }
+	if (defined $argcontent) { $content = pack("H*",$argcontent); } else { $content = randstr(int(rand(32)+int(rand(32)+16))); }
+	$h = pp_pbkdf2($_[0], $salt, 1000, "sha1", 2*$kl+2);
+	$chksum = substr($h,2*$kl,2);
+	my $bin = _hmac_shas(\&sha1, 64, substr($h,$kl,$kl), $content);
+	$hexlen = sprintf("%x", length($content));
+	print "u$u-zip:\$zip2\$*0*$mode*0*".unpack("H*",$salt)."*".unpack("H*",$chksum)."*$hexlen*".unpack("H*",$content)."*".substr(unpack("H*",$bin),0,20)."*\$/zip2\$:$u:0:$_[0]::\n";
 }
 sub rar5 {
 }
@@ -1060,7 +1079,7 @@ sub rar {
 	$salt = randstr(8);
 	my $rnd = int(rand(10));
 	my @ar;
-	if (defined $argcontent) { $rnd = $argcontent; }
+	if (defined $argmode) { $rnd = $argmode; }
 	# first 7 are compressed files. 8th is stored file.  9-10 are type -hp
 	# using command line arg: '-content=7' would force only doing stored file -content=2 would force file 2,
 	# and -content=xxx or anything other than 0 to 7 would force -hp mode.
