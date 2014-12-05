@@ -21,16 +21,16 @@
 #endif
 
 // None 2885 626 13860 8097
-#define USE_IV32 // 3633 696 14278 8118
+#define RC4_IV32 // 3633 696 14278 8118
 #if !gpu_amd(DEVICE_INFO) /* bug in Catalyst 14.9, besides its slower */
-#define UNROLLED_RC4_KEY // 3893 817 14340 7245
-#define UNROLLED_RC4 // 3932 848 14348 7847
+#define RC4_UNROLLED_KEY // 3893 817 14340 7245
+#define RC4_UNROLLED // 3932 848 14348 7847
 #endif
 #if !defined(APPLE) && gpu(DEVICE_INFO) /* Actually we want discrete GPUs */
-#define USE_LOCAL // 455 397 20560 31655
+#define RC4_USE_LOCAL // 455 397 20560 31655
 #endif
 
-#ifdef USE_IV32
+#ifdef RC4_IV32
 __constant uint rc4_iv[64] = { 0x03020100, 0x07060504, 0x0b0a0908, 0x0f0e0d0c,
                                0x13121110, 0x17161514, 0x1b1a1918, 0x1f1e1d1c,
                                0x23222120, 0x27262524, 0x2b2a2928, 0x2f2e2d2c,
@@ -49,7 +49,7 @@ __constant uint rc4_iv[64] = { 0x03020100, 0x07060504, 0x0b0a0908, 0x0f0e0d0c,
                                0xf3f2f1f0, 0xf7f6f5f4, 0xfbfaf9f8, 0xfffefdfc };
 #endif
 
-#ifndef USE_LOCAL
+#ifndef RC4_USE_LOCAL
 #undef GETCHAR_L
 #define GETCHAR_L GETCHAR
 #undef PUTCHAR_L
@@ -82,7 +82,7 @@ __constant uint rc4_iv[64] = { 0x03020100, 0x07060504, 0x0b0a0908, 0x0f0e0d0c,
  * One-shot RC4 with fixed keylen of 16. No byte addressed stores.
  */
 inline void rc4(
-#ifdef USE_LOCAL
+#ifdef RC4_USE_LOCAL
                 __local uint *state,
 #endif
                 const uint *key,
@@ -97,12 +97,12 @@ inline void rc4(
 	uint y = 0;
 	uint index1 = 0;
 	uint index2 = 0;
-#ifndef USE_LOCAL
+#ifndef RC4_USE_LOCAL
 	uint state[256/4];
 #endif
 
 	/* RC4_init() */
-#ifdef USE_IV32
+#ifdef RC4_IV32
 	for (x = 0; x < 256/4; x++)
 		state[x] = rc4_iv[x];
 #else
@@ -111,7 +111,7 @@ inline void rc4(
 #endif
 
 	/* RC4_set_key() 406ms */
-#ifdef UNROLLED_RC4_KEY
+#ifdef RC4_UNROLLED_KEY
 	/* Unrolled for hard-coded key length 16 */
 	for (x = 0; x < 256; x++) {
 		swap_and_inc(x);
@@ -138,7 +138,7 @@ inline void rc4(
 #endif
 
 	/* RC4() 76ms for 32 bytes in-place */
-#ifdef UNROLLED_RC4
+#ifdef RC4_UNROLLED
 	/* Unrolled to 32-bit xor */
 	for (x = 1; x <= RC4_BUFLEN; x++) {
 		uint xor_word;
@@ -168,7 +168,7 @@ inline void rc4(
 		*out++ = *in++ ^ xor_word;
 #endif
 	}
-#else /* UNROLLED_RC4 */
+#else /* RC4_UNROLLED */
 #pragma unroll
 	for (x = 1; x <= RC4_BUFLEN; x++) {
 		y = (GETCHAR_L(state, x) + y) & 255;
@@ -179,7 +179,7 @@ inline void rc4(
 		PUTCHAR_G(out, x - 1, GETCHAR_MC(in, x - 1) ^ (GETCHAR_L(state, (GETCHAR_L(state, x) + GETCHAR_L(state, y)) & 255)));
 #endif
 	}
-#endif /* UNROLLED_RC4 */
+#endif /* RC4_UNROLLED */
 }
 
 #endif /* _OPENCL_RC4_H */

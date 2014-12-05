@@ -163,7 +163,7 @@ __kernel void oldoffice_utf16(__global const uchar *password,
 
 #endif /* encodings */
 
-#ifdef USE_LOCAL
+#ifdef RC4_USE_LOCAL
 __attribute__((reqd_work_group_size(64,1,1)))
 #endif
 __kernel void oldoffice_md5(__global const mid_t *mid,
@@ -180,7 +180,7 @@ __kernel void oldoffice_md5(__global const mid_t *mid,
 	uint len = mid[gid].len;
 	uint salt[16/4];
 	__global const ushort *p = mid[gid].password;
-#ifdef USE_LOCAL
+#ifdef RC4_USE_LOCAL
 	__local uint state_l[64][256/4];
 #endif
 
@@ -336,7 +336,7 @@ __kernel void oldoffice_md5(__global const mid_t *mid,
 
 		for (i = 0; i < 32/4; i++)
 			verifier[i] = cs->verifier[i];
-#ifdef USE_LOCAL
+#ifdef RC4_USE_LOCAL
 		rc4(state_l[get_local_id(0)], md5, verifier);
 #else
 		rc4(md5, verifier);
@@ -367,7 +367,7 @@ __kernel void oldoffice_md5(__global const mid_t *mid,
 	}
 }
 
-#ifdef USE_LOCAL
+#ifdef RC4_USE_LOCAL
 __attribute__((reqd_work_group_size(64,1,1)))
 #endif
 __kernel void oldoffice_sha1(__global const mid_t *mid,
@@ -382,7 +382,7 @@ __kernel void oldoffice_sha1(__global const mid_t *mid,
 	uint key[20/4];
 	uint len = mid[gid].len + 8;
 	__global const ushort *p = mid[gid].password;
-#ifdef USE_LOCAL
+#ifdef RC4_USE_LOCAL
 	__local uint state_l[64][256/4];
 #endif
 
@@ -466,7 +466,7 @@ __kernel void oldoffice_sha1(__global const mid_t *mid,
 
 		for (i = 0; i < 32/4; i++)
 			verifier[i] = cs->verifier[i];
-#ifdef USE_LOCAL
+#ifdef RC4_USE_LOCAL
 		rc4(state_l[get_local_id(0)], key, verifier);
 #else
 		rc4(key, verifier);
