@@ -121,7 +121,7 @@ static my_salt *saved_salt;
 //    filename:$zip2$*Ty*Mo*Ma*Sa*Va*Le*DF*Au*$/zip2$
 //    Ty = type (0) and ignored.
 //    Mo = mode (1 2 3 for 128/192/256 bit
-//    Ma = magic (file magic).  This is reservered for now.  See pkzip_fmt_plug.c or zip2john.c for information.
+//    Ma = magic (file magic).  This is reserved for now.  See pkzip_fmt_plug.c or zip2john.c for information.
 //         For now, this must be a '0'
 //    Sa = salt(hex).   8, 12 or 16 bytes of salt (depends on mode)
 //    Va = Verification bytes(hex) (2 byte quick checker)
