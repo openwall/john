@@ -18,6 +18,10 @@ dnl checks for compiler characteristics
 dnl checks for library functions
 dnl checks for system services
 
+dnl this MUST be done early, so that the proper JtR overridden help message
+dnl creation macro is the one that gets set first.
+m4_include([m4/jtr_specific_configure_help_message.m4])
+
 AC_PREREQ([2.69])
 AC_INIT([john], [1.8.0.2-bleeding-jumbo],[john-users mailing list at openwall.com])
 ##  AM_INIT_AUTOMAKE([foreign subdir-objects])
