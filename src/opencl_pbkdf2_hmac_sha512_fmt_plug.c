@@ -1,4 +1,5 @@
 /*
+* copywrite (c) 2014 JimF
 * This software is Copyright (c) 2012, 2013 Lukas Odzioba <ukasz at openwall dot net>
 * and it is hereby released to the general public under the following terms:
 * Redistribution and use in source and binary forms, with or without modification, are permitted.
@@ -20,6 +21,8 @@ john_register_one(&fmt_opencl_pbkdf2_hmac_sha512);
 #include "formats.h"
 #include "options.h"
 #include "common-opencl.h"
+#include "stdint.h"
+#include "johnswap.h"
 #include "memdbg.h"
 
 #define NUUL NULL
@@ -31,35 +34,31 @@ john_register_one(&fmt_opencl_pbkdf2_hmac_sha512);
 #define BENCHMARK_LENGTH	-1
 
 #define BINARY_ALIGN		8
-#define SALT_ALIGN		1
-
-#define uint8_t			unsigned char
-#define uint32_t		unsigned int
-#define uint64_t		unsigned long long int
+#define SALT_ALIGN		8
 
 #define DEFAULT_LWS		64
 #define DEFAULT_GWS		(64*64)/4
 
-#define MAX_CIPHERTEXT_LENGTH   1024 /* Bump this and code will adopt */
+#define MAX_CIPHERTEXT_LENGTH   1024
 #define MAX_BINARY_SIZE         (4*64)
-// max salt is 111 bytes, minus the 4 bytes to store the counter.
-#define MAX_SALT_SIZE           107
+#define MAX_SALT_SIZE           107 /* also change in pbkdf2_hmac_sha512_unsplit_kernel.cl NOTE, we also add 0001 and 0x80 */
 #define PLAINTEXT_LENGTH	    110 /* also change in pbkdf2_hmac_sha512_unsplit_kernel.cl */
 #define BINARY_SIZE		64
 #define	SALT_SIZE		sizeof(salt_t)
 
-#define FORMAT_TAG      "$pbkdf2-hmac-sha512$"
-#define FORMAT_TAG2     "$ml$"
-#define FORMAT_TAG3     "grub.pbkdf2.sha512."
+#define FORMAT_TAG              "$pbkdf2-hmac-sha512$"
+#define FORMAT_TAG2             "$ml$"
+#define FORMAT_TAG3             "grub.pbkdf2.sha512."
 
-#define KERNEL_NAME		"pbkdf2_sha512_kernel"
+#define KERNEL_NAME             "pbkdf2_sha512_kernel"
 #define CONFIG_NAME             "pbkdf2_sha512"
 
 #define MIN(a,b)		(((a)<(b))?(a):(b))
 
 typedef struct {
-	uint8_t length;
-	uint8_t v[PLAINTEXT_LENGTH];
+    // for plaintext, we must make sure it is a full uint64 width.
+	uint64_t v[(PLAINTEXT_LENGTH+7)/8]; // v must be kept aligned(8)
+	uint64_t length; // keep 64 bit aligned. length is overkill, but easiest way to stay aligned.
 } pass_t;
 
 typedef struct {
@@ -67,8 +66,9 @@ typedef struct {
 } crack_t;
 
 typedef struct {
-	uint8_t length;
-	uint8_t salt[MAX_SALT_SIZE];
+	// for salt, we append \x00\x00\x00\x01\x80 and must make sure it is a full uint64 width
+	uint64_t salt[(MAX_SALT_SIZE+1+4+7)/8]; // salt must be kept aligned(8)
+	uint32_t length;
 	uint32_t rounds;
 } salt_t;
 
@@ -102,7 +102,6 @@ static cl_int cl_error;
 
 static void create_clobj(int kpc, struct fmt_main *self)
 {
-
 	host_pass = mem_calloc(kpc * sizeof(pass_t));
 	host_crack = mem_calloc(kpc * sizeof(crack_t));
 	host_salt = mem_calloc(sizeof(salt_t));
@@ -113,21 +112,13 @@ static void create_clobj(int kpc, struct fmt_main *self)
 	clCreateBuffer(context[gpu_id], _flags, _size, NULL, &cl_error);\
 	HANDLE_CLERROR(cl_error, _string);
 
-	mem_in =
-	    CLCREATEBUFFER(CL_RO, kpc * sizeof(pass_t),
-	    "Cannot allocate mem in");
-	mem_salt =
-	    CLCREATEBUFFER(CL_RO, sizeof(salt_t), "Cannot allocate mem salt");
-	mem_out =
-	    CLCREATEBUFFER(CL_WO, kpc * sizeof(crack_t),
-	    "Cannot allocate mem out");
+	mem_in = CLCREATEBUFFER(CL_RO, kpc * sizeof(pass_t), "Cannot allocate mem in");
+	mem_salt = CLCREATEBUFFER(CL_RO, sizeof(salt_t), "Cannot allocate mem salt");
+	mem_out = CLCREATEBUFFER(CL_WO, kpc * sizeof(crack_t), "Cannot allocate mem out");
 
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(mem_in),
-		&mem_in), "Error while setting mem_in");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(mem_salt),
-		&mem_salt), "Error while setting mem_salt");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(mem_out),
-		&mem_out), "Error while setting mem_out");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(mem_in), &mem_in), "Error while setting mem_in");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(mem_salt), &mem_salt), "Error while setting mem_salt");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(mem_out), &mem_out), "Error while setting mem_out");
 }
 
 static void set_lws_gws(int defaultLWS, int defaultGWS)
@@ -135,15 +126,9 @@ static void set_lws_gws(int defaultLWS, int defaultGWS)
 	local_work_size = global_work_size = 0;
 	opencl_get_user_preferences(CONFIG_NAME);
 	if (!local_work_size) {
-#if 0
-		fprintf(stderr, "Forcing LWS = %d\n", defaultLWS);
-#endif
 		local_work_size = DEFAULT_LWS;
 	}
 	if (!global_work_size) {
-#if 0
-		fprintf(stderr, "Forcing GWS = %d\n", defaultGWS);
-#endif
 		global_work_size = DEFAULT_GWS;
 	}
 }
@@ -284,25 +269,34 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 }
 static void *binary(char *ciphertext)
 {
-	static uint8_t ret[MAX_BINARY_SIZE];
-	int i = 0, len;
+	static union {
+		uint64_t swp[BINARY_SIZE/8];
+		uint8_t ret[BINARY_SIZE];
+	}u;
+	int i = 0;
+	//int len;
 	char *p,delim;
 
 	delim = strchr(ciphertext, '.') ? '.' : '$';
 	p = strrchr(ciphertext, delim) + 1;
-	len = strlen(p) / 2;
-	for (i = 0; i < len && *p; i++) {
-		ret[i] =
+	//len = strlen(p) / 2;
+	//for (i = 0; i < len && *p; i++) {
+	for (i = 0; i < BINARY_SIZE && *p; i++) {
+		u.ret[i] =
 			(atoi16[ARCH_INDEX(*p)] << 4) |
 			atoi16[ARCH_INDEX(p[1])];
 		p += 2;
 	}
-	return ret;
+	// swap here, so we do not have to swap at end of GPU code.
+	for (i = 0; i < BINARY_SIZE/8; ++i)
+		u.swp[i] = JOHNSWAP64(u.swp[i]);
+	return u.ret;
 }
 
 static void *get_salt(char *ciphertext)
 {
-    static salt_t cs;
+	static salt_t cs;
+	uint8_t salt[MAX_SALT_SIZE+1+4+1];
 	char *p;
 	int saltlen;
 	char delim;
@@ -315,18 +309,22 @@ static void *get_salt(char *ciphertext)
 		ciphertext += sizeof(FORMAT_TAG3) - 1;
 	else
 		error(); /* Can't happen - caught in valid() */
+	memset(&cs, 0, sizeof(cs));
 	cs.rounds = atoi(ciphertext);
 	delim = strchr(ciphertext, '.') ? '.' : '$';
 	ciphertext = strchr(ciphertext, delim) + 1;
 	p = strchr(ciphertext, delim);
 	saltlen = 0;
 	while (ciphertext < p) {        /** extract salt **/
-		cs.salt[saltlen++] =
+		salt[saltlen++] =
 			atoi16[ARCH_INDEX(ciphertext[0])] * 16 +
 			atoi16[ARCH_INDEX(ciphertext[1])];
 		ciphertext += 2;
 	}
-	cs.length = saltlen;
+	// we append the count and EOM here, one time.
+	memcpy(&salt[saltlen], "\x0\x0\x0\x1\x80", 5);
+	memcpy(cs.salt, salt, saltlen+5);
+	cs.length = saltlen+5; // we include the x80 byte in our saltlen, but the .cl kernel knows to reduce saltlen by 1
 
 	return (void *)&cs;
 }
@@ -381,35 +379,35 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 static int cmp_all(void *binary, int count)
 {
-	int i,j, cracked, any_cracked = 0;
+	int i;
 	for (i = 0; i < count; i++) {
-		cracked = 1;
-		for (j = 0; j < 8; j++)
-			if (host_crack[i].hash[j] != ((uint64_t*)binary)[j])
-				cracked = 0;
-		any_cracked |= cracked;
+		if (host_crack[i].hash[0] == ((uint64_t*)binary)[0])
+			return 1;
 	}
-
-	return any_cracked;
+	return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	int i;
-	for (i = 0; i < 8; i++)
-		if (host_crack[index].hash[i] != ((uint64_t *) binary)[i])
-			return 0;
-	return 1;
+	return host_crack[index].hash[0] == ((uint64_t*)binary)[0];
 }
 
 static int cmp_exact(char *source, int index)
 {
+	int i;
+	void *bin = binary(source);
+	for (i = 0; i < 8; i++)
+		if (host_crack[index].hash[i] != ((uint64_t *) bin)[i])
+			return 0;
 	return 1;
 }
 
 static void set_key(char *key, int index)
 {
 	int saved_key_length = MIN(strlen(key), PLAINTEXT_LENGTH);
+	// make sure LAST uint64 that has any key in it gets null, since we simply
+	// ^= the whole uint64 with the ipad/opad mask
+	host_pass[index].v[(saved_key_length+7)/8] = 0;
 	memcpy(host_pass[index].v, key, saved_key_length);
 	host_pass[index].length = saved_key_length;
 }
@@ -433,6 +431,12 @@ static int binary_hash_0(void *binary)
 #endif
 	return (((uint32_t *) binary)[0] & 0xf);
 }
+static int binary_hash_1(void *binary) { return (((uint32_t *) binary)[0] & 0xff); }
+static int binary_hash_2(void *binary) { return (((uint32_t *) binary)[0] & 0xfff); }
+static int binary_hash_3(void *binary) { return (((uint32_t *) binary)[0] & 0xffff); }
+static int binary_hash_4(void *binary) { return (((uint32_t *) binary)[0] & 0xfffff); }
+static int binary_hash_5(void *binary) { return (((uint32_t *) binary)[0] & 0xffffff); }
+static int binary_hash_6(void *binary) { return (((uint32_t *) binary)[0] & 0x7ffffff); }
 
 static int get_hash_0(int index)
 {
@@ -446,35 +450,12 @@ static int get_hash_0(int index)
 	return host_crack[index].hash[0] & 0xf;
 }
 
-static int get_hash_1(int index)
-{
-	return host_crack[index].hash[0] & 0xff;
-}
-
-static int get_hash_2(int index)
-{
-	return host_crack[index].hash[0] & 0xfff;
-}
-
-static int get_hash_3(int index)
-{
-	return host_crack[index].hash[0] & 0xffff;
-}
-
-static int get_hash_4(int index)
-{
-	return host_crack[index].hash[0] & 0xfffff;
-}
-
-static int get_hash_5(int index)
-{
-	return host_crack[index].hash[0] & 0xffffff;
-}
-
-static int get_hash_6(int index)
-{
-	return host_crack[index].hash[0] & 0x7ffffff;
-}
+static int get_hash_1(int index) { return host_crack[index].hash[0] & 0xff; }
+static int get_hash_2(int index) { return host_crack[index].hash[0] & 0xfff; }
+static int get_hash_3(int index) { return host_crack[index].hash[0] & 0xffff; }
+static int get_hash_4(int index) { return host_crack[index].hash[0] & 0xfffff; }
+static int get_hash_5(int index) { return host_crack[index].hash[0] & 0xffffff; }
+static int get_hash_6(int index) { return host_crack[index].hash[0] & 0x7ffffff; }
 
 struct fmt_main fmt_opencl_pbkdf2_hmac_sha512 = {
 	{
@@ -509,12 +490,12 @@ struct fmt_main fmt_opencl_pbkdf2_hmac_sha512 = {
 		    fmt_default_source,
 		    {
 				binary_hash_0,
-				fmt_default_binary_hash_1,
-				fmt_default_binary_hash_2,
-				fmt_default_binary_hash_3,
-				fmt_default_binary_hash_4,
-				fmt_default_binary_hash_5,
-				fmt_default_binary_hash_6
+				binary_hash_1,
+				binary_hash_2,
+				binary_hash_3,
+				binary_hash_4,
+				binary_hash_5,
+				binary_hash_6
 		    },
 		    fmt_default_salt_hash,
 		    set_salt,

@@ -1,4 +1,5 @@
 /*
+* copyright 2014, JimF
 * This software is Copyright (c) 2012, 2013 Lukas Odzioba <ukasz at openwall dot net>
 * and it is hereby released to the general public under the following terms:
 * Redistribution and use in source and binary forms, with or without modification, are permitted.
@@ -10,14 +11,12 @@
 #define uint32_t unsigned int
 #define uint64_t unsigned long int
 
-
 #if gpu_amd(DEVICE_INFO)
 
 /* AMD alternatives */
 #define Ch(x,y,z)       bitselect(z, y, x)
 #define Maj(x,y,z)      bitselect(x, y, z ^ x)
 #define ror(x, n)       rotate(x, (ulong) 64-n)
-#define SWAP32(a)	(as_uint(as_uchar4(a).wzyx))
 #define SWAP64(n)       (as_ulong(as_uchar8(n).s76543210))
 
 #else
@@ -26,11 +25,6 @@
 #define Ch(x,y,z)       ((x & y) ^ ( (~x) & z))
 #define Maj(x,y,z)      ((x & y) ^ (x & z) ^ (y & z))
 #define ror(x, n)       ((x >> n) | (x << (64-n)))
-inline uint SWAP32(uint x)
-{
-	x = rotate(x, 16U);
-	return ((x & 0x00FF00FF) << 8) + ((x >> 8) & 0x00FF00FF);
-}
 #define SWAP64(n)	  \
 	(((n) << 56) \
 	 | (((n) & 0xff00) << 40) \
@@ -42,7 +36,6 @@ inline uint SWAP32(uint x)
 	 | ((n) >> 56))
 
 #endif
-
 
 #define Sigma0(x) ((ror(x,28))  ^ (ror(x,34)) ^ (ror(x,39)))
 #define Sigma1(x) ((ror(x,14))  ^ (ror(x,18)) ^ (ror(x,41)))
@@ -57,7 +50,6 @@ inline uint SWAP32(uint x)
 #define INIT_F	0x9b05688c2b3e6c1fUL
 #define INIT_G	0x1f83d9abfb41bd6bUL
 #define INIT_H	0x5be0cd19137e2179UL
-
 
 #define ROUND_A(a,b,c,d,e,f,g,h,ki,wi)\
  t = (ki) + (wi) + (h) + Sigma1(e) + Ch((e),(f),(g));\
@@ -150,29 +142,6 @@ inline uint SWAP32(uint x)
 	ROUND_B(C,D,E,F,G,H,A,B,k[78],W[14],  W[12],W[15],W[14],W[7])\
 	ROUND_B(B,C,D,E,F,G,H,A,k[79],W[15],  W[13],W[0],W[15],W[8])
 
-#define GET_WORD_64(n,b,i)\
-{\
-    (n) = ( (uint64_t) (b)[(i)    ] << 56 )\
-        | ( (uint64_t) (b)[(i) + 1] << 48 )\
-        | ( (uint64_t) (b)[(i) + 2] << 40 )\
-        | ( (uint64_t) (b)[(i) + 3] << 32 )\
-        | ( (uint64_t) (b)[(i) + 4] << 24 )\
-        | ( (uint64_t) (b)[(i) + 5] << 16 )\
-        | ( (uint64_t) (b)[(i) + 6] <<  8 )\
-        | ( (uint64_t) (b)[(i) + 7]       );\
-}
-
-#define PUT_WORD_64(n,b,i)\
-{\
-    (b)[(i)    ] = (uint8_t) ( (n) >> 56 );\
-    (b)[(i) + 1] = (uint8_t) ( (n) >> 48 );\
-    (b)[(i) + 2] = (uint8_t) ( (n) >> 40 );\
-    (b)[(i) + 3] = (uint8_t) ( (n) >> 32 );\
-    (b)[(i) + 4] = (uint8_t) ( (n) >> 24 );\
-    (b)[(i) + 5] = (uint8_t) ( (n) >> 16 );\
-    (b)[(i) + 6] = (uint8_t) ( (n) >>  8 );\
-    (b)[(i) + 7] = (uint8_t) ( (n)       );\
-}
 __constant uint64_t k[] = {
     0x428a2f98d728ae22UL, 0x7137449123ef65cdUL, 0xb5c0fbcfec4d3b2fUL, 0xe9b5dba58189dbbcUL,
     0x3956c25bf348b538UL, 0x59f111f1b605d019UL, 0x923f82a4af194f9bUL, 0xab1c5ed5da6d8118UL,
@@ -197,8 +166,8 @@ __constant uint64_t k[] = {
 };
 
 typedef struct {
-	uint8_t length;
-	uint8_t v[110];
+	uint64_t v[(110+7)/8];
+	uint64_t length;
 } pbkdf2_password;
 
 typedef struct {
@@ -206,18 +175,16 @@ typedef struct {
 } pbkdf2_hash;
 
 typedef struct {
-	uint8_t length;
-	uint8_t salt[107];
+	uint64_t salt[(107+1+4+7)/8];
+	uint32_t length;
 	uint32_t rounds;
-
 } pbkdf2_salt;
 
-inline void preproc(__global const uint8_t * key, uint32_t keylen,
-    uint64_t * state, uint8_t var1, uint64_t var4)
+inline void preproc(__global const uint64_t * key, uint32_t keylen,
+    uint64_t * state, uint64_t mask)
 {
 	uint i, j;
 	uint64_t W[16],t;
-	uint8_t ipad[16];
 
 	uint64_t A = INIT_A;
 	uint64_t B = INIT_B;
@@ -228,18 +195,12 @@ inline void preproc(__global const uint8_t * key, uint32_t keylen,
 	uint64_t G = INIT_G;
 	uint64_t H = INIT_H;
 
-
-	for (i = 0; i < keylen; i++)
-		ipad[i] = var1 ^ key[i];
-	for (i = keylen; i & 7; i++)
-		ipad[i] = var1;
-    i >>= 3;
-
-	for (j = 0; j < i; j++)
-		GET_WORD_64(W[j], ipad, j * 8);
+	j = ((keylen+7)/8);
+	for (i = 0; i < j; i++)
+		W[i] = mask ^ SWAP64(key[i]);
 
 	for (; i < 16; i++)
-		W[i] = var4;
+		W[i] = mask;
 
 	SHA512(A, B, C, D, E, F, G, H);
 
@@ -253,33 +214,26 @@ inline void preproc(__global const uint8_t * key, uint32_t keylen,
 	state[7] = H + INIT_H;
 }
 
-
 inline void hmac_sha512(uint64_t * output,
-    uint64_t * ipad_state, uint64_t * opad_state, __global const uint8_t * salt,
+    uint64_t * ipad_state, uint64_t * opad_state, __global const uint64_t * salt,
     uint saltlen)
 {
-	uint32_t i;
+	uint32_t i, j;
 	uint64_t W[16],t;
 	uint64_t A, B, C, D, E, F, G, H;
-	uint8_t buf[128];
-	uint64_t *buf64 = (uint64_t *) buf;
-	i = 128 / 8;
-	while (i--)
-		*buf64++ = 0;
-	buf64 = (uint64_t *) buf;
 
-	for(i=0;i<saltlen;i++)
-		buf[i]=salt[i];
+	j = ((saltlen+7)/8);
+	for(i=0;i<j;i++)
+		W[i]=SWAP64(salt[i]);
+	while (i < 15) {
+		W[i] = 0;
+        ++i;
+    }
 
-	buf[saltlen + 0] = (1 & 0xff000000) >> 24;
-	buf[saltlen + 1] = (1 & 0x00ff0000) >> 16;
-	buf[saltlen + 2] = (1 & 0x0000ff00) >> 8;
-	buf[saltlen + 3] = (1 & 0x000000ff) >> 0;
-
-	saltlen += 4;
-	buf[saltlen] = 0x80;
-
-	PUT_WORD_64((uint64_t) ((128 + saltlen) << 3), buf, 120);
+	// saltlen contains the \0\0\0\1 and 0x80 byte.  The 0001 are part of the salt length.
+	// the 0x80 is not, but is the end of hash marker.  So we set legth to be 127+saltlen
+	// and not 128+saltlen.  127+saltlen is correct, it just looks funny.
+	W[15] = ((127 + saltlen) << 3);
 
 	A = ipad_state[0];
 	B = ipad_state[1];
@@ -289,10 +243,6 @@ inline void hmac_sha512(uint64_t * output,
 	F = ipad_state[5];
 	G = ipad_state[6];
 	H = ipad_state[7];
-
-	for (i = 0; i < 16; i++)
-		GET_WORD_64(W[i], buf, i * 8);
-
 
 	SHA512(A, B, C, D, E, F, G, H);
 
@@ -304,7 +254,6 @@ inline void hmac_sha512(uint64_t * output,
 	F += ipad_state[5];
 	G += ipad_state[6];
 	H += ipad_state[7];
-
 
 	W[0] = A;
 	W[1] = B;
@@ -338,7 +287,6 @@ inline void hmac_sha512(uint64_t * output,
 	F += opad_state[5];
 	G += opad_state[6];
 	H += opad_state[7];
-
 
 	output[0] = A;
 	output[1] = B;
@@ -442,10 +390,6 @@ inline void big_hmac_sha512(uint64_t * input, uint32_t rounds,
 		tmp_out[6] ^= G;
 		tmp_out[7] ^= H;
 	}
-
-
-	for (i = 0; i < 8; i++)
-		tmp_out[i] = SWAP64(tmp_out[i]);
 }
 
 
@@ -460,14 +404,14 @@ __kernel void pbkdf2_sha512_kernel(__global const pbkdf2_password * inbuffer,
 	uint32_t  i;
 	uint idx = get_global_id(0);
 
-	__global const uint8_t *pass = inbuffer[idx].v;
-	__global const uint8_t *salt = gsalt->salt;
+	__global const uint64_t *pass = inbuffer[idx].v;
+	__global const uint64_t *salt = gsalt->salt;
 	uint32_t passlen = inbuffer[idx].length;
 	uint32_t saltlen = gsalt->length;
 	uint32_t rounds = gsalt->rounds;
 
-	preproc(pass, passlen, ipad_state, 0x36, 0x3636363636363636UL);
-	preproc(pass, passlen, opad_state, 0x5c, 0x5c5c5c5c5c5c5c5cUL);
+	preproc(pass, passlen, ipad_state, 0x3636363636363636UL);
+	preproc(pass, passlen, opad_state, 0x5c5c5c5c5c5c5c5cUL);
 
 	hmac_sha512(tmp_out, ipad_state, opad_state, salt, saltlen);
 	big_hmac_sha512(tmp_out, rounds, ipad_state, opad_state, tmp_out);
