@@ -4,30 +4,45 @@
 * Redistribution and use in source and binary forms, with or without modification, are permitted.
 */
 
+#include "opencl_device_info.h"
+
 #define uint8_t  unsigned char
 #define uint32_t unsigned int
 #define uint64_t unsigned long int
 
 
-/*# define SWAP64(n) \
-  ((((uint64_t)(n)) << 56)                 \
-   | ((((uint64_t)(n)) & 0xff00) << 40)    \
-   | ((((uint64_t)(n)) & 0xff0000) << 24)  \
-   | ((((uint64_t)(n)) & 0xff000000) << 8) \
-   | ((((uint64_t)(n)) >> 8) & 0xff000000) \
-   | ((((uint64_t)(n)) >> 24) & 0xff0000)  \
-   | ((((uint64_t)(n)) >> 40) & 0xff00)    \
-   | (((uint64_t)(n)) >> 56))
+#if gpu_amd(DEVICE_INFO)
 
-#define rol(x,n) ((x << n) | (x >> (64-n)))
-#define ror(x,n) ((x >> n) | (x << (64-n)))
-#define Ch(x,y,z) ((x & y) ^ ( (~x) & z))
-#define Maj(x,y,z) ((x & y) ^ (x & z) ^ (y & z))
-*/
-        #define Ch(x,y,z)       bitselect(z, y, x)
-        #define Maj(x,y,z)      bitselect(x, y, z ^ x)
-        #define ror(x, n)       rotate(x, (64UL-n))
-        #define SWAP64(n)       (as_ulong(as_uchar8(n).s76543210))
+/* AMD alternatives */
+#define Ch(x,y,z)       bitselect(z, y, x)
+#define Maj(x,y,z)      bitselect(x, y, z ^ x)
+#define ror(x, n)       rotate(x, (ulong) 64-n)
+#define SWAP32(a)	(as_uint(as_uchar4(a).wzyx))
+#define SWAP64(n)       (as_ulong(as_uchar8(n).s76543210))
+
+#else
+
+/* non-AMD alternatives */
+#define Ch(x,y,z)       ((x & y) ^ ( (~x) & z))
+#define Maj(x,y,z)      ((x & y) ^ (x & z) ^ (y & z))
+#define ror(x, n)       ((x >> n) | (x << (64-n)))
+inline uint SWAP32(uint x)
+{
+	x = rotate(x, 16U);
+	return ((x & 0x00FF00FF) << 8) + ((x >> 8) & 0x00FF00FF);
+}
+#define SWAP64(n)	  \
+	(((n) << 56) \
+	 | (((n) & 0xff00) << 40) \
+	 | (((n) & 0xff0000) << 24) \
+	 | (((n) & 0xff000000) << 8) \
+	 | (((n) >> 8) & 0xff000000) \
+	 | (((n) >> 24) & 0xff0000) \
+	 | (((n) >> 40) & 0xff00) \
+	 | ((n) >> 56))
+
+#endif
+
 
 #define Sigma0(x) ((ror(x,28))  ^ (ror(x,34)) ^ (ror(x,39)))
 #define Sigma1(x) ((ror(x,14))  ^ (ror(x,18)) ^ (ror(x,41)))
