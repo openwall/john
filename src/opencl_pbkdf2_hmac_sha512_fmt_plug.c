@@ -238,8 +238,9 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 	/* Unify format */
 	if (!strncmp(split_fields[1], FORMAT_TAG, sizeof(FORMAT_TAG)-1))
 		i = sizeof(FORMAT_TAG) - 1;
-	else if (!strncmp(split_fields[1], FORMAT_TAG2, sizeof(FORMAT_TAG2)-1))
-		i = sizeof(FORMAT_TAG2) - 1;
+    // comment out $ml$ until the format can handle that many iterations.
+//	else if (!strncmp(split_fields[1], FORMAT_TAG2, sizeof(FORMAT_TAG2)-1))
+//		i = sizeof(FORMAT_TAG2) - 1;
 	else if (!strncmp(split_fields[1], FORMAT_TAG3, sizeof(FORMAT_TAG3)-1))
 		i = sizeof(FORMAT_TAG3) - 1;
 	else
