@@ -2,6 +2,9 @@ dnl This is JTR specific version of the --help screen.  We will put here EXACTLY
 dnl we want shown for ./configure --help in JtR.
 dnl The only thing different than the macro in my general.m4 is I added this to the
 dnl first line of the --help output  "WHOOPIEE, JtR specific SHIT!!!!"
+dnl
+dnl The 'original' macro was found (on my cygwin install) at /usr/share/autoconf/autoconf/general.m4
+dnl I have kept the original format, I simply remove some directory 'help' we did not want.
 # _AC_INIT_HELP
 # -------------
 # Handle the `configure --help' message.
@@ -15,7 +18,7 @@ if test "$ac_init_help" = "long"; then
   # Omit some internal or obsolete options to make the list less imposing.
   # This message is too long to be a string in the A/UX 3.1 sh.
   cat <<_ACEOF
-\`configure' configures WHOOPIEE, JtR specific SHIT!!!! m4_ifset([AC_PACKAGE_STRING],
+\`configure' configures m4_ifset([AC_PACKAGE_STRING],
 			[AC_PACKAGE_STRING],
 			[this package]) to adapt to many kinds of systems.
 
@@ -38,43 +41,12 @@ Configuration:
       --srcdir=DIR        find the sources in DIR [configure dir or \`..']
 
 Installation directories:
-]AS_HELP_STRING([--prefix=PREFIX],
-  [install architecture-independent files in PREFIX [$ac_default_prefix]])
-AS_HELP_STRING([--exec-prefix=EPREFIX],
-  [install architecture-dependent files in EPREFIX [PREFIX]])[
+][
 
-By default, \`make install' will install all the files in
-\`$ac_default_prefix/bin', \`$ac_default_prefix/lib' etc.  You can specify
-an installation prefix other than \`$ac_default_prefix' using \`--prefix',
-for instance \`--prefix=\$HOME'.
-
-For better control, use the options below.
-
-Fine tuning of the installation directories:
-  --bindir=DIR            user executables [EPREFIX/bin]
-  --sbindir=DIR           system admin executables [EPREFIX/sbin]
-  --libexecdir=DIR        program executables [EPREFIX/libexec]
-  --sysconfdir=DIR        read-only single-machine data [PREFIX/etc]
-  --sharedstatedir=DIR    modifiable architecture-independent data [PREFIX/com]
-  --localstatedir=DIR     modifiable single-machine data [PREFIX/var]
-  --libdir=DIR            object code libraries [EPREFIX/lib]
-  --includedir=DIR        C header files [PREFIX/include]
-  --oldincludedir=DIR     C header files for non-gcc [/usr/include]
-  --datarootdir=DIR       read-only arch.-independent data root [PREFIX/share]
-  --datadir=DIR           read-only architecture-independent data [DATAROOTDIR]
-  --infodir=DIR           info documentation [DATAROOTDIR/info]
-  --localedir=DIR         locale-dependent data [DATAROOTDIR/locale]
-  --mandir=DIR            man documentation [DATAROOTDIR/man]
-]AS_HELP_STRING([--docdir=DIR],
-  [documentation root ]@<:@DATAROOTDIR/doc/m4_ifset([AC_PACKAGE_TARNAME],
-    [AC_PACKAGE_TARNAME], [PACKAGE])@:>@)[
-  --htmldir=DIR           html documentation [DOCDIR]
-  --dvidir=DIR            dvi documentation [DOCDIR]
-  --pdfdir=DIR            pdf documentation [DOCDIR]
-  --psdir=DIR             ps documentation [DOCDIR]
-_ACEOF
-
-  cat <<\_ACEOF]
+By default, \`make install' will install all the files in \`$ac_default_prefix'
+You can specify location other than \`$ac_default_prefix' using \`--prefix',
+for instance \`--prefix=\$HOME/bin'.
+]
 m4_divert_pop([HELP_BEGIN])dnl
 dnl The order of the diversions here is
 dnl - HELP_BEGIN
