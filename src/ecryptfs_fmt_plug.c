@@ -79,9 +79,8 @@ static struct fmt_tests ecryptfs_tests[] = {
 	{"$ecryptfs$0$ccb515ee115be591", "failpassword"},
 	{"$ecryptfs$0$8acb10b9e061fcc7", "verylongbutstillfailpassword"},
 	/* fake hash to test custom salt handling */
-	//{"$ecryptfs$0$1$0000000000000000$e3b68c5e7230b5a2", "fake"}, // this one was NOT custom salt!
-	{"$ecryptfs$0$e3b68c5e7230b5a2", "fake"},
 	{"$ecryptfs$0$1$0000000000000000$884ed410cd143bca", "fake"},
+	{"$ecryptfs$0$1$544c39674737716a$a8307a01b2d1b008", "fake"},
 	{NULL}
 };
 
