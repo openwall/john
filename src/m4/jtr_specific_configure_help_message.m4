@@ -1,10 +1,15 @@
+dnl -----------------------------------------------------------------------------------------------
+dnl changes to default _AC_INIT_HELP macro Copyright 2014, JimF
+dnl
 dnl This is JTR specific version of the --help screen.  We will put here EXACTLY what
 dnl we want shown for ./configure --help in JtR.
-dnl The only thing different than the macro in my general.m4 is I added this to the
-dnl first line of the --help output  "WHOOPIEE, JtR specific SHIT!!!!"
+dnl The only thing different than the macro in my general.m4 is I edited the directory
+dnl stuff out.
 dnl
 dnl The 'original' macro was found (on my cygwin install) at /usr/share/autoconf/autoconf/general.m4
 dnl I have kept the original format, I simply remove some directory 'help' we did not want.
+dnl
+dnl -----------------------------------------------------------------------------------------------
 # _AC_INIT_HELP
 # -------------
 # Handle the `configure --help' message.
