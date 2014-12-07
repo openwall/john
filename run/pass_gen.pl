@@ -62,7 +62,7 @@ my @funcs = (qw(DESCrypt BigCrypt BSDIcrypt md5crypt md5crypt_a BCRYPT BCRYPTx
 		openssha l0phtcrack netlmv2 netntlmv2 mschapv2 mscash2 mediawiki
 		crc_32 Dynamic dummy raw-sha224 raw-sha256 raw-sha384 raw-sha512
 		dragonfly3-32 dragonfly4-32 dragonfly3-64 dragonfly4-64 ssh
-		salted-sha1 raw_gost raw_gost_cp hmac-sha1 hmac-sha224 rar5 rar mozilla
+		salted-sha1 raw_gost raw_gost_cp hmac-sha1 hmac-sha224 mozilla
 		hmac-sha256 hmac-sha384 hmac-sha512 sha256crypt sha512crypt
 		XSHA512 dynamic_27 dynamic_28 pwsafe django drupal7 epi zip
 		episerver_sha1 episerver_sha256 hmailserver ike keepass pkzip
@@ -70,7 +70,8 @@ my @funcs = (qw(DESCrypt BigCrypt BSDIcrypt md5crypt md5crypt_a BCRYPT BCRYPTx
 		wbb3 wpapsk sunmd5 wowsrp django-scrypt aix-ssha1 aix-ssha256
 		aix-ssha512 pbkdf2-hmac-sha512 pbkdf2-hmac-sha256 scrypt pdf
 		rakp osc formspring skey_md5 pbkdf2-hmac-sha1 odf odf-1 office
-		skey_md4 skey_sha1 skey_rmd160 cloudkeychain agilekeychain));
+		skey_md4 skey_sha1 skey_rmd160 cloudkeychain agilekeychain
+		rar rar5 ecryptfs));
 
 # todo: ike keepass cloudkeychain agilekeychain pfx racf sip vnc office pdf pkzip rar5 ssh raw_gost_cp
 my $i; my $h; my $u; my $salt;
@@ -545,7 +546,12 @@ sub randusername {
 	}
 	return $user;
 }
-
+sub get_randstr_salt {
+	my $len = $_[0];
+	if (defined $argsalt && length ($argsalt)==$len) { return ($argsalt); }
+	elsif (defined $argsalt && length ($argsalt)==$len*2 && length(pack("H*",$argsalt))==$len ) { return (pack("H*", $argsalt)); }
+	return randstr($len);
+}
 # helper function needed by md5crypt_a (or md5crypt if we were doing that one)
 sub to64 #unsigned long v, int n)
 {
@@ -1120,6 +1126,19 @@ sub rar {
 	$contentpacklen = length($content) + 16-length($content)%16;
 	my $output = _gen_key_rar4($_[0], $salt, $content);
 	print "u$u-rar:\$RAR3\$*1*".unpack("H*",$salt)."*$crc*$contentpacklen*$contentlen*1*".unpack("H*",substr($output,0,$contentpacklen))."*$type:$u:0:$_[0]::\n";
+}
+sub ecryptfs {
+	my $rndsalt=0;
+	if ($u % 5 == 0) { # every 5th hash gets a random salt.
+		$rndsalt = 1;
+		$salt = get_randstr_salt(8);
+	} else { $salt = pack("H*", "0011223344556677"); }
+	$h = sha512($salt.$_[0]);
+	for (my $i = 0; $i < 65536; $i += 1) {
+		$h = sha512($h);
+	}
+	if ($rndsalt == 0) { print '$ecryptfs$0$'.substr(unpack("H*",$h),0,16).":$u:0:$_[0]::\n"; }
+	else { print '$ecryptfs$0$1$'.unpack("H*",$salt).'$'.substr(unpack("H*",$h),0,16).":$u:0:$_[0]::\n"; }
 }
 sub ssh {
 }
