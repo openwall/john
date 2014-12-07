@@ -4,7 +4,7 @@
 #
 # Refer to "ecryptfs-utils_104.orig.tar.gz" in case of doubt.
 #
-# This software is Copyright (c) 2014, DhiruKholia <dhiru.kholia at gmail.com>
+# This software is Copyright (c) 2014, Dhiru Kholia <dhiru.kholia at gmail.com>
 # and it is hereby released to the general public under the following terms:
 #
 # Redistribution and use in source and binary forms, with or without
@@ -32,7 +32,7 @@ def process(filename, ecryptfsrc):
     if not salt:
         sys.stdout.write("%s:$ecryptfs$0$%s\n" % (filename, h))
     else:
-        sys.stdout.write("%s:$ecryptfs$0$%s$1$%s\n" % (filename, h, salt))  # $1$ indicates variable salt
+        sys.stdout.write("%s:$ecryptfs$0$1$%s$%s\n" % (filename, salt, h))  # $1$ indicates variable salt
 
 
 if __name__ == "__main__":

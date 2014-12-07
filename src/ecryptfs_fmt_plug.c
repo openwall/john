@@ -39,7 +39,7 @@ static int omp_t = 1;
 #include "memdbg.h"
 
 #define FORMAT_TAG 		"$ecryptfs$"
-#define FORMAT_TAG_LENGTH	10
+#define FORMAT_TAG_LENGTH	(sizeof(FORMAT_TAG) - 1)
 #define FORMAT_LABEL 		"eCryptfs"
 #define FORMAT_NAME 		""
 #define ALGORITHM_NAME 		"65536x SHA-512"  // good luck with that!
@@ -72,11 +72,12 @@ static int omp_t = 1;
 #define ECRYPTFS_DEFAULT_IV_BYTES 16
 
 static struct fmt_tests ecryptfs_tests[] = {
-	/* first 16 bytes of ~/.ecryptfs/wrapped-passphrase
-	 * sorry, no base-64 until I get some hefeweizen */
+	/* hash ==> first 16 bytes of ~/.ecryptfs/wrapped-passphrase */
 	{"$ecryptfs$0$92dc3db8feaf1676", "openwall"},
 	{"$ecryptfs$0$ccb515ee115be591", "failpassword"},
 	{"$ecryptfs$0$8acb10b9e061fcc7", "verylongbutstillfailpassword"},
+	/* fake hash to test custom salt handling */
+	{"$ecryptfs$0$1$0000000000000000$e3b68c5e7230b5a2", "fake"},
 	{NULL}
 };
 
@@ -84,7 +85,8 @@ static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
 
 static struct custom_salt {
-	int iterations;
+	int iterations; // really really unused (even in the original code)
+	int salt_length;
 	char unsigned salt[ECRYPTFS_SALT_SIZE + 1];
 } *cur_salt;
 
@@ -99,7 +101,7 @@ static void init(struct fmt_main *self)
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) *
-	                self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -113,7 +115,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (*p != '0' || *(p + 1) != '$')
 		return 0;
 
-	if (strlen(p + 2) != REAL_BINARY_SIZE * 2)
+	p = strrchr(ciphertext, '$') + 1;
+
+	if (strlen(p) != REAL_BINARY_SIZE * 2)
 		return 0;
 
 	return 1;
@@ -122,9 +126,28 @@ static int valid(char *ciphertext, struct fmt_main *self)
 static void *get_salt(char *ciphertext)
 {
 	static struct custom_salt cs;
+	int i;
+	char *p, *q;
 
-	memset(&cs, 0, sizeof(cs));
-	memcpy(cs.salt, ECRYPTFS_DEFAULT_SALT, ECRYPTFS_SALT_SIZE);
+	memset(&cs, 0, SALT_SIZE);
+
+	if (!strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LENGTH))
+		ciphertext += FORMAT_TAG_LENGTH;
+
+	p = ciphertext;
+	p = p + 2; // skip over "0$"
+
+	/* support for custom salt */
+	if (*p == '$' && *(p+1) == '1' && *(p+2) == '$') {
+		p = p + 3;
+		q = strchr(p, '$');
+		cs.salt_length = q - p;
+		for (i = 0; i < cs.salt_length; i++)
+			cs.salt[i] = (atoi16[ARCH_INDEX(p[2 * i])] << 4) |
+				atoi16[ARCH_INDEX(p[2 * i + 1])];
+	} else {
+		memcpy(cs.salt, ECRYPTFS_DEFAULT_SALT, ECRYPTFS_SALT_SIZE);
+	}
 
 	return (void *)&cs;
 }
@@ -137,13 +160,11 @@ static void *get_binary(char *ciphertext)
 	} buf;
 	unsigned char *out = buf.c;
 	int i;
-	char *p = ciphertext + FORMAT_TAG_LENGTH + 2;
-	/* 2 is required to skip over "hash type" */
+	char *p = strrchr(ciphertext, '$') + 1;
 
 	for (i = 0; i < REAL_BINARY_SIZE; i++) {
-		out[i] =
-		    (atoi16[ARCH_INDEX(*p)] << 4) |
-		    atoi16[ARCH_INDEX(p[1])];
+		out[i] = (atoi16[ARCH_INDEX(*p)] << 4) |
+			atoi16[ARCH_INDEX(p[1])];
 		p += 2;
 	}
 
@@ -180,8 +201,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		SHA512_Update(&ctx, saved_key[index], strlen(saved_key[index]));
 		SHA512_Final((unsigned char *)crypt_out[index], &ctx);
 
-		/* now "h" (crypt_out[index] becomes our input
-		 * total SHA-512 calls => 65536 */
+		/* now "h" (crypt_out[index] becomes our input, total SHA-512 calls => 65536 */
 		for (j = 1; j <= ECRYPTFS_DEFAULT_NUM_HASH_ITERATIONS; j++) {
 			SHA512_CTX ctx;
 			SHA512_Init(&ctx);
