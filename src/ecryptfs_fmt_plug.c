@@ -31,6 +31,7 @@ john_register_one(&fmt_ecryptfs1);
 #include "formats.h"
 #include "params.h"
 #include "options.h"
+#include "base64_convert.h"
 #ifdef _OPENMP
 static int omp_t = 1;
 #include <omp.h>
@@ -48,6 +49,7 @@ static int omp_t = 1;
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	125
 #define REAL_BINARY_SIZE	8
+#define HEX_BINARY_SIZE     (REAL_BINARY_SIZE*2)
 #define BINARY_SIZE		64
 #define BINARY_ALIGN		4
 #define SALT_SIZE		sizeof(struct custom_salt)
@@ -77,7 +79,9 @@ static struct fmt_tests ecryptfs_tests[] = {
 	{"$ecryptfs$0$ccb515ee115be591", "failpassword"},
 	{"$ecryptfs$0$8acb10b9e061fcc7", "verylongbutstillfailpassword"},
 	/* fake hash to test custom salt handling */
-	{"$ecryptfs$0$1$0000000000000000$e3b68c5e7230b5a2", "fake"},
+	//{"$ecryptfs$0$1$0000000000000000$e3b68c5e7230b5a2", "fake"}, // this one was NOT custom salt!
+	{"$ecryptfs$0$e3b68c5e7230b5a2", "fake"},
+	{"$ecryptfs$0$1$0000000000000000$884ed410cd143bca", "fake"},
 	{NULL}
 };
 
@@ -115,12 +119,16 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (*p != '0' || *(p + 1) != '$')
 		return 0;
 
-	p = strrchr(ciphertext, '$') + 1;
+	p += 2;
+	if (*p == '1' || *(p + 1) == '$') {
+		// handle salted variety
+		p += 2;
+		if (base64_valid_length(p, e_b64_hex, flg_Base64_NO_FLAGS) != HEX_BINARY_SIZE || p[HEX_BINARY_SIZE] != '$')
+			return 0;
+		p += (HEX_BINARY_SIZE+1);
+	}
 
-	if (strlen(p) != REAL_BINARY_SIZE * 2)
-		return 0;
-
-	return 1;
+	return base64_valid_length(p, e_b64_hex, flg_Base64_NO_FLAGS) == HEX_BINARY_SIZE;
 }
 
 static void *get_salt(char *ciphertext)
@@ -131,17 +139,14 @@ static void *get_salt(char *ciphertext)
 
 	memset(&cs, 0, SALT_SIZE);
 
-	if (!strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LENGTH))
-		ciphertext += FORMAT_TAG_LENGTH;
-
-	p = ciphertext;
+	p = ciphertext + FORMAT_TAG_LENGTH;
 	p = p + 2; // skip over "0$"
 
 	/* support for custom salt */
-	if (*p == '$' && *(p+1) == '1' && *(p+2) == '$') {
-		p = p + 3;
+	if (*p == '1' && *(p + 1) == '$') {
+		p = p + 2;
 		q = strchr(p, '$');
-		cs.salt_length = q - p;
+		cs.salt_length = (q - p) / 2;
 		for (i = 0; i < cs.salt_length; i++)
 			cs.salt[i] = (atoi16[ARCH_INDEX(p[2 * i])] << 4) |
 				atoi16[ARCH_INDEX(p[2 * i + 1])];
