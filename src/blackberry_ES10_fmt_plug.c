@@ -34,7 +34,7 @@ static int omp_t = 1;
 // OMP_SCALE tests (intel core i7)
 // 8   - 77766
 // 64  - 80075
-// 128 - 82016
+// 128 - 82016  -test=0 is still almost instant.
 // 256 - 81753
 // 512 - 80537
 #define OMP_SCALE		128
