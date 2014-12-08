@@ -48,10 +48,11 @@
 #define MAYBE_CONSTANT	__constant
 #endif
 
-/* Warning: This macro can't be used with eg. SWAP32(*p++) because it will
-   be incremented twice */
 #ifdef USE_BITSELECT
-#define SWAP32(n)	bitselect(rotate(n, 24U), rotate(n, 8U), 0x00FF00FFU)
+inline uint SWAP32(uint x)
+{
+	return bitselect(rotate(x, 24U), rotate(x, 8U), 0x00FF00FFU);
+}
 #else
 inline uint SWAP32(uint x)
 {

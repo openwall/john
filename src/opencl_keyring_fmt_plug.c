@@ -1,9 +1,7 @@
 /*
- * Modified by Dhiru Kholia <dhiru at openwall.com> for Keyring format.
- *
- * Lots of fixes were done by magnum which made the format work!
- *
- * This software is Copyright (c) 2012 Lukas Odzioba <ukasz@openwall.net>
+ * This software is Copyright (c) 2012 Lukas Odzioba <ukasz@openwall.net>,
+ * Copyright (c) 2012 Dhiru Kholia <dhiru at openwall.com> and
+ * Copyright (c) 2012-2014 magnum
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted. */
@@ -31,28 +29,25 @@ john_register_one(&fmt_opencl_keyring);
 #include "sha2.h"
 #include "md5.h"
 #include "stdint.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL		"keyring-opencl"
 #define FORMAT_NAME		"GNOME Keyring"
 #define ALGORITHM_NAME		"SHA256 OpenCL AES"
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
-#define MIN_KEYS_PER_CRYPT	8*1024
-#define MAX_KEYS_PER_CRYPT	MIN_KEYS_PER_CRYPT
-#define PLAINTEXT_LENGTH	12
+#define MIN_KEYS_PER_CRYPT	1
+#define MAX_KEYS_PER_CRYPT	1
+#define PLAINTEXT_LENGTH	(55-8)
 #define BINARY_SIZE		0
 #define BINARY_ALIGN		1
 #define SALT_SIZE		sizeof(struct custom_salt)
 #define SALT_ALIGN		4
 
 #define SALTLEN 8
+
 typedef unsigned char guchar; /* How many aliases do we need?! */
 typedef unsigned int guint;
 typedef int gint;
-
-
-#define OCL_CONFIG		"keyring"
 
 typedef struct {
 	uint32_t length;
@@ -67,7 +62,7 @@ typedef struct {
 typedef struct {
 	uint32_t length;
 	uint32_t iterations;
-	uint8_t salt[8];
+	uint8_t salt[SALTLEN];
 } keyring_salt;
 
 static int *cracked;
@@ -97,57 +92,43 @@ static cl_mem mem_in, mem_out, mem_setting;
 #define settingsize (sizeof(keyring_salt))
 #define cracked_size (sizeof(*cracked) * global_work_size)
 
-static void release_clobj(void)
-{
-	HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
-	HANDLE_CLERROR(clReleaseMemObject(mem_setting), "Release mem setting");
-	HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
+#define OCL_CONFIG		"keyring"
+#define STEP                    0
+#define SEED                    64
 
-	MEM_FREE(inbuffer);
-	MEM_FREE(outbuffer);
-	MEM_FREE(cracked);
+static const char * warn[] = {
+	"xfer: "  ,  ", crypt: "    ,  ", xfer: "
+};
+
+//This file contains auto-tuning routine(s). It has to be included after formats definitions.
+#include "opencl-autotune.h"
+#include "memdbg.h"
+
+/* ------- Helper functions ------- */
+static size_t get_task_max_work_group_size()
+{
+	return autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
 }
 
-static void done(void)
+static size_t get_task_max_size()
 {
-	release_clobj();
-
-	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
-	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
+	return 0;
 }
 
-static void init(struct fmt_main *self)
+static size_t get_default_workgroup()
 {
-	char build_opts[64];
+	if (cpu(device_info[gpu_id]))
+		return get_platform_vendor_id(platform_id) == DEV_INTEL ?
+			8 : 1;
+	else
+		return 64;
+}
+
+static void create_clobj(size_t global_work_size, struct fmt_main *self)
+{
 	cl_int cl_error;
-	cl_ulong maxsize;
-
-	snprintf(build_opts, sizeof(build_opts),
-	         "-DPLAINTEXT_LENGTH=%d",
-	         PLAINTEXT_LENGTH);
-	opencl_init("$JOHN/kernels/keyring_kernel.cl",
-	                gpu_id, build_opts);
-
-	/* Read LWS/GWS prefs from config or environment */
-	opencl_get_user_preferences(OCL_CONFIG);
-
-	if (!local_work_size)
-		local_work_size = cpu(device_info[gpu_id]) ? 1 : 64;
-
-	if (!global_work_size)
-		global_work_size = MAX_KEYS_PER_CRYPT;
-
-	crypt_kernel = clCreateKernel(program[gpu_id], "keyring", &cl_error);
-	HANDLE_CLERROR(cl_error, "Error creating kernel");
-
-	/* Note: we ask for the kernels' max sizes, not the device's! */
-	HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize), &maxsize, NULL), "Query max workgroup size");
-
-	while (local_work_size > maxsize)
-		local_work_size >>= 1;
-
-	inbuffer = (keyring_password *) mem_calloc(insize);
-	outbuffer = (keyring_hash *) mem_alloc(outsize);
+	inbuffer = (keyring_password*) mem_calloc(insize);
+	outbuffer = (keyring_hash*) mem_alloc(outsize);
 
 	cracked = mem_calloc(cracked_size);
 
@@ -171,12 +152,48 @@ static void init(struct fmt_main *self)
 		&mem_out), "Error while setting mem_out kernel argument");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(mem_setting),
 		&mem_setting), "Error while setting mem_salt kernel argument");
+}
 
-	self->params.min_keys_per_crypt = local_work_size;
-	self->params.max_keys_per_crypt = global_work_size;
+static void release_clobj(void)
+{
+	HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
+	HANDLE_CLERROR(clReleaseMemObject(mem_setting), "Release mem setting");
+	HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
 
-	if (options.verbosity > 2)
-		fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
+	MEM_FREE(inbuffer);
+	MEM_FREE(outbuffer);
+	MEM_FREE(cracked);
+}
+
+static void done(void)
+{
+	release_clobj();
+
+	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
+	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
+}
+
+static void init(struct fmt_main *self)
+{
+	char build_opts[64];
+	cl_int cl_error;
+
+	snprintf(build_opts, sizeof(build_opts),
+	         "-DPLAINTEXT_LENGTH=%d -DSALTLEN=%d",
+	         PLAINTEXT_LENGTH, SALTLEN);
+	opencl_init("$JOHN/kernels/keyring_kernel.cl",
+	            gpu_id, build_opts);
+
+	crypt_kernel = clCreateKernel(program[gpu_id], "keyring", &cl_error);
+	HANDLE_CLERROR(cl_error, "Error creating kernel");
+
+	// Initialize openCL tuning (library) for this format.
+	opencl_init_auto_setup(SEED, 0, NULL, warn, 1, self, create_clobj,
+	                       release_clobj, sizeof(keyring_password), 0);
+
+	//Auto tune execution from shared/included code.
+	autotune_run(self, 1, 0, cpu(device_info[gpu_id]) ?
+	                             500000000ULL : 1000000000ULL);
 }
 
 static int looks_like_nice_int(char *p)
@@ -279,6 +296,10 @@ static void set_salt(void *salt)
 	memcpy((char*)currentsalt.salt, cur_salt->salt, SALTLEN);
 	currentsalt.length = SALTLEN;
 	currentsalt.iterations = cur_salt->iterations;
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_setting,
+	                                    CL_FALSE, 0, settingsize,
+	                                    &currentsalt, 0, NULL, NULL),
+	               "Copy setting to gpu");
 }
 
 static void keyring_set_key(char *key, int index)
@@ -313,8 +334,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
 	int index;
+	size_t *lws = local_work_size ? &local_work_size : NULL;
 
-	global_work_size = (count + local_work_size - 1) / local_work_size * local_work_size;
+	global_work_size = local_work_size ? (count + local_work_size - 1) / local_work_size * local_work_size : count;
 
 	if (any_cracked) {
 		memset(cracked, 0, cracked_size);
@@ -323,20 +345,17 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	/// Copy data to gpu
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0,
-		insize, inbuffer, 0, NULL, NULL), "Copy data to gpu");
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_setting,
-		CL_FALSE, 0, settingsize, &currentsalt, 0, NULL, NULL),
-	    "Copy setting to gpu");
+		insize, inbuffer, 0, NULL, multi_profilingEvent[0]), "Copy data to gpu");
 
 	/// Run kernel
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1,
-		NULL, &global_work_size, &local_work_size, 0, NULL, profilingEvent),
+		NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[1]),
 	    "Run kernel");
 	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish");
 
 	/// Read the result back
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_FALSE, 0,
-		outsize, outbuffer, 0, NULL, NULL), "Copy result back");
+		outsize, outbuffer, 0, NULL, multi_profilingEvent[2]), "Copy result back");
 
 	/// Await completion of all the above
 	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish");
