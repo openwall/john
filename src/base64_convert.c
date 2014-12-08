@@ -804,10 +804,10 @@ int base64_convert(const void *from, b64_convert_type from_t, int from_len, void
 void base64_convert_error_exit(int err) {
 	// TODO: add error codes when created.
 	switch (err) {
-		case ERR_base64_unk_from_type:	fprintf (stderr, "base64_convert error, Unknown From Type\n", err); break;
-		case ERR_base64_unk_to_type:	fprintf (stderr, "base64_convert error, Unknown To Type\n", err); break;
-		case ERR_base64_to_buffer_sz:	fprintf (stderr, "base64_convert error, *to buffer too small\n", err); break;
-		case ERR_base64_unhandled:		fprintf (stderr, "base64_convert error, currently unhandled conversion\n", err); break;
+		case ERR_base64_unk_from_type:	fprintf (stderr, "base64_convert error-%d, Unknown From Type\n", err); break;
+		case ERR_base64_unk_to_type:	fprintf (stderr, "base64_convert error-%d, Unknown To Type\n", err); break;
+		case ERR_base64_to_buffer_sz:	fprintf (stderr, "base64_convert error-%d, *to buffer too small\n", err); break;
+		case ERR_base64_unhandled:		fprintf (stderr, "base64_convert error-%d, currently unhandled conversion\n", err); break;
 		default:						fprintf (stderr, "base64_convert_error_exit(%d)\n", err);
 	}
 	exit(1);
@@ -815,10 +815,10 @@ void base64_convert_error_exit(int err) {
 char *base64_convert_error(int err) {
 	char *p = (char*)mem_alloc(256);
 	switch (err) {
-		case ERR_base64_unk_from_type:	sprintf(p, "base64_convert error, Unknown From Type\n", err); break;
-		case ERR_base64_unk_to_type:	sprintf(p, "base64_convert error, Unknown To Type\n", err); break;
-		case ERR_base64_to_buffer_sz:	sprintf(p, "base64_convert error, *to buffer too small\n", err); break;
-		case ERR_base64_unhandled:		sprintf(p, "base64_convert error, currently unhandled conversion\n", err); break;
+		case ERR_base64_unk_from_type:	sprintf(p, "base64_convert error-%d, Unknown From Type\n", err); break;
+		case ERR_base64_unk_to_type:	sprintf(p, "base64_convert error-%d, Unknown To Type\n", err); break;
+		case ERR_base64_to_buffer_sz:	sprintf(p, "base64_convert error-%d, *to buffer too small\n", err); break;
+		case ERR_base64_unhandled:		sprintf(p, "base64_convert error-%d, currently unhandled conversion\n", err); break;
 		default:						sprintf(p, "base64_convert_error_exit(%d)\n", err);
 	}
 	return p;
