@@ -14,7 +14,7 @@
 #ifndef _OPENCL_MD4_H
 #define _OPENCL_MD4_H
 
-#include <opencl_misc.h>
+#include "opencl_misc.h"
 
 #ifdef USE_BITSELECT
 #define MD4_F(x, y, z)	bitselect((z), (y), (x))

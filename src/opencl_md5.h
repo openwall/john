@@ -14,7 +14,7 @@
 #ifndef _OPENCL_MD5_H
 #define _OPENCL_MD5_H
 
-#include <opencl_misc.h>
+#include "opencl_misc.h"
 
 /* The basic MD5 functions */
 #ifdef USE_BITSELECT

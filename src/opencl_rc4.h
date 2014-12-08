@@ -14,7 +14,7 @@
 #ifndef _OPENCL_RC4_H
 #define _OPENCL_RC4_H
 
-#include <opencl_misc.h>
+#include "opencl_misc.h"
 
 #ifndef RC4_BUFLEN
 #error RC4_BUFLEN must be defined prior to including opencl_rc4.h

@@ -14,7 +14,7 @@
 #ifndef _OPENCL_SHA1_H
 #define _OPENCL_SHA1_H
 
-#include <opencl_misc.h>
+#include "opencl_misc.h"
 
 /* SHA1 constants and IVs */
 #define K0	0x5A827999
