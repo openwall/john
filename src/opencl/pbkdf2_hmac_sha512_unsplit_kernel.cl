@@ -162,7 +162,7 @@ __constant ulong k[] = {
 };
 
 typedef struct {
-	ulong v[(110+7)/8];
+	ulong v[(PLAINTEXT_LENGTH + 7) / 8];
 	ulong length;
 } pbkdf2_password;
 
@@ -171,7 +171,7 @@ typedef struct {
 } pbkdf2_hash;
 
 typedef struct {
-	ulong salt[(107+1+4+7)/8];
+	ulong salt[(MAX_SALT_SIZE + 1 + 4 + 7) / 8];
 	uint length;
 	uint rounds;
 } pbkdf2_salt;
