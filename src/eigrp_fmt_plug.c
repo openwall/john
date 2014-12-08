@@ -292,6 +292,16 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
+#if FMT_MAIN_VERSION > 11
+static unsigned int get_cost(void *salt)
+{
+	if (((struct custom_salt*)salt)->algo_type == 2)
+		return 5; // MD5
+	else
+		return 256; // HMAC-SHA256
+}
+#endif
+
 struct fmt_main fmt_eigrp = {
 	{
 		FORMAT_LABEL,
@@ -308,7 +318,9 @@ struct fmt_main fmt_eigrp = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 #if FMT_MAIN_VERSION > 11
-		{ NULL },
+		{
+			"algorithm",
+		},
 #endif
 		tests
 	}, {
@@ -321,7 +333,9 @@ struct fmt_main fmt_eigrp = {
 		get_binary,
 		get_salt,
 #if FMT_MAIN_VERSION > 11
-		{ NULL },
+		{
+			get_cost,
+		},
 #endif
 		fmt_default_source,
 		{
