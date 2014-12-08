@@ -20,7 +20,16 @@ john_register_one(&fmt_eigrp);
 #include <string.h>
 #ifdef _OPENMP
 #include <omp.h>
-#define OMP_SCALE 2048 // XXX
+// OMP_SCALE on Intel core i7
+// 2048 - 12030k/11596k
+// 4096 - 12575k/13114k
+// 8192 - 13316k/13921k
+// 16k  - 13547k/14458k
+// 32k  - 16106k/14700k
+// 64k  - 16106k/14700k
+// 64k  - 16674k/14674k
+// 128k - 17795k/14663k  --test=0 has a tiny delay, but not bad.
+#define OMP_SCALE 131072
 #endif
 
 #include "arch.h"
