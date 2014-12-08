@@ -236,14 +236,15 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			MD5_Final((unsigned char*)crypt_out[index], &ctx);
 		} else {
 			HMAC_SHA256_CTX hctx[1];
+			unsigned char output[32];
 			unsigned char buffer[1 + PLAINTEXT_LENGTH + 45 + 1] = { 0 }; // HMAC key ==> '\n' + password + IP address
 			buffer[0] = '\n'; // WTF?
 			memcpy(buffer + 1, saved_key[index], saved_len[index]);
 			memcpy(buffer + 1 + saved_len[index], cur_salt->ip, cur_salt->ip_length);
 			HMAC__SHA256_Init(hctx, buffer, 1 + saved_len[index] + cur_salt->ip_length);
 			HMAC__SHA256_Update(hctx, cur_salt->salt, cur_salt->length);
-			HMAC__SHA256_Final((unsigned char*)crypt_out[index], hctx);
-
+			HMAC__SHA256_Final(output, hctx);
+			memcpy((unsigned char*)crypt_out[index], output, BINARY_SIZE);
 		}
 
 	}
