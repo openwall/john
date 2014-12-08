@@ -148,7 +148,6 @@ JOHN_OBJS = \
 	keyring2john.o keystore2john.o \
 	truecrypt_volume2john.o \
 	hccap2john.o \
-	mozilla2john.o \
 	$(PLUGFORMATS_OBJS) \
 	plugin.o \
 	dyna_salt.o dummy.o \
@@ -219,7 +218,7 @@ GENMKVPWD_OBJS = \
 PROJ = ../run/john ../run/unshadow ../run/unafs ../run/unique ../run/undrop \
 	../run/ssh2john ../run/rar2john ../run/zip2john \
 	../run/genmkvpwd ../run/mkvcalcproba ../run/calc_stat \
-	../run/tgtsnarf ../run/racf2john ../run/mozilla2john ../run/hccap2john \
+	../run/tgtsnarf ../run/racf2john ../run/hccap2john \
 	../run/pwsafe2john ../run/raw2dyna ../run/keepass2john ../run/pfx2john \
 	../run/keychain2john ../run/keyring2john ../run/kwallet2john \
 	../run/dmg2john ../run/putty2john john.local.conf ../run/uaf2john \
@@ -229,7 +228,7 @@ PROJ_DOS = ../run/john.bin ../run/john.com \
 	../run/unshadow.com ../run/unafs.com ../run/unique.com \
 	../run/undrop.com \
 	../run/ssh2john.com ../run/rar2john.com ../run/zip2john \
-	../run/racf2john.com ../run/mozilla2john.com ../run/hccap2john.com \
+	../run/racf2john.com ../run/hccap2john.com \
 	../run/pwsafe2john.com ../run/keepass2john.com ../run/pfx2john.com \
 	../run/keychain2john.com ../run/keyring2john.com ../run/kwallet2john.com \
 	../run/dmg2john.com ../run/putty2john.com john.local.conf \
@@ -239,7 +238,7 @@ PROJ_WIN32 = ../run/john.exe \
 	../run/undrop.exe \
 	../run/ssh2john.exe ../run/rar2john.exe ../run/zip2john.exe \
 	../run/genmkvpwd.exe ../run/mkvcalcproba.exe ../run/calc_stat.exe \
-	../run/racf2john.exe ../run/mozilla2john.exe ../run/hccap2john.exe \
+	../run/racf2john.exe ../run/hccap2john.exe \
 	../run/pwsafe2john.exe ../run/raw2dyna.exe ../run/keepass2john.exe \
 	../run/pfx2john.exe ../run/keychain2john.exe ../run/keyring2john.exe \
 	../run/kwallet2john.exe ../run/dmg2john.exe ../run/putty2john.exe \
@@ -249,7 +248,7 @@ PROJ_WIN32_MINGW = ../run/john-mingw.exe \
 	../run/undrop.exe \
 	../run/ssh2john.exe ../run/rar2john.exe ../run/zip2john.exe \
 	../run/genmkvpwd.exe ../run/mkvcalcproba.exe ../run/calc_stat.exe \
-	../run/racf2john.exe ../run/mozilla2john.exe ../run/hccap2john.exe \
+	../run/racf2john.exe ../run/hccap2john.exe \
 	../run/pwsafe2john.exe ../run/raw2dyna.exe ../run/keepass2john.exe \
 	../run/pfx2john.exe ../run/keychain2john.exe ../run/keyring2john.exe \
 	../run/kwallet2john.exe ../run/putty2john.exe john.local.conf \
