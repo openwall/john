@@ -552,8 +552,14 @@ static void hash_plugin_check_hash(int index)
 		if (!EVP_DecryptUpdate(&ctx, TEMP1, &outlen,
 		    cur_salt->encrypted_keyblob, cur_salt->encrypted_keyblob_size)) {
 			/* FIXME: should we fail here? */
+			/* why would this fail?  If it fails, will any more ever work (i.e. are we out of memory??? */
+			/* we might want to bail out here, I am not sure */
 			EVP_CIPHER_CTX_cleanup(&ctx);
+#ifdef MMX_COEF
+			continue;
+#else
 			return;
+#endif
 		}
 		EVP_DecryptFinal_ex(&ctx, TEMP1 + outlen, &tmplen);
 		EVP_CIPHER_CTX_cleanup(&ctx);
