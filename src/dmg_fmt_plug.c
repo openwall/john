@@ -66,7 +66,6 @@ john_register_one(&fmt_dmg);
 #include "johnswap.h"
 #include "common.h"
 #include "formats.h"
-#undef MMX_COEF // FIXME: This format should use SSE2
 #include "pbkdf2_hmac_sha1.h"
 #ifdef _OPENMP
 #include <omp.h>
@@ -113,7 +112,7 @@ extern volatile int bench_running;
 static int omp_t = 1;
 #endif
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static int *cracked;
+static int *cracked, cracked_count;
 
 static struct custom_salt {
 	unsigned int saltlen;
@@ -228,6 +227,7 @@ static void init(struct fmt_main *self)
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	cracked = mem_calloc_tiny(sizeof(*cracked) *
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	cracked_count = self->params.max_keys_per_crypt;
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -451,16 +451,34 @@ err:
 	return -1;
 }
 
-static int hash_plugin_check_hash(const char *password)
+static void hash_plugin_check_hash(int index)
 {
-	unsigned char derived_key[32];
 	unsigned char hmacsha1_key_[20];
 	unsigned char aes_key_[32];
-	int ret = 0;
+	int j;
 
 	if (cur_salt->headerver == 1) {
+#ifdef MMX_COEF
+		unsigned char *derived_key, Derived_key[SSE_GROUP_SZ_SHA1][32];
+		int lens[SSE_GROUP_SZ_SHA1], i;
+		unsigned char *pin[SSE_GROUP_SZ_SHA1];
+		union {
+			ARCH_WORD_32 *pout[SSE_GROUP_SZ_SHA1];
+			unsigned char *poutc;
+		} x;
+		for (i = 0; i < SSE_GROUP_SZ_SHA1; ++i) {
+			lens[i] = strlen(saved_key[index+i]);
+			pin[i] = (unsigned char*)saved_key[index+i];
+			x.pout[i] = (ARCH_WORD_32*)(Derived_key[i]);
+		}
+		pbkdf2_sha1_sse((const unsigned char **)pin, lens, cur_salt->salt, 20,
+			cur_salt->iterations, &(x.poutc), 32, 0);
+#else
+		unsigned char derived_key[32];
+		const char *password = saved_key[index];
 		pbkdf2_sha1((const unsigned char*)password, strlen(password),
 		       cur_salt->salt, 20, cur_salt->iterations, derived_key, 32, 0);
+#endif
 #if !ARCH_LITTLE_ENDIAN
 		{
 			int i;
@@ -469,11 +487,18 @@ static int hash_plugin_check_hash(const char *password)
 			}
 		}
 #endif
+		j = 0;
+#ifdef MMX_COEF
+		for(j = 0; j < SSE_GROUP_SZ_SHA1; ++j) {
+		derived_key = Derived_key[j];
+#endif
 		if ((apple_des3_ede_unwrap_key1(cur_salt->wrapped_aes_key, cur_salt->len_wrapped_aes_key, derived_key) == 0) && (apple_des3_ede_unwrap_key1(cur_salt->wrapped_hmac_sha1_key, cur_salt->len_hmac_sha1_key, derived_key) == 0)) {
-			return 1;
+			cracked[index+j] = 1;
 		}
-	}
-	else {
+#ifdef MMX_COEF
+		}
+#endif
+	} else {
 		EVP_CIPHER_CTX ctx;
 		unsigned char TEMP1[sizeof(cur_salt->wrapped_hmac_sha1_key)];
 		int outlen, tmplen;
@@ -488,8 +513,27 @@ static int hash_plugin_check_hash(const char *password)
 #endif
 		const char nulls[8] = { 0 };
 
+#ifdef MMX_COEF
+		unsigned char *derived_key, Derived_key[SSE_GROUP_SZ_SHA1][32];
+		int lens[SSE_GROUP_SZ_SHA1], i;
+		unsigned char *pin[SSE_GROUP_SZ_SHA1];
+		union {
+			ARCH_WORD_32 *pout[SSE_GROUP_SZ_SHA1];
+			unsigned char *poutc;
+		} x;
+		for (i = 0; i < SSE_GROUP_SZ_SHA1; ++i) {
+			lens[i] = strlen(saved_key[index+i]);
+			pin[i] = (unsigned char*)saved_key[index+i];
+			x.pout[i] = (ARCH_WORD_32*)(Derived_key[i]);
+		}
+		pbkdf2_sha1_sse((const unsigned char **)pin, lens, cur_salt->salt, 20,
+			cur_salt->iterations, &(x.poutc), 32, 0);
+#else
+		unsigned char derived_key[32];
+		const char *password = saved_key[index];
 		pbkdf2_sha1((const unsigned char*)password, strlen(password),
 		       cur_salt->salt, 20, cur_salt->iterations, derived_key, 32, 0);
+#endif
 #if !ARCH_LITTLE_ENDIAN
 		{
 			int i;
@@ -498,13 +542,18 @@ static int hash_plugin_check_hash(const char *password)
 			}
 		}
 #endif
+		j = 0;
+#ifdef MMX_COEF
+		for(j = 0; j < SSE_GROUP_SZ_SHA1; ++j) {
+		derived_key = Derived_key[j];
+#endif
 		EVP_CIPHER_CTX_init(&ctx);
 		EVP_DecryptInit_ex(&ctx, EVP_des_ede3_cbc(), NULL, derived_key, cur_salt->iv);
 		if (!EVP_DecryptUpdate(&ctx, TEMP1, &outlen,
 		    cur_salt->encrypted_keyblob, cur_salt->encrypted_keyblob_size)) {
 			/* FIXME: should we fail here? */
 			EVP_CIPHER_CTX_cleanup(&ctx);
-			return 0;
+			return;
 		}
 		EVP_DecryptFinal_ex(&ctx, TEMP1 + outlen, &tmplen);
 		EVP_CIPHER_CTX_cleanup(&ctx);
@@ -528,56 +577,56 @@ static int hash_plugin_check_hash(const char *password)
 			if (!bench_running)
 				fprintf(stderr, "NULLS found!\n\n");
 #endif
-			ret = 1;
+			cracked[index+j] = 1;
 		}
 
 /* These tests seem to be obsoleted by the 8xNULL test */
 #ifdef DMG_DEBUG
 		/* </plist> is a pretty generic signature for Apple */
-		if (memmem(outbuf, cur_salt->data_size, (void*)"</plist>", 8)) {
+		if (!cracked[index+j] && memmem(outbuf, cur_salt->data_size, (void*)"</plist>", 8)) {
 			if (!bench_running)
 				fprintf(stderr, "</plist> found!\n\n");
-			ret = 1;
+			cracked[index+j] = 1;
 		}
 
 		/* Journalled HFS+ */
-		if (memmem(outbuf, cur_salt->data_size, (void*)"jrnlhfs+", 8)) {
+		if (!cracked[index+j] && memmem(outbuf, cur_salt->data_size, (void*)"jrnlhfs+", 8)) {
 			if (!bench_running)
 				fprintf(stderr, "jrnlhfs+ found!\n\n");
-			ret = 1;
+			cracked[index+j] = 1;
 		}
 
 		/* Handle compressed DMG files, CMIYC 2012 and self-made
 		   samples. Is this test obsoleted by the </plist> one? */
-		if ((r = memmem(outbuf, cur_salt->data_size, (void*)"koly", 4))) {
+		if (!cracked[index+j] && (r = memmem(outbuf, cur_salt->data_size, (void*)"koly", 4))) {
 			unsigned int *u32Version = (unsigned int *)(r + 4);
 
 			if (HTONL(*u32Version) == 4) {
 				if (!bench_running)
 					fprintf(stderr, "koly found!\n\n");
-				ret = 1;
+				cracked[index+j] = 1;
 			}
 		}
 
 		/* Handle VileFault sample images */
-		if (memmem(outbuf, cur_salt->data_size, (void*)"EFI PART", 8)) {
+		if (!cracked[index+j] && memmem(outbuf, cur_salt->data_size, (void*)"EFI PART", 8)) {
 			if (!bench_running)
 				fprintf(stderr, "EFI PART found!\n\n");
-			ret = 1;
+			cracked[index+j] = 1;
 		}
 
 		/* Apple is a good indication but it's short enough to
 		   produce false positives */
-		if (memmem(outbuf, cur_salt->data_size, (void*)"Apple", 5)) {
+		if (!cracked[index+j] && memmem(outbuf, cur_salt->data_size, (void*)"Apple", 5)) {
 			if (!bench_running)
 				fprintf(stderr, "Apple found!\n\n");
-			ret = 1;
+			cracked[index+j] = 1;
 		}
 
 #endif /* DMG_DEBUG */
 
 		/* Second buffer test. If present, *this* is the very first block of the DMG */
-		if (cur_salt->scp == 1) {
+		if (!cracked[index+j] && cur_salt->scp == 1) {
 			int cno = 0;
 
 			HMAC_CTX_init(&hmacsha1_ctx);
@@ -597,22 +646,21 @@ static int hash_plugin_check_hash(const char *password)
 				if (!bench_running)
 					fprintf(stderr, "NULLS found in alternate block!\n\n");
 #endif
-				ret = 1;
+				cracked[index+j] = 1;
 			}
 #ifdef DMG_DEBUG
 			/* This test seem to be obsoleted by the 8xNULL test */
-			if (memmem(outbuf2, 4096, (void*)"Press any key to reboot", 23)) {
+			if (!cracked[index+j] && memmem(outbuf2, 4096, (void*)"Press any key to reboot", 23)) {
 				if (!bench_running)
 					fprintf(stderr, "MS-DOS UDRW signature found in alternate block!\n\n");
-				ret = 1;
+				cracked[index+j] = 1;
 			}
 #endif /* DMG_DEBUG */
 		}
 
-
 #ifdef DMG_DEBUG
 		/* Write block as hex, strings or raw to a file. */
-		if (ret && !bench_running) {
+		if (cracked[index+j] && !bench_running) {
 #if DMG_DEBUG == 4
 			int fd;
 
@@ -646,9 +694,11 @@ static int hash_plugin_check_hash(const char *password)
 #endif
 		}
 #endif /* DMG_DEBUG */
+#ifdef MMX_COEF
+		}
+#endif
 	}
-
-	return ret;
+	return;
 }
 
 static void set_salt(void *salt)
@@ -678,15 +728,14 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	int count = *pcount;
 	int index;
 
+	memset(cracked, 0, sizeof(cracked[0])*cracked_count);
+
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
 	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 	{
-		if (hash_plugin_check_hash(saved_key[index]) == 1)
-			cracked[index] = 1;
-		else
-			cracked[index] = 0;
+		hash_plugin_check_hash(index);
 	}
 	return count;
 }
