@@ -19,7 +19,19 @@ john_register_one(&fmt_BFEgg);
 #ifdef _OPENMP
 static int omp_t = 1;
 #include <omp.h>
-#define OMP_SCALE               4 // FIXME
+// Tuning on AMD A8 4500M laptop, cygwin64 with OMP(4x) -test=5
+// 4   = 44330 (original)
+// 16  = 54760
+// 24  = 56151
+// 32  = 56216
+// 64  = 57770
+// 96  = 57888
+// 128 = 58016  > instant -test=0
+// 256 = 58282  // from here on, not enough gain to matter.
+// 512 = 58573
+// 1024= 59464
+// 4096= 59244  > 1s -test=0
+#define OMP_SCALE               128
 #endif
 #include "memdbg.h"
 
