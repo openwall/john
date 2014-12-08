@@ -47,7 +47,6 @@ john_register_one(&fmt_fde);
 #include "params.h"
 #include "options.h"
 #include "memory.h"
-#undef MMX_COEF // FIXME
 #include "pbkdf2_hmac_sha1.h"
 // NOTE, this format FAILS for generic sha2.  It could be due to interaction between openssl/aes and generic sha2 code.
 #include "sha2.h"
@@ -89,6 +88,7 @@ static struct fmt_tests fde_tests[] = {
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static int *cracked;
+static int max_cracked;
 
 static struct custom_salt {
 	int loaded;
@@ -115,6 +115,7 @@ static void init(struct fmt_main *self)
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	cracked = mem_calloc_tiny(sizeof(*cracked) *
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	max_cracked = self->params.max_keys_per_crypt;
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -221,22 +222,38 @@ static void AES_cbc_essiv(unsigned char *src, unsigned char *dst, unsigned char 
 	AES_cbc_encrypt(src, dst, size, &aeskey, essiv, AES_DECRYPT);
 }
 
-int hash_plugin_check_hash(char *password)
+//		cracked[index] = hash_plugin_check_hash(saved_key[index]);
+void hash_plugin_check_hash(int index)
 {
-	unsigned char keycandidate[255];
 	unsigned char keycandidate2[255];
 	unsigned char decrypted1[512]; // FAT
 	unsigned char decrypted2[512]; // ext3/4
 	AES_KEY aeskey;
 	uint16_t v2,v3,v4;
 	uint32_t v1,v5;
+	int j = 0;
 
-	pbkdf2_sha1((const uint8_t*)password, strlen(password),
-		(const uint8_t*)(cur_salt->salt),
-		16,
-		2000,
-		keycandidate,
-		cur_salt->keysize + 16, 0);
+#ifdef MMX_COEF
+	unsigned char *keycandidate, Keycandidate[SSE_GROUP_SZ_SHA1][255];
+	int lens[SSE_GROUP_SZ_SHA1], i;
+	unsigned char *pin[SSE_GROUP_SZ_SHA1];
+	union {
+		ARCH_WORD_32 *pout[SSE_GROUP_SZ_SHA1];
+		unsigned char *poutc;
+	} x;
+	for (i = 0; i < SSE_GROUP_SZ_SHA1; ++i) {
+		lens[i] = strlen(saved_key[index+i]);
+		pin[i] = (unsigned char*)saved_key[index+i];
+		x.pout[i] = (ARCH_WORD_32*)(Keycandidate[i]);
+	}
+	pbkdf2_sha1_sse((const unsigned char **)pin, lens, cur_salt->salt, 16,
+		2000, &(x.poutc), cur_salt->keysize + 16, 0);
+#else
+	unsigned char keycandidate[255];
+	char *password = saved_key[index];
+	pbkdf2_sha1((const uint8_t*)password, strlen(password), (const uint8_t*)(cur_salt->salt), 
+		16, 2000, keycandidate, cur_salt->keysize + 16, 0);
+#endif
 #if !ARCH_LITTLE_ENDIAN
 	{
 		int i;
@@ -246,33 +263,39 @@ int hash_plugin_check_hash(char *password)
 	}
 #endif
 
+	j = 0;
+#ifdef MMX_COEF
+	for (; j < SSE_GROUP_SZ_SHA1; ++j) {
+	keycandidate = Keycandidate[j];
+#endif
 	AES_set_decrypt_key(keycandidate, cur_salt->keysize*8, &aeskey);
 	AES_cbc_encrypt(cur_salt->mkey, keycandidate2, 16, &aeskey, keycandidate+16, AES_DECRYPT);
 	AES_cbc_essiv(cur_salt->data, decrypted1, keycandidate2,0,32);
 	AES_cbc_essiv(cur_salt->data + 1024, decrypted2, keycandidate2,2,128);
 
 	// Check for FAT
-	if ((memcmp(decrypted1+3,"MSDOS5.0",8)==0)) {
-	    return 1;
-	}
-	// Check for extfs
-	memcpy(&v1,decrypted2+72,4);
-	memcpy(&v2,decrypted2+0x3a,2);
-	memcpy(&v3,decrypted2+0x3c,2);
-	memcpy(&v4,decrypted2+0x4c,2);
-	memcpy(&v5,decrypted2+0x48,4);
+	if ((memcmp(decrypted1+3,"MSDOS5.0",8)==0))
+	    cracked[index+j] = 1;
+	else {
+		// Check for extfs
+		memcpy(&v1,decrypted2+72,4);
+		memcpy(&v2,decrypted2+0x3a,2);
+		memcpy(&v3,decrypted2+0x3c,2);
+		memcpy(&v4,decrypted2+0x4c,2);
+		memcpy(&v5,decrypted2+0x48,4);
 #if !ARCH_LITTLE_ENDIAN
-	v1 = JOHNSWAP(v1);
-	v2 = JOHNSWAP(v2);
-	v3 = JOHNSWAP(v3);
-	v4 = JOHNSWAP(v4);
-	v5 = JOHNSWAP(v5);
+		v1 = JOHNSWAP(v1);
+		v2 = JOHNSWAP(v2);
+		v3 = JOHNSWAP(v3);
+		v4 = JOHNSWAP(v4);
+		v5 = JOHNSWAP(v5);
 #endif
-	if ((v1<5)&&(v2<4)&&(v3<5)&&(v4<2)&&(v5<5)) {
-	    return 1;
+		if ((v1<5)&&(v2<4)&&(v3<5)&&(v4<2)&&(v5<5))
+			cracked[index+j] = 1;
 	}
-
-    return 0;
+#ifdef MMX_COEF
+	}
+#endif
 }
 
 static int crypt_all(int *pcount, struct db_salt *salt)
@@ -280,12 +303,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	int count = *pcount;
 	int index = 0;
 
+	memset(cracked, 0, sizeof(cracked[0])*max_cracked);
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 #endif
+	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 	{
-		cracked[index] = hash_plugin_check_hash(saved_key[index]);
+		hash_plugin_check_hash(index);
 	}
 	return count;
 }
