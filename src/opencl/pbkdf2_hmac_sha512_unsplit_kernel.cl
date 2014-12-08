@@ -7,10 +7,6 @@
 
 #include "opencl_device_info.h"
 
-#define uint8_t  unsigned char
-#define uint32_t unsigned int
-#define uint64_t unsigned long int
-
 #if gpu_amd(DEVICE_INFO)
 
 /* AMD alternatives */
@@ -60,7 +56,7 @@
  t = (ki) + (wi) + (h) + Sigma1(e) + Ch((e),(f),(g));\
  d += (t); h = (t) + Sigma0(a) + Maj((a), (b), (c));\
 
-#define SHA512(a, b, c, d, e, f, g, h)\
+#define SHA512(A, B, C, D, E, F, G, H)\
 	ROUND_A(A,B,C,D,E,F,G,H,k[0],W[0])\
 	ROUND_A(H,A,B,C,D,E,F,G,k[1],W[1])\
 	ROUND_A(G,H,A,B,C,D,E,F,k[2],W[2])\
@@ -142,7 +138,7 @@
 	ROUND_B(C,D,E,F,G,H,A,B,k[78],W[14],  W[12],W[15],W[14],W[7])\
 	ROUND_B(B,C,D,E,F,G,H,A,k[79],W[15],  W[13],W[0],W[15],W[8])
 
-__constant uint64_t k[] = {
+__constant ulong k[] = {
     0x428a2f98d728ae22UL, 0x7137449123ef65cdUL, 0xb5c0fbcfec4d3b2fUL, 0xe9b5dba58189dbbcUL,
     0x3956c25bf348b538UL, 0x59f111f1b605d019UL, 0x923f82a4af194f9bUL, 0xab1c5ed5da6d8118UL,
     0xd807aa98a3030242UL, 0x12835b0145706fbeUL, 0x243185be4ee4b28cUL, 0x550c7dc3d5ffb4e2UL,
@@ -166,34 +162,34 @@ __constant uint64_t k[] = {
 };
 
 typedef struct {
-	uint64_t v[(110+7)/8];
-	uint64_t length;
+	ulong v[(110+7)/8];
+	ulong length;
 } pbkdf2_password;
 
 typedef struct {
-	uint64_t hash[8];
+	ulong hash[8];
 } pbkdf2_hash;
 
 typedef struct {
-	uint64_t salt[(107+1+4+7)/8];
-	uint32_t length;
-	uint32_t rounds;
+	ulong salt[(107+1+4+7)/8];
+	uint length;
+	uint rounds;
 } pbkdf2_salt;
 
-inline void preproc(__global const uint64_t * key, uint32_t keylen,
-    uint64_t * state, uint64_t mask)
+inline  void preproc(__global const ulong *key, uint keylen, ulong *state, ulong mask)
 {
 	uint i, j;
-	uint64_t W[16],t;
+	ulong W[16], t;
+	ulong A, B, C, D, E, F, G, H;
 
-	uint64_t A = INIT_A;
-	uint64_t B = INIT_B;
-	uint64_t C = INIT_C;
-	uint64_t D = INIT_D;
-	uint64_t E = INIT_E;
-	uint64_t F = INIT_F;
-	uint64_t G = INIT_G;
-	uint64_t H = INIT_H;
+	A = INIT_A;
+	B = INIT_B;
+	C = INIT_C;
+	D = INIT_D;
+	E = INIT_E;
+	F = INIT_F;
+	G = INIT_G;
+	H = INIT_H;
 
 	j = ((keylen+7)/8);
 	for (i = 0; i < j; i++)
@@ -214,25 +210,23 @@ inline void preproc(__global const uint64_t * key, uint32_t keylen,
 	state[7] = H + INIT_H;
 }
 
-inline void hmac_sha512(uint64_t * output,
-    uint64_t * ipad_state, uint64_t * opad_state, __global const uint64_t * salt,
-    uint saltlen)
+inline void hmac_sha512(ulong *output, ulong *ipad_state, ulong *opad_state, __global const ulong *salt, uint saltlen)
 {
-	uint32_t i, j;
-	uint64_t W[16],t;
-	uint64_t A, B, C, D, E, F, G, H;
+	uint i, j;
+	ulong W[16], t;
+	ulong A, B, C, D, E, F, G, H;
 
 	j = ((saltlen+7)/8);
-	for(i=0;i<j;i++)
-		W[i]=SWAP64(salt[i]);
+	for(i = 0; i < j; i++)
+		W[i] = SWAP64(salt[i]);
 	while (i < 15) {
 		W[i] = 0;
         ++i;
     }
-
-	// saltlen contains the \0\0\0\1 and 0x80 byte.  The 0001 are part of the salt length.
-	// the 0x80 is not, but is the end of hash marker.  So we set legth to be 127+saltlen
-	// and not 128+saltlen.  127+saltlen is correct, it just looks funny.
+	// saltlen contains the \0\0\0\1 and 0x80 byte.  The 0001 are part
+	// of the salt length. the 0x80 is not, but is the end of hash
+	// marker.  So we set legth to be 127+saltlen and not 128+saltlen.
+	// 127+saltlen is correct, it just looks funny.
 	W[15] = ((127 + saltlen) << 3);
 
 	A = ipad_state[0];
@@ -243,31 +237,19 @@ inline void hmac_sha512(uint64_t * output,
 	F = ipad_state[5];
 	G = ipad_state[6];
 	H = ipad_state[7];
-
 	SHA512(A, B, C, D, E, F, G, H);
-
-	A += ipad_state[0];
-	B += ipad_state[1];
-	C += ipad_state[2];
-	D += ipad_state[3];
-	E += ipad_state[4];
-	F += ipad_state[5];
-	G += ipad_state[6];
-	H += ipad_state[7];
-
-	W[0] = A;
-	W[1] = B;
-	W[2] = C;
-	W[3] = D;
-	W[4] = E;
-	W[5] = F;
-	W[6] = G;
-	W[7] = H;
+	W[0] = A += ipad_state[0];
+	W[1] = B += ipad_state[1];
+	W[2] = C += ipad_state[2];
+	W[3] = D += ipad_state[3];
+	W[4] = E += ipad_state[4];
+	W[5] = F += ipad_state[5];
+	W[6] = G += ipad_state[6];
+	W[7] = H += ipad_state[7];
 	W[8] = 0x8000000000000000UL;
-	W[15] = 0x600;
 	for (i = 9; i < 15; i++)
 		W[i] = 0;
-
+	W[15] = 0x600;
 	A = opad_state[0];
 	B = opad_state[1];
 	C = opad_state[2];
@@ -276,9 +258,7 @@ inline void hmac_sha512(uint64_t * output,
 	F = opad_state[5];
 	G = opad_state[6];
 	H = opad_state[7];
-
 	SHA512(A, B, C, D, E, F, G, H);
-
 	A += opad_state[0];
 	B += opad_state[1];
 	C += opad_state[2];
@@ -287,7 +267,6 @@ inline void hmac_sha512(uint64_t * output,
 	F += opad_state[5];
 	G += opad_state[6];
 	H += opad_state[7];
-
 	output[0] = A;
 	output[1] = B;
 	output[2] = C;
@@ -299,18 +278,20 @@ inline void hmac_sha512(uint64_t * output,
 }
 
 
-inline void big_hmac_sha512(uint64_t * input, uint32_t rounds,
-    uint64_t * ipad_state, uint64_t * opad_state, uint64_t * tmp_out)
+inline void big_hmac_sha512(ulong *in_out, uint rounds, const ulong *ipad_state, const ulong *opad_state)
 {
 	uint i, round;
-	uint64_t W[16],t;
-	uint64_t A, B, C, D, E, F, G, H;
+	ulong W[16],t;
+	ulong A, B, C, D, E, F, G, H;
 
 	for (i = 0; i < 8; i++)
-		W[i] = input[i];
+		W[i] = in_out[i];
+	W[8] = 0x8000000000000000UL;
+	for (i = 9; i < 15; i++)
+		W[i] = 0;
+	W[15] = 0x600;
 
 	for (round = 1; round < rounds; round++) {
-
 		A = ipad_state[0];
 		B = ipad_state[1];
 		C = ipad_state[2];
@@ -319,38 +300,19 @@ inline void big_hmac_sha512(uint64_t * input, uint32_t rounds,
 		F = ipad_state[5];
 		G = ipad_state[6];
 		H = ipad_state[7];
-
-		W[8] = 0x8000000000000000UL;
-		W[15] = 0x600;
-
-		for (i = 9; i < 15; i++)
-			W[i] = 0;
-
 	SHA512(A, B, C, D, E, F, G, H);
-
-		A += ipad_state[0];
-		B += ipad_state[1];
-		C += ipad_state[2];
-		D += ipad_state[3];
-		E += ipad_state[4];
-		F += ipad_state[5];
-		G += ipad_state[6];
-		H += ipad_state[7];
-
-		W[0] = A;
-		W[1] = B;
-		W[2] = C;
-		W[3] = D;
-		W[4] = E;
-		W[5] = F;
-		W[6] = G;
-		W[7] = H;
+		W[0] = A += ipad_state[0];
+		W[1] = B += ipad_state[1];
+		W[2] = C += ipad_state[2];
+		W[3] = D += ipad_state[3];
+		W[4] = E += ipad_state[4];
+		W[5] = F += ipad_state[5];
+		W[6] = G += ipad_state[6];
+		W[7] = H += ipad_state[7];
 		W[8] = 0x8000000000000000UL;
-		W[15] = 0x600;
-
 		for (i = 9; i < 15; i++)
 			W[i] = 0;
-
+		W[15] = 0x600;
 		A = opad_state[0];
 		B = opad_state[1];
 		C = opad_state[2];
@@ -359,62 +321,52 @@ inline void big_hmac_sha512(uint64_t * input, uint32_t rounds,
 		F = opad_state[5];
 		G = opad_state[6];
 		H = opad_state[7];
-
-
 	SHA512(A, B, C, D, E, F, G, H);
-
-		A += opad_state[0];
-		B += opad_state[1];
-		C += opad_state[2];
-		D += opad_state[3];
-		E += opad_state[4];
-		F += opad_state[5];
-		G += opad_state[6];
-		H += opad_state[7];
-
-		W[0] = A;
-		W[1] = B;
-		W[2] = C;
-		W[3] = D;
-		W[4] = E;
-		W[5] = F;
-		W[6] = G;
-		W[7] = H;
-
-		tmp_out[0] ^= A;
-		tmp_out[1] ^= B;
-		tmp_out[2] ^= C;
-		tmp_out[3] ^= D;
-		tmp_out[4] ^= E;
-		tmp_out[5] ^= F;
-		tmp_out[6] ^= G;
-		tmp_out[7] ^= H;
+		W[0] = A += opad_state[0];
+		W[1] = B += opad_state[1];
+		W[2] = C += opad_state[2];
+		W[3] = D += opad_state[3];
+		W[4] = E += opad_state[4];
+		W[5] = F += opad_state[5];
+		W[6] = G += opad_state[6];
+		W[7] = H += opad_state[7];
+		W[8] = 0x8000000000000000UL;
+		for (i = 9; i < 15; i++)
+			W[i] = 0;
+		W[15] = 0x600;
+		in_out[0] ^= A;
+		in_out[1] ^= B;
+		in_out[2] ^= C;
+		in_out[3] ^= D;
+		in_out[4] ^= E;
+		in_out[5] ^= F;
+		in_out[6] ^= G;
+		in_out[7] ^= H;
 	}
 }
 
 
-__kernel void pbkdf2_sha512_kernel(__global const pbkdf2_password * inbuffer,
+__kernel void pbkdf2_sha512_kernel(
+	__global const pbkdf2_password * inbuffer,
 	__global const pbkdf2_salt *gsalt,
 	__global pbkdf2_hash * outbuffer)
 {
-
-	uint64_t ipad_state[8];
-	uint64_t opad_state[8];
-	uint64_t tmp_out[8];
-	uint32_t  i;
+	ulong ipad_state[8];
+	ulong opad_state[8];
+	ulong tmp_out[8];
+	uint  i;
 	uint idx = get_global_id(0);
-
-	__global const uint64_t *pass = inbuffer[idx].v;
-	__global const uint64_t *salt = gsalt->salt;
-	uint32_t passlen = inbuffer[idx].length;
-	uint32_t saltlen = gsalt->length;
-	uint32_t rounds = gsalt->rounds;
+	__global const ulong *pass = inbuffer[idx].v;
+	__global const ulong *salt = gsalt->salt;
+	uint passlen = inbuffer[idx].length;
+	uint saltlen = gsalt->length;
+	uint rounds = gsalt->rounds;
 
 	preproc(pass, passlen, ipad_state, 0x3636363636363636UL);
 	preproc(pass, passlen, opad_state, 0x5c5c5c5c5c5c5c5cUL);
 
 	hmac_sha512(tmp_out, ipad_state, opad_state, salt, saltlen);
-	big_hmac_sha512(tmp_out, rounds, ipad_state, opad_state, tmp_out);
+	big_hmac_sha512(tmp_out, rounds, (const ulong*)ipad_state, (const ulong*)opad_state);
 
 	for (i = 0; i < 8; i++)
 		outbuffer[idx].hash[i] = tmp_out[i];
