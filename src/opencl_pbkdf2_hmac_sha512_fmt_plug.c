@@ -281,6 +281,7 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 	strlwr(out);
 	return out;
 }
+
 static void *binary(char *ciphertext)
 {
 	static union {
@@ -487,7 +488,7 @@ struct fmt_main fmt_opencl_pbkdf2_hmac_sha512 = {
 		    SALT_ALIGN,
 		    1,
 		    1,
-		    FMT_CASE | FMT_8_BIT,
+		    FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif
