@@ -69,11 +69,11 @@ my @funcs = (qw(DESCrypt BigCrypt BSDIcrypt md5crypt md5crypt_a BCRYPT BCRYPTx
 		keychain nukedclan pfx racf radmin raw-SHA sip SybaseASE vnc
 		wbb3 wpapsk sunmd5 wowsrp django-scrypt aix-ssha1 aix-ssha256
 		aix-ssha512 pbkdf2-hmac-sha512 pbkdf2-hmac-sha256 scrypt pdf
-		rakp osc formspring skey_md5 pbkdf2-hmac-sha1 odf odf-1 office
+		rakp osc formspring skey_md5 pbkdf2-hmac-sha1 odf odf-1 office_2007
 		skey_md4 skey_sha1 skey_rmd160 cloudkeychain agilekeychain
-		rar rar5 ecryptfs));
+		rar rar5 ecryptfs office_2010 office_2013));
 
-# todo: ike keepass cloudkeychain agilekeychain pfx racf sip vnc office pdf pkzip rar5 ssh raw_gost_cp
+# todo: ike keepass cloudkeychain agilekeychain pfx racf sip vnc office_2007 office_2010 office_2013 pdf pkzip rar5 ssh raw_gost_cp
 my $i; my $h; my $u; my $salt;
 my @chrAsciiText=('a'..'z','A'..'Z');
 my @chrAsciiTextLo=('a'..'z');
@@ -85,6 +85,7 @@ my @chrAsciiTextNumUnder=('a'..'z','A'..'Z','0'..'9','_');
 my @chrHexHiLo=('0'..'9','a'..'f','A'..'F');
 my @chrHexLo=('0'..'9','a'..'f');
 my @chrHexHi=('0'..'9','A'..'F');
+my @chrRawData=(0..255); foreach(@chrRawData) {$chrRawData[$_] = chr($chrRawData[$_]);}
 my @i64 = ('.','/','0'..'9','A'..'Z','a'..'z');
 my @ns_i64 = ('A'..'Z', 'a'..'z','0'..'9','+','/',);
 my @userNames = (
@@ -508,16 +509,6 @@ sub gen_all {
 #############################################################################
 # used to get salts.  Call with randstr(count[,array of valid chars] );   array is 'optional'  Default is AsciiText (UPloCase,  nums, _ )
 #############################################################################
-sub randnum {
-	my @chr = defined($_[1]) ? @{$_[1]} : @chrAsciiNum;
-	my $s="";
-	if ($arg_nrgenall != 0) { srand(666); }
-	foreach (1..$_[0]) {
-		$s.=$chr[rand @chr];
-	}
-	return $s;
-}
-
 sub randstr {
 	my @chr = defined($_[1]) ? @{$_[1]} : @chrAsciiTextNum;
 	my $s="";
@@ -526,14 +517,6 @@ sub randstr {
 		$s.=$chr[rand @chr];
 	}
 	return $s;
-}
-sub randbytes {
-	my $ret = "";
-	if ($arg_nrgenall != 0) { srand(666); }
-	foreach(1 .. $_[0]) {
-		$ret .= chr(rand(256));
-	}
-	return $ret;
 }
 sub randusername {
 	my $num = shift;
@@ -546,12 +529,66 @@ sub randusername {
 	}
 	return $user;
 }
-sub get_randstr_salt {
+############################################################################################
+# returns salt.  Usage:  get_salt(len [,argsalt_len [,@character_set]] )
+# if len is negative, then we want a random salt len that is int(rand(-len))+1 bytes long
+# if argsalt_len is missing, then argsalt_len is set to len (after it is set positive)
+# if argsalt_len is there, it is used. If it is -1, then any length argsalt is ok, if it is
+#   negative (not -1), then only argsalts <= -argsalt_len are used.
+# if the length of the salt is 2*aslen, and the argsalt is hex, then it is first converted
+#   into raw before it is later used.  One caveat is you can not do a hex argsalt that is for
+#   a variable length salt, since there is no way to check that length is 2x what it should be.
+# the 3rd param (optional), is the character set.  @chrAsciiTextNum is default.
+############################################################################################
+sub get_salt {
 	my $len = $_[0];
-	if (defined $argsalt && length ($argsalt)==$len) { return ($argsalt); }
-	elsif (defined $argsalt && length ($argsalt)==$len*2 && length(pack("H*",$argsalt))==$len ) { return (pack("H*", $argsalt)); }
-	return randstr($len);
+	my $randlen = 0;
+	if ($len < 0) { $randlen = 1; $len *= -1; }
+	my $aslen = $len;
+	if (defined $_[1] && $_[1]+0 eq $_[1]) { $aslen = $_[1]; }
+	my @chr = defined($_[2]) ? @{$_[2]} : @chrAsciiTextNum;
+	if (defined $argsalt && length ($argsalt)==$aslen*2 && length(pack("H*",$argsalt))==$aslen) {
+		$argsalt = pack("H*",$argsalt);
+	}
+	if (defined $argsalt && ($aslen == -1 || ($aslen < -1 && length($argsalt) <= -1*$aslen) || length ($argsalt)==$aslen) ) {
+		return ($argsalt);
+	}
+	if (@chr == @userNames) { return randusername($len); }
+	elsif ($randlen == 0) { return randstr($len, \@chr); }
+	if ($len > 8) {return randstr(int(rand(8))+int(rand($len-8))+1, \@chr);}
+	return randstr(int(rand($len))+1, \@chr);
 }
+sub get_iv {
+	my $len = $_[0];
+	my @chr = defined($_[1]) ? @{$_[1]} : @chrAsciiTextNum;
+	if (defined $argiv && length ($argiv)==$len*2 && length(pack("H*",$argiv))==$len) {
+		$argiv = pack("H*",$argiv);
+	}
+	if (defined $argiv && length ($argiv)==$len) {
+		return ($argiv);
+	}
+	return randstr($len, \@chr);
+}
+sub get_content {
+	my $len = $_[0];
+	my $randlen = 0;
+	if ($len < 0) { $randlen = 1; $len *= -1; }
+	my $aslen = $len;
+	if (defined $_[1] && $_[1]+0 eq $_[1]) { $aslen = $_[1]; }
+	my @chr = defined($_[2]) ? @{$_[2]} : @chrAsciiTextNum;
+	if (defined $argcontent && ($aslen == -1 || ($aslen < -1 && length($argcontent) <= -1*$aslen) || length ($argcontent)==$aslen) ) {
+		return ($argcontent);
+	}
+	if ($randlen == 0) { return randstr($len, \@chr); }
+	if ($len > 32) {return randstr(int(rand(32))+int(rand($len-32))+1, \@chr);}
+	return randstr(int(rand($len))+1, \@chr);
+}
+
+############################################################################################
+# we need a getter function for $iv also (and content??, and possibly others) that are
+# modeled after get_salt()
+############################################################################################
+
 # helper function needed by md5crypt_a (or md5crypt if we were doing that one)
 sub to64 #unsigned long v, int n)
 {
@@ -786,13 +823,13 @@ sub ripemd320_base64 {
 #############################################################################
 sub descrypt {
 	require Crypt::UnixCrypt_XS;
-	if ($argsalt && length($argsalt)==2) { $salt = $argsalt; } else { $salt = randstr(2,\@i64); }
+	$salt = get_salt(2,2,\@i64);
 	print "u$u-descrypt:", Crypt::UnixCrypt_XS::crypt($_[1], $salt), ":$u:0:$_[0]::\n";
 }
 sub bigcrypt {
 	require Crypt::UnixCrypt_XS;
 	if (length($_[0]) > 8) {
-		if ($argsalt && length($argsalt)==2) { $salt = $argsalt; } else { $salt = randstr(2,\@i64); }
+		$salt = get_salt(2,2,\@i64);
 		my $pw = $_[0];
 		while (length($pw)%8!= 0) { $pw .= "\0"; }
 		my $lastlimb = Crypt::UnixCrypt_XS::crypt(substr($pw,0,8), $salt);
@@ -812,13 +849,13 @@ sub bsdicrypt {
 	require Crypt::UnixCrypt_XS;
 	my $block = "\0\0\0\0\0\0\0\0";
 	my $rounds = 725;
-	if ($argsalt && length($argsalt)==4) { $salt = $argsalt; } else { $salt = randstr(4,\@i64); }
+	$salt = get_salt(4,4,\@i64);
 	my $h = Crypt::UnixCrypt_XS::crypt_rounds(Crypt::UnixCrypt_XS::fold_password($_[1]),$rounds,Crypt::UnixCrypt_XS::base64_to_int24($salt),$block);
 	print "u$u-BSDIcrypt:_", Crypt::UnixCrypt_XS::int24_to_base64($rounds), $salt, Crypt::UnixCrypt_XS::block_to_base64($h), ":$u:0:$_[0]::\n";
 }
 sub md5crypt {
 	if (length($_[1]) > 15) { print STDERR "Warning, john can only handle 15 byte passwords for this format!\n"; }
-	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(8); }
+	$salt = get_salt(8);
 	$h = md5crypt_hash($_[1], $salt, "\$1\$");
 	print "u$u-md5crypt:$h:$u:0:$_[0]::\n";
 }
@@ -863,13 +900,13 @@ sub bfx_fix_pass {
 sub bcryptx {
 	my $fixed_pass = bfx_fix_pass($_[1]);
 	require Crypt::Eksblowfish::Bcrypt;
-	if ($argsalt && length($argsalt)==16) { $salt = $argsalt; } else { $salt = randstr(16,\@i64); }
+	$salt = get_salt(16,16,\@i64);
 	my $hash = Crypt::Eksblowfish::Bcrypt::bcrypt_hash({key_nul => 1, cost => 5, salt => $salt, }, $fixed_pass);
 	print "u$u-BCRYPT:\$2x\$05\$", Crypt::Eksblowfish::Bcrypt::en_base64($salt), Crypt::Eksblowfish::Bcrypt::en_base64($hash), ":$u:0:$_[0]::\n";
 }
 sub bcrypt {
 	require Crypt::Eksblowfish::Bcrypt;
-	if ($argsalt && length($argsalt)==16) { $salt = $argsalt; } else { $salt = randstr(16,\@i64); }
+	$salt = get_salt(16,16,\@i64);
 	my $hash = Crypt::Eksblowfish::Bcrypt::bcrypt_hash({key_nul => 1, cost => 5, salt => $salt, }, $_[1]);
 	print "u$u-BCRYPT:\$2a\$05\$", Crypt::Eksblowfish::Bcrypt::en_base64($salt), Crypt::Eksblowfish::Bcrypt::en_base64($hash), ":$u:0:$_[0]::\n";
 }
@@ -920,7 +957,7 @@ sub raw_sha512 {
 	print "u$u-Raw-SHA512:", sha512_hex($_[1]), ":$u:0:$_[0]::\n";
 }
 sub cisco8 {
-	if (defined $argsalt && length($argsalt)==14) { $salt = $argsalt; } else { $salt = randstr(14,\@i64); }
+	$salt = get_salt(14,14,\@i64);
 	my $h = pp_pbkdf2($_[1],$salt,20000,"sha256",32);
 	my $s = base64_wpa($h);
 	print "u-cisco8:\$8\$$salt\$$s:$u:0:$_[0]::\n";
@@ -928,13 +965,13 @@ sub cisco8 {
 sub cisco9 {
 	require Crypt::ScryptKDF;
 	import Crypt::ScryptKDF qw(scrypt_raw);
-	if (defined $argsalt && length($argsalt)==14) { $salt = $argsalt; } else { $salt = randstr(14,\@i64); }
+	$salt = get_salt(14,14,\@i64);
 	my $h = scrypt_raw($_[1],$salt,16384,1,1,32);
 	my $s = base64_wpa($h);
 	print "u-cisco9:\$9\$$salt\$$s:$u:0:$_[0]::\n";
 }
 sub dragonfly3_32 {
-	$salt = randstr(rand(8)+1);
+	$salt = get_salt(-8, -8);
 	my $final = sha256($_[1]."\$3\$\0".$salt);
 	my $out = "";
 	my ($l, $p);
@@ -947,7 +984,7 @@ sub dragonfly3_32 {
 	print "u$u-dragonfly3_32:", "\$3\$$salt\$" . $out, ":$u:0:$_[0]::\n";
 }
 sub dragonfly4_32 {
-	$salt = randstr(rand(8)+1);
+	$salt = get_salt(-8, -8);
 	my $final = sha512($_[1]."\$4\$\0".$salt);
 	my $out = "";
 	my ($l, $p);
@@ -960,7 +997,7 @@ sub dragonfly4_32 {
 	print "u$u-dragonfly4_32:", "\$4\$$salt\$" . $out, ":$u:0:$_[0]::\n";
 }
 sub dragonfly3_64 {
-	$salt = randstr(rand(8)+1);
+	$salt = get_salt(-8, -8);
 	my $final = sha256($_[1]."\$3\$\0sha5".$salt);
 	my $out = "";
 	my ($l, $p);
@@ -974,7 +1011,7 @@ sub dragonfly3_64 {
 }
 
 sub dragonfly4_64 {
-	$salt = randstr(rand(8)+1);
+	$salt = get_salt(-8, -8);
 	my $final = sha512($_[1]."\$4\$\0/etc".$salt);
 	my $out = "";
 	my ($l, $p);
@@ -988,15 +1025,15 @@ sub dragonfly4_64 {
 }
 
 sub mscash {
-	if (defined $argsalt) { $salt = $argsalt; } else { $salt = randusername(19); }
+	$salt = get_salt(19,-19,\@userNames);
 	print "$salt:", md4_hex(md4(encode("UTF-16LE",$_[0])).encode("UTF-16LE", lc($salt))),
 			":$u:0:$_[0]:mscash (uname is salt):\n";
 }
 sub odf {
 	my $iv; my $content;
-	if (defined $argsalt && length ($argsalt)==16) { $salt = $argsalt; } else { $salt = randstr(16); }
-	if (defined $argiv && length ($argiv)==8) { $iv = $argiv; } else { $iv = randstr(8); }
-	if (defined $argcontent) { $content = $argcontent; } else { $content = randstr(1024); }
+	$salt = get_salt(16);
+	$iv =  get_iv(8);
+	$content = get_content(-1024, -4095);
 	my $s = sha1($_[0]);
 	my $key = pp_pbkdf2($s, $salt, 1024, "sha1", 16);
 	require Crypt::OpenSSL::Blowfish::CFB64;
@@ -1007,11 +1044,11 @@ sub odf {
 	print "u$u-odf:\$odf\$*0*0*1024*16*".unpack("H*",$s)."*8*".unpack("H*",$iv)."*16*".unpack("H*",$salt)."*0*".unpack("H*",$content).":$u:0:$_[0]::\n";
 }
 sub odf_1 {
-# odf cipher type 1 (AES instead of blowfish, and some sha256, pbkdf2 is still sha1, but 32 byte of output)
+	# odf cipher type 1 (AES instead of blowfish, and some sha256, pbkdf2 is still sha1, but 32 byte of output)
 	my $iv; my $content;
-	if (defined $argsalt && length ($argsalt)==16) { $salt = $argsalt; } else { $salt = randstr(16); }
-	if (defined $argiv && length ($argiv)==16) { $iv = $argiv; } else { $iv = randstr(16); }
-	if (defined $argcontent) { $content = $argcontent; } else { $content = randstr(1024); }
+	$salt = get_salt(16);
+	$iv =  get_iv(16);
+	$content = get_content(-1024, -4095);
 	while (length($content)%16 != 0) { $content .= "\x0" } # must be even 16 byte padded.
 	my $s = sha256($_[0]);
 	my $key = pp_pbkdf2($s, $salt, 1024, "sha1", 32);
@@ -1023,7 +1060,35 @@ sub odf_1 {
 	$s = sha256($output);
 	print "u$u-odf:\$odf\$*1*1*1024*32*".unpack("H*",$s)."*16*".unpack("H*",$iv)."*16*".unpack("H*",$salt)."*0*".unpack("H*",$content).":$u:0:$_[0]::\n";
 }
-sub office {
+sub office_2010 {
+}
+sub office_2013 {
+}
+sub office_2007 {
+	$salt = get_salt(16);
+	my $iv = get_iv(16);
+	my $p = encode("UTF-16LE", $_[0]);
+	my $h = sha1($salt.$p);
+	for (my $i = 0; $i < 50000; $i += 1) {
+		my $I = chr($i%256).chr(($i>>8)%256)."\0\0"; # uint32 i in LE format.
+		$h = sha1($I.$h);
+	}
+	$h = sha1($h."\0\0\0\0");
+	$h = substr(sha1($h^"6666666666666666666666666666666666666666666666666666666666666666"),0,16);
+	require Crypt::OpenSSL::AES;
+	#require Crypt::ECB;
+	#my $crypt = Crypt::ECB->new;
+	#$crypt->cipher('OpenSSL::AES');
+	#$crypt->key($h);
+	#my $d = substr($crypt->decrypt($iv),0,16);
+	#print "d=".unpack("H*",$d)."\n";
+	#my $hash = sha1($d);
+	#print "hash=".unpack("H*",$hash)."\n";
+	#my $hx = $crypt->encrypt(substr($hash,0,16));
+	#print "h=".unpack("H*",$hx)."\n";
+	my $crypt = Crypt::OpenSSL::AES->new($h);
+	my $hash = $crypt->encrypt(substr(sha1(substr($crypt->decrypt($iv),0,16)),0,16));
+	print "u$u-officce07:\$office\$*2007*20*128*16*".unpack("H*",$salt)."*".unpack("H*",$iv)."*".unpack("H*",$hash)."00000000:$u:0:$_[0]::\n";
 }
 sub pdf {
 }
@@ -1039,9 +1104,8 @@ sub zip {
 	elsif ($mode==2) { $sl = 12; }
 	else { $mode = 3; $sl = 16; }
 	$kl = $sl*2;
-	if (defined $argsalt && length ($argsalt)==$sl) { $salt = $argsalt; } else { $salt = randstr($sl); }
-	if (defined $argsalt && length ($argsalt)==2*$sl) { $salt = pack("H*",$argsalt); }
-	if (defined $argcontent) { $content = pack("H*",$argcontent); } else { $content = randstr(int(rand(32)+int(rand(32)+16))); }
+	$salt = get_salt($sl);
+	$content = get_content(96,-4096);
 	$h = pp_pbkdf2($_[0], $salt, 1000, "sha1", 2*$kl+2);
 	$chksum = substr($h,2*$kl,2);
 	my $bin = _hmac_shas(\&sha1, 64, substr($h,$kl,$kl), $content);
@@ -1082,7 +1146,7 @@ sub _gen_key_rar4 {
 sub rar {
 	# for rar version 4 archives (both -p (compressed or stored) and -hp)
 	my $content; my $contentlen; my $contentpacklen; my $crc; my $type = "33";
-	$salt = randstr(8);
+	$salt = get_salt(8);
 	my $rnd = int(rand(10));
 	my @ar;
 	if (defined $argmode) { $rnd = $argmode; }
@@ -1131,7 +1195,7 @@ sub ecryptfs {
 	my $rndsalt=0;
 	if ($u % 5 == 0) { # every 5th hash gets a random salt.
 		$rndsalt = 1;
-		$salt = get_randstr_salt(8);
+		$salt = get_salt(8);
 	} else { $salt = pack("H*", "0011223344556677"); }
 	$h = sha512($salt.$_[0]);
 	for (my $i = 0; $i < 65536; $i += 1) {
@@ -1159,12 +1223,9 @@ sub cloudkeychain {
 sub agilekeychain {
 }
 sub mozilla {
-	my $gsalt;
-	if (defined $argsalt && length ($argsalt)==40) { $argsalt = pack("H*",$argsalt); }
-	if (defined $argiv && length ($argiv)==40) { $argiv = pack("H*",$argiv); }
-	if (defined $argsalt && length ($argsalt)==20) { $salt = $argsalt; } else { $salt = randstr(20); }
+	$salt = get_salt(20);
 	# use -iv=xxx to pass in global_salt by user.
-	if (defined $argiv && length ($argiv)==20) { $gsalt = $argiv; } else { $gsalt = randstr(20); }
+	my $gsalt = get_iv(20);
 
 	my $h2 = sha1(sha1($gsalt.$_[0]).$salt);
 	my $h4 = Digest::SHA::hmac_sha1($salt, $h2);
@@ -1184,9 +1245,9 @@ sub mozilla {
 sub keychain {
 	require Crypt::DES_EDE3;
 	require Crypt::CBC;
-	my $salt; my $iv; my $data; my $key; my $h;
-	if (defined $argsalt && length($argsalt=20)) { $salt = $argsalt; } else { $salt = randbytes(20); }
-	$iv = randbytes(8);
+	my $iv; my $data; my $key; my $h;
+	$salt = get_salt(20);
+	$iv = get_iv(8);
 
 #	With this $salt and $iv, "password" generates proper (same) hash as found in keychain_fmt_plug.c
 #	$salt = "\x10\xf7\x44\x5c\x85\x10\xfa\x40\xd9\xef\x6b\x4e\x0f\x8c\x77\x2a\x9d\x37\xe4\x49";
@@ -1216,18 +1277,18 @@ sub wpapsk {
 	my $ssid; my $nonce1; my $nonce2; my $mac1; my $mac2; my $eapol; my $eapolsz;
 	my $keyver; my $keymic; my $data; my $prf; my $inpdat; my $i;
 	# load ssid
-	if (defined $argsalt) {$ssid = $argsalt; } else { $ssid = randusername(32); }
+	$ssid = get_salt(32,-32,\@userNames);
 
 	# Compute the pbkdf2-sha1(4096) for 32 bytes
 	my $wpaH = pp_pbkdf2($_[1],$ssid,4096,"sha1",32);
 
 	# load some other 'random' values, for the other data.
-	$nonce1 = randbytes(32);
-	$nonce2 = randbytes(32);
-	$mac1 = randbytes(6);
-	$mac2 = randbytes(6);
+	$nonce1 = randstr(32,\@chrRawData);
+	$nonce2 = randstr(32,\@chrRawData);
+	$mac1 = randstr(6,\@chrRawData);
+	$mac2 = randstr(6,\@chrRawData);
 	$eapolsz = 92 + rand (32);
-	$eapol = randbytes($eapolsz);
+	$eapol = randstr($eapolsz,\@chrRawData);
 	$keyver = (rand(32) / 6) + 1; # more chance of a keyver1
 	if ($keyver > 2) { $keyver = 2; }
 	if ($keyver < 2) { $keyver = 1; }
@@ -1289,9 +1350,8 @@ sub mscash2 {
 	# max username (salt) length is supposed to be 19 characters (in John)
 	# max password length is 27 characters (in John)
 	# the algorithm lowercases the salt
-	my $user;
 	my $iter = 10240;
-	if (defined $argsalt) { $user = $argsalt; } else { $user = randusername(22); }
+	my $user = get_salt(22,-27,\@userNames);
 	$salt = encode("UTF-16LE", lc($user));
 	my $key = md4(md4(encode("UTF-16LE",$_[0])).$salt);
 	print "$user:", '$DCC2$', "$iter#$user#", pp_pbkdf2_hex($key,$salt,$iter,"sha1",16), ":$u:0:$_[0]:mscash2:\n";
@@ -1313,19 +1373,19 @@ sub raw_md4 {
 	print "u$u-Raw-MD4:", md4_hex($_[1]), ":$u:0:$_[0]::\n";
 }
 sub mediawiki {
-	if (defined $argsalt) { $salt = $argsalt; } else { $salt = randstr(8); }
+	$salt = get_salt(8);
 	print "u$u-mediawiki:\$B\$" . $salt . "\$" . md5_hex($salt . "-" . md5_hex($_[1])) . ":$u:0:$_[0]::\n";
 }
 sub osc {
-	if (defined $argsalt and length($argsalt)==2) { $salt = $argsalt; } else { $salt = randstr(2); }
+	$salt = get_salt(2);
 	print "u$u-osc:\$OSC\$" . saltToHex(2) . "\$" . md5_hex($salt. $_[1]) . ":$u:0:$_[0]::\n";
 }
 sub formspring {
-	if (defined $argsalt and length($argsalt)==2) { $salt = $argsalt; } else { $salt = randnum(2); }
+	$salt = get_salt(2,2,\@chrAsciiNum);
 	print "u$u-formspring:" . sha256_hex($salt. $_[1]) . "\$$salt:$u:0:$_[0]::\n";
 }
 sub phpass {
-	if (defined $argsalt) { $salt = md5_hex($argsalt); } else { $salt=randstr(8); }
+	$salt = get_salt(8);
 	my $h = PHPass_hash($_[1], 11, $salt);
 	print "u$u-PHPass:\$P\$", to_phpbyte(11), $salt,  substr(base64i($h),0,22), ":$u:0:$_[0]::\n";
 }
@@ -1390,7 +1450,7 @@ sub md5crypt_hash {
 }
 sub md5crypt_a {
 	if (length($_[1]) > 15) { print STDERR "Warning, john can only handle 15 byte passwords for this format!\n"; }
-	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(8); }
+	$salt = get_salt(8);
 	$h = md5crypt_hash($_[1], $salt, "\$apr1\$");
 	print "u$u-md5crypt_a:$h:$u:0:$_[0]::\n";
 }
@@ -1506,7 +1566,7 @@ sub _sunmd5_hash {
 	return $c;
 }
 sub sunmd5 {
-	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(16); }
+	$salt = get_salt(16);
 	$salt = "\$md5\$rounds=904\$".$salt;
 	my $c = _sunmd5_hash($_[1], $salt);
 	my $h = _md5_crypt_to_64($c);
@@ -1514,7 +1574,7 @@ sub sunmd5 {
 }
 sub wowsrp {
 	require Math::BigInt;
-	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(16); }
+	$salt = get_salt(16);
 	my $usr = uc randusername();
 
 	my $h = sha1($salt, sha1($usr,":",uc $_[1]));
@@ -1533,16 +1593,6 @@ sub wowsrp {
 
 	print "u$u-wow_srp:\$WoWSRP\$$h\$", uc unpack("H*", $salt), "*$usr:$u:0:", uc $_[0], "::\n";
 }
-sub binToHex {
-	my $bin = shift;
-	my $ret = "";
-	my @sa = split(//,$bin);
-	for ($i = 0; $i < length($bin); ++$i) {
-		$ret .= $chrHexLo[ord($sa[$i])>>4];
-		$ret .= $chrHexLo[ord($sa[$i])&0xF];
-	}
-	return $ret;
-}
 sub _hmacmd5 {
 	my ($key, $data) = @_;
 	my $ipad; my $opad;
@@ -1560,10 +1610,9 @@ sub _hmacmd5 {
 	return md5($opad,md5($ipad,$data));
 }
 sub hmac_md5 {
-	# now uses _hmacmd5 instead of being done inline.
-	if (defined $argsalt) { $salt = $argsalt; } else { $salt = randstr(32); }
+	$salt = get_salt(32);
 	my $bin = _hmacmd5($_[1], $salt);
-	print "u$u-hmacMD5:$salt#", binToHex($bin), ":$u:0:$_[0]::\n";
+	print "u$u-hmacMD5:$salt#", unpack("H*",$bin), ":$u:0:$_[0]::\n";
 }
 sub _hmac_shas {
 	my ($func, $pad_sz, $key, $data) = @_;
@@ -1582,35 +1631,35 @@ sub _hmac_shas {
 	return $func->($opad,$func->($ipad,$data));
 }
 sub hmac_sha1 {
-	if (defined $argsalt) { $salt = $argsalt; } else { $salt = randstr(24); }
+	$salt = get_salt(24);
 	my $bin = _hmac_shas(\&sha1, 64, $_[1], $salt);
-	print "u$u-hmacSHA1:$salt#", binToHex($bin), ":$u:0:$_[0]::\n";
+	print "u$u-hmacSHA1:$salt#", unpack("H*",$bin), ":$u:0:$_[0]::\n";
 }
 sub hmac_sha224 {
-	if (defined $argsalt) { $salt = $argsalt; } else { $salt = randstr(32); }
+	$salt = get_salt(32);
 	my $bin = _hmac_shas(\&sha224, 64, $_[1], $salt);
-	print "u$u-hmacSHA224:$salt#", binToHex($bin), ":$u:0:$_[0]::\n";
+	print "u$u-hmacSHA224:$salt#", unpack("H*",$bin), ":$u:0:$_[0]::\n";
 }
 sub hmac_sha256 {
-	if (defined $argsalt) { $salt = $argsalt; } else { $salt = randstr(32); }
+	$salt = get_salt(32);
 	my $bin = _hmac_shas(\&sha256, 64, $_[1], $salt);
-	print "u$u-hmacSHA256:$salt#", binToHex($bin), ":$u:0:$_[0]::\n";
+	print "u$u-hmacSHA256:$salt#", unpack("H*",$bin), ":$u:0:$_[0]::\n";
 }
 sub hmac_sha384 {
-	if (defined $argsalt) { $salt = $argsalt; } else { $salt = randstr(32); }
+	$salt = get_salt(32);
 	my $bin = _hmac_shas(\&sha384, 128, $_[1], $salt);
-	print "u$u-hmacSHA384:$salt#", binToHex($bin), ":$u:0:$_[0]::\n";
+	print "u$u-hmacSHA384:$salt#", unpack("H*",$bin), ":$u:0:$_[0]::\n";
 }
 sub hmac_sha512 {
-	if (defined $argsalt) { $salt = $argsalt; } else { $salt = randstr(32); }
+	$salt = get_salt(32);
 	my $bin = _hmac_shas(\&sha512, 128, $_[1], $salt);
-	print "u$u-hmacSHA512:$salt#", binToHex($bin), ":$u:0:$_[0]::\n";
+	print "u$u-hmacSHA512:$salt#", unpack("H*",$bin), ":$u:0:$_[0]::\n";
 }
 sub rakp {
 	my $user = randstr(rand(63) + 1);
-	$salt = randbytes(56) . $user;
+	$salt = randstr(56,\@chrRawData) . $user;
 	my $bin = _hmac_shas(\&sha1, 64, $_[1], $salt);
-	print "$user:", binToHex($salt), "\$", binToHex($bin), ":$u:0:$_[0]::\n";
+	print "$user:", unpack("H*",$salt), "\$", unpack("H*",$bin), ":$u:0:$_[0]::\n";
 }
 sub _sha_crypts {
 	my $a; my $b, my $c, my $tmp; my $i; my $ds; my $dp; my $p; my $s;
@@ -1696,7 +1745,7 @@ sub _sha_crypts {
 	return $tmp;
 }
 sub sha256crypt {
-	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(16); }
+	$salt = get_salt(16);
 	my $bin = _sha_crypts(\&sha256, 256, $_[1], $salt);
 	if ($arg_loops != -1) {
 	print "u$u-sha256crypt:\$5\$rounds=${arg_loops}\$$salt\$$bin:$u:0:$_[0]::\n";
@@ -1705,7 +1754,7 @@ sub sha256crypt {
 	}
 }
 sub sha512crypt {
-	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(16); }
+	$salt = get_salt(16);
 	my $bin = _sha_crypts(\&sha512, 512, $_[1], $salt);
 	if ($arg_loops != -1) {
 	print "u$u-sha512crypt:\$6\$rounds=${arg_loops}\$$salt\$$bin:$u:0:$_[0]::\n";
@@ -1716,7 +1765,7 @@ sub sha512crypt {
 sub xsha512 {
 # simple 4 byte salted crypt.  No separator char, just raw hash. Also 'may' have $LION$.  We alternate, and every other
 # hash get $LION$ (all even ones)
-	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(4); }
+	$salt = get_salt(4);
 	print "u$u-XSHA512:";
 	if ($u&1) { print ("\$LION\$"); }
 	print "" . unpack("H*", $salt) . sha512_hex($salt . $_[1]) . ":$u:0:$_[0]::\n";
@@ -1726,39 +1775,39 @@ sub krb5pa_md5 {
 	import Crypt::RC4 qw(RC4);
 	my $password = $_[1];
 	my $datestring = sprintf('20%02u%02u%02u%02u%02u%02uZ', rand(100), rand(12)+1, rand(31)+1, rand(24), rand(60), rand(60));
-	my $timestamp = randbytes(14) . $datestring . randbytes(7);
+	my $timestamp = randstr(14,\@chrRawData) . $datestring . randstr(7,\@chrRawData);
 	my $K = md4(encode("UTF-16LE", $password));
 	my $K1 = _hmacmd5($K, pack('N', 0x01000000));
 	my $K2 = _hmacmd5($K1, $timestamp);
 	my $K3 = _hmacmd5($K1, $K2);
 	my $encrypted = RC4($K3, $timestamp);
-	printf("%s:\$krb5pa_md5\$\$\$%s\$%s:::%s:%s\n", "u$u-krb5pa_md5", binToHex($K2), binToHex($encrypted), $_[1], $datestring);
+	printf("%s:\$krb5pa_md5\$\$\$%s\$%s:::%s:%s\n", "u$u-krb5pa_md5", unpack("H*",$K2), unpack("H*",$encrypted), $_[1], $datestring);
 }
 sub ipb2 {
-	if (defined $argsalt) { $salt = $argsalt; } else { $salt = randstr(5); }
+	$salt = get_salt(5);
 	print "u$u-IPB2:\$IPB2\$", saltToHex(5);
 	print "\$", md5_hex(md5_hex($salt), md5_hex($_[1])), ":$u:0:$_[0]::\n";
 
 }
 sub phps {
-	if (defined $argsalt) { $salt = $argsalt; } else { $salt = randstr(3); }
+	$salt = get_salt(3);
 	print "u$u-PHPS:\$PHPS\$", saltToHex(3);
 	print "\$", md5_hex(md5_hex($_[1]), $salt), ":$u:0:$_[0]::\n";
 }
 sub md4p {
-	if (defined $argsalt) { $salt = $argsalt; } else { $salt = randstr(8); }
+	$salt = get_salt(8);
 	print "u$u-MD4p:\$MD4p\$$salt\$", md4_hex($salt, $_[1]), ":$u:0:$_[0]::\n";;
 }
 sub md4s {
-	if (defined $argsalt) { $salt = $argsalt; } else { $salt = randstr(8); }
+	$salt = get_salt(8);
 	print "u$u-MD4s:\$MD4s\$$salt\$", md4_hex($_[1], $salt), ":$u:0:$_[0]::\n";;
 }
 sub sha1p {
-	if (defined $argsalt) { $salt = $argsalt; } else { $salt = randstr(8); }
+	$salt = get_salt(8);
 	print "u$u-SHA1p:\$SHA1p\$$salt\$", sha1_hex($salt, $_[1]), ":$u:0:$_[0]::\n";;
 }
 sub sha1s {
-	if (defined $argsalt) { $salt = $argsalt; } else { $salt = randstr(8); }
+	$salt = get_salt(8);
 	print "u$u-SHA1s:\$SHA1s\$$salt\$", sha1_hex($_[1], $salt), ":$u:0:$_[0]::\n";;
 }
 sub mysql_sha1 {
@@ -1798,17 +1847,17 @@ sub pixmd5 {
 	print "u$u-pixmd5:$h:$u:0:", $_[0], "::\n";
 }
 sub mssql12 {
-	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(4); }
+	$salt = get_salt(4);
 	print "u$u-mssql12:0x0200", uc saltToHex(4);
 	print uc sha512_hex(encode("UTF-16LE", $_[0]).$salt), ":$u:0:$_[0]::\n";
 }
 sub mssql05 {
-	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(4); }
+	$salt = get_salt(4);
 	print "u$u-mssql05:0x0100", uc saltToHex(4);
 	print uc sha1_hex(encode("UTF-16LE", $_[0]).$salt), ":$u:0:$_[0]::\n";
 }
 sub mssql {
-	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(4); }
+	$salt = get_salt(4);
 	my $t = uc $_[1];
 	#if (length($_[0]) != length($t)) { print "length wrong\n"; }
 	#if ($t =~ m/\uFFFD/) { print "Invalid chars found\n"; }
@@ -1820,7 +1869,7 @@ sub mssql {
 	}
 }
 sub mssql_no_upcase_change {
-	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(4); }
+	$salt = get_salt(4);
 	# converts $c into utf8, from $enc code page, and 'sets' the 'flag' in perl that $c IS a utf8 char.
 	# since we are NOT doing case changes in this function, it is ASSSUMED that we have been given a properly upcased dictionary
 	if (!defined $arg_hidden_cp) { print STDERR "ERROR, for this format, you MUST use -hiddencp=CP to set the proper code page conversion\n"; exit(1); }
@@ -1835,27 +1884,27 @@ sub nsldap {
 	print "u$u-nsldap:{SHA}", base64($h), ":$u:0:$_[0]::\n";
 }
 sub nsldaps {
-	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(8); }
+	$salt = get_salt(8);
 	$h = sha1($_[1],$salt);
 	$h .= $salt;
 	#print "u$u-nsldap:{SSHA}", ns_base64(9,2), ":$u:0:$_[0]::\n";
 	print "u$u-nsldap:{SSHA}", base64($h), ":$u:0:$_[0]::\n";
 }
 sub openssha {
-	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(4); }
+	$salt = get_salt(4);
 	$h = sha1($_[1],$salt);
 	$h .= $salt;
 	#print "u$u-openssha:{SSHA}", ns_base64(7,0), ":$u:0:$_[0]::\n";
 	print "u$u-openssha:{SSHA}", base64($h), ":$u:0:$_[0]::\n";
 }
 sub salted_sha1 {
-	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(rand(16)+1); }
+	$salt = get_salt(-16, -128);
 	$h = sha1($_[1],$salt);
 	$h .= $salt;
 	print "u$u-openssha:{SSHA}", base64($h), ":$u:0:$_[0]::\n";
 }
 sub ns {
-	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(3 + rand 4, \@chrHexLo); }
+	$salt = get_salt(7, -7, \@chrHexLo);
 	$h = md5($salt, ":Administration Tools:", $_[1]);
 	#my $hh = ns_base64_2(8);
 	my $hh = base64($h);
@@ -1868,14 +1917,13 @@ sub ns {
 	print "u$u-ns:$salt\$", $hh, ":$u:0:$_[0]::\n";
 }
 sub xsha {
-	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(4); }
+	$salt = get_salt(4);
 	print "u$u-xsha:", uc saltToHex(4), uc sha1_hex($salt, $_[1]), ":$u:0:$_[0]::\n";
 }
 sub oracle {
 	require Crypt::CBC;
 	# snagged perl source from http://users.aber.ac.uk/auj/freestuff/orapass.pl.txt
-	my $username;
-	if (defined $argsalt) { $username = $argsalt; } else { $username = randusername(30); }
+	my $username = get_salt(30, -30, \@userNames);
 	my $pass = $_[1];
 #	print "orig = " . $username . $pass . "\n";
 #	print "upcs = " . uc($username.$pass) . "\n\n";
@@ -1892,8 +1940,7 @@ sub oracle {
 sub oracle_no_upcase_change {
 	require Crypt::CBC;
 	# snagged perl source from http://users.aber.ac.uk/auj/freestuff/orapass.pl.txt
-	my $username;
-	if (defined $argsalt) { $username = uc $argsalt; } else { $username = uc randusername(16); }
+	my $username = get_salt(30, -30, \@userNames);
 	# converts $c into utf8, from $enc code page, and 'sets' the 'flag' in perl that $c IS a utf8 char.
 	# since we are NOT doing case changes in this function, it is ASSSUMED that we have been given a properly upcased dictionary
 	if (!defined $arg_hidden_cp) { print STDERR "ERROR, for this format, you MUST use -hiddencp=CP to set the proper code page conversion\n"; exit(1); }
@@ -1911,7 +1958,7 @@ sub oracle_no_upcase_change {
 	print "$username:", uc(unpack('H*', $hash)), ":$u:0:$pass:oracle_des_hash:\n";
 }
 sub oracle11 {
-	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randbytes(10); }
+	$salt=get_salt(10);
 	print "u$u-oracle11:", uc sha1_hex($_[1], $salt), uc saltToHex(10), ":$u:0:$_[0]::\n";
 }
 sub hdaa {
@@ -1952,15 +1999,15 @@ sub netntlm_ess {
 	my $domain = randstr(rand(15)+1);
 	my $nthash = md4(encode("UTF-16LE", $password));
 	$nthash .= "\x00"x5;
-	my $s_challenge = randbytes(8);
-	my $c_challenge = randbytes(8);
+	my $s_challenge = randstr(8,\@chrRawData);
+	my $c_challenge = randstr(8,\@chrRawData);
 	my $challenge = substr(md5($s_challenge.$c_challenge), 0, 8);
 	my $ntresp = Crypt::ECB::encrypt(setup_des_key(substr($nthash, 0, 7)), 'DES', $challenge, PADDING_NONE());
 	$ntresp .= Crypt::ECB::encrypt(setup_des_key(substr($nthash, 7, 7)), 'DES', $challenge, PADDING_NONE());
 	$ntresp .= Crypt::ECB::encrypt(setup_des_key(substr($nthash, 14, 7)), 'DES', $challenge, PADDING_NONE());
 	my $type = "ntlm ESS";
 	my $lmresp = $c_challenge . "\0"x16;
-	printf("%s\\%s:::%s:%s:%s::%s:%s\n", $domain, "u$u-netntlm", binToHex($lmresp), binToHex($ntresp), binToHex($s_challenge), $_[0], $type);
+	printf("%s\\%s:::%s:%s:%s::%s:%s\n", $domain, "u$u-netntlm", unpack("H*",$lmresp), unpack("H*",$ntresp), unpack("H*",$s_challenge), $_[0], $type);
 }
 # Alias for l0phtcrack
 sub netntlm {
@@ -1975,7 +2022,7 @@ sub l0phtcrack {
 	my $nthash = md4(encode("UTF-16LE", $password));
 	$nthash .= "\x00"x5;
 	my $lmhash; my $lmresp;
-	my $challenge = randbytes(8);
+	my $challenge = randstr(8,\@chrRawData);
 	my $ntresp = Crypt::ECB::encrypt(setup_des_key(substr($nthash, 0, 7)), 'DES', $challenge, PADDING_NONE());
 	$ntresp .= Crypt::ECB::encrypt(setup_des_key(substr($nthash, 7, 7)), 'DES', $challenge, PADDING_NONE());
 	$ntresp .= Crypt::ECB::encrypt(setup_des_key(substr($nthash, 14, 7)), 'DES', $challenge, PADDING_NONE());
@@ -1991,7 +2038,7 @@ sub l0phtcrack {
 		$lmresp .= Crypt::ECB::encrypt(setup_des_key(substr($lmhash, 7, 7)), 'DES', $challenge, PADDING_NONE());
 		$lmresp .= Crypt::ECB::encrypt(setup_des_key(substr($lmhash, 14, 7)), 'DES', $challenge, PADDING_NONE());
 	}
-	printf("%s\\%s:::%s:%s:%s::%s:%s\n", $domain, "u$u-netntlm", binToHex($lmresp), binToHex($ntresp), binToHex($challenge), $_[0], $type);
+	printf("%s\\%s:::%s:%s:%s::%s:%s\n", $domain, "u$u-netntlm", unpack("H*",$lmresp), unpack("H*",$ntresp), unpack("H*",$challenge), $_[0], $type);
 }
 sub netlmv2 {
 	my $pwd = $_[1];
@@ -1999,10 +2046,10 @@ sub netlmv2 {
 	my $domain = randstr(rand(15)+1);
 	my $user = randusername(20);
 	my $identity = Encode::encode("UTF-16LE", uc($user).$domain);
-	my $s_challenge = randbytes(8);
-	my $c_challenge = randbytes(8);
+	my $s_challenge = randstr(8,\@chrRawData);
+	my $c_challenge = randstr(8,\@chrRawData);
 	my $lmresponse = _hmacmd5(_hmacmd5($nthash, $identity), $s_challenge.$c_challenge);
-	printf("%s\\%s:::%s:%s:%s::%s:netlmv2\n", $domain, $user, binToHex($s_challenge), binToHex($lmresponse), binToHex($c_challenge), $_[0]);
+	printf("%s\\%s:::%s:%s:%s::%s:netlmv2\n", $domain, $user, unpack("H*",$s_challenge), unpack("H*",$lmresponse), unpack("H*",$c_challenge), $_[0]);
 }
 sub netntlmv2 {
 	my $pwd = $_[1];
@@ -2017,12 +2064,12 @@ sub netntlmv2 {
 	    $user = randusername(20);
 	}
 	my $identity = Encode::encode("UTF-16LE", uc($user).$domain);
-	my $s_challenge = randbytes(8);
-	my $c_challenge = randbytes(8);
-	my $temp = '\x01\x01' . "\x00"x6 . randbytes(8) . $c_challenge . "\x00"x4 . randbytes(20*rand()+1) . '\x00';
+	my $s_challenge = randstr(8,\@chrRawData);
+	my $c_challenge = randstr(8,\@chrRawData);
+	my $temp = '\x01\x01' . "\x00"x6 . randstr(8,\@chrRawData) . $c_challenge . "\x00"x4 . randstr(int(rand(20))+1,\@chrRawData) . '\x00';
 	my $ntproofstr = _hmacmd5(_hmacmd5($nthash, $identity), $s_challenge.$temp);
 	# $ntresponse = $ntproofstr.$temp but we separate them with a :
-	printf("%s\\%s:::%s:%s:%s::%s:netntlmv2\n", $domain, $user, binToHex($s_challenge), binToHex($ntproofstr), binToHex($temp), $_[0]);
+	printf("%s\\%s:::%s:%s:%s::%s:netntlmv2\n", $domain, $user, unpack("H*",$s_challenge), unpack("H*",$ntproofstr), unpack("H*",$temp), $_[0]);
 }
 sub mschapv2 {
 	require Crypt::ECB;
@@ -2030,8 +2077,8 @@ sub mschapv2 {
 	my $pwd = $_[1];
 	my $nthash = md4(encode("UTF-16LE", $pwd));
 	my $user = randusername();
-	my $a_challenge = randbytes(16);
-	my $p_challenge = randbytes(16);
+	my $a_challenge = randstr(16,\@chrRawData);
+	my $p_challenge = randstr(16,\@chrRawData);
 	my $ctx = Digest::SHA->new('sha1');
 	$ctx->add($p_challenge);
 	$ctx->add($a_challenge);
@@ -2040,7 +2087,7 @@ sub mschapv2 {
 	my $response = Crypt::ECB::encrypt(setup_des_key(substr($nthash, 0, 7)), 'DES', $challenge, PADDING_NONE());
 	$response .= Crypt::ECB::encrypt(setup_des_key(substr($nthash, 7, 7)), 'DES', $challenge, PADDING_NONE());
 	$response .= Crypt::ECB::encrypt(setup_des_key(substr($nthash . "\x00" x 5, 14, 7)), 'DES', $challenge, PADDING_NONE());
-	printf("%s:::%s:%s:%s::%s:mschapv2\n", $user, binToHex($a_challenge), binToHex($response), binToHex($p_challenge), $_[0]);
+	printf("%s:::%s:%s:%s::%s:mschapv2\n", $user, unpack("H*",$a_challenge), unpack("H*",$response), unpack("H*",$p_challenge), $_[0]);
 }
 sub crc_32 {
 	require String::CRC32;
@@ -2066,7 +2113,7 @@ sub raw_gost_cp {
 	print STDERR "raw_gost_cp : THIS ONE STILL LEFT TO DO\n";
 }
 sub pwsafe {
-	if (defined $argsalt && length($argsalt)==32) { $salt = $argsalt; } else { $salt=randstr(32); }
+	$salt=get_salt(32);
 	my $digest = sha256($_[1],$salt);
 	my $i;
 	for ($i = 0; $i <= 2048; ++$i) {
@@ -2075,13 +2122,13 @@ sub pwsafe {
 	print "u$u-pwsafe:\$pwsafe\$\*3\*", unpack('H*', $salt), "\*2048\*", unpack('H*', $digest), ":$u:0:$_[0]::\n";
 }
 sub django {
-	if (defined $argsalt && length($argsalt)<=32) { $salt = $argsalt; } else { $salt=randstr(12); }
+	$salt=get_salt(12,-32);
 	print "u$u-django:\$django\$\*1\*pbkdf2_sha256\$10000\$$salt\$", base64(pp_pbkdf2($_[1], $salt, 10000, "sha256", 32)), ":$u:0:$_[0]::\n";
 }
 sub django_scrypt {
 	require Crypt::ScryptKDF;
 	import Crypt::ScryptKDF qw(scrypt_b64);
-	if (defined $argsalt && length($argsalt)==12) { $salt = $argsalt; } else { $salt=randstr(12, \@i64);}
+	$salt=get_salt(12,12,\@i64);
 	my $N=14; my $r=8; my $p=1; my $bytes=64;
 	my $h = scrypt_b64($_[1],$salt,1<<$N,$r,$p,$bytes);
 	print "u$u-django_scrypt:scrypt\$$salt\$$N\$$r\$$p\$$bytes\$$h:$u:0:", $_[0], "::\n";
@@ -2089,7 +2136,7 @@ sub django_scrypt {
 sub scrypt {
 	require Crypt::ScryptKDF;
 	import Crypt::ScryptKDF qw(scrypt_raw);
-	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(12, \@i64);}
+	$salt=get_salt(12,-64,\@i64);
 	my $N=14; my $r=8; my $p=1; my $bytes=32;
 	my $h = base64i(scrypt_raw($_[1],$salt,1<<$N,$r,$p,$bytes));
 	# C is 14, 6.... is 8 and /.... is 1  ($N, $r, $p)
@@ -2097,28 +2144,28 @@ sub scrypt {
 	print "u$u-scrypt:\$7\$C6..../....$salt\$".$h.":$u:0:", $_[0], "::\n";
 }
 sub aix_ssha1 {
-	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(16); }
+	$salt=get_salt(16);
 	print "u$u-aix-ssha1:{ssha1}06\$$salt\$", base64_aix(pp_pbkdf2($_[1],$salt,(1<<6),"sha1",20)) ,":$u:0:", $_[0], "::\n";
 }
 sub aix_ssha256 {
-	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(16); }
+	$salt=get_salt(16);
 	print "u$u-aix-ssha256:{ssha256}06\$$salt\$", base64_aix(pp_pbkdf2($_[1],$salt,(1<<6),"sha256",32)) ,":$u:0:", $_[0], "::\n";
 }
 sub aix_ssha512 {
-	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(16); }
+	$salt=get_salt(16);
 	print "u$u-aix-ssha512:{ssha512}06\$$salt\$", base64_aix(pp_pbkdf2($_[1],$salt,(1<<6),"sha512",64)) ,":$u:0:", $_[0], "::\n";
 }
 # there are many 'formats' handled, but we just do the cannonical $pbkdf2-hmac-sha512$ one.
 # there could also be $ml$ and grub.pbkdf2.sha512. as the signatures. but within prepare() of pbkdf2-hmac-sha512_fmt,
 # they all get converted to this one, so that is all I plan on using.
 sub pbkdf2_hmac_sha512 {
-	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(16); }
+	$salt=get_salt(16,-32);
 	my $itr = 10000;
 	if ($arg_loops > 0) { $itr = $arg_loops; }
 	print "u$u-pbkdf2-hmac-sha512:\$pbkdf2-hmac-sha512\$${itr}.".unpack("H*", $salt).".", pp_pbkdf2_hex($_[1],$salt,$itr,"sha512",64) ,":$u:0:", $_[0], "::\n";
 }
 sub pbkdf2_hmac_sha256 {
-	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(12); }
+	$salt=get_salt(16);
 	my $itr = 1000;
 	if ($arg_loops > 0) { $itr = $arg_loops; }
 	my $s64 = base64pl($salt);
@@ -2126,13 +2173,13 @@ sub pbkdf2_hmac_sha256 {
 	print "u$u-pbkdf2-hmac-sha256:\$pbkdf2-sha256\$${itr}\$${s64}\$${h64}:$u:0:", $_[0], "::\n";
 }
 sub pbkdf2_hmac_sha1 {
-	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(16); }
+	$salt=get_salt(16);
 	my $itr = 1000;
 	if ($arg_loops > 0) { $itr = $arg_loops; }
 	print "u$u-pbkdf2-hmac-sha1:\$pbkdf2-hmac-sha1\$${itr}.".unpack("H*", $salt).".", pp_pbkdf2_hex($_[1],$salt,$itr,"sha1",20) ,":$u:0:", $_[0], "::\n";
 }
 sub drupal7 {
-	if (defined $argsalt && length($argsalt)<=8) { $salt = $argsalt; } else { $salt=randstr(8); }
+	$salt=get_salt(8,-8);
 	# We only handle the 'C' count (16384)
 	my $h = sha512($salt.$_[1]);
 	my $i = 16384;
@@ -2140,23 +2187,23 @@ sub drupal7 {
 	print "u$u-drupal:\$S\$C",$salt,substr(base64i($h),0,43),":$u:0:$_[0]::\n";
 }
 sub epi {
-	if (defined $argsalt && length($argsalt)==30) { $salt = $argsalt; } else { $salt=randstr(30); }
+	$salt=get_salt(30);
 	print "u$u-epi:0x", uc(unpack("H*", $salt))," 0x",uc(sha1_hex(substr($salt,0,29),$_[1], "\0")),":$u:0:$_[0]::\n";
 }
 sub episerver_sha1 {
-	if (defined $argsalt && length($argsalt)==16) { $salt = $argsalt; } else { $salt=randstr(16); }
+	$salt=get_salt(16);
 	print "u$u-episvr-v0:\$episerver\$\*0\*", base64($salt), "\*", sha1_base64($salt, Encode::encode("UTF-16LE", $_[0])), ":$u:0:$_[0]::\n";
 }
 sub episerver_sha256 {
-	if (defined $argsalt && length($argsalt)==16) { $salt = $argsalt; } else { $salt=randstr(16); }
+	$salt=get_salt(16);
 	print "u$u-episvr-v1:\$episerver\$\*1\*", base64($salt), "\*", sha256_base64($salt, Encode::encode("UTF-16LE", $_[0])), ":$u:0:$_[0]::\n";
 }
 sub hmailserver {
-	if (defined $argsalt && length($argsalt)==6) { $salt = $argsalt; } else { $salt=randstr(6, \@chrHexLo); }
+	$salt=get_salt(6,6,\@chrHexLo);
 	print "u$u-hmailserver:$salt",sha256_hex($salt,$_[1]),":$u:0:$_[0]::\n";
 }
 sub nukedclan {
-	if (defined $argsalt && length($argsalt)==20) { $salt = $argsalt; } else { $salt=randstr(20, \@chrAsciiTextNum); }
+	$salt=get_salt(20, 20, \@chrAsciiTextNum);
 	my $decal=randstr(1, \@chrHexLo);
 	my $pass_hash = sha1_hex($_[1]);
 	my $i = 0; my $k;
@@ -2184,7 +2231,8 @@ sub skey_fold {
 	return $a.$b;
 }
 sub skey_md5 {
-	if (defined $argsalt) { $salt = lc $argsalt; } else { $salt=randstr(8, \@chrAsciiTextNumLo); }
+	$salt=get_salt(8, 8, \@chrAsciiTextNumLo);
+	$salt = lc $salt;
 	my $cnt=randstr(3, \@chrAsciiNum);
 	my $h = md5($salt.$_[1]);
 	$h = skey_fold($h, 4);
@@ -2196,7 +2244,8 @@ sub skey_md5 {
 	print "u$u-SKEY-md5:md5 $cnt $salt ",unpack("H*", $h),":$u:0:$_[0]::\n";
 }
 sub skey_md4 {
-	if (defined $argsalt) { $salt = lc $argsalt; } else { $salt=randstr(8, \@chrAsciiTextNumLo); }
+	$salt=get_salt(8, 8, \@chrAsciiTextNumLo);
+	$salt = lc $salt;
 	my $cnt=randstr(3, \@chrAsciiNum);
 	my $h = md4($salt.$_[1]);
 	$h = skey_fold($h, 4);
@@ -2208,7 +2257,8 @@ sub skey_md4 {
 	print "u$u-SKEY-md4:md4 $cnt $salt ",unpack("H*", $h),":$u:0:$_[0]::\n";
 }
 sub skey_sha1 {
-	if (defined $argsalt) { $salt = lc $argsalt; } else { $salt=randstr(8, \@chrAsciiTextNumLo); }
+	$salt=get_salt(8, 8, \@chrAsciiTextNumLo);
+	$salt = lc $salt;
 	my $cnt=randstr(3, \@chrAsciiNum);
 	my $h = sha1($salt.$_[1]);
 	$h = skey_fold($h, 5);
@@ -2220,7 +2270,8 @@ sub skey_sha1 {
 	print "u$u-SKEY-sha1:sha1 $cnt $salt ",unpack("H*", $h),":$u:0:$_[0]::\n";
 }
 sub skey_rmd160 {
-	if (defined $argsalt) { $salt = lc $argsalt; } else { $salt=randstr(8, \@chrAsciiTextNumLo); }
+	$salt=get_salt(8, 8, \@chrAsciiTextNumLo);
+	$salt = lc $salt;
 	my $cnt=randstr(3, \@chrAsciiNum);
 	my $h = ripemd160($salt.$_[1]);
 	$h = skey_fold($h, 5);
@@ -2246,14 +2297,14 @@ sub raw_sha {
 	print "u$u-raw_sha:$h:$u:0:$_[0]::\n";
 }
 sub sybasease {
-	if (defined $argsalt && length($argsalt)==8) { $salt = $argsalt; } else { $salt=randstr(8, \@chrAsciiTextNum); }
+	$salt=get_salt(8, 8, \@chrAsciiTextNum);
 	my $h = Encode::encode("UTF-16BE", $_[0]);
 	while (length($h) < 510) { $h .= "\0\0"; }
 	print "u$u-SybaseAES:0xc007", unpack("H*",$salt), sha256_hex($h.$salt),":$u:0:$_[0]::\n";
 }
 sub wbb3 {
 	# Simply 'dynamic' format:  sha1($s.sha1($s.sha1($p)))
-	if (defined $argsalt && length($argsalt)==40) { $salt = $argsalt; } else { $salt=randstr(40, \@chrHexLo); }
+	$salt=get_salt(40, 40, \@chrHexLo);
 	print "u$u-wbb3:\$wbb3\$\*1\*$salt\*",sha1_hex($salt,sha1_hex($salt,sha1_hex($_[1]))),":$u:0:$_[0]::\n";
 }
 ############################################################
