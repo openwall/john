@@ -32,7 +32,6 @@ john_register_one(&fmt_cloud_keychain);
 #include "johnswap.h"
 #include "stdint.h"
 #include "sha2.h"
-#define PBKDF2_HMAC_SHA512_ALSO_INCLUDE_CTX
 #include "pbkdf2_hmac_sha512.h"
 #ifdef _OPENMP
 #include <omp.h>
@@ -42,7 +41,11 @@ john_register_one(&fmt_cloud_keychain);
 
 #define FORMAT_LABEL		"cloudkeychain"
 #define FORMAT_NAME		"1Password Cloud Keychain"
+#ifdef MMX_COEF_SHA512
+#define ALGORITHM_NAME		"PBKDF2-SHA512  " SHA512_ALGORITHM_NAME
+#else
 #define ALGORITHM_NAME		"PBKDF2-SHA512 32/" ARCH_BITS_STR
+#endif
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define HASH_LENGTH		64
@@ -51,8 +54,13 @@ john_register_one(&fmt_cloud_keychain);
 #define PLAINTEXT_LENGTH	125
 #define SALT_SIZE		sizeof(struct custom_salt)
 #define SALT_ALIGN		4
+#ifdef MMX_COEF_SHA512
+#define MIN_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA512
+#define MAX_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA512
+#else
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
+#endif
 
 #define SALTLEN 32
 #define IVLEN 16
@@ -311,17 +319,35 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
 	int index = 0;
+
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
 #endif
+	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 	{
+#ifdef SSE_GROUP_SZ_SHA512
+		int lens[SSE_GROUP_SZ_SHA512], i;
+		unsigned char *pin[SSE_GROUP_SZ_SHA512];
+		uint64_t key[SSE_GROUP_SZ_SHA512][8];
+		union {
+			ARCH_WORD_32 *pout[SSE_GROUP_SZ_SHA512];
+			unsigned char *poutc;
+		} x;
+		for (i = 0; i < SSE_GROUP_SZ_SHA512; ++i) {
+			lens[i] = strlen(saved_key[index+i]);
+			pin[i] = (unsigned char*)saved_key[index+i];
+			x.pout[i] = (ARCH_WORD_32*)(key[i]);
+		}
+		pbkdf2_sha512_sse((const unsigned char **)pin, lens, cur_salt->salt, cur_salt->saltlen, cur_salt->iterations, &(x.poutc), HASH_LENGTH, 0);
+		for (i = 0; i < SSE_GROUP_SZ_SHA512; ++i)
+			cracked[index+i] = ckcdecrypt((unsigned char*)(key[i]));
+#else
 		uint64_t key[8];
 		pbkdf2_sha512((const unsigned char*)(saved_key[index]), strlen(saved_key[index]),
 			cur_salt->salt, cur_salt->saltlen,
 			cur_salt->iterations, (unsigned char*)key, HASH_LENGTH, 0);
-
 		cracked[index] = ckcdecrypt((unsigned char*)key);
+#endif
 	}
 	return count;
 }
