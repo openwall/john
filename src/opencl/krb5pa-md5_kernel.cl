@@ -177,7 +177,7 @@ __kernel void krb5pa_md5_nthash(const __global uchar *password,
 #endif /* encodings */
 
 #ifdef RC4_USE_LOCAL
-__attribute__((reqd_work_group_size(64,1,1)))
+__attribute__((work_group_size_hint(64,1,1)))
 #endif
 __kernel void krb5pa_md5_final(const __global uint *nthash,
                                MAYBE_CONSTANT uint *salts,

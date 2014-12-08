@@ -164,7 +164,7 @@ __kernel void oldoffice_utf16(__global const uchar *password,
 #endif /* encodings */
 
 #ifdef RC4_USE_LOCAL
-__attribute__((reqd_work_group_size(64,1,1)))
+__attribute__((work_group_size_hint(64,1,1)))
 #endif
 __kernel void oldoffice_md5(__global const mid_t *mid,
                             __global salt_t *cs,
@@ -368,7 +368,7 @@ __kernel void oldoffice_md5(__global const mid_t *mid,
 }
 
 #ifdef RC4_USE_LOCAL
-__attribute__((reqd_work_group_size(64,1,1)))
+__attribute__((work_group_size_hint(64,1,1)))
 #endif
 __kernel void oldoffice_sha1(__global const mid_t *mid,
                              __global salt_t *cs,
