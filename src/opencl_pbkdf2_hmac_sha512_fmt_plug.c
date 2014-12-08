@@ -98,7 +98,7 @@ static cl_int cl_error;
 
 #define STEP			0
 #define SEED			64
-#define OCL_CONFIG		"pbkdf2-sha1"
+#define OCL_CONFIG		"pbkdf2-hmac-sha512"
 
 static const char * warn[] = {
 	"xfer: "   , ", crypt: " , ", xfer: "

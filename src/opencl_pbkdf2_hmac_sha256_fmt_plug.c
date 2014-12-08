@@ -47,7 +47,7 @@ john_register_one(&fmt_opencl_pbkdf2_hmac_sha256);
 #define FMT_CISCO8		"$8$"
 #define KERNEL_NAME		"pbkdf2_sha256_kernel"
 #define SPLIT_KERNEL_NAME	"pbkdf2_sha256_loop"
-#define OCL_CONFIG		"pbkdf2_sha256"
+#define OCL_CONFIG		"pbkdf2-hmac-sha256"
 #define STEP			0
 #define SEED			1024
 

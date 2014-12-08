@@ -45,7 +45,7 @@ john_register_one(&fmt_opencl_odf_aes);
 #define uint16_t		unsigned short
 #define uint32_t		unsigned int
 
-#define OCL_CONFIG		"odf_aes"
+#define OCL_CONFIG		"odf-aes"
 
 typedef struct {
 	uint32_t length;

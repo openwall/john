@@ -49,7 +49,7 @@ john_register_one(&fmt_opencl_xsha512);
 #define RAW_BENCHMARK_LENGTH		-1
 #define X_BENCHMARK_LENGTH		0
 
-#define OCL_CONFIG			"rawsha512"
+#define OCL_CONFIG			"raw-sha512"
 
 static sha512_salt			* salt;
 static uint32_t				* plaintext, * saved_idx;	// plaintext ciphertexts
