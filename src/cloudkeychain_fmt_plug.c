@@ -65,6 +65,7 @@ john_register_one(&fmt_cloud_keychain);
 #define SALTLEN 32
 #define IVLEN 16
 #define CTLEN 2048
+#define EHMLEN 32
 #define PAD_SIZE		128
 
 static struct fmt_tests cloud_keychain_tests[] = {
@@ -90,7 +91,7 @@ static struct custom_salt {
 	unsigned int cryptextlen;
 	unsigned char cryptext[CTLEN];
 	unsigned int expectedhmaclen;
-	unsigned char expectedhmac[CTLEN]; // XXX this can't be that big
+	unsigned char expectedhmac[EHMLEN];
 	unsigned int hmacdatalen;
 	unsigned char hmacdata[CTLEN];
 } *cur_salt;
@@ -187,7 +188,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if ((p = strtok(NULL, "$")) == NULL)	/* expectedhmac length */
 		goto err;
 	len = atoi(p);
-	if (len > CTLEN || len < 0)
+	if (len > EHMLEN || len < 0)
 		goto err;
 	if ((p = strtok(NULL, "$")) == NULL)	/* expectedhmac */
 		goto err;
