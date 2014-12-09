@@ -80,7 +80,7 @@ private z_stream z;
 // HAVE_LIBBZ2 is defined in autoconfig.h for autoconf builds.
 // #define HAVE_LIBBZ2 1
 
-#if HAVE_LIBBZ2  // XXX ask the team about this
+#if HAVE_LIBBZ2
 #include <bzlib.h>
 private int inflate_bzip2(byte *, unsigned int);
 private bz_stream bz;
@@ -2226,7 +2226,7 @@ Secret_Key_Packet(int len)
 		sym = s2k;
 		m_usage = s2k;
 		sym_algs(sym);
-		// printf("\tSimple string-to-key for IDEA\n"); // XXX
+		// printf("\tSimple string-to-key for IDEA\n");
 		IV(iv_len(sym));
 		encrypted_Secret_Key(len - Getc_getlen(), NO);
 		break;
