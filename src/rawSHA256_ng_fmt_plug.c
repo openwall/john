@@ -29,7 +29,7 @@ john_register_one(&fmt_rawSHA256_ng);
 #pragma GCC optimize 3
 #endif
 
-#define DEBUG
+//#define DEBUG
 
 #include <string.h>
 #include "stdint.h"
