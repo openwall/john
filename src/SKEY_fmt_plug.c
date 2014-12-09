@@ -239,13 +239,13 @@ skey_cmp_all(void *binary, int count)
 static int
 skey_cmp_one(void *binary, int count)
 {
-	return (1);	/* XXX - fallthrough from skey_cmp_all() */
+	return 1;
 }
 
 static int
 skey_cmp_exact(char *source, int count)
 {
-	return (1);	/* XXX - fallthrough from skey_cmp_one() */
+	return 1;
 }
 
 #if FMT_MAIN_VERSION > 11
