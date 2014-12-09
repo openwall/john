@@ -166,19 +166,17 @@ static int blockchain_decrypt(unsigned char *derived_key, unsigned char *data)
 	if (out[0] != '{') // fast test
 		return -1;
 
-	/* XXX we are assuming that "guid" will be found in the first block
-	 * itself (when SAFETY_FACTOR is 16).
-	 */
+	// We are assuming that "guid" will be found in the first block
+	// itself (when SAFETY_FACTOR is 16).
 	if (memmem(out, SAFETY_FACTOR, "\"guid\"", 6))
 		return 0;
 
 	if (memmem(out, SAFETY_FACTOR, "sharedKey", 9))
 		return 0;
 
-	/* XXX more tests required?
-	 *  if (memmem(out, cur_salt->length, "pbkdf2_iterations", 17))
-	 *  	return 0;
-	 */
+	// the tests above should be enough (TM)
+	// if (memmem(out, cur_salt->length, "pbkdf2_iterations", 17))
+	//	return 0;
 
 	return -1;
 }
