@@ -53,6 +53,7 @@ john_register_one(&fmt_netmd5);
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
 #define HEXCHARS                "0123456789abcdef"
+#define MAX_SALT_LEN			1024
 
 static struct fmt_tests tests[] = {
 	/* RIPv2 MD5 authentication hashes */
@@ -82,7 +83,7 @@ static void init(struct fmt_main *self);
 static struct custom_salt {
 	ARCH_WORD_32 magic;
 	int length;
-	unsigned char salt[1024]; // XXX but should be OK
+	unsigned char salt[MAX_SALT_LEN]; // fixd len, but should be OK
 } *cur_salt;
 static int dyna_salt_seen=0;
 static char Conv_Buf[300]; // max salt length we will pass to dyna is 230.  300 is MORE than enough.
@@ -120,7 +121,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!q)
 		return 0;
 	q = q + 1;
-	if ((q - p - 1) > SALT_SIZE * 2)
+	if ((q - p - 1) > MAX_SALT_LEN * 2)
 		return 0;
 
 	len = strspn(q, HEXCHARS);
