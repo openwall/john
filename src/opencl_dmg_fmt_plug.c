@@ -570,7 +570,6 @@ static int hash_plugin_check_hash(unsigned char *derived_key)
 		EVP_DecryptInit_ex(&ctx, EVP_des_ede3_cbc(), NULL, derived_key, cur_salt->iv);
 		if (!EVP_DecryptUpdate(&ctx, TEMP1, &outlen,
 		    cur_salt->encrypted_keyblob, cur_salt->encrypted_keyblob_size)) {
-			/* FIXME: should we fail here? */
 			return 0;
 		}
 		EVP_DecryptFinal_ex(&ctx, TEMP1 + outlen, &tmplen);
