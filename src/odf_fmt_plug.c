@@ -105,6 +105,13 @@ static int ishex(char *q)
 		q++;
 	return !*q;
 }
+static int isdec(char *q)
+{
+	char buf[24];
+	int x = atoi(q);
+	sprintf(buf, "%d", x);
+	return !strcmp(q,buf);
+}
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
@@ -133,11 +140,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* iterations */
 		goto err;
-	if (strlen(p) > 10) // FIXME: atoi() overflow still possible
+	if (!isdec(p))
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* key size */
-		goto err;
-	if (strlen(p) >= 10)
 		goto err;
 	res = atoi(p);
 	if (res != 16 && res != 32)
@@ -145,8 +150,6 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if ((p = strtok(NULL, "*")) == NULL)	/* checksum field (skipped) */
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* iv length */
-		goto err;
-	if (strlen(p) >= 10)
 		goto err;
 	res = atoi(p);
 	if (res > 16 || res < 0)
