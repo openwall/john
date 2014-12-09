@@ -124,6 +124,14 @@ static int ishex(char *q)
 	return !*q;
 }
 
+static int isdecu(char *q)
+{
+	char buf[24];
+	uint32_t x = atoi(q);
+	sprintf(buf, "%u", x);
+	return !strcmp(q,buf);
+}
+
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ptr, *ctcopy, *keeptr;
@@ -139,11 +147,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	keeptr = ctcopy;
 	if (!(ptr = strtok(ctcopy, ".")))
 		goto error;
-	if (strlen(ptr) >= 10)
+	if (!isdecu(ptr))
 		goto error;
 	len = atoi(ptr);
-	if (len >= UINT_MAX) // FIXME: atoi() undefined behavior
-		goto error;
 	if (!(ptr = strtok(NULL, ".")))
 		goto error;
 	len = strlen(ptr); // salt length
