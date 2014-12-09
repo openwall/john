@@ -198,6 +198,14 @@ static void done(void)
 	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
 }
 
+static int isdecu(char *q)
+{
+	char buf[24];
+	uint32_t x = atoi(q); /* this is how it is 'used', atoi() to unsigned */
+	sprintf(buf, "%u", x);
+	return !strcmp(q,buf);
+}
+
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ptr, *ctcopy, *keeptr;
@@ -215,8 +223,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto error;
 	if (strlen(ptr) >= 10)
 		goto error;
-	len = atoi(ptr);
-	if (len >= UINT_MAX) // FIXME: atoi() undefined behavior
+	if (!isdecu(ptr))
 		goto error;
 	if (!(ptr = strtok(NULL, ".")))
 		goto error;
