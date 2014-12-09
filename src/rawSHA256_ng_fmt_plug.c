@@ -29,7 +29,7 @@ john_register_one(&fmt_rawSHA256_ng);
 #pragma GCC optimize 3
 #endif
 
-//#define DEBUG
+#define DEBUG
 
 #include <string.h>
 #include "stdint.h"
@@ -46,6 +46,7 @@ john_register_one(&fmt_rawSHA256_ng);
 #include "common.h"
 #include "formats.h"
 #include "aligned.h"
+#include "rawSHA256_common.h"
 #include "memdbg.h"
 
 #if defined __XOP__
@@ -61,8 +62,6 @@ john_register_one(&fmt_rawSHA256_ng);
 #define FORMAT_LABEL              "Raw-SHA256-ng"
 #define FORMAT_NAME               ""
 #define ALGORITHM_NAME            "SHA256 128/128 " SIMD_TYPE " 4x"
-#define FORMAT_TAG                "$SHA256$"
-#define TAG_LENGTH                8
 
 #define VWIDTH                    4
 #define NUMKEYS                   VWIDTH
@@ -206,18 +205,16 @@ john_register_one(&fmt_rawSHA256_ng);
 
 static struct fmt_tests tests[] = {
 	{"71c3f65d17745f05235570f1799d75e69795d469d9fcb83e326f82f1afa80dea", "epixoip"},
-	{FORMAT_TAG "71c3f65d17745f05235570f1799d75e69795d469d9fcb83e326f82f1afa80dea", "epixoip"},
+	{HEX_TAG "71c3f65d17745f05235570f1799d75e69795d469d9fcb83e326f82f1afa80dea", "epixoip"},
 	{"25b64f637b373d33a8aa2b7579784e99a20e6b7dfea99a71af124394b8958f27", "doesthiswork"},
 	{"5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8", "password"},
 	{"27c6794c8aa2f70f5f6dc93d3bfb25ca6de9b0752c8318614cbd4ad203bea24c", "ALLCAPS"},
 	{"04cdd6c523673bf448efe055711a9b184817d7843b0a76c2046f5398b5854152", "TestTESTt3st"},
-	{FORMAT_TAG "ef797c8118f02dfb649607dd5d3f8c7623048c9c063d532cc95c5ed7a898a64f", "12345678"},
-	{FORMAT_TAG "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", ""},
-	{FORMAT_TAG "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855", ""},
-#if 0	/* FIXME: only rawSHA256_fmt_plug.c treats this as valid */
+	{HEX_TAG "ef797c8118f02dfb649607dd5d3f8c7623048c9c063d532cc95c5ed7a898a64f", "12345678"},
+	{HEX_TAG "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", ""},
+	{HEX_TAG "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855", ""},
 	{"LcV6aBcc/53FoCJjXQMd7rBUDEpeevrK8V5jQVoJEhU", "password"},
 	{"$cisco4$LcV6aBcc/53FoCJjXQMd7rBUDEpeevrK8V5jQVoJEhU", "password"},
-#endif
 	{"a49c2c9d0c006c8cb55a9a7a38822b83e0cd442614cb416af952fa50156761dc", "openwall"},
 	{"9e7d3e56996c5a06a6a378567e62f5aa7138ebb0f55c0bdaf73666bf77f73380", "mot\xf6rhead"},
 	{"1b4f0e9851971998e732078544c96b36c3d01cedf7caa332359d6f1d83567014", "test1"},
@@ -234,7 +231,6 @@ static struct fmt_tests tests[] = {
 	{"0f46e4b0802fee6fed599682a16287d0397699cfd742025482c086a70979e56a", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}, // 31
 	{"c62e4615bd39e222572f3a1bf7c2132ea1e65b17ec805047bd6b2842c593493f", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}, // 32
 	{"d5e285683cd4efc02d021a5c62014694958901005d6f71e89e0989fac77e4072", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}, // 55
-#if 0
 	{"$cisco4$OsOmQzwozC4ROs/CzpczJoShdCeW9lp7k/tGrPS5Kog", "1"},
 	{"$cisco4$d7kgbEk.P6mpKdduC66fUy1BF0MImo3eyJ9uI/JbMRk", "openwall"},
 	{"$cisco4$p5BSCWNS3ivUDpZlWthR.k4Q/xWqlFyEqXdaPikHenI", "2"},
@@ -244,7 +240,6 @@ static struct fmt_tests tests[] = {
 	{"$cisco4$fLUL1VG98zYDf9Q.M40nZ5blVT3M6UBex74Blw.UDCc", "thismaximumpasswordlength"},
 	{"$cisco4$Xq81UiuCj7bz9B..EX2BZumsU/d8pF5gs2NlRMW6sTk", "applesucks"},
 	{"$cisco4$O/D/cn1nawcByQoJfBxrNnUx6jjfWV.FNFx5TzmzihU", "AppleSucks"},
-#endif
 #endif
 	{NULL}
 };
@@ -271,41 +266,6 @@ static void init(struct fmt_main *self)
 }
 
 
-static int valid (char *ciphertext, struct fmt_main *self)
-{
-    char *p, *q;
-
-    p = ciphertext;
-
-    if (! strncmp (p, FORMAT_TAG, TAG_LENGTH))
-        p += TAG_LENGTH;
-
-    q = p;
-    while (atoi16[ARCH_INDEX(*q)] != 0x7F) q++;
-
-    return !*q && q - p == CIPHERTEXT_LENGTH;
-}
-
-
-#if FMT_MAIN_VERSION > 9
-static char *split (char *ciphertext, int index, struct fmt_main *self)
-#else
-static char *split (char *ciphertext, int index)
-#endif
-{
-    static char out[TAG_LENGTH + CIPHERTEXT_LENGTH + 1];
-
-    if (!strncmp (ciphertext, FORMAT_TAG, TAG_LENGTH))
-        return ciphertext;
-
-    memcpy (out,  FORMAT_TAG, TAG_LENGTH);
-    memcpy (out + TAG_LENGTH, ciphertext, CIPHERTEXT_LENGTH + 1);
-    strlwr (out + TAG_LENGTH);
-
-    return out;
-}
-
-
 static void *get_binary (char *ciphertext)
 {
     static unsigned char *out;
@@ -314,7 +274,7 @@ static void *get_binary (char *ciphertext)
     if (!out)
         out = mem_alloc_tiny (DIGEST_SIZE, MEM_ALIGN_WORD);
 
-    ciphertext += TAG_LENGTH;
+    ciphertext += HEX_TAG_LEN;
 
     for(i=0; i < BINARY_SIZE; i++)
         out[i] = atoi16[ARCH_INDEX(ciphertext[i*2])] * 16 +
@@ -577,7 +537,7 @@ struct fmt_main fmt_rawSHA256_ng = {
         fmt_default_done,
         fmt_default_reset,
 #endif
-        fmt_default_prepare,
+        prepare,
         valid,
         split,
         get_binary,
