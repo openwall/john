@@ -139,9 +139,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += TAG_LENGTH;
-	if ((p = strtok(ctcopy, "$")) == NULL)
+	if ((p = strtok(ctcopy, "$")) == NULL)  /* version number */
 		goto err;
-	if ((p = strtok(NULL, "$")) == NULL)
+	if(!isdec(p))
+		goto err;
+	if ((p = strtok(NULL, "$")) == NULL) /* SID */
 		goto err;
 	if (strlen(p) > MAX_SID_LEN)
 		goto err;
