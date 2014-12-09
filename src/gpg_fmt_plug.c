@@ -311,10 +311,25 @@ static int valid_hash_algorithm(int hash_algorithm, int spec)
       return 0;
 }
 
+static int ishex(char *q)
+{
+       while (atoi16[ARCH_INDEX(*q)] != 0x7F)
+               q++;
+       return !*q;
+}
+
+static int isdec(char *q)
+{
+	char buf[24];
+	int x = atoi(q);
+	sprintf(buf, "%d", x);
+	return !strcmp(q,buf);
+}
+
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *keeptr, *p;
-	int res,i,j,spec,usage,algorithm,ex_flds=0;
+	int res,j,spec,usage,algorithm,ex_flds=0;
 
 	if (strncmp(ciphertext, "$gpg$", 5) != 0)
 		return 0;
@@ -331,39 +346,38 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* bits */
 		goto err;
+	if (!isdec(p))
+		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* data */
 		goto err;
 	if (strlen(p) != res * 2)
 		goto err;
-	for(i = 0; i < strlen(p); i++) {
-		if(atoi16[ARCH_INDEX(p[i])] == 0x7F)
-			goto err;
-	}
+	if (!ishex(p))
+		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* spec */
 		goto err;
-	if (strlen(p) >= 10)
-		goto err;
 	spec = atoi(p);
+	if (!isdec(p))
+		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* usage */
 		goto err;
-	if (strlen(p) >= 10)
-		goto err;
 	usage = atoi(p);
+	if (!isdec(p))
+		goto err;
 	if(usage != 0 && usage != 254 && usage != 255 && usage != 1)
 		goto err;
-
 	if ((p = strtok(NULL, "*")) == NULL)	/* hash_algorithm */
 		goto err;
-	if (strlen(p) >= 10)
-		goto err;
 	res = atoi(p);
+	if (!isdec(p))
+		goto err;
 	if(!valid_hash_algorithm(res, spec))
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* cipher_algorithm */
 		goto err;
-	if (strlen(p) >= 10)
-		goto err;
 	res = atoi(p);
+	if (!isdec(p))
+		goto err;
 	if(!valid_cipher_algorithm(res))
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* ivlen */
@@ -375,10 +389,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if (strlen(p) != res * 2)
 		goto err;
-	for(i = 0; i < strlen(p); i++) {
-		if(atoi16[ARCH_INDEX(p[i])] == 0x7F)
-			goto err;
-	}
+	if (!ishex(p))
+		goto err;
 	/* handle "SPEC_SIMPLE" correctly */
 	if (spec == 0) {
 		MEM_FREE(keeptr);
@@ -386,21 +398,15 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	}
 	if ((p = strtok(NULL, "*")) == NULL)	/* count */
 		goto err;
-	if (strlen(p) > 10)
+	if (!isdec(p))
 		goto err;
 	res = atoi(p);
-	if (res >= INT_MAX)  // FIXME: overflow; atoi() undefined behavior
-		goto err;
-	if(res < 0)
-		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* salt */
 		goto err;
 	if (strlen(p) != 8 * 2)
 		goto err;
-	for (i = 0; i < strlen(p); i++) {
-		if(atoi16[ARCH_INDEX(p[i])] == 0x7F)
-			goto err;
-	}
+	if (!ishex(p))
+		goto err;
 	/*
 	 * For some test vectors, there are no more fields,
 	 * for others, there are (and need to be checked)
@@ -432,12 +438,10 @@ static int valid(char *ciphertext, struct fmt_main *self)
 			goto err;
 		if ((p = strtok(NULL, "*")) == NULL)
 			goto err;
-		if (strlen(p) != res * 2)
+		if (strlen(p) != res * 2) /* validates res is a valid int */
 			goto err;
-		for(i = 0; i < strlen(p); i++) {
-			if(atoi16[ARCH_INDEX(p[i])] == 0x7F)
-				goto err;
-		}
+		if (!ishex(p))
+			goto err;
 		p = strtok(NULL, "*");  /* NOTE, do not goto err if null, we WANT p nul if there are no fields */
 	}
 
