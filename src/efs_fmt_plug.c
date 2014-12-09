@@ -10,8 +10,7 @@
  * All credits for the algorithm go to "dpapick" project,
  * https://bitbucket.org/jmichel/dpapick
  *
- * XXX make this generic!
- * Hash Format ==> $efs$SID$iv$iterations$ciphertext
+ * Hash Format ==> $efs$version$SID$iv$iterations$ciphertext
  */
 
 #if FMT_EXTERNS_H
@@ -44,41 +43,41 @@ john_register_one(&fmt_efs);
 #include "memdbg.h"
 
 #ifdef MMX_COEF
-#define SHA1_BLK                  (SHA1_SSE_PARA * MMX_COEF)
+#define SHA1_BLK                (SHA1_SSE_PARA * MMX_COEF)
 #endif
 
-#define FORMAT_LABEL		"EFS"
-#define FORMAT_TAG		"$efs$"
-#define TAG_LENGTH		5
-#define FORMAT_NAME		""
+#define FORMAT_LABEL            "EFS"
+#define FORMAT_TAG              "$efs$"
+#define TAG_LENGTH              (sizeof(FORMAT_TAG) - 1)
+#define FORMAT_NAME             ""
 #ifdef MMX_COEF_SHA512
-#define ALGORITHM_NAME		"PBKDF2-SHA1-crap 3DES  " SHA512_ALGORITHM_NAME
+#define ALGORITHM_NAME          "PBKDF2-SHA1-crap 3DES  " SHA512_ALGORITHM_NAME
 #else
-#define ALGORITHM_NAME		"PBKDF2-SHA1-crap 3DES 32/" ARCH_BITS_STR
+#define ALGORITHM_NAME          "PBKDF2-SHA1-crap 3DES 32/" ARCH_BITS_STR
 #endif
-#define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	-1
-#define BINARY_SIZE		0
-#define PLAINTEXT_LENGTH	125
-#define MAX_CT_LEN			4096
-#define MAX_IV_LEN			16
-#define MAX_SID_LEN			1024
-#define SALT_SIZE		sizeof(*cur_salt)
-#define BINARY_ALIGN		1
-#define SALT_ALIGN			sizeof(int)
+#define BENCHMARK_COMMENT       ""
+#define BENCHMARK_LENGTH        -1
+#define BINARY_SIZE             0
+#define PLAINTEXT_LENGTH        125
+#define MAX_CT_LEN              4096
+#define MAX_IV_LEN              16
+#define MAX_SID_LEN             1024
+#define SALT_SIZE               sizeof(*cur_salt)
+#define BINARY_ALIGN            1
+#define SALT_ALIGN              sizeof(int)
 #ifdef MMX_COEF
-#define MIN_KEYS_PER_CRYPT	SHA1_BLK
-#define MAX_KEYS_PER_CRYPT	SHA1_BLK
+#define MIN_KEYS_PER_CRYPT      SHA1_BLK
+#define MAX_KEYS_PER_CRYPT      SHA1_BLK
 #else
-#define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	1
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      1
 #endif
 
 static struct fmt_tests efs_tests[] = {
 	/* Windows XP, openwall.efs */
-	{"$efs$S-1-5-21-1482476501-1659004503-725345543-1003$b3d62a0b06cecc236fe3200460426a13$4000$d3841257348221cd92caf4427a59d785ed1474cab3d0101fc8d37137dbb598ff1fd2455826128b2594b846934c073528f8648d750d3c8e6621e6f706d79b18c22f172c0930d9a934de73ea2eb63b7b44810d332f7d03f14d1c153de16070a5cab9324da87405c1c0", "openwall"},
+	{"$efs$0$S-1-5-21-1482476501-1659004503-725345543-1003$b3d62a0b06cecc236fe3200460426a13$4000$d3841257348221cd92caf4427a59d785ed1474cab3d0101fc8d37137dbb598ff1fd2455826128b2594b846934c073528f8648d750d3c8e6621e6f706d79b18c22f172c0930d9a934de73ea2eb63b7b44810d332f7d03f14d1c153de16070a5cab9324da87405c1c0", "openwall"},
 	/* Windows XP, openwall.efs.2 */
-	{"$efs$S-1-5-21-1482476501-1659004503-725345543-1005$c9cbd491f78ea6d512276b33f025bce8$4000$091a13443cfc2ddb16dcf256ab2a6707a27aa22b49a9a9011ebf3bb778d0088c2896de31de67241d91df75306e56f835337c89cfb2f9afa940b4e7e019ead2737145032fac0bb34587a707d42da7e00b72601a730f5c848094d54c47c622e2f8c8d204c80ad061be", "JtRisthebest"},
+	{"$efs$0$S-1-5-21-1482476501-1659004503-725345543-1005$c9cbd491f78ea6d512276b33f025bce8$4000$091a13443cfc2ddb16dcf256ab2a6707a27aa22b49a9a9011ebf3bb778d0088c2896de31de67241d91df75306e56f835337c89cfb2f9afa940b4e7e019ead2737145032fac0bb34587a707d42da7e00b72601a730f5c848094d54c47c622e2f8c8d204c80ad061be", "JtRisthebest"},
 	{NULL}
 };
 
@@ -98,6 +97,7 @@ static struct custom_salt {
 	int ivlen;
 	int iterations;
 	int ctlen;
+	int version;  // for future expansion
 	unsigned char ct[MAX_CT_LEN];
 	UTF16 SID[MAX_SID_LEN+1];
 } *cur_salt;
@@ -141,6 +141,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy += TAG_LENGTH;
 	if ((p = strtok(ctcopy, "$")) == NULL)
 		goto err;
+	if ((p = strtok(NULL, "$")) == NULL)
+		goto err;
 	if (strlen(p) > MAX_SID_LEN)
 		goto err;
 	if ((p = strtok(NULL, "$")) == NULL) /* iv */
@@ -177,8 +179,10 @@ static void *get_salt(char *ciphertext)
 	static struct custom_salt cs;
 
 	memset(&cs, 0, sizeof(cs));
-	ctcopy += 5;	/* skip over "$efs$" */
+	ctcopy += TAG_LENGTH;  // skip over "$efs$"
 	p = strtok(ctcopy, "$");
+	cs.version = atoi(p);
+	p = strtok(NULL, "$");
 
 	// Convert SID to Unicode
 	enc_to_utf16(cs.SID, MAX_SID_LEN, (UTF8*)p, strlen(p));
@@ -253,7 +257,6 @@ static int kcdecrypt(unsigned char *key, unsigned char *iv, unsigned char *pwdha
 	// dump_stuff(hmac, 20);
 	return memcmp(hmac, hmacComputed, 20);
 }
-
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
@@ -345,8 +348,7 @@ static int cmp_exact(char *source, int index)
 static void efs_set_key(char *key, int index)
 {
 	/* Convert key to UTF-16LE (--encoding aware) */
-	enc_to_utf16(saved_key[index], PLAINTEXT_LENGTH,
-	             (UTF8*)key, strlen(key));
+	enc_to_utf16(saved_key[index], PLAINTEXT_LENGTH, (UTF8*)key, strlen(key));
 }
 
 static char *get_key(int index)
