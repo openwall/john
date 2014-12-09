@@ -45,6 +45,7 @@ john_register_one(&fmt_django);
 #include "options.h"
 #include "johnswap.h"
 #include "base64.h"
+#include "base64_convert.h"
 #include "pbkdf2_hmac_sha256.h"
 #ifdef _OPENMP
 #include <omp.h>
@@ -109,10 +110,17 @@ static void init(struct fmt_main *self)
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
+static int isdec(char *q)
+{
+	char buf[24];
+	int x = atoi(q);
+	sprintf(buf, "%d", x);
+	return !strcmp(q,buf);
+}
+
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *keeptr, *p;
-	int iterations;
 	if (strncmp(ciphertext, "$django$*", 9) != 0)
 		return 0;
 	ctcopy = strdup(ciphertext);
@@ -129,19 +137,17 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtok(NULL, "$")) == NULL)	/* iterations */
 		goto err;
-	if (strlen(p) > 10) // FIXME: strlen 10 still allows undefined behavior in atoi!
-		goto err;
-	iterations=atoi(p);
-	if (iterations <= 0 || iterations >= INT_MAX ) // FIXME: atoi undefined behavior
+	if (!isdec(p))
 		goto err;
 	if ((p = strtok(NULL, "$")) == NULL)	/* salt */
 		goto err;
-	if (strlen(p) > (SALT_SIZE + 2) / 3 * 4)
+	if (base64_valid_length(p,e_b64_mime,flg_Base64_MIME_TRAIL_EQ) > SALT_SIZE)
 		goto err;
 	if ((p = strtok(NULL, "")) == NULL)	/* hash */
 		goto err;
-	if (strlen(p) > HASH_LENGTH)
+	if (base64_valid_length(p,e_b64_mime,flg_Base64_MIME_TRAIL_EQ) > HASH_LENGTH-1)  {
 		goto err;
+	}
 	MEM_FREE(keeptr);
 	return 1;
 
