@@ -26,7 +26,6 @@ john_register_one(&fmt_sniffed_lastpass);
 #include "options.h"
 #include "base64.h"
 #include <openssl/aes.h>
-//#include <openssl/evp.h>
 #include "pbkdf2_hmac_sha256.h"
 #ifdef _OPENMP
 #include <omp.h>
@@ -100,6 +99,14 @@ static void init(struct fmt_main *self)
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
+static int isdec(char *q)
+{
+	char buf[24];
+	int x = atoi(q);
+	sprintf(buf, "%d", x);
+	return !strcmp(q,buf);
+}
+
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *keeptr, *p;
@@ -114,7 +121,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtok(NULL, "$")) == NULL)	/* iterations */
 		goto err;
-	if (strlen(p) > 10)	// FIXME: overflows/undefined behavior in atoi() still possible
+	if (!isdec(p))
 		goto err;
 	if ((p = strtok(NULL, "$")) == NULL)	/* data */
 		goto err;
