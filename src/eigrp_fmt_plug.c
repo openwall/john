@@ -46,7 +46,7 @@ john_register_one(&fmt_eigrp);
 #define FORMAT_NAME             "EIGRP MD5 / HMAC-SHA-256 authentication"
 #define FORMAT_TAG              "$eigrp$"
 #define TAG_LENGTH              (sizeof(FORMAT_TAG) - 1)
-#define ALGORITHM_NAME          "MD5 32/" ARCH_BITS_STR  // XXX
+#define ALGORITHM_NAME          "MD5 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        0
 #define PLAINTEXT_LENGTH        81 // IOU accepts larger strings but doesn't use them fully, passwords are zero padded to a minimum length of 16 (for MD5 hashes only)!
@@ -54,17 +54,18 @@ john_register_one(&fmt_eigrp);
 #define BINARY_ALIGN            sizeof(ARCH_WORD_32)
 #define SALT_SIZE               sizeof(struct custom_salt)
 #define SALT_ALIGN              sizeof(int)
+#define MAX_SALT_SIZE           1024
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
 #define HEXCHARS                "0123456789abcdef"
 
 static struct fmt_tests tests[] = {
-	{"$eigrp$2$020500000000000000000000000000000000002a000200280002001000000001000000000000000000000000$0$XXX$1a42aaf8ebe2f766100ea1fa05a5fa55", "password12345"},
-	{"$eigrp$2$020500000000000000000000000000000000002a000200280002001000000001000000000000000000000000$0$XXX$f29e7d44351d37e6fc71e2aacca63d28", "1234567812345"},
+	{"$eigrp$2$020500000000000000000000000000000000002a000200280002001000000001000000000000000000000000$0$x$1a42aaf8ebe2f766100ea1fa05a5fa55", "password12345"},
+	{"$eigrp$2$020500000000000000000000000000000000002a000200280002001000000001000000000000000000000000$0$x$f29e7d44351d37e6fc71e2aacca63d28", "1234567812345"},
 	{"$eigrp$2$020500000000000000000000000000000000002a000200280002001000000001000000000000000000000000$1$0001000c010001000000000f000400080500030000f5000c0000000400$560c87396267310978883da92c0cff90", "password12345"},
-	{"$eigrp$2$020500000000000000000000000000000000002a000200280002001000000001000000000000000000000000$0$XXX$61f237e29d28538a372f01121f2cd12f", "123456789012345678901234567890"},
-	{"$eigrp$2$0205000000000000000000000000000000000001000200280002001000000001000000000000000000000000$0$XXX$212acb1cb76b31a810a9752c5cf6f554", "ninja"}, // this one is for @digininja :-)
-	{"$eigrp$3$020500000000000000000000000000000000000a00020038000300200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000c010001000000000f000400080f00020000f5000a000000020000$0$no-extra-salt$1$10.0.0.2$cff66484cea20c6f58f175f8c004fc6d73be72090e53429c2616309aca38d5f3", "password12345"},  // HMAC-SHA-256 hash
+	{"$eigrp$2$020500000000000000000000000000000000002a000200280002001000000001000000000000000000000000$0$x$61f237e29d28538a372f01121f2cd12f", "123456789012345678901234567890"},
+	{"$eigrp$2$0205000000000000000000000000000000000001000200280002001000000001000000000000000000000000$0$x$212acb1cb76b31a810a9752c5cf6f554", "ninja"}, // this one is for @digininja :-)
+	{"$eigrp$3$020500000000000000000000000000000000000a00020038000300200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000c010001000000000f000400080f00020000f5000a000000020000$0$x$1$10.0.0.2$cff66484cea20c6f58f175f8c004fc6d73be72090e53429c2616309aca38d5f3", "password12345"},  // HMAC-SHA-256 hash
 	{NULL}
 };
 
@@ -77,11 +78,11 @@ static struct custom_salt {
 	int algo_type;
 	int have_extra_salt;
 	int extra_salt_length;
-	unsigned char salt[1024];
+	unsigned char salt[MAX_SALT_SIZE];
 	char ip[45 + 1];
 	int ip_length;
 	MD5_CTX prep_salt;
-	unsigned char extra_salt[1024];
+	unsigned char extra_salt[MAX_SALT_SIZE];
 } *cur_salt;
 
 static void init(struct fmt_main *self)
@@ -101,35 +102,74 @@ static void init(struct fmt_main *self)
 		self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
-// XXX make me stronger!
+static int ishex(char *q)
+{
+       while (atoi16[ARCH_INDEX(*q)] != 0x7F)
+               q++;
+       return !*q;
+}
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	char *p, *q = NULL;
-	int len;
+	char *p, *ptrkeep;
+	int res;
 
-	p = ciphertext;
+	if (strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
+		return 0;
+	ptrkeep = strdup(ciphertext);
+	p = &ptrkeep[TAG_LENGTH];
 
-	if (!strncmp(p, FORMAT_TAG, TAG_LENGTH))
-		p += TAG_LENGTH;
-	if (!p)
-		return 0;
-	if (*p != '2' && *p != '3')  // MD5 hashes + HMAC-SHA256 hashes
-		return 0;
-	if (*(p+1) != '$')
-		return 0;
+	if ((p = strtok(p, "$")) == NULL)
+		goto err;
+	res = atoi(p);
 
-	q = strrchr(ciphertext, '$');
-	if (!q)
-		return 0;
-	q = q + 1;
+	if (res != 2 && res != 3)  // MD5 hashes + HMAC-SHA256 hashes
+		goto err;
 
-	if (strlen(q) > 32 * 2)  // check hash size and data
-		return 0;
-	len = strspn(q, HEXCHARS);
-	if (len != BINARY_SIZE * 2 &&  len != 32 * 2)
-		return 0;
+	if ((p = strtok(NULL, "$")) == NULL)	// salt
+		goto err;
+	if (strlen(p) > MAX_SALT_SIZE*2)
+		goto err;
+	if (!ishex(p))
+		goto err;
 
+	if ((p = strtok(NULL, "$")) == NULL)
+		goto err;
+	res = atoi(p);
+	if (p[1] || res > 1)
+		goto err;
+	if ((p = strtok(NULL, "$")) == NULL)	// salt2 (or a junk field)
+		goto err;
+	if (res == 1) {
+		// we only care about extra salt IF that number was a 1
+		if (strlen(p) > MAX_SALT_SIZE*2)
+			goto err;
+		if (!ishex(p))
+			goto err;
+	}
+
+	if ((p = strtok(NULL, "$")) == NULL)	// binary hash (or IP)
+		goto err;
+	if (!strcmp(p, "1")) {	// this was an IP
+		if ((p = strtok(NULL, "$")) == NULL)	// IP
+			goto err;
+		// not doing too much IP validation. Length will have to do.
+		// 5 char ip 'could' be 127.1  I know of no short IP. 1.1.1.1 is longer.
+		if (strlen(p) < 5 || strlen(p) > sizeof(cur_salt->ip))
+			goto err;
+		if ((p = strtok(NULL, "$")) == NULL)	// ok, now p is binary.
+			goto err;
+	}
+	res = strlen(p);
+	if (res != BINARY_SIZE * 2 &&  res != 32 * 2)
+		goto err;
+	if (!ishex(p))
+		goto err;
+
+	MEM_FREE(ptrkeep);
 	return 1;
+err:
+	MEM_FREE(ptrkeep);
+	return 0;
 }
 
 static void *get_salt(char *ciphertext)
