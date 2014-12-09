@@ -18,7 +18,14 @@ john_register_one(&fmt_vtp);
 #include <string.h>
 #ifdef _OPENMP
 #include <omp.h>
-#define OMP_SCALE 2048 // XXX
+// Tuned on core i7 4-core HT
+// 64  - 19k
+// 128 - 27k
+// 256 - 30.5k  ** chosen **
+// 512 - 30.5k
+// 1k  - 28.5k
+// 2k  - 28.5k  (times wobble)
+#define OMP_SCALE 256
 #endif
 
 #include "arch.h"
@@ -38,9 +45,7 @@ john_register_one(&fmt_vtp);
 #define ALGORITHM_NAME          "MD5 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        0
-
-#define PLAINTEXT_LENGTH        55 // 1 MD5 block (XXX)
-
+#define PLAINTEXT_LENGTH        55 // keep under 1 MD5 block AND this is now tied into logic in vtp_secret_derive()
 #define BINARY_SIZE             16
 #define BINARY_ALIGN            sizeof(ARCH_WORD_32)
 #define SALT_SIZE               sizeof(struct custom_salt)
@@ -101,32 +106,61 @@ static void init(struct fmt_main *self)
 		self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
-// XXX make me robust
+static int ishex(char *q)
+{
+       while (atoi16[ARCH_INDEX(*q)] != 0x7F)
+               q++;
+       return !*q;
+}
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	char *p, *q = NULL;
-	int version;
+	char *p, *ptrkeep;
+	int res;
 	p = ciphertext;
-	if (!strncmp(p, FORMAT_TAG, TAG_LENGTH))
-		p += TAG_LENGTH;
-
-	if (!p)
+	if (strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
 		return 0;
 
-	version = atoi(p);
-	// if (version != 1  && version != 2 && version != 3)  // VTP version 3 support is pending
-	if (version != 1  && version != 2)
-		return 0;
+	ptrkeep = strdup(ciphertext);
+	p = &ptrkeep[TAG_LENGTH];
 
-	q = strrchr(ciphertext, '$');
-	if (!q)
-		return 0;
-	q = q + 1;
+	if ((p = strtok(p, "$")) == NULL) /* version */
+		goto err;
+	res = atoi(p);
+	if (res != 1  && res != 2)  // VTP version 3 support is pending
+		goto err;
 
-	if (strlen(q) != BINARY_SIZE * 2)
-		return 0;
+	if ((p = strtok(NULL, "$")) == NULL)  /* vlans len */
+		goto err;
+	res = atoi(p);
+	if ((p = strtok(NULL, "$")) == NULL)  /* vlans data */
+		goto err;
+	if (strlen(p) != res * 2)
+		goto err;
+	if (!ishex(p))
+		goto err;
 
+	if ((p = strtok(NULL, "$")) == NULL)  /* salt len */
+		goto err;
+	res = atoi(p);
+	if ((p = strtok(NULL, "$")) == NULL)  /* salt */
+		goto err;
+	if (strlen(p) != res * 2)
+		goto err;
+	if (!ishex(p))
+		goto err;
+
+	if ((p = strtok(NULL, "$")) == NULL)  /* hash */
+		goto err;
+	if (strlen(p) != BINARY_SIZE * 2)
+		goto err;
+	if (!ishex(p))
+		goto err;
+
+	MEM_FREE(ptrkeep);
 	return 1;
+err:
+	MEM_FREE(ptrkeep);
+	return 0;
 }
 
 static void *get_salt(char *ciphertext)
@@ -206,9 +240,10 @@ static int get_hash_4(int index) { return crypt_out[index][0] & 0xfffff; }
 static int get_hash_5(int index) { return crypt_out[index][0] & 0xffffff; }
 static int get_hash_6(int index) { return crypt_out[index][0] & 0x7ffffff; }
 
-// XXX optimize me!
 static void vtp_secret_derive(char *password, int length, unsigned char *output)
 {
+#if 0
+	/* old code kept as a easier to read view of what is being done */
 	MD5_CTX ctx;
 	unsigned char *cp, buf[64];
 	unsigned int password_idx = 0;
@@ -227,6 +262,48 @@ static void vtp_secret_derive(char *password, int length, unsigned char *output)
 		MD5_Update(&ctx, buf, 64);
 	}
 	MD5_Final(output, &ctx);
+#else
+	// Speed went from 8k to 28k.  I think it should be VERY easy to add SIMD code here.
+	// That would gain us another 4x or so speed.  TODO for someone to play with ;)
+	MD5_CTX ctx;
+	unsigned char *cp, buf[55][64];
+	int bufs_used = 0, local_cnt = 0;
+	int i, j;
+
+	if (length == 0)  {
+		memset(output, 0, 16);
+		return;
+	}
+	cp = buf[bufs_used];
+	/* treat password as a cyclic generator */
+	for (;;) {
+		/* note this WILL exit.  Modular math assures will do so in 'length' buffers or       */
+		/* less. with PLAINTEXTLEN set to 55 bytes, we only need 55 buffers to assure a cycle */
+		if (local_cnt + length <= 64) {
+			memcpy(&cp[local_cnt], password, length);
+			local_cnt += length;
+			if (local_cnt == 64) {
+				/* we ended a word at end of buffer, so we have the cycle */
+				bufs_used++;
+				break;
+			}
+		} else {
+			int spill = local_cnt+length-64;
+			memcpy(&cp[local_cnt], password, length-spill);
+			cp = buf[++bufs_used];
+			memcpy(cp, &password[length-spill], spill);
+			local_cnt = spill;
+		}
+	}
+
+	MD5_Init(&ctx);
+	for(i = 0, j=0; i < 1563; ++i) { /* roughly 1 MB */
+		MD5_Update(&ctx, buf[j++], 64);
+		if (j == bufs_used)
+			j = 0;
+	}
+	MD5_Final(output, &ctx);
+#endif
 }
 
 static void set_salt(void *salt)
