@@ -375,6 +375,14 @@ static int valid_hash_algorithm(int hash_algorithm, int spec)
 	return 0;
 }
 
+static int isdec(char *q)
+{
+	char buf[24];
+	int x = atoi(q);
+	sprintf(buf, "%d", x);
+	return !strcmp(q,buf);
+}
+
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *keeptr, *p;
@@ -410,7 +418,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	spec = atoi(p);
 	if ((p = strtok(NULL, "*")) == NULL)	/* usage */
 		goto err;
-	if (strlen(p) >= 10)
+	if (!isdec(p))
 		goto err;
 	usage = atoi(p);
 	if(usage != 0 && usage != 254 && usage != 255 && usage != 1)
@@ -450,13 +458,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	}
 	if ((p = strtok(NULL, "*")) == NULL)	/* count */
 		goto err;
-	if (strlen(p) > 10)
+	if (!isdec(p))
 		goto err;
 	res = atoi(p);
-	if (res >= INT_MAX)  // FIXME: overflow; atoi() undefined behavior
-		goto err;
-	if(res < 0)
-		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* salt */
 		goto err;
 	if (strlen(p) != 8 * 2)
