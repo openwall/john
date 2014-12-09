@@ -245,7 +245,7 @@ static int cmp_one(void *binary, int count)
 
 static int cmp_exact(char *source, int index)
 {
-	return (1);	/* XXX - fallthrough from cmp_one() */
+	return (1);
 }
 
 struct fmt_main fmt_KRB4 = {

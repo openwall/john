@@ -67,7 +67,6 @@ static void init(struct fmt_main *self)
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
-// XXX fix me
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *p;
