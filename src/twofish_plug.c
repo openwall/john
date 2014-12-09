@@ -1715,9 +1715,16 @@ void Twofish_decrypt( Twofish_key * xkey, Byte c[16], Byte p[16])
 int Twofish_Encrypt(Twofish_key *m_key, Byte *pInput,  Byte *pOutBuffer, int nInputOctets, Byte *m_pInitVector)
 {
 	int i, numBlocks, padLen;
-	Byte block[16], *iv;
-	UInt32 *p = (UInt32 *)block;  // XXX
+	Byte *iv;
+	union {
+		Byte block[16];
+		UInt32 p32[4];	// needed for 'requires aligned' machines
+	} x;
+	UInt32 *p;
+	Byte *block;
 
+	p = x.p32;
+	block = x.block;
 	if((pInput == NULL) || (nInputOctets <= 0) || (pOutBuffer == NULL)) return 0;
 
 	numBlocks = nInputOctets / 16;
@@ -1758,10 +1765,16 @@ int Twofish_Encrypt(Twofish_key *m_key, Byte *pInput,  Byte *pOutBuffer, int nIn
 int Twofish_Decrypt(Twofish_key *m_key, Byte *pInput, Byte *pOutBuffer, int nInputOctets, Byte *m_pInitVector)
 {
 	int i, numBlocks, padLen;
-	Byte block[16];
 	UInt32 iv[4];
-	UInt32 *p = (UInt32 *)block;
+	union {
+		Byte block[16];
+		UInt32 p32[4];	// needed for 'requires aligned' machines
+	} x;
+	UInt32 *p;
+	Byte *block;
 
+	p = x.p32;
+	block = x.block;
 	if((pInput == NULL) || (nInputOctets <= 0) || (pOutBuffer == NULL)) return 0;
 
 	if((nInputOctets % 16) != 0) { return -1; }
