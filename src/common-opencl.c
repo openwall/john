@@ -1037,7 +1037,7 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self,
 	if (*lastEvent == NULL)
 		lastEvent = firstEvent;
 
-	HANDLE_CLERROR(clWaitForEvents(1, firstEvent), "MaitForEvents failed");
+	HANDLE_CLERROR(clWaitForEvents(1, firstEvent), "WaitForEvents failed");
 	HANDLE_CLERROR(clFinish(queue[sequential_id]), "clFinish error");
 	HANDLE_CLERROR(clGetEventProfilingInfo(*firstEvent,
 					       CL_PROFILING_COMMAND_SUBMIT,
@@ -1091,7 +1091,7 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self,
 			}
 
 			HANDLE_CLERROR(clWaitForEvents(1, firstEvent),
-					   "MaitForEvents failed");
+					   "WaitForEvents failed");
 			HANDLE_CLERROR(clFinish(queue[sequential_id]),
 				       "clFinish error");
 			HANDLE_CLERROR(clGetEventProfilingInfo(*firstEvent,
@@ -1225,7 +1225,7 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 
 		HANDLE_CLERROR(
 			clWaitForEvents(1, multi_profilingEvent[i]),
-				"MaitForEvents failed");
+				"WaitForEvents failed");
 		HANDLE_CLERROR(
 			clGetEventProfilingInfo(*multi_profilingEvent[i],
 						CL_PROFILING_COMMAND_START,
@@ -1406,7 +1406,7 @@ void opencl_find_best_lws(
 
 	HANDLE_CLERROR(
 		clWaitForEvents(1, &benchEvent[main_opencl_event]),
-		"MaitForEvents failed");
+		"WaitForEvents failed");
 	HANDLE_CLERROR(clFinish(queue[sequential_id]), "clFinish error");
 	HANDLE_CLERROR(clGetEventProfilingInfo(benchEvent[main_opencl_event],
 					       CL_PROFILING_COMMAND_START,
@@ -1457,7 +1457,7 @@ void opencl_find_best_lws(
 
 			HANDLE_CLERROR(
 				clWaitForEvents(1, &benchEvent[main_opencl_event]),
-				"MaitForEvents failed");
+				"WaitForEvents failed");
 			HANDLE_CLERROR(clFinish(queue[sequential_id]),
 				       "clFinish error");
 			HANDLE_CLERROR(clGetEventProfilingInfo(benchEvent[main_opencl_event],
