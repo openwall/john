@@ -99,90 +99,74 @@ static int ishex(char *q)
        return !*q;
 }
 
-// XXX make me better
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	char *p, *q;
+	char *p, *keepptr;
 	int res;
 
-	p = ciphertext;
-	if (strncmp(p, FORMAT_TAG, TAG_LENGTH))
+	if (strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
 		return 0;
-	p += TAG_LENGTH;
-	if (!*p)
+	keepptr=strdup(ciphertext);
+	p = &keepptr[TAG_LENGTH];
+	if (*p != '*')
 		goto err;
-
-	q = strchr(p, '*'); // version
-	if (!q)
+	if ((p = strtok(p, "*")) == NULL) /* version */
 		goto err;
-	p = q + 1;
 	res = atoi(p);
-	if (res != 3)  // we only know about this particular version
+	if (res != 3)  /* we only know about this particular version */
 		goto err;
-
-	q = strchr(p, '*'); // local_salt_length
-	if (!q)
+	if ((p = strtok(NULL, "*")) == NULL) /* local_salt_length */
 		goto err;
-	p = q + 1;
 	res = atoi(p);
-	if (res > 32)
+	if (res > 20)
 		goto err;
-
-	q = strchr(p, '*'); // nnLen
-	if (!q)
+	if ((p = strtok(NULL, "*")) == NULL) /* nnLen (we ignore nnlen) */
 		goto err;
-	p = q + 1;
-
-	q = strchr(p, '*'); // local_salt
-	if (!q)
+	if ((p = strtok(NULL, "*")) == NULL) /* local_salt */
 		goto err;
-	p = q + 1;
-	q = strchr(p, '*'); // find end of this chunk
-	if (q - p != res * 2)
+	if (strlen(p) != res * 2)
 		goto err;
-
-	q = strchr(p, '*'); // oidLen
-	if (!*q)
+	if (!ishex(p))
 		goto err;
-	p = q + 1;
-
-	q = strchr(p, '*'); // oidData
-	if (!q)
+	if ((p = strtok(NULL, "*")) == NULL) /* oidDatalen */
 		goto err;
-	p = q + 1;
-
-	q = strchr(p, '*'); // password_check_length
-	if (!q)
-		goto err;
-	p = q + 1;
 	res = atoi(p);
-
-	q = strchr(p, '*'); // password_check
-	if (!q)
+	if (res > 20)
 		goto err;
-	p = q + 1;
-	q = strchr(p, '*'); // find end of this chunk
-	if (q - p != res * 2)
+	if ((p = strtok(NULL, "*")) == NULL) /* oidData */
 		goto err;
-
-	q = strchr(p, '*'); // global_salt_length
-	if (!q)
+	if (strlen(p) != res * 2)
 		goto err;
-	p = q + 1;
+	if (!ishex(p))
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL) /* password_check_length */
+		goto err;
 	res = atoi(p);
-
-	q = strchr(p, '*'); // global_salt
-	if (!q)
+	if (res > 20)
 		goto err;
-	p = q + 1;
+	if ((p = strtok(NULL, "*")) == NULL) /* password_check */
+		goto err;
+	if (strlen(p) != res * 2)
+		goto err;
+	if (!ishex(p))
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL) /* global_salt_length */
+		goto err;
+	res = atoi(p);
+	if (res > 20)
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL) /* global_salt */
+		goto err;
 	if (strlen(p) != res * 2)
 		goto err;
 	if (!ishex(p))
 		goto err;
 
+	MEM_FREE(keepptr);
 	return 1;
 
 err:
+	MEM_FREE(keepptr);
 	return 0;
 }
 
