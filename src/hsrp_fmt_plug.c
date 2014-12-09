@@ -20,7 +20,15 @@ john_register_one(&fmt_hsrp);
 #include <string.h>
 #ifdef _OPENMP
 #include <omp.h>
-#define OMP_SCALE 2048 // XXX
+// OMP_SCALE tuned on core i7 4-core HT
+// 2048 -  8850k 6679k
+// 4096 - 10642k 7278k
+// 8192 - 10489k 7532k
+// 16k  - 10413k 7694k
+// 32k  - 12111k 7803k  ** this value chosen
+// 64k  - 12420k 6523k
+// 128k - 12220k 6741k
+#define OMP_SCALE 32768
 #endif
 
 #include "arch.h"
@@ -40,7 +48,7 @@ john_register_one(&fmt_hsrp);
 #define ALGORITHM_NAME          "MD5 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        0
-#define PLAINTEXT_LENGTH        55 // Needs to fit in 1 MD5 block.
+#define PLAINTEXT_LENGTH        55 // Must fit in a single MD5 block
 #define BINARY_SIZE             16
 #define BINARY_ALIGN            sizeof(ARCH_WORD_32)
 #define SALT_SIZE               sizeof(struct custom_salt)
