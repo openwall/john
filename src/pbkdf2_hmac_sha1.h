@@ -93,8 +93,12 @@ static void _pbkdf2_sha1(const unsigned char *S, int SL, int R, ARCH_WORD_32 *ou
 		SHA1_Update(&ctx, tmp_hash, SHA_DIGEST_LENGTH);
 		SHA1_Final(tmp_hash, &ctx);
 #if !defined (PBKDF1_LOGIC)
-		for(j = 0; j < SHA_DIGEST_LENGTH/sizeof(ARCH_WORD_32); j++)
+		for(j = 0; j < SHA_DIGEST_LENGTH/sizeof(ARCH_WORD_32); j++) {
 			out[j] ^= ((ARCH_WORD_32*)tmp_hash)[j];
+#if defined (EFS_CRAP_LOGIC)
+			((ARCH_WORD_32*)tmp_hash)[j] = out[j];
+#endif
+		}
 #endif
 	}
 #if defined (PBKDF1_LOGIC)
@@ -260,8 +264,12 @@ static void pbkdf2_sha1_sse(const unsigned char *K[SSE_GROUP_SZ_SHA1], int KL[SS
 #if !defined (PBKDF1_LOGIC)
 			for (k = 0; k < SSE_GROUP_SZ_SHA1; k++) {
 				unsigned *p = &o1[(k/MMX_COEF)*MMX_COEF*SHA_BUF_SIZ + (k&(MMX_COEF-1))];
-				for(j = 0; j < (SHA_DIGEST_LENGTH/sizeof(ARCH_WORD_32)); j++)
+				for(j = 0; j < (SHA_DIGEST_LENGTH/sizeof(ARCH_WORD_32)); j++) {
 					dgst[k][j] ^= p[(j<<(MMX_COEF>>1))];
+#if defined (EFS_CRAP_LOGIC)
+					p[(j<<(MMX_COEF>>1))] = dgst[k][j];
+#endif
+				}
 			}
 #endif
 		}
