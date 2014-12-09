@@ -46,7 +46,7 @@ static sip_salt *pSalt;
 #define FORMAT_NAME		""
 #define ALGORITHM_NAME		"MD5 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	-1
+#define BENCHMARK_LENGTH	0
 #define PLAINTEXT_LENGTH	32
 #define BINARY_SIZE		0
 #define SALT_SIZE		sizeof(sip_salt)
@@ -56,7 +56,6 @@ static sip_salt *pSalt;
 #define MAX_KEYS_PER_CRYPT	64
 
 static struct fmt_tests sip_tests[] = {
-/* XXX: need more test vectors, then try benchmarking for "many salts" */
 	{"$sip$*192.168.1.111*192.168.1.104*200*asterisk*REGISTER*sip*192.168.1.104**46cce857****MD5*4dfc7515936a667565228dbaa0293dfc", "123456"},
 	{"$sip$*10.0.1.20*10.0.1.10*1001*asterisk*REGISTER*sips*10.0.1.20*5061*0ef95b07****MD5*576e39e9de6a9ed053eb218f65fe470e", "q1XCLF0KaBObo797"},
 	{NULL}
