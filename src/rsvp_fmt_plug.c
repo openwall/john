@@ -47,6 +47,7 @@ john_register_one(&fmt_rsvp);
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
 #define HEXCHARS                "0123456789abcdef"
+#define MAX_SALT_SIZE           8192
 
 static struct fmt_tests tests[] = {
 	{"$rsvp$1$10010000ff0000ac002404010100000000000001d7e95bfa0000003a00000000000000000000000000000000000c0101c0a8011406000017000c0301c0a8010a020004020008050100007530000c0b01c0a8010a0000000000240c0200000007010000067f00000545fa000046fa000045fa0000000000007fffffff00300d020000000a010000080400000100000001060000014998968008000001000000000a000001000005dc05000000$636d8e6db5351fbc9dad620c5ec16c0b", "password12345"},
@@ -61,7 +62,7 @@ static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
 static  struct custom_salt {
 	int type;
 	int salt_length;
-	unsigned char salt[8192];
+	unsigned char salt[MAX_SALT_SIZE];
 } *cur_salt;
 
 static void init(struct fmt_main *self)
@@ -81,28 +82,49 @@ static void init(struct fmt_main *self)
 		self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
+static int ishex(char *q)
+{
+	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
+		q++;
+	return !*q;
+}
 
-// XXX improve me
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	char *p, *q = NULL;
+	char *p, *strkeep;
 	int version;
 
-	p = ciphertext;
-	if (strncmp(p, FORMAT_TAG, TAG_LENGTH))
+	if (strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
 		return 0;
-	p += TAG_LENGTH;
-	if (!p)
-		return 0;
+	strkeep = strdup(ciphertext);
+	p = &strkeep[TAG_LENGTH];
+
+	if ((p = strtok(p, "$")) == NULL) /* version */
+		goto err;
 	version = atoi(p);
 	if (version != 1  && version != 2)
-		return 0;
+		goto err;
 
-	q = strrchr(ciphertext, '$') + 1;
-	if (!q)
-		return 0;
+	if ((p = strtok(NULL, "$")) == NULL) /* salt */
+		goto err;
+	if (strlen(p) >= MAX_SALT_SIZE*2)
+		goto err;
+	if (!ishex(p))
+		goto err;
 
+	if ((p = strtok(NULL, "$")) == NULL) /* hash */
+		goto err;
+	/* there is code that trim longer binary values, so we do not need to check for extra long */
+	if (strlen(p) < BINARY_SIZE*2)
+		goto err;
+	if (!ishex(p))
+		goto err;
+
+	MEM_FREE(strkeep);
 	return 1;
+err:;
+	MEM_FREE(strkeep);
+	return 0;
 }
 
 static void *get_salt(char *ciphertext)
