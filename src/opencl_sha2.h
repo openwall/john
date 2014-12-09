@@ -198,6 +198,8 @@ __constant uint k[] = {
 }
 
 /*
+ * Copyright (c) 2014 magnum, possibly based on:
+ *
  * FIPS-180-2 compliant SHA-256 implementation
  *
  * Copyright (C) 2001-2003 Christophe Devine
@@ -227,22 +229,316 @@ typedef struct {
 	uchar buffer[64];
 } SHA256_CTX;
 
-inline void _memcpy(uchar *dest, __global const uchar *src, uint count)
+/*
+ * Optimized memcpy()
+ * 64+32+16, GTX980: 47% boost, 290X: 31% boost
+ */
+#if 1
+#define MEMCPY64
+#define MEMCPY32
+#define MEMCPY16
+
+inline void _memcpy_(uchar *dst, const uchar *src, uint count)
 {
+#ifdef MEMCPY64
+	if (!(((int)dst | (int)src) & 7)) {
+		ulong *d64 = (ulong*)dst;
+		ulong *s64 = (ulong*)src;
+
+		while (count > 7) {
+			*d64++ = *s64++;
+			count -= 8;
+		}
+		dst = (uchar*)d64;
+		src = (uchar*)s64;
+	}
+#if defined(MEMCPY32) || defined(MEMCPY16)
+	else
+#endif
+#endif /* MEMCPY64 */
+#ifdef MEMCPY32
+	if (!(((int)dst | (int)src) & 3)) {
+		uint *d32 = (uint*)dst;
+		uint *s32 = (uint*)src;
+
+		while (count > 3) {
+			*d32++ = *s32++;
+			count -= 4;
+		}
+		dst = (uchar*)d32;
+		src = (uchar*)s32;
+	}
+#ifdef MEMCPY16
+	else
+#endif
+#endif /* MEMCPY32 */
+#ifdef MEMCPY16
+	if (!(((int)dst | (int)src) & 1)) {
+		ushort *d16 = (ushort*)dst;
+		ushort *s16 = (ushort*)src;
+
+		while (count > 1) {
+			*d16++ = *s16++;
+			count -= 2;
+		}
+		dst = (uchar*)d16;
+		src = (uchar*)s16;
+	}
+#endif
 	while (count--)
-		*dest++ = *src++;
+		*dst++ = *src++;
 }
 
-inline void _memcpy_(uchar *dest, const uchar *src, uint count)
-{
-	while (count--)
-		*dest++ = *src++;
-}
-
-#if 0
-#define GET_UINT32(n, b, i)	(n) = ((uint*)(b))[(i) / 4]
-#define PUT_UINT32(n, b, i)	((uint*)(b))[(i) / 4] = (n)
 #else
+inline void _memcpy_(uchar *dst, const uchar *src, uint count)
+{
+	if (count & 1)
+		*dst++ = *src++;
+	count >>= 1;
+	if (count & 1) {
+		if (!(((int)dst | (int)src) & 1)) {
+			ushort *s = (ushort*)src;
+			ushort *d = (ushort*)dst;
+			*d++ = *s++;
+			src = (uchar*)s;
+			dst = (uchar*)d;
+		} else {
+			*dst++ = *src++;
+			*dst++ = *src++;
+		}
+	}
+	count >>= 1;
+	if (count & 1) {
+		switch (((int)dst | (int)src) & 3) {
+		case 0: {
+			uint *s = (uint*)src;
+			uint *d = (uint*)dst;
+			*d++ = *s++;
+			src = (uchar*)s;
+			dst = (uchar*)d;
+			break;
+		}
+		case 2: {
+			ushort *s = (ushort*)src;
+			ushort *d = (ushort*)dst;
+			*d++ = *s++;
+			*d++ = *s++;
+			src = (uchar*)s;
+			dst = (uchar*)d;
+			break;
+		}
+		default:
+			*dst++ = *src++;
+			*dst++ = *src++;
+			*dst++ = *src++;
+			*dst++ = *src++;
+			break;
+		}
+	}
+	count >>= 1;
+	if (count & 1) {
+		switch (((int)dst | (int)src) & 7) {
+		case 0: {
+			ulong *s = (ulong*)src;
+			ulong *d = (ulong*)dst;
+			*d++ = *s++;
+			src = (uchar*)s;
+			dst = (uchar*)d;
+			break;
+		}
+		case 4: {
+			uint *s = (uint*)src;
+			uint *d = (uint*)dst;
+			*d++ = *s++;
+			*d++ = *s++;
+			src = (uchar*)s;
+			dst = (uchar*)d;
+			break;
+		}
+		case 2: {
+			ushort *s = (ushort*)src;
+			ushort *d = (ushort*)dst;
+			*d++ = *s++;
+			*d++ = *s++;
+			*d++ = *s++;
+			*d++ = *s++;
+			src = (uchar*)s;
+			dst = (uchar*)d;
+			break;
+		}
+		default:
+			*dst++ = *src++;
+			*dst++ = *src++;
+			*dst++ = *src++;
+			*dst++ = *src++;
+			*dst++ = *src++;
+			*dst++ = *src++;
+			*dst++ = *src++;
+			*dst++ = *src++;
+			break;
+		}
+	}
+	count >>= 1;
+	if (count & 1) {
+		switch (((int)dst | (int)src) & 7) {
+		case 0: {
+			ulong *s = (ulong*)src;
+			ulong *d = (ulong*)dst;
+			*d++ = *s++;
+			*d++ = *s++;
+			src = (uchar*)s;
+			dst = (uchar*)d;
+			break;
+		}
+		case 4: {
+			uint *s = (uint*)src;
+			uint *d = (uint*)dst;
+			*d++ = *s++;
+			*d++ = *s++;
+			*d++ = *s++;
+			*d++ = *s++;
+			src = (uchar*)s;
+			dst = (uchar*)d;
+			break;
+		}
+		case 2: {
+			ushort *s = (ushort*)src;
+			ushort *d = (ushort*)dst;
+			*d++ = *s++;
+			*d++ = *s++;
+			*d++ = *s++;
+			*d++ = *s++;
+			*d++ = *s++;
+			*d++ = *s++;
+			*d++ = *s++;
+			*d++ = *s++;
+			src = (uchar*)s;
+			dst = (uchar*)d;
+			break;
+		}
+		default:
+			*dst++ = *src++;
+			*dst++ = *src++;
+			*dst++ = *src++;
+			*dst++ = *src++;
+			*dst++ = *src++;
+			*dst++ = *src++;
+			*dst++ = *src++;
+			*dst++ = *src++;
+			*dst++ = *src++;
+			*dst++ = *src++;
+			*dst++ = *src++;
+			*dst++ = *src++;
+			*dst++ = *src++;
+			*dst++ = *src++;
+			*dst++ = *src++;
+			*dst++ = *src++;
+			break;
+		}
+	}
+	count >>= 1;
+	if (count & 1) {
+		switch (((int)dst | (int)src) & 7) {
+		case 0: {
+			ulong *s = (ulong*)src;
+			ulong *d = (ulong*)dst;
+			*d++ = *s++;
+			*d++ = *s++;
+			*d++ = *s++;
+			*d++ = *s++;
+			src = (uchar*)s;
+			dst = (uchar*)d;
+			break;
+		}
+		case 4: {
+			uint *s = (uint*)src;
+			uint *d = (uint*)dst;
+			*d++ = *s++;
+			*d++ = *s++;
+			*d++ = *s++;
+			*d++ = *s++;
+			*d++ = *s++;
+			*d++ = *s++;
+			*d++ = *s++;
+			*d++ = *s++;
+			src = (uchar*)s;
+			dst = (uchar*)d;
+			break;
+		}
+		case 2: {
+			ushort *s = (ushort*)src;
+			ushort *d = (ushort*)dst;
+			*d++ = *s++;
+			*d++ = *s++;
+			*d++ = *s++;
+			*d++ = *s++;
+			*d++ = *s++;
+			*d++ = *s++;
+			*d++ = *s++;
+			*d++ = *s++;
+			*d++ = *s++;
+			*d++ = *s++;
+			*d++ = *s++;
+			*d++ = *s++;
+			*d++ = *s++;
+			*d++ = *s++;
+			*d++ = *s++;
+			*d++ = *s++;
+			src = (uchar*)s;
+			dst = (uchar*)d;
+			break;
+		}
+		default:
+			*dst++ = *src++;
+			*dst++ = *src++;
+			*dst++ = *src++;
+			*dst++ = *src++;
+			*dst++ = *src++;
+			*dst++ = *src++;
+			*dst++ = *src++;
+			*dst++ = *src++;
+			*dst++ = *src++;
+			*dst++ = *src++;
+			*dst++ = *src++;
+			*dst++ = *src++;
+			*dst++ = *src++;
+			*dst++ = *src++;
+			*dst++ = *src++;
+			*dst++ = *src++;
+			*dst++ = *src++;
+			*dst++ = *src++;
+			*dst++ = *src++;
+			*dst++ = *src++;
+			*dst++ = *src++;
+			*dst++ = *src++;
+			*dst++ = *src++;
+			*dst++ = *src++;
+			*dst++ = *src++;
+			*dst++ = *src++;
+			*dst++ = *src++;
+			*dst++ = *src++;
+			*dst++ = *src++;
+			*dst++ = *src++;
+			*dst++ = *src++;
+			*dst++ = *src++;
+			break;
+		}
+	}
+}
+#endif
+
+#if gpu_nvidia(DEVICE_INFO)
+// Faster on nvidia, no difference on AMD
+#ifdef __ENDIAN_LITTLE__
+#define GET_UINT32(n, b, i)	(n) = SWAP32(((uint*)(b))[(i) >> 2])
+#define PUT_UINT32(n, b, i)	((uint*)(b))[(i) >> 2] = SWAP32(n)
+#else
+#define GET_UINT32(n, b, i)	(n) = ((uint*)(b))[(i) >> 2]
+#define PUT_UINT32(n, b, i)	((uint*)(b))[(i) >> 2] = (n)
+#endif
+
+#else /* Safe code for any arch */
+
 #define GET_UINT32(n, b, i)	  \
 	{ \
 		(n) = ((uint) (b)[(i)] << 24) \
@@ -297,23 +593,7 @@ inline void sha256_process(SHA256_CTX *ctx, uchar data[64])
 	GET_UINT32(W[14], data, 56);
 	GET_UINT32(W[15], data, 60);
 
-#if 1
-
-#define S0(x)		((ror(x, 7)) ^ (ror(x, 18)) ^ (x >> 3))
-#define S1(x)		((ror(x, 17)) ^ (ror(x, 19)) ^ (x >> 10))
-
-#define S2(x)		((ror(x, 2)) ^ (ror(x, 13)) ^ (ror(x, 22)))
-#define S3(x)		((ror(x, 6)) ^ (ror(x, 11)) ^ (ror(x, 25)))
-
-#ifdef USE_BITSELECT
-#define F0(x, y, z)	bitselect(x, y, z ^ x)
-#define F1(x, y, z)	bitselect(z, y, x)
-#else
-#define F0(x, y, z)	((x & y) | (z & (x | y)))
-#define F1(x, y, z)	(z ^ (x & (y ^ z)))
-#endif
-
-#else
+#if gpu_amd(DEVICE_INFO)
 
 #define SHR(x, n)	((x & 0xFFFFFFFF) >> n)
 #define ROTR(x,n)	(SHR(x, n) | (x << (32 - n)))
@@ -324,9 +604,22 @@ inline void sha256_process(SHA256_CTX *ctx, uchar data[64])
 #define S2(x)		(ROTR(x, 2) ^ ROTR(x, 13) ^ ROTR(x, 22))
 #define S3(x)		(ROTR(x, 6) ^ ROTR(x, 11) ^ ROTR(x, 25))
 
-#define F0(x,y,z)	((x & y) | (z & (x | y)))
-#define F1(x,y,z)	(z ^ (x & (y ^ z)))
+#else
 
+#define S0(x)		((ror(x, 7)) ^ (ror(x, 18)) ^ (x >> 3))
+#define S1(x)		((ror(x, 17)) ^ (ror(x, 19)) ^ (x >> 10))
+
+#define S2(x)		((ror(x, 2)) ^ (ror(x, 13)) ^ (ror(x, 22)))
+#define S3(x)		((ror(x, 6)) ^ (ror(x, 11)) ^ (ror(x, 25)))
+
+#endif
+
+#ifdef USE_BITSELECT
+#define F0(x, y, z)	bitselect(x, y, z ^ x)
+#define F1(x, y, z)	bitselect(z, y, x)
+#else
+#define F0(x, y, z)	((x & y) | (z & (x | y)))
+#define F1(x, y, z)	(z ^ (x & (y ^ z)))
 #endif
 
 #define R(t)	  \
@@ -464,11 +757,7 @@ inline void SHA256_Update(SHA256_CTX *ctx, uchar *input, uint length)
 
 inline void SHA256_Final(SHA256_CTX *ctx, uchar digest[32])
 {
-	uchar sha256_padding[64] =
-		{ 0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+	uchar sha256_padding[64] = { 0x80 }; /* The rest will be zeros! */
 	uint last, padn;
 	uint high, low;
 	uchar msglen[8];

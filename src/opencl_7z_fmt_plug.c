@@ -401,6 +401,11 @@ static void set_salt(void *salt)
 		"Transfer salt to gpu");
 }
 
+static void clear_keys(void)
+{
+	memset(inbuffer, 0, insize);
+}
+
 static void sevenzip_set_key(char *key, int index)
 {
 	uint8_t length = strlen(key);
@@ -644,7 +649,7 @@ struct fmt_main fmt_opencl_sevenzip = {
 		set_salt,
 		sevenzip_set_key,
 		get_key,
-		fmt_default_clear_keys,
+		clear_keys,
 		crypt_all,
 		{
 			fmt_default_get_hash
