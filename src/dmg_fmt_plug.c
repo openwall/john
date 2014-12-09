@@ -503,7 +503,7 @@ static void hash_plugin_check_hash(int index)
 		unsigned char TEMP1[sizeof(cur_salt->wrapped_hmac_sha1_key)];
 		int outlen, tmplen;
 		AES_KEY aes_decrypt_key;
-		unsigned char outbuf[8192 + 1]; // XXX verify memmem function!
+		unsigned char outbuf[8192 + 1];
 		unsigned char outbuf2[4096 + 1];
 		unsigned char iv[20];
 		HMAC_CTX hmacsha1_ctx;
@@ -551,9 +551,6 @@ static void hash_plugin_check_hash(int index)
 		EVP_DecryptInit_ex(&ctx, EVP_des_ede3_cbc(), NULL, derived_key, cur_salt->iv);
 		if (!EVP_DecryptUpdate(&ctx, TEMP1, &outlen,
 		    cur_salt->encrypted_keyblob, cur_salt->encrypted_keyblob_size)) {
-			/* FIXME: should we fail here? */
-			/* why would this fail?  If it fails, will any more ever work (i.e. are we out of memory??? */
-			/* we might want to bail out here, I am not sure */
 			EVP_CIPHER_CTX_cleanup(&ctx);
 #ifdef MMX_COEF
 			continue;
