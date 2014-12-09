@@ -241,7 +241,7 @@ typedef struct {
 inline void _memcpy_(uchar *dst, const uchar *src, uint count)
 {
 #ifdef MEMCPY64
-	if (!(((int)dst | (int)src) & 7)) {
+	if (!(((uint)dst | (uint)src) & 7)) {
 		ulong *d64 = (ulong*)dst;
 		ulong *s64 = (ulong*)src;
 
@@ -257,7 +257,7 @@ inline void _memcpy_(uchar *dst, const uchar *src, uint count)
 #endif
 #endif /* MEMCPY64 */
 #ifdef MEMCPY32
-	if (!(((int)dst | (int)src) & 3)) {
+	if (!(((uint)dst | (uint)src) & 3)) {
 		uint *d32 = (uint*)dst;
 		uint *s32 = (uint*)src;
 
@@ -273,7 +273,7 @@ inline void _memcpy_(uchar *dst, const uchar *src, uint count)
 #endif
 #endif /* MEMCPY32 */
 #ifdef MEMCPY16
-	if (!(((int)dst | (int)src) & 1)) {
+	if (!(((uint)dst | (uint)src) & 1)) {
 		ushort *d16 = (ushort*)dst;
 		ushort *s16 = (ushort*)src;
 
@@ -296,7 +296,7 @@ inline void _memcpy_(uchar *dst, const uchar *src, uint count)
 		*dst++ = *src++;
 	count >>= 1;
 	if (count & 1) {
-		if (!(((int)dst | (int)src) & 1)) {
+		if (!(((uint)dst | (uint)src) & 1)) {
 			ushort *s = (ushort*)src;
 			ushort *d = (ushort*)dst;
 			*d++ = *s++;
@@ -309,7 +309,7 @@ inline void _memcpy_(uchar *dst, const uchar *src, uint count)
 	}
 	count >>= 1;
 	if (count & 1) {
-		switch (((int)dst | (int)src) & 3) {
+		switch (((uint)dst | (uint)src) & 3) {
 		case 0: {
 			uint *s = (uint*)src;
 			uint *d = (uint*)dst;
@@ -337,7 +337,7 @@ inline void _memcpy_(uchar *dst, const uchar *src, uint count)
 	}
 	count >>= 1;
 	if (count & 1) {
-		switch (((int)dst | (int)src) & 7) {
+		switch (((uint)dst | (uint)src) & 7) {
 		case 0: {
 			ulong *s = (ulong*)src;
 			ulong *d = (ulong*)dst;
@@ -380,7 +380,7 @@ inline void _memcpy_(uchar *dst, const uchar *src, uint count)
 	}
 	count >>= 1;
 	if (count & 1) {
-		switch (((int)dst | (int)src) & 7) {
+		switch (((uint)dst | (uint)src) & 7) {
 		case 0: {
 			ulong *s = (ulong*)src;
 			ulong *d = (ulong*)dst;
@@ -438,7 +438,7 @@ inline void _memcpy_(uchar *dst, const uchar *src, uint count)
 	}
 	count >>= 1;
 	if (count & 1) {
-		switch (((int)dst | (int)src) & 7) {
+		switch (((uint)dst | (uint)src) & 7) {
 		case 0: {
 			ulong *s = (ulong*)src;
 			ulong *d = (ulong*)dst;
