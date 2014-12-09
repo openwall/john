@@ -192,7 +192,7 @@ def pcap_parser_vrrp(fname):
                 sys.stderr.write("Unsupported VRRP packet type %d, packet # %d\n" % (ord(data[0]), index))
                 continue
 
-            if len(data) < 40:  # XXX rough estimate ;)
+            if len(data) < 40:  # rough estimate ;)
                 continue
 
             # hash is at the end of the packet
@@ -698,7 +698,7 @@ def pcap_parser_hsrp(fname):
                 continue
 
             h = hsrp[-16:].encode("hex")  # MD5 hash
-            # 20 bytes (HSRP) + 14 (till "keyid") + zero padding (XXX, double-check this) to make 50 bytes!
+            # 20 bytes (HSRP) + 14 (till "keyid") + zero padding (double-check this) to make 50 bytes!
             salt = hsrp.encode("hex")[:68] + ("\x00" * (50 - 20 - 14)).encode("hex")
             sys.stdout.write("$hsrp$%s$%s\n" % (salt, h))
 
@@ -734,11 +734,10 @@ def pcap_parser_glbp(fname):
             if ord(data[0]) != 1:  # GLBP version
                 continue
 
-            if len(data) < 40:  # XXX rough estimate ;)
+            if len(data) < 40:  # rough estimate ;)
                 continue
 
-            # XXX We should do Authentication TLV processing with generic TLV
-            # processing code below!
+            # Ideally, we should do Authentication TLV processing with generic TLV processing code below!
             tlv_type = ord(data[12])
             if tlv_type != 3:
                 continue
@@ -757,7 +756,7 @@ def pcap_parser_glbp(fname):
 
             # salt extends from offset 0 to 19 (hash starts from 20)
             salt = data[0:20]
-            # append "Source GeoIP" + 12 zero bytes (XXX, verify this part) to
+            # append "Source GeoIP" + 12 zero bytes (verify this part) to
             # the salt
             salt = salt + source_geoip + ("\x00" * 12)
 
@@ -807,7 +806,7 @@ def process_hash(uid, nonce, sha1):
 def pcap_parser_gadu(pcapfile):
     try:
         packets = rdpcap(pcapfile)
-    except:  # XXX be specific
+    except:
         sys.stderr.write("%s is not a .pcap file\n" % pcapfile)
         return
 
