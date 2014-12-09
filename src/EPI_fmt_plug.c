@@ -179,7 +179,7 @@ struct fmt_main fmt_EPI =
 		SALT_ALIGN,
 		1,
 		1,
-		FMT_CASE | FMT_8_BIT, // flags XXX, these are just guesses
+		FMT_CASE | FMT_8_BIT,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif
