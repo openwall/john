@@ -1,4 +1,4 @@
-/* EFS crcker. Hacked together during 2013 monsoons by Dhiru Kholia
+/* EFS cracker. Hacked together during 2013 monsoons by Dhiru Kholia
  * <dhiru.kholia at gmail.com>.
  *
  * This software is Copyright (c) 2013, Dhiru Kholia <dhiru.kholia at gmail.com>,
