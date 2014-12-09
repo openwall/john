@@ -556,7 +556,7 @@ static int hash_plugin_check_hash(unsigned char *derived_key)
 		unsigned char TEMP1[sizeof(cur_salt->wrapped_hmac_sha1_key)];
 		int outlen, tmplen;
 		AES_KEY aes_decrypt_key;
-		unsigned char outbuf[8192 + 1]; // XXX verify memmem function!
+		unsigned char outbuf[8192 + 1];
 		unsigned char outbuf2[4096 + 1];
 		unsigned char iv[20];
 		HMAC_CTX hmacsha1_ctx;
