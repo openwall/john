@@ -38,8 +38,8 @@ john_register_one(&fmt_sevenzip);
 #define FORMAT_NAME		"7-Zip"
 #define FORMAT_TAG		"$7z$"
 #define TAG_LENGTH		4
-#define ALGORITHM_NAME		"(experimental) SHA256 32/" ARCH_BITS_STR
-#define BENCHMARK_COMMENT	""
+#define ALGORITHM_NAME		"SHA256 AES 32/" ARCH_BITS_STR
+#define BENCHMARK_COMMENT	" (512K iterations)"
 #define BENCHMARK_LENGTH	-1
 #define BINARY_SIZE		0
 #define BINARY_ALIGN		1

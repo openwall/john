@@ -27,8 +27,6 @@ john_register_one(&fmt_opencl_sevenzip);
 #include "misc.h"
 #include "common-opencl.h"
 #include "options.h"
-#include "sha2.h"
-#include "md5.h"
 #include "crc32.h"
 #include "stdint.h"
 #include "memdbg.h"
@@ -38,11 +36,11 @@ john_register_one(&fmt_opencl_sevenzip);
 #define FORMAT_TAG		"$7z$"
 #define TAG_LENGTH		4
 #define ALGORITHM_NAME		"SHA256 AES OPENCL"
-#define BENCHMARK_COMMENT	""
+#define BENCHMARK_COMMENT	" (512K iterations)"
 #define BENCHMARK_LENGTH	-1
-#define MIN_KEYS_PER_CRYPT	8*1024
-#define MAX_KEYS_PER_CRYPT	MIN_KEYS_PER_CRYPT
-#define PLAINTEXT_LENGTH	12
+#define MIN_KEYS_PER_CRYPT	1
+#define MAX_KEYS_PER_CRYPT	1
+#define PLAINTEXT_LENGTH	((55-8)/2)
 #define BINARY_SIZE		0
 #define BINARY_ALIGN		1
 #define SALT_SIZE		sizeof(struct custom_salt)
@@ -64,6 +62,19 @@ typedef struct {
 	uint32_t iterations;
 	uint8_t salt[16];
 } sevenzip_salt;
+
+typedef struct {
+	cl_uint total[2];
+	cl_uint state[8];
+	cl_uchar buffer[64];
+} SHA256_CTX;
+
+typedef struct {
+	cl_ulong t;
+	SHA256_CTX ctx;
+	cl_uint len;
+	cl_ushort buffer[PLAINTEXT_LENGTH];
+} sevenzip_state;
 
 static int *cracked;
 static int any_cracked;
@@ -95,17 +106,104 @@ static struct fmt_tests sevenzip_tests[] = {
 static sevenzip_password *inbuffer;
 static sevenzip_hash *outbuffer;
 static sevenzip_salt currentsalt;
-static cl_mem mem_in, mem_out, mem_setting;
+static cl_mem mem_in, mem_out, mem_state, mem_salt;
+static cl_kernel sevenzip_init;
 
 #define insize (sizeof(sevenzip_password) * global_work_size)
 #define outsize (sizeof(sevenzip_hash) * global_work_size)
-#define settingsize (sizeof(sevenzip_salt))
+#define statesize (sizeof(sevenzip_state) * global_work_size)
+#define saltsize (sizeof(sevenzip_salt))
 #define cracked_size (sizeof(*cracked) * global_work_size)
+
+#define MIN(a, b)		(((a) > (b)) ? (b) : (a))
+
+#define OCL_CONFIG	"7z"
+#define HASH_LOOPS	4096
+#define LOOP_COUNT	((1 << currentsalt.iterations) + HASH_LOOPS - 1) / HASH_LOOPS
+#define STEP		0
+#define SEED		16
+
+static int split_events[] = { 2, -1, -1 };
+
+static const char *warn[] = {
+	"xfer: "  ,  ", init: ",  ", crypt: ",  ", xfer: "
+};
+
+// This file contains auto-tuning routine(s). It has to be included after formats definitions.
+#include "opencl-autotune.h"
+#include "memdbg.h"
+
+/* ------- Helper functions ------- */
+static size_t get_task_max_work_group_size()
+{
+	size_t s;
+
+	s = autotune_get_task_max_work_group_size(FALSE, 0, sevenzip_init);
+	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel));
+	return s;
+}
+
+static size_t get_task_max_size()
+{
+	return 0;
+}
+
+static size_t get_default_workgroup()
+{
+	if (cpu(device_info[gpu_id]))
+		return get_platform_vendor_id(platform_id) == DEV_INTEL ?
+			8 : 1;
+	else
+		return 64;
+}
+
+static void create_clobj(size_t global_work_size, struct fmt_main *self)
+{
+	cl_int cl_error;
+
+	inbuffer = (sevenzip_password*) mem_calloc(insize);
+	outbuffer = (sevenzip_hash*) mem_alloc(outsize);
+
+	cracked = mem_calloc(cracked_size);
+
+	// Allocate memory
+	mem_in =
+	    clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, insize, NULL,
+	    &cl_error);
+	HANDLE_CLERROR(cl_error, "Error allocating mem in");
+	mem_salt =
+	    clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, saltsize,
+	    NULL, &cl_error);
+	HANDLE_CLERROR(cl_error, "Error allocating mem salt");
+	mem_state =
+	    clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, statesize,
+	    NULL, &cl_error);
+	HANDLE_CLERROR(cl_error, "Error allocating mem state");
+	mem_out =
+	    clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, outsize, NULL,
+	    &cl_error);
+	HANDLE_CLERROR(cl_error, "Error allocating mem out");
+
+	HANDLE_CLERROR(clSetKernelArg(sevenzip_init, 0, sizeof(mem_in),
+		&mem_in), "Error while setting mem_in kernel argument");
+	HANDLE_CLERROR(clSetKernelArg(sevenzip_init, 1, sizeof(mem_salt),
+		&mem_salt), "Error while setting mem_salt kernel argument");
+	HANDLE_CLERROR(clSetKernelArg(sevenzip_init, 2, sizeof(mem_state),
+		&mem_state), "Error while setting mem_state kernel argument");
+
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(mem_state),
+		&mem_state), "Error while setting mem_state kernel argument");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(mem_salt),
+		&mem_salt), "Error while setting mem_salt kernel argument");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(mem_out),
+		&mem_out), "Error while setting mem_out kernel argument");
+}
 
 static void release_clobj(void)
 {
 	HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
-	HANDLE_CLERROR(clReleaseMemObject(mem_setting), "Release mem setting");
+	HANDLE_CLERROR(clReleaseMemObject(mem_salt), "Release mem salt");
+	HANDLE_CLERROR(clReleaseMemObject(mem_state), "Release mem state");
 	HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
 
 	MEM_FREE(inbuffer);
@@ -117,78 +215,44 @@ static void done(void)
 {
 	release_clobj();
 
+	HANDLE_CLERROR(clReleaseKernel(sevenzip_init), "Release kernel");
 	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
 	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
 }
+
+static int crypt_all(int *pcount, struct db_salt *salt);
+static int crypt_all_benchmark(int *pcount, struct db_salt *salt);
 
 static void init(struct fmt_main *self)
 {
 	CRC32_t crc;
 	char build_opts[64];
 	cl_int cl_error;
-	char *temp;
-	cl_ulong maxsize;
 
 	CRC32_Init(&crc);
 	snprintf(build_opts, sizeof(build_opts),
-	         "-DPLAINTEXT_LENGTH=%d",
-	         PLAINTEXT_LENGTH);
+	         "-DPLAINTEXT_LENGTH=%d -DHASH_LOOPS=%d",
+	         PLAINTEXT_LENGTH, HASH_LOOPS);
 	opencl_init("$JOHN/kernels/7z_kernel.cl",
 	                gpu_id, build_opts);
 
-	if ((temp = getenv("LWS")))
-		local_work_size = atoi(temp);
-	else
-		local_work_size = cpu(device_info[gpu_id]) ? 1 : 64;
-
-	if ((temp = getenv("GWS")))
-		global_work_size = atoi(temp);
-	else
-		global_work_size = MAX_KEYS_PER_CRYPT;
-
-	crypt_kernel = clCreateKernel(program[gpu_id], "sevenzip", &cl_error);
+	sevenzip_init = clCreateKernel(program[gpu_id], "sevenzip_init",
+	                               &cl_error);
 	HANDLE_CLERROR(cl_error, "Error creating kernel");
 
-	/* Note: we ask for the kernels' max sizes, not the device's! */
-	HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize), &maxsize, NULL), "Query max workgroup size");
+	crypt_kernel = clCreateKernel(program[gpu_id], "sevenzip_crypt",
+	                              &cl_error);
+	HANDLE_CLERROR(cl_error, "Error creating kernel");
 
-	while (local_work_size > maxsize)
-		local_work_size >>= 1;
+	// Initialize openCL tuning (library) for this format.
+	opencl_init_auto_setup(SEED, HASH_LOOPS, split_events, warn, 2, self,
+	                       create_clobj, release_clobj,
+	                       sizeof(sevenzip_salt), 0);
 
-	inbuffer = (sevenzip_password *) mem_calloc(insize);
-	outbuffer = (sevenzip_hash *) mem_alloc(outsize);
-
-	cracked = mem_calloc(cracked_size);
-
-	/// Allocate memory
-	mem_in =
-	    clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, insize, NULL,
-	    &cl_error);
-	HANDLE_CLERROR(cl_error, "Error allocating mem in");
-	mem_setting =
-	    clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, settingsize,
-	    NULL, &cl_error);
-	HANDLE_CLERROR(cl_error, "Error allocating mem setting");
-	mem_out =
-	    clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, outsize, NULL,
-	    &cl_error);
-	HANDLE_CLERROR(cl_error, "Error allocating mem out");
-
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(mem_in),
-		&mem_in), "Error while setting mem_in kernel argument");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(mem_out),
-		&mem_out), "Error while setting mem_out kernel argument");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(mem_setting),
-		&mem_setting), "Error while setting mem_salt kernel argument");
-
-	self->params.max_keys_per_crypt = global_work_size;
-	if (!local_work_size)
-		opencl_find_best_workgroup(self);
-
-	self->params.min_keys_per_crypt = local_work_size;
-
-	if (options.verbosity > 2)
-		fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
+	//  Auto tune execution from shared/included code.
+	self->methods.crypt_all = crypt_all_benchmark;
+	autotune_run(self, 1 << 19, 0, 15000000000);
+	self->methods.crypt_all = crypt_all;
 }
 
 static int ishex(char *q)
@@ -331,6 +395,10 @@ static void set_salt(void *salt)
 	memcpy((char*)currentsalt.salt, cur_salt->salt, cur_salt->SaltSize);
 	currentsalt.length = cur_salt->SaltSize;
 	currentsalt.iterations = cur_salt->NumCyclesPower;
+
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_salt,
+		CL_FALSE, 0, saltsize, &currentsalt, 0, NULL, NULL),
+		"Transfer salt to gpu");
 }
 
 static void sevenzip_set_key(char *key, int index)
@@ -416,40 +484,47 @@ static int sevenzip_decrypt(unsigned char *derived_key, unsigned char *data)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
-	int index;
+	int i, index;
+	size_t *lws = local_work_size ? &local_work_size : NULL;
 
-	global_work_size = (count + local_work_size - 1) / local_work_size * local_work_size;
+	global_work_size = local_work_size ? (count + local_work_size - 1) / local_work_size * local_work_size : count;
 
 	if (any_cracked) {
 		memset(cracked, 0, cracked_size);
 		any_cracked = 0;
 	}
 
-	/// Copy data to gpu
+	// Copy data to gpu
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0,
-		insize, inbuffer, 0, NULL, NULL), "Copy data to gpu");
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_setting,
-		CL_FALSE, 0, settingsize, &currentsalt, 0, NULL, NULL),
-	    "Copy setting to gpu");
+		insize, inbuffer, 0, NULL, NULL),
+	        "Copy data to gpu");
 
-	/// Run kernel
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1,
-		NULL, &global_work_size, &local_work_size, 0, NULL, profilingEvent),
-	    "Run kernel");
-	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish");
+	// Run 1st kernel
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], sevenzip_init, 1,
+		NULL, &global_work_size, lws, 0, NULL, NULL),
+		"Run init kernel");
 
-	/// Read the result back
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_FALSE, 0,
-		outsize, outbuffer, 0, NULL, NULL), "Copy result back");
+	// Run loop kernel
+	for (i = 0; i < LOOP_COUNT; i++) {
+		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id],
+			crypt_kernel, 1, NULL, &global_work_size, lws, 0,
+		        NULL, NULL),
+		        "Run loop kernel");
+		HANDLE_CLERROR(clFinish(queue[gpu_id]),
+		               "Error running loop kernel");
+		opencl_process_event();
+	}
 
-	/// Await completion of all the above
-	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish");
+	// Read the result back
+	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0,
+		outsize, outbuffer, 0, NULL, NULL),
+	        "Copy result back");
 
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
 	for (index = 0; index < count; index++) {
-		/* do decryptiion and checks */
+		/* decrypt and check */
 		if(sevenzip_decrypt(outbuffer[index].key, cur_salt->data) == 0)
 		{
 			cracked[index] = 1;
@@ -459,6 +534,45 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			any_cracked |= 1;
 		}
 	}
+	return count;
+}
+
+static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
+{
+	int count = *pcount;
+	size_t *lws = local_work_size ? &local_work_size : NULL;
+
+	global_work_size = local_work_size ? (count + local_work_size - 1) / local_work_size * local_work_size : count;
+
+	// Copy data to gpu
+	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0,
+		insize, inbuffer, 0, NULL, multi_profilingEvent[0]),
+	        "Copy data to gpu");
+
+	// Run 1st kernels
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], sevenzip_init, 1,
+		NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[1]),
+		"Run init kernel");
+
+	// Warm-up run
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id],
+		crypt_kernel, 1, NULL, &global_work_size, lws, 0,
+	        NULL, NULL),
+	        "Run loop kernel");
+
+	// Loop kernel
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id],
+		crypt_kernel, 1, NULL, &global_work_size, lws, 0,
+	        NULL, multi_profilingEvent[2]),
+	        "Run loop kernel");
+
+	// Read the result back
+	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0,
+		outsize, outbuffer, 0, NULL, multi_profilingEvent[3]),
+	        "Copy result back");
+
+	BENCH_CLERROR(clFinish(queue[gpu_id]), "Error running loop kernel");
+
 	return count;
 }
 
