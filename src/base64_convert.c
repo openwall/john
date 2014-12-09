@@ -526,16 +526,16 @@ int base64_convert(const void *from, b64_convert_type from_t, int from_len, void
 					if ((from_t*2+1) > to_t)
 						return ERR_base64_to_buffer_sz;
 					raw_to_hex((unsigned char*)from, from_len, (char*)to);
-					if (flags&flg_Base64_HEX_UPCASE)
+					if ( (flags&flg_Base64_HEX_UPCASE) == flg_Base64_HEX_UPCASE)
 						strupr((char*)to);
 					return from_len<<1;
 				}
 				case e_b64_mime:	/* mime */
 				{
 					base64_encode((unsigned char*)from, from_len, (char*)to, flags);
-					if (flags & flg_Base64_MIME_PLUS_TO_DOT)
+					if ( (flags&flg_Base64_MIME_PLUS_TO_DOT) == flg_Base64_MIME_PLUS_TO_DOT)
 						mime_deplus((char*)to);
-					if (flags & flg_Base64_MIME_DASH_UNDER)
+					if ( (flags&flg_Base64_MIME_DASH_UNDER) == flg_Base64_MIME_DASH_UNDER)
 						mime_dash_under((char*)to);
 					return strlen((char*)to);
 				}
@@ -568,7 +568,7 @@ int base64_convert(const void *from, b64_convert_type from_t, int from_len, void
 					if (to_len < from_len+1)
 						return ERR_base64_to_buffer_sz;
 					strcpy((char*)to, (const char*)from);
-					if (flags&flg_Base64_HEX_UPCASE)
+					if ( (flags&flg_Base64_HEX_UPCASE) == flg_Base64_HEX_UPCASE)
 						strupr((char*)to);
 					else
 						strlwr((char*)to);
@@ -577,9 +577,9 @@ int base64_convert(const void *from, b64_convert_type from_t, int from_len, void
 				case e_b64_mime:	/* mime */
 				{
 					int len = hex_to_mime((const char *)from, (char *)to, flags);
-					if (flags & flg_Base64_MIME_PLUS_TO_DOT)
+					if ( (flags&flg_Base64_MIME_PLUS_TO_DOT) == flg_Base64_MIME_PLUS_TO_DOT)
 						mime_deplus((char*)to);
-					if (flags & flg_Base64_MIME_DASH_UNDER)
+					if ( (flags&flg_Base64_MIME_DASH_UNDER)  == flg_Base64_MIME_DASH_UNDER)
 						mime_dash_under((char*)to);
 					return len;
 				}
@@ -667,7 +667,7 @@ int base64_convert(const void *from, b64_convert_type from_t, int from_len, void
 				{
 					// TODO, validate to_len
 					int len = mime_to_hex((const char *)fromWrk, from_len, (char *)to, flags);
-					if (flags&flg_Base64_HEX_UPCASE)
+					if ( (flags&flg_Base64_HEX_UPCASE) == flg_Base64_HEX_UPCASE)
 						strupr((char*)to);
 					if (alloced) MEM_FREE(fromWrk);
 					return len;
@@ -678,9 +678,9 @@ int base64_convert(const void *from, b64_convert_type from_t, int from_len, void
 						return ERR_base64_to_buffer_sz;
 					memcpy(to, fromWrk, from_len);
 					((char*)to)[from_len] = 0;
-					if (flags & flg_Base64_MIME_PLUS_TO_DOT)
+					if ( (flags&flg_Base64_MIME_PLUS_TO_DOT) == flg_Base64_MIME_PLUS_TO_DOT)
 						mime_deplus((char*)to);
-					if (flags & flg_Base64_MIME_DASH_UNDER)
+					if ( (flags&flg_Base64_MIME_DASH_UNDER) == flg_Base64_MIME_DASH_UNDER)
 						mime_dash_under((char*)to);
 					if (alloced) MEM_FREE(fromWrk);
 					return from_len;
@@ -720,16 +720,16 @@ int base64_convert(const void *from, b64_convert_type from_t, int from_len, void
 				{
 					// TODO, validate to_len
 					int len = crypt_to_hex((const char *)from, from_len, (char *)to, flags);
-					if (flags&flg_Base64_HEX_UPCASE)
+					if ( (flags&flg_Base64_HEX_UPCASE) == flg_Base64_HEX_UPCASE)
 						strupr((char*)to);
 					return len;
 				}
 				case e_b64_mime:	/* mime */
 				{
 					int len = crypt_to_mime((const char *)from, (char *)to, flags);
-					if (flags & flg_Base64_MIME_PLUS_TO_DOT)
+					if ( (flags&flg_Base64_MIME_PLUS_TO_DOT) == flg_Base64_MIME_PLUS_TO_DOT)
 						mime_deplus((char*)to);
-					if (flags & flg_Base64_MIME_DASH_UNDER)
+					if ( (flags&flg_Base64_MIME_DASH_UNDER) == flg_Base64_MIME_DASH_UNDER)
 						mime_dash_under((char*)to);
 					return len;
 				}
@@ -768,16 +768,16 @@ int base64_convert(const void *from, b64_convert_type from_t, int from_len, void
 				{
 					// TODO, validate to_len
 					int len = cryptBS_to_hex((const char *)from, from_len, (char *)to, flags);
-					if (flags&flg_Base64_HEX_UPCASE)
+					if ( (flags&flg_Base64_HEX_UPCASE) == flg_Base64_HEX_UPCASE)
 						strupr((char*)to);
 					return len;
 				}
 				case e_b64_mime:	/* mime */
 				{
 					int len = cryptBS_to_mime((const char *)from, (char *)to, flags);
-					if (flags & flg_Base64_MIME_PLUS_TO_DOT)
+					if ( (flags&flg_Base64_MIME_PLUS_TO_DOT) == flg_Base64_MIME_PLUS_TO_DOT)
 						mime_deplus((char*)to);
-					if (flags & flg_Base64_MIME_DASH_UNDER)
+					if ( (flags&flg_Base64_MIME_DASH_UNDER) == flg_Base64_MIME_DASH_UNDER)
 						mime_dash_under((char*)to);
 					return len;
 				}
@@ -835,10 +835,10 @@ int base64_valid_length(const char *from, b64_convert_type from_t, unsigned flag
 				++len;
 			break;
 		case e_b64_mime:	/* mime */
-			if (flg_Base64_MIME_PLUS_TO_DOT) {
+			if ( (flags&flg_Base64_MIME_PLUS_TO_DOT) == flg_Base64_MIME_PLUS_TO_DOT) {
 				while (atoi64md[ARCH_INDEX(*from++)] != 0x7f)
 					++len;
-			} else if (flg_Base64_MIME_DASH_UNDER) {
+			} else if ( (flags&flg_Base64_MIME_DASH_UNDER) == flg_Base64_MIME_DASH_UNDER) {
 				while (atoi64mdu[ARCH_INDEX(*from++)] != 0x7f)
 					++len;
 			} else {
