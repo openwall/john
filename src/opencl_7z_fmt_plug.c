@@ -265,7 +265,7 @@ static int ishex(char *q)
 static int isdecu(char *q)
 {
 	char buf[24];
-	unsigned int x = atoi(q); /* this is how it is 'used', atoi() to unsigned */
+	unsigned int x = atou(q);
 	sprintf(buf, "%u", x);
 	return !strcmp(q,buf);
 }
@@ -314,7 +314,6 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if (strlen(p) > 2)
 		goto err;
-//	printf ("BOOM\n");
 	len = atoi(p);
 	if(len < 0 || len > 16) /* iv length */
 		goto err;
@@ -376,7 +375,7 @@ static void *get_salt(char *ciphertext)
 		cs->iv[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	p = strtok(NULL, "$"); /* crc */
-	cs->crc = atoi(p);
+	cs->crc = atou(p);
 	p = strtok(NULL, "$");
 	cs->length = atoi(p);
 	p = strtok(NULL, "$");
