@@ -28,7 +28,13 @@ john_register_one(&fmt_sip);
 #ifdef _OPENMP
 static int omp_t = 1;
 #include <omp.h>
-#define OMP_SCALE               1
+// Tuned on core i7 quad HT
+//   1   4963K
+//  16   8486K
+//  32   8730K  ** this was chosen.
+//  64   8791k
+// 128   8908k
+#define OMP_SCALE   32
 #endif
 #include "memdbg.h"
 
