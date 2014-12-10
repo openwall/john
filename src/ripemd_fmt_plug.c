@@ -27,7 +27,18 @@ john_register_one(&fmt_ripemd_128);
 #ifdef _OPENMP
 static int omp_t = 1;
 #include <omp.h>
-#define OMP_SCALE               1 // XXX
+// OMP_SCALE tuned on core i7 quad core HT
+//         128     160
+// 1   -   234k    234k
+// 64  -  7547k   6310k
+// 128 -  9849k   7987k
+// 256 - 11835k   9205k
+// 512 - 13288k  10027k
+// 1k  - 14142k  10553k
+// 2k  - 14607k  11980k  ** this level chosen
+// 4k  - 14828k  10871k
+// 8k  - 14639k  10794k
+#define OMP_SCALE  2048
 #endif
 #include "memdbg.h"
 

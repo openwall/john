@@ -25,7 +25,14 @@ john_register_one(&fmt_panama_);
 #ifdef _OPENMP
 static int omp_t = 1;
 #include <omp.h>
-#define OMP_SCALE               1 // FIXME
+// OMP_SCALE tuned on core i7 quad core HT
+// 1   -  217k
+// 64  - 1930k
+// 128 - 2099k
+// 256 - 2204k *** set to this level
+// 512 - 2203k
+// 1k  - 2124k 
+#define OMP_SCALE  256
 #endif
 #include "memdbg.h"
 

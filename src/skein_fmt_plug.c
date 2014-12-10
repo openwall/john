@@ -27,10 +27,21 @@ john_register_one(&fmt_skein_512);
 #ifdef _OPENMP
 static int omp_t = 1;
 #include <omp.h>
-#define OMP_SCALE               1 // FIXME
+// OMP_SCALE tuned on core i7 quad core HT
+//        256bt  512bt
+// 1   -  233k   232k
+// 64  - 5406k  5377k
+// 128 - 6730k  6568k
+// 256 - 7618k  7405k
+// 512 - 8243k  8000k
+// 1k  - 8610k  8408k  ** this level chosen
+// 2k  - 8804k  8610k
+// 4k  - 8688k  8648k
+#define OMP_SCALE  1024
 #endif
 #include "memdbg.h"
 
+// Skein-256 or Skein-512 are the real format labels.
 #define FORMAT_LABEL		"Skein"
 #define FORMAT_NAME		""
 #define FORMAT_TAG		"$skein$"

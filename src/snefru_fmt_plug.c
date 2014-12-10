@@ -27,11 +27,20 @@ john_register_one(&fmt_snefru_128);
 #ifdef _OPENMP
 static int omp_t = 1;
 #include <omp.h>
-#define OMP_SCALE               1 // FIXME
+// OMP_SCALE tuned on core i7 quad core HT
+//        128kb   256kb
+// 1   -  214k    215k
+// 64  - 1435k   1411k
+// 128 - 1474k   1902k *** this was chosen
+// 256 - 1508k   1511k
+// 512 - 1649k   1564k
+#define OMP_SCALE  128
 #endif
 
 #include "memdbg.h"
 
+// Snefru-128 and Snefru-256 are the real format labels
+#define FORMAT_LABEL		"Snefru"
 #define FORMAT_TAG		"$snefru$"
 #define TAG_LENGTH		8
 #define ALGORITHM_NAME		"32/" ARCH_BITS_STR
