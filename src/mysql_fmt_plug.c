@@ -30,7 +30,7 @@ john_register_one(&fmt_MYSQL_fast);
 
 #ifdef _OPENMP
 #include <omp.h>
-#define OMP_SCALE			10240
+#define OMP_SCALE			81920
 #endif
 
 #include "arch.h"
@@ -55,7 +55,7 @@ john_register_one(&fmt_MYSQL_fast);
 #define SALT_ALIGN			1
 
 #define MIN_KEYS_PER_CRYPT		1
-#define MAX_KEYS_PER_CRYPT		64
+#define MAX_KEYS_PER_CRYPT		8
 
 static struct fmt_tests tests[] = {
 	// ciphertext, plaintext
@@ -83,11 +83,9 @@ static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
 	int omp_t = omp_get_max_threads();
-	if (omp_t > 1) {
-		self->params.min_keys_per_crypt *= omp_t;
-		omp_t *= OMP_SCALE;
-		self->params.max_keys_per_crypt *= omp_t;
-	}
+	self->params.min_keys_per_crypt *= omp_t;
+	omp_t *= OMP_SCALE;
+	self->params.max_keys_per_crypt *= omp_t;
 #endif
 	saved_key = mem_alloc_tiny(sizeof(*saved_key) * self->params.max_keys_per_crypt, MEM_ALIGN_CACHE);
 	crypt_key = mem_alloc_tiny(sizeof(*crypt_key) * self->params.max_keys_per_crypt, MEM_ALIGN_CACHE);
@@ -212,12 +210,15 @@ static int cmp_exact(char* source, int index)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
-	int i;
+	int i = 0;
 
 #ifdef _OPENMP
 #pragma omp parallel for default(none) private(i) shared(count, saved_key, crypt_key)
 #endif
-	for (i = 0; i < count; i++) {
+#if MAX_KEYS_PER_CRYPT > 1 || defined(_OPENMP)
+	for (i = 0; i < count; i++)
+#endif
+	{
 		unsigned char *p = (unsigned char *)saved_key[i];
 		if (*p) {
 			ARCH_WORD_32 nr, add;
@@ -235,7 +236,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				add += tmp;
 			}
 			crypt_key[i][0] = (nr & (((ARCH_WORD_32)1 << 31) - 1));
+#if MAX_KEYS_PER_CRYPT > 1 || defined(_OPENMP)
 			continue;
+#else
+			return count;
+#endif
 		}
 		crypt_key[i][0] = (1345345333 & (((ARCH_WORD_32)1 << 31) - 1));
 	}
