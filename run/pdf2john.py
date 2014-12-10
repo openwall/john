@@ -49,15 +49,22 @@ class PdfParser:
             trailer = self.get_trailer()
         except RuntimeError:
             e = sys.exc_info()[1]
-            sys.stdout.write("%s : %s\n" % (self.file_name, str(e)))
+            sys.stderr.write("%s : %s\n" % (self.file_name, str(e)))
             return
+        # print >> sys.stderr, trailer
         object_id = self.get_object_id(b'Encrypt', trailer)
+        # print >> sys.stderr, object_id
+        if(len(object_id) == 0):
+            raise RuntimeError("Could not find object id")
         encryption_dictionary = self.get_encryption_dictionary(object_id)
-        # print encryption_dictionary
+        # print >> sys.stderr, encryption_dictionary
         dr = re.compile(b'\d+')
         vr = re.compile(b'\/V \d')
         rr = re.compile(b'\/R \d')
-        v = dr.findall(vr.findall(encryption_dictionary)[0])[0]
+        try:
+            v = dr.findall(vr.findall(encryption_dictionary)[0])[0]
+        except IndexError:
+            raise RuntimeError("Could not find /V")
         r = dr.findall(rr.findall(encryption_dictionary)[0])[0]
         lr = re.compile(b'\/Length \d+')
         longest = 0
@@ -66,9 +73,13 @@ class PdfParser:
             if(int(dr.findall(le)[0]) > longest):
                 longest = int(dr.findall(le)[0])
                 length = dr.findall(le)[0]
-        pr = re.compile(b'\/P -\d+')
-        p = pr.findall(encryption_dictionary)[0]
-        pr = re.compile(b'-\d+')
+        pr = re.compile(b'\/P -?\d+')
+        try:
+            p = pr.findall(encryption_dictionary)[0]
+        except IndexError:
+                # print >> sys.stderr, "** dict:", encryption_dictionary
+                raise RuntimeError("Could not find /P")
+        pr = re.compile(b'-?\d+')
         p = pr.findall(p)[0]
         meta = '1' if self.is_meta_data_encrypted(encryption_dictionary) else '0'
         idr = re.compile(b'\/ID\s*\[\s*<\w+>\s*<\w+>\s*\]')
@@ -77,7 +88,13 @@ class PdfParser:
         except IndexError:
             # some pdf files use () instead of <>
             idr = re.compile(b'\/ID\s*\[\s*\(\w+\)\s*\(\w+\)\s*\]')
-            i_d = idr.findall(trailer)[0] # id key word
+            try:
+                i_d = idr.findall(trailer)[0] # id key word
+            except IndexError:
+                # print >> sys.stderr, "** idr:", idr
+                # print >> sys.stderr, "** trailer:", trailer
+                raise RuntimeError("Could not find /ID tag")
+                return
         idr = re.compile(b'<\w+>')
         try:
             i_d = idr.findall(trailer)[0]
@@ -92,10 +109,10 @@ class PdfParser:
         output += p.decode('ascii')+'*'+meta+'*'
         output += str(int(len(i_d)/2))+'*'+i_d.decode('ascii')+'*'+passwords
         if(self.is_meta_data_encrypted(encryption_dictionary)):
-            sys.stdout.write("%s:%s:::::%s\n" % (os.path.basename(self.file_name), output, self.file_name))
+            sys.stdout.write("%s:%s:::::%s\n" % (os.path.basename(self.file_name.encode('UTF-8')), output.encode('UTF-8'), self.file_name.encode('UTF-8')))
         else:
             gecos = self.parse_meta_data(trailer)
-            sys.stdout.write("%s:%s:::%s::%s\n" % (os.path.basename(self.file_name), output, gecos, self.file_name))
+            sys.stdout.write("%s:%s:::%s::%s\n" % (os.path.basename(self.file_name.encode('UTF-8')), output.encode('UTF-8'), gecos.encode('UTF-8'), self.file_name.encode('UTF-8')))
 
     def get_passwords_for_JtR(self, encryption_dictionary):
         output = ""
@@ -112,8 +129,13 @@ class PdfParser:
                 while(pas[-2] == b'\\'):
                     pr_str += b'[^)]+\)'
                     pr = re.compile(pr_str)
-                    pas = pr.findall(encryption_dictionary)[0]
-                output +=  self.get_password_from_byte_string(pas)+"*"
+                    # print >> sys.stderr, "pr_str:", pr_str
+                    # print >> sys.stderr, encryption_dictionary
+                    try:
+                        pas = pr.findall(encryption_dictionary)[0]
+                        output += self.get_password_from_byte_string(pas)+"*"
+                    except IndexError:
+                        break
             else:
                 pr = re.compile(let + b'\s*<\w+>')
                 pas = pr.findall(encryption_dictionary)
@@ -152,7 +174,10 @@ class PdfParser:
     def get_xmp_values(self, xmp_metadata_object):
         xmp_metadata_object = xmp_metadata_object.partition(b"stream")[2]
         xmp_metadata_object = xmp_metadata_object.partition(b"endstream")[0]
-        xml_metadata = minidom.parseString(xmp_metadata_object)
+        try:
+            xml_metadata = minidom.parseString(xmp_metadata_object)
+        except:
+            return ""
         values = []
         values.append(self.get_dc_value("title", xml_metadata))
         values.append(self.get_dc_value("creator", xml_metadata))
@@ -161,7 +186,7 @@ class PdfParser:
         created_year = xml_metadata.getElementsByTagName("xmp:CreateDate")
         if(len(created_year) > 0):
             created_year = created_year[0].firstChild.data[0:4]
-        values.append(created_year)
+            values.append(str(created_year))
         return " ".join(values).replace(":", "")
 
     def get_dc_value(self, value, xml_metadata):
@@ -169,8 +194,9 @@ class PdfParser:
         if(len(output) > 0):
             output = output[0]
             output = output.getElementsByTagName("rdf:li")[0]
-            output = output.firstChild.data
-            return output
+            if(output.firstChild):
+                output = output.firstChild.data
+                return output
         return ""
 
     def get_encryption_dictionary(self, object_id):
@@ -182,7 +208,11 @@ class PdfParser:
 
     def get_object_id(self, name , trailer):
         oir = re.compile(b'\/' + name + b'\s\d+\s\d\sR')
-        object_id = oir.findall(trailer)[0]
+        try:
+            object_id = oir.findall(trailer)[0]
+        except IndexError:
+            # print >> sys.stderr, " ** get_object_id: name \"", name, "\", trailer ", trailer
+            return ""
         oir = re.compile(b'\d+ \d')
         object_id = oir.findall(object_id)[0]
         return object_id
@@ -194,6 +224,7 @@ class PdfParser:
             output = object_id+b" obj" + \
             self.encrypted.partition(b"\n"+object_id+b" obj")[2]
         output = output.partition(b"endobj")[0] + b"endobj"
+        # print >> sys.stderr, output
         return output
 
     def get_trailer(self):
@@ -203,7 +234,7 @@ class PdfParser:
             if(trailer == ""):
                 raise RuntimeError("Can't find trailer")
         if(trailer != "" and trailer.find(b"Encrypt") == -1):
-            print(trailer)
+            # print >> sys.stderr, trailer
             raise RuntimeError("File not encrypted")
         return trailer
 
@@ -278,13 +309,17 @@ class PdfParser:
 
         return escape_seq_map[esc]
 
-
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         sys.stderr.write("Usage: %s <PDF file(s)>\n" % \
                          sys.argv[0])
         sys.exit(-1)
     for j in range(1, len(sys.argv)):
-        # sys.stderr.write("Analyzing %s\n" % sys.argv[j])
-        parser = PdfParser(sys.argv[j])
-        parser.parse()
+        filename = sys.argv[j].decode('UTF-8')
+        # sys.stderr.write("Analyzing %s\n" % sys.argv[j].decode('UTF-8'))
+        parser = PdfParser(filename)
+        try:
+            parser.parse()
+        except RuntimeError:
+            e = sys.exc_info()[1]
+            sys.stderr.write("%s : %s\n" % (filename, str(e)))
