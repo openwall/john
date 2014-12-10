@@ -1081,47 +1081,44 @@ sub _office_2k10_EncryptUsingSymmetricKeyAlgorithm {
 	my $crypt = Crypt::CBC->new(-literal_key => 1, -keysize => $keysz, -key => $key, -iv => $salt, -cipher => "Crypt::OpenSSL::AES", -header => 'none', -padding => 'none');
 	return $crypt->encrypt($data);
 }
+# same function as the GenerateAgileEncryptionKey[512]() in the JtR office format
+sub _office_2k10_GenerateAgileEncryptionKey {
+	# 2 const values for office 2010/2013
+	my $encryptedVerifierHashInputBlockKey = pack("H*", "fea7d2763b4b9e79");
+	my $encryptedVerifierHashValueBlockKey = pack("H*", "d7aa0f6d3061344e");
+	my $p = encode("UTF-16LE", $_[0]);
+	my $spincount = $_[1];
+	my $hash_func = $_[2];	# should be sha1 or sha512
+	no strict 'refs';
+	my $h = &$hash_func($salt.$p);
+	for (my $i = 0; $i < $spincount; $i += 1) { $h = &$hash_func(Uint32LERaw($i).$h); }
+	$_[3] = &$hash_func($h.$encryptedVerifierHashInputBlockKey);
+	$_[4] = &$hash_func($h.$encryptedVerifierHashValueBlockKey);
+	use strict;
+}
 sub office_2010 {
-	my $encryptedVerifierHashInputBlockKey = pack("H*", "fea7d2763b4b9e79"); # const value for office2010/2013
-	my $encryptedVerifierHashValueBlockKey = pack("H*", "d7aa0f6d3061344e"); # const value for office2010/2013
-	my $spincount = 100000;
-	my $randdata = get_iv(16);
 	$salt = get_salt(16);
-	# start of GenerateAgileEncryptionKey() function
-	my $p = encode("UTF-16LE", $_[1]);
-	my $h = sha1($salt.$p);
-	for (my $i = 0; $i < $spincount; $i += 1) {
-		$h = sha1(Uint32LERaw($i).$h);
-	}
-	my $hash1 = sha1($h.$encryptedVerifierHashInputBlockKey);
-	my $hash2 = sha1($h.$encryptedVerifierHashValueBlockKey);
-	# end of GenerateAgileEncryptionKey() function.
+	my $randdata = get_iv(16);
+	my $spincount = 100000;
+	my $hash1; my $hash2;
+	_office_2k10_GenerateAgileEncryptionKey($_[1], $spincount, \&sha1, $hash1, $hash2);
 	my $encryptedVerifier = _office_2k10_EncryptUsingSymmetricKeyAlgorithm($hash1, $randdata, 16, 128/8);
 	my $encryptedVerifierHash = _office_2k10_EncryptUsingSymmetricKeyAlgorithm($hash2, sha1($randdata), 32, 128/8);
 	print "u$u-office10:\$office\$*2010*$spincount*128*16*".unpack("H*",$salt)."*".unpack("H*",$encryptedVerifier)."*".unpack("H*",$encryptedVerifierHash).":$u:0:$_[0]::\n";
 }
 sub office_2013 {
-	my $encryptedVerifierHashInputBlockKey = pack("H*", "fea7d2763b4b9e79"); # const value for office2010/2013
-	my $encryptedVerifierHashValueBlockKey = pack("H*", "d7aa0f6d3061344e"); # const value for office2010/2013
-	my $spincount = 100000;
-	my $randdata = get_iv(16);
 	$salt = get_salt(16);
-	# start of GenerateAgileEncryptionKey512() function
-	my $p = encode("UTF-16LE", $_[1]);
-	my $h = sha512($salt.$p);
-	for (my $i = 0; $i < $spincount; $i += 1) {
-		$h = sha512(Uint32LERaw($i).$h);
-	}
-	my $hash1 = sha512($h.$encryptedVerifierHashInputBlockKey);
-	my $hash2 = sha512($h.$encryptedVerifierHashValueBlockKey);
-	# end of GenerateAgileEncryptionKey512() function.
+	my $randdata = get_iv(16);
+	my $spincount = 100000;
+	my $hash1; my $hash2;
+	_office_2k10_GenerateAgileEncryptionKey($_[1], $spincount, \&sha512, $hash1, $hash2);
 	my $encryptedVerifier = _office_2k10_EncryptUsingSymmetricKeyAlgorithm($hash1, $randdata, 16, 256/8);
 	my $encryptedVerifierHash = _office_2k10_EncryptUsingSymmetricKeyAlgorithm($hash2, sha512($randdata), 32, 256/8);
 	print "u$u-office13:\$office\$*2013*$spincount*256*16*".unpack("H*",$salt)."*".unpack("H*",$encryptedVerifier)."*".unpack("H*",$encryptedVerifierHash).":$u:0:$_[0]::\n";
 }
 sub office_2007 {
 	$salt = get_salt(16);
-	my $iv = get_iv(16);
+	my $randdata = get_iv(16);
 	my $p = encode("UTF-16LE", $_[1]);
 	my $h = sha1($salt.$p);
 	for (my $i = 0; $i < 50000; $i += 1) {
@@ -1131,8 +1128,8 @@ sub office_2007 {
 	$h = substr(sha1($h^"6666666666666666666666666666666666666666666666666666666666666666"),0,16);
 	require Crypt::OpenSSL::AES;
 	my $crypt = Crypt::OpenSSL::AES->new($h);
-	my $hash = $crypt->encrypt(substr(sha1(substr($crypt->decrypt($iv),0,16)),0,16));
-	print "u$u-office07:\$office\$*2007*20*128*16*".unpack("H*",$salt)."*".unpack("H*",$iv)."*".unpack("H*",$hash)."00000000:$u:0:$_[0]::\n";
+	my $hash = $crypt->encrypt(substr(sha1(substr($crypt->decrypt($randdata),0,16)),0,16));
+	print "u$u-office07:\$office\$*2007*20*128*16*".unpack("H*",$salt)."*".unpack("H*",$randdata)."*".unpack("H*",$hash)."00000000:$u:0:$_[0]::\n";
 }
 sub pdf {
 }
