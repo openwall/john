@@ -48,7 +48,7 @@ use MIME::Base64;
 #
 # these are decrypt images, which we may not be able to do in perl. We will
 # take these case by case.
-# office pdf pkzip rar5, ssh
+# pdf pkzip rar5, ssh
 #
 # lotus5 is done in some custom C code.  If someone wants to take a crack at
 # it here, be my guest :)
@@ -73,7 +73,7 @@ my @funcs = (qw(DESCrypt BigCrypt BSDIcrypt md5crypt md5crypt_a BCRYPT BCRYPTx
 		skey_md4 skey_sha1 skey_rmd160 cloudkeychain agilekeychain
 		rar rar5 ecryptfs office_2010 office_2013));
 
-# todo: ike keepass cloudkeychain agilekeychain pfx racf sip vnc office_2007 office_2010 office_2013 pdf pkzip rar5 ssh raw_gost_cp
+# todo: ike keepass cloudkeychain agilekeychain pfx racf sip vnc pdf pkzip rar5 ssh raw_gost_cp
 my $i; my $h; my $u; my $salt;
 my @chrAsciiText=('a'..'z','A'..'Z');
 my @chrAsciiTextLo=('a'..'z');
@@ -528,6 +528,16 @@ sub randusername {
 		}
 	}
 	return $user;
+}
+# this will return the same LE formated buffer as 'uint32_t i' would on Intel
+sub Uint32LERaw {
+	my $i = $_[0];
+	return chr($i%256).chr(($i>>8)%256).chr(($i>>16)%256).chr(($i>>24)%256);
+}
+# this will return the same BE formated buffer as 'uint32_t i' would on Motorola
+sub Uint32BERaw {
+	my $i = $_[0];
+	return chr(($i>>24)%256).chr(($i>>16)%256).chr(($i>>8)%256).chr($i%256);
 }
 ############################################################################################
 # returns salt.  Usage:  get_salt(len [,argsalt_len [,@character_set]] )
@@ -1060,35 +1070,69 @@ sub odf_1 {
 	$s = sha256($output);
 	print "u$u-odf:\$odf\$*1*1*1024*32*".unpack("H*",$s)."*16*".unpack("H*",$iv)."*16*".unpack("H*",$salt)."*0*".unpack("H*",$content).":$u:0:$_[0]::\n";
 }
+# the inverse of the DecryptUsingSymmetricKeyAlgorithm() in the JtR office format
+sub _office_2k10_EncryptUsingSymmetricKeyAlgorithm {
+	my ($key, $data, $len, $keysz) = @_;
+	# we handle ALL padding.
+	while (length($data)<$len) {$data.="\0";} $data = substr($data,0,$len);
+	while (length($key)<$keysz) {$key.="\0";} $key = substr($key,0,$keysz);
+	require Crypt::OpenSSL::AES;
+	require Crypt::CBC;
+	my $crypt = Crypt::CBC->new(-literal_key => 1, -keysize => $keysz, -key => $key, -iv => $salt, -cipher => "Crypt::OpenSSL::AES", -header => 'none', -padding => 'none');
+	return $crypt->encrypt($data);
+}
 sub office_2010 {
+	my $encryptedVerifierHashInputBlockKey = pack("H*", "fea7d2763b4b9e79"); # const value for office2010/2013
+	my $encryptedVerifierHashValueBlockKey = pack("H*", "d7aa0f6d3061344e"); # const value for office2010/2013
+	my $spincount = 100000;
+	my $randdata = get_iv(16);
+	$salt = get_salt(16);
+	# start of GenerateAgileEncryptionKey() function
+	my $p = encode("UTF-16LE", $_[1]);
+	my $h = sha1($salt.$p);
+	for (my $i = 0; $i < $spincount; $i += 1) {
+		$h = sha1(Uint32LERaw($i).$h);
+	}
+	my $hash1 = sha1($h.$encryptedVerifierHashInputBlockKey);
+	my $hash2 = sha1($h.$encryptedVerifierHashValueBlockKey);
+	# end of GenerateAgileEncryptionKey() function.
+	my $encryptedVerifier = _office_2k10_EncryptUsingSymmetricKeyAlgorithm($hash1, $randdata, 16, 128/8);
+	my $encryptedVerifierHash = _office_2k10_EncryptUsingSymmetricKeyAlgorithm($hash2, sha1($randdata), 32, 128/8);
+	print "u$u-office10:\$office\$*2010*$spincount*128*16*".unpack("H*",$salt)."*".unpack("H*",$encryptedVerifier)."*".unpack("H*",$encryptedVerifierHash).":$u:0:$_[0]::\n";
 }
 sub office_2013 {
+	my $encryptedVerifierHashInputBlockKey = pack("H*", "fea7d2763b4b9e79"); # const value for office2010/2013
+	my $encryptedVerifierHashValueBlockKey = pack("H*", "d7aa0f6d3061344e"); # const value for office2010/2013
+	my $spincount = 100000;
+	my $randdata = get_iv(16);
+	$salt = get_salt(16);
+	# start of GenerateAgileEncryptionKey512() function
+	my $p = encode("UTF-16LE", $_[1]);
+	my $h = sha512($salt.$p);
+	for (my $i = 0; $i < $spincount; $i += 1) {
+		$h = sha512(Uint32LERaw($i).$h);
+	}
+	my $hash1 = sha512($h.$encryptedVerifierHashInputBlockKey);
+	my $hash2 = sha512($h.$encryptedVerifierHashValueBlockKey);
+	# end of GenerateAgileEncryptionKey512() function.
+	my $encryptedVerifier = _office_2k10_EncryptUsingSymmetricKeyAlgorithm($hash1, $randdata, 16, 256/8);
+	my $encryptedVerifierHash = _office_2k10_EncryptUsingSymmetricKeyAlgorithm($hash2, sha512($randdata), 32, 256/8);
+	print "u$u-office13:\$office\$*2013*$spincount*256*16*".unpack("H*",$salt)."*".unpack("H*",$encryptedVerifier)."*".unpack("H*",$encryptedVerifierHash).":$u:0:$_[0]::\n";
 }
 sub office_2007 {
 	$salt = get_salt(16);
 	my $iv = get_iv(16);
-	my $p = encode("UTF-16LE", $_[0]);
+	my $p = encode("UTF-16LE", $_[1]);
 	my $h = sha1($salt.$p);
 	for (my $i = 0; $i < 50000; $i += 1) {
-		my $I = chr($i%256).chr(($i>>8)%256)."\0\0"; # uint32 i in LE format.
-		$h = sha1($I.$h);
+		$h = sha1(Uint32LERaw($i).$h);
 	}
 	$h = sha1($h."\0\0\0\0");
 	$h = substr(sha1($h^"6666666666666666666666666666666666666666666666666666666666666666"),0,16);
 	require Crypt::OpenSSL::AES;
-	#require Crypt::ECB;
-	#my $crypt = Crypt::ECB->new;
-	#$crypt->cipher('OpenSSL::AES');
-	#$crypt->key($h);
-	#my $d = substr($crypt->decrypt($iv),0,16);
-	#print "d=".unpack("H*",$d)."\n";
-	#my $hash = sha1($d);
-	#print "hash=".unpack("H*",$hash)."\n";
-	#my $hx = $crypt->encrypt(substr($hash,0,16));
-	#print "h=".unpack("H*",$hx)."\n";
 	my $crypt = Crypt::OpenSSL::AES->new($h);
 	my $hash = $crypt->encrypt(substr(sha1(substr($crypt->decrypt($iv),0,16)),0,16));
-	print "u$u-officce07:\$office\$*2007*20*128*16*".unpack("H*",$salt)."*".unpack("H*",$iv)."*".unpack("H*",$hash)."00000000:$u:0:$_[0]::\n";
+	print "u$u-office07:\$office\$*2007*20*128*16*".unpack("H*",$salt)."*".unpack("H*",$iv)."*".unpack("H*",$hash)."00000000:$u:0:$_[0]::\n";
 }
 sub pdf {
 }
