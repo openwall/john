@@ -26,7 +26,13 @@ john_register_one(&fmt_radmin);
 #include "options.h"
 #ifdef _OPENMP
 #include <omp.h>
-#define OMP_SCALE               1
+// Tuned on core i7 quad HT
+//   1   7445K
+//  16  12155K
+//  32  12470K  ** this was chosen.
+//  64  12608k
+// 128  12508k
+#define OMP_SCALE     32
 #endif
 #include "memdbg.h"
 
