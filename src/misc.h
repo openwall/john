@@ -95,6 +95,12 @@ extern int strnzcpyn(char *dst, const char *src, int size);
  */
 extern char *strnzcat(char *dst, const char *src, int size);
 
+/*
+ * Similar to atoi(), but properly handles unsigned int.  Do not use
+ * atoi() for unsigned data if the data can EVER be over MAX_INT.
+ */
+extern unsigned atou(const char *src);
+
 #ifndef __has_feature
 # define __has_feature(x) 0
 #endif

@@ -166,3 +166,9 @@ char *strnzcat(char *dst, const char *src, int size)
 
 	return dst;
 }
+
+unsigned atou(const char *src) {
+	unsigned val;
+	sscanf(src, "%u", &val);
+	return val;
+}
