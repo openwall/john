@@ -28,6 +28,13 @@ john_register_one(&fmt_openssl);
 #include "autoconfig.h"
 #endif
 
+#ifdef __CYGWIN__
+// cygwin has HORRIBLE performance GOMP for this format it runs at 1/#cpu's the speed of OMP_NUM_THREADS=1 or non-GMP build
+#undef _OPENMP
+#undef FMT_OMP
+#define FMT_OMP 0
+#endif
+
 #include <string.h>
 #include <errno.h>
 #if !AC_BUILT || HAVE_FCNTL_H
@@ -47,7 +54,7 @@ john_register_one(&fmt_openssl);
 #include "jumbo.h"
 #ifdef _OPENMP
 #include <omp.h>
-#define OMP_SCALE               64
+#define OMP_SCALE               8
 #endif
 #include "memdbg.h"
 
@@ -60,15 +67,12 @@ john_register_one(&fmt_openssl);
 #define SALT_SIZE           sizeof(struct custom_salt)
 #define BINARY_ALIGN		1
 #define SALT_ALIGN			sizeof(int)
-#define MIN_KEYS_PER_CRYPT  1
-#define MAX_KEYS_PER_CRYPT  1
+#define MIN_KEYS_PER_CRYPT  8
+#define MAX_KEYS_PER_CRYPT  8
 #define PLAINTEXT_LENGTH    125
 #define FORMAT_TAG          "$openssl$"
 #define TAG_LENGTH          (sizeof(FORMAT_TAG) - 1)
 
-#if defined (_OPENMP)
-static int omp_t = 1;
-#endif
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static int *cracked;
 
@@ -97,9 +101,8 @@ static struct fmt_tests openssl_tests[] = {
 
 static void init(struct fmt_main *self)
 {
-
 #if defined (_OPENMP)
-	omp_t = omp_get_max_threads();
+	int omp_t = omp_get_max_threads();
 	self->params.min_keys_per_crypt *= omp_t;
 	omp_t *= OMP_SCALE;
 	self->params.max_keys_per_crypt *= omp_t;
