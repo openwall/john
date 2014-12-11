@@ -13,7 +13,7 @@
 
 typedef struct {
 	uint length;
-	uchar v[PLAINTEXT_LENGTH];
+	ushort v[PLAINTEXT_LENGTH];
 } sevenzip_password;
 
 typedef struct {
@@ -39,13 +39,13 @@ __kernel void sevenzip_init(__global const sevenzip_password *inbuffer,
 {
 	uint gid = get_global_id(0);
 	uint len = inbuffer[gid].length;
-	__global uchar *password = (__global uchar*)inbuffer[gid].v;
 	uint i;
 	SHA256_CTX ctx;
 
-	/* convert password to UTF-16LE format */
+	/* Copy password to state buffer. We could optimize this away
+	   but the format is so slow it would not make a difference */
 	for (i = 0; i < len; i++)
-		state[gid].buffer[i] = password[i];
+		state[gid].buffer[i] = inbuffer[gid].v[i];
 	state[gid].len = len;
 
 	/* kdf */

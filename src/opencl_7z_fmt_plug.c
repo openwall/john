@@ -29,6 +29,7 @@ john_register_one(&fmt_opencl_sevenzip);
 #include "options.h"
 #include "crc32.h"
 #include "stdint.h"
+#include "unicode.h"
 #include "memdbg.h"
 
 #define FORMAT_LABEL		"7z-opencl"
@@ -50,7 +51,7 @@ john_register_one(&fmt_opencl_sevenzip);
 
 typedef struct {
 	uint32_t length;
-	uint8_t v[PLAINTEXT_LENGTH];
+	uint16_t v[PLAINTEXT_LENGTH];
 } sevenzip_password;
 
 typedef struct {
@@ -253,6 +254,9 @@ static void init(struct fmt_main *self)
 	self->methods.crypt_all = crypt_all_benchmark;
 	autotune_run(self, 1 << 19, 0, 15000000000);
 	self->methods.crypt_all = crypt_all;
+
+	if (pers_opts.target_enc == UTF_8)
+		self->params.plaintext_length = MIN(125, 3 * PLAINTEXT_LENGTH);
 }
 
 static int ishex(char *q)
@@ -407,20 +411,27 @@ static void clear_keys(void)
 
 static void sevenzip_set_key(char *key, int index)
 {
-	uint8_t length = strlen(key);
-	if (length > PLAINTEXT_LENGTH)
-		length = PLAINTEXT_LENGTH;
+	UTF16 c_key[PLAINTEXT_LENGTH + 1];
+	int length = strlen(key);
+
+	/* Convert password to utf-16-le format (--encoding aware) */
+	length = enc_to_utf16(c_key, PLAINTEXT_LENGTH,
+	                      (UTF8*)key, length);
+	if (length <= 0)
+		length = strlen16(c_key);
 	inbuffer[index].length = length;
-	memcpy(inbuffer[index].v, key, length);
+	memcpy(inbuffer[index].v, c_key, 2 * length);
 }
 
 static char *get_key(int index)
 {
-	static char ret[PLAINTEXT_LENGTH + 1];
-	uint8_t length = inbuffer[index].length;
-	memcpy(ret, inbuffer[index].v, length);
-	ret[length] = '\0';
-	return ret;
+	UTF16 c_key[PLAINTEXT_LENGTH + 1];
+	int length = inbuffer[index].length;
+
+	memcpy(c_key, inbuffer[index].v, 2 * length);
+	c_key[length] = 0;
+
+	return (char*)utf16_to_enc(c_key);
 }
 
 // XXX port Python code to C *OR* use code from LZMA SDK
@@ -619,7 +630,7 @@ struct fmt_main fmt_opencl_sevenzip = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_NOT_EXACT | FMT_UNICODE,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_NOT_EXACT | FMT_UNICODE | FMT_UTF8,
 #if FMT_MAIN_VERSION > 11
 		{
 			"iteration count",
