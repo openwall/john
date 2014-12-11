@@ -68,7 +68,6 @@ static int num_iterations;
 static int is_sha512=0;
 static int is_ripemd160=0;
 static int loop_inc;
-static int init_already_called=0;
 
 struct cust_salt {
 	unsigned char salt[64];
@@ -95,11 +94,6 @@ static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
 	int omp_t = omp_get_max_threads();
-#endif
-	if (init_already_called)
-		return;
-	init_already_called=1;
-#ifdef _OPENMP
 	self->params.min_keys_per_crypt *= omp_t;
 	omp_t *= OMP_SCALE;
 	self->params.max_keys_per_crypt *= omp_t;
