@@ -68,6 +68,7 @@ static int num_iterations;
 static int is_sha512=0;
 static int is_ripemd160=0;
 static int loop_inc;
+static int init_already_called=0;
 
 struct cust_salt {
 	unsigned char salt[64];
@@ -94,6 +95,11 @@ static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
 	int omp_t = omp_get_max_threads();
+#endif
+	if (init_already_called)
+		return;
+	init_already_called=1;
+#ifdef _OPENMP
 	self->params.min_keys_per_crypt *= omp_t;
 	omp_t *= OMP_SCALE;
 	self->params.max_keys_per_crypt *= omp_t;
@@ -112,16 +118,15 @@ static void init_ripemd160(struct fmt_main *self)
 	init(self);
 	md = EVP_get_digestbyname("RIPEMD160");
 	num_iterations = 2000;
-	is_sha512=0;
-	is_ripemd160=1;
+	is_sha512=0; is_ripemd160=1;
 	loop_inc=1;
 }
 static void init_sha512(struct fmt_main *self)
 {
 	init(self);
+	md = EVP_get_digestbyname("SHA512");
 	num_iterations = 1000;
-	is_sha512=1;
-	is_ripemd160=0;
+	is_sha512=1; is_ripemd160=0;
 	loop_inc=1;
 #if SSE_GROUP_SZ_SHA512
 	loop_inc=SSE_GROUP_SZ_SHA512;
@@ -132,8 +137,8 @@ static void init_whirlpool(struct fmt_main *self)
 	init(self);
 	md = EVP_get_digestbyname("whirlpool");
 	num_iterations = 1000;
-	loop_inc=1;
 	is_sha512=is_ripemd160=0;
+	loop_inc=1;
 }
 
 static char *prepare(char *split_fields[10], struct fmt_main *self)
