@@ -1,6 +1,6 @@
 The following changes were made between 1.7.9-jumbo-8 and 1.8.0-jumbo-1:
 
-magnum (1613):
+magnum (1889):
 	formats.c: Only check binary/salt alignment if not using fmt_default_*
 	formats.c: Deliberately use misaligned ciphertext in self test
 	formats.c canary for binary/salt buffers
@@ -2595,8 +2595,427 @@ magnum (1613):
 	sha1crypt-opencl format added. Split kernel is WIP.
 	Found a slightly enhanced version of that sha1crypt-opencl among
 	  all my local topic branches %-)
+	Update CHANGES-jumbo.git and CREDITS-jumbo.
+	Jumbo options dupe-check bugfix.
+	I reverted too much in 945be4a... some Jumbo-specific stuff re-added
+	  (namely, support for using \xHH notation in rules and ranges), now
+	  with comments.
+	Deprecate "ansi" in encoding list output. We still support it as a
+	  shorthand for ISO-8859-1 although it's ambiguous. Add support
+	  for "latin1" as another alias for the same, even though that is
+	  still somewhat ambiguous :-P
+	WIP for ADL/NVML mapping to our device id (#750)
+	ADL debug output fix.
+	Change --intermediate-enc to --internal-encoding. The old name is
+	  deprecated immediately, sorry 'bout that! To my defense I call
+	  the fact we haven't had any release with the old option...
+	Mask mode: Do not produce mixed-case candidates for case-
+	  insignificant formats like LM. Closes #764.
+	Mask mode: Code cleanup.
+	Bugfix for bash completion of encoding option name change.
+	Mask mode: Start implementing custom mask (WIP, #762).
+	Autoconf: Add --disable-openmp-for-fast-formats (some CPUs can't
+	  handle it well so it ends up slower than one core).
+	Add -<N (rule reject for --min-length=N) and U (reject unless valid
+	  UTF-8).
+	Merging super old topic branches exploded in my face. Build bots
+	  to the rescue.
+	Bugfix for resuming with an implicit internal encoding.
+	Mask mode: When !FMT_CASE, produce lower case candidates instead of
+	  upper case ones. There's a slight difference with some
+	  encodings.
+	mask.c: Always parse \xHH notation. Closes #772.
+	mask.c: Handle command-line arguments given in UTF-8 when internal
+	  encoding is some codepage.
+	Minor tweak for UTF-8 handling in mask mode. Better safe than sorry.
+	Move a variable declaration to avoid compiler warnings.
+	mask.c: Allow escaping \ as \\. So \\x40 means literally \x40 and not
+	  the character with ascii code 0x40.
+	Allow custom masks given in UTF-8 on command line.
+	Loopback mode: Improved handling of assembled LM halves.
+	Mask mode: Parse hex notation in custom masks.
+	Add support for a default mask in john.conf. The default one (same
+	  as Hashcat) is is not too useful until we implement -min-len and
+	  -max-len support for mask mode (#380).
+	Mask.c: Do not touch empty strings during de-hex.
+	Mask mode, resume bug fix. Closes #780.
+	mask.c: Allow using static placeholders within custom placeholders
+	  ?1..?4.
+	Mask: Do not touch empty strings during expansion.
+	AC: Add AC_PREFIX_DEFAULT([../run]) as part of trying to fix #612.
+	OldOffice: Revert to using core's salt copy, so a found "middle"
+	  value does not get lost in set_salt(). See #736.
+	mask.c: Preserve existing escapes during pre-processing. See
+	  discussion in PR #776.
+	"memdbg" fixes for a bunch of OpenCL formats. See #739.
+	MEM_FREE bugfix for rar5-opencl. A buffer was freed in done() but
+	  should be freed in release_clobj()! See #739
+	Add some missing inclusions of memdbg header. See #739
+	Drop some debug output from mask.c, and only talk if we're the
+	  main process.
+	Mask mode: Fix progress count for node/fork/MPI. See #771
+	mask.c: Cosmetic changes.
+	Mask mode: Fix progress reporting.
+	Make it possible to build 64-bit "any" or MMX-only builds, for
+	  testing purposes.
+	Split the PBKDF1 kernel for sha1crypt-opencl.
+	Minor fixes to PBKDF kernels.
+	OpenCL: Drop some debug output now that the NVML problem is fixed.
+	  Also move the ADL output to opencl_list_devices() so it's not
+	  printed when emitting a status line (although this is currently
+	  defined out by default).
+	CUDA: Ensure mapping between CUDA id and NVML id, using PCI id.
+	Add NVML device id to --list=opencl-devices.
+	Re-create ADL main control for each call to get_temp(). This is
+	  probably just a bug workaround, it should not be needed. Closes
+	  #784.
+	Fix "generic" legacy build. Closes #782.
+	OpenCL: Add possibility to override build options using environment
+	  variable or john.conf. Also add custom build options capability to
+	  sha256crypt-opencl and sha512crypt-opencl, as a PoC. If given,
+	  they will be concatenated with global options.
+	Add clReleaseProgram() to Sayantan's formats.
+	Add a --stress-test[=TIME] option that is just like --test except
+	  it loops the test(s) forever.
+	Memory leak bugfixes to mscash2, bcrypt and lotus5 OpenCL formats.
+	Office2007-opencl: Use shared auto-tune.
+	Office2010-opencl: Use shared auto-tune.
+	Office2013-opencl: Use shared auto-tune.
+	encfs-opencl: Use shared auto tune.
+	krb5pa-sha1-opencl: Use shared auto tune.
+	krb5pa-md5-opencl: Use shared auto tune.
+	ntlmv2-opencl: Use shared auto tune.
+	mysql-sha1-opencl: Use shared auto tune.
+	Minor fixes for the last eight commits.
+	Allow 10s total for encfs-opencl. It's a lot of iterations!
+	Drop some unneeded code from raw-md4/5 OpenCL formats.
+	Drop obsoleted code from OpenCL formats, and fix a bunch of little
+	  issues.
+	OpenCL: Ensure unmapping of buffers.
+	OpenCL: Bugfix for reporting utilization from ADL OD6 devices.
+	Optionally include GPU sensor readings when printing status line.
+	GPU sensor status: Some GPUs report a utilization of 0% when they
+	  actually do not support that query, mute that. Also, tweak output
+	  a little for multi-device (as in mscash2, not -fork).
+	GPU: Abort job in case we hit the temperature limit set in john.conf.
+	Log GPU sensor readings at start/stop of session.
+	Allow 30 seconds grace time for a timer abort (-max-run-time) so we
+	  don't lose the session save for slow/split-kernel formats.
+	Avoid overhead in inner loop of split kernel OpenCL formats.
+	Reduce overhead in gpu_check_temp().
+	Clean up (cosmetic) of GPU code common for CUDA/OpenCL.
+	Show sm_5x (Maxwell) core counts correctly in --list=opencl-devices.
+	Ensure initial MPI/GPU logging in -fork children.
+	Fix arch link issue for 32-bit SSE2 or better. See #793.
+	Cross-compile version of the fix in 087383c. See #793.
+	ZIP_fmt: non-inline data length bugfix. Closes #792.
+	#792 bugfix for the OpenCL version of the format.
+	Pure whitespace fixes in cryptsha512_common.h
+	Copy-paste bug in 8cd6cf53.
+	Copy-paste bug in 73246ae (duh!)
+	More fixes for building (test builds) x86-32/64 without MMX or SSE2.
+	pdf2john, fix problem introduced with 292b35c. Closes #789.
+	Resource cleanup fixes in various OpenCL formats. See #739.
+	Perform some obscure Jumbo self-tests only if --test. Closes #799.
+	Stress test bugfix: sig_done() must set SIGUSR2 to SIG_IGN if used.
+	Mitigate race conditions in SIGUSR2 handling. See #798.
+	Improve error reporting to log file: Eg. "Terminating on error:
+	  john.c:144" Closes #800.
+	Add sm_50 SP multiplier for CUDA too (I did not remember we had to
+	  calculate it from a table like in OpenCL).
+	Further mitigate race conditions in SIGUSR2 handling. See #798.
+	RAR OpenCL: Implement dynamic salt. cracker.c: drop the kludge we
+	  had for RAR and ZIP formats. It's now taken care of by the
+	  dynamic salt stuff. See #752.
+	ZIP OpenCL: Implement dynamic salt. See #752.
+	Add .gdbinit to .gitignore.
+	Fix a silly bug in CUDA-id to NVML-id mapping. Closes #801.
+	In last commit, a paren escaped from where it should be and ended
+	  up where it should not. That's what you get when you have to
+	  dry-run testing fixes :(
+	Fix -DDEBUG builds for a couple of OpenCL formats.
+	RAR formats: Use fmt_default_salt_hash_dyna_salt().
+	ClearQuest: Add some parens that Dhiru tried to do without.
+	RAR: Never include data blob in salt compare size.
+	Makefile.stub: exit with error if not configured.
+	Experiment with using mmap() for large RAR blobs.
+	RAR mmap: Stop using offset, because it's too hard to determine
+	  page size in a portable way. And this has no real drawbacks.
+	Add debug info to dyna salt compare.
+	pkzip: Improve OMP scaling. It was hard-coded with a ceiling.
+	Dynamic salt: Adjust SALT_CMP_SIZE macro, it ended up wrong due to
+	  struct padding.
+	RAR-opencl: Get up to speed with CPU version (ie. mmap() support).
+	Dyna salt debug.
+	Drop broken custom hash functions in pkzip and TC. Closes #791.
+	Add missing hash functions (and/or use default ones). Closes #790.
+	EFS: Bugfix for iterations count. BAD BUG, possibly false
+	  negatives. Shame on @kholia. Closes #563.
+	AC: Create a GNUMakefile alternative. The old stuff is still there
+	  too. See #805.
+	Case fix for GNUmakefile. We had it as GNUMakefile.
+	Drop the GNUmakefile if "make distclean", or users will be very
+	  confused.
+	WPAPSK-opencl: Auto-tune fixes.
+	Revert "dyna_salt. Use 4 param COMP_SIZE macro" Revert "rar_fmt:
+	  removed numerous warnings, and added comments where we can not
+	  handle large file size"
+	rar2john: missing linefeed in usage blurb.
+	See #794. Add MAX_INLINE_SIZE to params.h and have keepass2john
+	  honor it, with an optional -i override.
+	keepass2john fixes.
+	keepass2john bug fixes.
+	rar2john: adopt to #794, using -i for setting inline threshold and
+	  defaulting to MAX_INLINE_SIZE.
+	Minor fixes to keepass2john and rar2john.
+	zip2john: Implement getopt (sorry, had to change some option names)
+	  and MAX_INLINE_SIZE, see #794.
+	luks2john: Implement getopt and MAX_INLINE_SIZE, see #794.
+	Tiny optimization for RAR formats: Drop an assertion that is now
+	  well tested. We keep it for -DDEBUG.
+	Unify RAR & RAR-opencl. Some minor fixes were not implemented in
+	  both.
+	RAR formats: Use 64-bit fseek() if possible. We still can't fread()
+	  larger than 4 GB but we can now seek 5 GB into a file for fetching
+	  (hopefully smaller) data.
+	rar2john: Use 64-bit fseek(), just in case.
+	Mute a warning in legacy generic builds, addressing #807.
+	Makefile tweaks.
+	Cosmetic auto tune fix in NTLMv2-opencl.
+	ClearQuest format failed on 32-bit due to sign extension. Closes #806.
+	If we have gmake, use GNUmakefile and do not overwrite Makefile.
+	  Closes #805. This also adds a missing @SET_MAKE@ that was likely
+	  intended to be included in every makefile since we've been using
+	  AC_PROG_MAKE_SET for long.
+	Fix numerous memory leaks in OpenCL formats.
+	ssha-opencl: Use shared auto tune.
+	Flush log file before signaling children we're done. Closing #798.
+	AES-NI code: Change a __declspec to something more portable.
+	Change name of
+	  s/fmt_default_salt_hash_dyna_salt/fmt_default_dyna_salt_hash/g.
+	Refactor function names of opencl_autotune.h. The common_* names
+	  always confused me.
+	With a fast enough GPU, auto-tune would overflow signed 32-bit
+	  integers.
+	OpenCL: Allow auto-tune with a single kernel-invocation limit instead
+	  of total crypt_all() limit.
+	Use new alternate auto-tune scheme for a couple of formats.
+	Fix a bug in Office OpenCL formats where cracked array was not
+	  properly reset when running vectorized.
+	Salt cleaning in OpenCL Office formats.
+	pbkdf2-hmac-sha1 opencl bugfix.
+	Revert a memleak fix in OpenCL formats. Something goes terribly
+	  wrong unless we do it this way.
+	Drop the Makefile stub. I causes too much problems. We can symlink
+	  Makefile -> Makefile.stub in release tarballs though.
+	Office 2013, tweak auto tune
+	Fix an issue with --skip-self-tests and dynamic salts.
+	CUDA: cosmetic, device list.
+	OpenCL raw-md4/5 bugfix.
+	Keyring-opencl bugfix.
+	pbkdf2-hmac-sha1-opencl: Report iterations as tunable cost.
+	AC: Do not add -march=native in case we are OSX with broken as.
+	Add salt_hash, binary_hash and get_hash functions to ClearQuest.
+	  Closes #810.
+	WPAPSK-OpenCL: Minor optimizations for GTX980, for a 5% boost.
+	Add stacked mask mode to Incremental, Markov and Wordlist modes.
+	  It's not actually handled in mask.c yet. Also, resuming a stacked
+	  session may (or may not) need work.
+	Autoconf: Assert that we don't have a stray GNUmakefile still in
+	  the tree, after some of magnum's poor ideas in #805.
+	GPU: Initialization tweak and other minor fixes.
+	Benchmark: Print GPU utilization (if available) after benchmarking
+	  OpenCL or CUDA formats more than one second.
+	In hybrid mask mode, do not use candidate alone. While it could
+	  sometimes be a feature, it could also produce up to 50% unwanted
+	  candidates.
+	Bug fix for hybrid Markov + Mask mode.
+	Optimization for short masks: Avoid repeated strlen's that the
+	  optimizer would not dare taking away as written. Also make key a
+	  const char* so we don't screw up.
+	Bugfix for non-hybrid mask mode.
+	Bugfix for hybrid mask w/ node/fork: For now we always let the
+	  parent mode distribute the work. For large masks it might be
+	  better to let mask distribute but that is a more intrusive
+	  change (to all modes).
+	Fix non-GPU builds for bug introduced by 9a5e3ae
+	Fixes for stacked (eg. hybrid mask) session save/restore.
+	Fix progress/ETA reporting for hybrid mask/stacked modes. Wordlist
+	  mode still has coarse reporting in some situations (mmap) when
+	  wordlist is small and mask is big.
+	Fix some missing pieces in the Regex mode.
+	Cosmetic bugfix: mask_done() was called a tad too early so final
+	  status would be empty for short runs.
+	Bugfix for save/resume in Hybrid mode. If we are about to abort,
+	  we must not call parent's fix_state(). Closes #823.
+	Further tweak for #823. In extreme test cases using -max-run=1 we
+	  sometimes did not get any progress for a (one second) run.
+	Change default custom masks (which resembles Hashcat's) to use eg.
+	  a-z instead of ?l so they are not affected by internal encoding.
+	Add mask placeholders ?L and ?U which is non-ASCII lower and upper
+	  case characters.
+	Reject ?L and ?U placeholders unless an 8-bit codepage is in use.
+	pkzip format: Mute warning about missing files if we're just reading
+	  pot lines.
+	Remove some #ifdef DEBUG, or change them to something more specific
+	  like POTSYNC_DEBUG or DYNA_SALT_DEBUG.
+	Max length fixes in rules.c for internal encoding.
+	Fix handling of invalid UTF-8 in mssql05. Closes #830
+	Ensure key cleaning on invalid UTF-8 in same fast formats. No
+	  problem seen with these but #830 hinted we might get problems so
+	  we play safe.
+	Mask mode: Add support for format's max length. See #834
+	Mask mode: Fix bugs for using default mask (bare --mask option).
+	Mask bugfix for default mask. See #834
+	Mask: Cleanup of previous changes. This is a no-op except we now
+	  keep a pointer to the actual original mask in case we'd need it
+	  for debugging.
+	Use a separate default mask for Hybrid mode.
+	Hybrid mask: Bail out with error if [the used portion of] hybrid
+	  mask does not contain a ?w placeholder. See #834
+	Mask mode: Ensure max length is not exceeded after conversion to
+	  UTF-8 too, if applicable. Hopefully this is the final fix for
+	  closing #834
+	Drop CP/M linefeeds from Jim's files.
+	Oracle: Address #832 (overlength salt segfault)
+	Common OpenCL: Do not fail if we can't get PCI info. It will only
+	  happen when we don't need it anyway. Addresses #836
+	OpenCL, cosmetical: Strip leading whitespace in device names.
+	OpenCL: Improve handling of --fork vs. (lack of) --device.
+	Mask: Better handling of max length when internal encoding is used.
+	Fix non-OpenCL builds. Missing #ifdef.
+	Minor fix for using default mask.
+	Wordlist: Unicode length fix when internal encoding is not UTF-8
+	  but target encoding is.
+	Fix for john.o in debug build target.
+	Add a 'memdbg' build target which can be used without editing
+	  anything.
+	Mask mode: Use mask_add_len in hybrid parent modes. See #837
+	Mask mode: Use mask_num_qw in hybrid parent modes. See #837
+	Comment out -DMASK_DEBUG that was accidentally committed.
+	Mask mode: Various tweaks. See #837
+	Mask mode fixes. See #837
+	Hybrid Mask: Fix detection of missing ?w when mask was not
+	  truncated. See #837.
+	Mask mode: Do not allow ?w unless running hybrid/stacked.
+	Mask mode: Change meaning of ?l, ?u, ?d and ?s to always mean 7-bit
+	  ASCII, and add ?S (high bit specials) and ?D (high bit digits).
+	Mask mode: Escape fixes. Some things were lost by recent commits,
+	  others were not really good to begin with: We must never look
+	  backwards for detecting escapes, only forward. See #776 for older
+	  discussion.
+	Mask mode: Escape fix for \xHH hex. See #841.
+	Despite generated from the "Unicode database", encoding_data.h
+	  contained a dupe greek character.
+	Include ASCII in list of encodings, mostly for tab completion to
+	  include it.
+	Add a "make clean" for Travis CI, just to be 100% sure. See #711
+	pbkdf2-hmac-sha256 bugfix for buffer overrun, see #711.
+	Mute the "Using default input encoding ..." if we actually do not
+	  use any input.
+	Mute the "Press 'q' or Ctrl-C to abort" when using -stdout and
+	  output is a terminal. If you could read it, it wasn't needed...
+	Mask mode: Warn if \x00 is used in mask.
+	Overhaul of all formats that use base64decode(). It adds a NULL
+	  string terminator that the destination buffer must be sized for.
+	Mask mode: Allow ?w in pure mask mode, just warn that it doesn't
+	  have any special meaning.
+	Mask mode: Support -min-len. It will call mask_crack with each
+	  length between min-len and max-len.
+	Bodge for bash completion of eg. "john -stdout -list=...", see #842
+	Mask mode: Fix for -min-len=0.
+	OpenMP optimizations: Use 'atomic' instead of 'critical' when
+	  possible. In oldoffice, keep using critical but make it a block.
+	Mask mode min-length session save/restore bugfix. See #845
+	Mask mode initial documentation. Closes #824.
+	Mask mode: Do not "use" min-len in hybrid mask mode. Parent mode
+	  will honor it after taking mask_add_len in account though. See
+	  #848
+	Fix OpenCL build after 38218fe3
+	Mask mode: Progress reporting fixes. See #837
+	Signals.c edge case fixes.
+	Mask: Cosmetic: Print some warnings/errors in main process only.
+	Mask mode: Drop redundant code, fix max_add_len for truncated
+	  hybrid masks.
+	MDC2 format: Fix build error. And indentation style..
+	Mask mode -max-len fixes. See #837
+	Mask mode: Warn if mask is shorter than supplied -max-length
+	  parameter. See #837 for discussion.
+	Add base64conv to .gitignore
+	Rules.c: Do not convert from internal to target encoding in case we
+	  are running hybrid mask. It will happen in mask.c after applying
+	  the mask.
+	Mask mode: Reject 8-bit "codepage" placeholders with UTF-8 encoding.
+	Mask mode: Cosmetic/whitespace.
+	For pure mask mode using internal encoding, skip conversion if our
+	  mask (after current truncation) can't actually produce any 8-bit
+	  characters. This can make for up to a 2x performance boost.
+	Fix bug when using -min-len with pure mask mode.
+	OpenBSD-SoftRAID: Show correct ALGORITHM_NAME. Also drop the
+	  FORMAT_NAME as it's identical enough to the FORMAT_LABEL.
+	Add memdbg info to --list=build-info
+	Mask mode: When iterating lengths in pure mask, show progress for
+	  current length. See #854
+	OpenCL: Rename opencl_autotune.h to opencl-autotune.h to prevent
+	  it being copied to the kernels directory.
+	OpenCL: Move GPU-side Unicode stuff to a shared header.
+	DEFAULT_ALIGN. See issue #317. Fix for double-format source file.
+	Break out common OpenCL kernel stuff to headers.
+	Oldoffice-opencl format added. Closes #719, see also #736.
+	OpenCL: Optionally use local memory for RC4.
+	Shared OpenCL headers: loop protection, dependencies and other
+	  things.
+	oldoffice-opencl fixes. MitM has to be disabled during autotune
+	  and benchmarking. Also some RC4 tweaks.
+	oldoffice-opencl: Workaround for AMD bug.
+	OpenCL RC4 tweaks.
+	OpenCL: More stuff moved to shared header.
+	Mask mode: Resume progress/ETA fix for -min-len. Purely cosmetic
+	  bug.
+	AC: Mention --disable-pkg-config in doc/INSTALL (#864).
+	OpenCL: Fix a silly problem with Intel compiler for vectorized
+	  bitswap.
+	Fix new unneeded lib dependencies.
+	OpenCL RC4 tweaks. Mainly no-ops for easier profiling.
+	OpenCL RC4: Use local memory if device is GPU. Actually this is
+	  extremely detrimental to performance on some (weak? integrated?)
+	  GPUs like my laptop GTX 650M but I'm not sure what to base the
+	  choice on and it's up to a 290% boost on flagship cards. We
+	  have to work around AMD bugs as usual though.
+	OpenCL RC4: Regression fixes (driver bug workarounds) for Macbook
+	  (nvidia GT 650M & Intel HD4000).
+	OpenCL RC4: Fix some macro names before they cause trouble.
+	OpenCL: Fix some header includes using brackets instead of quotes.
+	keyring-opencl: Optimize for 2.5x boost, add auto-tune, bump length
+	  limit.
+	OpenCL oldoffice & krb5pa-md5: Fix --test=0 (they failed because we
+	  required an LWS of 64 - but we can do with anything up to 64).
+	Add auto-tune to pbkdf2-hmac-sha512-opencl.
+	EIGRP format: Add cost support.
+	OpenCL: Fix a bunch of OCL_CONFIG names.
+	pbkdf2-hmac-sha512-opencl has a split() that unifies case but
+	  missed the format flag telling about it.
+	raw-md5u and raw-blake do unify case in split() but lacked the
+	  format flag telling about it.
+	Mait for events typo.
+	7z-opencl: Split kernel, auto-tune and use shared SHA2. This format
+	  is so extremely slow that we still need to have it disabled in the
+	  default config. It can takes minutes even with --test=0. Closes
+	  #754.
+	7z-opencl: Modify algorithm name, reflecting that we do any AES on
+	  CPU as opposed to GPU.
+	OpenCL shared SHA256: Optimize memcpy for 30-50% boost of 7z-opencl,
+	  plus some device-specific tweaks. An alternate memcpy is defined
+	  out right now but it may be better IRL (or once adding some test
+	  vectors of varying length to 7z).
+	"Enable" the 7z-opencl format in john.conf.
+	pdf2john: Unicode fixes, and lots of fixes/fuzz for parsing files of
+	  various origins/versions
+	MYSQL: Fix a bug with OMP for single-thread, plus some no-op changes
+	  that makes for easier testing.
+	7z-opencl: Proper Unicode/codepage support.
 
-JimF (401):
+JimF (657):
 	get_source() supporting salts too. Added to crc32 and sapG.
 	raw-sha1_li: always store complete (repaired) hashes
 	Loads of minor fixes for Sparc (endianness, alignment)
@@ -3336,8 +3755,312 @@ JimF (401):
 	formspring, proper binary size and binary/salt align for dynamic
 	Fixed binary size, binary align, salt size and salt_align for all
 	  dynamic thin formats
+	a few MSVC specifc changes
+	Fixed memory overwrite bug
+	a couple changes to memdbg
+	bcrypt_pbkdf2 portability issues
+	RAKP: fixes the pre-clean buffer seen on sparc #763
+	sha1crypt: BE fixes, #763
+	hsrp: fixed BE problems #763
+	sha1crypt: small fixes to BE code
+	rar5: BE fixes for #763
+	mozilla: fixed comment
+	config.c: fixed bug #767
+	Config.c: bugfix for last change. appends option properly, and works
+	  with an empty section without core
+	crypt: fixes bug #779. Adjustments made for crypt format, to properly
+	  work with subformat or salt being passed in.
+	First draft of dynamic salts. Inserted into zip format. Not used yet
+	  by John core processing
+	Fixed warning about salt alignment issues
+	dyna_salt. zip format now compares salts properly
+	dyna_salt Fixed possible bug, if salt1 size was larger than salt2
+	dyna_salt: Made a fmt_default_salt_hash specially for dyna_salt
+	  formats
+	dyna_salts: added fmt_self_test salt smashing logic for dyna_salts
+	VC bug, strdup defined for memdbg builds was undone by this define
+	dyna_salts: added cleanup of salts dynamically allocated
+	dyna_salt, added defines for easier debugging
+	rar: added dyna_salt code. Also removed 2 unneeded vars from salt
+	  struct, filename and pos. They are temp vars
+	rar dyna_salt size problem. Stupid bug
+	rar2john: Removed static sized HUGE inline buffer. Now it is
+	  variable, and can be controlled on command line. For -p type 1 files
+	rar2john: fixed overflow and logic that would not find values if
+	  maxinline set too small
+	cracker.c wrong data type used. Both linux and Win32 man page lists
+	  clock_t as type
+	dyna_salt. Use 4 param COMP_SIZE macro
+	dahua: removed warning, properly typecast char* to int, and just use
+	  single isalnum function/macro to do the work
+	rar_fmt: removed numerous warnings, and added comments where we can
+	  not handle large file size
+	legacy makefile needed dyna_salt.o. Fixes #807
+	cygwin-64 Makefile.legacy build fix
+	dyna_1300. Fixes #786
+	Wrote myself some TODO notes. All set length function may need to
+	  clean buffers for md5_go builds
+	rar2john: added trivial getopt for VC
+	dynamic_format: Bug in MMX raw md5 code
+	getopt: Added a missing_getopt.[ch] set of files for sys without them
+	msvc: getopts ports, many external processes now compile also
+	correction of 339052e and getting #825 working. Prelim and not the
+	  final fix I want, but better
+	dynamic: finalized #825 fix
+	net-md5 handle core for --skip-self-test. #828. Bug much worse than
+	  just the skip-self-test case. It could have given many false
+	  negatives
+	net-sha1 handle core for --skip-self-test. #828. same bug as net-md5
+	oracle: Correct max length for user name
+	oracle: increased to 30 character user name
+	oracle: added a user name length manifest, to clear things up a bit
+	opencl pbkdf2_sha512: removed warnings about using char values in
+	  array access and operations
+	opencl-hmac-sha512: changed typecasts to ARCH_INDEX calls
+	dynamic fmt. pure comment change
+	dyna salt. debugging flag was in wrong place.
+	common-opencl use ARCH_INDEX for char value to avoid warnings
+	dyna_salt fix (memleak) in opencl formats
+	pass_gen.pl: added cisco4, and added hooks for cisco8/9 when I find
+	  out how to do them
+	pass_gen Added cisco8 and cisco9 hashes
+	cisco8 hash added to CPU format
+	cisco8: added to GPU. Fixed a few things on CPU side also
+	pass_gen: added scrypt and django-scrypt hashes
+	oracle8, trying to correct crash on travis
+	oracle8, bug in last push
+	memdbg: correct 64 bit issues. make memdbg_extra NOT be default
+	pbkdf2_hmac_sha256: Travis fix (I hope)
+	pbkdf2_hmac_sha256: try again, Travis (my last try)
+	cisco8: prepare, no need for allocation. Flat static buffer is just
+	  fine
+	memdbg: stop huge error dumps. Also catches crossed pointers (infinite
+	  loop), and shows start of memory
+	cisco9: Modified scrypt_fmt.c to also handle cisco9 hashes
+	pure text formatting changes
+	escrypt: use functions from JtR memory.c
+	removed a dupe comment line added in some prior checkin
+	memdbg: had OMP commented out. Fixes #843
+	pass_gen.pl: removed scrypt include from global, and put into subs
+	makefile.legacy: Added OMPFLAGS to link for extra programs, since
+	  they link memdbg.o built by john build
+	Numerous files, removed trailing whitespace
+	base64 conversion changes. Only minimally hooked into Jtr right now
+	removed execute bit on base64_convert source
+	scrypt, fix stack smash after base64_convert changes
+	base64_convert: adjusted some memory size values
+	memdbg: ex mode, fix for #843
+	base64_convert: changes buffer size logic. Added tests for overflow
+	  logic to exe file
+	scrypt: added ScryptKDF format, #368 fixed
+	snprintf: Fixes #851
+	scrypt: allow scrypt hashes built with more than 32 bytes
+	base64_convert: Enhancments and bug fixes. Added flags to contol
+	  processing
+	base64_convert: missed flag
+	base64_convert: missed changes to opencl
+	oracle: fix crash on garbage file
+	scrypt: fix #852
+	SKEY: valid() must pass checks in salt() also
+	base64_convert: full pass test suite. NO memory allocation required
+	  any more
+	base64_conv: added len functions. Added mime with dot handlng. Removed
+	  inline base64 code from scrypt and pbkdf2-sha256 formats
+	Fixed broken dyna40 as required by 01c44fd
+	dyna40 removed commented out broken hashed
+	net-sha1: needed to extend plaintext length
+	oracle: Partial fix for names > 16 <= 30 bytes
+	pcap2john: merged all pcap files. #838
+	cleanup of pcap2john.py
+	pcap2john: fixed var bug, commented out a couple for now
+	pcap2john.py: all handled now. Exceptions caught and ignored
+	configure: wpcap lib added to get cygwin working with pcap
+	pcap python, moved orignal files to unused
+	memdbg: moved from targets in Makefile.in into configure --enable
+	  values
+	base64_convert: added flags to converts and flags to command line tool
+	pass_gen: added ODF, cleaned up many commented out code blocks. Added
+	  some stubs
+	memdbg: added back as make targets. Removed memdbg_defines.h
+	pass_gen: allow -conten=xxx for ODF format
+	configure: cygwin with latest compiler release requires _GNU_SOURCE
+	  also
+	NSS removal, some extra stuff still was left
+	base64_convert: fixed some bugs in base64-hex, added new mime alphabet
+	pbkdf2-hmac-sha1: added 2 new hash types in a prepare()
+	change signature to show this hash should get a utf-8 password
+	pass_gen.pl: added mozilla format hashes
+	mozilla: optimizations, removal of gladman hmac code
+	opencl_pbkdf2_sha1: add new passlib types in prepare
+	ODF: memset missed in salt function (found by TS)
+	pass_gen: put in wrong value into iteration for ODF (found by TS)
+	pass_gen: bug fixed in odf-aes code
+	pass_gen: wrong quote used
+	DEFAULT_ALIGN. Worked on cleaning up some of these (issue #317)
+	fixed BE core caused by f5366a2. NOTE all fmt_default_binary_hash_x
+	  requires this alignment
+	openbsd-softraid: split long test string.
+	openbsg-softraid: fixed compile issue on certain versions of oSSL
+	openbsd-softraid: Fixed BE issues, reduced bin size
+	openbsd-softraid: wrong spelling
+	openbsd-softraid: reduced the binary size
+	zip: fixed crash on aligned systems, sparc, etc
+	zip, fixed BE and alignment issue
+	zip: one of the BE changes were missed
+	DEFAULT_ALIGN. Worked on cleaning up more of these (issue #317)
+	gpg: core fixed in BE caused by 6c1b599
+	DEFAULT_ALIGN. Worked on cleaning up more of these (issue #317)
+	DEFAULT_ALIGN. Worked on cleaning up more of these (issue #317)
+	DEFAULT_ALIGN. Worked on cleaning up last formats (issue #317)
+	DEFAULT_ALIGN. Removed define from formats.h. Fixes issue #317
+	dynamic BAD_OMP. from issue #375
+	rar: On vc, pthreads is likely not there
+	salted-sha1: added OMP support, fixes isssue #424
+	gpg: better valid. Will be a fix for #499, when ported
+	gpg-opencl: ported valid from CPU, with caveat
+	VMS: disable from BE builds
+	configure: BE output small bug
+	SIPdump: remove array index of char warning
+	tgtsnarf: warning about no trailing end of line fixed
+	EPI: sped up some, removed numerous punned pointer deref warnings
+	aix-ssha: removed some punned pointer warnings
+	several formats, removed punned pointer warnings
+	several formats, removed punned pointer warnings
+	configure: add ARCH_LITTLE_ENDIAN=1 to CFLAGS
+	configure: missed autoconfig.h.in in last commit
+	john: allow command line switch vs name of exe for extra utils (VC
+	  only for now)
+	gpg2john: Fixed #477
+	gpg2john: mute subkeys (unless -S is used). Static added to many
+	  globals
+	gpg2john: bug in last code. Algo 16 was broken by my recent changes
+	wpapcap2john: removed unverified key output (fixes #729 )
+	opencl-GRUB: add LWS/GWS output in verbose mode, as listed in #839
+	rar2john.c: POC code to add RAR5 support
+	crypt: problems with #defines and strdup
+	rar2john: switched vint handing from 32 bit to 64 bit in rar5 code
+	rar2john: wrong value in hash line, removed some comments, split
+	  defines into header
+	removed exe bits from header
+	rar2john: Completed, merge rar5 into rar2john
+	rar5tojohn.py: moved to unused
+	dynamic_40: updated comments and screen output listing pad20, vs pad16
+	sse-intrinsic: SHA512 interface was 64 bit, but implementation was
+	  using 32 bit../run/john -test=0 -form=bitcoin Now both use 64 bit
+	bitcoin: OMP bug in 32 bit linux, caused buffer to not align 16 bytes.
+	  New helper functions created
+	memory.h: fixed spelling error
+	pass_gen.pl: odf making null padding on content too large. It worked,
+	  BUT was more than needed.
+	rar2john.h some DOS eol in the file removed
+	rar2john: handle rar files where main header record is longer than 13
+	  bytes (seen on rar files with ascii comments
+	benchmark-unify: updated to v1.8.0 formats
+	benchmark-unify: missed an older md5crypt
+	rar_fmt: removed allows_unaligned stuff in crypt all, and speed is
+	  faster (5% or so)
+	rar_fmt: additional simplifications, simplifying prior to SIMD port
+	rar_fmt: even more simplifications
+	pass_gen: added rar4 -hp mode, -p mode should be doable
+	pass_gen.pl: added rar -p stored file processing
+	pass_gen.pl: added -p for compressed data
+	pass_gen: merged all 3 rar4 types into a single rar function
+	rar: put a hash of the data object into the salt structure
+	pass_gen: some cleanup
+	rar: -hp was also having same salt problems
+	opencl-rar: same issue (same salt) in this format as seen in the CPU
+	pass_gen: odf-1, found a bug in Crypt::OpenSSL::AES, and worked around
+	  it
+	pass_gen: work around AES decrypt bug in a different way
+	pass_gen: hopefully last fix for perl bug on ODF AES
+	pass_gen.pl: added zip (AES) format
+	zip: Speling eror in comment, lol
+	opencl-pbkdf2-sha512: working on #539 issues
+	pbkdf2-hmac-sha512-opencl: Added code to allow all input types, per
+	  #539
+	pbkdf2-sha512-opencl: issue #539, failing on some GPUs. Hopefully this
+	  helps
+	opencl-pbkdf5-sha512: converted 8 to 64 bit from password and salt
+	opencl-pbkdf2-sha512: disable $ until we can get it working better
+	configure: --help message, work towards #612
+	configure: Fixed #612
+	configure: removed a couple stray \n from --help
+	configure help macro: added copywrite to edits, and some comment
+	  changes
+	ecryptfs: better valid, and custom salt was not working
+	ecryptfs: added another non-default salt test string
+	pass_gen: added ecryptfs handling
+	pass_gen: added Office_2007. functionized get_salt, get_iv,
+	  get_content
+	BFEgg: adjusted OMP_SCALE, removed a FIXME
+	bitcoin: improved valid() and removed many FIXMEs
+	pbkdf2-sha512-opencl: switch uint64(32)_t to ulong/uint, some other
+	  cleanup changes
+	7z: improved valid(), removed many FIXMEs
+	cloudkeychain: use better pbkdf2, updated valid(), removed many FIXMEs
+	cloudkeychain: Added SIMD code to the PBKDF2-sha512
+	androidfde: Added SIMD code for pbkdf2-sha1, and removed a FIXME
+	blackberry: set OMP_SCALE and removed FIXMEs
+	missed one of my comments
+	cloudkeychain: reduced size of salt object and removed a FIXME
+	eigrp: improved OMP scaling
+	dmg: Added SIMD and removed a FIXME
+	dmg: MMX code should continue and not return
+	Makefile.legacy: removed old no longer c project mozilla2john
+	base64_convert: quite compiler warnings
+	base64_convert: bugs in base64_valid_length, flags not being used
+	  properly
+	django: better Valid() and removed a few FIXMEs
+	EFS: better valid, ported to SIMD, cleaned up code
+	EFS: small changes to valid
+	gpg: improved valid even more
+	gpg2john: removed a couple fixmes
+	hsrp: Removed FIXMEs, OMP tuned
+	EPI and hsrp: removed some fixmes and OMP tuned hsrp
+	hsrp: Oops. last commit had code being copied the wrong way and was
+	  lost.
+	mozilla: improved valid()
+	Some fixmes in KRB4, md2
+	sip: changed benchmarks to get 1salt/many-salt tests
+	net-md5/sha1: fixed salt length bug, and removed a FIXME comment
+	twofish plug: removed fixme and changed code to not crash on
+	  REQUIRE_ALIGN machines
+	removed a few FIXMES
+	tcp_md5: fixed salt size bug, remvoed a FIXME
+	keepass: added twofish test hash. We will want to test on Sparc also,
+	  since twofish may have issues
+	VTP: better valid(), OMP scaling, improved speed a lot. removed FIXMEs
+	eigrp: improved valid()
+	dmg-opencl: comment removed same as in CPU format
+	rsvp: improved valid()
+	dmg-opencl: comment removed same as in CPU format
+	efs: format renamed
+	lastpass: improved valid()
+	odf: improved valid()
+	pbkdf2-hmac-sha512: improved valid()
+	rawSHA256: added cisco4 and base64 processing where needed
+	rawSHA256: left DEBUG turned on.
+	gpg-opencl: improved valid()
+	pkzip: removed a spurious fixme comment
+	pbkdf2-hmac-sha512: better valid()
+	new atou() function added to misc.c
+	7z: change to usage of atou() in valid and in getsalt */
+	7z: opencl fix to mirror CPU version
+	pass_gen.pl: added office-2010 and 2013 formats
+	pass_gen.pl: simplified the office formats with functions
+	OMP scaling for several formats which had OMP_SCALE=1 and FIXMEs
+	haval: OMP scaling (45x and 35x improvments seen)
+	nukedclan: improved OMP scaling (about 80% gain)
+	radmin: improved OMP scaling some
+	SIP: improved OMP scaling
+	openssl_enc: improved cygwin OMP speed 64x. Improved non-omp speed a
+	  tiny bit
+	truecrypt: for sha512, switch to internal pbkdf2 header. SIMD for
+	  sha512. Moved logic from cmp_all/cmp_one into crypt_all
+	truecrypt: salt align, fixed failure in not turning off sha512 and
+	  ripemd160 in the whirlpool init
 
-Dhiru Kholia (319):
+Dhiru Kholia (356):
 	Add support for cracking KeePass 2.x files.
 	Get rid of BOM.
 	Add support for cracking PKCS #12 files.
@@ -3659,8 +4382,45 @@ Dhiru Kholia (319):
 	add license in rar5tojohn.py
 	get the dedication bit right
 	Support cracking EIGRP hashes. Highly speculative!
+	Minor fixes for ssh-ng format
+	misc. minor tweaks for recent cisco formats
+	add support for cracking NTP authentication hashes
+	slightly better NTP packet parser
+	fix a weird zip overflow bug
+	Add support for cracking VTP (Cisco L2 protocol) hashes
+	add support for cracking sha1($salt.$pass.$salt) hashes
+	Add support for cracking Dahua hashes
+	add more dahua test vectors
+	Add support for cracking RSVP authentication hashes
+	Fix and enable SHA-1 support in RSVP format
+	slightly better valid for vtp format
+	Add support for cracking IS-IS authentication hashes
+	remove exec. bit from a bunch of files
+	Support cracking BFD authentication hashes
+	Support SHA-1 hashes in BFD authentication
+	slightly saner EIGRP format
+	more EIGRP fixes
+	Enable cracking of more EIGRP hashes
+	More EIGRP related fixes and improvements
+	Add support for cracking MDC-2 hashes
+	disable the old and crappy mozilla format
+	clean rewrite of the mozilla format
+	mozilla2john.py helper script
+	restore the partial hash pre-computation trick
+	Add support for HMAC-SHA-256 hashes in EIGRP format
+	Handle custom salt in ecryptfs2john.py [1/2]
+	Handle custom salt in ecryptfs format [2/2]
+	Add a test HMAC-SHA-256 hash in EIGRP format
+	Fix memory clobbering in EIGRP format
+	Clean up unused/ folder
+	Clean up weird comments in dmg format
+	Clean up weird comments in blockchain format
+	Clean up comments in pcap2john.py
+	Clean up kwallet2john.py (PEP8 fixes + a nasty logic fix)
+	More EFS clean ups
+	make little things right (TM)
 
-Claudio André (169):
+Claudio André (192):
 	Selectively pick stuff from Claudio's experimental tree.
 	Get some nt-opencl fixes from Claudio
 	Rebase on bleeding and copied 'my' formats.
@@ -3868,8 +4628,36 @@ Claudio André (169):
 	Fix a formatting problem in sha256 OpenCL kernel file.
 	On --list=opencl-devices show PCI information for NVIDIA cards.
 	Last but one improvement for sha256crypt OpenCL file.
+	Revert to use a safer memory access patern. Need to investigate what
+	  is wrong with the program.
+	Changed the API of OpenCL auto-tune init(). Make a relation between
+	  the ADL/NVML device to "our" device number, using PCI ID (#750)
+	Clean code in SHA2 fast OpenCL formats.
+	Fix a bug in auto-tune seen in NVIDIA boards.
+	Get the NVIDIA compute capability information.
+	Optimize sha512crypt-opencl kernel.
+	Fix a compilation problem on OSX.
+	Minor clean-ups on sha512crypt (OpenCL) prepare.
+	Shrink prepare binary code. On AMD driver 14.9 they reintroduced a
+	  bug, workaround have to be applied again.
+	Well, use this setup to fool the AMD driver madness.
+	Fix a couple of comments.
+	Shrink sha512 prepare further.
+	Use __constant if possible (sha512crypt-opencl).
+	Do a sane job during OpenCL initialization.
+	Optimization for NVIDIA SM 30 and beyond . Gives 2000 c/s on GTX
+	  Titan. - For future usage.
+	Fix to #739.
+	Ops: I missed one cast.
+	'Improve' Raw-sha1 initialization too.
+	Performance improvement on HD 6770 (4%). - also, apply magnum's
+	  request to auto-tune always.
+	Better for auto-tune on NVIDIA.
+	Small tweaks for cryptsha512.
+	Fix for auto-tune using Intel GPU.
+	Avoid any type conversion between int and uint.
 
-Frank Dittrich (153):
+Frank Dittrich (166):
 	Add get_source to --list=help:format-methods output
 	Add binary and salt alignment to --list=format-[all-]details
 	Fix typo in doc/README-OPENCL
@@ -4047,8 +4835,25 @@ Frank Dittrich (153):
 	  version
 	Re-add reporting of load time versions of NSS and NSPR libraries
 	Fix a bug "use of logical '&&' with constant" in bench .c
+	Fix generic build (-f Makefile.legacy) breakage which was caused
+	  by commit 7ec88f81a3826006e667ff8b2972ec89d87612fa.
+	Fix two compiler warnings for non-sse OMP builds
+	rsvp format: report hash algorithm used for hmac as tunable cost
+	Mute warning ‘sig_handle_reload’ defined but not used if SIGUSR2
+	  is not defined
+	Report some more tunable costs
+	rsvp format: fix valid() to avoid segfaults
+	Make sure --list=format-methods also reports source()
+	Use "Disabled in configuration file" instead of "Disabled in john.pot"
+	  in --list=format-all-details.
+	One .include [List.Rules:OldOffice] in [List.Rules:Jumbo] is enough.
+	Adjust bash completion bodge from commit a15e12e for --fork=
+	Fix gcc warning introduced in 172e933
+	OpenBSD SoftRAID: report iteration count as tunable cost and add
+	  BENCHMARK_COMMENT
+	s/varient/variant in comments
 
-Sayantan Datta (45):
+Sayantan Datta (73):
 	mscash2-opencl:added multi-gpu interfaces,bug fixes
 	opencl-mscash2:no segfault when mixing devices with large difference
 	  in speed
@@ -4097,6 +4902,38 @@ Sayantan Datta (45):
 	  innocuous in most cases turned out to be the root cause of this
 	  issue.
 	Updated mask mode. Now faster than incremental, as it should.
+	new mask mode ?H placeholder bugfix and some other optimizations.
+	duplicate check before inserting character following an escape
+	  sequence.
+	improved performance when using node/fork with mask mode.
+	Generates skipped chunk using session/restore.
+	mask mode resumes accurately without any loss of work.
+	fixed compiler error introduced in 4b0612750841044
+	fix ETA calculation with affecting work division among nodes.
+	split mask mode functions.
+	Hybrid-mask enabled.
+	mask mode bug fix and performance improvement in hybrid modes
+	mask mode now supports --max-length
+	Hybrid mask: Bail out with error if [the used portion of] hybrid does
+	  not contain ?w
+	Hybrid-mask: leaner code for supporting --max-length param.
+	Hybrid mask:added varibles mask_add_len and num_qw
+	Hybrid-mask:fix mask_add_len
+	mask mode escape sequence fix
+	mask mode add_mask_len fix following the escape sequence fix
+	mask mode escape sequence fix
+	mask mode leaner code for max/min len iteration
+	mask mode: fix redundant key generation after exhausting all
+	  placeholders when using min-length
+	mask mode fix: 9 does not gets dropped with--mask=[112010-998-0]
+	mask mode fix: sequence of characters in a placeholder now conforms
+	  with rules.
+	mask-mode: fix distribution of candidates when using -min-length
+	mask-mode: fix session/resume when using -min-length and fork.
+	mask-mode: leaner code.
+	mask-mode: update mask_tot_cand in truncate_mask()
+	stretch mask with last placeholder
+	mask-mode:fix issues with mask stretching.
 
 Lukas Odzioba (27):
 	CUDA multigpu first draft for pwsafe
@@ -4255,6 +5092,14 @@ Tavis Ormandy (7):
 	make cmp_all parallel in omp builds.
 	Revert cmp_all omp parallel, performs poorly on AMD
 
+Spiros Fraganastasis (6):
+	add support for new openssh key format
+	initial keyfile support in keepass format
+	initial support for twofish in keepass
+	add support for cracking VRRP hashes
+	minor misc. fixes
+	add support for cracking GLBP hashes
+
 Aleksey Cherepanov (4):
 	add --skip-self-tests option
 	fix to repare build with defined BENCH_BUILD after add of
@@ -4268,24 +5113,12 @@ Jeremi Gosney (4):
 	sse/xop implementation of raw-sha512
 	fixes for rawSHA512_ng format
 
-junmuz (3):
-	CUDA Multi Device Options Parsing Support Added
-	Minor fix for Checking device id
-	GPU DEVICE LIMIT log
-
 Michael Samuel (3):
 	Add External:KDEPaste. This takes advantage of CVE-2013-2120 to find
 	  seeds that KDE Paste applet uses to generate passwords.
 	Add license notice to KDEPaste external mode.
 	Add external mode that replays the Awesome Password Generator 1.3.2
 	  RNG.
-
-Deepika Dutta (3):
-	Add bit-sliced MSCHAPv2 implementation by Deepika. This is added as a
-	  new separate format: We now have mschapv2, mschapv2-bs and
-	  mschapv2-naive.
-	Add MMX version of DES_bs_crypt_plain().
-	netntlm bitsliced conversion
 
 Sanju Kholia (3):
 	add instructions for cracking KWallet
@@ -4299,9 +5132,22 @@ Costin Enache (3):
 	  x4).
 	Silly bug in sunmd5 busted the rounds parsing.
 
-Nicolas Collignon (2):
-	McAfee ePO passwords converter
-	enhance mcafee_epo2john.py and add license blurb
+Thiébaud Weksteen (3):
+	Add support for cracking OpenBSD disk encryption
+	Add script to extract OpenBSD softraid hashes from disk image
+	Use internal PBKDF2 implementation for OpenBSD softraid hashing
+
+Deepika Dutta (3):
+	Add bit-sliced MSCHAPv2 implementation by Deepika. This is added as a
+	  new separate format: We now have mschapv2, mschapv2-bs and
+	  mschapv2-naive.
+	Add MMX version of DES_bs_crypt_plain().
+	netntlm bitsliced conversion
+
+junmuz (3):
+	CUDA Multi Device Options Parsing Support Added
+	Minor fix for Checking device id
+	GPU DEVICE LIMIT log
 
 Michael Ledford (2):
 	Adds support for multiple keys existing in an encrypted DMG. When
@@ -4311,6 +5157,10 @@ Michael Ledford (2):
 	  sparseimage files and a new heuristic is added to the DMG format
 	  plugin to look for 'Apple'.
 	Adds support for DMG sparsebundle files.
+
+Nicolas Collignon (2):
+	McAfee ePO passwords converter
+	enhance mcafee_epo2john.py and add license blurb
 
 Dániel Bali (1):
 	Add OpenCL target for Win32/Cygwin.
@@ -4333,11 +5183,17 @@ Christopher Gurnee (1):
 	  ossl one for an almost 2x speed improvement. Also a small speed
 	  boost to the non-SSE variant by avoiding EVP_BytesToKey().
 
-Lord_Rafa (1):
-	fixed the arm profile to compile in parallella
+Oleksii Shevchuk (1):
+	Add clWaitForEvents first
+
+Péter Kasza (1):
+	add support for IBM ClearQuest hashes
 
 Sergey V (1):
 	make blockchain-opencl non-plug
+
+Lord_Rafa (1):
+	fixed the arm profile to compile in parallella
 
 Konrads Smelkovs (1):
 	Perl utility to convert AIX's /etc/security/passwd to JtR format
@@ -4345,11 +5201,8 @@ Konrads Smelkovs (1):
 Guth (1):
 	pdf2john, validate trailer
 
-Spiros Fraganastasis (1):
-	add support for new openssh key format
-
 Sébastien Kaczmarek (1):
-	Lotus Domino 8.5 format added.
+	Lotus Domino 8.5 format added
 
 
 The following changes were made between 1.7.9-jumbo-7 and 1.7.9-jumbo-8:
