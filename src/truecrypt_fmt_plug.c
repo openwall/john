@@ -112,6 +112,7 @@ static void init_ripemd160(struct fmt_main *self)
 	init(self);
 	md = EVP_get_digestbyname("RIPEMD160");
 	num_iterations = 2000;
+	is_sha512=0;
 	is_ripemd160=1;
 	loop_inc=1;
 }
@@ -120,6 +121,7 @@ static void init_sha512(struct fmt_main *self)
 	init(self);
 	num_iterations = 1000;
 	is_sha512=1;
+	is_ripemd160=0;
 	loop_inc=1;
 #if SSE_GROUP_SZ_SHA512
 	loop_inc=SSE_GROUP_SZ_SHA512;
@@ -131,6 +133,7 @@ static void init_whirlpool(struct fmt_main *self)
 	md = EVP_get_digestbyname("whirlpool");
 	num_iterations = 1000;
 	loop_inc=1;
+	is_sha512=is_ripemd160=0;
 }
 
 static char *prepare(char *split_fields[10], struct fmt_main *self)
@@ -197,7 +200,8 @@ static void set_salt(void *salt)
 
 static void* get_salt(char *ciphertext)
 {
-	static struct cust_salt s;
+	static char buf[sizeof(struct cust_salt)+4];
+	struct cust_salt *s = (struct cust_salt *)mem_align(buf, 4);
 	unsigned int i;
 
 	while(*ciphertext != '$') ciphertext++;
@@ -205,11 +209,11 @@ static void* get_salt(char *ciphertext)
 
 	// Convert the hexadecimal salt in binary
 	for(i = 0; i < 64; i++)
-		s.salt[i] = (atoi16[ARCH_INDEX(ciphertext[2*i])] << 4) | atoi16[ARCH_INDEX(ciphertext[2*i+1])];
+		s->salt[i] = (atoi16[ARCH_INDEX(ciphertext[2*i])] << 4) | atoi16[ARCH_INDEX(ciphertext[2*i+1])];
 	for(; i < 512; i++)
-		s.bin[i-64] = (atoi16[ARCH_INDEX(ciphertext[2*i])] << 4) | atoi16[ARCH_INDEX(ciphertext[2*i+1])];
+		s->bin[i-64] = (atoi16[ARCH_INDEX(ciphertext[2*i])] << 4) | atoi16[ARCH_INDEX(ciphertext[2*i+1])];
 
-	return &s;
+	return s;
 }
 
 static void *get_binary(char *ciphertext)
