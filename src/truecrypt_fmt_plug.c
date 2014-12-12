@@ -45,6 +45,8 @@ john_register_one(&fmt_truecrypt_whirlpool);
 #include "formats.h"
 #include "crc32.h"
 #include "pbkdf2_hmac_sha512.h"
+#include "pbkdf2_hmac_ripemd160.h"
+#include "pbkdf2_hmac_whirlpool.h"
 #ifdef _OPENMP
 #include <omp.h>
 #define OMP_SCALE               1
@@ -259,10 +261,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		if (is_sha512) /* current the only one I have 'ready' */
 			pbkdf2_sha512((const unsigned char*)key_buffer[i], strlen(key_buffer[i]), psalt->salt, 64, num_iterations, key, sizeof(key), 0);
 #endif
+		else if (is_ripemd160)
+			pbkdf2_ripemd160((const unsigned char*)key_buffer[i], strlen(key_buffer[i]), psalt->salt, 64, num_iterations, key, sizeof(key), 0);
 		else
-//if is_ripemd160=1;
-// pbkdf2_ripemd160()
-			PKCS5_PBKDF2_HMAC(key_buffer[i], strlen(key_buffer[i]), psalt->salt, 64, num_iterations, md, sizeof(key), key);
+			//PKCS5_PBKDF2_HMAC(key_buffer[i], strlen(key_buffer[i]), psalt->salt, 64, num_iterations, md, sizeof(key), key);
+			pbkdf2_whirlpool((const unsigned char*)key_buffer[i], strlen(key_buffer[i]), psalt->salt, 64, num_iterations, key, sizeof(key), 0);
 
 		//printf ("\npwd : %s    i=%d count=%d\n", key_buffer[i], i, count);
 		//dump_stuff_msg("slt", psalt->salt, 64);
