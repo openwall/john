@@ -56,7 +56,7 @@ static void _pbkdf2_sha1_load_hmac(const unsigned char *K, int KL, SHA_CTX *pIpa
 		opad[i] ^= K[i];
 	}
 	// save off the first 1/2 of the ipad/opad hashes.  We will NEVER recompute this
-	// again, during the rounds, but reuse it. Saves 1/4 the SHA1's
+	// again, during the rounds, but reuse it. Saves 1/2 the SHA1's
 	SHA1_Init(pIpad);
 	SHA1_Update(pIpad, ipad, SHA_CBLOCK);
 	SHA1_Init(pOpad);
@@ -81,9 +81,9 @@ static void _pbkdf2_sha1(const unsigned char *S, int SL, int R, ARCH_WORD_32 *ou
 	memcpy(&ctx, pOpad, sizeof(SHA_CTX));
 	SHA1_Update(&ctx, tmp_hash, SHA_DIGEST_LENGTH);
 	SHA1_Final(tmp_hash, &ctx);
-
+#if !defined (PBKDF1_LOGIC)
 	memcpy(out, tmp_hash, SHA_DIGEST_LENGTH);
-
+#endif
 	for(i = 1; i < R; i++) {
 		memcpy(&ctx, pIpad, sizeof(SHA_CTX));
 		SHA1_Update(&ctx, tmp_hash, SHA_DIGEST_LENGTH);
