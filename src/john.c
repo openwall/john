@@ -216,6 +216,11 @@ static void john_register_one(struct fmt_main *format)
 			if (strstr(format->params.label, "-opencl") ||
 			    strstr(format->params.label, "-cuda")) return;
 		}
+		else if (!strcasecmp(options.format, "cpu-dynamic")) {
+			if (strstr(format->params.label, "-opencl") ||
+			    strstr(format->params.label, "-cuda")) return;
+			if ( (format->params.flags & FMT_DYNAMIC) == FMT_DYNAMIC) return;
+		}
 		else if (!strcasecmp(options.format, "gpu")) {
 			if (!strstr(format->params.label, "-opencl") &&
 			    !strstr(format->params.label, "-cuda")) return;
@@ -226,6 +231,22 @@ static void john_register_one(struct fmt_main *format)
 		else if (!strcasecmp(options.format, "cuda")) {
 			if (!strstr(format->params.label, "-cuda")) return;
 		}
+#ifdef _OPENMP
+		else if (!strcasecmp(options.format, "omp")) {
+			if ((format->params.flags & FMT_OMP) != FMT_OMP) return;
+		}
+		else if (!strcasecmp(options.format, "cpu+omp")) {
+			if ((format->params.flags & FMT_OMP) != FMT_OMP) return;
+			if (strstr(format->params.label, "-opencl") ||
+			    strstr(format->params.label, "-cuda")) return;
+		}
+		else if (!strcasecmp(options.format, "cpu+omp-dynamic")) {
+			if ((format->params.flags & FMT_OMP) != FMT_OMP) return;
+			if (strstr(format->params.label, "-opencl") ||
+			    strstr(format->params.label, "-cuda")) return;
+			if ( (format->params.flags & FMT_DYNAMIC) == FMT_DYNAMIC) return;
+		}
+#endif
 		else if (strcasecmp(options.format, format->params.label))
 			return;
 	}

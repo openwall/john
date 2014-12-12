@@ -392,6 +392,9 @@ void opt_print_hidden_usage(void)
 	printf(", opencl");
 #endif
 #endif
+#ifdef _OPENMP
+	printf(", omp");
+#endif
 	printf("\n");
 	puts("--subformat=FORMAT        pick a benchmark format for --format=crypt");
 	puts("--mkpc=N                  request a lower max. keys per crypt");
