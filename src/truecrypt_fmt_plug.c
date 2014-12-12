@@ -227,7 +227,7 @@ static void *get_binary(char *ciphertext)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int i, j, count = *pcount;
+	int i, count = *pcount;
 
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -237,7 +237,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		EVP_CIPHER_CTX cipher_context;
 		unsigned char key[192];
 		unsigned char tweak[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-		int outlen;
+		int outlen, j;
 
 #if SSE_GROUP_SZ_SHA512
 		unsigned char Keys[SSE_GROUP_SZ_SHA512][192];
@@ -268,26 +268,17 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		//dump_stuff_msg("slt", psalt->salt, 64);
 		//dump_stuff_msg("key", key, sizeof(key));
 
+		for (j = 0; j < loop_inc; ++j) {
 #if SSE_GROUP_SZ_SHA512
-		if (is_sha512) {
-			for (j = 0; j < loop_inc; ++j) {
-				// Try to decrypt using AES
-				EVP_CIPHER_CTX_init(&cipher_context);
-				EVP_DecryptInit_ex(&cipher_context, EVP_aes_256_xts(), NULL, Keys[j], tweak);
-				// I am NOT sure why (unsigned char*)first_block_dec[i+j] is not working for ripemd and whirlpool, but 
-				// for SOME reason, it is not!!!  That is why there is this strange if block.  (compiler bug??)
-				EVP_DecryptUpdate(&cipher_context, (unsigned char*)first_block_dec[i+j], &outlen, psalt->bin, 16);
-				//dump_stuff_msg("fb ", first_block_dec[i+j], 16);
-			}
-		} else {
+			if (is_sha512)
+				memcpy(key, Keys[j], sizeof(key));
 #endif
-		EVP_CIPHER_CTX_init(&cipher_context);
-		EVP_DecryptInit_ex(&cipher_context, EVP_aes_256_xts(), NULL, key, tweak);
-		EVP_DecryptUpdate(&cipher_context, (unsigned char*)first_block_dec[i], &outlen, psalt->bin, 16);
-		//dump_stuff_msg("fb ", first_block_dec[i], 16);
-#if SSE_GROUP_SZ_SHA512
+			// Try to decrypt using AES
+			EVP_CIPHER_CTX_init(&cipher_context);
+			EVP_DecryptInit_ex(&cipher_context, EVP_aes_256_xts(), NULL, key, tweak);
+			EVP_DecryptUpdate(&cipher_context, (unsigned char*)first_block_dec[i+j], &outlen, psalt->bin, 16);
+			//dump_stuff_msg("fb ", first_block_dec[i+j], 16);
 		}
-#endif
 	}
 	return count;
 }
