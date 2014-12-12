@@ -17,9 +17,21 @@
  * Updated in Dec, 2014 by JimF.  This is a ugly format, and was converted
  * into a more standard (using crypt_all) format.  The PKCS5_PBKDF2_HMAC can
  * be replaced with faster pbkdf2_xxxx functions (possibly with SIMD usage).
- * this has been done for sha512.  ripemd160 should be easy (it is in already
- * done in pass_gen.pl).  Whirlpool did not give same results in pass_gen.pl
- * so I will investigate more,
+ * this has been done for sha512.  ripemd160  and Whirlpool pbkdf2 header
+ * files have been created.  Also, proper decrypt is now done, (in cmp_exact)
+ * and we test against the 'TRUE' signature, and against 2 crc32's which
+ * are computed over the 448 bytes of decrypted data.  So we now have a
+ * full 96 bits of hash.  There will be no way we get false positives from
+ * this slow format.
+ *
+ * things that would be nice:
+ *  - produce better/faster pbkdf2_hmac_ripemd160.h and
+ *    pbkdf2_hmac_whirlpool.h files
+ *  - eliminate the oSSL problem of EVP_AES_256_XTS. It would
+ *    mean having to handle the XTS chaining protocol, but should
+ *    be something we 'could' do in JtR easily.
+ *  - Merge into a single format (instead of 3). It may make sense to add
+ *    a 4th format, keeping existing 3, but have the new one handle them all.
  */
 
 #include "arch.h"
@@ -59,8 +71,8 @@ john_register_one(&fmt_truecrypt_whirlpool);
 #define MAX_CIPHERTEXT_LENGTH	(512*2+32)
 #define SALT_SIZE		sizeof(struct cust_salt)
 #define SALT_ALIGN		4
-#define BINARY_SIZE		4
-#define BINARY_ALIGN		4
+#define BINARY_SIZE		0
+#define BINARY_ALIGN		1
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 
@@ -74,6 +86,7 @@ static int loop_inc;
 struct cust_salt {
 	unsigned char salt[64];
 	unsigned char bin[512-64];
+	// the hash_type, loop_inc and iterations should be put here.
 } *psalt;
 
 static struct fmt_tests tests_ripemd160[] = {
@@ -209,16 +222,6 @@ static void* get_salt(char *ciphertext)
 		s->bin[i-64] = (atoi16[ARCH_INDEX(ciphertext[2*i])] << 4) | atoi16[ARCH_INDEX(ciphertext[2*i+1])];
 
 	return s;
-}
-
-static void *get_binary(char *ciphertext)
-{
-	static union {
-		unsigned char TRUE[4];
-		unsigned jnk;
-	} x;
-	memcpy(x.TRUE, "TRUE", 4);	// NOTE, 'TRUE' is always the binary we look for.
-	return x.TRUE;
 }
 
 static int crypt_all(int *pcount, struct db_salt *salt)
@@ -411,7 +414,7 @@ struct fmt_main fmt_truecrypt = {
 		prepare,
 		valid_ripemd160,
 		ms_split,
-		get_binary,
+		fmt_default_binary,
 		get_salt,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
@@ -474,7 +477,7 @@ struct fmt_main fmt_truecrypt_sha512 = {
 		prepare,
 		valid_sha512,
 		ms_split,
-		get_binary,
+		fmt_default_binary,
 		get_salt,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
@@ -528,7 +531,7 @@ struct fmt_main fmt_truecrypt_whirlpool = {
 		prepare,
 		valid_whirlpool,
 		ms_split,
-		get_binary,
+		fmt_default_binary,
 		get_salt,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
