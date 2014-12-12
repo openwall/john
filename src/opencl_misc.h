@@ -24,9 +24,12 @@
 
 #if !gpu_nvidia(DEVICE_INFO) || nvidia_sm_5x(DEVICE_INFO)
 #define USE_BITSELECT
-#elif gpu_nvidia(DEVICE_INFO) && !nvidia_sm_5x(DEVICE_INFO)
+#elif gpu_nvidia(DEVICE_INFO)
 #define OLD_NVIDIA
 #endif
+
+#define MIN(a, b)		(((a) < (b)) ? (a) : (b))
+#define MAX(a, b)		(((a) > (b)) ? (a) : (b))
 
 #define CONCAT(TYPE,WIDTH)	TYPE ## WIDTH
 #define VECTOR(x, y)		CONCAT(x, y)
@@ -53,12 +56,26 @@ inline uint SWAP32(uint x)
 {
 	return bitselect(rotate(x, 24U), rotate(x, 8U), 0x00FF00FFU);
 }
+#define SWAP64(n)	  \
+	rotate(n & 0xFF000000FF000000UL, 8UL)  | \
+	rotate(n & 0x00FF000000FF0000UL, 24UL) | \
+	rotate(n & 0x0000FF000000FF00UL, 40UL) | \
+	rotate(n & 0x000000FF000000FFUL, 56UL)
 #else
 inline uint SWAP32(uint x)
 {
 	x = rotate(x, 16U);
 	return ((x & 0x00FF00FF) << 8) + ((x >> 8) & 0x00FF00FF);
 }
+#define SWAP64(n)	  \
+	(((n) << 56) \
+	 | (((n) & 0xff00) << 40) \
+	 | (((n) & 0xff0000) << 24) \
+	 | (((n) & 0xff000000) << 8) \
+	 | (((n) >> 8) & 0xff000000) \
+	 | (((n) >> 24) & 0xff0000) \
+	 | (((n) >> 40) & 0xff00) \
+	 | ((n) >> 56))
 #endif
 
 #if defined(SCALAR)
@@ -70,6 +87,35 @@ inline MAYBE_VECTOR_UINT VSWAP32(MAYBE_VECTOR_UINT x)
 	x = rotate(x, 16U);
 	return ((x & 0x00FF00FF) << 8) + ((x >> 8) & 0x00FF00FF);
 }
+#endif
+
+#if gpu_nvidia(DEVICE_INFO)
+// Faster on nvidia, no difference on AMD
+#ifdef __ENDIAN_LITTLE__
+#define GET_UINT32BE(n, b, i)	(n) = SWAP32(((uint*)(b))[(i) >> 2])
+#define PUT_UINT32BE(n, b, i)	((uint*)(b))[(i) >> 2] = SWAP32(n)
+#else
+#define GET_UINT32BE(n, b, i)	(n) = ((uint*)(b))[(i) >> 2]
+#define PUT_UINT32BE(n, b, i)	((uint*)(b))[(i) >> 2] = (n)
+#endif
+
+#else /* Safe code for any arch */
+
+#define GET_UINT32BE(n, b, i)	  \
+	{ \
+		(n) = ((uint) (b)[(i)] << 24) \
+			| ((uint) (b)[(i) + 1] << 16) \
+			| ((uint) (b)[(i) + 2] <<  8) \
+			| ((uint) (b)[(i) + 3]      ); \
+	}
+
+#define PUT_UINT32BE(n, b, i)	  \
+	{ \
+		(b)[(i)    ] = (uchar) ((n) >> 24); \
+		(b)[(i) + 1] = (uchar) ((n) >> 16); \
+		(b)[(i) + 2] = (uchar) ((n) >>  8); \
+		(b)[(i) + 3] = (uchar) ((n)      ); \
+	}
 #endif
 
 /* Any device can do 8-bit reads BUT these macros are scalar only! */

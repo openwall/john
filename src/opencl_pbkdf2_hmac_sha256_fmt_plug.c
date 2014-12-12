@@ -1,9 +1,9 @@
 /*
-* This software is Copyright (c) 2013 Lukas Odzioba <ukasz at openwall dot net>
-* and it is hereby released to the general public under the following terms:
-* Redistribution and use in source and binary forms, with or without modification, are permitted.
-*
-*/
+ * This software is Copyright (c) 2013 Lukas Odzioba <ukasz at openwall dot net>
+ * and it is hereby released to the general public under the following terms:
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ */
 #ifdef HAVE_OPENCL
 
 #if FMT_EXTERNS_H
@@ -29,8 +29,6 @@ john_register_one(&fmt_opencl_pbkdf2_hmac_sha256);
 
 #define BENCHMARK_COMMENT	", rounds=12000"
 #define BENCHMARK_LENGTH	-1
-#define DEFAULT_LWS		64
-#define DEFAULT_GWS		(64*256)
 
 #define BINARY_ALIGN		4
 #define SALT_ALIGN		1
@@ -47,14 +45,11 @@ john_register_one(&fmt_opencl_pbkdf2_hmac_sha256);
 #define FMT_CISCO8		"$8$"
 #define KERNEL_NAME		"pbkdf2_sha256_kernel"
 #define SPLIT_KERNEL_NAME	"pbkdf2_sha256_loop"
-#define OCL_CONFIG		"pbkdf2-hmac-sha256"
-#define STEP			0
-#define SEED			1024
 
 #define MIN(a, b)		(((a) < (b)) ? (a) : (b))
 #define MAX(a, b)		(((a) > (b)) ? (a) : (b))
 #define HASH_LOOPS		(13*71) // factors 13, 13, 71
-#define ITERATIONS		(12000 - 1)
+#define ITERATIONS		12000
 
 typedef struct {
 	uint8_t length;
@@ -120,17 +115,20 @@ static cl_int cl_error;
 static cl_mem mem_in, mem_out, mem_salt, mem_state;
 static cl_kernel split_kernel;
 
+#define STEP			0
+#define SEED			1024
+#define OCL_CONFIG		"pbkdf2-hmac-sha256"
+
 static const char * warn[] = {
-        "P xfer: "  ,  ", S xfer: "   , ", init: " , ", crypt: ",
-        ", res xfer: "
+        "xfer: ",  ", init: " , ", crypt: ", ", res xfer: "
 };
 
-static int split_events[] = { 3, -1, -1 };
+static int split_events[] = { 2, -1, -1 };
 
 static int crypt_all(int *pcount, struct db_salt *_salt);
 static int crypt_all_benchmark(int *pcount, struct db_salt *_salt);
 
-//This file contains auto-tuning routine(s). Has to be included after formats definitions.
+// This file contains auto-tuning routine(s). Has to be included after formats definitions.
 #include "opencl-autotune.h"
 #include "memdbg.h"
 
@@ -151,18 +149,14 @@ static void create_clobj(size_t kpc, struct fmt_main *self)
 	host_crack = mem_calloc(kpc * sizeof(crack_t));
 	host_salt = mem_calloc(sizeof(salt_t));
 
-	mem_in =
-		CLCREATEBUFFER(CL_RO, kpc * sizeof(pass_t),
-		"Cannot allocate mem in");
-	mem_salt =
-		CLCREATEBUFFER(CL_RO, sizeof(salt_t), "Cannot allocate mem salt");
-	mem_out =
-		CLCREATEBUFFER(CL_WO, kpc * sizeof(crack_t),
-		"Cannot allocate mem out");
-	mem_state =
-		CLCREATEBUFFER(CL_RW, kpc * sizeof(state_t),
-		"Cannot allocate mem state");
-
+	mem_in = CLCREATEBUFFER(CL_RO, kpc * sizeof(pass_t),
+	                        "Cannot allocate mem in");
+	mem_salt = CLCREATEBUFFER(CL_RO, sizeof(salt_t),
+	                          "Cannot allocate mem salt");
+	mem_out = CLCREATEBUFFER(CL_WO, kpc * sizeof(crack_t),
+	                         "Cannot allocate mem out");
+	mem_state = CLCREATEBUFFER(CL_RW, kpc * sizeof(state_t),
+	                           "Cannot allocate mem state");
 
 	CLKERNELARG(crypt_kernel, 0, mem_in, "Error while setting mem_in");
 	CLKERNELARG(crypt_kernel, 1, mem_salt, "Error while setting mem_salt");
@@ -211,7 +205,9 @@ static void init(struct fmt_main *self)
 {
 	char build_opts[64];
 
-        snprintf(build_opts, sizeof(build_opts), "-DHASH_LOOPS=%u", HASH_LOOPS);
+        snprintf(build_opts, sizeof(build_opts),
+                 "-DHASH_LOOPS=%u -DPLAINTEXT_LENGTH=%u",
+                 HASH_LOOPS, PLAINTEXT_LENGTH);
         opencl_init("$JOHN/kernels/pbkdf2_hmac_sha256_kernel.cl",
             gpu_id, build_opts);
 
@@ -223,12 +219,12 @@ static void init(struct fmt_main *self)
 	    clCreateKernel(program[gpu_id], SPLIT_KERNEL_NAME, &cl_error);
 	HANDLE_CLERROR(cl_error, "Error creating split kernel");
 
-	//Initialize openCL tuning (library) for this format.
+	// Initialize openCL tuning (library) for this format.
 	opencl_init_auto_setup(SEED, HASH_LOOPS, split_events,
-		warn, 3, self, create_clobj, release_clobj,
+		warn, 2, self, create_clobj, release_clobj,
 		sizeof(state_t), 0);
 
-	//Auto tune execution from shared/included code.
+	// Auto tune execution from shared/included code.
 	self->methods.crypt_all = crypt_all_benchmark;
 	autotune_run(self, ITERATIONS, 0, 10000000000ULL);
 	self->methods.crypt_all = crypt_all;
@@ -336,6 +332,9 @@ static void *binary(char *ciphertext)
 static void set_salt(void *salt)
 {
 	memcpy(host_salt, salt, SALT_SIZE);
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_salt,
+		CL_FALSE, 0, sizeof(salt_t), host_salt, 0, NULL, NULL),
+	    "Copy salt to gpu");
 }
 
 static void opencl_limit_gws(int count)
@@ -346,7 +345,7 @@ static void opencl_limit_gws(int count)
 
 static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
 {
-	int i, count = *pcount;
+	int count = *pcount;
 	size_t gws;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
@@ -357,34 +356,34 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
 	printf("LWS = %d, GWS = %d\n", (int)local_work_size, (int)gws);
 #endif
 
-	/// Copy data to gpu
+	// Copy data to gpu
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in,
 		CL_FALSE, 0, gws * sizeof(pass_t), host_pass, 0,
 		NULL, multi_profilingEvent[0]), "Copy data to gpu");
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_salt,
-		CL_FALSE, 0, sizeof(salt_t), host_salt, 0, NULL, multi_profilingEvent[1]),
-	    "Copy salt to gpu");
 
-	/// Run kernel
+	// Run 1st kernel
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel,
 		1, NULL, &gws, lws, 0, NULL,
-		multi_profilingEvent[2]), "Run kernel");
-	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish");
+		multi_profilingEvent[1]), "Run kernel");
 
-	for(i = 0; i < 1; i++) {
-		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], split_kernel,
-			1, NULL, &gws, lws, 0, NULL,
-			multi_profilingEvent[3]), "Run split kernel");
-		HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish");
-		opencl_process_event();
-	}
-	/// Read the result back
+	// Warm-up run
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel,
+		1, NULL, &gws, lws, 0, NULL,
+		multi_profilingEvent[1]), "Run kernel");
+
+	// Run loop kernel
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel,
+		1, NULL, &gws, lws, 0, NULL,
+		multi_profilingEvent[1]), "Run kernel");
+
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], split_kernel,
+		1, NULL, &gws, lws, 0, NULL,
+		multi_profilingEvent[2]), "Run split kernel");
+
+	// Read the result back
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out,
-		CL_FALSE, 0, gws * sizeof(crack_t), host_crack, 0,
-		NULL, multi_profilingEvent[4]), "Copy result back");
-
-	/// Await completion of all the above
-	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish");
+		CL_TRUE, 0, gws * sizeof(crack_t), host_crack, 0,
+		NULL, multi_profilingEvent[3]), "Copy result back");
 
 	return count;
 }
@@ -392,9 +391,8 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int i, count = *pcount;
-	int loops = host_salt->rounds / HASH_LOOPS;
+	int loops = (host_salt->rounds + HASH_LOOPS - 1) / HASH_LOOPS;
 
-	loops += host_salt->rounds % HASH_LOOPS > 0;
 	opencl_limit_gws(count);
 
 #if 0
@@ -402,20 +400,15 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	printf("LWS = %d, GWS = %d\n", (int)local_work_size, (int)global_work_size);
 #endif
 
-	/// Copy data to gpu
+	// Copy data to gpu
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in,
 		CL_FALSE, 0, global_work_size * sizeof(pass_t), host_pass, 0,
 		NULL, NULL), "Copy data to gpu");
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_salt,
-		CL_FALSE, 0, sizeof(salt_t), host_salt, 0, NULL, NULL),
-	    "Copy salt to gpu");
 
-	/// Run kernel
+	// Run kernel
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel,
 		1, NULL, &global_work_size, &local_work_size, 0, NULL,
 		profilingEvent), "Run kernel");
-	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish");
-
 
 	for(i = 0; i < loops; i++) {
 		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], split_kernel,
@@ -424,13 +417,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish");
 		opencl_process_event();
 	}
-	/// Read the result back
+	// Read the result back
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out,
-		CL_FALSE, 0, global_work_size * sizeof(crack_t), host_crack, 0,
+		CL_TRUE, 0, global_work_size * sizeof(crack_t), host_crack, 0,
 		NULL, NULL), "Copy result back");
 
-	/// Await completion of all the above
-	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish");
 	return count;
 }
 
@@ -469,7 +460,7 @@ static char *get_key(int index)
 {
 	static char ret[PLAINTEXT_LENGTH + 1];
 	memcpy(ret, host_pass[index].v, PLAINTEXT_LENGTH);
-	ret[MIN(host_pass[index].length, PLAINTEXT_LENGTH)] = 0;
+	ret[host_pass[index].length] = 0;
 	return ret;
 }
 
