@@ -44,6 +44,7 @@ john_register_one(&fmt_truecrypt_whirlpool);
 #include "common.h"
 #include "formats.h"
 #include "crc32.h"
+//#define PBKDF2_HMAC_SHA512_ALSO_INCLUDE_CTX
 #include "pbkdf2_hmac_sha512.h"
 #include "pbkdf2_hmac_ripemd160.h"
 #include "pbkdf2_hmac_whirlpool.h"
@@ -65,7 +66,6 @@ john_register_one(&fmt_truecrypt_whirlpool);
 
 static char (*key_buffer)[PLAINTEXT_LENGTH + 1];
 static char (*first_block_dec)[16];
-static const EVP_MD* md = NULL;
 static int num_iterations;
 static int is_sha512=0;
 static int is_ripemd160=0;
@@ -82,6 +82,7 @@ static struct fmt_tests tests_ripemd160[] = {
 	{NULL}
 };
 static struct fmt_tests tests_sha512[] = {
+{"truecrypt_SHA_512$aa582afe64197a3cfd4faf7697673e5e14414369da3f716400414f63f75447da7d3abdc65a25ea511b1772d67370d6c349d8000de66d65861403093fecfb85719e1d46158d24324e5a2c0ee598214b1b2e7eac761dbde8cb85bcb33f293df7f30c9e44a3fa97bf1c70e9986677855873fa2435d9154ccaed8f28d68f16b10adcce7032d7c1742d322739d02c05457859abdaa176faa95c674d2a1092c30832dd2afd9a319599b4d1db92ffe6e48b3b29e566d5c51af091839699f5ad1715730fef24e94e39a6f40770b8320e30bf972d810b588af88ce3450337adbec0a10255b20230bcfca93aa5a0a6592cd6038312181c0792c59ec9e5d95a6216497d39ae28131869b89368e82371718970bf9750a7114c83d87b1b0cd16b6e8d41c4925d15ec26107e92847ec1bb73363ca10f3ad62afa8b0f95ff13cdbe217a1e8a74508ef439ed2140b26d5538b8d011a0d1e469f2a6962e56964adc75b90d9c6a16e88ad0adb59a337f8abb3f9d76f7f9acad22853e9dbbce13a4f686c6a802243b0901972af3c6928511609ac7b957b352452c4347acd563a72faa86a46522942fdc57f32d48c5148a2bb0bc2c3dbc9851385f816f2ece958957082c0a8fe69f647be675d87fcb8244912abc277a3242ee17e1d522f85598417559cb3a9f60b755e5b613069cb54c05a4c5d2fbd3ca6ba793320aeb0e109f8b21852daf2d9ed74dd9", "password"},
 {"truecrypt_SHA_512$73f6b08614dc4ffbd77d27a0815b0700d6b612f573ccd6c8937e8d154321e3c1c1c67dd348d4d3bc8304e94a3a6ec0c672de8396a9a6b26b12393195b7daa4225a9d3a134229be011f8179791bb00c31b5c132c8dbad5a6f8738487477c409b3c32d90b07be8d7a3a9faa95d37ab6faccc459d47f029e25adcea48cee83eaa35b7acc3f849717000421d92ac46e6f16ec3dccacd3ffae76a48280977d2a6727027d9d6ff9c4c98405359ee382f6dd1eca0d7007cbe804b81485c1085e74b58d3eb1e3c7ebdc1e1ab1384e4440ab6ca7beed7e0ef7d1e0da5ffc3cd89f7b6ac8a9257ee369d397ac1e112f75382ddbe6f7317ec20c46cb7b2111d0d91570e90b4c01a0b8205fcdf4d0cadcf4a067b8f285a541f1d649894fb3ade29a2ee0575524455d489c299dde215bea3254f7d43aa4e4011a39bdb6e7473bc29f588e659fdbf065cc4a336ba42f2b6c07479cf3e544978150fb013da7db22afcb4f8384e39e2edfa30a4cbe5e84a07c54ba66663bb9284836cc5a8ba7489d3f7f92aec6d9f4e264c90c2af6181082bd273197bc42c325cb1de31006dd55425e3f210d2ddd7973978eec865d3226bb1e30a9897146d90d79a73070e87f0182981ea85f15f948ae1958af7704fabecd6f07e20be70be9f9c38a5c5e5c8b17be648f011b2c40f62d6ac51de932add5bdb47bb428fd510b004a7aa79321b03ed7aa202be439fbf", "password" },
 {"truecrypt_SHA_512$cfd9e5757da139b32d117cd60f86f649400615dc218981106dfadd44598599a7ec0ace42de61506fe8d81b5c885861cdb26e0c38cb9adfcff27ba88872220ccd0914d4fa44bab5a708fe6864e0f665ac71d87e7e97b3724d610cf1f6ec09fa99da40126f63868654fed3381eaa8176f689e8e292c3cb68e43601d5804bc2e19d86722c21d42204e158b26b720e7b8f7580edce15469195dd7ed711b0fcb6c8abc253d0fd93cc784d5279de527fbdcfb357780635a5c363b773b55957d7efb472f6e6012489a9f0d225573446e5251cfb277a1365eed787e0da52f02d835667d74cc41fa4002cc35ad1ce276fbf9d73d6553ac0f8ab6961901d292a66df814a2cbda1b41f29aeec88ed15e7d37fe84ac5306b5a1b8d2e1f2c132e5c7d40ca7bb76d4ff87980ca4d75eaac5066b3ed50b53259554b9f922f7cee8e91847359d06e448da02cbeeecc78ca9bee2899a33dfa04a478ca131d33c64d6de5f81b219f11bed6ff3c0d56f26b3a27c79e7c55b6f76567a612166ce71028e3d3ae7e5abd25faec5e2e9dc30719baa2c138e26d6f8e3799a72b5e7b1c2a07c12cea452073b72f6e429bb17dd23fe3934c9e406bb4060083f92aa100c2e82ca40664f65c02cbc800c5696659f8df84db17edb92de5d4f1ca9e5fe71844e1e8c4f8b19ce7362fb3ca5467bf65122067c53f011648a6663894b315e6c5c635bec5bd39da028041", "123" },
 	{NULL}
@@ -104,15 +105,10 @@ static void init(struct fmt_main *self)
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	first_block_dec = mem_calloc_tiny(sizeof(*first_block_dec) *
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	/* OpenSSL init, cleanup part is left to OS */
-	//SSL_load_error_strings();
-	//SSL_library_init();
-	OpenSSL_add_all_algorithms();
 }
 static void init_ripemd160(struct fmt_main *self)
 {
 	init(self);
-	md = EVP_get_digestbyname("RIPEMD160");
 	num_iterations = 2000;
 	is_sha512=0; is_ripemd160=1;
 	loop_inc=1;
@@ -120,7 +116,6 @@ static void init_ripemd160(struct fmt_main *self)
 static void init_sha512(struct fmt_main *self)
 {
 	init(self);
-	md = EVP_get_digestbyname("SHA512");
 	num_iterations = 1000;
 	is_sha512=1; is_ripemd160=0;
 	loop_inc=1;
@@ -131,7 +126,6 @@ static void init_sha512(struct fmt_main *self)
 static void init_whirlpool(struct fmt_main *self)
 {
 	init(self);
-	md = EVP_get_digestbyname("whirlpool");
 	num_iterations = 1000;
 	is_sha512=is_ripemd160=0;
 	loop_inc=1;
@@ -258,19 +252,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			pbkdf2_sha512_sse((const unsigned char **)pin, lens, psalt->salt, 64, num_iterations, &(x.poutc), sizeof(key), 0);
 		}
 #else
-		if (is_sha512) /* current the only one I have 'ready' */
+		if (is_sha512)
 			pbkdf2_sha512((const unsigned char*)key_buffer[i], strlen(key_buffer[i]), psalt->salt, 64, num_iterations, key, sizeof(key), 0);
 #endif
 		else if (is_ripemd160)
 			pbkdf2_ripemd160((const unsigned char*)key_buffer[i], strlen(key_buffer[i]), psalt->salt, 64, num_iterations, key, sizeof(key), 0);
 		else
-			//PKCS5_PBKDF2_HMAC(key_buffer[i], strlen(key_buffer[i]), psalt->salt, 64, num_iterations, md, sizeof(key), key);
 			pbkdf2_whirlpool((const unsigned char*)key_buffer[i], strlen(key_buffer[i]), psalt->salt, 64, num_iterations, key, sizeof(key), 0);
-
-		//printf ("\npwd : %s    i=%d count=%d\n", key_buffer[i], i, count);
-		//dump_stuff_msg("slt", psalt->salt, 64);
-		//dump_stuff_msg("key", key, sizeof(key));
-
 		for (j = 0; j < loop_inc; ++j) {
 #if SSE_GROUP_SZ_SHA512
 			if (is_sha512)
@@ -280,7 +268,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			EVP_CIPHER_CTX_init(&cipher_context);
 			EVP_DecryptInit_ex(&cipher_context, EVP_aes_256_xts(), NULL, key, tweak);
 			EVP_DecryptUpdate(&cipher_context, (unsigned char*)first_block_dec[i+j], &outlen, psalt->bin, 16);
-			//dump_stuff_msg("fb ", first_block_dec[i+j], 16);
 		}
 	}
 	return count;
@@ -301,67 +288,74 @@ static int cmp_one(void* binary, int index)
 	if (!memcmp(first_block_dec[index], "TRUE", 4))
 		return 1;
 	return 0;
-#if 0
-	unsigned char key[192];
-	unsigned char tweak[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-	int outlen;
-	unsigned char first_block_dec[16];
-	EVP_CIPHER_CTX cipher_context;
-
-	// Key Strengthening
-	//is_ripemd160=1;
-
-	if (is_sha512)
-		pbkdf2_sha512((const unsigned char*)key_buffer[index], strlen(key_buffer[index]), psalt->salt, 64, num_iterations, key, sizeof(key), 0);
-	else
-		PKCS5_PBKDF2_HMAC(key_buffer[index], strlen(key_buffer[index]), psalt->salt, 64, num_iterations, md, sizeof(key), key);
-
-	// Try to decrypt using AES
-	EVP_CIPHER_CTX_init(&cipher_context);
-	EVP_DecryptInit_ex(&cipher_context, EVP_aes_256_xts(), NULL, key, tweak);
-	//EVP_DecryptUpdate(&cipher_context, first_block_dec, &outlen, binary, 16);
-	EVP_DecryptUpdate(&cipher_context, first_block_dec, &outlen, psalt->bin, 16);
-	// If first 4 bytes is 'TRUE' successful decryption
-	if(first_block_dec[0] == 84 && first_block_dec[1] == 82 && first_block_dec[2] == 85 && first_block_dec[3] == 69)
-	{
-		// int i;
-		// unsigned char crc32[4];
-		// unsigned char know_crc32[4];
-		// unsigned char* bin_ptr = ((unsigned char*)binary)+256;
-		// CRC32_t check_sum;
-		// CRC32_Init(&check_sum);
-
-		// know_crc32[0] = first_block_dec[8];
-		// know_crc32[1] = first_block_dec[9];
-		// know_crc32[2] = first_block_dec[10];
-		// know_crc32[3] = first_block_dec[11];
-
-		////Check that crc32 checksum are valid
-		// for(i = 0; i < 16; i++, bin_ptr+=16)
-		// {
-			//// We need to "tweak" the tweak array: Its complex(i dont know the format) to convert i,n XTS params to an array
-			// EVP_DecryptUpdate(&cipher_context, first_block_dec, &outlen, bin_ptr, 16);
-			// CRC32_Update(&check_sum, first_block_dec, 16);
-		// }
-
-		// CRC32_Final(crc32, check_sum);
-		// printf("Real: %i %i %i %i Decrypt: %i %i %i %i\n", (int)know_crc32[0], (int)know_crc32[1], (int)know_crc32[2], (int)know_crc32[3],
-		// (int)crc32[0], (int)crc32[1], (int)crc32[2], (int)crc32[3]);
-
-		// TODO: Do not use this code, use the commented up
-		if(!first_block_dec[12] && !first_block_dec[13] && !first_block_dec[14] && !first_block_dec[15])
-			return 1;
-	}
-
-	return 0;
-#endif
 }
 
-static int cmp_exact(char *source, int index)
+static int cmp_exact(char *source, int idx)
 {
-	if (!memcmp(first_block_dec[index], "TRUE", 4) && !memcmp(&first_block_dec[index][12], "\0\0\0\0", 4))
+#if 1
+	if (!memcmp(first_block_dec[idx], "TRUE", 4) && !memcmp(&first_block_dec[idx][12], "\0\0\0\0", 4))
 		return 1;
 	return 0;
+#else
+	EVP_CIPHER_CTX cipher_context;
+	unsigned char key[192];
+	unsigned char tweak[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+	int outlen, i;
+	unsigned char block_dec[16];
+	unsigned char crc32[4];
+	unsigned char know_crc32[4];
+	//unsigned char* bin_ptr = ((unsigned char*)binary)+256;
+	unsigned char* bin_ptr = psalt->bin;
+	CRC32_t check_sum, check_sums[32];
+	int crcs_done[32] = {0}, j;
+	FILE *fp;
+
+	if (is_sha512)
+		pbkdf2_sha512((const unsigned char*)key_buffer[idx], strlen(key_buffer[idx]), psalt->salt, 64, num_iterations, key, sizeof(key), 0);
+	else if (is_ripemd160)
+		pbkdf2_ripemd160((const unsigned char*)key_buffer[idx], strlen(key_buffer[idx]), psalt->salt, 64, num_iterations, key, sizeof(key), 0);
+	else
+		pbkdf2_whirlpool((const unsigned char*)key_buffer[idx], strlen(key_buffer[idx]), psalt->salt, 64, num_iterations, key, sizeof(key), 0);
+	EVP_CIPHER_CTX_init(&cipher_context);
+	EVP_DecryptInit_ex(&cipher_context, EVP_aes_256_xts(), NULL, key, tweak);
+	EVP_DecryptUpdate(&cipher_context, block_dec, &outlen, psalt->bin, 16);
+
+	CRC32_Init(&check_sum);
+	for (j = 0; j < 32; ++j)
+		CRC32_Init(&check_sums[j]);
+
+	know_crc32[0] = block_dec[8];
+	know_crc32[1] = block_dec[9];
+	know_crc32[2] = block_dec[10];
+	know_crc32[3] = block_dec[11];
+
+	//Check that crc32 checksum are valid
+	fp = fopen("dec.data", "wb");
+	for(i = 0; i < (512-64)/16; i++, bin_ptr+=16) {
+		EVP_DecryptUpdate(&cipher_context, block_dec, &outlen, bin_ptr, 16);
+		j = 0;
+		if (i >= 16)
+			j += (i-15);
+		for (; j <= i; ++j) {
+			CRC32_Update(&check_sums[j], block_dec, 16);
+			crcs_done[j]++;
+		}
+		fwrite(block_dec, 1, 16, fp);
+	}
+	fclose(fp);
+	for (j = 0; j < 32; ++j) {
+		check_sums[j] = ~check_sums[j];
+		check_sums[j] = ~check_sums[j];
+	}
+
+	CRC32_Final(crc32, check_sum);
+	printf("Real: %x %x %x %x Decrypt: %x %x %x %x\n", (int)know_crc32[0], (int)know_crc32[1], (int)know_crc32[2], (int)know_crc32[3],
+	(int)crc32[0], (int)crc32[1], (int)crc32[2], (int)crc32[3]);
+
+	if (!memcmp(first_block_dec[idx], "TRUE", 4) && !memcmp(&first_block_dec[idx][12], "\0\0\0\0", 4))
+		return 1;
+	return 0;
+#endif
 }
 
 static void set_key(char* key, int index)
