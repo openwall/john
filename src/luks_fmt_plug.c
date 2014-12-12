@@ -273,6 +273,7 @@ static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
 
 static void init(struct fmt_main *self)
 {
+	static int warned = 0;
 //	extern struct fmt_main fmt_luks;
 #ifdef _OPENMP
 	omp_t = omp_get_max_threads();
@@ -283,6 +284,26 @@ static void init(struct fmt_main *self)
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+
+/*
+ * LUKS format will need to be redesigned to address the issues mentioned in 
+ * https://github.com/magnumripper/JohnTheRipper/issues/557.
+ * This will require a change in john's hash representation for LUKS format.
+ * The redesign will happen after the next official jumbo release.
+ * To avoid having to support the current LUKS hash representation forever,
+ * just print a warning that the hash representation will change in future releases.
+ *
+ * So far, no "official" jumbo release supports the LUKS format, currently only
+ * users of bleeding-jumbo may have used LUKS format. These users should be able
+ * to re-run luks2john and retry the passwords that have been stored for the current LUKS hashes
+ * once the redesign of john's LUKS format implementation has been completed.)
+ */
+	if (!options.listconf && !(options.flags & FLG_TEST_CHK) && warned++ == 0) {
+		fprintf(stderr,
+		        "WARNING, LUKS format hash representation will change in future releases,\n"
+		        "see doc/README.LUKS\n"); // FIXME: address github issue #557 after 1.8.0-jumbo-1
+		fflush(stderr);
+	}
 
 //	 This printf will 'help' debug a system that truncates that monster hash, but does not cause compiler to die.
 //	printf ("length=%d end=%s\n", strlen(fmt_luks.params.tests[0].ciphertext), &((fmt_luks.params.tests[0].ciphertext)[strlen(fmt_luks.params.tests[0].ciphertext)-30]));
