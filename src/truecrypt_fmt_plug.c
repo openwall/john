@@ -44,7 +44,7 @@ john_register_one(&fmt_truecrypt_whirlpool);
 #include "common.h"
 #include "formats.h"
 #include "crc32.h"
-//#define PBKDF2_HMAC_SHA512_ALSO_INCLUDE_CTX
+#define PBKDF2_HMAC_SHA512_ALSO_INCLUDE_CTX
 #include "pbkdf2_hmac_sha512.h"
 #include "pbkdf2_hmac_ripemd160.h"
 #include "pbkdf2_hmac_whirlpool.h"
@@ -290,25 +290,32 @@ static int cmp_one(void* binary, int index)
 	return 0;
 }
 
+// compare a BE string crc32, against crc32, and do it in a safe for non-aligned CPU way.
+// this function is not really speed critical.
+static int cmp_crc32s(unsigned char *given_crc32, CRC32_t comp_crc32) {
+	return given_crc32[0] == ((comp_crc32>>24)&0xFF) &&
+		   given_crc32[1] == ((comp_crc32>>16)&0xFF) &&
+		   given_crc32[2] == ((comp_crc32>> 8)&0xFF) &&
+		   given_crc32[3] == ((comp_crc32>> 0)&0xFF);
+}
+
 static int cmp_exact(char *source, int idx)
 {
-#if 1
+#if 0
 	if (!memcmp(first_block_dec[idx], "TRUE", 4) && !memcmp(&first_block_dec[idx][12], "\0\0\0\0", 4))
 		return 1;
-	return 0;
 #else
 	EVP_CIPHER_CTX cipher_context;
 	unsigned char key[192];
 	unsigned char tweak[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-	int outlen, i;
-	unsigned char block_dec[16];
-	unsigned char crc32[4];
-	unsigned char know_crc32[4];
-	//unsigned char* bin_ptr = ((unsigned char*)binary)+256;
-	unsigned char* bin_ptr = psalt->bin;
-	CRC32_t check_sum, check_sums[32];
-	int crcs_done[32] = {0}, j;
+	int outlen;
+	unsigned char decr_header[512-64];
+	CRC32_t check_sum;
+#if DEBUG
+	static int cnt;
+	char fname[20];
 	FILE *fp;
+#endif
 
 	if (is_sha512)
 		pbkdf2_sha512((const unsigned char*)key_buffer[idx], strlen(key_buffer[idx]), psalt->salt, 64, num_iterations, key, sizeof(key), 0);
@@ -316,46 +323,45 @@ static int cmp_exact(char *source, int idx)
 		pbkdf2_ripemd160((const unsigned char*)key_buffer[idx], strlen(key_buffer[idx]), psalt->salt, 64, num_iterations, key, sizeof(key), 0);
 	else
 		pbkdf2_whirlpool((const unsigned char*)key_buffer[idx], strlen(key_buffer[idx]), psalt->salt, 64, num_iterations, key, sizeof(key), 0);
+
+	// we have 448 bytes of header (64 bytes unencrypted salt were the first 64 bytes).
+	// decrypt it and look for 3 items.
 	EVP_CIPHER_CTX_init(&cipher_context);
 	EVP_DecryptInit_ex(&cipher_context, EVP_aes_256_xts(), NULL, key, tweak);
-	EVP_DecryptUpdate(&cipher_context, block_dec, &outlen, psalt->bin, 16);
+	EVP_DecryptUpdate(&cipher_context, decr_header, &outlen, psalt->bin, 512-64);
 
+	// first item we look for is a contstant string 'TRUE' in the first 4 bytes
+	if (memcmp(decr_header, "TRUE", 4))
+		return 0;
+
+	// now we look for 2 crc values.  At offset 8 is the first. This provided
+	// CRC should be the crc32 of the last 256 bytes of the buffer.
 	CRC32_Init(&check_sum);
-	for (j = 0; j < 32; ++j)
-		CRC32_Init(&check_sums[j]);
+	CRC32_Update(&check_sum, &decr_header[256-64], 256);
+	if (!cmp_crc32s(&decr_header[8], ~check_sum))
+		return 0;
 
-	know_crc32[0] = block_dec[8];
-	know_crc32[1] = block_dec[9];
-	know_crc32[2] = block_dec[10];
-	know_crc32[3] = block_dec[11];
-
-	//Check that crc32 checksum are valid
-	fp = fopen("dec.data", "wb");
-	for(i = 0; i < (512-64)/16; i++, bin_ptr+=16) {
-		EVP_DecryptUpdate(&cipher_context, block_dec, &outlen, bin_ptr, 16);
-		j = 0;
-		if (i >= 16)
-			j += (i-15);
-		for (; j <= i; ++j) {
-			CRC32_Update(&check_sums[j], block_dec, 16);
-			crcs_done[j]++;
-		}
-		fwrite(block_dec, 1, 16, fp);
-	}
+	// now we compute crc of the first part of the buffer, up to 4 bytes less than
+	// the start of that last 256 bytes (i.e. 188 bytes in total). Following this
+	// buffer we compute crc32 over, should be a 4 byte block that is what we are
+	// given as a match for this crc32 (of course, those 4 bytes are not part of
+	// the crc32.  The 4 bytes of provided crc32 is the only 4 bytes of the header
+	// which are not placed into 'some' CRC32 computation.
+	CRC32_Init(&check_sum);
+	CRC32_Update(&check_sum, decr_header, 256-64-4);
+	if (!cmp_crc32s(&decr_header[256-64-4], ~check_sum))
+		return 0;
+#if DEBUG
+	sprintf(fname, "tc_decr_header-%04d.dat", cnt++);
+	fp = fopen(fname, "wb");
+	fwrite(decr_header, 1, 512-64, fp);
 	fclose(fp);
-	for (j = 0; j < 32; ++j) {
-		check_sums[j] = ~check_sums[j];
-		check_sums[j] = ~check_sums[j];
-	}
-
-	CRC32_Final(crc32, check_sum);
-	printf("Real: %x %x %x %x Decrypt: %x %x %x %x\n", (int)know_crc32[0], (int)know_crc32[1], (int)know_crc32[2], (int)know_crc32[3],
-	(int)crc32[0], (int)crc32[1], (int)crc32[2], (int)crc32[3]);
-
-	if (!memcmp(first_block_dec[idx], "TRUE", 4) && !memcmp(&first_block_dec[idx][12], "\0\0\0\0", 4))
-		return 1;
-	return 0;
 #endif
+
+	// Passed 96 bits of tests.  This is the right password!
+	return 1;
+#endif
+	return 0;
 }
 
 static void set_key(char* key, int index)
