@@ -2331,11 +2331,18 @@ sub radmin {
 sub raw_sha {
 # this method sux, but I can find NO sha0 anywhere else in perl.
 # It does exist in "openssl dgst -sha"  however. Slow, but works.
-	$h = `echo -n '$_[1]' | openssl dgst -sha`;
-	chomp($h);
-	if (substr($h,0,9) eq "(stdin)= ") { $h = substr($h,9); }
-	if (substr($h,0,8) eq "(stdin)=") { $h = substr($h,8); }
-	print "u$u-raw_sha:$h:$u:0:$_[0]::\n";
+	#$h = `echo -n '$_[1]' | openssl dgst -sha`;
+	#chomp($h);
+	#if (substr($h,0,9) eq "(stdin)= ") { $h = substr($h,9); }
+	#if (substr($h,0,8) eq "(stdin)=") { $h = substr($h,8); }
+	#print "u$u-raw_sha:$h:$u:0:$_[0]::\n";
+
+	# found a way :)
+	require Net::SSLeay;
+	Net::SSLeay::OpenSSL_add_all_digests();
+	my $md = Net::SSLeay::EVP_get_digestbyname("sha");
+	$h = Net::SSLeay::EVP_Digest($_[1], $md);
+	print "u$u-raw_sha:".unpack("H*",$h).":$u:0:$_[0]::\n";
 }
 sub sybasease {
 	$salt=get_salt(8, 8, \@chrAsciiTextNum);
