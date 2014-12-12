@@ -105,7 +105,7 @@ my $gen_u; my $gen_s; my $gen_soutput, my $gen_stype; my $gen_s2; my $gen_pw; my
 my $gen_lastTokIsFunc; my $gen_u_do; my $dynamic_usernameType; my $dynamic_passType; my $salt2len; my $saltlen; my $gen_PWCase="";
 # pcode, and stack needed for pcode.
 my @gen_pCode; my @gen_Stack; my @gen_Flags;
-my $debug_pcode=0; my $gen_needs; my $gen_needs2; my $gen_needu; my $gen_singlesalt; my $hash_format;
+my $debug_pcode=0; my $gen_needs; my $gen_needs2; my $gen_needu; my $gen_singlesalt; my $hash_format; my $net_ssl_init_called = 0;
 #########################################################
 # These global vars settable by command line args.
 #########################################################
@@ -538,6 +538,18 @@ sub Uint32LERaw {
 sub Uint32BERaw {
 	my $i = $_[0];
 	return chr(($i>>24)%256).chr(($i>>16)%256).chr(($i>>8)%256).chr($i%256);
+}
+
+sub net_ssl_init {
+	if ($net_ssl_init_called == 1) { return; }
+	$net_ssl_init_called = 1;
+	require Net::SSLeay;
+	import Net::SSLeay qw(die_now die_if_ssl_error);
+	Net::SSLeay::load_error_strings();
+	Net::SSLeay::SSLeay_add_ssl_algorithms();    # Important!
+	Net::SSLeay::ENGINE_load_builtin_engines();  # If you want built-in engines
+	Net::SSLeay::ENGINE_register_all_complete(); # If you want built-in engines
+	Net::SSLeay::OpenSSL_add_all_digests();
 }
 ############################################################################################
 # returns salt.  Usage:  get_salt(len [,argsalt_len [,@character_set]] )
@@ -2338,8 +2350,7 @@ sub raw_sha {
 	#print "u$u-raw_sha:$h:$u:0:$_[0]::\n";
 
 	# found a way :)
-	require Net::SSLeay;
-	Net::SSLeay::OpenSSL_add_all_digests();
+	net_ssl_init;
 	my $md = Net::SSLeay::EVP_get_digestbyname("sha");
 	$h = Net::SSLeay::EVP_Digest($_[1], $md);
 	print "u$u-raw_sha:".unpack("H*",$h).":$u:0:$_[0]::\n";
