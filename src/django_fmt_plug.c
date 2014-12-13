@@ -276,7 +276,7 @@ static char *get_key(int index)
 }
 
 #if FMT_MAIN_VERSION > 11
-unsigned int iteration_count(void *salt)
+static unsigned int iteration_count(void *salt)
 {
 	struct custom_salt *my_salt;
 
