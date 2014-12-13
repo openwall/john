@@ -19,22 +19,31 @@
 #include <string.h>
 #include "sph_ripemd.h"
 
-#define RIPEMD_DIGEST_LENGTH 20
-#define RIPEMD_CBLOCK 64
+#if (AC_BUILT && HAVE_RIPEMD160) && 0
+// actually, built in sph_ripemd160 may be faster than oSSL build :(
+#include "openssl/ripemd.h"
+#define sph_ripemd160_context     RIPEMD160_CTX
+#define sph_ripemd160_init(a)	  RIPEMD160_Init(a)
+#define sph_ripemd160(a,b,c)	  RIPEMD160_Update(a,b,c)
+#define sph_ripemd160_close(b,a)  RIPEMD160_Final(a,b)
+#else
+#define RIPEMD160_DIGEST_LENGTH 20
+#define RIPEMD160_CBLOCK 64
+#endif
 
 static void _pbkdf2_ripemd160_load_hmac(const unsigned char *K, int KL, sph_ripemd160_context *pIpad, sph_ripemd160_context *pOpad) {
-	unsigned char ipad[RIPEMD_CBLOCK], opad[RIPEMD_CBLOCK], k0[RIPEMD_DIGEST_LENGTH];
+	unsigned char ipad[RIPEMD160_CBLOCK], opad[RIPEMD160_CBLOCK], k0[RIPEMD160_DIGEST_LENGTH];
 	int i;
 
-	memset(ipad, 0x36, RIPEMD_CBLOCK);
-	memset(opad, 0x5C, RIPEMD_CBLOCK);
+	memset(ipad, 0x36, RIPEMD160_CBLOCK);
+	memset(opad, 0x5C, RIPEMD160_CBLOCK);
 
-	if (KL > RIPEMD_CBLOCK) {
+	if (KL > RIPEMD160_CBLOCK) {
 		sph_ripemd160_context ctx;
 		sph_ripemd160_init(&ctx);
 		sph_ripemd160(&ctx, K, KL);
 		sph_ripemd160_close(&ctx, k0);
-		KL = RIPEMD_DIGEST_LENGTH;
+		KL = RIPEMD160_DIGEST_LENGTH;
 		K = k0;
 	}
 	for(i = 0; i < KL; i++) {
@@ -44,15 +53,15 @@ static void _pbkdf2_ripemd160_load_hmac(const unsigned char *K, int KL, sph_ripe
 	// save off the first 1/2 of the ipad/opad hashes.  We will NEVER recompute this
 	// again, during the rounds, but reuse it. Saves 1/2 the RIPEMD160's
 	sph_ripemd160_init(pIpad);
-	sph_ripemd160(pIpad, ipad, RIPEMD_CBLOCK);
+	sph_ripemd160(pIpad, ipad, RIPEMD160_CBLOCK);
 	sph_ripemd160_init(pOpad);
-	sph_ripemd160(pOpad, opad, RIPEMD_CBLOCK);
+	sph_ripemd160(pOpad, opad, RIPEMD160_CBLOCK);
 }
 
 static void _pbkdf2_ripemd160(const unsigned char *S, int SL, int R, ARCH_WORD_32 *out,
 	                     unsigned char loop, const sph_ripemd160_context *pIpad, const sph_ripemd160_context *pOpad) {
 	sph_ripemd160_context ctx;
-	unsigned char tmp_hash[RIPEMD_DIGEST_LENGTH];
+	unsigned char tmp_hash[RIPEMD160_DIGEST_LENGTH];
 	int i, j;
 
 	memcpy(&ctx, pIpad, sizeof(sph_ripemd160_context));
@@ -63,20 +72,20 @@ static void _pbkdf2_ripemd160(const unsigned char *S, int SL, int R, ARCH_WORD_3
 	sph_ripemd160_close(&ctx, tmp_hash);
 
 	memcpy(&ctx, pOpad, sizeof(sph_ripemd160_context));
-	sph_ripemd160(&ctx, tmp_hash, RIPEMD_DIGEST_LENGTH);
+	sph_ripemd160(&ctx, tmp_hash, RIPEMD160_DIGEST_LENGTH);
 	sph_ripemd160_close(&ctx, tmp_hash);
 
-	memcpy(out, tmp_hash, RIPEMD_DIGEST_LENGTH);
+	memcpy(out, tmp_hash, RIPEMD160_DIGEST_LENGTH);
 
 	for(i = 1; i < R; i++) {
 		memcpy(&ctx, pIpad, sizeof(sph_ripemd160_context));
-		sph_ripemd160(&ctx, tmp_hash, RIPEMD_DIGEST_LENGTH);
+		sph_ripemd160(&ctx, tmp_hash, RIPEMD160_DIGEST_LENGTH);
 		sph_ripemd160_close(&ctx, tmp_hash);
 
 		memcpy(&ctx, pOpad, sizeof(sph_ripemd160_context));
-		sph_ripemd160(&ctx, tmp_hash, RIPEMD_DIGEST_LENGTH);
+		sph_ripemd160(&ctx, tmp_hash, RIPEMD160_DIGEST_LENGTH);
 		sph_ripemd160_close(&ctx, tmp_hash);
-		for(j = 0; j < RIPEMD_DIGEST_LENGTH/sizeof(ARCH_WORD_32); j++) {
+		for(j = 0; j < RIPEMD160_DIGEST_LENGTH/sizeof(ARCH_WORD_32); j++) {
 			out[j] ^= ((ARCH_WORD_32*)tmp_hash)[j];
 		}
 	}
@@ -84,19 +93,19 @@ static void _pbkdf2_ripemd160(const unsigned char *S, int SL, int R, ARCH_WORD_3
 static void pbkdf2_ripemd160(const unsigned char *K, int KL, const unsigned char *S, int SL, int R, unsigned char *out, int outlen, int skip_bytes)
 {
 	union {
-		ARCH_WORD_32 x32[RIPEMD_DIGEST_LENGTH/sizeof(ARCH_WORD_32)];
-		unsigned char out[RIPEMD_DIGEST_LENGTH];
+		ARCH_WORD_32 x32[RIPEMD160_DIGEST_LENGTH/sizeof(ARCH_WORD_32)];
+		unsigned char out[RIPEMD160_DIGEST_LENGTH];
 	} tmp;
 	int loop, loops, i, accum=0;
 	sph_ripemd160_context ipad, opad;
 
 	_pbkdf2_ripemd160_load_hmac(K, KL, &ipad, &opad);
 
-	loops = (skip_bytes + outlen + (RIPEMD_DIGEST_LENGTH-1)) / RIPEMD_DIGEST_LENGTH;
-	loop = skip_bytes / RIPEMD_DIGEST_LENGTH + 1;
+	loops = (skip_bytes + outlen + (RIPEMD160_DIGEST_LENGTH-1)) / RIPEMD160_DIGEST_LENGTH;
+	loop = skip_bytes / RIPEMD160_DIGEST_LENGTH + 1;
 	while (loop <= loops) {
 		_pbkdf2_ripemd160(S,SL,R,tmp.x32,loop,&ipad,&opad);
-		for (i = skip_bytes%RIPEMD_DIGEST_LENGTH; i < RIPEMD_DIGEST_LENGTH && accum < outlen; i++) {
+		for (i = skip_bytes%RIPEMD160_DIGEST_LENGTH; i < RIPEMD160_DIGEST_LENGTH && accum < outlen; i++) {
 #if ARCH_LITTLE_ENDIAN
 			out[accum++] = ((uint8_t*)tmp.out)[i];
 #else

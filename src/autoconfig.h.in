@@ -264,6 +264,9 @@
 /* Define to 1 if you have the `putenv' function. */
 #undef HAVE_PUTENV
 
+/* Define to 1 if you have the `RIPEMD160' function. */
+#undef HAVE_RIPEMD160
+
 /* Define to 1 if you have the `rmdir' function. */
 #undef HAVE_RMDIR
 

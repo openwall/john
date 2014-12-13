@@ -10096,7 +10096,7 @@ if test "$with_commoncrypto" = yes; then :
 $as_echo "#define HAVE_SHA256 1" >>confdefs.h
 
 fi
-for ac_func in EVP_aes_256_xts SHA256 WHIRLPOOL AES_encrypt EVP_sha512 BIO_new
+for ac_func in EVP_aes_256_xts SHA256 WHIRLPOOL RIPEMD160 AES_encrypt EVP_sha512 BIO_new
 do :
   as_ac_var=`$as_echo "ac_cv_func_$ac_func" | $as_tr_sh`
 ac_fn_c_check_func "$LINENO" "$ac_func" "$as_ac_var"
