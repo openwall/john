@@ -552,11 +552,15 @@ void listconf_parse_late(void)
 				ntests--;
 			}
 			/*
-			 * attributes should be printed in the same sequence
-			 * as with format-details, but human-readable
+			 * According to doc/OPTIONS, attributes should be printed in
+			 * the same sequence as with format-details, but human-readable.
 			 */
 			printf("Format label                         %s\n", format->params.label);
-			printf("Disabled in configuration file       %s\n",
+			/*
+			 * Indented (similar to the flags), because this information is not printed
+			 * for --list=format-details
+			 */
+			printf(" Disabled in configuration file      %s\n",
 			       cfg_get_bool(SECTION_DISABLED,
 			                    SUBSECTION_FORMATS,
 			                    format->params.label, 0)
