@@ -550,8 +550,10 @@ static unsigned int iteration_count(void *salt)
 		return MS_OFFICE_2007_ITERATIONS;
 	else
 		/*
-		 * Is spinCount always 100000, or just in our
-		 * format tests?
+		 * Is spinCount always 100000, or just in our format tests?
+		 * Apparently, office2john.py extracts the spinCount from
+		 * the encrypted MS Office 2010/2013 document,
+		 * so it looks like that value can indeede vary.
 		 */
 		return (unsigned int) my_salt->spinCount;
 }
