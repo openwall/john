@@ -406,6 +406,16 @@ static int salt_hash(void *salt)
 	return v & (SALT_HASH_SIZE - 1);
 }
 
+#if FMT_MAIN_VERSION > 11
+static unsigned int iteration_count(void *salt)
+{
+	return (unsigned int)((struct cust_salt*)salt)->num_iterations;
+}
+static unsigned int tc_hash_algorithm(void *salt)
+{
+	return (unsigned int)((struct cust_salt*)salt)->hash_type;
+}
+#endif
 struct fmt_main fmt_truecrypt = {
 	{
 		"tc_aes_xts",                     // FORMAT_LABEL
@@ -430,7 +440,10 @@ struct fmt_main fmt_truecrypt = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 #if FMT_MAIN_VERSION > 11
-		{ NULL },
+		{
+			"hash algorithm [1: SHA512; 2: RIPEMD160; 3: Whirlpool]",
+			"iteration count",
+		},
 #endif
 		tests_all
 	}, {
@@ -443,7 +456,10 @@ struct fmt_main fmt_truecrypt = {
 		fmt_default_binary,
 		get_salt,
 #if FMT_MAIN_VERSION > 11
-		{ NULL },
+		{
+			tc_hash_algorithm,
+			iteration_count,
+		},
 #endif
 		fmt_default_source,
 		{
