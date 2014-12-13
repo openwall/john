@@ -39,6 +39,7 @@
 #define WHIRLPOOL_Init(a)         sph_whirlpool_init(a)
 #define WHIRLPOOL_Update(a,b,c)   sph_whirlpool(a,b,c)
 #define WHIRLPOOL_Final(a,b)      sph_whirlpool_close(b,a)
+#define WHIRLPOOL_DIGEST_LENGTH   (512/8)
 #endif
 
 // should be 128, but this is how oSSL does it in EVP_digest-whirlpool
