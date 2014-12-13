@@ -335,10 +335,7 @@ static char *get_key(int index)
 #if FMT_MAIN_VERSION > 11
 static unsigned int get_cost(void *salt)
 {
-	if (((struct custom_salt*)salt)->algo_type == 2)
-		return 5; // MD5
-	else
-		return 256; // HMAC-SHA256
+	return (unsigned int)((struct custom_salt*)salt)->algo_type;
 }
 #endif
 
@@ -359,7 +356,7 @@ struct fmt_main fmt_eigrp = {
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 #if FMT_MAIN_VERSION > 11
 		{
-			"algorithm",
+			"algorithm [2:MD5 3:HMAC-SHA-256]",
 		},
 #endif
 		tests

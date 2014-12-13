@@ -710,7 +710,7 @@ struct fmt_main fmt_crypt = {
 			 * (0: unknown)
 			 * descrypt, md5crypt, sunmd5, bcrypt, sha512crypt, sha256crypt
 			 */
-			"algorithm [1:descrypt/2:md5crypt/3:sunmd5/4:bcrypt/5:sha256crypt/6:sha512crypt]",
+			"algorithm [1:descrypt 2:md5crypt 3:sunmd5 4:bcrypt 5:sha256crypt 6:sha512crypt]",
 #if 1
 			"DUMMY algorithm specific tunable cost", // FIXME
 #endif

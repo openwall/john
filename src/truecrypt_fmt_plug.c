@@ -438,7 +438,7 @@ struct fmt_main fmt_truecrypt = {
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 #if FMT_MAIN_VERSION > 11
 		{
-			"hash algorithm [1: SHA512; 2: RIPEMD160; 3: Whirlpool]",
+			"hash algorithm [1:SHA512 2:RIPEMD160 3:Whirlpool]",
 		},
 #endif
 		tests_all

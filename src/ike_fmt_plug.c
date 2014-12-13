@@ -318,7 +318,7 @@ struct fmt_main fmt_ike = {
 #if FMT_MAIN_VERSION > 11
 		{
 #if IKE_REPORT_TUNABLE_COSTS
-			"hash algorithm used for hmac [1:MD5/2:SHA1]",
+			"hash algorithm used for hmac [1:MD5 2:SHA1]",
 #else
 			NULL
 #endif

@@ -270,7 +270,7 @@ struct fmt_main fmt_rsvp = {
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 #if FMT_MAIN_VERSION > 11
 		{
-			"hash algorithm used for hmac [1:MD5/2:SHA1]"
+			"hash algorithm used for hmac [1:MD5 2:SHA1]"
 		},
 #endif
 		tests
