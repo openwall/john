@@ -35,7 +35,7 @@ john_register_one(&fmt_cq);
 #define BENCHMARK_LENGTH    -1
 #define PLAINTEXT_LENGTH    32
 #define SALT_SIZE           64  // XXX double check this
-#define SALT_ALIGN          MEM_ALIGN_NONE  // XXX
+#define SALT_ALIGN          MEM_ALIGN_NONE
 #define BINARY_SIZE         4
 #define BINARY_ALIGN        sizeof(ARCH_WORD_32)
 #define MIN_KEYS_PER_CRYPT  1
