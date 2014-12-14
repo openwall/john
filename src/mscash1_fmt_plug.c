@@ -641,8 +641,8 @@ static int cmp_one(void * binary, int index)
 
 static int cmp_exact(char *source, int index)
 {
-	// This check its for the unreal case of collisions.
-	// It verify that the salts its the same.
+	// This check is for the unreal case of collisions.
+	// It verifies that the salts are the same.
 	unsigned int *salt=fmt_mscash.methods.salt(source);
 	unsigned int i=0;
 	for(;i<11;i++)
