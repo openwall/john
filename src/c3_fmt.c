@@ -673,22 +673,29 @@ static unsigned int  c3_algorithm_specific_cost1(void *salt)
 		return 1;
 
 	switch (algorithm) {
+		case 1:
+			// DES
+			return 25;
+		case 2:
+			// cryptmd5
+			return 1000;
+		case 3: // sun_md5
+			c3_salt = strstr(c3_salt, "rounds=");
+			if (!c3_salt) {
+				return 904+4096;	// default
+			}
+			sscanf(c3_salt, "rounds=%d", &rounds);
+			return rounds+4096;
+		case 4: // bf
+			c3_salt += 4;
+			sscanf(c3_salt, "%d", &rounds);
+			return rounds;
 		case 5:
 		case 6:
 			// sha256crypt and sha512crypt handled the same:  $x$rounds=xxxx$salt$hash  (or $x$salt$hash for 5000 round default);
 			c3_salt += 3;
 			if (strncmp(c3_salt, "rounds=", 7))
 				return 5000;	// default
-			sscanf(c3_salt, "rounds=%d", &rounds);
-			return rounds;
-		case 4: // bf
-			c3_salt += 4;
-			sscanf(c3_salt, "%d", &rounds);
-			return rounds;
-		case 3: // sun_md5
-			c3_salt = strstr(c3_salt, "rounds=");
-			if (!c3_salt)
-				return 904;	// default
 			sscanf(c3_salt, "rounds=%d", &rounds);
 			return rounds;
 	}
@@ -719,7 +726,7 @@ struct fmt_main fmt_crypt = {
 			 * descrypt, md5crypt, sunmd5, bcrypt, sha512crypt, sha256crypt
 			 */
 			"algorithm [1:descrypt 2:md5crypt 3:sunmd5 4:bcrypt 5:sha256crypt 6:sha512crypt]",
-			"algorithm specific tunable cost",
+			"algorithm specific iterations",
 		},
 #endif
 		tests
