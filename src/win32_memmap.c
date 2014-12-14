@@ -24,7 +24,7 @@ void init_sharedmem(char *ipc_fname) {
 	}
 	pData = (IPCData*) MapViewOfFile(hMapFile, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(IPCData));
 	if (pData == NULL) {
-		fprintf(stderr, "ERROR, the memory mapped file: %s could not have it's data properly mapped\n", FName);
+		fprintf(stderr, "ERROR, the memory mapped file: %s could not have its data properly mapped\n", FName);
 		exit (1);
 	}
 	sprintf(FName, "john_mutext_%s", ipc_fname);

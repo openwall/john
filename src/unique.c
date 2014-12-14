@@ -14,7 +14,7 @@
  * -ex_file_only=FNAME  uniq against extern file, and assumes current file is
  *                      already unique, so does not unique it.
  * -cut=len  Trims each line to len, prior to unique. Also, any -ex_file=
- *           file has it's lines trimmed (to properly compare).
+ *           file has its lines trimmed (to properly compare).
  * -cut=LM   Trim each line to 7 bytes, and grab the next (up to) 7 bytes
  *           and upcase each.  Warning, if using -ex_file= make sure these
  *           files are 'proper' LM format (7 char and upcase).  No auto

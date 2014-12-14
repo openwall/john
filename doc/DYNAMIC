@@ -337,7 +337,7 @@ examples (this whole list is also found in dynamic.conf).
 # fld0 to fld9 - data from fld1 to fld9 of the input file.
 #
 #   NOTE within the scratch work spaces (input1[] and input2[] arrays), we can only do things like append_keys
-#   append_salt or other things.  Thus, each work space keeps track of each array element (knowing it's contents),
+#   append_salt or other things.  Thus, each work space keeps track of each array element (knowing its contents),
 #   and keeps track of the length.  In the way the scripting works, we can clear them (sets lengths of all
 #   elements to 0, and 'might' clear out the actual memory).  We can append to them (keys, output conversions,
 #   salt, etc) or we can force set their length to 32 ('special' optimization used in conjunction with

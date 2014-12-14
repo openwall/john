@@ -921,7 +921,7 @@ static int cmp_exact(char *source, int index)
 	}
 	/* we have a stand alone function to handle this more complex method of
 	 * loading from file, decrypting, decompressing, and crc'ing the data
-	 * It is complex enough of a task, to have it's own function. */
+	 * It is complex enough of a task, to have its own function. */
 	return cmp_exact_loadfile(index);
 }
 

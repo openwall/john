@@ -371,7 +371,7 @@ char *RemoveHEX(char *output, char *input) {
 
 /*********************************************************************************
  * Detects a 'valid' md5-gen format. This function is NOT locked to anything. It
- * takes it's detection logic from the provided fmt_main pointer. Within there,
+ * takes its detection logic from the provided fmt_main pointer. Within there,
  * is a 'private' data pointer.  When john first loads the md5-gen, it calls a
  * function which builds proper 'private' data for EACH type of md5-gen. Then
  * john will call valid on EACH of those formats, asking each one if a string is
@@ -2534,7 +2534,7 @@ static void * binary_b64_4x6(char *ciphertext)
 }
 
 /*********************************************************************************
- * Here is the main mdg_generic fmt_main. NOTE in it's default settings, it is
+ * Here is the main mdg_generic fmt_main. NOTE in its default settings, it is
  * ready to handle base-16 hashes.  The phpass stuff will be linked in later, IF
  * needed.
  *********************************************************************************/
