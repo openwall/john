@@ -1086,7 +1086,7 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self,
 			if (self->methods.crypt_all(&count, NULL) < 0) {
 				startTime = endTime = 0;
 				if (options.verbosity > 3)
-					fprintf(stderr, " Error occured\n");
+					fprintf(stderr, " Error occurred\n");
 				break;
 			}
 
@@ -1208,7 +1208,7 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 		runtime = looptime = 0;
 
 		if (options.verbosity > 3)
-			fprintf(stderr, " (error occured)");
+			fprintf(stderr, " (error occurred)");
 		clear_profiling_events();
 		release_clobj();
 		dyna_salt_remove(salt);
@@ -1451,7 +1451,7 @@ void opencl_find_best_lws(
 				startTime = endTime = 0;
 
 				if (options.verbosity > 3)
-					fprintf(stderr, " Error occured\n");
+					fprintf(stderr, " Error occurred\n");
 				break;
 			}
 
