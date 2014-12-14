@@ -64,7 +64,7 @@ There are also 8 'constant' strings which can be used within a format.  A
 format such as md5-po has a couple of constants within it.
 
 There are also numerous optimization 'flags' which do special things when
-loading keys or salts, and there are numourous special 'optimization' primitive
+loading keys or salts, and there are numerous special 'optimization' primitive
 functions within the format, for speedup of certain operations.
 
 **** Simple format building ****
