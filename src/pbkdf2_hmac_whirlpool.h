@@ -18,7 +18,7 @@
  * fixes one huge 'bug' there is in the PBKDF2 algorithm, namely that due to
  * ipad/opad being one crypt limb width, that there are ways to reduce each
  * iteration from 4 crypt limbs down to 2 crypt limbs.  For this whirlpool
- * varient, we do 4 crypt limbs for each iteration.  The 2nd crypt limb for
+ * variant, we do 4 crypt limbs for each iteration.  The 2nd crypt limb for
  * each half of the HMAC is KNOWN data. It simply is the 0x80 and the length
  * of bits (at the end of the buffer). Yes it is known, but there is only a
  * little speed up due to this knowledge (the known ZEROS algorithm), but
