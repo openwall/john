@@ -99,13 +99,14 @@ static const unsigned char theMagicArray[MAGIC_ARRAY_SIZE]=
 // For backwards compatibility, we must support salts padded with spaces to a field width of 40
 static struct fmt_tests tests[] = {
 	{"DDIC$6066CD3147915331EC4C602847D27A75EB3E8F0A", "DDIC"},
-	// invalid, because password is too short (would work during login, but not during password change):
-	//{"F           $646A0AD270DF651065669A45D171EDD62DFE39A1", "X"},
+	// invalid, because password is too short (would work during login, but not during password change),
+	// magnum wants to keep thesse tests anyway, because they help verifying key buffer cleaning:
+	{"F           $646A0AD270DF651065669A45D171EDD62DFE39A1", "X"},
 	{"JOHNNY                                  $7D79B478E70CAAE63C41E0824EAB644B9070D10A", "CYBERPUNK"},
 	{"VAN$D15597367F24090F0A501962788E9F19B3604E73", "hauser"},
 	{"ROOT$1194E38F14B9F3F8DA1B181F14DEB70E7BDCC239", "KID"},
 	// invalid, because password is too short (would work during login, but not during password change):
-	//{"MAN$22886450D0AB90FDA7F91C4F3DD5619175B372EA", "u"},
+	{"MAN$22886450D0AB90FDA7F91C4F3DD5619175B372EA", "u"},
 #if 0
 	// This test case is invalid since the user name can just be
 	// up to 12 characters long.
