@@ -660,32 +660,40 @@ static unsigned int c3_subformat_algorithm(void *salt)
 
 	return 0;
 }
-
-#if 1
-/* work in progress */
 static unsigned int  c3_algorithm_specific_cost1(void *salt)
 {
-	unsigned int algorithm;
+	unsigned int algorithm, rounds;
+	char *c3_salt;
 
+	c3_salt = salt;
 	algorithm =  c3_subformat_algorithm(salt);
-#if 0
+
 	if(algorithm < 3)
 		/* no tunable cost parameters */
 		return 1;
 
-	/*
-	 * TODO: return algorithm specific cost value
-	 * sunmd5: iteration count
-	 * bcrypt: iteration count
-	 * etc.
-	 * alternatively: measure run time for crypt() with
-	 * sample hash using the current salt?
-	 */
+	switch (algorithm) {
+		case 5:
+		case 6:
+			// sha256crypt and sha512crypt handled the same:  $x$rounds=xxxx$salt$hash  (or $x$salt$hash for 5000 round default);
+			c3_salt += 3;
+			if (strncmp(c3_salt, "rounds=", 7))
+				return 5000;	// default
+			sscanf(c3_salt, "rounds=%d", &rounds);
+			return rounds;
+		case 4: // bf
+			c3_salt += 4;
+			sscanf(c3_salt, "%d", &rounds);
+			return rounds;
+		case 3: // sun_md5
+			c3_salt = strstr(c3_salt, "rounds=");
+			if (!c3_salt)
+				return 904;	// default
+			sscanf(c3_salt, "rounds=%d", &rounds);
+			return rounds;
+	}
 	return 1;
-#endif
-	return algorithm; // temp. dummy value to test --costs=
 }
-#endif
 #endif
 
 struct fmt_main fmt_crypt = {
@@ -711,9 +719,7 @@ struct fmt_main fmt_crypt = {
 			 * descrypt, md5crypt, sunmd5, bcrypt, sha512crypt, sha256crypt
 			 */
 			"algorithm [1:descrypt 2:md5crypt 3:sunmd5 4:bcrypt 5:sha256crypt 6:sha512crypt]",
-#if 1
-			"DUMMY algorithm specific tunable cost", // FIXME
-#endif
+			"algorithm specific tunable cost",
 		},
 #endif
 		tests
