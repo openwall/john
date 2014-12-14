@@ -561,7 +561,7 @@ typedef __arch_dependant__ sph_s64;
 
 /**
  * When defined, this macro indicates that unaligned memory accesses
- * are possible with only a minor penalty, and thus should be prefered
+ * are possible with only a minor penalty, and thus should be preferred
  * over strategies which first copy data to an aligned buffer.
  */
 #define SPH_UNALIGNED
