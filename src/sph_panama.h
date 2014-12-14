@@ -107,7 +107,7 @@ void sph_panama(void *cc, const void *data, size_t len);
 /**
  * Terminate the current PANAMA computation and output the result into the
  * provided buffer. The destination buffer must be wide enough to
- * accomodate the result (32 bytes). The context is automatically
+ * accommodate the result (32 bytes). The context is automatically
  * reinitialized.
  *
  * @param cc    the PANAMA context

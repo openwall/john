@@ -95,7 +95,7 @@ void sph_md2(void *cc, const void *data, size_t len);
 /**
  * Terminate the current MD2 computation and output the result into the
  * provided buffer. The destination buffer must be wide enough to
- * accomodate the result (16 bytes). The context is automatically
+ * accommodate the result (16 bytes). The context is automatically
  * reinitialized.
  *
  * @param cc    the MD2 context

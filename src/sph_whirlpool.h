@@ -112,7 +112,7 @@ void sph_whirlpool(void *cc, const void *data, size_t len);
 /**
  * Terminate the current WHIRLPOOL computation and output the result into the
  * provided buffer. The destination buffer must be wide enough to
- * accomodate the result (64 bytes). The context is automatically
+ * accommodate the result (64 bytes). The context is automatically
  * reinitialized.
  *
  * @param cc    the WHIRLPOOL context
@@ -154,7 +154,7 @@ void sph_whirlpool0(void *cc, const void *data, size_t len);
 /**
  * Terminate the current WHIRLPOOL-0 computation and output the result into the
  * provided buffer. The destination buffer must be wide enough to
- * accomodate the result (64 bytes). The context is automatically
+ * accommodate the result (64 bytes). The context is automatically
  * reinitialized.
  *
  * @param cc    the WHIRLPOOL-0 context
@@ -196,7 +196,7 @@ void sph_whirlpool1(void *cc, const void *data, size_t len);
 /**
  * Terminate the current WHIRLPOOL-1 computation and output the result into the
  * provided buffer. The destination buffer must be wide enough to
- * accomodate the result (64 bytes). The context is automatically
+ * accommodate the result (64 bytes). The context is automatically
  * reinitialized.
  *
  * @param cc    the WHIRLPOOL-1 context

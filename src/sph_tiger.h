@@ -98,7 +98,7 @@ void sph_tiger(void *cc, const void *data, size_t len);
 /**
  * Terminate the current Tiger computation and output the result into the
  * provided buffer. The destination buffer must be wide enough to
- * accomodate the result (24 bytes). The context is automatically
+ * accommodate the result (24 bytes). The context is automatically
  * reinitialized.
  *
  * @param cc    the Tiger context
@@ -161,7 +161,7 @@ void sph_tiger2(void *cc, const void *data, size_t len);
 /**
  * Terminate the current Tiger2 computation and output the result into the
  * provided buffer. The destination buffer must be wide enough to
- * accomodate the result (24 bytes). The context is automatically
+ * accommodate the result (24 bytes). The context is automatically
  * reinitialized. Note that this function is NOT identical to
  * <code>sph_tiger2_close()</code>: this is the exact and unique point
  * where Tiger and Tiger2 differ.

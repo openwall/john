@@ -257,7 +257,7 @@ void sph_haval128_3(void *cc, const void *data, size_t len);
 
 /**
  * Close a HAVAL-128/3 computation. The output buffer must be wide
- * enough to accomodate the result (16 bytes). The context is automatically
+ * enough to accommodate the result (16 bytes). The context is automatically
  * reinitialized.
  *
  * @param cc    the HAVAL-128/3 context
@@ -272,7 +272,7 @@ void sph_haval128_3_close(void *cc, void *dst);
  * <code>ub</code>, the second extra bit has value 64, and so on). Other
  * bits in <code>ub</code> are ignored.
  *
- * The output buffer must be wide enough to accomodate the result (16
+ * The output buffer must be wide enough to accommodate the result (16
  * bytes). The context is automatically reinitialized.
  *
  * @param cc    the HAVAL-128/3 context
@@ -303,7 +303,7 @@ void sph_haval128_4(void *cc, const void *data, size_t len);
 
 /**
  * Close a HAVAL-128/4 computation. The output buffer must be wide
- * enough to accomodate the result (16 bytes). The context is automatically
+ * enough to accommodate the result (16 bytes). The context is automatically
  * reinitialized.
  *
  * @param cc    the HAVAL-128/4 context
@@ -318,7 +318,7 @@ void sph_haval128_4_close(void *cc, void *dst);
  * <code>ub</code>, the second extra bit has value 64, and so on). Other
  * bits in <code>ub</code> are ignored.
  *
- * The output buffer must be wide enough to accomodate the result (16
+ * The output buffer must be wide enough to accommodate the result (16
  * bytes). The context is automatically reinitialized.
  *
  * @param cc    the HAVAL-128/4 context
@@ -349,7 +349,7 @@ void sph_haval128_5(void *cc, const void *data, size_t len);
 
 /**
  * Close a HAVAL-128/5 computation. The output buffer must be wide
- * enough to accomodate the result (16 bytes). The context is automatically
+ * enough to accommodate the result (16 bytes). The context is automatically
  * reinitialized.
  *
  * @param cc    the HAVAL-128/5 context
@@ -364,7 +364,7 @@ void sph_haval128_5_close(void *cc, void *dst);
  * <code>ub</code>, the second extra bit has value 64, and so on). Other
  * bits in <code>ub</code> are ignored.
  *
- * The output buffer must be wide enough to accomodate the result (16
+ * The output buffer must be wide enough to accommodate the result (16
  * bytes). The context is automatically reinitialized.
  *
  * @param cc    the HAVAL-128/5 context
@@ -395,7 +395,7 @@ void sph_haval160_3(void *cc, const void *data, size_t len);
 
 /**
  * Close a HAVAL-160/3 computation. The output buffer must be wide
- * enough to accomodate the result (20 bytes). The context is automatically
+ * enough to accommodate the result (20 bytes). The context is automatically
  * reinitialized.
  *
  * @param cc    the HAVAL-160/3 context
@@ -410,7 +410,7 @@ void sph_haval160_3_close(void *cc, void *dst);
  * <code>ub</code>, the second extra bit has value 64, and so on). Other
  * bits in <code>ub</code> are ignored.
  *
- * The output buffer must be wide enough to accomodate the result (20
+ * The output buffer must be wide enough to accommodate the result (20
  * bytes). The context is automatically reinitialized.
  *
  * @param cc    the HAVAL-160/3 context
@@ -441,7 +441,7 @@ void sph_haval160_4(void *cc, const void *data, size_t len);
 
 /**
  * Close a HAVAL-160/4 computation. The output buffer must be wide
- * enough to accomodate the result (20 bytes). The context is automatically
+ * enough to accommodate the result (20 bytes). The context is automatically
  * reinitialized.
  *
  * @param cc    the HAVAL-160/4 context
@@ -456,7 +456,7 @@ void sph_haval160_4_close(void *cc, void *dst);
  * <code>ub</code>, the second extra bit has value 64, and so on). Other
  * bits in <code>ub</code> are ignored.
  *
- * The output buffer must be wide enough to accomodate the result (20
+ * The output buffer must be wide enough to accommodate the result (20
  * bytes). The context is automatically reinitialized.
  *
  * @param cc    the HAVAL-160/4 context
@@ -487,7 +487,7 @@ void sph_haval160_5(void *cc, const void *data, size_t len);
 
 /**
  * Close a HAVAL-160/5 computation. The output buffer must be wide
- * enough to accomodate the result (20 bytes). The context is automatically
+ * enough to accommodate the result (20 bytes). The context is automatically
  * reinitialized.
  *
  * @param cc    the HAVAL-160/5 context
@@ -502,7 +502,7 @@ void sph_haval160_5_close(void *cc, void *dst);
  * <code>ub</code>, the second extra bit has value 64, and so on). Other
  * bits in <code>ub</code> are ignored.
  *
- * The output buffer must be wide enough to accomodate the result (20
+ * The output buffer must be wide enough to accommodate the result (20
  * bytes). The context is automatically reinitialized.
  *
  * @param cc    the HAVAL-160/5 context
@@ -533,7 +533,7 @@ void sph_haval192_3(void *cc, const void *data, size_t len);
 
 /**
  * Close a HAVAL-192/3 computation. The output buffer must be wide
- * enough to accomodate the result (24 bytes). The context is automatically
+ * enough to accommodate the result (24 bytes). The context is automatically
  * reinitialized.
  *
  * @param cc    the HAVAL-192/3 context
@@ -548,7 +548,7 @@ void sph_haval192_3_close(void *cc, void *dst);
  * <code>ub</code>, the second extra bit has value 64, and so on). Other
  * bits in <code>ub</code> are ignored.
  *
- * The output buffer must be wide enough to accomodate the result (24
+ * The output buffer must be wide enough to accommodate the result (24
  * bytes). The context is automatically reinitialized.
  *
  * @param cc    the HAVAL-192/3 context
@@ -579,7 +579,7 @@ void sph_haval192_4(void *cc, const void *data, size_t len);
 
 /**
  * Close a HAVAL-192/4 computation. The output buffer must be wide
- * enough to accomodate the result (24 bytes). The context is automatically
+ * enough to accommodate the result (24 bytes). The context is automatically
  * reinitialized.
  *
  * @param cc    the HAVAL-192/4 context
@@ -594,7 +594,7 @@ void sph_haval192_4_close(void *cc, void *dst);
  * <code>ub</code>, the second extra bit has value 64, and so on). Other
  * bits in <code>ub</code> are ignored.
  *
- * The output buffer must be wide enough to accomodate the result (24
+ * The output buffer must be wide enough to accommodate the result (24
  * bytes). The context is automatically reinitialized.
  *
  * @param cc    the HAVAL-192/4 context
@@ -625,7 +625,7 @@ void sph_haval192_5(void *cc, const void *data, size_t len);
 
 /**
  * Close a HAVAL-192/5 computation. The output buffer must be wide
- * enough to accomodate the result (24 bytes). The context is automatically
+ * enough to accommodate the result (24 bytes). The context is automatically
  * reinitialized.
  *
  * @param cc    the HAVAL-192/5 context
@@ -640,7 +640,7 @@ void sph_haval192_5_close(void *cc, void *dst);
  * <code>ub</code>, the second extra bit has value 64, and so on). Other
  * bits in <code>ub</code> are ignored.
  *
- * The output buffer must be wide enough to accomodate the result (24
+ * The output buffer must be wide enough to accommodate the result (24
  * bytes). The context is automatically reinitialized.
  *
  * @param cc    the HAVAL-192/5 context
@@ -671,7 +671,7 @@ void sph_haval224_3(void *cc, const void *data, size_t len);
 
 /**
  * Close a HAVAL-224/3 computation. The output buffer must be wide
- * enough to accomodate the result (28 bytes). The context is automatically
+ * enough to accommodate the result (28 bytes). The context is automatically
  * reinitialized.
  *
  * @param cc    the HAVAL-224/3 context
@@ -686,7 +686,7 @@ void sph_haval224_3_close(void *cc, void *dst);
  * <code>ub</code>, the second extra bit has value 64, and so on). Other
  * bits in <code>ub</code> are ignored.
  *
- * The output buffer must be wide enough to accomodate the result (28
+ * The output buffer must be wide enough to accommodate the result (28
  * bytes). The context is automatically reinitialized.
  *
  * @param cc    the HAVAL-224/3 context
@@ -717,7 +717,7 @@ void sph_haval224_4(void *cc, const void *data, size_t len);
 
 /**
  * Close a HAVAL-224/4 computation. The output buffer must be wide
- * enough to accomodate the result (28 bytes). The context is automatically
+ * enough to accommodate the result (28 bytes). The context is automatically
  * reinitialized.
  *
  * @param cc    the HAVAL-224/4 context
@@ -732,7 +732,7 @@ void sph_haval224_4_close(void *cc, void *dst);
  * <code>ub</code>, the second extra bit has value 64, and so on). Other
  * bits in <code>ub</code> are ignored.
  *
- * The output buffer must be wide enough to accomodate the result (28
+ * The output buffer must be wide enough to accommodate the result (28
  * bytes). The context is automatically reinitialized.
  *
  * @param cc    the HAVAL-224/4 context
@@ -763,7 +763,7 @@ void sph_haval224_5(void *cc, const void *data, size_t len);
 
 /**
  * Close a HAVAL-224/5 computation. The output buffer must be wide
- * enough to accomodate the result (28 bytes). The context is automatically
+ * enough to accommodate the result (28 bytes). The context is automatically
  * reinitialized.
  *
  * @param cc    the HAVAL-224/5 context
@@ -778,7 +778,7 @@ void sph_haval224_5_close(void *cc, void *dst);
  * <code>ub</code>, the second extra bit has value 64, and so on). Other
  * bits in <code>ub</code> are ignored.
  *
- * The output buffer must be wide enough to accomodate the result (28
+ * The output buffer must be wide enough to accommodate the result (28
  * bytes). The context is automatically reinitialized.
  *
  * @param cc    the HAVAL-224/5 context
@@ -809,7 +809,7 @@ void sph_haval256_3(void *cc, const void *data, size_t len);
 
 /**
  * Close a HAVAL-256/3 computation. The output buffer must be wide
- * enough to accomodate the result (32 bytes). The context is automatically
+ * enough to accommodate the result (32 bytes). The context is automatically
  * reinitialized.
  *
  * @param cc    the HAVAL-256/3 context
@@ -824,7 +824,7 @@ void sph_haval256_3_close(void *cc, void *dst);
  * <code>ub</code>, the second extra bit has value 64, and so on). Other
  * bits in <code>ub</code> are ignored.
  *
- * The output buffer must be wide enough to accomodate the result (32
+ * The output buffer must be wide enough to accommodate the result (32
  * bytes). The context is automatically reinitialized.
  *
  * @param cc    the HAVAL-256/3 context
@@ -855,7 +855,7 @@ void sph_haval256_4(void *cc, const void *data, size_t len);
 
 /**
  * Close a HAVAL-256/4 computation. The output buffer must be wide
- * enough to accomodate the result (32 bytes). The context is automatically
+ * enough to accommodate the result (32 bytes). The context is automatically
  * reinitialized.
  *
  * @param cc    the HAVAL-256/4 context
@@ -870,7 +870,7 @@ void sph_haval256_4_close(void *cc, void *dst);
  * <code>ub</code>, the second extra bit has value 64, and so on). Other
  * bits in <code>ub</code> are ignored.
  *
- * The output buffer must be wide enough to accomodate the result (32
+ * The output buffer must be wide enough to accommodate the result (32
  * bytes). The context is automatically reinitialized.
  *
  * @param cc    the HAVAL-256/4 context
@@ -901,7 +901,7 @@ void sph_haval256_5(void *cc, const void *data, size_t len);
 
 /**
  * Close a HAVAL-256/5 computation. The output buffer must be wide
- * enough to accomodate the result (32 bytes). The context is automatically
+ * enough to accommodate the result (32 bytes). The context is automatically
  * reinitialized.
  *
  * @param cc    the HAVAL-256/5 context
@@ -916,7 +916,7 @@ void sph_haval256_5_close(void *cc, void *dst);
  * <code>ub</code>, the second extra bit has value 64, and so on). Other
  * bits in <code>ub</code> are ignored.
  *
- * The output buffer must be wide enough to accomodate the result (32
+ * The output buffer must be wide enough to accommodate the result (32
  * bytes). The context is automatically reinitialized.
  *
  * @param cc    the HAVAL-256/5 context

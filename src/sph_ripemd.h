@@ -119,7 +119,7 @@ void sph_ripemd(void *cc, const void *data, size_t len);
 /**
  * Terminate the current RIPEMD computation and output the result into the
  * provided buffer. The destination buffer must be wide enough to
- * accomodate the result (16 bytes). The context is automatically
+ * accommodate the result (16 bytes). The context is automatically
  * reinitialized.
  *
  * @param cc    the RIPEMD context
@@ -185,7 +185,7 @@ void sph_ripemd128(void *cc, const void *data, size_t len);
 /**
  * Terminate the current RIPEMD-128 computation and output the result into the
  * provided buffer. The destination buffer must be wide enough to
- * accomodate the result (16 bytes). The context is automatically
+ * accommodate the result (16 bytes). The context is automatically
  * reinitialized.
  *
  * @param cc    the RIPEMD-128 context
@@ -251,7 +251,7 @@ void sph_ripemd160(void *cc, const void *data, size_t len);
 /**
  * Terminate the current RIPEMD-160 computation and output the result into the
  * provided buffer. The destination buffer must be wide enough to
- * accomodate the result (20 bytes). The context is automatically
+ * accommodate the result (20 bytes). The context is automatically
  * reinitialized.
  *
  * @param cc    the RIPEMD-160 context
