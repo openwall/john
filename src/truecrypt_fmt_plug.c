@@ -22,20 +22,13 @@
  * and we test against the 'TRUE' signature, and against 2 crc32's which
  * are computed over the 448 bytes of decrypted data.  So we now have a
  * full 96 bits of hash.  There will be no way we get false positives from
- * this slow format.
+ * this slow format. EVP_AES_XTS removed. Also, we now only pbkdf2 over
+ * 64 bytes of data (all that is needed for the 2 AES keys), and that sped
+ * up the crypts A LOT (~3x faster)
  *
- * things that would be nice:
- *  - produce better/faster pbkdf2_hmac_ripemd160.h and
- *    pbkdf2_hmac_whirlpool.h files
- *  - eliminate the oSSL problem of EVP_AES_256_XTS. It would
- *    mean having to handle the XTS chaining protocol, but should
- *    be something we 'could' do in JtR easily.
  */
 
 #include "arch.h"
-#include <openssl/opensslv.h>
-#if (AC_BUILT && HAVE_EVP_AES_256_XTS) || \
-	(!AC_BUILT && OPENSSL_VERSION_NUMBER >= 0x10001000)
 
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_truecrypt;
@@ -49,7 +42,7 @@ john_register_one(&fmt_truecrypt_sha512);
 john_register_one(&fmt_truecrypt_whirlpool);
 #else
 
-#include <openssl/evp.h>
+#include <openssl/aes.h>
 #include <string.h>
 #include "misc.h"
 #include "memory.h"
@@ -76,8 +69,8 @@ john_register_one(&fmt_truecrypt_whirlpool);
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 
-static char (*key_buffer)[PLAINTEXT_LENGTH + 1];
-static char (*first_block_dec)[16];
+static unsigned char (*key_buffer)[PLAINTEXT_LENGTH + 1];
+static unsigned char (*first_block_dec)[16];
 
 #define TAG_WHIRLPOOL "truecrypt_WHIRLPOOL$"
 #define TAG_SHA512    "truecrypt_SHA_512$"
@@ -242,6 +235,52 @@ static void* get_salt(char *ciphertext)
 	return s;
 }
 
+/***********************************************************************************************************
+ * we know first sector has Tweak value of 0. For this, we just AES a null 16 bytes, then do the XeX using
+ * the results for our xor, then modular mult GF(2) that value for the next round.  NOTE, len MUST
+ * be an even multiple of 16 bytes.  We do NOT handle CT stealing.  But the way we use it in the TC format
+ * we only decrypt 16 bytes, and later (if it looks 'good'), we decrypt the whole first sector (512-64 bytes)
+ * both which are even 16 byte data.
+ * This code has NOT been optimized. It was based on simple reference code that I could get my hands on.  However,
+ * 'mostly' we do a single limb AES-XTS which is just 2 AES, and the buffers xored (before and after). There is
+ * no mulmod GF(2) logic done in that case.   NOTE, there was NO noticable change in speed, from using original
+ * oSSL EVP_AES_256_XTS vs this code, so this code is deemed 'good enough' for usage in this location.
+ ***********************************************************************************************************/
+static void AES_256_XTS_first_sector(const unsigned char *double_key, unsigned char *out, const unsigned char *data, unsigned len) {
+	unsigned char tweak[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+	unsigned char buf[16];
+	int i, j, cnt;
+	AES_KEY key1, key2;
+	AES_set_decrypt_key(double_key, 256, &key1);
+	AES_set_encrypt_key(&double_key[32], 256, &key2);
+
+	// first aes tweak (we do it right over tweak
+	AES_encrypt(tweak, tweak, &key2);
+
+	cnt = len/16;
+	for (j=0;;) {
+		for (i = 0; i < 16; ++i) buf[i] = data[i]^tweak[i];
+		AES_decrypt(buf, out, &key1);
+		for (i = 0; i < 16; ++i) out[i]^=tweak[i];
+		++j;
+		if (j == cnt)
+			break;
+		else {
+			unsigned char Cin, Cout;
+			unsigned x;
+			Cin = 0;
+			for (x = 0; x < 16; ++x) {
+			Cout = (tweak[x] >> 7) & 1;
+			tweak[x] = ((tweak[x] << 1) + Cin) & 0xFF;
+			Cin = Cout;
+		}
+		if (Cout)
+			tweak[0] ^= 135; //GF_128_FDBK;
+		}
+		data += 16;
+		out += 16;
+	}
+}
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int i, count = *pcount;
@@ -251,13 +290,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	for(i = 0; i < count; i+=psalt->loop_inc)
 	{
-		EVP_CIPHER_CTX cipher_context;
-		unsigned char key[192];
-		unsigned char tweak[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-		int outlen, j;
+		unsigned char key[64];
+		int j;
 
 #if SSE_GROUP_SZ_SHA512
-		unsigned char Keys[SSE_GROUP_SZ_SHA512][192];
+		unsigned char Keys[SSE_GROUP_SZ_SHA512][64];
 		if (psalt->hash_type == IS_SHA512) {
 			int lens[SSE_GROUP_SZ_SHA512];
 			unsigned char *pin[SSE_GROUP_SZ_SHA512];
@@ -266,8 +303,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				unsigned char *poutc;
 			} x;
 			for (j = 0; j < SSE_GROUP_SZ_SHA512; ++j) {
-				lens[j] = strlen(key_buffer[i+j]);
-				pin[j] = (unsigned char*)key_buffer[i+j];
+				lens[j] = strlen((char*)(key_buffer[i+j]));
+				pin[j] = key_buffer[i+j];
 				x.pout[j] = Keys[j];
 			}
 			pbkdf2_sha512_sse((const unsigned char **)pin, lens, psalt->salt, 64, psalt->num_iterations, &(x.poutc), sizeof(key), 0);
@@ -277,18 +314,16 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			pbkdf2_sha512((const unsigned char*)key_buffer[i], strlen(key_buffer[i]), psalt->salt, 64, num_iterations, key, sizeof(key), 0);
 #endif
 		else if (psalt->hash_type == IS_RIPEMD160)
-			pbkdf2_ripemd160((const unsigned char*)key_buffer[i], strlen(key_buffer[i]), psalt->salt, 64, psalt->num_iterations, key, sizeof(key), 0);
+			pbkdf2_ripemd160(key_buffer[i], strlen((char*)(key_buffer[i])), psalt->salt, 64, psalt->num_iterations, key, sizeof(key), 0);
 		else
-			pbkdf2_whirlpool((const unsigned char*)key_buffer[i], strlen(key_buffer[i]), psalt->salt, 64, psalt->num_iterations, key, sizeof(key), 0);
+			pbkdf2_whirlpool(key_buffer[i], strlen((char*)(key_buffer[i])), psalt->salt, 64, psalt->num_iterations, key, sizeof(key), 0);
 		for (j = 0; j < psalt->loop_inc; ++j) {
 #if SSE_GROUP_SZ_SHA512
 			if (psalt->hash_type == IS_SHA512)
 				memcpy(key, Keys[j], sizeof(key));
 #endif
 			// Try to decrypt using AES
-			EVP_CIPHER_CTX_init(&cipher_context);
-			EVP_DecryptInit_ex(&cipher_context, EVP_aes_256_xts(), NULL, key, tweak);
-			EVP_DecryptUpdate(&cipher_context, (unsigned char*)first_block_dec[i+j], &outlen, psalt->bin, 16);
+			AES_256_XTS_first_sector(key, first_block_dec[i+j], psalt->bin, 16);
 		}
 	}
 	return count;
@@ -326,10 +361,7 @@ static int cmp_exact(char *source, int idx)
 	if (!memcmp(first_block_dec[idx], "TRUE", 4) && !memcmp(&first_block_dec[idx][12], "\0\0\0\0", 4))
 		return 1;
 #else
-	EVP_CIPHER_CTX cipher_context;
-	unsigned char key[192];
-	unsigned char tweak[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-	int outlen;
+	unsigned char key[64];
 	unsigned char decr_header[512-64];
 	CRC32_t check_sum;
 #if DEBUG
@@ -339,17 +371,15 @@ static int cmp_exact(char *source, int idx)
 #endif
 
 	if (psalt->hash_type == IS_SHA512)
-		pbkdf2_sha512((const unsigned char*)key_buffer[idx], strlen(key_buffer[idx]), psalt->salt, 64, psalt->num_iterations, key, sizeof(key), 0);
+		pbkdf2_sha512((const unsigned char*)key_buffer[idx], strlen((char*)(key_buffer[idx])), psalt->salt, 64, psalt->num_iterations, key, sizeof(key), 0);
 	else if (psalt->hash_type == IS_RIPEMD160)
-		pbkdf2_ripemd160((const unsigned char*)key_buffer[idx], strlen(key_buffer[idx]), psalt->salt, 64, psalt->num_iterations, key, sizeof(key), 0);
+		pbkdf2_ripemd160((const unsigned char*)key_buffer[idx], strlen((char*)(key_buffer[idx])), psalt->salt, 64, psalt->num_iterations, key, sizeof(key), 0);
 	else
-		pbkdf2_whirlpool((const unsigned char*)key_buffer[idx], strlen(key_buffer[idx]), psalt->salt, 64, psalt->num_iterations, key, sizeof(key), 0);
+		pbkdf2_whirlpool((const unsigned char*)key_buffer[idx], strlen((char*)(key_buffer[idx])), psalt->salt, 64, psalt->num_iterations, key, sizeof(key), 0);
 
 	// we have 448 bytes of header (64 bytes unencrypted salt were the first 64 bytes).
 	// decrypt it and look for 3 items.
-	EVP_CIPHER_CTX_init(&cipher_context);
-	EVP_DecryptInit_ex(&cipher_context, EVP_aes_256_xts(), NULL, key, tweak);
-	EVP_DecryptUpdate(&cipher_context, decr_header, &outlen, psalt->bin, 512-64);
+	AES_256_XTS_first_sector(key, decr_header, psalt->bin, 512-64);
 
 	// first item we look for is a contstant string 'TRUE' in the first 4 bytes
 	if (memcmp(decr_header, "TRUE", 4))
@@ -387,12 +417,12 @@ static int cmp_exact(char *source, int idx)
 
 static void set_key(char* key, int index)
 {
-	strcpy(key_buffer[index], key);
+	strcpy((char*)(key_buffer[index]), key);
 }
 
 static char *get_key(int index)
 {
-	return key_buffer[index];
+	return (char*)(key_buffer[index]);
 }
 
 static int salt_hash(void *salt)
@@ -643,5 +673,3 @@ struct fmt_main fmt_truecrypt_whirlpool = {
 };
 
 #endif /* plugin stanza */
-
-#endif /* OpenSSL functionality */
