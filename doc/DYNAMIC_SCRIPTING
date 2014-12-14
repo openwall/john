@@ -64,7 +64,7 @@ There are also 8 'constant' strings which can be used within a format.  A
 format such as md5-po has a couple of constants within it.
 
 There are also numerous optimization 'flags' which do special things when
-loading keys or salts, and there are numourous special 'optimization' primative
+loading keys or salts, and there are numourous special 'optimization' primitive
 functions within the format, for speedup of certain operations.
 
 **** Simple format building ****
@@ -408,7 +408,7 @@ Only one salt:  1715K c/s
 
 So all in all, 1032, 1042, 1052, 1062 were all equivalent (1032 was not, since it fails in
 SSE2 builds, but that was 'fixed' in 1042).  They all run using differing sets of flags, differing
-sets of Function primatives, and have different runtime speeds.  However, in the end, they all
+sets of Function primitives, and have different runtime speeds.  However, in the end, they all
 
 
 

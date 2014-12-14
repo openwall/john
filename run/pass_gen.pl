@@ -3228,7 +3228,7 @@ sub dynamic_load_salt2() {
 	else { $gen_s2 = randstr($salt2len); }
 }
 ##########################################################################
-#  Here are the ACTUAL pCode primative functions.  These handle pretty
+#  Here are the ACTUAL pCode primitive functions.  These handle pretty
 # much everything dealing with hashing expressions for md5/md4/sha1/sha224
 # /sha256/sha384/sha512/gost/whirlpool.
 # There are some variables which will be properly prepared prior to any of these

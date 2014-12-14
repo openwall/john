@@ -932,7 +932,7 @@ examples (this whole list is also found in dynamic.conf).
 ####################
 #
 # These other large hash types, have been built like the SHA1 (listed above). They will have
-# the same 8 function primatives, and be named exactly the same as the SHA1, except they
+# the same 8 function primitives, and be named exactly the same as the SHA1, except they
 # will have the crypt in the function name.  The current hashes supported are:
 #     SHA224, SHA256, SHA384, SHA512, GOST, WHIRLPOOL.
 #     NOTE Whirlpool is ONLY supported in new versions of OpenSSL, so if the version of oSSL
@@ -961,7 +961,7 @@ examples (this whole list is also found in dynamic.conf).
 # Controlling the output of 'large' crypts.
 ####################
 #
-# All of the 'large' crypts, have simple function primatives. These will perform the
+# All of the 'large' crypts, have simple function primitives. These will perform the
 # crypt, and then write output to one of the 2 buffers. The output can be appeneded,
 # or overwritten.  The format this output is done in CAN be controlled. The output
 # formats are:  base-16  (0-9 and a-f), base-16 upcase (0-9 and A-F), base-64 (MIME)

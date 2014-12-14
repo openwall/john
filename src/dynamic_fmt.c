@@ -2662,7 +2662,7 @@ static void Dynamic_Load_itoa16_w2()
  *  Here are some 'helpers' to our helpers, when it comes to
  *  loading data into the mmx/sse buffers.  We have several
  *  of these common helper functions, and use them in 'most'
- *  of the helper primatives, instead of having the same
+ *  of the helper primitives, instead of having the same
  *  code being inlined in each of them.
  **************************************************************
  *************************************************************/
@@ -4475,7 +4475,7 @@ void DynamicFunc__FreeBSDMD5Crypt(DYNA_OMP_PARAMS) {
 	static int bFirst=1;
 	if (bFirst) {
 		bFirst = 0;
-		fprintf(stderr, "\nERROR, DynamicFunc__FreeBSDMD5Crypt() dynamic primative is no longer supported.\nThis format is invalid and will not process\n");
+		fprintf(stderr, "\nERROR, DynamicFunc__FreeBSDMD5Crypt() dynamic primitive is no longer supported.\nThis format is invalid and will not process\n");
 	}
 }
 

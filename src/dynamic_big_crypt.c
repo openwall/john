@@ -125,7 +125,7 @@ void DynamicFunc__LargeHash_OUTMode_raw(DYNA_OMP_PARAMS) {
  *****  these helpers.  Then the caller will update any length values if needed
  *****  based upon what the output pointer was, and what was returned by these
  *****  helpers.  Doing things like this will reduce the size of the large hash
- *****  primative functions.
+ *****  primitive functions.
  ******************************************************************************/
 static inline unsigned char *hex_out_buf(unsigned char *cpi, unsigned char *cpo, int in_byte_cnt) {
 	int j;

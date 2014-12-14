@@ -29,7 +29,7 @@ the dynamic_fmt.c file. But once done, they will get moved here.
  *            phpassMD5_fmt.c    (DONE)
  *            PHPS_fmt.c         (DONE)
  *            IPB2_fmt.c         (DONE)
- *    4.  Made 10 primatives which allow us to switch back and forth from SSE (1 MD5 buffer), to X86, multiple buffers. Thus, we
+ *    4.  Made 10 primitives which allow us to switch back and forth from SSE (1 MD5 buffer), to X86, multiple buffers. Thus, we
  *        can write SSE formats, and when they overflow, switch to x86, perform the MD5, and switch back.  A good example is type
  *        dynamic_13 md5(md5($p).md5($s))   Here, we preload $s, so it does not play a part in the runtime.  However, the
  *        first md5($p) CAN be done in SSE mode. Then we switch to x86, and perform the MD5 of the 64 byte string.  This increases
@@ -71,7 +71,7 @@ the dynamic_fmt.c file. But once done, they will get moved here.
  * into input buffer #1 as an optimization for certain formats), and
  * a pair of arrays for crypt outputs.  The 'first' output buffer array
  * is used to return the final results.  There is also 2 arrays of lengths
- * of input buffers.  There are then 'primative' functions. These can
+ * of input buffers.  There are then 'primitive' functions. These can
  * append keys, append salts, blank out keys, move from input 1 to input
  * 2, crypt input 1 -> output 1, (or from 1->2 or 2->2 or 2->1, etc).
  * There are functions that do base 16 conversions of the outputs back
@@ -134,7 +134,7 @@ the dynamic_fmt.c file. But once done, they will get moved here.
  * allowed lowercase base16 writing.  Now, after the crypt, the overwrite
  * or append output can be done in:  base-16, base-16-uc, base-64 (MIME)
  * base-64 with no trailing '=' chars, or raw.  Adding new output 'types'
- * should be easy to do.  All of the original primative dynamic functions
+ * should be easy to do.  All of the original primitive dynamic functions
  * have been kept (depricated), and new functions were added.  There are
  * a few output format setters also added.  The default output format
  * (at the start of crypt_all) is base-16, which is what it was before.
