@@ -270,12 +270,12 @@ static void AES_256_XTS_first_sector(const unsigned char *double_key, unsigned c
 			unsigned x;
 			Cin = 0;
 			for (x = 0; x < 16; ++x) {
-			Cout = (tweak[x] >> 7) & 1;
-			tweak[x] = ((tweak[x] << 1) + Cin) & 0xFF;
-			Cin = Cout;
-		}
-		if (Cout)
-			tweak[0] ^= 135; //GF_128_FDBK;
+				Cout = (tweak[x] >> 7) & 1;
+				tweak[x] = ((tweak[x] << 1) + Cin) & 0xFF;
+				Cin = Cout;
+			}
+			if (Cout)
+				tweak[0] ^= 135; //GF_128_FDBK;
 		}
 		data += 16;
 		out += 16;
