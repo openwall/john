@@ -1573,7 +1573,7 @@ sph_dec32le(const void *src)
  * For most hash functions, using this inline assembly trick changes
  * hashing speed by less than 5% and often _reduces_ it. The biggest
  * gains are for MD4 (+11%) and CubeHash (+30%). For all others, it is
- * less then 10%. The speed gain on CubeHash is probably due to the
+ * less than 10%. The speed gain on CubeHash is probably due to the
  * chronic shortage of registers that CubeHash endures; for the other
  * functions, the generic code appears to be efficient enough already.
  *
