@@ -380,7 +380,7 @@ static int isdec(char *q)
 	char buf[24];
 	int x = atoi(q);
 	sprintf(buf, "%d", x);
-	return !strcmp(q,buf);
+	return !strcmp(q,buf) && *q != '-';
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
