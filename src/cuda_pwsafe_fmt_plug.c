@@ -194,10 +194,7 @@ static char *get_key(int index)
 #if FMT_MAIN_VERSION > 11
 static unsigned int iteration_count(void *salt)
 {
-	struct custom_salt *my_salt;
-
-	my_salt = salt;
-	return (unsigned int) my_salt->iterations;
+	return ((pwsafe_salt*)salt)->iterations;
 }
 #endif
 
