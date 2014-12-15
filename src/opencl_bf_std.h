@@ -90,6 +90,14 @@ extern void *opencl_BF_std_get_salt(char *ciphertext) ;
  */
 extern void *opencl_BF_std_get_binary(char *ciphertext) ;
 
+#if FMT_MAIN_VERSION > 11
+/*
+ * Returns the number of iterations for a given salt,
+ * this is BF's tunable cost parameter
+ */
+extern unsigned int opencl_BF_iteration_count(void *salt);
+#endif
+
 /*
  * Select a device: BF_select_device(platform_id,device_id)
  */
