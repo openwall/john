@@ -345,29 +345,41 @@ static struct fmt_tests cq_tests[] = {
 	{NULL}
 };
 
+static int ishex(char *q)
+{
+       while (atoi16[ARCH_INDEX(*q)] != 0x7F)
+               q++;
+       return !*q;
+}
+
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	char *p, *q;
+	char *p, *q, *tmpstr;
 	if (strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
 		return 0;
 
-	p = strrchr(ciphertext, '$');
+	tmpstr = strdup(ciphertext);
+	q = p = &tmpstr[TAG_LENGTH];
+	p[-1] = 0;
+	p = strrchr(p, '$');
 	if (!p)
-		return 0;
+		goto Err;
 
 	p += 1;
 	if (strlen(p) != BINARY_SIZE * 2)
-		return 0;
+		goto Err;
 
-	p = ciphertext + TAG_LENGTH;
-	q = strchr(p, '$');
-	if (!p)
-		return 0;
+	if (!ishex(p))
+		goto Err;
 
-	if ((q - p) >= SALT_SIZE)
-		return 0;
+	if ((p - q) >= SALT_SIZE || p <= q)
+		goto Err;
 
+	MEM_FREE(tmpstr);
 	return 1;
+Err:;
+	MEM_FREE(tmpstr);
+	return 0;
 }
 
 static void *get_salt(char *ciphertext)
