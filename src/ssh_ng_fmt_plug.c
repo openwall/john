@@ -104,10 +104,18 @@ static int ishex(char *q)
 	return !*q;
 }
 
+static int isdec(char *q)
+{
+	char buf[24];
+	unsigned int x = atoi(q);
+	sprintf(buf, "%d", x);
+	return !strcmp(q,buf);
+}
+
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *keeptr, *p;
-	int len;
+	int len, cipher;
 	if (strncmp(ciphertext, "$sshng$", 7) != 0)
 		return 0;
 	ctcopy = strdup(ciphertext);
@@ -115,6 +123,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy += 7;
 	if ((p = strtok(ctcopy, "$")) == NULL)	/* cipher */
 		goto err;
+	cipher = atoi(p);
 	if ((p = strtok(NULL, "$")) == NULL)	/* salt len */
 		goto err;
 	len = atoi(p);
@@ -135,7 +144,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if (!ishex(p))
 		goto err;
-
+	if (cipher == 2) {
+		if ((p = strtok(NULL, "$")) == NULL)	/* rounds */
+			goto err;
+		if (!isdec(p))
+			goto err;
+	}
 	MEM_FREE(keeptr);
 	return 1;
 
