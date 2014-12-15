@@ -102,7 +102,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		p += TAG_LENGTH;
 
 	q = strrchr(ciphertext, '$');
-	if (!q)
+	if (!q || q+1==p)
 		return 0;
 	q = q + 1;
 	// if ((q - p - 1) > REAL_SALT_SIZE * 2)
@@ -113,6 +113,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		return 0;
 
 	if (strspn(p, HEXCHARS) != q - p - 1)
+		return 0;
+
+	if (q-p > (sizeof(cur_salt->salt)-1)*2)
 		return 0;
 
 	return 1;
