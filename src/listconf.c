@@ -628,9 +628,8 @@ void listconf_parse_late(void)
 		do {
 			int ShowIt = 1, i;
 
-			if (!strstr(format->params.format_name, "-opencl") &&
-			    !strstr(format->params.format_name, "-cuda"))
-				fmt_init(format); // required for thin formats
+			if (format->params.flags & FMT_DYNAMIC)
+				fmt_init(format); // required for thin formats, these adjust their methods here
 
 			if (options.listconf[14] == '=' || options.listconf[14] == ':') {
 				ShowIt = 0;
@@ -798,9 +797,8 @@ void listconf_parse_late(void)
 				printf("\tcmp_exact()\n");
 				printf("\n\n");
 			}
-			if (!strstr(format->params.format_name, "-opencl") &&
-			    !strstr(format->params.format_name, "-cuda"))
-				fmt_done(format);
+			if (format->params.flags & FMT_DYNAMIC)
+				fmt_done(format); // required for thin formats
 		} while ((format = format->next));
 		exit(EXIT_SUCCESS);
 	}
