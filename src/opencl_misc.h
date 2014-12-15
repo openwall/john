@@ -56,26 +56,26 @@ inline uint SWAP32(uint x)
 {
 	return bitselect(rotate(x, 24U), rotate(x, 8U), 0x00FF00FFU);
 }
-#define SWAP64(n)	  \
-	rotate(n & 0xFF000000FF000000UL, 8UL)  | \
-	rotate(n & 0x00FF000000FF0000UL, 24UL) | \
-	rotate(n & 0x0000FF000000FF00UL, 40UL) | \
-	rotate(n & 0x000000FF000000FFUL, 56UL)
+
+#define SWAP64(n)	bitselect( \
+		bitselect(rotate(n, 24UL), \
+		          rotate(n, 8UL), 0x000000FF000000FFUL), \
+		bitselect(rotate(n, 56UL), \
+		          rotate(n, 40UL), 0x00FF000000FF0000UL), \
+		0xFFFF0000FFFF0000UL)
 #else
 inline uint SWAP32(uint x)
 {
 	x = rotate(x, 16U);
 	return ((x & 0x00FF00FF) << 8) + ((x >> 8) & 0x00FF00FF);
 }
+
+// You would not believe how many driver bugs variants of this macro reveal
 #define SWAP64(n)	  \
-	(((n) << 56) \
-	 | (((n) & 0xff00) << 40) \
-	 | (((n) & 0xff0000) << 24) \
-	 | (((n) & 0xff000000) << 8) \
-	 | (((n) >> 8) & 0xff000000) \
-	 | (((n) >> 24) & 0xff0000) \
-	 | (((n) >> 40) & 0xff00) \
-	 | ((n) >> 56))
+            (((n)             << 56)   | (((n) & 0xff00)     << 40) |   \
+            (((n) & 0xff0000) << 24)   | (((n) & 0xff000000) << 8)  |   \
+            (((n) >> 8)  & 0xff000000) | (((n) >> 24) & 0xff0000)   |   \
+            (((n) >> 40) & 0xff00)     | ((n)  >> 56))
 #endif
 
 #if defined(SCALAR)

@@ -83,6 +83,9 @@ inline void hmac_sha256(uint * output, uint * ipad_state,
 
 	PUT_UINT32BE((uint) ((64 + saltlen + 4) << 3), buf, 60);
 
+	for (i = 0; i < 16; i++)
+		GET_UINT32BE(W[i], buf, i * 4);
+
 	A = ipad_state[0];
 	B = ipad_state[1];
 	C = ipad_state[2];
@@ -92,29 +95,16 @@ inline void hmac_sha256(uint * output, uint * ipad_state,
 	G = ipad_state[6];
 	H = ipad_state[7];
 
-	for (i = 0; i < 16; i++)
-		GET_UINT32BE(W[i], buf, i * 4);
-
 	SHA256(A, B, C, D, E, F, G, H);
 
-	A += ipad_state[0];
-	B += ipad_state[1];
-	C += ipad_state[2];
-	D += ipad_state[3];
-	E += ipad_state[4];
-	F += ipad_state[5];
-	G += ipad_state[6];
-	H += ipad_state[7];
-
-
-	W[0] = A;
-	W[1] = B;
-	W[2] = C;
-	W[3] = D;
-	W[4] = E;
-	W[5] = F;
-	W[6] = G;
-	W[7] = H;
+	W[0] = A + ipad_state[0];
+	W[1] = B + ipad_state[1];
+	W[2] = C + ipad_state[2];
+	W[3] = D + ipad_state[3];
+	W[4] = E + ipad_state[4];
+	W[5] = F + ipad_state[5];
+	W[6] = G + ipad_state[6];
+	W[7] = H + ipad_state[7];
 	W[8] = 0x80000000;
 	W[15] = 0x300;
 
@@ -148,7 +138,8 @@ inline void hmac_sha256(uint * output, uint * ipad_state,
 	output[7] = H;
 }
 
-__kernel void pbkdf2_sha256_loop(__global state_t *state, __global crack_t *out)
+__kernel void pbkdf2_sha256_loop(__global state_t *state,
+                                 __global crack_t *out)
 {
 	uint idx = get_global_id(0);
 	uint i, round, rounds = state[idx].rounds;
@@ -181,23 +172,14 @@ __kernel void pbkdf2_sha256_loop(__global state_t *state, __global crack_t *out)
 
 		SHA256_ZEROS(A, B, C, D, E, F, G, H);
 
-		A += ipad_state[0];
-		B += ipad_state[1];
-		C += ipad_state[2];
-		D += ipad_state[3];
-		E += ipad_state[4];
-		F += ipad_state[5];
-		G += ipad_state[6];
-		H += ipad_state[7];
-
-		W[0] = A;
-		W[1] = B;
-		W[2] = C;
-		W[3] = D;
-		W[4] = E;
-		W[5] = F;
-		W[6] = G;
-		W[7] = H;
+		W[0] = A + ipad_state[0];
+		W[1] = B + ipad_state[1];
+		W[2] = C + ipad_state[2];
+		W[3] = D + ipad_state[3];
+		W[4] = E + ipad_state[4];
+		W[5] = F + ipad_state[5];
+		W[6] = G + ipad_state[6];
+		W[7] = H + ipad_state[7];
 		W[8] = 0x80000000;
 		W[15] = 0x300;
 
@@ -212,23 +194,14 @@ __kernel void pbkdf2_sha256_loop(__global state_t *state, __global crack_t *out)
 
 		SHA256_ZEROS(A, B, C, D, E, F, G, H);
 
-		A += opad_state[0];
-		B += opad_state[1];
-		C += opad_state[2];
-		D += opad_state[3];
-		E += opad_state[4];
-		F += opad_state[5];
-		G += opad_state[6];
-		H += opad_state[7];
-
-		W[0] = A;
-		W[1] = B;
-		W[2] = C;
-		W[3] = D;
-		W[4] = E;
-		W[5] = F;
-		W[6] = G;
-		W[7] = H;
+		W[0] = A += opad_state[0];
+		W[1] = B += opad_state[1];
+		W[2] = C += opad_state[2];
+		W[3] = D += opad_state[3];
+		W[4] = E += opad_state[4];
+		W[5] = F += opad_state[5];
+		W[6] = G += opad_state[6];
+		W[7] = H += opad_state[7];
 
 		tmp_out[0] ^= A;
 		tmp_out[1] ^= B;
@@ -240,9 +213,9 @@ __kernel void pbkdf2_sha256_loop(__global state_t *state, __global crack_t *out)
 		tmp_out[7] ^= H;
 	}
 
-	if(rounds >= HASH_LOOPS){ // there is still work to do
+	if (rounds >= HASH_LOOPS) { // there is still work to do
 		state[idx].rounds = rounds - HASH_LOOPS;
-		for(i = 0; i < 8; i++) {
+		for (i = 0; i < 8; i++) {
 			state[idx].hash[i] = tmp_out[i];
 			state[idx].W[i] = W[i];
 		}
@@ -275,7 +248,7 @@ __kernel void pbkdf2_sha256_kernel(__global const pass_t * inbuffer,
 
 	hmac_sha256(tmp_out, ipad_state, opad_state, salt, saltlen);
 
-	for(i=0; i < 8; i++) {
+	for(i = 0; i < 8; i++) {
 		state[idx].ipad[i] = ipad_state[i];
 		state[idx].opad[i] = opad_state[i];
 		state[idx].hash[i] = tmp_out[i];

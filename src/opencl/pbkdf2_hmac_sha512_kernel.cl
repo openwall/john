@@ -95,15 +95,17 @@ inline void hmac_sha512(ulong *output, ulong *ipad_state, ulong *opad_state,
 	F = ipad_state[5];
 	G = ipad_state[6];
 	H = ipad_state[7];
+
 	SHA512(A, B, C, D, E, F, G, H);
-	W[0] = A += ipad_state[0];
-	W[1] = B += ipad_state[1];
-	W[2] = C += ipad_state[2];
-	W[3] = D += ipad_state[3];
-	W[4] = E += ipad_state[4];
-	W[5] = F += ipad_state[5];
-	W[6] = G += ipad_state[6];
-	W[7] = H += ipad_state[7];
+
+	W[0] = A + ipad_state[0];
+	W[1] = B + ipad_state[1];
+	W[2] = C + ipad_state[2];
+	W[3] = D + ipad_state[3];
+	W[4] = E + ipad_state[4];
+	W[5] = F + ipad_state[5];
+	W[6] = G + ipad_state[6];
+	W[7] = H + ipad_state[7];
 	W[8] = 0x8000000000000000UL;
 	W[15] = 0x600;
 	A = opad_state[0];
@@ -114,7 +116,9 @@ inline void hmac_sha512(ulong *output, ulong *ipad_state, ulong *opad_state,
 	F = opad_state[5];
 	G = opad_state[6];
 	H = opad_state[7];
+
 	SHA512_ZEROS(A, B, C, D, E, F, G, H);
+
 	A += opad_state[0];
 	B += opad_state[1];
 	C += opad_state[2];
@@ -168,14 +172,14 @@ __kernel void pbkdf2_sha512_loop(__global state_t *state,
 
 		SHA512_ZEROS(A, B, C, D, E, F, G, H);
 
-		W[0] = A += ipad_state[0];
-		W[1] = B += ipad_state[1];
-		W[2] = C += ipad_state[2];
-		W[3] = D += ipad_state[3];
-		W[4] = E += ipad_state[4];
-		W[5] = F += ipad_state[5];
-		W[6] = G += ipad_state[6];
-		W[7] = H += ipad_state[7];
+		W[0] = A + ipad_state[0];
+		W[1] = B + ipad_state[1];
+		W[2] = C + ipad_state[2];
+		W[3] = D + ipad_state[3];
+		W[4] = E + ipad_state[4];
+		W[5] = F + ipad_state[5];
+		W[6] = G + ipad_state[6];
+		W[7] = H + ipad_state[7];
 		W[8] = 0x8000000000000000UL;
 		W[15] = 0x600;
 
@@ -190,23 +194,14 @@ __kernel void pbkdf2_sha512_loop(__global state_t *state,
 
 		SHA512_ZEROS(A, B, C, D, E, F, G, H);
 
-		A += opad_state[0];
-		B += opad_state[1];
-		C += opad_state[2];
-		D += opad_state[3];
-		E += opad_state[4];
-		F += opad_state[5];
-		G += opad_state[6];
-		H += opad_state[7];
-
-		W[0] = A;
-		W[1] = B;
-		W[2] = C;
-		W[3] = D;
-		W[4] = E;
-		W[5] = F;
-		W[6] = G;
-		W[7] = H;
+		W[0] = A += opad_state[0];
+		W[1] = B += opad_state[1];
+		W[2] = C += opad_state[2];
+		W[3] = D += opad_state[3];
+		W[4] = E += opad_state[4];
+		W[5] = F += opad_state[5];
+		W[6] = G += opad_state[6];
+		W[7] = H += opad_state[7];
 
 		tmp_out[0] ^= A;
 		tmp_out[1] ^= B;
