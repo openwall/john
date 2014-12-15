@@ -72,6 +72,8 @@ int base64_decode(char *in, int inlen, char *out) {
       ((temp[2]<<6) & 0xc0) | ((temp[3]   ) & 0x3f);
 
     out_block += 3;
+	if(in_block[3] == '=')
+      return 0;
     in_block += 4;
   }
 
