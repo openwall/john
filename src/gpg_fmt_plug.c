@@ -170,7 +170,7 @@ static uint32_t blockSize(char algorithm)
 		case CIPHER_BLOWFISH:
 			return BF_BLOCK;
 		case CIPHER_IDEA:
-			return 8; // XXX
+			return 8;
 		case CIPHER_AES128:
 		case CIPHER_AES192:
 		case CIPHER_AES256:
@@ -277,38 +277,39 @@ static void init(struct fmt_main *self)
 
 static int valid_cipher_algorithm(int cipher_algorithm)
 {
-	switch(cipher_algorithm)
-	{
-	  case CIPHER_CAST5: return 1;
-	  case CIPHER_BLOWFISH: return 1;
-	  case CIPHER_AES128: return 1;
-	  case CIPHER_AES192: return 1;
-	  case CIPHER_AES256: return 1;
-	  case CIPHER_IDEA: return 1;
-	  case CIPHER_3DES: return 1;
+	switch(cipher_algorithm) {
+		case CIPHER_CAST5: return 1;
+		case CIPHER_BLOWFISH: return 1;
+		case CIPHER_AES128: return 1;
+		case CIPHER_AES192: return 1;
+		case CIPHER_AES256: return 1;
+		case CIPHER_IDEA: return 1;
+		case CIPHER_3DES: return 1;
 	}
+
 	return 0;
 }
 
 static int valid_hash_algorithm(int hash_algorithm, int spec)
 {
-      if(spec == SPEC_SIMPLE || spec == SPEC_SALTED)
-	switch(hash_algorithm)
-	{
-	  case HASH_SHA1: return 1;
-	  case HASH_MD5: return 1;
-	  case 0: return 1; // http://www.ietf.org/rfc/rfc1991.txt
-	}
-      if(spec == SPEC_ITERATED_SALTED)
-	switch(hash_algorithm)
-	{
-	  case HASH_SHA1: return 1;
-	  case HASH_MD5: return 1;
-	  case HASH_SHA256: return 1;
-	  case HASH_RIPEMD160: return 1;
-	  case HASH_SHA512: return 1;
-	}
-      return 0;
+	if(spec == SPEC_SIMPLE || spec == SPEC_SALTED)
+		switch(hash_algorithm) {
+			case HASH_SHA1: return 1;
+			case HASH_MD5: return 1;
+			case 0: return 1; // http://www.ietf.org/rfc/rfc1991.txt
+		}
+
+	if(spec == SPEC_ITERATED_SALTED)
+		switch(hash_algorithm)
+		{
+			case HASH_SHA1: return 1;
+			case HASH_MD5: return 1;
+			case HASH_SHA256: return 1;
+			case HASH_RIPEMD160: return 1;
+			case HASH_SHA512: return 1;
+		}
+
+	return 0;
 }
 
 static int ishex(char *q)
