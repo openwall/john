@@ -627,6 +627,9 @@ void listconf_parse_late(void)
 		format = fmt_list;
 		do {
 			int ShowIt = 1, i;
+
+			fmt_init(format); // required for thin formats
+
 			if (options.listconf[14] == '=' || options.listconf[14] == ':') {
 				ShowIt = 0;
 				if (!strcasecmp(&options.listconf[15], "valid")     ||
@@ -793,6 +796,7 @@ void listconf_parse_late(void)
 				printf("\tcmp_exact()\n");
 				printf("\n\n");
 			}
+			fmt_done(format);
 		} while ((format = format->next));
 		exit(EXIT_SUCCESS);
 	}
