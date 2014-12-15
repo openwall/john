@@ -141,11 +141,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtok(NULL, "$")) == NULL)	/* salt */
 		goto err;
-	if (base64_valid_length(p,e_b64_mime,flg_Base64_MIME_TRAIL_EQ) > SALT_SIZE)
+	if (strlen(p)  > SALT_SIZE)
 		goto err;
 	if ((p = strtok(NULL, "")) == NULL)	/* hash */
 		goto err;
-	if (base64_valid_length(p,e_b64_mime,flg_Base64_MIME_TRAIL_EQ) > HASH_LENGTH-1)  {
+	if (strlen(p) != base64_valid_length(p,e_b64_mime,flg_Base64_MIME_TRAIL_EQ) || strlen(p) > HASH_LENGTH-1)  {
 		goto err;
 	}
 	MEM_FREE(keeptr);
