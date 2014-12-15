@@ -114,6 +114,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if(strlen(p) > MAX_SALT_SIZE)
 		goto err;
+	p = strtok(NULL, "$");
+	if (p)
+		goto err;
 
 	MEM_FREE(keeptr);
 	return 1;
