@@ -25,6 +25,9 @@
 #include <sys/stat.h>
 #ifdef _MSC_VER
 #include "missing_getopt.h"
+#include <io.h>
+#else
+#include <unistd.h>
 #endif
 #include "memory.h"
 #include "misc.h"
@@ -868,6 +871,7 @@ static int usage(char *name)
 {
 	fprintf(stderr, "Usage: %s [-i intype] [-o outtype] [-q] [-e] [-f flag] data [data ...]\n"
 	        "  (data must match input_type i.e. if hex, then data should be in hex)\n"
+			"  (if data is not present, then base64conv will read data from std input\n"
 			"\n"
 			"  -q will only output resultant string. No extra junk text\n"
 			"  -e turns on buffer overwrite error checking logic\n"
@@ -918,6 +922,8 @@ int base64conv(int argc, char **argv) {
 	int flags=flg_Base64_NO_FLAGS;
 
 	/* Parse command line */
+	if (argc == 1)
+		return usage(argv[0]);
 	while ((c = getopt(argc, argv, "i:o:q!e!f:")) != -1) {
 		switch (c) {
 		case 'i':
@@ -948,11 +954,23 @@ int base64conv(int argc, char **argv) {
 			return usage(argv[0]);
 		}
 	}
-	argc -= optind;
-	if(argc == 0)
+	if (in_t == e_b64_unk || out_t == e_b64_unk)
 		return usage(argv[0]);
+	argc -= optind;
 	argv += optind;
-
+	if (!argc) {
+		// if we are out of params, then read from stdin, and put it into prior argv[] element.
+		char *buf;
+		--argv;
+		++argc;
+		if (isatty(fileno(stdin))) {
+			fprintf (stderr, "Enter a line of data to be converted\n");
+		}
+		buf = (char*)mem_alloc_tiny(256*1024*1024, 1);
+		fgetl(buf, 256*1024*1024-1, stdin);
+		buf[256*1024*1024-1] = 0;
+		*argv = buf;
+	}
 	while(argc--) {
 		char *po = (char*)mem_calloc(strlen(*argv)*3);
 		int i, len;
