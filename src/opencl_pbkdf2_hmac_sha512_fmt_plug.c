@@ -516,7 +516,7 @@ static void set_key(char *key, int index)
 	int saved_key_length = MIN(strlen(key), PLAINTEXT_LENGTH);
 	// make sure LAST uint64 that has any key in it gets null, since we simply
 	// ^= the whole uint64 with the ipad/opad mask
-	strncpy(host_pass[index].v, key, PLAINTEXT_LENGTH);
+	strncpy((char*)host_pass[index].v, key, PLAINTEXT_LENGTH);
 	host_pass[index].length = saved_key_length;
 }
 
