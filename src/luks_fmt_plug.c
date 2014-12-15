@@ -354,7 +354,6 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		if ((p = strtok(NULL, "$")) == NULL)	/* mkDigest */
 			goto err;
 
-		return 1;
 		/* more tests */
 		if (hash_plugin_parse_hash(q, &cs, 0) != 0) {
 			MEM_FREE(cs.cipherbuf);
