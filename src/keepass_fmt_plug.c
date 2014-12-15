@@ -255,6 +255,19 @@ static int valid(char *ciphertext, struct fmt_main *self)
 			goto err;
 		if (!ishex(p))
 			goto err;
+		p = strtok(NULL, "*");
+		if (p) {
+			// keyfile handling
+			if ((p = strtok(NULL, "*")) == NULL)
+				goto err;
+			res = strlen(p);
+			if ((p = strtok(NULL, "*")) == NULL)
+				goto err;
+			if (res != 32 || strlen(p) != 64)
+				goto err;
+			if (!ishex(p))
+				goto err;
+		}
 	}
 	else {
 		if ((p = strtok(NULL, "*")) == NULL)	/* content */
