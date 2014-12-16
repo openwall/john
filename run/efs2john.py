@@ -1,40 +1,32 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-#############################################################################
-##                                                                         ##
-## This file is part of DPAPIck                                            ##
-## Windows DPAPI decryption & forensic toolkit                             ##
-##                                                                         ##
-##                                                                         ##
-## Copyright (C) 2010, 2011 Cassidian SAS. All rights reserved.            ##
-## This document is the property of Cassidian SAS, it may not be copied or ##
-## circulated without prior licence                                        ##
-##                                                                         ##
-##  Author: Jean-Michel Picod <jmichel.p@gmail.com>                        ##
-##                                                                         ##
-## This program is distributed under GPLv3 licence (see LICENCE.txt)       ##
-##                                                                         ##
-#############################################################################
+# Modified (for JtR) by Dhiru Kholia in December, 2014.
+#
+# This file is part of DPAPIck
+# Windows DPAPI decryption & forensic toolkit
+#
+# Copyright (C) 2010, 2011 Cassidian SAS. All rights reserved.
+# This document is the property of Cassidian SAS, it may not be copied or
+# circulated without prior licence
+#
+# Author: Jean-Michel Picod <jmichel.p@gmail.com>
+#
+# This program is distributed under GPLv3 licence (see LICENCE.txt)
 
-import sys
 import os
 import re
+import sys
 import struct
 import array
 import hashlib
-import M2Crypto
+try:
+    import M2Crypto
+except ImportError:
+    sys.stderr.write("For additional functionality, please install python-m2crypto package.\n")
 import cPickle
 from optparse import OptionParser
 from collections import defaultdict
-
-# Usage
-#
-# ./efs2john.py --masterkey=samples/openwall.efs/92573301-74fa-4e55-bd38-86fc558fa25e \
-#    --sid="S-1-5-21-1482476501-1659004503-725345543-1003"
-#
-# ./efs2john.py --masterkey=samples/openwall.efs.2/21d67870-8257-49e0-b2de-c58324271c42 \
-#    --sid="S-1-5-21-1482476501-1659004503-725345543-1005"
 
 
 class Eater(object):
@@ -673,39 +665,6 @@ class MasterKey(DataStruct):
         return "\n".join(s)
 
 
-class DomainKey(DataStruct):
-    """This class represents a DomainKey block contained in the MasterKeyFile.
-
-    Currently does nothing more than parsing. Work on Active Directory stuff is
-    still on progress.
-
-    """
-    def __init__(self, raw=None):
-        self.version = None
-        self.secretLen = None
-        self.accesscheckLen = None
-        self.guidKey = None
-        self.encryptedSecret = None
-        self.accessCheck = None
-        DataStruct.__init__(self, raw)
-
-    def parse(self, data):
-        self.version = data.eat("L")
-        self.secretLen = data.eat("L")
-        self.accesscheckLen = data.eat("L")
-        self.guidKey = "%0x-%0x-%0x-%0x%0x-%0x%0x%0x%0x%0x%0x" % data.eat("L2H8B")  # data.eat("16s")
-        self.encryptedSecret = data.eat("%us" % self.secretLen)
-        self.accessCheck = data.eat("%us" % self.accesscheckLen)
-
-    def __repr__(self):
-        s = ["DomainKey block",
-             "\tversion     = %x" % self.version,
-             "\tguid        = %s" % self.guidKey,
-             "\tsecret      = %s" % self.encryptedSecret.encode("hex"),
-             "\taccessCheck = %s" % self.accessCheck.encode("hex")]
-        return "\n".join(s)
-
-
 class MasterKeyFile(DataStruct):
     """This class represents a masterkey file."""
 
@@ -742,9 +701,6 @@ class MasterKeyFile(DataStruct):
         if self.backupkeyLen > 0:
             self.backupkey = MasterKey()
             self.backupkey.parse(data.eat_sub(self.backupkeyLen))
-        if self.domainkeyLen > 0:
-            self.domainkey = DomainKey()
-            self.domainkey.parse(data.eat_sub(self.domainkeyLen))
 
     def decryptWithHash(self, userSID, h):
         """See MasterKey.decryptWithHash()"""
@@ -1080,6 +1036,19 @@ class DPAPIProbe(DataStruct):
         return False
 
 
+def usage():
+    print """Usage:
+
+efs2john.py --masterkey=samples/openwall.efs/92573301-74fa-4e55-bd38-86fc558fa25e \\
+    --sid="S-1-5-21-1482476501-1659004503-725345543-1003"
+
+efs2john.py --masterkey=samples/openwall.efs.2/21d67870-8257-49e0-b2de-c58324271c42 \\
+    --sid="S-1-5-21-1482476501-1659004503-725345543-1005"
+
+efs2john.py --masterkey=samples/Win-2012-non-DC/1b52eb4f-440f-479e-b84a-654fdccad797 \\
+    --sid="S-1-5-21-689418962-3671548705-686489014-1001" --password="openwall@123"
+"""
+
 if __name__ == "__main__":
     parser = OptionParser()
     parser.add_option("--sid", metavar="SID", dest="sid")
@@ -1089,35 +1058,11 @@ if __name__ == "__main__":
     (options, args) = parser.parse_args()
 
     mkp = MasterKeyPool()
-    # assert(options.sid)
+    if not options.sid:
+        usage()
+        sys.exit(-1)
 
     mkdata = open(options.masterkey, 'rb').read()
     mkp.addMasterKey(mkdata, SID=options.sid)
-    # print mkp.try_credential("S-1-5-21-689418962-3671548705-686489014-1001", "openwall@123")
-
-    sys.exit(0)
-    for b in args:
-        blob = DPAPIBlob(open(b, 'rb').read())
-
-        print "BLOB GUID=%r" % blob.guids
-        for key_guid in blob.guids:
-
-            mks = mkp.getMasterKeys(key_guid)
-            if mks:
-                break
-        else:
-            print >> sys.stderr, "Master key not found for blob %s (guid=%r)" % (b, blob.guids)
-            continue
-
-        print "Found %i keys:" % len(mks)
-        print "Attempting to unlock with password:"
-        for mk in mks:
-            mk.decryptWithPassword(options.sid, options.password)
-            if mk.decrypted:
-                break
-            # mk.decryptWithHash(str(credent.userSID), credent.pwdhash)
-
-        # print repr(mk)
-        print "Attempt to decrypt blob:"
-        blob.decrypt(mk.get_key(), options.entropy, options.strongpwd)
-        # print repr(blob)
+    if options.password:
+        print mkp.try_credential(options.sid, options.password)
