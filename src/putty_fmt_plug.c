@@ -70,7 +70,7 @@ static struct custom_salt {
 	int cipher, cipherblk;
 	int public_blob_len, private_blob_len;
 	char encryption[32];
-	char mac[128];
+	char mac[20];
 	char comment[512];
 	unsigned char public_blob[4096];
 	unsigned char private_blob[4096];
@@ -197,7 +197,10 @@ static void *get_salt(char *ciphertext)
 	p = strtok(NULL, "*");
 	cs->old_fmt = atoi(p);
 	p = strtok(NULL, "*");
-	strcpy(cs->mac, p);
+	for (i = 0; i < 20; i++)
+		cs->mac[i] =
+		    atoi16[ARCH_INDEX(p[i * 2])] * 16 +
+		    atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	p = strtok(NULL, "*");
 	cs->public_blob_len = atoi(p);
 	p = strtok(NULL, "*");
@@ -282,12 +285,10 @@ static int LAME_ssh2_load_userkey(char *passphrase)
 	}
 	/* Verify the MAC. */
 	{
-		char realmac[41];
 		unsigned char binary[20];
 		unsigned char *macdata;
 		unsigned char macdata_ar[4*5+sizeof(cur_salt->alg)+sizeof(cur_salt->encryption)+sizeof(cur_salt->comment)+sizeof(cur_salt->public_blob)+sizeof(cur_salt->private_blob)+1];
 		int maclen;
-		int i;
 		if (cur_salt->old_fmt) {
 			/* MAC (or hash) only covers the private blob. */
 			macdata = out;
@@ -330,10 +331,7 @@ static int LAME_ssh2_load_userkey(char *passphrase)
 		} else {
 			SHA_Simple(macdata, maclen, binary);
 		}
-		for (i = 0; i < 20; i++)
-			sprintf(realmac + 2 * i, "%02x", binary[i]);
-
-		if (strcmp(cur_salt->mac, realmac) == 0)
+		if (memcmp(cur_salt->mac, binary, 20) == 0)
 			return 1;
 	}
 
