@@ -20,7 +20,6 @@ john_register_one(&fmt_opencl_phpass);
 #include "misc.h"
 #include "options.h"
 #include "common-opencl.h"
-#include "memdbg.h"
 
 #define uint32_t                unsigned int
 #define uint8_t                 unsigned char
@@ -34,15 +33,15 @@ john_register_one(&fmt_opencl_phpass);
 #define BENCHMARK_LENGTH        -1
 
 #define PLAINTEXT_LENGTH        15
-#define CIPHERTEXT_LENGTH       34	/// header = 3 | loopcnt = 1 | salt = 8 | ciphertext = 22
+#define CIPHERTEXT_LENGTH       34	// header = 3 | loopcnt = 1 | salt = 8 | ciphertext = 22
 #define BINARY_SIZE             16
 #define ACTUAL_SALT_SIZE        8
 #define SALT_SIZE               (ACTUAL_SALT_SIZE + 1) // 1 byte for iterations
 #define BINARY_ALIGN		MEM_ALIGN_WORD
 #define SALT_ALIGN		1
 
-#define MIN_KEYS_PER_CRYPT      (2048 * 96)
-#define MAX_KEYS_PER_CRYPT      MIN_KEYS_PER_CRYPT
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      1
 
 //#define _PHPASS_DEBUG
 
@@ -52,25 +51,14 @@ typedef struct {
 } phpass_password;
 
 typedef struct {
-	uint32_t v[4];		///128bits for hash
+	uint32_t v[4];		// 128bits for hash
 } phpass_hash;
 
-static phpass_password *inbuffer;			/** plaintext ciphertexts **/
+static phpass_password *inbuffer;		/** plaintext ciphertexts **/
 static phpass_hash *outbuffer;			/** calculated hashes **/
 static const char phpassP_prefix[] = "$P$";
 static const char phpassH_prefix[] = "$H$";
 static char currentsalt[SALT_SIZE];
-
-extern void mem_init(unsigned char *, uint32_t *, char *, char *, int);
-extern void mem_clear(void);
-extern void gpu_phpass(void);
-
-// OpenCL variables:
-static cl_mem mem_in, mem_out, mem_setting;
-
-#define insize (sizeof(phpass_password) * global_work_size * 8)
-#define outsize (sizeof(phpass_hash) * global_work_size * 8)
-#define settingsize (sizeof(uint8_t) * ACTUAL_SALT_SIZE + 4)
 
 static struct fmt_tests tests[] = {
 	{"$P$90000000000tbNYOc9TwXvLEI62rPt1", ""},
@@ -120,6 +108,79 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
+// OpenCL variables:
+static cl_int cl_error;
+static cl_mem mem_in, mem_out, mem_setting;
+size_t insize, outsize, settingsize;
+
+#define MIN(a, b)               (((a) > (b)) ? (b) : (a))
+#define MAX(a, b)               (((a) > (b)) ? (a) : (b))
+
+#define OCL_CONFIG		"phpass"
+#define STEP			0
+#define SEED			64
+
+// This file contains auto-tuning routine(s). Has to be included after formats definitions.
+#include "opencl-autotune.h"
+#include "memdbg.h"
+
+static const char * warn[] = {
+	"xfer: ",  ", crypt: ",  ", xfer: "
+};
+
+/* ------- Helper functions ------- */
+static size_t get_task_max_work_group_size()
+{
+	return autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
+}
+
+static size_t get_task_max_size()
+{
+	return 0;
+}
+
+static size_t get_default_workgroup()
+{
+	if (cpu(device_info[gpu_id]))
+		return get_platform_vendor_id(platform_id) == DEV_INTEL ?
+			8 : 1;
+	else
+		return 64;
+}
+
+static void create_clobj(size_t kpc, struct fmt_main *self)
+{
+	kpc *= 8;
+
+	insize = sizeof(phpass_password) * kpc;
+	outsize = sizeof(phpass_hash) * kpc;
+	settingsize = sizeof(uint8_t) * ACTUAL_SALT_SIZE + 4;
+
+	inbuffer = mem_calloc(insize);
+	outbuffer = mem_alloc(outsize);
+
+	// Allocate memory
+	mem_in =
+	    clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, insize, NULL,
+	    &cl_error);
+	HANDLE_CLERROR(cl_error, "Error allocating mem in");
+	mem_setting =
+	    clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, settingsize,
+	    NULL, &cl_error);
+	HANDLE_CLERROR(cl_error, "Error allocating mem setting");
+	mem_out =
+	    clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, outsize, NULL,
+	    &cl_error);
+	HANDLE_CLERROR(cl_error, "Error allocating mem out");
+
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(mem_in),
+		&mem_in), "Error while setting mem_in kernel argument");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(mem_out),
+		&mem_out), "Error while setting mem_out kernel argument");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(mem_setting),
+		&mem_setting), "Error while setting mem_salt kernel argument");
+}
+
 static void release_clobj(void)
 {
 	HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
@@ -161,62 +222,18 @@ static char *get_key(int index)
 
 static void init(struct fmt_main *self)
 {
-	cl_int cl_error;
-	char *temp;
-	cl_ulong maxsize;
-
 	opencl_init("$JOHN/kernels/phpass_kernel.cl", gpu_id, NULL);
 
-	if ((temp = getenv("LWS")))
-		local_work_size = atoi(temp);
-
-	if (!local_work_size)
-		local_work_size = cpu(device_info[gpu_id]) ? 1 : 64;
-
-	if ((temp = getenv("GWS")))
-		global_work_size = atoi(temp);
-
-	if (!global_work_size)
-		global_work_size = MAX_KEYS_PER_CRYPT / 8;
-
-	/// Allocate memory
-	inbuffer = (phpass_password *) mem_calloc(insize);
-	outbuffer = (phpass_hash *) mem_alloc(outsize);
-
-	mem_in =
-	    clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, insize, NULL,
-	    &cl_error);
-	HANDLE_CLERROR(cl_error, "Error allocating mem in");
-	mem_setting =
-	    clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, settingsize,
-	    NULL, &cl_error);
-	HANDLE_CLERROR(cl_error, "Error allocating mem setting");
-	mem_out =
-	    clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, outsize, NULL,
-	    &cl_error);
-	HANDLE_CLERROR(cl_error, "Error allocating mem out");
-
-	/// Setup kernel parameters
 	crypt_kernel = clCreateKernel(program[gpu_id], "phpass", &cl_error);
 	HANDLE_CLERROR(cl_error, "Error creating kernel");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(mem_in),
-		&mem_in), "Error while setting mem_in");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(mem_out),
-		&mem_out), "Error while setting mem_out");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(mem_setting),
-		&mem_setting), "Error while setting mem_setting");
 
-	/* Note: we ask for the kernel's max size, not the device's! */
-	maxsize = get_kernel_max_lws(gpu_id, crypt_kernel);
+	// Initialize openCL tuning (library) for this format.
+	opencl_init_auto_setup(SEED, 0, NULL,
+	                       warn, 1, self, create_clobj, release_clobj,
+	                       sizeof(phpass_password), 0);
 
-	while (local_work_size > maxsize)
-		local_work_size >>= 1;
-
-	self->params.min_keys_per_crypt = local_work_size * 8;
-	self->params.max_keys_per_crypt = global_work_size * 8;
-
-	if (options.verbosity > 2)
-		fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
+	// Auto tune execution from shared/included code.
+	autotune_run(self, 1, 0, 200);
 }
 
 static int valid(char *ciphertext, struct fmt_main *pFmt)
@@ -292,42 +309,43 @@ static void *salt(char *ciphertext)
 
 static void set_salt(void *salt)
 {
+	char setting[SALT_SIZE + 3] = { 0 };
+
 	memcpy(currentsalt, salt, SALT_SIZE);
+
+	// Prepare setting format: salt+prefix+count_log2
+	memcpy(setting, currentsalt, ACTUAL_SALT_SIZE);
+	strcpy(setting + ACTUAL_SALT_SIZE, phpassP_prefix);
+	setting[ACTUAL_SALT_SIZE + 3] = atoi64[ARCH_INDEX(currentsalt[8])];
+
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_setting,
+		CL_TRUE, 0, settingsize, setting, 0, NULL, NULL),
+	    "Copy setting to gpu");
 }
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
-	char setting[SALT_SIZE + 3] = { 0 };
 
 	global_work_size = (((count+7)/8) + local_work_size - 1) / local_work_size * local_work_size;
 
 #ifdef _PHPASS_DEBUG
-	printf("crypt_all(%d)\n", count);
+	printf("crypt_all(%d) gws %zu\n", count, global_work_size);
 #endif
-	///Prepare setting format: salt+prefix+count_log2
-	memcpy(setting, currentsalt, ACTUAL_SALT_SIZE);
-	strcpy(setting + ACTUAL_SALT_SIZE, phpassP_prefix);
-	setting[ACTUAL_SALT_SIZE + 3] = atoi64[ARCH_INDEX(currentsalt[8])];
-	/// Copy data to gpu
+	// Copy data to gpu
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0,
-		insize, inbuffer, 0, NULL, NULL), "Copy data to gpu");
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_setting,
-		CL_FALSE, 0, settingsize, setting, 0, NULL, NULL),
-	    "Copy setting to gpu");
+		insize, inbuffer, 0, NULL, multi_profilingEvent[0]),
+		"Copy data to gpu");
 
-	/// Run kernel
+	// Run kernel
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1,
 		NULL, &global_work_size, &local_work_size, 0, NULL,
-		profilingEvent), "Run kernel");
-	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish");
+		multi_profilingEvent[1]), "Run kernel");
 
-	/// Read the result back
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_FALSE, 0,
-		outsize, outbuffer, 0, NULL, NULL), "Copy result back");
-
-	/// Await completion of all the above
-	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish");
+	// Read the result back
+	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0,
+		outsize, outbuffer, 0, NULL, multi_profilingEvent[2]),
+		"Copy result back");
 
 	return count;
 }
@@ -335,9 +353,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 static int binary_hash_0(void *binary)
 {
 #ifdef _PHPASS_DEBUG
-	printf("binary_hash_0 ");
 	int i;
 	uint32_t *b = binary;
+	printf("binary_hash_0 ");
 	for (i = 0; i < 4; i++)
 		printf("%08x ", b[i]);
 	puts("");
@@ -348,8 +366,8 @@ static int binary_hash_0(void *binary)
 static int get_hash_0(int index)
 {
 #ifdef _PHPASS_DEBUG
-	printf("get_hash_0:   ");
 	int i;
+	printf("get_hash_0:   ");
 	for (i = 0; i < 4; i++)
 		printf("%08x ", outbuffer[index].v[i]);
 	puts("");
