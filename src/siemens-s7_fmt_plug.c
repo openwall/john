@@ -24,7 +24,6 @@ john_register_one(&fmt_s7);
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-#include "gladman_hmac.h"
 #ifdef _OPENMP
 #include <omp.h>
 #define OMP_SCALE               2048
@@ -185,7 +184,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			SHA1_Update(&opad_ctx[index], pad, 20);
 			SHA1_Update(&opad_ctx[index], "\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C", 44);
 		}
-		//hmac_sha1(crypt_key[index], 20, challenge, 20, (unsigned char*)crypt_out[index], 20);
 		memcpy(&ctx, &ipad_ctx[index], sizeof(ctx));
 		SHA1_Update(&ctx, challenge, 20);
 		SHA1_Final(buf, &ctx);
