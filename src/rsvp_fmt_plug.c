@@ -17,7 +17,7 @@ john_register_one(&fmt_rsvp);
 #include <string.h>
 #ifdef _OPENMP
 #include <omp.h>
-#define OMP_SCALE 2048 // XXX
+#define OMP_SCALE 8192
 #endif
 
 #include "arch.h"
@@ -57,7 +57,13 @@ static struct fmt_tests tests[] = {
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static int *saved_len;
-static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static int new_keys;
+// we make our crypt_out large enough for an SHA1 output now.  Even though we only compare first BINARY_SIZE data.
+static ARCH_WORD_32 (*crypt_out)[ (BINARY_SIZE+4) / sizeof(ARCH_WORD_32)];
+static SHA_CTX *ipad_ctx;
+static SHA_CTX *opad_ctx;
+static MD5_CTX *ipad_mctx;
+static MD5_CTX *opad_mctx;
 
 static  struct custom_salt {
 	int type;
@@ -80,6 +86,10 @@ static void init(struct fmt_main *self)
 		self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) *
 		self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	ipad_ctx = mem_calloc_tiny(sizeof(*opad_ctx) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	opad_ctx = mem_calloc_tiny(sizeof(*opad_ctx) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	ipad_mctx = mem_calloc_tiny(sizeof(*opad_mctx) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	opad_mctx = mem_calloc_tiny(sizeof(*opad_mctx) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
 static int ishex(char *q)
@@ -192,19 +202,89 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	for (index = 0; index < count; index++)
 #endif
 	{
+		unsigned char buf[20];
 		if (cur_salt->type == 1) {
-			HMACMD5Context ctx;
+			MD5_CTX ctx;
+			if (new_keys) {
+				int i, len = strlen(saved_key[index]);
+				unsigned char *p = (unsigned char*)saved_key[index];
+				unsigned char pad[64];
 
-			hmac_md5_init_rfc2104((unsigned char*)saved_key[index], saved_len[index], &ctx);
-			hmac_md5_update(cur_salt->salt, cur_salt->salt_length, &ctx);
-			hmac_md5_final((unsigned char*)crypt_out[index], &ctx);
+				if (len > 64) {
+					MD5_Init(&ctx);
+					MD5_Update(&ctx, p, len);
+					MD5_Final(buf, &ctx);
+					len = 16;
+					p = buf;
+				}
+				for (i = 0; i < len; ++i) {
+					pad[i] = p[i] ^ 0x36;
+				}
+				MD5_Init(&ipad_mctx[index]);
+				MD5_Update(&ipad_mctx[index], pad, len);
+				if (len < 64)
+					MD5_Update(&ipad_mctx[index], "\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36", 64-len);
+				for (i = 0; i < len; ++i) {
+					pad[i] = p[i] ^ 0x5C;
+				}
+				MD5_Init(&opad_mctx[index]);
+				MD5_Update(&opad_mctx[index], pad, len);
+				if (len < 64)
+					MD5_Update(&opad_mctx[index], "\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C", 64-len);
+			}
+			memcpy(&ctx, &ipad_mctx[index], sizeof(ctx));
+			MD5_Update(&ctx, cur_salt->salt, cur_salt->salt_length);
+			MD5_Final(buf, &ctx);
+			memcpy(&ctx, &opad_mctx[index], sizeof(ctx));
+			MD5_Update(&ctx, buf, 16);
+			MD5_Final((unsigned char*)(crypt_out[index]), &ctx);
+//			HMACMD5Context ctx;
+//			hmac_md5_init_rfc2104((unsigned char*)saved_key[index], saved_len[index], &ctx);
+//			hmac_md5_update(cur_salt->salt, cur_salt->salt_length, &ctx);
+//			hmac_md5_final((unsigned char*)crypt_out[index], &ctx);
 		} else if (cur_salt->type == 2) {
-			hmac_sha1((unsigned char*)saved_key[index],
-					saved_len[index], cur_salt->salt,
-					cur_salt->salt_length, (unsigned
-						char*)crypt_out[index], 16); }
+			SHA_CTX ctx;
+			if (new_keys) {
+				int i, len = strlen(saved_key[index]);
+				unsigned char *p = (unsigned char*)saved_key[index];
+				unsigned char pad[64];
+
+				if (len > 64) {
+					SHA1_Init(&ctx);
+					SHA1_Update(&ctx, p, len);
+					SHA1_Final(buf, &ctx);
+					len = 20;
+					p = buf;
+				}
+				for (i = 0; i < len; ++i) {
+					pad[i] = p[i] ^ 0x36;
+				}
+				SHA1_Init(&ipad_ctx[index]);
+				SHA1_Update(&ipad_ctx[index], pad, len);
+				if (len < 64)
+					SHA1_Update(&ipad_ctx[index], "\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36", 64-len);
+				for (i = 0; i < len; ++i) {
+					pad[i] = p[i] ^ 0x5C;
+				}
+				SHA1_Init(&opad_ctx[index]);
+				SHA1_Update(&opad_ctx[index], pad, len);
+				if (len < 64)
+					SHA1_Update(&opad_ctx[index], "\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C", 64-len);
+			}
+			memcpy(&ctx, &ipad_ctx[index], sizeof(ctx));
+			SHA1_Update(&ctx, cur_salt->salt, cur_salt->salt_length);
+			SHA1_Final(buf, &ctx);
+			memcpy(&ctx, &opad_ctx[index], sizeof(ctx));
+			SHA1_Update(&ctx, buf, 20);
+			SHA1_Final((unsigned char*)(crypt_out[index]), &ctx);
+//			hmac_sha1((unsigned char*)saved_key[index],
+//					saved_len[index], cur_salt->salt,
+//					cur_salt->salt_length, (unsigned
+//						char*)crypt_out[index], 16);
+		}
 
 	}
+	new_keys = 0;
 
 	return count;
 }
@@ -234,6 +314,7 @@ static void rsvp_set_key(char *key, int index)
 {
 	saved_len[index] = strlen(key);
 	strncpy(saved_key[index], key, sizeof(saved_key[0]));
+	new_keys = 1;
 }
 
 static char *get_key(int index)
