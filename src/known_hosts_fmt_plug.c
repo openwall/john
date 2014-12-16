@@ -26,7 +26,6 @@ john_register_one(&fmt_known_hosts);
 #include "common.h"
 #include "formats.h"
 #include "base64.h"
-//#include "gladman_hmac.h"  // Use the SIMD version!
 #include "params.h"
 #include "options.h"
 #ifdef _OPENMP
@@ -167,10 +166,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	for (index = 0; index < count; index++)
 	{
 		SHA_CTX ctx;
-		//hmac_sha1((unsigned char*)cur_salt->salt, 20,
-		//		(unsigned char*)saved_key[index],
-		//		strlen(saved_key[index]),
-		//		(unsigned char*)crypt_out[index], BINARY_SIZE);
 		memcpy(&ctx, &cur_salt->ipad_ctx, sizeof(ctx));
 		SHA1_Update(&ctx, saved_key[index], strlen(saved_key[index]));
 		SHA1_Final((unsigned char*) crypt_out[index], &ctx);
