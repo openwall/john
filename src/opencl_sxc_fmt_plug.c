@@ -30,26 +30,23 @@ john_register_one(&fmt_opencl_sxc);
 #include "common.h"
 #include "formats.h"
 #include "common-opencl.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL		"sxc-opencl"
 #define FORMAT_NAME		"StarOffice .sxc"
 #define ALGORITHM_NAME		"PBKDF2-SHA1 OpenCL Blowfish"
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
-#define MIN_KEYS_PER_CRYPT	4096*9
-#define MAX_KEYS_PER_CRYPT	MIN_KEYS_PER_CRYPT
+#define MIN_KEYS_PER_CRYPT	1
+#define MAX_KEYS_PER_CRYPT	1
 #define BINARY_SIZE		20
 #define PLAINTEXT_LENGTH	64
 #define SALT_SIZE		sizeof(sxc_cpu_salt)
 #define BINARY_ALIGN		MEM_ALIGN_WORD
-#define SALT_ALIGN			MEM_ALIGN_WORD
+#define SALT_ALIGN		MEM_ALIGN_WORD
 
 #define uint8_t			unsigned char
 #define uint16_t		unsigned short
 #define uint32_t		unsigned int
-
-#define OCL_CONFIG		"sxc"
 
 typedef struct {
 	uint32_t length;
@@ -91,14 +88,81 @@ static struct fmt_tests sxc_tests[] = {
 	{NULL}
 };
 
+static cl_int cl_error;
 static sxc_password *inbuffer;
 static sxc_hash *outbuffer;
 static sxc_salt currentsalt;
 static cl_mem mem_in, mem_out, mem_setting;
 
-#define insize (sizeof(sxc_password) * global_work_size)
-#define outsize (sizeof(sxc_hash) * global_work_size)
-#define settingsize sizeof(sxc_salt)
+size_t insize, outsize, settingsize;
+
+#define MIN(a, b)               (((a) > (b)) ? (b) : (a))
+#define MAX(a, b)               (((a) > (b)) ? (a) : (b))
+
+#define OCL_CONFIG		"sxc"
+#define STEP			0
+#define SEED			64
+
+// This file contains auto-tuning routine(s). Has to be included after formats definitions.
+#include "opencl-autotune.h"
+#include "memdbg.h"
+
+static const char * warn[] = {
+	"xfer: ",  ", crypt: ",  ", xfer: "
+};
+
+/* ------- Helper functions ------- */
+static size_t get_task_max_work_group_size()
+{
+	return autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
+}
+
+static size_t get_task_max_size()
+{
+	return 0;
+}
+
+static size_t get_default_workgroup()
+{
+	if (cpu(device_info[gpu_id]))
+		return get_platform_vendor_id(platform_id) == DEV_INTEL ?
+			8 : 1;
+	else
+		return 64;
+}
+
+static void create_clobj(size_t gws, struct fmt_main *self)
+{
+	insize = sizeof(sxc_password) * gws;
+	outsize = sizeof(sxc_hash) * gws;
+	settingsize = sizeof(sxc_salt);
+
+	inbuffer = mem_calloc(insize);
+	outbuffer = mem_alloc(outsize);
+	saved_key = mem_calloc(sizeof(*saved_key) * gws);
+	crypt_out = mem_calloc(sizeof(*crypt_out) * gws);
+
+	/// Allocate memory
+	mem_in =
+	    clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, insize, NULL,
+	    &cl_error);
+	HANDLE_CLERROR(cl_error, "Error allocating mem in");
+	mem_setting =
+	    clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, settingsize,
+	    NULL, &cl_error);
+	HANDLE_CLERROR(cl_error, "Error allocating mem setting");
+	mem_out =
+	    clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, outsize, NULL,
+	    &cl_error);
+	HANDLE_CLERROR(cl_error, "Error allocating mem out");
+
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(mem_in),
+		&mem_in), "Error while setting mem_in kernel argument");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(mem_out),
+		&mem_out), "Error while setting mem_out kernel argument");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(mem_setting),
+		&mem_setting), "Error while setting mem_salt kernel argument");
+}
 
 static void release_clobj(void)
 {
@@ -122,9 +186,7 @@ static void done(void)
 
 static void init(struct fmt_main *self)
 {
-	cl_int cl_error;
 	char build_opts[64];
-	cl_ulong maxsize;
 
 	snprintf(build_opts, sizeof(build_opts),
 	         "-DKEYLEN=%d -DSALTLEN=%d -DOUTLEN=%d",
@@ -134,63 +196,16 @@ static void init(struct fmt_main *self)
 	opencl_init("$JOHN/kernels/pbkdf2_hmac_sha1_unsplit_kernel.cl",
 	                gpu_id, build_opts);
 
-	/* Read LWS/GWS prefs from config or environment */
-	opencl_get_user_preferences(OCL_CONFIG);
-
-	if (!local_work_size)
-		local_work_size = cpu(device_info[gpu_id]) ? 1 : 64;
-
-	if (!global_work_size)
-		global_work_size = MAX_KEYS_PER_CRYPT;
-
 	crypt_kernel = clCreateKernel(program[gpu_id], "derive_key", &cl_error);
 	HANDLE_CLERROR(cl_error, "Error creating kernel");
 
-	/* Note: we ask for the kernel's max size, not the device's! */
-	maxsize = get_kernel_max_lws(gpu_id, crypt_kernel);
+	// Initialize openCL tuning (library) for this format.
+	opencl_init_auto_setup(SEED, 0, NULL,
+	                       warn, 1, self, create_clobj, release_clobj,
+	                       sizeof(sxc_password), 0);
 
-	while (local_work_size > maxsize)
-		local_work_size >>= 1;
-
-	inbuffer =
-		(sxc_password *) mem_calloc(sizeof(sxc_password) *
-		                        global_work_size);
-	outbuffer =
-		(sxc_hash *) mem_alloc(sizeof(sxc_hash) * global_work_size);
-
-	saved_key = mem_calloc(sizeof(*saved_key) * global_work_size);
-
-	crypt_out = mem_calloc(sizeof(*crypt_out) * global_work_size);
-
-	/// Allocate memory
-	mem_in =
-	    clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, insize, NULL,
-	    &cl_error);
-	HANDLE_CLERROR(cl_error, "Error allocating mem in");
-	mem_setting =
-	    clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, settingsize,
-	    NULL, &cl_error);
-	HANDLE_CLERROR(cl_error, "Error allocating mem setting");
-	mem_out =
-	    clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, outsize, NULL,
-	    &cl_error);
-	HANDLE_CLERROR(cl_error, "Error allocating mem out");
-
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(mem_in),
-		&mem_in), "Error while setting mem_in kernel argument");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(mem_out),
-		&mem_out), "Error while setting mem_out kernel argument");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(mem_setting),
-		&mem_setting), "Error while setting mem_salt kernel argument");
-
-	self->params.max_keys_per_crypt = global_work_size;
-	if (!local_work_size)
-		opencl_find_best_workgroup(self);
-
-	self->params.min_keys_per_crypt = local_work_size;
-
-	if (options.verbosity > 2)
-		fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
+	// Auto tune execution from shared/included code.
+	autotune_run(self, 1, 64, 500);
 }
 
 static int ishex(char *q)
@@ -355,6 +370,10 @@ static void set_salt(void *salt)
 	currentsalt.length = cur_salt->salt_length;
 	currentsalt.iterations = cur_salt->iterations;
 	currentsalt.outlen = cur_salt->key_size;
+
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_setting,
+		CL_FALSE, 0, settingsize, &currentsalt, 0, NULL, NULL),
+	    "Copy salt to gpu");
 }
 
 static int get_hash_0(int index) { return crypt_out[index][0] & 0xf; }
@@ -404,23 +423,17 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	/// Copy data to gpu
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0,
-		insize, inbuffer, 0, NULL, NULL), "Copy data to gpu");
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_setting,
-		CL_FALSE, 0, settingsize, &currentsalt, 0, NULL, NULL),
-	    "Copy setting to gpu");
+		insize, inbuffer, 0, NULL, multi_profilingEvent[0]),
+	        "Copy data to gpu");
 
 	/// Run kernel
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1,
-		NULL, &global_work_size, &local_work_size, 0, NULL, profilingEvent),
-	    "Run kernel");
-	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish");
+		NULL, &global_work_size, &local_work_size, 0, NULL,
+	        multi_profilingEvent[1]), "Run kernel");
 
 	/// Read the result back
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_FALSE, 0,
-		outsize, outbuffer, 0, NULL, NULL), "Copy result back");
-
-	/// Await completion of all the above
-	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish");
+	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0,
+		outsize, outbuffer, 0, NULL, multi_profilingEvent[2]), "Copy result back");
 
 #ifdef _OPENMP
 #pragma omp parallel for

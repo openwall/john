@@ -1531,7 +1531,7 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
 	if (options.verbosity > 3) {
 		if (!max_run_time)
 		fprintf(stderr, "Calculating best global worksize (GWS); "
-			"max. %2.1f ms single kernel invocation.\n",
+			"max. %2.0f ms single kernel invocation.\n",
 			(float) duration_time / 1000000.);
 		else
 		fprintf(stderr, "Calculating best global worksize (GWS); "
