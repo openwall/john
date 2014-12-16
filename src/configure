@@ -8900,12 +8900,14 @@ fi
 $as_echo "no" >&6; }
                 { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error 1 "JtR requires OpenSSL being installed
+as_fn_error 1 "JtR requires OpenSSL and OpenSSL-devel being installed. Install if not installed.
+Try using --disable-pkg-config and possibly helping configure find oSSL by providing hints in CFLAGS and LDFLAGS
 See \`config.log' for more details" "$LINENO" 5; }
 elif test $pkg_failed = untried; then
 	{ { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error 1 "JtR requires OpenSSL being installed
+as_fn_error 1 "JtR requires OpenSSL and OpenSSL-devel being installed. Install if not installed.
+Try using --disable-pkg-config and possibly helping configure find oSSL by providing hints in CFLAGS and LDFLAGS
 See \`config.log' for more details" "$LINENO" 5; }
 else
 	OPENSSL_CFLAGS=$pkg_cv_OPENSSL_CFLAGS

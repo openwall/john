@@ -355,7 +355,8 @@ AS_IF([test "x$with_openssl" != xno],
    PKG_CHECK_MODULES([OPENSSL], [openssl],
       AC_DEFINE(HAVE_LIBCRYPTO,1,[Define to 1 if you have the `crypto' library (-lcrypto).])
          AC_DEFINE(HAVE_LIBSSL,1,[Define to 1 if you have the `ssl' library (-lssl).]),
-	    AC_MSG_FAILURE([JtR requires OpenSSL being installed],1))
+	    AC_MSG_FAILURE([JtR requires OpenSSL and OpenSSL-devel being installed. Install if not installed.
+Try using --disable-pkg-config and possibly helping configure find oSSL by providing hints in CFLAGS and LDFLAGS],1))
 else
    AS_IF([test "x${OPENSSL_CFLAGS}${OPENSSL_LIBS}" != "x"],
       [AC_MSG_CHECKING([supplied paths for OpenSSL])]
