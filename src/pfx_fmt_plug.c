@@ -38,6 +38,7 @@ john_register_one(&fmt_pfx);
 #include "formats.h"
 #include "params.h"
 #include "misc.h"
+#include "memory.h"
 #include "memdbg.h"
 
 #define FORMAT_LABEL        "PFX"
@@ -110,12 +111,20 @@ static int ishex(char *q)
 	return !*q;
 }
 
+static int isdec(char *q)
+{
+	char buf[24];
+	int x = atoi(q);
+	sprintf(buf, "%d", x);
+	return !strcmp(q,buf) && *q != '-';
+}
+
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	char *ctcopy;
-	char *keeptr;
-	char *p;
-	int res;
+	char *ctcopy, *p, *keeptr, *decoded = NULL;
+	PKCS12 *p12 = NULL;
+	BIO *bp = NULL;
+	int len, i;
 	if (strncmp(ciphertext, "$pfx$", 5))
 		return 0;
 	ctcopy = strdup(ciphertext);
@@ -123,17 +132,35 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy += 6;
 	if ((p = strtok(ctcopy, "*")) == NULL)	/* length */
 		goto err;
-	res = atoi(p);
+	len = atoi(p);
+	if (!isdec(p))
+		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* data */
 		goto err;
 	if (!ishex(p))
 		goto err;
-	if(strlen(p) != res * 2)
+	if(strlen(p) != len * 2)
 		goto err;
+	decoded = (char *) mem_alloc(len + 1);
+	for (i = 0; i < len; i++)
+		decoded[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16 +
+			atoi16[ARCH_INDEX(p[i * 2 + 1])];
+	decoded[len] = 0;
+	bp = BIO_new(BIO_s_mem());
+	if (!bp)
+		goto err;
+	BIO_write(bp, decoded, len);
+	if(!(p12 = d2i_PKCS12_bio(bp, NULL)))
+		goto err;
+
+	if (bp)	BIO_free(bp);
+	MEM_FREE(decoded);
 	MEM_FREE(keeptr);
 	return 1;
 
 err:
+	if (bp)	BIO_free(bp);
+	MEM_FREE(decoded);
 	MEM_FREE(keeptr);
 	return 0;
 }
