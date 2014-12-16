@@ -216,6 +216,12 @@ static void init(struct fmt_main *self)
 {
 	char build_opts[64];
 	static char valgo[48] = "";
+	size_t gws_limit;
+
+        // Current key_idx can only hold 26 bits of offset so
+        // we can't reliably use a GWS higher than 4M or so.
+        gws_limit = MIN((1 << 26) * 4 / BUFFER_SIZE,
+                        get_max_mem_alloc_size(gpu_id) / BUFFER_SIZE);
 
 	if ((v_width = opencl_get_vector_width(gpu_id,
 	                                       sizeof(cl_int))) > 1) {
@@ -234,10 +240,10 @@ static void init(struct fmt_main *self)
 	//Initialize openCL tuning (library) for this format.
 	opencl_init_auto_setup(SEED, 0, NULL, warn, 2,
 	                       self, create_clobj, release_clobj,
-	                       BUFFER_SIZE, 0);
+	                       BUFFER_SIZE, gws_limit);
 
 	//Auto tune execution from shared/included code.
-	autotune_run(self, ROUNDS, 0, 200);
+	autotune_run(self, ROUNDS, gws_limit, 200);
 }
 
 static void clear_keys(void)
@@ -392,10 +398,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	HANDLE_CLERROR(
 		clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[2]),
 		"Error beginning execution of the kernel");
-
-	HANDLE_CLERROR(
-		clFinish(queue[gpu_id]),
-		"Error waiting for kernel to finish executing");
 
 	HANDLE_CLERROR(
 		clEnqueueReadBuffer(queue[gpu_id], digest_buffer, CL_TRUE, 0, sizeof(cl_uint) * scalar_gws, digest, 0, NULL, multi_profilingEvent[3]),

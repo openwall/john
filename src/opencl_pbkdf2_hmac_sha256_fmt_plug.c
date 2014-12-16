@@ -367,15 +367,9 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
 		multi_profilingEvent[1]), "Run kernel");
 
 	// Warm-up run
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel,
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], split_kernel,
 		1, NULL, &gws, lws, 0, NULL,
-		multi_profilingEvent[1]), "Run kernel");
-
-	// Run loop kernel
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel,
-		1, NULL, &gws, lws, 0, NULL,
-		multi_profilingEvent[1]), "Run kernel");
-
+		NULL), "Run kernel");
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], split_kernel,
 		1, NULL, &gws, lws, 0, NULL,
 		multi_profilingEvent[2]), "Run split kernel");

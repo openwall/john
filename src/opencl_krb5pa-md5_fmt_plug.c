@@ -255,7 +255,7 @@ static void init(struct fmt_main *self)
 		PLAINTEXT_LENGTH, 0);
 
 	//Auto tune execution from shared/included code.
-	autotune_run(self, 1, 64, 100000000);
+	autotune_run(self, 1, 0, 100000000);
 }
 
 static void *salt(char *ciphertext)

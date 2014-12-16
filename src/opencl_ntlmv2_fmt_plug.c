@@ -280,6 +280,7 @@ static void init(struct fmt_main *self)
 {
 	char build_opts[96];
 	static char valgo[32] = "";
+	size_t gws_limit = 4 << 20;
 
 	if ((v_width = opencl_get_vector_width(gpu_id,
 	                                       sizeof(cl_int))) > 1) {
@@ -306,10 +307,10 @@ static void init(struct fmt_main *self)
 	//Initialize openCL tuning (library) for this format.
 	opencl_init_auto_setup(SEED, 0, NULL,
 		warn, 3, self, create_clobj, release_clobj,
-		max_len, 0);
+		2 * max_len, gws_limit);
 
 	//Auto tune execution from shared/included code.
-	autotune_run(self, 11, 0, 1000000000);
+	autotune_run(self, 11, gws_limit, 1000000000);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)

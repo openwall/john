@@ -222,6 +222,7 @@ static void done(void)
 static void init(struct fmt_main *self)
 {
 	char build_opts[96];
+	size_t gws_limit = 4 << 20;
 
 	if (pers_opts.target_enc == UTF_8)
 		max_len = self->params.plaintext_length =
@@ -244,10 +245,10 @@ static void init(struct fmt_main *self)
 	// Initialize openCL tuning (library) for this format.
 	opencl_init_auto_setup(SEED, 0, NULL,
 	                       warn, 3, self, create_clobj, release_clobj,
-	                       sizeof(mid_t), 0);
+	                       sizeof(mid_t), gws_limit);
 
 	// Auto tune execution from shared/included code.
-	autotune_run(self, 1, 64, 1000000000);
+	autotune_run(self, 1, gws_limit, 1000000000);
 }
 
 static int ishex(char *q)

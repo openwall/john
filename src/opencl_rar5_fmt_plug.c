@@ -248,7 +248,7 @@ static void opencl_limit_gws(int count)
 
 static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
 {
-	int i, count = *pcount;
+	int count = *pcount;
 	size_t gws;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
@@ -264,7 +264,8 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
 		CL_FALSE, 0, gws * sizeof(pass_t), host_pass, 0,
 		NULL, multi_profilingEvent[0]), "Copy data to gpu");
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_salt,
-		CL_FALSE, 0, sizeof(salt_t), host_salt, 0, NULL, multi_profilingEvent[1]),
+		CL_FALSE, 0, sizeof(salt_t), host_salt, 0, NULL,
+	        multi_profilingEvent[1]),
 	    "Copy salt to gpu");
 
 	/// Run kernel
@@ -273,20 +274,17 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
 		multi_profilingEvent[2]), "Run kernel");
 	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish");
 
-	for(i = 0; i < 1; i++) {
-		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], split_kernel,
-			1, NULL, &gws, lws, 0, NULL,
-			multi_profilingEvent[3]), "Run split kernel");
-		HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish");
-		opencl_process_event();
-	}
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], split_kernel,
+		1, NULL, &gws, lws, 0, NULL,
+		NULL), "Run split kernel");
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], split_kernel,
+		1, NULL, &gws, lws, 0, NULL,
+		multi_profilingEvent[3]), "Run split kernel");
+
 	/// Read the result back
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out,
-		CL_FALSE, 0, gws * sizeof(crack_t), host_crack, 0,
+		CL_TRUE, 0, gws * sizeof(crack_t), host_crack, 0,
 		NULL, multi_profilingEvent[4]), "Copy result back");
-
-	/// Await completion of all the above
-	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish");
 
 	return count;
 }
@@ -316,8 +314,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel,
 		1, NULL, &global_work_size, &local_work_size, 0, NULL,
 		profilingEvent), "Run kernel");
-	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish");
-
 
 	for(i = 0; i < loops; i++) {
 		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], split_kernel,
@@ -328,11 +324,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	}
 	/// Read the result back
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out,
-		CL_FALSE, 0, global_work_size * sizeof(crack_t), host_crack, 0,
+		CL_TRUE, 0, global_work_size * sizeof(crack_t), host_crack, 0,
 		NULL, NULL), "Copy result back");
-
-	/// Await completion of all the above
-	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish");
 
 	// special wtf processing [SIC]
 	for (i = 0; i < count; i++) {

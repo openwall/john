@@ -1571,6 +1571,15 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
 		if (!(run_time = gws_test(num, rounds, sequential_id)))
 			break;
 
+		/* Yet Another AMD driver bug workaround?! */
+		if (run_time < 200000) {
+			if (options.verbosity > 4)
+				fprintf(stderr,
+				        "** Bogus time (%lluns), ignoring\n",
+				        (unsigned long long)run_time);
+			continue;
+		}
+
 		if (options.verbosity < 4)
 			advance_cursor();
 

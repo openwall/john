@@ -212,7 +212,7 @@ static void init(struct fmt_main *self)
         opencl_init("$JOHN/kernels/o5logon_kernel.cl", gpu_id, NULL);
 
         // Current key_idx can only hold 26 bits of offset so
-        // we can't reliably use a GWS higher than 4.7M or so.
+        // we can't reliably use a GWS higher than 4M or so.
         gws_limit = MIN((1 << 26) * 4 / BUFSIZE,
                         get_max_mem_alloc_size(gpu_id) / BUFSIZE);
 
@@ -223,11 +223,7 @@ static void init(struct fmt_main *self)
         //Initialize openCL tuning (library) for this format.
         opencl_init_auto_setup(SEED, 0, NULL, warn, 2,
                                self, create_clobj, release_clobj,
-                               BUFSIZE, gws_limit);
-
-        //Limit worksize using index limitation.
-        while (global_work_size > gws_limit)
-                global_work_size -= local_work_size;
+                               2 * BUFSIZE, gws_limit);
 
         //Auto tune execution from shared/included code.
         autotune_run(self, ROUNDS, gws_limit,

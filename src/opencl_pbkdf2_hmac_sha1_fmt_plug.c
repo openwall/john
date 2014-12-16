@@ -492,9 +492,10 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
 	/// Run kernels
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], pbkdf2_init, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[1]), "Run initial kernel");
 
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], pbkdf2_loop, 1, NULL, &global_work_size, lws, 0, NULL, NULL), "Run loop kernel");
+	BENCH_CLERROR(clFinish(queue[gpu_id]), "Error running loop kernel");
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], pbkdf2_loop, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[2]), "Run loop kernel");
 	BENCH_CLERROR(clFinish(queue[gpu_id]), "Error running loop kernel");
-	opencl_process_event();
 
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], pbkdf2_final, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[3]), "Run intermediate kernel");
 

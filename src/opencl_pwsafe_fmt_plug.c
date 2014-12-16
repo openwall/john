@@ -55,8 +55,8 @@ john_register_one(&fmt_opencl_pwsafe);
 #define ROUNDS_DEFAULT          2048
 
 static const char * warn[] = {
-	"pass xfer: "  ,  ", init: "    ,  ", crypt: ",
-	" ("           ,  "/"              ,  "), final: "  ,  ", result xfer: "
+	"pass xfer: "  ,  ", init: "    ,  ", loop: ",
+	", final: "  ,  ", result xfer: "
 };
 
 #include "opencl-autotune.h"
@@ -87,7 +87,7 @@ static size_t get_default_workgroup()
 # define SWAP32(n) \
     (((n) << 24) | (((n) & 0xff00) << 8) | (((n) >> 8) & 0xff00) | ((n) >> 24))
 
-static int split_events[3] = { 2, 3, 4 };
+static int split_events[3] = { 2, -1, -1 };
 
 static int crypt_all(int *pcount, struct db_salt *_salt);
 static int crypt_all_benchmark(int *pcount, struct db_salt *_salt);
@@ -205,7 +205,7 @@ static void init(struct fmt_main *self)
 	//Initialize openCL tuning (library) for this format.
 	self->methods.crypt_all = crypt_all_benchmark;
 	opencl_init_auto_setup(SEED, ROUNDS_DEFAULT/8, split_events,
-		warn, 3, self, create_clobj,
+		warn, 2, self, create_clobj,
 	        release_clobj, sizeof(pwsafe_pass), 0);
 
 	//Auto tune execution from shared/included code.
@@ -290,7 +290,6 @@ static void set_salt(void *salt)
 static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
-	int i;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE,
@@ -302,26 +301,21 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
 		0, NULL, multi_profilingEvent[1]), "Set ND range");
 
 	///Run split kernel
-	for(i = 0; i < 3; i++)
-	{
-		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1,
-			NULL, &global_work_size, lws,
-			0, NULL, multi_profilingEvent[split_events[i]]), "Set ND range");  // 2, 3, 4
-		BENCH_CLERROR(clFinish(queue[gpu_id]), "Error running loop kernel");
-		opencl_process_event();
-	}
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1,
+		NULL, &global_work_size, lws,
+		0, NULL, NULL), "Set ND range");
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1,
+		NULL, &global_work_size, lws,
+		0, NULL, multi_profilingEvent[2]), "Set ND range");
 
 	///Run the finish kernel
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], finish_kernel, 1,
 		NULL, &global_work_size, lws,
-		0, NULL, multi_profilingEvent[5]), "Set ND range");
+		0, NULL, multi_profilingEvent[3]), "Set ND range");
 
-	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_FALSE, 0,
-		outsize, host_hash, 0, NULL, multi_profilingEvent[6]),
+	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0,
+		outsize, host_hash, 0, NULL, multi_profilingEvent[4]),
 	    "Copy data back");
-
-	///Await completion of all the above
-	BENCH_CLERROR(clFinish(queue[gpu_id]), "clFinish error");
 
 	return count;
 }
@@ -399,7 +393,7 @@ static char *get_key(int index)
 	static unsigned int iteration_count(void *salt)
 	{
 		pwsafe_salt *my_salt;
-		
+
 		my_salt = salt;
 		return (unsigned int) my_salt->iterations;
 	}

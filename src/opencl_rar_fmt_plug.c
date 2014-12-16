@@ -890,23 +890,20 @@ static MAYBE_INLINE int check_huffman(unsigned char *next) {
 static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
-	int k, ev = 0;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 	size_t gws = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
 
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_key, CL_FALSE, 0, UNICODE_LENGTH * gws, saved_key, 0, NULL, multi_profilingEvent[ev++]), "failed in clEnqueueWriteBuffer saved_key");
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_len, CL_FALSE, 0, sizeof(int) * gws, saved_len, 0, NULL, multi_profilingEvent[ev++]), "failed in clEnqueueWriteBuffer saved_len");
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_key, CL_FALSE, 0, UNICODE_LENGTH * gws, saved_key, 0, NULL, multi_profilingEvent[0]), "failed in clEnqueueWriteBuffer saved_key");
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_len, CL_FALSE, 0, sizeof(int) * gws, saved_len, 0, NULL, multi_profilingEvent[1]), "failed in clEnqueueWriteBuffer saved_len");
 
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], RarInit, 1, NULL, &gws, lws, 0, NULL, multi_profilingEvent[ev++]), "failed in clEnqueueNDRangeKernel");
-	for (k = 0; k < 1; k++) {
-		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &gws, lws, 0, NULL, multi_profilingEvent[ev]), "failed in clEnqueueNDRangeKernel");
-		HANDLE_CLERROR(clFinish(queue[gpu_id]), "Error running loop kernel");
-		opencl_process_event();
-	}
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], RarFinal, 1, NULL, &gws, lws, 0, NULL, multi_profilingEvent[++ev]), "failed in clEnqueueNDRangeKernel");
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], RarInit, 1, NULL, &gws, lws, 0, NULL, multi_profilingEvent[2]), "failed in clEnqueueNDRangeKernel");
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &gws, lws, 0, NULL, NULL), "failed in clEnqueueNDRangeKernel");
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &gws, lws, 0, NULL, multi_profilingEvent[3]), "failed in clEnqueueNDRangeKernel");
+
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], RarFinal, 1, NULL, &gws, lws, 0, NULL, multi_profilingEvent[4]), "failed in clEnqueueNDRangeKernel");
 	// read back aes key & iv
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_aes_key, CL_FALSE, 0, 16 * gws, aes_key, 0, NULL, multi_profilingEvent[++ev]), "failed in reading key back");
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_aes_iv, CL_TRUE, 0, 16 * gws, aes_iv, 0, NULL, multi_profilingEvent[++ev]), "failed in reading iv back");
+	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_aes_key, CL_FALSE, 0, 16 * gws, aes_key, 0, NULL, multi_profilingEvent[5]), "failed in reading key back");
+	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_aes_iv, CL_TRUE, 0, 16 * gws, aes_iv, 0, NULL, multi_profilingEvent[6]), "failed in reading iv back");
 
 	return count;
 }

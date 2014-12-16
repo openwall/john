@@ -634,6 +634,7 @@ AGAIN:
 #endif
 
 next:
+		fflush(stdout);
 		fmt_done(format);
 		MEMDBG_checkSnapshot_possible_exit_on_error(memHand, 0);
 

@@ -190,6 +190,12 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 static void init(struct fmt_main *self)
 {
 	char build_opts[64];
+	size_t gws_limit;
+
+        // Current key_idx can only hold 26 bits of offset so
+        // we can't reliably use a GWS higher than 4M or so.
+        gws_limit = MIN((1 << 26) * 4 / PLAINTEXT_LENGTH,
+                        get_max_mem_alloc_size(gpu_id) / PLAINTEXT_LENGTH);
 
 	local_work_size = global_work_size = 0;
 
@@ -204,10 +210,10 @@ static void init(struct fmt_main *self)
 	//Initialize openCL tuning (library) for this format.
 	opencl_init_auto_setup(SEED, 0, NULL,
 		warn, 2, self, create_clobj, release_clobj,
-		PLAINTEXT_LENGTH, 0);
+		2 * PLAINTEXT_LENGTH, gws_limit);
 
 	//Auto tune execution from shared/included code.
-	autotune_run(self, 2, 0, 100000000);
+	autotune_run(self, 2, gws_limit, 100000000);
 }
 
 static void clear_keys(void)

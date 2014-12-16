@@ -100,7 +100,7 @@ static cl_kernel GenerateSHA1pwhash, Generate2007key;
 #define HASH_LOOPS		500 /* Lower figure gives less X hogging */
 #define ITERATIONS		50000
 #define STEP			0
-#define SEED			64
+#define SEED			128
 #define OCL_CONFIG		"office2007"
 
 static const char * warn[] = {
@@ -483,22 +483,22 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
 	size_t gws, scalar_gws;
-	int e = 0;
 
 	gws = ((count + (v_width * local_work_size - 1)) / (v_width * local_work_size)) * local_work_size;
 	scalar_gws = gws * v_width;
 
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_key, CL_FALSE, 0, UNICODE_LENGTH * scalar_gws, saved_key, 0, NULL, multi_profilingEvent[e++]), "failed in clEnqueueWriteBuffer saved_key");
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_len, CL_FALSE, 0, sizeof(int) * scalar_gws, saved_len, 0, NULL, multi_profilingEvent[e++]), "failed in clEnqueueWriteBuffer saved_len");
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_key, CL_FALSE, 0, UNICODE_LENGTH * scalar_gws, saved_key, 0, NULL, multi_profilingEvent[0]), "failed in clEnqueueWriteBuffer saved_key");
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_len, CL_FALSE, 0, sizeof(int) * scalar_gws, saved_len, 0, NULL, multi_profilingEvent[1]), "failed in clEnqueueWriteBuffer saved_len");
 
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], GenerateSHA1pwhash, 1, NULL, &scalar_gws, &local_work_size, 0, NULL, multi_profilingEvent[e++]), "failed in clEnqueueNDRangeKernel");
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], GenerateSHA1pwhash, 1, NULL, &scalar_gws, &local_work_size, 0, NULL, multi_profilingEvent[2]), "failed in clEnqueueNDRangeKernel");
 
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &gws, &local_work_size, 0, NULL, multi_profilingEvent[e++]), "failed in clEnqueueNDRangeKernel");
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &gws, &local_work_size, 0, NULL, NULL), "failed in clEnqueueNDRangeKernel");
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &gws, &local_work_size, 0, NULL, multi_profilingEvent[3]), "failed in clEnqueueNDRangeKernel");
 
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], Generate2007key, 1, NULL, &gws, &local_work_size, 0, NULL, multi_profilingEvent[e++]), "failed in clEnqueueNDRangeKernel");
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], Generate2007key, 1, NULL, &gws, &local_work_size, 0, NULL, multi_profilingEvent[4]), "failed in clEnqueueNDRangeKernel");
 
 	// read back aes key
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_key, CL_TRUE, 0, 16 * scalar_gws, key, 0, NULL, multi_profilingEvent[e++]), "failed in reading key back");
+	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_key, CL_TRUE, 0, 16 * scalar_gws, key, 0, NULL, multi_profilingEvent[5]), "failed in reading key back");
 
 	return count;
 }

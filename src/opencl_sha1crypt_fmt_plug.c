@@ -74,7 +74,7 @@ static struct fmt_tests tests[] = {
 #define LOOP_COUNT		(((host_salt->iterations - 1 + HASH_LOOPS - 1)) / HASH_LOOPS)
 
 #define STEP			0
-#define SEED			64
+#define SEED			128
 
 #define OCL_CONFIG		"sha1crypt"
 
@@ -187,7 +187,6 @@ static void release_clobj(void)
 static void init(struct fmt_main *self)
 {
 	char build_opts[64];
-	size_t gws_limit;
 	static char valgo[sizeof(ALGORITHM_NAME) + 8] = "";
 
 	if ((v_width = opencl_get_vector_width(gpu_id,
@@ -212,17 +211,14 @@ static void init(struct fmt_main *self)
 	pbkdf1_final = clCreateKernel(program[gpu_id], "pbkdf1_final", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel");
 
-	gws_limit = get_max_mem_alloc_size(gpu_id) /
-		(PLAINTEXT_LENGTH + sizeof(pbkdf1_out));
-
 	//Initialize openCL tuning (library) for this format.
 	opencl_init_auto_setup(SEED, HASH_LOOPS, split_events,
 		warn, 2, self, create_clobj, release_clobj,
-	        PLAINTEXT_LENGTH + sizeof(pbkdf1_out), gws_limit);
+	        PLAINTEXT_LENGTH + sizeof(pbkdf1_out), 0);
 
 	//Auto tune execution from shared/included code.
 	self->methods.crypt_all = crypt_all_benchmark;
-	autotune_run(self, ITERATIONS, gws_limit, 10000000000ULL);
+	autotune_run(self, ITERATIONS, 0, 10000000000ULL);
 	self->methods.crypt_all = crypt_all;
 
 	self->params.min_keys_per_crypt = local_work_size;
@@ -294,7 +290,7 @@ static int valid(char *ciphertext, struct fmt_main *self) {
 		goto err;
 	if (strlen(p) > CHECKSUM_LENGTH || strlen(p) != base64_valid_length(p, e_b64_crypt, 0))
 		goto err;
-	
+
 	if (strtok(NULL, "$"))
 		goto err;
 
@@ -338,7 +334,6 @@ static void *get_binary(char * ciphertext)
 
 static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
 {
-	int lazy = 0;
 	size_t scalar_gws = global_work_size * v_width;
 
 #if 0
@@ -346,16 +341,16 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
 	        *pcount, local_work_size, global_work_size, scalar_gws);
 #endif
 	/// Run kernels, no iterations for fast enumeration
-	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0, key_buf_size, inbuffer, 0, NULL, multi_profilingEvent[lazy++]), "Copy data to gpu");
+	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0, key_buf_size, inbuffer, 0, NULL, multi_profilingEvent[0]), "Copy data to gpu");
 
-	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], pbkdf1_init, 1, NULL, &global_work_size, &local_work_size, 0, NULL, multi_profilingEvent[lazy++]), "Run initial kernel");
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], pbkdf1_init, 1, NULL, &global_work_size, &local_work_size, 0, NULL, multi_profilingEvent[1]), "Run initial kernel");
 
-	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], pbkdf1_loop, 1, NULL, &global_work_size, &local_work_size, 0, NULL, multi_profilingEvent[lazy++]), "Run loop kernel");
-	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], pbkdf1_final, 1, NULL, &global_work_size, &local_work_size, 0, NULL, multi_profilingEvent[lazy++]), "Run final kernel");
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], pbkdf1_loop, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "Run loop kernel");
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], pbkdf1_loop, 1, NULL, &global_work_size, &local_work_size, 0, NULL, multi_profilingEvent[2]), "Run loop kernel");
 
-	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_FALSE, 0, sizeof(pbkdf1_out) * scalar_gws, host_crack, 0, NULL, multi_profilingEvent[lazy++]), "Copy result back");
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], pbkdf1_final, 1, NULL, &global_work_size, &local_work_size, 0, NULL, multi_profilingEvent[3]), "Run final kernel");
 
-	BENCH_CLERROR(clFinish(queue[gpu_id]), "Failed running kernels");
+	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0, sizeof(pbkdf1_out) * scalar_gws, host_crack, 0, NULL, multi_profilingEvent[4]), "Copy result back");
 
 	return *pcount;
 }

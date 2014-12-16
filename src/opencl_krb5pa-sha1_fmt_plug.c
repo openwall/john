@@ -128,7 +128,7 @@ static int new_keys;
 #define ITERATIONS		(4096 - 1)
 #define HASH_LOOPS		105 // Must be made from factors 3, 3, 5, 7, 13
 #define STEP			0
-#define SEED			64
+#define SEED			128
 #define OCL_CONFIG		"krb5pa-sha1"
 
 static const char * warn[] = {
@@ -782,9 +782,8 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
 	/// Run kernels
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], pbkdf2_init, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[1]), "Run initial kernel");
 
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], pbkdf2_loop, 1, NULL, &global_work_size, lws, 0, NULL, NULL), "Run loop kernel");
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], pbkdf2_loop, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[2]), "Run loop kernel");
-	BENCH_CLERROR(clFinish(queue[gpu_id]), "Error running loop kernel");
-	opencl_process_event();
 
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], pbkdf2_final, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[3]), "Run intermediate kernel");
 
