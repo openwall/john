@@ -31,6 +31,7 @@ john_register_one(&fmt_cryptsha1);
 #include "johnswap.h"
 #define PBKDF1_LOGIC 1
 #include "pbkdf2_hmac_sha1.h"
+#include "base64_convert.h"
 #include "memdbg.h"
 
 #define SHA1_MAGIC "$sha1$"
@@ -114,33 +115,43 @@ static int get_hash_5(int index) { return crypt_out[index][0] & 0xffffff; }
 static int get_hash_6(int index) { return crypt_out[index][0] & 0x7ffffff; }
 
 static int valid(char * ciphertext, struct fmt_main * self) {
-	char *pos, *start;
+	char *p, *keeptr, tst[24];
 	unsigned rounds;
+
 	if (strncmp(ciphertext, SHA1_MAGIC, sizeof(SHA1_MAGIC) - 1))
 		return 0;
 
-	// validate checksum
-	pos = start = strrchr(ciphertext, '$') + 1;
-	if (strlen(pos) != CHECKSUM_LENGTH)
-		return 0;
-	while (atoi64[ARCH_INDEX(*pos)] != 0x7F) pos++;
-	if (*pos || pos - start != CHECKSUM_LENGTH)
-		return 0;
-
-	// validate "rounds"
-	start = ciphertext + sizeof(SHA1_MAGIC) - 1;
-	rounds = 0;
-	rounds = strtoul(start, NULL, 10);
-	if (rounds < 1 || rounds > 9999999) // 9999999 is 'max' due to size of buffer to hold salt.
-		return 0;
+	// validate rounds
+	keeptr = strdup(ciphertext);
+	p = &keeptr[sizeof(SHA1_MAGIC)-1];
+	if ((p = strtok(p, "$")) == NULL)	/* rounds */
+		goto err;
+	rounds = strtoul(p, NULL, 10);
+	sprintf(tst, "%u", rounds);
+	if (strcmp(tst, p))
+		goto err;
 
 	// validate salt
-	start = pos = strchr(start, '$') + 1;
-	while (atoi64[ARCH_INDEX(*pos)] != 0x7F && *pos != '$') pos++;
-	if (pos - start > SALT_LENGTH)
-		return 0;
+	if ((p = strtok(NULL, "$")) == NULL)	/* salt */
+		goto err;
+	if (strlen(p) > SALT_LENGTH || strlen(p) != base64_valid_length(p, e_b64_crypt, 0))
+		goto err;
 
+	// validate checksum
+	if ((p = strtok(NULL, "$")) == NULL)	/* checksum */
+		goto err;
+	if (strlen(p) > CHECKSUM_LENGTH || strlen(p) != base64_valid_length(p, e_b64_crypt, 0))
+		goto err;
+	
+	if (strtok(NULL, "$"))
+		goto err;
+
+	MEM_FREE(keeptr);
 	return 1;
+
+err:;
+	MEM_FREE(keeptr);
+	return 0;
 }
 
 #define TO_BINARY(b1, b2, b3) \
