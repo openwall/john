@@ -35,7 +35,6 @@ john_register_one(&fmt_opencl_NT);
 #include "formats.h"
 #include "path.h"
 #include "common-opencl.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL		"nt-opencl"
 #define FORMAT_NAME		"NT"
@@ -45,16 +44,12 @@ john_register_one(&fmt_opencl_NT);
 #define PLAINTEXT_LENGTH	23
 #define CIPHERTEXT_LENGTH	32
 #define BINARY_SIZE		16
-#define SALT_SIZE		0
 #define BINARY_ALIGN		MEM_ALIGN_WORD
-#define SALT_ALIGN			1
+#define SALT_SIZE		0
+#define SALT_ALIGN		1
 
-
-//2^10 * 2^9
-#define MIN_KEYS_PER_CRYPT	1024*512
-#define MAX_KEYS_PER_CRYPT	MIN_KEYS_PER_CRYPT
-
-#define OCL_CONFIG		"nt"
+#define MIN_KEYS_PER_CRYPT	1
+#define MAX_KEYS_PER_CRYPT	1
 
 static struct fmt_tests tests[] = {
 	{"b7e4b9022cd45f275334bbdb83bb5be5", "John the Ripper"},
@@ -116,6 +111,8 @@ unsigned int *nt_buffer8x, *output8x;
 unsigned int *nt_buffer4x, *output4x;
 unsigned int *nt_buffer1x, *output1x;
 
+static int have_full_hashes;
+
 static cl_uint *bbbs;
 static cl_uint *res_hashes;
 static char *saved_plain;
@@ -125,7 +122,71 @@ static char get_key_saved[PLAINTEXT_LENGTH+1];
 //OpenCL variables
 cl_mem pinned_saved_keys, pinned_bbbs, buffer_out, buffer_keys;
 
-static int have_full_hashes;
+#define MIN(a, b)               (((a) > (b)) ? (b) : (a))
+
+#define OCL_CONFIG		"nt"
+
+#define STEP			0
+#define SEED			(128*1024)
+
+// This file contains auto-tuning routine(s). Has to be included after formats definitions.
+#include "opencl-autotune.h"
+#include "memdbg.h"
+
+static const char * warn[] = {
+	"xfer: ",  ", crypt: ",  ", xfer: "
+};
+
+/* ------- Helper functions ------- */
+static size_t get_task_max_work_group_size()
+{
+	return autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
+}
+
+static size_t get_task_max_size()
+{
+	return 0;
+}
+
+static size_t get_default_workgroup()
+{
+	if (cpu(device_info[gpu_id]))
+		return get_platform_vendor_id(platform_id) == DEV_INTEL ?
+			8 : 1;
+	else
+		return 64;
+}
+
+static void create_clobj(size_t gws, struct fmt_main *self)
+{
+	int argIndex = 0;
+
+	pinned_saved_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, (PLAINTEXT_LENGTH+1)*gws, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code,"Error creating page-locked memory");
+	pinned_bbbs = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR,4*gws, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code,"Error creating page-locked memory");
+
+	res_hashes = mem_alloc(sizeof(cl_uint) * 3 * gws);
+	saved_plain = (char*) clEnqueueMapBuffer(queue[gpu_id], pinned_saved_keys, CL_TRUE, CL_MAP_WRITE | CL_MAP_READ, 0, (PLAINTEXT_LENGTH+1)*gws, 0, NULL, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code,"Error mapping page-locked memory");
+	bbbs = (cl_uint*)clEnqueueMapBuffer(queue[gpu_id], pinned_bbbs , CL_TRUE, CL_MAP_READ, 0, 4*gws, 0, NULL, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code,"Error mapping page-locked memory");
+
+	// Create and set arguments
+	buffer_keys = clCreateBuffer( context[gpu_id], CL_MEM_READ_ONLY,(PLAINTEXT_LENGTH+1)*gws, NULL, &ret_code );
+	HANDLE_CLERROR(ret_code,"Error creating buffer argument");
+	buffer_out  = clCreateBuffer( context[gpu_id], CL_MEM_WRITE_ONLY , 4*4*gws, NULL, &ret_code );
+	HANDLE_CLERROR(ret_code,"Error creating buffer argument");
+
+	argIndex = 0;
+
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, argIndex++, sizeof(buffer_keys), (void*) &buffer_keys),
+		"Error setting argument 0");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, argIndex++, sizeof(buffer_out ), (void*) &buffer_out ),
+		"Error setting argument 1");
+
+	global_work_size = gws;
+}
 
 static void release_clobj(void)
 {
@@ -150,6 +211,21 @@ static void done(void)
 	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
 }
 
+static void init(struct fmt_main *self){
+	opencl_init("$JOHN/kernels/nt_kernel.cl", gpu_id, NULL);
+
+	crypt_kernel = clCreateKernel( program[gpu_id], "nt_crypt", &ret_code );
+	HANDLE_CLERROR(ret_code,"Error creating kernel");
+
+	// Initialize openCL tuning (library) for this format.
+	opencl_init_auto_setup(SEED, 0, NULL,
+	                       warn, 1, self, create_clobj, release_clobj,
+	                       (PLAINTEXT_LENGTH + 1), 0);
+
+	// Auto tune execution from shared/included code.
+	autotune_run(self, 1, 0, 200);
+}
+
 // TODO: Use concurrent memory copy & execute
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
@@ -157,79 +233,25 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	int key_length_mul_4 = (((max_key_length+1) + 3)/4)*4;
 
 	// Fill params. Copy only necesary data
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_keys, CL_TRUE, 0,
-		key_length_mul_4 * global_work_size, saved_plain, 0, NULL, NULL),
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_keys,
+		CL_TRUE, 0, key_length_mul_4 * global_work_size, saved_plain,
+		0, NULL, multi_profilingEvent[0]),
 		"failed in clEnqueWriteBuffer buffer_keys");
 
 	// Execute method
-	clEnqueueNDRangeKernel( queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, profilingEvent);
-	clFinish( queue[gpu_id] );
+	clEnqueueNDRangeKernel( queue[gpu_id], crypt_kernel, 1, NULL,
+		&global_work_size, &local_work_size, 0, NULL,
+		multi_profilingEvent[1]);
 
 	// Read partial result
-	clEnqueueReadBuffer(queue[gpu_id], buffer_out, CL_TRUE, 0, sizeof(cl_uint)*global_work_size, bbbs, 0, NULL, NULL);
+	clEnqueueReadBuffer(queue[gpu_id], buffer_out, CL_TRUE, 0,
+		sizeof(cl_uint)*global_work_size, bbbs, 0, NULL,
+		multi_profilingEvent[2]);
 
 	max_key_length = 0;
 	have_full_hashes = 0;
 
 	return count;
-}
-
-static void init(struct fmt_main *self){
-	int argIndex = 0;
-	cl_ulong maxsize;
-
-	opencl_init("$JOHN/kernels/nt_kernel.cl", gpu_id, NULL);
-
-	/* Read LWS/GWS prefs from config or environment */
-	opencl_get_user_preferences(OCL_CONFIG);
-
-	if (!local_work_size)
-		local_work_size = cpu(device_info[gpu_id]) ? 1 : 64;
-
-	if (!global_work_size)
-		global_work_size = MAX_KEYS_PER_CRYPT;
-
-	crypt_kernel = clCreateKernel( program[gpu_id], "nt_crypt", &ret_code );
-	HANDLE_CLERROR(ret_code,"Error creating kernel");
-
-	/* Note: we ask for the kernel's max size, not the device's! */
-	maxsize = get_kernel_max_lws(gpu_id, crypt_kernel);
-
-	while (local_work_size > maxsize)
-		local_work_size >>= 1;
-
-	pinned_saved_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, (PLAINTEXT_LENGTH+1)*global_work_size, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code,"Error creating page-locked memory");
-	pinned_bbbs = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR,4*global_work_size, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code,"Error creating page-locked memory");
-
-	res_hashes = mem_alloc(sizeof(cl_uint) * 3 * global_work_size);
-	saved_plain = (char*) clEnqueueMapBuffer(queue[gpu_id], pinned_saved_keys, CL_TRUE, CL_MAP_WRITE | CL_MAP_READ, 0, (PLAINTEXT_LENGTH+1)*global_work_size, 0, NULL, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code,"Error mapping page-locked memory");
-	bbbs = (cl_uint*)clEnqueueMapBuffer(queue[gpu_id], pinned_bbbs , CL_TRUE, CL_MAP_READ, 0, 4*global_work_size, 0, NULL, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code,"Error mapping page-locked memory");
-
-	// 6. Create and set arguments
-	buffer_keys = clCreateBuffer( context[gpu_id], CL_MEM_READ_ONLY,(PLAINTEXT_LENGTH+1)*global_work_size, NULL, &ret_code );
-	HANDLE_CLERROR(ret_code,"Error creating buffer argument");
-	buffer_out  = clCreateBuffer( context[gpu_id], CL_MEM_WRITE_ONLY , 4*4*global_work_size, NULL, &ret_code );
-	HANDLE_CLERROR(ret_code,"Error creating buffer argument");
-
-	argIndex = 0;
-
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, argIndex++, sizeof(buffer_keys), (void*) &buffer_keys),
-		"Error setting argument 0");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, argIndex++, sizeof(buffer_out ), (void*) &buffer_out ),
-		"Error setting argument 1");
-
-	/* This format can't run with reduced global work size */
-	self->params.min_keys_per_crypt = global_work_size;
-	self->params.max_keys_per_crypt = global_work_size;
-	if (!local_work_size)
-		opencl_find_best_workgroup(self);
-
-	if (options.verbosity > 2)
-		fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
 }
 
 static char *split(char *ciphertext, int index, struct fmt_main *self)
