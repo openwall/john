@@ -57,7 +57,7 @@ my @funcs = (qw(DESCrypt BigCrypt BSDIcrypt md5crypt md5crypt_a BCRYPT BCRYPTx
 		BFegg Raw-MD5 Raw-MD5u Raw-SHA1 Raw-SHA1u msCash LM NT pwdump
 		Raw-MD4 PHPass PO hmac-MD5 IPB2 PHPS MD4p MD4s SHA1p SHA1s
 		mysql-sha1 pixMD5 MSSql05 MSSql12 netntlm cisco4 cisco8 cisco9
-		nsldap nsldaps ns XSHA krb5pa-md5 mysql mssql_no_upcase_change
+		nsldap nsldaps ns XSHA krb5pa-md5 krb5-18 mysql mssql_no_upcase_change
 		mssql oracle oracle_no_upcase_change oracle11 hdaa netntlm_ess
 		openssha l0phtcrack netlmv2 netntlmv2 mschapv2 mscash2 mediawiki
 		crc_32 Dynamic dummy raw-sha224 raw-sha256 raw-sha384 raw-sha512
@@ -575,7 +575,11 @@ sub get_salt {
 	}
 	if (@chr == @userNames) { return randusername($len); }
 	elsif ($randlen == 0) { return randstr($len, \@chr); }
-	if ($len > 8) {return randstr(int(rand(8))+int(rand($len-8))+1, \@chr);}
+	if ($len > 8) {
+		my $l = int(rand(8))+int(rand($len-8))+1;
+		if ($l > $len) { $l = $len; }
+		return randstr($l, \@chr);
+	}
 	return randstr(int(rand($len))+1, \@chr);
 }
 sub get_iv {
@@ -600,7 +604,11 @@ sub get_content {
 		return ($argcontent);
 	}
 	if ($randlen == 0) { return randstr($len, \@chr); }
-	if ($len > 32) {return randstr(int(rand(32))+int(rand($len-32))+1, \@chr);}
+	if ($len > 32) {
+		my $l = int(rand(32))+int(rand($len-32))+1;
+		if ($l > $len) { $l = $len; }
+		return randstr($l, \@chr);
+	}
 	return randstr(int(rand($len))+1, \@chr);
 }
 
@@ -1037,6 +1045,21 @@ sub mscash {
 	print "$salt:", md4_hex(md4(encode("UTF-16LE",$_[0])).encode("UTF-16LE", lc($salt))),
 			":$u:0:$_[0]:mscash (uname is salt):\n";
 }
+
+sub krb5_18 {
+	# algorith gotten by working with kbr5-1.13 sources, and using lots of dump_stuff_msg()
+	# calls to figure out what was happening. The constant being used here was found by
+	# dump_stuff_msg() calls, and appears to be the end result that is used.
+	$salt = get_salt(12,-64);
+	my $pbk = pp_pbkdf2($_[0], $salt, 4096, "sha1",32,64);
+	require Crypt::OpenSSL::AES;
+	my $crypt = Crypt::OpenSSL::AES->new($pbk);
+	# 6b65726265726f737b9b5b2b93132b93 == 'kerberos' and 8 other bytes
+	my $output1 = $crypt->encrypt(pack("H*","6b65726265726f737b9b5b2b93132b93"));
+	my $output2 = $crypt->encrypt($output1);
+	print "u$u-krb5-18:\$krb18\$$salt\$".unpack("H*",$output1).unpack("H*",$output2).":$u:0:$_[0]::\n";
+}
+
 sub odf {
 	my $iv; my $content;
 	$salt = get_salt(16);
