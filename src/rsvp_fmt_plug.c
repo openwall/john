@@ -22,6 +22,7 @@ john_register_one(&fmt_rsvp);
 
 #include "arch.h"
 #include "md5.h"
+#include "sha.h"
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
@@ -29,8 +30,6 @@ john_register_one(&fmt_rsvp);
 #include "params.h"
 #include "options.h"
 #include "memdbg.h"
-#include "hmacmd5.h"
-#include "gladman_hmac.h"
 
 #define FORMAT_LABEL            "rsvp"
 #define FORMAT_NAME             "HMAC-MD5 / HMAC-SHA1, RSVP, IS-IS"
@@ -238,10 +237,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			memcpy(&ctx, &opad_mctx[index], sizeof(ctx));
 			MD5_Update(&ctx, buf, 16);
 			MD5_Final((unsigned char*)(crypt_out[index]), &ctx);
-//			HMACMD5Context ctx;
-//			hmac_md5_init_rfc2104((unsigned char*)saved_key[index], saved_len[index], &ctx);
-//			hmac_md5_update(cur_salt->salt, cur_salt->salt_length, &ctx);
-//			hmac_md5_final((unsigned char*)crypt_out[index], &ctx);
 		} else if (cur_salt->type == 2) {
 			SHA_CTX ctx;
 			if (new_keys) {
@@ -276,11 +271,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			SHA1_Final(buf, &ctx);
 			memcpy(&ctx, &opad_ctx[index], sizeof(ctx));
 			SHA1_Update(&ctx, buf, 20);
+			// NOTE, this writes 20 bytes. That is why we had to bump up the size of each crypt_out[] value,
+			// even though we only look at the first 16 bytes when comparing the saved binary.
 			SHA1_Final((unsigned char*)(crypt_out[index]), &ctx);
-//			hmac_sha1((unsigned char*)saved_key[index],
-//					saved_len[index], cur_salt->salt,
-//					cur_salt->salt_length, (unsigned
-//						char*)crypt_out[index], 16);
 		}
 
 	}
