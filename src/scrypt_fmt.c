@@ -207,10 +207,13 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	++p;
 	length = base64_valid_length(p, e_b64_cryptBS, flg_Base64_NO_FLAGS);
 
-	decode64_uint32(&tmp, 30, (const uint8_t *)&p[1]);
+	decode64_one(&tmp, ciphertext[3]);
 	if (!tmp)
 		return 0;
-	decode64_uint32(&tmp, 30, (const uint8_t *)&p[1+5]);
+	decode64_uint32(&tmp, 30, (const uint8_t *)&ciphertext[4]);
+	if (!tmp)
+		return 0;
+	decode64_uint32(&tmp, 30, (const uint8_t *)&ciphertext[4+5]);
 	if (!tmp)
 		return 0;
 
