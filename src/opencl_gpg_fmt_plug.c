@@ -347,7 +347,7 @@ static void init(struct fmt_main *self)
 	                       sizeof(gpg_password), 0);
 
 	// Auto tune execution from shared/included code.
-	autotune_run(self, 1, 64, 500);
+	autotune_run(self, 1, 0, 500);
 }
 
 static int valid_cipher_algorithm(int cipher_algorithm)

@@ -226,7 +226,7 @@ static void init(struct fmt_main *self)
 	                       sizeof(zip_password), 0);
 
 	// Auto tune execution from shared/included code.
-	autotune_run(self, 1, 64, 500);
+	autotune_run(self, 1, 0, 500);
 }
 
 static const char *ValidateZipFileData(u8 *Fn, u8 *Oh, u8 *Ob, unsigned len, u8 *Auth) {
