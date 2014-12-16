@@ -26,9 +26,8 @@ john_register_one(&fmt_s7);
 #include "options.h"
 #include "gladman_hmac.h"
 #ifdef _OPENMP
-static int omp_t = 1;
 #include <omp.h>
-#define OMP_SCALE               128
+#define OMP_SCALE               2048
 #endif
 #include "memdbg.h"
 
@@ -52,26 +51,27 @@ static struct fmt_tests s7_tests[] = {
 };
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static unsigned char (*crypt_key)[20];
 static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
 static int new_keys;
+static SHA_CTX *ipad_ctx;
+static SHA_CTX *opad_ctx;
 
 unsigned char *challenge;
 
 static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
-	omp_t = omp_get_max_threads();
+	int omp_t = omp_get_max_threads();
 	self->params.min_keys_per_crypt *= omp_t;
 	omp_t *= OMP_SCALE;
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
 			self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
-	crypt_key = mem_calloc_tiny(sizeof(*crypt_key) *
-			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) *
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	ipad_ctx = mem_calloc_tiny(sizeof(*opad_ctx) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	opad_ctx = mem_calloc_tiny(sizeof(*opad_ctx) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -163,15 +163,35 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	for (index = 0; index < count; index++)
 #endif
 	{
+		unsigned char buf[20];
+		SHA_CTX ctx;
 		if (new_keys) {
-			SHA_CTX ctx;
+			unsigned char pad[20];
+			int i;
 
 			SHA1_Init(&ctx);
-			SHA1_Update(&ctx, saved_key[index],
-			            strlen(saved_key[index]));
-			SHA1_Final(crypt_key[index], &ctx);
+			SHA1_Update(&ctx, saved_key[index], strlen(saved_key[index]));
+			SHA1_Final(buf, &ctx);
+			for (i = 0; i < 20; ++i) {
+				pad[i] = buf[i] ^ 0x36;
+			}
+			SHA1_Init(&ipad_ctx[index]);
+			SHA1_Update(&ipad_ctx[index], pad, 20);
+			SHA1_Update(&ipad_ctx[index], "\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36", 44);
+			for (i = 0; i < 20; ++i) {
+				pad[i] = buf[i] ^ 0x5C;
+			}
+			SHA1_Init(&opad_ctx[index]);
+			SHA1_Update(&opad_ctx[index], pad, 20);
+			SHA1_Update(&opad_ctx[index], "\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C", 44);
 		}
-		hmac_sha1(crypt_key[index], 20, challenge, 20, (unsigned char*)crypt_out[index], 20);
+		//hmac_sha1(crypt_key[index], 20, challenge, 20, (unsigned char*)crypt_out[index], 20);
+		memcpy(&ctx, &ipad_ctx[index], sizeof(ctx));
+		SHA1_Update(&ctx, challenge, 20);
+		SHA1_Final(buf, &ctx);
+		memcpy(&ctx, &opad_ctx[index], sizeof(ctx));
+		SHA1_Update(&ctx, buf, 20);
+		SHA1_Final((unsigned char*)(crypt_out[index]), &ctx);
 	}
 	new_keys = 0;
 
