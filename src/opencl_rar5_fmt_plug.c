@@ -192,7 +192,10 @@ static void init(struct fmt_main *self)
 {
 	char build_opts[64];
 
-        snprintf(build_opts, sizeof(build_opts), "-DHASH_LOOPS=%u", HASH_LOOPS);
+	snprintf(build_opts, sizeof(build_opts),
+	         "-DHASH_LOOPS=%u -DPLAINTEXT_LENGTH=%u",
+	         HASH_LOOPS, PLAINTEXT_LENGTH);
+
         opencl_init("$JOHN/kernels/pbkdf2_hmac_sha256_kernel.cl",
             gpu_id, build_opts);
 
