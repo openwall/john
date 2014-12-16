@@ -7,6 +7,10 @@
  *
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted.
+ *
+ * Significant speedup Dec 2014, JimF.  OMPSCALE was way off, and:
+ * NOTE Appears that salt and password are reversed??  With this info, salt was
+ * redone, to compute the first half of the HMAC, and double the speed.
  */
 
 #if FMT_EXTERNS_H
@@ -22,13 +26,12 @@ john_register_one(&fmt_known_hosts);
 #include "common.h"
 #include "formats.h"
 #include "base64.h"
-#include "gladman_hmac.h"  // Use the SIMD version!
+//#include "gladman_hmac.h"  // Use the SIMD version!
 #include "params.h"
 #include "options.h"
 #ifdef _OPENMP
-static int omp_t = 1;
 #include <omp.h>
-#define OMP_SCALE               8
+#define OMP_SCALE               2048
 #endif
 #include "memdbg.h"
 
@@ -38,10 +41,11 @@ static int omp_t = 1;
 #define FORMAT_NAME             "HashKnownHosts HMAC-SHA1"
 #define ALGORITHM_NAME          "SHA1 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        -1
+#define BENCHMARK_LENGTH        0
 #define PLAINTEXT_LENGTH        125
 #define BINARY_SIZE             20
 #define BINARY_ENCODED_SIZE     28
+#define PAD_SIZE                64
 #define BINARY_ALIGN            4
 #define SALT_SIZE               sizeof(struct custom_salt)
 #define SALT_ALIGN              1
@@ -60,13 +64,14 @@ static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
 
 static struct custom_salt {
-	unsigned char salt[20 + 1 + 4];
+	SHA_CTX ipad_ctx;
+	SHA_CTX opad_ctx;
 } *cur_salt;
 
 static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
-	omp_t = omp_get_max_threads();
+	int omp_t = omp_get_max_threads();
 	self->params.min_keys_per_crypt *= omp_t;
 	omp_t *= OMP_SCALE;
 	self->params.max_keys_per_crypt *= omp_t;
@@ -101,12 +106,26 @@ static int valid(char *ciphertext, struct fmt_main *self)
 static void *get_salt(char *ciphertext)
 {
 	char *p, *q;
+	unsigned char ipad[20], opad[20], salt[20 + 4 + 1];
+	int i;
 	static struct custom_salt cs;
+
 	memset(&cs, 0, sizeof(cs));
 	p = ciphertext +  TAG_LENGTH + 3;
 
 	q = strchr(p, '|');
-	base64_decode(p, q - p, (char*)cs.salt);
+	base64_decode(p, q - p, (char*)salt);
+
+	for (i = 0; i < 20; ++i) {
+		ipad[i] = salt[i] ^ 0x36;
+		opad[i] = salt[i] ^ 0x5C;
+	}
+	SHA1_Init(&cs.ipad_ctx);
+	SHA1_Update(&cs.ipad_ctx, ipad, 20);
+	SHA1_Update(&cs.ipad_ctx, "\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36", 44);
+	SHA1_Init(&cs.opad_ctx);
+	SHA1_Update(&cs.opad_ctx, opad, 20);
+	SHA1_Update(&cs.opad_ctx, "\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C", 44);
 
 	return (void *)&cs;
 }
@@ -147,10 +166,18 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	for (index = 0; index < count; index++)
 	{
-		hmac_sha1((unsigned char*)cur_salt->salt, 20,
-				(unsigned char*)saved_key[index],
-				strlen(saved_key[index]),
-				(unsigned char*)crypt_out[index], BINARY_SIZE);
+		SHA_CTX ctx;
+		//hmac_sha1((unsigned char*)cur_salt->salt, 20,
+		//		(unsigned char*)saved_key[index],
+		//		strlen(saved_key[index]),
+		//		(unsigned char*)crypt_out[index], BINARY_SIZE);
+		memcpy(&ctx, &cur_salt->ipad_ctx, sizeof(ctx));
+		SHA1_Update(&ctx, saved_key[index], strlen(saved_key[index]));
+		SHA1_Final((unsigned char*) crypt_out[index], &ctx);
+
+		memcpy(&ctx, &cur_salt->opad_ctx, sizeof(ctx));
+		SHA1_Update(&ctx, crypt_out[index], BINARY_SIZE);
+		SHA1_Final((unsigned char*) crypt_out[index], &ctx);
 	}
 	return count;
 }
@@ -178,11 +205,10 @@ static int cmp_exact(char *source, int index)
 
 static void known_hosts_set_key(char *key, int index)
 {
-	int saved_key_length = strlen(key);
-	if (saved_key_length > PLAINTEXT_LENGTH)
-		saved_key_length = PLAINTEXT_LENGTH;
-	memcpy(saved_key[index], key, saved_key_length);
-	saved_key[index][saved_key_length] = 0;
+	int len = strlen(key);
+
+	memcpy(saved_key[index], key, len);
+	saved_key[index][len] = 0;
 }
 
 static char *get_key(int index)
