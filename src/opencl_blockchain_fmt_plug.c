@@ -54,8 +54,6 @@ john_register_one(&fmt_opencl_blockchain);
 #define uint16_t		unsigned short
 #define uint32_t		ARCH_WORD_32
 
-#define OCL_CONFIG		"blockchain"
-
 typedef struct {
 	uint32_t length;
 	uint8_t v[PLAINTEXT_LENGTH];
