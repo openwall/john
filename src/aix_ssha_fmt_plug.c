@@ -229,7 +229,7 @@ static void *get_salt(char *ciphertext)
 static void *get_binary(char *ciphertext)
 {
 	static union {
-		unsigned char c[LARGEST_BINARY_SIZE];
+		unsigned char c[LARGEST_BINARY_SIZE+3];
 		ARCH_WORD_64 dummy;
 	} out;
 	ARCH_WORD_32 value;
