@@ -674,7 +674,7 @@ CFLAGS="$CFLAGS_BACKUP"
 #  JTR_FLAG_CHECK([-O1 -g -fsanitize=address], 1)
 #  if test "x$CFLAGS_EX" != "x" ; then
 #    CFLAGS=`echo $CFLAGS | sed 's/-O2 //g'`
-#    CFLAGS=`echo $CFLAGS | sed 's/-fomit-frame-pointer //g'
+#    CFLAGS=`echo $CFLAGS | sed 's/-fomit-frame-pointer //g'`
 #    CFLAGS="$CFLAGS -O1 -g -fsanitize=address"
 #    LDFLAGS="$LDFLAGS -fsanitize=address"
 #    AC_MSG_CHECKING([asan requested])
