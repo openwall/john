@@ -176,7 +176,7 @@ char *benchmark_format(struct fmt_main *format, int salts,
 
 	if (format->params.binary_size > binary_size) {
 		binary_size = format->params.binary_size;
-		binary = mem_alloc_tiny(binary_size, format->params.binary_align);
+		binary = mem_alloc_tiny(binary_size, MEM_ALIGN_SIMD);
 		memset(binary, 0x55, binary_size);
 	}
 
