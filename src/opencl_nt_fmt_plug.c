@@ -213,8 +213,6 @@ static void done(void)
 
 static void init(struct fmt_main *self)
 {
-	size_t gws_limit = 4 << 20;
-
 	opencl_init("$JOHN/kernels/nt_kernel.cl", gpu_id, NULL);
 
 	crypt_kernel = clCreateKernel( program[gpu_id], "nt_crypt", &ret_code );
@@ -223,10 +221,10 @@ static void init(struct fmt_main *self)
 	// Initialize openCL tuning (library) for this format.
 	opencl_init_auto_setup(SEED, 0, NULL,
 	                       warn, 1, self, create_clobj, release_clobj,
-	                       2 * (PLAINTEXT_LENGTH + 1), gws_limit);
+	                       2 * (PLAINTEXT_LENGTH + 1), 0);
 
 	// Auto tune execution from shared/included code.
-	autotune_run(self, 1, gws_limit, 200);
+	autotune_run(self, 1, 0, 200);
 }
 
 // TODO: Use concurrent memory copy & execute

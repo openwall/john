@@ -214,7 +214,8 @@ static void init(struct fmt_main *self)
 
 	//Auto tune execution from shared/included code.
 	self->methods.crypt_all = crypt_all_benchmark;
-	autotune_run(self, ITERATIONS, 0, 10000000000ULL);
+	autotune_run(self, ITERATIONS, 0,
+	             (cpu(device_info[gpu_id]) ? 1000000000 : 10000000000ULL));
 	self->methods.crypt_all = crypt_all;
 }
 
@@ -260,29 +261,29 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
 #endif
 
 	/// Copy data to gpu
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in,
+	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in,
 		CL_FALSE, 0, gws * sizeof(pass_t), host_pass, 0,
 		NULL, multi_profilingEvent[0]), "Copy data to gpu");
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_salt,
+	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_salt,
 		CL_FALSE, 0, sizeof(salt_t), host_salt, 0, NULL,
 	        multi_profilingEvent[1]),
 	    "Copy salt to gpu");
 
 	/// Run kernel
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel,
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel,
 		1, NULL, &gws, lws, 0, NULL,
 		multi_profilingEvent[2]), "Run kernel");
-	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish");
+	BENCH_CLERROR(clFinish(queue[gpu_id]), "clFinish");
 
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], split_kernel,
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], split_kernel,
 		1, NULL, &gws, lws, 0, NULL,
 		NULL), "Run split kernel");
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], split_kernel,
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], split_kernel,
 		1, NULL, &gws, lws, 0, NULL,
 		multi_profilingEvent[3]), "Run split kernel");
 
 	/// Read the result back
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out,
+	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out,
 		CL_TRUE, 0, gws * sizeof(crack_t), host_crack, 0,
 		NULL, multi_profilingEvent[4]), "Copy result back");
 

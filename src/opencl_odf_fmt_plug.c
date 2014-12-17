@@ -103,7 +103,7 @@ size_t insize, outsize, settingsize, cracked_size;
 
 #define OCL_CONFIG		"odf"
 #define STEP			0
-#define SEED			64
+#define SEED			256
 
 // This file contains auto-tuning routine(s). Has to be included after formats definitions.
 #include "opencl-autotune.h"
@@ -209,7 +209,7 @@ static void init(struct fmt_main *self)
 	                       sizeof(odf_password), 0);
 
 	// Auto tune execution from shared/included code.
-	autotune_run(self, 1, 0, 500);
+	autotune_run(self, 1, 0, 1000);
 }
 
 static int ishex(char *q)

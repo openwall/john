@@ -49,7 +49,7 @@ john_register_one(&fmt_ocl_rar);
 #else
 
 #define STEP			0
-#define SEED			64
+#define SEED			256
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
@@ -643,7 +643,7 @@ static void init(struct fmt_main *self)
 	//Auto tune execution from shared/included code.
 	self->methods.crypt_all = crypt_all_benchmark;
 	autotune_run(self, ITERATIONS, 0,
-		(cpu(device_info[gpu_id]) ? 1000000000 : 10000000000ULL));
+	             (cpu(device_info[gpu_id]) ? 1000000000 : 10000000000ULL));
 	self->methods.crypt_all = crypt_all;
 
 #if defined (_OPENMP)
@@ -893,17 +893,17 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 	size_t gws = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
 
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_key, CL_FALSE, 0, UNICODE_LENGTH * gws, saved_key, 0, NULL, multi_profilingEvent[0]), "failed in clEnqueueWriteBuffer saved_key");
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_len, CL_FALSE, 0, sizeof(int) * gws, saved_len, 0, NULL, multi_profilingEvent[1]), "failed in clEnqueueWriteBuffer saved_len");
+	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_key, CL_FALSE, 0, UNICODE_LENGTH * gws, saved_key, 0, NULL, multi_profilingEvent[0]), "failed in clEnqueueWriteBuffer saved_key");
+	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_len, CL_FALSE, 0, sizeof(int) * gws, saved_len, 0, NULL, multi_profilingEvent[1]), "failed in clEnqueueWriteBuffer saved_len");
 
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], RarInit, 1, NULL, &gws, lws, 0, NULL, multi_profilingEvent[2]), "failed in clEnqueueNDRangeKernel");
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &gws, lws, 0, NULL, NULL), "failed in clEnqueueNDRangeKernel");
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &gws, lws, 0, NULL, multi_profilingEvent[3]), "failed in clEnqueueNDRangeKernel");
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], RarInit, 1, NULL, &gws, lws, 0, NULL, multi_profilingEvent[2]), "failed in clEnqueueNDRangeKernel");
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &gws, lws, 0, NULL, NULL), "failed in clEnqueueNDRangeKernel");
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &gws, lws, 0, NULL, multi_profilingEvent[3]), "failed in clEnqueueNDRangeKernel");
 
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], RarFinal, 1, NULL, &gws, lws, 0, NULL, multi_profilingEvent[4]), "failed in clEnqueueNDRangeKernel");
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], RarFinal, 1, NULL, &gws, lws, 0, NULL, multi_profilingEvent[4]), "failed in clEnqueueNDRangeKernel");
 	// read back aes key & iv
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_aes_key, CL_FALSE, 0, 16 * gws, aes_key, 0, NULL, multi_profilingEvent[5]), "failed in reading key back");
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_aes_iv, CL_TRUE, 0, 16 * gws, aes_iv, 0, NULL, multi_profilingEvent[6]), "failed in reading iv back");
+	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_aes_key, CL_FALSE, 0, 16 * gws, aes_key, 0, NULL, multi_profilingEvent[5]), "failed in reading key back");
+	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_aes_iv, CL_TRUE, 0, 16 * gws, aes_iv, 0, NULL, multi_profilingEvent[6]), "failed in reading iv back");
 
 	return count;
 }

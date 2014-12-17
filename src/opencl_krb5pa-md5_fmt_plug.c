@@ -109,7 +109,7 @@ static cl_mem pinned_key, pinned_idx, pinned_result, pinned_salt;
 static cl_kernel krb5pa_md5_nthash;
 
 #define STEP 0
-#define SEED 64
+#define SEED 256
 
 //This file contains auto-tuning routine(s). Has to be included after formats definitions.
 #include "opencl-autotune.h"
@@ -255,7 +255,7 @@ static void init(struct fmt_main *self)
 		PLAINTEXT_LENGTH, 0);
 
 	//Auto tune execution from shared/included code.
-	autotune_run(self, 1, 0, 100000000);
+	autotune_run(self, 1, 0, 200);
 }
 
 static void *salt(char *ciphertext)

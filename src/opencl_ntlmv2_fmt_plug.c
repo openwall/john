@@ -99,7 +99,7 @@ static cl_mem pinned_key, pinned_idx, pinned_result, pinned_salt;
 static cl_kernel ntlmv2_nthash;
 
 #define STEP 0
-#define SEED 64
+#define SEED 256
 
 //This file contains auto-tuning routine(s). Has to be included after formats definitions.
 #include "opencl-autotune.h"
@@ -310,7 +310,7 @@ static void init(struct fmt_main *self)
 		2 * max_len, gws_limit);
 
 	//Auto tune execution from shared/included code.
-	autotune_run(self, 11, gws_limit, 1000000000);
+	autotune_run(self, 11, gws_limit, 500);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)

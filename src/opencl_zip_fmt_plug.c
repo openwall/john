@@ -125,7 +125,7 @@ size_t insize, outsize, settingsize;
 
 #define OCL_CONFIG		"zip"
 #define STEP			0
-#define SEED			64
+#define SEED			256
 
 // This file contains auto-tuning routine(s). Has to be included after formats definitions.
 #include "opencl-autotune.h"
@@ -226,7 +226,7 @@ static void init(struct fmt_main *self)
 	                       sizeof(zip_password), 0);
 
 	// Auto tune execution from shared/included code.
-	autotune_run(self, 1, 0, 500);
+	autotune_run(self, 1, 0, 1000);
 }
 
 static const char *ValidateZipFileData(u8 *Fn, u8 *Oh, u8 *Ob, unsigned len, u8 *Auth) {

@@ -90,7 +90,7 @@ static cl_mem cl_tx_keys, cl_tx_binary, cl_magic_table;
 
 #define OCL_CONFIG		"Lotus5"
 #define STEP			0
-#define SEED			64
+#define SEED			256
 
 #define MIN(a, b)               (((a) > (b)) ? (b) : (a))
 
@@ -185,7 +185,7 @@ static void init(struct fmt_main *self)
 	                       KEY_SIZE_IN_BYTES, 0);
 
 	// Auto tune execution from shared/included code.
-	autotune_run(self, 1, 0, 500);
+	autotune_run(self, 1, 0, 1000);
 }
 
 static void done(void)

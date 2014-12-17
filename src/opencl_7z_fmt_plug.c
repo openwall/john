@@ -252,7 +252,7 @@ static void init(struct fmt_main *self)
 
 	//  Auto tune execution from shared/included code.
 	self->methods.crypt_all = crypt_all_benchmark;
-	autotune_run(self, 1 << 19, 0, 15000000000);
+	autotune_run(self, 1 << 19, 0, 15000000000ULL);
 	self->methods.crypt_all = crypt_all;
 
 	if (pers_opts.target_enc == UTF_8)

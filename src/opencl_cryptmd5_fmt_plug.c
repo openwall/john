@@ -308,7 +308,7 @@ static void init(struct fmt_main *self)
 		sizeof(crypt_md5_password), 0);
 
 	//Auto tune execution from shared/included code.
-	autotune_run(self, 1000, 0, 100000000);
+	autotune_run(self, 1000, 0, 500);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)

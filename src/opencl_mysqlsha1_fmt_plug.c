@@ -49,7 +49,7 @@ john_register_one(&fmt_opencl_mysqlsha1);
 #define OCL_CONFIG              "mysql-sha1"
 
 #define STEP 0
-#define SEED 64
+#define SEED 256
 
 //This file contains auto-tuning routine(s). Has to be included after formats definitions.
 #include "opencl-autotune.h"
@@ -192,16 +192,16 @@ static void init(struct fmt_main *self)
 	char build_opts[64];
 	size_t gws_limit;
 
-        // Current key_idx can only hold 26 bits of offset so
-        // we can't reliably use a GWS higher than 4M or so.
-        gws_limit = MIN((1 << 26) * 4 / PLAINTEXT_LENGTH,
-                        get_max_mem_alloc_size(gpu_id) / PLAINTEXT_LENGTH);
-
 	local_work_size = global_work_size = 0;
 
 	snprintf(build_opts, sizeof(build_opts),
 	        "-DPLAINTEXT_LENGTH=%u", PLAINTEXT_LENGTH);
 	opencl_init("$JOHN/kernels/msha_kernel.cl", gpu_id, build_opts);
+
+        // Current key_idx can only hold 26 bits of offset so
+        // we can't reliably use a GWS higher than 4M or so.
+        gws_limit = MIN((1 << 26) * 4 / PLAINTEXT_LENGTH,
+                        get_max_mem_alloc_size(gpu_id) / PLAINTEXT_LENGTH);
 
 	// create kernel to execute
 	crypt_kernel = clCreateKernel(program[gpu_id], "mysqlsha1_crypt_kernel", &ret_code);
@@ -213,7 +213,7 @@ static void init(struct fmt_main *self)
 		2 * PLAINTEXT_LENGTH, gws_limit);
 
 	//Auto tune execution from shared/included code.
-	autotune_run(self, 2, gws_limit, 100000000);
+	autotune_run(self, 2, gws_limit, 200);
 }
 
 static void clear_keys(void)

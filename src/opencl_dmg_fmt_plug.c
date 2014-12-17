@@ -201,7 +201,7 @@ static struct fmt_tests dmg_tests[] = {
 
 #define OCL_CONFIG		"dmg"
 #define STEP			0
-#define SEED			64
+#define SEED			256
 
 // This file contains auto-tuning routine(s). Has to be included after formats definitions.
 #include "opencl-autotune.h"
@@ -304,7 +304,7 @@ static void init(struct fmt_main *self)
 	                       sizeof(dmg_password), 0);
 
 	// Auto tune execution from shared/included code.
-	autotune_run(self, 1, 0, 500);
+	autotune_run(self, 1, 0, 1000);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)

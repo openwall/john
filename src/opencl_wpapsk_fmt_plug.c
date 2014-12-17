@@ -42,7 +42,7 @@ static unsigned int *inbuffer;
 #define ITERATIONS		4095
 #define HASH_LOOPS		105 // factors 3, 3, 5, 7, 13
 #define STEP			0
-#define SEED			64
+#define SEED			256
 
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
@@ -255,7 +255,7 @@ static void init(struct fmt_main *self)
 	// Auto tune execution from shared/included code.
 	self->methods.crypt_all = crypt_all_benchmark;
 	autotune_run(self, 2 * ITERATIONS * 2 + 2, 0,
-	             10000 * HASH_LOOPS / (2 * ITERATIONS));
+	             (cpu(device_info[gpu_id]) ? 1000000000 : 10000000000ULL));
 	self->methods.crypt_all = crypt_all;
 
 	self->params.min_keys_per_crypt = local_work_size * v_width;

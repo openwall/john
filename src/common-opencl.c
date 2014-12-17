@@ -206,6 +206,36 @@ int get_sequential_id(unsigned int dev_id, unsigned int platform_id)
 	return (platforms[i].platform ? pos + dev_id : -1);
 }
 
+static char* ns2string(cl_ulong nanosec)
+{
+	char *buf = mem_alloc_tiny(16, MEM_ALIGN_NONE);
+	int s, ms, us, ns;
+
+	ns = nanosec % 1000; nanosec /= 1000;
+	us = nanosec % 1000; nanosec /= 1000;
+	ms = nanosec % 1000;
+	s = nanosec / 1000;
+
+	if (s) {
+		if (ms)
+			snprintf(buf, 16, "%d.%03ds", s, ms);
+		else
+			snprintf(buf, 16, "%ds", s);
+	} else if (ms) {
+		if (us)
+			snprintf(buf, 16, "%d.%03dms", ms, us);
+		else
+			snprintf(buf, 16, "%dms", ms);
+	} else if (us) {
+		if (ns)
+			snprintf(buf, 16, "%d.%03dus", us, ns);
+		else
+			snprintf(buf, 16, "%dus", us);
+	} else
+		snprintf(buf, 16, "%dns", ns);
+	return buf;
+}
+
 static int get_if_device_is_in_use(int sequential_id)
 {
 	int i = 0, found = 0;
@@ -1055,8 +1085,8 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self,
 		numloops = 1;
 	else if (numloops > 10)
 		numloops = 10;
-	//fprintf(stderr, "%zu, %zu, time: %zu, loops: %d\n", endTime,
-	//	startTime, (endTime-startTime), numloops);
+	//fprintf(stderr, "%zu, %zu, time: %s, loops: %d\n", endTime,
+	//	startTime, ns2string(endTime - startTime), numloops);
 
 	// Find minimum time
 	for (optimal_work_group = my_work_group = wg_multiple;
@@ -1102,8 +1132,8 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self,
 					   CL_PROFILING_COMMAND_END,
 					   sizeof(cl_ulong), &endTime, NULL),
 				       "Failed to get profiling info");
-			//fprintf(stderr, "%zu, %zu, time: %zu\n", endTime,
-			//	startTime, (endTime-startTime));
+			//fprintf(stderr, "%zu, %zu, time: %s\n", endTime,
+			//	startTime, ns2string(endTime-startTime));
 			sumStartTime += startTime;
 			sumEndTime += endTime;
 		}
@@ -1113,8 +1143,8 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self,
 			kernelExecTimeNs = sumEndTime - sumStartTime;
 			optimal_work_group = my_work_group;
 		}
-		//fprintf(stderr, "LWS %d time=%llu ns\n",(int) my_work_group,
-		//	(unsigned long long)sumEndTime-sumStartTime);
+		//fprintf(stderr, "LWS %d time=%s\n",(int) my_work_group,
+		//	ns2string(sumEndTime-sumStartTime));
 	}
 	// Release profiling queue and create new with profiling disabled
 	clReleaseCommandQueue(queue[sequential_id]);
@@ -1164,6 +1194,7 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 	cl_event benchEvent[MAX_EVENTS];
 	int number_of_events = 0;
 	void *salt;
+	int amd_bug;
 
 	bench_running = 1;
 
@@ -1223,6 +1254,8 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 	for (i = 0; i < number_of_events; i++) {
 		char mult[32] = "";
 
+		amd_bug = 0;
+
 		HANDLE_CLERROR(
 			clWaitForEvents(1, multi_profilingEvent[i]),
 				"WaitForEvents failed");
@@ -1239,6 +1272,25 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 						NULL),
 			"Failed in clGetEventProfilingInfo II");
 
+		/* Work around AMD bug. It randomly claims that a kernel
+		   run took less than a microsecond, fooling our auto tune */
+		if (endTime - startTime < 1000) {
+			amd_bug = 1;
+
+			HANDLE_CLERROR(
+			clGetEventProfilingInfo(*multi_profilingEvent[i],
+						CL_PROFILING_COMMAND_SUBMIT,
+						sizeof (cl_ulong), &startTime,
+			                        NULL),
+			"Failed in clGetEventProfilingInfo I");
+			HANDLE_CLERROR(
+			clGetEventProfilingInfo(*multi_profilingEvent[i],
+						CL_PROFILING_COMMAND_END,
+						sizeof (cl_ulong), &endTime,
+						NULL),
+			"Failed in clGetEventProfilingInfo II");
+		}
+
 		if ((split_events) && (i == split_events[0] ||
 				       i == split_events[1] ||
 				       i == split_events[2])) {
@@ -1251,16 +1303,17 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 			runtime += (endTime - startTime);
 
 		if (options.verbosity > 4)
-			fprintf(stderr, "%s%s%.2fms", warnings[i], mult,
-				(double)(endTime - startTime) / 1000000.);
+			fprintf(stderr, "%s%s%s%s", warnings[i], mult,
+			        ns2string(endTime - startTime),
+			        (amd_bug) ? "*" : "");
 
 		/* Single-invocation duration limit */
 		if (duration_time && (endTime - startTime) > duration_time) {
 			runtime = looptime = 0;
 
 			if (options.verbosity > 4)
-				fprintf(stderr, " (exceeds %d ms)",
-				        (int)(duration_time / 1000000));
+				fprintf(stderr, " (exceeds %s)",
+				        ns2string(duration_time));
 			break;
 		}
 	}
@@ -1268,7 +1321,7 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 		fprintf(stderr, "\n");
 
 	if (split_events)
-		runtime += ((looptime / total) * (rounds / hash_loops));
+		runtime += (looptime * rounds) / (hash_loops * total);
 
 	clear_profiling_events();
 	release_clobj();
@@ -1518,11 +1571,11 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
 	/*
 	 * max_run_time is either:
 	 *   - total running time for crypt_all(), in ns
-	 *   - single duration of a kernel run, is ms
+	 *   - single duration of a kernel run, is ms (max. 1000)
 	 */
 
 	/* Does format specify max. single duration? */
-	if (max_run_time < 1000 &&
+	if (max_run_time <= 1000 &&
 	    (!duration_time || duration_time > max_run_time * 1000000)) {
 		duration_time = max_run_time * 1000000;
 		max_run_time = 0;
@@ -1531,12 +1584,12 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
 	if (options.verbosity > 3) {
 		if (!max_run_time)
 		fprintf(stderr, "Calculating best global worksize (GWS); "
-			"max. %2.0f ms single kernel invocation.\n",
-			(float) duration_time / 1000000.);
+			"max. %s single kernel invocation.\n",
+		        ns2string(duration_time * 1000000));
 		else
 		fprintf(stderr, "Calculating best global worksize (GWS); "
-			"max. %2.1f s total for crypt_all()\n",
-			(float) max_run_time / 1000000000.);
+			"max. %s total for crypt_all()\n",
+		        ns2string(max_run_time));
 	}
 
 	if (options.verbosity > 4)
@@ -1571,15 +1624,6 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
 		if (!(run_time = gws_test(num, rounds, sequential_id)))
 			break;
 
-		/* Yet Another AMD driver bug workaround?! */
-		if (run_time < 200000) {
-			if (options.verbosity > 4)
-				fprintf(stderr,
-				        "** Bogus time (%lluns), ignoring\n",
-				        (unsigned long long)run_time);
-			continue;
-		}
-
 		if (options.verbosity < 4)
 			advance_cursor();
 
@@ -1588,22 +1632,14 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
 		if (run_time < min_time)
 			min_time = run_time;
 
-		if (options.verbosity > 3) {
-			if (rounds > 1)
-				fprintf(stderr, "gws: %9zu\t%10llu c/s%12llu "
-					"rounds/s%8.3f sec per crypt_all()",
-					num, (long long)(kpc / (run_time /
-								1000000000.)),
-					speed, (float)run_time / 1000000000.);
-			else
-				fprintf(stderr, "gws: %9zu\t%10llu c/s %8.3f "
-					"ms per crypt_all()",
-					num, (long long) (kpc / (run_time /
-								 1000000000.)),
-					(float)run_time / 1000000.);
-		}
+		if (options.verbosity > 3)
+			fprintf(stderr, "gws: %9zu\t%10llu c/s%12llu "
+			        "rounds/s%10s per crypt_all()",
+			        num, (long long)(kpc / (run_time / 1E9)),
+			        speed, ns2string(run_time));
 
-		if (best_speed && max_run_time && run_time > max_run_time) {
+		if (best_speed && speed < 2 * best_speed &&
+		    max_run_time && run_time > max_run_time) {
 			if (!optimal_gws)
 				optimal_gws = num;
 
@@ -1614,7 +1650,8 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
 
 		if (speed > (1.01 * best_speed)) {
 			if (options.verbosity > 3)
-				fprintf(stderr, "+");
+				fprintf(stderr,
+				        (speed > 2 * best_speed) ? "!" : "+");
 			best_speed = speed;
 			optimal_gws = num;
 		}

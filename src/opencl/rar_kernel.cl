@@ -18,15 +18,8 @@
  */
 
 #include "opencl_device_info.h"
+#include "opencl_misc.h"
 #include "opencl_sha1.h"
-
-#if gpu_nvidia(DEVICE_INFO) || amd_gcn(DEVICE_INFO)
-#define SCALAR
-#endif
-
-#if gpu_amd(DEVICE_INFO)
-#define USE_BITSELECT
-#endif
 
 #define UNICODE_LENGTH		(2 * PLAINTEXT_LENGTH)
 #define ROUNDS			0x40000

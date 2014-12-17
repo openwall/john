@@ -218,11 +218,6 @@ static void init(struct fmt_main *self)
 	static char valgo[48] = "";
 	size_t gws_limit;
 
-        // Current key_idx can only hold 26 bits of offset so
-        // we can't reliably use a GWS higher than 4M or so.
-        gws_limit = MIN((1 << 26) * 4 / BUFFER_SIZE,
-                        get_max_mem_alloc_size(gpu_id) / BUFFER_SIZE);
-
 	if ((v_width = opencl_get_vector_width(gpu_id,
 	                                       sizeof(cl_int))) > 1) {
 		/* Run vectorized kernel */
@@ -232,6 +227,11 @@ static void init(struct fmt_main *self)
 	}
 	snprintf(build_opts, sizeof(build_opts), "-DV_WIDTH=%u", v_width);
 	opencl_init("$JOHN/kernels/rakp_kernel.cl", gpu_id, build_opts);
+
+        // Current key_idx can only hold 26 bits of offset so
+        // we can't reliably use a GWS higher than 4M or so.
+        gws_limit = MIN((1 << 26) * 4 / BUFFER_SIZE,
+                        get_max_mem_alloc_size(gpu_id) / BUFFER_SIZE);
 
 	// create kernel to execute
 	crypt_kernel = clCreateKernel(program[gpu_id], "rakp_kernel", &ret_code);

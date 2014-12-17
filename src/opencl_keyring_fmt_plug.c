@@ -94,7 +94,7 @@ static cl_mem mem_in, mem_out, mem_setting;
 
 #define OCL_CONFIG		"keyring"
 #define STEP                    0
-#define SEED                    64
+#define SEED                    256
 
 static const char * warn[] = {
 	"xfer: "  ,  ", crypt: "    ,  ", xfer: "

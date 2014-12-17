@@ -118,7 +118,7 @@ size_t insize, outsize, settingsize;
 
 #define OCL_CONFIG		"phpass"
 #define STEP			0
-#define SEED			64
+#define SEED			256
 
 // This file contains auto-tuning routine(s). Has to be included after formats definitions.
 #include "opencl-autotune.h"

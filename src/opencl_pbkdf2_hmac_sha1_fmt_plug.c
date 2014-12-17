@@ -74,7 +74,7 @@ john_register_one(&fmt_ocl_pbkdf1_sha1);
 
 #define LOOP_COUNT		(((cur_salt->iterations - 1 + HASH_LOOPS - 1)) / HASH_LOOPS)
 #define STEP			0
-#define SEED			64
+#define SEED			256
 #define OCL_CONFIG		"pbkdf2-hmac-sha1"
 
 static const char * warn[] = {
