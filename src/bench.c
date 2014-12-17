@@ -112,6 +112,14 @@ static void bench_install_handler(void)
 #endif
 }
 
+/* Mutes ASAN problems. We pass a buffer long enough for any use */
+#define fmt_set_key(key, index)	  \
+	{ \
+		static char buf_key[PLAINTEXT_BUFFER_SIZE]; \
+		strncpy(buf_key, key, sizeof(buf_key)); \
+		format->methods.set_key(buf_key, index); \
+	}
+
 static void bench_set_keys(struct fmt_main *format,
 	struct fmt_tests *current, int cond)
 {
@@ -136,8 +144,7 @@ static void bench_set_keys(struct fmt_main *format,
 			} else
 				break;
 		} while (1);
-
-		format->methods.set_key(plaintext, index);
+		fmt_set_key(plaintext, index);
 	}
 }
 
