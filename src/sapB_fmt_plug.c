@@ -226,7 +226,7 @@ static void set_salt(void *salt)
 
 static void set_key(char *key, int index)
 {
-	memcpy(saved_plain[index], key, PLAINTEXT_LENGTH);
+	strnzcpy(saved_plain[index], key, PLAINTEXT_LENGTH+1);
 	keyLen[index] = -1;
 }
 
