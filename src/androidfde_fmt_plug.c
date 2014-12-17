@@ -94,7 +94,7 @@ static struct custom_salt {
 	int loaded;
 	unsigned char *cipherbuf;
 	int keysize;
-	int iterations;				// NOTE, not used. Hard coded to 2000 for FDE from droid <= 4.3  (PBKDF2-sha1)
+	int iterations;             // NOTE, not used. Hard coded to 2000 for FDE from droid <= 4.3  (PBKDF2-sha1)
 	int saltlen;
 	unsigned char data[512 * 3];
 	unsigned char salt[16];
@@ -251,7 +251,7 @@ void hash_plugin_check_hash(int index)
 #else
 	unsigned char keycandidate[255];
 	char *password = saved_key[index];
-	pbkdf2_sha1((const uint8_t*)password, strlen(password), (const uint8_t*)(cur_salt->salt), 
+	pbkdf2_sha1((const uint8_t*)password, strlen(password), (const uint8_t*)(cur_salt->salt),
 		16, 2000, keycandidate, cur_salt->keysize + 16, 0);
 #endif
 #if !ARCH_LITTLE_ENDIAN
