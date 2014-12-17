@@ -398,7 +398,7 @@ static void set_salt(void *salt)
 static void netntlm_set_key(char *key, int index)
 {
 	saved_len[index] = strlen(key);
-	memcpy(saved_plain[index], key, saved_len[index] + 1);
+	strcpy(saved_plain[index], key);
 	keys_prepared = 0;
 }
 
