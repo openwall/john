@@ -340,7 +340,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		}
 
 		/* validate that binary() returns cleaned buffer */
-		if (extra_tests && !binary_cleaned_warned) {
+		if (extra_tests && !binary_cleaned_warned && format->params.binary_size) {
 			memset(binary, 0xAF, format->params.binary_size);
 			binary = format->methods.binary(ciphertext);
 			if (((unsigned char*)binary)[format->params.binary_size-1] == 0xAF)
@@ -358,7 +358,9 @@ static char *fmt_self_test_body(struct fmt_main *format,
 			memset(binary, 0, format->params.binary_size);
 			binary = format->methods.binary(ciphertext);
 		}
-		memcpy(binary_copy, binary, format->params.binary_size);
+		*((char*)binary_copy) = 0;
+		if (format->params.binary_size)
+			memcpy(binary_copy, binary, format->params.binary_size);
 		binary = binary_copy;
 
 		dyna_salt_create();
@@ -375,7 +377,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		}
 
 		/* validate that salt() returns cleaned buffer */
-		if (extra_tests && !salt_cleaned_warned) {
+		if (extra_tests && !salt_cleaned_warned && format->params.salt_size) {
 			if ((format->params.flags & FMT_DYNA_SALT) == FMT_DYNA_SALT) {
 				dyna_salt *p1, *p2=0, *p3=0;
 				p1 = *((dyna_salt**)salt);
@@ -419,7 +421,9 @@ static char *fmt_self_test_body(struct fmt_main *format,
 			salt = format->methods.salt(ciphertext);
 		}
 
-		memcpy(salt_copy, salt, format->params.salt_size);
+		*((char*)salt_copy) = 0;
+		if (format->params.salt_size)
+			memcpy(salt_copy, salt, format->params.salt_size);
 		salt = salt_copy;
 
 		if (strcmp(ciphertext,
@@ -600,9 +604,9 @@ char *fmt_self_test(struct fmt_main *format)
 	void *binary_copy, *salt_copy;
 
 	binary_copy = alloc_binary(&binary_alloc,
-	    format->params.binary_size, format->params.binary_align);
+	    format->params.binary_size?format->params.binary_size:1, format->params.binary_align);
 	salt_copy = alloc_binary(&salt_alloc,
-	    format->params.salt_size, format->params.salt_align);
+	    format->params.salt_size?format->params.salt_size:1, format->params.salt_align);
 
 	/* We use this to keep opencl_process_event() from doing stuff
 	 * while self-test is running. */
