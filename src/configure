@@ -750,6 +750,7 @@ with_commoncrypto
 with_endian
 enable_memdbg
 enable_memdbg_ex
+enable_asan
 enable_openmp_for_fast_formats
 enable_mpi
 enable_rexgen
@@ -1369,6 +1370,7 @@ Optional Features:
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
   --enable-memdbg         Enable memdbg memory debugging (safe level)
   --enable-memdbg-ex      Enable memdbg memory debugging (expanded level)
+  --enable-asan           Build with AddressSanitizer
   --disable-openmp-for-fast-formats
                           Disable OpenMP for fast formats
   --enable-mpi            Use OpenMPI
@@ -3483,6 +3485,14 @@ if test "${enable_memdbg_ex+set}" = set; then :
   enableval=$enable_memdbg_ex; memdbgex=$enableval
 else
   memdbgex=no
+fi
+
+# Enable AddressSanitizer (default: no)
+# Check whether --enable-asan was given.
+if test "${enable_asan+set}" = set; then :
+  enableval=$enable_asan; asan=$enableval
+else
+  asan=no
 fi
 
 
@@ -13122,6 +13132,10 @@ _ACEOF
 
 
 CFLAGS="$CFLAGS_BACKUP"
+if test "x$asan" = xyes ; then
+   CFLAGS="-O1 -g -fsanitize=address"
+   LDFLAGS="-O1 -g -fsanitize=address"
+fi
 
 #add ARCH_LITTLE_ENDIAN to command line, IF we know it is big or little
 if test "x$endian" = "xbig"; then

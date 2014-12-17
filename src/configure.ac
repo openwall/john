@@ -60,6 +60,8 @@ AC_ARG_WITH(endian, [AS_HELP_STRING([--with-endian=little|big],[Set endianness f
 
 AC_ARG_ENABLE([memdbg], [AC_HELP_STRING([--enable-memdbg], [Enable memdbg memory debugging (safe level)])], [memdbg=$enableval], [memdbg=no])
 AC_ARG_ENABLE([memdbg-ex], [AC_HELP_STRING([--enable-memdbg-ex], [Enable memdbg memory debugging (expanded level)])], [memdbgex=$enableval], [memdbgex=no])
+# Enable AddressSanitizer (default: no)
+AC_ARG_ENABLE([asan], [AS_HELP_STRING([--enable-asan], [Build with AddressSanitizer])], [asan=$enableval], [asan=no])
 
 # Define Features. OpenMP and OpenCL are defined in their respective macros.
 # We define "--disable-FEATURE" when default is "auto".
@@ -666,6 +668,10 @@ CFLAGS="$CFLAGS $CFLAGS_EXTRA"
 AC_CHECK_SIZEOF([size_t])
 AC_CHECK_SIZEOF([off_t])
 CFLAGS="$CFLAGS_BACKUP"
+if test "x$asan" = xyes ; then
+   CFLAGS="-O1 -g -fsanitize=address"
+   LDFLAGS="-O1 -g -fsanitize=address"
+fi
 
 #add ARCH_LITTLE_ENDIAN to command line, IF we know it is big or little
 if test "x$endian" = "xbig"; then
