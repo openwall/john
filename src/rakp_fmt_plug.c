@@ -174,7 +174,8 @@ static void set_salt(void *salt)
 	memcpy(&cur_salt, salt, SALT_SIZE);
 }
 
-static void set_key(char *key, int index)
+// this set_key() usage pattern is known to be OK
+ATTRIBUTE_NO_ADDRESS_SAFETY_ANALYSIS static void set_key(char *key, int index)
 {
 	int len;
 #ifdef MMX_COEF

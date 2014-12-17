@@ -14,6 +14,7 @@
 #include "common.h"
 #include "DES_std.h"
 #include "memdbg.h"
+#include "misc.h"
 
 #if ARCH_BITS >= 64
 
@@ -616,7 +617,7 @@ void DES_raw_set_key(char *key)
 	}
 }
 
-void DES_std_set_key(char *key)
+ATTRIBUTE_NO_ADDRESS_SAFETY_ANALYSIS void DES_std_set_key(char *key)
 {
 	unsigned i, j;
 	int k, l;
