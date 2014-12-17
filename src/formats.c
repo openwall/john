@@ -404,8 +404,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 			} else {
 				memset(salt, 0xAF, format->params.salt_size);
 				salt = format->methods.salt(ciphertext);
-				if (format->params.salt_size &&
-				    ((unsigned char*)salt)[format->params.salt_size-1] == 0xAF)
+				if (((unsigned char*)salt)[format->params.salt_size-1] == 0xAF)
 				{
 					memset(salt, 0xC3, format->params.salt_size);
 					salt = format->methods.salt(ciphertext);
