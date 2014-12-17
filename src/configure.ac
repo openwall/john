@@ -815,9 +815,15 @@ else
 fi
 
 if test "x$MEMDBG_CFLAGS" = "x"; then
-   memdbg_settings="release (off)"
+   memdbg_settings="disabled"
 else
    memdbg_settings=${MEMDBG_CFLAGS}
+fi
+
+if test "x$asan" = xyes ; then
+   asan="enabled"
+else
+   asan="disabled"
 fi
 
 AS_IF([test "x$osx_assembler_warn" = xyes],
@@ -850,10 +856,13 @@ Rexgen (extra cracking mode) ................ ${using_rexgen}
 GMP (performance) ........................... ${ac_cv_lib_gmp___gmpz_init}
 PCAP (vncpcap2john and SIPdump) ............. ${using_pcap}
 BZ2 (gpg2john extra decompression logic) .... ${using_bz2}
+
+Debug options (these hurt performance):
 Memdbg memory debugging settings ............ ${memdbg_settings}
+AddressSanitizer ("ASAN") ................... ${asan}
 
 Install missing libraries to get any needed features that were omitted.
 
-Configure finished.  Do '${use_make} -s' to compile.
+Configure finished.  Now '${use_make} clean && ${use_make} -s' to compile.
 EOF
 dnl =======================================================================
