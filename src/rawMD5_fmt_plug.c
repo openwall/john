@@ -184,6 +184,10 @@ static int get_hash_6(int index) { return crypt_key[index][0] & 0x7ffffff; }
 #endif
 
 #ifdef MMX_COEF
+// This is due to access of the password as a uint32.  We can read 3 bytes past end of password,
+// BUT it is properly handled, and we find the NULL.  This has never caused any crash (we do not
+// WRITE to this memory), but that ASAN fires a warning about this access.
+ATTRIBUTE_NO_ADDRESS_SAFETY_ANALYSIS
 static void set_key(char *_key, int index)
 {
 	const ARCH_WORD_32 *key = (ARCH_WORD_32*)_key;
