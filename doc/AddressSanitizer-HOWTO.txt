@@ -9,6 +9,14 @@ make
 
 Disabling instrumentation of a particular function
 --------------------------------------------------
-
 Use "ATTRIBUTE_NO_ADDRESS_SAFETY_ANALYSIS" function attribute to disable
 instrumentation of a particular function.
+
+Parsing output
+--------------
+wget http://llvm.org/klaus/compiler-rt/raw/release_35/lib/asan/scripts/asan_symbolize.py
+chmod +x asan_symbolize.py
+mv -vi asan_symbolize.py /usr/local/bin
+export ASAN_SYMBOLIZER_PATH=/usr/local/bin/asan_symbolize.py
+
+Now re-run the binary and you will get parsed output.
