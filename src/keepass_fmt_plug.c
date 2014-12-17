@@ -451,15 +451,17 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			int crypto_size;
 			crypto_size = Twofish_Decrypt(&tkey, cur_salt->contents, decrypted_content, cur_salt->contentsize, iv);
 			datasize = crypto_size;  // awesome, right?
-			SHA256_Init(&ctx);
-			SHA256_Update(&ctx, decrypted_content, datasize);
-			SHA256_Final(out, &ctx);
-			if(!memcmp(out, cur_salt->contents_hash, 32)) {
-				cracked[index] = 1;
+			if (datasize <= cur_salt->contentsize && datasize > 0) {
+				SHA256_Init(&ctx);
+				SHA256_Update(&ctx, decrypted_content, datasize);
+				SHA256_Final(out, &ctx);
+				if(!memcmp(out, cur_salt->contents_hash, 32)) {
+					cracked[index] = 1;
 #ifdef _OPENMP
 #pragma omp atomic
 #endif
-				any_cracked |= 1;
+					any_cracked |= 1;
+				}
 			}
 		} else {  // KeePass version 2 with Twofish is TODO
 			abort();
