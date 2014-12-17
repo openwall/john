@@ -668,7 +668,26 @@ CFLAGS="$CFLAGS $CFLAGS_EXTRA"
 AC_CHECK_SIZEOF([size_t])
 AC_CHECK_SIZEOF([off_t])
 CFLAGS="$CFLAGS_BACKUP"
+
+#if test "x$asan" = xyes ; then
+#  CFLAGS_EX=""
+#  JTR_FLAG_CHECK([-O1 -g -fsanitize=address], 1)
+#  if test "x$CFLAGS_EX" != "x" ; then
+#    CFLAGS=`echo $CFLAGS | sed 's/-O2 //g'`
+#    CFLAGS=`echo $CFLAGS | sed 's/-fomit-frame-pointer //g'
+#    CFLAGS="$CFLAGS -O1 -g -fsanitize=address"
+#    LDFLAGS="$LDFLAGS -fsanitize=address"
+#    AC_MSG_CHECKING([asan requested])
+#    AC_MSG_RESULT([found])
+#  else
+#    AC_MSG_CHECKING([asan requested])
+#    AC_MSG_RESULT([not usable])
+#  fi
+#fi
+
 if test "x$asan" = xyes ; then
+   CFLAGS=`echo $CFLAGS | sed 's/-O2 //g'`
+   CFLAGS=`echo $CFLAGS | sed 's/-fomit-frame-pointer //g'
    CFLAGS="-O1 -g -fsanitize=address"
    LDFLAGS="-O1 -g -fsanitize=address"
 fi
