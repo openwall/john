@@ -389,35 +389,6 @@ LIBS=""
 AC_SEARCH_LIBS([crypt],[crypt],[AC_DEFINE(HAVE_CRYPT,1,[Define to 1 if you have the `crypt' library (-lcrypt).])])
 AC_SUBST(CRYPT_LIBS, [$LIBS])
 LIBS="$BACKUP_LIBS"
-# Check for Kerberos 5 libs.
-krb5_found=no
-AC_CHECK_HEADER([krb5.h],
-  [AC_SEARCH_LIBS([krb5_is_thread_safe], [krb5 k5crypto])]
-  [AC_SEARCH_LIBS([krb5_c_string_to_key], [krb5 k5crypto])]
-  [AC_SEARCH_LIBS([krb5_c_string_to_key_with_params], [krb5 k5crypto])]
-  [AC_SEARCH_LIBS([krb5_free_keyblock_contents], [krb5 k5crypto],
-    [AS_IF([test "x$ac_cv_search_krb5_c_string_to_key" = "xnone required"],
-      [AC_DEFINE([HAVE_MKSHIM],1,[Define to 1 if you have Heimdal with MKShim.])]
-      [krb5_found="yes (Heimdal w/ MKShim)"],
-      [AC_CHECK_HEADERS([heim_err.h heimdal/heim_err.h],
-        [AC_DEFINE([HAVE_HEIMDAL],1,[Define to 1 if you have Heimdal krb5.])]
-        #[krb5_found="yes, Heimdal"]
-        [krb5_found="no (Heimdal found)"]
-       ,[krb5_found="yes (MIT)"])]
-    )]
-    [AC_DEFINE([HAVE_KRB5],1,[Define to 1 if you have the Kerberos 5 libs.])]
-    [AC_SUBST(KRB5_LIBS, ["$LIBS"])]
-  )]
-  [LIBS="$BACKUP_LIBS"]
-)
-# if nether of these functions found, then totally scrap all krb5 usage.  HOWEVER, this puts a lot of
-# DEFINE XYZ 0 into the autoconfig.h file, so we MUST use #if xyz and NOT #ifdef xyz since xyz 'is' defined.
-AS_IF([test "x$ac_cv_search_krb5_c_string_to_key" = xno -a "x$ac_cv_search_krb5_c_string_to_key_with_params" = xno],
-  [AC_DEFINE([HAVE_KRB5],0,[Define to 1 if you have the Kerberos 5 libs.])]
-  [AC_SUBST(KRB5_LIBS, [""])]
-  [krb5_found="no"]
-  [AC_DEFINE([HAVE_MKSHIM],0,[Define to 1 if you have Heimdal with MKShim.])]
-  [AC_DEFINE([HAVE_HEIMDAL],0,[Define to 1 if you have Heimdal krb5.])] )
 
 AC_CHECK_HEADERS([gmp.h] [gmp/gmp.h], [AC_CHECK_LIB([gmp],[__gmpz_init], AC_DEFINE([HAVE_LIBGMP],1,[Define to 1 if you have the `gmp' library (-lgmp).]) [AC_SUBST(GMP_LIBS, [-lgmp])])] [break])
 AC_CHECK_HEADER([skey.h], [AC_CHECK_LIB([skey],[skey_set_algorithm],
@@ -852,7 +823,6 @@ Generic crypt(3) format ..................... ${using_crypt}
 Optional libraries found:
 Rexgen (extra cracking mode) ................ ${using_rexgen}
 GMP (performance) ........................... ${ac_cv_lib_gmp___gmpz_init}
-Kerberos5 (krb5-18 format) .................. ${krb5_found}
 PCAP (vncpcap2john and SIPdump) ............. ${using_pcap}
 BZ2 (gpg2john extra decompression logic) .... ${using_bz2}
 Memdbg memory debugging settings ............ ${memdbg_settings}

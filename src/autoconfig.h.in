@@ -123,15 +123,6 @@
 /* Define to 1 if you have the <gmp.h> header file. */
 #undef HAVE_GMP_H
 
-/* Define to 1 if you have Heimdal krb5. */
-#undef HAVE_HEIMDAL
-
-/* Define to 1 if you have the <heimdal/heim_err.h> header file. */
-#undef HAVE_HEIMDAL_HEIM_ERR_H
-
-/* Define to 1 if you have the <heim_err.h> header file. */
-#undef HAVE_HEIM_ERR_H
-
 /* Define to 1 if you have the `inet_ntoa' function. */
 #undef HAVE_INET_NTOA
 
@@ -140,9 +131,6 @@
 
 /* Define to 1 if you have the `isascii' function. */
 #undef HAVE_ISASCII
-
-/* Define to 1 if you have the Kerberos 5 libs. */
-#undef HAVE_KRB5
 
 /* Define to 1 if you have bz2 library and headers */
 #undef HAVE_LIBBZ2
@@ -209,9 +197,6 @@
 
 /* Define to 1 if you have the `mkdir' function. */
 #undef HAVE_MKDIR
-
-/* Define to 1 if you have Heimdal with MKShim. */
-#undef HAVE_MKSHIM
 
 /* Define to 1 if you have a working `mmap' system call. */
 #undef HAVE_MMAP

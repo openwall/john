@@ -47,10 +47,6 @@
 #endif
 #endif
 
-#if HAVE_KRB5
-#include <krb5.h>
-#endif
-
 #include "regex.h"
 
 #ifdef NO_JOHN_BLD
@@ -212,10 +208,6 @@ static void listconf_list_build_info(void)
 	printf("\n");
 #endif
 
-#ifdef KRB5_PVNO
-	// I have no idea how to get version info
-	printf("Kerberos version %d support enabled\n", KRB5_PVNO);
-#endif
 #if HAVE_REXGEN
 	// JS_REGEX_BUILD_VERSION not reported here.
 	// It was defined as 122 in an earlier version, but is
