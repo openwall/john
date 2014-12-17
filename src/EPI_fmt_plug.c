@@ -90,7 +90,7 @@ static void* binary(char *ciphertext)
 {
   static ARCH_WORD bin[(BINARY_LENGTH + sizeof(ARCH_WORD) - 1) / sizeof(ARCH_WORD)];
 
-  _tobin((char*)bin, (char*)(ciphertext+65), sizeof(bin));
+  _tobin((char*)bin, (char*)(ciphertext+65), BINARY_LENGTH);
 
   return bin;
 }
