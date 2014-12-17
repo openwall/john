@@ -249,8 +249,7 @@ static inline int strnfcpy_count(char *dst, char *src, int size)
 static void set_key(char *key, int index)
 {
 #ifdef MMX_COEF
-	// fix ASAN crash here without performance loss
-	memcpy(saved_plain[index], key, PLAINTEXT_LENGTH + 1);
+	strcpy(saved_plain[index], key);
 	new_key = 1;
 #else
 	unsigned char key_hash[BINARY_SIZE];
