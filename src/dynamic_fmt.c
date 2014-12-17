@@ -6829,8 +6829,6 @@ static void dyna_setupOMP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt) {
 }
 #endif
 
-// XXX fix me at some point!
-ATTRIBUTE_NO_ADDRESS_SAFETY_ANALYSIS
 int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 {
 	int i, j, cnt, cnt2, x;
