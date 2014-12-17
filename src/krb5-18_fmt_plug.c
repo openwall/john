@@ -13,14 +13,15 @@
  * Input Format :
  * - user:$krb18$REALMname$hash
  * - user:REALMname$hash
+ *
+ * Format rewritten Dec, 2014, without use of -lkrb5, by JimF.  Now we use 'native' JtR
+ * pbkdf2-hmac-sha1() and simple call to 2 AES limb encrypt for entire process. Very
+ * simple, and 10x faster, and no obsure -lkrb5 dependancy
  */
 
 #if AC_BUILT
-/* need to know if HAVE_KRB5 is set, for autoconfig build */
 #include "autoconfig.h"
 #endif
-
-#if HAVE_KRB5
 
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_krb5_18;
@@ -37,10 +38,16 @@ john_register_one(&fmt_krb5_18);
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-#include <krb5.h>
+#include "sse-intrinsics.h"
+#include "pbkdf2_hmac_sha1.h"
+#include <openssl/aes.h>
 #ifdef _OPENMP
 #include <omp.h>
-#define OMP_SCALE               4
+#ifdef MMX_COEF
+#define OMP_SCALE               8
+#else
+#define OMP_SCALE               32
+#endif
 #endif
 #include "memdbg.h"
 
@@ -50,10 +57,14 @@ john_register_one(&fmt_krb5_18);
 #define FORMAT_TAG		"$krb18$"
 #define TAG_LENGTH		7
 
-#if !defined(USE_GCC_ASM_IA32) && defined(USE_GCC_ASM_X64)
-#define ALGORITHM_NAME		"64/64"
+#if MMX_COEF
+#define ALGORITHM_NAME    SHA1_ALGORITHM_NAME
 #else
-#define ALGORITHM_NAME		"32/" ARCH_BITS_STR
+#if ARCH_BITS >= 64
+#define ALGORITHM_NAME     "64/" ARCH_BITS_STR
+#else
+#define ALGORITHM_NAME      "32/" ARCH_BITS_STR
+#endif
 #endif
 
 #define BENCHMARK_COMMENT	""
@@ -64,23 +75,13 @@ john_register_one(&fmt_krb5_18);
 #define BINARY_ALIGN		4
 #define SALT_SIZE		CIPHERTEXT_LENGTH
 #define SALT_ALIGN		1
-#define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	1
-
-#if !AC_BUILT && defined(__APPLE__) && defined(__MACH__)
-#ifdef __MAC_OS_X_VERSION_MIN_REQUIRED
-#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
-#define HAVE_MKSHIM
+#ifdef MMX_COEF
+#define MIN_KEYS_PER_CRYPT      MMX_COEF
+#define MAX_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA1
+#else
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      1
 #endif
-#endif
-#endif
-
-/* Does some system not declare this in krb5.h? */
-extern krb5_error_code KRB5_CALLCONV
-krb5_c_string_to_key_with_params(krb5_context context, krb5_enctype enctype,
-                                 const krb5_data *string,
-                                 const krb5_data *salt,
-                                 const krb5_data *params, krb5_keyblock *key);
 
 static struct fmt_tests kinit_tests[] = {
   {"OLYMPE.OLtest$214bb89cf5b8330112d52189ab05d9d05b03b5a961fe6d06203335ad5f339b26", "password"},
@@ -90,27 +91,17 @@ static struct fmt_tests kinit_tests[] = {
 };
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static char saved_salt[SALT_SIZE];
+static char saved_salt[SALT_SIZE+1];
 static ARCH_WORD_32 (*crypt_out)[16];
-
-static krb5_data salt;
-static krb5_enctype enctype;
 
 static void init(struct fmt_main *pFmt)
 {
 #ifdef _OPENMP
-	if (krb5_is_thread_safe()) {
-		int omp_t = omp_get_max_threads();
-		pFmt->params.min_keys_per_crypt *= omp_t;
-		omp_t *= OMP_SCALE;
-		pFmt->params.max_keys_per_crypt *= omp_t;
-	} else
-		omp_set_num_threads(1);
+	int omp_t = omp_get_max_threads();
+	pFmt->params.min_keys_per_crypt *= omp_t;
+	omp_t *= OMP_SCALE;
+	pFmt->params.max_keys_per_crypt *= omp_t;
 #endif
-	salt.data = "";
-	salt.length = 0;
-	enctype = 18; /* AES256_CTS_HMAC_SHA1 */
-
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
 			pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) *
@@ -209,32 +200,39 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 #pragma omp parallel for
 #endif
 #if defined(_OPENMP) || MAX_KEYS_PER_CRYPT > 1
-	for (index = 0; index < count; index++)
+	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 #endif
 	{
-		int i;
-		krb5_data string;
-		krb5_keyblock key;
-
-		memset(&key, 0, sizeof(krb5_keyblock));
-
-		salt.data = saved_salt;
-		salt.length = strlen(salt.data);
-		string.data = saved_key[index];
-		string.length = strlen(saved_key[index]);
-#ifdef HAVE_MKSHIM
-		krb5_c_string_to_key (NULL, ENCTYPE_AES256_CTS_HMAC_SHA1_96,
-		                      &string, &salt, &key);
-#else
-		krb5_c_string_to_key_with_params(NULL, enctype, &string, &salt,
-		                                 NULL, &key);
-#endif
-		for(i = 0; i < key.length / 4; i++){
-			crypt_out[index][i] = (key.contents[4 * i]) |
-				(key.contents[4 * i + 1] << 8) |
-				(key.contents[4 * i + 2] << 16) |
-				(key.contents[4 * i + 3] << 24);
+		unsigned char key[32], i;
+		AES_KEY aeskey;
+#ifdef SSE_GROUP_SZ_SHA1
+		ARCH_WORD_32 Key[SSE_GROUP_SZ_SHA1][32/4];
+		int lens[SSE_GROUP_SZ_SHA1];
+		unsigned char *pin[SSE_GROUP_SZ_SHA1];
+		union {
+			ARCH_WORD_32 *pout[SSE_GROUP_SZ_SHA1];
+			unsigned char *poutc;
+		} x;
+		for (i = 0; i < SSE_GROUP_SZ_SHA1; ++i) {
+			lens[i] = strlen(saved_key[index+i]);
+			pin[i] = (unsigned char*)saved_key[index+i];
+			x.pout[i] = Key[i];
 		}
+		pbkdf2_sha1_sse((const unsigned char **)pin, lens, (const unsigned char*)saved_salt, strlen(saved_salt), 4096, &(x.poutc), 32, 0);
+#else
+		pbkdf2_sha1((const unsigned char*)saved_key[index], strlen(saved_key[index]), (const unsigned char*)saved_salt, strlen(saved_salt), 4096, key, 32, 0);
+#endif
+		i=0;
+#ifdef SSE_GROUP_SZ_SHA1
+		for (; i < SSE_GROUP_SZ_SHA1; ++i) {
+			memcpy(key, Key[i], 32);
+#endif
+		AES_set_encrypt_key(key, 256, &aeskey);
+		AES_encrypt((unsigned char*)"kerberos{\x9b[+\x93\x13+\x93", (unsigned char*)(crypt_out[index+i]), &aeskey);
+		AES_encrypt((unsigned char*)(crypt_out[index+i]), (unsigned char*)&crypt_out[index+i][4], &aeskey);
+#ifdef SSE_GROUP_SZ_SHA1
+		}
+#endif
 	}
 	return count;
 }
@@ -347,5 +345,3 @@ struct fmt_main fmt_krb5_18 = {
 };
 
 #endif /* plugin stanza */
-
-#endif /* HAVE_KRB5 */
