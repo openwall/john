@@ -94,7 +94,7 @@ static struct custom_salt {
 	int loaded;
 	unsigned char *cipherbuf;
 	int keysize;
-	int iterations;
+	int iterations;				// NOTE, not used. Hard coded to 2000 for FDE from droid <= 4.3  (PBKDF2-sha1)
 	int saltlen;
 	unsigned char data[512 * 3];
 	unsigned char salt[16];
