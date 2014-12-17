@@ -195,6 +195,7 @@ static void *get_salt(char *ciphertext)
 	username = strtok(ctcopy, "*");
 	/* process username */
 	strncpy((char*)cs.userid, username, 8);
+	cs.userid[8] = 0; // terminate username at 8 bytes
 	ascii2ebcdic(cs.userid);
 	process_userid(cs.userid);
 #ifdef RACF_DEBUG
