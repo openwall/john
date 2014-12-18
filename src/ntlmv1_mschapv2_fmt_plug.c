@@ -695,7 +695,7 @@ static char *ntlm_split(char *ciphertext, int index, struct fmt_main *self)
 	static char out[NTLM_TOTAL_LENGTH + 1];
 
 	memset(out, 0, NTLM_TOTAL_LENGTH + 1);
-	memcpy(out, ciphertext, NTLM_TOTAL_LENGTH);
+	strcpy(out, ciphertext);
 	strlwr(&out[8]); /* Exclude: $NETNTLM$ */
 
 	return out;
