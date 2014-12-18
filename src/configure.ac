@@ -59,9 +59,8 @@ AC_ARG_WITH(commoncrypto, [AS_HELP_STRING([--with-commoncrypto],[Use CommonCrypt
 AC_ARG_WITH(endian, [AS_HELP_STRING([--with-endian=little|big],[Set endianness for target if it doesn't detect properly])],,[endian=unknown])
 
 AC_ARG_ENABLE([memdbg], [AC_HELP_STRING([--enable-memdbg], [Enable memdbg memory debugging (safe level)])], [memdbg=$enableval], [memdbg=no])
-AC_ARG_ENABLE([memdbg-ex], [AC_HELP_STRING([--enable-memdbg-ex], [Enable memdbg memory debugging (expanded level)])], [memdbgex=$enableval], [memdbgex=no])
-# Enable AddressSanitizer (default: no)
-AC_ARG_ENABLE([asan], [AS_HELP_STRING([--enable-asan], [Build with AddressSanitizer])], [asan=$enableval], [asan=no])
+AC_ARG_ENABLE([memdbg-ex], [AC_HELP_STRING([--enable-memdbg-ex], [* Enable memdbg memory debugging (expanded level)])], [memdbgex=$enableval], [memdbgex=no])
+AC_ARG_ENABLE([asan], [AS_HELP_STRING([--enable-asan], [* Build with AddressSanitizer])], [asan=$enableval], [asan=no])
 
 # Define Features. OpenMP and OpenCL are defined in their respective macros.
 # We define "--disable-FEATURE" when default is "auto".
@@ -688,7 +687,7 @@ CFLAGS="$CFLAGS_BACKUP"
 if test "x$asan" = xyes ; then
    CFLAGS=`echo $CFLAGS | sed 's/-O2 //g'`
    CFLAGS=`echo $CFLAGS | sed 's/-fomit-frame-pointer //g'`
-   CFLAGS="-O1 -g -fsanitize=address"
+   CFLAGS="-O1 -g -fsanitize=address -fno-omit-frame-pointer"
    LDFLAGS="-O1 -g -fsanitize=address"
 fi
 
@@ -853,11 +852,11 @@ Generic crypt(3) format ..................... ${using_crypt}
 
 Optional libraries found:
 Rexgen (extra cracking mode) ................ ${using_rexgen}
-GMP (performance) ........................... ${ac_cv_lib_gmp___gmpz_init}
+GMP (performance for SRP formats) ........... ${ac_cv_lib_gmp___gmpz_init}
 PCAP (vncpcap2john and SIPdump) ............. ${using_pcap}
 BZ2 (gpg2john extra decompression logic) .... ${using_bz2}
 
-Debug options (these hurt performance):
+Development options (these may hurt performance when enabled):
 Memdbg memory debugging settings ............ ${memdbg_settings}
 AddressSanitizer ("ASAN") ................... ${asan}
 

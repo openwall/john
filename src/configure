@@ -1352,6 +1352,13 @@ By default, \`make install' will install all the files in \`$ac_default_prefix'
 You can specify location other than \`$ac_default_prefix' using \`--prefix',
 for instance \`--prefix=\$HOME/bin'.
 
+Development/QA options
+
+Some --enable-xxx options are listed with a \`*' preceding their description. These
+are developer/QA testing options, and should not be enabled unless you know what
+you are doing with them. These will significantly degrade the runtime performance
+and or memory usage of JtR. and are not designed for a normal user build
+
 System types:
   --build=BUILD     configure for building on BUILD [guessed]
   --host=HOST       cross-compile to build programs to run on HOST [BUILD]
@@ -1369,8 +1376,8 @@ Optional Features:
   --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
   --enable-memdbg         Enable memdbg memory debugging (safe level)
-  --enable-memdbg-ex      Enable memdbg memory debugging (expanded level)
-  --enable-asan           Build with AddressSanitizer
+  --enable-memdbg-ex      * Enable memdbg memory debugging (expanded level)
+  --enable-asan           * Build with AddressSanitizer
   --disable-openmp-for-fast-formats
                           Disable OpenMP for fast formats
   --enable-mpi            Use OpenMPI
@@ -3487,7 +3494,6 @@ else
   memdbgex=no
 fi
 
-# Enable AddressSanitizer (default: no)
 # Check whether --enable-asan was given.
 if test "${enable_asan+set}" = set; then :
   enableval=$enable_asan; asan=$enableval
@@ -13152,7 +13158,7 @@ CFLAGS="$CFLAGS_BACKUP"
 if test "x$asan" = xyes ; then
    CFLAGS=`echo $CFLAGS | sed 's/-O2 //g'`
    CFLAGS=`echo $CFLAGS | sed 's/-fomit-frame-pointer //g'`
-   CFLAGS="-O1 -g -fsanitize=address"
+   CFLAGS="-O1 -g -fsanitize=address -fno-omit-frame-pointer"
    LDFLAGS="-O1 -g -fsanitize=address"
 fi
 
@@ -14740,11 +14746,11 @@ Generic crypt(3) format ..................... ${using_crypt}
 
 Optional libraries found:
 Rexgen (extra cracking mode) ................ ${using_rexgen}
-GMP (performance) ........................... ${ac_cv_lib_gmp___gmpz_init}
+GMP (performance for SRP formats) ........... ${ac_cv_lib_gmp___gmpz_init}
 PCAP (vncpcap2john and SIPdump) ............. ${using_pcap}
 BZ2 (gpg2john extra decompression logic) .... ${using_bz2}
 
-Debug options (these hurt performance):
+Development options (these may hurt performance when enabled):
 Memdbg memory debugging settings ............ ${memdbg_settings}
 AddressSanitizer ("ASAN") ................... ${asan}
 

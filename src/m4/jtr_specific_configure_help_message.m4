@@ -49,7 +49,14 @@ Installation directories:
 ][
 By default, \`make install' will install all the files in \`$ac_default_prefix'
 You can specify location other than \`$ac_default_prefix' using \`--prefix',
-for instance \`--prefix=\$HOME/bin'.]
+for instance \`--prefix=\$HOME/bin'.
+
+Development/QA options
+
+Some --enable-xxx options are listed with a \`*' preceding their description. These
+are developer/QA testing options, and should not be enabled unless you know what
+you are doing with them. These will significantly degrade the runtime performance
+and or memory usage of JtR. and are not designed for a normal user build]
 m4_divert_pop([HELP_BEGIN])dnl
 dnl The order of the diversions here is
 dnl - HELP_BEGIN

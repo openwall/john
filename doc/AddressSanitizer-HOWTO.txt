@@ -13,6 +13,11 @@ Disabling instrumentation of a particular function
 Use "ATTRIBUTE_NO_ADDRESS_SAFETY_ANALYSIS" function attribute to disable
 instrumentation of a particular function.
 
+Current (Dec 2014) Supported build environments for ASan
+--------------------------------------------------------
+ASan is only supported under Linux or Apple environments, for Clang, and GCC 4.8 or
+newer. It is not supported (at the current time) under MinGW or Cygwin, although it
+will build on Cygwin's compiler, there simply is no supporting libasan.so library.
 
 Parsing output
 --------------
