@@ -557,9 +557,25 @@ AC_CHECK_TYPES([ptrdiff_t])
 
 # Checks for library functions.
 AC_FUNC_ERROR_AT_LINE
-AC_FUNC_FORK
 AC_FUNC_MMAP
 
+# JtR's usage of fork does not work on cygwin, even though the AC_FUNC_FORK says it should
+case "$host_os" in
+  mingw*|cygwin*)
+    # FORK is known to 'compile' but to fail and not be usable.
+    ac_cv_func_fork=no
+    ac_cv_func_fork_works=no
+    ac_cv_func_vfork=no
+    ac_cv_func_vfork_works=no
+    AC_MSG_CHECKING([for working fork])
+    AC_MSG_RESULT([no - os disabled])
+    AC_MSG_CHECKING([for working vfork])
+    AC_MSG_RESULT([no - os disabled])
+    ;;
+  *)
+    AC_FUNC_FORK
+    ;;
+esac
 # until we write a rpl_malloc replacement, we CAN NOT look for AC_FUNC_MALLOC.
 #AC_FUNC_MALLOC
 # we need a rpl_realloc before using this one.
