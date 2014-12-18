@@ -38,6 +38,8 @@ extern struct fmt_main fmt_NETHALFLM;
 
 static double cand;
 
+static char safe_null_key[PLAINTEXT_BUFFER_SIZE];
+
 static double get_progress(void)
 {
 	double try;
@@ -751,10 +753,10 @@ void do_incremental_crack(struct db_main *db, char *mode)
 		if (!length && !min_length) {
 			min_length = 1;
 			if (options.mask) {
-				if (!skip && do_mask_crack(""))
+				if (!skip && do_mask_crack(safe_null_key))
 					break;
 			} else
-			if (!skip && crk_process_key(""))
+			if (!skip && crk_process_key(safe_null_key))
 				break;
 		}
 
