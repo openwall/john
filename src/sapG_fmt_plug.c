@@ -261,7 +261,7 @@ static void clear_keys(void)
 
 static void set_key(char *key, int index)
 {
-	strnzcpy((char*)saved_plain[index], key, UTF8_PLAINTEXT_LENGTH+1);
+	memcpy((char*)saved_plain[index], key, UTF8_PLAINTEXT_LENGTH);
 	keyLen[index] = -1;
 }
 
