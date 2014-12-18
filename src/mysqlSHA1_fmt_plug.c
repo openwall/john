@@ -153,12 +153,6 @@ static void init(struct fmt_main *self)
 #endif
 }
 
-// This is due to access of the password as a uint32.  We can read 3 bytes past end of password,
-// BUT it is properly handled, and we find the NULL.  This has never caused any crash (we do not
-// WRITE to this memory), but that ASAN fires a warning about this access.
-#ifdef MMX_COEF
-ATTRIBUTE_NO_ADDRESS_SAFETY_ANALYSIS
-#endif
 static void set_key(char *key, int index)
 {
 #ifdef MMX_COEF
