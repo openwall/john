@@ -23,7 +23,7 @@ dnl creation macro is the one that gets set first.
 m4_include([m4/jtr_specific_configure_help_message.m4])
 
 AC_PREREQ([2.69])
-AC_INIT([john], [1.8.0.2-bleeding-jumbo],[john-users mailing list at openwall.com])
+AC_INIT([john], [1.8.0-jumbo-1],[john-users mailing list at openwall.com])
 ##  AM_INIT_AUTOMAKE([foreign subdir-objects])
 AC_CONFIG_SRCDIR([john.c])
 AC_CONFIG_HEADERS([autoconfig.h])

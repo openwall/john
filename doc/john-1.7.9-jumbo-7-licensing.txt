@@ -1,3 +1,10 @@
+This file describes the licensing status of various source files in
+john-1.7.9-jumbo-7.  It is not directly applicable to later versions.
+While many of these source files are now available under more relaxed
+terms than they were in 1.7.9-jumbo-7, some have had their licenses
+changed to be more restrictive (notably, the sha{256,512}crypt OpenCL
+kernels, as per Claudio's preference).
+
 john-1.7.9-jumbo-7:
 README                          N/A; Solar; symlink
 README-jumbo                    GPLv2; Solar; documentation; new file in jumbo, hereby placed under GPLv2

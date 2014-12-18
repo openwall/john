@@ -24,7 +24,7 @@ john_register_one(&fmt_cuda_cryptsha512);
 #define FORMAT_LABEL		"sha512crypt-cuda"
 #define FORMAT_NAME		"crypt(3) $6$"
 
-#define ALGORITHM_NAME		"SHA512 CUDA"
+#define ALGORITHM_NAME		"SHA512 CUDA (inefficient, please use sha512crypt-opencl instead)"
 
 #define BENCHMARK_COMMENT	" (rounds=5000)"
 #define BENCHMARK_LENGTH	-1
