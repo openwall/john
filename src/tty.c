@@ -10,6 +10,7 @@
  * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
+#include "arch.h"
 #if defined (__MINGW32__) || defined (_MSC_VER)
 #include <conio.h>
 #else
@@ -17,7 +18,9 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#if !AC_BUILT || HAVE_TERMIOS_H
 #include <termios.h>
+#endif
 #if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
 #include <unistd.h>
 #endif
