@@ -24,7 +24,7 @@
 /*
  * John's version number.
  */
-#define JOHN_VERSION			"1.8.0-jumbo-1+bleeding-jumbo"
+#define JOHN_VERSION			"1.8.0.2-jumbo-1-bleeding"
 #define JTR_RELEASE_BUILD
 
 /*
