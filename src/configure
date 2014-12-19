@@ -7247,7 +7247,6 @@ $as_echo_n "checking for NEON... " >&6; }
 _ACEOF
 if ac_fn_c_try_link "$LINENO"; then :
   CPU_BEST_FLAGS="-mfpu=neon"      CPU_STR="NEON"
-     ARCH_LINK=arm32le.h
      { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 
@@ -12753,6 +12752,9 @@ case "$host_os" in
       fi
    done
 
+    if test "x$CPU_BIT_STR" = x32; then :
+  ASFLAGS="$ASFLAGS -DBSD"
+fi
     ;;
 
   linux*|cygwin*)
@@ -12781,8 +12783,8 @@ esac
 # Add large file support - this typically requires a feature macro on 32-bit.
 #############################################################################
 case "$host" in
-  i?86*linux*)
-    if test "x$ac_cv_func_lseek64" = xyes; then :
+  *linux*|arm*|alpha*|powerpcle|powerpc*)
+    if test x${CPU_BIT_STR} = x32 && test "x$ac_cv_func_lseek64" = xyes; then :
 
    for i in -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE; do
       jtr_list_add_dupe=0
@@ -12857,86 +12859,6 @@ fi
 
 fi
     ;;
-  arm*)
-    # From legacy Makefile 32 bit systems
-    if test "x$CPU_BIT_STR" = x32; then :
-
-   for i in -D_LARGEFILE64_SOURCE; do
-      jtr_list_add_dupe=0
-      for j in $CFLAGS_EXTRA; do
-         if test "x$i" = "x$j"; then
-            jtr_list_add_dupe=1
-            break
-         fi
-      done
-      if test $jtr_list_add_dupe = 0; then
-         CFLAGS_EXTRA="$CFLAGS_EXTRA $i"
-         jtr_list_add_result="$jtr_list_add_result $i"
-      fi
-   done
-
-fi
-     ;;
-  alpha*)
-    # From legacy Makefile 32 bit systems
-    if test "x$CPU_BIT_STR" = x32; then :
-
-   for i in -D_LARGEFILE64_SOURCE; do
-      jtr_list_add_dupe=0
-      for j in $CFLAGS_EXTRA; do
-         if test "x$i" = "x$j"; then
-            jtr_list_add_dupe=1
-            break
-         fi
-      done
-      if test $jtr_list_add_dupe = 0; then
-         CFLAGS_EXTRA="$CFLAGS_EXTRA $i"
-         jtr_list_add_result="$jtr_list_add_result $i"
-      fi
-   done
-
-fi
-     ;;
-  powerpcle)
-    # From legacy Makefile 32 bit systems
-    if test "x$CPU_BIT_STR" = x32; then :
-
-   for i in -D_LARGEFILE64_SOURCE; do
-      jtr_list_add_dupe=0
-      for j in $CFLAGS_EXTRA; do
-         if test "x$i" = "x$j"; then
-            jtr_list_add_dupe=1
-            break
-         fi
-      done
-      if test $jtr_list_add_dupe = 0; then
-         CFLAGS_EXTRA="$CFLAGS_EXTRA $i"
-         jtr_list_add_result="$jtr_list_add_result $i"
-      fi
-   done
-
-fi
-     ;;
-  powerpc*)
-    # From legacy Makefile 32 bit systems
-    if test "x$CPU_BIT_STR" = x32; then :
-
-   for i in -D_LARGEFILE64_SOURCE; do
-      jtr_list_add_dupe=0
-      for j in $CFLAGS_EXTRA; do
-         if test "x$i" = "x$j"; then
-            jtr_list_add_dupe=1
-            break
-         fi
-      done
-      if test $jtr_list_add_dupe = 0; then
-         CFLAGS_EXTRA="$CFLAGS_EXTRA $i"
-         jtr_list_add_result="$jtr_list_add_result $i"
-      fi
-   done
-
-fi
-     ;;
 esac
 
 #########################################
@@ -13049,7 +12971,7 @@ CFLAGS="$CFLAGS_BACKUP"
 if test "x$asan" = xyes ; then
    CFLAGS=`echo $CFLAGS | sed 's/-O2 //g'`
    CFLAGS=`echo $CFLAGS | sed 's/-fomit-frame-pointer //g'`
-   CFLAGS="-O1 -g -fsanitize=address -fno-omit-frame-pointer"
+   CFLAGS="-O1 -g -fsanitize=address -fno-omit-frame-pointer -DDEBUG"
    LDFLAGS="-O1 -g -fsanitize=address"
 fi
 

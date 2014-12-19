@@ -49,6 +49,7 @@ case "$host_os" in
   freebsd*)
     # From legacy Makefile's FreeBSD targets
     JTR_LIST_ADD(CFLAGS_EXTRA, [-D__BSD_VISIBLE])
+    AS_IF([test "x$CPU_BIT_STR" = x32], ASFLAGS="$ASFLAGS -DBSD")
     ;;
 
   linux*|cygwin*)
@@ -61,8 +62,8 @@ esac
 # Add large file support - this typically requires a feature macro on 32-bit.
 #############################################################################
 case "$host" in
-  i?86*linux*)
-    AS_IF([test "x$ac_cv_func_lseek64" = xyes], [JTR_LIST_ADD(CFLAGS_EXTRA, [-D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE])])
+  *linux*|arm*|alpha*|powerpcle|powerpc*)
+    AS_IF([test x${CPU_BIT_STR} = x32 && test "x$ac_cv_func_lseek64" = xyes], [JTR_LIST_ADD(CFLAGS_EXTRA, [-D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE])])
     ;;
   i?86*darwin*)
     AS_IF([test "x$ac_cv_func_fseeko" = xyes], [JTR_LIST_ADD(CFLAGS_EXTRA, [-D_DARWIN_C_SOURCE])])
@@ -75,22 +76,6 @@ case "$host" in
   sparc*solaris*)
     AS_IF([test "x$ac_cv_func_fseeko64" = xyes && test x${CPU_BIT_STR} = x32], [JTR_LIST_ADD(CFLAGS_EXTRA, [-D__EXTENSIONS__ -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64])])
     ;;
-  arm*)
-    # From legacy Makefile 32 bit systems
-    AS_IF([test "x$CPU_BIT_STR" = x32], [JTR_LIST_ADD(CFLAGS_EXTRA, [-D_LARGEFILE64_SOURCE])])
-     ;;
-  alpha*)
-    # From legacy Makefile 32 bit systems
-    AS_IF([test "x$CPU_BIT_STR" = x32], [JTR_LIST_ADD(CFLAGS_EXTRA, [-D_LARGEFILE64_SOURCE])])
-     ;;
-  powerpcle)
-    # From legacy Makefile 32 bit systems
-    AS_IF([test "x$CPU_BIT_STR" = x32], [JTR_LIST_ADD(CFLAGS_EXTRA, [-D_LARGEFILE64_SOURCE])])
-     ;;
-  powerpc*)
-    # From legacy Makefile 32 bit systems
-    AS_IF([test "x$CPU_BIT_STR" = x32], [JTR_LIST_ADD(CFLAGS_EXTRA, [-D_LARGEFILE64_SOURCE])])
-     ;;
 esac
 
 #########################################

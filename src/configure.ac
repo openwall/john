@@ -719,7 +719,7 @@ CFLAGS="$CFLAGS_BACKUP"
 if test "x$asan" = xyes ; then
    CFLAGS=`echo $CFLAGS | sed 's/-O2 //g'`
    CFLAGS=`echo $CFLAGS | sed 's/-fomit-frame-pointer //g'`
-   CFLAGS="-O1 -g -fsanitize=address -fno-omit-frame-pointer"
+   CFLAGS="-O1 -g -fsanitize=address -fno-omit-frame-pointer -DDEBUG"
    LDFLAGS="-O1 -g -fsanitize=address"
 fi
 

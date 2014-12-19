@@ -57,7 +57,6 @@ else
     )]
     ,[CPU_BEST_FLAGS="-mfpu=neon"] dnl
      [CPU_STR="NEON"]
-     [ARCH_LINK=arm32le.h]
      [AC_MSG_RESULT([yes])]
     ,[CPU_NOTFOUND="1"]
      [AC_MSG_RESULT(no)]
