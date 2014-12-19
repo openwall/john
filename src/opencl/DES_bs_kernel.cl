@@ -59,11 +59,25 @@
 #include "opencl_DES_WGS.h"
 #include "opencl_device_info.h"
 
-/* Some devices/drivers has problems with the goto's but it's much slower
-   without them */
-#if !(gpu_intel(DEVICE_INFO) || defined(__HAWAII__) || defined(__JUNIPER__))
-#define FAST_GOTO
+/*
+ * Some devices/drivers has problems with the optimized 'goto' program flow.
+ * Some AMD driver versions can't build the "fast goto" version but those who
+ * can runs faster. Hawaii on 14.9 fails, Tahiti on 14.9 does not (!?).
+ *
+ * Nvidia can build either kernel but GTX980 is significantly faster with the
+ * "safe goto" version (7% faster for one salt, 16% for many salts).
+ *
+ * OSX' Intel HD4000 driver [1.2(Sep25 2014 22:26:04)] fails building the
+ * "fast goto" version.
+ */
+#if gpu_nvidia (DEVICE_INFO) || gpu_intel(DEVICE_INFO) ||	  \
+	(gpu_amd(DEVICE_INFO) && DEV_VER_MAJOR >= 1573 && !defined(__TAHITI__))
+//#warning Using 'safe goto' kernel
+#define SAFE_GOTO
+#else
+//#warning Using 'fast goto' kernel
 #endif
+
 #define ARCH_WORD     			int
 #define DES_BS_DEPTH                    32
 #define DES_bs_vector                   ARCH_WORD
@@ -1133,7 +1147,7 @@ __kernel void DES_bs_25_b( constant uint *index768
 		__local ushort _local_index768[768] ;
 #endif
 		int iterations;
-#ifdef FAST_GOTO
+#ifndef SAFE_GOTO
 		int rounds_and_swapped;
 #endif
 		long int k = 0, i;
@@ -1153,7 +1167,7 @@ __kernel void DES_bs_25_b( constant uint *index768
 				output[i] = 0;
 
 		k=0;
-#ifdef FAST_GOTO
+#ifndef SAFE_GOTO
 		rounds_and_swapped = 8;
 #endif
 		iterations = 25;
@@ -1165,16 +1179,7 @@ __kernel void DES_bs_25_b( constant uint *index768
 
 		barrier(CLK_LOCAL_MEM_FENCE);
 #endif
-#ifdef FAST_GOTO
-start:
-		loop_body();
-
-		if (rounds_and_swapped > 0) goto start;
-		k -= (0x300 + 48);
-		rounds_and_swapped = 0x108;
-
-		if (--iterations) goto swap;
-#else
+#ifdef SAFE_GOTO
 	for (iterations = 24; iterations >= 0; iterations--) {
 		for (k = 0; k < 768; k += 96) {
 			H1();
@@ -1186,7 +1191,15 @@ start:
 			B[i + 32] = tmp;
 		}
 	}
+#else
+start:
+		loop_body();
 
+		if (rounds_and_swapped > 0) goto start;
+		k -= (0x300 + 48);
+		rounds_and_swapped = 0x108;
+
+		if (--iterations) goto swap;
 #endif
 
 		cmp(B, binary, num_loaded_hash, output, section);
@@ -1202,7 +1215,7 @@ start:
 		for (i = 0; i < 64; i++)
 			B_global[global_offset_B + i] = (DES_bs_vector)B[i] ;
 		return;
-#ifdef FAST_GOTO
+#ifndef SAFE_GOTO
 swap:
 		H2();
 		k += 96;
