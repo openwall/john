@@ -12861,7 +12861,8 @@ fi
   alpha*)
   powerpcle)
   powerpc*)
-    # From legacy Makefile's arm-NEON targets, but I think this likely is right for all 32 bit ARM systems
+    # From legacy Makefile 32 bit systems
+	if test "x$CPU_BIT_STR" = x32; then :
 
    for i in -D_LARGEFILE64_SOURCE; do
       jtr_list_add_dupe=0
@@ -12877,6 +12878,7 @@ fi
       fi
    done
 
+fi
      ;;
 esac
 
