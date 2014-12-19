@@ -385,12 +385,6 @@
    your system. */
 #undef PTHREAD_CREATE_JOINABLE
 
-/* The size of `char', as computed by sizeof. */
-#undef SIZEOF_CHAR
-
-/* The size of `double', as computed by sizeof. */
-#undef SIZEOF_DOUBLE
-
 /* The size of `int', as computed by sizeof. */
 #undef SIZEOF_INT
 
@@ -400,14 +394,8 @@
 /* The size of `long', as computed by sizeof. */
 #undef SIZEOF_LONG
 
-/* The size of `long double', as computed by sizeof. */
-#undef SIZEOF_LONG_DOUBLE
-
 /* The size of `long long', as computed by sizeof. */
 #undef SIZEOF_LONG_LONG
-
-/* The size of `long long *', as computed by sizeof. */
-#undef SIZEOF_LONG_LONG_P
 
 /* The size of `off_t', as computed by sizeof. */
 #undef SIZEOF_OFF_T
@@ -417,18 +405,6 @@
 
 /* The size of `size_t', as computed by sizeof. */
 #undef SIZEOF_SIZE_T
-
-/* The size of `unsigned', as computed by sizeof. */
-#undef SIZEOF_UNSIGNED
-
-/* The size of `unsigned char', as computed by sizeof. */
-#undef SIZEOF_UNSIGNED_CHAR
-
-/* The size of `unsigned int', as computed by sizeof. */
-#undef SIZEOF_UNSIGNED_INT
-
-/* The size of `unsigned short', as computed by sizeof. */
-#undef SIZEOF_UNSIGNED_SHORT
 
 /* The size of `void *', as computed by sizeof. */
 #undef SIZEOF_VOID_P

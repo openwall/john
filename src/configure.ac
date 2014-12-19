@@ -206,23 +206,26 @@ if test "x$PKG_CONFIG" = x || test "x$enable_pkg_config" == xno ; then
 else
 	AC_MSG_RESULT([yes])
 fi
-
 # Cross-compile compliant size checks
 # size_t and off_t are post-poned to after feature macros are set
-AC_CHECK_SIZEOF([char])
-AC_CHECK_SIZEOF([unsigned char])
+# *****************************************************************
+
+dnl *** AC_CHECK_SIZEOF([char])
+dnl *** AC_CHECK_SIZEOF([unsigned char])
 AC_CHECK_SIZEOF([short])
-AC_CHECK_SIZEOF([unsigned short])
+dnl *** AC_CHECK_SIZEOF([unsigned short])
 AC_CHECK_SIZEOF([int])
-AC_CHECK_SIZEOF([unsigned])
-AC_CHECK_SIZEOF([unsigned int])
+dnl *** AC_CHECK_SIZEOF([unsigned])
+dnl *** AC_CHECK_SIZEOF([unsigned int])
 AC_CHECK_SIZEOF([long])
 AC_CHECK_SIZEOF([long long])
-AC_CHECK_SIZEOF([double])
-AC_CHECK_SIZEOF([long double])
+dnl *** AC_CHECK_SIZEOF([double])
+dnl *** AC_CHECK_SIZEOF([long double])
 AC_CHECK_SIZEOF([int *])
-AC_CHECK_SIZEOF([long long *])
+dnl ** AC_CHECK_SIZEOF([long long *])
 AC_CHECK_SIZEOF([void *])
+dnl  Not sure how to do sizeof function pointer in configure. I will add this one to jumbo.h 'by hand'
+dnl AC_CHECK_SIZEOF([int *function()]
 
 # Available arch.h's:
 # alpha.h
@@ -244,6 +247,7 @@ AC_CHECK_SIZEOF([void *])
 # x86-sse.h
 #
 # See http://ftp.netbsd.org/pub/NetBSD/NetBSD-release-6/src/external/bsd/pcc/dist/pcc/configure.ac for many alternatives
+# *****************************************************************
 #
 cpu_family="unkown"
 CPU_STR="$host_cpu"
