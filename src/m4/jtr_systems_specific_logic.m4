@@ -76,11 +76,20 @@ case "$host" in
     AS_IF([test "x$ac_cv_func_fseeko64" = xyes && test x${CPU_BIT_STR} = x32], [JTR_LIST_ADD(CFLAGS_EXTRA, [-D__EXTENSIONS__ -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64])])
     ;;
   arm*)
+    # From legacy Makefile 32 bit systems
+    AS_IF([test "x$CPU_BIT_STR" = x32], [JTR_LIST_ADD(CFLAGS_EXTRA, [-D_LARGEFILE64_SOURCE])])
+     ;;
   alpha*)
+    # From legacy Makefile 32 bit systems
+    AS_IF([test "x$CPU_BIT_STR" = x32], [JTR_LIST_ADD(CFLAGS_EXTRA, [-D_LARGEFILE64_SOURCE])])
+     ;;
   powerpcle)
+    # From legacy Makefile 32 bit systems
+    AS_IF([test "x$CPU_BIT_STR" = x32], [JTR_LIST_ADD(CFLAGS_EXTRA, [-D_LARGEFILE64_SOURCE])])
+     ;;
   powerpc*)
     # From legacy Makefile 32 bit systems
-	AS_IF([test "x$CPU_BIT_STR" = x32], [JTR_LIST_ADD(CFLAGS_EXTRA, [-D_LARGEFILE64_SOURCE])])
+    AS_IF([test "x$CPU_BIT_STR" = x32], [JTR_LIST_ADD(CFLAGS_EXTRA, [-D_LARGEFILE64_SOURCE])])
      ;;
 esac
 
