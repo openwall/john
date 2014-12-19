@@ -37,6 +37,7 @@ m4_include([m4/ax_prog_cc_mpi.m4])
 m4_include([m4/ax_lang_compiler_ms.m4])
 m4_include([m4/ax_check_gnu_make.m4])
 m4_include([m4/jtr_x86_logic.m4])
+m4_include([m4/jtr_arm_logic.m4])
 m4_include([m4/jtr_generic_logic.m4])
 m4_include([m4/jtr_systems_specific_logic.m4])
 m4_include([m4/jtr_utility_macros.m4])
@@ -245,10 +246,13 @@ AC_CHECK_SIZEOF([void *])
 # See http://ftp.netbsd.org/pub/NetBSD/NetBSD-release-6/src/external/bsd/pcc/dist/pcc/configure.ac for many alternatives
 #
 cpu_family="unkown"
+CPU_STR="$host_cpu"
 case "$host_cpu" in
   alpha*) ARCH_LINK=alpha.h endian=little ;;
   armeb) ARCH_LINK=arm32le.h endian=big ;;
-  arm*) ARCH_LINK=arm32le.h endian=little ;;
+  arm*) ARCH_LINK=arm32le.h endian=little 
+        JTR_ARM_SPECIAL_LOGIC
+        ;;
   ia64) ARCH_LINK=ia64.h endian=little cpu_family=intel ;;
   i?86) ARCH_LINK=x86-any.h endian=little cpu_family=intel ;;
   m68k*) ARCH_LINK=autoconf_arch.h endian=big ;;
@@ -273,7 +277,6 @@ esac
 # macros for each environment.  We probably should fall back to calling
 # make -f Makefile.legacy clean generic or failing with an echo of that message,
 # for any environment we do not handle.
-CPU_STR="$host_cpu"
 AS_IF([test "x$cpu_family" = xintel], [JTR_X86_SPECIAL_LOGIC])
 AC_MSG_CHECKING([for arch.h alternative])
 AC_MSG_RESULT([${ARCH_LINK}])

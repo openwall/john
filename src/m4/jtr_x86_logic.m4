@@ -1,48 +1,51 @@
+# JtR configure Intel-SIMD instruction active probe test
 # Copyright (C) 2014 Jim Fougeron, for John Ripper project.
 # This file put into public domain. unlimited permission to
 # copy and/or distribute it, with or without modifications,
 # as long as this notice is preserved.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY, to the extent permitted by law; without
-# even the implied warranty of MERCHANTABILITY or FITNESS FOR A
-# PARTICULAR PURPOSE.
-#
-# this code will probe test many flavors of intel CPU's looking
-# for different CPU instruction abilities. It does not use the
-# CPUID instructions, instead actually issuing instructions that
-# are known to be only processable by specific CPU types, and
-# simply doing the instruction, and returning 0.  If the cpu
-# instruction can NOT be done, then the test will CORE, and
-# we know that those CPU instructions are NOT handled.  Once
-# we hit a bad test, we are done, since the CPU will not have
-# instructions above that level.  The exception is XOP vs AVX.
-# there may not always be a 100% follow through on those types,
-# since one of them was built by Intel, the other by AMD. When
-# we detect SSE4, we simply perform the final tests, without
-# worrying about failed results.  But if we had failed at SSE4
-# then we would know the CPU has SSE3 (or SSSE3), and nothing
-# further. If there is no SSE4, then there will never be a need
-# to test for AVX or XOP.  This CPU simply does not have them.
-#
-
-# TODO: We should move the MMX_COEF and *_PARA shite into this file and
-# ifdef it out from the arch.h
-
-# TODO: Ultimately we should not depend on any predefined stuff in arch.h
-# at all
-
+dnl
+dnl This program is distributed in the hope that it will be useful,
+dnl but WITHOUT ANY WARRANTY, to the extent permitted by law; without
+dnl even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+dnl PARTICULAR PURPOSE.
+dnl
+dnl this code will probe test many flavors of intel CPU's looking
+dnl for different CPU instruction abilities. It does not use the
+dnl CPUID instructions, instead actually issuing instructions that
+dnl are known to be only processable by specific CPU types, and
+dnl simply doing the instruction, and returning 0.  If the cpu
+dnl instruction can NOT be done, then the test will CORE, and
+dnl we know that those CPU instructions are NOT handled.  Once
+dnl we hit a bad test, we are done, since the CPU will not have
+dnl instructions above that level.  The exception is XOP vs AVX.
+dnl there may not always be a 100% follow through on those types,
+dnl since one of them was built by Intel, the other by AMD. When
+dnl we detect SSE4, we simply perform the final tests, without
+dnl worrying about failed results.  But if we had failed at SSE4
+dnl then we would know the CPU has SSE3 (or SSSE3), and nothing
+dnl further. If there is no SSE4, then there will never be a need
+dnl to test for AVX or XOP.  This CPU simply does not have them.
+dnl
+dnl
+dnl TODO: We should move the MMX_COEF and *_PARA shite into this file and
+dnl ifdef it out from the arch.h
+dnl
+dnl TODO: Ultimately we should not depend on any predefined stuff in arch.h
+dnl at all
+dnl
 AC_DEFUN([JTR_X86_SPECIAL_LOGIC], [
 CC_BACKUP=$CC
 CFLAGS_BACKUP=$CFLAGS
-
+dnl
 #############################################################################
-# CPU test code.  We start with SSE2, then SSSE3, then SSE4, ... until we fail
+# Intel Active CPU probe test.  Start with SSE2, then SSSE3, then SSE4, until failure
 # whatever the last one is, we use it.  NOTE, if AVX fails we still DO test XOP
 # since one is intel, one is AMD.  At the very end of configure, we set gcc
 # back to whatever the 'best' was.  During running in configure, $CC gets reset
 # so the results of our tests must be remembered, and reset just before exit.
+# Config probe test code copyright 2014, Jim Fougeron.  Placed into public domain.
 #############################################################################
+dnl
 CFLAGS="$CFLAGS -O0"
 if test "x$enable_native_tests" = xyes; then
   CPU_NOTFOUND=0
@@ -184,7 +187,6 @@ if test "x$enable_native_tests" = xyes; then
     )
   ]
   )
-
   AS_CASE([$host_os], [darwin*], [AS_IF([test "x$CPU_STR" = "xSSE4.1"],
     [AC_PATH_PROGS([jtr_as], [as])]
     [AS_IF([test "x$jtr_as" = "x/usr/bin/as"],
@@ -206,9 +208,7 @@ if test "x$enable_native_tests" = xyes; then
       )]
     )]
   )])
-
 else
-
   ##########################################
   # cross-compile versions of the same tests
   ##########################################
@@ -353,7 +353,6 @@ else
       ,[AC_MSG_RESULT(no)]
     )
   fi
-
   AS_CASE([$host_os], [darwin*], [AS_IF([test "x$CPU_NOTFOUND" = x0],[
     CC="$CC_BACKUP -mavx"
     AC_MSG_CHECKING([that 'as' works for AVX])
@@ -371,7 +370,6 @@ else
       )
     ])]
   )
-
 fi
 
 CC="$CC_BACKUP"

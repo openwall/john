@@ -3329,40 +3329,18 @@ ac_config_headers="$ac_config_headers autoconfig.h"
 
 
 
+# JtR configure Intel-SIMD instruction active probe test
 # Copyright (C) 2014 Jim Fougeron, for John Ripper project.
 # This file put into public domain. unlimited permission to
 # copy and/or distribute it, with or without modifications,
 # as long as this notice is preserved.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY, to the extent permitted by law; without
-# even the implied warranty of MERCHANTABILITY or FITNESS FOR A
-# PARTICULAR PURPOSE.
-#
-# this code will probe test many flavors of intel CPU's looking
-# for different CPU instruction abilities. It does not use the
-# CPUID instructions, instead actually issuing instructions that
-# are known to be only processable by specific CPU types, and
-# simply doing the instruction, and returning 0.  If the cpu
-# instruction can NOT be done, then the test will CORE, and
-# we know that those CPU instructions are NOT handled.  Once
-# we hit a bad test, we are done, since the CPU will not have
-# instructions above that level.  The exception is XOP vs AVX.
-# there may not always be a 100% follow through on those types,
-# since one of them was built by Intel, the other by AMD. When
-# we detect SSE4, we simply perform the final tests, without
-# worrying about failed results.  But if we had failed at SSE4
-# then we would know the CPU has SSE3 (or SSSE3), and nothing
-# further. If there is no SSE4, then there will never be a need
-# to test for AVX or XOP.  This CPU simply does not have them.
-#
 
-# TODO: We should move the MMX_COEF and *_PARA shite into this file and
-# ifdef it out from the arch.h
 
-# TODO: Ultimately we should not depend on any predefined stuff in arch.h
-# at all
-
+# JtR configure Arm-NEON instruction active probe test
+# Copyright (C) 2014 Jim Fougeron, for John Ripper project.
+# This file put into public domain. unlimited permission to
+# copy and/or distribute it, with or without modifications,
+# as long as this notice is preserved.
 
 
 # This file is Copyright (C) 2014 magnum,
@@ -7460,10 +7438,95 @@ _ACEOF
 # See http://ftp.netbsd.org/pub/NetBSD/NetBSD-release-6/src/external/bsd/pcc/dist/pcc/configure.ac for many alternatives
 #
 cpu_family="unkown"
+CPU_STR="$host_cpu"
 case "$host_cpu" in
   alpha*) ARCH_LINK=alpha.h endian=little ;;
   armeb) ARCH_LINK=arm32le.h endian=big ;;
-  arm*) ARCH_LINK=arm32le.h endian=little ;;
+  arm*) ARCH_LINK=arm32le.h endian=little
+
+CC_BACKUP=$CC
+CFLAGS_BACKUP=$CFLAGS
+#############################################################################
+# Arm-NEON Active CPU probe test.  We check for NEON instructions
+# At the very end of configure, we set gcc
+# back to whatever the 'best' was.  During running in configure, $CC gets reset
+# so the results of our tests must be remembered, and reset just before exit.
+# Config probe test code copyright 2014, Jim Fougeron.  Placed into public domain.
+#############################################################################
+CFLAGS="$CFLAGS -O0"
+if test "x$enable_native_tests" = xyes; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: Testing build host's native CPU features" >&5
+$as_echo "$as_me: Testing build host's native CPU features" >&6;}
+  CC="$CC_BACKUP -mfpu=neon"
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for NEON" >&5
+$as_echo_n "checking for NEON... " >&6; }
+  if test "$cross_compiling" = yes; then :
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "cannot run test program while cross compiling
+See \`config.log' for more details" "$LINENO" 5; }
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+    #include <arm_neon.h>
+	#include <stdio.h>
+	extern void exit(int);
+	int main(){uint32x4_t t;*((long*)&t)=1;t=veorq_u32(t,t);if((*(unsigned*)&t)==88)printf(".");exit(0);}
+
+
+_ACEOF
+if ac_fn_c_try_run "$LINENO"; then :
+  CPU_BEST_FLAGS="-mfpu=neon"      CPU_STR="NEON"
+     { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+
+else
+  CPU_NOTFOUND="1"
+     { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+
+fi
+rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
+  conftest.$ac_objext conftest.beam conftest.$ac_ext
+fi
+
+else
+  ##########################################
+  # cross-compile versions of the same tests
+  ##########################################
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for NEON" >&5
+$as_echo_n "checking for NEON... " >&6; }
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+    #include <arm_neon.h>
+	#include <stdio.h>
+	extern void exit(int);
+	int main(){uint32x4_t t;*((long*)&t)=1;t=veorq_u32(t,t);if((*(unsigned*)&t)==88)printf(".");exit(0);}
+
+
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  CPU_BEST_FLAGS="-mfpu=neon"      CPU_STR="NEON"
+     ARCH_LINK=arm32le.h
+     { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+
+else
+  CPU_NOTFOUND="1"
+     { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+fi
+
+CC="$CC_BACKUP"
+CFLAGS="$CFLAGS_BACKUP"
+
+        ;;
   ia64) ARCH_LINK=ia64.h endian=little cpu_family=intel ;;
   i?86) ARCH_LINK=x86-any.h endian=little cpu_family=intel ;;
   m68k*) ARCH_LINK=autoconf_arch.h endian=big ;;
@@ -7489,18 +7552,17 @@ esac
 # macros for each environment.  We probably should fall back to calling
 # make -f Makefile.legacy clean generic or failing with an echo of that message,
 # for any environment we do not handle.
-CPU_STR="$host_cpu"
 if test "x$cpu_family" = xintel; then :
 
 CC_BACKUP=$CC
 CFLAGS_BACKUP=$CFLAGS
-
 #############################################################################
-# CPU test code.  We start with SSE2, then SSSE3, then SSE4, ... until we fail
+# Intel Active CPU probe test.  Start with SSE2, then SSSE3, then SSE4, until failure
 # whatever the last one is, we use it.  NOTE, if AVX fails we still DO test XOP
 # since one is intel, one is AMD.  At the very end of configure, we set gcc
 # back to whatever the 'best' was.  During running in configure, $CC gets reset
 # so the results of our tests must be remembered, and reset just before exit.
+# Config probe test code copyright 2014, Jim Fougeron.  Placed into public domain.
 #############################################################################
 CFLAGS="$CFLAGS -O0"
 if test "x$enable_native_tests" = xyes; then
@@ -7780,7 +7842,6 @@ fi
 
 
 fi
-
   case $host_os in #(
   darwin*) :
     if test "x$CPU_STR" = "xSSE4.1"; then :
@@ -7864,9 +7925,7 @@ fi ;; #(
   *) :
      ;;
 esac
-
 else
-
   ##########################################
   # cross-compile versions of the same tests
   ##########################################
@@ -8086,7 +8145,6 @@ fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
   fi
-
   case $host_os in #(
   darwin*) :
     if test "x$CPU_NOTFOUND" = x0; then :
@@ -8122,7 +8180,6 @@ fi
   *) :
      ;;
 esac
-
 fi
 
 CC="$CC_BACKUP"
