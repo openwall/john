@@ -47,6 +47,8 @@
 #ifndef SPH_TYPES_H__
 #define SPH_TYPES_H__
 
+#include "autoconfig.h"
+
 #if !AC_BUILT || HAVE_LIMITS_H
 #include <limits.h>
 #endif
