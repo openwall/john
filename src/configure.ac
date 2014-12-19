@@ -492,12 +492,19 @@ JTR_CUDA
 
 # Checks for header files.
 # Eg. if sys/times.h is found, the below will define HAVE_SYS_TIMES_H
-AC_CHECK_HEADERS([OS.h arpa/inet.h crypt.h fcntl.h limits.h locale.h \
+AC_CHECK_HEADERS([arpa/inet.h crypt.h fcntl.h limits.h locale.h \
                   net/ethernet.h netdb.h netinet/in.h netinet/in_systm.h \
-                  stddef.h stdint.h stdlib.h string.h strings.h \
+                  stdint.h string.h strings.h \
                   sys/ethernet.h sys/file.h sys/param.h sys/socket.h \
-                  sys/time.h sys/timeb.h sys/times.h sys/types.h termios.h \
-                  unistd.h unixlib/local.h wchar.h windows.h])
+                  sys/time.h sys/times.h sys/types.h termios.h \
+                  unistd.h unixlib/local.h windows.h])
+dnl -----------------------------------------
+dnl AC_CHECK_HEADERS([OS.h])        dnl (wrapped with __BEOS__)
+dnl AC_CHECK_HEADERS([stddef.h])    dnl too many to worry about. If this is an issue later, we will deal with it.
+dnl AC_CHECK_HEADERS([stdlib.h ])   dnl too many to worry about. If this is an issue later, we will deal with it. NOTE, it is included sometime earlier on some other check
+dnl AC_CHECK_HEADERS([sys/timeb.h]) dnl (wrapped with windows/msc/cygwin wrappers)
+dnl AC_CHECK_HEADERS([wchar.h ])    dnl (wrapped with __linux__ & HAVE_LIBDL)
+dnl -----------------------------------------
 # Quirks for Solaris and OpenBSD
 AC_CHECK_HEADERS([net/if.h], [], [],[
 #ifdef HAVE_SYS_SOCKET_H

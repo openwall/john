@@ -195,9 +195,6 @@
 /* Define to 1 if you have the <OpenCL/cl.h> header file. */
 #undef HAVE_OPENCL_CL_H
 
-/* Define to 1 if you have the <OS.h> header file. */
-#undef HAVE_OS_H
-
 /* Define to 1 if you have the <pcap.h> header file. */
 #undef HAVE_PCAP_H
 
@@ -236,9 +233,6 @@
 
 /* Define to 1 if you have the `sprintf_s' function. */
 #undef HAVE_SPRINTF_S
-
-/* Define to 1 if you have the <stddef.h> header file. */
-#undef HAVE_STDDEF_H
 
 /* Define to 1 if you have the <stdint.h> header file. */
 #undef HAVE_STDINT_H
@@ -291,9 +285,6 @@
 /* Define to 1 if you have the <sys/stat.h> header file. */
 #undef HAVE_SYS_STAT_H
 
-/* Define to 1 if you have the <sys/timeb.h> header file. */
-#undef HAVE_SYS_TIMEB_H
-
 /* Define to 1 if you have the <sys/times.h> header file. */
 #undef HAVE_SYS_TIMES_H
 
@@ -317,9 +308,6 @@
 
 /* Define to 1 if you have the <vfork.h> header file. */
 #undef HAVE_VFORK_H
-
-/* Define to 1 if you have the <wchar.h> header file. */
-#undef HAVE_WCHAR_H
 
 /* Define to 1 if you have the `WHIRLPOOL' function. */
 #undef HAVE_WHIRLPOOL
