@@ -118,6 +118,19 @@ generate the candidate passwords it tries.  The functions are coded in
 a subset of C and are compiled by John at startup when you request the
 particular external mode on John's command line.  See EXTERNAL.
 
+	Markov mode.
+
+This is a stand alone mode, where word-like strings are created based
+upon a complex algorithm based upon 'weights' or likeliness of characters
+following characters. A full description of this mode, and its usage is
+found in the ./doc/MARKOV document, and will not be repeated here.
+
+	MASK mode.
+
+This allows creation of a mask of character classes which can be in
+specific positions when building a candidate to test. There is a full
+description of this mode, and the masks available in the ./doc/MASK
+document and will not be repeated here.
 
 	What modes should I use?
 
