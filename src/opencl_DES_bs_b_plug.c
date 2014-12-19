@@ -518,7 +518,7 @@ int opencl_DES_bs_crypt_25(int *pcount, struct db_salt *salt)
 			modify_src();
 			clReleaseProgram(program[gpu_id]);
 			//build_kernel( gpu_id, "-fno-bin-amdil -fno-bin-source -fbin-exe") ;
-			opencl_build(gpu_id, "-fno-bin-amdil -fno-bin-source -fbin-exe", 0, NULL, 1);
+			opencl_build(gpu_id, "-fno-bin-amdil -fno-bin-source -fbin-exe", 0, NULL);
 			krnl[gpu_id][pos] = clCreateKernel(program[gpu_id], "DES_bs_25", &err) ;
 			if (err) {
 				fprintf(stderr, "Create Kernel DES_bs_25 FAILED\n");

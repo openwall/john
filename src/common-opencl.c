@@ -869,11 +869,11 @@ static char *include_source(char *pathname, int sequential_id, char *opts)
 	return include;
 }
 
-void opencl_build(int sequential_id, char *opts, int save, char *file_name,
-		  int showLog)
+void opencl_build(int sequential_id, char *opts, int save, char *file_name)
 {
 	cl_int build_code;
-	char *build_log; size_t log_size;
+	char *build_log, *build_opts;
+	size_t log_size;
 	const char *srcptr[] = { kernel_source };
 
 	assert(kernel_loaded);
@@ -882,9 +882,9 @@ void opencl_build(int sequential_id, char *opts, int save, char *file_name,
 					  NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error while creating program");
 
+	build_opts = include_source("$JOHN/kernels", sequential_id, opts);
 	build_code = clBuildProgram(program[sequential_id], 0, NULL,
-		include_source("$JOHN/kernels", sequential_id, opts),
-		 NULL, NULL);
+		build_opts, NULL, NULL);
 
 	HANDLE_CLERROR(clGetProgramBuildInfo(program[sequential_id],
 					     devices[sequential_id],
@@ -900,8 +900,10 @@ void opencl_build(int sequential_id, char *opts, int save, char *file_name,
 		       "Error while getting build info");
 
 	// Report build errors and warnings
-	if ((build_code != CL_SUCCESS) && showLog ) {
+	if ((build_code != CL_SUCCESS)) {
 		// Give us much info about error and exit
+		if (options.verbosity <= 3)
+			fprintf(stderr, "Options used: %s\n", build_opts);
 		fprintf(stderr, "Build log: %s\n", build_log);
 		fprintf(stderr, "Error %d building kernel %s. DEVICE_INFO=%d\n",
 		        build_code, kernel_source_file,
@@ -909,8 +911,7 @@ void opencl_build(int sequential_id, char *opts, int save, char *file_name,
 		HANDLE_CLERROR (build_code, "clBuildProgram failed.");
 	}
 	// Nvidia may return a single '\n' that we ignore
-	else if (options.verbosity >= LOG_VERB && strlen(build_log) > 1 &&
-		 showLog)
+	else if (options.verbosity >= LOG_VERB && strlen(build_log) > 1)
 		fprintf(stderr, "Build log: %s\n", build_log);
 	MEM_FREE(build_log);
 
@@ -1831,7 +1832,7 @@ void opencl_build_kernel_opt(char *kernel_filename, int sequential_id,
 			     char *opts)
 {
 	opencl_read_source(kernel_filename);
-	opencl_build(sequential_id, opts, 0, NULL, 1);
+	opencl_build(sequential_id, opts, 0, NULL);
 }
 
 void opencl_build_kernel(char *kernel_filename, int sequential_id, char *opts,
@@ -1892,7 +1893,7 @@ void opencl_build_kernel(char *kernel_filename, int sequential_id, char *opts,
 				fflush(stdout);
 			}
 			opencl_read_source(kernel_filename);
-			opencl_build(sequential_id, opts, 1, bin_name, 1);
+			opencl_build(sequential_id, opts, 1, bin_name);
 		}
 		if (warn && options.verbosity > 2) {
 			if ((runtime = (unsigned long)(time(NULL) - startTime))
