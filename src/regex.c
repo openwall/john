@@ -24,7 +24,9 @@
 #include "cracker.h"
 #include "john.h"
 #include "external.h"
+#if !AC_BUILT || HAVE_LOCALE_H
 #include <locale.h>
+#endif
 #include <ctype.h>
 #include "memdbg.h"
 
