@@ -228,7 +228,7 @@ static void init(struct fmt_main *self)
 	//Initialize openCL tuning (library) for this format.
 	opencl_init_auto_setup(SEED, 0, NULL, warn, 2,
 	                       self, create_clobj, release_clobj,
-	                       BUFSIZE, gws_limit);
+	                       2 * BUFSIZE, gws_limit);
 
 	//Limit worksize using index limitation.
 	while (global_work_size > gws_limit)
