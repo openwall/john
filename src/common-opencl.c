@@ -206,6 +206,35 @@ int get_sequential_id(unsigned int dev_id, unsigned int platform_id)
 	return (platforms[i].platform ? pos + dev_id : -1);
 }
 
+static char *opencl_driver_ver(int sequential_id)
+{
+	static char ret[64];
+	char dname[MAX_OCLINFO_STRING_LEN];
+	char *p;
+	int major = 0, minor = 0;
+
+	clGetDeviceInfo(devices[sequential_id], CL_DRIVER_VERSION,
+	                sizeof(dname), dname, NULL);
+
+	p = dname;
+	while (*p && !isdigit((int)*p))
+		p++;
+	if (*p) {
+		major = atoi(p);
+		while (*p && isdigit((int)*p))
+			p++;
+		while (*p && !isdigit((int)*p))
+			p++;
+		if (*p) {
+			minor = atoi(p);
+		}
+	}
+	snprintf(ret, sizeof(ret), "-DDEV_VER_MAJOR=%d -DDEV_VER_MINOR=%d",
+	         major, minor);
+
+	return ret;
+}
+
 static char* ns2string(cl_ulong nanosec)
 {
 	char *buf = mem_alloc_tiny(16, MEM_ALIGN_NONE);
@@ -821,7 +850,7 @@ static char *include_source(char *pathname, int sequential_id, char *opts)
 	                                 "GlobalBuildOpts")))
 		global_opts = OPENCLBUILDOPTIONS;
 
-	sprintf(include, "-I %s %s %s%s%s%d %s %s", path_expand(pathname),
+	sprintf(include, "-I %s %s %s%s%s%d %s %s %s", path_expand(pathname),
 		global_opts,
 #ifdef __APPLE__
 		"-DAPPLE ",
@@ -832,6 +861,7 @@ static char *include_source(char *pathname, int sequential_id, char *opts)
 		"-DDEVICE_IS_CPU " : "",
 		"-DDEVICE_INFO=", device_info[sequential_id],
 		"-D_OPENCL_COMPILER",
+	        opencl_driver_ver(sequential_id),
 		opts ? opts : "");
 
 	if (options.verbosity > 3)
@@ -1837,6 +1867,7 @@ void opencl_build_kernel(char *kernel_filename, int sequential_id, char *opts,
 			strcat(bin_name, opts);
 			strcat(bin_name, "_");
 		}
+		strcat(bin_name, opencl_driver_ver(sequential_id));
 		strcat(bin_name, dev_name);
 		sprintf(pnum, "_%d", platform_id);
 		strcat(bin_name, pnum);
