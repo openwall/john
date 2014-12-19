@@ -12857,6 +12857,27 @@ fi
 
 fi
     ;;
+  arm*)
+  alpha*)
+  powerpcle)
+  powerpc*)
+    # From legacy Makefile's arm-NEON targets, but I think this likely is right for all 32 bit ARM systems
+
+   for i in -D_LARGEFILE64_SOURCE; do
+      jtr_list_add_dupe=0
+      for j in $CFLAGS_EXTRA; do
+         if test "x$i" = "x$j"; then
+            jtr_list_add_dupe=1
+            break
+         fi
+      done
+      if test $jtr_list_add_dupe = 0; then
+         CFLAGS_EXTRA="$CFLAGS_EXTRA $i"
+         jtr_list_add_result="$jtr_list_add_result $i"
+      fi
+   done
+
+     ;;
 esac
 
 #########################################

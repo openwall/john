@@ -75,6 +75,13 @@ case "$host" in
   sparc*solaris*)
     AS_IF([test "x$ac_cv_func_fseeko64" = xyes && test x${CPU_BIT_STR} = x32], [JTR_LIST_ADD(CFLAGS_EXTRA, [-D__EXTENSIONS__ -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64])])
     ;;
+  arm*)
+  alpha*)
+  powerpcle)
+  powerpc*)
+    # From legacy Makefile's arm-NEON targets, but I think this likely is right for all 32 bit ARM systems
+    JTR_LIST_ADD(CFLAGS_EXTRA, [-D_LARGEFILE64_SOURCE])
+     ;;
 esac
 
 #########################################
