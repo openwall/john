@@ -270,7 +270,7 @@ esac
 # NOTE, later, we will probably do this by parsing the host or target to figure
 # out the system, then have a switch statement, based upon the system, calling
 # the proper JTR_cputype_SPECIAL_LOGIC function (and of course have to write
-# macros for each environment.  We probaby should fall back to calling
+# macros for each environment.  We probably should fall back to calling
 # make -f Makefile.legacy clean generic or failing with an echo of that message,
 # for any environment we do not handle.
 CPU_STR="$host_cpu"
@@ -581,16 +581,25 @@ esac
 # we need a rpl_realloc before using this one.
 #AC_FUNC_REALLOC
 
+dnl --------------------------------------------------------------------
+dnl these checks HAVE to be there (we have code using them)
+dnl   setenv/putenv  fseek/ftell set,   memmem  sleep
+dnl   stri*cmp/strcasecmp strlwr/strupr
+dnl --------------------------------------------------------------------
 AC_CHECK_FUNCS([fseek64 fseeko fseeko64 _fseeki64 lseek64 lseek ftell64 ftello \
-               ftello64 _ftelli64 fopen64 _fopen64 memmem sleep atexit \
-               endpwent floor ftruncate gethostbyname gettimeofday inet_ntoa \
-               isascii mkdir rmdir setenv putenv strcasecmp strncasecmp \
+               ftello64 _ftelli64 fopen64 _fopen64 memmem sleep \
+               setenv putenv strcasecmp strncasecmp \
                stricmp strcmpi _stricmp _strcmpi strnicmp strncmpi _strnicmp \
-               _strncmpi strrchr strcspn strspn strtol strtoul strlwr strupr \
+               _strncmpi strlwr strupr \
                bzero atoll _atoi64 snprintf sprintf_s])
-#AC_CHECK_FUNCS([memchr memmove memset munmap pow \
-#                select setlocale socket strchr \
-#                strdup strerror strstr])
+dnl AC_CHECK_FUNCS([memchr memmove memset munmap pow \
+dnl                 select setlocale socket strchr \
+dnl                 strdup strerror strstr
+dnl  these extras removed for issue #910
+dnl                 endpwent isascii mkdir rmdir atexit floor
+dnl                 ftruncate gethostbyname gettimeofday inet_ntoa
+dnl                 strrchr strcspn strspn strtol strtoul 
+dnl ])
 AC_CACHE_SAVE
 
 AC_SUBST([CC_CPU],["${CPU_BEST_FLAGS}"])
