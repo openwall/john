@@ -38,6 +38,7 @@
 
 #include <stddef.h>
 #include <string.h>
+#include "arch.h"
 
 #include "sph_haval.h"
 #include "memdbg.h"
