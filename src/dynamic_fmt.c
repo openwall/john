@@ -7138,10 +7138,10 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 		pFmt->params.algorithm_name = "32/" ARCH_BITS_STR " 96x1 (MD5_body)";
 #endif
 #endif
+#else
 #ifdef MMX_COEF
 		pFmt->params.algorithm_name = "128/128 " SSE_type " 4x4x" STRINGIZE(MD5_SSE_PARA);
 		pFmt->params.max_keys_per_crypt = 16*MD5_SSE_PARA;
-#endif
 #else
 		// In non-sse mode, 1 test runs as fast as 128. But validity checking is MUCH faster if
 		// we leave it at only 1.
@@ -7151,6 +7151,7 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 		pFmt->params.algorithm_name = "32/" ARCH_BITS_STR " 1x2  (MD5_body)";
 #else
 		pFmt->params.algorithm_name = "32/" ARCH_BITS_STR " (MD5_body)";
+#endif
 #endif
 #endif
 		pFmt->params.min_keys_per_crypt = 1;
