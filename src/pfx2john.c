@@ -47,7 +47,9 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#if !AC_BUILT || HAVE_LIMITS_H
 #include <limits.h>
+#endif
 #include <errno.h>
 #include <string.h>
 #include <openssl/crypto.h>

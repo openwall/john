@@ -33,7 +33,9 @@
 #include "johnswap.h"
 #include "stdbool.h"
 #include "stdint.h"
+#if !AC_BUILT || HAVE_LIMITS_H
 #include <limits.h>
+#endif
 #ifndef _MSC_VER
 #include <sys/param.h>
 #endif

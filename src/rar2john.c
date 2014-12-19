@@ -47,7 +47,9 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#if !AC_BUILT || HAVE_LIMITS_H
 #include <limits.h>
+#endif
 #include <errno.h>
 #include <string.h>
 #include <assert.h>
@@ -700,7 +702,7 @@ static size_t read_rar5_header(FILE *fp, size_t CurBlockPos, uint8_t *HeaderType
         if (!read_vuint(fp, &FileFlags, &header_bytes_read)) return 0;
         if (!read_vuint(fp, &UnpSize, &header_bytes_read)) return 0;
         if (!read_vuint(fp, &FileAttr, &header_bytes_read)) return 0;
-       
+
         if ((FileFlags & FHFL_UTIME) != 0) {
             if (!read_uint32(fp, &tmp, &header_bytes_read)) return 0;
             //mtime = tmp;
@@ -709,7 +711,7 @@ static size_t read_rar5_header(FILE *fp, size_t CurBlockPos, uint8_t *HeaderType
         if ((FileFlags & FHFL_CRC32) != 0) {
             if (!read_uint32(fp, &FileHashCRC32, &header_bytes_read)) return 0;
         }
-        
+
         if (!read_vuint(fp, &CompInfo, &header_bytes_read)) return 0;
         if (!read_vuint(fp, &HostOS, &header_bytes_read)) return 0;
         if (!read_vuint(fp, &NameSize, &header_bytes_read)) return 0;

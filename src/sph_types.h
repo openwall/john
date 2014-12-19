@@ -47,7 +47,9 @@
 #ifndef SPH_TYPES_H__
 #define SPH_TYPES_H__
 
+#if !AC_BUILT || HAVE_LIMITS_H
 #include <limits.h>
+#endif
 #include "arch.h"
 
 /*

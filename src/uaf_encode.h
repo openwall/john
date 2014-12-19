@@ -11,7 +11,9 @@
 #ifndef _JOHN_UAF_ENCODE_H
 #define _JOHN_UAF_ENCODE_H
 #define UAF_ENCODE_SIZE 30
+#if !AC_BUILT || HAVE_LIMITS_H
 #include <limits.h>
+#endif
 #if UINT_MAX == ULONG_MAX
 typedef unsigned long uaf_lword;
 #else

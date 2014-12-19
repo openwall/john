@@ -17,7 +17,9 @@
 #ifndef _JOHN_PARAMS_H
 #define _JOHN_PARAMS_H
 
+#if !AC_BUILT || HAVE_LIMITS_H
 #include <limits.h>
+#endif
 
 #include "arch.h"
 
