@@ -166,7 +166,11 @@ AS_IF([test "x$JTR_FLAG_CHECK_WORKS" = xyes],
    CFLAGS_EX=""
    JTR_FLAG_CHECK([-Wall], 1)
    JTR_FLAG_CHECK([-Wdeclaration-after-statement], 1)
+if test "x$asan" = xyes ; then
+   JTR_FLAG_CHECK([-fno-omit-frame-pointer], 1)
+else
    JTR_FLAG_CHECK([-fomit-frame-pointer], 1)
+fi
    # gcc bug workaround, see issue 632
    JTR_FLAG_CHECK([--param allow-store-data-races=0], 1)
    # Silly OSX warnings
@@ -707,25 +711,10 @@ AC_CHECK_SIZEOF([size_t])
 AC_CHECK_SIZEOF([off_t])
 CFLAGS="$CFLAGS_BACKUP"
 
-#if test "x$asan" = xyes ; then
-#  CFLAGS_EX=""
-#  JTR_FLAG_CHECK([-O1 -g -fsanitize=address], 1)
-#  if test "x$CFLAGS_EX" != "x" ; then
-#    CFLAGS=`echo $CFLAGS | sed 's/-O2 //g'`
-#    CFLAGS=`echo $CFLAGS | sed 's/-fomit-frame-pointer //g'`
-#    CFLAGS="$CFLAGS -O1 -g -fsanitize=address"
-#    LDFLAGS="$LDFLAGS -fsanitize=address"
-#    AC_MSG_CHECKING([asan requested])
-#    AC_MSG_RESULT([found])
-#  else
-#    AC_MSG_CHECKING([asan requested])
-#    AC_MSG_RESULT([not usable])
-#  fi
-#fi
-
 if test "x$asan" = xyes ; then
-   CFLAGS=`echo $CFLAGS | sed 's/-g //g; s/-O2 //g; s/-fomit-frame-pointer //g'`
-   CFLAGS="-g -O1 -fsanitize=address -fno-omit-frame-pointer $CFLAGS"
+   CFLAGS=`echo $CFLAGS | sed 's/-g //g; s/-O2 //g'`
+   CFLAGS=`echo $CFLAGS | sed 's/-g$//g; s/-O2$//g'`
+   CFLAGS="-g -O1 -fsanitize=address $CFLAGS"
    LDFLAGS="-fsanitize=address $LDFLAGS"
 fi
 
