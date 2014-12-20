@@ -68,7 +68,7 @@ john_register_one(&fmt_sha1_ng);
 #define SHA1_DIGEST_SIZE        20
 #define SHA1_DIGEST_WORDS        5
 #define SHA1_PARALLEL_HASH     512 // This must be a multiple of 4.
-#define OMP_SCALE             1024 // Multiplier to hide OMP overhead
+#define OMP_SCALE             2048 // Multiplier to hide OMP overhead
 
 #define __aligned_16 __attribute__((aligned(16)))
 

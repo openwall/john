@@ -41,6 +41,7 @@ john_register_one(&fmt_NETLM);
 #include <string.h>
 #ifdef _OPENMP
 #include <omp.h>
+#define OMP_SCALE            131072 // core i7 no HT
 #endif
 
 #include "misc.h"
@@ -70,15 +71,8 @@ john_register_one(&fmt_NETLM);
 #define CIPHERTEXT_LENGTH    48
 #define TOTAL_LENGTH         8 + 2 * SALT_SIZE + CIPHERTEXT_LENGTH
 
-// these may be altered in init() if running OMP
-// and that formula is subject to change
-#define MIN_KEYS_PER_CRYPT	    1
-#define THREAD_RATIO            256
-#ifdef _OPENMP
-#define MAX_KEYS_PER_CRYPT	    0x10000
-#else
-#define MAX_KEYS_PER_CRYPT	    THREAD_RATIO
-#endif
+#define MIN_KEYS_PER_CRYPT   1
+#define MAX_KEYS_PER_CRYPT   1
 
 static struct fmt_tests tests[] = {
   {"", "G3RG3P00!",      {"User", "", "", "6E1EC36D3417CE9E09A4424309F116C4C991948DAEB4ADAD", "ntlm-hash", "1122334455667788"} },
@@ -101,16 +95,10 @@ static uchar *challenge;
 static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
-	int n = MIN_KEYS_PER_CRYPT * omp_get_max_threads();
-	if (n < MIN_KEYS_PER_CRYPT)
-		n = MIN_KEYS_PER_CRYPT;
-	if (n > MAX_KEYS_PER_CRYPT)
-		n = MAX_KEYS_PER_CRYPT;
-	self->params.min_keys_per_crypt = n;
-	n = n * n * ((n >> 1) + 1) * THREAD_RATIO;
-	if (n > MAX_KEYS_PER_CRYPT)
-		n = MAX_KEYS_PER_CRYPT;
-	self->params.max_keys_per_crypt = n;
+	int omp_t = omp_get_max_threads();
+	self->params.min_keys_per_crypt *= omp_t;
+	omp_t *= OMP_SCALE;
+	self->params.max_keys_per_crypt *= omp_t;
 #endif
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) * self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
 	saved_plain = mem_calloc_tiny(sizeof(*saved_plain) * self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
@@ -218,24 +206,29 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
 	DES_key_schedule ks;
-	int i;
+	int i = 0;
 
 #ifdef _OPENMP
 #pragma omp parallel for default(none) private(i, ks) shared(count, output, challenge, saved_key)
 #endif
-	for(i=0; i<count; i++) {
-
+#if defined(_OPENMP) || MAX_KEYS_PER_CRYPT > 1
+	for(i = 0; i < count; i++)
+#endif
+	{
 		/* Just do a partial binary, the first DES operation */
 		setup_des_key(saved_key[i], &ks);
-		DES_ecb_encrypt((DES_cblock*)challenge, (DES_cblock*)output[i], &ks, DES_ENCRYPT);
+		DES_ecb_encrypt((DES_cblock*)challenge, (DES_cblock*)output[i],
+		                &ks, DES_ENCRYPT);
 	}
 	return count;
 }
 
 static int cmp_all(void *binary, int count)
 {
-	int index;
+	int index = 0;
+#if defined(_OPENMP) || MAX_KEYS_PER_CRYPT > 1
 	for(index=0; index<count; index++)
+#endif
 		if (!memcmp(output[index], binary, PARTIAL_BINARY_SIZE))
 			return 1;
 	return 0;

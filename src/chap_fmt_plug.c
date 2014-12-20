@@ -33,7 +33,7 @@ john_register_one(&fmt_chap);
 #ifdef _OPENMP
 static int omp_t = 1;
 #include <omp.h>
-#define OMP_SCALE               64
+#define OMP_SCALE               65536 // core i7 no HT
 #endif
 #include "memdbg.h"
 
@@ -179,7 +179,7 @@ static int cmp_all(void *binary, int count)
 #ifdef _OPENMP
 	for (; index < count; index++)
 #endif
-		if (!memcmp(binary, crypt_out[index], BINARY_SIZE))
+		if (((ARCH_WORD_32*)binary)[0] == crypt_out[index][0])
 			return 1;
 	return 0;
 }

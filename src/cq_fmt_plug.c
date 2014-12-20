@@ -15,7 +15,7 @@ john_register_one(&fmt_cq);
 #include <string.h>
 #ifdef _OPENMP
 #include <omp.h>
-#define OMP_SCALE 2048 // XXX
+#define OMP_SCALE 256	// core i7 no HT
 #endif
 
 #include "arch.h"
@@ -39,7 +39,7 @@ john_register_one(&fmt_cq);
 #define BINARY_SIZE         4
 #define BINARY_ALIGN        sizeof(ARCH_WORD_32)
 #define MIN_KEYS_PER_CRYPT  1
-#define MAX_KEYS_PER_CRYPT  1
+#define MAX_KEYS_PER_CRYPT  512
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static ARCH_WORD_32 (*crypt_key)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
@@ -439,6 +439,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	int index = 0;
 #ifdef _OPENMP
 #pragma omp parallel for
+#endif
+#if defined(_OPENMP) || MAX_KEYS_PER_CRYPT > 1
 	for (index = 0; index < count; index++)
 #endif
 	{
@@ -450,10 +452,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 static int cmp_all(void *binary, int count)
 {
-	int i;
+	int i = 0;
 
-	for (i = 0; i < count; ++i) {
-		if ((*(unsigned int*) binary) == *(unsigned int*) crypt_key[i])
+#if defined(_OPENMP) || MAX_KEYS_PER_CRYPT > 1
+	for (i = 0; i < count; ++i)
+#endif
+	{
+		if ((*(unsigned int*)binary) == *(unsigned int*)crypt_key[i])
 			return 1;
 	}
 

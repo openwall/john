@@ -24,7 +24,7 @@ john_register_one(&fmt_pst);
 #include "pkzip.h"  // includes the 'inline' crc table.
 #ifdef _OPENMP
 #include <omp.h>
-#define OMP_SCALE               8
+#define OMP_SCALE               16384 // core i7 no HT
 static int omp_t = 1;
 #endif
 #include "memdbg.h"
