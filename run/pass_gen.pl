@@ -72,9 +72,9 @@ my @funcs = (qw(DESCrypt BigCrypt BSDIcrypt md5crypt md5crypt_a BCRYPT BCRYPTx
 		rakp osc formspring skey_md5 pbkdf2-hmac-sha1 odf odf-1 office_2007
 		skey_md4 skey_sha1 skey_rmd160 cloudkeychain agilekeychain
 		rar rar5 ecryptfs office_2010 office_2013 tc_ripemd160 tc_sha512
-		tc_whirlpool Haval-256));
+		tc_whirlpool Haval-256 SAP-H));
 
-# todo: ike keepass cloudkeychain agilekeychain pfx racf sip vnc pdf pkzip rar5 ssh raw_gost_cp
+# todo: sapb sapfg ike keepass cloudkeychain agilekeychain pfx racf sip vnc pdf pkzip rar5 ssh raw_gost_cp
 my $i; my $h; my $u; my $salt;
 my @chrAsciiText=('a'..'z','A'..'Z');
 my @chrAsciiTextLo=('a'..'z');
@@ -556,8 +556,9 @@ sub net_ssl_init {
 # if argsalt_len is there, it is used. If it is -1, then any length argsalt is ok, if it is
 #   negative (not -1), then only argsalts <= -argsalt_len are used.
 # if the length of the salt is 2*aslen, and the argsalt is hex, then it is first converted
-#   into raw before it is later used.  One caveat is you can not do a hex argsalt that is for
-#   a variable length salt, since there is no way to check that length is 2x what it should be.
+#   into raw before it is later used.  If using a var length salt, we still can provide abs
+#   hex salt string, we just have to append HEX= to the salt. So HEX=303132333434 would
+#   give us a salt of 012344
 # the 3rd param (optional), is the character set.  @chrAsciiTextNum is default.
 ############################################################################################
 sub get_salt {
@@ -569,8 +570,10 @@ sub get_salt {
 	my @chr = defined($_[2]) ? @{$_[2]} : @chrAsciiTextNum;
 	if (defined $argsalt && length ($argsalt)==$aslen*2 && length(pack("H*",$argsalt))==$aslen) {
 		$argsalt = pack("H*",$argsalt);
+	} elsif (defined $argsalt && substr($argsalt, 0, 4) eq "HEX=") {
+		$argsalt = pack("H*",substr($argsalt,4));
 	}
-	if (defined $argsalt && ($aslen == -1 || ($aslen < -1 && length($argsalt) <= -1*$aslen) || length ($argsalt)==$aslen) ) {
+	if (defined $argsalt && ($aslen == -1 || ($aslen < -1 && length($argsalt) <= -1*$aslen) || length ($argsalt)==$aslen || ($randlen == 1 && length($argsalt) <= $len)) ) {
 		return ($argsalt);
 	}
 	if (@chr == @userNames) { return randusername($len); }
@@ -600,7 +603,12 @@ sub get_content {
 	my $aslen = $len;
 	if (defined $_[1] && $_[1]+0 eq $_[1]) { $aslen = $_[1]; }
 	my @chr = defined($_[2]) ? @{$_[2]} : @chrAsciiTextNum;
-	if (defined $argcontent && ($aslen == -1 || ($aslen < -1 && length($argcontent) <= -1*$aslen) || length ($argcontent)==$aslen) ) {
+	if (defined $argcontent && length ($argcontent)==$len*2 && length(pack("H*",$argcontent))==$len) {
+		$argcontent = pack("H*",$argcontent);
+	} elsif (defined $argcontent && substr($argcontent, 0, 4) eq "HEX=") {
+		$argcontent = pack("H*",substr($argcontent,4));
+	}
+	if (defined $argcontent && ($aslen == -1 || ($aslen < -1 && length($argcontent) <= -1*$aslen) || length ($argcontent)==$aslen  || ($randlen == 1 && length($argcontent) <= $len)) ) {
 		return ($argcontent);
 	}
 	if ($randlen == 0) { return randstr($len, \@chr); }
@@ -1202,7 +1210,7 @@ sub tc_ripemd160 {
 	my $d = _tc_build_buffer();
 	my $tweak = "\x00"x16;	#first block of file
 	$h = _tc_aes_256_xts($h,$d,$tweak);
-	print "tc_ripe160:truecrypt_RIPEMD_160\$".unpack("H*",$salt).unpack("H*",$h).":$u:0:$_[0]::\n";
+	print "u$u-tc_ripe160:truecrypt_RIPEMD_160\$".unpack("H*",$salt).unpack("H*",$h).":$u:0:$_[0]::\n";
 }
 sub tc_sha512 {
 	$salt = get_salt(64);
@@ -1210,7 +1218,7 @@ sub tc_sha512 {
 	my $d = _tc_build_buffer();
 	my $tweak = "\x00"x16;	#first block of file
 	$h = _tc_aes_256_xts($h,$d,$tweak);
-	print "tc_sha512:truecrypt_SHA_512\$".unpack("H*",$salt).unpack("H*",$h).":$u:0:$_[0]::\n";
+	print "u$u-tc_sha512:truecrypt_SHA_512\$".unpack("H*",$salt).unpack("H*",$h).":$u:0:$_[0]::\n";
 }
 sub tc_whirlpool {
 	$salt = get_salt(64);
@@ -1218,12 +1226,36 @@ sub tc_whirlpool {
 	my $d = _tc_build_buffer();
 	my $tweak = "\x00"x16;	#first block of file
 	$h = _tc_aes_256_xts($h,$d,$tweak);
-	print "tc_whirlpool:truecrypt_WHIRLPOOL\$".unpack("H*",$salt).unpack("H*",$h).":$u:0:$_[0]::\n";
+	print "u$u-tc_whirlpool:truecrypt_WHIRLPOOL\$".unpack("H*",$salt).unpack("H*",$h).":$u:0:$_[0]::\n";
 }
 sub pdf {
 }
 sub pkzip {
 }
+sub sap_h {
+	my $x = decode_base64("GajCCSErUA7tMrDZk3NcT/NZSylFQWM=");
+	print unpack("H*",$x)."\n";
+	$salt = get_salt(-16);
+	my $mode = "sha1";
+	my $iter = 1024;
+	if (defined $argmode) {$mode=$argmode;} # must be sha1 sha256 sha384 or sha512
+	if (defined $argcontent) {$iter=$argcontent; if ($iter<1||$iter>(1<<32)){$iter=1024}} # must be number from 1 to 2^32
+	my $modestr;
+	if ($mode eq "sha1") { $modestr = "sha"; }
+	elsif ($mode eq "sha256") { $modestr = "SHA256"; }
+	elsif ($mode eq "sha384") { $modestr = "SHA384"; }
+	elsif ($mode eq "sha512") { $modestr = "SHA512"; }
+	else { print "invalid mode used for SAP-H  [$mode] is not valid\n"; exit 0; }
+	no strict 'refs';
+	my $h = &$mode($_[0].$salt);
+	for (my $i = 1; $i < $iter; $i++) {
+		$h = &$mode($_[0].$h);
+	}
+	use strict;
+	print "hash=".unpack("H*",$h)." salt=".unpack("H*",$salt)."\n";
+	print "u$u-sapH:{x-is$modestr, $iter}".base64($h.$salt).":$u:0:$_[0]::\n";
+}
+
 sub zip {
 	# NOTE ,the zip contents are garbage, but we do not care.  We simply
 	# run the hmac-sha1 over it and compare to the validator (in JtR), so
