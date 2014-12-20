@@ -1233,9 +1233,7 @@ sub pdf {
 sub pkzip {
 }
 sub sap_h {
-	my $x = decode_base64("GajCCSErUA7tMrDZk3NcT/NZSylFQWM=");
-	print unpack("H*",$x)."\n";
-	$salt = get_salt(-16);
+	$salt = get_salt(12, -16);
 	my $mode = "sha1";
 	my $iter = 1024;
 	if (defined $argmode) {$mode=$argmode;} # must be sha1 sha256 sha384 or sha512
@@ -1252,7 +1250,6 @@ sub sap_h {
 		$h = &$mode($_[0].$h);
 	}
 	use strict;
-	print "hash=".unpack("H*",$h)." salt=".unpack("H*",$salt)."\n";
 	print "u$u-sapH:{x-is$modestr, $iter}".base64($h.$salt).":$u:0:$_[0]::\n";
 }
 
