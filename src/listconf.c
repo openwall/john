@@ -473,7 +473,8 @@ void listconf_parse_late(void)
 			int ntests = 0;
 
 			/* Some encodings change max plaintext length */
-			if (pers_opts.target_enc != ASCII)
+			if (format->params.flags & FMT_UTF8 &&
+			    pers_opts.target_enc != ASCII)
 				fmt_init(format);
 
 			if (format->params.tests) {
@@ -540,7 +541,8 @@ void listconf_parse_late(void)
 			int ntests = 0;
 
 			/* Some encodings change max plaintext length */
-			if (pers_opts.target_enc != ASCII)
+			if (format->params.flags & FMT_UTF8 &&
+			    pers_opts.target_enc != ASCII)
 				fmt_init(format);
 
 			if (format->params.tests) {
@@ -819,7 +821,8 @@ void listconf_parse_late(void)
 			 * support, because some formats (like Raw-MD5u)
 			 * change their tests[] depending on the encoding.
 			 */
-			if (pers_opts.target_enc != ASCII)
+			if (format->params.flags & FMT_UTF8 &&
+			    pers_opts.target_enc != ASCII)
 				fmt_init(format);
 
 			if (format->params.tests) {
