@@ -45,6 +45,7 @@ typedef enum {
 #define flg_Base64_MIME_PLUS_TO_DOT		0x08
 // mime alphabet, BUT last 2 chars are -_ (instead of +/ )
 #define flg_Base64_MIME_DASH_UNDER		0x10
+#define flg_Base64_MIME_TRAIL_EQ_CNT	0x20
 
 /*
  * return will be number of bytes converted and placed into *to (can be less than to_len).  A negative return is

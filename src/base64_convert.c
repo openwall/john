@@ -848,6 +848,11 @@ int base64_valid_length(const char *from, b64_convert_type from_t, unsigned flag
 				while (atoi64m[ARCH_INDEX(*from++)] != 0x7f)
 					++len;
 			}
+			--from;
+			if ( (flags&flg_Base64_MIME_TRAIL_EQ_CNT) == flg_Base64_MIME_TRAIL_EQ_CNT) {
+				while (*from++ == '=')
+					++len;
+			}
 			break;
 		case e_b64_crypt:	/* crypt encoding */
 		case e_b64_cryptBS:	/* crypt encoding, network order (used by WPA, cisco9, etc) */
