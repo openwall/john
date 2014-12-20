@@ -472,9 +472,12 @@ void listconf_parse_late(void)
 		do {
 			int ntests = 0;
 
-			/* Some encodings change max plaintext length */
-			if (format->params.flags & FMT_UTF8 &&
-			    pers_opts.target_enc != ASCII)
+			/* Some encodings change max plaintext length when
+			   encoding is used, or KPC when under OMP */
+			if ((!strstr(format->params.label, "-opencl") &&
+			     !strstr(format->params.label, "-cuda")) ||
+			    (format->params.flags & FMT_UTF8 &&
+			     pers_opts.target_enc != ASCII))
 				fmt_init(format);
 
 			if (format->params.tests) {
@@ -540,9 +543,12 @@ void listconf_parse_late(void)
 		do {
 			int ntests = 0;
 
-			/* Some encodings change max plaintext length */
-			if (format->params.flags & FMT_UTF8 &&
-			    pers_opts.target_enc != ASCII)
+			/* Some encodings change max plaintext length when
+			   encoding is used, or KPC when under OMP */
+			if ((!strstr(format->params.label, "-opencl") &&
+			     !strstr(format->params.label, "-cuda")) ||
+			    (format->params.flags & FMT_UTF8 &&
+			     pers_opts.target_enc != ASCII))
 				fmt_init(format);
 
 			if (format->params.tests) {
