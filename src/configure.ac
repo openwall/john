@@ -254,7 +254,7 @@ CPU_STR="$host_cpu"
 case "$host_cpu" in
   alpha*) ARCH_LINK=alpha.h endian=little ;;
   armeb) ARCH_LINK=arm32le.h endian=big ;;
-  arm*) ARCH_LINK=arm32le.h endian=little 
+  arm*) ARCH_LINK=arm32le.h endian=little
         JTR_ARM_SPECIAL_LOGIC
         ;;
   ia64) ARCH_LINK=ia64.h endian=little cpu_family=intel ;;
@@ -612,7 +612,7 @@ dnl                 strdup strerror strstr
 dnl  these extras removed for issue #910
 dnl                 endpwent isascii mkdir rmdir atexit floor
 dnl                 ftruncate gethostbyname gettimeofday inet_ntoa
-dnl                 strrchr strcspn strspn strtol strtoul 
+dnl                 strrchr strcspn strspn strtol strtoul
 dnl ])
 AC_CACHE_SAVE
 
@@ -724,10 +724,9 @@ CFLAGS="$CFLAGS_BACKUP"
 #fi
 
 if test "x$asan" = xyes ; then
-   CFLAGS=`echo $CFLAGS | sed 's/-O2 //g'`
-   CFLAGS=`echo $CFLAGS | sed 's/-fomit-frame-pointer //g'`
-   CFLAGS="-O1 -g -fsanitize=address -fno-omit-frame-pointer -DDEBUG"
-   LDFLAGS="-O1 -g -fsanitize=address"
+   CFLAGS=`echo $CFLAGS | sed 's/-g //g; s/-O2 //g; s/-fomit-frame-pointer //g'`
+   CFLAGS="-g -O1 -fsanitize=address -fno-omit-frame-pointer $CFLAGS"
+   LDFLAGS="-fsanitize=address $LDFLAGS"
 fi
 
 #add ARCH_LITTLE_ENDIAN to command line, IF we know it is big or little
