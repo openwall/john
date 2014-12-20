@@ -463,16 +463,18 @@ void listconf_parse_late(void)
 		/* This will make the majority of OpenCL formats
 		   also do "quick" run. But if LWS or
 		   GWS was already set, we do not overwrite. */
-		setenv("LWS", "7", 0);
-		setenv("GWS", "49", 0);
-		setenv("BLOCKS", "7", 0);
-		setenv("THREADS", "7", 0);
+		setenv("LWS", "1", 0);
+		setenv("GWS", "1", 0);
+		setenv("BLOCKS", "1", 0);
+		setenv("THREADS", "1", 0);
 #endif
 		format = fmt_list;
 		do {
 			int ntests = 0;
 
-			fmt_init(format);	/* required for --encoding support */
+			/* Some encodings change max plaintext length */
+			if (pers_opts.target_enc != ASCII)
+				fmt_init(format);
 
 			if (format->params.tests) {
 				while (format->params.tests[ntests++].ciphertext);
@@ -528,16 +530,18 @@ void listconf_parse_late(void)
 		/* This will make the majority of OpenCL formats
 		   also do "quick" run. But if LWS or
 		   GWS was already set, we do not overwrite. */
-		setenv("LWS", "7", 0);
-		setenv("GWS", "49", 0);
-		setenv("BLOCKS", "7", 0);
-		setenv("THREADS", "7", 0);
+		setenv("LWS", "1", 0);
+		setenv("GWS", "1", 0);
+		setenv("BLOCKS", "1", 0);
+		setenv("THREADS", "1", 0);
 #endif
 		format = fmt_list;
 		do {
 			int ntests = 0;
 
-			fmt_init(format);	/* required for --encoding support */
+			/* Some encodings change max plaintext length */
+			if (pers_opts.target_enc != ASCII)
+				fmt_init(format);
 
 			if (format->params.tests) {
 				while (format->params.tests[ntests++].ciphertext);
@@ -802,10 +806,10 @@ void listconf_parse_late(void)
 		/* This will make the majority of OpenCL formats
 		   also do "quick" run. But if LWS or
 		   GWS was already set, we do not overwrite. */
-		setenv("LWS", "7", 0);
-		setenv("GWS", "49", 0);
-		setenv("BLOCKS", "7", 0);
-		setenv("THREADS", "7", 0);
+		setenv("LWS", "1", 0);
+		setenv("GWS", "1", 0);
+		setenv("BLOCKS", "1", 0);
+		setenv("THREADS", "1", 0);
 #endif
 		do {
 			int ntests = 0;
@@ -815,7 +819,8 @@ void listconf_parse_late(void)
 			 * support, because some formats (like Raw-MD5u)
 			 * change their tests[] depending on the encoding.
 			 */
-			fmt_init(format);
+			if (pers_opts.target_enc != ASCII)
+				fmt_init(format);
 
 			if (format->params.tests) {
 				while (format->params.tests[ntests].ciphertext) {
