@@ -2109,29 +2109,44 @@ cl_uint get_processor_family(int sequential_id)
 
 	if gpu_amd(device_info[sequential_id]) {
 
-		if ((strstr(dname, "Cedar") ||
+		if ((strstr(dname, "Cedar") ||       //AMD Radeon VLIW5
 			strstr(dname, "Redwood") ||
 			strstr(dname, "Juniper") ||
 			strstr(dname, "Cypress") ||
 			strstr(dname, "Hemlock") ||
-			strstr(dname, "Caicos") ||
+			strstr(dname, "Caicos") ||   //AMD Radeon VLIW5 Gen 2
 			strstr(dname, "Turks") ||
 			strstr(dname, "Barts") ||
-			strstr(dname, "Cayman") ||
-			strstr(dname, "Antilles") ||
 			strstr(dname, "Wrestler") ||
+			strstr(dname, "Ontario") ||
 			strstr(dname, "Zacate") ||
 			strstr(dname, "WinterPark") ||
-			strstr(dname, "BeaverCreek"))) {
+			strstr(dname, "BeaverCreek") ||
+			strstr(dname, "Cayman") ||  //AMD Radeon VLIW4
+			strstr(dname, "Antilles") ||
+			strstr(dname, "Devastator") ||
+			strstr(dname, "R7")         //AMD Radeon VLIW4
+		    )) {
 
 			if (strstr(dname, "Cayman") ||
-				strstr(dname, "Antilles"))
+				strstr(dname, "Antilles") ||
+				strstr(dname, "Devastator") ||
+				strstr(dname, "R7"))
 				return DEV_AMD_VLIW4;
 			else
 				return DEV_AMD_VLIW5;
 
-		} else
+		} else {
+			/*
+			* Graphics IP v6:
+			*   - Cape Verde, Hainan, Oland, Pitcairn, Tahiti
+			* Graphics IP v7:
+			*   - Bonaire, Havaii, Kalindi, Mullins, Spectre, Spooky
+			* Graphics IP v8:
+			*   - Iceland
+			*/
 			return DEV_AMD_GCN;
+		}
 	}
 	return DEV_UNKNOWN;
 }
