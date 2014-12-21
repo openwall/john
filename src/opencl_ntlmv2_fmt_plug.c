@@ -280,7 +280,7 @@ static void init(struct fmt_main *self)
 {
 	char build_opts[96];
 	static char valgo[32] = "";
-	size_t gws_limit = 4 << 20;
+	size_t gws_limit;
 
 	if ((v_width = opencl_get_vector_width(gpu_id,
 	                                       sizeof(cl_int))) > 1) {
@@ -289,6 +289,8 @@ static void init(struct fmt_main *self)
 		         ALGORITHM_NAME " %ux", v_width);
 		self->params.algorithm_name = valgo;
 	}
+
+	gws_limit = (4 << 20) / v_width;
 
 	if (pers_opts.target_enc == UTF_8)
 		max_len = self->params.plaintext_length = 3 * PLAINTEXT_LENGTH;

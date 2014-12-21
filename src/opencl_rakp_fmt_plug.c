@@ -230,8 +230,9 @@ static void init(struct fmt_main *self)
 
         // Current key_idx can only hold 26 bits of offset so
         // we can't reliably use a GWS higher than 4M or so.
-        gws_limit = MIN((1 << 26) * 4 / BUFFER_SIZE,
-                        get_max_mem_alloc_size(gpu_id) / BUFFER_SIZE);
+	gws_limit = MIN((1 << 26) * 4 / (v_width * BUFFER_SIZE),
+	                get_max_mem_alloc_size(gpu_id) /
+	                (v_width * BUFFER_SIZE));
 
 	// create kernel to execute
 	crypt_kernel = clCreateKernel(program[gpu_id], "rakp_kernel", &ret_code);
