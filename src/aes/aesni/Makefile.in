@@ -1,4 +1,5 @@
 @SET_MAKE@
+CC = @CC@
 ASM_DIR = asm/x$(AESNI_ARCH)
 IAES = $(ASM_DIR)/iaesx$(AESNI_ARCH).s
 RDTSC = $(ASM_DIR)/do_rdtsc.s
