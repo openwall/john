@@ -1443,8 +1443,20 @@ static void ldr_show_pot_line(struct db_main *db, char *line)
 	ciphertext = ldr_get_field(&line, db->options->field_sep_char);
 
 	if (strstr(ciphertext, "dynamic_") && strstr(ciphertext, "$HEX$")) {
-		char Tmp[16384];
+		char Tmp[512], *cp=Tmp;
+		int alloced=0;
+		if (strlen(ciphertext)>sizeof(Tmp)) {
+			cp = (char*)mem_alloc(strlen(ciphertext)+1);
+			alloced = 1;
+		}
 		RemoveHEX(Tmp, ciphertext);
+#if 0
+		// I am pretty sure that this removed hex should be used all the time, even if
+		// there are ':' or \n chars. I believe this logic was from an older version of
+		// dynamic, and simply was not changed here. I am leaving the code (commented out)
+		// for now, just in case there are issue, and it can be reverted back. This bug was
+		// found digging into https://github.com/magnumripper/JohnTheRipper/issues/930
+
 		// We only remove hex if the end result is 'safe'. IF there are any line feeds, or
 		// ':' chars, then it is not safe to remove.  NULL is also dangrous, BUT the
 		// RemoveHEX itself bails if there are nulls, putting original ciphertext into Tmp.
@@ -1455,8 +1467,11 @@ static void ldr_show_pot_line(struct db_main *db, char *line)
 		)
 			; // do nothing.
 		else
+#endif
 			// tmp will always be 'shorter' or equal length to ciphertext
 			strcpy(ciphertext, Tmp);
+		if (alloced)
+			MEM_FREE(cp);
 	}
 
 	if (line) {
