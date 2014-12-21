@@ -827,8 +827,10 @@ void listconf_parse_late(void)
 			 * support, because some formats (like Raw-MD5u)
 			 * change their tests[] depending on the encoding.
 			 */
-			if (format->params.flags & FMT_UTF8 &&
-			    pers_opts.target_enc != ASCII)
+			if ((!strstr(format->params.label, "-opencl") &&
+			     !strstr(format->params.label, "-cuda")) ||
+			    (format->params.flags & FMT_UTF8 &&
+			     pers_opts.target_enc != ASCII))
 				fmt_init(format);
 
 			if (format->params.tests) {
