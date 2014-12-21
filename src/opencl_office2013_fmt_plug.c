@@ -303,7 +303,9 @@ static void init(struct fmt_main *self)
 	static char valgo[32] = "";
 
 	opencl_preinit();
-	/* VLIW5 can't take the register pressure from vectorizing this */
+	/* VLIW5 can't take the register pressure from vectorizing this.
+	   Well it can, and it does get faster but only at a GWS that will
+	   give a total time for crypt_all() of > 30 seconds. */
 	if (options.v_width || !amd_vliw5(device_info[gpu_id]))
 	if ((v_width = opencl_get_vector_width(gpu_id,
 	                                       sizeof(cl_long))) > 1) {
