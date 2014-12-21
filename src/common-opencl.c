@@ -1008,6 +1008,7 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self,
 	size_t gws;
 	int count, tidx = 0;
 	void *salt;
+	char *ciphertext;
 
 	bench_running = 1;
 
@@ -1075,7 +1076,10 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self,
 	// Set salt
 	dyna_salt_init(self);
 	dyna_salt_create();
-	salt = self->methods.salt(self->params.tests[0].ciphertext);
+	if (!self->params.tests[0].fields[1])
+		self->params.tests[0].fields[1] = self->params.tests[0].ciphertext;
+	ciphertext = self->methods.prepare(self->params.tests[0].fields, self);
+	salt = self->methods.salt(ciphertext);
 	self->methods.set_salt(salt);
 
 	// Warm-up run
@@ -1226,6 +1230,7 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 	int number_of_events = 0;
 	void *salt;
 	int amd_bug;
+	char *ciphertext;
 
 	bench_running = 1;
 
@@ -1257,7 +1262,10 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 	// Set salt
 	dyna_salt_init(self);
 	dyna_salt_create();
-	salt = self->methods.salt(self->params.tests[0].ciphertext);
+	if (!self->params.tests[0].fields[1])
+		self->params.tests[0].fields[1] = self->params.tests[0].ciphertext;
+	ciphertext = self->methods.prepare(self->params.tests[0].fields, self);
+	salt = self->methods.salt(ciphertext);
 	self->methods.set_salt(salt);
 
 	// Activate events. Then clear them later.
@@ -1404,6 +1412,7 @@ void opencl_find_best_lws(
 	char config_string[128];
 	cl_event benchEvent[MAX_EVENTS];
 	void *salt;
+	char *ciphertext;
 
 	bench_running = 1;
 
@@ -1473,7 +1482,10 @@ void opencl_find_best_lws(
 	// Set salt
 	dyna_salt_init(self);
 	dyna_salt_create();
-	salt = self->methods.salt(self->params.tests[0].ciphertext);
+	if (!self->params.tests[0].fields[1])
+		self->params.tests[0].fields[1] = self->params.tests[0].ciphertext;
+	ciphertext = self->methods.prepare(self->params.tests[0].fields, self);
+	salt = self->methods.salt(ciphertext);
 	self->methods.set_salt(salt);
 
 	// Warm-up run
