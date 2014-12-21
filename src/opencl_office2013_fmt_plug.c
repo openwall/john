@@ -302,6 +302,9 @@ static void init(struct fmt_main *self)
 	char build_opts[64];
 	static char valgo[32] = "";
 
+	opencl_prepare_dev(gpu_id);
+	/* VLIW5 can't take the register pressure from vectorizing this */
+	if (!amd_vliw5(device_info[gpu_id]))
 	if ((v_width = opencl_get_vector_width(gpu_id,
 	                                       sizeof(cl_long))) > 1) {
 		/* Run vectorized kernel */
