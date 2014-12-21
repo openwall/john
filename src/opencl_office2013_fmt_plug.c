@@ -304,7 +304,7 @@ static void init(struct fmt_main *self)
 
 	opencl_prepare_dev(gpu_id);
 	/* VLIW5 can't take the register pressure from vectorizing this */
-	if (!amd_vliw5(device_info[gpu_id]))
+	if (options.v_width || !amd_vliw5(device_info[gpu_id]))
 	if ((v_width = opencl_get_vector_width(gpu_id,
 	                                       sizeof(cl_long))) > 1) {
 		/* Run vectorized kernel */
