@@ -56,6 +56,11 @@ case "$host_os" in
     # For exposing memmem()
     AS_IF([test "x$ac_cv_func_memmem" = xyes], [JTR_LIST_ADD(CFLAGS_EXTRA, [-D_GNU_SOURCE])])
     ;;
+
+  mingw*)
+    # For understanding really basic things like printf("%zu", ...)
+    JTR_LIST_ADD(CFLAGS_EXTRA, [-D__USE_MINGW_ANSI_STDIO])
+    ;;
 esac
 
 #############################################################################
