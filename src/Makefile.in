@@ -477,29 +477,29 @@ miscnl.o: misc.c
 	$(LD) $(GENMKVPWD_OBJS) $(LDFLAGS) @M_LIBS@ @OPENMP_CFLAGS@ -o ../run/genmkvpwd
 
 ../run/mkvcalcproba@EXE_EXT@: mkvcalcproba.o
-	$(LD) mkvcalcproba.o memdbg.o $(LDFLAGS) @M_LIBS@ @OPENMP_CFLAGS@ -o ../run/mkvcalcproba
+	$(LD) mkvcalcproba.o @MEMDBG_CFLAGS@ memdbg.o $(LDFLAGS) @M_LIBS@ @OPENMP_CFLAGS@ -o ../run/mkvcalcproba
 
 ../run/calc_stat@EXE_EXT@: calc_stat.o
-	$(LD) calc_stat.o memdbg.o $(LDFLAGS) @M_LIBS@ @OPENMP_CFLAGS@ -o ../run/calc_stat
+	$(LD) calc_stat.o @MEMDBG_CFLAGS@ memdbg.o $(LDFLAGS) @M_LIBS@ @OPENMP_CFLAGS@ -o ../run/calc_stat
 
 ../run/raw2dyna@EXE_EXT@: raw2dyna.o
-	$(LD) raw2dyna.o memdbg.o $(LDFLAGS) @OPENMP_CFLAGS@ -o ../run/raw2dyna
+	$(LD) raw2dyna.o @MEMDBG_CFLAGS@ memdbg.o $(LDFLAGS) @OPENMP_CFLAGS@ -o ../run/raw2dyna
 
 ../run/SIPdump@EXE_EXT@: SIPdump.o
-	$(LD) SIPdump.o memdbg.o $(LDFLAGS) @PCAP_LIBS@ @OPENMP_CFLAGS@ -o ../run/SIPdump
+	$(LD) SIPdump.o @MEMDBG_CFLAGS@ memdbg.o $(LDFLAGS) @PCAP_LIBS@ @OPENMP_CFLAGS@ -o ../run/SIPdump
 
 ../run/vncpcap2john@EXE_EXT@: vncpcap2john.o
-	$(CC) -DAC_BUILT -Wall vncpcap2john.o memdbg.o $(LDFLAGS) @PCAP_LIBS@ @OPENMP_CFLAGS@ -o ../run/vncpcap2john
+	$(CC) -DAC_BUILT -Wall vncpcap2john.o @MEMDBG_CFLAGS@ memdbg.o $(LDFLAGS) @PCAP_LIBS@ @OPENMP_CFLAGS@ -o ../run/vncpcap2john
 
 ../run/uaf2john@EXE_EXT@: uaf2john.o uaf_encode_plug.o
-	$(LD) $(LDFLAGS) @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ uaf2john.o uaf_encode_plug.o memdbg.o @OPENMP_CFLAGS@ -o ../run/uaf2john
+	$(LD) $(LDFLAGS) @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ uaf2john.o uaf_encode_plug.o @MEMDBG_CFLAGS@ memdbg.o @OPENMP_CFLAGS@ -o ../run/uaf2john
 
 # Note that this is NOT depending on PCAP lib. It is self-contained.
 ../run/wpapcap2john@EXE_EXT@: wpapcap2john.o
-	$(LD) $(LDFLAGS) wpapcap2john.o memdbg.o @OPENMP_CFLAGS@ -o ../run/wpapcap2john
+	$(LD) $(LDFLAGS) wpapcap2john.o @MEMDBG_CFLAGS@ memdbg.o @OPENMP_CFLAGS@ -o ../run/wpapcap2john
 
 ../run/luks2john@EXE_EXT@: luks2john.o
-	$(LD) ${LDFLAGS} luks2john.o @OPENSSL_LIBS@ memdbg.o jumbo.o @OPENMP_CFLAGS@ -o ../run/luks2john
+	$(LD) ${LDFLAGS} luks2john.o @OPENSSL_LIBS@ @MEMDBG_CFLAGS@ memdbg.o jumbo.o @OPENMP_CFLAGS@ -o ../run/luks2john
 
 ../run/cprepair@EXE_EXT@: cprepair.c unicode.c unicode.h options.h misc.h misc.c \
 	memdbg.h memdbg.c
@@ -507,7 +507,7 @@ miscnl.o: misc.c
 	misc.c memdbg.c -o ../run/cprepair
 
 ../run/tgtsnarf@EXE_EXT@: tgtsnarf.o
-	$(LD) tgtsnarf.o memdbg.o $(LDFLAGS) @OPENMP_CFLAGS@ -o ../run/tgtsnarf
+	$(LD) tgtsnarf.o @MEMDBG_CFLAGS@ memdbg.o $(LDFLAGS) @OPENMP_CFLAGS@ -o ../run/tgtsnarf
 
 john.o: john.c fmt_externs.h fmt_registers.h
 	$(CC) $(CFLAGS_MAIN) $(OPT_NORMAL) -O0 $*.c
