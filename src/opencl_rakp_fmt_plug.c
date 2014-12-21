@@ -240,7 +240,7 @@ static void init(struct fmt_main *self)
 	//Initialize openCL tuning (library) for this format.
 	opencl_init_auto_setup(SEED, 0, NULL, warn, 2,
 	                       self, create_clobj, release_clobj,
-	                       BUFFER_SIZE, gws_limit);
+	                       v_width * BUFFER_SIZE, gws_limit);
 
 	//Auto tune execution from shared/included code.
 	autotune_run(self, ROUNDS, gws_limit, 200);
