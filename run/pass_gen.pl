@@ -74,7 +74,7 @@ my @funcs = (qw(DESCrypt BigCrypt BSDIcrypt md5crypt md5crypt_a BCRYPT BCRYPTx
 		rar rar5 ecryptfs office_2010 office_2013 tc_ripemd160 tc_sha512
 		tc_whirlpool Haval-256 SAP-H));
 
-# todo: sapb sapfg ike keepass cloudkeychain agilekeychain pfx racf sip vnc pdf pkzip rar5 ssh raw_gost_cp
+# todo: sapb sapfg ike keepass cloudkeychain agilekeychain pfx racf vnc pdf pkzip rar5 ssh raw_gost_cp
 my $i; my $h; my $u; my $salt;
 my @chrAsciiText=('a'..'z','A'..'Z');
 my @chrAsciiTextLo=('a'..'z');
@@ -1368,6 +1368,22 @@ sub ssh {
 sub vnc {
 }
 sub sip {
+	my $IPHead = "192.168." . (int(rand(253))+1) . ".";
+	my $serverIP = $IPHead . (int(rand(253))+1);
+	my $clientIP = $IPHead . (int(rand(253))+1);
+	my $user = randstr(5, \@chrAsciiNum);
+	my $realm = "asterisk";
+	my $method = "REGISTER";
+	my $URIpart1 = "sip";
+	my $nonce = randstr(8, \@chrHexLo);
+	my $uri = "$URIpart1:$clientIP";
+
+	my $static_hash = md5_hex($method.":".$uri);
+	my $dynamic_hash_data = "$user:$realm:";
+	my $static_hash_data = ":$nonce:$static_hash";
+	my $dyna_hash = md5_hex($dynamic_hash_data.$_[0]);
+	my $h = md5_hex($dyna_hash.$static_hash_data);
+	print "u$u-sip:\$sip\$*$serverIP*$clientIP*$user*$realm*$method*$URIpart1*$clientIP**$nonce****MD5*$h:$u:0:$_[0]::\n";
 }
 sub pfx {
 }
