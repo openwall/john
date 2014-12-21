@@ -162,6 +162,18 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	return 1;
 }
 
+static char *split(char *ciphertext, int index, struct fmt_main *self)
+{
+	static char out[TAG_LEN + CIPHERTEXT_LENGTH + 1];
+
+	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LEN))
+		ciphertext += TAG_LEN;
+
+	memcpy(out, FORMAT_TAG, TAG_LEN);
+	memcpy(out + TAG_LEN, ciphertext, CIPHERTEXT_LENGTH + 1);
+	strlwr(out + TAG_LEN);
+	return out;
+}
 
 static void *binary(char *ciphertext)
 {
@@ -288,7 +300,7 @@ struct fmt_main FMT_MAIN = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT,
+		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif
@@ -299,7 +311,7 @@ struct fmt_main FMT_MAIN = {
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
-		fmt_default_split,
+		split,
 		binary,
 		fmt_default_salt,
 #if FMT_MAIN_VERSION > 11

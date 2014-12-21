@@ -111,7 +111,7 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 	static char out[HEX_TAG_LEN + HEX_CIPHERTEXT_LENGTH + 1];
 
 	if (!strncmp(ciphertext, HEX_TAG, HEX_TAG_LEN))
-		return ciphertext;
+		ciphertext += HEX_TAG_LEN;
 
 	memcpy(out, HEX_TAG, HEX_TAG_LEN);
 	memcpy(out + HEX_TAG_LEN, ciphertext, HEX_CIPHERTEXT_LENGTH + 1);
