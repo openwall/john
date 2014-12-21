@@ -27,7 +27,7 @@
  * John's version number.
  */
 #define JOHN_VERSION			"1.8.0.2-jumbo-1-bleeding"
-#define JTR_RELEASE_BUILD
+//#define JTR_RELEASE_BUILD
 
 /*
  * Notes to packagers of John for *BSD "ports", Linux distributions, etc.:
