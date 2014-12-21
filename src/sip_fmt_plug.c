@@ -64,6 +64,11 @@ static sip_salt *pSalt;
 static struct fmt_tests sip_tests[] = {
 	{"$sip$*192.168.1.111*192.168.1.104*200*asterisk*REGISTER*sip*192.168.1.104**46cce857****MD5*4dfc7515936a667565228dbaa0293dfc", "123456"},
 	{"$sip$*10.0.1.20*10.0.1.10*1001*asterisk*REGISTER*sips*10.0.1.20*5061*0ef95b07****MD5*576e39e9de6a9ed053eb218f65fe470e", "q1XCLF0KaBObo797"},
+	// generated with pass_gen.pl
+	{"$sip$*192.168.163.238*192.168.163.239*50894*asterisk*REGISTER*sip*192.168.163.239**303535c9****MD5*e32c95d6ad0fecbc3967b7534d7b5b3b", "123456"},
+	{"$sip$*192.168.196.105*192.168.196.192*81670*asterisk*REGISTER*sip*192.168.196.192**747f072a****MD5*d15c84b1bdc2155db12b721d7fb9445b", "password"},
+	{"$sip$*192.168.119.6*192.168.119.154*65790*asterisk*REGISTER*sip*192.168.119.154**8d4e1a4b****MD5*dcc0d8a4c105dbf3ecf5b281f4c57356", "happy123"},
+	{"$sip$*192.168.113.63*192.168.113.78*59810*asterisk*REGISTER*sip*192.168.113.78**b778256e****MD5*cb13933a5986df471265231d08206509", "aobdataeteag"},
 	{NULL}
 };
 
