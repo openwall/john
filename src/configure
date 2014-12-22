@@ -12082,7 +12082,47 @@ else
  { $as_echo "$as_me:${as_lineno-$LINENO}: result: .exe (symlink.c)" >&5
 $as_echo ".exe (symlink.c)" >&6; }
 fi
-	;;
+    for ac_func in _get_osfhandle
+do :
+  ac_fn_c_check_func "$LINENO" "_get_osfhandle" "ac_cv_func__get_osfhandle"
+if test "x$ac_cv_func__get_osfhandle" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE__GET_OSFHANDLE 1
+_ACEOF
+
+fi
+done
+
+    # check for GetFileSizeEx was more of a bioch. I had to revert
+    # to doing a build/link probe. I could not find a way to do it with
+    # AC_CHECK_FUNCS, or AC_CHECK_LIB or AC_SEARCH_LIBS. Things just failed.
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for GetFileSizeEx" >&5
+$as_echo_n "checking for GetFileSizeEx... " >&6; }
+    cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+    #include <windows.h>
+        #include <io.h>
+        extern void exit(int);
+        int main(){long long l; GetFileSizeEx(0,&l); exit(0);}
+
+
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+
+$as_echo "#define HAVE_GETFILESIZEEX 1" >>confdefs.h
+
+     { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+    ;;
   mingw*)
      EXE_EXT=.exe
 

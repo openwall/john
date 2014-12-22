@@ -90,6 +90,9 @@
 /* Define to 1 if you have the `ftello64' function. */
 #undef HAVE_FTELLO64
 
+/* "Enable if GetFileSizeEx function is available" */
+#undef HAVE_GETFILESIZEEX
+
 /* Define to 1 if you have the `getpagesize' function. */
 #undef HAVE_GETPAGESIZE
 
@@ -335,6 +338,9 @@
 
 /* Define to 1 if you have the `_ftelli64' function. */
 #undef HAVE__FTELLI64
+
+/* Define to 1 if you have the `_get_osfhandle' function. */
+#undef HAVE__GET_OSFHANDLE
 
 /* Define to 1 if you have the `_strcmpi' function. */
 #undef HAVE__STRCMPI

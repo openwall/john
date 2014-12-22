@@ -192,6 +192,7 @@ void *memmem(const void *haystack, size_t haystack_len,
 
 /* cygwin32 does not have fseeko64 or ftello64.  So I created them */
 #if defined (__CYGWIN32__) && !defined(__CYGWIN64__)
+#if HAVE_GETFILESIZEEX && HAVE__GET_OSFHANDLE
 int fseeko64 (FILE* fp, int64_t offset, int whence) {
 	fpos_t pos;
 	if (whence == SEEK_CUR)
@@ -230,6 +231,16 @@ int64_t ftello64 (FILE * fp)
 		return  -1LL;
 	return (int64_t)pos;
 }
+#else
+// Some older cygwin does not have the functions needed to do 64 bit offsets.
+// we simply revert back to only working with 2GB files in that case.
+int fseeko64 (FILE* fp, int64_t offset, int whence) {
+	return fseek(fp, (long)offset, whence);
+}
+int64_t ftello64 (FILE * fp) {
+	return ftell(fp);
+}
+#endif
 #endif
 
 // We configure search for unix sleep(seconds) function, MSVC and MinGW do not have this,

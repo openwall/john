@@ -17,7 +17,24 @@ case "$host_os" in
   cygwin*)
     AC_MSG_CHECKING([for *2john helper type])
     AS_IF([test "x$enable_ln_s" != xno], [AC_MSG_RESULT([ln -s])], [AC_SUBST([EXE_EXT], [.exe])] [AC_MSG_RESULT([.exe (symlink.c)])])
-	;;
+    AC_CHECK_FUNCS([_get_osfhandle])
+    # check for GetFileSizeEx was more of a bioch. I had to revert
+    # to doing a build/link probe. I could not find a way to do it with
+    # AC_CHECK_FUNCS, or AC_CHECK_LIB or AC_SEARCH_LIBS. Things just failed.
+    AC_MSG_CHECKING([for GetFileSizeEx])
+    AC_LINK_IFELSE(
+    [
+    AC_LANG_SOURCE(
+      [[#include <windows.h>
+        #include <io.h>
+        extern void exit(int);
+        int main(){long long l; GetFileSizeEx(0,&l); exit(0);}]]
+    )]
+    ,AC_DEFINE([HAVE_GETFILESIZEEX], 1, ["Enable if GetFileSizeEx function is available"])
+     [AC_MSG_RESULT([yes])]
+    ,[AC_MSG_RESULT(no)]
+    )
+    ;;
   mingw*)
      AC_SUBST([EXE_EXT], [.exe])
      AC_MSG_CHECKING([for *2john helper type])
