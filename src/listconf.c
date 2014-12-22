@@ -858,25 +858,27 @@ void listconf_parse_late(void)
 					for (i = 0; ciphertext[i]; i++) {
 						if (ciphertext[i] == '\x0a' ||
 						    ciphertext[i] == separator) {
-							skip = 2;
+							skip |= 2;
 							fprintf(stderr,
 							        "Test %s %d: ciphertext contains line feed or separator character '%c'\n",
 							        format->params.label, ntests, separator);
 							break;
 						}
 					}
-					printf("%s%c%d",
-					       format->params.label, separator, ntests);
-					if (skip < 2) {
-						printf("%c%s",
-						       separator,
-						       ciphertext);
-						if (!skip)
+					if (skip != 3) { // if they are both missing, simply do not output a line at all
+						printf("%s%c%d",
+							   format->params.label, separator, ntests);
+						if (skip < 2) {
 							printf("%c%s",
-							       separator,
-							       format->params.tests[ntests].plaintext);
+								   separator,
+								   ciphertext);
+							if (!skip)
+								printf("%c%s",
+									   separator,
+									   format->params.tests[ntests].plaintext);
+						}
+						printf("\n");
 					}
-					printf("\n");
 					ntests++;
 				}
 			}
