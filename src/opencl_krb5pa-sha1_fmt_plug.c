@@ -129,7 +129,6 @@ static int new_keys;
 #define HASH_LOOPS		105 // Must be made from factors 3, 3, 5, 7, 13
 #define STEP			0
 #define SEED			128
-#define OCL_CONFIG		"krb5pa-sha1"
 
 static const char * warn[] = {
 	"P xfer: "  ,  ", init: "   , ", loop: " , ", final: ", ", res xfer: "

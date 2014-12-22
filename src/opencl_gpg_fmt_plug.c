@@ -198,7 +198,6 @@ size_t insize, outsize, settingsize, cracked_size;
 #define MIN(a, b)               (((a) > (b)) ? (b) : (a))
 #define MAX(a, b)               (((a) > (b)) ? (a) : (b))
 
-#define OCL_CONFIG		"gpg"
 #define STEP			0
 #define SEED			256
 

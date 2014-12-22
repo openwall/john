@@ -95,7 +95,6 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
-#define OCL_CONFIG             "ssha"
 #define STEP                   0
 #define SEED                   1024
 

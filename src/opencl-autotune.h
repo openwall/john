@@ -15,6 +15,16 @@
 
 #include "common-opencl.h"
 
+/* Step size for work size enumeration. Zero will double. */
+#ifndef STEP
+#define STEP	0
+#endif
+
+/* Start size for GWS enumeration */
+#ifndef SEED
+#error SEED must be defined by format before including autotune header
+#endif
+
 //Necessary definitions. Each format have to have each one of them.
 static size_t get_task_max_size();
 static size_t get_default_workgroup();
@@ -84,7 +94,7 @@ static void autotune_run(struct fmt_main * self, unsigned int rounds,
 	size_t gws_limit, unsigned long long int max_run_time)
 {
 	/* Read LWS/GWS prefs from config or environment */
-	opencl_get_user_preferences(OCL_CONFIG);
+	opencl_get_user_preferences(FORMAT_LABEL);
 
 	if (!global_work_size && !getenv("GWS"))
 		global_work_size = get_task_max_size();

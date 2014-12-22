@@ -41,7 +41,6 @@ static unsigned int *inbuffer;
 
 #define ITERATIONS		4095
 #define HASH_LOOPS		105 // factors 3, 3, 5, 7, 13
-#define STEP			0
 #define SEED			256
 
 #define MIN_KEYS_PER_CRYPT	1

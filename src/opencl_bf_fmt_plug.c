@@ -43,8 +43,6 @@ john_register_one(&fmt_opencl_bf);
 #define MIN_KEYS_PER_CRYPT		DEFAULT_LWS
 #define MAX_KEYS_PER_CRYPT		BF_N
 
-#define OCL_CONFIG			"bcrypt"
-
 static struct fmt_tests tests[] = {
 	{"$2a$05$CCCCCCCCCCCCCCCCCCCCC.E5YPO9kmyuRGyh0XouQYb4YMJKvyOeW",
 		"U*U"},
@@ -111,7 +109,7 @@ static void init(struct fmt_main *self) {
 	opencl_preinit();
 
 	// Check if specific LWS/GWS was requested
-	opencl_get_user_preferences(OCL_CONFIG);
+	opencl_get_user_preferences(FORMAT_LABEL);
 
 	// BF_select_device(platform,device);
 	//platform_id = get_platform_id(gpu_id);

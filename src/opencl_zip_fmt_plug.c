@@ -54,8 +54,6 @@ john_register_one(&fmt_opencl_zip);
 #define FORMAT_CLOSE_TAG	"$/zip2$"
 #define TAG_LENGTH		6
 
-#define OCL_CONFIG		"zip"
-
 typedef struct {
 	uint32_t length;
 	uint8_t v[PLAINTEXT_LENGTH];
@@ -123,7 +121,6 @@ size_t insize, outsize, settingsize;
 #define MIN(a, b)               (((a) > (b)) ? (b) : (a))
 #define MAX(a, b)               (((a) > (b)) ? (a) : (b))
 
-#define OCL_CONFIG		"zip"
 #define STEP			0
 #define SEED			256
 

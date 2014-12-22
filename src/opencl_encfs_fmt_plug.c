@@ -108,7 +108,6 @@ static cl_kernel pbkdf2_init, pbkdf2_loop, pbkdf2_final;
 #define HASH_LOOPS		(3 * 251)
 #define ITERATIONS		181474 /* Just for auto tune */
 #define LOOP_COUNT		(((currentsalt.iterations - 1 + HASH_LOOPS - 1)) / HASH_LOOPS)
-#define OCL_CONFIG		"encfs"
 #define STEP			0
 #define SEED			128
 

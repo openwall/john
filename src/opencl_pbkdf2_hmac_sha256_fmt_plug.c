@@ -117,7 +117,6 @@ static cl_kernel split_kernel;
 
 #define STEP			0
 #define SEED			1024
-#define OCL_CONFIG		"pbkdf2-hmac-sha256"
 
 static const char * warn[] = {
         "xfer: ",  ", init: " , ", crypt: ", ", res xfer: "

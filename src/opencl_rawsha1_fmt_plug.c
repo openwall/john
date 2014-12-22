@@ -74,8 +74,6 @@ static unsigned int key_idx = 0;
 #define MIN(a, b)		(((a) > (b)) ? (b) : (a))
 #define MAX(a, b)		(((a) > (b)) ? (a) : (b))
 
-#define OCL_CONFIG		"raw-sha1"
-
 // Shared auto-tune stuff
 #define STEP                    0
 #define SEED                    65536

@@ -96,7 +96,6 @@ static cl_kernel GenerateSHA1pwhash, Generate2010key;
 #define ITERATIONS		100000
 #define STEP			0
 #define SEED			128
-#define OCL_CONFIG		"office2010"
 
 static const char * warn[] = {
 	"xfer: ", ", xfer: ", ", init: ", ", loop: ", ",  final: ", ", xfer: "

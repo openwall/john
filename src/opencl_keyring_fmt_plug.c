@@ -92,7 +92,6 @@ static cl_mem mem_in, mem_out, mem_setting;
 #define settingsize (sizeof(keyring_salt))
 #define cracked_size (sizeof(*cracked) * global_work_size)
 
-#define OCL_CONFIG		"keyring"
 #define STEP                    0
 #define SEED                    256
 

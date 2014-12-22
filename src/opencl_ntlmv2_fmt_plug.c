@@ -56,8 +56,6 @@ john_register_one(&fmt_opencl_NTLMv2);
 #define CIPHERTEXT_LENGTH       32 /* hex chars */
 #define TOTAL_LENGTH            (12 + 3 * SALT_MAX_LENGTH + 1 + SERVER_CHALL_LENGTH + 1 + CLIENT_CHALL_LENGTH_MAX + 1 + CIPHERTEXT_LENGTH + 1)
 
-#define OCL_CONFIG              "ntlmv2"
-
 #define MIN(a, b)               (((a) > (b)) ? (b) : (a))
 #define MAX(a, b)               (((a) > (b)) ? (a) : (b))
 

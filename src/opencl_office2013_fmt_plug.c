@@ -98,7 +98,6 @@ static cl_kernel GenerateSHA512pwhash, Generate2013key;
 #define ITERATIONS		100000
 #define STEP			0
 #define SEED			128
-#define OCL_CONFIG		"office2013"
 
 static const char * warn[] = {
 	"xfer: ", ", xfer: ", ", init: ", ", loop: ", ",  final: ", ", xfer: "

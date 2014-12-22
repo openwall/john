@@ -32,8 +32,6 @@ john_register_one(&fmt_opencl_DES);
 #define CIPHERTEXT_LENGTH_1		13
 #define CIPHERTEXT_LENGTH_2		24
 
-#define OCL_CONFIG			"descrypt"
-
 static struct fmt_tests tests[] = {
 	{"CCNf8Sbh3HDfQ", "U*U*U*U*"},
 	{"CCX.K.MFy4Ois", "U*U***U"},
@@ -59,7 +57,7 @@ static void init(struct fmt_main *pFmt)
 	unsigned int i;
 
 	// Check if specific LWS/GWS was requested
-	opencl_get_user_preferences(OCL_CONFIG);
+	opencl_get_user_preferences(FORMAT_LABEL);
 
 	opencl_DES_bs_init_global_variables();
 

@@ -88,8 +88,6 @@ static aes_fptr_cbc aesFunc;
 #define SEED                    65536
 #define ROUNDS                  1
 
-#define OCL_CONFIG              "o5logon"
-
 static const char * warn[] = {
         "pass xfer: ",  ", index xfer: ",  ", crypt: ",  ", result xfer: "
 };

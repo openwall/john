@@ -61,7 +61,6 @@ john_register_one(&fmt_ocl_rar5);
 
 #define KERNEL_NAME		"pbkdf2_sha256_kernel"
 #define SPLIT_KERNEL_NAME	"pbkdf2_sha256_loop"
-#define OCL_CONFIG		"rar5"
 
 #define MIN(a, b)		(((a) < (b)) ? (a) : (b))
 #define MAX(a, b)		(((a) > (b)) ? (a) : (b))

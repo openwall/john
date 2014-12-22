@@ -110,7 +110,6 @@ static cl_kernel oldoffice_utf16, oldoffice_md5, oldoffice_sha1;
 #define MIN(a, b)               (((a) > (b)) ? (b) : (a))
 #define MAX(a, b)               (((a) > (b)) ? (a) : (b))
 
-#define OCL_CONFIG		"oldoffice"
 #define STEP			0
 #define SEED			1024
 

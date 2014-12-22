@@ -50,7 +50,6 @@ john_register_one(&fmt_opencl_cryptMD5);
 #define MIN_KEYS_PER_CRYPT	1 /* These will change in init() */
 #define MAX_KEYS_PER_CRYPT	1
 
-#define OCL_CONFIG		"md5crypt"
 #define STEP                    0
 #define SEED                    1024
 #define ROUNDS_DEFAULT          1000

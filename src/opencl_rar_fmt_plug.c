@@ -115,7 +115,6 @@ static pthread_mutex_t *lockarray;
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 
-#define OCL_CONFIG		"rar"
 static const char * warn[] = {
 	"key xfer: "  ,  ", len xfer: "   , ", init: " , ", loop: " ,
 	", final: ", ", key xfer: ", ", iv xfer: "

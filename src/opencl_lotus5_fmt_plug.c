@@ -88,7 +88,6 @@ static char *saved_key;
 static cl_int err;
 static cl_mem cl_tx_keys, cl_tx_binary, cl_magic_table;
 
-#define OCL_CONFIG		"Lotus5"
 #define STEP			0
 #define SEED			256
 

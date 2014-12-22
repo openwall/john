@@ -76,8 +76,6 @@ static struct fmt_tests tests[] = {
 #define STEP			0
 #define SEED			128
 
-#define OCL_CONFIG		"sha1crypt"
-
 #define MIN(a, b)		(((a) < (b)) ? (a) : (b))
 #define MAX(a, b)		(((a) > (b)) ? (a) : (b))
 #define ITERATIONS		(64000*2+2)

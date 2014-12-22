@@ -63,8 +63,6 @@ john_register_one(&fmt_opencl_dmg);
 #define uint16_t		unsigned short
 #define uint32_t		unsigned int
 
-#define OCL_CONFIG		"dmg"
-
 #ifdef DMG_DEBUG
 	extern volatile int bench_running;
 #endif
@@ -199,7 +197,6 @@ static struct fmt_tests dmg_tests[] = {
 #define MIN(a, b)               (((a) > (b)) ? (b) : (a))
 #define MAX(a, b)               (((a) > (b)) ? (a) : (b))
 
-#define OCL_CONFIG		"dmg"
 #define STEP			0
 #define SEED			256
 

@@ -53,8 +53,6 @@ john_register_one(&fmt_opencl_agilekeychain);
 #define uint16_t		unsigned short
 #define uint32_t		ARCH_WORD_32
 
-#define OCL_CONFIG		"agilekeychain"
-
 typedef struct {
 	uint32_t length;
 	uint8_t v[PLAINTEXT_LENGTH];
@@ -98,7 +96,6 @@ size_t insize, outsize, settingsize, cracked_size;
 #define MIN(a, b)               (((a) > (b)) ? (b) : (a))
 #define MAX(a, b)               (((a) > (b)) ? (a) : (b))
 
-#define OCL_CONFIG		"agilekeychain"
 #define STEP			0
 #define SEED			256
 

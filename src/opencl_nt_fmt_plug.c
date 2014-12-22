@@ -124,8 +124,6 @@ cl_mem pinned_saved_keys, pinned_bbbs, buffer_out, buffer_keys;
 
 #define MIN(a, b)               (((a) > (b)) ? (b) : (a))
 
-#define OCL_CONFIG		"nt"
-
 #define STEP			0
 #define SEED			(128*1024)
 

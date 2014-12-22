@@ -79,7 +79,7 @@ static int main_opencl_event;
 static struct fmt_main *self;
 static void (*create_clobj)(size_t gws, struct fmt_main *self);
 static void (*release_clobj)(void);
-static const char *config_name;
+static char fmt_base_name[128];
 static size_t gws_limit;
 
 cl_device_id devices[MAX_GPU_DEVICES];
@@ -746,7 +746,7 @@ void opencl_done()
 	/* Reset in case we load another format after this */
 	local_work_size = global_work_size = duration_time = 0;
 	opencl_v_width = 1;
-
+	fmt_base_name[0] = 0;
 	opencl_initialized = 0;
 
 	gpu_device_list[0] = gpu_device_list[1] = -1;
@@ -754,30 +754,36 @@ void opencl_done()
 
 static char *opencl_get_config_name(char *format, char *config_name)
 {
-	static char full_name[128];
+	static char config_item[128];
 
-	full_name[0] = '\0';
-	strcat(full_name, format);
-	strcat(full_name, config_name);
-
-	return full_name;
+	snprintf(config_item, sizeof(config_item), "%s%s",
+	         format, config_name);
+	return config_item;
 }
 
 void opencl_get_user_preferences(char *format)
 {
 	char *tmp_value;
 
-	if (format)
-	if ((tmp_value = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL,
-		opencl_get_config_name(format, LWS_CONFIG_NAME))))
+	if (format) {
+		snprintf(fmt_base_name, sizeof(fmt_base_name), "%s", format);
+		if ((tmp_value = strrchr(fmt_base_name, (int)'-')))
+			*tmp_value = 0;
+		strlwr(fmt_base_name);
+	} else
+		fmt_base_name[0] = 0;
+
+	if (format &&
+	    (tmp_value = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL,
+		opencl_get_config_name(fmt_base_name, LWS_CONFIG_NAME))))
 		local_work_size = atoi(tmp_value);
 
 	if ((tmp_value = getenv("LWS")))
 		local_work_size = atoi(tmp_value);
 
-	if (format)
-	if ((tmp_value = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL,
-		opencl_get_config_name(format, GWS_CONFIG_NAME))))
+	if (format &&
+	    (tmp_value = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL,
+		opencl_get_config_name(fmt_base_name, GWS_CONFIG_NAME))))
 		global_work_size = atoi(tmp_value);
 
 	if ((tmp_value = getenv("GWS")))
@@ -786,19 +792,16 @@ void opencl_get_user_preferences(char *format)
 	if (local_work_size)
 		// Ensure a valid multiple is used.
 		global_work_size = GET_MULTIPLE_OR_ZERO(global_work_size,
-						local_work_size);
+		                                        local_work_size);
 
 	if (format &&
 	    (tmp_value = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL,
-		opencl_get_config_name(format, DUR_CONFIG_NAME))))
+		opencl_get_config_name(fmt_base_name, DUR_CONFIG_NAME))))
 		duration_time = atoi(tmp_value) * 1000000ULL;
 	else
 	if ((tmp_value = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL,
 		"Global" DUR_CONFIG_NAME)))
 		duration_time = atoi(tmp_value) * 1000000ULL;
-
-	// Save the format config string.
-	config_name = format;
 }
 
 static void dev_init(int sequential_id)
@@ -1409,7 +1412,6 @@ void opencl_find_best_lws(
 	size_t my_work_group, optimal_work_group;
 	size_t max_group_size, wg_multiple, sumStartTime, sumEndTime;
 	cl_ulong startTime, endTime, kernelExecTimeNs = CL_ULONG_MAX;
-	char config_string[128];
 	cl_event benchEvent[MAX_EVENTS];
 	void *salt;
 	char *ciphertext;
@@ -1586,10 +1588,6 @@ void opencl_find_best_lws(
 	HANDLE_CLERROR(ret_code, "Error creating command queue");
 	local_work_size = optimal_work_group;
 
-	config_string[0] = '\0';
-	strcat(config_string, config_name);
-	strcat(config_string, LWS_CONFIG_NAME);
-
 	dyna_salt_remove(salt);
 	bench_running = 0;
 }
@@ -1601,7 +1599,6 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
 	size_t optimal_gws = local_work_size;
 	unsigned long long speed, best_speed = 0;
 	cl_ulong run_time, min_time = CL_ULONG_MAX;
-	char config_string[128];
 
 	/*
 	 * max_run_time is either:
@@ -1702,10 +1699,6 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
 				     &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating command queue");
 	global_work_size = optimal_gws;
-
-	config_string[0] = '\0';
-	strcat(config_string, config_name);
-	strcat(config_string, GWS_CONFIG_NAME);
 }
 
 static void opencl_get_dev_info(int sequential_id)

@@ -59,7 +59,6 @@ john_register_one(&fmt_opencl_rakp);
 #define BINARY_ALIGN            1
 #define SALT_ALIGN              1
 
-#define OCL_CONFIG              "rakp"
 #define HEXCHARS                "0123456789abcdef"
 
 #define STEP                    0

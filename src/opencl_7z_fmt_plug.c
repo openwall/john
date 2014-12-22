@@ -118,7 +118,6 @@ static cl_kernel sevenzip_init;
 
 #define MIN(a, b)		(((a) > (b)) ? (b) : (a))
 
-#define OCL_CONFIG	"7z"
 #define HASH_LOOPS	4096
 #define LOOP_COUNT	((1 << currentsalt.iterations) + HASH_LOOPS - 1) / HASH_LOOPS
 #define STEP		0

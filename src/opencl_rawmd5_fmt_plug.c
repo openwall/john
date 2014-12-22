@@ -56,7 +56,6 @@ static unsigned int key_idx = 0;
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
 
-#define OCL_CONFIG             "raw-md5"
 #define STEP                   0
 #define SEED                   1024
 

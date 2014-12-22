@@ -62,8 +62,6 @@ static struct fmt_tests strip_tests[] = {
 	{NULL}
 };
 
-#define OCL_CONFIG		"strip"
-
 typedef struct {
 	uint32_t length;
 	uint8_t v[PLAINTEXT_LENGTH];
@@ -99,7 +97,6 @@ size_t insize, outsize, settingsize, cracked_size;
 #define MIN(a, b)               (((a) > (b)) ? (b) : (a))
 #define MAX(a, b)               (((a) > (b)) ? (a) : (b))
 
-#define OCL_CONFIG		"strip"
 #define STEP			0
 #define SEED			256
 

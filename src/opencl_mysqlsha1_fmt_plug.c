@@ -46,8 +46,6 @@ john_register_one(&fmt_opencl_mysqlsha1);
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
 
-#define OCL_CONFIG              "mysql-sha1"
-
 #define STEP 0
 #define SEED 256
 

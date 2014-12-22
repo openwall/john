@@ -36,8 +36,6 @@ john_register_one(&fmt_opencl_rawsha256);
 
 #define ALGORITHM_NAME			"SHA256 OpenCL (inefficient, development use mostly)"
 
-#define OCL_CONFIG			"raw-sha256"
-
 static uint32_t				* plaintext, * saved_idx;	// plaintext ciphertexts
 static uint32_t				* calculated_hash;		// calculated (partial) hashes
 

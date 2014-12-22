@@ -113,7 +113,7 @@ static void init(struct fmt_main *self) {
 	memset(dcc2_hash_host, 0, 4 * sizeof(cl_uint) * MAX_KEYS_PER_CRYPT) ;
 
 	/* Read LWS/GWS prefs from config or environment */
-	opencl_get_user_preferences(OCL_CONFIG);
+	opencl_get_user_preferences(FORMAT_LABEL);
 
 	for( i=0; i < get_number_of_devices_in_use(); i++)
 		select_device(gpu_device_list[i], self) ;

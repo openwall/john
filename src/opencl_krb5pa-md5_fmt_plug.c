@@ -64,8 +64,6 @@ john_register_one(&fmt_opencl_krb5pa_md5);
 #define SALT_ALIGN         4
 #define TOTAL_LENGTH       (14 + 2 * (CHECKSUM_SIZE + TIMESTAMP_SIZE) + MAX_REALMLEN + MAX_USERLEN + MAX_SALTLEN)
 
-#define OCL_CONFIG              "krb5pa-md5"
-
 #define MIN(a, b)               (((a) > (b)) ? (b) : (a))
 #define MAX(a, b)               (((a) > (b)) ? (a) : (b))
 

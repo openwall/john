@@ -49,7 +49,6 @@ john_register_one(&fmt_opencl_pwsafe);
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
 
-#define OCL_CONFIG		"pwsafe"
 #define STEP                    0
 #define SEED                    256
 #define ROUNDS_DEFAULT          2048
