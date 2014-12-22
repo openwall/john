@@ -77,8 +77,8 @@ char *jtr_basename_r(const char *name, char *buf) {
 	// deal with 'possible' drive letter in Win32/DOS type systems.
 #if defined _WIN32 || defined __WIN32__ || defined _MSC_VER || defined __DJGPP__ || defined __CYGWIN32__ || defined __MINGW32__
 	if (strlen(base)>1 &&
-	   ((base[0] >= 'A' && base[0] <= 'Z')||(base[0] >= 'a' && base[0] <= 'z')) &&
-	   base[1] == ':')
+	    ((base[0] >= 'A' && base[0] <= 'Z')||(base[0] >= 'a' && base[0] <= 'z')) &&
+	    base[1] == ':')
 		base += 2;
 	if (base[0]==0) return ".";
 #endif
@@ -146,7 +146,7 @@ char *strip_suffixes(const char *src, const char *suffixes[], int count)
    http://sourceware.org/ml/libc-alpha/2007-12/msg00000.html
    LGPL 2.1+ */
 void *memmem(const void *haystack, size_t haystack_len,
-	     const void *needle, size_t needle_len)
+             const void *needle, size_t needle_len)
 {
 	/* not really Rabin-Karp, just using additive hashing */
 	char* haystack_ = (char*)haystack;
@@ -193,42 +193,42 @@ void *memmem(const void *haystack, size_t haystack_len,
 /* cygwin32 does not have fseeko64 or ftello64.  So I created them */
 #if defined (__CYGWIN32__) && !defined(__CYGWIN64__)
 int fseeko64 (FILE* fp, int64_t offset, int whence) {
-  fpos_t pos;
-  if (whence == SEEK_CUR)
-    {
-      /** If fp is invalid, fgetpos sets errno. */
-      if (fgetpos (fp, &pos))
-        return (-1);
-      pos += (fpos_t) offset;
-    }
-  else if (whence == SEEK_END)
-    {
-      /** If writing, we need to flush before getting file length.  */
-	  long long size;
-      fflush (fp);
-	  size = 0;
-	  /* only way I could find to get file length, was to fall back to Win32 function */
-	  /* I could find no _filelengthi64, _filelength64, etc. */
-	  GetFileSizeEx((HANDLE)_get_osfhandle(fileno(fp)), (PLARGE_INTEGER)&size);
-	  pos = (fpos_t) (size + offset);
-	  //fprintf(stderr, "size = %lld\n", size);
-    }
-  else if (whence == SEEK_SET)
-    pos = (fpos_t) offset;
-  else
-    {
-      errno = EINVAL;
-      return (-1);
-    }
-  return fsetpos (fp, &pos);
+	fpos_t pos;
+	if (whence == SEEK_CUR)
+	{
+		/** If fp is invalid, fgetpos sets errno. */
+		if (fgetpos (fp, &pos))
+			return (-1);
+		pos += (fpos_t) offset;
+	}
+	else if (whence == SEEK_END)
+	{
+		/** If writing, we need to flush before getting file length. */
+		long long size;
+		fflush (fp);
+		size = 0;
+		/* only way I could find to get file length, was to fall back to Win32 function */
+		/* I could find no _filelengthi64, _filelength64, etc. */
+		GetFileSizeEx((HANDLE)_get_osfhandle(fileno(fp)), (PLARGE_INTEGER)&size);
+		pos = (fpos_t) (size + offset);
+		//fprintf(stderr, "size = %lld\n", size);
+	}
+	else if (whence == SEEK_SET)
+		pos = (fpos_t) offset;
+	else
+	{
+		errno = EINVAL;
+		return (-1);
+	}
+	return fsetpos (fp, &pos);
 }
 
 int64_t ftello64 (FILE * fp)
 {
-  fpos_t pos;
-  if (fgetpos(fp, &pos))
-    return  -1LL;
-  return (int64_t)pos;
+	fpos_t pos;
+	if (fgetpos(fp, &pos))
+		return  -1LL;
+	return (int64_t)pos;
 }
 #endif
 
@@ -244,31 +244,31 @@ int sleep(int i)
 
 #if NEED_STRCASECMP_NATIVE
 int strcasecmp(char *dst, char *src) {
-    int f,l;
-    do {
-        if ( ((f = (unsigned char)(*(dst++))) >= 'A') && (f <= 'Z') )
-            f -= 'A' - 'a';
-        if ( ((l = (unsigned char)(*(src++))) >= 'A') && (l <= 'Z') )
-            l -= 'A' - 'a';
-    } while (f && (f==l));
-    return return(f - l);
+	int f,l;
+	do {
+		if ( ((f = (unsigned char)(*(dst++))) >= 'A') && (f <= 'Z') )
+			f -= 'A' - 'a';
+		if ( ((l = (unsigned char)(*(src++))) >= 'A') && (l <= 'Z') )
+			l -= 'A' - 'a';
+	} while (f && (f==l));
+	return return(f - l);
 }
 #endif
 
 #if NEED_STRNCASECMP_NATIVE
 int strncasecmp(char *dst, char *src, size_t count) {
-    if(count) {
-        int f,l;
-        do {
-            if ( ((f = (unsigned char)(*(dst++))) >= 'A') && (f <= 'Z') )
-                f -= 'A' - 'a';
-            if ( ((l = (unsigned char)(*(src++))) >= 'A') && (l <= 'Z') )
-                l -= 'A' - 'a';
-        }
-        while (--count && f && (f == l));
-        return (f - l);
-    }
-    return 0;
+	if(count) {
+		int f,l;
+		do {
+			if ( ((f = (unsigned char)(*(dst++))) >= 'A') && (f <= 'Z') )
+				f -= 'A' - 'a';
+			if ( ((l = (unsigned char)(*(src++))) >= 'A') && (l <= 'Z') )
+				l -= 'A' - 'a';
+		}
+		while (--count && f && (f == l));
+		return (f - l);
+	}
+	return 0;
 }
 #endif
 
@@ -280,10 +280,10 @@ char *strlwr(char *s)
 	unsigned char *ptr = (unsigned char *)s;
 
 	while (*ptr)
-	if (*ptr >= 'A' && *ptr <= 'Z')
-		*ptr++ |= 0x20;
-	else
-		ptr++;
+		if (*ptr >= 'A' && *ptr <= 'Z')
+			*ptr++ |= 0x20;
+		else
+			ptr++;
 
 	return s;
 }
@@ -295,10 +295,10 @@ char *strupr(char *s)
 	unsigned char *ptr = (unsigned char *)s;
 
 	while (*ptr)
-	if (*ptr >= 'a' && *ptr <= 'z')
-		*ptr++ ^= 0x20;
-	else
-		ptr++;
+		if (*ptr >= 'a' && *ptr <= 'z')
+			*ptr++ ^= 0x20;
+		else
+			ptr++;
 
 	return s;
 }
@@ -313,8 +313,8 @@ long long atoll(const char *s) {
 #endif
 
 
-#if (AC_BUILT && !HAVE_SETENV && HAVE_PUTENV) || \
-    (!AC_BUILT && (_MSC_VER || __MINGW32__ || __MINGW64__))
+#if (AC_BUILT && !HAVE_SETENV && HAVE_PUTENV) ||	  \
+	(!AC_BUILT && (_MSC_VER || __MINGW32__ || __MINGW64__))
 int setenv(const char *name, const char *val, int overwrite) {
 	int len;
 	char *str;
