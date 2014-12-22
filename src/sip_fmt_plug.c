@@ -39,8 +39,9 @@ static int omp_t = 1;
 #include "memdbg.h"
 
 typedef struct sip_salt_t {
-	int static_hash_data_len, dynamic_hash_data_len;
-	char static_hash_data[DYNAMIC_HASH_SIZE+1], dynamic_hash_data[STATIC_HASH_SIZE + 1];
+	int static_hash_data_len;
+	MD5_CTX ctx_dyna_data;
+	char static_hash_data[DYNAMIC_HASH_SIZE+1];
 } sip_salt;
 
 static sip_salt *pSalt;
@@ -231,8 +232,15 @@ static void *get_salt(char *ciphertext)
 	bin_to_hex(bin2hex_table, md5_bin_hash, MD5_LEN, static_hash, MD5_LEN_HEX);
 
 	/* Constructing first part of dynamic hash: 'USER:REALM:' */
-	snprintf(salt.dynamic_hash_data, DYNAMIC_HASH_SIZE, "%s:%s:", login.user, login.realm);
-	salt.dynamic_hash_data_len = strlen(salt.dynamic_hash_data);
+	MD5_Init(&md5_ctx);
+	MD5_Update(&md5_ctx, login.user, strlen(login.user));
+	MD5_Update(&md5_ctx, ":", 1);
+	MD5_Update(&md5_ctx, login.realm, strlen(login.realm));
+	MD5_Update(&md5_ctx, ":", 1);
+	memcpy(&(salt.ctx_dyna_data), &md5_ctx, sizeof(md5_ctx));
+	// we now construct the MD5_CTX with this data loaded. Thus we no longer store this buffer.
+	//snprintf(salt.dynamic_hash_data, DYNAMIC_HASH_SIZE, "%s:%s:", login.user, login.realm);
+	//salt.dynamic_hash_data_len = strlen(salt.dynamic_hash_data);
 
 	/* Construct last part of final hash data: ':NONCE(:CNONCE:NONCE_COUNT:QOP):<static_hash>' */
 	/* no qop */
@@ -292,8 +300,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		char dynamic_hash[MD5_LEN_HEX+1];
 
 		/* Generate dynamic hash including pw (see above) */
-		MD5_Init(&md5_ctx);
-		MD5_Update(&md5_ctx, (unsigned char*)pSalt->dynamic_hash_data, pSalt->dynamic_hash_data_len);
+		//MD5_Init(&md5_ctx);
+		//MD5_Update(&md5_ctx, (unsigned char*)pSalt->dynamic_hash_data, pSalt->dynamic_hash_data_len);
+		// salt.ctx_dyna_data contains the ctx already loaded.
+		memcpy(&md5_ctx, &(pSalt->ctx_dyna_data), sizeof(md5_ctx));
+
 		MD5_Update(&md5_ctx, (unsigned char*)saved_key[index], strlen(saved_key[index]));
 		MD5_Final(md5_bin_hash, &md5_ctx);
 		bin_to_hex(bin2hex_table, md5_bin_hash, MD5_LEN, dynamic_hash, MD5_LEN_HEX);
