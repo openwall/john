@@ -40,8 +40,7 @@ static int omp_t = 1;
 
 typedef struct sip_salt_t {
 	int static_hash_data_len, dynamic_hash_data_len;
-	char *static_hash_data, *dynamic_hash_data;
-	char Buf[DYNAMIC_HASH_SIZE + STATIC_HASH_SIZE + 3];
+	char static_hash_data[DYNAMIC_HASH_SIZE+1], dynamic_hash_data[STATIC_HASH_SIZE + 1];
 } sip_salt;
 
 static sip_salt *pSalt;
@@ -232,13 +231,11 @@ static void *get_salt(char *ciphertext)
 	bin_to_hex(bin2hex_table, md5_bin_hash, MD5_LEN, static_hash, MD5_LEN_HEX);
 
 	/* Constructing first part of dynamic hash: 'USER:REALM:' */
-	salt.dynamic_hash_data = salt.Buf;
 	snprintf(salt.dynamic_hash_data, DYNAMIC_HASH_SIZE, "%s:%s:", login.user, login.realm);
 	salt.dynamic_hash_data_len = strlen(salt.dynamic_hash_data);
 
 	/* Construct last part of final hash data: ':NONCE(:CNONCE:NONCE_COUNT:QOP):<static_hash>' */
 	/* no qop */
-	salt.static_hash_data = &(salt.Buf[salt.dynamic_hash_data_len+1]);
 	if(!strlen(login.qop))
 		snprintf(salt.static_hash_data, STATIC_HASH_SIZE, ":%s:%s", login.nonce, static_hash);
 	/* qop/conce/cnonce_count */
