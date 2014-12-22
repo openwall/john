@@ -119,7 +119,17 @@ static size_t get_task_max_size()
 
 static size_t get_default_workgroup()
 {
-	return 0;
+#if 0
+	return get_task_max_work_group_size(); // GTX980: 35773K c/s
+#elif 1
+	return 0; // 39064K c/s
+#else
+	if (cpu(device_info[gpu_id]))
+		return get_platform_vendor_id(platform_id) == DEV_INTEL ?
+			8 : 1;
+	else
+		return 64; // 36962K c/s
+#endif
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -387,8 +397,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	size_t scalar_gws;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
-	global_work_size = local_work_size ? (count + (v_width * local_work_size) - 1) / (v_width * local_work_size) * local_work_size : count / v_width;
-
+	global_work_size = local_work_size ? ((count + (v_width * local_work_size - 1)) / (v_width * local_work_size)) * local_work_size : count / v_width;
 	scalar_gws = global_work_size * v_width;
 
 	//fprintf(stderr, "%s(%d) lws %zu gws %zu sgws %zu kidx %u\n", __FUNCTION__, count, local_work_size, global_work_size, scalar_gws, key_idx);

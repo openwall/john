@@ -131,11 +131,17 @@ static size_t get_task_max_size()
 
 static size_t get_default_workgroup()
 {
+#if 1
+	return get_task_max_work_group_size(); // GTX980: 58975 c/s
+#elif 1
+	return 0; // 58975 c/s
+#else
 	if (cpu(device_info[gpu_id]))
 		return get_platform_vendor_id(platform_id) == DEV_INTEL ?
 			8 : 1;
 	else
-		return 64;
+		return 64; // 55072 c/s
+#endif
 }
 
 static void create_clobj(size_t gws, struct fmt_main *self)
@@ -338,9 +344,6 @@ static void init(struct fmt_main *self)
 	             (cpu(device_info[gpu_id]) ? 1000000000 : 10000000000ULL));
 	self->methods.crypt_all = crypt_all;
 
-	self->params.min_keys_per_crypt = local_work_size * v_width;
-	self->params.max_keys_per_crypt = global_work_size * v_width;
-
 	if (pers_opts.target_enc == UTF_8)
 		self->params.plaintext_length = MIN(125, 3 * PLAINTEXT_LENGTH);
 }
@@ -484,19 +487,20 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
 	size_t gws, scalar_gws;
+	size_t *lws = local_work_size ? &local_work_size : NULL;
 
-	gws = ((count + (v_width * local_work_size - 1)) / (v_width * local_work_size)) * local_work_size;
+	gws = ((count + (v_width * (local_work_size ? local_work_size : 1) - 1)) / (v_width * (local_work_size ? local_work_size : 1))) * (local_work_size ? local_work_size : 1);
 	scalar_gws = gws * v_width;
 
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_key, CL_FALSE, 0, UNICODE_LENGTH * scalar_gws, saved_key, 0, NULL, multi_profilingEvent[0]), "failed in clEnqueueWriteBuffer saved_key");
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_len, CL_FALSE, 0, sizeof(int) * scalar_gws, saved_len, 0, NULL, multi_profilingEvent[1]), "failed in clEnqueueWriteBuffer saved_len");
 
-	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], GenerateSHA1pwhash, 1, NULL, &scalar_gws, &local_work_size, 0, NULL, multi_profilingEvent[2]), "failed in clEnqueueNDRangeKernel");
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], GenerateSHA1pwhash, 1, NULL, &scalar_gws, lws, 0, NULL, multi_profilingEvent[2]), "failed in clEnqueueNDRangeKernel");
 
-	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &gws, &local_work_size, 0, NULL, NULL), "failed in clEnqueueNDRangeKernel");
-	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &gws, &local_work_size, 0, NULL, multi_profilingEvent[3]), "failed in clEnqueueNDRangeKernel");
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &gws, lws, 0, NULL, NULL), "failed in clEnqueueNDRangeKernel");
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &gws, lws, 0, NULL, multi_profilingEvent[3]), "failed in clEnqueueNDRangeKernel");
 
-	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], Generate2007key, 1, NULL, &gws, &local_work_size, 0, NULL, multi_profilingEvent[4]), "failed in clEnqueueNDRangeKernel");
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], Generate2007key, 1, NULL, &gws, lws, 0, NULL, multi_profilingEvent[4]), "failed in clEnqueueNDRangeKernel");
 
 	// read back aes key
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_key, CL_TRUE, 0, 16 * scalar_gws, key, 0, NULL, multi_profilingEvent[5]), "failed in reading key back");

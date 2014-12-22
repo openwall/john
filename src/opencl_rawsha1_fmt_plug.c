@@ -178,8 +178,6 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(buffer_keys), (void *) &buffer_keys), "Error setting argument 0");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(buffer_idx), (void *) &buffer_idx), "Error setting argument 1");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(buffer_out), (void *) &buffer_out), "Error setting argument 2");
-
-	global_work_size = gws;
 }
 
 static void release_clobj(void){
@@ -221,18 +219,10 @@ static void init(struct fmt_main *self)
 	crypt_kernel = clCreateKernel(program[gpu_id], "sha1_crypt_kernel", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 
-	//Warm up.
-	create_clobj((1024 * 1024), self);
-	release_clobj();
-
 	//Initialize openCL tuning (library) for this format.
 	opencl_init_auto_setup(SEED, 0, NULL, warn, 2,
 	                       self, create_clobj, release_clobj,
 	                       2 * BUFSIZE, gws_limit);
-
-	//Limit worksize using index limitation.
-	while (global_work_size > gws_limit)
-		global_work_size -= local_work_size;
 
 	//Auto tune execution from shared/included code.
 	autotune_run(self, ROUNDS, gws_limit,
@@ -334,23 +324,22 @@ static int cmp_exact(char *source, int index)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
-	size_t gws;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
 	if (local_work_size)
-		gws = (count + local_work_size - 1) / local_work_size * local_work_size;
+		global_work_size = (count + local_work_size - 1) / local_work_size * local_work_size;
 	else
-		gws = (count + 64 - 1) / 64 * 64;
+		global_work_size = count;
 
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_keys, CL_TRUE, 0, 4 * key_idx, saved_plain, 0, NULL, multi_profilingEvent[0]), "failed in clEnqueueWriteBuffer buffer_keys");
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_idx, CL_TRUE, 0, 4 * gws, saved_idx, 0, NULL, multi_profilingEvent[1]), "failed in clEnqueueWriteBuffer buffer_idx");
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_idx, CL_TRUE, 0, 4 * global_work_size, saved_idx, 0, NULL, multi_profilingEvent[1]), "failed in clEnqueueWriteBuffer buffer_idx");
 
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[2]), "failed in clEnqueueNDRangeKernel");
 
 	HANDLE_CLERROR(clFinish(queue[gpu_id]),"failed in clFinish");
 
 	// read back partial hashes
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buffer_out, CL_TRUE, 0, sizeof(cl_uint) * gws, partial_hashes, 0, NULL, multi_profilingEvent[3]), "failed in reading data back");
+	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buffer_out, CL_TRUE, 0, sizeof(cl_uint) * global_work_size, partial_hashes, 0, NULL, multi_profilingEvent[3]), "failed in reading data back");
 	have_full_hashes = 0;
 
 	return count;

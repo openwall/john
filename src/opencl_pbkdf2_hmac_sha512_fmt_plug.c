@@ -446,8 +446,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
+	size_t *lws = local_work_size ? &local_work_size : NULL;
 
-	opencl_limit_gws(count);
+	global_work_size = local_work_size ? (count + local_work_size - 1) / local_work_size * local_work_size : count;
 
 #if 0
 	printf("crypt_all_benchmark(%d)\n", count);
@@ -461,18 +462,18 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
 
 	/// Run kernel
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1,
-		NUUL, &global_work_size, &local_work_size, 0, NULL,
+		NUUL, &global_work_size, lws, 0, NULL,
 		multi_profilingEvent[1]), "Run kernel");
 	BENCH_CLERROR(clFinish(queue[gpu_id]), "clFinish");
 
 
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], split_kernel,
-		1, NULL, &global_work_size, &local_work_size, 0, NULL,
+		1, NULL, &global_work_size, lws, 0, NULL,
 		NULL), "Run split kernel");
 	BENCH_CLERROR(clFinish(queue[gpu_id]), "clFinish");
 
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], split_kernel,
-		1, NULL, &global_work_size, &local_work_size, 0, NULL,
+		1, NULL, &global_work_size, lws, 0, NULL,
 		multi_profilingEvent[2]), "Run split kernel");
 	BENCH_CLERROR(clFinish(queue[gpu_id]), "clFinish");
 

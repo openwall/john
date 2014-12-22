@@ -167,7 +167,6 @@ static void create_clobj(size_t gws, struct fmt_main *self)
         HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(buffer_out), (void *) &buffer_out), "Error setting argument 3");
 
         cracked = mem_alloc(sizeof(*cracked) * gws);
-        global_work_size = gws;
 }
 
 static void release_clobj(void){

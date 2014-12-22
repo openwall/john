@@ -153,7 +153,7 @@ struct fmt_main *me;
 
 static void create_clobj(size_t gws, struct fmt_main *self)
 {
-	gws *= v_width;
+	global_work_size = gws *= v_width;
 
 	key_buf_size = 64 * gws;
 
@@ -397,9 +397,6 @@ static void init(struct fmt_main *self)
 	autotune_run(self, 2 * (ITERATIONS - 1) + 4, 0,
 	             (cpu(device_info[gpu_id]) ? 1000000000 : 10000000000ULL));
 	self->methods.crypt_all = crypt_all;
-
-	self->params.min_keys_per_crypt = local_work_size * v_width;
-	self->params.max_keys_per_crypt = global_work_size * v_width;
 }
 
 static int ishex(char *q)

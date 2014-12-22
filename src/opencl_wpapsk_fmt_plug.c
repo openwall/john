@@ -99,11 +99,17 @@ static size_t get_task_max_size()
 
 static size_t get_default_workgroup()
 {
+#if 1
+	return get_task_max_work_group_size(); // GTX980: 195629 c/s
+#elif 1
+	return 0; // 190650 c/s
+#else
 	if (cpu(device_info[gpu_id]))
 		return get_platform_vendor_id(platform_id) == DEV_INTEL ?
 			8 : 1;
 	else
-		return 64;
+		return 64; // 181414 c/s
+#endif
 }
 
 static void create_clobj(size_t gws, struct fmt_main *self)
@@ -263,9 +269,6 @@ static void init(struct fmt_main *self)
 	autotune_run(self, 2 * ITERATIONS * 2 + 2, 0,
 	             (cpu(device_info[gpu_id]) ? 1000000000 : 10000000000ULL));
 	self->methods.crypt_all = crypt_all;
-
-	self->params.min_keys_per_crypt = local_work_size * v_width;
-	self->params.max_keys_per_crypt = global_work_size * v_width;
 }
 
 static int crypt_all(int *pcount, struct db_salt *salt)

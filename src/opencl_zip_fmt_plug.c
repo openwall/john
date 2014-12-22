@@ -503,6 +503,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
 	int index;
+	size_t *lws = local_work_size ? &local_work_size : NULL;
+
+	global_work_size = local_work_size ? (count + local_work_size - 1) / local_work_size * local_work_size : count;
 
 	if (saved_salt->v.type) {
 		// This salt passed valid() but failed get_salt().
@@ -511,8 +514,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		return count;
 	}
 
-	global_work_size = (count + local_work_size - 1) / local_work_size * local_work_size;
-
 	/// Copy data to gpu
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0,
 		insize, inbuffer, 0, NULL, multi_profilingEvent[0]),
@@ -520,7 +521,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	/// Run kernel
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1,
-		NULL, &global_work_size, &local_work_size, 0, NULL,
+		NULL, &global_work_size, lws, 0, NULL,
 		multi_profilingEvent[1]),
 		"Run kernel");
 

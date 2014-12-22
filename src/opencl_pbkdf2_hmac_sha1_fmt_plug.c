@@ -244,9 +244,6 @@ static void init(struct fmt_main *self)
 	autotune_run(self, 2*999+4, 0,
 		(cpu(device_info[gpu_id]) ? 1000000000 : 5000000000ULL));
 	self->methods.crypt_all = crypt_all;
-
-	self->params.min_keys_per_crypt = local_work_size * v_width;
-	self->params.max_keys_per_crypt = global_work_size * v_width;
 }
 
 static char *prepare(char *fields[10], struct fmt_main *self)

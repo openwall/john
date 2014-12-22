@@ -109,8 +109,6 @@ static size_t get_default_workgroup()
 
 static void create_clobj(size_t kpc, struct fmt_main * self)
 {
-	global_work_size = kpc;
-
 	pinned_saved_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, BUFSIZE * kpc, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory pinned_saved_keys");
 	saved_plain = (cl_uint *) clEnqueueMapBuffer(queue[gpu_id], pinned_saved_keys, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, BUFSIZE * kpc, 0, NULL, NULL, &ret_code);
@@ -175,18 +173,10 @@ static void init(struct fmt_main *self)
 	gws_limit = MIN((0xf << 22) * 4 / BUFSIZE,
 			get_max_mem_alloc_size(gpu_id) / BUFSIZE);
 
-	//Warm up.
-	create_clobj((1024 * 1024), self);
-	release_clobj();
-
 	// Initialize openCL tuning (library) for this format.
 	opencl_init_auto_setup(SEED, 0, NULL, warn,
 	        1, self, create_clobj,
 	        release_clobj, 2 * BUFSIZE, gws_limit);
-
-	//Limit worksize using index limitation.
-	while (global_work_size > gws_limit)
-		global_work_size -= local_work_size;
 
 	//Auto tune execution from shared/included code.
 	autotune_run(self, 1, gws_limit,

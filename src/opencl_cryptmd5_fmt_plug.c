@@ -381,8 +381,9 @@ static void *binary(char *ciphertext)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
+	size_t *lws = local_work_size ? &local_work_size : NULL;
 
-	global_work_size = (((count + local_work_size - 1) / local_work_size) * local_work_size);
+	global_work_size = local_work_size ? (count + local_work_size - 1) / local_work_size * local_work_size : count;
 
 	///Copy data to GPU memory
 	if (new_keys)
@@ -392,7 +393,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	///Run kernel
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1,
-		NULL, &global_work_size, &local_work_size, 0, NULL, multi_profilingEvent[1]),
+		NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[1]),
 		"Set ND range");
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_FALSE,
 		0, outsize, outbuffer, 0, NULL, multi_profilingEvent[2]),

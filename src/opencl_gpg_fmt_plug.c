@@ -1023,8 +1023,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
 	int index = 0;
+	size_t *lws = local_work_size ? &local_work_size : NULL;
 
-	global_work_size = (count + local_work_size - 1) / local_work_size * local_work_size;
+	global_work_size = local_work_size ? (count + local_work_size - 1) / local_work_size * local_work_size : count;
 
 	if (any_cracked) {
 		memset(cracked, 0, cracked_size);
@@ -1038,7 +1039,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	/// Run kernel
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1,
-		NULL, &global_work_size, &local_work_size, 0, NULL,
+		NULL, &global_work_size, lws, 0, NULL,
 		multi_profilingEvent[1]),
 		"Run kernel");
 

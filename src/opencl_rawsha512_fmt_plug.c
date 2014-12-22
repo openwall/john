@@ -392,10 +392,6 @@ static void init(struct fmt_main * self) {
 		warn, 1, self, create_clobj, release_clobj,
 		2 * BUFFER_SIZE, gws_limit);
 
-	//Limit worksize using index limitation.
-	while (global_work_size > gws_limit)
-		global_work_size -= local_work_size;
-
 	//Auto tune execution from shared/included code.
 	autotune_run(self, 1, gws_limit,
 		(cpu(device_info[gpu_id]) ? 500000000ULL : 1000000000ULL));

@@ -326,10 +326,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
 	int i;
-	size_t *lws = local_work_size ? &local_work_size : NULL;
+	size_t lws;
+
+	/* kernel is made for lws 64, using local memory */
+	lws = local_work_size ? local_work_size : 64;
 
 	/* Don't do more than requested */
-	global_work_size = local_work_size ? (count + local_work_size - 1) / local_work_size * local_work_size : count;
+	global_work_size = (count + lws - 1) / lws * lws;
 
 	/* Self-test cludge */
 	if (idx_offset > 4 * (global_work_size + 1))
@@ -339,11 +342,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		if (key_idx > key_offset)
 			HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_key, CL_FALSE, key_offset, key_idx - key_offset, saved_key + key_offset, 0, NULL, NULL), "Failed transferring keys");
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_idx, CL_FALSE, idx_offset, 4 * (global_work_size + 1) - idx_offset, saved_idx + (idx_offset / 4), 0, NULL, multi_profilingEvent[0]), "Failed transferring index");
-		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], krb5pa_md5_nthash, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[1]), "Failed running first kernel");
+		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], krb5pa_md5_nthash, 1, NULL, &global_work_size, &lws, 0, NULL, multi_profilingEvent[1]), "Failed running first kernel");
 
 		new_keys = 0;
 	}
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[2]), "Failed running second kernel");
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, &lws, 0, NULL, multi_profilingEvent[2]), "Failed running second kernel");
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_result, CL_TRUE, 0, BINARY_SIZE * global_work_size, output, 0, NULL, multi_profilingEvent[3]), "failed reading results back");
 
 	for (i = 0; i < count; i++) {

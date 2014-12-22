@@ -371,9 +371,6 @@ static void init(struct fmt_main *self)
 		(cpu(device_info[gpu_id]) ? 1000000000 : 5000000000ULL));
 	self->methods.crypt_all = crypt_all;
 
-	self->params.min_keys_per_crypt = local_work_size * v_width;
-	self->params.max_keys_per_crypt = global_work_size * v_width;
-
 	// generate 128 bits from 40 bits of "kerberos" string
 	nfold(8 * 8, (unsigned char*)"kerberos", 128, constant);
 

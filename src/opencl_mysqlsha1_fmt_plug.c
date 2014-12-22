@@ -192,8 +192,6 @@ static void init(struct fmt_main *self)
 	char build_opts[64];
 	size_t gws_limit;
 
-	local_work_size = global_work_size = 0;
-
 	snprintf(build_opts, sizeof(build_opts),
 	        "-DPLAINTEXT_LENGTH=%u", PLAINTEXT_LENGTH);
 	opencl_init("$JOHN/kernels/msha_kernel.cl", gpu_id, build_opts);
@@ -307,9 +305,9 @@ static int cmp_exact(char *source, int index)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
+	size_t *lws = local_work_size ? &local_work_size : NULL;
 
-	/* Don't do more than requested */
-	global_work_size = (count + local_work_size - 1) / local_work_size * local_work_size;
+	global_work_size = local_work_size ? (count + local_work_size - 1) / local_work_size * local_work_size : count;
 
 	/* Self-test cludge */
 	if (idx_offset > 4 * (global_work_size + 1))
@@ -320,7 +318,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_idx, CL_FALSE, idx_offset, sizeof(cl_uint) * (global_work_size + 1) - idx_offset, saved_idx + (idx_offset / sizeof(cl_uint)), 0, NULL, multi_profilingEvent[1]), "Failed transferring index");
 
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, multi_profilingEvent[2]), "failed in clEnqueueNDRangeKernel");
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[2]), "failed in clEnqueueNDRangeKernel");
 
 	// read back partial hashes
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_result, CL_TRUE, 0, sizeof(cl_uint) * global_work_size, output, 0, NULL, multi_profilingEvent[3]), "failed in reading data back");

@@ -232,6 +232,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
 	int key_length_mul_4 = (((max_key_length+1) + 3)/4)*4;
+	size_t *lws = local_work_size ? &local_work_size : NULL;
 
 	// Fill params. Copy only necesary data
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_keys,
@@ -241,7 +242,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	// Execute method
 	clEnqueueNDRangeKernel( queue[gpu_id], crypt_kernel, 1, NULL,
-		&global_work_size, &local_work_size, 0, NULL,
+		&global_work_size, lws, 0, NULL,
 		multi_profilingEvent[1]);
 
 	// Read partial result

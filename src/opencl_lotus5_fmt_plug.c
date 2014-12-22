@@ -270,7 +270,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
 	size_t mem_cpy_sz;
-	size_t N, M;
+	size_t N, *M;
 
 	mem_cpy_sz = count * KEY_SIZE_IN_BYTES;
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id],
@@ -279,11 +279,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 					    0, NULL, multi_profilingEvent[0]),
 					    "Failed:Copy data to gpu.");
 
-	M = local_work_size;
-	N = (count + (M - 1)) / M * M;
+	M = local_work_size ? &local_work_size : NULL;
+	N = local_work_size ?
+		(count + (local_work_size - 1)) /
+		local_work_size * local_work_size : count;
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id],
 					      crypt_kernel, 1,
-					      NULL, &N, &M,
+					      NULL, &N, M,
 	                                      0, NULL, multi_profilingEvent[1]),
 					      "Enqueue Kernel Failed.");
 

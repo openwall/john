@@ -411,12 +411,15 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int index, count = *pcount;
 	int m = cur_salt->has_mitm;
-	size_t *lws = local_work_size ? &local_work_size : NULL;
+	size_t lws;
+
+	/* kernel is made for lws 64, using local memory */
+	lws = local_work_size ? local_work_size : 64;
 
 	/* Don't do more than requested */
-	global_work_size = local_work_size ? (count + local_work_size - 1) / local_work_size * local_work_size : count;
+	global_work_size = (count + lws - 1) / lws * lws;
 
-	//fprintf(stderr, "%s(%d) lws %zu gws %zu kidx %u m %d\n", __FUNCTION__, count, local_work_size, global_work_size, key_idx, m);
+	//fprintf(stderr, "%s(%d) lws %zu gws %zu kidx %u m %d k %d\n", __FUNCTION__, count, lws, global_work_size, key_idx, m, new_keys);
 
 	if (new_keys) {
 		/* Self-test kludge */
@@ -425,15 +428,15 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_key, CL_FALSE, key_offset, key_idx - key_offset, saved_key + key_offset, 0, NULL, multi_profilingEvent[0]), "Failed transferring keys");
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_idx, CL_FALSE, idx_offset, 4 * (global_work_size + 1) - idx_offset, saved_idx + (idx_offset / 4), 0, NULL, multi_profilingEvent[1]), "Failed transferring index");
-		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], oldoffice_utf16, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[2]), "Failed running first kernel");
+		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], oldoffice_utf16, 1, NULL, &global_work_size, &lws, 0, NULL, multi_profilingEvent[2]), "Failed running first kernel");
 
 		new_keys = 0;
 	}
 
 	if(cur_salt->type < 3) {
-		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], oldoffice_md5, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[3]), "Failed running second kernel");
+		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], oldoffice_md5, 1, NULL, &global_work_size, &lws, 0, NULL, multi_profilingEvent[3]), "Failed running second kernel");
 	} else {
-		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], oldoffice_sha1, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[3]), "Failed running first kernel");
+		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], oldoffice_sha1, 1, NULL, &global_work_size, &lws, 0, NULL, multi_profilingEvent[3]), "Failed running first kernel");
 	}
 
 	if (bench_running || m) {

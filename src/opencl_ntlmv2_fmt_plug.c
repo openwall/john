@@ -126,11 +126,17 @@ static size_t get_task_max_size()
 
 static size_t get_default_workgroup()
 {
+#if 0
+	return get_task_max_work_group_size(); // GTX980: 53986K c/s
+#elif 0
+	return 0; // 53986K
+#else
 	if (cpu(device_info[gpu_id]))
 		return get_platform_vendor_id(platform_id) == DEV_INTEL ?
 			8 : 1;
 	else
-		return 64;
+		return 64; // 54878K c/s
+#endif
 }
 
 static void create_clobj(size_t gws, struct fmt_main *self)
@@ -477,9 +483,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
 	size_t scalar_gws;
+	size_t *lws = local_work_size ? &local_work_size : NULL;
 
 	/* Don't do more than requested */
-	global_work_size = ((count + (v_width * local_work_size - 1)) / (v_width * local_work_size)) * local_work_size;
+	global_work_size = local_work_size ? ((count + (v_width * local_work_size - 1)) / (v_width * local_work_size)) * local_work_size : count / v_width;
 	scalar_gws = global_work_size * v_width;
 
 	/* Self-test cludge */
@@ -489,11 +496,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	if (new_keys) {
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_key, CL_FALSE, key_offset, key_idx - key_offset, saved_key + key_offset, 0, NULL, multi_profilingEvent[0]), "Failed transferring keys");
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_idx, CL_FALSE, idx_offset, 4 * (scalar_gws + 1) - idx_offset, saved_idx + (idx_offset / 4), 0, NULL, multi_profilingEvent[1]), "Failed transferring index");
-		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], ntlmv2_nthash, 1, NULL, &scalar_gws, &local_work_size, 0, NULL, multi_profilingEvent[2]), "Failed running first kernel");
+		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], ntlmv2_nthash, 1, NULL, &scalar_gws, lws, 0, NULL, multi_profilingEvent[2]), "Failed running first kernel");
 
 		new_keys = 0;
 	}
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, multi_profilingEvent[3]), "Failed running second kernel");
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[3]), "Failed running second kernel");
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_result, CL_TRUE, 0, 4 * scalar_gws, output, 0, NULL, multi_profilingEvent[4]), "failed reading results back");
 
 	partial_output = 1;

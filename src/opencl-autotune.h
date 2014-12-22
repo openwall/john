@@ -101,10 +101,9 @@ static void autotune_run(struct fmt_main * self, unsigned int rounds,
 	else if (global_work_size)
 		global_work_size = GET_MULTIPLE_OR_ZERO(global_work_size, local_work_size);
 
-	//Check if local_work_size is a valid number.
-	if (local_work_size > get_task_max_work_group_size()) {
-		local_work_size = 0; //Force find a valid number.
-	}
+	/* Ensure local_work_size is not oversized */
+	if (local_work_size > get_task_max_work_group_size())
+		local_work_size = get_task_max_work_group_size();
 
 	/* Enumerate GWS using *LWS=NULL (unless it was set explicitly) */
 	if (!global_work_size)
