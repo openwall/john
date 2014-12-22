@@ -41,7 +41,7 @@ static int omp_t = 1;
 typedef struct sip_salt_t {
 	int static_hash_data_len;
 	MD5_CTX ctx_dyna_data;
-	char static_hash_data[DYNAMIC_HASH_SIZE+1];
+	char static_hash_data[STATIC_HASH_SIZE+1];
 } sip_salt;
 
 static sip_salt *pSalt;
