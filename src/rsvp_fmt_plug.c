@@ -318,6 +318,7 @@ static void rsvp_set_key(char *key, int index)
 {
 	saved_len[index] = strlen(key);
 	strncpy(saved_key[index], key, sizeof(saved_key[0]));
+	new_keys[1] = new_keys[2] = 2;
 }
 
 static void clear_keys(void) {
