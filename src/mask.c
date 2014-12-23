@@ -1432,7 +1432,7 @@ char *stretch_mask(char *mask, parsed_ctx *parsed_mask)
 
 	strncpy(stretched_mask, mask, j);
 	k = 0;
-	while (k <= options.force_maxlength) {
+	while (k < options.force_maxlength) {
 		i = strlen(mask) - 1;
 		if (mask[i] == '\\' && i - 1 >= 0) {
 			i--;
