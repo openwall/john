@@ -47,6 +47,10 @@ john_register_one(&fmt_rsvp);
 #define MAX_KEYS_PER_CRYPT      1
 #define HEXCHARS                "0123456789abcdef"
 #define MAX_SALT_SIZE           8192
+// currently only 2 types, 1 for md5 and 2 for SHA1. Bump this
+// number each type a type is added, and make sure the types
+// are sequential.
+#define MAX_TYPES               2
 
 static struct fmt_tests tests[] = {
 	{"$rsvp$1$10010000ff0000ac002404010100000000000001d7e95bfa0000003a00000000000000000000000000000000000c0101c0a8011406000017000c0301c0a8010a020004020008050100007530000c0b01c0a8010a0000000000240c0200000007010000067f00000545fa000046fa000045fa0000000000007fffffff00300d020000000a010000080400000100000001060000014998968008000001000000000a000001000005dc05000000$636d8e6db5351fbc9dad620c5ec16c0b", "password12345"},
@@ -56,8 +60,15 @@ static struct fmt_tests tests[] = {
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static int *saved_len;
-static int new_keys1=1, new_keys2=1;
-// we make our crypt_out large enough for an SHA1 output now.  Even though we only compare first BINARY_SIZE data.
+
+// when we add more types, they need to be sequential (next will be 3),
+// AND we need to bump this to the count. Each type will use one of these
+// to track whether it has build the first half of the hmac.  The size
+// of this array should be 1 more than the max number of types.
+static int new_keys[MAX_TYPES+1];
+
+// we make our crypt_out large enough for an SHA1 output now.  Even though
+// we only compare first BINARY_SIZE data.
 static ARCH_WORD_32 (*crypt_out)[ (BINARY_SIZE+4) / sizeof(ARCH_WORD_32)];
 static SHA_CTX *ipad_ctx;
 static SHA_CTX *opad_ctx;
@@ -204,7 +215,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		unsigned char buf[20];
 		if (cur_salt->type == 1) {
 			MD5_CTX ctx;
-			if (new_keys1) {
+			if (new_keys[cur_salt->type]) {
 				int i, len = strlen(saved_key[index]);
 				unsigned char *p = (unsigned char*)saved_key[index];
 				unsigned char pad[64];
@@ -239,7 +250,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			MD5_Final((unsigned char*)(crypt_out[index]), &ctx);
 		} else if (cur_salt->type == 2) {
 			SHA_CTX ctx;
-			if (new_keys2) {
+			if (new_keys[cur_salt->type]) {
 				int i, len = strlen(saved_key[index]);
 				unsigned char *p = (unsigned char*)saved_key[index];
 				unsigned char pad[64];
@@ -277,10 +288,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		}
 
 	}
-	if (cur_salt->type == 1)
-		new_keys1 = 0;
-	else
-		new_keys2 = 0;
+	new_keys[cur_salt->type] = 0;
 
 	return count;
 }
@@ -310,7 +318,12 @@ static void rsvp_set_key(char *key, int index)
 {
 	saved_len[index] = strlen(key);
 	strncpy(saved_key[index], key, sizeof(saved_key[0]));
-	new_keys1 = new_keys2 = 1;
+}
+
+static void clear_keys(void) {
+	int i;
+	for (i = 0; i <= MAX_TYPES; ++i)
+		new_keys[i] = 1;
 }
 
 static char *get_key(int index)
@@ -379,7 +392,7 @@ struct fmt_main fmt_rsvp = {
 		set_salt,
 		rsvp_set_key,
 		get_key,
-		fmt_default_clear_keys,
+		clear_keys,
 		crypt_all,
 		{
 			get_hash_0,
