@@ -123,6 +123,8 @@ static int valid(char *ciphertext,struct fmt_main *self)
 	p = strrchr(ciphertext, '$');
 	if (p == NULL)
 		return 0;
+	if (p - ciphertext > 19)
+		return 0;
 	for (i = p - ciphertext + 1; i < len; i++) {
 		int found = 0;
 		for (j = 0; j < 64; j++)
