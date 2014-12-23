@@ -22,7 +22,7 @@
 
 /* Start size for GWS enumeration */
 #ifndef SEED
-#error SEED must be defined by format before including autotune header
+#define SEED	128
 #endif
 
 //Necessary definitions. Each format have to have each one of them.
