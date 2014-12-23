@@ -96,5 +96,5 @@ void dyna_salt_smash(void *p, char c) {
 }
 int dyna_salt_smash_check(void *p, unsigned char c) {
 	dyna_salt_john_core *p1 = *((dyna_salt_john_core**)p);
-	return (((unsigned char*)p)[p1->dyna_salt.salt_cmp_offset+p1->dyna_salt.salt_cmp_size-1] == c);
+	return (((unsigned char*)p1)[p1->dyna_salt.salt_cmp_offset+p1->dyna_salt.salt_cmp_size-1] == c);
 }
