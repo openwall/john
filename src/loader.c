@@ -1445,6 +1445,15 @@ static void ldr_show_pot_line(struct db_main *db, char *line)
 
 	ciphertext = ldr_get_field(&line, db->options->field_sep_char);
 
+	if (options.format &&
+	    !strcasecmp(options.format, "raw-sha1-linkedin") &&
+	    !strncmp(ciphertext, "$dynamic_26$", 12) &&
+	    strncmp(ciphertext, "$dynamic_26$00000", 17)) {
+		char *new = mem_alloc_tiny(12 + 41, MEM_ALIGN_NONE);
+		strnzcpy(new, ciphertext, 12 + 41);
+		memset(new + 12, '0', 5);
+		ciphertext = new;
+	} else
 	if (!strncmp(ciphertext, "$dynamic_", 9) && strstr(ciphertext, "$HEX$"))
 	{
 		char Tmp[512], *cp=Tmp;
