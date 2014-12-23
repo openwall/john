@@ -217,18 +217,24 @@ static void* get_salt(char *ciphertext)
 	return s;
 }
 
-/***********************************************************************************************************
- * we know first sector has Tweak value of 0. For this, we just AES a null 16 bytes, then do the XeX using
- * the results for our xor, then modular mult GF(2) that value for the next round.  NOTE, len MUST
- * be an even multiple of 16 bytes.  We do NOT handle CT stealing.  But the way we use it in the TC format
- * we only decrypt 16 bytes, and later (if it looks 'good'), we decrypt the whole first sector (512-64 bytes)
- * both which are even 16 byte data.
- * This code has NOT been optimized. It was based on simple reference code that I could get my hands on.  However,
- * 'mostly' we do a single limb AES-XTS which is just 2 AES, and the buffers xored (before and after). There is
- * no mulmod GF(2) logic done in that case.   NOTE, there was NO noticable change in speed, from using original
- * oSSL EVP_AES_256_XTS vs this code, so this code is deemed 'good enough' for usage in this location.
- ***********************************************************************************************************/
-static void AES_256_XTS_first_sector(const unsigned char *double_key, unsigned char *out, const unsigned char *data, unsigned len) {
+/*****************************************************************************
+ * we know first sector has Tweak value of 0. For this, we just AES a null 16
+ * bytes, then do the XeX using the results for our xor, then modular mult
+ * GF(2) that value for the next round.  NOTE, len MUST be an even multiple of
+ * 16 bytes.  We do NOT handle CT stealing.  But the way we use it in the TC
+ * format we only decrypt 16 bytes, and later (if it looks 'good'), we decrypt
+ * the whole first sector (512-64 bytes) both which are even 16 byte data.
+ * This code has NOT been optimized. It was based on simple reference code that
+ * I could get my hands on.  However, 'mostly' we do a single limb AES-XTS which
+ * is just 2 AES, and the buffers xored (before and after). There is no mulmod
+ * GF(2) logic done in that case.   NOTE, there was NO noticable change in
+ * speed, from using original oSSL EVP_AES_256_XTS vs this code, so this code
+ * is deemed 'good enough' for usage in this location.
+ *****************************************************************************/
+static void AES_256_XTS_first_sector(const unsigned char *double_key,
+                                     unsigned char *out,
+                                     const unsigned char *data,
+                                     unsigned len) {
 	unsigned char tweak[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 	unsigned char buf[16];
 	int i, j, cnt;
@@ -445,8 +451,13 @@ struct fmt_main fmt_truecrypt = {
 		BINARY_ALIGN,
 		SALT_SIZE,
 		SALT_ALIGN,
+#if SSE_GROUP_SZ_SHA512
+		SSE_GROUP_SZ_SHA512,
+		SSE_GROUP_SZ_SHA512,
+#else
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
+#endif
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 #if FMT_MAIN_VERSION > 11
 		{
