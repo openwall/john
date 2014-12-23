@@ -281,7 +281,7 @@ static char *split (char *ciphertext, int index)
     static char out[TAG_LENGTH + CIPHERTEXT_LENGTH + 1];
 
     if (!strncmp (ciphertext, FORMAT_TAG, TAG_LENGTH))
-        return ciphertext;
+        ciphertext += TAG_LENGTH;
 
     memcpy (out,  FORMAT_TAG, TAG_LENGTH);
     memcpy (out + TAG_LENGTH, ciphertext, CIPHERTEXT_LENGTH + 1);
