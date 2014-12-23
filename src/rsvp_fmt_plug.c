@@ -56,7 +56,7 @@ static struct fmt_tests tests[] = {
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static int *saved_len;
-static int new_keys;
+static int new_keys1=1, new_keys2=1;
 // we make our crypt_out large enough for an SHA1 output now.  Even though we only compare first BINARY_SIZE data.
 static ARCH_WORD_32 (*crypt_out)[ (BINARY_SIZE+4) / sizeof(ARCH_WORD_32)];
 static SHA_CTX *ipad_ctx;
@@ -204,7 +204,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		unsigned char buf[20];
 		if (cur_salt->type == 1) {
 			MD5_CTX ctx;
-			if (new_keys) {
+			if (new_keys1) {
 				int i, len = strlen(saved_key[index]);
 				unsigned char *p = (unsigned char*)saved_key[index];
 				unsigned char pad[64];
@@ -239,7 +239,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			MD5_Final((unsigned char*)(crypt_out[index]), &ctx);
 		} else if (cur_salt->type == 2) {
 			SHA_CTX ctx;
-			if (new_keys) {
+			if (new_keys2) {
 				int i, len = strlen(saved_key[index]);
 				unsigned char *p = (unsigned char*)saved_key[index];
 				unsigned char pad[64];
@@ -277,7 +277,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		}
 
 	}
-	new_keys = 0;
+	if (cur_salt->type == 1)
+		new_keys1 = 0;
+	else
+		new_keys2 = 0;
 
 	return count;
 }
@@ -307,7 +310,7 @@ static void rsvp_set_key(char *key, int index)
 {
 	saved_len[index] = strlen(key);
 	strncpy(saved_key[index], key, sizeof(saved_key[0]));
-	new_keys = 1;
+	new_keys1 = new_keys2 = 1;
 }
 
 static char *get_key(int index)
