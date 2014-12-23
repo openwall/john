@@ -132,24 +132,6 @@ static void init(struct fmt_main *self)
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
-static char *prepare(char *split_fields[10], struct fmt_main *self)
-{
-	return split_fields[1];
-}
-
-static char* ms_split(char *ciphertext, int index, struct fmt_main *self)
-{
-	static char out[MAX_CIPHERTEXT_LENGTH + 1];
-	int i;
-
-	for(i = 0; ciphertext[i] && i < MAX_CIPHERTEXT_LENGTH; i++)
-		out[i] = ciphertext[i];
-
-	out[i] = 0;
-
-	return out;
-}
-
 static int valid(char* ciphertext, int pos)
 {
 	unsigned int i;
@@ -476,9 +458,9 @@ struct fmt_main fmt_truecrypt = {
 		init,
 		fmt_default_done,
 		fmt_default_reset,
-		prepare,
+		fmt_default_prepare,
 		valid_truecrypt,
-		ms_split,
+		fmt_default_split,
 		fmt_default_binary,
 		get_salt,
 #if FMT_MAIN_VERSION > 11
@@ -528,9 +510,9 @@ struct fmt_main fmt_truecrypt_ripemd160 = {
 		init,
 		fmt_default_done,
 		fmt_default_reset,
-		prepare,
+		fmt_default_prepare,
 		valid_ripemd160,
-		ms_split,
+		fmt_default_split,
 		fmt_default_binary,
 		get_salt,
 #if FMT_MAIN_VERSION > 11
@@ -591,9 +573,9 @@ struct fmt_main fmt_truecrypt_sha512 = {
 		init,
 		fmt_default_done,
 		fmt_default_reset,
-		prepare,
+		fmt_default_prepare,
 		valid_sha512,
-		ms_split,
+		fmt_default_split,
 		fmt_default_binary,
 		get_salt,
 #if FMT_MAIN_VERSION > 11
@@ -645,9 +627,9 @@ struct fmt_main fmt_truecrypt_whirlpool = {
 		init,
 		fmt_default_done,
 		fmt_default_reset,
-		prepare,
+		fmt_default_prepare,
 		valid_whirlpool,
-		ms_split,
+		fmt_default_split,
 		fmt_default_binary,
 		get_salt,
 #if FMT_MAIN_VERSION > 11
