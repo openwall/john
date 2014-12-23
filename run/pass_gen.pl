@@ -72,7 +72,7 @@ my @funcs = (qw(DESCrypt BigCrypt BSDIcrypt md5crypt md5crypt_a BCRYPT BCRYPTx
 		rakp osc formspring skey_md5 pbkdf2-hmac-sha1 odf odf-1 office_2007
 		skey_md4 skey_sha1 skey_rmd160 cloudkeychain agilekeychain
 		rar rar5 ecryptfs office_2010 office_2013 tc_ripemd160 tc_sha512
-		tc_whirlpool Haval-256 SAP-H));
+		tc_whirlpool Haval-256 SAP-H rsvp));
 
 # todo: sapb sapfg ike keepass cloudkeychain agilekeychain pfx racf vnc pdf pkzip rar5 ssh raw_gost_cp
 my $i; my $h; my $u; my $salt;
@@ -1231,6 +1231,20 @@ sub tc_whirlpool {
 sub pdf {
 }
 sub pkzip {
+}
+sub rsvp {
+	require Digest::HMAC_MD5;
+	$salt = get_salt(172);
+	my $mode = 1;
+	my $h;
+	if (defined $argmode) {$mode=$argmode;} # 1 or 2
+	# note, password and salt are 'reversed' in the hmac.
+	if ($mode == 1) {
+		$h = Digest::HMAC_MD5::hmac_md5($salt, $_[0]);
+	} else {
+		$h = Digest::SHA::hmac_sha1($salt, $_[0]);
+	}
+	print "u$u-rsvp:\$rsvp\$$mode\$".unpack("H*",$salt).'$'.unpack("H*",$h).":$u:0:$_[0]::\n";
 }
 sub sap_h {
 	$salt = get_salt(12, -16);
