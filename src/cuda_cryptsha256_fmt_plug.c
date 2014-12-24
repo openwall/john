@@ -26,7 +26,6 @@ john_register_one(&fmt_cuda_cryptsha256);
 #include "misc.h"
 #include "cuda_cryptsha256.h"
 #include "cuda_common.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL		"sha256crypt-cuda"
 #define FORMAT_NAME		"crypt(3) $5$"
@@ -40,13 +39,18 @@ john_register_one(&fmt_cuda_cryptsha256);
 #define BINARY_SIZE		32
 #define MD5_DIGEST_LENGTH 	16
 
+#define CIPHERTEXT_LENGTH	43
+#define SALT_LENGTH		16
 #define SALT_SIZE		(3+7+9+16)
 
 #define BINARY_ALIGN		4
-#define SALT_ALIGN			sizeof(uint32_t)
+#define SALT_ALIGN		sizeof(uint32_t)
 
 #define MIN_KEYS_PER_CRYPT	THREADS
 #define MAX_KEYS_PER_CRYPT	KEYS_PER_CRYPT
+
+#include "cryptsha256_common.h"
+#include "memdbg.h"
 
 extern void sha256_crypt_gpu(crypt_sha256_password * inbuffer,
 	uint32_t * outbuffer, crypt_sha256_salt * host_salt, int count);
@@ -111,89 +115,6 @@ static void init(struct fmt_main *self)
   check_mem_allocation(inbuffer,outbuffer);
   //Initialize CUDA
   cuda_init();
-}
-
-static int valid(char *ciphertext,struct fmt_main *self)
-{
-	uint32_t i, j;
-	int len = strlen(ciphertext);
-	char *p;
-	if (strncmp(ciphertext, "$5$", 3) != 0)
-		return 0;
-	p = strrchr(ciphertext, '$');
-	if (p == NULL)
-		return 0;
-	if (p - ciphertext > 19)
-		return 0;
-	for (i = p - ciphertext + 1; i < len; i++) {
-		int found = 0;
-		for (j = 0; j < 64; j++)
-			if (itoa64[j] == ARCH_INDEX(ciphertext[i])) {
-				found = 1;
-				break;
-			}
-		if (found == 0)
-			return 0;
-	}
-	if (len - (p - ciphertext + 1) != 43)
-		return 0;
-	return 1;
-}
-
-static int findb64(char c)
-{
-	int ret = ARCH_INDEX(atoi64[(uint8_t) c]);
-	return ret != 0x7f ? ret : 0;
-}
-
-static void magic(char *crypt, char *alt)
-{
-
-#define _24bit_from_b64(I,B2,B1,B0) \
-  {\
-      uint8_t c1,c2,c3,c4,b0,b1,b2;\
-      uint32_t w;\
-      c1=findb64(crypt[I+0]);\
-      c2=findb64(crypt[I+1]);\
-      c3=findb64(crypt[I+2]);\
-      c4=findb64(crypt[I+3]);\
-      w=c4<<18|c3<<12|c2<<6|c1;\
-      b2=w&0xff;w>>=8;\
-      b1=w&0xff;w>>=8;\
-      b0=w&0xff;w>>=8;\
-      alt[B2]=b0;\
-      alt[B1]=b1;\
-      alt[B0]=b2;\
-  }
-	uint32_t w;
-	_24bit_from_b64(0, 0, 10, 20);
-	_24bit_from_b64(4, 21, 1, 11);
-	_24bit_from_b64(8, 12, 22, 2);
-	_24bit_from_b64(12, 3, 13, 23);
-	_24bit_from_b64(16, 24, 4, 14);
-	_24bit_from_b64(20, 15, 25, 5);
-	_24bit_from_b64(24, 6, 16, 26);
-	_24bit_from_b64(28, 27, 7, 17);
-	_24bit_from_b64(32, 18, 28, 8);
-	_24bit_from_b64(36, 9, 19, 29);
-	w =
-	    findb64(crypt[42]) << 12 | findb64(crypt[41]) << 6 |
-	    findb64(crypt[40]);
-	alt[30] = w & 0xff;
-	w >>= 8;
-	alt[31] = w & 0xff;
-	w >>= 8;
-}
-
-static void *binary(char *ciphertext)
-{
-	static char b[BINARY_SIZE];
-	char *p;
-	memset(b, 0, BINARY_SIZE);
-	p = strrchr(ciphertext, '$');
-	if(p!=NULL)
-	magic(p+1, b);
-	return (void *) b;
 }
 
 static void *salt(char *ciphertext)
@@ -374,7 +295,7 @@ struct fmt_main fmt_cuda_cryptsha256 = {
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
-		binary,
+		get_binary,
 		salt,
 #if FMT_MAIN_VERSION > 11
 		{

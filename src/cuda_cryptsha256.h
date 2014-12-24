@@ -49,7 +49,7 @@ typedef struct {
 typedef struct {
 	unsigned char saltlen;
 	uint32_t rounds;
-	char salt[16];
+	char salt[SALT_LEN_MAX + 1];
 } crypt_sha256_salt;
 
 typedef struct {
