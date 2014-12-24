@@ -479,7 +479,8 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		}
 #endif
 
-		format->methods.clear_keys();
+		if (index == 0)
+			format->methods.clear_keys();
 		fmt_set_key(current->plaintext, index);
 
 #if !defined(BENCH_BUILD) && (defined(HAVE_OPENCL) || defined(HAVE_CUDA))
