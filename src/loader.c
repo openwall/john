@@ -376,8 +376,6 @@ static int ldr_split_line(char **login, char **ciphertext,
  * This check is just a loader performance optimization, so that we can parse
  * fewer fields when we know we won't need the rest.  It should be revised or
  * removed when there are formats that use higher-numbered fields in prepare().
- * This block should be removed ??  WHen scrypt bumped this from 6 to 7, it
- * was not trivial finding why things were not working.
  */
 	if ((db_opts->flags & DB_WORDS) || db_opts->shells->head) {
 		/* Parse all fields */
@@ -390,8 +388,7 @@ static int ldr_split_line(char **login, char **ciphertext,
 			fields[i] = ldr_get_field(&line,
 			                          db_opts->field_sep_char);
 		// Next line needed for l0phtcrack (in Jumbo)
-		// increased from 6 to 7 for scrypt_fmt in jumbo.
-		for (; i < 7; i++)
+		for (; i < 6; i++)
 			fields[i] = ldr_get_field(&line,
 			                          db_opts->field_sep_char);
 		for (; i < 10; i++)
