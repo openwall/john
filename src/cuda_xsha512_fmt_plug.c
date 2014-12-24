@@ -288,7 +288,7 @@ static void set_key(char *key, int index)
 
 static char *get_key(int index)
 {
-	static char key[MAX_PLAINTEXT_LENGTH];
+	static char key[MAX_PLAINTEXT_LENGTH + 1];
 	if (gkey[index].length > PLAINTEXT_LENGTH) {
 		memcpy(key, gkey[index].v, PLAINTEXT_LENGTH);
 		memcpy(key+PLAINTEXT_LENGTH, g_ext_key[index], EXTEND_PLAINTEXT_LENGTH);
