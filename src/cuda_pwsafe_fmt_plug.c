@@ -98,6 +98,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if (strlen(p) < 64)
 		goto err;
+	if (strspn(p, "0123456789abcdef") != 64)
+		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* iterations */
 		goto err;
 	if (atoi(p) == 0)
@@ -105,6 +107,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if ((p = strtok(NULL, "*")) == NULL)	/* hash */
 		goto err;
 	if (strlen(p) != 64)
+		goto err;
+	if (strspn(p, "0123456789abcdef") != 64)
 		goto err;
 	MEM_FREE(keeptr);
 	return 1;
