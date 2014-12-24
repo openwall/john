@@ -82,14 +82,40 @@ static void init(struct fmt_main *self)
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	char *hash, *p;
-	if (strncmp(ciphertext, mscash_prefix, strlen(mscash_prefix)) != 0)
+	unsigned int i;
+	unsigned int l;
+	char insalt[3*19+1];
+	UTF16 realsalt[21];
+	int saltlen;
+
+	if (strncmp(ciphertext, "M$", 2))
 		return 0;
-	hash = p = strrchr(ciphertext, '#') + 1;
-	while (*p)
-		if (atoi16[ARCH_INDEX(*p++)] == 0x7f)
+
+	l = strlen(ciphertext);
+	if (l <= 32 || l > MAX_CIPHERTEXT_LENGTH)
+		return 0;
+
+	l -= 32;
+	if(ciphertext[l-1]!='#')
+		return 0;
+
+	for (i = l; i < l + 32; i++)
+		if (atoi16[ARCH_INDEX(ciphertext[i])] == 0x7F)
 			return 0;
-	return p - hash == 32;
+
+	// This is tricky: Max supported salt length is 19 characters of Unicode
+	saltlen = enc_to_utf16(realsalt, 20, (UTF8*)strnzcpy(insalt, &ciphertext[2], l - 2), l - 3);
+	if (saltlen < 0 || saltlen > 19) {
+		static int warned = 0;
+
+		if (!ldr_in_pot)
+		if (!warned++)
+			fprintf(stderr, "%s: One or more hashes rejected due to salt length limitation\n", FORMAT_LABEL);
+
+		return 0;
+	}
+
+	return 1;
 }
 
 static char *split(char *ciphertext, int index, struct fmt_main *self)
@@ -107,13 +133,19 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 static char *prepare(char *split_fields[10], struct fmt_main *self)
 {
 	char *cp;
-	if (!strncmp(split_fields[1], "M$", 2) && valid(split_fields[1], self))
+	int i;
+	if (!strncmp(split_fields[1], "M$", 2) || !split_fields[0])
 		return split_fields[1];
 	if (!split_fields[0])
 		return split_fields[1];
-	cp = mem_alloc(strlen(split_fields[0]) + strlen(split_fields[1]) + 14);
-	sprintf(cp, "M$%s#%s", split_fields[0], split_fields[1]);
-	if (valid(cp, self)) {
+	// ONLY check, if this string split_fields[1], is ONLY a 32 byte hex string.
+	for (i = 0; i < 32; i++)
+		if (atoi16[ARCH_INDEX(split_fields[1][i])] == 0x7F)
+			return split_fields[1];
+	cp = mem_alloc(strlen(split_fields[0]) + strlen(split_fields[1]) + 4);
+	sprintf (cp, "M$%s#%s", split_fields[0], split_fields[1]);
+	if (valid(cp, self))
+	{
 		char *cipher = str_alloc_copy(cp);
 		MEM_FREE(cp);
 		return cipher;
