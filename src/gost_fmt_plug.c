@@ -118,15 +118,18 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
-	static char out[TAG_LENGTH + CIPHERTEXT_LENGTH + 1];
-
+	static char out[TAG_CP_LENGTH + CIPHERTEXT_LENGTH + 1];
+	char *cp=&out[TAG_LENGTH];
+	strcpy(out, FORMAT_TAG);
 	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
-		return ciphertext;
-	else if (!strncmp(ciphertext, FORMAT_TAG_CP, TAG_CP_LENGTH))
-		return ciphertext;
-
-	memcpy(out, FORMAT_TAG, TAG_LENGTH);
-	memcpy(out + TAG_LENGTH, ciphertext, CIPHERTEXT_LENGTH + 1);
+		ciphertext += TAG_LENGTH;
+	else if (!strncmp(ciphertext, FORMAT_TAG_CP, TAG_CP_LENGTH)) {
+		ciphertext += TAG_CP_LENGTH;
+		strcpy(out, FORMAT_TAG_CP);
+		cp=&out[TAG_CP_LENGTH];
+	}
+	memcpy(cp, ciphertext, CIPHERTEXT_LENGTH + 1);
+	strlwr(cp);
 	return out;
 }
 
@@ -248,7 +251,7 @@ struct fmt_main fmt_gost = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_SPLIT_UNIFIES_CASE,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif
