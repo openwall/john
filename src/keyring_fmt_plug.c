@@ -36,7 +36,7 @@ john_register_one(&fmt_keyring);
 #define ALGORITHM_NAME		"SHA256 AES 32/" ARCH_BITS_STR " " SHA2_LIB
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
-#define PLAINTEXT_LENGTH	15
+#define PLAINTEXT_LENGTH	125
 #define BINARY_SIZE		0
 #define SALT_SIZE		sizeof(*cur_salt)
 #define BINARY_ALIGN		1
@@ -127,6 +127,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!looks_like_nice_int(p))
 		goto err;
 	ctlen = atoi(p);
+	if (ctlen > sizeof(cur_salt->ct))
+		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* inlined - unused? TODO */
 		goto err;
 	if (!looks_like_nice_int(p))
@@ -158,6 +160,7 @@ static void *get_salt(char *ciphertext)
 	int i;
 	char *p;
 	static struct custom_salt cs;
+
 	memset(&cs, 0, sizeof(cs));
 	ctcopy += 9;	/* skip over "$keyring$" */
 	cur_salt = mem_alloc_tiny(sizeof(struct custom_salt), MEM_ALIGN_WORD);
@@ -172,14 +175,12 @@ static void *get_salt(char *ciphertext)
 	p = strtok(NULL, "*");
 	cs.inlined = atoi(p);
 	p = strtok(NULL, "*");
-	assert(strlen(p) == 2 * cs.crypto_size);
 	for (i = 0; i < cs.crypto_size; i++)
 		cs.ct[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	MEM_FREE(keeptr);
 	return (void *)&cs;
 }
-
 
 static void set_salt(void *salt)
 {
