@@ -162,18 +162,44 @@ static void init(struct fmt_main *self)
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	int nb = 0;
-	int i;
+	char *ctcopy, *keeptr, *p;
 
 	if (strncmp(ciphertext, MAGIC, sizeof(MAGIC) - 1) != 0)
 		return 0;
-	for (i = 0; ciphertext[i] != 0; i++) {
-		if (ciphertext[i] == SEPARATOR) {
-			nb++;
-		}
-	}
-	if (nb == 10)
-		return 1;
+	ctcopy = strdup(ciphertext);
+	keeptr = ctcopy;
+	ctcopy += sizeof(MAGIC)-1;
+
+	if ((p = strtok(ctcopy, "$")) == NULL) /* hash */
+		goto err;
+	if (!ishexlc(p) || strlen(p) != 32)
+		goto err;
+	if ((p = strtok(ctcopy, "$")) == NULL) /* user */
+		goto err;
+	if ((p = strtok(ctcopy, "$")) == NULL) /* realm */
+		goto err;
+	if ((p = strtok(ctcopy, "$")) == NULL) /* method */
+		goto err;
+	if ((p = strtok(ctcopy, "$")) == NULL) /* uri */
+		goto err;
+	if ((p = strtok(ctcopy, "$")) == NULL) /* nonce */
+		goto err;
+	if (!ishexlc(p) )
+		goto err;
+	if ((p = strtok(ctcopy, "$")) == NULL) /* noncecount */
+		goto err;
+	if ((p = strtok(ctcopy, "$")) == NULL) /* clientnonce */
+		goto err;
+	if (!ishexlc(p) )
+		goto err;
+	if ((p = strtok(ctcopy, "$")) == NULL) /* qop */
+		goto err;
+
+	MEM_FREE(keeptr);
+	return 1;
+
+err:
+	MEM_FREE(keeptr);
 	return 0;
 }
 
