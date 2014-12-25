@@ -451,16 +451,6 @@ static void init(struct fmt_main *self)
 	}
 }
 
-static int hexlen(char *q)
-{
-	char *s = q;
-	size_t len = strlen(q);
-
-	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
-		q++;
-	return (len == (size_t)(q - s)) ? (int)(q - s) : -1 - (int)(q - s);
-}
-
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *ptr, *keeptr;

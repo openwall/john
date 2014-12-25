@@ -258,29 +258,6 @@ static void init(struct fmt_main *self)
 		self->params.plaintext_length = MIN(125, 3 * PLAINTEXT_LENGTH);
 }
 
-static int ishex(char *q)
-{
-       while (atoi16[ARCH_INDEX(*q)] != 0x7F)
-               q++;
-       return !*q;
-}
-
-static int isdecu(char *q)
-{
-	char buf[24];
-	unsigned int x = atou(q);
-	sprintf(buf, "%u", x);
-	return !strcmp(q,buf);
-}
-
-static int isdec(char *q)
-{
-	char buf[24];
-	int x = atoi(q);
-	sprintf(buf, "%d", x);
-	return !strcmp(q,buf);
-}
-
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *keeptr, *p;

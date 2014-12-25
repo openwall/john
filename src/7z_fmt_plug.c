@@ -97,29 +97,6 @@ static void init(struct fmt_main *self)
 	CRC32_Init(&crc);
 }
 
-static int ishex(char *q)
-{
-       while (atoi16[ARCH_INDEX(*q)] != 0x7F)
-               q++;
-       return !*q;
-}
-
-static int isdecu(char *q)
-{
-	char buf[24];
-	unsigned int x = atou(q);
-	sprintf(buf, "%u", x);
-	return !strcmp(q,buf);
-}
-
-static int isdec(char *q)
-{
-	char buf[24];
-	int x = atoi(q);
-	sprintf(buf, "%d", x);
-	return !strcmp(q,buf) && *q != '-';
-}
-
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *keeptr, *p;

@@ -17,6 +17,7 @@
 
 #include "arch.h"
 #include "memory.h"
+#include "misc.h"
 
 #if ARCH_INT_GT_32
 typedef unsigned short ARCH_WORD_32;
@@ -74,5 +75,24 @@ extern const char itoa16u[16]; // uppercase
  * Initializes the tables.
  */
 extern void common_init(void);
+
+/**************************************************************
+ * added 'common' helper functions for things used in valid() *
+ **************************************************************/
+
+/* is string full valid hex string */
+int ishex(char *q);
+/* is string full valid hex string (only upper case letters) */
+int ishexuc(char *q);
+/* is string full valid hex string (only lower case letters) */
+int ishexlc(char *q);
+/* length of hex. if non-hex chars found, then negative length of valid hex */
+int hexlen(char *q);
+/* is this a valid string for atoi() ONLY positive numbers are valid */
+int isdec(char *q);
+/* is this a valid string for atoi() */
+int isdec_negok(char *q);
+/* is this a valid string for atou()?  atou() func == sprintf("%x",&val) */
+int isdecu(char *q);
 
 #endif

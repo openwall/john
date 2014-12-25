@@ -168,13 +168,6 @@ err:
 	return 0;
 }
 
-static int ishex(char *q)
-{
-       while (atoi16[ARCH_INDEX(*q)] != 0x7F)
-               q++;
-       return !*q;
-}
-
 static int old_valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *ptr, *keeptr;

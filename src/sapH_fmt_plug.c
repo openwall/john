@@ -139,15 +139,6 @@ static void init(struct fmt_main *self)
 	crypt_key = mem_calloc_tiny(sizeof(*crypt_key) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
-static int isdecu(char *q)
-{
-	char buf[24];
-	unsigned int x;
-	sscanf(q, "%u", &x);
-	sprintf(buf, "%u", x);
-	return x && !strcmp(q,buf);
-}
-
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *cp = ciphertext;

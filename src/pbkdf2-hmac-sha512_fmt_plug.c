@@ -117,21 +117,6 @@ static void init(struct fmt_main *self)
 	        self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
-static int ishex(char *q)
-{
-	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
-		q++;
-	return !*q;
-}
-
-static int isdecu(char *q)
-{
-	char buf[24];
-	uint32_t x = atoi(q);
-	sprintf(buf, "%u", x);
-	return !strcmp(q,buf);
-}
-
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ptr, *ctcopy, *keeptr;
@@ -149,7 +134,6 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto error;
 	if (!isdecu(ptr))
 		goto error;
-	len = atoi(ptr);
 	if (!(ptr = strtok(NULL, ".")))
 		goto error;
 	len = strlen(ptr); // salt length
@@ -228,7 +212,7 @@ static void *get_salt(char *ciphertext)
 		ciphertext += sizeof(FORMAT_TAG3) - 1;
 	else
 		error(); /* Can't happen - caught in valid() */
-	cs.rounds = atoi(ciphertext);
+	cs.rounds = atou(ciphertext);
 	delim = strchr(ciphertext, '.') ? '.' : '$';
 	ciphertext = strchr(ciphertext, delim) + 1;
 	p = strchr(ciphertext, delim);

@@ -97,21 +97,6 @@ static void init(struct fmt_main *self)
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
-static int ishex(char *q)
-{
-	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
-		q++;
-	return !*q;
-}
-
-static int isdec(char *q)
-{
-	char buf[24];
-	unsigned int x = atoi(q);
-	sprintf(buf, "%d", x);
-	return !strcmp(q,buf) && *q != '-';
-}
-
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *keeptr, *p;

@@ -229,13 +229,6 @@ static void init(struct fmt_main *self)
 /* ---- End OpenCL Modifications ---- */
 }
 
-static int ishex(char *q)
-{
-	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
-		q++;
-	return !*q;
-}
-
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy;

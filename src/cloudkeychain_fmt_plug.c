@@ -111,21 +111,6 @@ static void init(struct fmt_main *self)
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
-static int ishex(char *q)
-{
-       while (atoi16[ARCH_INDEX(*q)] != 0x7F)
-               q++;
-       return !*q;
-}
-
-static int isdecu(char *q)
-{
-	char buf[24];
-	unsigned int x = atoi(q); /* this is how it is 'used', atoi() to unsigned */
-	sprintf(buf, "%u", x);
-	return !strcmp(q,buf);
-}
-
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *keeptr, *p;
@@ -232,7 +217,7 @@ static void *get_salt(char *ciphertext)
 		cs.salt[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	p = strtok(NULL, "$");
-	cs.iterations = atoi(p);
+	cs.iterations = atou(p);
 	p = strtok(NULL, "$");
 	cs.masterkeylen = atoi(p);
 	p = strtok(NULL, "$");
@@ -240,7 +225,7 @@ static void *get_salt(char *ciphertext)
 		cs.masterkey[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	p = strtok(NULL, "$");
-	cs.plaintextlen = atoi(p);
+	cs.plaintextlen = atou(p);
 	p = strtok(NULL, "$");
 	cs.ivlen = atoi(p);
 	p = strtok(NULL, "$");

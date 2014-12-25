@@ -116,14 +116,6 @@ static char N_to_c(int N) {
 	return itoa64[b];
 }
 
-static int isdec(char *q)
-{
-	char buf[24];
-	 int x = atoi(q);
-	sprintf(buf, "%d", x);
-	return !strcmp(q,buf);
-}
-
 static char *prepare(char *fields[10], struct fmt_main *self)
 {
 	static char Buf[256];

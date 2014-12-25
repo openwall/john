@@ -222,26 +222,11 @@ static void release_clobj(void)
 	HANDLE_CLERROR(clReleaseMemObject(mem_state), "Release mem state");
 }
 
-static int ishex(char *q)
-{
-	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
-		q++;
-	return !*q;
-}
-
 static void done(void)
 {
 	release_clobj();
 	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
 	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
-}
-
-static int isdecu(char *q)
-{
-	char buf[24];
-	uint32_t x = atoi(q); /* this is how it is 'used', atoi() to unsigned */
-	sprintf(buf, "%u", x);
-	return !strcmp(q,buf);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -369,7 +354,7 @@ static void *get_salt(char *ciphertext)
 	else
 		error(); /* Can't happen - caught in valid() */
 	memset(&cs, 0, sizeof(cs));
-	cs.rounds = atoi(ciphertext);
+	cs.rounds = atou(ciphertext);
 	delim = strchr(ciphertext, '.') ? '.' : '$';
 	ciphertext = strchr(ciphertext, delim) + 1;
 	p = strchr(ciphertext, delim);

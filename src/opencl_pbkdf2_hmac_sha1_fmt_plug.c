@@ -286,14 +286,6 @@ static char *prepare(char *fields[10], struct fmt_main *self)
 	return fields[1];
 }
 
-
-static int ishex(char *q)
-{
-	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
-		q++;
-	return !*q;
-}
-
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ptr, *ctcopy, *keeptr;

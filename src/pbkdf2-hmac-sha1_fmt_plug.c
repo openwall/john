@@ -150,14 +150,6 @@ static char *prepare(char *fields[10], struct fmt_main *self)
 	return fields[1];
 }
 
-
-static int ishex(char *q)
-{
-	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
-		q++;
-	return !*q;
-}
-
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ptr, *ctcopy, *keeptr;
@@ -179,7 +171,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	keeptr = ctcopy;
 	if (!(ptr = strtok(ctcopy, delim)))
 		goto error;
-	if (!atoi(ptr))
+	if (!atou(ptr))
 		goto error;
 	if (!(ptr = strtok(NULL, delim)))
 		goto error;
@@ -221,7 +213,7 @@ static void *get_salt(char *ciphertext)
 	if (!strncasecmp(ciphertext, FORMAT_TAG, sizeof(FORMAT_TAG) - 1))
 		ciphertext += sizeof(FORMAT_TAG) - 1;
 	cs.use_utf8 = ciphertext[13] == 'S';
-	cs.rounds = atoi(ciphertext);
+	cs.rounds = atou(ciphertext);
 	delim = strchr(ciphertext, '.') ? '.' : '$';
 	ciphertext = strchr(ciphertext, delim) + 1;
 	p = strchr(ciphertext, delim);
