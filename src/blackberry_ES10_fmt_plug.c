@@ -101,7 +101,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if(strlen(p) != BINARY_SIZE * 2)
 		goto err;
-	if (!ishex(p))
+	if (!ishexuc(p))
 		goto err;
 	if ((p = strtok(NULL, "$")) == NULL) /* salt */
 		goto err;
