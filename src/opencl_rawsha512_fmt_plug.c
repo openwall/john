@@ -427,7 +427,7 @@ static char *split(char *ciphertext, int index, struct fmt_main *pFmt) {
 	static char out[8 + CIPHERTEXT_LENGTH_RAW + 1];
 
 	if (!strncmp(ciphertext, "$SHA512$", 8))
-		return ciphertext;
+		ciphertext += 8;
 
 	memcpy(out, "$SHA512$", 8);
 	memcpy(out + 8, ciphertext, CIPHERTEXT_LENGTH_RAW + 1);
