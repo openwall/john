@@ -13,6 +13,7 @@
 #include "arch.h"
 #include "common.h"
 #include "memdbg.h"
+#include "misc.h"
 
 /* This is the base64 that is used in crypt(3). It differs from MIME Base64
    and the latter can be found in base64.[ch] */

@@ -17,7 +17,6 @@
 
 #include "arch.h"
 #include "memory.h"
-#include "misc.h"
 
 #if ARCH_INT_GT_32
 typedef unsigned short ARCH_WORD_32;
