@@ -834,8 +834,24 @@ int base64_valid_length(const char *from, b64_convert_type from_t, unsigned flag
 
 	switch (from_t) {
 		case e_b64_hex:		/* hex */
-			while (atoi16[ARCH_INDEX(*from++)] != 0x7f)
-				++len;
+			if ( (flags & flg_Base64_HEX_UPCASE) == flg_Base64_HEX_UPCASE) {
+				while (atoi16[ARCH_INDEX(*from)] != 0x7f) {
+					if (*from >= 'a' && *from <= 'f')
+						break;
+					++len;
+					++from;
+				}
+			} if ( (flags & flg_Base64_HEX_LOCASE) == flg_Base64_HEX_LOCASE) {
+				while (atoi16[ARCH_INDEX(*from)] != 0x7f) {
+					if (*from >= 'A' && *from <= 'F')
+						break;
+					++len;
+					++from;
+				}
+			} else {
+				while (atoi16[ARCH_INDEX(*from++)] != 0x7f)
+					++len;
+			}
 			break;
 		case e_b64_mime:	/* mime */
 			if ( (flags&flg_Base64_MIME_PLUS_TO_DOT) == flg_Base64_MIME_PLUS_TO_DOT) {
@@ -889,7 +905,8 @@ static int usage(char *name)
 			"  cryptBS  base64 crypt encoding, byte swapped\n"
 			"\n"
 			"Flags (note more than 1 -f command switch can be given at one time):\n"
-			"  HEX_UPCASE         output hex upcased (input case auto handled)\n"
+			"  HEX_UPCASE         output or length UPCASED (input case auto handled)\n"
+			"  HEX_LOCASE         output or length locased (input case auto handled)\n"
 			"  MIME_TRAIL_EQ      output mime adds = chars (input = auto handled)\n"
 			"  CRYPT_TRAIL_DOTS   output crypt adds . chars (input . auto handled)\n"
 			"  MIME_PLUS_TO_DOT   mime converts + to . (passlib encoding)\n"
@@ -910,6 +927,7 @@ static b64_convert_type str2convtype(const char *in) {
 }
 static int handle_flag_type(const char *pflag) {
 	if (!strcasecmp(pflag, "HEX_UPCASE"))       return flg_Base64_HEX_UPCASE;
+	if (!strcasecmp(pflag, "HEX_LOCASE"))       return flg_Base64_HEX_LOCASE;
 	if (!strcasecmp(pflag, "MIME_TRAIL_EQ"))    return flg_Base64_MIME_TRAIL_EQ;
 	if (!strcasecmp(pflag, "CRYPT_TRAIL_DOTS")) return flg_Base64_CRYPT_TRAIL_DOTS;
 	if (!strcasecmp(pflag, "MIME_PLUS_TO_DOT")) return flg_Base64_MIME_PLUS_TO_DOT;
