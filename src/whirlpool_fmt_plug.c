@@ -47,6 +47,7 @@ static int omp_t = 1;
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	125
+#define CIPHERTEXT_LENGTH	128
 #define BINARY_SIZE		64
 #define SALT_SIZE		0
 #define MIN_KEYS_PER_CRYPT	1
@@ -85,6 +86,13 @@ static void init(struct fmt_main *self)
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
+static int ishex(char *q)
+{
+	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
+		q++;
+	return !*q;
+}
+
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *p;
@@ -93,10 +101,25 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	if (!strncmp(p, FORMAT_TAG, TAG_LENGTH))
 		p += TAG_LENGTH;
-	if (strlen(p) != 128)
+	if (strlen(p) != CIPHERTEXT_LENGTH)
+		return 0;
+	if (!ishex(p))
 		return 0;
 
 	return 1;
+}
+
+static char *split(char *ciphertext, int index, struct fmt_main *self)
+{
+	static char out[TAG_LENGTH + CIPHERTEXT_LENGTH + 1];
+	
+	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
+		ciphertext += TAG_LENGTH;
+	
+	memcpy(out, FORMAT_TAG, TAG_LENGTH);
+	memcpy(out + TAG_LENGTH, ciphertext, CIPHERTEXT_LENGTH + 1);
+	strupr(out + TAG_LENGTH);
+	return out;
 }
 
 static void *get_binary(char *ciphertext)
@@ -246,7 +269,7 @@ struct fmt_main fmt_whirlpool_0 = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_SPLIT_UNIFIES_CASE,
 #if FMT_MAIN_VERSION > 11
 		{ NULL
 		},
@@ -258,7 +281,7 @@ struct fmt_main fmt_whirlpool_0 = {
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
-		fmt_default_split,
+		split,
 		get_binary,
 		fmt_default_salt,
 #if FMT_MAIN_VERSION > 11
@@ -311,7 +334,7 @@ struct fmt_main fmt_whirlpool_1 = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_SPLIT_UNIFIES_CASE,
 #if FMT_MAIN_VERSION > 11
 		{ NULL
 		},
@@ -323,7 +346,7 @@ struct fmt_main fmt_whirlpool_1 = {
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
-		fmt_default_split,
+		split,
 		get_binary,
 		fmt_default_salt,
 #if FMT_MAIN_VERSION > 11
@@ -375,7 +398,7 @@ struct fmt_main fmt_whirlpool = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_SPLIT_UNIFIES_CASE,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif
@@ -386,7 +409,7 @@ struct fmt_main fmt_whirlpool = {
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
-		fmt_default_split,
+		split,
 		get_binary,
 		fmt_default_salt,
 #if FMT_MAIN_VERSION > 11

@@ -95,6 +95,19 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	return 1;
 }
 
+static char *split(char *ciphertext, int index, struct fmt_main *self)
+{
+	static char out[TAG_LENGTH + BINARY_SIZE*2 + 1];
+	
+	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
+		ciphertext += TAG_LENGTH;
+	
+	memcpy(out, FORMAT_TAG, TAG_LENGTH);
+	strnzcpy(out + TAG_LENGTH, ciphertext, BINARY_SIZE*2 + 1);
+	strupr(out + TAG_LENGTH);
+	return out;
+}
+
 static void *get_binary(char *ciphertext)
 {
 	static union {
@@ -205,7 +218,7 @@ struct fmt_main fmt_tiger = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_SPLIT_UNIFIES_CASE,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif
@@ -216,7 +229,7 @@ struct fmt_main fmt_tiger = {
 		fmt_default_reset,
 		prepare,
 		valid,
-		fmt_default_split,
+		split,
 		get_binary,
 		fmt_default_salt,
 #if FMT_MAIN_VERSION > 11

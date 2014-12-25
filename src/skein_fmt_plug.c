@@ -113,6 +113,19 @@ static int valid512(char *ciphertext, struct fmt_main *self)
 	return valid(ciphertext, self, 128);
 }
 
+static char *split(char *ciphertext, int index, struct fmt_main *self)
+{
+	static char out[TAG_LENGTH + BINARY_SIZE512*2 + 1];
+	
+	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
+		ciphertext += TAG_LENGTH;
+	
+	memcpy(out, FORMAT_TAG, TAG_LENGTH);
+	strnzcpy(out + TAG_LENGTH, ciphertext, BINARY_SIZE512*2 + 1);
+	strlwr(out + TAG_LENGTH);
+	return out;
+}
+
 static void *get_binary_256(char *ciphertext)
 {
 	static union {
@@ -267,7 +280,7 @@ struct fmt_main fmt_skein_256 = {
 		BINARY_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_SPLIT_UNIFIES_CASE,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif
@@ -278,7 +291,7 @@ struct fmt_main fmt_skein_256 = {
 		fmt_default_reset,
 		prepare,
 		valid256,
-		fmt_default_split,
+		split,
 		get_binary_256,
 		fmt_default_salt,
 #if FMT_MAIN_VERSION > 11
@@ -330,7 +343,7 @@ struct fmt_main fmt_skein_512 = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_SPLIT_UNIFIES_CASE,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif
@@ -341,7 +354,7 @@ struct fmt_main fmt_skein_512 = {
 		fmt_default_reset,
 		prepare,
 		valid512,
-		fmt_default_split,
+		split,
 		get_binary_512,
 		fmt_default_salt,
 #if FMT_MAIN_VERSION > 11
