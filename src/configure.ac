@@ -199,6 +199,7 @@ AC_CACHE_SAVE
 AC_PATH_PROG([SORT], [sort])
 AC_PATH_PROG([AR], [ar])
 AC_PATH_PROG([FIND], [find])
+AC_PATH_PROG([PERL], [perl])
 AS_IF([test -z "$AS"], [AS="$CC"])
 AS_IF([test -z "$LD"], [LD="$CC"])
 
@@ -684,7 +685,7 @@ else
    esac
 fi
 if test "x$aesni_options" != xDISABLED; then
-   AC_CACHE_CHECK([for yasm that supports "$aesni_options]", [ac_cv_path_YASM],
+   AC_CACHE_CHECK([for yasm that supports "$aesni_options"], [ac_cv_path_YASM],
       [AC_PATH_PROGS_FEATURE_CHECK([YASM], [yasm],
          [[yasmout=`$ac_path_YASM $aesni_options 2>&1 | grep "No input files"`
            test "x$yasmout" != x \
@@ -747,9 +748,9 @@ AS_IF([test "x$enable_nt_unicode" != xno], [AC_DEFINE([NT_FULL_UNICODE],1,[Defin
 ####################################################
 echo "configure: creating *_plug.c object rules"
 AC_SUBST([PLUGFORMATS_OBJS],[`echo *_plug.c | sed "s/\.c/.o/g"`])
-if test "x$plug_deps" = xyes ; then
+if test "x$plug_deps" = xyes -a "x$PERL" != x ; then
    echo "configure: creating Makefile dependencies"
-   AC_SUBST([PLUGFORMATS_DEPS],[`./plugin_deps.pl *_plug.c`])
+   AC_SUBST([PLUGFORMATS_DEPS],[`$PERL ./plugin_deps.pl *_plug.c`])
 fi
 echo "configure: creating ./john_build_rule.h"
 echo "#define JOHN_BLD \"${host_os} ${CPU_BIT_STR}-bit${using_x32} ${CPU_STR}-autoconf\"" > john_build_rule.h

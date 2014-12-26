@@ -671,6 +671,7 @@ EGREP
 PKG_CONFIG_LIBDIR
 PKG_CONFIG_PATH
 PKG_CONFIG
+PERL
 FIND
 AR
 SORT
@@ -6670,6 +6671,46 @@ FIND=$ac_cv_path_FIND
 if test -n "$FIND"; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: $FIND" >&5
 $as_echo "$FIND" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+# Extract the first word of "perl", so it can be a program name with args.
+set dummy perl; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_path_PERL+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  case $PERL in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_PERL="$PERL" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_path_PERL="$as_dir/$ac_word$ac_exec_ext"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+  ;;
+esac
+fi
+PERL=$ac_cv_path_PERL
+if test -n "$PERL"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $PERL" >&5
+$as_echo "$PERL" >&6; }
 else
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
@@ -13115,9 +13156,9 @@ fi
 echo "configure: creating *_plug.c object rules"
 PLUGFORMATS_OBJS=`echo *_plug.c | sed "s/\.c/.o/g"`
 
-if test "x$plug_deps" = xyes ; then
+if test "x$plug_deps" = xyes -a "x$PERL" != x ; then
    echo "configure: creating Makefile dependencies"
-   PLUGFORMATS_DEPS=`./plugin_deps.pl *_plug.c`
+   PLUGFORMATS_DEPS=`$PERL ./plugin_deps.pl *_plug.c`
 
 fi
 echo "configure: creating ./john_build_rule.h"
