@@ -263,6 +263,8 @@ cuda_rawsha512.o: cuda_rawsha512.h cuda/rawsha512.cu cuda_common.o
 cuda_pwsafe.o: cuda_pwsafe.h cuda/pwsafe.cu cuda_common.o
 	cd cuda; $(NVCC) $(NVCC_FLAGS) pwsafe.cu -o ../cuda_pwsafe.o
 
+@PLUGFORMATS_DEPS@
+
 SUBDIRS = aes
 
 .PHONY: subdirs $(SUBDIRS)
@@ -509,7 +511,13 @@ miscnl.o: misc.c
 ../run/tgtsnarf@EXE_EXT@: tgtsnarf.o
 	$(LD) tgtsnarf.o @MEMDBG_CFLAGS@ memdbg.o $(LDFLAGS) @OPENMP_CFLAGS@ -o ../run/tgtsnarf
 
-john.o: john.c fmt_externs.h fmt_registers.h
+john.o: john.c autoconfig.h os.h params.h arch.h openssl_local_overrides.h \
+	misc.h path.h memory.h list.h tty.h signals.h common.h idle.h \
+	formats.h dyna_salt.h loader.h logger.h status.h recovery.h options.h \
+	config.h bench.h charset.h single.h wordlist.h inc.h mask.h mkv.h \
+	external.h batch.h dynamic.h fake_salts.h listconf.h john-mpi.h \
+	regex.h unicode.h plugin.h common-opencl.h cuda_common.h \
+	john_build_rule.h memdbg.h fmt_externs.h fmt_registers.h
 	$(CC) $(CFLAGS_MAIN) $(OPT_NORMAL) -O0 $*.c
 
 # Workaround for gcc 3.4.6 (seen on Sparc32) (do not use -funroll-loops)

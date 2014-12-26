@@ -62,6 +62,7 @@ AC_ARG_WITH(endian, [AS_HELP_STRING([--with-endian=little|big],[Set endianness f
 AC_ARG_ENABLE([memdbg], [AC_HELP_STRING([--enable-memdbg], [Enable memdbg memory debugging (safe level)])], [memdbg=$enableval], [memdbg=no])
 AC_ARG_ENABLE([memdbg-ex], [AC_HELP_STRING([--enable-memdbg-ex], [* Enable memdbg memory debugging (expanded level)])], [memdbgex=$enableval], [memdbgex=no])
 AC_ARG_ENABLE([asan], [AS_HELP_STRING([--enable-asan], [* Build with AddressSanitizer])], [asan=$enableval], [asan=no])
+AC_ARG_ENABLE([plugin-dependencies], [AS_HELP_STRING([--enable-plugin-dependencies], [Create Makefile dependencies for plugins (experimental, and you do not need it)])], [plug_deps=$enableval], [plug_deps=no])
 
 # Define Features. OpenMP and OpenCL are defined in their respective macros.
 # We define "--disable-FEATURE" when default is "auto".
@@ -745,6 +746,9 @@ AS_IF([test "x$enable_nt_unicode" != xno], [AC_DEFINE([NT_FULL_UNICODE],1,[Defin
 # john_buildrule.h moved from Makefile.in to here.
 ####################################################
 AC_SUBST([PLUGFORMATS_OBJS],[`echo *_plug.c | sed "s/\.c/.o/g"`])
+if test "x$plug_deps" = xyes ; then
+   AC_SUBST([PLUGFORMATS_DEPS],[`./plugin_deps.pl *_plug.c`])
+fi
 echo "configure: creating ./john_build_rule.h"
 echo "#define JOHN_BLD \"${host_os} ${CPU_BIT_STR}-bit${using_x32} ${CPU_STR}-autoconf\"" > john_build_rule.h
 

@@ -626,6 +626,7 @@ ac_includes_default="\
 ac_header_list=
 ac_subst_vars='LTLIBOBJS
 HOST_OS
+PLUGFORMATS_DEPS
 PLUGFORMATS_OBJS
 EXE_EXT
 YASM_OPTIONS
@@ -751,6 +752,7 @@ with_endian
 enable_memdbg
 enable_memdbg_ex
 enable_asan
+enable_plugin_dependencies
 enable_openmp_for_fast_formats
 enable_mpi
 enable_rexgen
@@ -1378,6 +1380,9 @@ Optional Features:
   --enable-memdbg         Enable memdbg memory debugging (safe level)
   --enable-memdbg-ex      * Enable memdbg memory debugging (expanded level)
   --enable-asan           * Build with AddressSanitizer
+  --enable-plugin-dependencies
+                          Create Makefile dependencies for plugins
+                          (experimental, and you do not need it)
   --disable-openmp-for-fast-formats
                           Disable OpenMP for fast formats
   --enable-mpi            Use OpenMPI
@@ -3477,6 +3482,13 @@ if test "${enable_asan+set}" = set; then :
   enableval=$enable_asan; asan=$enableval
 else
   asan=no
+fi
+
+# Check whether --enable-plugin-dependencies was given.
+if test "${enable_plugin_dependencies+set}" = set; then :
+  enableval=$enable_plugin_dependencies; plug_deps=$enableval
+else
+  plug_deps=no
 fi
 
 
@@ -13102,6 +13114,10 @@ fi
 ####################################################
 PLUGFORMATS_OBJS=`echo *_plug.c | sed "s/\.c/.o/g"`
 
+if test "x$plug_deps" = xyes ; then
+   PLUGFORMATS_DEPS=`./plugin_deps.pl *_plug.c`
+
+fi
 echo "configure: creating ./john_build_rule.h"
 echo "#define JOHN_BLD \"${host_os} ${CPU_BIT_STR}-bit${using_x32} ${CPU_STR}-autoconf\"" > john_build_rule.h
 
