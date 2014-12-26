@@ -83,7 +83,6 @@ static unsigned int omp_t = 1;
 
 typedef struct
 {
-	char	**request;
 	size_t	h1tmplen;
 	size_t	h3tmplen;
 	char	h1tmp[HTMP];
@@ -631,7 +630,6 @@ static void *salt(char *ciphertext)
 	         request[R_NONCE], request[R_NONCECOUNT], request[R_CLIENTNONCE],
 	         request[R_QOP], (char*)conv);
 
-	r->request = request;
 	r->h1tmplen = strlen(r->h1tmp);
 	r->h3tmplen = strlen(&r->h3tmp[CIPHERTEXT_LENGTH]) + CIPHERTEXT_LENGTH;
 
