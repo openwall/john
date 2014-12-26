@@ -745,8 +745,10 @@ AS_IF([test "x$enable_nt_unicode" != xno], [AC_DEFINE([NT_FULL_UNICODE],1,[Defin
 # Code  to create @PLUGFORMATS_OBJS@ and
 # john_buildrule.h moved from Makefile.in to here.
 ####################################################
+echo "configure: creating *_plug.c object rules"
 AC_SUBST([PLUGFORMATS_OBJS],[`echo *_plug.c | sed "s/\.c/.o/g"`])
 if test "x$plug_deps" = xyes ; then
+   echo "configure: creating Makefile dependencies"
    AC_SUBST([PLUGFORMATS_DEPS],[`./plugin_deps.pl *_plug.c`])
 fi
 echo "configure: creating ./john_build_rule.h"
