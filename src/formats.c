@@ -387,7 +387,9 @@ static char *fmt_self_test_body(struct fmt_main *format,
 				puts("Warning: Salt dupe detection might be "
 				     "broken");
 				salt_dupe_warned = 1;
-				// These 2 can be useful in tracking down salt dupe problems.
+				// These can be useful in tracking down salt
+				// dupe problems.
+				//fprintf(stderr, "%s\n", ciphertext);
 				//dump_stuff(copy, format->params.salt_size);
 				//dump_stuff(salt, format->params.salt_size);
 			}
