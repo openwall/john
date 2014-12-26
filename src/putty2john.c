@@ -29,7 +29,7 @@
 #include "jumbo.h"
 #include "memdbg.h"
 #if _MSC_VER
-#include "io.h"
+#include <io.h>
 #endif
 
 #define smalloc(z) safemalloc(z,1)

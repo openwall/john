@@ -43,7 +43,7 @@
 
 #if (AC_BUILT && HAVE_WHIRLPOOL) ||	\
    (!AC_BUILT && OPENSSL_VERSION_NUMBER >= 0x10000000 && !HAVE_NO_SSL_WHIRLPOOL)
-#include "openssl/whrlpool.h"
+#include <openssl/whrlpool.h>
 #else
 // on my 32 bit cygwin builds, this code is about 4x slower than the oSSL code.
 #define WHIRLPOOL_CTX             sph_whirlpool_context
