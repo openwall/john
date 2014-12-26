@@ -378,13 +378,12 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		}
 
 		/* validate that salt dupe checks will work */
-		if (!salt_dupe_warned &&
-		    (format->params.flags & FMT_DYNA_SALT) == 0) {
+		if (!salt_dupe_warned) {
 			char *copy = malloc(format->params.salt_size);
 
 			memcpy(copy, salt, format->params.salt_size);
 			salt = format->methods.salt(ciphertext);
-			if (memcmp(copy, salt, format->params.salt_size)) {
+			if (dyna_salt_cmp(copy, salt, format->params.salt_size)) {
 				puts("Warning: Salt dupe detection might be "
 				     "broken");
 				salt_dupe_warned = 1;
