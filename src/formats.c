@@ -145,6 +145,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 	void *binary, *salt;
 	int binary_align_warned = 0, salt_align_warned = 0;
 	int salt_cleaned_warned = 0, binary_cleaned_warned = 0;
+	int salt_dupe_warned = 0;
 #ifndef BENCH_BUILD
 	int dhirutest = 0;
 	int maxlength = 0;
@@ -374,6 +375,21 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		    format->params.salt_size > 0) {
 			puts("Warning: salt() returned misaligned pointer");
 			salt_align_warned = 1;
+		}
+
+		/* validate that salt dupe checks will work */
+		if (!salt_dupe_warned &&
+		    (format->params.flags & FMT_DYNA_SALT) == 0) {
+			char *copy = malloc(format->params.salt_size);
+
+			memcpy(copy, salt, format->params.salt_size);
+			salt = format->methods.salt(ciphertext);
+			if (memcmp(copy, salt, format->params.salt_size)) {
+				puts("Warning: Salt dupe detection might be "
+				     "broken");
+				salt_dupe_warned = 1;
+			}
+			MEM_FREE(copy);
 		}
 
 		/* validate that salt() returns cleaned buffer */
