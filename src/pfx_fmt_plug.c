@@ -160,6 +160,8 @@ static void *get_salt(char *ciphertext)
 	static struct custom_salt cs;
 	PKCS12 *p12 = NULL;
 	BIO *bp;
+
+	memset(&cs, 0, sizeof(cs));
 	ctcopy += 6;	/* skip over "$pfx$*" */
 	p = strtok(ctcopy, "*");
 	cs.len = atoi(p);
@@ -181,7 +183,6 @@ static void *get_salt(char *ciphertext)
 		exit(-3);
 	}
 	/* save custom_salt information */
-	memset(&cs, 0, sizeof(cs));
 	memcpy(&cs.pfx, p12, sizeof(PKCS12));
 	BIO_free(bp);
 	MEM_FREE(decoded_data);
