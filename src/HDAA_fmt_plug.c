@@ -569,7 +569,7 @@ static char *mystrndup(const char *s, size_t n)
 	size = n;
 	if (tmp < size)
 		size = tmp;
-	if ((ret = mem_alloc_tiny(sizeof(char) * size + 1, MEM_ALIGN_WORD)) == NULL)
+	if ((ret = mem_alloc(sizeof(char) * size + 1)) == NULL)
 		return NULL;
 	memmove(ret, s, size);
 	ret[size] = 0;
@@ -588,7 +588,7 @@ static void *salt(char *ciphertext)
 {
 	int nb;
 	int i;
-	char **request;
+	char *request[SIZE_TAB];
 	char *str;
 	reqinfo_t *r;
 #ifdef __MMX__
@@ -601,7 +601,6 @@ static void *salt(char *ciphertext)
 	MD5_CTX ctx;
 
 	/* parse the password string */
-	request = mem_alloc_tiny(sizeof(char*) * SIZE_TAB, MEM_ALIGN_WORD);
 	r = mem_calloc_tiny(sizeof(*r), MEM_ALIGN_WORD);
 	for (nb = 0, i = 1; ciphertext[i] != 0; i++) {
 		if (ciphertext[i] == SEPARATOR) {
@@ -609,6 +608,9 @@ static void *salt(char *ciphertext)
 			request[nb] = mystrndup(&ciphertext[i], reqlen(&ciphertext[i]));
 			nb++;
 		}
+	}
+	while (nb < SIZE_TAB) {
+		request[nb++] = NULL;
 	}
 
 	/* calculate h2 (h2 = md5(method:digestURI))*/
@@ -633,6 +635,9 @@ static void *salt(char *ciphertext)
 	r->h1tmplen = strlen(r->h1tmp);
 	r->h3tmplen = strlen(&r->h3tmp[CIPHERTEXT_LENGTH]) + CIPHERTEXT_LENGTH;
 
+	for (nb=0; nb < SIZE_TAB; ++nb) {
+		MEM_FREE(request[nb]);
+	}
 	return r;
 }
 
