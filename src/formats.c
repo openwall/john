@@ -383,9 +383,9 @@ static char *fmt_self_test_body(struct fmt_main *format,
 
 			memcpy(copy, salt, format->params.salt_size);
 			salt = format->methods.salt(ciphertext);
-			if (dyna_salt_cmp(copy, salt, format->params.salt_size)) {
-				puts("Warning: Salt dupe detection might be "
-				     "broken");
+			if (dyna_salt_cmp(copy, salt, format->params.salt_size))
+			{
+				puts("Warning: No dupe-salt detection");
 				salt_dupe_warned = 1;
 				// These can be useful in tracking down salt
 				// dupe problems.
