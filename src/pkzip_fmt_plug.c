@@ -29,7 +29,7 @@ john_register_one(&fmt_pkzip);
 #define USE_PKZIP_MAGIC 1
 #include "pkzip.h"
 
-#include "zlib.h"
+#include <zlib.h>
 #include "pkzip_inffixed.h"  // This file is a data file, taken from zlib
 #include "loader.h"
 

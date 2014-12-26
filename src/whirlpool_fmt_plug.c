@@ -30,7 +30,7 @@ john_register_one(&fmt_whirlpool);
 #include <openssl/opensslv.h>
 #if (AC_BUILT && HAVE_WHIRLPOOL) ||	\
    (!AC_BUILT && OPENSSL_VERSION_NUMBER >= 0x10000000 && !HAVE_NO_SSL_WHIRLPOOL)
-#include "openssl/whrlpool.h"
+#include <openssl/whrlpool.h>
 #endif
 #ifdef _OPENMP
 static int omp_t = 1;
@@ -105,10 +105,10 @@ static int valid(char *ciphertext, struct fmt_main *self)
 static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[TAG_LENGTH + CIPHERTEXT_LENGTH + 1];
-	
+
 	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
 		ciphertext += TAG_LENGTH;
-	
+
 	memcpy(out, FORMAT_TAG, TAG_LENGTH);
 	memcpy(out + TAG_LENGTH, ciphertext, CIPHERTEXT_LENGTH + 1);
 	strupr(out + TAG_LENGTH);

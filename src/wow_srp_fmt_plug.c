@@ -49,9 +49,9 @@ john_register_one(&fmt_blizzard);
 #include "unicode.h" /* For encoding-aware uppercasing */
 #ifdef HAVE_LIBGMP
 #if HAVE_GMP_GMP_H
-#include "gmp/gmp.h"
+#include <gmp/gmp.h>
 #else
-#include "gmp.h"
+#include <gmp.h>
 #endif
 #define EXP_STR " GMP-exp"
 #else

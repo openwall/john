@@ -61,9 +61,9 @@ john_register_one(&fmt_clipperz);
 #include "formats.h"
 #ifdef HAVE_LIBGMP
 #if HAVE_GMP_GMP_H
-#include "gmp/gmp.h"
+#include <gmp/gmp.h>
 #else
-#include "gmp.h"
+#include <gmp.h>
 #endif
 #define EXP_STR " GMP-exp"
 #else
