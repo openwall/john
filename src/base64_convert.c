@@ -602,7 +602,7 @@ int base64_convert(const void *from, b64_convert_type from_t, int from_len, void
 		}
 		case e_b64_mime:	/* mime */
 		{
-			char *fromWrk = (char*)from, fromTmp[256] = { 0 };
+			char *fromWrk = (char*)from, fromTmp[256];
 			int alloced=0;
 			while (fromWrk[from_len-1]=='=')
 				from_len--;
@@ -610,13 +610,14 @@ int base64_convert(const void *from, b64_convert_type from_t, int from_len, void
 			/* autohandle the reverse of mime deplus code on input, i.e. auto convert . into + */
 			if (strchr(fromWrk, '.')) {
 				char *cp;
-				if (from_len<sizeof(fromTmp)-1)
+				if (from_len<sizeof(fromTmp)-3)
 					fromWrk=fromTmp;
 				else {
 					alloced = 1;
-					fromWrk = (char*)mem_calloc(from_len+1);
+					fromWrk = (char*)mem_calloc(from_len+3);
 				}
 				strnzcpy(fromWrk, (const char*)from, from_len+1);
+				fromWrk[from_len+1] = fromWrk[from_len+2] = 0;
 				cp = strchr(fromWrk, '.');
 				while (cp) {
 					*cp = '+';
@@ -626,13 +627,14 @@ int base64_convert(const void *from, b64_convert_type from_t, int from_len, void
 			if (strchr(fromWrk, '-')) {
 				char *cp;
 				if (fromWrk == from) {
-					if (from_len<sizeof(fromTmp)-1)
+					if (from_len<sizeof(fromTmp)-3)
 						fromWrk=fromTmp;
 					else {
 						alloced = 1;
-						fromWrk = (char*)mem_calloc(from_len+1);
+						fromWrk = (char*)mem_calloc(from_len+3);
 					}
 					strnzcpy(fromWrk, (const char*)from, from_len+1);
+					fromWrk[from_len+1] = fromWrk[from_len+2] = 0;
 				}
 				cp = strchr(fromWrk, '-');
 				while (cp) {
@@ -643,13 +645,14 @@ int base64_convert(const void *from, b64_convert_type from_t, int from_len, void
 			if (strchr(fromWrk, '_')) {
 				char *cp;
 				if (fromWrk == from) {
-					if (from_len<sizeof(fromTmp)-1)
+					if (from_len<sizeof(fromTmp)-3)
 						fromWrk=fromTmp;
 					else {
 						alloced = 1;
-						fromWrk = (char*)mem_calloc(from_len+1);
+						fromWrk = (char*)mem_calloc(from_len+3);
 					}
 					strnzcpy(fromWrk, (const char*)from, from_len+1);
+					fromWrk[from_len+1] = fromWrk[from_len+2] = 0;
 				}
 				cp = strchr(fromWrk, '_');
 				while (cp) {
