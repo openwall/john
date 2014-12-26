@@ -294,42 +294,4 @@ int blake2b( uint8_t *out, const void *in, const void *key, const uint8_t outlen
   return 0;
 }
 
-#if defined(SUPERCOP)
-int crypto_hash( unsigned char *out, unsigned char *in, unsigned long long inlen )
-{
-  return blake2b( out, in, NULL, BLAKE2B_OUTBYTES, inlen, 0 );
-}
-#endif
-
-#if defined(BLAKE2B_SELFTEST)
-#include <string.h>
-#include "blake2-kat.h"
-int main( int argc, char **argv )
-{
-  uint8_t key[BLAKE2B_KEYBYTES];
-  uint8_t buf[KAT_LENGTH];
-
-  for( size_t i = 0; i < BLAKE2B_KEYBYTES; ++i )
-    key[i] = ( uint8_t )i;
-
-  for( size_t i = 0; i < KAT_LENGTH; ++i )
-    buf[i] = ( uint8_t )i;
-
-  for( size_t i = 0; i < KAT_LENGTH; ++i )
-  {
-    uint8_t hash[BLAKE2B_OUTBYTES];
-    blake2b( hash, buf, key, BLAKE2B_OUTBYTES, i, BLAKE2B_KEYBYTES );
-
-    if( 0 != memcmp( hash, blake2b_keyed_kat[i], BLAKE2B_OUTBYTES ) )
-    {
-      puts( "error" );
-      return -1;
-    }
-  }
-
-  puts( "ok" );
-  return 0;
-}
-#endif
-
 #endif
