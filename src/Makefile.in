@@ -265,6 +265,265 @@ cuda_pwsafe.o: cuda_pwsafe.h cuda/pwsafe.cu cuda_common.o
 
 @PLUGFORMATS_DEPS@
 
+######## auto-generated, best-effort
+AFS_fmt.o:	AFS_fmt.c arch.h misc.h params.h DES_std.h common.h formats.h memdbg.h
+
+BF_fmt.o:	BF_fmt.c arch.h misc.h BF_std.h common.h formats.h memdbg.h
+
+BF_std.o:	BF_std.c arch.h common.h BF_std.h memdbg.h
+
+BSDI_fmt.o:	BSDI_fmt.c arch.h misc.h DES_std.h common.h formats.h DES_bs.h memdbg.h
+
+DES_bs.o:	DES_bs.c arch.h common.h DES_std.h DES_bs.h unicode.h memdbg.h
+
+DES_fmt.o:	DES_fmt.c arch.h DES_std.h common.h formats.h DES_bs.h memdbg.h
+
+DES_std.o:	DES_std.c arch.h common.h DES_std.h memdbg.h misc.h
+
+LM_fmt.o:	LM_fmt.c arch.h misc.h memory.h DES_bs.h common.h formats.h memdbg.h
+
+MD5_fmt.o:	MD5_fmt.c arch.h misc.h sse-intrinsics.h MD5_std.h common.h formats.h memdbg.h
+
+MD5_std.o:	MD5_std.c arch.h common.h MD5_std.h memdbg.h
+
+SIPdump.o:	SIPdump.c autoconfig.h tcphdr.h SIPdump.h memdbg.h
+
+base64.o:	base64.c memdbg.h
+
+base64_convert.o:	base64_convert.c missing_getopt.h memory.h misc.h common.h jumbo.h base64.h base64_convert.h memdbg.h
+
+batch.o:	batch.c params.h os.h signals.h loader.h status.h config.h single.h wordlist.h inc.h memdbg.h
+
+bench.o:	bench.c os.h times.h arch.h misc.h math.h params.h memory.h signals.h formats.h dyna_salt.h bench.h john.h unicode.h config.h common-gpu.h options.h john-mpi.h memdbg.h
+
+best.o:	best.c os.h math.h params.h common.h formats.h bench.h memdbg.h
+
+blowfish.o:	blowfish.c blowfish.h bf_tab.h memory.h johnswap.h memdbg.h
+
+c3_fmt.o:	c3_fmt.c autoconfig.h options.h arch.h misc.h params.h memory.h common.h formats.h loader.h john.h john-mpi.h memdbg.h
+
+calc_stat.o:	calc_stat.c autoconfig.h memory.h memdbg.h
+
+charset.o:	charset.c os.h arch.h misc.h params.h path.h memory.h list.h crc32.h signals.h loader.h external.h charset.h memdbg.h
+
+common-cuda.o:	common-cuda.c cuda_common.h options.h john.h memdbg.h
+
+common-gpu.o:	common-gpu.c autoconfig.h Win32-dlfcn-port.h common-gpu.h john.h memory.h params.h logger.h config.h signals.h memdbg.h
+
+common-opencl.o:	common-opencl.c os.h options.h config.h common-opencl.h dyna_salt.h signals.h recovery.h status.h john.h john-mpi.h memdbg.h
+
+common.o:	common.c arch.h common.h memdbg.h misc.h
+
+compiler.o:	compiler.c arch.h params.h memory.h compiler.h memdbg.h
+
+config.o:	config.c misc.h params.h path.h memory.h config.h john.h logger.h external.h memdbg.h
+
+cprepair.o:	cprepair.c autoconfig.h unicode.h memdbg.h
+
+cracker.o:	cracker.c os.h arch.h misc.h math.h params.h memory.h signals.h idle.h formats.h dyna_salt.h loader.h logger.h status.h recovery.h external.h options.h mask.h unicode.h john.h fake_salts.h john-mpi.h path.h jumbo.h common-gpu.h memdbg.h
+
+crc32.o:	crc32.c memory.h crc32.h memdbg.h
+
+detect.o:	detect.c memdbg.h
+
+dmg2john.o:	dmg2john.c autoconfig.h stdint.h gladman_fileenc.h filevault.h misc.h jumbo.h memdbg.h
+
+dummy.o:	dummy.c common.h formats.h memdbg.h
+
+dyna_salt.o:	dyna_salt.c formats.h memory.h dyna_salt.h memdbg.h
+
+dynamic_big_crypt.o:	dynamic_big_crypt.c arch.h openssl_local_overrides.h misc.h common.h formats.h sha.h sha2.h md5.h md4.h stdint.h gost.h sph_haval.h sph_ripemd.h sph_tiger.h sph_whirlpool.h dynamic.h johnswap.h sse-intrinsics.h dynamic_types.h memdbg.h
+
+dynamic_fmt.o:	dynamic_fmt.c arch.h sse-intrinsics.h misc.h common.h formats.h params.h md5.h md4.h dynamic.h options.h config.h sha.h gost.h memory.h unicode.h johnswap.h pkzip.h aligned.h fake_salts.h dynamic_types.h memdbg.h
+
+dynamic_parser.o:	dynamic_parser.c arch.h misc.h common.h formats.h config.h md5.h options.h john.h unicode.h dynamic.h memdbg.h
+
+dynamic_preloads.o:	dynamic_preloads.c arch.h misc.h common.h formats.h md5.h dynamic.h memdbg.h
+
+dynamic_utils.o:	dynamic_utils.c arch.h misc.h common.h formats.h config.h md5.h dynamic.h memdbg.h
+
+external.o:	external.c misc.h params.h os.h signals.h compiler.h loader.h logger.h status.h recovery.h options.h config.h cracker.h john.h external.h mask.h options.h memdbg.h
+
+fake_salts.o:	fake_salts.c config.h john.h memory.h options.h fake_salts.h memdbg.h
+
+formats.o:	formats.c params.h memory.h formats.h dyna_salt.h misc.h unicode.h options.h loader.h common-opencl.h cuda_common.h memdbg.h
+
+genmkvpwd.o:	genmkvpwd.c autoconfig.h params.h memory.h mkvlib.h memdbg.h
+
+getopt.o:	getopt.c misc.h memory.h list.h getopt.h john.h memdbg.h
+
+gladman_hmac.o:	gladman_hmac.c gladman_hmac.h memdbg.h
+
+gladman_pwd2key.o:	gladman_pwd2key.c gladman_hmac.h memdbg.h
+
+gost.o:	gost.c gost.h memdbg.h
+
+gpg2john.o:	gpg2john.c autoconfig.h arch.h jumbo.h misc.h memdbg.h
+
+haval_helper.o:	haval_helper.c
+
+hccap2john.o:	hccap2john.c autoconfig.h jumbo.h os.h common.h memdbg.h
+
+hmacmd5.o:	hmacmd5.c arch.h common.h md5.h hmacmd5.h memdbg.h
+
+idle.o:	idle.c os.h params.h config.h options.h signals.h bench.h formats.h memdbg.h
+
+inc.o:	inc.c arch.h misc.h params.h path.h memory.h os.h signals.h formats.h loader.h logger.h status.h recovery.h options.h config.h charset.h external.h cracker.h john.h options.h unicode.h mask.h memdbg.h
+
+john-mpi.o:	john-mpi.c autoconfig.h john-mpi.h john.h memory.h memdbg.h
+
+jumbo.o:	jumbo.c jumbo.h params.h memory.h memdbg.h
+
+keepass2john.o:	keepass2john.c autoconfig.h stdint.h missing_getopt.h jumbo.h params.h memory.h memdbg.h
+
+keychain2john.o:	keychain2john.c stdint.h jumbo.h memdbg.h
+
+keyring2john.o:	keyring2john.c stdint.h memory.h jumbo.h memdbg.h
+
+keystore2john.o:	keystore2john.c stdint.h jumbo.h memdbg.h
+
+kwallet2john.o:	kwallet2john.c stdint.h jumbo.h memdbg.h
+
+list.o:	list.c memory.h list.h memdbg.h
+
+listconf.o:	listconf.c autoconfig.h arch.h jumbo.h params.h path.h formats.h options.h unicode.h dynamic.h config.h regex.h john_build_rule.h common-opencl.h memdbg.h
+
+loader.o:	loader.c autoconfig.h jumbo.h os.h arch.h misc.h params.h path.h memory.h list.h signals.h formats.h dyna_salt.h loader.h options.h config.h unicode.h dynamic.h fake_salts.h john.h cracker.h config.h logger.h memdbg.h
+
+logger.o:	logger.c os.h arch.h misc.h params.h path.h memory.h status.h options.h config.h options.h unicode.h dynamic.h john-mpi.h cracker.h signals.h memdbg.h
+
+luks2john.o:	luks2john.c autoconfig.h jumbo.h stdint.h johnswap.h params.h memdbg.h
+
+mask.o:	mask.c misc.h logger.h recovery.h os.h signals.h status.h options.h config.h external.h cracker.h john.h mask.h unicode.h encoding_data.h memdbg.h
+
+math.o:	math.c arch.h math.h memdbg.h
+
+md4.o:	md4.c md4.h memdbg.h
+
+md5.o:	md5.c md5.h memdbg.h
+
+md5_go.o:	md5_go.c arch.h common.h md5_go.h memdbg.h
+
+md_helper.o:	md_helper.c
+
+memdbg.o:	memdbg.c common.h memdbg.h
+
+memory.o:	memory.c arch.h misc.h memory.h common.h johnswap.h memdbg.h
+
+misc.o:	misc.c os.h logger.h params.h misc.h options.h john-mpi.h memdbg.h
+
+missing_getopt.o:	missing_getopt.c missing_getopt.h
+
+mkv.o:	mkv.c arch.h misc.h params.h path.h memory.h os.h signals.h formats.h loader.h logger.h status.h recovery.h config.h charset.h external.h cracker.h options.h john.h mkv.h mask.h memdbg.h
+
+mkvcalcproba.o:	mkvcalcproba.c autoconfig.h params.h mkvlib.h memory.h jumbo.h memdbg.h
+
+mkvlib.o:	mkvlib.c arch.h misc.h params.h memory.h mkvlib.h path.h memdbg.h
+
+mmap-windows.o:	mmap-windows.c memdbg.h
+
+nonstd.o:	nonstd.c
+
+opencl_autotune.o:	opencl_autotune.c common-opencl.h memdbg.h
+
+options.o:	options.c os.h arch.h misc.h params.h memory.h list.h loader.h logger.h status.h recovery.h options.h bench.h external.h john.h dynamic.h unicode.h fake_salts.h regex.h john-mpi.h common-opencl.h memdbg.h john_build_rule.h
+
+para-best.o:	para-best.c math.h params.h common.h formats.h bench.h memdbg.h
+
+params.o:	params.c params.h memdbg.h
+
+path.o:	path.c autoconfig.h misc.h params.h memory.h path.h memdbg.h
+
+pfx2john.o:	pfx2john.c jumbo.h common.h arch.h params.h memdbg.h
+
+plugin.o:	plugin.c autoconfig.h Win32-dlfcn-port.h plugin.h memdbg.h
+
+putty2john.o:	putty2john.c autoconfig.h memory.h jumbo.h memdbg.h
+
+pwsafe2john.o:	pwsafe2john.c stdint.h jumbo.h memdbg.h
+
+racf2john.o:	racf2john.c autoconfig.h jumbo.h memory.h memdbg.h
+
+rar2john.o:	rar2john.c jumbo.h common.h arch.h params.h crc32.h unicode.h stdint.h jumbo.h base64_convert.h sha2.h rar2john.h missing_getopt.h memdbg.h
+
+raw2dyna.o:	raw2dyna.c autoconfig.h memdbg.h
+
+rc4.o:	rc4.c rc4.h memdbg.h
+
+recovery.o:	recovery.c os.h arch.h misc.h params.h path.h memory.h options.h loader.h logger.h status.h recovery.h john.h mask.h unicode.h john-mpi.h signals.h memdbg.h
+
+regex.o:	regex.c regex.h loader.h logger.h status.h os.h signals.h recovery.h options.h config.h cracker.h john.h external.h memdbg.h
+
+rpp.o:	rpp.c arch.h params.h config.h rpp.h common.h memdbg.h
+
+rules.o:	rules.c arch.h misc.h params.h common.h memory.h formats.h loader.h logger.h rpp.h rules.h options.h john.h unicode.h encoding_data.h memdbg.h
+
+sboxes-s.o:	sboxes-s.c
+
+sboxes.o:	sboxes.c nonstd.c
+
+scrypt_fmt.o:	scrypt_fmt.c escrypt/crypto_scrypt.h arch.h misc.h common.h formats.h base64_convert.h memdbg.h
+
+sha2.o:	sha2.c arch.h sha2.h params.h common.h johnswap.h memdbg.h
+
+signals.o:	signals.c os.h arch.h misc.h params.h tty.h options.h config.h bench.h john.h status.h signals.h john-mpi.h memdbg.h
+
+single.o:	single.c misc.h params.h common.h memory.h os.h signals.h loader.h logger.h status.h recovery.h options.h rpp.h rules.h external.h cracker.h john.h unicode.h config.h memdbg.h
+
+sse-intrinsics.o:	sse-intrinsics.c arch.h memory.h md5.h MD5_std.h stdint.h johnswap.h sse-intrinsics-load-flags.h aligned.h memdbg.h
+
+ssh2john.o:	ssh2john.c jumbo.h common.h arch.h params.h memdbg.h
+
+status.o:	status.c os.h times.h arch.h misc.h math.h params.h cracker.h options.h status.h bench.h config.h unicode.h signals.h mask.h john-mpi.h common-gpu.h memdbg.h
+
+symlink.o:	symlink.c
+
+tgtsnarf.o:	tgtsnarf.c autoconfig.h memory.h memdbg.h
+
+timer.o:	timer.c timer.h memdbg.h
+
+trip_fmt.o:	trip_fmt.c arch.h DES_std.h common.h formats.h DES_bs.h memdbg.h
+
+truecrypt_volume2john.o:	truecrypt_volume2john.c jumbo.h memdbg.h
+
+tty.o:	tty.c arch.h tty.h memdbg.h
+
+uaf2john.o:	uaf2john.c uaf_encode.h uaf_raw.h memdbg.h
+
+uaf_hash.o:	uaf_hash.c uaf_encode_plug.c memdbg.h
+
+unafs.o:	unafs.c misc.h memdbg.h
+
+undrop.o:	undrop.c os.h memdbg.h
+
+unicode.o:	unicode.c common.h arch.h byteorder.h unicode.h UnicodeData.h encoding_data.h misc.h config.h md4.h john.h memdbg.h
+
+unique.o:	unique.c autoconfig.h arch.h misc.h params.h memory.h jumbo.h memdbg.h
+
+unrar.o:	unrar.c arch.h unrar.h unrarppm.h unrarvm.h unrarfilter.h memdbg.h
+
+unrarcmd.o:	unrarcmd.c unrar.h unrarcmd.h memdbg.h
+
+unrarfilter.o:	unrarfilter.c arch.h unrar.h unrarfilter.h memdbg.h
+
+unrarhlp.o:	unrarhlp.c unrarhlp.h memdbg.h
+
+unrarvm.o:	unrarvm.c arch.h unrar.h unrarvm.h unrarcmd.h memdbg.h
+
+unshadow.o:	unshadow.c misc.h params.h memory.h memdbg.h
+
+vncpcap2john.o:	vncpcap2john.c autoconfig.h cygwin/ethernet.h tcphdr.h memdbg.h
+
+win32_memmap.o:	win32_memmap.c os.h win32_memmap.h memdbg.h
+
+wordlist.o:	wordlist.c autoconfig.h os.h win32_memmap.h mmap-windows.c arch.h jumbo.h misc.h math.h params.h common.h path.h signals.h loader.h logger.h status.h recovery.h options.h rpp.h rules.h external.h cracker.h john.h memory.h unicode.h regex.h mask.h memdbg.h
+
+wpapcap2john.o:	wpapcap2john.c wpapcap2john.h memdbg.h
+
+zip2john.o:	zip2john.c common.h jumbo.h formats.h stdint.h pkzip.h missing_getopt.h memdbg.h
+
+########
+
 SUBDIRS = aes
 
 .PHONY: subdirs $(SUBDIRS)
