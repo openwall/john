@@ -114,7 +114,7 @@ static void *get_salt(char *ciphertext)
 	int i;
 	char *p;
 	ctcopy += 9;	/* skip over "$kwallet$*" */
-	cur_salt = mem_alloc_tiny(sizeof(struct custom_salt), MEM_ALIGN_WORD);
+	cur_salt = mem_calloc_tiny(sizeof(struct custom_salt), MEM_ALIGN_WORD);
 	p = strtok(ctcopy, "$");
 	cur_salt->ctlen = atoi(p);
 	p = strtok(NULL, "$");
