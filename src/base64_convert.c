@@ -602,7 +602,7 @@ int base64_convert(const void *from, b64_convert_type from_t, int from_len, void
 		}
 		case e_b64_mime:	/* mime */
 		{
-			char *fromWrk = (char*)from, fromTmp[256];
+			char *fromWrk = (char*)from, fromTmp[256] = { 0 };
 			int alloced=0;
 			while (fromWrk[from_len-1]=='=')
 				from_len--;
@@ -610,11 +610,11 @@ int base64_convert(const void *from, b64_convert_type from_t, int from_len, void
 			/* autohandle the reverse of mime deplus code on input, i.e. auto convert . into + */
 			if (strchr(fromWrk, '.')) {
 				char *cp;
-				if (from_len<sizeof(fromTmp))
+				if (from_len<sizeof(fromTmp)-1)
 					fromWrk=fromTmp;
 				else {
 					alloced = 1;
-					fromWrk = (char*)mem_alloc(from_len+1);
+					fromWrk = (char*)mem_calloc(from_len+1);
 				}
 				strnzcpy(fromWrk, (const char*)from, from_len+1);
 				cp = strchr(fromWrk, '.');
@@ -626,11 +626,11 @@ int base64_convert(const void *from, b64_convert_type from_t, int from_len, void
 			if (strchr(fromWrk, '-')) {
 				char *cp;
 				if (fromWrk == from) {
-					if (from_len<sizeof(fromTmp))
+					if (from_len<sizeof(fromTmp)-1)
 						fromWrk=fromTmp;
 					else {
 						alloced = 1;
-						fromWrk = (char*)mem_alloc(from_len+1);
+						fromWrk = (char*)mem_calloc(from_len+1);
 					}
 					strnzcpy(fromWrk, (const char*)from, from_len+1);
 				}
@@ -643,11 +643,11 @@ int base64_convert(const void *from, b64_convert_type from_t, int from_len, void
 			if (strchr(fromWrk, '_')) {
 				char *cp;
 				if (fromWrk == from) {
-					if (from_len<sizeof(fromTmp))
+					if (from_len<sizeof(fromTmp)-1)
 						fromWrk=fromTmp;
 					else {
 						alloced = 1;
-						fromWrk = (char*)mem_alloc(from_len+1);
+						fromWrk = (char*)mem_calloc(from_len+1);
 					}
 					strnzcpy(fromWrk, (const char*)from, from_len+1);
 				}
@@ -816,7 +816,7 @@ void base64_convert_error_exit(int err) {
 	exit(1);
 }
 char *base64_convert_error(int err) {
-	char *p = (char*)mem_alloc(256);
+	char *p = (char*)mem_calloc(256);
 	switch (err) {
 		case ERR_base64_unk_from_type:	sprintf(p, "base64_convert error-%d, Unknown From Type\n", err); break;
 		case ERR_base64_unk_to_type:	sprintf(p, "base64_convert error-%d, Unknown To Type\n", err); break;
@@ -989,7 +989,7 @@ int base64conv(int argc, char **argv) {
 		if (isatty(fileno(stdin))) {
 			fprintf (stderr, "Enter a line of data to be converted\n");
 		}
-		buf = (char*)mem_alloc_tiny(256*1024*1024, 1);
+		buf = (char*)mem_calloc_tiny(256*1024*1024, 1);
 		fgetl(buf, 256*1024*1024-1, stdin);
 		buf[256*1024*1024-1] = 0;
 		*argv = buf;
