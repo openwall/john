@@ -12,7 +12,7 @@ foreach my $format (@ARGV) {
 			if ($1 eq "arch.h" || -f $1) {
 				$deps .= " " . $1;
 			} else {
-				print STDERR $format . " lists " . $1 . " but that file is not found\n";
+				print STDERR "Warning: " . $format . " includes \"" . $1 . "\" but that file is not found.\n";
 			}
 		}
 	}

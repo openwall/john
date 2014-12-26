@@ -62,7 +62,7 @@ AC_ARG_WITH(endian, [AS_HELP_STRING([--with-endian=little|big],[Set endianness f
 AC_ARG_ENABLE([memdbg], [AC_HELP_STRING([--enable-memdbg], [Enable memdbg memory debugging (safe level)])], [memdbg=$enableval], [memdbg=no])
 AC_ARG_ENABLE([memdbg-ex], [AC_HELP_STRING([--enable-memdbg-ex], [* Enable memdbg memory debugging (expanded level)])], [memdbgex=$enableval], [memdbgex=no])
 AC_ARG_ENABLE([asan], [AS_HELP_STRING([--enable-asan], [* Build with AddressSanitizer])], [asan=$enableval], [asan=no])
-AC_ARG_ENABLE([plugin-dependencies], [AS_HELP_STRING([--enable-plugin-dependencies], [Create Makefile dependencies for plugins (experimental, and you do not need it)])], [plug_deps=$enableval], [plug_deps=no])
+AC_ARG_ENABLE([plugin-dependencies], [AS_HELP_STRING([--disable-plugin-dependencies], [Do not create best-effort Makefile dependencies for plugins])], [plug_deps=$enableval], [plug_deps=yes])
 
 # Define Features. OpenMP and OpenCL are defined in their respective macros.
 # We define "--disable-FEATURE" when default is "auto".
