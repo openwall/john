@@ -32,6 +32,7 @@
 #include "formats.h"
 #include "md5.h"
 #include "dynamic.h"
+#include "config.h"
 #include "memdbg.h"
 
 // This set of defines will turn on testing of the MAX_LENGTH hashes. Some of them can cause changes in
@@ -3489,12 +3490,14 @@ int dynamic_RESERVED_PRELOAD_SETUP(int cnt, struct fmt_main *pFmt)
 //   but the format is INCLUDED in the build.  A couple things are still left
 //   in the parser as invalid (such as non-colon separators, etc).
 // 1 is valid.
-int dynamic_IS_VALID(int i)
+int dynamic_IS_VALID(int i, int force)
 {
 	char Type[20];
 	sprintf(Type, "dynamic_%d", i);
 	if (i < 0 || i >= 5000)
 		return -1;
+	if (!force && cfg_get_bool(SECTION_DISABLED, SUBSECTION_FORMATS, Type, 0))
+		return 0;
 	if (i < 1000) {
 		int j,len;
 		len=strlen(Type);

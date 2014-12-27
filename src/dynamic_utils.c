@@ -48,6 +48,8 @@ void dynamic_DISPLAY_ALL_FORMATS()
 		Type[13] = 0;
 		cp = strchr(Type, ':');
 		if (cp) *cp = 0;
+		if (cfg_get_bool(SECTION_DISABLED, SUBSECTION_FORMATS, Type, 0))
+			continue;
 		printf ("Format = %s%s  type = %s\n", Type, strlen(Type)<10?" ":"", sz);
 	}
 
@@ -65,7 +67,7 @@ void dynamic_DISPLAY_ALL_FORMATS()
 		char *sz = dynamic_LOAD_PARSER_SIGNATURE(i);
 		if (sz &&
 		    // dynamic_IS_PARSER_VALID(i)) // this would include "reserved" formats
-		    dynamic_IS_VALID(i) == 1) // skip "reserved" formats
+		    dynamic_IS_VALID(i, 0) == 1) // skip "reserved" formats & disabled
 			printf ("UserFormat = dynamic_%d  type = %s\n", i, sz);
 	}
 }

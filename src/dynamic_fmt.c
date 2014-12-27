@@ -7415,7 +7415,7 @@ int dynamic_Register_formats(struct fmt_main **ptr)
 	if (single != -1) {
 		// user wanted only a 'specific' format.  Simply load that one.
 		m_allow_rawhash_fixup = 1;
-		if (dynamic_IS_VALID(single) == 0)
+		if (dynamic_IS_VALID(single, 1) == 0)
 			return 0;
 		pFmts = mem_alloc_tiny(sizeof(pFmts[0]), MEM_ALIGN_WORD);
 		if (!LoadOneFormat(single, pFmts))
@@ -7425,13 +7425,13 @@ int dynamic_Register_formats(struct fmt_main **ptr)
 	}
 
 	for (count = i = 0; i < 5000; ++i) {
-		if (dynamic_IS_VALID(i) == 1)
+		if (dynamic_IS_VALID(i, 1) == 1)
 			++count;
 	}
 	// Ok, now we know how many formats we have.  Load them
 	pFmts = mem_alloc_tiny(sizeof(pFmts[0])*count, MEM_ALIGN_WORD);
 	for (idx = i = 0; i < 5000; ++i) {
-		if (dynamic_IS_VALID(i) == 1) {
+		if (dynamic_IS_VALID(i, 1) == 1) {
 			if (LoadOneFormat(i, &pFmts[idx]) == 0)
 				--count;
 			else

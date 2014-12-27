@@ -143,7 +143,7 @@ typedef struct DYNAMIC_Setup_t
 } DYNAMIC_Setup;
 
 int dynamic_SETUP(DYNAMIC_Setup *, struct fmt_main *pFmt);
-int dynamic_IS_VALID(int i);
+int dynamic_IS_VALID(int i, int force);
 int dynamic_real_salt_length(struct fmt_main *pFmt);
 void dynamic_DISPLAY_ALL_FORMATS();
 char *RemoveHEX(char *output, char *input);
