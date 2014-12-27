@@ -58,6 +58,9 @@ static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static int any_cracked, *cracked;
 static size_t cracked_size;
 
+// this will almost certainly have to be a dyna salt, with raw salt internal
+// into hash, and with PKCS12 structure in 'off-limits' land.  OR replace
+// oSSL code with native code.
 static struct custom_salt {
 	int len;
 	PKCS12 pfx;
