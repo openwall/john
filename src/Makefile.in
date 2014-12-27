@@ -540,6 +540,9 @@ DES_bs_b.o: DES_bs_b.c sboxes.c nonstd.c sboxes-s.c
 miscnl.o: misc.c
 	$(CC) $(CFLAGS) $(OPT_NORMAL) -D_JOHN_MISC_NO_LOG misc.c -o miscnl.o
 
+aes/aes.a:
+	$(MAKE) -C aes all
+
 ###############################################################################
 #  Process targets.  Note, these are *nix targets, but also work fine under
 #  cygwin.  The only problem with cygwin, is that the ln -s will NOT generate
@@ -551,7 +554,7 @@ miscnl.o: misc.c
 
 # PTHREAD_CFLAGS and OPENMP_CFLAGS may actually contain linker options,
 # like -fopenmp
-../run/john@EXE_EXT@: $(JOHN_OBJS) $(SUBDIRS)
+../run/john@EXE_EXT@: $(JOHN_OBJS) aes/aes.a
 	$(LD) $(JOHN_OBJS) $(LDFLAGS) @OPENSSL_LIBS@ @COMMONCRYPTO_LIBS@ @OPENMP_CFLAGS@ @GMP_LIBS@ @SKEY_LIBS@ @REXGEN_LIBS@ @CUDA_LIBS@ @CL_LIBS@ @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ @M_LIBS@ @Z_LIBS@ @DL_LIBS@ @CRYPT_LIBS@ @BZ2_LIBS@ aes/aes.a -o ../run/john
 
 ../run/unshadow: ../run/john
