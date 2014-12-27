@@ -628,6 +628,7 @@ ac_subst_vars='LTLIBOBJS
 HOST_OS
 PLUGFORMATS_DEPS
 PLUGFORMATS_OBJS
+M4_INCLUDES
 EXE_EXT
 YASM_OPTIONS
 AESNI_OS
@@ -13148,6 +13149,10 @@ if test "x$enable_nt_unicode" != xno; then :
 $as_echo "#define NT_FULL_UNICODE 1" >>confdefs.h
 
 fi
+
+# code to create M4_INCLUDES (all ./m4/*.m4 )
+M4_INCLUDES=`echo m4/*.m4`
+
 
 ####################################################
 # Code  to create @PLUGFORMATS_OBJS@ and

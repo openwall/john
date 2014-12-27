@@ -742,6 +742,9 @@ AC_CONFIG_LINKS([arch.h:$ARCH_LINK])
 # which corresponds to full UCS-2 or Unicode BMP.
 AS_IF([test "x$enable_nt_unicode" != xno], [AC_DEFINE([NT_FULL_UNICODE],1,[Define to 1 if you want support for 4-byte UTF-8 in fast MS formats.])])
 
+# code to create M4_INCLUDES (all ./m4/*.m4 )
+AC_SUBST([M4_INCLUDES],[`echo m4/*.m4`])
+
 ####################################################
 # Code  to create @PLUGFORMATS_OBJS@ and
 # john_buildrule.h moved from Makefile.in to here.

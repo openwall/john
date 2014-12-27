@@ -916,6 +916,8 @@ sse-intrinsics-32.S:
 ## CONFIG_MAINT=1 environment variable.  Beware.                     ##
 #######################################################################
 
+M4_INCLUDES=@M4_INCLUDES@
+
 ## automatic re-running of configure if the configure.ac file has changed
 ifeq ($(CONFIG_MAINT), 1)
 configure: configure.ac
@@ -927,13 +929,13 @@ endif
 
 # autoheader might not change autoconfig.h.in, so touch a stamp file
 ifeq ($(CONFIG_MAINT), 1)
-autoconfig.h.in: autoconfig-stamp-h
-autoconfig-stamp-h-in: configure.ac aclocal.m4
+autoconfig.h.in: autoconfig-stamp-h-in
+autoconfig-stamp-h-in: configure.ac $(M4_INCLUDES)
 	autoheader
 	echo "timestamp from Makefile" > autoconfig-stamp-h-in
 else
-autoconfig.h.in: autoconfig-stamp-h
-autoconfig-stamp-h-in: configure.ac aclocal.m4
+autoconfig.h.in: autoconfig-stamp-h-in
+autoconfig-stamp-h-in: configure.ac $(M4_INCLUDES)
 	echo "timestamp from Makefile" > autoconfig-stamp-h-in
 endif
 
@@ -972,7 +974,8 @@ distclean: clean
 	  (cd $$dir && $(MAKE) distclean) \
 	  || case "$(MFLAGS)" in *k*) fail=yes;; *) exit 1;; esac; \
 	done && test -z "$$fail"
-	$(RM) -f Makefile autoconfig.h config.status config.cache config.log autoconfig-stamp-h stamp-h1
+	$(RM) -f Makefile autoconfig.h config.status config.cache \
+			config.log autoconfig-stamp-h autoconfig-stamp-h-in stamp-h1
 	$(LN) Makefile.stub Makefile
 	$(RM) arch.h
 	$(RM) fmt_registers.h fmt_externs.h john_build_rule.h
