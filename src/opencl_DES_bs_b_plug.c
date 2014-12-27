@@ -387,13 +387,17 @@ void DES_bs_select_device(struct fmt_main *fmt)
 	}
 
 	/* Cap LWS at kernel limit */
+	if (local_work_size > 64)
+		local_work_size = 64;
+
 	if (local_work_size >
-	    get_kernel_max_lws(gpu_id, krnl[gpu_id][0])) {
+	    get_kernel_max_lws(gpu_id, krnl[gpu_id][0]))
 		local_work_size =
 			get_kernel_max_lws(gpu_id, krnl[gpu_id][0]);
-		if (local_work_size > 64)
-			local_work_size = 64;
-	}
+
+	if (get_device_type(gpu_id) == CL_DEVICE_TYPE_CPU)
+		local_work_size = 1;
+
 
 	/* ...but ensure GWS is still a multiple of LWS */
 	global_work_size = ((global_work_size + local_work_size - 1) /
