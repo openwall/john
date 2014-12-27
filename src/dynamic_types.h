@@ -109,8 +109,6 @@ typedef struct private_subformat_data
 	int nUserName;
 	int nPassCase;
 	unsigned FldMask;
-	// Special HDAA salt function
-	int dynamic_hdaa_salt;
 	// if the external hash is sha1()  (such as sha1(md5($p)) then we want 40 byte input hashes.
 	// We only 'use' 32 bytes of it to compare, but we should only run against 40byte hashes.
 	int dynamic_40_byte_input;

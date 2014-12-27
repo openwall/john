@@ -542,7 +542,6 @@ static Dynamic_Str_Flag_t Dynamic_Str_Flag[] =  {
 	{ "MGF_INPBASE64_4x6",				  MGF_INPBASE64_4x6 },
 	{ "MGF_SALT_UNICODE_B4_CRYPT",        MGF_SALT_UNICODE_B4_CRYPT },
 	{ "MGF_BASE_16_OUTPUT_UPCASE",        MGF_BASE_16_OUTPUT_UPCASE },
-	{ "MGF_HDAA_SALT",                    MGF_HDAA_SALT },
 	{ "MGF_FLD0",                         MGF_FLD0 },
 	{ "MGF_FLD1",                         MGF_FLD1 },
 	{ "MGF_FLD2",                         MGF_FLD2 },

@@ -63,7 +63,7 @@ typedef struct DYNAMIC_Constants_t
 #define MGF_SALT_AS_HEX_TO_SALT2    (0x00000800|MGF_SALTED)
 #define MGF_SALT_UNICODE_B4_CRYPT   (0x00001000|MGF_SALTED)
 #define MGF_BASE_16_OUTPUT_UPCASE    0x00002000
-#define MGF_HDAA_SALT               (0x00004000|MGF_SALTED)
+// open                              0x00004000
 #define MGF_FLDx_BIT                 0x00008000
 #define MGF_FLD0                    (0x00008000|MGF_SALTED)
 #define MGF_FLD1                    (0x00010000|MGF_SALTED)

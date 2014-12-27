@@ -549,10 +549,6 @@ examples (this whole list is also found in dynamic.conf).
 #     conversion mode, so that any initial key loading will also be
 #     done to the using unicode conversions.
 #
-#  Flag=MGF_HDAA_SALT
-#     Special salt loading for the HDAA format dynamic_21.
-#     Not useful for anything else.
-#
 #  MGF_FLD0, MGF_FLD1, MGF_FLD2, ... ,MGF_FLD9
 #     If any of the fields of the file are part of the format (and
 #     used within the script), then they either must be part of
@@ -2645,41 +2641,6 @@ Func=DynamicFunc__crypt_md5_in2_to_out1
 Test=$dynamic_1059$ef1b8ee3ad8690fd1678093588727529:test1
 Test=$dynamic_1059$18a7e5f289730525111f7b65cb223506:thatsworking
 Test=$dynamic_1059$01a0359d0cabbf49a0b0a8a941c7f5ab:test3
-
-
-
-##############################################################################
-# digest authentication scheme :
-#  h1 = md5(user:realm:password)
-#  h2 = md5(method:digestURI)
-#  response = h3 = md5(h1:nonce:nonceCount:ClientNonce:qop:h2)
-#
-# the 'special' salt sets 32space:nonce:nonceCount:ClientNonce:qop:h2
-# Also, this salt sets the first 5 bytes to be a growing text number,
-# so that salt_hash works properly.
-##############################################################################
-[List.Generic:dynamic_1060]
-Expression=dynamic_1060: HDAA )
-Flag=MGF_HDAA_SALT
-Flag=MGF_FLD2
-Flag=MGF_FLD3
-Flag=MGF_FLD4
-Flag=MGF_USERNAME
-Func=DynamicFunc__clean_input
-Func=DynamicFunc__append_userid
-Func=DynamicFunc__append_input1_from_CONST1
-Func=DynamicFunc__append_fld2
-Func=DynamicFunc__append_input1_from_CONST1
-Func=DynamicFunc__append_keys
-Func=DynamicFunc__crypt_md5
-Func=DynamicFunc__SSEtoX86_switch_output1
-Func=DynamicFunc__clean_input_kwik
-Func=DynamicFunc__append_salt
-Func=DynamicFunc__overwrite_from_last_output_as_base16_no_size_fix
-Func=DynamicFunc__crypt_md5
-Test=$dynamic_1060$679066476e67b5c7c4e88f04be567f8b$8c12bd8f728afe56d45a0ce846b70e5a$$Uuser$$F2myrealm$$F3GET$/$$F400000001$4b61913cec32e2c9$auth:nocode
-Test=$dynamic_1060$faa6cb7d676e5b7c17fcbf966436aa0c$af32592775d27b1cd06356b3a0db9ddf$$Umoi$$F2myrealm$$F3GET$/$$F400000001$8e1d49754a25aea7$auth:kikou
-CONST1=:
 
 
 [List.Generic:dynamic_1090]

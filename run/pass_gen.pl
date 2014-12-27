@@ -2144,7 +2144,6 @@ sub oracle11 {
 	print "u$u-oracle11:", uc sha1_hex($_[1], $salt), uc unpack("H*",$salt), ":$u:0:$_[0]::\n";
 }
 sub hdaa {
-	# same as dynamic_21
 	#  	{"$response$679066476e67b5c7c4e88f04be567f8b$user$myrealm$GET$/$8c12bd8f728afe56d45a0ce846b70e5a$00000001$4b61913cec32e2c9$auth", "nocode"},
 	my $user = randusername(20);
 	my $realm = randusername(10);
@@ -2570,21 +2569,6 @@ sub dynamic_20 { #dynamic_20 --> Cisco PIX (MD5 salted)
 		$h .= $i64[($n>>18) & 0x3f];
 	}
 	print "u$u-dynamic_20:\$dynamic_20\$$h\$$salt:$u:0:", $_[0], "::\n";
-}
-sub dynamic_21 { #HDAA HTTP Digest  access authentication
-	#dynamic_21679066476e67b5c7c4e88f04be567f8b$8c12bd8f728afe56d45a0ce846b70e5a$$Uuser$$F2myrealm$$F3GET$/$$F400000001$4b61913cec32e2c9$auth","nocode"},
-	#
-	#digest authentication scheme :
-	#H1 = md5(user:realm:password)
-	#H2 = md5(method:digestURI)
-	#response = H3 = md5(h1:nonce:nonceCount:ClientNonce:qop:h2)
-	my $user = randusername(20);
-	my $nonce = randstr(32, \@chrHexLo);
-	my $clientNonce = randstr(16, \@chrHexLo);
-	my $h1 = md5_hex($user, ":myrealm:", $_[1]);
-	my $h2 = md5_hex("GET:/");
-	my $resp = md5_hex($h1, ":", $nonce, ":00000001:", $clientNonce, ":auth:", $h2);
-	print "$user:\$dynamic_21\$$resp\$$nonce\$\$U$user\$\$F2myrealm\$\$F3GET\$/\$\$F400000001\$$clientNonce\$auth:$u:0:$_[0]::\n";
 }
 sub dynamic_27 { #dynamic_27 --> OpenBSD MD5
 	if (length($_[1]) > 15) { print STDERR "Warning, john can only handle 15 byte passwords for this format!\n"; }
