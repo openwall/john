@@ -387,6 +387,10 @@ void DES_bs_select_device(struct fmt_main *fmt)
 	}
 
 	/* Cap LWS at kernel limit */
+	if (cpu(device_info[gpu_id]) &&
+	    platform_apple(platform_id) && (local_work_size&1))
+		local_work_size = 64;
+
 	if (local_work_size > 64)
 		local_work_size = 64;
 
@@ -395,10 +399,10 @@ void DES_bs_select_device(struct fmt_main *fmt)
 		local_work_size =
 			get_kernel_max_lws(gpu_id, krnl[gpu_id][0]);
 
-	if (cpu(device_info[gpu_id]))
-		local_work_size =
-			get_platform_vendor_id(platform_id) == DEV_INTEL ?
-			8 : 1;
+	if (cpu(device_info[gpu_id]) &&
+	    get_platform_vendor_id(get_platform_id(gpu_id)) == DEV_AMD)
+		local_work_size = 1;
+
 
 	/* ...but ensure GWS is still a multiple of LWS */
 	global_work_size = ((global_work_size + local_work_size - 1) /
