@@ -31,6 +31,7 @@ john_register_one(&fmt_pfx);
 #ifdef _OPENMP
 #include <omp.h>
 #define OMP_SCALE               2 // tuned on core i7
+//#define OMP_SCALE              32 // tuned on K8-dual HT  (20% faster)
 #endif
 #include <string.h>
 #include "arch.h"

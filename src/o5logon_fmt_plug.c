@@ -36,6 +36,7 @@ john_register_one(&fmt_o5logon);
 static int omp_t = 1;
 #include <omp.h>
 #define OMP_SCALE               512 // tuned on core i7
+//#define OMP_SCALE                8192 // tuned on K8-Dual HT
 #endif
 #include "memdbg.h"
 
