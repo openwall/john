@@ -34,7 +34,7 @@ john_register_one(&fmt_racf);
 #include "options.h"
 #ifdef _OPENMP
 #include <omp.h>
-#define OMP_SCALE               64
+#define OMP_SCALE               2048 // tuned K8-dual HT
 static int omp_t = 1;
 #endif
 #include "memdbg.h"
