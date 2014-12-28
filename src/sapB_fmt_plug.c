@@ -44,7 +44,7 @@ john_register_one(&fmt_sapB);
 #include <omp.h>
 static unsigned int omp_t = 1;
 #ifdef MMX_COEF
-#define OMP_SCALE			128
+#define OMP_SCALE			512	// tuned on K8-dual HT.
 #else
 #define OMP_SCALE			2048
 #endif
@@ -167,9 +167,9 @@ static void init(struct fmt_main *self)
 
 #if defined (_OPENMP)
 	omp_t = omp_get_max_threads();
-	self->params.min_keys_per_crypt = omp_t * MIN_KEYS_PER_CRYPT;
+	self->params.min_keys_per_crypt = (omp_t * MIN_KEYS_PER_CRYPT);
 	omp_t *= OMP_SCALE;
-	self->params.max_keys_per_crypt = omp_t * MAX_KEYS_PER_CRYPT;
+	self->params.max_keys_per_crypt = (omp_t * MAX_KEYS_PER_CRYPT);
 #endif
 #ifdef MMX_COEF
 	saved_key = mem_calloc_tiny(64 * self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
