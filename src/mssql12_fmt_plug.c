@@ -32,7 +32,7 @@ john_register_one(&fmt_mssql12);
 #ifdef _OPENMP
 static int omp_t = 1;
 #include <omp.h>
-#define OMP_SCALE               64
+#define OMP_SCALE               4096  // tuned K8-dual HT
 #endif
 
 #include "arch.h"
