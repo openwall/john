@@ -9,6 +9,9 @@
  * version 0.1 released on 10 jan 2007
  *
  * See doc/README.format-epi for information on the input file format.
+ *
+ * Updated Dec, 2014, JimF.  Added OMP, and allowed more than one hash to be
+ * processed at once (OMP_SCALE stuff).
  */
 
 #if FMT_EXTERNS_H
@@ -25,6 +28,10 @@ john_register_one(&fmt_EPI);
 #include "formats.h"
 
 #include "sha.h"
+#ifdef _OPENMP
+#include <omp.h>
+#define OMP_SCALE              32768   // Tuned, K8-dual HT
+#endif
 #include "memdbg.h"
 
 #define PLAINTEXT_LENGTH   125
@@ -32,12 +39,13 @@ john_register_one(&fmt_EPI);
 #define BINARY_ALIGN       sizeof(ARCH_WORD_32)
 #define SALT_LENGTH        30
 #define SALT_ALIGN         1
+#define MIN_KEYS_PER_CRYPT		1
+#define MAX_KEYS_PER_CRYPT		1
 
-static ARCH_WORD_32 global_crypt[BINARY_LENGTH / sizeof(ARCH_WORD_32) + 1];
-static int key_len;
-static char global_salt[SALT_LENGTH + PLAINTEXT_LENGTH + 1]; // set by set_salt and used by crypt_all
-                                                         // the extra plaintext_length is needed because the
-                                                         // current key is copied there before hashing
+static int (*key_len);
+static char (*saved_key)[PLAINTEXT_LENGTH + 1];
+static ARCH_WORD_32 (*crypt_out)[BINARY_LENGTH / 4];
+static char global_salt[SALT_LENGTH+1];
 
 static struct fmt_tests global_tests[] =
 {
@@ -49,6 +57,20 @@ static struct fmt_tests global_tests[] =
   {NULL}
 };
 
+static void init(struct fmt_main *self)
+{
+#if defined (_OPENMP)
+	int omp_t = omp_get_max_threads();
+	self->params.min_keys_per_crypt *= omp_t;
+	omp_t *= OMP_SCALE;
+	self->params.max_keys_per_crypt *= omp_t;
+#endif
+	key_len = mem_calloc_tiny(sizeof(*key_len) *
+			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
+			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+}
 /*
  * Expects ciphertext of format: 0xHEX*60 0xHEX*40
  */
@@ -106,43 +128,54 @@ static void* salt(char *ciphertext)
 
 static void set_salt(void *salt)
 {
-  // first byte of key uses location of last byte of salt, so be sure we do not overwrite that byte.
-  memcpy(global_salt, salt, SALT_LENGTH-1);
+  memcpy(global_salt, salt, SALT_LENGTH);
 }
 
 static void set_key(char *key, int index)
 {
   if(!key) return;
-  key_len = strlen(key);
-  // Yes, I'm overwriting the last byte of the salt, perhaps the coder at ElektoPost whom wrote the EPiServer password checking function used to be a C coder (their code is written in .NET)
-  strnzcpy(global_salt+SALT_LENGTH-1, key, PLAINTEXT_LENGTH + 1);
+  key_len[index] = strlen(key) + 1;
+  strcpy(saved_key[index], key);
 }
 
 static char* get_key(int index)
 {
-  return global_salt+(SALT_LENGTH-1);
+  return saved_key[index];
 }
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
-	static SHA_CTX ctx;
-
-	SHA1_Init(&ctx);
-	SHA1_Update(&ctx, (unsigned char*)global_salt, SALT_LENGTH+key_len);
-	SHA1_Final((unsigned char*)global_crypt, &ctx);
+	int i=0;
+#ifdef _OPENMP
+#pragma omp parallel for private(i) shared(global_salt, saved_key, key_len, crypt_out)
+#endif
+#if defined (_OPENMP) || MAX_KEYS_PER_CRYPT>1
+	for (i = 0; i < count; ++i)
+#endif
+	{
+		SHA_CTX ctx;
+		SHA1_Init(&ctx);
+		SHA1_Update(&ctx, (unsigned char*)global_salt, SALT_LENGTH-1);
+		SHA1_Update(&ctx, saved_key[i], key_len[i]);
+		SHA1_Final((unsigned char*)crypt_out[i], &ctx);
+	}
 
 	return count;
 }
 
 static int cmp_all(void *binary, int count)
 {
-  return ((ARCH_WORD_32 *)binary)[0] == global_crypt[0];
+	int index;
+	for (index = 0; index < count; index++)
+		if ( ((ARCH_WORD_32*)binary)[0] == crypt_out[index][0] )
+			return 1;
+	return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
-  return !memcmp(binary, global_crypt, BINARY_LENGTH);
+  return !memcmp(binary, crypt_out[index], BINARY_LENGTH);
 }
 
 static int cmp_exact(char *source, int index)
@@ -150,13 +183,13 @@ static int cmp_exact(char *source, int index)
   return 1;
 }
 
-static int get_hash_0(int index) { return global_crypt[index] & 0xF; }
-static int get_hash_1(int index) { return global_crypt[index] & 0xFF; }
-static int get_hash_2(int index) { return global_crypt[index] & 0xFFF; }
-static int get_hash_3(int index) { return global_crypt[index] & 0xFFFF; }
-static int get_hash_4(int index) { return global_crypt[index] & 0xFFFFF; }
-static int get_hash_5(int index) { return global_crypt[index] & 0xFFFFFF; }
-static int get_hash_6(int index) { return global_crypt[index] & 0x7FFFFFF; }
+static int get_hash_0(int index) { return crypt_out[index][0] & 0xF; }
+static int get_hash_1(int index) { return crypt_out[index][0] & 0xFF; }
+static int get_hash_2(int index) { return crypt_out[index][0] & 0xFFF; }
+static int get_hash_3(int index) { return crypt_out[index][0] & 0xFFFF; }
+static int get_hash_4(int index) { return crypt_out[index][0] & 0xFFFFF; }
+static int get_hash_5(int index) { return crypt_out[index][0] & 0xFFFFFF; }
+static int get_hash_6(int index) { return crypt_out[index][0] & 0x7FFFFFF; }
 
 static int salt_hash(void *salt)
 {
@@ -177,8 +210,8 @@ struct fmt_main fmt_EPI =
 		BINARY_ALIGN,
 		SALT_LENGTH,
 		SALT_ALIGN,
-		1,
-		1,
+		MIN_KEYS_PER_CRYPT,
+		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
@@ -186,7 +219,7 @@ struct fmt_main fmt_EPI =
 		global_tests
 	},
 	{ // fmt_methods
-		fmt_default_init,
+		init,
 		fmt_default_done,
 		fmt_default_reset,
 		fmt_default_prepare,
