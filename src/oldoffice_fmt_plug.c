@@ -31,7 +31,7 @@ john_register_one(&fmt_oldoffice);
 #include "unicode.h"
 #ifdef _OPENMP
 #include <omp.h>
-#define OMP_SCALE               64
+#define OMP_SCALE               256
 #endif
 #include "memdbg.h"
 
