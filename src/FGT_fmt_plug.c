@@ -35,6 +35,10 @@ john_register_one(&fmt_FGT);
 #include "sha.h"
 #include "base64.h"
 #include "sse-intrinsics.h"
+#ifdef _OPENMP
+#include <omp.h>
+#define OMP_SCALE               32768 // tuned on AMD K8 dual-HT (XOP)
+#endif
 #include "memdbg.h"
 
 #define FORMAT_LABEL		"Fortigate"
@@ -57,11 +61,8 @@ john_register_one(&fmt_FGT);
 #define FORTINET_MAGIC_LENGTH   24
 
 #define MIN_KEYS_PER_CRYPT		1
-#ifdef _OPENMP
-#define MAX_KEYS_PER_CRYPT		(0x200 * 3)
-#else
-#define MAX_KEYS_PER_CRYPT		0x100
-#endif
+#define MAX_KEYS_PER_CRYPT		1
+
 
 
 static struct fmt_tests fgt_tests[] =
@@ -74,10 +75,27 @@ static struct fmt_tests fgt_tests[] =
 
 static SHA_CTX ctx_salt;
 
-static char saved_key[MAX_KEYS_PER_CRYPT][PLAINTEXT_LENGTH + 1];
-static int saved_key_len[MAX_KEYS_PER_CRYPT];
+static char (*saved_key)[PLAINTEXT_LENGTH + 1];
+static int (*saved_key_len);
+static ARCH_WORD_32 (*crypt_key)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
 
-static ARCH_WORD_32 crypt_key[MAX_KEYS_PER_CRYPT][BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static void init(struct fmt_main *self)
+{
+#if defined (_OPENMP)
+	int omp_t = 1;
+
+	omp_t = omp_get_max_threads();
+	self->params.min_keys_per_crypt *= omp_t;
+	omp_t *= OMP_SCALE;
+	self->params.max_keys_per_crypt *= omp_t;
+#endif
+	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
+			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	crypt_key = mem_calloc_tiny(sizeof(*crypt_key) *
+			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	saved_key_len = mem_calloc_tiny(sizeof(*saved_key_len) *
+			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+}
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
@@ -167,13 +185,16 @@ static int cmp_exact(char *source, int index)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
-	int i;
+	int i=0;
 	char *cp=FORTINET_MAGIC;
 
 #ifdef _OPENMP
 #pragma omp parallel for default(none) private(i) shared(ctx_salt, count, saved_key, saved_key_len, crypt_key, cp)
 #endif
-	for (i = 0; i < count; i++) {
+#if defined (_OPENMP) || MAX_KEYS_PER_CRYPT>1
+	for (i = 0; i < count; i++)
+#endif
+	{
 		SHA_CTX ctx;
 
 		memcpy(&ctx, &ctx_salt, sizeof(ctx));
@@ -222,7 +243,7 @@ struct fmt_main fmt_FGT = {
 #endif
 		fgt_tests
 	}, {
-		fmt_default_init,
+		init,
 		fmt_default_done,
 		fmt_default_reset,
 		fmt_default_prepare,
