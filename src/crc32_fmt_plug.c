@@ -38,6 +38,7 @@ john_register_one(&fmt_crc32);
 
 #ifdef _OPENMP
 #include <omp.h>
+#define OMP_SCALE       1	// tuned on AMD-k8 dual-HT
 #endif
 #include "memdbg.h"
 
@@ -79,7 +80,7 @@ static void init(struct fmt_main *self)
 		n = 4; // it just won't scale further
 		omp_set_num_threads(n);
 	}
-	self->params.max_keys_per_crypt = MAX_KEYS_PER_CRYPT * n;
+	self->params.max_keys_per_crypt *= (n*OMP_SCALE);
 #endif
 	//printf("Using %u x %u = %u keys per crypt\n", MAX_KEYS_PER_CRYPT, n, self->params.max_keys_per_crypt);
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
