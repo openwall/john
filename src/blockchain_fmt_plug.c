@@ -29,7 +29,8 @@ john_register_one(&fmt_blockchain);
 #include <openssl/aes.h>
 #ifdef _OPENMP
 #include <omp.h>
-#define OMP_SCALE               1 // tuned on core i7
+//#define OMP_SCALE               1 // tuned on core i7
+#define OMP_SCALE               64 // tuned on AMD K8 dual-HT (XOP)
 #endif
 #include "memdbg.h"
 
