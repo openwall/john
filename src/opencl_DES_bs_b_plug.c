@@ -395,10 +395,10 @@ void DES_bs_select_device(struct fmt_main *fmt)
 		local_work_size =
 			get_kernel_max_lws(gpu_id, krnl[gpu_id][0]);
 
-	if (get_device_type(gpu_id) == CL_DEVICE_TYPE_CPU &&
-	    get_platform_vendor_id(get_platform_id(gpu_id)) == DEV_AMD)
-		local_work_size = 1;
-
+	if (cpu(device_info[gpu_id]))
+		local_work_size =
+			get_platform_vendor_id(platform_id) == DEV_INTEL ?
+			8 : 1;
 
 	/* ...but ensure GWS is still a multiple of LWS */
 	global_work_size = ((global_work_size + local_work_size - 1) /
