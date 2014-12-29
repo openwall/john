@@ -106,8 +106,10 @@ static char *Convert(char *Buf, char *ciphertext)
 	// now append salt, and the '-' char
 	while (*ciphertext && i < sizeof(Conv_Buf) - 3 && *ciphertext != '$')
 		Buf[i++] = *ciphertext++;
-	Buf[i++] = '-';
-	Buf[i] = 0;
+	if (i < sizeof(Conv_Buf) - 2) {
+		Buf[i++] = '-';
+		Buf[i] = 0;
+	}
 	return Buf;
 }
 
