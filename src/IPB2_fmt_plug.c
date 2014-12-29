@@ -30,7 +30,7 @@ john_register_one(&fmt_IPB2);
 #include <omp.h>
 static unsigned int omp_t = 1;
 #ifdef MMX_COEF
-#define OMP_SCALE			256
+#define OMP_SCALE			512  // Tuned K8-dual HT
 #else
 #define OMP_SCALE			256
 #endif
@@ -66,6 +66,7 @@ static unsigned int omp_t = 1;
 #define GETPOS(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&60)*MMX_COEF + ((i)&3) + (index>>(MMX_COEF>>1))*64*MMX_COEF )
 #define GETOUTPOS(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&12)*MMX_COEF + ((i)&3) + (index>>(MMX_COEF>>1))*16*MMX_COEF )
 #else
+#define NBKEYS                  1
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
 #endif
@@ -142,7 +143,11 @@ static void init(struct fmt_main *self)
 	omp_t = omp_get_max_threads();
 	self->params.min_keys_per_crypt *= omp_t;
 	omp_t *= OMP_SCALE;
-	self->params.max_keys_per_crypt *= omp_t;
+	// these 2 lines of change, allows the format to work with
+	// [Options] FormatBlockScaleTuneMultiplier= without other format change
+	omp_t *= self->params.max_keys_per_crypt;
+	omp_t /= NBKEYS;
+	self->params.max_keys_per_crypt = (omp_t*NBKEYS);
 #endif
 #if MMX_COEF
 	key_buf = mem_calloc_tiny(64 * self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
