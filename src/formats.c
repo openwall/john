@@ -74,6 +74,8 @@ void fmt_init(struct fmt_main *format)
 		if (d > 0 && d < 1.0) {
 			double tmpd = format->params.max_keys_per_crypt;
 			tmpd *= d;
+			tmpd += .01;
+			if (tmpd < 1) tmpd = 1.01;
 			format->params.max_keys_per_crypt = tmpd;
 		}
 	}
