@@ -53,6 +53,7 @@ run/zip2john
 src/.gdbinit
 src/aes/aes.a
 src/arch.h
+src/autoconfig-stamp-h-in
 src/autoconfig-stamp-h
 src/autoconfig-stamp-h-in
 src/autoconfig.h
