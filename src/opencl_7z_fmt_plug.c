@@ -301,7 +301,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if (!ishex(p))
 		goto err;
-	if (strcmp(p+len*2, "0000000000000000"))
+	if (strlen(p) > len*2 && strcmp(p+len*2, "0000000000000000"))
 		goto err;
 	if ((p = strtok(NULL, "$")) == NULL) /* crc */
 		goto err;
