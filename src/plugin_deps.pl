@@ -9,17 +9,14 @@ foreach my $format (@ARGV) {
 	open FILE, "<", $format or die $!;
 	while (<FILE>) {
 		if (/^\s*#\s*include\s+"([^"]+)"/) {
-			if ($1 eq "arch.h" || -f $1) {
+			if ($1 eq "arch.h" || $1 eq "autoconfig.h" || -f $1) {
 				$deps .= " " . $1;
 			} else {
-				# we ignore outputting for autoconfig.h, since it is built later in ./configure process
-				# from where this plugin_deps.pl is run from
-				if ($1 ne "autoconfig.h") {
-					print STDERR "Warning: " . $format . " includes \"" . $1 . "\" but that file is not found.\n";
-				}
+				print STDERR "Warning: " . $format . " includes \"" . $1 . "\" but that file is not found.\n";
 			}
 		}
 	}
+	close(FILE);
 	print $object . ":" . "\t" . $format . $deps . "\n\n";
 	#print "\t" . '$(CC) $(CFLAGS) ' . $format . " -o " . $object . "\n\n";
 }
