@@ -24,7 +24,7 @@ john_register_one(&fmt_postgres);
 #ifdef _OPENMP
 static int omp_t = 1;
 #include <omp.h>
-#define OMP_SCALE               8192 // scaled on K8-dual HT
+#define OMP_SCALE               2048 // scaled on K8-dual HT
 #endif
 
 #include "md5.h"
