@@ -280,7 +280,7 @@ static const char *ValidateZipFileData(u8 *Fn, u8 *Oh, u8 *Ob, unsigned len, u8 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	u8 *ctcopy, *keeptr, *p, *cp, *Fn=0, *Oh=0, *Ob=0;
-	const char *sFailStr;
+	const char *sFailStr="Truncated hash, pkz_GetFld() returned NULL";
 	unsigned val;
 	int ret = 0;
 	int zip_file_validate=0;
@@ -292,41 +292,52 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	keeptr = ctcopy;
 
 	p = &ctcopy[TAG_LENGTH+1];
-	p = pkz_GetFld(p, &cp);		// type
+	if ((p = pkz_GetFld(p, &cp)) == NULL)		// type
+		goto Bail;
 	if (!cp || *cp != '0') { sFailStr = "Out of data, reading count of hashes field"; goto Bail; }
 
-	p = pkz_GetFld(p, &cp);		// mode
+	if ((p = pkz_GetFld(p, &cp)) == NULL)		// mode
+		goto Bail;
 	if (cp[1] || *cp < '1' || *cp > '3') {
 		sFailStr = "Invalid aes mode (only valid for 1 to 3)"; goto Bail; }
 	val = *cp - '0';
 
-	p = pkz_GetFld(p, &cp);		// file_magic enum (ignored for now, just a place holder)
+	if ((p = pkz_GetFld(p, &cp)) == NULL)		// file_magic enum (ignored for now, just a place holder)
+		goto Bail;
 
-	p = pkz_GetFld(p, &cp);		// salt
+	if ((p = pkz_GetFld(p, &cp)) == NULL)		// salt
+		goto Bail;
 	if (!pkz_is_hex_str(cp) || strlen((char*)cp) != SALT_LENGTH(val)<<1)  {
 		sFailStr = "Salt invalid or wrong length"; goto Bail; }
 
-	p = pkz_GetFld(p, &cp);		// validator
+	if ((p = pkz_GetFld(p, &cp)) == NULL)		// validator
+		goto Bail;
 	if (!pkz_is_hex_str(cp) || strlen((char*)cp) != 4)  {
 		sFailStr = "Validator invalid or wrong length (4 bytes hex)"; goto Bail; }
 
-	p = pkz_GetFld(p, &cp);		// Data len.
+	if ((p = pkz_GetFld(p, &cp)) == NULL)		// Data len.
+		goto Bail;
 	if (!pkz_is_hex_str(cp))  {
 		sFailStr = "Data length invalid (not hex number)"; goto Bail; }
 	sscanf((const char*)cp, "%x", &val);
 
-	p = pkz_GetFld(p, &cp);		// data blob, OR file structure
+	if ((p = pkz_GetFld(p, &cp)) == NULL)		// data blob, OR file structure
+		goto Bail;
 	if (!strcmp((char*)cp, "ZFILE")) {
-		p = pkz_GetFld(p, &Fn);
-		p = pkz_GetFld(p, &Oh);
-		p = pkz_GetFld(p, &Ob);
+		if ((p = pkz_GetFld(p, &Fn)) == NULL)
+			goto Bail;
+		if ((p = pkz_GetFld(p, &Oh)) == NULL)
+			goto Bail;
+		if ((p = pkz_GetFld(p, &Ob)) == NULL)
+			goto Bail;
 		zip_file_validate = 1;
 	} else {
 		if (!pkz_is_hex_str(cp) || strlen((char*)cp) != val<<1)  {
 			sFailStr = "Inline data blob invalid (not hex number), or wrong length"; goto Bail; }
 	}
 
-	p = pkz_GetFld(p, &cp);		// authentication_code
+	if ((p = pkz_GetFld(p, &cp)) == NULL)		// authentication_code
+		goto Bail;
 	if (!pkz_is_hex_str(cp) || strlen((char*)cp) != BINARY_SIZE<<1)  {
 		sFailStr = "Authentication data invalid (not hex number), or not 20 hex characters"; goto Bail; }
 
@@ -340,7 +351,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		}
 	}
 
-	p = pkz_GetFld(p, &cp);		// Trailing signature
+	if ((p = pkz_GetFld(p, &cp)) == NULL)		// Trailing signature
+		goto Bail;
 	if (strcmp((char*)cp, FORMAT_CLOSE_TAG)) {
 		sFailStr = "Invalid trailing zip2 signature"; goto Bail; }
 	ret = 1;

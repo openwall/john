@@ -66,7 +66,7 @@ u16 fget16LE(FILE * fp)
 u8 *pkz_GetFld(u8 *p, u8 **pRet) {
 	if (!p || *p==0) {
 		*pRet = (u8*)"";
-		return p;
+		return NULL;
 	}
 	if (p && *p && *p == '*') {
 		*pRet = (u8*)"";
