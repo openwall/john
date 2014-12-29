@@ -222,6 +222,13 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	}
 	// SAP user name cannot start with ! or ?
 	if (ciphertext[0] == '!' || ciphertext[0] == '?') return 0;
+	// the user name must not simply be spaces, or empty
+	for (i = 0; i < p - ciphertext; ++i) {
+		if (ciphertext[i] == ' ')
+			continue;
+		break;
+	}
+	if (ciphertext[i] == '$') return 0;
 
 	p++;
 
