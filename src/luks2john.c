@@ -115,13 +115,13 @@ static int hash_plugin_parse_hash(char *filename)
 	myfile = jtr_fopen(filename, "rb");
 
 	if (fread(&myphdr, sizeof(struct luks_phdr), 1, myfile) < 1) {
-		fprintf(stderr, "%s : file opening problem!", filename);
+		fprintf(stderr, "%s : file opening problem!\n", filename);
 		fclose(myfile);
 		return -1;
 	}
 
 	if (strcmp(myphdr.magic, "LUKS\xba\xbe") != 0) {
-		fprintf(stderr, "%s : not a LUKS file / disk", filename);
+		fprintf(stderr, "%s : not a LUKS file / disk\n", filename);
 		fclose(myfile);
 		return -2;
 	}
