@@ -54,6 +54,7 @@ src/.gdbinit
 src/aes/aes.a
 src/arch.h
 src/autoconfig-stamp-h
+src/autoconfig-stamp-h-in
 src/autoconfig.h
 src/autom4te.cache/
 src/config.status
