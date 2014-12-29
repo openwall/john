@@ -261,6 +261,12 @@ static int mime_to_cryptBS(const char *cpi, char *cpo, int to_len, int flags) {
 		error();
 	}
 	while (len_left > 0) {
+		char tmp[4];
+		if(len_left<4) {
+			memset(tmp, 0, 4);
+			memcpy(tmp, cpi, len_left);
+			cpi = tmp;
+		}
 		base64_decode((char*)cpi, len_left < 4 ? len_left : 4, Tmp);
 		base64_encode_iBS((const unsigned char*)Tmp, 3, cpo, flags);
 		cpi += 4;
@@ -279,6 +285,12 @@ static int mime_to_crypt(const char *cpi, char *cpo, int to_len, int flags) {
 		error();
 	}
 	while (len_left > 0) {
+		char tmp[4];
+		if(len_left<4) {
+			memset(tmp, 0, 4);
+			memcpy(tmp, cpi, len_left);
+			cpi = tmp;
+		}
 		base64_decode((char*)cpi, len_left < 4 ? len_left : 4, Tmp);
 		base64_encode_i((const unsigned char*)Tmp, 3, cpo, flags);
 		cpi += 4;
@@ -297,6 +309,12 @@ static int crypt_to_cryptBS(const char *cpi, char *cpo, int to_len, int flags) {
 		error();
 	}
 	while (len_left > 0) {
+		char tmp[4];
+		if(len_left<4) {
+			memset(tmp, 0, 4);
+			memcpy(tmp, cpi, len_left);
+			cpi = tmp;
+		}
 		base64_decode_i((char*)cpi, len_left < 4 ? len_left : 4, (unsigned char*)Tmp);
 		base64_encode_iBS((const unsigned char*)Tmp, 3, cpo, flags);
 		cpi += 4;
@@ -315,6 +333,12 @@ static int crypt_to_mime(const char *cpi, char *cpo, int to_len, int flags) {
 		error();
 	}
 	while (len_left > 0) {
+		char tmp[4];
+		if(len_left<4) {
+			memset(tmp, 0, 4);
+			memcpy(tmp, cpi, len_left);
+			cpi = tmp;
+		}
 		base64_decode_i((char*)cpi, len_left < 4 ? len_left : 4, (unsigned char*)Tmp);
 		base64_encode((const unsigned char*)Tmp, 3, cpo, flags);
 		cpi += 4;
@@ -333,6 +357,12 @@ static int cryptBS_to_mime(const char *cpi, char *cpo, int to_len, int flags) {
 		error();
 	}
 	while (len_left > 0) {
+		char tmp[4];
+		if(len_left<4) {
+			memset(tmp, 0, 4);
+			memcpy(tmp, cpi, len_left);
+			cpi = tmp;
+		}
 		base64_decode_iBS((char*)cpi, len_left < 4 ? len_left : 4, (unsigned char*)Tmp);
 		base64_encode((const unsigned char*)Tmp, 3, cpo, flags);
 		cpi += 4;
@@ -351,6 +381,12 @@ static int cryptBS_to_crypt(const char *cpi, char *cpo, int to_len, int flags) {
 		error();
 	}
 	while (len_left > 0) {
+		char tmp[4];
+		if(len_left<4) {
+			memset(tmp, 0, 4);
+			memcpy(tmp, cpi, len_left);
+			cpi = tmp;
+		}
 		base64_decode_iBS((char*)cpi, len_left < 4 ? len_left : 4, (unsigned char*)Tmp);
 		base64_encode_i((const unsigned char*)Tmp, 3, cpo, flags);
 		cpi += 4;
@@ -437,7 +473,13 @@ static int cryptBS_to_hex(const char *cpi, int len_left, char *cpo, int to_len, 
 	int len, this_len=3;
 	len = 0;
 	while (len_left > 0) {
-		if(len_left<4) {if(len_left<=2)this_len=1;else this_len=2;}
+		char tmp[4];
+		if(len_left<4) {
+			if(len_left<=2)this_len=1;else this_len=2;
+			memset(tmp, 0, 4);
+			memcpy(tmp, cpi, len_left);
+			cpi = tmp;
+		}
 		if (len+this_len > (to_len>>1))  // can overflow by 1
 			break;
 		base64_decode_iBS((char*)cpi, len_left < 4 ? len_left : 4, (unsigned char*)Tmp);
@@ -456,7 +498,13 @@ static int crypt_to_hex(const char *cpi, int len_left, char *cpo, int to_len, in
 	int len, this_len=3;
 	len = 0;
 	while (len_left > 0) {
-		if(len_left<4) {if(len_left<=2)this_len=1;else this_len=2;}
+		char tmp[4];
+		if(len_left<4) {
+			if(len_left<=2)this_len=1;else this_len=2;
+			memset(tmp, 0, 4);
+			memcpy(tmp, cpi, len_left);
+			cpi = tmp;
+		}
 		if (len+this_len > (to_len>>1))  // can overflow by 1
 			break;
 		base64_decode_i((char*)cpi, len_left < 4 ? len_left : 4, (unsigned char*)Tmp);
@@ -474,7 +522,13 @@ static int mime_to_raw(const char *cpi, int len_left, char *cpo, int to_len, int
 	int len, this_len=3;
 	len = 0;
 	while (len_left > 0) {
-		if(len_left<4) {if(len_left<=2)this_len=1;else this_len=2;}
+		char tmp[4];
+		if(len_left<4) {
+			if(len_left<=2)this_len=1;else this_len=2;
+			memset(tmp, 0, 4);
+			memcpy(tmp, cpi, len_left);
+			cpi = tmp;
+		}
 		if (len+this_len > to_len)
 			break;
 		base64_decode((char*)cpi, len_left < 4 ? len_left : 4, cpo);
@@ -490,7 +544,13 @@ static int mime_to_hex(const char *cpi, int len_left, char *cpo, int to_len, int
 	int len, this_len=3;
 	len = 0;
 	while (len_left > 0) {
-		if(len_left<4) {if(len_left<=2)this_len=1;else this_len=2;}
+		char tmp[4];
+		if(len_left<4) {
+			if(len_left<=2)this_len=1;else this_len=2;
+			memset(tmp, 0, 4);
+			memcpy(tmp, cpi, len_left);
+			cpi = tmp;
+		}
 		if (len+this_len > (to_len>>1))  // can overflow by 1
 			break;
 		base64_decode((char*)cpi, len_left < 4 ? len_left : 4, (char*)Tmp);
