@@ -395,10 +395,21 @@ void DES_bs_select_device(struct fmt_main *fmt)
 		local_work_size =
 			get_kernel_max_lws(gpu_id, krnl[gpu_id][0]);
 
+	/* Cludge for buggy AMD CPU driver */
 	if (cpu(device_info[gpu_id]) &&
 	    get_platform_vendor_id(get_platform_id(gpu_id)) == DEV_AMD)
 		local_work_size = 1;
 
+	/* Cludge for old buggy Intel driver */
+	if (cpu(device_info[gpu_id]) &&
+	    get_platform_vendor_id(get_platform_id(gpu_id)) == DEV_INTEL) {
+		char dev_ver[MAX_OCLINFO_STRING_LEN];
+
+		clGetDeviceInfo(devices[gpu_id], CL_DEVICE_VERSION,
+		                MAX_OCLINFO_STRING_LEN, dev_ver, NULL);
+		if (strstr(dev_ver, "Build 15293.6649"))
+			local_work_size = 1;
+	}
 
 	/* ...but ensure GWS is still a multiple of LWS */
 	global_work_size = ((global_work_size + local_work_size - 1) /
