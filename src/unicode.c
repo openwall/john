@@ -1601,8 +1601,8 @@ int enc_uc(UTF8 *dst, unsigned dst_len, const UTF8 *src, unsigned src_len) {
 
 	if (pers_opts.target_enc != UTF_8) {
 		int len;
-		if (dst_len < src_len)
-			src_len = dst_len;
+		if (dst_len-1 < src_len) /* -1 since we null terminate our buffer */
+			src_len = dst_len-1;
 		len=src_len;
 #if 0  // Defined out until we need it
 		if (UnicodeType==UNICODE_UNICODE) {
