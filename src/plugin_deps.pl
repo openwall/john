@@ -12,7 +12,11 @@ foreach my $format (@ARGV) {
 			if ($1 eq "arch.h" || -f $1) {
 				$deps .= " " . $1;
 			} else {
-				print STDERR "Warning: " . $format . " includes \"" . $1 . "\" but that file is not found.\n";
+				# we ignore outputting for autoconfig.h, since it is built later in ./configure process
+				# from where this plugin_deps.pl is run from
+				if ($1 ne "autoconfig.h") {
+					print STDERR "Warning: " . $format . " includes \"" . $1 . "\" but that file is not found.\n";
+				}
 			}
 		}
 	}
