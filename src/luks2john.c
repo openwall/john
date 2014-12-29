@@ -197,6 +197,7 @@ static int hash_plugin_parse_hash(char *filename)
 		printf("\n");
 
 		fwrite(cipherbuf, afsize, 1, fp);
+		free(cipherbuf);
 		fclose(fp);
 
 		goto good;

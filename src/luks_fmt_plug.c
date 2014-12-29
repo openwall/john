@@ -250,7 +250,6 @@ static int hash_plugin_parse_hash(char *filename, struct custom_salt *cs, int is
 	readbytes = fread(cs->cipherbuf, cs->afsize, 1, myfile);
 
 	if (readbytes < 0) {
-		//free(cs->cipherbuf);
 		fprintf(stderr, "%s : unable to read required data\n",
 			filename);
 		goto bad;
@@ -286,7 +285,7 @@ static void init(struct fmt_main *self)
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 
 /*
- * LUKS format will need to be redesigned to address the issues mentioned in 
+ * LUKS format will need to be redesigned to address the issues mentioned in
  * https://github.com/magnumripper/JohnTheRipper/issues/557.
  * This will require a change in john's hash representation for LUKS format.
  * The redesign will happen after the next official jumbo release.
@@ -327,21 +326,22 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	is_inlined = atoi(p);
 
+	if ((p = strtok(NULL, "$")) == NULL)
+		goto err;
+	res = atoi(p);
+	if (res != sizeof(struct luks_phdr))
+		goto err;
+	if ((p = strtok(NULL, "$")) == NULL)
+		goto err;
+	if (res * 2 != strlen(p))
+		goto err;
+	if (!ishexlc(p))
+		goto err;
+	if ((p = strtok(NULL, "$")) == NULL)
+		goto err;
+	res = atoi(p);
+
 	if (is_inlined) {
-		if ((p = strtok(NULL, "$")) == NULL)
-			goto err;
-		res = atoi(p);
-		if (res != sizeof(struct luks_phdr))
-			goto err;
-		if ((p = strtok(NULL, "$")) == NULL)
-			goto err;
-		if (res * 2 != strlen(p))
-			goto err;
-		if (!ishexlc(p))
-			goto err;
-		if ((p = strtok(NULL, "$")) == NULL)
-			goto err;
-		res = atoi(p);
 		if ((p = strtok(NULL, "$")) == NULL)
 			goto err;
 		if ((p = strtok(NULL, "$")) == NULL)
@@ -352,18 +352,22 @@ static int valid(char *ciphertext, struct fmt_main *self)
 			goto err;
 	}
 	else {
-		if ((p = strtok(NULL, "$")) == NULL)	/* path */
+		if ((p = strtok(NULL, "$")) == NULL)	/* LUKS file */
+			goto err;
+		if ((p = strtok(NULL, "$")) == NULL)	/* dump file */
 			goto err;
 		q = p;
 		if ((p = strtok(NULL, "$")) == NULL)	/* mkDigest */
 			goto err;
+		if (strlen(p) != LUKS_DIGESTSIZE * 2)
+			goto err;
+		if (!ishexlc(p))
+			goto err;
 
 		/* more tests */
 		if (hash_plugin_parse_hash(q, &cs, 0) != 0) {
-			MEM_FREE(cs.cipherbuf);
 			return 0;
 		}
-		MEM_FREE(cs.cipherbuf);
 	}
 
 	MEM_FREE(keeptr);
