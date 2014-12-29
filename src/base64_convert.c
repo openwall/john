@@ -893,9 +893,11 @@ int base64_valid_length(const char *from, b64_convert_type from_t, unsigned flag
 /* used by base64conv 'main()' function */
 static int usage(char *name)
 {
-	fprintf(stderr, "Usage: %s [-i intype] [-o outtype] [-q] [-e] [-f flag] data [data ...]\n"
-	        "  (data must match input_type i.e. if hex, then data should be in hex)\n"
-			"  (if data is not present, then base64conv will read data from std input\n"
+	fprintf(stderr, "Usage: %s [-i intype] [-o outtype] [-q] [-e] [-f flag] [data[data ...] | < stdin]\n"
+	        " - data must match input_type i.e. if hex, then data should be in hex\n"
+			" - if data is not present, then base64conv will read data from std input)\n"
+			" - if data read from stdin, then at most 50k lines will be processed, and\n"
+			"   max size of any line is 256k\n"
 			"\n"
 			"  -q will only output resultant string. No extra junk text\n"
 			"  -e turns on buffer overwrite error checking logic\n"
@@ -985,17 +987,21 @@ int base64conv(int argc, char **argv) {
 	argc -= optind;
 	argv += optind;
 	if (!argc) {
-		// if we are out of params, then read from stdin, and put it into prior argv[] element.
+		// if we are out of params, then read from stdin, and build an argv[] element.
 		char *buf;
-		--argv;
-		++argc;
+		static char *new_argv[50000]; // only handle first 50k lines of file;
+		argv = new_argv;
 		if (isatty(fileno(stdin))) {
 			fprintf (stderr, "Enter a line of data to be converted\n");
 		}
-		buf = (char*)mem_calloc_tiny(256*1024*1024, 1);
+		buf = (char*)mem_alloc(256*1024*1024);
 		fgetl(buf, 256*1024*1024-1, stdin);
-		buf[256*1024*1024-1] = 0;
-		*argv = buf;
+		while (!feof(stdin) && argc < 50000) {
+			buf[256*1024*1024-1] = 0;
+			argv[argc++] = str_alloc_copy(buf);
+			fgetl(buf, 256*1024*1024-1, stdin);
+		}
+		MEM_FREE(buf);
 	}
 	while(argc--) {
 		char *po = (char*)mem_calloc(strlen(*argv)*3);
