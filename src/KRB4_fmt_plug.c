@@ -112,7 +112,7 @@ static struct key_st {
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	char *p, *tgt;
+	char *tgt;
 
 	if (strncmp(ciphertext, "$k4$", 4) != 0 &&
 	    strncmp(ciphertext, "$af$", 4) != 0)
