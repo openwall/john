@@ -366,6 +366,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto error;
 	if (!(ptr = strtok(NULL, "*"))) /* hash size or iterations */
 		goto error;
+	if (!isdec(ptr)) goto error;
 	if (!(ptr = strtok(NULL, "*")))
 		goto error;
 	if (strncmp(ptr, "128", 3) && strncmp(ptr, "256", 3)) /* key size */
