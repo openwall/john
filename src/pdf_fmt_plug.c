@@ -122,19 +122,24 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy += 5;
 	if ((p = strtok(ctcopy, "*")) == NULL)	/* V */
 		goto err;
+	if (!isdec(p)) goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* R */
 		goto err;
+	if (!isdec(p)) goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* length */
 		goto err;
+	if (!isdec(p)) goto err;
 	res = atoi(p);
-	if (res < 0 || res > 256)
+	if (res > 256)
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* P */
 		goto err;
+	if (!isdec_negok(p)) goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* encrypt_metadata */
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* length_id */
 		goto err;
+	if (!isdec(p)) goto err;
 	res = atoi(p);
 	if (res > 32)
 		goto err;
@@ -146,6 +151,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* length_u */
 		goto err;
+	if (!isdec(p)) goto err;
 	res = atoi(p);
 	if (res > 127)
 		goto err;
@@ -157,6 +163,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* length_o */
 		goto err;
+	if (!isdec(p)) goto err;
 	res = atoi(p);
 	if (res > 127)
 		goto err;
