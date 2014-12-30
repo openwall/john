@@ -100,7 +100,7 @@ static const unsigned char odd_parity[256]={
 
 static struct salt_st {
 	unsigned char		tgt[TGT_LENGTH];
-	char			realm[REALM_SZ];
+	char			realm[REALM_SZ+1];
 } *saved_salt;
 
 static struct key_st {
@@ -117,16 +117,16 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (strncmp(ciphertext, "$k4$", 4) != 0 &&
 	    strncmp(ciphertext, "$af$", 4) != 0)
 		return 0;
-
-	tgt = strchr(ciphertext + 4, '$');
+	ciphertext += 4;
+	tgt = strchr(ciphertext, '$');
 
 	if (!tgt)
 		return 0;
-
-	for (p = ++tgt; *p != '\0'; p++)
-		if (!isxdigit((int)*p)) return 0;
-
-	if (p - tgt != TGT_LENGTH * 2)
+	if (tgt-ciphertext > REALM_SZ)
+		return 0;
+	++tgt;
+	if (!ishex(tgt)) return 0;
+	if (strlen(tgt) != TGT_LENGTH * 2)
 		return 0;
 
 	return 1;
