@@ -1014,8 +1014,6 @@ static int usage(char *name)
 	fprintf(stderr, "Usage: %s [-i intype] [-o outtype] [-q] [-e] [-f flag] [data[data ...] | < stdin]\n"
 	        " - data must match input_type i.e. if hex, then data should be in hex\n"
 	        " - if data is not present, then base64conv will read data from std input)\n"
-	        " - if data read from stdin, then at most 50k lines will be processed, and\n"
-	        "   max size of any line is 256k\n"
 	        "\n"
 	        "  -q will only output resultant string. No extra junk text\n"
 	        "  -e turns on buffer overwrite error checking logic\n"
@@ -1058,6 +1056,48 @@ static int handle_flag_type(const char *pflag) {
 
 	return 0;
 }
+
+static void do_convert(char *in_str, b64_convert_type in_t,
+                       b64_convert_type out_t, int quiet,
+                       int err_chk, int flags)
+{
+	char *po;
+	int i, len, in_len = strlen(in_str);
+
+	if (!quiet)
+		printf("%s  -->  %s", in_str, in_len ? "" : "\n");
+
+	if (in_len == 0)
+		return;
+
+	po = (char*)mem_calloc(in_len*3);
+	if (err_chk)
+		memset(po, 2, in_len*3);
+	len=base64_convert(in_str, in_t, in_len, po, out_t, in_len*3, flags);
+	po[len] = 0;
+	printf("%s\n", po);
+	fflush(stdout);
+	/* check for overwrite problems */
+	if (err_chk) {
+		int tot = in_len*3;
+		i=len;
+		if (po[i]) {
+			fprintf(stderr, "OverwriteLogic: Null byte missing\n");
+		}
+		for (++i; i < tot; ++i)
+		{
+			if (((unsigned char)po[i]) != 2) {
+				/* we ignore overwrites that are 1 or 2 bytes over.  The way the */
+				/* functions are written, we expect some 1 and 2 byte overflows, */
+				/* and the caller MUST be aware of that fact                     */
+				if (i-len > 2)
+					fprintf(stderr, "OverwriteLogic: byte %c (%02X) located at offset %d (%+d)\n", (unsigned char)po[i], (unsigned char)po[i], i, i-len);
+			}
+		}
+	}
+	MEM_FREE(po);
+}
+
 /* simple conerter of strings or raw memory     */
 /* this is a main() function for john, and      */
 /* the program created is ../run/base64_convert */
@@ -1105,54 +1145,22 @@ int base64conv(int argc, char **argv) {
 	argc -= optind;
 	argv += optind;
 	if (!argc) {
-		// if we are out of params, then read from stdin, and build an argv[] element.
+		// if we are out of params, then read from stdin
 		char *buf;
-		static char *new_argv[50000]; // only handle first 50k lines of file;
-		argv = new_argv;
 		if (isatty(fileno(stdin))) {
-			fprintf (stderr, "Enter a line of data to be converted\n");
+			fprintf (stderr, "Enter lines of data to be converted\n");
 		}
-		buf = (char*)mem_alloc(256*1024*1024);
-		fgetl(buf, 256*1024*1024-1, stdin);
-		while (!feof(stdin) && argc < 50000) {
-			buf[256*1024*1024-1] = 0;
-			argv[argc++] = str_alloc_copy(buf);
-			fgetl(buf, 256*1024*1024-1, stdin);
+		buf = (char*)mem_alloc(256*1024);
+		fgetl(buf, 256*1024-1, stdin);
+		while (!feof(stdin)) {
+			buf[256*1024-1] = 0;
+			do_convert(buf, in_t, out_t, quiet, err_chk, flags);
+			fgetl(buf, 256*1024-1, stdin);
 		}
 		MEM_FREE(buf);
-	}
-	while(argc--) {
-		char *po = (char*)mem_calloc(strlen(*argv)*3);
-		int i, len;
-		if (err_chk)
-			memset(po, 2, strlen(*argv)*3);
-		if (!quiet)
-			printf("%s  -->  ", *argv);
-		len=base64_convert(*argv, in_t, strlen(*argv), po, out_t, strlen(*argv)*3, flags);
-		po[len] = 0;
-		printf("%s\n", po);
-		fflush(stdout);
-		/* check for overwrite problems */
-		if (err_chk) {
-			int tot = strlen(*argv)*3;
-			i=len;
-			if (po[i]) {
-				fprintf(stderr, "OverwriteLogic: Null byte missing\n");
-			}
-			for (++i; i < tot; ++i)
-			{
-				if (((unsigned char)po[i]) != 2) {
-					/* we ignore overwrites that are 1 or 2 bytes over.  The way the */
-					/* functions are written, we expect some 1 and 2 byte overflows, */
-					/* and the caller MUST be aware of that fact                     */
-					if (i-len > 2)
-						fprintf(stderr, "OverwriteLogic: byte %c (%02X) located at offset %d (%+d)\n", (unsigned char)po[i], (unsigned char)po[i], i, i-len);
-				}
-			}
-		}
-		MEM_FREE(po);
-		++argv;
-	}
+	} else
+	while(argc--)
+		do_convert(*argv++, in_t, out_t, quiet, err_chk, flags);
 	MEMDBG_PROGRAM_EXIT_CHECKS(stderr);
 	return 0;
 }
