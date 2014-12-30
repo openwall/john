@@ -155,7 +155,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 		MEM_FREE(cp);
 
 		// Upcase user name, --encoding aware
-		utf8len = enc_uc(tmp8, 30*3, (unsigned char*)split_fields[0], strlen(split_fields[0]));
+		utf8len = enc_uc(tmp8, sizeof(tmp8), (unsigned char*)split_fields[0], strlen(split_fields[0]));
 
 		if (utf8len <= 0 && split_fields[0][0])
 			return split_fields[1];
@@ -244,7 +244,7 @@ static char *get_key(int index) {
 	// Calling this will ONLY upcase characters 'valid' in the code page. There are MANY
 	// code pages which mssql WILL upcase the letter (in UCS-2), but there is no upper case value
 	// in the code page.  Thus we MUST keep the lower cased letter in this case.
-	enc_uc(UC_Key, PLAINTEXT_LENGTH*3*3, (UTF8*)plain_key, strlen(plain_key));
+	enc_uc(UC_Key, sizeof(UC_Key), (UTF8*)plain_key, strlen(plain_key));
 	return (char*)UC_Key;
 }
 

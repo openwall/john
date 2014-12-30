@@ -176,7 +176,7 @@ static void set_key(char *key, int index) {
 	plain_keys[index] = key;
 #endif
 	orig_len = strlen(key);
-	utf8len = enc_uc(utf8, PLAINTEXT_LENGTH, (unsigned char*)key, orig_len);
+	utf8len = enc_uc(utf8, sizeof(utf8), (unsigned char*)key, orig_len);
 	if (utf8len <= 0 && *key)
 		return;
 
@@ -239,7 +239,7 @@ static char *get_key(int index) {
 	// Calling this will ONLY upcase characters 'valid' in the code page. There are MANY
 	// code pages which mssql WILL upcase the letter (in UCS-2), but there is no upper case value
 	// in the code page.  Thus we MUST keep the lower cased letter in this case.
-	enc_uc(UC_Key, PLAINTEXT_LENGTH*3, (UTF8*)plain_keys[index], strlen(plain_keys[index]));
+	enc_uc(UC_Key, sizeof(UC_Key), (UTF8*)plain_keys[index], strlen(plain_keys[index]));
 	return (char*)UC_Key;
 }
 

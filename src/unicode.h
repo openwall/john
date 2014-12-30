@@ -206,10 +206,10 @@ extern int utf16_lc(UTF16 *dst, unsigned dst_len, const UTF16 *src, unsigned src
 extern int utf16_uc(UTF16 *dst, unsigned dst_len, const UTF16 *src, unsigned src_len);
 
 // Lowercase UTF-8 or codepage string
-extern int enc_lc(UTF8 *dst, unsigned dst_len, const UTF8 *src, unsigned src_len);
+extern int enc_lc(UTF8 *dst, unsigned dst_bufsize, const UTF8 *src, unsigned src_len);
 
 // Uppercase UTF-8 or codepage string
-extern int enc_uc(UTF8 *dst, unsigned dst_len, const UTF8 *src, unsigned src_len);
+extern int enc_uc(UTF8 *dst, unsigned dst_bufsize, const UTF8 *src, unsigned src_len);
 
 // Encoding-aware strlwr(): in-place lowercase of string
 extern char *enc_strlwr(char *s);

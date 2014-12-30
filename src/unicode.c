@@ -1558,13 +1558,13 @@ int utf16_uc(UTF16 *dst, unsigned dst_len, const UTF16 *src, unsigned src_len) {
 }
 
 // Lowercase UTF-8 or codepage encoding
-int enc_lc(UTF8 *dst, unsigned dst_len, const UTF8 *src, unsigned src_len) {
+int enc_lc(UTF8 *dst, unsigned dst_bufsize, const UTF8 *src, unsigned src_len) {
 	UTF16 tmp16[512+1], tmp16l[512+1]; // yes, short, but this is 'long enough' for john.
 	int utf16len, i;
 
 	if (pers_opts.target_enc != UTF_8) {
-		if (dst_len <= src_len)
-			src_len = dst_len - 1;
+		if (dst_bufsize <= src_len)
+			src_len = dst_bufsize - 1;
 		for (i = 0; i < src_len; ++i) {
 			*dst++ = CP_down[*src++];
 		}
@@ -1577,14 +1577,14 @@ int enc_lc(UTF8 *dst, unsigned dst_len, const UTF8 *src, unsigned src_len) {
 	utf16len = utf16_lc(tmp16l, 512, tmp16, utf16len);
 	if (utf16len <= 0)
 		goto lcFallback;
-	utf16_to_enc_r(dst, dst_len, tmp16l);
+	utf16_to_enc_r(dst, dst_bufsize, tmp16l);
 	return strlen((char*)dst);
 
 	// Limp-home mode: If we failed doing the right thing (garbage data) we
 	// just do ASCII lc
 lcFallback:
-	if (dst_len <= src_len)
-		src_len = dst_len - 1;
+	if (dst_bufsize <= src_len)
+		src_len = dst_bufsize - 1;
 	for (i = 0; i < src_len; ++i)
 		if (*src >= 'A' && *src <= 'Z')
 			*dst++ = *src++ | 0x20;
@@ -1595,21 +1595,21 @@ lcFallback:
 }
 
 // Uppercase UTF-8 or codepage encoding
-int enc_uc(UTF8 *dst, unsigned dst_len, const UTF8 *src, unsigned src_len) {
-	UTF16 tmp16[512+1], tmp16u[512+1]; // yes, short, but this is 'long enough' for john.
+int enc_uc(UTF8 *dst, unsigned dst_bufsize, const UTF8 *src, unsigned src_len) {
+	UTF16 tmp16[512+1], tmp16u[512+1]; // 'long enough' for john.
 	int utf16len, i;
 
 	if (pers_opts.target_enc != UTF_8) {
 		int len;
-		if (dst_len-1 < src_len) /* -1 since we null terminate our buffer */
-			src_len = dst_len-1;
+		if (dst_bufsize <= src_len)
+			src_len = dst_bufsize - 1;
 		len=src_len;
 #if 0  // Defined out until we need it
 		if (UnicodeType==UNICODE_UNICODE) {
 			for (i = 0; i < src_len; ++i) {
-				if (*src == 0xDF) { // this goes out as 2 characters.
+				if (*src == 0xDF) { // this goes out as 2 chars.
 					++len;
-					if (len > dst_len) {
+					if (len > dst_bufsize) {
 						return 0;
 					}
 					*dst++ = 'S';
@@ -1636,14 +1636,14 @@ int enc_uc(UTF8 *dst, unsigned dst_len, const UTF8 *src, unsigned src_len) {
 	utf16len = utf16_uc(tmp16u, 512, tmp16, utf16len);
 	if (utf16len <= 0)
 		goto ucFallback;
-	utf16_to_enc_r(dst, dst_len, tmp16u);
+	utf16_to_enc_r(dst, dst_bufsize, tmp16u);
 	return strlen((char*)dst);
 
 	// Limp-home mode: If we failed doing the right thing (garbage data) we
 	// just do ASCII uc
 ucFallback:
-	if (dst_len <= src_len)
-		src_len = dst_len - 1;
+	if (dst_bufsize <= src_len)
+		src_len = dst_bufsize - 1;
 	for (i = 0; i < src_len; ++i)
 		if (*src >= 'a' && *src <= 'z')
 			*dst++ = *src++ | 0x20;
