@@ -64,15 +64,17 @@ u16 fget16LE(FILE * fp)
 
 /* Similar to strtok, but written specifically for the format. */
 u8 *pkz_GetFld(u8 *p, u8 **pRet) {
-	if (!p || *p==0) {
+	if (!p) {
 		*pRet = (u8*)"";
 		return NULL;
 	}
-	if (p && *p && *p == '*') {
-		*pRet = (u8*)"";
+	*pRet = p;
+	if (*p==0)
+		return NULL;
+	if (*p == '*') {
+		*p = 0;
 		return ++p;
 	}
-	*pRet = p;
 	while (*p && *p != '*')
 		++p;
 	if (*p)
