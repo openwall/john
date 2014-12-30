@@ -278,6 +278,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy += 7;
 	if ((p = strtok(ctcopy, "*")) == NULL)	/* key size */
 		goto err;
+	res = atoi(p);
+	if (res < 128 || res > MAX_KEYLENGTH*8)
+		return 0;
 	if ((p = strtok(NULL, "*")) == NULL)	/* iterations */
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* cipher */
@@ -404,7 +407,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		unsigned char tmpBuf[sizeof(cur_salt->data)];
 		unsigned int checksum = 0;
 		unsigned int checksum2 = 0;
-		unsigned char out[MAX_KEYS_PER_CRYPT][128];
+		unsigned char out[MAX_KEYS_PER_CRYPT][MAX_KEYLENGTH + MAX_IVLENGTH];
 
 #ifdef MMX_COEF
 		int len[MAX_KEYS_PER_CRYPT];
