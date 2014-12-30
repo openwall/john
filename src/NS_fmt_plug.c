@@ -28,6 +28,7 @@
  *  for every c,p  ("nrcstn", [0, 6, 12, 17, 23, 29]):
  *  	interpolate  character "c" in position "p" in ciphertext
  *
+ * Changed to thin format dynamic_2004, Dec 2014, JimF
  */
 
 #if FMT_EXTERNS_H
@@ -43,6 +44,8 @@ john_register_one(&fmt_NS);
 #include "md5.h"
 #include "common.h"
 #include "formats.h"
+#include "dynamic.h"
+#include "base64_convert.h"
 #include "memdbg.h"
 
 #define FORMAT_LABEL			"md5ns"
@@ -50,19 +53,16 @@ john_register_one(&fmt_NS);
 #define ALGORITHM_NAME			"MD5 32/" ARCH_BITS_STR
 
 #define BENCHMARK_COMMENT		""
-#define BENCHMARK_LENGTH		-1
+#define BENCHMARK_LENGTH		0
 
 #define PLAINTEXT_LENGTH		25
 #define CIPHERTEXT_LENGTH		50
 
 #define BINARY_SIZE			16
 #define SALT_SIZE			32
+#define DYNA_SALT_SIZE		(sizeof(char*))
 #define BINARY_ALIGN		sizeof(ARCH_WORD_32)
 #define SALT_ALIGN			1
-
-#define MIN_KEYS_PER_CRYPT		1
-#define MAX_KEYS_PER_CRYPT		1
-
 
 static struct fmt_tests tests[] = {
 	{"admin$nMjFM0rdC9iOc+xIFsGEm3LtAeGZhn", "password"},
@@ -74,23 +74,136 @@ static struct fmt_tests tests[] = {
 static unsigned short e64toshort[256];
 
 #define ADM_LEN 22
-static int salt_len, key_len;
-static char cipher_salt[ SALT_SIZE + 1 ];
-static char cipher_key[ PLAINTEXT_LENGTH + 1 ];
 static const char *adm = ":Administration Tools:";
 static char tocipher[ SALT_SIZE + ADM_LEN + PLAINTEXT_LENGTH ];
-static ARCH_WORD_32 crypted[4];
 
 static const char *b64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
-static void NS_init(struct fmt_main *self)
+static char Conv_Buf[256];
+static struct fmt_main *pDynamic;
+static void phps_init(struct fmt_main *self);
+static void get_ptr();
+
+static ARCH_WORD_32 *get_binary(char *ciphertext);
+static int NS_valid(char *ciphertext, struct fmt_main *self);
+
+/* this function converts a 'native' phps signature string into a $dynamic_6$ syntax string */
+static char *Convert(char *Buf, char *ciphertext)
 {
-	int i;
-	const char *pos;
-	for (pos = b64, i = 0 ; *pos != 0 ; pos++, i++)
-		e64toshort[(int)*pos] = i;
+	char *cp, *cpo;
+	unsigned char *bin, hash[32+3], salt_hex[(ADM_LEN+SALT_SIZE)*2+3], salt_raw[(ADM_LEN+SALT_SIZE)+1];
+
+	if (text_in_dynamic_format_already(pDynamic, ciphertext))
+		return ciphertext;
+	cp = strchr(ciphertext, '$');
+	if (!cp)
+		return "*";
+
+	bin = (unsigned char*)get_binary(ciphertext);
+	base64_convert(bin, e_b64_raw, 16, hash, e_b64_hex, 32, 0);
+	cp = ciphertext; cpo = (char*)salt_raw;
+	while (*cp != '$')
+		*cpo++ = *cp++;
+	strcpy(cpo, adm);
+	base64_convert(salt_raw, e_b64_raw, strlen((char*)salt_raw), salt_hex, e_b64_hex, (ADM_LEN+SALT_SIZE)*2, 0);
+	snprintf(Buf, sizeof(Conv_Buf) - SALT_SIZE, "$dynamic_2004$%s$HEX$%s", hash, salt_hex);
+	return Buf;
 }
 
+static char *our_split(char *ciphertext, int index, struct fmt_main *self)
+{
+	get_ptr();
+	return pDynamic->methods.split(Convert(Conv_Buf, ciphertext), index, self);
+}
+
+static char *our_prepare(char *split_fields[10], struct fmt_main *self)
+{
+	get_ptr();
+	return pDynamic->methods.prepare(split_fields, self);
+}
+
+static int our_valid(char *ciphertext, struct fmt_main *self)
+{
+	if (!ciphertext ) 
+		return 0;
+
+	get_ptr();
+
+	if (text_in_dynamic_format_already(pDynamic, ciphertext)) {
+		return pDynamic->methods.valid(ciphertext, pDynamic);
+	}
+	if (NS_valid(ciphertext, self))
+		return pDynamic->methods.valid(Convert(Conv_Buf, ciphertext), pDynamic);
+	return 0;
+}
+
+
+static void * our_salt(char *ciphertext)
+{
+	get_ptr();
+	return pDynamic->methods.salt(Convert(Conv_Buf, ciphertext));
+}
+static void * our_binary(char *ciphertext)
+{
+	get_ptr();
+	return pDynamic->methods.binary(Convert(Conv_Buf, ciphertext));
+}
+
+struct fmt_main fmt_NS =
+{
+	{
+		// setup the labeling and stuff. NOTE the max and min crypts are set to 1
+		// here, but will be reset within our init() function.
+		FORMAT_LABEL, FORMAT_NAME, ALGORITHM_NAME, BENCHMARK_COMMENT, BENCHMARK_LENGTH,
+		PLAINTEXT_LENGTH, BINARY_SIZE, BINARY_ALIGN, DYNA_SALT_SIZE, SALT_ALIGN, 1, 1, FMT_CASE | FMT_8_BIT | FMT_DYNAMIC,
+#if FMT_MAIN_VERSION > 11
+		{ NULL },
+#endif
+		tests
+	},
+	{
+		/*  All we setup here, is the pointer to valid, and the pointer to init */
+		/*  within the call to init, we will properly set this full object      */
+		phps_init,
+		fmt_default_done,
+		fmt_default_reset,
+		fmt_default_prepare,
+		our_valid,
+		our_split
+	}
+};
+
+static void link_funcs() {
+	fmt_NS.methods.salt   = our_salt;
+	fmt_NS.methods.binary = our_binary;
+	fmt_NS.methods.split = our_split;
+	fmt_NS.methods.prepare = our_prepare;
+}
+
+static void phps_init(struct fmt_main *self)
+{
+	get_ptr();
+	//fprintf(stderr, "in PHPS phps_init()\n");
+	if (self->private.initialized == 0) {
+		pDynamic = dynamic_THIN_FORMAT_LINK(&fmt_NS, Convert(Conv_Buf, tests[0].ciphertext), "md5ns", 1);
+		link_funcs();
+		fmt_NS.params.algorithm_name = pDynamic->params.algorithm_name;
+		self->private.initialized = 1;
+	}
+}
+
+static void get_ptr() {
+	if (!pDynamic) {
+		int i;
+		const char *pos;
+		for (pos = b64, i = 0 ; *pos != 0 ; pos++, i++)
+			e64toshort[(int)*pos] = i;
+		pDynamic = dynamic_THIN_FORMAT_LINK(&fmt_NS, Convert(Conv_Buf, tests[0].ciphertext), "md5ns", 0);
+		link_funcs();
+	}
+}
+
+/* old format valid.  We use this in our new valid also */
 static int NS_valid(char *ciphertext, struct fmt_main *self)
 {
 	char *password;
@@ -126,6 +239,7 @@ static int NS_valid(char *ciphertext, struct fmt_main *self)
 	return 1;
 }
 
+/* original binary for the original hash. We use this also in convert() */
 static ARCH_WORD_32 *get_binary(char *ciphertext)
 {
 	static union {
@@ -173,76 +287,8 @@ static ARCH_WORD_32 *get_binary(char *ciphertext)
 
 	return out;
 }
-
-static int get_hash_0(int index)
-{
-	return crypted[0] & 0xf;
-}
-
-static int get_hash_1(int index)
-{
-	return crypted[0] & 0xff;
-}
-
-static int get_hash_2(int index)
-{
-	return crypted[0] & 0xfff;
-}
-
-static int get_hash_3(int index)
-{
-	return crypted[0] & 0xffff;
-}
-
-static int get_hash_4(int index)
-{
-	return crypted[0] & 0xfffff;
-}
-
-static int get_hash_5(int index)
-{
-	return crypted[0] & 0xffffff;
-}
-
-static int get_hash_6(int index)
-{
-	return crypted[0] & 0x7ffffff;
-}
-
-static char *get_salt(char *ciphertext)
-{
-	static char out[SALT_SIZE + 1];
-	char *ipos, *opos;
-
-	memset(&out, 0, sizeof(out));
-	ipos = ciphertext;
-	opos = out;
-	while (*ipos != '$') *opos++ = *ipos++;
-	*opos = '\0';
-
-	return out;
-}
-
-static void set_salt (void *salt)
-{
-    salt_len = strlen((char *) salt);
-    memcpy(cipher_salt, salt , salt_len);
-}
-
-static void  NS_set_key(char *key, int index)
-{
-    key_len = strlen((char *) key);
-    if (key_len > PLAINTEXT_LENGTH)
-	key_len = PLAINTEXT_LENGTH;
-    memcpy(cipher_key, key, key_len);
-}
-
-static char *NS_get_key(int key)
-{
-    cipher_key[key_len] = 0;
-    return cipher_key;
-}
-
+#if 0
+// code kept for historical reason
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	MD5_CTX ctx;
@@ -256,77 +302,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	return *pcount;
 }
-
-static int NS_cmp_all(void *binary, int index)
-{
-	return !memcmp(binary, crypted, BINARY_SIZE);
-}
-
-static int NS_cmp_exact(char *source, int index)
-{
-	return 1;
-}
-
-struct fmt_main fmt_NS = {
-	{
-		FORMAT_LABEL,
-		FORMAT_NAME,
-		ALGORITHM_NAME,
-		BENCHMARK_COMMENT,
-		BENCHMARK_LENGTH,
-		PLAINTEXT_LENGTH,
-		BINARY_SIZE,
-		BINARY_ALIGN,
-		SALT_SIZE,
-		SALT_ALIGN,
-		MIN_KEYS_PER_CRYPT,
-		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT,
-#if FMT_MAIN_VERSION > 11
-		{ NULL },
 #endif
-		tests
-	}, {
-		NS_init,
-		fmt_default_done,
-		fmt_default_reset,
-		fmt_default_prepare,
-		NS_valid,
-		fmt_default_split,
-		(void *(*)(char *))get_binary,
-		(void *(*)(char *))get_salt,
-#if FMT_MAIN_VERSION > 11
-		{ NULL },
-#endif
-		fmt_default_source,
-		{
-			fmt_default_binary_hash_0,
-			fmt_default_binary_hash_1,
-			fmt_default_binary_hash_2,
-			fmt_default_binary_hash_3,
-			fmt_default_binary_hash_4,
-			fmt_default_binary_hash_5,
-			fmt_default_binary_hash_6
-		},
-		fmt_default_salt_hash,
-		set_salt,
-		NS_set_key,
-		NS_get_key,
-		fmt_default_clear_keys,
-		crypt_all,
-		{
-			get_hash_0,
-			get_hash_1,
-			get_hash_2,
-			get_hash_3,
-			get_hash_4,
-			get_hash_5,
-			get_hash_6
-		},
-		NS_cmp_all,
-		NS_cmp_all,
-		NS_cmp_exact
-	}
-};
 
 #endif /* plugin stanza */
