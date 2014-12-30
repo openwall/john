@@ -132,8 +132,11 @@ int ms_office_common_valid_2013(char *ciphertext, struct fmt_main *self)
 unsigned int ms_office_common_iteration_count(void *salt)
 {
 	ms_office_custom_salt *my_salt=(ms_office_custom_salt *)salt;
-    /*
+	/*
 	 * Is spinCount always 100000, or just in our format tests?
+	 * Apparently, office2john.py extracts the spinCount from
+	 * the encrypted MS Office 2010/2013 document,
+	 * so it looks like that value can indeed vary.
 	 */
 	return (unsigned int) my_salt->spinCount;
 }
