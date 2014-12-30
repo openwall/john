@@ -148,6 +148,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto error;
 	if (!ishex(ptr))
 		goto error;
+	ptr = strtok(NULL, ".");
+	if (ptr)
+		goto error;
 	MEM_FREE(keeptr);
 	return 1;
 error:
