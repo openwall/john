@@ -75,8 +75,6 @@ static unsigned short e64toshort[256];
 
 #define ADM_LEN 22
 static const char *adm = ":Administration Tools:";
-static char tocipher[ SALT_SIZE + ADM_LEN + PLAINTEXT_LENGTH ];
-
 static const char *b64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 static char Conv_Buf[256];
