@@ -34,6 +34,7 @@ john_register_one(&fmt_opencl_office2007);
 #include "options.h"
 #include "unicode.h"
 #include "common-opencl.h"
+#include "office_common.h"
 #include "config.h"
 
 #define PLAINTEXT_LENGTH	51
@@ -74,15 +75,7 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
-static struct custom_salt {
-	char unsigned osalt[SALT_LENGTH];
-	char unsigned encryptedVerifier[16];
-	char unsigned encryptedVerifierHash[32];
-	int version;
-	int verifierHashSize;
-	int keySize;
-	int saltSize;
-} *cur_salt;
+static ms_office_custom_salt *cur_salt;
 
 static int *cracked, any_cracked;
 static unsigned int v_width = 1;	/* Vector width of kernel */
@@ -254,48 +247,9 @@ static void set_key(char *key, int index)
 	//dump_stuff_msg("key buffer", &saved_key[index*UNICODE_LENGTH], UNICODE_LENGTH);
 }
 
-static void *get_salt(char *ciphertext)
-{
-	int i, length;
-	char *ctcopy = strdup(ciphertext);
-	char *keeptr = ctcopy, *p;
-
-	cur_salt = mem_calloc_tiny(sizeof(struct custom_salt),
-	                           MEM_ALIGN_WORD);
-
-	ctcopy += 9;	/* skip over "$office$*" */
-	p = strtok(ctcopy, "*");
-	cur_salt->version = atoi(p);
-	p = strtok(NULL, "*");
-	cur_salt->verifierHashSize = atoi(p);
-	p = strtok(NULL, "*");
-	cur_salt->keySize = atoi(p);
-	p = strtok(NULL, "*");
-	cur_salt->saltSize = atoi(p);
-	if (cur_salt->saltSize > SALT_LENGTH) {
-		fprintf(stderr, "** error: salt longer than supported:\n%s\n", ciphertext);
-		cur_salt->saltSize = SALT_LENGTH; /* will not work, but protects us from segfault */
-	}
-	p = strtok(NULL, "*");
-	for (i = 0; i < cur_salt->saltSize; i++)
-		cur_salt->osalt[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
-			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	p = strtok(NULL, "*");
-	for (i = 0; i < 16; i++)
-		cur_salt->encryptedVerifier[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
-			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	p = strtok(NULL, "*");
-	length = strlen(p) / 2;
-	for (i = 0; i < length; i++)
-		cur_salt->encryptedVerifierHash[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
-			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	MEM_FREE(keeptr);
-	return (void *)cur_salt;
-}
-
 static void set_salt(void *salt)
 {
-	cur_salt = (struct custom_salt *)salt;
+	cur_salt = (ms_office_custom_salt *)salt;
 	memcpy(saved_salt, cur_salt->osalt, SALT_LENGTH);
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_salt, CL_FALSE, 0, SALT_LENGTH, saved_salt, 0, NULL, NULL), "failed in clEnqueueWriteBuffer saved_salt");
 }
@@ -347,85 +301,6 @@ static void init(struct fmt_main *self)
 		self->params.plaintext_length = MIN(125, 3 * PLAINTEXT_LENGTH);
 }
 
-static int valid(char *ciphertext, struct fmt_main *self)
-{
-	char *ctcopy, *ptr, *keeptr;
-	int res;
-
-	if (strncmp(ciphertext, "$office$*2007*", 14))
-		return 0;
-	if (!(ctcopy = strdup(ciphertext))) {
-		fprintf(stderr, "Memory allocation failed in %s, unable to check if hash is valid!", FORMAT_LABEL);
-		return 0;
-	}
-	keeptr = ctcopy;
-	ctcopy += 15;
-	if (!(ptr = strtok(ctcopy, "*"))) /* hash size or iterations */
-		goto error;
-	if (!(ptr = strtok(NULL, "*")))
-		goto error;
-	if (strncmp(ptr, "128", 3) && strncmp(ptr, "256", 3)) /* key size */
-		goto error;
-	if (!(ptr = strtok(NULL, "*"))) /* salt size */
-		goto error;
-	res = atoi(ptr);
-	if (res != 16) /* can we handle other values? */
-		goto error;
-	if (!(ptr = strtok(NULL, "*"))) /* salt */
-		goto error;
-	if (strlen(ptr) != res * 2)
-		goto error;
-	if (!ishex(ptr))
-		goto error;
-	if (!(ptr = strtok(NULL, "*"))) /* encrypted verifier */
-		goto error;
-	if (!ishex(ptr))
-		goto error;
-	if (!(ptr = strtok(NULL, "*"))) /* encrypted verifier hash */
-		goto error;
-	if (!ishex(ptr))
-		goto error;
-	if (strlen(ptr) > 64)
-		goto error;
-	if ((ptr = strtok(NULL, "*")))
-		goto error;
-
-	MEM_FREE(keeptr);
-	return 1;
-error:
-	MEM_FREE(keeptr);
-	return 0;
-}
-
-static inline int PasswordVerifier(unsigned char *key)
-{
-	unsigned char decryptedVerifier[16];
-	unsigned char decryptedVerifierHash[16];
-	AES_KEY akey;
-	SHA_CTX ctx;
-	unsigned char checkHash[20];
-
-	memset(&akey, 0, sizeof(AES_KEY));
-	if(AES_set_decrypt_key(key, 128, &akey) < 0) {
-		fprintf(stderr, "AES_set_decrypt_key failed!\n");
-		return 0;
-	}
-	AES_ecb_encrypt(cur_salt->encryptedVerifier, decryptedVerifier, &akey, AES_DECRYPT);
-	memset(&akey, 0, sizeof(AES_KEY));
-	if(AES_set_decrypt_key(key, 128, &akey) < 0) {
-		fprintf(stderr, "AES_set_decrypt_key failed!\n");
-		return 0;
-	}
-	AES_ecb_encrypt(cur_salt->encryptedVerifierHash, decryptedVerifierHash, &akey, AES_DECRYPT);
-
-	/* find SHA1 hash of decryptedVerifier */
-	SHA1_Init(&ctx);
-	SHA1_Update(&ctx, decryptedVerifier, 16);
-	SHA1_Final(checkHash, &ctx);
-
-	return !memcmp(checkHash, decryptedVerifierHash, 16);
-}
-
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
@@ -463,7 +338,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #pragma omp parallel for
 #endif
 	for (index = 0; index < count; index++)
-		if (PasswordVerifier(&key[index*16]))
+		if (ms_office_common_PasswordVerifier(cur_salt, &key[index*16]))
 		{
 			cracked[index] = 1;
 #ifdef _OPENMP
@@ -548,10 +423,10 @@ struct fmt_main fmt_opencl_office2007 = {
 		done,
 		fmt_default_reset,
 		fmt_default_prepare,
-		valid,
+		ms_office_common_valid_2007,
 		fmt_default_split,
 		fmt_default_binary,
-		get_salt,
+		ms_office_common_get_salt,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif

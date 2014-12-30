@@ -28,6 +28,7 @@ john_register_one(&fmt_office);
 #include "sha.h"
 #include "sha2.h"
 #include "johnswap.h"
+#include "office_common.h"
 #include "memdbg.h"
 
 #define FORMAT_LABEL		"Office"
@@ -81,17 +82,7 @@ static struct fmt_tests office_tests[] = {
 	{NULL}
 };
 
-static struct custom_salt {
-	char unsigned osalt[32]; /* bigger than necessary */
-	char unsigned encryptedVerifier[16];
-	char unsigned encryptedVerifierHash[32];
-	int version;
-	int verifierHashSize;
-	int keySize;
-	int saltSize;
-	/* Office 2010/2013 */
-	int spinCount;
-} *cur_salt;
+static ms_office_custom_salt *cur_salt;
 
 #define MS_OFFICE_2007_ITERATIONS	50000
 
@@ -188,35 +179,6 @@ static unsigned char* GeneratePasswordHashUsingSHA1(UTF16 *passwordBuf, int pass
 	return final;
 }
 
-static int PasswordVerifier(unsigned char * key)
-{
-	unsigned char decryptedVerifier[16];
-	unsigned char decryptedVerifierHash[16];
-	AES_KEY akey;
-	SHA_CTX ctx;
-	unsigned char checkHash[20];
-
-	memset(&akey, 0, sizeof(AES_KEY));
-	if(AES_set_decrypt_key(key, 128, &akey) < 0) {
-		fprintf(stderr, "AES_set_decrypt_key failed!\n");
-		return 0;
-	}
-	AES_ecb_encrypt(cur_salt->encryptedVerifier, decryptedVerifier, &akey, AES_DECRYPT);
-	memset(&akey, 0, sizeof(AES_KEY));
-	if(AES_set_decrypt_key(key, 128, &akey) < 0) {
-		fprintf(stderr, "AES_set_decrypt_key failed!\n");
-		return 0;
-	}
-	AES_ecb_encrypt(cur_salt->encryptedVerifierHash, decryptedVerifierHash, &akey, AES_DECRYPT);
-
-	/* find SHA1 hash of decryptedVerifier */
-	SHA1_Init(&ctx);
-	SHA1_Update(&ctx, decryptedVerifier, 16);
-	SHA1_Final(checkHash, &ctx);
-
-	return !memcmp(checkHash, decryptedVerifierHash, 16);
-}
-
 static void GenerateAgileEncryptionKey(UTF16 *passwordBuf, int passwordBufSize, int hashSize, unsigned char *hashBuf)
 {
 	/* H(0) = H(salt, password)
@@ -308,26 +270,6 @@ static void GenerateAgileEncryptionKey512(UTF16 *passwordBuf, int passwordBufSiz
 	SHA512_Final(&hashBuf[64], &ctx);
 }
 
-static void DecryptUsingSymmetricKeyAlgorithm(unsigned char *verifierInputKey, unsigned char *encryptedVerifier, const unsigned char *decryptedVerifier, int length)
-{
-	unsigned char iv[32];
-	AES_KEY akey;
-	memcpy(iv, cur_salt->osalt, 16);
-	memset(&iv[16], 0, 16);
-	memset(&akey, 0, sizeof(AES_KEY));
-	if(cur_salt->keySize == 128) {
-		if(AES_set_decrypt_key(verifierInputKey, 128, &akey) < 0) {
-			fprintf(stderr, "AES_set_decrypt_key failed!\n");
-		}
-	}
-	else {
-		if(AES_set_decrypt_key(verifierInputKey, 256, &akey) < 0) {
-			fprintf(stderr, "AES_set_decrypt_key failed!\n");
-		}
-	}
-	AES_cbc_encrypt(encryptedVerifier, (unsigned char*)decryptedVerifier, length, &akey, iv, AES_DECRYPT);
-}
-
 static void init(struct fmt_main *self)
 {
 #if defined (_OPENMP)
@@ -347,101 +289,9 @@ static void init(struct fmt_main *self)
 		self->params.plaintext_length = MIN(125, PLAINTEXT_LENGTH * 3);
 }
 
-static int valid(char *ciphertext, struct fmt_main *self)
-{
-	char *ctcopy, *ptr, *keeptr;
-	int res;
-
-	if (strncmp(ciphertext, "$office$*", 9))
-		return 0;
-	if (!(ctcopy = strdup(ciphertext))) {
-		fprintf(stderr, "Memory allocation failed in %s, unable to check if hash is valid!", FORMAT_LABEL);
-		return 0;
-	}
-	keeptr = ctcopy;
-	ctcopy += 9;
-	if (!(ptr = strtok(ctcopy, "*")))
-		goto error;
-	if (strncmp(ptr, "2007", 4) && strncmp(ptr, "2010", 4) && strncmp(ptr, "2013", 4))
-		goto error;
-	if (!(ptr = strtok(NULL, "*"))) /* hash size or iterations */
-		goto error;
-	if (!isdec(ptr)) goto error;
-	if (!(ptr = strtok(NULL, "*")))
-		goto error;
-	if (strncmp(ptr, "128", 3) && strncmp(ptr, "256", 3)) /* key size */
-		goto error;
-	if (!(ptr = strtok(NULL, "*"))) /* salt size */
-		goto error;
-	res = atoi(ptr);
-	if (res != 16) /* can we handle other values? */
-		goto error;
-	if (!(ptr = strtok(NULL, "*"))) /* salt */
-		goto error;
-	if (strlen(ptr) != res * 2)
-		goto error;
-	if (!ishex(ptr))
-		goto error;
-	if (!(ptr = strtok(NULL, "*"))) /* encrypted verifier */
-		goto error;
-	if (!ishex(ptr))
-		goto error;
-	if (!(ptr = strtok(NULL, "*"))) /* encrypted verifier hash */
-		goto error;
-	if (!ishex(ptr))
-		goto error;
-	if (strlen(ptr) > 64)
-		goto error;
-	if ((ptr = strtok(NULL, "*")))
-		goto error;
-
-	MEM_FREE(keeptr);
-	return 1;
-error:
-	MEM_FREE(keeptr);
-	return 0;
-}
-
-static void *get_salt(char *ciphertext)
-{
-	int i, length;
-	char *ctcopy = strdup(ciphertext);
-	char *keeptr = ctcopy, *p;
-	ctcopy += 9;	/* skip over "$office$*" */
-	cur_salt = mem_calloc_tiny(sizeof(struct custom_salt), MEM_ALIGN_WORD);
-	p = strtok(ctcopy, "*");
-	cur_salt->version = atoi(p);
-	p = strtok(NULL, "*");
-	if(cur_salt->version == 2007) {
-		cur_salt->verifierHashSize = atoi(p);
-	}
-	else {
-		cur_salt->spinCount = atoi(p);
-	}
-	p = strtok(NULL, "*");
-	cur_salt->keySize = atoi(p);
-	p = strtok(NULL, "*");
-	cur_salt->saltSize = atoi(p);
-	p = strtok(NULL, "*");
-	for (i = 0; i < cur_salt->saltSize; i++)
-		cur_salt->osalt[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
-			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	p = strtok(NULL, "*");
-	for (i = 0; i < 16; i++)
-		cur_salt->encryptedVerifier[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
-			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	p = strtok(NULL, "*");
-	length = strlen(p) / 2;
-	for (i = 0; i < length; i++)
-		cur_salt->encryptedVerifierHash[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
-			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	MEM_FREE(keeptr);
-	return (void *)cur_salt;
-}
-
 static void set_salt(void *salt)
 {
-	cur_salt = (struct custom_salt *)salt;
+	cur_salt = (ms_office_custom_salt *)salt;
 }
 
 static int crypt_all(int *pcount, struct db_salt *salt)
@@ -457,15 +307,15 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		if(cur_salt->version == 2007) {
 			unsigned char encryptionKey[256];
 			GeneratePasswordHashUsingSHA1(saved_key[index], saved_len[index], encryptionKey);
-			cracked[index] = PasswordVerifier(encryptionKey);
+			cracked[index] = ms_office_common_PasswordVerifier(cur_salt, encryptionKey);
 		}
 		else if (cur_salt->version == 2010) {
 			unsigned char verifierKeys[64], decryptedVerifierHashInputBytes[16], decryptedVerifierHashBytes[32];
 			unsigned char hash[20];
 			SHA_CTX ctx;
 			GenerateAgileEncryptionKey(saved_key[index], saved_len[index], cur_salt->keySize >> 3, verifierKeys);
-			DecryptUsingSymmetricKeyAlgorithm(verifierKeys, cur_salt->encryptedVerifier, decryptedVerifierHashInputBytes, 16);
-			DecryptUsingSymmetricKeyAlgorithm(&verifierKeys[32], cur_salt->encryptedVerifierHash, decryptedVerifierHashBytes, 32);
+			ms_office_common_DecryptUsingSymmetricKeyAlgorithm(cur_salt, verifierKeys, cur_salt->encryptedVerifier, decryptedVerifierHashInputBytes, 16);
+			ms_office_common_DecryptUsingSymmetricKeyAlgorithm(cur_salt, &verifierKeys[32], cur_salt->encryptedVerifierHash, decryptedVerifierHashBytes, 32);
 			SHA1_Init(&ctx);
 			SHA1_Update(&ctx, decryptedVerifierHashInputBytes, 16);
 			SHA1_Final(hash, &ctx);
@@ -476,8 +326,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			unsigned char hash[64];
 			SHA512_CTX ctx;
 			GenerateAgileEncryptionKey512(saved_key[index], saved_len[index], verifierKeys);
-			DecryptUsingSymmetricKeyAlgorithm(verifierKeys, cur_salt->encryptedVerifier, decryptedVerifierHashInputBytes, 16);
-			DecryptUsingSymmetricKeyAlgorithm(&verifierKeys[64], cur_salt->encryptedVerifierHash, decryptedVerifierHashBytes, 32);
+			ms_office_common_DecryptUsingSymmetricKeyAlgorithm(cur_salt, verifierKeys, cur_salt->encryptedVerifier, decryptedVerifierHashInputBytes, 16);
+			ms_office_common_DecryptUsingSymmetricKeyAlgorithm(cur_salt, &verifierKeys[64], cur_salt->encryptedVerifierHash, decryptedVerifierHashBytes, 32);
 			SHA512_Init(&ctx);
 			SHA512_Update(&ctx, decryptedVerifierHashInputBytes, 16);
 			SHA512_Final(hash, &ctx);
@@ -525,31 +375,10 @@ static char *get_key(int index)
  */
 static unsigned int ms_office_version(void *salt)
 {
-	struct custom_salt *my_salt;
+	ms_office_custom_salt *my_salt;
 
 	my_salt = salt;
 	return (unsigned int) my_salt->version;
-}
-
-/*
- * Iteration count as second tunable cost
- * (hard coded value for MS Office version 2007)
- */
-static unsigned int iteration_count(void *salt)
-{
-	struct custom_salt *my_salt;
-
-	my_salt = salt;
-	if (my_salt->version == 2007)
-		return MS_OFFICE_2007_ITERATIONS;
-	else
-		/*
-		 * Is spinCount always 100000, or just in our format tests?
-		 * Apparently, office2john.py extracts the spinCount from
-		 * the encrypted MS Office 2010/2013 document,
-		 * so it looks like that value can indeede vary.
-		 */
-		return (unsigned int) my_salt->spinCount;
 }
 #endif
 
@@ -580,14 +409,14 @@ struct fmt_main fmt_office = {
 		fmt_default_done,
 		fmt_default_reset,
 		fmt_default_prepare,
-		valid,
+		ms_office_common_valid_all,
 		fmt_default_split,
 		fmt_default_binary,
-		get_salt,
+		ms_office_common_get_salt,
 #if FMT_MAIN_VERSION > 11
 		{
 			ms_office_version,
-			iteration_count,
+			ms_office_common_iteration_count,
 		},
 #endif
 		fmt_default_source,
