@@ -175,7 +175,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 		return split_fields[1];
 
 	strcpy(out, FORMAT_TAG);
-	strncat(out, &split_fields[1][i], sizeof(out) - 1);
+	strnzcpy(&out[sizeof(FORMAT_TAG)-1], &split_fields[1][i], sizeof(out)-(sizeof(FORMAT_TAG)));
 
 	if (!strncmp(split_fields[1], FORMAT_TAG2, sizeof(FORMAT_TAG2) - 1))
 		for (i = sizeof(FORMAT_TAG); out[i]; i++)
