@@ -21,7 +21,7 @@ will build on Cygwin's compiler, there simply is no supporting libasan.so librar
 
 Parsing output
 --------------
-$ wget http://llvm.org/klaus/compiler-rt/raw/release_35/lib/asan/scripts/asan_sy$ mbolize.py
+$ wget http://llvm.org/klaus/compiler-rt/raw/release_35/lib/asan/scripts/asan_symbolize.py
 $ chmod +x asan_symbolize.py
 $ mv -vi asan_symbolize.py /usr/local/bin
 
