@@ -46,6 +46,7 @@ john_register_one(&fmt_NS);
 #include "formats.h"
 #include "dynamic.h"
 #include "base64_convert.h"
+#include "johnswap.h"
 #include "memdbg.h"
 
 #define FORMAT_LABEL			"md5ns"
@@ -79,7 +80,7 @@ static const char *b64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz01
 
 static char Conv_Buf[256];
 static struct fmt_main *pDynamic;
-static void phps_init(struct fmt_main *self);
+static void our_init(struct fmt_main *self);
 static void get_ptr();
 
 static ARCH_WORD_32 *get_binary(char *ciphertext);
@@ -108,17 +109,6 @@ static char *Convert(char *Buf, char *ciphertext)
 	return Buf;
 }
 
-static char *our_split(char *ciphertext, int index, struct fmt_main *self)
-{
-	get_ptr();
-	return pDynamic->methods.split(Convert(Conv_Buf, ciphertext), index, self);
-}
-
-static char *our_prepare(char *split_fields[10], struct fmt_main *self)
-{
-	get_ptr();
-	return pDynamic->methods.prepare(split_fields, self);
-}
 
 static int our_valid(char *ciphertext, struct fmt_main *self)
 {
@@ -162,26 +152,26 @@ struct fmt_main fmt_NS =
 	{
 		/*  All we setup here, is the pointer to valid, and the pointer to init */
 		/*  within the call to init, we will properly set this full object      */
-		phps_init,
+		our_init,
 		fmt_default_done,
 		fmt_default_reset,
 		fmt_default_prepare,
 		our_valid,
-		our_split
+		fmt_default_split
 	}
 };
 
 static void link_funcs() {
 	fmt_NS.methods.salt   = our_salt;
 	fmt_NS.methods.binary = our_binary;
-	fmt_NS.methods.split = our_split;
-	fmt_NS.methods.prepare = our_prepare;
+	fmt_NS.methods.split = fmt_default_split;
+	fmt_NS.methods.prepare = fmt_default_prepare;
+	fmt_NS.params.flags &= ~(FMT_SPLIT_UNIFIES_CASE);
 }
 
-static void phps_init(struct fmt_main *self)
+static void our_init(struct fmt_main *self)
 {
 	get_ptr();
-	//fprintf(stderr, "in PHPS phps_init()\n");
 	if (self->private.initialized == 0) {
 		pDynamic = dynamic_THIN_FORMAT_LINK(&fmt_NS, Convert(Conv_Buf, tests[0].ciphertext), "md5ns", 1);
 		link_funcs();
@@ -209,16 +199,16 @@ static int NS_valid(char *ciphertext, struct fmt_main *self)
         static int  p[] = { 0, 6, 12, 17, 23, 29 };
 	int i;
 
-        password = ciphertext;
+	password = ciphertext;
 
-        while ((*password != '$') && (*password != '\0' ))
-            password++;
-        if (*password == '\0') return 0;
+	while ((*password != '$') && (*password != '\0' ))
+		password++;
+	if (*password == '\0') return 0;
 
-        if ((int)(password - ciphertext) > SALT_SIZE)
-	        return 0;
+	if ((int)(password - ciphertext) > SALT_SIZE)
+		return 0;
 
-        password++;
+	password++;
 
 	if (strlen(password) != 30) return 0;
         if (strspn(password, b64) != 30) return 0;
@@ -247,14 +237,11 @@ static ARCH_WORD_32 *get_binary(char *ciphertext)
 	ARCH_WORD_32 *out = _out.i;
 	char unscrambled[24];
 	int i;
-        MD5_u32plus a, b, c;
-        MD5_u32plus d, e, f;
+	MD5_u32plus a, b, c;
+	MD5_u32plus d, e, f;
 	char *pos;
-#if ARCH_LITTLE_ENDIAN
-        MD5_u32plus temp;
-#endif
 
-        pos = ciphertext;
+	pos = ciphertext;
 	while (*pos++ != '$');
 
 	memcpy(unscrambled, pos + 1, 6 );
@@ -264,25 +251,18 @@ static ARCH_WORD_32 *get_binary(char *ciphertext)
 	memcpy(unscrambled + 19, pos + 24, 5 );
 
 	for ( i = 0 ; i < 4 ; i++ ) {
-                a = e64toshort[ARCH_INDEX(unscrambled[6*i])];
-                b = e64toshort[ARCH_INDEX(unscrambled[6*i + 1 ])];
-                c = e64toshort[ARCH_INDEX(unscrambled[6*i + 2 ])];
-                d = e64toshort[ARCH_INDEX(unscrambled[6*i + 3 ])];
-                e = e64toshort[ARCH_INDEX(unscrambled[6*i + 4 ])];
-                f = e64toshort[ARCH_INDEX(unscrambled[6*i + 5 ])];
+		a = e64toshort[ARCH_INDEX(unscrambled[6*i])];
+		b = e64toshort[ARCH_INDEX(unscrambled[6*i + 1 ])];
+		c = e64toshort[ARCH_INDEX(unscrambled[6*i + 2 ])];
+		d = e64toshort[ARCH_INDEX(unscrambled[6*i + 3 ])];
+		e = e64toshort[ARCH_INDEX(unscrambled[6*i + 4 ])];
+		f = e64toshort[ARCH_INDEX(unscrambled[6*i + 5 ])];
+		out[i] = (((a << 12) | (b << 6) | (c)) << 16) |
+		          ((d << 12) | (e << 6) | (f));
 #if ARCH_LITTLE_ENDIAN
-                temp = (((a << 12) | (b << 6) | (c)) << 16) |
-			    ((d << 12) | (e << 6) | (f));
-		out[i] = ((temp << 24) & 0xff000000 ) |
-		           ((temp << 8)  & 0x00ff0000 ) |
-		           ((temp >> 8)  & 0x0000ff00 ) |
-			   ((temp >> 24) & 0x000000ff );
-#else
-                out[i] = (((a << 12) | (b << 6) | (c)) << 16) |
-			    ((d << 12) | (e << 6) | (f));
+		out[i] = JOHNSWAP(out[i]);
 #endif
 	}
-
 	return out;
 }
 #if 0
