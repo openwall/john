@@ -128,12 +128,11 @@ static int keys_prepared;
 static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
-	int n = MIN_KEYS_PER_CRYPT * omp_get_max_threads();
-	if (n < MIN_KEYS_PER_CRYPT)
-		n = MIN_KEYS_PER_CRYPT;
-	self->params.min_keys_per_crypt = n;
-	n *= OMP_SCALE;
-	self->params.max_keys_per_crypt = n;
+	int omp_t = omp_get_max_threads();
+
+	self->params.min_keys_per_crypt *= omp_t;
+	omp_t *= OMP_SCALE;
+	self->params.max_keys_per_crypt *= omp_t;
 #endif
 	saved_plain = mem_calloc_tiny(sizeof(*saved_plain) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	saved_len = mem_calloc_tiny(sizeof(*saved_len) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);

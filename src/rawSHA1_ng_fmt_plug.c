@@ -251,8 +251,11 @@ static inline uint32_t __attribute__((const)) bswap32(uint32_t value)
 static void sha1_fmt_init(struct fmt_main *self)
 {
 #ifdef _OPENMP
-    self->params.min_keys_per_crypt *= omp_get_max_threads();
-    self->params.max_keys_per_crypt *= omp_get_max_threads() * OMP_SCALE;
+	int omp_t = omp_get_max_threads();
+
+	self->params.min_keys_per_crypt *= omp_t;
+	omp_t *= OMP_SCALE;
+	self->params.max_keys_per_crypt *= omp_t;
 #endif
 
     M   = mem_calloc_tiny(sizeof(*M)  * self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
