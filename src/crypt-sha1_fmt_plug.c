@@ -32,19 +32,15 @@ john_register_one(&fmt_cryptsha1);
 #define PBKDF1_LOGIC 1
 #include "pbkdf2_hmac_sha1.h"
 #include "base64_convert.h"
+#include "sha1crypt_common.h"
 #include "memdbg.h"
 
-#define SHA1_MAGIC "$sha1$"
 #define SHA1_SIZE 20
 
 #define FORMAT_LABEL                "sha1crypt"
 #define FORMAT_NAME                 "NetBSD's sha1crypt"
 #define BENCHMARK_COMMENT           ""
 #define BENCHMARK_LENGTH            -1001
-
-#define BINARY_SIZE                 20
-// max valid salt len in hash. Final salt 'used' is larger, by length of "$sha1$" and length of base10 string of rounds
-#define SALT_LENGTH                 64
 
 #ifdef MMX_COEF
 #define ALGORITHM_NAME          "PBKDF1-SHA1 " SHA1_N_STR MMX_TYPE
@@ -53,7 +49,6 @@ john_register_one(&fmt_cryptsha1);
 #endif
 
 #define PLAINTEXT_LENGTH            125
-#define CHECKSUM_LENGTH             28
 
 #define BINARY_ALIGN                4
 #define SALT_SIZE                   sizeof(struct saltstruct)
@@ -77,13 +72,7 @@ john_register_one(&fmt_cryptsha1);
  * checksum is 28 characters drawn from the same set, encoding a 168-bit checksum.
  */
 
-static struct fmt_tests tests[] = {
-	{"$sha1$64000$wnUR8T1U$vt1TFQ50tBMFgkflAFAOer2CwdYZ", "password"},
-	{"$sha1$40000$jtNX3nZ2$hBNaIXkt4wBI2o5rsi8KejSjNqIq", "password"},
-	{"$sha1$64000$wnUR8T1U$wmwnhQ4lpo/5isi5iewkrHN7DjrT", "123456"},
-	{"$sha1$64000$wnUR8T1U$azjCegpOIk0FjE61qzGWhdkpuMRL", "complexlongpassword@123456"},
-	{NULL}
-};
+// static struct fmt_tests sha1crypt_common_tests[] = {  // located in sha1crypt_common.c
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
@@ -114,79 +103,6 @@ static int get_hash_4(int index) { return crypt_out[index][0] & 0xfffff; }
 static int get_hash_5(int index) { return crypt_out[index][0] & 0xffffff; }
 static int get_hash_6(int index) { return crypt_out[index][0] & 0x7ffffff; }
 
-static int valid(char * ciphertext, struct fmt_main * self) {
-	char *p, *keeptr, tst[24];
-	unsigned rounds;
-
-	if (strncmp(ciphertext, SHA1_MAGIC, sizeof(SHA1_MAGIC) - 1))
-		return 0;
-
-	// validate rounds
-	keeptr = strdup(ciphertext);
-	p = &keeptr[sizeof(SHA1_MAGIC)-1];
-	if ((p = strtok(p, "$")) == NULL)	/* rounds */
-		goto err;
-	rounds = strtoul(p, NULL, 10);
-	sprintf(tst, "%u", rounds);
-	if (strcmp(tst, p))
-		goto err;
-
-	// validate salt
-	if ((p = strtok(NULL, "$")) == NULL)	/* salt */
-		goto err;
-	if (strlen(p) > SALT_LENGTH || strlen(p) != base64_valid_length(p, e_b64_crypt, 0))
-		goto err;
-
-	// validate checksum
-	if ((p = strtok(NULL, "$")) == NULL)	/* checksum */
-		goto err;
-	if (strlen(p) > CHECKSUM_LENGTH || strlen(p) != base64_valid_length(p, e_b64_crypt, 0))
-		goto err;
-	
-	if (strtok(NULL, "$"))
-		goto err;
-
-	MEM_FREE(keeptr);
-	return 1;
-
-err:;
-	MEM_FREE(keeptr);
-	return 0;
-}
-
-#define TO_BINARY(b1, b2, b3) \
-	value = (ARCH_WORD_32)atoi64[ARCH_INDEX(pos[0])] | \
-		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[1])] << 6) | \
-		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[2])] << 12) | \
-		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[3])] << 18); \
-	pos += 4; \
-	out[b1] = value >> 16; \
-	out[b2] = value >> 8; \
-	out[b3] = value;
-
-static void * get_binary(char * ciphertext)
-{       static union {
-                unsigned char c[BINARY_SIZE + 16];
-                ARCH_WORD dummy;
-				ARCH_WORD_32 swap[1];
-        } buf;
-        unsigned char *out = buf.c;
-	ARCH_WORD_32 value;
-
-	char *pos = strrchr(ciphertext, '$') + 1;
-	int i = 0;
-
-	do {
-		TO_BINARY(i, i + 1, i + 2);
-		i = i + 3;
-	} while (i <= 18);
-#if (ARCH_LITTLE_ENDIAN==0)
-	for (i = 0; i < sizeof(buf.c)/4; ++i) {
-		buf.swap[i] = JOHNSWAP(buf.swap[i]);
-	}
-#endif
-	return (void *)out;
-}
 
 static void set_key(char *key, int index)
 {
@@ -326,15 +242,15 @@ struct fmt_main fmt_cryptsha1 = {
 			"iteration count",
 		},
 #endif
-		tests
+		sha1crypt_common_tests
 	}, {
 		init,
 		fmt_default_done,
 		fmt_default_reset,
 		fmt_default_prepare,
-		valid,
+		sha1crypt_common_valid,
 		fmt_default_split,
-		get_binary,
+		sha1crypt_common_get_binary,
 		get_salt,
 #if FMT_MAIN_VERSION > 11
 		{
