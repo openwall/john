@@ -63,7 +63,8 @@ static struct fmt_tests tests[] = {
 
   {"", "G3RG3P0",   {"domain\\username", "", "", "6E1EC36D3417CE9E09A4424309F116C4C991948DAEB4ADAD", "", "1122334455667788"} },
   {"", "ZEEEZ@1",   {"domain\\username", "", "", "1354FD5ABF3B627B8B49587B8F2BBA0F9F6C5E420824E0A2", "", "1122334455667788"} },
-
+  // repeat last hash in exactly the same format that is used in john.pot
+  {"$NETHALFLM$1122334455667788$1354fd5abf3b627b8b49587b8f2bba0f9f6c5e420824e0a2", "ZEEEZ@1"},
   {NULL}
 };
 

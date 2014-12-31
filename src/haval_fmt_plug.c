@@ -58,6 +58,8 @@ static int omp_t = 1;
 static struct fmt_tests haval_256_3_tests[] = {
 	{"91850C6487C9829E791FC5B58E98E372F3063256BB7D313A93F1F83B426AEDCC", "HAVAL"},
 	{"$haval$91850C6487C9829E791FC5B58E98E372F3063256BB7D313A93F1F83B426AEDCC", "HAVAL"},
+	// john.pot uses lower case hex, so repeat that hash with lower case hex
+	{"$haval$91850c6487c9829e791fc5b58e98e372f3063256bb7d313a93f1f83b426aedcc", "HAVAL"},
 	{NULL}
 };
 

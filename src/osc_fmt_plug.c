@@ -56,6 +56,8 @@ john_register_one(&fmt_OSC);
 
 static struct fmt_tests osc_tests[] = {
 	{"$OSC$2020$05de5c963ee6234dc7d52f7589a1922b", "welcome"},
+	// repeat hash in the same form that is used in john.pot
+	{"$dynamic_4$05de5c963ee6234dc7d52f7589a1922b$  ", "welcome"},
 	{NULL}
 };
 

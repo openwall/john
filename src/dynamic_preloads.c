@@ -627,6 +627,8 @@ static struct fmt_tests _Preloads_15[] =
 	{"$dynamic_15$6093d5cb3e2f99d9110eb9c4bbca5f8c$aaaSXB","test1",        {"joeblow"} },
 	{"$dynamic_15$6a2dc4a6637bc5c2488f27faeead8720$123456","thatsworking", {"admin"} },
 	{"$dynamic_15$63aea4b8fe491df8545cc0099ac668d4$5555hh","test3",        {"ralph"} },
+	// at least one hash exactly like it gets stored in john.pot
+	{"$dynamic_15$6093d5cb3e2f99d9110eb9c4bbca5f8c$HEX$6161615358422424556a6f65626c6f77","test1"},
 #ifdef DEBUG
 	{"$dynamic_15$a2609e968a7124a8ac299c5f03341b85$123456789012$$Ubarney", "1234567890123456789012345678901234567890123456789012345"},
   #ifndef MMX_COEF
@@ -654,6 +656,8 @@ static struct fmt_tests _Preloads_16[] =
 	{"$dynamic_16$5ce496c635f96ac1ccd87518d4274b49$aaaSXB$$2salt2","test1"},
 	{"$dynamic_16$2f49a8804a3aee4da3c219539fc93c6d$123456$$2ssss2","thatsworking"},
 	{"$dynamic_16$d8deb4f271694c7a9a6c54f5068e3825$5555hh$$2sxxx3","test3"},
+	// repeat the hash in exactly the same format as it gets stored in john.pot
+	{"$dynamic_16$d8deb4f271694c7a9a6c54f5068e3825$HEX$3535353568682424327378787833","test3"},
 	{"$dynamic_16$0b714c79c5790c913a6e44faad39f597$12345678901234567890123$$23IJIps", "1234567890123456789012345678901234567890123456789012345"},
 #ifndef MMX_COEF
 	{"$dynamic_16$1e27f26c540f2980809f4d74989e20e3$12345678901234567890123$$2730ZnC", "12345678901234567890123456789012345678901234567890123456789012345678901234567890"},
@@ -1044,6 +1048,8 @@ static struct fmt_tests _Preloads_35[] =
 {
 	{"$dynamic_35$a12c6e0d8a4bcabb7f588456cbd20eac3332724d$$UELEV__CHARS","test1"},
 	{"$dynamic_35$9afbe0bf4e1f24e7e2d9df322b3b284037ac6e19$$UU1","thatsworking"},
+	// repeat previous hash in exactly the same format that is used for john.pot
+	{"$dynamic_35$9afbe0bf4e1f24e7e2d9df322b3b284037ac6e19$HEX$24555531","thatsworking"},
 	{"$dynamic_35$e01ff7a245202eb8b62a653473f078f6a71b5559$$UNINECHARS","test3"},
 	{"$dynamic_35$a12c6e0d8a4bcabb7f588456cbd20eac3332724d","test1",        {"ELEV__CHARS"}},
 	{"$dynamic_35$9afbe0bf4e1f24e7e2d9df322b3b284037ac6e19","thatsworking", {"U1"}},
@@ -1079,6 +1085,8 @@ static struct fmt_tests _Preloads_36[] =
 	{"$dynamic_36$9de18a2891ab0588a0b69938cda83ed9bdd99c32","test1",        {"u3"}},
 	{"$dynamic_36$3549e298740bb9e8148df04f43ba2fb82a052cc4","thatsworking", {"Hank"}},
 	{"$dynamic_36$11ef4de4baf784d0a1ca33e99a7283ef6b01cdc5","test3",        {"sz110"}},
+	// repeat one hash in exactöy the same format that is used in john.pot:
+	{"$dynamic_36$9de18a2891ab0588a0b69938cda83ed9bdd99c32$HEX$24557533","test1"},
 MTL({"$dynamic_36$151f733540e2813ea1ef42dc879e7c243421d827$$Usevench", "123456789012345678901234567890123456789012345678901234567890123456789012345678901234567"},)
 	{NULL}
 };
@@ -1109,6 +1117,8 @@ static struct fmt_tests _Preloads_37[] =
 	{"$dynamic_37$13db5f41191e8e7ea5141b16cd58c75af5e27071","test1",        {"john"}},
 	{"$dynamic_37$b8778be2f1c510447bf6a36af8317fd068192d3d","thatsworking", {"bin"}},
 	{"$dynamic_37$6ceecc888de5f3b86a12f916c750d0667046a1fd","test3",        {"2"}},
+	// repeat in exactly the same form that is used in john.pot
+	{"$dynamic_37$6ceecc888de5f3b86a12f916c750d0667046a1fd$HEX$245532","test3"},
 MTL({"$dynamic_37$398a2ef658dc374790261e6aa8e09f09586e786b$$Ujohn", "123456789012345678901234567890123456789012345678901234567890123456789012345678901234567"},)
 	{NULL}
 };
@@ -1184,6 +1194,8 @@ static struct fmt_tests _Preloads_40[] =
 //	{"$netsha1$20440a340000000100000000000f4240000f424000000000051c010000000001$709d3307304d790f58bf0a3cefd783b438408996", "password12345"},
 //	{"$netsha1$20440a340000000100000000000f4240000f424000000000051c010000000002$94bce4d9084199508669b39f044064082a093de3", "password12345"},
 	{"$dynamic_40$94bce4d9084199508669b39f044064082a093de3$HEX$20440a340000000100000000000f4240000f424000000000051c010000000002","password12345"},
+	// repeat in the same format that is used for john.pot
+	{"$dynamic_40$709d3307304d790f58bf0a3cefd783b438408996$HEX$4845582432303434306133343030303030303031303030303030303030303066343234303030306634323430303030303030303030353163303130303030303030303031","password12345"},
 	{"$dynamic_40$709d3307304d790f58bf0a3cefd783b438408996$HEX$20440a340000000100000000000f4240000f424000000000051c010000000001","password12345"},
 	{NULL}
 };

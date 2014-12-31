@@ -199,6 +199,8 @@ static struct fmt_tests sha1_fmt_tests[] = {
     { "b47f363e2b430c0647f14deea3eced9b0ef300ce", "is"              },
     { "03d67c263c27a453ef65b29e30334727333ccbcd", "awesome"         },
     { "7a73673e78669ea238ca550814dca7000d7026cc", "!!!!1111eleven"  },
+    // repeat last hash in exactly the same format that is used for john.pot
+    {"$dynamic_26$7a73673e78669ea238ca550814dca7000d7026cc", "!!!!1111eleven"},
     { NULL, NULL }
 };
 

@@ -41,6 +41,8 @@ static struct fmt_tests pixmd5_tests[] = {
 	{"NuLKvvWGg.x9HEKO", "password"},
 	{"8Ry2YjIyt7RRXU24", ""},
 	{".7nfVBEIEu4KbF/1","0123456789abcdef"},        // added a exact 16 byte password, to make sure it works properly
+	// repeat first hash in exactly the same format that is used in john.pot
+	{"$dynamic_19$2KFQnbNIdI.2KYOU", "cisco"},
 	{NULL}
 };
 

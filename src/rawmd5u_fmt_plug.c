@@ -82,6 +82,8 @@ static struct fmt_tests tests[] = {
 	{"849ee1b88b5d887bdb058180a666b450", "test3"},
 	{"8c4cb7e8b33b56a833cdaa8673f3b425", "test4"},
 	{"537e738b1ac5551f65106368dc301ece", "thatsworking"},
+	// repeat first hash in exactly the same form that is used in john.pot
+	{"$dynamic_29$16c47151c18ac087cd12b3a70746c790", "test1"},
 	{NULL}
 };
 

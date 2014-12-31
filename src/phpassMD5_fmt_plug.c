@@ -77,6 +77,8 @@ static struct fmt_tests phpassmd5_tests[] = {
 	{"$P$8DkV/nqeaQNTdp4NvWjCkgN48AK69X.", "test12345"}, // 1024
 	{"$P$B12345678L6Lpt4BxNotVIMILOa9u81", "JohnRipper"}, // 8192 (WordPress)
 	{"$P$91234567xogA.H64Lkk8Cx8vlWBVzH0", "thisisalongertst"},
+	// repeat in the same format that is used in john.pot
+	{"$dynamic_17$ogA.H64Lkk8Cx8vlWBVzH0$91234567x", "thisisalongertst"},
 	{NULL}
 };
 

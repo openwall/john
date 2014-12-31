@@ -79,6 +79,8 @@ static struct fmt_tests mediawiki_tests[] = {
 	{"$B$6$70b3e0907f028877ea47c16496d6df6d",        ""},
 	{"$B$761$3ae7c8e25addfd82544c0c0b1ca8f5e4",      "password"},
 	{"$B$23a0884a$99b4afc91cba24529a9c16ff20e56621", "artist"},
+	// repeat last hash in exactly the same form that is used in john.pot
+	{"$dynamic_9$99b4afc91cba24529a9c16ff20e56621$23a0884a-", "artist"},
 	{NULL}
 };
 
