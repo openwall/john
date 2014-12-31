@@ -51,7 +51,11 @@ john_register_one(&fmt_NS);
 
 #define FORMAT_LABEL			"md5ns"
 #define FORMAT_NAME			"Netscreen"
-#define ALGORITHM_NAME			"MD5 32/" ARCH_BITS_STR
+#ifdef MMX_COEF
+#define ALGORITHM_NAME			"dynamic_2004 MD5 " MD5_N_STR MMX_TYPE
+#else
+#define ALGORITHM_NAME			"dynamic_2004 MD5 32/" ARCH_BITS_STR
+#endif
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		0
@@ -175,7 +179,6 @@ static void our_init(struct fmt_main *self)
 	if (self->private.initialized == 0) {
 		pDynamic = dynamic_THIN_FORMAT_LINK(&fmt_NS, Convert(Conv_Buf, tests[0].ciphertext), "md5ns", 1);
 		link_funcs();
-		fmt_NS.params.algorithm_name = pDynamic->params.algorithm_name;
 		self->private.initialized = 1;
 	}
 }
