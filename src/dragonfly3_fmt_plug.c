@@ -29,7 +29,7 @@ john_register_one(&fmt_dragonfly3_64);
 #include "formats.h"
 
 #ifdef _OPENMP
-#define OMP_SCALE			256
+#define OMP_SCALE			4096  // tuned on K8-dual HT
 #include <omp.h>
 #endif
 #include "memdbg.h"
