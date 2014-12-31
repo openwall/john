@@ -79,7 +79,7 @@
 typedef struct {
 	uint saltlen;
 	uchar salt[8];
-	uchar prefix;		/** 'a' when $apr1$ or '1' when $1$ **/
+	uchar prefix;		/** 'a' when $apr1$ or '1' when $1$ or '\0' for {smd5} which uses no prefix. **/
 } crypt_md5_salt;
 
 typedef struct {
@@ -157,12 +157,13 @@ inline void ctx_update_prefix(md5_ctx * ctx, uchar prefix, uint * ctx_buflen)
 			PUTCHAR(ctx->buffer, *ctx_buflen + i,
 			    cl_md5_salt_prefix[i]);
 		*ctx_buflen += 3;
-	} else {
+	} else if (prefix == 'a') {
 		for (i = 0; i < 6; i++)
 			PUTCHAR(ctx->buffer, *ctx_buflen + i,
 			    cl_apr1_salt_prefix[i]);
 		*ctx_buflen += 6;
 	}
+	// else if (prefix == '\0') do nothing. for {smd5}
 }
 
 inline void init_ctx(md5_ctx * ctx, uint * ctx_buflen)

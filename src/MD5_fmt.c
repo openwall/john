@@ -18,6 +18,7 @@
 #include "MD5_std.h"
 #include "common.h"
 #include "formats.h"
+#include "cryptmd5_common.h"
 
 #if defined(_OPENMP) && defined(MD5_SSE_PARA)
 #define OMP_SCALE			4
@@ -110,29 +111,6 @@ static void init(struct fmt_main *self)
 	                       self->params.max_keys_per_crypt *
 	                       BINARY_SIZE, sizeof(MD5_word));
 #endif
-}
-
-static int valid(char *ciphertext, struct fmt_main *self)
-{
-	char *pos, *start;
-
-	if (strncmp(ciphertext, "$1$", 3)) {
-		if (strncmp(ciphertext, "$apr1$", 6) &&
-		    strncmp(ciphertext, "{smd5}", 6))
-			return 0;
-		ciphertext += 3;
-	}
-
-	for (pos = &ciphertext[3]; *pos && *pos != '$'; pos++);
-	if (!*pos || pos < &ciphertext[3] || pos > &ciphertext[11]) return 0;
-
-	start = ++pos;
-	while (atoi64[ARCH_INDEX(*pos)] != 0x7F) pos++;
-	if (*pos || pos - start != CIPHERTEXT_LENGTH) return 0;
-
-	if (atoi64[ARCH_INDEX(*(pos - 1))] & 0x3C) return 0;
-
-	return 1;
 }
 
 static int get_hash_0(int index)
@@ -387,7 +365,7 @@ struct fmt_main fmt_MD5 = {
 		fmt_default_done,
 		fmt_default_reset,
 		fmt_default_prepare,
-		valid,
+		cryptmd5_common_valid,
 		fmt_default_split,
 		get_binary,
 		get_salt,

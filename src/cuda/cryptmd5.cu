@@ -159,8 +159,10 @@ __device__ void md5crypt(const char *gpass, size_t keysize, unsigned int *result
 	ctx_update(&ctx, pass, pass_len, &ctx_buflen);
 	if (cuda_salt[0].prefix == '1') {
 		ctx_update(&ctx, md5_salt_prefix_cu, 3, &ctx_buflen);
-	} else
+	} else if (cuda_salt[0].prefix == 'a') {
 		ctx_update(&ctx, apr1_salt_prefix_cu, 6, &ctx_buflen);
+	}
+	// else if (cuda_salt[0].prefix == '\0') do nothing. for {smd5}
 
 	ctx_update(&ctx, salt, salt_len, &ctx_buflen);
 

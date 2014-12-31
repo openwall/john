@@ -27,6 +27,7 @@ john_register_one(&fmt_cuda_cryptmd5);
 #include "formats.h"
 #include "cuda_common.h"
 #include "cuda_cryptmd5.h"
+#include "cryptmd5_common.h"
 #include "memdbg.h"
 
 #define FORMAT_LABEL		"md5crypt-cuda"
@@ -61,7 +62,7 @@ static struct fmt_tests tests[] = {
 	{"$1$salt$l9PzDiECW83MOIMFTRL4Y1", "summerofcode"},
 	{"$1$salt$wZ2yVsplRoPoD7IfTvRsa0", "IamMD5"},
 	{"$1$saltstri$9S4.PyBpUZBRZw6ZsmFQE/", "john"},
-	{"$1$saltstring$YmP55hH3qcHg2cCffyxrq/", "ala"},
+	{"$1$saltstri$YmP55hH3qcHg2cCffyxrq/", "ala"},  // was 'broken', with invalid 10 char salt. This has been reduced.
 
 	{"$1$salt1234$mdji1uBBCWZ5m2mIWKvLW.", "a"},
 	{"$1$salt1234$/JUvhIWHD.csWSCPvr7po0", "ab"},
@@ -106,6 +107,10 @@ static struct fmt_tests tests[] = {
 	{"$apr1$rBXqc...$NlXxN9myBOk95T0AyLAsJ0", "john"},
 	{"$apr1$Grpld/..$qp5GyjwM2dnA5Cdej9b411", "the"},
 	{"$apr1$GBx.D/..$yfVeeYFCIiEXInfRhBRpy/", "ripper"},
+	/* following hashes are AIX non-standard smd5 hashes */
+	//{"{smd5}s8/xSJ/v$uGam4GB8hOjTLQqvBfxJ2/", "password"},
+	//{"{smd5}alRJaSLb$aKM3H1.h1ycXl5GEVDH1e1", "aixsucks?"},
+	//{"{smd5}eLB0QWeS$Eg.YfWY8clZuCxF0xNrKg.", "0123456789ABCDE"},
 	{NULL}
 };
 
@@ -129,76 +134,11 @@ static void init(struct fmt_main *self)
 	cuda_init();
 }
 
-static int valid(char *ciphertext, struct fmt_main *self)
-{
-	uint8_t i, len = strlen(ciphertext), prefix = 0;
-	char *p;
-
-	if (strncmp(ciphertext, md5_salt_prefix, strlen(md5_salt_prefix)) == 0)
-		prefix |= 1;
-	if (strncmp(ciphertext, apr1_salt_prefix,
-		strlen(apr1_salt_prefix)) == 0)
-		prefix |= 2;
-	if (prefix == 0)
-		return 0;
-	p = strrchr(ciphertext, '$');
-	if (p == NULL)
-		return 0;
-	for (i = p - ciphertext + 1; i < len; i++) {
-		uint8_t z = ARCH_INDEX(ciphertext[i]);
-		if (ARCH_INDEX(atoi64[z]) == 0x7f)
-			return 0;
-	}
-	if (len - (p - ciphertext + 1) != 22)
-		return 0;
-	return 1;
-}
-
-static int findb64(char c)
-{
-	int ret = ARCH_INDEX(atoi64[(uint8_t) c]);
-	return ret != 0x7f ? ret : 0;
-}
-
-static void to_binary(char *crypt, char *alt)
-{
-
-#define _24bit_from_b64(I,B2,B1,B0) \
-  {\
-      uint8_t c1,c2,c3,c4,b0,b1,b2;\
-      uint32_t w;\
-      c1=findb64(crypt[I+0]);\
-      c2=findb64(crypt[I+1]);\
-      c3=findb64(crypt[I+2]);\
-      c4=findb64(crypt[I+3]);\
-      w=c4<<18|c3<<12|c2<<6|c1;\
-      b2=w&0xff;w>>=8;\
-      b1=w&0xff;w>>=8;\
-      b0=w&0xff;w>>=8;\
-      alt[B2]=b0;\
-      alt[B1]=b1;\
-      alt[B0]=b2;\
-  }
-	uint32_t w;
-	_24bit_from_b64(0, 0, 6, 12);
-	_24bit_from_b64(4, 1, 7, 13);
-	_24bit_from_b64(8, 2, 8, 14);
-	_24bit_from_b64(12, 3, 9, 15);
-	_24bit_from_b64(16, 4, 10, 5);
-	w = findb64(crypt[21]) << 6 | findb64(crypt[20]) << 0;
-	alt[11] = (w & 0xff);
-}
-
+void *MD5_std_get_binary(char *ciphertext);
 static void *binary(char *ciphertext)
 {
-	static char b[BINARY_SIZE];
-	char *p;
-	memset(b, 0, BINARY_SIZE);
-	p = strrchr(ciphertext, '$') + 1;
-	to_binary(p, b);
-	return (void *) b;
+	return MD5_std_get_binary(ciphertext);
 }
-
 
 static void *salt(char *ciphertext)
 {
@@ -216,6 +156,10 @@ static void *salt(char *ciphertext)
 		strlen(apr1_salt_prefix)) == 0) {
 		pos += strlen(apr1_salt_prefix);
 		ret.prefix = 'a';
+	}
+	if (strncmp(ciphertext, "{smd5}", 6) == 0) {
+		pos += 6;
+		ret.prefix = '\0';
 	}
 	end = pos;
 	for (i = 0; i < 8 && *end != '$'; i++, end++);
@@ -312,7 +256,7 @@ struct fmt_main fmt_cuda_cryptmd5 = {
 		done,
 		fmt_default_reset,
 		fmt_default_prepare,
-		valid,
+		cryptmd5_common_valid,
 		fmt_default_split,
 		binary,
 		salt,
