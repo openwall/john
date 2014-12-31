@@ -9,23 +9,7 @@
 #include "arch.h"
 #include "common.h"
 #include "common-opencl.h"
-
-typedef unsigned int BF_word ;
-
-/*
- * Binary salt type, also keeps the number of rounds and hash sub-type.
- */
-typedef struct {
-	BF_word salt[4] ;
-	unsigned char rounds ;
-	char subtype ;
-} BF_salt ;
-
-/*
- * Binary ciphertext type.
- */
-typedef BF_word BF_binary[6] ;
-
+#include "BF_common.h"
 
 /*
  * MULTIPLIER:      Increase keys per crypt using this parameter.
@@ -60,11 +44,6 @@ typedef BF_word BF_binary[6] ;
 extern BF_binary *opencl_BF_out ;
 
 /*
- * ASCII to binary conversion table, for use in BF_fmt.valid().
- */
-extern unsigned char opencl_BF_atoi64[0x80] ;
-
-/*
  * Sets a key for BF_std_crypt().
  */
 extern void opencl_BF_std_set_key(char *key, int index, int sign_extension_bug) ;
@@ -79,24 +58,6 @@ extern void opencl_BF_std_crypt(BF_salt *salt, int n) ;
  * Calculates the rest of BF_out, for exact comparison.
  */
 extern void opencl_BF_std_crypt_exact(int index) ;
-
-/*
- * Returns the salt for BF_std_crypt().
- */
-extern void *opencl_BF_std_get_salt(char *ciphertext) ;
-
-/*
- * Converts an ASCII ciphertext to binary.
- */
-extern void *opencl_BF_std_get_binary(char *ciphertext) ;
-
-#if FMT_MAIN_VERSION > 11
-/*
- * Returns the number of iterations for a given salt,
- * this is BF's tunable cost parameter
- */
-extern unsigned int opencl_BF_iteration_count(void *salt);
-#endif
 
 /*
  * Select a device: BF_select_device(platform_id,device_id)
