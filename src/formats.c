@@ -400,6 +400,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 			char *copy = malloc(format->params.salt_size);
 
 			memcpy(copy, salt, format->params.salt_size);
+			dyna_salt_create();
 			salt = format->methods.salt(ciphertext);
 			if (dyna_salt_cmp(copy, salt, format->params.salt_size))
 			{
@@ -411,6 +412,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 				//dump_stuff(copy, format->params.salt_size);
 				//dump_stuff(salt, format->params.salt_size);
 			}
+			dyna_salt_remove(copy);
 			MEM_FREE(copy);
 		}
 
