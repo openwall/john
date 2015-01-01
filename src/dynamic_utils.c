@@ -153,16 +153,18 @@ char *dynamic_FIX_SALT_TO_HEX(char *ciphertext) {
 	if (!cp)
 		return ciphertext;  // not a salted format.
 
-	// we will HAVE to get this much more functional.  But for now, we simply convert
+	// We will HAVE to get this much more functional.  But for now, we simply convert
 	// anything where we find a ':' or '$' or one of the line feed chars, in the salt,
 	// into a HEX string.  Otherwise the .pot file output can easily be 'broken'.
 	// it would be nice to also handle 'null' bytes (since some salts CAN have them), however
 	// since we are a C program, we already have problems with them. With recent changes
 	// in john, john CAN find them, but I do not think it can properly store them to pot
 	// file, unless the $HEX$ part is maintained (it may be maintained, I have to test that).
-
+	// Since the loader also strips trailing ' ' or '\t' characters,
+	// we need to convert to hex if the last character is either ' ' or '\t'.
 	++cp;
-	if ( strchr(cp, ':') || strchr(cp, '$') || strchr(cp, '\n') || strchr(cp, '\r') ) {
+	if ( strchr(cp, ':') || strchr(cp, '$') || strchr(cp, '\n') || strchr(cp, '\r') ||
+	     cp[strlen(cp) - 1] == ' ' || cp[strlen(cp) - 1] == '\t' ) {
 		// ok, we are going to convert to a 'HEX'  The length is length of ciphertext, the null, the HEX$ and 2 bytes per char of salt string.
 		char *cpx, *cpNew = mem_alloc_tiny(strlen(ciphertext) + 1 + 4 + strlen(cp), MEM_ALIGN_NONE);
 		cpx = cpNew;
