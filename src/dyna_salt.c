@@ -53,12 +53,10 @@ void dyna_salt_remove_fp(void *p)
 #ifdef DYNA_SALT_DEBUG
 #if defined (MEMDBG_ON)
 			const char *msg;
-			dyna_salt_john_core *p1 = *((dyna_salt_john_core**)p);
-			if (p1 && p1->dyna_salt.salt_alloc_needs_free == 1)
-				printf ("-- Freeing a salt    #%d  from: %s line %d  mdbg_alloc-cnt=%u  mdbg_allocfile=%s mdbg_allocline=%u\n",
-				         --salt_count, fname, line, MEMDBG_get_cnt(p1,&msg),MEMDBG_get_file(p1,&msg),MEMDBG_get_line(p1,&msg));
+			printf ("-- Freeing a salt    #%d  from: %s line %d  mdbg_alloc-cnt=%u  mdbg_allocfile=%s mdbg_allocline=%u\n",
+			         --salt_count, fname, line, MEMDBG_get_cnt(p1,&msg),MEMDBG_get_file(p1,&msg),MEMDBG_get_line(p1,&msg));
 #else
-				printf ("-- Freeing a salt    #%d  from: %s line %d\n", --salt_count, fname, line);
+			printf ("-- Freeing a salt    #%d  from: %s line %d\n", --salt_count, fname, line);
 #endif
 #endif
 			MEM_FREE(p1);
