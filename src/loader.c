@@ -732,8 +732,8 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 			if (current_pw) continue;
 		}
 
-		dyna_salt_create();
 		salt = format->methods.salt(piece);
+		dyna_salt_create(salt);
 		salt_hash = format->methods.salt_hash(salt);
 
 		if ((current_salt = db->salt_hash[salt_hash])) {

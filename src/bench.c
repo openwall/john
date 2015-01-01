@@ -196,8 +196,8 @@ char *benchmark_format(struct fmt_main *format, int salts,
 				fields[1] = ciphertext;
 			ciphertext = format->methods.split(
 			    format->methods.prepare(fields, format), 0, format);
-			dyna_salt_create();
 			salt = format->methods.salt(ciphertext);
+			dyna_salt_create(salt);
 		} else
 			salt = two_salts[0];
 

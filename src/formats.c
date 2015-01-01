@@ -382,8 +382,9 @@ static char *fmt_self_test_body(struct fmt_main *format,
 			memcpy(binary_copy, binary, format->params.binary_size);
 		binary = binary_copy;
 
-		dyna_salt_create();
-		if (!(salt = format->methods.salt(ciphertext)))
+		salt = format->methods.salt(ciphertext);
+		dyna_salt_create(salt);
+		if (!salt)
 			return "salt() returned NULL";
 #if ARCH_ALLOWS_UNALIGNED
 		if (mem_saving_level <= 2 || format->params.salt_align >= MEM_ALIGN_SIMD)
@@ -400,8 +401,8 @@ static char *fmt_self_test_body(struct fmt_main *format,
 			char *copy = malloc(format->params.salt_size);
 
 			memcpy(copy, salt, format->params.salt_size);
-			dyna_salt_create();
 			salt = format->methods.salt(ciphertext);
+			dyna_salt_create(salt);
 			if (dyna_salt_cmp(copy, salt, format->params.salt_size))
 			{
 				puts("Warning: No dupe-salt detection");
@@ -422,14 +423,14 @@ static char *fmt_self_test_body(struct fmt_main *format,
 				dyna_salt *p1, *p2=0, *p3=0;
 				p1 = *((dyna_salt**)salt);
 				dyna_salt_smash(salt, 0xAF);
-				dyna_salt_create();
 				salt = format->methods.salt(ciphertext);
+				dyna_salt_create(salt);
 				p2 = *((dyna_salt**)salt);
 				if (dyna_salt_smash_check(salt, 0xAF))
 				{
 					dyna_salt_smash(salt, 0xC3);
-					dyna_salt_create();
 					salt = format->methods.salt(ciphertext);
+					dyna_salt_create(salt);
 					p3 = *((dyna_salt**)salt);
 					if (dyna_salt_smash_check(salt, 0xC3)) {
 						/* possibly did not clean the salt. */
@@ -457,8 +458,8 @@ static char *fmt_self_test_body(struct fmt_main *format,
 				/* Clean up the mess we might have caused */
 				memset(salt, 0, format->params.salt_size);
 			}
-			dyna_salt_create();
 			salt = format->methods.salt(ciphertext);
+			dyna_salt_create(salt);
 		}
 
 		*((char*)salt_copy) = 0;
@@ -755,8 +756,8 @@ int fmt_default_dyna_salt_hash(void *salt)
 	p = (unsigned char*)mysalt;
 	p += mysalt->dyna_salt.salt_cmp_offset;
 #ifdef DYNA_SALT_DEBUG
-	dump_stuff_msg((void*)__FUNCTION__, p, mysalt->dyna_salt.salt_cmp_size);
-	fprintf(stderr, "cmp size %zu\n", mysalt->dyna_salt.salt_cmp_size);
+	dump_stuff_msg((void*)__FUNCTION__, p, mysalt->dyna_salt.salt_cmp_size>48?48:mysalt->dyna_salt.salt_cmp_size);
+	fprintf(stderr, "fmt_default_dyna_salt_hash(): cmp size %u\n", (unsigned)mysalt->dyna_salt.salt_cmp_size);
 #endif
 	v = 0;
 	for (i = 0; i < mysalt->dyna_salt.salt_cmp_size; ++i) {
@@ -764,7 +765,7 @@ int fmt_default_dyna_salt_hash(void *salt)
 		v += *p++;
 	}
 #ifdef DYNA_SALT_DEBUG
-	fprintf(stderr, "return %d\n", v & (SALT_HASH_SIZE - 1));
+	fprintf(stderr, "fmt_default_dyna_salt_hash(): return %d\n", v & (SALT_HASH_SIZE - 1));
 #endif
 	return v & (SALT_HASH_SIZE - 1);
 }

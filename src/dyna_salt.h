@@ -67,12 +67,12 @@ int dyna_salt_cmp(void *p1, void *p2, int comp_size);
 //#define DYNA_SALT_DEBUG
 
 #ifdef DYNA_SALT_DEBUG
-void dyna_salt_created_fp(char *fname, int line);
-#define dyna_salt_create() dyna_salt_created_fp(__FILE__,__LINE__)
+void dyna_salt_created_fp(void *a, char *fname, int line);
+#define dyna_salt_create(a) dyna_salt_created_fp(a,__FILE__,__LINE__)
 void dyna_salt_remove_fp(void *a, char *fname, int line);
 #define dyna_salt_remove(a) dyna_salt_remove_fp(a,__FILE__,__LINE__)
 #else
-#define dyna_salt_create()
+#define dyna_salt_create(a)
 void dyna_salt_remove_fp(void *a);
 #define dyna_salt_remove(a) dyna_salt_remove_fp(a)
 #endif

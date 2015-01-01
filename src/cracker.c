@@ -394,8 +394,8 @@ static int crk_remove_pot_entry(char *ciphertext)
 	clock_t start = times(&buffer), end;
 #endif
 
-	dyna_salt_create();
 	pot_salt = crk_methods.salt(ciphertext);
+	dyna_salt_create(pot_salt);
 
 	/* Do we still have a hash table for salts? */
 	if (crk_db->salt_hash) {
