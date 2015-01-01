@@ -799,6 +799,50 @@ char *MEMDBG_strdup(const char *str, char *file, int line)
 }
 
 /*
+ * Return the count 'id' count of an allocated block. This will match the
+ * value shown on a leak report, and may help to line up exactly which
+ * block is leaking
+ */
+unsigned MEMDBG_get_cnt (const void *ptr, const char **err_msg) {
+	MEMDBG_HDR *p = CLIENT_2_HDR(ptr);
+	*err_msg = "valid memdbg block";
+	if (p->mdbg_fpst != MEMFPOSTt)
+		*err_msg = "INVALID memdbg memory (possible underflow), mdbg_cnt returned may not be correct!";
+	return (unsigned)p->mdbg_cnt;
+}
+/*
+ * Return the size of the allocated buffer. The size here is the size of data
+ * that the user would see.  This is not the full memdbg buffer size. This
+ * would be the size reported in a leak report.
+ */
+size_t MEMDBG_get_size(const void *ptr, const char **err_msg) {
+	MEMDBG_HDR *p = CLIENT_2_HDR(ptr);
+	*err_msg = "valid memdbg block";
+	if (p->mdbg_fpst != MEMFPOSTt)
+		*err_msg = "INVALID memdbg memory (possible underflow), mdbg_size returned may not be correct!";
+	return p->mdbg_size;
+}
+/*
+ * Return the file and line number of the caller code that allocated this
+ * buffer. This is not the full memdbg buffer size. This would be the
+ * size reported in a leak report.
+ */
+const char *MEMDBG_get_file(const void *ptr, const char **err_msg) {
+	MEMDBG_HDR *p = CLIENT_2_HDR(ptr);
+	*err_msg = "valid memdbg block";
+	if (p->mdbg_fpst != MEMFPOSTt)
+		*err_msg = "INVALID memdbg memory (possible underflow), mdbg_file returned may not be correct!";
+	return p->mdbg_file;
+}
+unsigned MEMDBG_get_line(const void *ptr, const char **err_msg) {
+	MEMDBG_HDR *p = CLIENT_2_HDR(ptr);
+	*err_msg = "valid memdbg block";
+	if (p->mdbg_fpst != MEMFPOSTt)
+		*err_msg = "INVALID memdbg memory (possible underflow), mdbg_line returned may not be correct!";
+	return (unsigned)p->mdbg_line;
+}
+
+/*
  *  MEMDBG_free
  *  Free a memory block, checking a lot of data, which would have been
  *  set at allocation time.

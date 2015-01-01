@@ -129,6 +129,23 @@ typedef struct MEMDBG_HANDLE_t {
 } MEMDBG_HANDLE;
 
 /*
+ * these functions give a caller some of the INSIDE information about the
+ * allocated object. We simply return data from inside the memdbg header.
+ * NOTE, if fence post is not valid, we still return something, BUT will
+ * also return something in the err_msg stating this may not be valid.
+ */
+
+/* The count 'id' of an allocated block. Same as used in leak report */
+unsigned    MEMDBG_get_cnt (const void *ptr, const char **err_msg);
+/* the size allocated of the contained block */
+size_t      MEMDBG_get_size(const void *ptr, const char **err_msg);
+/* what file (source) did the allocation */
+const char *MEMDBG_get_file(const void *ptr, const char **err_msg);
+/* what file (source) line number did the allocation */
+unsigned    MEMDBG_get_line(const void *ptr, const char **err_msg);
+
+
+/*
  * these functions allow taking a memory snapshot, calling some code, then validating that memory
  * is the same after the code.  This will help catch memory leaks and other such problems, within
  * formats and such.  Simply get the snapshot, run self tests (or other), when it exits, check
