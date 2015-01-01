@@ -40,9 +40,6 @@ typedef struct __attribute__((__aligned__(4))){
 	uint8_t buffer[64];
 } md5_ctx ;
 
-static const char md5_salt_prefix[] = "$1$";
-static const char apr1_salt_prefix[] = "$apr1$";
-
 #define ROTATE_LEFT(x, s) ((x << s) | (x >> (32 - s)))
 
 #define F(x, y, z) ((z) ^ ((x) & ((y) ^ (z))))
