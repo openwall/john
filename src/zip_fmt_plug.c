@@ -60,12 +60,11 @@ john_register_one(&fmt_zip);
 #include "dyna_salt.h"
 #ifdef _OPENMP
 #include <omp.h>
-#define OMP_SCALE               4	// Tuned on core i7 (note, use -test=120 during tuning)
+#define OMP_SCALE               1	// Tuned on core i7
 static int omp_t = 1;
 #endif
 #include "gladman_hmac.h"
 #include "memdbg.h"
-#define BASE_SCALE             96
 
 #define KEY_LENGTH(mode)        (8 * ((mode) & 3) + 8)
 #define SALT_LENGTH(mode)       (4 * ((mode) & 3) + 4)
@@ -550,7 +549,7 @@ struct fmt_main fmt_zip = {
 		SALT_SIZE,
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
-		MAX_KEYS_PER_CRYPT*BASE_SCALE,
+		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_DYNA_SALT,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
