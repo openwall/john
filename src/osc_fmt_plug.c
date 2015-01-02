@@ -57,12 +57,8 @@ john_register_one(&fmt_OSC);
 static struct fmt_tests osc_tests[] = {
 	{"$OSC$2020$05de5c963ee6234dc7d52f7589a1922b", "welcome"},
 	{"$OSC$3132$c02e8eef3eaa1a813c2ff87c1780f9ed", "3456test1"},
-	// repeat a hash in the same form that is used in john.pot
-	// the loader is eating the trailing spaces, that's why
-	// this particular hash causes trouble in the test suite's 
-	// internal mode:
-	//{"$dynamic_4$05de5c963ee6234dc7d52f7589a1922b$  ", "welcome"},
-	// this one should work better:
+	// repeat the hashes in the same form that is used in john.pot
+	{"$dynamic_4$05de5c963ee6234dc7d52f7589a1922b$HEX$2020", "welcome"},
 	{"$dynamic_4$c02e8eef3eaa1a813c2ff87c1780f9ed$12", "3456test1"},
 	{NULL}
 };
