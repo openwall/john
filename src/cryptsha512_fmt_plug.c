@@ -279,6 +279,7 @@ static void *get_salt(char *ciphertext)
 	static struct saltstruct out;
 	int len;
 
+	memset(&out, 0, sizeof(out));
 	out.rounds = ROUNDS_DEFAULT;
 	ciphertext += 3;
 	if (!strncmp(ciphertext, ROUNDS_PREFIX,
