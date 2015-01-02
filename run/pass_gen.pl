@@ -2789,10 +2789,10 @@ sub dynamic_compile {
 			# dyna-1010 not handled yet (the pad null to 100 bytes)
 			$dynamic_args==1011 && do {$fmt='md5($p.md5($s)),saltlen=6';	last SWITCH; };
 			$dynamic_args==1012 && do {$fmt='md5($p.md5($s)),saltlen=6';	last SWITCH; };
-			# dyna_1013 not handled, since we have no way to precompute md5(u) and add that as a 32 byte salt.
-			# $dynamic_args==1013 && do {$fmt='md5($p.md5($u)),username';	last SWITCH; };
+			$dynamic_args==1013 && do {$fmt='md5($p.$s),usrname=md5_hex_salt';	last SWITCH; };
 			$dynamic_args==1014 && do {$fmt='md5($p.$s),saltlen=56';	last SWITCH; };
 			$dynamic_args==1015 && do {$fmt='md5(md5($p.$u).$s),saltlen=6,username';	last SWITCH; };
+			$dynamic_args==1016 && do {$fmt='md5($s.$p),saltlen=-64';	last SWITCH; };
 			$dynamic_args==1018 && do {$fmt='md5(sha1(sha1($p)))';	last SWITCH; };
 			$dynamic_args==1019 && do {$fmt='md5(sha1(sha1(md5($p))))';	last SWITCH; };
 			$dynamic_args==1020 && do {$fmt='md5(sha1(md5($p)))';	last SWITCH; };
@@ -2809,7 +2809,12 @@ sub dynamic_compile {
 			$dynamic_args==1031 && do {$fmt='trunc32(gost($p))';	last SWITCH; };
 			$dynamic_args==1300 && do {$fmt='md5(md5_raw($p))';	last SWITCH; };
 			$dynamic_args==1350 && do {$fmt='md5(md5($s.$p).$c1.$s),saltlen=2,const1=:';	last SWITCH; };
-
+			$dynamic_args==1400 && do {$fmt='sha1u($p)';	last SWITCH; };
+			$dynamic_args==1401 && do {$fmt='md5_40($u.$c1.$p),const1='."\n".'skyper'."\n,usrname=true";	last SWITCH; };
+			$dynamic_args==1501 && do {$fmt='sha1($s.sha1($p)),saltlen=32';	last SWITCH; };
+			$dynamic_args==1502 && do {$fmt='sha1(sha1($p).$s),saltlen=-32';	last SWITCH; };
+			$dynamic_args==1503 && do {$fmt='sha256(sha256($p).$s),saltlen=64';	last SWITCH; };
+			$dynamic_args==1504 && do {$fmt='sha1($s.$p.$s)';	last SWITCH; };
 			$dynamic_args==2000 && do {$fmt='md5($p)';					last SWITCH; };
 			$dynamic_args==2001 && do {$fmt='md5($p.$s),saltlen=32';	last SWITCH; };
 			$dynamic_args==2002 && do {$fmt='md5(md5($p))';				last SWITCH; };
@@ -2902,6 +2907,8 @@ sub do_dynamic_GetToken {
 	if ($stmp eq "MD5") {
 		if (substr($exprStr, 0, 7) eq "md5_64e") { push(@gen_toks, "f5e"); return substr($exprStr, 7); }
 		if (substr($exprStr, 0, 6) eq "md5_64")  { push(@gen_toks, "f56"); return substr($exprStr, 6); }
+		#md5_40 is used by dyna_1401, which is md5, but pads (with 0's) to 20 bytes, not 16
+		if (substr($exprStr, 0, 6) eq "md5_40")  { push(@gen_toks, "f54"); return substr($exprStr, 6); }
 		if (substr($exprStr, 0, 4) eq "md5u")    { push(@gen_toks, "f5u"); return substr($exprStr, 4); }
 		if (substr($exprStr, 0, 3) eq "md5")     { push(@gen_toks, "f5h"); return substr($exprStr, 3); }
 		if (substr($exprStr, 0, 3) eq "MD5")     { push(@gen_toks, "f5H"); return substr($exprStr, 3); }
@@ -3063,6 +3070,7 @@ sub do_dynamic_Lexi {
 }
 sub dynamic_compile_to_pcode {
 	$gen_s = ""; $gen_u = ""; $gen_s2 = "";
+	$gen_needs = 0; $gen_needs2 = 0; $gen_needu = 0;
 
 	my $dynamic_args = $_[0];
 	# ok, not a specific version, so we use 'this' format:
@@ -3109,7 +3117,7 @@ sub dynamic_compile_to_pcode {
 
 	# load user name
 	$dynamic_usernameType = $hash{"usrname"};
-	if (!$dynamic_usernameType) { $dynamic_usernameType=0; }
+	if (!$dynamic_usernameType) { $dynamic_usernameType=0; } else {$gen_needu=1; }
 	$dynamic_passType = $hash{"pass"};
 	if (!defined ($dynamic_passType) || $dynamic_passType ne "uni") {$dynamic_passType="";}
 	my $pass_case = $hash{"passcase"};
@@ -3149,7 +3157,6 @@ sub dynamic_compile_to_pcode {
 	foreach(@gen_toks) { if ($_ eq "S") {$salt2len=$v;last;} }
 
 	# this function actually BUILDS the pcode.
-	$gen_needs = 0; $gen_needs2 = 0; $gen_needu = 0;
 	dynamic_compile_expression_to_pcode(0, @gen_toks-1);
 
 	if (defined($optimize) && $optimize > 1) {dynamic_compile_Optimize2();}
@@ -3320,6 +3327,7 @@ sub dynamic_load_username {
 		if ($dynamic_usernameType eq "lc") { $gen_u = lc $gen_u; }
 		elsif ($dynamic_usernameType eq "uc") { $gen_u = uc $gen_u; }
 		elsif ($dynamic_usernameType eq "uni") { $gen_u = encode("UTF-16LE",$gen_u); }
+		elsif ($dynamic_usernameType eq "md5_hex_salt") { $argsalt = md5_hex($gen_u); }
 	}
 }
 sub dynamic_load_salt {
@@ -3385,6 +3393,7 @@ sub dynamic_f5H    { $h = pop @gen_Stack; $h = uc md5_hex($h);	 $gen_Stack[@gen_
 sub dynamic_f1H    { $h = pop @gen_Stack; $h = uc sha1_hex($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_f4H    { $h = pop @gen_Stack; $h = uc md4_hex($h);  $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_f56    { $h = pop @gen_Stack; $h = md5_base64($h);	 $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_f54    { $h = pop @gen_Stack; $h = md5_hex($h)."00000000";	 $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_f16    { $h = pop @gen_Stack; $h = sha1_base64($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_f46    { $h = pop @gen_Stack; $h = md4_base64($h);  $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_f5e    { $h = pop @gen_Stack; $h = md5_base64($h);  while (length($h)%4) { $h .= "="; } $gen_Stack[@gen_Stack-1] .= $h; return $h; }
