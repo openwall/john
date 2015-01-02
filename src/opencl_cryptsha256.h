@@ -17,21 +17,11 @@
 #include "opencl_device_info.h"
 #include "opencl_sha256.h"
 
-//Constants.
-#define ROUNDS_PREFIX           "rounds="
-#define ROUNDS_DEFAULT          5000
-#define ROUNDS_MIN              1	/* Drepper has it as 1000 */
-#define ROUNDS_MAX              999999999
-
 #define SALT_LENGTH             16
-#define SALT_ALIGN              4
 #define PLAINTEXT_LENGTH        24
-#define CIPHERTEXT_LENGTH	43
 #define BUFFER_ARRAY            8
 #define SALT_ARRAY              (SALT_LENGTH / 4)
 #define PLAINTEXT_ARRAY         (PLAINTEXT_LENGTH / 4)
-#define BINARY_SIZE             32
-#define BINARY_ALIGN            4
 #define SEED                    1024
 #define STEP                    0
 #define HASH_LOOPS              ((7*3*2) * 4)
