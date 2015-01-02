@@ -289,13 +289,47 @@ static const int MD5_inc = MD5_LOOPS;
 
 static inline uint32_t DoMD5_FixBufferLen32(unsigned char *input_buf, int total_len) {
 	uint32_t *p;
+	unsigned char *cp;
+	int i;
 	uint32_t ret = (total_len / 64) + 1;
+
 	if (total_len % 64 > 55)
 		++ret;
 	input_buf[total_len] = 0x80;
-	p = (uint32_t *)&(input_buf[total_len+1]);
-	while (*p && p < (uint32_t *)&input_buf[(ret<<6)])
+
+	// This code was kept, for history.  There were problems clearing. The
+	// problem was if 2 runs ago, we had a 2 limb hash, 1 run ago we had a
+	// 1 limb hash and now we have a 2 limb hash, but the length of it was
+	// less than 59 bytes, the loop would not be entered, AND thus, that
+	// still dirty limb2 would not get cleaned.  The code below these 3
+	// lines of cleaning code is the new cleaning loop. It is just a touch
+	// faster now, than it was.  The other alternative was to alway use
+	// a full clean, which is VERY costly (5 to 20%).  This same change
+	// has to be done to MD5/MD4/SHA1 and SHA224-256 buffer clean functions.
+
+	//p = (uint32_t *)&(input_buf[total_len+1]);
+	//while (*p && p < (uint32_t *)&input_buf[(ret<<6)])
+	//	*p++ = 0;
+
+	// Here is the start of the new code.
+	cp = &(input_buf[total_len+1]);
+	i = total_len+1;
+	// first, get us to an even 32 bit boundary.
+	while (i&3) {
+		*cp++ = 0;
+		++i;
+	}
+	// now switch to uint_32's
+	p = (uint32_t *)cp;
+	// this is how many 32 bit words max we will clean.
+	i = ((ret<<6)-i)/4;
+	while (i--) {
 		*p++ = 0;
+		if (!p[0] && !p[1])
+			break;
+	}
+	// This is the end of the code to replace the original 3 line clean loop.
+
 	p = (uint32_t *)input_buf;
 	p[(ret*16)-2] = (total_len<<3);
 	return ret;
@@ -679,13 +713,25 @@ static const int MD4_inc = MD4_LOOPS;
 
 static inline uint32_t DoMD4_FixBufferLen32(unsigned char *input_buf, int total_len) {
 	uint32_t *p;
+	unsigned char *cp;
+	int i;
 	uint32_t ret = (total_len / 64) + 1;
 	if (total_len % 64 > 55)
 		++ret;
 	input_buf[total_len] = 0x80;
-	p = (uint32_t *)&(input_buf[total_len+1]);
-	while (*p && p < (uint32_t *)&input_buf[(ret<<6)])
+	cp = &(input_buf[total_len+1]);
+	i = total_len+1;
+	while (i&3) {
+		*cp++ = 0;
+		++i;
+	}
+	p = (uint32_t *)cp;
+	i = ((ret<<6)-i)/4;
+	while (i--) {
 		*p++ = 0;
+		if (!p[0] && !p[1])
+		break;
+	}
 	p = (uint32_t *)input_buf;
 	p[(ret*16)-1] = (total_len<<3);
 	return ret;
@@ -1064,13 +1110,28 @@ static const int sha1_inc = SHA1_LOOPS;
 
 static inline uint32_t DoSHA1_FixBufferLen32(unsigned char *input_buf, int total_len) {
 	uint32_t *p;
+	unsigned char *cp;
+	int i;
 	uint32_t ret = (total_len / 64) + 1;
 	if (total_len % 64 > 55)
 		++ret;
 	input_buf[total_len] = 0x80;
-	p = (uint32_t *)&(input_buf[total_len+1]);
-	while (*p && p < (uint32_t *)&input_buf[(ret<<6)-4])
+	//p = (uint32_t *)&(input_buf[total_len+1]);
+	//while (*p && p < (uint32_t *)&input_buf[(ret<<6)-4])
+	//	*p++ = 0;
+	cp = &(input_buf[total_len+1]);
+	i = total_len+1;
+	while (i&3) {
+		*cp++ = 0;
+		++i;
+	}
+	p = (uint32_t *)cp;
+	i = ((ret<<6)-i)/4;
+	while (i--) {
 		*p++ = 0;
+		if (!p[0] && !p[1])
+		break;
+	}
 	p = (uint32_t *)input_buf;
 	p[(ret*16)-1] = JOHNSWAP(total_len<<3);
 	return ret;
@@ -1452,6 +1513,8 @@ static const int sha256_inc = MMX_COEF_SHA256;
 
 static inline uint32_t DoSHA256_FixBufferLen32(unsigned char *input_buf, int total_len) {
 	uint32_t *p;
+	unsigned char *cp;
+	int i;
 	uint32_t ret = (total_len / 64) + 1;
 	if (total_len % 64 > 55)
 		++ret;
@@ -1459,9 +1522,22 @@ static inline uint32_t DoSHA256_FixBufferLen32(unsigned char *input_buf, int tot
 //		fprintf (stderr, "\n\n!!!Overflow  total_len=%d  input_buf=%*.*s !!!\n\n", total_len, total_len, total_len, input_buf);
 //	}
 	input_buf[total_len] = 0x80;
-	p = (uint32_t *)&(input_buf[total_len+1]);
-	while (*p && p < (uint32_t *)&input_buf[(ret<<6)-4])
+	//p = (uint32_t *)&(input_buf[total_len+1]);
+	//while (*p && p < (uint32_t *)&input_buf[(ret<<6)-4])
+	//	*p++ = 0;
+	cp = &(input_buf[total_len+1]);
+	i = total_len+1;
+	while (i&3) {
+		*cp++ = 0;
+		++i;
+	}
+	p = (uint32_t *)cp;
+	i = ((ret<<6)-i)/4;
+	while (i--) {
 		*p++ = 0;
+		if (!p[0] && !p[1])
+		break;
+	}
 	p = (uint32_t *)input_buf;
 	p[(ret*16)-1] = JOHNSWAP(total_len<<3);
 	return ret;
