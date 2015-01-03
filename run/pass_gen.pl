@@ -3334,8 +3334,9 @@ sub dynamic_load_salt {
 	if (defined $argsalt) {
 		if ($gen_stype eq "ashex") { $gen_s=md5_hex($argsalt); }
 		else { $gen_s=$argsalt; }
+		if (!defined $gen_s) {$gen_s = get_salt(4);}
 		$gen_soutput = $gen_s;
-		$saltlen = $gen_s.length();
+		$saltlen = length($gen_s);
 		if ($gen_stype eq "tohex") { $gen_s=md5_hex($gen_s); }
 	} else {
 		if ($gen_stype eq "ashex") { $gen_s=randstr(32, \@chrHexLo); }
