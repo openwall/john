@@ -150,14 +150,14 @@ static int cmp_all(void *binary, int count) {
 #ifdef _OPENMP
 	for (; index < count; index++)
 #endif
-		if (!memcmp(binary, crypt_out[index], BINARY_SIZE))
+		if (!memcmp(binary, crypt_out[index], BINARY_SIZE) && saved_key[index][0])
 			return 1;
 	return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return !memcmp(binary, crypt_out[index], BINARY_SIZE);
+	return saved_key[index][0] && !memcmp(binary, crypt_out[index], BINARY_SIZE);
 }
 
 static int cmp_exact(char *source, int index) {
