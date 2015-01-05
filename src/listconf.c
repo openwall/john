@@ -513,14 +513,13 @@ void listconf_parse_late(void)
 			 * Even if this means tools processing --list=format-details output
 			 * have to check the number of columns if they want to use the example
 			 * ciphertext.
+			 *
+			 * ciphertext example will be silently truncated
+			 * to 256 characters here
 			 */
 			printf("\t%.256s\n",
-			       /*
-			        * ciphertext example will be silently truncated
-			        * to 256 characters here
-			        */
 			       ntests ?
-			       format->params.tests[0].ciphertext : "");
+			       get_test(format, 0) : "");
 
 			fmt_done(format);
 
@@ -835,7 +834,6 @@ void listconf_parse_late(void)
 
 			if (format->params.tests) {
 				while (format->params.tests[ntests].ciphertext) {
-					int i;
 					int skip = 0;
 					/*
 					 * defining a config variable to allowing --field-separator-char=
@@ -847,23 +845,18 @@ void listconf_parse_late(void)
 					 * one of the scrypt tests has tabs and new lines in ciphertext
 					 * and password.
 					 */
-					for (i = 0; format->params.tests[ntests].plaintext[i]; i++)
-						if (format->params.tests[ntests].plaintext[i] == '\x0a') {
-							skip = 1;
-							fprintf(stderr,
-							        "Test %s %d: plaintext contains line feed\n",
-							        format->params.label, ntests);
-							break;
-						}
-					for (i = 0; ciphertext[i]; i++) {
-						if (ciphertext[i] == '\x0a' ||
-						    ciphertext[i] == separator) {
-							skip |= 2;
-							fprintf(stderr,
-							        "Test %s %d: ciphertext contains line feed or separator character '%c'\n",
-							        format->params.label, ntests, separator);
-							break;
-						}
+					if (strchr(format->params.tests[ntests].plaintext, '\x0a')) {
+						skip = 1;
+						fprintf(stderr,
+						        "Test %s %d: plaintext contains line feed\n",
+						        format->params.label, ntests);
+					}
+					if (strchr(ciphertext, '\x0a') ||
+					    strchr(ciphertext, separator)) {
+						skip |= 2;
+						fprintf(stderr,
+						        "Test %s %d: ciphertext contains line feed or separator character '%c'\n",
+						        format->params.label, ntests, separator);
 					}
 					if (skip != 3) { // if they are both missing, simply do not output a line at all
 						printf("%s%c%d",
