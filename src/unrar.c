@@ -880,7 +880,9 @@ static int read_vm_code_PPM(unpack_data_t *unpack_data, const unsigned char **fd
 		}
 		length = b1*256 + b2;
 	}
-	vmcode = (unsigned char *) rar_malloc(length + 2);
+	// https://github.com/magnumripper/JohnTheRipper/issues/1000
+	// + 1 below because rarvm_getbits() may read ahead
+	vmcode = (unsigned char *) rar_malloc(length + 2 + 1);
 	//rar_dbgmsg("VM PPM code length: %d\n", length);
 	if (!vmcode) {
 		return 0;
