@@ -7,6 +7,7 @@
  * Autoconf stuff was removed.
  *
  *  Copyright (C) 2005-2006 trog@uncon.org
+ *  Patches added by Sourcefire, Inc. Copyright (C) 2007-2013
  *
  *  This code is based on the work of Alexander L. Roshal (C)
  *
@@ -331,6 +332,7 @@ void rar_make_decode_tables(unsigned char *len_tab, struct Decode *decode, int s
 	memset(decode->DecodeNum,0,size*sizeof(*decode->DecodeNum));
 	// Calculate how many entries for every bit length in LengthTable we have.
 	memset(len_count, 0, sizeof(len_count));
+	memset(decode->DecodeNum,0,size*sizeof(*decode->DecodeNum));
 	for (i=0 ; i < size ; i++) {
 		len_count[len_tab[i] & 0x0f]++;
 	}
@@ -509,6 +511,7 @@ static int read_tables(const unsigned char **fd, unpack_data_t *unpack_data)
 	}
 	rar_make_decode_tables(bit_length,(struct Decode *)&unpack_data->BD,BC);
 
+	memset(table, 0, sizeof(table));
 	for (i=0;i<table_size;) { // 404
 		if (unpack_data->in_addr > unpack_data->read_top-5) {
 			if (!rar_unp_read_buf(fd, unpack_data)) {

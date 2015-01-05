@@ -7,6 +7,7 @@
  * Autoconf stuff was removed.
  *
  *  Copyright (C) 2005-2006 trog@uncon.org
+ *  Patches added by Sourcefire, Inc. Copyright (C) 2007-2013
  *
  *  This code is based on the work of Alexander L. Roshal (C)
  *
@@ -1002,6 +1003,9 @@ static void rarvm_optimize(struct rarvm_prepared_program *prg)
 				continue;
 			default: /* make gcc happy */
 				break;
+		}
+		if (cmd->op_code > VM_PRINT) {
+			continue; /* don't re-optimize, unlikely anyway */
 		}
 		if ((vm_cmdflags[cmd->op_code] & VMCF_CHFLAGS) == 0) {
 			continue;
