@@ -446,6 +446,7 @@ struct fmt_main fmt_truecrypt = {
 #endif
 		"",                               // BENCHMARK_COMMENT
 		-1,                               // BENCHMARK_LENGTH
+		0,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
 		BINARY_ALIGN,
@@ -484,6 +485,7 @@ struct fmt_main fmt_truecrypt = {
 			fmt_default_binary_hash
 		},
 		salt_hash,
+		NULL,
 		set_salt,
 		set_key,
 		get_key,
@@ -505,6 +507,7 @@ struct fmt_main fmt_truecrypt_ripemd160 = {
 		"32/" ARCH_BITS_STR,              // ALGORITHM_NAME,
 		"",                               // BENCHMARK_COMMENT
 		-1,                               // BENCHMARK_LENGTH
+		0,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
 		BINARY_ALIGN,
@@ -534,6 +537,7 @@ struct fmt_main fmt_truecrypt_ripemd160 = {
 			fmt_default_binary_hash
 		},
 		salt_hash,
+		NULL,
 		set_salt,
 		set_key,
 		get_key,
@@ -563,6 +567,7 @@ struct fmt_main fmt_truecrypt_sha512 = {
 #endif
 		"",                               // BENCHMARK_COMMENT
 		-1,                               // BENCHMARK_LENGTH
+		0,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
 		BINARY_ALIGN,
@@ -597,6 +602,7 @@ struct fmt_main fmt_truecrypt_sha512 = {
 			fmt_default_binary_hash
 		},
 		salt_hash,
+		NULL,
 		set_salt,
 		set_key,
 		get_key,
@@ -622,6 +628,7 @@ struct fmt_main fmt_truecrypt_whirlpool = {
 #endif
 		"",                               // BENCHMARK_COMMENT
 		-1,                               // BENCHMARK_LENGTH
+		0,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
 		BINARY_ALIGN,
@@ -651,6 +658,7 @@ struct fmt_main fmt_truecrypt_whirlpool = {
 			fmt_default_binary_hash
 		},
 		salt_hash,
+		NULL,
 		set_salt,
 		set_key,
 		get_key,

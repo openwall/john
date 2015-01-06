@@ -366,6 +366,7 @@ struct fmt_main fmt_cuda_xsha512 = {
 		ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
+		0,
 		MAX_PLAINTEXT_LENGTH,
 		FULL_BINARY_SIZE,
 		BINARY_ALIGN,
@@ -401,6 +402,7 @@ struct fmt_main fmt_cuda_xsha512 = {
 			binary_hash_6
 		},
 		salt_hash,
+		NULL,
 		set_salt,
 		set_key,
 		get_key,

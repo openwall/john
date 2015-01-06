@@ -266,6 +266,7 @@ struct fmt_main fmt_ripemd_160 = {
 		ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
+		0,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE160,
 		BINARY_ALIGN,
@@ -301,6 +302,7 @@ struct fmt_main fmt_ripemd_160 = {
 			fmt_default_binary_hash_6
 		},
 		fmt_default_salt_hash,
+		NULL,
 		fmt_default_set_salt,
 		ripemd_set_key,
 		get_key,
@@ -329,6 +331,7 @@ struct fmt_main fmt_ripemd_128 = {
 		ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
+		0,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE128,
 		BINARY_ALIGN,
@@ -364,6 +367,7 @@ struct fmt_main fmt_ripemd_128 = {
 			fmt_default_binary_hash_6
 		},
 		fmt_default_salt_hash,
+		NULL,
 		fmt_default_set_salt,
 		ripemd_set_key,
 		get_key,

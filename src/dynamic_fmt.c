@@ -2196,6 +2196,31 @@ static int salt_hash(void *salt)
 	return ( (H^(H>>9)) & (SALT_HASH_SIZE-1) );
 }
 
+/*
+ * dyna compare is required, to get all the shortest
+ * salt strings first, then the next longer, then the
+ * next, and finally the longest.  Without this change
+ * there are many dyna formats which will miss finding
+ * hashes, because old dirty salt information gets left
+ * over, blowing the next runs.  There are many formats
+ * which try to not clear buffers if they do not need
+ * to, BUT this only works if salts are taken shortest
+ * to longest.  This sort builds the list of salts that way
+ */
+static int salt_compare(const void *x, const void *y)
+{
+	/* this is all that is needed in dyna salt_compare().
+	   Dyna is a pointer to a string, NOT the actual string.
+	   The first 2 bytes of string are length (base 8 ascii) */
+	const char *X = *((const char**)x);
+	const char *Y = *((const char**)y);
+	if (*X<*Y) return -1;
+	if (*X>*Y) return 1;
+	if (X[1]<Y[1]) return -1;
+	if (X[1]>Y[1]) return 1;
+	return 0;
+}
+
 /*********************************************************************************
  * Gets the binary value from a base-16 hash.
  *********************************************************************************/
@@ -2463,6 +2488,7 @@ static struct fmt_main fmt_Dynamic =
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
 #ifdef MMX_COEF
+		0,
 		PLAINTEXT_LENGTH,
 #else
 		PLAINTEXT_LENGTH_X86,
@@ -2517,6 +2543,7 @@ static struct fmt_main fmt_Dynamic =
 			fmt_default_binary_hash_6
 		},
 		salt_hash,
+		salt_compare,
 		set_salt,
 		set_key,
 		get_key,

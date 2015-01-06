@@ -300,6 +300,7 @@ struct fmt_main fmt_ike = {
 		ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
+		0,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE_SMALLER,
 		BINARY_ALIGN,
@@ -347,6 +348,7 @@ struct fmt_main fmt_ike = {
 			fmt_default_binary_hash_6
 		},
 		fmt_default_salt_hash,
+		NULL,
 		set_salt,
 		ike_set_key,
 		get_key,

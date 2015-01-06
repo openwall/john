@@ -908,43 +908,8 @@ static void ldr_init_salts(struct db_main *db)
 
 /* #define DEBUG_SALT_SORT */
 
-/*
- * this will be the salt_compare() method we stick into
- * wpapsk_fmt.c (and cuda/opencl)
- */
-int salt_compare(const void *x, const void *y)
-{
-	/* this is all that is needed in wpapsk salt_compare() */
-	return strncmp((const char*)x, (const char*)y, 36);
-}
-
-/*
- * dyna compare is required, to get all the shortest
- * salt strings first, then the next longer, then the
- * next, and finally the longest.  Without this change
- * there are many dyna formats which will miss finding
- * hashes, because old dirty salt information gets left
- * over, blowing the next runs.  There are many formats
- * which try to not clear buffers if they do not need
- * to, BUT this only works if salts are taken shortest
- * to longest.  This sort builds the list of salts that way
- */
-int salt_compare_dyna(const void *x, const void *y)
-{
-	/* this is all that is needed in dyna salt_compare().
-	   Dyna is a pointer to a string, NOT the actual string.
-	   The first 2 bytes of string are length (base 8 ascii) */
-	const char *X = *((const char**)x);
-	const char *Y = *((const char**)y);
-	if (*X<*Y) return -1;
-	if (*X>*Y) return 1;
-	if (X[1]<Y[1]) return -1;
-	if (X[1]>Y[1]) return 1;
-	return 0;
-}
-
 /* Default: Most used salts first */
-int salt_compare_num(int a, int b)
+static int salt_compare_num(int a, int b)
 {
 	if (a > b) return -1;
 	if (a < b) return 1;
@@ -973,12 +938,9 @@ typedef struct salt_cmp_s
 
 /*
  * there is no way to pass this pointer to the sort function, so
- * we set it before calling sort. Right now, we do not use it,
- * but later we will use salt_sort_db->format->methods.salt_compare()
- * we actually could just harvest off the function pointer to the
- * salt_compare function, instead (TBD), instead of the db_main*
+ * we set it before calling sort.
  */
-static struct db_main *salt_sort_db;
+static int (*fmt_salt_compare)(const void *x, const void *y);
 
 /*
  * This helper function will stay in loader.  It is what the qsort
@@ -994,21 +956,17 @@ static struct db_main *salt_sort_db;
 static int ldr_salt_cmp(const void *x, const void *y) {
 	salt_cmp_t *X = (salt_cmp_t *)x;
 	salt_cmp_t *Y = (salt_cmp_t *)y;
-	int cmp = salt_compare(X->p->salt, Y->p->salt);
+	int cmp = fmt_salt_compare(X->p->salt, Y->p->salt);
 	return cmp;
 }
-static int ldr_salt_cmp_dyna(const void *x, const void *y) {
-	salt_cmp_t *X = (salt_cmp_t *)x;
-	salt_cmp_t *Y = (salt_cmp_t *)y;
-	int cmp = salt_compare_dyna(X->p->salt, Y->p->salt);
-	return cmp;
-}
+
 static int ldr_salt_cmp_num(const void *x, const void *y) {
 	salt_cmp_t *X = (salt_cmp_t *)x;
 	salt_cmp_t *Y = (salt_cmp_t *)y;
 	int cmp = salt_compare_num(X->p->count, Y->p->count);
 	return cmp;
 }
+
 /*
  * If there are more than 1 salt, AND the format exports a salt_compare
  * function, then we reorder the salt array, into the order the format
@@ -1045,7 +1003,7 @@ static void ldr_sort_salts(struct db_main *db)
 
 	log_event("Sorting salts, for performance");
 
-	salt_sort_db = db;
+	fmt_salt_compare = db->format->methods.salt_compare;
 #ifndef DEBUG_SALT_SORT
 	ar = (salt_cmp_t *)mem_alloc(sizeof(salt_cmp_t)*db->salt_count);
 #endif
@@ -1062,18 +1020,8 @@ static void ldr_sort_salts(struct db_main *db)
 		s = s->next;
 	}
 
-	/*
-	 * NOTE, later we will use a new format method (salt_compare) to
-	 * determine when to do this sorting.  For now, we will compute
-	 * when (based on format name), and we have the salt_compare()
-	 * in this file, so that we can utilize this functionality prior
-	 * to getting this method out to every format.
-	 */
-	/* now we sort this array of pointers. */
-	if (!strncasecmp(db->format->params.label, "wpapsk", 6))
+	if (fmt_salt_compare)
 		qsort(ar, db->salt_count, sizeof(ar[0]), ldr_salt_cmp);
-	else if (!strncasecmp(db->format->params.label, "dynamic_", 8))
-		qsort(ar, db->salt_count, sizeof(ar[0]), ldr_salt_cmp_dyna);
 	else /* Most used salt first */
 		qsort(ar, db->salt_count, sizeof(ar[0]), ldr_salt_cmp_num);
 

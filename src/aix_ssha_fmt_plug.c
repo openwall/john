@@ -422,6 +422,7 @@ struct fmt_main fmt_aixssha1 = {
 		ALGORITHM_NAME_SHA1,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
+		0,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
 		BINARY_ALIGN,
@@ -461,6 +462,7 @@ struct fmt_main fmt_aixssha1 = {
 			fmt_default_binary_hash_6
 		},
 		fmt_default_salt_hash,
+		NULL,
 		set_salt,
 		aixssha_set_key,
 		get_key,
@@ -488,6 +490,7 @@ struct fmt_main fmt_aixssha256 = {
 		ALGORITHM_NAME_SHA256,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
+		0,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
 		BINARY_ALIGN,
@@ -527,6 +530,7 @@ struct fmt_main fmt_aixssha256 = {
 			fmt_default_binary_hash_6
 		},
 		fmt_default_salt_hash,
+		NULL,
 		set_salt,
 		aixssha_set_key,
 		get_key,
@@ -554,6 +558,7 @@ struct fmt_main fmt_aixssha512 = {
 		ALGORITHM_NAME_SHA512,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
+		0,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
 		BINARY_ALIGN,
@@ -593,6 +598,7 @@ struct fmt_main fmt_aixssha512 = {
 			fmt_default_binary_hash_6
 		},
 		fmt_default_salt_hash,
+		NULL,
 		set_salt,
 		aixssha_set_key,
 		get_key,

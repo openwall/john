@@ -205,6 +205,7 @@ struct fmt_main fmt_EPI =
 		"SHA1 32/" ARCH_BITS_STR,
 		"", // benchmark comment
 		0, // benchmark length
+		0,
 		PLAINTEXT_LENGTH,
 		BINARY_LENGTH,
 		BINARY_ALIGN,
@@ -241,6 +242,7 @@ struct fmt_main fmt_EPI =
 			fmt_default_binary_hash_6
 		},
 		salt_hash,
+		NULL,
 		set_salt,
 		set_key,
 		get_key,

@@ -515,6 +515,7 @@ struct fmt_main fmt_rawSHA256_ng = {
         ALGORITHM_NAME,
         BENCHMARK_COMMENT,
         BENCHMARK_LENGTH,
+        0,
         MAXLEN,
         BINARY_SIZE,
 #if FMT_MAIN_VERSION > 9
@@ -558,6 +559,7 @@ struct fmt_main fmt_rawSHA256_ng = {
 		fmt_default_binary_hash_6
         },
         fmt_default_salt_hash,
+        NULL,
         fmt_default_set_salt,
         set_key,
         get_key,

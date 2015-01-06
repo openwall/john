@@ -272,6 +272,7 @@ struct fmt_main fmt_haval_256_3 = {
 		ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
+		0,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE256,
 		BINARY_ALIGN,
@@ -307,6 +308,7 @@ struct fmt_main fmt_haval_256_3 = {
 			fmt_default_binary_hash_6
 		},
 		fmt_default_salt_hash,
+		NULL,
 		fmt_default_set_salt,
 		haval_set_key,
 		get_key,
@@ -335,6 +337,7 @@ struct fmt_main fmt_haval_128_4 = {
 		ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
+		0,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE128,
 		BINARY_ALIGN,
@@ -370,6 +373,7 @@ struct fmt_main fmt_haval_128_4 = {
 			fmt_default_binary_hash_6
 		},
 		fmt_default_salt_hash,
+		NULL,
 		fmt_default_set_salt,
 		haval_set_key,
 		get_key,

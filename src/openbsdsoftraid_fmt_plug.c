@@ -288,6 +288,7 @@ struct fmt_main fmt_openbsd_softraid = {
 		ALGORITHM_NAME,
 		" (8192 iterations)",             // BENCHMARK_COMMENT
 		-1,                               // BENCHMARK_LENGTH
+		0,
 		PLAINTEXT_LENGTH,
 		sizeof(ARCH_WORD_32), //BINARY_SIZE,
 		BINARY_ALIGN,
@@ -321,6 +322,7 @@ struct fmt_main fmt_openbsd_softraid = {
 			fmt_default_binary_hash
 		},
 		fmt_default_salt_hash,
+		NULL,
 		set_salt,
 		jtr_set_key,
 		get_key,

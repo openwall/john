@@ -202,6 +202,7 @@ struct fmt_main fmt_LM = {
 		ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
+		0,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
 		BINARY_ALIGN,
@@ -240,6 +241,7 @@ struct fmt_main fmt_LM = {
 			binary_hash_6
 		},
 		fmt_default_salt_hash,
+		NULL,
 		fmt_default_set_salt,
 		DES_bs_set_key_LM,
 		get_key,

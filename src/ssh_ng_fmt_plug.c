@@ -462,6 +462,7 @@ struct fmt_main fmt_sshng = {
 		ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
+		0,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
 		BINARY_ALIGN,
@@ -491,6 +492,7 @@ struct fmt_main fmt_sshng = {
 			fmt_default_binary_hash
 		},
 		fmt_default_salt_hash,
+		NULL,
 		set_salt,
 		sshng_set_key,
 		get_key,

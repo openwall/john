@@ -234,6 +234,7 @@ struct fmt_main fmt_VMS = {
 		VMS_ALGORITHM_NAME,		/* .algorithm_name */
 		BENCHMARK_COMMENT,		/* .benchmark_comment */
 		BENCHMARK_LENGTH,		/* .benchmark_length (pwd break len) */
+		0,
 		PLAINTEXT_LENGTH,		/* .plaintext_lenght (max) */
 		BINARY_SIZE,			/* .binary_size (quadword) */
 		BINARY_ALIGN,
@@ -269,6 +270,7 @@ struct fmt_main fmt_VMS = {
 			fmt_default_binary_hash_6
 		},
 		fmt_default_salt_hash,
+		NULL,
 		(void (*)(void *))VMS_std_set_salt,
 		set_key,
 		get_key,

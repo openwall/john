@@ -393,6 +393,7 @@ struct fmt_main fmt_pbkdf2_hmac_sha512 = {
 		ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
+		0,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
 		sizeof(ARCH_WORD_32),
@@ -432,6 +433,7 @@ struct fmt_main fmt_pbkdf2_hmac_sha512 = {
 			fmt_default_binary_hash_6
 		},
 		fmt_default_salt_hash,
+		NULL,
 		set_salt,
 		set_key,
 		get_key,

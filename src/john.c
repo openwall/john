@@ -1326,16 +1326,16 @@ static void john_run(void)
 			        "positives, so it will keep trying even "
 			        "after\nfinding a possible candidate.\n");
 
-		/* WPA-PSK and WoW both have min-length 8. Until the format
-		   struct can hold this information, we need this hack here. */
-		if (database.format->params.label &&
-		    (!strncasecmp(database.format->params.label, "wpapsk", 6) ||
-		    !strncasecmp(database.format->params.label, "wowsrp", 6)) &&
-		    options.force_minlength < 8) {
-			options.force_minlength = 8;
+		/* Some formats have a minimum plaintext length */
+		if (database.format->params.plaintext_min_length &&
+		    options.force_minlength <
+		    database.format->params.plaintext_min_length) {
+			options.force_minlength =
+				database.format->params.plaintext_min_length;
 			if (john_main_process)
 				fprintf(stderr,
-				        "Note: minimum length forced to 8\n");
+				        "Note: minimum length forced to %d\n",
+				        options.force_minlength);
 
 			/* Now we need to re-check this */
 			if (options.force_maxlength &&

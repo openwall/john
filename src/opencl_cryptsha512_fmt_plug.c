@@ -558,6 +558,7 @@ struct fmt_main fmt_opencl_cryptsha512 = {
 		ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
+		0,
 		PLAINTEXT_LENGTH - 1,
 		BINARY_SIZE,
 		BINARY_ALIGN,
@@ -597,6 +598,7 @@ struct fmt_main fmt_opencl_cryptsha512 = {
 			fmt_default_binary_hash_6
 		},
 		salt_hash,
+		NULL,
 		set_salt,
 		set_key,
 		get_key,

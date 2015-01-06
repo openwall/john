@@ -166,6 +166,7 @@ struct fmt_main fmt_opencl_DES = {
 		ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
+		0,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
 		sizeof(WORD),
@@ -204,6 +205,7 @@ struct fmt_main fmt_opencl_DES = {
 			fmt_default_binary_hash_6
 		},
 		salt_hash,
+		NULL,
 		set_salt,
 		opencl_DES_bs_set_key,
 		get_key,

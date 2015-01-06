@@ -779,6 +779,7 @@ struct fmt_main fmt_dmg = {
 		ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
+		0,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
 		BINARY_ALIGN,
@@ -815,6 +816,7 @@ struct fmt_main fmt_dmg = {
 			fmt_default_binary_hash
 		},
 		fmt_default_salt_hash,
+		NULL,
 		set_salt,
 		dmg_set_key,
 		get_key,

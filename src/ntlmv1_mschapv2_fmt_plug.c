@@ -1308,6 +1308,7 @@ struct fmt_main fmt_MSCHAPv2_new = {
 		ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
+		0,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
 		BINARY_ALIGN,
@@ -1346,6 +1347,7 @@ struct fmt_main fmt_MSCHAPv2_new = {
 			NULL
 		},
 		salt_hash,
+		NULL,
 		set_salt,
 		set_key_ansi,
 		get_key,
@@ -1373,6 +1375,7 @@ struct fmt_main fmt_NETNTLM_new = {
 		ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
+		0,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
 		BINARY_ALIGN,
@@ -1411,6 +1414,7 @@ struct fmt_main fmt_NETNTLM_new = {
 			NULL
 		},
 		salt_hash,
+		NULL,
 		set_salt,
 		set_key_ansi,
 		get_key,

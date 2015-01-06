@@ -209,6 +209,7 @@ struct fmt_main fmt_cuda_pwsafe = {
 		ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
+		0,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
 		BINARY_ALIGN,
@@ -242,6 +243,7 @@ struct fmt_main fmt_cuda_pwsafe = {
 			fmt_default_binary_hash
 		},
 		fmt_default_salt_hash,
+		NULL,
 		set_salt,
 		pwsafe_set_key,
 		get_key,

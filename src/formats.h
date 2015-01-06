@@ -20,7 +20,7 @@
  * in case of any problem with the new additions
  * (tunable cost parameters)
  */
-#define FMT_MAIN_VERSION 12	/* change if structure fmt_main changes */
+#define FMT_MAIN_VERSION 13	/* change if structure fmt_main changes */
 
 /*
  * fmt_main is declared for real further down this file, but we refer to it in
@@ -80,7 +80,7 @@ struct db_salt;
 /* The split() method unifies the case of characters in hash encodings */
 #define FMT_SPLIT_UNIFIES_CASE		0x00020000
 /* Is this format a dynamic_x format (or a 'thin' format using dynamic code)? */
-#define FMT_DYNAMIC				0x00100000
+#define FMT_DYNAMIC			0x00100000
 #ifdef _OPENMP
 /* Parallelized with OpenMP */
 #define FMT_OMP				0x01000000
@@ -120,6 +120,9 @@ struct fmt_params {
 
 /* Benchmark for short/long passwords instead of for one/many salts */
 	int benchmark_length;
+
+/* Minimum length of a plaintext password */
+	int plaintext_min_length;
 
 /* Maximum length of a plaintext password */
 	int plaintext_length;
@@ -233,6 +236,9 @@ struct fmt_methods {
 /* Calculates a hash out of a salt (given in internal representation). To be
  * used by the password file loader. */
 	int (*salt_hash)(void *salt);
+
+/* Compare function used for sorting salts */
+	int (*salt_compare)(const void *x, const void *y);
 
 /* Sets a salt for the crypt_all() method */
 	void (*set_salt)(void *salt);

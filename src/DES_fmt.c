@@ -364,6 +364,7 @@ struct fmt_main fmt_DES = {
 		ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
+		0,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
 		BINARY_ALIGN,
@@ -411,6 +412,7 @@ struct fmt_main fmt_DES = {
 			binary_hash_6
 		},
 		salt_hash,
+		NULL,
 		set_salt,
 #if DES_BS
 		DES_bs_set_key,

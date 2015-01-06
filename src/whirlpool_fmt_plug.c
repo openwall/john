@@ -261,6 +261,7 @@ struct fmt_main fmt_whirlpool_0 = {
 		"WHIRLPOOL-0 " ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
+		0,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
 		BINARY_ALIGN,
@@ -298,6 +299,7 @@ struct fmt_main fmt_whirlpool_0 = {
 			fmt_default_binary_hash_6
 		},
 		fmt_default_salt_hash,
+		NULL,
 		fmt_default_set_salt,
 		whirlpool_set_key,
 		get_key,
@@ -326,6 +328,7 @@ struct fmt_main fmt_whirlpool_1 = {
 		"WHIRLPOOL-1 " ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
+		0,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
 		BINARY_ALIGN,
@@ -363,6 +366,7 @@ struct fmt_main fmt_whirlpool_1 = {
 			fmt_default_binary_hash_6
 		},
 		fmt_default_salt_hash,
+		NULL,
 		fmt_default_set_salt,
 		whirlpool_set_key,
 		get_key,
@@ -390,6 +394,7 @@ struct fmt_main fmt_whirlpool = {
 		"WHIRLPOOL " ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
+		0,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
 		BINARY_ALIGN,
@@ -425,6 +430,7 @@ struct fmt_main fmt_whirlpool = {
 			fmt_default_binary_hash_6
 		},
 		fmt_default_salt_hash,
+		NULL,
 		fmt_default_set_salt,
 		whirlpool_set_key,
 		get_key,

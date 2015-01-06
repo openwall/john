@@ -543,6 +543,7 @@ struct fmt_main fmt_zip = {
 		ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
+		0,
 		PLAINTEXT_LENGTH,
 		4, // BINARY_SIZE,
 		BINARY_ALIGN,
@@ -578,6 +579,7 @@ struct fmt_main fmt_zip = {
 			fmt_default_binary_hash_6
 		},
 		fmt_default_dyna_salt_hash,
+		NULL,
 		set_salt,
 		set_key,
 		get_key,

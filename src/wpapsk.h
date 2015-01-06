@@ -456,4 +456,9 @@ static int cmp_exact(char *source, int count)
 	return 1;
 }
 
+static int salt_compare(const void *x, const void *y)
+{
+	return strncmp((const char*)x, (const char*)y, 36);
+}
+
 #endif
