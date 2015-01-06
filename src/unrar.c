@@ -834,7 +834,7 @@ static int read_vm_code(unpack_data_t *unpack_data, const unsigned char **fd)
 	// https://github.com/magnumripper/JohnTheRipper/issues/1001
 	// + 32 below for some safety against bad input (for good data
 	// the original + 2 is enough)
-	vmcode = (unsigned char *) rar_malloc(length + 2 + 32);
+	vmcode = (unsigned char *) rar_malloc(length + 2 + 2);
 	//rar_dbgmsg("VM code length: %d\n", length);
 	if (!vmcode) {
 		return 0;
@@ -886,7 +886,7 @@ static int read_vm_code_PPM(unpack_data_t *unpack_data, const unsigned char **fd
 	// https://github.com/magnumripper/JohnTheRipper/issues/1000
 	// + 32 below for some safety against bad input (for good data
 	// the original + 2 is enough)
-	vmcode = (unsigned char *) rar_malloc(length + 2 + 32);
+	vmcode = (unsigned char *) rar_malloc(length + 2 + 2);
 	//rar_dbgmsg("VM PPM code length: %d\n", length);
 	if (!vmcode) {
 		return 0;
