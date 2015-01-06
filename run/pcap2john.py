@@ -21,7 +21,7 @@ l = logging.getLogger("scapy.runtime")
 l.setLevel(49)
 from binascii import hexlify
 try:
-    from scapy.all import TCP, rdpcap
+    from scapy.all import TCP, IP, UDP, rdpcap
 except ImportError:
     sys.stderr.write("Please install scapy, http://www.secdev.org/projects/scapy/\n")
     sys.exit(-1)
@@ -944,6 +944,52 @@ def pcap_parser_eigrp(fname):
 
     f.close()
 
+
+# https://github.com/nidem/kerberoast (Apache License, Author is "nidem")
+def pcap_parser_tgsrep(fname):
+    MESSAGETYPEOFFSETUDP = 17
+    MESSAGETYPEOFFSETTCP = 21
+
+    TGS_REP = chr(13)
+
+    kploads = []
+    packets = rdpcap(fname)
+    unfinished = {}
+    index = 0
+    for p in packets:
+        index = index + 1
+        # UDP
+        if p.haslayer(UDP) and p.sport == 88 and p[UDP].load[MESSAGETYPEOFFSETUDP] == TGS_REP:
+            kploads.append(p[UDP].load)
+
+        # TCP
+        elif p.haslayer(TCP) and p.sport == 88 and p[TCP].flags & 23 == 16:  # ACK Only, ignore push (8), urg (32), and ECE (64+128)
+            # assumes that each TCP packet contains the full payload
+
+            if len(p[TCP].load) > MESSAGETYPEOFFSETTCP and p[TCP].load[MESSAGETYPEOFFSETTCP] == TGS_REP:
+                # found start of new TGS-REP
+                size = struct.unpack(">I", p[TCP].load[:4])[0]
+                if size + 4 == len(p[TCP].load):
+                    kploads.append(p[TCP].load[4:size+4])  # strip the size field
+                else:
+                    # print 'ERROR: Size is incorrect: %i vs %i' % (size, len(p[TCP].load))
+                    unfinished[(p[IP].src, p[IP].dst, p[TCP].dport)] = (p[TCP].load[4:size+4], size)
+            elif unfinished.has_key((p[IP].src, p[IP].dst, p[TCP].dport)):
+                ticketdata, size = unfinished.pop((p[IP].src, p[IP].dst, p[TCP].dport))
+                ticketdata += p[TCP].load
+                # print "cont: %i %i" % (len(ticketdata), size)
+                if len(ticketdata) == size:
+                    kploads.append(ticketdata)
+                elif len(ticketdata) < size:
+                    unfinished[(p[IP].src, p[IP].dst, p[TCP].dport)] = (ticketdata, size)
+                else:
+                    # OH NO! Oversized!
+                    print 'Too much data received! Source: %s Dest: %s DPort %i' % (p[IP].src, p[IP].dst, p[TCP].dport)
+
+    for p in kploads:
+        sys.stdout.write("%s:$tgsrep$%s\n" % (index, p.encode("hex")))
+
+
 ############################################################
 # original main, but now calls multiple 2john routines, all
 # cut from the original independent convert programs.
@@ -979,3 +1025,4 @@ if __name__ == "__main__":
         pcap_parser_glbp(sys.argv[i])
         pcap_parser_gadu(sys.argv[i])
         pcap_parser_eigrp(sys.argv[i])
+        pcap_parser_tgsrep(sys.argv[i])
