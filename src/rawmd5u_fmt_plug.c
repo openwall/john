@@ -437,7 +437,7 @@ static char *get_key(int index)
 #ifdef MMX_COEF
 	// Get the key back from the key buffer, from UCS-2
 	unsigned int *keybuffer = (unsigned int*)&saved_key[GETPOS(0, index)];
-	static UTF16 key[PLAINTEXT_LENGTH + 1];
+	static UTF16 key[PLAINTEXT_LENGTH + 1 + 1]; // if only +1 we 'can' overflow.  Not sure why, but ASan found it.
 	unsigned int md5_size=0;
 	unsigned int i=0;
 
