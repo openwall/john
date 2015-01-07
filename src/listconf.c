@@ -140,6 +140,7 @@ static void listconf_list_method_names()
 
 static void listconf_list_build_info(void)
 {
+	char DebuggingOptions[512], *cpdbg=DebuggingOptions;
 #ifdef __GNU_MP_VERSION
 	int gmp_major, gmp_minor, gmp_patchlevel;
 #endif
@@ -231,6 +232,26 @@ static void listconf_list_build_info(void)
 #elif HAVE_COMMONCRYPTO
 	printf("Crypto library: CommonCrypto\n");
 #endif
+
+// OK, now append debugging options, BUT only output  something if
+// one or more of them is set. IF none set, be silent.
+#if defined (MEMDBG_ON)
+	cpdbg += sprintf(cpdbg, "\tmemdbg=");
+	#ifdef MEMDBG_EXTRA_CHECKS
+		cpdbg += sprintf(cpdbg, "extra_memory_checks\n");
+	#else
+		cpdbg += sprintf(cpdbg, "on\n");
+	#endif
+#endif
+#if defined (DEBUG)
+	cpdbg += sprintf(cpdbg, "\t'#define DEBUG' set\n");
+#endif
+#ifdef WITH_ASAN
+	cpdbg += sprintf(cpdbg, "\tASan (Address Sanitizer debugging)\n");
+#endif
+	if (DebuggingOptions != cpdbg) {
+		printf("Built with these debugging options\n%s\n", DebuggingOptions);
+	}
 }
 
 void listconf_parse_early(void)

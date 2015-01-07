@@ -111,6 +111,7 @@ extern unsigned atou(const char *src);
   #define ATTRIBUTE_NO_ADDRESS_SAFETY_ANALYSIS \
         __attribute__((no_address_safety_analysis)) \
         __attribute__((noinline))
+  #define WITH_ASAN
 #else
   #define ATTRIBUTE_NO_ADDRESS_SAFETY_ANALYSIS
 #endif
