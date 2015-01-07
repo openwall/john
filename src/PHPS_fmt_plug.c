@@ -68,10 +68,6 @@ static struct fmt_tests phps_tests[] = {
 	{"$PHPS$433925$5d756853cd63acee76e6dcd6d3728447", "welcome"},
 	{"$PHPS$73616c$aba22b2ceb7c841473c03962b145feb3", "password"},
 	{"$PHPS$247824$ad14afbbf0e16d4ad8c8985263a3d051","test"},  // salt is $x$ (I want to test that a $ works)
-	// repeat hashes in the same format that is used in john.pot
-	{"$dynamic_6$5d756853cd63acee76e6dcd6d3728447$C9%", "welcome"},
-	{"$dynamic_6$aba22b2ceb7c841473c03962b145feb3$sal", "password"},
-	{"$dynamic_6$ad14afbbf0e16d4ad8c8985263a3d051$HEX$247824", "test"},
 	{NULL}
 };
 
@@ -111,14 +107,27 @@ static char *Convert(char *Buf, char *ciphertext)
 
 static char *our_split(char *ciphertext, int index, struct fmt_main *self)
 {
-	get_ptr();
-	return pDynamic_6->methods.split(Convert(Conv_Buf, ciphertext), index, self);
-}
-
-static char *our_prepare(char *split_fields[10], struct fmt_main *self)
-{
-	get_ptr();
-	return pDynamic_6->methods.prepare(split_fields, self);
+	if (!strncmp(ciphertext, "$dynamic_6$", 11)) {
+		// convert back into $PHPS$ format
+		static char Buf[128];
+		char *cp;
+		strcpy(Buf, "$PHPS$");
+		cp = strchr(&ciphertext[11], '$');
+		++cp;
+		if (!strncmp(cp, "HEX$", 4)) {
+			cp += 4;
+			strcat(Buf, cp);
+		} else {
+			int i, len = strlen(cp);
+			char *cp2 = &Buf[strlen(Buf)];
+			for (i = 0; i < len; ++i)
+				cp2 += sprintf(cp2, "%02x", *cp++);
+		}
+		strcat(Buf, "$");
+		sprintf(&Buf[strlen(Buf)], "%32.32s", &ciphertext[11]);
+		return Buf;
+	}
+	return ciphertext;
 }
 
 static int phps_valid(char *ciphertext, struct fmt_main *self)
@@ -191,7 +200,7 @@ static void link_funcs() {
 	fmt_PHPS.methods.salt   = our_salt;
 	fmt_PHPS.methods.binary = our_binary;
 	fmt_PHPS.methods.split = our_split;
-	fmt_PHPS.methods.prepare = our_prepare;
+	fmt_PHPS.methods.prepare = fmt_default_prepare;
 }
 
 static void phps_init(struct fmt_main *self)
