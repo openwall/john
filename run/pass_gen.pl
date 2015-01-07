@@ -2604,6 +2604,7 @@ sub dynamic_compile {
 		print STDERR "        Added \$s2 (if 2nd salt is defined),\n";
 		print STDERR "        Added \$c1 to \$c9 for constants (must be defined in const#= values)\n";
 		print STDERR "        Added \$u if user name (normal, upper/lower case or unicode convert)\n";
+		print STDERR "        Handle utf16 and utf16-be for items. So md5(utf16(\$p)) and md5u(\$p) are same\n";
 		print STDERR "        Handle md5, sha1, md4 sha2 (sha224,sha256,sha384,sha512) gost whirlpool tiger and haval crypts.\n";
 		print STDERR "        Handle MD5, SHA1, MD4 SHA2 (all uc(sha2) types) GOST WHILRPOOL TIGER HAVAL which output hex in uppercase.\n";
 		print STDERR "        Handle md5u, sha1u md4u, sha2*u gostu whirlpoolu tigeru havalu which encode to UTF16LE.\n";
@@ -2901,6 +2902,8 @@ sub do_dynamic_GetToken {
 	if (substr($exprStr, 0,5)  eq "pad16")         { push(@gen_toks, "fpad16"); return substr($exprStr,5); }
 	if (substr($exprStr, 0,5)  eq "pad20")         { push(@gen_toks, "fpad20"); return substr($exprStr,5); }
 	if (substr($exprStr, 0,7)  eq "padmd64")       { push(@gen_toks, "fpadmd64"); return substr($exprStr,7); }
+	if (substr($exprStr, 0,5)  eq "utf16")         { push(@gen_toks, "futf16"); return substr($exprStr,5); }
+	if (substr($exprStr, 0,7)  eq "utf16be")       { push(@gen_toks, "futf16be"); return substr($exprStr,7); }
 
 	$gen_lastTokIsFunc=1;
 	$stmp = uc substr($exprStr, 0, 3);
@@ -3481,3 +3484,5 @@ sub dynamic_fhavr  { require Digest::Haval256; $h = pop @gen_Stack; $h = haval25
 sub dynamic_fpad16 { $h = pop @gen_Stack; $h = pad16($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_fpad20 { $h = pop @gen_Stack; $h = pad20($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_fpadmd64 { $h = pop @gen_Stack; $h = pad_md64($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_futf16  { $h = pop @gen_Stack; $h = encode("UTF-16LE",$h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_futf16be{ $h = pop @gen_Stack; $h = encode("UTF-16BE",$h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
