@@ -2400,7 +2400,7 @@ static void * binary_b64(char *ciphertext)
 			;
 	}
 	i = base64_valid_length(pos, e_b64_crypt, 0);
-	base64_convert(pos, e_b64_crypt, i, b, e_b64_raw, sizeof(b), 0);
+	base64_convert(pos, e_b64_cryptBS, i, b, e_b64_raw, sizeof(b), 0);
 
 	//printf("\nciphertext=%s\n", ciphertext);
 	//dump_stuff_msg("binary", b, 16);
