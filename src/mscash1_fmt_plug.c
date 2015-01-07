@@ -35,6 +35,7 @@ john_register_one(&fmt_mscash);
 #include "johnswap.h"
 #ifdef _OPENMP
 #include <omp.h>
+#define OMP_SCALE			192
 #endif
 
 #include "memdbg.h"
@@ -75,7 +76,7 @@ static struct fmt_tests tests[] = {
 #define OK_NUM_KEYS			64
 #define BEST_NUM_KEYS			512
 #ifdef _OPENMP
-#define MS_NUM_KEYS			(OK_NUM_KEYS * 96)
+#define MS_NUM_KEYS			OK_NUM_KEYS
 #else
 #define MS_NUM_KEYS			BEST_NUM_KEYS
 #endif
@@ -119,17 +120,10 @@ static inline void swap(unsigned int *x, int count)
 static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
-	int n = omp_get_max_threads(), nmin, nmax;
-	if (n < 1)
-		n = 1;
-	nmin = OK_NUM_KEYS - (OK_NUM_KEYS % n);
-	if (nmin < n)
-		nmin = n;
-	fmt_mscash.params.min_keys_per_crypt = nmin;
-	nmax = n * BEST_NUM_KEYS;
-	if (nmax > MS_NUM_KEYS)
-		nmax = MS_NUM_KEYS;
-	fmt_mscash.params.max_keys_per_crypt = nmax;
+	int omp_t = omp_get_max_threads();
+	self->params.min_keys_per_crypt *= omp_t;
+	omp_t *= OMP_SCALE;
+	fmt_mscash.params.max_keys_per_crypt *= omp_t;
 #endif
 
 	ms_buffer1x = mem_calloc_tiny(sizeof(ms_buffer1x[0]) * 16*fmt_mscash.params.max_keys_per_crypt, MEM_ALIGN_WORD);
