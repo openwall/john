@@ -73,7 +73,7 @@ john_register_one(&fmt_mscash2);
 
 #if defined (_OPENMP)
 #include <omp.h>
-#define OMP_LOOPS			1
+#define OMP_SCALE			8	// Tuned on Corei7 Quad-HT
 #endif
 
 #include "memdbg.h"
@@ -146,15 +146,16 @@ static unsigned char(*key);
 static unsigned int   new_key = 1;
 static unsigned char(*md4hash); // allows the md4 of user, and salt to be appended to it.  the md4 is ntlm, with the salt is DCC1
 static unsigned int (*crypt_out);
-static int omp_t = 1;
 
 static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
-	omp_t = OMP_LOOPS * omp_get_max_threads();
+	int omp_t = omp_get_max_threads();
 	if (omp_t < 1)
 		omp_t = 1;
-	self->params.max_keys_per_crypt = omp_t * MS_NUM_KEYS;
+	self->params.min_keys_per_crypt *= omp_t;
+	omp_t *= OMP_SCALE;
+	self->params.max_keys_per_crypt *= omp_t;
 #endif
 
 	key = mem_calloc_tiny(sizeof(*key)*(PLAINTEXT_LENGTH + 1)*self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
@@ -671,7 +672,7 @@ static void pbkdf2(unsigned int _key[]) // key is also 'final' digest.
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
-	int i, t;
+	int i, t, t1;
 	// Note, for a format like DCC2, there is little reason to optimize anything other
 	// than the pbkdf2 inner loop.  The one exception to that, is the NTLM can be done
 	// and known when to be done, only when the
@@ -699,10 +700,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	}
 
 #ifdef _OPENMP
-#pragma omp parallel for default(none) private(t, i) shared(omp_t, salt_buffer, salt_len, crypt_out, md4hash)
+#pragma omp parallel for default(none) private(t) shared(count, salt_buffer, salt_len, crypt_out, md4hash)
 #endif
-	for (t = 0; t < omp_t; t++)	{
+	for (t1 = 0; t1 < count; t1 += MS_NUM_KEYS)	{
 		MD4_CTX ctx;
+		int i;
+		t = t1 / MS_NUM_KEYS;
 		for (i = 0; i < MS_NUM_KEYS; ++i) {
 			// Get DCC1.  That is MD4( NTLM . unicode(lc username) )
 			MD4_Init(&ctx);
