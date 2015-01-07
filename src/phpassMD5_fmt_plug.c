@@ -77,8 +77,6 @@ static struct fmt_tests phpassmd5_tests[] = {
 	{"$P$8DkV/nqeaQNTdp4NvWjCkgN48AK69X.", "test12345"}, // 1024
 	{"$P$B12345678L6Lpt4BxNotVIMILOa9u81", "JohnRipper"}, // 8192 (WordPress)
 	{"$P$91234567xogA.H64Lkk8Cx8vlWBVzH0", "thisisalongertst"},
-	// repeat in the same format that is used in john.pot
-	{"$dynamic_17$ogA.H64Lkk8Cx8vlWBVzH0$91234567x", "thisisalongertst"},
 	{NULL}
 };
 
@@ -102,8 +100,24 @@ static char *Convert(char *Buf, char *ciphertext)
 
 static char *our_split(char *ciphertext, int index, struct fmt_main *self)
 {
-	get_ptr();
-	return  pDynamic_17->methods.split(Convert(Conv_Buf, ciphertext), index, self);
+	if (!strncmp(ciphertext, "$dynamic_17$", 11)) {
+		static char Buf[128], *cp;
+		strcpy(Buf, "$P$");
+		cp = strrchr(ciphertext, '$');
+		if (cp && strlen(cp) < 65 && strlen(cp) > 2) {
+			strcat(Buf, &cp[1]);
+			sprintf(&Buf[strlen(Buf)], "%22.22s", &ciphertext[12]);
+			return Buf;
+		}
+	}
+	// also, if '$H$', then convert that to '$P$' to normalize canonical.
+	if (!strncmp(ciphertext, "$H$", 3)) {
+		static char Buf[128];
+		strnzcpy(Buf, ciphertext, sizeof(Buf));
+		Buf[1] = 'P';
+		return Buf;
+	}
+	return ciphertext;
 }
 
 static int phpassmd5_valid(char *ciphertext, struct fmt_main *self)
