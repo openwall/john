@@ -75,7 +75,8 @@ typedef struct DYNAMIC_Constants_t
 #define MGF_FLD7                    (0x00400000|MGF_SALTED)
 #define MGF_FLD8                    (0x00800000|MGF_SALTED)
 #define MGF_FLD9                    (0x01000000|MGF_SALTED)
-#define MGF_INPBASE64a               0x02000000
+#define MGF_INPBASE64a               0x00000000 // no longer used.
+#define MGF_INPBASE64m               0x02000000 // mime format
 #define MGF_UTF8                     0x04000000
 #define MGF_PASSWORD_UPCASE          0x08000000
 #define MGF_PASSWORD_LOCASE          0x10000000
