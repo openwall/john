@@ -163,6 +163,18 @@ AS_IF([test "x$JTR_FLAG_CHECK_WORKS" = xyes],
    JTR_FLAG_CHECK([-finline-functions], 1)
    AC_SUBST([OPT_INLINE_FLAGS],["${CFLAGS_EX}"])
 
+   # if user requested  ASan, make sure we can properly build/link with it.
+if test "x$asan" = xyes ; then
+   CFLAGS_EX=""
+   LDFLAGS_BAK=${LDFLAGS}
+   LDFLAGS="-fsanitize=address $LDFLAGS"
+   JTR_FLAG_CHECK_LINK([-fsanitize=address], 1)
+   LDFLAGS=${LDFLAGS_BAK}
+   if test "x${CFLAGS_EX}" = x ; then
+      asan=no
+   fi
+fi
+
    # now fill out CFLAGS
    CFLAGS_EX=""
    JTR_FLAG_CHECK([-Wall], 1)

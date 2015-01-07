@@ -3387,6 +3387,15 @@ ac_config_headers="$ac_config_headers autoconfig.h"
 #          added to with each 'valid' command.
 
 
+# @synopsis JTR_FLAG_CHECK_LINK [compiler flags]
+# @summary check whether compiler supports given
+#          C flags or not. The var CFLAGS_EX is
+#          added to with each 'valid' command.
+#          This macro adds linkage, since some
+#          functions will compile, but fail at
+#          link time (-faddress_sanitize is one)
+
+
 # @synopsis SET_NORMAL_INCLUDES
 # @summary check and set many normal include paths
 # This might be a Bad Idea[tm] if cross compiling.
@@ -5691,6 +5700,64 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
    OPT_INLINE_FLAGS="${CFLAGS_EX}"
 
+
+   # if user requested  ASan, make sure we can properly build/link with it.
+if test "x$asan" = xyes ; then
+   CFLAGS_EX=""
+   LDFLAGS_BAK=${LDFLAGS}
+   LDFLAGS="-fsanitize=address $LDFLAGS"
+     if test "1" = 1; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -fsanitize=address" >&5
+$as_echo_n "checking if $CC supports -fsanitize=address... " >&6; }
+fi
+  ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+  ac_saved_cflags="$CFLAGS"
+  CFLAGS="-Werror -fsanitize=address"
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  if test "1" = 1; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+fi
+      CFLAGS_EX="$CFLAGS_EX -fsanitize=address"
+
+else
+  if test "1" = 1; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+  CFLAGS="$ac_saved_cflags"
+  ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+
+   LDFLAGS=${LDFLAGS_BAK}
+   if test "x${CFLAGS_EX}" = x ; then
+      asan=no
+   fi
+fi
 
    # now fill out CFLAGS
    CFLAGS_EX=""

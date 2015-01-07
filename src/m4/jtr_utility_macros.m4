@@ -47,6 +47,28 @@ AC_DEFUN([JTR_FLAG_CHECK],
   AC_LANG_POP([C])
 ])
 
+# @synopsis JTR_FLAG_CHECK_LINK [compiler flags]
+# @summary check whether compiler supports given
+#          C flags or not. The var CFLAGS_EX is
+#          added to with each 'valid' command.
+#          This macro adds linkage, since some
+#          functions will compile, but fail at
+#          link time (-faddress_sanitize is one)
+AC_DEFUN([JTR_FLAG_CHECK_LINK],
+[dnl
+  AS_IF([test "$2" = 1], [AC_MSG_CHECKING([if $CC supports $1])])
+  AC_LANG_PUSH([C])
+  ac_saved_cflags="$CFLAGS"
+  CFLAGS="-Werror $1"
+  AC_LINK_IFELSE([AC_LANG_PROGRAM([])],
+    [AS_IF([test "$2" = 1], [AC_MSG_RESULT([yes])])]
+      [CFLAGS_EX="$CFLAGS_EX $1"]
+    ,[AS_IF([test "$2" = 1], [AC_MSG_RESULT([no])])]
+  )
+  CFLAGS="$ac_saved_cflags"
+  AC_LANG_POP([C])
+])
+
 # @synopsis SET_NORMAL_INCLUDES
 # @summary check and set many normal include paths
 # This might be a Bad Idea[tm] if cross compiling.
