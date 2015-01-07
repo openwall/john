@@ -100,7 +100,7 @@ static char *Convert(char *Buf, char *ciphertext)
 
 static char *our_split(char *ciphertext, int index, struct fmt_main *self)
 {
-	if (!strncmp(ciphertext, "$dynamic_17$", 11)) {
+	if (!strncmp(ciphertext, "$dynamic_17$", 12)) {
 		static char Buf[128], *cp;
 		strcpy(Buf, "$P$");
 		cp = strrchr(ciphertext, '$');
