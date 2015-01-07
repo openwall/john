@@ -79,8 +79,9 @@ static struct fmt_tests mediawiki_tests[] = {
 	{"$B$6$70b3e0907f028877ea47c16496d6df6d",        ""},
 	{"$B$761$3ae7c8e25addfd82544c0c0b1ca8f5e4",      "password"},
 	{"$B$23a0884a$99b4afc91cba24529a9c16ff20e56621", "artist"},
+
 	// repeat last hash in exactly the same form that is used in john.pot
-	{"$dynamic_9$99b4afc91cba24529a9c16ff20e56621$23a0884a-", "artist"},
+//	{"$dynamic_9$99b4afc91cba24529a9c16ff20e56621$23a0884a-", "artist"},
 	{NULL}
 };
 
@@ -117,14 +118,22 @@ static char *Convert(char *Buf, char *ciphertext)
 
 static char *our_split(char *ciphertext, int index, struct fmt_main *self)
 {
-	get_ptr();
-	return pDynamic_9->methods.split(Convert(Conv_Buf, ciphertext), index, self);
-}
+	//get_ptr();
+	//return pDynamic_9->methods.split(Convert(Conv_Buf, ciphertext), index, self);
 
-static char *our_prepare(char *split_fields[10], struct fmt_main *self)
-{
-	get_ptr();
-	return pDynamic_9->methods.prepare(split_fields, self);
+	// Ok, we now split out of dyna_9, back into $B$ type, but ONLY if last char of dyna_9 is a '-' char.
+	if (!strncmp(ciphertext, "$dynamic_9$", 11) && ciphertext[strlen(ciphertext)-1] == '-') {
+		static char Buf[128], *cp;
+		strcpy(Buf, "$B$");
+		cp = strrchr(ciphertext, '$');
+		if (cp && strlen(cp) < 65 && strlen(cp) > 2) {
+			strcat(Buf, &cp[1]);
+			Buf[strlen(Buf)-1] = '$';  // remove the '-' char, simply replace it with the '$'
+			sprintf(&Buf[strlen(Buf)], "%32.32s", &ciphertext[11]);
+			return Buf;
+		}
+	}
+	return ciphertext;
 }
 
 static int mediawiki_valid(char *ciphertext, struct fmt_main *self)
@@ -185,7 +194,7 @@ struct fmt_main fmt_mediawiki =
 		mediawiki_init,
 		fmt_default_done,
 		fmt_default_reset,
-		our_prepare,
+		fmt_default_prepare,
 		mediawiki_valid,
 		our_split
 	}
@@ -195,7 +204,7 @@ static void link_funcs() {
 	fmt_mediawiki.methods.salt   = our_salt;
 	fmt_mediawiki.methods.binary = our_binary;
 	fmt_mediawiki.methods.split = our_split;
-	fmt_mediawiki.methods.prepare = our_prepare;
+	fmt_mediawiki.methods.prepare = fmt_default_prepare;
 }
 
 static void mediawiki_init(struct fmt_main *self)
@@ -216,7 +225,7 @@ static void get_ptr() {
 		fmt_mediawiki.methods.salt   = our_salt;
 		fmt_mediawiki.methods.binary = our_binary;
 		fmt_mediawiki.methods.split = our_split;
-		fmt_mediawiki.methods.prepare = our_prepare;
+		fmt_mediawiki.methods.prepare = fmt_default_prepare;
 	}
 }
 
