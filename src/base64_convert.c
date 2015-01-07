@@ -953,11 +953,6 @@ int base64_convert(const void *from, b64_convert_type from_t, int from_len, void
 		}
 		case e_b64_crypt:	/* crypt encoding */
 		{
-			const char *cp = (const char*)from;
-			while (cp[from_len-1]=='.' && cp[from_len-2]=='.')
-				from_len--;
-			if (cp[from_len-1]=='.' && from_len%4 ==2)
-				from_len--;
 			switch(to_t) {
 				case e_b64_raw:		/* raw memory */
 				{
@@ -1000,11 +995,6 @@ int base64_convert(const void *from, b64_convert_type from_t, int from_len, void
 		}
 		case e_b64_cryptBS:	/* crypt encoding, network order (used by WPA, cisco9, etc) */
 		{
-			const char *cp = (const char*)from;
-			while (cp[from_len-1]=='.' && cp[from_len-2]=='.')
-				from_len--;
-			if (cp[from_len-1]=='.' && from_len%4 != 2)
-				from_len--;
 			switch(to_t) {
 				case e_b64_raw:		/* raw memory */
 				{
