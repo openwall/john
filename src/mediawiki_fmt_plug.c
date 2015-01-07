@@ -79,9 +79,6 @@ static struct fmt_tests mediawiki_tests[] = {
 	{"$B$6$70b3e0907f028877ea47c16496d6df6d",        ""},
 	{"$B$761$3ae7c8e25addfd82544c0c0b1ca8f5e4",      "password"},
 	{"$B$23a0884a$99b4afc91cba24529a9c16ff20e56621", "artist"},
-
-	// repeat last hash in exactly the same form that is used in john.pot
-//	{"$dynamic_9$99b4afc91cba24529a9c16ff20e56621$23a0884a-", "artist"},
 	{NULL}
 };
 
@@ -118,10 +115,7 @@ static char *Convert(char *Buf, char *ciphertext)
 
 static char *our_split(char *ciphertext, int index, struct fmt_main *self)
 {
-	//get_ptr();
-	//return pDynamic_9->methods.split(Convert(Conv_Buf, ciphertext), index, self);
-
-	// Ok, we now split out of dyna_9, back into $B$ type, but ONLY if last char of dyna_9 is a '-' char.
+	// Convert from dyna_9 back into $B$ (only if last byte of salt is '-'
 	if (!strncmp(ciphertext, "$dynamic_9$", 11) && ciphertext[strlen(ciphertext)-1] == '-') {
 		static char Buf[128], *cp;
 		strcpy(Buf, "$B$");
