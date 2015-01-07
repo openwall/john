@@ -984,7 +984,7 @@ sub cisco8 {
 	$salt = get_salt(14,14,\@i64);
 	my $h = pp_pbkdf2($_[1],$salt,20000,"sha256",32,64);
 	my $s = base64_wpa($h);
-	print "u-cisco8:\$8\$$salt\$$s:$u:0:$_[0]::\n";
+	print "u$u-cisco8:\$8\$$salt\$$s:$u:0:$_[0]::\n";
 }
 sub cisco9 {
 	require Crypt::ScryptKDF;
@@ -992,7 +992,7 @@ sub cisco9 {
 	$salt = get_salt(14,14,\@i64);
 	my $h = scrypt_raw($_[1],$salt,16384,1,1,32);
 	my $s = base64_wpa($h);
-	print "u-cisco9:\$9\$$salt\$$s:$u:0:$_[0]::\n";
+	print "u$u-cisco9:\$9\$$salt\$$s:$u:0:$_[0]::\n";
 }
 sub dragonfly3_32 {
 	$salt = get_salt(-8, -8);
