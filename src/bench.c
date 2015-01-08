@@ -112,7 +112,7 @@ static void bench_install_handler(void)
 #endif
 }
 
-/* Mutes ASAN problems. We pass a buffer long enough for any use */
+/* Mutes ASan problems. We pass a buffer long enough for any use */
 #define fmt_set_key(key, index)	  \
 	{ \
 		static char buf_key[PLAINTEXT_BUFFER_SIZE]; \

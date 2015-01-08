@@ -907,7 +907,7 @@ BZ2 (gpg2john extra decompression logic) .... ${using_bz2}
 
 Development options (these may hurt performance when enabled):
 Memdbg memory debugging settings ............ ${memdbg_settings}
-AddressSanitizer ("ASAN") ................... ${asan}
+AddressSanitizer ("ASan") ................... ${asan}
 
 Install missing libraries to get any needed features that were omitted.
 
