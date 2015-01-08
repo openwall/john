@@ -1294,6 +1294,9 @@ next_rule:
 
 	if (ferror(word_file)) pexit("fgets");
 
+	if (max_pipe_words)  // pipe_input was already cleared.
+		MEM_FREE(words);
+
 	if (name) {
 		if (!event_abort)
 			progress = 100;
