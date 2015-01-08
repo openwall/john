@@ -1205,10 +1205,16 @@ process_word:
 							goto next_word;
 					}
 					line[length] = 0;
+
+					if (!strcmp(line, last))
+						goto next_word;
 				}
 
 				if ((word = apply(line, rule, -1, last))) {
-					last = word;
+					if (rules)
+						last = word;
+					else
+						strcpy(last, word);
 
 					if (options.mask) {
 						if (do_mask_crack(word)) {
