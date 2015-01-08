@@ -98,7 +98,11 @@ unsigned int rar_getbits(unpack_data_t *unpack_data)
 {
 	unsigned int bit_field;
 
-	//rar_dbgmsg("rar_getbits: in_addr=%d in_bit=%d\n", unpack_data->in_addr, unpack_data->in_bit);
+	//rar_dbgmsg("rar_getbits: in_addr=%d in_bit=%d read_top=%d\n", unpack_data->in_addr, unpack_data->in_bit, unpack_data->read_top);
+	if (unpack_data->in_addr + 2 > unpack_data->read_top) {
+		//printf ("%s() out of data: offset %u with %u in buffer\n", __FUNCTION__, unpack_data->in_addr + 2, unpack_data->read_top);
+		return 0;
+	}
 	bit_field = (unsigned int) unpack_data->in_buf[unpack_data->in_addr] << 16;
 	bit_field |= (unsigned int) unpack_data->in_buf[unpack_data->in_addr+1] << 8;
 	bit_field |= (unsigned int) unpack_data->in_buf[unpack_data->in_addr+2];
