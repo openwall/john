@@ -539,6 +539,10 @@ static int read_tables(const unsigned char **fd, unpack_data_t *unpack_data)
 				rar_addbits(unpack_data, 7);
 			}
 			while (n-- > 0 && i < table_size) {
+				if (!i) {
+					// rar_dbgmsg("ERROR: read_tables invalid table index\n");
+					return 0;
+				}
 				table[i] = table[i-1];
 				i++;
 			}
