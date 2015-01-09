@@ -165,9 +165,9 @@ static unsigned int get_cost(struct fmt_main *format, int index, int cost)
 	ciphertext = format->methods.split(
 		format->methods.prepare(fields, format), 0, format);
 	salt = format->methods.salt(ciphertext);
-	//dyna_salt_create(salt);
+	dyna_salt_create(salt);
 	value = format->methods.tunable_cost_value[cost](salt);
-	//dyna_salt_remove(salt);
+	dyna_salt_remove(salt);
 	return value;
 }
 #endif
@@ -198,6 +198,7 @@ char *benchmark_format(struct fmt_main *format, int salts,
 #if FMT_MAIN_VERSION > 11
 	unsigned int i, t_cost[2][FMT_TUNABLE_COSTS];
 
+	dyna_salt_init(format);
 	for (i = 0; i < FMT_TUNABLE_COSTS &&
 		     format->methods.tunable_cost_value[i] != NULL; i++)
 	{
