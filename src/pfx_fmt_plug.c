@@ -40,6 +40,7 @@ john_register_one(&fmt_pfx);
 #include "params.h"
 #include "misc.h"
 #include "memory.h"
+#include "dyna_salt.h"
 #include "memdbg.h"
 
 #define FORMAT_LABEL        "PFX"
@@ -49,9 +50,9 @@ john_register_one(&fmt_pfx);
 #define BENCHMARK_LENGTH    -1001
 #define PLAINTEXT_LENGTH    32
 #define BINARY_SIZE         0
-#define SALT_SIZE           sizeof(struct custom_salt)
+#define SALT_SIZE           sizeof(struct custom_salt*)
 #define BINARY_ALIGN	1
-#define SALT_ALIGN	sizeof(int)
+#define SALT_ALIGN	sizeof(struct custom_salt*)
 #define MIN_KEYS_PER_CRYPT  1
 #define MAX_KEYS_PER_CRYPT  1
 
@@ -63,8 +64,11 @@ static size_t cracked_size;
 // into hash, and with PKCS12 structure in 'off-limits' land.  OR replace
 // oSSL code with native code.
 static struct custom_salt {
-	int len;
+	dyna_salt dsalt;
 	PKCS12 pfx;
+	int len;
+	int hash_len;
+	char orig_hash[1]; // needed for salt. Otherwise the 'only' thing we had was the len value
 } *cur_salt;
 
 static struct fmt_tests pfx_tests[] = {
@@ -156,47 +160,58 @@ err:
 
 static void *get_salt(char *ciphertext)
 {
+	struct custom_salt *psalt;
+	static unsigned char *ptr;
 	char *decoded_data;
 	int i;
 	char *ctcopy = strdup(ciphertext);
 	char *keeptr = ctcopy;
 	char *p;
-	static struct custom_salt cs;
 	PKCS12 *p12 = NULL;
 	BIO *bp;
 
-	memset(&cs, 0, sizeof(cs));
+	if (!ptr) ptr = mem_alloc_tiny(sizeof(struct custom_salt*),sizeof(struct custom_salt*));
+	psalt = (struct custom_salt*)mem_calloc(sizeof(struct custom_salt) + strlen(ciphertext) + 1);
+	strcpy(psalt->orig_hash, ciphertext);
+	psalt->hash_len = strlen(ciphertext);
 	ctcopy += 6;	/* skip over "$pfx$*" */
 	p = strtok(ctcopy, "*");
-	cs.len = atoi(p);
-	decoded_data = (char *) mem_alloc(cs.len + 1);
+	psalt->len = atoi(p);
+	decoded_data = (char *) mem_alloc(psalt->len + 1);
 	p = strtok(NULL, "*");
-	for (i = 0; i < cs.len; i++)
+	for (i = 0; i < psalt->len; i++)
 		decoded_data[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16 +
 			atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	decoded_data[cs.len] = 0;
+	decoded_data[psalt->len] = 0;
 	/* load decoded data into OpenSSL structures */
 	bp = BIO_new(BIO_s_mem());
 	if (!bp) {
 		fprintf(stderr, "OpenSSL BIO allocation failure\n");
 		exit(-2);
 	}
-	BIO_write(bp, decoded_data, cs.len);
+	BIO_write(bp, decoded_data, psalt->len);
 	if(!(p12 = d2i_PKCS12_bio(bp, NULL))) {
 		perror("Unable to create PKCS12 object from bio\n");
 		exit(-3);
 	}
 	/* save custom_salt information */
-	memcpy(&cs.pfx, p12, sizeof(PKCS12));
+	memcpy(&(psalt->pfx), p12, sizeof(PKCS12));
 	BIO_free(bp);
 	MEM_FREE(decoded_data);
 	MEM_FREE(keeptr);
-	return (void *) &cs;
+
+	psalt->dsalt.salt_alloc_needs_free = 1;  // we used mem_calloc, so JtR CAN free our pointer when done with them.
+	// set the JtR core linkage stuff for this dyna_salt
+	psalt->dsalt.salt_cmp_offset = SALT_CMP_OFF(struct custom_salt, len);
+	psalt->dsalt.salt_cmp_size = SALT_CMP_SIZE(struct custom_salt, len, orig_hash, psalt->hash_len);
+
+	memcpy(ptr, &psalt, sizeof(struct custom_salt*));
+	return (void*)ptr;
 }
 
 static void set_salt(void *salt)
 {
-	cur_salt = (struct custom_salt *) salt;
+	cur_salt = *(struct custom_salt **) salt;
 }
 
 static void pfx_set_key(char *key, int index)
@@ -272,7 +287,7 @@ struct fmt_main fmt_pfx = {
 #if defined(_OPENMP) && OPENSSL_VERSION_NUMBER >= 0x10000000
 		FMT_OMP |
 #endif
-		FMT_CASE | FMT_8_BIT,
+		FMT_CASE | FMT_8_BIT | FMT_DYNA_SALT,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif
