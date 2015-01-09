@@ -51,7 +51,7 @@ john_register_one(&fmt_pkzip);
 #define BINARY_ALIGN			1
 
 #define SALT_SIZE			(sizeof(PKZ_SALT*))
-#define SALT_ALIGN			4
+#define SALT_ALIGN			(sizeof(PKZ_SALT*))
 
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		64
@@ -480,6 +480,12 @@ static void init(struct fmt_main *self)
 
 static void set_salt(void *_salt) {
 	salt = *((PKZ_SALT**)_salt);
+	if (salt->H[0].h && salt->H[1].h && salt->H[2].h)
+		return;
+	// we 'late' fixup the salt.
+	salt->H[0].h = &salt->zip_data[0];
+	salt->H[1].h = &salt->zip_data[1+salt->H[0].datlen];
+	salt->H[2].h = &salt->zip_data[2+salt->H[0].datlen+salt->H[1].datlen];
 }
 
 static void *get_salt(char *ciphertext)
@@ -490,17 +496,17 @@ static void *get_salt(char *ciphertext)
 		ARCH_WORD_32 a[1];
 	} a;
 	unsigned char *salt_p = a.c;
-	PKZ_SALT *salt;
+	PKZ_SALT *salt, *psalt;
 	long offset=0;
+	char *H[3] = {0,0,0};
+	long ex_len[3] = {0,0,0};
 	u32 offex;
 	int i, j;
 	u8 *p, *cp, *cpalloc = (unsigned char*)mem_alloc(strlen(ciphertext)+1);
 	int type2 = 0;
 
 	/* Needs word align on REQ_ALIGN systems.  May crash otherwise (in the sscanf) */
-	salt = mem_alloc_tiny(sizeof(PKZ_SALT), MEM_ALIGN_WORD);
-	memcpy(salt_p, &salt, sizeof(salt));
-	memset(salt, 0, sizeof(PKZ_SALT));
+	salt = mem_calloc(sizeof(PKZ_SALT));
 
 	cp = cpalloc;
 	strcpy((c8*)cp, ciphertext);
@@ -574,8 +580,9 @@ static void *get_salt(char *ciphertext)
 				fseek(fp, offset+offex, SEEK_SET);
 				if (salt->compLen < 16*1024) {
 					/* simply load the whole blob */
-					salt->H[i].h = mem_alloc_tiny(salt->compLen, MEM_ALIGN_WORD);
-					if (fread(salt->H[i].h, 1, salt->compLen, fp) != salt->compLen) {
+					ex_len[i] = salt->compLen;
+					H[i] = mem_alloc(salt->compLen);
+					if (fread(H[i], 1, salt->compLen, fp) != salt->compLen) {
 						fprintf (stderr, "Error reading zip file for pkzip data:  %s\n", cp);
 						fclose(fp);
 						MEM_FREE(cpalloc);
@@ -588,10 +595,11 @@ static void *get_salt(char *ciphertext)
 					/* Only load a small part (to be used in crypt_all), and set the filename in */
 					/* the salt->fname string, so that cmp_all can open the file, and buffered   */
 					/* read the zip data only when it 'needs' it.                                */
-					salt->fname = str_alloc_copy((c8*)cp);
+					strnzcpy(salt->fname, (const char *)cp, sizeof(salt->fname));
 					salt->offset = offset+offex;
-					salt->H[i].h = mem_alloc_tiny(384, MEM_ALIGN_WORD);
-					if (fread(salt->H[i].h, 1, 384, fp) != 384) {
+					ex_len[i] = 384;
+					H[i] = mem_alloc(384);
+					if (fread(H[i], 1, 384, fp) != 384) {
 						fprintf (stderr, "Error reading zip file for pkzip data:  %s\n", cp);
 						fclose(fp);
 						MEM_FREE(cpalloc);
@@ -601,9 +609,10 @@ static void *get_salt(char *ciphertext)
 					salt->H[i].datlen = 384;
 				}
 			} else {
-				salt->H[i].h = mem_alloc_tiny(salt->compLen, MEM_ALIGN_WORD);
+				ex_len[i] = salt->compLen;
+				H[i] = mem_alloc(salt->compLen);
 				for (j = 0; j < salt->H[i].datlen; ++j)
-					salt->H[i].h[j] = (atoi16[ARCH_INDEX(cp[j*2])]<<4) + atoi16[ARCH_INDEX(cp[j*2+1])];
+					H[i][j] = (atoi16[ARCH_INDEX(cp[j*2])]<<4) + atoi16[ARCH_INDEX(cp[j*2+1])];
 			}
 
 			/* we also load this into the 'building' salt */
@@ -613,9 +622,10 @@ static void *get_salt(char *ciphertext)
 			salt->H[i].full_zip = 1;
 			salt->full_zip_idx = i;
 		} else {
-			salt->H[i].h = mem_alloc_tiny(salt->H[i].datlen, MEM_ALIGN_WORD);
+			ex_len[i] = salt->H[i].datlen;
+			H[i] = mem_alloc(salt->H[i].datlen);
 			for (j = 0; j < salt->H[i].datlen; ++j)
-				salt->H[i].h[j] = (atoi16[ARCH_INDEX(cp[j*2])]<<4) + atoi16[ARCH_INDEX(cp[j*2+1])];
+				H[i][j] = (atoi16[ARCH_INDEX(cp[j*2])]<<4) + atoi16[ARCH_INDEX(cp[j*2+1])];
 		}
 	}
 
@@ -646,6 +656,23 @@ static void *get_salt(char *ciphertext)
 			salt->H[i].magic = 0;	// remove any 'magic' logic from this hash.
 	}
 
+	psalt = mem_calloc(sizeof(PKZ_SALT) + ex_len[0]+ex_len[1]+ex_len[2]+2);
+	memcpy(psalt, salt, sizeof(*salt));
+	MEM_FREE(salt);
+	memcpy(psalt->zip_data, H[0], ex_len[0]);
+	MEM_FREE(H[0]);
+	memcpy(psalt->zip_data+ex_len[0]+1, H[1], ex_len[1]);
+	MEM_FREE(H[1]);
+	memcpy(psalt->zip_data+ex_len[0]+ex_len[1]+2, H[2], ex_len[2]);
+	MEM_FREE(H[2]);
+
+	psalt->dsalt.salt_alloc_needs_free = 1;  // we used mem_calloc, so JtR CAN free our pointer when done with them.
+	// NOTE, we need some way to close the BIO and EVP crap!!
+
+	// set the JtR core linkage stuff for this dyna_salt
+	memcpy(salt_p, &psalt, sizeof(psalt));
+	psalt->dsalt.salt_cmp_offset = SALT_CMP_OFF(PKZ_SALT, cnt);
+	psalt->dsalt.salt_cmp_size = SALT_CMP_SIZE(PKZ_SALT, cnt, full_zip_idx, ex_len[0]+ex_len[1]+ex_len[2]+2);
 
 	return salt_p;
 }
@@ -855,7 +882,7 @@ static int cmp_exact(char *source, int index)
 	fprintf(stderr, "FULL zip test being done. (pass=%s)\n", saved_key[index]);
 #endif
 
-	if (salt->fname == NULL) {
+	if (salt->fname[0] == 0) {
 		/* we have the whole zip blob in memory, simply allocate a decrypt buffer, decrypt
 		 * in one step, crc and be done with it. This is the 'trivial' type. */
 
@@ -1633,7 +1660,7 @@ struct fmt_main fmt_pkzip = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_DYNA_SALT,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif

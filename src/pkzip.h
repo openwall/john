@@ -1,6 +1,8 @@
 #ifndef PKZIP_H
 #define PKZIP_H
 
+#include "dyna_salt.h"
+
 typedef unsigned short u16;
 typedef unsigned char u8;
 typedef          char c8;
@@ -29,7 +31,7 @@ typedef struct zip_magic_signatures_t {
 } ZIP_SIGS;
 #endif
 typedef struct zip_hash_type_t {
-	u8 *h;
+	u8 *h;						// at getsalt time, we leave these null.  Later in setsalt, we 'fix' them
 	u16 c;
 	u16 c2;
 	u32 datlen;
@@ -42,6 +44,15 @@ typedef struct zip_hash_type_t {
 } ZIP_HASH;
 
 typedef struct zip_salt_t {
+	dyna_salt dsalt;
+	int hLen[MAX_PKZ_FILES];
+	char fname[1024];			// if the zip is too large, we open the file in cmp_exact read the
+								// data a small buffer at a time.  If the zip blob is small enough
+								// (under 16k), then it simply read into H[x].h at init() time.
+								// and cmp_exact does not need fname to be used.
+	u32 offset;					// this is the offset to zip data (if we have to read from the file).
+	u32 full_zip_idx;			// the index (0, 1, 2) which contains the 'full zip' data.
+	// start of the dyna zip 'compared' data.
 	u32 cnt;					// number of hashes
 	u32 chk_bytes;				// number of bytes valid in checksum (1 or 2)
 	ZIP_HASH H[MAX_PKZ_FILES];
@@ -49,12 +60,8 @@ typedef struct zip_salt_t {
 	u32 compLen;				// length of compressed data (whether part or full)
 	u32 deCompLen;				// length of decompressed data (if full).
 	u32 compType;				// the type of compression  0 or 8
-	u32 full_zip_idx;			// the index (0, 1, 2) which contains the 'full zip' data.
-	char *fname;				// if the zip is too large, we open the file in cmp_exact read the
-								// data a small buffer at a time.  If the zip blob is small enough
-								// (under 16k), then it simply read into H[x].h at init() time.
-								// and cmp_exact does not need fname to be used.
-	u32 offset;					// this is the offset to zip data (if we have to read from the file).
+
+	u8  zip_data[1];			// we 'move' the H[x].h data to here.  Then we 'fix' it up when later setting the salt.
 } PKZ_SALT;
 
 typedef union MY_WORD {
