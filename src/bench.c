@@ -148,6 +148,26 @@ static void bench_set_keys(struct fmt_main *format,
 	}
 }
 
+#if FMT_MAIN_VERSION > 11
+static unsigned int get_cost(struct fmt_main *format, int index, int cost)
+{
+	void *salt;
+	int value;
+	char *ciphertext = format->params.tests[index].ciphertext;
+	char **fields = format->params.tests[index].fields;
+
+	if (!fields[1])
+		fields[1] = ciphertext;
+	ciphertext = format->methods.split(
+		format->methods.prepare(fields, format), 0, format);
+	salt = format->methods.salt(ciphertext);
+	//dyna_salt_create(salt);
+	value = format->methods.tunable_cost_value[cost](salt);
+	//dyna_salt_remove(salt);
+	return value;
+}
+#endif
+
 char *benchmark_format(struct fmt_main *format, int salts,
 	struct bench_results *results)
 {
@@ -174,6 +194,52 @@ char *benchmark_format(struct fmt_main *format, int salts,
 
 	clk_tck_init();
 
+#if FMT_MAIN_VERSION > 11
+	for (index = 0; index < FMT_TUNABLE_COSTS &&
+		     format->methods.tunable_cost_value[index] != NULL; index++)
+	{
+		if (options.loader.min_cost[index] > 0 ||
+		    options.loader.max_cost[index] < UINT_MAX) {
+			struct fmt_tests *ptest;
+			unsigned int cost;
+			int shifted, j, ntests = 0;
+
+			do {
+				shifted = 0;
+				if ((ciphertext =
+				     format->params.tests[0].ciphertext)) {
+					cost = get_cost(format, 0, index);
+
+					if (cost <
+					    options.loader.min_cost[index] ||
+					    cost >
+					    options.loader.max_cost[index]) {
+						shifted = 1;
+						format->params.tests++;
+					}
+				}
+			} while (shifted);
+
+			current = format->params.tests;
+			while ((current++)->ciphertext)
+				ntests++;
+
+			for (j = 1; j < ntests; j++) {
+				ciphertext = format->params.tests[j].ciphertext;
+				cost = get_cost(format, j, index);
+				if (cost < options.loader.min_cost[index] ||
+				    cost > options.loader.max_cost[index]) {
+					current = ptest =
+						&format->params.tests[j];
+					while (++current)
+						*ptest++ = *current;
+					memset(ptest, 0,
+					       sizeof(struct fmt_tests));
+				}
+			}
+		}
+	}
+#endif
 	if (!(current = format->params.tests)) return "FAILED (no data)";
 	if ((where = fmt_self_test(format))) {
 		sprintf(s_error, "FAILED (%s)\n", where);

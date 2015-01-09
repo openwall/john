@@ -225,7 +225,7 @@ static struct opt_entry opt_list[] = {
 #endif
 	{"skip-self-tests", FLG_NOTESTS, FLG_NOTESTS},
 #if FMT_MAIN_VERSION > 11
-	{"costs", FLG_ZERO, 0, FLG_PASSWD, OPT_REQ_PARAM,
+	{"costs", FLG_ZERO, 0, 0, OPT_REQ_PARAM,
                 OPT_FMT_STR_ALLOC, &costs_str},
 
 #endif

@@ -77,9 +77,9 @@ static struct fmt_tests tests[] = {
 	// ESSID was "Harkonen" - converted to hex 4861726b6f6e656e
 	{"$pbkdf2-hmac-sha1$4096$4861726b6f6e656e$ee51883793a6f68e9615fe73c80a3aa6f2dd0ea537bce627b929183cc6e57925", "12345678"},
 	// these get converted in prepare()
-	// http://pythonhosted.org/passlib/lib/passlib.hash.atlassian_pbkdf2_sha1.html
+	// http://pythonhosted.org/passlib/lib/passlib.hash.atlassian_pbkdf2_sha1.html, 10000 iterations
 	{"{PKCS5S2}DQIXJU038u4P7FdsuFTY/+35bm41kfjZa57UrdxHp2Mu3qF2uy+ooD+jF5t1tb8J", "password"},
-	// http://pythonhosted.org/passlib/lib/passlib.hash.cta_pbkdf2_sha1.html
+	// http://pythonhosted.org/passlib/lib/passlib.hash.cta_pbkdf2_sha1.html, 10000 iterations
 	{"$p5k2$2710$oX9ZZOcNgYoAsYL-8bqxKg==$AU2JLf2rNxWoZxWxRCluY0u6h6c=", "password" },
 	{NULL}
 };
