@@ -1,4 +1,4 @@
-/* 
+/*
  * Office 2007-2013 cracker patch for JtR, common code. 2014 by JimF
  * This file takes replicated but common code, shared between the CPU
  * office format, and the GPU office formats, and places it into one
@@ -138,7 +138,10 @@ unsigned int ms_office_common_iteration_count(void *salt)
 	 * the encrypted MS Office 2010/2013 document,
 	 * so it looks like that value can indeed vary.
 	 */
-	return (unsigned int) my_salt->spinCount;
+	if (my_salt->version == 2007)
+		return 50000;
+	else
+		return (unsigned int)my_salt->spinCount;
 }
 #endif
 
