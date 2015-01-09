@@ -56,6 +56,7 @@ typedef struct DYNAMIC_Constants_t
 #define MGF_USERNAME                (0x00000010|MGF_SALTED)
 #define MGF_USERNAME_UPCASE         (0x00000020|MGF_USERNAME)
 #define MGF_USERNAME_LOCASE         (0x00000040|MGF_USERNAME)
+// MGF_INPBASE64 uses e_b64_cryptBS from base64_convert.h
 #define MGF_INPBASE64		         0x00000080
 #define MGF_SALT_AS_HEX		        (0x00000100|MGF_SALTED)
 #define MGF_INPBASE64_4x6			 0x00000200
@@ -63,7 +64,8 @@ typedef struct DYNAMIC_Constants_t
 #define MGF_SALT_AS_HEX_TO_SALT2    (0x00000800|MGF_SALTED)
 #define MGF_SALT_UNICODE_B4_CRYPT   (0x00001000|MGF_SALTED)
 #define MGF_BASE_16_OUTPUT_UPCASE    0x00002000
-// open                              0x00004000
+// MGF_INPBASE64b uses e_b64_crypt from base64_convert.h
+#define MGF_INPBASE64b		         0x00004000
 #define MGF_FLDx_BIT                 0x00008000
 #define MGF_FLD0                    (0x00008000|MGF_SALTED)
 #define MGF_FLD1                    (0x00010000|MGF_SALTED)
@@ -76,7 +78,7 @@ typedef struct DYNAMIC_Constants_t
 #define MGF_FLD8                    (0x00800000|MGF_SALTED)
 #define MGF_FLD9                    (0x01000000|MGF_SALTED)
 #define MGF_INPBASE64a               0x00000000 // no longer used.
-#define MGF_INPBASE64m               0x02000000 // mime format
+#define MGF_INPBASE64m               0x02000000
 #define MGF_UTF8                     0x04000000
 #define MGF_PASSWORD_UPCASE          0x08000000
 #define MGF_PASSWORD_LOCASE          0x10000000

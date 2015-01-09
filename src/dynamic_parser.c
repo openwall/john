@@ -535,6 +535,7 @@ static Dynamic_Str_Flag_t Dynamic_Str_Flag[] =  {
 	{ "MGF_USERNAME_UPCASE",              MGF_USERNAME_UPCASE },
 	{ "MGF_USERNAME_LOCASE",              MGF_USERNAME_LOCASE },
 	{ "MGF_INPBASE64",                    MGF_INPBASE64 },
+	{ "MGF_INPBASE64b",                   MGF_INPBASE64b },
 	{ "MGF_INPBASE64m",                   MGF_INPBASE64m },
 	{ "MGF_INPBASE64a",                   MGF_INPBASE64a },
 	{ "MGF_SALT_AS_HEX",                  MGF_SALT_AS_HEX },

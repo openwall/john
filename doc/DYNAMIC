@@ -503,7 +503,23 @@ examples (this whole list is also found in dynamic.conf).
 #     flag.  Note, the base 64 'format' used is that of phpass.  If there
 #     are other orderings, then this will not work.  I know of no formats
 #     in use, other than phpass (phpbb, wordpress, etc) which use base-64
-#     for md5.
+#     for md5.  This is actually the same format as CryptBS in base64conv
+#     utility.  This has been improved now. It should work for any standard
+#     length hash (from 16 bytes up to 64 bytes).  The only part of the
+#     hash that is base-64 decoded is within the binary hash value itself.
+#     dynamic does not handle base-64 decoding within any part of the salt.
+#
+#  Flag=MGF_INPBASE64b
+#     This is like the MGF_INPBASE64 flag, BUT the encoding is in BE format
+#     crypt.  This is the same as Crypt encoding in base64conv utility
+#
+#  Flag=MGF_INPBASE64m
+#     This is like the MGF_INPBASE64 flag, BUT the encoding is in MIME.
+#     This is the same as MIME encoding in base64conv utility. NOTE, the
+#     hash can end with optional '=' place holding characters. These will
+#     be stripped off, in the prepare/split functions, to canonicalize the
+#     value of the hash to be NON-equal padded.  But an input file can have
+#     the '=' padding or not (or even mixed) and still process properly.
 #
 #  Flag=MGF_INPBASE64_4x6
 #     If this flag is set, then the input will be base-64, where 4 bytes are

@@ -399,11 +399,11 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 
 	cp = &ciphertext[strlen(pPriv->dynamic_WHICH_TYPE_SIG)];
 
-	if (pPriv->dynamic_base64_inout == 1 || pPriv->dynamic_base64_inout == 3)
+	if (pPriv->dynamic_base64_inout == 1 || pPriv->dynamic_base64_inout == 3 || pPriv->dynamic_base64_inout == 5)
 	{
 		// jgypwqm.JsMssPLiS8YQ00$BaaaaaSX
 		int len;
-		len = base64_valid_length(cp, pPriv->dynamic_base64_inout==1?e_b64_crypt:e_b64_mime, flg_Base64_MIME_TRAIL_EQ_CNT);
+		len = base64_valid_length(cp, pPriv->dynamic_base64_inout==3?e_b64_mime:e_b64_crypt, flg_Base64_MIME_TRAIL_EQ_CNT);
 		if (len < 20) return 0;
 		if (pPriv->dynamic_FIXED_SALT_SIZE == 0)
 			return !cp[len];
@@ -437,24 +437,13 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 			return 0;
 		else if (pPriv->dynamic_FIXED_SALT_SIZE < -1 && strlen(&cp[17]) > -(pPriv->dynamic_FIXED_SALT_SIZE))
 			return  0;
+		if (strlen(cp) < 16)
+			return 0;
 		return 1;
 	}
 
-	if (pPriv->dynamic_base64_inout == 1)
-	{
-		if (strlen(cp) < 22)
-			return 0;
-	}
-	else if (pPriv->dynamic_base64_inout == 2)
-	{
-		if (strlen(cp) < 16)
-			return 0;
-	}
-	else
-	{
-		if (strlen(cp) < 32)
-			return 0;
-	}
+	if (strlen(cp) < 32)
+		return 0;
 	cipherTextLen = CIPHERTEXT_LENGTH;
 	if (pPriv->dynamic_40_byte_input) {
 		cipherTextLen = 40;
@@ -868,6 +857,27 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 	if (!cpBuilding || strlen(cpBuilding) > 490)
 		return cpBuilding;
 
+	// mime. We want to strip off ALL trailing '=' characters to 'normalize' them
+	if (pPriv->dynamic_base64_inout == 3 && !strncmp(cpBuilding, "$dynamic_", 9))
+	{
+		static char ct[496];
+		int len;
+		char *cp = strchr(&cpBuilding[9], '$'), *cp2;
+
+		if (!cp) return cpBuilding;
+		++cp;
+		len = base64_valid_length(cp, e_b64_mime, flg_Base64_MIME_TRAIL_EQ_CNT);
+		if (len && cp[len-1] == '=') {
+			strnzcpy(ct, cpBuilding, cp-cpBuilding+len+1);
+			cp2 = &ct[strlen(ct)-1];
+			while (*cp2 == '=')
+				*cp2-- = 0;
+			if (cp[len])
+				strcat(cp2, &cp[len]);
+			cpBuilding = ct;
+		}
+	}
+
 	if (pFmt->params.salt_size && !strchr(split_fields[1], '$')) {
 		if (!pPriv->nUserName && !pPriv->FldMask && options.regen_lost_salts == 0)
 			return split_fields[1];
@@ -995,6 +1005,27 @@ static char *split(char *ciphertext, int index)
 
 	if (strlen(ciphertext) > 950)
 		return ciphertext;
+
+	// mime. We want to strip off ALL trailing '=' characters to 'normalize' them
+	if (pPriv->dynamic_base64_inout == 3 && !strncmp(ciphertext, "$dynamic_", 9))
+	{
+		static char ct[496];
+		int len;
+		char *cp = strchr(&ciphertext[9], '$'), *cp2;
+		if (cp) {
+			++cp;
+			len = base64_valid_length(cp, e_b64_mime, flg_Base64_MIME_TRAIL_EQ_CNT);
+			if (len && cp[len-1] == '=') {
+				strnzcpy(ct, ciphertext, cp-ciphertext+len+1);
+				cp2 = &ct[strlen(ct)-1];
+				while (*cp2 == '=')
+					*cp2-- = 0;
+				if (cp[len])
+					strcat(cp2, &cp[len]);
+				ciphertext = ct;
+			}
+		}
+	}
 
 	if (!strncmp(ciphertext, "$dynamic", 8)) {
 		if (strstr(ciphertext, "$HEX$"))
@@ -2366,6 +2397,7 @@ static char *source_64_hex(char *source, void *binary)
 /*********************************************************************************
  * Gets the binary value from a base-64 hash (such as phpass)
  *********************************************************************************/
+
 static void * binary_b64m(char *ciphertext)
 {
 	int i;
@@ -2399,6 +2431,25 @@ static void * binary_b64(char *ciphertext)
 	}
 	i = base64_valid_length(pos, e_b64_crypt, 0);
 	base64_convert(pos, e_b64_cryptBS, i, b, e_b64_raw, sizeof(b), 0);
+	//printf("\nciphertext=%s\n", ciphertext);
+	//dump_stuff_msg("binary", b, 16);
+	return b;
+}
+
+static void * binary_b64b(char *ciphertext)
+{
+	int i;
+	static unsigned char b[64+3];
+	char *pos;
+
+	pos = ciphertext;
+	if (!strncmp(pos, "$dynamic_", 9)) {
+		pos += 9;
+		while (*pos++ != '$')
+			;
+	}
+	i = base64_valid_length(pos, e_b64_crypt, 0);
+	base64_convert(pos, e_b64_crypt, i, b, e_b64_raw, sizeof(b), 0);
 	//printf("\nciphertext=%s\n", ciphertext);
 	//dump_stuff_msg("binary", b, 16);
 	return b;
@@ -6872,17 +6923,22 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 		curdat.ConstsLen[curdat.nConsts] = Setup->pConstants[curdat.nConsts].len;
 	}
 
-	if (Setup->flags & MGF_INPBASE64)
+	if ( (Setup->flags & MGF_INPBASE64) == MGF_INPBASE64)
 	{
 		curdat.dynamic_base64_inout = 1;
 		pFmt->methods.binary = binary_b64;
 	}
-	if (Setup->flags & MGF_INPBASE64m)
+	if ( (Setup->flags & MGF_INPBASE64m) == MGF_INPBASE64m)
 	{
 		curdat.dynamic_base64_inout = 3;
 		pFmt->methods.binary = binary_b64m;
 	}
-	if (Setup->flags & MGF_INPBASE64_4x6)
+	if ( (Setup->flags & MGF_INPBASE64b) == MGF_INPBASE64b)
+	{
+		curdat.dynamic_base64_inout = 5;
+		pFmt->methods.binary = binary_b64b;
+	}
+	if ( (Setup->flags & MGF_INPBASE64_4x6) == MGF_INPBASE64_4x6)
 	{
 		curdat.dynamic_base64_inout = 2;
 		pFmt->methods.binary = binary_b64_4x6;
@@ -6909,7 +6965,7 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 
 	}
 //	printf ("%.13s",Setup->szFORMAT_NAME);
-	if ( (Setup->flags & (MGF_INPBASE64|MGF_INPBASE64_4x6|MGF_INPBASE64a|MGF_INPBASE64m)) == 0)  {
+	if ( (Setup->flags & (MGF_INPBASE64|MGF_INPBASE64_4x6|MGF_INPBASE64a|MGF_INPBASE64m|MGF_INPBASE64b)) == 0)  {
 		pFmt->params.flags |= FMT_SPLIT_UNIFIES_CASE;
 //		printf ("  Setting FMT_SPLIT_UNIFIES_CASE");
 		if (pFmt->methods.split == split) {
