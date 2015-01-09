@@ -377,6 +377,7 @@ static void john_omp_maybe_adjust_or_fallback(char **argv)
 
 static void john_omp_show_info(void)
 {
+	if (options.verbosity > 2)
 #if HAVE_MPI
 	if (mpi_p == 1)
 #endif
@@ -468,7 +469,8 @@ static void john_omp_show_info(void)
 	}
 
 	if (john_omp_threads_orig == 1)
-		if (john_main_process)
+	if (options.verbosity > 2)
+	if (john_main_process)
 		fputs("Warning: OpenMP is disabled; "
 		    "a non-OpenMP build may be faster\n", stderr);
 }

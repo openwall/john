@@ -12,11 +12,12 @@
 
 #include "common.h"
 #include "formats.h"
+#include "options.h"
 #include "memdbg.h"
 
 #define FORMAT_LABEL			"dummy"
 #define FORMAT_TAG			"$dummy$"
-#define FORMAT_TAG_LEN		7
+#define FORMAT_TAG_LEN			7
 #define FORMAT_NAME			""
 #define ALGORITHM_NAME			"N/A"
 
@@ -43,8 +44,8 @@ typedef struct {
 static struct fmt_tests tests[] = {
 	{"$dummy$64756d6d79", "dummy"},
 	{"$dummy$", ""},
-	{"$dummy$00", ""}, // note, NOT cannonical
-	{"$dummy$0064756d6d79", ""}, // note, NOT cannonical
+	{"$dummy$00", ""}, // note, NOT canonical
+	{"$dummy$0064756d6d79", ""}, // note, NOT canonical
 	{"$dummy$70617373776f7264", "password"},
 	{NULL}
 };
@@ -86,13 +87,15 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		 * password length, but otherwise would be valid.
 		 * Would one warning for each invalid hash be better?
 		 */
-		if (warned < 2 && ((q - p) >> 1) > MAX_PLAINTEXT_LENGTH) {
+		if (options.verbosity > 2 && warned < 2 &&
+		    ((q - p) >> 1) > MAX_PLAINTEXT_LENGTH) {
 			warned = 2;
 			fprintf(stderr,
 			        "dummy password length %d > max. supported lengh %d\n",
 				(int)((q - p) >> 1), MAX_PLAINTEXT_LENGTH);
 		}
-		else if (warned == 0 && ((q - p) >> 1) > PLAINTEXT_LENGTH) {
+		else if (options.verbosity > 2 && warned == 0 &&
+		         ((q - p) >> 1) > PLAINTEXT_LENGTH) {
 			warned = 1;
 			/*
 			 * Should a hint to recompile with adjusted PLAINTEXT_LENGTH
@@ -109,7 +112,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
-	// cannonical fix for any hash with embedded null.
+	// canonical fix for any hash with embedded null.
 	char *cp;
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return ciphertext;
