@@ -38,6 +38,7 @@ john_register_one(&fmt_ssh);
 #include "formats.h"
 #include "params.h"
 #include "misc.h"
+#include "dyna_salt.h"
 #include "memdbg.h"
 
 #define FORMAT_LABEL        "SSH"
@@ -47,9 +48,9 @@ john_register_one(&fmt_ssh);
 #define BENCHMARK_LENGTH    -1001
 #define PLAINTEXT_LENGTH    32
 #define BINARY_SIZE         0
-#define SALT_SIZE           sizeof(struct custom_salt)
+#define SALT_SIZE           sizeof(struct custom_salt*)
 #define BINARY_ALIGN		1
-#define SALT_ALIGN			sizeof(long)
+#define SALT_ALIGN			sizeof(struct custom_salt*)
 #define MIN_KEYS_PER_CRYPT  1
 #define MAX_KEYS_PER_CRYPT  1
 
@@ -58,6 +59,7 @@ static int any_cracked, *cracked;
 static size_t cracked_size;
 
 static struct custom_salt {
+	dyna_salt dsalt;
 	long len;
 	char data[4096];
 	EVP_CIPHER_INFO cipher;
@@ -236,6 +238,8 @@ int PEM_do_header_safe(EVP_CIPHER_INFO *cipher, unsigned char *data, long *plen,
 
 static void *get_salt(char *ciphertext)
 {
+	struct custom_salt *psalt;
+	static unsigned char *ptr;
 	int i, filelength;
 	char *decoded_data;
 	char *copy = strdup(ciphertext);
@@ -246,8 +250,8 @@ static void *get_salt(char *ciphertext)
 	EVP_CIPHER_INFO cipher;
 	EVP_PKEY pk;
 	long len;
-	static struct custom_salt cs;
 
+	if (!ptr) ptr = mem_alloc_tiny(sizeof(struct custom_salt*),sizeof(struct custom_salt*));
 	if (!copy || !encoded_data) {
 		fprintf(stderr, "BUG in parsing ciphertext, aborting!\n");
 		exit(-1);
@@ -304,11 +308,18 @@ static void *get_salt(char *ciphertext)
 #endif
 
 	/* save custom_salt information */
-	memset(&cs, 0, sizeof(cs));
-	memcpy(&cs.cipher, &cipher, sizeof(cipher));
-	memcpy(&cs.pk, &pk, sizeof(pk));
-	memcpy(cs.data, data, len);
-	cs.len = len;
+	psalt = (struct custom_salt*)mem_calloc(sizeof(struct custom_salt));
+	memset(psalt, 0, sizeof(*psalt));
+	memcpy(&(psalt->cipher), &cipher, sizeof(cipher));
+	memcpy(&(psalt->pk), &pk, sizeof(pk));
+	memcpy(psalt->data, data, len);
+	psalt->len = len;
+	psalt->dsalt.salt_alloc_needs_free = 1;  // we used mem_calloc, so JtR CAN free our pointer when done with them.
+	// NOTE, we need some way to close the BIO and EVP crap!!
+
+	// set the JtR core linkage stuff for this dyna_salt
+	psalt->dsalt.salt_cmp_offset = SALT_CMP_OFF(struct custom_salt, len);
+	psalt->dsalt.salt_cmp_size = SALT_CMP_SIZE(struct custom_salt, len, cipher, 0);
 
 	OPENSSL_free(nm);
 	OPENSSL_free(header);
@@ -316,13 +327,15 @@ static void *get_salt(char *ciphertext)
 	BIO_free(bp);
 	MEM_FREE(copy);
 	MEM_FREE(decoded_data);
-	return (void *) &cs;
+
+	memcpy(ptr, &psalt, sizeof(struct custom_salt*));
+	return (void*)ptr;
 }
 
 static void set_salt(void *salt)
 {
 	/* restore custom_salt back */
-	restored_custom_salt = (struct custom_salt *) salt;
+	restored_custom_salt = *((struct custom_salt **)salt);
 }
 
 static void ssh_set_key(char *key, int index)
@@ -431,7 +444,7 @@ struct fmt_main fmt_ssh = {
 #if defined(_OPENMP) && OPENSSL_VERSION_NUMBER >= 0x10000000
 		FMT_OMP |
 #endif
-		FMT_CASE | FMT_8_BIT,
+		FMT_CASE | FMT_8_BIT | FMT_DYNA_SALT,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif
