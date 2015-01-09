@@ -265,20 +265,24 @@ char *benchmark_format(struct fmt_main *format, int salts,
 	format->methods.set_salt(two_salts[0]);
 
 #if FMT_MAIN_VERSION > 11
-	cost_msg[0] = 0;
+	*cost_msg = 0;
 	for (i = 0; i < FMT_TUNABLE_COSTS &&
 		     format->methods.tunable_cost_value[i] != NULL; i++) {
 		char msg[128];
 
 		if (t_cost[0][i] == t_cost[1][i])
-			sprintf(msg, "Tested only cost %d (%s) of %u\n", i + 1,
+			sprintf(msg, "cost %d (%s) of %u", i + 1,
 			        format->params.tunable_cost_name[i],
 			        t_cost[0][i]);
 		else
-			sprintf(msg, "Tested only cost %d (%s) of %u and %u\n",
+			sprintf(msg, "cost %d (%s) of %u and %u",
 			        i + 1, format->params.tunable_cost_name[i],
 			        t_cost[0][i], t_cost[1][i]);
 
+		if (i == 0)
+			sprintf(cost_msg, "Speed for ");
+		else
+			strcat(cost_msg, ", ");
 		strcat(cost_msg, msg);
 	}
 #endif
@@ -670,7 +674,8 @@ AGAIN:
 #endif
 
 #if FMT_MAIN_VERSION > 11
-		printf(cost_msg);
+		if (*cost_msg)
+			puts(cost_msg);
 #endif
 #ifdef HAVE_MPI
 		if (mpi_p > 1) {
