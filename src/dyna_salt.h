@@ -26,6 +26,9 @@
  * zip format for an example of how to properly use dyna_salt's.
  */
 
+#if !defined (_DYNA_SALT_H__)
+#define _DYNA_SALT_H__
+
 #include <stddef.h>
 #include "stdint.h"
 
@@ -82,3 +85,5 @@ void dyna_salt_remove_fp(void *a);
 /* These 2 used in self test code. Put here to hide the ugly details */
 void dyna_salt_smash(void *p, char c);
 int dyna_salt_smash_check(void *p, unsigned char c);
+
+#endif // _DYNA_SALT_H__
