@@ -200,43 +200,25 @@ char *benchmark_format(struct fmt_main *format, int salts,
 	{
 		if (options.loader.min_cost[index] > 0 ||
 		    options.loader.max_cost[index] < UINT_MAX) {
-			struct fmt_tests *ptest;
 			unsigned int cost;
-			int shifted, j, ntests = 0;
+			int i, ntests;
 
-			do {
-				shifted = 0;
-				if ((ciphertext =
-				     format->params.tests[0].ciphertext)) {
-					cost = get_cost(format, 0, index);
-
-					if (cost <
-					    options.loader.min_cost[index] ||
-					    cost >
-					    options.loader.max_cost[index]) {
-						shifted = 1;
-						format->params.tests++;
-					}
-				}
-			} while (shifted);
+			ntests = 0;
 
 			current = format->params.tests;
 			while ((current++)->ciphertext)
 				ntests++;
 
-			for (j = 1; j < ntests; j++) {
-				ciphertext = format->params.tests[j].ciphertext;
-				cost = get_cost(format, j, index);
-				if (cost < options.loader.min_cost[index] ||
-				    cost > options.loader.max_cost[index]) {
-					current = ptest =
-						&format->params.tests[j];
-					while (++current)
-						*ptest++ = *current;
-					memset(ptest, 0,
+			current = format->params.tests;
+			for (i = 0; i < ntests; i++) {
+				cost = get_cost(format, i, index);
+				if (cost >= options.loader.min_cost[index] &&
+				    cost <= options.loader.max_cost[index])
+					memcpy(current++,
+					       &format->params.tests[i],
 					       sizeof(struct fmt_tests));
-				}
 			}
+			memset(current, 0, sizeof(struct fmt_tests));
 		}
 	}
 #endif
