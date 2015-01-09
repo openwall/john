@@ -68,18 +68,18 @@
 
 /* PSK parameter entry */
 typedef struct {
-	unsigned char *skeyid_data;	/* Data for SKEYID calculation */
-	unsigned char *hash_r_data;	/* Data for HASH_R calculation */
-	unsigned char *hash_r;	/* HASH_R received from server */
-	char *hash_r_hex;	/* Server HASH_R as hex for display */
-	const char *hash_name;	/* Hash algo. name for display */
-	const char *nortel_user;	/* User for nortel cracking, or NULL */
+	unsigned char skeyid_data[MAXLEN];	/* Data for SKEYID calculation */
+	unsigned char hash_r_data[MAXLEN];	/* Data for HASH_R calculation (must hold SHA1 in hex) */
+	unsigned char hash_r[20];	/* HASH_R received from server */
+	char hash_r_hex[44];	/* Server HASH_R as hex for display */
+	char nortel_user[64];	/* User for nortel cracking, or NULL */
 	size_t skeyid_data_len;	/* Length of skeyid_data field */
 	size_t hash_r_data_len;	/* Length of hash_r_data field */
 	size_t hash_r_len;	/* Length of hash_r field */
 	int hash_type;		/* Hash algorithm used for hmac */
 	int isnortel;
 } psk_entry;
+
 
 /* Functions */
 
@@ -382,6 +382,7 @@ load_psk_params(const char *ciphertext, const char *nortel_user,
 		fprintf(stderr, "ERROR: Format error in PSK data file\n");
 		exit(-1);
 	}
+	memset(pe, 0, sizeof(*pe));
 /*
  *	Convert hex to binary representation, and construct SKEYID
  *	and HASH_R data.
@@ -439,19 +440,19 @@ load_psk_params(const char *ciphertext, const char *nortel_user,
 /*
  *	Store the PSK parameters in the current psk list entry.
  */
-	pe->skeyid_data = skeyid_data;
+	memcpy(pe->skeyid_data, skeyid_data, skeyid_data_len);
 	pe->skeyid_data_len = skeyid_data_len;
-	pe->hash_r_data = hash_r_data;
+	memcpy(pe->hash_r_data, hash_r_data, hash_r_data_len);
 	pe->hash_r_data_len = hash_r_data_len;
 	{
 		unsigned char *c = hex2data(hash_r_hex, &pe->hash_r_len);
-		pe->hash_r = mem_alloc_copy(c, pe->hash_r_len, MEM_ALIGN_WORD);
+		memcpy(pe->hash_r, c, pe->hash_r_len);
 		MEM_FREE(c);
 	}
 	hash_r_hex_len = strlen(hash_r_hex) + 1;	/* includes terminating null */
-	pe->hash_r_hex = mem_alloc_tiny(hash_r_hex_len, MEM_ALIGN_WORD);
 	strncpy(pe->hash_r_hex, hash_r_hex, hash_r_hex_len);
-	pe->nortel_user = nortel_user;
+	if (nortel_user)
+		strcpy(pe->nortel_user, nortel_user);
 /*
  *	Determine hash type based on the length of the hash, and
  *	store this in the current psk list entry.
@@ -499,9 +500,9 @@ static inline void compute_hash(const psk_entry * psk_params,
 /*
  *	Calculate SKEYID
  */
-	if (psk_params->nortel_user == NULL) {	/* RFC 2409 SKEYID calculation */
+	if (psk_params->nortel_user[0] == 0) {	/* RFC 2409 SKEYID calculation */
 		if (psk_params->hash_type == HASH_TYPE_MD5) {
-			hmac_md5(psk_params->skeyid_data,
+			hmac_md5((unsigned char*)psk_params->skeyid_data,
 			    psk_params->skeyid_data_len,
 			    (unsigned char *) password, password_len, skeyid);
 		} else {	/* SHA1 */
@@ -519,7 +520,7 @@ static inline void compute_hash(const psk_entry * psk_params,
 		    strlen(psk_params->nortel_user), nortel_pwd_hash,
 		    SHA1_HASH_LEN, nortel_psk);
 		if (psk_params->hash_type == HASH_TYPE_MD5) {
-			hmac_md5(psk_params->skeyid_data,
+			hmac_md5((unsigned char*)psk_params->skeyid_data,
 			    psk_params->skeyid_data_len, nortel_psk,
 			    SHA1_HASH_LEN, skeyid);
 		} else {	/* SHA1 */
@@ -532,7 +533,7 @@ static inline void compute_hash(const psk_entry * psk_params,
  *	Calculate HASH_R
  */
 	if (psk_params->hash_type == HASH_TYPE_MD5) {
-		hmac_md5(psk_params->hash_r_data, psk_params->hash_r_data_len,
+		hmac_md5((unsigned char*)psk_params->hash_r_data, psk_params->hash_r_data_len,
 		    skeyid, psk_params->hash_r_len, hash_r);
 	} else {		/* SHA1 */
 		hmac_sha1(psk_params->hash_r_data, psk_params->hash_r_data_len,

@@ -173,7 +173,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto error;
 	if (!(ptr = strtok(NULL, "*")))
 		goto error;
-	if (strlen(ptr) > MAXLEN)
+	if (strlen(ptr) != 32 && strlen(ptr) != 40) // md5 or sha1 length.
 		goto error;
 	if (!ishexlc(ptr))
 		goto error;
