@@ -45,7 +45,6 @@ typedef struct zip_hash_type_t {
 
 typedef struct zip_salt_t {
 	dyna_salt dsalt;
-	int hLen[MAX_PKZ_FILES];
 	char fname[1024];			// if the zip is too large, we open the file in cmp_exact read the
 								// data a small buffer at a time.  If the zip blob is small enough
 								// (under 16k), then it simply read into H[x].h at init() time.
