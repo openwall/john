@@ -316,7 +316,11 @@ static void check_realloc_words (db_entry_t *db_entry)
     {
       fprintf (stderr, "Out of memory!\n");
 
+#ifndef JTR_MODE
       exit (-1);
+#else
+      error();
+#endif
     }
 
     memset (&db_entry->words_buf[words_alloc], 0, ALLOC_NEW_WORDS * sizeof (word_t));
@@ -339,7 +343,11 @@ static void check_realloc_elems (db_entry_t *db_entry)
     {
       fprintf (stderr, "Out of memory!\n");
 
+#ifndef JTR_MODE
       exit (-1);
+#else
+      error();
+#endif
     }
 
     memset (&db_entry->elems_buf[elems_alloc], 0, ALLOC_NEW_ELEMS * sizeof (elem_t));
@@ -521,8 +529,11 @@ static void elem_gen_with_idx (elem_t *elem_buf, const int len1, const int elems
   elem_buf->cnt++;
 }
 #ifdef JTR_MODE
+
 static FILE *word_file = NULL;
 static double progress = -1;
+static mpf_t count;
+static mpf_t pos;
 
 static void save_state(FILE *file)
 {
@@ -541,6 +552,12 @@ static void fix_state(void)
 
 static double get_progress(void)
 {
+  mpf_t perc;
+
+  mpf_init(perc);
+  mpf_div(perc, pos, count);
+  progress = 100.0 * mpf_get_d(perc);
+
   return progress;
 }
 
@@ -564,9 +581,8 @@ int main (int argc, char *argv[])
   int     usage         = 0;
   int     keyspace      = 0;
 #else
-  mpf_t count;            mpf_init(count);
-  mpf_t pos;              mpf_init(pos);
-  mpf_t perc;             mpf_init(perc);
+  mpf_init_set_ui(count, 1);
+  mpf_init_set_ui(pos,   0);
 #endif
   int     pw_min        = PW_MIN;
   int     pw_max        = PW_MAX;
@@ -1008,7 +1024,7 @@ int main (int argc, char *argv[])
    */
 
 #ifdef JTR_MODE
-  log_event("Seek to some starting point");
+  log_event("Seek to starting point");
 #endif
   if (mpz_cmp_si (skip, 0))
   {
@@ -1139,8 +1155,6 @@ int main (int argc, char *argv[])
       out_flush (out);
 #else
       mpf_set_z(pos, total_ks_pos);
-      mpf_div(perc, pos, count);
-      progress = 100.0 * mpf_get_d(perc);
 #endif
 
       mpz_add (elem_buf->ks_pos, elem_buf->ks_pos, iter_max);
