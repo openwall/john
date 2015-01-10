@@ -80,8 +80,6 @@
 #include <unistd.h>
 #endif
 
-#include <errno.h>
-
 #include "arch.h"
 #include "jumbo.h"
 #include "misc.h"
@@ -564,8 +562,12 @@ int main (int argc, char *argv[])
 #ifndef JTR_MODE
   int     version       = 0;
   int     usage         = 0;
-#endif
   int     keyspace      = 0;
+#else
+  mpf_t count;            mpf_init(count);
+  mpf_t pos;              mpf_init(pos);
+  mpf_t perc;             mpf_init(perc);
+#endif
   int     pw_min        = PW_MIN;
   int     pw_max        = PW_MAX;
   int     elem_cnt_min  = ELEM_CNT_MIN;
@@ -803,17 +805,11 @@ int main (int argc, char *argv[])
       pexit(STR_MACRO(jtr_fopen)": %s", path_expand(filename));
     log_event("- Input file: %.100s", path_expand(filename));
 
-  /**
-   * load words from word_file
-   */
-
-#ifdef JTR_MODE
   log_event("Loading wordlist");
-#endif
+
   while (!feof (word_file))
   {
     char buf[BUFSIZ];
-
     char *input_buf = fgets (buf, sizeof (buf), word_file);
 #endif
 
@@ -953,18 +949,18 @@ int main (int argc, char *argv[])
     mpz_add_ui (total_words_cnt, total_words_cnt, words_cnt);
   }
 
+#ifndef JTR_MODE
   if (keyspace)
   {
     mpz_out_str (stdout, 10, total_ks_cnt);
 
     printf ("\n");
 
-#ifndef JTR_MODE
     return 0;
-#else
-    error();
-#endif
   }
+#else
+  mpf_set_z(count, total_ks_cnt);
+#endif
 
   /**
    * sort elems by ks
@@ -1141,6 +1137,10 @@ int main (int argc, char *argv[])
 
 #ifndef JTR_MODE
       out_flush (out);
+#else
+      mpf_set_z(pos, total_ks_pos);
+      mpf_div(perc, pos, count);
+      progress = 100.0 * mpf_get_d(perc);
 #endif
 
       mpz_add (elem_buf->ks_pos, elem_buf->ks_pos, iter_max);
