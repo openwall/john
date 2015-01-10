@@ -101,12 +101,13 @@
 #include "john.h"
 #include "memory.h"
 #include "unicode.h"
+#include "prince.h"
 #include "memdbg.h"
 
-#define _STR_VALUE(arg)			#arg
-#define STR_MACRO(n)			_STR_VALUE(n)
+#define _STR_VALUE(arg) #arg
+#define STR_MACRO(n)    _STR_VALUE(n)
 
-#define calloc(a, b)	mem_calloc((a) * (b))
+#define calloc(a, b)    mem_calloc((a) * (b))
 #endif
 
 #define IN_LEN_MIN      1
@@ -718,14 +719,35 @@ int main (int argc, char *argv[])
   pw_max = MIN(IN_LEN_MAX, db->format->params.plaintext_length);
 
   if (options.force_maxlength && options.force_maxlength < pw_max)
-	  pw_max = MIN(IN_LEN_MAX, options.force_maxlength);
+    pw_max = MIN(IN_LEN_MAX, options.force_maxlength);
+
+  if (prince_elem_cnt_min)
+    elem_cnt_min = prince_elem_cnt_min;
+  if (prince_elem_cnt_max)
+    elem_cnt_max = prince_elem_cnt_max;
+  wl_dist_len = prince_wl_dist_len;
+
+  if (elem_cnt_min > elem_cnt_max)
+  {
+    fprintf (stderr, "Error: --prince-elem-cnt-min (%d) must be smaller than or equal to\n--prince-elem-cnt-max (%d)\n", elem_cnt_min, elem_cnt_max);
+
+    error();
+  }
 
   /* If we did not give a name for wordlist mode,
      we use the "batch mode" one from john.conf */
   if (!filename)
   if (!(filename = cfg_get_param(SECTION_OPTIONS, NULL, "Wordlist")))
   if (!(filename = cfg_get_param(SECTION_OPTIONS, NULL, "Wordfile")))
-	  filename = options.wordlist = WORDLIST_NAME;
+    filename = options.wordlist = WORDLIST_NAME;
+
+  log_event("- Wordlist file: %.100s", path_expand(filename));
+  log_event("- Using candidates of length %d - %d", pw_min, pw_max);
+  log_event("- Using chains with %d - %d elements", elem_cnt_min, elem_cnt_max);
+  if (wl_dist_len)
+    log_event("- Calculating length distribution from wordlist");
+  else
+    log_event("- Using default length distribution");
 
   status_init(get_progress, 0);
 
@@ -778,15 +800,15 @@ int main (int argc, char *argv[])
     char *input_buf = fgets (buf, sizeof (buf), stdin);
 #else
     if (!(word_file = jtr_fopen(path_expand(filename), "rb")))
-	    pexit(STR_MACRO(jtr_fopen)": %s", path_expand(filename));
-    log_event("- input file: %.100s", path_expand(filename));
+      pexit(STR_MACRO(jtr_fopen)": %s", path_expand(filename));
+    log_event("- Input file: %.100s", path_expand(filename));
 
   /**
    * load words from word_file
    */
 
-#ifdef DEBUG
-  fprintf(stderr, "Loading words\n");
+#ifdef JTR_MODE
+  log_event("Loading wordlist");
 #endif
   while (!feof (word_file))
   {
@@ -822,8 +844,8 @@ int main (int argc, char *argv[])
    * init elems
    */
 
-#if defined(JTR_MODE) && defined(DEBUG)
-  fprintf(stderr, "Init elems\n");
+#ifdef JTR_MODE
+  log_event("Init elements");
 #endif
   for (int pw_len = pw_min; pw_len <= pw_max; pw_len++)
   {
@@ -874,8 +896,8 @@ int main (int argc, char *argv[])
    * calculate password candidate output length distribution
    */
 
-#if defined(JTR_MODE) && defined(DEBUG)
-  fprintf(stderr, "calculate password candidate output length distribution\n");
+#ifdef JTR_MODE
+  log_event("Calculate password candidate output length distribution");
 #endif
   if (wl_dist_len)
   {
@@ -905,8 +927,8 @@ int main (int argc, char *argv[])
    * Calculate keyspace stuff
    */
 
-#if defined(JTR_MODE) && defined(DEBUG)
-  fprintf(stderr, "Calculate keyspace stuff\n");
+#ifdef JTR_MODE
+  log_event("Calculate keyspace stuff");
 #endif
   for (int pw_len = pw_min; pw_len <= pw_max; pw_len++)
   {
@@ -940,7 +962,7 @@ int main (int argc, char *argv[])
 #ifndef JTR_MODE
     return 0;
 #else
-    return;
+    error();
 #endif
   }
 
@@ -948,8 +970,8 @@ int main (int argc, char *argv[])
    * sort elems by ks
    */
 
-#if defined(JTR_MODE) && defined(DEBUG)
-  fprintf(stderr, "sort elems by ks\n");
+#ifdef JTR_MODE
+  log_event("Sort elements by keyspace");
 #endif
   for (int pw_len = pw_min; pw_len <= pw_max; pw_len++)
   {
@@ -966,8 +988,8 @@ int main (int argc, char *argv[])
    * sort global order by pw length counts
    */
 
-#if defined(JTR_MODE) && defined(DEBUG)
-  fprintf(stderr, "sort elems by pw length counts\n");
+#ifdef JTR_MODE
+  log_event("Sort elements by password length counts");
 #endif
   for (int pw_len = pw_min, order_pos = 0; pw_len <= pw_max; pw_len++, order_pos++)
   {
@@ -989,8 +1011,8 @@ int main (int argc, char *argv[])
    * seek to some starting point
    */
 
-#if defined(JTR_MODE) && defined(DEBUG)
-  fprintf(stderr, "seek to some starting point\n");
+#ifdef JTR_MODE
+  log_event("Seek to some starting point");
 #endif
   if (mpz_cmp_si (skip, 0))
   {
@@ -1001,7 +1023,7 @@ int main (int argc, char *argv[])
 #ifndef JTR_MODE
       return (-1);
 #else
-      return;
+      error();
 #endif
     }
   }
@@ -1015,7 +1037,7 @@ int main (int argc, char *argv[])
 #ifndef JTR_MODE
       return (-1);
 #else
-      return;
+      error();
 #endif
     }
 
@@ -1032,7 +1054,7 @@ int main (int argc, char *argv[])
 #ifndef JTR_MODE
       return (-1);
 #else
-      return;
+      error();
 #endif
     }
 
@@ -1045,8 +1067,8 @@ int main (int argc, char *argv[])
    * loop
    */
 
-#if defined(JTR_MODE) && defined(DEBUG)
-  fprintf(stderr, "LOOP\n");
+#ifdef JTR_MODE
+  log_event("Starting candidate generation");
 #endif
 #ifndef JTR_MODE
   while (mpz_cmp (total_ks_pos, total_ks_cnt) < 0)
@@ -1110,7 +1132,7 @@ int main (int argc, char *argv[])
 #else
           if (ext_filter(pw_buf))
           if (crk_process_key(pw_buf))
-	    break;
+            break;
 #endif
         }
 
@@ -1138,8 +1160,8 @@ int main (int argc, char *argv[])
    * cleanup
    */
 
-#if defined(JTR_MODE) && defined(DEBUG)
-  fprintf(stderr, "Cleanup\n");
+#ifdef JTR_MODE
+  log_event("PRINCE done. Cleaning up.");
 #endif
   mpz_clear (iter_max);
   mpz_clear (ks_pos);

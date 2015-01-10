@@ -157,14 +157,15 @@
 /* Loops self-test forever */
 #define FLG_LOOPTEST			0x0002000000000000ULL
 /* Mask mode is stacked */
-#define FLG_MASK_STACKED                0x0004000000000000ULL
+#define FLG_MASK_STACKED		0x0004000000000000ULL
 /* Stacking modes */
 #define FLG_STACKING	\
 	(FLG_MASK_CHK | FLG_REGEX_CHK)
 /* PRINCE mode enabled, options.wordlist is set to the file name, or
  * we get it from john.conf */
-#define FLG_PRINCE_CHK		        0x0008000000000000ULL
-#define FLG_PRINCE_SET		        (FLG_PRINCE_CHK | FLG_CRACKING_SET)
+#define FLG_PRINCE_CHK			0x0008000000000000ULL
+#define FLG_PRINCE_SET			(FLG_PRINCE_CHK | FLG_CRACKING_SET)
+#define FLG_PRINCE_DIST			0x0010000000000000ULL
 
 /*
  * Structure with option flags and all the parameters.

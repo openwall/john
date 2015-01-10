@@ -58,6 +58,7 @@
 #ifdef HAVE_OPENCL
 #include "common-opencl.h"
 #endif
+#include "prince.h"
 #include "memdbg.h"
 
 struct options_main options;
@@ -78,7 +79,12 @@ static struct opt_entry opt_list[] = {
 		0, 0, OPT_FMT_STR_ALLOC, &options.wordlist},
 	{"prince", FLG_PRINCE_SET, FLG_CRACKING_CHK,
 		0, 0, OPT_FMT_STR_ALLOC, &options.wordlist},
-	/* -enc is an alias for -input-enc */
+	{"prince-elem-cnt-min", FLG_ZERO, 0, FLG_PRINCE_CHK,
+		OPT_REQ_PARAM, "%d", &prince_elem_cnt_min},
+	{"prince-elem-cnt-max", FLG_ZERO, 0, FLG_PRINCE_CHK,
+		OPT_REQ_PARAM, "%d", &prince_elem_cnt_max},
+	{"prince-wl-dist-len", FLG_PRINCE_DIST, 0, FLG_PRINCE_CHK, 0},
+	/* -enc is an alias for -input-enc for legacy reasons */
 	{"encoding", FLG_INPUT_ENC, FLG_INPUT_ENC,
 		0, 0, OPT_FMT_STR_ALLOC, &encoding_str},
 	{"input-encoding", FLG_INPUT_ENC, FLG_INPUT_ENC,
@@ -274,7 +280,7 @@ static struct opt_entry opt_list[] = {
 "                  --pipe  like --stdin, but bulk reads, and allows rules\n" \
 "--loopback[=FILE]         like --wordlist, but fetch words from a .pot file\n" \
 "--dupe-suppression        suppress all dupes in wordlist (and force preload)\n" \
-"--prince[=FILE]           prince mode, read words from FILE\n" \
+"--prince[=FILE]           PRINCE mode, read words from FILE\n" \
 "--encoding=NAME           input encoding (eg. UTF-8, ISO-8859-1). See also\n" \
 "                          doc/ENCODING and --list=hidden-options.\n" \
 "--rules[=SECTION]         enable word mangling rules for wordlist modes\n" \
@@ -436,6 +442,9 @@ void opt_print_hidden_usage(void)
 	puts("--force-vector-width=N    (OpenCL) force vector width N");
 	puts("--platform=N              set OpenCL platform (deprecated)");
 #endif
+	puts("--prince-elem-cnt-min=N   PRINCE, minimum number of elements per chain");
+	puts("--prince-elem-cnt-max=N   PRINCE, maximum number of elements per chain");
+	puts("--prince-wl-dist-len      PRINCE, calculate length distribution from wordlist");
 	puts("");
 }
 
@@ -472,6 +481,9 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 	options.length = -1;
 
 	opt_process(opt_list, &options.flags, argv);
+
+	if (options.flags & FLG_PRINCE_DIST)
+		prince_wl_dist_len = 1;
 
 	ext_flags = 0;
 	if (options.flags & FLG_EXTERNAL_CHK) {

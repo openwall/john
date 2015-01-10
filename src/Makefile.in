@@ -426,7 +426,7 @@ nonstd.o:	nonstd.c
 
 opencl_autotune.o:	opencl_autotune.c common-opencl.h memdbg.h
 
-options.o:	options.c os.h arch.h misc.h params.h memory.h list.h loader.h logger.h status.h recovery.h options.h bench.h external.h john.h dynamic.h unicode.h fake_salts.h regex.h john-mpi.h common-opencl.h memdbg.h john_build_rule.h
+options.o:	options.c os.h arch.h misc.h params.h memory.h list.h loader.h logger.h status.h recovery.h options.h bench.h external.h john.h dynamic.h unicode.h fake_salts.h regex.h john-mpi.h common-opencl.h prince.h memdbg.h john_build_rule.h
 
 para-best.o:	para-best.c math.h params.h common.h formats.h bench.h memdbg.h
 
