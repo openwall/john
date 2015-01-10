@@ -153,7 +153,7 @@ static void bench_set_keys(struct fmt_main *format,
 }
 
 #if FMT_MAIN_VERSION > 11
-static unsigned int get_cost(struct fmt_main *format, int index, int cost)
+static unsigned int get_cost(struct fmt_main *format, int index, int cost_idx)
 {
 	void *salt;
 	int value;
@@ -166,7 +166,7 @@ static unsigned int get_cost(struct fmt_main *format, int index, int cost)
 		format->methods.prepare(fields, format), 0, format);
 	salt = format->methods.salt(ciphertext);
 	dyna_salt_create(salt);
-	value = format->methods.tunable_cost_value[cost](salt);
+	value = format->methods.tunable_cost_value[cost_idx](salt);
 	dyna_salt_remove(salt);
 	return value;
 }
@@ -197,43 +197,61 @@ char *benchmark_format(struct fmt_main *format, int salts,
 	int index, max;
 #if FMT_MAIN_VERSION > 11
 	unsigned int i, t_cost[2][FMT_TUNABLE_COSTS];
-
-	dyna_salt_init(format);
-	for (i = 0; i < FMT_TUNABLE_COSTS &&
-		     format->methods.tunable_cost_value[i] != NULL; i++)
-	{
-		if (options.loader.min_cost[i] > 0 ||
-		    options.loader.max_cost[i] < UINT_MAX) {
-			unsigned int cost;
-			int ntests;
-
-			ntests = 0;
-
-			current = format->params.tests;
-			while ((current++)->ciphertext)
-				ntests++;
-
-			current = format->params.tests;
-			for (index = 0; index < ntests; index++) {
-				cost = get_cost(format, index, i);
-				if (cost >= options.loader.min_cost[i] &&
-				    cost <= options.loader.max_cost[i])
-					memcpy(current++,
-					       &format->params.tests[index],
-					       sizeof(struct fmt_tests));
-			}
-			memset(current, 0, sizeof(struct fmt_tests));
-		}
-	}
+	int ntests, pruned;
 #endif
 	clk_tck_init();
 
+	if (!(current = format->params.tests)) return "FAILED (no data)";
+
+#if FMT_MAIN_VERSION > 11
+	dyna_salt_init(format);
+
+	pruned = 0;
+	for (i = 0; i < FMT_TUNABLE_COSTS; i++)
+	if (options.loader.min_cost[i] > 0 ||
+	    options.loader.max_cost[i] < UINT_MAX) {
+		unsigned int cost;
+
+		if (format->methods.tunable_cost_value[i] == NULL) {
+			sprintf(s_error,
+			        "FAILED (cost %d not defined for format)\n", i);
+			return s_error;
+		}
+
+		ntests = 0;
+		current = format->params.tests;
+		while ((current++)->ciphertext)
+			ntests++;
+
+		current = format->params.tests;
+		for (index = 0; index < ntests; index++) {
+			cost = get_cost(format, index, i);
+			if (cost >= options.loader.min_cost[i] &&
+			    cost <= options.loader.max_cost[i])
+				memcpy(current++,
+				       &format->params.tests[index],
+				       sizeof(struct fmt_tests));
+			else
+				pruned++;
+		}
+		memset(current, 0, sizeof(struct fmt_tests));
+	}
+
+	if (pruned && !format->params.tests->ciphertext) {
+		sprintf(s_error, "FAILED (--cost pruned all %d test vectors)\n",
+		        pruned);
+		return s_error;
+	}
+#endif
 	if (!(current = format->params.tests)) return "FAILED (no data)";
 	if ((where = fmt_self_test(format))) {
 		sprintf(s_error, "FAILED (%s)\n", where);
 		return s_error;
 	}
-	if (!current->ciphertext && !current->plaintext)  return "FAILED (no data)";
+	if (!current->ciphertext)
+		return "FAILED (no ciphertext in test vector)";
+	if (!current->plaintext)
+		return "FAILED (no plaintext in test vector)";
 
 	if (format->params.binary_size > binary_size) {
 		binary_size = format->params.binary_size;
@@ -675,7 +693,8 @@ AGAIN:
 #endif
 
 #if FMT_MAIN_VERSION > 11
-		if (*cost_msg)
+		if (john_main_process && benchmark_time &&
+		    *cost_msg && options.verbosity >= 3)
 			puts(cost_msg);
 #endif
 #ifdef HAVE_MPI
