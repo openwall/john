@@ -31,6 +31,7 @@
 #include "unicode.h"
 #include "encoding_data.h"
 #include "memdbg.h"
+#include "mask_device.h"
 
 static parsed_ctx parsed_mask;
 static cpu_mask_context cpu_mask_ctx, rec_ctx;
@@ -1688,6 +1689,8 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 	        "init_cpu_mask()):\n%s\n", mask);
 #endif
 	init_cpu_mask(mask, &parsed_mask, &cpu_mask_ctx, db);
+
+	calc_combination(5);
 
 	/*
 	 * Warning: NULL to be replaced by an array containing information
