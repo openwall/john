@@ -79,7 +79,7 @@ sub parse
 
 sub sort_benchmarks
 {
-	my $_;
+	local $_;
 	$_ = "$a";
 	($name_a, $number_a, $benchmark_a) = /^(.*[^\d])(\d+):(.*)$/;
 	if(!defined($number_a)) {
