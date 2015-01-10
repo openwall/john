@@ -161,6 +161,10 @@
 /* Stacking modes */
 #define FLG_STACKING	\
 	(FLG_MASK_CHK | FLG_REGEX_CHK)
+/* PRINCE mode enabled, options.wordlist is set to the file name, or
+ * we get it from john.conf */
+#define FLG_PRINCE_CHK		        0x0008000000000000ULL
+#define FLG_PRINCE_SET		        (FLG_PRINCE_CHK | FLG_CRACKING_SET)
 
 /*
  * Structure with option flags and all the parameters.

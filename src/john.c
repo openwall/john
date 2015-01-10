@@ -82,6 +82,7 @@ static int john_omp_threads_new;
 #include "charset.h"
 #include "single.h"
 #include "wordlist.h"
+#include "prince.h"
 #include "inc.h"
 #include "mask.h"
 #include "mkv.h"
@@ -1365,6 +1366,9 @@ static void john_run(void)
 		if (options.flags & FLG_WORDLIST_CHK)
 			do_wordlist_crack(&database, options.wordlist,
 				(options.flags & FLG_RULES) != 0);
+		else
+		if (options.flags & FLG_PRINCE_CHK)
+			do_prince_crack(&database, options.wordlist);
 #if HAVE_REXGEN
 		else
 		if (options.flags & FLG_REGEX_CHK)

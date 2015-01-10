@@ -76,6 +76,8 @@ static struct opt_entry opt_list[] = {
 		0, 0, OPT_FMT_STR_ALLOC, &options.wordlist},
 	{"loopback", FLG_LOOPBACK_SET, FLG_CRACKING_CHK,
 		0, 0, OPT_FMT_STR_ALLOC, &options.wordlist},
+	{"prince", FLG_PRINCE_SET, FLG_CRACKING_CHK,
+		0, 0, OPT_FMT_STR_ALLOC, &options.wordlist},
 	/* -enc is an alias for -input-enc */
 	{"encoding", FLG_INPUT_ENC, FLG_INPUT_ENC,
 		0, 0, OPT_FMT_STR_ALLOC, &encoding_str},
@@ -272,6 +274,7 @@ static struct opt_entry opt_list[] = {
 "                  --pipe  like --stdin, but bulk reads, and allows rules\n" \
 "--loopback[=FILE]         like --wordlist, but fetch words from a .pot file\n" \
 "--dupe-suppression        suppress all dupes in wordlist (and force preload)\n" \
+"--prince[=FILE]           prince mode, read words from FILE\n" \
 "--encoding=NAME           input encoding (eg. UTF-8, ISO-8859-1). See also\n" \
 "                          doc/ENCODING and --list=hidden-options.\n" \
 "--rules[=SECTION]         enable word mangling rules for wordlist modes\n" \
