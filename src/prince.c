@@ -769,16 +769,6 @@ int main (int argc, char *argv[])
     log_event("- Calculating length distribution from wordlist");
   else
     log_event("- Using default length distribution");
-
-  status_init(get_progress, 0);
-
-  rec_restore_mode(restore_state);
-  rec_init(db, save_state);
-  mpz_add(skip, skip, rec_pos);
-
-  crk_init(db, fix_state, NULL);
-
-  mpz_set(limit, rec_pos);
 #endif
 
   /**
@@ -983,8 +973,6 @@ int main (int argc, char *argv[])
 
     return 0;
   }
-#else
-  mpf_set_z(count, total_ks_cnt);
 #endif
 
   /**
@@ -1010,6 +998,26 @@ int main (int argc, char *argv[])
    */
 
 #ifdef JTR_MODE
+  if (options.node_count) {
+    mpz_div_ui(limit, total_ks_cnt, options.node_count);
+    mpz_mul_ui(limit, limit, options.node_max);
+    mpz_div_ui(skip, total_ks_cnt, options.node_count);
+    mpz_mul_ui(skip, skip, options.node_min - 1);
+    mpz_sub(limit, limit, skip);
+    if (options.node_max == options.node_count)
+      mpz_sub(limit, total_ks_cnt, skip);
+    mpf_set_z(count, limit);
+  } else
+    mpf_set_z(count, total_ks_cnt);
+
+  status_init(get_progress, 0);
+
+  rec_restore_mode(restore_state);
+  rec_init(db, save_state);
+  mpz_set(total_ks_pos, rec_pos);
+
+  crk_init(db, fix_state, NULL);
+
   log_event("Sorting elements by password length counts");
 #endif
   for (int pw_len = pw_min, order_pos = 0; pw_len <= pw_max; pw_len++, order_pos++)
@@ -1159,6 +1167,7 @@ int main (int argc, char *argv[])
       out_flush (out);
 #else
       mpz_set(pos, total_ks_pos);
+      mpz_sub(pos, pos, skip);
 #endif
 
       mpz_add (elem_buf->ks_pos, elem_buf->ks_pos, iter_max);
@@ -1190,7 +1199,7 @@ int main (int argc, char *argv[])
   log_event("PRINCE done. Cleaning up.");
 
   if (!event_abort)
-    mpz_set(rec_pos, total_ks_cnt);
+    mpz_set(rec_pos, options.node_count ? limit : total_ks_cnt);
 #endif
   mpz_clear (iter_max);
   mpz_clear (ks_pos);
