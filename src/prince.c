@@ -533,29 +533,41 @@ static void elem_gen_with_idx (elem_t *elem_buf, const int len1, const int elems
 static FILE *word_file = NULL;
 static double progress = -1;
 static mpf_t count;
-static mpf_t pos;
+static mpz_t pos;
+static mpz_t rec_pos;
 
 static void save_state(FILE *file)
 {
-  //fprintf(file, "%d\n" LLd "\n" LLd "\n",
-  //        rec_rule, (long long)rec_pos, (long long)rec_line);
+  gmp_fprintf(file, "%Zd\n", rec_pos);
 }
 
 static int restore_state(FILE *file)
 {
-  return 0;
+  return !gmp_fscanf(file, "%Zd\n", rec_pos);
 }
 
 static void fix_state(void)
 {
+#if 0
+  gmp_fprintf(stderr, "***\np%Zd c%Zd c%Zd p%Zd s%Zd l%Zd\n",
+              ks_pos,
+              ks_cnt,
+              total_ks_cnt,
+              total_ks_pos,
+              skip,
+              limit);
+#endif
+  mpz_set(rec_pos, pos);
 }
 
 static double get_progress(void)
 {
-  mpf_t perc;
+  mpf_t fpos, perc;
 
-  mpf_init(perc);
-  mpf_div(perc, pos, count);
+  mpf_init(fpos); mpf_init(perc);
+
+  mpf_set_z(fpos, rec_pos);
+  mpf_div(perc, fpos, count);
   progress = 100.0 * mpf_get_d(perc);
 
   return progress;
@@ -582,7 +594,7 @@ int main (int argc, char *argv[])
   int     keyspace      = 0;
 #else
   mpf_init_set_ui(count, 1);
-  mpf_init_set_ui(pos,   0);
+  mpz_init_set_ui(pos,   0);
 #endif
   int     pw_min        = PW_MIN;
   int     pw_max        = PW_MAX;
@@ -771,8 +783,11 @@ int main (int argc, char *argv[])
 
   rec_restore_mode(restore_state);
   rec_init(db, save_state);
+  mpz_add(skip, skip, rec_pos);
 
   crk_init(db, fix_state, NULL);
+
+  mpz_set(limit, rec_pos);
 #endif
 
   /**
@@ -1154,7 +1169,7 @@ int main (int argc, char *argv[])
 #ifndef JTR_MODE
       out_flush (out);
 #else
-      mpf_set_z(pos, total_ks_pos);
+      mpz_set(pos, total_ks_pos);
 #endif
 
       mpz_add (elem_buf->ks_pos, elem_buf->ks_pos, iter_max);
