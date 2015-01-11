@@ -1087,6 +1087,8 @@ int main (int argc, char *argv[])
 
 #ifdef JTR_MODE
   log_event("Starting candidate generation");
+
+  int jtr_done = 0;
 #endif
   while (mpz_cmp (total_ks_pos, total_ks_cnt) < 0)
   {
@@ -1145,7 +1147,7 @@ int main (int argc, char *argv[])
           out_push (out, pw_buf, pw_len + 1);
 #else
           if (ext_filter(pw_buf))
-          if (crk_process_key(pw_buf))
+          if ((jtr_done = crk_process_key(pw_buf)))
             break;
 #endif
         }
@@ -1171,7 +1173,7 @@ int main (int argc, char *argv[])
       if (mpz_cmp (total_ks_pos, total_ks_cnt) == 0) break;
     }
 #ifdef JTR_MODE
-    if (event_abort)
+    if (jtr_done || event_abort)
       break;
 #endif
   }
