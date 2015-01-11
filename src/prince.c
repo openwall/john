@@ -973,6 +973,11 @@ int main (int argc, char *argv[])
 
     return 0;
   }
+#else
+  char l_msg[128];
+
+  gmp_snprintf(l_msg, sizeof(l_msg), "- Total keyspace %Zd\n", total_ks_cnt);
+  log_event(l_msg);
 #endif
 
   /**
@@ -998,16 +1003,9 @@ int main (int argc, char *argv[])
    */
 
 #ifdef JTR_MODE
-  if (options.node_count) {
-    mpz_div_ui(limit, total_ks_cnt, options.node_count);
-    mpz_mul_ui(limit, limit, options.node_max);
-    mpz_div_ui(skip, total_ks_cnt, options.node_count);
-    mpz_mul_ui(skip, skip, options.node_min - 1);
-    mpz_sub(limit, limit, skip);
-    if (options.node_max == options.node_count)
-      mpz_sub(limit, total_ks_cnt, skip);
+  if (mpz_cmp_si (limit, 0))
     mpf_set_z(count, limit);
-  } else
+  else
     mpf_set_z(count, total_ks_cnt);
 
   status_init(get_progress, 0);
@@ -1019,6 +1017,7 @@ int main (int argc, char *argv[])
   crk_init(db, fix_state, NULL);
 
   log_event("Sorting elements by password length counts");
+
 #endif
   for (int pw_len = pw_min, order_pos = 0; pw_len <= pw_max; pw_len++, order_pos++)
   {
@@ -1147,7 +1146,17 @@ int main (int argc, char *argv[])
       {
         mpz_add_ui (ks_pos, elem_buf->ks_pos, iter_pos_u64);
 
+#ifndef JTR_MODE
         if (mpz_cmp (total_ks_pos, skip) >= 0)
+#else
+        int for_node, node_skip = 0;
+        if (options.node_count) {
+          for_node = (int)mpz_tdiv_ui(total_ks_pos, options.node_count) + 1;
+           node_skip = for_node < options.node_min ||
+                       for_node > options.node_max;
+        }
+        if (!node_skip && mpz_cmp (total_ks_pos, skip) >= 0)
+#endif
         {
           elem_set_pwbuf (elem_buf, db_entries, ks_pos, pw_buf);
 
@@ -1198,8 +1207,12 @@ int main (int argc, char *argv[])
 #ifdef JTR_MODE
   log_event("PRINCE done. Cleaning up.");
 
-  if (!event_abort)
-    mpz_set(rec_pos, options.node_count ? limit : total_ks_cnt);
+  if (!event_abort) {
+    if (mpz_cmp_si (limit, 0))
+      mpz_set(rec_pos, limit);
+    else
+      mpz_set(rec_pos, total_ks_cnt);
+  }
 #endif
   mpz_clear (iter_max);
   mpz_clear (ks_pos);
