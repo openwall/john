@@ -8,9 +8,16 @@
  * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
-#ifndef _JOHN_MASK_DEVICE_H
-#define _JOHN_MASK_DEVICE_H
+#ifndef _JOHN_MASK_EXT_H
+#define _JOHN_MASK_EXT_H
 
-extern void calc_combination(int n);
+#include "mask.h"
+
+#define MASK_FMT_INT_PLHDR 		3
+
+extern void mask_calc_combination(cpu_mask_context *);
+extern int *mask_skip_ranges;
+extern int mask_max_skip_loc;
+extern int mask_int_cand_target;
 
 #endif

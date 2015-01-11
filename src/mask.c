@@ -31,7 +31,7 @@
 #include "unicode.h"
 #include "encoding_data.h"
 #include "memdbg.h"
-#include "mask_device.h"
+#include "mask_ext.h"
 
 static parsed_ctx parsed_mask;
 static cpu_mask_context cpu_mask_ctx, rec_ctx;
@@ -1022,6 +1022,11 @@ static void save_restore(cpu_mask_context *cpu_mask_ctx, int range_idx, int ch)
 static void truncate_mask(cpu_mask_context *cpu_mask_ctx, int range_idx)
 {
 	int i;
+	if (range_idx < mask_max_skip_loc && mask_max_skip_loc != -1) {
+		fprintf(stderr, "Format internal ranges cannot be truncated!\n");
+		fprintf(stderr, "Use a bigger key length or non-gpu format.\n");
+		error();
+	}
 
 	cpu_mask_ctx->ranges[range_idx].next = MAX_NUM_MASK_PLHDR;
 
@@ -1690,13 +1695,18 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 #endif
 	init_cpu_mask(mask, &parsed_mask, &cpu_mask_ctx, db);
 
-	calc_combination(5);
+	mask_calc_combination(&cpu_mask_ctx);
+
+	fprintf(stderr, "MASK_FMT_INT_PLHDRs:");
+	for (i = 0; i < MASK_FMT_INT_PLHDR && mask_skip_ranges; i++)
+	fprintf(stderr, "%d ", mask_skip_ranges[i]);
+	fprintf(stderr, "\n");
 
 	/*
 	 * Warning: NULL to be replaced by an array containing information
 	 * regarding GPU portion of mask.
 	 */
-	skip_position(&cpu_mask_ctx, NULL);
+	skip_position(&cpu_mask_ctx, mask_skip_ranges);
 
 	/* If running hybrid (stacked), we let the parent mode distribute */
 	if (options.node_count && !(options.flags & FLG_MASK_STACKED))
@@ -1725,6 +1735,8 @@ void mask_done()
 {
 	MEM_FREE(template_key);
 	MEM_FREE(template_key_offsets);
+	if (!mask_skip_ranges)
+		MEM_FREE(mask_skip_ranges);
 
 	if (!(options.flags & FLG_MASK_STACKED)) {
 		if (parsed_mask.parse_ok &&
