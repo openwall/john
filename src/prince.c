@@ -1003,16 +1003,13 @@ int main (int argc, char *argv[])
    */
 
 #ifdef JTR_MODE
-  if (mpz_cmp_si (limit, 0))
-    mpf_set_z(count, limit);
-  else
-    mpf_set_z(count, total_ks_cnt);
+  mpf_set_z(count, total_ks_cnt);
 
   status_init(get_progress, 0);
 
   rec_restore_mode(restore_state);
   rec_init(db, save_state);
-  mpz_set(total_ks_pos, rec_pos);
+  mpz_set(skip, rec_pos);
 
   crk_init(db, fix_state, NULL);
 
@@ -1207,12 +1204,8 @@ int main (int argc, char *argv[])
 #ifdef JTR_MODE
   log_event("PRINCE done. Cleaning up.");
 
-  if (!event_abort) {
-    if (mpz_cmp_si (limit, 0))
-      mpz_set(rec_pos, limit);
-    else
+  if (!event_abort)
       mpz_set(rec_pos, total_ks_cnt);
-  }
 #endif
   mpz_clear (iter_max);
   mpz_clear (ks_pos);
