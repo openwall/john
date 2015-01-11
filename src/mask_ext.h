@@ -13,11 +13,22 @@
 
 #include "mask.h"
 
-#define MASK_FMT_INT_PLHDR 		3
+#define MASK_FMT_INT_PLHDR 		4
+
+typedef struct {
+	char x[4];
+} mask_char4;
+
+typedef struct {
+	mask_char4 *int_cand;
+	cpu_mask_context *int_cpu_mask_ctx;
+	int num_int_cand;
+} mask_int_cand_ctx;
 
 extern void mask_calc_combination(cpu_mask_context *);
 extern int *mask_skip_ranges;
 extern int mask_max_skip_loc;
 extern int mask_int_cand_target;
+extern mask_int_cand_ctx mask_int_cand;
 
 #endif

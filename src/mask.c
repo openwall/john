@@ -1737,6 +1737,8 @@ void mask_done()
 	MEM_FREE(template_key_offsets);
 	if (!mask_skip_ranges)
 		MEM_FREE(mask_skip_ranges);
+	if (!mask_int_cand.int_cand)
+		MEM_FREE(mask_int_cand.int_cand);
 
 	if (!(options.flags & FLG_MASK_STACKED)) {
 		if (parsed_mask.parse_ok &&
