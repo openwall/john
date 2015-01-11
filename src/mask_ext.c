@@ -59,6 +59,10 @@ static void generate_int_keys(cpu_mask_context *ptr) {
 	for (i = 1; i < MASK_FMT_INT_PLHDR && mask_skip_ranges[i] != -1; i++)
 		repeat *= ptr->ranges[mask_skip_ranges[i]].count;
 	modulo = ptr->ranges[mask_skip_ranges[0]].count;
+
+	for (i = 0; i < mask_int_cand.num_int_cand; i++)
+		mask_int_cand.int_cand[i].i = 0;
+
 	fill_cand(0);
 
 	if (cond(1)) {

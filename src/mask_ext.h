@@ -15,8 +15,9 @@
 
 #define MASK_FMT_INT_PLHDR 		4
 
-typedef struct {
+typedef union {
 	char x[4];
+	int i;
 } mask_char4;
 
 typedef struct {
