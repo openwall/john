@@ -1762,7 +1762,8 @@ int do_mask_crack(const char *key)
 		restored_len = 0;
 
 		if (mask_cur_len == 0) {
-			if (crk_process_key(""))
+			char nullstring[PLAINTEXT_BUFFER_SIZE] = { 0 };
+			if (crk_process_key(nullstring))
 				return 1;
 			mask_cur_len++;
 		}
