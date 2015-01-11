@@ -58,7 +58,9 @@
 #ifdef HAVE_OPENCL
 #include "common-opencl.h"
 #endif
+#ifdef HAVE_LIBGMP
 #include "prince.h"
+#endif
 #include "memdbg.h"
 
 struct options_main options;
@@ -77,6 +79,7 @@ static struct opt_entry opt_list[] = {
 		0, 0, OPT_FMT_STR_ALLOC, &options.wordlist},
 	{"loopback", FLG_LOOPBACK_SET, FLG_CRACKING_CHK,
 		0, 0, OPT_FMT_STR_ALLOC, &options.wordlist},
+#ifdef HAVE_LIBGMP
 	{"prince", FLG_PRINCE_SET, FLG_CRACKING_CHK,
 		0, 0, OPT_FMT_STR_ALLOC, &options.wordlist},
 	{"prince-elem-cnt-min", FLG_ZERO, 0, FLG_PRINCE_CHK,
@@ -84,6 +87,7 @@ static struct opt_entry opt_list[] = {
 	{"prince-elem-cnt-max", FLG_ZERO, 0, FLG_PRINCE_CHK,
 		OPT_REQ_PARAM, "%d", &prince_elem_cnt_max},
 	{"prince-wl-dist-len", FLG_PRINCE_DIST, 0, FLG_PRINCE_CHK, 0},
+#endif
 	/* -enc is an alias for -input-enc for legacy reasons */
 	{"encoding", FLG_INPUT_ENC, FLG_INPUT_ENC,
 		0, 0, OPT_FMT_STR_ALLOC, &encoding_str},
@@ -269,7 +273,14 @@ static struct opt_entry opt_list[] = {
 #define JOHN_USAGE_REGEX ""
 #endif
 
-#define JOHN_USAGE \
+#ifdef HAVE_LIBGMP
+#define PRINCE_USAGE \
+	"--prince[=FILE]           PRINCE mode, read words from FILE\n"
+#else
+#define PRINCE_USAGE ""
+#endif
+
+#define JOHN_USAGE	  \
 "John the Ripper password cracker, version " JOHN_VERSION _MP_VERSION DEBUG_STRING " [" JOHN_BLD "]\n" \
 "Copyright (c) 1996-2014 by " JOHN_COPYRIGHT "\n" \
 "Homepage: http://www.openwall.com/john/\n" \
@@ -280,7 +291,7 @@ static struct opt_entry opt_list[] = {
 "                  --pipe  like --stdin, but bulk reads, and allows rules\n" \
 "--loopback[=FILE]         like --wordlist, but fetch words from a .pot file\n" \
 "--dupe-suppression        suppress all dupes in wordlist (and force preload)\n" \
-"--prince[=FILE]           PRINCE mode, read words from FILE\n" \
+PRINCE_USAGE \
 "--encoding=NAME           input encoding (eg. UTF-8, ISO-8859-1). See also\n" \
 "                          doc/ENCODING and --list=hidden-options.\n" \
 "--rules[=SECTION]         enable word mangling rules for wordlist modes\n" \
@@ -442,9 +453,11 @@ void opt_print_hidden_usage(void)
 	puts("--force-vector-width=N    (OpenCL) force vector width N");
 	puts("--platform=N              set OpenCL platform (deprecated)");
 #endif
+#ifdef HAVE_LIBGMP
 	puts("--prince-elem-cnt-min=N   PRINCE, minimum number of elements per chain");
 	puts("--prince-elem-cnt-max=N   PRINCE, maximum number of elements per chain");
 	puts("--prince-wl-dist-len      PRINCE, calculate length distribution from wordlist");
+#endif
 	puts("");
 }
 
@@ -482,9 +495,10 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 
 	opt_process(opt_list, &options.flags, argv);
 
+#ifdef HAVE_LIBGMP
 	if (options.flags & FLG_PRINCE_DIST)
 		prince_wl_dist_len = 1;
-
+#endif
 	ext_flags = 0;
 	if (options.flags & FLG_EXTERNAL_CHK) {
 		if (options.flags & (FLG_CRACKING_CHK | FLG_MAKECHR_CHK)) {
