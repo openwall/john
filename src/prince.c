@@ -531,7 +531,6 @@ static void elem_gen_with_idx (elem_t *elem_buf, const int len1, const int elems
 #ifdef JTR_MODE
 
 static FILE *word_file = NULL;
-static double progress = -1;
 static mpf_t count;
 static mpz_t pos;
 static mpz_t rec_pos;
@@ -548,20 +547,12 @@ static int restore_state(FILE *file)
 
 static void fix_state(void)
 {
-#if 0
-  gmp_fprintf(stderr, "***\np%Zd c%Zd c%Zd p%Zd s%Zd l%Zd\n",
-              ks_pos,
-              ks_cnt,
-              total_ks_cnt,
-              total_ks_pos,
-              skip,
-              limit);
-#endif
   mpz_set(rec_pos, pos);
 }
 
 static double get_progress(void)
 {
+  double progress;
   mpf_t fpos, perc;
 
   mpf_init(fpos); mpf_init(perc);
@@ -836,7 +827,7 @@ int main (int argc, char *argv[])
       pexit(STR_MACRO(jtr_fopen)": %s", path_expand(filename));
     log_event("- Input file: %.100s", path_expand(filename));
 
-  log_event("Loading wordlist");
+  log_event("Loading words");
 
   while (!feof (word_file))
   {
@@ -872,7 +863,7 @@ int main (int argc, char *argv[])
    */
 
 #ifdef JTR_MODE
-  log_event("Init elements");
+  log_event("Initializing elements");
 #endif
   for (int pw_len = pw_min; pw_len <= pw_max; pw_len++)
   {
@@ -923,11 +914,11 @@ int main (int argc, char *argv[])
    * calculate password candidate output length distribution
    */
 
-#ifdef JTR_MODE
-  log_event("Calculate password candidate output length distribution");
-#endif
   if (wl_dist_len)
   {
+#ifdef JTR_MODE
+  log_event("Calculating length distribution from wordlist file");
+#endif
     for (int pw_len = IN_LEN_MIN; pw_len <= IN_LEN_MAX; pw_len++)
     {
       db_entry_t *db_entry = &db_entries[pw_len];
@@ -937,6 +928,9 @@ int main (int argc, char *argv[])
   }
   else
   {
+#ifdef JTR_MODE
+  log_event("Using default length distribution");
+#endif
     for (int pw_len = IN_LEN_MIN; pw_len <= IN_LEN_MAX; pw_len++)
     {
       if (pw_len < DEF_WORDLEN_DIST_CNT)
@@ -955,7 +949,7 @@ int main (int argc, char *argv[])
    */
 
 #ifdef JTR_MODE
-  log_event("Calculate keyspace stuff");
+  log_event("Calculating keyspace");
 #endif
   for (int pw_len = pw_min; pw_len <= pw_max; pw_len++)
   {
@@ -998,7 +992,7 @@ int main (int argc, char *argv[])
    */
 
 #ifdef JTR_MODE
-  log_event("Sort elements by keyspace");
+  log_event("Sorting elements by keyspace");
 #endif
   for (int pw_len = pw_min; pw_len <= pw_max; pw_len++)
   {
@@ -1016,7 +1010,7 @@ int main (int argc, char *argv[])
    */
 
 #ifdef JTR_MODE
-  log_event("Sort elements by password length counts");
+  log_event("Sorting elements by password length counts");
 #endif
   for (int pw_len = pw_min, order_pos = 0; pw_len <= pw_max; pw_len++, order_pos++)
   {
@@ -1038,9 +1032,6 @@ int main (int argc, char *argv[])
    * seek to some starting point
    */
 
-#ifdef JTR_MODE
-  log_event("Seek to starting point");
-#endif
   if (mpz_cmp_si (skip, 0))
   {
     if (mpz_cmp (skip, total_ks_cnt) > 0)
@@ -1097,11 +1088,7 @@ int main (int argc, char *argv[])
 #ifdef JTR_MODE
   log_event("Starting candidate generation");
 #endif
-#ifndef JTR_MODE
   while (mpz_cmp (total_ks_pos, total_ks_cnt) < 0)
-#else
-  while (!event_abort && mpz_cmp (total_ks_pos, total_ks_cnt) < 0)
-#endif
   {
     for (int order_pos = 0; order_pos < order_cnt; order_pos++)
     {
@@ -1183,6 +1170,10 @@ int main (int argc, char *argv[])
 
       if (mpz_cmp (total_ks_pos, total_ks_cnt) == 0) break;
     }
+#ifdef JTR_MODE
+    if (event_abort)
+      break;
+#endif
   }
 
   /**
