@@ -47,7 +47,7 @@ static int omp_t = 1;
 
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
-#define PLAINTEXT_LENGTH	55
+#define PLAINTEXT_LENGTH	125
 #define REAL_BINARY_SIZE	8
 #define HEX_BINARY_SIZE     (REAL_BINARY_SIZE*2)
 #define BINARY_SIZE		64
