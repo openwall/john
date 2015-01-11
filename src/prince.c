@@ -1188,6 +1188,9 @@ int main (int argc, char *argv[])
 
 #ifdef JTR_MODE
   log_event("PRINCE done. Cleaning up.");
+
+  if (!event_abort)
+    mpz_set(rec_pos, total_ks_cnt);
 #endif
   mpz_clear (iter_max);
   mpz_clear (ks_pos);
