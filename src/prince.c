@@ -1171,6 +1171,10 @@ int main (int argc, char *argv[])
       }
 
       if (mpz_cmp (total_ks_pos, total_ks_cnt) == 0) break;
+#ifdef JTR_MODE
+      if (jtr_done || event_abort)
+        break;
+#endif
     }
 #ifdef JTR_MODE
     if (jtr_done || event_abort)
