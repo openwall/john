@@ -47,7 +47,7 @@ static int omp_t = 1;
 
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
-#define PLAINTEXT_LENGTH	125
+#define PLAINTEXT_LENGTH	55
 #define REAL_BINARY_SIZE	8
 #define HEX_BINARY_SIZE     (REAL_BINARY_SIZE*2)
 #define BINARY_SIZE		64
@@ -119,7 +119,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		return 0;
 
 	p += 2;
-	if (*p == '1' || *(p + 1) == '$') {
+	if (*p == '1' && *(p + 1) == '$') {
 		// handle salted variety
 		p += 2;
 		if (base64_valid_length(p, e_b64_hex, flg_Base64_NO_FLAGS) != HEX_BINARY_SIZE || p[HEX_BINARY_SIZE] != '$')
