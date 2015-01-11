@@ -1010,6 +1010,7 @@ int main (int argc, char *argv[])
   rec_restore_mode(restore_state);
   rec_init(db, save_state);
   mpz_set(skip, rec_pos);
+  mpz_set(pos, rec_pos);
 
   crk_init(db, fix_state, NULL);
 
@@ -1173,7 +1174,6 @@ int main (int argc, char *argv[])
       out_flush (out);
 #else
       mpz_set(pos, total_ks_pos);
-      mpz_sub(pos, pos, skip);
 #endif
 
       mpz_add (elem_buf->ks_pos, elem_buf->ks_pos, iter_max);
