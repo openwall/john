@@ -50,6 +50,9 @@ sub parse
 	}
 	return if /Benchmarking: .*\.\.\. FAILED/;
 
+	if (/^Speed for cost /) {
+		return;
+	}
 	my $ok = 0;
 	if (defined($name)) {
 		($kind, $real, $reals, $virtual, $virtuals) =
