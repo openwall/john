@@ -970,8 +970,8 @@ int main (int argc, char *argv[])
 #else
   char l_msg[128];
 
-  gmp_snprintf(l_msg, sizeof(l_msg), "- Total keyspace %Zd\n", total_ks_cnt);
-  log_event(l_msg);
+  gmp_snprintf(l_msg, sizeof(l_msg), "- Total keyspace %Zd", total_ks_cnt);
+  log_event("%s", l_msg);
 #endif
 
   /**
