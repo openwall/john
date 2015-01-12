@@ -978,7 +978,7 @@ distclean: clean
 	  || case "$(MFLAGS)" in *k*) fail=yes;; *) exit 1;; esac; \
 	done && test -z "$$fail"
 	$(RM) -f Makefile autoconfig.h config.status config.cache \
-			config.log autoconfig-stamp-h autoconfig-stamp-h-in stamp-h1
+		config.log autoconfig-stamp-h autoconfig-stamp-h-in stamp-h1
 	$(LN) Makefile.stub Makefile
 	$(RM) arch.h
 	$(RM) fmt_registers.h fmt_externs.h john_build_rule.h

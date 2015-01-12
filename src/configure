@@ -14782,7 +14782,7 @@ Generic crypt(3) format ..................... ${using_crypt}
 
 Optional libraries found:
 Rexgen (extra cracking mode) ................ ${using_rexgen}
-GMP (performance for SRP formats) ........... ${ac_cv_lib_gmp___gmpz_init}
+GMP (PRINCE mode and faster SRP formats) .... ${ac_cv_lib_gmp___gmpz_init}
 PCAP (vncpcap2john and SIPdump) ............. ${using_pcap}
 BZ2 (gpg2john extra decompression logic) .... ${using_bz2}
 
