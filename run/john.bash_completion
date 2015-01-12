@@ -381,8 +381,9 @@ _john()
 			return 0
 			;;
 		--wordlist=*|--mkv-stats=*|--prince=*)
+echo TEST
 			# as long as Markov stats files can have any name,
-			# I can just reuse the --wordlist= logig for --mkv-stats=*
+			# I can just reuse the --wordlist= logic for --mkv-stats=*
 			cur=${cur#*[=:]}
 			 __expand_tilde_by_ref cur 2>/dev/null
 			_filedir
