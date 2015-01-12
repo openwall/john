@@ -4,7 +4,7 @@
 #include "misc.h"
 #include "common.h"
 #include "memory.h"
-
+#include "formats.h"
 #include "pkzip.h"
 #include "memdbg.h"
 
