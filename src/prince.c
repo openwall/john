@@ -105,7 +105,7 @@
 #define _STR_VALUE(arg) #arg
 #define STR_MACRO(n)    _STR_VALUE(n)
 
-#define calloc(a, b)    mem_calloc((a) * (b))
+#define CALLOC(a, b)    mem_calloc((a) * (b))
 #endif
 
 #define IN_LEN_MIN      1
@@ -774,9 +774,9 @@ int main (int argc, char *argv[])
    * alloc some space
    */
 
-  db_entry_t *db_entries   = (db_entry_t *) calloc (IN_LEN_MAX + 1, sizeof (db_entry_t));
-  pw_order_t *pw_orders    = (pw_order_t *) calloc (IN_LEN_MAX + 1, sizeof (pw_order_t));
-  u64        *wordlen_dist = (u64 *)        calloc (IN_LEN_MAX + 1, sizeof (u64));
+  db_entry_t *db_entries   = (db_entry_t *) CALLOC (IN_LEN_MAX + 1, sizeof (db_entry_t));
+  pw_order_t *pw_orders    = (pw_order_t *) CALLOC (IN_LEN_MAX + 1, sizeof (pw_order_t));
+  u64        *wordlen_dist = (u64 *)        CALLOC (IN_LEN_MAX + 1, sizeof (u64));
 
 #ifndef JTR_MODE
   out_t *out = (out_t *) malloc (sizeof (out_t));
