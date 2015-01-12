@@ -380,7 +380,7 @@ _john()
 			done
 			return 0
 			;;
-		--wordlist=*|--mkv-stats=*)
+		--wordlist=*|--mkv-stats=*|--prince=*)
 			# as long as Markov stats files can have any name,
 			# I can just reuse the --wordlist= logig for --mkv-stats=*
 			cur=${cur#*[=:]}
