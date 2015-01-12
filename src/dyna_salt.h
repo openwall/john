@@ -60,6 +60,7 @@ typedef struct dyna_salt_john_core_t {
  * and loading. There are times where other functions
  * are called, where we do not have a format structure.
  */
+struct fmt_main;
 void dyna_salt_init(struct fmt_main *format);
 
 /*
