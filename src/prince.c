@@ -104,8 +104,6 @@
 
 #define _STR_VALUE(arg) #arg
 #define STR_MACRO(n)    _STR_VALUE(n)
-
-#define CALLOC(a, b)    mem_calloc((a) * (b))
 #endif
 
 #define IN_LEN_MIN      1
@@ -245,8 +243,8 @@ static const char *USAGE_BIG[] =
   "",
   "* Resources:",
   "",
-  "  -s,  --skip=NUM            Start at specific position",
-  "  -l,  --limit=NUM           Stop at specific position",
+  "  -s,  --skip=NUM            Skip NUM passwords from start (for distributed)",
+  "  -l,  --limit=NUM           Limit output to NUM passwords (for distributed)",
   "",
   "* Files:",
   "",
@@ -403,8 +401,8 @@ static void out_push (out_t *out, const char *pw_buf, const int pw_len)
     out_flush (out);
   }
 }
-#endif
 
+#endif
 static int sort_by_cnt (const void *p1, const void *p2)
 {
   const pw_order_t *o1 = (const pw_order_t *) p1;
@@ -464,7 +462,7 @@ static void elem_ks (const elem_t *elem_buf, const db_entry_t *db_entries, mpz_t
   const u8 *buf = elem_buf->buf;
   const int cnt = elem_buf->cnt;
 
-  mpz_init_set_si (ks_cnt, 1);
+  mpz_set_si (ks_cnt, 1);
 
   for (int idx = 0; idx < cnt; idx++)
   {
@@ -774,15 +772,19 @@ int main (int argc, char *argv[])
    * alloc some space
    */
 
-  db_entry_t *db_entries   = (db_entry_t *) CALLOC (IN_LEN_MAX + 1, sizeof (db_entry_t));
-  pw_order_t *pw_orders    = (pw_order_t *) CALLOC (IN_LEN_MAX + 1, sizeof (pw_order_t));
-  u64        *wordlen_dist = (u64 *)        CALLOC (IN_LEN_MAX + 1, sizeof (u64));
-
 #ifndef JTR_MODE
+  db_entry_t *db_entries   = (db_entry_t *) calloc (IN_LEN_MAX + 1, sizeof (db_entry_t));
+  pw_order_t *pw_orders    = (pw_order_t *) calloc (IN_LEN_MAX + 1, sizeof (pw_order_t));
+  u64        *wordlen_dist = (u64 *)        calloc (IN_LEN_MAX + 1, sizeof (u64));
+
   out_t *out = (out_t *) malloc (sizeof (out_t));
 
   out->fp  = stdout;
   out->len = 0;
+#else
+  db_entry_t *db_entries   = (db_entry_t *) mem_calloc ((IN_LEN_MAX + 1) * sizeof (db_entry_t));
+  pw_order_t *pw_orders    = (pw_order_t *) mem_calloc ((IN_LEN_MAX + 1) * sizeof (pw_order_t));
+  u64        *wordlen_dist = (u64 *)        mem_calloc ((IN_LEN_MAX + 1) * sizeof (u64));
 #endif
 
   /**
@@ -952,7 +954,7 @@ int main (int argc, char *argv[])
 
       elem_ks (elem_buf, db_entries, tmp);
 
-      mpz_add (elem_buf->ks_cnt, elem_buf->ks_cnt, tmp);
+      mpz_set (elem_buf->ks_cnt, tmp);
 
       mpz_add (total_ks_cnt, total_ks_cnt, tmp);
     }
@@ -1058,10 +1060,6 @@ int main (int argc, char *argv[])
 #endif
     }
 
-    mpz_t tmp;
-
-    mpz_init (tmp);
-
     mpz_add (tmp, skip, limit);
 
     if (mpz_cmp (tmp, total_ks_cnt) > 0)
@@ -1076,8 +1074,6 @@ int main (int argc, char *argv[])
     }
 
     mpz_set (total_ks_cnt, tmp);
-
-    mpz_clear (tmp);
   }
 
   /**
@@ -1107,76 +1103,80 @@ int main (int argc, char *argv[])
 
       db_entry_t *db_entry = &db_entries[pw_len];
 
-      const int elems_cnt = db_entry->elems_cnt;
-      const int elems_pos = db_entry->elems_pos;
-
-      if (elems_pos == elems_cnt) continue;
-
-      elem_t *elems_buf = db_entry->elems_buf;
-
-      elem_t *elem_buf = &elems_buf[elems_pos];
-
-      mpz_sub (iter_max, elem_buf->ks_cnt, elem_buf->ks_pos);
-
       const u64 words_cnt = wordlen_dist[pw_len];
 
-      if (mpz_cmp_ui (iter_max, words_cnt) > 0)
+      for (u64 words_pos = 0; words_pos < words_cnt; words_pos++)
       {
-        mpz_set_ui (iter_max, words_cnt);
-      }
+        const int elems_cnt = db_entry->elems_cnt;
+        const int elems_pos = db_entry->elems_pos;
 
-      mpz_sub (total_ks_left, total_ks_cnt, total_ks_pos);
+        if (elems_pos == elems_cnt) break;
 
-      if (mpz_cmp (total_ks_left, iter_max) < 0)
-      {
-        mpz_set (iter_max, total_ks_left);
-      }
+        elem_t *elems_buf = db_entry->elems_buf;
 
-      const u64 iter_max_u64 = mpz_get_ui (iter_max);
+        elem_t *elem_buf = &elems_buf[elems_pos];
 
-      for (u64 iter_pos_u64 = 0; iter_pos_u64 < iter_max_u64; iter_pos_u64++)
-      {
-        mpz_add_ui (tmp, elem_buf->ks_pos, iter_pos_u64);
+        mpz_sub (total_ks_left, total_ks_cnt, total_ks_pos);
 
-#ifndef JTR_MODE
-        if (mpz_cmp (total_ks_pos, skip) >= 0)
-#else
-        int for_node, node_skip = 0;
-        if (options.node_count) {
-          for_node = (int)mpz_tdiv_ui(total_ks_pos, options.node_count) + 1;
-           node_skip = for_node < options.node_min ||
-                       for_node > options.node_max;
-        }
-        if (!node_skip && mpz_cmp (total_ks_pos, skip) >= 0)
-#endif
+        mpz_sub (iter_max, elem_buf->ks_cnt, elem_buf->ks_pos);
+
+        if (mpz_cmp (total_ks_left, iter_max) < 0)
         {
-          elem_set_pwbuf (elem_buf, db_entries, tmp, pw_buf);
-
-#ifndef JTR_MODE
-          out_push (out, pw_buf, pw_len + 1);
-#else
-          if (ext_filter(pw_buf))
-          if ((jtr_done = crk_process_key(pw_buf)))
-            break;
-#endif
+          mpz_set (iter_max, total_ks_left);
         }
 
-        mpz_add_ui (total_ks_pos, total_ks_pos, 1);
-      }
+        const u64 iter_max_u64 = mpz_get_ui (iter_max);
+
+        mpz_add (tmp, total_ks_pos, iter_max);
+
+        if (mpz_cmp (tmp, skip) > 0)
+        {
+          mpz_set_si (tmp, 0);
+
+          if (mpz_cmp (total_ks_pos, skip) < 0)
+          {
+            mpz_sub (tmp, skip, total_ks_pos);
+          }
+
+          for (u64 iter_pos_u64 = mpz_get_ui (tmp); iter_pos_u64 < iter_max_u64; iter_pos_u64++)
+          {
+            mpz_add_ui (tmp, elem_buf->ks_pos, iter_pos_u64);
+
+            elem_set_pwbuf (elem_buf, db_entries, tmp, pw_buf);
 
 #ifndef JTR_MODE
-      out_flush (out);
+            out_push (out, pw_buf, pw_len + 1);
 #else
-      mpz_set(pos, total_ks_pos);
+            int for_node, node_skip = 0;
+            if (options.node_count) {
+              for_node = iter_pos_u64 % options.node_count + 1;
+              node_skip = for_node < options.node_min ||
+                          for_node > options.node_max;
+            }
+            if (!node_skip)
+            if (ext_filter(pw_buf))
+            if ((jtr_done = crk_process_key(pw_buf)))
+              break;
 #endif
+          }
+        }
 
-      mpz_add (elem_buf->ks_pos, elem_buf->ks_pos, iter_max);
+        mpz_add (total_ks_pos, total_ks_pos, iter_max);
 
-      if (mpz_cmp (elem_buf->ks_pos, elem_buf->ks_cnt) == 0)
-      {
-        mpz_set_si (elem_buf->ks_pos, 0);
+#ifdef JTR_MODE
+        mpz_set(pos, total_ks_pos);
 
-        db_entry->elems_pos++;
+        if (jtr_done || event_abort)
+          break;
+#endif
+        mpz_add (elem_buf->ks_pos, elem_buf->ks_pos, iter_max);
+
+        if (mpz_cmp (elem_buf->ks_pos, elem_buf->ks_cnt) == 0)
+        {
+          db_entry->elems_pos++;
+        }
+
+        if (mpz_cmp (total_ks_pos, total_ks_cnt) == 0) break;
       }
 
       if (mpz_cmp (total_ks_pos, total_ks_cnt) == 0) break;
@@ -1191,6 +1191,10 @@ int main (int argc, char *argv[])
 #endif
   }
 
+#ifndef JTR_MODE
+  out_flush (out);
+#endif
+
   /**
    * cleanup
    */
@@ -1200,9 +1204,6 @@ int main (int argc, char *argv[])
 
   if (!event_abort)
       mpz_set(rec_pos, total_ks_cnt);
-
-  mpf_clear(count);
-  mpz_clear(pos);
 #endif
   mpz_clear (iter_max);
   mpz_clear (total_ks_cnt);
@@ -1232,6 +1233,9 @@ int main (int argc, char *argv[])
 #else
   crk_done();
   rec_done(event_abort || (status.pass && db->salts));
+
+  mpf_clear(count);
+  mpz_clear(pos);
 #endif
 }
 
