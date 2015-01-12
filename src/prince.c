@@ -561,6 +561,8 @@ static double get_progress(void)
   mpf_div(perc, fpos, count);
   progress = 100.0 * mpf_get_d(perc);
 
+  mpf_clear(fpos); mpf_clear(perc);
+
   return progress;
 }
 
@@ -1199,6 +1201,9 @@ int main (int argc, char *argv[])
 
   if (!event_abort)
       mpz_set(rec_pos, total_ks_cnt);
+
+  mpf_clear(count);
+  mpz_clear(pos);
 #endif
   mpz_clear (iter_max);
   mpz_clear (total_ks_cnt);
