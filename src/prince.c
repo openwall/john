@@ -74,6 +74,10 @@
  */
 
 #ifdef JTR_MODE
+
+/* MUCH faster but worse node distribution for small files */
+#define WIDE_SKIP
+
 #include "os.h"
 
 #if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
@@ -532,6 +536,7 @@ static FILE *word_file = NULL;
 static mpf_t count;
 static mpz_t pos;
 static mpz_t rec_pos;
+static int rec_pos_destroyed;
 
 static void save_state(FILE *file)
 {
@@ -550,8 +555,11 @@ static void fix_state(void)
 
 static double get_progress(void)
 {
-  double progress;
+  static double progress;
   mpf_t fpos, perc;
+
+  if (rec_pos_destroyed)
+	  return progress;
 
   mpf_init(fpos); mpf_init(perc);
 
@@ -1129,6 +1137,17 @@ int main (int argc, char *argv[])
 
         mpz_add (tmp, total_ks_pos, iter_max);
 
+#ifdef JTR_MODE
+#ifdef WIDE_SKIP
+        int for_node, node_skip = 0;
+        if (options.node_count) {
+          for_node = words_pos % options.node_count + 1;
+          node_skip = for_node < options.node_min ||
+                      for_node > options.node_max;
+        }
+        if (!node_skip)
+#endif
+#endif
         if (mpz_cmp (tmp, skip) > 0)
         {
           mpz_set_si (tmp, 0);
@@ -1147,13 +1166,14 @@ int main (int argc, char *argv[])
 #ifndef JTR_MODE
             out_push (out, pw_buf, pw_len + 1);
 #else
-            int for_node, node_skip = 0;
+            //mpz_add_ui (pos, total_ks_pos, iter_pos_u64);
+#ifndef WIDE_SKIP
             if (options.node_count) {
-              for_node = iter_pos_u64 % options.node_count + 1;
-              node_skip = for_node < options.node_min ||
-                          for_node > options.node_max;
+              int for_node = iter_pos_u64 % options.node_count + 1;
+              if (for_node < options.node_min || for_node > options.node_max)
+                continue;
             }
-            if (!node_skip)
+#endif
             if (ext_filter(pw_buf))
             if ((jtr_done = crk_process_key(pw_buf)))
               break;
@@ -1236,6 +1256,8 @@ int main (int argc, char *argv[])
 
   mpf_clear(count);
   mpz_clear(pos);
+  rec_pos_destroyed = 1;
+  mpz_clear(rec_pos);
 #endif
 }
 
