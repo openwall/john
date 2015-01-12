@@ -172,6 +172,7 @@
 #define SECTION_INC			"Incremental:"
 #define SECTION_EXT			"List.External:"
 #define SECTION_MARKOV			"Markov:"
+#define SECTION_PRINCE			"PRINCE"
 #define SECTION_DISABLED		"Disabled:"
 #define SUBSECTION_FORMATS		"Formats"
 

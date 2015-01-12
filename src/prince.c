@@ -755,11 +755,10 @@ int main (int argc, char *argv[])
     error();
   }
 
-  /* If we did not give a name for wordlist mode,
-     we use the "batch mode" one from john.conf */
+  /* If we did not give a name for wordlist mode, we use one from john.conf */
   if (!filename)
+  if (!(filename = cfg_get_param(SECTION_PRINCE, NULL, "Wordlist")))
   if (!(filename = cfg_get_param(SECTION_OPTIONS, NULL, "Wordlist")))
-  if (!(filename = cfg_get_param(SECTION_OPTIONS, NULL, "Wordfile")))
     filename = options.wordlist = WORDLIST_NAME;
 
   log_event("- Wordlist file: %.100s", path_expand(filename));
