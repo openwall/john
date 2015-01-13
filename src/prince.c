@@ -118,7 +118,7 @@
 #define ELEM_CNT_MAX  8
 #define WL_DIST_LEN   0
 
-#define VERSION_BIN   17
+#define VERSION_BIN   19
 
 #define ALLOC_NEW_ELEMS  0x40000
 #define ALLOC_NEW_CHAINS 0x10
@@ -1091,6 +1091,7 @@ int main (int argc, char *argv[])
   log_event("Starting candidate generation");
 
   int jtr_done = 0;
+  int node_dist = 0;
 #endif
   while (mpz_cmp (total_ks_pos, total_ks_cnt) < 0)
   {
@@ -1110,9 +1111,11 @@ int main (int argc, char *argv[])
 
       db_entry_t *db_entry = &db_entries[pw_len];
 
-      const u64 elems_cnt = wordlen_dist[pw_len];
+      const u64 outs_cnt = wordlen_dist[pw_len];
 
-      for (u64 elems_pos = 0; elems_pos < elems_cnt; elems_pos++)
+      u64 outs_pos = 0;
+
+      while (outs_pos < outs_cnt)
       {
         const int chains_cnt = db_entry->chains_cnt;
         const int chains_pos = db_entry->chains_pos;
@@ -1132,6 +1135,15 @@ int main (int argc, char *argv[])
           mpz_set (iter_max, total_ks_left);
         }
 
+        const u64 outs_left = outs_cnt - outs_pos;
+
+        mpz_set_ui (tmp, outs_left);
+
+        if (mpz_cmp (tmp, iter_max) < 0)
+        {
+          mpz_set (iter_max, tmp);
+        }
+
         const u64 iter_max_u64 = mpz_get_ui (iter_max);
 
         mpz_add (tmp, total_ks_pos, iter_max);
@@ -1140,7 +1152,7 @@ int main (int argc, char *argv[])
 #ifdef WIDE_SKIP
         int for_node, node_skip = 0;
         if (options.node_count) {
-          for_node = elems_pos % options.node_count + 1;
+          for_node = node_dist++ % options.node_count + 1;
           node_skip = for_node < options.node_min ||
                       for_node > options.node_max;
         }
@@ -1183,6 +1195,8 @@ int main (int argc, char *argv[])
             iter_pos_u64++;
           }
         }
+
+        outs_pos += iter_max_u64;
 
         mpz_add (total_ks_pos, total_ks_pos, iter_max);
 
