@@ -29,12 +29,12 @@
 #if AC_BUILT
 #include "autoconfig.h"
 #else
-#ifdef __SIZEOF_INT128__
-#define HAVE___INT128 1
-#endif
 #define _GNU_SOURCE
 #define _FILE_OFFSET_BITS 64
 #define __USE_MINGW_ANSI_STDIO 1
+#ifdef __SIZEOF_INT128__
+#define HAVE___INT128 1
+#endif
 #endif
 
 #if HAVE_INT128 || HAVE___INT128 || HAVE___UINT128_T
@@ -65,7 +65,7 @@
 /**
  * Name........: princeprocessor (pp)
  * Description.: Standalone password candidate generator using the PRINCE algorithm
- * Version.....: 0.17
+ * Version.....: 0.19
  * Autor.......: Jens Steube <jens.steube@gmail.com>
  * License.....: MIT
  */
@@ -730,6 +730,13 @@ int main (int argc, char *argv[])
     return (-1);
   }
 
+  if (elem_cnt_max > pw_max)
+  {
+    fprintf (stderr, "Value of --elem-cnt-max (%d) must be smaller or equal than value of --pw-max (%d)\n", elem_cnt_max, pw_max);
+
+    return (-1);
+  }
+
   /**
    * OS specific settings
    */
@@ -1239,7 +1246,11 @@ int main (int argc, char *argv[])
   {
     db_entry_t *db_entry = &db_entries[pw_len];
 
-    if (db_entry->chains_buf) free (db_entry->chains_buf);
+    if (db_entry->chains_buf)
+    {
+      free (db_entry->chains_buf);
+    }
+
     if (db_entry->elems_buf)  free (db_entry->elems_buf);
   }
 
