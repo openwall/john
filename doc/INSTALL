@@ -124,9 +124,10 @@ usually not affected by this potential problem.
 
 For Yosemite, first apply src/unused/Yosemite.patch for fixing bugs in the
 system headers(!). If the patch does not apply, it was fixed already (perhaps
-by a system update that did not exist at the time of this writing).
+by a system update that did not exist at the time of this writing). From
+John's "src" directory:
 
-  $ sudo patch -N -p0 < unused/Yosemite.patch
+  $ sudo patch -b -N -p0 < unused/Yosemite.patch
 
 Using OS X, you can install Xcode (free) and then its "command line tools"
 and after that a normal build should work fine. However, using native
