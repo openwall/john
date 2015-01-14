@@ -533,7 +533,9 @@ static void chain_gen_with_idx (chain_t *chain_buf, const int len1, const int ch
   chain_buf->cnt++;
 }
 
-#ifdef JTR_MODE
+#ifndef JTR_MODE
+int main (int argc, char *argv[])
+#else
 static FILE *word_file = NULL;
 static mpf_t count;
 static mpz_t pos;
@@ -575,10 +577,11 @@ static double get_progress(void)
 }
 
 void do_prince_crack(struct db_main *db, char *filename)
-#else
-int main (int argc, char *argv[])
 #endif
 {
+  mpz_t pw_ks_pos[PW_MAX + 1];
+  mpz_t pw_ks_cnt[PW_MAX + 1];
+
   mpz_t iter_max;         mpz_init_set_si (iter_max,        0);
   mpz_t total_ks_cnt;     mpz_init_set_si (total_ks_cnt,    0);
   mpz_t total_ks_pos;     mpz_init_set_si (total_ks_pos,    0);
@@ -973,13 +976,22 @@ int main (int argc, char *argv[])
     int      chains_cnt = db_entry->chains_cnt;
     chain_t *chains_buf = db_entry->chains_buf;
 
+    mpz_set_si (tmp, 0);
+
     for (int chains_idx = 0; chains_idx < chains_cnt; chains_idx++)
     {
       chain_t *chain_buf = &chains_buf[chains_idx];
 
       chain_ks (chain_buf, db_entries, chain_buf->ks_cnt);
 
-      mpz_add (total_ks_cnt, total_ks_cnt, chain_buf->ks_cnt);
+      mpz_add (tmp, tmp, chain_buf->ks_cnt);
+    }
+
+    mpz_add (total_ks_cnt, total_ks_cnt, tmp);
+
+    if (mpz_cmp_si (skip, 0))
+    {
+      mpz_init_set (pw_ks_cnt[pw_len], tmp);
     }
   }
 
@@ -1097,6 +1109,111 @@ int main (int argc, char *argv[])
     }
 
     mpz_set (total_ks_cnt, tmp);
+  }
+
+  if (mpz_cmp_si (skip, 0))
+  {
+    mpz_t skip_left;  mpz_init_set (skip_left, skip);
+    mpz_t main_loops; mpz_init (main_loops);
+
+    u64 outs_per_main_loop = 0;
+
+    for (int pw_len = pw_min; pw_len <= pw_max; pw_len++)
+    {
+      mpz_init_set_si (pw_ks_pos[pw_len], 0);
+
+      outs_per_main_loop += wordlen_dist[pw_len];
+    }
+
+    /**
+     * find pw_ks_pos[]
+     */
+
+    while (1)
+    {
+      mpz_fdiv_q_ui (main_loops, skip_left, outs_per_main_loop);
+
+      if (mpz_cmp_si (main_loops, 0) == 0)
+      {
+        break;
+      }
+
+      // increment the main loop "main_loops" times
+
+      for (int pw_len = pw_min; pw_len <= pw_max; pw_len++)
+      {
+        if (mpz_cmp (pw_ks_pos[pw_len], pw_ks_cnt[pw_len]) < 0)
+        {
+          mpz_mul_ui (tmp, main_loops, wordlen_dist[pw_len]);
+
+          mpz_add (pw_ks_pos[pw_len], pw_ks_pos[pw_len], tmp);
+
+          mpz_sub (skip_left, skip_left, tmp);
+
+          if (mpz_cmp (pw_ks_pos[pw_len], pw_ks_cnt[pw_len]) > 0)
+          {
+            mpz_sub (tmp, pw_ks_pos[pw_len], pw_ks_cnt[pw_len]);
+
+            mpz_add (skip_left, skip_left, tmp);
+          }
+        }
+      }
+
+      outs_per_main_loop = 0;
+
+      for (int pw_len = pw_min; pw_len <= pw_max; pw_len++)
+      {
+        if (mpz_cmp (pw_ks_pos[pw_len], pw_ks_cnt[pw_len]) < 0)
+        {
+          outs_per_main_loop += wordlen_dist[pw_len];
+        }
+      }
+    }
+
+    mpz_sub (total_ks_pos, skip, skip_left);
+
+    /**
+     * set db_entries to pw_ks_pos[]
+     */
+
+    for (int pw_len = pw_min; pw_len <= pw_max; pw_len++)
+    {
+      db_entry_t *db_entry = &db_entries[pw_len];
+
+      int      chains_cnt = db_entry->chains_cnt;
+      chain_t *chains_buf = db_entry->chains_buf;
+
+      mpz_set (tmp, pw_ks_pos[pw_len]);
+
+      for (int chains_idx = 0; chains_idx < chains_cnt; chains_idx++)
+      {
+        chain_t *chain_buf = &chains_buf[chains_idx];
+
+        if (mpz_cmp (tmp, chain_buf->ks_cnt) < 0)
+        {
+          mpz_set (chain_buf->ks_pos, tmp);
+
+          break;
+        }
+
+        mpz_sub (tmp, tmp, chain_buf->ks_cnt);
+
+        db_entry->chains_pos++;
+      }
+    }
+
+    /**
+     * clean up
+     */
+
+    for (int pw_len = pw_min; pw_len <= pw_max; pw_len++)
+    {
+      mpz_clear (pw_ks_cnt[pw_len]);
+      mpz_clear (pw_ks_pos[pw_len]);
+    }
+
+    mpz_clear (skip_left);
+    mpz_clear (main_loops);
   }
 
   /**

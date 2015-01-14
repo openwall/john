@@ -542,7 +542,9 @@ static void chain_gen_with_idx (chain_t *chain_buf, const int len1, const int ch
   chain_buf->cnt++;
 }
 
-#ifdef JTR_MODE
+#ifndef JTR_MODE
+int main (int argc, char *argv[])
+#else
 static FILE *word_file;
 static u128 count = 1;
 static u128 pos;
@@ -575,10 +577,11 @@ static double get_progress(void)
 }
 
 void do_prince_crack(struct db_main *db, char *filename)
-#else
-int main (int argc, char *argv[])
 #endif
 {
+  u128 pw_ks_pos[PW_MAX + 1];
+  u128 pw_ks_cnt[PW_MAX + 1];
+
   u128 iter_max = 0;
   u128 total_ks_cnt = 0;
   u128 total_ks_pos = 0;
@@ -970,13 +973,22 @@ int main (int argc, char *argv[])
     int      chains_cnt = db_entry->chains_cnt;
     chain_t *chains_buf = db_entry->chains_buf;
 
+    tmp = 0;
+
     for (int chains_idx = 0; chains_idx < chains_cnt; chains_idx++)
     {
       chain_t *chain_buf = &chains_buf[chains_idx];
 
       chain_ks (chain_buf, db_entries, &chain_buf->ks_cnt);
 
-      total_ks_cnt += chain_buf->ks_cnt;
+      tmp += chain_buf->ks_cnt;
+    }
+
+    total_ks_cnt += tmp;
+
+    if (skip)
+    {
+      pw_ks_cnt[pw_len] = tmp;
     }
   }
 
@@ -1090,6 +1102,98 @@ int main (int argc, char *argv[])
     }
 
     total_ks_cnt = tmp;
+  }
+
+  if (skip)
+  {
+    u128 skip_left = skip;
+    u128 main_loops;
+
+    u64 outs_per_main_loop = 0;
+
+    for (int pw_len = pw_min; pw_len <= pw_max; pw_len++)
+    {
+      pw_ks_pos[pw_len] = 0;
+
+      outs_per_main_loop += wordlen_dist[pw_len];
+    }
+
+    /**
+     * find pw_ks_pos[]
+     */
+
+    while (1)
+    {
+      main_loops = skip_left / outs_per_main_loop;
+
+      if (main_loops == 0)
+      {
+        break;
+      }
+
+      // increment the main loop "main_loops" times
+
+      for (int pw_len = pw_min; pw_len <= pw_max; pw_len++)
+      {
+        if (pw_ks_pos[pw_len] < pw_ks_cnt[pw_len])
+        {
+          tmp = main_loops * wordlen_dist[pw_len];
+
+          pw_ks_pos[pw_len] += tmp;
+
+          skip_left -= tmp;
+
+          if (pw_ks_pos[pw_len] > pw_ks_cnt[pw_len])
+          {
+            tmp = pw_ks_pos[pw_len] - pw_ks_cnt[pw_len];
+
+            skip_left += tmp;
+          }
+        }
+      }
+
+      outs_per_main_loop = 0;
+
+      for (int pw_len = pw_min; pw_len <= pw_max; pw_len++)
+      {
+        if (pw_ks_pos[pw_len] < pw_ks_cnt[pw_len])
+        {
+          outs_per_main_loop += wordlen_dist[pw_len];
+        }
+      }
+    }
+
+    total_ks_pos = skip - skip_left;
+
+    /**
+     * set db_entries to pw_ks_pos[]
+     */
+
+    for (int pw_len = pw_min; pw_len <= pw_max; pw_len++)
+    {
+      db_entry_t *db_entry = &db_entries[pw_len];
+
+      int      chains_cnt = db_entry->chains_cnt;
+      chain_t *chains_buf = db_entry->chains_buf;
+
+      tmp = pw_ks_pos[pw_len];
+
+      for (int chains_idx = 0; chains_idx < chains_cnt; chains_idx++)
+      {
+        chain_t *chain_buf = &chains_buf[chains_idx];
+
+        if (tmp < chain_buf->ks_cnt)
+        {
+          chain_buf->ks_pos = tmp;
+
+          break;
+        }
+
+        tmp -= chain_buf->ks_cnt;
+
+        db_entry->chains_pos++;
+      }
+    }
   }
 
   /**
