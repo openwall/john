@@ -454,9 +454,10 @@ void opt_print_hidden_usage(void)
 	puts("--platform=N              set OpenCL platform (deprecated)");
 #endif
 #ifdef HAVE_LIBGMP
-	puts("--prince-elem-cnt-min=N   PRINCE, minimum number of elements per chain");
-	puts("--prince-elem-cnt-max=N   PRINCE, maximum number of elements per chain");
+	puts("--prince-elem-cnt-min=N   PRINCE, minimum number of elements per chain (1)");
+	puts("--prince-elem-cnt-max=N   PRINCE, maximum number of elements per chain (8)");
 	puts("--prince-wl-dist-len      PRINCE, calculate length distribution from wordlist");
+	puts("                          instead of using built-in table");
 #endif
 	puts("");
 }
