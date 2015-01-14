@@ -11431,6 +11431,33 @@ _ACEOF
 
 
 fi
+ac_fn_c_check_type "$LINENO" "int128" "ac_cv_type_int128" "$ac_includes_default"
+if test "x$ac_cv_type_int128" = xyes; then :
+
+cat >>confdefs.h <<_ACEOF
+#define HAVE_INT128 1
+_ACEOF
+
+
+fi
+ac_fn_c_check_type "$LINENO" "__int128" "ac_cv_type___int128" "$ac_includes_default"
+if test "x$ac_cv_type___int128" = xyes; then :
+
+cat >>confdefs.h <<_ACEOF
+#define HAVE___INT128 1
+_ACEOF
+
+
+fi
+ac_fn_c_check_type "$LINENO" "__uint128_t" "ac_cv_type___uint128_t" "$ac_includes_default"
+if test "x$ac_cv_type___uint128_t" = xyes; then :
+
+cat >>confdefs.h <<_ACEOF
+#define HAVE___UINT128_T 1
+_ACEOF
+
+
+fi
 
 
 # Checks for library functions.

@@ -102,6 +102,9 @@
 /* Define to 1 if you have the <gmp.h> header file. */
 #undef HAVE_GMP_H
 
+/* Define to 1 if the system has the type `int128'. */
+#undef HAVE_INT128
+
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
 
@@ -353,6 +356,12 @@
 
 /* Define to 1 if you have the `_strnicmp' function. */
 #undef HAVE__STRNICMP
+
+/* Define to 1 if the system has the type `__int128'. */
+#undef HAVE___INT128
+
+/* Define to 1 if the system has the type `__uint128_t'. */
+#undef HAVE___UINT128_T
 
 /* Define to 1 if you want support for 4-byte UTF-8 in fast MS formats. */
 #undef NT_FULL_UNICODE
