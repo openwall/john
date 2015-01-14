@@ -19,6 +19,10 @@
 #if AC_BUILT
 /* need to know if HAVE_LIBDL is set, for autoconfig build */
 #include "autoconfig.h"
+#else
+#ifdef __SIZEOF_INT128__
+#define HAVE___INT128 1
+#endif
 #endif
 
 #define NEED_OS_FORK
