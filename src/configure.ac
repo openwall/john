@@ -874,6 +874,14 @@ else
    asan="disabled"
 fi
 
+if test "x$ac_cv_type_int128" = xyes ||
+   test "x$ac_cv_type___int128" = xyes ||
+   test "x$ac_cv_type___uint128_t" = xyes; then
+   have_int128=yes
+else
+   have_int128=no
+fi
+
 AS_IF([test "x$osx_assembler_warn" = xyes],
   [AC_MSG_WARN([**************************************************])]
   [AC_MSG_WARN([* System's 'as' can't assemble AVX instructions. *])]
@@ -899,9 +907,10 @@ OpenCL support .............................. ${using_cl}
 CUDA support ................................ ${using_cuda}
 Generic crypt(3) format ..................... ${using_crypt}
 
-Optional libraries found:
+Optional libraries/features found:
 Rexgen (extra cracking mode) ................ ${using_rexgen}
 GMP (PRINCE mode and faster SRP formats) .... ${ac_cv_lib_gmp___gmpz_init}
+128-bit integer (faster PRINCE mode) ........ ${have_int128}
 PCAP (vncpcap2john and SIPdump) ............. ${using_pcap}
 BZ2 (gpg2john extra decompression logic) .... ${using_bz2}
 

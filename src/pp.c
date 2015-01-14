@@ -29,12 +29,13 @@
 #if AC_BUILT
 #include "autoconfig.h"
 #else
+#define HAVE_LIBGMP
 #define _GNU_SOURCE
 #define _FILE_OFFSET_BITS 64
 #define __USE_MINGW_ANSI_STDIO 1
 #endif
 
-#if HAVE_INT128 || HAVE___INT128 || HAVE___UINT128_T
+#if HAVE_LIBGMP && !(HAVE_INT128 || HAVE___INT128 || HAVE___UINT128_T)
 
 #include <stdio.h>
 #include <stdint.h>
@@ -58,6 +59,11 @@
 #include <time.h>
 #include <errno.h>
 #include <getopt.h>
+#if HAVE_GMP_GMP_H
+#include <gmp/gmp.h>
+#else
+#include <gmp.h>
+#endif
 
 /**
  * Name........: princeprocessor (pp)
@@ -124,13 +130,6 @@ typedef uint8_t  u8;
 typedef uint16_t u16;
 typedef uint32_t u32;
 typedef uint64_t u64;
-#if HAVE_INT128
-typedef unsigned int128 u128;
-#elif HAVE___INT128
-typedef unsigned __int128 u128;
-#else
-typedef __uint128_t u128;
-#endif
 
 typedef struct
 {
@@ -150,8 +149,8 @@ typedef struct
   u8    buf[IN_LEN_MAX];
   int   cnt;
 
-  u128 ks_cnt;
-  u128 ks_pos;
+  mpz_t ks_cnt;
+  mpz_t ks_pos;
 
 } chain_t;
 
@@ -425,12 +424,7 @@ static int sort_by_ks (const void *p1, const void *p2)
   const chain_t *f1 = (const chain_t *) p1;
   const chain_t *f2 = (const chain_t *) p2;
 
-  if (f1->ks_cnt > f2->ks_cnt)
-    return 1;
-  else if (f1->ks_cnt < f2->ks_cnt)
-    return -1;
-  else
-    return 0;
+  return mpz_cmp (f1->ks_cnt, f2->ks_cnt);
 }
 
 static int chain_valid_with_db (const chain_t *chain_buf, const db_entry_t *db_entries)
@@ -468,12 +462,12 @@ static int chain_valid_with_cnt_max (const chain_t *chain_buf, const int elem_cn
   return 1;
 }
 
-static void chain_ks (const chain_t *chain_buf, const db_entry_t *db_entries, u128 *ks_cnt)
+static void chain_ks (const chain_t *chain_buf, const db_entry_t *db_entries, mpz_t ks_cnt)
 {
   const u8 *buf = chain_buf->buf;
   const int cnt = chain_buf->cnt;
 
-  *ks_cnt = 1;
+  mpz_set_si (ks_cnt, 1);
 
   for (int idx = 0; idx < cnt; idx++)
   {
@@ -483,11 +477,11 @@ static void chain_ks (const chain_t *chain_buf, const db_entry_t *db_entries, u1
 
     const u64 elems_cnt = db_entry->elems_cnt;
 
-    *ks_cnt *= elems_cnt;
+    mpz_mul_ui (ks_cnt, ks_cnt, elems_cnt);
   }
 }
 
-static void chain_set_pwbuf (const chain_t *chain_buf, const db_entry_t *db_entries, u128 *tmp, char *pw_buf)
+static void chain_set_pwbuf (const chain_t *chain_buf, const db_entry_t *db_entries, mpz_t tmp, char *pw_buf)
 {
   const u8 *buf = chain_buf->buf;
 
@@ -501,13 +495,13 @@ static void chain_set_pwbuf (const chain_t *chain_buf, const db_entry_t *db_entr
 
     const u64 elems_cnt = db_entry->elems_cnt;
 
-    const u64 elems_idx = *tmp % elems_cnt;
+    const u64 elems_idx = mpz_fdiv_ui (tmp, elems_cnt);
 
     memcpy (pw_buf, &db_entry->elems_buf[elems_idx], db_key);
 
     pw_buf += db_key;
 
-    *tmp /= elems_cnt;
+    mpz_div_ui (tmp, tmp, elems_cnt);
   }
 }
 
@@ -539,35 +533,44 @@ static void chain_gen_with_idx (chain_t *chain_buf, const int len1, const int ch
 }
 
 #ifdef JTR_MODE
-static FILE *word_file;
-static u128 count = 1;
-static u128 pos;
-static u128 rec_pos;
+static FILE *word_file = NULL;
+static mpf_t count;
+static mpz_t pos;
+static mpz_t rec_pos;
+static int rec_pos_destroyed;
 
 static void save_state(FILE *file)
 {
-  fprintf(file, "%llu\n", (unsigned long long)rec_pos);
-  fprintf(file, "%llu\n", (unsigned long long)(rec_pos >> 64));
+  gmp_fprintf(file, "%Zd\n", rec_pos);
 }
 
 static int restore_state(FILE *file)
 {
-  unsigned long long temp;
-  int ret = !fscanf(file, "%llu\n", &temp);
-  rec_pos = temp;
-  int ret &= !fscanf(file, "%llu\n", &temp);
-  rec_pos |= (u128)temp << 64;
-  return ret;
+  return !gmp_fscanf(file, "%Zd\n", rec_pos);
 }
 
 static void fix_state(void)
 {
-  rec_pos = pos;
+  mpz_set(rec_pos, pos);
 }
 
 static double get_progress(void)
 {
-  return 100.0 * (double)rec_pos / (double)count;
+  static double progress;
+  mpf_t fpos, perc;
+
+  if (rec_pos_destroyed)
+	  return progress;
+
+  mpf_init(fpos); mpf_init(perc);
+
+  mpf_set_z(fpos, rec_pos);
+  mpf_div(perc, fpos, count);
+  progress = 100.0 * mpf_get_d(perc);
+
+  mpf_clear(fpos); mpf_clear(perc);
+
+  return progress;
 }
 
 void do_prince_crack(struct db_main *db, char *filename)
@@ -575,18 +578,21 @@ void do_prince_crack(struct db_main *db, char *filename)
 int main (int argc, char *argv[])
 #endif
 {
-  u128 iter_max = 0;
-  u128 total_ks_cnt = 0;
-  u128 total_ks_pos = 0;
-  u128 total_ks_left = 0;
-  u128 skip = 0;
-  u128 limit = 0;
-  u128 tmp = 0;
+  mpz_t iter_max;         mpz_init_set_si (iter_max,        0);
+  mpz_t total_ks_cnt;     mpz_init_set_si (total_ks_cnt,    0);
+  mpz_t total_ks_pos;     mpz_init_set_si (total_ks_pos,    0);
+  mpz_t total_ks_left;    mpz_init_set_si (total_ks_left,   0);
+  mpz_t skip;             mpz_init_set_si (skip,            0);
+  mpz_t limit;            mpz_init_set_si (limit,           0);
+  mpz_t tmp;              mpz_init_set_si (tmp,             0);
 
 #ifndef JTR_MODE
   int     version       = 0;
   int     usage         = 0;
   int     keyspace      = 0;
+#else
+  mpf_init_set_ui(count, 1);
+  mpz_init_set_ui(pos,   0);
 #endif
   int     pw_min        = PW_MIN;
   int     pw_max        = PW_MAX;
@@ -642,8 +648,8 @@ int main (int argc, char *argv[])
       case IDX_ELEM_CNT_MIN:  elem_cnt_min    = atoi (optarg);  break;
       case IDX_ELEM_CNT_MAX:  elem_cnt_max    = atoi (optarg);  break;
       case IDX_WL_DIST_LEN:   wl_dist_len     = 1;              break;
-      case IDX_SKIP:          skip     = strtod (optarg, NULL); break;
-      case IDX_LIMIT:         limit    = strtod (optarg, NULL); break;
+      case IDX_SKIP:          mpz_set_str (skip,  optarg, 10);  break;
+      case IDX_LIMIT:         mpz_set_str (limit, optarg, 10);  break;
       case IDX_OUTPUT_FILE:   output_file     = optarg;         break;
 
       default: return (-1);
@@ -896,8 +902,8 @@ int main (int argc, char *argv[])
 
       memcpy (chain_buf, &chain_buf_new, sizeof (chain_t));
 
-      chain_buf->ks_cnt = 0;
-      chain_buf->ks_pos = 0;
+      mpz_init_set_si (chain_buf->ks_cnt, 0);
+      mpz_init_set_si (chain_buf->ks_pos, 0);
 
       db_entry->chains_cnt++;
     }
@@ -955,23 +961,26 @@ int main (int argc, char *argv[])
     {
       chain_t *chain_buf = &chains_buf[chains_idx];
 
-      chain_ks (chain_buf, db_entries, &chain_buf->ks_cnt);
+      chain_ks (chain_buf, db_entries, chain_buf->ks_cnt);
 
-      total_ks_cnt += chain_buf->ks_cnt;
+      mpz_add (total_ks_cnt, total_ks_cnt, chain_buf->ks_cnt);
     }
   }
 
 #ifndef JTR_MODE
   if (keyspace)
   {
-    printf ("%.0f (give or take)\n", (double)total_ks_cnt);
+    mpz_out_str (stdout, 10, total_ks_cnt);
+
+    printf ("\n");
 
     return 0;
   }
 #else
-  log_event("- Keyspace size 0x%llx%08llx",
-            (unsigned long long)(total_ks_cnt >> 64),
-            (unsigned long long)total_ks_cnt);
+  char l_msg[128];
+
+  gmp_snprintf(l_msg, sizeof(l_msg), "- Keyspace size %Zd", total_ks_cnt);
+  log_event("%s", l_msg);
 #endif
 
   /**
@@ -992,13 +1001,14 @@ int main (int argc, char *argv[])
     qsort (chains_buf, chains_cnt, sizeof (chain_t), sort_by_ks);
   }
 #ifdef JTR_MODE
-  count = total_ks_cnt;
+  mpf_set_z(count, total_ks_cnt);
 
   status_init(get_progress, 0);
 
   rec_restore_mode(restore_state);
   rec_init(db, save_state);
-  skip = pos = rec_pos;
+  mpz_set(skip, rec_pos);
+  mpz_set(pos, rec_pos);
 
   crk_init(db, fix_state, NULL);
 
@@ -1030,9 +1040,9 @@ int main (int argc, char *argv[])
    * seek to some starting point
    */
 
-  if (skip)
+  if (mpz_cmp_si (skip, 0))
   {
-    if (skip > total_ks_cnt)
+    if (mpz_cmp (skip, total_ks_cnt) > 0)
     {
       fprintf (stderr, "Value of --skip must be smaller than total keyspace\n");
 
@@ -1044,9 +1054,9 @@ int main (int argc, char *argv[])
     }
   }
 
-  if (limit)
+  if (mpz_cmp_si (limit, 0))
   {
-    if (limit > total_ks_cnt)
+    if (mpz_cmp (limit, total_ks_cnt) > 0)
     {
       fprintf (stderr, "Value of --limit must be smaller than total keyspace\n");
 
@@ -1057,9 +1067,9 @@ int main (int argc, char *argv[])
 #endif
     }
 
-    tmp = skip + limit;
+    mpz_add (tmp, skip, limit);
 
-    if (tmp > total_ks_cnt)
+    if (mpz_cmp (tmp, total_ks_cnt) > 0)
     {
       fprintf (stderr, "Value of --skip + --limit must be smaller than total keyspace\n");
 
@@ -1070,7 +1080,7 @@ int main (int argc, char *argv[])
 #endif
     }
 
-    total_ks_cnt = tmp;
+    mpz_set (total_ks_cnt, tmp);
   }
 
   /**
@@ -1083,7 +1093,7 @@ int main (int argc, char *argv[])
   int jtr_done = 0;
   int node_dist = 0;
 #endif
-  while (total_ks_pos < total_ks_cnt)
+  while (mpz_cmp (total_ks_pos, total_ks_cnt) < 0)
   {
     for (int order_pos = 0; order_pos < order_cnt; order_pos++)
     {
@@ -1116,27 +1126,27 @@ int main (int argc, char *argv[])
 
         chain_t *chain_buf = &chains_buf[chains_pos];
 
-        total_ks_left = total_ks_cnt - total_ks_pos;
+        mpz_sub (total_ks_left, total_ks_cnt, total_ks_pos);
 
-        iter_max = chain_buf->ks_cnt - chain_buf->ks_pos;
+        mpz_sub (iter_max, chain_buf->ks_cnt, chain_buf->ks_pos);
 
-        if (total_ks_left < iter_max)
+        if (mpz_cmp (total_ks_left, iter_max) < 0)
         {
-          iter_max = total_ks_left;
+          mpz_set (iter_max, total_ks_left);
         }
 
         const u64 outs_left = outs_cnt - outs_pos;
 
-        tmp = outs_left;
+        mpz_set_ui (tmp, outs_left);
 
-        if (tmp < iter_max)
+        if (mpz_cmp (tmp, iter_max) < 0)
         {
-          iter_max = tmp;
+          mpz_set (iter_max, tmp);
         }
 
-        const u64 iter_max_u64 = iter_max;
+        const u64 iter_max_u64 = mpz_get_ui (iter_max);
 
-        tmp = total_ks_pos + iter_max;
+        mpz_add (tmp, total_ks_pos, iter_max);
 
 #ifdef JTR_MODE
 #ifdef WIDE_SKIP
@@ -1149,27 +1159,27 @@ int main (int argc, char *argv[])
         if (!node_skip)
 #endif
 #endif
-        if (tmp > skip)
+        if (mpz_cmp (tmp, skip) > 0)
         {
           u64 iter_pos_u64 = 0;
 
-          if (total_ks_pos < skip)
+          if (mpz_cmp (total_ks_pos, skip) < 0)
           {
-            tmp = skip - total_ks_pos;
+            mpz_sub (tmp, skip, total_ks_pos);
 
-            iter_pos_u64 = tmp;
+            iter_pos_u64 = mpz_get_ui (tmp);
           }
 
           while (iter_pos_u64 < iter_max_u64)
           {
-            tmp = chain_buf->ks_pos + iter_pos_u64;
+            mpz_add_ui (tmp, chain_buf->ks_pos, iter_pos_u64);
 
-            chain_set_pwbuf (chain_buf, db_entries, &tmp, pw_buf);
+            chain_set_pwbuf (chain_buf, db_entries, tmp, pw_buf);
 
 #ifndef JTR_MODE
             out_push (out, pw_buf, pw_len + 1);
 #else
-            //pos = total_ks_pos + iter_pos_u64;
+            //mpz_add_ui (pos, total_ks_pos, iter_pos_u64);
 #ifndef WIDE_SKIP
             if (options.node_count) {
               int for_node = iter_pos_u64 % options.node_count + 1;
@@ -1188,25 +1198,25 @@ int main (int argc, char *argv[])
 
         outs_pos += iter_max_u64;
 
-        total_ks_pos += iter_max;
+        mpz_add (total_ks_pos, total_ks_pos, iter_max);
 
 #ifdef JTR_MODE
-        pos = total_ks_pos;
+        mpz_set(pos, total_ks_pos);
 
         if (jtr_done || event_abort)
           break;
 #endif
-        chain_buf->ks_pos += iter_max;
+        mpz_add (chain_buf->ks_pos, chain_buf->ks_pos, iter_max);
 
-        if (chain_buf->ks_pos == chain_buf->ks_cnt)
+        if (mpz_cmp (chain_buf->ks_pos, chain_buf->ks_cnt) == 0)
         {
           db_entry->chains_pos++;
         }
 
-        if (total_ks_pos == total_ks_cnt) break;
+        if (mpz_cmp (total_ks_pos, total_ks_cnt) == 0) break;
       }
 
-      if (total_ks_pos == total_ks_cnt) break;
+      if (mpz_cmp (total_ks_pos, total_ks_cnt) == 0) break;
 #ifdef JTR_MODE
       if (jtr_done || event_abort)
         break;
@@ -1225,12 +1235,20 @@ int main (int argc, char *argv[])
   /**
    * cleanup
    */
+
 #ifdef JTR_MODE
   log_event("PRINCE done. Cleaning up.");
 
   if (!event_abort)
-      rec_pos = total_ks_cnt;
+      mpz_set(rec_pos, total_ks_cnt);
 #endif
+  mpz_clear (iter_max);
+  mpz_clear (total_ks_cnt);
+  mpz_clear (total_ks_pos);
+  mpz_clear (total_ks_left);
+  mpz_clear (skip);
+  mpz_clear (limit);
+  mpz_clear (tmp);
 
   for (int pw_len = pw_min; pw_len <= pw_max; pw_len++)
   {
@@ -1252,6 +1270,11 @@ int main (int argc, char *argv[])
 #else
   crk_done();
   rec_done(event_abort || (status.pass && db->salts));
+
+  mpf_clear(count);
+  mpz_clear(pos);
+  rec_pos_destroyed = 1;
+  mpz_clear(rec_pos);
 #endif
 }
 
