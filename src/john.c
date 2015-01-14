@@ -1290,6 +1290,7 @@ static void john_init(char *name, int argc, char **argv)
 static void john_run(void)
 {
 	struct stat trigger_stat;
+	int trigger_reset = 0;
 
 	if (options.flags & FLG_TEST_CHK)
 		exit_status = benchmark_all() ? 1 : 0;
@@ -1315,7 +1316,7 @@ static void john_run(void)
 				    where);
 				error();
 			}
-			database.format->methods.reset(&database);
+			trigger_reset = 1;
 			log_init(LOG_NAME, pers_opts.activepot,
 			         options.session);
 			status_init(NULL, 1);
@@ -1363,6 +1364,9 @@ static void john_run(void)
 
 		if (options.flags & FLG_MASK_CHK)
 			mask_init(&database, options.mask);
+
+		if (trigger_reset)
+			database.format->methods.reset(&database);
 
 		if (options.flags & FLG_SINGLE_CHK)
 			do_single_crack(&database);
