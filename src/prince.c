@@ -558,8 +558,8 @@ static int restore_state(FILE *file)
   unsigned long long temp;
   int ret = !fscanf(file, "%llu\n", &temp);
   rec_pos = temp;
-  int ret &= !fscanf(file, "%llu\n", &temp);
-  rec_pos |= (u128)temp << 64;
+  if (fscanf(file, "%llu\n", &temp))
+	  rec_pos |= (u128)temp << 64;
   return ret;
 }
 
