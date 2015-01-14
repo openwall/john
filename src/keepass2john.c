@@ -49,8 +49,9 @@
 const char *extension[] = {".kdbx"};
 static char *keyfile = NULL;
 
-static int inline_thr = MAX_INLINE_SIZE;
 #define MAX_THR (LINE_BUFFER_SIZE / 2 - 2 * PLAINTEXT_BUFFER_SIZE)
+// static int inline_thr = MAX_INLINE_SIZE;
+static int inline_thr = MAX_THR;  // don't try to produce short hashes by default!
 
 // KeePass 1.x signature
 uint32_t FileSignatureOld1 = 0x9AA2D903;
@@ -215,7 +216,9 @@ static void process_old_database(FILE *fp, char* encryptedDatabase)
 		print_hex(buffer, datasize);
 	}
 	else {
-		fprintf(stderr, "Not inlining %s\n", encryptedDatabase);
+		fprintf(stderr, "[!] Not inlining %s. You will need %s too for cracking!\n",
+				encryptedDatabase, encryptedDatabase);
+
 		printf("*0*%s", dbname); /* data is not inline */
 	}
 	if (keyfile) {
