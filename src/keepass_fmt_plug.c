@@ -236,8 +236,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		if ((p = strtok(NULL, "*")) == NULL)	/* inline flag */
 			goto err;
 		res = atoi(p);
-		if (res != 1 && res != 2)
+		if (res != 1 && res != 2) {
+			fprintf(stderr, "[!] Support for non-inlined data is missing from the " \
+					FORMAT_LABEL " format. File a bug report!\n");
+			exit(-1);  // do something noticeable
 			goto err;
+		}
 		if ((p = strtok(NULL, "*")) == NULL)	/* content size */
 			goto err;
 		contentsize = atoi(p);
