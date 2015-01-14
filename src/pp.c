@@ -4,7 +4,7 @@
  * the following terms: Redistribution and use in source and binary
  * forms, with or without modification, are permitted.
  *
-  * The MIT License (MIT)
+ * The MIT License (MIT)
  * Copyright (c) 2015 Jens Steube
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -74,9 +74,6 @@
  */
 
 #ifdef JTR_MODE
-
-/* MUCH faster but worse node distribution for small files */
-#define WIDE_SKIP
 
 #include "os.h"
 
@@ -316,11 +313,13 @@ static void check_realloc_elems (db_entry_t *db_entry)
 
     if (db_entry->elems_buf == NULL)
     {
+#ifndef JTR_MODE
       fprintf (stderr, "Out of memory!\n");
 
-#ifndef JTR_MODE
       exit (-1);
 #else
+      fprintf (stderr, "Out of memory trying to allocate %zu bytes!\n",
+               (size_t)elems_alloc_new * sizeof (elem_t));
       error();
 #endif
     }
@@ -343,11 +342,13 @@ static void check_realloc_chains (db_entry_t *db_entry)
 
     if (db_entry->chains_buf == NULL)
     {
+#ifndef JTR_MODE
       fprintf (stderr, "Out of memory!\n");
 
-#ifndef JTR_MODE
       exit (-1);
 #else
+      fprintf (stderr, "Out of memory trying to allocate %zu bytes!\n",
+               (size_t)chains_alloc_new * sizeof (chain_t));
       error();
 #endif
     }
@@ -764,7 +765,15 @@ int main (int argc, char *argv[])
 
   if (elem_cnt_min > elem_cnt_max)
   {
+    if (john_main_process)
     fprintf (stderr, "Error: --prince-elem-cnt-min (%d) must be smaller than or equal to\n--prince-elem-cnt-max (%d)\n", elem_cnt_min, elem_cnt_max);
+
+    error();
+  }
+  if (elem_cnt_min > pw_max)
+  {
+    if (john_main_process)
+    fprintf (stderr, "Error: --prince-elem-cnt-max (%d) must be smaller than or equal to\nmax. plaintext length (%d)\n", elem_cnt_min, pw_max);
 
     error();
   }
@@ -1156,7 +1165,6 @@ int main (int argc, char *argv[])
         mpz_add (tmp, total_ks_pos, iter_max);
 
 #ifdef JTR_MODE
-#ifdef WIDE_SKIP
         int for_node, node_skip = 0;
         if (options.node_count) {
           for_node = node_dist++ % options.node_count + 1;
@@ -1164,7 +1172,6 @@ int main (int argc, char *argv[])
                       for_node > options.node_max;
         }
         if (!node_skip)
-#endif
 #endif
         if (mpz_cmp (tmp, skip) > 0)
         {
@@ -1187,13 +1194,7 @@ int main (int argc, char *argv[])
             out_push (out, pw_buf, pw_len + 1);
 #else
             //mpz_add_ui (pos, total_ks_pos, iter_pos_u64);
-#ifndef WIDE_SKIP
-            if (options.node_count) {
-              int for_node = iter_pos_u64 % options.node_count + 1;
-              if (for_node < options.node_min || for_node > options.node_max)
-                continue;
-            }
-#endif
+
             if (ext_filter(pw_buf))
             if ((jtr_done = crk_process_key(pw_buf)))
               break;
