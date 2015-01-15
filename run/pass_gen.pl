@@ -1235,7 +1235,7 @@ sub pkzip {
 }
 sub rsvp {
 	require Digest::HMAC_MD5;
-	$salt = get_salt(172);
+	$salt = get_salt(16, -8192);
 	my $mode = 1;
 	my $h;
 	if (defined $argmode) {$mode=$argmode;} # 1 or 2
