@@ -72,7 +72,8 @@ my @funcs = (qw(DESCrypt BigCrypt BSDIcrypt md5crypt md5crypt_a BCRYPT BCRYPTx
 		rakp osc formspring skey_md5 pbkdf2-hmac-sha1 odf odf-1 office_2007
 		skey_md4 skey_sha1 skey_rmd160 cloudkeychain agilekeychain
 		rar rar5 ecryptfs office_2010 office_2013 tc_ripemd160 tc_sha512
-		tc_whirlpool Haval-256 SAP-H rsvp));
+		tc_whirlpool Haval-256 SAP-H rsvp pbkdf2-hmac-sha1-p5k2
+		pbkdf2-hmac-sha1-pkcs5s2));
 
 # todo: sapb sapfg ike keepass cloudkeychain agilekeychain pfx racf vnc pdf pkzip rar5 ssh raw_gost_cp
 my $i; my $h; my $u; my $salt;
@@ -638,14 +639,14 @@ sub to64 #unsigned long v, int n)
 # uses encode_64, but replaces all + with .  NOT sure why, but that is what it does.
 # used in at least pbkdf2-hmac-sha256. Probably others.
 sub base64pl {
-	my $ret = encode_base64($_[0]);
+	my $ret = encode_base64($_[0], "");
 	$ret =~ s/\+/./g;
 	chomp $ret;
 	return $ret;
 }
 # helper function for nsldap and nsldaps
 sub base64 {
-	my $ret = encode_base64($_[0]);
+	my $ret = encode_base64($_[0], "");
 	chomp $ret;
 	return $ret;
 }
@@ -785,7 +786,7 @@ sub tiger {
 sub tiger_base64 {
 	require Digest::Tiger;
 	my $bin = pack "H*", lc Digest::Tiger::hexhash($_[0]);
-	return encode_base64($bin);
+	return base64($bin);
 }
 # these all come from CryptX usage.
 sub ripemd128_hex {
@@ -2347,17 +2348,32 @@ sub pbkdf2_hmac_sha512 {
 }
 sub pbkdf2_hmac_sha256 {
 	$salt=get_salt(16);
-	my $itr = 1000;
+	my $itr = 12000;
 	if ($arg_loops > 0) { $itr = $arg_loops; }
 	my $s64 = base64pl($salt);
 	my $h64 = substr(base64pl(pack("H*",pp_pbkdf2_hex($_[1],$salt,$itr,"sha256",32, 64))),0,43);
+	$s64 = substr($s64, 0, 22);
 	print "u$u-pbkdf2-hmac-sha256:\$pbkdf2-sha256\$${itr}\$${s64}\$${h64}:$u:0:", $_[0], "::\n";
 }
 sub pbkdf2_hmac_sha1 {
 	$salt=get_salt(16);
 	my $itr = 1000;
 	if ($arg_loops > 0) { $itr = $arg_loops; }
-	print "u$u-pbkdf2-hmac-sha1:\$pbkdf2-hmac-sha1\$${itr}.".unpack("H*", $salt).".", pp_pbkdf2_hex($_[1],$salt,$itr,"sha1",20, 64) ,":$u:0:", $_[0], "::\n";
+	print "u$u-pbkdf2-hmac-sha1:\$pbkdf2-hmac-sha1\$${itr}.".unpack("H*", $salt).".", pp_pbkdf2_hex($_[1],$salt,$itr,"sha1",20, 64).":$u:0:.$_[0].::\n";
+}
+sub pbkdf2_hmac_sha1_pkcs5s2 {
+	$salt=get_salt(16);
+	my $itr = 10000;
+	if ($arg_loops > 0) { $itr = $arg_loops; }
+	my $h = base64pl($salt.pp_pbkdf2($_[1],$salt,$itr,"sha1",20, 64));
+	print "u$u-pbkdf2-hmac-sha1_pkcs5s2:{PKCS5S2}$h:$u:0:$_[0]::\n";
+}
+sub pbkdf2_hmac_sha1_p5k2 {
+	$salt=get_salt(16);
+	my $itr = 1000;
+	if ($arg_loops > 0) { $itr = $arg_loops; }
+	my $itrs = sprintf("%x", $itr);
+	print "u$u-pbkdf2-hmac-sha1_p5k2:\$p5k2\$$itrs\$".base64($salt).'$'.base64(pack("H*",pp_pbkdf2_hex($_[1],$salt,$itr,"sha1",20, 64))).":$u:0:$_[0]::\n";
 }
 sub drupal7 {
 	$salt=get_salt(8,-8);
