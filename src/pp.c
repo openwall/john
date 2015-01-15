@@ -35,7 +35,7 @@
 #define __USE_MINGW_ANSI_STDIO 1
 #endif
 
-#if HAVE_LIBGMP
+#if HAVE_LIBGMP || HAVE_INT128 || HAVE___INT128 || HAVE___UINT128_T
 
 #include <stdio.h>
 #include <stdint.h>
@@ -59,10 +59,17 @@
 #include <time.h>
 #include <errno.h>
 #include <getopt.h>
+
+#if HAVE_INT128 || HAVE___INT128 || HAVE___UINT128_T
+#include "mpz_int128.h"
+#define REALGMP "int128"
+#else
+#define REALGMP "GMP"
 #if HAVE_GMP_GMP_H
 #include <gmp/gmp.h>
 #else
 #include <gmp.h>
+#endif
 #endif
 
 /**
@@ -471,12 +478,12 @@ static int chain_valid_with_cnt_max (const chain_t *chain_buf, const int elem_cn
   return 1;
 }
 
-static void chain_ks (const chain_t *chain_buf, const db_entry_t *db_entries, mpz_t ks_cnt)
+static void chain_ks (const chain_t *chain_buf, const db_entry_t *db_entries, mpz_t *ks_cnt)
 {
   const u8 *buf = chain_buf->buf;
   const int cnt = chain_buf->cnt;
 
-  mpz_set_si (ks_cnt, 1);
+  mpz_set_si (*ks_cnt, 1);
 
   for (int idx = 0; idx < cnt; idx++)
   {
@@ -486,11 +493,11 @@ static void chain_ks (const chain_t *chain_buf, const db_entry_t *db_entries, mp
 
     const u64 elems_cnt = db_entry->elems_cnt;
 
-    mpz_mul_ui (ks_cnt, ks_cnt, elems_cnt);
+    mpz_mul_ui (*ks_cnt, *ks_cnt, elems_cnt);
   }
 }
 
-static void set_chain_ks_poses (const chain_t *chain_buf, const db_entry_t *db_entries, mpz_t tmp, u64 cur_chain_ks_poses[ELEM_CNT_MAX])
+static void set_chain_ks_poses (const chain_t *chain_buf, const db_entry_t *db_entries, mpz_t *tmp, u64 cur_chain_ks_poses[ELEM_CNT_MAX])
 {
   const u8 *buf = chain_buf->buf;
 
@@ -504,9 +511,9 @@ static void set_chain_ks_poses (const chain_t *chain_buf, const db_entry_t *db_e
 
     const u64 elems_cnt = db_entry->elems_cnt;
 
-    cur_chain_ks_poses[idx] = mpz_fdiv_ui (tmp, elems_cnt);
+    cur_chain_ks_poses[idx] = mpz_fdiv_ui (*tmp, elems_cnt);
 
-    mpz_div_ui (tmp, tmp, elems_cnt);
+    mpz_div_ui (*tmp, *tmp, elems_cnt);
   }
 }
 
@@ -602,10 +609,10 @@ static void save_state(FILE *file)
   mpz_t half; mpz_init(half);
 
   mpz_fdiv_r_2exp(half, rec_pos, 64); // lower 64 bits
-  gmp_fprintf(file, "%Zd\n", half);
+  fprintf(file, "%llu\n", (unsigned long long)mpz_get_ui(half));
 
   mpz_fdiv_q_2exp(half, rec_pos, 64); // upper 64 bits
-  gmp_fprintf(file, "%Zd\n", half);
+  fprintf(file, "%llu\n", (unsigned long long)mpz_get_ui(half));
 }
 
 static int restore_state(FILE *file)
@@ -824,7 +831,7 @@ void do_prince_crack(struct db_main *db, char *filename)
   setmode (fileno (stdout), O_BINARY);
   #endif
 #else
-  log_event("Proceeding with PRINCE mode (GMP version)");
+  log_event("Proceeding with PRINCE mode (" REALGMP " version)");
 
   pw_min = MAX(IN_LEN_MIN, options.force_minlength);
   pw_max = MIN(IN_LEN_MAX, db->format->params.plaintext_length);
@@ -1062,7 +1069,7 @@ void do_prince_crack(struct db_main *db, char *filename)
     {
       chain_t *chain_buf = &chains_buf[chains_idx];
 
-      chain_ks (chain_buf, db_entries, chain_buf->ks_cnt);
+      chain_ks (chain_buf, db_entries, &chain_buf->ks_cnt);
 
       mpz_add (tmp, tmp, chain_buf->ks_cnt);
     }
@@ -1087,7 +1094,7 @@ void do_prince_crack(struct db_main *db, char *filename)
 #else
   char l_msg[64];
 
-  gmp_snprintf(l_msg, sizeof(l_msg), "%Zd", total_ks_cnt);
+  mpz_get_str(l_msg, 10, total_ks_cnt);
   log_event("- Keyspace size %s", l_msg);
 #endif
 
@@ -1122,13 +1129,13 @@ void do_prince_crack(struct db_main *db, char *filename)
   if (mpz_cmp_ui(skip, 0))
   {
     char l_msg[64];
-    gmp_snprintf(l_msg, sizeof(l_msg), "%Zd", skip);
+    mpz_get_str(l_msg, 10, skip);
     log_event("- Skip %s", l_msg);
   }
   if (mpz_cmp_ui(limit, 0))
   {
     char l_msg[64];
-    gmp_snprintf(l_msg, sizeof(l_msg), "%Zd", limit);
+    mpz_get_str(l_msg, 10, limit);
     log_event("- Limit %s", l_msg);
   }
   mpz_set(pos, rec_pos);
@@ -1288,7 +1295,7 @@ void do_prince_crack(struct db_main *db, char *filename)
         {
           mpz_set (chain_buf->ks_pos, tmp);
 
-          set_chain_ks_poses (chain_buf, db_entries, tmp, db_entry->cur_chain_ks_poses);
+          set_chain_ks_poses (chain_buf, db_entries, &tmp, db_entry->cur_chain_ks_poses);
 
           break;
         }
@@ -1399,7 +1406,7 @@ void do_prince_crack(struct db_main *db, char *filename)
 
             mpz_add (tmp, chain_buf->ks_pos, tmp);
 
-            set_chain_ks_poses (chain_buf, db_entries, tmp, db_entry->cur_chain_ks_poses);
+            set_chain_ks_poses (chain_buf, db_entries, &tmp, db_entry->cur_chain_ks_poses);
           }
 
           u64 *cur_chain_ks_poses = db_entry->cur_chain_ks_poses;
@@ -1426,7 +1433,7 @@ void do_prince_crack(struct db_main *db, char *filename)
         {
           mpz_add (tmp, chain_buf->ks_pos, iter_max);
 
-          set_chain_ks_poses (chain_buf, db_entries, tmp, db_entry->cur_chain_ks_poses);
+          set_chain_ks_poses (chain_buf, db_entries, &tmp, db_entry->cur_chain_ks_poses);
         }
 
         outs_pos += iter_max_u64;
