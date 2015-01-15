@@ -429,12 +429,10 @@ static int sort_by_ks (const void *p1, const void *p2)
   const chain_t *f1 = (const chain_t *) p1;
   const chain_t *f2 = (const chain_t *) p2;
 
-  if (f1->ks_cnt > f2->ks_cnt)
-    return 1;
-  else if (f1->ks_cnt < f2->ks_cnt)
-    return -1;
-  else
-    return 0;
+  if (f1->ks_cnt > f2->ks_cnt) return  1;
+  if (f1->ks_cnt < f2->ks_cnt) return -1;
+
+  return 0;
 }
 
 static int chain_valid_with_db (const chain_t *chain_buf, const db_entry_t *db_entries)
@@ -542,6 +540,39 @@ static void chain_gen_with_idx (chain_t *chain_buf, const int len1, const int ch
   chain_buf->cnt++;
 }
 
+/* Fugly but short :-P */
+#define int128tostr(op, ptr) \
+  do { \
+       if (!op) \
+         strcpy(ptr, "0"); \
+       else \
+         _int128tostr(op, ptr); \
+     } while (0)
+
+static inline int _int128tostr(__uint128_t op, char *ptr)
+{
+  char *orig = ptr;
+  if (op == 0)
+    return 0;
+
+  ptr += _int128tostr(op / 10, ptr);
+  *ptr++ = op % 10 + '0';
+  *ptr = 0;
+  return ptr - orig;
+}
+
+static inline u128 str128(char *str)
+{
+  u128 ret = 0;
+  int num;
+
+  while ((num = *str++)) {
+    ret *= 10;
+    ret += num - '0';
+  }
+  return ret;
+}
+
 #ifndef JTR_MODE
 int main (int argc, char *argv[])
 #else
@@ -559,11 +590,11 @@ static void save_state(FILE *file)
 static int restore_state(FILE *file)
 {
   unsigned long long temp;
-  int ret = !fscanf(file, "%llu\n", &temp);
+  int ret = fscanf(file, "%llu\n", &temp);
   rec_pos = temp;
-  if (fscanf(file, "%llu\n", &temp))
-	  rec_pos |= (u128)temp << 64;
-  return ret;
+  if (ret && fscanf(file, "%llu\n", &temp))
+    rec_pos |= (u128)temp << 64;
+  return !ret;
 }
 
 static void fix_state(void)
@@ -649,8 +680,8 @@ void do_prince_crack(struct db_main *db, char *filename)
       case IDX_ELEM_CNT_MIN:  elem_cnt_min    = atoi (optarg);  break;
       case IDX_ELEM_CNT_MAX:  elem_cnt_max    = atoi (optarg);  break;
       case IDX_WL_DIST_LEN:   wl_dist_len     = 1;              break;
-      case IDX_SKIP:          skip     = strtod (optarg, NULL); break;
-      case IDX_LIMIT:         limit    = strtod (optarg, NULL); break;
+      case IDX_SKIP:          skip            = str128(optarg); break;
+      case IDX_LIMIT:         limit           = str128(optarg); break;
       case IDX_OUTPUT_FILE:   output_file     = optarg;         break;
 
       default: return (-1);
@@ -749,7 +780,7 @@ void do_prince_crack(struct db_main *db, char *filename)
   setmode (fileno (stdout), O_BINARY);
   #endif
 #else
-  log_event("Proceeding with PRINCE mode");
+  log_event("Proceeding with PRINCE mode (128-bit integer version)");
 
   pw_min = MAX(IN_LEN_MIN, options.force_minlength);
   pw_max = MIN(IN_LEN_MAX, db->format->params.plaintext_length);
@@ -995,14 +1026,16 @@ void do_prince_crack(struct db_main *db, char *filename)
 #ifndef JTR_MODE
   if (keyspace)
   {
-    printf ("%.0f (give or take)\n", (double)total_ks_cnt);
+    char l_msg[64];
+    int128tostr(total_ks_cnt, l_msg);
+    printf ("%s\n", l_msg);
 
     return 0;
   }
 #else
-  log_event("- Keyspace size 0x%llx%08llx",
-            (unsigned long long)(total_ks_cnt >> 64),
-            (unsigned long long)total_ks_cnt);
+  char l_msg[64];
+  int128tostr(total_ks_cnt, l_msg);
+  log_event("- Keyspace size: %s", l_msg);
 #endif
 
   /**
@@ -1030,6 +1063,11 @@ void do_prince_crack(struct db_main *db, char *filename)
   rec_restore_mode(restore_state);
   rec_init(db, save_state);
   skip = pos = rec_pos;
+  if (skip) {
+    char l_msg[64];
+    int128tostr(skip, l_msg);
+    log_event("- Skip %s", l_msg);
+  }
 
   crk_init(db, fix_state, NULL);
 
@@ -1107,7 +1145,7 @@ void do_prince_crack(struct db_main *db, char *filename)
   if (skip)
   {
     u128 skip_left = skip;
-    u128 main_loops;
+    u128 main_loops = 0;
 
     u64 outs_per_main_loop = 0;
 
@@ -1122,7 +1160,7 @@ void do_prince_crack(struct db_main *db, char *filename)
      * find pw_ks_pos[]
      */
 
-    while (1)
+    while (outs_per_main_loop)
     {
       main_loops = skip_left / outs_per_main_loop;
 
@@ -1340,6 +1378,7 @@ void do_prince_crack(struct db_main *db, char *filename)
   /**
    * cleanup
    */
+
 #ifdef JTR_MODE
   log_event("PRINCE done. Cleaning up.");
 

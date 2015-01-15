@@ -536,7 +536,7 @@ static void chain_gen_with_idx (chain_t *chain_buf, const int len1, const int ch
 #ifndef JTR_MODE
 int main (int argc, char *argv[])
 #else
-static FILE *word_file = NULL;
+static FILE *word_file;
 static mpf_t count;
 static mpz_t pos;
 static mpz_t rec_pos;
@@ -544,12 +544,28 @@ static int rec_pos_destroyed;
 
 static void save_state(FILE *file)
 {
-  gmp_fprintf(file, "%Zd\n", rec_pos);
+  mpz_t half; mpz_init(half);
+
+  mpz_fdiv_r_2exp(half, rec_pos, 64); // lower 64 bits
+  gmp_fprintf(file, "%Zd\n", half);
+
+  mpz_fdiv_q_2exp(half, rec_pos, 64); // upper 64 bits
+  gmp_fprintf(file, "%Zd\n", half);
 }
 
 static int restore_state(FILE *file)
 {
-  return !gmp_fscanf(file, "%Zd\n", rec_pos);
+  unsigned long long temp;
+  int ret = fscanf(file, "%llu\n", &temp);
+  mpz_set_ui(rec_pos, temp);
+  if (ret && fscanf(file, "%llu\n", &temp))
+  {
+    mpz_t hi; mpz_init_set_ui(hi, temp);
+    mpz_mul_2exp(hi, hi, 64); // hi = temp << 64
+    mpz_add(rec_pos, rec_pos, hi);
+    mpz_clear(hi);
+  }
+  return !ret;
 }
 
 static void fix_state(void)
@@ -563,7 +579,7 @@ static double get_progress(void)
   mpf_t fpos, perc;
 
   if (rec_pos_destroyed)
-	  return progress;
+    return progress;
 
   mpf_init(fpos); mpf_init(perc);
 
@@ -595,8 +611,9 @@ void do_prince_crack(struct db_main *db, char *filename)
   int     usage         = 0;
   int     keyspace      = 0;
 #else
-  mpf_init_set_ui(count, 1);
-  mpz_init_set_ui(pos,   0);
+  mpf_init_set_ui(count,     1);
+  mpz_init_set_ui(rec_pos,   0);
+  mpz_init_set_ui(pos,       0);
 #endif
   int     pw_min        = PW_MIN;
   int     pw_max        = PW_MAX;
@@ -752,7 +769,7 @@ void do_prince_crack(struct db_main *db, char *filename)
   setmode (fileno (stdout), O_BINARY);
   #endif
 #else
-  log_event("Proceeding with PRINCE mode");
+  log_event("Proceeding with PRINCE mode (GMP version)");
 
   pw_min = MAX(IN_LEN_MIN, options.force_minlength);
   pw_max = MIN(IN_LEN_MAX, db->format->params.plaintext_length);
@@ -1005,10 +1022,10 @@ void do_prince_crack(struct db_main *db, char *filename)
     return 0;
   }
 #else
-  char l_msg[128];
+  char l_msg[64];
 
-  gmp_snprintf(l_msg, sizeof(l_msg), "- Keyspace size %Zd", total_ks_cnt);
-  log_event("%s", l_msg);
+  gmp_snprintf(l_msg, sizeof(l_msg), "%Zd", total_ks_cnt);
+  log_event("- Keyspace size %s", l_msg);
 #endif
 
   /**
@@ -1036,6 +1053,11 @@ void do_prince_crack(struct db_main *db, char *filename)
   rec_restore_mode(restore_state);
   rec_init(db, save_state);
   mpz_set(skip, rec_pos);
+  if (mpz_cmp_ui(skip, 0)) {
+    char l_msg[64];
+    gmp_snprintf(l_msg, sizeof(l_msg), "%Zd", skip);
+    log_event("- Skip %s", l_msg);
+  }
   mpz_set(pos, rec_pos);
 
   crk_init(db, fix_state, NULL);
@@ -1129,7 +1151,7 @@ void do_prince_crack(struct db_main *db, char *filename)
      * find pw_ks_pos[]
      */
 
-    while (1)
+    while (outs_per_main_loop)
     {
       mpz_fdiv_q_ui (main_loops, skip_left, outs_per_main_loop);
 
