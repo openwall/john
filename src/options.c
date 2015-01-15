@@ -86,6 +86,10 @@ static struct opt_entry opt_list[] = {
 		OPT_REQ_PARAM, "%d", &prince_elem_cnt_min},
 	{"prince-elem-cnt-max", FLG_ZERO, 0, FLG_PRINCE_CHK,
 		OPT_REQ_PARAM, "%d", &prince_elem_cnt_max},
+	{"prince-skip", FLG_ZERO, 0, FLG_PRINCE_CHK,
+		0, OPT_FMT_STR_ALLOC, &prince_skip_str},
+	{"prince-limit", FLG_ZERO, 0, FLG_PRINCE_CHK,
+		0, OPT_FMT_STR_ALLOC, &prince_limit_str},
 	{"prince-wl-dist-len", FLG_PRINCE_DIST, 0, FLG_PRINCE_CHK, 0},
 #endif
 	/* -enc is an alias for -input-enc for legacy reasons */
@@ -456,6 +460,8 @@ void opt_print_hidden_usage(void)
 #ifdef HAVE_LIBGMP
 	puts("--prince-elem-cnt-min=N   PRINCE, minimum number of elements per chain (1)");
 	puts("--prince-elem-cnt-max=N   PRINCE, maximum number of elements per chain (8)");
+	puts("--prince-skip=N           PRINCE, initial skip");
+	puts("--prince-limit=N          PRINCE, limit number of candidates generated");
 	puts("--prince-wl-dist-len      PRINCE, calculate length distribution from wordlist");
 	puts("                          instead of using built-in table");
 #endif

@@ -105,6 +105,12 @@
 
 #define _STR_VALUE(arg) #arg
 #define STR_MACRO(n)    _STR_VALUE(n)
+
+int prince_elem_cnt_min;
+int prince_elem_cnt_max;
+int prince_wl_dist_len;
+char *prince_skip_str;
+char *prince_limit_str;
 #endif
 
 #define IN_LEN_MIN    1
@@ -718,8 +724,8 @@ void do_prince_crack(struct db_main *db, char *filename)
       case IDX_ELEM_CNT_MIN:  elem_cnt_min    = atoi (optarg);  break;
       case IDX_ELEM_CNT_MAX:  elem_cnt_max    = atoi (optarg);  break;
       case IDX_WL_DIST_LEN:   wl_dist_len     = 1;              break;
-      case IDX_SKIP:          mpz_set_str (skip,  optarg, 10);  break;
-      case IDX_LIMIT:         mpz_set_str (limit, optarg, 10);  break;
+      case IDX_SKIP:          mpz_set_str (skip,  optarg, 0);   break;
+      case IDX_LIMIT:         mpz_set_str (limit, optarg, 0);   break;
       case IDX_OUTPUT_FILE:   output_file     = optarg;         break;
 
       default: return (-1);
@@ -846,6 +852,12 @@ void do_prince_crack(struct db_main *db, char *filename)
 
     error();
   }
+
+  if (prince_skip_str)
+    mpz_set_str(skip, prince_skip_str, 0);
+
+  if (prince_limit_str)
+    mpz_set_str(limit, prince_limit_str, 0);
 
   /* If we did not give a name for wordlist mode, we use one from john.conf */
   if (!filename)
@@ -1103,11 +1115,21 @@ void do_prince_crack(struct db_main *db, char *filename)
 
   rec_restore_mode(restore_state);
   rec_init(db, save_state);
-  mpz_set(skip, rec_pos);
-  if (mpz_cmp_ui(skip, 0)) {
+
+  if (mpz_cmp_ui(rec_pos, 0))
+    mpz_set(skip, rec_pos);
+
+  if (mpz_cmp_ui(skip, 0))
+  {
     char l_msg[64];
     gmp_snprintf(l_msg, sizeof(l_msg), "%Zd", skip);
     log_event("- Skip %s", l_msg);
+  }
+  if (mpz_cmp_ui(limit, 0))
+  {
+    char l_msg[64];
+    gmp_snprintf(l_msg, sizeof(l_msg), "%Zd", limit);
+    log_event("- Limit %s", l_msg);
   }
   mpz_set(pos, rec_pos);
 
@@ -1355,8 +1377,9 @@ void do_prince_crack(struct db_main *db, char *filename)
         mpz_add (tmp, total_ks_pos, iter_max);
 
 #ifdef JTR_MODE
-        int for_node, node_skip = 0;
-        if (options.node_count) {
+        u32 for_node, node_skip = 0;
+        if (options.node_count)
+        {
           for_node = node_dist++ % options.node_count + 1;
           node_skip = for_node < options.node_min ||
                       for_node > options.node_max;
