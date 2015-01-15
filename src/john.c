@@ -1374,7 +1374,7 @@ static void john_run(void)
 		if (options.flags & FLG_WORDLIST_CHK)
 			do_wordlist_crack(&database, options.wordlist,
 				(options.flags & FLG_RULES) != 0);
-#if HAVE_LIBGMP || HAVE_INT128 || HAVE___INT128 || HAVE___UINT128_T
+#if HAVE_LIBGMP /*|| HAVE_INT128 || HAVE___INT128 || HAVE___UINT128_T*/
 		else
 		if (options.flags & FLG_PRINCE_CHK)
 			do_prince_crack(&database, options.wordlist);

@@ -35,7 +35,7 @@
 #define __USE_MINGW_ANSI_STDIO 1
 #endif
 
-#if HAVE_LIBGMP && !(HAVE_INT128 || HAVE___INT128 || HAVE___UINT128_T)
+#if HAVE_LIBGMP
 
 #include <stdio.h>
 #include <stdint.h>
@@ -161,6 +161,8 @@ typedef struct
   int      chains_cnt;
   int      chains_pos;
   int      chains_alloc;
+
+  u64      cur_chain_ks_poses[ELEM_CNT_MAX];
 
 } db_entry_t;
 
@@ -406,8 +408,8 @@ static void out_push (out_t *out, const char *pw_buf, const int pw_len)
     out_flush (out);
   }
 }
-
 #endif
+
 static int sort_by_cnt (const void *p1, const void *p2)
 {
   const pw_order_t *o1 = (const pw_order_t *) p1;
@@ -482,7 +484,27 @@ static void chain_ks (const chain_t *chain_buf, const db_entry_t *db_entries, mp
   }
 }
 
-static void chain_set_pwbuf (const chain_t *chain_buf, const db_entry_t *db_entries, mpz_t tmp, char *pw_buf)
+static void set_chain_ks_poses (const chain_t *chain_buf, const db_entry_t *db_entries, mpz_t tmp, u64 cur_chain_ks_poses[ELEM_CNT_MAX])
+{
+  const u8 *buf = chain_buf->buf;
+
+  const int cnt = chain_buf->cnt;
+
+  for (int idx = 0; idx < cnt; idx++)
+  {
+    const u8 db_key = buf[idx];
+
+    const db_entry_t *db_entry = &db_entries[db_key];
+
+    const u64 elems_cnt = db_entry->elems_cnt;
+
+    cur_chain_ks_poses[idx] = mpz_fdiv_ui (tmp, elems_cnt);
+
+    mpz_div_ui (tmp, tmp, elems_cnt);
+  }
+}
+
+static void chain_set_pwbuf_init (const chain_t *chain_buf, const db_entry_t *db_entries, const u64 cur_chain_ks_poses[ELEM_CNT_MAX], char *pw_buf)
 {
   const u8 *buf = chain_buf->buf;
 
@@ -494,15 +516,42 @@ static void chain_set_pwbuf (const chain_t *chain_buf, const db_entry_t *db_entr
 
     const db_entry_t *db_entry = &db_entries[db_key];
 
-    const u64 elems_cnt = db_entry->elems_cnt;
-
-    const u64 elems_idx = mpz_fdiv_ui (tmp, elems_cnt);
+    const u64 elems_idx = cur_chain_ks_poses[idx];
 
     memcpy (pw_buf, &db_entry->elems_buf[elems_idx], db_key);
 
     pw_buf += db_key;
+  }
+}
 
-    mpz_div_ui (tmp, tmp, elems_cnt);
+static void chain_set_pwbuf_increment (const chain_t *chain_buf, const db_entry_t *db_entries, u64 cur_chain_ks_poses[ELEM_CNT_MAX], char *pw_buf)
+{
+  const u8 *buf = chain_buf->buf;
+
+  const int cnt = chain_buf->cnt;
+
+  for (int idx = 0; idx < cnt; idx++)
+  {
+    const u8 db_key = buf[idx];
+
+    const db_entry_t *db_entry = &db_entries[db_key];
+
+    const u64 elems_cnt = db_entry->elems_cnt;
+
+    const u64 elems_idx = ++cur_chain_ks_poses[idx];
+
+    if (elems_idx < elems_cnt)
+    {
+      memcpy (pw_buf, &db_entry->elems_buf[elems_idx], db_key);
+
+      break;
+    }
+
+    cur_chain_ks_poses[idx] = 0;
+
+    memcpy (pw_buf, &db_entry->elems_buf[0], db_key);
+
+    pw_buf += db_key;
   }
 }
 
@@ -943,6 +992,8 @@ void do_prince_crack(struct db_main *db, char *filename)
 
       db_entry->chains_cnt++;
     }
+
+    memset (db_entry->cur_chain_ks_poses, 0, ELEM_CNT_MAX * sizeof (u64));
   }
 
   /**
@@ -1133,6 +1184,10 @@ void do_prince_crack(struct db_main *db, char *filename)
     mpz_set (total_ks_cnt, tmp);
   }
 
+  /**
+   * skip to the first main loop that will output a password
+   */
+
   if (mpz_cmp_si (skip, 0))
   {
     mpz_t skip_left;  mpz_init_set (skip_left, skip);
@@ -1147,9 +1202,7 @@ void do_prince_crack(struct db_main *db, char *filename)
       outs_per_main_loop += wordlen_dist[pw_len];
     }
 
-    /**
-     * find pw_ks_pos[]
-     */
+    // find pw_ks_pos[]
 
     while (outs_per_main_loop)
     {
@@ -1194,9 +1247,7 @@ void do_prince_crack(struct db_main *db, char *filename)
 
     mpz_sub (total_ks_pos, skip, skip_left);
 
-    /**
-     * set db_entries to pw_ks_pos[]
-     */
+    // set db_entries to pw_ks_pos[]
 
     for (int pw_len = pw_min; pw_len <= pw_max; pw_len++)
     {
@@ -1215,6 +1266,8 @@ void do_prince_crack(struct db_main *db, char *filename)
         {
           mpz_set (chain_buf->ks_pos, tmp);
 
+          set_chain_ks_poses (chain_buf, db_entries, tmp, db_entry->cur_chain_ks_poses);
+
           break;
         }
 
@@ -1224,9 +1277,7 @@ void do_prince_crack(struct db_main *db, char *filename)
       }
     }
 
-    /**
-     * clean up
-     */
+    // clean up
 
     for (int pw_len = pw_min; pw_len <= pw_max; pw_len++)
     {
@@ -1310,9 +1361,10 @@ void do_prince_crack(struct db_main *db, char *filename)
           node_skip = for_node < options.node_min ||
                       for_node > options.node_max;
         }
-        if (!node_skip)
-#endif
+        if (!node_skip && mpz_cmp (tmp, skip) > 0)
+#else
         if (mpz_cmp (tmp, skip) > 0)
+#endif
         {
           u64 iter_pos_u64 = 0;
 
@@ -1321,14 +1373,18 @@ void do_prince_crack(struct db_main *db, char *filename)
             mpz_sub (tmp, skip, total_ks_pos);
 
             iter_pos_u64 = mpz_get_ui (tmp);
+
+            mpz_add (tmp, chain_buf->ks_pos, tmp);
+
+            set_chain_ks_poses (chain_buf, db_entries, tmp, db_entry->cur_chain_ks_poses);
           }
+
+          u64 *cur_chain_ks_poses = db_entry->cur_chain_ks_poses;
+
+          chain_set_pwbuf_init (chain_buf, db_entries, cur_chain_ks_poses, pw_buf);
 
           while (iter_pos_u64 < iter_max_u64)
           {
-            mpz_add_ui (tmp, chain_buf->ks_pos, iter_pos_u64);
-
-            chain_set_pwbuf (chain_buf, db_entries, tmp, pw_buf);
-
 #ifndef JTR_MODE
             out_push (out, pw_buf, pw_len + 1);
 #else
@@ -1338,9 +1394,16 @@ void do_prince_crack(struct db_main *db, char *filename)
             if ((jtr_done = crk_process_key(pw_buf)))
               break;
 #endif
+            chain_set_pwbuf_increment (chain_buf, db_entries, cur_chain_ks_poses, pw_buf);
 
             iter_pos_u64++;
           }
+        }
+        else
+        {
+          mpz_add (tmp, chain_buf->ks_pos, iter_max);
+
+          set_chain_ks_poses (chain_buf, db_entries, tmp, db_entry->cur_chain_ks_poses);
         }
 
         outs_pos += iter_max_u64;
@@ -1358,6 +1421,10 @@ void do_prince_crack(struct db_main *db, char *filename)
         if (mpz_cmp (chain_buf->ks_pos, chain_buf->ks_cnt) == 0)
         {
           db_entry->chains_pos++;
+
+          // db_entry->cur_chain_ks_poses[] should of cycled to all zeros, but just in case?
+
+          memset (db_entry->cur_chain_ks_poses, 0, ELEM_CNT_MAX * sizeof (u64));
         }
 
         if (mpz_cmp (total_ks_pos, total_ks_cnt) == 0) break;
