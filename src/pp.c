@@ -1418,8 +1418,6 @@ void do_prince_crack(struct db_main *db, char *filename)
 #ifndef JTR_MODE
             out_push (out, pw_buf, pw_len + 1);
 #else
-            //mpz_add_ui (pos, total_ks_pos, iter_pos_u64);
-
             if (ext_filter(pw_buf))
             if ((jtr_done = crk_process_key(pw_buf)))
               break;

@@ -41,6 +41,8 @@ typedef __uint128_t             uint128_t;
 typedef uint128_t               mpz_t;
 typedef double                  mpf_t;
 
+#define FAKE_GMP 1
+
 #define mpz_init(x) x = 0
 #define mpz_init_set(x, y) x = y
 #define mpz_init_set_ui mpz_init_set
