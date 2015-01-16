@@ -1784,7 +1784,6 @@ sub wowsrp {
 	my $usr = uc randusername();
 	if (defined $argmode) {$usr = uc $argmode; }
 	my $h = sha1($salt, sha1($usr,":",uc $_[1]));
-
 	# turn $h into a hex, so we can load it into a BigInt
 	$h = "0x" . unpack("H*", $h);
 
@@ -1798,6 +1797,8 @@ sub wowsrp {
 	$h = uc substr($h->as_hex(), 2);
 
 	print "u$u-wow_srp:\$WoWSRP\$$h\$", uc unpack("H*", $salt), "*$usr:$u:0:", uc $_[0], "::\n";
+#	while (length($h) < 64) { $h = "0".$h; }
+#	print "u$u-wow_srp:\$WoWSRP\$$h\$", uc unpack("H*", $salt), "*$usr:$u:0:", uc $_[0], "::\n";
 }
 sub _hmacmd5 {
 	my ($key, $data) = @_;

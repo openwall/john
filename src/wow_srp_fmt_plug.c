@@ -25,6 +25,19 @@
  *
  * Added OMP.  Added 'default' oSSL BigNum exponentiation.
  * GMP exponentation (faster) is optional, and controled with HAVE_LIBGMP in autoconfig.h
+ *
+ * NOTE, big fix required. The incoming binary may be 64 bytes OR LESS.  It
+ * can also be 64 bytes (or less), and have left padded 0's.  We have to adjust
+ * several things to handle this properly. First, valid must handle it. Then
+ * binary and salt both must handle this. Also, crypt must handle this.  NOTE,
+ * the string 'could' be an odd length. If so, then only 1 byte of hex is put
+ * into the first binary byte. all of these problems were found once I got
+ * jtrts.pl working with wowsrp. There now are 2 input files for wowsrp. One
+ * bytes of precision, then only 61 bytes will be in the string). The other
+ * file left pads the numbers with 0's to an even 64 bytes long, so all are
+ * 64 bytes. the format MUST handle both, since at this momement, we are not
+ * exactly sure which type will be seen in the wild.  NOTE, the byte swapped
+ * method (GMP) within is no longer valid, and was removed.
  */
 
 #if FMT_EXTERNS_H
@@ -161,18 +174,24 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	q = p = &ciphertext[WOWSIGLEN];
 	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
 		q++;
-	if (q-p != CIPHERTEXT_LENGTH)
+	if (q-p > CIPHERTEXT_LENGTH)
 		return 0;
-	if (*q != '$') return 0;
+	if (*q != '$')
+		return 0;
 	++q;
 	p = strchr(q, '*');
-	if (!p) return 0;
-	if (((p - q) & 1)) return 0;
-	if (p - q > 2 * SALT_SIZE) return 0;
+	if (!p)
+		return 0;
+	if (((p - q) & 1))
+		return 0;
+	if (p - q > 2 * SALT_SIZE)
+		return 0;
 	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
 		q++;
-	if (q != p) return 0;
-	if (strlen(&p[1]) > USERNAMELEN) return 0;
+	if (q != p)
+		return 0;
+	if (strlen(&p[1]) > USERNAMELEN)
+		return 0;
 	return 1;
 }
 
@@ -213,17 +232,32 @@ static void *get_binary(char *ciphertext)
 		unsigned char b[FULL_BINARY_SIZE];
 		ARCH_WORD_32 dummy[1];
 	} out;
-	char *p;
+	char *p, *q;
 	int i;
 
 	p = &ciphertext[WOWSIGLEN];
-	for (i = 0; i < FULL_BINARY_SIZE; i++) {
-		out.b[i] =
+	q = strchr(p, '$');
+	memset(out.b, 0, sizeof(out.b));
+	while (*p == '0')
+		++p;
+	if ((q-p)&1) {
+		out.b[0] = atoi16[ARCH_INDEX(*p)];
+		++p;
+	} else {
+		out.b[0] =
 		    (atoi16[ARCH_INDEX(*p)] << 4) |
 		    atoi16[ARCH_INDEX(p[1])];
 		p += 2;
 	}
-
+	for (i = 1; i < FULL_BINARY_SIZE; i++) {
+		out.b[i] =
+		    (atoi16[ARCH_INDEX(*p)] << 4) |
+		    atoi16[ARCH_INDEX(p[1])];
+		p += 2;
+		if (*p == '$')
+			break;
+	}
+	//dump_stuff_msg("binary", out.b, 32);
 	return out.b;
 }
 
@@ -237,7 +271,7 @@ static void *salt(char *ciphertext)
 	int length=0;
 
 	memset(out.b, 0, SALT_SIZE);
-	p = &ciphertext[WOWSIGLEN+64+1];
+	p = strchr(&ciphertext[WOWSIGLEN], '$') + 1;
 
 	while (atoi16[ARCH_INDEX(*p)] != 0x7f) {
 		out.b[++length] =
@@ -324,12 +358,15 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		SHA1_Final(Tmp, &ctx);
 		// Ok, now Tmp is v
 
+		//if (!strcmp(saved_key[j], "ENTERNOW__1") && !strcmp((char*)user_id, "DIP")) {
+		//	printf ("salt=%s user=%s  pass=%s, ", (char*)saved_salt, (char*)user_id, saved_key[j]);
+		//	dump_stuff_msg("sha$h  ", Tmp, 20);
+		//}
+
 #ifdef HAVE_LIBGMP
-#if 1
-		// Speed, 17194/s
 	{
 		unsigned char HashStr[80], *p;
-		int i;
+		int i, todo;
 		p = HashStr;
 		for (i = 0; i < 20; ++i) {
 			*p++ = itoa16[Tmp[i]>>4];
@@ -342,61 +379,37 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		mpz_get_str ((char*)HashStr, 16, pSRP_CTX[j].z_rop);
 
 		p = HashStr;
-
-		for (i = 0; i < FULL_BINARY_SIZE; i++) {
+		memset(crypt_out[j], 0, sizeof(crypt_out[j]));
+		todo = strlen((char*)p);
+		if (todo&1) {
+			((unsigned char*)(crypt_out[j]))[0] = atoi16[ARCH_INDEX(*p)];
+			++p;
+		} else {
+			((unsigned char*)(crypt_out[j]))[0] =
+				(atoi16[ARCH_INDEX(*p)] << 4) |
+				atoi16[ARCH_INDEX(p[1])];
+			p += 2;
+		}
+		todo >>= 1;
+		--todo;
+		for (i = 1; i < FULL_BINARY_SIZE; i++) {
 			((unsigned char*)(crypt_out[j]))[i] =
 				(atoi16[ARCH_INDEX(*p)] << 4) |
 				atoi16[ARCH_INDEX(p[1])];
 			p += 2;
 		}
+		//if (!strcmp(saved_key[j], "ENTERNOW__1") && !strcmp((char*)user_id, "DIP")) {
+		//	dump_stuff_msg("crypt ", crypt_out[j], 32);
+		//}
 	}
-#else
-		// Speed, 17445/s
-	{
-		ARCH_WORD_32 *p1, *p2;
-
-		// This code works for 32 bit (on LE intel systems).  I may need to 'fix' it for 64 bit.
-		// GMP is BE format of a huge 'flat' integer. Thus, we need to put into
-		// BE format (each word), and then put the words themselves, into BE order.
-	//	memcpy(z_exp->_mp_d, Tmp, 20);
-		p1 = (ARCH_WORD_32*)Tmp;
-		p2 = (ARCH_WORD_32*)pSRP_CTX[j].z_exp->_mp_d;
-		// NOTE z_exp was allocated 'properly' with 2^160 bit size.
-		if (!p1[0]) {
-			pSRP_CTX[j].z_exp->_mp_size = 4;
-			p2[3] = JOHNSWAP(p1[1]);
-			p2[2] = JOHNSWAP(p1[2]);
-			p2[1] = JOHNSWAP(p1[3]);
-			p2[0] = JOHNSWAP(p1[4]);
-		} else {
-			pSRP_CTX[j].z_exp->_mp_size = 5;
-			p2[4] = JOHNSWAP(p1[0]);
-			p2[3] = JOHNSWAP(p1[1]);
-			p2[2] = JOHNSWAP(p1[2]);
-			p2[1] = JOHNSWAP(p1[3]);
-			p2[0] = JOHNSWAP(p1[4]);
-		}
-
-		mpz_powm (pSRP_CTX[j].z_rop, pSRP_CTX[j].z_base, pSRP_CTX[j].z_exp, pSRP_CTX[j].z_mod );
-
-	//	memcpy(crypt_out[j], pSRP_CTX[j].z_rop->_mp_d, 32);
-		p1 = (ARCH_WORD_32*)pSRP_CTX[j].z_rop->_mp_d;
-		p2 = (ARCH_WORD_32*)(crypt_out[j]);
-		p2[7] = JOHNSWAP(p1[0]);
-		p2[6] = JOHNSWAP(p1[1]);
-		p2[5] = JOHNSWAP(p1[2]);
-		p2[4] = JOHNSWAP(p1[3]);
-		p2[3] = JOHNSWAP(p1[4]);
-		p2[2] = JOHNSWAP(p1[5]);
-		p2[1] = JOHNSWAP(p1[6]);
-		p2[0] = JOHNSWAP(p1[7]);
-	}
-#endif
 #else
 		// using oSSL's BN to do expmod.
 		pSRP_CTX[j].z_exp = BN_bin2bn(Tmp,20,pSRP_CTX[j].z_exp);
 		BN_mod_exp(pSRP_CTX[j].z_rop, pSRP_CTX[j].z_base, pSRP_CTX[j].z_exp, pSRP_CTX[j].z_mod, pSRP_CTX[j].BN_ctx);
 		BN_bn2bin(pSRP_CTX[j].z_rop, (unsigned char*)(crypt_out[j]));
+		//if (!strcmp(saved_key[j], "ENTERNOW__1") && !strcmp((char*)user_id, "DIP")) {
+		//	dump_stuff_msg("crypt ", crypt_out[j], 32);
+		//}
 #endif
 	}
 	return count;
