@@ -21,9 +21,6 @@ extern int prince_elem_cnt_min;
 /* Maximum number of elements per chain */
 extern int prince_elem_cnt_max;
 
-/* Calculate output length distribution from wordlist */
-extern int prince_wl_dist_len;
-
 /* Skip, in a string since it may overflow a 64 bit */
 extern char *prince_skip_str;
 

@@ -765,6 +765,7 @@ enable_native_macro
 enable_ln_s
 enable_pkg_config
 enable_nt_full_unicode
+enable_int128
 enable_openmp
 enable_opencl
 '
@@ -1398,6 +1399,7 @@ Optional Features:
   --disable-pkg-config    do not use pkg-config for any probing tests
   --enable-nt-full-unicode
                           support 4-byte UTF-8 for MS formats
+  --disable-int128        Do not use int128
   --disable-openmp        do not use OpenMP
   --disable-opencl        do not use OpenCL
 
@@ -3574,6 +3576,13 @@ if test "${enable_nt_full_unicode+set}" = set; then :
   enableval=$enable_nt_full_unicode; enable_nt_unicode=$enableval
 else
   enable_nt_unicode=no
+fi
+
+# Check whether --enable-int128 was given.
+if test "${enable_int128+set}" = set; then :
+  enableval=$enable_int128; enable_int128=$enableval
+else
+  enable_int128=auto
 fi
 
 
@@ -11431,7 +11440,9 @@ _ACEOF
 
 
 fi
-ac_fn_c_check_type "$LINENO" "int128" "ac_cv_type_int128" "$ac_includes_default"
+
+if test "x$enable_int128" != xno; then :
+  ac_fn_c_check_type "$LINENO" "int128" "ac_cv_type_int128" "$ac_includes_default"
 if test "x$ac_cv_type_int128" = xyes; then :
 
 cat >>confdefs.h <<_ACEOF
@@ -11459,6 +11470,7 @@ _ACEOF
 
 fi
 
+fi
 
 # Checks for library functions.
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for error_at_line" >&5
@@ -14777,7 +14789,9 @@ else
    asan="disabled"
 fi
 
-if test "x$ac_cv_type_int128" = xyes ||
+if test "x$enable_int128" = xno; then
+   have_int128=disabled
+elif test "x$ac_cv_type_int128" = xyes ||
    test "x$ac_cv_type___int128" = xyes ||
    test "x$ac_cv_type___uint128_t" = xyes; then
    have_int128=yes

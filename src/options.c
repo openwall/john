@@ -58,7 +58,7 @@
 #ifdef HAVE_OPENCL
 #include "common-opencl.h"
 #endif
-#ifdef HAVE_LIBGMP
+#if HAVE_LIBGMP || HAVE_INT128 || HAVE___INT128 || HAVE___UINT128_T
 #include "prince.h"
 #endif
 #include "memdbg.h"
@@ -79,7 +79,7 @@ static struct opt_entry opt_list[] = {
 		0, 0, OPT_FMT_STR_ALLOC, &options.wordlist},
 	{"loopback", FLG_LOOPBACK_SET, FLG_CRACKING_CHK,
 		0, 0, OPT_FMT_STR_ALLOC, &options.wordlist},
-#ifdef HAVE_LIBGMP
+#if HAVE_LIBGMP || HAVE_INT128 || HAVE___INT128 || HAVE___UINT128_T
 	{"prince", FLG_PRINCE_SET, FLG_CRACKING_CHK,
 		0, 0, OPT_FMT_STR_ALLOC, &options.wordlist},
 	{"prince-elem-cnt-min", FLG_ZERO, 0, FLG_PRINCE_CHK,
@@ -91,6 +91,7 @@ static struct opt_entry opt_list[] = {
 	{"prince-limit", FLG_ZERO, 0, FLG_PRINCE_CHK,
 		0, OPT_FMT_STR_ALLOC, &prince_limit_str},
 	{"prince-wl-dist-len", FLG_PRINCE_DIST, 0, FLG_PRINCE_CHK, 0},
+	{"prince-keyspace", FLG_PRINCE_KEYSPACE, 0, FLG_PRINCE_CHK, 0},
 #endif
 	/* -enc is an alias for -input-enc for legacy reasons */
 	{"encoding", FLG_INPUT_ENC, FLG_INPUT_ENC,
@@ -277,7 +278,7 @@ static struct opt_entry opt_list[] = {
 #define JOHN_USAGE_REGEX ""
 #endif
 
-#ifdef HAVE_LIBGMP
+#if HAVE_LIBGMP || HAVE_INT128 || HAVE___INT128 || HAVE___UINT128_T
 #define PRINCE_USAGE \
 	"--prince[=FILE]           PRINCE mode, read words from FILE\n"
 #else
@@ -457,11 +458,13 @@ void opt_print_hidden_usage(void)
 	puts("--force-vector-width=N    (OpenCL) force vector width N");
 	puts("--platform=N              set OpenCL platform (deprecated)");
 #endif
-#ifdef HAVE_LIBGMP
+#if HAVE_LIBGMP || HAVE_INT128 || HAVE___INT128 || HAVE___UINT128_T
 	puts("--prince-elem-cnt-min=N   PRINCE, minimum number of elements per chain (1)");
 	puts("--prince-elem-cnt-max=N   PRINCE, maximum number of elements per chain (8)");
 	puts("--prince-skip=N           PRINCE, initial skip");
 	puts("--prince-limit=N          PRINCE, limit number of candidates generated");
+	puts("--prince-keyspace         PRINCE, show total keyspace that would be produced");
+	puts("                          (disregarding skip and limit)");
 	puts("--prince-wl-dist-len      PRINCE, calculate length distribution from wordlist");
 	puts("                          instead of using built-in table");
 #endif
@@ -502,10 +505,6 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 
 	opt_process(opt_list, &options.flags, argv);
 
-#ifdef HAVE_LIBGMP
-	if (options.flags & FLG_PRINCE_DIST)
-		prince_wl_dist_len = 1;
-#endif
 	ext_flags = 0;
 	if (options.flags & FLG_EXTERNAL_CHK) {
 		if (options.flags & (FLG_CRACKING_CHK | FLG_MAKECHR_CHK)) {

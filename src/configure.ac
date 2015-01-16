@@ -77,6 +77,7 @@ AC_ARG_ENABLE([native-macro], [AC_HELP_STRING([--disable-native-macro], [Do not 
 AC_ARG_ENABLE([ln-s], [AS_HELP_STRING([--enable-ln-s],[Use ln -s vs symlink.c wrappers (Cygwin only)])], [enable_ln_s=$enableval], [enable_ln_s=no])
 AC_ARG_ENABLE([pkg-config], [AS_HELP_STRING([--disable-pkg-config],[do not use pkg-config for any probing tests])], [enable_pkg_config=$enableval], [enable_pkg_config=auto])
 AC_ARG_ENABLE([nt-full-unicode], [AS_HELP_STRING([--enable-nt-full-unicode],[support 4-byte UTF-8 for MS formats])], [enable_nt_unicode=$enableval], [enable_nt_unicode=no])
+AC_ARG_ENABLE([int128], [AC_HELP_STRING([--disable-int128], [Do not use int128])], [enable_int128=$enableval], [enable_int128=auto])
 
 ####### Actual tests start here #######
 
@@ -585,7 +586,8 @@ AC_TYPE_UINT16_T
 AC_TYPE_UINT32_T
 AC_TYPE_UINT64_T
 AC_TYPE_UINT8_T
-AC_CHECK_TYPES([ptrdiff_t, int128, __int128, __uint128_t])
+AC_CHECK_TYPES([ptrdiff_t])
+AS_IF([test "x$enable_int128" != xno], [AC_CHECK_TYPES([int128, __int128, __uint128_t])])
 
 # Checks for library functions.
 AC_FUNC_ERROR_AT_LINE
@@ -874,7 +876,9 @@ else
    asan="disabled"
 fi
 
-if test "x$ac_cv_type_int128" = xyes ||
+if test "x$enable_int128" = xno; then
+   have_int128=disabled
+elif test "x$ac_cv_type_int128" = xyes ||
    test "x$ac_cv_type___int128" = xyes ||
    test "x$ac_cv_type___uint128_t" = xyes; then
    have_int128=yes

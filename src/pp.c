@@ -115,7 +115,6 @@
 
 int prince_elem_cnt_min;
 int prince_elem_cnt_max;
-int prince_wl_dist_len;
 char *prince_skip_str;
 char *prince_limit_str;
 #endif
@@ -236,7 +235,7 @@ static const char *USAGE_MINI[] =
 
 static const char *USAGE_BIG[] =
 {
-  "pp by atom, High-Performance word-generator",
+  "pp by atom, High-Performance word-generator (" REALGMP " build)",
   "",
   "Usage: %s [options] < wordlist",
   "",
@@ -671,12 +670,12 @@ void do_prince_crack(struct db_main *db, char *filename)
 #ifndef JTR_MODE
   int     version       = 0;
   int     usage         = 0;
-  int     keyspace      = 0;
 #else
   mpf_init_set_ui(count,     1);
   mpz_init_set_ui(rec_pos,   0);
   mpz_init_set_ui(pos,       0);
 #endif
+  int     keyspace      = 0;
   int     pw_min        = PW_MIN;
   int     pw_max        = PW_MAX;
   int     elem_cnt_min  = ELEM_CNT_MIN;
@@ -843,7 +842,10 @@ void do_prince_crack(struct db_main *db, char *filename)
     elem_cnt_min = prince_elem_cnt_min;
   if (prince_elem_cnt_max)
     elem_cnt_max = prince_elem_cnt_max;
-  wl_dist_len = prince_wl_dist_len;
+  if (options.flags & FLG_PRINCE_DIST)
+    wl_dist_len = 1;
+  if (options.flags & FLG_PRINCE_KEYSPACE)
+    keyspace = 1;
 
   if (elem_cnt_min > elem_cnt_max)
   {
@@ -1082,20 +1084,26 @@ void do_prince_crack(struct db_main *db, char *filename)
     }
   }
 
-#ifndef JTR_MODE
   if (keyspace)
   {
     mpz_out_str (stdout, 10, total_ks_cnt);
 
     printf ("\n");
 
+#ifndef JTR_MODE
     return 0;
-  }
 #else
-  char l_msg[64];
+    exit(0);
+#endif
+  }
+#ifdef JTR_MODE
+  else
+  {
+    char l_msg[64];
 
-  mpz_get_str(l_msg, 10, total_ks_cnt);
-  log_event("- Keyspace size %s", l_msg);
+    mpz_get_str(l_msg, 10, total_ks_cnt);
+    log_event("- Keyspace size %s", l_msg);
+  }
 #endif
 
   /**
@@ -1422,6 +1430,7 @@ void do_prince_crack(struct db_main *db, char *filename)
             if ((jtr_done = crk_process_key(pw_buf)))
               break;
 #endif
+
             chain_set_pwbuf_increment (chain_buf, db_entries, cur_chain_ks_poses, pw_buf);
 
             iter_pos_u64++;
