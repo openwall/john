@@ -26,6 +26,7 @@ john_register_one(&fmt_opencl_rawMD4);
 #include "common-opencl.h"
 #include "config.h"
 #include "options.h"
+#include "mask_ext.h"
 
 #define PLAINTEXT_LENGTH    55 /* Max. is 55 with current kernel */
 #define BUFSIZE             ((PLAINTEXT_LENGTH+3)/4*4)
@@ -45,10 +46,11 @@ john_register_one(&fmt_opencl_rawMD4);
 #define TAG_LENGTH          (sizeof(FORMAT_TAG) - 1)
 
 cl_command_queue queue_prof;
-cl_mem pinned_saved_keys, pinned_saved_idx, pinned_partial_hashes;
-cl_mem buffer_keys, buffer_idx, buffer_out;
-static cl_uint *partial_hashes, *saved_plain, *saved_idx;
+cl_mem pinned_saved_keys, pinned_saved_idx, pinned_partial_hashes, pinned_int_key_loc;
+cl_mem buffer_keys, buffer_idx, buffer_out, buffer_int_keys, buffer_int_key_loc;
+static cl_uint *partial_hashes, *saved_plain, *saved_idx, *saved_int_key_loc;
 static unsigned int key_idx = 0;
+static unsigned int ref_ctr;
 
 #define MIN(a, b)               (((a) > (b)) ? (b) : (a))
 #define MAX(a, b)               (((a) > (b)) ? (a) : (b))
@@ -118,10 +120,15 @@ static void create_clobj(size_t kpc, struct fmt_main * self)
 	saved_idx = (cl_uint *) clEnqueueMapBuffer(queue[gpu_id], pinned_saved_idx, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(cl_uint) * kpc, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_idx");
 
-	pinned_partial_hashes = clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR, DIGEST_SIZE * kpc, NULL, &ret_code);
+	pinned_partial_hashes = clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR, DIGEST_SIZE * kpc * mask_int_cand.num_int_cand, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory pinned_partial_hashes");
-	partial_hashes = (cl_uint *) clEnqueueMapBuffer(queue[gpu_id], pinned_partial_hashes, CL_TRUE, CL_MAP_READ, 0, DIGEST_SIZE * kpc, 0, NULL, NULL, &ret_code);
+	partial_hashes = (cl_uint *) clEnqueueMapBuffer(queue[gpu_id], pinned_partial_hashes, CL_TRUE, CL_MAP_READ, 0, DIGEST_SIZE * kpc * mask_int_cand.num_int_cand, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory partial_hashes");
+
+	pinned_int_key_loc = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, 4 * kpc, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating page-locked memory pinned_int_key_loc");
+	saved_int_key_loc = (cl_uint *) clEnqueueMapBuffer(queue[gpu_id], pinned_saved_keys, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, 4 * kpc, 0, NULL, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_int_key_loc");
 
 	// create and set arguments
 	buffer_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, BUFSIZE * kpc, NULL, &ret_code);
@@ -130,12 +137,24 @@ static void create_clobj(size_t kpc, struct fmt_main * self)
 	buffer_idx = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, 4 * kpc, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_idx");
 
-	buffer_out = clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, DIGEST_SIZE * kpc, NULL, &ret_code);
+	buffer_out = clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, DIGEST_SIZE * kpc * mask_int_cand.num_int_cand, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_out");
+
+	buffer_int_key_loc = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, 4 * kpc, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_int_key_loc");
+
+	//ref_ctr is used as dummy parameter
+	buffer_int_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, 4 * mask_int_cand.num_int_cand, mask_int_cand.int_cand ? mask_int_cand.int_cand : (void *)&ref_ctr, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_int_keys");
 
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(buffer_keys), (void *) &buffer_keys), "Error setting argument 1");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(buffer_idx), (void *) &buffer_idx), "Error setting argument 2");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(buffer_out), (void *) &buffer_out), "Error setting argument 3");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(buffer_int_key_loc), (void *) &buffer_int_key_loc), "Error setting argument 4");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 4, sizeof(buffer_int_keys), (void *) &buffer_int_keys), "Error setting argument 5");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 5, sizeof(cl_uint), (void *) &(mask_int_cand.num_int_cand)), "Error setting argument 6");
+
+	ref_ctr++;
 }
 
 static void release_clobj(void)
@@ -143,14 +162,20 @@ static void release_clobj(void)
 	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_partial_hashes, partial_hashes, 0,NULL,NULL), "Error Unmapping partial_hashes");
 	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_saved_keys, saved_plain, 0, NULL, NULL), "Error Unmapping saved_plain");
 	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_saved_idx, saved_idx, 0, NULL, NULL), "Error Unmapping saved_idx");
+	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_int_key_loc, saved_int_key_loc, 0, NULL, NULL), "Error Unmapping saved_int_key_loc");
 	HANDLE_CLERROR(clFinish(queue[gpu_id]), "Error releasing mappings");
 	HANDLE_CLERROR(clReleaseMemObject(buffer_keys), "Error Releasing buffer_keys");
 	HANDLE_CLERROR(clReleaseMemObject(buffer_idx), "Error Releasing buffer_idx");
 	HANDLE_CLERROR(clReleaseMemObject(buffer_out), "Error Releasing buffer_out");
+	HANDLE_CLERROR(clReleaseMemObject(buffer_int_key_loc), "Error Releasing buffer_int_key_loc");
+	HANDLE_CLERROR(clReleaseMemObject(buffer_int_keys), "Error Releasing buffer_int_keys");
 
 	HANDLE_CLERROR(clReleaseMemObject(pinned_saved_idx), "Error Releasing pinned_saved_idx");
 	HANDLE_CLERROR(clReleaseMemObject(pinned_saved_keys), "Error Releasing pinned_saved_keys");
 	HANDLE_CLERROR(clReleaseMemObject(pinned_partial_hashes), "Error Releasing pinned_partial_hashes");
+	HANDLE_CLERROR(clReleaseMemObject(pinned_int_key_loc), "Error Releasing pinned_int_key_loc");
+
+	ref_ctr--;
 }
 
 static void done(void)
@@ -180,6 +205,8 @@ static void init(struct fmt_main *self)
 	//Auto tune execution from shared/included code.
 	autotune_run(self, 1, gws_limit,
 		(cpu(device_info[gpu_id]) ? 500000000ULL : 1000000000ULL));
+
+	mask_int_cand_target = 10;
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -271,7 +298,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	global_work_size = local_work_size ? (count + local_work_size - 1) / local_work_size * local_work_size : count;
 
-	//fprintf(stderr, "%s(%d) lws %zu gws %zu idx %u\n", __FUNCTION__, count, local_work_size, global_work_size, key_idx);
+	fprintf(stderr, "%s(%d) lws %zu gws %zu idx %u\n", __FUNCTION__, count, local_work_size, global_work_size, key_idx);
 
 	// copy keys to the device
 	if (key_idx)
@@ -325,6 +352,22 @@ static int cmp_exact(char *source, int index)
 	return 1;
 }
 
+static void reset(struct db_main *db) {
+	if (db) {
+		size_t kpc;
+		if (ref_ctr > 0)
+			release_clobj();
+
+		kpc = db->format->params.max_keys_per_crypt;
+		kpc /= mask_int_cand.num_int_cand;
+		kpc = local_work_size ? (kpc + local_work_size - 1) / local_work_size * local_work_size : kpc;
+		create_clobj(kpc, NULL);
+		db->format->params.max_keys_per_crypt = kpc;
+
+		fprintf(stderr, "KPC: %d\n", db->format->params.max_keys_per_crypt);
+	}
+}
+
 struct fmt_main fmt_opencl_rawMD4 = {
 	{
 		FORMAT_LABEL,
@@ -348,7 +391,7 @@ struct fmt_main fmt_opencl_rawMD4 = {
 	}, {
 		init,
 		done,
-		fmt_default_reset,
+		reset,
 		fmt_default_prepare,
 		valid,
 		split,
