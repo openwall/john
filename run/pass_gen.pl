@@ -339,7 +339,7 @@ sub pp_pbkdf2 {
 	my $slt;
 	while (length($final_out) < $bytes) {
 		$slt = $orig_salt;
-		if (!defined($pbkdf1) || !$pbkdf1) { Uint32BERaw($i); $i += 1; }
+		if (!defined($pbkdf1) || !$pbkdf1) { $slt .= Uint32BERaw($i); $i += 1; }
 		no strict 'refs';
 		$slt = &$algo($opad.&$algo($ipad.$slt));
 		my $out;
