@@ -401,6 +401,26 @@ static int in_superchop (char *buf)
   return len;
 }
 
+static inline int get_bits(mpz_t *op)
+{
+    mpz_t half; mpz_init(half);
+    u64 h;
+    int b;
+
+    mpz_fdiv_q_2exp(half, *op, 64);
+    h = mpz_get_ui(half);
+    if (h) b = 64;
+    else
+    {
+      mpz_fdiv_r_2exp(half, *op, 64);
+      h = mpz_get_ui(half);
+      b = 0;
+    }
+    while (h >>= 1) b++;
+
+    return b;
+}
+
 #ifndef JTR_MODE
 static void out_flush (out_t *out)
 {
@@ -1088,7 +1108,7 @@ void do_prince_crack(struct db_main *db, char *filename)
   {
     mpz_out_str (stdout, 10, total_ks_cnt);
 
-    printf ("\n");
+    printf (" (%d bits used)\n", get_bits(&total_ks_cnt));
 
 #ifndef JTR_MODE
     return 0;
@@ -1102,7 +1122,8 @@ void do_prince_crack(struct db_main *db, char *filename)
     char l_msg[64];
 
     mpz_get_str(l_msg, 10, total_ks_cnt);
-    log_event("- Keyspace size %s", l_msg);
+    log_event("- Keyspace size %s (%d bits used)", l_msg,
+              get_bits(&total_ks_cnt));
   }
 #endif
 
@@ -1241,7 +1262,7 @@ void do_prince_crack(struct db_main *db, char *filename)
 
     // find pw_ks_pos[]
 
-    while (outs_per_main_loop)
+    while (1)
     {
       mpz_fdiv_q_ui (main_loops, skip_left, outs_per_main_loop);
 
