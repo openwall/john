@@ -63,7 +63,7 @@ my @funcs = (qw(DESCrypt BigCrypt BSDIcrypt md5crypt md5crypt_a BCRYPT BCRYPTx
 		crc_32 Dynamic dummy raw-sha224 raw-sha256 raw-sha384 raw-sha512
 		dragonfly3-32 dragonfly4-32 dragonfly3-64 dragonfly4-64 ssh
 		salted-sha1 raw_gost raw_gost_cp hmac-sha1 hmac-sha224 mozilla
-		hmac-sha256 hmac-sha384 hmac-sha512 sha256crypt sha512crypt
+		hmac-sha256 hmac-sha384 hmac-sha512 sha1crypt sha256crypt sha512crypt
 		XSHA512 dynamic_27 dynamic_28 pwsafe django drupal7 epi zip
 		episerver_sha1 episerver_sha256 hmailserver ike keepass pkzip
 		keychain nukedclan pfx racf radmin raw-SHA sip SybaseASE vnc
@@ -73,7 +73,8 @@ my @funcs = (qw(DESCrypt BigCrypt BSDIcrypt md5crypt md5crypt_a BCRYPT BCRYPTx
 		skey-md4 skey-sha1 skey-rmd160 cloudkeychain agilekeychain
 		rar rar5 ecryptfs office_2010 office_2013 tc_ripemd160 tc_sha512
 		tc_whirlpool Haval-256 SAP-H rsvp pbkdf2-hmac-sha1-p5k2
-		pbkdf2-hmac-sha1-pkcs5s2 md5crypt-smd5 ripemd-128 ripemd-160));
+		pbkdf2-hmac-sha1-pkcs5s2 md5crypt-smd5 ripemd-128 ripemd-160
+		raw-tiger raw-whirlpool));
 
 # todo: sapb sapfg ike keepass cloudkeychain agilekeychain pfx racf vnc pdf pkzip rar5 ssh raw_gost_cp
 my $i; my $h; my $u; my $salt;
@@ -331,22 +332,24 @@ sub hmac_pad {
 	return $pad;
 }
 sub pp_pbkdf2 {
-	my ($pass, $orig_salt, $iter, $algo, $bytes, $pad_len) = @_;
+	my ($pass, $orig_salt, $iter, $algo, $bytes, $pad_len, $pbkdf1) = @_;
 	my $ipad = hmac_pad($pass, '6', $algo, $pad_len);  # 6 is \x36 for an ipad
 	my $opad = hmac_pad($pass, '\\', $algo, $pad_len); # \ is \x5c for an opad
 	my $final_out=""; my $i=1;
 	my $slt;
 	while (length($final_out) < $bytes) {
-		$slt = $orig_salt . Uint32BERaw($i);
-		$i += 1;
+		$slt = $orig_salt;
+		if (!defined($pbkdf1) || !$pbkdf1) { Uint32BERaw($i); $i += 1; }
 		no strict 'refs';
 		$slt = &$algo($opad.&$algo($ipad.$slt));
-		my $out = $slt;
-		for (my $i = 1; $i < $iter; $i += 1) {
+		my $out;
+		if (!defined($pbkdf1) || !$pbkdf1) { $out = $slt; }
+		for (my $x = 1; $x < $iter; $x += 1) {
 			$slt = &$algo($opad.&$algo($ipad.$slt));
-			$out ^= $slt;
+			if (!defined($pbkdf1) || !$pbkdf1) {  $out ^= $slt; }
 		}
 		use strict;
+		if (defined($pbkdf1) && $pbkdf1) {  $out = $slt; }
 		if (length($final_out)+length($out) > $bytes) {
 			$out = substr($out, 0, $bytes-length($final_out));
 		}
@@ -355,8 +358,8 @@ sub pp_pbkdf2 {
 	return $final_out;
 }
 sub pp_pbkdf2_hex {
-	my ($pass, $slt, $iter, $algo, $bytes, $pad_len) = @_;
-	return unpack("H*",pp_pbkdf2($pass,$slt,$iter,$algo,$bytes,$pad_len));
+	my ($pass, $slt, $iter, $algo, $bytes, $pad_len, $pbkdf1) = @_;
+	return unpack("H*",pp_pbkdf2($pass,$slt,$iter,$algo,$bytes,$pad_len,$pbkdf1));
 }
 
 #############################################################################
@@ -994,6 +997,13 @@ sub cisco9 {
 	my $h = scrypt_raw($_[1],$salt,16384,1,1,32);
 	my $s = base64_wpa($h);
 	print "u$u-cisco9:\$9\$$salt\$$s:$u:0:$_[0]::\n";
+}
+sub raw_tiger {
+	print "u$u-tiger:\$tiger\$".tiger_hex($_[1]).":$u:0:$_[0]::\n";
+}
+sub raw_whirlpool {
+	# note we only handle whirlpool, not whirlpool0 or whirlpool1
+	print "u$u-whirlpool:\$whirlpool\$".whirlpool_hex($_[1]).":$u:0:$_[0]::\n";
 }
 sub dragonfly3_32 {
 	$salt = get_salt(-8, -8);
@@ -1968,6 +1978,14 @@ sub sha512crypt {
 	} else {
 	print "u$u-sha512crypt:\$6\$$salt\$$bin:$u:0:$_[0]::\n";
 	}
+}
+sub sha1crypt {
+	$salt = get_salt(8);
+	my $loops = $arg_loops != -1 ? $arg_loops : 5000;
+	# actual call to pbkdf1 (that is the last 1 param, it says to use pbkdf1 logic)
+	$h = pp_pbkdf2($_[1], $salt.'$sha1$'.$loops, $loops, "sha1", 20, 64, 1);
+	$h = base64_aix($h.substr($h,0,1)); # the hash is padded to 21 bytes, by appending first byte.  That is how it is done, dont ask why.
+	print "u$u-sha1crypt:\$sha1\$$loops\$$salt\$$h:$u:0:$_[0]::\n";
 }
 sub xsha512 {
 # simple 4 byte salted crypt.  No separator char, just raw hash. Also 'may' have $LION$.  We alternate, and every other
