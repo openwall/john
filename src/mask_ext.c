@@ -14,7 +14,7 @@
 int *mask_skip_ranges = NULL;
 int mask_max_skip_loc = -1;
 int mask_int_cand_target = 100;
-mask_int_cand_ctx mask_int_cand;
+mask_int_cand_ctx mask_int_cand = {NULL, NULL, 1};
 
 static void combination_util(int *data, int start, int end, int index,
                              int r, cpu_mask_context *ptr, int *delta) {
@@ -88,7 +88,7 @@ void mask_calc_combination(cpu_mask_context *ptr) {
 	int *data, i, n;
 	int delta_to_target = 0x7fffffff;
 
-	mask_int_cand.num_int_cand = 0;
+	mask_int_cand.num_int_cand = 1;
 	mask_int_cand.int_cpu_mask_ctx = NULL;
 	mask_int_cand.int_cand = NULL;
 
@@ -118,14 +118,14 @@ void mask_calc_combination(cpu_mask_context *ptr) {
 				ranges[mask_skip_ranges[i]].count;
 	}
 
-	if (mask_int_cand.num_int_cand) {
+	if (mask_int_cand.num_int_cand > 1) {
 		mask_int_cand.int_cpu_mask_ctx = ptr;
 		mask_int_cand.int_cand = (mask_char4*)
 			malloc(mask_int_cand.num_int_cand * sizeof(mask_char4));
 		generate_int_keys(ptr);
 	}
 
-	for (i = 0; i < mask_int_cand.num_int_cand; i++)
+	for (i = 0; i < mask_int_cand.num_int_cand && mask_int_cand.int_cand; i++)
 		fprintf(stderr, "%c%c%c%c\n", mask_int_cand.int_cand[i].x[0], mask_int_cand.int_cand[i].x[1], mask_int_cand.int_cand[i].x[2], mask_int_cand.int_cand[i].x[3]);
 	MEM_FREE(data);
 }
