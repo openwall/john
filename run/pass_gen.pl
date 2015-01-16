@@ -69,11 +69,11 @@ my @funcs = (qw(DESCrypt BigCrypt BSDIcrypt md5crypt md5crypt_a BCRYPT BCRYPTx
 		keychain nukedclan pfx racf radmin raw-SHA sip SybaseASE vnc
 		wbb3 wpapsk sunmd5 wowsrp django-scrypt aix-ssha1 aix-ssha256
 		aix-ssha512 pbkdf2-hmac-sha512 pbkdf2-hmac-sha256 scrypt pdf
-		rakp osc formspring skey_md5 pbkdf2-hmac-sha1 odf odf-1 office_2007
-		skey_md4 skey_sha1 skey_rmd160 cloudkeychain agilekeychain
+		rakp osc formspring skey-md5 pbkdf2-hmac-sha1 odf odf-1 office_2007
+		skey-md4 skey-sha1 skey-rmd160 cloudkeychain agilekeychain
 		rar rar5 ecryptfs office_2010 office_2013 tc_ripemd160 tc_sha512
 		tc_whirlpool Haval-256 SAP-H rsvp pbkdf2-hmac-sha1-p5k2
-		pbkdf2-hmac-sha1-pkcs5s2));
+		pbkdf2-hmac-sha1-pkcs5s2 md5crypt-smd5 ripemd-128 ripemd-160));
 
 # todo: sapb sapfg ike keepass cloudkeychain agilekeychain pfx racf vnc pdf pkzip rar5 ssh raw_gost_cp
 my $i; my $h; my $u; my $salt;
@@ -1229,6 +1229,13 @@ sub tc_whirlpool {
 	$h = _tc_aes_256_xts($h,$d,$tweak);
 	print "u$u-tc_whirlpool:truecrypt_WHIRLPOOL\$".unpack("H*",$salt).unpack("H*",$h).":$u:0:$_[0]::\n";
 }
+sub ripemd_128 {
+	print "u$u-ripemd128:\$ripemd\$".ripemd128_hex($_[0]).":$u:0:$_[0]::\n";
+}
+sub ripemd_160 {
+	print "u$u-ripemd160:\$ripemd\$".ripemd160_hex($_[0]).":$u:0:$_[0]::\n";
+}
+
 sub pdf {
 }
 sub pkzip {
@@ -1647,6 +1654,12 @@ sub md5crypt_a {
 	$h = md5crypt_hash($_[1], $salt, "\$apr1\$");
 	print "u$u-md5crypt_a:$h:$u:0:$_[0]::\n";
 }
+sub md5crypt_smd5 {
+	if (length($_[1]) > 15) { print STDERR "Warning, john can only handle 15 byte passwords for this format!\n"; }
+	$salt = get_salt(8);
+	$h = md5crypt_hash($_[1], $salt, "");
+	print "u$u-md5crypt_a:{smd5}$h:$u:0:$_[0]::\n";
+}
 sub md5bit {
 	my $digest = $_[0]; my $bit_num=$_[1];
 	my $byte_off;
@@ -1769,7 +1782,7 @@ sub wowsrp {
 	require Math::BigInt;
 	$salt = get_salt(16);
 	my $usr = uc randusername();
-
+	if (defined $argmode) {$usr = uc $argmode; }
 	my $h = sha1($salt, sha1($usr,":",uc $_[1]));
 
 	# turn $h into a hex, so we can load it into a BigInt
@@ -2431,6 +2444,7 @@ sub skey_md5 {
 	$salt=get_salt(8, 8, \@chrAsciiTextNumLo);
 	$salt = lc $salt;
 	my $cnt=randstr(3, \@chrAsciiNum);
+	if (defined $argmode) {$cnt=$argmode;}
 	my $h = md5($salt.$_[1]);
 	$h = skey_fold($h, 4);
 	my $i = $cnt;
@@ -2444,6 +2458,7 @@ sub skey_md4 {
 	$salt=get_salt(8, 8, \@chrAsciiTextNumLo);
 	$salt = lc $salt;
 	my $cnt=randstr(3, \@chrAsciiNum);
+	if (defined $argmode) {$cnt=$argmode;}
 	my $h = md4($salt.$_[1]);
 	$h = skey_fold($h, 4);
 	my $i = $cnt;
@@ -2457,6 +2472,7 @@ sub skey_sha1 {
 	$salt=get_salt(8, 8, \@chrAsciiTextNumLo);
 	$salt = lc $salt;
 	my $cnt=randstr(3, \@chrAsciiNum);
+	if (defined $argmode) {$cnt=$argmode;}
 	my $h = sha1($salt.$_[1]);
 	$h = skey_fold($h, 5);
 	my $i = $cnt;
@@ -2470,6 +2486,7 @@ sub skey_rmd160 {
 	$salt=get_salt(8, 8, \@chrAsciiTextNumLo);
 	$salt = lc $salt;
 	my $cnt=randstr(3, \@chrAsciiNum);
+	if (defined $argmode) {$cnt=$argmode;}
 	my $h = ripemd160($salt.$_[1]);
 	$h = skey_fold($h, 5);
 	my $i = $cnt;
