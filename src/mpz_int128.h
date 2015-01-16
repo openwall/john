@@ -18,7 +18,6 @@
 
 #include <stdint.h>
 #include <stdio.h>
-#include <ctype.h>
 #include <string.h>
 #include <stdlib.h>
 
@@ -86,13 +85,20 @@ static inline int _mpz_fdiv_q_ui(mpz_t *q, mpz_t n, mpz_t d)
 }
 #endif
 
-#define mpz_set_str(rop, str, base) _mpz_set_str(&rop, str, base)
-static inline int _mpz_set_str(mpz_t *rop, char *str, int base)
-{
-	int num, ret = 0;
+/* Fugly but short :-P and only supports base 10 right now */
+#define mpz_get_str(ptr, base, op)	  \
+	do { \
+		if (!op) \
+			strcpy(ptr, "0"); \
+		else \
+			_int128tostr(op, base, ptr); \
+	} while (0)
 
-	if (base == 0 && str[0] != '0')
-		base = 10;
+static inline int _int128tostr(uint128_t op, int base, char *ptr)
+{
+	char *orig = ptr;
+	if (op == 0)
+		return 0;
 
 	if (base != 10) {
 		fprintf(stderr, "%s(): base %d not implemented\n",
@@ -100,17 +106,48 @@ static inline int _mpz_set_str(mpz_t *rop, char *str, int base)
 		exit (EXIT_FAILURE);
 	}
 
-	if (strlen(str) != strspn(str, "0123456789 \t\n\v\f\r"))
-		ret = 1;
+	ptr += _int128tostr(op / base, base, ptr);
+	*ptr++ = op % base + '0';
+	*ptr = 0;
+	return ptr - orig;
+}
+
+#define mpz_set_str(rop, str, base) _mpz_set_str(&rop, str, base)
+static inline int _mpz_set_str(mpz_t *rop, char *str, int base)
+{
+	int num;
+
+	if (!strncasecmp(str, "0x", 2)) {
+		if (base == 0)
+			base = 16;
+		if (base == 16)
+			str += 2;
+	} else
+	if (base == 0 && str[0] != '0')
+		base = 10;
+
+	if (base != 10 && base != 16) {
+		fprintf(stderr, "%s(): base %d not implemented\n",
+		        __FUNCTION__, base);
+		exit (EXIT_FAILURE);
+	}
 
 	*rop = 0;
 	while ((num = *str++)) {
-		if (isspace(num))
+		if (num == ' ' || num == '\t')
 			continue;
-		*rop *=10;
-		*rop += num - '0';
+		*rop *= base;
+		num |= 0x20;
+		if (base == 16 && (num >= 'a' && num <= 'f'))
+			num -= 'a' - 10;
+		else if (num >= '0' && num <= '9')
+			num -= '0';
+		else
+			return -1;
+		*rop += num;
 	}
-	return ret;
+
+	return 0;
 }
 
 /* This is slow and can't print '0'... but it's simple :-P */
@@ -148,41 +185,3 @@ static inline size_t mpz_out_str(FILE *stream, int base, mpz_t op)
 #define mpf_div(q, n, d) q = (n) / (d)
 #define mpf_clear(x) x = 0
 #define mpf_get_d(x) x
-
-/* Fugly but short :-P and only supports base 10 right now */
-#define mpz_get_str(ptr, base, op) \
-  do { \
-    if (!op) \
-      strcpy(ptr, "0"); \
-    else \
-      _int128tostr(op, ptr); \
-  } while (0)
-
-static inline int _int128tostr(uint128_t op, char *ptr)
-{
-  char *orig = ptr;
-  if (op == 0)
-    return 0;
-
-  ptr += _int128tostr(op / 10, ptr);
-  *ptr++ = op % 10 + '0';
-  *ptr = 0;
-  return ptr - orig;
-}
-
-#if 0
-int main(int argc, char **argv)
-{
-	uint128_t a;
-
-	if (argc <= 1)
-		return EXIT_FAILURE;
-
-	while (--argc) {
-		mpz_set_str(a, *(++argv), 10);
-		mpz_out_str(stderr, 10, a);
-		fputc('\n', stderr);
-	}
-	return EXIT_SUCCESS;
-}
-#endif
