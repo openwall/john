@@ -74,7 +74,7 @@ my @funcs = (qw(DESCrypt BigCrypt BSDIcrypt md5crypt md5crypt_a BCRYPT BCRYPTx
 		rar rar5 ecryptfs office_2010 office_2013 tc_ripemd160 tc_sha512
 		tc_whirlpool Haval-256 SAP-H rsvp pbkdf2-hmac-sha1-p5k2
 		pbkdf2-hmac-sha1-pkcs5s2 md5crypt-smd5 ripemd-128 ripemd-160
-		raw-tiger raw-whirlpool));
+		raw-tiger raw-whirlpool hsrp known-hosts chap));
 
 # todo: sapb sapfg ike keepass cloudkeychain agilekeychain pfx racf vnc pdf pkzip rar5 ssh raw_gost_cp
 my $i; my $h; my $u; my $salt;
@@ -1171,6 +1171,16 @@ sub office_2007 {
 	my $hash = $crypt->encrypt(substr(sha1(substr($crypt->decrypt($randdata),0,16)),0,16));
 	print "u$u-office07:\$office\$*2007*20*128*16*".unpack("H*",$salt)."*".unpack("H*",$randdata)."*".unpack("H*",$hash)."00000000:$u:0:$_[0]::\n";
 }
+sub known_hosts {
+	# simple hmac-sha1, BUT salt and pw are used in wrong order, and password is usually some host or IP, BUT
+	# it does not matter if it is an IP or not. Still works fine regardless.
+	$salt = get_salt(20);
+	$h = Digest::SHA::hmac_sha1($_[1], $salt);
+	$salt = base64($salt);
+	$h = base64($h);
+	print "u$u:\$known_hosts\$|1|$salt|$h:$u:0:$_[0]::\n";
+	
+}
 sub _tc_build_buffer {
 	# build a special TC buffer.  448 bytes, 2 spots have CRC32.  Lots of null, etc.
 	my $buf = 'TRUE'."\x00\x05\x07\x00". "\x00"x184 . randstr(64) . "\x00"x192;
@@ -1284,7 +1294,13 @@ sub sap_h {
 	use strict;
 	print "u$u-sapH:{x-is$modestr, $iter}".base64($h.$salt).":$u:0:$_[0]::\n";
 }
-
+sub chap {
+	$salt = get_salt(16);
+	my $h = md5("\0" . $_[1] . $salt);
+	$salt = unpack("H*",$salt);
+	$h = unpack("H*",$h); 
+	print "u$u:\$chap\$0*$salt*$h:$u:0:$_[0]::\n";
+}
 sub zip {
 	# NOTE ,the zip contents are garbage, but we do not care.  We simply
 	# run the hmac-sha1 over it and compare to the validator (in JtR), so
@@ -2254,6 +2270,13 @@ sub l0phtcrack {
 	}
 	printf("%s\\%s:::%s:%s:%s::%s:%s\n", $domain, "u$u-netntlm", unpack("H*",$lmresp), unpack("H*",$ntresp), unpack("H*",$challenge), $_[0], $type);
 }
+sub hsrp {
+	if (length($_[1]) > 55) { return; }
+	$h = pad_md64($_[1]);
+	$salt = get_salt(16,-64);
+	$h = md5($h.$salt.$_[1]);
+	print "$u-hsrp:", '$hsrp$', unpack("H*",$salt).'$'.unpack('H*', $h), ":$u:0:", $_[0], "::\n";
+}
 sub netlmv2 {
 	my $pwd = $_[1];
 	my $nthash = md4(encode("UTF-16LE", $pwd));
@@ -2315,7 +2338,7 @@ sub crc_32 {
 	}
 }
 sub dummy {
-    print "$u-dummy:", '$dummy$', unpack('H*', $_[1]), "\n";
+    print "$u-dummy:", '$dummy$', unpack('H*', $_[1]),":$u:0:", $_[0], "::\n";
 }
 sub raw_gost {
 	require Digest::GOST;
@@ -2559,6 +2582,13 @@ sub pad16 { # used by pad16($p)  This will null pad a string to 16 bytes long
 sub pad20 { # used by pad20($p)  This will null pad a string to 20 bytes long
 	my $p = $_[0];
 	while (length($p) < 20) {
+		$p .= "\0";
+	}
+	return $p;
+}
+sub pad100 { # used by pad100($p)  This will null pad a string to 100 bytes long for dyna1010
+	my $p = $_[0];
+	while (length($p) < 100) {
 		$p .= "\0";
 	}
 	return $p;
@@ -2839,7 +2869,7 @@ sub dynamic_compile {
 			$dynamic_args==1007 && do {$fmt='md5(md5($p).$s),saltlen=3';	last SWITCH; };
 			$dynamic_args==1008 && do {$fmt='md5($p.$s),saltlen=16';	last SWITCH; };
 			$dynamic_args==1009 && do {$fmt='md5($s.$p),saltlen=16';	last SWITCH; };
-			# dyna-1010 not handled yet (the pad null to 100 bytes)
+			$dynamic_args==1010 && do {$fmt='md5(pad100($p))';	last SWITCH; };
 			$dynamic_args==1011 && do {$fmt='md5($p.md5($s)),saltlen=6';	last SWITCH; };
 			$dynamic_args==1012 && do {$fmt='md5($p.md5($s)),saltlen=6';	last SWITCH; };
 			$dynamic_args==1013 && do {$fmt='md5($p.$s),usrname=md5_hex_salt';	last SWITCH; };
@@ -2954,6 +2984,7 @@ sub do_dynamic_GetToken {
 	if (substr($exprStr, 0,12) eq "haval256_raw")  { push(@gen_toks, "fhavr"); return substr($exprStr,12); }
 	if (substr($exprStr, 0,5)  eq "pad16")         { push(@gen_toks, "fpad16"); return substr($exprStr,5); }
 	if (substr($exprStr, 0,5)  eq "pad20")         { push(@gen_toks, "fpad20"); return substr($exprStr,5); }
+	if (substr($exprStr, 0,6)  eq "pad100")        { push(@gen_toks, "fpad100"); return substr($exprStr,6); }
 	if (substr($exprStr, 0,7)  eq "padmd64")       { push(@gen_toks, "fpadmd64"); return substr($exprStr,7); }
 	if (substr($exprStr, 0,5)  eq "utf16")         { push(@gen_toks, "futf16"); return substr($exprStr,5); }
 	if (substr($exprStr, 0,7)  eq "utf16be")       { push(@gen_toks, "futf16be"); return substr($exprStr,7); }
@@ -3536,6 +3567,7 @@ sub dynamic_fhavu  { require Digest::Haval256; $h = pop @gen_Stack; $h = haval25
 sub dynamic_fhavr  { require Digest::Haval256; $h = pop @gen_Stack; $h = haval256($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_fpad16 { $h = pop @gen_Stack; $h = pad16($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_fpad20 { $h = pop @gen_Stack; $h = pad20($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_fpad100{ $h = pop @gen_Stack; $h = pad100($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_fpadmd64 { $h = pop @gen_Stack; $h = pad_md64($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_futf16  { $h = pop @gen_Stack; $h = encode("UTF-16LE",$h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_futf16be{ $h = pop @gen_Stack; $h = encode("UTF-16BE",$h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
