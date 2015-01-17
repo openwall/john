@@ -11,7 +11,10 @@
  * mpz_fdiv_q_ui() should return remainder but that's not currently used
  * by princeprocessor).
  *
- * WARNING 2: This is a hack. If using this somewhere else without verifying
+ * WARNING 2: These functions are saturating. mul, add and sub will not roll
+ * over but stick to ceiling or floor.
+ *
+ * WARNING 3: This is a hack. If using this somewhere else without verifying
  * functionality against real GMP, you may get totally unexpected behavior.
  * You have been warned.
  */
