@@ -75,7 +75,7 @@
 /**
  * Name........: princeprocessor (pp)
  * Description.: Standalone password candidate generator using the PRINCE algorithm
- * Version.....: 0.19
+ * Version.....: 0.20
  * Autor.......: Jens Steube <jens.steube@gmail.com>
  * License.....: MIT
  */
@@ -120,14 +120,14 @@ char *prince_limit_str;
 #endif
 
 #define IN_LEN_MIN    1
-#define IN_LEN_MAX    16
-#define PW_MIN        IN_LEN_MIN
-#define PW_MAX        IN_LEN_MAX
+#define IN_LEN_MAX    32
+#define PW_MIN        1
+#define PW_MAX        16
 #define ELEM_CNT_MIN  1
 #define ELEM_CNT_MAX  8
 #define WL_DIST_LEN   0
 
-#define VERSION_BIN   19
+#define VERSION_BIN   20
 
 #define ALLOC_NEW_ELEMS  0x40000
 #define ALLOC_NEW_CHAINS 0x10
@@ -327,13 +327,11 @@ static void check_realloc_elems (db_entry_t *db_entry)
 
     if (db_entry->elems_buf == NULL)
     {
-#ifndef JTR_MODE
-      fprintf (stderr, "Out of memory!\n");
+      fprintf (stderr, "Out of memory trying to allocate %zu bytes!\n", (size_t) elems_alloc_new * sizeof (elem_t));
 
+#ifndef JTR_MODE
       exit (-1);
 #else
-      fprintf (stderr, "Out of memory trying to allocate %zu bytes!\n",
-               (size_t)elems_alloc_new * sizeof (elem_t));
       error();
 #endif
     }
@@ -356,13 +354,11 @@ static void check_realloc_chains (db_entry_t *db_entry)
 
     if (db_entry->chains_buf == NULL)
     {
-#ifndef JTR_MODE
-      fprintf (stderr, "Out of memory!\n");
+      fprintf (stderr, "Out of memory trying to allocate %zu bytes!\n", (size_t) chains_alloc_new * sizeof (chain_t));
 
+#ifndef JTR_MODE
       exit (-1);
 #else
-      fprintf (stderr, "Out of memory trying to allocate %zu bytes!\n",
-               (size_t)chains_alloc_new * sizeof (chain_t));
       error();
 #endif
     }
@@ -570,7 +566,9 @@ static void chain_set_pwbuf_increment (const chain_t *chain_buf, const db_entry_
 
     const u64 elems_cnt = db_entry->elems_cnt;
 
-    const u64 elems_idx = ++cur_chain_ks_poses[idx];
+    cur_chain_ks_poses[idx]++;
+
+    const u64 elems_idx = cur_chain_ks_poses[idx];
 
     if (elems_idx < elems_cnt)
     {
@@ -1438,9 +1436,7 @@ void do_prince_crack(struct db_main *db, char *filename)
             set_chain_ks_poses (chain_buf, db_entries, &tmp, db_entry->cur_chain_ks_poses);
           }
 
-          u64 *cur_chain_ks_poses = db_entry->cur_chain_ks_poses;
-
-          chain_set_pwbuf_init (chain_buf, db_entries, cur_chain_ks_poses, pw_buf);
+          chain_set_pwbuf_init (chain_buf, db_entries, db_entry->cur_chain_ks_poses, pw_buf);
 
           while (iter_pos_u64 < iter_max_u64)
           {
@@ -1452,7 +1448,7 @@ void do_prince_crack(struct db_main *db, char *filename)
               break;
 #endif
 
-            chain_set_pwbuf_increment (chain_buf, db_entries, cur_chain_ks_poses, pw_buf);
+            chain_set_pwbuf_increment (chain_buf, db_entries, db_entry->cur_chain_ks_poses, pw_buf);
 
             iter_pos_u64++;
           }
@@ -1479,8 +1475,6 @@ void do_prince_crack(struct db_main *db, char *filename)
         if (mpz_cmp (chain_buf->ks_pos, chain_buf->ks_cnt) == 0)
         {
           db_entry->chains_pos++;
-
-          // db_entry->cur_chain_ks_poses[] should of cycled to all zeros, but just in case?
 
           memset (db_entry->cur_chain_ks_poses, 0, ELEM_CNT_MAX * sizeof (u64));
         }
