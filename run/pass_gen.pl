@@ -74,7 +74,8 @@ my @funcs = (qw(DESCrypt BigCrypt BSDIcrypt md5crypt md5crypt_a BCRYPT BCRYPTx
 		rar rar5 ecryptfs office_2010 office_2013 tc_ripemd160 tc_sha512
 		tc_whirlpool Haval-256 SAP-H rsvp pbkdf2-hmac-sha1-p5k2
 		pbkdf2-hmac-sha1-pkcs5s2 md5crypt-smd5 ripemd-128 ripemd-160
-		raw-tiger raw-whirlpool hsrp known-hosts chap));
+		raw-tiger raw-whirlpool hsrp known-hosts chap bb-es10 citrix-ns10
+		clipperz-srp ));
 
 # todo: sapb sapfg ike keepass cloudkeychain agilekeychain pfx racf vnc pdf pkzip rar5 ssh raw_gost_cp
 my $i; my $h; my $u; my $salt;
@@ -1294,6 +1295,21 @@ sub sap_h {
 	use strict;
 	print "u$u-sapH:{x-is$modestr, $iter}".base64($h.$salt).":$u:0:$_[0]::\n";
 }
+sub bb_es10 {
+	# 101x sha512, Blackberry, es10 server.
+	$salt = get_salt(8);
+	$h = sha512($_[1].$salt);
+	for (my $i = 0; $i < 99; $i++) {
+		$h = sha512($h);
+	}
+	$h = uc unpack("H*",$h);
+	print "u$u:\$bbes10\$$h\$$salt:$u:0:$_[0]::\n";
+}
+sub citrix_ns10 {
+	$salt = get_salt(8, 8, \@chrHexLo);
+	$h = sha1($salt.$_[0]."\0");
+	print "u$u:1$salt".unpack("H*",$h).":$u:0:$_[0]::\n";
+}
 sub chap {
 	$salt = get_salt(16);
 	my $h = md5("\0" . $_[1] . $salt);
@@ -1825,6 +1841,28 @@ sub wowsrp {
 	print "u$u-wow_srp:\$WoWSRP\$$h\$", uc unpack("H*", $salt), "*$usr:$u:0:", uc $_[0], "::\n";
 #	while (length($h) < 64) { $h = "0".$h; }
 #	print "u$u-wow_srp:\$WoWSRP\$$h\$", uc unpack("H*", $salt), "*$usr:$u:0:", uc $_[0], "::\n";
+}
+sub clipperz_srp {
+	require Math::BigInt;
+	$salt = get_salt(64);
+	my $usr = randusername();
+	if (defined $argmode) {$usr = $argmode; }
+	my $h = "0x" . unpack("H*", sha256(sha256($salt.unpack("H*",sha256(sha256($_[1].$usr))))));
+
+	#print "$h\n";
+
+	# perform exponentation.
+	my $base = Math::BigInt->new(2);
+	my $exp = Math::BigInt->new($h);
+	my $mod = Math::BigInt->new("125617018995153554710546479714086468244499594888726646874671447258204721048803");
+	$h = $base->bmodpow($exp, $mod);
+
+	# convert h into hex
+	$h = substr($h->as_hex(), 2);
+
+	print "u$u:\$clipperz\$$h\$$salt*$usr:$u:0:", $_[0], "::\n";
+#	while (length($h) < 64) { $h = "0".$h; }
+#	print "u$u:\$clipperz\$$h\$", uc unpack("H*", $salt), "*$usr:$u:0:", uc $_[0], "::\n";
 }
 sub _hmacmd5 {
 	my ($key, $data) = @_;
