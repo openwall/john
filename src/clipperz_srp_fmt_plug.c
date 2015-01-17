@@ -112,6 +112,8 @@ john_register_one(&fmt_clipperz);
 // salt is in hex  (salt and salt2)
 static struct fmt_tests tests[] = {
 	{CLIPPERZSIG"e8be8c8d9c1d5dc79ecc7b15d1787d5b5dc22e815ddb0b37f6145ca667421f1f$e0bc11ee4db80a3ecabd293f5201cb747856361192c68f4133ea707c7d4d2d32*hackme@mailinator.com", "openwall"},
+	{"$clipperz$05b18d6976d6cefad7c0c330c0c8a32ed69f19a8d68a94c3916c5ad1ba5ce37e5$RoljkWQajmS8OXFbsnqmZFTeB2How6hkoDd5QKu0DjthET3NmjTmOLumZe84nb7o*1", "password"},
+	{"$clipperz$5b18d6976d6cefad7c0c330c0c8a32ed69f19a8d68a94c3916c5ad1ba5ce37e5$RoljkWQajmS8OXFbsnqmZFTeB2How6hkoDd5QKu0DjthET3NmjTmOLumZe84nb7o*1", "password"},
 	{NULL}
 };
 
@@ -208,6 +210,30 @@ err:
 	return 0;
 }
 
+static char *split(char *ciphertext, int index, struct fmt_main *pFmt) {
+	static char ct[128+2*SZ+1];
+	char *cp;
+
+	if (strncmp(ciphertext, CLIPPERZSIG, CLIPPERZSIGLEN))
+		return ciphertext;
+	strnzcpy(ct, ciphertext, sizeof(ct));
+	cp = strchr(&ct[CLIPPERZSIGLEN], '$');
+	if (!cp)
+		return ciphertext;
+	*cp = 0;
+	strlwr(&ct[CLIPPERZSIGLEN]);
+	*cp = '$';
+	if (ct[CLIPPERZSIGLEN] == '0') {
+		char *cpi = &ct[CLIPPERZSIGLEN];
+		char *cpo = cpi;
+		while (*cpi == '0')
+			++cpi;
+		do {
+			*cpo++ = *cpi;
+		} while (*cpi++);
+	}
+	return ct;
+}
 static void *get_binary(char *ciphertext)
 {
 	static union {
@@ -421,7 +447,7 @@ struct fmt_main fmt_clipperz = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif
@@ -432,7 +458,7 @@ struct fmt_main fmt_clipperz = {
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
-		fmt_default_split,
+		split,
 		get_binary,
 		salt,
 #if FMT_MAIN_VERSION > 11

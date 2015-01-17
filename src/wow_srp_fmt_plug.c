@@ -108,6 +108,10 @@ static struct fmt_tests tests[] = {
 	{WOWSIG"6D00CD214C8473C7F4E9DC77AE8FC6B3944298C48C7454E6BB8296952DCFE78D$73616C74", "PASSWORD", {"SOLAR"}},
 	{WOWSIG"A35DCC134159A34F1D411DA7F38AB064B617D5DBDD9258FE2F23D5AB1CF3F685$73616C7432", "PASSWORD2", {"DIZ"}},
 	{WOWSIG"A35DCC134159A34F1D411DA7F38AB064B617D5DBDD9258FE2F23D5AB1CF3F685$73616C7432*DIZ", "PASSWORD2"},
+	// this one has a leading 0
+	{"$WoWSRP$01C7F618E4589F3229D764580FDBF0D579D7CB1C071F11C856BDDA9E41946530$36354172646F744A366A7A58386D4D6E*JOHN", "PASSWORD"},
+	// same hash, but without 0 (only 63 byte hash).
+	{"$WoWSRP$1C7F618E4589F3229D764580FDBF0D579D7CB1C071F11C856BDDA9E41946530$36354172646F744A366A7A58386D4D6E*JOHN", "PASSWORD"},
 	{NULL}
 };
 
@@ -196,6 +200,17 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	return 1;
 }
 
+static void StripZeros(const char *ct, char *ct2) {
+	int i;
+	for (i = 0; i < WOWSIGLEN; ++i)
+		*ct2++ = *ct++;
+	while (*ct == '0')
+		++ct;
+	while (*ct)
+		*ct2++ = *ct++;
+	*ct2 = 0;
+}
+
 static char *prepare(char *split_fields[10], struct fmt_main *pFmt) {
 	// if user name not there, then add it
 	static char ct[128+32+1];
@@ -204,13 +219,25 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt) {
 	if (!split_fields[1][0] || strncmp(split_fields[1], WOWSIG, WOWSIGLEN))
 		return split_fields[1];
 	cp = strchr(split_fields[1], '*');
-	if (cp) return split_fields[1];
+	if (cp) {
+		if (split_fields[1][WOWSIGLEN] == '0') {
+			StripZeros(split_fields[1], ct);
+			return ct;
+		}
+		return split_fields[1];
+	}
 	strnzcpy(ct, split_fields[1], 128);
 	cp = &ct[strlen(ct)];
 	*cp++ = '*';
 	strnzcpy(cp, split_fields[0], USERNAMELEN);
 	// upcase user name
 	enc_strupper(cp);
+	// Ok, if there are leading 0's for that binary resultant value, then remove them.
+	if (ct[WOWSIGLEN] == '0') {
+		char ct2[128+32+1];
+		StripZeros(ct, ct2);
+		strcpy(ct, ct2);
+	}
 	return ct;
 }
 
@@ -223,6 +250,11 @@ static char *split(char *ciphertext, int index, struct fmt_main *pFmt) {
 	if (cp) *cp = 0;
 	strupr(&ct[WOWSIGLEN]);
 	if (cp) *cp = '*';
+	if (ct[WOWSIGLEN] == '0') {
+		char ct2[128+32+1];
+		StripZeros(ct, ct2);
+		strcpy(ct, ct2);
+	}
 	return ct;
 }
 
