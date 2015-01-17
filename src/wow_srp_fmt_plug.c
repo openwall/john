@@ -38,6 +38,7 @@
  * 64 bytes. the format MUST handle both, since at this momement, we are not
  * exactly sure which type will be seen in the wild.  NOTE, the byte swapped
  * method (GMP) within is no longer valid, and was removed.
+ * NOTE, we need to add split() to canonize this format (remove LPad 0's)
  */
 
 #if FMT_EXTERNS_H
@@ -254,7 +255,7 @@ static void *get_binary(char *ciphertext)
 		    (atoi16[ARCH_INDEX(*p)] << 4) |
 		    atoi16[ARCH_INDEX(p[1])];
 		p += 2;
-		if (*p == '$')
+		if (p >= q)
 			break;
 	}
 	//dump_stuff_msg("binary", out.b, 32);
@@ -347,6 +348,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		SHA_CTX ctx;
 		unsigned char Tmp[20];
 
+		memset(crypt_out[j], 0, sizeof(crypt_out[j]));
 		SHA1_Init(&ctx);
 		SHA1_Update(&ctx, user_id, strlen((char*)user_id));
 		SHA1_Update(&ctx, ":", 1);
@@ -379,20 +381,20 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		mpz_get_str ((char*)HashStr, 16, pSRP_CTX[j].z_rop);
 
 		p = HashStr;
-		memset(crypt_out[j], 0, sizeof(crypt_out[j]));
 		todo = strlen((char*)p);
 		if (todo&1) {
 			((unsigned char*)(crypt_out[j]))[0] = atoi16[ARCH_INDEX(*p)];
 			++p;
+			--todo;
 		} else {
 			((unsigned char*)(crypt_out[j]))[0] =
 				(atoi16[ARCH_INDEX(*p)] << 4) |
 				atoi16[ARCH_INDEX(p[1])];
 			p += 2;
+			todo -= 2;
 		}
 		todo >>= 1;
-		--todo;
-		for (i = 1; i < FULL_BINARY_SIZE; i++) {
+		for (i = 1; i <= todo; i++) {
 			((unsigned char*)(crypt_out[j]))[i] =
 				(atoi16[ARCH_INDEX(*p)] << 4) |
 				atoi16[ARCH_INDEX(p[1])];
