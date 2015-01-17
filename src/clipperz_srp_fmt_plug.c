@@ -12,6 +12,13 @@
  * This software may be modified, redistributed, and used for any
  * purpose, in source and binary forms, with or without modification.
  *
+ * Format was busted, just like wow-srp. It ONLY was handling binary residue
+ * if the residue was exactly 64 hex bytes long. Well for exponentation, it
+ * does not have to be 64 bytes. It can be shorter. We also handle case where
+ * a shorter result number is 0 Lpadded to an even 64 bytes. split() should
+ * be added to canonize these hashes, since they are same hash with
+ * multiple representations.
+ *
  * This implements the SRP protocol, with Clipperz documented
  * implementation specifics.
  *
@@ -88,11 +95,11 @@ john_register_one(&fmt_clipperz);
 #define CLIPPERZSIG		"$clipperz$"
 #define CLIPPERZSIGLEN		10
 #define PLAINTEXT_LENGTH	16
-#define CIPHERTEXT_LENGTH	64
+#define CIPHERTEXT_LENGTH	65
 
-#define BINARY_SIZE		32
+#define BINARY_SIZE		33
 #define BINARY_ALIGN		4
-#define FULL_BINARY_SIZE	32
+#define FULL_BINARY_SIZE	33
 #define SALT_SIZE		sizeof(struct custom_salt)
 #define SALT_ALIGN		1
 #define USERNAMELEN             32
@@ -122,7 +129,9 @@ typedef struct t_SRP_CTX {
 static SRP_CTX *pSRP_CTX;
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 // BN_bn2bin sometimes tries to write 33 bytes, hence allow some padding!
-static ARCH_WORD_32 (*crypt_out)[8 + 1];
+// that is because these are mod 0x115B8B692E0E045692CF280B436735C77A5A9E8A9E7ED56C965F87DB5B2A2ECE3
+// which is a 65 hex digit number (33 bytes long).
+static ARCH_WORD_32 (*crypt_out)[(FULL_BINARY_SIZE/4) + 1];
 
 static struct custom_salt {
 	unsigned char saved_salt[SZ];
@@ -177,15 +186,13 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy += CLIPPERZSIGLEN;
 	if ((p = strtok(ctcopy, "$")) == NULL)
 		goto err;
-	if (strlen(p) != CIPHERTEXT_LENGTH)
+	if (strlen(p) > CIPHERTEXT_LENGTH)
 		goto err;
 	if (!ishex(p))
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)
 		goto err;
 	if (strlen(p) > SZ)
-		goto err;
-	if (!ishex(p))
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)
 		goto err;
@@ -208,15 +215,30 @@ static void *get_binary(char *ciphertext)
 		ARCH_WORD_32 dummy[1];
 	} buf;
 	unsigned char *out = buf.c;
-	char *p;
+	char *p, *q;
 	int i;
 
 	p = &ciphertext[CLIPPERZSIGLEN];
-	for (i = 0; i < FULL_BINARY_SIZE; i++) {
+	q = strchr(p, '$');
+	memset(buf.c, 0, sizeof(buf));
+	while (*p == '0')
+		++p;
+	if ((q-p)&1) {
+		out[0] = atoi16[ARCH_INDEX(*p)];
+		++p;
+	} else {
+		out[0] =
+		    (atoi16[ARCH_INDEX(*p)] << 4) |
+		    atoi16[ARCH_INDEX(p[1])];
+		p += 2;
+	}
+	for (i = 1; i < FULL_BINARY_SIZE; i++)  {
 		out[i] =
 		    (atoi16[ARCH_INDEX(*p)] << 4) |
 		    atoi16[ARCH_INDEX(p[1])];
 		p += 2;
+		if (p >= q)
+			break;
 	}
 
 	return out;
@@ -229,7 +251,7 @@ static void *salt(char *ciphertext)
 	static struct custom_salt cs;
 	memset(&cs, 0, sizeof(cs));
 	p = ciphertext;
-	p += (10 + 64 + 1);
+	p = strchr(&ciphertext[CLIPPERZSIGLEN], '$') + 1;
 	q = strrchr(ciphertext, '*');
 	strncpy((char*)cs.saved_salt, p, q - p);
 	p = strrchr(ciphertext, '*') + 1;
@@ -302,6 +324,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		unsigned char Tmp[32];
 		unsigned char TmpHex[64];
 
+		memset(crypt_out[j], 0, sizeof(crypt_out[j]));
 		SHA256_Init(&ctx);
 		SHA256_Update(&ctx, saved_key[j], strlen(saved_key[j]));
 		SHA256_Update(&ctx, cur_salt->user_id, strlen((char*)cur_salt->user_id));
@@ -319,11 +342,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		SHA256_Final(Tmp, &ctx);
 
 #ifdef HAVE_LIBGMP
-#if 1
-		// Speed, 17194/s
 	{
 		unsigned char HashStr[80], *p;
-		int i;
+		int i, todo;
 		p = HashStr;
 		for (i = 0; i < 32; ++i) {
 			*p++ = itoa16[Tmp[i]>>4];
@@ -336,56 +357,26 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		mpz_get_str ((char*)HashStr, 16, pSRP_CTX[j].z_rop);
 
 		p = HashStr;
-
-		for (i = 0; i < FULL_BINARY_SIZE; i++) {
+		todo = strlen((char*)p);
+		if (todo&1) {
+			((unsigned char*)(crypt_out[j]))[0] = atoi16[ARCH_INDEX(*p)];
+			++p;
+			--todo;
+		} else {
+			((unsigned char*)(crypt_out[j]))[0] =
+				(atoi16[ARCH_INDEX(*p)] << 4) |
+				atoi16[ARCH_INDEX(p[1])];
+			p += 2;
+			todo -= 2;
+		}
+		todo >>= 1;
+		for (i = 1; i <= todo; i++) {
 			((unsigned char*)(crypt_out[j]))[i] =
 				(atoi16[ARCH_INDEX(*p)] << 4) |
 				atoi16[ARCH_INDEX(p[1])];
 			p += 2;
 		}
 	}
-#else
-		// Speed, 17445/s
-	{
-		ARCH_WORD_32 *p1, *p2;
-
-		// This code works for 32 bit (on LE intel systems).  I may need to 'fix' it for 64 bit.
-		// GMP is BE format of a huge 'flat' integer. Thus, we need to put into
-		// BE format (each word), and then put the words themselves, into BE order.
-	//	memcpy(z_exp->_mp_d, Tmp, 20);
-		p1 = (ARCH_WORD_32*)Tmp;
-		p2 = (ARCH_WORD_32*)pSRP_CTX[j].z_exp->_mp_d;
-		// NOTE z_exp was allocated 'properly' with 2^160 bit size.
-		if (!p1[0]) {
-			pSRP_CTX[j].z_exp->_mp_size = 4;
-			p2[3] = JOHNSWAP(p1[1]);
-			p2[2] = JOHNSWAP(p1[2]);
-			p2[1] = JOHNSWAP(p1[3]);
-			p2[0] = JOHNSWAP(p1[4]);
-		} else {
-			pSRP_CTX[j].z_exp->_mp_size = 5;
-			p2[4] = JOHNSWAP(p1[0]);
-			p2[3] = JOHNSWAP(p1[1]);
-			p2[2] = JOHNSWAP(p1[2]);
-			p2[1] = JOHNSWAP(p1[3]);
-			p2[0] = JOHNSWAP(p1[4]);
-		}
-
-		mpz_powm (pSRP_CTX[j].z_rop, pSRP_CTX[j].z_base, pSRP_CTX[j].z_exp, pSRP_CTX[j].z_mod );
-
-	//	memcpy(crypt_out[j], pSRP_CTX[j].z_rop->_mp_d, 32);
-		p1 = (ARCH_WORD_32*)pSRP_CTX[j].z_rop->_mp_d;
-		p2 = (ARCH_WORD_32*)(crypt_out[j]);
-		p2[7] = JOHNSWAP(p1[0]);
-		p2[6] = JOHNSWAP(p1[1]);
-		p2[5] = JOHNSWAP(p1[2]);
-		p2[4] = JOHNSWAP(p1[3]);
-		p2[3] = JOHNSWAP(p1[4]);
-		p2[2] = JOHNSWAP(p1[5]);
-		p2[1] = JOHNSWAP(p1[6]);
-		p2[0] = JOHNSWAP(p1[7]);
-	}
-#endif
 #else
 		// using oSSL's BN to do expmod.
 		pSRP_CTX[j].z_exp = BN_bin2bn(Tmp,32,pSRP_CTX[j].z_exp);
