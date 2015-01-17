@@ -75,7 +75,7 @@ my @funcs = (qw(DESCrypt BigCrypt BSDIcrypt md5crypt md5crypt_a BCRYPT BCRYPTx
 		tc_whirlpool Haval-256 SAP-H rsvp pbkdf2-hmac-sha1-p5k2
 		pbkdf2-hmac-sha1-pkcs5s2 md5crypt-smd5 ripemd-128 ripemd-160
 		raw-tiger raw-whirlpool hsrp known-hosts chap bb-es10 citrix-ns10
-		clipperz-srp ));
+		clipperz-srp dahua ));
 
 # todo: sapb sapfg ike keepass cloudkeychain agilekeychain pfx racf vnc pdf pkzip rar5 ssh raw_gost_cp
 my $i; my $h; my $u; my $salt;
@@ -1250,6 +1250,20 @@ sub tc_whirlpool {
 	$h = _tc_aes_256_xts($h,$d,$tweak);
 	print "u$u-tc_whirlpool:truecrypt_WHIRLPOOL\$".unpack("H*",$salt).unpack("H*",$h).":$u:0:$_[0]::\n";
 }
+sub dahua {
+	my $h = md5($_[1]);
+	# compressor
+	my @a = split(//, $h);
+	$h = "";
+	for (my $i = 0; $i < 16; $i += 2) {
+		my $x = (ord($a[$i])+ord($a[$i+1])) % 62;
+		if ($x < 10) { $x += 48; }
+		elsif ($x < 36) { $x += 55; }
+		else { $x += 61; }
+		$h .= chr($x);
+	}
+	print "u$u:\$dahua\$$h:$u:0:$_[0]::\n";
+}
 sub ripemd_128 {
 	print "u$u-ripemd128:\$ripemd\$".ripemd128_hex($_[0]).":$u:0:$_[0]::\n";
 }
@@ -1849,8 +1863,6 @@ sub clipperz_srp {
 	if (defined $argmode) {$usr = $argmode; }
 	my $h = "0x" . unpack("H*", sha256(sha256($salt.unpack("H*",sha256(sha256($_[1].$usr))))));
 
-	#print "$h\n";
-
 	# perform exponentation.
 	my $base = Math::BigInt->new(2);
 	my $exp = Math::BigInt->new($h);
@@ -1861,8 +1873,8 @@ sub clipperz_srp {
 	$h = substr($h->as_hex(), 2);
 
 	print "u$u:\$clipperz\$$h\$$salt*$usr:$u:0:", $_[0], "::\n";
-#	while (length($h) < 64) { $h = "0".$h; }
-#	print "u$u:\$clipperz\$$h\$", uc unpack("H*", $salt), "*$usr:$u:0:", uc $_[0], "::\n";
+#	while (length($h) < 65) { $h = "0".$h; }
+#	print "u$u:\$clipperz\$$h\$$salt*$usr:$u:0:", $_[0], "::\n"
 }
 sub _hmacmd5 {
 	my ($key, $data) = @_;
