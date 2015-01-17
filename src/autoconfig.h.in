@@ -360,8 +360,8 @@
 /* Define to 1 if the system has the type `__int128'. */
 #undef HAVE___INT128
 
-/* Define to 1 if the system has the type `__uint128_t'. */
-#undef HAVE___UINT128_T
+/* Define to 1 if the system has the type `__int128_t'. */
+#undef HAVE___INT128_T
 
 /* Define to 1 if you want support for 4-byte UTF-8 in fast MS formats. */
 #undef NT_FULL_UNICODE

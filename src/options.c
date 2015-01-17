@@ -58,7 +58,7 @@
 #ifdef HAVE_OPENCL
 #include "common-opencl.h"
 #endif
-#if HAVE_LIBGMP || HAVE_INT128 || HAVE___INT128 || HAVE___UINT128_T
+#if HAVE_LIBGMP || HAVE_INT128 || HAVE___INT128 || HAVE___INT128_T
 #include "prince.h"
 #endif
 #include "memdbg.h"
@@ -79,7 +79,7 @@ static struct opt_entry opt_list[] = {
 		0, 0, OPT_FMT_STR_ALLOC, &options.wordlist},
 	{"loopback", FLG_LOOPBACK_SET, FLG_CRACKING_CHK,
 		0, 0, OPT_FMT_STR_ALLOC, &options.wordlist},
-#if HAVE_LIBGMP || HAVE_INT128 || HAVE___INT128 || HAVE___UINT128_T
+#if HAVE_LIBGMP || HAVE_INT128 || HAVE___INT128 || HAVE___INT128_T
 	{"prince", FLG_PRINCE_SET, FLG_CRACKING_CHK,
 		0, 0, OPT_FMT_STR_ALLOC, &options.wordlist},
 	{"prince-elem-cnt-min", FLG_ZERO, 0, FLG_PRINCE_CHK,
@@ -278,7 +278,7 @@ static struct opt_entry opt_list[] = {
 #define JOHN_USAGE_REGEX ""
 #endif
 
-#if HAVE_LIBGMP || HAVE_INT128 || HAVE___INT128 || HAVE___UINT128_T
+#if HAVE_LIBGMP || HAVE_INT128 || HAVE___INT128 || HAVE___INT128_T
 #define PRINCE_USAGE \
 	"--prince[=FILE]           PRINCE mode, read words from FILE\n"
 #else
@@ -458,7 +458,7 @@ void opt_print_hidden_usage(void)
 	puts("--force-vector-width=N    (OpenCL) force vector width N");
 	puts("--platform=N              set OpenCL platform (deprecated)");
 #endif
-#if HAVE_LIBGMP || HAVE_INT128 || HAVE___INT128 || HAVE___UINT128_T
+#if HAVE_LIBGMP || HAVE_INT128 || HAVE___INT128 || HAVE___INT128_T
 	puts("--prince-elem-cnt-min=N   PRINCE, minimum number of elements per chain (1)");
 	puts("--prince-elem-cnt-max=N   PRINCE, maximum number of elements per chain (8)");
 	puts("--prince-skip=N           PRINCE, initial skip");

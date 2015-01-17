@@ -11460,11 +11460,11 @@ _ACEOF
 
 
 fi
-ac_fn_c_check_type "$LINENO" "__uint128_t" "ac_cv_type___uint128_t" "$ac_includes_default"
-if test "x$ac_cv_type___uint128_t" = xyes; then :
+ac_fn_c_check_type "$LINENO" "__int128_t" "ac_cv_type___int128_t" "$ac_includes_default"
+if test "x$ac_cv_type___int128_t" = xyes; then :
 
 cat >>confdefs.h <<_ACEOF
-#define HAVE___UINT128_T 1
+#define HAVE___INT128_T 1
 _ACEOF
 
 
@@ -14793,7 +14793,7 @@ if test "x$enable_int128" = xno; then
    have_int128=disabled
 elif test "x$ac_cv_type_int128" = xyes ||
    test "x$ac_cv_type___int128" = xyes ||
-   test "x$ac_cv_type___uint128_t" = xyes; then
+   test "x$ac_cv_type___int128_t" = xyes; then
    have_int128=yes
 else
    have_int128=no

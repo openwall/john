@@ -587,7 +587,7 @@ AC_TYPE_UINT32_T
 AC_TYPE_UINT64_T
 AC_TYPE_UINT8_T
 AC_CHECK_TYPES([ptrdiff_t])
-AS_IF([test "x$enable_int128" != xno], [AC_CHECK_TYPES([int128, __int128, __uint128_t])])
+AS_IF([test "x$enable_int128" != xno], [AC_CHECK_TYPES([int128, __int128, __int128_t])])
 
 # Checks for library functions.
 AC_FUNC_ERROR_AT_LINE
@@ -880,7 +880,7 @@ if test "x$enable_int128" = xno; then
    have_int128=disabled
 elif test "x$ac_cv_type_int128" = xyes ||
    test "x$ac_cv_type___int128" = xyes ||
-   test "x$ac_cv_type___uint128_t" = xyes; then
+   test "x$ac_cv_type___int128_t" = xyes; then
    have_int128=yes
 else
    have_int128=no

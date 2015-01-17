@@ -35,10 +35,10 @@
 #define __USE_MINGW_ANSI_STDIO 1
 #endif
 
-#if HAVE_LIBGMP || HAVE_INT128 || HAVE___INT128 || HAVE___UINT128_T
+#if HAVE_LIBGMP || HAVE_INT128 || HAVE___INT128 || HAVE___INT128_T
 
 #include <stdio.h>
-#include <stdint.h>
+#include "stdint.h"
 #include <stdlib.h>
 #if !AC_BUILT
 #include <string.h>
@@ -60,7 +60,7 @@
 #include <errno.h>
 #include <getopt.h>
 
-#if HAVE_INT128 || HAVE___INT128 || HAVE___UINT128_T
+#if HAVE_INT128 || HAVE___INT128 || HAVE___INT128_T
 #include "mpz_int128.h"
 #define REALGMP "int128"
 #else
