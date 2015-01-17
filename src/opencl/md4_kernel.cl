@@ -14,6 +14,7 @@
  * 3. http://en.wikipedia.org/wiki/MD4  */
 
 #include "opencl_device_info.h"
+#include "opencl_mask.h"
 
 #if gpu_amd(DEVICE_INFO)
 #define USE_BITSELECT
@@ -111,7 +112,7 @@ inline void md4_encrypt(__private uint *hash, __private uint *W, uint len) {
 /* OpenCL kernel entry point. Copy key to be hashed from
  * global to local (thread) memory. Break the key into 16 32-bit (uint)
  * words. MD4 hash of a key is 128 bit (uint4). */
-__kernel void md4(__global const uint *keys, __global const uint *index, __global uint *hashes, __global uint *int_key_loc, __global uint *int_keys, uint num_int_keys)
+__kernel void md4(__global const uint *keys, __global const uint *index, __global uint *hashes, __global const uint *int_key_loc, __global const uint *int_keys, uint num_int_keys)
 {
 	uint gid = get_global_id(0);
 	uint W[16] = { 0 };
@@ -130,14 +131,22 @@ __kernel void md4(__global const uint *keys, __global const uint *index, __globa
 
 	for (i = 0; i < num_int_keys; i++) {
 
-		if (num_int_keys > 1)
-		PUTCHAR(W, 0, (int_keys[i] & 0xff));
+		if (num_int_keys > 1) {
+			uint ikl = int_key_loc[gid];
+			PUTCHAR(W, (ikl & 0xff), (int_keys[i] & 0xff));
+			if ((1 < MASK_FMT_INT_PLHDR) && (ikl & 0xff00) != 0x8000)
+				PUTCHAR(W, ((ikl & 0xff00) >> 8), ((int_keys[i] & 0xff00) >> 8));
+			if ((2 < MASK_FMT_INT_PLHDR) && (ikl & 0xff0000) != 0x800000)
+				PUTCHAR(W, ((ikl & 0xff0000) >> 16), ((int_keys[i] & 0xff0000) >> 16));
+			if ((3 < MASK_FMT_INT_PLHDR) && (ikl & 0xff000000) != 0x80000000)
+				PUTCHAR(W, ((ikl & 0xff000000) >> 24), ((int_keys[i] & 0xff000000) >> 24));
+		}
 
 		md4_encrypt(hash, W, len);
 
-		hashes[gid] = hash[0] + 0x67452301;
-		hashes[1 * num_keys + gid] = hash[1] + 0xefcdab89;
-		hashes[2 * num_keys + gid] = hash[2] + 0x98badcfe;
-		hashes[3 * num_keys + gid] = hash[3] + 0x10325476;
+		hashes[num_keys * i +gid] = hash[0] + 0x67452301;
+		hashes[1 * num_keys * num_int_keys + num_keys * i + gid] = hash[1] + 0xefcdab89;
+		hashes[2 * num_keys * num_int_keys + num_keys * i + gid] = hash[2] + 0x98badcfe;
+		hashes[3 * num_keys * num_int_keys + num_keys * i + gid] = hash[3] + 0x10325476;
 	}
 }

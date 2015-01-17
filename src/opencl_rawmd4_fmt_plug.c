@@ -127,7 +127,7 @@ static void create_clobj(size_t kpc, struct fmt_main * self)
 
 	pinned_int_key_loc = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, 4 * kpc, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory pinned_int_key_loc");
-	saved_int_key_loc = (cl_uint *) clEnqueueMapBuffer(queue[gpu_id], pinned_saved_keys, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, 4 * kpc, 0, NULL, NULL, &ret_code);
+	saved_int_key_loc = (cl_uint *) clEnqueueMapBuffer(queue[gpu_id], pinned_int_key_loc, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, 4 * kpc, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_int_key_loc");
 
 	// create and set arguments
@@ -206,7 +206,7 @@ static void init(struct fmt_main *self)
 	autotune_run(self, 1, gws_limit,
 		(cpu(device_info[gpu_id]) ? 500000000ULL : 1000000000ULL));
 
-	mask_int_cand_target = 10;
+	mask_int_cand_target = 100;
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -269,6 +269,19 @@ static void set_key(char *_key, int index)
 	const ARCH_WORD_32 *key = (ARCH_WORD_32*)_key;
 	int len = strlen(_key);
 
+	if (mask_int_cand.num_int_cand > 1) {
+		int i;
+		saved_int_key_loc[index] = 0;
+		for (i = 0; i < MASK_FMT_INT_PLHDR; i++) {
+		if (mask_skip_ranges[i] != -1)  {
+			saved_int_key_loc[index] |= ((mask_int_cand.int_cpu_mask_ctx->ranges[mask_skip_ranges[i]].offset + mask_int_cand.int_cpu_mask_ctx->ranges[mask_skip_ranges[i]].pos) & 0xff) << (i * 8);
+		}
+		else
+			saved_int_key_loc[index] |= 0x80 << (i * 8);
+		}
+		//fprintf(stderr, "Ofeset:%d\n", mask_int_cand.int_cpu_mask_ctx->ranges[mask_skip_ranges[1]].offset);
+	}
+
 	saved_idx[index] = (key_idx << 6) | len;
 
 	while (len > 4) {
@@ -277,17 +290,35 @@ static void set_key(char *_key, int index)
 	}
 	if (len)
 		saved_plain[key_idx++] = *key & (0xffffffffU >> (32 - (len << 3)));
+
+
 }
 
 static char *get_key(int index)
 {
 	static char out[PLAINTEXT_LENGTH + 1];
-	int i, len = saved_idx[index] & 63;
-	char *key = (char*)&saved_plain[saved_idx[index] >> 6];
+	int i, len, int_index;
+	char *key;
+
+	if (mask_int_cand.num_int_cand > 1) {
+		int_index = index / global_work_size;
+		index = index % global_work_size;
+	}
+	len = saved_idx[index] & 63;
+	key = (char*)&saved_plain[saved_idx[index] >> 6];
 
 	for (i = 0; i < len; i++)
 		out[i] = *key++;
 	out[i] = 0;
+
+	if (mask_int_cand.num_int_cand > 1) {
+		for (i = 0; i < MASK_FMT_INT_PLHDR && mask_skip_ranges[i] != -1; i++)
+			out[(saved_int_key_loc[index]& (0xff << (i * 8))) >> (i * 8)] = mask_int_cand.int_cand[int_index].x[i];
+
+		//fprintf(stderr, "Int Index:%x:\n", saved_int_key_loc[0]);
+
+	}
+
 	return out;
 }
 
@@ -298,7 +329,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	global_work_size = local_work_size ? (count + local_work_size - 1) / local_work_size * local_work_size : count;
 
-	fprintf(stderr, "%s(%d) lws %zu gws %zu idx %u\n", __FUNCTION__, count, local_work_size, global_work_size, key_idx);
+	fprintf(stderr, "%s(%d) lws %zu gws %zu idx %u int_cand%d\n", __FUNCTION__, count, local_work_size, global_work_size, key_idx, mask_int_cand.num_int_cand);
 
 	// copy keys to the device
 	if (key_idx)
@@ -306,11 +337,16 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_idx, CL_TRUE, 0, 4 * global_work_size, saved_idx, 0, NULL, multi_profilingEvent[3]), "failed in clEnqueueWriteBuffer buffer_idx");
 
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_int_key_loc, CL_TRUE, 0, 4 * global_work_size, saved_int_key_loc, 0, NULL, multi_profilingEvent[4]), "failed in clEnqueueWriteBuffer buffer_int_key_loc");
+
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[1]), "failed in clEnqueueNDRangeKernel");
 
 	// read back partial hashes
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buffer_out, CL_TRUE, 0, sizeof(cl_uint) * global_work_size, partial_hashes, 0, NULL, multi_profilingEvent[2]), "failed in reading data back");
+	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buffer_out, CL_TRUE, 0, sizeof(cl_uint) * global_work_size * mask_int_cand.num_int_cand, partial_hashes, 0, NULL, multi_profilingEvent[2]), "failed in reading data back");
 	have_full_hashes = 0;
+
+	if (mask_int_cand.num_int_cand > 1)
+	return global_work_size * mask_int_cand.num_int_cand;
 
 	return count;
 }
@@ -337,17 +373,17 @@ static int cmp_exact(char *source, int index)
 
 	if (!have_full_hashes) {
 		clEnqueueReadBuffer(queue[gpu_id], buffer_out, CL_TRUE,
-		        sizeof(cl_uint) * (global_work_size),
-		        sizeof(cl_uint) * 3 * global_work_size,
-		        partial_hashes + global_work_size, 0, NULL, NULL);
+		        sizeof(cl_uint) * (global_work_size) * mask_int_cand.num_int_cand,
+		        sizeof(cl_uint) * 3 * global_work_size * mask_int_cand.num_int_cand,
+		        partial_hashes + global_work_size * mask_int_cand.num_int_cand, 0, NULL, NULL);
 		have_full_hashes = 1;
 	}
 
-	if (t[1]!=partial_hashes[1*global_work_size+index])
+	if (t[1]!=partial_hashes[1*global_work_size*mask_int_cand.num_int_cand+index])
 		return 0;
-	if (t[2]!=partial_hashes[2*global_work_size+index])
+	if (t[2]!=partial_hashes[2*global_work_size*mask_int_cand.num_int_cand+index])
 		return 0;
-	if (t[3]!=partial_hashes[3*global_work_size+index])
+	if (t[3]!=partial_hashes[3*global_work_size*mask_int_cand.num_int_cand+index])
 		return 0;
 	return 1;
 }
@@ -359,12 +395,12 @@ static void reset(struct db_main *db) {
 			release_clobj();
 
 		kpc = db->format->params.max_keys_per_crypt;
-		kpc /= mask_int_cand.num_int_cand;
-		kpc = local_work_size ? (kpc + local_work_size - 1) / local_work_size * local_work_size : kpc;
+	/*	kpc /= mask_int_cand.num_int_cand;
+		kpc = local_work_size ? (kpc + local_work_size - 1) / local_work_size * local_work_size : kpc;*/
 		create_clobj(kpc, NULL);
-		db->format->params.max_keys_per_crypt = kpc;
+		/*db->format->params.max_keys_per_crypt = kpc;
 
-		fprintf(stderr, "KPC: %d\n", db->format->params.max_keys_per_crypt);
+		fprintf(stderr, "KPC: %d\n", db->format->params.max_keys_per_crypt);*/
 	}
 }
 

@@ -12,8 +12,7 @@
 #define _JOHN_MASK_EXT_H
 
 #include "mask.h"
-
-#define MASK_FMT_INT_PLHDR 		4
+#include "opencl_mask.h"
 
 typedef union {
 	char x[4];
