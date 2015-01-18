@@ -75,7 +75,7 @@ my @funcs = (qw(DESCrypt BigCrypt BSDIcrypt md5crypt md5crypt_a BCRYPT BCRYPTx
 		tc_whirlpool Haval-256 SAP-H rsvp pbkdf2-hmac-sha1-p5k2
 		pbkdf2-hmac-sha1-pkcs5s2 md5crypt-smd5 ripemd-128 ripemd-160
 		raw-tiger raw-whirlpool hsrp known-hosts chap bb-es10 citrix-ns10
-		clipperz-srp dahua ));
+		clipperz-srp dahua fortigate lp lastpass));
 
 # todo: sapb sapfg ike keepass cloudkeychain agilekeychain pfx racf vnc pdf pkzip rar5 ssh raw_gost_cp
 my $i; my $h; my $u; my $salt;
@@ -1079,6 +1079,27 @@ sub krb5_18 {
 	my $output2 = $crypt->encrypt($output1);
 	print "u$u-krb5-18:\$krb18\$$salt\$".unpack("H*",$output1).unpack("H*",$output2).":$u:0:$_[0]::\n";
 }
+sub lp {
+	$salt = get_salt(32, -32, \@userNames);
+	my $pbk = pp_pbkdf2($_[0], $salt, 500, "sha256", 32, 64);
+	require Crypt::OpenSSL::AES;
+	my $crypt = Crypt::OpenSSL::AES->new($pbk);
+	$h = unpack("H*", $crypt->encrypt("lastpass rocks\x02\x02"));
+	print "u$u-lastpass:\$lp\$$salt\$$h:$u:0:$_[0]::\n";
+}
+sub lastpass {
+#"$lastpass$hackme@mailinator.com$500$i+hJCwPOj5eQN4tvHcMguoejx4VEmiqzOXOdWIsZKlk="
+	my $iter = 500;
+	$salt = get_salt(32, -32, \@userNames);
+	my $pbk = pp_pbkdf2($_[0], $salt, 500, "sha256", 32, 64);
+	require Crypt::OpenSSL::AES;
+	require Crypt::CBC;
+	my $dat = $salt;
+	my $iv = "\0"x16;
+	my $crypt = Crypt::CBC->new(-literal_key => 1, -key => $pbk, -iv => $iv, -cipher => "Crypt::OpenSSL::AES", -header => 'none', -padding => 'null');
+	$h = base64($crypt->encrypt($dat));
+	print "u$u-lp_sniffed:\$lastpass\$$salt\$$iter\$$h:$u:0:$_[0]::\n";
+}
 
 sub odf {
 	my $iv; my $content;
@@ -1330,6 +1351,11 @@ sub chap {
 	$salt = unpack("H*",$salt);
 	$h = unpack("H*",$h); 
 	print "u$u:\$chap\$0*$salt*$h:$u:0:$_[0]::\n";
+}
+sub fortigate {
+	$salt = get_salt(12);
+	$h = sha1($salt.$_[1]."\xa3\x88\xba\x2e\x42\x4c\xb0\x4a\x53\x79\x30\xc1\x31\x07\xcc\x3f\xa1\x32\x90\x29\xa9\x81\x5b\x70");
+	print "u$u-fortigate:AK1".base64($salt.$h).":$u:0:$_[0]::\n";
 }
 sub zip {
 	# NOTE ,the zip contents are garbage, but we do not care.  We simply
