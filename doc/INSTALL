@@ -127,7 +127,7 @@ system headers(!). If the patch does not apply, it was fixed already (perhaps
 by a system update that did not exist at the time of this writing). From
 John's "src" directory:
 
-  $ sudo patch -b -N -p0 < unused/Yosemite.patch
+  sudo patch -b -N -p0 < unused/Yosemite.patch
 
 Using OS X, you can install Xcode (free) and then its "command line tools"
 and after that a normal build should work fine. However, using native
@@ -142,12 +142,14 @@ that probably work fine but these instructions are for "Homebrew":
   2. Install Homebrew's gcc and openssl:
 	brew install gcc openssl
 	brew link --force openssl
-  3. From John's "src" directory:
-	cp -avi osx_as_wrapper.sh /usr/local/bin/as
-  4. Link whatever gcc version you got from Homebrew to just "gcc" in the
-     /usr/local/bin directory. This example is for gcc-4.7:
-        ln -s gcc-4.7 /usr/local/bin/gcc
-  5. Make sure /usr/local/bin preceeds /usr/bin in your $PATH
+  3. Link whatever gcc version you got from Homebrew to just "gcc" in the
+     /usr/local/bin directory. This example is for gcc-4.9:
+        ln -s gcc-4.9 /usr/local/bin/gcc
+  4. Make sure /usr/local/bin preceeds /usr/bin in your $PATH
+
+Instead of #3 and #4 you could obviously pass parameters to autoconf, such as:
+
+	./configure CC=gcc-4.9
 
 After the above, you should be able to get an optimal build with AVX and/or
 whatever extra features your CPU has got.
@@ -157,8 +159,7 @@ whatever extra features your CPU has got.
 Download CUDA from Nvidia and install it. If build errors out complaining
 about llvm-gcc not found, try this (Homebrew example):
 
-  $ brew install llvm-gcc-28
-  $ sudo \
-      ln -s /usr/local/Cellar/llvm-gcc28/2.8/bin/llvm-gcc /usr/bin/llvm-gcc-4.2
+  brew install llvm-gcc-28
+  sudo ln -s /usr/local/Cellar/llvm-gcc28/2.8/bin/llvm-gcc /usr/bin/llvm-gcc-4.2
 
 After that you should be able to build with the default Makefile.

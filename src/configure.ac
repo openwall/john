@@ -886,14 +886,6 @@ else
    have_int128=no
 fi
 
-AS_IF([test "x$osx_assembler_warn" = xyes],
-  [AC_MSG_WARN([**************************************************])]
-  [AC_MSG_WARN([* System's 'as' can't assemble AVX instructions. *])]
-  [AC_MSG_WARN([* Fixing this may yield better performance.      *])]
-  [AC_MSG_WARN([* See last section of doc/INSTALL                *])]
-  [AC_MSG_WARN([**************************************************])]
-)
-
 cat <<EOF
 dnl =======================================================================
 

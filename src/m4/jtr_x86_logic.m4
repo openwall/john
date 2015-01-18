@@ -55,10 +55,10 @@ if test "x$enable_native_tests" = xyes; then
   AC_RUN_IFELSE(
     [
     AC_LANG_SOURCE(
-	  [[#include <mmintrin.h>
-	#include <stdio.h>
-	extern void exit(int);
-	int main(){__m64 t;*((long long*)&t)=1;t=_mm_set1_pi32(7);if((*(unsigned*)&t)==88)printf(".");exit(0);}]]
+      [[#include <mmintrin.h>
+        #include <stdio.h>
+        extern void exit(int);
+        int main(){__m64 t;*((long long*)&t)=1;t=_mm_set1_pi32(7);if((*(unsigned*)&t)==88)printf(".");exit(0);}]]
     )]
     ,[CPU_BEST_FLAGS="-mmmx"] dnl
      [CPU_STR="MMX"]
@@ -74,10 +74,10 @@ if test "x$enable_native_tests" = xyes; then
   AC_RUN_IFELSE(
     [
     AC_LANG_SOURCE(
-	  [[#include <emmintrin.h>
-	#include <stdio.h>
-	extern void exit(int);
-	int main(){__m128i t;*((long long*)&t)=1;t=_mm_slli_si128(t,7);if((*(unsigned*)&t)==88)printf(".");exit(0);}]]
+      [[#include <emmintrin.h>
+        #include <stdio.h>
+        extern void exit(int);
+        int main(){__m128i t;*((long long*)&t)=1;t=_mm_slli_si128(t,7);if((*(unsigned*)&t)==88)printf(".");exit(0);}]]
     )]
     ,[CPU_BEST_FLAGS="-msse2"] dnl
      [CPU_STR="SSE2"]
@@ -95,10 +95,10 @@ if test "x$enable_native_tests" = xyes; then
   AC_RUN_IFELSE(
     [
     AC_LANG_SOURCE(
-	  [[#include <tmmintrin.h>
-	#include <stdio.h>
-	extern void exit(int);
-	int main(){__m128i t;*((long long*)&t)=1;t=_mm_shuffle_epi8(t,t);if((*(unsigned*)&t)==88)printf(".");exit(0);}]]
+      [[#include <tmmintrin.h>
+        #include <stdio.h>
+        extern void exit(int);
+        int main(){__m128i t;*((long long*)&t)=1;t=_mm_shuffle_epi8(t,t);if((*(unsigned*)&t)==88)printf(".");exit(0);}]]
     )]
     ,[CPU_BEST_FLAGS="-mssse3"]dnl
      [CPU_STR="SSSE3"]
@@ -116,10 +116,10 @@ if test "x$enable_native_tests" = xyes; then
   AC_RUN_IFELSE(
     [
     AC_LANG_SOURCE(
-	  [[#include <smmintrin.h>
-	#include <stdio.h>
-	extern void exit(int);
-	int main(){__m128d t;*((long long*)&t)=1;t=_mm_round_pd(t,1);if((*(long long*)&t)==88)printf(".");exit(0);}]]
+      [[#include <smmintrin.h>
+        #include <stdio.h>
+        extern void exit(int);
+        int main(){__m128d t;*((long long*)&t)=1;t=_mm_round_pd(t,1);if((*(long long*)&t)==88)printf(".");exit(0);}]]
     )]
     ,[CPU_BEST_FLAGS="-msse4.1"]dnl
      [CPU_STR="SSE4.1"]
@@ -129,6 +129,40 @@ if test "x$enable_native_tests" = xyes; then
     )
   ]
   )
+
+  AS_CASE([$host_os], [darwin*], [AS_IF([test "x$CPU_NOTFOUND" = x0],
+    [CC="$CC_BACKUP -mavx"
+    AC_MSG_CHECKING([whether OS X 'as' needs -q option])
+    AC_LINK_IFELSE(
+      [
+      AC_LANG_SOURCE(
+        [[#include <immintrin.h>
+          #include <stdio.h>
+          extern void exit(int);
+          int main(){__m256d t;*((long long*)&t)=1;t=_mm256_movedup_pd(t);if((*(long long*)&t)==88)printf(".");exit(0);}]]
+      )]
+      ,[AC_MSG_RESULT([no])]
+      ,[OSX_AS_CLANG="-Wa,-q"]
+       [CC="$CC_BACKUP -mavx $OSX_AS_CLANG"][
+       AC_LINK_IFELSE(
+         [
+         AC_LANG_SOURCE(
+           [[#include <immintrin.h>
+             #include <stdio.h>
+             extern void exit(int);
+             int main(){__m256d t;*((long long*)&t)=1;t=_mm256_movedup_pd(t);if((*(long long*)&t)==88)printf(".");exit(0);}]]
+         )]
+         ,[AC_MSG_RESULT([yes])]
+         ,[AC_MSG_RESULT([no])]
+      )]
+    )
+    AS_IF([test x$OSX_AS_CLANG != x],
+      [CC_BACKUP="$CC_BACKUP $OSX_AS_CLANG"]
+      [AS_IF([test x$AS = xgcc], [AS="$AS $OSX_AS_CLANG"])]
+     ,[CC="$CC_BACKUP"])
+    ])]
+  )
+
   AS_IF([test "x$CPU_NOTFOUND" = x0],
   [
   CC="$CC_BACKUP -mavx"
@@ -136,19 +170,20 @@ if test "x$enable_native_tests" = xyes; then
   AC_RUN_IFELSE(
     [
     AC_LANG_SOURCE(
-	  [[#include <immintrin.h>
-	#include <stdio.h>
-	extern void exit(int);
-	int main(){__m256d t;*((long long*)&t)=1;t=_mm256_movedup_pd(t);if((*(long long*)&t)==88)printf(".");exit(0);}]]
+      [[#include <immintrin.h>
+        #include <stdio.h>
+        extern void exit(int);
+        int main(){__m256d t;*((long long*)&t)=1;t=_mm256_movedup_pd(t);if((*(long long*)&t)==88)printf(".");exit(0);}]]
     )]
     ,[CPU_BEST_FLAGS="-mavx"]dnl
      [CPU_STR="AVX"]
      [AC_MSG_RESULT([yes])]
     ,[CPU_NOTFOUND=1]
-	 [AC_MSG_RESULT([no])]
+     [AC_MSG_RESULT([no])]
     )
   ]
   )
+
   AS_IF([test "x$CPU_NOTFOUND" = x0],
   [
   CC="$CC_BACKUP -mavx2"
@@ -156,7 +191,7 @@ if test "x$enable_native_tests" = xyes; then
   AC_RUN_IFELSE(
     [
     AC_LANG_SOURCE(
-	  [[#include <immintrin.h>
+      [[#include <immintrin.h>
         #include <stdio.h>
         extern void exit(int);
         int main(){__m256i t, t1;*((long long*)&t)=1;t1=t;t=_mm256_mul_epi32(t1,t);if((*(long long*)&t)==88)printf(".");exit(0);}]]
@@ -175,10 +210,10 @@ if test "x$enable_native_tests" = xyes; then
   AC_RUN_IFELSE(
     [
     AC_LANG_SOURCE(
-	  [[#include <x86intrin.h>
-	#include <stdio.h>
-	extern void exit(int);
-	int main(){__m128i t;*((long long*)&t)=1;t=_mm_roti_epi32(t,5);if((*(long long*)&t)==88)printf(".");exit(0);}]]
+      [[#include <x86intrin.h>
+        #include <stdio.h>
+        extern void exit(int);
+        int main(){__m128i t;*((long long*)&t)=1;t=_mm_roti_epi32(t,5);if((*(long long*)&t)==88)printf(".");exit(0);}]]
     )]
     ,[CPU_BEST_FLAGS="-mxop"]dnl
      [CPU_STR="XOP"]
@@ -187,46 +222,22 @@ if test "x$enable_native_tests" = xyes; then
     )
   ]
   )
-  AS_CASE([$host_os], [darwin*], [AS_IF([test "x$CPU_STR" = "xSSE4.1"],
-    [AC_PATH_PROGS([jtr_as], [as])]
-    [AS_IF([test "x$jtr_as" = "x/usr/bin/as"],
-      [AC_MSG_CHECKING([that 'as' works for AVX])]
-      [AC_LINK_IFELSE(
-         [AC_LANG_SOURCE(
-            [extern void exit(int);
-            int main() {
-            #if defined(__AVX__)
-                exit(0);}
-            #else
-                BORK!
-            #endif
-            ]
-         )]
-        ,[AC_MSG_RESULT([no])]
-         [osx_assembler_warn=yes]
-        ,[AC_MSG_RESULT(yes)]
-      )]
-    )]
-  )])
 else
   ##########################################
   # cross-compile versions of the same tests
   ##########################################
-  CC="$CC_BACKUP"
   CPU_NOTFOUND=0
-  AC_MSG_NOTICE([Checking enabled ${host_cpu} host CPU features])
+  AC_MSG_NOTICE([Testing build host's native CPU features])
+  CC="$CC_BACKUP -mmmx"
   AC_MSG_CHECKING([for MMX])
   AC_LINK_IFELSE(
-     [AC_LANG_SOURCE(
-	[extern void exit(int);
-	int main() {
-	#if defined(__MMX__)
-	    exit(0);}
-	#else
-	    BORK!
-	#endif
-	]
-     )]
+    [
+    AC_LANG_SOURCE(
+      [[#include <mmintrin.h>
+        #include <stdio.h>
+        extern void exit(int);
+        int main(){__m64 t;*((long long*)&t)=1;t=_mm_set1_pi32(7);if((*(unsigned*)&t)==88)printf(".");exit(0);}]]
+    )]
     ,[CPU_BEST_FLAGS="-mmmx"] dnl
      [CPU_STR="MMX"]
      [AS_IF([test y$ARCH_LINK = yx86-any.h], [ARCH_LINK=x86-mmx.h])]
@@ -234,141 +245,160 @@ else
     ,[CPU_NOTFOUND="1"]
      [AC_MSG_RESULT(no)]
   )
-  if test "x$CPU_NOTFOUND" = x0; then
-    AC_MSG_CHECKING([for SSE2])
-    AC_LINK_IFELSE(
-       [AC_LANG_SOURCE(
-	  [extern void exit(int);
-	  int main() {
-	  #if defined(__SSE2__)
-	      exit(0);}
-	  #else
-	      BORK!
-	  #endif
-	  ]
-       )]
-      ,[CPU_BEST_FLAGS="-msse2"] dnl
-       [CPU_STR="SSE2"]
-       [AS_IF([test y$ARCH_LINK = yx86-mmx.h], [ARCH_LINK=x86-sse.h])]
-       [AC_MSG_RESULT([yes])]
-      ,[CPU_NOTFOUND="1"]
-       [AC_MSG_RESULT(no)]
+  AS_IF([test "x$CPU_NOTFOUND" = x0],
+  [
+  CC="$CC_BACKUP -msse2"
+  AC_MSG_CHECKING([for SSE2])
+  AC_LINK_IFELSE(
+    [
+    AC_LANG_SOURCE(
+      [[#include <emmintrin.h>
+        #include <stdio.h>
+        extern void exit(int);
+        int main(){__m128i t;*((long long*)&t)=1;t=_mm_slli_si128(t,7);if((*(unsigned*)&t)==88)printf(".");exit(0);}]]
+    )]
+    ,[CPU_BEST_FLAGS="-msse2"] dnl
+     [CPU_STR="SSE2"]
+     [AS_IF([test y$ARCH_LINK = yx86-mmx.h], [ARCH_LINK=x86-sse.h])]
+     [AC_MSG_RESULT([yes])]
+    ,[CPU_NOTFOUND="1"]
+     [AC_MSG_RESULT(no)]
+  )
+  ])
+  AS_IF([test "x$CPU_NOTFOUND" = x0],
+  [
+  CC="$CC_BACKUP -mssse3"
+  CPU_NOTFOUND=0
+  AC_MSG_CHECKING([for SSSE3])
+  AC_LINK_IFELSE(
+    [
+    AC_LANG_SOURCE(
+      [[#include <tmmintrin.h>
+        #include <stdio.h>
+        extern void exit(int);
+        int main(){__m128i t;*((long long*)&t)=1;t=_mm_shuffle_epi8(t,t);if((*(unsigned*)&t)==88)printf(".");exit(0);}]]
+    )]
+    ,[CPU_BEST_FLAGS="-mssse3"]dnl
+     [CPU_STR="SSSE3"]
+     [AC_MSG_RESULT([yes])]
+    ,[CPU_NOTFOUND=1]
+     [AC_MSG_RESULT([no])]
     )
-  fi
-  if test "x$CPU_NOTFOUND" = x0; then
-    AC_MSG_CHECKING([for SSSE3])
-    AC_LINK_IFELSE(
-       [AC_LANG_SOURCE(
-	  [extern void exit(int);
-	  int main() {
-	  #if defined(__SSSE3__)
-	      exit(0);}
-	  #else
-	      BORK!
-	  #endif
-	  ]
-       )]
-      ,[CPU_BEST_FLAGS="-mssse3"] dnl
-       [CPU_STR="SSSE3"]
-       [AC_MSG_RESULT([yes])]
-      ,[CPU_NOTFOUND="1"]
-       [AC_MSG_RESULT(no)]
+  ]
+  )
+  AS_IF([test "x$CPU_NOTFOUND" = x0],
+  [
+  CC="$CC_BACKUP -msse4.1"
+  CPU_NOTFOUND=0
+  AC_MSG_CHECKING([for SSE4.1])
+  AC_LINK_IFELSE(
+    [
+    AC_LANG_SOURCE(
+      [[#include <smmintrin.h>
+        #include <stdio.h>
+        extern void exit(int);
+        int main(){__m128d t;*((long long*)&t)=1;t=_mm_round_pd(t,1);if((*(long long*)&t)==88)printf(".");exit(0);}]]
+    )]
+    ,[CPU_BEST_FLAGS="-msse4.1"]dnl
+     [CPU_STR="SSE4.1"]
+     [AC_MSG_RESULT([yes])]
+    ,[CPU_NOTFOUND=1]
+     [AC_MSG_RESULT([no])]
     )
-  fi
-  if test "x$CPU_NOTFOUND" = x0; then
-    AC_MSG_CHECKING([for SSE4.1])
-    AC_LINK_IFELSE(
-       [AC_LANG_SOURCE(
-	  [extern void exit(int);
-	  int main() {
-	  #if defined(__SSE4_1__)
-	      exit(0);}
-	  #else
-	      BORK!
-	  #endif
-	  ]
-       )]
-      ,[CPU_BEST_FLAGS="-msse4.1"] dnl
-       [CPU_STR="SSE4.1"]
-       [AC_MSG_RESULT([yes])]
-      ,[CPU_NOTFOUND="1"]
-       [AC_MSG_RESULT(no)]
-    )
-  fi
-  if test "x$CPU_NOTFOUND" = x0; then
-    AC_MSG_CHECKING([for AVX])
-    AC_LINK_IFELSE(
-       [AC_LANG_SOURCE(
-	  [extern void exit(int);
-	  int main() {
-	  #if defined(__AVX__)
-	      exit(0);}
-	  #else
-	      BORK!
-	  #endif
-	  ]
-       )]
-      ,[CPU_BEST_FLAGS="-mavx"] dnl
-       [CPU_STR="AVX"]
-       [AC_MSG_RESULT([yes])]
-      ,[CPU_NOTFOUND="1"]
-       [AC_MSG_RESULT(no)]
-    )
-  fi
-  if test "x$CPU_NOTFOUND" = x0; then
-    AC_MSG_CHECKING([for AVX2])
-    AC_LINK_IFELSE(
-       [AC_LANG_SOURCE(
-	  [extern void exit(int);
-	  int main() {
-	  #if defined(__AVX2__)
-	      exit(0);}
-	  #else
-	      BORK!
-	  #endif
-	  ]
-       )]
-      ,[CPU_BEST_FLAGS="-mavx2"] dnl
-       [CPU_STR="AVX2"]
-       [AC_MSG_RESULT([yes])]
-      ,[AC_MSG_RESULT(no)]
-    )
-  fi
-  if test "x$CPU_NOTFOUND" = x0; then
-    AC_MSG_CHECKING([for XOP])
-    AC_LINK_IFELSE(
-       [AC_LANG_SOURCE(
-	  [extern void exit(int);
-	  int main() {
-	  #if defined(__XOP__)
-	      exit(0);}
-	  #else
-	      BORK!
-	  #endif
-	  ]
-       )]
-      ,[CPU_BEST_FLAGS="-mxop"] dnl
-       [CPU_STR="XOP"]
-       [AC_MSG_RESULT([yes])]
-      ,[AC_MSG_RESULT(no)]
-    )
-  fi
-  AS_CASE([$host_os], [darwin*], [AS_IF([test "x$CPU_NOTFOUND" = x0],[
-    CC="$CC_BACKUP -mavx"
-    AC_MSG_CHECKING([that 'as' works for AVX])
+  ]
+  )
+
+  AS_CASE([$host_os], [darwin*], [AS_IF([test "x$CPU_NOTFOUND" = x0],
+    [CC="$CC_BACKUP -mavx"
+    AC_MSG_CHECKING([whether OS X 'as' needs -q option])
     AC_LINK_IFELSE(
       [
       AC_LANG_SOURCE(
-            [[#include <immintrin.h>
+        [[#include <immintrin.h>
           #include <stdio.h>
           extern void exit(int);
           int main(){__m256d t;*((long long*)&t)=1;t=_mm256_movedup_pd(t);if((*(long long*)&t)==88)printf(".");exit(0);}]]
       )]
-      ,[AC_MSG_RESULT([yes])]
       ,[AC_MSG_RESULT([no])]
-       [AC_MSG_ERROR(['as' can't assemble AVX instructions. See last section of doc/INSTALL])]
-      )
+      ,[OSX_AS_CLANG="-Wa,-q"]
+       [CC="$CC_BACKUP -mavx $OSX_AS_CLANG"][
+       AC_LINK_IFELSE(
+         [
+         AC_LANG_SOURCE(
+           [[#include <immintrin.h>
+             #include <stdio.h>
+             extern void exit(int);
+             int main(){__m256d t;*((long long*)&t)=1;t=_mm256_movedup_pd(t);if((*(long long*)&t)==88)printf(".");exit(0);}]]
+         )]
+         ,[AC_MSG_RESULT([yes])]
+         ,[AC_MSG_RESULT([no])]
+      )]
+    )
+    AS_IF([test x$OSX_AS_CLANG != x],
+      [CC_BACKUP="$CC_BACKUP $OSX_AS_CLANG"]
+      [AS_IF([test x$AS = xgcc], [AS="$AS $OSX_AS_CLANG"])]
+     ,[CC="$CC_BACKUP"])
     ])]
+  )
+
+  AS_IF([test "x$CPU_NOTFOUND" = x0],
+  [
+  CC="$CC_BACKUP -mavx"
+  AC_MSG_CHECKING([for AVX])
+  AC_LINK_IFELSE(
+    [
+    AC_LANG_SOURCE(
+      [[#include <immintrin.h>
+        #include <stdio.h>
+        extern void exit(int);
+        int main(){__m256d t;*((long long*)&t)=1;t=_mm256_movedup_pd(t);if((*(long long*)&t)==88)printf(".");exit(0);}]]
+    )]
+    ,[CPU_BEST_FLAGS="-mavx"]dnl
+     [CPU_STR="AVX"]
+     [AC_MSG_RESULT([yes])]
+    ,[CPU_NOTFOUND=1]
+     [AC_MSG_RESULT([no])]
+    )
+  ]
+  )
+
+  AS_IF([test "x$CPU_NOTFOUND" = x0],
+  [
+  CC="$CC_BACKUP -mavx2"
+  AC_MSG_CHECKING([for AVX2])
+  AC_LINK_IFELSE(
+    [
+    AC_LANG_SOURCE(
+      [[#include <immintrin.h>
+        #include <stdio.h>
+        extern void exit(int);
+        int main(){__m256i t, t1;*((long long*)&t)=1;t1=t;t=_mm256_mul_epi32(t1,t);if((*(long long*)&t)==88)printf(".");exit(0);}]]
+    )]
+    ,[CPU_BEST_FLAGS="-mavx2"]dnl
+     [CPU_STR="AVX2"]
+     [AC_MSG_RESULT([yes])]
+    ,[AC_MSG_RESULT([no])]
+    )
+  ]
+  )
+  AS_IF([test "x$CPU_NOTFOUND" = x0],
+  [
+  CC="$CC_BACKUP -mxop"
+  AC_MSG_CHECKING([for XOP])
+  AC_LINK_IFELSE(
+    [
+    AC_LANG_SOURCE(
+      [[#include <x86intrin.h>
+        #include <stdio.h>
+        extern void exit(int);
+        int main(){__m128i t;*((long long*)&t)=1;t=_mm_roti_epi32(t,5);if((*(long long*)&t)==88)printf(".");exit(0);}]]
+    )]
+    ,[CPU_BEST_FLAGS="-mxop"]dnl
+     [CPU_STR="XOP"]
+     [AC_MSG_RESULT([yes])]
+    ,[AC_MSG_RESULT([no])]
+    )
+  ]
   )
 fi
 
