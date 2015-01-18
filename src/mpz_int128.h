@@ -43,7 +43,6 @@ typedef __uint128_t             uint128_t;
 #define UINT128_MAX	((uint128_t)-1)
 
 typedef uint128_t               mpz_t;
-typedef double                  mpf_t;
 
 #define FAKE_GMP 1
 
@@ -62,14 +61,14 @@ typedef double                  mpf_t;
 #define mpz_cmp_ui(op1, op2) ((op1 > (op2)) ? 1 : (op1 < (op2)) ? -1 : 0)
 #define mpz_cmp_si(op1, op2) (op1 - (op2))
 
-#define mpz_add(rop, op1, op2) do { rop = op1 + op2; if (rop < op1) rop = UINT128_MAX; } while (0)
-#define mpz_add_ui(rop, op1, op2) do { rop = op1 + (op2); if (rop < op1) rop = UINT128_MAX; } while (0)
+#define mpz_add(rop, op1, op2) do { rop = op1 + op2; if (rop < op2) rop = UINT128_MAX; } while (0)
+#define mpz_add_ui(rop, op1, op2) do { rop = op1 + (op2); if (rop < (op2)) rop = UINT128_MAX; } while (0)
 
-#define mpz_sub(rop, op1, op2) do { rop = op1 - op2; if (rop > op1) rop = 0; } while (0)
-#define mpz_sub_ui(rop, op1, op2) do { rop = op1 - (op2); if (rop > op1) rop = 0; } while (0)
+#define mpz_sub(rop, op1, op2) do { mpz_t temp = op1; rop = op1 - op2; if (rop > temp) rop = 0; } while (0)
+#define mpz_sub_ui(rop, op1, op2) do { mpz_t temp = op1; rop = op1 - (op2); if (rop > temp) rop = 0; } while (0)
 
-#define mpz_mul(rop, op1, op2) do { rop = op1 * op2; if (rop < op1) rop = UINT128_MAX; } while (0)
-#define mpz_mul_ui(rop, op1, op2) do { rop = op1 * (op2); if (rop < op1) rop = UINT128_MAX; } while (0)
+#define mpz_mul(rop, op1, op2) do { rop = op1 * op2; if (rop < op2) rop = UINT128_MAX; } while (0)
+#define mpz_mul_ui(rop, op1, op2) do { rop = op1 * (op2); if (rop < (op2)) rop = UINT128_MAX; } while (0)
 #define mpz_mul_2exp(rop, op1, op2) rop = op1 << (op2)
 
 #define mpz_div_ui(q, n, d) q = (n) / (d)
@@ -184,6 +183,8 @@ static inline size_t mpz_out_str(FILE *stream, int base, mpz_t op)
 }
 
 /* For JtR ETA/Progress compatibility */
+typedef double                  mpf_t;
+
 #define mpf_init(x) x = 0
 #define mpf_init_set_ui(x, y) x = y
 #define mpf_set_z(x, y) x = y
