@@ -174,7 +174,7 @@ typedef struct
   int      chains_pos;
   int      chains_alloc;
 
-  u64      cur_chain_ks_poses[ELEM_CNT_MAX];
+  u64      cur_chain_ks_poses[IN_LEN_MAX];
 
 } db_entry_t;
 
@@ -512,7 +512,7 @@ static void chain_ks (const chain_t *chain_buf, const db_entry_t *db_entries, mp
   }
 }
 
-static void set_chain_ks_poses (const chain_t *chain_buf, const db_entry_t *db_entries, mpz_t *tmp, u64 cur_chain_ks_poses[ELEM_CNT_MAX])
+static void set_chain_ks_poses (const chain_t *chain_buf, const db_entry_t *db_entries, mpz_t *tmp, u64 cur_chain_ks_poses[IN_LEN_MAX])
 {
   const u8 *buf = chain_buf->buf;
 
@@ -532,7 +532,7 @@ static void set_chain_ks_poses (const chain_t *chain_buf, const db_entry_t *db_e
   }
 }
 
-static void chain_set_pwbuf_init (const chain_t *chain_buf, const db_entry_t *db_entries, const u64 cur_chain_ks_poses[ELEM_CNT_MAX], char *pw_buf)
+static void chain_set_pwbuf_init (const chain_t *chain_buf, const db_entry_t *db_entries, const u64 cur_chain_ks_poses[IN_LEN_MAX], char *pw_buf)
 {
   const u8 *buf = chain_buf->buf;
 
@@ -552,7 +552,7 @@ static void chain_set_pwbuf_init (const chain_t *chain_buf, const db_entry_t *db
   }
 }
 
-static void chain_set_pwbuf_increment (const chain_t *chain_buf, const db_entry_t *db_entries, u64 cur_chain_ks_poses[ELEM_CNT_MAX], char *pw_buf)
+static void chain_set_pwbuf_increment (const chain_t *chain_buf, const db_entry_t *db_entries, u64 cur_chain_ks_poses[IN_LEN_MAX], char *pw_buf)
 {
   const u8 *buf = chain_buf->buf;
 
@@ -674,8 +674,8 @@ static double get_progress(void)
 void do_prince_crack(struct db_main *db, char *filename)
 #endif
 {
-  mpz_t pw_ks_pos[PW_MAX + 1];
-  mpz_t pw_ks_cnt[PW_MAX + 1];
+  mpz_t pw_ks_pos[IN_LEN_MAX + 1];
+  mpz_t pw_ks_cnt[IN_LEN_MAX + 1];
 
   mpz_t iter_max;         mpz_init_set_si (iter_max,        0);
   mpz_t total_ks_cnt;     mpz_init_set_si (total_ks_cnt,    0);
@@ -1032,7 +1032,7 @@ void do_prince_crack(struct db_main *db, char *filename)
       db_entry->chains_cnt++;
     }
 
-    memset (db_entry->cur_chain_ks_poses, 0, ELEM_CNT_MAX * sizeof (u64));
+    memset (db_entry->cur_chain_ks_poses, 0, IN_LEN_MAX * sizeof (u64));
   }
 
   /**
@@ -1101,6 +1101,13 @@ void do_prince_crack(struct db_main *db, char *filename)
       mpz_init_set (pw_ks_cnt[pw_len], tmp);
     }
   }
+
+#if FAKE_GMP
+  if (total_ks_cnt == UINT128_MAX)
+  {
+    fprintf (stderr, "Warning: %d-bit keyspace saturated\n", FAKE_GMP);
+  }
+#endif
 
   if (keyspace)
   {
@@ -1199,7 +1206,7 @@ void do_prince_crack(struct db_main *db, char *filename)
 
   if (mpz_cmp_si (skip, 0))
   {
-    if (mpz_cmp (skip, total_ks_cnt) > 0)
+    if (mpz_cmp (skip, total_ks_cnt) >= 0)
     {
       fprintf (stderr, "Value of --skip must be smaller than total keyspace\n");
 
@@ -1215,7 +1222,7 @@ void do_prince_crack(struct db_main *db, char *filename)
   {
     if (mpz_cmp (limit, total_ks_cnt) > 0)
     {
-      fprintf (stderr, "Value of --limit must be smaller than total keyspace\n");
+      fprintf (stderr, "Value of --limit cannot be larger than total keyspace\n");
 
 #ifndef JTR_MODE
       return (-1);
@@ -1228,7 +1235,7 @@ void do_prince_crack(struct db_main *db, char *filename)
 
     if (mpz_cmp (tmp, total_ks_cnt) > 0)
     {
-      fprintf (stderr, "Value of --skip + --limit must be smaller than total keyspace\n");
+      fprintf (stderr, "Value of --skip + --limit cannot be larger than total keyspace\n");
 
 #ifndef JTR_MODE
       return (-1);
@@ -1476,7 +1483,7 @@ void do_prince_crack(struct db_main *db, char *filename)
         {
           db_entry->chains_pos++;
 
-          memset (db_entry->cur_chain_ks_poses, 0, ELEM_CNT_MAX * sizeof (u64));
+          memset (db_entry->cur_chain_ks_poses, 0, IN_LEN_MAX * sizeof (u64));
         }
 
         if (mpz_cmp (total_ks_pos, total_ks_cnt) == 0) break;
