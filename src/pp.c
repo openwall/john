@@ -850,11 +850,11 @@ void do_prince_crack(struct db_main *db, char *filename)
 #else
   log_event("Proceeding with PRINCE mode (" REALGMP " version)");
 
-  pw_min = MAX(IN_LEN_MIN, options.force_minlength);
-  pw_max = MIN(IN_LEN_MAX, db->format->params.plaintext_length);
+  pw_min = MAX(PW_MIN, options.force_minlength);
+  pw_max = MIN(PW_MAX, db->format->params.plaintext_length);
 
   if (options.force_maxlength && options.force_maxlength < pw_max)
-    pw_max = MIN(IN_LEN_MAX, options.force_maxlength);
+    pw_max = options.force_maxlength;
 
   if (prince_elem_cnt_min)
     elem_cnt_min = prince_elem_cnt_min;
