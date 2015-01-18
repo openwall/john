@@ -850,16 +850,21 @@ void do_prince_crack(struct db_main *db, char *filename)
 #else
   log_event("Proceeding with PRINCE mode (" REALGMP " version)");
 
+  /* This mode defaults to length 16 (unless lowered by format) */
   pw_min = MAX(PW_MIN, options.force_minlength);
   pw_max = MIN(PW_MAX, db->format->params.plaintext_length);
 
+  /* ...but can be bumped using -max-len */
+  if (options.force_maxlength && options.force_maxlength > pw_max)
+    pw_max = MIN(IN_LEN_MAX, options.force_maxlength);
+  else
   if (options.force_maxlength && options.force_maxlength < pw_max)
     pw_max = options.force_maxlength;
 
   if (prince_elem_cnt_min)
-    elem_cnt_min = prince_elem_cnt_min;
+    elem_cnt_min = MAX(1, prince_elem_cnt_min);
   if (prince_elem_cnt_max)
-    elem_cnt_max = prince_elem_cnt_max;
+    elem_cnt_max = MIN(prince_elem_cnt_max, pw_max);
   if (options.flags & FLG_PRINCE_DIST)
     wl_dist_len = 1;
   if (options.flags & FLG_PRINCE_KEYSPACE)
@@ -869,13 +874,6 @@ void do_prince_crack(struct db_main *db, char *filename)
   {
     if (john_main_process)
     fprintf (stderr, "Error: --prince-elem-cnt-min (%d) must be smaller than or equal to\n--prince-elem-cnt-max (%d)\n", elem_cnt_min, elem_cnt_max);
-
-    error();
-  }
-  if (elem_cnt_min > pw_max)
-  {
-    if (john_main_process)
-    fprintf (stderr, "Error: --prince-elem-cnt-max (%d) must be smaller than or equal to\nmax. plaintext length (%d)\n", elem_cnt_min, pw_max);
 
     error();
   }

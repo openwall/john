@@ -22,6 +22,7 @@
 #include "stdint.h"
 #include <stdio.h>
 #include <string.h>
+#include <strings.h>
 #include <stdlib.h>
 
 #undef int128_t
