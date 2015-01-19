@@ -1072,6 +1072,28 @@ void do_prince_crack(struct db_main *db, char *filename)
    */
 
 #ifdef JTR_MODE
+  status_init(get_progress, 0);
+
+  rec_restore_mode(restore_state);
+  rec_init(db, save_state);
+
+  if (mpz_cmp_ui(rec_pos, 0))
+    mpz_set(skip, rec_pos);
+
+  if (mpz_cmp_ui(skip, 0))
+  {
+    char l_msg[64];
+    mpz_get_str(l_msg, 10, skip);
+    log_event("- Skip %s", l_msg);
+  }
+  if (mpz_cmp_ui(limit, 0))
+  {
+    char l_msg[64];
+    mpz_get_str(l_msg, 10, limit);
+    log_event("- Limit %s", l_msg);
+  }
+  mpz_set(pos, rec_pos);
+
   log_event("Calculating keyspace");
 #endif
   for (int pw_len = pw_min; pw_len <= pw_max; pw_len++)
@@ -1128,6 +1150,10 @@ void do_prince_crack(struct db_main *db, char *filename)
     log_event("- Keyspace size %s (%d bits used)", l_msg,
               get_bits(&total_ks_cnt));
   }
+
+  mpf_set_z(count, total_ks_cnt);
+
+  crk_init(db, fix_state, NULL);
 #endif
 
   /**
@@ -1148,34 +1174,7 @@ void do_prince_crack(struct db_main *db, char *filename)
     qsort (chains_buf, chains_cnt, sizeof (chain_t), sort_by_ks);
   }
 #ifdef JTR_MODE
-  mpf_set_z(count, total_ks_cnt);
-
-  status_init(get_progress, 0);
-
-  rec_restore_mode(restore_state);
-  rec_init(db, save_state);
-
-  if (mpz_cmp_ui(rec_pos, 0))
-    mpz_set(skip, rec_pos);
-
-  if (mpz_cmp_ui(skip, 0))
-  {
-    char l_msg[64];
-    mpz_get_str(l_msg, 10, skip);
-    log_event("- Skip %s", l_msg);
-  }
-  if (mpz_cmp_ui(limit, 0))
-  {
-    char l_msg[64];
-    mpz_get_str(l_msg, 10, limit);
-    log_event("- Limit %s", l_msg);
-  }
-  mpz_set(pos, rec_pos);
-
-  crk_init(db, fix_state, NULL);
-
   log_event("Sorting global order by password length counts");
-
 #endif
 
   /**
