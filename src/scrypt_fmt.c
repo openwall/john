@@ -240,12 +240,17 @@ static void *binary(char *ciphertext)
 static void *salt(char *ciphertext)
 {
 	static char out[SALT_SIZE];
+	char *cp;
 	/* NUL padding is required */
 	memset(out, 0, sizeof(out));
 	if (strlen(ciphertext) > SALT_SIZE-1)
 		memcpy(out, ciphertext, SALT_SIZE-1);
 	else
 		strcpy(out, ciphertext);
+	cp = strchr(&out[8], '$');
+	while (cp && *cp) {
+		*cp++ = 0;
+	}
 	return out;
 }
 
