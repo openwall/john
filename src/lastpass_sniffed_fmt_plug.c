@@ -189,7 +189,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		}
 		pbkdf2_sha256_sse((const unsigned char **)pin, lens, (unsigned char*)cur_salt->username, strlen(cur_salt->username), cur_salt->iterations, &(x.poutc), 32, 0);
 #else
-		strcpy((char*)UserName, cur_salt->username, sizeof(UserName));
 		pbkdf2_sha256((unsigned char*)saved_key[index], strlen(saved_key[index]), (unsigned char*)cur_salt->username, strlen(cur_salt->username), cur_salt->iterations, (unsigned char*)(&key[0]),32,0);
 #if !ARCH_LITTLE_ENDIAN
 		for (i = 0; i < 8; ++i) {
