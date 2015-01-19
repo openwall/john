@@ -85,6 +85,18 @@ static unsigned char (*first_block_dec)[16];
 
 struct cust_salt {
 	unsigned char salt[64];
+	// I 'thought' that bin[] could be removed, so that only salt[] was used
+	// for salt dupe-removal. That was wrong, bin[] must also be part of the
+	// salt dupe logic, or we will get wrong passwords found, if there is
+	// hashes with the same salts.  bin[] array really is part of the salt
+	// since we decrypt it, to do the final check. So there is no real way
+	// to have any duplicate salts. in essense, we have a 'fixed' binary
+	// and the salt is the entire input hash. The fixed binary can be
+	// thought of as 'TRUE' (but it is more than this).  It is simply we
+	// do not know the real binary until after we correctly decrypt.
+	// Initially I moved bin[] and ported to dyna_salt. All hashes in a
+	// test suite cracked, BUT the same password was used for all of them,
+	// the first password in the file.  Not what we wanted.
 	unsigned char bin[512-64];
 	int loop_inc;
 	int num_iterations;
