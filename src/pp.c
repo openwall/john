@@ -58,7 +58,12 @@
 #include <fcntl.h>
 #include <time.h>
 #include <errno.h>
-#include <getopt.h>
+#ifdef _MSC_VER
+#include "missing_getopt.h"
+#include <io.h>
+#else
+#include <unistd.h>
+#endif
 #include <ctype.h>
 
 #if HAVE_INT128 || HAVE___INT128 || HAVE___INT128_T
