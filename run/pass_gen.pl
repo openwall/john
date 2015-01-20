@@ -76,7 +76,8 @@ my @funcs = (qw(DESCrypt BigCrypt BSDIcrypt md5crypt md5crypt_a BCRYPT BCRYPTx
 		pbkdf2-hmac-sha1-pkcs5s2 md5crypt-smd5 ripemd-128 ripemd-160
 		raw-tiger raw-whirlpool hsrp known-hosts chap bb-es10 citrix-ns10
 		clipperz-srp dahua fortigate lp lastpass rawmd2 mdc2 mongodb mysqlna
-		o5logon postgres pst raw-blake2 ));
+		o5logon postgres pst raw-blake2 sub raw-keccak raw-keccak256 siemens-s7
+		raw-skein-256 raw-skein-512 ssha512 tcp-md5 ));
 
 # todo: sapb sapfg ike keepass cloudkeychain agilekeychain pfx racf vnc pdf pkzip rar5 ssh raw_gost_cp
 my $i; my $h; my $u; my $salt;
@@ -1262,6 +1263,47 @@ sub raw_blake2 {
 	require Digest::BLAKE2;
 	import Digest::BLAKE2 qw(blake2b);
 	print "u$u:\$BLAKE2\$".unpack("H*",blake2b($_[1])).":$u:0:$_[0]::\n";
+}
+sub raw_keccak {
+	require Digest::Keccak;
+	import Digest::Keccak qw(keccak_512);
+	print "u$u:\$keccak\$".unpack("H*",keccak_512($_[1])).":$u:0:$_[0]::\n";
+}
+sub raw_keccak256 {
+	require Digest::Keccak;
+	import Digest::Keccak qw(keccak_256);
+	print "u$u:\$keccak256\$".unpack("H*",keccak_256($_[1])).":$u:0:$_[0]::\n";
+}
+sub siemens_s7 {
+	$salt = get_salt(20);
+	$h = Digest::SHA::hmac_sha1($salt, sha1($_[1]));
+	$salt = unpack("H*",$salt);
+	$h = unpack("H*",$h);
+	print "u$u:\$siemens-s7\$\$1\$$salt\$$h:$u:0:$_[0]::\n";
+}
+sub raw_skein_256 {
+	# NOTE, uses v1.2 of this hash, while JtR uses v 1.3. They are NOT compatible!
+#	require Digest::Skein;
+#	import Digest::Skein qw(skein_256);
+#	print "u$u:\$skein\$".unpack("H*",skein_256($_[1])).":$u:0:$_[0]::\n";
+}
+sub raw_skein_512 {
+	# NOTE, uses v1.2 of this hash, while JtR uses v 1.3. They are NOT compatible!
+#	require Digest::Skein;
+#	import Digest::Skein qw(skein_512);
+#	print "u$u:\$skein\$".unpack("H*",skein_512($_[1])).":$u:0:$_[0]::\n";
+}
+sub ssha512 {
+	$salt = get_salt(8, -16);
+	$h = sha512($_[1].$salt);
+	print "u$u:{ssha512}".base64($h.$salt).":$u:0:$_[0]::\n";
+}
+sub tcp_md5 {
+	$salt = get_salt(32);
+	$h = md5($salt.$_[1]);
+	$h = unpack("H*",$h);
+	$salt = unpack("H*",$salt);
+	print "u$u:\$tcpmd5\$$salt\$$h:$u:0:$_[0]::\n";
 }
 sub known_hosts {
 	# simple hmac-sha1, BUT salt and pw are used in wrong order, and password is usually some host or IP, BUT
