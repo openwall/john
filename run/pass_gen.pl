@@ -76,7 +76,7 @@ my @funcs = (qw(DESCrypt BigCrypt BSDIcrypt md5crypt md5crypt_a BCRYPT BCRYPTx
 		pbkdf2-hmac-sha1-pkcs5s2 md5crypt-smd5 ripemd-128 ripemd-160
 		raw-tiger raw-whirlpool hsrp known-hosts chap bb-es10 citrix-ns10
 		clipperz-srp dahua fortigate lp lastpass rawmd2 mdc2 mongodb mysqlna
-		o5logon postgres ));
+		o5logon postgres pst ));
 
 # todo: sapb sapfg ike keepass cloudkeychain agilekeychain pfx racf vnc pdf pkzip rar5 ssh raw_gost_cp
 my $i; my $h; my $u; my $salt;
@@ -1250,6 +1250,13 @@ sub postgres {
 	$h = md5_hex(md5_hex($_[1], $user).$salt);
 	$salt = unpack("H*", $salt);
 	print "u$u:\$postgres\$$user*$salt*$h:$u:0:$_[0]::\n";
+}
+sub pst {
+	require String::CRC32;
+	import String::CRC32 qw(crc32);
+	my $pw = $_[0];
+	if (length($pw)>8) {$pw = substr($pw, 0, 8); }
+	printf("$u:\$pst\$%08x:0:0:100:%s:\n", crc32($pw, 0xffffffff)^0xffffffff, $_[0]);
 }
 sub known_hosts {
 	# simple hmac-sha1, BUT salt and pw are used in wrong order, and password is usually some host or IP, BUT
