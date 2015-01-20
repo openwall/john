@@ -59,6 +59,7 @@
 #include <time.h>
 #include <errno.h>
 #include <getopt.h>
+#include <ctype.h>
 
 #if HAVE_INT128 || HAVE___INT128 || HAVE___INT128_T
 #include "mpz_int128.h"
@@ -126,6 +127,7 @@ char *prince_limit_str;
 #define ELEM_CNT_MIN  1
 #define ELEM_CNT_MAX  8
 #define WL_DIST_LEN   0
+#define CASE_PERMUTE  0
 
 #define VERSION_BIN   20
 
@@ -149,13 +151,13 @@ typedef struct
 
 typedef struct
 {
-  u8    buf[IN_LEN_MAX];
+  u8    *buf;
 
 } elem_t;
 
 typedef struct
 {
-  u8    buf[IN_LEN_MAX];
+  u8    *buf;
   int   cnt;
 
   mpz_t ks_cnt;
@@ -235,8 +237,6 @@ static const char *USAGE_MINI[] =
 
 static const char *USAGE_BIG[] =
 {
-  "pp by atom, High-Performance word-generator (" REALGMP " build)",
-  "",
   "Usage: %s [options] < wordlist",
   "",
   "* Startup:",
@@ -265,8 +265,66 @@ static const char *USAGE_BIG[] =
   "",
   "  -o,  --output-file=FILE    Output-file",
   "",
+  "* Amplifier:",
+  "",
+  "       --case-permute        For each word in the wordlist that begins with a letter",
+  "                             generate a word with the opposite case of the first letter",
+  "",
   NULL
 };
+
+#ifndef JTR_MODE
+static void *mem_alloc (const size_t size)
+{
+  void *res = malloc (size);
+
+  if (res == NULL)
+  {
+    fprintf (stderr, "malloc: %s\n", strerror (ENOMEM));
+
+    exit (-1);
+  }
+
+  return res;
+}
+
+static void *mem_alloc_tiny (const size_t size)
+{
+  #define MEM_ALLOC_SIZE 0x10000
+
+  if (size > MEM_ALLOC_SIZE)
+  {
+    // we can't handle it here
+
+    return mem_alloc (size);
+  }
+
+  static char *buffer  = NULL;
+  static size_t bufree = 0;
+
+  if (size > bufree)
+  {
+    buffer = mem_alloc (MEM_ALLOC_SIZE);
+    bufree = MEM_ALLOC_SIZE;
+  }
+
+  char *p = buffer;
+
+  buffer += size;
+  bufree -= size;
+
+  return p;
+}
+
+static void *mem_calloc_tiny (const size_t count, const size_t size)
+{
+  void *cp = mem_alloc_tiny (count * size);
+
+  memset (cp, 0, size);
+
+  return cp;
+}
+#endif
 
 static void usage_mini_print (const char *progname)
 {
@@ -315,7 +373,7 @@ static void usage_big_print (const char *progname)
 }
 #endif
 
-static void check_realloc_elems (db_entry_t *db_entry)
+static void check_realloc_elems (db_entry_t *db_entry, int pw_max)
 {
   if (db_entry->elems_cnt == db_entry->elems_alloc)
   {
@@ -339,10 +397,15 @@ static void check_realloc_elems (db_entry_t *db_entry)
     memset (&db_entry->elems_buf[elems_alloc], 0, ALLOC_NEW_ELEMS * sizeof (elem_t));
 
     db_entry->elems_alloc = elems_alloc_new;
+
+    for (u32 i = elems_alloc; i < elems_alloc_new; i++)
+    {
+      db_entry->elems_buf[i].buf = mem_calloc_tiny (pw_max, 1);
+    }
   }
 }
 
-static void check_realloc_chains (db_entry_t *db_entry)
+static void check_realloc_chains (db_entry_t *db_entry, int pw_max)
 {
   if (db_entry->chains_cnt == db_entry->chains_alloc)
   {
@@ -366,6 +429,11 @@ static void check_realloc_chains (db_entry_t *db_entry)
     memset (&db_entry->chains_buf[chains_alloc], 0, ALLOC_NEW_CHAINS * sizeof (chain_t));
 
     db_entry->chains_alloc = chains_alloc_new;
+
+    for (u32 i = chains_alloc; i < chains_alloc_new; i++)
+    {
+      db_entry->chains_buf[i].buf = mem_calloc_tiny (pw_max, 1);
+    }
   }
 }
 
@@ -546,7 +614,7 @@ static void chain_set_pwbuf_init (const chain_t *chain_buf, const db_entry_t *db
 
     const u64 elems_idx = cur_chain_ks_poses[idx];
 
-    memcpy (pw_buf, &db_entry->elems_buf[elems_idx], db_key);
+    memcpy (pw_buf, db_entry->elems_buf[elems_idx].buf, db_key);
 
     pw_buf += db_key;
   }
@@ -572,14 +640,14 @@ static void chain_set_pwbuf_increment (const chain_t *chain_buf, const db_entry_
 
     if (elems_idx < elems_cnt)
     {
-      memcpy (pw_buf, &db_entry->elems_buf[elems_idx], db_key);
+      memcpy (pw_buf, db_entry->elems_buf[elems_idx].buf, db_key);
 
       break;
     }
 
     cur_chain_ks_poses[idx] = 0;
 
-    memcpy (pw_buf, &db_entry->elems_buf[0], db_key);
+    memcpy (pw_buf, db_entry->elems_buf[0].buf, db_key);
 
     pw_buf += db_key;
   }
@@ -699,6 +767,7 @@ void do_prince_crack(struct db_main *db, char *filename)
   int     elem_cnt_min  = ELEM_CNT_MIN;
   int     elem_cnt_max  = ELEM_CNT_MAX;
   int     wl_dist_len   = WL_DIST_LEN;
+  int     case_permute  = CASE_PERMUTE;
 #ifndef JTR_MODE
   char   *output_file   = NULL;
 #endif
@@ -711,6 +780,7 @@ void do_prince_crack(struct db_main *db, char *filename)
   #define IDX_ELEM_CNT_MAX  0x4000
   #define IDX_KEYSPACE      0x5000
   #define IDX_WL_DIST_LEN   0x6000
+  #define IDX_CASE_PERMUTE  0x7000
   #define IDX_SKIP          's'
   #define IDX_LIMIT         'l'
   #define IDX_OUTPUT_FILE   'o'
@@ -726,6 +796,7 @@ void do_prince_crack(struct db_main *db, char *filename)
     {"elem-cnt-min",  required_argument, 0, IDX_ELEM_CNT_MIN},
     {"elem-cnt-max",  required_argument, 0, IDX_ELEM_CNT_MAX},
     {"wl-dist-len",   no_argument,       0, IDX_WL_DIST_LEN},
+    {"case-permute",  no_argument,       0, IDX_CASE_PERMUTE},
     {"skip",          required_argument, 0, IDX_SKIP},
     {"limit",         required_argument, 0, IDX_LIMIT},
     {"output-file",   required_argument, 0, IDX_OUTPUT_FILE},
@@ -748,6 +819,7 @@ void do_prince_crack(struct db_main *db, char *filename)
       case IDX_ELEM_CNT_MIN:  elem_cnt_min    = atoi (optarg);  break;
       case IDX_ELEM_CNT_MAX:  elem_cnt_max    = atoi (optarg);  break;
       case IDX_WL_DIST_LEN:   wl_dist_len     = 1;              break;
+      case IDX_CASE_PERMUTE:  case_permute    = 1;              break;
       case IDX_SKIP:          mpz_set_str (skip,  optarg, 0);   break;
       case IDX_LIMIT:         mpz_set_str (limit, optarg, 0);   break;
       case IDX_OUTPUT_FILE:   output_file     = optarg;         break;
@@ -867,6 +939,8 @@ void do_prince_crack(struct db_main *db, char *filename)
     elem_cnt_max = MIN(prince_elem_cnt_max, pw_max);
   if (options.flags & FLG_PRINCE_DIST)
     wl_dist_len = 1;
+  if (options.flags & FLG_PRINCE_CASE_PERMUTE)
+    case_permute = 1;
   if (options.flags & FLG_PRINCE_KEYSPACE)
     keyspace = 1;
 
@@ -968,15 +1042,47 @@ void do_prince_crack(struct db_main *db, char *filename)
     if (input_len < IN_LEN_MIN) continue;
     if (input_len > IN_LEN_MAX) continue;
 
+    if (input_len > pw_max) continue;
+
     db_entry_t *db_entry = &db_entries[input_len];
 
-    check_realloc_elems (db_entry);
+    check_realloc_elems (db_entry, pw_max);
 
     elem_t *elem_buf = &db_entry->elems_buf[db_entry->elems_cnt];
 
     memcpy (elem_buf->buf, input_buf, input_len);
 
     db_entry->elems_cnt++;
+
+    if (case_permute)
+    {
+      check_realloc_elems (db_entry, pw_max);
+
+      elem_t *elem_buf = &db_entry->elems_buf[db_entry->elems_cnt];
+
+      const char old_c = input_buf[0];
+
+      const char new_cu = toupper (old_c);
+      const char new_cl = tolower (old_c);
+
+      if (old_c != new_cu)
+      {
+        input_buf[0] = new_cu;
+
+        memcpy (elem_buf->buf, input_buf, input_len);
+
+        db_entry->elems_cnt++;
+      }
+
+      if (old_c != new_cl)
+      {
+        input_buf[0] = new_cl;
+
+        memcpy (elem_buf->buf, input_buf, input_len);
+
+        db_entry->elems_cnt++;
+      }
+    }
   }
 
   /**
@@ -995,6 +1101,8 @@ void do_prince_crack(struct db_main *db, char *filename)
     const int chains_cnt = 1 << pw_len1;
 
     chain_t chain_buf_new;
+    u8 buf[IN_LEN_MAX];
+    chain_buf_new.buf = buf;
 
     for (int chains_idx = 0; chains_idx < chains_cnt; chains_idx++)
     {
@@ -1018,11 +1126,15 @@ void do_prince_crack(struct db_main *db, char *filename)
 
       // add chain to database
 
-      check_realloc_chains (db_entry);
+      check_realloc_chains (db_entry, pw_max);
 
       chain_t *chain_buf = &db_entry->chains_buf[db_entry->chains_cnt];
+      u8 *buf_ptr = chain_buf->buf;
 
       memcpy (chain_buf, &chain_buf_new, sizeof (chain_t));
+      chain_buf->buf = buf_ptr;
+
+      memcpy (chain_buf->buf, chain_buf_new.buf, pw_max);
 
       mpz_init_set_si (chain_buf->ks_cnt, 0);
       mpz_init_set_si (chain_buf->ks_pos, 0);

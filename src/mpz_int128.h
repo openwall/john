@@ -41,7 +41,7 @@ typedef __int128_t              int128_t;
 typedef __uint128_t             uint128_t;
 #endif
 
-#define UINT128_MAX	((uint128_t)-1)
+#define UINT128_MAX             ((uint128_t)-1)
 
 typedef uint128_t               mpz_t;
 
