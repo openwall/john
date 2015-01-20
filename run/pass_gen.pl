@@ -75,7 +75,8 @@ my @funcs = (qw(DESCrypt BigCrypt BSDIcrypt md5crypt md5crypt_a BCRYPT BCRYPTx
 		tc_whirlpool Haval-256 SAP-H rsvp pbkdf2-hmac-sha1-p5k2
 		pbkdf2-hmac-sha1-pkcs5s2 md5crypt-smd5 ripemd-128 ripemd-160
 		raw-tiger raw-whirlpool hsrp known-hosts chap bb-es10 citrix-ns10
-		clipperz-srp dahua fortigate lp lastpass));
+		clipperz-srp dahua fortigate lp lastpass rawmd2 mdc2 mongodb mysqlna
+		o5logon postgres ));
 
 # todo: sapb sapfg ike keepass cloudkeychain agilekeychain pfx racf vnc pdf pkzip rar5 ssh raw_gost_cp
 my $i; my $h; my $u; my $salt;
@@ -115,7 +116,7 @@ my $debug_pcode=0; my $gen_needs; my $gen_needs2; my $gen_needu; my $gen_singles
 #########################################################
 my $arg_utf8 = 0; my $arg_codepage = ""; my $arg_minlen = 0; my $arg_maxlen = 128; my $arg_dictfile = "unknown";
 my $arg_count = 1500, my $argsalt, my $argiv, my $argcontent; my $arg_nocomment = 0; my $arg_hidden_cp; my $arg_loops=-1;
-my $arg_tstall = 0; my $arg_genall = 0; my $arg_nrgenall = 0; my $argmode;
+my $arg_tstall = 0; my $arg_genall = 0; my $arg_nrgenall = 0; my $argmode; my $arguser;
 
 GetOptions(
 	'codepage=s'       => \$arg_codepage,
@@ -133,7 +134,8 @@ GetOptions(
 	'dictfile=s'       => \$arg_dictfile,
 	'tstall!'          => \$arg_tstall,
 	'genall!'          => \$arg_genall,
-	'nrgenall!'        => \$arg_nrgenall
+	'nrgenall!'        => \$arg_nrgenall,
+	'user=s'           => \$arguser
 	) || usage();
 
 sub pretty_print_hash_names {
@@ -176,6 +178,7 @@ $s
     -iv <s>       Force a single iv (only supported in a few formats)
     -content <s>  Force a single content (for ODF hash)
     -mode <s>     Force mode (zip, mode 1..3, rar4 modes 1..10, etc)
+    -user <s>     Provide a fixed user name, vs random user name.
     -dictfile <s> Put name of dict file into the first line comment
     -nocomment    eliminate the first line comment
 
@@ -624,7 +627,13 @@ sub get_content {
 	}
 	return randstr(int(rand($len))+1, \@chr);
 }
-
+sub get_username {
+	my $len = $_[0];
+	if (defined ($arguser) && length($arguser) <= -$len) {
+		return ($arguser);
+	}
+	return randusername($len);
+}
 ############################################################################################
 # we need a getter function for $iv also (and content??, and possibly others) that are
 # modeled after get_salt()
@@ -1193,6 +1202,55 @@ sub office_2007 {
 	my $hash = $crypt->encrypt(substr(sha1(substr($crypt->decrypt($randdata),0,16)),0,16));
 	print "u$u-office07:\$office\$*2007*20*128*16*".unpack("H*",$salt)."*".unpack("H*",$randdata)."*".unpack("H*",$hash)."00000000:$u:0:$_[0]::\n";
 }
+sub rawmd2 {
+	require Digest::MD2;
+	import Digest::MD2 qw(md2);
+	print "u$u:\$md2\$".unpack("H*",md2($_[1])).":$u:0:$_[0]::\n";
+}
+sub mdc2 {
+}
+sub mongodb {
+	$salt = get_salt(16,16,\@chrHexLo);
+	my $user = get_username(128);
+	my $type=1;
+	if (substr($salt, 2, 1) eq '2') {$type=0;}
+	if(defined($argmode)) {$type=$argmode;}
+	if ($type==0) {
+		$h = md5_hex($user . ":mongo:" . $_[1]);
+		print "u$u:\$mongodb\$0\$$user\$$h:$u:0:$_[0]::\n";
+	} else {
+		$h = md5_hex($salt.$user.md5_hex($user . ":mongo:" . $_[1]));
+		print "u$u:\$mongodb\$1\$$user\$$salt\$$h:$u:0:$_[0]::\n";
+	}
+}
+sub mysqlna {
+	$salt = get_salt(20);
+	$h = sha1($salt.sha1(sha1($_[1]))) ^ sha1($_[1]);
+	print "u$u:\$mysqlna\$".unpack("H*",$salt)."*".unpack("H*",$h).":$u:0:$_[0]::\n";
+}
+sub o5logon {
+	$salt = get_salt(10);
+	my $crpt = randstr(32);
+	my $plain = randstr(8) .  "\x08\x08\x08\x08\x08\x08\x08\x08";
+	my $key = sha1($_[1].$salt) . "\0\0\0\0";
+	require Crypt::OpenSSL::AES;
+	require Crypt::CBC;
+	my $iv = substr($crpt, 16, 16);
+	my $crypt = Crypt::CBC->new(-literal_key => 1, -key => $key, -keysize => 24, -iv => $iv, -cipher => 'Crypt::OpenSSL::AES', -header => 'none');
+	$crpt .= $crypt->encrypt($plain);
+	$crpt = substr($crpt, 0, 48);
+	$crpt = uc unpack("H*",$crpt);
+	$salt = uc unpack("H*",$salt);
+	print "u$u:\$o5logon\$$crpt*$salt:$u:0:$_[0]::\n";
+}
+sub postgres {
+	my $user = 'postgres';
+	$salt = get_salt(4);
+	if (substr($salt,2,1) eq "1") {$user = get_username(64); }
+	$h = md5_hex(md5_hex($_[1], $user).$salt);
+	$salt = unpack("H*", $salt);
+	print "u$u:\$postgres\$$user*$salt*$h:$u:0:$_[0]::\n";
+}
 sub known_hosts {
 	# simple hmac-sha1, BUT salt and pw are used in wrong order, and password is usually some host or IP, BUT
 	# it does not matter if it is an IP or not. Still works fine regardless.
@@ -1201,7 +1259,6 @@ sub known_hosts {
 	$salt = base64($salt);
 	$h = base64($h);
 	print "u$u:\$known_hosts\$|1|$salt|$h:$u:0:$_[0]::\n";
-	
 }
 sub _tc_build_buffer {
 	# build a special TC buffer.  448 bytes, 2 spots have CRC32.  Lots of null, etc.
