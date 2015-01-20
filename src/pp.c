@@ -122,6 +122,7 @@ char *prince_limit_str;
 
 #define IN_LEN_MIN    1
 #define IN_LEN_MAX    32
+#define OUT_LEN_MAX   125
 #define PW_MIN        1
 #define PW_MAX        16
 #define ELEM_CNT_MIN  1
@@ -898,9 +899,9 @@ void do_prince_crack(struct db_main *db, char *filename)
     return (-1);
   }
 
-  if (pw_max > IN_LEN_MAX)
+  if (pw_max > OUT_LEN_MAX)
   {
-    fprintf (stderr, "Value of --pw-max (%d) must be smaller or equal than %d\n", pw_max, IN_LEN_MAX);
+    fprintf (stderr, "Value of --pw-max (%d) must be smaller or equal than %d\n", pw_max, OUT_LEN_MAX);
 
     return (-1);
   }
@@ -928,7 +929,7 @@ void do_prince_crack(struct db_main *db, char *filename)
 
   /* ...but can be bumped using -max-len */
   if (options.force_maxlength && options.force_maxlength > pw_max)
-    pw_max = MIN(IN_LEN_MAX, options.force_maxlength);
+    pw_max = MIN(OUT_LEN_MAX, options.force_maxlength);
   else
   if (options.force_maxlength && options.force_maxlength < pw_max)
     pw_max = options.force_maxlength;
@@ -1101,7 +1102,7 @@ void do_prince_crack(struct db_main *db, char *filename)
     const int chains_cnt = 1 << pw_len1;
 
     chain_t chain_buf_new;
-    u8 buf[IN_LEN_MAX];
+    u8 buf[OUT_LEN_MAX];
     chain_buf_new.buf = buf;
 
     for (int chains_idx = 0; chains_idx < chains_cnt; chains_idx++)
