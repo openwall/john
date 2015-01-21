@@ -653,8 +653,8 @@ int main (int argc, char *argv[])
 #else
 static FILE *word_file;
 static mpf_t count;
-static mpz_t pos;
-static mpz_t rec_pos;
+static mpz_t pos, rec_pos;
+static uint64_t node_dist, rec_dist;
 static int rec_pos_destroyed;
 
 static void save_state(FILE *file)
@@ -666,26 +666,37 @@ static void save_state(FILE *file)
 
   mpz_fdiv_q_2exp(half, rec_pos, 64); // upper 64 bits
   fprintf(file, "%llu\n", (unsigned long long)mpz_get_ui(half));
+
+  fprintf(file, "%llu\n", (unsigned long long)rec_dist);
 }
 
 static int restore_state(FILE *file)
 {
   unsigned long long temp;
-  int ret = fscanf(file, "%llu\n", &temp);
+  mpz_t hi;
+
+  if (fscanf(file, "%llu\n", &temp))
+    return 1;
   mpz_set_ui(rec_pos, temp);
-  if (ret && fscanf(file, "%llu\n", &temp))
-  {
-    mpz_t hi; mpz_init_set_ui(hi, temp);
-    mpz_mul_2exp(hi, hi, 64); // hi = temp << 64
-    mpz_add(rec_pos, rec_pos, hi);
-    mpz_clear(hi);
-  }
-  return !ret;
+
+  if (fscanf(file, "%llu\n", &temp))
+    return 1;
+  mpz_init_set_ui(hi, temp);
+  mpz_mul_2exp(hi, hi, 64); // hi = temp << 64
+  mpz_add(rec_pos, rec_pos, hi);
+  mpz_clear(hi);
+
+  if (fscanf(file, "%llu\n", &temp))
+    return 1;
+  rec_dist = temp;
+
+  return 0;
 }
 
 static void fix_state(void)
 {
   mpz_set(rec_pos, pos);
+  rec_dist = node_dist;
 }
 
 static double get_progress(void)
@@ -1189,7 +1200,9 @@ void do_prince_crack(struct db_main *db, char *filename)
   rec_init(db, save_state);
 
   if (mpz_cmp_ui(rec_pos, 0))
+  {
     mpz_set(skip, rec_pos);
+  }
 
   if (mpz_cmp_ui(skip, 0))
   {
@@ -1197,13 +1210,16 @@ void do_prince_crack(struct db_main *db, char *filename)
     mpz_get_str(l_msg, 10, skip);
     log_event("- Skip %s", l_msg);
   }
+
   if (mpz_cmp_ui(limit, 0))
   {
     char l_msg[64];
     mpz_get_str(l_msg, 10, limit);
     log_event("- Limit %s", l_msg);
   }
+
   mpz_set(pos, rec_pos);
+  node_dist = rec_dist;
 
   log_event("Calculating keyspace");
 #endif
@@ -1473,7 +1489,6 @@ void do_prince_crack(struct db_main *db, char *filename)
   log_event("Starting candidate generation");
 
   int jtr_done = 0;
-  int node_dist = 0;
 #endif
   while (mpz_cmp (total_ks_pos, total_ks_cnt) < 0)
   {
@@ -1534,7 +1549,7 @@ void do_prince_crack(struct db_main *db, char *filename)
         u32 for_node, node_skip = 0;
         if (options.node_count)
         {
-          for_node = node_dist++ % options.node_count + 1;
+          for_node = ++node_dist % options.node_count + 1;
           node_skip = for_node < options.node_min ||
                       for_node > options.node_max;
         }
