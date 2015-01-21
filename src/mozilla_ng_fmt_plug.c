@@ -67,8 +67,6 @@ static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
 
 static  struct custom_salt {
 	SHA_CTX pctx;
-	int password_check_length;
-	unsigned char password_check[20];
 	int global_salt_length;
 	unsigned char global_salt[20];
 	int local_salt_length;  // entry-salt (ES)
@@ -195,14 +193,11 @@ static void *get_salt(char *ciphertext)
 
 	q = strchr(p, '*'); // password_check_length
 	p = q + 1;
-	cs.password_check_length = atoi(p);
+	// Not stored in salt. This is the binary length
 
 	q = strchr(p, '*'); // password_check
 	p = q + 1;
-	for (i = 0; i < cs.password_check_length; i++)
-		cs.password_check[i] = atoi16[ARCH_INDEX(p[i * 2])]
-			* 16 + atoi16[ARCH_INDEX(p[i * 2 + 1])];
-
+	// Not stored in salt, this is the binary.
 
 	q = strchr(p, '*'); // global_salt_length
 	p = q + 1;
