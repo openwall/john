@@ -1231,8 +1231,8 @@ sub mysqlna {
 }
 sub o5logon {
 	$salt = get_salt(10);
-	my $crpt = randstr(32);
-	my $plain = randstr(8) .  "\x08\x08\x08\x08\x08\x08\x08\x08";
+	my $crpt = get_content(32);
+	my $plain = get_iv(8) .  "\x08\x08\x08\x08\x08\x08\x08\x08";
 	my $key = sha1($_[1].$salt) . "\0\0\0\0";
 	require Crypt::OpenSSL::AES;
 	require Crypt::CBC;
@@ -1974,8 +1974,7 @@ sub sunmd5 {
 sub wowsrp {
 	require Math::BigInt;
 	$salt = get_salt(16);
-	my $usr = uc randusername();
-	if (defined $argmode) {$usr = uc $argmode; }
+	my $usr = uc get_username(24);
 	my $h = sha1($salt, sha1($usr,":",uc $_[1]));
 	# turn $h into a hex, so we can load it into a BigInt
 	$h = "0x" . unpack("H*", $h);
@@ -1996,8 +1995,7 @@ sub wowsrp {
 sub clipperz_srp {
 	require Math::BigInt;
 	$salt = get_salt(64);
-	my $usr = randusername();
-	if (defined $argmode) {$usr = $argmode; }
+	my $usr = get_username(24);
 	my $h = "0x" . unpack("H*", sha256(sha256($salt.unpack("H*",sha256(sha256($_[1].$usr))))));
 
 	# perform exponentation.
@@ -2076,8 +2074,8 @@ sub hmac_sha512 {
 	print "u$u-hmacSHA512:$salt#", unpack("H*",$bin), ":$u:0:$_[0]::\n";
 }
 sub rakp {
-	my $user = randstr(rand(63) + 1);
-	$salt = randstr(56,\@chrRawData) . $user;
+	my $user = get_username(64);
+	$salt = get_salt(56) . $user;
 	my $bin = _hmac_shas(\&sha1, 64, $_[1], $salt);
 	print "$user:", unpack("H*",$salt), "\$", unpack("H*",$bin), ":$u:0:$_[0]::\n";
 }
@@ -2325,6 +2323,7 @@ sub ns {
 	$salt = get_salt(7, -7, \@chrHexLo);
 	$h = md5($salt, ":Administration Tools:", $_[1]);
 	#my $hh = ns_base64_2(8);
+	# this format is now broken!!!
 	my $hh = base64($h);
 	substr($hh, 0, 0) = 'n';
 	substr($hh, 6, 0) = 'r';
@@ -2643,7 +2642,7 @@ sub hmailserver {
 }
 sub nukedclan {
 	$salt=get_salt(20, 20, \@chrAsciiTextNum);
-	my $decal=randstr(1, \@chrHexLo);
+	my $decal=get_iv(1, \@chrHexLo);
 	my $pass_hash = sha1_hex($_[1]);
 	my $i = 0; my $k;
 	$k = hex($decal);
@@ -2672,7 +2671,7 @@ sub skey_fold {
 sub skey_md5 {
 	$salt=get_salt(8, 8, \@chrAsciiTextNumLo);
 	$salt = lc $salt;
-	my $cnt=randstr(3, \@chrAsciiNum);
+	my $cnt=get_iv(3, \@chrAsciiNum);
 	if (defined $argmode) {$cnt=$argmode;}
 	my $h = md5($salt.$_[1]);
 	$h = skey_fold($h, 4);
@@ -2686,7 +2685,7 @@ sub skey_md5 {
 sub skey_md4 {
 	$salt=get_salt(8, 8, \@chrAsciiTextNumLo);
 	$salt = lc $salt;
-	my $cnt=randstr(3, \@chrAsciiNum);
+	my $cnt=get_iv(3, \@chrAsciiNum);
 	if (defined $argmode) {$cnt=$argmode;}
 	my $h = md4($salt.$_[1]);
 	$h = skey_fold($h, 4);
@@ -2700,7 +2699,7 @@ sub skey_md4 {
 sub skey_sha1 {
 	$salt=get_salt(8, 8, \@chrAsciiTextNumLo);
 	$salt = lc $salt;
-	my $cnt=randstr(3, \@chrAsciiNum);
+	my $cnt=get_iv(3, \@chrAsciiNum);
 	if (defined $argmode) {$cnt=$argmode;}
 	my $h = sha1($salt.$_[1]);
 	$h = skey_fold($h, 5);
@@ -2714,7 +2713,7 @@ sub skey_sha1 {
 sub skey_rmd160 {
 	$salt=get_salt(8, 8, \@chrAsciiTextNumLo);
 	$salt = lc $salt;
-	my $cnt=randstr(3, \@chrAsciiNum);
+	my $cnt=get_iv(3, \@chrAsciiNum);
 	if (defined $argmode) {$cnt=$argmode;}
 	my $h = ripemd160($salt.$_[1]);
 	$h = skey_fold($h, 5);
