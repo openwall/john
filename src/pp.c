@@ -38,7 +38,11 @@
 #if HAVE_LIBGMP || HAVE_INT128 || HAVE___INT128 || HAVE___INT128_T
 
 #include <stdio.h>
+#ifndef JTR_MODE
+#include <stdint.h>
+#else
 #include "stdint.h"
+#endif
 #include <stdlib.h>
 #if !AC_BUILT
 #include <string.h>
@@ -124,7 +128,7 @@ char *prince_limit_str;
 
 #define IN_LEN_MIN    1
 #define IN_LEN_MAX    32
-#define OUT_LEN_MAX   125
+#define OUT_LEN_MAX   32 /* Limited by (u32)(1 << pw_len - 1) */
 #define PW_MIN        1
 #define PW_MAX        16
 #define ELEM_CNT_MIN  1
@@ -154,13 +158,13 @@ typedef struct
 
 typedef struct
 {
-  u8    *buf;
+  u8   *buf;
 
 } elem_t;
 
 typedef struct
 {
-  u8    *buf;
+  u8   *buf;
   int   cnt;
 
   mpz_t ks_cnt;
@@ -276,7 +280,6 @@ static const char *USAGE_BIG[] =
   NULL
 };
 
-#ifndef JTR_MODE
 static void *mem_alloc (const size_t size)
 {
   void *res = malloc (size);
@@ -291,7 +294,7 @@ static void *mem_alloc (const size_t size)
   return res;
 }
 
-static void *mem_alloc_tiny (const size_t size)
+static void *malloc_tiny (const size_t size)
 {
   #define MEM_ALLOC_SIZE 0x10000
 
@@ -318,18 +321,6 @@ static void *mem_alloc_tiny (const size_t size)
 
   return p;
 }
-
-#if 0
-static void *mem_calloc_tiny (const size_t count, const size_t size)
-{
-  void *cp = mem_alloc_tiny (count * size);
-
-  memset (cp, 0, size);
-
-  return cp;
-}
-#endif
-#endif
 
 static void usage_mini_print (const char *progname)
 {
@@ -376,6 +367,8 @@ static void usage_big_print (const char *progname)
     #endif
   }
 }
+#else
+#define malloc_tiny(size)	mem_alloc_tiny(size, MEM_ALIGN_NONE)
 #endif
 
 static void check_realloc_elems (db_entry_t *db_entry)
@@ -390,7 +383,7 @@ static void check_realloc_elems (db_entry_t *db_entry)
 
     if (db_entry->elems_buf == NULL)
     {
-      fprintf (stderr, "Out of memory trying to allocate %zu bytes!\n", (size_t) elems_alloc_new * sizeof (elem_t));
+      fprintf (stderr, "Out of memory trying to allocate %zu bytes\n", (size_t) elems_alloc_new * sizeof (elem_t));
 
 #ifndef JTR_MODE
       exit (-1);
@@ -417,7 +410,7 @@ static void check_realloc_chains (db_entry_t *db_entry)
 
     if (db_entry->chains_buf == NULL)
     {
-      fprintf (stderr, "Out of memory trying to allocate %zu bytes!\n", (size_t) chains_alloc_new * sizeof (chain_t));
+      fprintf (stderr, "Out of memory trying to allocate %zu bytes\n", (size_t) chains_alloc_new * sizeof (chain_t));
 
 #ifndef JTR_MODE
       exit (-1);
@@ -458,26 +451,6 @@ static int in_superchop (char *buf)
   buf[len] = 0;
 
   return len;
-}
-
-static inline int get_bits(mpz_t *op)
-{
-    mpz_t half; mpz_init(half);
-    u64 h;
-    int b;
-
-    mpz_fdiv_q_2exp(half, *op, 64);
-    h = mpz_get_ui(half);
-    if (h) b = 64;
-    else
-    {
-      mpz_fdiv_r_2exp(half, *op, 64);
-      h = mpz_get_ui(half);
-      b = 0;
-    }
-    while (h >>= 1) b++;
-
-    return b;
 }
 
 #ifndef JTR_MODE
@@ -734,11 +707,31 @@ static double get_progress(void)
   return progress;
 }
 
+static inline int get_bits(mpz_t *op)
+{
+    mpz_t half; mpz_init(half);
+    u64 h;
+    int b;
+
+    mpz_fdiv_q_2exp(half, *op, 64);
+    h = mpz_get_ui(half);
+    if (h) b = 64;
+    else
+    {
+      mpz_fdiv_r_2exp(half, *op, 64);
+      h = mpz_get_ui(half);
+      b = 0;
+    }
+    while (h >>= 1) b++;
+
+    return b;
+}
+
 void do_prince_crack(struct db_main *db, char *filename)
 #endif
 {
-  mpz_t pw_ks_pos[IN_LEN_MAX + 1];
-  mpz_t pw_ks_cnt[IN_LEN_MAX + 1];
+  mpz_t pw_ks_pos[OUT_LEN_MAX + 1];
+  mpz_t pw_ks_cnt[OUT_LEN_MAX + 1];
 
   mpz_t iter_max;         mpz_init_set_si (iter_max,        0);
   mpz_t total_ks_cnt;     mpz_init_set_si (total_ks_cnt,    0);
@@ -973,7 +966,7 @@ void do_prince_crack(struct db_main *db, char *filename)
   pw_order_t *pw_orders    = (pw_order_t *) calloc (pw_max + 1, sizeof (pw_order_t));
   u64        *wordlen_dist = (u64 *)        calloc (pw_max + 1, sizeof (u64));
 
-  out_t *out = (out_t *) malloc (sizeof (out_t));
+  out_t *out = (out_t *) mem_alloc (sizeof (out_t));
 
   out->fp  = stdout;
   out->len = 0;
@@ -1041,7 +1034,8 @@ void do_prince_crack(struct db_main *db, char *filename)
 
     elem_t *elem_buf = &db_entry->elems_buf[db_entry->elems_cnt];
 
-    elem_buf->buf = mem_alloc_tiny(input_len, 1);
+    elem_buf->buf = malloc_tiny (input_len);
+
     memcpy (elem_buf->buf, input_buf, input_len);
 
     db_entry->elems_cnt++;
@@ -1061,7 +1055,8 @@ void do_prince_crack(struct db_main *db, char *filename)
       {
         input_buf[0] = new_cu;
 
-        elem_buf->buf = mem_alloc_tiny(input_len, 1);
+        elem_buf->buf = malloc_tiny (input_len);
+
         memcpy (elem_buf->buf, input_buf, input_len);
 
         db_entry->elems_cnt++;
@@ -1070,6 +1065,8 @@ void do_prince_crack(struct db_main *db, char *filename)
       if (old_c != new_cl)
       {
         input_buf[0] = new_cl;
+
+        elem_buf->buf = malloc_tiny (input_len);
 
         memcpy (elem_buf->buf, input_buf, input_len);
 
@@ -1091,13 +1088,15 @@ void do_prince_crack(struct db_main *db, char *filename)
 
     const int pw_len1 = pw_len - 1;
 
-    const int chains_cnt = 1 << pw_len1;
+    const u32 chains_cnt = 1 << pw_len1;
+
+    u8 buf[OUT_LEN_MAX];
 
     chain_t chain_buf_new;
-    u8 buf[OUT_LEN_MAX];
+
     chain_buf_new.buf = buf;
 
-    for (int chains_idx = 0; chains_idx < chains_cnt; chains_idx++)
+    for (u32 chains_idx = 0; chains_idx < chains_cnt; chains_idx++)
     {
       chain_gen_with_idx (&chain_buf_new, pw_len1, chains_idx);
 
@@ -1125,7 +1124,8 @@ void do_prince_crack(struct db_main *db, char *filename)
 
       memcpy (chain_buf, &chain_buf_new, sizeof (chain_t));
 
-      chain_buf->buf = mem_alloc_tiny(pw_len, 1);
+      chain_buf->buf = malloc_tiny (pw_len);
+
       memcpy (chain_buf->buf, chain_buf_new.buf, pw_len);
 
       mpz_init_set_si (chain_buf->ks_cnt, 0);
