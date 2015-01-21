@@ -973,10 +973,6 @@ void do_prince_crack(struct db_main *db, char *filename)
   log_event("- Wordlist file: %.100s", path_expand(filename));
   log_event("- Will generate candidates of length %d - %d", pw_min, pw_max);
   log_event("- using chains with %d - %d elements.", elem_cnt_min, elem_cnt_max);
-  if (wl_dist_len)
-    log_event("- Calculating length distribution from wordlist");
-  else
-    log_event("- Using default length distribution");
 #endif
 
   /**
@@ -984,18 +980,18 @@ void do_prince_crack(struct db_main *db, char *filename)
    */
 
 #ifndef JTR_MODE
-  db_entry_t *db_entries   = (db_entry_t *) calloc (IN_LEN_MAX + 1, sizeof (db_entry_t));
-  pw_order_t *pw_orders    = (pw_order_t *) calloc (IN_LEN_MAX + 1, sizeof (pw_order_t));
-  u64        *wordlen_dist = (u64 *)        calloc (IN_LEN_MAX + 1, sizeof (u64));
+  db_entry_t *db_entries   = (db_entry_t *) calloc (pw_max + 1, sizeof (db_entry_t));
+  pw_order_t *pw_orders    = (pw_order_t *) calloc (pw_max + 1, sizeof (pw_order_t));
+  u64        *wordlen_dist = (u64 *)        calloc (pw_max + 1, sizeof (u64));
 
   out_t *out = (out_t *) malloc (sizeof (out_t));
 
   out->fp  = stdout;
   out->len = 0;
 #else
-  db_entry_t *db_entries   = (db_entry_t *) mem_calloc ((IN_LEN_MAX + 1) * sizeof (db_entry_t));
-  pw_order_t *pw_orders    = (pw_order_t *) mem_calloc ((IN_LEN_MAX + 1) * sizeof (pw_order_t));
-  u64        *wordlen_dist = (u64 *)        mem_calloc ((IN_LEN_MAX + 1) * sizeof (u64));
+  db_entry_t *db_entries   = (db_entry_t *) mem_calloc ((pw_max + 1) * sizeof (db_entry_t));
+  pw_order_t *pw_orders    = (pw_order_t *) mem_calloc ((pw_max + 1) * sizeof (pw_order_t));
+  u64        *wordlen_dist = (u64 *)        mem_calloc ((pw_max + 1) * sizeof (u64));
 #endif
 
   /**
@@ -1160,19 +1156,26 @@ void do_prince_crack(struct db_main *db, char *filename)
 #ifdef JTR_MODE
   log_event("Calculating output length distribution from wordlist file");
 #endif
-    for (int pw_len = IN_LEN_MIN; pw_len <= IN_LEN_MAX; pw_len++)
+    for (int pw_len = IN_LEN_MIN; pw_len <= pw_max; pw_len++)
     {
-      db_entry_t *db_entry = &db_entries[pw_len];
+      if (pw_len <= IN_LEN_MAX)
+      {
+        db_entry_t *db_entry = &db_entries[pw_len];
 
-      wordlen_dist[pw_len] = db_entry->elems_cnt;
+        wordlen_dist[pw_len] = db_entry->elems_cnt;
+      }
+      else
+      {
+        wordlen_dist[pw_len] = 1;
+      }
     }
   }
   else
   {
 #ifdef JTR_MODE
-  log_event("Using default output length distribution");
+  log_event("- Using default output length distribution");
 #endif
-    for (int pw_len = IN_LEN_MIN; pw_len <= IN_LEN_MAX; pw_len++)
+    for (int pw_len = IN_LEN_MIN; pw_len <= pw_max; pw_len++)
     {
       if (pw_len < DEF_WORDLEN_DIST_CNT)
       {
@@ -1249,13 +1252,18 @@ void do_prince_crack(struct db_main *db, char *filename)
 
   if (keyspace)
   {
+#ifndef JTR_MODE
     mpz_out_str (stdout, 10, total_ks_cnt);
 
-    printf (" (%d bits used)\n", get_bits(&total_ks_cnt));
+    printf ("\n");
 
-#ifndef JTR_MODE
     return 0;
 #else
+    char l_msg[64];
+
+    mpz_get_str(l_msg, 10, total_ks_cnt);
+    fprintf(stderr, "Keyspace size %s (%d bits used)\n", l_msg,
+            get_bits(&total_ks_cnt));
     exit(0);
 #endif
   }
