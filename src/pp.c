@@ -1094,7 +1094,7 @@ void do_prince_crack(struct db_main *db, char *filename)
     const int chains_cnt = 1 << pw_len1;
 
     chain_t chain_buf_new;
-    u8 buf[IN_LEN_MAX];
+    u8 buf[OUT_LEN_MAX];
     chain_buf_new.buf = buf;
 
     for (int chains_idx = 0; chains_idx < chains_cnt; chains_idx++)
