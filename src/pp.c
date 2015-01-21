@@ -58,11 +58,8 @@
 #include <fcntl.h>
 #include <time.h>
 #include <errno.h>
-#ifdef _MSC_VER
-#include "missing_getopt.h"
-#include <io.h>
-#else
-#include <unistd.h>
+#ifndef JTR_MODE
+#include <getopt.h>
 #endif
 #include <ctype.h>
 
