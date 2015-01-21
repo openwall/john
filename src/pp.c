@@ -319,6 +319,7 @@ static void *mem_alloc_tiny (const size_t size)
   return p;
 }
 
+#if 0
 static void *mem_calloc_tiny (const size_t count, const size_t size)
 {
   void *cp = mem_alloc_tiny (count * size);
@@ -327,6 +328,7 @@ static void *mem_calloc_tiny (const size_t count, const size_t size)
 
   return cp;
 }
+#endif
 #endif
 
 static void usage_mini_print (const char *progname)
@@ -376,7 +378,7 @@ static void usage_big_print (const char *progname)
 }
 #endif
 
-static void check_realloc_elems (db_entry_t *db_entry, int pw_max)
+static void check_realloc_elems (db_entry_t *db_entry)
 {
   if (db_entry->elems_cnt == db_entry->elems_alloc)
   {
@@ -400,15 +402,10 @@ static void check_realloc_elems (db_entry_t *db_entry, int pw_max)
     memset (&db_entry->elems_buf[elems_alloc], 0, ALLOC_NEW_ELEMS * sizeof (elem_t));
 
     db_entry->elems_alloc = elems_alloc_new;
-
-    for (u32 i = elems_alloc; i < elems_alloc_new; i++)
-    {
-      db_entry->elems_buf[i].buf = mem_calloc_tiny (pw_max, 1);
-    }
   }
 }
 
-static void check_realloc_chains (db_entry_t *db_entry, int pw_max)
+static void check_realloc_chains (db_entry_t *db_entry)
 {
   if (db_entry->chains_cnt == db_entry->chains_alloc)
   {
@@ -432,11 +429,6 @@ static void check_realloc_chains (db_entry_t *db_entry, int pw_max)
     memset (&db_entry->chains_buf[chains_alloc], 0, ALLOC_NEW_CHAINS * sizeof (chain_t));
 
     db_entry->chains_alloc = chains_alloc_new;
-
-    for (u32 i = chains_alloc; i < chains_alloc_new; i++)
-    {
-      db_entry->chains_buf[i].buf = mem_calloc_tiny (pw_max, 1);
-    }
   }
 }
 
@@ -1045,17 +1037,18 @@ void do_prince_crack(struct db_main *db, char *filename)
 
     db_entry_t *db_entry = &db_entries[input_len];
 
-    check_realloc_elems (db_entry, pw_max);
+    check_realloc_elems (db_entry);
 
     elem_t *elem_buf = &db_entry->elems_buf[db_entry->elems_cnt];
 
+    elem_buf->buf = mem_alloc_tiny(input_len, 1);
     memcpy (elem_buf->buf, input_buf, input_len);
 
     db_entry->elems_cnt++;
 
     if (case_permute)
     {
-      check_realloc_elems (db_entry, pw_max);
+      check_realloc_elems (db_entry);
 
       elem_t *elem_buf = &db_entry->elems_buf[db_entry->elems_cnt];
 
@@ -1068,6 +1061,7 @@ void do_prince_crack(struct db_main *db, char *filename)
       {
         input_buf[0] = new_cu;
 
+        elem_buf->buf = mem_alloc_tiny(input_len, 1);
         memcpy (elem_buf->buf, input_buf, input_len);
 
         db_entry->elems_cnt++;
@@ -1100,7 +1094,7 @@ void do_prince_crack(struct db_main *db, char *filename)
     const int chains_cnt = 1 << pw_len1;
 
     chain_t chain_buf_new;
-    u8 buf[OUT_LEN_MAX];
+    u8 buf[IN_LEN_MAX];
     chain_buf_new.buf = buf;
 
     for (int chains_idx = 0; chains_idx < chains_cnt; chains_idx++)
@@ -1125,15 +1119,14 @@ void do_prince_crack(struct db_main *db, char *filename)
 
       // add chain to database
 
-      check_realloc_chains (db_entry, pw_max);
+      check_realloc_chains (db_entry);
 
       chain_t *chain_buf = &db_entry->chains_buf[db_entry->chains_cnt];
-      u8 *buf_ptr = chain_buf->buf;
 
       memcpy (chain_buf, &chain_buf_new, sizeof (chain_t));
-      chain_buf->buf = buf_ptr;
 
-      memcpy (chain_buf->buf, chain_buf_new.buf, pw_max);
+      chain_buf->buf = mem_alloc_tiny(pw_len, 1);
+      memcpy (chain_buf->buf, chain_buf_new.buf, pw_len);
 
       mpz_init_set_si (chain_buf->ks_cnt, 0);
       mpz_init_set_si (chain_buf->ks_pos, 0);
