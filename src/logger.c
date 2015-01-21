@@ -364,6 +364,21 @@ void log_event(const char *format, ...)
 	int count1, count2;
 
 	if (options.flags & FLG_LOG_STDERR) {
+		unsigned int time;
+
+		if (options.fork
+#ifdef HAVE_MPI
+		    || mpi_p > 1
+#endif
+			)
+			fprintf(stderr, "%u ", options.node_min);
+
+		time = pot.fd >= 0 ? status_get_time() : status_restored_time;
+
+		fprintf(stderr, "%u:%02u:%02u:%02u ",
+		        time / 86400, time % 86400 / 3600,
+		        time % 3600 / 60, time % 60);
+
 		va_start(args, format);
 		vfprintf(stderr, format, args);
 		va_end(args);
