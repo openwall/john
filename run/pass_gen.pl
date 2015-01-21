@@ -630,7 +630,7 @@ sub get_content {
 }
 sub get_username {
 	my $len = $_[0];
-	if (defined ($arguser) && length($arguser) <= -$len) {
+	if (defined ($arguser) && length($arguser) <= abs($len)) {
 		return ($arguser);
 	}
 	return randusername($len);
