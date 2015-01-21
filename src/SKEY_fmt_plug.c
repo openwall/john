@@ -66,8 +66,8 @@ john_register_one(&fmt_SKEY);
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	32
-#define BINARY_SIZE		0
-#define BINARY_ALIGN		1
+#define BINARY_SIZE			SKEY_BINKEY_SIZE
+#define BINARY_ALIGN		4
 #define SALT_SIZE		sizeof(struct skey_salt_st)
 #define SALT_ALIGN		4
 #define MIN_KEYS_PER_CRYPT	1
@@ -90,7 +90,7 @@ static struct skey_salt_st {
 	char	seed[SKEY_MAX_SEED_LEN + 1];
 	unsigned char	hash[SKEY_BINKEY_SIZE];
 } saved_salt;
-static unsigned char	saved_key[SKEY_BINKEY_SIZE];
+static ARCH_WORD_32 saved_key[SKEY_BINKEY_SIZE/4];
 static char	saved_pass[PLAINTEXT_LENGTH + 1];
 
 static void *skey_salt(char *ciphertext);
@@ -166,7 +166,7 @@ skey_salt(char *ciphertext)
 	char *p;
 
 	strnzcpy(buf, ciphertext, sizeof(buf));
-
+	memset(&salt, 0, sizeof(salt));
 	if ((p = strtok(buf, " \t")) == NULL)
 		return (NULL);
 
@@ -185,13 +185,29 @@ skey_salt(char *ciphertext)
 	strnzcpy(salt.seed, p, sizeof(salt.seed));
 	//strlwr(salt.seed); // This should probably be added here!! and removed from SKEY_jtr_plug.c
 
-	if ((p = strtok(NULL, " \t")) == NULL)
-		return (NULL);
-
-	hex_decode(p, salt.hash, sizeof(salt.hash));
-
 	return (&salt);
 }
+
+static void *binary(char *ciphertext)
+{
+	static unsigned char *realcipher;
+	char buf[128], *p;
+
+	if (!realcipher)
+		realcipher = mem_alloc_tiny(SKEY_BINKEY_SIZE, MEM_ALIGN_WORD);
+	strnzcpy(buf, ciphertext, sizeof(buf));
+
+	p = strtok(buf, " \t");
+	if (isalpha((unsigned char)(*p)))
+		strtok(NULL, " \t");
+	strtok(NULL, " \t");
+	p = strtok(NULL, " \t");
+	memset(realcipher, 0, SKEY_BINKEY_SIZE);
+	hex_decode(p, realcipher,SKEY_BINKEY_SIZE);
+
+	return realcipher;
+}
+
 
 static void
 skey_set_salt(void *salt)
@@ -203,7 +219,7 @@ static void
 skey_set_key(char *key, int index)
 {
 	strnzcpy(saved_pass, key, sizeof(saved_pass));
-	hex_decode(key, saved_key, sizeof(saved_key));
+	hex_decode(key, (unsigned char*)saved_key, sizeof(saved_key));
 }
 
 static char *
@@ -220,10 +236,10 @@ skey_crypt_all(int *pcount, struct db_salt *salt)
 
 	skey_set_algorithm(saved_salt.type);
 
-	keycrunch(saved_key, saved_salt.seed, saved_pass);
+	keycrunch((unsigned char*)saved_key, saved_salt.seed, saved_pass);
 
 	for (i = 0; i < saved_salt.num; i++)
-		f(saved_key);
+		f((unsigned char*)saved_key);
 
 	return count;
 }
@@ -231,7 +247,7 @@ skey_crypt_all(int *pcount, struct db_salt *salt)
 static int
 skey_cmp_all(void *binary, int count)
 {
-	return (memcmp(saved_key, saved_salt.hash, sizeof(saved_salt.hash)) == 0);
+	return (memcmp(saved_key, binary, sizeof(saved_key)) == 0);
 }
 
 static int
@@ -279,6 +295,14 @@ static unsigned int skey_hash_type(void *salt)
 		return (unsigned int) 0;
 }
 
+static int get_hash_0(int index) { return saved_key[0] & 0xf; }
+static int get_hash_1(int index) { return saved_key[0] & 0xff; }
+static int get_hash_2(int index) { return saved_key[0] & 0xfff; }
+static int get_hash_3(int index) { return saved_key[0] & 0xffff; }
+static int get_hash_4(int index) { return saved_key[0] & 0xfffff; }
+static int get_hash_5(int index) { return saved_key[0] & 0xffffff; }
+static int get_hash_6(int index) { return saved_key[0] & 0x7ffffff; }
+
 /* iteration count as 2nd tunable cost */
 static unsigned int skey_iteration_count(void *salt)
 {
@@ -319,7 +343,7 @@ struct fmt_main fmt_SKEY = {
 		fmt_default_prepare,
 		skey_valid,
 		fmt_default_split,
-		fmt_default_binary,
+		binary,
 		skey_salt,
 #if FMT_MAIN_VERSION > 11
 		{
@@ -329,9 +353,14 @@ struct fmt_main fmt_SKEY = {
 #endif
 		fmt_default_source,
 		{
-			fmt_default_binary_hash,
-			fmt_default_binary_hash,
-			fmt_default_binary_hash
+			fmt_default_binary_hash_0,
+			fmt_default_binary_hash_1,
+			fmt_default_binary_hash_2,
+			fmt_default_binary_hash_3,
+			fmt_default_binary_hash_4,
+			fmt_default_binary_hash_5,
+			fmt_default_binary_hash_6
+
 		},
 		fmt_default_salt_hash,
 		NULL,
@@ -341,9 +370,13 @@ struct fmt_main fmt_SKEY = {
 		fmt_default_clear_keys,
 		skey_crypt_all,
 		{
-			fmt_default_get_hash,
-			fmt_default_get_hash,
-			fmt_default_get_hash
+			get_hash_0,
+			get_hash_1,
+			get_hash_2,
+			get_hash_3,
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
 		},
 		skey_cmp_all,
 		skey_cmp_one,
