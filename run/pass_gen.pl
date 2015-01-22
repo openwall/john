@@ -2442,11 +2442,11 @@ sub netntlm_ess {
 	require Crypt::ECB;
 	import Crypt::ECB qw(encrypt PADDING_AUTO PADDING_NONE);
 	my $password = $_[1];
-	my $domain = randstr(rand(15)+1);
+	my $domain = get_salt(15, -15);
 	my $nthash = md4(encode("UTF-16LE", $password));
 	$nthash .= "\x00"x5;
-	my $s_challenge = randstr(8,\@chrRawData);
-	my $c_challenge = randstr(8,\@chrRawData);
+	my $s_challenge = get_iv(8);
+	my $c_challenge = get_content(8);
 	my $challenge = substr(md5($s_challenge.$c_challenge), 0, 8);
 	my $ntresp = Crypt::ECB::encrypt(setup_des_key(substr($nthash, 0, 7)), 'DES', $challenge, PADDING_NONE());
 	$ntresp .= Crypt::ECB::encrypt(setup_des_key(substr($nthash, 7, 7)), 'DES', $challenge, PADDING_NONE());
@@ -2464,11 +2464,11 @@ sub l0phtcrack {
 	require Crypt::ECB;
 	import Crypt::ECB qw(encrypt PADDING_AUTO PADDING_NONE);
 	my $password = $_[1];
-	my $domain = randstr(rand(15)+1);
+	my $domain = get_salt(15);
 	my $nthash = md4(encode("UTF-16LE", $password));
 	$nthash .= "\x00"x5;
 	my $lmhash; my $lmresp;
-	my $challenge = randstr(8,\@chrRawData);
+	my $challenge = get_iv(8);
 	my $ntresp = Crypt::ECB::encrypt(setup_des_key(substr($nthash, 0, 7)), 'DES', $challenge, PADDING_NONE());
 	$ntresp .= Crypt::ECB::encrypt(setup_des_key(substr($nthash, 7, 7)), 'DES', $challenge, PADDING_NONE());
 	$ntresp .= Crypt::ECB::encrypt(setup_des_key(substr($nthash, 14, 7)), 'DES', $challenge, PADDING_NONE());
@@ -2496,30 +2496,23 @@ sub hsrp {
 sub netlmv2 {
 	my $pwd = $_[1];
 	my $nthash = md4(encode("UTF-16LE", $pwd));
-	my $domain = randstr(rand(15)+1);
-	my $user = randusername(20);
+	my $domain = get_salt(15);
+	my $user = get_username(20);
 	my $identity = Encode::encode("UTF-16LE", uc($user).$domain);
-	my $s_challenge = randstr(8,\@chrRawData);
-	my $c_challenge = randstr(8,\@chrRawData);
+	my $s_challenge = get_iv(8);
+	my $c_challenge = get_content(8);
 	my $lmresponse = _hmacmd5(_hmacmd5($nthash, $identity), $s_challenge.$c_challenge);
 	printf("%s\\%s:::%s:%s:%s::%s:netlmv2\n", $domain, $user, unpack("H*",$s_challenge), unpack("H*",$lmresponse), unpack("H*",$c_challenge), $_[0]);
 }
 sub netntlmv2 {
 	my $pwd = $_[1];
 	my $nthash = md4(encode("UTF-16LE", $pwd));
-	my $user;
-	my $domain;
-	if (defined $argsalt) {
-	    $domain = "workgroup";
-	    $user = $argsalt;
-	} else {
-	    $domain = randstr(rand(15)+1);
-	    $user = randusername(20);
-	}
+	my $user = get_username(20);
+	my $domain = get_salt(15);
 	my $identity = Encode::encode("UTF-16LE", uc($user).$domain);
-	my $s_challenge = randstr(8,\@chrRawData);
-	my $c_challenge = randstr(8,\@chrRawData);
-	my $temp = '\x01\x01' . "\x00"x6 . randstr(8,\@chrRawData) . $c_challenge . "\x00"x4 . randstr(int(rand(20))+1,\@chrRawData) . '\x00';
+	my $s_challenge = get_iv(8);
+	my $c_challenge = get_content(8);
+	my $temp = '\x01\x01' . "\x00"x6 . "abdegagt" . $c_challenge . "\x00"x4 . "flasjhstgluahr" . '\x00';
 	my $ntproofstr = _hmacmd5(_hmacmd5($nthash, $identity), $s_challenge.$temp);
 	# $ntresponse = $ntproofstr.$temp but we separate them with a :
 	printf("%s\\%s:::%s:%s:%s::%s:netntlmv2\n", $domain, $user, unpack("H*",$s_challenge), unpack("H*",$ntproofstr), unpack("H*",$temp), $_[0]);
@@ -2529,9 +2522,9 @@ sub mschapv2 {
 	import Crypt::ECB qw(encrypt PADDING_AUTO PADDING_NONE);
 	my $pwd = $_[1];
 	my $nthash = md4(encode("UTF-16LE", $pwd));
-	my $user = randusername();
-	my $a_challenge = randstr(16,\@chrRawData);
-	my $p_challenge = randstr(16,\@chrRawData);
+	my $user = get_username(20);
+	my $p_challenge = get_iv(16);
+	my $a_challenge = get_content(16);
 	my $ctx = Digest::SHA->new('sha1');
 	$ctx->add($p_challenge);
 	$ctx->add($a_challenge);
