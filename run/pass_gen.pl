@@ -77,7 +77,7 @@ my @funcs = (qw(DESCrypt BigCrypt BSDIcrypt md5crypt md5crypt_a BCRYPT BCRYPTx
 		raw-tiger raw-whirlpool hsrp known-hosts chap bb-es10 citrix-ns10
 		clipperz-srp dahua fortigate lp lastpass rawmd2 mdc2 mongodb mysqlna
 		o5logon postgres pst raw-blake2 sub raw-keccak raw-keccak256 siemens-s7
-		raw-skein-256 raw-skein-512 ssha512 tcp-md5 ));
+		raw-skein-256 raw-skein-512 ssha512 tcp-md5 strip ));
 
 # todo: sapb sapfg ike keepass cloudkeychain agilekeychain pfx racf vnc pdf pkzip rar5 ssh raw_gost_cp
 my $i; my $h; my $u; my $salt;
@@ -1313,6 +1313,23 @@ sub known_hosts {
 	$salt = base64($salt);
 	$h = base64($h);
 	print "u$u:\$known_hosts\$|1|$salt|$h:$u:0:$_[0]::\n";
+}
+sub strip {
+	$salt = get_salt(16);
+	my $iv = get_iv(16);
+	my $key = pp_pbkdf2($_[0], $salt, 4000, \&sha1, 32, 64);
+	# this is the decrypted data from JtR's openwall password test string.
+	my $dat = "\x04\0\x01\x01\x10\x40\x20\x20\x1a\x4f\xed\x2b\0\0\0\x2d\0\0\0\0\0\0\0\0\0\0\0\x25\0\0\0\x04\0\0\0\0\0\0\0\0\0\0\0\x01\0\0\0\x07\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\x1a\x4f\xed\x2b\x00\x2d\xe2\x24\x05\x00\x00\x00\x0a\x03\xbe\x00\x00\x00\x00\x2c\x03\xeb\x03\xe6\x03\xe1\x03\xdc\x03\xd7\x03\xd2\x03\xcd\x03\xc8\x03\xc3\x03\xbe";
+	$dat .= "\0"x828;
+	$dat .= "\x00\x2b\x29\x00\x00\x00\x29\x27\x00\x00\x00\x27\x25\x00\x00\x00\x26\x23\x00\x00\x00\x24\x21\x00\x00\x00\x22\x1f\x00\x00\x00\x21\x1d\x00\x00\x00\x18\x1a\x00\x00\x00\x0d\x12\x00\x00\x00\x0a\x08";
+	require Crypt::OpenSSL::AES;
+	require Crypt::CBC;
+	my $crypt = Crypt::CBC->new(-literal_key => 1, -key => $key, -keysize => 32, -iv => $iv, -cipher => 'Crypt::OpenSSL::AES', -header => 'none');
+	$h = substr($crypt->encrypt($dat), 0, 32+960);
+	$salt = unpack("H*",$salt);
+	$h = unpack("H*",$h);
+	$iv = unpack("H*", $iv);
+	print "u$u:\$strip\$*$salt$h$iv:$u:0:$_[0]::\n";
 }
 sub _tc_build_buffer {
 	# build a special TC buffer.  448 bytes, 2 spots have CRC32.  Lots of null, etc.
