@@ -749,6 +749,21 @@ sub base64_aix {
 	}
 	return $out;
 }
+# required by the ns hash.  base64 did not work.
+sub ns_base64_2 {
+	my $ret = "";
+	my $n; my @ha = split(//,$h);
+	for ($i = 0; $i < $_[0]; ++$i) {
+		# the first one gets some unitialized at times..  Same as the fix in ns_base64
+		#$n = ord($ha[$i*2+1]) | (ord($ha[$i*2])<<8);
+		$n = ord($ha[$i*2])<<8;
+		if (@ha > $i*2+1) { $n |= ord($ha[$i*2+1]); }
+		$ret .= "$ns_i64[($n>>12)&0xF]";
+		$ret .= "$ns_i64[($n>>6)&0x3F]";
+		$ret .= "$ns_i64[$n&0x3F]";
+	}
+	return $ret;
+}
 
 sub whirlpool_hex {
 	require Digest;
@@ -2339,9 +2354,7 @@ sub salted_sha1 {
 sub ns {
 	$salt = get_salt(7, -7, \@chrHexLo);
 	$h = md5($salt, ":Administration Tools:", $_[1]);
-	#my $hh = ns_base64_2(8);
-	# this format is now broken!!!
-	my $hh = base64($h);
+	my $hh = ns_base64_2(8);
 	substr($hh, 0, 0) = 'n';
 	substr($hh, 6, 0) = 'r';
 	substr($hh, 12, 0) = 'c';
