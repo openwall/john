@@ -162,6 +162,7 @@ static void *salt(char *ciphertext)
 	static hccap_t s;
 
 	memcpy(&s, decode_hccap(ciphertext), SALT_SIZE);
+	memset(s.keymic, 0, sizeof(s.keymic));
 	return &s;
 }
 
