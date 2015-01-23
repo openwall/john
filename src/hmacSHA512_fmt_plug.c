@@ -57,7 +57,7 @@ static struct fmt_tests tests[] = {
 };
 
 static char (*saved_plain)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD (*crypt_key)[BINARY_SIZE / sizeof(ARCH_WORD) + 1];
+static ARCH_WORD_32 (*crypt_key)[BINARY_SIZE / sizeof(ARCH_WORD_32) + 1];
 static unsigned char (*opad)[PAD_SIZE];
 static unsigned char (*ipad)[PAD_SIZE];
 static unsigned char cursalt[SALT_SIZE];
