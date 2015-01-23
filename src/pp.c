@@ -301,7 +301,6 @@ static void *malloc_tiny (const size_t size)
   #else
   #define MEM_ALLOC_SIZE 0x10000
   #endif
-
   if (size > MEM_ALLOC_SIZE)
   {
     // we can't handle it here
@@ -652,6 +651,21 @@ static void chain_gen_with_idx (chain_t *chain_buf, const int len1, const int ch
   chain_buf->cnt++;
 }
 
+static char *add_elem(db_entry_t *db_entry, char *input_buf, int input_len)
+{
+  check_realloc_elems (db_entry);
+
+  elem_t *elem_buf = &db_entry->elems_buf[db_entry->elems_cnt];
+
+  elem_buf->buf = malloc_tiny (input_len);
+
+  memcpy (elem_buf->buf, input_buf, input_len);
+
+  db_entry->elems_cnt++;
+
+  return (char*)elem_buf->buf;
+}
+
 #ifndef JTR_MODE
 int main (int argc, char *argv[])
 #else
@@ -750,6 +764,89 @@ static char *skip_bom(char *string)
 	return string;
 }
 
+static unsigned int hash_log, hash_size, hash_mask, hash_alloc;
+#define ENTRY_END_HASH	0xFFFFFFFF
+#define ENTRY_END_LIST	0xFFFFFFFE
+
+static inline unsigned int line_hash(char *line)
+{
+	unsigned int hash, extra;
+	char *p;
+
+	p = line + 2;
+	hash = (unsigned char)line[0];
+	if (!hash)
+		goto out;
+	extra = (unsigned char)line[1];
+	if (!extra)
+		goto out;
+
+	while (*p) {
+		hash <<= 3; extra <<= 2;
+		hash += (unsigned char)p[0];
+		if (!p[1]) break;
+		extra += (unsigned char)p[1];
+		p += 2;
+		if (hash & 0xe0000000) {
+			hash ^= hash >> hash_log;
+			extra ^= extra >> hash_log;
+			hash &= hash_mask;
+		}
+	}
+
+	hash -= extra;
+	hash ^= extra << (hash_log / 2);
+
+	hash ^= hash >> hash_log;
+
+out:
+	hash &= hash_mask;
+	return hash;
+}
+
+typedef struct {
+	u32 next;
+	char *element;
+} element_st;
+
+static struct {
+	u32 *hash;
+	element_st *data;
+} uniq_buf;
+
+static inline int add_uniq(db_entry_t *db_entry, char *line, int len)
+{
+  static unsigned int index;
+  unsigned int current, last, linehash;
+
+  linehash = line_hash(line);
+  current = uniq_buf.hash[linehash];
+  last = current;
+  while (current != ENTRY_END_HASH) {
+    if (!strncmp(line, uniq_buf.data[current].element, len))
+      break;
+    last = current;
+    current = uniq_buf.data[current].next;
+  }
+  if (current != ENTRY_END_HASH)
+    return 0;
+
+  if (last == ENTRY_END_HASH)
+    uniq_buf.hash[linehash] = index;
+  else
+    uniq_buf.data[last].next = index;
+
+  if (index == hash_alloc) {
+    hash_alloc += ALLOC_NEW_ELEMS;
+    uniq_buf.data = realloc(uniq_buf.data, hash_alloc * sizeof(element_st));
+  }
+  uniq_buf.data[index].element = add_elem(db_entry, line, len);
+  uniq_buf.data[index].next = ENTRY_END_HASH;
+  index++;
+
+  return 1;
+}
+
 void do_prince_crack(struct db_main *db, char *filename)
 #endif
 {
@@ -765,8 +862,6 @@ void do_prince_crack(struct db_main *db, char *filename)
   mpz_t tmp;              mpz_init_set_si (tmp,             0);
 
 #ifndef JTR_MODE
-  #define UNSET             -1
-
   int     version       = 0;
   int     usage         = 0;
 #else
@@ -778,11 +873,7 @@ void do_prince_crack(struct db_main *db, char *filename)
   int     pw_min        = PW_MIN;
   int     pw_max        = PW_MAX;
   int     elem_cnt_min  = ELEM_CNT_MIN;
-#ifndef JTR_MODE
-  int     elem_cnt_max  = UNSET;
-#else
   int     elem_cnt_max  = ELEM_CNT_MAX;
-#endif
   int     wl_dist_len   = WL_DIST_LEN;
   int     case_permute  = CASE_PERMUTE;
 #ifndef JTR_MODE
@@ -820,6 +911,8 @@ void do_prince_crack(struct db_main *db, char *filename)
     {0, 0, 0, 0}
   };
 
+  int elem_cnt_max_chgd = 0;
+
   int option_index = 0;
 
   int c;
@@ -828,25 +921,28 @@ void do_prince_crack(struct db_main *db, char *filename)
   {
     switch (c)
     {
-      case IDX_VERSION:       version         = 1;              break;
-      case IDX_USAGE:         usage           = 1;              break;
-      case IDX_KEYSPACE:      keyspace        = 1;              break;
-      case IDX_PW_MIN:        pw_min          = atoi (optarg);  break;
-      case IDX_PW_MAX:        pw_max          = atoi (optarg);  break;
-      case IDX_ELEM_CNT_MIN:  elem_cnt_min    = atoi (optarg);  break;
-      case IDX_ELEM_CNT_MAX:  elem_cnt_max    = atoi (optarg);  break;
-      case IDX_WL_DIST_LEN:   wl_dist_len     = 1;              break;
-      case IDX_CASE_PERMUTE:  case_permute    = 1;              break;
-      case IDX_SKIP:          mpz_set_str (skip,  optarg, 0);   break;
-      case IDX_LIMIT:         mpz_set_str (limit, optarg, 0);   break;
-      case IDX_OUTPUT_FILE:   output_file     = optarg;         break;
+      case IDX_VERSION:       version           = 1;              break;
+      case IDX_USAGE:         usage             = 1;              break;
+      case IDX_KEYSPACE:      keyspace          = 1;              break;
+      case IDX_PW_MIN:        pw_min            = atoi (optarg);  break;
+      case IDX_PW_MAX:        pw_max            = atoi (optarg);  break;
+      case IDX_ELEM_CNT_MIN:  elem_cnt_min      = atoi (optarg);  break;
+      case IDX_ELEM_CNT_MAX:  elem_cnt_max      = atoi (optarg);
+                              elem_cnt_max_chgd = 1;              break;
+      case IDX_WL_DIST_LEN:   wl_dist_len       = 1;              break;
+      case IDX_CASE_PERMUTE:  case_permute      = 1;              break;
+      case IDX_SKIP:          mpz_set_str (skip,  optarg, 0);     break;
+      case IDX_LIMIT:         mpz_set_str (limit, optarg, 0);     break;
+      case IDX_OUTPUT_FILE:   output_file       = optarg;         break;
 
       default: return (-1);
     }
   }
 
-  if (elem_cnt_max == UNSET)
-    elem_cnt_max = MIN(pw_max, ELEM_CNT_MAX);
+  if (elem_cnt_max_chgd == 0)
+  {
+    elem_cnt_max = MIN (pw_max, ELEM_CNT_MAX);
+  }
 
   if (usage)
   {
@@ -941,6 +1037,12 @@ void do_prince_crack(struct db_main *db, char *filename)
   #endif
 #else
   int loopback = (options.flags & FLG_PRINCE_LOOPBACK) ? 1 : 0;
+  int dupecheck;
+
+  if (loopback)
+    dupecheck = 1;
+  else
+    dupecheck = (options.flags & FLG_DUPESUPP) ? 1 : 0;
 
   log_event("Proceeding with PRINCE (" REALGMP " version)%s",
             loopback ? " in loopback mode" : "");
@@ -1055,6 +1157,27 @@ void do_prince_crack(struct db_main *db, char *filename)
 
   log_event("Loading elements from wordlist");
 
+
+  if (dupecheck) {
+    pos = ftell(word_file);
+    fseek(word_file, 0, SEEK_END);
+    long size = ftell(word_file) >> 3;
+    fseek(word_file, 0, SEEK_SET);
+    hash_log = 1;
+    while (((1 << hash_log) < size) && hash_log < 27)
+      hash_log++;
+    hash_size = (1 << hash_log);
+    hash_mask = (hash_size - 1);
+    log_event("- dupe suppression: hash size %u, "
+              "temporarily allocating %zu bytes",
+              hash_size, hash_size * sizeof(unsigned int) +
+              hash_size * sizeof(element_st));
+    hash_alloc = size;
+    uniq_buf.data = mem_alloc(hash_alloc * sizeof(element_st));
+    uniq_buf.hash = mem_alloc(hash_size * sizeof(unsigned int));
+    memset(uniq_buf.hash, 0xff, hash_size * sizeof(unsigned int));
+  }
+
   while (!feof (word_file))
   {
     char buf[BUFSIZ];
@@ -1105,22 +1228,15 @@ void do_prince_crack(struct db_main *db, char *filename)
 
     db_entry_t *db_entry = &db_entries[input_len];
 
-    check_realloc_elems (db_entry);
-
-    elem_t *elem_buf = &db_entry->elems_buf[db_entry->elems_cnt];
-
-    elem_buf->buf = malloc_tiny (input_len);
-
-    memcpy (elem_buf->buf, input_buf, input_len);
-
-    db_entry->elems_cnt++;
+#ifdef JTR_MODE
+    if (dupecheck)
+      add_uniq(db_entry, input_buf, input_len);
+    else
+#endif
+    add_elem(db_entry, input_buf, input_len);
 
     if (case_permute)
     {
-      check_realloc_elems (db_entry);
-
-      elem_t *elem_buf = &db_entry->elems_buf[db_entry->elems_cnt];
-
       const char old_c = input_buf[0];
 
       const char new_cu = toupper (old_c);
@@ -1130,25 +1246,31 @@ void do_prince_crack(struct db_main *db, char *filename)
       {
         input_buf[0] = new_cu;
 
-        elem_buf->buf = malloc_tiny (input_len);
-
-        memcpy (elem_buf->buf, input_buf, input_len);
-
-        db_entry->elems_cnt++;
+#ifdef JTR_MODE
+        if (dupecheck)
+          add_uniq(db_entry, input_buf, input_len);
+        else
+#endif
+        add_elem(db_entry, input_buf, input_len);
       }
 
       if (old_c != new_cl)
       {
         input_buf[0] = new_cl;
 
-        elem_buf->buf = malloc_tiny (input_len);
-
-        memcpy (elem_buf->buf, input_buf, input_len);
-
-        db_entry->elems_cnt++;
+#ifdef JTR_MODE
+        if (dupecheck)
+          add_uniq(db_entry, input_buf, input_len);
+        else
+#endif
+        add_elem(db_entry, input_buf, input_len);
       }
     }
   }
+#ifdef JTR_MODE
+  if (uniq_buf.hash) free(uniq_buf.hash);
+  if (uniq_buf.data) free(uniq_buf.data);
+#endif
 
   /**
    * init chains

@@ -204,7 +204,7 @@ static struct opt_entry opt_list[] = {
 		FLG_WORDLIST_CHK, (FLG_DUPESUPP | FLG_SAVEMEM |
 		FLG_STDIN_CHK | FLG_PIPE_CHK | OPT_REQ_PARAM),
 		"%zu", &options.max_wordfile_memory},
-	{"dupe-suppression", FLG_DUPESUPP, FLG_DUPESUPP, FLG_WORDLIST_CHK,
+	{"dupe-suppression", FLG_DUPESUPP, FLG_DUPESUPP, 0,
 		FLG_SAVEMEM | FLG_STDIN_CHK | FLG_PIPE_CHK},
 	{"fix-state-delay", FLG_ZERO, 0, 0, OPT_REQ_PARAM,
 		"%u", &options.max_fix_state_delay},
