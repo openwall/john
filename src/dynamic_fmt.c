@@ -2537,6 +2537,7 @@ static struct fmt_main fmt_Dynamic =
 		0,
 		PLAINTEXT_LENGTH,
 #else
+		0,
 		PLAINTEXT_LENGTH_X86,
 #endif
 		BINARY_SIZE,
