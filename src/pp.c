@@ -742,6 +742,14 @@ static inline int get_bits(mpz_t *op)
     return b;
 }
 
+/* There should be legislation against adding a BOM to UTF-8 */
+static char *skip_bom(char *string)
+{
+	if (!memcmp(string, "\xEF\xBB\xBF", 3))
+		string += 3;
+	return string;
+}
+
 void do_prince_crack(struct db_main *db, char *filename)
 #endif
 {
@@ -1027,9 +1035,16 @@ void do_prince_crack(struct db_main *db, char *filename)
 
     char *input_buf = fgets (buf, sizeof (buf), stdin);
 #else
-    if (!(word_file = jtr_fopen(path_expand(filename), "rb")))
-      pexit(STR_MACRO(jtr_fopen)": %s", path_expand(filename));
-    log_event("- Input file: %.100s", path_expand(filename));
+    int warn = cfg_get_bool(SECTION_OPTIONS, NULL, "WarnEncoding", 0);
+
+    if (!john_main_process)
+      warn = 0;
+
+    filename = path_expand(filename);
+
+    if (!(word_file = jtr_fopen(filename, "rb")))
+      pexit(STR_MACRO(jtr_fopen)": %s", filename);
+    log_event("- Input file: %.100s", filename);
 
   log_event("Loading elements from wordlist");
 
@@ -1044,6 +1059,29 @@ void do_prince_crack(struct db_main *db, char *filename)
 #ifdef JTR_MODE
     if (!strncmp(input_buf, "#!comment", 9))
       continue;
+
+    char *line = skip_bom(input_buf);
+
+    if (warn) {
+      if (pers_opts.input_enc == UTF_8) {
+        if (!valid_utf8((UTF8*)line)) {
+          warn = 0;
+          fprintf(stderr, "Warning: invalid UTF-8 seen reading %s\n", filename);
+        }
+      } else if (line != input_buf || valid_utf8((UTF8*)line) > 1) {
+        warn = 0;
+        fprintf(stderr, "Warning: UTF-8 seen reading %s\n", filename);
+      }
+    }
+
+    input_buf = line;
+
+    if (pers_opts.input_enc != pers_opts.target_enc) {
+      UTF16 u16[BUFSIZ];
+
+      utf8_to_utf16(u16, OUT_LEN_MAX, (UTF8*)input_buf, 4 * OUT_LEN_MAX);
+      input_buf = utf16_to_cp(u16);
+    }
 #endif
     const int input_len = in_superchop (input_buf);
 
