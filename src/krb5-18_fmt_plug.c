@@ -36,6 +36,7 @@ john_register_one(&fmt_krb5_18);
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
+#include "johnswap.h"
 #include "params.h"
 #include "options.h"
 #include "sse-intrinsics.h"
@@ -227,6 +228,11 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 		for (; i < SSE_GROUP_SZ_SHA1; ++i) {
 			memcpy(key, Key[i], 32);
 #endif
+#if (ARCH_LITTLE_ENDIAN==0)
+		for (i = 0; i < 8; ++i)
+			((ARCH_WORD_32*)key)[i] = JOHNSWAP(((ARCH_WORD_32*)key)[i]);
+		i = 0;
+#endif
 		AES_set_encrypt_key(key, 256, &aeskey);
 		AES_encrypt((unsigned char*)"kerberos{\x9b[+\x93\x13+\x93", (unsigned char*)(crypt_out[index+i]), &aeskey);
 		AES_encrypt((unsigned char*)(crypt_out[index+i]), (unsigned char*)&crypt_out[index+i][4], &aeskey);
@@ -274,13 +280,13 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-static int get_hash_0(int index) { return *((ARCH_WORD_32*)&crypt_out[index]) & 0xf; }
-static int get_hash_1(int index) { return *((ARCH_WORD_32*)&crypt_out[index]) & 0xff; }
-static int get_hash_2(int index) { return *((ARCH_WORD_32*)&crypt_out[index]) & 0xfff; }
-static int get_hash_3(int index) { return *((ARCH_WORD_32*)&crypt_out[index]) & 0xffff; }
-static int get_hash_4(int index) { return *((ARCH_WORD_32*)&crypt_out[index]) & 0xfffff; }
-static int get_hash_5(int index) { return *((ARCH_WORD_32*)&crypt_out[index]) & 0xffffff; }
-static int get_hash_6(int index) { return *((ARCH_WORD_32*)&crypt_out[index]) & 0x7ffffff; }
+static int get_hash_0(int index) { return crypt_out[index][0] & 0xf; }
+static int get_hash_1(int index) { return crypt_out[index][0] & 0xff; }
+static int get_hash_2(int index) { return crypt_out[index][0] & 0xfff; }
+static int get_hash_3(int index) { return crypt_out[index][0] & 0xffff; }
+static int get_hash_4(int index) { return crypt_out[index][0] & 0xfffff; }
+static int get_hash_5(int index) { return crypt_out[index][0] & 0xffffff; }
+static int get_hash_6(int index) { return crypt_out[index][0] & 0x7ffffff; }
 
 struct fmt_main fmt_krb5_18 = {
 	{
