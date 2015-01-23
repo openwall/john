@@ -219,7 +219,7 @@ static void
 skey_set_key(char *key, int index)
 {
 	strnzcpy(saved_pass, key, sizeof(saved_pass));
-	hex_decode(key, (unsigned char*)saved_key, sizeof(saved_key));
+//	hex_decode(key, (unsigned char*)saved_key, sizeof(saved_key));
 }
 
 static char *
@@ -253,7 +253,7 @@ skey_cmp_all(void *binary, int count)
 static int
 skey_cmp_one(void *binary, int count)
 {
-	return 1;
+	return (memcmp(saved_key, binary, sizeof(saved_key)) == 0);
 }
 
 static int
