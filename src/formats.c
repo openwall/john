@@ -523,6 +523,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		if (index == 0)
 			format->methods.clear_keys();
 		fmt_set_key(current->plaintext, index);
+		fprintf(stderr, "Self test:%s %d\n", current->plaintext, index);
 
 #if !defined(BENCH_BUILD) && (defined(HAVE_OPENCL) || defined(HAVE_CUDA))
 		advance_cursor();
@@ -530,35 +531,40 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		{
 			int count = index + 1;
 			int match = format->methods.crypt_all(&count, NULL);
-/* If salt is NULL, the return value must always match *count the way it is
- * after the crypt_all() call. */
-			if (match != count)
-				return "crypt_all";
-		}
-		for (size = 0; size < PASSWORD_HASH_SIZES; size++)
-		if (format->methods.binary_hash[size] &&
-		    format->methods.get_hash[size](index) !=
-		    format->methods.binary_hash[size](binary)) {
-			sprintf(s_size, "get_hash[%d](%d)", size, index);
-			return s_size;
-		}
 
-		if (!format->methods.cmp_all(binary, index + 1)) {
-			sprintf(s_size, "cmp_all(%d)", index + 1);
-			return s_size;
-		}
-		if (!format->methods.cmp_one(binary, index)) {
-			sprintf(s_size, "cmp_one(%d)", index);
-			return s_size;
-		}
-		if (!format->methods.cmp_exact(ciphertext, index)) {
-			sprintf(s_size, "cmp_exact(%d)", index);
-			return s_size;
-		}
-		if (strncmp(format->methods.get_key(index), plaintext,
-			format->params.plaintext_length)) {
-			sprintf(s_size, "get_key(%d)", index);
-			return s_size;
+			if (!format->methods.cmp_all(binary, match)) {
+				sprintf(s_size, "cmp_all(%d)", match);
+				return s_size;
+			}
+
+			for (i = 0; i < match; i++) {
+				if (format->methods.cmp_one(binary, i))
+					break;
+			}
+
+			if (i == match) {
+				sprintf(s_size, "cmp_one(%d)", i);
+				return s_size;
+			}
+
+			for (size = 0; size < PASSWORD_HASH_SIZES; size++)
+				if (format->methods.binary_hash[size] &&
+				    format->methods.get_hash[size](i) !=
+				    format->methods.binary_hash[size](binary)) {
+					sprintf(s_size, "get_hash[%d](%d)", size, i);
+					return s_size;
+			}
+
+			if (!format->methods.cmp_exact(ciphertext, i)) {
+				sprintf(s_size, "cmp_exact(%d)", i);
+				return s_size;
+			}
+
+			if (strncmp(format->methods.get_key(i), plaintext,
+				format->params.plaintext_length)) {
+				sprintf(s_size, "get_key(%d)", i);
+				return s_size;
+			}
 		}
 
 /* Remove some old keys to better test cmp_all() */
