@@ -9,6 +9,7 @@
 #include "common.h"
 #include "formats.h"
 #include "base64_convert.h"
+#include "johnswap.h"
 #include "sha1crypt_common.h"
 
 
