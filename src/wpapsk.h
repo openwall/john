@@ -23,7 +23,7 @@
 #define BINARY_SIZE		sizeof(mic_t)
 #define BINARY_ALIGN		4
 #define PLAINTEXT_LENGTH	63 /* We can do 64 but spec. says 63 */
-#define SALT_SIZE		sizeof(hccap_t)
+#define SALT_SIZE		(sizeof(hccap_t) - sizeof(mic_t))
 #define SALT_ALIGN		MEM_ALIGN_NONE
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
@@ -162,7 +162,6 @@ static void *salt(char *ciphertext)
 	static hccap_t s;
 
 	memcpy(&s, decode_hccap(ciphertext), SALT_SIZE);
-	memset(s.keymic, 0, sizeof(s.keymic));
 	return &s;
 }
 
