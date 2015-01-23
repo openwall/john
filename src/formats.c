@@ -549,7 +549,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		if (format->methods.binary_hash[size] &&
 		    format->methods.get_hash[size](index) !=
 		    format->methods.binary_hash[size](binary)) {
-			sprintf(s_size, "get_hash[%d](%d)", size, index);
+			sprintf(s_size, "get_hash[%d](%d) %x!=%x", size, index, format->methods.get_hash[size](index), format->methods.binary_hash[size](binary));
 			return s_size;
 		}
 
