@@ -82,6 +82,8 @@ static struct opt_entry opt_list[] = {
 #if HAVE_LIBGMP || HAVE_INT128 || HAVE___INT128 || HAVE___INT128_T
 	{"prince", FLG_PRINCE_SET, FLG_CRACKING_CHK,
 		0, 0, OPT_FMT_STR_ALLOC, &options.wordlist},
+	{"prince-loopback", FLG_PRINCE_SET | FLG_PRINCE_LOOPBACK,
+		FLG_CRACKING_CHK, 0, 0, OPT_FMT_STR_ALLOC, &options.wordlist},
 	{"prince-elem-cnt-min", FLG_ZERO, 0, FLG_PRINCE_CHK,
 		OPT_REQ_PARAM, "%d", &prince_elem_cnt_min},
 	{"prince-elem-cnt-max", FLG_ZERO, 0, FLG_PRINCE_CHK,
@@ -460,6 +462,7 @@ void opt_print_hidden_usage(void)
 	puts("--platform=N              set OpenCL platform (deprecated)");
 #endif
 #if HAVE_LIBGMP || HAVE_INT128 || HAVE___INT128 || HAVE___INT128_T
+	puts("--prince-loopback[=FILE]  PRINCE: Fetch words from a .pot file");
 	puts("--prince-elem-cnt-min=N   PRINCE: Minimum number of elements per chain (1)");
 	puts("--prince-elem-cnt-max=N   PRINCE: Maximum number of elements per chain (8)");
 	puts("--prince-skip=N           PRINCE: Initial skip");

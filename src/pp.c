@@ -940,7 +940,10 @@ void do_prince_crack(struct db_main *db, char *filename)
   setmode (fileno (stdout), O_BINARY);
   #endif
 #else
-  log_event("Proceeding with PRINCE mode (" REALGMP " version)");
+  int loopback = (options.flags & FLG_PRINCE_LOOPBACK) ? 1 : 0;
+
+  log_event("Proceeding with PRINCE (" REALGMP " version)%s",
+            loopback ? " in loopback mode" : "");
 
   /* This mode defaults to length 16 (unless lowered by format) */
   pw_min = MAX(PW_MIN, options.force_minlength);
@@ -977,6 +980,10 @@ void do_prince_crack(struct db_main *db, char *filename)
 
   if (prince_limit_str)
     mpz_set_str(limit, prince_limit_str, 0);
+
+  /* If we did not give a name for loopback mode, we use the active pot file */
+  if (loopback && !filename)
+    filename = pers_opts.activepot;
 
   /* If we did not give a name for wordlist mode, we use one from john.conf */
   if (!filename)
@@ -1057,6 +1064,12 @@ void do_prince_crack(struct db_main *db, char *filename)
     if (input_buf == NULL) continue;
 
 #ifdef JTR_MODE
+    char *p;
+
+    if (loopback && (p = strchr(input_buf, options.loader.field_sep_char)))
+    {
+      input_buf = p + 1;
+    } else
     if (!strncmp(input_buf, "#!comment", 9))
       continue;
 
