@@ -38,7 +38,7 @@ john_register_one(&fmt_EPI);
 #define BINARY_LENGTH      20
 #define BINARY_ALIGN       sizeof(ARCH_WORD_32)
 #define SALT_LENGTH        30
-#define SALT_ALIGN         1
+#define SALT_ALIGN         4
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
 
