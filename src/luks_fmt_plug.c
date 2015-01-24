@@ -581,6 +581,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		            (const unsigned char*)(cur_salt->myphdr.keyblock[cur_salt->bestslot].passwordSalt), LUKS_SALTSIZE,
 		            iterations, (unsigned char*)keycandidate[0], dklen, 0);
 #endif
+#if ARCH_LITTLE_ENDIAN==0
+		for (i = 0; i < 4; ++i)
+			keycandidate[0][i] = JOHNSWAP(keycandidate[0][i]);
+#endif
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
 			// Decrypt the blocksi
 			decrypt_aes_cbc_essiv(cur_salt->cipherbuf, af_decrypted, (unsigned char*)keycandidate[i], cur_salt->afsize, cur_salt);
@@ -605,6 +609,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		            john_ntohl(cur_salt->myphdr.mkDigestIterations),
 		            (unsigned char*)crypt_out[index], LUKS_DIGESTSIZE, 0);
 
+#endif
+#if ARCH_LITTLE_ENDIAN==0
+		for (i = 0; i < LUKS_DIGESTSIZE/4; ++i)
+			crypt_out[index][i] = JOHNSWAP(crypt_out[index][i]);
 #endif
 		MEM_FREE(af_decrypted);
 	}
