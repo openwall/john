@@ -614,7 +614,7 @@ int E_md4hash(const UTF8 *passwd, unsigned int len, unsigned char *p16)
 
 	// Quick work around. We may want to port the else{} into BE code,
 	// and do it without impacting LE speed. The boost is not huge though.
-#if ARCH_ALLOWS_UNALIGNED
+#if ARCH_ALLOWS_UNALIGNED && ARCH_LITTLE_ENDIAN
 	if (len > 27) {
 #endif
 		MD4_CTX ctx;
@@ -629,7 +629,7 @@ int E_md4hash(const UTF8 *passwd, unsigned int len, unsigned char *p16)
 		MD4_Init(&ctx);
 		MD4_Update(&ctx, (unsigned char *)wpwd, len * sizeof(UTF16));
 		MD4_Final(p16, &ctx);
-#if ARCH_ALLOWS_UNALIGNED
+#if ARCH_ALLOWS_UNALIGNED && ARCH_LITTLE_ENDIAN
 	} else {
 		unsigned int nt_buffer[16];
 		unsigned int a = INIT_A;
