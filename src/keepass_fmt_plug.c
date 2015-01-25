@@ -237,10 +237,10 @@ static int valid(char *ciphertext, struct fmt_main *self)
 			goto err;
 		res = atoi(p);
 		if (res != 1 && res != 2) {
-			fprintf(stderr, "[!] Support for non-inlined data is missing from the " \
-					FORMAT_LABEL " format. File a bug report!\n");
-			exit(-1);  // do something noticeable
-			goto err;
+			fprintf(stderr, "[!] Support for non-inlined data is currently missing from the " \
+					FORMAT_LABEL " format.\n");
+			fprintf(stderr, "See https://github.com/magnumripper/JohnTheRipper/issues/1026\n");
+			error();
 		}
 		if ((p = strtok(NULL, "*")) == NULL)	/* content size */
 			goto err;
