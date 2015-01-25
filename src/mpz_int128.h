@@ -37,6 +37,7 @@
 # endif
 #endif
 #include <stdlib.h>
+#include "jumbo.h"
 
 #undef int128_t
 #define int128_t our_int128_t
@@ -114,20 +115,20 @@ static inline int _mpz_fdiv_q_ui(mpz_t *q, mpz_t n, mpz_t d)
 
 static inline int _int128tostr(uint128_t op, int base, char *ptr)
 {
-	char *orig = ptr;
-	if (op == 0)
+	char *p = ptr;
+	if (!op)
 		return 0;
-
-	if (base != 10) {
-		fprintf(stderr, "%s(): base %d not implemented\n",
-		        __FUNCTION__, base);
-		exit (EXIT_FAILURE);
-	}
-
-	ptr += _int128tostr(op / base, base, ptr);
-	*ptr++ = op % base + '0';
-	*ptr = 0;
-	return ptr - orig;
+	do {
+		uint32_t t = op % 1000000000;
+		op /= 1000000000;
+		while (t) {
+			*p++ = (char)(t % base) + '0';
+			t /= base;
+		}
+	} while (op);
+	*p = 0;
+	strrev(ptr);
+	return p-ptr;
 }
 
 #define mpz_set_str(rop, str, base) _mpz_set_str(&rop, str, base)
