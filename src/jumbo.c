@@ -345,3 +345,16 @@ int setenv(const char *name, const char *val, int overwrite) {
 	return 0;
 }
 #endif
+
+#if (AC_BUILT && !HAVE_STRREV) ||(!AC_BUILT && !_MSC_VER)
+/* inplace strrev */
+char *strrev(char *str) {
+	char *p1, *p2;
+	if (!str || !str[0] || !str[1])
+	return str;
+	for (p1 = str, p2 = str + strlen(str) - 1; p2 > p1; ++p1, --p2) {
+		*p1 ^= *p2; *p2 ^= *p1; *p1 ^= *p2;
+	}
+	return str;
+}
+#endif

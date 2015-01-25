@@ -273,6 +273,9 @@
 /* Define to 1 if you have the `strnicmp' function. */
 #undef HAVE_STRNICMP
 
+/* Define to 1 if you have the `strrev' function. */
+#undef HAVE_STRREV
+
 /* Define to 1 if you have the `strupr' function. */
 #undef HAVE_STRUPR
 

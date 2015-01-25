@@ -370,6 +370,10 @@ extern int setenv(const char *name, const char *val, int overwrite);
 #define Zu  "%zu"
 #endif
 
+#if (AC_BUILT && !HAVE_STRREV) ||(!AC_BUILT && !_MSC_VER)
+char *strrev(char *str);
+#endif
+
 // Start handing these (some we may not be able to, or are too hard to 'care', and we should
 // simply #ifdef around the logic where the functions are used, or find some other way.
 //HAVE_ATEXIT
