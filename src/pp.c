@@ -1052,6 +1052,15 @@ void do_prince_crack(struct db_main *db, char *filename)
   else
     dupecheck = (options.flags & FLG_DUPESUPP) ? 1 : 0;
 
+  if (options.force_maxlength > OUT_LEN_MAX)
+  {
+    if (john_main_process)
+    fprintf (stderr, "Error: --max-len for PRINCE can't be greater than %d\n",
+             OUT_LEN_MAX);
+
+    error();
+  }
+
   log_event("Proceeding with PRINCE (" REALGMP " version)%s",
             loopback ? " in loopback mode" : "");
 
@@ -1060,10 +1069,7 @@ void do_prince_crack(struct db_main *db, char *filename)
   pw_max = MIN(PW_MAX, db->format->params.plaintext_length);
 
   /* ...but can be bumped using -max-len */
-  if (options.force_maxlength && options.force_maxlength > pw_max)
-    pw_max = MIN(OUT_LEN_MAX, options.force_maxlength);
-  else
-  if (options.force_maxlength && options.force_maxlength < pw_max)
+  if (options.force_maxlength)
     pw_max = options.force_maxlength;
 
   if (prince_elem_cnt_min)
