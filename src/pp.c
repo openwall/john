@@ -780,18 +780,18 @@ static int restore_state(FILE *file)
   unsigned long long temp;
   mpz_t hi;
 
-  if (fscanf(file, "%llu\n", &temp))
+  if (fscanf(file, "%llu\n", &temp) != 1)
     return 1;
   mpz_set_ui(rec_pos, temp);
 
-  if (fscanf(file, "%llu\n", &temp))
+  if (fscanf(file, "%llu\n", &temp) != 1)
     return 1;
   mpz_init_set_ui(hi, temp);
   mpz_mul_2exp(hi, hi, 64); // hi = temp << 64
   mpz_add(rec_pos, rec_pos, hi);
   mpz_clear(hi);
 
-  if (fscanf(file, "%llu\n", &temp))
+  if (fscanf(file, "%llu\n", &temp) != 1)
     return 1;
   rec_dist = temp;
 
