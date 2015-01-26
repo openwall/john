@@ -11462,7 +11462,8 @@ _ACEOF
 
 fi
 
-if test "x$enable_int128" != xno; then :
+if test $CPU_BIT_STR -ge 64; then :
+  if test "x$enable_int128" != xno; then :
   ac_fn_c_check_type "$LINENO" "int128" "ac_cv_type_int128" "$ac_includes_default"
 if test "x$ac_cv_type_int128" = xyes; then :
 
@@ -11491,6 +11492,7 @@ _ACEOF
 
 fi
 
+fi
 fi
 
 # Checks for library functions.
