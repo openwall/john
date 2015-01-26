@@ -317,32 +317,6 @@ else
 fi
 
 #############################################################################
-# Check for unaligned memory access being allowed
-# TODO: Needs fix for cross compile (we can infer it from $host_cpu)
-#############################################################################
-AC_MSG_CHECKING([for unaligned memory access allowed])
-if test "x$enable_native_tests" = xyes; then
-   AC_RUN_IFELSE(dnl
-     [dnl
-     AC_LANG_SOURCE(dnl
-           [[#include <stdio.h>
-           extern void exit(int);
-           int main(){char c[20];*((int*)(&c[1]))=1;*((int*)(&c[2]))=1;*((int*)(&c[3]))=1;if(c[2]==88)printf("foobar");exit(0);}]]
-     )]
-     ,[ALLOWS_UNALIGNED="1"]
-      [AC_MSG_RESULT([yes])]
-     ,[ALLOWS_UNALIGNED="0"]
-      [AC_MSG_RESULT([no])]
-   )
-elif test "x$cpu_family" = xintel; then
-   ALLOWS_UNALIGNED="1"
-   AC_MSG_RESULT([yes])
-else
-   ALLOWS_UNALIGNED="0"
-   AC_MSG_RESULT([unknown, assuming no])
-fi
-
-#############################################################################
 # Check for LE/BE CPU
 #############################################################################
 if test "x$endian" = "xunknown"; then
@@ -647,10 +621,6 @@ AC_SUBST([CPU_BITS],["${CPU_BITS}"])
 AC_SUBST([CPU_BIT_STR],["${CPU_BIT_STR}"])
 AC_SUBST([ASFLAGS],["${ASFLAGS}"])
 AC_SUBST([EXTRA_AS_FLAGS],["${EXTRA_AS_FLAGS}"])
-
-AS_IF([test "x$ALLOWS_UNALIGNED" = x1],
-   [AC_DEFINE([ARCH_ALLOWS_UNALIGNED], 1, ["Enable if CPU allows unaligned memory access"])],
-   [AC_DEFINE([ARCH_ALLOWS_UNALIGNED], 0, ["Enable if CPU allows unaligned memory access"])])
 
 AS_IF([test $ac_cv_sizeof_int -gt 4],
    [AC_DEFINE([ARCH_INT_GT_32], 1, ["Enable if sizeof(int) > 4"])],

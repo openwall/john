@@ -25,9 +25,9 @@
 #define ARCH_BITS_STR			"32"
 #define ARCH_LITTLE_ENDIAN		0
 #define ARCH_INT_GT_32			0
-#define ARCH_ALLOWS_UNALIGNED		0
 #endif
 
+#define ARCH_ALLOWS_UNALIGNED		0
 #define ARCH_INDEX(x)			((unsigned int)(unsigned char)(x))
 
 #define CPU_DETECT			0

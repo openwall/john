@@ -3,9 +3,6 @@
 /* Define if building universal (internal helper macro) */
 #undef AC_APPLE_UNIVERSAL_BUILD
 
-/* "Enable if CPU allows unaligned memory access" */
-#undef ARCH_ALLOWS_UNALIGNED
-
 /* "Native CPU width, bits" */
 #undef ARCH_BITS
 

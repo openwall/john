@@ -8428,52 +8428,6 @@ else
 fi
 
 #############################################################################
-# Check for unaligned memory access being allowed
-# TODO: Needs fix for cross compile (we can infer it from $host_cpu)
-#############################################################################
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for unaligned memory access allowed" >&5
-$as_echo_n "checking for unaligned memory access allowed... " >&6; }
-if test "x$enable_native_tests" = xyes; then
-   if test "$cross_compiling" = yes; then :
-  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
-$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error $? "cannot run test program while cross compiling
-See \`config.log' for more details" "$LINENO" 5; }
-else
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-                     #include <stdio.h>
-           extern void exit(int);
-           int main(){char c[20];*((int*)(&c[1]))=1;*((int*)(&c[2]))=1;*((int*)(&c[3]))=1;if(c[2]==88)printf("foobar");exit(0);}
-
-
-_ACEOF
-if ac_fn_c_try_run "$LINENO"; then :
-  ALLOWS_UNALIGNED="1"
-      { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-$as_echo "yes" >&6; }
-
-else
-  ALLOWS_UNALIGNED="0"
-      { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-
-fi
-rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
-  conftest.$ac_objext conftest.beam conftest.$ac_ext
-fi
-
-elif test "x$cpu_family" = xintel; then
-   ALLOWS_UNALIGNED="1"
-   { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-$as_echo "yes" >&6; }
-else
-   ALLOWS_UNALIGNED="0"
-   { $as_echo "$as_me:${as_lineno-$LINENO}: result: unknown, assuming no" >&5
-$as_echo "unknown, assuming no" >&6; }
-fi
-
-#############################################################################
 # Check for LE/BE CPU
 #############################################################################
 if test "x$endian" = "xunknown"; then
@@ -12099,16 +12053,6 @@ ASFLAGS="${ASFLAGS}"
 
 EXTRA_AS_FLAGS="${EXTRA_AS_FLAGS}"
 
-
-if test "x$ALLOWS_UNALIGNED" = x1; then :
-
-$as_echo "#define ARCH_ALLOWS_UNALIGNED 1" >>confdefs.h
-
-else
-
-$as_echo "#define ARCH_ALLOWS_UNALIGNED 0" >>confdefs.h
-
-fi
 
 if test $ac_cv_sizeof_int -gt 4; then :
 
