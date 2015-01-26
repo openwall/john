@@ -95,6 +95,8 @@ static struct opt_entry opt_list[] = {
 	{"prince-wl-dist-len", FLG_PRINCE_DIST, 0, FLG_PRINCE_CHK, 0},
 	{"prince-case-permute", FLG_PRINCE_CASE_PERMUTE, 0, FLG_PRINCE_CHK, 0},
 	{"prince-keyspace", FLG_PRINCE_KEYSPACE, 0, FLG_PRINCE_CHK, 0},
+	{"prince-dupe-check-disable", FLG_PRINCE_NO_DUPE_SUP, 0,
+		FLG_PRINCE_CHK, 0},
 #endif
 	/* -enc is an alias for -input-enc for legacy reasons */
 	{"encoding", FLG_INPUT_ENC, FLG_INPUT_ENC,
@@ -204,7 +206,7 @@ static struct opt_entry opt_list[] = {
 		FLG_WORDLIST_CHK, (FLG_DUPESUPP | FLG_SAVEMEM |
 		FLG_STDIN_CHK | FLG_PIPE_CHK | OPT_REQ_PARAM),
 		"%zu", &options.max_wordfile_memory},
-	{"dupe-suppression", FLG_DUPESUPP, FLG_DUPESUPP, 0,
+	{"dupe-suppression", FLG_DUPESUPP, FLG_DUPESUPP, FLG_WORDLIST_CHK,
 		FLG_SAVEMEM | FLG_STDIN_CHK | FLG_PIPE_CHK},
 	{"fix-state-delay", FLG_ZERO, 0, 0, OPT_REQ_PARAM,
 		"%u", &options.max_fix_state_delay},
@@ -462,16 +464,18 @@ void opt_print_hidden_usage(void)
 	puts("--platform=N              set OpenCL platform (deprecated)");
 #endif
 #if HAVE_LIBGMP || HAVE_INT128 || HAVE___INT128 || HAVE___INT128_T
-	puts("--prince-loopback[=FILE]  PRINCE: Fetch words from a .pot file");
-	puts("--prince-elem-cnt-min=N   PRINCE: Minimum number of elements per chain (1)");
-	puts("--prince-elem-cnt-max=N   PRINCE: Maximum number of elements per chain (8)");
-	puts("--prince-skip=N           PRINCE: Initial skip");
-	puts("--prince-limit=N          PRINCE: Limit number of candidates generated");
-	puts("--prince-wl-dist-len      PRINCE: Calculate length distribution from wordlist");
-	puts("                                  instead of using built-in table");
-	puts("--prince-case-permute     PRINCE: Permute case of first letter");
-	puts("--prince-keyspace         PRINCE: Show total keyspace that would be produced");
-	puts("                                  (disregarding skip and limit)");
+	puts("\nPRINCE options:");
+	puts("--prince-loopback[=FILE]     Fetch words from a .pot file");
+	puts("--prince-elem-cnt-min=N      Minimum number of elements per chain (1)");
+	puts("--prince-elem-cnt-max=N      Maximum number of elements per chain (8)");
+	puts("--prince-skip=N              Initial skip");
+	puts("--prince-limit=N             Limit number of candidates generated");
+	puts("--prince-wl-dist-len         Calculate length distribution from wordlist");
+	puts("                             instead of using built-in table");
+	puts("--prince-case-permute        Permute case of first letter");
+	puts("--prince-keyspace            Show total keyspace that would be produced");
+	puts("                             (disregarding skip and limit)");
+	puts("--prince-dupe-check-disable  Disable dupes check for faster inital load");
 #endif
 	puts("");
 }
