@@ -1183,7 +1183,7 @@ void do_prince_crack(struct db_main *db, char *filename)
 
 
   if (dupecheck) {
-    pos = ftell(word_file);
+	mpz_set_ui(pos, ftell(word_file));
     fseek(word_file, 0, SEEK_END);
     long size = ftell(word_file) >> 3;
     fseek(word_file, 0, SEEK_SET);
