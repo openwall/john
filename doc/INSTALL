@@ -122,13 +122,6 @@ usually not affected by this potential problem.
 
 	Optimal build on OS X (Jumbo specific)
 
-For Yosemite, first apply src/unused/Yosemite.patch for fixing bugs in the
-system headers(!). If the patch does not apply, it was fixed already (perhaps
-by a system update that did not exist at the time of this writing). From
-John's "src" directory:
-
-  sudo patch -b -N -p0 < unused/Yosemite.patch
-
 Using OS X, you can install Xcode (free) and then its "command line tools"
 and after that a normal build should work fine. However, using native
 gcc (which is really clang) results in suboptimal performance and some
@@ -153,6 +146,25 @@ Instead of #3 and #4 you could obviously pass parameters to autoconf, such as:
 
 After the above, you should be able to get an optimal build with AVX and/or
 whatever extra features your CPU has got.
+
+If you get weird problems including things like "error: unknown type name
+'dispatch_block_t'" on Yosemite, you might need to apply a patch for the
+system headers (at your own risk, as always, but backups are created). From
+John's "src" directory:
+
+  sudo patch -b -N -p0 < unused/Yosemite.patch
+
+If the patch does not apply, perhaps it was fixed already by a system update
+that did not exist at the time of this writing.
+
+NOTE: The above command will create backup files. If you ever want to restore
+everything as it were originally:
+
+  cd /usr/include/dispatch
+  sudo mv -vi object.h.orig object.h
+  sudo mv -vi queue.h.orig queue.h
+  cd -
+
 
 	CUDA on OS X
 

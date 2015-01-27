@@ -4,7 +4,7 @@
   * Instead, the block literal must be copied to the heap with the Block_copy()
   * function or by sending it a -[copy] message.
   */
-+#if OS_OBJECT_USE_OBJC
++#if __clang__ || OS_OBJECT_USE_OBJC
  typedef void (^dispatch_block_t)(void);
 +#else
 +typedef void (dispatch_block_t)(void);
