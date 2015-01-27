@@ -1299,7 +1299,7 @@ void do_prince_crack(struct db_main *db, char *filename)
     /* Now even though we are 64 bit file size, we must still
      * deal with some 32 bit functions ;) */
     mem_map = MAP_FAILED;
-    if (file_len < ((1UL)<<32))
+    if (file_len < ((1ULL)<<32))
 #endif
       mem_map = mmap(NULL, file_len,
                      PROT_READ, MAP_SHARED,
@@ -1951,7 +1951,7 @@ void do_prince_crack(struct db_main *db, char *filename)
         u32 for_node, node_skip = 0;
         if (options.node_count)
         {
-          for_node = total_ks_pos % options.node_count + 1;
+          for_node = mpz_fdiv_ui(total_ks_pos,options.node_count) + 1;
           node_skip = for_node < options.node_min ||
                       for_node > options.node_max;
         }
