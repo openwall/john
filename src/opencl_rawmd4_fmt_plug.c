@@ -233,7 +233,7 @@ static void init(struct fmt_main *self)
 	autotune_run(self, 1, gws_limit,
 		(cpu(device_info[gpu_id]) ? 500000000ULL : 1000000000ULL));
 
-	mask_int_cand_target = 1000;
+	mask_int_cand_target = 10000;
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -362,6 +362,7 @@ fprintf(stderr, "Get_key_out:%s\n", out);
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
+	*pcount *=  mask_int_cand.num_int_cand;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
 	global_work_size = local_work_size ? (count + local_work_size - 1) / local_work_size * local_work_size : count;
