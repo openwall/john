@@ -114,14 +114,15 @@ inline void cmp(uint gid, uint iter, uint num_hashes, volatile __global uint *ou
 	hash[2] += 0x98badcfe;
 	hash[3] += 0x10325476;
 
+	//if (hash[0] == 0x5c78786d) printf("In krnl:Bingo\n");
 	for (j = 0; j < num_hashes; j++) {
 		t = 0;
+
 		t = (loaded_hashes[4 * j] == hash[0]) && (loaded_hashes[4 * j + 1] == hash[1]) && (loaded_hashes[4 * j + 2] == hash[2]) && (loaded_hashes[4 * j + 3] == hash[3]);
 		if(t) {
 /* Prevent duplicate keys from cracking same hash */
 			if (!(atomic_or(&bitmap[j/32],(1U<<(j%32))) & (1U<<(j%32)))) {
-				atomic_inc(&output[0]);
-				t = output[0] - 1;
+				t = atomic_inc(&output[0]);
 				output[1 + 3 * t] = gid;
 				output[2 + 3 * t] = iter;
 				output[3 + 3 * t] = j;
@@ -139,7 +140,7 @@ inline void cmp(uint gid, uint iter, uint num_hashes, volatile __global uint *ou
  * words. MD4 hash of a key is 128 bit (uint4). */
 __kernel void md4(__global const uint *keys,
 		  __global const uint *index,
-		  __global uint *hashes,
+		 // __global uint *hashes,
 		  __global const uint *int_key_loc,
 		  __global const uint *int_keys,
 		  uint num_int_keys,
