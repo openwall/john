@@ -120,7 +120,7 @@ static HalfWord f(HalfWord AA, QuarterWord BB)
 {
 	ByteType f1, f2;
 	union {
-		unsigned long All;
+		HalfWord All;
 		ByteType Byte[4];
 	} RetVal, A;
 	union {
@@ -154,7 +154,7 @@ static HalfWord FK(HalfWord AA, HalfWord BB)
 {
 	ByteType FK1, FK2;
 	union {
-		unsigned long All;
+		HalfWord All;
 		ByteType Byte[4];
 	} RetVal, A, B;
 
@@ -177,7 +177,7 @@ static HalfWord MakeH1(ByteType * B)
 */
 {
 	union {
-		unsigned long All;
+		HalfWord All;
 		ByteType Byte[4];
 	} RetVal;
 
