@@ -106,13 +106,47 @@ inline void md4_encrypt(__private uint *hash, __private uint *W, uint len) {
 	STEP(H, hash[1], hash[2], hash[3], hash[0], W[15] + 0x6ed9eba1, 15);
 }
 
+inline void cmp(uint gid, uint iter, uint num_hashes, volatile __global uint *output, __global const uint *loaded_hashes, __private uint *hash, volatile __global uint *bitmap) {
+	uint t, j;
+
+	hash[0] += 0x67452301;
+	hash[1] += 0xefcdab89;
+	hash[2] += 0x98badcfe;
+	hash[3] += 0x10325476;
+
+	for (j = 0; j < num_hashes; j++) {
+		t = 0;
+		t = (loaded_hashes[4 * j] == hash[0]) && (loaded_hashes[4 * j + 1] == hash[1]) && (loaded_hashes[4 * j + 2] == hash[2]) && (loaded_hashes[4 * j + 3] == hash[3]);
+		if(t) {
+/* Prevent duplicate keys from cracking same hash */
+			if (!(atomic_or(&bitmap[j/32],(1U<<(j%32))) & (1U<<(j%32)))) {
+				atomic_inc(&output[0]);
+				t = output[0] - 1;
+				output[1 + 3 * t] = gid;
+				output[2 + 3 * t] = iter;
+				output[3 + 3 * t] = j;
+			}
+
+		}
+	}
+}
+
 /* some constants used below are passed with -D */
 //#define KEY_LENGTH (MD4_PLAINTEXT_LENGTH + 1)
 
 /* OpenCL kernel entry point. Copy key to be hashed from
  * global to local (thread) memory. Break the key into 16 32-bit (uint)
  * words. MD4 hash of a key is 128 bit (uint4). */
-__kernel void md4(__global const uint *keys, __global const uint *index, __global uint *hashes, __global const uint *int_key_loc, __global const uint *int_keys, uint num_int_keys)
+__kernel void md4(__global const uint *keys,
+		  __global const uint *index,
+		  __global uint *hashes,
+		  __global const uint *int_key_loc,
+		  __global const uint *int_keys,
+		  uint num_int_keys,
+		  __global const uint *loaded_hashes,
+		  uint num_loaded_hashes,
+		  volatile __global uint *out_hash,
+		  volatile __global uint *bitmap)
 {
 	uint gid = get_global_id(0);
 	uint W[16] = { 0 };
@@ -122,8 +156,16 @@ __kernel void md4(__global const uint *keys, __global const uint *index, __globa
 	uint len = base & 63;
 	uint hash[4];
 
-	/*if (gid == 5 && num_int_keys > 1)
-	  printf("Krnl:%c %c\n", int_keys[num_int_keys - 2]&0xff, (int_keys[num_int_keys - 2]&0xff00)>>8);*/
+	if (!gid) {
+		out_hash[0] = 0;
+		for (i = 0; i < (num_loaded_hashes-1)/32 + 1; i++)
+			bitmap[i] = 0;
+	}
+/*
+	if (gid == 5) {
+	  printf("Krnl:%d\n", num_int_keys);
+	}*/
+barrier(CLK_GLOBAL_MEM_FENCE);
 	keys += base >> 6;
 
 	for (i = 0; i < (len+3)/4; i++)
@@ -143,10 +185,11 @@ __kernel void md4(__global const uint *keys, __global const uint *index, __globa
 		}
 
 		md4_encrypt(hash, W, len);
+		cmp(gid, i, num_loaded_hashes, out_hash, loaded_hashes, hash, bitmap);
 
-		hashes[num_keys * i +gid] = hash[0] + 0x67452301;
-		hashes[1 * num_keys * num_int_keys + num_keys * i + gid] = hash[1] + 0xefcdab89;
-		hashes[2 * num_keys * num_int_keys + num_keys * i + gid] = hash[2] + 0x98badcfe;
-		hashes[3 * num_keys * num_int_keys + num_keys * i + gid] = hash[3] + 0x10325476;
+//		hashes[num_keys * i +gid] = hash[0];
+//		hashes[1 * num_keys * num_int_keys + num_keys * i + gid] = hash[1];
+//		hashes[2 * num_keys * num_int_keys + num_keys * i + gid] = hash[2];
+//		hashes[3 * num_keys * num_int_keys + num_keys * i + gid] = hash[3];
 	}
 }
