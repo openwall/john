@@ -122,10 +122,10 @@ static void create_clobj(size_t kpc, struct fmt_main * self)
 	saved_idx = (cl_uint *) clEnqueueMapBuffer(queue[gpu_id], pinned_saved_idx, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(cl_uint) * kpc, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_idx");
 
-	pinned_partial_hashes = clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR, DIGEST_SIZE * kpc * mask_int_cand.num_int_cand, NULL, &ret_code);
+	/*pinned_partial_hashes = clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR, DIGEST_SIZE * kpc * mask_int_cand.num_int_cand, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory pinned_partial_hashes");
 	partial_hashes = (cl_uint *) clEnqueueMapBuffer(queue[gpu_id], pinned_partial_hashes, CL_TRUE, CL_MAP_READ, 0, DIGEST_SIZE * kpc * mask_int_cand.num_int_cand, 0, NULL, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory partial_hashes");
+	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory partial_hashes");*/
 
 	pinned_int_key_loc = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, 4 * kpc, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory pinned_int_key_loc");
@@ -139,8 +139,8 @@ static void create_clobj(size_t kpc, struct fmt_main * self)
 	buffer_idx = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, 4 * kpc, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_idx");
 
-	buffer_out = clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, DIGEST_SIZE * kpc * mask_int_cand.num_int_cand, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_out");
+	/*buffer_out = clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, DIGEST_SIZE * kpc * mask_int_cand.num_int_cand, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_out");*/
 
 	buffer_int_key_loc = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, 4 * kpc, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_int_key_loc");
@@ -160,35 +160,35 @@ static void create_clobj(size_t kpc, struct fmt_main * self)
 
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(buffer_keys), (void *) &buffer_keys), "Error setting argument 1");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(buffer_idx), (void *) &buffer_idx), "Error setting argument 2");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(buffer_out), (void *) &buffer_out), "Error setting argument 3");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(buffer_int_key_loc), (void *) &buffer_int_key_loc), "Error setting argument 4");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 4, sizeof(buffer_int_keys), (void *) &buffer_int_keys), "Error setting argument 5");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 5, sizeof(cl_uint), (void *) &(mask_int_cand.num_int_cand)), "Error setting argument 6");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 6, sizeof(buffer_loaded_hashes), (void *) &buffer_loaded_hashes), "Error setting argument 7");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 7, sizeof(cl_uint), (void *) &num_loaded_hashes), "Error setting argument 8");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 8, sizeof(buffer_hash_ids), (void *) &buffer_hash_ids), "Error setting argument 9");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 9, sizeof(buffer_bitmap), (void *) &buffer_bitmap), "Error setting argument 10");
+	//HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(buffer_out), (void *) &buffer_out), "Error setting argument 3");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(buffer_int_key_loc), (void *) &buffer_int_key_loc), "Error setting argument 3");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(buffer_int_keys), (void *) &buffer_int_keys), "Error setting argument 4");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 4, sizeof(cl_uint), (void *) &(mask_int_cand.num_int_cand)), "Error setting argument 5");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 5, sizeof(buffer_loaded_hashes), (void *) &buffer_loaded_hashes), "Error setting argument 6");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 6, sizeof(cl_uint), (void *) &num_loaded_hashes), "Error setting argument 7");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 7, sizeof(buffer_hash_ids), (void *) &buffer_hash_ids), "Error setting argument 8");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 8, sizeof(buffer_bitmap), (void *) &buffer_bitmap), "Error setting argument 9");
 
 	ref_ctr++;
 }
 
 static void release_clobj(void)
 {
-	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_partial_hashes, partial_hashes, 0,NULL,NULL), "Error Unmapping partial_hashes");
+	//HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_partial_hashes, partial_hashes, 0,NULL,NULL), "Error Unmapping partial_hashes");
 	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_saved_keys, saved_plain, 0, NULL, NULL), "Error Unmapping saved_plain");
 	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_saved_idx, saved_idx, 0, NULL, NULL), "Error Unmapping saved_idx");
 	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_int_key_loc, saved_int_key_loc, 0, NULL, NULL), "Error Unmapping saved_int_key_loc");
 	HANDLE_CLERROR(clFinish(queue[gpu_id]), "Error releasing mappings");
 	HANDLE_CLERROR(clReleaseMemObject(buffer_keys), "Error Releasing buffer_keys");
 	HANDLE_CLERROR(clReleaseMemObject(buffer_idx), "Error Releasing buffer_idx");
-	HANDLE_CLERROR(clReleaseMemObject(buffer_out), "Error Releasing buffer_out");
+	//HANDLE_CLERROR(clReleaseMemObject(buffer_out), "Error Releasing buffer_out");
 	HANDLE_CLERROR(clReleaseMemObject(buffer_int_key_loc), "Error Releasing buffer_int_key_loc");
 	HANDLE_CLERROR(clReleaseMemObject(buffer_int_keys), "Error Releasing buffer_int_keys");
 	HANDLE_CLERROR(clReleaseMemObject(buffer_loaded_hashes), "Error Releasing buffer_int_keys");
 
 	HANDLE_CLERROR(clReleaseMemObject(pinned_saved_idx), "Error Releasing pinned_saved_idx");
 	HANDLE_CLERROR(clReleaseMemObject(pinned_saved_keys), "Error Releasing pinned_saved_keys");
-	HANDLE_CLERROR(clReleaseMemObject(pinned_partial_hashes), "Error Releasing pinned_partial_hashes");
+	//HANDLE_CLERROR(clReleaseMemObject(pinned_partial_hashes), "Error Releasing pinned_partial_hashes");
 	HANDLE_CLERROR(clReleaseMemObject(pinned_int_key_loc), "Error Releasing pinned_int_key_loc");
 
 	ref_ctr--;
@@ -327,13 +327,19 @@ static char *get_key(int index)
 	static char out[PLAINTEXT_LENGTH + 1];
 	int i, len, int_index, t;
 	char *key;
-fprintf(stderr, "Get_key_In: %d\n", index);
-	if (hash_ids == NULL || hash_ids[0] == 0 || hash_ids[0] > num_loaded_hashes){ t = 0;}
-	else if(index > hash_ids[0]) { fprintf(stderr, "Error!\n"); index = hash_ids[0] - 1; t = hash_ids[1 + 3 * index]; t = 0;}
-	else t = hash_ids[1 + 3 * index];
+//fprintf(stderr, "Get_key_In: %d %d %d\n", index, hash_ids[0], num_loaded_hashes);
+	if (hash_ids == NULL || hash_ids[0] == 0 || index > hash_ids[0] || hash_ids[0] > num_loaded_hashes) {
+		t = index;
+		int_index = 0;
+	}
+	else  {
+		t = hash_ids[1 + 3 * index];
+		int_index = hash_ids[2 + 3 * index];
+		fprintf(stderr, "BINGO:%d\n", t);
+	}
 
 	if (t > global_work_size) { fprintf(stderr, "Error!\n"); t = 0; }
-fprintf(stderr, "Get_key:%d\n", t);
+//fprintf(stderr, "Get_key:%d\n", t);
 
 	len = saved_idx[t] & 63;
 	key = (char*)&saved_plain[saved_idx[t] >> 6];
@@ -343,14 +349,13 @@ fprintf(stderr, "Get_key:%d\n", t);
 	out[i] = 0;
 
 	if (mask_int_cand.num_int_cand > 1) {
-		if (hash_ids[0] == 0) hash_ids[2 + 3 * index] = 0;
 		for (i = 0; i < MASK_FMT_INT_PLHDR && mask_skip_ranges[i] != -1; i++)
-			out[(saved_int_key_loc[t]& (0xff << (i * 8))) >> (i * 8)] = mask_int_cand.int_cand[hash_ids[2 + 3*index]].x[i];
+			out[(saved_int_key_loc[t]& (0xff << (i * 8))) >> (i * 8)] = mask_int_cand.int_cand[int_index].x[i];
 
 		//fprintf(stderr, "Int Index:%x:\n", saved_int_key_loc[0]);
 
 	}
-fprintf(stderr, "Get_key_out\n");
+fprintf(stderr, "Get_key_out:%s\n", out);
 	return out;
 }
 
@@ -373,19 +378,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[1]), "failed in clEnqueueNDRangeKernel");
 
-	// read back partial hashes
-	//HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buffer_out, CL_TRUE, 0, sizeof(cl_uint) * global_work_size * mask_int_cand.num_int_cand, partial_hashes, 0, NULL, multi_profilingEvent[2]), "failed in reading data back");
-
-	if (hash_ids == NULL) fprintf(stderr, "BINGO:NUM LOADED HASHES CRYPT ALL:%d\n", num_loaded_hashes);
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buffer_hash_ids, CL_TRUE, 0, (3 * num_loaded_hashes + 1) * 4, hash_ids, 0, NULL, multi_profilingEvent[6]), "failed in reading data back hash_ids");
-	have_full_hashes = 0;
 
-	//fprintf(stderr, "No. of Cracked hashes:%d %d\n", hash_ids[0], global_work_size);
-
-	/*if (mask_int_cand.num_int_cand > 1)
-	return global_work_size * mask_int_cand.num_int_cand;
-
-	return count;*/
+	if (hash_ids[0] > num_loaded_hashes) {
+		fprintf(stderr, "Error, crypt_all kernel.\n");
+		error();
+	}
 
 	return hash_ids[0];
 }
@@ -404,7 +402,7 @@ static int cmp_all(void *binary, int count)
 
 static int cmp_one(void *binary, int index)
 {
-	fprintf(stderr, "cmp_one:%d %x %d %x\n", index, ((unsigned int*)binary)[0], hash_ids[3 + 3 * index], loaded_hashes[4 * hash_ids[3 + 3 * index]]);
+	fprintf(stderr, "cmp_one:%d %x %d %x %d\n", index, ((unsigned int*)binary)[0], hash_ids[3 + 3 * index], loaded_hashes[4 * hash_ids[3 + 3 * index]], hash_ids[0]);
 	return (((unsigned int*)binary)[0] == loaded_hashes[4 * hash_ids[3 + 3 * index]]);
 }
 
