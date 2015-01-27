@@ -764,7 +764,6 @@ int main (int argc, char *argv[])
 static FILE *word_file;
 static mpf_t count;
 static mpz_t pos, rec_pos;
-static uint64_t node_dist, rec_dist;
 static int rec_pos_destroyed;
 
 static void save_state(FILE *file)
@@ -776,8 +775,6 @@ static void save_state(FILE *file)
 
   mpz_fdiv_q_2exp(half, rec_pos, 64); // upper 64 bits
   fprintf(file, "%llu\n", (unsigned long long)mpz_get_ui(half));
-
-  fprintf(file, "%llu\n", (unsigned long long)rec_dist);
 }
 
 static int restore_state(FILE *file)
@@ -796,17 +793,12 @@ static int restore_state(FILE *file)
   mpz_add(rec_pos, rec_pos, hi);
   mpz_clear(hi);
 
-  if (fscanf(file, "%llu\n", &temp) != 1)
-    return 1;
-  rec_dist = temp;
-
   return 0;
 }
 
 static void fix_state(void)
 {
   mpz_set(rec_pos, pos);
-  rec_dist = node_dist;
 }
 
 static double get_progress(void)
@@ -1476,7 +1468,6 @@ void do_prince_crack(struct db_main *db, char *filename)
   }
 
   mpz_set(pos, rec_pos);
-  node_dist = rec_dist;
 
   log_event("Calculating keyspace");
 #endif
@@ -1806,7 +1797,7 @@ void do_prince_crack(struct db_main *db, char *filename)
         u32 for_node, node_skip = 0;
         if (options.node_count)
         {
-          for_node = ++node_dist % options.node_count + 1;
+          for_node = total_ks_pos % options.node_count + 1;
           node_skip = for_node < options.node_min ||
                       for_node > options.node_max;
         }
