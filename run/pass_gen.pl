@@ -1612,6 +1612,10 @@ sub sip {
 	my $h = md5_hex($dyna_hash.$static_hash_data);
 	print "u$u-sip:\$sip\$*$serverIP*$clientIP*$user*$realm*$method*$URIpart1*$clientIP**$nonce****MD5*$h:$u:0:$_[0]::\n";
 }
+
+##############################################################################
+# stub functions.  When completed, move the function out of this section
+##############################################################################
 sub pfx {
 }
 sub racf {
@@ -1721,7 +1725,9 @@ sub whirlpool0 {
 }
 sub whirlpool1 {
 }
-
+##############################################################################
+# stub functions.  When completed, move the function out of this section
+##############################################################################
 
 sub mozilla {
 	$salt = get_salt(20);
