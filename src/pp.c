@@ -272,6 +272,7 @@ static u64 DEF_WORDLEN_DIST[DEF_WORDLEN_DIST_CNT] =
   13
 };
 
+#ifndef JTR_MODE
 /* Losely based on rockyou-with-dupes */
 static const u32 DEF_HASH_LOG_SIZE[33] =
 {  0,
@@ -281,7 +282,6 @@ static const u32 DEF_HASH_LOG_SIZE[33] =
   16, 16, 16, 16, 16, 16, 16, 16
 };
 
-#ifndef JTR_MODE
 static const char *USAGE_MINI[] =
 {
   "Usage: %s [options] < wordlist",
