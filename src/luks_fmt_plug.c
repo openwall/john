@@ -310,7 +310,7 @@ bad:
 	fclose(myfile);
 	if (is_critical) {
 		fprintf(stderr, "\nLUKS plug-in is unable to continue due to errors!\n");
-		exit(-1);
+		error();
 	}
 	return -1;
 }

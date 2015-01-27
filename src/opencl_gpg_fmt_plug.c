@@ -675,11 +675,11 @@ static int check_dsa_secret_key(DSA *dsa)
 	BN_CTX *ctx = BN_CTX_new();
 	if (!res) {
 		fprintf(stderr, "failed to allocate result BN in check_dsa_secret_key()\n");
-		exit(-1);
+		error();
 	}
 	if (!ctx) {
 		fprintf(stderr, "failed to allocate BN_CTX ctx in check_dsa_secret_key()\n");
-		exit(-1);
+		error();
 	}
 
 	error = BN_mod_exp(res, dsa->g, dsa->priv_key, dsa->p, ctx);
@@ -718,11 +718,11 @@ static int check_elg_secret_key(ElGamal_secret_key *elg)
 	BN_CTX *ctx = BN_CTX_new();
 	if (!res) {
 		fprintf(stderr, "failed to allocate result BN in check_elg_secret_key()\n");
-		exit(-1);
+		error();
 	}
 	if (!ctx) {
 		fprintf(stderr, "failed to allocate BN_CTX ctx in chec_elg_secret_key()\n");
-		exit(-1);
+		error();
 	}
 
 	error = BN_mod_exp(res, elg->g, elg->x, elg->p, ctx);
@@ -759,11 +759,11 @@ static int check_rsa_secret_key(RSA_secret_key *rsa)
 	BN_CTX *ctx = BN_CTX_new();
 	if (!res) {
 		fprintf(stderr, "failed to allocate result BN in check_rsa_secret_key()\n");
-		exit(-1);
+		error();
 	}
 	if (!ctx) {
 		fprintf(stderr, "failed to allocate BN_CTX ctx in chec_rsa_secret_key()\n");
-		exit(-1);
+		error();
 	}
 
 	error = BN_mul(res, rsa->p, rsa->q, ctx);

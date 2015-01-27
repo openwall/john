@@ -254,7 +254,7 @@ static void *get_salt(char *ciphertext)
 	if (!ptr) ptr = mem_alloc_tiny(sizeof(struct custom_salt*),sizeof(struct custom_salt*));
 	if (!copy || !encoded_data) {
 		fprintf(stderr, "BUG in parsing ciphertext, aborting!\n");
-		exit(-1);
+		error();
 	}
 	filelength = atoi(strtok(NULL, "*"));
 	encoded_data += 6;	/* skip over "$ssh2$ marker */
@@ -269,7 +269,7 @@ static void *get_salt(char *ciphertext)
 	bp = BIO_new(BIO_s_mem());
 	if (!bp) {
 		fprintf(stderr, "OpenSSL BIO allocation failure\n");
-		exit(-2);
+		error();
 	}
 	BIO_write(bp, decoded_data, filelength);
 
@@ -280,7 +280,7 @@ static void *get_salt(char *ciphertext)
 			if (ERR_GET_REASON(ERR_peek_error()) ==
 			    PEM_R_NO_START_LINE) {
 				ERR_print_errors_fp(stderr);
-				exit(-3);
+				error();
 			}
 		}
 		/* only PEM encoded DSA and RSA private keys are supported. */
@@ -301,7 +301,7 @@ static void *get_salt(char *ciphertext)
 	}
 	if (!PEM_get_EVP_CIPHER_INFO(header, &cipher)) {
 		ERR_print_errors_fp(stderr);
-		exit(-4);
+		error();
 	}
 #ifdef SSH_FMT_DEBUG
 	printf("Header Information:\n%s\n", header);

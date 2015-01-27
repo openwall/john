@@ -4088,8 +4088,10 @@ void DynamicFunc__set_input_len_64(DYNA_OMP_PARAMS)
 	til = m_count;
 #endif
 #ifdef MMX_COEF
-	if (dynamic_use_sse==1)
-		exit(!!fprintf(stderr, "Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input_len_64 in SSE2/MMX mode\n"));
+	if (dynamic_use_sse == 1) {
+		fprintf(stderr, "Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input_len_64 in SSE2/MMX mode\n");
+		error();
+	}
 #endif
 	for (; j < til; ++j)
 		total_len_X86[j] = 64;
@@ -4105,8 +4107,10 @@ void DynamicFunc__set_input2_len_64(DYNA_OMP_PARAMS)
 	til = m_count;
 #endif
 #ifdef MMX_COEF
-	if (dynamic_use_sse==1)
-		exit(!!fprintf(stderr, "Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input2_len_64 in SSE2/MMX mode\n"));
+	if (dynamic_use_sse == 1) {
+		fprintf(stderr, "Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input2_len_64 in SSE2/MMX mode\n");
+		error();
+	}
 #endif
 	for (; j < til; ++j)
 		total_len2_X86[j] = 64;
@@ -4122,8 +4126,9 @@ void DynamicFunc__set_input_len_100(DYNA_OMP_PARAMS)
 	til = m_count;
 #endif
 #ifdef MMX_COEF
-	if (dynamic_use_sse==1) {
-		exit(!!fprintf(stderr, "Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input_len_100 in SSE2/MMX mode\n"));
+	if (dynamic_use_sse == 1) {
+		fprintf(stderr, "Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input_len_100 in SSE2/MMX mode\n");
+		error();
 	}
 #endif
 	for (; j < til; ++j) {
@@ -4473,8 +4478,10 @@ void DynamicFunc__PHPassCrypt(DYNA_OMP_PARAMS)
 	unsigned Lcount;
 
 	Lcount = atoi64[ARCH_INDEX(cursalt[8])];
-	if (Lcount < 7 || Lcount > 31)
-		exit(!!fprintf(stderr, "Error, invalid loop byte in a php salt %s\n",cursalt));
+	if (Lcount < 7 || Lcount > 31) {
+		fprintf(stderr, "Error, invalid loop byte in a php salt %s\n",cursalt);
+		error();
+	}
 	Lcount = (1<<Lcount);
 
 	DynamicFunc__clean_input(DYNA_OMP_PARAMSd);
@@ -7594,17 +7601,22 @@ struct fmt_main *dynamic_THIN_FORMAT_LINK(struct fmt_main *pFmt, char *ciphertex
 
 	nFmtNum = -1;
 	sscanf(subformat, "$dynamic_%d", &nFmtNum);
-	if (nFmtNum==-1)
-		exit(fprintf(stderr, "Error, Invalid signature line trying to link to dynamic format.\nOriginal format=%s\nSignature line=%s\n", orig_sig, ciphertext));
+	if (nFmtNum == -1) {
+		fprintf(stderr, "Error, Invalid signature line trying to link to dynamic format.\nOriginal format=%s\nSignature line=%s\n", orig_sig, ciphertext);
+		error();
+	}
 
 	pFmtLocal = dynamic_Get_fmt_main(nFmtNum);
 	if (pFmtLocal == NULL) {
-		exit(fprintf(stderr, "Error, Invalid signature line trying to link to dynamic format.\nOriginal format=%s\nSignature line=%s\n", orig_sig, ciphertext));
+		fprintf(stderr, "Error, Invalid signature line trying to link to dynamic format.\nOriginal format=%s\nSignature line=%s\n", orig_sig, ciphertext);
+		error();
 	}
 
 	valid = pFmtLocal->methods.valid(ciphertext, pFmtLocal);
-	if (!valid)
-		exit(fprintf(stderr, "Error, trying to link to %s using ciphertext=%s FAILED\n", subformat, ciphertext));
+	if (!valid) {
+		fprintf(stderr, "Error, trying to link to %s using ciphertext=%s FAILED\n", subformat, ciphertext);
+		error();
+	}
 
 	pFmt->params.max_keys_per_crypt = pFmtLocal->params.max_keys_per_crypt;
 	pFmt->params.min_keys_per_crypt = pFmtLocal->params.min_keys_per_crypt;

@@ -218,7 +218,7 @@ static void* get_salt(char *ciphertext)
 	} else {
 		// should never get here!  valid() should catch all lines that do not have the tags.
 		fprintf(stderr, "Error, unknown type in truecrypt::get_salt(), [%s]\n", ciphertext);
-		exit(0);
+		error();
 	}
 
 	// Convert the hexadecimal salt in binary

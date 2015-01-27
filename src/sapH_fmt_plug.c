@@ -106,10 +106,10 @@ static struct fmt_tests tests[] = {
 
 	{"{x-isSHA256, 3000}UqMnsr5BYN+uornWC7yhGa/Wj0u5tshX19mDUQSlgih6OTFoZjRpMQ==","booboo"},
 	{"{x-isSHA256, 3000}ydi0JlyU6lX5305Qk/Q3uLBbIFjWuTyGo3tPBZDcGFd6NkFvV1gza3RkNg==","GottaGoWhereNeeded"},
-	
+
 	{"{x-isSHA384, 5000}3O/F4YGKNmIYHDu7ZQ7Q+ioCOQi4HRY4yrggKptAU9DtmHigCuGqBiAPVbKbEAfGTzh4YlZLWUM=","booboo"},
 	{"{x-isSHA384, 5000}XSLo2AKIvACwqW/X416UeVbHOXmio4u27Z7cgXS2rxND+zTpN+x3JNfQcEQX2PT0Z3FPdEY2dHM=","yiPP3rs"},
-	
+
 	{"{x-isSHA512, 7500}ctlX6qYsWspafEzwoej6nFp7zRQQjr8y22vE+xeveIX2gUndAw9N2Gep5azNUwuxOe2o7tusF800OfB9tg4taWI4Tg==","booboo"},
 	{"{x-isSHA512, 7500}Qyrh2JXgGkvIfKYOJRdWFut5/pVnXI/vZvqJ7N+Tz9M1zUTXGWCZSom4az4AhqOuAahBwuhcKqMq/pYPW4h3cThvT2JaWVBw","hapy1CCe!"},
 	{"{x-isSHA512, 18009}C2+Sij3JyXPPDuQgsF6Zot7XnjRFX86X67tWJpUzXNnFw2dKcGPH6HDEzVJ8HN8+cJe4vZaOYTlmdz09gI7YEwECAwQFBgcICQoLDA0ODwA=","maxlen"},
@@ -339,7 +339,7 @@ static void *binary(char *ciphertext)
 	else if (!strncasecmp(cp, "sha256, ", 8)) { cp += 8; }
 	else if (!strncasecmp(cp, "sha384, ", 8)) { cp += 8; }
 	else if (!strncasecmp(cp, "sha512, ", 8)) { cp += 8; }
-	else { fprintf(stderr, "error, bad signature in sap-H format!\n"); exit(-1); }
+	else { fprintf(stderr, "error, bad signature in sap-H format!\n"); error(); }
 	while (*cp != '}') ++cp;
 	++cp;
 	base64_convert(cp, e_b64_mime, strlen(cp), tmp, e_b64_raw,
@@ -354,7 +354,7 @@ static void *get_salt(char *ciphertext)
 	static struct sapH_salt s;
 	char *cp = ciphertext;
 	unsigned char tmp[MAX_BINARY_SIZE+SALT_LENGTH+4];
-	int total_len, hash_len;
+	int total_len, hash_len = 0;
 
 	memset(&s, 0, sizeof(s));
 	cp += 5; /* skip the {x-is */
@@ -362,7 +362,7 @@ static void *get_salt(char *ciphertext)
 	else if (!strncasecmp(cp, "sha256, ", 8)) { s.type = 2; cp += 8; hash_len = SHA256_BINARY_SIZE; }
 	else if (!strncasecmp(cp, "sha384, ", 8)) { s.type = 3; cp += 8; hash_len = SHA384_BINARY_SIZE; }
 	else if (!strncasecmp(cp, "sha512, ", 8)) { s.type = 4; cp += 8; hash_len = SHA512_BINARY_SIZE; }
-	else { fprintf(stderr, "error, bad signature in sap-H format!\n"); exit(-1); }
+	else { fprintf(stderr, "error, bad signature in sap-H format!\n"); error(); }
 	sscanf (cp, "%u", &s.iter);
 	while (*cp != '}') ++cp;
 	++cp;

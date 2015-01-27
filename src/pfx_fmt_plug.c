@@ -187,12 +187,12 @@ static void *get_salt(char *ciphertext)
 	bp = BIO_new(BIO_s_mem());
 	if (!bp) {
 		fprintf(stderr, "OpenSSL BIO allocation failure\n");
-		exit(-2);
+		error();
 	}
 	BIO_write(bp, decoded_data, psalt->len);
 	if(!(p12 = d2i_PKCS12_bio(bp, NULL))) {
 		perror("Unable to create PKCS12 object from bio\n");
-		exit(-3);
+		error();
 	}
 	/* save custom_salt information */
 	memcpy(&(psalt->pfx), p12, sizeof(PKCS12));

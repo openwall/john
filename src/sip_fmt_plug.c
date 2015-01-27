@@ -220,7 +220,7 @@ static void *get_salt(char *ciphertext)
 	strncpy(login.hash,        lines[13], sizeof(login.hash)       - 1 );
 	if(strncmp(login.algorithm, "MD5", strlen(login.algorithm))) {
 		printf("\n* Cannot crack '%s' hash, only MD5 supported so far...\n", login.algorithm);
-		exit(-1);
+		error();
 	}
 
 	/* Generating MD5 static hash: 'METHOD:URI' */
