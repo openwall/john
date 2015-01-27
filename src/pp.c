@@ -66,6 +66,17 @@
 #include <getopt.h>
 #endif
 #include <ctype.h>
+#if _MSC_VER || __MINGW32__ || __MINGW64__ || __CYGWIN__ || HAVE_WINDOWS_H
+#include "win32_memmap.h"
+#ifndef __CYGWIN__
+#include "mmap-windows.c"
+#elif defined HAVE_MMAP
+#include <sys/mman.h>
+#endif
+#undef MEM_FREE
+#elif defined(HAVE_MMAP)
+#include <sys/mman.h>
+#endif
 
 #if HAVE_INT128 || HAVE___INT128 || HAVE___INT128_T
 #include "mpz_int128.h"
@@ -82,7 +93,7 @@
 /**
  * Name........: princeprocessor (pp)
  * Description.: Standalone password candidate generator using the PRINCE algorithm
- * Version.....: 0.20
+ * Version.....: 0.21
  * Autor.......: Jens Steube <jens.steube@gmail.com>
  * License.....: MIT
  */
@@ -124,6 +135,8 @@ int prince_elem_cnt_min;
 int prince_elem_cnt_max;
 char *prince_skip_str;
 char *prince_limit_str;
+
+static char *mem_map, *map_pos, *map_end;
 #endif
 
 #define IN_LEN_MIN    1
@@ -137,7 +150,7 @@ char *prince_limit_str;
 #define CASE_PERMUTE  0
 #define DUPE_CHECK    1
 
-#define VERSION_BIN   20
+#define VERSION_BIN   21
 
 #define ALLOC_NEW_ELEMS  0x40000
 #define ALLOC_NEW_CHAINS 0x10
@@ -408,7 +421,7 @@ static void usage_big_print (const char *progname)
   }
 }
 #else
-#define malloc_tiny(size)	mem_alloc_tiny(size, MEM_ALIGN_NONE)
+#define malloc_tiny(size) mem_alloc_tiny(size, MEM_ALIGN_NONE)
 #endif
 
 static void check_realloc_elems (db_entry_t *db_entry)
@@ -694,9 +707,22 @@ static char *add_elem (db_entry_t *db_entry, char *input_buf, int input_len)
 
   elem_t *elem_buf = &db_entry->elems_buf[db_entry->elems_cnt];
 
+#ifndef JTR_MODE
   elem_buf->buf = malloc_tiny (input_len);
 
   memcpy (elem_buf->buf, input_buf, input_len);
+#else
+  if (mem_map)
+  {
+    elem_buf->buf = (u8*)input_buf;
+  }
+  else
+  {
+    elem_buf->buf = malloc_tiny (input_len);
+
+    memcpy (elem_buf->buf, input_buf, input_len);
+  }
+#endif
 
   db_entry->elems_cnt++;
 
@@ -820,32 +846,99 @@ static double get_progress(void)
   return progress;
 }
 
-static inline int get_bits(mpz_t *op)
+static int get_bits(mpz_t *op)
 {
-    mpz_t half; mpz_init(half);
-    u64 h;
-    int b;
+  mpz_t half; mpz_init(half);
+  u64 h;
+  int b;
 
-    mpz_fdiv_q_2exp(half, *op, 64);
+  mpz_fdiv_q_2exp(half, *op, 64);
+  h = mpz_get_ui(half);
+  if (h) b = 64;
+  else
+  {
+    mpz_fdiv_r_2exp(half, *op, 64);
     h = mpz_get_ui(half);
-    if (h) b = 64;
-    else
-    {
-      mpz_fdiv_r_2exp(half, *op, 64);
-      h = mpz_get_ui(half);
-      b = 0;
-    }
-    while (h >>= 1) b++;
+    b = 0;
+  }
+  while (h >>= 1) b++;
 
-    return b;
+  return b;
 }
 
 /* There should be legislation against adding a BOM to UTF-8 */
-static char *skip_bom(char *string)
+static MAYBE_INLINE char *skip_bom(char *string)
 {
-	if (!memcmp(string, "\xEF\xBB\xBF", 3))
-		string += 3;
-	return string;
+  if (!memcmp(string, "\xEF\xBB\xBF", 3))
+    string += 3;
+  return string;
+}
+
+static MAYBE_INLINE int pp_valid_utf8(const UTF8 *source, const UTF8 *source_end)
+{
+  UTF8 a;
+  int length, ret = 1;
+  const UTF8 *srcptr;
+
+  while (source < source_end) {
+    if (*source < 0x80) {
+      source++;
+      continue;
+    }
+
+    length = opt_trailingBytesUTF8[*source & 0x3f] + 1;
+    srcptr = source + length;
+
+    switch (length) {
+    default:
+      return 0;
+      /* Everything else falls through when valid */
+    case 4:
+      if ((a = (*--srcptr)) < 0x80 || a > 0xBF) return 0;
+    case 3:
+      if ((a = (*--srcptr)) < 0x80 || a > 0xBF) return 0;
+    case 2:
+      if ((a = (*--srcptr)) > 0xBF) return 0;
+
+      switch (*source) {
+        /* no fall-through in this inner switch */
+      case 0xE0: if (a < 0xA0) return 0; break;
+      case 0xED: if (a > 0x9F) return 0; break;
+      case 0xF0: if (a < 0x90) return 0; break;
+      case 0xF4: if (a > 0x8F) return 0; break;
+      default:   if (a < 0x80) return 0;
+      }
+
+    case 1:
+      if (*source >= 0x80 && *source < 0xC2) return 0;
+    }
+    if (*source > 0xF4)
+      return 0;
+
+    source += length;
+    ret++;
+  }
+  return ret;
+}
+
+/* Sort-of fgets() but for a memory-mapped file. Updates len, returns pointer to string */
+static MAYBE_INLINE char *mgets(int *len)
+{
+  char *pos = map_pos;
+  char *end = MIN(map_end, pos + BUFSIZ);
+
+  if (map_pos >= map_end)
+    return NULL;
+
+  while (map_pos < end && *map_pos != '\n' && *map_pos != '\r')
+    map_pos++;
+
+  *len = map_pos - pos;
+
+  while (map_pos < end && (*map_pos == '\n' || *map_pos == '\r'))
+    map_pos++;
+
+  return pos;
 }
 
 void do_prince_crack(struct db_main *db, char *filename)
@@ -1043,7 +1136,7 @@ void do_prince_crack(struct db_main *db, char *filename)
 #else
   int loopback = (options.flags & FLG_PRINCE_LOOPBACK) ? 1 : 0;
 
-  dupe_check = (options.flags & FLG_PRINCE_NO_DUPE_SUP) ? 0 : 1;
+  dupe_check = (options.flags & FLG_DUPESUPP) ? 1 : 0;
 
   if (options.force_maxlength > OUT_LEN_MAX)
   {
@@ -1102,7 +1195,7 @@ void do_prince_crack(struct db_main *db, char *filename)
 
   log_event("- Wordlist file: %.100s", path_expand(filename));
   log_event("- Will generate candidates of length %d - %d", pw_min, pw_max);
-  log_event("- using chains with %d - %d elements.", elem_cnt_min, elem_cnt_max);
+  log_event("- Using chains with %d - %d elements.", elem_cnt_min, elem_cnt_max);
 #endif
 
   /**
@@ -1174,29 +1267,71 @@ void do_prince_crack(struct db_main *db, char *filename)
 
     char *input_buf = fgets (buf, sizeof (buf), stdin);
 #else
-    int warn = cfg_get_bool(SECTION_OPTIONS, NULL, "WarnEncoding", 0);
+  uint64_t file_len;
+  int warn = cfg_get_bool(SECTION_OPTIONS, NULL, "WarnEncoding", 0);
 
-    if (!john_main_process)
-      warn = 0;
+  if (!john_main_process)
+    warn = 0;
 
-    filename = path_expand(filename);
+  filename = path_expand(filename);
 
-    if (!(word_file = jtr_fopen(filename, "rb")))
-      pexit(STR_MACRO(jtr_fopen)": %s", filename);
-    log_event("- Input file: %.100s", filename);
+  if (!(word_file = jtr_fopen(filename, "rb")))
+    pexit(STR_MACRO(jtr_fopen)": %s", filename);
+  log_event("- Input file: %.100s", filename);
 
-  log_event("Loading elements from wordlist");
+  jtr_fseek64(word_file, 0, SEEK_END);
+  if ((file_len = jtr_ftell64(word_file)) == -1)
+    pexit(STR_MACRO(jtr_ftell64));
+  jtr_fseek64(word_file, 0, SEEK_SET);
+  if (file_len == 0) {
+    if (john_main_process)
+      fprintf(stderr, "Error, dictionary file is "
+              "empty\n");
+    error();
+  }
+
+#ifdef HAVE_MMAP
+  if (options.flags & FLG_PRINCE_MMAP)
+  {
+    log_event("- Memory mapping wordlist ("LLd" bytes)",
+              (long long)file_len);
+#if (SIZEOF_SIZE_T < 8)
+    /* Now even though we are 64 bit file size, we must still
+     * deal with some 32 bit functions ;) */
+    mem_map = MAP_FAILED;
+    if (file_len < ((1UL)<<32))
+#endif
+      mem_map = mmap(NULL, file_len,
+                     PROT_READ, MAP_SHARED,
+                     fileno(word_file), 0);
+    if (mem_map == MAP_FAILED) {
+      mem_map = NULL;
+#ifdef DEBUG
+      fprintf(stderr, "wordlist: memory mapping failed (%s) (non-fatal)\n",
+              strerror(errno));
+#endif
+      log_event("! Memory mapping failed (%s) - but we'll do "
+                "fine without it.", strerror(errno));
+    } else {
+      map_pos = mem_map;
+      map_end = mem_map + file_len;
+    }
+  }
+#endif
+  log_event("Loading elements from %s", loopback ? ".pot file" : "wordlist");
+
+  if (case_permute)
+    log_event("- Permuting case of 1st character");
 
   if (dupe_check) {
-    fseek(word_file, 0, SEEK_END);
-    long size = ftell(word_file) >> 3;
-    fseek(word_file, 0, SEEK_SET);
-
-    size /= pw_max;
+    long size = file_len / pw_max;
 
     u32 hash_log = 8;
     while (((1 << hash_log) < size) && hash_log < 27)
       hash_log++;
+
+    if (john_main_process && options.verbosity < 5)
+      log_event("- Suppressing dupes");
 
     for (int pw_len = pw_min; pw_len <= pw_max; pw_len++)
     {
@@ -1218,17 +1353,28 @@ void do_prince_crack(struct db_main *db, char *filename)
       db_entry->uniq = uniq;
 
       if (john_main_process && options.verbosity > 4)
-      log_event("- dupe suppression len %d: hash size %u, "
-                "temporarily allocating %zu bytes", pw_len,
-                hash_size, sizeof(uniq_t) + hash_alloc * sizeof(uniq_data_t) +
-                hash_size * sizeof(u32));
+        log_event("- Dupe suppression len %d: hash size %u, "
+                  "temporarily allocating %zu bytes", pw_len,
+                  hash_size, sizeof(uniq_t) + hash_alloc * sizeof(uniq_data_t) +
+                  hash_size * sizeof(u32));
     }
   }
 
   while (!feof (word_file))
   {
     char buf[BUFSIZ];
-    char *input_buf = fgets (buf, sizeof (buf), word_file);
+    char *input_buf;
+    int input_len = 0;
+
+    if (mem_map)
+    {
+      input_buf = mgets(&input_len);
+      if (input_buf == NULL) break;
+    }
+    else
+    {
+      input_buf = fgets (buf, sizeof (buf), word_file);
+    }
 #endif
 
     if (input_buf == NULL) continue;
@@ -1237,21 +1383,24 @@ void do_prince_crack(struct db_main *db, char *filename)
     char *p;
 
     if (loopback && (p = strchr(input_buf, options.loader.field_sep_char)))
-    {
       input_buf = p + 1;
-    } else
+    else
     if (!strncmp(input_buf, "#!comment", 9))
       continue;
 
     char *line = skip_bom(input_buf);
 
+    if (!mem_map)
+      input_len = in_superchop (input_buf);
+
     if (warn) {
+      const UTF8 *ep = (UTF8*)line + input_len;
       if (pers_opts.input_enc == UTF_8) {
-        if (!valid_utf8((UTF8*)line)) {
+        if (!pp_valid_utf8((UTF8*)line, ep)) {
           warn = 0;
           fprintf(stderr, "Warning: invalid UTF-8 seen reading %s\n", filename);
         }
-      } else if (line != input_buf || valid_utf8((UTF8*)line) > 1) {
+      } else if (line != input_buf || pp_valid_utf8((UTF8*)line, ep) > 1) {
         warn = 0;
         fprintf(stderr, "Warning: UTF-8 seen reading %s\n", filename);
       }
@@ -1262,11 +1411,13 @@ void do_prince_crack(struct db_main *db, char *filename)
     if (pers_opts.input_enc != pers_opts.target_enc) {
       UTF16 u16[BUFSIZ];
 
-      utf8_to_utf16(u16, OUT_LEN_MAX, (UTF8*)input_buf, 4 * OUT_LEN_MAX);
+      utf8_to_utf16(u16, OUT_LEN_MAX, (UTF8*)input_buf, input_len);
       input_buf = utf16_to_cp(u16);
+      input_len = strlen(input_buf);
     }
-#endif
+#else
     const int input_len = in_superchop (input_buf);
+#endif
 
     if (input_len < IN_LEN_MIN) continue;
     if (input_len > IN_LEN_MAX) continue;
@@ -1340,6 +1491,9 @@ void do_prince_crack(struct db_main *db, char *filename)
    */
 
 #ifdef JTR_MODE
+  if (fclose(word_file))
+    pexit("fclose");
+
   log_event("Initializing chains");
 #endif
   for (int pw_len = pw_min; pw_len <= pw_max; pw_len++)
@@ -1451,20 +1605,6 @@ void do_prince_crack(struct db_main *db, char *filename)
   if (mpz_cmp_ui(rec_pos, 0))
   {
     mpz_set(skip, rec_pos);
-  }
-
-  if (mpz_cmp_ui(skip, 0))
-  {
-    char l_msg[64];
-    mpz_get_str(l_msg, 10, skip);
-    log_event("- Skip %s", l_msg);
-  }
-
-  if (mpz_cmp_ui(limit, 0))
-  {
-    char l_msg[64];
-    mpz_get_str(l_msg, 10, limit);
-    log_event("- Limit %s", l_msg);
   }
 
   mpz_set(pos, rec_pos);
@@ -1734,6 +1874,20 @@ void do_prince_crack(struct db_main *db, char *filename)
    */
 
 #ifdef JTR_MODE
+  if (mpz_cmp_ui(skip, 0))
+  {
+    char l_msg[64];
+    mpz_get_str(l_msg, 10, skip);
+    log_event("- Skip %s", l_msg);
+  }
+
+  if (mpz_cmp_ui(limit, 0))
+  {
+    char l_msg[64];
+    mpz_get_str(l_msg, 10, limit);
+    log_event("- Limit %s", l_msg);
+  }
+
   log_event("Starting candidate generation");
 
   int jtr_done = 0;
@@ -1932,6 +2086,9 @@ void do_prince_crack(struct db_main *db, char *filename)
 #ifndef JTR_MODE
   return 0;
 #else
+  if (mem_map)
+    munmap(mem_map, file_len);
+
   crk_done();
   rec_done(event_abort || (status.pass && db->salts));
 
@@ -1942,4 +2099,4 @@ void do_prince_crack(struct db_main *db, char *filename)
 #endif
 }
 
-#endif /* HAVE_LIBGMP */
+#endif /* HAVE_LIBGMP || HAVE_INT128 || HAVE___INT128 || HAVE___INT128_T */

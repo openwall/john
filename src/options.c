@@ -82,8 +82,9 @@ static struct opt_entry opt_list[] = {
 #if HAVE_LIBGMP || HAVE_INT128 || HAVE___INT128 || HAVE___INT128_T
 	{"prince", FLG_PRINCE_SET, FLG_CRACKING_CHK,
 		0, 0, OPT_FMT_STR_ALLOC, &options.wordlist},
-	{"prince-loopback", FLG_PRINCE_SET | FLG_PRINCE_LOOPBACK,
-		FLG_CRACKING_CHK, 0, 0, OPT_FMT_STR_ALLOC, &options.wordlist},
+	{"prince-loopback", FLG_PRINCE_SET | FLG_PRINCE_LOOPBACK | FLG_DUPESUPP,
+		FLG_CRACKING_CHK, 0, FLG_PRINCE_MMAP, OPT_FMT_STR_ALLOC,
+		&options.wordlist},
 	{"prince-elem-cnt-min", FLG_ZERO, 0, FLG_PRINCE_CHK,
 		OPT_REQ_PARAM, "%d", &prince_elem_cnt_min},
 	{"prince-elem-cnt-max", FLG_ZERO, 0, FLG_PRINCE_CHK,
@@ -93,10 +94,12 @@ static struct opt_entry opt_list[] = {
 	{"prince-limit", FLG_ZERO, 0, FLG_PRINCE_CHK,
 		0, OPT_FMT_STR_ALLOC, &prince_limit_str},
 	{"prince-wl-dist-len", FLG_PRINCE_DIST, 0, FLG_PRINCE_CHK, 0},
-	{"prince-case-permute", FLG_PRINCE_CASE_PERMUTE, 0, FLG_PRINCE_CHK, 0},
-	{"prince-keyspace", FLG_PRINCE_KEYSPACE, 0, FLG_PRINCE_CHK, 0},
-	{"prince-dupe-check-disable", FLG_PRINCE_NO_DUPE_SUP, 0,
+	{"prince-case-permute", FLG_PRINCE_CASE_PERMUTE, 0,
+		FLG_PRINCE_CHK, FLG_PRINCE_MMAP},
+	{"prince-keyspace", FLG_PRINCE_KEYSPACE | FLG_STDOUT, 0,
 		FLG_PRINCE_CHK, 0},
+	{"prince-mmap", FLG_PRINCE_MMAP, 0,
+		FLG_PRINCE_CHK, FLG_PRINCE_LOOPBACK | FLG_PRINCE_CASE_PERMUTE},
 #endif
 	/* -enc is an alias for -input-enc for legacy reasons */
 	{"encoding", FLG_INPUT_ENC, FLG_INPUT_ENC,
@@ -206,7 +209,7 @@ static struct opt_entry opt_list[] = {
 		FLG_WORDLIST_CHK, (FLG_DUPESUPP | FLG_SAVEMEM |
 		FLG_STDIN_CHK | FLG_PIPE_CHK | OPT_REQ_PARAM),
 		"%zu", &options.max_wordfile_memory},
-	{"dupe-suppression", FLG_DUPESUPP, FLG_DUPESUPP, FLG_WORDLIST_CHK,
+	{"dupe-suppression", FLG_DUPESUPP, FLG_DUPESUPP, 0,
 		FLG_SAVEMEM | FLG_STDIN_CHK | FLG_PIPE_CHK},
 	{"fix-state-delay", FLG_ZERO, 0, 0, OPT_REQ_PARAM,
 		"%u", &options.max_fix_state_delay},
@@ -464,18 +467,19 @@ void opt_print_hidden_usage(void)
 	puts("--platform=N              set OpenCL platform (deprecated)");
 #endif
 #if HAVE_LIBGMP || HAVE_INT128 || HAVE___INT128 || HAVE___INT128_T
-	puts("\nPRINCE options:");
-	puts("--prince-loopback[=FILE]     Fetch words from a .pot file");
-	puts("--prince-elem-cnt-min=N      Minimum number of elements per chain (1)");
-	puts("--prince-elem-cnt-max=N      Maximum number of elements per chain (8)");
-	puts("--prince-skip=N              Initial skip");
-	puts("--prince-limit=N             Limit number of candidates generated");
-	puts("--prince-wl-dist-len         Calculate length distribution from wordlist");
-	puts("                             instead of using built-in table");
-	puts("--prince-case-permute        Permute case of first letter");
-	puts("--prince-keyspace            Show total keyspace that would be produced");
-	puts("                             (disregarding skip and limit)");
-	puts("--prince-dupe-check-disable  Disable dupes check for faster inital load");
+	puts("\nPRINCE mode options:");
+	puts("--prince-loopback[=FILE]  fetch words from a .pot file");
+	puts("--prince-elem-cnt-min=N   minimum number of elements per chain (1)");
+	puts("--prince-elem-cnt-max=N   maximum number of elements per chain (8)");
+	puts("--prince-skip=N           initial skip");
+	puts("--prince-limit=N          limit number of candidates generated");
+	puts("--prince-wl-dist-len      calculate length distribution from wordlist");
+	puts("                          instead of using built-in table");
+	puts("--prince-case-permute     permute case of first letter");
+	puts("--prince-mmap             memory-map input file (not available for loopback");
+	puts("                          or when permuting case)");
+	puts("--prince-keyspace         just show total keyspace that would be produced");
+	puts("                          (disregarding skip and limit)");
 #endif
 	puts("");
 }
